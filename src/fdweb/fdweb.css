@@ -1,0 +1,195 @@
+/* Error pages */
+
+body#ERRORPAGE { margin: 12pt; background-color: silver;}
+
+div.error {
+  margin-left: 8em; text-indent: -8em;
+  font-size: 16pt; font-family: sans; }
+div.error span.ex { font-weight: bold;}
+div.error span.cxt { font-family: fixed; }
+div.error span.details { font-weight: normal; font-style: italic; }
+div.error span.irritant {
+  background-color: white; color: red; margin-left: 6pt;
+  font-weight: normal; font-family: fixed; white-space: nowrap;}
+div.backtrace { }
+div.backtrace div.expr {
+  white-space: pre;
+  font-family: fixed; text-align: left; font-size: 12pt;}
+div.backtrace div.expr span.focus {
+  font-weight: bold; color: red; font-size: 120%;}
+
+div.backtrace div.bindings {
+  background-color: lightblue; width: 100%;}
+div.backtrace div.bindings span.binding {
+  font-family: fixed; font-weight: bold; white-space: nowrap; }
+div.backtrace div.bindings span.head {
+  padding-right: 12pt; color: purple; font-weight: bold;}
+
+div.backtrace div.rail {
+  background-color: lightblue; width: 100%;}
+div.backtrace div.rail span.name {
+  color: purple; font-family: sans; font-weight: bold; padding-right: 8pt;}
+div.backtrace div.rail span.arg {
+  color: black; font-family: fixed; font-weight: bold;
+  padding-right: 6pt; padding-left: 6pt;}
+
+div.backtrace div.defcxt {
+  color: blue; font-family: fixed;}
+
+div.call { margin-left: 3pt;}
+
+/* Default frame description */
+
+table.frame_table th.header { 
+  vertical-align: top; text-align: center; 
+  font-family: sans; font-size: large; }
+table.frame_table th {
+  vertical-align: top;
+  text-align: right;
+  padding: 2pt;
+  font-family: sans;}
+table.frame_table td {
+  vertical-align: top; text-align: left; padding: 2pt;
+  background-color: lightblue; color: black;
+  font-family: fixed;}
+table.frame_table td span.value {
+  white-space: nowrap;}
+
+table.table_table th.header { 
+  vertical-align: top; text-align: center; 
+  font-family: sans; font-size: large; }
+table.table_table th {
+  vertical-align: top;
+  text-align: right;
+  padding: 2pt;
+  font-family: sans;}
+table.table_table td {
+  vertical-align: top; text-align: left; padding: 2pt;
+  background-color: yellow; color: black;
+  font-family: fixed;}
+table.table_table td span.value {
+  white-space: nowrap;}
+
+/* Hide/show classes */
+
+span.hideshow {
+  font-family: fixed; font-size: 80%; 
+  cursor: pointer; color: black;
+  white-space: nowrap;}
+span.hideshow span.whenHidden {
+  color: blue;}
+span.hideshow span.whenVisible {
+  color: blue;
+  display: none;}
+
+/* Collapsar classes */
+
+span.collapsar {
+ white-space: nowrap; cursor: pointer;
+ text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ color: black; background-color: lightgray; padding: 1pt; margin: 2pt;}
+
+/* Clickit classes */
+
+span.clickit {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1pt;
+ border: outset silver 2pt;	
+ margin: 2pt;}
+a.clickit {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1pt;
+ border: outset silver 2pt;	
+ margin: 2pt;}
+a.clickit:visited {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1pt;
+ border: outset silver 2pt;	
+ margin: 2pt;}
+input[type='SUBMIT'] {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1pt;
+ border: outset silver 2pt;	
+ margin: 2pt;}
+
+/* Input help classes */
+
+div.input_help {
+ font-style: italic; font-size: 9pt; color: purple;
+ margin-left: 5%; text-indent: -5%;}
+div.hidden_input_help {
+ font-style: italic; font-size: 9pt; color: purple;
+ margin-left: 5%; text-indent: -5%;
+ display: none;}
+div.input_help tt {font-style: normal; font-weight: bold;}
+div.hidden_input_help tt {font-style: normal; font-weight: bold;}
+
+/* Hotcheckboxes */
+
+span.hotcheck { cursor: pointer; white-space: nowrap;}
+
+/* Tabs */
+
+span.tab {
+  font-family: sans,sans-serif;
+  margin-left: 2pt; margin-right: 2pt;
+  border: outset black 2pt;
+  padding: 3pt;}
+span.selected_tab {
+  font-family: sans,sans-serif;
+  font-weight: bold;
+  margin-left: 2pt; margin-right: 2pt;
+  border-top: inset black 2pt;
+  border-right: inset black 2pt;
+  border-left: inset black 2pt;
+  padding: 3pt;}
+
+div.tab_content {
+ margin-left: 9pt; margin-top: 6pt; margin-right: 9pt;
+ text-align: left;
+ display: none;}
+div.tab_content div.narrative {
+ color: purple; font-family: sans; font-style: italic;}
+
+div.tab_content p {
+ margin: 2pt; padding: 2pt;
+ margin-left: 15%; text-indent: -5%; margin-right: 10%;}
+
+div.tab_content div.header {
+ text-align: left; width: 95%; background-color: lightgray;
+ font-size: 15pt; font-family: sans; font-weight: bold; margin-top: 3px;
+ padding-left: 3%; text-indent: -3%;}
+div.tab_content div.header span.explanation {
+ margin-left: 16px; color: purple;
+ font-weight: normal; font-style: italic; font-size: 9pt;}
+
+/* Autoprompt classes */
+
+input.autoprompt {
+  font-weight: bold;
+  height: 18px; }
+input.autoprompt_empty {
+  font-family: sans,sans-serif; font-weight: normal; font-style: italic;
+  color: gray; height: 18px; }
+
+/* Narrative classes */
+
+span.narrative {
+  color: purple; font-style: italic; }
+span.narrative_hidden {
+  color: purple; font-style: italic;
+  display: none;}
+
+/* Language id classes */
+
+span.langid {
+  color: green; vertical-align: super;
+  font-family: fixed; font-size: 80%;}

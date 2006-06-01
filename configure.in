@@ -1,0 +1,348 @@
+AC_INIT(include/fdb/dtype.h)
+threads_default="yes"
+shared_default="yes"
+shared_suffix="so"
+tls_default="no"
+global_ipeval_default="no"
+enable_fdweb_default="no"
+enable_texttools_default="no"
+install_file_opts=""
+install_exe_opts=""
+libc_pthreads="no"
+libc_dlopen="no"
+curlo=""
+curlconfig=""
+curl_default="no"
+exifo=""
+doi18n="no"
+exif_default="no"
+dynamic_cflag="-rdynamic"
+xstatic_exe_libs=""
+xstatic_scheme_libs=""
+xdynamic_scheme_libs=""
+scheme_builtins_init=""
+DREENTRANT="-D_REENTRANT"
+MKSTATIC="ld -r -o"
+TESTLDFLAGS=
+EXELDFLAGS=
+SHARED_LIB_TARGET=shared-libs
+VERSION=3
+I18N=""
+INSTALLI18N=""
+
+AC_CONFIG_AUX_DIR(etc)
+AC_CONFIG_HEADER(include/fdb/config.h)
+AC_PREFIX_DEFAULT(/usr/local)
+
+AC_SUBST(install_file_opts)
+AC_SUBST(install_exe_opts)
+AC_SUBST(shared_suffix)
+AC_SUBST(dynamic_cflag)
+AC_SUBST(curlconfig)
+AC_SUBST(curlo)
+AC_SUBST(exifo)
+AC_SUBST(xstatic_exe_libs)
+AC_SUBST(xstatic_scheme_libs)
+AC_SUBST(xdynamic_scheme_libs)
+AC_SUBST(scheme_builtins_init)
+
+AC_SUBST(DREENTRANT)
+AC_SUBST(SHARED_LIB_TARGET)
+AC_SUBST(SHARED_LIB)
+AC_SUBST(SHARED_LIBV)
+AC_SUBST(TESTLDFLAGS)
+AC_SUBST(EXELDFLAGS)
+AC_SUBST(VERSION)
+AC_SUBST(PROFILING)
+AC_SUBST(MKSTATIC)
+AC_SUBST(I18N)
+AC_SUBST(INSTALLI18N)
+AC_SUBST(APXS)
+
+AC_CANONICAL_HOST
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_CHECK_PROG(VALGRIND,valgrind)
+AC_CHECK_PROGS(APXS,apxs apxs2)
+AC_AIX
+
+gcc_version=`gcc -dumpversion`
+
+case $gcc_version in
+  4*)
+   CFLAGS="-Wno-pointer-sign $CFLAGS"
+  ;;
+esac
+
+case $host_os in
+  darwin*)
+   MKSTATIC="libtool -static -o "
+   LIBS="$LIBS -lgcc"
+   dynamic_cflag="-dynamic"
+   shared_suffix="dylib"
+   ifmacosx=""
+   ;;
+esac  
+
+AC_DEFINE(FD_WORDS_ARE_ALIGNED,1)
+AC_TYPE_UID_T
+AC_TYPE_OFF_T
+AC_C_INLINE
+AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(int,4)
+AC_CHECK_SIZEOF(long,4)
+AC_CHECK_SIZEOF(long long,8)
+AC_CHECK_SIZEOF(void *,4)
+
+AC_HEADER_STDC
+AC_HEADER_STAT
+
+AC_ARG_WITH(i18n,--with[out]-i18n built and install message catalogs,,with_i18n="no")
+if test $with_i18n == "yes"; then
+  AC_CHECK_FUNCS(gettext,[doi18n="yes"])
+fi
+if test $doi18n = "yes"; then
+  I18N="i18n"
+  INSTALLI18N="install-i18n"
+fi
+
+AC_CHECK_FUNCS(sigsetmask)
+AC_CHECK_FUNCS(strdup strndup)
+AC_CHECK_FUNCS(flock)
+AC_CHECK_FUNCS(sleep)
+AC_CHECK_FUNCS(nanosleep)
+AC_CHECK_FUNCS(fseeko)
+AC_CHECK_FUNCS(mmap)
+
+AC_ARG_ENABLE(shared,--en[able]-shared Build with/without shared libraries,,enable_shared=$shared_default)
+if test $enable_shared = "yes"; then
+  CFLAGS="-fPIC $CFLAGS"
+  SHARED_LIB_TARGET=shared-libs
+else
+  SHARED_LIB=
+  SHARED_LIBV=
+  SHARED_LIB_TARGET=
+fi
+
+AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
+if test $with_tcmalloc == "yes"; then
+  AC_CHECK_LIB(tcmalloc,malloc)
+fi
+
+AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
+if test $libc_dlopen != "yes"; then
+   AC_CHECK_LIB(dl,dlopen)
+fi
+
+AC_CHECK_FUNCS(pthread_create,libc_pthreads="yes")
+if test $libc_pthreads != "yes"; then
+   AC_CHECK_LIB(pthread,pthread_create)
+   AC_CHECK_LIB(c_r,pthread_create)
+   AC_CHECK_LIB(pthreads,pthread_create)
+   AC_CHECK_HEADERS(pthread.h)
+else
+   AC_CHECK_HEADERS(pthread.h)
+   threads_default="yes";
+fi
+
+AC_ARG_ENABLE(threads,--en/disable-threads Enable multi-threading,,enable_threads=$threads_default)
+if test $enable_threads = "yes"; then
+  REENTRANT=-D_REENTRANT	
+  AC_DEFINE(FD_THREADS_ENABLED,1)
+else
+  AC_DEFINE(FD_THREADS_ENABLED,0)
+fi
+
+AC_ARG_ENABLE(largefiles,--en/disable-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
+if test $enable_largefiles = "yes"; then
+  AC_DEFINE(FD_LARGEFILES_ENABLED,1)
+else
+  AC_DEFINE(FD_LARGEFILES_ENABLED,0)
+fi
+
+AC_CHECK_LIB(u8,_u8_sgetc)
+
+AC_ARG_ENABLE(profiling,--en/disable-profiling compile to generate profile information,,enable_profiling="no")
+if test $enable_profiling = "yes"; then
+  AC_DEFINE(FD_PROFILING_ENABLED,1)
+  PROFILING="-O0 -pg -fno-inline -fprofile-arcs -ftest-coverage"
+else 
+  PROFILING=""
+fi
+
+AC_ARG_ENABLE(prefetching,--en/disable-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
+if test $enable_prefetching = "yes"; then
+  AC_DEFINE(FD_PREFETCHING_ENABLED,1)
+else
+  AC_DEFINE(FD_PREFETCHING_ENABLED,0)
+fi
+
+AC_ARG_ENABLE(calltrack,--en/disable-calltrack enable internal scheme profiling,,enable_calltrack="yes")
+if test $enable_calltrack = "yes"; then
+  AC_DEFINE(FD_CALLTRACK_ENABLED,1)
+else
+  AC_DEFINE(FD_CALLTRACK_ENABLED,0)
+fi
+
+AC_ARG_ENABLE(schemeio,--en/disable-schemeio compiled-in schemeio,,enable_schemeio="yes")
+if test $enable_schemeio = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio"
+  xstatic_exe_libs="lib/libfdschemeio.a $xstatic_exe_libs"
+  xstatic_scheme_libs="../../lib/libfdschemeio.a $xstatic_scheme_libs"
+fi
+
+AC_ARG_ENABLE(fdweb,--en/disable-fdweb compiled-in fdweb,,enable_fdweb=$enable_fdweb_default)
+if test $enable_fdweb = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
+  xdynamic_scheme_libs="-lfdweb $xdynamic_scheme_libs"
+  xstatic_exe_libs="lib/libfdweb.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libfdweb.a $xstatic_scheme_libs"
+fi
+
+AC_ARG_ENABLE(texttools,--en/disable-texttools compiled-in texttools,,enable_texttools=$enable_texttools_default)
+if test $enable_texttools = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; fd_init_texttools()"
+  xdynamic_scheme_libs="-ltexttools $xdynamic_scheme_libs"
+  xstatic_exe_libs="lib/libtexttools.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libtexttools.a $xstatic_scheme_libs"
+fi
+
+dnl ***********************************
+dnl *** Checks for working __thread ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __thread)
+AC_TRY_COMPILE([
+            #include <pthread.h>
+            __thread int i;
+	    static int res1, res2;
+	],[
+	     void thread_main (void *arg)
+	     {
+		i = arg;
+		sleep (1);
+		if (arg == 1) res1 = (i == arg);
+		else res2 = (i == arg);
+	     }
+
+	     int main () {
+		pthread_t t1, t2;
+ 		i = 5;
+		pthread_create (&t1, NULL, thread_main, 1);
+		pthread_create (&t2, NULL, thread_main, 2);
+
+		pthread_join (t1, NULL);
+		pthread_join (t2, NULL);
+		return !(res1 + res2 == 2);
+		}
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_THREAD_STORAGE_CLASS)],
+	       [AC_MSG_RESULT(no)])
+
+
+dnl ***********************************
+dnl *** Checks for working __builtin_expect ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __builtin_expect)
+AC_TRY_COMPILE([],[
+	     int main (int argc,char *argv[]) {
+                if (__builtin_expect((argc>2),1)) return 0;
+                else return 1;
+		}
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_BUILTIN_EXPECT)],
+	       [AC_MSG_RESULT(no)])
+
+
+dnl ***********************************
+dnl *** Checks for working __builtin_prefetch ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __builtin_prefetch)
+AC_TRY_COMPILE([],[
+	     static int data[]={0,1,2,3};
+
+	     int main (int argc,char *argv[]) {
+                __builtin_prefetch(&data[2],0,3);
+		return 0;
+		}
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_BUILTIN_PREFETCH)],
+	       [AC_MSG_RESULT(no)])
+
+
+dnl ***********************************
+dnl *** Checks for working constructor attributes ***
+dnl ***********************************
+AC_MSG_CHECKING(for working __constructor_attributes)
+AC_TRY_COMPILE([],[
+             int tmpinit(void) __attribute__ ((constructor));
+
+	    ], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_CONSTRUCTOR_ATTRIBUTES)],
+	       [AC_MSG_RESULT(no)])
+
+AC_ARG_WITH(tls,--with[out]-tls Force use of threadlocal storage,,with_tls=$tls_default)
+if test $with_tls = "yes"; then
+  AC_DEFINE(FD_FORCE_TLS,1)
+else
+  AC_DEFINE(FD_FORCE_TLS,0)
+fi
+
+AC_ARG_WITH(global_ipeval,--with[out]-global-ipeval Use global lock and variables for ipeval,,with_global_ipeval=$global_ipeval_default)
+if test $with_global_ipeval = "yes"; then
+  AC_DEFINE(FD_GLOBAL_IPEVAL,1)
+else
+  AC_DEFINE(FD_GLOBAL_IPEVAL,0)
+fi
+
+AC_CHECK_LIB(curl,curl_easy_init,curl_default="yes")
+AC_ARG_WITH(curl,--with[out]-curl Use libcurl in fdweb,,with_curl=$curl_default)
+if test $with_curl = "yes"; then
+  AC_CHECK_LIB(curl,curl_easy_init)
+  AC_CHECK_HEADERS(curl/curl.h)
+  AC_DEFINE(FD_WITH_CURL,1)
+  curlo="src/fdweb/curl.o"
+  curlconfig="\`curl-config --libs\`"
+else
+  AC_DEFINE(FD_WITH_CURL,0)
+fi
+
+AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
+AC_ARG_WITH(exif,--with[out]-exif Use libexif in fdweb,,with_exif=$exif_default)
+if test $with_exif = "yes"; then
+  AC_CHECK_LIB(exif,exif_data_new_from_data)
+  AC_CHECK_HEADERS(libexif/exif-data.h)
+  AC_DEFINE(FD_WITH_EXIF,1)
+  exifo="src/fdweb/exif.o"
+else
+  AC_DEFINE(FD_WITH_EXIF,0)
+fi
+
+AC_ARG_WITH(framerd_group,--with[out]-framerd-group Install files with framerd group and group write permissions,,with_framerd_group="none")
+if test $with_framerd_group != "none"; then
+  install_file_opts="--group=$with_framerd_group --mode=0664"
+  install_exe_opts="--group=$with_framerd_group --mode=0775"
+fi
+
+AC_ARG_ENABLE(fileconfig,--en/disable-file-based configuration,,enable_fileconfig="yes")
+if test $enable_fileconfig = "yes"; then
+  LIBS="$LIBS -lu8io"
+  AC_DEFINE(FD_FILECONFIG_ENABLED,1)
+else
+  AC_DEFINE(FD_FILECONFIG_ENABLED,0)
+fi
+
+AC_ARG_WITH(u8data,--with[out]-u8data Use full Unicode data libraries,,with_u8data="yes")
+if test $with_u8data = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; u8_init_chardata_c()"
+  LIBS="$LIBS -lu8data"
+fi
+
+AC_OUTPUT(makefile 
+          tests/dtype/makefile tests/db/makefile tests/scheme/makefile
+	  include/fdb/conf-defines.h etc/framerd-rc.d)

@@ -1,0 +1,104 @@
+# -*- Mode: Makefile; -*-
+# Copyright (C) 2004, 2005 beingmeta, inc.
+# This file is a part of beingmeta's FramerD implementation, EFramerD.
+MAKEFILE_VERSION="$Id: makefile.in,v 1.43 2006/01/07 18:26:12 haase Exp $
+
+CC	= gcc
+XCFLAGS=
+CFLAGS=-fPIC -Wno-pointer-sign -g -O2  -D_REENTRANT -dynamic \
+	 -I./include -I../../include $(XCFLAGS)
+LDFLAGS= $(EFENCE)  -L../../lib
+LIBS=-lcurl -lu8  -lgcc -lu8io -lu8data -lm -lz -lu8 -lu8fns -lu8io
+
+EXTRA_LIBS	= ../../lib/libtexttools.a ../../lib/libfdweb.a ../../lib/libfdschemeio.a 
+DESTDIR		=
+prefix		= /usr
+exec_prefix	= ${prefix}
+LIBINSTALLDIR	= $(DESTDIR)${exec_prefix}/lib
+CLEAN		= @CLEAN@
+INSTALL		= /usr/bin/install -c
+#RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
+VALGRIND	= valgrind --tool=memcheck --leak-check=yes --num-callers=9
+TESTPROG	= 
+RUNENV		= 
+TESTSIZE	= 64
+TESTCONFIG	= 
+RUNTEST		= $(RUNENV)$(TESTPROG)
+DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
+
+TESTBIN=fdeval fdconsole fdexec fdtypeserver fdwebserv
+
+all: $(TESTBIN) 
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+# This is for making shared test programs, when there are associated problems
+%.shared: %.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
+		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio
+
+../../lib/libfdweb.a:
+	cd ../..; make lib/libfdweb.a
+../../lib/libfdschemeio.a:
+	cd ../..; make lib/libfdschemeio.a
+../../lib/libfdscheme.a:
+	cd ../..; make lib/libfdscheme.a
+../../lib/libfdtype.a:
+	cd ../..; make lib/libfdtype.a
+../../lib/libfddb.a:
+	cd ../..; make lib/libfddb.a
+
+$(TESTBIN): $(EXTRA_LIBS) \
+            ../../lib/libfdscheme.a ../../lib/libfddb.a ../../lib/libfdtype.a
+
+%: %.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
+	../../lib/libfddbfile.a ../../lib/libfddb.a \
+	../../lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
+fdtypeserver: fdtypeserver.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
+	../../lib/libfddbfile.a ../../lib/libfddb.a \
+	../../lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
+fdwebserv: fdwebserv.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
+	../../lib/libfddbfile.a ../../lib/libfddb.a \
+	../../lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
+
+clean:
+	rm -f $(TESTBIN)
+
+alltests: dtypetests tabletests dbtests
+dtypetests:
+	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) choicetest.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) seqtest.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) misctest.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) texttest.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) threadtest.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) i18n.scm
+tabletests:
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index $(TESTSIZE)
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
+dbtests:
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) dbtest init $(DBTEST_FILES)
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) dbtest
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 dbtest
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 dbtest init $(DBTEST_FILES)
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 dbtest
+memtests:
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
+memdtypetests:
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+memtabletests:
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
+memdbtests:
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests
+randomtests:
+	make "TESTCONFIG=RANDOMSEED=TIME" alltests

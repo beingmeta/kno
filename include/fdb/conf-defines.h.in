@@ -1,0 +1,16 @@
+#define FD_DEFAULT_DLOADPATH \
+  "@prefix@/lib/%.@shared_suffix@:@prefix@/lib/lib%.@shared_suffix@:/lib/%.@shared_suffix@:/lib/lib%.@shared_suffix@"
+
+#define FD_DEFAULT_LOADPATH \
+  "@prefix@/share/framerd/scm/%/module.scm:@prefix@/share/framerd/scm/%.scm"
+
+#define FD_DEFAULT_SAFE_LOADPATH \
+  "@prefix@/share/framerd/scm/safe/%/module.scm:@prefix@/share/framerd/scm/safe/%.scm"
+
+#define FD_CONFIG_FILE_PATH \
+  "@prefix@/share/framerd/config/%"
+#define FD_USER_CONFIG_FILE_PATH \
+  "~/.fdconfig/%:@prefix@/share/framerd/config/%"
+
+#define FD_INIT_SCHEME_BUILTINS() \
+  fd_init_fdscheme()@scheme_builtins_init@

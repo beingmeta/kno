@@ -1,0 +1,517 @@
+# Dutch translations for PACKAGE package.
+# Copyright (C) 2005 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Kenneth Haase <kh@beingmeta.com>, 2005.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2005-03-05 15:43-0500\n"
+"PO-Revision-Date: 2005-03-04 22:55-0500\n"
+"Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
+"Language-Team: Dutch <nl@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/lisp/cons.c:14
+msgid "Type error"
+msgstr ""
+
+#: src/lisp/cons.c:14
+msgid "Range error"
+msgstr ""
+
+#: src/lisp/cons.c:15
+msgid "internal error: bad pointer"
+msgstr ""
+
+#: src/lisp/cons.c:492 src/lisp/cons.c:496 src/lisp/cons.c:510
+#: src/lisp/cons.c:514 src/lisp/cons.c:528 src/lisp/cons.c:532
+#: src/lisp/cons.c:546 src/lisp/cons.c:550 src/lisp/cons.c:564
+#: src/lisp/cons.c:568 src/lisp/cons.c:581 src/lisp/cons.c:585
+msgid "number"
+msgstr ""
+
+#: src/lisp/cons.c:646
+#, c-format
+msgid "%m expected"
+msgstr ""
+
+#: src/lisp/cons.c:687
+#, c-format
+msgid "#<MysteryVector 0x%x/0x%x %d elements>"
+msgstr ""
+
+#: src/lisp/cons.c:689
+#, c-format
+msgid "#<MysteryPacket 0x%x/0x%x %d bytes>"
+msgstr ""
+
+#: src/lisp/tables.c:17
+msgid "No such key"
+msgstr ""
+
+#: src/lisp/tables.c:18
+msgid "Hashset Overflow"
+msgstr ""
+
+#: src/lisp/tables.c:19
+msgid "Not a table"
+msgstr ""
+
+#: src/lisp/tables.c:20
+msgid "Table doesn't support get"
+msgstr ""
+
+#: src/lisp/tables.c:21
+msgid "Table doesn't support set"
+msgstr ""
+
+#: src/lisp/tables.c:22
+msgid "Table doesn't support add"
+msgstr ""
+
+#: src/lisp/tables.c:23
+msgid "Table doesn't support drop"
+msgstr ""
+
+#: src/lisp/tables.c:24
+msgid "Table doesn't support test"
+msgstr ""
+
+#: src/lisp/tables.c:25
+msgid "Table doesn't support getkeys"
+msgstr ""
+
+#: src/lisp/tables.c:45
+#, c-format
+msgid "Noticed %s on %lx\n"
+msgstr ""
+
+#: src/lisp/tables.c:1016 src/lisp/fdlisp.c:77
+msgid "hashtable"
+msgstr ""
+
+#: src/lisp/tables.c:1633
+msgid "value is not a boolean"
+msgstr ""
+
+#: src/lisp/dtypeio.c:21
+msgid "Unexpected end of data"
+msgstr ""
+
+#: src/lisp/dtypeio.c:22
+msgid "Malformed DTYPE representation"
+msgstr ""
+
+#: src/lisp/dtypeio.c:179
+msgid "Invalid constant"
+msgstr ""
+
+#: src/lisp/textio.c:27
+msgid "Can't open file"
+msgstr ""
+
+#: src/lisp/textio.c:28
+msgid "Invalid escape sequence"
+msgstr ""
+
+#: src/lisp/textio.c:29
+msgid "Invalid constant reference"
+msgstr ""
+
+#: src/lisp/textio.c:30
+msgid "Invalid character constant"
+msgstr ""
+
+#: src/lisp/textio.c:31
+msgid "Bad atomic expression"
+msgstr ""
+
+#: src/lisp/textio.c:32
+msgid "no pointer expressions allowed"
+msgstr ""
+
+#: src/lisp/textio.c:33
+msgid "bad pointer reference"
+msgstr ""
+
+#: src/lisp/textio.c:34
+msgid "LISP expression parse error"
+msgstr ""
+
+#: src/lisp/textio.c:35
+msgid "LISP expression unparse error"
+msgstr ""
+
+#: src/lisp/textio.c:36
+msgid "Can't parse record object"
+msgstr ""
+
+#: src/lisp/textio.c:260
+msgid "no handler"
+msgstr ""
+
+#: src/lisp/fdlisp.c:22
+msgid "Method not supported"
+msgstr ""
+
+#: src/lisp/fdlisp.c:62
+msgid "oid"
+msgstr ""
+
+#: src/lisp/fdlisp.c:63 src/scheme/iterators.c:101 src/scheme/dbfns.c:507
+#: src/scheme/sequences.c:440 src/scheme/sequences.c:455
+#: src/scheme/sequences.c:472
+msgid "fixnum"
+msgstr ""
+
+#: src/lisp/fdlisp.c:64
+msgid "constant"
+msgstr ""
+
+#: src/lisp/fdlisp.c:65 src/scheme/sequences.c:281 src/scheme/sequences.c:622
+#: src/scheme/sequences.c:631
+msgid "character"
+msgstr ""
+
+#: src/lisp/fdlisp.c:66 src/scheme/modules.c:143
+msgid "symbol"
+msgstr ""
+
+#: src/lisp/fdlisp.c:67 src/scheme/load.c:162 src/scheme/load.c:174
+#: src/scheme/portfns.c:164 src/scheme/portfns.c:266 src/scheme/portfns.c:325
+msgid "string"
+msgstr ""
+
+#: src/lisp/fdlisp.c:68
+msgid "packet"
+msgstr ""
+
+#: src/lisp/fdlisp.c:69
+msgid "bigint"
+msgstr ""
+
+#: src/lisp/fdlisp.c:70
+msgid "pair"
+msgstr ""
+
+#: src/lisp/fdlisp.c:71
+msgid "compound"
+msgstr ""
+
+#: src/lisp/fdlisp.c:72
+msgid "choice"
+msgstr ""
+
+#: src/lisp/fdlisp.c:73
+msgid "achoice"
+msgstr ""
+
+#: src/lisp/fdlisp.c:74
+msgid "vector"
+msgstr ""
+
+#: src/lisp/fdlisp.c:75
+msgid "slotmap"
+msgstr ""
+
+#: src/lisp/fdlisp.c:76
+msgid "schemap"
+msgstr ""
+
+#: src/lisp/fdlisp.c:78
+msgid "flonum"
+msgstr ""
+
+#: src/lisp/fdlisp.c:79
+msgid "wrapper"
+msgstr ""
+
+#: src/lisp/fdlisp.c:80
+msgid "mystery"
+msgstr ""
+
+#: src/lisp/support.c:13
+msgid "Unknown error condition"
+msgstr ""
+
+#: src/lisp/support.c:14
+msgid "Configuration syntax error"
+msgstr ""
+
+#: src/db/fddb.c:17
+msgid "FramerD Database internal error"
+msgstr ""
+
+#: src/db/fddb.c:18
+msgid "Ambiguous object name"
+msgstr ""
+
+#: src/db/fddb.c:19
+msgid "Unknown object name"
+msgstr ""
+
+#: src/db/fddb.c:20
+msgid "bad server response"
+msgstr ""
+
+#: src/db/fddb.c:21
+msgid "No default background indices"
+msgstr ""
+
+#: src/db/fddb.c:47
+msgid "object name lookup"
+msgstr ""
+
+#: src/db/dtypestream.c:17
+msgid "Can't read data"
+msgstr ""
+
+#: src/db/dtypestream.c:18
+msgid "Can't write data"
+msgstr ""
+
+#: src/db/indices.c:19
+msgid "file indices are not supported"
+msgstr ""
+
+#: src/db/indices.c:20
+msgid "not a file index"
+msgstr ""
+
+#: src/db/indices.c:110
+msgid "not an index"
+msgstr ""
+
+#: src/db/indices.c:540
+#, c-format
+msgid "#<INDEX 0x%lx \"%s\">"
+msgstr ""
+
+#: src/db/pools.c:19
+msgid "Can't lock OID"
+msgstr ""
+
+#: src/db/pools.c:20
+msgid "Invalid pool PTR"
+msgstr ""
+
+#: src/db/pools.c:21
+msgid "not a file pool"
+msgstr ""
+
+#: src/db/pools.c:22
+msgid "file pools are not supported"
+msgstr ""
+
+#: src/db/pools.c:23
+msgid "no pool covers this OID"
+msgstr ""
+
+#: src/db/pools.c:24 src/scheme/dbfns.c:238 src/scheme/dbfns.c:245
+#: src/scheme/dbfns.c:256 src/scheme/dbfns.c:264 src/scheme/dbfns.c:272
+#: src/scheme/dbfns.c:287 src/scheme/dbfns.c:300 src/scheme/dbfns.c:501
+#: src/scheme/dbfns.c:526
+msgid "pool"
+msgstr ""
+
+#: src/db/pools.c:25
+msgid "file pool label is not a string"
+msgstr ""
+
+#: src/db/pools.c:224
+msgid "Pool conflict"
+msgstr ""
+
+#: src/db/pools.c:488
+msgid "Corrupted pool table"
+msgstr ""
+
+#: src/db/pools.c:518
+msgid "OID"
+msgstr ""
+
+#: src/db/pools.c:553
+msgid "not a pool"
+msgstr ""
+
+#: src/db/apply.c:17
+msgid "calling a non function"
+msgstr ""
+
+#: src/db/apply.c:18
+msgid "too many arguments"
+msgstr ""
+
+#: src/db/apply.c:19
+msgid "too few arguments"
+msgstr ""
+
+#: src/db/apply.c:158
+#, c-format
+msgid "#<Primitive %s (%d args)>"
+msgstr ""
+
+#: src/db/apply.c:159
+#, c-format
+msgid "#<Primitive %s>"
+msgstr ""
+
+#: src/db/frames.c:21
+msgid "Odd number of args to find frames"
+msgstr ""
+
+#: src/db/filepools.c:34 src/db/zpools.c:38
+msgid "File contains metadata from the future"
+msgstr ""
+
+#: src/db/zpools.c:289
+msgid "Schema inconsistency"
+msgstr ""
+
+#: src/db/fileindices.c:31
+msgid "file index hash overflow"
+msgstr ""
+
+#: src/db/fileindices.c:32
+msgid "Internal error with index file"
+msgstr ""
+
+#: src/scheme/eval.c:21
+msgid "SCHEME expression syntax error"
+msgstr ""
+
+#: src/scheme/eval.c:22
+msgid "the variable is unbound"
+msgstr ""
+
+#: src/scheme/eval.c:23
+msgid "not an identifier"
+msgstr ""
+
+#: src/scheme/eval.c:24
+msgid "too few subexpressions"
+msgstr ""
+
+#: src/scheme/eval.c:140
+msgid ""
+";; Took %f seconds to evaluate %q\n"
+";;   yielding %q\n"
+msgstr ""
+
+#: src/scheme/binders.c:15
+msgid "Can't bind variable"
+msgstr ""
+
+#: src/scheme/binders.c:16
+msgid "Bad binding expression"
+msgstr ""
+
+#: src/scheme/conditionals.c:55
+msgid "invalid cond clause"
+msgstr ""
+
+#: src/scheme/iterators.c:67 src/scheme/iterators.c:70
+#: src/scheme/choicefns.c:33 src/scheme/choicefns.c:36
+msgid "identifier is not a symbol"
+msgstr ""
+
+#: src/scheme/iterators.c:182
+msgid "list"
+msgstr ""
+
+#: src/scheme/modules.c:19
+msgid "Can't find named module"
+msgstr ""
+
+#: src/scheme/load.c:19
+msgid "Not a filename"
+msgstr ""
+
+#: src/scheme/load.c:20
+msgid "File not found"
+msgstr ""
+
+#: src/scheme/corefns.c:341 src/scheme/corefns.c:355
+msgid "string or symbol"
+msgstr ""
+
+#: src/scheme/dbfns.c:120
+msgid "index"
+msgstr ""
+
+#: src/scheme/dbfns.c:193 src/scheme/dbfns.c:210
+msgid "pool or index"
+msgstr ""
+
+#: src/scheme/sequences.c:290 src/scheme/sequences.c:604
+msgid "byte"
+msgstr ""
+
+#: src/scheme/sequences.c:341 src/scheme/sequences.c:404
+#: src/scheme/sequences.c:419 src/scheme/sequences.c:428
+#: src/scheme/sequences.c:443 src/scheme/sequences.c:460
+#: src/scheme/sequences.c:480
+msgid "sequence"
+msgstr ""
+
+#: src/scheme/portfns.c:27
+msgid "Unknown encoding"
+msgstr ""
+
+#: src/scheme/portfns.c:174
+msgid "port"
+msgstr ""
+
+#: src/scheme/portfns.c:257
+msgid "output port"
+msgstr ""
+
+#: src/scheme/portfns.c:322
+msgid "input port"
+msgstr ""
+
+#: src/scheme/portfns.c:328
+msgid "fixum"
+msgstr ""
+
+#: src/exe/fdconsole.c:73
+msgid ";; %q:\t\t%d values\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:74
+msgid ";; %q:\t\t%q\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:80 src/exe/fdconsole.c:116
+msgid "Eval: "
+msgstr ""
+
+#: src/exe/fdconsole.c:89 src/exe/fdconsole.c:97
+#, c-format
+msgid ";; (ERROR) %m (%m)\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:90 src/exe/fdconsole.c:98
+#, c-format
+msgid ";; (ERROR) %m\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:106
+#, c-format
+msgid "{ ;; %d values\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:109
+#, c-format
+msgid "} ;; %d values\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:112
+#, c-format
+msgid ";; Evaluation took %f seconds\n"
+msgstr ""

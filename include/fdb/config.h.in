@@ -1,0 +1,166 @@
+/* -*- Mode: C; -*- */
+
+/* Copyright (C) 2004, 2005 beingmeta, inc.
+   This file is part of EFramerD and is copyright and a valuable
+   trade secret of beingmeta, inc.
+*/
+
+#ifndef FDB_CONFIG_H
+#define FDB_CONFIG_H 1
+#define FDB_CONFIG_H_VERSION "$Id: config.h.in,v 1.17 2006/01/26 19:02:05 haase Exp $"
+
+/* Define if you don't have off_t */
+#undef off_t
+
+/* Define if integers should be aligned  */
+#undef FD_WORDS_ARE_ALIGNED
+
+/* Define to specify whether file locking works  */
+#undef FD_WITH_FILE_LOCKING
+
+/* Define to specify whether large files are to be used  */
+#undef FD_LARGEFILES_ENABLED
+
+/* Define to compile with multi threading */
+#undef FD_THREADS_ENABLED
+
+/* Define to have frame operations prefetch when possible */
+#undef FD_PREFETCHING_ENABLED
+
+/* Define if profiling is enabled.  */
+#undef FD_PROFILING_ENABLED
+
+/* Define if you have the <pthread.h> header file.  */
+#undef HAVE_PTHREAD_H
+
+/* Define if you have the uchar type.  */
+#undef HAVE_UCHAR
+
+/* Define as __inline if that's what the C compiler calls it.  */
+#undef inline
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+#undef TIME_WITH_SYS_TIME
+
+/* Define if your <sys/time.h> declares struct tm.  */
+#undef TM_IN_SYS_TIME
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
+/* The number of bytes in an int.  */
+#undef SIZEOF_INT
+
+/* The number of bytes in a long.  */
+#undef SIZEOF_LONG
+
+/* The number of bytes in a long long.  */
+#undef SIZEOF_LONG_LONG
+
+/* The number of bytes in a pointer.  */
+#undef SIZEOF_VOID_P
+
+/* Define if you have the strdup function.  */
+#undef HAVE_STRDUP
+
+/* Define if you have the strndup function.  */
+#undef HAVE_STRNDUP
+
+/* Define if you have the flock function.  */
+#undef HAVE_FLOCK
+
+/* Define if you have the flock function.  */
+#undef HAVE_MMAP
+
+/* Define if you have the mkstemp function.  */
+#undef HAVE_MKSTEMP
+
+/* Define if you have the fseeko function (for large files).  */
+#undef HAVE_FSEEKO
+
+/* Define if you have the realpath function.  */
+#undef HAVE_REALPATH
+
+/* Define if you have the sleep library function.  */
+#undef HAVE_SLEEP
+
+/* Define if you have the nanosleep library function.  */
+#undef HAVE_NANOSLEEP
+
+/* Define if you have the unistd.h header.  */
+#undef HAVE_UNISTD_H
+
+/* Define if you have the sys/stat.h header.  */
+#undef HAVE_SYS_STAT_H
+
+/* Define if you have the <pwd.h> header file.  */
+#undef HAVE_PWD_H
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+#undef TIME_WITH_SYS_TIME
+
+/* Define if your <sys/time.h> declares struct tm.  */
+#undef TM_IN_SYS_TIME
+
+/* Define if you have the strftime function.  */
+#undef HAVE_STRFTIME
+
+/* Define if you have the gettimeofday function.  */
+#undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the ftime function.  */
+#undef HAVE_FTIME
+
+/* Define if your struct tm has tm_zone.  */
+#undef HAVE_TM_ZONE
+
+/* Define if your struct tm has tm_gmtoff.  */
+#undef HAVE_TM_GMTOFF
+
+/* Define if you have reentrant localtime.  */
+#undef HAVE_LOCALTIME_R
+
+/* Define if you have reentrant gmtime.  */
+#undef HAVE_GMTIME_R
+
+/* Define if you have sigsetmask.  */
+#undef HAVE_SIGSETMASK
+
+/* Define if constructor attributes are supported */
+#undef HAVE_CONSTRUCTOR_ATTRIBUTES
+
+/* Define if you have a __thread storage class.  */
+#undef HAVE_THREAD_STORAGE_CLASS
+
+/* Define if you have the __builtin_expect operator */
+#undef HAVE_BUILTIN_EXPECT
+
+/* Define if you have the __builtin_prefetch operator */
+#undef HAVE_BUILTIN_PREFETCH
+
+/* Define if you want to use TLS instead of __thread declarations */
+#undef FD_FORCE_TLS
+
+/* Define if you are compiling with calltrack profiling.  */
+#undef FD_CALLTRACK_ENABLED
+
+/* Define if file based configuration is built in. */
+#undef FD_FILECONFIG_ENABLED
+
+/* Define if you are using a global lock and vars for IPEVAL.  */
+#undef FD_GLOBAL_IPEVAL
+
+/* Define if fdweb is linking with curl */
+#undef FD_WITH_CURL
+
+/* Define if you have the CURL header file */
+#undef HAVE_CURL_CURL_H
+
+/* Define if fdweb is linking with curl */
+#undef FD_WITH_EXIF
+
+/* Define if you have the CURL header file */
+#undef HAVE_LIBEXIF_EXIF_DATA_H
+
+#endif

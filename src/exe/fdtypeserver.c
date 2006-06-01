@@ -1,0 +1,402 @@
+/* -*- Mode: C; -*- */
+
+/* Copyright (C) 2004-2006 beingmeta, inc.
+   This file is part of beingmeta's FDB platform and is copyright 
+   and a valuable trade secret of beingmeta, inc.
+*/
+
+static char versionid[] =
+  "$Id: fdtypeserver.c,v 1.13 2006/01/26 14:44:32 haase Exp $";
+
+#include "fdb/dtype.h"
+#include "fdb/tables.h"
+#include "fdb/eval.h"
+#include "fdb/fddb.h"
+#include "fdb/pools.h"
+
+#include <libu8/u8.h>
+#include <libu8/stringfns.h>
+#include <libu8/timefns.h>
+#include <libu8/filefns.h>
+#include <libu8/netfns.h>
+
+#include <strings.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
+#include <signal.h>
+
+static fd_exception BadPortSpec=_("Bad port spec");
+static u8_condition NoServers=_("NoServers");
+static u8_condition ServerStarted=_("ServerStart");
+static fd_lispenv server_env;
+struct U8_SERVER dtype_server;
+
+/* Configuring the port we listen on. */
+
+static int n_ports=0;
+
+static int config_serve_port(fdtype var,fdtype val,void *data)
+{
+  if (n_ports<0) return -1;
+  else if (FD_FIXNUMP(val)) {
+    int retval=u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
+    if (retval<0) n_ports=-1;
+    else n_ports=n_ports+retval;
+    return retval;}
+  else if (FD_STRINGP(val)) {
+    int retval=u8_add_server(&dtype_server,FD_STRDATA(val),0);
+    if (retval<0) n_ports=-1;
+    else n_ports=n_ports+retval;
+    return retval;}
+  else {
+    fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
+    return -1;}
+}
+
+static fdtype config_get_ports(fdtype var,void *data)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  int i=0, lim=dtype_server.n_servers;
+  while (i<lim) {
+    fdtype id=fdtype_string(dtype_server.server_info[i].idstring);
+    FD_ADD_TO_CHOICE(results,id); i++;}
+  return results;
+}
+
+static int fullscheme=1;
+
+static int config_set_fullscheme(fdtype var,fdtype val,void *data)
+{
+  int oldval=fullscheme;
+  if (FD_TRUEP(val))  fullscheme=1; else fullscheme=0;
+  return (oldval!=fullscheme);
+}
+
+static fdtype config_get_fullscheme(fdtype var,void *data)
+{
+  if (fullscheme) return FD_TRUE; else return FD_FALSE;
+}
+
+/* Core functions */
+
+typedef struct FD_CLIENT {
+  U8_CLIENT_FIELDS;
+  struct FD_DTYPE_STREAM stream;
+  fd_lispenv env;} FD_CLIENT;
+typedef struct FD_CLIENT *fd_client;
+
+static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
+{
+  fd_client consed=u8_malloc(sizeof(FD_CLIENT));
+  consed->socket=sock; consed->flags=0;
+  fd_init_dtype_stream(&(consed->stream),sock,4096,NULL,NULL);
+  consed->env=fd_make_env(fd_make_hashtable(NULL,16,NULL),server_env);
+  return (u8_client) consed;
+}
+
+static int dtypeserver(u8_client ucl)
+{
+  fd_client client=(fd_client)ucl;
+  fdtype expr;
+  if (client->stream.id==NULL) {
+    if (client->idstring)
+      client->stream.id=u8_strdup(client->idstring);
+    else client->stream.id=u8_strdup("anonymous");}
+  expr=fd_dtsread_dtype(&(client->stream));
+  if (expr == FD_EOD) {
+    u8_client_close(ucl);
+    return 0;}
+  else {
+    fdtype value=fd_eval(expr,client->env);
+    fd_dtswrite_dtype(&(client->stream),value);
+    fd_dtsflush(&(client->stream));
+    fd_decref(expr); fd_decref(value);
+    return 1;}
+}
+
+static int close_fdclient(u8_client ucl)
+{
+  fd_client client=(fd_client)ucl;
+  fd_dtsclose(&(client->stream),2);
+  fd_decref((fdtype)((fd_client)ucl)->env);
+}
+
+
+static void signal_shutdown(int sig)
+{
+  u8_server_shutdown(&dtype_server);
+}
+
+static void shutdown_dtypeserver()
+{
+  u8_server_shutdown(&dtype_server);
+}
+
+/* We define this in the exposed environment to enable probing for functions. */
+
+static fdtype boundp_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype symbol=fd_get_arg(expr,1);
+  if (!(FD_SYMBOLP(symbol)))
+    return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
+  else {
+    fdtype val=fd_symeval(symbol,env);
+    if (FD_VOIDP(val)) return FD_FALSE;
+    else if (val == FD_UNBOUND) return FD_FALSE;
+    else {
+      fd_decref(val); return FD_TRUE;}}
+}
+
+/* Module configuration */
+
+static fdtype module_list=FD_EMPTY_LIST;
+static fd_lispenv exposed_environment=NULL;
+
+static fdtype config_get_modules(fdtype var,void *data)
+{
+  return fd_incref(module_list);
+}
+static fdtype config_use_module(fdtype var,fdtype val,void *data)
+{
+  fdtype safe_module=fd_find_module(val,1), module=safe_module;
+  if (FD_VOIDP(module)) {}
+  else if (FD_HASHTABLEP(module)) 
+    exposed_environment=
+      fd_make_env(fd_incref(module),exposed_environment);
+  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+    FD_ENVIRONMENT *env=
+      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
+    if (FD_HASHTABLEP(env->exports))
+      exposed_environment=
+	fd_make_env(fd_incref(env->exports),exposed_environment);}
+  module=fd_find_module(val,0);
+  if ((FD_EQ(module,safe_module)))
+    if (FD_VOIDP(module)) return 0;
+    else return 1;
+  else if (FD_HASHTABLEP(module)) 
+    exposed_environment=
+      fd_make_env(fd_incref(module),exposed_environment);
+  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+    FD_ENVIRONMENT *env=
+      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
+    if (FD_HASHTABLEP(env->exports))
+      exposed_environment=
+	fd_make_env(fd_incref(env->exports),exposed_environment);}
+  module_list=fd_init_pair(NULL,fd_incref(val),module_list);
+  return 1;
+}
+
+/* The main() event */
+
+int main(int argc,char **argv)
+{
+  int fd_version=fd_init_fdscheme();
+  unsigned char data[1024], *input;
+  double showtime=-1.0;
+  int i=1; u8_string source_file=NULL;
+  /* This is the base of the environment used to be passed to the server.
+     It is augmented by the fdbserv module, all of the modules declared by
+     MODULE= configurations, and either the exports or the definitions of
+     the server control file from the command line.
+     It starts out built on the default safe environment, but loses that if
+     fullscheme is zero after configuration and file loading.  fullscheme can be
+     set by the FULLSCHEME configuration parameter. */
+  fd_lispenv core_env; 
+  FD_INIT_SCHEME_BUILTINS();
+  fd_init_fddbserv();
+  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
+  u8_server_init(&dtype_server,8,8,simply_accept,dtypeserver,close_fdclient);
+  dtype_server.flags=
+    dtype_server.flags|U8_SERVER_LOG_LISTEN|U8_SERVER_LOG_CONNECT;
+  fd_register_config("PORT",config_get_ports,config_serve_port,NULL);
+  fd_register_config("MODULE",config_get_modules,config_use_module,NULL);
+  fd_register_config("FULLSCHEME",config_get_fullscheme,config_set_fullscheme,NULL);
+  atexit(shutdown_dtypeserver);
+#ifdef SIGTERM
+  signal(SIGTERM,signal_shutdown);
+#endif
+#ifdef SIGQUIT
+  signal(SIGQUIT,signal_shutdown);
+#endif
+  core_env=fd_safe_working_environment();
+  fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
+  exposed_environment=fd_make_env(fd_incref(fd_fdbserv_module),core_env);
+  while (i<argc)
+    if (strchr(argv[i],'=')) 
+      fd_config_assignment(argv[i++]);
+    else if (source_file) i++;
+    else {
+      source_file=u8_fromlibc(argv[i++]);
+      u8_default_appid(source_file);}
+  if (source_file) {
+    fd_lispenv env=fd_working_environment();
+    fdtype result=fd_load_source(source_file,env,NULL);
+    if (FD_EXCEPTIONP(result)) {
+      struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
+      U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+      fd_print_error(&out,e);
+      fd_print_backtrace(&out,80,e->backtrace);
+      fd_print_error(&out,e);
+      fputs(out.bytes,stderr);
+      u8_free(out.bytes);
+      u8_free(source_file);
+      fd_decref(result);
+      fd_decref((fdtype)env);
+      return -1;}
+    else if (FD_TROUBLEP(result)) {
+      fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;
+      if (fd_poperr(&ex,&cxt,&details,&irritant)) {
+	u8_warn(ex,";; (ERROR %m) %m (%s)\n",ex,
+		((details)?(details):((u8_string)"")),
+		((cxt)?(cxt):((u8_string)"")));
+	if (!(FD_VOIDP(irritant)))
+	  u8_warn("INIT Error",";; %q\n",irritant);
+	if (details) u8_free(details); fd_decref(irritant);}
+      else u8_warn("INIT Error",";; Unexplained error result %q\n",result);
+      u8_free(source_file);
+      fd_decref((fdtype)env);
+      return -1;}
+    else {fd_decref(result); result=FD_VOID;}
+    {
+      fdtype interp=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
+      fd_config_set("INTERPRETER",interp);
+      fd_decref(interp);}
+    {
+      fdtype src=fd_init_string(NULL,-1,u8_realpath(source_file,NULL));
+      fd_config_set("SOURCE",src);
+      fd_decref(src);}
+    if (FD_HASHTABLEP(env->exports))
+      server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
+    else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
+    fd_decref((fdtype)env);
+    {
+      u8_string bname=u8_basename(source_file,".fdz");
+      u8_string fullname=u8_abspath(bname,NULL);
+      u8_string pid_file=u8_string_append(fullname,".pid",NULL);
+      u8_string nid_file=u8_string_append(fullname,".nid",NULL);
+      FILE *f=u8_fopen(pid_file,"w"); fprintf(f,"%d\n",getpid()); fclose(f);
+      f=u8_fopen(nid_file,"w");
+      if (dtype_server.n_servers)
+	fprintf(f,"%s\n",dtype_server.server_info[0].idstring);
+      else fprintf(f,"temp.socket\n");
+      fclose(f);
+      u8_free(pid_file); u8_free(nid_file);
+      u8_free(fullname); u8_free(bname);}
+    u8_free(source_file);
+    source_file=NULL;}
+  else {
+    fprintf(stderr,
+	    "Usage: fdtypeserver [conf=val]* source_file [conf=val]*\n");
+    return 1;}
+  if (fullscheme==0) {
+    fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
+  if (n_ports>0) {
+    u8_notify(ServerStarted,"Serving on %d sockets",n_ports);
+    u8_server_loop(&dtype_server);
+    return 0;}
+  else if (n_ports==0) {
+    u8_warn(NoServers,"No servers configured, exiting..");
+    return -1;}
+  else {
+    fd_clear_errors(1);
+    u8_server_shutdown(&dtype_server);
+    fd_clear_errors(1);
+    return -1;}
+}
+
+
+/* The CVS log for this file
+   $Log: fdtypeserver.c,v $
+   Revision 1.13  2006/01/26 14:44:32  haase
+   Fixed copyright dates and removed dangling EFRAMERD references
+
+   Revision 1.12  2006/01/25 02:31:59  haase
+   Made dtypeservers free their environments after running
+
+   Revision 1.11  2006/01/25 01:16:26  haase
+   Made fdtypeserver fail when it can't open any ports and fixed some leaks
+
+   Revision 1.10  2006/01/21 21:11:26  haase
+   Removed some leaks associated with reifying error states as objects
+
+   Revision 1.9  2006/01/07 23:12:46  haase
+   Moved framerd object dtype handling into the main fd_read_dtype core, which led to substantial performanc improvements
+
+   Revision 1.8  2005/11/06 22:19:52  haase
+   Made fdtypeserver play nicely under fdmanager
+
+   Revision 1.7  2005/10/13 16:04:01  haase
+   Report errors and exit in source file processing
+
+   Revision 1.6  2005/09/18 03:58:04  haase
+   Warning-based fixes for 64-bit compilation
+
+   Revision 1.5  2005/09/17 02:24:10  haase
+   Add signal handlers to shut down servers
+
+   Revision 1.4  2005/08/11 13:00:27  haase
+   Fixed misspelling in last patch
+
+   Revision 1.3  2005/08/11 12:46:56  haase
+   Added default access to fdbserv module and cleaned up server environment construction.
+
+   Revision 1.2  2005/08/10 06:34:08  haase
+   Changed module name to fdb, moving header file as well
+
+   Revision 1.1  2005/08/10 05:47:43  haase
+   Undid previous rename of executables
+
+   Revision 1.2  2005/08/08 16:24:45  haase
+   A very little more file structure
+
+   Revision 1.1  2005/08/05 10:19:57  haase
+   Added fdbservlet and did some executable renames as part of the big FDB switch
+
+   Revision 1.9  2005/06/01 13:07:55  haase
+   Fixes for less forgiving compilers
+
+   Revision 1.8  2005/05/04 09:11:44  haase
+   Moved FD_INIT_SCHEME_BUILTINS into individual executables in order to dance around an OS X dependency problem
+
+   Revision 1.7  2005/04/15 14:37:35  haase
+   Made all malloc calls go to libu8
+
+   Revision 1.6  2005/04/06 19:25:05  haase
+   Added MODULES config to fdtypeserver
+
+   Revision 1.5  2005/04/06 15:39:17  haase
+   Added server level logging
+
+   Revision 1.4  2005/04/04 22:22:27  haase
+   Better error reporting from executables
+
+   Revision 1.3  2005/03/26 00:16:13  haase
+   Made loading facility be generic and moved the rest of file access into fileio.c
+
+   Revision 1.2  2005/03/24 17:16:00  haase
+   Fixes to fdtypeserver
+
+   Revision 1.1  2005/03/24 00:30:18  haase
+   Added fdtypeserver
+
+   Revision 1.22  2005/03/06 02:03:06  haase
+   Fixed include statements for system header files
+
+   Revision 1.21  2005/03/05 21:07:39  haase
+   Numerous i18n updates
+
+   Revision 1.20  2005/03/05 19:38:39  haase
+   Added setlocale call
+
+   Revision 1.19  2005/02/28 03:20:01  haase
+   Added optional load file and config processing to fdconsole
+
+   Revision 1.18  2005/02/24 19:12:46  haase
+   Fixes to handling index arguments which are strings specifiying index sources
+
+   Revision 1.17  2005/02/11 02:51:14  haase
+   Added in-file CVS logs
+
+*/

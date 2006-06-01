@@ -1,0 +1,19 @@
+set env LD_LIBRARY_PATH ../lib:../../lib
+set env DYLD_LIBRARY_PATH ../lib:../../lib
+define lisp
+  printf "%s\n",fd_dtype2string($arg0)
+end
+define lisptype
+  printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
+end
+define refcount
+  if (($arg0)&3)
+  print "not a cons" 
+  else
+  printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->consbits)>>7)
+  end
+end
+break u8_raise
+break fd_err
+break fd_seterr
+

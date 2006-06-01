@@ -1,0 +1,128 @@
+/* -*- Mode: C; -*- */
+
+/* Copyright (C) 2004-2006 beingmeta, inc.
+   This file is part of beingmeta's FDB platform and is copyright 
+   and a valuable trade secret of beingmeta, inc.
+*/
+
+static char versionid[] =
+  "$Id: intersectiontest.c,v 1.19 2006/01/26 14:44:33 haase Exp $";
+
+#include "fdb/dtype.h"
+
+#include <strings.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
+
+static struct timeval start;
+static started=0;
+
+double get_elapsed()
+{
+  struct timeval now;
+  if (started == 0) {
+    gettimeofday(&start,NULL);
+    started=1;
+    return 0;}
+  else {
+    gettimeofday(&now,NULL);
+    return (now.tv_sec-start.tv_sec)+
+      (now.tv_usec-start.tv_usec)*0.000001;}
+}
+
+static fdtype read_choice(char *file)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  FILE *f=fopen(file,"r"); char buf[8192];
+  while (fgets(buf,8192,f)) {
+    fdtype item=fd_parse(buf);
+    if ((FD_TROUBLEP(item)) || (FD_EXCEPTIONP(item))) {
+      fd_decref(results); return item;}
+    FD_ADD_TO_CHOICE(results,item);}
+  fclose(f);
+  return fd_simplify_choice(results);
+}
+
+static int write_dtype_to_file(fdtype x,char *file)
+{
+  FILE *f=fopen(file,"wb");
+  struct FD_BYTE_OUTPUT out;
+  FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
+  fd_write_dtype(&out,x);
+  fwrite(out.start,1,out.ptr-out.start,f);
+  u8_free(out.start);
+  fclose(f);
+}
+
+#define free_var(var) fd_decref(var); var=FD_VOID
+
+int main(int argc,char **argv)
+{
+  FILE *f;
+  int i=2, j=0, write_binary=0;
+  fdtype *args=u8_malloc(sizeof(fdtype)*(argc-2)), common;
+  double starttime, inputtime, donetime;
+  FD_DO_LIBINIT(fd_init_dtypelib);
+  starttime=get_elapsed();
+  while (i < argc) 
+    if (strchr(argv[i],'=')) 
+      fd_config_assignment(argv[i++]);
+    else {
+    fdtype item=read_choice(argv[i]);
+    if ((FD_TROUBLEP(item)) || (FD_EXCEPTIONP(item))) {
+      u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+      return -1;}
+    u8_fprintf(stderr,"Read %d items from %s\n",FD_CHOICE_SIZE(item),argv[i]);
+    args[j++]=item; i++;}
+  inputtime=get_elapsed();
+  common=fd_intersection(args,j);
+  donetime=get_elapsed();
+  u8_fprintf(stderr,"CHOICE_SIZE(common)=%d read time=%f; run time=%f\n",
+	     FD_CHOICE_SIZE(common),
+	     inputtime-starttime,donetime-inputtime);
+  write_dtype_to_file(common,"intersection.dtype");
+  if ((argv[1][0]=='-') && (argv[1][1]=='b')) write_binary=1;
+  else f=fopen(argv[1],"w");
+  if (write_binary)
+    write_dtype_to_file(common,argv[1]+2);
+  else {
+    FD_DO_CHOICES(v,common) {
+      struct U8_OUTPUT os;
+      U8_INIT_OUTPUT(&os,256);
+      fd_unparse(&os,v);
+      fputs(os.bytes,f); fputs("\n",f);
+      free(os.bytes);}}
+  free_var(common);
+  i=0; while (i < j) {fd_decref(args[i]); i++;}
+  u8_free(args);
+  if (f) fclose(f);
+  exit(0);
+}
+
+
+/* The CVS log for this file
+   $Log: intersectiontest.c,v $
+   Revision 1.19  2006/01/26 14:44:33  haase
+   Fixed copyright dates and removed dangling EFRAMERD references
+
+   Revision 1.18  2006/01/07 04:23:29  haase
+   Made choicetests include mergesort testing
+
+   Revision 1.17  2005/08/10 06:34:09  haase
+   Changed module name to fdb, moving header file as well
+
+   Revision 1.16  2005/05/30 17:48:09  haase
+   Fixed some header ordering problems
+
+   Revision 1.15  2005/04/15 14:37:35  haase
+   Made all malloc calls go to libu8
+
+   Revision 1.14  2005/02/15 03:03:40  haase
+   Updated to use the new libu8
+
+   Revision 1.13  2005/02/11 02:51:14  haase
+   Added in-file CVS logs
+
+*/

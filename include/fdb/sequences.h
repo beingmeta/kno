@@ -1,0 +1,38 @@
+/* -*- Mode: C; -*- */
+
+/* Copyright (C) 2004-2006 beingmeta, inc.
+   This file is part of beingmeta's FDB platform and is copyright 
+   and a valuable trade secret of beingmeta, inc.
+*/
+
+#ifndef FDB_SEQUENCES_H
+#define FDB_SEQUENCES_H 1
+#define FDB_SEQUENCES_H_VERSION "$Id: sequences.h,v 1.8 2006/01/26 14:44:32 haase Exp $"
+
+FD_EXPORT fd_exception fd_RangeError;
+
+typedef struct FD_SEQFNS {
+  int (*len)(fdtype x);
+  fdtype (*elt)(fdtype x,int i);
+  fdtype (*slice)(fdtype x,int i,int j);
+  int (*position)(fdtype key,fdtype x,int i,int j);
+  int (*search)(fdtype key,fdtype x,int i,int j);
+  fdtype *(*elts)(fdtype x,int *);
+  fdtype (*make)(int,fdtype *);
+} FD_SEQFNS;
+
+FD_EXPORT struct FD_SEQFNS *fd_seqfns[];
+
+FD_EXPORT int fd_seq_length(fdtype x);
+FD_EXPORT fdtype fd_seq_elt(fdtype x,int i);
+FD_EXPORT fdtype fd_seq_elts(fdtype x);
+FD_EXPORT fdtype fd_slice(fdtype x,int start,int end);
+FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end);
+FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end);
+
+#define FD_SEQUENCEP(x) ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))
+
+fdtype *fd_elts(fdtype seq,int *len);
+fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v);
+
+#endif /*  FDB_SEQUENCES_H */

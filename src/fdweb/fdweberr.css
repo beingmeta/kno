@@ -1,0 +1,34 @@
+body { margin: 12pt; background-color: silver;}
+div.error {
+  margin-left: 8em; text-indent: -8em;
+  font-size: 16pt; font-family: sans; }
+div.error span.ex { font-weight: bold;}
+div.error span.cxt { font-family: fixed; }
+div.error span.details { font-weight: normal; font-style: italic; }
+div.error span.irritant {
+  background-color: white; color: red; margin-left: 6pt;
+  font-weight: normal; font-family: fixed; white-space: nowrap;}
+div.backtrace { }
+div.backtrace div.expr {
+  white-space: pre;
+  font-family: fixed; text-align: left; font-size: 12pt;}
+div.backtrace div.expr span.focus {
+  font-weight: bold; color: red; font-size: 120%;}
+
+div.backtrace div.bindings {
+  background-color: lightblue; width: 100%;}
+div.backtrace div.bindings span.binding {
+  font-family: fixed; font-weight: bold; white-space: nowrap; }
+div.backtrace div.bindings span.head {
+  padding-right: 12pt; color: purple; font-weight: bold;}
+
+div.backtrace div.rail {
+  background-color: lightblue; width: 100%;}
+div.backtrace div.rail span.name {
+  color: purple; font-family: sans; font-weight: bold; padding-right: 8pt;}
+div.backtrace div.rail span.arg {
+  color: black; font-family: fixed; font-weight: bold;
+  padding-right: 6pt; padding-left: 6pt;}
+
+div.call { margin-left: 3pt;}
+

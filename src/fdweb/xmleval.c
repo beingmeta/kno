@@ -1,0 +1,925 @@
+/* -*- Mode: C; -*- */
+
+/* Copyright (C) 2004-2006 beingmeta, inc.
+   This file is part of beingmeta's FDB platform and is copyright 
+   and a valuable trade secret of beingmeta, inc.
+*/
+
+static char versionid[] =
+  "$Id: xmleval.c,v 1.18 2006/03/19 23:42:15 haase Exp $";
+
+#define FD_PROVIDE_FASTEVAL 1
+
+#include "fdb/dtype.h"
+#include "fdb/tables.h"
+#include "fdb/eval.h"
+#include "fdb/ports.h"
+#include "fdb/fdweb.h"
+#include "fdb/sequences.h"
+
+#include <libu8/xfiles.h>
+#include <libu8/stringfns.h>
+
+fd_lispenv fdxml_module;
+
+static fdtype xmleval_tag, rawname_slotid, raw_attribs, raw_markup;
+static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
+static fdtype bind_symbol, xmlenv_symbol;
+
+static fdtype xattrib_overlay, escape_id;
+
+void *inherit_node_data(FD_XML *node)
+{
+  FD_XML *scan=node;
+  while (node)
+    if (scan->data) return scan->data;
+    else scan=scan->parent;
+  return NULL;
+}
+
+/* Accessing xml attributes and elements. */
+
+FD_EXPORT
+fdtype fd_xml_get(fdtype xml,fdtype slotid)
+{
+  fdtype results=fd_get(xml,slotid,FD_EMPTY_CHOICE);
+  fdtype content=fd_get(xml,content_slotid,FD_VOID);
+  FD_DOLIST(item,content)
+    if ((FD_TABLEP(item)) && (fd_test(item,elt_name,slotid))) {
+      FD_ADD_TO_CHOICE(results,item);}
+  fd_decref(content);
+  return results;
+}
+
+static fdtype get_markup_string(fdtype xml,fd_lispenv env)
+{
+  U8_OUTPUT out; int cache_result=1;
+  fdtype rawname, rawattribs;
+  fdtype cached=fd_get(xml,raw_markup,FD_VOID);
+  if (!(FD_VOIDP(cached))) return cached;
+  rawname=fd_get(xml,rawname_slotid,FD_VOID);
+  if (FD_ABORTP(rawname)) return rawname;
+  else if (!(FD_STRINGP(rawname))) {
+    fd_decref(rawname);
+    return fd_type_error("XML node","get_markup_string",xml);}
+  else rawattribs=fd_get(xml,raw_attribs,FD_EMPTY_CHOICE);
+  if (FD_ABORTP(rawattribs)) {
+    fd_decref(rawname);
+    return rawattribs;}
+  U8_INIT_OUTPUT(&out,32);
+  u8_putn(&out,FD_STRDATA(rawname),FD_STRLEN(rawname));
+  {FD_DO_CHOICES(attrib,rawattribs) {
+    if (FD_STRINGP(attrib))
+      u8_printf(&out," %s",FD_STRDATA(attrib));
+    else {
+      fdtype rawaname=FD_VECTOR_REF(attrib,0);
+      fdtype val=FD_VECTOR_REF(attrib,2);
+      if ((FD_PAIRP(val)) && (FD_EQ(FD_CAR(val),xmleval_tag))) {
+	fdtype value=fd_eval(FD_CDR(val),env); u8_string as_string;
+	if (FD_ABORTP(value)) {
+	  fd_decref(rawattribs); fd_decref(rawname);
+	  return value;}
+	else as_string=fd_dtype2string(value);
+	if (FD_STRINGP(value))
+	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
+	else u8_printf(&out," %s=':",FD_STRDATA(rawaname));	
+	fd_attrib_entify(&out,as_string); u8_putc(&out,'\'');
+	fd_decref(value); u8_free(as_string); cache_result=0;}
+      else if (FD_SLOTMAPP(val)) {
+	fdtype value=fd_xmleval(NULL,val,env); u8_string as_string;
+	if (FD_ABORTP(value)) {
+	  fd_decref(rawattribs); fd_decref(rawname);
+	  return value;}
+	else as_string=fd_dtype2string(value);
+	if (FD_STRINGP(value))
+	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
+	else u8_printf(&out," %s=':",FD_STRDATA(rawaname));
+	fd_attrib_entify(&out,as_string); u8_putc(&out,'\'');
+	fd_decref(value); u8_free(as_string); cache_result=0;}
+      else if (FD_STRINGP(val))
+	u8_printf(&out," %s='%s'",FD_STRDATA(rawaname),FD_STRDATA(val));
+      else {
+	u8_string as_string=fd_dtype2string(val);
+	u8_printf(&out," %s=':",FD_STRDATA(rawaname));
+	fd_attrib_entify(&out,as_string);
+	u8_putc(&out,'\'');
+	u8_free(as_string);}}}}
+  cached=fd_init_string(NULL,out.point-out.bytes, out.bytes);
+  if (cache_result) fd_store(xml,raw_markup,cached);
+  return cached;
+}
+
+FD_EXPORT
+fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
+{
+  fdtype content=fd_get(xml,content_slotid,FD_VOID);
+  if ((FD_EMPTY_CHOICEP(content)) ||
+      (FD_VOIDP(content)) ||
+      (FD_EMPTY_LISTP(content))) {
+    fdtype markup=get_markup_string(xml,env);
+    if (FD_ABORTP(markup)) return markup;
+    u8_printf(out,"<%s/>",FD_STRDATA(markup));
+    fd_decref(markup);}
+  else {
+    fdtype rawname=fd_get(xml,rawname_slotid,FD_VOID), markup;
+    if (FD_ABORTP(rawname)) return rawname;
+    else if (FD_EXPECT_FALSE(!(FD_STRINGP(rawname))))
+      return fd_type_error("XML node","fd_unparse_xml",xml);
+    else markup= get_markup_string(xml,env);
+    if (FD_ABORTP(markup)) return markup;
+    u8_printf(out,"<%s>",FD_STRDATA(markup));
+    if (FD_PAIRP(content)) {
+      FD_DOLIST(item,content) {
+	fdtype result=FD_VOID;
+	if (FD_STRINGP(item))
+	  u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
+	else if ((FD_PAIRP(item)) || (FD_SYMBOLP(item))) {
+	  fdtype result=fd_eval(item,env);
+	  u8_printf(out,"%q",result);
+	  fd_decref(result);}
+	else result=fd_xmleval(out,item,env);
+	if (FD_ABORTP(result)) return result;
+	else fd_decref(result);}}
+    u8_printf(out,"</%s>",FD_STRDATA(rawname));}
+  return FD_VOID;
+}
+
+/* Handling dynamic elements */
+
+static fdtype get_xml_handler(fdtype xml,fd_lispenv env)
+{
+  fdtype xml_env=fd_symeval(xmlenv_symbol,env);
+  if (FD_VOIDP(xml_env)) return FD_VOID;
+  if (!(FD_PRIM_TYPEP(xml_env,fd_environment_type)))
+    return fd_type_error("environment","get_xml_handler",xml_env);
+  else {
+    fdtype qname=fd_get(xml,qname_slotid,FD_VOID);
+    fdtype name=fd_get(xml,elt_name,FD_VOID);
+    fdtype value=FD_VOID;
+    if (FD_STRINGP(qname)) {
+      fdtype symbol=fd_probe_symbol(FD_STRDATA(qname),FD_STRLEN(qname));
+      if (FD_SYMBOLP(symbol)) value=fd_symeval(symbol,(fd_lispenv)xml_env);}
+    if (!(FD_VOIDP(value))) return value;
+    else if (FD_SYMBOLP(name)) return fd_symeval(name,(fd_lispenv)xml_env);
+    else return FD_VOID;}
+}
+
+struct XMLAPPLY { fdtype xml; fd_lispenv env;};
+
+FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
+{
+  fdtype values=fd_get(xml,sym,FD_VOID);
+  if (FD_VOIDP(values)) return FD_VOID;
+  else if (FD_CHOICEP(values)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(value,values)
+      if (FD_PAIRP(value))
+	if  (FD_EQ(FD_CAR(value),xmleval_tag)) {
+	  fdtype result=fd_eval(FD_CDR(value),env);
+	  FD_ADD_TO_CHOICE(results,result);}
+	else FD_ADD_TO_CHOICE(results,fd_incref(value));
+      else if (FD_TABLEP(value)) {
+	fdtype result=fd_xmleval(NULL,value,env);
+	FD_ADD_TO_CHOICE(results,result);}
+      else {FD_ADD_TO_CHOICE(results,fd_incref(value));}
+    fd_decref(values);
+    return results;}
+  else if (FD_PAIRP(values))
+    if (FD_EQ(FD_CAR(values),xmleval_tag)) {
+      fdtype result=fd_eval(FD_CDR(values),env);
+      fd_decref(values);
+      return result;}
+    else return values;
+  else if (FD_TABLEP(values))
+    return fd_xmleval(NULL,values,env);
+  else if (FD_QCHOICEP(values)) {
+    fdtype result=FD_XQCHOICE(values)->choice;
+    fd_incref(result); fd_decref(values);
+    return result;}
+  else return values;
+}
+
+static fdtype xmlgetarg(void *vcxt,fdtype sym)
+{
+  struct XMLAPPLY *cxt=(struct XMLAPPLY *)vcxt;
+  return fdxml_get(cxt->xml,sym,cxt->env);
+}
+
+static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
+{
+  struct XMLAPPLY cxt; cxt.xml=xml; cxt.env=env;
+  if (FD_PRIM_TYPEP(fn,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=FD_GET_CONS(fn,fd_specform_type,fd_special_form);
+    return sf->eval(xml,env);}
+  else return fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
+			      xmlgetarg);
+}
+
+/* Handling XML attributes */
+
+static fdtype xmlevalify(u8_string string)
+{
+  if (string[0]==':') return fd_parse(string+1);
+  else if (string[0]=='$')
+    return fd_init_pair(NULL,xmleval_tag,fd_parse(string+1));
+  else if (string[0]=='\\') return fdtype_string(string+1);
+  else return fdtype_string(string);
+}
+
+static fdtype parse_attrib_name(u8_string name)
+{
+  fdtype v=fd_parse(name);
+  if (FD_ABORTP(v)) {
+    fd_decref(v); return fd_intern(name);}
+  else return v;
+}
+
+static fdtype attribids;
+
+FD_EXPORT
+int fd_xmleval_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
+{
+  u8_string namespace, attrib_name=fd_xmlns_lookup(xml,name,&namespace);
+  if (val) {
+    fdtype slotid=parse_attrib_name(attrib_name);
+    fdtype slotval=((quote>0) ? (xmlevalify(val)) : (fd_parse(val)));
+    fdtype qid=fd_make_qid(attrib_name,namespace);
+    fdtype qentry=fd_init_pair(NULL,qid,fd_incref(slotval));
+    fdtype rawentry=
+      fd_make_vector(3,fdtype_string(name),
+		     fd_incref(qid),
+		     fd_incref(slotval));
+    fd_add(xml->attribs,attribs_slotid,qentry);
+    fd_add(xml->attribs,attribids,slotid);
+    fd_add(xml->attribs,slotid,slotval);
+    fd_add(xml->attribs,raw_attribs,rawentry);
+    fd_decref(qentry); fd_decref(rawentry); fd_decref(slotval);}
+  else {
+    fdtype nameval=fdtype_string(name);
+    fd_add(xml->attribs,raw_attribs,nameval);
+    if (namespace) {
+      fdtype entry=
+	fd_init_pair(NULL,fdtype_string(attrib_name),
+		     fdtype_string(namespace));
+      fd_add(xml->attribs,attribs_slotid,entry);
+      fd_decref(entry);}
+    fd_decref(nameval);}
+  return 1;
+}
+
+static fdtype xattrib_slotid;
+
+FD_EXPORT
+void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
+{
+  fdtype escape=fd_get((fdtype)(inherit_node_data(node)),escape_id,FD_VOID);
+  if (len==0) {}
+  else if (FD_VOIDP(escape)) 
+    fd_add_content(node,fd_extract_string(NULL,s,s+len));
+  else if (FD_STRINGP(escape)) {
+    int escape_len=FD_STRLEN(escape);
+    u8_string escape_string=FD_STRDATA(escape);
+    u8_string start=s, scan=strstr(s,escape_string), limit=s+len;
+    while ((scan) && (scan<limit)) {
+      U8_INPUT in; fdtype expr;
+      if (scan>start)
+	fd_add_content(node,fd_extract_string(NULL,start,scan));
+      scan=scan+escape_len; U8_INIT_INPUT(&in,limit-scan,scan);
+      expr=fd_parser(&in,NULL);
+      if (FD_STRINGP(expr)) {
+	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+	fd_unparse(&out,expr); fd_decref(expr);
+	expr=fd_init_string(NULL,out.point-out.bytes,out.point);
+	fd_add_content(node,expr);
+	fd_decref(expr);}
+      else fd_add_content(node,expr);
+      start=in.point; scan=strstr(start,escape_string);}
+    if (scan>start)
+      fd_add_content(node,fd_extract_string(NULL,start,scan));}
+  else fd_add_content(node,fd_init_string(NULL,len,s));
+}
+
+FD_EXPORT
+FD_XML *fd_xmleval_popfn(FD_XML *node)
+{
+  fdtype cutaway=fd_get((fdtype)(inherit_node_data(node)),xattrib_overlay,xattrib_slotid);
+  fdtype xid=fd_get(node->attribs,cutaway,FD_VOID);
+  /* Get your content */
+  if (FD_PAIRP(node->head)) 
+    fd_add(node->attribs,content_slotid,node->head);
+  /* Check if you go on the parent's attribs or in its body. */
+  if (FD_VOIDP(xid)) {
+    fd_add_content(node->parent,node->attribs);
+    node->attribs=FD_EMPTY_CHOICE;}
+  else if (FD_STRINGP(xid)) {
+    fdtype slotid=fd_parse(FD_STRING_DATA(xid));
+    fd_add(node->parent->attribs,slotid,node->attribs);
+    fd_decref(xid);}
+  else fd_add(node->parent->attribs,xid,node->attribs);
+  return node->parent;
+}
+
+/* Handling the FDXML PI */
+
+static u8_string get_pi_string(u8_string start)
+{
+  u8_string end=NULL;
+  int c=*start;
+  if ((c=='\'') || (c=='"')) {
+    start++; end=strchr(start,c);}
+  else {
+    u8_byte *last=start, *scan=start;
+    while (c>0) {
+      c=u8_sgetc(&scan);
+      if ((c<0) || (u8_isspace(c))) break;
+      else last=scan;}
+    end=last;}
+  if (end)
+    return u8_slice(start,end);
+  else return NULL;
+}
+
+static fd_lispenv get_xmlenv(FD_XML *xml)
+{
+  return (fd_lispenv)fd_symeval(xmlenv_symbol,(fd_lispenv)(xml->data));
+}
+
+static void set_xmlenv(FD_XML *xml,fd_lispenv newenv)
+{
+  fd_set_value(xmlenv_symbol,(fdtype)newenv,(fd_lispenv)(xml->data));
+}
+
+static FD_XML *handle_xmleval_pi
+  (u8_input in,FD_XML *xml,u8_string content,int len)
+{
+  if (strncmp(content,"?fdxml ",6)) return xml;
+  else {
+    u8_byte *scan=content, *attribs[16];
+    int i=0, n_attribs=fd_parse_element(&scan,content+len,attribs,16);
+    while (i<n_attribs)
+      if ((strncmp(attribs[i],"load=",5))==0) {
+	u8_string arg=get_pi_string(attribs[i]+5);
+	u8_string filename=fd_get_component(arg);
+	fd_lispenv env=fd_working_environment();
+	fd_lispenv xmlenv=get_xmlenv(xml);;
+	fd_load_source(filename,env,"auto");
+	u8_free(arg); u8_free(filename);
+	if (FD_TABLEP(env->exports)) {
+	  fd_lispenv newxmlenv=
+	    fd_make_export_env(env->exports,xmlenv);
+	  set_xmlenv(xml,newxmlenv);}
+	else {
+	  fd_lispenv newxmlenv=
+	    fd_make_export_env(env->bindings,xmlenv);
+	  set_xmlenv(xml,newxmlenv);}
+	i++;}
+      else if ((strncmp(attribs[i],"module=",7))==0) {
+	u8_string arg=get_pi_string(attribs[i]+7);
+	fdtype module_name=fdtype_string(arg);
+	fdtype module=fd_find_module(module_name,0);
+	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	u8_free(arg); fd_decref(module_name);
+	if (FD_TABLEP(module)) {
+	  fd_lispenv newxmlenv=
+	    fd_make_export_env(module,xmlenv);
+	  set_xmlenv(xml,newxmlenv);}
+	i++;}
+      else if ((strncmp(attribs[i],"scheme_load=",12))==0) {
+	u8_string arg=get_pi_string(attribs[i]+12);
+	u8_string filename=fd_get_component(arg);
+	fd_lispenv env=fd_working_environment();
+	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	fd_load_source(filename,env,"auto");
+	u8_free(arg); u8_free(filename);
+	if (FD_TABLEP(env->exports)) {
+	  fd_lispenv newxmlenv=
+	    fd_make_export_env(env->exports,xmlenv);
+	  xml->data=newxmlenv;}
+	else {
+	  fd_lispenv newxmlenv=
+	    fd_make_export_env(env->bindings,xmlenv);
+	  xml->data=newxmlenv;}
+	i++;}
+      else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
+	u8_string arg=get_pi_string(attribs[i]+14);
+	fdtype module_name=fdtype_string(arg);
+	fdtype module=fd_find_module(module_name,0);
+	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	u8_free(arg); fd_decref(module_name);
+	if (FD_TABLEP(module)) {
+	  fd_lispenv newxmlenv=
+	    fd_make_export_env(module,xmlenv);
+	  xml->data=newxmlenv;}
+	i++;}
+      else if ((strncmp(attribs[i],"escape=",7))==0) {
+	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
+	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	fd_bind_value(escape_id,arg,xmlenv);
+	fd_decref(arg);
+	i++;}
+      else if ((strncmp(attribs[i],"xattrib=",8))==0) {
+	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
+	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	fd_bind_value(xattrib_overlay,arg,xmlenv);
+	fd_decref(arg);
+	i++;}
+      else i++;
+    return xml;}
+}
+
+/* The eval function itself */ 
+
+FD_EXPORT
+fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
+{
+  fdtype result=FD_VOID;
+  if (FD_PAIRP(xml)) {
+    FD_DOLIST(elt,xml) {
+      fdtype result=fd_xmleval(out,elt,env);
+      if (FD_ABORTP(result)) return result;
+      else fd_decref(result);}}
+  else if (FD_STRINGP(xml))
+    u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
+  else if (FD_TABLEP(xml)) {
+    fdtype handler=get_xml_handler(xml,env);
+    fdtype bind=fd_get(xml,bind_symbol,FD_VOID);
+    fd_decref(result);
+    if (FD_VOIDP(handler))
+      result=fd_unparse_xml(out,xml,env);
+    else result=xmlapply(out,handler,xml,env);
+    if (FD_ABORTP(result)) return result;
+    else if ((out) && (!(FD_VOIDP(result))))
+      fd_unparse(out,result);
+    if (FD_VOIDP(bind)) {}
+    else if (FD_SYMBOLP(bind)) 
+      fd_bind_value(bind,result,env);
+    else if (FD_STRINGP(bind)) {
+      fdtype sym=fd_parse(FD_STRDATA(bind));
+      if (FD_SYMBOLP(sym)) fd_bind_value(sym,result,env);
+      fd_decref(sym);}
+    else {}}
+  else {}
+  return result;
+}
+
+/* Reading for evaluation */
+
+FD_EXPORT
+struct FD_XML *fd_read_fdxml(u8_input in,int bits)
+{
+  struct FD_XML *xml=u8_malloc(sizeof(struct FD_XML)), *retval;
+  fd_lispenv working_env=fd_working_environment();
+  fd_bind_value(xmlenv_symbol,(fdtype)fdxml_module,working_env);
+  fd_init_xml_node(xml,NULL,"top");
+  xml->bits=bits; xml->data=working_env;
+  retval=fd_walk_xml(in,fd_xmleval_contentfn,
+		     handle_xmleval_pi,
+		     fd_xmleval_attribfn,
+		     NULL,
+		     fd_xmleval_popfn,
+		     xml);
+  if (retval) return xml;
+  else return retval;
+}
+
+static fdtype parsefdxml(fdtype input)
+{
+  int flags=FD_XML_KEEP_RAW;
+  struct FD_XML *retval;
+  struct U8_INPUT *in, _in;
+  if (flags<0) return fd_erreify();
+  if (FD_PRIM_TYPEP(input,fd_port_type)) {
+    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
+    in=p->in;}
+  else if (FD_STRINGP(input)) {
+    U8_INIT_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+    in=&_in;}
+  else if (FD_PACKETP(input)) {
+    U8_INIT_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    in=&_in;}
+  else return fd_type_error(_("string or port"),"xmlparse",input);
+  retval=fd_read_fdxml(in,flags);
+  if (retval) {
+    fdtype result=fd_incref(retval->head);
+    /* free_node(&object,0); */
+    return result;}
+  else return fd_erreify();
+}
+
+/* FDXML special forms */
+
+static fdtype test_symbol, predicate_symbol, else_symbol, value_symbol;
+
+static fdtype do_body(fdtype expr,fd_lispenv env);
+static fdtype do_else(fdtype expr,fd_lispenv env);
+
+static fdtype fdxml_insert(fdtype expr,fd_lispenv env)
+{
+  fdtype value=fdxml_get(expr,value_symbol,env);
+  u8_output out=fd_get_default_output();
+  u8_printf(out,"%q",value);
+  return FD_VOID;
+}
+
+static fdtype fdxml_if(fdtype expr,fd_lispenv env)
+{
+  fdtype test=fdxml_get(expr,test_symbol,env);
+  if (FD_FALSEP(test))
+    return do_else(expr,env);
+  else {
+    fd_decref(test);
+    return do_body(expr,env);}
+}
+
+static fdtype do_body(fdtype expr,fd_lispenv env)
+{
+  u8_output out=fd_get_default_output();
+  fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
+  if (FD_PAIRP(body)) {
+    FD_DOLIST(elt,body) {
+      fdtype value=fd_xmleval(out,elt,env);
+      if (FD_ABORTP(value)) {
+	fd_decref(body);
+	return value;}
+      else {
+	fd_decref(result); result=value;}}}
+  fd_decref(body);
+  return result;
+}
+
+static fdtype do_else(fdtype expr,fd_lispenv env)
+{
+  u8_output out=fd_get_default_output();
+  fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
+  if (FD_PAIRP(body)) {
+    FD_DOLIST(elt,body) {
+      fdtype value=fd_xmleval(out,elt,env);
+      if (FD_ABORTP(value)) {
+	fd_decref(body);
+	return value;}
+      else {
+	fd_decref(result); result=value;}}}
+  fd_decref(body);
+  return result;
+}
+
+static fdtype each_symbol, sequence_symbol, choice_symbol, max_symbol, min_symbol;
+
+static fd_exception MissingAttrib=_("Missing XML attribute");
+
+static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env);
+static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env);
+static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env);
+
+static fdtype fdxml_loop(fdtype expr,fd_lispenv env)
+{
+  if (!(fd_test(expr,each_symbol,FD_VOID)))
+    return fd_err(MissingAttrib,"fdxml:loop",NULL,each_symbol);
+  else {
+    fdtype each_val=fd_get(expr,each_symbol,FD_VOID);
+    fdtype count_val=fd_get(expr,each_symbol,FD_VOID);
+    fdtype to_bind=((FD_STRINGP(each_val)) ? (fd_parse(FD_STRDATA(each_val))) : (each_val));
+    fdtype to_count=((FD_STRINGP(count_val)) ? (fd_parse(FD_STRDATA(count_val))) : (count_val));
+    if (fd_test(expr,sequence_symbol,FD_VOID))
+      return fdxml_seq_loop(to_bind,to_count,expr,env);
+    else if (fd_test(expr,choice_symbol,FD_VOID))
+      return fdxml_choice_loop(to_bind,to_count,expr,env);
+    else if (fd_test(expr,max_symbol,FD_VOID))
+      return fdxml_range_loop(to_bind,to_count,expr,env);
+    else return fd_err(MissingAttrib,"fdxml:loop",_("no LOOP arg"),FD_VOID);}
+}
+
+static fdtype iter_var;
+
+/* These are for returning binding information in the backtrace. */
+static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
+{
+  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+  keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
+  keyvals[1].key=var; keyvals[1].value=fd_incref(val);
+  return fd_init_slotmap(NULL,2,keyvals,NULL);
+}
+static fdtype iterenv2
+  (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
+{
+  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*3);
+  keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
+  keyvals[1].key=var; keyvals[1].value=fd_incref(val);
+  keyvals[2].key=xvar; keyvals[2].value=fd_incref(xval);
+  return fd_init_slotmap(NULL,3,keyvals,NULL);
+}
+
+static fdtype retenv1(fdtype var,fdtype val)
+{
+  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL));
+  keyvals[0].key=var; keyvals[0].value=fd_incref(val);
+  return fd_init_slotmap(NULL,1,keyvals,NULL);
+}
+static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
+{
+  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+  keyvals[0].key=var; keyvals[0].value=fd_incref(val);
+  keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
+  return fd_init_slotmap(NULL,2,keyvals,NULL);
+}
+
+static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
+{
+  int i=0, lim;
+  u8_output out=fd_get_default_output();
+  fdtype seq=fdxml_get(xpr,sequence_symbol,env), *iterval=NULL;
+  fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
+  fdtype vars[2], vals[2], inner_env;
+  struct FD_SCHEMAP bindings;
+  struct FD_ENVIRONMENT envstruct;
+  if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
+  else if (!(FD_SEQUENCEP(seq)))
+    return fd_type_error("sequence","fdxml:loop sequence",seq);
+  else lim=fd_seq_length(seq);
+  if (lim==0) {
+    fd_decref(seq);
+    return FD_VOID;}
+  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.schema=vars; bindings.values=vals; bindings.size=1;
+  u8_init_mutex(&(bindings.lock));
+  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  envstruct.parent=env;  
+  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
+  envstruct.copy=NULL;
+  inner_env=(fdtype)(&envstruct); 
+  vars[0]=var; vals[0]=FD_VOID;
+  if (!(FD_VOIDP(count_var))) {
+    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    bindings.size=2; iterval=&(vals[1]);} 
+  while (i<lim) {
+    fdtype elt=fd_seq_elt(seq,i);
+    if (envstruct.copy) {
+      fd_set_value(var,elt,envstruct.copy);
+      if (iterval)
+	fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+    else {
+      vals[0]=elt;
+      if (iterval) *iterval=FD_INT2DTYPE(i);}
+    {FD_DOLIST(expr,body) {
+      fdtype val=fd_xmleval(out,expr,&envstruct);
+      if (FD_ABORTP(val)) {
+	fdtype errbind;
+	if (iterval) errbind=iterenv1(seq,var,elt);
+	else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+	u8_destroy_mutex(&(bindings.lock));
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	fd_decref(elt); fd_decref(seq);
+	return fd_passerr(val,errbind);}
+      fd_decref(val);}}
+    if (envstruct.copy) {
+      fd_recycle_environment(envstruct.copy);
+      envstruct.copy=NULL;}
+    fd_decref(vals[0]);
+    i++;}
+  fd_decref(seq);
+  u8_destroy_mutex(&(bindings.lock));
+  return FD_VOID;
+}
+
+static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
+{
+  u8_output out=fd_get_default_output();
+  fdtype choices=fdxml_get(xpr,choice_symbol,env), *iterval=NULL;
+  fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
+  fdtype *vloc=NULL, *iloc=NULL;
+  fdtype vars[2], vals[2], inner_env;
+  struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
+  if (FD_ABORTP(var)) return var;
+  else if (FD_ABORTP(choices)) return choices;
+  else if (FD_VOIDP(count_var)) {
+    bindings.size=1;
+    vars[0]=var; vals[0]=FD_VOID;
+    vloc=&(vals[0]);}
+  else {
+    bindings.size=2;
+    vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
+    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
+  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.schema=vars; bindings.values=vals;
+  u8_init_mutex(&(bindings.lock));
+  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  envstruct.parent=env;
+  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
+  envstruct.copy=NULL;
+  inner_env=(fdtype)(&envstruct);
+  if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
+  else if (FD_EXCEPTIONP(choices))
+    return choices;
+  else {
+    int i=0; FD_DO_CHOICES(elt,choices) {
+      fd_incref(elt);
+      if (envstruct.copy) {
+	fd_set_value(var,elt,envstruct.copy);
+	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+      else {
+	*vloc=elt;
+	if (iloc) *iloc=FD_INT2DTYPE(i);}
+      {FD_DOLIST(expr,body) {
+	fdtype val=fd_xmleval(out,expr,&envstruct);
+	if (FD_ABORTP(val)) {
+	  fdtype env;
+	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+	  else env=retenv1(var,elt);
+	  fd_decref(choices);
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  return fd_passerr(val,env);}
+	fd_decref(val);}}
+      if (envstruct.copy) {
+	fd_recycle_environment(envstruct.copy);
+	envstruct.copy=NULL;}
+      fd_decref(*vloc);
+      i++;}
+    fd_decref(choices);
+    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+    return FD_VOID;}
+}
+
+static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
+{
+  u8_output out=fd_get_default_output(); int i=0, limit;
+  fdtype limit_val=fdxml_get(xpr,max_symbol,env), *iterval=NULL;
+  fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
+  fdtype *vloc=NULL, *iloc=NULL;
+  fdtype vars[2], vals[2], inner_env;
+  struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
+  if (FD_ABORTP(var)) return var;
+  else if (!(FD_FIXNUMP(limit_val)))
+    return fd_type_error("fixnum","dotimes_handler",limit_val);
+  else limit=FD_FIX2INT(limit_val);
+  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  bindings.flags=(FD_SCHEMAP_SORTED|FD_SCHEMAP_STACK_SCHEMA);
+  bindings.schema=vars; bindings.values=vals; bindings.size=1;
+  u8_init_mutex(&(bindings.lock));
+  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  envstruct.parent=env;  
+  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
+  envstruct.copy=NULL;
+  inner_env=(fdtype)(&envstruct); 
+  vars[0]=var; vals[0]=FD_INT2DTYPE(0);
+  while (i < limit) {
+    if (envstruct.copy) 
+      fd_set_value(var,FD_INT2DTYPE(i),envstruct.copy);
+    else vals[0]=FD_INT2DTYPE(i);
+    {FD_DOLIST(expr,body) {
+      fdtype val=fd_xmleval(out,expr,&envstruct);
+      if (FD_ABORTP(val)) {
+	fdtype retval=
+	  fd_passerr(val,iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+	u8_destroy_mutex(&(bindings.lock));
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	return retval;}
+      fd_decref(val);}}
+    if (envstruct.copy) {
+      fd_recycle_environment(envstruct.copy);
+      envstruct.copy=NULL;}
+    i++;}
+  u8_destroy_mutex(&(bindings.lock));
+  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+  return FD_VOID;
+}
+
+/* FDXML find */
+
+static fdtype index_symbol, with_symbol, slot_symbol, value_symbol;
+
+static fdtype fdxml_find(fdtype expr,fd_lispenv env)
+{
+  fdtype index_arg=fdxml_get(expr,index_symbol,env), results;
+  fdtype *slotvals=u8_malloc(sizeof(fdtype)*16);
+  fdtype content=fd_get(expr,content_slotid,FD_EMPTY_LIST);
+  int i=0, n=0, lim=16;
+  FD_DOLIST(elt,content) {
+    fdtype name=fd_get(elt,elt_name,FD_VOID);
+    if (FD_EQ(name,with_symbol)) {
+      fdtype slotid=fdxml_get(expr,slot_symbol,env);
+      fdtype slotval=fdxml_get(expr,value_symbol,env);
+      if (n>=lim) {
+	slotvals=u8_realloc(slotvals,sizeof(fdtype)*lim*2);
+	lim=lim*2;}
+      slotvals[n++]=slotid; slotvals[n++]=slotval;}}
+  if (FD_VOIDP(index_arg))
+    results=fd_bgfinder(n,slotvals);
+  else results=fd_finder(index_arg,n,slotvals);
+  while (i<n) {fd_decref(slotvals[i]); i++;}
+  u8_free(slotvals);
+  return results;
+}
+
+/* The init procedure */
+
+static int xmleval_initialized=0;
+
+FD_EXPORT void fd_init_xmleval_c()
+{
+  fdtype module;
+  if (xmleval_initialized) return;
+  xmleval_initialized=1;
+  fd_init_fdscheme();
+  fdxml_module=fd_make_env(fd_make_hashtable(NULL,17,NULL),NULL);
+  module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+  fd_idefn(module,fd_make_cprim1("PARSE-FDXML",parsefdxml,1));
+
+  fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
+  fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);
+  fd_defspecial((fdtype)fdxml_module,"INSERT",fdxml_insert);
+
+  xmleval_tag=fd_intern("%XMLEVAL");
+  rawname_slotid=fd_intern("%%NAME");
+  raw_attribs=fd_intern("%%ATTRIBS");
+  raw_markup=fd_intern("%MARKUP");
+  content_slotid=fd_intern("%CONTENT");
+  elt_name=fd_intern("%NAME");
+  qname_slotid=fd_intern("%QNAME");
+  attribs_slotid=fd_intern("%ATTRIBS");
+
+  xattrib_slotid=fd_intern("@");
+  bind_symbol=fd_intern("BIND");
+
+  test_symbol=fd_intern("TEST");
+  predicate_symbol=fd_intern("PREDICATE");
+  else_symbol=fd_intern("ELSE");
+
+  xmlenv_symbol=fd_intern("%XMLENV");
+  xattrib_overlay=fd_intern("%XATTRIB");
+  escape_id=fd_intern("%ESCAPE");
+
+  iter_var=fd_intern("%ITER");
+  value_symbol=fd_intern("VALUE");
+  each_symbol=fd_intern("EACH");
+  sequence_symbol=fd_intern("SEQ");
+  choice_symbol=fd_intern("CHOICE");
+  max_symbol=fd_intern("MAX");
+  min_symbol=fd_intern("MIN");
+
+  index_symbol=fd_intern("INDEX");
+  with_symbol=fd_intern("WITH");
+  slot_symbol=fd_intern("SLOT");
+  value_symbol=fd_intern("VALUE");
+
+  attribids=fd_intern("%ATTRIBIDS");
+  
+  fd_register_source_file(versionid);
+}
+
+
+/* The CVS log for this file
+   $Log: xmleval.c,v $
+   Revision 1.18  2006/03/19 23:42:15  haase
+   Fixes to parsing for FDXML
+
+   Revision 1.17  2006/03/06 17:27:31  haase
+   Experimenting with improved FDXML execution
+
+   Revision 1.16  2006/01/26 14:44:32  haase
+   Fixed copyright dates and removed dangling EFRAMERD references
+
+   Revision 1.15  2006/01/23 04:10:48  haase
+   Fixed xmleval for new argattrib model
+
+   Revision 1.14  2006/01/19 21:55:02  haase
+   Fixes to handling of load= and module= fdxml PIs
+
+   Revision 1.13  2006/01/19 02:55:18  haase
+   Fixed some XMLEVAL I/O consistency questions
+
+   Revision 1.12  2006/01/18 21:44:43  haase
+   Fixes to XML parsing and unparsing
+
+   Revision 1.11  2005/08/10 06:34:08  haase
+   Changed module name to fdb, moving header file as well
+
+   Revision 1.10  2005/05/19 16:44:21  haase
+   Added source file registration for fdweb files and fixed header in exif.c
+
+   Revision 1.9  2005/05/18 19:25:19  haase
+   Fixes to header ordering to make off_t defaults be pervasive
+
+   Revision 1.8  2005/05/10 18:43:35  haase
+   Added context argument to fd_type_error
+
+   Revision 1.7  2005/04/21 19:06:09  haase
+   Cleaned up and unified initialization routines
+
+   Revision 1.6  2005/04/17 15:36:56  haase
+   Added explicit calls to fd_init_fdscheme to fdweb initializations
+
+   Revision 1.5  2005/04/15 14:37:35  haase
+   Made all malloc calls go to libu8
+
+   Revision 1.4  2005/04/14 16:24:39  haase
+   Use fd_make_export_env
+
+   Revision 1.3  2005/04/11 04:33:56  haase
+   Fixes to XML regeneration
+
+   Revision 1.2  2005/04/09 19:06:46  haase
+   Further xmleval improvements, especially around allowing evaluation in more contexts
+
+*/

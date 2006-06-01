@@ -1,0 +1,8 @@
+source ../../etc/gdbinit
+directory ../../src/lisp:../../src/db:../../src/scheme:../../src/misc:../../include/fdb
+#set env FD_POOLS /data/bg/brico.pool
+#set env FD_INDICES /data/bg/brico.index
+#set env FD_POOLS bground@localhost
+#set env FD_INDICES bground@localhost
+set env LD_LIBRARY_PATH ../../lib
+set env FD_SHOWTIME 0.0

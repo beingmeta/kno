@@ -1,0 +1,386 @@
+# -*- Mode: Makefile; -*-
+# Copyright (C) 2004, 2005 beingmeta, inc.
+# This file is a part of beingmeta's FramerD implementation, Fdb.
+
+CC	= @CC@
+XCFLAGS=
+CFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ -I./include $(XCFLAGS)
+LDFLAGS = @LDFLAGS@ -L./lib $(EFENCE)
+EXELDFLAGS = @EXELDFLAGS@
+LIBS=@LIBS@ -lm -lz -lu8 -lu8fns -lu8io -lu8data
+
+DESTDIR		=
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+INCINSTALLDIR	= $(DESTDIR)@prefix@/include/fdb
+LIBINSTALLDIR	= $(DESTDIR)@libdir@
+BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
+LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
+CONFDIR		= $(DESTDIR)@prefix@/share/framerd
+CLEAN		= @CLEAN@
+INSTALL		= @INSTALL@
+MKSTATIC	= @MKSTATIC@
+MACOSX_DEPLOYMENT_TARGET=10.3
+MKSO		= $(CC) $(CFLAGS) $(XCFLAGS) -shared $(LDFLAGS)
+#MACLIBTOOL	= libtool -dynamic -single_module $(LDFLAGS) $(LIBS)
+MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
+		  $(CC) -dynamiclib -single_module \
+			-undefined dynamic_lookup \
+			$(LDFLAGS) $(LIBS)
+APXS		= @APXS@
+#FDGMP		= lib/libfdgmp.a 
+
+DTYPE_HEADERS=\
+ include/fdb/common.h include/fdb/defines.h   \
+ include/fdb/config.h  include/fdb/conf-defines.h  \
+ include/fdb/support.h   \
+ include/fdb/malloc.h include/fdb/dtype.h      \
+ include/fdb/ptr.h include/fdb/cons.h         \
+ include/fdb/choices.h include/fdb/tables.h   \
+ include/fdb/dtypeio.h
+DB_HEADERS=\
+ include/fdb/dtypestream.h                       \
+ include/fdb/apply.h                             \
+ include/fdb/fddb.h                              \
+ include/fdb/pools.h                             \
+ include/fdb/indices.h                           \
+ include/fdb/dtproc.h                            \
+ include/fdb/frames.h                            \
+ include/fdb/methods.h
+SCHEME_HEADERS=include/fdb/eval.h include/fdb/sequences.h
+
+BASE0OBJS=src/misc/stdio.o src/misc/simplerr.o
+STDBASEOBJS=src/misc/stdio.o src/misc/dynamic.o
+DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o \
+	  src/dtype/symbols.o src/dtype/numbers.o \
+          src/dtype/choices.o src/dtype/tables.o \
+          src/dtype/dtypeio.o src/dtype/textio.o \
+	  src/dtype/fdtype.o src/dtype/support.o
+DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
+	src/db/indices.o src/db/netindices.o src/db/compoundindices.o \
+	src/db/pools.o src/db/netpools.o  \
+	src/db/apply.o src/db/dtproc.o src/db/methods.o src/db/xtables.o \
+	src/db/ipeval.o src/db/frames.o
+DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
+	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o
+FDBSERV_OBJS=src/db/dbserv.o
+SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
+	    src/scheme/conditionals.o src/scheme/iterators.o \
+	    src/scheme/modules.o src/scheme/load.o src/scheme/reflection.o \
+	    src/scheme/corefns.o src/scheme/dbfns.o \
+	    src/scheme/tablefns.o src/scheme/choicefns.o \
+	    src/scheme/sequences.o src/scheme/strings.o \
+	    src/scheme/portfns.o src/scheme/timeprims.o \
+	    src/scheme/numeric.o src/scheme/side-effects.o
+SCHEMEIO_OBJS=src/scheme/fileio.o src/scheme/filedb.o
+FDWEB_OBJS=src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
+	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/urifns.o \
+	src/fdweb/xmleval.o src/fdweb/cgiexec.o @exifo@ @curlo@
+TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
+	src/texttools/md5c.o src/texttools/porter.o \
+	src/texttools/tagger.o src/texttools/tagxtract.o
+
+EXECUTABLES=exe/fdexec exe/fdconsole exe/fdexec.static \
+	exe/fdwebservlet exe/fdtypeserver exe/fdmanager
+
+FDB_SOURCES=\
+	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) \
+	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c \
+        src/dtype/choices.c src/dtype/tables.c \
+        src/dtype/dtypeio.c src/dtype/textio.c \
+	src/dtype/fdtype.c src/dtype/support.c \
+	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c \
+	src/db/indices.c src/db/netindices.c src/db/compoundindices.c \
+	src/db/pools.c src/db/netpools.c \
+	src/db/apply.c src/db/dtproc.c src/db/methods.c src/db/xtables.c \
+	src/db/ipeval.c src/db/frames.c \
+	src/db/dbfile.c src/db/filepools.c src/db/zpools.c \
+	src/db/hashdtype.c src/db/fileindices.c src/db/zindices.c \
+	src/scheme/eval.c src/scheme/binders.c \
+	src/scheme/conditionals.c src/scheme/iterators.c \
+	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
+	src/scheme/corefns.c src/scheme/dbfns.c \
+	src/scheme/tablefns.c src/scheme/choicefns.c \
+	src/scheme/sequences.c src/scheme/strings.c \
+	src/scheme/portfns.c src/scheme/fileio.c src/scheme/filedb.c \
+	src/scheme/numeric.c src/scheme/side-effects.c src/scheme/timefns.c \
+	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
+	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/urifns.c      \
+	src/fdweb/curl.c src/fdweb/mime.c src/fdweb/exif.c \
+	src/texttools/texttools.c include/fdb/texttools.h \
+	src/texttools/match.c src/texttools/porter.c \
+	src/texttools/md5c.c src/texttools/md5.h \
+	src/texttools/tagger.c src/texttools/tagxtract.c \
+	include/fdb/tagger.h \
+	src/exe/fdconsole.c src/exe/fdexec.c src/exe/fdwebservlet.c \
+	src/exe/fdtypeserver.c
+
+# Targets
+
+all: testbin exe TAGS
+libs: static-libs @SHARED_LIB_TARGET@
+static-libs: lib/libfdweb.a lib/libtexttools.a \
+	lib/libfdschemeio.a lib/libfdscheme.a lib/libfdbserv.a \
+	lib/libfddbfile.a lib/libfddb.a lib/libfdtype.a
+shared-libs: lib/libfdtype.@shared_suffix@ lib/libfddb.@shared_suffix@ \
+        lib/libfddbfile.@shared_suffix@ lib/libfdbserv.@shared_suffix@ \
+	lib/libfdscheme.@shared_suffix@ \
+	lib/libfdschemeio.@shared_suffix@ lib/libfdweb.@shared_suffix@ \
+	lib/libtexttools.@shared_suffix@
+testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
+dtypetestbin: libs
+	cd tests/dtype; make
+dbtestbin: libs
+	cd tests/db; make
+schemetestbin: libs
+	cd tests/scheme; make
+exe: $(EXECUTABLES)
+
+etc/usememory: etc/usememory.c
+
+# Rules
+
+# We selectively link some executables statically to avoid library dependencies
+# with programs which will typicall run as daemons
+exe/fdexec.static: src/exe/fdexec.c \
+	@xstatic_exe_libs@ lib/libfdscheme.a \
+	lib/libfddbfile.a lib/libfddb.a \
+	lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
+exe/fdwebservlet: src/exe/fdwebservlet.c \
+	@xstatic_exe_libs@ lib/libfdweb.a lib/libfdscheme.a \
+	lib/libfddbfile.a lib/libfddb.a \
+	lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
+exe/fdtypeserver: src/exe/fdtypeserver.c \
+	@xstatic_exe_libs@ lib/libfdbserv.a lib/libfdscheme.a \
+	lib/libfddbfile.a lib/libfddb.a \
+	lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
+exe/fdmanager: src/exe/fdmanager.c lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
+exe/%: src/exe/%.c
+	$(CC) $(EXELDFLAGS) $(CFLAGS) $(LDFLAGS) \
+		-o $@ $< \
+		$(LIBS) -lu8stdio \
+		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio \
+		@xdynamic_scheme_libs@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+lib/%.a:
+	$(MKSTATIC) $@ $^
+lib/%.so.@VERSION@: 
+	$(MKSO) -Wl,-soname=$(@F) -o $@ $^
+lib/%.so:
+	ln -sf $(<F) $@
+lib/%.@VERSION@.dylib:
+	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+lib/%.dylib:
+	ln -sf $(<F) $@
+
+$(LIBINSTALLDIR)/%.a: lib/%.a
+	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+$(LIBINSTALLDIR)/%.so: lib/%.so.@VERSION@
+	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%.dylib: lib/%.@VERSION@.dylib
+	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	ln -sf $(shell basename $<) $@
+$(BININSTALLDIR)/%: exe/%
+
+# Utility targets
+
+TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
+		src/texttools/*.c src/texttools/*.h \
+		include/fdb/*.h 
+	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
+	      src/texttools/*.c src/texttools/*.h \
+	      include/fdb/*.h
+
+profile-clean:
+	find . -name "*.gcda" | xargs rm -f
+	find . -name "*.gcno" | xargs rm -f
+	find . -name "*.gcov" | xargs rm -f
+	find . -name "*.bb" | xargs rm -f
+	find . -name "*.bbg" | xargs rm -f
+	find . -name "*.da" | xargs rm -f
+	find . -name "gmon.out" | xargs rm -f
+tidy: profile-clean
+	rm -f src/dtype/*~ src/db/*~ src/scheme/*~ src/fdweb/*~
+	rm -f include/fdb/*~
+	rm -f tests/dtype/*~ tests/db/*.o tests/scheme/*.o
+	rm -f config.log
+clean: tidy
+	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
+	rm -f src/fdweb/*.o src/texttools/*.o src/exe/*.o
+	rm -f lib/*.a lib/*.so lib/*.dylib lib/*.so.* 
+	rm -f exe/fdexec exe/fdconsole exe/fdexec.static fdwebservlet
+	rm -f TAGS
+	cd tests/dtype; make clean
+	cd tests/db; make clean
+	cd tests/scheme; make clean
+distclean: clean
+	rm -f makefile config.log config.status config.cache
+	rm -f include/fdb/config.h
+
+lib/libfdtype.a: $(DTYPE_OBJS)
+lib/libfdtype.so.@VERSION@: $(DTYPE_OBJS)
+lib/libfdtype.so: lib/libfdtype.so.@VERSION@
+lib/libfdtype.@VERSION@.dylib: $(DTYPE_OBJS)
+lib/libfdtype.dylib: lib/libfdtype.@VERSION@.dylib
+
+lib/libfddb.a: $(DB_OBJS)
+lib/libfddb.so.@VERSION@: $(DB_OBJS)
+lib/libfddb.so: lib/libfddb.so.@VERSION@
+lib/libfddb.@VERSION@.dylib: $(DB_OBJS)  lib/libfdtype.@VERSION@.dylib
+lib/libfddb.dylib: lib/libfddb.@VERSION@.dylib
+
+lib/libfddbfile.a: $(DBFILE_OBJS)
+lib/libfddbfile.so.@VERSION@: $(DBFILE_OBJS)
+lib/libfddbfile.so: lib/libfddbfile.so.@VERSION@
+lib/libfddbfile.@VERSION@.dylib: $(DBFILE_OBJS) lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+lib/libfddbfile.dylib: lib/libfddbfile.@VERSION@.dylib
+
+lib/libfdbserv.a: $(FDBSERV_OBJS)
+lib/libfdbserv.so.@VERSION@: $(FDBSERV_OBJS)
+lib/libfdbserv.so: lib/libfdweb.so.@VERSION@
+lib/libfdbserv.@VERSION@.dylib: $(FDBSERV_OBJS) \
+	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
+	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+lib/libfdserv.dylib: lib/libfdserv.@VERSION@.dylib
+
+lib/libfdscheme.a: $(SCHEME_OBJS)
+lib/libfdscheme.so.@VERSION@: $(SCHEME_OBJS)
+lib/libfdscheme.so: lib/libfdscheme.so.@VERSION@
+lib/libfdscheme.@VERSION@.dylib: $(SCHEME_OBJS) \
+	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+lib/libfdscheme.dylib: lib/libfdscheme.@VERSION@.dylib
+
+lib/libfdschemeio.a: $(SCHEMEIO_OBJS)
+lib/libfdschemeio.so.@VERSION@: $(SCHEMEIO_OBJS)
+lib/libfdschemeio.so: lib/libfdschemeio.so.@VERSION@
+lib/libfdschemeio.@VERSION@.dylib: $(SCHEMEIO_OBJS) \
+	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
+	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib 
+lib/libfdschemeio.dylib: lib/libfdschemeio.@VERSION@.dylib
+
+lib/libfdweb.a: $(FDWEB_OBJS)
+lib/libfdweb.so.@VERSION@: $(FDWEB_OBJS)
+	$(MKSO) @curlconfig@ -o $@ $^ 
+lib/libfdweb.so: lib/libfdweb.so.@VERSION@
+lib/libfdweb.@VERSION@.dylib: $(FDWEB_OBJS) \
+	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
+	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+	$(MACLIBTOOL) -install_name $(@F) -o $@ $(FDWEB_OBJS)
+lib/libfdweb.dylib: lib/libfdweb.@VERSION@.dylib
+
+lib/libtexttools.a: $(TEXTTOOLS_OBJS)
+lib/libtexttools.so.@VERSION@: $(TEXTTOOLS_OBJS)
+	$(MKSO) @curlconfig@ -o $@ $^ 
+lib/libtexttools.so: lib/libtexttools.so.@VERSION@
+lib/libtexttools.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
+	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
+	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
+lib/libtexttools.dylib: lib/libtexttools.@VERSION@.dylib
+
+# Internationalization stuff
+
+$(LOCALEDIR)/%/LC_MESSAGES/fdb.mo: etc/intl/%.gmo
+	install $^ $@
+
+etc/intl/fdb.pot: $(FDB_SOURCES)
+	xgettext -dfdb -oetc/intl/fdb.pot -k_ $(FDB_SOURCES)
+etc/intl/%.po: etc/intl/fdb.pot
+	msgmerge -U $@ $<
+etc/intl/%.gmo: etc/intl/%.po
+	msgfmt $^ -o $@ 
+
+install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/fdb.mo \
+		$(LOCALEDIR)/es/LC_MESSAGES/fdb.mo \
+		$(LOCALEDIR)/nl/LC_MESSAGES/fdb.mo
+i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
+
+# Installation targets
+
+install: confdirs install-exe \
+	install-static install-shared install-headers @INSTALLI18N@
+install-static: static-libs
+	make $(LIBINSTALLDIR)/libfdtype.a \
+		$(LIBINSTALLDIR)/libfddb.a \
+		$(LIBINSTALLDIR)/libfddbfile.a \
+		$(LIBINSTALLDIR)/libfdbserv.a \
+		$(LIBINSTALLDIR)/libfdscheme.a \
+		$(LIBINSTALLDIR)/libfdschemeio.a \
+		$(LIBINSTALLDIR)/libfdweb.a \
+		$(LIBINSTALLDIR)/libtexttools.a
+install-shared: shared-libs 
+	make install-@shared_suffix@
+install-so: $(LIBINSTALLDIR)/libfdtype.so \
+		$(LIBINSTALLDIR)/libfddb.so \
+		$(LIBINSTALLDIR)/libfdbserv.so \
+		$(LIBINSTALLDIR)/libfddbfile.so \
+		$(LIBINSTALLDIR)/libfdscheme.so \
+		$(LIBINSTALLDIR)/libfdschemeio.so \
+		$(LIBINSTALLDIR)/libfdweb.so \
+		$(LIBINSTALLDIR)/libtexttools.so
+install-dylib: $(LIBINSTALLDIR)/libfdtype.dylib \
+	$(LIBINSTALLDIR)/libfddb.dylib \
+	$(LIBINSTALLDIR)/libfdbserv.dylib \
+	$(LIBINSTALLDIR)/libfddbfile.dylib \
+	$(LIBINSTALLDIR)/libfdscheme.dylib \
+	$(LIBINSTALLDIR)/libfdschemeio.dylib \
+	$(LIBINSTALLDIR)/libfdweb.dylib \
+	$(LIBINSTALLDIR)/libtexttools.dylib
+install-headers: $(INCINSTALLDIR)
+	$(INSTALL) -p @install_file_opts@ \
+		   $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) \
+		$(INCINSTALLDIR)
+install-exe: $(BININSTALLDIR) $(EXECUTABLES)
+	$(INSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+
+$(INCINSTALLDIR):
+	install -d $(INCINSTALLDIR)
+$(BININSTALLDIR):
+	install -d $(BININSTALLDIR)
+
+# Setup targets
+
+confdirs: $(CONFDIR)/scm $(CONFDIR)/config $(CONFDIR)/etc
+
+$(CONFDIR)/scm $(CONFDIR)/config $(CONFDIR)/etc:
+	$(INSTALL) @install_file_opts@ -d $@
+link-modules: $(CONFDIR)/scm
+	ln -sf `pwd`/etc/*.el $(CONFDIR)/etc
+	ln -sf `pwd`/src/modules/*.scm $(CONFDIR)/scm
+	ln -sf `pwd`/src/fdweb/xhtml $(CONFDIR)/scm
+copy-modules: $(CONFDIR)/scm
+	cp -pf `pwd`/etc/*.el $(CONFDIR)/etc
+	cp -pf src/modules/*.scm $(CONFDIR)/scm
+	cp -rf src/fdweb/xhtml $(CONFDIR)/scm
+
+# The mod_fdserv module
+
+etc/mod_fdserv.so: etc/mod_fdserv.c
+	cd etc; $(APXS) -c mod_fdserv.c
+
+mod_fdserv: etc/mod_fdserv.so
+install-fdserv: etc/mod_fdserv.so
+	cd etc; $(APXS) -i -a -c mod_fdserv.c
+
+# Dependency information
+
+$(DTYPE_OBJS): $(DTYPE_HEADERS)
+$(DB_OBJS): $(DB_HEADERS) $(DTYPE_HEADERS) 
+$(SCHEME_OBJS): $(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
+$(SCHEMEIO_OBJS): include/fdb/ports.h $(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
+$(FDWEB_OBJS): include/fdb/fdweb.h \
+	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
+$(TEXTTOOLS_OBJS): include/fdb/texttools.h include/fdb/tagger.h \
+	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
+
