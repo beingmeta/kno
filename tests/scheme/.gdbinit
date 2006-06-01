@@ -1,5 +1,5 @@
 source ../../etc/gdbinit
-directory ../../src/lisp:../../src/db:../../src/scheme:../../src/misc:../../include/fdb
+directory ../../src/dtype:../../src/db:../../src/scheme:../../src/misc:../../include/fdb
 #set env FD_POOLS /data/bg/brico.pool
 #set env FD_INDICES /data/bg/brico.index
 #set env FD_POOLS bground@localhost
