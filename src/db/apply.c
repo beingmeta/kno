@@ -480,11 +480,8 @@ FD_EXPORT fdtype fd_make_cprim1x
  (u8_string name,fd_cprim1 fn,int min_arity,...)
 {
   va_list args;
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
-  FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0;
-  f->min_arity=min_arity; f->arity=1; f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.call1=fn;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim1(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
@@ -495,11 +492,8 @@ FD_EXPORT fdtype fd_make_cprim2x
   (u8_string name,fd_cprim2 fn,int min_arity,...)
 {
   va_list args;
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
-  FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0;
-  f->min_arity=min_arity; f->arity=2; f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.call2=fn;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim2(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
@@ -510,11 +504,8 @@ FD_EXPORT fdtype fd_make_cprim3x
   (u8_string name,fd_cprim3 fn,int min_arity,...)
 {
   va_list args;
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
-  FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0;
-  f->min_arity=min_arity; f->arity=3; f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.call3=fn;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim3(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
@@ -525,11 +516,8 @@ FD_EXPORT fdtype fd_make_cprim4x
   (u8_string name,fd_cprim4 fn,int min_arity,...)
 {
   va_list args;
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
-  FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0;
-  f->min_arity=min_arity; f->arity=4; f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.call4=fn;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim4(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
@@ -540,11 +528,8 @@ FD_EXPORT fdtype fd_make_cprim5x
    (u8_string name,fd_cprim5 fn,int min_arity,...)
 {
   va_list args;
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
-  FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0;
-  f->min_arity=min_arity; f->arity=5; f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.call5=fn;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim5(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
@@ -555,11 +540,8 @@ FD_EXPORT fdtype fd_make_cprim6x
    (u8_string name,fd_cprim6 fn,int min_arity,...)
 {
   va_list args;
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
-  FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0;
-  f->min_arity=min_arity; f->arity=6; f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.call6=fn;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim6(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
