@@ -15,6 +15,7 @@ static char versionid[] =
 
 #include <libu8/xfiles.h>
 #include <libu8/stringfns.h>
+#include <libu8/netfns.h>
 
 #include <curl/curl.h>
 

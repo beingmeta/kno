@@ -5,10 +5,10 @@ MAKEFILE_VERSION="$Id: makefile.in,v 1.43 2006/01/07 18:26:12 haase Exp $
 
 CC	= gcc
 XCFLAGS=
-CFLAGS=-fPIC -Wno-pointer-sign -g -O2  -D_REENTRANT -dynamic \
+CFLAGS=-fPIC -Wno-pointer-sign -g -O2  -D_REENTRANT -rdynamic \
 	 -I./include -I../../include $(XCFLAGS)
 LDFLAGS= $(EFENCE)  -L../../lib
-LIBS=-lcurl -lu8  -lgcc -lu8io -lu8data -lm -lz -lu8 -lu8fns -lu8io
+LIBS=-lexif -lcurl -lu8 -lpthread -ldl  -lu8io -lu8data -lm -lz -lu8 -lu8fns -lu8io
 
 EXTRA_LIBS	= ../../lib/libtexttools.a ../../lib/libfdweb.a ../../lib/libfdschemeio.a 
 DESTDIR		=

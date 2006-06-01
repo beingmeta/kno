@@ -1,5 +1,5 @@
 #define FD_DEFAULT_DLOADPATH \
-  "/usr/lib/%.dylib:/usr/lib/lib%.dylib:/lib/%.dylib:/lib/lib%.dylib"
+  "/usr/lib/%.so:/usr/lib/lib%.so:/lib/%.so:/lib/lib%.so"
 
 #define FD_DEFAULT_LOADPATH \
   "/usr/share/framerd/scm/%/module.scm:/usr/share/framerd/scm/%.scm"
