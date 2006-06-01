@@ -32,9 +32,6 @@ typedef fdtype (*fd_cprimn)(int n,fdtype *);
 
 typedef fdtype (*fd_xprim)(fd_function f,int n,fdtype *);
 
-#define FD_CPRIMITIVE 0
-#define FD_SPECIAL_CPRIMITIVE 1
-
 #define FD_FUNCTION_FIELDS \
   FD_CONS_HEADER; u8_string name, filename;    \
   short ndprim, xprim, arity, min_arity;       \
