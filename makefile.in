@@ -225,6 +225,7 @@ clean: tidy
 	cd tests/scheme; make clean
 distclean: clean
 	rm -f makefile config.log config.status config.cache
+	rm -f tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	rm -f include/fdb/config.h
 
 lib/libfdtype.a: $(DTYPE_OBJS)

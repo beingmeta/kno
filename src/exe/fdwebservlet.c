@@ -480,7 +480,11 @@ static int webservefn(u8_client ucl)
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     write_headers=0;
     fd_thread_set(cgidata_symbol,cgidata);
-    result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
+    if (FD_PAIRP(FD_CAR(proc))) {
+      FD_DOLIST(expr,FD_CAR(proc)) {
+	fd_decref(result);
+	result=fd_xmleval(&(client->out),expr,runenv);}}
+    else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
     fd_thread_set(cgidata_symbol,FD_VOID);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();

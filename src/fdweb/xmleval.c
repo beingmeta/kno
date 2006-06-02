@@ -133,10 +133,6 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 	fdtype result=FD_VOID;
 	if (FD_STRINGP(item))
 	  u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
-	else if ((FD_PAIRP(item)) || (FD_SYMBOLP(item))) {
-	  fdtype result=fd_eval(item,env);
-	  u8_printf(out,"%q",result);
-	  fd_decref(result);}
 	else result=fd_xmleval(out,item,env);
 	if (FD_ABORTP(result)) return result;
 	else fd_decref(result);}}
@@ -294,7 +290,9 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 	fd_decref(expr);}
       else fd_add_content(node,expr);
       start=in.point; scan=strstr(start,escape_string);}
-    if (scan>start)
+    if ((scan==NULL) && (start) && (*start))
+      fd_add_content(node,fdtype_string(start));
+    else if (scan>start)
       fd_add_content(node,fd_extract_string(NULL,start,scan));}
   else fd_add_content(node,fd_init_string(NULL,len,s));
 }
@@ -302,7 +300,8 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 FD_EXPORT
 FD_XML *fd_xmleval_popfn(FD_XML *node)
 {
-  fdtype cutaway=fd_get((fdtype)(inherit_node_data(node)),xattrib_overlay,xattrib_slotid);
+  fdtype cutaway=fd_get((fdtype)(inherit_node_data(node)),
+			xattrib_overlay,xattrib_slotid);
   fdtype xid=fd_get(node->attribs,cutaway,FD_VOID);
   /* Get your content */
   if (FD_PAIRP(node->head)) 
@@ -433,11 +432,11 @@ FD_EXPORT
 fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
 {
   fdtype result=FD_VOID;
-  if (FD_PAIRP(xml)) {
-    FD_DOLIST(elt,xml) {
-      fdtype result=fd_xmleval(out,elt,env);
-      if (FD_ABORTP(result)) return result;
-      else fd_decref(result);}}
+  if ((FD_PAIRP(xml)) || (FD_SYMBOLP(xml))) {
+    fdtype result=fd_eval(xml,env);
+    if (!(FD_VOIDP(result))) {
+      u8_printf(out,"%q",result);
+      fd_decref(result);}}
   else if (FD_STRINGP(xml))
     u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
   else if (FD_TABLEP(xml)) {
@@ -448,14 +447,19 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
       result=fd_unparse_xml(out,xml,env);
     else result=xmlapply(out,handler,xml,env);
     if (FD_ABORTP(result)) return result;
-    else if ((out) && (!(FD_VOIDP(result))))
-      fd_unparse(out,result);
-    if (FD_VOIDP(bind)) {}
-    else if (FD_SYMBOLP(bind)) 
+    else if (FD_VOIDP(bind)) {
+      if ((out) && (!(FD_VOIDP(result))))
+	fd_unparse(out,result);}
+    else if (FD_SYMBOLP(bind)) {
       fd_bind_value(bind,result,env);
+      fd_decref(result);
+      result=FD_VOID;}
     else if (FD_STRINGP(bind)) {
       fdtype sym=fd_parse(FD_STRDATA(bind));
-      if (FD_SYMBOLP(sym)) fd_bind_value(sym,result,env);
+      if (FD_SYMBOLP(sym)) {
+	fd_bind_value(sym,result,env);
+	fd_decref(result);
+	result=FD_VOID;}
       fd_decref(sym);}
     else {}}
   else {}
@@ -550,20 +554,14 @@ static fdtype do_body(fdtype expr,fd_lispenv env)
 static fdtype do_else(fdtype expr,fd_lispenv env)
 {
   u8_output out=fd_get_default_output();
-  fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
-  if (FD_PAIRP(body)) {
-    FD_DOLIST(elt,body) {
-      fdtype value=fd_xmleval(out,elt,env);
-      if (FD_ABORTP(value)) {
-	fd_decref(body);
-	return value;}
-      else {
-	fd_decref(result); result=value;}}}
+  fdtype body=fd_get(expr,else_symbol,FD_VOID);
+  fdtype result=fd_xmleval(out,body,env);
   fd_decref(body);
   return result;
 }
 
-static fdtype each_symbol, sequence_symbol, choice_symbol, max_symbol, min_symbol;
+static fdtype each_symbol, count_symbol, sequence_symbol;
+static fdtype choice_symbol, max_symbol, min_symbol;
 
 static fd_exception MissingAttrib=_("Missing XML attribute");
 
@@ -577,9 +575,13 @@ static fdtype fdxml_loop(fdtype expr,fd_lispenv env)
     return fd_err(MissingAttrib,"fdxml:loop",NULL,each_symbol);
   else {
     fdtype each_val=fd_get(expr,each_symbol,FD_VOID);
-    fdtype count_val=fd_get(expr,each_symbol,FD_VOID);
-    fdtype to_bind=((FD_STRINGP(each_val)) ? (fd_parse(FD_STRDATA(each_val))) : (each_val));
-    fdtype to_count=((FD_STRINGP(count_val)) ? (fd_parse(FD_STRDATA(count_val))) : (count_val));
+    fdtype count_val=fd_get(expr,count_symbol,FD_VOID);
+    fdtype to_bind=
+      ((FD_STRINGP(each_val)) ? (fd_parse(FD_STRDATA(each_val)))
+       : (each_val));
+    fdtype to_count=
+      ((FD_STRINGP(count_val)) ? (fd_parse(FD_STRDATA(count_val)))
+       : (count_val));
     if (fd_test(expr,sequence_symbol,FD_VOID))
       return fdxml_seq_loop(to_bind,to_count,expr,env);
     else if (fd_test(expr,choice_symbol,FD_VOID))
@@ -839,7 +841,7 @@ FD_EXPORT void fd_init_xmleval_c()
   qname_slotid=fd_intern("%QNAME");
   attribs_slotid=fd_intern("%ATTRIBS");
 
-  xattrib_slotid=fd_intern("@");
+  xattrib_slotid=fd_intern("XATTRIB");
   bind_symbol=fd_intern("BIND");
 
   test_symbol=fd_intern("TEST");
@@ -853,6 +855,7 @@ FD_EXPORT void fd_init_xmleval_c()
   iter_var=fd_intern("%ITER");
   value_symbol=fd_intern("VALUE");
   each_symbol=fd_intern("EACH");
+  count_symbol=fd_intern("COUNT");
   sequence_symbol=fd_intern("SEQ");
   choice_symbol=fd_intern("CHOICE");
   max_symbol=fd_intern("MAX");
