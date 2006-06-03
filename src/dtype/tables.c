@@ -301,6 +301,7 @@ FD_EXPORT fdtype fd_slotmap_max
   fdtype maxval=FD_VOID, result=FD_EMPTY_CHOICE;
   struct FD_KEYVAL *scan, *limit; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
+  if (FD_EMPTY_CHOICEP(scope)) return result;
   u8_lock_mutex(&sm->lock);
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
   while (scan<limit) {
@@ -328,6 +329,7 @@ FD_EXPORT fdtype fd_slotmap_skim(struct FD_SLOTMAP *sm,fdtype maxval,fdtype scop
   fdtype result=FD_EMPTY_CHOICE;
   struct FD_KEYVAL *scan, *limit; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
+  if (FD_EMPTY_CHOICEP(scope)) return result;
   u8_lock_mutex(&sm->lock);
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
   while (scan<limit) {
@@ -2190,13 +2192,15 @@ static int hashmaxfn(fdtype key,fdtype value,void *hmaxp)
 FD_EXPORT
 fdtype fd_hashtable_max(struct FD_HASHTABLE *h,fdtype scope,fdtype *maxvalp)
 {
-  struct FD_HASHMAX hmax;
-  hmax.keys=FD_EMPTY_CHOICE; hmax.scope=scope; hmax.max=FD_VOID;
-  fd_for_hashtable(h,hashmaxfn,&hmax,1);
-  if ((maxvalp) && (FD_NUMBERP(hmax.max)))
-    *maxvalp=hmax.max;
-  else fd_decref(hmax.max);
-  return hmax.keys;
+  if (FD_EMPTY_CHOICEP(scope)) return FD_EMPTY_CHOICE;
+  else {
+    struct FD_HASHMAX hmax;
+    hmax.keys=FD_EMPTY_CHOICE; hmax.scope=scope; hmax.max=FD_VOID;
+    fd_for_hashtable(h,hashmaxfn,&hmax,1);
+    if ((maxvalp) && (FD_NUMBERP(hmax.max)))
+      *maxvalp=hmax.max;
+    else fd_decref(hmax.max);
+    return hmax.keys;}
 }
 
 static int hashskimfn(fdtype key,fdtype value,void *hmaxp)
@@ -2212,10 +2216,12 @@ static int hashskimfn(fdtype key,fdtype value,void *hmaxp)
 FD_EXPORT
 fdtype fd_hashtable_skim(struct FD_HASHTABLE *h,fdtype maxval,fdtype scope)
 {
-  struct FD_HASHMAX hmax;
-  hmax.keys=FD_EMPTY_CHOICE; hmax.scope=scope; hmax.max=maxval;
-  fd_for_hashtable(h,hashskimfn,&hmax,1);
-  return hmax.keys;
+  if (FD_EMPTY_CHOICEP(scope)) return FD_EMPTY_CHOICE;
+  else {
+    struct FD_HASHMAX hmax;
+    hmax.keys=FD_EMPTY_CHOICE; hmax.scope=scope; hmax.max=maxval;
+    fd_for_hashtable(h,hashskimfn,&hmax,1);
+    return hmax.keys;}
 }
 
 
@@ -2271,7 +2277,8 @@ FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keysarg)
 
 FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxvalp)
 {
-  if (FD_HASHTABLEP(table))
+  if (FD_EMPTY_CHOICEP(scope)) return FD_EMPTY_CHOICE;
+  else if (FD_HASHTABLEP(table))
     return fd_hashtable_max((fd_hashtable)table,scope,maxvalp);
   else if (FD_SLOTMAPP(table))
     return fd_slotmap_max((fd_slotmap)table,scope,maxvalp);
@@ -2302,7 +2309,8 @@ FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxvalp)
 
 FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope)
 {
-  if (FD_HASHTABLEP(table))
+  if (FD_EMPTY_CHOICEP(scope)) return FD_EMPTY_CHOICE;
+  else if (FD_HASHTABLEP(table))
     return fd_hashtable_skim((fd_hashtable)table,maxval,scope);
   else if (FD_SLOTMAPP(table))
     return fd_slotmap_skim((fd_slotmap)table,maxval,scope);

@@ -166,7 +166,7 @@ static fdtype hashtable_multiply_existing
 static fdtype hashtable_max(fdtype table,fdtype scope)
 {
   if (FD_EMPTY_CHOICEP(scope))
-    return fd_hashtable_max(FD_XHASHTABLE(table),FD_VOID,NULL);
+    return FD_EMPTY_CHOICE;
   else return fd_hashtable_max(FD_XHASHTABLE(table),scope,NULL);
 }
 
@@ -184,45 +184,51 @@ static fdtype table_size(fdtype table)
 
 static fdtype table_max(fdtype tables,fdtype scope)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(table,tables) 
-    if (FD_TABLEP(table)) {
-      fdtype result=fd_table_max(table,scope,NULL);
-      FD_ADD_TO_CHOICE(results,result);}
-    else {
-      fd_decref(results);
-      return fd_type_error(_("table"),"table_max",table);}
-  return results;
+  if (FD_EMPTY_CHOICEP(scope)) return scope;
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(table,tables) 
+      if (FD_TABLEP(table)) {
+	fdtype result=fd_table_max(table,scope,NULL);
+	FD_ADD_TO_CHOICE(results,result);}
+      else {
+	fd_decref(results);
+	return fd_type_error(_("table"),"table_max",table);}
+    return results;}
 }
 
 static fdtype table_maxval(fdtype tables,fdtype scope)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(table,tables) 
-    if (FD_TABLEP(table)) {
-      fdtype maxval=FD_EMPTY_CHOICE;
-      fdtype result=fd_table_max(table,scope,&maxval);
-      FD_ADD_TO_CHOICE(results,maxval);
-      fd_decref(result);}
-    else {
-      fd_decref(results);
-      return fd_type_error(_("table"),"table_maxval",table);}
-  return results;
+  if (FD_EMPTY_CHOICEP(scope)) return scope;
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(table,tables) 
+      if (FD_TABLEP(table)) {
+	fdtype maxval=FD_EMPTY_CHOICE;
+	fdtype result=fd_table_max(table,scope,&maxval);
+	FD_ADD_TO_CHOICE(results,maxval);
+	fd_decref(result);}
+      else {
+	fd_decref(results);
+	return fd_type_error(_("table"),"table_maxval",table);}
+    return results;}
 }
 
 static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(table,tables) 
-    if (FD_TABLEP(table)) {
-      fdtype result=fd_table_skim(table,maxval,scope);
-      FD_ADD_TO_CHOICE(results,result);}
-    else {
-      fd_decref(results);
-      return fd_type_error(_("table"),"table_skim",table);}
-  return results;
+  if (FD_EMPTY_CHOICEP(scope)) return scope;
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(table,tables) 
+      if (FD_TABLEP(table)) {
+	fdtype result=fd_table_skim(table,maxval,scope);
+	FD_ADD_TO_CHOICE(results,result);}
+      else {
+	fd_decref(results);
+	return fd_type_error(_("table"),"table_skim",table);}
+    return results;}
 }
-
+  
 /* Hashset operations */
 
 static fdtype hashsetget(fdtype hs,fdtype key)
