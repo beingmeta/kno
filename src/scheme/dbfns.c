@@ -854,6 +854,7 @@ static fdtype pick_lexpr(int n,fdtype *args)
 static fdtype binary_pick(fdtype candidates,fdtype test)
 {
   fdtype results=FD_EMPTY_CHOICE;
+  fd_pool p=((FD_POOLP(test)) ? (fd_lisp2pool(test)) : (NULL));
   FD_DO_CHOICES(candidate,candidates)
     if (FD_PRIM_TYPEP(test,fd_hashset_type)) {
       if (fd_hashset_get((fd_hashset)test,candidate)) {
@@ -862,6 +863,11 @@ static fdtype binary_pick(fdtype candidates,fdtype test)
       fdtype v;
       if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
 	v=fd_get(candidate,test,FD_VOID);
+      else if (p) {
+	if ((FD_OIDP(candidate)) &&
+	    (fd_oid2pool(candidate)==p))
+	  v=FD_TRUE;
+	else v=FD_FALSE;}
       else if (FD_TABLEP(test))
 	v=fd_get(test,candidate,FD_VOID);
       else if (FD_APPLICABLEP(test))
@@ -911,6 +917,7 @@ static fdtype reject_lexpr(int n,fdtype *args)
 static fdtype binary_reject(fdtype candidates,fdtype test)
 {
   fdtype results=FD_EMPTY_CHOICE;
+  fd_pool p=((FD_POOLP(test)) ? (fd_lisp2pool(test)) : (NULL));
   FD_DO_CHOICES(candidate,candidates)
     if (FD_PRIM_TYPEP(test,fd_hashset_type)) {
       if (!(fd_hashset_get((fd_hashset)test,candidate))) {
@@ -919,6 +926,11 @@ static fdtype binary_reject(fdtype candidates,fdtype test)
       fdtype v;
       if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
 	v=fd_get(candidate,test,FD_VOID);
+      else if (p) {
+	if ((FD_OIDP(candidate)) &&
+	    (fd_oid2pool(candidate)==p))
+	  v=FD_FALSE;
+	else v=FD_TRUE;}
       else if (FD_TABLEP(test))
 	v=fd_get(test,candidate,FD_VOID);
       else if (FD_APPLICABLEP(test))
