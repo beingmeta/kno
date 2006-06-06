@@ -227,7 +227,8 @@ function fdbFindAttrib(node,attrib)
 {
   var val=false;
   while (node)
-    if ((node.getAttribute) &&
+    if ((node.nodeType==1) &&
+	(node.getAttribute) &&
 	(val=node.getAttribute(attrib)))
       return val;
     else node=node.parentNode;
@@ -238,7 +239,7 @@ function fdbFindClass(node,classname)
 {
   if (typeof classname == 'string') {
     while (node)
-      if (node.className==classname) 
+      if ((node.nodeType==1) && (node.className==classname))
 	return node;
       else node=node.parentNode;
     return node;}
@@ -824,5 +825,15 @@ function fdbMessage(aMessage)
     Components.classes["@mozilla.org/consoleservice;1"].getService
       (Components.interfaces.nsIConsoleService);
   consoleService.logStringMessage("fdb: " + aMessage);
+}
+
+
+function fdbEventString(evt)
+{
+  /* Useful for debugging, this returns event information. */
+  return evt.type+";"+
+    ((evt.altKey)?("alt;"):"")+
+    ((evt.shiftKey)?("shift;"):"")+
+    ((evt.ctrlKey)?("ctrl;"):"");
 }
 
