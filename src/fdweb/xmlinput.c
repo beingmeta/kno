@@ -671,7 +671,7 @@ void *fd_walk_xml(U8_INPUT *in,
 	remainder=u8_gets_x(NULL,0,in,"-->",&more_data);
       if (more_data)
 	combined=u8_string_append("<",buf,">",remainder,"-->",NULL);
-      else combined=u8_string_append("<",buf,">");
+      else combined=u8_string_append("<",buf,">",NULL);
       if (contentfn)
 	if (more_data)
 	  contentfn(node,combined,size+more_data+5);
@@ -685,7 +685,7 @@ void *fd_walk_xml(U8_INPUT *in,
       if (more_data)
 	combined=
 	  u8_string_append("<",buf,">",remainder,"]]>",NULL);
-      else combined=u8_string_append("<",buf,">");
+      else combined=u8_string_append("<",buf,">",NULL);
       if (contentfn) contentfn(node,combined,size+more_data+5);
       u8_free(combined); if (more_data) u8_free(remainder);}
     else if (type == xmldoctype)
