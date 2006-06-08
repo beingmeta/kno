@@ -798,10 +798,12 @@ static fdtype indexsizes(fdtype ixarg)
 
 /* Other operations */
 
-static int dotest(fdtype f,fdtype pred,fdtype val)
+static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
 {
   if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
-    return fd_frame_test(f,pred,val);
+    if (noinfer)
+      return fd_test(f,pred,val);
+    else return fd_frame_test(f,pred,val);
   else if ((FD_TABLEP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
     return fd_test(f,pred,val);
   else if (FD_TABLEP(pred))
@@ -822,7 +824,7 @@ static int dotest(fdtype f,fdtype pred,fdtype val)
 
 static fdtype binary_pick(fdtype candidates,fdtype test);
 
-static fdtype pick_lexpr(int n,fdtype *args)
+static fdtype pick_helper(int n,fdtype *args,int noinfer)
 {
   fdtype start=args[0], candidates, next;
   int i=1;
@@ -836,19 +838,28 @@ static fdtype pick_lexpr(int n,fdtype *args)
     FD_DO_CHOICES(candidate,candidates) {
       int testval=0;
       FD_DO_CHOICES(slotid,args[i]) {
-	if (testval==0) {
-	  FD_DO_CHOICES(value,args[i+1])
-	    if (testval==0) {
-	      if ((testval=dotest(candidate,slotid,value))>0) {
-		FD_ADD_TO_CHOICE(next,fd_incref(candidate));}}}}
+	if ((testval=dotest(candidate,slotid,args[i+1],noinfer))>0) {
+	  FD_STOP_DO_CHOICES; break;}}
       if (testval<0) {
 	fd_decref(candidates); fd_decref(next);
-	return fd_erreify();}}
+	return fd_erreify();}
+      else if (testval) {
+	FD_ADD_TO_CHOICE(next,fd_incref(candidate));}}
     fd_decref(candidates);
     candidates=next;
     next=FD_EMPTY_CHOICE;
     i=i+2;}
   return candidates;
+}
+
+static fdtype pick_lexpr(int n,fdtype *args)
+{
+  return pick_helper(n,args,0);
+}
+
+static fdtype prim_pick_lexpr(int n,fdtype *args)
+{
+  return pick_helper(n,args,1);
 }
 
 static fdtype binary_pick(fdtype candidates,fdtype test)
@@ -885,14 +896,14 @@ static fdtype binary_pick(fdtype candidates,fdtype test)
 
 static fdtype binary_reject(fdtype candidates,fdtype test);
 
-static fdtype reject_lexpr(int n,fdtype *args)
+static fdtype reject_helper(int n,fdtype *args,int noinfer)
 {
   fdtype start=args[0], candidates;
   fdtype rejects=FD_EMPTY_CHOICE, next;
   int i=1;
   if (n==2) return binary_reject(args[0],args[1]);
   if ((n%2)==0)
-    return fd_err(fd_SyntaxError,"wrong number of args to PICK",
+    return fd_err(fd_SyntaxError,"wrong number of args to REJECT",
 		  NULL,FD_VOID);
   if ((fd_prefetch) && (fd_ipeval_status()>0)) prefetch_oids(start);
   candidates=fd_incref(start);
@@ -900,18 +911,29 @@ static fdtype reject_lexpr(int n,fdtype *args)
     FD_DO_CHOICES(candidate,candidates) {
       int testval=0;
       FD_DO_CHOICES(slotid,args[i]) {
-	if (testval==0) {
-	  FD_DO_CHOICES(value,args[i+1]) {
-	    if (testval) {}
-	    else if ((testval=dotest(candidate,slotid,value))>0) {
-	      FD_ADD_TO_CHOICE(rejects,fd_decref(candidate));}}}}
-      if (testval<0) {}}
+	if ((testval=dotest(candidate,slotid,args[i+1],noinfer))) {
+	  FD_STOP_DO_CHOICES; break;}}
+      if (testval<0) {
+	fd_decref(candidates); fd_decref(rejects);
+	return fd_erreify();}
+      else if (testval) {
+	FD_ADD_TO_CHOICE(rejects,candidate);}}
     next=fd_difference(candidates,rejects);
     fd_decref(candidates); candidates=next;
     fd_decref(rejects); rejects=FD_EMPTY_CHOICE;
     next=FD_EMPTY_CHOICE; 
     i=i+2;}
   return candidates;
+}
+
+static fdtype reject_lexpr(int n,fdtype *args)
+{
+  return reject_helper(n,args,0);
+}
+
+static fdtype prim_reject_lexpr(int n,fdtype *args)
+{
+  return reject_helper(n,args,1);
 }
 
 static fdtype binary_reject(fdtype candidates,fdtype test)
@@ -1415,6 +1437,11 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,3)));
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,3)));
+
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,3)));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,3)));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));
