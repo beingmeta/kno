@@ -221,6 +221,8 @@
    random-compound-object 15000
    "compall.data" "compmerged.data" "compcommon.data" "compmissing.data"
    "compa.data" "compb.data" "compc.data" "compd.data" "compe.data"))
+(define (bricotiny.dump)
+  (dump-brico .005 brico "bricotiny.dump"))
 (define (bricosmall.dump)
   (dump-brico .10 brico "bricosmall.dump"))
 (define (bricosample.dump)
