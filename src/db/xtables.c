@@ -257,17 +257,27 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fd_index adj=get_adjunct(slotid,p); 
     if (adj) {
       fdtype current=fd_index_get(adj,f);
-      int found=fd_choice_containsp(value,current);
+      int found=fd_overlapp(value,current);
       fd_decref(current);
       return found;}
     else smap=fd_fetch_oid(p,f);
     if (FD_EXCEPTIONP(smap)) 
       return fd_interr(smap);
-    else if (FD_TABLEP(smap)) {
-      fdtype current=fd_get(smap,slotid,FD_EMPTY_CHOICE);
-      int found=fd_overlapp(value,current);
-      fd_decref(smap); fd_decref(current);
-      return found;}
+    else if (FD_SLOTMAPP(smap))
+      return fd_slotmap_test((fd_slotmap)smap,slotid,value);
+    else if (FD_SCHEMAPP(smap))
+      return fd_schemap_test((fd_schemap)smap,slotid,value);
+    else if (FD_TABLEP(smap))
+      return fd_test(smap,slotid,value);
+    /* Not sure why this wasn't calling fd_test,
+       keeping the code for the moment.  */
+#if 0
+      {
+	fdtype current=fd_get(smap,slotid,FD_EMPTY_CHOICE);
+	int found=fd_overlapp(value,current);
+	fd_decref(smap); fd_decref(current);
+	return found;}
+#endif
     else {
       fd_decref(smap);
       return 0;}}
