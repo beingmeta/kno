@@ -928,7 +928,7 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ENDPOS",endpos_prim,1,fd_port_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PCTOPS",pctpos_prim,1,fd_port_type,FD_VOID));
+	   fd_make_cprim1x("PCTPOS",pctpos_prim,1,fd_port_type,FD_VOID));
   fd_defalias(fd_scheme_module,"FILE%","PCTPOS");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOAD-DLL",load_dll,1));
