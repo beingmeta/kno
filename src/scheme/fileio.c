@@ -425,6 +425,38 @@ static fdtype getpos_prim(fdtype portarg)
   else return fd_make_bigint(result);
 }
 
+static fdtype endpos_prim(fdtype portarg)
+{
+  struct FD_PORT *p=
+    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+  off_t result=-1;
+  if (p->in)
+    result=u8_endpos((struct U8_STREAM *)(p->in));
+  else if (p->out)
+    result=u8_endpos((struct U8_STREAM *)(p->out));
+  else return fd_type_error(_("port"),"getpos_prim",portarg);
+  if (result<0)
+    return fd_erreify();
+  else if (result<FD_MAX_FIXNUM)
+    return FD_INT2DTYPE(result);
+  else return fd_make_bigint(result);
+}
+
+static fdtype pctpos_prim(fdtype portarg)
+{
+  double result=-1.0;
+  struct FD_PORT *p=
+    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+  if (p->in)
+    result=u8_endpos((struct U8_STREAM *)(p->in));
+  else if (p->out)
+    result=u8_endpos((struct U8_STREAM *)(p->out));
+  else return fd_type_error(_("port"),"getpos_prim",portarg);
+  if (result<0)
+    return fd_erreify();
+  else fd_init_double(NULL,result);
+}
+
 static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
 {
   off_t off, result;
@@ -893,7 +925,11 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("GETPOS",getpos_prim,1,fd_port_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("SETPOS",setpos_prim,2,fd_port_type,FD_VOID,-1,FD_VOID));
-
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("ENDPOS",endpos_prim,1,fd_port_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("PCTOPS",pctpos_prim,1,fd_port_type,FD_VOID));
+  fd_defalias(fd_scheme_module,"FILE%","PCTPOS");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOAD-DLL",load_dll,1));
 
