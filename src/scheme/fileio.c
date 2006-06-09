@@ -442,15 +442,15 @@ static fdtype endpos_prim(fdtype portarg)
   else return fd_make_bigint(result);
 }
 
-static fdtype pctpos_prim(fdtype portarg)
+static fdtype file_progress_prim(fdtype portarg)
 {
   double result=-1.0;
   struct FD_PORT *p=
     FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
   if (p->in)
-    result=u8_endpos((struct U8_STREAM *)(p->in));
+    result=u8_getprogress((struct U8_STREAM *)(p->in));
   else if (p->out)
-    result=u8_endpos((struct U8_STREAM *)(p->out));
+    result=u8_getprogress((struct U8_STREAM *)(p->out));
   else return fd_type_error(_("port"),"getpos_prim",portarg);
   if (result<0)
     return fd_erreify();
@@ -928,8 +928,7 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ENDPOS",endpos_prim,1,fd_port_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PCTPOS",pctpos_prim,1,fd_port_type,FD_VOID));
-  fd_defalias(fd_scheme_module,"FILE%","PCTPOS");
+	   fd_make_cprim1x("FILE%",file_progress_prim,1,fd_port_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOAD-DLL",load_dll,1));
 
