@@ -596,6 +596,7 @@ FD_EXPORT int fd_pool_commit_all(fd_pool p)
   struct FD_HASHTABLE *locks=&(p->locks);
   fdtype oids=fd_hashtable_keys(locks);
   result=fd_pool_commit(p,oids,0);
+  fd_devoid_hashtable(&(p->locks));
   fd_decref(oids);
   return result;
 }
