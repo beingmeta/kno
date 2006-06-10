@@ -7,7 +7,7 @@
 
 #ifndef FDB_EVAL_H
 #define FDB_EVAL_H 1
-#define FDB_EVAL_H_VERSION "$Id: eval.h,v 1.46 2006/01/26 14:44:32 haase Exp $"
+#define FDB_EVAL_H_VERSION "$Id$"
 
 #include "fdb/dtype.h"
 #include "fdb/apply.h"

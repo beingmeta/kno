@@ -9,7 +9,7 @@
 
 #ifndef FDB_DTYPE_H
 #define FDB_DTYPE_H 1
-#define FDB_DTYPE_H_VERSION "$Id: lisp.h,v 1.24 2006/02/10 17:25:04 haase Exp $"
+#define FDB_DTYPE_H_VERSION "$Id$"
 
 #include "common.h"
 #include "ptr.h"

@@ -7,7 +7,7 @@
 
 #ifndef FDB_MALLOC_H
 #define FDB_MALLOC_H 1
-#define FDB_MALLOC_H_VERSION "$Id: malloc.h,v 1.9 2006/01/31 13:47:23 haase Exp $"
+#define FDB_MALLOC_H_VERSION "$Id$"
 
 #endif /* #ifndef FDB_MALLOC_H */
 

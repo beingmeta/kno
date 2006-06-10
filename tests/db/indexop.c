@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: indexop.c,v 1.11 2006/01/26 14:44:33 haase Exp $";
+  "$Id$";
 
 #include "strings.h"
 #include "stdlib.h"

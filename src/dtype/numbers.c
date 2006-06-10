@@ -41,7 +41,7 @@
    (unlimited precision integers).  The bigint implementation
    is directly based on the bignums implementation from MIT Scheme. */
 
-static char vcid[] = "$Id: numbers.c,v 1.42 2006/02/11 18:02:53 haase Exp $";
+static char vcid[] = "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/bigints.h"

@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: frames.c,v 1.68 2006/01/26 14:44:32 haase Exp $";
+  "$Id$";
 
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_TABLES 1

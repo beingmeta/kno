@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: fdtypeserver.c,v 1.12 2006/01/26 14:44:33 haase Exp $";
+  "$Id$";
 
 #include <strings.h>
 #include <stdlib.h>

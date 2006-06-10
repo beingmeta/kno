@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: fdwebserv.c,v 1.21 2006/01/31 13:47:24 haase Exp $";
+  "$Id$";
 
 #include <strings.h>
 #include <stdlib.h>

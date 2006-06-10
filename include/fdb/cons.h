@@ -71,7 +71,7 @@
 
 #ifndef FDB_CONS_H
 #define FDB_CONS_H 1
-#define FDB_CONS_H_VERSION "$Id: cons.h,v 1.49 2006/01/26 14:44:32 haase Exp $"
+#define FDB_CONS_H_VERSION "$Id$"
 
 #include "ptr.h"
 #include <libu8/timefns.h>

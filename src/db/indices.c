@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: indices.c,v 1.96 2006/02/07 16:07:17 haase Exp $";
+  "$Id$";
 
 #define FD_INLINE_INDICES 1
 #define FD_INLINE_IPEVAL 1

@@ -8,7 +8,7 @@
 #ifndef FDB_FDWEB_H
 #define FDB_FDWEB_H 1
 #define FDB_FDWEB_H_VERSION \
-   "$Id: fdweb.h,v 1.19 2006/03/19 23:42:15 haase Exp $"
+   "$Id$"
 
 FD_EXPORT void fd_init_fdweb(void) FD_LIBINIT_FN;
 

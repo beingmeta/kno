@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] = "$Id: uniontest.c,v 1.19 2006/01/26 14:44:33 haase Exp $";
+static char versionid[] = "$Id$";
 
 #define FD_DEBUG_PTRCHECK 2
 

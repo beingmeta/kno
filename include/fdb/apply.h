@@ -7,7 +7,7 @@
 
 #ifndef FDB_APPLY_H
 #define FDB_APPLY_H 1
-#define FDB_APPLY_H_VERSION "$Id: apply.h,v 1.13 2006/01/26 14:44:32 haase Exp $"
+#define FDB_APPLY_H_VERSION "$Id$"
 #include "fdb/dtype.h"
 
 FD_EXPORT fd_exception fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;

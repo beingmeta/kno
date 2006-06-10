@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: netindices.c,v 1.34 2006/01/26 14:44:32 haase Exp $";
+  "$Id$";
 
 #define FD_INLINE_DTYPEIO 1
 

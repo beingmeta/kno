@@ -8,7 +8,7 @@
 
 #ifndef FDB_DYNAMIC_H
 #define FDB_DYNAMIC_H
-#define FDB_DYNAMIC_H_VERSION "$Id: dynamic.h,v 1.4 2006/01/26 14:44:32 haase Exp $"
+#define FDB_DYNAMIC_H_VERSION "$Id$"
 
 #include <setjmp.h>
 

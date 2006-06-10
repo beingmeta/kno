@@ -7,7 +7,7 @@
 
 #ifndef FRAMERD_FDGMP_H
 #define FRAMERD_FDGMP_H 1
-#define FRAMERD_FDGMP_H_VERSION "$Id: fdgmp.h,v 1.4 2006/01/26 14:44:32 haase Exp $"
+#define FRAMERD_FDGMP_H_VERSION "$Id$"
 
 #include <gmp.h>
 

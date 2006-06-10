@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: printdtype.c,v 1.17 2006/01/26 14:44:33 haase Exp $";
+  "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/dtypestream.h"

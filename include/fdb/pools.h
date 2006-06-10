@@ -7,7 +7,7 @@
 
 #ifndef FDB_POOLS_H
 #define FDB_POOLS_H 1
-#define FDB_POOLS_H_VERSION "$Id: pools.h,v 1.61 2006/03/14 04:30:19 haase Exp $"
+#define FDB_POOLS_H_VERSION "$Id$"
 
 /* HOW POOLS WORK
 

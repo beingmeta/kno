@@ -5,7 +5,7 @@
    trade secret of beingmeta, inc.
 */
 
-static char versionid[] = "$Id: u8io.c,v 1.9 2005/02/15 03:03:40 haase Exp $";
+static char versionid[] = "$Id$";
 
 #include <libu8/u8.h>
 #include <libu8/u8io.h>

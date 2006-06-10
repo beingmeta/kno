@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-    $Id: bigints.h,v 1.3 2006/01/26 14:44:32 haase Exp $
+    $Id$
 
     Copyright (c) 1989-1992 Massachusetts Institute of Technology
     Copyright (c) 1992-2001 Massachusetts Institute of Technology

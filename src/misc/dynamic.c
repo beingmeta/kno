@@ -5,7 +5,7 @@
    trade secret of beingmeta, inc.
 */
 
-static char versionid[] = "$Id: dynamic.c,v 1.5 2005/03/05 21:07:39 haase Exp $";
+static char versionid[] = "$Id$";
 
 #include "stdio.h"
 #include "libu8/u8.h"

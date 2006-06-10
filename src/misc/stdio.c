@@ -5,7 +5,7 @@
    trade secret of beingmeta, inc.
 */
 
-static char versionid[] = "$Id: stdio.c,v 1.6 2005/03/05 21:07:39 haase Exp $";
+static char versionid[] = "$Id$";
 
 #include <eframerd/lisp.h>
 #include <stdio.h>

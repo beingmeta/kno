@@ -7,7 +7,7 @@
 
 #ifndef FDB_DTYPEIO_H
 #define FDB_DTYPEIO_H 1
-#define FDB_DTYPEIO_H_VERSION "$Id: dtypeio.h,v 1.16 2006/01/26 14:44:32 haase Exp $"
+#define FDB_DTYPEIO_H_VERSION "$Id$"
 
 /* DTYPE constants */
 

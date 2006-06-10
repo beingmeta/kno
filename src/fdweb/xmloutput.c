@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: xmloutput.c,v 1.83 2006/03/14 04:30:10 haase Exp $";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 #define FD_PROVIDE_FASTEVAL 1

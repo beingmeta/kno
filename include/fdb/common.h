@@ -7,7 +7,7 @@
 
 #ifndef FDB_COMMON_H
 #define FDB_COMMON_H 1
-#define FDB_COMMON_H_VERSION "$Id: common.h,v 1.32 2006/01/26 14:44:32 haase Exp $"
+#define FDB_COMMON_H_VERSION "$Id$"
 
 #define _GNU_SOURCE
 

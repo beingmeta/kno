@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: mime.c,v 1.7 2006/01/26 14:44:32 haase Exp $";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 

@@ -7,7 +7,7 @@
 
 #ifndef FDB_SEQUENCES_H
 #define FDB_SEQUENCES_H 1
-#define FDB_SEQUENCES_H_VERSION "$Id: sequences.h,v 1.8 2006/01/26 14:44:32 haase Exp $"
+#define FDB_SEQUENCES_H_VERSION "$Id$"
 
 FD_EXPORT fd_exception fd_RangeError;
 

@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: symbols.c,v 1.20 2006/01/31 13:47:24 haase Exp $";
+  "$Id$";
 
 #include "fdb/dtype.h"
 

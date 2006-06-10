@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: choices.c,v 1.66 2006/02/04 05:13:59 haase Exp $";
+  "$Id$";
 
 #define FD_INLINE_CHOICES 1
 #include "fdb/dtype.h"

@@ -8,7 +8,7 @@
 */
 
 static char versionid[] =
-  "$Id: textio.c,v 1.93 2006/02/13 18:37:14 haase Exp $";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 #include "fdb/dtype.h"

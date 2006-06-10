@@ -85,7 +85,7 @@
 
 #ifndef FDB_PTR_H
 #define FDB_PTR_H 1
-#define FDB_PTR_H_VERSION "$Id: ptr.h,v 1.56 2006/01/27 15:47:22 haase Exp $"
+#define FDB_PTR_H_VERSION "$Id$"
 
 #include "common.h"
 

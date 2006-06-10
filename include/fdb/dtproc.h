@@ -7,7 +7,7 @@
 
 #ifndef FDB_DTPROC_H
 #define FDB_DTPROC_H 1
-#define FDB_DTPROC_H_VERSION "$Id: dtproc.h,v 1.3 2006/01/26 14:44:32 haase Exp $"
+#define FDB_DTPROC_H_VERSION "$Id$"
 
 typedef struct FD_DTPROC {
   FD_FUNCTION_FIELDS;

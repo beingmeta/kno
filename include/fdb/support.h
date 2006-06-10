@@ -7,7 +7,7 @@
 
 #ifndef FDB_SUPPORT_H
 #define FDB_SUPPORT_H 1
-#define FDB_SUPPORT_H_VERSION "$Id: support.h,v 1.22 2006/01/26 14:44:32 haase Exp $"
+#define FDB_SUPPORT_H_VERSION "$Id$"
 
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
 

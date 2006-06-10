@@ -9,7 +9,7 @@
 
 #ifndef FDB_DEFINES_H
 #define FDB_DEFINES_H 1
-#define FDB_DEFINES_H_VERSION "$Id: defines.h,v 1.22 2006/01/26 14:44:32 haase Exp $"
+#define FDB_DEFINES_H_VERSION "$Id$"
 
 #include "config.h"
 #include "conf-defines.h"

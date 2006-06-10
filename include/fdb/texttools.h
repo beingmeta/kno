@@ -12,7 +12,7 @@
 #ifndef FDB_TEXTTOOLS_H
 #define FDB_TEXTTOOLS_H 1
 #define FDB_TEXTTOOLS_H_VERSION \
-   "$Id: texttools.h,v 1.11 2006/02/01 15:57:44 haase Exp $"
+   "$Id$"
 
 FD_EXPORT void fd_init_texttools(void) FD_LIBINIT_FN;
 

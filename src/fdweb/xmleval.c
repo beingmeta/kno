@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: xmleval.c,v 1.18 2006/03/19 23:42:15 haase Exp $";
+  "$Id$";
 
 #define FD_PROVIDE_FASTEVAL 1
 

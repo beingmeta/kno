@@ -7,7 +7,7 @@
 
 #ifndef FDB_METHODS_H
 #define FDB_METHODS_H 1
-#define FDB_METHODS_H_VERSION "$Id: methods.h,v 1.6 2006/01/26 14:44:32 haase Exp $"
+#define FDB_METHODS_H_VERSION "$Id$"
 
 #include "fddb.h"
 

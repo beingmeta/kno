@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: cgiexec.c,v 1.41 2006/01/26 14:44:32 haase Exp $";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 #define FD_PROVIDE_FASTEVAL 1

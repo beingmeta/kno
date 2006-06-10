@@ -7,7 +7,7 @@
 
 #ifndef FDB_TABLES_H
 #define FDB_TABLES_H 1
-#define FDB_TABLES_H_VERSION "$Id: tables.h,v 1.51 2006/01/26 14:44:32 haase Exp $"
+#define FDB_TABLES_H_VERSION "$Id$"
 
 FD_EXPORT fd_exception fd_NoSuchKey;
 

@@ -8,7 +8,7 @@
 #ifndef FDB_PORTS_H
 #define FDB_PORTS_H 1
 #define FDB_PORTS_H_VERSION \
-   "$Id: ports.h,v 1.7 2006/01/26 14:44:32 haase Exp $"
+   "$Id$"
 
 #include <libu8/u8.h>
 #include <libu8/u8io.h>

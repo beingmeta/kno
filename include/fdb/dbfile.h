@@ -7,7 +7,7 @@
 
 #ifndef FDB_DBFILE_H
 #define FDB_DBFILE_H 1
-#define FDB_DBFILE_H_VERSION "$Id: dbfile.h,v 1.11 2006/01/26 14:44:32 haase Exp $"
+#define FDB_DBFILE_H_VERSION "$Id$"
 
 #include "fddb.h"
 #include "pools.h"

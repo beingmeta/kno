@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: dbfns.c,v 1.111 2006/01/27 21:31:29 haase Exp $";
+  "$Id$";
 
 #define FD_PROVIDE_FASTEVAL 1
 

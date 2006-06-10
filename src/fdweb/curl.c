@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: curl.c,v 1.31 2006/01/31 13:47:23 haase Exp $";
+  "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"

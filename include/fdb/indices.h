@@ -7,7 +7,7 @@
 
 #ifndef FDB_INDICES_H
 #define FDB_INDICES_H 1
-#define FDB_INDICES_H_VERSION "$Id: indices.h,v 1.47 2006/01/27 15:47:22 haase Exp $"
+#define FDB_INDICES_H_VERSION "$Id$"
 
 #include "fddb.h"
 #include "dtypestream.h"

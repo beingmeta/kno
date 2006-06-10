@@ -193,7 +193,7 @@
 
 */
 
-static char vcid[] = "$Id: match.c,v 1.32 2006/02/16 06:07:33 haase Exp $";
+static char vcid[] = "$Id$";
 
 #define U8_INLINE_IO 1
 

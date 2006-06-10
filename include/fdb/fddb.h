@@ -7,7 +7,7 @@
 
 #ifndef FDB_FDDB_H
 #define FDB_FDDB_H 1
-#define FDB_FDDB_H_VERSION "$Id: fddb.h,v 1.36 2006/01/26 14:44:32 haase Exp $"
+#define FDB_FDDB_H_VERSION "$Id$"
 
 #include "dtypestream.h"
 

@@ -99,7 +99,7 @@
 
 #ifndef FDB_CHOICES_H
 #define FDB_CHOICES_H 1
-#define FDB_CHOICES_H_VERSION "$Id: choices.h,v 1.34 2006/01/26 14:44:32 haase Exp $"
+#define FDB_CHOICES_H_VERSION "$Id$"
 
 #ifndef FD_MERGESORT_THRESHOLD
 #define FD_MERGESORT_THRESHOLD 250000

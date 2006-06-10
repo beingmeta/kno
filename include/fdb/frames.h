@@ -7,7 +7,7 @@
 
 #ifndef FDB_FRAMES_H
 #define FDB_FRAMES_H 1
-#define FDB_FRAMES_H_VERSION "$Id: frames.h,v 1.17 2006/01/26 14:44:32 haase Exp $"
+#define FDB_FRAMES_H_VERSION "$Id$"
 
 #include "fddb.h"
 #include "pools.h"

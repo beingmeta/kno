@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: eval.c,v 1.108 2006/02/11 18:08:52 haase Exp $";
+  "$Id$";
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1

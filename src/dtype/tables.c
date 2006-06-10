@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: tables.c,v 1.132 2006/02/07 03:15:25 haase Exp $";
+  "$Id$";
 
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1

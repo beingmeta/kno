@@ -7,7 +7,7 @@
 
 #ifndef FD_DTYPESTREAM_H
 #define FD_DTYPESTREAM_H 1
-#define FDB_DTYPESTREAM_H_VERSION "$Id: dtypestream.h,v 1.24 2006/01/26 14:44:32 haase Exp $"
+#define FDB_DTYPESTREAM_H_VERSION "$Id$"
 
 #include "dtype.h"
 #include "dtypeio.h"
