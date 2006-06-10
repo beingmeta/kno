@@ -262,25 +262,18 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
       return found;}
     else smap=fd_fetch_oid(p,f);
     if (FD_EXCEPTIONP(smap)) 
-      return fd_interr(smap);
+      retval=fd_interr(smap);
     else if (FD_SLOTMAPP(smap))
-      return fd_slotmap_test((fd_slotmap)smap,slotid,value);
+      retval=fd_slotmap_test((fd_slotmap)smap,slotid,value);
     else if (FD_SCHEMAPP(smap))
-      return fd_schemap_test((fd_schemap)smap,slotid,value);
+      retval=fd_schemap_test((fd_schemap)smap,slotid,value);
     else if (FD_TABLEP(smap))
-      return fd_test(smap,slotid,value);
-    /* Not sure why this wasn't calling fd_test,
-       keeping the code for the moment.  */
-#if 0
-      {
-	fdtype current=fd_get(smap,slotid,FD_EMPTY_CHOICE);
-	int found=fd_overlapp(value,current);
-	fd_decref(smap); fd_decref(current);
-	return found;}
-#endif
+      retval=fd_test(smap,slotid,value);
     else {
       fd_decref(smap);
-      return 0;}}
+      return 0;}
+    fd_decref(smap);
+    return retval;}
 }
 
 FD_EXPORT fdtype fd_oid_keys(fdtype f)
