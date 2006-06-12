@@ -493,6 +493,14 @@ static fdtype make_sproc(u8_string name,
   return FDTYPE_CONS(s);
 }
 
+FD_EXPORT fdtype fd_make_sproc(u8_string name,
+			       fdtype arglist,fdtype body,fd_lispenv env,
+			       int nd,int sync)
+{
+  return make_sproc(name,arglist,body,env,nd,sync);
+}
+
+
 FD_EXPORT void recycle_sproc(struct FD_CONS *c)
 {
   int i=0;
