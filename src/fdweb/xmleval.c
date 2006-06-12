@@ -814,6 +814,36 @@ static fdtype fdxml_find(fdtype expr,fd_lispenv env)
   return results;
 }
 
+/* FDXML define */
+
+static fdtype quote_symbol, xmlarg_symbol, doseq_symbol, fdxml_define_body;
+
+static fdtype fdxml_define(fdtype expr,fd_lispenv env)
+{
+  if (!(fd_test(expr,bind_symbol,FD_VOID)))
+    return fd_err(MissingAttrib,"fdxml:loop",NULL,each_symbol);
+  else {
+    fdtype id_arg=fd_get(expr,bind_symbol,FD_VOID);
+    fdtype to_bind=
+      ((FD_STRINGP(id_arg)) ? (fd_parse(FD_STRDATA(id_arg)))
+       : (id_arg));
+    fdtype content=fd_get(expr,content_slotid,FD_VOID);
+    fdtype attribs=fd_get(expr,content_slotid,FD_VOID);
+    fdtype arglist=FD_EMPTY_LIST;
+    fdtype body=FD_EMPTY_LIST;
+
+    /* Construct the body */
+    body=fd_make_list(2,quote_symbol,fd_incref(content));
+    body=fd_make_list(2,xmlarg_symbol,body);
+    body=fd_make_list(3,doseq_symbol,body,fdxml_define_body);
+    body=fd_make_list(1,body);
+
+    /* Construct the arglist */
+    
+    return fd_make_sproc(u8_mkstring("XML/%s",FD_SYMBOL_NAME(to_bind)),
+			 arglist,body,env,1,0);}
+}
+
 /* The init procedure */
 
 static int xmleval_initialized=0;
@@ -868,6 +898,11 @@ FD_EXPORT void fd_init_xmleval_c()
 
   attribids=fd_intern("%ATTRIBIDS");
   
+  quote_symbol=fd_intern("QUOTE");
+  xmlarg_symbol=fd_intern("%XMLARG");
+  doseq_symbol=fd_intern("DOSEQ");
+  fdxml_define_body=fd_make_list(2,fd_intern("XMLEVAL"),xmlarg_symbol);
+
   fd_register_source_file(versionid);
 }
 
