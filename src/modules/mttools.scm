@@ -80,13 +80,13 @@
 
 (define (default-progress-report count limit time)
   (when (> count 0)
-    (message "Processed " (get% count limit) "%: "
-	     count " of " limit " items in "
-	     (short-interval-string time)
-	     (when (> count 0)
-	       (printout ", ~ "
-		 (short-interval-string (* time (/ (- limit count) count)))
-		 " to go")))))
+    (notify "Processed " (get% count limit) "%: "
+	    count " of " limit " items in "
+	    (short-interval-string time)
+	    (when (> count 0)
+	      (printout ", ~ "
+		(short-interval-string (* time (/ (- limit count) count)))
+		" to go")))))
 
 (define do-choices-mt
   (macro expr
