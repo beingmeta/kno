@@ -838,7 +838,7 @@ static fdtype pick_helper(int n,fdtype *args,int noinfer)
     FD_DO_CHOICES(candidate,candidates) {
       int testval=0;
       FD_DO_CHOICES(slotid,args[i]) {
-	if ((testval=dotest(candidate,slotid,args[i+1],noinfer))>0) {
+	if (testval=dotest(candidate,slotid,args[i+1],noinfer)) {
 	  FD_STOP_DO_CHOICES; break;}}
       if (testval<0) {
 	fd_decref(candidates); fd_decref(next);
