@@ -1,5 +1,5 @@
 <?fdxml escape="^^" ?>
-<?fdxml load='test-fdxml.scm'?>
+<?fdxml load='test-fdxml.scm' module='xhtml/brico'?>
 <html>
 <head>
 <define id='bigspan' v='noval'>
@@ -11,5 +11,11 @@
 <p>Eight plus 3x3 is <sum x=':8'><times xattrib='y' x=3 y=3/></sum>.</p>
 <p>^^(+ 2 3)</p>
 <bigspan v='$(* 3 8)'/>
+<binding x=3 y=12>
+<p>Adding ^^x and ^^y yields <sum x='$y' y='$x'/></p>
+</binding>
+<binding>
+<p>The selected language is <getlanguage/>.</p>
+</binding>
 </body>
 </html>

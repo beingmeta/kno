@@ -279,6 +279,8 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
   else if ((FD_APPLICABLEP(xmloidfn)) && (FD_OIDP(x))) {
     fdtype result=fd_apply((fd_function)xmloidfn,1,&x);
     fd_decref(result);}
+  else if (FD_OIDP(x)) 
+    fd_xmloid(out,x);
   else {
     U8_OUTPUT _out; u8_byte buf[128];
     if (tmp==NULL) {
@@ -309,6 +311,16 @@ static fdtype xmlout(fdtype expr,fd_lispenv env)
   if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
   fd_decref(xmloidfn);
   return FD_VOID;
+}
+
+FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lispenv env)
+{
+  int retval=-1;
+  fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
+  if (out==NULL) out=fd_get_default_output();
+  retval=xmlout_helper(out,NULL,x,xmloidfn);
+  fd_decref(xmloidfn);
+  return retval;
 }
 
 static fdtype raw_xhtml_handler(fdtype expr,fd_lispenv env)
@@ -814,11 +826,11 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype xmloid(fdtype arg)
+FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
 {
-  U8_OUTPUT *out=fd_get_default_output();
   FD_OID addr=FD_OID_ADDR(arg);
   fdtype browse_info=get_browse_info(arg), name;
+  if (out==NULL) out=fd_get_default_output();
   if (FD_VECTORP(browse_info)) {
     fdtype displayer=FD_VECTOR_REF(browse_info,2);
     u8_printf(out,"<a class='%s' href='%s?:@%x/%x'>",
@@ -847,6 +859,11 @@ static fdtype xmloid(fdtype arg)
     else xmlout_helper(out,NULL,name,FD_VOID);
     fd_decref(name);
     u8_printf(out,"</a>");}
+}
+
+static fdtype xmloid(fdtype oid_arg)
+{
+  fd_xmloid(NULL,oid_arg);
   return FD_VOID;
 }
 
