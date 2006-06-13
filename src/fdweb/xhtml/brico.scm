@@ -1,4 +1,4 @@
-;;; -*- Mode: fdscript; Text-encoding: latin-1; -*-
+;;; -*- Mode: scheme; Text-encoding: latin-1; -*-
 
 (in-module 'xhtml/brico)
 
@@ -60,8 +60,10 @@
 
 (define (get-languages (var languages))
   (try (cgiget var) (elts (get-preferred-languages))))
+(define getlanguages get-languages)
 (define (get-language (var language))
   (try (cgiget var) (car (get-preferred-languages))))
+(define getlanguage get-language)
 
 (define (display-checkbox reqdata var val selected onclick multi)
   (if onclick
@@ -72,17 +74,6 @@
 
 (define (get-language-name language) (get language '%id))
 
-;; This is used to figure out the language without displaying an option box
-(define (getlanguage id)
-  (let* ((var (getsym id))
-	 (preferred (get-preferred-languages))
-	 (languages (try (cgiget var) (car preferred))))
-    languages))
-(define (getlanguages id)
-  (let* ((var (getsym id))
-	 (preferred (get-preferred-languages))
-	 (languages (try (cgiget var) (elts preferred))))
-    languages))
 ;; This is to be used in browse URI generation
 (define (get-browse-language f)
   (let* ((var 'language)
