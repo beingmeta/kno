@@ -1,0 +1,15 @@
+<?fdxml escape="^^" ?>
+<?fdxml load='test-fdxml.scm'?>
+<html>
+<head>
+<define id='bigspan' v='noval'>
+<div style='font-size: 250%'>^^v</div>
+</define>
+</head>
+<body>
+<p>Eight plus nine is <sum x=':8' y=':9'/>.</p>
+<p>Eight plus 3x3 is <sum x=':8'><times xattrib='y' x=3 y=3/></sum>.</p>
+<p>^^(+ 2 3)</p>
+<bigspan v='$(* 3 8)'/>
+</body>
+</html>

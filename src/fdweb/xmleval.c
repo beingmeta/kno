@@ -135,7 +135,9 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 	  u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
 	else result=fd_xmleval(out,item,env);
 	if (FD_ABORTP(result)) return result;
-	else fd_decref(result);}}
+	if (!(FD_VOIDP(result)))
+	  fd_unparse(out,result);
+	fd_decref(result);}}
     u8_printf(out,"</%s>",FD_STRDATA(rawname));}
   return FD_VOID;
 }
@@ -204,11 +206,26 @@ static fdtype xmlgetarg(void *vcxt,fdtype sym)
 static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
 {
   struct XMLAPPLY cxt; cxt.xml=xml; cxt.env=env;
+  fdtype bind=fd_get(xml,id_symbol,FD_VOID), result=FD_VOID;
   if (FD_PRIM_TYPEP(fn,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf=FD_GET_CONS(fn,fd_specform_type,fd_special_form);
-    return sf->eval(xml,env);}
-  else return fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
+    struct FD_SPECIAL_FORM *sf=
+      FD_GET_CONS(fn,fd_specform_type,fd_special_form);
+    result=sf->eval(xml,env);}
+  else result=fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
 			      xmlgetarg);
+  if (FD_VOIDP(bind)) return result;
+  else if (FD_SYMBOLP(bind)) {
+    fd_bind_value(bind,result,env);
+    fd_decref(result);
+    result=FD_VOID;}
+  else if (FD_STRINGP(bind)) {
+    fdtype sym=fd_parse(FD_STRDATA(bind));
+    if (FD_SYMBOLP(sym)) {
+      fd_bind_value(sym,result,env);
+      fd_decref(result);
+      result=FD_VOID;}
+    fd_decref(sym);}
+  else {}
 }
 
 /* Handling XML attributes */
@@ -441,28 +458,11 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
     u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
   else if (FD_TABLEP(xml)) {
     fdtype handler=get_xml_handler(xml,env);
-    fdtype bind=fd_get(xml,id_symbol,FD_VOID);
     fd_decref(result);
     if (FD_VOIDP(handler))
       result=fd_unparse_xml(out,xml,env);
     else result=xmlapply(out,handler,xml,env);
-    if (FD_ABORTP(result)) return result;
-    else if (FD_VOIDP(bind)) {
-      if ((out) && (!(FD_VOIDP(result))))
-	fd_unparse(out,result);}
-    else if (FD_SYMBOLP(bind)) {
-      fd_bind_value(bind,result,env);
-      fd_decref(result);
-      result=FD_VOID;}
-    else if (FD_STRINGP(bind)) {
-      fdtype sym=fd_parse(FD_STRDATA(bind));
-      if (FD_SYMBOLP(sym)) {
-	fd_bind_value(sym,result,env);
-	fd_decref(result);
-	result=FD_VOID;}
-      fd_decref(sym);}
-    else {}}
-  else {}
+    return result;}
   return result;
 }
 
@@ -820,28 +820,41 @@ static fdtype quote_symbol, xmlarg_symbol, doseq_symbol, fdxml_define_body;
 
 static fdtype fdxml_define(fdtype expr,fd_lispenv env)
 {
-  if (!(fd_test(expr,bind_symbol,FD_VOID)))
-    return fd_err(MissingAttrib,"fdxml:loop",NULL,each_symbol);
+  if (!(fd_test(expr,id_symbol,FD_VOID)))
+    return fd_err(MissingAttrib,"fdxml:loop",NULL,id_symbol);
   else {
-    fdtype id_arg=fd_get(expr,bind_symbol,FD_VOID);
+    fdtype id_arg=fd_get(expr,id_symbol,FD_VOID);
     fdtype to_bind=
       ((FD_STRINGP(id_arg)) ? (fd_parse(FD_STRDATA(id_arg)))
        : (id_arg));
     fdtype content=fd_get(expr,content_slotid,FD_VOID);
-    fdtype attribs=fd_get(expr,content_slotid,FD_VOID);
+    fdtype attribs=fd_get(expr,attribids,FD_VOID);
+    fdtype xml_env=fd_symeval(xmlenv_symbol,env);
     fdtype arglist=FD_EMPTY_LIST;
     fdtype body=FD_EMPTY_LIST;
+    fdtype sproc=FD_VOID;
+
+    /* Construct the arglist */
+    {FD_DO_CHOICES(slotid,attribs)
+      if (slotid!=id_symbol) {
+	fdtype v=fd_get(expr,slotid,FD_FALSE);
+	fdtype pair=fd_init_pair(NULL,fd_make_list(2,slotid,v),arglist);
+	arglist=pair;}}
 
     /* Construct the body */
     body=fd_make_list(2,quote_symbol,fd_incref(content));
     body=fd_make_list(2,xmlarg_symbol,body);
-    body=fd_make_list(3,doseq_symbol,body,fdxml_define_body);
+    body=fd_make_list(3,doseq_symbol,body,fd_incref(fdxml_define_body));
     body=fd_make_list(1,body);
 
-    /* Construct the arglist */
-    
-    return fd_make_sproc(u8_mkstring("XML/%s",FD_SYMBOL_NAME(to_bind)),
-			 arglist,body,env,1,0);}
+    /* Construct the sproc */
+    sproc=fd_make_sproc(u8_mkstring("XML/%s",FD_SYMBOL_NAME(to_bind)),
+			arglist,body,env,1,0);
+
+    fd_bind_value(to_bind,sproc,(fd_lispenv)xml_env);
+    fd_decref(sproc); fd_decref(body); fd_decref(arglist);
+
+    return FD_VOID;}
 }
 
 /* The init procedure */
@@ -861,6 +874,7 @@ FD_EXPORT void fd_init_xmleval_c()
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);
   fd_defspecial((fdtype)fdxml_module,"INSERT",fdxml_insert);
+  fd_defspecial((fdtype)fdxml_module,"DEFINE",fdxml_define);
 
   xmleval_tag=fd_intern("%XMLEVAL");
   rawname_slotid=fd_intern("%%NAME");
