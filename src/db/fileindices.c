@@ -139,8 +139,7 @@ static fdtype fileindex_fetch(fd_index ix,fdtype key)
       n_vals=fd_dtsread_4bytes(stream);
       val_start=fd_dtsread_4bytes(stream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
-	u8_warn(_("inconsistent file index"),"fileindex_fetch",
-		 u8_strdup(ix->cid));
+	u8_warn(fd_FileIndexError,"fileindex_fetch",u8_strdup(ix->cid));
       thiskey=fd_dtsread_dtype(stream);
       if (FDTYPE_EQUAL(key,thiskey))
 	if (n_vals==0) {
@@ -563,7 +562,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
   insertpos=slotnos+insertoff;
   if (!(((insertpos<=slotnos) || (slotno>insertpos[-1])) &&
 	((insertpos>=(slotnos+r->n_reservations)) || (slotno<insertpos[0]))))
-    fprintf(stdout,"Trouble\n");
+    u8_warn(fd_FileIndexError,"Corrupt reservations table when saving index");
   if (insertoff<r->n_reservations)
     memmove(insertpos+1,insertpos,(SLOTSIZE*(r->n_reservations-insertoff)));
   *insertpos=slotno;
@@ -683,14 +682,16 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n)
   return new_keys;
 }
 
+#if 0 /* For debugging */
 static void check_reservations(unsigned int *iv,int len)
 {
   int i=0, last=-1; while (i<len) {
     if ((i==0) || (last<iv[i]))
-      fprintf(stdout,"%d\n",iv[i]);
+      fprintf(stdout,"Reservation: %d\n",iv[i]);
     else fprintf(stdout,"!!! %d\n",iv[i]);
     last=iv[i]; i++;}
 }
+#endif
 
 static int write_values(struct FD_DTYPE_STREAM *stream,fdtype values,
 			unsigned int nextpos,int *n_valuesp)

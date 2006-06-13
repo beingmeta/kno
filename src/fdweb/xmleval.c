@@ -24,7 +24,7 @@ fd_lispenv fdxml_module;
 
 static fdtype xmleval_tag, rawname_slotid, raw_attribs, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
-static fdtype bind_symbol, xmlenv_symbol;
+static fdtype id_symbol, bind_symbol, xmlenv_symbol;
 
 static fdtype xattrib_overlay, escape_id;
 
@@ -441,7 +441,7 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
     u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
   else if (FD_TABLEP(xml)) {
     fdtype handler=get_xml_handler(xml,env);
-    fdtype bind=fd_get(xml,bind_symbol,FD_VOID);
+    fdtype bind=fd_get(xml,id_symbol,FD_VOID);
     fd_decref(result);
     if (FD_VOIDP(handler))
       result=fd_unparse_xml(out,xml,env);
@@ -872,6 +872,7 @@ FD_EXPORT void fd_init_xmleval_c()
   attribs_slotid=fd_intern("%ATTRIBS");
 
   xattrib_slotid=fd_intern("XATTRIB");
+  id_symbol=fd_intern("ID");
   bind_symbol=fd_intern("BIND");
 
   test_symbol=fd_intern("TEST");

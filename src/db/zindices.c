@@ -829,7 +829,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
   insertpos=slotnos+insertoff;
   if (!(((insertpos<=slotnos) || (slotno>insertpos[-1])) &&
 	((insertpos>=(slotnos+r->n_reservations)) || (slotno<insertpos[0]))))
-    fprintf(stdout,"Trouble\n");
+    u8_warn(fd_FileIndexError,"Corrupt reservations table when saving index");
   if (insertoff<r->n_reservations)
     memmove(insertpos+1,insertpos,(SLOTSIZE*(r->n_reservations-insertoff)));
   *insertpos=slotno;
