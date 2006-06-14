@@ -1164,6 +1164,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
     tailcons=FD_STRIP_CONS(new_tail,fd_pair_type,struct FD_PAIR *);
     *tail=new_tail; tail=&(tailcons->cdr);
     obj=FD_CDR(obj);}
+  if (!(FD_EMPTY_LISTP(obj))) *tail=fd_incref(obj);
   return head;
 }
 
