@@ -160,5 +160,3 @@
       (set! sum (+ sum (try (get wf 'freq) 0))))
     sum))
 
-
-

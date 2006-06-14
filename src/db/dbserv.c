@@ -38,11 +38,19 @@ static int served_poolp(fd_pool p)
 
 /* Just doing reading for now. */
 
-static fdtype server_get_load()
+static fdtype server_get_load(fdtype oid_arg)
 {
-  if (primary_pool)
-    return fd_pool_load(primary_pool);
-  else return fd_err(_("No primary pool"),"server_get_load",NULL,FD_VOID); 
+  if (FD_VOIDP(oid_arg))
+    if (primary_pool)
+      return fd_pool_load(primary_pool);
+    else return fd_err(_("No primary pool"),"server_get_load",NULL,FD_VOID);
+  else if (FD_OIDP(oid_arg)) {
+    fd_pool p=fd_oid2pool(oid_arg);
+    int load=fd_pool_load(p);
+    if (load<0)
+      return fd_err(_("No method for load"),"server_get_load",NULL,oid_arg);
+    else return FD_INT2DTYPE(load);}
+  else return fd_type_error("OID","server_get_load",oid_arg);
 }
 
 static fdtype server_oid_value(fdtype x)
@@ -294,7 +302,7 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim1("POOL-DATA",server_pool_data,0));
   fd_defn(module,fd_make_cprim1("OID-VALUE",server_oid_value,1));
   fd_defn(module,fd_make_cprim1("FETCH-OIDS",server_fetch_oids,1));
-  fd_defn(module,fd_make_cprim0("GET-LOAD",server_get_load,0));
+  fd_defn(module,fd_make_cprim1("GET-LOAD",server_get_load,0));
 
   fd_defn(module,fd_make_cprim1("ISERVER-GET",iserver_get,1));
   fd_defn(module,fd_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
