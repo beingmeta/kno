@@ -93,6 +93,23 @@ FD_EXPORT int fd_unlock_fd(int fd)
 }
 #endif
 
+/* Utility functions */
+
+static int writeall(int fd,unsigned char *data,int n)
+{
+  int written=0;
+  while (written<n) {
+    int delta=write(fd,data+written,n-written);
+    if (delta<0)
+      if (errno==EAGAIN) errno=0;
+      else {
+	u8_warn("write failed","writeall %d errno=%d (%s) written=%d/%d",
+		fd,errno,strerror(errno),written,n);
+	return delta;}
+    else written=written+delta;}
+  return n;
+}
+
 /* Initialization functions */
 
 FD_EXPORT void fd_init_dtype_stream
@@ -236,10 +253,10 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
     int delta;
     if ((delta=read(df->fd,df->end,read_request-bytes_read))==0) break;
     if ((delta<0) && (errno) && (errno != EWOULDBLOCK)) {
-      
       fd_seterr3(u8_strerror(errno),"fill_dtype_stream",
 		 ((df->id) ?(u8_strdup(df->id)):(NULL)));
       return 0;}
+    else if (delta<0) delta=0;
     df->end=df->end+delta;
     bytes_read=bytes_read+delta;}
   return bytes_read;
@@ -257,12 +274,8 @@ FD_EXPORT void fd_dtsflush(fd_dtype_stream s)
     /* Reset the buffer pointers */
     s->end=s->ptr=s->start;}
   else {
-    int bytes_written=0, bytes_to_write=s->ptr-s->start;
-    unsigned char *bytes=s->start;
-    while (bytes_written<bytes_to_write) {
-      int delta=write(s->fd,bytes+bytes_written,
-		      bytes_to_write-bytes_written);
-      bytes_written=bytes_written+delta;}
+    int bytes_written=writeall(s->fd,s->start,s->ptr-s->start);
+    if (bytes_written<0) u8_raise("write failed","fd_dtsflush",NULL);
     if ((s->bits)&FD_DTSTREAM_DOSYNC) fsync(s->fd);
     if ((s->bits&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
       s->filepos=s->filepos+bytes_written;
@@ -504,9 +517,14 @@ FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,int len,unsigned int *words)
     if (fd_set_read(s,1)<0) return -1;
   /* This is special because we ignore the buffer if we can. */
   if (s->bits&FD_DTSTREAM_CANSEEK) {
-    off_t real_pos=fd_getpos(s);
+    off_t real_pos=fd_getpos(s); int bytes_read=0, bytes_needed=len*4;
     lseek(s->fd,real_pos,SEEK_SET);
-    read(s->fd,words,len*4);
+    while (bytes_read<bytes_needed) {
+      int delta=read(s->fd,words+bytes_read,bytes_needed-bytes_read);
+      if (delta<0)
+	if (errno==EAGAIN) errno=0;
+	else return delta;
+      else bytes_read=bytes_read+delta;}
 #if (!(WORDS_BIGENDIAN))
     {int i=0; while (i < len) {
       words[i]=fd_host_order(words[i]); i++;}}
@@ -550,12 +568,14 @@ FD_EXPORT int _fd_dtswrite_bytes
 {
   if (s->bits&FD_DTSTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;  
+  /* If there isn't space, flush the stream */
   if (s->ptr+n>=s->end) fd_dtsflush(s);
+  /* If there still isn't space (bufsiz too small),
+     call writeall and advance the filepos to reflect the
+     written bytes. */
   if (s->ptr+n>=s->end) {
-    int bytes_written=0;
-    while (bytes_written < n) {
-      int delta=write(s->fd,bytes,n);
-      bytes_written=bytes_written+delta;}
+    int bytes_written=writeall(s->fd,bytes,n);
+    if (bytes_written<0) return bytes_written;
     s->filepos=s->filepos+bytes_written;}
   else {
     memcpy(s->ptr,bytes,n); s->ptr=s->ptr+n;}
@@ -568,18 +588,20 @@ FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words)
     if (fd_set_read(s,0)<0) return -1;
   /* This is special because we ignore the buffer if we can. */
   if (s->bits&FD_DTSTREAM_CANSEEK) {
-    off_t real_pos=fd_getpos(s);
+    off_t real_pos; int bytes_written;
+    fd_dtsflush(s);
+    real_pos=fd_getpos(s);
     lseek(s->fd,real_pos,SEEK_SET);
 #if (!(WORDS_BIGENDIAN))
     {int i=0; while (i < len) {
 	words[i]=fd_net_order(words[i]); i++;}}
 #endif
-    write(s->fd,words,len*4);
+    bytes_written=writeall(s->fd,(unsigned char *)words,len*4);
 #if (!(WORDS_BIGENDIAN))
     {int i=0; while (i < len) {
 	words[i]=fd_host_order(words[i]); i++;}}
 #endif
-    return len*4;}
+    return bytes_written;}
   else {
     int i=0; while (i<len) {
       int word=words[i++];
