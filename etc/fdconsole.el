@@ -21,6 +21,12 @@
 
 (put 'hashtable-increment! 'scheme-indent-function 1)
 (put 'hashtable-increment-existing! 'scheme-indent-function 1)
+(put 'table-increment! 'scheme-indent-function 1)
+(put 'table-increment-existing! 'scheme-indent-function 1)
+(put 'hashtable-multiply! 'scheme-indent-function 1)
+(put 'hashtable-multiply-existing! 'scheme-indent-function 1)
+(put 'table-multiply! 'scheme-indent-function 1)
+(put 'table-multiply-existing! 'scheme-indent-function 1)
 
 (put 'unwind-protect 'scheme-indent-function 1)
 (put 'on-errors 'scheme-indent-function 1)
