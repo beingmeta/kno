@@ -24,7 +24,7 @@ fd_lispenv fdxml_module;
 
 static fdtype xmleval_tag, rawname_slotid, raw_attribs, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
-static fdtype id_symbol, bind_symbol, xmlenv_symbol;
+static fdtype id_symbol, bind_symbol, xml_env_symbol;
 
 static fdtype xattrib_overlay, escape_id;
 
@@ -146,7 +146,7 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 
 static fdtype get_xml_handler(fdtype xml,fd_lispenv env)
 {
-  fdtype xml_env=fd_symeval(xmlenv_symbol,env);
+  fdtype xml_env=fd_symeval(xml_env_symbol,env);
   if (FD_VOIDP(xml_env)) return FD_VOID;
   if (!(FD_PRIM_TYPEP(xml_env,fd_environment_type)))
     return fd_type_error("environment","get_xml_handler",xml_env);
@@ -230,11 +230,59 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
 
 /* Handling XML attributes */
 
+/* Thoughts on a simple infix syntax for attribute values:
+     foo.bar ==> (get foo 'bar)
+     foo@slot ==> (get foo slot)
+     foo@?es ==> (get foo @?es)
+     foo#car ==> (car foo)
+     foo[i] ==> (elt foo i)
+   All require that the first character be alphabetical.
+   We also rule out variable names include the infix characters
+   we are using.
+ */
+
+static fdtype get_symbol, elt_symbol, quote_symbol;
+
+static fdtype extract_var(u8_string start,u8_string end)
+{
+  u8_byte _buf[128], *buf; fdtype result;
+  if ((end-start)<127) buf=_buf;
+  else buf=u8_malloc((end-start)+1);
+  strncpy(buf,start,end-start); buf[end-start]='\0';
+  result=fd_parse(buf);
+  if (buf!=_buf) u8_free(buf);
+  return result;
+}
+
+static fdtype parse_infix(u8_string start)
+{
+  u8_string split;
+  if (split=strchr(start,'.')) 
+    return fd_make_list(3,get_symbol,extract_var(start,split),
+			fd_make_list(2,quote_symbol,fd_parse(split+1)));
+  else if (split=strchr(start,'#'))
+    return fd_make_list(2,fd_parse(split+1),extract_var(start,split));
+  else if (split=strchr(start,'[')) 
+    return fd_make_list(3,elt_symbol,extract_var(start,split),
+			fd_parse(split+1));
+  else if (split=strchr(start,'@'))
+    if (split[1]=='?')
+      return fd_make_list
+	(3,get_symbol,extract_var(start,split),fd_parse(split));
+    else return fd_make_list
+	   (3,get_symbol,extract_var(start,split),fd_parse(split+1));
+  else return fd_parse(start);
+}
+
 static fdtype xmlevalify(u8_string string)
 {
   if (string[0]==':') return fd_parse(string+1);
-  else if (string[0]=='$')
-    return fd_init_pair(NULL,xmleval_tag,fd_parse(string+1));
+  else if (string[0]=='$') {
+    u8_string start=string+1, split;
+    int c=u8_sgetc(&start);
+    if (u8_isalpha(c))
+      return fd_init_pair(NULL,xmleval_tag,parse_infix(string+1));
+    else return fd_init_pair(NULL,xmleval_tag,fd_parse(string+1));}
   else if (string[0]=='\\') return fdtype_string(string+1);
   else return fdtype_string(string);
 }
@@ -290,7 +338,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
   else if (FD_VOIDP(escape)) 
     fd_add_content(node,fd_extract_string(NULL,s,s+len));
   else if (FD_STRINGP(escape)) {
-    int escape_len=FD_STRLEN(escape);
+    int escape_len=FD_STRLEN(escape), c;
     u8_string escape_string=FD_STRDATA(escape);
     u8_string start=s, scan=strstr(s,escape_string), limit=s+len;
     while ((scan) && (scan<limit)) {
@@ -298,7 +346,20 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
       if (scan>start)
 	fd_add_content(node,fd_extract_string(NULL,start,scan));
       scan=scan+escape_len; U8_INIT_INPUT(&in,limit-scan,scan);
-      expr=fd_parser(&in,NULL);
+      if (*scan=='$') {
+	/* This handles infix expressions, ending at the next $ */
+	u8_string start=scan+1, end=strchr(start,'$');
+	u8_byte buf[128];
+	if ((end==NULL) || (end-start>100)) {
+	  /* If there's not a terminating $, or the string is really
+	     long (missing close $), just call the parser,
+	     skipping the initial $. */
+	  u8_sgetc(&in); expr=fd_parser(&in,NULL);}
+	else {
+	  strncpy(buf,start,end-start); buf[end-start]='\0';
+	  expr=parse_infix(buf);
+	  in.point=end+1;}}
+      else expr=fd_parser(&in,NULL);
       if (FD_STRINGP(expr)) {
 	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
 	fd_unparse(&out,expr); fd_decref(expr);
@@ -355,14 +416,14 @@ static u8_string get_pi_string(u8_string start)
   else return NULL;
 }
 
-static fd_lispenv get_xmlenv(FD_XML *xml)
+static fd_lispenv get_xml_env(FD_XML *xml)
 {
-  return (fd_lispenv)fd_symeval(xmlenv_symbol,(fd_lispenv)(xml->data));
+  return (fd_lispenv)fd_symeval(xml_env_symbol,(fd_lispenv)(xml->data));
 }
 
-static void set_xmlenv(FD_XML *xml,fd_lispenv newenv)
+static void set_xml_env(FD_XML *xml,fd_lispenv newenv)
 {
-  fd_set_value(xmlenv_symbol,(fdtype)newenv,(fd_lispenv)(xml->data));
+  fd_set_value(xml_env_symbol,(fdtype)newenv,(fd_lispenv)(xml->data));
 }
 
 static FD_XML *handle_xmleval_pi
@@ -377,71 +438,75 @@ static FD_XML *handle_xmleval_pi
 	u8_string arg=get_pi_string(attribs[i]+5);
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=fd_working_environment();
-	fd_lispenv xmlenv=get_xmlenv(xml);;
+	fd_lispenv xml_env=get_xml_env(xml);;
 	fd_load_source(filename,env,"auto");
 	u8_free(arg); u8_free(filename);
 	if (FD_TABLEP(env->exports)) {
-	  fd_lispenv newxmlenv=
-	    fd_make_export_env(env->exports,xmlenv);
-	  set_xmlenv(xml,newxmlenv);}
+	  fd_lispenv new_xml_env=
+	    fd_make_export_env(env->exports,xml_env);
+	  set_xml_env(xml,new_xml_env);}
 	else {
-	  fd_lispenv newxmlenv=
-	    fd_make_export_env(env->bindings,xmlenv);
-	  set_xmlenv(xml,newxmlenv);}
+	  fd_lispenv new_xml_env=
+	    fd_make_export_env(env->bindings,xml_env);
+	  set_xml_env(xml,new_xml_env);}
 	i++;}
       else if ((strncmp(attribs[i],"module=",7))==0) {
 	u8_string arg=get_pi_string(attribs[i]+7);
 	fdtype module_name=fd_parse(arg);
 	fdtype module=fd_find_module(module_name,0);
-	fd_lispenv xmlenv=get_xmlenv(xml);
+	fd_lispenv xml_env=get_xml_env(xml);
 	u8_free(arg); fd_decref(module_name);
 	if ((FD_ENVIRONMENTP(module)) &&
 	    (FD_TABLEP(((fd_environment)module)->exports))) {
 	  fdtype exports=((fd_environment)module)->exports;
-	  fd_lispenv newxmlenv=fd_make_export_env(exports,xmlenv);
-	  set_xmlenv(xml,newxmlenv);}
+	  fd_lispenv new_xml_env=fd_make_export_env(exports,xml_env);
+	  set_xml_env(xml,new_xml_env);}
 	else if (FD_TABLEP(module)) {
-	  fd_lispenv newxmlenv=
-	    fd_make_export_env(module,xmlenv);
-	  set_xmlenv(xml,newxmlenv);}
+	  fd_lispenv new_xml_env=
+	    fd_make_export_env(module,xml_env);
+	  set_xml_env(xml,new_xml_env);}
 	i++;}
       else if ((strncmp(attribs[i],"scheme_load=",12))==0) {
 	u8_string arg=get_pi_string(attribs[i]+12);
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=fd_working_environment();
-	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fd_load_source(filename,env,"auto");
 	u8_free(arg); u8_free(filename);
 	if (FD_TABLEP(env->exports)) {
-	  fd_lispenv newxmlenv=
-	    fd_make_export_env(env->exports,xmlenv);
-	  xml->data=newxmlenv;}
+	  fd_lispenv new_xml_env=
+	    fd_make_export_env(env->exports,xml_env);
+	  xml->data=new_xml_env;}
 	else {
-	  fd_lispenv newxmlenv=
-	    fd_make_export_env(env->bindings,xmlenv);
-	  xml->data=newxmlenv;}
+	  fd_lispenv new_xml_env=
+	    fd_make_export_env(env->bindings,xml_env);
+	  xml->data=new_xml_env;}
 	i++;}
       else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
 	u8_string arg=get_pi_string(attribs[i]+14);
-	fdtype module_name=fdtype_string(arg);
+	fdtype module_name=fd_parse(arg);
 	fdtype module=fd_find_module(module_name,0);
-	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
+	fd_lispenv scheme_env=(fd_lispenv)(xml->data);
 	u8_free(arg); fd_decref(module_name);
-	if (FD_TABLEP(module)) {
-	  fd_lispenv newxmlenv=
-	    fd_make_export_env(module,xmlenv);
-	  xml->data=newxmlenv;}
+	if ((FD_ENVIRONMENTP(module)) &&
+	    (FD_TABLEP(((fd_environment)module)->exports))) {
+	  fdtype exports=((fd_environment)module)->exports;
+	  fd_lispenv new_scheme_env=fd_make_export_env(exports,scheme_env);
+	  xml->data=new_scheme_env;}
+	else if (FD_TABLEP(module)) {
+	  fd_lispenv new_scheme_env=fd_make_export_env(module,scheme_env);
+	  xml->data=new_scheme_env;}
 	i++;}
       else if ((strncmp(attribs[i],"escape=",7))==0) {
 	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
-	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
-	fd_bind_value(escape_id,arg,xmlenv);
+	fd_lispenv xml_env=(fd_lispenv)(xml->data);
+	fd_bind_value(escape_id,arg,xml_env);
 	fd_decref(arg);
 	i++;}
       else if ((strncmp(attribs[i],"xattrib=",8))==0) {
 	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
-	fd_lispenv xmlenv=(fd_lispenv)(xml->data);
-	fd_bind_value(xattrib_overlay,arg,xmlenv);
+	fd_lispenv xml_env=(fd_lispenv)(xml->data);
+	fd_bind_value(xattrib_overlay,arg,xml_env);
 	fd_decref(arg);
 	i++;}
       else i++;
@@ -478,7 +543,7 @@ struct FD_XML *fd_read_fdxml(u8_input in,int bits)
 {
   struct FD_XML *xml=u8_malloc(sizeof(struct FD_XML)), *retval;
   fd_lispenv working_env=fd_working_environment();
-  fd_bind_value(xmlenv_symbol,(fdtype)fdxml_module,working_env);
+  fd_bind_value(xml_env_symbol,(fdtype)fdxml_module,working_env);
   fd_init_xml_node(xml,NULL,"top");
   xml->bits=bits; xml->data=working_env;
   retval=fd_walk_xml(in,fd_xmleval_contentfn,
@@ -924,7 +989,7 @@ static fdtype fdxml_find(fdtype expr,fd_lispenv env)
 
 /* FDXML define */
 
-static fdtype quote_symbol, xmlarg_symbol, doseq_symbol, fdxml_define_body;
+static fdtype xmlarg_symbol, doseq_symbol, fdxml_define_body;
 
 static fdtype fdxml_define(fdtype expr,fd_lispenv env)
 {
@@ -937,7 +1002,7 @@ static fdtype fdxml_define(fdtype expr,fd_lispenv env)
        : (id_arg));
     fdtype content=fd_get(expr,content_slotid,FD_VOID);
     fdtype attribs=fd_get(expr,attribids,FD_VOID);
-    fdtype xml_env=fd_symeval(xmlenv_symbol,env);
+    fdtype xml_env=fd_symeval(xml_env_symbol,env);
     fdtype arglist=FD_EMPTY_LIST;
     fdtype body=FD_EMPTY_LIST;
     fdtype sproc=FD_VOID;
@@ -989,6 +1054,8 @@ FD_EXPORT void fd_init_xmleval_c()
   fd_defspecial((fdtype)fdxml_module,"BINDING",fdxml_binding);
 
   xmleval_tag=fd_intern("%XMLEVAL");
+  get_symbol=fd_intern("GET");
+  elt_symbol=fd_intern("ELT");
   rawname_slotid=fd_intern("%%NAME");
   raw_attribs=fd_intern("%%ATTRIBS");
   raw_markup=fd_intern("%MARKUP");
@@ -1005,7 +1072,7 @@ FD_EXPORT void fd_init_xmleval_c()
   predicate_symbol=fd_intern("PREDICATE");
   else_symbol=fd_intern("ELSE");
 
-  xmlenv_symbol=fd_intern("%XMLENV");
+  xml_env_symbol=fd_intern("%XMLENV");
   xattrib_overlay=fd_intern("%XATTRIB");
   escape_id=fd_intern("%ESCAPE");
 
