@@ -279,6 +279,19 @@ static fdtype isalpha_percentage(fdtype string)
     return FD_INT2DTYPE((alpha*100)/(alpha+non_alpha));}
 }
 
+static fdtype count_words(fdtype string)
+{
+  u8_string scan=FD_STRDATA(string);
+  int c=egetc(&scan), word_count=0;
+  while (u8_isspace(c)) c=egetc(&scan);
+  if (c<0) return FD_INT2DTYPE(0);
+  else while (c>0) {
+    while ((c>0) && (!(u8_isspace(c)))) c=egetc(&scan);
+    word_count++;
+    while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
+  return FD_INT2DTYPE(word_count);
+}
+
 static fdtype ismarkup_percentage(fdtype string)
 {
   u8_string scan=FD_STRDATA(string);
@@ -1236,6 +1249,10 @@ void fd_init_texttools()
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("MARKUP%",ismarkup_percentage,1,
 			   fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim1x("COUNT-WORDS",count_words,1,
+			   fd_string_type,FD_VOID));
+
   fd_idefn(texttools_module,
 	   fd_make_cprim2x("STRIP-MARKUP",strip_markup,1,
 			   fd_string_type,FD_VOID,
