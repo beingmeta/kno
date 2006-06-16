@@ -14,6 +14,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 FD_EXPORT fd_exception fd_CantWrite, fd_CantRead;
 
@@ -132,8 +133,10 @@ FD_FASTOP int fd_dtsread_bytes
     s->end=s->ptr=s->start;
     while (n_read<n_to_read) {
       int delta=read(s->fd,start,n_to_read);
-      if (delta<0) return -1;
-      n_read=n_read+delta; start=start+delta;}
+      if (delta<0)
+	if (errno==EAGAIN) {}
+	else return delta;
+      else {n_read=n_read+delta; start=start+delta;}}
     s->filepos=s->filepos+n_buffered+n_read;
     return len;}
 }
@@ -186,7 +189,10 @@ FD_FASTOP int fd_dtswrite_bytes
     int bytes_written=0;
     while (bytes_written < n) {
       int delta=write(s->fd,bytes,n);
-      bytes_written=bytes_written+delta;}
+      if (delta<0)
+	if (errno==EAGAIN) errno=0;
+	else return delta;
+      else bytes_written=bytes_written+delta;}
     s->filepos=s->filepos+bytes_written;}
   else {
     memcpy(s->ptr,bytes,n); s->ptr=s->ptr+n;}
