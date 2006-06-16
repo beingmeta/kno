@@ -1,5 +1,5 @@
 <?fdxml escape="^^" ?>
-<?fdxml load='test-fdxml.scm' module='xhtml/brico'?>
+<?fdxml load='test-fdxml.scm' module='xhtml/brico' scheme_module='xhtml/brico'?>
 <html>
 <head>
 <define id='bigspan' v='noval'>
@@ -13,9 +13,7 @@
 <bigspan v='$(* 3 8)'/>
 <binding x=3 y=12>
 <p>Adding ^^x and ^^y yields <sum x='$y' y='$x'/></p>
-</binding>
-<binding>
-<p>The selected language is <getlanguage/>.</p>
+<p>One plus x is ^^$x#1+$</p>
 </binding>
 </body>
 </html>
