@@ -120,33 +120,14 @@ static fdtype getcontent(fdtype path)
 
 /* Document generation */
 
-
-#define write_string(sock,string) writeall(sock,string,strlen(string))
-
-static int writeall(int sock,char *data,int len)
-{
-  int bytes_to_write=len; char *start=data;
-  while (bytes_to_write>0) {
-    int delta=write(sock,data,bytes_to_write);
-    if (delta<0)
-      if (errno==EAGAIN) continue;
-      else return delta;
-    else if (delta==0)
-      if (errno==EAGAIN) continue;
-      else if (bytes_to_write>0) return -1;
-      else return 0;
-    else {
-      data=data+delta;
-      bytes_to_write=bytes_to_write-delta;}}
-  return bytes_to_write;
-}
+#define write_string(sock,string) u8_writeall(sock,string,strlen(string))
 
 static void output_content(fd_webconn ucl,fdtype content)
 {
   if (FD_STRINGP(content))
-    writeall(ucl->socket,FD_STRDATA(content),FD_STRLEN(content));
+    u8_writeall(ucl->socket,FD_STRDATA(content),FD_STRLEN(content));
   else if (FD_PACKETP(content))
-    writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
+    u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
   else {}
 }
 
@@ -186,8 +167,8 @@ static int webservefn(u8_client ucl)
     write_string(client->socket,
 		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
     fd_xhtmlerrorpage(&(client->out),result);
-    writeall(client->socket,client->out.bytes,
-	     client->out.point-client->out.bytes);}
+    u8_writeall(client->socket,client->out.bytes,
+		client->out.point-client->out.bytes);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
@@ -196,15 +177,15 @@ static int webservefn(u8_client ucl)
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
     /* if (tracep) fprintf(stderr,"%s\n",tmp.bytes); */
-    writeall(client->socket,tmp.bytes,tmp.point-tmp.bytes);
+    u8_writeall(client->socket,tmp.bytes,tmp.point-tmp.bytes);
     tmp.point=tmp.bytes;
     if (FD_VOIDP(content)) {
       if (write_headers) {
 	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	writeall(client->socket,tmp.bytes,tmp.point-tmp.bytes);}
+	u8_writeall(client->socket,tmp.bytes,tmp.point-tmp.bytes);}
       /* if (tracep) fprintf(stderr,"%s\n",tmp.bytes); */
-      retval=writeall(client->socket,client->out.bytes,
-		      client->out.point-client->out.bytes);
+      retval=u8_writeall(client->socket,client->out.bytes,
+			 client->out.point-client->out.bytes);
       /* if (tracep) fprintf(stderr,"%s\n",client->out.bytes); */
       if (write_headers)
 	write_string(client->socket,"</body>\n</html>\n");}
