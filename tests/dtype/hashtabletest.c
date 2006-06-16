@@ -13,6 +13,7 @@ static char versionid[] =
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 static fdtype read_dtype_from_file(FILE *f)
 {
@@ -21,7 +22,10 @@ static fdtype read_dtype_from_file(FILE *f)
   char buf[1024]; int bytes_read=0, delta=0;
   FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
   while (delta=fread(buf,1,1024,f)) {
-    fd_write_bytes(&out,buf,delta);}
+    if (delta<0)
+      if (errno==EAGAIN) {}
+      else u8_raise("Read error","u8recode",NULL);
+    else fd_write_bytes(&out,buf,delta);}
   FD_INIT_BYTE_INPUT(&in,out.start,out.ptr-out.start);
   object=fd_read_dtype(&in,NULL);
   u8_free(out.start);
