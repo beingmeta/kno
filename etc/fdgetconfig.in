@@ -1,4 +1,5 @@
 #!/bin/sh
+VERSION="$Id:$"
 if test -f @with_config_dir@/$1; then cat @with_config_dir@/$1; else echo "Config variable" $1 "is not defined"; fi
 
 

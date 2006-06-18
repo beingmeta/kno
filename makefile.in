@@ -1,6 +1,7 @@
 # -*- Mode: Makefile; -*-
-# Copyright (C) 2004, 2005 beingmeta, inc.
+# Copyright (C) 2004-2005 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation, Fdb.
+MAKEFILE_VERSION="$Id:$"
 
 CC	= @CC@
 XCFLAGS=
@@ -31,8 +32,8 @@ APXS		= @APXS@
 #FDGMP		= lib/libfdgmp.a 
 
 DTYPE_HEADERS=\
+ include/fdb/config.h  \
  include/fdb/common.h include/fdb/defines.h   \
- include/fdb/config.h  include/fdb/conf-defines.h  \
  include/fdb/support.h   \
  include/fdb/malloc.h include/fdb/dtype.h      \
  include/fdb/ptr.h include/fdb/cons.h         \

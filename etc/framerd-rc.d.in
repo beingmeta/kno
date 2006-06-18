@@ -7,6 +7,7 @@
 #              This file starts up the FramerD servers on this host
 # processname: fdserver
 # pidfile: /var/run/framerd.pid
+VERSION="$Id:$"
 
 export FDMANAGER=@prefix@/bin/fdmanager
 export FDSERVER=@prefix@/bin/fdserver

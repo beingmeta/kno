@@ -1,7 +1,7 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004, 2005 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation, EFramerD.
-MAKEFILE_VERSION="$Id: makefile.in,v 1.40 2006/01/07 04:23:29 haase Exp $
+MAKEFILE_VERSION="$Id$"
 
 CC	= @CC@
 XCFLAGS=
