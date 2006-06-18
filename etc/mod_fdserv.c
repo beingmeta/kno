@@ -575,7 +575,7 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
 		       (dconfig->server_executable) :
 		       (sconfig->server_executable) ?
 		       (sconfig->server_executable) :
-		       "/usr/bin/fdwebservlet");
+		       "/usr/bin/fdserv");
   const char **scan_config=((dconfig->config_args) ?
 			    (dconfig->config_args) :
 			    (sconfig->config_args) ?

@@ -1,7 +1,7 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004-2005 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation, Fdb.
-MAKEFILE_VERSION="$Id:$"
+MAKEFILE_VERSION="$Id$"
 
 CC	= @CC@
 XCFLAGS=
@@ -82,7 +82,7 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/tagger.o src/texttools/tagxtract.o
 
 EXECUTABLES=exe/fdexec exe/fdconsole exe/fdexec.static \
-	exe/fdwebservlet exe/fdtypeserver exe/fdmanager
+	exe/fdserv exe/fdbserver exe/fdmanager
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 
 FDB_SOURCES=\
@@ -114,8 +114,8 @@ FDB_SOURCES=\
 	src/texttools/md5c.c src/texttools/md5.h \
 	src/texttools/tagger.c src/texttools/tagxtract.c \
 	include/fdb/tagger.h \
-	src/exe/fdconsole.c src/exe/fdexec.c src/exe/fdwebservlet.c \
-	src/exe/fdtypeserver.c
+	src/exe/fdconsole.c src/exe/fdexec.c src/exe/fdserv.c \
+	src/exe/fdbserver.c
 
 # Targets
 
@@ -149,12 +149,12 @@ exe/fdexec.static: src/exe/fdexec.c \
 	lib/libfddbfile.a lib/libfddb.a \
 	lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
-exe/fdwebservlet: src/exe/fdwebservlet.c \
+exe/fdserv: src/exe/fdserv.c \
 	@xstatic_exe_libs@ lib/libfdweb.a lib/libfdscheme.a \
 	lib/libfddbfile.a lib/libfddb.a \
 	lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
-exe/fdtypeserver: src/exe/fdtypeserver.c \
+exe/fdbserver: src/exe/fdbserver.c \
 	@xstatic_exe_libs@ lib/libfdbserv.a lib/libfdscheme.a \
 	lib/libfddbfile.a lib/libfddb.a \
 	lib/libfdtype.a
@@ -220,7 +220,8 @@ clean: tidy
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
 	rm -f src/fdweb/*.o src/texttools/*.o src/exe/*.o
 	rm -f lib/*.a lib/*.so lib/*.dylib lib/*.so.* 
-	rm -f exe/fdexec exe/fdconsole exe/fdexec.static fdwebservlet
+	rm -f exe/fdexec exe/fdconsole exe/fdexec.static
+	rm -f exe/fdserv exe/fdbserver
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
@@ -228,6 +229,7 @@ clean: tidy
 distclean: clean
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/dtype/makefile tests/db/makefile tests/scheme/makefile
+	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f include/fdb/config.h
 
 lib/libfdtype.a: $(DTYPE_OBJS)
