@@ -12,7 +12,6 @@
 #define FDB_DEFINES_H_VERSION "$Id$"
 
 #include "config.h"
-#include "conf-defines.h"
 
 #define FD_EXPORT extern
 #ifndef FD_INLINE
@@ -37,6 +36,11 @@
 
 #ifndef FD_GLOBAL_IPEVAL
 #define FD_GLOBAL_IPEVAL 0
+#endif
+
+/* This is true (1) for executables built in the tests/ subdirectories */
+#ifndef FD_TESTCONFIG
+#define FD_TESTCONFIG 0
 #endif
 
 #if ((FD_LARGEFILES_ENABLED) && (HAVE_FSEEKO))
@@ -121,6 +125,12 @@
 
 #ifndef FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE_MACRO 1
+#endif
+
+#ifndef FD_SCHEME_BUILTINS
+#define FD_INIT_SCHEME_BUILTINS() fd_init_fdscheme()
+#else
+#define FD_INIT_SCHEME_BUILTINS() FD_SCHEME_BUILTINS
 #endif
 
 #if HAVE_CONSTRUCTOR_ATTRIBUTES
