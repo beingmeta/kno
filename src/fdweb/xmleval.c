@@ -26,6 +26,8 @@ static fdtype xmleval_tag, rawname_slotid, raw_attribs, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
 static fdtype id_symbol, bind_symbol, xml_env_symbol;
 
+static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol;
+
 static fdtype xattrib_overlay, escape_id;
 
 void *inherit_node_data(FD_XML *node)
@@ -112,33 +114,47 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 FD_EXPORT
 fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 {
-  fdtype content=fd_get(xml,content_slotid,FD_VOID);
+  fdtype content=fd_get(xml,content_slotid,FD_VOID), rawname;
   if ((FD_EMPTY_CHOICEP(content)) ||
       (FD_VOIDP(content)) ||
       (FD_EMPTY_LISTP(content))) {
     fdtype markup=get_markup_string(xml,env);
     if (FD_ABORTP(markup)) return markup;
     u8_printf(out,"<%s/>",FD_STRDATA(markup));
-    fd_decref(markup);}
+    fd_decref(markup);
+    return FD_VOID;}
+  rawname=fd_get(xml,rawname_slotid,FD_VOID);
+  if (FD_ABORTP(rawname)) return rawname;
+  else if (rawname==pblank_symbol) {}
+  else if (FD_EXPECT_FALSE(!(FD_STRINGP(rawname)))) {
+    fd_decref(content); fd_decref(rawname);
+    return fd_type_error("XML node","fd_unparse_xml",xml);}
   else {
-    fdtype rawname=fd_get(xml,rawname_slotid,FD_VOID), markup;
-    if (FD_ABORTP(rawname)) return rawname;
-    else if (FD_EXPECT_FALSE(!(FD_STRINGP(rawname))))
-      return fd_type_error("XML node","fd_unparse_xml",xml);
-    else markup= get_markup_string(xml,env);
-    if (FD_ABORTP(markup)) return markup;
+    fdtype markup= get_markup_string(xml,env);
+    if (FD_ABORTP(markup)) {
+      fd_decref(content);
+      return markup;}
     u8_printf(out,"<%s>",FD_STRDATA(markup));
-    if (FD_PAIRP(content)) {
-      FD_DOLIST(item,content) {
-	fdtype result=FD_VOID;
-	if (FD_STRINGP(item))
-	  u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
-	else result=fd_xmleval(out,item,env);
-	if (FD_ABORTP(result)) return result;
-	if (!(FD_VOIDP(result)))
-	  fd_dtype2xml(out,result,env);
-	fd_decref(result);}}
-    u8_printf(out,"</%s>",FD_STRDATA(rawname));}
+    fd_decref(markup);}
+  if (FD_PAIRP(content)) {
+    FD_DOLIST(item,content) {
+      fdtype result=FD_VOID;
+      if (FD_STRINGP(item))
+	u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
+      else result=fd_xmleval(out,item,env);
+      if (FD_VOIDP(result)) {}
+      else if (FD_ABORTP(result)) {
+	fd_decref(content);
+	return result;}
+      else if ((FD_TABLEP(result)) &&
+	       (fd_test(result,rawname_slotid,FD_VOID))) {
+	fd_unparse_xml(out,result,env);
+	fd_decref(result);}
+      else fd_dtype2xml(out,result,env);
+      fd_decref(result);}}
+  if (rawname!=pblank_symbol)
+    u8_printf(out,"</%s>",FD_STRDATA(rawname));
+  fd_decref(content); fd_decref(rawname);
   return FD_VOID;
 }
 
@@ -166,35 +182,47 @@ struct XMLAPPLY { fdtype xml; fd_lispenv env;};
 
 FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
 {
-  fdtype values=fd_get(xml,sym,FD_VOID);
-  if (FD_VOIDP(values)) return FD_VOID;
-  else if (FD_CHOICEP(values)) {
-    fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(value,values)
-      if (FD_PAIRP(value))
-	if  (FD_EQ(FD_CAR(value),xmleval_tag)) {
-	  fdtype result=fd_eval(FD_CDR(value),env);
+  if (sym==xmlnode_symbol) return fd_incref(xml);
+  else if (sym==xmlbody_symbol) {
+    fdtype content=fd_get(xml,content_slotid,FD_VOID);
+    if (FD_VOIDP(content)) return FD_EMPTY_CHOICE;
+    else {
+      struct FD_KEYVAL *kv=u8_malloc(sizeof(struct FD_KEYVAL)*2), slotmap;
+      /* This generates a "blank node" which generates its content
+	 without any container. */
+      kv[0].key=rawname_slotid; kv[0].value=pblank_symbol;
+      kv[1].key=content_slotid; kv[1].value=content;
+      return fd_init_slotmap(NULL,2,kv,NULL);}}
+  else {
+    fdtype values=fd_get(xml,sym,FD_VOID);
+    if (FD_VOIDP(values)) return FD_VOID;
+    else if (FD_CHOICEP(values)) {
+      fdtype results=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(value,values)
+	if (FD_PAIRP(value))
+	  if  (FD_EQ(FD_CAR(value),xmleval_tag)) {
+	    fdtype result=fd_eval(FD_CDR(value),env);
+	    FD_ADD_TO_CHOICE(results,result);}
+	  else FD_ADD_TO_CHOICE(results,fd_incref(value));
+	else if (FD_TABLEP(value)) {
+	  fdtype result=fd_xmleval(NULL,value,env);
 	  FD_ADD_TO_CHOICE(results,result);}
-	else FD_ADD_TO_CHOICE(results,fd_incref(value));
-      else if (FD_TABLEP(value)) {
-	fdtype result=fd_xmleval(NULL,value,env);
-	FD_ADD_TO_CHOICE(results,result);}
-      else {FD_ADD_TO_CHOICE(results,fd_incref(value));}
-    fd_decref(values);
-    return results;}
-  else if (FD_PAIRP(values))
-    if (FD_EQ(FD_CAR(values),xmleval_tag)) {
-      fdtype result=fd_eval(FD_CDR(values),env);
+	else {FD_ADD_TO_CHOICE(results,fd_incref(value));}
       fd_decref(values);
+      return results;}
+    else if (FD_PAIRP(values))
+      if (FD_EQ(FD_CAR(values),xmleval_tag)) {
+	fdtype result=fd_eval(FD_CDR(values),env);
+	fd_decref(values);
+	return result;}
+      else return values;
+    else if (FD_TABLEP(values))
+      return fd_xmleval(NULL,values,env);
+    else if (FD_QCHOICEP(values)) {
+      fdtype result=FD_XQCHOICE(values)->choice;
+      fd_incref(result); fd_decref(values);
       return result;}
-    else return values;
-  else if (FD_TABLEP(values))
-    return fd_xmleval(NULL,values,env);
-  else if (FD_QCHOICEP(values)) {
-    fdtype result=FD_XQCHOICE(values)->choice;
-    fd_incref(result); fd_decref(values);
-    return result;}
-  else return values;
+    else return values;}
 }
 
 static fdtype xmlgetarg(void *vcxt,fdtype sym)
@@ -521,7 +549,12 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
   fdtype result=FD_VOID;
   if ((FD_PAIRP(xml)) || (FD_SYMBOLP(xml))) {
     fdtype result=fd_eval(xml,env);
-    if (!(FD_VOIDP(result))) {
+    if (FD_VOIDP(result)) {}
+    else if ((FD_TABLEP(result)) &&
+	     (fd_test(result,rawname_slotid,FD_VOID))) {
+      fd_unparse_xml(out,result,env);
+      fd_decref(result);}
+    else {
       fd_dtype2xml(out,result,env);
       fd_decref(result);}}
   else if (FD_STRINGP(xml))
@@ -1089,6 +1122,10 @@ FD_EXPORT void fd_init_xmleval_c()
   with_symbol=fd_intern("WITH");
   slot_symbol=fd_intern("SLOT");
   value_symbol=fd_intern("VALUE");
+
+  pblank_symbol=fd_intern("%BLANK");
+  xmlnode_symbol=fd_intern("XMLNODE");
+  xmlbody_symbol=fd_intern("XMLBODY");
 
   attribids=fd_intern("%ATTRIBIDS");
   
