@@ -32,6 +32,7 @@ static u8_condition NoServers=_("NoServers");
 static u8_condition ServerStarted=_("ServerStart");
 static fd_lispenv server_env;
 struct U8_SERVER dtype_server;
+static struct U8_XTIME boot_time;
 
 /* Configuring the port we listen on. */
 
@@ -188,6 +189,19 @@ static fdtype config_use_module(fdtype var,fdtype val,void *data)
   return 1;
 }
 
+/* Miscellaneous Server functions */
+
+static fdtype get_boot_time()
+{
+  return fd_make_timestamp(&boot_time,NULL);
+}
+
+static fdtype get_uptime()
+{
+  struct U8_XTIME now; u8_now(&now);
+  return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
+}
+
 /* The main() event */
 
 int main(int argc,char **argv)
@@ -204,7 +218,16 @@ int main(int argc,char **argv)
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env; 
+  u8_now(&boot_time);
+#if FD_TESTCONFIG
+  u8_init_chardata_c();
+  fd_init_fdscheme();
+  fd_init_schemeio();
+  fd_init_fdweb();
+  fd_init_texttools();
+#else
   FD_INIT_SCHEME_BUILTINS();
+#endif
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   u8_server_init(&dtype_server,8,8,simply_accept,dtypeserver,close_fdclient);
@@ -221,7 +244,11 @@ int main(int argc,char **argv)
   signal(SIGQUIT,signal_shutdown);
 #endif
   core_env=fd_safe_working_environment();
+
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
+  fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
+  fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime,0));
+
   exposed_environment=fd_make_env(fd_incref(fd_fdbserv_module),core_env);
   while (i<argc)
     if (strchr(argv[i],'=')) 
