@@ -163,4 +163,25 @@
 /* Define if you have the CURL header file */
 #undef HAVE_LIBEXIF_EXIF_DATA_H
 
+/* The root data dir */
+#undef FD_DATA_DIR
+
+/* Where to find config information */
+#undef FD_CONFIG_FILE_PATH
+
+/* Where to find module files */
+#undef FD_DEFAULT_LOADPATH
+
+/* Where to find "safe" module files */
+#undef FD_DEFAULT_SAFE_LOADPATH
+
+/* Where to find dynamic loading files (.dll, .so, .dylib, etc) */
+#undef FD_DEFAULT_DLLOADPATH
+
+/* The code to initialize built-in scheme modules */
+#undef FD_SCHEME_BUILTINS
+
+/* The string of semicolon separated config assignments processed at startup */
+#undef FD_BOOT_CONFIG
+
 #endif
