@@ -73,7 +73,15 @@ int main(int argc,char **argv)
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c; u8_string source_file=NULL; double showtime=-1.0;
   /* Initialize these primitives */
+#if FD_TESTCONFIG
+  u8_init_chardata_c();
+  fd_init_fdscheme();
+  fd_init_schemeio();
+  fd_init_fdweb();
+  fd_init_texttools();
+#else
   FD_INIT_SCHEME_BUILTINS();
+#endif
   fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
   fd_register_config("DEBUGMAXELTS",fd_intconfig_get,fd_intconfig_set,

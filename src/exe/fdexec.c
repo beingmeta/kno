@@ -44,7 +44,14 @@ int main(int argc,char **argv)
 		     &debug_maxelts);
   setlocale(LC_ALL,"");
   /* Initialize these primitives */
+#if FD_TESTCONFIG
+  u8_init_chardata_c();
+  fd_init_fdscheme();
+  fd_init_texttools();
+  fd_init_fdweb();
+#else
   FD_INIT_SCHEME_BUILTINS();
+#endif
   fd_init_schemeio();
   u8_identify_application(argv[1]);
   while (i<argc)

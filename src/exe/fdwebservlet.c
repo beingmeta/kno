@@ -601,8 +601,16 @@ int main(int argc,char **argv)
   if (argc<2) {
     fprintf(stderr,"Usage: fdbservlet <socketfile> [config]*\n");
     exit(2);}
+#if FD_TESTCONFIG
+  u8_init_chardata_c();
+  fd_init_fdscheme();
+  fd_init_schemeio();
+  fd_init_texttools();
+#else
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_dbfile(); fd_init_fdweb(); /* fd_init_texttools(); */
+#endif
+  fd_init_fdweb();
+  fd_init_dbfile(); 
   init_symbols();
   
   fd_register_config("TRACEWEB",traceweb_get,traceweb_set,NULL);
