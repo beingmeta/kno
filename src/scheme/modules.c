@@ -391,11 +391,13 @@ FD_EXPORT void fd_init_modules_c()
 #endif
 
   fd_add_module_loader(load_dynamic_module);
-  fd_register_config("DLOADPATH",fd_lconfig_get,fd_lconfig_push,&dloadpath);
+  fd_register_config("DLLOADPATH",fd_lconfig_get,fd_lconfig_push,&dloadpath);
 
   {
-    fdtype v=fdtype_string(FD_DEFAULT_DLOADPATH);
-    fd_config_set("DLOADPATH",v);
+    u8_string path=u8_getenv("FD_DLLOADPATH");
+    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+	      (fdtype_string(FD_DEFAULT_DLLOADPATH)));
+    fd_config_set("DLLOADPATH",v);
     fd_decref(v);}
 
   loadstamp_symbol=fd_intern("%LOADSTAMP");

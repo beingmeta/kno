@@ -948,11 +948,15 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1("UPDATE-MODULES",update_modules_prim,0));
 
   {
-    fdtype v=fdtype_string(FD_DEFAULT_LOADPATH);
+    u8_string path=u8_getenv("FD_LOADPATH");
+    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+	      (fdtype_string(FD_DEFAULT_LOADPATH)));
     fd_config_set("LOADPATH",v);
     fd_decref(v);}
   {
-    fdtype v=fdtype_string(FD_DEFAULT_SAFE_LOADPATH);
+    u8_string path=u8_getenv("FD_SAFE_LOADPATH");
+    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+	      (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
     fd_config_set("SAFELOADPATH",v);
     fd_decref(v);}
 
