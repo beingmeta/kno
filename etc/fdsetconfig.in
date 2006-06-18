@@ -1,0 +1,2 @@
+#!/bin/sh
+echo $2 > @with_config_dir@/$1
