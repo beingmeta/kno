@@ -5,7 +5,7 @@ MAKEFILE_VERSION="$Id: makefile.in,v 1.43 2006/01/07 18:26:12 haase Exp $
 
 CC	= @CC@
 XCFLAGS=
-CFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
+CFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ -DFD_TESTCONFIG=1 \
 	 -I./include -I../../include $(XCFLAGS)
 LDFLAGS=@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 LIBS=@LIBS@ -lm -lz -lu8 -lu8fns -lu8io
@@ -26,7 +26,7 @@ TESTCONFIG	=
 RUNTEST		= $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
-TESTBIN=fdeval fdconsole fdexec fdtypeserver fdwebserv
+TESTBIN=fdeval fdconsole fdexec fdtypeserver fdwebserv # fdserv fdbserver
 
 all: $(TESTBIN) 
 
@@ -60,7 +60,11 @@ fdtypeserver: fdtypeserver.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
 	../../lib/libfddbfile.a ../../lib/libfddb.a \
 	../../lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
-fdwebserv: fdwebserv.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
+fdbserver: fdbserver.c $(EXTRA_LIBS) ../../lib/libfdbserv.a ../../lib/libfdscheme.a \
+	../../lib/libfddbfile.a ../../lib/libfddb.a \
+	../../lib/libfdtype.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
+fdserv: fdserv.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
 	../../lib/libfddbfile.a ../../lib/libfddb.a \
 	../../lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
