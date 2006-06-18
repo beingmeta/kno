@@ -753,6 +753,21 @@ static int setrandomseed(fdtype var,fdtype val,void *data)
 
 /* Initialization */
 
+static int boot_config()
+{
+  u8_string config_string=u8_getenv("FD_BOOT_CONFIG"), scan, end; int count=0;
+  if (config_string==NULL) config_string=u8_strdup(FD_BOOT_CONFIG);
+  scan=config_string; end=strchr(scan,';');
+  while (scan) {
+    if (end==NULL) {
+      fd_config_assignment(scan); count++;
+      break;}
+    *end='\0'; fd_config_assignment(scan); count++;
+    scan=end+1; end=strchr(scan,';');}
+  u8_free(config_string);
+  return count;
+}
+
 void fd_init_support_c()
 {
   fd_register_source_file(versionid);
@@ -773,6 +788,8 @@ void fd_init_support_c()
 #endif
 
   fd_register_config_lookup(getenv_config_lookup);
+
+  boot_config();
 
   fd_register_config("APPID",getappid,setappid,NULL);
   fd_register_config("SESSIONID",getsessionid,setsessionid,NULL);
