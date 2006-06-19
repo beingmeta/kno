@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS install_file_opts install_exe_opts shared_suffix dynamic_cflag curlconfig curlo exifo xstatic_exe_libs xstatic_scheme_libs xdynamic_scheme_libs scheme_builtins_init with_config_dir DREENTRANT SHARED_LIB_TARGET SHARED_LIB SHARED_LIBV TESTLDFLAGS EXELDFLAGS VERSION PROFILING MKSTATIC I18N INSTALLI18N APXS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA RANLIB ac_ct_RANLIB VALGRIND CPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS install_file_opts install_exe_opts shared_suffix dynamic_cflag curlconfig curlo exifo xstatic_exe_libs xstatic_scheme_libs xdynamic_scheme_libs scheme_builtins_init data_dir module_dir safe_module_dir with_config_dir DREENTRANT SHARED_LIB_TARGET SHARED_LIB SHARED_LIBV TESTLDFLAGS EXELDFLAGS VERSION PROFILING MKSTATIC I18N INSTALLI18N APXS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA RANLIB ac_ct_RANLIB VALGRIND CPP EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -863,7 +863,7 @@ Optional Packages:
 --with-config-dir location
 --with-module-dir location
 --with-safe-module-dir location
---with-dload-dir location
+--with-dload-path location
 --with-boot-config configstring
 --without-i18n built and install message catalogs
 --without-tcmalloc Use the Google malloc library
@@ -1378,6 +1378,9 @@ ac_config_sub="$SHELL $ac_aux_dir/config.sub"
 ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
           ac_config_headers="$ac_config_headers include/fdb/config.h"
+
+
+
 
 
 
@@ -5497,7 +5500,7 @@ if test "${with_dload_path+set}" = set; then
   withval="$with_dload_path"
 
 else
-  with_dload_dir=$data_dir/lib/%.$shared_suffix:$data_dir/lib/lib%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
+  with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
 fi;
 cat >>confdefs.h <<_ACEOF
 #define FD_DATA_DIR "$with_data_dir"
@@ -5516,7 +5519,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_DLLOADPATH "$dload_path"
+#define FD_DEFAULT_DLLOADPATH "$with_dload_path"
 _ACEOF
 
 
@@ -9094,6 +9097,9 @@ s,@xstatic_exe_libs@,$xstatic_exe_libs,;t t
 s,@xstatic_scheme_libs@,$xstatic_scheme_libs,;t t
 s,@xdynamic_scheme_libs@,$xdynamic_scheme_libs,;t t
 s,@scheme_builtins_init@,$scheme_builtins_init,;t t
+s,@data_dir@,$data_dir,;t t
+s,@module_dir@,$module_dir,;t t
+s,@safe_module_dir@,$safe_module_dir,;t t
 s,@with_config_dir@,$with_config_dir,;t t
 s,@DREENTRANT@,$DREENTRANT,;t t
 s,@SHARED_LIB_TARGET@,$SHARED_LIB_TARGET,;t t
@@ -9624,4 +9630,5 @@ if test "$no_create" != yes; then
 fi
 
 
-chmod a+x etc/fdsetconfig etc/fdgetconfig
+chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
+
