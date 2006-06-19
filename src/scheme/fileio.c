@@ -454,7 +454,7 @@ static fdtype file_progress_prim(fdtype portarg)
   else return fd_type_error(_("port"),"getpos_prim",portarg);
   if (result<0)
     return fd_erreify();
-  else fd_init_double(NULL,result);
+  else return fd_init_double(NULL,result);
 }
 
 static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
