@@ -23,6 +23,13 @@ static char versionid[] =
 #include <libu8/timefns.h>
 
 #include <math.h>
+#include <sys/time.h>
+#if (!(HAVE_GETRUSAGE))
+#elif (HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#elif (HAVE_RESOURCE_H)
+#include <resource.h>
+#endif
 
 fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
 static fd_exception strftime_error=_("internal strftime error");
@@ -475,6 +482,31 @@ fdtype sleep_prim(fdtype arg)
 }
 #endif
 
+/* RUSAGE */
+
+#if (HAVE_GETRUSAGE)
+
+static fdtype rusage_prim()
+{
+  struct rusage r; fdtype result=fd_init_slotmap(NULL,0,NULL,NULL);
+  getrusage(RUSAGE_SELF,&r);
+  fd_add(result,fd_intern("DATA"),FD_INT2DTYPE(r.ru_idrss));
+  fd_add(result,fd_intern("STACK"),FD_INT2DTYPE(r.ru_isrss));
+  fd_add(result,fd_intern("SHARED"),FD_INT2DTYPE(r.ru_ixrss));
+  fd_add(result,fd_intern("MEMORY"),FD_INT2DTYPE(r.ru_maxrss));
+  {
+    fdtype tval=fd_init_double(NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+    fd_add(result,fd_intern("UTIME"),tval);
+    fd_decref(tval);}
+  {
+    fdtype tval=fd_init_double(NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+    fd_add(result,fd_intern("STIME"),tval);
+    fd_decref(tval);}
+  return result;
+}
+
+#endif
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -544,6 +576,9 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("SECS->STRING",secs2string,1));
 
+#if (HAVE_GETRUSAGE)
+  fd_idefn(fd_scheme_module,fd_make_cprim0("RUSAGE",rusage_prim,0));
+#endif
 }
 
 

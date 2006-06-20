@@ -166,6 +166,60 @@ static fdtype exit_prim(fdtype arg)
   return FD_VOID;
 }
 
+#define FD_IS_SCHEME 1
+#define FD_DO_FORK 2
+
+static fdtype exec_helper(int flags,int n,fdtype *args)
+{
+  if (!(FD_STRINGP(args[0])))
+    return fd_type_error("pathname","fdexec_prim",args[0]);
+  else {
+    char **argv=u8_malloc(sizeof(char *)*n+2), *filename=u8_tolibc(FD_STRDATA(args[0]));
+    int i=1, argc=0; pid_t pid;
+    if (flags&FD_IS_SCHEME) argv[argc++]=u8_strdup(FD_EXEC);
+    argv[argc++]=filename;
+    while (i<n)
+      if (FD_STRINGP(args[i]))
+	argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));
+      else {
+	u8_string as_string=fd_dtype2string(args[i++]);
+	char *as_libc_string=u8_tolibc(as_string);
+	argv[argc++]=as_libc_string; u8_free(as_string);}
+    argv[argc++]=NULL;
+    if (flags&FD_DO_FORK) 
+      if (pid=fork()) {
+	i=0; while (i<argc) if (argv[i]) u8_free(argv[i++]); else i++;
+	u8_free(argv);
+	return FD_INT2DTYPE(pid);}
+      else if (flags&FD_IS_SCHEME)
+	execvp(FD_EXEC,argv);
+      else execvp(filename,argv);
+    else if (flags&FD_IS_SCHEME)
+      execvp(FD_EXEC,argv);
+    else execvp(filename,argv);
+    return fd_erreify();}
+}
+
+static fdtype exec_prim(int n,fdtype *args)
+{
+  return exec_helper(0,n,args);
+}
+
+static fdtype fdexec_prim(int n,fdtype *args)
+{
+  return exec_helper(FD_IS_SCHEME,n,args);
+}
+
+static fdtype fork_prim(int n,fdtype *args)
+{
+  return exec_helper(FD_DO_FORK,n,args);
+}
+
+static fdtype fdfork_prim(int n,fdtype *args)
+{
+  return exec_helper((FD_IS_SCHEME|FD_DO_FORK),n,args);
+}
+
 static fdtype remove_file_prim(fdtype arg,fdtype must_exist)
 {
   u8_string filename=FD_STRDATA(arg);
@@ -855,6 +909,11 @@ FD_EXPORT void fd_init_fileio_c()
   fd_defspecial(fileio_module,"SYSTEM",simple_system);
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
+
+  fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORK",fork_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
 
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("REMOVE-FILE",remove_file_prim,1,

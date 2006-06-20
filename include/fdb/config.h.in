@@ -124,6 +124,15 @@
 /* Define if you have reentrant gmtime.  */
 #undef HAVE_GMTIME_R
 
+/* Define if you have getrusage */
+#undef HAVE_GETRUSAGE
+
+/* Define if you have sys/resource.h */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define if you have resource.h */
+#undef HAVE_RESOURCE_H
+
 /* Define if you have sigsetmask.  */
 #undef HAVE_SIGSETMASK
 
@@ -183,5 +192,8 @@
 
 /* The string of semicolon separated config assignments processed at startup */
 #undef FD_BOOT_CONFIG
+
+/* This is where the fdexec exectuable will be installed */
+#undef FD_EXEC
 
 #endif
