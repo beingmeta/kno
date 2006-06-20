@@ -73,6 +73,48 @@ convention.
 A page's environment is set up by fdxml processing instructions (PIs)
 which have the form: <?fdxml n1=v1 n2=v2 ?> and can occur repeatedly.
 For example,
-  load=filename
+* load=filename
+     loads handlers for XML elements from a scheme file relative
+     to the current directory; if the file exports any bindings,
+     they are used, otherwise *all* of the definitions in the file
+     are used;
+* scheme_load=filename
+     loads a scheme file (path relative to the current directory)
+     into the current scheme environment;  it's variables and
+     functions can be used in attributes and escape expressions;
+* module=module_name
+     uses the functions exported from module to handle like-named
+     elements of the current XML document;
+* scheme_module=module_name
+     uses the corresponding module for the Scheme environment of
+      the current document; variables and functions exported from
+      the name moduel can be used in attributes and escape expressions
+* escape=string
+     indicates the string used to prefix escape expressions in the document
+* xattrib=attribname
+     indicates the attribute id used by the extended attribute syntax
+
+Defining handlers in Scheme
+
+Defining a handler for a particular XML element is simply a matter of
+defining a procedure and, potentially, exporting it.  (If you export
+anything, you have to export everything you want; if you don't export
+anything, you get everything defined in the file.)
+
+The name of the procedure should be the tag name of the element you
+want to handle.  The names of the arguments to the procedure
+correspond to the names of the attributes to the corresponding
+element.  An argument named %NODE, if defined in the argument list,
+points to a representation of the XML node being interpreted; an
+argument named %BODY, if it exists, corresponds to a 'blank node'
+consisting only of the content of the node.
+
+You can use any Scheme expressions within the body of the definition,
+including any of the XML generating procedures.  These are helpful for
+procedures which produce output.  The XMLOUT procedure is helpful and
+will take XML nodes (when passed as arguments, for instance) and
+render them directly.  
+
+
 
 
