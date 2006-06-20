@@ -14,6 +14,8 @@ static char versionid[] =
 
 #include <libu8/u8.h>
 #include <stdarg.h>
+/* We include this for sscanf, but we're not really using stdio. */
+#include <stdio.h>
 
 fd_exception fd_InternalError=_("FramerD Database internal error"),
   fd_AmbiguousObjectName=_("Ambiguous object name"),
