@@ -15,6 +15,8 @@ static char versionid[] =
 
 #include <ctype.h>
 #include <errno.h>
+/* We include this for sscanf, but we're not using the FILE functions */
+#include <stdio.h>
 
 /* Common macros, functions and declarations */
 
