@@ -322,9 +322,9 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 /* Fixnums */
 
 #define FD_FIXNUM_SIGN_BIT 0x80000000
-#define FD_FIXNUM_MAGNITUDE_MASK 0x7FFFFFF
-#define FD_MAX_FIXNUM 0x7FFFFFF
-#define FD_MIN_FIXNUM -0x7FFFFFF
+#define FD_FIXNUM_MAGNITUDE_MASK 0x7FFFFFFF
+#define FD_MAX_FIXNUM            0x1FFFFFFF
+#define FD_MIN_FIXNUM           -0x1FFFFFFF
 
 #define FD_FIX2INT(x) \
   ((int)((((int)x)>=0) ? ((x)/4) : (-((x&FD_FIXNUM_MAGNITUDE_MASK)>>2))))
