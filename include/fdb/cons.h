@@ -298,7 +298,7 @@ FD_EXPORT fdtype fd_init_compound
 #define FD_BIGINTP(x) (FD_PRIM_TYPEP(x,fd_bigint_type))
 
 typedef int *fd_bigint;
-FD_EXPORT fdtype fd_make_bigint(int);
+FD_EXPORT fdtype fd_make_bigint(long long);
 
 FD_EXPORT int fd_small_bigintp(fd_bigint bi);
 FD_EXPORT int fd_bigint2int(fd_bigint bi);

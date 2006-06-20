@@ -1,6 +1,6 @@
 FD_EXPORT fd_exception fd_BigIntException;
 
-FD_EXPORT fdtype fd_make_bigint(int intval);
+FD_EXPORT fdtype fd_make_bigint(long long intval);
 FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
 FD_EXPORT fdtype fd_string2number(u8_string string,int base);
 FD_EXPORT int fd_output_number(u8_output out,fdtype num,int base);
