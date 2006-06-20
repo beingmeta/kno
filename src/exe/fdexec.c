@@ -42,10 +42,13 @@ static fdtype chain_prim(int n,fdtype *args)
     argv[argc++]=exe_arg;
     argv[argc++]=file_arg;
     i=0; while (i<n_configs) argv[argc++]=configs[i++];
-    i=0; while (i<n) {
-      u8_string as_string=fd_dtype2string(args[i++]);
-      char *libc_string=u8_tolibc(as_string);
-      argv[argc++]=libc_string; u8_free(as_string);}
+    i=0; while (i<n)
+      if (FD_STRINGP(args[i]))
+	argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));
+      else {
+	u8_string as_string=fd_dtype2string(args[i++]);
+	char *libc_string=u8_tolibc(as_string);
+	argv[argc++]=libc_string; u8_free(as_string);}
     argv[argc++]=NULL;
     return execvp(exe_arg,argv);}
 }
