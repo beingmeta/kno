@@ -30,6 +30,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			$(LDFLAGS) $(LIBS)
 APXS		= @APXS@
 #FDGMP		= lib/libfdgmp.a 
+BUILD		= `pwd`
 
 DTYPE_HEADERS=\
  include/fdb/config.h  \
@@ -365,13 +366,13 @@ confdirs: @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@
 @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@:
 	$(INSTALL) @install_file_opts@ -d $@
 link-modules: $(CONFDIR)/scm
-	ln -sf `pwd`/etc/*.el $(CONFDIR)/etc
-	ln -sf `pwd`/src/modules/*.scm $(CONFDIR)/scm
-	ln -sf `pwd`/src/fdweb/xhtml $(CONFDIR)/scm
+	ln -sf $BUILD/etc/*.el $(CONFDIR)/etc
+	ln -sf $BUILD/src/modules/*.scm @module_dir@
+	ln -sf $BUILD/src/fdweb/xhtml @module_dir@
 copy-modules: $(CONFDIR)/scm
 	cp -pf `pwd`/etc/*.el $(CONFDIR)/etc
-	cp -pf src/modules/*.scm $(CONFDIR)/scm
-	cp -rf src/fdweb/xhtml $(CONFDIR)/scm
+	cp -pf src/modules/*.scm @module_dir@
+	cp -rf src/fdweb/xhtml @module_dir@
 
 # The mod_fdserv module
 
