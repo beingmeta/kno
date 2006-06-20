@@ -81,7 +81,7 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/md5c.o src/texttools/porter.o \
 	src/texttools/tagger.o src/texttools/tagxtract.o
 
-EXECUTABLES=exe/fdexec exe/fdconsole exe/fdexec.static \
+EXECUTABLES=exe/fdexec exe/fdconsole exe/fdbatch exe/fdexec.static \
 	exe/fdserv exe/fdbserver exe/fdmanager
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 
@@ -114,7 +114,7 @@ FDB_SOURCES=\
 	src/texttools/md5c.c src/texttools/md5.h \
 	src/texttools/tagger.c src/texttools/tagxtract.c \
 	include/fdb/tagger.h \
-	src/exe/fdconsole.c src/exe/fdexec.c src/exe/fdserv.c \
+	src/exe/fdconsole.c src/exe/fdexec.c src/exe/fdbatch.c src/exe/fdserv.c \
 	src/exe/fdbserver.c
 
 # Targets
