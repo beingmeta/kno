@@ -123,6 +123,12 @@ AC_DEFINE_UNQUOTED(FD_DEFAULT_DLLOADPATH,"$with_dload_path")
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(FD_BOOT_CONFIG,"$with_boot_config")
 
+if test $exec_prefix = "NONE"; then
+  AC_DEFINE_UNQUOTED(FD_EXEC,"$prefix/bin/fdexec")
+else
+  AC_DEFINE_UNQUOTED(FD_EXEC,"$exec_prefix/bin/fdexec")
+fi
+
 AC_ARG_WITH(i18n,--with[out]-i18n built and install message catalogs,,with_i18n="no")
 if test $with_i18n == "yes"; then
   AC_CHECK_FUNCS(gettext,[doi18n="yes"])
@@ -184,6 +190,9 @@ if test $enable_threads = "yes"; then
 else
   AC_DEFINE(FD_THREADS_ENABLED,0)
 fi
+
+AC_CHECK_HEADERS(sys/resource.h resource.h)
+AC_CHECK_FUNCS(getrusage)
 
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
 dnl  Note that the basic FramerD/fdb data files are still limited to 4GB, but
