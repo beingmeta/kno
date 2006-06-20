@@ -253,12 +253,12 @@ lib/libfddbfile.dylib: lib/libfddbfile.@VERSION@.dylib
 
 lib/libfdbserv.a: $(FDBSERV_OBJS)
 lib/libfdbserv.so.@VERSION@: $(FDBSERV_OBJS)
-lib/libfdbserv.so: lib/libfdweb.so.@VERSION@
+lib/libfdbserv.so: lib/libfdbserv.so.@VERSION@
 lib/libfdbserv.@VERSION@.dylib: $(FDBSERV_OBJS) \
 	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
 	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
-lib/libfdserv.dylib: lib/libfdserv.@VERSION@.dylib
+lib/libfdserv.dylib: lib/libfdbserv.@VERSION@.dylib
 
 lib/libfdscheme.a: $(SCHEME_OBJS)
 lib/libfdscheme.so.@VERSION@: $(SCHEME_OBJS)
