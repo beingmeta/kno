@@ -1751,7 +1751,7 @@ DEFUN (bigint_destructive_copy, (source, target),
 
 /* Cheap big ints */
 
-FD_EXPORT fdtype fd_make_bigint(int intval)
+FD_EXPORT fdtype fd_make_bigint(long long intval)
 {
   if ((intval>FD_MAX_FIXNUM) || (intval<FD_MIN_FIXNUM))
     return (fdtype) fd_long_to_bigint(intval);
