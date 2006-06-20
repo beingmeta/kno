@@ -1,0 +1,28 @@
+FramerD provides a special parser for handling parameters which are
+often strings but are sometimes lisp objects or expressions.  It is
+used, for example, on command line arguments to FramerD executables,
+attribute values in fdxml, and strings extracted from the environment
+or files for the configuration system.
+
+The parser basically dispatches on the first character of the string.
+The characters are interpreted thus:
+  * '\' (backslash) takes the remainder of the string literally;
+  * \:' (colon) calls the LISP reader on the remainder of the string
+  * '(' '#' '@' '{' calls the LISP reader on the string
+  * anyting else is just taken as a string
+
+In addition, the character '$' (dollar sign) is taken in certain
+contexts to indicate an expression to be evaluated.  For the most
+part, this acts just like ':' (reads the remainder of the string with
+the LISP parser), but there is a special provision for a subset of
+infix syntax to provide concision for certain kinds of expressions.
+In particular, the syntax 'symbol?extra' (where ? can be '.' '#' '@'
+or '[') is interpreted as follows:
+  * symbol#fcn turns into the expression (fcn symbol)
+  * symbol.name turns into the expression (get symbol 'name)
+  * symbol@?oidname turns into the expression (get symbol @?oidname)
+  * symbol@name turns into the expression (get symbol name)
+  * symbol[index] turns into the expression (elt symbol index)
+
+
+

@@ -1,0 +1,78 @@
+FDXML is a FramerD application which allows dynamic XML generation.
+An FDXML document is a regular XML document where parts of the
+document can be generated programatically.  Typically, particular XML
+elements generate procedure calls which generate XML output as
+appropriate.  In addition, FDXML provides a simple programming
+language with constructs for compound expressions, looping, and
+branching.
+
+Unlike languages like Water, FDXML is pretty close to straight XML and
+readable FDXML code can be legal XML.  FDXML does loosen a few of
+XML's restrictions and especially provides an 'extended attribute'
+convention for allow particular kinds of compound expressions.
+Finally, FDXML applies the 'parsearg' convention to processing string
+attribute values.
+
+FDXML's loosens a few of XML's restrictions:
+  * attribute names can include or start with non-standard characters;
+     e.g. _FOO, @, and + are all valid attribute names;
+  * attribute values needn't be enclosed in quotes; the Lisp parser
+     is called on such attribute values, so that numbers get turned into,
+     numbers and simple strings into symbols;
+  * the "wild close" element </> closes off the current element
+
+FDXML's extended attribute syntax deals with the fact that attributes
+can only be strings.  It reserves a particular attribute name (XATTRIB
+by default) for association with XML elements embedded within another
+XML element.  When this attribute name occurs on an element, the
+element is taken out of the XML flow and assigned as an attribute
+(rather than content) of the embedding element.  This can be used to
+specify complex embedded objects or (most commonly) values for FDXML
+procedures.
+
+FDXML also provides the ability to specify an optional 'escape
+sequence' for denoting parts of the input file which are Scheme
+expressions to be evaluated.  These sections have two syntaxes.  If,
+for example, the escape sequence were the string '^^^', one could
+evaluate expr by either '^^^$expr$' or '^^expr ' (where the trailing
+space could also be '<' and would be included in the output).  Note
+that these escapes cannot occur within markup but only content.
+
+Regular attributes in FDXML apply the 'parsearg' conventions to their
+associated values.  For example,
+  * 'FOO' is the string 'FOO' while ':FOO is the symbol FOO
+  * '(+ 2 3)' is the Lisp expression (+ 2 3) while '\(+ 2 3)' is
+    the string '(+ 2 3)'
+  * '@?FOO' refers to the FramerD object named FOO
+
+In addition, attribute strings starting with '$' are tagged for
+execution.  These attributes support a limited infix syntax for
+conciseness:
+  * symbol#fcn turns into the expression (fcn symbol)
+  * symbol.name turns into the expression (get symbol 'name)
+  * symbol@?oidname turns into the expression (get symbol @?oidname)
+  * symbol@name turns into the expression (get symbol name)
+  * symbol[index] turns into the expression (elt symbol index)
+
+FDXML provides built-in programmatic operations IF, LOOP, INSERT (for
+executing code and inserting its value), BINDING, and DEFINE.  In
+addition, it provides set/choice operations TRY, UNION, and
+INTERSECTION.  Finally, any FDXML element can specify a BIND attribute
+which causes its value to be bound in the execution environment for
+the FDXML document, to be referred to later.
+
+The execution environment for an XML document has two components: an
+XML binding space (where element tag names are bound to handler
+procedures) and a regular Scheme binding space (where escape and
+attribute expressions are evaluated).  When an FDXML document is being
+rendered for the Web (for instance through mod_fdserv), the Scheme
+binding space contains all the CGI and cookie variables related to the
+document request; these values are all processed by the 'parsearg'
+convention.
+
+A page's environment is set up by fdxml processing instructions (PIs)
+which have the form: <?fdxml n1=v1 n2=v2 ?> and can occur repeatedly.
+For example,
+  load=filename
+
+

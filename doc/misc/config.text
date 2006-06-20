@@ -1,0 +1,72 @@
+FramerD has a simple but versatile configuration system designed to
+allow users, developers, and administers to customize or configure
+software components or applications.  The basic operation of the
+system is to associate a named configuration parameter with a value or
+series of values (which we'll try to consistently refer to as
+"configure NAME with VALUE").
+
+Configuration can be either cumulative or exclusive.  In cumulative
+configuration, a parameter may be configured with several values and
+all the values somehow influence the configuration.  In some cases,
+the order of configuration may be significant.  For example, the POOLS
+configuration parameter is cumulative and each specification adds an
+additional pool to the universe of pools used as object data sources.
+For example, one may say both:
+  POOLS=/data/bg/brico
+  POOLS=/data/bg/xbrico
+to access objects from both of the FramerD file pools /data/bg/brico
+and /data/bg/xbrico.
+
+In exclusive configuration, the parameter has just one value and the
+most recently configured value is it.  For example, the configuration
+  RANDOMSEED=484740113
+sets the seed value used by the random number generator.
+
+Configuration is more than just a data store and, commonly, functions
+are associated with configuration parameters.  As used above, the
+POOLS configuration parameter actually creates the data structures
+neccessary for accessing an external object pool.  Many OS facilities
+have configuration parameters wrapped around them, for example
+RANDOMSEED or LOADPATH (used for loading modules).
+
+Configuration information comes from multiple sources:
+  * user code: programs can specify or interrogate configuration parameters
+     directly;
+  * command line: all FramerD executables take command line arguments
+     of the form NAME=VALUE; these are not processed as normal arguments,
+     but provide configuration assignments
+  * config files: files in the file system can provide sequences
+     of configuration commands; these files be loaded either
+     programatically or specified by configuring the parameter CONFIG
+     with a particular filename;
+  * the FramerD config directory (often /usr/share/framerd/config) contains
+     files whose names are parameters and whose contents specify
+     default values
+  * the shell environment: an environment variable of the form FD_name
+     provides a default value for the configuration parameter 'name'
+
+When a configuration value is a string, it is interpreted by the
+'parsearg' conventions based on the first character:
+  * '\' (backslash) takes the remainder of the string literally;
+  * \:' (colon) calls the LISP reader on the remainder of the string
+  * '(' '#' '@' '{' calls the LISP reader on the string
+  * anyting else is just taken as a string
+
+The Scheme function (CONFIG! name value) configures the parameter NAME
+with VALUE.  The Scheme function (CONFIG NAME) gets the value(s) with
+which name was configured.
+
+From C, fd_set_config(param_string,dtype) configures a particular
+parameter and fd_get_config(param_string) gets the value(s) with which
+param_string was configured (as a dtype).
+
+A C program can register a configuration parameter with the function
+fd_register_config; a Scheme program can do the same with CONFIG-DEF!.
+CONFIG-DEF! takes a parameter identifier (a symbol or string) and a
+procedure.  The procedure is called with two arguments (the parameter
+name and value) when the parameter is configured and with one argument
+when the parameter is being interrogated.
+
+
+
+
