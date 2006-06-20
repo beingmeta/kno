@@ -16,6 +16,7 @@ static char versionid[] =
 #include <libu8/u8.h>
 #include <libu8/timefns.h>
 #include <libu8/filefns.h>
+#include <libu8/stringfns.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,19 +25,43 @@ static char versionid[] =
 #include <sys/time.h>
 #include <time.h>
 
+#define MAX_CONFIGS 64
+
 static int debug_maxelts=32, debug_maxchars=80;
+
+static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;
+static int n_configs=0;
+
+static fdtype chain_prim(int n,fdtype *args)
+{
+  if (n_configs>=MAX_CONFIGS)
+    return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,FD_VOID);
+  else {
+    int i=0, argc=0;
+    char **argv=u8_malloc(sizeof(char *)*(n+n_configs+2)); 
+    argv[argc++]=exe_arg;
+    argv[argc++]=file_arg;
+    i=0; while (i<n_configs) argv[argc++]=configs[i++];
+    i=0; while (i<n) {
+      u8_string as_string=fd_dtype2string(args[i++]);
+      char *libc_string=u8_tolibc(as_string);
+      argv[argc++]=libc_string; u8_free(as_string);}
+    argv[argc++]=NULL;
+    return execvp(exe_arg,argv);}
+}
 
 int main(int argc,char **argv)
 {
   unsigned char data[1024], *input;
+  u8_string source_file=NULL;
   fd_lispenv env=fd_working_environment();
   fdtype main_proc=FD_VOID, result=FD_VOID;
   fdtype *args=u8_malloc(sizeof(fdtype)*argc);
-  u8_string source_file=NULL;
   int i=1, n_args=0, retval=0;
   if (argc<2) {
     fprintf(stderr,"Usage: fdexec filename [config=val]*\n");
     return -1;}
+  exe_arg=u8_strdup(argv[0]);
   fd_register_source_file(versionid);
   fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
@@ -54,12 +79,16 @@ int main(int argc,char **argv)
 #endif
   fd_init_schemeio();
   u8_identify_application(argv[1]);
+  fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
-    if (strchr(argv[i],'=')) 
-      fd_config_assignment(argv[i++]);
+    if (strchr(argv[i],'=')) {
+      if (n_configs>=MAX_CONFIGS) n_configs++;
+      else configs[n_configs++]=u8_strdup(argv[i]);
+      fd_config_assignment(argv[i++]);}
     else if (source_file)
       args[n_args++]=fd_parse_arg(argv[i++]);
     else {
+      file_arg=u8_strdup(argv[i]);
       source_file=u8_fromlibc(argv[i++]);
       u8_default_appid(source_file);}
   if (source_file) {
