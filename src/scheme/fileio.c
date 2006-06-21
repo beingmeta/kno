@@ -220,6 +220,8 @@ static fdtype fdfork_prim(int n,fdtype *args)
   return exec_helper((FD_IS_SCHEME|FD_DO_FORK),n,args);
 }
 
+/* More file manipulation */
+
 static fdtype remove_file_prim(fdtype arg,fdtype must_exist)
 {
   u8_string filename=FD_STRDATA(arg);
@@ -362,6 +364,22 @@ static fdtype file_owner(fdtype filename)
   u8_string name=u8_file_owner(FD_STRDATA(filename));
   if (name) return fd_init_string(NULL,-1,name);
   else return fd_erreify();
+}
+
+/* Current directory information */
+
+static fdtype getcwd_prim()
+{
+  u8_string wd=u8_getcwd();
+  if (wd) return fd_init_string(NULL,-1,wd);
+  else return fd_erreify();
+}
+
+static fdtype setcwd_prim(fdtype dirname)
+{
+  if (u8_setcwd(FD_STRDATA(dirname))<0)
+    return fd_erreify();
+  else return FD_VOID;
 }
 
 /* Reading and writing DTYPEs */
@@ -968,6 +986,10 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("FILE-MODE",file_mode,1,
 			   fd_string_type,FD_VOID));
+
+  fd_idefn(fileio_module,fd_make_cprim0("GETCWD",getcwd_prim,0));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("SETCWD",setcwd_prim,1,fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
 	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE",write_dtype,2)));
