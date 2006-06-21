@@ -716,19 +716,22 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data)
 {
-  int i=0, pool_count=0;
+  int i=0, pool_count=0; fd_pool last_pool=NULL;
   while (i < 1024)
     if (fd_top_pools[i]==NULL) i++;
     else if (fd_top_pools[i]->capacity) {
-      pool_count++;
-      if (fcn(fd_top_pools[i++],data)) return pool_count+1;
-      else pool_count++;}
+      fd_pool p=fd_top_pools[i++];
+      if (p==last_pool) {}
+      else if (fcn(p,data)) return pool_count+1;
+      else {last_pool=p; pool_count++;}}
     else {
       struct FD_GLUEPOOL *gp=(struct FD_GLUEPOOL *)fd_top_pools[i++];
       fd_pool *subpools; int j=0;
       subpools=gp->subpools;
       while (j<gp->n_subpools) {
-	int retval=fcn(subpools[j++],data);
+	fd_pool p=subpools[j++];
+	int retval=((p==last_pool) ? (0) : (fcn(p,data)));
+	last_pool=p;
 	if (retval<0) return retval;
 	else if (retval) return pool_count+1;
 	else pool_count++;}}
