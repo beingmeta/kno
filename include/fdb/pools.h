@@ -239,7 +239,8 @@ FD_EXPORT void fd_pool_swapout(fd_pool p);
 
 FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value);
 
-FD_EXPORT void fd_swapout_pool(void);
+FD_EXPORT int fd_swapout_pools(void);
+FD_EXPORT int fd_close_pools(void);
 FD_EXPORT int fd_commit_pools(void);
 FD_EXPORT int fd_commit_pools_noerr(void);
 FD_EXPORT int fd_cachecount_pools(void);

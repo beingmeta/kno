@@ -635,6 +635,14 @@ FD_EXPORT void fd_swapout_indices()
     fd_index_swapout(fd_secondary_indices[i]); i++;}
 }
 
+FD_EXPORT void fd_close_indices()
+{
+  int i=0; while (i < fd_n_primary_indices) {
+    fd_index_close(fd_primary_indices[i]); i++;}
+  i=0; while (i < fd_n_secondary_indices) {
+    fd_index_close(fd_secondary_indices[i]); i++;}
+}
+
 FD_EXPORT int fd_commit_indices()
 {
   int count=0, i=0; while (i < fd_n_primary_indices) {

@@ -848,6 +848,17 @@ FD_EXPORT int fd_swapout_pools()
   return fd_for_pools(do_swapout,NULL);
 }
 
+static int do_close(fd_pool p,void *data)
+{
+  fd_pool_close(p);
+  return 0;
+}
+
+FD_EXPORT int fd_close_pools()
+{
+  return fd_for_pools(do_close,NULL);
+}
+
 static int do_commit(fd_pool p,void *data)
 {
   int retval=fd_pool_unlock_all(p,1);

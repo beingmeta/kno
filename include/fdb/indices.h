@@ -88,6 +88,7 @@ FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 FD_EXPORT fd_index fd_use_index(u8_string spec);
 
 FD_EXPORT void fd_swapout_indices(void);
+FD_EXPORT void fd_close_indices(void);
 FD_EXPORT int fd_commit_indices(void);
 FD_EXPORT int fd_commit_indices_noerr(void);
 FD_EXPORT int fd_cachecount_indices(void);

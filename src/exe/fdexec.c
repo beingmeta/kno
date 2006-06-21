@@ -50,6 +50,8 @@ static fdtype chain_prim(int n,fdtype *args)
 	char *libc_string=u8_tolibc(as_string);
 	argv[argc++]=libc_string; u8_free(as_string);}
     argv[argc++]=NULL;
+    fd_close_pools();
+    fd_close_indices();
     return execvp(exe_arg,argv);}
 }
 
