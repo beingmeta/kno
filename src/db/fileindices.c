@@ -963,11 +963,11 @@ static void fileindex_close(fd_index ix)
     int retval=munmap(fx->offsets-2,(SLOTSIZE*fx->n_slots)+8);
     if (retval<0) {
       u8_warn(u8_strerror(errno),"fileindex_close:munmap %s",fx->source);
-      fx->offsets=NULL; errno=0;}
-    else fx->offsets=NULL;
+      errno=0;}
 #else
-    u8_free(fx->offsets); fx->offsets=NULL;
+    u8_free(fx->offsets); 
 #endif
+    fx->offsets=NULL;
     fx->cache_level=-1;}
   u8_unlock_mutex(&(fx->lock));
 }

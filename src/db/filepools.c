@@ -416,7 +416,17 @@ static void file_pool_close(fd_pool p)
   u8_lock_mutex(&(fp->lock));
   fd_dtsclose(&(fp->stream),1);
   if (fp->offsets) {
-    u8_free(fp->offsets); fp->cache_level=-1;}
+#if HAVE_MMAP
+    int retval=munmap((fp->offsets)-6,4*fp->capacity+24);
+    unsigned int *newmmap;
+    if (retval<0) {
+      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
+      errno=0;}
+#else
+    u8_free(fp->offsets);
+#endif
+    fp->offsets=NULL;
+    fp->cache_level=-1;}
   u8_unlock_mutex(&(fp->lock));
 }
 
