@@ -239,8 +239,7 @@ static fdtype lisp_get_component(fdtype string)
 
 static fdtype lisp_load_config(fdtype string)
 {
-  u8_string base=fd_sourcebase();
-  u8_string abspath=u8_abspath(FD_STRDATA(string),base);
+  u8_string abspath=u8_abspath(FD_STRDATA(string),NULL);
   int retval=fd_load_config(abspath);
   u8_free(abspath);
   if (retval<0) {
