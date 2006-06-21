@@ -185,6 +185,9 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
 
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
 {
+  /* Already closed */
+  if (s->fd<0) return;
+  /* Flush data */
   if ((s->bits&FD_DTSTREAM_READING) == 0) fd_dtsflush(s);
   u8_pfree_x(s->mpool,s->start,s->bufsiz);
   if (close_fd>0)
