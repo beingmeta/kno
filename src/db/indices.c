@@ -591,7 +591,8 @@ FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 
 FD_EXPORT void fd_index_close(fd_index ix)
 {
-  ix->handler->close(ix);
+  if ((ix) && (ix->handler) && (ix->handler->close))
+    ix->handler->close(ix);
 }
 
 /* Common init function */
