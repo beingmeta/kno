@@ -24,14 +24,11 @@ static char versionid[] =
 
 #include <math.h>
 #include <sys/time.h>
-#if (!(HAVE_GETRUSAGE))
-#elif (HAVE_SYS_RESOURCE_H)
-#include <sys/resource.h>
-#elif (HAVE_RESOURCE_H)
-#include <resource.h>
-#endif
+
+#include <libu8/rusage.h>
 
 fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
+fd_exception fd_MissingFeature=_("OS doesn't support operation");
 static fd_exception strftime_error=_("internal strftime error");
 
 static fdtype year_symbol, month_symbol, date_symbol;
@@ -484,28 +481,45 @@ fdtype sleep_prim(fdtype arg)
 
 /* RUSAGE */
 
-#if (HAVE_GETRUSAGE)
+static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol, utime_symbol, stime_symbol;
 
-static fdtype rusage_prim()
+static fdtype rusage_prim(fdtype field)
 {
-  struct rusage r; fdtype result=fd_init_slotmap(NULL,0,NULL,NULL);
-  getrusage(RUSAGE_SELF,&r);
-  fd_add(result,fd_intern("DATA"),FD_INT2DTYPE(r.ru_idrss));
-  fd_add(result,fd_intern("STACK"),FD_INT2DTYPE(r.ru_isrss));
-  fd_add(result,fd_intern("SHARED"),FD_INT2DTYPE(r.ru_ixrss));
-  fd_add(result,fd_intern("MEMORY"),FD_INT2DTYPE(r.ru_maxrss));
-  {
-    fdtype tval=fd_init_double(NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
-    fd_add(result,fd_intern("UTIME"),tval);
-    fd_decref(tval);}
-  {
-    fdtype tval=fd_init_double(NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
-    fd_add(result,fd_intern("STIME"),tval);
-    fd_decref(tval);}
-  return result;
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return fd_erreify();
+  else if (FD_VOIDP(field)) {
+    fdtype result=fd_init_slotmap(NULL,0,NULL,NULL);
+    fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));
+    fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
+    fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));
+    fd_add(result,resident_symbol,FD_INT2DTYPE(r.ru_maxrss));
+    {
+      fdtype tval=fd_init_double(NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+      fd_add(result,utime_symbol,tval);
+      fd_decref(tval);}
+    {
+      fdtype tval=fd_init_double(NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+      fd_add(result,stime_symbol,tval);
+      fd_decref(tval);}
+    return result;}
+  else if (FD_EQ(field,data_symbol))
+    return FD_INT2DTYPE(r.ru_idrss);
+  else if (FD_EQ(field,stack_symbol))
+    return FD_INT2DTYPE(r.ru_isrss);
+  else if (FD_EQ(field,shared_symbol))
+    return FD_INT2DTYPE(r.ru_ixrss);
+  else if (FD_EQ(field,resident_symbol))
+    return FD_INT2DTYPE(r.ru_maxrss);
+  else if (FD_EQ(field,utime_symbol))
+    return fd_init_double
+      (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+  else if (FD_EQ(field,stime_symbol))
+    return fd_init_double
+      (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+  else return FD_EMPTY_CHOICE;
 }
-
-#endif
 
 /* Initialization */
 
@@ -558,6 +572,13 @@ FD_EXPORT void fd_init_timeprims_c()
 
   gmt_symbol=fd_intern("GMT");
 
+  data_symbol=fd_intern("DATA");
+  stack_symbol=fd_intern("STACK");
+  shared_symbol=fd_intern("SHARED");
+  resident_symbol=fd_intern("RESIDENT");
+  utime_symbol=fd_intern("UTIME");
+  stime_symbol=fd_intern("STIME");
+
   fd_idefn(fd_scheme_module,fd_make_cprim0("GMTIMESTAMP",gmtimestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP",timestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("ELAPSED-TIME",elapsed_time,0));
@@ -576,9 +597,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("SECS->STRING",secs2string,1));
 
-#if (HAVE_GETRUSAGE)
-  fd_idefn(fd_scheme_module,fd_make_cprim0("RUSAGE",rusage_prim,0));
-#endif
+  fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
 }
 
 

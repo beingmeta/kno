@@ -199,8 +199,6 @@ else
   AC_DEFINE(FD_THREADS_ENABLED,0)
 fi
 
-AC_CHECK_HEADERS(sys/resource.h resource.h)
-AC_CHECK_FUNCS(getrusage)
 
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
 dnl  Note that the basic FramerD/fdb data files are still limited to 4GB, but
