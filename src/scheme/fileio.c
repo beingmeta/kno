@@ -17,6 +17,7 @@ static char versionid[] =
 #include "fdb/indices.h"
 #include "fdb/frames.h"
 #include "fdb/ports.h"
+#include "fdb/numbers.h"
 
 #include <libu8/filefns.h>
 #include <libu8/stringfns.h>
@@ -535,8 +536,12 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
   struct FD_PORT *p=
     FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
   if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
-  else if (FD_PRIM_TYPEP(off_arg,fd_bigint_type))
-    off=(off_t)fd_bigint2uint((fd_bigint)off_arg);
+  else if (FD_PRIM_TYPEP(off_arg,fd_bigint_type)) 
+#if (_FILE_OFFSET_BITS==64)
+    off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
+#else
+    off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);
+#endif
   else return fd_type_error(_("offset"),"setpos_prim",off_arg);
   if (p->in)
     result=u8_setpos((struct U8_STREAM *)(p->in),off);
@@ -545,9 +550,9 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
   else return fd_type_error(_("port"),"getpos",portarg);
   if (result<0)
     return fd_erreify();
-  else if (off<FD_MAX_FIXNUM)
+  else if (result<FD_MAX_FIXNUM)
     return FD_INT2DTYPE(off);
-  else return fd_make_bigint(off);
+  else return fd_make_bigint(result);
 }
 
 /* Module finding */
