@@ -759,7 +759,7 @@ static fdtype timestamp_restore(FD_MEMORY_POOL_TYPE *p,fdtype tag,fdtype x)
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm=u8_pmalloc_type(p,struct FD_TIMESTAMP);
-    time_t tval=(time_t)(fd_bigint_to_long(x));
+    time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),tval,0);
     return FDTYPE_CONS(tm);}

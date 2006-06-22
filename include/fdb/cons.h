@@ -297,11 +297,17 @@ FD_EXPORT fdtype fd_init_compound
 
 #define FD_BIGINTP(x) (FD_PRIM_TYPEP(x,fd_bigint_type))
 
-typedef int *fd_bigint;
+typedef struct FD_BIGINT *fd_bigint;
+
 FD_EXPORT fdtype fd_make_bigint(long long);
 
 FD_EXPORT int fd_small_bigintp(fd_bigint bi);
 FD_EXPORT int fd_bigint2int(fd_bigint bi);
+FD_EXPORT unsigned int fd_bigint2uint(fd_bigint bi);
+FD_EXPORT long fd_bigint_to_long(fd_bigint bi);
+FD_EXPORT long long fd_bigint_to_long_long(fd_bigint bi);
+FD_EXPORT fd_bigint fd_long_long_to_bigint(long long);
+FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
 #define fd_getint(x) \
   ((FD_FIXNUMP(x)) ? (FD_FIX2INT(x)) : \

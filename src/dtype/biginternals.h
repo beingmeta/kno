@@ -107,7 +107,7 @@ extern void abort ();
 
 #define BIGINT_DIGITS_FOR_LONG						\
   (BIGINT_BITS_TO_DIGITS ((sizeof (long)) * CHAR_BIT))
-#define BIGINT_DIGITS_FOR_LONGLONG					\
+#define BIGINT_DIGITS_FOR_LONG_LONG					\
   (BIGINT_BITS_TO_DIGITS ((sizeof (long long)) * CHAR_BIT))
 
 #ifndef BIGINT_DISABLE_ASSERTION_CHECKS

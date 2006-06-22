@@ -7,8 +7,6 @@ FD_EXPORT int fd_output_number(u8_output out,fdtype num,int base);
 FD_EXPORT fdtype fd_make_complex(fdtype real,fdtype imag);
 FD_EXPORT fdtype fd_make_rational(fdtype num,fdtype denom);
 FD_EXPORT int fd_small_bigintp(fd_bigint bi);
-FD_EXPORT int fd_bigint2int(fd_bigint bi);
-FD_EXPORT int fd_bigint2uint(fd_bigint bi);
 FD_EXPORT int fd_builtin_numberp(fdtype x);
 FD_EXPORT fdtype fd_plus(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_multiply(fdtype x,fdtype y);

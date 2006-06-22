@@ -475,6 +475,36 @@ DEFUN (fd_long_to_bigint, (n), long n)
   }
 }
 
+fd_bigint
+DEFUN (fd_long_long_to_bigint, (n), long long n)
+{
+  int negative_p;
+  bigint_digit_type result_digits [BIGINT_DIGITS_FOR_LONG_LONG];
+  fast bigint_digit_type * end_digits = result_digits;
+  /* Special cases win when these small constants are cached. */
+  if (n == 0) return (BIGINT_ZERO ());
+  if (n == 1) return (BIGINT_ONE (0));
+  if (n == -1) return (BIGINT_ONE (1));
+  {
+    fast unsigned long accumulator = ((negative_p = (n < 0)) ? (-n) : n);
+    do
+      {
+	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
+	accumulator >>= BIGINT_DIGIT_LENGTH;
+      }
+    while (accumulator != 0);
+  }
+  {
+    fd_bigint result =
+      (bigint_allocate ((end_digits - result_digits), negative_p));
+    fast bigint_digit_type * scan_digits = result_digits;
+    fast bigint_digit_type * scan_result = (BIGINT_START_PTR (result));
+    while (scan_digits < end_digits)
+      (*scan_result++) = (*scan_digits++);
+    return (result);
+  }
+}
+
 
 fd_bigint
 DEFUN (fd_ulong_to_bigint, (n), unsigned long n)
@@ -506,36 +536,6 @@ DEFUN (fd_ulong_to_bigint, (n), unsigned long n)
   }
 }
 
-fd_bigint
-DEFUN (fd_longlong_to_bigint, (n), long long n)
-{
-  int negative_p;
-  bigint_digit_type result_digits [BIGINT_DIGITS_FOR_LONGLONG];
-  fast bigint_digit_type * end_digits = result_digits;
-  /* Special cases win when these small constants are cached. */
-  if (n == 0) return (BIGINT_ZERO ());
-  if (n == 1) return (BIGINT_ONE (0));
-  if (n == -1) return (BIGINT_ONE (1));
-  {
-    fast unsigned long long accumulator = ((negative_p = (n < 0)) ? (-n) : n);
-    do
-      {
-	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
-	accumulator >>= BIGINT_DIGIT_LENGTH;
-      }
-    while (accumulator != 0);
-  }
-  {
-    fd_bigint result =
-      (bigint_allocate ((end_digits - result_digits), negative_p));
-    fast bigint_digit_type * scan_digits = result_digits;
-    fast bigint_digit_type * scan_result = (BIGINT_START_PTR (result));
-    while (scan_digits < end_digits)
-      (*scan_result++) = (*scan_digits++);
-    return (result);
-  }
-}
-
 long
 DEFUN (fd_bigint_to_long, (bigint), fd_bigint bigint)
 {
@@ -543,6 +543,21 @@ DEFUN (fd_bigint_to_long, (bigint), fd_bigint bigint)
     return (0);
   {
     fast long accumulator = 0;
+    fast bigint_digit_type * start = (BIGINT_START_PTR (bigint));
+    fast bigint_digit_type * scan = (start + (BIGINT_LENGTH (bigint)));
+    while (start < scan)
+      accumulator = ((accumulator << BIGINT_DIGIT_LENGTH) + (*--scan));
+    return ((BIGINT_NEGATIVE_P (bigint)) ? (-accumulator) : accumulator);
+  }
+}
+
+long long
+DEFUN (fd_bigint_to_long_long, (bigint), fd_bigint bigint)
+{
+  if (BIGINT_ZERO_P (bigint))
+    return (0);
+  {
+    fast long long accumulator = 0;
     fast bigint_digit_type * start = (BIGINT_START_PTR (bigint));
     fast bigint_digit_type * scan = (start + (BIGINT_LENGTH (bigint)));
     while (start < scan)
@@ -1754,7 +1769,7 @@ DEFUN (bigint_destructive_copy, (source, target),
 FD_EXPORT fdtype fd_make_bigint(long long intval)
 {
   if ((intval>FD_MAX_FIXNUM) || (intval<FD_MIN_FIXNUM))
-    return (fdtype) fd_long_to_bigint(intval);
+    return (fdtype) fd_long_long_to_bigint(intval);
   else if (intval>=0)
     return (fd_fixnum_type|((intval)<<2));
   else
@@ -2325,7 +2340,7 @@ FD_EXPORT int fd_bigint2int(fd_bigint bi)
   else return 0;
 }
 
-FD_EXPORT int fd_bigint2uint(fd_bigint bi)
+FD_EXPORT unsigned int fd_bigint2uint(fd_bigint bi)
 {
   if ((fd_bigint_fits_in_word_p(bi,32,1)) &&
       (!(BIGINT_NEGATIVE_P(bi))))
@@ -2347,7 +2362,7 @@ fdtype fd_plus(fdtype x,fdtype y)
     int result=FD_FIX2INT(x)+FD_FIX2INT(y);
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT2DTYPE(result);
-    else return (fdtype) fd_longlong_to_bigint(result);}
+    else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_double_type) && (yt==fd_double_type)) {
     double result=FD_FLONUM(x)+FD_FLONUM(y);
     return fd_init_double(NULL,result);}
@@ -2399,7 +2414,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
       return simplify_bigint(bresult);}
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT2DTYPE(result);
-    else return (fdtype) fd_longlong_to_bigint(result);}
+    else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_double_type) && (yt==fd_double_type)) {
     double result=FD_FLONUM(x)*FD_FLONUM(y);
     return fd_init_double(NULL,result);}
@@ -2444,7 +2459,7 @@ fdtype fd_subtract(fdtype x,fdtype y)
     int result=(FD_FIX2INT(x))-(FD_FIX2INT(y));
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT2DTYPE(result);
-    else return (fdtype) fd_longlong_to_bigint(result);}
+    else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_double_type) && (yt==fd_double_type)) {
     double result=FD_FLONUM(x)-FD_FLONUM(y);
     return fd_init_double(NULL,result);}
