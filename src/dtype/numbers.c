@@ -486,7 +486,7 @@ DEFUN (fd_long_long_to_bigint, (n), long long n)
   if (n == 1) return (BIGINT_ONE (0));
   if (n == -1) return (BIGINT_ONE (1));
   {
-    fast unsigned long accumulator = ((negative_p = (n < 0)) ? (-n) : n);
+    fast unsigned long long accumulator = ((negative_p = (n < 0)) ? (-n) : n);
     do
       {
 	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
