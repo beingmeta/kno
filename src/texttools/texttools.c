@@ -760,6 +760,36 @@ static fdtype textsubst(fdtype string,
     else return fd_extract_string(NULL,data+off,data+lim);}
 }
 
+/* Handy filtering functions */
+
+static fdtype textfilter(fdtype strings,fdtype pattern)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(string,strings)
+    if (FD_STRINGP(string))
+      if (fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0)) {
+	FD_ADD_TO_CHOICE(results,fd_incref(string));}
+      else {}
+    else {
+      fd_decref(results);
+      return fd_type_error("string","textfiler",string);}
+  return results;
+}
+
+static fdtype string_matches(fdtype string,fdtype pattern)
+{
+  if (fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype string_contains(fdtype string,fdtype pattern)
+{
+  if (fd_text_search(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0)<0)
+    return FD_FALSE;
+  else return FD_TRUE;
+}
+
 /* text2frame */
 
 static int framify(fdtype f,u8_output out,fdtype xtract)
@@ -1288,6 +1318,13 @@ void fd_init_texttools()
 			   -1,FD_VOID,fd_string_type,FD_VOID,
 			   fd_fixnum_type,FD_INT2DTYPE(0),
 			   fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_ndprim(fd_make_cprim2("TEXTFILTER",textfilter,2)));
+  fd_idefn(texttools_module,fd_make_cprim2x("STRING-MATCHES?",string_matches,2,
+					    fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(texttools_module,fd_make_cprim2x("STRING-CONTAINS?",string_contains,2,
+					    fd_string_type,FD_VOID,-1,FD_VOID));
+
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("TEXT->FRAME",text2frame,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID,
