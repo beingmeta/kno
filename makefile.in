@@ -353,6 +353,8 @@ install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 install-scripts: install-shell-scripts
 install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+install-rc.d:
+	$(INSTALL) --mode=0555 etc/framerd-rc.d /etc/init.d/framerd
 
 $(INCINSTALLDIR):
 	install -d $(INCINSTALLDIR)
