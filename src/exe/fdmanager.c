@@ -14,11 +14,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pwd.h>
+#include <grp.h>
 
 #define NUL '\0'
 
 #ifndef FDSERVER
-#define FDSERVER "/usr/bin/fdtypeserver"
+#define FDSERVER "/usr/bin/fdbserver"
 #endif
 
 #ifndef O_SYNC
@@ -46,6 +48,12 @@ struct SERVER_ENTRY {
 static struct SERVER_ENTRY *servers;
 static int n_servers=0, max_servers, terminating=0;
 static char *fdserver, *status_file, *pid_file;
+
+static fd_exception SecurityAbort=_("Security abort");
+static fd_exception SecurityEvent=_("Security event");
+
+static uid_t runas_uid=(uid_t)-1;
+static gid_t runas_gid=(gid_t)-1;
 
 /* Utilities */
 
@@ -99,6 +107,53 @@ static char *skip_arg(char *string)
     else if (*string == '\\') string=string+2;
     else string++;
   return string;
+}
+
+static int setup_runas()
+{
+  uid_t uid=getuid();
+  gid_t gid=getgid();
+  struct group *gentry=NULL;
+  if ((uid<0) || (gid<0)) {
+    u8_warn(SecurityAbort,"Couldn't determine user or group");
+    exit(2);}
+  if (getenv("FDAEMON_GROUP"))
+    gentry=getgrnam(getenv("FDAEMON_GROUP"));
+  if (gentry==NULL) gentry=getgrnam("fdaemon");
+  if (gentry==NULL) gentry=getgrnam("daemon");
+  if (gentry==NULL) gentry=getgrnam("nogroup");
+  if (gentry) {
+    u8_warn(SecurityEvent,"Servers will run as group '%s' (%d)",
+	    gentry->gr_name,gentry->gr_gid);
+    runas_gid=gentry->gr_gid;}
+  if (uid==0) {
+    /* When running as root, change your uid and possibly group */
+    struct passwd *uentry=NULL; 
+    if (getenv("FDAEMON_USER"))
+      uentry=getpwnam(getenv("FDAEMON_USER"));
+    if (uentry==NULL) uentry=getpwnam("fdaemon");
+    if (uentry==NULL) uentry=getpwnam("daemon");
+    if (uentry==NULL) uentry=getpwnam("nobody");
+    if ((uentry) && (uentry->pw_uid)) {
+      u8_warn(SecurityEvent,"Servers will run as user '%s' (%d)",
+	      uentry->pw_name,uentry->pw_uid);
+      runas_uid=uentry->pw_uid;}
+    else {
+      u8_warn(SecurityAbort,"Couldn't find non-root UID to use");
+      exit(1);}}
+}
+
+static int become_runas()
+{
+  if (setgid(runas_gid)<0) {
+    u8_graberr(-1,"server startup",NULL);
+    u8_warn(SecurityAbort,"Couldn't change GID (%d)",runas_gid);
+    exit(1);}
+  if (runas_uid)
+    if (setuid(runas_uid)<0) {
+      u8_graberr(-1,"server startup",NULL);
+      u8_warn(SecurityAbort,"Couldn't change UID to %d",runas_uid);
+      exit(1);}
 }
 
 
@@ -228,6 +283,7 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
 	       ((e->serverexe) ? (e->serverexe) : (fdserver)),
 	       e->control_file,
 	       e->pid);
+    become_runas();
     if (e->serverexe) execv(e->serverexe,e->argv);
     else if (fdserver) execv(fdserver,e->argv);
     else execvp("fdserver",e->argv);}
@@ -301,6 +357,7 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
     /* Go to the directory the file lives in */
     chdir(e->dirname);
     /* Become the server */
+    become_runas();
     execv(fdserver,e->argv);}
   return proc;
 }
@@ -399,6 +456,58 @@ static void timer_proc(int signo)
   alarm(60);
 }
 
+static int dont_be_root()
+{
+  uid_t uid=getuid();
+  gid_t gid=getgid();
+  if ((uid<0) || (gid<0)) {
+    u8_warn(SecurityAbort,"Couldn't determine user or group");
+    exit(2);}
+  if (uid==0) {
+    /* When running as root, change your uid and possibly group */
+    struct passwd *uentry=NULL; struct group *gentry=NULL;
+    if (getenv("FDAEMON_USER"))
+      uentry=getpwnam(getenv("FDAEMON_USER"));
+    if (uentry==NULL) uentry=getpwnam("fdaemon");
+    if (uentry==NULL) uentry=getpwnam("daemon");
+    if (uentry==NULL) uentry=getpwnam("nobody");
+    if (getenv("FDAEMON_GROUP"))
+      gentry=getgrnam(getenv("FDAEMON_GROUP"));
+    if (gentry==NULL) gentry=getgrnam("fdaemon");
+    if (gentry==NULL) gentry=getgrnam("daemon");
+    if (gentry==NULL) gentry=getgrnam("nogroup");
+    if (gentry)
+      if (setgid(gentry->gr_gid)<0) {
+	u8_graberr(-1,"server startup",NULL);
+	u8_warn(SecurityAbort,"Couldn't set GID to %d (%s)",
+		gentry->gr_gid,gentry->gr_name);
+	exit(1);}
+      else u8_warn(SecurityEvent,"Changed GID to %d (%s)",
+		   gentry->gr_gid,gentry->gr_name);
+    else {
+      u8_warn(SecurityAbort,"Couldn't find non-root GID to use");
+      exit(1);}
+    if (uentry)
+      if (setuid(uentry->pw_uid)<0) {
+	u8_graberr(-1,"server startup",NULL);
+	u8_warn(SecurityAbort,"Couldn't set UID to %d (%s)",
+		uentry->pw_uid,uentry->pw_name);
+	exit(1);}
+      else u8_warn(SecurityEvent,"Changed uid to %d (%s)",
+		   uentry->pw_uid,uentry->pw_name);
+    else {
+      u8_warn(SecurityAbort,"Couldn't find non-root UID to use");
+      exit(1);}}
+  else {
+    struct passwd *uentry=getpwuid(uid);
+    struct group *gentry=getgrgid(gid);
+    if ((uentry==NULL) || (gentry==NULL)) {
+      u8_warn(SecurityAbort,"Couldn't determine user or group");
+      exit(2);}
+    u8_warn(SecurityEvent,"Running as user %s (%d) and group %s (%d)",
+	    uentry->pw_name,uentry->pw_uid,gentry->gr_name,gentry->gr_gid);}
+}
+
 int main(int argc,char *argv[])
 {
   FILE *control_file;
@@ -407,6 +516,7 @@ int main(int argc,char *argv[])
   fdserver=getenv("FDSERVER");
   if ((argc < 2) || (argc > 4)) {
     fprintf(stderr,_("Usage: %s\n"),usage); exit(1);}
+  setup_runas();
 #if defined(LOG_PERROR)
   openlog("fdmanager",(LOG_CONS|LOG_PERROR|LOG_PID),LOG_DAEMON);
 #else
@@ -420,6 +530,7 @@ int main(int argc,char *argv[])
   remove(status_file); errno=0;
   /* This is the new value */
   write_pid(pid_file); errno=0;
+  /* Now, stop being root */
   /* Open the control file */
   control_file=fopen(argv[1],"r");
   if (control_file == NULL) {
