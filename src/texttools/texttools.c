@@ -778,15 +778,17 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
 
 static fdtype string_matches(fdtype string,fdtype pattern)
 {
-  if (fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0))
-    return FD_TRUE;
+  int retval=fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0);
+  if (retval<0) return fd_erreify();
+  else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype string_contains(fdtype string,fdtype pattern)
 {
-  if (fd_text_search(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0)<0)
-    return FD_FALSE;
+  int retval=fd_text_search(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0);
+  if (retval<-1) return fd_erreify();
+  else if (retval<0) return FD_FALSE;
   else return FD_TRUE;
 }
 

@@ -378,9 +378,13 @@ fdtype fd_text_domatch
 	      u8_byteoff val=FD_FIX2INT(a);
 	      if (val>max) max=val;}
 	    else {
+	      fdtype err=fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,a);
+	      fd_decref(answer); answer=err;
 	      FD_STOP_DO_CHOICES;
-	      return fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,a);}
-	  fd_decref(answer);}
+	      break;}
+	  if (FD_ABORTP(answer)) {
+	    FD_STOP_DO_CHOICES; return answer;}
+	  else fd_decref(answer);}
 	else {
 	  fd_decref(answer); FD_STOP_DO_CHOICES;
 	  return fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,each);}}
@@ -542,14 +546,19 @@ static fdtype textract
       fdtype extractions=textract(epat,next,env,string,off,lim,flags);
       FD_DO_CHOICES(extraction,extractions)
 	if (FD_ABORTP(extraction)) {
-	  fd_decref(answers);
+	  fd_decref(answers); answers=fd_incref(extraction);
 	  FD_STOP_DO_CHOICES;
-	  return extraction;}
+	  break;}
 	else if (FD_PAIRP(extraction)) {
 	  FD_ADD_TO_CHOICE(answers,fd_incref(extraction));}
 	else {
+	  fd_decref(answers);
+	  answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
 	  FD_STOP_DO_CHOICES;
-	  return fd_err(fd_InternalMatchError,"textract",NULL,extraction);}
+	  break;}
+      if (FD_ABORTP(answers)) {
+	fd_decref(extractions);
+	return answers;}
       fd_decref(extractions);}
     if ((flags&FD_MATCH_BE_GREEDY) &&
 	((FD_CHOICEP(answers)) || (FD_ACHOICEP(answers)))) {
@@ -769,7 +778,8 @@ static fdtype match_star
   if (FD_EMPTY_LISTP(FD_CDR(pat))) {
     u8_byteoff nextpos=((FD_VOIDP(next))?(-1):
 		 (fd_text_search(next,env,string,off,lim,flags)));
-    if (nextpos<0) return FD_INT2DTYPE(lim);
+    if (nextpos==-2) return fd_erreify();
+    else if (nextpos<0) return FD_INT2DTYPE(lim);
     else return FD_INT2DTYPE(nextpos);}
   else {
     fdtype pat_arg=fd_get_arg(pat,1);
@@ -790,7 +800,8 @@ static fdtype extract_star
     u8_byteoff nextpos=
       ((FD_VOIDP(next)) ? (-1) :
        (fd_text_search(next,env,string,off,lim,flags)));
-    if (next<0)
+    if (nextpos==-2) return fd_erreify();
+    else if (next<0)
       return fd_init_pair(NULL,FD_INT2DTYPE(nextpos),
 			  fd_extract_string(NULL,string+off,string+lim));
     else return fd_init_pair
@@ -2784,7 +2795,8 @@ u8_byteoff fd_text_search
 	fd_decref(m); return start;}
       else start=fd_text_search
 	     (initial,env,string,forward_char(string,start),lim,flags);}
-    if (start<lim) return start;
+    if (start==-2) return start;
+    else if (start<lim) return start;
     else return -1;}
   else if (FD_CHARACTERP(pat)) {
     u8_unichar c=FD_CHAR2CODE(pat);
