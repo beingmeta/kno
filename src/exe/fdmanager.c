@@ -2,6 +2,9 @@
 
 /* fdmananger: a program for running a set of inferior fdservers */
     
+static char versionid[] =
+  "$Id:$";
+
 #include "fdb/dtype.h"
 
 #include <libu8/filefns.h>
@@ -30,6 +33,7 @@
 #endif
 
 #define STRPTR(x) ((x == NULL) ? "??" : (x))
+
 
 static char *usage=_("fdmanager <control file> [pid file] [status file]");
 static char *give_up_message=
