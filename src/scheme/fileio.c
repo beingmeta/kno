@@ -1021,7 +1021,7 @@ FD_EXPORT void fd_init_fileio_c()
 			   fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
-	   fd_make_cprim1x("GETFILES",getfiles_prim,1,
+	   fd_make_cprim2x("GETFILES",getfiles_prim,1,
 			   fd_string_type,FD_VOID,-1,FD_TRUE));
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("GETDIRS",getdirs_prim,1,
