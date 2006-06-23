@@ -385,10 +385,11 @@ static fdtype setcwd_prim(fdtype dirname)
 
 /* Directory listings */
 
-static fdtype getfiles_prim(fdtype dirname)
+static fdtype getfiles_prim(fdtype dirname,fdtype fullpath)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  u8_string *contents=u8_getfiles(FD_STRDATA(dirname)), *scan=contents;
+  u8_string *contents=
+    u8_getfiles(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
   while (*scan) {
     fdtype string=fd_init_string(NULL,-1,*scan);
     FD_ADD_TO_CHOICE(results,string);
@@ -397,10 +398,11 @@ static fdtype getfiles_prim(fdtype dirname)
   return results;
 }
 
-static fdtype getdirs_prim(fdtype dirname)
+static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  u8_string *contents=u8_getdirs(FD_STRDATA(dirname)), *scan=contents;
+  u8_string *contents=
+    u8_getdirs(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
   while (*scan) {
     fdtype string=fd_init_string(NULL,-1,*scan);
     FD_ADD_TO_CHOICE(results,string);
@@ -1020,10 +1022,10 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("GETFILES",getfiles_prim,1,
-			   fd_string_type,FD_VOID));
+			   fd_string_type,FD_VOID,-1,FD_TRUE));
   fd_idefn(fileio_module,
-	   fd_make_cprim1x("GETDIRS",getdirs_prim,1,
-			   fd_string_type,FD_VOID));
+	   fd_make_cprim2x("GETDIRS",getdirs_prim,1,
+			   fd_string_type,FD_VOID,-1,FD_TRUE));
 
   fd_idefn(fileio_module,fd_make_cprim0("GETCWD",getcwd_prim,0));
   fd_idefn(fileio_module,
