@@ -411,8 +411,6 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
 	result=fd_passerr(result,fd_incref(expr));
       fd_decref(headval);
       return result;}}
-  case fd_qchoice_type:
-    return fd_incref((FD_XQCHOICE(expr))->choice);
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   default:
@@ -424,7 +422,7 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
   fdtype result=FD_VOID;
   struct FD_FUNCTION *fcn=(struct FD_FUNCTION *)fn;
   fdtype argv[FD_STACK_ARGS], *args;
-  int arg_count=0, n_args=0, args_need_gc=0, nd_args=0, qchoicep=0, prune=0;
+  int arg_count=0, n_args=0, args_need_gc=0, nd_args=0, prune=0;
   int max_arity=fcn->arity, min_arity=fcn->min_arity, args_length=max_arity;
   /* First, count the arguments */
   FD_DOLIST(elt,FD_CDR(expr)) n_args++;
@@ -458,8 +456,8 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
     argval=fd_simplify_choice(argval);
     if (FD_CONSP(argval)) args_need_gc=1;
     /* Keep track of what kind of evaluation you might need to do. */
-    if (FD_QCHOICEP(argval)) qchoicep=1;
     if (FD_CHOICEP(argval)) nd_args=1;
+    if (FD_QCHOICEP(argval)) nd_args=1; /* QCHOICES get thawed */
     /* Fill in the slot */
     args[arg_count++]=argval;}}
   if ((prune) || (FD_ABORTP(result))) {
@@ -483,13 +481,6 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
   if ((fcn->ndprim==0) && (nd_args))
     result=fd_ndapply(fcn,args_length,args);
   else {
-    if (qchoicep) {
-      int i=0; while (i<args_length) {
-	if (FD_EXPECT_FALSE(FD_QCHOICEP(args[i]))) {
-	  fdtype raw_choice=FD_XQCHOICE(args[i])->choice;
-	  fd_incref(raw_choice); fd_decref(args[i]);
-	  args[i++]=raw_choice;}
-	else i++;}}
     result=fd_dapply(fcn,args_length,args);}
   if ((FD_ABORTP(result)) && (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
     /* If it's not an sproc, we add an entry to the backtrace
@@ -1142,16 +1133,22 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 	    fdtype last=scan=insertion;
 	    while (FD_PAIRP(scan)) {last=scan; scan=FD_CDR(scan);}
 	    if (!(FD_PAIRP(last))) {
-	      fd_decref(head);
-	      return fd_err(fd_SyntaxError,
-			    "splicing UNQUOTE for an improper list",
-			    NULL,elt);}
+	      u8_string details_string=u8_mkstring("RESULT=%q",elt);
+	      fdtype err; 
+	      err=fd_err(fd_SyntaxError,
+			 "splicing UNQUOTE for an improper list",
+			 details_string,insertion);
+	      fd_decref(head); u8_free(details_string);
+	      return err;}
 	    else {*tail=insertion; tail=&(FD_CDR(last));}}
 	  else {
-	    fd_decref(head);
-	    return fd_err(fd_SyntaxError,
-			  "splicing UNQUOTE for an improper list",
-			  NULL,elt);}
+	    u8_string details_string=u8_mkstring("RESULT=%q",elt);
+	    fdtype err; 
+	    err=fd_err(fd_SyntaxError,
+		       "splicing UNQUOTE for an improper list",
+		       details_string,insertion);
+	    fd_decref(head); u8_free(details_string);
+	    return err;}
 	  obj=FD_CDR(obj);
 	  continue;}
 	else new_elt=
