@@ -19,22 +19,22 @@
 (applytest (choice 20 21 22 23 24 25 26 27 28 29) intersection
 	   (nrange 0 30) (nrange 20 40))
 
-(applytest (qc 0 1 2 3 4 10 11 12 13 14) union (nrange 0 5) (nrange 10 15))
+(applytest (choice 0 1 2 3 4 10 11 12 13 14) union (nrange 0 5) (nrange 10 15))
 
 (evaltest 500 (choice-size (difference (nrange 200 800) (nrange 0 300))))
-(applytest (qc 0 1 4 5 6 7 8 9) difference (nrange 0 10) (nrange 2 4))
+(applytest (choice 0 1 4 5 6 7 8 9) difference (nrange 0 10) (nrange 2 4))
 
 (define (pairup x) (cons x x))
 
 (evaltest 10 (choice-size (pairup (nrange 0 10))))
-(applytest '#{(0 . 0) (1 . 1) (2 . 2) (3 . 3) (4 . 4)}
+(applytest '{(0 . 0) (1 . 1) (2 . 2) (3 . 3) (4 . 4)}
 	   pairup (nrange 0 5))
 
 (let ((bigrange (nrange 1000 2000)))
   (evaltest 1000 (choice-size bigrange)))
 
 (evaltest 19 (choice-size (nrange 0 (nrange 0 20))))
-(applytest #{0 1 2 3} nrange 0 (nrange 0 5))
+(applytest {0 1 2 3} nrange 0 (nrange 0 5))
 
 (evaltest 6 (choice-size (elts (elts '((a b c) (d e f) (a b c))))))
 (applytest '{a b c d e f}
@@ -93,11 +93,11 @@
 (evaltest 250 (length state-list-var))
 (evaltest 200 (choice-size state-set-var))
 
-(evaltest #{0 2 4 6 8 10 12 14 16 18}
+(evaltest {0 2 4 6 8 10 12 14 16 18}
 	 (filter-choices (v (nrange 0 20)) (even? v)))
-(evaltest #{0 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38}
+(evaltest {0 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38}
 	 (for-choices (v (nrange 0 20)) (* 2 v)))
-(evaltest #{4 6 8 9 12 16} (let ((x (choice 2 3 4))) (* x x)))
+(evaltest {4 6 8 9 12 16} (let ((x (choice 2 3 4))) (* x x)))
 
 ;;; Subset tests
 
