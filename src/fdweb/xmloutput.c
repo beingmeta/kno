@@ -39,7 +39,7 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
 */
 
 static fdtype xmloidfn_symbol, obj_name, id_symbol;
-static fdtype href_symbol, class_symbol;
+static fdtype href_symbol, class_symbol, raw_name_symbol;
 
 /* Utility output functions */
 
@@ -270,7 +270,7 @@ static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
 /* XMLOUTPUT primitives */
 
 static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
-			 fdtype xmloidfn)
+			 fdtype xmloidfn,fd_lispenv env)
 {
   if (FD_EXCEPTIONP(x)) return 0;
   else if (FD_VOIDP(x)) return 1;
@@ -281,6 +281,9 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
     fd_decref(result);}
   else if (FD_OIDP(x)) 
     fd_xmloid(out,x);
+  else if ((FD_SLOTMAPP(x)) &&
+	   (fd_test(x,raw_name_symbol,FD_VOID)))
+    fd_xmleval(out,x,env);
   else {
     U8_OUTPUT _out; u8_byte buf[128];
     if (tmp==NULL) {
@@ -304,7 +307,8 @@ static fdtype xmlout(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn);
       return value;}
-    else if (xmlout_helper(out,&tmpout,value,xmloidfn)) fd_decref(value);
+    else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
+      fd_decref(value);
     else return value;
     body=FD_CDR(body);}
   u8_flush(out);
@@ -318,7 +322,7 @@ FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lispenv env)
   int retval=-1;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
   if (out==NULL) out=fd_get_default_output();
-  retval=xmlout_helper(out,NULL,x,xmloidfn);
+  retval=xmlout_helper(out,NULL,x,xmloidfn,env);
   fd_decref(xmloidfn);
   return retval;
 }
@@ -427,7 +431,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
       fd_decref(xmloidfn);
       close_markup(out,tagname);
       return value;}
-    else if (xmlout_helper(out,&tmpout,value,xmloidfn))
+    else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
       fd_decref(value);
     else {
       fd_decref(xmloidfn);
@@ -470,7 +474,7 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
 	if (block) u8_printf(out,"\n");
 	fd_decref(xmloidfn);
 	return value;}
-      else if (xmlout_helper(out,&tmpout,value,xmloidfn))
+      else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
 	fd_decref(value);
       else {
 	fd_decref(xmloidfn);
@@ -736,7 +740,8 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn);
       return value;}
-    else if (xmlout_helper(out,&tmpout,value,xmloidfn)) fd_decref(value);
+    else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
+      fd_decref(value);
     else {
       fd_decref(xmloidfn);
       return value;}
@@ -814,7 +819,8 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn);
       return value;}
-    else if (xmlout_helper(out,&tmpout,value,xmloidfn)) fd_decref(value);
+    else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
+      fd_decref(value);
     else {
       fd_decref(xmloidfn);
       return value;}
@@ -845,7 +851,7 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
     if (FD_EMPTY_CHOICEP(name))
       u8_printf(out,"%q",arg);
     else if (FD_VOIDP(name)) {}
-    else xmlout_helper(out,NULL,name,FD_VOID);
+    else xmlout_helper(out,NULL,name,FD_VOID,NULL);
     fd_decref(name);
     u8_printf(out,"</a>");}
   else {
@@ -856,7 +862,7 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
       u8_printf(out,"%q",arg);
     else if (FD_EMPTY_CHOICEP(name))
       u8_printf(out,"%q",arg);
-    else xmlout_helper(out,NULL,name,FD_VOID);
+    else xmlout_helper(out,NULL,name,FD_VOID,NULL);
     fd_decref(name);
     u8_printf(out,"</a>");}
 }
@@ -1018,7 +1024,7 @@ static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
 	 (fd_get(tbl,key,FD_EMPTY_CHOICE)));
       fdtype values=fd_simplify_choice(_value);
       u8_printf(out,"  <tr><th>");
-      xmlout_helper(out,NULL,key,xmloidfn);
+      xmlout_helper(out,NULL,key,xmloidfn,NULL);
       if (FD_EMPTY_CHOICEP(values))
 	u8_printf(out,"</th>\n    <td class='novalues'>No values</td></tr>\n");
       else if (FD_CHOICEP(values)) {
@@ -1029,12 +1035,12 @@ static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
 	    first_item=0;}
 	  else
 	    u8_puts(out,"        <div class='value'>");
-	  xmlout_helper(out,NULL,value,xmloidfn);
+	  xmlout_helper(out,NULL,value,xmloidfn,NULL);
 	  u8_puts(out,"</div> \n");}
 	u8_printf(out,"    </td></tr>\n");}
       else {
 	u8_printf(out,"</th>\n      <td class='singlevalue'>");
-	xmlout_helper(out,NULL,values,xmloidfn);
+	xmlout_helper(out,NULL,values,xmloidfn,NULL);
 	u8_printf(out,"</td></tr>\n");}}}
   u8_printf(out,"</table>\n");
 }
@@ -1294,6 +1300,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   href_symbol=fd_intern("HREF");
   class_symbol=fd_intern("CLASS");
   obj_name=fd_intern("OBJ-NAME");
+  raw_name_symbol=fd_intern("%%NAME");
 }
 
 static int fdweb_init_done=0;
