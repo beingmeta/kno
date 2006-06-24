@@ -539,6 +539,22 @@ static fdtype simplify(fdtype x)
   return fd_make_simple_choice(x);
 }
 
+static fdtype qchoicep_handler(fdtype expr,fd_lispenv env)
+{
+  /* This is a special form because application often reduces
+     qchoices to choices. */
+  if (!((FD_PAIRP(expr)) && (FD_PAIRP(FD_CDR(expr)))))
+    return fd_err(fd_SyntaxError,"qchoice_handler",NULL,expr);
+  else {
+    fdtype val=fd_eval(FD_CADR(expr),env);
+    if (FD_QCHOICEP(val)) {
+      fd_decref(val);
+      return FD_TRUE;}
+    else {
+      fd_decref(val);
+      return FD_FALSE;}}
+}
+
 /* The exists operation */
 
 static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
@@ -1008,6 +1024,8 @@ FD_EXPORT void fd_init_choicefns_c()
       fd_make_ndprim(fd_make_cprim1("UNIQUE?",singletonp,1));
     fd_idefn(fd_scheme_module,unique_prim);
     fd_store(fd_scheme_module,fd_intern("SINGLETON?"),unique_prim);}
+
+  fd_defspecial(fd_scheme_module,"QCHOICE?",qchoicep_handler);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("AMBIGUOUS?",ambiguousp,1)));
