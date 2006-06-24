@@ -467,7 +467,6 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
 	fd_make_vector(3,fdtype_string(name),
 		       fd_incref(qid),
 		       fdtype_string(val));
-
       fd_add(xml->attribs,raw_attribs_symbol,rawentry);
       fd_decref(rawentry);}
     fd_decref(qentry); fd_decref(slotval);}
@@ -527,7 +526,10 @@ static FD_XML *autoclose(FD_XML *node,u8_string name,
       FD_XML *freescan=node, *retval, *next;
       while (freescan) {
 	if (freescan==scan) break;
-	else if ((retval=popfn(freescan))!=freescan->parent)
+	if (node->bits&FD_XML_KEEP_RAW)
+	  fd_add(scan->attribs,raw_name_symbol,
+		 fdtype_string(scan->eltname));
+	if ((retval=popfn(freescan))!=freescan->parent)
 	  return retval;
 	next=freescan->parent;
 	free_node(freescan,1);
