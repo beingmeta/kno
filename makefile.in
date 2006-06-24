@@ -18,6 +18,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 CONFDIR		= @data_dir@
+APXS		= @APXS@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
@@ -28,7 +29,6 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 		  $(CC) -dynamiclib -single_module \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
-APXS		= @APXS@
 #FDGMP		= lib/libfdgmp.a 
 BUILD		= `pwd`
 
@@ -387,11 +387,20 @@ setup-osx: @data_dir@
 # The mod_fdserv module
 
 etc/mod_fdserv.so: etc/mod_fdserv.c
-	cd etc; $(APXS) -c mod_fdserv.c
+	cd etc; ${APXS} -c mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
+
 install-fdserv: etc/mod_fdserv.so
-	cd etc; $(APXS) -i -a -c mod_fdserv.c
+	cd etc; ${APXS} -i -c mod_fdserv.c
+	if test -d @apache_conf_dir@/mods-available; \
+	   then ${INSTALL} @install_file_opts@ \
+		etc/fdserv.conf etc/fdserv.load \
+		@apache_conf_dir@/mods-available; \
+	fi
+
+activate-fdserv: etc/mod_fdserv.so
+	cd etc; ${APXS} -i -a -c mod_fdserv.c
 
 # Dependency information
 

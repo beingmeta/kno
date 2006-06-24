@@ -30,6 +30,9 @@ SHARED_LIB_TARGET=shared-libs
 VERSION=3
 I18N=""
 INSTALLI18N=""
+apache_modules_dir="/usr/lib/apache2/modules"
+apache_conf_dir="/etc/apache2"
+A2EN="none"
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -51,6 +54,8 @@ AC_SUBST(data_dir)
 AC_SUBST(module_dir)
 AC_SUBST(safe_module_dir)
 AC_SUBST(config_dir)
+AC_SUBST(apache_modules_dir)
+AC_SUBST(apache_conf_dir)
 
 AC_SUBST(DREENTRANT)
 AC_SUBST(SHARED_LIB_TARGET)
@@ -63,7 +68,6 @@ AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
-AC_SUBST(APXS)
 
 AC_CANONICAL_HOST
 AC_PROG_CC
@@ -72,6 +76,9 @@ AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs apxs2)
 AC_AIX
+
+apache_conf_dir=`$APXS -q SYSCONFDIR`
+apache_modules_dir=`$APXS -q LIBEXECDIR`
 
 if test $doi18n = "yes"; then
   I18N="i18n"
@@ -429,7 +436,8 @@ AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 AC_OUTPUT(makefile 
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
-	  etc/OSXStartupItem/FramerD)
+	  etc/OSXStartupItem/FramerD
+	  etc/fdserv.conf etc/fdserv.load etc/install-fdserv)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 
