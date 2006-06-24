@@ -589,7 +589,7 @@ struct FD_XML *fd_read_fdxml(u8_input in,int bits)
   else return retval;
 }
 
-static fdtype parsefdxml(fdtype input)
+static fdtype parsefdxml(fdtype input,fdtype sloppy)
 {
   int flags=FD_XML_KEEP_RAW;
   struct FD_XML *retval;
@@ -605,6 +605,8 @@ static fdtype parsefdxml(fdtype input)
     U8_INIT_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
+  if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
+    flags=flags|FD_SLOPPY_XML;
   retval=fd_read_fdxml(in,flags);
   if (retval) {
     fdtype result=fd_incref(retval->head);
@@ -1075,7 +1077,7 @@ FD_EXPORT void fd_init_xmleval_c()
   fd_init_fdscheme();
   fdxml_module=fd_make_env(fd_make_hashtable(NULL,17,NULL),NULL);
   module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
-  fd_idefn(module,fd_make_cprim1("PARSE-FDXML",parsefdxml,1));
+  fd_idefn(module,fd_make_cprim2("PARSE-FDXML",parsefdxml,1));
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);
