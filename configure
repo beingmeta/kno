@@ -3667,7 +3667,7 @@ trap 'rm -fr `echo "makefile
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD
-	  etc/fdserv.conf etc/fdserv.load etc/install-fdserv include/fdb/config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+	  etc/fdserv.conf etc/fdserv.load include/fdb/config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -3786,7 +3786,7 @@ CONFIG_FILES=\${CONFIG_FILES-"makefile
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD
-	  etc/fdserv.conf etc/fdserv.load etc/install-fdserv"}
+	  etc/fdserv.conf etc/fdserv.load"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then

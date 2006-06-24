@@ -437,7 +437,7 @@ AC_OUTPUT(makefile
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD
-	  etc/fdserv.conf etc/fdserv.load etc/install-fdserv)
+	  etc/fdserv.conf etc/fdserv.load)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 
