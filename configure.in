@@ -6,8 +6,9 @@ tls_default="no"
 global_ipeval_default="no"
 enable_fdweb_default="no"
 enable_texttools_default="no"
-install_file_opts=""
-install_exe_opts=""
+install_dir_opts="-d -m 0775"
+install_file_opts="-m 0664"
+install_exe_opts="-m 0775"
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
@@ -34,6 +35,7 @@ AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
 AC_PREFIX_DEFAULT(/usr/local)
 
+AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
 AC_SUBST(shared_suffix)
@@ -396,8 +398,9 @@ dnl Specifies a framerd group; files written by installation scripts will
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(framerd_group,--with[out]-framerd-group Install files with framerd group and group write permissions,,with_framerd_group="none")
 if test $with_framerd_group != "none"; then
-  install_file_opts="--group=$with_framerd_group --mode=0664"
-  install_exe_opts="--group=$with_framerd_group --mode=0775"
+  install_dir_opts="-g $with_framerd_group $install_dir_opts"
+  install_file_opts="-g $with_framerd_group $install_file_opts"
+  install_exe_opts="-g $with_framerd_group $install_exe_opts"
 fi
 
 dnl Enables the retrieval of config information from the filesystem.
@@ -425,7 +428,8 @@ AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
 AC_OUTPUT(makefile 
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
-	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d)
+	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
+	  etc/OSXStartupItem/FramerD)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 
