@@ -1,0 +1,18 @@
+DATADIR=$1
+INSTALL_DIR=$2
+INSTALL_EXE=$3
+INSTALL_FILE=$4
+LIBRARY=${5:-/Library}
+ETC=${6:-/etc}
+if test -d ${LIBRARY}/StartupItems -a -f ${ETC}/hostconfig;  
+   then ${INSTALL_DIR} /Library/StartupItems/FramerD;
+	${INSTALL_EXE} etc/OSXStartupItem/FramerD \
+		       ${LIBRARY}/StartupItems/FramerD;             
+	${INSTALL_FILE} etc/OSXStartupItem/StartupParameters.plist \
+		        ${LIBRARY}/StartupItems/FramerD;
+	if grep "^FRAMERD=" ${ETC}/hostconfig;                  
+	   then echo "Not overriding existing FRAMERD hostconfig";
+	   else echo "FRAMERD:-YES-" >> ${ETC}/hostconfig;
+	   	echo "Added FRAMERD:-YES- to ${ETC}/hostconfig;"
+	fi;
+	else echo "Can't find OS X config structure"; fi

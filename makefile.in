@@ -353,20 +353,19 @@ install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 install-scripts: install-shell-scripts
 install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
-install-rc.d:
-	$(INSTALL) --mode=0555 etc/framerd-rc.d /etc/init.d/framerd
 
 $(INCINSTALLDIR):
-	install -d $(INCINSTALLDIR)
+	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
-	install -d $(BININSTALLDIR)
+	$(INSTALL) @install_dir_opts@ $(BININSTALLDIR)
 
 # Setup targets
 
 confdirs: @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@
 
 @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@:
-	$(INSTALL) @install_file_opts@ -d $@
+	$(INSTALL) @install_dir_opts@ $@
+	touch @data_dir@/servers
 link-modules: $(CONFDIR)/scm
 	ln -sf $BUILD/etc/*.el $(CONFDIR)/etc
 	ln -sf $BUILD/src/modules/*.scm @module_dir@
@@ -375,6 +374,15 @@ copy-modules: $(CONFDIR)/scm
 	cp -pf `pwd`/etc/*.el $(CONFDIR)/etc
 	cp -pf src/modules/*.scm @module_dir@
 	cp -rf src/fdweb/xhtml @module_dir@
+
+setup-rc.d:
+	$(INSTALL) --mode=0555 etc/framerd-rc.d /etc/init.d/framerd
+setup-osx: @data_dir@
+	etc/setup-osx "@data_dir@" \
+		"${INSTALL} @install_dir_opts@" \
+		"${INSTALL} @install_exe_opts@" \
+		"${INSTALL} @install_exe_opts@" \
+		/Library /etc
 
 # The mod_fdserv module
 
