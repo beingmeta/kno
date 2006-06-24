@@ -1,4 +1,4 @@
 <IfModule mod_fdserv.c>
         AddHandler fdservlet .fdcgi .fdxml
-	FDServletExecutable /usr/bin/fdservlet
+	FDServletExecutable @prefix@/bin/fdserv
 </IfModule>

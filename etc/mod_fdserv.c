@@ -445,7 +445,7 @@ static const char *get_sockname(request_rec *r,const char *spec)
     else {
       const char *prefix=
 	((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
-	 (sconfig->socket_prefix) ? (sconfig->socket_prefix) : "/tmp/fdserv");
+	 (sconfig->socket_prefix) ? (sconfig->socket_prefix) : "/tmp/fdserv::");
       char buf[PATH_MAX], *write=buf, *read=(char *)spec;
       strcpy(buf,prefix); write=buf+strlen(prefix);
       while (*read)
@@ -526,7 +526,7 @@ static void spawn_fdservlet
   info.exename=(char *)
     ((dconfig->server_executable) ? (dconfig->server_executable) :
      (sconfig->server_executable) ? (sconfig->server_executable) :
-     "/usr/bin/fdservlet");
+     "/usr/bin/fdserv");
   info.filename=(char *)r->filename;
   info.sockname=(char *)sockname;
   info.logfile=(char *)(dconfig->log_file);

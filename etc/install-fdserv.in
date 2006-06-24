@@ -1,0 +1,7 @@
+if test -d @apache_conf_dir@/mods_available;
+then @INSTALL@ @install_file_opts@ mod_fdserv.so @apache_modules_dir@;
+     @INSTALL@ @install_file_opts@ fdserv.conf fdserv.load \
+               @apache_conf_dir@/mods_available;
+else @APXS@ -i mod_fdserv.so;
+fi
+
