@@ -218,6 +218,22 @@ static fdtype string_stdstring(fdtype string)
   else return fd_type_error("string","string_stdstring",string);
 }
 
+static fdtype string_basestring(fdtype string)
+{
+  if (FD_STRINGP(string)) {
+    u8_byte *scan=FD_STRDATA(string); int c, white=1;
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,64);
+    while ((c=u8_sgetc(&scan))>=0) {
+      int bc=u8_base_char(c);
+      u8_sputc(&out,bc);}
+    if (out.point==out.bytes) {
+      u8_free(out.bytes);
+      return fdtype_string("");}
+    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+  else return fd_type_error("string","string_stdstring",string);
+}
+
 /* String comparison */
 
 static int string_compare(u8_string s1,u8_string s2)
@@ -668,6 +684,9 @@ FD_EXPORT void fd_init_strings_c()
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("STDSTRING",string_stdstring,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("BASESTRING",string_basestring,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("TRIGRAMS",string_trigrams,1,
