@@ -367,9 +367,9 @@ confdirs: @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@
 	$(INSTALL) @install_dir_opts@ $@
 	touch @data_dir@/servers
 link-modules: $(CONFDIR)/scm
-	ln -sf $BUILD/etc/*.el $(CONFDIR)/etc
-	ln -sf $BUILD/src/modules/*.scm @module_dir@
-	ln -sf $BUILD/src/fdweb/xhtml @module_dir@
+	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
+	ln -sf $(BUILD)/src/modules/*.scm @module_dir@
+	ln -sf $(BUILD)/src/fdweb/xhtml @module_dir@
 copy-modules: $(CONFDIR)/scm
 	cp -pf `pwd`/etc/*.el $(CONFDIR)/etc
 	cp -pf src/modules/*.scm @module_dir@
