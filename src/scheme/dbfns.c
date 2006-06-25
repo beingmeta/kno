@@ -370,9 +370,10 @@ static fdtype swapout_lexpr(int n,fdtype *args)
 static fdtype commit_lexpr(int n,fdtype *args)
 {
   if (n == 0) {
-    /* This may be the wrong thing. */
-    fd_commit_indices_noerr();
-    fd_commit_pools_noerr();
+    if (fd_commit_indices()<0)
+      return fd_erreify();
+    if (fd_commit_pools()<0)
+      return fd_erreify();
     return FD_VOID;}
   else if (n == 1) {
     fdtype arg=args[0]; int retval=0;

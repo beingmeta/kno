@@ -667,6 +667,7 @@ FD_EXPORT int fd_commit_indices_noerr()
     if (retval<0) {
       u8_warn("INDEX_COMMIT_FAIL","Error committing %s",
 	      fd_primary_indices[i]->cid);
+      fd_clear_errors(1);
       count=-1;}
     if (count>=0) count=count+retval;
     i++;}
@@ -675,6 +676,7 @@ FD_EXPORT int fd_commit_indices_noerr()
     if (retval<0) {
       u8_warn("INDEX_COMMIT_FAIL","Error committing %s",
 	      fd_secondary_indices[i]->cid);
+      fd_clear_errors(1);
       count=-1;}
     if (count>=0) count=count+retval;
     i++;}
