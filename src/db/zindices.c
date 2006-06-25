@@ -866,7 +866,7 @@ static int fetch_keydata(struct FD_ZINDEX *fx,struct KEYDATA *kdata,int n)
       if (koff) {
 	/* We found a full slot, queue it for examination. */
 	kdata[i].slotno=probe; kdata[i].chain_width=chain_width;
-	kdata[i].pos=offget(offsets,probe)+pos_offset;}
+	kdata[i].pos=koff+pos_offset;}
       else {
 	/* We have an empty slot we can fill */
 	set_offset(offsets,probe,1); new_keys++; /* Fill it */

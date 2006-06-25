@@ -152,10 +152,10 @@ static fdtype fileindex_fetch(fd_index ix,fdtype key)
 	  off_t next_pos=val_start;
 	  while (next_pos) {
 	    fdtype v;
-	    if (next_pos>1) fd_setpos(stream,next_pos+pos_offset);
-	    if (FD_EXPECT_FALSE(i>n_vals))
+	    if (FD_EXPECT_FALSE(i>=n_vals))
 	      u8_raise(_("inconsistent file index"),
 		       "fileindex_fetch",u8_strdup(ix->cid));
+	    if (next_pos>1) fd_setpos(stream,next_pos+pos_offset);
 	    v=fd_dtsread_dtype(stream);
 	    if ((atomicp) && (FD_CONSP(v))) atomicp=0;
 	    values[i++]=v;
@@ -597,7 +597,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n)
       if (koff) {
 	/* We found a full slot, queue it for examination. */
 	kdata[i].slotno=probe; kdata[i].chain_width=chain_width;
-	kdata[i].pos=offget(offsets,probe)+pos_offset;}
+	kdata[i].pos=koff+pos_offset;}
       else {
 	/* We have an empty slot we can fill */
 	set_offset(offsets,probe,1); new_keys++; /* Fill it */
@@ -618,13 +618,15 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n)
   /* Now, collect keydata */
   while (max>0) {
     /* Sort by filepos for more coherent and hopefully faster disk access.
-       We use a negative chain width to indicate that we're done with the entry. */
+       We use a negative chain width to indicate that we're done with the
+       entry. */
     qsort(kdata,max,sizeof(struct KEYDATA),sort_keydata);
     i=0; while (i<max) {
       if (kdata[i].chain_width<0) break;
       fd_setpos(stream,kdata[i].pos);
       if (kdata[i].slotno<0) { /* fetching offset */
-	unsigned int off=fd_dtsread_4bytes(stream), slotno=(-(kdata[i].slotno)-1);
+	unsigned int off=fd_dtsread_4bytes(stream);
+	unsigned int slotno=(-(kdata[i].slotno)-1);
 	if (off) {
 	  kdata[i].slotno=slotno;
 	  kdata[i].pos=off+SLOTSIZE*(fx->n_slots);}
@@ -880,7 +882,7 @@ static int fileindex_commit(struct FD_INDEX *ix)
 	  n++; kvscan++;}
 	scan++;}
       else scan++;
-    /* add_index is the point were key entries for simple additions and and
+    /* add_index is the point were key entries for simple additions end and
        key entries for edits begin. */
     add_index=n;
     n=n+commit_edits(fx,kdata+n);
