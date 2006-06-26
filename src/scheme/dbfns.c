@@ -444,16 +444,34 @@ static fdtype pool_base(fdtype arg)
   else return fd_make_oid(p->base);
 }
 
-static fdtype pool_elts(fdtype arg)
+static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
 {
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
-    int i=0, lim=fd_pool_load(p); fdtype result=FD_EMPTY_CHOICE;
+    int i=0, lim=fd_pool_load(p);
+    fdtype result=FD_EMPTY_CHOICE;
     FD_OID base=p->base, scan=base;
     if (lim<0) return fd_erreify();
-    else while (i<lim) {
+    if (FD_VOIDP(start)) {}
+    else if (FD_FIXNUMP(start))
+      if (FD_FIX2INT(start)<0)
+	return fd_type_error(_("pool offset"),"pool_elts",start);
+      else i=FD_FIX2INT(start);
+    else if (FD_OIDP(start)) i=FD_OID_DIFFERENCE(FD_OID_ADDR(start),base);
+    else return fd_type_error(_("pool offset"),"pool_elts",start);
+    if (FD_VOIDP(count)) {}
+    else if (FD_FIXNUMP(count)) {
+      int count_arg=FD_FIX2INT(count);
+      if (count_arg<0)
+	return fd_type_error(_("pool offset"),"pool_elts",count);
+      else if (i+count_arg<lim) lim=i+count_arg;}
+    else if (FD_OIDP(start)) {
+      int lim_arg=FD_OID_DIFFERENCE(FD_OID_ADDR(count),base);
+      if (lim_arg<lim) lim=lim_arg;}
+    else return fd_type_error(_("pool offset"),"pool_elts",count);
+    while (i<lim) {
       fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
       FD_ADD_TO_CHOICE(result,each); i++;}
     return result;}
@@ -1349,7 +1367,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-BASE",pool_base,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-CAPACITY",pool_capacity,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-LOAD",pool_load,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-ELTS",pool_elts,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("POOL-ELTS",pool_elts,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("OID-RANGE",oid_range,2,
 			   fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID));
