@@ -314,6 +314,13 @@ static fdtype file_writablep(fdtype arg)
   else return FD_FALSE;
 }
 
+static fdtype file_directoryp(fdtype arg)
+{
+  if (u8_directoryp(FD_STRDATA(arg)))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype file_basename(fdtype arg)
 {
   return fd_init_string(NULL,-1,u8_basename(FD_STRDATA(arg),NULL));
@@ -322,6 +329,25 @@ static fdtype file_basename(fdtype arg)
 static fdtype file_dirname(fdtype arg)
 {
   return fd_init_string(NULL,-1,u8_dirname(FD_STRDATA(arg)));
+}
+
+static fdtype mkpath_prim(fdtype dirname,fdtype name)
+{
+  if (FD_SYMBOLP(dirname)) {
+    fdtype config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
+    if (FD_STRINGP(config_val)) {
+      u8_string path=u8_mkpath(FD_STRDATA(config_val),FD_STRDATA(name));
+      fd_decref(config_val);
+      return fd_init_string(NULL,-1,path);}
+    else {
+      fd_decref(config_val); 
+      return fd_type_error
+	(_("pathname or path CONFIG"),"mkpath_prim",dirname);}}
+  else if (FD_STRINGP(dirname))
+    return fd_init_string
+      (NULL,-1,u8_mkpath(FD_STRDATA(dirname),FD_STRDATA(name)));
+  else return fd_type_error
+	 (_("pathname or path CONFIG"),"mkpath_prim",dirname);
 }
 
 /* File time info */
@@ -998,11 +1024,18 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("FILE-WRITABLE?",file_writablep,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
+	   fd_make_cprim1x("FILE-DIRECTORY?",file_directoryp,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
 	   fd_make_cprim1x("DIRNAME",file_dirname,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("BASENAME",file_basename,1,
 			   fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("MKPATH",mkpath_prim,2,
+			   -1,FD_VOID,fd_string_type,FD_VOID));
+
 
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("FILE-MODTIME",file_modtime,1,
