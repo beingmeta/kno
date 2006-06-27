@@ -163,7 +163,7 @@ struct POOL_FETCH_SCHEDULE {
 static int compare_filepos(const void *x1,const void *x2)
 {
   const struct POOL_FETCH_SCHEDULE *s1=x1, *s2=x2;
-  if (s1->filepos>s2->filepos) return -1;
+  if (s1->filepos<s2->filepos) return -1;
   else if (s1->filepos<s2->filepos) return 1;
   else return 0;
 }
