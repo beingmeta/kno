@@ -75,7 +75,9 @@ typedef struct FD_INDEX_OPENER *fd_index_opener;
 
 #define FD_FILE_INDEX_MAGIC_NUMBER 151913496
 #define FD_MULT_FILE_INDEX_MAGIC_NUMBER 151913497
+#define FD_MULT_FILE3_INDEX_MAGIC_NUMBER 151913498
 #define FD_ZINDEX_MAGIC_NUMBER 437126168
+#define FD_ZINDEX3_MAGIC_NUMBER 437126169
 
 typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;
@@ -98,6 +100,7 @@ FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int,fdtype metadata);
 
 unsigned int fd_hash_dtype1(fdtype x);
 unsigned int fd_hash_dtype2(fdtype x);
+unsigned int fd_hash_dtype3(fdtype x);
 
 #endif /* #ifndef FDB_DBFILE_H */
 

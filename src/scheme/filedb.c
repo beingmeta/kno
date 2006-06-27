@@ -97,6 +97,12 @@ static fdtype lisphashdtype2(fdtype x)
   return FD_INT2DTYPE(hash);
 }
 
+static fdtype lisphashdtype3(fdtype x)
+{
+  int hash=fd_hash_dtype3(x);
+  return FD_INT2DTYPE(hash);
+}
+
 /* The init function */
 
 static int scheme_filedb_initialized=0;
@@ -144,6 +150,7 @@ FD_EXPORT void fd_init_filedb_c()
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));
+  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE3",lisphashdtype3,1));
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE1",lisphashdtype1,1));
 
   fd_finish_module(filedb_module);

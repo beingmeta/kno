@@ -288,7 +288,8 @@ static fd_index open_zindex(u8_string fname,int read_only)
   if (index->stream.bits&FD_DTSTREAM_READ_ONLY) read_only=1;
   index->stream.mallocd=0;
   magicno=fd_dtsread_4bytes(s);
-  if (magicno == FD_ZINDEX_MAGIC_NUMBER) index->hashv=1;
+  if (magicno == FD_ZINDEX_MAGIC_NUMBER) index->hashv=2;
+  else if (magicno == FD_ZINDEX3_MAGIC_NUMBER) index->hashv=3;
   else {
     fd_seterr3(fd_NotAFileIndex,"open_zincdex",u8_strdup(fname));
     u8_free(index);
@@ -387,13 +388,28 @@ static void zindex_setcache(fd_index ix,int level)
       u8_unlock_mutex(&(fx->lock));}
 }
 
+FD_FASTOP unsigned int zindex_hash(struct FD_ZINDEX *fx,fdtype x)
+{
+  switch (fx->hashv) {
+  case 0: case 1:
+    return fd_hash_dtype1(x);
+  case 2:
+    return fd_hash_dtype2(x);
+  case 3:
+    return fd_hash_dtype3(x);
+  default:
+    u8_raise(_("Bad hash version"),"fileindex_hash",fx->cid);}
+  /* Never reached */
+  return -1;
+}
+
 static fdtype zindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   u8_lock_mutex(&(fx->lock));
   {
     fd_dtype_stream stream=&(fx->stream);
-    unsigned int hashval=fd_hash_dtype2(key);
+    unsigned int hashval=zindex_hash(fx,key);
     unsigned int n_probes=0;
     unsigned int probe=hashval%(fx->n_slots);
     unsigned int chain_width=(hashval%(fx->n_slots-2))+1;
@@ -460,8 +476,7 @@ static int zindex_fetchsize(fd_index ix,fdtype key)
   u8_lock_mutex(&(fx->lock));
   {
     fd_dtype_stream stream=&(fx->stream);
-    unsigned int hashval=
-      ((fx->hashv) ? (fd_hash_dtype2(key)) : (fd_hash_dtype1(key)));
+    unsigned int hashval=zindex_hash(fx,key);
     unsigned int n_probes=0;
     unsigned int probe=hashval%(fx->n_slots);
     unsigned int chain_width=(hashval%(fx->n_slots-2))+1;
@@ -695,8 +710,7 @@ static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
     if (FD_VOIDP(cached)) {
       struct KEY_FETCH_SCHEDULE *ksched=
 	(struct KEY_FETCH_SCHEDULE *)&(schedule[schedule_size]);
-      int hashcode=
-	((fx->hashv) ? (fd_hash_dtype2(key)) : (fd_hash_dtype1(key)));
+      int hashcode=zindex_hash(fx,key);
       int probe=hashcode%(fx->n_slots);
       ksched->key=key; ksched->index=-(i+1);
       if (offsets) {
@@ -855,7 +869,7 @@ static int fetch_keydata(struct FD_ZINDEX *fx,struct KEYDATA *kdata,int n)
   /* Setup the key data */
   while (i < n) {
     fdtype key=kdata[i].key;
-    int hash=((fx->hashv) ? (fd_hash_dtype2(key)) : (fd_hash_dtype1(key)));
+    int hash=zindex_hash(fx,key);
     int probe=hash%(fx->n_slots), chain_width=hash%(fx->n_slots-2)+1;
     if (offsets) {
       int koff=offget(offsets,probe);
@@ -1255,6 +1269,7 @@ FD_EXPORT fd_init_zindices_c()
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
   fd_register_index_opener(FD_ZINDEX_MAGIC_NUMBER,open_zindex);
+  fd_register_index_opener(FD_ZINDEX3_MAGIC_NUMBER,open_zindex);
 }
 
 
