@@ -118,7 +118,7 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
       {hi=((hi<<8)|(lo>>24))%(MAGIC_MODULUS); lo=lo<<8;}
     return hi;
 #else
-    return id%(MYSTERIOUS_MODULUS);
+    return id%(MAGIC_MODULUS);
 #endif
       }
   else if (FD_CHOICEP(x)) {
