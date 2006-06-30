@@ -200,6 +200,25 @@ static fdtype getwords(u8_string string)
   return result;
 }
 
+static fdtype getwordsv(u8_string string)
+{
+  int n=0, max=8;
+  fdtype *wordsv=u8_malloc(sizeof(fdtype)*max);
+  u8_string start=skip_notword(string);
+  while (start) {
+    fdtype newcons;
+    u8_string end=skip_word(start);
+    if (n>=max) {
+      wordsv=u8_realloc(wordsv,sizeof(fdtype)*max*2);
+      max=max*2;}
+    if ((end) && (start<end))
+      wordsv[n++]=fd_extract_string(NULL,start,end);
+    else if (*start=='\0') break;
+    else wordsv[n++]=fdtype_string(start);
+    start=skip_notword(end);}
+  return fd_init_vector(NULL,n,wordsv);
+}
+
 static fdtype getwordspunct(u8_string string)
 {
   fdtype result=FD_EMPTY_LIST, *lastp=&result;
@@ -217,6 +236,28 @@ static fdtype getwordspunct(u8_string string)
     *lastp=newcons; lastp=&(FD_CDR(newcons));
     start=skip_whitespace(end);}
   return result;
+}
+
+static fdtype getwordspunctv(u8_string string)
+{
+  int n=0, max=8;
+  fdtype *wordsv=u8_malloc(sizeof(fdtype)*max);
+  u8_string start=skip_whitespace(string);
+  while (start) {
+    u8_string scan=start, end;
+    int c=egetc(&scan);
+    if (c<0) break;
+    else if (n>=max) {
+      wordsv=u8_realloc(wordsv,sizeof(fdtype)*max*2);
+      max=max*2;}
+    if (u8_ispunct(c)) end=skip_punct(start);
+    else end=skip_word(start);
+    if ((end) && (start<end))
+      wordsv[n++]=fd_extract_string(NULL,start,end);
+    else if (*start=='\0') break;
+    else wordsv[n++]=fdtype_string(start);
+    start=skip_whitespace(end);}
+  return fd_init_vector(NULL,n,wordsv);
 }
 
 static fdtype getwords_prim(fdtype arg,fdtype punctflag)
@@ -241,6 +282,75 @@ static fdtype getwords_prim(fdtype arg,fdtype punctflag)
       return getwordspunct(FD_STRDATA(arg));
     else return getwords(FD_STRDATA(arg));
   else return fd_type_error(_("string"),"getwords_prim",arg);
+}
+
+static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
+{
+  int keep_punct=((!(FD_VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
+  if (FD_EMPTY_CHOICEP(arg)) return FD_EMPTY_CHOICE;
+  else if (FD_CHOICEP(arg)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(input,arg)
+      if (FD_STRINGP(input)) {
+	fdtype result=((keep_punct) ? (getwordspunctv(FD_STRDATA(input))) :
+			(getwordsv(FD_STRDATA(input))));
+	if (FD_ABORTP(result)) {
+	  fd_decref(results); return result;}
+	FD_ADD_TO_CHOICE(results,result);}
+      else {
+	fd_decref(results);
+	return fd_type_error(_("string"),"getwordsv_prim",arg);}
+    return results;}
+  else if (FD_STRINGP(arg))
+    if (keep_punct)
+      return getwordspunctv(FD_STRDATA(arg));
+    else return getwordsv(FD_STRDATA(arg));
+  else return fd_type_error(_("string"),"getwordsv_prim",arg);
+}
+
+/* This function takes a vector of words and returns a choice
+     of lists enumerating subsequences of the vector.  It also
+     creates subsequences starting and ending with false (#f)
+     indicating prefix or suffix subsequences.
+   The window argument specifies the maximnum span to generate and
+     all spans of length smaller than or equal to the window are generated.
+   The output of this function is useful for indexing strings
+     for purposes of partial indexing.
+*/
+static fdtype vector2frags_prim(fdtype vec,fdtype window)
+{
+  int i=0, n=FD_VECTOR_LENGTH(vec), span=FD_FIX2INT(window), k=0;
+  fdtype *data=FD_VECTOR_DATA(vec), results=FD_EMPTY_CHOICE;
+  if (span<=0)
+    return fd_type_error(_("natural number"),"vector2frags",window);
+  /* Compute prefix fragments */
+  i=span-1; while ((i>=0) && (i<n)) {
+    fdtype frag=fd_init_pair(NULL,fd_incref(data[i]),FD_EMPTY_LIST);
+    int j=i-1; while (j>=0) {
+      frag=fd_init_pair(NULL,fd_incref(data[j]),frag); j--;}
+    frag=fd_init_pair(NULL,FD_FALSE,frag);
+    FD_ADD_TO_CHOICE(results,frag); i--;}
+  /* Compute suffix fragments
+     We're a little clever here, because we can use the same sublist
+     repeatedly.  */
+  {
+    fdtype frag=fd_init_pair(NULL,FD_FALSE,FD_EMPTY_LIST);
+    int stopat=n-span; if (stopat<0) stopat=0;
+    i=n-1; while (i>=stopat) {
+      frag=fd_init_pair(NULL,fd_incref(data[i]),frag);
+      FD_ADD_TO_CHOICE(results,fd_incref(frag));
+      i--;}
+    fd_decref(frag);}
+  /* Now compute internal spans */
+  i=0; while (i<n) {
+    fdtype frag=FD_EMPTY_LIST;
+    int j=i+span-1; while ((j<n) && (j>=i)) {
+      frag=fd_init_pair(NULL,fd_incref(data[j]),frag);
+      FD_ADD_TO_CHOICE(results,fd_incref(frag));
+      j--;}
+    fd_decref(frag);
+    i++;}
+  return results;
 }
 
 static fdtype list2phrase_prim(fdtype arg)
@@ -1251,7 +1361,13 @@ void fd_init_texttools()
 	   fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("GETWORDS",getwords_prim,1)));
+  fd_idefn(texttools_module,
+	   fd_make_ndprim(fd_make_cprim2("WORDS->VECTOR",getwordsv_prim,1)));
   fd_idefn(texttools_module,fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("VECTOR->FRAGS",vector2frags_prim,1,
+			   fd_vector_type,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(2)));
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
 			   fd_string_type,FD_VOID));
