@@ -3,7 +3,7 @@
 /* fdmananger: a program for running a set of inferior fdservers */
     
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 #include "fdb/dtype.h"
 
@@ -22,8 +22,8 @@ static char versionid[] =
 
 #define NUL '\0'
 
-#ifndef FDSERVER
-#define FDSERVER "/usr/bin/fdbserver"
+#ifndef FD_DBSERVER
+#define FD_DBSERVER "/usr/bin/fdbserver"
 #endif
 
 #ifndef O_SYNC
@@ -518,6 +518,7 @@ int main(int argc,char *argv[])
   char control_line[512];
   int i=0, status, pid, n_started=0;
   fdserver=getenv("FDSERVER");
+  if (fdserver==NULL) fdserver=FD_DBSERVER;
   if ((argc < 2) || (argc > 4)) {
     fprintf(stderr,_("Usage: %s\n"),usage); exit(1);}
   setup_runas();

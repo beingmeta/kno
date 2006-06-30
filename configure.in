@@ -142,8 +142,10 @@ AC_DEFINE_UNQUOTED(FD_BOOT_CONFIG,"$with_boot_config")
 
 if test $exec_prefix = "NONE"; then
   AC_DEFINE_UNQUOTED(FD_EXEC,"$prefix/bin/fdexec")
+  AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdbserver")
 else
   AC_DEFINE_UNQUOTED(FD_EXEC,"$exec_prefix/bin/fdexec")
+  AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdbserver")
 fi
 
 AC_ARG_WITH(i18n,--with[out]-i18n built and install message catalogs,,with_i18n="no")

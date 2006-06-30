@@ -187,4 +187,7 @@
 /* This is where the fdexec exectuable will be installed */
 #undef FD_EXEC
 
+/* This is where the fdbserver executable will be installed */
+#undef FD_FDBSERVER
+
 #endif
