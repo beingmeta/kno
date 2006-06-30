@@ -303,12 +303,24 @@ int main(int argc,char **argv)
       u8_string fullname=u8_abspath(bname,NULL);
       u8_string pid_file=u8_string_append(fullname,".pid",NULL);
       u8_string nid_file=u8_string_append(fullname,".nid",NULL);
-      FILE *f=u8_fopen(pid_file,"w"); fprintf(f,"%d\n",getpid()); fclose(f);
+      FILE *f=u8_fopen(pid_file,"w");
+      if (f) {
+	fprintf(f,"%d\n",getpid());
+	fclose(f);}
+      else {
+	u8_warn(u8_strerror(errno),
+		"Couldn't write PID %d to '%s'",getpid(),pid_file);
+	errno=0;}
       f=u8_fopen(nid_file,"w");
-      if (dtype_server.n_servers)
-	fprintf(f,"%s\n",dtype_server.server_info[0].idstring);
-      else fprintf(f,"temp.socket\n");
-      fclose(f);
+      if (f) {
+	if (dtype_server.n_servers)
+	  fprintf(f,"%s\n",dtype_server.server_info[0].idstring);
+	else fprintf(f,"temp.socket\n");
+	fclose(f);}
+      else {
+	u8_warn(u8_strerror(errno),
+		"Couldn't write PID %d to '%s'",getpid(),pid_file);
+	errno=0;}
       u8_free(pid_file); u8_free(nid_file);
       u8_free(fullname); u8_free(bname);}
     u8_free(source_file);
