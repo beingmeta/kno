@@ -416,7 +416,8 @@ static fdtype getfiles_prim(fdtype dirname,fdtype fullpath)
   fdtype results=FD_EMPTY_CHOICE;
   u8_string *contents=
     u8_getfiles(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
-  while (*scan) {
+  if (contents==NULL) return fd_erreify();
+  else while (*scan) {
     fdtype string=fd_init_string(NULL,-1,*scan);
     FD_ADD_TO_CHOICE(results,string);
     scan++;}
@@ -429,7 +430,8 @@ static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
   fdtype results=FD_EMPTY_CHOICE;
   u8_string *contents=
     u8_getdirs(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
-  while (*scan) {
+  if (contents==NULL) return fd_erreify();
+  else while (*scan) {
     fdtype string=fd_init_string(NULL,-1,*scan);
     FD_ADD_TO_CHOICE(results,string);
     scan++;}
