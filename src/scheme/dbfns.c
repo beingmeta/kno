@@ -936,7 +936,7 @@ static fdtype reject_helper(int n,fdtype *args,int noinfer)
 	fd_decref(candidates); fd_decref(rejects);
 	return fd_erreify();}
       else if (testval) {
-	FD_ADD_TO_CHOICE(rejects,candidate);}}
+	FD_ADD_TO_CHOICE(rejects,fd_incref(candidate));}}
     next=fd_difference(candidates,rejects);
     fd_decref(candidates); candidates=next;
     fd_decref(rejects); rejects=FD_EMPTY_CHOICE;
