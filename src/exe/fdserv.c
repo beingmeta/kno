@@ -363,7 +363,7 @@ static fdtype getcontent(fdtype path)
 	u8_free(lpath); return content;}
       table_value=fd_init_pair(NULL,fd_make_timestamp(&mtime,NULL),
 			       fd_incref(content));
-      fd_hashtable_set(&pagemap,path,table_value);
+      fd_hashtable_store(&pagemap,path,table_value);
       u8_free(lpath);
       fd_decref(table_value);
       return content;}
@@ -381,7 +381,7 @@ static fdtype getcontent(fdtype path)
 	fdtype new_content=loadcontent(path);
 	struct U8_XTIME mtime;
 	u8_offtime(&mtime,fileinfo.st_mtime,0);
-	fd_hashtable_set(&pagemap,path,
+	fd_hashtable_store(&pagemap,path,
 			 fd_init_pair(NULL,fd_make_timestamp(&mtime,NULL),
 				      fd_incref(new_content)));
 	u8_free(lpath); fd_decref(value);

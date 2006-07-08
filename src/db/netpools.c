@@ -207,7 +207,7 @@ static int network_pool_lock(fd_pool p,fdtype oid)
   u8_unlock_mutex(&(np->lock));
   if (FD_VOIDP(value)) return 0;
   else {
-    fd_hashtable_set(&(p->cache),oid,value);
+    fd_hashtable_store(&(p->cache),oid,value);
     fd_decref(value);
     return 1;}
 }

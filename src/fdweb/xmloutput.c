@@ -697,7 +697,7 @@ static fdtype set_browse_info
   if (FD_FALSEP(poolarg)) {
     fd_decref(default_browse_info);
     default_browse_info=fd_incref(entry);}
-  else fd_hashtable_set(&browse_info_table,fd_pool2lisp(p),entry);
+  else fd_hashtable_store(&browse_info_table,fd_pool2lisp(p),entry);
   fd_decref(entry);
   return FD_VOID;
 }

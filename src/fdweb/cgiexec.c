@@ -109,7 +109,7 @@ static void convert_parse(fd_slotmap c,fdtype slotid)
   fdtype value=fd_slotmap_get(c,slotid,FD_VOID);
   if (!(FD_STRINGP(value))) {fd_decref(value);}
   else {
-    fd_slotmap_set(c,slotid,try_parse(FD_STRDATA(value)));
+    fd_slotmap_store(c,slotid,try_parse(FD_STRDATA(value)));
     fd_decref(value);}
 }
 
@@ -133,7 +133,7 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
 			 fd_extract_string(NULL,semi+3,NULL));
     else entry=fd_extract_string(NULL,scan,NULL);
     FD_ADD_TO_CHOICE(newvalue,entry);
-    fd_slotmap_set(c,slotid,newvalue);
+    fd_slotmap_store(c,slotid,newvalue);
     fd_decref(value); fd_decref(newvalue);}
 }
 

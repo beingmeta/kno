@@ -12,13 +12,13 @@
 FD_EXPORT fd_exception fd_NoSuchKey;
 
 typedef enum FD_TABLEOP {
-  fd_table_set=0, fd_table_add=1, fd_table_drop=2, fd_table_default=3,
+  fd_table_store=0, fd_table_add=1, fd_table_drop=2, fd_table_default=3,
   fd_table_increment=4, fd_table_multiply=5, fd_table_push=6,
   fd_table_replace=7, fd_table_replace_novoid=8,
   fd_table_add_if_present=9,
   fd_table_increment_if_present=10,
   fd_table_multiply_if_present=11,
-  fd_table_set_noref=12, fd_table_add_noref=13,
+  fd_table_store_noref=12, fd_table_add_noref=13,
   fd_table_test=14,
   fd_table_add_empty=15, fd_table_add_empty_noref=16}
  fd_tableop;
@@ -104,7 +104,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 FD_EXPORT fdtype fd_init_slotmap
   (struct FD_SLOTMAP *ptr,int len,struct FD_KEYVAL *data,
    FD_MEMORY_POOL_TYPE *mpool);
-FD_EXPORT int fd_slotmap_set
+FD_EXPORT int fd_slotmap_store
   (struct FD_SLOTMAP *sm,fdtype key,fdtype value);
 FD_EXPORT int fd_slotmap_add
   (struct FD_SLOTMAP *sm,fdtype key,fdtype value);
@@ -271,7 +271,7 @@ FD_EXPORT fdtype fd_init_schemap
   (struct FD_SCHEMAP *ptr,short n_keyvals,
    struct FD_KEYVAL *init,FD_MEMORY_POOL_TYPE *mpool);
 
-FD_EXPORT int fd_schemap_set
+FD_EXPORT int fd_schemap_store
   (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
 FD_EXPORT int fd_schemap_add
   (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
@@ -404,7 +404,7 @@ FD_EXPORT fdtype fd_hashtable_get
    (fd_hashtable ht,fdtype key,fdtype dflt);
 FD_EXPORT fdtype fd_hashtable_get_nolock
    (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
-FD_EXPORT int fd_hashtable_set(fd_hashtable ht,fdtype key,fdtype value);
+FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value);
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value);
 FD_EXPORT int fd_hashtable_drop(fd_hashtable ht,fdtype key,fdtype value);
 

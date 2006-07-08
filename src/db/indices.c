@@ -231,7 +231,7 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fdtype set_value=fd_hashtable_get(&(ix->edits),set_key,FD_VOID);
     if (!(FD_VOIDP(set_value))) {
-      if (ix->cache_level>0) fd_hashtable_set(&(ix->cache),key,set_value);
+      if (ix->cache_level>0) fd_hashtable_store(&(ix->cache),key,set_value);
       fd_decref(drop_key); fd_decref(set_key);
       return set_value;}
     else {
@@ -255,7 +255,7 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
   else if (ix->handler->fetch)
     v=ix->handler->fetch(ix,key);
   else v=FD_EMPTY_CHOICE;
-  if (ix->cache_level>0) fd_hashtable_set(&(ix->cache),key,v);
+  if (ix->cache_level>0) fd_hashtable_store(&(ix->cache),key,v);
   return v;
 }
 
@@ -296,7 +296,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  fdtype v=fd_index_fetch(ix,key);
 	  if (FD_ABORTP(v)) return fd_interr(v);
 	  n_fetched++;
-	  fd_hashtable_set(&(ix->cache),key,v);
+	  fd_hashtable_store(&(ix->cache),key,v);
 	  fd_decref(v);}
       return n_fetched;}
   if (ix->cache_level==0) return 0;
@@ -307,7 +307,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       fdtype v=fd_index_fetch(ix,keys);
       if (FD_ABORTP(v)) return fd_interr(v);
       n_fetched=1;
-      fd_hashtable_set(&(ix->cache),keys,v);
+      fd_hashtable_store(&(ix->cache),keys,v);
       fd_decref(v);}}
   else {
     fdtype *write=NULL, singlekey=FD_VOID;
@@ -340,7 +340,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       if (FD_VOIDP(singlekey)) {}
       else {
 	fdtype v=fd_index_fetch(ix,singlekey); n_fetched=1;
-	fd_hashtable_set(&(ix->cache),singlekey,v);
+	fd_hashtable_store(&(ix->cache),singlekey,v);
 	fd_decref(v);}
     else if (write==keyvec) n_fetched=0;
     else {
@@ -357,20 +357,20 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	    fd_hashtable_get(&(ix->edits),drop_key,FD_EMPTY_CHOICE);
 	  if (FD_EMPTY_CHOICEP(drops))
 	    if (FD_EMPTY_CHOICEP(adds)) {
-	      fd_hashtable_set(cache,keyvec[i],values[i]);
+	      fd_hashtable_store(cache,keyvec[i],values[i]);
 	      fd_decref(values[i]);}
 	    else {
 	      fdtype simple;
 	      FD_ADD_TO_CHOICE(values[i],adds);
 	      simple=fd_simplify_choice(values[i]);
-	      fd_hashtable_set(cache,keyvec[i],simple);
+	      fd_hashtable_store(cache,keyvec[i],simple);
 	      fd_decref(simple);}
 	  else {
 	    fdtype oldv=values[i], newv;
 	    FD_ADD_TO_CHOICE(oldv,adds);
 	    newv=fd_difference(oldv,drops);
 	    newv=fd_simplify_choice(newv);
-	    fd_hashtable_set(cache,keyvec[i],newv);
+	    fd_hashtable_store(cache,keyvec[i],newv);
 	    fd_decref(oldv); fd_decref(newv);}
 	  fd_decref(drops); i++;}
       else if (ix->adds.n_keys)  /* When there are just adds */
@@ -379,18 +379,18 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  fdtype value=values[i];
 	  fdtype adds=fd_hashtable_get(&(ix->adds),key,FD_EMPTY_CHOICE);
 	  if (FD_EMPTY_CHOICEP(adds)) {
-	    fd_hashtable_set(cache,keyvec[i],values[i]);
+	    fd_hashtable_store(cache,keyvec[i],values[i]);
 	    fd_decref(values[i]);}
 	  else {
 	    FD_ADD_TO_CHOICE(values[i],adds);
 	    values[i]=fd_simplify_choice(values[i]);
-	    fd_hashtable_set(cache,keyvec[i],values[i]);
+	    fd_hashtable_store(cache,keyvec[i],values[i]);
 	    fd_decref(values[i]);}
 	  i++;}
       else {
 	/* When we're just storing. */
-	fd_hashtable_iter(cache,fd_table_set_noref,n,keyvec,values);
-	/* This is no longer needed with fd_table_set_noref */
+	fd_hashtable_iter(cache,fd_table_store_noref,n,keyvec,values);
+	/* This is no longer needed with fd_table_store_noref */
 	/* while (i < n) {fd_decref(values[i]); i++;} */
       }}}
   if (keyvec) {
@@ -517,29 +517,29 @@ static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
   else return -1;
 }
 
-FD_EXPORT int fd_index_set(fd_index ix,fdtype key,fdtype value)
+FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
 {
   if (ix->read_only) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_set",u8_strdup(ix->cid),FD_VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",u8_strdup(ix->cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   if (FD_CHOICEP(key)) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
-      fd_hashtable_set(&(ix->edits),set_key,value);
+      fd_hashtable_store(&(ix->edits),set_key,value);
       fd_hashtable_op(&(ix->edits),fd_table_replace,drop_key,FD_EMPTY_CHOICE);
       if (ix->cache_level>0) {
-	fd_hashtable_set(&(ix->cache),eachkey,value);
+	fd_hashtable_store(&(ix->cache),eachkey,value);
 	fd_hashtable_op(&(ix->adds),fd_table_replace,eachkey,FD_VOID);}
       fd_decref(set_key); fd_decref(drop_key);}}
   else {
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
-    fd_hashtable_set(&(ix->edits),set_key,value);
+    fd_hashtable_store(&(ix->edits),set_key,value);
     fd_hashtable_op(&(ix->edits),fd_table_replace,drop_key,FD_EMPTY_CHOICE);
     if (ix->cache_level>0) {
-      fd_hashtable_set(&(ix->cache),key,value);
+      fd_hashtable_store(&(ix->cache),key,value);
       fd_hashtable_op(&(ix->adds),fd_table_replace,key,FD_VOID);}
     fd_decref(set_key); fd_decref(drop_key);}
   if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
@@ -554,7 +554,7 @@ FD_EXPORT int fd_index_set(fd_index ix,fdtype key,fdtype value)
 static int table_indexstore(fdtype ixarg,fdtype key,fdtype value)
 {
   fd_index ix=fd_lisp2index(ixarg); 
-  if (ix) return fd_index_set(ix,key,value);
+  if (ix) return fd_index_store(ix,key,value);
   else return -1;
 }
 

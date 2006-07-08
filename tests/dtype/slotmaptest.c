@@ -87,7 +87,7 @@ int main(int argc,char **argv)
   else {
     fdtype slotid=fd_parse(argv[2]);
     fdtype value=fd_parse(argv[3]);
-    fd_slotmap_set(SLOTMAP(smap),slotid,value);
+    fd_slotmap_store(SLOTMAP(smap),slotid,value);
     f=fopen(argv[1],"wb");
     write_dtype_to_file(smap,f);
     free_val(slotid); free_val(value);

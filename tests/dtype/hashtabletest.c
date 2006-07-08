@@ -79,7 +79,7 @@ int main(int argc,char **argv)
     write_dtype_to_file(ht,f); fclose(f);}
   else {
     value=fd_parse(argv[3]);
-    fd_hashtable_set(HASHTABLE(ht),slotid,value);
+    fd_hashtable_store(HASHTABLE(ht),slotid,value);
     f=fopen(argv[1],"wb");
     write_dtype_to_file(ht,f); fclose(f);}
   fd_decref(value);

@@ -272,7 +272,7 @@ FD_EXPORT void fd_init_exif_c()
   fd_make_hashtable(&exif_tagmap,139,NULL);
   while (scan->tagname) {
     fdtype symbol=fd_intern(scan->tagname);
-    fd_hashtable_set(&exif_tagmap,symbol,FD_INT2DTYPE(scan->tagid));
+    fd_hashtable_store(&exif_tagmap,symbol,FD_INT2DTYPE(scan->tagid));
     scan->tagsym=symbol;
     scan++;}
   fd_idefn(fdweb_module,fd_make_cprim2("EXIF-GET",exif_get,1));

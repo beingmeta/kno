@@ -299,7 +299,7 @@ static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
   fdtype cache=fd_hashtable_get(&fcn_caches,fcn,FD_VOID);
   if (FD_VOIDP(cache)) {
     cache=fd_make_hashtable(NULL,512,NULL);
-    fd_hashtable_set(&fcn_caches,fcn,cache);
+    fd_hashtable_store(&fcn_caches,fcn,cache);
     return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);}
   else return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);
 }
@@ -325,7 +325,7 @@ static fdtype cachecall(int n,fdtype *args)
       fdtype key=fd_init_vector(NULL,n-1,datavec);
       int i=0, lim=n-1; while (i<lim) {
 	datavec[i]=fd_incref(args[i+1]); i++;}
-      fd_hashtable_set(cache,key,result);
+      fd_hashtable_store(cache,key,result);
       fd_decref(key);}
     fd_decref((fdtype)cache);
     return result;}
@@ -342,7 +342,7 @@ FD_EXPORT void fd_clear_callcache()
 static fdtype clear_callcache(fdtype arg)
 {
   if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
-  else fd_hashtable_set(&fcn_caches,arg,FD_VOID);
+  else fd_hashtable_store(&fcn_caches,arg,FD_VOID);
   return FD_VOID;
 }
 
@@ -793,7 +793,7 @@ static fdtype indexset(fdtype ixarg,fdtype key,fdtype values)
 {
   fd_index ix=fd_lisp2index(ixarg);
   if (ix==NULL) return fd_erreify();
-  fd_index_set(ix,key,values);
+  fd_index_store(ix,key,values);
   return FD_VOID;
 }
 

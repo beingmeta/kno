@@ -162,13 +162,13 @@ FD_EXPORT int fd_register_pool(fd_pool p)
       pkey=fd_extract_string(NULL,p->label,dot);
       probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
       if (FD_EMPTY_CHOICEP(probe)) {
-	fd_hashtable_set(&poolid_table,pkey,fd_pool2lisp(p));
+	fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
 	p->prefix=FD_STRDATA(pkey);}
       else fd_decref(pkey);}
     pkey=fd_extract_string(NULL,p->label,NULL);
     probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
     if (FD_EMPTY_CHOICEP(probe)) {
-      fd_hashtable_set(&poolid_table,pkey,fd_pool2lisp(p));
+      fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
       if (p->prefix == NULL) p->prefix=FD_STRDATA(pkey);}}
   return 1;
 }
@@ -268,7 +268,7 @@ FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid)
       return v;
   if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
   else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}
-  if (p->cache_level>0) fd_hashtable_set(&(p->cache),oid,v);
+  if (p->cache_level>0) fd_hashtable_store(&(p->cache),oid,v);
   return v;
 }
 
@@ -280,10 +280,10 @@ FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
   else {
     fdtype result=p->handler->alloc(p,n);
     if (FD_CHOICEP(result))
-      fd_hashtable_iterkeys(&(p->locks),fd_table_set,
+      fd_hashtable_iterkeys(&(p->locks),fd_table_store,
 			    FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
 			    FD_EMPTY_CHOICE);
-    else fd_hashtable_set(&(p->locks),result,FD_EMPTY_CHOICE);
+    else fd_hashtable_store(&(p->locks),result,FD_EMPTY_CHOICE);
     return result;}
 }
 
@@ -348,19 +348,19 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 	    fdtype v=values[j];
 	    if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
 	    else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}
-	    fd_hashtable_op(&(p->cache),fd_table_set,oidv[j],v);}
+	    fd_hashtable_op(&(p->cache),fd_table_store,oidv[j],v);}
 	  j++;}}
       else {
 	int j=0; while (j<n) {
 	  fdtype v=values[j++];
 	  if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
 	  else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}}
-	fd_hashtable_iter(&(p->cache),fd_table_set_noref,n,oidv,values);}
+	fd_hashtable_iter(&(p->cache),fd_table_store_noref,n,oidv,values);}
     else {
       u8_free(oidv);
       if (decref_oids) fd_decref(oids);
       return -1;}
-    /* We don't have to do this now that we have fd_table_set_noref */
+    /* We don't have to do this now that we have fd_table_store_noref */
     /* i=0; while (i < n) {fd_decref(values[i]); i++;} */
     u8_free(oidv); u8_free(values);
     if (decref_oids) fd_decref(oids);
@@ -369,7 +369,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     fdtype v=p->handler->fetch(p,oids);
     if ((p->n_locks==0) ||
 	(fd_hashtable_op(&(p->locks),fd_table_replace_novoid,oids,v)==0)) 
-      fd_hashtable_set(&(p->cache),oids,v);
+      fd_hashtable_store(&(p->cache),oids,v);
     if (decref_oids) fd_decref(oids);
     fd_decref(v);
     return 1;}
@@ -433,7 +433,7 @@ FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
     return fd_reterr(fd_AnonymousOID,"SET-OID_VALUE!",NULL,oid);
   else {
     if (fd_lock_oid(oid)) {
-      fd_hashtable_set(&(p->locks),oid,value);
+      fd_hashtable_store(&(p->locks),oid,value);
       return 1;}
     else return fd_reterr(fd_CantLockOID,"SET-OID_VALUE!",NULL,oid);}
 }
@@ -446,7 +446,7 @@ FD_EXPORT int fd_swapout_oid(fdtype oid)
   else if (fd_hashtable_probe_novoid(&(p->locks),oid)) return 0;
   else if (!(fd_hashtable_probe_novoid(&(p->cache),oid))) return 0;
   else {
-    fd_hashtable_set(&(p->cache),oid,FD_VOID);
+    fd_hashtable_store(&(p->cache),oid,FD_VOID);
     return 1;}
 }
 
@@ -468,13 +468,13 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
     retval=p->handler->lock(p,needy);
     if (retval) {
       fd_hashtable_iterkeys(&(p->cache),fd_table_replace,n,oidv,FD_VOID);
-      fd_hashtable_iterkeys(locks,fd_table_set,n,oidv,FD_LOCKHOLDER);}
+      fd_hashtable_iterkeys(locks,fd_table_store,n,oidv,FD_LOCKHOLDER);}
     fd_decref(needy);
     return retval;}
   else if (fd_hashtable_probe(locks,oids)==0)
     if (p->handler->lock(p,oids)) {
       fd_hashtable_op(&(p->cache),fd_table_replace,oids,FD_VOID);
-      fd_hashtable_op(locks,fd_table_set,oids,FD_LOCKHOLDER);
+      fd_hashtable_op(locks,fd_table_store,oids,FD_LOCKHOLDER);
       return 1;}
     else return 0;
   else return 1;
@@ -565,7 +565,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     if ((retval>0) && (unlock)) {
       fdtype needy=fd_init_choice(oidc,n,oidv,FD_CHOICE_ISATOMIC);
       if (p->handler->unlock(p,needy))
-	fd_hashtable_iterkeys(locks,fd_table_set,n,oidv,FD_VOID);
+	fd_hashtable_iterkeys(locks,fd_table_store,n,oidv,FD_VOID);
       fd_decref(needy);}
     else u8_free(oidc);
     if (retval<0)
@@ -592,7 +592,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     else if (retcode) {
       if (unlock) {
 	if (p->handler->unlock(p,oids)) 
-	  fd_hashtable_op(locks,fd_table_set,oids,FD_VOID);}
+	  fd_hashtable_op(locks,fd_table_store,oids,FD_VOID);}
       u8_notify(fd_Commitment,
 		"[%*t] Saved one OID from %s in %f secs",
 		 p->cid,u8_elapsed_time()-start_time);
@@ -652,7 +652,7 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
       value=fd_hashtable_get(&(p->locks),oid,FD_VOID);
       if (value == FD_LOCKHOLDER) {
 	value=fd_pool_fetch(p,oid);
-	fd_hashtable_set(&(p->locks),oid,value);
+	fd_hashtable_store(&(p->locks),oid,value);
 	return value;}
       else return value;}
   value=fd_hashtable_get(&(p->cache),oid,FD_VOID);
@@ -678,13 +678,13 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
   if (FD_VOIDP(smap))
     if (fd_pool_lock(p,oid)) {
       fdtype v=fd_pool_fetch(p,oid);
-      fd_hashtable_set(&(p->locks),oid,v);
+      fd_hashtable_store(&(p->locks),oid,v);
       return v;}
     else return fd_err(fd_CantLockOID,"fd_locked_oid_value",
 		       u8_strdup(p->source),oid);
   else if (smap==FD_LOCKHOLDER) {
     fdtype v=fd_pool_fetch(p,oid);
-    fd_hashtable_set(&(p->locks),oid,v);
+    fd_hashtable_store(&(p->locks),oid,v);
     return v;}
   else return smap;
 }

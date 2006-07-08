@@ -270,7 +270,7 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
       value=fd_hashtable_get(&(p->locks),oid,FD_VOID);
       if (value == FD_LOCKHOLDER) {
 	value=fd_pool_fetch(p,oid);
-	fd_hashtable_set(&(p->locks),oid,value);
+	fd_hashtable_store(&(p->locks),oid,value);
 	return value;}
       else return value;}
   value=fd_hashtable_get(&(p->cache),oid,FD_VOID);

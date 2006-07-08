@@ -178,24 +178,24 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     return retval;}
 }
 
-FD_EXPORT int fd_oid_set(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
 {
   fd_pool p=fd_oid2pool(f);
   if (FD_EXPECT_FALSE(p == NULL))
-    return anonymous_oiderr("fd_oid_set",f);
+    return anonymous_oiderr("fd_oid_store",f);
   else {
     fdtype smap; int retval;
     fd_index adj=get_adjunct(slotid,p); 
-    if (adj) return fd_index_set(adj,f,value);
+    if (adj) return fd_index_store(adj,f,value);
     else smap=fd_locked_oid_value(p,f);
     if (FD_EXCEPTIONP(smap))
       return fd_interr(smap);
     else if (FD_SLOTMAPP(smap))
       if (FD_EMPTY_CHOICEP(value))
 	retval=fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
-      else retval=fd_slotmap_set(FD_XSLOTMAP(smap),slotid,value);
+      else retval=fd_slotmap_store(FD_XSLOTMAP(smap),slotid,value);
     else if (FD_SCHEMAPP(smap))
-      retval=fd_schemap_set(FD_XSCHEMAP(smap),slotid,value);
+      retval=fd_schemap_store(FD_XSCHEMAP(smap),slotid,value);
     else retval=fd_store(smap,slotid,value);
     fd_decref(smap);
     return retval;}
@@ -209,14 +209,14 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
   else {
     fdtype smap; int retval;
     fd_index adj=get_adjunct(slotid,p); 
-    if (adj) return fd_index_set(adj,f,FD_EMPTY_CHOICE);
+    if (adj) return fd_index_store(adj,f,FD_EMPTY_CHOICE);
     else smap=fd_locked_oid_value(p,f);
     if (FD_EXCEPTIONP(smap))
       return fd_interr(smap);
     else if (FD_SLOTMAPP(smap))
       retval=fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
     else if (FD_SCHEMAPP(smap))
-      retval=fd_schemap_set(FD_XSCHEMAP(smap),slotid,FD_EMPTY_CHOICE);
+      retval=fd_schemap_store(FD_XSCHEMAP(smap),slotid,FD_EMPTY_CHOICE);
     else retval=fd_store(smap,slotid,FD_EMPTY_CHOICE);
     fd_decref(smap);
     return retval;}
@@ -360,7 +360,7 @@ FD_EXPORT void fd_init_xtables_c()
   fd_tablefns[fd_oid_type]->get=fd_oid_get;
   fd_tablefns[fd_oid_type]->add=fd_oid_add;
   fd_tablefns[fd_oid_type]->drop=fd_oid_drop;
-  fd_tablefns[fd_oid_type]->store=fd_oid_set;
+  fd_tablefns[fd_oid_type]->store=fd_oid_store;
   fd_tablefns[fd_oid_type]->test=fd_oid_test;
   fd_tablefns[fd_oid_type]->keys=fd_oid_keys;
   fd_tablefns[fd_oid_type]->getsize=NULL;

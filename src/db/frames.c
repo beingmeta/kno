@@ -155,7 +155,7 @@ static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17,NULL);
   u8_lock_mutex(&slotcache_lock);
-  fd_hashtable_set(&slot_caches,slotid,table);
+  fd_hashtable_store(&slot_caches,slotid,table);
   fd_decref(table);
   u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
@@ -165,7 +165,7 @@ static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17,NULL);
   u8_lock_mutex(&slotcache_lock);
-  fd_hashtable_set(&test_caches,slotid,table);
+  fd_hashtable_store(&test_caches,slotid,table);
   fd_decref(table);
   u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
@@ -174,8 +174,8 @@ static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 FD_EXPORT void fd_clear_slotcache(fdtype slotid)
 {
   u8_lock_mutex(&slotcache_lock);
-  fd_hashtable_set(&slot_caches,slotid,FD_VOID);
-  fd_hashtable_set(&test_caches,slotid,FD_VOID);
+  fd_hashtable_store(&slot_caches,slotid,FD_VOID);
+  fd_hashtable_store(&test_caches,slotid,FD_VOID);
   u8_unlock_mutex(&slotcache_lock);
 }
 
@@ -184,10 +184,10 @@ FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
   fdtype slotcache=fd_hashtable_get(&slot_caches,slotid,FD_VOID);
   fdtype testcache=fd_hashtable_get(&test_caches,slotid,FD_VOID);
   if (FD_HASHTABLEP(slotcache)) 
-    fd_hashtable_set(FD_XHASHTABLE(slotcache),frame,FD_VOID);
+    fd_hashtable_store(FD_XHASHTABLE(slotcache),frame,FD_VOID);
   /* Need to do this more selectively. */
   if (FD_HASHTABLEP(testcache))
-    fd_hashtable_set(FD_XHASHTABLE(testcache),frame,FD_VOID);
+    fd_hashtable_store(FD_XHASHTABLE(testcache),frame,FD_VOID);
 }
 
 FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
@@ -195,7 +195,7 @@ FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
   fdtype testcache=fd_hashtable_get(&test_caches,slotid,FD_VOID);
   if (FD_HASHTABLEP(testcache))
     if (FD_VOIDP(value))
-      fd_hashtable_set(FD_XHASHTABLE(testcache),frame,FD_VOID);
+      fd_hashtable_store(FD_XHASHTABLE(testcache),frame,FD_VOID);
     else {
       fdtype cache=fd_hashtable_get(FD_XHASHTABLE(testcache),frame,FD_EMPTY_CHOICE);
       if (FD_PAIRP(cache)) {
@@ -294,7 +294,7 @@ static void decache_implications(fdtype factoid)
 {
   fdtype implies=fd_hashtable_get(&implications,factoid,FD_EMPTY_CHOICE);
   decache_factoid(factoid);
-  fd_hashtable_set(&implications,factoid,FD_EMPTY_CHOICE);
+  fd_hashtable_store(&implications,factoid,FD_EMPTY_CHOICE);
   {FD_DO_CHOICES(imply,implies) decache_implications(imply);}
   fd_decref(implies);
 }
@@ -412,7 +412,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	fdtype factoid=fd_init_pair(NULL,fd_incref(f),fd_incref(slotid));
 	record_dependencies(&fop,factoid); fd_decref(factoid);
 	u8_free(fop.dependencies);
-	fd_hashtable_set(cache,f,computed);}
+	fd_hashtable_store(cache,f,computed);}
       return computed;}}
   else if (FD_EMPTY_CHOICEP(f)) return FD_EMPTY_CHOICE;
   else {
@@ -440,7 +440,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
       if (FD_VOIDP(cachev)) {
 	cache=make_test_cache(slotid);
 	cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
-	fd_hashtable_set(cache,f,cached);}
+	fd_hashtable_store(cache,f,cached);}
       else if (FD_EMPTY_CHOICEP(cachev)) {
 	cache=NULL; cached=FD_VOID;}
       else {
@@ -448,7 +448,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	cached=fd_hashtable_get(cache,f,FD_VOID);
 	if (FD_VOIDP(cached)) {
 	  cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
-	  fd_hashtable_set(cache,f,cached);}
+	  fd_hashtable_store(cache,f,cached);}
 	fd_decref(cachev);}
       if (FD_PAIRP(cached)) {
 	fdtype in=FD_CAR(cached), out=FD_CDR(cached);

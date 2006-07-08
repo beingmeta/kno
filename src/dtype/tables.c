@@ -183,7 +183,7 @@ FD_EXPORT fdtype _fd_slotmap_test(struct FD_SLOTMAP *sm,fdtype key,fdtype val)
   return fd_slotmap_test(sm,key,val);
 }
 
-FD_EXPORT int fd_slotmap_set(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
+FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result; int osize, size;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
@@ -192,7 +192,7 @@ FD_EXPORT int fd_slotmap_set(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   result=fd_sortvec_insert(key,&(sm->keyvals),&size);
   if (FD_EXPECT_FALSE(result==NULL)) {
     u8_lock_mutex(&sm->lock);
-    fd_seterr(fd_MallocFailed,"fd_slotmap_set",NULL,FD_VOID);
+    fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
     return -1;}
   fd_decref(result->value); result->value=fd_incref(value);
   FD_XSLOTMAP_MARK_MODIFIED(sm);
@@ -570,7 +570,7 @@ FD_EXPORT fdtype _fd_schemap_test
 }
 
 
-FD_EXPORT int fd_schemap_set
+FD_EXPORT int fd_schemap_store
    (struct FD_SCHEMAP *sm,fdtype key,fdtype value)
 {
   int slotno, size;
@@ -586,7 +586,7 @@ FD_EXPORT int fd_schemap_set
     return 1;}
   else {
     u8_unlock_mutex(&(sm->lock));
-    fd_seterr(fd_NoSuchKey,"fd_schemap_set",NULL,key);
+    fd_seterr(fd_NoSuchKey,"fd_schemap_store",NULL,key);
     return -1;}
 }
 
@@ -1074,7 +1074,7 @@ static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   while (i < n_slots) slots[i++]=NULL;
 }
 
-FD_EXPORT int fd_hashtable_set(fd_hashtable ht,fdtype key,fdtype value)
+FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result; int n_keys, added;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
@@ -1239,9 +1239,9 @@ static int do_hashtable_op
   switch (op) {
   case fd_table_replace_novoid:
     if (FD_VOIDP(result->value)) return 0;
-  case fd_table_set: case fd_table_replace:
+  case fd_table_store: case fd_table_replace:
     fd_decref(result->value); result->value=fd_incref(value); break;
-  case fd_table_set_noref:
+  case fd_table_store_noref:
     fd_decref(result->value); result->value=value; break;
   case fd_table_add: case fd_table_add_empty: case fd_table_add_if_present:
     FD_ADD_TO_CHOICE(result->value,fd_incref(value)); break;
@@ -2358,7 +2358,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashtable_type]->get=(fd_table_get_fn)fd_hashtable_get;
   fd_tablefns[fd_hashtable_type]->add=(fd_table_add_fn)fd_hashtable_add;
   fd_tablefns[fd_hashtable_type]->drop=(fd_table_drop_fn)fd_hashtable_drop;
-  fd_tablefns[fd_hashtable_type]->store=(fd_table_store_fn)fd_hashtable_set;
+  fd_tablefns[fd_hashtable_type]->store=(fd_table_store_fn)fd_hashtable_store;
   fd_tablefns[fd_hashtable_type]->test=(fd_table_test_fn)hashtable_test;
   fd_tablefns[fd_hashtable_type]->getsize=(fd_table_getsize_fn)hashtable_getsize;
   fd_tablefns[fd_hashtable_type]->keys=(fd_table_keys_fn)fd_hashtable_keys;
@@ -2367,7 +2367,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_slotmap_type]->get=(fd_table_get_fn)fd_slotmap_get;
   fd_tablefns[fd_slotmap_type]->add=(fd_table_add_fn)fd_slotmap_add;
   fd_tablefns[fd_slotmap_type]->drop=(fd_table_drop_fn)fd_slotmap_drop;
-  fd_tablefns[fd_slotmap_type]->store=(fd_table_store_fn)fd_slotmap_set;
+  fd_tablefns[fd_slotmap_type]->store=(fd_table_store_fn)fd_slotmap_store;
   fd_tablefns[fd_slotmap_type]->test=(fd_table_test_fn)fd_slotmap_test;
   fd_tablefns[fd_slotmap_type]->getsize=(fd_table_getsize_fn)slotmap_getsize;
   fd_tablefns[fd_slotmap_type]->keys=(fd_table_keys_fn)fd_slotmap_keys;
@@ -2376,7 +2376,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_schemap_type]->get=(fd_table_get_fn)fd_schemap_get;
   fd_tablefns[fd_schemap_type]->add=(fd_table_add_fn)fd_schemap_add;
   fd_tablefns[fd_schemap_type]->drop=(fd_table_drop_fn)fd_schemap_drop;
-  fd_tablefns[fd_schemap_type]->store=(fd_table_store_fn)fd_schemap_set;
+  fd_tablefns[fd_schemap_type]->store=(fd_table_store_fn)fd_schemap_store;
   fd_tablefns[fd_schemap_type]->test=(fd_table_test_fn)fd_schemap_test;
   fd_tablefns[fd_schemap_type]->getsize=(fd_table_getsize_fn)schemap_getsize;
   fd_tablefns[fd_schemap_type]->keys=(fd_table_keys_fn)fd_schemap_keys;

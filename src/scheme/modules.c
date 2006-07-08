@@ -305,7 +305,7 @@ static fdtype module_export(fdtype expr,fd_lispenv env)
   else exports=get_exports(env);
   {FD_DO_CHOICES(symbol,symbols) {
     fdtype val=fd_get(env->bindings,symbol,FD_VOID);
-    fd_hashtable_set(exports,symbol,val);
+    fd_hashtable_store(exports,symbol,val);
     fd_decref(val);}}
   fd_decref(symbols);
   return FD_VOID;

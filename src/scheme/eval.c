@@ -571,8 +571,8 @@ FD_EXPORT fd_lispenv fd_safe_working_environment()
 FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags)
 {
   if (flags&FD_MODULE_SAFE)
-    fd_hashtable_set(&safe_module_map,fd_intern(name),module);
-  else fd_hashtable_set(&module_map,fd_intern(name),module);
+    fd_hashtable_store(&safe_module_map,fd_intern(name),module);
+  else fd_hashtable_store(&module_map,fd_intern(name),module);
   if (flags&FD_MODULE_DEFAULT) {
     fd_lispenv scan;
     if (flags&FD_MODULE_SAFE) {
@@ -1243,10 +1243,10 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
       fdtype qval=fd_quasiquote(value,env,level);
       if (FD_ABORTP(qval)) {
 	fd_decref(result); return qval;}
-      fd_slotmap_set(new_slotmap,slotid,qval);
+      fd_slotmap_store(new_slotmap,slotid,qval);
       fd_decref(qval); i++;}
     else {
-      fd_slotmap_set(new_slotmap,slotid,value);
+      fd_slotmap_store(new_slotmap,slotid,value);
       i++;}}
   return result;
 }
