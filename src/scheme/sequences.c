@@ -208,10 +208,12 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
 	   (FD_CHAR2CODE(key)<0x80)) {
     u8_string data=FD_STRDATA(x);
     int code=FD_CHAR2CODE(key);
-    u8_string found=strrchr(data,code);
-    if (found) return u8_charoffset(data,found-data);
+    u8_string found=strrchr(data+start,code);
+    if (found)
+      if (found<data+end) return u8_charoffset(data,found-data);
+      else {}
     else return -1;}
-  else switch (FD_PTR_TYPE(x)) {
+  switch (FD_PTR_TYPE(x)) {
   case fd_vector_type: {
     fdtype *data=FD_VECTOR_DATA(x);
     int len=FD_VECTOR_LENGTH(x);
