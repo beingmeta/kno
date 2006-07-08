@@ -899,6 +899,26 @@ int fd_cachecount_pools()
   else return result;
 }
 
+static int accumulate_cached(fd_pool p,void *ptr)
+{
+  fdtype *vals=(fdtype *)ptr;
+  FD_ADD_TO_CHOICE(*vals,fd_hashtable_keys(&(p->cache)));
+  return 0;
+}
+
+FD_EXPORT
+fdtype fd_cached_oids(fd_pool p)
+{
+  if (p==NULL) {
+    int retval; fdtype result=FD_EMPTY_CHOICE;
+    fd_for_pools(accumulate_cached,(void *)&result);
+    if (retval<0) {
+      fd_decref(result);
+      return fd_erreify();}
+    else return result;}
+  else return fd_hashtable_keys(&(p->cache));
+}
+
 /* Common pool initialization stuff */
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,

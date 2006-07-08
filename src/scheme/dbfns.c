@@ -613,6 +613,28 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
     return FD_VOID;}
 }
 
+/* Getting cached OIDs */
+
+static fdtype cached_oids(fdtype pool)
+{
+  if ((FD_VOIDP(pool)) || (FD_TRUEP(pool)))
+    return fd_cached_oids(NULL);
+  else {
+    fd_pool p=fd_lisp2pool(pool);
+    if (p) return fd_cached_oids(p);
+    else return fd_type_error(_("pool"),"cached_oids",pool);}
+}
+
+static fdtype cached_keys(fdtype index)
+{
+  if ((FD_VOIDP(index)) || (FD_TRUEP(index)))
+    return fd_cached_keys(NULL);
+  else {
+    fd_index ix=fd_lisp2index(index);
+    if (ix) return fd_cached_keys(ix);
+    else return fd_type_error(_("index"),"cached_keys",index);}
+}
+
 /* Frame get functions */
 
 static fdtype fget(fdtype frames,fdtype slotids)
@@ -1435,6 +1457,9 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("PREFETCH-KEYS!",prefetch_keys,1)));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim

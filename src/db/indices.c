@@ -715,6 +715,26 @@ int fd_cachecount_indices()
   else return result;
 }
 
+static int accumulate_cached(fd_index ix,void *ptr)
+{
+  fdtype *vals=(fdtype *)ptr;
+  FD_ADD_TO_CHOICE(*vals,fd_hashtable_keys(&(ix->cache)));
+  return 0;
+}
+
+FD_EXPORT
+fdtype fd_cached_keys(fd_index ix)
+{
+  if (ix==NULL) {
+    int retval; fdtype result=FD_EMPTY_CHOICE;
+    fd_for_indices(accumulate_cached,(void *)&result);
+    if (retval<0) {
+      fd_decref(result);
+      return fd_erreify();}
+    else return result;}
+  else return fd_hashtable_keys(&(ix->cache));
+}
+
 /* IPEVAL delay execution */
 
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)

@@ -92,6 +92,7 @@ FD_EXPORT void fd_close_indices(void);
 FD_EXPORT int fd_commit_indices(void);
 FD_EXPORT int fd_commit_indices_noerr(void);
 FD_EXPORT int fd_cachecount_indices(void);
+FD_EXPORT fdtype fd_cached_keys(fd_index p);
 
 FD_EXPORT fd_index fd_lisp2index(fdtype lp);
 FD_EXPORT fdtype fd_index2lisp(fd_index ix);

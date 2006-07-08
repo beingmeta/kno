@@ -244,6 +244,7 @@ FD_EXPORT int fd_close_pools(void);
 FD_EXPORT int fd_commit_pools(void);
 FD_EXPORT int fd_commit_pools_noerr(void);
 FD_EXPORT int fd_cachecount_pools(void);
+FD_EXPORT fdtype fd_cached_oids(fd_pool p);
 
 #if FD_INLINE_POOLS
 FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
