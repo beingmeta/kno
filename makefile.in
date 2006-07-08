@@ -406,6 +406,7 @@ activate-fdserv: etc/mod_fdserv.so
 
 $(DTYPE_OBJS): $(DTYPE_HEADERS)
 $(DB_OBJS): $(DB_HEADERS) $(DTYPE_HEADERS) 
+$(FDBSERV_OBJS): $(DB_HEADERS) $(DTYPE_HEADERS)
 $(SCHEME_OBJS): $(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
 $(SCHEMEIO_OBJS): include/fdb/ports.h $(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
 $(FDWEB_OBJS): include/fdb/fdweb.h \
