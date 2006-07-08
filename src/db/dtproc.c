@@ -55,7 +55,7 @@ static void recycle_dtproc(FD_CONS *c)
 
 static int open_server(fd_dtproc dtp)
 {
-  u8_string server_spec; long sock;
+  u8_string server_spec; u8_connection sock;
   if (strchr(dtp->server,'@'))
     server_spec=u8_strdup(dtp->server);
   else {

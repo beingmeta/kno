@@ -19,7 +19,8 @@ static char versionid[] =
 
 int main(int argc,char **argv)
 {
-  int socket, fd_version=fd_init_dbfile(), i=0;
+  u8_connection socket;
+  int fd_version=fd_init_dbfile(), i=0;
   struct FD_DTYPE_STREAM ds;
   fdtype expr=FD_EMPTY_LIST, result;
   socket=u8_connect(argv[1]);

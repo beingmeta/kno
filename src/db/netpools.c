@@ -94,8 +94,9 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
 {
   struct FD_NETWORK_POOL *np=u8_malloc(sizeof(struct FD_NETWORK_POOL));
   fd_dtype_stream s=&(np->stream);
-  int sock=u8_connect(spec), n_pools=0; 
+  u8_connection sock=u8_connect(spec);
   fdtype pooldata=FD_VOID;
+  int n_pools=0; 
   u8_string cid=u8_canonical_addr(spec);
   if (sock<0) {
     u8_free(np);
@@ -116,7 +117,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
       fdtype scan;
       if (n_pools==0) p=np;
       else {
-	int newsock=u8_connect(spec);
+	u8_connection newsock=u8_connect(spec);
 	p=u8_malloc(sizeof(struct FD_NETWORK_POOL));
 	fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
 	p->stream.mallocd=0;}
@@ -125,7 +126,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
     int i=1, len=FD_VECTOR_LENGTH(pooldata);
     init_network_pool(np,FD_VECTOR_REF(pooldata,0),spec,cid);
     while (i < len) {
-      int newsock=u8_connect(spec);
+      u8_connection newsock=u8_connect(spec);
       struct FD_NETWORK_POOL *p=u8_malloc(sizeof(struct FD_NETWORK_POOL));
       fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
       p->stream.mallocd=0;
@@ -142,7 +143,7 @@ static int reopen_network_pool(struct FD_NETWORK_POOL *p)
 {
   if (p->stream.fd>=0) return 0;
   else {
-    long newsock=u8_connect(p->source);
+    u8_connection newsock=u8_connect(p->source);
     if (newsock>=0) {
       fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
       return 1;}
