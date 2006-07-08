@@ -98,6 +98,24 @@ FD_EXPORT fdtype fd_anonymous_oid(fdtype oid)
   else return fd_err(fd_AnonymousOID,NULL,NULL,oid);
 }
 
+/* Pool caching */
+
+FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
+{
+  if (p->handler->setcache) {
+    p->handler->setcache(p,level);
+    p->cache_level=level;}
+  p->flags=p->flags|FD_EXPLICIT_SETCACHE;
+}
+
+static void init_cache_level(fd_pool p)
+{
+  if (FD_EXPECT_FALSE(p->cache_level<0)) {
+    p->cache_level=fd_default_cache_level;
+    if (p->handler->setcache)
+      p->handler->setcache(p,fd_default_cache_level);}
+}
+
 /* Registering pools */
 
 #define FD_TOP_POOL_SIZE 0x100000
@@ -242,10 +260,7 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid)
 {
   fdtype v;
-  if (p->cache_level<0) {
-    p->cache_level=fd_default_cache_level;
-    if (p->handler->setcache)
-      p->handler->setcache(p,fd_default_cache_level);}
+  init_cache_level(p);
   v=p->handler->fetch(p,oid);
   if (FD_ABORTP(v)) return v;
   if (p->n_locks)
@@ -279,10 +294,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     fd_seterr(fd_NotAPool,"fd_pool_prefetch",
 	      u8_strdup("NULL pool ptr"),FD_VOID);
     return -1;}
-  else if (p->cache_level<0) {
-    p->cache_level=fd_default_cache_level;
-    if (p->handler->setcache)
-      p->handler->setcache(p,fd_default_cache_level);}
+  else init_cache_level(p);
   if (p->cache_level<1) return 0;
   if (p->handler->fetchn==NULL)
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
@@ -513,10 +525,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
   struct FD_HASHTABLE *cache=&(p->cache); 
   struct FD_HASHTABLE *locks=&(p->locks); 
   double start_time=u8_elapsed_time();
-  if (p->cache_level<0) {
-    p->cache_level=fd_default_cache_level;
-    if (p->handler->setcache)
-      p->handler->setcache(p,fd_default_cache_level);}
+  init_cache_level(p);
   if (FD_CHOICEP(oids)) {
     int n_oids=FD_CHOICE_SIZE(oids), retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(n_oids);
@@ -606,14 +615,6 @@ FD_EXPORT int fd_pool_load(fd_pool p)
   if (p->handler->getload)
     return (p->handler->getload)(p);
   else return -1;
-}
-
-FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
-{
-  if (p->handler->setcache) {
-    p->handler->setcache(p,level);
-    p->cache_level=level;}
-  p->flags=p->flags|FD_EXPLICIT_SETCACHE;
 }
 
 FD_EXPORT void fd_pool_close(fd_pool p)

@@ -81,6 +81,27 @@ static fdtype set_symbol, drop_symbol;
 static u8_mutex indices_lock;
 #endif
 
+/* Index cache levels */
+
+/* a cache_level<0 indicates no caching has been done */
+
+FD_EXPORT void fd_index_setcache(fd_index ix,int level)
+{
+  if (ix->handler->setcache)
+    ix->handler->setcache(ix,level);
+  ix->cache_level=level;
+  ix->flags=ix->flags|FD_EXPLICIT_SETCACHE;
+}
+
+static void init_cache_level(fd_index ix)
+{
+  if (FD_EXPECT_FALSE(ix->cache_level<0)) {
+    ix->cache_level=fd_default_cache_level;
+    if (ix->handler->setcache)
+      ix->handler->setcache(ix,fd_default_cache_level);}
+}
+
+
 /* The index registry */
 
 FD_EXPORT void fd_register_index(fd_index ix)
@@ -203,33 +224,30 @@ FD_EXPORT fd_index fd_use_index(u8_string spec)
 FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
 {
   fdtype v;
-  if (ix->cache_level<0) {
-    ix->cache_level=fd_default_cache_level;
-    if (ix->handler->setcache)
-      ix->handler->setcache(ix,fd_default_cache_level);}
+  init_cache_level(ix);
   if (ix->edits.n_keys) {
     fdtype value;
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fdtype set_value=fd_hashtable_get(&(ix->edits),set_key,FD_VOID);
-    fdtype adds=fd_hashtable_get(&(ix->adds),key,FD_EMPTY_CHOICE);
-    fdtype drops=fd_hashtable_get(&(ix->edits),drop_key,FD_EMPTY_CHOICE);
     if (!(FD_VOIDP(set_value))) {
       if (ix->cache_level>0) fd_hashtable_set(&(ix->cache),key,set_value);
       fd_decref(drop_key); fd_decref(set_key);
-      fd_decref(adds); fd_decref(drops);
       return set_value;}
-    if (ix->handler->fetch)
-      v=ix->handler->fetch(ix,key);
-    else v=FD_EMPTY_CHOICE;
-    if (FD_EMPTY_CHOICEP(drops)) {
-      FD_ADD_TO_CHOICE(v,adds);}
     else {
-      fdtype newv;
-      FD_ADD_TO_CHOICE(v,adds);
-      newv=fd_difference(v,drops);
-      fd_decref(v); fd_decref(drops);
-      v=newv;}}
+      fdtype adds=fd_hashtable_get(&(ix->adds),key,FD_EMPTY_CHOICE);
+      fdtype drops=fd_hashtable_get(&(ix->edits),drop_key,FD_EMPTY_CHOICE);
+      if (ix->handler->fetch)
+	v=ix->handler->fetch(ix,key);
+      else v=FD_EMPTY_CHOICE;
+      if (FD_EMPTY_CHOICEP(drops)) {
+	FD_ADD_TO_CHOICE(v,adds);}
+      else {
+	fdtype newv;
+	FD_ADD_TO_CHOICE(v,adds);
+	newv=fd_difference(v,drops);
+	fd_decref(v); fd_decref(drops);
+	v=newv;}}}
   else if (ix->adds.n_keys) {
     fdtype adds=fd_hashtable_get(&(ix->adds),key,FD_EMPTY_CHOICE);
     v=ix->handler->fetch(ix,key);
@@ -262,10 +280,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 {
   fdtype *keyvec=NULL, *values; int free_keys=0, n_fetched=0;
   if (ix == NULL) return -1;
-  else if (ix->cache_level<0) {
-    ix->cache_level=fd_default_cache_level;
-    if (ix->handler->setcache)
-      ix->handler->setcache(ix,fd_default_cache_level);}
+  else init_cache_level(ix);
   if (ix->handler->prefetch != NULL)
     if (fd_ipeval_status()) {
       delay_index_fetch(ix,keys);
@@ -284,10 +299,6 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  fd_hashtable_set(&(ix->cache),key,v);
 	  fd_decref(v);}
       return n_fetched;}
-  if (ix->cache_level<0) {
-    ix->cache_level=fd_default_cache_level;
-    if (ix->handler->setcache)
-      ix->handler->setcache(ix,fd_default_cache_level);}
   if (ix->cache_level==0) return 0;
   if (FD_ACHOICEP(keys)) {keys=fd_make_simple_choice(keys); free_keys=1;}
   if (fd_ipeval_status()) delay_index_fetch(ix,keys);
@@ -437,7 +448,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
   if (ix->read_only) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->cid),FD_VOID);
     return -1;}
-  else if (FD_CHOICEP(key)) {
+  else init_cache_level(ix);
+  if (FD_CHOICEP(key)) {
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key), retval;
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
@@ -464,13 +476,13 @@ static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
   else return -1;
 }
 
-
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
 {
   if (ix->read_only) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->cid),FD_VOID);
     return -1;}
-  else if (FD_CHOICEP(key)) {
+  else init_cache_level(ix);
+  if (FD_CHOICEP(key)) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
@@ -508,26 +520,27 @@ static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
 FD_EXPORT int fd_index_set(fd_index ix,fdtype key,fdtype value)
 {
   if (ix->read_only) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->cid),FD_VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_set",u8_strdup(ix->cid),FD_VOID);
     return -1;}
-  else if (FD_CHOICEP(key)) {
+  else init_cache_level(ix);
+  if (FD_CHOICEP(key)) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
       fd_hashtable_set(&(ix->edits),set_key,value);
       fd_hashtable_op(&(ix->edits),fd_table_replace,drop_key,FD_EMPTY_CHOICE);
-      if (ix->cache_level>0)
-	fd_hashtable_set(&(ix->cache),key,value);
-      else fd_hashtable_set(&(ix->adds),key,value);
+      if (ix->cache_level>0) {
+	fd_hashtable_set(&(ix->cache),eachkey,value);
+	fd_hashtable_op(&(ix->adds),fd_table_replace,eachkey,FD_VOID);}
       fd_decref(set_key); fd_decref(drop_key);}}
   else {
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fd_hashtable_set(&(ix->edits),set_key,value);
     fd_hashtable_op(&(ix->edits),fd_table_replace,drop_key,FD_EMPTY_CHOICE);
-    if (ix->cache_level>0)
+    if (ix->cache_level>0) {
       fd_hashtable_set(&(ix->cache),key,value);
-    else fd_hashtable_set(&(ix->adds),key,value);
+      fd_hashtable_op(&(ix->adds),fd_table_replace,key,FD_VOID);}
     fd_decref(set_key); fd_decref(drop_key);}
   if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->cache.n_keys))
@@ -554,6 +567,8 @@ static fdtype table_indexkeys(fdtype ixarg)
 
 FD_EXPORT int fd_index_commit(fd_index ix)
 {
+  if (ix==NULL) return -1;
+  else init_cache_level(ix);
   if ((ix->adds.n_slots) || (ix->edits.n_slots)) {
     int n_keys=ix->adds.n_keys+ix->edits.n_keys, retval=0;
     double start_time=u8_elapsed_time();
@@ -579,14 +594,6 @@ FD_EXPORT void fd_index_swapout(fd_index ix)
     if ((ix->flags)&(FD_STICKY_CACHESIZE))
       fd_reset_hashtable(&(ix->cache),-1,1);
     else fd_reset_hashtable(&(ix->cache),0,1);}
-}
-
-FD_EXPORT void fd_index_setcache(fd_index ix,int level)
-{
-  if (ix->handler->setcache)
-    ix->handler->setcache(ix,level);
-  ix->cache_level=level;
-  ix->flags=ix->flags|FD_EXPLICIT_SETCACHE;
 }
 
 FD_EXPORT void fd_index_close(fd_index ix)
