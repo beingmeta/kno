@@ -933,7 +933,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->n_adjuncts=0; p->adjuncts=NULL;
   p->n_locks=0;
   p->handler=h;
-  p->source=u8_strdup(source); p->cid=u8_strdup(cid);
+  p->source=u8_strdup(source); p->cid=u8_strdup(cid); p->xid=NULL;
   p->label=NULL; p->prefix=NULL;
 }
 
@@ -994,9 +994,14 @@ static int unparse_pool(u8_output out,fdtype x)
   fd_pool p=fd_lisp2pool(x);
   if (p==NULL) return 0;
   else if (p->label)
-    u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s\">",x,p->label,p->source);
+    if (p->xid)
+      u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s|%s\">",
+		x,p->label,p->source,p->xid);
+    else u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s\">",x,p->label,p->source);
   else if (p->source)
-    u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
+    if (p->xid)
+      u8_printf(out,"#<POOL 0x%lx \"%s|%s\">",x,p->source,p->xid);
+    else u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
   else u8_printf(out,"#<POOL 0x%lx>",x);  
   return 1;
 }

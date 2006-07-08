@@ -25,7 +25,7 @@ FD_EXPORT fd_exception
 
 #define FD_INDEX_FIELDS \
   int serialno, read_only, cache_level, flags;   \
-  u8_string source, cid;                         \
+  u8_string source, cid, xid;                    \
   struct FD_INDEX_HANDLER *handler;              \
   struct FD_HASHTABLE cache, adds, edits
 

@@ -93,8 +93,8 @@ static void init_network_pool
 FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
 {
   struct FD_NETWORK_POOL *np=u8_malloc(sizeof(struct FD_NETWORK_POOL));
-  fd_dtype_stream s=&(np->stream);
-  u8_connection sock=u8_connect(spec);
+  fd_dtype_stream s=&(np->stream); u8_string xid=NULL;
+  u8_connection sock=u8_connect_x(spec,&xid);
   fdtype pooldata=FD_VOID;
   int n_pools=0; 
   u8_string cid=u8_canonical_addr(spec);
@@ -104,34 +104,32 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
   if (FD_VOIDP(client_id)) init_client_id();
   fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
   s->bits=s->bits|FD_DTSTREAM_DOSYNC;
-  np->cid=cid; 
+  np->cid=cid; np->xid=xid;
   pooldata=dtcall(np,2,pool_data_symbol,client_id);
   if (FD_ABORTP(pooldata)) {
     fd_interr(pooldata);
     fd_dtsclose(s,1);
-    u8_free(np); u8_free(cid);
+    u8_free(np); u8_free(cid); u8_free(xid);
     return NULL;}
-  else if (FD_CHOICEP(pooldata)) {
-    FD_DO_CHOICES(pd,pooldata) {
-      struct FD_NETWORK_POOL *p;
-      fdtype scan;
+  /* The server actually serves multiple pools */
+  else if ((FD_CHOICEP(pooldata)) || (FD_VECTORP(pooldata))) {
+    const fdtype *scan, *limit; int n_pools=0;
+    if (FD_CHOICEP(pooldata)) {
+      scan=FD_CHOICE_DATA(pooldata); limit=scan+FD_CHOICE_SIZE(pooldata);}
+    else {
+      scan=FD_VECTOR_DATA(pooldata); limit=scan+FD_VECTOR_LENGTH(pooldata);}
+    while (scan<limit) {
+      struct FD_NETWORK_POOL *p; fdtype pd=*scan++;
       if (n_pools==0) p=np;
       else {
-	u8_connection newsock=u8_connect(spec);
+	u8_connection newsock=u8_connect_x(spec,&xid);
 	p=u8_malloc(sizeof(struct FD_NETWORK_POOL));
 	fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
+	p->xid=xid;
 	p->stream.mallocd=0;}
-      init_network_pool(p,pd,spec,cid);}}
-  else if (FD_VECTORP(pooldata)) {
-    int i=1, len=FD_VECTOR_LENGTH(pooldata);
-    init_network_pool(np,FD_VECTOR_REF(pooldata,0),spec,cid);
-    while (i < len) {
-      u8_connection newsock=u8_connect(spec);
-      struct FD_NETWORK_POOL *p=u8_malloc(sizeof(struct FD_NETWORK_POOL));
-      fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
-      p->stream.mallocd=0;
-      init_network_pool(p,FD_VECTOR_REF(pooldata,i),spec,cid);
-      i++;}}
+      init_network_pool(p,pd,spec,cid);
+      p->xid=xid;
+      n_pools++;}}
   else init_network_pool(np,pooldata,spec,cid);
   u8_free(cid);
   np->bulk_commitp=server_supportsp(np,bulk_commit_symbol);
@@ -143,8 +141,11 @@ static int reopen_network_pool(struct FD_NETWORK_POOL *p)
 {
   if (p->stream.fd>=0) return 0;
   else {
-    u8_connection newsock=u8_connect(p->source);
+    u8_string xid=NULL;
+    u8_connection newsock=u8_connect_x(p->source,&xid);
+    if (p->xid) {u8_free(p->xid); p->xid=NULL;}
     if (newsock>=0) {
+      p->xid=xid;
       fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
       return 1;}
     else return -1;}

@@ -124,7 +124,7 @@ FD_EXPORT int fd_ignore_anonymous_oids;
   FD_OID base;                                             \
   unsigned int capacity, read_only;                        \
   int serialno; int cache_level, flags;                    \
-  u8_string label, source, cid, prefix;		           \
+  u8_string label, source, cid, xid, prefix;		   \
   int n_adjuncts; struct FD_KEYVAL *adjuncts;              \
   struct FD_POOL_HANDLER *handler;                         \
   struct FD_HASHTABLE cache, locks; int n_locks

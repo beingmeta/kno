@@ -101,12 +101,13 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
 FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
 {
   struct FD_NETWORK_INDEX *ix=u8_malloc(sizeof(struct FD_NETWORK_INDEX));
-  fdtype writable_response;
+  fdtype writable_response; u8_string xid=NULL;
   fd_dtype_stream s=&(ix->stream);
-  u8_connection sock=u8_connect(spec);
+  u8_connection sock=u8_connect_x(spec,&xid);
   int n_pools=0; 
   if (sock>0) {
-    fd_init_index(ix,&netindex_handler,spec); ix->xname=xname;
+    fd_init_index(ix,&netindex_handler,spec);
+    ix->xname=xname; ix->xid=xid;
     fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
     s->mallocd=0; s->bits=s->bits|FD_DTSTREAM_DOSYNC;
     if (FD_VOIDP(xname))
@@ -135,8 +136,11 @@ static int reopen_network_index(struct FD_NETWORK_INDEX *ix)
 {
   if (ix->stream.fd>=0) return 0;
   else {
-    u8_connection newsock=u8_connect(ix->source);
+    u8_string xid=NULL;
+    u8_connection newsock=u8_connect_x(ix->source,&xid);
+    if (ix->xid) u8_free(ix->xid); ix->xid=NULL;
     if (newsock>=0) {
+      ix->xid=xid;
       fd_init_dtype_stream(&(ix->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
       return 1;}
     else return -1;}
