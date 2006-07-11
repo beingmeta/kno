@@ -716,6 +716,22 @@ static int compare_schemaps(fdtype x,fdtype y,int quick)
  
 /* Hash functions */
 
+/* This is the point at which we resize hashtables. */
+#define hashtable_needs_resizep(ht)\
+   ((ht->n_keys*ht->loading)>(ht->n_slots*4))
+/* This is the target size for resizing. */
+#define hashtable_resize_target(ht) \
+   ((ht->n_keys*ht->loading)/2)
+
+#define hashset_needs_resizep(hs)\
+   ((hs->n_keys*hs->loading)>(hs->n_slots*4))
+/* This is the target size for resizing. */
+#define hashset_resize_target(hs) \
+   ((hs->n_keys*hs->loading)/2)
+
+static int default_hashtable_loading=8;
+static int default_hashset_loading=8;
+
 /* These are all the higher of prime pairs around powers of 2.  They are
     used to select good hashtable sizes. */
 static unsigned int hashtable_sizes[]=
@@ -1089,9 +1105,10 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   u8_unlock_mutex(&(ht->lock));
   if (FD_EXCEPTIONP(result->value)) 
     return fd_interr(result->value);
-  if (FD_EXPECT_FALSE((ht->n_keys*ht->loading)>ht->n_slots*100)) {
-    int new_size=
-      fd_get_hashtable_size((ht->n_keys*ht->loading)/50);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4; 
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
   return added;
 }
@@ -1120,9 +1137,10 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
       u8_destroy_mutex(&(ch->lock)); ch->uselock=0;}}
 #endif
   u8_unlock_mutex(&(ht->lock));
-  if (FD_EXPECT_FALSE((ht->n_keys*ht->loading)>ht->n_slots*100)) {
-    int new_size=
-      fd_get_hashtable_size((ht->n_keys*ht->loading)/50);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4; 
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
   return added;
 }
@@ -1338,9 +1356,10 @@ FD_EXPORT int fd_hashtable_op
   u8_lock_mutex(&(ht->lock));
   added=do_hashtable_op(ht,op,key,value);
   u8_unlock_mutex(&(ht->lock));  
-  if (FD_EXPECT_FALSE((ht->n_keys*ht->loading)>ht->n_slots*100)) {
-    int new_size=
-      fd_get_hashtable_size((ht->n_keys*ht->loading)/50);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4; 
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
   return added;
 }
@@ -1359,9 +1378,10 @@ FD_EXPORT int fd_hashtable_iter
     else do_hashtable_op(ht,op,keys[i],values[i]);
     i++;}
   u8_unlock_mutex(&(ht->lock));  
-  if (FD_EXPECT_FALSE((ht->n_keys*ht->loading)>ht->n_slots*100)) {
-    int new_size=
-      fd_get_hashtable_size((ht->n_keys*ht->loading)/50);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4; 
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
   return added;
 }
@@ -1383,9 +1403,10 @@ FD_EXPORT int fd_hashtable_iterkeys
       return added;}
     i++;}
   u8_unlock_mutex(&(ht->lock));  
-  if (FD_EXPECT_FALSE((ht->n_keys*ht->loading)>ht->n_slots*100)) {
-    int new_size=
-      fd_get_hashtable_size((ht->n_keys*ht->loading)/50);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4; 
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
   return added;
 }
@@ -1404,9 +1425,10 @@ FD_EXPORT int fd_hashtable_itervals
     else do_hashtable_op(ht,op,key,values[i]);
     i++;}
   u8_unlock_mutex(&(ht->lock));  
-  if (FD_EXPECT_FALSE((ht->n_keys*ht->loading)>ht->n_slots*100)) {
-    int new_size=
-      fd_get_hashtable_size((ht->n_keys*ht->loading)/50);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4; 
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
   return added;
 }
@@ -1460,11 +1482,11 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
     u8_pfree_x(ht->mpool,ht->slots,sizeof(struct FD_HASHENTRY *)*ht->n_slots);}
   /* Now reinitialize it. */
   if (n_slots == 0) {
-    ht->n_slots=ht->n_keys=0; ht->loading=200;
+    ht->n_slots=ht->n_keys=0; ht->loading=default_hashtable_loading;
     ht->slots=NULL;}
   else {
     int i=0; struct FD_HASHENTRY **slots;
-    ht->n_slots=n_slots; ht->n_keys=0; ht->loading=200; 
+    ht->n_slots=n_slots; ht->n_keys=0; ht->loading=default_hashtable_loading; 
     ht->slots=slots=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
     while (i < n_slots) slots[i++]=NULL;}
   if (lock) u8_unlock_mutex(&(ht->lock));
@@ -1483,7 +1505,8 @@ FD_EXPORT fdtype fd_make_hashtable
 #if FD_THREADS_ENABLED
     u8_init_mutex(&(ptr->lock));
 #endif
-    ptr->n_slots=ptr->n_keys=0; ptr->loading=200; ptr->modified=0;
+    ptr->n_slots=ptr->n_keys=0;  ptr->modified=0;
+    ptr->loading=default_hashtable_loading;
     ptr->mpool=mpool; ptr->slots=NULL;
     return FDTYPE_CONS(ptr);}
   else {
@@ -1498,7 +1521,8 @@ FD_EXPORT fdtype fd_make_hashtable
     if (n_slots < 0) n_slots=-n_slots;
     else n_slots=fd_get_hashtable_size(n_slots);
     ptr->modified=0;
-    ptr->n_slots=n_slots; ptr->n_keys=0; ptr->loading=200; ptr->mpool=mpool;
+    ptr->n_slots=n_slots; ptr->n_keys=0; ptr->mpool=mpool;
+    ptr->loading=default_hashtable_loading; 
     ptr->slots=slots=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
     while (i < n_slots) slots[i++]=NULL;
     return FDTYPE_CONS(ptr);}
@@ -1514,7 +1538,8 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int n_keyvals,
   if (ptr == NULL) ptr=u8_pmalloc(mpool,sizeof(struct FD_HASHTABLE));
   FD_INIT_CONS(ptr,fd_hashtable_type);
   ptr->n_slots=n_slots; ptr->mpool=mpool;
-  ptr->n_keys=n_keyvals; ptr->loading=200; ptr->modified=0;
+  ptr->n_keys=n_keyvals; ptr->modified=0;
+  ptr->loading=default_hashtable_loading; 
   ptr->slots=slots=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
   memset(slots,0,sizeof(struct FD_HASHENTRY *)*n_slots);
   i=0; while (i<n_keyvals) {
@@ -1770,7 +1795,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size)
   int i=0, n_slots=fd_get_hashtable_size(size);
   FD_INIT_CONS(hashset,fd_hashset_type);
   hashset->n_slots=n_slots; hashset->n_keys=0;
-  hashset->atomicp=1; hashset->loading=200;
+  hashset->atomicp=1; hashset->loading=default_hashset_loading;
   hashset->slots=slots=u8_malloc(sizeof(fdtype)*n_slots);
   while (i < n_slots) slots[i++]=0;
   u8_init_mutex(&(hashset->lock));
@@ -1870,7 +1895,8 @@ static fdtype hashsetelts(struct FD_HASHSET *h)
 
 static int grow_hashset(struct FD_HASHSET *h)
 {
-  int i=0, lim=h->n_slots, new_size=fd_get_hashtable_size(h->n_keys*3);
+  int i=0, lim=h->n_slots;
+  int new_size=fd_get_hashtable_size(hashset_resize_target(h));
   const fdtype *slots=h->slots;
   fdtype *newslots=u8_malloc(sizeof(fdtype)*new_size);
   while (i<new_size) newslots[i++]=FD_NULL;
@@ -1898,7 +1924,7 @@ FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,fdtype key,int add)
     if (add) {
       slots[probe]=fd_incref(key); h->n_keys++;
       if (FD_CONSP(key)) h->atomicp=0;
-      if (FD_EXPECT_FALSE(h->n_keys*h->loading>h->n_slots*100))
+      if (hashset_needs_resizep(h))
 	grow_hashset(h);
       u8_unlock_mutex(&(h->lock));
       return 1;}
@@ -1926,7 +1952,7 @@ FD_EXPORT int fd_hashset_init_add(struct FD_HASHSET *h,fdtype key)
   else if (FD_NULLP(slots[probe])) {
     slots[probe]=key; h->n_keys++;
     if (FD_CONSP(key)) h->atomicp=0;
-    if (FD_EXPECT_FALSE(h->n_keys*h->loading>h->n_slots*100))
+    if (FD_EXPECT_FALSE(hashset_needs_resizep(h)))
       grow_hashset(h);
     return 1;}
 }
