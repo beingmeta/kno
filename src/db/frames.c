@@ -184,10 +184,10 @@ FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
   fdtype slotcache=fd_hashtable_get(&slot_caches,slotid,FD_VOID);
   fdtype testcache=fd_hashtable_get(&test_caches,slotid,FD_VOID);
   if (FD_HASHTABLEP(slotcache)) 
-    fd_hashtable_store(FD_XHASHTABLE(slotcache),frame,FD_VOID);
+    fd_hashtable_op(FD_XHASHTABLE(slotcache),fd_table_replace,frame,FD_VOID);
   /* Need to do this more selectively. */
   if (FD_HASHTABLEP(testcache))
-    fd_hashtable_store(FD_XHASHTABLE(testcache),frame,FD_VOID);
+    fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,FD_VOID);
 }
 
 FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
@@ -195,7 +195,7 @@ FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
   fdtype testcache=fd_hashtable_get(&test_caches,slotid,FD_VOID);
   if (FD_HASHTABLEP(testcache))
     if (FD_VOIDP(value))
-      fd_hashtable_store(FD_XHASHTABLE(testcache),frame,FD_VOID);
+      fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,FD_VOID);
     else {
       fdtype cache=fd_hashtable_get(FD_XHASHTABLE(testcache),frame,FD_EMPTY_CHOICE);
       if (FD_PAIRP(cache)) {
@@ -294,7 +294,8 @@ static void decache_implications(fdtype factoid)
 {
   fdtype implies=fd_hashtable_get(&implications,factoid,FD_EMPTY_CHOICE);
   decache_factoid(factoid);
-  fd_hashtable_store(&implications,factoid,FD_EMPTY_CHOICE);
+  if (!(FD_EMPTY_CHOICEP(implies)))
+    fd_hashtable_store(&implications,factoid,FD_EMPTY_CHOICE);
   {FD_DO_CHOICES(imply,implies) decache_implications(imply);}
   fd_decref(implies);
 }
