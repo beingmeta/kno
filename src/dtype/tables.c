@@ -208,6 +208,7 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result; int size, osize;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
+  if (FD_EMPTY_CHOICEP(value)) return 0;
   u8_lock_mutex(&sm->lock);
   size=osize=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_insert(key,&(sm->keyvals),&size);
@@ -595,6 +596,7 @@ FD_EXPORT int fd_schemap_add
 {
   int slotno, size;
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
+  if (FD_EMPTY_CHOICEP(value)) return 0;
   u8_lock_mutex(&(sm->lock));
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
@@ -1117,6 +1119,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result; int n_keys, added; fdtype newv;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  if (FD_EMPTY_CHOICEP(value)) return 0;
   u8_lock_mutex(&(ht->lock));
   if (ht->n_slots == 0) setup_hashtable(ht,17);
   n_keys=ht->n_keys;

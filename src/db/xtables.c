@@ -309,9 +309,11 @@ static fdtype choice_get(fdtype arg,fdtype slotid,fdtype dflt)
 
 static int choice_add(fdtype arg,fdtype slotid,fdtype value)
 {
-  FD_DO_CHOICES(each,arg)
-    if (fd_add(each,slotid,value)<0) return -1;
-  return 1;
+  if (FD_EMPTY_CHOICEP(value)) return 0;
+  else {
+    FD_DO_CHOICES(each,arg)
+      if (fd_add(each,slotid,value)<0) return -1;
+    return 1;}
 }
 
 static int choice_store(fdtype arg,fdtype slotid,fdtype value)

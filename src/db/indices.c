@@ -449,7 +449,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if (FD_CHOICEP(key)) {
+  if (FD_EMPTY_CHOICEP(value)) {}
+  else if (FD_CHOICEP(key)) {
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key), retval;
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
@@ -465,7 +466,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
       unsigned int n=FD_CHOICE_SIZE(key), retval;
-      fd_hashtable_iterkeys(&(fd_background->cache),fd_table_replace,n,keys,FD_VOID);}
+      fd_hashtable_iterkeys
+	(&(fd_background->cache),fd_table_replace,n,keys,FD_VOID);}
     else fd_hashtable_op(&(fd_background->cache),fd_table_replace,key,FD_VOID);
   return 1;
 }
