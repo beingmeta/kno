@@ -423,8 +423,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
       n_vals=fd_dtsread_zint(stream);
       val_start=fd_dtsread_zint(stream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
-	u8_raise(_("inconsistent file index"),"zindex_fetch",
-		 u8_strdup(ix->cid));
+	u8_warn(fd_FileIndexError,"zindex_fetch %s",u8_strdup(ix->cid));
       thiskey=zread_key(stream,fx->slotids,fx->baseoids,fx->n_baseoids);
       if (FD_ABORTP(thiskey)) return thiskey;
       else if (FDTYPE_EQUAL(key,thiskey))

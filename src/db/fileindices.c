@@ -154,7 +154,7 @@ static fdtype fileindex_fetch(fd_index ix,fdtype key)
       n_vals=fd_dtsread_4bytes(stream);
       val_start=fd_dtsread_4bytes(stream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
-	u8_warn(fd_FileIndexError,"fileindex_fetch",u8_strdup(ix->cid));
+	u8_warn(fd_FileIndexError,"fileindex_fetch %s",u8_strdup(ix->cid));
       thiskey=fd_dtsread_dtype(stream);
       if (FDTYPE_EQUAL(key,thiskey))
 	if (n_vals==0) {
