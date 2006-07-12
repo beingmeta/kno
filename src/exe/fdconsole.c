@@ -18,6 +18,7 @@ static char versionid[] =
 #include <libu8/u8io.h>
 #include <libu8/xfiles.h>
 #include <libu8/timefns.h>
+#include <libu8/pathfns.h>
 #include <libu8/filefns.h>
 
 #include <stdlib.h>

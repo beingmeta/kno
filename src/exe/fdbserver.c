@@ -17,7 +17,9 @@ static char versionid[] =
 #include <libu8/u8.h>
 #include <libu8/stringfns.h>
 #include <libu8/timefns.h>
+#include <libu8/pathfns.h>
 #include <libu8/filefns.h>
+#include <libu8/fileio.h>
 #include <libu8/netfns.h>
 
 #include <strings.h>
@@ -26,6 +28,7 @@ static char versionid[] =
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
+#include <stdio.h>
 
 static fd_exception BadPortSpec=_("Bad port spec");
 static u8_condition NoServers=_("NoServers");

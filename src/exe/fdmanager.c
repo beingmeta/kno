@@ -7,6 +7,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
+#include <libu8/pathfns.h>
 #include <libu8/filefns.h>
 
 #include <sys/stat.h>
@@ -19,6 +20,7 @@ static char versionid[] =
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
+#include <stdio.h>
 
 #define NUL '\0'
 

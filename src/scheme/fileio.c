@@ -19,6 +19,7 @@ static char versionid[] =
 #include "fdb/ports.h"
 #include "fdb/numbers.h"
 
+#include <libu8/pathfns.h>
 #include <libu8/filefns.h>
 #include <libu8/stringfns.h>
 #include <libu8/xfiles.h>
