@@ -737,15 +737,15 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   int size=1;
   fd_write_byte(out,dt_compound);
   size=size+fd_write_dtype(out,timestamp_symbol);
-  if ((xtm->xtime.precision == u8_second) && (xtm->xtime.tzoff==0)) {
-    fdtype xval=FD_INT2DTYPE(xtm->xtime.secs);
+  if ((xtm->xtime.u8_prec == u8_second) && (xtm->xtime.u8_tzoff==0)) {
+    fdtype xval=FD_INT2DTYPE(xtm->xtime.u8_secs);
     size=size+fd_write_dtype(out,xval);}
   else {
     fdtype vec=fd_init_vector(NULL,4,NULL); int n_bytes;
-    FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.secs));
-    FD_VECTOR_SET(vec,1,FD_INT2DTYPE(xtm->xtime.nsecs));
-    FD_VECTOR_SET(vec,2,FD_INT2DTYPE((int)xtm->xtime.precision));
-    FD_VECTOR_SET(vec,3,FD_INT2DTYPE((int)xtm->xtime.tzoff));
+    FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.u8_secs));
+    FD_VECTOR_SET(vec,1,FD_INT2DTYPE(xtm->xtime.u8_nsecs));
+    FD_VECTOR_SET(vec,2,FD_INT2DTYPE((int)xtm->xtime.u8_prec));
+    FD_VECTOR_SET(vec,3,FD_INT2DTYPE((int)xtm->xtime.u8_tzoff));
     size=size+fd_write_dtype(out,vec);}
   return size;
 }
@@ -771,8 +771,8 @@ static fdtype timestamp_restore(FD_MEMORY_POOL_TYPE *p,fdtype tag,fdtype x)
     int tzoff=fd_getint(FD_VECTOR_REF(x,3));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),secs,tzoff);
-    tm->xtime.nsecs=nsecs;
-    tm->xtime.precision=iprec;
+    tm->xtime.u8_nsecs=nsecs;
+    tm->xtime.u8_prec=iprec;
     return FDTYPE_CONS(tm);}
   else return fd_err(fd_DTypeError,"bad timestamp compound",NULL,x);
 }

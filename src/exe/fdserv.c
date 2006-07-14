@@ -379,7 +379,7 @@ static fdtype getcontent(fdtype path)
 	u8_graberr(-1,"getcontent",u8_strdup(FD_STRDATA(path)));
 	u8_free(lpath); fd_decref(value);
 	return fd_erreify();}
-      else if (fileinfo.st_mtime>lmtime->xtime.secs) {
+      else if (fileinfo.st_mtime>lmtime->xtime.u8_secs) {
 	fdtype new_content=loadcontent(path);
 	struct U8_XTIME mtime;
 	u8_offtime(&mtime,fileinfo.st_mtime,0);

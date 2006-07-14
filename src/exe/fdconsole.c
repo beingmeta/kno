@@ -68,7 +68,7 @@ int main(int argc,char **argv)
   fd_lispenv env=fd_working_environment();
   fdtype lastval=FD_VOID, that_symbol;
   fdtype showtime_config=fd_config_get("SHOWTIME");
-  u8_encoding enc=u8_default_encoding("UTF-8");
+  u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);

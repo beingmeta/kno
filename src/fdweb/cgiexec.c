@@ -445,7 +445,7 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
 	struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
 	char buf[512];
 	strftime(buf,512,"%A, %d-%b-%Y %T GMT",
-		 &(tstamp->xtime.tptr));
+		 &(tstamp->xtime.u8_tptr));
 	u8_printf(out,"expires=%s; ",buf);}}
     u8_printf(out,"\r\n");}
   fd_decref(real_val);
