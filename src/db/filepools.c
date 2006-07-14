@@ -227,7 +227,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   endpos=fd_endpos(stream);
 #if HAVE_MMAP
   if (fp->offsets) {
-    int retval=munmap((fp->offsets)-6,4*fp->capacity+24);
+    int retval=munmap((fp->offsets)-6,4*fp->load+24);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
@@ -273,7 +273,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fp->offsets=NULL; errno=0;}
     else fp->offsets=NULL;
     newmmap=
-      mmap(NULL,(4*fp->capacity)+24,
+      mmap(NULL,(4*fp->load)+24,
 	   PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->source);
@@ -350,7 +350,7 @@ static void file_pool_setcache(fd_pool p,int level)
 	return;}
 #if HAVE_MMAP
       newmmap=
-	mmap(NULL,(4*fp->capacity)+24,PROT_READ,
+	mmap(NULL,(4*fp->load)+24,PROT_READ,
 	     MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:mmap %s",fp->source);
@@ -373,7 +373,7 @@ static void file_pool_setcache(fd_pool p,int level)
       int retval;
       u8_lock_mutex(&(fp->lock));
 #if HAVE_MMAP
-      retval=munmap((fp->offsets)-6,4*fp->capacity+24);
+      retval=munmap((fp->offsets)-6,4*fp->load+24);
       if (retval<0) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:munmap %s",fp->source);
 	fp->offsets=NULL; errno=0;}
@@ -418,7 +418,7 @@ static void file_pool_close(fd_pool p)
   fd_dtsclose(&(fp->stream),1);
   if (fp->offsets) {
 #if HAVE_MMAP
-    int retval=munmap((fp->offsets)-6,4*fp->capacity+24);
+    int retval=munmap((fp->offsets)-6,4*fp->load+24);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
