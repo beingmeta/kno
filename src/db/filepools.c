@@ -77,7 +77,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
       fd_dtsclose(&(pool->stream),1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
-  pool->load=load; pool->offsets=NULL;
+  pool->load=load; pool->offsets=NULL; pool->offsets_size=0;
   pool->read_only=read_only;
   u8_init_mutex(&(pool->lock));
   update_modtime(pool);
@@ -227,20 +227,24 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   endpos=fd_endpos(stream);
 #if HAVE_MMAP
   if (fp->offsets) {
-    int retval=munmap((fp->offsets)-6,4*fp->load+24);
+    /* Since we were just reading, the buffer was only as big
+       as the load, not the capacity. */
+    int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
       fp->offsets=NULL; errno=0;}
     else fp->offsets=NULL;
     newmmap=
-      mmap(NULL,(4*fp->capacity)+24,
+      mmap(NULL,(4*fp->load)+24,
 	   PROT_READ|PROT_WRITE,
 	   MAP_SHARED,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_warn(u8_strerror(errno),"file_pool_storen:mmap",fp->source);
       fp->offsets=NULL; errno=0;}
-    else fp->offsets=newmmap+6;}
+    else {
+      fp->offsets=newmmap+6;
+      fp->offsets_size=fp->load;}}
 #endif
   while (i<n) {
     int delta=fd_dtswrite_dtype(stream,values[i]);
@@ -266,19 +270,24 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   u8_free(offsets);
 #if HAVE_MMAP
   if (fp->offsets) {
-    int retval=munmap((fp->offsets)-6,4*fp->capacity+24);
+    int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
       fp->offsets=NULL; errno=0;}
-    else fp->offsets=NULL;
+    else {
+      fp->offsets=NULL; fp->offsets_size=0;}
     newmmap=
+      /* When allocating an offset buffer to read, we only have to make it as
+	 big as the file pools load. */
       mmap(NULL,(4*fp->load)+24,
 	   PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->source);
       fp->offsets=NULL; errno=0;}
-    else fp->offsets=newmmap+6;}
+    else {
+      fp->offsets_size=fp->load;
+      fp->offsets=newmmap+6;}}
 #else
   if ((retcode>=0) && (fp->offsets)) {
     if (fd_setpos(stream,24)<0) retcode=-1;
@@ -350,13 +359,15 @@ static void file_pool_setcache(fd_pool p,int level)
 	return;}
 #if HAVE_MMAP
       newmmap=
+	/* When allocating an offset buffer to read, we only have to make it as
+	   big as the file pools load. */
 	mmap(NULL,(4*fp->load)+24,PROT_READ,
 	     MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:mmap %s",fp->source);
 	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
       fp->offsets=offsets=newmmap+6;
-      fp->offsets_size=fp->capacity;
+      fp->offsets_size=fp->load;
 #else
       fd_dts_start_read(s);
       fd_setpos(s,12);
@@ -373,6 +384,8 @@ static void file_pool_setcache(fd_pool p,int level)
       int retval;
       u8_lock_mutex(&(fp->lock));
 #if HAVE_MMAP
+      /* Since we were just reading, the buffer was only as big
+	 as the load, not the capacity. */
       retval=munmap((fp->offsets)-6,4*fp->load+24);
       if (retval<0) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:munmap %s",fp->source);
@@ -386,6 +399,7 @@ static void file_pool_setcache(fd_pool p,int level)
 static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock)
 {
 #if HAVE_MMAP
+  /* This should grow the offsets if the load has changed. */
 #else
   fd_dtype_stream s=&(fp->stream);
   /* Read new offsets table, compare it with the current, and
@@ -418,15 +432,17 @@ static void file_pool_close(fd_pool p)
   fd_dtsclose(&(fp->stream),1);
   if (fp->offsets) {
 #if HAVE_MMAP
-    int retval=munmap((fp->offsets)-6,4*fp->load+24);
+    /* Since we were just reading, the buffer was only as big
+       as the load, not the capacity. */
+    int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
       errno=0;}
 #else
     u8_free(fp->offsets);
-#endif
-    fp->offsets=NULL;
+#endif 
+    fp->offsets=NULL; fp->offsets_size=0;
     fp->cache_level=-1;}
   u8_unlock_mutex(&(fp->lock));
 }
