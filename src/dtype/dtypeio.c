@@ -100,7 +100,7 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v);
   if (fd_write_byte(out,b)<0) return -1; else {}
 #define output_4bytes(out,w) \
   if (fd_write_4bytes(out,w)<0) return -1; else {}
-#define output_bytes(out,bytes,n) \
+#define output_bytes(out,bytes,n)				\
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
@@ -849,7 +849,7 @@ static fdtype make_character_type
       u8_sputc(&os,c);}
     u8_pfree_x(p,bytes,len);
     return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
-			  os.point-os.bytes,os.bytes);}
+			  os.u8_outptr-os.u8_outbuf,os.u8_outbuf);}
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
     fdtype sym;
     struct U8_OUTPUT os; unsigned char *scan, *limit;
@@ -858,9 +858,9 @@ static fdtype make_character_type
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
       u8_sputc(&os,c);}
-    sym=fd_make_symbol(os.bytes,os.point-os.bytes);
+    sym=fd_make_symbol(os.u8_outbuf,os.u8_outptr-os.u8_outbuf);
     u8_pfree_x(p,bytes,len);
-    u8_pfree_x(p,os.bytes,os.point-os.bytes);
+    u8_pfree_x(p,os.u8_outbuf,os.u8_outptr-os.u8_outbuf);
     return sym;}
   default:
     return fd_make_mystery_packet(p,dt_character_package,code,len,bytes);

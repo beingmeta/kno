@@ -125,8 +125,8 @@ int main(int argc,char **argv)
     fd_print_backtrace(&out,80,e->backtrace);
     fd_print_error(&out,e);
     fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
-    fputs(out.bytes,stderr);
-    u8_free(out.bytes);
+    fputs(out.u8_outbuf,stderr);
+    u8_free(out.u8_outbuf);
     retval=-1;}
   else if (FD_TROUBLEP(result)) {
     fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;

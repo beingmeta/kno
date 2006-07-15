@@ -269,8 +269,8 @@ int main(int argc,char **argv)
       fd_print_error(&out,e);
       fd_print_backtrace(&out,80,e->backtrace);
       fd_print_error(&out,e);
-      fputs(out.bytes,stderr);
-      u8_free(out.bytes);
+      fputs(out.u8_outbuf,stderr);
+      u8_free(out.u8_outbuf);
       u8_free(source_file);
       fd_decref(result);
       fd_decref((fdtype)env);

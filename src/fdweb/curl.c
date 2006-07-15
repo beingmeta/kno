@@ -349,7 +349,7 @@ static fdtype urlget(fdtype url,fdtype handle)
 	unsigned char *scan=data.bytes;
 	U8_INIT_OUTPUT(&out,data.size);
 	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-	cval=fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
     else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
     u8_free(data.bytes);}
@@ -392,7 +392,7 @@ static fdtype urlcontent(fdtype url,fdtype handle)
 	unsigned char *scan=data.bytes;
 	U8_INIT_OUTPUT(&out,data.size);
 	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-	cval=fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
     else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
     u8_free(data.bytes);}
@@ -441,8 +441,8 @@ static fdtype urlxml(fdtype url,fdtype xmloptions,fdtype handle)
 	unsigned char *scan=data.bytes;
 	U8_INIT_OUTPUT(&out,data.size);
 	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-	u8_free(data.bytes); buf=out.bytes;
-	U8_INIT_INPUT(&in,out.point-out.bytes,out.bytes);}
+	u8_free(data.bytes); buf=out.u8_outbuf;
+	U8_INIT_INPUT(&in,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else {
 	U8_INIT_INPUT(&in,data.size,data.bytes); buf=data.bytes;}}
     else {
@@ -570,10 +570,10 @@ static fdtype urlpost(int n,fdtype *args)
 	fd_unparse(&out,val);
 	curl_formadd(&post,&last,
 		     CURLFORM_COPYNAME,FD_SYMBOL_NAME(key),
-		     CURLFORM_COPYCONTENTS,out.bytes,
-		     CURLFORM_CONTENTSLENGTH,out.point-out.bytes,
+		     CURLFORM_COPYCONTENTS,out.u8_outbuf,
+		     CURLFORM_CONTENTSLENGTH,out.u8_outptr-out.u8_outbuf,
 		     CURLFORM_END);
-	u8_free(out.bytes);}}
+	u8_free(out.u8_outbuf);}}
     curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
     retval=curl_easy_perform(h->handle);
     curl_formfree(post);}
@@ -586,7 +586,7 @@ static fdtype urlpost(int n,fdtype *args)
 	unsigned char *scan=data.bytes;
 	U8_INIT_OUTPUT(&out,data.size);
 	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-	cval=fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
     else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
     u8_free(data.bytes);}

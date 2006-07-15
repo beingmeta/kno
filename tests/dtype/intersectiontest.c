@@ -92,8 +92,8 @@ int main(int argc,char **argv)
       struct U8_OUTPUT os;
       U8_INIT_OUTPUT(&os,256);
       fd_unparse(&os,v);
-      fputs(os.bytes,f); fputs("\n",f);
-      free(os.bytes);}}
+      fputs(os.u8_outbuf,f); fputs("\n",f);
+      free(os.u8_outbuf);}}
   free_var(common);
   i=0; while (i < j) {fd_decref(args[i]); i++;}
   u8_free(args);

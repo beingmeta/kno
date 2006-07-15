@@ -98,8 +98,8 @@ int main(int argc,char **argv)
 	struct U8_OUTPUT os;
 	U8_INIT_OUTPUT(&os,256);
 	fd_unparse(&os,v);
-	fputs(os.bytes,f); fputs("\n",f);
-	free(os.bytes);}}
+	fputs(os.u8_outbuf,f); fputs("\n",f);
+	free(os.u8_outbuf);}}
   fd_decref(input); fd_decref(to_remove);
   fd_decref(difference); fd_decref(sdifference);
   input=FD_VOID; to_remove=FD_VOID;

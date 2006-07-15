@@ -489,9 +489,9 @@ static int webservefn(u8_client ucl)
 		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
     fd_xhtmlerrorpage(&(client->out),result);
     if ((reqlog) || (urllog))
-      dolog(cgidata,result,client->out.bytes,u8_elapsed_time()-start_time);
-    u8_writeall(client->socket,client->out.bytes,
-		client->out.point-client->out.bytes);}
+      dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);
+    u8_writeall(client->socket,client->out.u8_outbuf,
+		client->out.u8_outptr-client->out.u8_outbuf);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
@@ -499,23 +499,23 @@ static int webservefn(u8_client ucl)
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
-    /* if (tracep) fprintf(stderr,"%s\n",tmp.bytes); */
-    u8_writeall(client->socket,tmp.bytes,tmp.point-tmp.bytes);
-    tmp.point=tmp.bytes;
+    /* if (tracep) fprintf(stderr,"%s\n",tmp.u8_outbuf); */
+    u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
+    tmp.u8_outptr=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
       if (write_headers) {
 	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	u8_writeall(client->socket,tmp.bytes,tmp.point-tmp.bytes);}
-      retval=u8_writeall(client->socket,client->out.bytes,
-			 client->out.point-client->out.bytes);
+	u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
+      retval=u8_writeall(client->socket,client->out.u8_outbuf,
+			 client->out.u8_outptr-client->out.u8_outbuf);
       if (write_headers)
 	write_string(client->socket,"</body>\n</html>\n");}
     else {
       output_content(client,content);
-      client->out.point=client->out.bytes;}
-    u8_free(tmp.bytes); fd_decref(content); fd_decref(traceval);
+      client->out.u8_outptr=client->out.u8_outbuf;}
+    u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
-      dolog(cgidata,result,client->out.bytes,u8_elapsed_time()-start_time);}
+      dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
   write_time=u8_elapsed_time();
   if (traceweb>0) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);

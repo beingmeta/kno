@@ -351,10 +351,10 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
       if (FD_CHARACTERP(v[i])) u8_sputc(&out,FD_CHAR2CODE(v[i]));
       else if (FD_FIXNUMP(v[i])) u8_sputc(&out,FD_FIX2INT(v[i]));
       else {
-	u8_free(out.bytes);
+	u8_free(out.u8_outbuf);
 	return fd_type_error(_("character"),"fd_makeseq",v[i]);}
       i++;}
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   case fd_packet_type: {
     unsigned char *bytes=u8_malloc(n); int i=0;
     while (i < n) {
@@ -1216,7 +1216,7 @@ static fdtype x2string(fdtype seq)
     U8_OUTPUT out; u8_byte buf[16];
     U8_INIT_OUTPUT_X(&out,16,buf,NULL);
     u8_putc(&out,c);
-    return fdtype_string(out.bytes);}
+    return fdtype_string(out.u8_outbuf);}
   else if (FD_EMPTY_LISTP(seq)) return fdtype_string("");
   else if (FD_SEQUENCEP(seq)) {
     U8_OUTPUT out;
@@ -1241,7 +1241,7 @@ static fdtype x2string(fdtype seq)
 	u8_free(data);
 	return fd_type_error(_("character"),"seq2string",bad);}}
     u8_free(data);
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_type_error(_("sequence"),"x2string",seq);
 }
 

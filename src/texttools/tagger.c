@@ -247,7 +247,7 @@ void fd_free_parse_context(fd_parse_context pcxt)
   /* Free internal state variables */
   free(pcxt->input); free(pcxt->states); 
   pcxt->input=NULL; pcxt->states=NULL;
-  u8_free(pcxt->text.bytes);
+  u8_free(pcxt->text.u8_outbuf);
   /* Free the state/input cache. */
   i=0; while (i < pcxt->max_n_inputs) free(pcxt->cache[i++]);
   free(pcxt->cache); pcxt->cache=NULL;
@@ -387,7 +387,7 @@ static fdtype lower_string(u8_string string)
   U8_INIT_OUTPUT(&ls,32);
   while ((c=u8_sgetc(&scan))>=0) {
     u8_putc(&ls,u8_tolower(c));}
-  return fd_init_string(NULL,ls.point-ls.bytes,ls.bytes);
+  return fd_init_string(NULL,ls.u8_outptr-ls.u8_outbuf,ls.u8_outbuf);
 }
 
 static fdtype lower_compound(fdtype compound)
@@ -430,7 +430,7 @@ static fdtype lexicon_fetch_lower(fd_index ix,u8_string string)
   while ((ch=u8_sgetc(&in))>=0)
     if (u8_isupper(ch)) u8_putc(&out,u8_tolower(ch));
     else u8_putc(&out,ch);
-  key=fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  key=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
   value=lexicon_fetch(ix,key); fd_decref(key);
   return value;
 }
@@ -485,9 +485,9 @@ static u8_string process_word(fd_parse_context pc,u8_string input)
     if (u8_isalnum(ch)) { /* Keep going */
       u8_putc(&word_stream,ch); tmp=input; ch=u8_sgetc(&input);}
     else if (u8_isspace(ch)) { /* Unambiguous word terminator */
-      if ((word_stream.point-word_stream.bytes) < 40)
-	add_input(pc,word_stream.bytes,start);
-      else free(word_stream.bytes);
+      if ((word_stream.u8_outptr-word_stream.u8_outbuf) < 40)
+	add_input(pc,word_stream.u8_outbuf,start);
+      else free(word_stream.u8_outbuf);
       return tmp;}
     else if (ch=='<') {
       while ((ch>=0) && (ch != '>')) ch=u8_sgetc(&input);
@@ -501,24 +501,24 @@ static u8_string process_word(fd_parse_context pc,u8_string input)
 	tmp=input; ch=u8_sgetc(&input);}
       else if ((ch=='.') &&
 	       ((abbrev) ||
-		((word_stream.point-word_stream.bytes)==1)) &&
+		((word_stream.u8_outptr-word_stream.u8_outbuf)==1)) &&
 	       (u8_isspace(next_char))) {
 	u8_putc(&word_stream,ch);
 	/* Go back and just read the period. */
 	input=tmp; u8_sgetc(&input);
-	if ((word_stream.point-word_stream.bytes) < 40)
-	  add_input(pc,word_stream.bytes,start);
-	else free(word_stream.bytes);
+	if ((word_stream.u8_outptr-word_stream.u8_outbuf) < 40)
+	  add_input(pc,word_stream.u8_outbuf,start);
+	else free(word_stream.u8_outbuf);
 	return input;}
       else { /* Otherwise, record the word you just saw and return
 		a pointer to the start of the terminator */
-	if ((word_stream.point-word_stream.bytes) < 40)
-	  add_input(pc,word_stream.bytes,start);
-	else free(word_stream.bytes);
+	if ((word_stream.u8_outptr-word_stream.u8_outbuf) < 40)
+	  add_input(pc,word_stream.u8_outbuf,start);
+	else free(word_stream.u8_outbuf);
 	return tmp;}}
-  if ((word_stream.point-word_stream.bytes) < 40)
-    add_input(pc,word_stream.bytes,start);
-  else free(word_stream.bytes);
+  if ((word_stream.u8_outptr-word_stream.u8_outbuf) < 40)
+    add_input(pc,word_stream.u8_outbuf,start);
+  else free(word_stream.u8_outbuf);
   return tmp;
 }
 
@@ -535,7 +535,7 @@ static u8_string process_punct(fd_parse_context pc,u8_string input)
   U8_INIT_OUTPUT(&word_stream,16);
   while ((ch>0) && (ispunct_sorta(ch))) {
     tmp=input; u8_putc(&word_stream,ch); ch=u8_sgetc(&input);}
-  add_punct(pc,word_stream.bytes);
+  add_punct(pc,word_stream.u8_outbuf);
   /* if (word_stream.size > 5)  
      else free(word_stream.ptr); */
   return tmp;
@@ -593,11 +593,11 @@ static void lexer(fd_parse_context pc,u8_string start,u8_string end)
   if (pc->n_inputs>0) fd_reset_parse_context(pc);
   pc->start=start; pc->end=end;
   if (end)
-    if ((end>pc->text.bytes) && (end<=pc->text.point))
-      len=end-pc->text.bytes;
+    if ((end>pc->text.u8_outbuf) && (end<=pc->text.u8_outptr))
+      len=end-pc->text.u8_outbuf;
     else u8_raise(_("internal NLP error"),"lexer",NULL);
   else {
-    end=pc->text.point; len=end-pc->text.bytes;}
+    end=pc->text.u8_outptr; len=end-pc->text.u8_outbuf;}
   scan=start; while ((ch>=0) && (scan<end)) {
     u8_string tmp;
     if (u8_isspace(ch))
@@ -711,7 +711,7 @@ void fd_parser_set_text(struct FD_PARSE_CONTEXT *pcxt,u8_string in)
     else if (c==0x2019) /* Convert weird apostrophes */
       u8_putc(stream,'\'');
     else u8_putc(stream,c);
-  pcxt->start=pcxt->text.bytes;
+  pcxt->start=pcxt->text.u8_outbuf;
 }
 
 
@@ -1265,7 +1265,7 @@ static fdtype word2string(fdtype word)
       u8_string s=FD_STRDATA(elt); int firstc=u8_sgetc(&s);
       if ((i>0) && (u8_isalnum(firstc))) u8_putc(&out,' '); 
       u8_puts(&out,FD_STRDATA(elt)); i++;}}
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_incref(word);
 }
 
@@ -1387,7 +1387,7 @@ fdtype fd_analyze_text
     free_pcxt=1;}
   fd_parser_set_text(pcxt,skip_whitespace(text));
   if (pcxt->flags&FD_TAGGER_SPLIT_SENTENCES) {
-    u8_byte *sentence=pcxt->text.bytes, *sentence_end; int n_calls=0;
+    u8_byte *sentence=pcxt->text.u8_outbuf, *sentence_end; int n_calls=0;
     while ((sentence) && (*sentence) &&
 	   (sentence_end=find_sentence_end(sentence))) {
       double start_time=u8_elapsed_time();
@@ -1418,7 +1418,7 @@ fdtype fd_analyze_text
     fd_parse_state final;
     fdtype retval;
     u8_string start=pcxt->start;
-    lexer(pcxt,pcxt->text.bytes,NULL);
+    lexer(pcxt,pcxt->text.u8_outbuf,NULL);
     identify_compounds(pcxt);
     add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);
     final=fd_run_parser(pcxt);

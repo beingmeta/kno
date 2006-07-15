@@ -157,7 +157,7 @@ static fdtype simple_system(fdtype expr,fd_lispenv env)
       u8_printf(&out,"%s",FD_STRDATA(value));
     else u8_printf(&out,"%q",value);
     fd_decref(value);}
-  result=system(out.bytes); u8_free(out.bytes);
+  result=system(out.u8_outbuf); u8_free(out.u8_outbuf);
   return FD_INT2DTYPE(result);
 }
 
@@ -516,7 +516,7 @@ static fdtype flushprim(fdtype portarg)
 {
   U8_OUTPUT *out=get_output_port(portarg);
   u8_flush(out);
-  if (out->bits&U8_STREAM_OWNS_SOCKET) {
+  if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
     U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
     fsync(xout->fd);}
   return FD_VOID;
@@ -528,12 +528,12 @@ static fdtype setbufprim(fdtype portarg,fdtype insize,fdtype outsize)
     FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
   if (FD_FIXNUMP(insize)) {
     U8_INPUT *in=p->in;
-    if ((in) && (in->bits&U8_STREAM_OWNS_XBUF)) {
+    if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
       u8_xinput_setbuf((struct U8_XINPUT *)in,FD_FIX2INT(insize));}}
   
   if (FD_FIXNUMP(outsize)) {
     U8_OUTPUT *out=p->out;
-    if ((out) && (out->bits&U8_STREAM_OWNS_XBUF)) {
+    if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
       u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FD_FIX2INT(outsize));}}
   return FD_VOID;
 }
@@ -594,7 +594,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
   if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
   else if (FD_PRIM_TYPEP(off_arg,fd_bigint_type)) 
-#if (_FILE_OFFSET_BITS==64)
+#if (_FILE_OFFSET_U8_STREAMINFO==64)
     off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
 #else
     off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);

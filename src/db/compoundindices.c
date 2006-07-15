@@ -105,7 +105,7 @@ static u8_string get_compound_id(int n,fd_index *indices)
     while (i < n) {
       if (i) u8_puts(&out,"|");
       u8_puts(&out,indices[i]->cid); i++;}
-    return out.bytes;}
+    return out.u8_outbuf;}
   else return u8_strdup("compound");
 }
 

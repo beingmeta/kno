@@ -106,7 +106,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	fd_attrib_entify(&out,as_string);
 	u8_putc(&out,'\'');
 	u8_free(as_string);}}}}
-  cached=fd_init_string(NULL,out.point-out.bytes, out.bytes);
+  cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf, out.u8_outbuf);
   if (cache_result) fd_store(xml,raw_markup,cached);
   return cached;
 }
@@ -386,16 +386,16 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 	else {
 	  strncpy(buf,start,end-start); buf[end-start]='\0';
 	  expr=parse_infix(buf);
-	  in.point=end+1;}}
+	  in.u8_inptr=end+1;}}
       else expr=fd_parser(&in,NULL);
       if (FD_STRINGP(expr)) {
 	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
 	fd_unparse(&out,expr); fd_decref(expr);
-	expr=fd_init_string(NULL,out.point-out.bytes,out.point);
+	expr=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outptr);
 	fd_add_content(node,expr);
 	fd_decref(expr);}
       else fd_add_content(node,expr);
-      start=in.point; scan=strstr(start,escape_string);}
+      start=in.u8_inptr; scan=strstr(start,escape_string);}
     if ((scan==NULL) && (start) && (*start))
       fd_add_content(node,fdtype_string(start));
     else if (scan>start)

@@ -377,18 +377,18 @@ static fdtype httpheader(fdtype expr,fd_lispenv env)
   U8_INIT_OUTPUT(&out,64);
   result=do_xmlout(&out,fd_get_body(expr,1),env);
   if (FD_ABORTP(result)) {
-    u8_free(out.bytes);
+    u8_free(out.u8_outbuf);
     return result;}
   else {
     fdtype cgidata=fd_thread_get(cgidata_symbol);
     if (FD_TABLEP(cgidata)) {
-      fdtype header=fd_init_string(NULL,out.point-out.bytes,out.bytes);
+      fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       fd_add(cgidata,http_headers,header);
       fd_decref(header);}
     else {
       U8_OUTPUT *port=fd_get_default_output();
-      u8_printf(port,"http>> %s\n",out.bytes);
-      u8_free(out.bytes);}
+      u8_printf(port,"http>> %s\n",out.u8_outbuf);
+      u8_free(out.u8_outbuf);}
     return FD_VOID;}
 }
 	  
@@ -398,20 +398,20 @@ static fdtype htmlheader(fdtype expr,fd_lispenv env)
   U8_INIT_OUTPUT(&out,64);
   result=do_xmlout(&out,fd_get_body(expr,1),env);
   if (FD_ABORTP(result)) {
-    u8_free(out.bytes);
+    u8_free(out.u8_outbuf);
     return result;}
   else {
     fdtype cgidata=fd_thread_get(cgidata_symbol);
     if (FD_TABLEP(cgidata)) {
-      fdtype header=fd_init_string(NULL,out.point-out.bytes,out.bytes);
+      fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
       fdtype new=fd_init_pair(NULL,header,fd_incref(current));
       fd_store(cgidata,html_headers,new);
       fd_decref(new);}
     else {
       U8_OUTPUT *port=fd_get_default_output();
-      u8_printf(port,"http>> %s\n",out.bytes);
-      u8_free(out.bytes);}
+      u8_printf(port,"http>> %s\n",out.u8_outbuf);
+      u8_free(out.u8_outbuf);}
     return FD_VOID;}
 }      
 
@@ -490,7 +490,7 @@ static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
 		 FD_STRDATA(type),FD_STRDATA(stylesheet));
   if (FD_VOIDP(cgidata)) u8_flush(port);
   else {
-    fdtype header=fd_init_string(NULL,out.point-out.bytes,out.bytes);
+    fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
     fdtype new=fd_init_pair(NULL,header,fd_incref(current));
     fd_store(cgidata,html_headers,new);
@@ -511,7 +511,7 @@ static fdtype add_javascript(fdtype url)
   u8_printf(port,"</script>\n");
   if (FD_VOIDP(cgidata)) u8_flush(port);
   else {
-    fdtype header=fd_init_string(NULL,out.point-out.bytes,out.bytes);
+    fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
     fdtype new=fd_init_pair(NULL,header,fd_incref(current));
     fd_store(cgidata,html_headers,new);
@@ -527,20 +527,20 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
   result=do_xmlout(&out,fd_get_body(expr,1),env);
   u8_puts(&out,"</title>\n");
   if (FD_ABORTP(result)) {
-    u8_free(out.bytes);
+    u8_free(out.u8_outbuf);
     return result;}
   else {
     fdtype cgidata=fd_thread_get(cgidata_symbol);
     if (FD_TABLEP(cgidata)) {
-      fdtype header=fd_init_string(NULL,out.point-out.bytes,out.bytes);
+      fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
       fdtype new=fd_init_pair(NULL,header,fd_incref(current));
       fd_store(cgidata,html_headers,new);
       fd_decref(new);}
     else {
       U8_OUTPUT *port=fd_get_default_output();
-      u8_printf(port,"http>> %s\n",out.bytes);
-      u8_free(out.bytes);}
+      u8_printf(port,"http>> %s\n",out.u8_outbuf);
+      u8_free(out.u8_outbuf);}
     fd_decref(result);
     return FD_VOID;}
 }      

@@ -344,7 +344,7 @@ u8_string fd_dtype2string(fdtype x)
   struct U8_OUTPUT out;
   U8_INIT_OUTPUT(&out,1024);
   fd_unparse(&out,x);
-  return out.bytes;
+  return out.u8_outbuf;
 }
 
 /* Parsing */
@@ -513,7 +513,7 @@ static fdtype parse_character(U8_INPUT *in)
   if (c=='&') {
     int code=u8_get_entity(in);
     if (code<0)
-      if (atombreakp(*(in->point)))
+      if (atombreakp(*(in->u8_inptr)))
 	return FD_CODE2CHAR('&');
       else {
 	fd_seterr3(fd_BadEscapeSequence,"read_escape",NULL);
@@ -528,8 +528,8 @@ static fdtype parse_character(U8_INPUT *in)
   if (n_chars==1) {
     u8_byte *scan=buf; int c=u8_sgetc(&scan);
     return FD_CODE2CHAR(c);}
-  else if ((tmpbuf.bytes[0]=='u') || (tmpbuf.bytes[0]=='U')) 
-    c=parse_unicode_escape(tmpbuf.bytes);
+  else if ((tmpbuf.u8_outbuf[0]=='u') || (tmpbuf.u8_outbuf[0]=='U')) 
+    c=parse_unicode_escape(tmpbuf.u8_outbuf);
   else c=-1;
   if (c>=0)
     return FD_CODE2CHAR(c);
@@ -539,7 +539,7 @@ static fdtype parse_character(U8_INPUT *in)
 	return character_constants[i];
       else i++;
     fd_seterr3(fd_InvalidCharacterConstant,
-	       "parse_character",u8_strdup(tmpbuf.bytes));
+	       "parse_character",u8_strdup(tmpbuf.u8_outbuf));
     return FD_PARSE_ERROR;}
 }
 
@@ -575,17 +575,17 @@ static fdtype parse_oid(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
   c=copy_atom(in,&tmpbuf);
-  if (tmpbuf.point<tmpbuf.bytes)
+  if (tmpbuf.u8_outptr<tmpbuf.u8_outbuf)
     return FD_EOX;
   else if (oid_parser)
-    result=oid_parser(tmpbuf.bytes,tmpbuf.point-tmpbuf.bytes);
-  else result=default_parse_oid(tmpbuf.bytes,tmpbuf.point-tmpbuf.bytes);
+    result=oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+  else result=default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   if (strchr("({\"",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */
     fdtype label=fd_parser(in,p);
     fd_decref(label);}
-  if (tmpbuf.bits&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.bytes);
+  if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
 }
 
@@ -600,14 +600,14 @@ static fdtype parse_string(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
       else if (c == '\\') {
 	c=read_escape(in);
 	if (c<0) {
-	  u8_pfree(out.mpool,out.bytes);
+	  u8_pfree(out.mpool,out.u8_outbuf);
 	  return FD_PARSE_ERROR;}
 	u8_sputc(&out,c);}
       else u8_sputc(&out,c);
     if (p)
       return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
-			    out.point-out.bytes,out.bytes);
-    else return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+			    u8_outlen(&out),u8_outstring(&out));
+    else return fd_init_string(NULL,u8_outlen(&out),u8_outstring(&out));
 }
 
 static fdtype parse_packet(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
@@ -866,7 +866,7 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
   case ')': case ']': case '}': {
     u8_getc(in); /* Consume the character */
     return fd_err(fd_ParseError,"unexpected terminator",
-		  u8_strndup(in->point,17),
+		  u8_strndup(in->u8_inptr,17),
 		  FD_CODE2CHAR(inchar));}
   case '"': return parse_string(in,p);
   case '@': return parse_oid(in,p);
@@ -912,11 +912,11 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
     U8_INIT_OUTPUT_X(&tmpbuf,128,buf,NULL);
     if (inchar == '#') u8_sputc(&tmpbuf,'#');
     c=copy_atom(in,&tmpbuf);
-    if (tmpbuf.point==tmpbuf.bytes) result=FD_EOX;
+    if (tmpbuf.u8_outptr==tmpbuf.u8_outbuf) result=FD_EOX;
     else if (inchar == '|')
-      result=fd_make_symbol(tmpbuf.bytes,tmpbuf.point-tmpbuf.bytes);
-    else result=fd_parse_atom(tmpbuf.bytes,tmpbuf.point-tmpbuf.bytes);
-    if (tmpbuf.bits&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.bytes);
+      result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+    else result=fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+    if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
     return result;}
   }
 }

@@ -111,20 +111,20 @@ static int emit_xmlattrib
   else if (FD_FLONUMP(value))
     u8_printf(out,"%f",FD_FLONUM(value));
   else if (tmp) {
-    tmp->point=tmp->bytes;
-    tmp->bits=tmp->bits|U8_STREAM_SPARSE;
+    tmp->u8_outptr=tmp->u8_outbuf;
+    tmp->u8_streaminfo=tmp->u8_streaminfo|U8_STREAM_SPARSE;
     fd_unparse(tmp,value);
-    tmp->bits=tmp->bits&(~U8_STREAM_SPARSE);
+    tmp->u8_streaminfo=tmp->u8_streaminfo&(~U8_STREAM_SPARSE);
     u8_puts(out,":");
-    attrib_entify(out,tmp->bytes);}
+    attrib_entify(out,tmp->u8_outbuf);}
   else {
     U8_OUTPUT tmp; u8_byte buf[128];
     U8_INIT_OUTPUT_X(&tmp,128,buf,NULL);
-    tmp.bits=tmp.bits|U8_STREAM_SPARSE;
+    tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_SPARSE;
     fd_unparse(&tmp,value);
     u8_puts(out,":");
-    attrib_entify(out,tmp.bytes);
-    if (tmp.bits&U8_STREAM_OWNS_BUF) u8_free(tmp.bytes);}
+    attrib_entify(out,tmp.u8_outbuf);
+    if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);}
   u8_puts(out,"'");
 }
 
@@ -136,12 +136,12 @@ static fdtype xmlify(fdtype value)
     u8_printf(&tmp,":%40%x%2f%x",
 	      FD_OID_HI(FD_OID_ADDR(value)),
 	      FD_OID_LO(FD_OID_ADDR(value)));
-    return fd_init_string(NULL,tmp.point-tmp.bytes,tmp.bytes);}
+    return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);}
   else {
     U8_OUTPUT tmp; U8_INIT_OUTPUT(&tmp,32);
-    tmp.bits=tmp.bits|U8_STREAM_SPARSE;
+    tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_SPARSE;
     u8_putc(&tmp,':'); fd_unparse(&tmp,value); 
-    return fd_init_string(NULL,tmp.point-tmp.bytes,tmp.bytes);}
+    return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);}
 }
 
 static fdtype oid2id(fdtype oid,fdtype prefix)
@@ -162,9 +162,9 @@ static fdtype oid2id(fdtype oid,fdtype prefix)
 	      FD_OID_HI(FD_OID_ADDR(oid)),
 	      FD_OID_LO(FD_OID_ADDR(oid)));
   else {
-    u8_free(tmp.bytes);
+    u8_free(tmp.u8_outbuf);
     return fd_type_error("string","oid2id",prefix);}
-  return fd_init_string(NULL,tmp.point-tmp.bytes,tmp.bytes);
+  return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);
 }
 
 static fdtype oidunxmlify(fdtype string)
@@ -264,7 +264,7 @@ static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
   else if (FD_STRINGP(tag)) {
     u8_puts(&out,FD_STRDATA(tag));}
   else return NULL;
-  return out.bytes;
+  return out.u8_outbuf;
 }
 
 /* XMLOUTPUT primitives */
@@ -288,10 +288,10 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
     U8_OUTPUT _out; u8_byte buf[128];
     if (tmp==NULL) {
       U8_INIT_OUTPUT_X(&_out,64,buf,NULL); tmp=&_out;}
-    tmp->point=tmp->bytes;
+    tmp->u8_outptr=tmp->u8_outbuf;
     fd_unparse(tmp,x);
     /* if (FD_OIDP(x)) output_oid(tmp,x); else {} */
-    emit_xmlcontent(out,tmp->bytes);}
+    emit_xmlcontent(out,tmp->u8_outbuf);}
   return 1;
 }
 
@@ -312,7 +312,7 @@ static fdtype xmlout(fdtype expr,fd_lispenv env)
     else return value;
     body=FD_CDR(body);}
   u8_flush(out);
-  if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
+  if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   fd_decref(xmloidfn);
   return FD_VOID;
 }
@@ -345,7 +345,7 @@ static fdtype raw_xhtml_handler(fdtype expr,fd_lispenv env)
     fd_decref(value);
     body=FD_CDR(body);}
   u8_flush(out);
-  if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
+  if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   fd_decref(xmloidfn);
   return FD_VOID;
 }
@@ -443,7 +443,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
   if (tagname!=tagbuf) u8_free(tagname);
   u8_flush(out);
   fd_decref(xmloidfn);
-  if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
+  if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   return FD_VOID;
 }
 
@@ -487,7 +487,7 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
     if (block) u8_printf(out,"\n");
     if (tagname!=tagbuf) u8_free(tagname);
     u8_flush(out);
-    if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
+    if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
     fd_decref(xmloidfn);
     return FD_VOID;}
   else return fd_err(fd_SyntaxError,"XML markup",NULL,fd_incref(expr));
@@ -622,15 +622,15 @@ static void output_backtrace(u8_output s,fdtype bt,fdtype head)
       U8_INIT_OUTPUT(&tmp,128);
       u8_printf(s,"<div class='expr'>");
       fd_pprint_focus(&tmp,entry,focus,NULL,0,80,"#@?#","#@?#");
-      if (focus_start=strstr(tmp.bytes,"#@?#")) {
+      if (focus_start=strstr(tmp.u8_outbuf,"#@?#")) {
 	u8_byte *focus_end=strstr(focus_start+4,"#@?#");
-	*focus_start='\0'; fd_entify(s,tmp.bytes);
+	*focus_start='\0'; fd_entify(s,tmp.u8_outbuf);
 	*focus_end='\0'; u8_printf(s,"<span class='focus'>");
 	fd_entify(s,focus_start+4);
 	u8_printf(s,"</span>");
 	fd_entify(s,focus_end+4);}
-      else u8_puts(s,tmp.bytes);
-      u8_free(tmp.bytes);
+      else u8_puts(s,tmp.u8_outbuf);
+      u8_free(tmp.u8_outbuf);
       u8_printf(s,"\n</div>\n");}}
 }
 
@@ -640,7 +640,7 @@ void fd_xhtmlerrorpage(u8_output s,fdtype error)
   struct FD_EXCEPTION_OBJECT *eo=
     FD_GET_CONS(error,fd_exception_type,FD_EXCEPTION_OBJECT *);
   struct FD_ERRDATA *e=&(eo->data);
-  s->point=s->bytes;
+  s->u8_outptr=s->u8_outbuf;
   u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
   u8_printf(s,"<html>\n<head>\n<title>");
   u8_printf(s,"%k",e->cond);
@@ -749,7 +749,7 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
   u8_printf(out,"</a>");
   u8_flush(out);
   fd_decref(xmloidfn);
-  if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
+  if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   return FD_VOID;
 }
 
@@ -779,12 +779,12 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     attribs=fd_init_pair
       (NULL,href_symbol,fd_init_pair(NULL,fd_incref(target),fd_incref(attribs)));
   else if (FD_SYMBOLP(target)) {
-    tmpout.point=tmpout.bytes;
+    tmpout.u8_outptr=tmpout.u8_outbuf;
     u8_printf(out,"#%s",FD_SYMBOL_NAME(target));
     attribs=fd_init_pair
       (NULL,href_symbol,
        fd_init_pair(NULL,fd_init_string
-		    (NULL,tmpout.point-tmpout.bytes,tmpout.bytes),
+		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf),
 		    fd_incref(attribs)));}
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
@@ -798,7 +798,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     else attribs=fd_init_pair
       (NULL,fd_intern("CLASS"),
        fd_init_pair(NULL,fdtype_string("oid"),fd_incref(attribs)));
-    tmpout.point=tmpout.bytes;
+    tmpout.u8_outptr=tmpout.u8_outbuf;
     if ((FD_VECTORP(browse_info)) &&
 	(FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
       u8_printf(&tmpout,"%s?:@%x/%x",
@@ -809,7 +809,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     attribs=fd_init_pair
       (NULL,href_symbol,
        fd_init_pair(NULL,fd_init_string
-		    (NULL,tmpout.point-tmpout.bytes,tmpout.bytes),
+		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf),
 		    fd_incref(attribs)));}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
@@ -828,7 +828,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   u8_printf(out,"</a>");
   u8_flush(out);
   fd_decref(xmloidfn);
-  if (tmpout.bits&U8_STREAM_OWNS_BUF) u8_free(tmpout.bytes);
+  if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   return FD_VOID;
 }
 
@@ -909,7 +909,7 @@ static fdtype scripturl(int n,fdtype *args)
       else if (FD_SYMBOLP(args[i]))
 	fd_uri_output(&out,FD_SYMBOL_NAME(args[i]),"?#=&");
       else {
-	u8_free(out.bytes);
+	u8_free(out.u8_outbuf);
 	return fd_err(fd_SyntaxError,"scripturl",
 		      u8_strdup(_("invalid parameter")),
 		      fd_incref(args[i]));}
@@ -950,7 +950,7 @@ static fdtype scripturl(int n,fdtype *args)
 	u8_free(as_string);}
       i=i+2;}}
   else return fd_err(fd_SyntaxError,"scripturl",u8_strdup(FD_STRDATA(args[0])),FD_VOID);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 static fdtype fdscripturl(int n,fdtype *args)
@@ -985,7 +985,7 @@ static fdtype fdscripturl(int n,fdtype *args)
       else if (FD_SYMBOLP(args[i]))
 	fd_uri_output(&out,FD_SYMBOL_NAME(args[i]),"?#=&");
       else {
-	u8_free(out.bytes);
+	u8_free(out.u8_outbuf);
 	return fd_err(fd_SyntaxError,"scripturl",
 		      u8_strdup(_("invalid parameter")),
 		      fd_incref(args[i]));}
@@ -1002,7 +1002,7 @@ static fdtype fdscripturl(int n,fdtype *args)
 	u8_free(as_string);}
       i=i+2;}}
   else return fd_err(fd_SyntaxError,"fdscripturl",u8_strdup(FD_STRDATA(args[0])),FD_VOID);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 /* Outputing tables to XHTML */
@@ -1138,10 +1138,10 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
       else {
 	U8_OUTPUT tmp; u8_byte buf[128]; u8_byte *scan;
 	U8_INIT_OUTPUT_X(&tmp,128,buf,NULL);
-	tmp.bits=tmp.bits|U8_STREAM_SPARSE;
+	tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_SPARSE;
 	u8_puts(out,"\":");
 	fd_unparse(&tmp,val);
-	scan=tmp.bytes; while (scan<tmp.point) {
+	scan=tmp.u8_outbuf; while (scan<tmp.u8_outptr) {
 	  int c=u8_sgetc(&scan);
 	  if (c<0) break;
 	  else if (c=='\\') {
@@ -1151,7 +1151,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
 	  else if (c=='"') {
 	    u8_putc(out,'\\'); u8_putc(out,c);}
 	  else u8_putc(out,c);}
-	if (tmp.bits&U8_STREAM_OWNS_BUF) u8_free(tmp.bytes);
+	if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);
 	u8_puts(out,"\"");}
       fd_decref(val);}
     u8_putc(out,')');
@@ -1164,9 +1164,9 @@ static fdtype javascript_handler(fdtype expr,fd_lispenv env)
   fdtype retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
   retval=output_javascript(&out,FD_CDR(expr),env);
   if (FD_VOIDP(retval))
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
   else {
-    u8_free(out.bytes); return retval;}
+    u8_free(out.u8_outbuf); return retval;}
 }
 
 static fdtype javastmt_handler(fdtype expr,fd_lispenv env)
@@ -1175,9 +1175,9 @@ static fdtype javastmt_handler(fdtype expr,fd_lispenv env)
   retval=output_javascript(&out,FD_CDR(expr),env);
   if (FD_VOIDP(retval)) {
     u8_putc(&out,';');
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else {
-    u8_free(out.bytes); return retval;}
+    u8_free(out.u8_outbuf); return retval;}
 }
 
 /* Initialization functions */

@@ -31,7 +31,7 @@ static fdtype sproc_id(struct FD_SPROC *fn)
   if (fn->name)
     u8_printf(&out,"%s:%s",fn->name,fn->filename);
   else u8_puts(&out,fn->filename);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 /* Set operations */

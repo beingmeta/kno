@@ -340,7 +340,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,32);
     u8_xtime_to_iso8601(&out,xt);
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,season_symbol))
     if (xt->u8_prec>=u8_month) {
       fdtype results=FD_EMPTY_CHOICE;
@@ -399,7 +399,7 @@ static fdtype timestring()
 	    onstack.u8_tptr.tm_hour,
 	    onstack.u8_tptr.tm_min,
 	    onstack.u8_tptr.tm_sec);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 /* Counting seconds */
@@ -452,7 +452,7 @@ static fdtype secs2string(fdtype secs)
       u8_printf(&out,"%g us",seconds*1000000);
     else u8_printf(&out,"%g ns",seconds*1000000);}
   else return fd_type_error(_("seconds"),"secs2string",secs);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 /* Sleeping */

@@ -32,7 +32,7 @@ static fdtype parse_fieldname(char *start,char *end)
   U8_INIT_OUTPUT_X(&out,128,buf,NULL);
   while (scan<end) {
     int c=*scan++; u8_putc(&out,toupper(c));}
-  fieldid=fd_intern(out.bytes);
+  fieldid=fd_intern(out.u8_outbuf);
   u8_close(&out);
   return fieldid;
 }
@@ -49,7 +49,7 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
       slotid=parse_fieldname(hstart,colon);
       vstart=colon+1; while (isspace(*vstart)) vstart++;}
     else {slotid=headers_slotid; vstart=hstart;}
-    hstream.point=hstream.bytes;
+    hstream.u8_outptr=hstream.u8_outbuf;
     while (1) {
       u8_byte *line_end=strchr(vstart,'\n');
       if (line_end>end) line_end=end;
@@ -58,7 +58,9 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
       else u8_sputn(&hstream,vstart,(line_end-vstart));
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t'))) vstart=line_end+1;
       else {
-	fdtype slotval=fd_init_string(NULL,-1,u8_mime_convert(hstream.bytes,hstream.point));
+	fdtype slotval=
+	  fd_init_string(NULL,-1,u8_mime_convert
+			 (hstream.u8_outbuf,hstream.u8_outptr));
 	fd_add(s,slotid,slotval); fd_decref(slotval); hstart=line_end+1;
 	break;}}
     if (*hstart=='\n') return hstart+1;
@@ -159,7 +161,7 @@ static fdtype convert_text
   else encoding=NULL;
   scan=data; data_end=data+len;
   u8_convert(encoding,1,&out,&scan,data_end);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataenc,fdtype charenc)

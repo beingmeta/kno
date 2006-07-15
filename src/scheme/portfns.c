@@ -82,11 +82,11 @@ FD_EXPORT void fd_set_default_output(U8_OUTPUT *f)
 
 static int use_u8_message(u8_output f)
 {
-  u8_message(f->bytes);
+  u8_message(f->u8_outbuf);
   if (fd_get_default_output()==f)
     fd_set_default_output(NULL);
-  if (f->bits&U8_STREAM_OWNS_BUF) u8_free(f->bytes);
-  if (f->bits&U8_STREAM_MALLOCD) u8_free(f);
+  if (f->u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(f->u8_outbuf);
+  if (f->u8_streaminfo&U8_STREAM_MALLOCD) u8_free(f);
 }
 
 static u8_output get_default_output_port()
@@ -94,7 +94,7 @@ static u8_output get_default_output_port()
   u8_output f=fd_get_default_output();
   if (f) return f;
   f=u8_open_output_string(512);
-  f->closefn=use_u8_message;
+  f->u8_closefn=use_u8_message;
   fd_set_default_output(f);
 }
 
@@ -151,7 +151,7 @@ static fdtype open_input_string(fdtype arg)
   if (FD_STRINGP(arg)) {
     U8_INPUT *in=u8_malloc_type(struct U8_INPUT);
     U8_INIT_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(FD_STRDATA(arg)));
-    in->bits=in->bits|U8_STREAM_OWNS_BUF;
+    in->u8_streaminfo=in->u8_streaminfo|U8_STREAM_OWNS_BUF;
     return make_port(in,NULL);}
   else return fd_type_error(_("string"),"open_input_string",arg);
 }
@@ -161,8 +161,8 @@ static fdtype portdata(fdtype port_arg)
   if (FD_PRIM_TYPEP(port_arg,fd_port_type)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
     if (port->out)
-      return fd_extract_string(NULL,port->out->bytes,port->out->point);
-    else return fd_extract_string(NULL,port->out->bytes,port->out->limit);}
+      return fd_extract_string(NULL,port->out->u8_outbuf,port->out->u8_outptr);
+    else return fd_extract_string(NULL,port->out->u8_outbuf,port->out->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
 }
 
@@ -289,7 +289,7 @@ static fdtype message_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   fd_set_default_output(stream);
-  u8_message_string(out->bytes);
+  u8_message_string(out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -309,7 +309,7 @@ static fdtype notify_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   fd_set_default_output(stream);
-  u8_notice_string(out->bytes);
+  u8_notice_string(out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -322,7 +322,7 @@ static fdtype stringout_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(result)) {
     u8_close_output(&out); return result;}
   else return fd_init_string
-	 (NULL,out.point-out.bytes,out.bytes);
+	 (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 /* Input operations! */
@@ -400,18 +400,18 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
 	return fd_type_error(_("string"),"record_reader",end);}
   while (1) {
     if (FD_VOIDP(ends)) {
-      u8_string found=strstr(in->point,"\n");
-      if (found) off=found-in->point;}
-    else off=find_substring(in->point,ends,&matchlen);
+      u8_string found=strstr(in->u8_inptr,"\n");
+      if (found) off=found-in->u8_inptr;}
+    else off=find_substring(in->u8_inptr,ends,&matchlen);
     if (off>=0) {
       int record_len=off+matchlen;
       u8_byte *buf=u8_malloc(record_len+1);
       int bytes_read=u8_getn(buf,record_len,in);
       return fd_init_string(NULL,record_len,buf);}
-    else if ((lim) && ((in->limit-in->point)>lim))
+    else if ((lim) && ((in->u8_inlim-in->u8_inptr)>lim))
       return FD_EOF;
-    else if (in->fillfn) {
-      int delta=in->fillfn(in);
+    else if (in->u8_fillfn) {
+      int delta=in->u8_fillfn(in);
       if (delta==0) return FD_EOF;}
     else return FD_EOF;}
 }
@@ -431,7 +431,7 @@ static fdtype lisp2string(fdtype x)
 {
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   fd_unparse(&out,x);
-  return fd_init_string(NULL,out.point-out.bytes,out.bytes);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 static fdtype inexact2string(fdtype x,fdtype precision)
@@ -452,7 +452,7 @@ static fdtype number2string(fdtype x,fdtype base)
   if (FD_NUMBERP(x)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_output_number(&out,x,fd_getint(base));
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_err(fd_TypeError,"number2string",NULL,x);
 }
 
@@ -475,22 +475,22 @@ FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
 	      int indent,int col,int maxcol,int initial)
 {
-  int startoff=out->point-out->bytes, i, n_chars;
+  int startoff=out->u8_outptr-out->u8_outbuf, i, n_chars;
   if (initial==0) u8_putc(out,' ');
-  fd_unparse(out,x); n_chars=u8_strlen(out->bytes+startoff);
+  fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
      new column position. */
   if ((PPRINT_ATOMICP(x)) && ((initial) || (col+n_chars<maxcol)))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
-  out->point=out->bytes+startoff; out->bytes[startoff]='\0';
+  out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
   if ((initial==0) && (col+n_chars>=maxcol)) {
     int i=indent; u8_putc(out,'\n');
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
-    startoff=out->point-out->bytes;}
+    startoff=out->u8_outptr-out->u8_outbuf;}
   else if (initial==0) u8_putc(out,' ');
   /* Handle quote, quasiquote and friends */
   if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
@@ -515,11 +515,11 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     if (FD_EMPTY_LISTP(scan)) {
       u8_putc(out,')');  return col+1;}
     else {
-      startoff=out->point-out->bytes; u8_printf(out," . %q)",scan);
-      n_chars=u8_strlen(out->bytes+startoff);
+      startoff=out->u8_outptr-out->u8_outbuf; u8_printf(out," . %q)",scan);
+      n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
 	int i=indent;
-	out->point=out->bytes+startoff; out->bytes[startoff]='\0';
+	out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
 	u8_putc(out,'\n');
 	if (prefix) u8_puts(out,prefix);
 	while (i>0) {u8_putc(out,' '); i--;}
@@ -578,8 +578,8 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     u8_unlock_mutex(&(sm->lock));
     return col+1;}
   else {
-    int startoff=out->point-out->bytes;
-    fd_unparse(out,x); n_chars=u8_strlen(out->bytes+startoff);
+    int startoff=out->u8_outptr-out->u8_outbuf;
+    fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
     return indent+n_chars;}
 }
 
@@ -588,25 +588,25 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
 	       int indent,int col,int maxcol,int initial,
 	       fd_pprintfn fn,void *data)
 {
-  int startoff=out->point-out->bytes, i, n_chars;
+  int startoff=out->u8_outptr-out->u8_outbuf, i, n_chars;
   if (fn) {
     int newcol=fn(out,x,prefix,indent,col,maxcol,initial,data);
     if (newcol>=0) return newcol;}
   if (initial==0) u8_putc(out,' ');
-  fd_unparse(out,x); n_chars=u8_strlen(out->bytes+startoff);
+  fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
      new column position. */
   if ((PPRINT_ATOMICP(x)) && ((initial) || (col+n_chars<maxcol)))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
-  out->point=out->bytes+startoff; out->bytes[startoff]='\0';
+  out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
   if ((initial==0) && (col+n_chars>=maxcol)) {
     int i=indent; u8_putc(out,'\n'); 
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
-    startoff=out->point-out->bytes;}
+    startoff=out->u8_outptr-out->u8_outbuf;}
   else if (initial==0) u8_putc(out,' ');
   /* Handle quote, quasiquote and friends */
   if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
@@ -631,11 +631,11 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     if (FD_EMPTY_LISTP(scan)) {
       u8_putc(out,')');  return col+1;}
     else {
-      startoff=out->point-out->bytes; u8_printf(out," . %q)",scan);
-      n_chars=u8_strlen(out->bytes+startoff);
+      startoff=out->u8_outptr-out->u8_outbuf; u8_printf(out," . %q)",scan);
+      n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
 	int i=indent;
-	out->point=out->bytes+startoff; out->bytes[startoff]='\0';
+	out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
 	u8_putc(out,'\n');
 	if (prefix) u8_puts(out,prefix);
 	while (i>0) {u8_putc(out,' '); i--;}
@@ -694,8 +694,8 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     u8_unlock_mutex(&(sm->lock));
     return col+1;}
   else {
-    int startoff=out->point-out->bytes;
-    fd_unparse(out,x); n_chars=u8_strlen(out->bytes+startoff);
+    int startoff=out->u8_outptr-out->u8_outbuf;
+    fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
     return indent+n_chars;}
 }
 
@@ -708,10 +708,10 @@ static int focus_pprint(u8_output out,fdtype x,u8_string prefix,
 {
   struct FOCUS_STRUCT *fs=(struct FOCUS_STRUCT *) data;
   if (FD_EQ(x,fs->focus)) {
-    int startoff=out->point-out->bytes, n_chars;
+    int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
     if (initial==0) u8_putc(out,' ');
-    fd_unparse(out,x); n_chars=u8_strlen(out->bytes+startoff);
-    out->point=out->bytes+startoff; out->bytes[startoff]='\0';
+    fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
+    out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
     if (col+n_chars>=maxcol) {
       int i=indent; u8_putc(out,'\n');
       if (prefix) u8_puts(out,prefix);
@@ -738,24 +738,24 @@ void fd_pprint_focus(U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
 static void output_env(U8_OUTPUT *out,int width,fdtype entry,fdtype head)
 {
   fdtype keys=fd_getkeys(entry);
-  int startoff=out->point-out->bytes, indent, col;
+  int startoff=out->u8_outptr-out->u8_outbuf, indent, col;
   if (FD_SYMBOLP(head)) u8_printf(out,";; %q: ",head);
   else u8_printf(out,";; ");
-  col=indent=(out->point-out->bytes)-startoff;
+  col=indent=(out->u8_outptr-out->u8_outbuf)-startoff;
   if (FD_EXCEPTIONP(keys)) {
     fd_decref(keys);
     u8_printf(out,"%q\n",entry);}
   else {
     FD_DO_CHOICES(key,keys) {
       fdtype val=fd_get(entry,key,FD_VOID);
-      int start=out->point-out->bytes, n_chars;
+      int start=out->u8_outptr-out->u8_outbuf, n_chars;
       u8_printf(out,"%q=%q; ",key,val);
-      n_chars=u8_strlen(out->bytes+start);
+      n_chars=u8_strlen(out->u8_outbuf+start);
       if (col+n_chars>=width) {
-	out->point=out->bytes+start; out->bytes[start]='\0';
+	out->u8_outptr=out->u8_outbuf+start; out->u8_outbuf[start]='\0';
 	if (FD_SYMBOLP(head)) u8_printf(out,"\n;; %q: %q=%q; ",head,key,val);
 	else u8_printf(out,"\n;; %q=%q; ",key,val);
-	col=u8_strlen(out->bytes+start+1);}
+	col=u8_strlen(out->u8_outbuf+start+1);}
       else col=col+n_chars;
       fd_decref(val);}
     fd_decref(keys);
@@ -867,9 +867,9 @@ static fdtype lisp_show_table(fdtype tables,fdtype slotids,fdtype portarg)
       u8_printf(out,"%q\n");
       {FD_DO_CHOICES(slotid,slotids) {
 	fdtype values=fd_frame_get(table,slotid);
-	tmp->point=tmp->bytes; *(tmp->bytes)='\0';
+	tmp->u8_outptr=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
 	u8_printf(tmp,"   %q:   %q\n",slotid,values);
-	if (u8_strlen(tmp->bytes)<80) u8_puts(out,tmp->bytes);
+	if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
 	else {
 	  u8_printf(out,"   %q:\n",slotid);
 	  {FD_DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
@@ -889,7 +889,7 @@ static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg)
   int width=((FD_FIXNUMP(widtharg)) ? (FD_FIX2INT(widtharg)) : (60));
   U8_INIT_OUTPUT(&tmpout,512);
   fd_pprint(&tmpout,x,NULL,0,0,width,1);
-  u8_puts(out,tmpout.bytes); u8_free(tmpout.bytes);
+  u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
   u8_flush(out);
  return FD_VOID;
 }

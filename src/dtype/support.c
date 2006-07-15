@@ -73,11 +73,13 @@ static config_intern(u8_string start)
     else if (u8_ispunct(c)) {}
     else if (u8_isupper(c)) u8_putc(&nameout,c);
     else u8_putc(&nameout,u8_toupper(c));}
-  if (nameout.bits&U8_STREAM_OWNS_BUF) {
-    fdtype symbol=fd_make_symbol(nameout.bytes,nameout.point-nameout.bytes);
+  if (nameout.u8_streaminfo&U8_STREAM_OWNS_BUF) {
+    fdtype symbol=
+      fd_make_symbol(nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
     u8_close(&nameout);
     return symbol;}
-  else return fd_make_symbol(nameout.bytes,nameout.point-nameout.bytes);
+  else return fd_make_symbol
+	 (nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
 }
 
 FD_EXPORT
@@ -118,12 +120,12 @@ static fdtype getenv_config_lookup(fdtype symbol)
   char *getenv_result, *u8result; fdtype result;
   U8_INIT_OUTPUT(&out,32);
   u8_printf(&out,"FD_%s",FD_SYMBOL_NAME(symbol));
-  getenv_result=getenv(out.bytes);
+  getenv_result=getenv(out.u8_outbuf);
   if (getenv_result==NULL) {
-    u8_free(out.bytes); return FD_VOID;}
+    u8_free(out.u8_outbuf); return FD_VOID;}
   u8result=u8_fromlibc(getenv_result);
   result=fd_parse_arg(u8result);
-  u8_free(out.bytes); u8_free(u8result);
+  u8_free(out.u8_outbuf); u8_free(u8result);
   return result;
 }
 
@@ -500,7 +502,7 @@ FD_EXPORT u8_string fd_errstring(struct FD_ERRDATA *ed)
   else {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_errout(&out,ed);
-    return out.bytes;}
+    return out.u8_outbuf;}
 }
 
 FD_EXPORT void fd_raise_error()
@@ -512,7 +514,7 @@ FD_EXPORT void fd_raise_error()
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,512);
     u8_printf(&out,"%m: %q",current->details,current->irritant);
-    u8_raise(current->cond,current->cxt,out.bytes);}
+    u8_raise(current->cond,current->cxt,out.u8_outbuf);}
 }
 
 FD_EXPORT int fd_reterr
@@ -577,8 +579,8 @@ static int clear_fderrors(struct FD_ERRDATA *ed,int report)
     U8_INIT_OUTPUT_X(&out,128,buf,NULL);
     u8_printf(&out,"[%d]%m",retval,"Clearing error ");
     fd_errout(&out,ed);
-    u8_message(out.bytes);
-    if (out.bits&U8_STREAM_OWNS_BUF) u8_free(out.bytes);}
+    u8_message(out.u8_outbuf);
+    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);}
   if (ed->details) u8_free(ed->details);
   u8_free(ed);
   return retval;

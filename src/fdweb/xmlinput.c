@@ -77,12 +77,12 @@ void *fd_walk_markup(U8_INPUT *in,
   u8_byte *buf=u8_malloc(1024); int bufsiz=1024, size=bufsiz;
   while (1) {
     if (readbuf(in,&buf,&bufsiz,&size,"<")==NULL) {
-      data=contentfn(data,in->point); break;}
+      data=contentfn(data,in->u8_inptr); break;}
     else 
       data=contentfn(data,buf);
     if (data==NULL) break;
     if (readbuf(in,&buf,&bufsiz,&size,">")==NULL) {
-      data=markupfn(data,in->point); break;}
+      data=markupfn(data,in->u8_inptr); break;}
     data=markupfn(data,buf);
     if (data==NULL) break;}
   u8_free(buf);
@@ -142,7 +142,7 @@ static fdtype make_qid(u8_string eltname,u8_string namespace)
   if (namespace) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
     u8_printf(&out,"{%s}%s",namespace,eltname);
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fdtype_string(eltname);
 }
 
@@ -431,7 +431,7 @@ static u8_string deentify(u8_string arg)
       else {
 	u8_putc(&out,code); scan=end;}}
     else {u8_putc(&out,c); c=u8_sgetc(&scan);}
-  return out.bytes;
+  return out.u8_outbuf;
 }
 
 static fdtype fd_lispify(u8_string arg)
@@ -650,11 +650,11 @@ void *fd_walk_xml(U8_INPUT *in,
     fd_xmlelt_type type;
     if (readbuf(in,&buf,&bufsize,&size,"<")==NULL) {
       if (contentfn)
-	contentfn(node,in->point,in->limit-in->point);
+	contentfn(node,in->u8_inptr,in->u8_inlim-in->u8_inptr);
       break;}
     else if (contentfn) contentfn(node,buf,size);
     if (readbuf(in,&buf,&bufsize,&size,">")==NULL) {
-      fd_seterr3(fd_XMLParseError,"end of input",u8_strdup(in->point));
+      fd_seterr3(fd_XMLParseError,"end of input",u8_strdup(in->u8_inptr));
       u8_free(buf);
       return NULL;}
     else if ((type=fd_get_markup_type(buf,size)) == xmlpi) {

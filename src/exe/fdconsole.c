@@ -138,7 +138,7 @@ int main(int argc,char **argv)
 	U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
 	u8_printf(&out,"%q:\n",expr);
 	fd_display_table(&out,v,FD_VOID);
-	fputs(out.bytes,stdout); u8_free(out.bytes);}
+	fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);}
       else u8_printf(out,"OID value: %q\n",v);
       fd_decref(v);
       u8_printf(out,_("Eval: ")); u8_flush(out);
@@ -158,8 +158,8 @@ int main(int argc,char **argv)
       fd_print_backtrace(&out,80,e->backtrace);
       fd_print_error(&out,e);
       fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
-      fputs(out.bytes,stderr);
-      u8_free(out.bytes);}
+      fputs(out.u8_outbuf,stderr);
+      u8_free(out.u8_outbuf);}
     else if (FD_TROUBLEP(result)) {
       fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;
       if (fd_poperr(&ex,&cxt,&details,&irritant)) {

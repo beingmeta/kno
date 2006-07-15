@@ -1325,7 +1325,7 @@ static fdtype return_error(fdtype expr,fd_lispenv env)
     fd_printout_to(&out,fd_get_body(expr,4),env);
     return fd_err(FD_SYMBOL_NAME(fd_get_arg(expr,1)),
 		  FD_SYMBOL_NAME(fd_get_arg(expr,2)),
-		  out.bytes,
+		  out.u8_outbuf,
 		  fd_incref(fd_get_arg(expr,3)));}
 }
 

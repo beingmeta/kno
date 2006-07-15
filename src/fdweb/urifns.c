@@ -46,11 +46,11 @@ static u8_string breakup_path(fdtype f,u8_string start)
       u8_putc(&eltout,inschar);
       c=u8_sgetc(&scan);}
     else if ((c<0) || (c=='?') || (c=='#') || (c=='/') || (c==';')) {
-      fdtype eltstring=fd_extract_string(NULL,eltout.bytes,eltout.point);
+      fdtype eltstring=fd_extract_string(NULL,eltout.u8_outbuf,eltout.u8_outptr);
       if (c=='/') {
 	fdtype eltpair=fd_init_pair(NULL,eltstring,FD_EMPTY_LIST);
 	*tail=eltpair; tail=&(FD_CDR(eltpair));
-	c=u8_sgetc(&scan); eltout.point=eltout.bytes; continue;}
+	c=u8_sgetc(&scan); eltout.u8_outptr=eltout.u8_outbuf; continue;}
       else {
 	fd_add(f,name_symbol,eltstring); fd_decref(eltstring);}
       fd_add(f,path_symbol,path);
@@ -113,9 +113,9 @@ static int uri_merge(fdtype uri,fdtype base)
 	 if (FD_STRINGP(elt))
 	   u8_printf(&out,"%s/",FD_STRDATA(elt));}
       u8_puts(&out,FD_STRDATA(pathstring));
-      path_end=breakup_path(uri,out.bytes);
-      handle_path_end(uri,out.bytes,path_end);
-      u8_free(out.bytes);
+      path_end=breakup_path(uri,out.u8_outbuf);
+      handle_path_end(uri,out.u8_outbuf,path_end);
+      u8_free(out.u8_outbuf);
       return 1;}}
   else return 0;
 }
@@ -268,7 +268,7 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
     fd_decref(userinfo); fd_decref(hostname); fd_decref(port);
     fd_decref(pathstring);  fd_decref(path); fd_decref(name);
     fd_decref(fragment); fd_decref(query);
-    return fd_init_string(NULL,out.point-out.bytes,out.bytes);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_type_error(_("table"),"unparseuri",uri);
 }
 
