@@ -442,11 +442,11 @@ static fdtype urlxml(fdtype url,fdtype xmloptions,fdtype handle)
 	U8_INIT_OUTPUT(&out,data.size);
 	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
 	u8_free(data.bytes); buf=out.u8_outbuf;
-	U8_INIT_INPUT(&in,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+	U8_INIT_STRING_INPUT(&in,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else {
-	U8_INIT_INPUT(&in,data.size,data.bytes); buf=data.bytes;}}
+	U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf=data.bytes;}}
     else {
-      U8_INIT_INPUT(&in,data.size,data.bytes); buf=data.bytes;}
+      U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf=data.bytes;}
     fd_init_xml_node(&xmlnode,NULL,urltext); xmlnode.bits=flags;
     xmlret=fd_walk_xml(&in,fd_default_contentfn,NULL,NULL,NULL,
 		       fd_default_popfn,

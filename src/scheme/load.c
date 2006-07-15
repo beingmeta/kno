@@ -97,7 +97,7 @@ FD_EXPORT fdtype fd_load_source
   if (content==NULL) return fd_erreify();
   else outer_sourcebase=bind_sourcebase(sourcebase);
   if ((input[0]=='#') && (input[1]=='!')) input=strchr(input,'\n');
-  U8_INIT_INPUT((&stream),-1,input);
+  U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     fdtype result=FD_VOID;
     fdtype expr=fd_parser(&stream,NULL), last_expr=FD_VOID;
@@ -172,7 +172,7 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
   u8_byte *input=content;
   if (content==NULL) return fd_erreify();
   else if (sourcebase) u8_free(sourcebase);
-  U8_INIT_INPUT((&stream),-1,content);
+  U8_INIT_STRING_INPUT((&stream),-1,content);
   retval=fd_read_config(&stream);
   u8_free(content);
   return retval;

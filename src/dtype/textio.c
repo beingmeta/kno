@@ -930,7 +930,7 @@ Parses a textual object representation into a lisp object. */
 fdtype fd_parse(u8_string s)
 {
   struct U8_INPUT stream;
-  U8_INIT_INPUT((&stream),-1,s);
+  U8_INIT_STRING_INPUT((&stream),-1,s);
   return fd_parser(&stream,NULL);
 }
 

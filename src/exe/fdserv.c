@@ -316,7 +316,7 @@ static fdtype loadcontent(fdtype path)
   if (content[0]=='<') {
     U8_INPUT in; FD_XML *xml; fd_lispenv env;
     fdtype lenv, ldata;
-    U8_INIT_INPUT(&in,strlen(content),content);
+    U8_INIT_STRING_INPUT(&in,strlen(content),content);
     oldsource=fd_bind_sourcebase(pathname);
     xml=fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
     fd_restore_sourcebase(oldsource);

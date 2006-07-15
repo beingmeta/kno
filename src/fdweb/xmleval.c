@@ -373,7 +373,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
       U8_INPUT in; fdtype expr;
       if (scan>start)
 	fd_add_content(node,fd_extract_string(NULL,start,scan));
-      scan=scan+escape_len; U8_INIT_INPUT(&in,limit-scan,scan);
+      scan=scan+escape_len; U8_INIT_STRING_INPUT(&in,limit-scan,scan);
       if (*scan=='$') {
 	/* This handles infix expressions, ending at the next $ */
 	u8_string start=scan+1, end=strchr(start,'$');
@@ -599,10 +599,10 @@ static fdtype parsefdxml(fdtype input,fdtype sloppy)
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
   else if (FD_STRINGP(input)) {
-    U8_INIT_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
     in=&_in;}
   else if (FD_PACKETP(input)) {
-    U8_INIT_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
   if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))

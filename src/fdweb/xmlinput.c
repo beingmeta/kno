@@ -766,10 +766,10 @@ static fdtype xmlparse(fdtype input,fdtype options)
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
   else if (FD_STRINGP(input)) {
-    U8_INIT_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
     in=&_in;}
   else if (FD_PACKETP(input)) {
-    U8_INIT_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
   init_node(&object,NULL,u8_strdup("top")); object.bits=flags;

@@ -150,7 +150,7 @@ static fdtype open_input_string(fdtype arg)
 {
   if (FD_STRINGP(arg)) {
     U8_INPUT *in=u8_malloc_type(struct U8_INPUT);
-    U8_INIT_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(FD_STRDATA(arg)));
+    U8_INIT_STRING_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(FD_STRDATA(arg)));
     in->u8_streaminfo=in->u8_streaminfo|U8_STREAM_OWNS_BUF;
     return make_port(in,NULL);}
   else return fd_type_error(_("string"),"open_input_string",arg);
