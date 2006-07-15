@@ -7,7 +7,7 @@
  '{brico-pool
    brico-index
    english spanish french
-   genls genls* specls specls*
+   genls genls* kindof kindof* specls specls*
    parts parts* part-of part-of*
    members members* member-of member-of*
    ingredients ingredients* ingredient-of ingredient-of*
@@ -24,6 +24,8 @@
 (define french {})
 (define genls {})
 (define genls* {})
+(define kindof {})
+(define kindof* {})
 (define specls {})
 (define specls* {})
 (define parts {})
@@ -90,6 +92,8 @@
 		 (set! spanish (?? '%id 'es))
 		 (set! genls (?? '%id 'genls))
 		 (set! genls* (?? '%id 'genls*))
+		 (set! genls (?? '%id 'kindof))
+		 (set! genls* (?? '%id 'kindof*))
 		 (set! specls (?? '%id 'specls))
 		 (set! specls* (?? '%id 'specls*))
 		 (set! parts (?? '%id 'parts))
@@ -148,7 +152,7 @@
 (define (index-kindof index frame slot)
   (let ((v (get frame slot)))
     (when (exists? v)
-      (index-frame index frame slot (get v @?kindof*)))))
+      (index-frame index frame slot (get v kindof*)))))
 
 (define (index-frame* index frame slot base)
   (do ((g (get frame base) (difference (get g base) seen))
