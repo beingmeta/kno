@@ -12,7 +12,8 @@
    members members* member-of member-of*
    ingredients ingredients* ingredient-of ingredient-of*
    isa inverse =is= disjoint implies implies*
-   get-gloss get-short-gloss get-expstring index-name gloss
+   get-gloss get-short-gloss get-expstring gloss
+   index-string index-name index-gloss index-kindof index-frame*
    basic-concept-frequency concept-frequency use-corpus-frequency})
 
 (define bricosource #f)
@@ -116,31 +117,50 @@
 
 ;;; Indexing functions
 
-(define (get-prefixes wordlist)
-  (let ((ixes {}))
-    (dotimes (prefixlen (1- (length wordlist)))
-      (set+! ixes
-	     (stringout (doseq (elt wordlist i)
-			  (when (< i (1+ prefixlen))
-			    (printout (if (> i 0) " ") elt))))))
-    ixes))
-(define (get-suffixes wordlist)
-  (let ((ixes {}))
-    (dotimes (suffixlen (1- (length wordlist)))
-      (set+! ixes
-	     (stringout (doseq (elt wordlist i)
-			  (when (>= i suffixlen)
-			    (printout (if (> i suffixlen) " ") elt))))))
-    ixes))
+(define (index-string index frame slot (value #f) (window 2))
+  (let ((values (if value value (get frame slot))))
+    (do-choices (v values)
+      (let* ((stdspaced (stdspace v))
+	     (baseform (basestring stdspaced)))
+	(index-frame index frame slot stdspaced)
+	(index-frame index frame slot baseform)
+	(when window
+	  (let* ((words (words->vector stdspaced))
+		 (basewords (words->vector baseform))
+		 (frags (choice (vector->frags words window)
+				(vector->frags basewords window))))
+	    (index-frame index frame slot frags)))))))
 
-(define (index-name index frame name)
-  (let* ((std (stdstring name))
-	 (segs (segment std " ")))
-    (index-frame index frame 'names std)
-    (index-frame index frame 'frags (elts segs))
-    (when (> (length segs) 1)
-      (index-frame index frame 'prefix (get-prefixes segs))
-      (index-frame index frame 'suffix (get-suffixes segs)))))
+(define (index-name index frame slot (value #f) (window 2))
+  (let ((values (if value value (get frame slot))))
+    (do-choices (v values)
+      (let* ((downspaced (downcase (stdspace v)))
+	     (baseform (basestring downspaced)))
+	(index-frame index frame slot downspaced)
+	(index-frame index frame slot baseform)
+	(when window
+	  (let* ((words (words->vector downspaced))
+		 (basewords (words->vector baseform))
+		 (frags (choice (vector->frags words window)
+				(vector->frags basewords window))))
+	    (index-frame index frame slot frags)))))))
+
+(define (index-kindof index frame slot)
+  (let ((v (get frame slot)))
+    (when (exists? v)
+      (index-frame index frame slot (get v @?kindof*)))))
+
+(define (index-frame* index frame slot base)
+  (do ((g (get frame base) (difference (get g base) seen))
+       (seen frame (choice g seen)))
+      ((empty? g))
+    (index-frame index frame slot g)))
+
+(define (index-gloss index frame slotid (value #f))
+  (let* ((wordlist (getwords (or value (get frame slotid))))
+	 (gloss-words (elts wordlist)))
+    (index-frame index frame slotid
+		 (choice gloss-words (porter-stem gloss-words)))))
 
 ;;; Displaying glosses
 
