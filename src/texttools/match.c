@@ -2722,7 +2722,7 @@ static u8_byte *strsearch
   if ((flags&FD_MATCH_COLLAPSE_SPACES) &&
       ((flags&(FD_MATCH_IGNORE_CASE|FD_MATCH_IGNORE_DIACRITICS)) == 0)) {
     struct U8_OUTPUT os; scan=pat; c=u8_sgetc(&scan);
-    U8_INIT_OUTPUT_X(&os,64,buf,NULL);
+    U8_INIT_OUTPUT_BUF(&os,64,buf);
     while ((c>0) && (!(u8_isspace(c)))) {
       u8_putc(&os,c); c=u8_sgetc(&scan);}
     use_buf=1;}

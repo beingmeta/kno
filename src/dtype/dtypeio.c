@@ -842,7 +842,7 @@ static fdtype make_character_type
     return FD_CODE2CHAR(c);}
   case dt_unicode_short_string: case dt_unicode_string: {
     struct U8_OUTPUT os; unsigned char *scan, *limit;
-    U8_INIT_OUTPUT_X(&os,len,NULL,p);
+    U8_INIT_OUTPUT(&os,len);
     scan=bytes; limit=bytes+len;
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
@@ -853,7 +853,7 @@ static fdtype make_character_type
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
     fdtype sym;
     struct U8_OUTPUT os; unsigned char *scan, *limit;
-    U8_INIT_OUTPUT_X(&os,len,NULL,p);
+    U8_INIT_OUTPUT(&os,len);
     scan=bytes; limit=bytes+len;
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;

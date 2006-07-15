@@ -1193,7 +1193,7 @@ static fdtype apply_suffixrule
     U8_OUTPUT out; u8_byte buf[256];
     int slen=FD_STRLEN(string), sufflen=FD_STRLEN(suffix);
     int replen=FD_STRLEN(replacement);
-    U8_INIT_OUTPUT_X(&out,256,buf,NULL);
+    U8_INIT_OUTPUT_BUF(&out,256,buf);
     u8_putn(&out,FD_STRDATA(string),(slen-sufflen));
     u8_putn(&out,FD_STRDATA(replacement),replen);
     FD_INIT_STACK_CONS(&stack_string,fd_string_type);

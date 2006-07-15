@@ -1214,7 +1214,7 @@ static fdtype x2string(fdtype seq)
   else if (FD_CHARACTERP(seq)) {
     int c=FD_CHAR2CODE(seq);
     U8_OUTPUT out; u8_byte buf[16];
-    U8_INIT_OUTPUT_X(&out,16,buf,NULL);
+    U8_INIT_OUTPUT_BUF(&out,16,buf);
     u8_putc(&out,c);
     return fdtype_string(out.u8_outbuf);}
   else if (FD_EMPTY_LISTP(seq)) return fdtype_string("");

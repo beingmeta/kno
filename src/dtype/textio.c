@@ -508,7 +508,7 @@ static fdtype parse_character(U8_INPUT *in)
   struct U8_OUTPUT tmpbuf;
   int c, n_chars=0;
   /* First, copy an entire atom. */
-  U8_INIT_OUTPUT_X(&tmpbuf,128,buf,NULL);
+  U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
   c=u8_getc(in);
   if (c=='&') {
     int code=u8_get_entity(in);
@@ -570,7 +570,7 @@ static fdtype default_parse_oid(u8_string start,int len)
 static fdtype parse_oid(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
 { 
   struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
-  U8_INIT_OUTPUT_X(&tmpbuf,128,buf,NULL);
+  U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
   /* First, copy the data into a buffer.
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
@@ -594,7 +594,7 @@ static fdtype parse_oid(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
 static fdtype parse_string(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
 {
     struct U8_OUTPUT out; int c=u8_getc(in);
-    U8_INIT_OUTPUT_X(&out,16,NULL,p);
+    U8_INIT_OUTPUT(&out,16);
     while ((c=u8_getc(in))>=0)
       if (c == '"') break;
       else if (c == '\\') {
@@ -909,7 +909,7 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
     default: u8_ungetc(in,ch);}}
   default: { /* Parse an atom */
     struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
-    U8_INIT_OUTPUT_X(&tmpbuf,128,buf,NULL);
+    U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
     if (inchar == '#') u8_sputc(&tmpbuf,'#');
     c=copy_atom(in,&tmpbuf);
     if (tmpbuf.u8_outptr==tmpbuf.u8_outbuf) result=FD_EOX;

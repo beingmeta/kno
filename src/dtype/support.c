@@ -66,7 +66,7 @@ static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
 static config_intern(u8_string start)
 {
   fdtype symbol; U8_OUTPUT nameout; u8_byte buf[64], *scan=start;
-  U8_INIT_OUTPUT_X(&nameout,64,buf,NULL);
+  U8_INIT_OUTPUT_BUF(&nameout,64,buf);
   while (*scan) {
     int c=u8_sgetc(&scan);
     if (c == '/') u8_putc(&nameout,c);
@@ -576,7 +576,7 @@ static int clear_fderrors(struct FD_ERRDATA *ed,int report)
   if (ed==NULL) return 0;
   if (ed->next) retval=1+clear_fderrors(ed->next,report);
   if (report) {
-    U8_INIT_OUTPUT_X(&out,128,buf,NULL);
+    U8_INIT_OUTPUT_BUF(&out,128,buf);
     u8_printf(&out,"[%d]%m",retval,"Clearing error ");
     fd_errout(&out,ed);
     u8_message(out.u8_outbuf);
