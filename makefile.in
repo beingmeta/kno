@@ -115,8 +115,9 @@ FDB_SOURCES=\
 	src/texttools/md5c.c src/texttools/md5.h \
 	src/texttools/tagger.c src/texttools/tagxtract.c \
 	include/fdb/tagger.h \
-	src/exe/fdconsole.c src/exe/fdexec.c src/exe/fdbatch.c src/exe/fdserv.c \
-	src/exe/fdbserver.c
+	src/exe/fdconsole.c \
+	src/exe/fdexec.c src/exe/fdbatch.c \
+	src/exe/fdserv.c src/exe/fdbserver.c
 
 # Targets
 
@@ -162,12 +163,18 @@ exe/fdbserver: src/exe/fdbserver.c \
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
 exe/fdmanager: src/exe/fdmanager.c lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
+
 exe/%: src/exe/%.c
 	$(CC) $(EXELDFLAGS) $(CFLAGS) $(LDFLAGS) \
 		-o $@ $< \
 		$(LIBS) -lu8stdio \
 		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio \
 		@xdynamic_scheme_libs@
+
+exe/fdexec exe/fdbatch exe/fdconsole: \
+	@xstatic_exe_libs@ lib/libfdbserv.a lib/libfdscheme.a \
+	lib/libfddbfile.a lib/libfddb.a \
+	lib/libfdtype.a
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -221,8 +228,9 @@ clean: tidy
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
 	rm -f src/fdweb/*.o src/texttools/*.o src/exe/*.o
 	rm -f lib/*.a lib/*.so lib/*.dylib lib/*.so.* 
-	rm -f exe/fdexec exe/fdconsole exe/fdexec.static
+	rm -f exe/fdexec exe/fdexec.static exe/fdbatch
 	rm -f exe/fdserv exe/fdbserver
+	rm -f exe/fdconsole 
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
