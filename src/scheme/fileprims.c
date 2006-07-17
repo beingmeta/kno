@@ -785,27 +785,34 @@ static fdtype get_entry(fdtype key,fdtype entries)
 FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 {
   if (filename==NULL) {
-    int loads=0;
-    fdtype sources=fd_get(env->bindings,source_symbol,FD_EMPTY_CHOICE);
-    FD_DO_CHOICES(entry,sources) {
-      struct FD_TIMESTAMP *loadstamp=
-	FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
-      time_t mod_time=u8_file_mtime(FD_STRDATA(FD_CAR(entry)));
-      if (mod_time>loadstamp->xtime.u8_secs) {
-	struct FD_PAIR *pair=(struct FD_PAIR *)entry;
-	struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
-	FD_INIT_CONS(tstamp,fd_timestamp_type);
-	u8_localtime(&(tstamp->xtime),mod_time);
-	fd_decref(pair->cdr);
-	pair->cdr=FDTYPE_CONS(tstamp);
-	fd_load_source(FD_STRDATA(FD_CAR(entry)),env,"auto");
-	loads++;}}
+    int loads=0; fd_lispenv scan=env; fdtype result=FD_VOID;
+    while (scan) {
+      fdtype sources=fd_get(scan->bindings,source_symbol,FD_EMPTY_CHOICE);
+      FD_DO_CHOICES(entry,sources) {
+	struct FD_TIMESTAMP *loadstamp=
+	  FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
+	time_t mod_time=u8_file_mtime(FD_STRDATA(FD_CAR(entry)));
+	if (mod_time>loadstamp->xtime.u8_secs) {
+	  struct FD_PAIR *pair=(struct FD_PAIR *)entry;
+	  struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+	  FD_INIT_CONS(tstamp,fd_timestamp_type);
+	  u8_localtime(&(tstamp->xtime),mod_time);
+	  fd_decref(pair->cdr);
+	  pair->cdr=FDTYPE_CONS(tstamp);
+	  result=fd_load_source(FD_STRDATA(FD_CAR(entry)),scan,"auto");
+	  if (FD_ABORTP(result)) {
+	    fd_decref(sources);
+	    return fd_interr(result);}
+	  else fd_decref(result);
+	  loads++;}}
+      scan=scan->parent;}
     return loads;}
   else {
     u8_string abspath=u8_abspath(filename,base);
     fdtype abspath_dtype=fdtype_string(abspath);
     fdtype sources=fd_get(env->bindings,source_symbol,FD_EMPTY_CHOICE);
     fdtype entry=get_entry(abspath_dtype,sources);
+    fdtype result=FD_VOID;
     if (FD_PAIRP(entry))
       if (FD_PRIM_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
 	struct FD_TIMESTAMP *curstamp=
@@ -832,10 +839,13 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
       entry=fd_init_pair(NULL,fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
       if (FD_EMPTY_CHOICEP(sources)) fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
-    fd_load_source(abspath,env,"auto");
+    result=fd_load_source(abspath,env,"auto");
     u8_free(abspath);
     fd_decref(abspath_dtype);
     fd_decref(sources);
+    if (FD_ABORTP(result)) 
+      return fd_interr(result);
+    else fd_decref(result);
     return 1;}
 }
 
