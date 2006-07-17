@@ -813,7 +813,8 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 		    fd_incref(attribs)));}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
-  open_markup(out,&tmpout,"a",attribs,env,0);
+  if (open_markup(out,&tmpout,"a",attribs,env,0)<0)
+    return fd_erreify();
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
@@ -1090,6 +1091,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
   else {
     U8_OUTPUT *out=fd_get_default_output();
     fdtype xmlarg=fd_eval(FD_CADR(expr),env), v=FD_VOID;
+    if (FD_ABORTP(xmlarg)) return xmlarg;
     v=fd_xmleval(out,xmlarg,env);
     u8_flush(out);
     return v;}
