@@ -242,7 +242,8 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
     result=sf->eval(xml,env);}
   else result=fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
 			      xmlgetarg);
-  if (FD_ABORTP(result)) return result;
+  if (FD_ABORTP(result))
+    return result;
   else if (FD_VOIDP(bind)) return result;
   else if (FD_SYMBOLP(bind)) {
     fd_bind_value(bind,result,env);
@@ -468,7 +469,7 @@ static FD_XML *handle_xmleval_pi
       if ((strncmp(attribs[i],"load=",5))==0) {
 	u8_string arg=get_pi_string(attribs[i]+5);
 	u8_string filename=fd_get_component(arg);
-	fd_lispenv env=fd_working_environment();
+	fd_lispenv env=(fd_lispenv)(xml->data);
 	fd_lispenv xml_env=get_xml_env(xml);;
 	fd_load_latest(filename,env,NULL);
 	u8_free(arg); u8_free(filename);
@@ -500,18 +501,10 @@ static FD_XML *handle_xmleval_pi
       else if ((strncmp(attribs[i],"scheme_load=",12))==0) {
 	u8_string arg=get_pi_string(attribs[i]+12);
 	u8_string filename=fd_get_component(arg);
-	fd_lispenv env=fd_working_environment();
+	fd_lispenv env=(fd_lispenv)(xml->data);
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fd_load_latest(filename,env,NULL);
 	u8_free(arg); u8_free(filename);
-	if (FD_TABLEP(env->exports)) {
-	  fd_lispenv new_xml_env=
-	    fd_make_export_env(env->exports,xml_env);
-	  xml->data=new_xml_env;}
-	else {
-	  fd_lispenv new_xml_env=
-	    fd_make_export_env(env->bindings,xml_env);
-	  xml->data=new_xml_env;}
 	i++;}
       else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
 	u8_string arg=get_pi_string(attribs[i]+14);
