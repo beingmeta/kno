@@ -18,6 +18,7 @@ static char versionid[] =
 #include "fdb/frames.h"
 #include "fdb/ports.h"
 #include "fdb/numbers.h"
+#include "fdb/fileprims.h"
 
 #include <libu8/pathfns.h>
 #include <libu8/filefns.h>
@@ -501,11 +502,12 @@ static fdtype read_dtypes(fdtype filename)
 
 /* Getting file sources */
 
-static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *abspath)
+static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *abspath,time_t *timep)
 {
   u8_string data=u8_filestring(filename,encname);
   if (data) {
-    *abspath=u8_abspath(filename,NULL);
+    if (abspath) *abspath=u8_abspath(filename,NULL);
+    if (timep) *timep=u8_file_mtime(filename);
     return data;}
   else return NULL;
 }
@@ -763,6 +765,97 @@ static int updatemodules_config_set(fdtype var,fdtype val,void *ignored)
   else {
     fd_seterr(fd_TypeError,"updatemodules_config_get",NULL,val);
     return -1;}
+}
+
+/* Latest source functions */
+
+static fdtype source_symbol;
+
+static fdtype get_entry(fdtype key,fdtype entries)
+{
+  fdtype entry=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(each,entries)
+    if (!(FD_PAIRP(each))) {}
+    else if (FDTYPE_EQUAL(key,FD_CAR(each))) {
+      entry=each; FD_STOP_DO_CHOICES; break;}
+    else {}
+  return entry;
+}
+
+FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
+{
+  if (filename==NULL) {
+    int loads=0;
+    fdtype sources=fd_get(env->bindings,source_symbol,FD_EMPTY_CHOICE);
+    FD_DO_CHOICES(entry,sources) {
+      struct FD_TIMESTAMP *loadstamp=
+	FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
+      time_t mod_time=u8_file_mtime(FD_STRDATA(FD_CAR(entry)));
+      if (mod_time>loadstamp->xtime.u8_secs) {
+	struct FD_PAIR *pair=(struct FD_PAIR *)entry;
+	struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+	FD_INIT_CONS(tstamp,fd_timestamp_type);
+	u8_localtime(&(tstamp->xtime),mod_time);
+	fd_decref(pair->cdr);
+	pair->cdr=FDTYPE_CONS(tstamp);
+	fd_load_source(FD_STRDATA(FD_CAR(entry)),env,"auto");
+	loads++;}}
+    return loads;}
+  else {
+    u8_string abspath=u8_abspath(filename,base);
+    fdtype abspath_dtype=fdtype_string(abspath);
+    fdtype sources=fd_get(env->bindings,source_symbol,FD_EMPTY_CHOICE);
+    fdtype entry=get_entry(abspath_dtype,sources);
+    if (FD_PAIRP(entry))
+      if (FD_PRIM_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
+	struct FD_TIMESTAMP *curstamp=
+	  FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
+	time_t last_loaded=curstamp->xtime.u8_secs;
+	time_t mod_time=u8_file_mtime(FD_STRDATA(abspath_dtype));
+	if (mod_time<=last_loaded) return 0;
+	else {
+	  struct FD_PAIR *pair=(struct FD_PAIR *)entry;
+	  struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+	  FD_INIT_CONS(tstamp,fd_timestamp_type);
+	  u8_localtime(&(tstamp->xtime),mod_time);
+	  fd_decref(pair->cdr);
+	  pair->cdr=FDTYPE_CONS(tstamp);}}
+      else {
+	fd_seterr("Invalid load_latest record","load_latest",abspath,entry);
+	fd_decref(sources); fd_decref(abspath_dtype);
+	return -1;}
+    else {
+      time_t mod_time=u8_file_mtime(abspath);
+      struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+      FD_INIT_CONS(tstamp,fd_timestamp_type);
+      u8_localtime(&(tstamp->xtime),mod_time);
+      entry=fd_init_pair(NULL,fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
+      if (FD_EMPTY_CHOICEP(sources)) fd_bind_value(source_symbol,entry,env);
+      else fd_add_value(source_symbol,entry,env);}
+    fd_load_source(abspath,env,"auto");
+    u8_free(abspath);
+    fd_decref(abspath_dtype);
+    fd_decref(sources);
+    return 1;}
+}
+
+static fdtype load_latest(fdtype expr,fd_lispenv env)
+{
+  if (FD_EMPTY_LISTP(FD_CDR(expr))) {
+    int loads=fd_load_latest(NULL,env,NULL);
+    return FD_INT2DTYPE(loads);}
+  else {
+    int retval=-1;
+    fdtype path_expr=fd_get_arg(expr,1);
+    fdtype path=fd_eval(path_expr,env);
+    if (!(FD_STRINGP(path)))
+      return fd_type_error("pathname","load_latest",path);
+    else retval=fd_load_latest(FD_STRDATA(path),env,NULL);
+    if (retval<0) return fd_erreify();
+    else if (retval) {
+      fd_decref(path); return FD_TRUE;}
+    else {
+      fd_decref(path); return FD_FALSE;}}
 }
 
 /* Snapshot save and restore */
@@ -1089,6 +1182,8 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOAD-DLL",load_dll,1));
 
+  fd_defspecial(fileio_module,"LOAD-LATEST",load_latest);
+
   fd_init_filedb_c();
 
   fd_add_module_loader(load_source_module);
@@ -1116,6 +1211,8 @@ FD_EXPORT void fd_init_fileio_c()
 	      (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
     fd_config_set("SAFELOADPATH",v);
     fd_decref(v);}
+
+  source_symbol=fd_intern("%SOURCE");
 
   snapshotvars=fd_intern("%SNAPVARS");
   snapshotconfig=fd_intern("%SNAPCONFIG");
