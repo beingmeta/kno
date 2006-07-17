@@ -16,6 +16,7 @@ static char versionid[] =
 #include "fdb/ports.h"
 #include "fdb/fdweb.h"
 #include "fdb/sequences.h"
+#include "fdb/fileprims.h"
 
 #include <libu8/xfiles.h>
 #include <libu8/stringfns.h>
@@ -241,7 +242,8 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
     result=sf->eval(xml,env);}
   else result=fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
 			      xmlgetarg);
-  if (FD_VOIDP(bind)) return result;
+  if (FD_ABORTP(result)) return result;
+  else if (FD_VOIDP(bind)) return result;
   else if (FD_SYMBOLP(bind)) {
     fd_bind_value(bind,result,env);
     fd_decref(result);
@@ -254,6 +256,7 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
       result=FD_VOID;}
     fd_decref(sym);}
   else {}
+  return result;
 }
 
 /* Handling XML attributes */
@@ -467,7 +470,7 @@ static FD_XML *handle_xmleval_pi
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=fd_working_environment();
 	fd_lispenv xml_env=get_xml_env(xml);;
-	fd_load_source(filename,env,"auto");
+	fd_load_latest(filename,env,NULL);
 	u8_free(arg); u8_free(filename);
 	if (FD_TABLEP(env->exports)) {
 	  fd_lispenv new_xml_env=
@@ -499,7 +502,7 @@ static FD_XML *handle_xmleval_pi
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=fd_working_environment();
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
-	fd_load_source(filename,env,"auto");
+	fd_load_latest(filename,env,NULL);
 	u8_free(arg); u8_free(filename);
 	if (FD_TABLEP(env->exports)) {
 	  fd_lispenv new_xml_env=
