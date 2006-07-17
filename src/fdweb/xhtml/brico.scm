@@ -65,9 +65,11 @@
   (try (cgiget var) (car (get-preferred-languages))))
 (define getlanguage get-language)
 
-(define (display-checkbox reqdata var val selected onclick multi)
+(define (display-checkbox var val selected onclick multi)
   (if onclick
-      (xmltag 'input 'type (if multi 'checkbox 'radio) 'name var 'value val
+      (xmltag 'input
+	      'type (if multi "CHECKBOX" "RADIO")
+	      'name var 'value val
 	      'onclick onclick (if selected " CHECKED" ""))
     (xmltag 'input 'type (if multi 'checkbox 'radio) 'name var 'value val
 	    (if selected " CHECKED" ""))))
@@ -81,37 +83,29 @@
 	 (languages (try (cgiget var #t) (car preferred))))
     languages))
 ;; This is used to figure out the language and displaying an option box
-(define (languagebox id %env (onchange #f) (action #f) (selectbox #t)
+(define (languagebox  %env (name language)
+		      (onchange #f) (action #f) (selectbox #t)
 		     (title #f))
-  (let* ((var (getsym id))
-	 (preferred (get-preferred-languages))
-	 (language (try (cgiget var) (car preferred))))
-    (if (and (fail? (cgiget var)) (= (length preferred) 1) (not selectbox))
-	(xmlout)
-      (xmlout
-       (span (class "langbox_title")
-	 (if (string? title) (xmlout title ":")
-	   (if title (xmleval title %env) (xmlout))))
-       (span (class (if (> (length preferred) 3) "langbox" "langbox_rigid"))
-	 (dolist (lang preferred)
-	   (span (class "nobreak")
-	     (display-checkbox (cgi-data) var lang
-			       (eq? lang language) onchange #f)
-	     (span (class "language") (get-language-name lang)))
-	   (xmlout "  "))
-	 (unless (member? language preferred)
-	   (span (class "nobreak")
-	     (display-checkbox (cgi-data) var language #t
-			       onchange #f)
-	     (span (class "language") (get-language-name language))))
-	 (when (true-string? selectbox)
-	   (selection (name var)
-		      (option {} "")
-		      (doseq (l (sortby get-language-name all-languages))
-			(option l (get-language-name l)))))
-	 (if action (xmltag 'input 'type 'submit 'name 'action 'value
-			    action)))))
-    language))
+  (let* ((var (if (symbol? name) name (string->lisp name)))
+	 (language (get-language var))
+	 (languages (get-languages var)))
+    (cgiset! var language)
+    (xmlout
+     (span (class "langbox_title") (if title (xmleval title %env)))
+     (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
+       (do-choices (lang languages)
+	 (span (class "nobreak")
+	   (display-checkbox var lang (eq? lang language) onchange #f)
+	   (span (class "language") (get-language-name lang)))
+	 (xmlout "  "))
+       (when selectbox
+	 (xmlblock SELECT (name name)
+	     (doseq (l (sorted all-languages get-language-name))
+	       (xmlblock OPTION (value l) (get-language-name l)))))
+       (if action
+	   (xmltag 'input 'type "SUBMIT" 'name 'action 'value
+		   action))))
+    (xmlout)))
 (define (languagesbox id (onchange #f) (action #f) (selectbox #t) (multiple #t))
   (let* ((var (getsym id))
 	 (preferred (get-preferred-languages))
@@ -120,15 +114,13 @@
       (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
 	(dolist (lang preferred)
 	  (span (class "nobreak")
-	    (display-checkbox
-	     (cgi-data) var lang (contains? lang languages) onchange #t)
+	    (display-checkbox var lang (contains? lang languages) onchange #t)
 	    (span (class "language") (get-language-name lang)))
 	  (xmlout "  "))
 	(do-choices (language languages)
 	  (unless (member? language preferred)
 	    (span (class "nobreak")
-	      (display-checkbox
-	       (cgi-data) var language (contains? language languages) onchange #t)
+	      (display-checkbox var language (contains? language languages) onchange #t)
 	      (span (class "language") (get-language-name language)))
 	    (xmlout "  ")))
 	(when (true-string? selectbox)
