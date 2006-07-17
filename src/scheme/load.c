@@ -32,17 +32,17 @@ static u8_mutex sourcefns_lock;
 #endif
 
 FD_EXPORT u8_string fd_get_source
-  (u8_string path,u8_string enc,u8_string *basepathp)
+  (u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
 {
   struct FD_SOURCEFN *scan=sourcefns;
   while (scan) {
     u8_string basepath=NULL;
-    u8_string data=scan->getsource(path,enc,&basepath);
+    u8_string data=scan->getsource(path,enc,&basepath,timep);
     if (data) {*basepathp=basepath; return data;}
     else scan=scan->next;}
   return NULL;
 }
-FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *))
+FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *))
 {
   struct FD_SOURCEFN *new_entry=u8_malloc_type(struct FD_SOURCEFN);
   u8_lock_mutex(&sourcefns_lock);
@@ -92,7 +92,7 @@ FD_EXPORT fdtype fd_load_source
   struct U8_INPUT stream;
   u8_string sourcebase=NULL, outer_sourcebase;
   u8_string encoding=((enc_name)?(enc_name):((u8_string)("auto")));
-  u8_string content=fd_get_source(sourceid,encoding,&sourcebase);
+  u8_string content=fd_get_source(sourceid,encoding,&sourcebase,NULL);
   u8_byte *input=content;
   if (content==NULL) return fd_erreify();
   else outer_sourcebase=bind_sourcebase(sourcebase);
@@ -168,7 +168,7 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
   u8_string sourcebase=NULL;
-  u8_string content=fd_get_source(sourceid,NULL,&sourcebase);
+  u8_string content=fd_get_source(sourceid,NULL,&sourcebase,NULL);
   u8_byte *input=content;
   if (content==NULL) return fd_erreify();
   else if (sourcebase) u8_free(sourcebase);
