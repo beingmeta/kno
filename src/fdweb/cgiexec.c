@@ -208,7 +208,7 @@ static void parse_query_string(fd_slotmap c,char *data,int len)
   fdtype slotid=FD_VOID, value=FD_VOID;
   int isascii=1;
   u8_byte *scan=data, *end=scan+len;
-  char *buf=u8_malloc(len), *write=buf;
+  char *buf=u8_malloc(len+1), *write=buf;
   while (scan<end)
     if ((FD_VOIDP(slotid)) && (*scan=='=')) {
       *write++='\0'; slotid=buf2slotid(buf,isascii);
