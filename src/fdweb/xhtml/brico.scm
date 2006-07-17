@@ -259,7 +259,7 @@
   (if (fail? c) (xmlout)
     (let ((languages (or language (get-languages 'language)))
 	  (expval (if expansion (get c expansion) (fail))))
-      (anchor* c (title (string-trim (get-gloss c (qc languages))) class "concept")
+      (anchor* c (title (stdspace (get-gloss c (qc languages))) class "concept")
 	       (output-words c (qc languages) wordlim))
       (when (exists? expval)
 	(span (style "cursor: help;"
@@ -292,7 +292,7 @@
 	(P* (class "gloss") (get concept 'gloss)))
       (if (exists? (get concept 'source))
 	  (P (strong "source ") (get concept 'source)))
-      (xmleval body %env))))
+      (xmleval xmlbody %env))))
 
 (module-export! 'conceptsummary)
 
