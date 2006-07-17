@@ -14,7 +14,7 @@ static char versionid[] =
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
 #include "fdb/fdweb.h"
-
+#include "fdb/fileprims.h"
 
 #include <libu8/u8.h>
 #include <libu8/timefns.h>
@@ -320,6 +320,10 @@ static fdtype loadcontent(fdtype path)
     oldsource=fd_bind_sourcebase(pathname);
     xml=fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
     fd_restore_sourcebase(oldsource);
+    if (xml==NULL) {
+      u8_free(content);
+      u8_notify("ERROR","Error parsing %s",pathname);
+      return fd_erreify();}
     env=(fd_lispenv)xml->data;
     lenv=(fdtype)env; ldata=xml->head;
     if (traceweb>0)
@@ -462,12 +466,14 @@ static int webservefn(u8_client ucl)
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
+    if (base) fd_load_latest(NULL,base,NULL);
     write_headers=0;
     fd_thread_set(cgidata_symbol,cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
       FD_DOLIST(expr,FD_CAR(proc)) {
 	fd_decref(result);
-	result=fd_xmleval(&(client->out),expr,runenv);}}
+	result=fd_xmleval(&(client->out),expr,runenv);
+	if (FD_ABORTP(result)) break;}}
     else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
     fd_thread_set(cgidata_symbol,FD_VOID);
     fd_decref((fdtype)runenv);}
@@ -601,7 +607,7 @@ int main(int argc,char **argv)
   int i=2, n_threads=-1, n_tasks=-1;
   u8_string source_file=NULL;
   if (argc<2) {
-    fprintf(stderr,"Usage: fdbservlet <socketfile> [config]*\n");
+    fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
 #if FD_TESTCONFIG
   u8_init_chardata_c();
@@ -626,7 +632,7 @@ int main(int argc,char **argv)
   u8_init_mutex(&log_lock);
 #endif
 
-  u8_notify("LAUNCH","fdbservlet %s",argv[1]);
+  u8_notify("LAUNCH","fdserv %s",argv[1]);
 
   while (i<argc)
     if (strchr(argv[i],'=')) {
