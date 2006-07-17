@@ -49,7 +49,7 @@
   (try (if (exists? (cgiget 'accepted-languages))
 	   ;; If the have one or zero languages accepted,
 	   ;; add in the defaults just for flash value
-	   (let* ((ordered-prefs (sortby cdr (elts (cgiget 'accepted-languages))))
+	   (let* ((ordered-prefs (sorted (elts (cgiget 'accepted-languages)) cdr))
 		  (langs (remove-duplicates
 			  (map lookup-langid (map car (vector->list (reverse ordered-prefs)))))))
 	     (if (< (length (cgiget 'accepted-languages)) 3)
@@ -69,9 +69,9 @@
   (if onclick
       (xmltag 'input
 	      'type (if multi "CHECKBOX" "RADIO")
-	      'name var 'value val
+	      'name (symbol->string var) 'value val
 	      'onclick onclick (if selected " CHECKED" ""))
-    (xmltag 'input 'type (if multi 'checkbox 'radio) 'name var 'value val
+    (xmltag 'input 'type (if multi 'checkbox 'radio) 'name (symbol->string var) 'value val
 	    (if selected " CHECKED" ""))))
 
 (define (get-language-name language) (get language '%id))
@@ -84,8 +84,8 @@
     languages))
 ;; This is used to figure out the language and displaying an option box
 (define (languagebox  %env (name language)
-		      (onchange #f) (action #f) (selectbox #t)
-		     (title #f))
+		      (onchange #f) (action #f) (selectbox #f)
+		      (title #f))
   (let* ((var (if (symbol? name) name (string->lisp name)))
 	 (language (get-language var))
 	 (languages (get-languages var)))
@@ -114,18 +114,18 @@
       (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
 	(dolist (lang preferred)
 	  (span (class "nobreak")
-	    (display-checkbox var lang (contains? lang languages) onchange #t)
+	    (display-checkbox var lang (overlaps? lang languages) onchange #t)
 	    (span (class "language") (get-language-name lang)))
 	  (xmlout "  "))
 	(do-choices (language languages)
 	  (unless (member? language preferred)
 	    (span (class "nobreak")
-	      (display-checkbox var language (contains? language languages) onchange #t)
+	      (display-checkbox var language (overlaps? language languages) onchange #t)
 	      (span (class "language") (get-language-name language)))
 	    (xmlout "  ")))
 	(when (true-string? selectbox)
 	  (selection (name var)
-		     (doseq (l (sortby get-language-name all-languages))
+		     (doseq (l (sorted  all-languages get-language-name))
 		       (option l (get-language-name l)))))
 	(if action (xmltag 'input 'type 'submit 'name 'action 'value
 			   action))))
@@ -210,7 +210,7 @@
 		 (get languages 'iso639/1)))
 	  (else
 	   (sub* ((class "langids"))
-		 (doseq (elt (sortby 'iso639/1 languages) i)
+		 (doseq (elt (sorted languages 'iso639/1) i)
 		   (if (> i 0) (xmlout ";"))
 		   (span ((title (get-langname elt)))
 		     (get elt 'iso639/1))))))))
@@ -220,8 +220,8 @@
 
 (define (get-sorted-words concept language)
   (try (if (eq? language @?english) (get concept 'ranked) (fail))
-       (sortby (lambda (x) (choice-size (?? language x)))
-	       (get concept language))))
+       (sorted (get concept language)
+	       (lambda (x) (choice-size (?? language x))))))
 
 (define (output-words c languages wordlim)
   (let ((the-first #t) (multi-lingual (> (choice-size languages) 1))
@@ -230,7 +230,7 @@
 	(do-choices (language languages)
 	  (let ((words (get-sorted-words c language)))
 	    (doseq (word words i)
-	      (cond ((contains? word shown))
+	      (cond ((overlaps? word shown))
 		    ((or (not wordlim) (= (length words) (1+ wordlim)))
 		     (if the-first (set! the-first #f) (xmlout " or "))
 		     (if multi-lingual (wordform word c)
@@ -259,7 +259,7 @@
   (if (fail? c) (xmlout)
     (let ((languages (or language (get-languages 'language)))
 	  (expval (if expansion (get c expansion) (fail))))
-      (anchor+ c (title (string-trim (get-gloss c (qc languages))) class "concept")
+      (anchor* c (title (string-trim (get-gloss c (qc languages))) class "concept")
 	       (output-words c (qc languages) wordlim))
       (when (exists? expval)
 	(span (style "cursor: help;"
@@ -272,7 +272,7 @@
 	  (xmlout expval)))
       (xmlout))))
 
-(define (conceptsummary concept (language #f) . body)
+(define (conceptsummary concept (language #f) %env xmlbody)
   (let  ((language (or language (get-languages 'language))))
     (DIV (class "conceptsummary")
       (P* (class "head")
@@ -292,7 +292,7 @@
 	(P* (class "gloss") (get concept 'gloss)))
       (if (exists? (get concept 'source))
 	  (P (strong "source ") (get concept 'source)))
-      (unless (empty? (xml-content body)) (unparse-xml (xml-content body))))))
+      (xmleval body %env))))
 
 (module-export! 'conceptsummary)
 
