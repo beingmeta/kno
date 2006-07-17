@@ -69,14 +69,14 @@ FDBSERV_OBJS=src/db/dbserv.o
 SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
 	    src/scheme/conditionals.o src/scheme/iterators.o \
 	    src/scheme/modules.o src/scheme/load.o src/scheme/reflection.o \
-	    src/scheme/corefns.o src/scheme/dbfns.o \
-	    src/scheme/tablefns.o src/scheme/choicefns.o \
+	    src/scheme/coreprims.o src/scheme/dbprims.o \
+	    src/scheme/tableprims.o src/scheme/choiceprims.o \
 	    src/scheme/sequences.o src/scheme/strings.o \
-	    src/scheme/portfns.o src/scheme/timeprims.o \
+	    src/scheme/portprims.o src/scheme/timeprims.o \
 	    src/scheme/numeric.o src/scheme/side-effects.o
-SCHEMEIO_OBJS=src/scheme/fileio.o src/scheme/filedb.o
+SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/filedb.o
 FDWEB_OBJS=src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
-	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/urifns.o \
+	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/uriprims.o \
 	src/fdweb/xmleval.o src/fdweb/cgiexec.o @exifo@ @curlo@
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/md5c.o src/texttools/porter.o \
@@ -102,13 +102,13 @@ FDB_SOURCES=\
 	src/scheme/eval.c src/scheme/binders.c \
 	src/scheme/conditionals.c src/scheme/iterators.c \
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
-	src/scheme/corefns.c src/scheme/dbfns.c \
-	src/scheme/tablefns.c src/scheme/choicefns.c \
+	src/scheme/coreprims.c src/scheme/dbprims.c \
+	src/scheme/tableprims.c src/scheme/choiceprims.c \
 	src/scheme/sequences.c src/scheme/strings.c \
-	src/scheme/portfns.c src/scheme/fileio.c src/scheme/filedb.c \
-	src/scheme/numeric.c src/scheme/side-effects.c src/scheme/timefns.c \
+	src/scheme/portprims.c src/scheme/fileprims.c src/scheme/filedb.c \
+	src/scheme/numeric.c src/scheme/side-effects.c src/scheme/timeprims.c \
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
-	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/urifns.c      \
+	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c      \
 	src/fdweb/curl.c src/fdweb/mime.c src/fdweb/exif.c \
 	src/texttools/texttools.c include/fdb/texttools.h \
 	src/texttools/match.c src/texttools/porter.c \
