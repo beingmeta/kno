@@ -614,7 +614,8 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
 	    free_node(closenode,1);
 	  return retnode;}}
       fd_seterr(fd_XMLParseError,"inconsistent close tag",
-		u8_strdup(node->eltname),FD_VOID);
+		u8_mkstring("</%s> closes <%s>",elts[0],node->eltname),
+		FD_VOID);
       return NULL;}
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
