@@ -143,7 +143,7 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x; int n_chars=0;
   u8_string scan=s->bytes, limit=s->bytes+s->length;
-  u8_sputc(out,'"'); while (scan < limit) {
+  u8_putc(out,'"'); while (scan < limit) {
     u8_string chunk=scan;
     while ((scan < limit) &&
 	   (*scan != '"') && (*scan != '\\') &&
@@ -456,11 +456,11 @@ static int copy_atom(u8_input s,u8_output a)
     else if (c == '\\') {
       int realc;
       realc=read_escape(s);
-      u8_sputc(a,realc);}
-    else if (vbar) u8_sputc(a,c);
+      u8_putc(a,realc);}
+    else if (vbar) u8_putc(a,c);
     else {
       int upper=u8_toupper(c);
-      u8_sputc(a,upper);}
+      u8_putc(a,upper);}
     c=u8_getc(s);}
   if (c>=0) u8_ungetc(s,c);
   return c;
@@ -522,7 +522,7 @@ static fdtype parse_character(U8_INPUT *in)
   if ((c<128) && (ispunct(c))) {
     return FD_CODE2CHAR(c);}
   while ((c>=0) && (!(atombreakp(c)))) {
-    n_chars++; u8_sputc(&tmpbuf,c); c=u8_getc(in);}
+    n_chars++; u8_putc(&tmpbuf,c); c=u8_getc(in);}
   if (n_chars==0) return FD_CODE2CHAR(c);
   else u8_ungetc(in,c);
   if (n_chars==1) {
@@ -602,8 +602,8 @@ static fdtype parse_string(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
 	if (c<0) {
 	  u8_pfree(out.mpool,out.u8_outbuf);
 	  return FD_PARSE_ERROR;}
-	u8_sputc(&out,c);}
-      else u8_sputc(&out,c);
+	u8_putc(&out,c);}
+      else u8_putc(&out,c);
     if (p)
       return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
 			    u8_outlen(&out),u8_outstring(&out));
@@ -910,7 +910,7 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
   default: { /* Parse an atom */
     struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
     U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
-    if (inchar == '#') u8_sputc(&tmpbuf,'#');
+    if (inchar == '#') u8_putc(&tmpbuf,'#');
     c=copy_atom(in,&tmpbuf);
     if (tmpbuf.u8_outptr==tmpbuf.u8_outbuf) result=FD_EOX;
     else if (inchar == '|')

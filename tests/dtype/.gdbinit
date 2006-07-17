@@ -1,5 +1,5 @@
 source ../../etc/gdbinit
-directory ../../src/lisp:../../src/db:../../src/scheme:../../src/misc:../../include/fdb
+directory ../../src/dtype:../../src/db:../../src/scheme:../../src/misc:../../include/fdb
 
 
 

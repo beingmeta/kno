@@ -54,8 +54,8 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
       u8_byte *line_end=strchr(vstart,'\n');
       if (line_end>end) line_end=end;
       if (line_end[-1]=='\r')
-	u8_sputn(&hstream,vstart,(line_end-vstart)-1);
-      else u8_sputn(&hstream,vstart,(line_end-vstart));
+	u8_putn(&hstream,vstart,(line_end-vstart)-1);
+      else u8_putn(&hstream,vstart,(line_end-vstart));
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t'))) vstart=line_end+1;
       else {
 	fdtype slotval=

@@ -457,8 +457,8 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
 	    if (c<=0) break;
 	    else start=last=scan;
 	    if (insert_space) u8_putc(&out,' ');}
-	else u8_sputc(&out,c);
-      u8_sputn(&out,start,last-start);
+	else u8_putc(&out,c);
+      u8_putn(&out,start,last-start);
       return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_incref(string);
 }
@@ -477,7 +477,7 @@ static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
     if (point) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,2*FD_STRLEN(string));
       u8_string last=original; while (point) {
-	u8_sputn(&out,last,point-last); u8_puts(&out,replace);
+	u8_putn(&out,last,point-last); u8_puts(&out,replace);
 	last=point+searchlen; point=strstr(last,search);}
       u8_puts(&out,last);
       return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}

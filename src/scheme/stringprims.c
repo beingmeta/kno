@@ -128,7 +128,7 @@ static fdtype downcase(fdtype string)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
-      int lc=u8_tolower(c); u8_sputc(&out,lc);}
+      int lc=u8_tolower(c); u8_putc(&out,lc);}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
@@ -149,7 +149,7 @@ static fdtype upcase(fdtype string)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
-      int lc=u8_toupper(c); u8_sputc(&out,lc);}
+      int lc=u8_toupper(c); u8_putc(&out,lc);}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
@@ -170,7 +170,7 @@ static fdtype capitalize(fdtype string)
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
       int oc=((word_start) ? (u8_toupper(c)) : (u8_tolower(c)));
-      u8_sputc(&out,oc); word_start=(u8_isspace(c));}
+      u8_putc(&out,oc); word_start=(u8_isspace(c));}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
@@ -186,8 +186,8 @@ static fdtype string_stdspace(fdtype string)
   while ((c=u8_sgetc(&scan))>=0) {
     if (u8_isspace(c))
       if (white) {}
-      else {u8_sputc(&out,' '); white=1;}
-    else {white=0; u8_sputc(&out,c);}}
+      else {u8_putc(&out,' '); white=1;}
+    else {white=0; u8_putc(&out,c);}}
   if (out.u8_outptr==out.u8_outbuf) {
     u8_free(out.u8_outbuf);
     return fdtype_string("");}
@@ -204,12 +204,12 @@ static fdtype string_stdstring(fdtype string)
     while ((c=u8_sgetc(&scan))>=0) {
       if (u8_isspace(c))
 	if (white) {}
-	else {u8_sputc(&out,' '); white=1;}
+	else {u8_putc(&out,' '); white=1;}
       else if (u8_ismodifier(c)) white=0;
       else {
 	int bc=u8_base_char(c);
 	bc=u8_tolower(bc); white=0;
-	u8_sputc(&out,bc);}}
+	u8_putc(&out,bc);}}
     if (out.u8_outptr==out.u8_outbuf) {
       u8_free(out.u8_outbuf);
       return fdtype_string("");}
@@ -226,7 +226,7 @@ static fdtype string_basestring(fdtype string)
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
       int bc=u8_base_char(c);
-      u8_sputc(&out,bc);}
+      u8_putc(&out,bc);}
     if (out.u8_outptr==out.u8_outbuf) {
       u8_free(out.u8_outbuf);
       return fdtype_string("");}
@@ -431,7 +431,7 @@ static fdtype makestring(fdtype len,fdtype character)
   else {
     int i=0, n=fd_getint(len), ch=FD_CHAR2CODE(character);
     U8_INIT_OUTPUT(&out,n);
-    while (i<n) {u8_sputc(&out,ch); i++;}
+    while (i<n) {u8_putc(&out,ch); i++;}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
 }
 
@@ -458,15 +458,15 @@ static fdtype string_trigrams(fdtype string)
   if (FD_STRINGP(string)) {
     while ((c=get_stdchar(&in))>=0) {
       c1=c2; c2=c3; c3=c; out.u8_outptr=out.u8_outbuf;
-      u8_sputc(&out,c1); u8_sputc(&out,c2); u8_sputc(&out,c3);
+      u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
       trigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
       FD_ADD_TO_CHOICE(trigrams,trigram);}
     c1=c2; c2=c3; c3=' '; out.u8_outptr=out.u8_outbuf;
-    u8_sputc(&out,c1); u8_sputc(&out,c2); u8_sputc(&out,c3);
+    u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
     trigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
     FD_ADD_TO_CHOICE(trigrams,trigram);
     c1=c2; c2=c3; c3=' '; out.u8_outptr=out.u8_outbuf;
-    u8_sputc(&out,c1); u8_sputc(&out,c2); u8_sputc(&out,c3);
+    u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
     trigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
     FD_ADD_TO_CHOICE(trigrams,trigram);
     return trigrams;}
@@ -483,11 +483,11 @@ static fdtype string_bigrams(fdtype string)
   if (FD_STRINGP(string)) {
     while ((c=get_stdchar(&in))>=0) {
       c1=c2; c2=c; out.u8_outptr=out.u8_outbuf;
-      u8_sputc(&out,c1); u8_sputc(&out,c2);
+      u8_putc(&out,c1); u8_putc(&out,c2);
       bigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
       FD_ADD_TO_CHOICE(bigrams,bigram);}
     c1=c2; c2=' '; out.u8_outptr=out.u8_outbuf;
-    u8_sputc(&out,c1); u8_sputc(&out,c2);
+    u8_putc(&out,c1); u8_putc(&out,c2);
     bigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
     FD_ADD_TO_CHOICE(bigrams,bigram);
     return bigrams;}

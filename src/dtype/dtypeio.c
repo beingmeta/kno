@@ -846,7 +846,7 @@ static fdtype make_character_type
     scan=bytes; limit=bytes+len;
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
-      u8_sputc(&os,c);}
+      u8_putc(&os,c);}
     u8_pfree_x(p,bytes,len);
     return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
 			  os.u8_outptr-os.u8_outbuf,os.u8_outbuf);}
@@ -857,7 +857,7 @@ static fdtype make_character_type
     scan=bytes; limit=bytes+len;
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
-      u8_sputc(&os,c);}
+      u8_putc(&os,c);}
     sym=fd_make_symbol(os.u8_outbuf,os.u8_outptr-os.u8_outbuf);
     u8_pfree_x(p,bytes,len);
     u8_pfree_x(p,os.u8_outbuf,os.u8_outptr-os.u8_outbuf);

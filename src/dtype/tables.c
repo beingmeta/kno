@@ -413,11 +413,11 @@ static int unparse_slotmap(u8_output out,fdtype x)
     struct FD_KEYVAL *scan=sm->keyvals, *limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#[");
     if (scan<limit) {
-      fd_unparse(out,scan->key); u8_sputc(out,' ');
+      fd_unparse(out,scan->key); u8_putc(out,' ');
       fd_unparse(out,scan->value); scan++;}
     while (scan< limit) {
-      u8_sputc(out,' ');
-      fd_unparse(out,scan->key); u8_sputc(out,' ');
+      u8_putc(out,' ');
+      fd_unparse(out,scan->key); u8_putc(out,' ');
       fd_unparse(out,scan->value); scan++;}
     u8_puts(out,"]");
   }
@@ -679,11 +679,11 @@ static int unparse_schemap(u8_output out,fdtype x)
     fdtype *schema=sm->schema, *values=sm->values;
     u8_puts(out,"#[");
     if (i<schemap_size) {
-      fd_unparse(out,schema[i]); u8_sputc(out,' ');
+      fd_unparse(out,schema[i]); u8_putc(out,' ');
       fd_unparse(out,values[i]); i++;}
     while (i<schemap_size) {
-      u8_sputc(out,' ');
-      fd_unparse(out,schema[i]); u8_sputc(out,' ');
+      u8_putc(out,' ');
+      fd_unparse(out,schema[i]); u8_putc(out,' ');
       fd_unparse(out,values[i]); i++;}
     u8_puts(out,"]");
   }

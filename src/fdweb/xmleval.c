@@ -387,7 +387,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 	  /* If there's not a terminating $, or the string is really
 	     long (missing close $), just call the parser,
 	     skipping the initial $. */
-	  u8_sgetc(&in); expr=fd_parser(&in,NULL);}
+	  u8_getc(&in); expr=fd_parser(&in,NULL);}
 	else {
 	  strncpy(buf,start,end-start); buf[end-start]='\0';
 	  expr=parse_infix(buf);

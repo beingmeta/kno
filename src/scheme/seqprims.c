@@ -348,8 +348,8 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
     struct U8_OUTPUT out; int i=0;
     U8_INIT_OUTPUT(&out,n*2);
     while (i < n) {
-      if (FD_CHARACTERP(v[i])) u8_sputc(&out,FD_CHAR2CODE(v[i]));
-      else if (FD_FIXNUMP(v[i])) u8_sputc(&out,FD_FIX2INT(v[i]));
+      if (FD_CHARACTERP(v[i])) u8_putc(&out,FD_CHAR2CODE(v[i]));
+      else if (FD_FIXNUMP(v[i])) u8_putc(&out,FD_FIX2INT(v[i]));
       else {
 	u8_free(out.u8_outbuf);
 	return fd_type_error(_("character"),"fd_makeseq",v[i]);}
@@ -1231,10 +1231,10 @@ static fdtype x2string(fdtype seq)
 	  i=0; while (i<n) {fd_decref(data[i]); i++;}
 	  u8_free(data);
 	  return fd_type_error(_("character"),"seq2string",bad);}
-	u8_sputc(&out,charcode); i++;}
+	u8_putc(&out,charcode); i++;}
       else if (FD_CHARACTERP(data[i])) {
 	int charcode=FD_CHAR2CODE(data[i]);
-	u8_sputc(&out,charcode); i++;}
+	u8_putc(&out,charcode); i++;}
       else {
 	fdtype bad=fd_incref(data[i]);
 	i=0; while (i<n) {fd_decref(data[i]); i++;}
