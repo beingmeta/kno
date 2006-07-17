@@ -1091,9 +1091,17 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
   else {
     U8_OUTPUT *out=fd_get_default_output();
     fdtype xmlarg=fd_eval(FD_CADR(expr),env), v=FD_VOID;
+    fdtype envarg=fd_eval(fd_get_arg(expr,2),env);
+    fd_lispenv target_env=env;
     if (FD_ABORTP(xmlarg)) return xmlarg;
-    v=fd_xmleval(out,xmlarg,env);
-    u8_flush(out);
+    if (FD_VOIDP(envarg)) {}
+    else if (FD_PRIM_TYPEP(envarg,fd_environment_type)) 
+      target_env=(fd_lispenv)envarg;
+    else {
+      fd_decref(xmlarg);
+      return fd_type_error("environment","xmleval_handler",envarg);}
+    v=fd_xmleval(out,xmlarg,target_env);
+    u8_flush(out); fd_decref(xmlarg); fd_decref(envarg);
     return v;}
 }
 
