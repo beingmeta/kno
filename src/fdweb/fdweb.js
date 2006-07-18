@@ -783,6 +783,43 @@ function _fdb_hotcheck_click(evt)
       else i++;}
 }
 
+/* Seenotes */
+
+var live_note=false;
+
+function seenote_mouseover(evt)
+{
+  var target=evt.target;
+  var note=fdbByID(target.getAttribute('seenote'));
+  window.status='seenote_mouseover '+target.getAttribute('seenote');
+  if (note) {
+    if ((live_note) && (live_note!=note)) {
+      live_note.style.display='none'; live_note=false;}
+    note.style.display='block';
+    live_note=note;}
+}
+
+function seenote_mouseout(evt)
+{
+  var target=evt.target;
+  var note=fdbByID(target.getAttribute('seenote'));
+  if (note) {
+    note.style.display='none';
+    if (live_note==note) live_note=false;}
+}
+
+function seenote_setup()
+{
+  var elements=document.getElementsByTagName('*');
+  window.status='seenote setup for '+elements.length;
+  var i=0; if (elements) while (i<elements.length) {
+    var elt=elements[i++];
+    if (elt.getAttribute('seenote')) {
+      window.status='seenote setup to '+elt.getAttribute('seenote');
+      elt.onmouseover=seenote_mouseover;
+      elt.onmouseout=seenote_mouseout;}}
+}
+
 /* Miscellaneous Stuff */
 
 // Adding search engines
