@@ -17,10 +17,10 @@ static char versionid[] =
 #include "fdb/fileprims.h"
 
 #include <libu8/libu8io.h>
-#include <libu8/timefns.h>
-#include <libu8/pathfns.h>
-#include <libu8/filefns.h>
-#include <libu8/netfns.h>
+#include <libu8/u8timefns.h>
+#include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8netfns.h>
 
 #include <stdlib.h>
 #include <stdio.h>

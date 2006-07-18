@@ -202,7 +202,7 @@ static char vcid[] = "$Id$";
 #include "fdb/texttools.h"
 
 #include <libu8/libu8.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8stringfns.h>
 
 fd_exception fd_InternalMatchError=_("Internal match error");
 fd_exception fd_MatchSyntaxError=_("match syntax error");

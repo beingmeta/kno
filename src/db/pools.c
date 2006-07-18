@@ -16,10 +16,10 @@ static char versionid[] =
 #include "fdb/pools.h"
 
 #include <libu8/libu8.h>
-#include <libu8/stringfns.h>
-#include <libu8/pathfns.h>
-#include <libu8/filefns.h>
-#include <libu8/netfns.h>
+#include <libu8/u8stringfns.h>
+#include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8netfns.h>
 
 fd_exception fd_UnknownPool=_("Unknown pool");
 fd_exception fd_CantLockOID=_("Can't lock OID");

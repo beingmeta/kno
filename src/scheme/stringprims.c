@@ -14,7 +14,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 
 #include <libu8/libu8.h>
-#include <libu8/convert.h>
+#include <libu8/u8convert.h>
 
 /* Character functions */
 

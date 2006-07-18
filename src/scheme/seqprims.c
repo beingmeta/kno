@@ -13,7 +13,7 @@ static char versionid[] =
 #include "fdb/sequences.h"
 
 #include <libu8/libu8.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8stringfns.h>
 
 #define FD_EQV(x,y) ((FD_EQ(x,y)) || ((FD_NUMBERP(x)) && (FD_NUMBERP(y)) && (fd_numcompare(x,y)==0)))
 

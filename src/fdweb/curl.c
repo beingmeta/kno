@@ -14,8 +14,8 @@ static char versionid[] =
 #include "fdb/fdweb.h"
 
 #include <libu8/libu8io.h>
-#include <libu8/stringfns.h>
-#include <libu8/netfns.h>
+#include <libu8/u8stringfns.h>
+#include <libu8/u8netfns.h>
 
 #include <curl/curl.h>
 

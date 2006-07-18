@@ -12,8 +12,8 @@ static char versionid[] =
 #include "fdb/eval.h"
 
 #include <libu8/libu8.h>
-#include <libu8/stringfns.h>
-#include <libu8/filefns.h>
+#include <libu8/u8stringfns.h>
+#include <libu8/u8filefns.h>
 
 static fdtype loadstamp_symbol;
 

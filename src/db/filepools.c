@@ -13,8 +13,8 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/dbfile.h"
 
-#include <libu8/pathfns.h>
-#include <libu8/filefns.h>
+#include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
 
 #include <errno.h>
 #include <sys/stat.h>

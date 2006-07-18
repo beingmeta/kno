@@ -20,9 +20,9 @@ static char versionid[] =
 #include "fdb/numbers.h"
 #include "fdb/fileprims.h"
 
-#include <libu8/pathfns.h>
-#include <libu8/filefns.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8stringfns.h>
 #include <libu8/xfiles.h>
 
 static U8_XINPUT u8stdin;

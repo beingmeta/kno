@@ -17,7 +17,7 @@ static char versionid[] =
 #include "fdb/fdweb.h"
 
 #include <libu8/xfiles.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8stringfns.h>
 
 static fdtype name_slotid, content_slotid;
 

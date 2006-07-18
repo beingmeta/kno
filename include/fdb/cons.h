@@ -74,7 +74,7 @@
 #define FDB_CONS_H_VERSION "$Id$"
 
 #include "ptr.h"
-#include <libu8/timefns.h>
+#include <libu8/u8timefns.h>
 
 FD_EXPORT fd_exception fd_MallocFailed;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;

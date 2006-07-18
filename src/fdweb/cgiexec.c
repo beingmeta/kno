@@ -17,7 +17,7 @@ static char versionid[] =
 #include "fdb/ports.h"
 
 #include <libu8/xfiles.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8stringfns.h>
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method;

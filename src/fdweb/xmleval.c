@@ -19,7 +19,7 @@ static char versionid[] =
 #include "fdb/fileprims.h"
 
 #include <libu8/xfiles.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8stringfns.h>
 
 fd_lispenv fdxml_module;
 

@@ -17,8 +17,8 @@ static char versionid[] =
 #include "fdb/indices.h"
 
 #include <libu8/libu8.h>
-#include <libu8/filefns.h>
-#include <libu8/timefns.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8timefns.h>
 
 int fd_trace_ipeval=0;
 

@@ -17,7 +17,7 @@ static char versionid[] =
 #include "fdb/dtproc.h"
 
 #include <libu8/libu8.h>
-#include <libu8/netfns.h>
+#include <libu8/u8netfns.h>
 
 static fd_exception ServerUndefined=_("Server unconfigured");
 static fdtype quote_symbol;

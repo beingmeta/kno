@@ -19,7 +19,7 @@ static char versionid[] =
 #include "fdb/numbers.h"
 
 #include <libu8/libu8io.h>
-#include <libu8/filefns.h>
+#include <libu8/u8filefns.h>
 
 #include <errno.h>
 #include <math.h>

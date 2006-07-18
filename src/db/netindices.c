@@ -15,7 +15,7 @@ static char versionid[] =
 #include "fdb/indices.h"
 
 #include <libu8/libu8.h>
-#include <libu8/netfns.h>
+#include <libu8/u8netfns.h>
 
 static struct FD_INDEX_HANDLER netindex_handler;
 

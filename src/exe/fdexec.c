@@ -14,10 +14,10 @@ static char versionid[] =
 #include "fdb/eval.h"
 
 #include <libu8/libu8.h>
-#include <libu8/timefns.h>
-#include <libu8/pathfns.h>
-#include <libu8/filefns.h>
-#include <libu8/stringfns.h>
+#include <libu8/u8timefns.h>
+#include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8stringfns.h>
 
 #include <stdlib.h>
 #include <stdio.h>
