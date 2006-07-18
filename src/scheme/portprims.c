@@ -456,6 +456,23 @@ static fdtype number2string(fdtype x,fdtype base)
   else return fd_err(fd_TypeError,"number2string",NULL,x);
 }
 
+static fdtype number2locale(fdtype x,fdtype precision)
+{
+  if (FD_FLONUMP(x))
+    if ((FD_FIXNUMP(precision)) || (FD_VOIDP(precision))) {
+      int prec=((FD_VOIDP(precision)) ? (2) : (FD_FIX2INT(precision)));
+      char buf[128]; char cmd[16];
+      sprintf(cmd,"%%'.%df",prec);
+      sprintf(buf,cmd,FD_FLONUM(x));
+      return fdtype_string(buf);}
+    else return fd_type_error("fixnum","inexact2string",precision);
+  else if (FD_FIXNUMP(x)) {
+    char buf[128];
+    sprintf(buf,"%'d",FD_FIX2INT(x));
+    return fdtype_string(buf);}
+  else return lisp2string(x);
+}
+
 static fdtype string2number(fdtype x,fdtype base)
 {
   fdtype num=fd_string2number(FD_STRDATA(x),fd_getint(base));
@@ -920,6 +937,8 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("NUMBER->STRING",number2string,1,
 			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(10)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2("NUMBER->LOCALE",number2locale,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("STRING->NUMBER",string2number,1,
 			   fd_string_type,FD_VOID,
