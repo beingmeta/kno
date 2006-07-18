@@ -35,7 +35,7 @@ static u8_condvar module_wait;
 /* Getting modules */
 
 FD_EXPORT
-fdtype fd_find_module(fdtype spec,int safe)
+fdtype fd_find_module(fdtype spec,int safe,int err)
 {
   fdtype module=fd_get_module(spec,safe);
   if (!(FD_VOIDP(module))) {
@@ -63,7 +63,9 @@ fdtype fd_find_module(fdtype spec,int safe)
 	return module;}
       else if (retval<0) return fd_erreify();
       else scan=scan->next;}
-    return fd_err(fd_NoSuchModule,NULL,module_name,spec);}
+    if (err)
+      return fd_err(fd_NoSuchModule,NULL,module_name,spec);
+    else return FD_FALSE;}
 }
 
 FD_EXPORT
@@ -320,7 +322,7 @@ static fdtype safe_use_module(fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewExpressions,"USE-MODULE",NULL,expr);
   else {
     FD_DO_CHOICES(module_name,module_names) {
-      fdtype module=fd_find_module(module_name,1);
+      fdtype module=fd_find_module(module_name,1,1);
       fd_lispenv oldparent=env->parent;
       if (FD_EXCEPTIONP(module))
 	return module;
@@ -340,7 +342,7 @@ static fdtype safe_use_module(fdtype expr,fd_lispenv env)
 
 static fdtype safe_get_module(fdtype modname)
 {
-  fdtype module=fd_find_module(modname,1);
+  fdtype module=fd_find_module(modname,1,0);
   return module;
 }
 
@@ -352,7 +354,7 @@ static fdtype use_module(fdtype expr,fd_lispenv env)
   else {
     FD_DO_CHOICES(module_name,module_names) {
       fdtype module;
-      module=fd_find_module(module_name,0);
+      module=fd_find_module(module_name,0,1);
       if (FD_EXCEPTIONP(module))
 	return module;
       else if (FD_VOIDP(module))
@@ -375,7 +377,7 @@ static fdtype use_module(fdtype expr,fd_lispenv env)
 
 static fdtype get_module(fdtype modname)
 {
-  fdtype module=fd_find_module(modname,0);
+  fdtype module=fd_find_module(modname,0,0);
   return module;
 }
 
