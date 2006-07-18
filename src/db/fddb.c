@@ -12,7 +12,7 @@ static char versionid[] =
 #include "fdb/pools.h"
 #include "fdb/indices.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 #include <stdarg.h>
 /* We include this for sscanf, but we're not really using stdio. */
 #include <stdio.h>

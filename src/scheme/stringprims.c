@@ -13,7 +13,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 #include <libu8/convert.h>
 
 /* Character functions */

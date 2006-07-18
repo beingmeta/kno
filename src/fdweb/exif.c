@@ -11,7 +11,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 
-#include <libu8/u8io.h>
+#include <libu8/libu8io.h>
 
 #include <libexif/exif-utils.h>
 #include <libexif/exif-data.h>

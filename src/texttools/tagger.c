@@ -11,10 +11,9 @@
 
 #include "fdb/tagger.h"
 
-#include <libu8/u8.h>
 #include <libu8/ctype.h>
 #include <libu8/filefns.h>
-#include <libu8/u8io.h>
+#include <libu8/libu8io.h>
 #include <libu8/timefns.h>
 
 #include <time.h>

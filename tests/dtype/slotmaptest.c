@@ -10,7 +10,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 
 #include <string.h>
 #include <stdlib.h>

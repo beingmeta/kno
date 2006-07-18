@@ -21,7 +21,7 @@ static char versionid[] =
   ((FD_FIXNUMP(x)) || (FD_FLONUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
 #define INTEGERP(x) ((FD_FIXNUMP(x)) || (FD_BIGINTP(x)))
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 
 #include <errno.h>
 #include <math.h>

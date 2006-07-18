@@ -14,7 +14,7 @@
 #include "fdb/sequences.h"
 #include "fdb/texttools.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 #include <libu8/stringfns.h>
 #include <libu8/ctype.h>
 

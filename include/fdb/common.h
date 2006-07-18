@@ -23,7 +23,7 @@ typedef unsigned long fdtype;
 typedef unsigned int fdtype;
 #endif
 
-#include "libu8/u8.h"
+#include "libu8/libu8.h"
 
 /* Built in stuff */
 

@@ -13,7 +13,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/fdweb.h"
 
-#include <libu8/xfiles.h>
+#include <libu8/libu8io.h>
 #include <libu8/stringfns.h>
 #include <libu8/netfns.h>
 

@@ -10,10 +10,11 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
+#include <libu8/libu8.h>
 #include <libu8/netfns.h>
 #if FD_FILECONFIG_ENABLED
 #include <libu8/filefns.h>
-#include <libu8/u8io.h>
+#include <libu8/libu8io.h>
 #endif
 
 fd_exception fd_UnknownError=_("Unknown error condition");

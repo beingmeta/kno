@@ -18,8 +18,7 @@ static char versionid[] =
 #include "fdb/frames.h"
 #include "fdb/numbers.h"
 
-#include <libu8/u8.h>
-#include <libu8/u8io.h>
+#include <libu8/libu8io.h>
 #include <libu8/filefns.h>
 
 #include <errno.h>

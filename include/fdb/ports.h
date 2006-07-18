@@ -10,8 +10,7 @@
 #define FDB_PORTS_H_VERSION \
    "$Id$"
 
-#include <libu8/u8.h>
-#include <libu8/u8io.h>
+#include <libu8/libu8io.h>
 
 FD_EXPORT fd_ptr_type fd_port_type;
 

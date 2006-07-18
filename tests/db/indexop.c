@@ -13,7 +13,7 @@ static char versionid[] =
 #include "stdio.h"
 #include "sys/time.h"
 #include "time.h"
-#include "libu8/u8.h"
+#include "libu8/libu8.h"
 #include "fdb/dtype.h"
 #include "fdb/fddb.h"
 #include "fdb/indices.h"

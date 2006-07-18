@@ -14,9 +14,7 @@ static char versionid[] =
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
 
-#include <libu8/u8.h>
-#include <libu8/u8io.h>
-#include <libu8/xfiles.h>
+#include <libu8/libu8io.h>
 #include <libu8/timefns.h>
 #include <libu8/pathfns.h>
 #include <libu8/filefns.h>

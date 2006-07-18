@@ -15,7 +15,7 @@ static char versionid[] =
 #include "fdb/tables.h"
 #include "fdb/indices.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 #include <libu8/filefns.h>
 
 fd_exception fd_EphemeralIndex=_("ephemeral index");

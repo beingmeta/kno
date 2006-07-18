@@ -13,7 +13,7 @@ static char versionid[]=
 #include "fdb/dtype.h"
 #include "fdb/indices.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 
 static struct FD_INDEX_HANDLER compoundindex_handler;
 

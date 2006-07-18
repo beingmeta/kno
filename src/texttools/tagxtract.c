@@ -11,10 +11,7 @@
 
 #include "fdb/tagger.h"
 
-#include <libu8/u8.h>
-#include <libu8/ctype.h>
-#include <libu8/filefns.h>
-#include <libu8/u8io.h>
+#include <libu8/libu8io.h>
 
 static fdtype compound_symbol, star_symbol, plus_symbol;
 static fdtype prefix_symbol, postfix_symbol;

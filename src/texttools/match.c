@@ -201,7 +201,7 @@ static char vcid[] = "$Id$";
 #include "fdb/eval.h"
 #include "fdb/texttools.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 #include <libu8/stringfns.h>
 
 fd_exception fd_InternalMatchError=_("Internal match error");

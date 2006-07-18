@@ -13,7 +13,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/pools.h"
 
-#include <libu8/u8.h>
+#include <libu8/libu8.h>
 #include <libu8/netfns.h>
 
 static struct FD_POOL_HANDLER netpool_handler;
