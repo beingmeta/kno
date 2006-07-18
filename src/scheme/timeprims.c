@@ -18,14 +18,12 @@ static char versionid[] =
 #include "fdb/frames.h"
 #include "fdb/numbers.h"
 
-#include <libu8/u8.h>
 #include <libu8/u8io.h>
 #include <libu8/timefns.h>
+#include <libu8/rusage.h>
 
 #include <math.h>
 #include <sys/time.h>
-
-#include <libu8/rusage.h>
 
 fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
 fd_exception fd_MissingFeature=_("OS doesn't support operation");
