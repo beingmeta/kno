@@ -23,7 +23,8 @@ static char versionid[] =
 
 fd_lispenv fdxml_module;
 
-static fdtype xmleval_tag, rawname_slotid, raw_attribs, raw_markup;
+static fdtype xmleval_tag, xmleval2expr_tag;
+static fdtype rawname_slotid, raw_attribs, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
 static fdtype id_symbol, bind_symbol, xml_env_symbol;
 
@@ -77,13 +78,29 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
     else {
       fdtype rawaname=FD_VECTOR_REF(attrib,0);
       fdtype val=FD_VECTOR_REF(attrib,2);
-      if ((FD_PAIRP(val)) && (FD_EQ(FD_CAR(val),xmleval_tag))) {
+      if ((FD_PAIRP(val)) &&
+	  ((FD_EQ(FD_CAR(val),xmleval_tag)) ||
+	   (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
 	fdtype value=fd_eval(FD_CDR(val),env); u8_string as_string;
 	if (FD_ABORTP(value)) {
 	  fd_decref(rawattribs); fd_decref(rawname);
 	  return value;}
+	else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
+	  as_string=fd_dtype2string(value);
+	else if (FD_STRINGP(value))
+	  as_string=u8_strdup(FD_STRDATA(value));
 	else as_string=fd_dtype2string(value);
-	if (FD_STRINGP(value))
+	if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
+	  u8_printf(&out," %s=':",FD_STRDATA(rawaname));
+	else if ((FD_STRINGP(value)) ||
+		 (FD_FIXNUMP(value)) ||
+		 (FD_FLONUMP(value)) ||
+		 ((FD_SYMBOLP(value)) &&
+		  /* This is a kludge to deal with the fact that
+		     we sometimes use symbols for ids and names but
+		     we don't want to : escape them. */
+		  ((strcasecmp(FD_STRDATA(rawaname),"name")==0) ||
+		   (strcasecmp(FD_STRDATA(rawaname),"id")==0))))
 	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
 	else u8_printf(&out," %s=':",FD_STRDATA(rawaname));	
 	fd_attrib_entify(&out,as_string); u8_putc(&out,'\'');
@@ -202,7 +219,8 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
       fdtype results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(value,values)
 	if (FD_PAIRP(value))
-	  if  (FD_EQ(FD_CAR(value),xmleval_tag)) {
+	  if  ((FD_EQ(FD_CAR(value),xmleval_tag)) ||
+	       (FD_EQ(FD_CAR(value),xmleval2expr_tag))) {
 	    fdtype result=fd_eval(FD_CDR(value),env);
 	    FD_ADD_TO_CHOICE(results,result);}
 	  else FD_ADD_TO_CHOICE(results,fd_incref(value));
@@ -213,7 +231,8 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
       fd_decref(values);
       return results;}
     else if (FD_PAIRP(values))
-      if (FD_EQ(FD_CAR(values),xmleval_tag)) {
+      if ((FD_EQ(FD_CAR(values),xmleval_tag)) ||
+	  (FD_EQ(FD_CAR(values),xmleval2expr_tag))) {
 	fdtype result=fd_eval(FD_CDR(values),env);
 	fd_decref(values);
 	return result;}
@@ -309,7 +328,11 @@ static fdtype parse_infix(u8_string start)
 
 static fdtype xmlevalify(u8_string string)
 {
-  if (string[0]==':') return fd_parse(string+1);
+  if (string[0]==':')
+    if (string[1]=='$')
+      return fd_init_pair
+	(NULL,xmleval2expr_tag,parse_infix(string+2));
+    else return fd_parse(string+1);
   else if (string[0]=='$') {
     u8_string start=string+1, split;
     int c=u8_sgetc(&start);
@@ -486,7 +509,7 @@ static FD_XML *handle_xmleval_pi
       else if ((strncmp(attribs[i],"module=",7))==0) {
 	u8_string arg=get_pi_string(attribs[i]+7);
 	fdtype module_name=fd_parse(arg);
-	fdtype module=fd_find_module(module_name,0);
+	fdtype module=fd_find_module(module_name,0,1);
 	fd_lispenv xml_env=get_xml_env(xml);
 	u8_free(arg); fd_decref(module_name);
 	if ((FD_ENVIRONMENTP(module)) &&
@@ -510,7 +533,7 @@ static FD_XML *handle_xmleval_pi
       else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
 	u8_string arg=get_pi_string(attribs[i]+14);
 	fdtype module_name=fd_parse(arg);
-	fdtype module=fd_find_module(module_name,0);
+	fdtype module=fd_find_module(module_name,0,1);
 	fd_lispenv scheme_env=(fd_lispenv)(xml->data);
 	u8_free(arg); fd_decref(module_name);
 	if ((FD_ENVIRONMENTP(module)) &&
@@ -1086,6 +1109,7 @@ FD_EXPORT void fd_init_xmleval_c()
   fd_defspecial((fdtype)fdxml_module,"BINDING",fdxml_binding);
 
   xmleval_tag=fd_intern("%XMLEVAL");
+  xmleval2expr_tag=fd_intern("%XMLEVAL2EXPR");
   get_symbol=fd_intern("GET");
   elt_symbol=fd_intern("ELT");
   rawname_slotid=fd_intern("%%NAME");
