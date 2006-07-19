@@ -26,7 +26,7 @@ static char versionid[] =
 #include <sys/time.h>
 #include <time.h>
 
-#define MAX_CONFIGS 64
+#define MAX_CONFIGS 256
 
 static int debug_maxelts=32, debug_maxchars=80;
 
@@ -39,18 +39,28 @@ static fdtype chain_prim(int n,fdtype *args)
     return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,FD_VOID);
   else {
     int i=0, argc=0;
+    /* This stream will contain the chaining message */
+    struct U8_OUTPUT argstring;
     char **argv=u8_malloc(sizeof(char *)*(n+n_configs+2)); 
+    U8_INIT_OUTPUT(&argstring,512);
     argv[argc++]=exe_arg;
     argv[argc++]=file_arg;
-    i=0; while (i<n_configs) argv[argc++]=configs[i++];
     i=0; while (i<n)
-      if (FD_STRINGP(args[i]))
-	argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));
+      if (FD_STRINGP(args[i])) {
+	u8_printf(&argstring," %s",FD_STRDATA(args[i]));
+	argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));}
       else {
 	u8_string as_string=fd_dtype2string(args[i++]);
 	char *libc_string=u8_tolibc(as_string);
-	argv[argc++]=libc_string; u8_free(as_string);}
+	u8_printf(&argstring," %s",as_string);
+	argv[argc++]=libc_string;
+	u8_free(as_string);}
+    i=0; while (i<n_configs) {
+      u8_printf(&argstring," %+s",u8_fromlibc(configs[i]));
+      argv[argc++]=configs[i++];}
     argv[argc++]=NULL;
+    u8_notify("CHAIN",">> %+s %s",u8_fromlibc(file_arg),argstring.u8_outbuf);
+    u8_free(argstring.u8_outbuf);
     fflush(stdout); fflush(stderr);
     fd_close_pools();
     fd_close_indices();
