@@ -811,16 +811,21 @@ function seenote_mouseout(evt)
 function seenote_setup()
 {
   var elements=document.getElementsByTagName('*');
-  window.status='seenote setup for '+elements.length;
   var i=0; if (elements) while (i<elements.length) {
     var elt=elements[i++];
     if (elt.getAttribute('seenote')) {
-      window.status='seenote setup to '+elt.getAttribute('seenote');
       elt.onmouseover=seenote_mouseover;
-      elt.onmouseout=seenote_mouseout;}}
+      elt.onmouseout=seenote_mouseout;}
+    if (elt.className=='hotcheck')
+      elt.onclick=_fdb_hotcheck_click;
+  }
 }
 
-/* Miscellaneous Stuff */
+function refile_form(evt)
+{
+  var target=evt.target;
+  if (target.form) target.form.submit();
+}
 
 // Adding search engines
 var browser_coverage="Mozilla/Firefox/Netscape 6";
