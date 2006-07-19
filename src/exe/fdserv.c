@@ -50,7 +50,7 @@ typedef struct FD_WEBCONN {
   struct U8_OUTPUT out;} FD_WEBCONN;
 typedef struct FD_WEBCONN *fd_webconn;
 
-static fdtype cgisymbol, main_symbol, script_filename, uri_symbol;
+static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
 static fdtype response_symbol, err_symbol, cgidata_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static fdtype content_slotid, content_type, tracep_slotid, query_symbol;
@@ -459,12 +459,23 @@ static int webservefn(u8_client ucl)
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type))
     result=fd_cgiexec(proc,cgidata);
   else if (FD_PAIRP(proc)) {
-    fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc);
+    fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PRIM_TYPEP(lenv,fd_environment_type)) ?
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
+    setup_proc=fd_symeval(setup_symbol,base);
+    if (FD_VOIDP(setup_proc)) {}
+    else if (FD_CHOICEP(setup_proc)) {
+      FD_DO_CHOICES(proc,setup_proc)
+	if (FD_APPLICABLEP(proc)) {
+	  fdtype v=fd_apply((struct FD_FUNCTION *)proc,0,NULL);
+	  fd_decref(v);}}
+    else if (FD_APPLICABLEP(setup_proc)) {
+      fdtype v=fd_apply((struct FD_FUNCTION *)setup_proc,0,NULL);
+      fd_decref(v);}
+    fd_decref(setup_proc);
     write_headers=0;
     fd_thread_set(cgidata_symbol,cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
@@ -577,6 +588,7 @@ static void init_symbols()
   uri_symbol=fd_intern("REQUEST_URI");
   query_symbol=fd_intern("QUERY_STRING");
   main_symbol=fd_intern("MAIN");
+  setup_symbol=fd_intern("SETUP");
   cgisymbol=fd_intern("CGIDATA");
   script_filename=fd_intern("SCRIPT_FILENAME");
   doctype_slotid=fd_intern("DOCTYPE");
