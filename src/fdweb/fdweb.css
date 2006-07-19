@@ -1,3 +1,7 @@
+/* General style elements */
+
+span.nobreak { white-space: nowrap; }
+
 /* Error pages */
 
 body#ERRORPAGE { margin: 12pt; background-color: silver;}
@@ -193,3 +197,7 @@ span.narrative_hidden {
 span.langid {
   color: green; vertical-align: super;
   font-family: fixed; font-size: 80%;}
+span.langbox {}
+span.langbox_rigid { white-space: nowrap;}
+span.langcheck { white-space: nowrap;}
+
