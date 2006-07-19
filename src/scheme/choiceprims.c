@@ -330,7 +330,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
 	  else env=retenv1(var,v);
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  if (free_v) u8_free((struct FD_CHOICE *)v);
+	  if (free_v) fd_decref(v);
 	  return fd_passerr(val,env);}
 	fd_decref(val);}}
       if (envstruct.copy) {
