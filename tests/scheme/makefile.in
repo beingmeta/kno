@@ -106,6 +106,10 @@ memdbtests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests
 randomtests:
 	make "TESTCONFIG=RANDOMSEED=TIME" alltests
+chaintest:
+	fdexec chaintest.scm
+	fdexec chaintest.scm 0 30
+	fdexec chaintest.scm 10 50
 batchtest:
 	rm -f countup.log countup.err countup.finished
 	./fdbatch countup.scm "countup.finished" 10 1; sleep 3
