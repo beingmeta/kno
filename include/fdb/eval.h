@@ -89,7 +89,7 @@ FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
 FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 
 FD_EXPORT void fd_set_module_resolver(u8_string (*resolve)(u8_string,int));
-FD_EXPORT fdtype fd_find_module(fdtype,int);
+FD_EXPORT fdtype fd_find_module(fdtype,int,int);
 
 /* SPROCs */
 

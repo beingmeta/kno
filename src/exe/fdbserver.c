@@ -164,7 +164,7 @@ static fdtype config_get_modules(fdtype var,void *data)
 }
 static fdtype config_use_module(fdtype var,fdtype val,void *data)
 {
-  fdtype safe_module=fd_find_module(val,1), module=safe_module;
+  fdtype safe_module=fd_find_module(val,1,1), module=safe_module;
   if (FD_VOIDP(module)) {}
   else if (FD_HASHTABLEP(module)) 
     exposed_environment=
@@ -175,7 +175,7 @@ static fdtype config_use_module(fdtype var,fdtype val,void *data)
     if (FD_HASHTABLEP(env->exports))
       exposed_environment=
 	fd_make_env(fd_incref(env->exports),exposed_environment);}
-  module=fd_find_module(val,0);
+  module=fd_find_module(val,0,1);
   if ((FD_EQ(module,safe_module)))
     if (FD_VOIDP(module)) return 0;
     else return 1;
