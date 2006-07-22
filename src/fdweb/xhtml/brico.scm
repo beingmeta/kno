@@ -244,7 +244,9 @@
        (sorted (get concept language)
 	       (lambda (x) (choice-size (?? language x))))))
 
-(define (output-words c language languages wordlim (shown #f))
+(define (output-words c language
+		      (languages #{}) (wordlim #f) (shown #f)
+		      (searchurl #f))
   (let ((multi-lingual (ambiguous? (choice language languages)))
 	(shown (or shown {}))
 	(count 0))
@@ -253,8 +255,14 @@
 	    ((or (not wordlim) (< count wordlim))
 	     (xmlout
 	      (if (> count 0) " . ")
-	      (if multi-lingual (wordform word c)
-		  (span ((class "wordform")) (showterm word)))
+	      (if searchurl
+		  (anchor* (fdscripturl searchurl
+					'word word 'language language)
+			   ((title "Click to see other meanings"))
+			   (if multi-lingual (wordform word c)
+			       (span ((class "wordform")) (showterm word))))
+		  (if multi-lingual (wordform word c)
+		      (span ((class "wordform")) (showterm word))))
 	      " ")
 	     (set+! shown word)
 	     (set! count (1+ count)))
@@ -265,8 +273,14 @@
 	      ((or (not wordlim) (< count wordlim))
 	       (xmlout 
 		(if (> count 0) " . ")
-		(if multi-lingual (wordform word c)
-		    (span ((class "wordform")) (showterm word)))
+		(if searchurl
+		  (anchor* (fdscripturl searchurl
+					'word word 'language lang)
+			   ((title "Click to see other meanings"))
+			   (if multi-lingual (wordform word c)
+			       (span ((class "wordform")) (showterm word))))
+		  (if multi-lingual (wordform word c)
+		      (span ((class "wordform")) (showterm word))))
 		" ")
 	       (set+! shown word)
 	       (set! count (1+ count)))
@@ -293,8 +307,10 @@
 		   (set! count (1+ count)))
 		  (else)))))
     (if wordlim shown)))
-(define (just-output-words c language languages wordlim (shown #f))
-  (output-words c language languages wordlim (qc shown))
+(define (just-output-words c language
+			   (languages #{}) (wordlim #f) (shown #f)
+			   (searchurl #f))
+  (output-words c language languages wordlim (qc shown) searchurl)
   (xmlout))
 
 
