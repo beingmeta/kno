@@ -725,11 +725,19 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
     fdtype browse_info=get_browse_info(target);
-    if (FD_VECTORP(browse_info)) 
-      u8_printf(out,"<a href='%s?:@%x/%x' class='%s'>",
-		FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
-		FD_OID_HI(addr),FD_OID_LO(addr),
-		FD_STRDATA(FD_VECTOR_REF(browse_info,1)));
+    if ((FD_VECTORP(browse_info)) &&
+	(FD_VECTOR_LENGTH(browse_info)>1) &&
+	(FD_STRINGP(FD_VECTOR_REF(browse_info,0))) &&
+	(FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
+      if (strchr(FD_STRDATA(FD_VECTOR_REF(browse_info,0)),'?'))
+	u8_printf(out,"<a href='%s:@%x/%x' class='%s'>",
+		  FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
+		  FD_OID_HI(addr),FD_OID_LO(addr),
+		  FD_STRDATA(FD_VECTOR_REF(browse_info,1)));
+      else u8_printf(out,"<a href='%s?:@%x/%x' class='%s'>",
+		     FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
+		     FD_OID_HI(addr),FD_OID_LO(addr),
+		     FD_STRDATA(FD_VECTOR_REF(browse_info,1)));
     else u8_printf(out,"<a href='browse.fdcgi?:@%x/%x' class='oid'>",
 		   FD_OID_HI(addr),(FD_OID_LO(addr)));}
   else {
@@ -790,7 +798,9 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     FD_OID addr=FD_OID_ADDR(target);
     fdtype browse_info=get_browse_info(target);
     if (has_class_attrib(attribs)) {}
-    else if (FD_VECTORP(browse_info))
+    else if ((FD_VECTORP(browse_info)) &&
+	     (FD_VECTOR_LENGTH(browse_info)>1) &&
+	     (FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
       attribs=fd_init_pair
 	(NULL,fd_intern("CLASS"),
 	 fd_init_pair(NULL,fd_incref(FD_VECTOR_REF(browse_info,1)),
@@ -800,10 +810,15 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
        fd_init_pair(NULL,fdtype_string("oid"),fd_incref(attribs)));
     tmpout.u8_outptr=tmpout.u8_outbuf;
     if ((FD_VECTORP(browse_info)) &&
-	(FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
-      u8_printf(&tmpout,"%s?:@%x/%x",
-		FD_STRDATA(FD_VECTOR_REF(browse_info,1)),
-		FD_OID_HI(addr),(FD_OID_LO(addr)));
+	(FD_VECTOR_LENGTH(browse_info)>0) &&
+	(FD_STRINGP(FD_VECTOR_REF(browse_info,0))))
+      if (strchr(FD_STRDATA(FD_VECTOR_REF(browse_info,0)),'?'))
+	u8_printf(&tmpout,"%s:@%x/%x",
+		  FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
+		  FD_OID_HI(addr),(FD_OID_LO(addr)));
+      else u8_printf(&tmpout,"%s?:@%x/%x",
+		     FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
+		     FD_OID_HI(addr),(FD_OID_LO(addr)));
     else u8_printf(&tmpout,"browse.fdcgi?:@%x/%x",
 		   FD_OID_HI(addr),(FD_OID_LO(addr)));
     attribs=fd_init_pair
@@ -838,12 +853,24 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
   FD_OID addr=FD_OID_ADDR(arg);
   fdtype browse_info=get_browse_info(arg), name;
   if (out==NULL) out=fd_get_default_output();
-  if (FD_VECTORP(browse_info)) {
-    fdtype displayer=FD_VECTOR_REF(browse_info,2);
-    u8_printf(out,"<a class='%s' href='%s?:@%x/%x'>",
-	      FD_STRDATA(FD_VECTOR_REF(browse_info,1)),
-	      FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
-	      FD_OID_HI(addr),FD_OID_LO(addr));
+  if ((FD_VECTORP(browse_info)) &&
+      (FD_VECTOR_LENGTH(browse_info)>0) &&
+      (FD_STRINGP(FD_VECTOR_REF(browse_info,0))>0)) {
+    u8_string class_name="oid";
+    u8_string script_name=FD_STRDATA(FD_VECTOR_REF(browse_info,0));
+    fdtype displayer=FD_VOID;
+    if ((FD_VECTOR_LENGTH(browse_info)>1) &&
+	(FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
+      class_name=FD_STRDATA(FD_VECTOR_REF(browse_info,1));
+    if (FD_VECTOR_LENGTH(browse_info)>2)
+      displayer=FD_VECTOR_REF(browse_info,2);
+    if (strchr(script_name,'?'))
+      u8_printf(out,"<a class='%s' href='%s?:@%x/%x'>",
+		class_name,script_name,
+		FD_OID_HI(addr),FD_OID_LO(addr));
+    else u8_printf(out,"<a class='%s' href='%s:@%x/%x'>",
+		   class_name,script_name,
+		   FD_OID_HI(addr),FD_OID_LO(addr));
     if ((FD_OIDP(displayer)) || (FD_SYMBOLP(displayer)))
       name=fd_frame_get(arg,displayer);
     else if (FD_APPLICABLEP(displayer))
