@@ -660,7 +660,9 @@ void *fd_walk_xml(U8_INPUT *in,
       return NULL;}
     else if ((type=fd_get_markup_type(buf,size)) == xmlpi) {
       FD_XML *result;
-      if (pifn) result=pifn(in,node,buf,size);
+      if (pifn) {
+	if ((result=pifn(in,node,buf,size))==NULL)
+	  return NULL;}
       else result=NULL;
       if (result) node=result;
       else if (contentfn) {

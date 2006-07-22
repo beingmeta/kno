@@ -494,8 +494,11 @@ static FD_XML *handle_xmleval_pi
 	u8_string arg=get_pi_string(attribs[i]+5);
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=(fd_lispenv)(xml->data);
-	fd_lispenv xml_env=get_xml_env(xml);;
-	fd_load_latest(filename,env,NULL);
+	fd_lispenv xml_env;
+	if (fd_load_latest(filename,env,NULL)<0) {
+	  u8_free(arg); u8_free(filename);
+	  return NULL;}
+	else xml_env=get_xml_env(xml);
 	u8_free(arg); u8_free(filename);
 	if (FD_TABLEP(env->exports)) {
 	  fd_lispenv new_xml_env=
@@ -526,8 +529,11 @@ static FD_XML *handle_xmleval_pi
 	u8_string arg=get_pi_string(attribs[i]+12);
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=(fd_lispenv)(xml->data);
-	fd_lispenv xml_env=(fd_lispenv)(xml->data);
-	fd_load_latest(filename,env,NULL);
+	fd_lispenv xml_env;
+	if (fd_load_latest(filename,env,NULL)<0) {
+	  u8_free(arg); u8_free(filename);
+	  return NULL;}
+	else xml_env=get_xml_env(xml);
 	u8_free(arg); u8_free(filename);
 	i++;}
       else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
