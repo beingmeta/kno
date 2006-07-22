@@ -1,4 +1,4 @@
-(in-module 'brico)
+(in-module 'xbrico)
 
 (module-export!
  '{xbrico-pool
@@ -26,8 +26,9 @@
 		    "which is already provided from " xbricosource)
 	   #f)
 	  (else
-	   (set! xbricosource val)
-	   (use-pool val)
+	   (unless (exists? (name->pool "xbrico.beingmeta.com"))
+	     (set! xbricosource val)
+	     (use-pool val))
 	   (set! xbrico-index (use-index val))
 	   (set! xbrico-pool (name->pool "xbrico.beingmeta.com"))
 	   (set! names-pool (name->pool "namedb.beingmeta.com"))
