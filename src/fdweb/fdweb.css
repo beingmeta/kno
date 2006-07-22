@@ -197,6 +197,8 @@ span.narrative_hidden {
 span.langid {
   color: green; vertical-align: super;
   font-family: fixed; font-size: 80%;}
+sub.langids {
+  color: green; font-family: fixed;}
 span.langbox {}
 span.langbox_rigid { white-space: nowrap;}
 span.langcheck { white-space: nowrap;}
