@@ -97,7 +97,7 @@ static fdtype uppercasep(fdtype string)
     int c=FD_CHARCODE(string);
     if (u8_isupper(c)) return FD_TRUE;
     else return FD_FALSE;}
-  else return fd_type_error("string or character","lowercasep",string);
+  else return fd_type_error("string or character","uppercasep",string);
 }
 
 static fdtype capitalizedp(fdtype string)
@@ -109,7 +109,7 @@ static fdtype capitalizedp(fdtype string)
     int c=FD_CHARCODE(string);
     if (u8_isupper(c)) return FD_TRUE;
     else return FD_FALSE;}
-  else return fd_type_error("string or character","lowercasep",string);
+  else return fd_type_error("string or character","capitalizedp",string);
 }
 
 static fdtype string_compoundp(fdtype string)
@@ -154,7 +154,7 @@ static fdtype upcase(fdtype string)
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
     return FD_CODE2CHAR(u8_toupper(c));}
-  else return fd_type_error(_("string or character"),"downcase",string);
+  else return fd_type_error(_("string or character"),"upcase",string);
 }
 static fdtype char_upcase(fdtype ch)
 {
@@ -175,7 +175,21 @@ static fdtype capitalize(fdtype string)
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
     return FD_CODE2CHAR(u8_toupper(c));}
-  else return fd_type_error(_("string or character"),"downcase",string);
+  else return fd_type_error(_("string or character"),"capitalize",string);
+}
+
+static fdtype capitalize1(fdtype string)
+{
+  if (FD_STRINGP(string)) {
+    u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
+    if (u8_isupper(c)) return fd_incref(string);
+    else {
+      struct U8_OUTPUT out; int word_start=1;
+      U8_INIT_OUTPUT(&out,FD_STRLEN(string)+4);
+      u8_putc(&out,u8_toupper(c));
+      u8_puts(&out,scan);
+      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}}
+  else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
 static fdtype string_stdspace(fdtype string)
@@ -231,7 +245,7 @@ static fdtype string_basestring(fdtype string)
       u8_free(out.u8_outbuf);
       return fdtype_string("");}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
-  else return fd_type_error("string","string_stdstring",string);
+  else return fd_type_error("string","string_basestring",string);
 }
 
 /* String comparison */
@@ -675,6 +689,7 @@ FD_EXPORT void fd_init_strings_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZED?",capitalizedp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("COMPOUND?",string_compoundp,1,

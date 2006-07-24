@@ -149,8 +149,8 @@
 				(vector->frags basewords window))))
 	    (index-frame index frame slot frags)))))))
 
-(define (index-kindof index frame slot)
-  (let ((v (get frame slot)))
+(define (index-kindof index frame slot (values))
+  (let ((v (if (bound? values) values (get frame slot))))
     (when (exists? v)
       (index-frame index frame slot (get v kindof*)))))
 

@@ -596,7 +596,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
   if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
   else if (FD_PRIM_TYPEP(off_arg,fd_bigint_type)) 
-#if (_FILE_OFFSET_U8_STREAMINFO==64)
+#if (_FILE_OFFSET_BITS==64)
     off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
 #else
     off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);
