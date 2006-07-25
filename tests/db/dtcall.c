@@ -8,14 +8,16 @@
 static char versionid[] =
   "$Id$";
 
-#include "strings.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "sys/time.h"
-#include "time.h"
-#include "libu8/libu8.h"
 #include "fdb/dtype.h"
 #include "fdb/pools.h"
+
+#include <libu8/libu8.h>
+
+#include <strings.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
 
 int main(int argc,char **argv)
 {
