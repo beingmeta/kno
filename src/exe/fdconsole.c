@@ -37,6 +37,8 @@ int skip_whitespace(u8_input in)
   else return c;
 }
 
+static fd_dtype_stream eval_server=NULL;
+
 static u8_input inconsole=NULL;
 static u8_output outconsole=NULL;
 static u8_output errconsole=NULL;
@@ -99,7 +101,19 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);
     else if (source_file) i++;
     else source_file=argv[i++];
-  if (source_file) {
+  if (source_file==NULL) {}
+  else if (strchr(source_file,'@')) {
+    int sock=u8_connect(source_file);
+    struct FD_DTYPE_STREAM *newstream;
+    if (sock<0) {
+      u8_warn("Couldn't open connection to %s",source_file);
+      exit(-1);}
+    newstream=u8_malloc(sizeof(struct FD_DTYPE_STREAM));
+    fd_init_dtype_stream(newstream,sock,65536,NULL,NULL);
+    fd_use_pool(source_file);
+    fd_use_index(source_file);
+    eval_server=newstream;}
+  else {
     fdtype sourceval=fdtype_string(u8_realpath(source_file,NULL));
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
@@ -142,7 +156,11 @@ int main(int argc,char **argv)
       u8_printf(out,_("Eval: ")); u8_flush(out);
       continue;}
     start_time=u8_elapsed_time();
-    result=fd_eval(expr,env);
+    if (eval_server) {
+      fd_dtswrite_dtype(eval_server,expr);
+      fd_dtsflush(eval_server);
+      result=fd_dtsread_dtype(eval_server);}
+    else result=fd_eval(expr,env);
     finish_time=u8_elapsed_time();
     fd_decref(expr);
     if (FD_CHECK_PTR(result)==0) {
@@ -176,6 +194,7 @@ int main(int argc,char **argv)
       else {
 	int n=FD_CHOICE_SIZE(result);
 	u8_printf(out,_("{ ;; %d results\n"),n);
+	fd_prefetch_oids(result);
 	{FD_DO_CHOICES(elt,result) {
 	  u8_printf(out,"  %q\n",elt);}}
 	u8_printf(out,_("} ;; %d results\n"),n);}
@@ -198,6 +217,8 @@ int main(int argc,char **argv)
       fd_bind_value(that_symbol,lastval,env);
     u8_printf(out,_("Eval: "));
     u8_flush(out);}
+  if (eval_server) fd_dtsclose(eval_server);
+  u8_free(eval_server);
   fd_decref(lastval);
   return 0;
 }
