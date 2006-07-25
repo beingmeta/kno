@@ -162,7 +162,8 @@
 
 (define (index-gloss index frame slotid (value #f))
   (let* ((wordlist (getwords (or value (get frame slotid))))
-	 (gloss-words (elts wordlist)))
+	 (gloss-words (filter-choices (word (elts wordlist))
+			(< (length word) 16))))
     (index-frame index frame slotid
 		 (choice gloss-words (porter-stem gloss-words)))))
 
