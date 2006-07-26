@@ -217,7 +217,7 @@ int main(int argc,char **argv)
       fd_bind_value(that_symbol,lastval,env);
     u8_printf(out,_("Eval: "));
     u8_flush(out);}
-  if (eval_server) fd_dtsclose(eval_server);
+  if (eval_server) fd_dtsclose(eval_server,1);
   u8_free(eval_server);
   fd_decref(lastval);
   return 0;
