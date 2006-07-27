@@ -500,7 +500,7 @@ static fdtype get_verb_root(fd_grammar g,fdtype key)
 /* Sentences into words */
 
 static int add_input(fd_parse_context pc,u8_string s,u8_byte *bufp);
-static void add_punct(fd_parse_context pc,u8_string s);
+static void add_punct(fd_parse_context pc,u8_string s,u8_byte *bufp);
 
 static u8_string process_word(fd_parse_context pc,u8_string input)
 {
@@ -558,11 +558,13 @@ static int ispunct_sorta(int ch)
 static u8_string process_punct(fd_parse_context pc,u8_string input)
 {
   struct U8_OUTPUT word_stream; 
-  int ch=u8_sgetc(&input); u8_string tmp=input; 
+  u8_string start=input;
+  int ch=u8_sgetc(&input);
+  u8_string tmp=input; 
   U8_INIT_OUTPUT(&word_stream,16);
   while ((ch>0) && (ispunct_sorta(ch))) {
     tmp=input; u8_putc(&word_stream,ch); ch=u8_sgetc(&input);}
-  add_punct(pc,word_stream.u8_outbuf);
+  add_punct(pc,word_stream.u8_outbuf,start);
   /* if (word_stream.size > 5)  
      else free(word_stream.ptr); */
   return tmp;
@@ -618,7 +620,7 @@ static void lexer(fd_parse_context pc,u8_string start,u8_string end)
   u8_string scan=start;
   int ch=u8_sgetc(&scan), skip_markup=(pc->flags&FD_TAGGER_SKIP_MARKUP), len;
   if (pc->n_inputs>0) fd_reset_parse_context(pc);
-  pc->start=start;
+  pc->start=start; pc->end=end;
   scan=start; while ((ch>=0) && (scan<end)) {
     u8_string tmp;
     if (u8_isspace(ch))
@@ -903,7 +905,7 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word)
    Arguments: a parse context and a punctuation string
    Returns: Adds the string to the end of the current sentence.
 */
-static void add_punct(fd_parse_context pc,u8_string spelling)
+static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
 {
   u8_string s=strdup(spelling); int i;
   fdtype ls=fd_init_string(NULL,-1,s), key, value;
@@ -927,7 +929,7 @@ static void add_punct(fd_parse_context pc,u8_string spelling)
 	   FD_PACKET_DATA(value),
 	   pc->grammar->n_arcs);}
   pc->input[pc->n_inputs].spelling=s;
-  pc->input[pc->n_inputs].bufptr=NULL;
+  pc->input[pc->n_inputs].bufptr=bufptr;
   pc->input[pc->n_inputs].lstr=ls;
   pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;  
   pc->input[pc->n_inputs].next=pc->n_inputs+1;
