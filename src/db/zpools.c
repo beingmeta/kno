@@ -467,6 +467,13 @@ static fdtype zpool_fetch(fd_pool p,fdtype oid)
       return fd_erreify();}
     data_pos=fd_dtsread_4bytes(&(fp->stream));}
   if (data_pos == 0) value=FD_EMPTY_CHOICE;
+  else if (FD_EXPECT_FALSE(data_pos<24+fp->load*4)) {
+    /* We got a data pointer into the file header.  This will
+       happen in the (hopefully now non-existent) case where
+       we've stored a >32 bit offset into a 32-bit sized location
+       and it got truncated down. */
+    u8_unlock_mutex(&(fp->lock));
+    return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->cid,FD_VOID);}
   else {
     if (fd_setpos(&(fp->stream),data_pos)<0) {
       u8_unlock_mutex(&(fp->lock));
@@ -493,15 +500,26 @@ static fdtype *zpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   struct POOL_FETCH_SCHEDULE *schedule=u8_malloc(sizeof(struct POOL_FETCH_SCHEDULE)*n);
   fdtype *result=u8_malloc(sizeof(fdtype)*n);
-  int i=0;
+  int i=0, min_file_pos=24+fp->capacity*4;
   u8_lock_mutex(&(fp->lock));
   if (fp->offsets) {
     unsigned int *offsets=fp->offsets;
     int i=0; while (i < n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base);
+      unsigned int file_off=offget(offsets,off);
       schedule[i].vpos=i;
-      schedule[i].filepos=offget(offsets,off);
+      if (FD_EXPECT_FALSE(file_off==0))
+	/* This is okay, just an allocated but unassigned OID. */
+	schedule[i].filepos=file_off;
+      else if (FD_EXPECT_FALSE(file_off<min_file_pos)) {
+	/* As above, we have a data pointer into the header.
+	   This should never happen unless a file is corrupted. */
+	u8_free(result); u8_free(schedule);
+	u8_unlock_mutex(&(fp->lock));
+	fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
+	return NULL;}
+      else schedule[i].filepos=file_off;
       i++;}}
   else {
     int i=0; while (i < n) {
@@ -542,7 +560,8 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_SCHEMA_TABLE *schemas=fp->schemas_byptr;
   int n_schemas=fp->n_schemas;
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
-  off_t endpos; int i=0,retcode=n;;
+  off_t endpos, pos_limit=((unsigned int)(1<<31))+((unsigned int)((1>>31)-1));
+  int i=0, retcode=n;
   u8_lock_mutex(&(fp->lock));
   endpos=fd_endpos(stream);
 #if HAVE_MMAP
@@ -552,7 +571,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"zpool_storen:munmap %s",fp->source);
+      u8_warn(u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=NULL; fp->offsets_size=0;}
     newmmap=
@@ -560,21 +579,26 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 	   PROT_READ|PROT_WRITE,
 	   MAP_SHARED,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"zpool_storen:mmap %s",fp->source);
+      u8_warn(u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=newmmap+6; fp->offsets_size=fp->load;}}
 #endif
   while (i<n) {
     int delta=write_oid_value(stream,values[i],schemas,n_schemas);
-    if (delta<0) {retcode=-1; break;}
+    if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
+    else if (FD_EXPECT_FALSE(endpos+delta>pos_limit)) {
+      fd_seterr(fd_FileSizeOverflow,
+		"file_pool_storen",u8_strdup(fp->cid),
+		oids[i]);
+      retcode=-1; break;}
     offsets[i]=endpos; endpos=endpos+delta;
     i++;}
   if (retcode<0) {}
   else if (fp->offsets) {
      int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
-      unsigned int reloff=FD_OID_DIFFERENCE(addr,base);
-      set_offset(fp->offsets,reloff,offsets[i]);
+      unsigned int oid_off=FD_OID_DIFFERENCE(addr,base);
+      set_offset(fp->offsets,oid_off,offsets[i]);
       i++;}}
   else {
     int i=0; while (i<n) {
@@ -590,7 +614,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0)  {
-      u8_warn(u8_strerror(errno),"zpool_storen:munmap %s",fp->source);
+      u8_warn(u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=NULL; fp->offsets_size;}
     newmmap=
@@ -599,7 +623,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       mmap(NULL,(4*fp->load)+24,
 	   PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"zpool_storen:mmap %s",fp->source);
+      u8_warn(u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=newmmap+6; fp->offsets_size=0;}}
 #else
@@ -678,7 +702,7 @@ static void zpool_setcache(fd_pool p,int level)
 	mmap(NULL,(4*fp->load)+24,PROT_READ,
 	     MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"zpool_setcache:mmap %s",fp->source);
+	u8_warn(u8_strerror(errno),"zpool_setcache:mmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
       else {
 	fp->offsets=offsets=newmmap+6;
@@ -703,7 +727,7 @@ static void zpool_setcache(fd_pool p,int level)
 	 as the load, not the capacity. */
       retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"zpool_setcache:munmap %s",fp->source);
+	u8_warn(u8_strerror(errno),"zpool_setcache:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
 #else
       u8_free(fp->offsets);
@@ -751,7 +775,7 @@ static void zpool_close(fd_pool p)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->source);
+      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
       errno=0;}
 #else
     u8_free(fp->offsets);

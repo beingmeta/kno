@@ -20,6 +20,8 @@
 FD_EXPORT int fd_init_dbfile(void) FD_LIBINIT_FN;
 
 FD_EXPORT fd_exception fd_FileIndexError;
+FD_EXPORT fd_exception fd_FileSizeOverflow;
+FD_EXPORT fd_exception fd_CorruptedPool;
 FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;
 FD_EXPORT fd_exception fd_MMAPError, fd_MUNMAPError;
 

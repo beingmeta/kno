@@ -115,7 +115,7 @@
 FD_EXPORT fd_exception
   fd_CantLockOID, fd_InvalidPoolPtr,
   fd_NotAFilePool, fd_AnonymousOID,
-  fd_NoFilePools, fd_NotAPool, fd_UnknownPool,
+  fd_NoFilePools, fd_NotAPool, fd_UnknownPool, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool;
 
 FD_EXPORT int fd_ignore_anonymous_oids;
