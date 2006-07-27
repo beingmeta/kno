@@ -70,6 +70,34 @@ static int capitalizedp(fdtype x)
   else return 0;
 }
 
+static int textgetc(u8_string *scanner)
+{
+  int c; while ((c=u8_sgetc(scanner))>=0)
+    if (c=='&')
+      if (strncmp(*scanner,"nbsp;",5)==0) {
+	*scanner=*scanner+5;
+	return ' ';}
+      else {
+	u8_byte *end=NULL;
+	int code=u8_parse_entity(*scanner,&end);
+	if (code<=0)
+	  return '&';
+	else {
+	  *scanner=end;
+	  return code;}}
+    else if (c=='\r') {
+      /* Convert CRLFs */
+      u8_string scan=*scanner;
+      int nextc=u8_sgetc(&scan);
+      if (nextc=='\n') {
+	*scanner=scan;
+	return '\n';}
+      else return '\r';}
+    else if (c==0x2019) /* Convert weird apostrophes */
+      return '\'';
+    else return c;
+}
+
 
 /* Global declarations */
 
@@ -177,7 +205,7 @@ fd_parse_context fd_init_parse_context
     unsigned int j=0;
     while (j < pc->grammar->n_nodes) vec[j++]=-1;
     pc->cache[i++]=vec;}
-  U8_INIT_OUTPUT(&(pc->text),512);
+  pc->end=pc->start=pc->buf=NULL; 
   return pc;
 }
 
@@ -246,7 +274,7 @@ void fd_free_parse_context(fd_parse_context pcxt)
   /* Free internal state variables */
   free(pcxt->input); free(pcxt->states); 
   pcxt->input=NULL; pcxt->states=NULL;
-  u8_free(pcxt->text.u8_outbuf);
+  u8_free(pcxt->buf); pcxt->start=NULL; pcxt->end=NULL;
   /* Free the state/input cache. */
   i=0; while (i < pcxt->max_n_inputs) free(pcxt->cache[i++]);
   free(pcxt->cache); pcxt->cache=NULL;
@@ -590,13 +618,7 @@ static void lexer(fd_parse_context pc,u8_string start,u8_string end)
   u8_string scan=start;
   int ch=u8_sgetc(&scan), skip_markup=(pc->flags&FD_TAGGER_SKIP_MARKUP), len;
   if (pc->n_inputs>0) fd_reset_parse_context(pc);
-  pc->start=start; pc->end=end;
-  if (end)
-    if ((end>pc->text.u8_outbuf) && (end<=pc->text.u8_outptr))
-      len=end-pc->text.u8_outbuf;
-    else u8_raise(_("internal NLP error"),"lexer",NULL);
-  else {
-    end=pc->text.u8_outptr; len=end-pc->text.u8_outbuf;}
+  pc->start=start;
   scan=start; while ((ch>=0) && (scan<end)) {
     u8_string tmp;
     if (u8_isspace(ch))
@@ -688,29 +710,10 @@ FD_EXPORT
 void fd_parser_set_text(struct FD_PARSE_CONTEXT *pcxt,u8_string in)
 {
   u8_string scan=in; int c;
-  u8_output stream=&(pcxt->text);
   if (pcxt->n_inputs>0) fd_reset_parse_context(pcxt);
   pcxt->n_calls++;
-  while ((c=u8_sgetc(&scan))>=0)
-    if (c=='&')
-      if (strncmp(scan,"nbsp;",5)==0) {
-	u8_putc(stream,' '); scan=scan+5;}
-      else {
-	u8_byte *end=NULL;
-	int code=u8_parse_entity(scan,&end);
-	if (code<=0) {
-	  u8_putc(stream,'&');}
-	else {
-	  u8_putc(stream,code); scan=end;}}
-    else if (c=='\r') {
-      /* Convert CRLFs */
-      int nextc=u8_sgetc(&scan);
-      if (nextc=='\n') u8_putc(stream,'\n');
-      else {u8_putc(stream,'\r'); u8_putc(stream,nextc);}}
-    else if (c==0x2019) /* Convert weird apostrophes */
-      u8_putc(stream,'\'');
-    else u8_putc(stream,c);
-  pcxt->start=pcxt->text.u8_outbuf;
+  pcxt->buf=pcxt->start=u8_strdup(in);
+  pcxt->end=pcxt->buf+u8_strlen(pcxt->buf);
 }
 
 
@@ -1268,13 +1271,15 @@ static fdtype word2string(fdtype word)
   else return fd_incref(word);
 }
 
-static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fdtype source)
+static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fdtype source,int start,int end)
 {
-  if (FD_VOIDP(source))
+  if ((FD_VOIDP(source)) && (start<0))
     return fd_make_vector(4,word,fd_incref(tag),root,
 			  FD_USHORT2DTYPE(distance));
-  else return fd_make_vector(5,word,fd_incref(tag),root,
-			     FD_USHORT2DTYPE(distance),source);
+  else return fd_make_vector(7,word,fd_incref(tag),root,
+			     FD_USHORT2DTYPE(distance),
+			     ((FD_VOIDP(source)) ? (FD_FALSE) : (source)),
+			     FD_INT2DTYPE(start),FD_INT2DTYPE(end));
 }
 
 FD_EXPORT
@@ -1288,6 +1293,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
   int glom_phrases=pc->flags&FD_TAGGER_GLOM_PHRASES;
   while (s >= 0) {
     fdtype source=FD_VOID;
+    int text_start=-1, text_end=-1;
     struct FD_PARSER_STATE *state=&(pc->states[s]);
     if (state->arc == 0) s=state->previous;
     else if (pc->grammar->head_tags[state->arc]) {
@@ -1314,21 +1320,27 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	  else if (nextstate->arc==0) scan=nextstate->previous;
 	  else break;}
       fd_decref(root);
-      if (pc->flags&FD_TAGGER_INCLUDE_SOURCE) {
+      if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
+	  (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
 	struct FD_PARSER_STATE *pstate=&(pc->states[scan]);
 	u8_byte *start=pc->input[pstate->input].bufptr;
 	if (start==NULL) {}
 	else if (bufptr==NULL) {
-	  source=fdtype_string(start); bufptr=start;}
+	  source=fdtype_string(start);
+	  text_start=start-pc->buf;
+	  text_end=text_start+u8_strlen(start);
+	  bufptr=start;}
 	else {
 	  source=fd_extract_string(NULL,start,bufptr);
+	  text_end=bufptr-pc->buf;
+	  text_start=start-pc->buf;
 	  bufptr=start;}}
       if (FD_VOIDP(glom))
 	word_entry=make_word_entry(word,fd_incref(tag),rootstring,
-				   state->distance,source);
+				   state->distance,source,text_start,text_end);
       else {
 	word_entry=make_word_entry(glom,fd_incref(tag),glom_root,
-				   state->distance,source);
+				   state->distance,source,text_start,text_end);
 	fd_decref(word);}
       sentence=fd_init_pair(NULL,word_entry,sentence);
       s=scan;}
@@ -1337,18 +1349,24 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       fdtype root=get_root(pc->grammar,word,state->arc);
       fdtype rootstring=word2string(root);
       fdtype tag=FD_VECTOR_REF(pc->grammar->arc_names,state->arc);
-      if (pc->flags&FD_TAGGER_INCLUDE_SOURCE) {
+      if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
+	  (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
 	struct FD_PARSER_STATE *pstate=&(pc->states[state->previous]);
 	u8_byte *start=pc->input[pstate->input].bufptr;
 	if (start==NULL) {}
 	else if (bufptr==NULL) {
-	  source=fdtype_string(start); bufptr=start;}
+	  source=fdtype_string(start);
+	  text_start=start-pc->buf;
+	  text_end=text_start+u8_strlen(start);
+	  bufptr=start;}
 	else {
 	  source=fd_extract_string(NULL,start,bufptr);
+	  text_end=bufptr-pc->buf;
+	  text_start=start-pc->buf;
 	  bufptr=start;}}
       word_entry=
 	make_word_entry(word,fd_incref(tag),rootstring,
-			state->distance,source);
+			state->distance,source,text_start,text_end);
       fd_decref(root);
       if (state->arc==pc->grammar->sentence_end_tag)
 	if (FD_EMPTY_LISTP(sentence))
@@ -1384,9 +1402,9 @@ fdtype fd_analyze_text
     pcxt=u8_malloc(sizeof(struct FD_PARSE_CONTEXT));
     fd_init_parse_context(pcxt,grammar); 
     free_pcxt=1;}
-  fd_parser_set_text(pcxt,skip_whitespace(text));
+  fd_parser_set_text(pcxt,text);
   if (pcxt->flags&FD_TAGGER_SPLIT_SENTENCES) {
-    u8_byte *sentence=pcxt->text.u8_outbuf, *sentence_end; int n_calls=0;
+    u8_byte *sentence=pcxt->start, *sentence_end; int n_calls=0;
     while ((sentence) && (*sentence) &&
 	   (sentence_end=find_sentence_end(sentence))) {
       double start_time=u8_elapsed_time();
@@ -1417,7 +1435,7 @@ fdtype fd_analyze_text
     fd_parse_state final;
     fdtype retval;
     u8_string start=pcxt->start;
-    lexer(pcxt,pcxt->text.u8_outbuf,NULL);
+    lexer(pcxt,pcxt->start,NULL);
     identify_compounds(pcxt);
     add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);
     final=fd_run_parser(pcxt);
@@ -1473,7 +1491,7 @@ fdtype fd_tag_text(struct FD_PARSE_CONTEXT *pcxt,u8_string text)
 /* Interpreting parser flags */
 
 static fdtype xml_symbol, plaintext_symbol, glom_symbol, noglom_symbol;
-static fdtype allcaps_symbol, whole_symbol, timing_symbol, source_symbol;
+static fdtype allcaps_symbol, whole_symbol, timing_symbol, source_symbol, textpos_symbol;
 
 static interpret_parse_flags(fdtype arg)
 {
@@ -1492,6 +1510,8 @@ static interpret_parse_flags(fdtype arg)
     flags=flags|FD_TAGGER_VERBOSE_TIMER;    
   if (fd_overlapp(arg,source_symbol))
     flags=flags|FD_TAGGER_INCLUDE_SOURCE;    
+  if (fd_overlapp(arg,textpos_symbol))
+    flags=flags|FD_TAGGER_INCLUDE_TEXTRANGE;    
   return flags;
 }
 
@@ -1831,6 +1851,7 @@ static void init_parser_symbols()
   whole_symbol=fd_intern("WHOLE");
   timing_symbol=fd_intern("TIMING");
   source_symbol=fd_intern("SOURCE");
+  textpos_symbol=fd_intern("TEXTPOS");
 			  
   sentence_end_symbol=fd_intern("SENTENCE-END");
   parse_failed_symbol=fd_intern("NOPARSE");
@@ -1851,8 +1872,9 @@ void fd_init_tagger_c()
   u8_init_mutex(&parser_stats_lock);
 #endif
 
-  fd_idefn(menv,fd_make_cprim2("TAGTEXT",tagtext_prim,1));
-  fd_idefn(menv,fd_make_cprim2("TAGTEXT*",tagtextx_prim,1));
+  /* This are ndprims because the flags arguments may be a set. */
+  fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("TAGTEXT",tagtext_prim,1)));
+  fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("TAGTEXT*",tagtextx_prim,1)));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
 

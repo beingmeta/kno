@@ -17,6 +17,7 @@
 #define FD_TAGGER_SPLIT_SENTENCES 16
 #define FD_TAGGER_VERBOSE_TIMER 32
 #define FD_TAGGER_INCLUDE_SOURCE 64
+#define FD_TAGGER_INCLUDE_TEXTRANGE 128
 
 #define FD_TAGGER_DEFAULT_FLAGS (FD_TAGGER_SKIP_MARKUP|FD_TAGGER_SPLIT_SENTENCES)
 
@@ -61,7 +62,7 @@ typedef struct FD_PARSE_CONTEXT {
   struct FD_GRAMMAR *grammar;
   int flags, cumulative_inputs, cumulative_states, n_calls;
   double runtime, cumulative_runtime;
-  U8_OUTPUT text; u8_string start, end;
+  u8_string buf, start, end;
   struct FD_WORD *input;
   struct FD_PARSER_STATE *states;
   fd_parse_state queue, last;
