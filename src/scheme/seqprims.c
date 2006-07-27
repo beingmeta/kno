@@ -772,88 +772,88 @@ static fdtype check_range(u8_string prim,fdtype seq,
   return FD_VOID;
 }
 
-static fdtype slice_prim(fdtype x,fdtype start,fdtype end)
+static fdtype slice_prim(fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int startval, endval; char buf[32];
-  fdtype result=check_range("slice_prim",x,start,end,&startval,&endval);
+  int start, end; char buf[32];
+  fdtype result=check_range("slice_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(result)) return result;
-  else result=fd_slice(x,startval,endval);
+  else result=fd_slice(x,start,end);
   if (result == FD_TYPE_ERROR)
     return fd_type_error(_("sequence"),"slice_prim",x);
   else if (result == FD_RANGE_ERROR) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),fd_getint(start),endval);
+    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
     return fd_err(fd_RangeError,"slice_prim",u8_strdup(buf),x);}
   else return result;
 }
 
-static fdtype position_prim(fdtype key,fdtype x,fdtype start,fdtype end)
+static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, startval, endval; char buf[32];
-  fdtype check=check_range("position_prim",x,start,end,&startval,&endval);
+  int result, start, end; char buf[32];
+  fdtype check=check_range("position_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
-  else result=fd_position(key,x,startval,endval);
+  else result=fd_position(key,x,start,end);
   if (result>=0) return FD_INT2DTYPE(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2) 
     return fd_type_error(_("sequence"),"position_prim",x);
   else if (result == -3) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),fd_getint(start),endval);
+    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
     return fd_err(fd_RangeError,"position_prim",u8_strdup(buf),x);}
   else return FD_INT2DTYPE(result);
 }
 
-static fdtype rposition_prim(fdtype key,fdtype x,fdtype start,fdtype end)
+static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, startval, endval; char buf[32];
-  fdtype check=check_range("rposition_prim",x,start,end,&startval,&endval);
+  int result, start, end; char buf[32];
+  fdtype check=check_range("rposition_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
-  else result=fd_rposition(key,x,startval,endval);
+  else result=fd_rposition(key,x,start,end);
   if (result>=0) return FD_INT2DTYPE(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2) 
     return fd_type_error(_("sequence"),"rposition_prim",x);
   else if (result == -3) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),fd_getint(start),endval);
+    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
     return fd_err(fd_RangeError,"rposition_prim",u8_strdup(buf),x);}
   else return FD_INT2DTYPE(result);
 }
 
-static fdtype find_prim(fdtype key,fdtype x,fdtype start,fdtype end)
+static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, startval, endval; char buf[32];
-  fdtype check=check_range("find_prim",x,start,end,&startval,&endval);
+  int result, start, end; char buf[32];
+  fdtype check=check_range("find_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
-  else result=fd_position(key,x,startval,endval);
+  else result=fd_position(key,x,start,end);
   if (result>=0) return FD_TRUE;
   else if (result == -1) return FD_FALSE;
   else if (result == -2) 
     return fd_type_error(_("sequence"),"find_prim",x);
   else if (result == -3) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),fd_getint(start),endval);
+    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
     return fd_err(fd_RangeError,"find_prim",u8_strdup(buf),x);}
   else return FD_FALSE;
 }
 
-static fdtype search_prim(fdtype key,fdtype x,fdtype start,fdtype end)
+static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, startval, endval; char buf[32];
-  fdtype check=check_range("search_prim",x,start,end,&startval,&endval);
+  int result, start, end; char buf[32];
+  fdtype check=check_range("search_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
-  else result=fd_search(key,x,startval,endval);
+  else result=fd_search(key,x,start,end);
   if (result>=0) return FD_INT2DTYPE(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2) {
-    sprintf(buf,"%d:%d",start,endval);
+    sprintf(buf,"%d:%d",start,end);
     return fd_err(fd_RangeError,"search_prim",u8_strdup(buf),x);}
   else if (result == -3) 
     return fd_type_error(_("sequence"),"search_prim",x);
   else return result;
 }
 
-static fdtype every_prim(fdtype proc,fdtype x,fdtype startval,fdtype endval)
+static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int start, end, len;
-  fdtype check=check_range("every_prim",x,start,end,&start,&end);
+  fdtype check=check_range("every_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"every_prim",x);
@@ -884,10 +884,10 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype startval,fdtype endval)
     return FD_TRUE;}
 }
 
-static fdtype some_prim(fdtype proc,fdtype x,fdtype startval,fdtype endval)
+static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int start, end, len;
-  fdtype check=check_range("some_prim",x,start,end,&start,&end);
+  fdtype check=check_range("some_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"some_prim",x);
