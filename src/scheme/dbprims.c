@@ -380,7 +380,7 @@ static fdtype commit_lexpr(int n,fdtype *args)
     if (FD_PRIM_TYPEP(arg,fd_index_type))
       retval=fd_index_commit(fd_lisp2index(arg));
     else if (FD_PRIM_TYPEP(arg,fd_pool_type))
-      retval=fd_pool_commit_all(fd_lisp2pool(arg));
+      retval=fd_pool_commit_all(fd_lisp2pool(arg),1);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
