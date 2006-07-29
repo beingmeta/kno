@@ -499,15 +499,24 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
     else n=write-oidv;
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->handler->unlock(p,needy); 
-    if (retval) 
+    if (retval<0) {
+      fd_decref(needy);
+      return -1;}
+    else if (retval) {
       fd_hashtable_iterkeys(locks,fd_table_replace,n,oidv,FD_VOID);
+      if (fd_devoid_hashtable(locks)<0) {
+	fd_decref(needy);
+	return -1;}
     fd_decref(needy);
-    return retval;}
-  else if (fd_hashtable_probe(locks,oids))
-    if (p->handler->unlock(p,oids)) {
+    return retval;}}
+  else if (fd_hashtable_probe(locks,oids)) {
+    int retval=p->handler->unlock(p,oids);
+    if (retval<0) return -1;
+    else if (retval) {
       fd_hashtable_op(locks,fd_table_replace,oids,FD_VOID);
+      if (fd_devoid_hashtable(locks)<0) return -1;
       return 1;}
-    else return 0;
+    else return 0;}
   else return 1;
 }
 
@@ -538,15 +547,15 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       else if (FD_SLOTMAPP(v))
 	if (FD_SLOTMAP_MODIFIEDP(v)) {
 	  *owrite++=o; *vwrite++=v;}
-	else {}
+	else fd_decref(v);
       else if (FD_SCHEMAPP(v))
 	if (FD_SCHEMAP_MODIFIEDP(v)) {
 	  *owrite++=o; *vwrite++=v;}
-	else {}
+	else fd_decref(v);
       else if (FD_HASHTABLEP(v))
 	if (FD_HASHTABLE_MODIFIEDP(v)) {
 	  *owrite++=o; *vwrite++=v;}
-	else {}
+	else fd_decref(v);
       else {*owrite++=o; *vwrite++=v;}}
     if (owrite==oidv) {
       u8_free(oidc); u8_free(values);
@@ -600,12 +609,12 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       return 1;}
     else return 0;}
 }
-FD_EXPORT int fd_pool_commit_all(fd_pool p)
+FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock)
 {
   int result;
   struct FD_HASHTABLE *locks=&(p->locks);
   fdtype oids=fd_hashtable_keys(locks);
-  result=fd_pool_commit(p,oids,0);
+  result=fd_pool_commit(p,oids,unlock);
   fd_devoid_hashtable(&(p->locks));
   fd_decref(oids);
   return result;
@@ -877,7 +886,7 @@ static int do_commit(fd_pool p,void *data)
 
 FD_EXPORT int fd_commit_pools()
 {
-  return fd_for_pools(do_commit,NULL);
+  return fd_for_pools(do_commit,(void *)NULL);
 }
 
 FD_EXPORT int fd_commit_pools_noerr()
