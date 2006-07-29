@@ -560,7 +560,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_SCHEMA_TABLE *schemas=fp->schemas_byptr;
   int n_schemas=fp->n_schemas;
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
-  off_t endpos, pos_limit=((unsigned int)(1<<31))+((unsigned int)((1>>31)-1));
+  off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n;
   u8_lock_mutex(&(fp->lock));
   endpos=fd_endpos(stream);
@@ -586,7 +586,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   while (i<n) {
     int delta=write_oid_value(stream,values[i],schemas,n_schemas);
     if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
-    else if (FD_EXPECT_FALSE(endpos+delta>pos_limit)) {
+    else if (FD_EXPECT_FALSE(((off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_FileSizeOverflow,
 		"file_pool_storen",u8_strdup(fp->cid),
 		oids[i]);
@@ -676,6 +676,7 @@ static int zpool_unlock(fd_pool p,fdtype oids)
   else if (!(FD_FILEPOOL_LOCKED(fp))) return 0;
   else if (FD_CHOICEP(oids))
     fp->n_locks=fp->n_locks-FD_CHOICE_SIZE(oids);
+  else if (FD_EMPTY_CHOICEP(oids)) {}
   else fp->n_locks--;
   if (fp->n_locks == 0) {
     fd_dtsunlock(&(fp->stream));
@@ -775,7 +776,7 @@ static void zpool_close(fd_pool p)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
+      u8_warn(u8_strerror(errno),"zpool_close:munmap %s",fp->cid);
       errno=0;}
 #else
     u8_free(fp->offsets);
