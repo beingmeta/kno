@@ -388,6 +388,15 @@ static fdtype file_mode(fdtype filename)
   else return FD_INT2DTYPE(mode);
 }
 
+static fdtype file_size(fdtype filename)
+{
+  off_t size=u8_file_size(FD_STRDATA(filename));
+  if (size<0) return fd_erreify();
+  else if (size<FD_MAX_FIXNUM)
+    return FD_INT2DTYPE(size);
+  else return fd_make_bigint(size);
+}
+
 static fdtype file_owner(fdtype filename)
 {
   u8_string name=u8_file_owner(FD_STRDATA(filename));
@@ -1157,6 +1166,9 @@ FD_EXPORT void fd_init_fileio_c()
 			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("FILE-MODE",file_mode,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("FILE-SIZE",file_size,1,
 			   fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
