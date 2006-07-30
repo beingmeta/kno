@@ -525,7 +525,8 @@ FD_EXPORT int fd_pool_unlock_all(fd_pool p,int commit)
   int result;
   struct FD_HASHTABLE *locks=&(p->locks);
   fdtype oids=fd_hashtable_keys(locks);
-  result=fd_pool_unlock(p,oids,commit);
+  if (FD_EMPTY_CHOICEP(oids)) return 0;
+  else result=fd_pool_unlock(p,oids,commit);
   fd_decref(oids);
   return result;
 }
@@ -575,7 +576,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     if ((retval>0) && (unlock)) {
       fdtype needy=fd_init_choice(oidc,n,oidv,FD_CHOICE_ISATOMIC);
       if (p->handler->unlock(p,needy))
-	fd_hashtable_iterkeys(locks,fd_table_store,n,oidv,FD_VOID);
+	fd_hashtable_iterkeys(locks,fd_table_replace,n,oidv,FD_VOID);
       fd_decref(needy);}
     else u8_free(oidc);
     if (retval<0)
