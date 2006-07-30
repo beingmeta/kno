@@ -12,7 +12,7 @@ LIBS=@LIBS@ -lm -lz -lu8 -lu8fns -lu8io
 
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
-		  ../../lib/libfdschemeio@suffix@.a 
+		  ../../lib/libfdschemeio@suffix@.a
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
@@ -50,6 +50,12 @@ all: $(TESTBIN)
 	cd ../..; make lib/libfdtype@suffix@.a
 ../../lib/libfddb@suffix@.a:
 	cd ../..; make lib/libfddb@suffix@.a
+../../lib/libfddbfile@suffix@.a:
+	cd ../..; make lib/libfddbfile@suffix@.a
+../../lib/libtexttools@suffix@.a:
+	cd ../..; make lib/libtexttools@suffix@.a
+../../lib/libfdbserv@suffix@.a:
+	cd ../..; make lib/libfdbserv@suffix@.a
 
 $(TESTBIN): $(EXTRA_LIBS) \
             ../../lib/libfdscheme@suffix@.a \
@@ -59,18 +65,18 @@ $(TESTBIN): $(EXTRA_LIBS) \
 	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-fdtypeserver@suffix@: fdtypeserver.c $(EXTRA_LIBS) \
+fdtypeserver: fdtypeserver.c $(EXTRA_LIBS) \
 	../../lib/libfdscheme@suffix@.a \
 	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
-fdbserver@suffix@: fdbserver.c $(EXTRA_LIBS) \
+fdbserver: fdbserver.c $(EXTRA_LIBS) \
 	../../lib/libfdbserv@suffix@.a \
 	../../lib/libfdscheme@suffix@.a \
 	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
-fdserv@suffix@: fdserv.c $(EXTRA_LIBS) \
+fdserv: fdserv.c $(EXTRA_LIBS) \
 	../../lib/libfdscheme@suffix@.a \
 	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
