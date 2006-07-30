@@ -139,16 +139,16 @@ static u8_mutex default_grammar_lock;
 
 static struct FD_GRAMMAR *get_default_grammar()
 {
-  u8_lock_mutex(&default_grammar_lock);
+  fd_lock_mutex(&default_grammar_lock);
   if (default_grammar) {
-    u8_unlock_mutex(&default_grammar_lock);
+    fd_unlock_mutex(&default_grammar_lock);
     return default_grammar;}
   else if (lexdata_source==NULL) {
-    u8_unlock_mutex(&default_grammar_lock);
+    fd_unlock_mutex(&default_grammar_lock);
     return NULL;}
   else {
     default_grammar=fd_open_grammar(lexdata_source);
-    u8_unlock_mutex(&default_grammar_lock);
+    fd_unlock_mutex(&default_grammar_lock);
     return default_grammar;}
 }
 
@@ -214,14 +214,14 @@ void fd_reset_parse_context(fd_parse_context pcxt)
 {
   int i=0, max_inputs=pcxt->max_n_inputs;
   /* Update global parser stats */
-  u8_lock_mutex(&parser_stats_lock);
+  fd_lock_mutex(&parser_stats_lock);
   total_states=total_states+pcxt->n_states;
   total_inputs=total_inputs+pcxt->n_inputs;
   total_parse_time=total_parse_time+pcxt->runtime;
   total_sentences++;
   if (pcxt->n_states > max_states) max_states=pcxt->n_states;
   if (pcxt->n_inputs > max_inputs) max_inputs=pcxt->n_inputs;
-  u8_unlock_mutex(&parser_stats_lock);
+  fd_unlock_mutex(&parser_stats_lock);
   /* Report timing info if requested. */
   if (pcxt->flags&FD_TAGGER_VERBOSE_TIMER)
     u8_message("Parsed %d inputs, exploring %d states in %f seconds",
@@ -252,14 +252,14 @@ void fd_free_parse_context(fd_parse_context pcxt)
 {
   int i=0;
   /* Update global parser stats */
-  u8_lock_mutex(&parser_stats_lock);
+  fd_lock_mutex(&parser_stats_lock);
   total_states=total_states+pcxt->n_states;
   total_inputs=total_inputs+pcxt->n_inputs;
   total_parse_time=total_parse_time+pcxt->runtime;
   total_sentences++;
   if (pcxt->n_states > max_states) max_states=pcxt->n_states;
   if (pcxt->n_inputs > max_inputs) max_inputs=pcxt->n_inputs;
-  u8_unlock_mutex(&parser_stats_lock);
+  fd_unlock_mutex(&parser_stats_lock);
   /* Report timing info if requested. */
   if (pcxt->flags&FD_TAGGER_VERBOSE_TIMER)
     u8_message("Parsed %d inputs, exploring %d states in %f seconds",
@@ -1870,8 +1870,8 @@ void fd_init_tagger_c()
   init_parser_symbols();
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&default_grammar_lock);
-  u8_init_mutex(&parser_stats_lock);
+  fd_init_mutex(&default_grammar_lock);
+  fd_init_mutex(&parser_stats_lock);
 #endif
 
   /* This are ndprims because the flags arguments may be a set. */

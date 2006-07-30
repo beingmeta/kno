@@ -127,7 +127,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   int baseindex=fd_get_oid_base_index(p->base,1);
   if (p->serialno>=0) return 0;
   else if (baseindex<0) return baseindex;
-  u8_lock_mutex(&(pool_registry_lock));
+  fd_lock_mutex(&(pool_registry_lock));
   /* Set up the serial number */
   serial_no=p->serialno=pool_serial_count++;
   pool_serial_table[serial_no]=p;
@@ -138,11 +138,11 @@ FD_EXPORT int fd_register_pool(fd_pool p)
       FD_OID base=FD_OID_PLUS(p->base,(FD_TOP_POOL_SIZE*i));
       int baseid=fd_get_oid_base_index(base,1);
       if (baseid<0) {
-	u8_unlock_mutex(&(pool_registry_lock));
+	fd_unlock_mutex(&(pool_registry_lock));
 	return -1;}
       else if (fd_top_pools[baseid]) {
 	pool_conflict(p,fd_top_pools[baseid]);
-	u8_unlock_mutex(&(pool_registry_lock));
+	fd_unlock_mutex(&(pool_registry_lock));
 	return -1;}
       else fd_top_pools[baseid]=p;
       i++;}}
@@ -152,10 +152,10 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     add_to_gluepool(gluepool,p);}
   else if (fd_top_pools[baseindex]->capacity) {
     pool_conflict(p,fd_top_pools[baseindex]);
-    u8_unlock_mutex(&(pool_registry_lock));
+    fd_unlock_mutex(&(pool_registry_lock));
     return -1;}
   else add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[baseindex],p);
-  u8_unlock_mutex(&(pool_registry_lock));
+  fd_unlock_mutex(&(pool_registry_lock));
   if (p->label) {
     u8_byte *dot=strchr(p->label,'.');
     fdtype pkey, probe;
@@ -1065,11 +1065,11 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
   fdtype todo=fd_pool_delays[p->serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
-    /* u8_lock_mutex(&(fd_ipeval_lock)); */
+    /* fd_lock_mutex(&(fd_ipeval_lock)); */
     todo=fd_pool_delays[p->serialno];
     fd_pool_delays[p->serialno]=FD_EMPTY_CHOICE;
     todo=fd_simplify_choice(todo);
-    /* u8_unlock_mutex(&(fd_ipeval_lock)); */
+    /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
       u8_notify(ipeval_objfetch,"Fetching %d oids from %s: %q",

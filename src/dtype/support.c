@@ -88,10 +88,10 @@ void fd_register_config_lookup(fdtype (*fn)(fdtype))
 {
   struct FD_CONFIG_LOOKUPS *entry=
     u8_malloc(sizeof(struct FD_CONFIG_LOOKUPS));
-  u8_lock_mutex(&config_lookup_lock);
+  fd_lock_mutex(&config_lookup_lock);
   entry->lookup=fn; entry->next=config_lookupfns;
   config_lookupfns=entry;
-  u8_unlock_mutex(&config_lookup_lock);
+  fd_unlock_mutex(&config_lookup_lock);
 }
 
 static fdtype config_get(u8_string var)
@@ -184,9 +184,9 @@ FD_EXPORT fdtype fd_config_get(u8_string var)
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       fdtype val;
-      u8_lock_mutex(&config_lock);
+      fd_lock_mutex(&config_lock);
       val=scan->config_get_method(symbol,scan->data);
-      u8_unlock_mutex(&config_lock);
+      fd_unlock_mutex(&config_lock);
       return val;}
     else scan=scan->next;
   return config_get(var);
@@ -198,9 +198,9 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
-      u8_lock_mutex(&config_lock);
+      fd_lock_mutex(&config_lock);
       retval=scan->config_set_method(symbol,val,scan->data);
-      u8_unlock_mutex(&config_lock);
+      fd_unlock_mutex(&config_lock);
       break;}
     else scan=scan->next;
   if (scan==NULL) return config_set(var,val);
@@ -630,7 +630,7 @@ static fdtype get_threadtable()
   else return (thread_table=fd_init_slotmap(NULL,0,NULL,NULL));
 }
 #else
-static fdtype thread_TABLE=FD_VOID;
+static fdtype thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
@@ -787,7 +787,7 @@ void fd_init_support_c()
   global_config=fd_make_hashtable(NULL,16,NULL);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&config_lookup_lock);
+  fd_init_mutex(&config_lookup_lock);
 #endif
 
   fd_register_config_lookup(getenv_config_lookup);

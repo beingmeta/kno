@@ -230,7 +230,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       int envcount=0;
       struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
       int i=0, n_slots; struct FD_HASHENTRY **slots; 
-      u8_lock_mutex(&(ht->lock));
+      fd_lock_mutex(&(ht->lock));
       n_slots=ht->n_slots; slots=ht->slots;
       while (i<n_slots)
 	if (slots[i]) {
@@ -240,7 +240,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
 	  while (j<n_keyvals) {
 	    envcount=envcount+count_envrefs(keyvals[j].value,env,depth-1); j++;}}
 	else i++;
-      u8_unlock_mutex(&(ht->lock));
+      fd_unlock_mutex(&(ht->lock));
       return envcount;}
     default:
       if (constype==fd_environment_type) {
@@ -798,7 +798,7 @@ static fdtype make_condvar()
 {
   struct FD_CONSED_CONDVAR *cv=u8_malloc(sizeof(struct FD_CONSED_CONDVAR));
   FD_INIT_CONS(cv,fd_condvar_type);
-  u8_init_mutex(&(cv->lock)); u8_init_condvar(&(cv->cvar));
+  fd_init_mutex(&(cv->lock)); u8_init_condvar(&(cv->cvar));
   return FDTYPE_CONS(cv);
 }
 
@@ -810,7 +810,7 @@ static fdtype condvar_wait(fdtype x,fdtype timeout)
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   if (FD_VOIDP(timeout))
-    if (u8_condvar_wait(&(cv->cvar),&(cv->lock))==0)
+    if (fd_condvar_wait(&(cv->cvar),&(cv->lock))==0)
       return FD_TRUE;
     else {
       return fd_type_error(_("valid condvar"),"condvar_wait",x);}
@@ -858,7 +858,7 @@ static fdtype condvar_lock(fdtype x)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  u8_lock_mutex(&(cv->lock));
+  fd_lock_mutex(&(cv->lock));
   return FD_TRUE;
 }
 
@@ -866,7 +866,7 @@ static fdtype condvar_unlock(fdtype x)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  u8_unlock_mutex(&(cv->lock));
+  fd_unlock_mutex(&(cv->lock));
   return FD_TRUE;
 }
 
@@ -882,7 +882,7 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
 {
   struct FD_CONSED_CONDVAR *cv=
     (struct FD_CONSED_CONDVAR *)c;
-  u8_destroy_mutex(&(cv->lock));  u8_destroy_condvar(&(cv->cvar));
+  fd_destroy_mutex(&(cv->lock));  u8_destroy_condvar(&(cv->cvar));
   u8_free(cv);
 }
 

@@ -84,7 +84,7 @@ static void init_network_pool
   if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan))))
     label=FD_STRDATA(FD_CAR(scan));
   else label=NULL;
-  u8_init_mutex(&(p->lock));
+  fd_init_mutex(&(p->lock));
   if (label) p->label=u8_strdup(label); else p->label=NULL;
   /* Register the pool */
   fd_register_pool((fd_pool)p);
@@ -155,9 +155,9 @@ static int network_pool_load(fd_pool p)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype value;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   value=dtcall(np,2,get_load_symbol,fd_make_oid(p->base));
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
   if (FD_FIXNUMP(value)) return FD_FIX2INT(value);
   else if (FD_EXCEPTIONP(value))
     return fd_interr(value);
@@ -170,9 +170,9 @@ static fdtype network_pool_fetch(fd_pool p,fdtype oid)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype value;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   value=dtcall(np,2,oid_value_symbol,oid);
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
   return value;
 }
 
@@ -181,7 +181,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype vector, request, value, *values;
   struct FD_VECTOR *v; int i;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   vector=fd_init_vector(NULL,n,oids); fd_incref(vector);
   value=dtcall(np,2,fetch_oids_symbol,vector);
   if (FD_VECTORP(value)) {
@@ -191,10 +191,10 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
        doesn't free the internal data of the vector, which is just
        what we want.in this case. */
     u8_free((struct FD_VECTOR *)vector); u8_free(v);
-    u8_unlock_mutex(&(np->lock));
+    fd_unlock_mutex(&(np->lock));
     return values;}
   else {
-    u8_unlock_mutex(&(np->lock));
+    fd_unlock_mutex(&(np->lock));
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
 	      u8_strdup(np->cid),fd_incref(value));
     return NULL;}
@@ -204,9 +204,9 @@ static int network_pool_lock(fd_pool p,fdtype oid)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype value;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   value=dtcall(np,3,lock_oid_symbol,oid,client_id);
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
   if (FD_VOIDP(value)) return 0;
   else {
     fd_hashtable_store(&(p->cache),oid,value);
@@ -218,9 +218,9 @@ static int network_pool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype result;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   result=dtcall(np,3,clear_oid_lock_symbol,oids,client_id);
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
   if (FD_EXCEPTIONP(result)) {
     fd_decref(result); return 0;}
   else {fd_decref(result); return 1;}
@@ -232,7 +232,7 @@ static int network_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   if (np->bulk_commitp) {
     int i=0;
     fdtype *storevec=u8_malloc(sizeof(fdtype)*n*2), vec, result;
-    u8_lock_mutex(&(np->lock));
+    fd_lock_mutex(&(np->lock));
     while (i < n) {
       storevec[i*2]=oids[i];
       storevec[i*2+1]=values[i];
@@ -241,32 +241,32 @@ static int network_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     result=dtcall(np,3,bulk_commit_symbol,client_id,vec);
     /* Don't decref the individual elements because you didn't incref them. */
     u8_free((struct FD_CONS *)vec); u8_free(storevec);
-    u8_unlock_mutex(&(np->lock));
+    fd_unlock_mutex(&(np->lock));
     return 1;}
   else {
     int i=0;
-    u8_lock_mutex(&(np->lock));
+    fd_lock_mutex(&(np->lock));
     while (i < n) {
       fdtype result=dtcall(np,4,unlock_oid_symbol,oids[i],client_id,values[i]);
       fd_decref(result); i++;}
-    u8_unlock_mutex(&(np->lock));
+    fd_unlock_mutex(&(np->lock));
     return 1;}
 }
 
 static void network_pool_close(fd_pool p)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   fd_dtsclose(&(np->stream),1);
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
 }
 
 static void network_pool_setbuf(fd_pool p,int bufsiz)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   fd_dtsbufsize(&(np->stream),bufsiz);
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
 }
 
 static fdtype network_pool_alloc(fd_pool p,int n)
@@ -275,12 +275,12 @@ static fdtype network_pool_alloc(fd_pool p,int n)
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fd_dtype_stream stream=&(np->stream);
   request=fd_init_pair(NULL,new_oid_symbol,FD_EMPTY_LIST);
-  u8_lock_mutex(&(np->lock));
+  fd_lock_mutex(&(np->lock));
   while (i < n) {
     fdtype result=dteval(np,request);
     FD_ADD_TO_CHOICE(results,result);
     i++;}
-  u8_unlock_mutex(&(np->lock));
+  fd_unlock_mutex(&(np->lock));
   return results;
 }
 
@@ -301,9 +301,9 @@ static struct FD_POOL_HANDLER netpool_handler={
 
 static void init_client_id()
 {
-  u8_lock_mutex(&client_id_lock);
+  fd_lock_mutex(&client_id_lock);
   if (FD_VOIDP(client_id)) client_id=fdtype_string(u8_sessionid());
-  u8_unlock_mutex(&client_id_lock);
+  fd_unlock_mutex(&client_id_lock);
 }
 
 FD_EXPORT fd_init_netpools_c()
@@ -311,7 +311,7 @@ FD_EXPORT fd_init_netpools_c()
   fd_register_source_file(versionid);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&client_id_lock);
+  fd_init_mutex(&client_id_lock);
 #endif
 
   pool_data_symbol=fd_intern("POOL-DATA");

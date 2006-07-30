@@ -878,7 +878,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -903,7 +903,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
 	fdtype errbind;
 	if (iterval) errbind=iterenv1(seq,var,elt);
 	else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
-	u8_destroy_mutex(&(bindings.lock));
+	fd_destroy_mutex(&(bindings.lock));
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	fd_decref(elt); fd_decref(seq);
 	return fd_passerr(val,errbind);}
@@ -914,7 +914,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
     fd_decref(vals[0]);
     i++;}
   fd_decref(seq);
-  u8_destroy_mutex(&(bindings.lock));
+  fd_destroy_mutex(&(bindings.lock));
   return FD_VOID;
 }
 
@@ -939,7 +939,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -992,7 +992,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=(FD_SCHEMAP_SORTED|FD_SCHEMAP_STACK_SCHEMA);
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -1008,7 +1008,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
       if (FD_ABORTP(val)) {
 	fdtype retval=
 	  fd_passerr(val,iterenv1(limit_val,var,FD_INT2DTYPE(i)));
-	u8_destroy_mutex(&(bindings.lock));
+	fd_destroy_mutex(&(bindings.lock));
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	return retval;}
       fd_decref(val);}}
@@ -1016,7 +1016,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
     i++;}
-  u8_destroy_mutex(&(bindings.lock));
+  fd_destroy_mutex(&(bindings.lock));
   if (envstruct.copy) fd_recycle_environment(envstruct.copy);
   return FD_VOID;
 }

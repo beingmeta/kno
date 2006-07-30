@@ -33,14 +33,14 @@ static int add_base_oid_index(FD_OID base)
 {
   int boi=get_base_oid_index(base);
   if (boi>=0) return boi;
-  u8_lock_mutex(&(base_oid_lock));
+  fd_lock_mutex(&(base_oid_lock));
   if (fd_n_base_oids >= 1024) {
-    u8_unlock_mutex(&(base_oid_lock));
+    fd_unlock_mutex(&(base_oid_lock));
     return -1;}
   else {
     boi=fd_n_base_oids;
     fd_base_oids[fd_n_base_oids++]=base;
-    u8_unlock_mutex(&(base_oid_lock));
+    fd_unlock_mutex(&(base_oid_lock));
     return boi;}
 }
 
@@ -73,7 +73,7 @@ void fd_init_oids_c()
   fd_type_names[fd_oid_type]="OID";
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&(base_oid_lock));
+  fd_init_mutex(&(base_oid_lock));
 #endif
 }
 

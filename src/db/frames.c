@@ -154,29 +154,29 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op)
 static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17,NULL);
-  u8_lock_mutex(&slotcache_lock);
+  fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,table);
   fd_decref(table);
-  u8_unlock_mutex(&slotcache_lock);
+  fd_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
 static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17,NULL);
-  u8_lock_mutex(&slotcache_lock);
+  fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&test_caches,slotid,table);
   fd_decref(table);
-  u8_unlock_mutex(&slotcache_lock);
+  fd_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
 FD_EXPORT void fd_clear_slotcache(fdtype slotid)
 {
-  u8_lock_mutex(&slotcache_lock);
+  fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,FD_VOID);
   fd_hashtable_store(&test_caches,slotid,FD_VOID);
-  u8_unlock_mutex(&slotcache_lock);
+  fd_unlock_mutex(&slotcache_lock);
 }
 
 FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
@@ -316,11 +316,11 @@ FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
 
 FD_EXPORT void fd_clear_slotcaches()
 {
-  u8_lock_mutex(&slotcache_lock);
+  fd_lock_mutex(&slotcache_lock);
   fd_reset_hashtable(&slot_caches,17,1);
   fd_reset_hashtable(&test_caches,17,1);
   fd_reset_hashtable(&implications,17,1);
-  u8_unlock_mutex(&slotcache_lock);
+  fd_unlock_mutex(&slotcache_lock);
 }
 
 
@@ -796,7 +796,7 @@ FD_EXPORT void fd_init_frames_c()
   fd_make_hashtable(&implications,17,NULL);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&slotcache_lock);
+  fd_init_mutex(&slotcache_lock);
 #if FD_USE_TLS
   u8_new_threadkey(&opstack_key,NULL);
 #endif

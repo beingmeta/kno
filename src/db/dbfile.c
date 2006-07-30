@@ -35,16 +35,16 @@ FD_EXPORT void fd_register_pool_opener
    fdtype (*mdreader)(FD_DTYPE_STREAM *),
    fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype))
 {
-  u8_lock_mutex(&pool_openers_lock);
+  fd_lock_mutex(&pool_openers_lock);
   if (n_pool_openers<FD_N_POOL_OPENERS) {
     pool_openers[n_pool_openers].initial_word=id;
     pool_openers[n_pool_openers].opener=opener;
     pool_openers[n_pool_openers].read_metadata=mdreader;
     pool_openers[n_pool_openers].write_metadata=mdwriter;
     n_pool_openers++;
-    u8_unlock_mutex(&pool_openers_lock);}
+    fd_unlock_mutex(&pool_openers_lock);}
   else {
-    u8_unlock_mutex(&pool_openers_lock);
+    fd_unlock_mutex(&pool_openers_lock);
     u8_raise("Too many pool openers",
 	     "fd_register_pool_opener",NULL);}
 }
@@ -352,16 +352,16 @@ FD_EXPORT void fd_register_index_opener
    fdtype (*mdreader)(FD_DTYPE_STREAM *),
    fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype))
 {
-  u8_lock_mutex(&index_openers_lock);
+  fd_lock_mutex(&index_openers_lock);
   if (n_index_openers<FD_N_INDEX_OPENERS) {
     index_openers[n_index_openers].initial_word=id;
     index_openers[n_index_openers].opener=opener;
     index_openers[n_index_openers].read_metadata=mdreader;
     index_openers[n_index_openers].write_metadata=mdwriter;
     n_index_openers++;
-    u8_unlock_mutex(&index_openers_lock);}
+    fd_unlock_mutex(&index_openers_lock);}
   else {
-    u8_unlock_mutex(&index_openers_lock);
+    fd_unlock_mutex(&index_openers_lock);
     u8_raise("Too many index openers",
 	     "fd_register_index_opener",
 	     NULL);}
@@ -482,8 +482,8 @@ FD_EXPORT int fd_init_dbfile()
   modtime_symbol=fd_intern("MODTIME");
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&pool_openers_lock);
-  u8_init_mutex(&index_openers_lock);  
+  fd_init_mutex(&pool_openers_lock);
+  fd_init_mutex(&index_openers_lock);  
 #endif
 
   fd_init_hashdtype_c();

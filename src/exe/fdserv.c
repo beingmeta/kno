@@ -88,7 +88,7 @@ static int urllog_set(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_string filename=FD_STRDATA(val);
-    u8_lock_mutex(&log_lock);
+    fd_lock_mutex(&log_lock);
     if (urllog) {
       fclose(urllog); urllog=NULL;
       u8_free(urllogname); urllogname=NULL;}
@@ -98,16 +98,16 @@ static int urllog_set(fdtype var,fdtype val,void *data)
       urllogname=u8_strdup(filename);
       tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
       fputs(tmp,urllog);
-      u8_unlock_mutex(&log_lock);
+      fd_unlock_mutex(&log_lock);
       u8_free(tmp);
       return 1;}
     else return -1;}
   else if (FD_FALSEP(val)) {
-    u8_lock_mutex(&log_lock);
+    fd_lock_mutex(&log_lock);
     if (urllog) {
       fclose(urllog); urllog=NULL;
       u8_free(urllogname); urllogname=NULL;}
-    u8_unlock_mutex(&log_lock);
+    fd_unlock_mutex(&log_lock);
     return 0;}
   else return fd_reterr
 	 (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
@@ -137,10 +137,10 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_string filename=FD_STRDATA(val);
-    u8_lock_mutex(&log_lock);
+    fd_lock_mutex(&log_lock);
     if ((reqlogname) && (strcmp(filename,reqlogname)==0)) {
       fd_dtsflush(reqlog);
-      u8_unlock_mutex(&log_lock);
+      fd_unlock_mutex(&log_lock);
       return 0;}
     else if (reqlog) {
       fd_dtsclose(reqlog,1); reqlog=NULL;
@@ -154,17 +154,17 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
       reqlogname=u8_strdup(filename);
       fd_dtswrite_dtype(reqlog,logstart_entry);
       fd_decref(logstart_entry);
-      u8_unlock_mutex(&log_lock);
+      fd_unlock_mutex(&log_lock);
       return 1;}
     else {
-      u8_unlock_mutex(&log_lock);
+      fd_unlock_mutex(&log_lock);
       u8_free(reqlog); return -1;}}
   else if (FD_FALSEP(val)) {
-    u8_lock_mutex(&log_lock);
+    fd_lock_mutex(&log_lock);
     if (reqlog) {
       fd_dtsclose(reqlog,1); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
-    u8_unlock_mutex(&log_lock);
+    fd_unlock_mutex(&log_lock);
     return 0;}
   else return fd_reterr
 	 (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
@@ -182,7 +182,7 @@ static fdtype reqlog_get(fdtype var,void *data)
 static void dolog
   (fdtype cgidata,fdtype val,u8_string response,double exectime)
 {
-  u8_lock_mutex(&log_lock);
+  fd_lock_mutex(&log_lock);
   if (FD_NULLP(val)) {
     /* This is pre execution */
     if (urllog) {
@@ -220,7 +220,7 @@ static void dolog
       fd_store(cgidata,response_symbol,fdtype_string(response));
     if ((reqlog) && (reqloglevel>1))
       fd_dtswrite_dtype(reqlog,cgidata);}
-  u8_unlock_mutex(&log_lock);
+  fd_unlock_mutex(&log_lock);
 }
 
 /* Preloads */
@@ -236,11 +236,11 @@ static u8_mutex preload_lock;
 static fdtype preload_get(fdtype var,void *ignored)
 {
   fdtype results=FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
-  u8_lock_mutex(&preload_lock);
+  fd_lock_mutex(&preload_lock);
   scan=preloads; while (scan) {
     results=fd_init_pair(NULL,fdtype_string(scan->filename),results);
     scan=scan->next;}
-  u8_unlock_mutex(&preload_lock);
+  fd_unlock_mutex(&preload_lock);
   return results;
 }
 
@@ -252,14 +252,14 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
   else {
     struct FD_PRELOAD_LIST *scan;
     u8_string filename=FD_STRDATA(val); time_t mtime;
-    u8_lock_mutex(&preload_lock);
+    fd_lock_mutex(&preload_lock);
     scan=preloads; while (scan) {
       if (strcmp(filename,scan->filename)==0) {
 	mtime=u8_file_mtime(filename);
 	if (mtime>scan->mtime) {
 	  fd_load_source(filename,server_env,"auto");
 	  scan->mtime=mtime;}
-	u8_unlock_mutex(&preload_lock);
+	fd_unlock_mutex(&preload_lock);
 	return 0;}
       else scan=scan->next;}
     if (server_env==NULL) server_env=fd_working_environment();
@@ -268,7 +268,7 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
     scan->mtime=(time_t)-1;
     scan->next=preloads;
     preloads=scan;
-    u8_unlock_mutex(&preload_lock);
+    fd_unlock_mutex(&preload_lock);
     return 1;}
 }
 
@@ -279,22 +279,22 @@ static int update_preloads()
   if ((last_preload_update<0) ||
       ((u8_elapsed_time()-last_preload_update)>1.0)) {
     struct FD_PRELOAD_LIST *scan; int n_reloads=0;
-    u8_lock_mutex(&preload_lock);
+    fd_lock_mutex(&preload_lock);
     if ((u8_elapsed_time()-last_preload_update)<1.0) {
-      u8_unlock_mutex(&preload_lock);
+      fd_unlock_mutex(&preload_lock);
       return 0;}
     scan=preloads; while (scan) {
       time_t mtime=u8_file_mtime(scan->filename);
       if (mtime>scan->mtime) {
 	fdtype load_result=fd_load_source(scan->filename,server_env,"auto");
 	if (FD_ABORTP(load_result)) {
-	  u8_unlock_mutex(&preload_lock);
+	  fd_unlock_mutex(&preload_lock);
 	  return fd_interr(load_result);}
 	n_reloads++; fd_decref(load_result);
 	scan->mtime=mtime;}
       scan=scan->next;}
     last_preload_update=u8_elapsed_time();
-    u8_unlock_mutex(&preload_lock);
+    fd_unlock_mutex(&preload_lock);
     return n_reloads;}
   else return 0;
 }
@@ -549,10 +549,10 @@ static int webservefn(u8_client ucl)
 		   exec_time-parse_time,
 		   write_time-exec_time);
     /* If we're calling traceweb, keep the log files up to date also. */
-    u8_lock_mutex(&log_lock);
+    fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
     if (reqlog) fd_dtsflush(reqlog);
-    u8_unlock_mutex(&log_lock);
+    fd_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
@@ -639,7 +639,7 @@ int main(int argc,char **argv)
   fd_register_config("REQLOG",reqlog_get,reqlog_set,NULL);
   fd_register_config("REQLOGLEVEL",fd_intconfig_get,fd_intconfig_set,&reqloglevel);
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&log_lock);
+  fd_init_mutex(&log_lock);
 #endif
 
   u8_notify("LAUNCH","fdserv %s",argv[1]);

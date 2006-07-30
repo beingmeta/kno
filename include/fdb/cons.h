@@ -101,9 +101,9 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_PTR_LOCK_OFFSET(ptr) \
  ((((unsigned long)ptr)>>16)%FD_N_PTRLOCKS)
 #define FD_LOCK_PTR(ptr) \
-  u8_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
+  fd_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 #define FD_UNLOCK_PTR(ptr) \
-  u8_unlock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
+  fd_unlock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 #else
 #define FD_LOCK_PTR(ptr)
 #define FD_UNLOCK_PTR(ptr)

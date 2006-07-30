@@ -81,7 +81,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
       return NULL;}}
   pool->load=load; pool->offsets=NULL; pool->offsets_size=0;
   pool->read_only=read_only;
-  u8_init_mutex(&(pool->lock));
+  fd_init_mutex(&(pool->lock));
   update_modtime(pool);
   return (fd_pool)pool;
 }
@@ -93,13 +93,13 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
   else {
     struct FD_DTYPE_STREAM *s=&(fp->stream);
     struct stat fileinfo;
-    if (use_mutex) u8_lock_mutex(&(fp->lock));
+    if (use_mutex) fd_lock_mutex(&(fp->lock));
     /* Handle race condition by checking when locked */
     if (FD_FILEPOOL_LOCKED(fp)) {
-      if (use_mutex) u8_unlock_mutex(&(fp->lock));
+      if (use_mutex) fd_unlock_mutex(&(fp->lock));
       return 1;}
     if (fd_dtslock(s)==0) {
-      u8_unlock_mutex(&(fp->lock));
+      fd_unlock_mutex(&(fp->lock));
       return 0;}
     fstat(s->fd,&fileinfo);
     if (fileinfo.st_mtime>fp->modtime) {
@@ -108,7 +108,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
       else {
 	fd_reset_hashtable(&(fp->cache),-1,1);
 	fd_reset_hashtable(&(fp->locks),32,1);}}
-    if (use_mutex) u8_unlock_mutex(&(fp->lock));
+    if (use_mutex) fd_unlock_mutex(&(fp->lock));
     return 1;}
 }
 
@@ -126,13 +126,13 @@ static int file_pool_load(fd_pool p)
   if (FD_FILEPOOL_LOCKED(fp)) return fp->load;
   else {
     int load;
-    u8_lock_mutex(&(fp->lock));
+    fd_lock_mutex(&(fp->lock));
     if (fd_setpos(&(fp->stream),16)<0) {
-      u8_unlock_mutex(&(fp->lock));
+      fd_unlock_mutex(&(fp->lock));
       return -1;}
     load=fd_dtsread_4bytes(&(fp->stream));
     fp->load=load;
-    u8_unlock_mutex(&(fp->lock));
+    fd_unlock_mutex(&(fp->lock));
     return load;}
 }
 
@@ -143,11 +143,11 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   FD_OID addr=FD_OID_ADDR(oid);
   int offset=FD_OID_DIFFERENCE(addr,fp->base);
   off_t data_pos;
-  u8_lock_mutex(&(fp->lock));
+  fd_lock_mutex(&(fp->lock));
   if (fp->offsets) data_pos=offget(fp->offsets,offset);
   else {
     if (fd_setpos(&(fp->stream),24+4*offset)<0) {
-      u8_unlock_mutex(&(fp->lock));
+      fd_unlock_mutex(&(fp->lock));
       return fd_erreify();}
     data_pos=fd_dtsread_4bytes(&(fp->stream));}
   if (data_pos == 0) value=FD_EMPTY_CHOICE;
@@ -156,14 +156,14 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
        happen in the (hopefully now non-existent) case where
        we've stored a >32 bit offset into a 32-bit sized location
        and it got truncated down. */
-    u8_unlock_mutex(&(fp->lock));
+    fd_unlock_mutex(&(fp->lock));
     return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->cid,FD_VOID);}
   else {
     if (fd_setpos(&(fp->stream),data_pos)<0) {
-      u8_unlock_mutex(&(fp->lock));
+      fd_unlock_mutex(&(fp->lock));
       return fd_erreify();}
     value=fd_dtsread_dtype(&(fp->stream));}
-  u8_unlock_mutex(&(fp->lock));
+  fd_unlock_mutex(&(fp->lock));
   return value;
 }
 
@@ -186,7 +186,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
     u8_malloc(sizeof(struct POOL_FETCH_SCHEDULE)*n);
   fdtype *result=u8_malloc(sizeof(fdtype)*n);
   int i=0, min_file_pos=24+fp->capacity*4;
-  u8_lock_mutex(&(fp->lock));
+  fd_lock_mutex(&(fp->lock));
   if (fp->offsets) {
     unsigned int *offsets=fp->offsets;
     int i=0; while (i < n) {
@@ -200,7 +200,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
 	/* As above, we have a data pointer into the header.
 	   This should never happen unless a file is corrupted. */
 	u8_free(result); u8_free(schedule);
-	u8_unlock_mutex(&(fp->lock));
+	fd_unlock_mutex(&(fp->lock));
 	fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
 	return NULL;}
       else schedule[i].filepos=file_off;
@@ -213,7 +213,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
       if (fd_setpos(stream,24+4*off)<0) {
 	u8_free(schedule);
 	u8_free(result);
-	u8_unlock_mutex(&(fp->lock));
+	fd_unlock_mutex(&(fp->lock));
 	return NULL;}
       file_off=fd_dtsread_4bytes(stream);
       if (FD_EXPECT_FALSE(file_off==0))
@@ -223,7 +223,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
 	/* As above, we have a data pointer into the header.
 	   This should never happen unless a file is corrupted. */
 	u8_free(result); u8_free(schedule);
-	u8_unlock_mutex(&(fp->lock));
+	fd_unlock_mutex(&(fp->lock));
 	fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
 	return NULL;}
       else schedule[i].filepos=file_off;
@@ -237,13 +237,13 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
 	  fd_decref(result[schedule[j].vpos]); j++;}
 	u8_free(schedule);
 	u8_free(result);
-	u8_unlock_mutex(&(fp->lock));
+	fd_unlock_mutex(&(fp->lock));
 	return NULL;}
       result[schedule[i].vpos]=fd_dtsread_dtype(stream);
       i++;}
     else result[schedule[i++].vpos]=FD_EMPTY_CHOICE;
   u8_free(schedule);
-  u8_unlock_mutex(&(fp->lock));  
+  fd_unlock_mutex(&(fp->lock));  
   return result;
 }
 
@@ -255,7 +255,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Make sure that pos_limit fits into an int, in case off_t is an int. */
   off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n;
-  u8_lock_mutex(&(fp->lock));
+  fd_lock_mutex(&(fp->lock));
   /* Get the endpos after the file pool is locked. */
   endpos=fd_endpos(stream);
 #if HAVE_MMAP
@@ -338,7 +338,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fd_dtsflush(stream);
       update_modtime(fp);
       fsync(stream->fd);}}
-  u8_unlock_mutex(&(fp->lock));
+  fd_unlock_mutex(&(fp->lock));
   return retcode;
 }
 
@@ -346,17 +346,17 @@ static fdtype file_pool_alloc(fd_pool p,int n)
 {
   fdtype results=FD_EMPTY_CHOICE; int i=0;
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  u8_lock_mutex(&(fp->lock));
+  fd_lock_mutex(&(fp->lock));
   if (!(FD_FILEPOOL_LOCKED(fp))) lock_file_pool(fp,0);
   if (fp->load+n>=fp->capacity) {
-    u8_unlock_mutex(&(fp->lock));
+    fd_unlock_mutex(&(fp->lock));
     return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->cid,FD_VOID);}
   while (i < n) {
     FD_OID new_addr=FD_OID_PLUS(fp->base,fp->load);
     fdtype new_oid=fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
     fp->load++; i++; fp->n_locks++;}
-  u8_unlock_mutex(&(fp->lock));
+  fd_unlock_mutex(&(fp->lock));
   return results;
 }
 
@@ -392,9 +392,9 @@ static void file_pool_setcache(fd_pool p,int level)
     else {
       fd_dtype_stream s=&(fp->stream);
       unsigned int load, *offsets, *newmmap;
-      u8_lock_mutex(&(fp->lock));
+      fd_lock_mutex(&(fp->lock));
       if (fp->offsets) {
-	u8_unlock_mutex(&(fp->lock));
+	fd_unlock_mutex(&(fp->lock));
 	return;}
 #if HAVE_MMAP
       newmmap=
@@ -416,12 +416,12 @@ static void file_pool_setcache(fd_pool p,int level)
       fd_dtsread_ints(s,load,offsets);
       fp->offsets=offsets; fp->offsets_size=load;
 #endif
-      u8_unlock_mutex(&(fp->lock));}
+      fd_unlock_mutex(&(fp->lock));}
   else if (level < 2)
     if (fp->offsets == NULL) return;
     else {
       int retval;
-      u8_lock_mutex(&(fp->lock));
+      fd_lock_mutex(&(fp->lock));
 #if HAVE_MMAP
       /* Since we were just reading, the buffer was only as big
 	 as the load, not the capacity. */
@@ -444,7 +444,7 @@ static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock)
   /* Read new offsets table, compare it with the current, and
      only void those OIDs */
   unsigned int new_load, *offsets, *nscan, *oscan, *olim;
-  if (lock) u8_lock_mutex(&(fp->lock));
+  if (lock) fd_lock_mutex(&(fp->lock));
   oscan=fp->offsets; olim=oscan+fp->offsets_size;
   fd_setpos(s,16); new_load=fd_dtsread_4bytes(s);
   nscan=offsets=u8_malloc(sizeof(unsigned int)*new_load);
@@ -460,14 +460,14 @@ static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock)
   u8_free(fp->offsets);
   fp->offsets=offsets; fp->load=fp->offsets_size=new_load;
   update_modtime(fp);
-  if (lock) u8_unlock_mutex(&(fp->lock));
+  if (lock) fd_unlock_mutex(&(fp->lock));
 #endif
 }
 
 static void file_pool_close(fd_pool p)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  u8_lock_mutex(&(fp->lock));
+  fd_lock_mutex(&(fp->lock));
   fd_dtsclose(&(fp->stream),1);
   if (fp->offsets) {
 #if HAVE_MMAP
@@ -483,15 +483,15 @@ static void file_pool_close(fd_pool p)
 #endif 
     fp->offsets=NULL; fp->offsets_size=0;
     fp->cache_level=-1;}
-  u8_unlock_mutex(&(fp->lock));
+  fd_unlock_mutex(&(fp->lock));
 }
 
 static void file_pool_setbuf(fd_pool p,int bufsiz)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  u8_lock_mutex(&(fp->lock));
+  fd_lock_mutex(&(fp->lock));
   fd_dtsbufsize(&(fp->stream),bufsiz);
-  u8_unlock_mutex(&(fp->lock));
+  fd_unlock_mutex(&(fp->lock));
 }
 
 static fdtype file_pool_metadata(fd_pool p,fdtype md)

@@ -86,7 +86,7 @@ FD_EXPORT int fd_init_dtypelib()
 
   register_header_files();
 
-  u8_init_mutex(&fd_symbol_lock);
+  fd_init_mutex(&fd_symbol_lock);
   fd_init_cons_c();
   init_type_names();
   fd_init_oids_c();

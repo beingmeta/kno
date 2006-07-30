@@ -307,7 +307,7 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v)
 static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
 {
   int dtype_len;
-  u8_lock_mutex(&(v->lock));
+  fd_lock_mutex(&(v->lock));
   {
     struct FD_KEYVAL *keyvals=v->keyvals;
     int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
@@ -323,14 +323,14 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
     while (i < kvsize) {
       output_dtype(dtype_len,out,keyvals[i].key);
       output_dtype(dtype_len,out,keyvals[i].value); i++;}}
-  u8_unlock_mutex(&(v->lock));
+  fd_unlock_mutex(&(v->lock));
   return dtype_len;
 }
 
 static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
 {
   int dtype_len;
-  u8_lock_mutex(&(v->lock));
+  fd_lock_mutex(&(v->lock));
   {
     fdtype *schema=v->schema, *values=v->values;
     int i=0, schemasize=FD_XSCHEMAP_SIZE(v), len=schemasize*2;
@@ -346,14 +346,14 @@ static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
     while (i < schemasize) {
       output_dtype(dtype_len,out,schema[i]);
       output_dtype(dtype_len,out,values[i]); i++;}}
-  u8_unlock_mutex(&(v->lock));
+  fd_unlock_mutex(&(v->lock));
   return dtype_len;
 }
 
 static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
 {
   int dtype_len;
-  u8_lock_mutex(&(v->lock));
+  fd_lock_mutex(&(v->lock));
   {
     int size=v->n_keys;
     struct FD_HASHENTRY **scan=v->slots, **limit=scan+v->n_slots;
@@ -376,14 +376,14 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
 	  output_dtype(dtype_len,out,kscan->value);
 	  kscan++;}}
       else scan++;}
-  u8_unlock_mutex(&(v->lock));
+  fd_unlock_mutex(&(v->lock));
   return dtype_len;
 }
 
 static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
 {
   int dtype_len;
-  u8_lock_mutex(&(v->lock));
+  fd_lock_mutex(&(v->lock));
   {
     int size=v->n_keys;
     fdtype *scan=v->slots, *limit=scan+v->n_slots;
@@ -401,7 +401,7 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
       if (*scan) {
 	output_dtype(dtype_len,out,*scan); scan++;}
       else scan++;}
-  u8_unlock_mutex(&(v->lock));
+  fd_unlock_mutex(&(v->lock));
   return dtype_len;
 }
 
@@ -749,7 +749,7 @@ FD_EXPORT int fd_register_vector_unpacker
   int replaced=0;
   if ((package<0x40) || (package>0x80)) return -1;
   else if ((code&0x80)==0) return -2;
-  u8_lock_mutex(&dtype_unpacker_lock);
+  fd_lock_mutex(&dtype_unpacker_lock);
   if (dtype_packages[package_offset]==NULL) {
     struct FD_DTYPE_PACKAGE *pkg=
       dtype_packages[package_offset]=
@@ -759,7 +759,7 @@ FD_EXPORT int fd_register_vector_unpacker
   else if (dtype_packages[package_offset]->vectorfns[code_offset])
     replaced=1;
   dtype_packages[package_offset]->vectorfns[code_offset]=f;
-  u8_unlock_mutex(&dtype_unpacker_lock);
+  fd_unlock_mutex(&dtype_unpacker_lock);
   return replaced;
 }
   
@@ -770,7 +770,7 @@ FD_EXPORT int fd_register_packet_unpacker
   int replaced=0;
   if ((package<0x40) || (package>0x80)) return -1;
   else if ((code&0x80)) return -2;
-  u8_lock_mutex(&dtype_unpacker_lock);
+  fd_lock_mutex(&dtype_unpacker_lock);
   if (dtype_packages[package_offset]==NULL) {
     struct FD_DTYPE_PACKAGE *pkg=
       dtype_packages[package_offset]=
@@ -780,7 +780,7 @@ FD_EXPORT int fd_register_packet_unpacker
   else if (dtype_packages[package_offset]->packetfns[code_offset])
     replaced=1;
   dtype_packages[package_offset]->packetfns[code_offset]=f;
-  u8_unlock_mutex(&dtype_unpacker_lock);
+  fd_unlock_mutex(&dtype_unpacker_lock);
   return replaced;
 }
 
@@ -1055,7 +1055,7 @@ FD_EXPORT fd_init_dtypeio_c()
   fd_register_source_file(versionid);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&(dtype_unpacker_lock));
+  fd_init_mutex(&(dtype_unpacker_lock));
 #endif
 }
 

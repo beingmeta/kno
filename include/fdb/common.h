@@ -47,6 +47,26 @@ FD_EXPORT fd_exception
 #include "malloc.h"
 #include "dtypeio.h"
 
+/* Threads */
+
+#if FD_THREADS_ENABLED
+#define fd_lock_mutex(x) u8_lock_mutex(x)
+#define fd_unlock_mutex(x) u8_unlock_mutex(x)
+#define fd_init_mutex(x) u8_init_mutex(x)
+#define fd_destroy_mutex(x) u8_destroy_mutex(x)
+#define fd_condvar_wait(x,y) u8_condvar_wait(x,y)
+#define fd_init_condvar(x) u8_init_condvar(x)
+#define fd_destroy_condvar(x) u8_destroy_condvar(x)
+#else
+#define fd_lock_mutex(x)
+#define fd_unlock_mutex(x)
+#define fd_init_mutex(x)
+#define fd_destroy_mutex(x)
+#define fd_condvar_wait(x,y) (1)
+#define fd_init_condvar(x)
+#define fd_destroy_condvar(x)
+#endif
+
 /* Generic support */
 
 #include "support.h"

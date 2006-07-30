@@ -44,9 +44,9 @@ FD_EXPORT u8_string fd_get_source
 FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *))
 {
   struct FD_SOURCEFN *new_entry=u8_malloc_type(struct FD_SOURCEFN);
-  u8_lock_mutex(&sourcefns_lock);
+  fd_lock_mutex(&sourcefns_lock);
   new_entry->getsource=fn; new_entry->next=sourcefns; sourcefns=new_entry;
-  u8_unlock_mutex(&sourcefns_lock);
+  fd_unlock_mutex(&sourcefns_lock);
 }
 
 /* Tracking the current source base */
@@ -260,11 +260,11 @@ static FD_CONFIG_RECORD *config_records=NULL, *config_stack=NULL;
 static fdtype get_config_files(fdtype var)
 {
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
-  u8_lock_mutex(&config_lock);
+  fd_lock_mutex(&config_lock);
   scan=config_records; while (scan) {
     result=fd_init_pair(NULL,fdtype_string(scan->source),result);
     scan=scan->next;}
-  u8_unlock_mutex(&config_lock);
+  fd_unlock_mutex(&config_lock);
   return result;
 }
 
@@ -274,29 +274,29 @@ static int add_config_file(fdtype var,fdtype val)
     int retval;
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
     u8_string pathname=u8_abspath(FD_STRDATA(val),NULL);
-    u8_lock_mutex(&config_lock);
+    fd_lock_mutex(&config_lock);
     scan=config_stack; while (scan)
       if (strcmp(scan->source,pathname)==0) {
-	u8_unlock_mutex(&config_lock);
+	fd_unlock_mutex(&config_lock);
 	u8_free(pathname);
 	return 0;}
       else scan=scan->next;
     on_stack.source=pathname;
     on_stack.next=config_stack;
     config_stack=&on_stack;
-    u8_unlock_mutex(&config_lock);
+    fd_unlock_mutex(&config_lock);
     retval=fd_load_config(pathname);
     if (retval<0) {
-      u8_lock_mutex(&config_lock);
+      fd_lock_mutex(&config_lock);
       u8_free(pathname); config_stack=on_stack.next;
-      u8_unlock_mutex(&config_lock);
+      fd_unlock_mutex(&config_lock);
       return retval;}
-    u8_lock_mutex(&config_lock);
+    fd_lock_mutex(&config_lock);
     newrec=u8_malloc(sizeof(struct FD_CONFIG_RECORD));
     newrec->source=pathname;
     newrec->next=config_records;
     config_records=newrec;
-    u8_unlock_mutex(&config_lock);
+    fd_unlock_mutex(&config_lock);
     return retval;}
   else return -1;
 }
@@ -307,8 +307,8 @@ FD_EXPORT void fd_init_load_c()
   fd_register_source_file(versionid);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&sourcefns_lock);
-  u8_init_mutex(&config_lock);
+  fd_init_mutex(&sourcefns_lock);
+  fd_init_mutex(&config_lock);
  u8_new_threadkey(&sourcebase_key,NULL);
 #endif
 

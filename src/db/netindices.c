@@ -123,7 +123,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
     if (server_supportsp(ix,iserver_drop)) ix->capabilities|=FD_ISERVER_DROP;
     if (server_supportsp(ix,iserver_reset)) ix->capabilities|=FD_ISERVER_RESET;
 
-    u8_init_mutex(&(ix->lock));
+    fd_init_mutex(&(ix->lock));
     ix->sock=sock;
     if (ix) fd_register_index(ix);
     return (fd_index) ix;}
@@ -150,11 +150,11 @@ static fdtype netindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   fdtype result, qkey=quote_lisp(key);
-  u8_lock_mutex(&(nix->lock));
+  fd_lock_mutex(&(nix->lock));
   if (FD_VOIDP(nix->xname))
     result=dtcall(nix,2,iserver_fetch,qkey);
   else result=dtcall(nix,3,ixserver_fetch,nix->xname,qkey);
-  u8_unlock_mutex(&(nix->lock));
+  fd_unlock_mutex(&(nix->lock));
   fd_decref(qkey);
   return result;
 }
@@ -163,11 +163,11 @@ static int netindex_fetchsize(fd_index ix,fdtype key)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   fdtype result, qkey=quote_lisp(key);
-  u8_lock_mutex(&(nix->lock));
+  fd_lock_mutex(&(nix->lock));
   if (FD_VOIDP(nix->xname))
     result=dtcall(nix,2,iserver_fetchsize,qkey);
   else result=dtcall(nix,3,ixserver_fetchsize,nix->xname,qkey);
-  u8_unlock_mutex(&(nix->lock));
+  fd_unlock_mutex(&(nix->lock));
   fd_decref(qkey);
   return fd_getint(result);
 }
@@ -176,7 +176,7 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   fdtype vector, result, *results; struct FD_VECTOR *vp;
-  u8_lock_mutex(&(nix->lock));
+  fd_lock_mutex(&(nix->lock));
   vector=fd_init_vector(NULL,n,keys);
   if (FD_VOIDP(nix->xname))
     result=dtcall(nix,2,iserver_fetchn,vector);
@@ -184,10 +184,10 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
   if (FD_VECTORP(result)) {
     vp=FD_XVECTOR(result); results=vp->data;  u8_free(vp);
     vp=FD_XVECTOR(vector); u8_free(vp);
-    u8_unlock_mutex(&(nix->lock));
+    fd_unlock_mutex(&(nix->lock));
     return results;}
   else {
-    u8_unlock_mutex(&(nix->lock));
+    fd_unlock_mutex(&(nix->lock));
     fd_seterr(fd_BadServerResponse,"netindex_fetchn",
 	      u8_strdup(ix->cid),fd_incref(result));
     return NULL;}
@@ -197,11 +197,11 @@ static fdtype netindex_fetchkeys(fd_index ix)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   fdtype result;
-  u8_lock_mutex(&(nix->lock));
+  fd_lock_mutex(&(nix->lock));
   if (FD_VOIDP(nix->xname))
     result=dtcall(nix,1,iserver_fetchkeys);
   else result=dtcall(nix,2,ixserver_fetchkeys,nix->xname);
-  u8_unlock_mutex(&(nix->lock));
+  fd_unlock_mutex(&(nix->lock));
   return result;
 }
 
@@ -210,9 +210,9 @@ static int netindex_commit(fd_index ix)
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(nix->stream); 
   int n_transactions=0;
-  u8_lock_mutex(&(nix->lock));
-  u8_lock_mutex(&(nix->adds.lock));
-  u8_lock_mutex(&(nix->edits.lock));
+  fd_lock_mutex(&(nix->lock));
+  fd_lock_mutex(&(nix->adds.lock));
+  fd_lock_mutex(&(nix->edits.lock));
   if (nix->edits.n_keys) {
     int n_edits;
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->adds),&n_edits,0);
@@ -265,26 +265,26 @@ static int netindex_commit(fd_index ix)
     u8_free(kvals);
     fd_reset_hashtable(&(nix->adds),67,0);
     fd_reset_hashtable(&(nix->edits),67,0);
-    u8_unlock_mutex(&(nix->lock));
-    u8_unlock_mutex(&(nix->adds.lock));
-    u8_unlock_mutex(&(nix->edits.lock));
+    fd_unlock_mutex(&(nix->lock));
+    fd_unlock_mutex(&(nix->adds.lock));
+    fd_unlock_mutex(&(nix->edits.lock));
     return n_transactions;}
 }
 
 static void netindex_close(fd_index ix)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
-  u8_lock_mutex(&(nix->lock));
+  fd_lock_mutex(&(nix->lock));
   fd_dtsclose(&(nix->stream),1);
-  u8_unlock_mutex(&(nix->lock));
+  fd_unlock_mutex(&(nix->lock));
 }
 
 static void netindex_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_NETWORK_INDEX *ni=(struct FD_NETWORK_INDEX *)ix;
-  u8_lock_mutex(&(ni->lock));
+  fd_lock_mutex(&(ni->lock));
   fd_dtsbufsize(&(ni->stream),bufsiz);
-  u8_unlock_mutex(&(ni->lock));
+  fd_unlock_mutex(&(ni->lock));
 }
 
 static struct FD_INDEX_HANDLER netindex_handler={

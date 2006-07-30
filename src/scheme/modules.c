@@ -41,7 +41,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
   if (!(FD_VOIDP(module))) {
     fdtype loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);
     while (FD_VOIDP(loadstamp)) {
-      u8_condvar_wait(&module_wait,&module_wait_lock);
+      fd_condvar_wait(&module_wait,&module_wait_lock);
       loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);}
     if (FD_EXCEPTIONP(loadstamp)) return loadstamp;
     else return module;}
@@ -87,11 +87,11 @@ FD_EXPORT
 void fd_add_module_loader(int (*loader)(u8_string,int))
 {
   struct MODULE_LOADER *consed=u8_malloc(sizeof(struct MODULE_LOADER));
-  u8_lock_mutex(&module_loaders_lock);
+  fd_lock_mutex(&module_loaders_lock);
   consed->loader=loader;
   consed->next=module_loaders;
   module_loaders=consed;
-  u8_unlock_mutex(&module_loaders_lock);
+  fd_unlock_mutex(&module_loaders_lock);
 }
 
 /* Loading dynamic libraries */
@@ -281,12 +281,12 @@ static u8_mutex exports_lock;
 static fd_hashtable get_exports(fd_lispenv env)
 {
   fd_hashtable exports;
-  u8_lock_mutex(&exports_lock);
+  fd_lock_mutex(&exports_lock);
   if (FD_HASHTABLEP(env->exports)) {
-    u8_unlock_mutex(&exports_lock);
+    fd_unlock_mutex(&exports_lock);
     return (fd_hashtable) env->exports;}
   exports=(fd_hashtable)(env->exports=fd_make_hashtable(NULL,16,NULL));
-  u8_unlock_mutex(&exports_lock);
+  fd_unlock_mutex(&exports_lock);
   return exports;
 }
 
@@ -386,10 +386,10 @@ static fdtype get_module(fdtype modname)
 FD_EXPORT void fd_init_modules_c()
 {
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&module_loaders_lock);
-  u8_init_mutex(&module_wait_lock);
+  fd_init_mutex(&module_loaders_lock);
+  fd_init_mutex(&module_wait_lock);
   u8_init_condvar(&module_wait);
-  u8_init_mutex(&exports_lock);
+  fd_init_mutex(&exports_lock);
 #endif
 
   fd_add_module_loader(load_dynamic_module);

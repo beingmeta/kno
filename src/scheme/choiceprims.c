@@ -81,7 +81,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -142,7 +142,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type); 
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type); 
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -205,7 +205,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -288,7 +288,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;

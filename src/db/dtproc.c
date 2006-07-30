@@ -30,7 +30,9 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int a
   f->server=u8_strdup(server); f->fcnsym=fd_intern(name);
   f->ndprim=ndcall; f->min_arity=min_arity; f->arity=arity; f->xprim=1;
   f->typeinfo=NULL; f->defaults=NULL; 
-  u8_init_mutex(&(f->lock));
+#if FD_THREADS_ENABLED
+  fd_init_mutex(&(f->lock));
+#endif
   f->stream.fd=-1;
   return FDTYPE_CONS(f);
 }
@@ -49,7 +51,7 @@ static void recycle_dtproc(FD_CONS *c)
   u8_free(f->name); u8_free(f->server);
   if (f->typeinfo) u8_free(f->typeinfo);
   if (f->defaults) u8_free(f->defaults);
-  u8_destroy_mutex(&(f->lock));
+  fd_destroy_mutex(&(f->lock));
   u8_free(f);
 }
 
@@ -77,7 +79,7 @@ static int open_server(fd_dtproc dtp)
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
-  u8_lock_mutex(&(dtp->lock));
+  fd_lock_mutex(&(dtp->lock));
   if (dtp->stream.fd<0)
     if (open_server(dtp)<0)
       return fd_erreify();
@@ -95,7 +97,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   if (FD_EXCEPTIONP(result)) {
     struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)result;
     if (exo->data.cxt==NULL) exo->data.cxt=dtp->server;}
-  u8_unlock_mutex(&(dtp->lock));
+  fd_unlock_mutex(&(dtp->lock));
   return result;
 }
 

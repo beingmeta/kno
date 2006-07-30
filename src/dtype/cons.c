@@ -600,29 +600,29 @@ unsigned int fd_max_immediate_type=FD_IMMEDIATE_TYPECODE(FD_BUILTIN_IMMEDIATE_TY
 FD_EXPORT int fd_register_cons_type(char *name)
 {
   int typecode;
-  u8_lock_mutex(&type_registry_lock);
+  fd_lock_mutex(&type_registry_lock);
   if (fd_max_cons_type>=FD_MAX_CONS_TYPE) {
-    u8_unlock_mutex(&type_registry_lock);
+    fd_unlock_mutex(&type_registry_lock);
     return -1;}
   fd_max_cons_type++;
   typecode=fd_max_cons_type;
   fd_type_names[typecode]=name;
-  u8_unlock_mutex(&type_registry_lock);
+  fd_unlock_mutex(&type_registry_lock);
   return typecode;
 }
 
 FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
 {
   int typecode;
-  u8_lock_mutex(&type_registry_lock);
+  fd_lock_mutex(&type_registry_lock);
   if (fd_max_immediate_type>=FD_MAX_IMMEDIATE_TYPE) {
-    u8_unlock_mutex(&type_registry_lock);
+    fd_unlock_mutex(&type_registry_lock);
     return -1;}
   typecode=fd_max_immediate_type;
   fd_immediate_checkfns[typecode-0x04]=fn;
   fd_max_immediate_type++;
   fd_type_names[typecode]=name;
-  u8_unlock_mutex(&type_registry_lock);
+  fd_unlock_mutex(&type_registry_lock);
   return typecode;
 }
 
@@ -636,11 +636,11 @@ static u8_mutex compound_registry_lock;
 FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol)
 {
   struct FD_COMPOUND_ENTRY *scan, *newrec;
-  u8_lock_mutex(&compound_registry_lock);
+  fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->tag,symbol)) {
-      u8_unlock_mutex(&compound_registry_lock);
+      fd_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->next;
   newrec=u8_malloc(sizeof(struct FD_COMPOUND_ENTRY));
@@ -648,7 +648,7 @@ FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol)
   newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
   newrec->tablefns=NULL;
   fd_compound_entries=newrec;
-  u8_unlock_mutex(&compound_registry_lock);
+  fd_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
 
@@ -798,14 +798,14 @@ void fd_init_cons_c()
 {
   int i;
 #if FD_THREADS_ENABLED
-  i=0; while (i < FD_N_PTRLOCKS) u8_init_mutex(&_fd_ptr_locks[i++]);
+  i=0; while (i < FD_N_PTRLOCKS) fd_init_mutex(&_fd_ptr_locks[i++]);
 #endif
 
   fd_register_source_file(versionid);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&compound_registry_lock);
-  u8_init_mutex(&type_registry_lock);
+  fd_init_mutex(&compound_registry_lock);
+  fd_init_mutex(&type_registry_lock);
 #endif
 
   i=0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;

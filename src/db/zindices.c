@@ -333,7 +333,7 @@ static fd_index open_zindex(u8_string fname,int read_only)
     else {index->baseoids=NULL; index->n_baseoids=0;}
     fd_decref(baseoidsv);
     fd_decref(metadata);}
-  u8_init_mutex(&(index->lock));
+  fd_init_mutex(&(index->lock));
   return (fd_index)index;
 }
 
@@ -351,9 +351,9 @@ static void zindex_setcache(fd_index ix,int level)
     else {
       fd_dtype_stream s=&(fx->stream);
       unsigned int *offsets, *newmmap;
-      u8_lock_mutex(&(fx->lock));
+      fd_lock_mutex(&(fx->lock));
       if (fx->offsets) {
-	u8_unlock_mutex(&(fx->lock));
+	fd_unlock_mutex(&(fx->lock));
 	return;}
 #if HAVE_MMAP
       newmmap=
@@ -370,12 +370,12 @@ static void zindex_setcache(fd_index ix,int level)
       fd_dtsread_ints(s,fx->n_slots,offsets);
       fx->offsets=offsets; 
 #endif
-      u8_unlock_mutex(&(fx->lock));}
+      fd_unlock_mutex(&(fx->lock));}
   else if (level < 2)
     if (fx->offsets == NULL) return;
     else {
       int retval;
-      u8_lock_mutex(&(fx->lock));
+      fd_lock_mutex(&(fx->lock));
 #if HAVE_MMAP
       retval=munmap(fx->offsets-2,(fx->n_slots*SLOTSIZE)+8);
       if (retval<0) {
@@ -385,7 +385,7 @@ static void zindex_setcache(fd_index ix,int level)
       u8_free(fx->offsets);
 #endif
       fx->offsets=NULL;
-      u8_unlock_mutex(&(fx->lock));}
+      fd_unlock_mutex(&(fx->lock));}
 }
 
 FD_FASTOP unsigned int zindex_hash(struct FD_ZINDEX *fx,fdtype x)
@@ -406,7 +406,7 @@ FD_FASTOP unsigned int zindex_hash(struct FD_ZINDEX *fx,fdtype x)
 static fdtype zindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   {
     fd_dtype_stream stream=&(fx->stream);
     unsigned int hashval=zindex_hash(fx,key);
@@ -428,7 +428,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
       if (FD_ABORTP(thiskey)) return thiskey;
       else if (FDTYPE_EQUAL(key,thiskey))
 	if (n_vals==0) {
-	  u8_unlock_mutex(&fx->lock); fd_decref(thiskey);
+	  fd_unlock_mutex(&fx->lock); fd_decref(thiskey);
 	  return FD_EMPTY_CHOICE;}
 	else {
 	  int i=0, n_values, atomicp=1;
@@ -447,14 +447,14 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
 	      if ((atomicp) && (FD_CONSP(v))) atomicp=0;
 	      values[i++]=v;}
 	    next_pos=fd_dtsread_zint(stream);}
-	  u8_unlock_mutex(&fx->lock); fd_decref(thiskey);
+	  fd_unlock_mutex(&fx->lock); fd_decref(thiskey);
 	  return fd_init_choice(result,n_vals,NULL,
 				(FD_CHOICE_DOSORT|
 				 ((atomicp)?(FD_CHOICE_ISATOMIC):
 				  (FD_CHOICE_ISCONSES))|
 				 FD_CHOICE_REALLOC));}
       else if (n_probes>256) {
-	u8_unlock_mutex(&fx->lock);
+	fd_unlock_mutex(&fx->lock);
 	return fd_err(fd_FileIndexOverflow,"zindex_fetch",
 		      fx->source,FD_VOID);}
       else {
@@ -463,7 +463,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
 	probe=(probe+chain_width)%(fx->n_slots);
 	keypos=
 	  ((offsets) ? (offget(offsets,probe)) : (get_offset(fx,probe)));}}}
-  u8_unlock_mutex(&fx->lock);
+  fd_unlock_mutex(&fx->lock);
   return FD_EMPTY_CHOICE;
 }
 
@@ -472,7 +472,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
 static int zindex_fetchsize(fd_index ix,fdtype key)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   {
     fd_dtype_stream stream=&(fx->stream);
     unsigned int hashval=zindex_hash(fx,key);
@@ -488,14 +488,14 @@ static int zindex_fetchsize(fd_index ix,fdtype key)
       n_vals=fd_dtsread_4bytes(stream); val_start=fd_dtsread_4bytes(stream);
       thiskey=zread_key(stream,fx->slotids,fx->baseoids,fx->n_baseoids);
       if (FDTYPE_EQUAL(key,thiskey)) {
-	u8_unlock_mutex(&(fx->lock));
+	fd_unlock_mutex(&(fx->lock));
 	return n_vals;}
       else if (n_probes>256) {
-	u8_unlock_mutex(&fx->lock);
+	fd_unlock_mutex(&fx->lock);
 	return fd_err(fd_FileIndexOverflow,"zindex_fetchsize",
 		      fx->source,FD_VOID);}
       else {n_probes++; probe=(probe+chain_width)%(fx->n_slots);}}
-    u8_unlock_mutex(&fx->lock);
+    fd_unlock_mutex(&fx->lock);
     return FD_EMPTY_CHOICE;}
 }
 
@@ -515,7 +515,7 @@ static fdtype zindex_fetchkeys(fd_index ix)
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   unsigned int n_slots, i=0, *offsets, pos_offset;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   n_slots=fx->n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=4*n_slots;
   fd_setpos(&(fx->stream),8);
@@ -530,7 +530,7 @@ static fdtype zindex_fetchkeys(fd_index ix)
       FD_ADD_TO_CHOICE(result,key);
       i++;}
     else i++;
-  u8_unlock_mutex(&(fx->lock));
+  fd_unlock_mutex(&(fx->lock));
   u8_free(offsets);
   return fd_simplify_choice(result);
 }
@@ -541,7 +541,7 @@ static fdtype zindex_fetchsizes(fd_index ix)
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   unsigned int n_slots, i=0, *offsets, pos_offset;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   n_slots=fx->n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=4*n_slots;
   fd_setpos(&(fx->stream),8);
@@ -557,7 +557,7 @@ static fdtype zindex_fetchsizes(fd_index ix)
       FD_ADD_TO_CHOICE(result,pair);
       i++;}
     else i++;
-  u8_unlock_mutex(&(fx->lock));
+  fd_unlock_mutex(&(fx->lock));
   u8_free(offsets);
   return fd_simplify_choice(result);
 }
@@ -752,9 +752,9 @@ static fdtype *zindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   fdtype *results;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   results=fetchn(fx,n,keys,1);
-  u8_unlock_mutex(&(fx->lock));
+  fd_unlock_mutex(&(fx->lock));
   return results;
 }
 
@@ -1094,9 +1094,9 @@ static int zindex_commit(struct FD_INDEX *ix)
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   int pos_offset=fx->n_slots*4, newcount;
-  u8_lock_mutex(&(ix->adds.lock));
-  u8_lock_mutex(&(ix->edits.lock));
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(ix->adds.lock));
+  fd_lock_mutex(&(ix->edits.lock));
+  fd_lock_mutex(&(fx->lock));
   fd_dts_start_write(stream);
 #if HAVE_MMAP
   if (fx->offsets) {
@@ -1150,9 +1150,9 @@ static int zindex_commit(struct FD_INDEX *ix)
     if (newcount<0) {
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
-      u8_unlock_mutex(&(ix->adds.lock));
-      u8_unlock_mutex(&(ix->edits.lock));
-      u8_unlock_mutex(&(fx->lock));
+      fd_unlock_mutex(&(ix->adds.lock));
+      fd_unlock_mutex(&(ix->edits.lock));
+      fd_unlock_mutex(&(fx->lock));
       return newcount;}
     filepos=fd_endpos(stream);
     qsort(kdata,n,sizeof(struct KEYDATA),sort_keydata_serial);
@@ -1199,18 +1199,18 @@ static int zindex_commit(struct FD_INDEX *ix)
 #endif
     fd_dtsflush(stream);
     fsync(stream->fd);
-    u8_unlock_mutex(&(fx->lock));
+    fd_unlock_mutex(&(fx->lock));
     fd_reset_hashtable(&(ix->adds),67,0);
-    u8_unlock_mutex(&(ix->adds.lock));
+    fd_unlock_mutex(&(ix->adds.lock));
     fd_reset_hashtable(&(ix->edits),67,0);
-    u8_unlock_mutex(&(ix->edits.lock));
+    fd_unlock_mutex(&(ix->edits.lock));
     return n;}
 }
 
 static void zindex_close(fd_index ix)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   fd_dtsclose(&(fx->stream),1);
   if (fx->offsets) {
 #if HAVE_MMAP
@@ -1223,15 +1223,15 @@ static void zindex_close(fd_index ix)
 #endif
     fx->offsets=NULL;
     fx->cache_level=-1;}
-  u8_unlock_mutex(&(fx->lock));
+  fd_unlock_mutex(&(fx->lock));
 }
 
 static void zindex_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
-  u8_lock_mutex(&(fx->lock));
+  fd_lock_mutex(&(fx->lock));
   fd_dtsbufsize(&(fx->stream),bufsiz);
-  u8_unlock_mutex(&(fx->lock));
+  fd_unlock_mutex(&(fx->lock));
 }
 
 static fdtype zindex_metadata(fd_index ix,fdtype md)

@@ -702,20 +702,20 @@ struct FD_LOAD_RECORD {
 static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime)
 {
   struct FD_LOAD_RECORD *scan;
-  u8_lock_mutex(&load_record_lock);
+  fd_lock_mutex(&load_record_lock);
   scan=load_records; while (scan)
     if ((strcmp(filename,scan->filename))==0) {
       if (env!=scan->env) {
 	fd_decref((fdtype)(scan->env)); scan->env=env;}
       u8_free(filename);
       scan->mtime=mtime;
-      u8_unlock_mutex(&load_record_lock);
+      fd_unlock_mutex(&load_record_lock);
       return;}
     else scan=scan->next;
   scan=u8_malloc(sizeof(struct FD_LOAD_RECORD));
   scan->filename=filename; scan->env=env; scan->mtime=mtime;
   scan->next=load_records; load_records=scan;
-  u8_unlock_mutex(&load_record_lock);
+  fd_unlock_mutex(&load_record_lock);
 }
 
 FD_EXPORT int fd_update_file_modules(int force)
@@ -725,7 +725,7 @@ FD_EXPORT int fd_update_file_modules(int force)
       ((reload_interval>=0) &&
        ((u8_elapsed_time()-last_reload)>reload_interval))) {
     struct FD_LOAD_RECORD *scan; double reload_time;
-    u8_lock_mutex(&load_record_lock);
+    fd_lock_mutex(&load_record_lock);
     reload_time=u8_elapsed_time();
     scan=load_records; while (scan) {
       time_t mtime=u8_file_mtime(scan->filename);
@@ -741,7 +741,7 @@ FD_EXPORT int fd_update_file_modules(int force)
 	  scan->mtime=mtime;}}
       scan=scan->next;}
     last_reload=reload_time;
-    u8_unlock_mutex(&load_record_lock);}
+    fd_unlock_mutex(&load_record_lock);}
   return n_reloads;
 }
 
@@ -1078,7 +1078,7 @@ FD_EXPORT void fd_init_fileio_c()
   fd_register_source_file(versionid);
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&load_record_lock);
+  fd_init_mutex(&load_record_lock);
 #endif
 
   u8_init_xinput(&u8stdin,0,NULL);

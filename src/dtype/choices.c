@@ -31,14 +31,14 @@ static void recycle_achoice(struct FD_CONS *c)
 	fdtype v=*read++; fd_decref(v);}
     if (ch->mallocd) u8_free(ch->nch);}
   fd_decref(ch->normalized);
-  if (ch->uselock) u8_destroy_mutex(&(ch->lock));
+  if (ch->uselock) fd_destroy_mutex(&(ch->lock));
   u8_free_x(ch,sizeof(struct FD_ACHOICE));
 }
 
 static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
 {
   fd_decref(ch->normalized);
-  if (ch->uselock) u8_destroy_mutex(&(ch->lock));
+  if (ch->uselock) fd_destroy_mutex(&(ch->lock));
   u8_free_x(ch,sizeof(struct FD_ACHOICE));
 }
 static int write_achoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
@@ -266,7 +266,7 @@ fdtype fd_make_achoice(fdtype x,fdtype y)
     if ((FD_CHOICEP(ny)) && (FD_ATOMIC_CHOICEP(ny))) {}
     else ch->atomicp=0;
   ch->write=ch->write+2; 
-  ch->uselock=1; u8_init_mutex(&(ch->lock));
+  ch->uselock=1; fd_init_mutex(&(ch->lock));
   return FDTYPE_CONS(ch);
 }
   
@@ -288,7 +288,7 @@ fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
   ch->n_nested=0; ch->muddled=0; ch->atomicp=1; ch->mallocd=1;
   ch->normalized=FD_VOID;
   ch->uselock=uselock;
-  if (uselock) u8_init_mutex(&(ch->lock));
+  if (uselock) fd_init_mutex(&(ch->lock));
   return FDTYPE_CONS(ch);
 }
 
@@ -323,23 +323,23 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
     if (free_achoice) {
       if (FD_CONS_REFCOUNT(ch)>1) {
 	free_achoice=0; fd_decref(x);}}
-    if (ch->uselock) u8_lock_mutex(&(ch->lock));
+    if (ch->uselock) fd_lock_mutex(&(ch->lock));
     /* If you have a normalized value, use it. */
     if (!(FD_VOIDP(ch->normalized))) {
       fdtype v=fd_incref(ch->normalized);
-      if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
       if (free_achoice) fd_decref(x);
       return v;}
     /* If it's really empty, just return the empty choice. */
     else if ((ch->write-ch->data) == 0) {
-      if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
       if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
       else ch->normalized=FD_EMPTY_CHOICE;
       return FD_EMPTY_CHOICE;}
     /* If it's only got one value, return it. */
     else if ((ch->write-ch->data) == 1) {
       fdtype value=fd_incref(*(ch->data));
-      if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
       if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
       ch->normalized=fd_incref(value);
       return value;}
@@ -353,7 +353,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       else flags=flags|FD_CHOICE_ISCONSES;
       if (ch->muddled) flags=flags|FD_CHOICE_DOSORT;
       else flags=flags|FD_CHOICE_COMPRESS;
-      if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
       recycle_achoice_wrapper(ch);
       return fd_init_choice(nch,n,NULL,flags);}
     else if (ch->n_nested==0) {
@@ -368,7 +368,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       else flags=flags|FD_CHOICE_COMPRESS;
       result=fd_make_choice(n_elts,ch->data,flags);
       ch->normalized=fd_incref(result);
-      if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
       return result;}
     else if (1) { /* (ch->size<fd_mergesort_threshold) */
       /* If the choice is small enough, we can call convert_achoice,
@@ -378,12 +378,12 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
 	 sort the huge vector. */
       fdtype converted=convert_achoice(ch,free_achoice);
       if (free_achoice) {
-	if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+	if (ch->uselock) fd_unlock_mutex(&(ch->lock));
 	fd_decref(x);
 	return converted;}
       else {
 	ch->normalized=fd_incref(converted);
-	if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+	if (ch->uselock) fd_unlock_mutex(&(ch->lock));
 	return converted;}}
     else {
       /* This is the hairy case, where you are actually merging a bunch
@@ -424,7 +424,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       /* We free the tmp_choice if we made it. */
       if (n_vals) u8_free((struct FD_CHOICE *)tmp_choice);
       if (n_choices>16) u8_free(choices);
-      if (ch->uselock) u8_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
       if (free_achoice) {
 	recycle_achoice((struct FD_CONS *)ch);
 	return result;}

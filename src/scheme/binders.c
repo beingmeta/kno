@@ -143,7 +143,7 @@ static fd_lispenv init_static_env
   bindings->schema=vars;
   bindings->values=vals;
   bindings->size=n;
-  u8_init_mutex(&(bindings->lock));
+  fd_init_mutex(&(bindings->lock));
   envstruct->bindings=FDTYPE_CONS((bindings));
   envstruct->exports=FD_VOID;
   envstruct->parent=parent;
@@ -387,7 +387,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.schema=fn->schema;
   bindings.size=fn->n_vars;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
@@ -424,7 +424,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       j--;}
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
-  if (fn->synchronized) u8_lock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_lock_mutex(&(fn->lock));
   {FD_DOLIST(expr,fn->body) {
     fd_decref(result); result=fasteval(expr,&envstruct);
     if (FD_ABORTP(result)) {
@@ -435,8 +435,8 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       if (fn->filename) result=fd_passerr(result,sproc_id(fn));
       break;}}}
   /* If we're synchronized, unlock the mutex. */
-  if (fn->synchronized) u8_unlock_mutex(&(fn->lock));
-  u8_destroy_mutex(&(bindings.lock));
+  if (fn->synchronized) fd_unlock_mutex(&(fn->lock));
+  fd_destroy_mutex(&(bindings.lock));
   fd_decref(lexpr_arg);
   if (free_vals) u8_free(vals);
   if (envstruct.copy)
@@ -478,7 +478,7 @@ static fdtype make_sproc(u8_string name,
   s->body=fd_incref(body); s->arglist=fd_incref(arglist);
   s->env=fd_copy_env(env); s->filename=NULL;
   if (sync) {
-    s->synchronized=1; u8_init_mutex(&(s->lock));}
+    s->synchronized=1; fd_init_mutex(&(s->lock));}
   else s->synchronized=0;
   scan=arglist; i=0; while (FD_PAIRP(scan)) {
     fdtype argspec=FD_CAR(scan);
@@ -512,7 +512,7 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
   u8_free(sproc->schema);
   if (sproc->env->copy) {
     fd_decref((fdtype)sproc->env->copy);}
-  if (sproc->synchronized) u8_destroy_mutex(&(sproc->lock));
+  if (sproc->synchronized) fd_destroy_mutex(&(sproc->lock));
   if (sproc->filename) u8_free(sproc->filename);
   if (FD_MALLOCD_CONSP(c))
     u8_free_x(sproc,sizeof(struct FD_SPROC));
@@ -685,7 +685,7 @@ fdtype fd_xapply_sproc
   bindings.schema=fn->schema;
   bindings.size=fn->n_vars;
   bindings.flags=0;
-  u8_init_mutex(&(bindings.lock));
+  fd_init_mutex(&(bindings.lock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
@@ -720,7 +720,7 @@ fdtype fd_xapply_sproc
     else vals[i++]=argval;}
   assert(i==fn->n_vars);
   /* If we're synchronized, lock the mutex. */
-  if (fn->synchronized) u8_lock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_lock_mutex(&(fn->lock));
   {FD_DOLIST(expr,fn->body) {
     fd_decref(result); result=fasteval(expr,&envstruct);
     if (FD_EXCEPTIONP(result)) {
@@ -731,11 +731,11 @@ fdtype fd_xapply_sproc
       if (fn->filename) result=fd_passerr(result,sproc_id(fn));
       break;}}}
   /* If we're synchronized, unlock the mutex. */
-  if (fn->synchronized) u8_unlock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_unlock_mutex(&(fn->lock));
   {
     int j=0; while (j<i) {fd_decref(vals[j]); j++;}
     if (vals!=_vals) u8_free(vals);}
-  u8_destroy_mutex(&(bindings.lock));
+  fd_destroy_mutex(&(bindings.lock));
   return result;
 }
 

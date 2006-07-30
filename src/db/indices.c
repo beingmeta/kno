@@ -107,9 +107,9 @@ static void init_cache_level(fd_index ix)
 FD_EXPORT void fd_register_index(fd_index ix)
 {
   if (ix->serialno<0) {
-    u8_lock_mutex(&indices_lock);
+    fd_lock_mutex(&indices_lock);
     if (ix->serialno>=0) { /* Handle race condition */
-      u8_unlock_mutex(&indices_lock); return;}
+      fd_unlock_mutex(&indices_lock); return;}
     if (fd_n_primary_indices<FD_N_PRIMARY_INDICES) {
       ix->serialno=fd_n_primary_indices;
       fd_primary_indices[fd_n_primary_indices++]=ix;}
@@ -120,7 +120,7 @@ FD_EXPORT void fd_register_index(fd_index ix)
       else fd_secondary_indices=u8_malloc(sizeof(fd_index));
       ix->serialno=fd_n_secondary_indices+FD_N_PRIMARY_INDICES;
       fd_secondary_indices[fd_n_secondary_indices++]=ix;}
-    u8_unlock_mutex(&indices_lock);}
+    fd_unlock_mutex(&indices_lock);}
 }
 
 FD_EXPORT fdtype fd_index2lisp(fd_index ix)
@@ -184,7 +184,7 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
 FD_EXPORT int fd_add_to_background(fd_index ix)
 {
   if (ix==NULL) return 0;
-  u8_lock_mutex(&background_lock);
+  fd_lock_mutex(&background_lock);
   ix->flags=ix->flags|FD_INDEX_IN_BACKGROUND;
   if (fd_background) 
     fd_add_to_compound_index(fd_background,ix);
@@ -193,7 +193,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
     indices[0]=ix;
     fd_background=
       (struct FD_COMPOUND_INDEX *)fd_make_compound_index(1,indices);}
-  u8_unlock_mutex(&background_lock);
+  fd_unlock_mutex(&background_lock);
 }
 
 FD_EXPORT fd_index fd_use_index(u8_string spec)
@@ -757,10 +757,10 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
   fdtype todo=delays[ix->serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
-    /* u8_lock_mutex(&(fd_ipeval_lock)); */
+    /* fd_lock_mutex(&(fd_ipeval_lock)); */
     todo=delays[ix->serialno];
     delays[ix->serialno]=FD_EMPTY_CHOICE;
-    /* u8_unlock_mutex(&(fd_ipeval_lock)); */
+    /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
       u8_notify(ipeval_ixfetch,"Fetching %d keys from %s: %q",
@@ -903,8 +903,8 @@ FD_EXPORT fd_init_indices_c()
   drop_symbol=fd_make_symbol("DROP",4);
   fd_unparsers[fd_index_type]=unparse_index;
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&indices_lock);
-  u8_init_mutex(&background_lock);
+  fd_init_mutex(&indices_lock);
+  fd_init_mutex(&background_lock);
 #endif
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
   u8_new_threadkey(&index_delays_key,NULL);

@@ -582,7 +582,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       if (initial) {
 	u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}
-    u8_lock_mutex(&(sm->lock));
+    fd_lock_mutex(&(sm->lock));
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
@@ -592,7 +592,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    u8_unlock_mutex(&(sm->lock));
+    fd_unlock_mutex(&(sm->lock));
     return col+1;}
   else {
     int startoff=out->u8_outptr-out->u8_outbuf;
@@ -692,7 +692,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_pair=1; 
-    u8_lock_mutex(&(sm->lock));
+    fd_lock_mutex(&(sm->lock));
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) 
       if (initial) {
@@ -708,7 +708,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    u8_unlock_mutex(&(sm->lock));
+    fd_unlock_mutex(&(sm->lock));
     return col+1;}
   else {
     int startoff=out->u8_outptr-out->u8_outbuf;
@@ -804,16 +804,16 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(expr);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
-    u8_lock_mutex(&(sm->lock));
+    fd_lock_mutex(&(sm->lock));
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->key)) {
-	u8_unlock_mutex(&(sm->lock)); return 1;}
+	fd_unlock_mutex(&(sm->lock)); return 1;}
       else if (embeddedp(focus,scan->value)) {
-	u8_unlock_mutex(&(sm->lock)); return 1;}
+	fd_unlock_mutex(&(sm->lock)); return 1;}
       else scan++;
-    u8_unlock_mutex(&(sm->lock));
+    fd_unlock_mutex(&(sm->lock));
     return 0;}
   else return 0;
 }
