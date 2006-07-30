@@ -218,7 +218,7 @@ bigbricotests: ../data/brico.dump
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype.a
+$(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 %: %.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
@@ -227,7 +227,7 @@ $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
 		../../src/db/dtypestream.o $(LIBS) -lfdtype 
 
-../../lib/libfdtype.a:
+../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
 ../../src/db/dtypestream.o:
 	cd ../..; make lib/libfddb.a

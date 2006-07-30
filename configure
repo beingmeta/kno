@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS install_dir_opts install_file_opts install_exe_opts shared_suffix dynamic_cflag curlconfig curlo exifo xstatic_exe_libs xstatic_scheme_libs xdynamic_scheme_libs scheme_builtins_init data_dir module_dir safe_module_dir config_dir apache_modules_dir apache_conf_dir DREENTRANT SHARED_LIB_TARGET SHARED_LIB SHARED_LIBV TESTLDFLAGS EXELDFLAGS VERSION PROFILING MKSTATIC I18N INSTALLI18N build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA RANLIB ac_ct_RANLIB VALGRIND APXS CPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS install_dir_opts install_file_opts install_exe_opts shared_suffix dynamic_cflag curlconfig curlo exifo suffix xstatic_exe_libs xstatic_scheme_libs xdynamic_scheme_libs scheme_builtins_init data_dir module_dir safe_module_dir config_dir apache_modules_dir apache_conf_dir DREENTRANT SHARED_LIB_TARGET SHARED_LIB SHARED_LIBV TESTLDFLAGS EXELDFLAGS VERSION PROFILING MKSTATIC I18N INSTALLI18N build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA RANLIB ac_ct_RANLIB VALGRIND APXS CPP EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -859,6 +859,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+--with-suffix string
 --with-data-dir location
 --with-config-dir location
 --with-module-dir location
@@ -1344,6 +1345,7 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="fd_init_fdscheme()"
+suffix=""
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLDFLAGS=
@@ -1382,6 +1384,7 @@ ac_config_sub="$SHELL $ac_aux_dir/config.sub"
 ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
           ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -5472,6 +5475,16 @@ fi
 
 
 
+# Check whether --with-suffix or --without-suffix was given.
+if test "${with_suffix+set}" = set; then
+  withval="$with_suffix"
+
+else
+  with_suffix=""
+fi;
+suffix=$with_suffix
+
+
 # Check whether --with-data_dir or --without-data_dir was given.
 if test "${with_data_dir+set}" = set; then
   withval="$with_data_dir"
@@ -7494,9 +7507,9 @@ else
 fi;
 if test $enable_schemeio = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio"
-  xstatic_exe_libs="lib/libfdschemeio.a $xstatic_exe_libs"
-  xstatic_scheme_libs="../../lib/libfdschemeio.a $xstatic_scheme_libs"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
+  xstatic_exe_libs="lib/libfdschemeio${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
 fi
 
 # Check whether --enable-fdweb or --disable-fdweb was given.
@@ -7508,9 +7521,9 @@ else
 fi;
 if test $enable_fdweb = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
-  xdynamic_scheme_libs="-lfdweb $xdynamic_scheme_libs"
-  xstatic_exe_libs="lib/libfdweb.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb.a $xstatic_scheme_libs"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
+  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
 fi
 
 # Check whether --enable-texttools or --disable-texttools was given.
@@ -9136,6 +9149,7 @@ s,@dynamic_cflag@,$dynamic_cflag,;t t
 s,@curlconfig@,$curlconfig,;t t
 s,@curlo@,$curlo,;t t
 s,@exifo@,$exifo,;t t
+s,@suffix@,$suffix,;t t
 s,@xstatic_exe_libs@,$xstatic_exe_libs,;t t
 s,@xstatic_scheme_libs@,$xstatic_scheme_libs,;t t
 s,@xdynamic_scheme_libs@,$xdynamic_scheme_libs,;t t

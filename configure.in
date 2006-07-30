@@ -22,6 +22,7 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="fd_init_fdscheme()"
+suffix=""
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLDFLAGS=
@@ -46,6 +47,7 @@ AC_SUBST(dynamic_cflag)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
 AC_SUBST(exifo)
+AC_SUBST(suffix)
 AC_SUBST(xstatic_exe_libs)
 AC_SUBST(xstatic_scheme_libs)
 AC_SUBST(xdynamic_scheme_libs)
@@ -117,6 +119,9 @@ AC_HEADER_STDC
 AC_HEADER_STAT
 
 dnl Various directory/path configuration options
+
+AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
+suffix=$with_suffix
 
 AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/framerd)
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
@@ -257,9 +262,9 @@ dnl  you'll probably need to replace some things
 AC_ARG_ENABLE(schemeio,--en/disable-schemeio compiled-in schemeio,,enable_schemeio="yes")
 if test $enable_schemeio = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio"
-  xstatic_exe_libs="lib/libfdschemeio.a $xstatic_exe_libs"
-  xstatic_scheme_libs="../../lib/libfdschemeio.a $xstatic_scheme_libs"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
+  xstatic_exe_libs="lib/libfdschemeio${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
 fi
 
 dnl This integrates the fdweb module into executables by default; otherwise
@@ -267,9 +272,9 @@ dnl  it is built and installed as a plugin library
 AC_ARG_ENABLE(fdweb,--en/disable-fdweb compiled-in fdweb,,enable_fdweb=$enable_fdweb_default)
 if test $enable_fdweb = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
-  xdynamic_scheme_libs="-lfdweb $xdynamic_scheme_libs"
-  xstatic_exe_libs="lib/libfdweb.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb.a $xstatic_scheme_libs"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
+  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
 fi
 
 dnl This integrates the texttools module into executables by default; otherwise

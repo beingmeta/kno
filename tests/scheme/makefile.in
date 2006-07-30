@@ -10,7 +10,9 @@ CFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ -DFD_TESTCONFIG=1 \
 LDFLAGS=@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 LIBS=@LIBS@ -lm -lz -lu8 -lu8fns -lu8io
 
-EXTRA_LIBS	= ../../lib/libtexttools.a ../../lib/libfdweb.a ../../lib/libfdschemeio.a 
+EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
+		  ../../lib/libfdweb@suffix@.a \
+		  ../../lib/libfdschemeio@suffix@.a 
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
@@ -38,35 +40,40 @@ all: $(TESTBIN)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio
 
-../../lib/libfdweb.a:
-	cd ../..; make lib/libfdweb.a
-../../lib/libfdschemeio.a:
-	cd ../..; make lib/libfdschemeio.a
-../../lib/libfdscheme.a:
-	cd ../..; make lib/libfdscheme.a
-../../lib/libfdtype.a:
-	cd ../..; make lib/libfdtype.a
-../../lib/libfddb.a:
-	cd ../..; make lib/libfddb.a
+../../lib/libfdweb@suffix@.a:
+	cd ../..; make lib/libfdweb@suffix@.a
+../../lib/libfdschemeio@suffix@.a:
+	cd ../..; make lib/libfdschemeio@suffix@.a
+../../lib/libfdscheme@suffix@.a:
+	cd ../..; make lib/libfdscheme@suffix@.a
+../../lib/libfdtype@suffix@.a:
+	cd ../..; make lib/libfdtype@suffix@.a
+../../lib/libfddb@suffix@.a:
+	cd ../..; make lib/libfddb@suffix@.a
 
 $(TESTBIN): $(EXTRA_LIBS) \
-            ../../lib/libfdscheme.a ../../lib/libfddb.a ../../lib/libfdtype.a
+            ../../lib/libfdscheme@suffix@.a \
+	    ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
-%: %.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
-	../../lib/libfddbfile.a ../../lib/libfddb.a \
-	../../lib/libfdtype.a
+%: %.c $(EXTRA_LIBS) ../../lib/libfdscheme@suffix@.a \
+	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-fdtypeserver: fdtypeserver.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
-	../../lib/libfddbfile.a ../../lib/libfddb.a \
-	../../lib/libfdtype.a
+fdtypeserver@suffix@: fdtypeserver.c $(EXTRA_LIBS) \
+	../../lib/libfdscheme@suffix@.a \
+	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
-fdbserver: fdbserver.c $(EXTRA_LIBS) ../../lib/libfdbserv.a ../../lib/libfdscheme.a \
-	../../lib/libfddbfile.a ../../lib/libfddb.a \
-	../../lib/libfdtype.a
+fdbserver@suffix@: fdbserver.c $(EXTRA_LIBS) \
+	../../lib/libfdbserv@suffix@.a \
+	../../lib/libfdscheme@suffix@.a \
+	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
-fdserv: fdserv.c $(EXTRA_LIBS) ../../lib/libfdscheme.a \
-	../../lib/libfddbfile.a ../../lib/libfddb.a \
-	../../lib/libfdtype.a
+fdserv@suffix@: fdserv.c $(EXTRA_LIBS) \
+	../../lib/libfdscheme@suffix@.a \
+	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
 
 clean:

@@ -82,8 +82,9 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/md5c.o src/texttools/porter.o \
 	src/texttools/tagger.o src/texttools/tagxtract.o
 
-EXECUTABLES=exe/fdexec exe/fdconsole exe/fdbatch exe/fdexec.static \
-	exe/fdserv exe/fdbserver exe/fdmanager
+EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
+            exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
+	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 
 FDB_SOURCES=\
@@ -123,14 +124,17 @@ FDB_SOURCES=\
 
 all: testbin exe TAGS
 libs: static-libs @SHARED_LIB_TARGET@
-static-libs: lib/libfdweb.a lib/libtexttools.a \
-	lib/libfdschemeio.a lib/libfdscheme.a lib/libfdbserv.a \
-	lib/libfddbfile.a lib/libfddb.a lib/libfdtype.a
-shared-libs: lib/libfdtype.@shared_suffix@ lib/libfddb.@shared_suffix@ \
-        lib/libfddbfile.@shared_suffix@ lib/libfdbserv.@shared_suffix@ \
-	lib/libfdscheme.@shared_suffix@ \
-	lib/libfdschemeio.@shared_suffix@ lib/libfdweb.@shared_suffix@ \
-	lib/libtexttools.@shared_suffix@
+static-libs: lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a \
+	lib/libfdschemeio@suffix@.a lib/libfdscheme@suffix@.a lib/libfdbserv@suffix@.a \
+	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a lib/libfdtype@suffix@.a
+shared-libs: lib/libfdtype@suffix@.@shared_suffix@ \
+	lib/libfddb@suffix@.@shared_suffix@ \
+        lib/libfddbfile@suffix@.@shared_suffix@ \
+	lib/libfdbserv@suffix@.@shared_suffix@ \
+	lib/libfdscheme@suffix@.@shared_suffix@ \
+	lib/libfdschemeio@suffix@.@shared_suffix@ \
+	lib/libfdweb@suffix@.@shared_suffix@ \
+	lib/libtexttools@suffix@.@shared_suffix@
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
 dtypetestbin: libs
 	cd tests/dtype; make
@@ -146,56 +150,57 @@ etc/usememory: etc/usememory.c
 
 # We selectively link some executables statically to avoid library dependencies
 # with programs which will typicall run as daemons
-exe/fdexec.static: src/exe/fdexec.c \
-	@xstatic_exe_libs@ lib/libfdscheme.a \
-	lib/libfddbfile.a lib/libfddb.a \
-	lib/libfdtype.a
+exe/fdexec@suffix@.static: src/exe/fdexec.c \
+	@xstatic_exe_libs@ lib/libfdscheme@suffix@.a \
+	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
+	lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
-exe/fdserv: src/exe/fdserv.c \
-	@xstatic_exe_libs@ lib/libfdweb.a lib/libfdscheme.a \
-	lib/libfddbfile.a lib/libfddb.a \
-	lib/libfdtype.a
+exe/fdserv@suffix@: src/exe/fdserv.c \
+	@xstatic_exe_libs@ lib/libfdweb@suffix@.a lib/libfdscheme@suffix@.a \
+	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
+	lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
-exe/fdbserver: src/exe/fdbserver.c \
-	@xstatic_exe_libs@ lib/libfdbserv.a lib/libfdscheme.a \
-	lib/libfddbfile.a lib/libfddb.a \
-	lib/libfdtype.a
+exe/fdbserver@suffix@: src/exe/fdbserver.c \
+	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
+	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
+	lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
-exe/fdmanager: src/exe/fdmanager.c lib/libfdtype.a
+exe/fdmanager@suffix@: src/exe/fdmanager.c lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
 
-exe/%: src/exe/%.c
+exe/%@suffix@: src/exe/%.c
 	$(CC) $(EXELDFLAGS) $(CFLAGS) $(LDFLAGS) \
 		-o $@ $< \
 		$(LIBS) -lu8stdio \
-		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio \
+		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
+		-lfdscheme@suffix@ -lfdschemeio@suffix@ \
 		@xdynamic_scheme_libs@
 
-exe/fdexec exe/fdbatch exe/fdconsole: \
-	@xstatic_exe_libs@ lib/libfdbserv.a lib/libfdscheme.a \
-	lib/libfddbfile.a lib/libfddb.a \
-	lib/libfdtype.a
+exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
+	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
+	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
+	lib/libfdtype@suffix@.a
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-lib/%.a:
+lib/%@suffix@.a:
 	$(MKSTATIC) $@ $^
-lib/%.so.@VERSION@: 
+lib/%@suffix@.so.@VERSION@: 
 	$(MKSO) -Wl,-soname=$(@F) -o $@ $^
-lib/%.so: lib/%.so.@VERSION@
+lib/%@suffix@.so: lib/%.so.@VERSION@
 	ln -sf $(<F) $@
-lib/%.@VERSION@.dylib:
+lib/%@suffix@.@VERSION@.dylib:
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
-lib/%.dylib: lib/%.@VERSION@.dylib
+lib/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
 	ln -sf $(<F) $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-$(LIBINSTALLDIR)/%.so: lib/%.so.@VERSION@
+$(LIBINSTALLDIR)/%@suffix@.so: lib/%@suffix@.so.@VERSION@
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%.dylib: lib/%.@VERSION@.dylib
+$(LIBINSTALLDIR)/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	ln -sf $(shell basename $<) $@
 $(BININSTALLDIR)/%: exe/%
@@ -227,10 +232,10 @@ tidy: profile-clean
 clean: tidy
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
 	rm -f src/fdweb/*.o src/texttools/*.o src/exe/*.o
-	rm -f lib/*.a lib/*.so lib/*.dylib lib/*.so.* 
-	rm -f exe/fdexec exe/fdexec.static exe/fdbatch
-	rm -f exe/fdserv exe/fdbserver
-	rm -f exe/fdconsole 
+	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib lib/*@suffix@.so.* 
+	rm -f exe/fdexec@suffix@ exe/fdexec@suffix@.static exe/fdbatch@suffix@
+	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
+	rm -f exe/fdconsole@suffix@
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
@@ -241,67 +246,67 @@ distclean: clean
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f include/fdb/config.h
 
-lib/libfdtype.a: $(DTYPE_OBJS)
-lib/libfdtype.so.@VERSION@: $(DTYPE_OBJS)
-lib/libfdtype.so: lib/libfdtype.so.@VERSION@
-lib/libfdtype.@VERSION@.dylib: $(DTYPE_OBJS)
-lib/libfdtype.dylib: lib/libfdtype.@VERSION@.dylib
+lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
+lib/libfdtype@suffix@.so.@VERSION@: $(DTYPE_OBJS)
+lib/libfdtype@suffix@.so: lib/libfdtype.so.@VERSION@
+lib/libfdtype@suffix@.@VERSION@.dylib: $(DTYPE_OBJS)
+lib/libfdtype@suffix@.dylib: lib/libfdtype@suffix@.@VERSION@.dylib
 
-lib/libfddb.a: $(DB_OBJS)
-lib/libfddb.so.@VERSION@: $(DB_OBJS)
-lib/libfddb.so: lib/libfddb.so.@VERSION@
-lib/libfddb.@VERSION@.dylib: $(DB_OBJS)  lib/libfdtype.@VERSION@.dylib
-lib/libfddb.dylib: lib/libfddb.@VERSION@.dylib
+lib/libfddb@suffix@.a: $(DB_OBJS)
+lib/libfddb@suffix@.so.@VERSION@: $(DB_OBJS)
+lib/libfddb@suffix@.so: lib/libfddb@suffix@.so.@VERSION@
+lib/libfddb@suffix@.@VERSION@.dylib: $(DB_OBJS)  lib/libfdtype@suffix@.@VERSION@.dylib
+lib/libfddb@suffix@.dylib: lib/libfddb@suffix@.@VERSION@.dylib
 
-lib/libfddbfile.a: $(DBFILE_OBJS)
-lib/libfddbfile.so.@VERSION@: $(DBFILE_OBJS)
-lib/libfddbfile.so: lib/libfddbfile.so.@VERSION@
-lib/libfddbfile.@VERSION@.dylib: $(DBFILE_OBJS) lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
-lib/libfddbfile.dylib: lib/libfddbfile.@VERSION@.dylib
+lib/libfddbfile@suffix@.a: $(DBFILE_OBJS)
+lib/libfddbfile@suffix@.so.@VERSION@: $(DBFILE_OBJS)
+lib/libfddbfile@suffix@.so: lib/libfddbfile@suffix@.so.@VERSION@
+lib/libfddbfile@suffix@.@VERSION@.dylib: $(DBFILE_OBJS) lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
+lib/libfddbfile@suffix@.dylib: lib/libfddbfile@suffix@.@VERSION@.dylib
 
-lib/libfdbserv.a: $(FDBSERV_OBJS)
-lib/libfdbserv.so.@VERSION@: $(FDBSERV_OBJS)
-lib/libfdbserv.so: lib/libfdbserv.so.@VERSION@
-lib/libfdbserv.@VERSION@.dylib: $(FDBSERV_OBJS) \
-	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
-	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+lib/libfdbserv@suffix@.a: $(FDBSERV_OBJS)
+lib/libfdbserv@suffix@.so.@VERSION@: $(FDBSERV_OBJS)
+lib/libfdbserv@suffix@.so: lib/libfdbserv@suffix@.so.@VERSION@
+lib/libfdbserv@suffix@.@VERSION@.dylib: $(FDBSERV_OBJS) \
+	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
+	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
-lib/libfdserv.dylib: lib/libfdbserv.@VERSION@.dylib
+lib/libfdserv@suffix@.dylib: lib/libfdbserv@suffix@.@VERSION@.dylib
 
-lib/libfdscheme.a: $(SCHEME_OBJS)
-lib/libfdscheme.so.@VERSION@: $(SCHEME_OBJS)
-lib/libfdscheme.so: lib/libfdscheme.so.@VERSION@
-lib/libfdscheme.@VERSION@.dylib: $(SCHEME_OBJS) \
-	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
-lib/libfdscheme.dylib: lib/libfdscheme.@VERSION@.dylib
+lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
+lib/libfdscheme@suffix@.so.@VERSION@: $(SCHEME_OBJS)
+lib/libfdscheme@suffix@.so: lib/libfdscheme@suffix@.so.@VERSION@
+lib/libfdscheme@suffix@.@VERSION@.dylib: $(SCHEME_OBJS) \
+	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
+lib/libfdscheme@suffix@.dylib: lib/libfdscheme@suffix@.@VERSION@.dylib
 
-lib/libfdschemeio.a: $(SCHEMEIO_OBJS)
-lib/libfdschemeio.so.@VERSION@: $(SCHEMEIO_OBJS)
-lib/libfdschemeio.so: lib/libfdschemeio.so.@VERSION@
-lib/libfdschemeio.@VERSION@.dylib: $(SCHEMEIO_OBJS) \
-	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
-	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib 
-lib/libfdschemeio.dylib: lib/libfdschemeio.@VERSION@.dylib
+lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
+lib/libfdschemeio@suffix@.so.@VERSION@: $(SCHEMEIO_OBJS)
+lib/libfdschemeio@suffix@.so: lib/libfdschemeio@suffix@.so.@VERSION@
+lib/libfdschemeio@suffix@.@VERSION@.dylib: $(SCHEMEIO_OBJS) \
+	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
+	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib 
+lib/libfdschemeio.dylib: lib/libfdschemeio@suffix@.@VERSION@.dylib
 
-lib/libfdweb.a: $(FDWEB_OBJS)
-lib/libfdweb.so.@VERSION@: $(FDWEB_OBJS)
+lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
+lib/libfdweb@suffix@.so.@VERSION@: $(FDWEB_OBJS)
 	$(MKSO) @curlconfig@ -o $@ $^ 
-lib/libfdweb.so: lib/libfdweb.so.@VERSION@
-lib/libfdweb.@VERSION@.dylib: $(FDWEB_OBJS) \
-	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
-	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+lib/libfdweb@suffix@.so: lib/libfdweb@suffix@.so.@VERSION@
+lib/libfdweb@suffix@.@VERSION@.dylib: $(FDWEB_OBJS) \
+	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
+	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $(FDWEB_OBJS)
-lib/libfdweb.dylib: lib/libfdweb.@VERSION@.dylib
+lib/libfdweb@suffix@.dylib: lib/libfdweb@suffix@.@VERSION@.dylib
 
-lib/libtexttools.a: $(TEXTTOOLS_OBJS)
-lib/libtexttools.so.@VERSION@: $(TEXTTOOLS_OBJS)
+lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
+lib/libtexttools@suffix@.so.@VERSION@: $(TEXTTOOLS_OBJS)
 	$(MKSO) @curlconfig@ -o $@ $^ 
-lib/libtexttools.so: lib/libtexttools.so.@VERSION@
-lib/libtexttools.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
-	lib/libfdscheme.@VERSION@.dylib lib/libfddbfile.@VERSION@.dylib \
-	lib/libfddb.@VERSION@.dylib lib/libfdtype.@VERSION@.dylib
+lib/libtexttools@suffix@.so: lib/libtexttools@suffix@.so.@VERSION@
+lib/libtexttools@suffix@.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
+	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
+	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
-lib/libtexttools.dylib: lib/libtexttools.@VERSION@.dylib
+lib/libtexttools.dylib: lib/libtexttools@suffix@.@VERSION@.dylib
 
 # Internationalization stuff
 
@@ -326,32 +331,32 @@ install: confdirs @INSTALLI18N@ \
 	 install-static install-shared install-headers \
          install-exe install-scripts
 install-static: static-libs
-	make $(LIBINSTALLDIR)/libfdtype.a \
-		$(LIBINSTALLDIR)/libfddb.a \
-		$(LIBINSTALLDIR)/libfddbfile.a \
-		$(LIBINSTALLDIR)/libfdbserv.a \
-		$(LIBINSTALLDIR)/libfdscheme.a \
-		$(LIBINSTALLDIR)/libfdschemeio.a \
-		$(LIBINSTALLDIR)/libfdweb.a \
-		$(LIBINSTALLDIR)/libtexttools.a
+	make $(LIBINSTALLDIR)/libfdtype@suffix@.a \
+		$(LIBINSTALLDIR)/libfddb@suffix@.a \
+		$(LIBINSTALLDIR)/libfddbfile@suffix@.a \
+		$(LIBINSTALLDIR)/libfdbserv@suffix@.a \
+		$(LIBINSTALLDIR)/libfdscheme@suffix@.a \
+		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
+		$(LIBINSTALLDIR)/libfdweb@suffix@.a \
+		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs 
 	make install-@shared_suffix@
-install-so: $(LIBINSTALLDIR)/libfdtype.so \
-		$(LIBINSTALLDIR)/libfddb.so \
-		$(LIBINSTALLDIR)/libfdbserv.so \
-		$(LIBINSTALLDIR)/libfddbfile.so \
-		$(LIBINSTALLDIR)/libfdscheme.so \
-		$(LIBINSTALLDIR)/libfdschemeio.so \
-		$(LIBINSTALLDIR)/libfdweb.so \
-		$(LIBINSTALLDIR)/libtexttools.so
-install-dylib: $(LIBINSTALLDIR)/libfdtype.dylib \
-	$(LIBINSTALLDIR)/libfddb.dylib \
-	$(LIBINSTALLDIR)/libfdbserv.dylib \
-	$(LIBINSTALLDIR)/libfddbfile.dylib \
-	$(LIBINSTALLDIR)/libfdscheme.dylib \
-	$(LIBINSTALLDIR)/libfdschemeio.dylib \
-	$(LIBINSTALLDIR)/libfdweb.dylib \
-	$(LIBINSTALLDIR)/libtexttools.dylib
+install-so: $(LIBINSTALLDIR)/libfdtype@suffix@.so \
+		$(LIBINSTALLDIR)/libfddb@suffix@.so \
+		$(LIBINSTALLDIR)/libfdbserv@suffix@.so \
+		$(LIBINSTALLDIR)/libfddbfile@suffix@.so \
+		$(LIBINSTALLDIR)/libfdscheme@suffix@.so \
+		$(LIBINSTALLDIR)/libfdschemeio@suffix@.so \
+		$(LIBINSTALLDIR)/libfdweb@suffix@.so \
+		$(LIBINSTALLDIR)/libtexttools@suffix@.so
+install-dylib: $(LIBINSTALLDIR)/libfdtype@suffix@.dylib \
+	$(LIBINSTALLDIR)/libfddb@suffix@.dylib \
+	$(LIBINSTALLDIR)/libfdbserv@suffix@.dylib \
+	$(LIBINSTALLDIR)/libfddbfile@suffix@.dylib \
+	$(LIBINSTALLDIR)/libfdscheme@suffix@.dylib \
+	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib \
+	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib \
+	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib
 install-headers: $(INCINSTALLDIR)
 	$(INSTALL) -p @install_file_opts@ \
 		   $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) \

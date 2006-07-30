@@ -32,14 +32,16 @@ ZFILEBRICOINDEX	= /data/bg/brico.index
 BRICOPOOL	= $(FILEBRICOPOOL)
 BRICOINDEX	= $(FILEBRICOINDEX)
 
-TESTBIN=pool-get dtcall indexop index-get dbtool
+TESTBIN=pool-get@suffix@ dtcall@suffix@ indexop@suffix@ \
+	index-get@suffix@ dbtool@suffix@
 
 all: $(TESTBIN) 
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TESTBIN): ../../lib/libfddbfile.a ../../lib/libfddb.a ../../lib/libfdtype.a
+$(TESTBIN): ../../lib/libfddbfile@suffix@.a \
+            ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
 %: %.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -49,11 +51,11 @@ $(TESTBIN): ../../lib/libfddbfile.a ../../lib/libfddb.a ../../lib/libfdtype.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype -lfddb -lfddbfile
 
-../../lib/libfdtype.a:
+../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
-../../lib/libfddb.a:
+../../lib/libfddb@suffix@.a:
 	cd ../..; make lib/libfddb.a
-../../lib/libfddbfile.a:
+../../lib/libfddbfile@suffix@.a:
 	cd ../..; make lib/libfddbfile.a
 
 clean:
