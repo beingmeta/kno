@@ -467,17 +467,22 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
     else n=write-oidv;
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->handler->lock(p,needy);
-    if (retval) {
+    if (retval<0) {
+      fd_decref(needy);
+      return retval;}
+    else if (retval) {
       fd_hashtable_iterkeys(&(p->cache),fd_table_replace,n,oidv,FD_VOID);
       fd_hashtable_iterkeys(locks,fd_table_store,n,oidv,FD_LOCKHOLDER);}
     fd_decref(needy);
     return retval;}
-  else if (fd_hashtable_probe(locks,oids)==0)
-    if (p->handler->lock(p,oids)) {
+  else if (fd_hashtable_probe(locks,oids)==0) {
+    int retval=p->handler->lock(p,oids);
+    if (retval<0) return retval;
+    else if (retval) {
       fd_hashtable_op(&(p->cache),fd_table_replace,oids,FD_VOID);
       fd_hashtable_op(locks,fd_table_store,oids,FD_LOCKHOLDER);
       return 1;}
-    else return 0;
+    else return 0;}
   else return 1;
 }
 
@@ -686,13 +691,15 @@ FD_EXPORT fdtype _fd_oid_value(fdtype oid)
 FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
 {
   fdtype smap=fd_hashtable_get(&(p->locks),oid,FD_VOID);
-  if (FD_VOIDP(smap))
-    if (fd_pool_lock(p,oid)) {
+  if (FD_VOIDP(smap)) {
+    int retval=fd_pool_lock(p,oid);
+    if (retval<0) return fd_erreify();
+    else if (retval) {
       fdtype v=fd_pool_fetch(p,oid);
       fd_hashtable_store(&(p->locks),oid,v);
       return v;}
     else return fd_err(fd_CantLockOID,"fd_locked_oid_value",
-		       u8_strdup(p->source),oid);
+		       u8_strdup(p->source),oid);}
   else if (smap==FD_LOCKHOLDER) {
     fdtype v=fd_pool_fetch(p,oid);
     fd_hashtable_store(&(p->locks),oid,v);

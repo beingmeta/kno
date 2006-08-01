@@ -208,6 +208,8 @@ static int network_pool_lock(fd_pool p,fdtype oid)
   value=dtcall(np,3,lock_oid_symbol,oid,client_id);
   fd_unlock_mutex(&(np->lock));
   if (FD_VOIDP(value)) return 0;
+  else if (FD_ABORTP(value)) 
+    return fd_interr(value);
   else {
     fd_hashtable_store(&(p->cache),oid,value);
     fd_decref(value);
