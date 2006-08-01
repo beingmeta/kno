@@ -469,6 +469,36 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
     return answers;}
 }
 
+static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
+{
+  fdtype answers=FD_EMPTY_CHOICE, through, key;
+  through=fd_frame_get(slotid,through_slot);
+  if (FD_ABORTP(through)) return through;
+  else key=fd_frame_get(slotid,key_slot);
+  if (FD_ABORTP(key)) {
+    fd_decref(through); return key;}
+  else {
+    fdtype pair=fd_make_list(2,fd_incref(key),fd_incref(value));
+    fd_oid_add(f,through,pair);
+    fd_decref(pair);
+    return FD_VOID;}
+}
+
+static fdtype assoc_drop_method(fdtype f,fdtype slotid,fdtype value)
+{
+  fdtype answers=FD_EMPTY_CHOICE, through, key;
+  through=fd_frame_get(slotid,through_slot);
+  if (FD_ABORTP(through)) return through;
+  else key=fd_frame_get(slotid,key_slot);
+  if (FD_ABORTP(key)) {
+    fd_decref(through); return key;}
+  else {
+    fdtype pair=fd_make_list(2,fd_incref(key),fd_incref(value));
+    fd_oid_drop(f,through,pair);
+    fd_decref(pair);
+    return FD_VOID;}
+}
+
 static fdtype car_get_method(fdtype f,fdtype slotid)
 {
   fdtype result=(FD_EMPTY_CHOICE);
@@ -613,6 +643,8 @@ FD_EXPORT void fd_init_methods_c()
     fd_store(m,fd_intern("FD:INV-TEST"),invtest);}
 
   fd_defn(m,fd_make_cprim2("FD:ASSOC-GET",assoc_get_method,2));
+  fd_defn(m,fd_make_cprim3("FD:ASSOC-ADD",assoc_add_method,3));
+  fd_defn(m,fd_make_cprim3("FD:ASSOC-DROP",assoc_drop_method,3));
   fd_defn(m,fd_make_cprim2("FD:CAR-GET",car_get_method,2));
   fd_defn(m,fd_make_cprim2("FD:KLEENE-GET",kleene_get_method,2));
 #if 0
