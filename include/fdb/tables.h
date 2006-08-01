@@ -203,6 +203,8 @@ static fdtype fd_slotmap_test
 {
   struct FD_KEYVAL *result; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
+  if (FD_EXPECT_FALSE(FD_ABORTP(val)))
+    return fd_interr(val);
   if (!(FD_XSLOTMAP_READONLYP(sm))) fd_lock_mutex(&sm->lock);
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
@@ -323,6 +325,8 @@ static fdtype fd_schemap_test(struct FD_SCHEMAP *sm,fdtype key,fdtype val)
 {
   int size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
+  if (FD_EXPECT_FALSE(FD_ABORTP(val)))
+    return fd_interr(val);
   if (!(FD_XSCHEMAP_READONLYP(sm))) fd_lock_mutex(&(sm->lock));
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
