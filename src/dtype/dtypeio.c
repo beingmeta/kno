@@ -701,17 +701,21 @@ FD_EXPORT fdtype fd_read_dtype
 	  return fd_init_hashtable(u8_pmalloc(p,sizeof(struct FD_HASHTABLE)),
 				 0,NULL,p);
 	else {
-	  fdtype result; int n_slots=len/2;
+	  fdtype result; int n_slots=len/2, n_read=0;
 	  struct FD_KEYVAL *keyvals=
 	    u8_malloc(n_slots*sizeof(struct FD_KEYVAL));
 	  struct FD_KEYVAL *write=keyvals, *scan=keyvals,
 	    *limit=keyvals+n_slots;
-	  while (write<limit) {
+	  while (n_read<n_slots) {
 	    write->key=fd_read_dtype(in,p);
 	    write->value=fd_read_dtype(in,p);
-	    write++;}
+	    n_read++;
+	    if (FD_EMPTY_CHOICEP(write->value)) {
+	      fd_decref(write->key);}
+	    else write++;}
+	  limit=write;
 	  result=fd_init_hashtable(u8_pmalloc(p,sizeof(struct FD_HASHTABLE)),
-				   n_slots,keyvals,p);
+				   limit-keyvals,keyvals,p);
 	  while (scan<limit) {
 	    fd_decref(scan->key); fd_decref(scan->value); scan++;}
 	  u8_free(keyvals);
