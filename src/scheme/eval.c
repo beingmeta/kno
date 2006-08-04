@@ -1513,6 +1513,7 @@ static void init_core_builtins()
   fd_init_numeric_c();
   fd_init_side_effects_c();
   fd_init_reflection_c();
+  fd_init_history_c();
 }
 
 FD_EXPORT int fd_init_fdscheme()

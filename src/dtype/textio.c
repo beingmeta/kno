@@ -46,7 +46,7 @@ int fd_interpret_pointers=1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
-static fdtype quote_symbol;
+static fdtype quote_symbol, histref_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 static int skip_whitespace(u8_input s)
@@ -905,6 +905,8 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
     case '[': return parse_slotmap(in,p);
     case '"': return parse_packet(in,p);
     case '<':  return parse_record(in,p);
+    case '##':
+      return fd_make_list(2,histref_symbol,fd_parser(in,p));
     case '\\': return parse_character(in);
     default: u8_ungetc(in,ch);}}
   default: { /* Parse an atom */
@@ -988,6 +990,7 @@ FD_EXPORT fd_init_textio_c()
   quasiquote_symbol=fd_intern("QUASIQUOTE");
   unquote_symbol=fd_intern("UNQUOTE");
   unquotestar_symbol=fd_intern("UNQUOTE*");
+  histref_symbol=fd_intern("%HISTREF");
 }
 
 

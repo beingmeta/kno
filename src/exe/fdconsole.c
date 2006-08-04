@@ -13,6 +13,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
+#include "fdb/history.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -62,17 +63,32 @@ static void close_consoles()
     console_env=NULL;}
 }
 
+/* Returns 1 if x is worth adding to the history. */
+static int historicp(fdtype x)
+{
+  if ((FD_STRINGP(x)) && (FD_STRING_LENGTH(x)<32)) return 0;
+  else if ((FD_SYMBOLP(x)) || (FD_CHARACTERP(x))) return 0;
+  else if (FD_FIXNUMP(x)) return 0;
+  else return 1;
+}
+
+static u8_string stats_message=
+  _(";; Evaluation took %f seconds, %d object loads, %d index loads\n");
+static u8_string stats_message_w_history=
+   _(";; [##%d] computed in %f seconds, %d object loads, %d index loads\n");
+
 int main(int argc,char **argv)
 {
   unsigned char data[1024], *input;
   fd_lispenv env=fd_working_environment();
-  fdtype lastval=FD_VOID, that_symbol;
+  fdtype lastval=FD_VOID, that_symbol, histref_symbol;
   fdtype showtime_config=fd_config_get("SHOWTIME");
   u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
-  int i=1, c; u8_string source_file=NULL; double showtime=-1.0;
+  int i=1, c, hist_top=-1, is_histref=0;
+  u8_string source_file=NULL; double showtime=-1.0;
   /* Initialize these primitives */
 #if FD_TESTCONFIG
   u8_init_chardata_c();
@@ -96,6 +112,7 @@ int main(int argc,char **argv)
   fd_config_set("OIDDISPLAY",FD_INT2DTYPE(3));
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
+  histref_symbol=fd_intern("%HISTREF");
   while (i<argc)
     if (strchr(argv[i],'=')) 
       fd_config_assignment(argv[i++]);
@@ -124,13 +141,18 @@ int main(int argc,char **argv)
     showtime=FD_FIX2INT(showtime_config);
   else if (FD_FLONUMP(showtime_config))
     showtime=FD_FLONUM(showtime_config);
+  fd_histinit(0);
   fd_decref(showtime_config);
-  u8_printf(out,"Eval: "); u8_flush(out);
+  hist_top=fd_hist_top();
+  if (hist_top<0) u8_printf(out,";; Eval> ");
+  else u8_printf(out,";; Eval[%d]> ",hist_top);
+  u8_flush(out);
   while ((c=skip_whitespace((u8_input)in))>=0) {
     int start_icache, finish_icache;
     int start_ocache, finish_ocache;
     double start_time, finish_time;
     fdtype result, expr;
+    int no_hist=0;
     start_ocache=fd_cachecount_pools();
     start_icache=fd_cachecount_indices();
     if (c == '=') {
@@ -139,11 +161,18 @@ int main(int argc,char **argv)
 	fd_bind_value(sym,lastval,env);
 	u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
       else u8_printf(out,_(";; Bad assignment expression\n"));
-      u8_printf(out,"Eval: "); u8_flush(out);
+      hist_top=fd_hist_top();
+      if (hist_top<0) u8_printf(out,";; Eval> ");
+      else u8_printf(out,";; Eval[%d]> ",hist_top);
+      u8_flush(out);
       fd_decref(sym); continue;}
     else u8_ungetc(((u8_input)in),c);
     expr=fd_parser((u8_input)in,NULL);
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
+    if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
+	(FD_EQ(expr,that_symbol)))
+      is_histref=1;
+    else is_histref=0;
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
@@ -153,7 +182,10 @@ int main(int argc,char **argv)
 	fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);}
       else u8_printf(out,"OID value: %q\n",v);
       fd_decref(v);
-      u8_printf(out,_("Eval: ")); u8_flush(out);
+      hist_top=fd_hist_top();
+      if (hist_top<0) u8_printf(out,";; Eval> ");
+      else u8_printf(out,";; Eval[%d]> ",hist_top);
+      u8_flush(out);
       continue;}
     start_time=u8_elapsed_time();
     if (eval_server) {
@@ -191,23 +223,57 @@ int main(int argc,char **argv)
     else if ((FD_CHOICEP(result)) || (FD_ACHOICEP(result)))
       if (FD_CHOICE_SIZE(result)<3)
 	u8_printf(out,"%q\n",result);
+      else if ((FD_CHOICE_SIZE(result)>16) && (is_histref==0)) {
+	/* Truncated output for large result sets. */
+	int n=FD_CHOICE_SIZE(result), count=0;
+	int histref=fd_histpush(result);
+	u8_printf(out,_("{ ;; 9 of %d results in ##%d\n"),n,histref);
+	{FD_DO_CHOICES(elt,result) {
+	  if (count>8) {FD_STOP_DO_CHOICES; break;}
+	  else {
+	    if (historicp(elt))
+	      u8_printf(out,"  %q ;##%d\n",elt,fd_histpush(elt));
+	    else u8_printf(out,"  %q\n",elt);
+	    count++;}}
+	u8_printf(out,"  ;; ...................\n");
+	u8_printf(out,_("} ;; %d results in ##%d\n"),n,histref);
+	no_hist=1;}}
       else {
 	int n=FD_CHOICE_SIZE(result);
-	u8_printf(out,_("{ ;; %d results\n"),n);
+	int histref=fd_histpush(result);
+	u8_printf(out,_("{ ;; %d results in ##%d\n"),n,histref);
 	fd_prefetch_oids(result);
 	{FD_DO_CHOICES(elt,result) {
-	  u8_printf(out,"  %q\n",elt);}}
-	u8_printf(out,_("} ;; %d results\n"),n);}
+	  if (historicp(elt))
+	    u8_printf(out,"  %q ;##%d\n",elt,fd_histpush(elt));
+	  else u8_printf(out,"  %q\n",elt);}}
+	u8_printf(out,_("} ;; %d results in ##%d\n"),n,histref);
+	no_hist=1;}
     else u8_printf(out,"%q\n",result);
     finish_ocache=fd_cachecount_pools();
     finish_icache=fd_cachecount_indices();
     if (((showtime>=0.0) && ((finish_time-start_time)>showtime)) ||
 	(finish_ocache!=start_ocache) ||
 	(finish_icache!=start_icache))
-      u8_printf(out,_(";; Evaluation took %f seconds, %d object loads, %d index loads\n"),
-		(finish_time-start_time),
-		finish_ocache-start_ocache,
-		finish_icache-start_icache);
+      if ((FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
+	  (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
+	  (is_histref) || (no_hist))
+	u8_printf (out,stats_message,
+		   (finish_time-start_time),
+		   finish_ocache-start_ocache,
+		   finish_icache-start_icache);
+      else u8_printf(out,stats_message_w_history,
+		     fd_histpush(result),
+		     (finish_time-start_time),
+		     finish_ocache-start_ocache,
+		     finish_icache-start_icache);
+    else if ((FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
+	     (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
+	     (is_histref) || (no_hist)) {}
+    else {
+      int real_top=fd_histpush(result);
+      if (real_top==hist_top) {}
+      else u8_printf(out,";;; Value stored in ##%d\n",real_top);}
     fd_clear_errors(1);
     fd_decref(lastval);
     lastval=result;
@@ -215,7 +281,9 @@ int main(int argc,char **argv)
 	(!(FD_ABORTP(lastval))) &&
 	(!(FDTYPE_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);
-    u8_printf(out,_("Eval: "));
+    hist_top=fd_hist_top();
+    if (hist_top<0) u8_printf(out,";; Eval> ");
+    else u8_printf(out,";; Eval[%d]> ",hist_top);
     u8_flush(out);}
   if (eval_server) fd_dtsclose(eval_server,1);
   u8_free(eval_server);
