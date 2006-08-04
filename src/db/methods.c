@@ -459,10 +459,10 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
 	return entries;}
       else {
 	FD_DO_CHOICES(e,entries)
-	  if ((FD_PAIRP(e)) && (FD_PAIRP(FD_CDR(e))) &&
+	  if ((FD_PAIRP(e)) && 
 	      ((FD_CHOICEP(key)) ? (fd_choice_containsp(FD_CAR(e),key)) :
 	       (FD_EQ(FD_CAR(e),key)))) {
-	    fdtype v=FD_CAR(FD_CDR(e));
+	    fdtype v=((FD_PAIRP(FD_CDR(e))) ? (FD_CAR(FD_CDR(e))) : (FD_CDR(e)));
 	    FD_ADD_TO_CHOICE(answers,fd_incref(v));}
 	fd_decref(entries);}}
     fd_decref(through); fd_decref(key);
@@ -478,7 +478,7 @@ static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
   else {
-    fdtype pair=fd_make_list(2,fd_incref(key),fd_incref(value));
+    fdtype pair=fd_init_pair(NULL,fd_incref(key),fd_incref(value));
     fd_oid_add(f,through,pair);
     fd_decref(pair);
     return FD_VOID;}
@@ -493,7 +493,7 @@ static fdtype assoc_drop_method(fdtype f,fdtype slotid,fdtype value)
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
   else {
-    fdtype pair=fd_make_list(2,fd_incref(key),fd_incref(value));
+    fdtype pair=fd_init_pair(NULL,fd_incref(key),fd_incref(value));
     fd_oid_drop(f,through,pair);
     fd_decref(pair);
     return FD_VOID;}
