@@ -48,7 +48,8 @@
 (define implies* {})
 
 (define (get-gloss concept (language #f))
-  (try (get concept (?? 'type 'gloss 'language (or language english)))
+  (try (tryif (eq? language english) (get concept 'gloss))
+       (get concept (?? 'type 'gloss 'language (or language english)))
        (get concept 'gloss)))
 (define (get-short-gloss concept (language #f))
   (let ((s (get-gloss concept language)))

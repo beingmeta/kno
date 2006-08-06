@@ -214,9 +214,10 @@
   (choice (if (test concepts 'words word) @?english {})
 	  (?? 'type 'language
 	      'key
-	      (for-choices (translation (get concepts
-					     'translations))
-		(if (equal? word (cadr translation))
+	      (for-choices (translation (get concepts '%words))
+		(if (if (string? (cdr translation))
+			(equal? word (cdr translation))
+			(equal? word (cadr translation)))
 		    (car translation)
 		    (fail))))))
 (define (get-langname lang)
@@ -294,7 +295,7 @@
 	     (set+! shown word)
 	     (set! count (1+ count)))
 	    (else)))
-    (let* ((words (try (get c 'words) (cdr (get c 'translations))))
+    (let* ((words (try (get c 'words) (cdr (get c '%words))))
 	   (two-words (sorted (pick-n words 2))))
       (if (empty? words)
 	  (if (exists? (get c '%id)) (xmlout " ?" (get c '%id) "? ")
