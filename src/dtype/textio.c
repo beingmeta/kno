@@ -905,7 +905,7 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
     case '[': return parse_slotmap(in,p);
     case '"': return parse_packet(in,p);
     case '<':  return parse_record(in,p);
-    case '##':
+    case '#':
       return fd_make_list(2,histref_symbol,fd_parser(in,p));
     case '\\': return parse_character(in);
     default: u8_ungetc(in,ch);}}
