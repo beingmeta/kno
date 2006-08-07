@@ -12,7 +12,7 @@
    members members* member-of member-of*
    ingredients ingredients* ingredient-of ingredient-of*
    isa inverse =is= disjoint implies implies*
-   get-gloss get-short-gloss get-expstring gloss
+   get-gloss get-short-gloss get-expstring gloss language-map gloss-map
    index-string index-name index-gloss index-kindof index-frame*
    basic-concept-frequency concept-frequency use-corpus-frequency})
 
@@ -20,6 +20,7 @@
 (define brico-pool {})
 (define brico-index {})
 (define english {})
+(define english-gloss {})
 (define spanish {})
 (define french {})
 (define genls {})
@@ -46,9 +47,11 @@
 (define disjoint {})
 (define implies {})
 (define implies* {})
+(define language-map (make-hashtable))
+(define gloss-map (make-hashtable))
 
 (define (get-gloss concept (language #f))
-  (try (tryif (eq? language english) (get concept 'gloss))
+  (try (tryif (or (not language) (eq? language english)) (get concept 'gloss))
        (get concept (?? 'type 'gloss 'language (or language english)))
        (get concept 'gloss)))
 (define (get-short-gloss concept (language #f))
@@ -89,6 +92,7 @@
 	   (if (exists? brico-pool)
 	       (begin
 		 (set! english (?? '%id 'english))
+		 (set! english-gloss (?? 'type 'gloss 'language english))
 		 (set! french (?? '%id 'fr))
 		 (set! spanish (?? '%id 'es))
 		 (set! genls (?? '%id 'genls))
@@ -115,6 +119,11 @@
 		 (set! disjoint (?? '%id 'disjoint))
 		 (set! implies (?? '%id 'implies))
 		 (set! implies* (?? '%id 'implies*))
+		 (do-choices (l (?? 'type 'language))
+		   (store! language-map (get l 'key) l)
+		   (store! language-map (get l 'langid) l))
+		 (do-choices (l (?? 'type 'gloss))
+		   (store! gloss-map (get l 'key) l))
 		 #t)
 	       (begin (set! brico-index {})
 		      #f))))))
@@ -168,6 +177,58 @@
     (index-frame index frame slotid
 		 (choice gloss-words (porter-stem gloss-words)))))
 
+(define kindof*-slotids '{@?isa @?partof @?memberof @?ingredient-of})
+(define concept-slotids
+  '{@?includes
+    @?ingredients
+    @?parts
+    @?members
+    @?defterms @?refterms
+    @?partof* @?kindof*})
+
+(define (index-concept index concept)
+  (index-frame index concept 'has (getslots concept))
+  (index-frame index concept '{type wikiref sense-category %norm})
+  (index-string index concept english (get concept 'words) 1)
+  (index-name index concept 'names (qc (get concept 'names)) 1)
+  (index-name index concept 'names (qc (pick  (cdr (get concept '%words)) capitalized?)) 1)
+  (do-choices (slotid kindof*-slotids)
+    (index-kindof index concept slotid (qc (%get concept slotid))))
+  (do-choices (slotid concept-slotids)
+    (index-frame index concept slotid (%get concept slotid)))
+  ;; This handles the case of explicit inverse pointers.
+  ;;  If we want to add a pointer R from X to Y and
+  ;;   we can't or don't want to modify X, we store
+  ;;   an explicit inverse ((inv R) Y)=X which will be
+  ;;   found by the inverse inference methods.
+  ;; Otherwise, we don't index the @?defines and @?referenced
+  ;;  slots because it is easier to just get @?defterms
+  ;;  and @?refterms.
+  (when (%test concept @?defines)
+    (index-frame index (%get concept @?defines) @?defterms concept))
+  (when (test concept @?referenced)
+    (index-frame index (%get concept @?referenced) @?refterms concept))
+  (when (test concept 'gloss)
+    (index-frame index concept 'has english-gloss))
+  (when (test concept '%glosses)
+    (index-frame index concept 'has
+		 (get gloss-map (car (get concept '%glosses)))))
+  (do-choices (xlation (get concept '%words))
+    (let ((lang (get language-map (car xlation))))
+      (index-string index concept lang (cdr xlation) 1))))
+
+(define (indexer-prefetch oids)
+  (prefetch-oids! oids)
+  (let ((kovalues (get oids kindof*-slotids)))
+    (let ((visited (choice->hashset kovalues)))
+      (do ((scan kovalues
+		 (reject (%get visited @?kindof) visited)))
+	  ((empty? scan))
+	(prefetch-oids! scan)
+	(hashset-add! visited scan)))))
+
+(module-export! '{index-concept indexer-prefetch})
+
 ;;; Displaying glosses
 
 (define (gloss f (slotid GLOSS))
@@ -175,7 +236,7 @@
 
 ;;; Getting concept frequency information
 
-(define (basic-concept-frequency concept language term)
+(define (basic-concept-frequency concept (language #f) (term #f))
   (let ((sum 0) (language (or language english)))
     (do-choices (wf (if term (?? 'of concept 'word term 'language language)
 			(?? 'of concept)))
