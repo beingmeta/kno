@@ -26,7 +26,7 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int a
 {
   struct FD_DTPROC *f=u8_malloc(sizeof(struct FD_DTPROC));
   FD_INIT_CONS(f,fd_dtproc_type);
-  f->name=u8_mkstring("%s@%s",name,server);
+  f->name=u8_mkstring("%s@%s",name,server); f->filename=u8_strdup(server);
   f->server=u8_strdup(server); f->fcnsym=fd_intern(name);
   f->ndprim=ndcall; f->min_arity=min_arity; f->arity=arity; f->xprim=1;
   f->typeinfo=NULL; f->defaults=NULL; 
@@ -48,7 +48,7 @@ static void recycle_dtproc(FD_CONS *c)
 {
   struct FD_DTPROC *f=(fd_dtproc)c;
   fd_dtsclose(&(f->stream),1);
-  u8_free(f->name); u8_free(f->server);
+  u8_free(f->name); u8_free(f->filename); u8_free(f->server);
   if (f->typeinfo) u8_free(f->typeinfo);
   if (f->defaults) u8_free(f->defaults);
   fd_destroy_mutex(&(f->lock));
