@@ -385,6 +385,27 @@ static fdtype xmlemptyelt(int n,fdtype *args)
   return FD_VOID;
 }
 
+static fdtype xmlentry(fdtype expr,fd_lispenv env)
+{
+  U8_OUTPUT *out=fd_get_default_output();
+  fdtype head=fd_get_arg(expr,1), args=FD_CDR(FD_CDR(expr));
+  u8_byte tagbuf[128], *tagname;
+  if (FD_PAIRP(head)) head=fd_eval(head,env);
+  else head=fd_incref(head);
+  tagname=get_tagname(head,tagbuf,128);
+  if (tagname==NULL) {
+    fd_decref(head);
+    return fd_err(fd_SyntaxError,"xmlentry",NULL,expr);}
+  else if (open_markup(out,NULL,tagname,args,env,1)<0) {
+    fd_decref(head);
+    u8_flush(out);
+    return fd_erreify();}
+  else {
+    fd_decref(head);
+    u8_flush(out);
+    return FD_VOID;}
+}
+
 static fdtype xmlblock(fdtype expr,fd_lispenv env)
 {
   fdtype tagspec=fd_get_arg(expr,1), attribs, body;
@@ -1247,8 +1268,9 @@ FD_EXPORT void fd_init_xmloutput_c()
   fdtype emptymarkup_prim=
     fd_make_special_form("emptymarkup",emptymarkup_handler);
   fdtype xmlout_prim=fd_make_special_form("XMLOUT",xmlout);
-  fdtype xmlblock_prim=fd_make_special_form("XMLOUT",xmlblock);
-  fdtype xmlempty_dproc=fd_make_cprimn("XMLEMPTY",xmlemptyelt,0);
+  fdtype xmlblock_prim=fd_make_special_form("XMLBLOCK",xmlblock);
+  fdtype xmlentry_prim=fd_make_special_form("XMLENTRY",xmlentry);
+  fdtype xmlempty_dproc=fd_make_cprimn("XMLTAG",xmlemptyelt,0);
   fdtype xmlempty_proc=fd_make_ndprim(xmlempty_dproc);
   fdtype xmltag_proc=fd_make_cprimn("XMLTAG",xmlemptyelt,0);
   fdtype xmlify_proc=fd_make_cprim1("XMLIFY",xmlify,1);
@@ -1262,6 +1284,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   {fdtype module=safe_fdweb_module;
   fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
   fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
+  fd_store(module,fd_intern("XMLENTRY"),xmlentry_prim);
   fd_defn(module,xmltag_proc);
   fd_defn(module,xmlempty_proc);
   fd_defn(module,xmlify_proc);
