@@ -203,7 +203,7 @@ static void dolog
 			  exectime,u8_elapsed_time(),
 			  eo->data.cond,eo->data.cxt);
 	else tmp=u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_STRDATA(uri),
-			     u8_elapsed_time(),eo->data.cond);}
+			     exectime,u8_elapsed_time(),eo->data.cond);}
       else tmp=u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_STRDATA(uri),
 			   exectime,u8_elapsed_time(),val);
       fputs(tmp,urllog); u8_free(tmp);}
