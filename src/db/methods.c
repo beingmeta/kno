@@ -458,12 +458,18 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
 	fd_decref(answers); fd_decref(through); fd_decref(key);
 	return entries;}
       else {
+	int ambigkey=FD_CHOICEP(key);
 	FD_DO_CHOICES(e,entries)
-	  if ((FD_PAIRP(e)) && 
-	      ((FD_CHOICEP(key)) ? (fd_choice_containsp(FD_CAR(e),key)) :
-	       (FD_EQ(FD_CAR(e),key)))) {
-	    fdtype v=((FD_PAIRP(FD_CDR(e))) ? (FD_CAR(FD_CDR(e))) : (FD_CDR(e)));
-	    FD_ADD_TO_CHOICE(answers,fd_incref(v));}
+	  if (FD_PAIRP(e)) {
+	    fdtype car=FD_CAR(e), cdr=FD_CDR(e);
+	    if (FD_EQ(car,key)) {
+	      FD_ADD_TO_CHOICE(answers,fd_incref(cdr));}
+	    else if ((!ambigkey) && (!(FD_CHOICEP(car)))) {
+	      if (FDTYPE_EQUAL(car,key)) {
+		FD_ADD_TO_CHOICE(answers,fd_incref(cdr));}}
+	    else if (fd_overlapp(car,key)) {
+	      FD_ADD_TO_CHOICE(answers,fd_incref(cdr));}
+	    else {}}
 	fd_decref(entries);}}
     fd_decref(through); fd_decref(key);
     return answers;}
