@@ -177,14 +177,27 @@
     (index-frame index frame slotid
 		 (choice gloss-words (porter-stem gloss-words)))))
 
-(define kindof*-slotids '{@?isa @?partof @?memberof @?ingredient-of})
+(define kindof*-slotids
+  '{@1/2c274{PARTOF}
+    @1/2c277{INGREDIENT-OF}
+    @1/2c279{MEMBER-OF}
+    @1/2c27e{ISA}})
+
 (define concept-slotids
-  '{@?includes
-    @?ingredients
-    @?parts
-    @?members
-    @?defterms @?refterms
-    @?partof* @?kindof*})
+  {@1/2ab4d{DEFTERMS}
+   @1/2ab57{REFTERMS}
+   @1/2b74c{INCLUDES}
+   @1/2c275{PARTS}
+   @1/2c276{INGREDIENTS}
+   @1/2c278{MEMBERS}
+   @1/2c27b{KINDOF*}
+   @1/2c281{PARTOF*}})
+
+(define kindof @1/2c272{KINDOF})
+(define defterms @1/2ab4d{DEFTERMS})
+(define defines @1/2ab55{DEFINES})
+(define refterms @1/2ab57{REFTERMS})
+(define referenced @1/2ab5a{REFERENCED})
 
 (define (index-concept index concept)
   (index-frame index concept 'has (getslots concept))
@@ -204,10 +217,10 @@
   ;; Otherwise, we don't index the @?defines and @?referenced
   ;;  slots because it is easier to just get @?defterms
   ;;  and @?refterms.
-  (when (%test concept @?defines)
-    (index-frame index (%get concept @?defines) @?defterms concept))
-  (when (test concept @?referenced)
-    (index-frame index (%get concept @?referenced) @?refterms concept))
+  (when (%test concept defines)
+    (index-frame index (%get concept defines) defterms concept))
+  (when (test concept referenced)
+    (index-frame index (%get concept referenced) refterms concept))
   (when (test concept 'gloss)
     (index-frame index concept 'has english-gloss))
   (when (test concept '%glosses)
@@ -222,7 +235,7 @@
   (let ((kovalues (get oids kindof*-slotids)))
     (let ((visited (choice->hashset kovalues)))
       (do ((scan kovalues
-		 (reject (%get visited @?kindof) visited)))
+		 (reject (%get visited kindof) visited)))
 	  ((empty? scan))
 	(prefetch-oids! scan)
 	(hashset-add! visited scan)))))
