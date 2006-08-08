@@ -75,7 +75,7 @@ static int historicp(fdtype x)
 }
 
 static u8_string stats_message=
-  _(";; Done in %f seconds, %d object/index loads\n");
+  _(";; Done in %f seconds, with %d/%d object/index loads\n");
 static u8_string stats_message_w_history=
    _(";; ##%d computed in %f seconds, %d/%d object/index loads\n");
 

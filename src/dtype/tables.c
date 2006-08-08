@@ -1480,12 +1480,27 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 
 FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
 {
+  struct FD_HASHENTRY **slots; int slots_to_free=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (n_slots<0) n_slots=ht->n_slots;
   if (lock) fd_lock_mutex(&(ht->lock));
-  /* First, recycle its components. */
-  if (ht->n_slots) {
-    struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
+  /* Grab the slots and their length. We'll free them after we've reset
+     the table and released its lock. */
+  slots=ht->slots; slots_to_free=ht->n_slots;
+  /* Now initialize the structure.  */
+  if (n_slots == 0) {
+    ht->n_slots=ht->n_keys=0; ht->loading=default_hashtable_loading;
+    ht->slots=NULL;}
+  else {
+    int i=0; struct FD_HASHENTRY **slotvec;
+    ht->n_slots=n_slots; ht->n_keys=0; ht->loading=default_hashtable_loading; 
+    ht->slots=slotvec=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
+    while (i < n_slots) slotvec[i++]=NULL;}
+  /* Free the lock, letting other processes use this hashtable. */
+  if (lock) fd_unlock_mutex(&(ht->lock));
+  /* Now, free the old data... */
+  if (slots_to_free) {
+    struct FD_HASHENTRY **scan=slots, **lim=scan+slots_to_free;
     while (scan < lim)
       if (*scan) {
 	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
@@ -1499,15 +1514,32 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
 	*scan++=NULL;}
       else scan++;
     u8_pfree_x(ht->mpool,ht->slots,sizeof(struct FD_HASHENTRY *)*ht->n_slots);}
-  /* Now reinitialize it. */
+  return n_slots;
+}
+
+/* This resets a hashtable and passes out the internal data to be freed separately.  The idea
+   is to hold onto the hashtable's lock for as little time as possible. */
+FD_EXPORT int fd_fast_reset_hashtable
+  (struct FD_HASHTABLE *ht,int n_slots,int lock,
+   struct FD_HASHENTRY ***slotsptr,int *slots_to_free)
+{
+  FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  if (slotsptr==NULL) return fd_reset_hashtable(ht,n_slots,lock);
+  if (n_slots<0) n_slots=ht->n_slots;
+  if (lock) fd_lock_mutex(&(ht->lock));
+  /* Grab the slots and their length. We'll free them after we've reset
+     the table and released its lock. */
+  *slotsptr=ht->slots; *slots_to_free=ht->n_slots;
+  /* Now initialize the structure.  */
   if (n_slots == 0) {
     ht->n_slots=ht->n_keys=0; ht->loading=default_hashtable_loading;
     ht->slots=NULL;}
   else {
-    int i=0; struct FD_HASHENTRY **slots;
+    int i=0; struct FD_HASHENTRY **slotvec;
     ht->n_slots=n_slots; ht->n_keys=0; ht->loading=default_hashtable_loading; 
-    ht->slots=slots=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
-    while (i < n_slots) slots[i++]=NULL;}
+    ht->slots=slotvec=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
+    while (i < n_slots) slotvec[i++]=NULL;}
+  /* Free the lock, letting other processes use this hashtable. */
   if (lock) fd_unlock_mutex(&(ht->lock));
   return n_slots;
 }
