@@ -1324,8 +1324,12 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       fd_decref(root);
       if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
 	  (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
-	struct FD_PARSER_STATE *pstate=&(pc->states[scan]);
-	u8_byte *start=pc->input[pstate->input].bufptr;
+	u8_byte *start;
+	if (scan<0) 
+	  start=pc->input[0].bufptr;
+	else {
+	  struct FD_PARSER_STATE *pstate=&(pc->states[scan]);
+	  start=pc->input[pstate->input].bufptr;}
 	if (start==NULL) {}
 	else if (bufptr==NULL) {
 	  source=fdtype_string(start);
