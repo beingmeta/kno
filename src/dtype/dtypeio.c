@@ -242,21 +242,27 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       return dtype_len;}
     case fd_qchoice_type: {
       struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
-      struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->choice);
-      const fdtype *data=FD_XCHOICE_DATA(v);
-      int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
-      output_byte(out,dt_framerd_package);
-      if (len < 256) {
+      if (FD_EMPTY_CHOICEP(qv->choice)) {
+	output_byte(out,dt_framerd_package);
+	output_byte(out,dt_small_qchoice);
+	output_byte(out,0);
+	return 3;}
+      else {
+	struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->choice);
+	const fdtype *data=FD_XCHOICE_DATA(v);
+	int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
+	
+	if (len < 256) {
 	dtype_len=3;
 	output_byte(out,dt_small_qchoice);
 	output_byte(out,len);}
-      else {
-	dtype_len=6;
-	output_byte(out,dt_qchoice);
-	output_4bytes(out,len);}
+	else {
+	  dtype_len=6;
+	  output_byte(out,dt_qchoice);
+	  output_4bytes(out,len);}
       while (i < len) {
 	output_dtype(dtype_len,out,data[i]); i++;}
-      return dtype_len;}
+      return dtype_len;}}
     case fd_hashset_type: 
       return write_hashset(out,(struct FD_HASHSET *) cons);
     case fd_slotmap_type: 
