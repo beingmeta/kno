@@ -21,7 +21,7 @@ static u8_string get_logfile(u8_string abspath)
     u8_string simple=u8_string_append(abspath,".log",NULL);
     if (u8_file_existsp(simple)) {
       u8_free(simple);
-      return u8_mkstring("%s_%d.pid",abspath,getpid());}
+      return u8_mkstring("%s_%d.log",abspath,getpid());}
     else return simple;}
 }
 
