@@ -8,8 +8,6 @@
 static char versionid[] =
   "$Id$";
 
-#define FD_INLINE_PPTRS 1
-
 #include "fdb/dtype.h"
 #include "fdb/apply.h"
 
@@ -173,16 +171,15 @@ static fdtype get_calltrack(fdtype ignored,void *lval)
 /* Instrumented apply */
 
 #if FD_CALLTRACK_ENABLED
-FD_EXPORT fdtype _fd_dapply_ct(fdtype fp,int n,fdtype *args);
-FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype _fd_dapply_ct(struct FD_FUNCTION *f,int n,fdtype *args);
+FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *f,int n,fdtype *args)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype result; u8_byte buf[64], *name;
   if (f->name==NULL) {
     sprintf(buf,"FN%lx",(unsigned long int)f); name=buf;}
   else name=f->name;
   calltrack_call(name);
-  result=_fd_dapply_ct((fdtype)f,n,args);
+  result=_fd_dapply_ct(f,n,args);
   /* If we don't compile with calltrack, we don't get pointer checking.
      We may want to change this at some point and move the pointer checking
      into the FD_DAPPLY (fd_dapply_ct/fd_dapply) code. */
@@ -238,9 +235,8 @@ static fdtype dcall6(struct FD_FUNCTION *f,
 
 /* Generic calling function */
 
-FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
+FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype argbuf[8], *args;
   if (f->arity<0)
     if (f->xprim) {
@@ -304,7 +300,7 @@ static fdtype ndapply_loop
    int i,int n,fdtype *nd_args,fdtype *d_args)
 {
   if (i==n) {
-    fdtype value=fd_dapply((fdtype)f,n,d_args);
+    fdtype value=fd_dapply(f,n,d_args);
     if (FD_EXCEPTIONP(value)) return value;
     else {
       FD_ADD_TO_CHOICE(*results,value);}}
@@ -327,9 +323,8 @@ static fdtype ndapply_loop
   return FD_VOID;
 }
 
-FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_ndapply(struct FD_FUNCTION *f,int n,fdtype *args)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   if ((f->arity < 0) || ((n <= f->arity) && (n>=f->min_arity))) {
     fdtype argbuf[6], *d_args;
     fdtype retval, results=FD_EMPTY_CHOICE;
@@ -351,11 +346,10 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 
 /* The default apply function */
 
-FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_apply(FD_FUNCTION *f,int n,fdtype *args)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  if (f->ndprim) return fd_dapply((fdtype)f,n,args);
-  else return fd_ndapply((fdtype)f,n,args);
+  if (f->ndprim) return fd_dapply(f,n,args);
+  else return fd_ndapply(f,n,args);
 }
 static int unparse_function(struct U8_OUTPUT *out,fdtype x)
 {

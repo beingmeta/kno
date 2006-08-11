@@ -458,7 +458,7 @@ static fdtype config_set(fdtype var,fdtype val)
 static fdtype lconfig_get(fdtype var,void *data)
 {
   fdtype proc=(fdtype)data;
-  fdtype result=fd_apply(proc,1,&var);
+  fdtype result=fd_apply((fd_function)proc,1,&var);
   return result;
 }
 
@@ -466,7 +466,7 @@ static int lconfig_set(fdtype var,fdtype val,void *data)
 {
   fdtype proc=(fdtype)data, args[2], result;
   args[0]=var; args[1]=val;
-  result=fd_apply(proc,2,args);
+  result=fd_apply((fd_function)proc,2,args);
   if (FD_ABORTP(result)) 
     return fd_interr(result);
   else if (FD_TRUEP(result)) {

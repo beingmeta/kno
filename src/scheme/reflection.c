@@ -9,7 +9,6 @@ static char versionid[] =
   "$Id$";
 
 #define FD_PROVIDE_FASTEVAL 1
-#define FD_INLINE_PPTRS 1
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
@@ -17,13 +16,13 @@ static char versionid[] =
 
 static fdtype macrop(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_macro_type)) return FD_TRUE;
+  if (FD_PRIM_TYPEP(x,fd_macro_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype compound_procedurep(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_sproc_type)) return FD_TRUE;
+  if (FD_PRIM_TYPEP(x,fd_sproc_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -35,27 +34,27 @@ static fdtype applicablep(fdtype x)
 
 static fdtype special_formp(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_specform_type)) return FD_TRUE;
+  if (FD_PRIM_TYPEP(x,fd_specform_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype primitivep(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_function_type)) return FD_TRUE;
+  if (FD_PRIM_TYPEP(x,fd_function_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype procedurep(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_sproc_type)) return FD_TRUE;
-  else if (FD_PPTR_TYPEP(x,fd_function_type)) return FD_TRUE;
+  if (FD_PRIM_TYPEP(x,fd_sproc_type)) return FD_TRUE;
+  else if (FD_PRIM_TYPEP(x,fd_function_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype fcn_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    struct FD_FUNCTION *f=(fd_function)x;
     if (f->name)
       return fdtype_string(f->name);
     else return FD_FALSE;}
@@ -65,7 +64,7 @@ static fdtype fcn_name(fdtype x)
 static fdtype fcn_filename(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    struct FD_FUNCTION *f=(fd_function)x;
     if (f->filename)
       return fdtype_string(f->filename);
     else return FD_FALSE;}
@@ -75,7 +74,7 @@ static fdtype fcn_filename(fdtype x)
 static fdtype fcn_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    struct FD_FUNCTION *f=(fd_function)x;
     int arity=f->arity;
     if (arity<0) return FD_FALSE;
     else return FD_INT2DTYPE(arity);}
@@ -85,7 +84,7 @@ static fdtype fcn_arity(fdtype x)
 static fdtype fcn_min_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    struct FD_FUNCTION *f=(fd_function)x;
     int arity=f->min_arity;
     return FD_INT2DTYPE(arity);}
   else return fd_type_error(_("procedure"),"fcn_min_arity",x);
@@ -93,37 +92,29 @@ static fdtype fcn_min_arity(fdtype x)
 
 static fdtype compound_procedure_args(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_sproc_type)) {
-    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
-    return fd_incref(proc->arglist);}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
+  return fd_incref(proc->arglist);
 }
 
 static fdtype compound_procedure_env(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_sproc_type)) {
-    struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
-    return (fdtype) fd_copy_env(proc->env);}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
+  return (fdtype) fd_copy_env(proc->env);
 }
 
 static fdtype compound_procedure_body(fdtype x)
 {
-  if (FD_PPTR_TYPEP(x,fd_sproc_type)) {
-    struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
-    return fd_incref(proc->body);}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
+  return fd_incref(proc->body);
 }
 
 static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
 {
-  if (FD_PPTR_TYPEP(x,fd_sproc_type)) {
-    struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
-    fdtype body=proc->body;
-    proc->body=fd_incref(new_body);
-    fd_decref(body);
-    return FD_VOID;}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  struct FD_SPROC *proc=FD_GET_CONS(x,fd_sproc_type,fd_sproc);
+  fdtype body=proc->body;
+  proc->body=fd_incref(new_body);
+  fd_decref(body);
+  return FD_VOID;
 }
 
 /* Macro expand */
@@ -133,11 +124,11 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
   if (FD_PAIRP(expr)) {
     if (FD_PRIM_TYPEP(expander,fd_macro_type)) {
       struct FD_MACRO *macrofn=(struct FD_MACRO *)expander;
-      fd_ptr_type xformer_type=FD_PTR_TYPE(macrofn->transformer);
-      if (fd_applyfns[xformer_type]) {
+      if (fd_applyfns[FD_PTR_TYPE(macrofn->transformer)]) {
 	/* These are special forms which do all the evaluating themselves */
 	fdtype new_expr=
-	  (fd_applyfns[xformer_type])(fd_pptr_ref(macrofn->transformer),1,&expr);
+	  (fd_applyfns[FD_PTR_TYPE(macrofn->transformer)])
+	  (macrofn->transformer,1,&expr);
 	if (FD_ABORTP(new_expr))
 	  return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
 	else return new_expr;}
@@ -216,6 +207,5 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
 
   fd_finish_module(module);
-  fd_persist_hashtable((fd_hashtable)module);
 }
 

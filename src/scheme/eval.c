@@ -10,7 +10,6 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1
-#define FD_INLINE_PPTRS 1
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
@@ -379,11 +378,7 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
       return fd_car(FD_CDR(expr));
     else {
       fdtype headval=fasteval(head,env), result;
-      int ctype=FD_PTR_TYPE(headval), gc=1;
-      if (ctype==fd_pptr_type) {
-	headval=fd_pptr_ref(headval);
-	ctype=FD_PTR_TYPE(headval);
-	gc=0;}
+      int ctype=FD_PTR_TYPE(headval);
       if (fd_applyfns[ctype]) 
 	result=apply_function(headval,expr,env);
       else if (FD_PRIM_TYPEP(headval,fd_specform_type)) {
@@ -399,7 +394,7 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
 	struct FD_MACRO *macrofn=
 	  FD_GET_CONS(headval,fd_macro_type,struct FD_MACRO *);
 	fdtype xformer=macrofn->transformer;
-	int xformer_type=FD_PPTR_TYPE(xformer);
+	int xformer_type=FD_PTR_TYPE(xformer);
 	if (fd_applyfns[xformer_type]) {
 	  fdtype new_expr=(fd_applyfns[xformer_type])(xformer,1,&expr);
 	  if (FD_ABORTP(new_expr))
@@ -414,7 +409,7 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
       else result=fd_err(fd_NotAFunction,NULL,NULL,headval);
       if (FD_ABORTP(result))
 	result=fd_passerr(result,fd_incref(expr));
-      if (gc) fd_decref(headval);
+      fd_decref(headval);
       return result;}}
   case fd_slotmap_type:
     return fd_deep_copy(expr);
@@ -484,9 +479,9 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 	args[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
     else while (arg_count<args_length) args[arg_count++]=FD_VOID;
   if ((fcn->ndprim==0) && (nd_args))
-    result=fd_ndapply((fdtype)fcn,args_length,args);
+    result=fd_ndapply(fcn,args_length,args);
   else {
-    result=fd_dapply((fdtype)fcn,args_length,args);}
+    result=fd_dapply(fcn,args_length,args);}
   if ((FD_ABORTP(result)) && (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
@@ -727,7 +722,7 @@ static fdtype apply_lexpr(int n,fdtype *args)
     int final_length=fd_seq_length(final_arg);
     int n_args=(n-2)+final_length;
     fdtype *values=u8_malloc(sizeof(fdtype)*n_args);
-    int i=1, j=0, lim=n-1, ctype=FD_PPTR_TYPE(args[0]);
+    int i=1, j=0, lim=n-1, ctype=FD_PTR_TYPE(args[0]);
     /* Copy regular arguments */
     while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
     i=0; while (j<n_args) {
@@ -753,7 +748,7 @@ static void *thread_call(void *data)
   if (tstruct->flags&FD_EVAL_THREAD) 
     result=fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
   else 
-    result=fd_dapply(tstruct->applydata.fn,
+    result=fd_dapply((fd_function)tstruct->applydata.fn,
 		     tstruct->applydata.n_args,
 		     tstruct->applydata.args);
   if (FD_ABORTP(result))
@@ -1345,7 +1340,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(handler))
       return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
     else if (FD_APPLICABLEP(handler)) {
-      struct FD_FUNCTION *f=FD_DTYPE2FCN(handler);
+      struct FD_FUNCTION *f=(fd_function)handler;
       struct FD_EXCEPTION_OBJECT *ex=(struct FD_EXCEPTION_OBJECT *)value;
       fdtype result, args[5]; int n=0;
       args[0]=fdtype_string((u8_string)ex->data.cond); n++;
@@ -1361,8 +1356,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
 	args[n]=ex->data.irritant; n++;}
       if ((f->arity<0) || (f->arity>4)) {
 	args[n]=ex->backtrace; n++;}
-      result=fd_dapply((fdtype)f,n,args);
-      if (FD_CONSP(handler)) fd_decref(handler);
+      result=fd_dapply(f,n,args);
       fd_decref(value);
       return result;}
     else {
@@ -1375,7 +1369,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(handler))
       return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
     else if (FD_APPLICABLEP(handler)) {
-      fdtype result=fd_dapply(handler,1,&value);
+      fdtype result=fd_dapply((fd_function)handler,1,&value);
       fd_decref(value);
       return result;}
     else {
@@ -1390,7 +1384,7 @@ static fdtype applytest(int n,fdtype *args)
   if (n<2)
     return fd_err(fd_TooFewArgs,"applytest",NULL,FD_VOID);
   else if (FD_APPLICABLEP(args[1])) {
-    fdtype value=fd_apply(args[1],n-2,args+2);
+    fdtype value=fd_apply((fd_function)(args[1]),n-2,args+2);
     if (FD_EQUAL(value,args[0])) {
       fd_decref(value);
       return FD_TRUE;}
@@ -1520,8 +1514,6 @@ static void init_core_builtins()
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_history_c();
-  fd_persist_hashtable((fd_hashtable)fd_scheme_module);
-  fd_persist_hashtable((fd_hashtable)fd_xscheme_module);
 }
 
 FD_EXPORT int fd_init_fdscheme()

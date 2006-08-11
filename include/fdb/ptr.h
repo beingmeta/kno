@@ -117,7 +117,6 @@ typedef enum FD_PTR_TYPE {
   fd_constant_type=FD_IMMEDIATE_TYPECODE(0),
   fd_character_type=FD_IMMEDIATE_TYPECODE(1),
   fd_symbol_type=FD_IMMEDIATE_TYPECODE(2),
-  fd_pptr_type=FD_IMMEDIATE_TYPECODE(3),
 
   fd_string_type=FD_CONS_TYPECODE(0),
   fd_packet_type=FD_CONS_TYPECODE(1),
@@ -145,7 +144,7 @@ typedef enum FD_PTR_TYPE {
   } fd_ptr_type;
 
 #define FD_BUILTIN_CONS_TYPES 22
-#define FD_BUILTIN_IMMEDIATE_TYPES 4
+#define FD_BUILTIN_IMMEDIATE_TYPES 3
 FD_EXPORT unsigned int fd_max_cons_type;
 FD_EXPORT unsigned int fd_max_immediate_type;
 
@@ -421,66 +420,6 @@ FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);
 FD_EXPORT fdtype fd_probe_symbol(u8_string string,int len);
 FD_EXPORT fdtype fd_intern(u8_string string);
 FD_EXPORT fdtype fd_all_symbols(void);
-
-/* Persistent pointers */
-
-/* Persistent pointers are immediate values which refer to
-   conses stored in a persistent table.  The idea is that
-   persistent pointers are not subject to GC, so they can
-   be passed much more quickly and without thread contention. */
-
-#define FD_PPTRP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_pptr_type))
-
-FD_EXPORT struct FD_CONS **_fd_pptrs[];
-FD_EXPORT int _fd_npptrs;
-#if FD_THREADS_ENABLED
-FD_EXPORT u8_mutex _fd_pptr_lock;
-#endif
-
-#ifndef FD_PPTR_BLOCKSIZE
-#define FD_PPTR_BLOCKSIZE 256
-#endif
-
-#ifndef FD_PPTR_NBLOCKS
-#define FD_PPTR_NBLOCKS 256
-#endif
-
-#ifndef FD_INLINE_PPTRS
-#define FD_INLINE_PPTRS 0
-#endif
-
-FD_EXPORT fdtype _fd_pptr_ref(fdtype ref);
-FD_EXPORT fdtype fd_pptr_register(fdtype obj);
-
-FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
-
-FD_EXPORT fd_exception fd_InvalidPPtr, fd_PPtrOverflow;
-
-#if FD_INLINE_PPTRS
-static fdtype fd_pptr_ref(fdtype ref)
-{
-  if (FD_PRIM_TYPEP(ref,fd_pptr_type)) {
-    int serialno=FD_GET_IMMEDIATE(ref,fd_pptr_type);
-    if (serialno>_fd_npptrs)
-      return fd_err(fd_InvalidPPtr,"_fd_pptr_ref",NULL,ref);
-    else return (fdtype) _fd_pptrs[serialno/FD_PPTR_BLOCKSIZE][serialno%FD_PPTR_BLOCKSIZE];}
-  else return ref;
-}
-#else
-#define fd_pptr_ref _fd_pptr_ref
-#endif
-
-#define FD_PPTR_TYPEP(x,tp) \
-  (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-    (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
-   (FD_PRIM_TYPEP((fd_pptr_ref(x)),tp)) : (FD_PRIM_TYPEP(x,tp)))
-
-#define FD_PPTR_TYPE(x) \
-  (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-    (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
-    (FD_PTR_TYPE(fd_pptr_ref(x))) : (FD_PTR_TYPE(x)))
 
 /* Numeric macros */
 

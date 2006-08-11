@@ -1139,7 +1139,7 @@ static fdtype subst_extract
 	    if (n<0) replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
 	    else {
 	      args[0]=tmpstring;
-	      replacement=fd_apply(method,n,args);}
+	      replacement=fd_apply((fd_function)method,n,args);}
 	    fd_decref(tmpstring);}
 	  fd_decref(method);}
 	if (FD_ABORTP(replacement)) {

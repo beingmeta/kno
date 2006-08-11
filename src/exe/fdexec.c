@@ -125,7 +125,7 @@ int main(int argc,char **argv)
   if (!(FD_ABORTP(result))) {
     main_proc=fd_symeval(fd_intern("MAIN"),env);
     if (FD_APPLICABLEP(main_proc)) {
-      int ctype=FD_PPTR_TYPE(main_proc);
+      int ctype=FD_PTR_TYPE(main_proc);
       fd_decref(result);
       result=fd_applyfns[ctype](main_proc,n_args,args);}}
   if (FD_EXCEPTIONP(result)) {

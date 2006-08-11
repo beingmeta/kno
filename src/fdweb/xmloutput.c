@@ -277,7 +277,7 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
   if (FD_STRINGP(x))
     emit_xmlcontent(out,FD_STRDATA(x));
   else if ((FD_APPLICABLEP(xmloidfn)) && (FD_OIDP(x))) {
-    fdtype result=fd_apply(xmloidfn,1,&x);
+    fdtype result=fd_apply((fd_function)xmloidfn,1,&x);
     fd_decref(result);}
   else if (FD_OIDP(x)) 
     fd_xmloid(out,x);
@@ -895,7 +895,7 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
     if ((FD_OIDP(displayer)) || (FD_SYMBOLP(displayer)))
       name=fd_frame_get(arg,displayer);
     else if (FD_APPLICABLEP(displayer))
-      name=fd_apply(displayer,1,&arg);
+      name=fd_apply((fd_function)displayer,1,&arg);
     else name=fd_frame_get(arg,obj_name);
     if (FD_EMPTY_CHOICEP(name))
       u8_printf(out,"%q",arg);
@@ -1388,10 +1388,7 @@ FD_EXPORT void fd_init_fdweb()
 #endif
     fd_finish_module(safe_fdweb_module);
     fd_finish_module(fdweb_module);
-    fd_finish_module(xhtml_module);
-    fd_persist_hashtable((fd_hashtable)safe_fdweb_module);
-    fd_persist_hashtable((fd_hashtable)fdweb_module);
-    fd_persist_hashtable((fd_hashtable)xhtml_module);}
+    fd_finish_module(xhtml_module);}
   fd_register_config("ERRORSTYLESHEET",fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
   fd_register_source_file(FDB_FDWEB_H_VERSION);
   fd_register_source_file(versionid);

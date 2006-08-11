@@ -381,28 +381,6 @@ static fdtype get_module(fdtype modname)
   return module;
 }
 
-static fdtype persist_module(fdtype module)
-{
-  if (FD_HASHTABLEP(module)) {
-    int conversions=fd_persist_hashtable((fd_hashtable)module);
-    return FD_INT2DTYPE(conversions);}
-  else if (FD_ENVIRONMENTP(module)) {
-    fd_lispenv env=(fd_lispenv) module;
-    int conversions=0;
-    if (FD_HASHTABLEP(env->bindings))
-      conversions=conversions+fd_persist_hashtable((fd_hashtable)(env->bindings));
-    if ((env->exports) && (FD_HASHTABLEP(env->exports)))
-      conversions=conversions+fd_persist_hashtable((fd_hashtable)(env->exports));
-    return FD_INT2DTYPE(conversions);}
-  else {
-    fdtype module_val=fd_find_module(module,0,0);
-    if (FD_ABORTP(module_val)) return module_val;
-    else {
-      fdtype result=persist_module(module_val);
-      fd_decref(module_val);
-      return result;}}
-}
-
 /* Initialization */
 
 FD_EXPORT void fd_init_modules_c()
@@ -443,8 +421,6 @@ FD_EXPORT void fd_init_modules_c()
   fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module);
   fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PERSIST-MODULE",persist_module,1));
 }
 
 

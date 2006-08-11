@@ -52,7 +52,7 @@ SCHEME_HEADERS=include/fdb/eval.h include/fdb/sequences.h
 
 BASE0OBJS=src/misc/stdio.o src/misc/simplerr.o
 STDBASEOBJS=src/misc/stdio.o src/misc/dynamic.o
-DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o \
+DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o \
 	  src/dtype/symbols.o src/dtype/numbers.o \
           src/dtype/choices.o src/dtype/tables.o \
           src/dtype/dtypeio.o src/dtype/textio.o \
@@ -89,7 +89,7 @@ SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 
 FDB_SOURCES=\
 	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) \
-	src/dtype/cons.c src/dtype/oids.c src/dtype/pptrs.c src/dtype/symbols.c \
+	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c \
         src/dtype/choices.c src/dtype/tables.c \
         src/dtype/dtypeio.c src/dtype/textio.c \
 	src/dtype/fdtype.c src/dtype/support.c \

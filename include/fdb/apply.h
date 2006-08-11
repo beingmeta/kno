@@ -76,13 +76,11 @@ FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from);
 typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
 FD_EXPORT fd_applyfn fd_applyfns[];
 
-FD_EXPORT fdtype fd_apply(fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_apply(struct FD_FUNCTION *,int n,fdtype *args);
+FD_EXPORT fdtype fd_ndapply(struct FD_FUNCTION *,int n,fdtype *args);
+FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *,int n,fdtype *args);
 
-#define FD_APPLICABLEP(x) ((fd_applyfns[FD_PPTR_TYPE(x)])!=NULL)
-
-#define FD_DTYPE2FCN(x) ((FD_PPTRP(x)) ? ((fd_function)(fd_pptr_ref(x))) : ((fd_function)x))
+#define FD_APPLICABLEP(x) ((fd_applyfns[FD_PTR_TYPE(x)])!=NULL)
 
 /* Profiling */
 

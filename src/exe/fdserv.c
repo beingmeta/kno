@@ -470,10 +470,10 @@ static int webservefn(u8_client ucl)
     else if (FD_CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
 	if (FD_APPLICABLEP(proc)) {
-	  fdtype v=fd_apply(proc,0,NULL);
+	  fdtype v=fd_apply((struct FD_FUNCTION *)proc,0,NULL);
 	  fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
-      fdtype v=fd_apply(setup_proc,0,NULL);
+      fdtype v=fd_apply((struct FD_FUNCTION *)setup_proc,0,NULL);
       fd_decref(v);}
     fd_decref(setup_proc);
     write_headers=0;
