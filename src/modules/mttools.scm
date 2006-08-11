@@ -87,8 +87,8 @@
 	      (printout ", ~ "
 		(short-interval-string (* time (/ (- limit count) count)))
 		" to go"))
-	    "; " (get% blocktime time) " (~"
-	    (short-interval-string blocktime) ") in block setup.")))
+	    "; " (get% blocktime time) "% (~"
+	    (short-interval-string blocktime) ") in block setup")))
 
 (define do-choices-mt
   (macro expr
@@ -110,7 +110,7 @@
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
-		   (_preamble_time 0))
+		   (_block_time 0))
 	       (do-subsets (_block ,choice-generator _blocksize _blockno)
 		 (when _progressfn
 		   (_progressfn (* _blockno _blocksize)
@@ -126,7 +126,8 @@
 	       (when _progressfn
 		 (_progressfn (choice-size _choice)
 			      (choice-size _choice)
-			      (- (elapsed-time) _start)))))))))
+			      (- (elapsed-time) _start)
+			      _block_time))))))))
 
 (define (mt/save/fetchoids oids)
   (commit) (clearcaches)
