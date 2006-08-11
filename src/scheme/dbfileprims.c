@@ -154,6 +154,7 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE1",lisphashdtype1,1));
 
   fd_finish_module(filedb_module);
+  fd_persist_hashtable((fd_hashtable)filedb_module);
 }
 
 

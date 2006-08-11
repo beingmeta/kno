@@ -124,10 +124,11 @@ chaintest:
 	fdexec chaintest.scm 0 30
 	fdexec chaintest.scm 10 50
 batchtest:
-	rm -f countup.log countup.err countup.finished
+	rm -f countup.log countup.err countup.done
 	./fdbatch countup.scm "countup.finished" 10 1; sleep 3
 	if (test ! -f countup.pid); then echo error; exit 1; fi;
 	sleep 12;
+	if (test ! -s countup.done); then echo error; exit 1; fi;
 	if (test ! -s countup.finished); then echo error; exit 1; fi;
 	if (test ! -s countup.err); then echo error; exit 1; fi;
 	if (test ! -s countup.log); then echo error; exit 1; fi;

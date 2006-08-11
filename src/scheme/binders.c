@@ -539,7 +539,7 @@ static int unparse_sproc(u8_output out,fdtype x)
 
 FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
 {
-  int xftype=FD_PTR_TYPE(xformer);
+  int xftype=FD_PPTR_TYPE(xformer);
   if ((xftype<FD_TYPE_MAX) && (fd_applyfns[xftype])) {
     struct FD_MACRO *s=u8_malloc_type(struct FD_MACRO);
     FD_INIT_CONS(s,fd_macro_type);

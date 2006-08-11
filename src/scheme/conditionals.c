@@ -87,7 +87,7 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
 	    fd_decref(test_val);
 	    return fn;}
 	  else if (FD_APPLICABLEP(fn)) {
-	    fdtype retval=fd_apply((fd_function)fn,1,&test_val);
+	    fdtype retval=fd_apply(fn,1,&test_val);
 	    fd_decref(test_val); fd_decref(fn);
 	    return retval;}
 	  else {
@@ -173,7 +173,7 @@ static fdtype or_handler(fdtype expr,fd_lispenv env)
 
 static fdtype handle_error(fdtype handler,fdtype exception)
 {
-  struct FD_FUNCTION *fn=(fd_function)handler;
+  struct FD_FUNCTION *fn=FD_DTYPE2FCN(handler);
   struct FD_EXCEPTION_OBJECT *exo=
     FD_GET_CONS(exception,fd_exception_type,fd_exception_object);
   fdtype handler_args[5], handler_result; int i=0, n_args;
@@ -194,7 +194,7 @@ static fdtype handle_error(fdtype handler,fdtype exception)
     handler_args[3]=fd_incref(exo->data.irritant);
   if (n_args>4) 
     handler_args[4]=fd_incref(exo->backtrace);
-  handler_result=fd_apply(fn,n_args,handler_args);
+  handler_result=fd_apply((fdtype)fn,n_args,handler_args);
   while (i<n_args) {fd_decref(handler_args[i]); i++;}
   if (FD_VOIDP(handler_result))
     return exception;

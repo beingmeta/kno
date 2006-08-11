@@ -324,7 +324,7 @@ static fdtype cachecall(int n,fdtype *args)
   cached=fd_hashtable_get(cache,vec,FD_VOID);
   if (FD_VOIDP(cached)) {
     int state=fd_ipeval_status();
-    fdtype result=fd_dapply((struct FD_FUNCTION *)fcn,n-1,args+1);
+    fdtype result=fd_dapply(fcn,n-1,args+1);
     if (FD_EXCEPTIONP(result)) {
       fd_decref((fdtype)cache);
       return result;}
@@ -763,7 +763,7 @@ static fdtype testp(int n,fdtype *args)
 	  if (FD_APPLICABLEP(testfn)) {
 	    fdtype test_result=FD_FALSE;
 	    args[2]=values;
-	    test_result=fd_apply((fd_function)testfn,n-2,args+2);
+	    test_result=fd_apply(testfn,n-2,args+2);
 	    args[2]=testfns;
 	    if (FD_ABORTP(test_result)) {
 	      fd_decref(values); return test_result;}
@@ -882,7 +882,7 @@ static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
     return fd_test(pred,f,val);
   else if (FD_APPLICABLEP(pred)) {
     fdtype rail[2], result;
-    rail[0]=f; rail[1]=val; result=fd_apply((fd_function)pred,2,rail);
+    rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);
     if (FD_ABORTP(result))
       return fd_interr(result);
     else if ((FD_FALSEP(result)) || (FD_EMPTY_CHOICEP(result)))
@@ -954,7 +954,7 @@ static fdtype binary_pick(fdtype candidates,fdtype test)
       else if (FD_TABLEP(test))
 	v=fd_get(test,candidate,FD_VOID);
       else if (FD_APPLICABLEP(test))
-	v=fd_apply((fd_function)test,1,&candidate);
+	v=fd_apply(test,1,&candidate);
       else {
 	fd_decref(results);
 	return fd_type_error(_("test object"),"binary_pick",test);}
@@ -1028,7 +1028,7 @@ static fdtype binary_reject(fdtype candidates,fdtype test)
       else if (FD_TABLEP(test))
 	v=fd_get(test,candidate,FD_VOID);
       else if (FD_APPLICABLEP(test))
-	v=fd_apply((fd_function)test,1,&candidate);
+	v=fd_apply(test,1,&candidate);
       else {
 	fd_decref(results);
 	return fd_type_error(_("test object"),"binary_pick",test);}
@@ -1287,7 +1287,7 @@ static fdtype applyfn(fdtype fn,fdtype node)
 	return v;}
       else {FD_ADD_TO_CHOICE(results,v);}}}
   else if (FD_APPLICABLEP(fn))
-    return fd_apply((fd_function)fn,1,&node);
+    return fd_apply(fn,1,&node);
   else if (FD_TABLEP(fn))
     return fd_get(fn,node,FD_EMPTY_CHOICE);
   else return FD_EMPTY_CHOICE;

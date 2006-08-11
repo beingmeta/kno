@@ -392,7 +392,7 @@ static fdtype getmagnitude(fdtype val,fdtype magfn)
       return fd_get(magfn,val,FD_EMPTY_CHOICE);
     default:
       if (FD_APPLICABLEP(magfn))
-	return fd_dapply(((struct FD_FUNCTION *)(magfn)),1,&val);
+	return fd_dapply(magfn,1,&val);
       else return fd_get(val,magfn,FD_EMPTY_CHOICE);}}
 }
 
@@ -584,7 +584,7 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
 static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args)
 {
   if (i==n) {
-    fdtype val=fd_dapply(fn,n,d_args);
+    fdtype val=fd_dapply((fdtype)fn,n,d_args);
     if ((FD_FALSEP(val)) || (FD_EMPTY_CHOICEP(val))) {
       return 0;}
     else if (FD_ABORTP(val)) {
@@ -630,7 +630,7 @@ static fdtype forall_lexpr(int n,fdtype *nd_args)
 static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args)
 {
   if (i==n) {
-    fdtype val=fd_dapply(fn,n,d_args);
+    fdtype val=fd_dapply((fdtype)fn,n,d_args);
     if ((FD_FALSEP(val)))
       return 0;
     else if (FD_EMPTY_CHOICEP(val))
@@ -700,7 +700,7 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start)
       else {
 	fdtype rail[2], next_state;
 	rail[0]=item; rail[1]=state;
-	next_state=fd_apply((fd_function)fn,2,rail);
+	next_state=fd_apply(fn,2,rail);
 	if (FD_ABORTP(next_state)) {
 	  fd_decref(state); FD_STOP_DO_CHOICES;
 	  return next_state;}
@@ -714,7 +714,7 @@ static fdtype apply_map(fdtype fn,fdtype val)
   if ((FD_VOIDP(fn)) || (FD_FALSEP(fn)))
     return fd_incref(val);
   else if (FD_APPLICABLEP(fn))
-    return fd_apply((fd_function)fn,1,&val);
+    return fd_apply(fn,1,&val);
   else if (FD_TABLEP(fn)) 
     return fd_get(fn,val,FD_VOID);
   else return fd_type_error(_("map function"),"xreduce_choice",fn);
@@ -754,7 +754,7 @@ static fdtype xreduce_choice
 	if (!((FD_VOIDP(item_val)) || (FD_EMPTY_CHOICEP(item_val)))) {
 	  fdtype rail[2], next_state;
 	  rail[0]=item_val; rail[1]=state;
-	  next_state=fd_apply((fd_function)reducefn,2,rail);
+	  next_state=fd_apply(reducefn,2,rail);
 	  fd_decref(item_val); fd_decref(state);
 	  state=next_state;}}
     return state;}
@@ -882,7 +882,7 @@ static fdtype apply_keyfn(fdtype x,fdtype keyfn)
   else if (FD_OIDP(keyfn)) return fd_frame_get(x,keyfn);
   else if (FD_TABLEP(keyfn)) return fd_get(keyfn,x,FD_EMPTY_CHOICE);
   else if (FD_APPLICABLEP(keyfn)) {
-    fd_ptr_type keytype=FD_PTR_TYPE(keyfn);
+    fd_ptr_type keytype=FD_PPTR_TYPE(keyfn);
     return fd_applyfns[keytype](keyfn,1,&x);}
   else if (FD_VECTORP(keyfn)) {
     int i=0, len=FD_VECTOR_LENGTH(keyfn);

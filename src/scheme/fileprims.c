@@ -1246,6 +1246,8 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_finish_module(fileio_module);
 
+  fd_persist_hashtable((fd_hashtable)fileio_module);
+
   fd_register_sourcefn(file_source_fn);
 }
 

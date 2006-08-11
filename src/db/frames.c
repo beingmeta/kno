@@ -401,7 +401,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	struct FD_FUNCTION *fn=lookup_method(method);
 	if (fn) {
 	  fdtype args[2], value; args[0]=f; args[1]=slotid;
-	  value=fd_dapply(fn,2,args);
+	  value=fd_dapply((fdtype)fn,2,args);
 	  if (FD_EXPECT_FALSE(FD_EXCEPTIONP(value))) {
 	    fd_pop_opstack(&fop); fd_decref(computed); fd_decref(methods);
 	    return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
@@ -471,7 +471,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	  FD_DO_CHOICES(method,methods) {
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
-	      fdtype v=fd_apply(fn,3,args);
+	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_EXCEPTIONP(v))) {
 		fd_pop_opstack(&fop); fd_decref(methods);
 		return fd_interr(v);}
@@ -513,7 +513,7 @@ FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
 	  FD_DO_CHOICES(method,methods) {
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
-	      fdtype v=fd_apply(fn,3,args);
+	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_EXCEPTIONP(v))) {
 		fd_pop_opstack(&fop);
 		fd_decref(methods);
@@ -548,7 +548,7 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 	  FD_DO_CHOICES(method,methods) {
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
-	      fdtype v=fd_apply(fn,3,args);
+	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_EXCEPTIONP(v))) {
 		fd_pop_opstack(&fop);
 		fd_decref(methods);

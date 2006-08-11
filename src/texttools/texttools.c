@@ -532,7 +532,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
        and apply the parse function. */
     else if (FD_APPLICABLEP(parsefn)) {
       fdtype stringval=fd_extract_string(NULL,start,scan);
-      fdtype value=fd_apply((fd_function)parse,1,&stringval);
+      fdtype value=fd_apply(parse,1,&stringval);
       if (field<parselen) fd_decref(parsefn);
       if (FD_ABORTP(value)) {
 	int k=0; while (k<field) {fd_decref(fields[k]); k++;}
@@ -945,7 +945,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	  fd_decref(stringval);}
 	else if (FD_APPLICABLEP(parser)) {
 	  fdtype stringval=fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
-	  fdtype parsed_val=fd_dapply((fd_function)parser,1,&stringval);
+	  fdtype parsed_val=fd_dapply(parser,1,&stringval);
 	  fd_add(f,slotid,parsed_val);
 	  fd_decref(parsed_val);
 	  fd_decref(stringval);}
@@ -1173,7 +1173,7 @@ static int check_string(fdtype string,fdtype lexicon)
 	fd_decref(value); fd_decref(subvalue);
 	return 1;}}}
   else if (FD_APPLICABLEP(lexicon)) {
-    fdtype result=fd_dapply((fd_function)lexicon,1,&string);
+    fdtype result=fd_dapply(lexicon,1,&string);
     if (FD_EMPTY_CHOICEP(result)) return 0;
     else if (FD_FALSEP(result)) return 0;
     else {
@@ -1493,6 +1493,7 @@ void fd_init_texttools()
   opt_symbol=fd_intern("OPT");
 
   fd_finish_module(texttools_module);
+  fd_persist_hashtable((fd_hashtable)texttools_module);
 }
 
 /* The CVS log for this file

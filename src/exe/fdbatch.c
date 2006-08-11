@@ -51,15 +51,25 @@ static u8_string get_donefile(u8_string abspath)
     else return simple;}
 }
 
+static u8_string pid_file=NULL;
+
+static void remove_pid_file()
+{
+  if (pid_file) u8_removefile(pid_file);
+}
+
 int main(int argc,char **argv)
 {
   pid_t pid;
   int pid_fd, log_fd, err_fd;
   u8_string base=u8_basename(argv[1],".scm"), abspath=u8_abspath(base,NULL);
-  u8_string pid_file, done_file, log_file=NULL, err_file=NULL;
+  u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
   fd_init_dtypelib();
   pid_file=get_pidfile(abspath);
+  if (u8_file_existsp(pid_file)) {
+    u8_warn("PID file %s exists, may be running",pid_file);
+    exit(1);}
   done_file=get_donefile(abspath);
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
@@ -96,11 +106,11 @@ int main(int argc,char **argv)
        removes the pid file and writes the done file when
        when it exits normally. */
     int retval=-1;
+    atexit(remove_pid_file);
     if (log_file) {dup2(log_fd,1); u8_free(log_file);}
     if (err_file) {dup2(err_fd,2); u8_free(err_file);}
     u8_free(base); u8_free(abspath);
     retval=do_main(argc,argv);
-    u8_removefile(pid_file);
     {
       FILE *f=u8_fopen(done_file,"w");
       if (f) {
