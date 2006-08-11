@@ -162,6 +162,7 @@ if test $doi18n = "yes"; then
   INSTALLI18N="install-i18n"
 fi
 
+AC_CHECK_FUNCS(sigprocmask)
 AC_CHECK_FUNCS(sigsetmask)
 AC_CHECK_FUNCS(strdup strndup)
 AC_CHECK_FUNCS(flock)

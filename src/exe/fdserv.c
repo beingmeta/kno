@@ -673,7 +673,13 @@ int main(int argc,char **argv)
   signal(SIGQUIT,signal_shutdown);
 #endif
 
-#if HAVE_SIGSETMASK
+#if HAVE_SIGPROCMASK
+ {
+   sigset_t newset;
+   sigemptyset(&newset);
+   sigprocmask(SIG_SETMASK,&newset,NULL);
+ }
+#elif HAVE_SIGSETMASK
   /* We set this here because otherwise, it will often inherit
      the signal mask of its apache parent, which is inappropriate. */
   sigsetmask(0);
