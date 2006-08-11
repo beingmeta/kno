@@ -43,6 +43,10 @@ FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type;
 #define FD_INDEXP(x) (FD_PRIM_TYPEP(x,fd_index_type))
 #define FD_POOLP(x) (FD_PRIM_TYPEP(x,fd_pool_type))
 
+FD_EXPORT int fd_commit_all(void);
+FD_EXPORT void fd_swapout_all(void);
+FD_EXPORT void fd_fast_swapout_all(void);
+
 /* IPEVAL stuff */
 
 #if (FD_GLOBAL_IPEVAL)

@@ -219,6 +219,83 @@ static fdtype get_prefetch(fdtype var,void *data)
   if (fd_prefetch) return FD_TRUE; else return FD_FALSE;
 }
 
+/* Global pool/index functions */
+
+FD_EXPORT int fd_commit_all()
+{
+  /* Not really ACID, but probably better than doing pools first. */
+  if (fd_commit_indices()<0) return -1;
+  else return fd_commit_pools();
+}
+
+FD_EXPORT void fd_swapout_all()
+{
+  fd_swapout_indices();
+  fd_swapout_pools();
+}
+
+/* Fast swap outs.
+
+/* This swaps stuff out while trying to hold locks for the minimal possible
+   time.  It does this by using fd_fast_reset_hashtable() and actually freeing
+   the storage outside of the lock.  This is good for swapping out on
+   multi-threaded servers. */
+
+/* This stores a hashtable's data to free after it has been reset. */
+struct HASHVEC_TO_FREE {
+  struct FD_HASHENTRY **slots; int n_slots;};
+struct HASHVECS_TODO {
+  struct HASHVEC_TO_FREE *to_free; int n_to_free, max_to_free;};
+
+static void fast_reset_hashtable
+  (fd_hashtable h,int n_slots_arg,struct HASHVECS_TODO *todo)
+{
+  int i=todo->n_to_free;
+  if (todo->n_to_free==todo->max_to_free) {
+    todo->to_free=u8_realloc
+      (todo->to_free,sizeof(struct HASHVEC_TO_FREE)*(todo->max_to_free)*2);
+    todo->max_to_free=(todo->max_to_free)*2;}
+  fd_fast_reset_hashtable(h,n_slots_arg,1,
+			  &(todo->to_free[i].slots),
+			  &(todo->to_free[i].n_slots));
+  todo->n_to_free=i+1;
+}
+
+static int fast_swapout_index(fd_index ix,void *data)
+{
+  struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
+  if ((((ix->flags)&FD_INDEX_NOSWAP)==0) && (ix->cache.n_keys)) {
+    if ((ix->flags)&(FD_STICKY_CACHESIZE))
+      fast_reset_hashtable(&(ix->cache),-1,todo);
+    else fast_reset_hashtable(&(ix->cache),0,todo);}
+  return 0;
+}
+
+static int fast_swapout_pool(fd_pool p,void *data)
+{
+  struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
+  fast_reset_hashtable(&(p->cache),67,todo);
+  if (p->locks.n_keys) fd_devoid_hashtable(&(p->locks));
+  return 0;
+}
+
+FD_EXPORT void fd_fast_swapout_all()
+{
+  int i=0;
+  struct HASHVECS_TODO todo;
+  todo.to_free=u8_malloc(sizeof(struct HASHVEC_TO_FREE)*128);
+  todo.n_to_free=0; todo.max_to_free=128;
+  fd_for_indices(fast_swapout_index,(void *)&todo);
+  fd_for_pools(fast_swapout_pool,(void *)&todo);
+  while (i<todo.n_to_free) {
+    fd_free_hashvec(todo.to_free[i].slots,todo.to_free[i].n_slots);
+    u8_free(todo.to_free[i].slots);
+    i++;}
+  u8_free(todo.to_free);
+}
+
+/* Init stuff */
+
 static void register_header_files()
 {
   fd_register_source_file(FDB_FDDB_H_VERSION);

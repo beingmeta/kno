@@ -1478,6 +1478,30 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
   return fd_simplify_choice(result);
 }
 
+static int free_hashvec
+  (struct FD_HASHENTRY **slots,int slots_to_free,FD_MEMORY_POOL_TYPE *mp)
+{
+  if ((slots) && (slots_to_free)) {
+    struct FD_HASHENTRY **scan=slots, **lim=scan+slots_to_free;
+    while (scan < lim)
+      if (*scan) {
+	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+	while (kvscan<kvlimit) {
+	  fd_decref(kvscan->key); fd_decref(kvscan->value);
+	  kvscan++;}
+	u8_pfree_x(mp,*scan,
+		   sizeof(struct FD_HASHENTRY)+
+		   sizeof(struct FD_KEYVAL)*(n_keyvals-1));
+	*scan++=NULL;}
+      else scan++;}
+}
+
+FD_EXPORT int fd_free_hashvec(struct FD_HASHENTRY **slots,int slots_to_free)
+{
+  return free_hashvec(slots,slots_to_free,NULL);
+}
+
 FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
 {
   struct FD_HASHENTRY **slots; int slots_to_free=0;
@@ -1500,19 +1524,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   if (lock) fd_unlock_mutex(&(ht->lock));
   /* Now, free the old data... */
   if (slots_to_free) {
-    struct FD_HASHENTRY **scan=slots, **lim=scan+slots_to_free;
-    while (scan < lim)
-      if (*scan) {
-	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
-	while (kvscan<kvlimit) {
-	  fd_decref(kvscan->key); fd_decref(kvscan->value);
-	  kvscan++;}
-	u8_pfree_x(ht->mpool,*scan,
-		   sizeof(struct FD_HASHENTRY)+
-		   sizeof(struct FD_KEYVAL)*(n_keyvals-1));
-	*scan++=NULL;}
-      else scan++;
+    free_hashvec(slots,slots_to_free,ht->mpool);
     u8_pfree_x(ht->mpool,ht->slots,sizeof(struct FD_HASHENTRY *)*ht->n_slots);}
   return n_slots;
 }
@@ -1527,9 +1539,15 @@ FD_EXPORT int fd_fast_reset_hashtable
   if (slotsptr==NULL) return fd_reset_hashtable(ht,n_slots,lock);
   if (n_slots<0) n_slots=ht->n_slots;
   if (lock) fd_lock_mutex(&(ht->lock));
-  /* Grab the slots and their length. We'll free them after we've reset
-     the table and released its lock. */
-  *slotsptr=ht->slots; *slots_to_free=ht->n_slots;
+  if (ht->mpool) {
+    /* If we have an mpool, free the data right away, just in case. */
+    free_hashvec(ht->slots,ht->n_slots,ht->mpool);
+    u8_pfree_x(ht->mpool,ht->slots,sizeof(struct FD_HASHENTRY *)*ht->n_slots);
+    *slotsptr=NULL; *slots_to_free=0;}
+  else {
+    /* Grab the slots and their length. We'll free them after we've reset
+       the table and released its lock. */
+    *slotsptr=ht->slots; *slots_to_free=ht->n_slots;}
   /* Now initialize the structure.  */
   if (n_slots == 0) {
     ht->n_slots=ht->n_keys=0; ht->loading=default_hashtable_loading;
@@ -1537,7 +1555,8 @@ FD_EXPORT int fd_fast_reset_hashtable
   else {
     int i=0; struct FD_HASHENTRY **slotvec;
     ht->n_slots=n_slots; ht->n_keys=0; ht->loading=default_hashtable_loading; 
-    ht->slots=slotvec=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
+    ht->slots=slotvec=u8_pmalloc
+      (ht->mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
   if (lock) fd_unlock_mutex(&(ht->lock));
