@@ -124,12 +124,21 @@ chaintest:
 	fdexec chaintest.scm 0 30
 	fdexec chaintest.scm 10 50
 batchtest:
-	rm -f countup.log countup.err countup.done
+	rm -f countup.log countup.err countup.done countup.finished countup.died
 	./fdbatch countup.scm "countup.finished" 10 1; sleep 3
 	if (test ! -f countup.pid); then echo error; exit 1; fi;
 	sleep 12;
+	# This was written by fdbatch itself
 	if (test ! -s countup.done); then echo error; exit 1; fi;
+	# This was written by the script
 	if (test ! -s countup.finished); then echo error; exit 1; fi;
 	if (test ! -s countup.err); then echo error; exit 1; fi;
 	if (test ! -s countup.log); then echo error; exit 1; fi;
+	if (test -f countup.pid); then echo error; exit 1; fi;
+	rm -f countup.log countup.err countup.done countup.finished countup.died
+	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1; sleep 3
+	sleep 12;
+	if (test -f countup.pid); then echo error; exit 1; fi;
+	if (test -f countup.done); then echo error; exit 1; fi;
+	# This should have been deleted by the atexit handler
 	if (test -f countup.pid); then echo error; exit 1; fi;
