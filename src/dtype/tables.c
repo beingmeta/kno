@@ -1525,7 +1525,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   /* Now, free the old data... */
   if (slots_to_free) {
     free_hashvec(slots,slots_to_free,ht->mpool);
-    u8_pfree_x(ht->mpool,ht->slots,sizeof(struct FD_HASHENTRY *)*ht->n_slots);}
+    u8_pfree_x(ht->mpool,slots,sizeof(struct FD_HASHENTRY *)*slots_to_free);}
   return n_slots;
 }
 
