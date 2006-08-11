@@ -228,6 +228,7 @@ FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid);
 FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n);
 FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids);
 FD_EXPORT int fd_prefetch_oids(fdtype oids);
+FD_EXPORT int fd_lock_oids(fdtype oids);
 FD_EXPORT int fd_lock_oid(fdtype oid);
 FD_EXPORT int fd_swapout_oid(fdtype oid);
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids);

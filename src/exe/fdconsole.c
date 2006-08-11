@@ -168,8 +168,9 @@ int main(int argc,char **argv)
     expr=fd_parser((u8_input)in,NULL);
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
-	(FD_EQ(expr,that_symbol)))
+	(FD_EQ(expr,that_symbol))) {
       is_histref=1;
+      histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {

@@ -427,6 +427,42 @@ FD_EXPORT int fd_lock_oid(fdtype oid)
   return fd_pool_lock(p,oid);
 }
 
+FD_EXPORT int fd_lock_oids(fdtype oids)
+{
+  fd_pool _pools[32], *pools=_pools;
+  fdtype _toget[32], *toget=_toget;
+  int i=0, n_pools=0, max_pools=32, total=0;
+  FD_DO_CHOICES(oid,oids) {
+    if (FD_OIDP(oid)) {
+      fd_pool p=fd_oid2pool(oid);
+      if ((p) && (fd_hashtable_probe_novoid(&(p->locks),oid)==0)) {
+	i=0; while (i<n_pools) if (pools[i]==p) break; else i++;
+	if (i>=n_pools)
+	  /* Create a pool entry if neccessary */
+	  if (i<max_pools) {
+	    pools[i]=p; toget[i]=FD_EMPTY_CHOICE; n_pools++;}
+	/* Grow the tables if neccessary */
+	  else if (max_pools==32) {
+	    int j=0;
+	    pools=u8_malloc(sizeof(fd_pool)*64);
+	    toget=u8_malloc(sizeof(fdtype)*64);
+	    while (j<n_pools) {
+	      pools[j]=_pools[j]; toget[j]=_toget[j]; j++;}
+	    max_pools=64;}
+	  else {
+	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
+	    toget=u8_realloc(toget,sizeof(fdtype)*(max_pools+32));
+	    max_pools=max_pools+32;}
+	/* Now, i is bound to the index for the pools and to gets */
+	FD_ADD_TO_CHOICE(toget[i],oid);}}
+    else {}}
+  i=0; while (i < n_pools) {
+    fd_pool_lock(pools[i],toget[i]);
+    total=total+FD_CHOICE_SIZE(toget[i]);
+    fd_decref(toget[i]); i++;}
+  return total;
+}
+
 FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
 {
   fd_pool p=fd_oid2pool(oid);

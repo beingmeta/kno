@@ -233,6 +233,14 @@ static fdtype lockoid(fdtype o,fdtype soft)
   else return FD_INT2DTYPE(retval);
 }
 
+static fdtype lockoids(fdtype oids)
+{
+  int retval=fd_lock_oids(oids);
+  if (retval<0)
+    return fd_erreify();
+  else return FD_INT2DTYPE(retval);
+}
+
 static fdtype make_compound_index(int n,fdtype *args)
 {
   fd_index *sources=u8_malloc(sizeof(fd_index)*8);
@@ -1403,6 +1411,8 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("LOCK-OID!",lockoid,2,
 			   fd_oid_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim1("LOCK-OIDS!",lockoids,1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL?",poolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX?",indexp,1));

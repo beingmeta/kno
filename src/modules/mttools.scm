@@ -78,7 +78,7 @@
 		  ((> secs 10) (inexact->string seconds 2))
 		  (else seconds)))))))
 
-(define (default-progress-report count limit time)
+(define (default-progress-report count limit time blocktime)
   (when (> count 0)
     (notify "Processed " (get% count limit) "%: "
 	    count " of " limit " items in "
@@ -86,7 +86,9 @@
 	    (when (> count 0)
 	      (printout ", ~ "
 		(short-interval-string (* time (/ (- limit count) count)))
-		" to go")))))
+		" to go"))
+	    "; " (get% blocktime time) " (~"
+	    (short-interval-string blocktime) ") in block setup.")))
 
 (define do-choices-mt
   (macro expr
@@ -107,13 +109,18 @@
 		   (_progressfn ,progressfn)
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
-		   (_start (elapsed-time)))
+		   (_start (elapsed-time))
+		   (_preamble_time 0))
 	       (do-subsets (_block ,choice-generator _blocksize _blockno)
 		 (when _progressfn
 		   (_progressfn (* _blockno _blocksize)
 				(choice-size _choice)
-				(- (elapsed-time) _start)))
-		 (_blockproc (qc _block))
+				(- (elapsed-time) _start)
+				_block_time))
+		 (let ((_blockstart (elapsed-time)))
+		   (_blockproc (qc _block))
+		   (set! _block_time
+			 (+ _block_time (- (elapsed-time) _blockstart))))
 		 (,mt-apply _nthreads _bodyproc (qc _block)))
 	       (_blockproc (qc))
 	       (when _progressfn
@@ -121,5 +128,19 @@
 			      (choice-size _choice)
 			      (- (elapsed-time) _start)))))))))
 
-(module-export! '{mt-apply do-choices-mt short-interval-string})
+(define (mt/save/fetchoids oids)
+  (commit) (clearcaches)
+  (prefetch-oids! oids))
+(define (mt/save/fetchfrom index)
+  (lambda (keys)
+    (commit) (clearcaches)
+    (prefetch-oids! index keys)))
+
+(module-export! '{mt-apply
+		  do-choices-mt
+		  short-interval-string
+		  mt/save/fetchoids
+		  mt/save/fetchfrom})
+
+
 
