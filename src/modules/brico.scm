@@ -1,5 +1,7 @@
 (in-module 'brico)
 
+(define %notighten '{freqfns bricosource brico-pool brico-index})
+
 ;; For index-name, at least
 (use-module 'texttools)
 
