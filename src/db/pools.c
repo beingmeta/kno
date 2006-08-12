@@ -392,8 +392,9 @@ int fd_prefetch_oids(fdtype oids)
     if (FD_OIDP(oid)) {
       fd_pool p=fd_oid2pool(oid);
       if ((p) &&
-	  (fd_hashtable_probe_novoid(&(p->locks),oid)==0) &&
-	  (fd_hashtable_probe_novoid(&(p->cache),oid)==0)) {
+	  ((fd_hashtable_probe_novoid(&(p->locks),oid)) 
+	   ? (fd_hashtable_op(&(p->locks),fd_table_test,oid,FD_LOCKHOLDER))
+	   : (fd_hashtable_probe_novoid(&(p->cache),oid)==0))) {
 	i=0; while (i<n_pools) if (pools[i]==p) break; else i++;
 	if (i>=n_pools)
 	  /* Create a pool entry if neccessary */
@@ -489,13 +490,16 @@ FD_EXPORT int fd_swapout_oid(fdtype oid)
 
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
 {
-  struct FD_HASHTABLE *locks=&(p->locks);
+  struct FD_HASHTABLE *locks=&(p->locks); int decref_oids=0;
+  if (FD_ACHOICEP(oids)) {
+    oids=fd_make_simple_choice(oids); decref_oids=1;}
   if (FD_CHOICEP(oids)) {
     fdtype needy; int retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(FD_CHOICE_SIZE(oids));
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *write=oidv;
     FD_DO_CHOICES(o,oids)
       if (fd_hashtable_probe(locks,o)==0) *write++=o;
+    if (decref_oids) fd_decref(oids);
     if (write==oidv) {
       /* Nothing to lock, free and return */
       u8_free(oidc);
@@ -513,13 +517,16 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
     return retval;}
   else if (fd_hashtable_probe(locks,oids)==0) {
     int retval=p->handler->lock(p,oids);
+    if (decref_oids) fd_decref(oids);
     if (retval<0) return retval;
     else if (retval) {
       fd_hashtable_op(&(p->cache),fd_table_replace,oids,FD_VOID);
       fd_hashtable_op(locks,fd_table_store,oids,FD_LOCKHOLDER);
       return 1;}
     else return 0;}
-  else return 1;
+  else {
+    if (decref_oids) fd_decref(oids);
+    return 1;}
 }
 
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
