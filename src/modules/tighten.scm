@@ -32,7 +32,7 @@
 		   expr)))
 	  ((not (pair? expr)) expr)
 	  ((pair? (car expr))
-	   (map (lambda (x) (dotighten x env bound))))
+	   (map (lambda (x) (dotighten x env bound)) expr))
 	  ((or (not (symbol? (car expr)))
 	       (member (car expr) bound)
 	       (not (symbol-bound? (car expr) env)))
