@@ -97,7 +97,8 @@
 	   #f)
 	  (else
 	   (set! bricosource val)
-	   (use-pool val) (set! brico-index (use-index val))
+	   (use-pool val)
+	   (set! brico-index (onerror (use-index val) #f))
 	   (set! brico-pool (name->pool "brico.framerd.org"))
 	   (if (exists? brico-pool) #t
 	       (begin (set! brico-index {})
@@ -177,6 +178,10 @@
 (define (index-concept index concept)
   (index-frame index concept 'has (getslots concept))
   (index-frame index concept '{type wikiref sense-category %norm})
+  (when (test concept '%mnemonic)
+    (index-frame index concept '%id (get concept '%mnemonic)))
+  (when (test concept '%index)
+    (index-frame index concept (get concept '%index)))
   (index-string index concept english (get concept 'words) 1)
   (index-name index concept 'names (qc (get concept 'names)) 1)
   (index-name index concept 'names (qc (pick  (cdr (get concept '%words)) capitalized?)) 1)
@@ -215,7 +220,30 @@
 	(prefetch-oids! scan)
 	(hashset-add! visited scan)))))
 
-(module-export! '{index-concept indexer-prefetch})
+(define (next-expansion expansions visited)
+  (let ((oids (get expansions (getkeys expansions))))
+    (prefetch-oids! oids)
+    (hashset-add! visited oids)
+    (let ((table (make-hashtable)))
+      (do-choices (slotid (getkeys expansions))
+	(prefetch-keys! (cons (get slotid inverse) (get expansions slotid)))
+	(let ((next (reject (%get (get expansions slotid) slotid)
+			    visited)))
+	  (when (exists? next)
+	    (add! table slotid next))))
+      (if (exists? (getkeys table)) table (fail)))))
+
+(define (prefetch-expansions oids slotids)
+  (let ((visited (choice->hashset oids))
+	(next (make-hashtable)))
+    (prefetch-oids! oids)
+    (do-choices (slotid slotids)
+      (prefetch-keys! (cons (get slotid 'inverse) oids))
+      (add! next slotid (get oids slotid)))
+    (do ((scan next (next-expansion scan visited)))
+	((fail? scan)))))
+
+(module-export! '{index-concept indexer-prefetch prefetch-expansions})
 
 ;;; Displaying glosses
 
