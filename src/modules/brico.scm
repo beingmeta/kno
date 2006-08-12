@@ -63,8 +63,9 @@
    (store! gloss-map (get l 'key) l)))
 
 (define (get-gloss concept (language #f))
-  (try (tryif (or (not language) (eq? language english)) (get concept 'gloss))
-       (get concept (?? 'type 'gloss 'language (or language english)))
+  (try (tryif language (get concept (get gloss-map language)))
+       (tryif language (get (get concept '%glosses) language))
+       (get concept english-gloss)
        (get concept 'gloss)))
 (define (get-short-gloss concept (language #f))
   (let ((s (get-gloss concept language)))
@@ -116,7 +117,7 @@
 	     (baseform (basestring stdspaced)))
 	(index-frame index frame slot stdspaced)
 	(index-frame index frame slot baseform)
-	(when window
+	(when (and window (compound? v))
 	  (let* ((words (words->vector stdspaced))
 		 (basewords (words->vector baseform))
 		 (frags (choice (vector->frags words window)
@@ -130,7 +131,7 @@
 	     (baseform (basestring downspaced)))
 	(index-frame index frame slot downspaced)
 	(index-frame index frame slot baseform)
-	(when window
+	(when (and window (compound? v))
 	  (let* ((words (words->vector downspaced))
 		 (basewords (words->vector baseform))
 		 (frags (choice (vector->frags words window)
@@ -210,17 +211,11 @@
 		 (get gloss-map (car (get concept '%glosses)))))
   (do-choices (xlation (get concept '%words))
     (let ((lang (get language-map (car xlation))))
-      (index-string index concept lang (cdr xlation) 1))))
-
-(define (indexer-prefetch oids)
-  (prefetch-oids! oids)
-  (let ((kovalues (get oids kindof*-slotids)))
-    (let ((visited (choice->hashset kovalues)))
-      (do ((scan kovalues
-		 (reject (%get visited kindof) visited)))
-	  ((empty? scan))
-	(prefetch-oids! scan)
-	(hashset-add! visited scan)))))
+      (index-string index concept lang (cdr xlation) 1)))
+  (index-frame* index concept kindof* kindof)
+  (index-frame* index concept partof* partof)
+  (index-frame* index concept memberof* memberof)
+  (index-frame* index concept ingredientof* ingredientof))
 
 (define (next-expansion expansions visited)
   (let ((oids (get expansions (getkeys expansions))))
@@ -244,6 +239,20 @@
       (add! next slotid (get oids slotid)))
     (do ((scan next (next-expansion scan visited)))
 	((fail? scan)))))
+
+(define (indexer-prefetch oids)
+  (prefetch-oids! oids)
+  (let ((kovalues (get oids kindof*-slotids)))
+    (let ((visited (choice->hashset kovalues)))
+      (do ((scan kovalues
+		 (reject (%get visited kindof) visited)))
+	  ((empty? scan))
+	(prefetch-oids! scan)
+	(hashset-add! visited scan))))
+  (prefetch-expansions
+   (qc oids) (qc kindof partof memberof ingredientof)))
+
+
 
 (module-export! '{index-concept indexer-prefetch prefetch-expansions})
 
