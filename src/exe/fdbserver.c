@@ -205,6 +205,16 @@ static fdtype get_uptime()
   return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
 }
 
+/* Cleaning up state files */
+
+static u8_string pid_file=NULL, nid_file=NULL;
+
+static void cleanup_state_files()
+{
+  if (pid_file) u8_removefile(pid_file);
+  if (nid_file) u8_removefile(nid_file);
+}
+
 /* The main() event */
 
 int main(int argc,char **argv)
@@ -304,9 +314,12 @@ int main(int argc,char **argv)
     {
       u8_string bname=u8_basename(source_file,".fdz");
       u8_string fullname=u8_abspath(bname,NULL);
-      u8_string pid_file=u8_string_append(fullname,".pid",NULL);
-      u8_string nid_file=u8_string_append(fullname,".nid",NULL);
-      FILE *f=u8_fopen(pid_file,"w");
+      FILE *f;
+      /* Get state files and write info */
+      pid_file=u8_string_append(fullname,".pid",NULL);
+      nid_file=u8_string_append(fullname,".nid",NULL);
+      atexit(cleanup_state_files);
+      f=u8_fopen(pid_file,"w");
       if (f) {
 	fprintf(f,"%d\n",getpid());
 	fclose(f);}
@@ -316,15 +329,16 @@ int main(int argc,char **argv)
 	errno=0;}
       f=u8_fopen(nid_file,"w");
       if (f) {
-	if (dtype_server.n_servers)
-	  fprintf(f,"%s\n",dtype_server.server_info[0].idstring);
+	if (dtype_server.n_servers) {
+	  int i=0; while (i<dtype_server.n_servers) {
+	    fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
+	    i++;}}
 	else fprintf(f,"temp.socket\n");
 	fclose(f);}
       else {
 	u8_warn(u8_strerror(errno),
 		"Couldn't write PID %d to '%s'",getpid(),pid_file);
 	errno=0;}
-      u8_free(pid_file); u8_free(nid_file);
       u8_free(fullname); u8_free(bname);}
     u8_free(source_file);
     source_file=NULL;}
