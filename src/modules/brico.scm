@@ -178,16 +178,20 @@
 (define refterms @1/2ab57{REFTERMS})
 (define referenced @1/2ab5a{REFERENCED})
 
+(define (index-brico index frame)
+  (index-frame index frame 'type)
+  (index-frame index frame '%id (get frame '%mnemonic))
+  (index-frame index frame 'has (getslots frame))
+  (when (test frame '%index)
+    (index-frame index frame (get concept '%index))))
+
 (define (index-concept index concept)
-  (index-frame index concept 'has (getslots concept))
-  (index-frame index concept '{type wikiref sense-category %norm})
-  (when (test concept '%mnemonic)
-    (index-frame index concept '%id (get concept '%mnemonic)))
-  (when (test concept '%index)
-    (index-frame index concept (get concept '%index)))
+  (index-brico index concept)
+  (index-frame index concept '{wikiref sense-category %norm})
   (index-string index concept english (get concept 'words) 1)
   (index-name index concept 'names (qc (get concept 'names)) 1)
-  (index-name index concept 'names (qc (pick  (cdr (get concept '%words)) capitalized?)) 1)
+  (index-name index concept 'names
+	      (qc (pick  (cdr (get concept '%words)) capitalized?)) 1)
   (do-choices (slotid kindof*-slotids)
     (index-kindof index concept slotid (qc (%get concept slotid))))
   (do-choices (slotid concept-slotids)
@@ -252,9 +256,11 @@
   (prefetch-expansions
    (qc oids) (qc kindof partof memberof ingredientof)))
 
-
-
-(module-export! '{index-concept indexer-prefetch prefetch-expansions})
+(module-export!
+ '{index-brico
+   index-concept
+   indexer-prefetch
+   prefetch-expansions})
 
 ;;; Displaying glosses
 
