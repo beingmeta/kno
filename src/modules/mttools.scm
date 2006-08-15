@@ -129,10 +129,13 @@
 			      (- (elapsed-time) _start)
 			      _block_time))))))))
 
-(define (mt/save/fetchoids oids)
+(define (mt/save/fetch oids)
   (commit) (clearcaches)
   (prefetch-oids! oids))
-(define (mt/save/fetchfrom index)
+(define (mt/save/lock/fetch oids)
+  (commit) (clearcaches)
+  (prefetch-oids! oids))
+(define (mt/save/fetchkeys index)
   (lambda (keys)
     (commit) (clearcaches)
     (prefetch-oids! index keys)))
@@ -140,8 +143,11 @@
 (module-export! '{mt-apply
 		  do-choices-mt
 		  short-interval-string
-		  mt/save/fetchoids
-		  mt/save/fetchfrom})
+		  mt/save/fetch
+		  mt/save/lock/fetch
+		  mt/save/fetchkeys})
+
+
 
 
 
