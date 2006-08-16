@@ -83,6 +83,16 @@ static fdtype config_get_fullscheme(fdtype var,void *data)
   if (fullscheme) return FD_TRUE; else return FD_FALSE;
 }
 
+/* Cleaning up state files */
+
+static u8_string pid_file=NULL, nid_file=NULL;
+
+static void cleanup_state_files()
+{
+  if (pid_file) u8_removefile(pid_file);
+  if (nid_file) u8_removefile(nid_file);
+}
+
 /* Core functions */
 
 typedef struct FD_CLIENT {
@@ -131,11 +141,13 @@ static int close_fdclient(u8_client ucl)
 static void signal_shutdown(int sig)
 {
   u8_server_shutdown(&dtype_server);
+  cleanup_state_files();
 }
 
 static void shutdown_dtypeserver()
 {
   u8_server_shutdown(&dtype_server);
+  cleanup_state_files();
 }
 
 /* We define this in the exposed environment to enable probing for functions. */
@@ -203,16 +215,6 @@ static fdtype get_uptime()
 {
   struct U8_XTIME now; u8_now(&now);
   return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
-}
-
-/* Cleaning up state files */
-
-static u8_string pid_file=NULL, nid_file=NULL;
-
-static void cleanup_state_files()
-{
-  if (pid_file) u8_removefile(pid_file);
-  if (nid_file) u8_removefile(nid_file);
 }
 
 /* The main() event */

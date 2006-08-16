@@ -39,7 +39,9 @@
 	   expr)
 	  (else (let ((value (get env (car expr))))
 		  (cond ((applicable? value)
-			 (cons value (map (lambda (x) (dotighten (qc x) env bound))
+			 (cons value (map (lambda (x)
+					    (if (empty? x) x
+						(dotighten (qc x) env bound)))
 					  (cdr expr))))
 			((special-form? value)
 			 (let ((tightener (get special-form-tighteners value)))

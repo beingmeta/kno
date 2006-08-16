@@ -77,6 +77,19 @@ static void fdbatch_atexit()
       u8_fclose(f);}}
 }
 
+static void signal_shutdown(int sig)
+{
+  if (pid_file) u8_removefile(pid_file);
+  if (died_file) {
+    FILE *f=u8_fopen(died_file,"w");
+    if (f) {
+      /* Output the current data/time with millisecond precision. */
+      u8_fprintf(f,"Process died unexpectedly at %*iMSt with signal %d\n",
+		 sig);
+      u8_fclose(f);}}
+    
+}
+
 int main(int argc,char **argv)
 {
   pid_t pid;
@@ -128,6 +141,12 @@ int main(int argc,char **argv)
        when it exits normally. */
     int retval=-1;
     atexit(fdbatch_atexit);
+#ifdef SIGTERM
+    signal(SIGTERM,signal_shutdown);
+#endif
+#ifdef SIGQUIT
+    signal(SIGQUIT,signal_shutdown);
+#endif
     if (log_file) {dup2(log_fd,1); u8_free(log_file);}
     if (err_file) {dup2(err_fd,2); u8_free(err_file);}
     u8_free(base); u8_free(abspath);
