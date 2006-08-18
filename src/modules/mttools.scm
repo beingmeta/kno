@@ -138,7 +138,7 @@
 (define (mt/save/fetchkeys index)
   (lambda (keys)
     (commit) (clearcaches)
-    (prefetch-oids! index keys)))
+    (prefetch-keys! index keys)))
 
 (module-export! '{mt-apply
 		  do-choices-mt
