@@ -1284,6 +1284,16 @@ static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fd
 			     FD_INT2DTYPE(start),FD_INT2DTYPE(end));
 }
 
+u8_string find_end(u8_string start,u8_string lim)
+{
+  u8_string scan=start, end=start; int c;
+  if (lim) while ((scan<lim) && ((c=u8_sgetc(&scan))>0))
+    if (u8_isspace(c)) {} else end=scan;
+  else while ((c=u8_sgetc(&scan))>0)
+    if (u8_isspace(c)) {} else end=scan;
+  return end;
+}
+
 FD_EXPORT
 fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 {
@@ -1334,12 +1344,13 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	else if (bufptr==NULL) {
 	  source=fdtype_string(start);
 	  text_start=start-pc->buf;
-	  text_end=text_start+u8_strlen(start);
+	  text_end=text_start+(find_end(start,NULL)-start);
 	  bufptr=start;}
 	else {
 	  source=fd_extract_string(NULL,start,bufptr);
-	  text_end=bufptr-pc->buf;
+	  /* text_end=bufptr-pc->buf; */
 	  text_start=start-pc->buf;
+	  text_end=find_end(start,bufptr)-pc->buf;
 	  bufptr=start;}}
       if (FD_VOIDP(glom))
 	word_entry=make_word_entry(word,fd_incref(tag),rootstring,
@@ -1363,12 +1374,13 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	else if (bufptr==NULL) {
 	  source=fdtype_string(start);
 	  text_start=start-pc->buf;
-	  text_end=text_start+u8_strlen(start);
+	  text_end=text_start+(find_end(start,NULL)-start);
 	  bufptr=start;}
 	else {
 	  source=fd_extract_string(NULL,start,bufptr);
-	  text_end=bufptr-pc->buf;
+	  /* text_end=bufptr-pc->buf; */
 	  text_start=start-pc->buf;
+	  text_end=find_end(start,bufptr)-pc->buf;
 	  bufptr=start;}}
       word_entry=
 	make_word_entry(word,fd_incref(tag),rootstring,
