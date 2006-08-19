@@ -84,8 +84,8 @@ fdserv: fdserv.c $(EXTRA_LIBS) \
 
 testclean:
 	rm -f *.log *.err *.done *.finished *.pid *.died
-	rm -f temp.* utf8-temp.*
-	rm -f logfile
+	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
+	rm -f logfile thirty2fifty thirtythree 
 alltests: dtypetests tabletests dbtests
 dtypetests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
@@ -105,11 +105,11 @@ tabletests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
 dbtests:
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) dbtest init $(DBTEST_FILES)
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) dbtest
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 dbtest
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 dbtest init $(DBTEST_FILES)
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 dbtest
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb init $(DBTEST_FILES)
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
+	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
 memtests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
 memdtypetests:
