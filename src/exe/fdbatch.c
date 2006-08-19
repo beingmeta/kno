@@ -100,12 +100,19 @@ int main(int argc,char **argv)
   fd_init_dtypelib();
   pid_file=get_pidfile(abspath);
   if (u8_file_existsp(pid_file)) {
-    u8_warn("PID file %s exists, may be running",pid_file);
-    exit(1);}
+    FILE *f=u8_fopen(pid_file,"r");
+    int ival=-1, retval; pid_t pid=getpid();
+    if (f==NULL) retval=-1;
+    else retval=fscanf(f,"%d",&ival);
+    fclose(f);
+    if ((retval<=0) || (((pid_t)ival)!=pid)) {
+	u8_warn("PID file %s exists, may be running",pid_file);
+	exit(1);}}
+
   done_file=get_donefile(abspath);
   died_file=get_diedfile(abspath);
   /* We only redirect stdio going to ttys. */
-  if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
+  if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_warn("Couldn't open pid file %s",pid_file);
     exit(-1);}
   /* Remove any pre-existing done file. */
