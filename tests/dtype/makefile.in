@@ -232,6 +232,8 @@ $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 ../../src/db/dtypestream.o:
 	cd ../..; make lib/libfddb.a
 
-clean:
-	rm -f u8makedtype $(TESTBIN)
+testclean:
 	rm -f *.data *.dump *.table *.sorted
+
+clean: testclean
+	rm -f u8makedtype $(TESTBIN)

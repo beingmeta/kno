@@ -82,9 +82,10 @@ fdserv: fdserv.c $(EXTRA_LIBS) \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
 
-clean:
-	rm -f $(TESTBIN)
-
+testclean:
+	rm -f *.log *.err *.done *.finished *.pid *.died
+	rm -f temp.* utf8-temp.*
+	rm -f logfile
 alltests: dtypetests tabletests dbtests
 dtypetests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
@@ -142,3 +143,6 @@ batchtest:
 	if (test -f countup.done); then echo error; exit 1; fi;
 	# This should have been deleted by the atexit handler
 	if (test -f countup.pid); then echo error; exit 1; fi;
+
+batchchaintest:
+	fdbatch chaintest.scm

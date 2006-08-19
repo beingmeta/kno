@@ -80,7 +80,7 @@ int main(int argc,char **argv)
   if (argc<2) {
     fprintf(stderr,"Usage: fdexec filename [config=val]*\n");
     return -1;}
-  exe_arg=u8_strdup(argv[0]);
+  if (exe_arg==NULL) exe_arg=u8_strdup(argv[0]);
   fd_register_source_file(versionid);
   fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);

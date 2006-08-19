@@ -93,7 +93,7 @@ static void signal_shutdown(int sig)
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd, err_fd;
+  int pid_fd, log_fd, err_fd, chained=0;
   u8_string base=u8_basename(argv[1],".scm"), abspath=u8_abspath(base,NULL);
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
@@ -105,8 +105,18 @@ int main(int argc,char **argv)
     if (f==NULL) retval=-1;
     else retval=fscanf(f,"%d",&ival);
     fclose(f);
-    if ((retval<=0) || (((pid_t)ival)!=pid)) {
-	u8_warn("PID file %s exists, may be running",pid_file);
+    if (retval<0) {
+      u8_warn("Launch error","Error reading PID file %s (retval=%d)",
+	      pid_file,retval);
+      exit(1);}
+    else if (((pid_t)ival)==pid) {
+      u8_notify("CHAINED",
+		"Chained fdbatch invocation, pid=%d",ival);
+      chained=1;}
+    else {
+      u8_warn("Launch scrubbed",
+	      "PID file %s exists, with pid %d != %d",
+	      pid_file,ival,pid);
 	exit(1);}}
 
   done_file=get_donefile(abspath);
@@ -132,7 +142,7 @@ int main(int argc,char **argv)
       if (log_file) close(log_fd); close(pid_fd);
       exit(-1);}}
   /* Now, do the fork. */
-  if (pid=fork()) {
+  if ((chained==0) && (pid=fork())) {
     char buf[256];
     sprintf(buf,"%d",pid); write(pid_fd,buf,strlen(buf)); close(pid_fd);
     /* The parent process just reports what it did. */
