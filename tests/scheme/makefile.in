@@ -82,6 +82,9 @@ fdserv: fdserv.c $(EXTRA_LIBS) \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8syslog
 
+clean: testclean
+	rm -f $(TESTBIN)
+
 testclean:
 	rm -f *.log *.err *.done *.finished *.pid *.died
 	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
