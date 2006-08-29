@@ -2061,10 +2061,10 @@ fdtype fd_string2number(u8_string string,int base)
     else errno=0;
     if (!(base)) base=10;
     if (*string =='-')
-      result=parse_bigint(string+1,10,1);
+      result=parse_bigint(string+1,base,1);
     else if (*string =='+')
-      result=parse_bigint(string+1,10,0);
-    else result=parse_bigint(string,10,0);
+      result=parse_bigint(string+1,base,0);
+    else result=parse_bigint(start,base,0);
     return result;}
 }
 
