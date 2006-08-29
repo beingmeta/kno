@@ -593,6 +593,8 @@
   (applytest "281474976710655" number->string 281474976710655)
   (applytest -281474976710655 string->number "-281474976710655")
   (applytest "-281474976710655" number->string -281474976710655)
+  (applytest 281474976710655 string->number "FFFFFFFFFFFF" 16)
+  (applytest 4503599627370495 string->number "FFFFFFFFFFFFF" 16)
   (applytest -100000000000000010 'big-minus (- (- 100000000000000000) 10)))
 
 (SECTION 6 5 6)
