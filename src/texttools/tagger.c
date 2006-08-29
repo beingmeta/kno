@@ -193,6 +193,7 @@ fd_parse_context fd_init_parse_context
   /* Initialize inter-parse fields. */
   pc->n_calls=0; pc->cumulative_inputs=0;
   pc->cumulative_states=0; pc->cumulative_runtime=0.0;
+  pc->custom_lexicon=NULL;
   /* Initialize parsing data */
   pc->input=malloc(sizeof(struct FD_WORD)*FD_INITIAL_N_INPUTS);
   pc->n_inputs=0; pc->max_n_inputs=FD_INITIAL_N_INPUTS;
@@ -275,6 +276,9 @@ void fd_free_parse_context(fd_parse_context pcxt)
   free(pcxt->input); free(pcxt->states); 
   pcxt->input=NULL; pcxt->states=NULL;
   u8_free(pcxt->buf); pcxt->start=NULL; pcxt->end=NULL;
+  if (pcxt->custom_lexicon) {
+    fd_decref((fdtype)pcxt->custom_lexicon);
+    pcxt->custom_lexicon=NULL;}
   /* Free the state/input cache. */
   i=0; while (i < pcxt->max_n_inputs) free(pcxt->cache[i++]);
   free(pcxt->cache); pcxt->cache=NULL;
@@ -462,38 +466,57 @@ static fdtype lexicon_fetch_lower(fd_index ix,u8_string string)
   return value;
 }
 
-static fdtype get_noun_root(fd_grammar g,fdtype key) 
+static fdtype convert_custom(struct FD_GRAMMAR *g,fdtype custom)
 {
-  fdtype answer=fd_index_get(g->noun_roots,key);
-  if (FD_EMPTY_CHOICEP(answer)) return answer;
-  else if (FD_STRINGP(answer)) return answer;
-  else {
-    fdtype result=FD_VOID;
-    FD_DO_CHOICES(elt,answer)
-      if (FD_VOIDP(answer)) result=elt;
-      else if ((FD_STRINGP(elt)) && ((strchr(FD_STRDATA(elt),' ')) == NULL))
-	result=elt;
-    fd_incref(result); fd_decref(answer);
-    if (FD_VOIDP(result))
-      return FD_EMPTY_CHOICE;
-    else return result;}
+  unsigned char *data=u8_malloc(g->n_arcs);
+  int i=0, lim=g->n_arcs;
+  while (i<lim) {
+    fdtype arc_name=FD_VECTOR_REF(g->arc_names,i);
+    fdtype val=fd_get(custom,arc_name,FD_VOID);
+    if (FD_TRUEP(val)) data[i]=0;
+    else if ((FD_FIXNUMP(val)) && (FD_FIX2INT(val)>=0) && (FD_FIX2INT(val)<128))
+      data[i]=FD_FIX2INT(val);
+    else data[i]=255;
+    i++;}
+  fd_decref(custom);
+  return fd_init_packet(NULL,g->n_arcs,data);
 }
 
-static fdtype get_verb_root(fd_grammar g,fdtype key) 
+static fdtype get_lexinfo(fd_parse_context pcxt,fdtype key) 
 {
-  fdtype answer=fd_index_get(g->verb_roots,key);
-  if (FD_EMPTY_CHOICEP(answer)) return answer;
-  else if (FD_STRINGP(answer)) return answer;
-  else {
-    fdtype result=FD_VOID;
-    FD_DO_CHOICES(elt,answer)
-      if (FD_VOIDP(answer)) result=elt;
-      else if ((FD_STRINGP(elt)) && ((strchr(FD_STRDATA(elt),' ')) == NULL))
-	result=elt;
-    fd_incref(result); fd_decref(answer);
-    if (FD_VOIDP(result))
-      return FD_EMPTY_CHOICE;
-    else return result;}
+  fdtype custom=((pcxt->custom_lexicon) ? (fd_hashtable_get(pcxt->custom_lexicon,key,FD_VOID)) : (FD_VOID));
+  if (FD_VOIDP(custom))
+    return lexicon_fetch(pcxt->grammar->lexicon,key);
+  else if (FD_PACKETP(custom)) return custom;
+  else return convert_custom(pcxt->grammar,custom);
+}
+
+static fdtype get_noun_root(fd_parse_context pcxt,fdtype key) 
+{
+  if (pcxt->custom_lexicon) {
+    struct FD_PAIR tmp_pair;
+    fdtype tmp_key, custom_root;
+    FD_INIT_STACK_CONS(&tmp_pair,fd_pair_type);
+    tmp_pair.car=noun_root_symbol; tmp_pair.cdr=key;
+    custom_root=fd_hashtable_get(pcxt->custom_lexicon,tmp_key,FD_VOID);
+    if (FD_VOIDP(custom_root))
+      return fd_index_get(pcxt->grammar->noun_roots,key);
+    else return custom_root;}
+  else return fd_index_get(pcxt->grammar->noun_roots,key);
+}
+
+static fdtype get_verb_root(fd_parse_context pcxt,fdtype key) 
+{
+  if (pcxt->custom_lexicon) {
+    struct FD_PAIR tmp_pair;
+    fdtype tmp_key, custom_root;
+    FD_INIT_STACK_CONS(&tmp_pair,fd_pair_type);
+    tmp_pair.car=verb_root_symbol; tmp_pair.cdr=key;
+    custom_root=fd_hashtable_get(pcxt->custom_lexicon,tmp_key,FD_VOID);
+    if (FD_VOIDP(custom_root))
+      return fd_index_get(pcxt->grammar->verb_roots,key);
+    else return custom_root;}
+  else return fd_index_get(pcxt->grammar->verb_roots,key);
 }
 
 
@@ -657,7 +680,7 @@ static fdtype probe_compound
   if (end>lim) return FD_EMPTY_CHOICE;
   else {
     fdtype compound=make_compound(pc,start,end,lower);
-    fdtype lexdata=lexicon_fetch(pc->grammar->lexicon,compound);
+    fdtype lexdata=get_lexinfo(pc,compound);
     if (FD_EMPTY_CHOICEP(lexdata)) {
       fd_decref(compound); return FD_EMPTY_CHOICE;}
     else {
@@ -692,7 +715,7 @@ static void identify_compounds(fd_parse_context pc)
     if ((u8_isupper(fc)) &&
 	(start|strange_capitalization|u8_isupper(c2))) {
       fdtype lowered=lower_string(pc->input[i].spelling);
-      fdtype lexdata=lexicon_fetch(pc->grammar->lexicon,lowered);
+      fdtype lexdata=get_lexinfo(pc,lowered);
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
       else {
 	fdtype entry=fd_init_pair(NULL,fd_make_list(1,lowered),lexdata);
@@ -814,7 +837,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   int first_char=u8_sgetc(&spelling);
   int capitalized=0, capitalized_in_lexicon=0, i, slen, ends_in_s=0;
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
-  fdtype ls=fd_init_string(NULL,-1,s), key, value=lexicon_fetch(lex,ls);
+  fdtype ls=fd_init_string(NULL,-1,s), key, value=get_lexinfo(pc,ls);
   if ((word_limit > 0) && (((int)pc->n_inputs) >= word_limit))
     return fd_reterr(TooManyWords,"add_input",NULL,FD_VOID);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
@@ -909,13 +932,13 @@ static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
 {
   u8_string s=strdup(spelling); int i;
   fdtype ls=fd_init_string(NULL,-1,s), key, value;
-  value=lexicon_fetch(pc->grammar->lexicon,ls);
+  value=get_lexinfo(pc,ls);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
   if (FD_EMPTY_CHOICEP(value))
-    value=lexicon_fetch(pc->grammar->lexicon,punctuation_symbol);
+    value=get_lexinfo(pc,punctuation_symbol);
   if (FD_PAIRP(value)) value=FD_CAR(value);
   if (!((FD_VECTORP(value)) || (FD_PACKETP(value))))
-    value=lexicon_fetch(pc->grammar->lexicon,sstrange_word);
+    value=get_lexinfo(pc,sstrange_word);
   if (FD_VECTORP(value)) {
     i=0; while (i < pc->grammar->n_arcs) {
       fdtype wt=FD_VECTOR_REF(value,i);
@@ -1230,8 +1253,9 @@ static fdtype possessive_root(fdtype word)
   else return fd_incref(word);
 }
 
-static fdtype get_root(struct FD_GRAMMAR *g,fdtype base,int arcid)
+static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
 {
+  struct FD_GRAMMAR *g=pcxt->grammar;
   fdtype normalized, result=FD_EMPTY_CHOICE;
   if (g->name_tags[arcid])
     if (possessive_suffixp(base))
@@ -1245,9 +1269,9 @@ static fdtype get_root(struct FD_GRAMMAR *g,fdtype base,int arcid)
     else normalized=lower_compound(base);}
   else normalized=fd_incref(base);
   if (g->verb_tags[arcid]) 
-    result=get_verb_root(g,normalized);
+    result=get_verb_root(pcxt,normalized);
   else if (g->noun_tags[arcid])
-    result=get_noun_root(g,normalized);
+    result=get_noun_root(pcxt,normalized);
   else if (arcid==g->possessive_tag)
     result=possessive_root(normalized);
   if ((FD_EMPTY_CHOICEP(result)) || (FD_VOIDP(result)))
@@ -1256,9 +1280,9 @@ static fdtype get_root(struct FD_GRAMMAR *g,fdtype base,int arcid)
     fd_decref(normalized);
     return result;}
 }
-FD_EXPORT fdtype fd_get_root(struct FD_GRAMMAR *g,fdtype base,int arcid)
+FD_EXPORT fdtype fd_get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
 {
-  return get_root(g,base,arcid);
+  return get_root(pcxt,base,arcid);
 }
 
 static fdtype word2string(fdtype word)
@@ -1310,7 +1334,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
     if (state->arc == 0) s=state->previous;
     else if (pc->grammar->head_tags[state->arc]) {
       fdtype word=word2string(state->word);
-      fdtype root=get_root(pc->grammar,word,state->arc);
+      fdtype root=get_root(pc,word,state->arc);
       fdtype rootstring=word2string(root);
       fdtype tag=FD_VECTOR_REF(arc_names,state->arc);
       fdtype glom=FD_VOID, glom_root=FD_VOID, word_entry=FD_VOID;
@@ -1363,7 +1387,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       s=scan;}
     else {
       fdtype word=word2string(state->word), word_entry=FD_VOID;
-      fdtype root=get_root(pc->grammar,word,state->arc);
+      fdtype root=get_root(pc,word,state->arc);
       fdtype rootstring=word2string(root);
       fdtype tag=FD_VECTOR_REF(pc->grammar->arc_names,state->arc);
       if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
@@ -1416,7 +1440,7 @@ fdtype fd_analyze_text
   if (pcxt==NULL) {
     struct FD_GRAMMAR *grammar=get_default_grammar();
     if (grammar==NULL)
-      return fd_err(NoGrammar,"tagtext_prim",NULL,FD_VOID);
+      return fd_err(NoGrammar,"fd_analyze_text",NULL,FD_VOID);
     pcxt=u8_malloc(sizeof(struct FD_PARSE_CONTEXT));
     fd_init_parse_context(pcxt,grammar); 
     free_pcxt=1;}
@@ -1494,7 +1518,7 @@ fdtype fd_tag_text(struct FD_PARSE_CONTEXT *pcxt,u8_string text)
   if (pcxt==NULL) {
     fd_grammar grammar=get_default_grammar();
     if (grammar==NULL)
-      return fd_err(NoGrammar,"tagtext_prim",NULL,FD_VOID);
+      return fd_err(NoGrammar,"fd_tag_text",NULL,FD_VOID);
     free_pcxt=1; pcxt=u8_malloc(sizeof(struct FD_PARSE_CONTEXT));
     fd_init_parse_context(pcxt,grammar);}
   retval=fd_analyze_text(pcxt,text,tag_text_helper,&result);
@@ -1536,7 +1560,7 @@ static interpret_parse_flags(fdtype arg)
 
 /* FDScript NLP primitives */
 
-static fdtype tagtext_prim(fdtype input,fdtype flags)
+static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
 {
   fdtype result=FD_EMPTY_LIST, retval=FD_VOID;
   struct FD_PARSE_CONTEXT parse_context;
@@ -1559,6 +1583,14 @@ static fdtype tagtext_prim(fdtype input,fdtype flags)
 	return fd_type_error(_("text input"),"tagtext_prim",elt);}
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar); 
+  /* Now we set the custom table if provided */
+  if (FD_VOIDP(custom)) {}
+  else if (FD_HASHTABLEP(custom)) {
+    fd_incref(custom);
+    parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
+  else {
+    fd_free_parse_context(&parse_context);
+    return fd_type_error(_("hashtable"),"tagtext_prim",custom);}
   /* Now we set the flags from the argument. */
   if (!(FD_VOIDP(flags)))
     parse_context.flags=interpret_parse_flags(flags);
@@ -1586,7 +1618,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags)
   else return result;
 }
 
-static fdtype tagtextx_prim(fdtype input,fdtype flags)
+static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
 {
   fdtype result=FD_EMPTY_LIST, retval=FD_VOID;
   struct FD_PARSE_CONTEXT parse_context;
@@ -1609,6 +1641,14 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags)
 	return fd_type_error(_("text input"),"tagtext_prim",elt);}
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar); 
+  /* Now we set the custom table if provided */
+  if (FD_VOIDP(custom)) {}
+  else if (FD_HASHTABLEP(custom)) {
+    fd_incref(custom);
+    parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
+  else {
+    fd_free_parse_context(&parse_context);
+    return fd_type_error(_("hashtable"),"tagtext_prim",custom);}
   /* Now we set the flags from the argument. */
   if (!(FD_VOIDP(flags)))
     parse_context.flags=interpret_parse_flags(flags);
@@ -1891,8 +1931,8 @@ void fd_init_tagger_c()
 #endif
 
   /* This are ndprims because the flags arguments may be a set. */
-  fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("TAGTEXT",tagtext_prim,1)));
-  fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("TAGTEXT*",tagtextx_prim,1)));
+  fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT",tagtext_prim,1)));
+  fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT*",tagtextx_prim,1)));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
 

@@ -60,6 +60,7 @@ typedef struct FD_GRAMMAR {
 
 typedef struct FD_PARSE_CONTEXT {
   struct FD_GRAMMAR *grammar;
+  struct FD_HASHTABLE *custom_lexicon;
   int flags, cumulative_inputs, cumulative_states, n_calls;
   double runtime, cumulative_runtime;
   u8_string buf, start, end;
@@ -74,15 +75,15 @@ FD_EXPORT struct FD_GRAMMAR *fd_open_grammar(u8_string spec);
 FD_EXPORT struct FD_GRAMMAR *fd_default_grammar(void);
 
 FD_EXPORT struct FD_PARSE_CONTEXT *fd_init_parse_context
-  (fd_parse_context,struct FD_GRAMMAR *);
-FD_EXPORT void fd_free_parse_context(fd_parse_context pcxt);
-FD_EXPORT void fd_reset_parse_context(fd_parse_context pcxt);
+  (struct FD_PARSE_CONTEXT *,struct FD_GRAMMAR *);
+FD_EXPORT void fd_free_parse_context(struct FD_PARSE_CONTEXT *pcxt);
+FD_EXPORT void fd_reset_parse_context(struct FD_PARSE_CONTEXT *pcxt);
 
 FD_EXPORT void fd_parser_set_text
   (struct FD_PARSE_CONTEXT *pcxt,u8_string in);
-FD_EXPORT fd_parse_state fd_run_parser(fd_parse_context pc);
-FD_EXPORT fdtype fd_get_root(struct FD_GRAMMAR *,fdtype,int);
-FD_EXPORT fdtype fd_gather_tags(fd_parse_context,fd_parse_state);
+FD_EXPORT fd_parse_state fd_run_parser(struct FD_PARSE_CONTEXT *pc);
+FD_EXPORT fdtype fd_get_root(struct FD_PARSE_CONTEXT *,fdtype,int);
+FD_EXPORT fdtype fd_gather_tags(struct FD_PARSE_CONTEXT *,fd_parse_state);
 FD_EXPORT fdtype fd_tag_text(struct FD_PARSE_CONTEXT *,u8_string);
 
 FD_EXPORT fdtype fd_analyze_text
