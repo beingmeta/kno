@@ -677,12 +677,21 @@ int main(int argc,char **argv)
  {
    sigset_t newset;
    sigemptyset(&newset);
+#if SIGQUIT
+   sigaddset(&newset,SIGQUIT);
+#endif
+#if SIGTERM
+   sigaddset(&newset,SIGTERM);
+#endif
+#if SIGHUP
+   sigaddset(&newset,SIGHUP);
+#endif
    sigprocmask(SIG_SETMASK,&newset,NULL);
  }
 #elif HAVE_SIGSETMASK
   /* We set this here because otherwise, it will often inherit
      the signal mask of its apache parent, which is inappropriate. */
-  sigsetmask(0);
+ sigsetmask(0);
 #endif
 
   if (u8_add_server(&fdwebserver,argv[1],-1)<0) {
