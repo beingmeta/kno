@@ -355,14 +355,20 @@ static int unparse_function(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_FUNCTION *fn=
     FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *);
-  char buf[512];
+  char buf[512], name[512], args[512];
+  if (fn->filename)
+    sprintf(name,_("%s:%s"),fn->name,fn->filename);
+  else sprintf(name,_("%s"),fn->name);
   if (fn->arity>=0)
-    if (fn->filename)
-      sprintf(buf,_("#<Primitive %s:%s (%d args)>"),fn->name,fn->filename,fn->arity);
-    else sprintf(buf,_("#<Primitive %s (%d args)>"),fn->name,fn->arity);
-  else if (fn->filename)
-    sprintf(buf,_("#<Primitive %s:%s>"),fn->name,fn->filename);
-  else sprintf(buf,_("#<Primitive %s>"),fn->name);
+    if (fn->min_arity!=fn->arity)
+      sprintf(args,"%d-%d",fn->min_arity,fn->arity);
+    else sprintf(args,"%d",fn->arity);
+  else if (fn->min_arity>0)
+    sprintf(args,"%d+",fn->min_arity);
+  else sprintf(args,"0+");
+  if (fn->ndprim)
+    sprintf(buf,_("#<NDPrimitive %s (%s args)>"),name,args);
+  else sprintf(buf,_("#<Primitive %s (%s args)>"),name,args);
   u8_puts(out,buf);
 }
 static void recycle_function(struct FD_CONS *c)
