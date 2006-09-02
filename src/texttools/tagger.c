@@ -488,6 +488,7 @@ static fdtype get_lexinfo(fd_parse_context pcxt,fdtype key)
   if (FD_VOIDP(custom))
     return lexicon_fetch(pcxt->grammar->lexicon,key);
   else if (FD_PACKETP(custom)) return custom;
+  else if (FD_FALSEP(custom)) return custom;
   else return convert_custom(pcxt->grammar,custom);
 }
 
@@ -495,7 +496,7 @@ static fdtype get_noun_root(fd_parse_context pcxt,fdtype key)
 {
   if (pcxt->custom_lexicon) {
     struct FD_PAIR tmp_pair;
-    fdtype tmp_key, custom_root;
+    fdtype tmp_key=(fdtype)(&tmp_pair), custom_root;
     FD_INIT_STACK_CONS(&tmp_pair,fd_pair_type);
     tmp_pair.car=noun_root_symbol; tmp_pair.cdr=key;
     custom_root=fd_hashtable_get(pcxt->custom_lexicon,tmp_key,FD_VOID);
@@ -509,7 +510,7 @@ static fdtype get_verb_root(fd_parse_context pcxt,fdtype key)
 {
   if (pcxt->custom_lexicon) {
     struct FD_PAIR tmp_pair;
-    fdtype tmp_key, custom_root;
+    fdtype tmp_key=(fdtype)(&tmp_pair), custom_root;
     FD_INIT_STACK_CONS(&tmp_pair,fd_pair_type);
     tmp_pair.car=verb_root_symbol; tmp_pair.cdr=key;
     custom_root=fd_hashtable_get(pcxt->custom_lexicon,tmp_key,FD_VOID);
@@ -684,7 +685,7 @@ static fdtype probe_compound
     if (FD_EMPTY_CHOICEP(lexdata)) {
       fd_decref(compound); return FD_EMPTY_CHOICE;}
     else {
-      if (FD_VECTORP(lexdata)) {
+      if ((FD_VECTORP(lexdata)) || (FD_PACKETP(lexdata))) {
 	fdtype results=fd_init_pair(NULL,compound,lexdata);
 	fdtype more_results=probe_compound(pc,start,end+1,lim,lower);
 	FD_ADD_TO_CHOICE(results,more_results);
@@ -1584,7 +1585,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar); 
   /* Now we set the custom table if provided */
-  if (FD_VOIDP(custom)) {}
+  if ((FD_FALSEP(custom)) || (FD_VOIDP(custom)) || (FD_EMPTY_CHOICEP(custom))) {}
   else if (FD_HASHTABLEP(custom)) {
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
@@ -1642,7 +1643,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar); 
   /* Now we set the custom table if provided */
-  if (FD_VOIDP(custom)) {}
+  if ((FD_FALSEP(custom)) || (FD_VOIDP(custom)) || (FD_EMPTY_CHOICEP(custom))) {}
   else if (FD_HASHTABLEP(custom)) {
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
@@ -1721,6 +1722,12 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
 	  else return FD_INT2DTYPE(weight);}
       else i++;
     return FD_EMPTY_CHOICE;}
+}
+
+static fdtype lextags_prim()
+{
+  fd_grammar g=fd_default_grammar();
+  return fd_incref(g->arc_names);
 }
 
 
@@ -1935,6 +1942,7 @@ void fd_init_tagger_c()
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT*",tagtextx_prim,1)));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
+  fd_idefn(menv,fd_make_cprim0("LEXTAGS",lextags_prim,0));
 
   fd_idefn(menv,fd_make_cprim0("NLP-STATS",lisp_get_stats,0));
   fd_idefn(menv,fd_make_cprim0("REPORT-NLP-STATS",lisp_report_stats,0));
