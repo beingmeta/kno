@@ -894,13 +894,41 @@ static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
 			pred);
 }
 
-static fdtype binary_pick(fdtype candidates,fdtype test);
+static int binary_test(fdtype candidate,fdtype test,int noinfer)
+{
+  if ((FD_OIDP(candidate)) && ((FD_SYMBOLP(test)) || (FD_OIDP(test))))
+    if (noinfer)
+      return fd_test(candidate,test,FD_VOID);
+    else return fd_frame_test(candidate,test,FD_VOID);
+  else if (FD_PRIM_TYPEP(test,fd_hashset_type)) 
+    if (fd_hashset_get((fd_hashset)test,candidate))
+      return 1;
+    else return 0;
+  else if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
+    return fd_test(candidate,test,FD_VOID);
+  else if (FD_APPLICABLEP(test)) {
+    fdtype v=fd_apply((fd_function)test,1,&candidate);
+    if (FD_ABORTP(v)) return fd_interr(v);
+    else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v))) return 0;
+    else {fd_decref(v); return 1;}}
+  else if (FD_POOLP(test))
+    if (FD_OIDP(candidate)) {
+      fd_pool p=fd_lisp2pool(test);
+      if (fd_oid2pool(candidate)==p) return 1;
+      else return 0;}
+    else return 0;
+  else if (FD_TABLEP(test))
+    return fd_test(candidate,test,FD_VOID);
+  else return fd_type_error(_("test object"),"binary_pick",test);
+}
+
+static fdtype binary_pick(fdtype candidates,fdtype test,int);
 
 static fdtype pick_helper(int n,fdtype *args,int noinfer)
 {
   fdtype start=args[0], candidates, next;
   int i=1;
-  if (n==2) return binary_pick(args[0],args[1]);
+  if (n==2) return binary_pick(args[0],args[1],noinfer);
   if ((n%2)==0)
     return fd_err(fd_SyntaxError,"wrong number of args to PICK",
 		  NULL,FD_VOID);
@@ -934,46 +962,34 @@ static fdtype prim_pick_lexpr(int n,fdtype *args)
   return pick_helper(n,args,1);
 }
 
-static fdtype binary_pick(fdtype candidates,fdtype test)
+static fdtype binary_pick(fdtype candidates,fdtype test,int noinfer)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  fd_pool p=((FD_POOLP(test)) ? (fd_lisp2pool(test)) : (NULL));
-  FD_DO_CHOICES(candidate,candidates)
-    if (FD_PRIM_TYPEP(test,fd_hashset_type)) {
-      if (fd_hashset_get((fd_hashset)test,candidate)) {
-	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
-    else {
-      fdtype v;
-      if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
-	v=fd_get(candidate,test,FD_VOID);
-      else if (p) {
-	if ((FD_OIDP(candidate)) &&
-	    (fd_oid2pool(candidate)==p))
-	  v=FD_TRUE;
-	else v=FD_FALSE;}
-      else if (FD_TABLEP(test))
-	v=fd_get(test,candidate,FD_VOID);
-      else if (FD_APPLICABLEP(test))
-	v=fd_apply((fd_function)test,1,&candidate);
-      else {
-	fd_decref(results);
-	return fd_type_error(_("test object"),"binary_pick",test);}
-      if (FD_ABORTP(v)) {
-	fd_decref(results); return v;}
-      else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v))) {}
-      else {
-	fd_decref(v); FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
-  return results;
+  if (FD_EMPTY_CHOICEP(test)) return results;
+  else {
+    FD_DO_CHOICES(candidate,candidates)
+      if (FD_CHOICEP(test)) {
+	int hit=0;
+	FD_DO_CHOICES(p,test)
+	  if (binary_test(candidate,p,noinfer)) {
+	    hit=1; FD_STOP_DO_CHOICES; break;}
+	  else {}
+	if (hit)
+	  FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
+      else if (binary_test(candidate,test,noinfer)) {
+	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
+      else {}
+    return results;}
 }
-
-static fdtype binary_reject(fdtype candidates,fdtype test);
+  
+static fdtype binary_reject(fdtype candidates,fdtype test,int);
 
 static fdtype reject_helper(int n,fdtype *args,int noinfer)
 {
   fdtype start=args[0], candidates;
   fdtype rejects=FD_EMPTY_CHOICE, next;
   int i=1;
-  if (n==2) return binary_reject(args[0],args[1]);
+  if (n==2) return binary_reject(args[0],args[1],noinfer);
   if ((n%2)==0)
     return fd_err(fd_SyntaxError,"wrong number of args to REJECT",
 		  NULL,FD_VOID);
@@ -1008,36 +1024,24 @@ static fdtype prim_reject_lexpr(int n,fdtype *args)
   return reject_helper(n,args,1);
 }
 
-static fdtype binary_reject(fdtype candidates,fdtype test)
+static fdtype binary_reject(fdtype candidates,fdtype test,int noinfer)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  fd_pool p=((FD_POOLP(test)) ? (fd_lisp2pool(test)) : (NULL));
-  FD_DO_CHOICES(candidate,candidates)
-    if (FD_PRIM_TYPEP(test,fd_hashset_type)) {
-      if (!(fd_hashset_get((fd_hashset)test,candidate))) {
-	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
-    else {
-      fdtype v;
-      if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
-	v=fd_get(candidate,test,FD_VOID);
-      else if (p) {
-	if ((FD_OIDP(candidate)) &&
-	    (fd_oid2pool(candidate)==p))
-	  v=FD_FALSE;
-	else v=FD_TRUE;}
-      else if (FD_TABLEP(test))
-	v=fd_get(test,candidate,FD_VOID);
-      else if (FD_APPLICABLEP(test))
-	v=fd_apply((fd_function)test,1,&candidate);
+  if (FD_EMPTY_CHOICEP(test)) return fd_incref(candidates);
+  else {
+    FD_DO_CHOICES(candidate,candidates)
+      if (FD_CHOICEP(test)) {
+	int hit=0;
+	FD_DO_CHOICES(p,test)
+	  if (binary_test(candidate,p,noinfer)) {
+	    hit=1; FD_STOP_DO_CHOICES; break;}
+	  else {}
+	if (hit) {}
+	else {FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
+      else if (binary_test(candidate,test,noinfer)) {}
       else {
-	fd_decref(results);
-	return fd_type_error(_("test object"),"binary_pick",test);}
-      if (FD_ABORTP(v)) {
-	fd_decref(results); return v;}
-      else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v))) {
 	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
-      else {fd_decref(v);}}
-  return results;
+    return results;}
 }
 
 /* Kleene* operations */
