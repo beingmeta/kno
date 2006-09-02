@@ -173,7 +173,11 @@ int main(int argc,char **argv)
       if (f) {
 	/* Output the current data/time with millisecond precision. */
 	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",base,retval);
-	u8_fclose(f);}}
+	u8_fclose(f);
+	if (died_file) {
+	  u8_removefile(died_file);
+	  u8_free(died_file);
+	  died_file=NULL;}}}
     else {
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
