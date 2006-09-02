@@ -69,10 +69,13 @@ pooltests:
 			@/brico/1525d @/brico/1bbe8 @/brico/1bdff @/brico/1cb47
 
 filepooltests:
+	@echo "***" Running file pool tests
 	make BRICOPOOL=$(FILEBRICOPOOL) pooltests
 zfilepooltests:
+	@echo "***" Running zpool tests
 	make BRICOPOOL=$(ZFILEBRICOPOOL) pooltests
 netpooltests:
+	@echo "***" Running netpool tests
 	make BRICOPOOL=$(NETBRICOPOOL) pooltests
 
 allpooltests: filepooltests zfilepooltests netpooltests
@@ -83,10 +86,13 @@ indextests:
 		"(@1/2c1c7 . \"fish\")" "(@1/2c1c7 . \"dog\")"
 
 fileindextests:
+	@echo "***" Running file index tests
 	make BRICOINDEX=$(FILEBRICOINDEX) indextests
 zfileindextests:
+	@echo "***" Running zindex tests
 	make BRICOINDEX=$(ZFILEBRICOINDEX) indextests
 netindextests:
+	@echo "***" Running netindex tests
 	make BRICOINDEX=$(NETBRICOINDEX) indextests
 
 allindextests: fileindextests zfileindextests netindextests

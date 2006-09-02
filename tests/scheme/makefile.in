@@ -91,6 +91,7 @@ testclean:
 	rm -f logfile thirty2fifty thirtythree 
 alltests: dtypetests tabletests dbtests
 dtypetests:
+	@echo "***" Running scheme tests to exercise the data/eval layer
 	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) choicetest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) seqtest.scm
@@ -98,7 +99,9 @@ dtypetests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) texttest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) i18n.scm
+
 tabletests:
+	@echo "***" Running scheme tests to exercise the table/index layer
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
@@ -107,50 +110,67 @@ tabletests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
+
 dbtests:
+	@echo "***" Running scheme tests to exercise the database layer
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb init $(DBTEST_FILES)
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
+
 memtests:
+	@echo "***" Running alltests with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
+
 memdtypetests:
+	@echo "***" Running dtypetests (data/eval layers) with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+
 memtabletests:
+	@echo "***" Running tabletests (table/index layers) with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
+
 memdbtests:
+	@echo "***" Running dbtests (database layers) with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests
+
 randomtests:
+	@echo "***" Running alltests with a really random seed
 	make "TESTCONFIG=RANDOMSEED=TIME" alltests
+
 chaintest:
+	@echo "***" Testing scripts which call CHAIN
 	fdexec chaintest.scm
 	fdexec chaintest.scm 0 30
 	fdexec chaintest.scm 10 50
+
 batchtest:
+	@echo "***" Testing fdbatch execution success and cleanliness
 	rm -f countup.log countup.err countup.done countup.finished countup.died
 	./fdbatch countup.scm "countup.finished" 10 1; sleep 3
-	if (test ! -f countup.pid); then echo error; exit 1; fi;
+	@if (test ! -f countup.pid); then echo error; exit 1; fi;
 	sleep 12;
-	# This was written by fdbatch itself
-	if (test ! -s countup.done); then echo countup.done error; exit 1; fi;
-	# This was written by the script
-	if (test ! -s countup.finished); then echo fdbatch success countup.finished error; exit 1; fi;
-	if (test ! -s countup.err); then echo fdbatch success countup.err error; exit 1; fi;
-	if (test ! -s countup.log); then echo fdbatch success countup.log error; exit 1; fi;
-	# These should have been deleted on successful exit
-	if (test -f countup.died); then echo fdbatch success countup.died error; exit 1; fi;
-	if (test -f countup.pid); then echo fdbatch success countup.pid error; exit 1; fi;
+	@# This was written by fdbatch itself
+	@if (test ! -s countup.done); then echo countup.done error; exit 1; fi;
+	@# This was written by the script
+	@if (test ! -s countup.finished); then echo fdbatch success countup.finished error; exit 1; fi;
+	@if (test ! -s countup.err); then echo fdbatch success countup.err error; exit 1; fi;
+	@if (test ! -s countup.log); then echo fdbatch success countup.log error; exit 1; fi;
+	@# These should have been deleted on successful exit
+	@if (test -f countup.died); then echo fdbatch success countup.died error; exit 1; fi;
+	@if (test -f countup.pid); then echo fdbatch success countup.pid error; exit 1; fi;
 	rm -f countup.log countup.err countup.done countup.finished countup.died
-	echo "Done with fdbatch success test"
+	@echo "***" "Done with fdbatch success test"
 	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1; sleep 3
 	sleep 12;
-	# This should have been deleted by the atexit handler
-	if (test -f countup.pid); then echo fdbatch failure countup.pid error; exit 1; fi;
-	if (test -f countup.done); then echo fdbatch failure countup.done error; exit 1; fi;
-	# This should have been created at exit
-	if (test ! -f countup.died); then echo fdbatch failure countup.died error; exit 1; fi;
-	echo "Done with fdbatch failure test"
+	@# This should have been deleted by the atexit handler
+	@if (test -f countup.pid); then echo fdbatch failure countup.pid error; exit 1; fi;
+	@if (test -f countup.done); then echo fdbatch failure countup.done error; exit 1; fi;
+	@# This should have been created at exit
+	@if (test ! -f countup.died); then echo fdbatch failure countup.died error; exit 1; fi;
+	@echo "***" "Done with fdbatch failure test"
 
 batchchaintest:
+	@echo "***" Testing batch scripts which call CHAIN
 	fdbatch chaintest.scm

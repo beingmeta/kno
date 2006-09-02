@@ -41,7 +41,9 @@ alltests: dtypetests choicetests mergechoicetests \
 mosttests: dtypetests choicetests tabletests slotmaptests slotmaptests2 \
 		smallbricotests
 dtypetests:
+	@echo "***" Testing calls from C API
 	$(RUNTEST) ./testcapi
+	@echo "***" Testing dtype parsing and binary writing
 	$(RUNTEST) ./makedtype fixnum.dtype 33
 	$(RUNTEST) ./makedtype flonum.dtype 33.0
 	$(RUNTEST) ./makedtype big.dtype 12345678987654321
@@ -52,6 +54,7 @@ dtypetests:
 	$(RUNTEST) ./makedtype oid.dtype @314/55
 	$(RUNTEST) ./makedtype symbol.dtype foo
 	$(RUNTEST) ./makedtype oddsymbol.dtype \|bar\|
+	@echo "***" Testing dtype binary reading and unparsing
 	$(RUNTEST) ./printdtype fixnum.dtype
 	$(RUNTEST) ./printdtype flonum.dtype
 	$(RUNTEST) ./printdtype big.dtype
@@ -62,6 +65,7 @@ dtypetests:
 	$(RUNTEST) ./printdtype symbol.dtype
 	$(RUNTEST) ./printdtype oddsymbol.dtype
 	$(RUNTEST) ./printdtype ../data/testobj.dtype
+	@echo "***" Testing dtype binary reading and writing together
 	$(RUNTEST) ./copydtype ../data/testobj.dtype testobj.dtype
 	$(RUNTEST) ./printdtype ../data/testobj.dtype
 	$(RUNTEST) ./printdtype testobj.dtype
@@ -70,9 +74,13 @@ dtypetests:
 	diff temp.dtype testobj.dtype
 
 mergechoicetests:
+	@echo "***" Testing choice merge/union operations 
 	make "CHOICEFLAGS=MERGECHOICES=20" choicetests
+
 choicetests: intchoicetests oidchoicetests objchoicetests compchoicetests
+
 intchoicetests: ../data/intall.data
+	@echo "***" Testing merge/unions on integer choices
 	rm -f intersection.data nintersection.data \
 	      union.data union.ndata diff.data diff.ndata
 	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) intintersection.data ../data/int?.data
@@ -85,7 +93,9 @@ intchoicetests: ../data/intall.data
                     ../data/intall.data intunion.sorted
 	sort intdiff.data > intdiff.sorted
 	sort ../data/intmissing.data | diff - intdiff.sorted
+
 oidchoicetests: ../data/oidall.data
+	@echo "***" Testing merge/unions on oid choices
 	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) oidintersection.data ../data/oid?.data
 	sort oidintersection.data > oidintersection.sorted
 	sort ../data/oidcommon.data | diff - oidintersection.sorted
@@ -96,14 +106,18 @@ oidchoicetests: ../data/oidall.data
                     ../data/oidall.data oidunion.sorted
 	sort oiddiff.data > oiddiff.sorted
 	sort ../data/oidmissing.data | diff - oiddiff.sorted
+
 # Note that we don't do diffing here because some of the objects
 # are slotmaps which aren't canonically ordered
 objchoicetests: ../data/objall.data
+	@echo "***" Testing merge/unions on heterogenous object choices
 	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) objintersection.data ../data/obj?.data
 	$(RUNTEST) ./uniontest $(CHOICEFLAGS) objunion.data ../data/obj?.data
 	$(RUNTEST) ./differencetest $(CHOICEFLAGS) objdiff.data \
                     ../data/objall.data objunion.data
+
 compchoicetests: ../data/compall.data
+	@echo "***" Testing merge/unions on heterogenous compound object choices
 	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) compintersection.data ../data/comp?.data
 	$(RUNTEST) ./uniontest $(CHOICEFLAGS) compunion.data ../data/comp?.data
 	$(RUNTEST) ./differencetest $(CHOICEFLAGS) compdiff.data \
@@ -119,6 +133,7 @@ compchoicetests: ../data/compall.data
 	cd ../data; make compall.data
 
 tabletests:
+	@echo "***" Checking basic hashtable operations
 	rm -f temp.table
 	$(RUNTEST) ./hashtabletest temp.table foo 33
 	$(RUNTEST) ./hashtabletest temp.table foo +444
@@ -148,6 +163,7 @@ tabletests:
 	$(RUNTEST) ./hashtabletest temp.table "(A . B)"
 
 slotmaptests:
+	@echo "***" Checking basic slotmap operations
 	rm -f temp.smap
 	$(RUNTEST) ./slotmaptest temp.smap foo 33
 	$(RUNTEST) ./slotmaptest temp.smap foo +444
@@ -170,6 +186,7 @@ slotmaptests:
 	$(RUNTEST) ./slotmaptest temp.smap bar
 
 slotmaptests2:
+	@echo "***" Checking more slotmap operations
 	rm -f temp.smap2
 	$(RUNTEST) ./slotmaptest temp.smap2 foo 33
 	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)"
@@ -199,20 +216,26 @@ slotmaptests2:
 	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)"
 
 smallbricotests: ../data/bricosmall.dump
+	@echo "***" Running tests on a modestly large hashtable
 	$(RUNTEST) ./maketable ../data/bricosmall.dump bricosmall.table
 	$(RUNTEST) ./readtable bricosmall.table
 mediumbricotests: ../data/bricosample.dump
+	@echo "***" Running tests on a larger hashtable
 	$(RUNTEST) ./maketable ../data/bricosample.dump bricosample.table
 	$(RUNTEST) ./readtable bricosample.table
 bigbricotests: ../data/brico.dump
+	@echo "***" Running tests on a pretty big hashtable
 	$(RUNTEST) ./maketable ../data/brico.dump brico.table
 	$(RUNTEST) ./readtable brico.table
 
 ../data/bricosmall.dump:
+	@echo "***" Trying to make the data for a modestly large hashtable
 	cd ../data; make BRICO=/data/brico/brico bricosmall.dump
 ../data/bricosample.dump:
+	@echo "***" Trying to make the data for a larger hashtable
 	cd ../data; make BRICO=/data/brico/brico bricosample.dump
 ../data/brico.dump:
+	@echo "***" Trying to make the data for a pretty big hashtable
 	cd ../data; make BRICO=/data/brico/brico brico.dump
 
 %.o: %.c
