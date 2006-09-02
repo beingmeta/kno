@@ -452,13 +452,15 @@ static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
 
 /* Reading and writing DTYPEs */
 
-static fdtype write_dtype(fdtype object,fdtype filename)
+static fdtype write_dtype(fdtype object,fdtype filename,fdtype bufsiz)
 {
   if (FD_STRINGP(filename)) {
     struct FD_DTYPE_STREAM *out; int bytes;
     out=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_CREATE);
     if (out==NULL) return fd_erreify();
-    else bytes=fd_dtswrite_dtype(out,object);
+    if (FD_FIXNUMP(bufsiz))
+      fd_dtsbufsize(out,FD_FIX2INT(bufsiz));
+    bytes=fd_dtswrite_dtype(out,object);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
     return FD_INT2DTYPE(bytes);}
   else return fd_type_error(_("string"),"write_dtype",filename);
@@ -1183,7 +1185,7 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("SETCWD",setcwd_prim,1,fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE",write_dtype,2)));
+	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",write_dtype,2)));
   fd_idefn(fileio_module,
 	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype,2)));
   fd_idefn(fileio_module,

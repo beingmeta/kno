@@ -342,7 +342,7 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
 {
   U8_INPUT *in=get_input_port(port);
   if (in) {
-    u8_string data, eos; int lim, size;
+    u8_string data, eos; int lim, size=0;
     if (in==NULL)
       return fd_type_error(_("input port"),"getline_prim",port);
     if (FD_VOIDP(eos_arg)) eos="\n";
