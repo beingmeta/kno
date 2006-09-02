@@ -138,14 +138,19 @@ batchtest:
 	if (test ! -s countup.finished); then echo error; exit 1; fi;
 	if (test ! -s countup.err); then echo error; exit 1; fi;
 	if (test ! -s countup.log); then echo error; exit 1; fi;
+	if (test -f countup.died); then echo error; exit 1; fi;
 	if (test -f countup.pid); then echo error; exit 1; fi;
 	rm -f countup.log countup.err countup.done countup.finished countup.died
+	echo "Done with fdbatch success test"
 	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1; sleep 3
 	sleep 12;
 	if (test -f countup.pid); then echo error; exit 1; fi;
 	if (test -f countup.done); then echo error; exit 1; fi;
 	# This should have been deleted by the atexit handler
 	if (test -f countup.pid); then echo error; exit 1; fi;
+	# This should have been created at exit
+	if (test ! -f countup.died); then echo error; exit 1; fi;
+	echo "Done with fdbatch failure test"
 
 batchchaintest:
 	fdbatch chaintest.scm
