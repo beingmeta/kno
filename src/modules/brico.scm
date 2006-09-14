@@ -276,9 +276,17 @@
 			(?? 'of concept)))
       (set! sum (+ sum (try (get wf 'freq) 0))))
     ;; If there is no frequency data, use the native language occurence
-    ;;  as a single instance.
+    ;;  as a single instance, providing that it is actually applicable.
+    ;; This doesn't do any term morphology, which is handled elsewhere.
     (if (zero? sum) 
-	(if (test concept language term) 1 0)
+	(if (or (test concept language term)
+		(and (capitalized? term)
+		     (or (test concept 'names term)
+			 (overlaps? (stdstring term)
+				    (stdstring (get concept 'names))))))
+	    ;; Weight brico concepts higher than external concepts
+	    (if (in-pool? concept brico-pool) 2 1)
+	    0)
 	sum)))
 
 ;; This is a list of functions to get concept/term frequency information.
