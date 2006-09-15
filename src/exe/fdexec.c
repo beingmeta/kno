@@ -5,8 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef FDEXEC_INCLUDED
 static char versionid[] =
   "$Id$";
+#endif
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"

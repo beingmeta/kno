@@ -1,3 +1,8 @@
+static char versionid[] =
+  "$Id: fdexec.c 475 2006-08-19 11:19:35Z haase $";
+
+#define FDEXEC_INCLUDED 1
+
 #define main do_main
 #include "fdexec.c"
 #undef main
