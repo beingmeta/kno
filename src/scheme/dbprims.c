@@ -918,7 +918,7 @@ static int binary_test(fdtype candidate,fdtype test,int noinfer)
       else return 0;}
     else return 0;
   else if (FD_TABLEP(test))
-    return fd_test(candidate,test,FD_VOID);
+    return fd_test(test,candidate,FD_VOID);
   else return fd_type_error(_("test object"),"binary_pick",test);
 }
 
