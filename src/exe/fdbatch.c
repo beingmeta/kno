@@ -68,7 +68,8 @@ static u8_string pid_file=NULL, died_file=NULL;
 
 static void fdbatch_atexit()
 {
-  if (pid_file) u8_removefile(pid_file);
+  if ((pid_file) && (u8_file_existsp(pid_file)))
+    u8_removefile(pid_file);
   if (died_file) {
     FILE *f=u8_fopen(died_file,"w");
     if (f) {
