@@ -365,6 +365,40 @@ static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
     return results;}
 }
   
+/* Mapping into tables */
+
+static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
+{
+  int n_keys=FD_CHOICE_SIZE(keys);
+  fdtype table;
+  if (FD_FALSEP(hashp)) table=fd_init_slotmap(NULL,0,NULL,NULL);
+  else if (FD_TRUEP(hashp)) table=fd_make_hashtable(NULL,n_keys*2,NULL);
+  else if (FD_FIXNUMP(hashp))
+    if (n_keys>(FD_FIX2INT(hashp))) table=fd_make_hashtable(NULL,n_keys*2,NULL);
+    else table=fd_init_slotmap(NULL,0,NULL,NULL);
+  else if (n_keys>8) table=fd_make_hashtable(NULL,n_keys*2,NULL);
+  else table=fd_init_slotmap(NULL,0,NULL,NULL);
+  if ((FD_SYMBOLP(fn)) || (FD_OIDP(fn))) {
+    FD_DO_CHOICES(k,keys) {
+      fdtype v=((FD_OIDP(k)) ? (fd_frame_get(k,fn)) : (fd_get(k,fn,FD_EMPTY_CHOICE)));
+      fd_add(table,k,v);
+      fd_decref(v);}}
+  else if (FD_APPLICABLEP(fn)) {
+    FD_DO_CHOICES(k,keys) {
+      fdtype v=fd_apply((struct FD_FUNCTION *)fn,1,&k);
+      fd_add(table,k,v);
+      fd_decref(v);}}
+  else if (FD_TABLEP(fn)) {
+    FD_DO_CHOICES(k,keys) {
+      fdtype v=fd_get(fn,k,FD_EMPTY_CHOICE);
+      fd_add(table,k,v);
+      fd_decref(v);}}
+  else {
+    fd_decref(table);
+    return fd_type_error("map","map2table",fn);}
+  return table;
+}
+
 /* Hashset operations */
 
 static fdtype hashsetget(fdtype hs,fdtype key)
@@ -471,6 +505,9 @@ FD_EXPORT void fd_init_tablefns_c()
 	   fd_make_cprim3x("HASHTABLE-SKIM",hashtable_skim,2,
 			   fd_hashtable_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
+
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim
