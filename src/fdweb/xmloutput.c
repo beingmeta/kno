@@ -1373,9 +1373,6 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);
   fd_decref(emptymarkup_prim); fd_decref(xmlout_prim);
   fd_decref(xmlblock_prim); fd_decref(xmlelt_prim);
-  fd_decref(xmlempty_dproc); fd_decref(xmlempty_proc);
-  fd_decref(xmlify_proc); fd_decref(oid2id_proc);
-  fd_decref(scripturl_proc); fd_decref(fdscripturl_proc);
 
   /* Not strictly XML of course, but a neighbor */
   fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_handler);
