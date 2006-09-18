@@ -38,7 +38,7 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
   (URI string)
 */
 
-static fdtype xmloidfn_symbol, obj_name, id_symbol;
+static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
 static fdtype href_symbol, class_symbol, raw_name_symbol;
 
 /* Utility output functions */
@@ -189,6 +189,10 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
   emit_xmlname(out,eltname);
   while (FD_PAIRP(attribs)) {
     fdtype elt=FD_CAR(attribs);
+    /* Kludge to handle case where the attribute name is quoted. */
+    if ((FD_PAIRP(elt)) && (FD_CAR(elt)==quote_symbol) &&
+	(FD_PAIRP(FD_CDR(elt))) && (FD_SYMBOLP(FD_CADR(elt))))
+      elt=FD_CADR(elt);
     u8_putc(out,' ');
     if (FD_STRINGP(elt)) {
       attrib_entify(out,FD_STRDATA(elt));
@@ -206,13 +210,28 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
 	else emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(elt),FD_CADR(attribs));
 	attribs=FD_CDR(FD_CDR(attribs));}
       else {
-	fd_seterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));
-	return -1;}
+	if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
+	return fd_reterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));}
     else if ((FD_PAIRP(elt)) && (FD_PAIRP(FD_CDR(elt)))) {
       fdtype attrib_name=FD_CAR(elt);
       fdtype attrib_expr=FD_CAR(FD_CDR(elt));
-      if (!((FD_SYMBOLP(attrib_name)) || (FD_STRINGP(attrib_name))))
-	fd_seterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));
+      if ((FD_SYMBOLP(attrib_name)) || (FD_STRINGP(attrib_name))) {}
+      else if (FD_PAIRP(attrib_name)) {
+	fdtype name=fd_eval(attrib_name,env);
+	if (FD_ABORTP(name)) {
+	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
+	  return fd_interr(name);}
+	else if (FD_SYMBOLP(name)) attrib_name=name;
+	else if (FD_STRINGP(name))
+	  attrib_name=fd_intern(FD_STRDATA(attrib_name));
+	else {
+	  fd_decref(name);
+	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
+	  return fd_reterr(fd_TypeError,"open_markup",u8_strdup("attribname"),fd_incref(name));}
+	fd_decref(name);}
+      else {
+	if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
+	return fd_reterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));}
       if ((FD_SYMBOLP(attrib_expr)) || (FD_PAIRP(attrib_expr))) {
 	fdtype val=((env) ? (fd_eval(attrib_expr,env)) : (fd_incref(attrib_expr)));
 	if (FD_VOIDP(val)) {}
@@ -1269,10 +1288,11 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_special_form("emptymarkup",emptymarkup_handler);
   fdtype xmlout_prim=fd_make_special_form("XMLOUT",xmlout);
   fdtype xmlblock_prim=fd_make_special_form("XMLBLOCK",xmlblock);
-  fdtype xmlentry_prim=fd_make_special_form("XMLENTRY",xmlentry);
-  fdtype xmlempty_dproc=fd_make_cprimn("XMLTAG",xmlemptyelt,0);
+  fdtype xmlelt_prim=fd_make_special_form("XMLELT",xmlentry);
+
+  /* Applicable XML generators (not special forms) */
+  fdtype xmlempty_dproc=fd_make_cprimn("XMLEMPTY",xmlemptyelt,0);
   fdtype xmlempty_proc=fd_make_ndprim(xmlempty_dproc);
-  fdtype xmltag_proc=fd_make_cprimn("XMLTAG",xmlemptyelt,0);
   fdtype xmlify_proc=fd_make_cprim1("XMLIFY",xmlify,1);
   fdtype oid2id_proc=
     fd_make_cprim2x("OID2ID",oid2id,1,fd_oid_type,FD_VOID,-1,FD_VOID);
@@ -1281,30 +1301,30 @@ FD_EXPORT void fd_init_xmloutput_c()
 
   u8_printf_handlers['k']=markup_printf_handler;
 
-  {fdtype module=safe_fdweb_module;
-  fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
-  fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
-  fd_store(module,fd_intern("XMLENTRY"),xmlentry_prim);
-  fd_defn(module,xmltag_proc);
-  fd_defn(module,xmlempty_proc);
-  fd_defn(module,xmlify_proc);
-  fd_defn(module,oid2id_proc);
-  fd_defn(module,scripturl_proc);
-  fd_store(module,fd_intern("MARKUPFN"),markup_prim);
-  fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);}
-
-  {fdtype module=fdweb_module;
-  fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
-  fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
-  fd_idefn(module,xmltag_proc);
-  fd_idefn(module,xmlempty_proc);
-  fd_idefn(module,xmlify_proc);
-  fd_idefn(module,oid2id_proc);
-  fd_idefn(module,scripturl_proc);
-  fd_idefn(module,fdscripturl_proc);
-  fd_store(module,fd_intern("MARKUPFN"),markup_prim);
-  fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);}
-
+  {
+    fdtype module=safe_fdweb_module;
+    fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
+    fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
+    fd_store(module,fd_intern("XMLELT"),xmlelt_prim);
+    fd_defn(module,xmlempty_proc);
+    fd_defn(module,xmlify_proc);
+    fd_defn(module,oid2id_proc);
+    fd_defn(module,scripturl_proc);
+    fd_store(module,fd_intern("MARKUPFN"),markup_prim);
+    fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);}
+  
+  {
+    fdtype module=fdweb_module;
+    fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
+    fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
+    fd_idefn(module,xmlempty_proc);
+    fd_idefn(module,xmlify_proc);
+    fd_idefn(module,oid2id_proc);
+    fd_idefn(module,scripturl_proc);
+    fd_idefn(module,fdscripturl_proc);
+    fd_store(module,fd_intern("MARKUPFN"),markup_prim);
+    fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);}
+  
   fd_defspecial(xhtml_module,"ANCHOR",doanchor);
   fd_defspecial(xhtml_module,"ANCHOR*",doanchor_star);
   fd_idefn(xhtml_module,fd_make_cprim1("%XMLOID",xmloid,1));
@@ -1349,6 +1369,14 @@ FD_EXPORT void fd_init_xmloutput_c()
 
   fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_handler);
 
+  fd_decref(markup_prim); fd_decref(markupstar_prim);
+  fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);
+  fd_decref(emptymarkup_prim); fd_decref(xmlout_prim);
+  fd_decref(xmlblock_prim); fd_decref(xmlelt_prim);
+  fd_decref(xmlempty_dproc); fd_decref(xmlempty_proc);
+  fd_decref(xmlify_proc); fd_decref(oid2id_proc);
+  fd_decref(scripturl_proc); fd_decref(fdscripturl_proc);
+
   /* Not strictly XML of course, but a neighbor */
   fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_handler);
   fd_defspecial(xhtml_module,"JAVASTMT",javastmt_handler);
@@ -1360,6 +1388,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   href_symbol=fd_intern("HREF");
   class_symbol=fd_intern("CLASS");
   obj_name=fd_intern("OBJ-NAME");
+  quote_symbol=fd_intern("QUOTE");
   raw_name_symbol=fd_intern("%%NAME");
 }
 

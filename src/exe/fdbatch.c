@@ -85,7 +85,8 @@ static void fdbatch_atexit()
 
 static void signal_shutdown(int sig)
 {
-  if (pid_file) u8_removefile(pid_file);
+  if ((pid_file) && (u8_file_existsp(pid_file)))
+    u8_removefile(pid_file);
   if (died_file) {
     FILE *f=u8_fopen(died_file,"w");
     if (f) {
@@ -181,7 +182,8 @@ int main(int argc,char **argv)
 	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",base,retval);
 	u8_fclose(f);
 	if (died_file) {
-	  u8_removefile(died_file);
+	  if (u8_file_existsp(died_file))
+	    u8_removefile(died_file);
 	  u8_free(died_file);
 	  died_file=NULL;}}}
     else {
