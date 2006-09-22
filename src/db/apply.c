@@ -200,37 +200,51 @@ FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *f,int n,fdtype *args)
 
 static fdtype dcall0(struct FD_FUNCTION *f)
 {
-  return f->handler.call0();
+  if (f->xprim)
+    return f->handler.xcall0(f);
+  else return f->handler.call0();
 }
 static fdtype dcall1(struct FD_FUNCTION *f,fdtype arg1)
 {
-  return f->handler.call1(arg1);
+  if (f->xprim)
+    return f->handler.xcall1(f,arg1);
+  else return f->handler.call1(arg1);
 }
 static fdtype dcall2(struct FD_FUNCTION *f,fdtype arg1,fdtype arg2)
 {
-  return f->handler.call2(arg1,arg2);
+  if (f->xprim)
+    return f->handler.xcall2(f,arg1,arg2);
+  else return f->handler.call2(arg1,arg2);
 }
 static fdtype dcall3(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3)
 {
-  return f->handler.call3(arg1,arg2,arg3);
+  if (f->xprim)
+    return f->handler.xcall3(f,arg1,arg2,arg3);
+  else return f->handler.call3(arg1,arg2,arg3);
 }
 static fdtype dcall4(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4)
 {
-  return f->handler.call4(arg1,arg2,arg3,arg4);
+  if (f->xprim)
+    return f->handler.xcall4(f,arg1,arg2,arg3,arg4);
+  else return f->handler.call4(arg1,arg2,arg3,arg4);
 }
 static fdtype dcall5(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
 		      fdtype arg5)
 {
-  return f->handler.call5(arg1,arg2,arg3,arg4,arg5);
+  if (f->xprim)
+    return f->handler.xcall5(f,arg1,arg2,arg3,arg4,arg5);
+  else return f->handler.call5(arg1,arg2,arg3,arg4,arg5);
 }
 static fdtype dcall6(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
 		      fdtype arg5,fdtype arg6)
 {
-  return f->handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
+  if (f->xprim)
+    return f->handler.xcall6(f,arg1,arg2,arg3,arg4,arg5,arg6);
+  else return f->handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
 }
 
 /* Generic calling function */
@@ -243,7 +257,8 @@ FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
       int ctype=FD_CONS_TYPE(f);
       return fd_applyfns[ctype]((fdtype)f,n,argvec);}
     else return f->handler.calln(n,argvec);
-  else if ((n <= f->arity) && (n>=f->min_arity)) {
+  /* Fill in the rest of the argvec */
+  if ((n <= f->arity) && (n>=f->min_arity)) {
     if (n<f->arity) {
       int i=0; fdtype *defaults=f->defaults;
       if (f->arity<=8) args=argbuf;
@@ -253,11 +268,14 @@ FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
 	while (i<f->arity) {args[i]=defaults[i]; i++;}
       else while (i<f->arity) {args[i]=FD_VOID; i++;}}
     else args=argvec;
+    /* Check typeinfo */
     if (f->typeinfo) {
       int *typeinfo=f->typeinfo;
-      int i=0; while (i<n)
+      int i=0;
+      while (i<n)
 	if (typeinfo[i]>=0)
 	  if (FD_PRIM_TYPEP(args[i],typeinfo[i])) i++;
+      /* Don't signal errors on unspecified (VOID) args. */
 	  else if (FD_VOIDP(args[i])) i++;
 	  else {
 	    u8_string type_name=
@@ -266,7 +284,7 @@ FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
 	      return fd_type_error(type_name,f->name,args[i]);
 	    else return fd_type_error(type_name,f->name,args[i]);}
 	else i++;}
-    if (f->xprim) {
+    if ((f->xprim) &&  (f->handler.fnptr==NULL)) {
       int ctype=FD_CONS_TYPE(f);
       if ((args==argbuf) || (args==argvec))
 	return fd_applyfns[ctype]((fdtype)f,f->arity,args);
@@ -275,20 +293,20 @@ FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
 	u8_free(args);
 	return retval;}}
     else switch (f->arity) {
-    case 0: return dcall0(f);
-    case 1: return dcall1(f,args[0]);
-    case 2: return dcall2(f,args[0],args[1]);
-    case 3: return dcall3(f,args[0],args[1],args[2]);
-    case 4: return dcall4(f,args[0],args[1],args[2],args[3]);
-    case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);
-    case 6: return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
-    default:
-      if ((args==argbuf) || (args==argvec))
-	return f->handler.calln(n,args);
-      else {
-	fdtype retval=f->handler.calln(n,args);
-	u8_free(args);
-	return retval;}}}
+      case 0: return dcall0(f);
+      case 1: return dcall1(f,args[0]);
+      case 2: return dcall2(f,args[0],args[1]);
+      case 3: return dcall3(f,args[0],args[1],args[2]);
+      case 4: return dcall4(f,args[0],args[1],args[2],args[3]);
+      case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);
+      case 6: return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
+      default:
+	if ((args==argbuf) || (args==argvec))
+	  return f->handler.calln(n,args);
+	else {
+	  fdtype retval=f->handler.calln(n,args);
+	  u8_free(args);
+	  return retval;}}}
   else {
     fd_exception ex=((n>f->arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
     return fd_err(ex,"fd_dapply",f->name,FDTYPE_CONS(f));}

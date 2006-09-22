@@ -30,19 +30,32 @@ typedef fdtype (*fd_cprim5)(fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_cprim6)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_cprimn)(int n,fdtype *);
 
-typedef fdtype (*fd_xprim)(fd_function f,int n,fdtype *);
+typedef fdtype (*fd_xprim0)(fd_function);
+typedef fdtype (*fd_xprim1)(fd_function,fdtype);
+typedef fdtype (*fd_xprim2)(fd_function,fdtype,fdtype);
+typedef fdtype (*fd_xprim3)(fd_function,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_xprim4)(fd_function,fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_xprim5)(fd_function,
+			    fdtype,fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_xprim6)(fd_function,fdtype,fdtype,
+			    fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
   FD_CONS_HEADER; u8_string name, filename;    \
   short ndprim, xprim, arity, min_arity;       \
-  int *typeinfo; fdtype *defaults
+  int *typeinfo; fdtype *defaults;             \
+  union {                                      \
+    fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2; fd_cprim3 call3;          \
+    fd_cprim4 call4; fd_cprim5 call5; fd_cprim6 call6; fd_cprimn calln;          \
+    fd_xprim0 xcall0; fd_xprim1 xcall1; fd_xprim2 xcall2; fd_xprim3 xcall3;      \
+    fd_xprim4 xcall4; fd_xprim5 xcall5; fd_xprim6 xcall6; fd_xprimn xcalln;      \
+    void *fnptr;}                                                                \
+  handler
+
 
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
-  union {
-    fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2; fd_cprim3 call3;
-    fd_cprim4 call4; fd_cprim5 call5; fd_cprim6 call6; fd_cprimn calln;}
-  handler;
 };
 
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int mina);

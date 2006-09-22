@@ -468,6 +468,7 @@ static fdtype make_sproc(u8_string name,
   else {
     n_vars++; s->n_vars=n_vars; s->arity=-1;}
   s->min_arity=min_args; s->xprim=1; s->ndprim=nd;
+  s->handler.fnptr=NULL;
   s->typeinfo=NULL; 
   if (n_vars)
     s->schema=u8_malloc(sizeof(fdtype)*(n_vars+1));
