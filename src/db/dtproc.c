@@ -95,7 +95,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   fd_dtsflush(&(dtp->stream));
   fd_decref(expr);
   result=fd_dtsread_dtype(&(dtp->stream));
-  if (FD_EXCEPTIONP(result)) {
+  if (FD_ABORTP(result)) {
     struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)result;
     if (exo->data.cxt==NULL) exo->data.cxt=dtp->server;}
   fd_unlock_mutex(&(dtp->lock));

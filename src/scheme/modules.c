@@ -43,7 +43,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
     while (FD_VOIDP(loadstamp)) {
       fd_condvar_wait(&module_wait,&module_wait_lock);
       loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);}
-    if (FD_EXCEPTIONP(loadstamp)) return loadstamp;
+    if (FD_ABORTP(loadstamp)) return loadstamp;
     else return module;}
   else {
     struct MODULE_LOADER *scan=module_loaders;
@@ -297,7 +297,7 @@ static fdtype module_export(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(symbols_spec))
     return fd_err(fd_TooFewExpressions,"MODULE-EXPORT!",NULL,expr);
   symbols=fd_eval(symbols_spec,env);
-  if (FD_EXCEPTIONP(symbols)) return symbols;
+  if (FD_ABORTP(symbols)) return symbols;
   {FD_DO_CHOICES(symbol,symbols)
       if (!(FD_SYMBOLP(symbol))) {
 	fd_decref(symbols);
@@ -324,7 +324,7 @@ static fdtype safe_use_module(fdtype expr,fd_lispenv env)
     FD_DO_CHOICES(module_name,module_names) {
       fdtype module=fd_find_module(module_name,1,1);
       fd_lispenv oldparent=env->parent;
-      if (FD_EXCEPTIONP(module))
+      if (FD_ABORTP(module))
 	return module;
       else if (FD_VOIDP(module))
 	return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
@@ -355,7 +355,7 @@ static fdtype use_module(fdtype expr,fd_lispenv env)
     FD_DO_CHOICES(module_name,module_names) {
       fdtype module;
       module=fd_find_module(module_name,0,1);
-      if (FD_EXCEPTIONP(module))
+      if (FD_ABORTP(module))
 	return module;
       else if (FD_VOIDP(module))
 	return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);

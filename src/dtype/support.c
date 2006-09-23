@@ -256,7 +256,7 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
     u8_byte _namebuf[64], *namebuf; u8_byte *scan=assignment;
     int c, namelen=equals-assignment, retval;
     fdtype value=fd_parse_arg(equals+1);
-    if ((FD_TROUBLEP(value)) || (FD_EXCEPTIONP(value)))
+    if (FD_ABORTP(value))
       return fd_interr(value);
     if (namelen+1>64)
       namebuf=u8_malloc(namelen+1);
@@ -287,7 +287,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
 	  fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
 	  return -1;}
 	fd_decref(entry); n++;}
-      else if ((FD_TROUBLEP(entry))|| (FD_EXCEPTIONP(entry)))
+      else if (FD_ABORTP(entry))
 	return fd_interr(entry);
       else {
 	fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
@@ -540,9 +540,9 @@ FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err)
   
 FD_EXPORT int fd_interr(fdtype x)
 {
-  if (FD_EXCEPTIONP(x)) {
+  if (FD_ERRORP(x)) {
     struct FD_EXCEPTION_OBJECT *xo=
-      FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+      FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
     fd_seterr(xo->data.cond,xo->data.cxt,
 	      ((xo->data.details) ? (u8_strdup(xo->data.details)) : (NULL)),
 	      fd_incref(xo->data.irritant));

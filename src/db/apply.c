@@ -319,25 +319,25 @@ static fdtype ndapply_loop
 {
   if (i==n) {
     fdtype value=fd_dapply(f,n,d_args);
-    if (FD_EXCEPTIONP(value)) return value;
+    if (FD_ABORTP(value)) return value;
     else {
       FD_ADD_TO_CHOICE(*results,value);}}
   else if (FD_PRIM_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
     d_args[i]=FD_XQCHOICE(nd_args[i])->choice;
     retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
-    if (FD_EXCEPTIONP(retval)) return retval;}
+    if (FD_ABORTP(retval)) return retval;}
   else if ((!(FD_CHOICEP(nd_args[i]))) ||
 	   ((typeinfo)&&(typeinfo[i]==fd_choice_type))) {
     fdtype retval;
     d_args[i]=nd_args[i];
     retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
-    if (FD_EXCEPTIONP(retval)) return retval;}
+    if (FD_ABORTP(retval)) return retval;}
   else {
     FD_DO_CHOICES(elt,nd_args[i]) {
       fdtype retval; d_args[i]=elt;
       retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
-      if (FD_EXCEPTIONP(retval)) return retval;}}
+      if (FD_ABORTP(retval)) return retval;}}
   return FD_VOID;
 }
 
@@ -350,7 +350,7 @@ FD_EXPORT fdtype fd_ndapply(struct FD_FUNCTION *f,int n,fdtype *args)
     if (n>6) d_args=u8_malloc(sizeof(fdtype)*n);
     else d_args=argbuf;
     retval=ndapply_loop(f,&results,f->typeinfo,0,n,args,d_args);
-    if (FD_EXCEPTIONP(retval)) {
+    if (FD_ABORTP(retval)) {
       fd_decref(results);
       if (d_args!=argbuf) u8_free(d_args);
       return retval;}

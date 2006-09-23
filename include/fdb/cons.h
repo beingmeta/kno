@@ -245,6 +245,7 @@ typedef struct FD_PAIR *fd_pair;
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_list(int len,...);
+FD_EXPORT fdtype fd_pmake_list(FD_MEMORY_POOL_TYPE *p,int len,...);
 
 #define FD_XPAIR(x) (FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))
 
@@ -377,9 +378,10 @@ FD_EXPORT fdtype fd_passerr2(fdtype err,fdtype context,fdtype context2);
 FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
 
 #define FD_EXCEPTIONP(x) (FD_PRIM_TYPEP(x,fd_exception_type))
+#define FD_ERRORP(x) (FD_PRIM_TYPEP(x,fd_error_type))
 
 #define FD_ABORTP(x) \
-  (FD_EXPECT_FALSE((FD_TROUBLEP(x)) || (FD_PRIM_TYPEP(x,fd_exception_type))))
+  (FD_EXPECT_FALSE((FD_TROUBLEP(x)) || (FD_PRIM_TYPEP(x,fd_error_type))))
 
 
 /* Timestamps */

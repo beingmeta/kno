@@ -47,7 +47,7 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SET!",NULL,expr);
   value=fasteval(val_expr,env);
-  if (FD_EXCEPTIONP(value)) return value;
+  if (FD_ABORTP(value)) return value;
   else if (retval=fd_set_value(var,value,env)) {
     fd_decref(value);
     if (retval<0) return fd_erreify();
@@ -258,7 +258,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,inner_env);
-      if (FD_EXCEPTIONP(value))
+      if (FD_ABORTP(value))
 	return passerr_env(value,inner_env);
       else if (inner_env->copy) {
 	fd_bind_value(var,value,inner_env->copy);
@@ -268,7 +268,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
     {FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
-      if (FD_EXCEPTIONP(result)) {
+      if (FD_ABORTP(result)) {
 	int i=0;
 	return passerr_env(result,inner_env);}}}
     free_environment(inner_env);
@@ -310,7 +310,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       fdtype value_expr=fd_get_arg(bindexpr,1);
       fdtype update_expr=fd_get_arg(bindexpr,2);
       fdtype value=fd_eval(value_expr,env);
-      if (FD_EXCEPTIONP(value)) {
+      if (FD_ABORTP(value)) {
 	/* When there's an error here, there's no need to bind. */
 	free_environment(inner_env);
 	if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -320,7 +320,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 	i++;}}}
     /* First test */
     testval=fd_eval(testexpr,inner_env);
-    if (FD_EXCEPTIONP(testval)) {
+    if (FD_ABORTP(testval)) {
       if (n>16) {u8_free(tmp); u8_free(updaters);}
       return passerr_env(testval,inner_env);}
     /* The iteration itself */
@@ -329,7 +329,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       /* Execute the body */
       FD_DOLIST(bodyexpr,body) {
 	fdtype result=fasteval(bodyexpr,inner_env);
-	if (FD_EXCEPTIONP(result)) {
+	if (FD_ABORTP(result)) {
 	  if (n>16) {u8_free(tmp); u8_free(updaters);}
 	  return passerr_env(result,inner_env);}
 	else fd_decref(result);}
@@ -338,7 +338,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 	if (!(FD_VOIDP(updaters[i])))
 	  tmp[i]=fd_eval(updaters[i],inner_env);
 	else tmp[i]=fd_incref(vals[i]);
-	if (FD_EXCEPTIONP(tmp[i])) {
+	if (FD_ABORTP(tmp[i])) {
 	  /* GC the updated values you've generated so far.
 	     Note that tmp[i] (the exception) is not freed. */
 	  int j=0; while (j<i) {fd_decref(tmp[j]); j++;}
@@ -357,7 +357,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 	fd_recycle_environment(envstruct.copy);
 	envstruct.copy=NULL;}
       testval=fd_eval(testexpr,inner_env);
-      if (FD_EXCEPTIONP(testval)) {
+      if (FD_ABORTP(testval)) {
 	/* If necessary, free the temporary arrays. */
 	if (n>16) {u8_free(tmp); u8_free(updaters);}
 	return passerr_env(testval,inner_env);}}
@@ -366,7 +366,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
     {FD_DOLIST(exitexpr,FD_CDR(exitexprs)) {
       fd_decref(result);
       result=fd_eval(exitexpr,inner_env);
-      if (FD_EXCEPTIONP(result)) {
+      if (FD_ABORTP(result)) {
 	if (n>16) {u8_free(tmp); u8_free(updaters);}
 	return passerr_env(result,inner_env);} }}
     /* Free the environment. */
@@ -628,7 +628,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       return fd_err(fd_TooFewExpressions,"DEFINE",NULL,expr);
     else {
       fdtype value=fd_eval(val_expr,env);
-      if (FD_EXCEPTIONP(value)) return value;
+      if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(var,value,env)) {
 	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
 	  struct FD_SPROC *s=(fd_sproc)value;
@@ -647,7 +647,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
-      if (FD_EXCEPTIONP(value)) return value;
+      if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
 	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
 	  struct FD_SPROC *s=(fd_sproc)value;
@@ -700,7 +700,7 @@ fdtype fd_xapply_sproc
     if (!(FD_SYMBOLP(argname)))
       return fd_err(fd_BadArglist,fn->name,NULL,fn->arglist);
     argval=getval(data,argname);
-    if (FD_EXCEPTIONP(argval)) {
+    if (FD_ABORTP(argval)) {
       int j=0; while (j<i) {fd_decref(vals[j]); j++;}
       if (vals!=_vals) u8_free(vals);
       return argval;}
@@ -714,7 +714,7 @@ fdtype fd_xapply_sproc
        tail_symbol (%TAIL) to get something. */
     fdtype argval=getval(data,arglist);
     if (FD_VOIDP(argval)) argval=getval(data,tail_symbol);
-    if (FD_EXCEPTIONP(argval)) {
+    if (FD_ABORTP(argval)) {
       int j=0; while (j<i) {fd_decref(vals[j]); j++;}
       if (vals!=_vals) u8_free(vals);
       return argval;}
@@ -724,7 +724,7 @@ fdtype fd_xapply_sproc
   if (fn->synchronized) fd_lock_mutex(&(fn->lock));
   {FD_DOLIST(expr,fn->body) {
     fd_decref(result); result=fasteval(expr,&envstruct);
-    if (FD_EXCEPTIONP(result)) {
+    if (FD_ABORTP(result)) {
       /* Note that we don't use passerr_env because
 	 adding the current expr should be redundant. */
       fdtype bindings=copy_bindings((&envstruct));
@@ -848,7 +848,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
     {FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
-      if (FD_EXCEPTIONP(result)) {
+      if (FD_ABORTP(result)) {
 	return passerr_env(result,inner_env);}}}
     if (inner_env->copy) free_environment(inner_env->copy);
     return result;}

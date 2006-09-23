@@ -36,7 +36,7 @@ static fdtype read_choice(char *file)
   FILE *f=fopen(file,"r"); char buf[8192]; int i=0;
   while (fgets(buf,8192,f)) {
     fdtype item=fd_parse(buf);
-    if ((FD_TROUBLEP(item)) || (FD_EXCEPTIONP(item))) {
+    if (FD_ABORTP(item)) {
       u8_fprintf(stderr,"Error at %s[%d]\n",file,i);
       fd_decref(results); return item;}
     FD_ADD_TO_CHOICE(results,item); i++;}
@@ -77,10 +77,10 @@ int main(int argc,char **argv)
     fdtype to_remove=read_choice(remove_arg);
     fdtype difference;
     fdtype sdifference;
-    if ((FD_TROUBLEP(input)) || (FD_EXCEPTIONP(input))) {
+    if (FD_ABORTP(input)) {
       u8_fprintf(stderr,"Trouble reading %s: %q\n",input_arg,input);
       return -1;}
-    if ((FD_TROUBLEP(to_remove)) || (FD_EXCEPTIONP(to_remove))) {
+    if (FD_ABORTP(to_remove)) {
 	u8_fprintf(stderr,"Trouble reading %s: %q\n",remove_arg,to_remove);
 	return -1;}
     inputtime=get_elapsed();

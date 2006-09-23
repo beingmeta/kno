@@ -135,15 +135,16 @@ typedef enum FD_PTR_TYPE {
   fd_mystery_type=FD_CONS_TYPECODE(14),
   fd_function_type=FD_CONS_TYPECODE(15),
   fd_exception_type=FD_CONS_TYPECODE(16),
-  fd_complex_type=FD_CONS_TYPECODE(17),
-  fd_rational_type=FD_CONS_TYPECODE(18),
-  fd_double_type=FD_CONS_TYPECODE(19),
-  fd_timestamp_type=FD_CONS_TYPECODE(20),
-  fd_dtproc_type=FD_CONS_TYPECODE(21)
+  fd_error_type=FD_CONS_TYPECODE(17),
+  fd_complex_type=FD_CONS_TYPECODE(18),
+  fd_rational_type=FD_CONS_TYPECODE(19),
+  fd_double_type=FD_CONS_TYPECODE(20),
+  fd_timestamp_type=FD_CONS_TYPECODE(21),
+  fd_dtproc_type=FD_CONS_TYPECODE(22)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 22
+#define FD_BUILTIN_CONS_TYPES 23
 #define FD_BUILTIN_IMMEDIATE_TYPES 3
 FD_EXPORT unsigned int fd_max_cons_type;
 FD_EXPORT unsigned int fd_max_immediate_type;

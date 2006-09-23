@@ -130,7 +130,7 @@ int main(int argc,char **argv)
       int ctype=FD_PTR_TYPE(main_proc);
       fd_decref(result);
       result=fd_applyfns[ctype](main_proc,n_args,args);}}
-  if (FD_EXCEPTIONP(result)) {
+  if (FD_ERRORP(result)) {
     struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
     int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);

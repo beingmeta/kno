@@ -104,7 +104,7 @@ FD_EXPORT fdtype fd_load_source
       fd_decref(result);
       result=fd_eval(expr,env);
       fd_decref(last_expr);  last_expr=expr;
-      if (FD_EXCEPTIONP(result)) {
+      if (FD_ABORTP(result)) {
 	restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
@@ -210,7 +210,7 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(source_expr))
     return fd_err(fd_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
   else source=fd_eval(source_expr,env);
-  if (FD_EXCEPTIONP(source))
+  if (FD_ABORTP(source))
     return fd_passerr(source,fd_incref(expr));
   else if (!(FD_STRINGP(source)))
     return fd_err(fd_NotAFilename,"LOAD-COMPONENT",NULL,source);

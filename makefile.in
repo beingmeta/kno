@@ -65,7 +65,7 @@ DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o
 FDBSERV_OBJS=src/db/dbserv.o
-SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
+SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o src/scheme/exceptions.o \
 	    src/scheme/conditionals.o src/scheme/iterators.o \
 	    src/scheme/modules.o src/scheme/load.o src/scheme/history.o \
 	    src/scheme/reflection.o \
@@ -100,7 +100,7 @@ FDB_SOURCES=\
 	src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c \
 	src/db/hashdtype.c src/db/fileindices.c src/db/zindices.c \
-	src/scheme/eval.c src/scheme/binders.c \
+	src/scheme/eval.c src/scheme/binders.c src/scheme/exceptions.c \
 	src/scheme/conditionals.c src/scheme/iterators.c \
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
 	src/scheme/coreprims.c src/scheme/dbprims.c \

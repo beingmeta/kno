@@ -95,7 +95,7 @@ static fdtype open_input_file(fdtype fname,fdtype encid)
 
 static int printout_helper(U8_OUTPUT *out,fdtype x)
 {
-  if (FD_EXCEPTIONP(x)) return 0;
+  if (FD_ABORTP(x)) return 0;
   else if (FD_VOIDP(x)) return 1;
   if (out == NULL) out=fd_get_default_output();
   if (FD_STRINGP(x))
@@ -110,7 +110,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   fdtype filename_val=fd_eval(filename_arg,env);
   fdtype body=fd_get_body(expr,2);
   u8_string filename; U8_OUTPUT *f, *oldf; int doclose;
-  if (FD_EXCEPTIONP(filename_val)) return filename_val;
+  if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PRIM_TYPEP(filename_val,fd_port_type)) {
     FD_PORT *port=FD_GET_CONS(filename_val,fd_port_type,FD_PORT *);
     if (port->out) {f=port->out; doclose=0;}
@@ -152,7 +152,7 @@ static fdtype simple_system(fdtype expr,fd_lispenv env)
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     body=FD_CDR(body);
-    if (FD_EXCEPTIONP(value)) return value;
+    if (FD_ABORTP(value)) return value;
     else if (FD_VOIDP(value)) continue;
     else if (FD_STRINGP(value))
       u8_printf(&out,"%s",FD_STRDATA(value));
@@ -641,7 +641,7 @@ static int load_source_module(u8_string name,int safe)
 	  time_t mtime=u8_file_mtime(module_filename);
 	  fdtype load_result=
 	    fd_load_source(module_filename,working_env,"auto");
-	  if (FD_EXCEPTIONP(load_result)) {
+	  if (FD_ABORTP(load_result)) {
 	    u8_free(module_filename);
 	    fd_decref((fdtype)working_env);
 	    return fd_interr(load_result);}
@@ -658,7 +658,7 @@ static int load_source_module(u8_string name,int safe)
 	  time_t mtime=u8_file_mtime(module_filename);
 	  fdtype load_result=
 	    fd_load_source(module_filename,working_env,"auto");
-	  if (FD_EXCEPTIONP(load_result)) {
+	  if (FD_ABORTP(load_result)) {
 	    u8_free(module_filename);
 	    fd_decref((fdtype)working_env);
 	    return fd_interr(load_result);}
@@ -734,7 +734,7 @@ FD_EXPORT int fd_update_file_modules(int force)
       if (mtime>scan->mtime) {
 	fdtype load_result=
 	  fd_load_source(scan->filename,scan->env,"auto");
-	if (FD_EXCEPTIONP(load_result)) {
+	if (FD_ABORTP(load_result)) {
 	  fd_seterr(fd_ReloadError,"fd_reload_modules",
 		    u8_strdup(scan->filename),load_result);
 	  return -1;}

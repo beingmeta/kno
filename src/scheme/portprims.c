@@ -761,7 +761,7 @@ static void output_env(U8_OUTPUT *out,int width,fdtype entry,fdtype head)
   if (FD_SYMBOLP(head)) u8_printf(out,";; %q: ",head);
   else u8_printf(out,";; ");
   col=indent=(out->u8_outptr-out->u8_outbuf)-startoff;
-  if (FD_EXCEPTIONP(keys)) {
+  if (FD_ABORTP(keys)) {
     fd_decref(keys);
     u8_printf(out,"%q\n",entry);}
   else {

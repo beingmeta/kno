@@ -275,7 +275,7 @@ int main(int argc,char **argv)
   if (source_file) {
     fd_lispenv env=fd_working_environment();
     fdtype result=fd_load_source(source_file,env,NULL);
-    if (FD_EXCEPTIONP(result)) {
+    if (FD_ERRORP(result)) {
       struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
       fd_print_error(&out,e);

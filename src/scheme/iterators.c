@@ -105,7 +105,7 @@ static fdtype parse_control_spec
       return fd_err(fd_SyntaxError,
 		    _("identifier is not a symbol"),NULL,control_expr);
     val=fasteval(val_expr,env);
-    if (FD_EXCEPTIONP(val)) return val;
+    if (FD_ABORTP(val)) return val;
     *value=val; if (count_var) *count_var=ivar;
     return var;}
 }

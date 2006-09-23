@@ -36,7 +36,7 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
     else if ((eix->adds.n_keys) || (eix->edits.n_keys))
       value=fd_index_get(eix,key);
     else value=eix->handler->fetch(eix,key);
-    if (FD_EXCEPTIONP(value)) {
+    if (FD_ABORTP(value)) {
       fd_decref(combined); fd_unlock_mutex(&(cix->lock));
       return value;}
     else {FD_ADD_TO_CHOICE(combined,value);}}
@@ -88,7 +88,7 @@ static fdtype compound_fetchkeys(fd_index ix)
   while (i < lim) {
     fd_index eix=cix->indices[i++];
     fdtype keys=fd_index_keys(eix);
-    if (FD_EXCEPTIONP(keys)) {
+    if (FD_ABORTP(keys)) {
       fd_decref(combined);
       fd_unlock_mutex(&(cix->lock));
       return keys;}

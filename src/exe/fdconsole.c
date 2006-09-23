@@ -205,7 +205,7 @@ int main(int argc,char **argv)
     fd_decref(expr);
     if (FD_CHECK_PTR(result)==0) {
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
-    else if (FD_EXCEPTIONP(result)) {
+    else if (FD_ERRORP(result)) {
       struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
       int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);

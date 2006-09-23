@@ -93,6 +93,7 @@ alltests: dtypetests tabletests dbtests
 dtypetests:
 	@echo "***" Running scheme tests to exercise the data/eval layer
 	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) exceptions.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) choicetest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) seqtest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) misctest.scm

@@ -159,7 +159,7 @@ static int network_pool_load(fd_pool p)
   value=dtcall(np,2,get_load_symbol,fd_make_oid(p->base));
   fd_unlock_mutex(&(np->lock));
   if (FD_FIXNUMP(value)) return FD_FIX2INT(value);
-  else if (FD_EXCEPTIONP(value))
+  else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
     fd_seterr(fd_BadServerResponse,"POOL-LOAD",NULL,value);
@@ -223,7 +223,7 @@ static int network_pool_unlock(fd_pool p,fdtype oids)
   fd_lock_mutex(&(np->lock));
   result=dtcall(np,3,clear_oid_lock_symbol,oids,client_id);
   fd_unlock_mutex(&(np->lock));
-  if (FD_EXCEPTIONP(result)) {
+  if (FD_ABORTP(result)) {
     fd_decref(result); return 0;}
   else {fd_decref(result); return 1;}
 }

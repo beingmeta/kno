@@ -190,7 +190,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
     fdtype result=FD_INT2DTYPE(0);
     i=0; while (i < n) {
       fdtype newv=fd_plus(result,args[i]);
-      if (FD_EXCEPTIONP(newv)) {
+      if (FD_ABORTP(newv)) {
 	fd_decref(result); return newv;}
       fd_decref(result); result=newv; i++;}
     return result;}

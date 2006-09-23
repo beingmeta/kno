@@ -291,7 +291,7 @@ static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
 static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
 			 fdtype xmloidfn,fd_lispenv env)
 {
-  if (FD_EXCEPTIONP(x)) return 0;
+  if (FD_ABORTP(x)) return 0;
   else if (FD_VOIDP(x)) return 1;
   if (FD_STRINGP(x))
     emit_xmlcontent(out,FD_STRDATA(x));
@@ -440,7 +440,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
   else {
     body=fd_get_body(expr,2);
     tagspec=fd_eval(tagspec,env);
-    if (FD_EXCEPTIONP(tagspec)) {
+    if (FD_ABORTP(tagspec)) {
       fd_decref(xmloidfn);
       return tagspec;}
     else if (FD_SYMBOLP(tagspec)) attribs=FD_EMPTY_LIST;
@@ -636,7 +636,7 @@ static void output_backtrace(u8_output s,fdtype bt,fdtype head)
       u8_printf(s,"<div class='bindings'>");
       if (FD_SYMBOLP(head))
 	u8_printf(s,"<span class='head'>%lk</span>",head);
-      if (FD_EXCEPTIONP(keys)) {
+      if (FD_ABORTP(keys)) {
 	fd_decref(keys);
 	u8_printf(s,"%lk</div>\n",entry);}
       else {
@@ -678,7 +678,7 @@ FD_EXPORT
 void fd_xhtmlerrorpage(u8_output s,fdtype error)
 {
   struct FD_EXCEPTION_OBJECT *eo=
-    FD_GET_CONS(error,fd_exception_type,FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(error,fd_error_type,FD_EXCEPTION_OBJECT *);
   struct FD_ERRDATA *e=&(eo->data);
   s->u8_outptr=s->u8_outbuf;
   u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);

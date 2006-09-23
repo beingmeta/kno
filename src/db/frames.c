@@ -345,7 +345,7 @@ static fdtype get_slotid_methods(fdtype slotid,fdtype method_name)
   fd_pool p=fd_oid2pool(slotid); fdtype smap, result;
   if (FD_EXPECT_FALSE(p == NULL)) return fd_anonymous_oid(slotid);
   else smap=fd_fetch_oid(p,slotid);
-  if (FD_EXPECT_FALSE(FD_EXCEPTIONP(smap)))
+  if (FD_EXPECT_FALSE(FD_ABORTP(smap)))
     return smap;
   else if (FD_SLOTMAPP(smap)) 
     result=fd_slotmap_get((fd_slotmap)smap,method_name,FD_EMPTY_CHOICE);
@@ -393,7 +393,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	  methods=get_slotid_methods(slotid,compute_methods);
 	else return value;}
       if (FD_VOIDP(methods)) return FD_EMPTY_CHOICE;
-      else if (FD_EXPECT_FALSE(FD_EXCEPTIONP(methods))) 
+      else if (FD_EXPECT_FALSE(FD_ABORTP(methods))) 
 	return methods;
       fd_push_opstack(&fop);
       init_dependencies(&fop);
@@ -402,7 +402,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	if (fn) {
 	  fdtype args[2], value; args[0]=f; args[1]=slotid;
 	  value=fd_dapply(fn,2,args);
-	  if (FD_EXPECT_FALSE(FD_EXCEPTIONP(value))) {
+	  if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
 	    fd_pop_opstack(&fop); fd_decref(computed); fd_decref(methods);
 	    return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
 	  FD_ADD_TO_CHOICE(computed,value);}}}
@@ -472,7 +472,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
 	      fdtype v=fd_apply(fn,3,args);
-	      if (FD_EXPECT_FALSE(FD_EXCEPTIONP(v))) {
+	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
 		fd_pop_opstack(&fop); fd_decref(methods);
 		return fd_interr(v);}
 	      else if (FD_TRUEP(v)) {
@@ -514,7 +514,7 @@ FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
 	      fdtype v=fd_apply(fn,3,args);
-	      if (FD_EXPECT_FALSE(FD_EXCEPTIONP(v))) {
+	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
 		fd_pop_opstack(&fop);
 		fd_decref(methods);
 		return fd_interr(v);}
@@ -549,7 +549,7 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
 	      fdtype v=fd_apply(fn,3,args);
-	      if (FD_EXPECT_FALSE(FD_EXCEPTIONP(v))) {
+	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
 		fd_pop_opstack(&fop);
 		fd_decref(methods);
 		return fd_interr(v);}
@@ -636,7 +636,7 @@ FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals)
   if (n_conjuncts>6) conjuncts=u8_malloc(sizeof(fdtype)*n_conjuncts);
   while (i < n_conjuncts) {
     conjuncts[i]=fd_prim_find(indices,slotvals[i*2],slotvals[i*2+1]);
-    if (FD_EXCEPTIONP(conjuncts[i])) {
+    if (FD_ABORTP(conjuncts[i])) {
       fdtype error=conjuncts[i];
       int j=0; while (j<i) {fd_decref(conjuncts[j]); j++;}
       if (conjuncts != _conjuncts) u8_free(conjuncts);

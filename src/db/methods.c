@@ -82,7 +82,7 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
   {FD_DO_CHOICES(node,collection) {
     FD_DO_CHOICES(slotid,lattice) {
       fdtype v=fd_frame_get(node,slotid);
-      if (FD_EXCEPTIONP(v)) {
+      if (FD_ABORTP(v)) {
 	fd_decref(root);
 	fd_recycle_hashtable(&ht);
 	return v;}

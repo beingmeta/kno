@@ -325,7 +325,7 @@ static fdtype cachecall(int n,fdtype *args)
   if (FD_VOIDP(cached)) {
     int state=fd_ipeval_status();
     fdtype result=fd_dapply((struct FD_FUNCTION *)fcn,n-1,args+1);
-    if (FD_EXCEPTIONP(result)) {
+    if (FD_ABORTP(result)) {
       fd_decref((fdtype)cache);
       return result;}
     else if (fd_ipeval_status()==state) {
@@ -1109,7 +1109,7 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
     if (p==NULL)
       return fd_type_error(_("pool spec"),"frame_create_lexpr",args[0]);
     oid=fd_pool_alloc(p,1);
-    if (FD_EXCEPTIONP(oid)) return oid;
+    if (FD_ABORTP(oid)) return oid;
     slotmap=fd_init_slotmap(NULL,0,NULL,NULL);
     if (fd_set_oid_value(oid,slotmap)<0) {
       fd_decref(slotmap);
@@ -1142,7 +1142,7 @@ static fdtype seq2frame_prim
       if (p==NULL)
 	return fd_type_error(_("pool spec"),"seq2frame_prim",poolspec);
       oid=fd_pool_alloc(p,1);
-      if (FD_EXCEPTIONP(oid)) return oid;
+      if (FD_ABORTP(oid)) return oid;
       slotmap=fd_init_slotmap(NULL,0,NULL,NULL);
       if (fd_set_oid_value(oid,slotmap)<0) {
 	fd_decref(slotmap);

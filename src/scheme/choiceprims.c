@@ -36,7 +36,7 @@ static fdtype parse_control_spec
       return fd_err(fd_SyntaxError,
 		    _("identifier is not a symbol"),NULL,control_expr);
     val=fasteval(val_expr,env);
-    if (FD_EXCEPTIONP(val)) {
+    if (FD_ABORTP(val)) {
       *value=val;
       return FD_VOID;}
     *value=val; if (iter_var) *iter_var=ivar;
@@ -88,7 +88,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
   if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
-  else if (FD_EXCEPTIONP(choices))
+  else if (FD_ABORTP(choices))
     return choices;
   else {
     int i=0; FD_DO_CHOICES(elt,choices) {
@@ -149,7 +149,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
   if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
-  else if (FD_EXCEPTIONP(choices))
+  else if (FD_ABORTP(choices))
     return choices;
   else {
     int i=0; FD_DO_CHOICES(elt,choices) {
@@ -212,7 +212,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
   if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
-  else if (FD_EXCEPTIONP(choices))
+  else if (FD_ABORTP(choices))
     return choices;
   else {
     int i=0; FD_DO_CHOICES(elt,choices) {
@@ -401,7 +401,7 @@ static fdtype smallest_handler(fdtype elts,fdtype magnitude)
   fdtype top=FD_EMPTY_CHOICE, top_score=FD_VOID;
   FD_DO_CHOICES(elt,elts) {
     fdtype score=getmagnitude(elt,magnitude);
-    if (FD_EXCEPTIONP(score)) return score;
+    if (FD_ABORTP(score)) return score;
     else if (FD_VOIDP(top_score))
       if (FD_EMPTY_CHOICEP(score)) {}
       else {
@@ -427,7 +427,7 @@ static fdtype largest_handler(fdtype elts,fdtype magnitude)
   fdtype top=FD_EMPTY_CHOICE, top_score=FD_VOID;
   FD_DO_CHOICES(elt,elts) {
     fdtype score=getmagnitude(elt,magnitude);
-    if (FD_EXCEPTIONP(score)) return score;
+    if (FD_ABORTP(score)) return score;
     else if (FD_VOIDP(top_score))
       if (FD_EMPTY_CHOICEP(score)) {}
       else {

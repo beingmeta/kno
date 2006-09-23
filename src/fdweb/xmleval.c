@@ -946,7 +946,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
   if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
-  else if (FD_EXCEPTIONP(choices))
+  else if (FD_ABORTP(choices))
     return choices;
   else {
     int i=0; FD_DO_CHOICES(elt,choices) {

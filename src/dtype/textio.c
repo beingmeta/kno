@@ -46,7 +46,7 @@ int fd_interpret_pointers=1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
-static fdtype quote_symbol, histref_symbol;
+static fdtype quote_symbol, histref_symbol, comment_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 static int skip_whitespace(u8_input s)
@@ -636,7 +636,7 @@ static fdtype parse_packet(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
     if (p) {
       struct FD_STRING *packetp=u8_pmalloc(p,sizeof(struct FD_STRING));
       fdtype packet=fd_init_packet(packetp,len,data);
-      if (FD_EXCEPTIONP(packet)) {
+      if (FD_ABORTP(packet)) {
 	u8_pfree_x(p,data,max);
 	u8_pfree_x(p,packetp,sizeof(struct FD_STRING));}
       return packet;}
@@ -661,7 +661,7 @@ static fdtype *parse_vec
       if (elt == FD_EOX) *size=-1;
       else if (elt == FD_PARSE_ERROR) *size=-2;
       else *size=-3;
-      if (FD_EXCEPTIONP(elt)) fd_interr(elt);
+      if (FD_ABORTP(elt)) fd_interr(elt);
       return NULL;}
     else if (n_elts == max_elts) {
       fdtype *new_elts=u8_realloc(elts,sizeof(fdtype)*max_elts*2);
@@ -904,7 +904,7 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
     case '{': return parse_qchoice(in,p);
     case '[': return parse_slotmap(in,p);
     case '"': return parse_packet(in,p);
-    case '<':  return parse_record(in,p);
+    case '<': return parse_record(in,p);
     case '#':
       return fd_make_list(2,histref_symbol,fd_parser(in,p));
     case '\\': return parse_character(in);
@@ -991,6 +991,7 @@ FD_EXPORT fd_init_textio_c()
   unquote_symbol=fd_intern("UNQUOTE");
   unquotestar_symbol=fd_intern("UNQUOTE*");
   histref_symbol=fd_intern("%HISTREF");
+  comment_symbol=fd_intern("COMMENT");
 }
 
 

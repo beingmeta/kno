@@ -187,7 +187,7 @@ static int _curl_set_dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
 			   fdtype f,fdtype slotid)
 {
   fdtype v=fd_get(f,slotid,FD_VOID);
-  if (FD_EXCEPTIONP(v))
+  if (FD_ABORTP(v))
     return fd_interr(v);
   else if (FD_STRINGP(v)) {
     CURLcode retval=curl_easy_setopt(h->handle,option,FD_STRDATA(v));

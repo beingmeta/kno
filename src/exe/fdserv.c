@@ -196,7 +196,7 @@ static void dolog
   else if (FD_ABORTP(val)) {
     if (urllog) {
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID); u8_string tmp;
-      if (FD_EXCEPTIONP(val)) {
+      if (FD_ERRORP(val)) {
 	struct FD_EXCEPTION_OBJECT *eo=(FD_EXCEPTION_OBJECT *)val;
 	if (eo->data.cxt)
 	  tmp=u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
@@ -339,7 +339,7 @@ static fdtype loadcontent(fdtype path)
        use that. */
     u8_free(content);
     load_result=fd_load_source(pathname,newenv,NULL);
-    if (FD_EXCEPTIONP(load_result)) return load_result;
+    if (FD_ERRORP(load_result)) return load_result;
     fd_decref(load_result);
     main_proc=fd_eval(main_symbol,newenv);
     fd_decref((fdtype)newenv);
@@ -455,7 +455,7 @@ static int webservefn(u8_client ucl)
     if ((reqlog) || (urllog))
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   fd_set_default_output(&(client->out));
-  if (FD_EXCEPTIONP(proc)) result=fd_incref(proc);
+  if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type))
     result=fd_cgiexec(proc,cgidata);
   else if (FD_PAIRP(proc)) {
@@ -488,7 +488,7 @@ static int webservefn(u8_client ucl)
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
   fd_set_default_output(NULL);
-  if (FD_EXCEPTIONP(result)) {
+  if (FD_ERRORP(result)) {
     struct FD_EXCEPTION_OBJECT *eo=(FD_EXCEPTION_OBJECT *)result;
     if (FD_VOIDP(eo->data.irritant))
       u8_message("Unexpected error \"%m \"for %s:@%s (%s)",

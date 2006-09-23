@@ -171,59 +171,6 @@ static fdtype or_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
-static fdtype handle_error(fdtype handler,fdtype exception)
-{
-  struct FD_FUNCTION *fn=(fd_function)handler;
-  struct FD_EXCEPTION_OBJECT *exo=
-    FD_GET_CONS(exception,fd_exception_type,fd_exception_object);
-  fdtype handler_args[5], handler_result; int i=0, n_args;
-  if (fn->arity<0) n_args=5;
-  else if (fn->arity>5) n_args=5;
-  else n_args=fn->arity;
-  if (n_args>0) 
-    handler_args[0]=fdtype_string((u8_string)(exo->data.cond));
-  if (n_args>1)
-    if (exo->data.cxt)
-      handler_args[1]=fdtype_string((u8_string)(exo->data.cxt));
-    else handler_args[1]=FD_FALSE;
-  if (n_args>2) 
-    if (exo->data.details)
-      handler_args[2]=fdtype_string(exo->data.details);
-    else handler_args[2]=FD_FALSE;
-  if (n_args>3) 
-    handler_args[3]=fd_incref(exo->data.irritant);
-  if (n_args>4) 
-    handler_args[4]=fd_incref(exo->backtrace);
-  handler_result=fd_apply(fn,n_args,handler_args);
-  while (i<n_args) {fd_decref(handler_args[i]); i++;}
-  if (FD_VOIDP(handler_result))
-    return exception;
-  else {
-    fd_decref(exception);
-    return handler_result;}
-}
-
-static fdtype catch_error_handler(fdtype expr,fd_lispenv env)
-{
-  fdtype handler_expr=fd_get_arg(expr,1), handler;
-  if (FD_VOIDP(handler_expr))
-    return fd_err(fd_SyntaxError,"catch_error_handler",NULL,expr);
-  else handler=fd_eval(handler_expr,env);
-  if (FD_ABORTP(handler)) return handler;
-  else if (!(FD_APPLICABLEP(handler)))
-    return fd_type_error("function","catch_error_handler",handler);
-  else {
-    fdtype body=fd_get_body(expr,2), result=FD_VOID;
-    while (FD_PAIRP(body)) {
-      fdtype expr=FD_CAR(body);
-      fd_decref(result);
-      result=fd_eval(expr,env);
-      if (FD_ABORTP(result)) 
-	return handle_error(handler,result);
-      else body=FD_CDR(body);}
-    return result;}
-}
-
 FD_EXPORT void fd_init_conditionals_c()
 {
   fd_register_source_file(versionid);
@@ -240,8 +187,6 @@ FD_EXPORT void fd_init_conditionals_c()
   fd_defspecial(fd_scheme_module,"AND",and_handler);
   fd_defspecial(fd_scheme_module,"OR",or_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("NOT",not_prim,1));
-
-  fd_defspecial(fd_scheme_module,"CATCH-ERROR",catch_error_handler);
 }
 
 

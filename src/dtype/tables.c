@@ -1118,7 +1118,7 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   fd_decref(result->value); result->value=fd_incref(value);
   ht->modified=1;
   fd_unlock_mutex(&(ht->lock));
-  if (FD_EXCEPTIONP(result->value)) 
+  if (FD_ABORTP(result->value)) 
     return fd_interr(result->value);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
@@ -1143,7 +1143,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
     (key,ht->slots,ht->n_slots,&(ht->n_keys),ht->mpool);
   ht->modified=1; if (ht->n_keys>n_keys) added=1; else added=0;
   newv=fd_incref(value);
-  if (FD_EXCEPTIONP(newv)) {
+  if (FD_ABORTP(newv)) {
     fd_unlock_mutex(&(ht->lock));
     return fd_interr(newv);}
   else {FD_ADD_TO_CHOICE(result->value,newv);}

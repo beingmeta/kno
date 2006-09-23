@@ -575,7 +575,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
 	  if ((intval<0) || (intval>=0x100))
 	    result_type=fd_vector_type;}
 	else result_type=fd_vector_type;
-      if (FD_EXCEPTIONP(new_elt)) {
+      if (FD_ABORTP(new_elt)) {
 	int j=0; while (j<i) {fd_decref(results[j]); j++;}
 	u8_free(results);
 	return new_elt;}

@@ -12,6 +12,7 @@ static char versionid[] =
 #define FD_INLINE_TABLES 1
 
 #include "fdb/dtype.h"
+#include "fdb/support.h"
 #include "fdb/eval.h"
 #include "fdb/sequences.h"
 
@@ -1311,72 +1312,6 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arit
 	 fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,fd_getint(arity),fd_getint(min_arity));
   return result;
 }
-
-/* Returning errors */
-
-static fdtype return_error(fdtype expr,fd_lispenv env)
-{
-  if (!(FD_SYMBOLP(fd_get_arg(expr,1)))) 
-    return fd_type_error("symbol",NULL,fd_get_arg(expr,1));
-  else if (!(FD_SYMBOLP(fd_get_arg(expr,2))))
-    return fd_type_error("symbol",NULL,fd_get_arg(expr,2));
-  else {
-    U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-    fd_printout_to(&out,fd_get_body(expr,4),env);
-    return fd_err(FD_SYMBOL_NAME(fd_get_arg(expr,1)),
-		  FD_SYMBOL_NAME(fd_get_arg(expr,2)),
-		  out.u8_outbuf,
-		  fd_incref(fd_get_arg(expr,3)));}
-}
-
-static fdtype onerror_handler(fdtype expr,fd_lispenv env)
-{
-  fdtype toeval=fd_get_arg(expr,1);
-  fdtype error_handler=fd_get_arg(expr,2);
-  fdtype default_handler=fd_get_arg(expr,3);
-  fdtype value=fd_eval(toeval,env);
-  if (FD_ABORTP(value)) {
-    fdtype handler=fd_eval(error_handler,env);
-    if (FD_ABORTP(handler))
-      return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
-    else if (FD_APPLICABLEP(handler)) {
-      struct FD_FUNCTION *f=(fd_function)handler;
-      struct FD_EXCEPTION_OBJECT *ex=(struct FD_EXCEPTION_OBJECT *)value;
-      fdtype result, args[5]; int n=0;
-      args[0]=fdtype_string((u8_string)ex->data.cond); n++;
-      if ((f->arity<0) || (f->arity>1)) {
-	args[n]=((ex->data.cxt)?
-		 (fdtype_string((u8_string)ex->data.cxt)):(FD_FALSE));
-	n++;}
-      if ((f->arity<0) || (f->arity>2)) {
-	args[n]=((ex->data.details)?
-		 (fdtype_string(ex->data.details)):(FD_FALSE));
-	n++;}
-      if ((f->arity<0) || (f->arity>3)) {
-	args[n]=ex->data.irritant; n++;}
-      if ((f->arity<0) || (f->arity>4)) {
-	args[n]=ex->backtrace; n++;}
-      result=fd_dapply(f,n,args);
-      fd_decref(value);
-      return result;}
-    else {
-      fd_decref(value);
-      return handler;}}
-  else if (FD_VOIDP(default_handler))
-    return value;
-  else {
-    fdtype handler=fd_eval(default_handler,env);
-    if (FD_ABORTP(handler))
-      return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
-    else if (FD_APPLICABLEP(handler)) {
-      fdtype result=fd_dapply((fd_function)handler,1,&value);
-      fd_decref(value);
-      return result;}
-    else {
-      fd_decref(value);
-      return handler;}}
-}
-
 /* Test functions */
 
 static fdtype applytest(int n,fdtype *args)
@@ -1484,9 +1419,6 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"%WATCH",watched_eval);
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
 
-  fd_defspecial(fd_scheme_module,"ERROR",return_error);
-  fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
-
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,3)));
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest);
@@ -1497,6 +1429,7 @@ static void init_core_builtins()
 {
   init_localfns();
   init_threadfns();
+  fd_init_exceptions_c();
   fd_init_conditionals_c();
   fd_init_iterators_c();
   fd_init_choicefns_c();
