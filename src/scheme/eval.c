@@ -26,7 +26,9 @@ static int fdscheme_initialized=0;
 
 fdtype fd_scheme_module, fd_xscheme_module;
 
-static fdtype quote_symbol;
+fdtype _fd_comment_symbol;
+
+static fdtype quote_symbol, comment_symbol;
 
 static fd_exception TestFailed=_("Test failed");
 static u8_condition ThreadReturnError=_("Thread returned with error");
@@ -377,6 +379,8 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
     fdtype head=FD_CAR(expr);
     if (head == quote_symbol)
       return fd_car(FD_CDR(expr));
+    else if (head == comment_symbol)
+      return FD_VOID;
     else {
       fdtype headval=fasteval(head,env), result;
       int ctype=FD_PTR_TYPE(headval);
@@ -442,25 +446,28 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
   else args=argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
   {FD_DOLIST(elt,FD_CDR(expr)) {
-    fdtype argval=fasteval(elt,env);
-    if (FD_ABORTP(argval)) {
-      /* Break if one of the arguments returns an error */
-      result=argval; break;}
-    if (FD_VOIDP(argval)) {
-      result=fd_err(fd_VoidArgument,"apply_function",fcn->name,elt);
-      break;}
-    if ((FD_EMPTY_CHOICEP(argval)) && (fcn->ndprim==0)) {
-      /* Break if the method is non deterministic and one of the
-	 arguments returns an empty choice. */
-      prune=1; break;}
-    /* Convert the argument to a simple choice (or non choice) */
-    argval=fd_simplify_choice(argval);
-    if (FD_CONSP(argval)) args_need_gc=1;
-    /* Keep track of what kind of evaluation you might need to do. */
-    if (FD_CHOICEP(argval)) nd_args=1;
-    if (FD_QCHOICEP(argval)) nd_args=1; /* QCHOICES get thawed */
-    /* Fill in the slot */
-    args[arg_count++]=argval;}}
+      fdtype argval;
+      if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))) {
+	args_length--; continue;}
+      argval=fasteval(elt,env);
+      if (FD_ABORTP(argval)) {
+	/* Break if one of the arguments returns an error */
+	result=argval; break;}
+      if (FD_VOIDP(argval)) {
+	result=fd_err(fd_VoidArgument,"apply_function",fcn->name,elt);
+	break;}
+      if ((FD_EMPTY_CHOICEP(argval)) && (fcn->ndprim==0)) {
+	/* Break if the method is non deterministic and one of the
+	   arguments returns an empty choice. */
+	prune=1; break;}
+      /* Convert the argument to a simple choice (or non choice) */
+      argval=fd_simplify_choice(argval);
+      if (FD_CONSP(argval)) args_need_gc=1;
+      /* Keep track of what kind of evaluation you might need to do. */
+      if (FD_CHOICEP(argval)) nd_args=1;
+      if (FD_QCHOICEP(argval)) nd_args=1; /* QCHOICES get thawed */
+      /* Fill in the slot */
+      args[arg_count++]=argval;}}
   if ((prune) || (FD_ABORTP(result))) {
     /* In this case, we won't call the procedure at all, because
        either a parameter produced an error or because we can prune
@@ -1416,6 +1423,7 @@ void fd_init_eval_c()
   unquote=fd_intern("UNQUOTE");
   unquotestar=fd_intern("UNQUOTE*");
   profile_symbol=fd_intern("%PROFILE");
+  _fd_comment_symbol=comment_symbol=fd_intern("COMMENT");
 
   fd_make_hashtable(&module_map,67,NULL);
   fd_make_hashtable(&safe_module_map,67,NULL);

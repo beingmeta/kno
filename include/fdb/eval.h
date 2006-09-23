@@ -24,6 +24,8 @@ FD_EXPORT fdtype fd_scheme_module, fd_xscheme_module;
 FD_EXPORT fd_ptr_type fd_environment_type, fd_specform_type;
 FD_EXPORT fd_ptr_type  fd_sproc_type, fd_macro_type;
 
+FD_EXPORT fdtype _fd_comment_symbol;
+
 FD_EXPORT int fd_init_fdscheme(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_schemeio(void);
 
@@ -155,7 +157,9 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
   while (FD_PAIRP(expr))
-    if (i == 0) return FD_CAR(expr);
+    if ((FD_PAIRP(FD_CAR(expr))) && (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+      expr=FD_CDR(expr);
+    else if (i == 0) return FD_CAR(expr);
     else {expr=FD_CDR(expr); i--;}
   return FD_VOID;
 }
@@ -163,6 +167,8 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
   while (FD_PAIRP(expr))
     if (i == 0) break;
+    else if ((FD_PAIRP(FD_CAR(expr))) && (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+      expr=FD_CDR(expr);
     else {expr=FD_CDR(expr); i--;}
   return expr;
 }
