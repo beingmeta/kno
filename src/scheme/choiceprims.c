@@ -603,7 +603,18 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
     return test_exists(fn,i+1,n,nd_args,d_args);}
 }
 
-static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
+static int test_forall
+  (struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
+
+static fdtype whenexists_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype to_eval=fd_get_arg(expr,1), value;
+  if (FD_VOIDP(to_eval))
+    return fd_err(fd_SyntaxError,"whenexists_handler",NULL,expr);
+  else value=fd_eval(to_eval,env);
+  if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
+  else return value;
+}
 
 static fdtype forall_lexpr(int n,fdtype *nd_args)
 {
@@ -1017,7 +1028,7 @@ FD_EXPORT void fd_init_choicefns_c()
 	   fd_make_ndprim(fd_make_cprimn("EXISTS",exists_lexpr,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
-
+  fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_handler);
 
   {
     fdtype unique_prim=
