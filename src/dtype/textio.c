@@ -202,7 +202,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
 static int unparse_compound(U8_OUTPUT *out,fdtype x)
 {
   struct FD_COMPOUND *c=(struct FD_COMPOUND *)x;
-  u8_printf(out,"#<%q %q>",c->tag,c->data);
+  u8_printf(out,"#%(%q %q)",c->tag,c->data);
   return 1;
 }
 
@@ -216,6 +216,7 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
     else if (car==quasiquote_symbol) u8_puts(out,"`");
     else if (car==unquote_symbol) u8_puts(out,",");
     else if (car==unquotestar_symbol) u8_puts(out,",@");
+    else if (car==comment_symbol) u8_puts(out,"#;");
     else false_alarm=1;
     if (false_alarm==0)
       return fd_unparse(out,FD_CAR(FD_CDR(x)));}
@@ -598,6 +599,12 @@ static fdtype parse_string(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
     while ((c=u8_getc(in))>=0)
       if (c == '"') break;
       else if (c == '\\') {
+	int nextc=u8_getc(in);
+	if (nextc=='\n') {
+	  while (u8_isspace(nextc)) nextc=u8_getc(in);
+	  u8_putc(&out,nextc);
+	  continue;}
+	else u8_ungetc(in,nextc);
 	c=read_escape(in);
 	if (c<0) {
 	  u8_pfree(out.mpool,out.u8_outbuf);
@@ -622,6 +629,9 @@ static fdtype parse_packet(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
     if (c == '\\') {
       char obuf[4];
       obuf[0]=c=u8_getc(in);
+      if (obuf[0]='\n') {
+	while (u8_isspace(c)) c=u8_getc(in);
+	continue;}
       obuf[1]=c=u8_getc(in);
       obuf[2]='\0';
       if (c<0) return FD_EOX;
@@ -904,7 +914,21 @@ fdtype fd_parser(u8_input in,FD_MEMORY_POOL_TYPE *p)
     case '{': return parse_qchoice(in,p);
     case '[': return parse_slotmap(in,p);
     case '"': return parse_packet(in,p);
-    case '<': return parse_record(in,p);
+    case '<':
+      return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+    case ';': {
+      fdtype content=fd_parser(in,p);
+      if (FD_ABORTP(content)) return content;
+      else if (p) 
+	return fd_init_pair(u8_pmalloc(p,sizeof(struct FD_PAIR)),comment_symbol,
+			    fd_init_pair(u8_pmalloc(p,sizeof(struct FD_PAIR)),
+					 content,FD_EMPTY_LIST));
+      else return fd_init_pair(NULL,comment_symbol,
+			       fd_init_pair(NULL,content,FD_EMPTY_LIST));}
+    case '%': {
+      int c=u8_getc(in);
+      if (c=='(') return parse_record(in,p);
+      else return FD_PARSE_ERROR;}
     case '#':
       return fd_make_list(2,histref_symbol,fd_parser(in,p));
     case '\\': return parse_character(in);

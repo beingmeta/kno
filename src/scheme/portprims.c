@@ -484,7 +484,7 @@ static fdtype string2number(fdtype x,fdtype base)
 
 /* Pretty printing */
 
-static fdtype quote_symbol, unquote_symbol, quasiquote_symbol, unquote_star_symbol;
+static fdtype quote_symbol, unquote_symbol, quasiquote_symbol, unquote_star_symbol, comment_symbol;
 
 #define PPRINT_ATOMICP(x) \
   (!((FD_PAIRP(x)) || (FD_VECTORP(x)) || (FD_SLOTMAPP(x)) || \
@@ -522,7 +522,9 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     else if (FD_EQ(car,quasiquote_symbol)) {
       indent++; u8_putc(out,'`'); x=FD_CAR(FD_CDR(x));}
     else if (FD_EQ(car,unquote_star_symbol)) {
-      indent++; indent++; u8_puts(out,",@"); x=FD_CAR(FD_CDR(x));}}
+      indent++; indent++; u8_puts(out,",@"); x=FD_CAR(FD_CDR(x));}
+    else if (FD_EQ(car,comment_symbol)) {
+      u8_puts(out,"#;"); indent=indent+2; x=FD_CAR(FD_CDR(x));}}
   /* Special compound printers for different types. */
   if (FD_PAIRP(x)) {
     fdtype car=FD_CAR(x), scan=x; int first=1; 
@@ -932,6 +934,7 @@ FD_EXPORT void fd_init_portfns_c()
   unquote_symbol=fd_intern("UNQUOTE");
   quasiquote_symbol=fd_intern("QUASIQUOTE");
   unquote_star_symbol=fd_intern("UNQUOTE*");
+  comment_symbol=fd_intern("COMMENT");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LISP->STRING",lisp2string,1));
   fd_idefn(fd_scheme_module,
