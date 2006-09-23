@@ -934,6 +934,29 @@
   (applytest #f leaf-eq? '(a (b (c))) '((a) b c d))
   (report-errs))
 
+;;;; Simple continuation testing
+
+(define (test-call/cc)
+  (newline)
+  (display ";TESTING CALL/CC ")
+  (newline)
+  (evaltest 6 (call/cc (lambda (quit) (dotimes (i 10) (if (> i 5) (quit i))))))
+  (evaltest 7 (let ((l '()))
+		(call/cc (lambda (quit)
+			   (dotimes (i 10)
+			     (set! l (cons i l))
+			     (if (> i 5) (quit i)))))
+		(length l)))
+  (evaltest '(5 4 3 2 1 0)
+	    (let ((l '()))
+	      (call/cc (lambda (quit)
+			 (let ((i 0))
+			   (while #t ;; forever
+			     (set! l (cons i l))
+			     (set! i (+ i 1))
+			     (if (> i 5) (quit i))))))
+	      l)))
+
 ;;; Test Optional R4RS DELAY syntax and FORCE procedure
 (define (applytest-delay)
   (newline)
@@ -1054,6 +1077,7 @@
 ; (display "(applytest-cont) (applytest-sc4) (applytest-delay)")
 ; (newline)
 
+(test-call/cc)
 (test-bignums)
 (test-inexact)
 

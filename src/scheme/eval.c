@@ -1299,6 +1299,38 @@ static fdtype quasiquote_handler(fdtype obj,fd_lispenv env)
   else return fd_err(fd_SyntaxError,"QUASIQUOTE",NULL,obj);
 }
 
+/* Call/cc */
+
+static fdtype call_continuation(struct FD_FUNCTION *f,fdtype arg)
+{
+  struct FD_CONTINUATION *cont=(struct FD_CONTINUATION *)f;
+  cont->retval=fd_incref(arg);
+  return cont->throwval;
+}
+
+static u8_condition throw_condition="CALL/CC THROW";
+
+static fdtype callcc (fdtype proc)
+{
+  fdtype throwval=fd_err(throw_condition,NULL,NULL,FD_VOID), value=FD_VOID, cont;
+  struct FD_CONTINUATION *f=u8_malloc(sizeof(struct FD_CONTINUATION));
+  FD_INIT_CONS(f,fd_function_type);
+  f->name=NULL; f->filename=NULL; 
+  f->ndprim=1; f->min_arity=1; f->arity=1; f->xprim=1;
+  f->typeinfo=NULL; f->defaults=NULL;
+  f->handler.xcall1=call_continuation;
+  f->throwval=throwval; f->retval=FD_VOID;
+  cont=FDTYPE_CONS(f);
+  value=fd_apply((struct FD_FUNCTION *)proc,1,&cont);
+  if (value==throwval) {
+    fdtype retval=f->retval;
+    fd_decref(value); fd_decref(cont);
+    return retval;}
+  else {
+    fd_decref(throwval); fd_decref(cont);
+    return value;}
+}
+
 /* Making DTPROCs */
 
 static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arity)
@@ -1412,6 +1444,8 @@ static void init_localfns()
 	    fd_symbol_type,FD_VOID,fd_string_type,FD_VOID,
 	    -1,FD_VOID,-1,FD_VOID));
 
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
+  fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
 
   fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_handler);
   fd_defspecial(fd_scheme_module,"TIMEVAL",timed_eval);

@@ -171,6 +171,13 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 #define fd_get_body(x,i) _fd_get_body(x,i)
 #endif
 
+/* Simple continuations */
+
+typedef struct FD_CONTINUATION {
+  FD_FUNCTION_FIELDS;
+  fdtype throwval, retval;} *fd_continuation;
+typedef struct FD_CONTINUATION FD_CONTINUATION;
+
 /* Threading stuff */
 
 #if FD_THREADS_ENABLED
