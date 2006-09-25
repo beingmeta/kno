@@ -592,7 +592,7 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
   
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
       ((rv=apr_procattr_cmdtype_set(attr,APR_PROGRAM)) != APR_SUCCESS) ||
-      ((rv=apr_procattr_detach_set(attr,0)) != APR_SUCCESS) ||
+      ((rv=apr_procattr_detach_set(attr,1)) != APR_SUCCESS) ||
       ((rv=apr_procattr_dir_set(attr,ap_make_dirstr_parent(p,r->filename))) != APR_SUCCESS))
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		  "couldn't set child process attributes: %s", r->filename);

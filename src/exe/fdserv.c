@@ -675,8 +675,10 @@ int main(int argc,char **argv)
 
 #if HAVE_SIGPROCMASK
  {
-   sigset_t newset;
+   sigset_t newset, oldset, newer;
    sigemptyset(&newset);
+   sigemptyset(&oldset);
+   sigemptyset(&newer);
 #if SIGQUIT
    sigaddset(&newset,SIGQUIT);
 #endif
@@ -686,7 +688,8 @@ int main(int argc,char **argv)
 #if SIGHUP
    sigaddset(&newset,SIGHUP);
 #endif
-   sigprocmask(SIG_SETMASK,&newset,NULL);
+   if (sigprocmask(SIG_UNBLOCK,&newset,&oldset)<0)
+     u8_warn("Sigerror","Error setting signal mask");
  }
 #elif HAVE_SIGSETMASK
   /* We set this here because otherwise, it will often inherit

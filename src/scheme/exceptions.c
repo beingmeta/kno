@@ -115,7 +115,7 @@ static fdtype exception_irritant(fdtype x)
   else return fd_incref(xo->data.irritant);
 }
 
-static int thunkp(x)
+static int thunkp(fdtype x)
 {
   if (!(FD_APPLICABLEP(x))) return 0;
   else {
