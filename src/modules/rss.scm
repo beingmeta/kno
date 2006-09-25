@@ -1,4 +1,4 @@
-(in-module 'fss)
+(in-module 'rss)
 
 (use-module '{fdweb texttools})
 
@@ -15,5 +15,12 @@
 		     rss-cache)))
     (let ((expiration (get cache (cons 'expires normalized))))
       (if (or (fail? expiration) (timestamp-earlier? expiration))
-	  ()
+	  (let* ((fetched (urlget normalized))
+		 (analyzed (xmlparse (get fetched '%content) 'slotify))
+		 (items (xmlget analyzed 'item)))
+	    
+	    )
 	  (get cache normalized)))))
+
+(module-export! 'rssget)
+
