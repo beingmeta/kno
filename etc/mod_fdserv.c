@@ -621,11 +621,15 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
   
   errno=0;
   rv=apr_proc_create(&pid,exename,(const char **)argv,(const char **)envp,attr,p);
-
-  ap_log_error
-    (APLOG_MARK,APLOG_NOTICE,rv,s,
-     "Spawning %s @%s for %s [rv=%d,pid=%d]",
-     exename,sockname,r->unparsed_uri,rv,pid);
+  if (rv!=APR_SUCCESS) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
+		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d]",
+		  exename,sockname,r->unparsed_uri,rv,pid);
+    return;}
+  else ap_log_error
+	 (APLOG_MARK,APLOG_NOTICE,rv,s,
+	  "Spawned %s @%s for %s [rv=%d,pid=%d]",
+	  exename,sockname,r->unparsed_uri,rv,pid);
   
   /* Now wait for the file to exist */
   sleep(2); while (stat(sockname,&stat_data) < 0) {
