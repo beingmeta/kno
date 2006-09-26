@@ -16,6 +16,8 @@
 static fdtype compound_symbol, star_symbol, plus_symbol;
 static fdtype prefix_symbol, postfix_symbol;
 
+static int output_term(u8_output out,fdtype term,int insert_space);
+
 /* Compound phrase extraction */
 
 static int eltmatchp(fdtype pat,fdtype word)
@@ -83,7 +85,9 @@ static fdtype make_compound(fdtype tags,int len)
 	fdtype root=FD_VECTOR_REF(word,2);
 	if (!(FD_STRINGP(root))) root=FD_VECTOR_REF(word,0);
 	if (i>0) u8_putc(&out,' ');
-	u8_putn(&out,FD_STRDATA(root),FD_STRLEN(root));
+	if (FD_STRINGP(root)) {
+	  u8_putn(&out,FD_STRDATA(root),FD_STRLEN(root));}
+	else output_term(&out,root,0);
 	tags=FD_CDR(tags); i++;}
       else return fd_err(fd_RangeError,"make_compound",NULL,tags);
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}

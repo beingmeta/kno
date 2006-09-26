@@ -180,7 +180,7 @@
 
 (define (index-brico index frame)
   (index-frame index frame 'type)
-  (index-frame index frame '%index)
+  (when (test frame '%index) (index-frame index frame (get frame '%index)))
   (index-frame index frame '%id (get frame '%mnemonic))
   (index-frame index frame 'has (getslots frame))
   (when (test frame '%slots)
