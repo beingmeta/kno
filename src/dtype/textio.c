@@ -629,7 +629,7 @@ static fdtype parse_packet(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
     if (c == '\\') {
       char obuf[4];
       obuf[0]=c=u8_getc(in);
-      if (obuf[0]='\n') {
+      if (obuf[0]=='\n') {
 	while (u8_isspace(c)) c=u8_getc(in);
 	continue;}
       obuf[1]=c=u8_getc(in);
