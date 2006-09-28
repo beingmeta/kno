@@ -287,9 +287,9 @@ FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
     if ((f->xprim) &&  (f->handler.fnptr==NULL)) {
       int ctype=FD_CONS_TYPE(f);
       if ((args==argbuf) || (args==argvec))
-	return fd_applyfns[ctype]((fdtype)f,f->arity,args);
+	return fd_applyfns[ctype]((fdtype)f,n,args);
       else {
-	fdtype retval=fd_applyfns[ctype]((fdtype)f,f->arity,args);
+	fdtype retval=fd_applyfns[ctype]((fdtype)f,n,args);
 	u8_free(args);
 	return retval;}}
     else switch (f->arity) {

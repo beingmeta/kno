@@ -487,9 +487,9 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 	args[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
     else while (arg_count<args_length) args[arg_count++]=FD_VOID;
   if ((fcn->ndprim==0) && (nd_args))
-    result=fd_ndapply(fcn,args_length,args);
+    result=fd_ndapply(fcn,n_args,args);
   else {
-    result=fd_dapply(fcn,args_length,args);}
+    result=fd_dapply(fcn,n_args,args);}
   if ((FD_ABORTP(result)) && (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show

@@ -405,7 +405,10 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       {FD_DOLIST(arg,fn->arglist)
 	 if (i<n) {vals[i]=args[i]; i++;}
 	 else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
-	   vals[i]=FD_CADR(arg); i++;}
+	   /* This code handles argument defaults for sprocs */
+	   fdtype default_expr=FD_CADR(arg);
+	   fdtype default_value=fd_eval(default_expr,fn->env);
+	   vals[i]=default_value; i++;}
 	 else vals[i]=FD_VOID;}
       assert(i==fn->n_vars);}
   else { /* We have a lexpr */
@@ -417,7 +420,9 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
        if (i<n) {vals[i]=args[i]; i++;}
        else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	 /* This code handles argument defaults for sprocs */
-	 vals[i]=FD_CADR(arg); i++;}
+	 fdtype default_expr=FD_CADR(arg);
+	 fdtype default_value=fd_eval(default_expr,fn->env);
+	 vals[i]=default_value; i++;}
        else {vals[i]=FD_VOID; i++;}}
     while (j >= i) {
       lexpr_arg=fd_init_pair(NULL,fd_incref(args[j]),lexpr_arg);
@@ -473,9 +478,7 @@ static fdtype make_sproc(u8_string name,
   if (n_vars)
     s->schema=u8_malloc(sizeof(fdtype)*(n_vars+1));
   else s->schema=NULL;
-  if (min_args<n_vars)
-    s->defaults=u8_malloc(sizeof(fdtype)*n_vars);
-  else s->defaults=NULL;
+  s->defaults=NULL;
   s->body=fd_incref(body); s->arglist=fd_incref(arglist);
   s->env=fd_copy_env(env); s->filename=NULL;
   if (sync) {
@@ -484,11 +487,9 @@ static fdtype make_sproc(u8_string name,
   scan=arglist; i=0; while (FD_PAIRP(scan)) {
     fdtype argspec=FD_CAR(scan);
     if (FD_PAIRP(argspec)) {
-      s->schema[i]=FD_CAR(argspec);
-      if (s->defaults) s->defaults[i]=fd_get_arg(argspec,1);}
+      s->schema[i]=FD_CAR(argspec);}
     else {
-      s->schema[i]=argspec;
-      if (s->defaults) s->defaults[i]=FD_VOID;}
+      s->schema[i]=argspec;}
     i++; scan=FD_CDR(scan);}
   if (i<s->n_vars) s->schema[i]=scan;
   return FDTYPE_CONS(s);
@@ -704,8 +705,10 @@ fdtype fd_xapply_sproc
       int j=0; while (j<i) {fd_decref(vals[j]); j++;}
       if (vals!=_vals) u8_free(vals);
       return argval;}
-    else if ((FD_VOIDP(argval)) && (FD_PAIRP(argspec)))
-      vals[i++]=fd_incref(FD_CADR(argspec));
+    else if ((FD_VOIDP(argval)) && (FD_PAIRP(argspec))) {
+      fdtype default_expr=FD_CADR(argspec);
+      fdtype default_value=fd_eval(default_expr,fn->env);
+      vals[i++]=default_value;}
     else vals[i++]=argval;
     arglist=FD_CDR(arglist);}
   /* This means we have a lexpr arg. */
