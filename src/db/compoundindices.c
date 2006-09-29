@@ -131,7 +131,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     if (cix->indices)
       cix->indices=
 	u8_realloc(cix->indices,sizeof(fd_index)*(cix->n_indices+1));
-    else cix->indices=u8_malloc(sizeof(fd_index)*(cix->n_indices));
+    else cix->indices=u8_malloc(sizeof(fd_index));
     cix->indices[cix->n_indices++]=add;
     u8_free(cix->cid);
     cix->cid=cix->source=get_compound_id(cix->n_indices,cix->indices);
