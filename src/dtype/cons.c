@@ -306,6 +306,8 @@ fdtype fd_init_string
   int len=((slen<0) ? (strlen(string)) : (slen));
   if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_STRING));
   FD_INIT_CONS(ptr,fd_string_type);
+  if ((len==0) && (string==NULL)) {
+    string=u8_malloc(1); *string='\0';}
   ptr->length=len; ptr->bytes=string;
   return FDTYPE_CONS(ptr);
 }
