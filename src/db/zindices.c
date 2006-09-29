@@ -717,7 +717,7 @@ static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
 	ksched->probe=probe;}
       else {
 	ksched->filepos=8+probe*4;
-	ksched->probe=(-probe);}
+	ksched->probe=-(probe+1);}
       ksched->chain_width=hashcode%(fx->n_slots-2)+1;
       if (ksched->filepos)
 	if (lock_adds)
