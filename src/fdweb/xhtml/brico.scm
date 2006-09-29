@@ -65,10 +65,10 @@
 	 default-languages)     
        default-languages))
 
-(define (get-languages (var languages))
+(define (get-languages (var 'languages))
   (try (cgiget var) (elts (get-preferred-languages))))
 (define getlanguages get-languages)
-(define (get-language (var language))
+(define (get-language (var 'language))
   (if (cgitest (intern (stringout "X_" var)))
       (let ((lang (cgiget (intern (stringout "X_" var)))))
 	(message "Switching language to " lang)
@@ -97,7 +97,7 @@
 	 (languages (try (cgiget var #t) (car preferred))))
     languages))
 ;; This is used to figure out the language and displaying an option box
-(define (languagebox  %env (name language)
+(define (languagebox  %env (name 'language)
 		      (onchange #f) (action #f) (selectbox #f)
 		      (title #f))
   (let* ((var (if (symbol? name) name (string->lisp name)))
@@ -130,7 +130,8 @@
 	   (xmltag 'input 'type "SUBMIT" 'name 'action 'value
 		   action))))
     (xmlout)))
-(define (languagesbox id (onchange #f) (action #f) (selectbox #t) (multiple #t))
+(define (languagesbox
+	 id (onchange #f) (action #f) (selectbox #t) (multiple #t))
   (let* ((var (getsym id))
 	 (preferred (get-preferred-languages))
 	 (languages (try (cgiget var) (car preferred))))
@@ -155,7 +156,8 @@
 			   action))))
     languages))
 
-(define (languagedropbox id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
+(define (languagedropbox
+	 id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
   (let* ((var (if (symbol? id) id (intern id)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
@@ -171,7 +173,8 @@
     language))
 (module-export! 'languagedropbox)
 
-(define (languagesdropbox id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
+(define (languagesdropbox
+	 id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
   (let* ((var (if (symbol? id) id (intern id)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
