@@ -169,6 +169,7 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
 
 static fdtype module_list=FD_EMPTY_LIST;
 static fd_lispenv exposed_environment=NULL;
+static fdtype shutdown_proc=FD_EMPTY_CHOICE;
 
 static fdtype config_get_modules(fdtype var,void *data)
 {
@@ -312,6 +313,16 @@ int main(int argc,char **argv)
     if (FD_HASHTABLEP(env->exports))
       server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
     else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
+    {
+      fdtype startup_proc=fd_symeval(fd_intern("STARTUP"),env);
+      shutdown_proc=fd_symeval(fd_intern("STARTUP"),env);
+      if (FD_VOIDP(startup_proc)) {}
+      else {
+	FD_DO_CHOICES(p,startup_proc) {
+	  fdtype result=fd_apply((fd_function)p,0,NULL);
+	  if (FD_ABORTP(result))
+	    exit(fd_interr(result));
+	  else fd_decref(result);}}}
     fd_decref((fdtype)env);
     {
       u8_string bname=u8_basename(source_file,".fdz");
