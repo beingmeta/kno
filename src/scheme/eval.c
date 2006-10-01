@@ -894,6 +894,40 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
   u8_free(cv);
 }
 
+static fdtype synchro_lock(fdtype x)
+{
+  if (FD_PRIM_TYPEP(x,fd_condvar_type)) {
+    struct FD_CONSED_CONDVAR *cv=
+      FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    fd_lock_mutex(&(cv->lock));
+    return FD_TRUE;}
+  else if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
+    if (sp->synchronized) {
+      fd_lock_mutex(&(sp->lock));}
+    else return fd_type_error("lockable","synchro_lock",x);
+    return FD_TRUE;}
+  else return fd_type_error("lockable","synchro_lock",x);
+}
+
+static fdtype synchro_unlock(fdtype x)
+{
+  if (FD_PRIM_TYPEP(x,fd_condvar_type)) {
+    struct FD_CONSED_CONDVAR *cv=
+      FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    fd_unlock_mutex(&(cv->lock));
+    return FD_TRUE;}
+  else if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
+    if (sp->synchronized) {
+      fd_unlock_mutex(&(sp->lock));}
+    else return fd_type_error("lockable","synchro_lock",x);
+    return FD_TRUE;}
+  else return fd_type_error("lockable","synchro_unlock",x);
+}
+
+
+
 /* Functions */
 
 FD_EXPORT
@@ -1034,6 +1068,9 @@ static void init_threadfns()
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-SIGNAL",condvar_signal,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-LOCK",condvar_lock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-UNLOCK",condvar_unlock,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
+
 }
 #else
 static void init_threadfns()

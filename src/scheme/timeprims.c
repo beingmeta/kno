@@ -112,7 +112,7 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
 
 static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
 {
-  fdtype timestamp; double delta; int free_old=0;
+  double delta; int free_old=0;
   struct U8_XTIME tmp, *btime;
   struct FD_TIMESTAMP *newtm=u8_malloc(sizeof(struct FD_TIMESTAMP)), *oldtm;
   if (FD_VOIDP(arg2)) {
@@ -122,7 +122,7 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
     u8_now(&tmp); btime=&tmp;}
   else if ((FD_FIXNUMP(arg2)) || (FD_FLONUMP(arg2)) || (FD_RATIONALP(arg2))) {
     delta=fd_todouble(arg2);
-    oldtm=get_timestamp(timestamp,&free_old);
+    oldtm=get_timestamp(arg1,&free_old);
     btime=&(oldtm->xtime);}
   else return fd_type_error("number","timestamp_plus",arg2);
   /* Init the cons bit field */
