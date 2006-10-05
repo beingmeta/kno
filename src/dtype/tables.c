@@ -1107,6 +1107,7 @@ static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result; int n_keys, added;
+  fdtype newv, oldv;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (FD_EXPECT_FALSE(FD_ABORTP(value))) return fd_interr(value);
   fd_lock_mutex(&(ht->lock));
@@ -1115,11 +1116,13 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   result=fd_hashvec_insert
     (key,ht->slots,ht->n_slots,&(ht->n_keys),ht->mpool);
   if (ht->n_keys>n_keys) added=1; else added=0;
-  fd_decref(result->value); result->value=fd_incref(value);
-  ht->modified=1;
+  ht->modified=1; oldv=result->value; newv=fd_incref(value);
+  if (FD_ABORTP(newv)) {
+    fd_unlock_mutex(&(ht->lock));
+    return fd_interr(newv);}
+  else {
+    result->value=newv; fd_decref(oldv);}
   fd_unlock_mutex(&(ht->lock));
-  if (FD_ABORTP(result->value)) 
-    return fd_interr(result->value);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
