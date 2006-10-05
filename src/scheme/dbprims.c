@@ -28,6 +28,23 @@ static fdtype find_frames_lexpr(int n,fdtype *args)
   return fd_finder(args[0],n-1,args+1);
 }
 
+static fdtype xfind_frames_lexpr(int n,fdtype *args)
+{
+  int i=1; while (i<n)
+    if (FD_EMPTY_CHOICEP(args[i+1])) {
+      fdtype *slotvals=u8_malloc(sizeof(fdtype)*(n)), results;
+      int j=0; i=1; while (i<n)
+	if (FD_EMPTY_CHOICEP(args[i+1])) i=i+2;
+	else {
+	  slotvals[j]=args[i]; j++; i++;
+	  slotvals[j]=args[i]; j++; i++;}
+      results=fd_finder(args[0],j,slotvals);
+      u8_free(slotvals);
+      return results;}
+    else i=i+2;
+  return fd_finder(args[0],n-1,args+1);
+}
+
 static void hashtable_index_frame(fdtype ix,fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_VOIDP(values)) {
@@ -1484,6 +1501,8 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprimn("??",fd_bgfinder,2)));
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("XFIND-FRAMES",xfind_frames_lexpr,3)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprimn("SWAPOUT",swapout_lexpr,0));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("COMMIT",commit_lexpr,0));
