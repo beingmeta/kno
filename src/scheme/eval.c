@@ -1388,6 +1388,18 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arit
 	 fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,fd_getint(arity),fd_getint(min_arity));
   return result;
 }
+
+static fdtype cachecall(int n,fdtype *args)
+{
+  return fd_cachecall(args[0],n-1,args+1);
+}
+
+static fdtype clear_callcache(fdtype arg)
+{
+  fd_clear_callcache(arg);
+  return FD_VOID;
+}
+
 /* Test functions */
 
 static fdtype applytest(int n,fdtype *args)
@@ -1491,6 +1503,10 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
+
+  fd_idefn(fd_scheme_module,fd_make_cprimn("CACHECALL",cachecall,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
 
   fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_handler);
   fd_defspecial(fd_scheme_module,"TIMEVAL",timed_eval);

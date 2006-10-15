@@ -95,6 +95,11 @@ FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *,int n,fdtype *args);
 
 #define FD_APPLICABLEP(x) ((fd_applyfns[FD_PTR_TYPE(x)])!=NULL)
 
+/* Cache calls */
+
+FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
+FD_EXPORT void fd_clear_callcache(fdtype arg);
+
 /* Profiling */
 
 #if FD_CALLTRACK_ENABLED

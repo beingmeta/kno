@@ -315,63 +315,6 @@ static fdtype use_adjunct(fdtype index_arg,fdtype slotid,fdtype pool_arg)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-/* Cache calls */
-
-static struct FD_HASHTABLE fcn_caches;
-
-static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
-{
-  fdtype cache=fd_hashtable_get(&fcn_caches,fcn,FD_VOID);
-  if (FD_VOIDP(cache)) {
-    cache=fd_make_hashtable(NULL,512,NULL);
-    fd_hashtable_store(&fcn_caches,fcn,cache);
-    return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);}
-  else return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);
-}
-
-static fdtype cachecall(int n,fdtype *args)
-{
-  fdtype fcn=args[0], vec, cached;
-  struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
-  struct FD_VECTOR vecstruct;
-  vecstruct.consbits=fd_vector_type;
-  vecstruct.length=n-1;
-  vecstruct.data=((n==1) ? (NULL) : (args+1));
-  vec=FDTYPE_CONS(&vecstruct);
-  cached=fd_hashtable_get(cache,vec,FD_VOID);
-  if (FD_VOIDP(cached)) {
-    int state=fd_ipeval_status();
-    fdtype result=fd_dapply((struct FD_FUNCTION *)fcn,n-1,args+1);
-    if (FD_ABORTP(result)) {
-      fd_decref((fdtype)cache);
-      return result;}
-    else if (fd_ipeval_status()==state) {
-      fdtype *datavec=((n-1) ? (u8_malloc(sizeof(fdtype)*(n-1))) : (NULL));
-      fdtype key=fd_init_vector(NULL,n-1,datavec);
-      int i=0, lim=n-1; while (i<lim) {
-	datavec[i]=fd_incref(args[i+1]); i++;}
-      fd_hashtable_store(cache,key,result);
-      fd_decref(key);}
-    fd_decref((fdtype)cache);
-    return result;}
-  else {
-    fd_decref((fdtype)cache);
-    return cached;}
-}
-
-FD_EXPORT void fd_clear_callcache()
-{
-  fd_reset_hashtable(&fcn_caches,128,1);
-}
-
-static fdtype clear_callcache(fdtype arg)
-{
-  if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
-  else fd_hashtable_store(&fcn_caches,arg,FD_VOID);
-  return FD_VOID;
-}
-
-
 /* DB control functions */
 
 static fdtype swapout_lexpr(int n,fdtype *args)
@@ -421,8 +364,8 @@ static fdtype clear_slotcache(fdtype arg)
 
 static fdtype clearcaches()
 {
+  fd_clear_callcache(FD_VOID);
   fd_clear_slotcaches();
-  fd_clear_callcache();
   fd_swapout_indices();
   fd_swapout_pools();
   return FD_VOID;
@@ -1399,8 +1342,6 @@ FD_EXPORT void fd_init_dbfns_c()
 {
   fd_register_source_file(versionid);
 
-  fd_make_hashtable(&fcn_caches,128,NULL);
-
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET",fget,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",ftest,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("TESTP",testp,3)));
@@ -1418,10 +1359,6 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("INHERIT",inherit_prim,3)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("GET-BASIS",getbasis,2)));
-
-  fd_idefn(fd_scheme_module,fd_make_cprimn("CACHECALL",cachecall,1));
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("OID-VALUE",oidvalue,1,fd_oid_type,FD_VOID));
