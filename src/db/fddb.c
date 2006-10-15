@@ -13,6 +13,7 @@ static char versionid[] =
 #include "fdb/indices.h"
 
 #include <libu8/libu8.h>
+#include <libu8/u8rusage.h>
 #include <stdarg.h>
 /* We include this for sscanf, but we're not really using stdio. */
 #include <stdio.h>
@@ -294,6 +295,51 @@ FD_EXPORT void fd_fast_swapout_all()
   u8_free(todo.to_free);
 }
 
+/* *
+
+/* Swap out to reduce memory footprint */
+
+static long membase=0;
+
+#if FD_THREADS_ENABLED
+u8_mutex fd_checkswap_lock;
+#endif
+
+FD_EXPORT void fd_checkswap()
+{
+  int memgap; struct rusage ru;
+  fdtype l_memgap=fd_config_get("SWAPMARGIN");
+  if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
+  else if (!(FD_VOIDP(l_memgap))) {
+    u8_warn(fd_TypeError,"Bad MEMGAP config: %q",l_memgap);
+    fd_decref(l_memgap);
+    return;}
+  else return;
+  if (u8_getrusage(RUSAGE_SELF,&ru)<0) {
+    u8_warn("Rusage failed","Call to u8_getrusage failed");
+    return;}
+  if (ru.ru_idrss<(membase+memgap)) return;
+  u8_lock_mutex(&fd_checkswap_lock);
+  if (membase==0) {
+    membase=ru.ru_idrss;
+    u8_unlock_mutex(&fd_checkswap_lock);
+    return;}
+  u8_getrusage(RUSAGE_SELF,&ru);
+  if (ru.ru_idrss>(membase+memgap)) {
+    u8_notify("CHECK-MEMORY","Swapping because %ld>%ld+%ld",
+	      ru.ru_idrss,membase,memgap);
+    fd_clear_slotcaches();
+    fd_clear_callcache();
+    fd_fast_swapout_all();
+    u8_getrusage(RUSAGE_SELF,&ru);
+    membase=ru.ru_idrss;
+    u8_notify("CHECK-MEMORY","Swapped out, new membase=%ld",
+	      membase);
+    u8_unlock_mutex(&fd_checkswap_lock);}
+  else {
+    u8_unlock_mutex(&fd_checkswap_lock);}
+}
+
 /* Init stuff */
 
 static void register_header_files()
@@ -325,6 +371,10 @@ FD_EXPORT int fd_init_db()
   fd_set_oid_parser(better_parse_oid);
   fd_unparsers[fd_oid_type]=better_unparse_oid;
   oid_name_slotids=fd_make_list(2,fd_intern("%ID"),fd_intern("OBJ-NAME"));
+
+#if FD_THREADS_ENABLED
+  u8_init_mutex(&fd_checkswap_lock);
+#endif
 
   fd_register_config("CACHELEVEL",
 		     get_default_cache_level,

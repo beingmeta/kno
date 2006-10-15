@@ -27,6 +27,12 @@ FD_EXPORT fd_exception fd_BadServerResponse;
 
 fdtype fd_fdbserv_module;
 
+FD_EXPORT void fd_checkswap(void);
+
+#if FD_THREADS_ENABLED
+FD_EXPORT u8_mutex fd_checkswap_lock;
+#endif
+
 #define FD_EXPLICIT_SETCACHE 2
 #define FD_STICKY_CACHESIZE 4
 
