@@ -21,6 +21,7 @@ static char versionid[] =
 #include <libu8/u8filefns.h>
 #include <libu8/u8fileio.h>
 #include <libu8/u8netfns.h>
+#include <libu8/u8rusage.h>
 
 #include <strings.h>
 #include <stdlib.h>
@@ -127,6 +128,7 @@ static int dtypeserver(u8_client ucl)
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
     fd_decref(expr); fd_decref(value);
+    fd_checkswap();
     return 1;}
 }
 

@@ -557,6 +557,7 @@ static int webservefn(u8_client ucl)
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
   u8_client_close(ucl);
+  fd_checkswap();
   return 1;
 }
 
