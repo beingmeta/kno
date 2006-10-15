@@ -96,6 +96,7 @@ dtypetests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) exceptions.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) choicetest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) seqtest.scm
+	$(RUNTEST) ./fdexec $(TESTCONFIG) cachecall.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) misctest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) texttest.scm
 	$(RUNTEST) ./fdexec $(TESTCONFIG) threadtest.scm
