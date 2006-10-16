@@ -267,20 +267,23 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
   return bytes_read;
 }
 
-FD_EXPORT void fd_dtsflush(fd_dtype_stream s)
+FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
 {
   if (s->bits&FD_DTSTREAM_READING) {
     /* When flushing a read stream, we just discard whatever
        is in the input buffer. */
+    int leftover=s->end-s->start;
     if ((s->bits&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
       /* Advance the virtual file pointer to reflect where
 	 the file pointer really is. */
       s->filepos=s->filepos+(s->end-s->start);
     /* Reset the buffer pointers */
-    s->end=s->ptr=s->start;}
+    s->end=s->ptr=s->start;
+    return leftover;}
   else {
     int bytes_written=writeall(s->fd,s->start,s->ptr-s->start);
-    if (bytes_written<0) u8_raise("write failed","fd_dtsflush",NULL);
+    /* u8_raise("write failed","fd_dtsflush",NULL); */
+    if (bytes_written<0) return -1;
     if ((s->bits)&FD_DTSTREAM_DOSYNC) fsync(s->fd);
     if ((s->bits&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
       s->filepos=s->filepos+bytes_written;
@@ -288,7 +291,8 @@ FD_EXPORT void fd_dtsflush(fd_dtype_stream s)
     if ((s->maxpos>=0) && (s->filepos>s->maxpos))
       s->maxpos=s->filepos;
     /* Reset the buffer pointers */
-    s->ptr=s->start;}
+    s->ptr=s->start;
+    return bytes_written;}
 }
 
 FD_EXPORT int fd_dtslock(fd_dtype_stream s)

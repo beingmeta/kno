@@ -77,6 +77,30 @@ static int open_server(fd_dtproc dtp)
   return 1;
 }
 
+static int server_reconnect(fd_dtproc dtp)
+{
+  u8_connection newsock;
+  /* This reopens the socket for a closed network pool. */
+  if (dtp->stream.fd>=0) fd_dtsclose(&(dtp->stream),1);
+  if (strchr(dtp->server,'@')) {
+    u8_warn(fd_ServerReconnect,"Resetting connection to %s for %q",dtp->server,dtp->fcnsym);
+    newsock=u8_connect(dtp->server);}
+  else {
+    fdtype serverid=fd_config_get(dtp->server);
+    if (FD_STRINGP(serverid)) {
+      u8_warn(fd_ServerReconnect,"Resetting connection to %s (%s) for %q",
+	      dtp->server,serverid,dtp->fcnsym);
+      newsock=u8_connect(dtp->server);}
+    else {
+      fd_seterr(ServerUndefined,"open_server",u8_strdup(dtp->server),serverid);
+      return -1;}
+    fd_decref(serverid);}
+  if (newsock<0) return -1;
+  else if (u8_set_nodelay(newsock,1)<0) return -1;
+  fd_init_dtype_stream(&(dtp->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
+  return 1;
+}
+
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
@@ -91,10 +115,18 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
     else expr=fd_init_pair(NULL,fd_incref(args[i]),expr);
     i--;}
   expr=fd_init_pair(NULL,dtp->fcnsym,expr);
-  fd_dtswrite_dtype(&(dtp->stream),expr);
-  fd_dtsflush(&(dtp->stream));
-  fd_decref(expr);
+  if ((fd_dtswrite_dtype(&(dtp->stream),expr)<0) ||
+      (fd_dtsflush(&(dtp->stream))<0)) {
+    if (server_reconnect(dtp)<0) return fd_erreify();}
   result=fd_dtsread_dtype(&(dtp->stream));
+  if (FD_EQ(result,FD_EOD)) {
+    if ((server_reconnect(dtp)<0) ||
+	(fd_dtswrite_dtype(&(dtp->stream),expr)<0) ||
+	(fd_dtsflush(&(dtp->stream))<0))
+      return fd_erreify();
+    else result=fd_dtsread_dtype(&(dtp->stream));
+    if (FD_EQ(result,FD_EOD))
+      return fd_err(fd_UnexpectedEOD,"",dtp->server,expr);}
   if (FD_ABORTP(result)) {
     struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)result;
     if (exo->data.cxt==NULL) exo->data.cxt=dtp->server;}

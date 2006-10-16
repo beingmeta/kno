@@ -50,38 +50,76 @@ static fdtype dteval(struct FD_NETWORK_INDEX *ni,fdtype expr)
 static fdtype dtcall(struct FD_NETWORK_INDEX *ni,int n_elts,...)
 {
   fd_dtype_stream stream=&(ni->stream);
-  int i=0; fdtype *params=u8_malloc(sizeof(fdtype)*n_elts), request;
+  int i=0; fdtype *params=u8_malloc(sizeof(fdtype)*n_elts), request, result;
   va_list args;
   if (stream->fd<0)
-    if (reopen_network_index(ni)<0) return FD_VOID;
+    if (reopen_network_index(ni)<0) return fd_erreify();
   va_start(args,n_elts);
   while (i<n_elts) params[i++]=va_arg(args,fdtype);
   request=FD_EMPTY_LIST; i=n_elts-1;
   while (i>=0) {
     request=fd_init_pair(NULL,params[i],request);
     fd_incref(params[i]); i--;}
-  fd_dtswrite_dtype(stream,request); fd_dtsflush(stream);
-  fd_decref(request); u8_free(params);
-  return fd_dtsread_dtype(stream); 
+  u8_free(params);
+  if ((fd_dtswrite_dtype(stream,request)<0) ||
+      (fd_dtsflush(stream)<0)) {
+    /* Close the stream and sleep a second before reconnecting. */
+    u8_warn(fd_ServerReconnect,"Resetting connection to %s",ni->xid);
+    fd_dtsclose(stream,1); sleep(1);
+    if ((reopen_network_index(ni)<0) ||
+	(fd_dtswrite_dtype(stream,request)<0)) {
+      fd_decref(request);
+      return fd_erreify();}}
+  result=fd_dtsread_dtype(stream);
+  if (FD_EQ(result,FD_EOD)) {
+    /* Close the stream and sleep a second before reconnecting. */
+    u8_warn(fd_ServerReconnect,"Resetting connection to %s",ni->xid);
+    fd_dtsclose(stream,1); sleep(1);
+    if ((reopen_network_index(ni)<0) ||
+	(fd_dtswrite_dtype(stream,request)<0)) {
+      fd_decref(request);
+      return fd_erreify();}
+    else result==fd_dtsread_dtype(stream);
+    if (FD_EQ(result,FD_EOD))
+      return fd_err(fd_UnexpectedEOD,"dtcall/indices.c",ni->xid,FD_VOID);}
+  fd_decref(request);
+  return result;
 }
 
-static void dtcallnr(struct FD_NETWORK_INDEX *ni,int n_elts,...)
+static fdtype dtcallnr(struct FD_NETWORK_INDEX *ni,int n_elts,...)
 {
   fd_dtype_stream stream=&(ni->stream);
   int i=0; fdtype *params=u8_malloc(sizeof(fdtype)*n_elts), request, result;
   va_list args;
   if (stream->fd<0)
-    if (reopen_network_index(ni)<0) return;
+    if (reopen_network_index(ni)<0) return fd_erreify();
   va_start(args,n_elts);
   while (i<n_elts) params[i++]=va_arg(args,fdtype);
   request=FD_EMPTY_LIST; i=n_elts-1;
   while (i>=0) {
-    request=fd_init_pair(NULL,params[i],request);
-    fd_incref(params[i]); i--;}
-  fd_dtswrite_dtype(stream,request); fd_decref(request);
+    request=fd_init_pair(NULL,params[i],request); i--;}
   u8_free(params);
+  if ((fd_dtswrite_dtype(stream,request)<0) ||
+      (fd_dtsflush(stream)<0)) {
+    /* Close the stream and sleep a second before reconnecting. */
+    fd_dtsclose(stream,1); sleep(1);
+    if ((reopen_network_index(ni)<0) ||
+	(fd_dtswrite_dtype(stream,request)<0)) {
+      fd_decref(request);
+      return fd_erreify();}}
   result=fd_dtsread_dtype(stream);
-  fd_decref(result);
+  if (FD_EQ(result,FD_EOD)) {
+    /* Close the stream and sleep a second before reconnecting. */
+    fd_dtsclose(stream,1); sleep(1);
+    if ((reopen_network_index(ni)<0) ||
+	(fd_dtswrite_dtype(stream,request)<0)) {
+      fd_decref(request);
+      return fd_erreify();}
+    else result==fd_dtsread_dtype(stream);
+    if (FD_EQ(result,FD_EOD))
+      return fd_err(fd_UnexpectedEOD,"dtcall/indices.c",ni->xid,FD_VOID);}
+  fd_decref(request);
+  return result;
 }
 
 static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
@@ -104,8 +142,14 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
   fdtype writable_response; u8_string xid=NULL;
   fd_dtype_stream s=&(ix->stream);
   u8_connection sock=u8_connect_x(spec,&xid);
-  int n_pools=0; 
-  if (sock>0) {
+  int n_pools=0;
+  if (sock<0) {
+    u8_free(ix);
+    return NULL;}
+  else if (u8_set_nodelay(sock,1)<0) {
+    u8_free(ix);
+    return NULL;}
+  else {
     fd_init_index(ix,&netindex_handler,spec);
     ix->xname=xname; ix->xid=xid;
     fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
@@ -127,9 +171,6 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
     ix->sock=sock;
     if (ix) fd_register_index(ix);
     return (fd_index) ix;}
-  else {
-    u8_free(ix);
-    return NULL;}
 }
 
 static int reopen_network_index(struct FD_NETWORK_INDEX *ix)
@@ -138,6 +179,7 @@ static int reopen_network_index(struct FD_NETWORK_INDEX *ix)
   else {
     u8_string xid=NULL;
     u8_connection newsock=u8_connect_x(ix->source,&xid);
+    if (u8_set_nodelay(newsock,1)<0) return -1;
     if (ix->xid) u8_free(ix->xid); ix->xid=NULL;
     if (newsock>=0) {
       ix->xid=xid;

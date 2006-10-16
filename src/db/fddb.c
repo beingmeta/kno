@@ -23,7 +23,7 @@ fd_exception fd_InternalError=_("FramerD Database internal error"),
   fd_UnknownObjectName=_("Unknown object name"),
   fd_BadServerResponse=_("bad server response"),
   fd_NoBackground=_("No default background indices");
-u8_condition fd_Commitment=_("COMMIT");
+u8_condition fd_Commitment=_("COMMIT"), fd_ServerReconnect=_("Resetting server connection");
 fd_exception fd_BadMetaData=_("Error getting metadata");
 
 

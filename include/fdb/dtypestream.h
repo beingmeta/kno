@@ -77,7 +77,7 @@ FD_EXPORT off_t fd_movepos(fd_dtype_stream s,off_t dleta);
 FD_EXPORT off_t fd_endpos(fd_dtype_stream s);
 
 FD_EXPORT int fd_set_read(fd_dtype_stream s,int read);
-FD_EXPORT void fd_dtsflush(fd_dtype_stream s);
+FD_EXPORT int fd_dtsflush(fd_dtype_stream s);
 FD_EXPORT int fd_dtslock(fd_dtype_stream s);
 FD_EXPORT int fd_dtsunlock(fd_dtype_stream s);
 

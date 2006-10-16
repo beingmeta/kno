@@ -13,6 +13,7 @@
 
 FD_EXPORT fd_exception fd_InternalError, fd_AmbiguousObjectName,
   fd_UnknownObjectName, fd_BadServerResponse, fd_NoBackground;
+FD_EXPORT u8_condition fd_ServerReconnect;
 FD_EXPORT u8_condition fd_Commitment;
 FD_EXPORT fd_exception fd_BadMetaData;
 
