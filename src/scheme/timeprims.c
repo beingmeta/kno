@@ -575,6 +575,12 @@ static fdtype rusage_prim(fdtype field)
   else return FD_EMPTY_CHOICE;
 }
 
+static fdtype memusage_prim()
+{
+  unsigned long size=u8_memusage();
+  return FD_INT2DTYPE(size);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -654,6 +660,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SECS->STRING",secs2string,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("MEMUSAGE",memusage_prim,0));
 }
 
 
