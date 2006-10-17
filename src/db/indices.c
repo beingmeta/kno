@@ -772,32 +772,6 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     return fd_index_prefetch(ix,todo);}
 }
 
-/* Config methods */
-
-static fdtype config_get_indices(fdtype var,void *data)
-{
-  fdtype results=FD_EMPTY_CHOICE;
-  int i=0; while (i < fd_n_primary_indices) {
-    fdtype lindex=fd_index2lisp(fd_primary_indices[i]);
-    FD_ADD_TO_CHOICE(results,lindex);
-    i++;}
-  if (i>=fd_n_primary_indices) return results;
-  i=0; while (i < fd_n_secondary_indices) {
-    fdtype lindex=fd_index2lisp(fd_secondary_indices[i]);
-    FD_ADD_TO_CHOICE(results,lindex);
-    i++;}
-  return results;
-}
-static int config_use_index(fdtype var,fdtype spec,void *data)
-{
-  if (FD_STRINGP(spec))
-    if (fd_use_index(FD_STRDATA(spec))) return 1;
-    else return -1;
-  else {
-    fd_seterr(fd_TypeError,"config_use_index",NULL,fd_incref(spec));
-    return -1;}
-}
-
 /* The in-memory index */
 
 static fdtype *memindex_fetchn(fd_index ix,int n,fdtype *keys)
@@ -888,8 +862,6 @@ FD_EXPORT fd_init_indices_c()
   {
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("INDEX"));
     e->parser=index_parsefn;}
-
-  fd_register_config("INDICES",config_get_indices,config_use_index,NULL);
 
   fd_tablefns[fd_index_type]=u8_malloc_type(struct FD_TABLEFNS);
   fd_tablefns[fd_index_type]->get=table_indexget;

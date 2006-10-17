@@ -222,6 +222,45 @@ static fdtype get_prefetch(fdtype var,void *data)
   if (fd_prefetch) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype config_get_pools(fdtype var,void *data)
+{
+  return fd_all_pools();
+}
+static int config_use_pool(fdtype var,fdtype spec,void *data)
+{
+  if (FD_STRINGP(spec))
+    if (fd_use_pool(FD_STRDATA(spec))) return 1;
+    else return -1;
+  else return fd_reterr(fd_TypeError,"config_use_pool",
+			u8_strdup(_("pool spec")),FD_VOID);
+}
+
+/* Config methods */
+
+static fdtype config_get_indices(fdtype var,void *data)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  int i=0; while (i < fd_n_primary_indices) {
+    fdtype lindex=fd_index2lisp(fd_primary_indices[i]);
+    FD_ADD_TO_CHOICE(results,lindex);
+    i++;}
+  if (i>=fd_n_primary_indices) return results;
+  i=0; while (i < fd_n_secondary_indices) {
+    fdtype lindex=fd_index2lisp(fd_secondary_indices[i]);
+    FD_ADD_TO_CHOICE(results,lindex);
+    i++;}
+  return results;
+}
+static int config_use_index(fdtype var,fdtype spec,void *data)
+{
+  if (FD_STRINGP(spec))
+    if (fd_use_index(FD_STRDATA(spec))) return 1;
+    else return -1;
+  else {
+    fd_seterr(fd_TypeError,"config_use_index",NULL,fd_incref(spec));
+    return -1;}
+}
+
 /* Global pool/index functions */
 
 FD_EXPORT int fd_commit_all()
@@ -388,6 +427,9 @@ FD_EXPORT int fd_init_db()
 		     get_prefetch,
 		     set_prefetch,
 		     NULL);
+  fd_register_config("POOLS",config_get_pools,config_use_pool,NULL);
+  fd_register_config("INDICES",config_get_indices,config_use_index,NULL);
+
   return fddb_initialized;
 }
 

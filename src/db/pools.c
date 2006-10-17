@@ -1082,19 +1082,6 @@ static fdtype pool_parsefn(FD_MEMORY_POOL_TYPE *pool,int n,fdtype *args)
 
 /* Config methods */
 
-static fdtype config_get_pools(fdtype var,void *data)
-{
-  return fd_all_pools();
-}
-static int config_use_pool(fdtype var,fdtype spec,void *data)
-{
-  if (FD_STRINGP(spec))
-    if (fd_use_pool(FD_STRDATA(spec))) return 1;
-    else return -1;
-  else return fd_reterr(fd_TypeError,"config_use_pool",
-			u8_strdup(_("pool spec")),FD_VOID);
-}
-
 static fdtype config_get_anonymousok(fdtype var,void *data)
 {
   if (fd_ignore_anonymous_oids) return FD_TRUE;
@@ -1156,16 +1143,14 @@ FD_EXPORT fd_init_pools_c()
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"));
     e->parser=pool_parsefn;}
 
-  fd_register_config("POOLS",config_get_pools,config_use_pool,NULL);
-  fd_register_config("ANONYMOUSOK",
-		     config_get_anonymousok,
-		     config_set_anonymousok,NULL);
-  
   fd_make_hashtable(&poolid_table,32,NULL);
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
   u8_new_threadkey(&fd_pool_delays_key,NULL);
 #endif
   fd_unparsers[fd_pool_type]=unparse_pool;
+  fd_register_config("ANONYMOUSOK",
+		     config_get_anonymousok,
+		     config_set_anonymousok,NULL);
 }
 
 
