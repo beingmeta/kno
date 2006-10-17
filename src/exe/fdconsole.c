@@ -91,8 +91,8 @@ int main(int argc,char **argv)
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c;
   u8_string source_file=NULL; double showtime=-1.0;
-  /* Initialize these primitives */
-#if FD_TESTCONFIG
+  /* Initialize Scheme primitives */
+#if FD_TESTCONFIG /* Set when statically linked for testing. */
   u8_init_chardata_c();
   fd_init_fdscheme();
   fd_init_schemeio();

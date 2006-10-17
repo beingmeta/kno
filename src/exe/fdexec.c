@@ -90,7 +90,7 @@ int main(int argc,char **argv)
 		     &debug_maxelts);
   setlocale(LC_ALL,"");
   /* Initialize these primitives */
-#if FD_TESTCONFIG
+#if FD_TESTCONFIG /* Set when statically linked for testing. */
   u8_init_chardata_c();
   fd_init_fdscheme();
   fd_init_texttools();
