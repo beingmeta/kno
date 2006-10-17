@@ -307,7 +307,7 @@ u8_mutex fd_swapcheck_lock;
 
 FD_EXPORT void fd_swapcheck()
 {
-  int memgap; struct rusage ru;
+  int memgap; unsigned long usage=u8_memusage();
   fdtype l_memgap=fd_config_get("SWAPCHECKMARGIN");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {
@@ -315,24 +315,19 @@ FD_EXPORT void fd_swapcheck()
     fd_decref(l_memgap);
     return;}
   else return;
-  if (u8_getrusage(RUSAGE_SELF,&ru)<0) {
-    u8_warn("Rusage failed","Call to u8_getrusage failed");
-    return;}
-  if (ru.ru_idrss<(membase+memgap)) return;
+  if (usage<(membase+memgap)) return;
   u8_lock_mutex(&fd_swapcheck_lock);
   if (membase==0) {
-    membase=ru.ru_idrss;
+    membase=usage;
     u8_unlock_mutex(&fd_swapcheck_lock);
     return;}
-  u8_getrusage(RUSAGE_SELF,&ru);
-  if (ru.ru_idrss>(membase+memgap)) {
+  if (usage>(membase+memgap)) {
     u8_notify("CHECK-MEMORY","Swapping because %ld>%ld+%ld",
-	      ru.ru_idrss,membase,memgap);
+	      usage,membase,memgap);
     fd_clear_slotcaches();
     fd_clear_callcache();
     fd_fast_swapout_all();
-    u8_getrusage(RUSAGE_SELF,&ru);
-    membase=ru.ru_idrss;
+    membase=usage;
     u8_notify("CHECK-MEMORY","Swapped out, new membase=%ld",
 	      membase);
     u8_unlock_mutex(&fd_swapcheck_lock);}
