@@ -48,6 +48,7 @@ static void print_table(fdtype frames,fdtype slotids)
 int main(int argc,char **argv)
 {
   int fd_version=fd_init_dbfile();
+  fd_config_set("OIDDISPLAY",FD_INT2DTYPE(3));
   if (argc==2) {
     fdtype frames=fd_qparse(argv[1]);
     FD_DO_CHOICES(frame,frames)
@@ -85,6 +86,8 @@ int main(int argc,char **argv)
     fd_decref(frames); fd_decref(slotids); fd_decref(values);}
   fd_commit_pools(); fd_swapout_pools();
   fd_commit_indices(); fd_swapout_indices();
+  fd_clear_slotcaches();
+  fd_clear_callcache();
 }
 
 

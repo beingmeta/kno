@@ -38,12 +38,13 @@ TESTBIN=pool-get@suffix@ dtcall@suffix@ indexop@suffix@ \
 all: $(TESTBIN) 
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
             ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
-%: %.c
+%: %.c ../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # This is for making shared test programs, when there are associated problems
