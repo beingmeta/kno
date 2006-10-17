@@ -167,9 +167,9 @@
    @1/2ab57{REFTERMS}
    @1/2b74c{INCLUDES}
    @1/2c275{PARTS}
+   @1/2c272{KINDOF}
    @1/2c276{INGREDIENTS}
    @1/2c278{MEMBERS}
-   @1/2c27b{KINDOF*}
    @1/2c281{PARTOF*}})
 
 (define kindof @1/2c272{KINDOF})
