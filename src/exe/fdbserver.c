@@ -128,7 +128,7 @@ static int dtypeserver(u8_client ucl)
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
     fd_decref(expr); fd_decref(value);
-    fd_checkswap();
+    fd_swapcheck();
     return 1;}
 }
 
