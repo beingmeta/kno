@@ -194,9 +194,15 @@
   (index-name index concept 'names
 	      (qc (pick  (cdr (get concept '%words)) capitalized?)) 1)
   (do-choices (slotid kindof*-slotids)
-    (index-kindof index concept slotid (qc (%get concept slotid))))
+    (index-kindof index concept slotid
+		  (qc (%get concept slotid)
+		      (tryif (oid? slotid)
+			     (%get concept (get slotid 'slots))))))
   (do-choices (slotid concept-slotids)
-    (index-frame index concept slotid (%get concept slotid)))
+    (index-frame index concept slotid
+		 (choice (%get concept slotid)
+			 (tryif (oid? slotid)
+				(%get concept (get slotid 'slots))))))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store

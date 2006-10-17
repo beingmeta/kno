@@ -205,7 +205,13 @@ fdtype fd_init_choice
       fdtype *write=&(ch->elt0), *writelim=write+n;
       while (write<writelim) *write++=FD_VOID;}}
   else if ((data) && (data!=FD_XCHOICE_DATA(ch)))
-    memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
+    if (flags&FD_CHOICE_INCREF) {
+      int i=0;
+      fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch);
+      fdtype *read=(fdtype *)data, *limit=read+n;
+      while (read<limit) {
+	fdtype v=fd_incref(*read); read++; *write++=v;}}
+    else memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
   /* Copy the data unless its yours. */
   base=FD_XCHOICE_DATA(ch); scan=base; limit=scan+n;
   /* Determine if the choice is atomic. */

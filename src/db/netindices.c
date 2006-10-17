@@ -179,6 +179,8 @@ static int reopen_network_index(struct FD_NETWORK_INDEX *ix)
   else {
     u8_string xid=NULL;
     u8_connection newsock=u8_connect_x(ix->source,&xid);
+    if (newsock<0) {
+      return newsock;}
     if (u8_set_nodelay(newsock,1)<0) return -1;
     if (ix->xid) u8_free(ix->xid); ix->xid=NULL;
     if (newsock>=0) {

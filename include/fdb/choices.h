@@ -153,6 +153,8 @@ typedef struct FD_CHOICE *fd_choice;
 #define FD_CHOICE_FREEDATA 16
 /* Free or realloc the pointer if neccessary. */
 #define FD_CHOICE_REALLOC  32
+/* Incref data elements when copying */
+#define FD_CHOICE_INCREF  64
 
 FD_EXPORT fdtype fd_init_choice
   (struct FD_CHOICE *ch,int n,const fdtype *data,int flags);
