@@ -38,7 +38,10 @@
 #define FD_GLOBAL_IPEVAL 0
 #endif
 
-/* This is true (1) for executables built in the tests/ subdirectories */
+/* This is true (1) for executables built in the tests/ subdirectories.
+   If true, the executables call the various module init functions 
+   (e.g. fd_init_texttools()) directly; when dynamically linked, the
+   loader calls them. */
 #ifndef FD_TESTCONFIG
 #define FD_TESTCONFIG 0
 #endif
