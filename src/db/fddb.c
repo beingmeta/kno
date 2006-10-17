@@ -23,7 +23,9 @@ fd_exception fd_InternalError=_("FramerD Database internal error"),
   fd_UnknownObjectName=_("Unknown object name"),
   fd_BadServerResponse=_("bad server response"),
   fd_NoBackground=_("No default background indices");
-u8_condition fd_Commitment=_("COMMIT"), fd_ServerReconnect=_("Resetting server connection");
+u8_condition fd_Commitment=_("COMMIT");
+u8_condition fd_ServerReconnect=_("Resetting server connection");
+static u8_condition SwapCheck=_("SwapCheck");
 fd_exception fd_BadMetaData=_("Error getting metadata");
 
 
@@ -305,34 +307,37 @@ static long membase=0;
 u8_mutex fd_swapcheck_lock;
 #endif
 
-FD_EXPORT void fd_swapcheck()
+FD_EXPORT int fd_swapcheck()
 {
   int memgap; unsigned long usage=u8_memusage();
-  fdtype l_memgap=fd_config_get("SWAPCHECKMARGIN");
+  fdtype l_memgap=fd_config_get("SWAPCHECK");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {
-    u8_warn(fd_TypeError,"Bad MEMGAP config: %q",l_memgap);
+    u8_warn(fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);
     fd_decref(l_memgap);
-    return;}
-  else return;
-  if (usage<(membase+memgap)) return;
+    return -1;}
+  else return 0;
+  if (usage<(membase+memgap)) return 0;
   u8_lock_mutex(&fd_swapcheck_lock);
   if (membase==0) {
     membase=usage;
+    u8_notify(SwapCheck,"Initializing membase=%ld",
+	      membase);
     u8_unlock_mutex(&fd_swapcheck_lock);
     return;}
   if (usage>(membase+memgap)) {
-    u8_notify("CHECK-MEMORY","Swapping because %ld>%ld+%ld",
+    u8_notify(SwapCheck,"Swapping because %ld>%ld+%ld",
 	      usage,membase,memgap);
     fd_clear_slotcaches();
     fd_clear_callcache();
-    fd_fast_swapout_all();
-    membase=usage;
-    u8_notify("CHECK-MEMORY","Swapped out, new membase=%ld",
+    fd_swapout_all();
+    membase=u8_memusage();
+    u8_notify(SwapCheck,"Swapped out, new membase=%ld",
 	      membase);
     u8_unlock_mutex(&fd_swapcheck_lock);}
   else {
     u8_unlock_mutex(&fd_swapcheck_lock);}
+  return 1;
 }
 
 /* Init stuff */

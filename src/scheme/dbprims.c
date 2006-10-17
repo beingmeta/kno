@@ -371,6 +371,12 @@ static fdtype clearcaches()
   return FD_VOID;
 }
 
+static fdtype swapcheck_prim()
+{
+  if (fd_swapcheck()) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fd_pool arg2pool(fdtype arg)
 {
   if (FD_POOLP(arg)) return fd_lisp2pool(arg);
@@ -1449,6 +1455,8 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
 	   fd_make_cprim0("CLEARCACHES",clearcaches,0));
   
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim,0));
+
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));
   fd_idefn(fd_scheme_module,

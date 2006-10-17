@@ -123,8 +123,8 @@ static fdtype iserver_bulk_get(fdtype keys)
   if (FD_VECTORP(keys)) {
     int i=0, n=FD_VECTOR_LENGTH(keys), retval;
     fdtype *data=FD_VECTOR_DATA(keys), *results=u8_malloc(sizeof(fdtype)*n);
-    fdtype aschoice=
-      fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_ISATOMIC));
+    /* |FD_CHOICE_ISATOMIC */
+    fdtype aschoice=fd_make_choice(n,data,(FD_CHOICE_DOSORT));
     retval=fd_index_prefetch((fd_index)(primary_index),aschoice);
     if (retval<0) {
       fd_decref(aschoice); u8_free(results);
@@ -169,8 +169,8 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
       int i=0, n=FD_VECTOR_LENGTH(keys);
       fdtype *data=FD_VECTOR_DATA(keys),
 	*results=u8_malloc(sizeof(fdtype)*n);
-      fdtype aschoice=
-	fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_ISATOMIC));
+      /* |FD_CHOICE_ISATOMIC */
+      fdtype aschoice=fd_make_choice(n,data,FD_CHOICE_DOSORT);
       fd_index_prefetch(ix,aschoice);
       while (i<n) {
 	results[i]=fd_index_get(ix,data[i]); i++;}

@@ -28,7 +28,7 @@ FD_EXPORT fd_exception fd_BadServerResponse;
 
 fdtype fd_fdbserv_module;
 
-FD_EXPORT void fd_swapcheck(void);
+FD_EXPORT int fd_swapcheck(void);
 
 #if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex fd_swapcheck_lock;
