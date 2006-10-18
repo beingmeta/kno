@@ -628,7 +628,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       fd_decref(needy);}
     else u8_free(oidc);
     if (retval<0)
-      u8_notify(fd_Commitment,
+      u8_warn(fd_Commitment,
 		"Error saving %d OIDs from %s in %f secs",n,p->cid,
 		u8_elapsed_time()-start_time);
     else u8_notify(fd_Commitment,
@@ -644,9 +644,9 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     retcode=p->handler->storen(p,1,oidv,values);
     fd_decref(value);
     if (retcode<0) {
-      u8_notify(fd_Commitment,
-		"[%*t] Error saving one OID from %s in %f secs",
-		 p->cid,u8_elapsed_time()-start_time);
+      u8_warn(fd_Commitment,
+	      "[%*t] Error saving one OID from %s in %f secs",
+	      p->cid,u8_elapsed_time()-start_time);
       return retcode;}
     else if (retcode) {
       if (unlock) {

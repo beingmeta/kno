@@ -580,8 +580,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 	ix->handler->setcache(ix,fd_default_cache_level);}
     retval=ix->handler->commit(ix);
     if (retval<0)
-      u8_notify(fd_Commitment,_("Error saving %d keys to %s after %f secs"),
-		n_keys,ix->cid,u8_elapsed_time()-start_time);
+      u8_warn(fd_Commitment,_("Error saving %d keys to %s after %f secs"),
+	      n_keys,ix->cid,u8_elapsed_time()-start_time);
     else if (retval>0)
       u8_notify(fd_Commitment,_("Saved %d keys to %s in %f secs"),
 		retval,ix->cid,u8_elapsed_time()-start_time);

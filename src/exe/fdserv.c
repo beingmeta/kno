@@ -320,7 +320,7 @@ static fdtype loadcontent(fdtype path)
     fd_restore_sourcebase(oldsource);
     if (xml==NULL) {
       u8_free(content);
-      u8_notify("ERROR","Error parsing %s",pathname);
+      u8_warn("ERROR","Error parsing %s",pathname);
       return fd_erreify();}
     env=(fd_lispenv)xml->data;
     lenv=(fdtype)env; ldata=xml->head;
