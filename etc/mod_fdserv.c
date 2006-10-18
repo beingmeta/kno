@@ -600,7 +600,7 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
     int logfd=open(dconfig->log_file,(O_CREAT|O_APPEND),(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP));
     if (logfd<0)
       ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,"couldn't open log file %s",dconfig->log_file);
-    else if ((rv=apr_procattr_io_set(attr,0,1,logfd)) != APR_SUCCESS)
+    else if ((rv=apr_procattr_io_set(attr,0,logfd,logfd)) != APR_SUCCESS)
       ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		    "couldn't set child process i/o attributes: %s", r->filename);}
   else if ((rv=apr_procattr_io_set(attr,0,1,2)) != APR_SUCCESS)
