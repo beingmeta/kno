@@ -368,7 +368,7 @@ FD_EXPORT int fd_swapcheck()
     u8_notify(SwapCheck,"Swapping because %ld>%ld+%ld",
 	      usage,membase,memgap);
     fd_clear_slotcaches();
-    fd_clear_callcache();
+    fd_clear_callcache(FD_VOID);
     fd_swapout_all();
     membase=u8_memusage();
     u8_notify(SwapCheck,"Swapped out, new membase=%ld",
