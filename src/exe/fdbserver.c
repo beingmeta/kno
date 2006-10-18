@@ -255,6 +255,7 @@ int main(int argc,char **argv)
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env; 
   u8_now(&boot_time);
+  u8_use_syslog();
 #if FD_TESTCONFIG /* Set when statically linked for testing. */
   u8_init_chardata_c();
   fd_init_fdscheme();
