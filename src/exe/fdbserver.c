@@ -38,12 +38,21 @@ static fd_lispenv server_env;
 struct U8_SERVER dtype_server;
 static struct U8_XTIME boot_time;
 
+static int max_tasks=32, n_threads=8, server_initialized=0;
+
+#if FD_THREADS_ENABLED
+static u8_mutex init_server_lock;
+#endif
+
+static void init_server(void);
+
 /* Configuring the port we listen on. */
 
 static int n_ports=0;
 
 static int config_serve_port(fdtype var,fdtype val,void *data)
 {
+  if (server_initialized==0) init_server();
   if (n_ports<0) return -1;
   else if (FD_FIXNUMP(val)) {
     int retval=u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
@@ -222,6 +231,15 @@ static fdtype get_uptime()
 
 /* The main() event */
 
+static void init_server()
+{
+  u8_lock_mutex(&init_server_lock);
+  if (server_initialized) return;
+  server_initialized=1;
+  u8_server_init(&dtype_server,max_tasks,n_threads,simply_accept,dtypeserver,close_fdclient);
+  u8_unlock_mutex(&init_server_lock);
+}
+
 int main(int argc,char **argv)
 {
   int fd_version=fd_init_fdscheme();
@@ -248,9 +266,10 @@ int main(int argc,char **argv)
 #endif
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  u8_server_init(&dtype_server,8,8,simply_accept,dtypeserver,close_fdclient);
   dtype_server.flags=
     dtype_server.flags|U8_SERVER_LOG_LISTEN|U8_SERVER_LOG_CONNECT;
+  fd_register_config("MAXTASKS",fd_intconfig_get,fd_intconfig_set,&max_tasks);
+  fd_register_config("NTHREADS",fd_intconfig_get,fd_intconfig_set,&n_threads);
   fd_register_config("PORT",config_get_ports,config_serve_port,NULL);
   fd_register_config("MODULE",config_get_modules,config_use_module,NULL);
   fd_register_config("FULLSCHEME",config_get_fullscheme,config_set_fullscheme,NULL);
