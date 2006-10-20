@@ -1342,6 +1342,37 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   return results;
 }
 
+/* side effecting operations (not threadsafe) */
+
+static fdtype set_car(fdtype pair,fdtype val)
+{
+  struct FD_PAIR *p=FD_GET_CONS(pair,fd_pair_type,struct FD_PAIR *);
+  fdtype oldv=p->car; p->car=fd_incref(val);
+  fd_decref(oldv);
+  return FD_VOID;
+}
+
+static fdtype set_cdr(fdtype pair,fdtype val)
+{
+  struct FD_PAIR *p=FD_GET_CONS(pair,fd_pair_type,struct FD_PAIR *);
+  fdtype oldv=p->cdr; p->cdr=fd_incref(val);
+  fd_decref(oldv);
+  return FD_VOID;
+}
+
+static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
+{
+  struct FD_VECTOR *v=FD_GET_CONS(vec,fd_vector_type,struct FD_VECTOR *);
+  int offset=FD_FIX2INT(index); fdtype *elts=v->data;
+  if (offset>v->length) {
+    char buf[256]; sprintf(buf,"%d",offset);
+    return fd_err(fd_RangeError,"vector_set",buf,vec);}
+  else {
+    fdtype oldv=elts[offset];
+    elts[offset]=fd_incref(val);
+    fd_decref(oldv);
+    return FD_VOID;}
+}
 
 /* Miscellaneous sequence creation functions */
 
@@ -1497,6 +1528,17 @@ FD_EXPORT void fd_init_sequences_c()
   fd_idefn(fd_scheme_module,fd_make_cprim4("SOME?",some_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim4("EVERY?",every_prim,2));
 
+  /* Note that these are not threadsafe */
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("SET-CAR!",set_car,2,
+			   fd_pair_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("SET-CDR!",set_cdr,2,
+			   fd_pair_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("VECTOR-SET!",vector_set,3,
+			   fd_vector_type,FD_VOID,fd_fixnum_type,FD_VOID,
+			   -1,FD_VOID));
 }
 
 
