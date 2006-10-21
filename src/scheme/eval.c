@@ -33,6 +33,9 @@ fdtype _fd_comment_symbol;
 static fdtype quote_symbol, comment_symbol;
 
 static fd_exception TestFailed=_("Test failed");
+static fd_exception ExpiredThrow=_("Continuation is no longer valid");
+static fd_exception DoubleThrow=_("Continuation used twice");
+static fd_exception LostThrow=_("Lost invoked continuation");
 static u8_condition ThreadReturnError=_("Thread returned with error");
 
 fd_exception
@@ -1361,9 +1364,12 @@ static fdtype quasiquote_handler(fdtype obj,fd_lispenv env)
 static fdtype call_continuation(struct FD_FUNCTION *f,fdtype arg)
 {
   struct FD_CONTINUATION *cont=(struct FD_CONTINUATION *)f;
-  cont->retval=fd_incref(arg);
-  return cont->throwval;
-  /* return fd_incref(cont->throwval); */
+  if (cont->retval==FD_NULL)
+    return fd_err(ExpiredThrow,"call_continuation",NULL,arg);
+  else if (FD_VOIDP(cont->retval)) {
+    cont->retval=fd_incref(arg);
+    return fd_incref(cont->throwval);}
+  else return fd_err(DoubleThrow,"call_continuation",NULL,arg);
 }
 
 u8_condition fd_throw_condition="CALL/CC THROW";
@@ -1374,7 +1380,7 @@ static fdtype callcc (fdtype proc)
     fd_err(fd_throw_condition,NULL,NULL,FD_VOID), value=FD_VOID, cont;
   struct FD_CONTINUATION *f=u8_malloc(sizeof(struct FD_CONTINUATION));
   FD_INIT_CONS(f,fd_function_type);
-  f->name=NULL; f->filename=NULL; 
+  f->name="continuation"; f->filename=NULL; 
   f->ndprim=1; f->xprim=1; f->arity=1; f->min_arity=1; 
   f->typeinfo=NULL; f->defaults=NULL;
   f->handler.xcall1=call_continuation;
@@ -1384,13 +1390,26 @@ static fdtype callcc (fdtype proc)
   if (value==throwval) {
     fdtype retval=f->retval;
     fd_decref(value);
-    /* fd_decref(throwval); */
+    fd_decref(throwval);
+    f->retval=FD_NULL;
+    if (FD_CONS_REFCOUNT(f)>1) 
+      u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
     fd_decref(cont);
     return retval;}
-  else {
+  else if (FD_VOIDP(f->retval)) {
     fd_decref(throwval);
     fd_decref(cont);
+    f->retval=FD_NULL;
+    if (FD_CONS_REFCOUNT(f)>1) 
+      u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
     return value;}
+  else {
+    fdtype errobj=fd_err(LostThrow,"callcc",NULL,f->retval);
+    f->retval=FD_NULL;
+    if (FD_CONS_REFCOUNT(f)>1) 
+      u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
+    fd_decref(throwval); fd_decref(cont);
+    return errobj;}
 }
 
 /* Making DTPROCs */

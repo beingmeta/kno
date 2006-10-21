@@ -377,7 +377,8 @@ static int unparse_function(struct U8_OUTPUT *out,fdtype x)
   char buf[512], name[512], args[512];
   if (fn->filename)
     sprintf(name,_("%s:%s"),fn->name,fn->filename);
-  else sprintf(name,_("%s"),fn->name);
+  else if (fn->name) sprintf(name,_("%s"),fn->name);
+  else sprintf(name,"anon");
   if (fn->arity>=0)
     if (fn->min_arity!=fn->arity)
       sprintf(args,"%d-%d",fn->min_arity,fn->arity);
