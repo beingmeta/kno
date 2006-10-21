@@ -125,7 +125,7 @@ static fdtype heads_symbol, mods_symbol;
 static fdtype sstrange_word, sproper_name, sdashed_word, sdashed_sword;
 static fdtype ed_word, ing_word, ly_word, punctuation_symbol, stime_ref;
 static fdtype sscore, snumber, sdollars, spossessive, sproper_possessive;
-static fdtype sentence_end_symbol;
+static fdtype sentence_end_symbol, sxproper_name;
 
 static fdtype parse_failed_symbol;
 
@@ -703,7 +703,7 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word);
 
 static void identify_compounds(fd_parse_context pc)
 {
-  int strange_capitalization=(pc->flags&FD_TAGGER_ALLCAPS);
+  int strange_capitalization=(pc->flags&FD_TAGGER_ODDCAPS);
   int start=1, i=0, lim=pc->n_inputs-1;
   while (i < lim) {
     fdtype compounds=FD_EMPTY_CHOICE, tmp;
@@ -837,6 +837,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   u8_string s=strdup(spelling);
   int first_char=u8_sgetc(&spelling);
   int capitalized=0, capitalized_in_lexicon=0, i, slen, ends_in_s=0;
+  int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
   fdtype ls=fd_init_string(NULL,-1,s), key, value=get_lexinfo(pc,ls);
   if ((word_limit > 0) && (((int)pc->n_inputs) >= word_limit))
@@ -848,8 +849,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   i=0; while (i < FD_MAX_ARCS) pc->input[pc->n_inputs].weights[i++]=255;
   if (!((FD_VECTORP(value)) || (FD_PACKETP(value)))) {
     fd_decref(value); value=FD_EMPTY_CHOICE;}
-  if (u8_isupper(first_char))
-    capitalized=1;
+  if (u8_isupper(first_char)) capitalized=1;
   if (!(FD_EMPTY_CHOICEP(value))) capitalized_in_lexicon=1;
   /* Here are the default rules for getting POS data */
   else if (possessivep(spelling))
@@ -863,7 +863,9 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   else if ((first_char == '$') && (u8_isdigit(u8_sgetc(&spelling))))
     value=lexicon_fetch(lex,sdollars);
   else if (capitalized) 
-    value=lexicon_fetch(lex,sproper_name);
+    if (oddcaps)
+      value=lexicon_fetch(lex,sxproper_name);
+    else value=lexicon_fetch(lex,sproper_name);
   else if ((slen>2) && (strcmp(s+(slen-2),"ed")==0))
     value=lexicon_fetch(lex,ed_word);
   else if ((slen>2) && (strcmp(s+(slen-2),"ly")==0))
@@ -1546,7 +1548,7 @@ static interpret_parse_flags(fdtype arg)
   if (fd_overlapp(arg,glom_symbol))
     flags=flags|FD_TAGGER_GLOM_PHRASES;    
   if (fd_overlapp(arg,allcaps_symbol))
-    flags=flags|FD_TAGGER_ALLCAPS;    
+    flags=flags|FD_TAGGER_ODDCAPS;    
   if (fd_overlapp(arg,whole_symbol))
     flags=flags&(~FD_TAGGER_SPLIT_SENTENCES);    
   if (fd_overlapp(arg,whole_symbol))
@@ -1884,6 +1886,7 @@ static void init_parser_symbols()
   punctuation_symbol=fd_intern("%PUNCTUATION");
   sstrange_word=fd_intern("%STRANGE-WORD");
   sproper_name=fd_intern("%PROPER-NAME");
+  sxproper_name=fd_intern("%XPROPER-NAME");
   sdashed_word=fd_intern("%DASHED-WORD");
   sdashed_sword=fd_intern("%DASHED-SWORD");
   stime_ref=fd_intern("%TIME-WORD");
@@ -1912,7 +1915,7 @@ static void init_parser_symbols()
   plaintext_symbol=fd_intern("PLAINTEXT");
   glom_symbol=fd_intern("GLOM");
   noglom_symbol=fd_intern("NOGLOM");
-  allcaps_symbol=fd_intern("ALLCAPS");
+  allcaps_symbol=fd_intern("ODDCAPS");
   whole_symbol=fd_intern("WHOLE");
   timing_symbol=fd_intern("TIMING");
   source_symbol=fd_intern("SOURCE");
