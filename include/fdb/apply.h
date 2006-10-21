@@ -95,6 +95,23 @@ FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *,int n,fdtype *args);
 
 #define FD_APPLICABLEP(x) ((fd_applyfns[FD_PTR_TYPE(x)])!=NULL)
 
+/* Tail calls */
+
+struct FD_TAIL_CALL {
+  FD_CONS_HEADER;
+  int n_elts; fdtype head;};
+
+FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
+FD_EXPORT fdtype fd_step_call(fdtype c);
+FD_EXPORT fdtype _fd_finish_call(fdtype);
+
+static fdtype fd_finish_call(fdtype pt)
+{
+  if (FD_PRIM_TYPEP(pt,fd_tail_call_type))
+    return _fd_finish_call(pt);
+  else return pt;
+}
+
 /* Cache calls */
 
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);

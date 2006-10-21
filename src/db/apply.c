@@ -573,6 +573,60 @@ FD_EXPORT fdtype fd_make_cprim6x
   return FDTYPE_CONS(f);
 }
 
+/* Tail calls */
+
+FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
+{
+  struct FD_TAIL_CALL *tc=
+    u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
+  fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
+  int i=0;
+  FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1;
+  *write++=fd_incref(fcn);
+  while (write<write_limit) {
+    fdtype v=*read++; *write++=fd_incref(v); }
+  return FDTYPE_CONS(tc);
+}
+
+FD_EXPORT fdtype fd_step_call(fdtype c)
+{
+  struct FD_TAIL_CALL *tc=
+    FD_GET_CONS(c,fd_tail_call_type,struct FD_TAIL_CALL *);
+  fdtype result=
+    fd_apply((struct FD_FUNCTION *)tc->head,tc->n_elts-1,
+	     (&(tc->head))+1);
+  fd_decref(c);
+  return result;
+}
+
+FD_EXPORT fdtype _fd_finish_call(fdtype pt)
+{
+  while (FD_PRIM_TYPEP(pt,fd_tail_call_type)) {
+    struct FD_TAIL_CALL *tc=
+      FD_GET_CONS(pt,fd_tail_call_type,struct FD_TAIL_CALL *);
+    fdtype result=
+      fd_apply((struct FD_FUNCTION *)tc->head,tc->n_elts-1,
+	       (&(tc->head))+1);
+    fd_decref(pt); pt=result;}
+  return pt;
+}
+
+static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_TAIL_CALL *fn=
+    FD_GET_CONS(x,fd_tail_call_type,struct FD_TAIL_CALL *);
+  u8_printf(out,"#<TAILCALL %q on %d args>",fn->head,fn->n_elts);
+}
+
+static void recycle_tail_call(struct FD_CONS *c)
+{
+  struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
+  fdtype *scan=&(tc->head), *limit=scan+tc->n_elts;
+  while (scan<limit) {fd_decref(*scan); scan++;}
+  if (FD_MALLOCD_CONSP(c))
+    u8_free_x(c,sizeof(struct FD_TAIL_CALL)+(tc->n_elts*sizeof(fdtype)));
+}
+
 /* Cache calls */
 
 static struct FD_HASHTABLE fcn_caches;
@@ -667,6 +721,10 @@ FD_EXPORT void fd_init_apply_c()
   fd_applyfns[fd_function_type]=(fd_applyfn)fd_dapply;
   fd_unparsers[fd_function_type]=unparse_function;
   fd_recyclers[fd_function_type]=recycle_function;
+
+  fd_unparsers[fd_tail_call_type]=unparse_tail_call;
+  fd_recyclers[fd_tail_call_type]=recycle_tail_call;
+
 }
 
 

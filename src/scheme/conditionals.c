@@ -12,17 +12,9 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
+#include "eval_internals.h"
 
 static fdtype else_symbol;
-
-static int testeval(fdtype expr,fd_lispenv env)
-{
-  fdtype val=fasteval(expr,env);
-  if (FD_ABORTP(val)) {
-    fd_decref(val); return -1;}
-  else if (FD_FALSEP(val)) return 0;
-  else {fd_decref(val); return 1;}
-}
 
 static fdtype if_handler(fdtype expr,fd_lispenv env)
 {
@@ -35,11 +27,14 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
   test_result=fd_eval(test_expr,env);
   if (FD_ABORTP(test_result)) return test_result;
   else if (FD_FALSEP(test_result))
-    return fasteval(else_expr,env);
+    if (FD_PAIRP(else_expr))
+      return fd_tail_eval(else_expr,env);
+    else return fasteval(else_expr,env);
   else {
     fd_decref(test_result);
-    return fasteval(consequent_expr,env);}
-
+    if (FD_PAIRP(consequent_expr))
+      return fd_tail_eval(consequent_expr,env);
+    else return fasteval(consequent_expr,env);}
 }
 
 static fdtype tryif_handler(fdtype expr,fd_lispenv env)
@@ -55,7 +50,9 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
     return FD_EMPTY_CHOICE; 
   else {
     fd_decref(test_result);
-    return fasteval(consequent_expr,env);}
+    if (FD_PAIRP(consequent_expr))
+      return fd_tail_eval(consequent_expr,env);
+    else return fasteval(consequent_expr,env);}
 }
 
 static fdtype not_prim(fdtype arg)
@@ -96,7 +93,7 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
 	else return fd_err(fd_SyntaxError,"cond_handler","apply syntax",expr);
       else {
 	fd_decref(test_val);
-	return fd_eval_exprs(FD_CDR(clause),env);}}}
+	return eval_body(FD_CDR(clause),env);}}}
   return FD_VOID;
 }
 
@@ -114,7 +111,7 @@ static fdtype case_handler(fdtype expr,fd_lispenv env)
 	  fdtype keys=FD_CAR(clause);
 	  FD_DOLIST(key,keys)
 	    if (FD_EQ(keyval,key))
-	      return fd_eval_exprs(FD_CDR(clause),env);}
+	      return eval_body(FD_CDR(clause),env);}
 	else if (FD_EQ(FD_CAR(clause),else_symbol)) {
 	  fd_decref(keyval);
 	  return fd_eval_exprs(FD_CDR(clause),env);}

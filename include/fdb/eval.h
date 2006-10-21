@@ -132,7 +132,9 @@ typedef struct FD_CONFIG_RECORD {
 
 /* The Evaluator */
 
-FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env);
+/* This is the non-static version of fd_eval */
+FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env);
+FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env);
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env);
 FD_EXPORT fdtype _fd_get_arg(fdtype expr,int i);
 FD_EXPORT fdtype _fd_get_body(fdtype expr,int i);
@@ -140,6 +142,13 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i);
 FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
 
 #if FD_PROVIDE_FASTEVAL
+FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
+{
+  fdtype result=fd_tail_eval(x,env);
+  if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+    return _fd_finish_call(result);
+  else return result;
+}
 FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
@@ -173,6 +182,7 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
   return expr;
 }
 #else
+#define fd_eval(x,env) _fd_eval(x,env)
 #define fd_get_arg(x,i) _fd_get_arg(x,i)
 #define fd_get_body(x,i) _fd_get_body(x,i)
 #endif
@@ -183,6 +193,13 @@ typedef struct FD_CONTINUATION {
   FD_FUNCTION_FIELDS;
   fdtype throwval, retval;} *fd_continuation;
 typedef struct FD_CONTINUATION FD_CONTINUATION;
+
+FD_EXPORT u8_condition fd_throw_condition;
+
+#define FD_THROWP(result) \
+  ((FD_PRIM_TYPEP(result,fd_error_type)) && \
+   (((FD_STRIP_CONS(result,fd_exception_type,fd_exception_object)) \
+     ->data.cond) == fd_throw_condition))
 
 /* Threading stuff */
 

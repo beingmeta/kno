@@ -12,6 +12,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
+#include "eval_internals.h"
 #include "fdb/fddb.h"
 
 fd_exception fd_BadArglist=_("Malformed argument list");
@@ -21,9 +22,6 @@ fd_exception fd_BindSyntaxError=_("Bad binding expression");
 fd_ptr_type fd_sproc_type, fd_macro_type;
 
 static fdtype lambda_symbol;
-
-#define copy_bindings(env) \
-  ((env->copy) ? (fd_copy(env->copy->bindings)) : (fd_copy(env->bindings)))
 
 static fdtype sproc_id(struct FD_SPROC *fn)
 {
@@ -101,23 +99,6 @@ static fdtype set_default_handler(fdtype expr,fd_lispenv env)
 
 /* Environment utilities */
 
-static void free_environment(struct FD_ENVIRONMENT *env)
-{
-  if (env->copy) 
-    fd_recycle_environment(env->copy);
-  else {
-    struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
-    int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
-    while (i < n) {fd_decref(vals[i]); i++;}}
-}
-
-static passerr_env(fdtype error,fd_lispenv env)
-{
-  fdtype bindings=copy_bindings(env);
-  free_environment(env);
-  return fd_passerr(error,bindings);
-}
-
 static int check_bindexprs(fdtype bindexprs,fdtype *why_not)
 {
   int n=0;
@@ -187,6 +168,7 @@ static fd_lispenv make_dynamic_envx
   e->parent=fd_copy_env(parent);
   return e;
 }
+
 /* Simple binders */
 
 static fdtype let_handler(fdtype expr,fd_lispenv env)
@@ -220,11 +202,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
 	return value;}
       else {
 	vars[i]=var; vals[i]=value; i++;}}}
-    {FD_DOLIST(bodyexpr,body) {
-      fd_decref(result);
-      result=fasteval(bodyexpr,inner_env);
-      if (FD_ABORTP(result))
-	return passerr_env(result,inner_env);}}
+    result=eval_body(body,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -265,12 +243,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
 	fd_decref(value);}
       else {
 	vars[i]=var; vals[i]=value; i++;}}}
-    {FD_DOLIST(bodyexpr,body) {
-      fd_decref(result);
-      result=fasteval(bodyexpr,inner_env);
-      if (FD_ABORTP(result)) {
-	int i=0;
-	return passerr_env(result,inner_env);}}}
+    result=eval_body(body,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -363,12 +336,9 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 	return passerr_env(testval,inner_env);}}
     /* Now we're done, so we set result to testval. */
     result=testval;
-    {FD_DOLIST(exitexpr,FD_CDR(exitexprs)) {
+    if (FD_PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
-      result=fd_eval(exitexpr,inner_env);
-      if (FD_ABORTP(result)) {
-	if (n>16) {u8_free(tmp); u8_free(updaters);}
-	return passerr_env(result,inner_env);} }}
+      result=eval_body(FD_CDR(exitexprs),inner_env);}
     /* Free the environment. */
     free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -430,15 +400,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_mutex(&(fn->lock));
-  {FD_DOLIST(expr,fn->body) {
-    fd_decref(result); result=fasteval(expr,&envstruct);
-    if (FD_ABORTP(result)) {
-      /* Note that we don't use passerr_env because
-	 adding the current expr should be redundant. */
-      fdtype bindings=copy_bindings((&envstruct));
-      result=fd_passerr(result,bindings);
-      if (fn->filename) result=fd_passerr(result,sproc_id(fn));
-      break;}}}
+  result=eval_body(fn->body,&envstruct);
+  if (fn->synchronized) result=fd_finish_call(result);
+  if (FD_THROWP(result)) {}
+  else if (FD_ABORTP(result)) {
+    if (fn->filename) result=fd_passerr(result,sproc_id(fn));}
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_mutex(&(fn->lock));
   fd_destroy_mutex(&(bindings.lock));
@@ -725,15 +691,11 @@ fdtype fd_xapply_sproc
   assert(i==fn->n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_mutex(&(fn->lock));
-  {FD_DOLIST(expr,fn->body) {
-    fd_decref(result); result=fasteval(expr,&envstruct);
-    if (FD_ABORTP(result)) {
-      /* Note that we don't use passerr_env because
-	 adding the current expr should be redundant. */
-      fdtype bindings=copy_bindings((&envstruct));
-      result=fd_passerr(result,bindings);
-      if (fn->filename) result=fd_passerr(result,sproc_id(fn));
-      break;}}}
+  result=eval_body(fn->body,&envstruct);
+  if (fn->synchronized) result=fd_finish_call(result);
+  if (FD_THROWP(result)) {}
+  else if (FD_ABORTP(result)) {
+    if (fn->filename) result=fd_passerr(result,sproc_id(fn));}
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_mutex(&(fn->lock));
   {

@@ -14,17 +14,9 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/sequences.h"
 #include "fdb/fddb.h"
+#include "eval_internals.h"
 
 /* Helper functions */
-
-static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
-{
-  fdtype val=fasteval(expr,env);
-  if (FD_ABORTP(val)) {
-    *whoops=val; return 0;}
-  else if (FD_FALSEP(val)) return 0;
-  else {fd_decref(val); return 1;}
-}
 
 static fdtype iter_var;
 
@@ -140,7 +132,11 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
     else vals[0]=FD_INT2DTYPE(i);
     {FD_DOLIST(expr,body) {
       fdtype val=fasteval(expr,&envstruct);
-      if (FD_ABORTP(val)) {
+      if (FD_THROWP(val)) {
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	fd_destroy_mutex(&(bindings.lock));
+	return val;}
+      else if (FD_ABORTP(val)) {
 	fdtype retval=
 	  fd_passerr(val,iterenv1(limit_val,var,FD_INT2DTYPE(i)));
 	fd_destroy_mutex(&(bindings.lock));
@@ -199,7 +195,12 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
       if (iterval) *iterval=FD_INT2DTYPE(i);}
     {FD_DOLIST(expr,body) {
       fdtype val=fasteval(expr,&envstruct);
-      if (FD_ABORTP(val)) {
+      if (FD_THROWP(val)) {
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	fd_destroy_mutex(&(bindings.lock));
+	fd_decref(elt); fd_decref(seq);
+	return val;}
+      else if (FD_ABORTP(val)) {
 	fdtype errbind;
 	if (iterval) errbind=iterenv1(seq,var,elt);
 	else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
@@ -257,7 +258,12 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
     else {*vloc=elt; fd_incref(elt); if (iloc) *iloc=FD_INT2DTYPE(i);}
     {FD_DOLIST(expr,body) {
       fdtype val=fasteval(expr,&envstruct);
-      if (FD_ABORTP(val)) {
+      if (FD_THROWP(val)) {
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	fd_destroy_mutex(&(bindings.lock));
+	fd_decref(list);
+	return val;}
+      else if (FD_ABORTP(val)) {
 	fdtype errenv;
 	if (iloc) errenv=iterenv2(list,var,elt,count_var,FD_INT2DTYPE(i));
 	else errenv=iterenv1(list,var,elt);
@@ -283,11 +289,7 @@ static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 {
   fdtype results=FD_EMPTY_CHOICE;
   fdtype exprs=fd_get_body(begin_expr,1);
-  FD_DOLIST(expr,exprs) {
-    fd_decref(results); results=fd_eval(expr,env);
-    if (FD_ABORTP(results))
-      return results;}
-  return results;
+  return eval_body(exprs,env);
 }
 
 static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)

@@ -51,7 +51,9 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
   fdtype error_handler=fd_get_arg(expr,2);
   fdtype default_handler=fd_get_arg(expr,3);
   fdtype value=fd_eval(toeval,env);
-  if (FD_ABORTP(value)) {
+  if (FD_THROWP(value))
+    return value;
+  else if (FD_ABORTP(value)) {
     fdtype handler=fd_eval(error_handler,env);
     if (FD_ABORTP(handler))
       return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
@@ -63,10 +65,10 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       else {
 	value=fd_err(fd_retcode_to_exception(value),NULL,NULL,FD_VOID);}
       err_result=fd_apply(f,1,&value);
-      fd_decref(value);
+      fd_decref(value); fd_decref(handler);
       return err_result;}
     else {
-      fd_decref(value);
+      fd_decref(value); fd_decref(handler);
       return handler;}}
   else if (FD_VOIDP(default_handler))
     return value;

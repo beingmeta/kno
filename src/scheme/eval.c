@@ -24,6 +24,8 @@ static char versionid[] =
 
 static int fdscheme_initialized=0;
 
+int fd_optimize_tail_calls=1;
+
 fdtype fd_scheme_module, fd_xscheme_module;
 
 fdtype _fd_comment_symbol;
@@ -367,7 +369,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env);
 static fdtype call_ndlexpr(struct FD_FUNCTION *fn,fdtype args,fdtype env);
 
-FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
+FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 {
   switch (FD_PTR_TYPE(expr)) {
   case fd_symbol_type: {
@@ -412,7 +414,8 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
       else if (FD_ABORTP(headval))
 	result=fd_incref(headval);
       else result=fd_err(fd_NotAFunction,NULL,NULL,headval);
-      if (FD_ABORTP(result))
+      if (FD_THROWP(result)) {}
+      else if (FD_ABORTP(result))
 	result=fd_passerr(result,fd_incref(expr));
       fd_decref(headval);
       return result;}}
@@ -420,6 +423,12 @@ FD_EXPORT fdtype fd_eval(fdtype expr,fd_lispenv env)
     return fd_deep_copy(expr);
   default:
     return fd_incref(expr);}
+}
+
+FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
+{
+  fdtype result=fd_tail_eval(expr,env);
+  return fd_finish_call(result);
 }
 
 static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
@@ -486,11 +495,15 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
       while (arg_count<args_length) {
 	args[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
     else while (arg_count<args_length) args[arg_count++]=FD_VOID;
-  if ((fcn->ndprim==0) && (nd_args))
+  if ((fd_optimize_tail_calls) && (FD_PRIM_TYPEP(fn,fd_sproc_type)))
+    result=fd_tail_call(fn,n_args,args);
+  else if ((fcn->ndprim==0) && (nd_args))
     result=fd_ndapply(fcn,n_args,args);
   else {
     result=fd_dapply(fcn,n_args,args);}
-  if ((FD_ABORTP(result)) && (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
+  if ((FD_ABORTP(result)) &&
+      (!(FD_THROWP(result))) &&
+      (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
        up in an environment on the backtrace. */
@@ -1350,17 +1363,19 @@ static fdtype call_continuation(struct FD_FUNCTION *f,fdtype arg)
   struct FD_CONTINUATION *cont=(struct FD_CONTINUATION *)f;
   cont->retval=fd_incref(arg);
   return cont->throwval;
+  /* return fd_incref(cont->throwval); */
 }
 
-static u8_condition throw_condition="CALL/CC THROW";
+u8_condition fd_throw_condition="CALL/CC THROW";
 
 static fdtype callcc (fdtype proc)
 {
-  fdtype throwval=fd_err(throw_condition,NULL,NULL,FD_VOID), value=FD_VOID, cont;
+  fdtype throwval=
+    fd_err(fd_throw_condition,NULL,NULL,FD_VOID), value=FD_VOID, cont;
   struct FD_CONTINUATION *f=u8_malloc(sizeof(struct FD_CONTINUATION));
   FD_INIT_CONS(f,fd_function_type);
   f->name=NULL; f->filename=NULL; 
-  f->ndprim=1; f->min_arity=1; f->arity=1; f->xprim=1;
+  f->ndprim=1; f->xprim=1; f->arity=1; f->min_arity=1; 
   f->typeinfo=NULL; f->defaults=NULL;
   f->handler.xcall1=call_continuation;
   f->throwval=throwval; f->retval=FD_VOID;
@@ -1368,10 +1383,13 @@ static fdtype callcc (fdtype proc)
   value=fd_apply((struct FD_FUNCTION *)proc,1,&cont);
   if (value==throwval) {
     fdtype retval=f->retval;
-    fd_decref(value); fd_decref(cont);
+    fd_decref(value);
+    /* fd_decref(throwval); */
+    fd_decref(cont);
     return retval;}
   else {
-    fd_decref(throwval); fd_decref(cont);
+    fd_decref(throwval);
+    fd_decref(cont);
     return value;}
 }
 
@@ -1518,6 +1536,8 @@ static void init_localfns()
 	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,3)));
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest);
 
+  fd_register_config
+    ("TAILCALL",fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
 }
 
 static void init_core_builtins()

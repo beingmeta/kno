@@ -524,9 +524,10 @@ FD_EXPORT fdtype fd_passerr2(fdtype err,fdtype context1,fdtype context2)
 FD_EXPORT fdtype fd_type_error
   (u8_string type_name,u8_context cxt,fdtype irritant)
 {
-  return fd_err(fd_TypeError,cxt,
-		u8_mkstring(_("object is not a %m"),type_name),
-		irritant);
+  u8_string msg=u8_mkstring(_("object is not a %m"),type_name);
+  fdtype errobj=fd_err(fd_TypeError,cxt,msg,irritant);
+  u8_free(msg);
+  return errobj;
 }
 
 FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant)

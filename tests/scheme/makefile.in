@@ -126,15 +126,15 @@ memtests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
 
 memdtypetests:
-	@echo "***" Running dtypetests (data/eval layers) with memory debugging
+	@echo "***" Running tests on data/eval layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
 
 memtabletests:
-	@echo "***" Running tabletests (table/index layers) with memory debugging
+	@echo "***" Running tests on table/index layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
 
 memdbtests:
-	@echo "***" Running dbtests (database layers) with memory debugging
+	@echo "***" Running tests on database layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests
 
 randomtests:
