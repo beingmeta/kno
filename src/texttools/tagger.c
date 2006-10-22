@@ -863,8 +863,13 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   else if ((first_char == '$') && (u8_isdigit(u8_sgetc(&spelling))))
     value=lexicon_fetch(lex,sdollars);
   else if (capitalized) 
-    if (oddcaps)
-      value=lexicon_fetch(lex,sxproper_name);
+    if (oddcaps) {
+      fdtype lowered=lower_string(s);
+      fdtype lexdata=get_lexinfo(pc,lowered);
+      if (FD_VOIDP(lexdata))
+	value=lexicon_fetch(lex,sproper_name);
+      else value=lexicon_fetch(lex,sxproper_name);
+      fd_decref(lowered); fd_decref(lexdata);}
     else value=lexicon_fetch(lex,sproper_name);
   else if ((slen>2) && (strcmp(s+(slen-2),"ed")==0))
     value=lexicon_fetch(lex,ed_word);
