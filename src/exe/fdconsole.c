@@ -162,10 +162,10 @@ int main(int argc,char **argv)
   fd_decref(showtime_config);
   startup_time=u8_elapsed_time()-started_at;
   if (FD_VOIDP(quiet_config))  {
-    u8_message("FramerD \"%s\" (r%s) booted in %f seconds, %d/%d pools/indices",
-	       argv[0],SVN_REVISION,startup_time,fd_n_pools,
+    u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
+	       SVN_REVISION,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
-    u8_message("beingmeta FramerD, Copyright (C) beingmeta 2004-2006, all rights reserved");
+    u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
     if (!((FD_FIXNUMP(showtime_config)) || (FD_FLONUMP(showtime_config))))
       showtime=1.0;
     fd_decref(quiet_config);}
