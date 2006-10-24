@@ -733,6 +733,18 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm,FD_MEMORY_POOL_TYPE *mp)
   return FDTYPE_CONS(tstamp);
 }
 
+FD_EXPORT
+/* fd_time2timestamp
+    Arguments: a pointer to a U8_XTIME struct and a memory pool
+    Returns: a dtype pointer to a timestamp
+ */
+fdtype fd_time2timestamp(time_t moment)
+{
+  struct U8_XTIME xt; struct FD_TIMESTAMP *tstamp;
+  u8_localtime(&xt,moment);
+  return fd_make_timestamp(&xt,NULL);
+}
+
 static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_TIMESTAMP *tm=

@@ -373,6 +373,24 @@ FD_EXPORT int fd_boolconfig_set(fdtype ignored,fdtype v,void *vptr)
   else {*ptr=1; return 1;}
 }
 
+FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
+{
+  double *ptr=vptr;
+  if (*ptr) return fd_init_double(NULL,*ptr);
+  else return FD_FALSE;
+}
+
+FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
+{
+  double *ptr=vptr;
+  if (FD_FALSEP(v)) {
+    *ptr=0.0; return 1;}
+  else if (FD_PRIM_TYPEP(v,fd_double_type)) {
+    *ptr=FD_FLONUM(v);}
+  else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
+			FD_SYMBOL_NAME(var),v);
+}
+
 
 /* Managing error data */
 

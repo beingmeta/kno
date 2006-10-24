@@ -133,6 +133,8 @@ typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
 FD_EXPORT struct FD_POOL *fd_top_pools[];
 
+FD_EXPORT int fd_n_pools;
+
 FD_EXPORT int fd_register_pool(fd_pool p);
 
 /* Pool handlers */

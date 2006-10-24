@@ -32,8 +32,10 @@ fd_exception fd_NotAPool=_("pool");
 fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
 fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
 
+int fd_n_pools=0;
+
 struct FD_POOL *fd_top_pools[1024];
-struct FD_HASHTABLE poolid_table;
+static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
 
@@ -129,7 +131,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   else if (baseindex<0) return baseindex;
   fd_lock_mutex(&(pool_registry_lock));
   /* Set up the serial number */
-  serial_no=p->serialno=pool_serial_count++;
+  serial_no=p->serialno=pool_serial_count++; fd_n_pools++;
   pool_serial_table[serial_no]=p;
   if (capacity>=FD_TOP_POOL_SIZE) {
     int i=0, lim=capacity/FD_TOP_POOL_SIZE;

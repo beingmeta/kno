@@ -37,6 +37,8 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *intptr);
 FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *intptr);
 FD_EXPORT int fd_boolconfig_set(fdtype ignored,fdtype v,void *intptr);
 FD_EXPORT fdtype fd_boolconfig_get(fdtype ignored,void *intptr);
+FD_EXPORT int fd_dblconfig_set(fdtype ignored,fdtype v,void *dblptr);
+FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *dblptr);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_read_config(u8_input);

@@ -13,6 +13,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
+#include "fdb/indices.h"
 #include "fdb/history.h"
 
 #include <libu8/libu8io.h>
@@ -26,6 +27,8 @@ static char versionid[] =
 #include <strings.h>
 #include <sys/time.h>
 #include <time.h>
+
+#include "revision.h"
 
 #define EVAL_PROMPT ";; Eval: "
 
@@ -74,17 +77,24 @@ static int historicp(fdtype x)
   else return 1;
 }
 
+static double started_at;
+static time_t boot_time;
+
 static u8_string stats_message=
   _(";; Done in %f seconds, with %d/%d object/index loads\n");
 static u8_string stats_message_w_history=
    _(";; ##%d computed in %f seconds, %d/%d object/index loads\n");
 
+static double startup_time=-1.0;
+
 int main(int argc,char **argv)
 {
   unsigned char data[1024], *input;
+  double started_at=u8_elapsed_time();
+  time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
   fdtype lastval=FD_VOID, that_symbol, histref_symbol;
-  fdtype showtime_config=fd_config_get("SHOWTIME");
+  fdtype quiet_config=FD_VOID, showtime_config=FD_VOID;
   u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
@@ -105,6 +115,9 @@ int main(int argc,char **argv)
 		     &debug_maxchars);
   fd_register_config("DEBUGMAXELTS",fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
+  fd_register_config("BOOTSPEED",fd_dblconfig_get,fd_dblconfig_set,
+		     &startup_time);
+  fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   inconsole=in;
   outconsole=out;
   errconsole=err;
@@ -139,12 +152,25 @@ int main(int argc,char **argv)
   {
     fdtype interpval=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
+  quiet_config=fd_config_get("QUIET");
+  showtime_config=fd_config_get("SHOWTIME");
   if (FD_FIXNUMP(showtime_config))
     showtime=FD_FIX2INT(showtime_config);
   else if (FD_FLONUMP(showtime_config))
     showtime=FD_FLONUM(showtime_config);
   fd_histinit(0);
   fd_decref(showtime_config);
+  startup_time=u8_elapsed_time()-started_at;
+  if (FD_VOIDP(quiet_config))  {
+    u8_message("FramerD \"%s\" (r%s) booted in %f seconds, %d/%d pools/indices",
+	       argv[0],SVN_REVISION,startup_time,fd_n_pools,
+	       fd_n_primary_indices+fd_n_secondary_indices);
+    u8_message("beingmeta FramerD, Copyright (C) beingmeta 2004-2006, all rights reserved");
+    if (!((FD_FIXNUMP(showtime_config)) || (FD_FLONUMP(showtime_config))))
+      showtime=1.0;
+    fd_decref(quiet_config);}
+  else if (!((FD_FIXNUMP(showtime_config)) || (FD_FLONUMP(showtime_config))))
+    showtime=-1.0;
   u8_printf(out,EVAL_PROMPT);
   u8_flush(out);
   while ((c=skip_whitespace((u8_input)in))>=0) {

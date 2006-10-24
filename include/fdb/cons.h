@@ -391,6 +391,9 @@ typedef struct FD_TIMESTAMP {
   struct U8_XTIME xtime;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
+FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm,FD_MEMORY_POOL_TYPE *mp);
+FD_EXPORT fdtype fd_time2timestamp(time_t moment);
+
 /* Compounds */
 
 typedef fdtype (*fd_compound_parsefn)(FD_MEMORY_POOL_TYPE *p,int n,fdtype *);

@@ -137,11 +137,11 @@ shared-libs: lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libfdweb@suffix@.@shared_suffix@ \
 	lib/libtexttools@suffix@.@shared_suffix@
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs
+dtypetestbin: libs  src/exe/revision.h
 	cd tests/dtype; make
-dbtestbin: libs
+dbtestbin: libs  src/exe/revision.h
 	cd tests/db; make
-schemetestbin: libs
+schemetestbin: libs  src/exe/revision.h
 	cd tests/scheme; make
 exe: $(EXECUTABLES)
 
@@ -187,7 +187,7 @@ exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 
 lib/%@suffix@.a:
 	$(MKSTATIC) $@ $^
-lib/%@suffix@.so.@VERSION@: 
+lib/%@suffix@.so.@VERSION@:
 	$(MKSO) -Wl,-soname=$(@F) -o $@ $^
 lib/%@suffix@.so: lib/%.so.@VERSION@
 	ln -sf $(<F) $@
@@ -417,6 +417,12 @@ install-fdserv: etc/mod_fdserv.so
 
 activate-fdserv: etc/mod_fdserv.so
 	cd etc; ${APXS} -i -a -c mod_fdserv.c
+
+# Tracking revision information
+
+src/exe/revision.h: $(FDB_SOURCES)
+	echo "#define SVN_REVISION \""`svnversion`"\"" > src/exe/revision.h
+$(EXECUTABLES): src/exe/revision.h
 
 # Dependency information
 
