@@ -8,6 +8,8 @@
 static char versionid[] =
   "$Id$";
 
+#define FD_INLINE_PPTRS 1
+
 #include "fdb/dtype.h"
 #include "fdb/fddb.h"
 #include "fdb/apply.h"
@@ -172,15 +174,16 @@ static fdtype get_calltrack(fdtype ignored,void *lval)
 /* Instrumented apply */
 
 #if FD_CALLTRACK_ENABLED
-FD_EXPORT fdtype _fd_dapply_ct(struct FD_FUNCTION *f,int n,fdtype *args);
-FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *f,int n,fdtype *args)
+FD_EXPORT fdtype _fd_dapply_ct(fdtype fp,int n,fdtype *args);
+FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
 {
+  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype result; u8_byte buf[64], *name;
   if (f->name==NULL) {
     sprintf(buf,"FN%lx",(unsigned long int)f); name=buf;}
   else name=f->name;
   calltrack_call(name);
-  result=_fd_dapply_ct(f,n,args);
+  result=_fd_dapply_ct((fdtype)f,n,args);
   /* If we don't compile with calltrack, we don't get pointer checking.
      We may want to change this at some point and move the pointer checking
      into the FD_DAPPLY (fd_dapply_ct/fd_dapply) code. */
@@ -250,8 +253,9 @@ static fdtype dcall6(struct FD_FUNCTION *f,
 
 /* Generic calling function */
 
-FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
+FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
+  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype argbuf[8], *args;
   if (f->arity<0)
     if (f->xprim) {
@@ -275,7 +279,7 @@ FD_EXPORT fdtype FD_DAPPLY(struct FD_FUNCTION *f,int n,fdtype *argvec)
       int i=0;
       while (i<n)
 	if (typeinfo[i]>=0)
-	  if (FD_PRIM_TYPEP(args[i],typeinfo[i])) i++;
+	  if (FD_PTR_TYPEP(args[i],typeinfo[i])) i++;
       /* Don't signal errors on unspecified (VOID) args. */
 	  else if (FD_VOIDP(args[i])) i++;
 	  else {
@@ -319,11 +323,11 @@ static fdtype ndapply_loop
    int i,int n,fdtype *nd_args,fdtype *d_args)
 {
   if (i==n) {
-    fdtype value=fd_dapply(f,n,d_args);
+    fdtype value=fd_dapply((fdtype)f,n,d_args);
     if (FD_ABORTP(value)) return value;
     else {
       FD_ADD_TO_CHOICE(*results,value);}}
-  else if (FD_PRIM_TYPEP(nd_args[i],fd_qchoice_type)) {
+  else if (FD_PTR_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
     d_args[i]=FD_XQCHOICE(nd_args[i])->choice;
     retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
@@ -342,8 +346,9 @@ static fdtype ndapply_loop
   return FD_VOID;
 }
 
-FD_EXPORT fdtype fd_ndapply(struct FD_FUNCTION *f,int n,fdtype *args)
+FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 {
+  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   if ((f->arity < 0) || ((n <= f->arity) && (n>=f->min_arity))) {
     fdtype argbuf[6], *d_args;
     fdtype retval, results=FD_EMPTY_CHOICE;
@@ -365,10 +370,11 @@ FD_EXPORT fdtype fd_ndapply(struct FD_FUNCTION *f,int n,fdtype *args)
 
 /* The default apply function */
 
-FD_EXPORT fdtype fd_apply(FD_FUNCTION *f,int n,fdtype *args)
+FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
 {
-  if (f->ndprim) return fd_dapply(f,n,args);
-  else return fd_ndapply(f,n,args);
+  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
+  if (f->ndprim) return fd_dapply((fdtype)f,n,args);
+  else return fd_ndapply((fdtype)f,n,args);
 }
 static int unparse_function(struct U8_OUTPUT *out,fdtype x)
 {
@@ -593,21 +599,18 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
 {
   struct FD_TAIL_CALL *tc=
     FD_GET_CONS(c,fd_tail_call_type,struct FD_TAIL_CALL *);
-  fdtype result=
-    fd_apply((struct FD_FUNCTION *)tc->head,tc->n_elts-1,
-	     (&(tc->head))+1);
+  fdtype result=fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1);
   fd_decref(c);
   return result;
 }
 
 FD_EXPORT fdtype _fd_finish_call(fdtype pt)
 {
-  while (FD_PRIM_TYPEP(pt,fd_tail_call_type)) {
+  while (FD_PTR_TYPEP(pt,fd_tail_call_type)) {
     struct FD_TAIL_CALL *tc=
       FD_GET_CONS(pt,fd_tail_call_type,struct FD_TAIL_CALL *);
     fdtype result=
-      fd_apply((struct FD_FUNCTION *)tc->head,tc->n_elts-1,
-	       (&(tc->head))+1);
+      fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1);
     fd_decref(pt); pt=result;}
   return pt;
 }
@@ -655,7 +658,7 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
   cached=fd_hashtable_get(cache,vec,FD_VOID);
   if (FD_VOIDP(cached)) {
     int state=fd_ipeval_status();
-    fdtype result=fd_dapply((struct FD_FUNCTION *)fcn,n,args);
+    fdtype result=fd_dapply(fcn,n,args);
     if (FD_ABORTP(result)) {
       fd_decref((fdtype)cache);
       return result;}

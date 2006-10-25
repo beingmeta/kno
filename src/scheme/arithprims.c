@@ -175,9 +175,9 @@ static double todouble(fdtype x,fdtype *whoops)
 {
   if (FD_FIXNUMP(x))
     return (double)(FD_FIX2INT(x));
-  else if (FD_PRIM_TYPEP(x,fd_bigint_type))
+  else if (FD_PTR_TYPEP(x,fd_bigint_type))
     return (double)fd_bigint_to_double((fd_bigint)x);
-  else if (FD_PRIM_TYPEP(x,fd_double_type))
+  else if (FD_PTR_TYPEP(x,fd_double_type))
     return (((struct FD_DOUBLE *)x)->flonum);
   else {
     *whoops=fd_type_error("number","todouble",x);

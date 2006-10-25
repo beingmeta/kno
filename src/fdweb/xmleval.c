@@ -182,7 +182,7 @@ static fdtype get_xml_handler(fdtype xml,fd_lispenv env)
 {
   fdtype xml_env=fd_symeval(xml_env_symbol,env);
   if (FD_VOIDP(xml_env)) return FD_VOID;
-  if (!(FD_PRIM_TYPEP(xml_env,fd_environment_type)))
+  if (!(FD_PTR_TYPEP(xml_env,fd_environment_type)))
     return fd_type_error("environment","get_xml_handler",xml_env);
   else {
     fdtype qname=fd_get(xml,qname_slotid,FD_VOID);
@@ -256,7 +256,7 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
 {
   struct XMLAPPLY cxt; cxt.xml=xml; cxt.env=env;
   fdtype bind=fd_get(xml,id_symbol,FD_VOID), result=FD_VOID;
-  if (FD_PRIM_TYPEP(fn,fd_specform_type)) {
+  if (FD_PTR_TYPEP(fn,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=
       FD_GET_CONS(fn,fd_specform_type,fd_special_form);
     result=sf->eval(xml,env);}
@@ -621,7 +621,7 @@ static fdtype parsefdxml(fdtype input,fdtype sloppy)
   struct FD_XML *retval;
   struct U8_INPUT *in, _in;
   if (flags<0) return fd_erreify();
-  if (FD_PRIM_TYPEP(input,fd_port_type)) {
+  if (FD_PTR_TYPEP(input,fd_port_type)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
   else if (FD_STRINGP(input)) {

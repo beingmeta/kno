@@ -64,7 +64,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
 	FD_SET_CONS_TYPE(value,fd_exception_type);}
       else {
 	value=fd_err(fd_retcode_to_exception(value),NULL,NULL,FD_VOID);}
-      err_result=fd_apply(f,1,&value);
+      err_result=fd_apply(handler,1,&value);
       fd_decref(value); fd_decref(handler);
       return err_result;}
     else {
@@ -77,7 +77,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(handler))
       return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
     else if (FD_APPLICABLEP(handler)) {
-      fdtype result=fd_dapply((fd_function)handler,1,&value);
+      fdtype result=fd_dapply(handler,1,&value);
       fd_decref(value);
       return result;}
     else {
@@ -152,13 +152,13 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
     else if (!(thunkp(unwind)))
       return fd_type_error("thunk","dynamic_wind_handler",unwind);
     else {
-      fdtype windval=fd_apply((struct FD_FUNCTION *)wind,0,NULL);
+      fdtype windval=fd_apply(wind,0,NULL);
       if (FD_ABORTP(windval)) {
 	fd_decref(wind); fd_decref(doit); fd_decref(unwind);
 	return windval;}
       else {
-	fdtype retval=fd_apply((struct FD_FUNCTION *)doit,0,NULL);
-	fdtype unwindval=fd_apply((struct FD_FUNCTION *)unwind,0,NULL);
+	fdtype retval=fd_apply(doit,0,NULL);
+	fdtype unwindval=fd_apply(unwind,0,NULL);
 	fd_decref(windval);
 	fd_decref(wind); fd_decref(doit); fd_decref(unwind);
 	if (FD_ABORTP(unwindval))

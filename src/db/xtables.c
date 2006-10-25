@@ -30,7 +30,7 @@ static fd_index get_adjunct_index(fdtype slotid,fd_pool p)
 {
   struct FD_KEYVAL *adji=fd_sortvec_get(slotid,p->adjuncts,p->n_adjuncts);
   if (adji)
-    if (FD_PRIM_TYPEP(adji->value,fd_index_type))
+    if (FD_PTR_TYPEP(adji->value,fd_index_type))
       return fd_lisp2index(adji->value);
     else return NULL;
   else return NULL;
@@ -40,7 +40,7 @@ static fd_index get_global_adjunct_index(fdtype slotid)
 {
   struct FD_KEYVAL *adji=fd_sortvec_get(slotid,adjuncts,n_adjuncts);
   if (adji)
-    if (FD_PRIM_TYPEP(adji->value,fd_index_type))
+    if (FD_PTR_TYPEP(adji->value,fd_index_type))
       return fd_lisp2index(adji->value);
     else return NULL;
   else return NULL;

@@ -130,7 +130,7 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     return hash_dtype1(qc->choice);}
   else if (FD_CHARACTERP(x)) return (FD_CHARCODE(x))%(MAGIC_MODULUS);
-  else if (FD_PRIM_TYPEP(x,fd_double_type)) {
+  else if (FD_PTR_TYPEP(x,fd_double_type)) {
     unsigned int as_int;
     float *f=(float *)(&as_int);
     *f=FD_FLONUM(x);
@@ -150,12 +150,12 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
       sum=(sum+(fd_flip_word(hash_dtype1(scan->value))%MAGIC_MODULUS))%MAGIC_MODULUS;
       scan++;}
     return sum;}
-  else if (FD_PRIM_TYPEP(x,fd_rational_type)) {
+  else if (FD_PTR_TYPEP(x,fd_rational_type)) {
     struct FD_PAIR *p=FD_STRIP_CONS(x,fd_rational_type,struct FD_PAIR *);
     unsigned int sum=hash_dtype1(p->car)%MAGIC_MODULUS;
     sum=(sum<<4)+hash_dtype1(p->cdr)%MAGIC_MODULUS;
     return sum%MAGIC_MODULUS;}
-  else if (FD_PRIM_TYPEP(x,fd_complex_type)) {
+  else if (FD_PTR_TYPEP(x,fd_complex_type)) {
     struct FD_PAIR *p=FD_STRIP_CONS(x,fd_complex_type,struct FD_PAIR *);
     unsigned int sum=hash_dtype1(p->car)%MAGIC_MODULUS;
     sum=(sum<<4)+hash_dtype1(p->cdr)%MAGIC_MODULUS;

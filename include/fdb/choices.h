@@ -116,7 +116,7 @@ typedef struct FD_CHOICE {
 typedef struct FD_CHOICE *fd_choice;
 
 #define FD_CHOICE_SIZE_MASK 0x7FFFFFFF
-#define FD_CHOICEP(x) (FD_PRIM_TYPEP(x,fd_choice_type))
+#define FD_CHOICEP(x) (FD_PTR_TYPEP(x,fd_choice_type))
 #define FD_XCHOICE(x) (FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *))
 #define FD_CHOICE_BITS(x) \
   ((FD_STRIP_CONS(x,fd_choice_type,struct FD_CHOICE *))->size)
@@ -177,7 +177,7 @@ typedef struct FD_ACHOICE {
 } FD_ACHOICE;
 typedef struct FD_ACHOICE *fd_achoice;
 
-#define FD_ACHOICEP(x) (FD_PRIM_TYPEP(x,fd_achoice_type))
+#define FD_ACHOICEP(x) (FD_PTR_TYPEP(x,fd_achoice_type))
 #define FD_XACHOICE(x) (FD_STRIP_CONS(x,fd_achoice_type,struct FD_ACHOICE *))
 #define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->size)
 #define FD_ACHOICE_LENGTH(x) (((FD_XACHOICE(x))->write)-((FD_XACHOICE(x))->data))
@@ -233,7 +233,7 @@ typedef struct FD_QCHOICE *fd_qchoice;
 
 FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
 
-#define FD_QCHOICEP(x) (FD_PRIM_TYPEP(x,fd_qchoice_type))
+#define FD_QCHOICEP(x) (FD_PTR_TYPEP(x,fd_qchoice_type))
 #define FD_XQCHOICE(x) (FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))
 #define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->choice))
 

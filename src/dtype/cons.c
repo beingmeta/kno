@@ -118,7 +118,7 @@ int fdtype_equal(fdtype x,fdtype y)
     if (convert_x) fd_decref(cx);
     if (convert_y) fd_decref(cy);
     return result;}
-  else if (!(FD_PRIM_TYPEP(y,FD_PTR_TYPE(x))))
+  else if (!(FD_PTR_TYPEP(y,FD_PTR_TYPE(x))))
     return 0;
   else if (FD_PAIRP(x))
     if (FDTYPE_EQUAL(FD_CAR(x),FD_CAR(y)))

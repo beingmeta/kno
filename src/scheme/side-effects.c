@@ -57,4 +57,5 @@ FD_EXPORT void fd_init_side_effects_c()
 				  fd_pair_type,FD_VOID,
 				  -1,FD_VOID));
   fd_finish_module(module);
+  fd_persist_module(module);
 }

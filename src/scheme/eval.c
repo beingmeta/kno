@@ -10,6 +10,7 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1
+#define FD_INLINE_PPTRS 1
 
 #include "fdb/dtype.h"
 #include "fdb/support.h"
@@ -388,10 +389,14 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       return FD_VOID;
     else {
       fdtype headval=fasteval(head,env), result;
-      int ctype=FD_PTR_TYPE(headval);
+      int ctype=FD_PTR_TYPE(headval), gc=1;
+      if (ctype==fd_pptr_type) {
+	headval=fd_pptr_ref(headval);
+	ctype=FD_PTR_TYPE(headval);
+	gc=0;}
       if (fd_applyfns[ctype]) 
 	result=apply_function(headval,expr,env);
-      else if (FD_PRIM_TYPEP(headval,fd_specform_type)) {
+      else if (FD_PTR_TYPEP(headval,fd_specform_type)) {
 	/* These are special forms which do all the evaluating themselves */
 	struct FD_SPECIAL_FORM *handler=
 	  FD_GET_CONS(headval,fd_specform_type,struct FD_SPECIAL_FORM *);
@@ -399,12 +404,12 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 	result=handler->eval(expr,env);
 	/* fd_calltrack_return(handler->name); */
       }
-      else if (FD_PRIM_TYPEP(headval,fd_macro_type)) {
+      else if (FD_PTR_TYPEP(headval,fd_macro_type)) {
 	/* These are special forms which do all the evaluating themselves */
 	struct FD_MACRO *macrofn=
 	  FD_GET_CONS(headval,fd_macro_type,struct FD_MACRO *);
 	fdtype xformer=macrofn->transformer;
-	int xformer_type=FD_PTR_TYPE(xformer);
+	int xformer_type=FD_PRIM_TYPE(xformer);
 	if (fd_applyfns[xformer_type]) {
 	  fdtype new_expr=(fd_applyfns[xformer_type])(xformer,1,&expr);
 	  if (FD_ABORTP(new_expr))
@@ -420,7 +425,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       if (FD_THROWP(result)) {}
       else if (FD_ABORTP(result))
 	result=fd_passerr(result,fd_incref(expr));
-      fd_decref(headval);
+      if (gc) fd_decref(headval);
       return result;}}
   case fd_slotmap_type:
     return fd_deep_copy(expr);
@@ -498,15 +503,15 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
       while (arg_count<args_length) {
 	args[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
     else while (arg_count<args_length) args[arg_count++]=FD_VOID;
-  if ((fd_optimize_tail_calls) && (FD_PRIM_TYPEP(fn,fd_sproc_type)))
+  if ((fd_optimize_tail_calls) && (FD_PTR_TYPEP(fn,fd_sproc_type)))
     result=fd_tail_call(fn,n_args,args);
   else if ((fcn->ndprim==0) && (nd_args))
-    result=fd_ndapply(fcn,n_args,args);
+    result=fd_ndapply(fn,n_args,args);
   else {
-    result=fd_dapply(fcn,n_args,args);}
+    result=fd_dapply(fn,n_args,args);}
   if ((FD_ABORTP(result)) &&
       (!(FD_THROWP(result))) &&
-      (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
+      (!(FD_PTR_TYPEP(fn,fd_sproc_type)))) {
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
        up in an environment on the backtrace. */
@@ -706,7 +711,7 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
 {
   if (!(FD_SYMBOLP(symbol)))
     return fd_type_error(_("symbol"),"boundp_prim",symbol);
-  else if (FD_PRIM_TYPEP(envarg,fd_environment_type)) {
+  else if (FD_PTR_TYPEP(envarg,fd_environment_type)) {
     fd_lispenv env=(fd_lispenv)envarg;
     fdtype val=fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
@@ -721,7 +726,7 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
 
 static fdtype environmentp_prim(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_environment_type))
+  if (FD_PTR_TYPEP(arg,fd_environment_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -746,7 +751,7 @@ static fdtype apply_lexpr(int n,fdtype *args)
     int final_length=fd_seq_length(final_arg);
     int n_args=(n-2)+final_length;
     fdtype *values=u8_malloc(sizeof(fdtype)*n_args);
-    int i=1, j=0, lim=n-1, ctype=FD_PTR_TYPE(args[0]);
+    int i=1, j=0, lim=n-1, ctype=FD_PRIM_TYPE(args[0]);
     /* Copy regular arguments */
     while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
     i=0; while (j<n_args) {
@@ -772,7 +777,7 @@ static void *thread_call(void *data)
   if (tstruct->flags&FD_EVAL_THREAD) 
     result=fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
   else 
-    result=fd_dapply((fd_function)tstruct->applydata.fn,
+    result=fd_dapply(tstruct->applydata.fn,
 		     tstruct->applydata.n_args,
 		     tstruct->applydata.args);
   if (FD_ABORTP(result))
@@ -912,12 +917,12 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
 
 static fdtype synchro_lock(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_condvar_type)) {
+  if (FD_PTR_TYPEP(x,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
     fd_lock_mutex(&(cv->lock));
     return FD_TRUE;}
-  else if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  else if (FD_PTR_TYPEP(x,fd_sproc_type)) {
     struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
       fd_lock_mutex(&(sp->lock));}
@@ -928,12 +933,12 @@ static fdtype synchro_lock(fdtype x)
 
 static fdtype synchro_unlock(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_condvar_type)) {
+  if (FD_PTR_TYPEP(x,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
     fd_unlock_mutex(&(cv->lock));
     return FD_TRUE;}
-  else if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  else if (FD_PTR_TYPEP(x,fd_sproc_type)) {
     struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
       fd_unlock_mutex(&(sp->lock));}
@@ -1011,7 +1016,7 @@ static fdtype threadjoin_prim(fdtype threads)
 {
   fdtype results=FD_EMPTY_CHOICE;
   {FD_DO_CHOICES(thread,threads)
-     if (!(FD_PRIM_TYPEP(thread,fd_thread_type)))
+     if (!(FD_PTR_TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {FD_DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct=(fd_thread_struct)thread;
@@ -1386,7 +1391,7 @@ static fdtype callcc (fdtype proc)
   f->handler.xcall1=call_continuation;
   f->throwval=throwval; f->retval=FD_VOID;
   cont=FDTYPE_CONS(f);
-  value=fd_apply((struct FD_FUNCTION *)proc,1,&cont);
+  value=fd_apply(proc,1,&cont);
   if (value==throwval) {
     fdtype retval=f->retval;
     fd_decref(value);
@@ -1398,16 +1403,16 @@ static fdtype callcc (fdtype proc)
     return retval;}
   else if (FD_VOIDP(f->retval)) {
     fd_decref(throwval);
-    fd_decref(cont);
-    f->retval=FD_NULL;
-    if (FD_CONS_REFCOUNT(f)>1) 
+    if (FD_CONS_REFCOUNT(f)>1) {
       u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
+      f->retval=FD_NULL;}
+    fd_decref(cont);
     return value;}
   else {
     fdtype errobj=fd_err(LostThrow,"callcc",NULL,f->retval);
-    f->retval=FD_NULL;
-    if (FD_CONS_REFCOUNT(f)>1) 
+    if (FD_CONS_REFCOUNT(f)>1) {
       u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
+      f->retval=FD_NULL;}
     fd_decref(throwval); fd_decref(cont);
     return errobj;}
 }
@@ -1444,7 +1449,7 @@ static fdtype applytest(int n,fdtype *args)
   if (n<2)
     return fd_err(fd_TooFewArgs,"applytest",NULL,FD_VOID);
   else if (FD_APPLICABLEP(args[1])) {
-    fdtype value=fd_apply((fd_function)(args[1]),n-2,args+2);
+    fdtype value=fd_apply(args[1],n-2,args+2);
     if (FD_EQUAL(value,args[0])) {
       fd_decref(value);
       return FD_TRUE;}
@@ -1581,6 +1586,8 @@ static void init_core_builtins()
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_history_c();
+  fd_persist_module(fd_scheme_module);
+  fd_persist_module(fd_xscheme_module);
 }
 
 FD_EXPORT int fd_init_fdscheme()

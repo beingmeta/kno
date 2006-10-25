@@ -50,7 +50,7 @@ static u8_output get_output_port(fdtype portarg)
 {
   if (FD_VOIDP(portarg))
     return fd_get_default_output();
-  else if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
+  else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     return p->out;}
@@ -111,7 +111,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,2);
   u8_string filename; U8_OUTPUT *f, *oldf; int doclose;
   if (FD_ABORTP(filename_val)) return filename_val;
-  else if (FD_PRIM_TYPEP(filename_val,fd_port_type)) {
+  else if (FD_PTR_TYPEP(filename_val,fd_port_type)) {
     FD_PORT *port=FD_GET_CONS(filename_val,fd_port_type,FD_PORT *);
     if (port->out) {f=port->out; doclose=0;}
     else {
@@ -606,7 +606,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
   struct FD_PORT *p=
     FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
   if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
-  else if (FD_PRIM_TYPEP(off_arg,fd_bigint_type)) 
+  else if (FD_PTR_TYPEP(off_arg,fd_bigint_type)) 
 #if (_FILE_OFFSET_BITS==64)
     off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
 #else
@@ -825,7 +825,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
     fdtype entry=get_entry(abspath_dtype,sources);
     fdtype result=FD_VOID;
     if (FD_PAIRP(entry))
-      if (FD_PRIM_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
+      if (FD_PTR_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
 	struct FD_TIMESTAMP *curstamp=
 	  FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
 	time_t last_loaded=curstamp->xtime.u8_secs;
@@ -1247,6 +1247,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_defspecial(fileio_module,"SNAPBACK",snapback_handler);
 
   fd_finish_module(fileio_module);
+
+  fd_persist_module(fileio_module);
 
   fd_register_sourcefn(file_source_fn);
 }

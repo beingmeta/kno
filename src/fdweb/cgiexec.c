@@ -342,8 +342,7 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
   get_form_args(cgidata);
   {FD_DO_CHOICES(handler,cgi_prepfns) {
     if (FD_APPLICABLEP(handler)) {
-      struct FD_FUNCTION *f=(fd_function)handler;
-      fdtype value=fd_apply(f,1,&data);
+      fdtype value=fd_apply(handler,1,&data);
       fd_decref(value);}
     else u8_warn("Not Applicable","Invalid CGI prep handler %q",handler);}}
   return 1;
@@ -441,7 +440,7 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
 	u8_printf(out,"path=%s; ",FD_STRDATA(path));
       if (FD_STRINGP(expires))
 	u8_printf(out,"expires=%s; ",FD_STRDATA(expires));
-      else if (FD_PRIM_TYPEP(expires,fd_timestamp_type)) {
+      else if (FD_PTR_TYPEP(expires,fd_timestamp_type)) {
 	struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
 	char buf[512];
 	strftime(buf,512,"%A, %d-%b-%Y %T GMT",
@@ -652,11 +651,11 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 {
   fdtype value;
   fd_thread_set(cgidata_symbol,cgidata);
-  if (FD_PRIM_TYPEP(proc,fd_sproc_type))
+  if (FD_PTR_TYPEP(proc,fd_sproc_type))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
-  else value=fd_apply((fd_function)proc,0,NULL);
+  else value=fd_apply(proc,0,NULL);
   fd_thread_set(cgidata_symbol,FD_VOID);
   return value;
 }

@@ -320,7 +320,7 @@ static fdtype urlget(fdtype url,fdtype handle)
   u8_string urltext=FD_STRDATA(url); char *urienc=NULL;
   fd_add(result,url_symbol,url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  if (FD_PRIM_TYPEP(handle,fd_curl_type))
+  if (FD_PTR_TYPEP(handle,fd_curl_type))
     h=FD_GET_CONS(handle,fd_curl_type,fd_curl_handle);
   else h=get_curl_handle();
   if (h==NULL) {
@@ -366,7 +366,7 @@ static fdtype urlcontent(fdtype url,fdtype handle)
   u8_string urltext=FD_STRDATA(url); char *urienc=NULL;
   fd_add(result,url_symbol,url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  if (FD_PRIM_TYPEP(handle,fd_curl_type))
+  if (FD_PTR_TYPEP(handle,fd_curl_type))
     h=FD_GET_CONS(handle,fd_curl_type,fd_curl_handle);
   else h=get_curl_handle();
   if (urienc)
@@ -413,7 +413,7 @@ static fdtype urlxml(fdtype url,fdtype xmloptions,fdtype handle)
     fd_decref(result); return fd_erreify();}
   fd_add(result,url_symbol,url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  if (FD_PRIM_TYPEP(handle,fd_curl_type))
+  if (FD_PTR_TYPEP(handle,fd_curl_type))
     h=FD_GET_CONS(handle,fd_curl_type,fd_curl_handle);
   else h=get_curl_handle();
   if (urienc)
@@ -486,7 +486,7 @@ static fdtype curlsetopt(fdtype handle,fdtype opt,fdtype value)
     struct FD_CURL_HANDLE *h=fd_open_curl_handle();
     opt=handle; value=opt;
     return set_curlopt(h,opt,value);}
-  else if (FD_PRIM_TYPEP(handle,fd_curl_type)) {
+  else if (FD_PTR_TYPEP(handle,fd_curl_type)) {
     struct FD_CURL_HANDLE *h=FD_GET_CONS(handle,fd_curl_type,fd_curl_handle);
     return set_curlopt(h,opt,value);}
   else return fd_type_error("curl handle","curlsetopt",handle);
@@ -514,7 +514,7 @@ static fdtype urlpost(int n,fdtype *args)
   u8_string url; u8_byte *tmpbuf=NULL;
   struct FD_CURL_HANDLE *h=NULL;
   fdtype result=FD_VOID, cval;
-  if (FD_PRIM_TYPEP(args[0],fd_curl_type))
+  if (FD_PTR_TYPEP(args[0],fd_curl_type))
     if (FD_STRINGP(args[1])) {
       h=FD_GET_CONS(args[0],fd_curl_type,fd_curl_handle);
       start=2; url=FD_STRDATA(args[1]);}

@@ -80,7 +80,7 @@ FD_EXPORT fd_exception fd_MallocFailed;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_GET_CONS(x,typecode,typecast) \
-  ((FD_PRIM_TYPEP(x,typecode)) ? ((typecast)(FD_CONS_DATA(x))) : \
+  ((FD_PTR_TYPEP(x,typecode)) ? ((typecast)(FD_CONS_DATA(x))) : \
    ((typecast)(u8_raise(fd_TypeError,fd_type_names[typecode],NULL),NULL)))
 #define FD_STRIP_CONS(x,typecode,typecast) ((typecast)(FD_CONS_DATA(x)))
 #define FD_CHECK_TYPE_THROW(x,typecode) \
@@ -176,7 +176,7 @@ typedef struct FD_STRING {
   u8_string bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
 
-#define FD_STRINGP(x) (FD_PRIM_TYPEP(x,fd_string_type))
+#define FD_STRINGP(x) (FD_PTR_TYPEP(x,fd_string_type))
 #define FD_STRLEN(x) \
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length)
 #define FD_STRDATA(x) \
@@ -258,7 +258,7 @@ typedef struct FD_VECTOR {
 typedef struct FD_VECTOR *fd_vector;
 
 #define FD_VECTOR_LENGTH_MASK 0x7FFFFFFF
-#define FD_VECTORP(x) (FD_PRIM_TYPEP(x,fd_vector_type))
+#define FD_VECTORP(x) (FD_PTR_TYPEP(x,fd_vector_type))
 #define FD_VECTOR_BITS(x) \
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_VECTOR *))->length)
 #define FD_VECTOR_LENGTH(x) \
@@ -296,7 +296,7 @@ FD_EXPORT fdtype fd_init_compound
 
 /* BIG INTs */
 
-#define FD_BIGINTP(x) (FD_PRIM_TYPEP(x,fd_bigint_type))
+#define FD_BIGINTP(x) (FD_PTR_TYPEP(x,fd_bigint_type))
 
 typedef struct FD_BIGINT *fd_bigint;
 
@@ -312,7 +312,7 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
 #define fd_getint(x) \
   ((FD_FIXNUMP(x)) ? (FD_FIX2INT(x)) : \
-   ((FD_PRIM_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
+   ((FD_PTR_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
    (fd_bigint2int((fd_bigint)x)) : (0))
 
 /* Doubles */
@@ -322,7 +322,7 @@ typedef struct FD_DOUBLE {
   double flonum;} FD_DOUBLE;
 typedef struct FD_DOUBLE *fd_double;
 
-#define FD_FLONUMP(x) (FD_PRIM_TYPEP(x,fd_double_type))
+#define FD_FLONUMP(x) (FD_PTR_TYPEP(x,fd_double_type))
 #define FD_XFLONUM(x) (FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *))
 #define FD_FLONUM(x) ((FD_XFLONUM(x))->flonum)
 
@@ -377,11 +377,11 @@ FD_EXPORT fdtype fd_passerr(fdtype err,fdtype context);
 FD_EXPORT fdtype fd_passerr2(fdtype err,fdtype context,fdtype context2);
 FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
 
-#define FD_EXCEPTIONP(x) (FD_PRIM_TYPEP(x,fd_exception_type))
-#define FD_ERRORP(x) (FD_PRIM_TYPEP(x,fd_error_type))
+#define FD_EXCEPTIONP(x) (FD_PTR_TYPEP(x,fd_exception_type))
+#define FD_ERRORP(x) (FD_PTR_TYPEP(x,fd_error_type))
 
 #define FD_ABORTP(x) \
-  (FD_EXPECT_FALSE((FD_TROUBLEP(x)) || (FD_PRIM_TYPEP(x,fd_error_type))))
+  (FD_EXPECT_FALSE((FD_TROUBLEP(x)) || (FD_PTR_TYPEP(x,fd_error_type))))
 
 
 /* Timestamps */

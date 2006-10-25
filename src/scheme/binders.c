@@ -507,7 +507,7 @@ static int unparse_sproc(u8_output out,fdtype x)
 
 FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
 {
-  int xftype=FD_PTR_TYPE(xformer);
+  int xftype=FD_PRIM_TYPE(xformer);
   if ((xftype<FD_TYPE_MAX) && (fd_applyfns[xftype])) {
     struct FD_MACRO *s=u8_malloc_type(struct FD_MACRO);
     FD_INIT_CONS(s,fd_macro_type);
@@ -597,7 +597,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=fd_eval(val_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(var,value,env)) {
-	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
 	  struct FD_SPROC *s=(fd_sproc)value;
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
@@ -616,7 +616,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
 	  struct FD_SPROC *s=(fd_sproc)value;
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();

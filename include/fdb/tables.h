@@ -74,7 +74,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_SLOTMAP_MODIFIED_MASK 0x80000000
 #define FD_SLOTMAP_READONLY_MASK 0x40000000
 #define FD_SLOTMAP_BITFIELD_MASK 0xC0000000
-#define FD_SLOTMAPP(x) (FD_PRIM_TYPEP(x,fd_slotmap_type))
+#define FD_SLOTMAPP(x) (FD_PTR_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
   (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
 #define FD_XSLOTMAP_SIZE(sm) ((sm->size)&(FD_SLOTMAP_SIZE_MASK))
@@ -248,7 +248,7 @@ typedef struct FD_SCHEMAP {
 
 typedef struct FD_SCHEMAP *fd_schemap;
 
-#define FD_SCHEMAPP(x) (FD_PRIM_TYPEP(x,fd_schemap_type))
+#define FD_SCHEMAPP(x) (FD_PTR_TYPEP(x,fd_schemap_type))
 #define FD_XSCHEMAP(x) (FD_GET_CONS(x,fd_schemap_type,struct FD_SCHEMAP *))
 #define FD_XSCHEMAP_SIZE(sm) ((sm)->size)
 #define FD_XSCHEMAP_READONLYP(sm) (((sm)->flags)&FD_SCHEMAP_READONLY)
@@ -368,7 +368,7 @@ typedef struct FD_HASHTABLE {
   U8_MUTEX_DECL(lock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
-#define FD_HASHTABLEP(x) (FD_PRIM_TYPEP(x,fd_hashtable_type))
+#define FD_HASHTABLEP(x) (FD_PTR_TYPEP(x,fd_hashtable_type))
 #define FD_XHASHTABLE(x) \
   FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *)
 #define FD_HASHTABLE_SLOTS(x) \
@@ -390,7 +390,10 @@ FD_EXPORT fdtype fd_init_hashtable
    (fd_hashtable ptr,int n_keyvals,
     struct FD_KEYVAL *init,FD_MEMORY_POOL_TYPE *mpool);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
+FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
+				      struct FD_HASHENTRY ***,int *);
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht);
+FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,fd_ptr_type);
 
 FD_EXPORT int fd_hashtable_op
    (fd_hashtable ht,fd_tableop op,fdtype key,fdtype value);
@@ -450,7 +453,7 @@ typedef struct FD_HASHSET {
   U8_MUTEX_DECL(lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 
-#define FD_HASHSETP(x) (FD_PRIM_TYPEP(x,fd_hashset_type))
+#define FD_HASHSETP(x) (FD_PTR_TYPEP(x,fd_hashset_type))
 #define FD_XHASHSET(x) \
   FD_GET_CONS(x,fd_hashset_type,struct FD_HASHSET *)
 

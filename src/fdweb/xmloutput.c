@@ -296,7 +296,7 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
   if (FD_STRINGP(x))
     emit_xmlcontent(out,FD_STRDATA(x));
   else if ((FD_APPLICABLEP(xmloidfn)) && (FD_OIDP(x))) {
-    fdtype result=fd_apply((fd_function)xmloidfn,1,&x);
+    fdtype result=fd_apply(xmloidfn,1,&x);
     fd_decref(result);}
   else if (FD_OIDP(x)) 
     fd_xmloid(out,x);
@@ -723,7 +723,7 @@ static fdtype set_browse_info
   (fdtype poolarg,fdtype script,fdtype classname,fdtype displayer)
 {
   fd_pool p; fdtype entry;
-  if (FD_PRIM_TYPEP(poolarg,fd_pool_type)) p=fd_lisp2pool(poolarg);
+  if (FD_PTR_TYPEP(poolarg,fd_pool_type)) p=fd_lisp2pool(poolarg);
   else if (FD_STRINGP(poolarg)) 
     p=fd_name2pool(FD_STRDATA(poolarg));
   if (FD_FALSEP(poolarg)) {}
@@ -914,7 +914,7 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
     if ((FD_OIDP(displayer)) || (FD_SYMBOLP(displayer)))
       name=fd_frame_get(arg,displayer);
     else if (FD_APPLICABLEP(displayer))
-      name=fd_apply((fd_function)displayer,1,&arg);
+      name=fd_apply(displayer,1,&arg);
     else name=fd_frame_get(arg,obj_name);
     if (FD_EMPTY_CHOICEP(name))
       u8_printf(out,"%q",arg);
@@ -1162,7 +1162,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     fd_lispenv target_env=env;
     if (FD_ABORTP(xmlarg)) return xmlarg;
     if (FD_VOIDP(envarg)) {}
-    else if (FD_PRIM_TYPEP(envarg,fd_environment_type)) 
+    else if (FD_PTR_TYPEP(envarg,fd_environment_type)) 
       target_env=(fd_lispenv)envarg;
     else {
       fd_decref(xmlarg);
@@ -1414,7 +1414,10 @@ FD_EXPORT void fd_init_fdweb()
 #endif
     fd_finish_module(safe_fdweb_module);
     fd_finish_module(fdweb_module);
-    fd_finish_module(xhtml_module);}
+    fd_finish_module(xhtml_module);
+    fd_persist_module(safe_fdweb_module);
+    fd_persist_module(fdweb_module);
+    fd_persist_module(xhtml_module);}
   fd_register_config("ERRORSTYLESHEET",fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
   fd_register_source_file(FDB_FDWEB_H_VERSION);
   fd_register_source_file(versionid);

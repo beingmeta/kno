@@ -342,9 +342,9 @@ static fdtype multi_drop_method(fdtype root,fdtype slotid,fdtype value)
 static inline fdtype getter(fdtype f,fdtype s)
 {
   if (FD_OIDP(f)) return fd_frame_get(f,s);
-  else if (FD_PRIM_TYPEP(f,fd_hashtable_type))
+  else if (FD_PTR_TYPEP(f,fd_hashtable_type))
     return fd_hashtable_get(FD_XHASHTABLE(f),s,FD_EMPTY_CHOICE);
-  else if (FD_PRIM_TYPEP(s,fd_hashtable_type))
+  else if (FD_PTR_TYPEP(s,fd_hashtable_type))
     return fd_hashtable_get(FD_XHASHTABLE(s),f,FD_EMPTY_CHOICE);
   else return FD_EMPTY_CHOICE;
 }

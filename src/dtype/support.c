@@ -385,7 +385,7 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
   double *ptr=vptr;
   if (FD_FALSEP(v)) {
     *ptr=0.0; return 1;}
-  else if (FD_PRIM_TYPEP(v,fd_double_type)) {
+  else if (FD_PTR_TYPEP(v,fd_double_type)) {
     *ptr=FD_FLONUM(v);}
   else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
 			FD_SYMBOL_NAME(var),v);

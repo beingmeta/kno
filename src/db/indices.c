@@ -129,7 +129,7 @@ FD_EXPORT fdtype fd_index2lisp(fd_index ix)
 }
 FD_EXPORT fd_index fd_lisp2index(fdtype lix)
 {
-  if (FD_PRIM_TYPEP(lix,fd_index_type)) {
+  if (FD_PTR_TYPEP(lix,fd_index_type)) {
     int serial=FD_GET_IMMEDIATE(lix,fd_index_type);
     if (serial<FD_N_PRIMARY_INDICES) return fd_primary_indices[serial];
     else return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];}

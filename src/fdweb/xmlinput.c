@@ -765,7 +765,7 @@ static fdtype xmlparse(fdtype input,fdtype options)
   struct FD_XML object, *retval;
   struct U8_INPUT *in, _in;
   if (flags<0) return fd_erreify();
-  if (FD_PRIM_TYPEP(input,fd_port_type)) {
+  if (FD_PTR_TYPEP(input,fd_port_type)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
   else if (FD_STRINGP(input)) {

@@ -73,7 +73,7 @@ FD_EXPORT fdtype fd_make_cprim3x(u8_string name,fd_cprim3 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim4x(u8_string name,fd_cprim4 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim5x(u8_string name,fd_cprim5 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim6x(u8_string name,fd_cprim6 fn,int mina,...);
-#define FD_FUNCTIONP(x) (FD_PRIM_TYPEP(x,fd_function_type))
+#define FD_FUNCTIONP(x) (FD_PTR_TYPEP(x,fd_function_type))
 #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *))
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
@@ -89,11 +89,11 @@ FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from);
 typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
 FD_EXPORT fd_applyfn fd_applyfns[];
 
-FD_EXPORT fdtype fd_apply(struct FD_FUNCTION *,int n,fdtype *args);
-FD_EXPORT fdtype fd_ndapply(struct FD_FUNCTION *,int n,fdtype *args);
-FD_EXPORT fdtype fd_dapply(struct FD_FUNCTION *,int n,fdtype *args);
+FD_EXPORT fdtype fd_apply(fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
 
-#define FD_APPLICABLEP(x) ((fd_applyfns[FD_PTR_TYPE(x)])!=NULL)
+#define FD_APPLICABLEP(x) ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL)
 
 /* Tail calls */
 
@@ -107,7 +107,7 @@ FD_EXPORT fdtype _fd_finish_call(fdtype);
 
 static fdtype fd_finish_call(fdtype pt)
 {
-  if (FD_PRIM_TYPEP(pt,fd_tail_call_type))
+  if (FD_PTR_TYPEP(pt,fd_tail_call_type))
     return _fd_finish_call(pt);
   else return pt;
 }
@@ -116,6 +116,8 @@ static fdtype fd_finish_call(fdtype pt)
 
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
 FD_EXPORT void fd_clear_callcache(fdtype arg);
+
+#define FD_DTYPE2FCN(x) ((FD_PPTRP(x)) ? ((fd_function)(fd_pptr_ref(x))) : ((fd_function)x))
 
 /* Profiling */
 

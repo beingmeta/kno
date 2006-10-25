@@ -385,7 +385,7 @@ static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
       fd_decref(v);}}
   else if (FD_APPLICABLEP(fn)) {
     FD_DO_CHOICES(k,keys) {
-      fdtype v=fd_apply((struct FD_FUNCTION *)fn,1,&k);
+      fdtype v=fd_apply(fn,1,&k);
       fd_add(table,k,v);
       fd_decref(v);}}
   else if (FD_TABLEP(fn)) {

@@ -54,7 +54,7 @@ FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
   (FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *))
 #define FD_XENVIRONMENT(x) \
  (FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *))
-#define FD_ENVIRONMENTP(x) (FD_PRIM_TYPEP(x,fd_environment_type))
+#define FD_ENVIRONMENTP(x) (FD_PTR_TYPEP(x,fd_environment_type))
 
 FD_EXPORT int fd_recycle_environment(fd_lispenv env);
 
@@ -86,6 +86,7 @@ FD_EXPORT fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent);
 FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags);
 FD_EXPORT fdtype fd_get_module(fdtype name,int safe);
 FD_EXPORT int fd_finish_module(fdtype module);
+FD_EXPORT int fd_persist_module(fdtype module);
 
 FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
 FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
@@ -145,7 +146,7 @@ FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
 FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
 {
   fdtype result=fd_tail_eval(x,env);
-  if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+  if (FD_PTR_TYPEP(result,fd_tail_call_type))
     return _fd_finish_call(result);
   else return result;
 }
@@ -158,7 +159,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     if (FD_SYMBOLP(x)) return fd_eval(x,env);
     else return x;
   case fd_cons_ptr_type:
-    if (FD_PRIM_TYPEP(x,fd_pair_type))
+    if (FD_PTR_TYPEP(x,fd_pair_type))
       return fd_eval(x,env);
     else return fd_incref(x);
   }
@@ -197,7 +198,7 @@ typedef struct FD_CONTINUATION FD_CONTINUATION;
 FD_EXPORT u8_condition fd_throw_condition;
 
 #define FD_THROWP(result) \
-  ((FD_PRIM_TYPEP(result,fd_error_type)) && \
+  ((FD_PTR_TYPEP(result,fd_error_type)) && \
    (((FD_STRIP_CONS(result,fd_exception_type,fd_exception_object)) \
      ->data.cond) == fd_throw_condition))
 

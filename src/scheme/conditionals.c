@@ -84,7 +84,7 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
 	    fd_decref(test_val);
 	    return fn;}
 	  else if (FD_APPLICABLEP(fn)) {
-	    fdtype retval=fd_apply((fd_function)fn,1,&test_val);
+	    fdtype retval=fd_apply(fn,1,&test_val);
 	    fd_decref(test_val); fd_decref(fn);
 	    return retval;}
 	  else {

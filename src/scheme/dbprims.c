@@ -326,9 +326,9 @@ static fdtype swapout_lexpr(int n,fdtype *args)
   else if (n == 1) {
     fdtype arg=args[0];
     if (FD_OIDP(arg)) fd_swapout_oid(arg);
-    else if (FD_PRIM_TYPEP(arg,fd_index_type))
+    else if (FD_PTR_TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_lisp2index(arg));
-    else if (FD_PRIM_TYPEP(arg,fd_pool_type))
+    else if (FD_PTR_TYPEP(arg,fd_pool_type))
       fd_pool_swapout(fd_lisp2pool(arg));
     else return fd_type_error(_("pool or index"),"swapout_lexpr",arg);
     return FD_VOID;}
@@ -345,9 +345,9 @@ static fdtype commit_lexpr(int n,fdtype *args)
     return FD_VOID;}
   else if (n == 1) {
     fdtype arg=args[0]; int retval=0;
-    if (FD_PRIM_TYPEP(arg,fd_index_type))
+    if (FD_PTR_TYPEP(arg,fd_index_type))
       retval=fd_index_commit(fd_lisp2index(arg));
-    else if (FD_PRIM_TYPEP(arg,fd_pool_type))
+    else if (FD_PTR_TYPEP(arg,fd_pool_type))
       retval=fd_pool_commit_all(fd_lisp2pool(arg),1);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
     if (retval<0) return fd_erreify();
@@ -729,7 +729,7 @@ static fdtype testp(int n,fdtype *args)
 	  if (FD_APPLICABLEP(testfn)) {
 	    fdtype test_result=FD_FALSE;
 	    args[2]=values;
-	    test_result=fd_apply((fd_function)testfn,n-2,args+2);
+	    test_result=fd_apply(testfn,n-2,args+2);
 	    args[2]=testfns;
 	    if (FD_ABORTP(test_result)) {
 	      fd_decref(values); return test_result;}
@@ -848,7 +848,8 @@ static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
     return fd_test(pred,f,val);
   else if (FD_APPLICABLEP(pred)) {
     fdtype rail[2], result;
-    rail[0]=f; rail[1]=val; result=fd_apply((fd_function)pred,2,rail);
+    rail[0]=f; rail[1]=val;
+    result=fd_apply(pred,2,rail);
     if (FD_ABORTP(result))
       return fd_interr(result);
     else if ((FD_FALSEP(result)) || (FD_EMPTY_CHOICEP(result)))
@@ -866,14 +867,14 @@ static int binary_test(fdtype candidate,fdtype test,int noinfer)
     if (noinfer)
       return fd_test(candidate,test,FD_VOID);
     else return fd_frame_test(candidate,test,FD_VOID);
-  else if (FD_PRIM_TYPEP(test,fd_hashset_type)) 
+  else if (FD_PTR_TYPEP(test,fd_hashset_type)) 
     if (fd_hashset_get((fd_hashset)test,candidate))
       return 1;
     else return 0;
   else if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
     return fd_test(candidate,test,FD_VOID);
   else if (FD_APPLICABLEP(test)) {
-    fdtype v=fd_apply((fd_function)test,1,&candidate);
+    fdtype v=fd_apply(test,1,&candidate);
     if (FD_ABORTP(v)) return fd_interr(v);
     else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v))) return 0;
     else {fd_decref(v); return 1;}}
@@ -1257,7 +1258,7 @@ static fdtype applyfn(fdtype fn,fdtype node)
 	return v;}
       else {FD_ADD_TO_CHOICE(results,v);}}}
   else if (FD_APPLICABLEP(fn))
-    return fd_apply((fd_function)fn,1,&node);
+    return fd_apply(fn,1,&node);
   else if (FD_TABLEP(fn))
     return fd_get(fn,node,FD_EMPTY_CHOICE);
   else return FD_EMPTY_CHOICE;

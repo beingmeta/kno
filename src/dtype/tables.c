@@ -1566,6 +1566,30 @@ FD_EXPORT int fd_fast_reset_hashtable
   return n_slots;
 }
 
+FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,fd_ptr_type type)
+{
+  int n_conversions=0;
+  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
+  fd_lock_mutex(&ptr->lock);
+  {
+    struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
+    while (scan < lim)
+      if (*scan) {
+	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+	while (kvscan<kvlimit) {
+	  if ((FD_CONSP(kvscan->value)) &&
+	      ((type<0) || (FD_PTR_TYPEP(kvscan->value,type)))) {
+	    fdtype ppval=fd_pptr_register(kvscan->value);
+	    fd_decref(kvscan->value); n_conversions++;
+	    kvscan->value=ppval;}
+	  kvscan++;}
+	scan++;}
+      else scan++;}
+  fd_unlock_mutex(&ptr->lock);
+  return n_conversions;
+}
+
 FD_EXPORT fdtype fd_make_hashtable
    (struct FD_HASHTABLE *ptr,int n_slots,FD_MEMORY_POOL_TYPE *mpool)
 {

@@ -460,7 +460,7 @@ static int webservefn(u8_client ucl)
     result=fd_cgiexec(proc,cgidata);
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=((FD_PRIM_TYPEP(lenv,fd_environment_type)) ?
+    fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
@@ -470,10 +470,10 @@ static int webservefn(u8_client ucl)
     else if (FD_CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
 	if (FD_APPLICABLEP(proc)) {
-	  fdtype v=fd_apply((struct FD_FUNCTION *)proc,0,NULL);
+	  fdtype v=fd_apply(proc,0,NULL);
 	  fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
-      fdtype v=fd_apply((struct FD_FUNCTION *)setup_proc,0,NULL);
+      fdtype v=fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
     fd_decref(setup_proc);
     write_headers=0;

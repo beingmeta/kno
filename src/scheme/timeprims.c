@@ -84,7 +84,7 @@ static fdtype timestamp_prim(fdtype arg)
   else if (FD_FIXNUMP(arg)) {
     u8_offtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),0);
     return FDTYPE_CONS(tm);}
-  else if (FD_PRIM_TYPEP(arg,fd_bigint_type)) {
+  else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
     int tv=fd_bigint2int((fd_bigint)arg);
     u8_offtime(&(tm->xtime),(time_t)tv,0);
     return FDTYPE_CONS(tm);}
@@ -93,7 +93,7 @@ static fdtype timestamp_prim(fdtype arg)
 
 static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
 {
-  if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+  if (FD_PTR_TYPEP(arg,fd_timestamp_type)) {
     *freeit=0;
     return FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);}
   else if (FD_STRINGP(arg)) {
@@ -428,7 +428,7 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base)
   fdtype result;
   if (FD_VOIDP(base)) 
     result=timestamp_prim(FD_VOID);
-  else if (FD_PRIM_TYPEP(base,fd_timestamp_type)) 
+  else if (FD_PTR_TYPEP(base,fd_timestamp_type)) 
     result=fd_deep_copy(base); 
   else result=timestamp_prim(base);
   if (FD_ABORTP(result)) return result;

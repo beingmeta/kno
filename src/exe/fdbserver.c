@@ -193,7 +193,7 @@ static fdtype config_use_module(fdtype var,fdtype val,void *data)
   else if (FD_HASHTABLEP(module)) 
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
-  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+  else if (FD_PTR_TYPEP(module,fd_environment_type)) {
     FD_ENVIRONMENT *env=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (FD_HASHTABLEP(env->exports))
@@ -206,7 +206,7 @@ static fdtype config_use_module(fdtype var,fdtype val,void *data)
   else if (FD_HASHTABLEP(module)) 
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
-  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+  else if (FD_PTR_TYPEP(module,fd_environment_type)) {
     FD_ENVIRONMENT *env=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (FD_HASHTABLEP(env->exports))
@@ -341,7 +341,7 @@ int main(int argc,char **argv)
       if (FD_VOIDP(startup_proc)) {}
       else {
 	FD_DO_CHOICES(p,startup_proc) {
-	  fdtype result=fd_apply((fd_function)p,0,NULL);
+	  fdtype result=fd_apply(p,0,NULL);
 	  if (FD_ABORTP(result))
 	    exit(fd_interr(result));
 	  else fd_decref(result);}}}

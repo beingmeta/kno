@@ -434,7 +434,7 @@ fdtype fd_text_domatch
 	fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
 	fd_decref(v); return result;}}
     else return fd_err(fd_UnboundIdentifier,"fd_text_matcher",NULL,pat);
-  else if (FD_PRIM_TYPEP(pat,fd_txclosure_type)) {
+  else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return fd_text_matcher(txc->pattern,txc->env,string,off,lim,flags);}
   else return fd_err(fd_MatchSyntaxError,"fd_text_matcher",NULL,pat);
@@ -615,7 +615,7 @@ static fdtype textract
       fd_decref(lengths); fd_decref(v);
       return answers;}
     else return fd_err(fd_UnboundIdentifier,"fd_text_matcher",NULL,pat);
-  else if (FD_PRIM_TYPEP(pat,fd_txclosure_type)) {
+  else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
   else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);
@@ -1139,7 +1139,7 @@ static fdtype subst_extract
 	    if (n<0) replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
 	    else {
 	      args[0]=tmpstring;
-	      replacement=fd_apply((fd_function)method,n,args);}
+	      replacement=fd_apply(method,n,args);}
 	    fd_decref(tmpstring);}
 	  fd_decref(method);}
 	if (FD_ABORTP(replacement)) {
@@ -2625,7 +2625,7 @@ static u8_byteoff ismailid_search
 
 static fd_hashset to_hashset(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_hashset_type)) 
+  if (FD_PTR_TYPEP(arg,fd_hashset_type)) 
     return (fd_hashset)arg;
   else return NULL;
 }
@@ -2638,7 +2638,7 @@ static fdtype hashset_match
   fdtype cpat=fd_get_arg(pat,2);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_match",NULL,pat);
-  else if (!(FD_PRIM_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
   else {
     fd_hashset h=to_hashset(hs);
@@ -2658,7 +2658,7 @@ static u8_byteoff hashset_search
   fdtype cpat=fd_get_arg(pat,2);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_search",NULL,pat);
-  else if (!(FD_PRIM_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
   else {
     fd_hashset h=to_hashset(hs);
@@ -2678,7 +2678,7 @@ static fdtype hashset_not_match
   fdtype cpat=fd_get_arg(pat,2);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_match",NULL,pat);
-  else if (!(FD_PRIM_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_match",pat);
   else {
     fd_hashset h=to_hashset(hs);
@@ -2698,7 +2698,7 @@ static u8_byteoff hashset_not_search
   fdtype cpat=fd_get_arg(pat,2);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_search",NULL,pat);
-  else if (!(FD_PRIM_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_search",pat);
   else {
     fd_hashset h=to_hashset(hs);
@@ -2851,7 +2851,7 @@ u8_byteoff fd_text_search
     else {
       fd_seterr(fd_UnboundIdentifier,"fd_text_search",NULL,fd_incref(pat));
       return -2;}
-  else if (FD_PRIM_TYPEP(pat,fd_txclosure_type)) {
+  else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);
     return fd_text_search(txc->pattern,txc->env,string,off,lim,flags);}
   else {
