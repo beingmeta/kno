@@ -12,7 +12,8 @@ static char versionid[] =
 #include <stdarg.h>
 #include <time.h>
 
-static int fdlisp_initialized=0;
+static int fdtype_initialized=0;
+double fd_load_start=-1.0;
 
 static u8_string session_id;
 #if FD_THREADS_ENABLED
@@ -74,14 +75,15 @@ static init_type_names()
   fd_type_names[fd_timestamp_type]=_("timestamp");
 }
 
-static int fdlisp_version=101;
+static int fdtype_version=101;
 
 FD_EXPORT int fd_init_dtypelib()
 {
   int u8_version;
-  if (fdlisp_initialized) return fdlisp_initialized;
+  if (fdtype_initialized) return fdtype_initialized;
+  fd_load_start=u8_elapsed_time();
   u8_version=u8_initialize();
-  fdlisp_initialized=fdlisp_version*u8_version;
+  fdtype_initialized=fdtype_version*u8_version;
 
   fd_register_source_file(versionid);
 
@@ -97,7 +99,7 @@ FD_EXPORT int fd_init_dtypelib()
   fd_init_numbers_c();
   fd_init_choices_c();
   fd_init_support_c();
-  return fdlisp_initialized;
+  return fdtype_initialized;
 }
 
 

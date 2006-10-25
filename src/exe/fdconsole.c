@@ -77,7 +77,6 @@ static int historicp(fdtype x)
   else return 1;
 }
 
-static double started_at;
 static time_t boot_time;
 
 static u8_string stats_message=
@@ -90,7 +89,6 @@ static double startup_time=-1.0;
 int main(int argc,char **argv)
 {
   unsigned char data[1024], *input;
-  double started_at=u8_elapsed_time();
   time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
   fdtype lastval=FD_VOID, that_symbol, histref_symbol;
@@ -160,7 +158,7 @@ int main(int argc,char **argv)
     showtime=FD_FLONUM(showtime_config);
   fd_histinit(0);
   fd_decref(showtime_config);
-  startup_time=u8_elapsed_time()-started_at;
+  startup_time=u8_elapsed_time()-fd_load_start;
   if (FD_VOIDP(quiet_config))  {
     u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
 	       SVN_REVISION,startup_time,fd_n_pools,
