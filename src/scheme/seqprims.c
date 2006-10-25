@@ -921,7 +921,8 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 
 static fdtype removeif_prim(fdtype test,fdtype sequence)
 {
-  if (FD_CHOICEP(sequence)) {
+  if (FD_EMPTY_CHOICEP(sequence)) return sequence;
+  else if (FD_CHOICEP(sequence)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(seq,sequence) {
       fdtype r=fd_removeif(test,seq);
