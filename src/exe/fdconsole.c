@@ -260,29 +260,28 @@ int main(int argc,char **argv)
       else if ((FD_CHOICE_SIZE(result)>16) && (is_histref==0)) {
 	/* Truncated output for large result sets. */
 	int n=FD_CHOICE_SIZE(result), count=0;
-	u8_printf(out,_("{ ;; here are 9 of %d results stored in ##%d\n"),
-		  n,histref);
+	u8_printf(out,_("{ ;; ##%d= (9/%d results)\n"),histref,n);
 	{FD_DO_CHOICES(elt,result) {
 	  if (count>8) {FD_STOP_DO_CHOICES; break;}
 	  else {
 	    if (historicp(elt))
-	      u8_printf(out,"  %q ;##%d\n",elt,fd_histpush(elt));
+	      u8_printf(out,"  %q ;=##%d\n",elt,fd_histpush(elt));
 	    else u8_printf(out,"  %q\n",elt);
 	    count++;}}
 	u8_printf(out,"  ;; ...................\n");
-	u8_printf(out,_("} ;; %d results stored in ##%d\n"),n,histref);}}
+	u8_printf(out,_("} ;; =##%d (%d results)\n"),histref,n);}}
       else {
 	int n=FD_CHOICE_SIZE(result);
-	u8_printf(out,_("{ ;; %d results stored in ##%d\n"),n,histref);
+	u8_printf(out,_("{ ;; ##%d= (%d results)\n"),histref,n);
 	fd_prefetch_oids(result);
 	{FD_DO_CHOICES(elt,result) {
 	  if (historicp(elt))
-	    u8_printf(out,"  %q ;##%d\n",elt,fd_histpush(elt));
+	    u8_printf(out,"  %q ;=##%d\n",elt,fd_histpush(elt));
 	  else u8_printf(out,"  %q\n",elt);}}
-	u8_printf(out,_("} ;; %d results stored in ##%d\n"),n,histref);}
-    else if ((histref<0) || (stat_line))
+	u8_printf(out,_("} ;; =##%d (%d results)\n"),histref,n);}
+    else if (histref<0)
       u8_printf(out,"%q\n",result);
-    else u8_printf(out,"%q  ;; =>##%d\n",result,histref);
+    else u8_printf(out,"%q  ;; =##%d\n",result,histref);
     if  (stat_line)
       if (histref<0)
 	u8_printf (out,stats_message,
