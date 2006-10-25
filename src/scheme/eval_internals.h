@@ -36,12 +36,12 @@ static fdtype eval_body(fdtype body,fd_lispenv inner_env)
     if (FD_ABORTP(result))
       if (FD_THROWP(result))
 	return result;
-      else return passerr_env(result,inner_env);
+      else return fd_passerr(result,copy_bindings(inner_env));
     else {fd_decref(result);}
     result=fasteval(bodyexpr,inner_env);}
   if (FD_THROWP(result)) return result;
   else if (FD_ABORTP(result))
-    return passerr_env(result,inner_env);
+    return fd_passerr(result,copy_bindings(inner_env));
   else return result;
 }
 
