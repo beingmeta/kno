@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: biginternals.h,v 1.5 2005/06/20 01:53:11 haase Exp $
+$Id$
 
 Copyright (c) 1989-1992 Massachusetts Institute of Technology
 

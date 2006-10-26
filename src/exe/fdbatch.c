@@ -1,5 +1,5 @@
 static char versionid[] =
-  "$Id: fdexec.c 475 2006-08-19 11:19:35Z haase $";
+  "$Id$";
 
 #define FDEXEC_INCLUDED 1
 

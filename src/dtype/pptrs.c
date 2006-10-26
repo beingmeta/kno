@@ -13,7 +13,7 @@
 */
 
 static char versionid[] =
-  "$Id: symbols.c 386 2006-07-30 11:26:53Z haase $";
+  "$Id$";
 
 #define FD_INLINE_PPTRS 1
 
