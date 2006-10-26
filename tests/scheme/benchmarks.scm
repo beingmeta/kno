@@ -13,12 +13,12 @@
       (fib-iter (+ 1 a b) a (- count 1))))
 
 (define (fact n)
-  (if (= n 0) 1 (* n (fact (1- n)))))
+  (if (= n 0) 1 (* n (fact (- n 1)))))
 
 (define (facttr n) (fact-iter 1 n))
 (define (fact-iter f n)
   (if (= n 0) f
-      (fact-iter (* n f) (1- n))))
+      (fact-iter (* n f) (- n 1))))
 
 (define (fibflt n)
   (cond ((< n 2.0) 1.0)
@@ -82,8 +82,8 @@ o    retval))
     (dotimes (i 10)
       (set! v (eval-AtA-times-u n u))
       (set! u (eval-AtA-times-u n v)))
-      (let ((vBv 0.0d0)
-            (vv 0.0d0))
+      (let ((vBv 0.0)
+            (vv 0.0))
         (dotimes (i n)
           (set! vBv (+ vBv (* (elt u i) (elt v i))))
           (set! vv (+ vv (* (elt v i) (elt v i)))))
