@@ -125,7 +125,7 @@ static fdtype heads_symbol, mods_symbol;
 static fdtype sstrange_word, sproper_name, sdashed_word, sdashed_sword;
 static fdtype ed_word, ing_word, ly_word, punctuation_symbol, stime_ref;
 static fdtype sscore, snumber, sdollars, spossessive, sproper_possessive;
-static fdtype sentence_end_symbol, sxproper_name;
+static fdtype sentence_end_symbol, sxproper_name, sxproper_possessive;
 
 static fdtype parse_failed_symbol;
 
@@ -520,6 +520,23 @@ static fdtype get_verb_root(fd_parse_context pcxt,fdtype key)
   else return fd_index_get(pcxt->grammar->verb_roots,key);
 }
 
+static int possessive_namep(fd_parse_context pc,u8_string string)
+{
+  struct U8_OUTPUT ls; u8_string scan=string; int c;
+  fdtype key, data;
+  U8_INIT_OUTPUT(&ls,32);
+  while ((c=u8_sgetc(&scan))>=0) {
+    if (c=='\'') break;
+    u8_putc(&ls,u8_tolower(c));}
+  key=fd_init_string(NULL,ls.u8_outptr-ls.u8_outbuf,ls.u8_outbuf);
+  data=get_lexinfo(pc,key);
+  if (FD_VOIDP(data)) {
+    fd_decref(key); return 1;}
+  else {
+    fd_decref(key); fd_decref(data);
+    return 0;}
+}
+
 
 /* Sentences into words */
 
@@ -853,9 +870,15 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   if (!(FD_EMPTY_CHOICEP(value))) capitalized_in_lexicon=1;
   /* Here are the default rules for getting POS data */
   else if (possessivep(spelling))
-    if (capitalized) {
-      value=lexicon_fetch(lex,sproper_possessive); 
-      capitalized_in_lexicon=1;}
+    if (capitalized)
+      if (capitalized_in_lexicon)
+	value=lexicon_fetch(lex,sproper_possessive);
+      else if (!(oddcaps))
+	value=lexicon_fetch(lex,sproper_possessive);
+      else if (possessive_namep(pc,spelling)) {
+	value=lexicon_fetch(lex,sproper_possessive);
+	capitalized_in_lexicon=1;}
+      else value=lexicon_fetch(lex,sxproper_possessive);
     else value=lexicon_fetch(lex,spossessive);
   else if (isdigit(first_char))
     if (strchr(spelling,'-')) value=lexicon_fetch(lex,sscore);
@@ -1546,6 +1569,7 @@ static fdtype allcaps_symbol, whole_symbol, timing_symbol, source_symbol, textpo
 static interpret_parse_flags(fdtype arg)
 {
   int flags=FD_TAGGER_DEFAULT_FLAGS;
+  if (FD_QCHOICEP(arg)) arg=FD_XQCHOICE(arg)->choice;
   if (fd_overlapp(arg,xml_symbol)) 
     flags=flags|FD_TAGGER_SKIP_MARKUP;
   if (fd_overlapp(arg,plaintext_symbol))
@@ -1900,6 +1924,7 @@ static void init_parser_symbols()
   sdollars=fd_intern("%DOLLARS");
   spossessive=fd_intern("%POSSESSIVE");
   sproper_possessive=fd_intern("%PROPER-POSSESSIVE");
+  sxproper_possessive=fd_intern("%XPROPER-POSSESSIVE");
 
   lexget_symbol=fd_intern("LEXGET");
   verb_root_symbol=fd_intern("VERB-ROOT");
