@@ -38,6 +38,12 @@
 #define FD_GLOBAL_IPEVAL 0
 #endif
 
+/* This is set to make incref/decref into no-ops, which is helpful
+   for ablative benchmarking.  */
+#ifndef FD_NO_GC
+#define FD_NO_GC 0
+#endif
+
 /* This is true (1) for executables built in the tests/ subdirectories.
    If true, the executables call the various module init functions 
    (e.g. fd_init_texttools()) directly; when dynamically linked, the
