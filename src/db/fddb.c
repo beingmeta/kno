@@ -357,12 +357,12 @@ FD_EXPORT int fd_swapcheck()
     return -1;}
   else return 0;
   if (usage<(membase+memgap)) return 0;
-  u8_lock_mutex(&fd_swapcheck_lock);
+  fd_lock_mutex(&fd_swapcheck_lock);
   if (membase==0) {
     membase=usage;
     u8_notify(SwapCheck,"Initializing membase=%ld",
 	      membase);
-    u8_unlock_mutex(&fd_swapcheck_lock);
+    fd_unlock_mutex(&fd_swapcheck_lock);
     return;}
   if (usage>(membase+memgap)) {
     u8_notify(SwapCheck,"Swapping because %ld>%ld+%ld",
@@ -373,9 +373,9 @@ FD_EXPORT int fd_swapcheck()
     membase=u8_memusage();
     u8_notify(SwapCheck,"Swapped out, new membase=%ld",
 	      membase);
-    u8_unlock_mutex(&fd_swapcheck_lock);}
+    fd_unlock_mutex(&fd_swapcheck_lock);}
   else {
-    u8_unlock_mutex(&fd_swapcheck_lock);}
+    fd_unlock_mutex(&fd_swapcheck_lock);}
   return 1;
 }
 
@@ -412,7 +412,7 @@ FD_EXPORT int fd_init_db()
   oid_name_slotids=fd_make_list(2,fd_intern("%ID"),fd_intern("OBJ-NAME"));
 
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&fd_swapcheck_lock);
+  fd_init_mutex(&fd_swapcheck_lock);
 #endif
 
   fd_register_config("CACHELEVEL",

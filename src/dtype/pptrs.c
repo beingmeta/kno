@@ -41,9 +41,9 @@ FD_EXPORT fdtype fd_pptr_register(fdtype x)
   int serialno;
   if (!(FD_CONSP(x)))
     return fd_type_error("cons","fd_pptr_register",x);
-  u8_lock_mutex(&_fd_pptr_lock);
+  fd_lock_mutex(&_fd_pptr_lock);
   if (_fd_npptrs>=FD_PPTR_MAX) {
-    u8_unlock_mutex(&_fd_pptr_lock);
+    fd_unlock_mutex(&_fd_pptr_lock);
     return fd_err(fd_PPtrOverflow,"fd_register_pptr",NULL,x);}
   serialno=_fd_npptrs++;
   if ((serialno%FD_PPTR_BLOCKSIZE)==0) {
@@ -54,7 +54,7 @@ FD_EXPORT fdtype fd_pptr_register(fdtype x)
   fd_incref(x);
   _fd_pptrs[serialno/FD_PPTR_BLOCKSIZE][serialno%FD_PPTR_BLOCKSIZE]=
     (struct FD_CONS *)x;
-  u8_unlock_mutex(&_fd_pptr_lock);
+  fd_unlock_mutex(&_fd_pptr_lock);
   return FDTYPE_IMMEDIATE(fd_pptr_type,serialno);
 }
 

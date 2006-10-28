@@ -1,3 +1,9 @@
+(define (do-n-inner n proc args)
+   (if (> n 0)
+       (begin (apply proc args)
+	      (do-n-inner (- n 1) proc args))))
+(define (do-n n proc . args) (do-n-inner n proc args))
+
 (define (ack m n)
     (cond ((zero? m) (+ n 1))
 	  ((zero? n) (ack (- m 1) 1))

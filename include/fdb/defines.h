@@ -26,6 +26,7 @@
 #define FD_FASTOP static
 #endif
 
+/* This is for C profiling and helps generate code which is easier to profile. */
 #ifndef FD_PROFILING_ENABLED
 #define FD_PROFILING_ENABLED 0
 #endif

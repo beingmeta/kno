@@ -114,12 +114,6 @@ static void calltrack_return(u8_string name)
     double timer=u8_elapsed_time();
     fprintf(f,"< %s %f %d %d\n",name,timer,ocache,kcache);}
 }
-#else
-#define get_calltrack_logfile() (NULL)
-#define calltrack_call(x)
-#define calltrack_return(x)
-#endif
-
 FD_EXPORT
 void fd_calltrack_call(u8_string name)
 {
@@ -131,6 +125,12 @@ void fd_calltrack_return(u8_string name)
 {
   calltrack_return(name);
 }
+
+#else
+#define get_calltrack_logfile() (NULL)
+#define calltrack_call(x) (x)
+#define calltrack_return(x) (x)
+#endif
 
 /* Calltrack configuration */
 
@@ -149,7 +149,7 @@ static int set_calltrack(fdtype ignored,void *lval)
 	      u8_strdup(_("not a pathname")),fd_incref(path_arg));
     return -1;}
 #else
-  fd_seterr(fd_NoCalltrack,"config_set_calltrack",NULL,FD_VOID);
+  fd_seterr(fd_ProfilingDisabled,"config_set_calltrack",NULL,FD_VOID);
   return -1;
 #endif
 }

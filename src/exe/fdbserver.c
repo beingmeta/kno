@@ -233,11 +233,11 @@ static fdtype get_uptime()
 
 static void init_server()
 {
-  u8_lock_mutex(&init_server_lock);
+  fd_lock_mutex(&init_server_lock);
   if (server_initialized) return;
   server_initialized=1;
   u8_server_init(&dtype_server,max_tasks,n_threads,simply_accept,dtypeserver,close_fdclient);
-  u8_unlock_mutex(&init_server_lock);
+  fd_unlock_mutex(&init_server_lock);
 }
 
 int main(int argc,char **argv)
