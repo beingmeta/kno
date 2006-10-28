@@ -120,10 +120,7 @@ FD_EXPORT void fd_recycle_cons(struct FD_CONS *);
 FD_EXPORT fdtype fd_copy(fdtype x);
 FD_EXPORT fdtype fd_deep_copy(fdtype x);
 
-#if FD_NO_GC
-#define fd_incref(x) (x)
-#define fd_decref(x) (x)
-#else
+#if (!(FD_NO_GC))
 static fdtype _fd_incref(struct FD_CONS *x) 
 {
   FD_LOCK_PTR(x);
@@ -161,6 +158,9 @@ static void _fd_decref(struct FD_CONS *x)
    ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref(FD_CONS_DATA(x))))
 #define fd_decref(x) \
    ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_decref(FD_CONS_DATA(x)),FD_VOID))
+#else
+#define fd_incref(x) (x)
+#define fd_decref(x) (x)
 #endif
 
 /* Conses */
