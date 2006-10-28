@@ -263,7 +263,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       return fd_applyfns[ctype]((fdtype)f,n,argvec);}
     else return f->handler.calln(n,argvec);
   /* Fill in the rest of the argvec */
-  if ((n <= f->arity) && (n>=f->min_arity)) {
+  if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
     if (FD_EXPECT_FALSE(n<f->arity)) {
       /* Fill in defaults */
       int i=0; fdtype *defaults=f->defaults;
@@ -275,7 +275,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       else while (i<f->arity) {args[i]=FD_VOID; i++;}}
     else args=argvec;
     /* Check typeinfo */
-    if (FD_EXPECT_FALSE(f->typeinfo)) {
+    if (FD_EXPECT_FALSE((f->typeinfo!=NULL))) {
       /* Check typeinfo */
       int *typeinfo=f->typeinfo;
       int i=0;
