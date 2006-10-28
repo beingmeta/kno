@@ -257,14 +257,15 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype argbuf[8], *args;
-  if (f->arity<0)
+  if (FD_EXPECT_FALSE(f->arity<0))
     if (f->xprim) {
       int ctype=FD_CONS_TYPE(f);
       return fd_applyfns[ctype]((fdtype)f,n,argvec);}
     else return f->handler.calln(n,argvec);
   /* Fill in the rest of the argvec */
   if ((n <= f->arity) && (n>=f->min_arity)) {
-    if (n<f->arity) {
+    if (FD_EXPECT_FALSE(n<f->arity)) {
+      /* Fill in defaults */
       int i=0; fdtype *defaults=f->defaults;
       if (f->arity<=8) args=argbuf;
       else args=u8_malloc(sizeof(fdtype)*(f->arity));
@@ -274,7 +275,8 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       else while (i<f->arity) {args[i]=FD_VOID; i++;}}
     else args=argvec;
     /* Check typeinfo */
-    if (f->typeinfo) {
+    if (FD_EXPECT_FALSE(f->typeinfo)) {
+      /* Check typeinfo */
       int *typeinfo=f->typeinfo;
       int i=0;
       while (i<n)
@@ -289,7 +291,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 	      return fd_type_error(type_name,f->name,args[i]);
 	    else return fd_type_error(type_name,f->name,args[i]);}
 	else i++;}
-    if ((f->xprim) &&  (f->handler.fnptr==NULL)) {
+    if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
       int ctype=FD_CONS_TYPE(f);
       if ((args==argbuf) || (args==argvec))
 	return fd_applyfns[ctype]((fdtype)f,n,args);
