@@ -1,3 +1,10 @@
+/* -*- Mode: C; -*- */
+
+/* Copyright (C) 2006 beingmeta, inc.
+   This file is part of beingmeta's FDB platform and is copyright 
+   and a valuable trade secret of beingmeta, inc.
+*/
+
 static char versionid[] =
   "$Id$";
 
@@ -23,11 +30,9 @@ static u8_string get_logfile(u8_string abspath)
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else {
-    u8_string simple=u8_string_append(abspath,".log",NULL);
-    if (u8_file_existsp(simple)) {
-      u8_free(simple);
-      return u8_mkstring("%s_%d.log",abspath,getpid());}
-    else return simple;}
+    u8_string simple=u8_mkstring("%s.log",abspath);
+    if (u8_file_existsp(simple)) u8_removefile(simple);
+    return simple;}
 }
 
 static u8_string get_errfile(u8_string abspath)
@@ -36,11 +41,9 @@ static u8_string get_errfile(u8_string abspath)
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else {
-    u8_string simple=u8_string_append(abspath,".err",NULL);
-    if (u8_file_existsp(simple)) {
-      u8_free(simple);
-      return u8_mkstring("%s_%d.err",abspath,getpid());}
-    else return simple;}
+    u8_string simple=u8_mkstring("%s.err",abspath);
+    if (u8_file_existsp(simple)) u8_removefile(simple);
+    return simple;}
 }
 
 static u8_string get_donefile(u8_string abspath)
@@ -50,10 +53,8 @@ static u8_string get_donefile(u8_string abspath)
     return u8_strdup(FD_STRDATA(as_configured));
   else {
     u8_string simple=u8_string_append(abspath,".done",NULL);
-    if (u8_file_existsp(simple)) {
-      u8_free(simple);
-      return u8_mkstring("%s_%d.done",abspath,getpid());}
-    else return simple;}
+    if (u8_file_existsp(simple)) u8_removefile(simple);
+    return simple;}
 }
 
 static u8_string get_diedfile(u8_string abspath)
@@ -63,10 +64,8 @@ static u8_string get_diedfile(u8_string abspath)
     return u8_strdup(FD_STRDATA(as_configured));
   else {
     u8_string simple=u8_string_append(abspath,".died",NULL);
-    if (u8_file_existsp(simple)) {
-      u8_free(simple);
-      return u8_mkstring("%s_%d.died",abspath,getpid());}
-    else return simple;}
+    if (u8_file_existsp(simple)) u8_removefile(simple);
+    return simple;}
 }
 
 static u8_string pid_file=NULL, died_file=NULL;
@@ -179,7 +178,7 @@ int main(int argc,char **argv)
       FILE *f=u8_fopen(done_file,"w");
       if (f) {
 	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",base,retval);
+	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",argv[1],retval);
 	u8_fclose(f);
 	if (died_file) {
 	  if (u8_file_existsp(died_file))
@@ -190,7 +189,7 @@ int main(int argc,char **argv)
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
 	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"%s died at %*iMSt, retval=%d",base,retval);
+	u8_fprintf(f,"%s died at %*iMSt, retval=%d",argv[1],retval);
 	u8_fclose(f);}
       died_file=NULL;}
     return retval;}
