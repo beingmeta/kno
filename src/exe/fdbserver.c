@@ -13,6 +13,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
+#include "fdb/indices.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -30,6 +31,8 @@ static char versionid[] =
 #include <time.h>
 #include <signal.h>
 #include <stdio.h>
+
+#include "revision.h"
 
 static fd_exception BadPortSpec=_("Bad port spec");
 static u8_condition NoServers=_("NoServers");
@@ -384,6 +387,11 @@ int main(int argc,char **argv)
   if (fullscheme==0) {
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
   if (n_ports>0) {
+    u8_message("FramerD (r%s) fdbserver running, %d/%d pools/indices",
+	       SVN_REVISION,fd_n_pools,
+	       fd_n_primary_indices+fd_n_secondary_indices);
+    u8_message
+      ("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
     u8_notify(ServerStarted,"Serving on %d sockets",n_ports);
     u8_server_loop(&dtype_server);
     return 0;}

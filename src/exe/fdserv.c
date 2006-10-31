@@ -13,6 +13,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
+#include "fdb/indices.h"
 #include "fdb/fdweb.h"
 #include "fdb/fileprims.h"
 
@@ -29,6 +30,8 @@ static char versionid[] =
 #include <sys/stat.h>
 #include <time.h>
 #include <signal.h>
+
+#include "revision.h"
 
 /* Logging declarations */
 static u8_mutex log_lock;
@@ -706,6 +709,10 @@ int main(int argc,char **argv)
 
   portfile=u8_strdup(argv[1]);
 
+  u8_message("FramerD (r%s) fdserv servlet running, %d/%d pools/indices",
+	     SVN_REVISION,fd_n_pools,
+	     fd_n_primary_indices+fd_n_secondary_indices);
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
   u8_server_loop(&fdwebserver);
 
   return 0;
