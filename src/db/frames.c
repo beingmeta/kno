@@ -174,8 +174,10 @@ static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 FD_EXPORT void fd_clear_slotcache(fdtype slotid)
 {
   fd_lock_mutex(&slotcache_lock);
-  fd_hashtable_store(&slot_caches,slotid,FD_VOID);
-  fd_hashtable_store(&test_caches,slotid,FD_VOID);
+  if (fd_hashtable_probe(&slot_caches,slotid))
+    fd_hashtable_store(&slot_caches,slotid,FD_VOID);
+  if (fd_hashtable_probe(&test_caches,slotid))
+    fd_hashtable_store(&test_caches,slotid,FD_VOID);
   fd_unlock_mutex(&slotcache_lock);
 }
 
@@ -317,9 +319,12 @@ FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
 FD_EXPORT void fd_clear_slotcaches()
 {
   fd_lock_mutex(&slotcache_lock);
-  fd_reset_hashtable(&slot_caches,17,1);
-  fd_reset_hashtable(&test_caches,17,1);
-  fd_reset_hashtable(&implications,17,1);
+  if (slot_caches.n_keys)
+    fd_reset_hashtable(&slot_caches,17,1);
+  if (test_caches.n_keys)
+    fd_reset_hashtable(&test_caches,17,1);
+  if (implications.n_keys)
+    fd_reset_hashtable(&implications,17,1);
   fd_unlock_mutex(&slotcache_lock);
 }
 
@@ -774,6 +779,25 @@ FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...)
 FD_EXPORT int fd_bg_prefetch(fdtype keys)
 {
   if (fd_background) fd_index_prefetch((fd_index)fd_background,keys);
+}
+
+/* Checking the cache load for the slot/test caches */
+
+static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
+{
+  if (FD_HASHTABLEP(v)) {
+    fd_hashtable h=(fd_hashtable)v;
+    int *count=(int *)ptr;
+    *count=*count+h->n_keys;}
+  return 0;
+}
+
+FD_EXPORT int fd_slot_cache_load()
+{
+  int count=0;
+  fd_for_hashtable(&slot_caches,hashtable_cachecount,&count,1);
+  fd_for_hashtable(&test_caches,hashtable_cachecount,&count,1);
+  return count;
 }
 
 

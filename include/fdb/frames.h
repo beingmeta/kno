@@ -23,6 +23,7 @@ FD_EXPORT fdtype fd_adjunct_slotids;
 
 FD_EXPORT fdtype fd_method_table;
 
+FD_EXPORT int  fd_slot_cache_load(void);
 FD_EXPORT void fd_clear_slotcaches(void);
 FD_EXPORT void fd_clear_slotcache(fdtype slotid);
 FD_EXPORT void fd_clear_slotcache_entry(fdtype slotid,fdtype frame);

@@ -114,6 +114,7 @@ static fdtype fd_finish_call(fdtype pt)
 
 /* Cache calls */
 
+FD_EXPORT int fd_callcache_load(void);
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
 FD_EXPORT void fd_clear_callcache(fdtype arg);
 

@@ -346,9 +346,15 @@ static long membase=0;
 u8_mutex fd_swapcheck_lock;
 #endif
 
+static int cache_load()
+{
+  return fd_object_cache_load()+fd_index_cache_load()+
+    fd_slot_cache_load()+fd_callcache_load();
+}
+
 FD_EXPORT int fd_swapcheck()
 {
-  int memgap; unsigned long usage=u8_memusage();
+  int memgap; unsigned long usage=cache_load();
   fdtype l_memgap=fd_config_get("SWAPCHECK");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {
@@ -358,12 +364,6 @@ FD_EXPORT int fd_swapcheck()
   else return 0;
   if (usage<(membase+memgap)) return 0;
   fd_lock_mutex(&fd_swapcheck_lock);
-  if (membase==0) {
-    membase=usage;
-    u8_notify(SwapCheck,"Initializing membase=%ld",
-	      membase);
-    fd_unlock_mutex(&fd_swapcheck_lock);
-    return;}
   if (usage>(membase+memgap)) {
     u8_notify(SwapCheck,"Swapping because %ld>%ld+%ld",
 	      usage,membase,memgap);

@@ -721,7 +721,7 @@ static int accumulate_cachecount(fd_index ix,void *ptr)
 }
 
 FD_EXPORT
-int fd_cachecount_indices()
+int fd_index_cache_load()
 {
   int result=0, retval;
   retval=fd_for_indices(accumulate_cachecount,(void *)&result);

@@ -533,13 +533,13 @@ static fdtype cachecount(fdtype arg)
 {
   fd_pool p=NULL; fd_index ix=NULL;
   if (FD_VOIDP(arg)) {
-    int count=fd_cachecount_pools()+fd_cachecount_indices();
+    int count=fd_object_cache_load()+fd_index_cache_load();
     return FD_INT2DTYPE(count);}
   else if (FD_EQ(arg,pools_symbol)) {
-    int count=fd_cachecount_pools();
+    int count=fd_object_cache_load();
     return FD_INT2DTYPE(count);}
   else if (FD_EQ(arg,indices_symbol)) {
-    int count=fd_cachecount_indices();
+    int count=fd_index_cache_load();
     return FD_INT2DTYPE(count);}
   else if (p=(fd_lisp2pool(arg))) {
     int count=p->cache.n_keys;

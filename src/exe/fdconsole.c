@@ -177,8 +177,8 @@ int main(int argc,char **argv)
     double start_time, finish_time;
     fdtype result, expr;
     int histref=-1, stat_line=0, is_histref=0;
-    start_ocache=fd_cachecount_pools();
-    start_icache=fd_cachecount_indices();
+    start_ocache=fd_object_cache_load();
+    start_icache=fd_index_cache_load();
     if (c == '=') {
       fdtype sym=fd_parser((u8_input)in,NULL);
       if (FD_SYMBOLP(sym)) {
@@ -214,8 +214,8 @@ int main(int argc,char **argv)
       result=fd_dtsread_dtype(eval_server);}
     else result=fd_eval(expr,env);
     finish_time=u8_elapsed_time();
-    finish_ocache=fd_cachecount_pools();
-    finish_icache=fd_cachecount_indices();
+    finish_ocache=fd_object_cache_load();
+    finish_icache=fd_index_cache_load();
     if (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
 	  (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
 	  (FD_TRUEP(result)) || (FD_FALSEP(result)) ||

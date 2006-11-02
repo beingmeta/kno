@@ -102,7 +102,7 @@ static void calltrack_call(u8_string name)
 {
   FILE *f=get_calltrack_logfile();
   if (f) {
-    int ocache=fd_cachecount_pools(), kcache=fd_cachecount_indices();
+    int ocache=fd_object_cache_load(), kcache=fd_index_cache_load();
     double timer=u8_elapsed_time();
     fprintf(f,"> %s %f %d %d\n",name,timer,ocache,kcache);}
 }
@@ -110,7 +110,7 @@ static void calltrack_return(u8_string name)
 {
   FILE *f=get_calltrack_logfile();
   if (f) {
-    int ocache=fd_cachecount_pools(), kcache=fd_cachecount_indices();
+    int ocache=fd_object_cache_load(), kcache=fd_index_cache_load();
     double timer=u8_elapsed_time();
     fprintf(f,"< %s %f %d %d\n",name,timer,ocache,kcache);}
 }
@@ -680,8 +680,26 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
 
 FD_EXPORT void fd_clear_callcache(fdtype arg)
 {
+  if (fcn_caches.n_keys==0) return;
   if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
-  else fd_hashtable_store(&fcn_caches,arg,FD_VOID);
+  else if (fd_hashtable_probe(&fcn_caches,arg))
+    fd_hashtable_store(&fcn_caches,arg,FD_VOID);
+}
+
+static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
+{
+  if (FD_HASHTABLEP(v)) {
+    fd_hashtable h=(fd_hashtable)v;
+    int *count=(int *)ptr;
+    *count=*count+h->n_keys;}
+  return 0;
+}
+
+FD_EXPORT int fd_callcache_load()
+{
+  int count=0;
+  fd_for_hashtable(&fcn_caches,hashtable_cachecount,&count,1);
+  return count;
 }
 
 /* Initializations */

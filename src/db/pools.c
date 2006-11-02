@@ -955,7 +955,7 @@ static int accumulate_cachecount(fd_pool p,void *ptr)
 }
 
 FD_EXPORT
-int fd_cachecount_pools()
+int fd_object_cache_load()
 {
   int result=0, retval;
   retval=fd_for_pools(accumulate_cachecount,(void *)&result);
