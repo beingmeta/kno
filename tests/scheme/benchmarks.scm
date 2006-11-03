@@ -73,7 +73,7 @@
     (dotimes (i n)
       (dotimes (j n)
 	(vector-set! retval i (* (eval-A i j) (elt u j)))))
-o    retval))
+    retval))
 
 (define (eval-At-times-u n u)
   (let ((retval (make-vector n 0.0)))
