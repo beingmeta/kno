@@ -61,7 +61,7 @@ FD_EXPORT fdtype fd_pptr_register(fdtype x)
 static int unparse_pptr(u8_output out,fdtype x)
 {
   fdtype lp=fd_pptr_ref(x);
-  u8_printf(out,"~%q",lp);
+  u8_printf(out,"#~%q",lp);
   return 1;
 }
 
