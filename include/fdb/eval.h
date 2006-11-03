@@ -159,7 +159,7 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
   int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up=code/32, across=code%32;
   while ((env) && (up)) {env=env->parent; up--;}
-  if (FD_EXPECT_TRUE(env)) {
+  if (FD_EXPECT_TRUE(env!=NULL)) {
     fdtype bindings=env->bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) { 
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
