@@ -471,6 +471,7 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
       argval=fd_simplify_choice(argval);
       if (FD_CONSP(argval)) args_need_gc=1;
       /* Keep track of what kind of evaluation you might need to do. */
+      if (FD_CHOICEP(argval)) nd_args=1; /* QCHOICES get thawed */
       if (FD_QCHOICEP(argval)) nd_args=1; /* QCHOICES get thawed */
       /* Fill in the slot */
       args[arg_count++]=argval;}}
