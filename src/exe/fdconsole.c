@@ -79,6 +79,8 @@ static int historicp(fdtype x)
 
 static time_t boot_time;
 
+static double showtime_threshold=1.0;
+
 static u8_string stats_message=
   _(";; Done in %f seconds, with %d/%d object/index loads\n");
 static u8_string stats_message_w_history=
@@ -92,13 +94,13 @@ int main(int argc,char **argv)
   time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
   fdtype lastval=FD_VOID, that_symbol, histref_symbol;
-  fdtype quiet_config=FD_VOID, showtime_config=FD_VOID;
+  fdtype quiet_config=FD_VOID;
   u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c;
-  u8_string source_file=NULL; double showtime=-1.0;
+  u8_string source_file=NULL;
   /* Initialize Scheme primitives */
 #if FD_TESTCONFIG /* Set when statically linked for testing. */
   u8_init_chardata_c();
@@ -109,6 +111,8 @@ int main(int argc,char **argv)
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif
+  fd_register_config("SHOWTIME",fd_dblconfig_get,fd_dblconfig_set,
+		     &showtime_threshold);
   fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
   fd_register_config("DEBUGMAXELTS",fd_intconfig_get,fd_intconfig_set,
@@ -151,24 +155,14 @@ int main(int argc,char **argv)
     fdtype interpval=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
   quiet_config=fd_config_get("QUIET");
-  showtime_config=fd_config_get("SHOWTIME");
-  if (FD_FIXNUMP(showtime_config))
-    showtime=FD_FIX2INT(showtime_config);
-  else if (FD_FLONUMP(showtime_config))
-    showtime=FD_FLONUM(showtime_config);
   fd_histinit(0);
-  fd_decref(showtime_config);
   startup_time=u8_elapsed_time()-fd_load_start;
   if (FD_VOIDP(quiet_config))  {
     u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
 	       SVN_REVISION,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
     u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
-    if (!((FD_FIXNUMP(showtime_config)) || (FD_FLONUMP(showtime_config))))
-      showtime=1.0;
     fd_decref(quiet_config);}
-  else if (!((FD_FIXNUMP(showtime_config)) || (FD_FLONUMP(showtime_config))))
-    showtime=-1.0;
   u8_printf(out,EVAL_PROMPT);
   u8_flush(out);
   while ((c=skip_whitespace((u8_input)in))>=0) {
@@ -222,9 +216,10 @@ int main(int argc,char **argv)
 	  (FD_ABORTP(result)) || (FD_FIXNUMP(result))))
       histref=fd_histpush(result);
     if (FD_ABORTP(result)) stat_line=0;
-    else if (((showtime>=0.0) && ((finish_time-start_time)>showtime)) ||
-	     (finish_ocache!=start_ocache) ||
-	     (finish_icache!=start_icache))
+    else if ((showtime_threshold>=0.0) &&
+	     (((finish_time-start_time)>showtime_threshold) ||
+	      (finish_ocache!=start_ocache) ||
+	      (finish_icache!=start_icache)))
       stat_line=1;
     fd_decref(expr);
     if (FD_CHECK_PTR(result)==0) {
