@@ -598,6 +598,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     if (FD_CONSP(v)) {
       atomic=0;
       if (FD_CHOICEP(v)) nd=1;
+      else if (FD_QCHOICEP(v)) nd=1;
       *write++=fd_incref(v);}
     else *write++=v;}
   if (atomic) tc->flags=tc->flags|FD_TAIL_CALL_ATOMIC_ARGS;
