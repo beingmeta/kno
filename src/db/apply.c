@@ -37,7 +37,7 @@ static void free_calltrack_log(void *ptr)
   if (data) {
     fclose(data->f); u8_free(data->filename); u8_free(data);}
 }
-static FILE *get_calltrack_logfile()
+FD_FASTOP FILE *get_calltrack_logfile()
 {
   struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
   if (cd) return cd->f; else return NULL;
@@ -204,33 +204,33 @@ FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
 
 static fdtype dcall0(struct FD_FUNCTION *f)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall0(f);
   else return f->handler.call0();
 }
 static fdtype dcall1(struct FD_FUNCTION *f,fdtype arg1)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall1(f,arg1);
   else return f->handler.call1(arg1);
 }
 static fdtype dcall2(struct FD_FUNCTION *f,fdtype arg1,fdtype arg2)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall2(f,arg1,arg2);
   else return f->handler.call2(arg1,arg2);
 }
 static fdtype dcall3(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall3(f,arg1,arg2,arg3);
   else return f->handler.call3(arg1,arg2,arg3);
 }
 static fdtype dcall4(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall4(f,arg1,arg2,arg3,arg4);
   else return f->handler.call4(arg1,arg2,arg3,arg4);
 }
@@ -238,7 +238,7 @@ static fdtype dcall5(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
 		      fdtype arg5)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall5(f,arg1,arg2,arg3,arg4,arg5);
   else return f->handler.call5(arg1,arg2,arg3,arg4,arg5);
 }
@@ -246,7 +246,7 @@ static fdtype dcall6(struct FD_FUNCTION *f,
 		      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
 		      fdtype arg5,fdtype arg6)
 {
-  if (f->xprim)
+  if (FD_EXPECT_FALSE(f->xprim))
     return f->handler.xcall6(f,arg1,arg2,arg3,arg4,arg5,arg6);
   else return f->handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
 }
@@ -586,14 +586,22 @@ FD_EXPORT fdtype fd_make_cprim6x
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
+  int atomic=1, nd=0;
   struct FD_TAIL_CALL *tc=
     u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
   fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
   int i=0;
-  FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1;
+  FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
   *write++=fd_incref(fcn);
   while (write<write_limit) {
-    fdtype v=*read++; *write++=fd_incref(v); }
+    fdtype v=*read++;
+    if (FD_CONSP(v)) {
+      atomic=0;
+      if (FD_CHOICEP(v)) nd=1;
+      *write++=fd_incref(v);}
+    else *write++=v;}
+  if (atomic) tc->flags=tc->flags|FD_TAIL_CALL_ATOMIC_ARGS;
+  if (nd) tc->flags=tc->flags|FD_TAIL_CALL_ND_ARGS;
   return FDTYPE_CONS(tc);
 }
 
@@ -606,14 +614,20 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
   return result;
 }
 
+static void recycle_tail_call(struct FD_CONS *c);
+
 FD_EXPORT fdtype _fd_finish_call(fdtype pt)
 {
   while (FD_PTR_TYPEP(pt,fd_tail_call_type)) {
     struct FD_TAIL_CALL *tc=
       FD_GET_CONS(pt,fd_tail_call_type,struct FD_TAIL_CALL *);
     fdtype result=
-      fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1);
-    fd_decref(pt); pt=result;}
+      ((tc->flags&FD_TAIL_CALL_ND_ARGS) ? 
+       (fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1)) :
+       (fd_dapply(tc->head,tc->n_elts-1,(&(tc->head))+1)));
+    if (FD_CONS_REFCOUNT(tc)==1) recycle_tail_call((struct FD_CONS *)tc);
+    else fd_decref(pt);
+    pt=result;}
   return pt;
 }
 
@@ -628,7 +642,8 @@ static void recycle_tail_call(struct FD_CONS *c)
 {
   struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
   fdtype *scan=&(tc->head), *limit=scan+tc->n_elts;
-  while (scan<limit) {fd_decref(*scan); scan++;}
+  if (!(tc->flags&FD_TAIL_CALL_ATOMIC_ARGS))
+    while (scan<limit) {fd_decref(*scan); scan++;}
   if (FD_MALLOCD_CONSP(c))
     u8_free_x(c,sizeof(struct FD_TAIL_CALL)+(tc->n_elts*sizeof(fdtype)));
 }

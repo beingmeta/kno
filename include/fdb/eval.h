@@ -22,7 +22,7 @@ FD_EXPORT fd_exception fd_ReadOnlyEnv;
 FD_EXPORT fdtype fd_scheme_module, fd_xscheme_module;
 
 FD_EXPORT fd_ptr_type fd_environment_type, fd_specform_type;
-FD_EXPORT fd_ptr_type  fd_sproc_type, fd_macro_type;
+FD_EXPORT fd_ptr_type fd_sproc_type, fd_macro_type;
 
 FD_EXPORT fdtype _fd_comment_symbol;
 
@@ -45,7 +45,6 @@ typedef struct FD_ENVIRONMENT {
 typedef struct FD_ENVIRONMENT *fd_environment;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
-FD_EXPORT fdtype fd_symeval(fdtype,fd_lispenv);
 FD_EXPORT int fd_set_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
@@ -143,6 +142,42 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i);
 FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
 
 #if FD_PROVIDE_FASTEVAL
+FD_FASTOP fdtype fastget(fdtype table,fdtype key)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(table);
+  switch (argtype) {
+  case fd_schemap_type:
+    return fd_schemap_get((fd_schemap)table,key,FD_UNBOUND);
+  case fd_slotmap_type:
+    return fd_slotmap_get((fd_slotmap)table,key,FD_UNBOUND);
+  case fd_hashtable_type:
+    return fd_hashtable_get((fd_hashtable)table,key,FD_UNBOUND);
+  default: return fd_get(table,key,FD_UNBOUND);}
+}
+FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
+{
+  int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
+  int up=code/32, across=code%32;
+  while ((env) && (up)) {env=env->parent; up--;}
+  if (FD_EXPECT_TRUE(env)) {
+    fdtype bindings=env->bindings;
+    if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) { 
+      struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
+      return fd_incref(s->values[across]);}}
+  return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
+}
+FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
+{
+  if (env->copy) env=env->copy;
+  while (env) {
+    fdtype val=fastget(env->bindings,symbol);
+    if (val==FD_UNBOUND)
+      env=env->parent;
+    else return val;
+    if ((env) && (env->copy)) env=env->copy;}
+  return FD_VOID;
+}
+
 FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
 {
   fdtype result=fd_tail_eval(x,env);
@@ -150,13 +185,20 @@ FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
     return _fd_finish_call(result);
   else return result;
 }
+
 FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_SYMBOLP(x)) return fd_eval(x,env);
+    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+      return fd_lexref(x,env);
+    else if (FD_SYMBOLP(x)) {
+      fdtype val=fd_symeval(x,env);
+      if (FD_EXPECT_FALSE(FD_VOIDP(val)))
+	return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,x);
+      else return val;}
     else return x;
   case fd_cons_ptr_type:
     if (FD_PTR_TYPEP(x,fd_pair_type))
@@ -164,6 +206,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     else return fd_incref(x);
   }
 }
+
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
   while (FD_PAIRP(expr))
@@ -184,6 +227,8 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 }
 #else
 #define fd_eval(x,env) _fd_eval(x,env)
+#define fd_symeval(x,env) _fd_symeval(x,env)
+#define fd_lexref(x,env) _fd_lexref(x,env)
 #define fd_get_arg(x,i) _fd_get_arg(x,i)
 #define fd_get_body(x,i) _fd_get_body(x,i)
 #endif

@@ -198,9 +198,9 @@ unsigned int fd_hash_dtype1(fdtype x)
 
 /* Multiplier heavy hashing */
 
-static unsigned int hash_symbol_dtype2(fdtype x);
-static unsigned int hash_pair_dtype2(fdtype x);
-static unsigned int hash_record_dtype2(fdtype x);
+FD_FASTOP unsigned int hash_symbol_dtype2(fdtype x);
+FD_FASTOP unsigned int hash_pair_dtype2(fdtype x);
+FD_FASTOP unsigned int hash_record_dtype2(fdtype x);
 
 typedef unsigned long long ull;
 

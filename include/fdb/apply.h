@@ -97,9 +97,12 @@ FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
 
 /* Tail calls */
 
+#define FD_TAIL_CALL_ND_ARGS     1
+#define FD_TAIL_CALL_ATOMIC_ARGS 2
+
 struct FD_TAIL_CALL {
   FD_CONS_HEADER;
-  int n_elts; fdtype head;};
+  int n_elts, flags; fdtype head;};
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
 FD_EXPORT fdtype fd_step_call(fdtype c);

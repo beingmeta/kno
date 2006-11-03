@@ -23,7 +23,7 @@
 #endif
 
 #ifndef FD_FASTOP
-#define FD_FASTOP static
+#define FD_FASTOP static inline
 #endif
 
 /* This is for C profiling and helps generate code which is easier to profile. */

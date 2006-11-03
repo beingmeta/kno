@@ -27,7 +27,7 @@ static passerr_env(fdtype error,fd_lispenv env)
   return fd_passerr(error,bindings);
 }
 
-static fdtype eval_body(fdtype body,fd_lispenv inner_env)
+FD_FASTOP fdtype eval_body(fdtype body,fd_lispenv inner_env)
 {
   fdtype result=FD_VOID;
   FD_DOLIST(bodyexpr,body) {

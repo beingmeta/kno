@@ -51,41 +51,19 @@ fd_exception
 
 /* Environment functions */
 
-FD_FASTOP fdtype fastget(fdtype table,fdtype key)
+static fdtype lexref_prim(fdtype upv,fdtype acrossv)
 {
-  fd_ptr_type argtype=FD_PTR_TYPE(table);
-  switch (argtype) {
-  case fd_schemap_type:
-    return fd_schemap_get((fd_schemap)table,key,FD_UNBOUND);
-  case fd_slotmap_type:
-    return fd_slotmap_get((fd_slotmap)table,key,FD_UNBOUND);
-  case fd_hashtable_type:
-    return fd_hashtable_get((fd_hashtable)table,key,FD_UNBOUND);
-  default: return fd_get(table,key,FD_UNBOUND);}
+  int up=FD_FIX2INT(upv), across=FD_FIX2INT(acrossv);
+  int combined=((up<<5)|(across));
+  return FDTYPE_IMMEDIATE(fd_lexref_type,combined);
 }
 
-FD_FASTOP fdtype symeval(fdtype symbol,fd_lispenv env)
+static int unparse_lexref(u8_output out,fdtype lexref)
 {
-  if (env->copy) env=env->copy;
-  while (env) {
-    fdtype val=fastget(env->bindings,symbol);
-    if (val==FD_UNBOUND)
-      env=env->parent;
-    else return val;
-    if ((env) && (env->copy)) env=env->copy;}
-  return FD_VOID;
-}
-
-FD_EXPORT fdtype fd_symeval(fdtype symbol,fd_lispenv env)
-{
-  if (env->copy) env=env->copy;
-  while (env) {
-    fdtype val=fastget(env->bindings,symbol);
-    if (val==FD_UNBOUND)
-      env=env->parent;
-    else return val;
-    if ((env) && (env->copy)) env=env->copy;}
-  return FD_VOID;
+  int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
+  int up=code/32, across=code%32;
+  u8_printf(out,"#<LEXREF ^%d+%d>",up,across);
+  return 1;
 }
 
 FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
@@ -131,6 +109,16 @@ FD_EXPORT int fd_set_value(fdtype symbol,fdtype value,fd_lispenv env)
 			fd_table_replace,symbol,value);
       return 1;}}
   return 0;
+}
+
+FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lispenv env)
+{
+  return fd_symeval(sym,env);
+}
+
+FD_EXPORT fdtype _fd_lexref(fdtype lexref,fd_lispenv env)
+{
+  return fd_lexref(lexref,env);
 }
 
 FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
@@ -377,7 +365,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 {
   switch (FD_PTR_TYPE(expr)) {
   case fd_symbol_type: {
-    fdtype val=symeval(expr,env);
+    fdtype val=fd_symeval(expr,env);
     if (FD_EXPECT_FALSE(FD_VOIDP(val)))
       return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,expr);
     else return val;}
@@ -430,7 +418,9 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   default:
-    return fd_incref(expr);}
+    if (FD_PRIM_TYPEP(expr,fd_lexref_type))
+      return fd_lexref(expr,env);
+    else return fd_incref(expr);}
 }
 
 FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
@@ -481,7 +471,6 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
       argval=fd_simplify_choice(argval);
       if (FD_CONSP(argval)) args_need_gc=1;
       /* Keep track of what kind of evaluation you might need to do. */
-      if (FD_CHOICEP(argval)) nd_args=1;
       if (FD_QCHOICEP(argval)) nd_args=1; /* QCHOICES get thawed */
       /* Fill in the slot */
       args[arg_count++]=argval;}}
@@ -1508,6 +1497,7 @@ void fd_init_eval_c()
 
   fd_unparsers[fd_environment_type]=unparse_environment;
   fd_unparsers[fd_specform_type]=unparse_specform;
+  fd_unparsers[fd_lexref_type]=unparse_lexref;
 
   quote_symbol=fd_intern("QUOTE");
   quasiquote=fd_intern("QUASIQUOTE");
@@ -1536,6 +1526,9 @@ static void init_localfns()
   /* fd_defspecial(fd_scheme_module,"%ENV",env_handler); */
   fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x("%LEXREF",lexref_prim,2,
+					    fd_fixnum_type,FD_VOID,
+					    fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("APPLY",apply_lexpr,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim4x
