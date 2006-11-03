@@ -16,7 +16,7 @@
 (define (fibtr n) (fib-iter 1 1 n))
 (define (fib-iter a b count)
   (if (= count 0) b
-      (fib-iter (+ 1 a b) a (- count 1))))
+      (fib-iter (+ a b) a (- count 1))))
 
 (define (fact n)
   (if (= n 0) 1 (* n (fact (- n 1)))))
