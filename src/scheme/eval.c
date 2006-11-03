@@ -473,15 +473,6 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
       /* Keep track of what kind of evaluation you might need to do. */
       if (FD_CHOICEP(argval)) nd_args=1;
       else if (FD_QCHOICEP(argval)) nd_args=1;
-#if 0
-	{
-	/* QCHOICES get thawed */
-	struct FD_QCHOICE *qc=FD_XQCHOICE(argval);
-	fdtype unpacked=qc->choice, old=argval;
-	argval=fd_incref(unpacked);
-	fd_decref(argval);
-      	nd_args=1;}
-#endif
       /* Fill in the slot */
       args[arg_count++]=argval;}}
   if ((prune) || (FD_ABORTP(result))) {
