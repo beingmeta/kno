@@ -181,6 +181,52 @@ static fdtype module_bindings(fdtype arg)
   else return fd_type_error(_("module"),"module_bindings",arg);
 }
 
+static fdtype module_exports(fdtype arg)
+{
+  if (FD_PTR_TYPEP(arg,fd_environment_type)) {
+    fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
+    return fd_getkeys(envptr->exports);}
+  else if (FD_TABLEP(arg))
+    return fd_getkeys(arg);
+  else if (FD_SYMBOLP(arg)) {
+    fdtype module=fd_get_module(arg,1);
+    if (FD_VOIDP(module))
+      return fd_type_error(_("module"),"module_exports",arg);
+    else {
+      fdtype v=module_exports(module);
+      fd_decref(module);
+      return v;}}
+  else return fd_type_error(_("module"),"module_exports",arg);
+}
+
+/* Finding where a symbol comes from */
+
+static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
+{
+  fdtype symbol_arg=fd_get_arg(expr,1), symbol=fd_eval(symbol_arg,call_env);
+  if (FD_SYMBOLP(symbol)) {
+    fdtype env_arg=fd_eval(fd_get_arg(expr,2),call_env); fd_lispenv env;
+    if (FD_VOIDP(env_arg)) env=call_env;
+    else if (FD_PRIM_TYPEP(env_arg,fd_environment_type))
+      env=FD_GET_CONS(env_arg,fd_environment_type,fd_lispenv);
+    else return fd_type_error(_("environment"),"wherefrom",env_arg);
+    if (env->copy) env=env->copy;
+    while (env) {
+      if (fd_test(env->bindings,symbol,FD_VOID)) {
+	fdtype bindings=env->bindings;
+	if ((FD_CONSP(bindings)) &&
+	    (FD_MALLOCD_CONSP((fd_cons)bindings)))
+	  return fd_incref(env->bindings);
+	else {
+	  fd_decref(env_arg);
+	  return FD_FALSE;}}
+      env=env->parent;
+      if (env->copy) env=env->copy;}
+    fd_decref(env_arg);
+    return FD_FALSE;}
+  else return fd_type_error(_("symbol"),"wherefrom",symbol);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_reflection_c()
@@ -211,6 +257,9 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 
   fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
+  fd_idefn(module,fd_make_cprim1("MODULE-EXPORTS",module_exports,1));
+
+  fd_defspecial(module,"WHEREFROM",wherefrom_handler);
 
   fd_finish_module(module);
   fd_persist_module(module);
