@@ -111,10 +111,10 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 /* Reference counting GC */
 
-#define FD_CONSBITS(x) (x->consbits)
-#define FD_CONS_REFCOUNT(x) ((x->consbits)>>7)
-#define FD_STACK_CONSP(x) (((x->consbits)>>7)==0)
-#define FD_MALLOCD_CONSP(x) (((x->consbits)>>7)!=0)
+#define FD_CONSBITS(x) ((x)->consbits)
+#define FD_CONS_REFCOUNT(x) (((x)->consbits)>>7)
+#define FD_STACK_CONSP(x) ((((x)->consbits)>>7)==0)
+#define FD_MALLOCD_CONSP(x) ((((x)->consbits)>>7)!=0)
 
 FD_EXPORT void fd_recycle_cons(struct FD_CONS *);
 FD_EXPORT fdtype fd_copy(fdtype x);
