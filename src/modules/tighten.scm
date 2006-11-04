@@ -37,7 +37,8 @@
 	   (let ((lexref (get-lexref expr bound 0)))
 	     (if lexref (if dolex lexref expr)
 		 (let ((module (wherefrom expr env)))
-		   (if module (list %get module (list 'quote expr))
+		   (if module
+		       (list %get module (list 'quote expr))
 		       expr)))))
 	  ((not (pair? expr)) expr)
 	  ((pair? (car expr))
@@ -47,12 +48,17 @@
 	  (else (let* ((head (car expr))
 		       (value (if (symbol? head)
 				  (or (get-lexref head bound 0) (get env head))
-				  head)))
+				  head))
+		       (from (and (symbol? head) (wherefrom head env))))
 		  (cond ((applicable? value)
-			 (cons value (map (lambda (x)
-					    (if (empty? x) x
-						(dotighten (qc x) env bound dolex)))
-					  (cdr expr))))
+			 (cons (cond ((not from) value)
+				     ((test from '%notighten head) head)
+				     ((test from '%volatile head) `(,%get ,from ',head))
+				     (else value))
+			       (map (lambda (x)
+				      (if (empty? x) x
+					  (dotighten (qc x) env bound dolex)))
+				    (cdr expr))))
 			((special-form? value)
 			 (let ((tightener (get special-form-tighteners value)))
 			   (if (exists? tightener) (tightener value expr env bound dolex)
@@ -65,17 +71,13 @@
   (let* ((env (procedure-env proc))
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
-	 (bound (cons (arglist->vars arglist)
-		      (if (symbol-bound? '%notighten env)
-			  (choice->list (get env '%notighten))
-			  '()))))
+	 (bound (list (arglist->vars arglist))))
     (set-procedure-body!
      proc (map (lambda (b) (dotighten b env bound dolex))
 	       body))))
 
 (define (tighten-module! module)
-  (let ((bindings (difference (module-bindings module)
-			      (get module '%notighten)))
+  (let ((bindings (module-bindings module))
 	(count 0))
     (do-choices (var bindings)
       (let ((value (get module var)))
@@ -87,7 +89,8 @@
 ;;;; Special form handlers
 
 (define (tighten-block handler expr env bound dolex)
-  (cons handler (map (lambda (x) (dotighten x env bound dolex)) (cdr expr))))
+  (cons handler (map (lambda (x) (dotighten x env bound dolex))
+		     (cdr expr))))
 
 (define (tighten-let handler expr env bound dolex)
   (let ((bindexprs (cadr expr)) (body (cddr expr)))
