@@ -160,7 +160,7 @@ exe/fdserv@suffix@: src/exe/fdserv.c \
 	@xstatic_exe_libs@ lib/libfdweb@suffix@.a lib/libfdscheme@suffix@.a \
 	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
 	lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
 exe/fdbserver@suffix@: src/exe/fdbserver.c \
 	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
 	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
