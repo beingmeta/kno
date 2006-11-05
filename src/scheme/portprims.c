@@ -314,6 +314,26 @@ static fdtype notify_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+static fdtype warning_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype body=fd_get_body(expr,1);
+  U8_OUTPUT *out=u8_open_output_string(1024);
+  U8_OUTPUT *stream=fd_get_default_output();
+  fd_set_default_output(out);
+  while (FD_PAIRP(body)) {
+    fdtype value=fasteval(FD_CAR(body),env);
+    if (printout_helper(out,value)) fd_decref(value);
+    else {
+      fd_set_default_output(stream);
+      u8_close_output(out);
+      return value;}
+    body=FD_CDR(body);}
+  fd_set_default_output(stream);
+  u8_warning_string(out->u8_outbuf);
+  u8_close_output(out);
+  return FD_VOID;
+}
+
 static fdtype stringout_handler(fdtype expr,fd_lispenv env)
 {
   struct U8_OUTPUT out; fdtype result;
@@ -976,6 +996,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_handler);
   fd_defspecial(fd_scheme_module,"MESSAGE",message_handler);
   fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
+  fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));
