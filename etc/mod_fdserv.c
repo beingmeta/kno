@@ -119,11 +119,11 @@ static int can_writep(apr_pool_t *p,server_rec *s,struct stat *finfo)
 #if defined(OS2) || defined(WIN32) || defined(NETWARE)
     /* OS/2 dosen't have Users and Groups */
     return 1;
+#endif
     if (s->server_uid == finfo->st_uid)
       if (finfo->st_mode & S_IWUSR) return 1;
     if (s->server_gid == finfo->st_gid)
       if (finfo->st_mode & S_IWGRP) return 1;
-#endif
     return ((finfo->st_mode & S_IWOTH) != 0);
 }
 #elif APACHE20
@@ -157,7 +157,7 @@ static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
     char buf[PATH_MAX]; int scan=strlen(filename)-1;
     strcpy(buf,filename); while ((scan>0) && (buf[scan] != '/')) scan--;
     if (scan>0) buf[scan]='\0';
-    apr_stat(&finfo,filename,FINFO_FLAGS,p);
+    apr_stat(&finfo,buf,FINFO_FLAGS,p);
     if ((finfo.filetype == APR_DIR) && (can_writep(p,s,&finfo))) return 1;
     return 0;}
 }
@@ -583,6 +583,9 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
 			    (NULL));
   argv[0]=(char *)exename;
   argv[1]=(char *)sockname;
+
+  envp[0]=NULL;
+  
   if (scan_config) {
     while (*scan_config) {
       if (n_configs>30) {/* blow up */}
@@ -597,17 +600,23 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		  "couldn't set child process attributes: %s", r->filename);
   if (dconfig->log_file) {
-    int logfd=open(dconfig->log_file,(O_CREAT|O_APPEND),(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP));
-    if (logfd<0)
+    apr_file_t *logfile;
+    if (apr_file_open(&logfile,dconfig->log_file,
+		      APR_READ|APR_WRITE|APR_APPEND|APR_CREATE,
+		      APR_OS_DEFAULT,p)
+	!=APR_SUCCESS) 
       ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,"couldn't open log file %s",dconfig->log_file);
-    else if ((rv=apr_procattr_io_set(attr,0,logfd,logfd)) != APR_SUCCESS)
+#if 0
+    else if ((rv=apr_procattr_io_set(attr,0,0,0)) != APR_SUCCESS)
       ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
-		    "couldn't set child process i/o attributes: %s", r->filename);}
-  else if ((rv=apr_procattr_io_set(attr,0,1,2)) != APR_SUCCESS)
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
-		  "couldn't set child process i/o attributes: %s", r->filename);
-  
-  envp[0]=NULL;
+		    "couldn't set child process i/o attributes: %s", r->filename);
+#endif
+    else if ((rv=apr_procattr_child_out_set(attr,logfile,NULL)) != APR_SUCCESS)
+      ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
+		    "couldn't set child stdout: %s", r->filename);
+    else if ((rv=apr_procattr_child_err_set(attr,logfile,NULL)) != APR_SUCCESS)
+      ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
+		    "couldn't set child stderr to: %s", r->filename);}
   
   if (stat(sockname,&stat_data) == 0) {
     if (remove(sockname) == 0)
