@@ -80,13 +80,14 @@
 
 (define (display-checkbox var val selected onclick multi)
   (if onclick
-      (xmltag 'input
-	      'type (if multi "CHECKBOX" "RADIO")
-	      'name (symbol->string var) 'value val
-	      'onclick onclick (if selected " CHECKED" ""))
-    (xmltag 'input 'type
-	    (if multi 'checkbox 'radio) 'name (symbol->string var) 'value val
-	    (if selected " CHECKED" ""))))
+      (xmlempty 'input
+		'type (if multi "checkbox" "radio")
+		'name (symbol->string var) 'value val
+		'onclick onclick
+		(if selected "checked" ""))
+      (xmlelt 'input 'type
+	      (if multi 'checkbox 'radio) 'name (symbol->string var) 'value val
+	      (if selected "checked" "") )))
 
 (define (get-language-name language) (get language '%id))
 
@@ -103,6 +104,7 @@
   (let* ((var (if (symbol? name) name (string->lisp name)))
 	 (language (get-language var))
 	 (languages (get-languages)))
+    (message "var=" var "; language=" language "; languages=" languages)
     (cgiset! var language)
     (unless (overlaps? language languages)
       (cgiset! 'languages (choice language languages)))
@@ -127,12 +129,12 @@
 			       get-language-name))
 	       (xmlblock OPTION (value l) (get-language-name l))))))
        (if action
-	   (xmltag 'input 'type "SUBMIT" 'name 'action 'value
+	   (xmlelt 'input 'type "SUBMIT" 'name 'action 'value
 		   action))))
     (xmlout)))
 (define (languagesbox
-	 id (onchange #f) (action #f) (selectbox #t) (multiple #t))
-  (let* ((var (getsym id))
+	 name (onchange #f) (action #f) (selectbox #t) (multiple #t))
+  (let* ((var (getsym name))
 	 (preferred (get-preferred-languages))
 	 (languages (try (cgiget var) (car preferred))))
     (if (and (fail? (cgiget var)) (= (length preferred) 1) (not selectbox)) (xmlout)
@@ -152,25 +154,25 @@
 	  (selection (name var)
 		     (doseq (l (sorted  all-languages get-language-name))
 		       (option l (get-language-name l)))))
-	(if action (xmltag 'input 'type 'submit 'name 'action 'value
+	(if action (xmlelt 'input 'type 'submit 'name 'action 'value
 			   action))))
-    languages))
+    (xmlout)))
 
 (define (languagedropbox
-	 id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
-  (let* ((var (if (symbol? id) id (intern id)))
+	 (name "LANGUAGE") (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
+  (let* ((var (if (symbol? name) name (intern name)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
 			    (sorted languagesarg))
 		      (get-preferred-languages)))
 	 (language (try (cgiget var) (car languages))))
-    (xmlblock SELECT ((name id))
+    (xmlblock SELECT ((name "LANGUAGE"))
       (do-choices (lang language)
 	(xmlblock OPTION ((value lang)) (get-language-name lang)))
        (doseq (l languages)
 	 (unless (eq? l language)
 	   (xmlblock OPTION ((value l)) (get-language-name l)))))
-    language))
+    (xmlout)))
 (module-export! 'languagedropbox)
 
 (define (languagesdropbox
@@ -205,14 +207,20 @@
 
 (define (showterm word)
   (if (position #\Space word)
-      (xmlout "\"" word "\"")
+      (let ((pos (position #\Space word)))
+	(if (and (> (length word) pos) (eq? (elt word (1+ pos)) #\())
+	    (xmlout word)
+	    (xmlout "\"" word "\"")))
       (xmlout word)))
+(define (showterm word) (xmlout word))
 
 (define (inner-wordform word (concept #f))
   (if concept
-      (span (class "wordform")
-	(showterm word)
-	(display-langids word (qc concept)))
+      (let ((languages (get-languages-for word (qc concept))))
+	(span ((class "wordform")
+	       (xml:lang (get (pick-one languages) 'iso639/1)))
+	  (showterm word)
+	  (display-langids languages)))
       (span (class "wordform") (showterm word))))
 
 ;;; Displaying language information for wordforms
@@ -229,20 +237,19 @@
 (define (get-langname lang)
   (pick-one (get lang 'english-names)))
 
-(define (display-langids word frame)
-  (let ((languages (get-languages-for word (qc frame))))
-    (cond ((empty? languages)
-	   (sub* ((class "langids")) "?"))
-	  ((= (choice-size languages) 1)
-	   (sub* ((class "langids")
-		  (title (get-langname languages)))
-		 (get languages 'iso639/1)))
-	  (else
-	   (sub* ((class "langids"))
-		 (doseq (elt (sorted languages 'iso639/1) i)
-		   (if (> i 0) (xmlout ";"))
-		   (span ((title (get-langname elt)))
-		     (get elt 'iso639/1))))))))
+(define (display-langids languages)
+  (cond ((empty? languages)
+	 (sub* ((class "langids")) "?"))
+	((= (choice-size languages) 1)
+	 (sub* ((class "langids")
+		(title (get-langname languages)))
+	       (get languages 'iso639/1)))
+	(else
+	 (sub* ((class "langids"))
+	       (doseq (elt (sorted languages 'iso639/1) i)
+		 (if (> i 0) (xmlout ";"))
+		 (span ((title (get-langname elt)))
+		   (get elt 'iso639/1)))))))
 
 ;;; Displaying concepts
 
