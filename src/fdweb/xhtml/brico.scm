@@ -104,7 +104,6 @@
   (let* ((var (if (symbol? name) name (string->lisp name)))
 	 (language (get-language var))
 	 (languages (get-languages)))
-    (message "var=" var "; language=" language "; languages=" languages)
     (cgiset! var language)
     (unless (overlaps? language languages)
       (cgiset! 'languages (choice language languages)))
