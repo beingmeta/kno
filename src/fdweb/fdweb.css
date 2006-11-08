@@ -203,3 +203,10 @@ span.langbox {}
 span.langbox_rigid { white-space: nowrap;}
 span.langcheck { white-space: nowrap;}
 
+/* Glosses */
+
+p.gloss {
+  font-style: italic; font-family: sans;}
+p.gloss span.spacer {
+  padding-left: 6px; padding-right: 6px;
+  font-family: sans; font-weight: bold; font-size: 150%;}
