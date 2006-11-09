@@ -219,7 +219,7 @@
 	(span ((class "wordform")
 	       (xml:lang (get (pick-one languages) 'iso639/1)))
 	  (showterm word)
-	  (display-langids languages)))
+	  (display-langids (qc languages))))
       (span (class "wordform") (showterm word))))
 
 ;;; Displaying language information for wordforms
