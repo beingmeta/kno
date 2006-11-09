@@ -221,7 +221,7 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
 	  fd_decref(env_arg);
 	  return FD_FALSE;}}
       env=env->parent;
-      if (env->copy) env=env->copy;}
+      if ((env) && (env->copy)) env=env->copy;}
     fd_decref(env_arg);
     return FD_FALSE;}
   else return fd_type_error(_("symbol"),"wherefrom",symbol);
