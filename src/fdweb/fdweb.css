@@ -210,3 +210,12 @@ p.gloss {
 p.gloss span.spacer {
   padding-left: 6px; padding-right: 6px;
   font-family: sans; font-weight: bold; font-size: 150%;}
+
+/* Font sizers */
+
+span.font_sizer {
+  float: right; width: 16px; -moz-opacity: 0.75;
+  font-size: 14px; font-weight: bold; 
+  text-align: center; cursor: pointer; margin: 2px;
+  background: gray; color: white;}
+
