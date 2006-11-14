@@ -341,6 +341,7 @@ FD_EXPORT fdtype fd_intersection(fdtype *v,int n);
 FD_EXPORT fdtype fd_difference(fdtype whole,fdtype part);
 FD_EXPORT int fd_choice_containsp(fdtype key,fdtype x);
 FD_EXPORT int fd_overlapp(fdtype,fdtype);
+FD_EXPORT int fd_containsp(fdtype,fdtype);
 
 
 #endif /* FDB_CHOICES_H */

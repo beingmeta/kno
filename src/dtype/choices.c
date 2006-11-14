@@ -1007,6 +1007,39 @@ int fd_overlapp(fdtype xarg,fdtype yarg)
     return retval;}
 }
 
+FD_EXPORT
+/* fd_containsp:
+     Arguments: two dtype pointers
+     Returns: a dtype pointer
+  Returns 1 if the the first argument is a proper subset of the second argument.
+  On non-choices, this is just equalp, on a non-choice and a choice,
+   this is just choice_containsp, and on two choices, it's currently
+   just implemented as a series of choice_containsp operations.
+*/
+int fd_containsp(fdtype xarg,fdtype yarg)
+{
+  if (FD_EMPTY_CHOICEP(xarg)) return 0;
+  else if (FD_EMPTY_CHOICEP(yarg)) return 0;
+  else {
+    fdtype x, y; int retval=0;
+    if (FD_ACHOICEP(xarg)) x=normalize_choice(xarg,0); else x=xarg;
+    if (FD_ACHOICEP(yarg)) y=normalize_choice(yarg,0); else y=yarg;
+    if (FD_CHOICEP(x))
+      if (FD_CHOICEP(y)) {
+	int contained=1;
+	FD_DO_CHOICES(elt,x)
+	  if (choice_containsp(elt,(fd_choice)y)) {}
+	  else {
+	    contained=0; FD_STOP_DO_CHOICES; break;}
+	if (contained) retval=1;}
+      else retval=0;
+    else if (FD_CHOICEP(y)) retval=choice_containsp(x,(fd_choice)y);
+    else retval=FDTYPE_EQUAL(x,y);
+    if (FD_ACHOICEP(xarg)) fd_decref(x);
+    if (FD_ACHOICEP(yarg)) fd_decref(y);
+    return retval;}
+}
+
 /* Type initializations */
 
 void fd_init_choices_c()

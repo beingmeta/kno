@@ -75,6 +75,15 @@ static fdtype overlapsp(fdtype x,fdtype y)
   else return FD_FALSE;
 }
 
+static fdtype containsp(fdtype x,fdtype y)
+{
+  if (FD_EMPTY_CHOICEP(x)) return FD_FALSE;
+  else if (x==y) return FD_TRUE;
+  else if (FD_EMPTY_CHOICEP(y)) return FD_FALSE;
+  else if (fd_containsp(x,y)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static int numeric_compare(const fdtype x,const fdtype y)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
@@ -525,6 +534,8 @@ FD_EXPORT void fd_init_corefns_c()
 	   fd_make_ndprim(fd_make_cprim2("IDENTICAL?",equalp,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("OVERLAPS?",overlapsp,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("CONTAINS?",containsp,2)));
   fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE",comparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("FASTCOMPARE",fastcomparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
