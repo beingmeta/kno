@@ -119,6 +119,69 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
+/* This iterates over a set of choices, evaluating its body for each value.
+   It returns the first non-empty result of evaluating the body.
+   It tries to stack allocate as much as possible for locality and convenience sake.
+   Note that this treats a non-choice as a choice of one element.
+   It returns VOID. */
+static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  fdtype choices, count_var, var=
+    parse_control_spec(expr,&choices,&count_var,env);
+  fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
+  fdtype vars[2], vals[2], inner_env;
+  struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
+  if (FD_VOIDP(count_var)) {
+    bindings.size=1;
+    vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
+  else {
+    bindings.size=2;
+    vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
+    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
+  FD_INIT_STACK_CONS(&bindings,fd_schemap_type); 
+  bindings.schema=vars; bindings.values=vals;
+  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  fd_init_mutex(&(bindings.lock));
+  FD_INIT_STACK_CONS(&envstruct,fd_environment_type); 
+  envstruct.parent=env;  
+  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
+  envstruct.copy=NULL;
+  inner_env=(fdtype)(&envstruct);
+  if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
+  else if (FD_ABORTP(choices))
+    return choices;
+  else {
+    int i=0; FD_DO_CHOICES(elt,choices) {
+      fdtype val=FD_VOID;
+      if (envstruct.copy) {
+	fd_set_value(var,elt,envstruct.copy);
+	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+      else {
+	*vloc=elt; fd_incref(elt);
+	if (iloc) *iloc=FD_INT2DTYPE(i);}
+      {FD_DOLIST(expr,body) {
+	fd_decref(val);
+	val=fasteval(expr,&envstruct);
+	if (FD_ABORTP(val)) {
+	  fdtype env;
+	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+	  else env=retenv1(var,elt);
+	  fd_decref(choices);
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  return fd_passerr(val,env);}}}
+      if (!(FD_EMPTY_CHOICEP(val))) {
+	FD_STOP_DO_CHOICES;
+	fd_decref(choices);
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	return val;}
+      fd_decref(*vloc);
+      i++;}
+    fd_decref(choices);
+    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+    return fd_simplify_choice(results);}
+}
+
 /* This iterates over a set of choices, evaluating its body for each value, and
     accumulating the results of those evaluations.
    It tries to stack allocate as much as possible for locality and convenience sake.
@@ -979,6 +1042,7 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_defspecial(fd_scheme_module,"DO-CHOICES",dochoices_handler);
   fd_defspecial(fd_scheme_module,"FOR-CHOICES",forchoices_handler);
+  fd_defspecial(fd_scheme_module,"TRY-CHOICES",trychoices_handler);
   fd_defspecial(fd_scheme_module,"FILTER-CHOICES",filterchoices_handler);
   
   fd_defspecial(fd_scheme_module,"DO-SUBSETS",dosubsets_handler);

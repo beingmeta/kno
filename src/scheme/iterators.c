@@ -219,6 +219,75 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+/* TRYSEQ */
+
+static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
+{
+  int i=0, lim;
+  fdtype seq, count_var=FD_VOID, *iterval=NULL;
+  fdtype var=parse_control_spec(expr,&seq,&count_var,env);
+  fdtype body=fd_get_body(expr,2), val=FD_VOID;
+  fdtype vars[2], vals[2], inner_env;
+  struct FD_SCHEMAP bindings;
+  struct FD_ENVIRONMENT envstruct;
+  if (FD_ABORTP(var)) return var;
+  else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
+  else if (!(FD_SEQUENCEP(seq)))
+    return fd_type_error("sequence","doseq_handler",seq);
+  else lim=fd_seq_length(seq);
+  if (lim==0) {
+    fd_decref(seq);
+    return FD_VOID;}
+  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.schema=vars; bindings.values=vals; bindings.size=1;
+  fd_init_mutex(&(bindings.lock));
+  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  envstruct.parent=env;  
+  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
+  envstruct.copy=NULL;
+  inner_env=(fdtype)(&envstruct); 
+  vars[0]=var; vals[0]=FD_VOID;
+  if (!(FD_VOIDP(count_var))) {
+    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    bindings.size=2; iterval=&(vals[1]);} 
+  while (i<lim) {
+    fdtype elt=fd_seq_elt(seq,i);
+    if (envstruct.copy) {
+      fd_set_value(var,elt,envstruct.copy);
+      if (iterval)
+	fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+    else {
+      vals[0]=elt;
+      if (iterval) *iterval=FD_INT2DTYPE(i);}
+    {FD_DOLIST(expr,body) {
+	fd_decref(val);
+	val=fasteval(expr,&envstruct);
+	if (FD_THROWP(val)) {
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  fd_destroy_mutex(&(bindings.lock));
+	  fd_decref(elt); fd_decref(seq);
+	  return val;}
+	else if (FD_ABORTP(val)) {
+	  fdtype errbind;
+	  if (iterval) errbind=iterenv1(seq,var,elt);
+	  else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+	  fd_destroy_mutex(&(bindings.lock));
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  fd_decref(elt); fd_decref(seq);
+	  return fd_passerr(val,errbind);}
+	fd_decref(val);}}
+    if (envstruct.copy) {
+      fd_recycle_environment(envstruct.copy);
+      envstruct.copy=NULL;}
+    fd_decref(vals[0]);
+    if (FD_EMPTY_CHOICEP(val)) i++;
+    else break;}
+  fd_decref(seq);
+  fd_destroy_mutex(&(bindings.lock));
+  return val;
+}
+
 /* DOLIST */
 
 static fdtype dolist_handler(fdtype expr,fd_lispenv env)
@@ -376,6 +445,7 @@ FD_EXPORT void fd_init_iterators_c()
   fd_defspecial(fd_scheme_module,"DOTIMES",dotimes_handler);
   fd_defspecial(fd_scheme_module,"DOLIST",dolist_handler);
   fd_defspecial(fd_scheme_module,"DOSEQ",doseq_handler);
+  fd_defspecial(fd_scheme_module,"TRYSEQ",tryseq_handler);
 
   fd_defspecial(fd_scheme_module,"BEGIN",begin_handler);
   fd_defspecial(fd_scheme_module,"PROG1",prog1_handler);
