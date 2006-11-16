@@ -387,6 +387,10 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
     *ptr=0.0; return 1;}
   else if (FD_PTR_TYPEP(v,fd_double_type)) {
     *ptr=FD_FLONUM(v);}
+  else if (FD_FIXNUMP(v)) {
+    int intval=FD_FIX2INT(v);
+    double dblval=(double)intval;
+    *ptr=dblval;}
   else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
 			FD_SYMBOL_NAME(var),v);
 }
