@@ -248,9 +248,8 @@ int main(int argc,char **argv)
       if (details) u8_free(details); fd_decref(irritant);}
     else if (FD_VOIDP(result)) {}
     else if ((FD_CHOICEP(result)) || (FD_ACHOICEP(result)))
-      if (FD_CHOICE_SIZE(result)<3)
-	u8_printf(out,"%q\n",result);
-      else if ((FD_CHOICE_SIZE(result)>16) && (is_histref==0)) {
+      /* u8_printf(out,"%q\n",result); */
+      if ((FD_CHOICE_SIZE(result)>16) && (is_histref==0)) {
 	/* Truncated output for large result sets. */
 	int n=FD_CHOICE_SIZE(result), count=0;
 	u8_printf(out,_("{ ;; ##%d= (9/%d results)\n"),histref,n);
