@@ -460,7 +460,10 @@ static fdtype zpool_fetch(fd_pool p,fdtype oid)
   int offset=FD_OID_DIFFERENCE(addr,fp->base);
   off_t data_pos;
   fd_lock_mutex(&(fp->lock));
-  if (fp->offsets) data_pos=offget(fp->offsets,offset);
+  if (FD_EXPECT_FALSE(offset>=fp->load)) {
+    fd_unlock_mutex(&(fp->lock));
+    return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->cid,oid);}
+  else if (fp->offsets) data_pos=offget(fp->offsets,offset);
   else {
     if (fd_setpos(&(fp->stream),24+4*offset)<0) {
       fd_unlock_mutex(&(fp->lock));
@@ -500,14 +503,19 @@ static fdtype *zpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   struct POOL_FETCH_SCHEDULE *schedule=u8_malloc(sizeof(struct POOL_FETCH_SCHEDULE)*n);
   fdtype *result=u8_malloc(sizeof(fdtype)*n);
-  int i=0, min_file_pos=24+fp->capacity*4;
-  fd_lock_mutex(&(fp->lock));
+  int i=0, min_file_pos=24+fp->capacity*4, load;
+  fd_lock_mutex(&(fp->lock)); load=fp->load;
   if (fp->offsets) {
     unsigned int *offsets=fp->offsets;
     int i=0; while (i < n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
-      unsigned int off=FD_OID_DIFFERENCE(addr,base);
-      unsigned int file_off=offget(offsets,off);
+      unsigned int off=FD_OID_DIFFERENCE(addr,base), file_off;
+      if (FD_EXPECT_FALSE(off>=load)) {
+	u8_free(result); u8_free(schedule);
+	fd_unlock_mutex(&(fp->lock));
+	fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->cid),oid);
+	return NULL;}
+      file_off=offget(offsets,off);
       schedule[i].vpos=i;
       if (FD_EXPECT_FALSE(file_off==0))
 	/* This is okay, just an allocated but unassigned OID. */
@@ -561,8 +569,8 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   int n_schemas=fp->n_schemas;
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   off_t endpos, pos_limit=0xFFFFFFFF;
-  int i=0, retcode=n;
-  fd_lock_mutex(&(fp->lock));
+  int i=0, retcode=n, load;
+  fd_lock_mutex(&(fp->lock)); load=fp->load;
   endpos=fd_endpos(stream);
 #if HAVE_MMAP
   if (fp->offsets) {
@@ -584,8 +592,15 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     else {fp->offsets=newmmap+6; fp->offsets_size=fp->load;}}
 #endif
   while (i<n) {
+    FD_OID oid=FD_OID_ADDR(oids[i]);
+    unsigned int oid_off=FD_OID_DIFFERENCE(oid,base);
     int delta=write_oid_value(stream,values[i],schemas,n_schemas);
-    if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
+    if (FD_EXPECT_FALSE(oid_off>=load)) {
+      fd_seterr(fd_UnallocatedOID,
+		"zpool_storen",u8_strdup(fp->cid),
+		oids[i]);
+      retcode=-1; break;}
+    else if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
     else if (FD_EXPECT_FALSE(((off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_FileSizeOverflow,
 		"file_pool_storen",u8_strdup(fp->cid),

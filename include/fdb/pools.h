@@ -113,8 +113,8 @@
 #include "fddb.h"
 
 FD_EXPORT fd_exception
-  fd_CantLockOID, fd_InvalidPoolPtr,
-  fd_NotAFilePool, fd_AnonymousOID,
+  fd_CantLockOID, fd_InvalidPoolPtr, 
+  fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPool, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool;
 
