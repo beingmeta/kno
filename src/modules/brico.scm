@@ -271,7 +271,7 @@
 
 ;;; Displaying glosses
 
-(define (gloss f (slotid @?engloss))
+(define (gloss f (slotid english-gloss))
   (lineout f "\t" (get f slotid)))
 
 ;;; Getting concept frequency information
