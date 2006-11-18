@@ -90,7 +90,7 @@
 	      (get concept implies) implies)))
 
 (define bricosource-config
-  (slambda (var (val unbound))
+  (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) bricosource)
 	  ((equal? val bricosource)
 	   bricosource)
