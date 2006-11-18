@@ -424,9 +424,9 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
-    int i=0, lim=fd_pool_load(p);
+    int i=0, lim=fd_pool_load(p), buckets=0, k=0;
     fdtype result=FD_EMPTY_CHOICE;
-    FD_OID base=p->base, scan=base;
+    FD_OID base=p->base, scan=base, bases[1024];
     if (lim<0) return fd_erreify();
     if (FD_VOIDP(start)) {}
     else if (FD_FIXNUMP(start))
@@ -445,9 +445,19 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
       int lim_arg=FD_OID_DIFFERENCE(FD_OID_ADDR(count),base);
       if (lim_arg<lim) lim=lim_arg;}
     else return fd_type_error(_("pool offset"),"pool_elts",count);
-    while (i<lim) {
-      fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
-      FD_ADD_TO_CHOICE(result,each); i++;}
+    if ((lim-i)<(FD_OID_BUCKET_SIZE)) {
+      while (i<lim) {
+	fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
+	FD_ADD_TO_CHOICE(result,each); i++;}}
+    else {
+      int k=0, n_buckets=((lim-i)/(FD_OID_BUCKET_SIZE))+1;
+      while (k<FD_OID_BUCKET_SIZE) {
+	int j=0; while (j<n_buckets) {
+	  int off=(j*FD_OID_BUCKET_SIZE)+k;
+	  fdtype each=fd_make_oid(FD_OID_PLUS(base,off));
+	  FD_ADD_TO_CHOICE(result,each); j++;}
+	k++;}
+      return result;}
     return result;}
 }
 
