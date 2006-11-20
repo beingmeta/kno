@@ -1284,7 +1284,7 @@ static fdtype possessive_root(fdtype word)
   else return fd_incref(word);
 }
 
-static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
+static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid,int cap)
 {
   struct FD_GRAMMAR *g=pcxt->grammar;
   fdtype normalized, result=FD_EMPTY_CHOICE;
@@ -1292,12 +1292,21 @@ static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
     if (possessive_suffixp(base))
       return possessive_root(base);
     else return fd_incref(base);
+  else if (cap)
+    normalized=fd_incref(base);
   else if (FD_STRINGP(base)) {
     u8_string scan=FD_STRDATA(base);
     int firstc=u8_sgetc(&scan);
     if (u8_isupper(firstc)) 
       normalized=lower_string(FD_STRDATA(base));
-    else normalized=lower_compound(base);}
+    else normalized=fd_incref(base);}
+  else if ((FD_PAIRP(base)) && (FD_STRINGP(FD_CAR(base)))) {
+    fdtype first_word=FD_CAR(base);
+    u8_string scan=FD_STRDATA(base);
+    int firstc=u8_sgetc(&scan);
+    if (u8_isupper(firstc))
+      normalized=lower_compound(base);
+    else normalized=fd_incref(base);}
   else normalized=fd_incref(base);
   if (g->verb_tags[arcid]) 
     result=get_verb_root(pcxt,normalized);
@@ -1313,7 +1322,7 @@ static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
 }
 FD_EXPORT fdtype fd_get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
 {
-  return get_root(pcxt,base,arcid);
+  return get_root(pcxt,base,arcid,0);
 }
 
 static fdtype word2string(fdtype word)
@@ -1365,7 +1374,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
     if (state->arc == 0) s=state->previous;
     else if (pc->grammar->head_tags[state->arc]) {
       fdtype word=word2string(state->word);
-      fdtype root=get_root(pc,word,state->arc);
+      fdtype root=get_root(pc,word,state->arc,pc->input[state->input].cap);
       fdtype rootstring=word2string(root);
       fdtype tag=FD_VECTOR_REF(arc_names,state->arc);
       fdtype glom=FD_VOID, glom_root=FD_VOID, word_entry=FD_VOID;
@@ -1418,7 +1427,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       s=scan;}
     else {
       fdtype word=word2string(state->word), word_entry=FD_VOID;
-      fdtype root=get_root(pc,word,state->arc);
+      fdtype root=get_root(pc,word,state->arc,pc->input[state->input].cap);
       fdtype rootstring=word2string(root);
       fdtype tag=FD_VECTOR_REF(pc->grammar->arc_names,state->arc);
       if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
