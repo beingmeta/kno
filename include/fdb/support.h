@@ -41,6 +41,7 @@ FD_EXPORT int fd_dblconfig_set(fdtype ignored,fdtype v,void *dblptr);
 FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *dblptr);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
+FD_EXPORT int fd_argv_config(int argc,char **argv);
 FD_EXPORT int fd_read_config(u8_input);
 
 FD_EXPORT void fd_set_thread_config(fdtype table);

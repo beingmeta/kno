@@ -268,6 +268,19 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
   else return -1;
 }
 
+FD_EXPORT int fd_argv_config(int argc,char **argv)
+{
+  int i=0, n=0; while (i<argc)
+    if (strchr(argv[i],'=')) {
+      char *carg=argv[i++];
+      u8_string arg=u8_fromlibc(carg);
+      int retval=fd_config_assignment(arg);
+      if (retval<0) u8_clear_errors(0);
+      else n++;}
+    else i++;
+  return n;
+}
+
 FD_EXPORT int fd_read_config(U8_INPUT *in)
 {
   int c,n =0; u8_string buf;
