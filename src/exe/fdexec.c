@@ -89,6 +89,10 @@ int main(int argc,char **argv)
   fd_register_config("DEBUGMAXELTS",fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
   setlocale(LC_ALL,"");
+  /* Process command line config arguments */
+#ifndef FDEXEC_INCLUDED
+  fd_argv_config(argc,argv);
+#endif
   /* Initialize these primitives */
 #if FD_TESTCONFIG /* Set when statically linked for testing. */
   u8_init_chardata_c();
@@ -103,9 +107,10 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
     if (strchr(argv[i],'=')) {
+      /* Record but pass command line configs */
       if (n_configs>=MAX_CONFIGS) n_configs++;
       else configs[n_configs++]=u8_strdup(argv[i]);
-      fd_config_assignment(argv[i++]);}
+      i++;}
     else if (source_file)
       args[n_args++]=fd_parse_arg(argv[i++]);
     else {
