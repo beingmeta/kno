@@ -21,6 +21,12 @@ static char versionid[] =
 
 static fdtype pools_symbol, indices_symbol, id_symbol;
 
+static fdtype slotidp(fdtype arg)
+{
+  if ((FD_OIDP(arg)) || (FD_SYMBOLP(arg))) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* Finding frames, etc. */
 
 static fdtype find_frames_lexpr(int n,fdtype *args)
@@ -1360,6 +1366,8 @@ static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
 FD_EXPORT void fd_init_dbfns_c()
 {
   fd_register_source_file(versionid);
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SLOTID?",slotidp,1));
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET",fget,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",ftest,2)));
