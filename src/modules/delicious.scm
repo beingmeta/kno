@@ -17,7 +17,7 @@
     (for-choices (url urls)
       (when trace-delicious (message "delicious: " url))
       (if handle
-	  (urlxml url (qc flags) handle)
+	  (urlxml handle url (qc flags))
 	  (urlxml url (qc flags))))))
 
 ;; This is configurable and can be an index
