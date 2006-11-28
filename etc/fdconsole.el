@@ -1,8 +1,15 @@
-;;; Indentation information
+;; Indentation information
+
+(defvar framerd-keywords
+  '("do-choices" "doseq" "dolist" "dotimes" "for-choices" "filter-choices"
+    "do-choices-mt" "while" "until"))
 
 ;;; FRAMERD stuff
 (put 'when 'scheme-indent-function 1)
 (put 'unless 'scheme-indent-function 1)
+
+(put 'ambda 'scheme-indent-function 1)
+(put 'slambda 'scheme-indent-function 1)
 
 (put 'dolist 'scheme-indent-function 1)
 (put 'do-pool 'scheme-indent-function 1)
@@ -19,36 +26,46 @@
 (put 'slambda 'scheme-indent-function 1)
 (put 'ambda 'scheme-indent-function 1)
 
-(put 'hashtable-increment! 'scheme-indent-function 1)
-(put 'hashtable-increment-existing! 'scheme-indent-function 1)
-(put 'table-increment! 'scheme-indent-function 1)
-(put 'table-increment-existing! 'scheme-indent-function 1)
-(put 'hashtable-multiply! 'scheme-indent-function 1)
-(put 'hashtable-multiply-existing! 'scheme-indent-function 1)
-(put 'table-multiply! 'scheme-indent-function 1)
-(put 'table-multiply-existing! 'scheme-indent-function 1)
+(put 'index-frame 'scheme-indent-function 2)
+
+(put 'hashtable-increment! 'scheme-indent-function 2)
+(put 'hashtable-increment-existing! 'scheme-indent-function 2)
+(put 'table-increment! 'scheme-indent-function 2)
+(put 'table-increment-existing! 'scheme-indent-function 2)
+(put 'hashtable-multiply! 'scheme-indent-function 2)
+(put 'hashtable-multiply-existing! 'scheme-indent-function 2)
+(put 'table-multiply! 'scheme-indent-function 2)
+(put 'table-multiply-existing! 'scheme-indent-function 2)
 
 (put 'unwind-protect 'scheme-indent-function 1)
 (put 'on-errors 'scheme-indent-function 1)
 
 (put 'printout-to 'scheme-indent-function 1)
-(put 'printout 'scheme-indent-function 1)
-(put 'lineout 'scheme-indent-function 1)
-(put 'fileout 'scheme-indent-function 1)
-(put 'stringout 'scheme-indent-function 1)
+(put 'printout 'scheme-indent-function 0)
+(put 'lineout 'scheme-indent-function 0)
+(put 'fileout 'scheme-indent-function 0)
+(put 'stringout 'scheme-indent-function 0)
 
 (put 'with-output 'scheme-indent-function 1)
-(put 'with-output-to-string 'scheme-indent-function 1)
+(put 'with-output-to-string 'scheme-indent-function 0)
 
-(put 'xmlenv 'scheme-indent-function 1)
+;;; XML/HTML generation
+(put 'xmlout 'scheme-indent-function 0)
 (put 'xmlblock 'scheme-indent-function 2)
-(put 'index-frame 'scheme-indent-function 2)
+(put 'xmlelt 'scheme-indent-function 0)
 
-;;; HTML generation
-(put 'xmlblock 'scheme-indent-function 1)
+(put 'xhtml 'scheme-indent-function 0)
 (put 'span 'scheme-indent-function 1)
 (put 'div 'scheme-indent-function 1)
 (put 'table* 'scheme-indent-function 1)
+(put 'p 'scheme-indent-function 0)
+(put 'h1 'scheme-indent-function 0)
+(put 'h2 'scheme-indent-function 0)
+(put 'anchor 'scheme-indent-function 1)
+(put 'anchor* 'scheme-indent-function 2)
+(put 'p* 'scheme-indent-function 1)
+(put 'h1* 'scheme-indent-function 1)
+(put 'h2* 'scheme-indent-function 1)
 (put 'tr* 'scheme-indent-function 1)
 (put 'th* 'scheme-indent-function 1)
 (put 'td* 'scheme-indent-function 1)
@@ -145,7 +162,8 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 
 (defun fdconsole-scheme-mode-hook ()
   (interactive)
-  (local-set-key "\e\C-m" 'fdconsole-sender))
+  (local-set-key "\e\C-m" 'fdconsole-sender)
+  (font-lock-add-keywords 'scheme-mode framerd-keywords))
 (add-hook 'scheme-mode-hook 'fdconsole-scheme-mode-hook)
 
 

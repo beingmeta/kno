@@ -29,7 +29,6 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
 /*
   (XMLOUT .. .. ..) does escaping
   (XMLTAG 'tag p v p v ...)
-  (XMLENV `(tag p v p v p v) ...) 
   (DIV () ...)
   (SPAN () ...)
   (special* () ...)
