@@ -116,6 +116,23 @@ static fdtype getpool(fdtype arg)
   else return FD_EMPTY_CHOICE;
 }
 
+static fdtype set_cache_level(fdtype arg,fdtype level)
+{
+  if (!(FD_FIXNUMP(level)))
+    return fd_type_error("fixnum","set_cache_level",level);
+  else if (FD_POOLP(arg)) {
+    fd_pool p=fd_lisp2pool(arg);
+    if (p) fd_pool_setcache(p,FD_FIX2INT(level));
+    else return fd_erreify();
+    return FD_VOID;}
+  else if (FD_INDEXP(arg)) {
+    fd_index ix=fd_lisp2index(arg);
+    if (ix) fd_index_setcache(ix,FD_FIX2INT(level));
+    else return fd_erreify();
+    return FD_VOID;}
+  else return fd_type_error("pool or index","set_cache_level",arg);
+}
+
 static fdtype use_pool(fdtype arg1,fdtype arg2)
 {
   if (FD_POOLP(arg1)) return fd_incref(arg1);
@@ -1401,6 +1418,9 @@ FD_EXPORT void fd_init_dbfns_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL?",poolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX?",indexp,1));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2("SET-CACHE-LEVEL!",set_cache_level,2));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("NAME->POOL",getpool,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETPOOL",getpool,1));
