@@ -123,7 +123,7 @@ static fdtype heads_symbol, mods_symbol;
 /* These simple syntactic categories are used when words aren't
    in the lexicon. */
 static fdtype sstrange_word, sproper_name, sdashed_word, sdashed_sword;
-static fdtype ed_word, ing_word, ly_word, punctuation_symbol, stime_ref;
+static fdtype ed_word, ing_word, s_word, ly_word, punctuation_symbol, stime_ref;
 static fdtype sscore, snumber, sdollars, spossessive, sproper_possessive;
 static fdtype sentence_end_symbol, sxproper_name, sxproper_possessive;
 
@@ -908,7 +908,9 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
     value=lexicon_fetch(lex,sdashed_sword);  
   else value=lexicon_fetch(lex,sstrange_word);
   if (FD_PAIRP(value)) value=FD_CAR(value);
-  if (!((FD_VECTORP(value)) || (FD_PACKETP(value))))
+  if ((!((FD_VECTORP(value)) || (FD_PACKETP(value)))) ||
+      ((FD_VECTORP(value)) && (FD_VECTOR_LENGTH(value)<pc->grammar->n_arcs)) ||
+      ((FD_PACKETP(value)) && (FD_PACKET_LENGTH(value)<pc->grammar->n_arcs)))
     value=lexicon_fetch(lex,sstrange_word);
   if (FD_VECTORP(value)) {
     i=0; while (i < pc->grammar->n_arcs) {
@@ -1921,6 +1923,7 @@ static void init_parser_symbols()
   ing_word=fd_intern("%ING-WORD");
   ly_word=fd_intern("%LY-WORD");
   ed_word=fd_intern("%ED-WORD");
+  s_word=fd_intern("%S-WORD");   /* Not currently used */
   punctuation_symbol=fd_intern("%PUNCTUATION");
   sstrange_word=fd_intern("%STRANGE-WORD");
   sproper_name=fd_intern("%PROPER-NAME");
