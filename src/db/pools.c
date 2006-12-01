@@ -397,13 +397,12 @@ int fd_prefetch_oids(fdtype oids)
 	  ((fd_hashtable_probe_novoid(&(p->locks),oid)) 
 	   ? (fd_hashtable_op(&(p->locks),fd_table_test,oid,FD_LOCKHOLDER))
 	   : (fd_hashtable_probe_novoid(&(p->cache),oid)==0))) {
+	/* Scan current pools to see if you've already seen it. */
 	i=0; while (i<n_pools) if (pools[i]==p) break; else i++;
-	if (i>=n_pools)
-	  /* Create a pool entry if neccessary */
-	  if (i<max_pools) {
-	    pools[i]=p; toget[i]=FD_EMPTY_CHOICE; n_pools++;}
-	/* Grow the tables if neccessary */
+	if (i>=n_pools) { /* This means you need to add an entry */
+	  if (i<max_pools) {} /* Enough space */
 	  else if (max_pools==32) {
+	    /* Running out of space for the first time. */
 	    int j=0;
 	    pools=u8_malloc(sizeof(fd_pool)*64);
 	    toget=u8_malloc(sizeof(fdtype)*64);
@@ -411,9 +410,12 @@ int fd_prefetch_oids(fdtype oids)
 	      pools[j]=_pools[j]; toget[j]=_toget[j]; j++;}
 	    max_pools=64;}
 	  else {
+	    /* Running out of space again. */
 	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
 	    toget=u8_realloc(toget,sizeof(fdtype)*(max_pools+32));
 	    max_pools=max_pools+32;}
+	  pools[i]=p; toget[i]=FD_EMPTY_CHOICE; n_pools++;}
+
 	/* Now, i is bound to the index for the pools and to gets */
 	FD_ADD_TO_CHOICE(toget[i],oid);}}
     else {}}
