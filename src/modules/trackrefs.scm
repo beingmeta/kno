@@ -6,7 +6,7 @@
      (let ((value (thunk)))
        (let ((loaded-oids (difference (cached-oids) preoids))
 	     (loaded-keys (difference (cached-keys) prekeys)))
-	 (cond ((trackfn (trackfn (qc loaded-oids) (qc loaded-keys))))
+	 (cond (trackfn (trackfn (qc loaded-oids) (qc loaded-keys)))
 	       (else
 		(when (exists? loaded-oids)
 		  (message "Loaded " (choice-size loaded-oids) " oids: "
