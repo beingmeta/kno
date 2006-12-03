@@ -123,6 +123,7 @@ int main(int argc,char **argv)
   u8_string filebase;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
+  u8_show_procinfo=1;
   fd_init_dtypelib();
   fd_argv_config(argc,argv);
   filebase=get_filebase(argv[1]);
