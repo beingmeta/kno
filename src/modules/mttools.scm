@@ -2,9 +2,8 @@
 (use-module 'reflection)
 
 (define (nrange start end)
-  (if (= start end) start
+  (if (>= start end) (fail)
       (choice start (nrange (1+ start) end))))
-
 (define (make-counter max)
   (let ((counter 0))
     (slambda ()
