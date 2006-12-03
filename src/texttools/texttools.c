@@ -144,7 +144,8 @@ static u8_string skip_word(u8_string start)
 	if (!(u8_isalnum(c))) return last;
 	else last=scan;}
     else if (u8_ispunct(c)) while (c>0)
-      if (u8_ispunct(c)) {last=scan; c=egetc(&scan);}
+      if (u8_ispunct(c)) {
+	last=scan; c=egetc(&scan);}
       else return last;
     else return last;
     return last;}
@@ -156,10 +157,10 @@ static u8_string skip_notword(u8_string start)
   if (start==NULL) return NULL;
   else if (*start) {
     u8_string last=start, scan=start; int c=egetc(&scan);
-    while (c>0)
+    while (c>=0)
       if (u8_isalnum(c)) return last;
       else {
-	if (c=='<') while ((c>0) && (c!='>')) c=egetc(&scan);
+	if (c=='<') while ((c>=0) && (c!='>')) c=egetc(&scan);
 	last=scan; c=egetc(&scan);}
     return last;}
   else return NULL;
@@ -269,7 +270,7 @@ static fdtype getwords_prim(fdtype arg,fdtype punctflag)
     FD_DO_CHOICES(input,arg)
       if (FD_STRINGP(input)) {
 	fdtype result=((keep_punct) ? (getwordspunct(FD_STRDATA(input))) :
-			(getwords(FD_STRDATA(input))));
+		       (getwords(FD_STRDATA(input))));
 	if (FD_ABORTP(result)) {
 	  fd_decref(results); return result;}
 	FD_ADD_TO_CHOICE(results,result);}
