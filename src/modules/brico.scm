@@ -8,7 +8,7 @@
 (module-export!
  '{brico-pool
    brico-index
-   english english-gloss spanish french
+   english english-gloss spanish french get-norm
    genls genls* kindof kindof* specls specls*
    parts parts* partof partof*
    members members* memberof memberof*
@@ -54,6 +54,8 @@
 (define language-map (file->dtype (get-component "langmap.table")))
 (define gloss-map (file->dtype (get-component "glossmap.table")))
 
+(define default-language english)
+
 ;;; This is how these tables where generated
 (comment
  (do-choices (l (?? 'type 'language))
@@ -62,7 +64,12 @@
  (do-choices (l (?? 'type 'gloss))
    (store! gloss-map (get l 'key) l)))
 
-(define (get-gloss concept (language #f))
+(define (get-norm concept (language default-language))
+  (try (pick-one (get (get concept '%norm) language))
+       (pick-one (get concept language))
+       (pick-one (get concept english))))
+
+(define (get-gloss concept (language default-language))
   (try (tryif language (get concept (get gloss-map language)))
        (tryif language (get (get concept '%glosses) language))
        (get concept english-gloss)
