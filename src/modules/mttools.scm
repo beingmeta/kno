@@ -141,6 +141,7 @@
 
 (module-export! '{mt-apply
 		  do-choices-mt
+		  interval-string
 		  short-interval-string
 		  mt/save/fetch
 		  mt/save/lock/fetch
