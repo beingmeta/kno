@@ -264,7 +264,8 @@ FD_EXPORT
     a capacity, and a dtype pointer to a metadata description (a slotmap).
     Returns: -1 on error, 1 on success. */
 int fd_make_file_pool
-  (u8_string filename,unsigned int magicno,FD_OID base,int capacity,
+  (u8_string filename,unsigned int magicno,
+   FD_OID base,unsigned int capacity,unsigned int load,
    fdtype metadata)
 {
   int i, hi, lo;
@@ -284,7 +285,7 @@ int fd_make_file_pool
   fd_dtswrite_4bytes(stream,hi);
   fd_dtswrite_4bytes(stream,lo);
   fd_dtswrite_4bytes(stream,capacity);
-  fd_dtswrite_4bytes(stream,0); /* load */
+  fd_dtswrite_4bytes(stream,load); /* load */
   fd_dtswrite_4bytes(stream,0); /* label pos */
   i=0; while (i<capacity) {fd_dtswrite_4bytes(stream,0); i++;}
   /* Write an initially empty metadata block */

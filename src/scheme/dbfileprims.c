@@ -19,23 +19,38 @@ static char versionid[] =
 #include "fdb/frames.h"
 
 static fdtype make_file_pool
-  (fdtype fname,fdtype base,fdtype capacity,fdtype metadata)
+  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
 {
-  int retval=
-    fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
-		      FD_OID_ADDR(base),fd_getint(capacity),
-		      metadata);
+  fdtype metadata; unsigned int load;
+  int retval;
+  if (FD_FIXNUMP(opt1)) {
+    load=FD_FIX2INT(opt1); metadata=opt2;}
+  else {load=0; metadata=opt1;}
+  if (FD_VOIDP(metadata)) {}
+  else if (!(FD_SLOTMAPP(metadata)))
+    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
+  retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
+			   FD_OID_ADDR(base),fd_getint(capacity),
+			   load,metadata);
   if (retval<0) return fd_erreify();
   else return FD_TRUE;
 }
 
 static fdtype make_zpool
-  (fdtype fname,fdtype base,fdtype capacity,fdtype metadata)
+  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
 {
-  int retval=
+  fdtype metadata; unsigned int load;
+  int retval;
+  if (FD_FIXNUMP(opt1)) {
+    load=FD_FIX2INT(opt1); metadata=opt2;}
+  else {load=0; metadata=opt1;}
+  if (FD_VOIDP(metadata)) {}
+  else if (!(FD_SLOTMAPP(metadata)))
+    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
+  retval=
     fd_make_file_pool(FD_STRDATA(fname),FD_ZPOOL_MAGIC_NUMBER,
 		      FD_OID_ADDR(base),fd_getint(capacity),
-		      metadata);
+		      load,metadata);
   if (retval<0) return fd_erreify();
   else return FD_TRUE;
 }
@@ -133,17 +148,17 @@ FD_EXPORT void fd_init_filedb_c()
 			   fd_fixnum_type,FD_VOID,
 			   fd_slotmap_type,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim4x("MAKE-FILE-POOL",make_file_pool,3,
+	   fd_make_cprim5x("MAKE-FILE-POOL",make_file_pool,3,
 			   fd_string_type,FD_VOID,
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
-			   fd_slotmap_type,FD_VOID));
+			   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim4x("MAKE-ZPOOL",make_zpool,3,
+	   fd_make_cprim5x("MAKE-ZPOOL",make_zpool,3,
 			   fd_string_type,FD_VOID,
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
-			   fd_slotmap_type,FD_VOID));
+			   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,fd_make_cprim2x("LABEL-POOL!",label_file_pool,2,
 					 fd_string_type,FD_VOID,
 					 fd_string_type,FD_VOID));

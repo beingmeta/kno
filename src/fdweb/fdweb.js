@@ -848,6 +848,19 @@ function decrease_font(evt)
   else parent.style.fontSize="75%";
 }
 
+function show_all(evt)
+{
+  var elt=evt.target;
+  var parent=elt.parentNode;
+  var font_info=parent.style.fontSize;
+  if (font_info) {
+    if (font_info.match(/\d+[%]$/)) {
+      var percent=parseInt(font_info.slice(0,-1));
+      if (percent>25) {
+	parent.style.fontSize=(percent-25).toString()+"%";}}}
+  else parent.style.fontSize="75%";
+}
+
 /* Miscellaneous */
 
 function refile_form(evt)

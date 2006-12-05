@@ -757,6 +757,8 @@ static fdtype apply_lexpr(int n,fdtype *args)
 
 #if FD_THREADS_ENABLED
 
+int fd_threaderror_backtrace=1;
+
 fd_ptr_type fd_thread_type;
 fd_ptr_type fd_condvar_type;
 
@@ -770,12 +772,20 @@ static void *thread_call(void *data)
     result=fd_dapply(tstruct->applydata.fn,
 		     tstruct->applydata.n_args,
 		     tstruct->applydata.args);
-  if (FD_ABORTP(result))
+  if (FD_ABORTP(result)) {
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_warn(ThreadReturnError,"Thread evaluating %q returned %q",
 	      tstruct->evaldata.expr,result);
     else u8_warn(ThreadReturnError,"Thread apply %q returned %q",
 		 tstruct->applydata.fn,result);
+    if ((fd_threaderror_backtrace) && (FD_PTR_TYPEP(result,fd_error_type))) {
+      struct U8_OUTPUT out;
+      struct FD_EXCEPTION_OBJECT *e=
+	FD_GET_CONS(result,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+      U8_INIT_OUTPUT(&out,8192);
+      fd_print_backtrace(&out,80,e->backtrace);
+      u8_warn(ThreadReturnError,out.u8_outbuf);
+      u8_free(out.u8_outbuf);}}
   if (tstruct->resultptr) *(tstruct->resultptr)=result;
   else fd_decref(result);
   tstruct->flags=tstruct->flags|FD_THREAD_DONE;

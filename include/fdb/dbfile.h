@@ -64,7 +64,9 @@ typedef struct FD_ZPOOL *fd_zpool;
 
 FD_EXPORT fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds);
 FD_EXPORT fdtype fd_write_pool_metadata(fd_dtype_stream,fdtype);
-FD_EXPORT int fd_make_file_pool (u8_string,unsigned int,FD_OID,int,fdtype);
+FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
+				FD_OID,unsigned int,unsigned int,
+				fdtype);
 
 /* File indices */
 
