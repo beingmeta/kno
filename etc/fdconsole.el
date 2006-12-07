@@ -1,8 +1,10 @@
 ;; Indentation information
 
-(defvar framerd-keywords
-  '("do-choices" "doseq" "dolist" "dotimes" "for-choices" "filter-choices"
-    "do-choices-mt" "while" "until"))
+(defvar *framerd-keywords*
+  '("do-choices-mt"
+    "do-choices" "doseq" "dolist" "dotimes" "for-choices" "filter-choices"
+    "while" "until"
+    "find-frames" "pick" "reject"))
 
 ;;; FRAMERD stuff
 (put 'when 'scheme-indent-function 1)
@@ -163,8 +165,6 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 (defun fdconsole-scheme-mode-hook ()
   (interactive)
   (local-set-key "\e\C-m" 'fdconsole-sender)
-  (font-lock-add-keywords 'scheme-mode framerd-keywords))
+  (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
 (add-hook 'scheme-mode-hook 'fdconsole-scheme-mode-hook)
-
-
 
