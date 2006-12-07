@@ -29,6 +29,12 @@ static fdtype make_hashtable(fdtype size)
   else return fd_make_hashtable(NULL,0,NULL);
 }
 
+static fdtype reset_hashtable(fdtype table,fdtype n_slots)
+{
+  fd_reset_hashtable((fd_hashtable)table,FD_FIX2INT(n_slots),1);
+  return FD_VOID;
+}
+
 static fdtype hash_lisp_prim(fdtype x)
 {
   int val=fd_hash_lisp(x);
@@ -450,6 +456,10 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim0("MAKE-HASHSET",fd_make_hashset,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
 
+  fd_idefn(fd_xscheme_module,
+	   fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
+			   fd_hashtable_type,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(-1)));
   /* Note that GET and TEST are actually DB functions which do inference */
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("%GET",lispget,2)));
