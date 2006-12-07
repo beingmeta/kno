@@ -813,7 +813,8 @@ FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
 {
   struct FD_THREAD_STRUCT *th=(struct FD_THREAD_STRUCT *)c;
   if (th->flags&FD_EVAL_THREAD) {
-    fd_decref(th->evaldata.expr); fd_decref((fdtype)(th->evaldata.env));}
+    fd_decref(th->evaldata.expr);
+    fd_decref((fdtype)(th->evaldata.env));}
   else {
     int i=0, n=th->applydata.n_args; fdtype *args=th->applydata.args;
     while (i<n) {fd_decref(args[i]); i++;}
@@ -995,7 +996,7 @@ static fdtype threadcall_prim(int n,fdtype *args)
   fdtype *call_args=u8_malloc(sizeof(fdtype)*(n-1));
   int i=1; while (i<n) {
     call_args[i-1]=fd_incref(args[i]); i++;}
-  return (fdtype)fd_thread_call(NULL,fd_incref(args[0]),n-1,call_args);
+  return (fdtype)fd_thread_call(NULL,args[0],n-1,call_args);
 }
 
 static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
