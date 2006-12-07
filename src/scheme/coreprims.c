@@ -353,10 +353,9 @@ static fdtype idiv_lexpr(int n,fdtype *args)
     double d=todouble(args[0]);
     return fd_init_double(NULL,(1.0/d));}
   else {
-    double val=todouble(args[0]);
-    fdtype value=fd_incref(args[0]); i=1;
+    double val=todouble(args[0]); i=1;
     while (i<n) {
-      fdtype dval=todouble(args[i]);
+      double dval=todouble(args[i]);
       val=val/dval; i++;}
     return fd_init_double(NULL,val);}
 }
