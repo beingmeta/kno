@@ -1491,6 +1491,22 @@ static fdtype evaltest(fdtype expr,fd_lispenv env)
       return err;}}
 }
 
+/* Debugging assistance */
+
+FD_EXPORT fdtype _fd_dbg(fdtype x)
+{
+  return fd_incref(x);
+}
+
+static fdtype dbg_prim(fdtype x,fdtype msg)
+{
+  if (FD_VOIDP(msg))
+    u8_message("Debug %q",x);
+  else if (FD_FALSEP(msg)) {}
+  else u8_message("Debug (%q) %q",msg,x);
+  return _fd_dbg(x);
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
@@ -1564,6 +1580,10 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,3)));
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest);
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,1)));
+
 
   fd_register_config
     ("TAILCALL",fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);

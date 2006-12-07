@@ -64,5 +64,6 @@ break u8_seterr
 break u8_raise
 break fd_err
 break fd_seterr
+break _fd_dbg
 
 set env MALLOC_CHECK_=2
