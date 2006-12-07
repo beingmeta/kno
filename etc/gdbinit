@@ -47,8 +47,22 @@ define showcelt
   print/x ((&((struct FD_CHOICE *)$arg0)->elt0)[$arg1])
   showtype $  
 end
+define oidinfo
+  printf "oidinfo: %s\n", (_fd_oid_info($arg0))
+end
+define showchoice
+  print ((((struct FD_CHOICE *)$arg0)->size)&(0x7FFFFFFF))
+end
+define findelt
+  print _fd_find_elt($arg0,$arg1,$arg2)
+end
+define inchoicep
+  print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->elt0),((((struct FD_CHOICE *)$arg1)->size)&(0x7FFFFFFF)))
+end
+
 break u8_seterr
 break u8_raise
 break fd_err
 break fd_seterr
+
 set env MALLOC_CHECK_=2

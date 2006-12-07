@@ -857,6 +857,14 @@ FD_EXPORT struct FD_PAIR *fd_pair_data(fdtype x)
   return FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *);
 }
 
+FD_EXPORT int _fd_find_elt(fdtype x,fdtype *v,int n)
+{
+  int i=0; while (i<n)
+    if (v[i]==x) return i;
+    else i++;
+  return -1;
+}
+
 
 /* Initialization */
 

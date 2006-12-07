@@ -509,6 +509,9 @@ FD_EXPORT fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
 FD_EXPORT fd_compare_fn fd_comparators[FD_TYPE_MAX];
 FD_EXPORT fd_copy_fn fd_copiers[FD_TYPE_MAX];
 
+typedef u8_string (*fd_oid_info_fn)(fdtype x);
+FD_EXPORT fd_oid_info_fn _fd_oid_info;
+
 #define fd_intcmp(x,y) ((x<y) ? (-1) : (x>y) ? (1) : (0))
 FD_EXPORT int fdtype_compare(fdtype x,fdtype y,int);
 

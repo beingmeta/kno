@@ -1135,6 +1135,42 @@ static int check_pool(fdtype x)
   else return 0;
 }
 
+/* This is just for use from the debugger, so we can allocate it
+   statically. */
+static char oid_info_buf[512];
+
+static u8_string _more_oid_info(fdtype oid)
+{
+  if (FD_OIDP(oid)) {
+    FD_OID addr=FD_OID_ADDR(oid);
+    fd_pool p=fd_oid2pool(oid);
+    unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
+    if (p==NULL)
+      sprintf(oid_info_buf,"@%x/%x in no pool",hi,lo);
+    else if (p->label)
+      if (p->source)
+	if (p->cid)
+	  if (p->xid)
+	    sprintf(oid_info_buf,"@%x/%x in %s from %s = %s = %s",
+		    hi,lo,p->label,p->source,p->cid,p->xid);
+	  else sprintf(oid_info_buf,"@%x/%x in %s from %s = %s",hi,lo,p->label,p->source,p->cid);
+	else sprintf(oid_info_buf,"@%x/%x in %s from %s",hi,lo,p->label,p->source);
+      else sprintf(oid_info_buf,"@%x/%x in %s",hi,lo,p->label);
+    else if (p->source)
+      if (p->cid)
+	if (p->xid)
+	  sprintf(oid_info_buf,"@%x/%x from %s = %s = %s",hi,lo,p->source,p->cid,p->xid);
+	else sprintf(oid_info_buf,"@%x/%x from %s = %s",hi,lo,p->source,p->cid);
+      else sprintf(oid_info_buf,"@%x/%x from %s",hi,lo,p->source);
+    else if (p->cid)
+      if (p->xid)
+	sprintf(oid_info_buf,"@%x/%x from %s = %s",hi,lo,p->cid,p->xid);
+      else sprintf(oid_info_buf,"@%x/%x from %s",hi,lo,p->cid);
+    else sprintf(oid_info_buf,"@%x/%x in stub pool",hi,lo);
+    return oid_info_buf;}
+  else return "not an oid!";
+}
+
 FD_EXPORT fd_init_pools_c()
 {
   int i=0; while (i < 1024) fd_top_pools[i++]=NULL;
@@ -1142,6 +1178,8 @@ FD_EXPORT fd_init_pools_c()
   fd_register_source_file(versionid);
 
   fd_pool_type=fd_register_immediate_type("pool",check_pool);
+
+  _fd_oid_info=_more_oid_info;
 
   {
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"));

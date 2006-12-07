@@ -66,11 +66,29 @@ FD_EXPORT fdtype fd_make_oid(FD_OID addr)
   return FD_CONSTRUCT_OID(boi,offset);
 }
 
+fd_oid_info_fn _fd_oid_info;
+
+/* This is just for use from the debugger, so we can allocate it
+   statically. */
+static char oid_info_buf[128];
+
+static u8_string _simple_oid_info(fdtype oid)
+{
+  if (FD_OIDP(oid)) {
+    FD_OID addr=FD_OID_ADDR(oid);
+    unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
+    sprintf(oid_info_buf,"@%x/%x",hi,lo);
+    return oid_info_buf;}
+  else return "not an oid!";
+}
+
 void fd_init_oids_c()
 {
   fd_register_source_file(versionid);
 
   fd_type_names[fd_oid_type]="OID";
+
+  _fd_oid_info=_simple_oid_info;
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(base_oid_lock));
