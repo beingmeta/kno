@@ -137,6 +137,40 @@ static fdtype eofp(fdtype x)
   if (FD_EOFP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
+/* DTYPE streams */
+
+fd_ptr_type fd_dtstream_type;
+
+static int unparse_dtstream(struct U8_OUTPUT *out,fdtype x)
+{
+  u8_printf(out,"#<DTStream #!%x>",x);
+  return 1;
+}
+
+static void recycle_dtstream(struct FD_CONS *c)
+{
+  struct FD_DTSTREAM *p=(struct FD_DTSTREAM *)c;
+  fd_dtsclose(p->dt_stream,p->owns_socket);
+  if (FD_MALLOCD_CONSP(c)) {
+    u8_free_x(c,sizeof(struct FD_DTSTREAM));}
+}
+
+static fdtype read_dtype(fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  fdtype object=fd_dtsread_dtype(ds->dt_stream);
+  if (object == FD_EOD) return FD_EOF;
+  else return object;
+}
+
+static fdtype write_dtype(fdtype object,fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
+  if (bytes<0) return fd_erreify();
+  else return FD_INT2DTYPE(bytes);
+}
+
 /* Output strings */
 
 static fdtype open_output_string()
@@ -946,6 +980,11 @@ FD_EXPORT void fd_init_portfns_c()
   fd_unparsers[fd_port_type]=unparse_port;
   fd_recyclers[fd_port_type]=recycle_port;
 
+  fd_dtstream_type=fd_register_cons_type("DTSTREAM");
+
+  fd_unparsers[fd_dtstream_type]=unparse_dtstream;
+  fd_recyclers[fd_dtstream_type]=recycle_dtstream;
+
 #if FD_THREADS_ENABLED
   u8_new_threadkey(&default_output_key,NULL);
 #endif
@@ -997,6 +1036,12 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"MESSAGE",message_handler);
   fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
   fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
+			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));

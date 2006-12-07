@@ -91,6 +91,21 @@ static fdtype open_input_file(fdtype fname,fdtype encid)
   else return make_port((u8_input)f,NULL);
 }
 
+static fdtype open_dtype_file(fdtype fname)
+{
+  u8_string filename=FD_STRDATA(fname);
+  struct FD_DTSTREAM *dts=u8_malloc(sizeof(struct FD_DTSTREAM));
+  FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+  if (u8_file_existsp(filename))
+    dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
+  else dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_CREATE);
+  if (dts->dt_stream)
+    return FDTYPE_CONS(dts);
+  else {
+    u8_free(dts);
+    return fd_erreify();}
+}
+
 /* FILEOUT */
 
 static int printout_helper(U8_OUTPUT *out,fdtype x)
@@ -452,7 +467,7 @@ static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
 
 /* Reading and writing DTYPEs */
 
-static fdtype write_dtype(fdtype object,fdtype filename,fdtype bufsiz)
+static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
 {
   if (FD_STRINGP(filename)) {
     struct FD_DTYPE_STREAM *out; int bytes;
@@ -463,10 +478,15 @@ static fdtype write_dtype(fdtype object,fdtype filename,fdtype bufsiz)
     bytes=fd_dtswrite_dtype(out,object);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
     return FD_INT2DTYPE(bytes);}
+  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+    struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    int bytes=fd_dtswrite_dtype(out->dt_stream,object);
+    if (bytes<0) return fd_erreify();
+    else return FD_INT2DTYPE(bytes);}
   else return fd_type_error(_("string"),"write_dtype",filename);
 }
 
-static fdtype add_dtype(fdtype object,fdtype filename)
+static fdtype add_dtype2file(fdtype object,fdtype filename)
 {
   if (FD_STRINGP(filename)) {
     struct FD_DTYPE_STREAM *out; int bytes;
@@ -478,10 +498,15 @@ static fdtype add_dtype(fdtype object,fdtype filename)
     bytes=fd_dtswrite_dtype(out,object);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
     return FD_INT2DTYPE(bytes);}
+  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+    struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    int bytes=fd_dtswrite_dtype(out->dt_stream,object);
+    if (bytes<0) return fd_erreify();
+    else return FD_INT2DTYPE(bytes);}
   else return fd_type_error(_("string"),"write_dtype",filename);
 }
 
-static fdtype read_dtype(fdtype filename)
+static fdtype file2dtype(fdtype filename)
 {
   if (FD_STRINGP(filename)) {
     struct FD_DTYPE_STREAM *in; int bytes=0;
@@ -491,10 +516,15 @@ static fdtype read_dtype(fdtype filename)
     else object=fd_dtsread_dtype(in);
     fd_dtsclose(in,FD_DTSCLOSE_FULL);
     return object;}
+  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+    struct FD_DTSTREAM *in=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    fdtype object=fd_dtsread_dtype(in->dt_stream);
+    if (object == FD_EOD) return FD_EOF;
+    else return object;}
   else return fd_type_error(_("string"),"read_dtype",filename);
 }
 
-static fdtype read_dtypes(fdtype filename)
+static fdtype file2dtypes(fdtype filename)
 {
   if (FD_STRINGP(filename)) {
     struct FD_DTYPE_STREAM *in; int bytes=0;
@@ -527,62 +557,88 @@ static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *
 
 static fdtype flushprim(fdtype portarg)
 {
-  U8_OUTPUT *out=get_output_port(portarg);
-  u8_flush(out);
-  if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
-    U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
-    fsync(xout->fd);}
-  return FD_VOID;
+  if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_dtsflush(dts->dt_stream);
+    return FD_VOID;}
+  else {
+    U8_OUTPUT *out=get_output_port(portarg);
+    u8_flush(out);
+    if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
+      U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
+      fsync(xout->fd);}
+    return FD_VOID;}
 }
 
 static fdtype setbufprim(fdtype portarg,fdtype insize,fdtype outsize)
 {
-  struct FD_PORT *p=
-    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-  if (FD_FIXNUMP(insize)) {
-    U8_INPUT *in=p->in;
-    if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
-      u8_xinput_setbuf((struct U8_XINPUT *)in,FD_FIX2INT(insize));}}
-  
-  if (FD_FIXNUMP(outsize)) {
-    U8_OUTPUT *out=p->out;
-    if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
-      u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FD_FIX2INT(outsize));}}
-  return FD_VOID;
+  if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_dtsbufsize(dts->dt_stream,FD_FIX2INT(insize));
+    return FD_VOID;}
+  else {
+    struct FD_PORT *p=
+      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    if (FD_FIXNUMP(insize)) {
+      U8_INPUT *in=p->in;
+      if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
+	u8_xinput_setbuf((struct U8_XINPUT *)in,FD_FIX2INT(insize));}}
+    
+    if (FD_FIXNUMP(outsize)) {
+      U8_OUTPUT *out=p->out;
+      if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
+	u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FD_FIX2INT(outsize));}}
+    return FD_VOID;}
 }
 
 static fdtype getpos_prim(fdtype portarg)
 {
-  struct FD_PORT *p=
-    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-  off_t result=-1;
-  if (p->in)
-    result=u8_getpos((struct U8_STREAM *)(p->in));
-  else if (p->out)
-    result=u8_getpos((struct U8_STREAM *)(p->out));
-  else return fd_type_error(_("port"),"getpos_prim",portarg);
-  if (result<0)
-    return fd_erreify();
-  else if (result<FD_MAX_FIXNUM)
-    return FD_INT2DTYPE(result);
-  else return fd_make_bigint(result);
+  if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
+    struct FD_PORT *p=
+      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    off_t result=-1;
+    if (p->in)
+      result=u8_getpos((struct U8_STREAM *)(p->in));
+    else if (p->out)
+      result=u8_getpos((struct U8_STREAM *)(p->out));
+    else return fd_type_error(_("port"),"getpos_prim",portarg);
+    if (result<0)
+      return fd_erreify();
+    else if (result<FD_MAX_FIXNUM)
+      return FD_INT2DTYPE(result);
+    else return fd_make_bigint(result);}
+  else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+    fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
+    off_t pos=fd_getpos(ds->dt_stream);
+    if (pos<0) return fd_erreify();
+    else if (pos<FD_MAX_FIXNUM) return FD_INT2DTYPE(pos);
+    else return fd_make_bigint(pos);}
+  else return fd_type_error("port or stream","getpos_prim",portarg);
 }
 
 static fdtype endpos_prim(fdtype portarg)
 {
-  struct FD_PORT *p=
-    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-  off_t result=-1;
-  if (p->in)
-    result=u8_endpos((struct U8_STREAM *)(p->in));
-  else if (p->out)
-    result=u8_endpos((struct U8_STREAM *)(p->out));
-  else return fd_type_error(_("port"),"getpos_prim",portarg);
-  if (result<0)
-    return fd_erreify();
-  else if (result<FD_MAX_FIXNUM)
-    return FD_INT2DTYPE(result);
-  else return fd_make_bigint(result);
+  if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
+    struct FD_PORT *p=
+      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    off_t result=-1;
+    if (p->in)
+      result=u8_endpos((struct U8_STREAM *)(p->in));
+    else if (p->out)
+      result=u8_endpos((struct U8_STREAM *)(p->out));
+    else return fd_type_error(_("port"),"getpos_prim",portarg);
+    if (result<0)
+      return fd_erreify();
+    else if (result<FD_MAX_FIXNUM)
+      return FD_INT2DTYPE(result);
+    else return fd_make_bigint(result);}
+  else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+    fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
+    off_t pos=fd_endpos(ds->dt_stream);
+    if (pos<0) return fd_erreify();
+    else if (pos<FD_MAX_FIXNUM) return FD_INT2DTYPE(pos);
+    else return fd_make_bigint(pos);}
+  else return fd_type_error("port or stream","getpos_prim",portarg);
 }
 
 static fdtype file_progress_prim(fdtype portarg)
@@ -602,27 +658,44 @@ static fdtype file_progress_prim(fdtype portarg)
 
 static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
 {
-  off_t off, result;
-  struct FD_PORT *p=
-    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-  if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
-  else if (FD_PTR_TYPEP(off_arg,fd_bigint_type)) 
+  if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
+    off_t off, result;
+    struct FD_PORT *p=
+      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
+    else if (FD_PTR_TYPEP(off_arg,fd_bigint_type)) 
 #if (_FILE_OFFSET_BITS==64)
-    off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
+      off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
 #else
     off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);
 #endif
-  else return fd_type_error(_("offset"),"setpos_prim",off_arg);
-  if (p->in)
-    result=u8_setpos((struct U8_STREAM *)(p->in),off);
-  else if (p->out)
-    result=u8_setpos((struct U8_STREAM *)(p->out),off);
-  else return fd_type_error(_("port"),"getpos",portarg);
-  if (result<0)
-    return fd_erreify();
-  else if (result<FD_MAX_FIXNUM)
-    return FD_INT2DTYPE(off);
-  else return fd_make_bigint(result);
+    else return fd_type_error(_("offset"),"setpos_prim",off_arg);
+    if (p->in)
+      result=u8_setpos((struct U8_STREAM *)(p->in),off);
+    else if (p->out)
+      result=u8_setpos((struct U8_STREAM *)(p->out),off);
+    else return fd_type_error(_("port"),"getpos",portarg);
+    if (result<0)
+      return fd_erreify();
+    else if (result<FD_MAX_FIXNUM)
+      return FD_INT2DTYPE(off);
+    else return fd_make_bigint(result);}
+  else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+    fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
+    off_t off, result;
+    if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
+    else if (FD_PTR_TYPEP(off_arg,fd_bigint_type)) 
+#if (_FILE_OFFSET_BITS==64)
+      off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
+#else
+    off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);
+#endif
+    else return fd_type_error(_("offset"),"setpos_prim",off_arg);
+    result=fd_setpos(ds->dt_stream,off);
+    if (result<0) return fd_erreify();
+    else if (result<FD_MAX_FIXNUM) return FD_INT2DTYPE(result);
+    else return fd_make_bigint(result);}
+  else return fd_type_error("port or stream","getpos_prim",portarg);
 }
 
 /* Module finding */
@@ -1079,6 +1152,7 @@ FD_EXPORT void fd_init_fileio_c()
   fileio_module=fd_new_module("FILEIO",(FD_MODULE_DEFAULT));
   fd_register_source_file(versionid);
 
+
 #if FD_THREADS_ENABLED
   fd_init_mutex(&load_record_lock);
 #endif
@@ -1097,6 +1171,11 @@ FD_EXPORT void fd_init_fileio_c()
 					 fd_port_type,FD_VOID,
 					 -1,FD_FALSE,-1,FD_FALSE));
   
+
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_file,1,
+			   fd_string_type,FD_VOID));
+
 
   fd_defspecial(fileio_module,"FILEOUT",simple_fileout);
 
@@ -1185,22 +1264,22 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("SETCWD",setcwd_prim,1,fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
-	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",write_dtype,2)));
+	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",dtype2file,2)));
   fd_idefn(fileio_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype,2)));
+	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype2file,2)));
   fd_idefn(fileio_module,
-	   fd_make_cprim1("FILE->DTYPE",read_dtype,1));
+	   fd_make_cprim1("FILE->DTYPE",file2dtype,1));
   fd_idefn(fileio_module,
-	   fd_make_cprim1("FILE->DTYPES",read_dtypes,1));
+	   fd_make_cprim1("FILE->DTYPES",file2dtypes,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLUSH-OUTPUT",flushprim,0));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("GETPOS",getpos_prim,1,fd_port_type,FD_VOID));
+	   fd_make_cprim1x("GETPOS",getpos_prim,1,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("SETPOS",setpos_prim,2,fd_port_type,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim2x("SETPOS",setpos_prim,2,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ENDPOS",endpos_prim,1,fd_port_type,FD_VOID));
+	   fd_make_cprim1x("ENDPOS",endpos_prim,1,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("FILE%",file_progress_prim,1,fd_port_type,FD_VOID));
 

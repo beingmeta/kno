@@ -17,6 +17,14 @@ FD_EXPORT fd_ptr_type fd_port_type;
 typedef struct FD_PORT {
   FD_CONS_HEADER;
   u8_input in; u8_output out;} FD_PORT;
+typedef struct FD_PORT *fd_port;
+
+typedef struct FD_DTSTREAM {
+  FD_CONS_HEADER; int owns_socket;
+  struct FD_DTYPE_STREAM *dt_stream;} FD_DTSTREAM;
+typedef struct FD_DTSTREAM *fd_dtstream;
+
+FD_EXPORT fd_ptr_type fd_dtstream_type;
 
 FD_EXPORT fd_exception fd_UnknownEncoding;
 
