@@ -14,7 +14,8 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    isa inverse =is= disjoint implies implies*
-   get-gloss get-short-gloss get-expstring gloss language-map gloss-map
+   get-gloss get-short-gloss get-expstring gloss
+   language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-kindof index-frame*
    basic-concept-frequency concept-frequency use-corpus-frequency})
 
@@ -53,8 +54,8 @@
 
 (define language-map (file->dtype (get-component "langmap.table")))
 (define gloss-map (file->dtype (get-component "glossmap.table")))
-
-(define default-language english)
+(define norm-map (file->dtype (get-component "normmap.table")))
+(define index-map (file->dtype (get-component "indexmap.table")))
 
 ;;; This is how these tables where generated
 (comment
@@ -62,7 +63,14 @@
    (store! language-map (get l 'key) l)
    (store! language-map (get l 'langid) l))
  (do-choices (l (?? 'type 'gloss))
-   (store! gloss-map (get l 'key) l)))
+   (store! gloss-map (get l 'key) l))
+ (do-choices (l (?? 'type 'norm))
+   (store! norm-map (get l 'key) l))
+ (do-choices (l (?? 'type 'index))
+   (store! index-map (get l 'key) l)))
+
+;;; Mostly the roots of WordNet....
+(define default-language english)
 
 (define (get-norm concept (language default-language))
   (try (pick-one (get (get concept '%norm) language))
