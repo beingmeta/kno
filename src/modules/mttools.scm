@@ -126,9 +126,8 @@
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
-		   (_prep_time 0)
-		   (_all_elements ,choice-generator))
-	       (do-subsets (_block _all_elements _blocksize _blockno)
+		   (_prep_time 0))
+	       (do-subsets (_block _choice _blocksize _blockno)
 		 (let ((_blockstart (elapsed-time)) (_block_prep #f))
 		   (when _progressfn
 		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
@@ -142,13 +141,14 @@
 				  #f _block_prep))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (when _progressfn
-		     (_progressfn (* (1+ _blockno) _blocksize) (choice-size _block) (choice-size _choice)
+		     (_progressfn (+ (* _blockno _blocksize) (choice-size _block))
+				  (choice-size _block) (choice-size _choice)
 				  (elapsed-time _start) _prep_time
 				  (elapsed-time _blockstart) _block_prep))))
 	       (_blockproc (qc))
 	       (when _progressfn
-		 (_progressfn (choice-size _all_elements) 0
-			      (choice-size _all_elements)
+		 (_progressfn (choice-size _choice) 0
+			      (choice-size _choice)
 			      (elapsed-time _start) _prep_time 0 0))))))))
 
 (define (mt/save/fetch oids)
