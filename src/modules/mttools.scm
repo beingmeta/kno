@@ -92,9 +92,11 @@
 		     (short-interval-string (* time (/ (- limit count) count)))
 		     " to go"))
 		 "; " (get% blocktime time) "% (~"
-		 (short-interval-string preptime) ") in block preparation."))
+		 (short-interval-string preptime) ") in setup."))
 	(blockprep
-	 (status "Finished setup for " thisblock " more items in "
+	 (status "After processing " count " items "
+		 "in " (short-interval-string (- time blockprep)) ", "
+		 "finished setup for " thisblock " more items in "
 		 (short-interval-string blockprep)))
 	((= count 0)
 	 (notify "Processing " limit " elements "
