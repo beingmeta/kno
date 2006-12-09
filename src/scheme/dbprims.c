@@ -281,6 +281,27 @@ static fdtype lockoids(fdtype oids)
   else return FD_INT2DTYPE(retval);
 }
 
+static fdtype unlockoids(fdtype oids,fdtype commitp)
+{
+  int force_commit=(!((FD_VOIDP(commitp)) || (FD_FALSEP(commitp))));
+  if (FD_VOIDP(oids)) {
+    fd_unlock_pools(force_commit);
+    return FD_FALSE;}
+  else if ((FD_PRIM_TYPEP(oids,fd_pool_type))||(FD_STRINGP(oids))) {
+    fd_pool p=((FD_PRIM_TYPEP(oids,fd_pool_type)) ? (fd_lisp2pool(oids)) :
+	       (fd_name2pool(FD_STRDATA(oids))));
+    if (p) {
+      int retval=fd_pool_unlock_all(p,force_commit);
+      if (retval<0) return fd_erreify();
+      else return FD_INT2DTYPE(retval);}
+    else return fd_type_error("pool or OID","unlockoids",oids);}
+  else {
+    int retval=fd_unlock_oids(oids,force_commit);
+    if (retval<0)
+      return fd_erreify();
+    else return FD_INT2DTYPE(retval);}
+}
+
 static fdtype make_compound_index(int n,fdtype *args)
 {
   fd_index *sources=u8_malloc(sizeof(fd_index)*8);
@@ -1415,6 +1436,8 @@ FD_EXPORT void fd_init_dbfns_c()
 			   fd_oid_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("LOCK-OIDS!",lockoids,1)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL?",poolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX?",indexp,1));

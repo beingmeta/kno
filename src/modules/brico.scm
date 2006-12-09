@@ -196,10 +196,10 @@
 (define (index-concept index concept)
   (index-brico index concept)
   (index-frame index concept '{wikiref sense-category %norm})
-  (index-string index concept english (get concept 'words) 1)
-  (index-name index concept 'names (qc (get concept 'names)) 1)
+  (index-string index concept english (get concept 'words) #f)
+  (index-name index concept 'names (qc (get concept 'names)) #f)
   (index-name index concept 'names
-	      (qc (pick  (cdr (get concept '%words)) capitalized?)) 1)
+	      (qc (pick  (cdr (get concept '%words)) capitalized?)) #f)
   (do-choices (slotid kindof*-slotids)
     (index-kindof index concept slotid
 		  (qc (%get concept slotid)
@@ -230,6 +230,13 @@
   (do-choices (xlation (get concept '%words))
     (let ((lang (get language-map (car xlation))))
       (index-string index concept lang (cdr xlation) 1)))
+  (comment
+   (do-choices (xlation (get concept '%norm))
+     (let ((lang (get norm-map (car xlation))))
+       (index-string index concept lang (cdr xlation) #f)))
+   (do-choices (xlation (get concept '%indices))
+     (let ((lang (get indices-map (car xlation))))
+       (index-string index concept lang (cdr xlation) #f))))
   (index-frame* index concept kindof* kindof)
   (index-frame* index concept partof* partof)
   (index-frame* index concept memberof* memberof)

@@ -232,6 +232,8 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids);
 FD_EXPORT int fd_prefetch_oids(fdtype oids);
 FD_EXPORT int fd_lock_oids(fdtype oids);
 FD_EXPORT int fd_lock_oid(fdtype oid);
+FD_EXPORT int fd_unlock_oids(fdtype oids,int commit);
+FD_EXPORT int fd_unlock_oid(fdtype oid,int commit);
 FD_EXPORT int fd_swapout_oid(fdtype oid);
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids);
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit);
@@ -246,6 +248,7 @@ FD_EXPORT int fd_swapout_pools(void);
 FD_EXPORT int fd_close_pools(void);
 FD_EXPORT int fd_commit_pools(void);
 FD_EXPORT int fd_commit_pools_noerr(void);
+FD_EXPORT int fd_unlock_pools(int);
 FD_EXPORT int fd_object_cache_load(void);
 FD_EXPORT fdtype fd_cached_oids(fd_pool p);
 

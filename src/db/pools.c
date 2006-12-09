@@ -352,6 +352,9 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 	    if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
 	    else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}
 	    fd_hashtable_op(&(p->cache),fd_table_store,oidv[j],v);}
+	  /* We decref it since it would have been incref'd when
+	     processed above. */
+	  fd_decref(values[j]);
 	  j++;}}
       else {
 	int j=0; while (j<n) {
@@ -435,7 +438,7 @@ FD_EXPORT int fd_lock_oid(fdtype oid)
 FD_EXPORT int fd_lock_oids(fdtype oids)
 {
   fd_pool _pools[32], *pools=_pools;
-  fdtype _toget[32], *toget=_toget;
+  fdtype _tolock[32], *tolock=_tolock;
   int i=0, n_pools=0, max_pools=32, total=0;
   FD_DO_CHOICES(oid,oids) {
     if (FD_OIDP(oid)) {
@@ -445,26 +448,68 @@ FD_EXPORT int fd_lock_oids(fdtype oids)
 	if (i>=n_pools)
 	  /* Create a pool entry if neccessary */
 	  if (i<max_pools) {
-	    pools[i]=p; toget[i]=FD_EMPTY_CHOICE; n_pools++;}
+	    pools[i]=p; tolock[i]=FD_EMPTY_CHOICE; n_pools++;}
 	/* Grow the tables if neccessary */
 	  else if (max_pools==32) {
 	    int j=0;
 	    pools=u8_malloc(sizeof(fd_pool)*64);
-	    toget=u8_malloc(sizeof(fdtype)*64);
+	    tolock=u8_malloc(sizeof(fdtype)*64);
 	    while (j<n_pools) {
-	      pools[j]=_pools[j]; toget[j]=_toget[j]; j++;}
+	      pools[j]=_pools[j]; tolock[j]=_tolock[j]; j++;}
 	    max_pools=64;}
 	  else {
 	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
-	    toget=u8_realloc(toget,sizeof(fdtype)*(max_pools+32));
+	    tolock=u8_realloc(tolock,sizeof(fdtype)*(max_pools+32));
 	    max_pools=max_pools+32;}
 	/* Now, i is bound to the index for the pools and to gets */
-	FD_ADD_TO_CHOICE(toget[i],oid);}}
+	FD_ADD_TO_CHOICE(tolock[i],oid);}}
     else {}}
   i=0; while (i < n_pools) {
-    fd_pool_lock(pools[i],toget[i]);
-    total=total+FD_CHOICE_SIZE(toget[i]);
-    fd_decref(toget[i]); i++;}
+    fd_pool_lock(pools[i],tolock[i]);
+    total=total+FD_CHOICE_SIZE(tolock[i]);
+    fd_decref(tolock[i]); i++;}
+  return total;
+}
+
+FD_EXPORT int fd_unlock_oid(fdtype oid,int commit)
+{
+  fd_pool p=fd_oid2pool(oid);
+  return fd_pool_unlock(p,oid,commit);
+}
+
+FD_EXPORT int fd_unlock_oids(fdtype oids,int commit)
+{
+  fd_pool _pools[32], *pools=_pools;
+  fdtype _tounlock[32], *tounlock=_tounlock;
+  int i=0, n_pools=0, max_pools=32, total=0;
+  FD_DO_CHOICES(oid,oids) {
+    if (FD_OIDP(oid)) {
+      fd_pool p=fd_oid2pool(oid);
+      if ((p) && (fd_hashtable_probe_novoid(&(p->locks),oid))) {
+	i=0; while (i<n_pools) if (pools[i]==p) break; else i++;
+	if (i>=n_pools)
+	  /* Create a pool entry if neccessary */
+	  if (i<max_pools) {
+	    pools[i]=p; tounlock[i]=FD_EMPTY_CHOICE; n_pools++;}
+	/* Grow the tables if neccessary */
+	  else if (max_pools==32) {
+	    int j=0;
+	    pools=u8_malloc(sizeof(fd_pool)*64);
+	    tounlock=u8_malloc(sizeof(fdtype)*64);
+	    while (j<n_pools) {
+	      pools[j]=_pools[j]; tounlock[j]=_tounlock[j]; j++;}
+	    max_pools=64;}
+	  else {
+	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
+	    tounlock=u8_realloc(tounlock,sizeof(fdtype)*(max_pools+32));
+	    max_pools=max_pools+32;}
+	/* Now, i is bound to the index for the pools and to gets */
+	FD_ADD_TO_CHOICE(tounlock[i],oid);}}
+    else {}}
+  i=0; while (i < n_pools) {
+    fd_pool_unlock(pools[i],tounlock[i],commit);
+    total=total+FD_CHOICE_SIZE(tounlock[i]);
+    fd_decref(tounlock[i]); i++;}
   return total;
 }
 
@@ -949,6 +994,18 @@ FD_EXPORT int fd_commit_pools_noerr()
   return fd_for_pools(do_commit,(void *)"NOERR");
 }
 
+static int do_unlock(fd_pool p,void *data)
+{
+  int *commitp=(int *)data;
+  fd_pool_unlock_all(p,*commitp);
+  return 0;
+}
+
+FD_EXPORT int fd_unlock_pools(int commitp)
+{
+  return fd_for_pools(do_unlock,&commitp);
+}
+
 static int accumulate_cachecount(fd_pool p,void *ptr)
 {
   int *count=(int *)ptr;
@@ -1059,12 +1116,12 @@ static int unparse_pool(u8_output out,fdtype x)
   fd_pool p=fd_lisp2pool(x);
   if (p==NULL) return 0;
   else if (p->label)
-    if (p->xid)
+    if ((p->xid) && (strcmp(p->source,p->xid)))
       u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s|%s\">",
 		x,p->label,p->source,p->xid);
     else u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s\">",x,p->label,p->source);
   else if (p->source)
-    if (p->xid)
+    if ((p->xid) && (strcmp(p->source,p->xid)))
       u8_printf(out,"#<POOL 0x%lx \"%s|%s\">",x,p->source,p->xid);
     else u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
   else u8_printf(out,"#<POOL 0x%lx>",x);  

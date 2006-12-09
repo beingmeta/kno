@@ -623,7 +623,7 @@ static int unparse_index(u8_output out,fdtype x)
 {
   fd_index ix=fd_lisp2index(x);
   if (ix==NULL) return 0;
-  if (ix->xid)
+  if ((ix->xid) && (strcmp(ix->source,ix->xid)))
     u8_printf(out,_("#<INDEX 0x%lx \"%s|%s\">"),
 	      x,ix->source,ix->xid);
   else u8_printf(out,_("#<INDEX 0x%lx \"%s\">"),x,ix->source);
