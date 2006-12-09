@@ -192,10 +192,15 @@ static fdtype timestamp_later(fdtype timestamp1,fdtype timestamp2)
 
 /* Lisp access */
 
-static fdtype elapsed_time()
+static fdtype elapsed_time(fdtype arg)
 {
   double elapsed=u8_elapsed_time();
-  return fd_init_double(NULL,elapsed);
+  if (FD_VOIDP(arg))
+    return fd_init_double(NULL,elapsed);
+  else if (FD_FLONUMP(arg)) {
+    double base=FD_FLONUM(arg);
+    return fd_init_double(NULL,elapsed-base);}
+  else return fd_type_error("double","elapsed_time",arg);
 }
 
 /* Timestamps as tables */
@@ -641,7 +646,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GMTIMESTAMP",gmtimestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP",timestamp_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("ELAPSED-TIME",elapsed_time,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("ELAPSED-TIME",elapsed_time,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("TIMESTRING",timestring,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("MODTIME",modtime_prim,1));
