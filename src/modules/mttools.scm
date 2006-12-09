@@ -77,17 +77,34 @@
 		  ((> secs 10) (inexact->string seconds 2))
 		  (else seconds)))))))
 
-(define (default-progress-report count limit time blocktime)
-  (when (> count 0)
-    (notify "Processed " (get% count limit) "%: "
-	    count " of " limit " items in "
-	    (short-interval-string time)
-	    (when (> count 0)
-	      (printout ", ~ "
-		(short-interval-string (* time (/ (- limit count) count)))
-		" to go"))
-	    "; " (get% blocktime time) "% (~"
-	    (short-interval-string blocktime) ") in block setup")))
+;;; The default method for reporting progress emits status reports
+;;;  after each time consuming chunk, together with an initial and
+;;;  a final report
+
+(define (default-progress-report count thisblock limit
+	  time preptime blocktime blockprep)
+  (cond ((and blocktime blockprep)
+	 (status "Processed " (get% count limit) "%: "
+		 count " of " limit " items in "
+		 (short-interval-string time)
+		 (when (> count 0)
+		   (printout ", ~ "
+		     (short-interval-string (* time (/ (- limit count) count)))
+		     " to go"))
+		 "; " (get% blocktime time) "% (~"
+		 (short-interval-string preptime) ") in block preparation."))
+	(blockprep
+	 (status "Finished setup for " thisblock " more items in "
+		 (short-interval-string blockprep)))
+	((= count 0)
+	 (notify "Processing " limit " elements "
+		 "in chunks of " thisblock " items"))
+	((= count limit)
+	 (status "Processed all " limit " elements "
+		 " in " (short-interval-string time)
+		 " with " (get% preptime time) "% (~"
+		 (short-interval-string preptime) ") in block preparation."))
+	(else)))
 
 (define do-choices-mt
   (macro expr
@@ -109,24 +126,30 @@
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
-		   (_block_time 0))
-	       (do-subsets (_block ,choice-generator _blocksize _blockno)
-		 (when _progressfn
-		   (_progressfn (* _blockno _blocksize)
-				(choice-size _choice)
-				(- (elapsed-time) _start)
-				_block_time))
-		 (let ((_blockstart (elapsed-time)))
+		   (_prep_time 0)
+		   (_all_elements ,choice-generator))
+	       (do-subsets (_block _all_elements _blocksize _blockno)
+		 (let ((_blockstart (elapsed-time)) (_block_prep #f))
+		   (when _progressfn
+		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
+				  (elapsed-time _start) _prep_time #f #f))
 		   (_blockproc (qc _block))
-		   (set! _block_time
-			 (+ _block_time (- (elapsed-time) _blockstart))))
-		 (,mt-apply _nthreads _bodyproc (qc _block)))
+		   (set! _block_prep (elapsed-time _blockstart))
+		   (set! _prep_time (+ _prep_time _block_prep))
+		   (when _progressfn
+		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
+				  (elapsed-time _start) _prep_time
+				  #f _block_prep))
+		   (,mt-apply _nthreads _bodyproc (qc _block))
+		   (when _progressfn
+		     (_progressfn (* (1+ _blockno) _blocksize) (choice-size _block) (choice-size _choice)
+				  (elapsed-time _start) _prep_time
+				  (elapsed-time _blockstart) _block_prep))))
 	       (_blockproc (qc))
 	       (when _progressfn
-		 (_progressfn (choice-size _choice)
-			      (choice-size _choice)
-			      (- (elapsed-time) _start)
-			      _block_time))))))))
+		 (_progressfn (choice-size _all_elements) 0
+			      (choice-size _all_elements)
+			      (elapsed-time _start) _prep_time 0 0))))))))
 
 (define (mt/save/fetch oids)
   (commit) (clearcaches)
