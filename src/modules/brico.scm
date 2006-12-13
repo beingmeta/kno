@@ -17,6 +17,7 @@
    get-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-kindof index-frame*
+   indexer index-concept
    basic-concept-frequency concept-frequency use-corpus-frequency})
 
 (define bricosource #f)
@@ -125,51 +126,68 @@
 
 ;;; Indexing functions
 
+;;; This optionally takes a slotmap as an index, where the slotmap
+;;;  maps slot values to indices.
+(define doindex
+  (ambda (index frame slotids (values))
+    (if (index? index)
+	(if (bound? values)
+	    (index-frame index frame slotids values)
+	    (index-frame index frame slotids))
+	(do-choices (slotid slotids)
+	  (let ((index (try (get index slotid)
+			    (get index '%default))))
+	    (if (empty? index)
+		(warning "No index found for " slotid)
+		(if (bound? values)
+		    (index-frame index frame slotids values)
+		    (index-frame index frame slotids))))))))
+
 (define (index-string index frame slot (value #f) (window 2))
   (let ((values (if value value (get frame slot))))
     (do-choices (v values)
       (let* ((stdspaced (stdspace v))
 	     (baseform (basestring stdspaced)))
-	(index-frame index frame slot stdspaced)
-	(index-frame index frame slot baseform)
+	(doindex index frame slot stdspaced)
+	(doindex index frame slot baseform)
 	(when (and window (compound? v))
 	  (let* ((words (words->vector stdspaced))
 		 (basewords (words->vector baseform))
 		 (frags (choice (vector->frags words window)
 				(vector->frags basewords window))))
-	    (index-frame index frame slot frags)))))))
+	    (doindex index frame slot frags)))))))
 
 (define (index-name index frame slot (value #f) (window 2))
   (let ((values (if value value (get frame slot))))
     (do-choices (v values)
       (let* ((downspaced (downcase (stdspace v)))
 	     (baseform (basestring downspaced)))
-	(index-frame index frame slot downspaced)
-	(index-frame index frame slot baseform)
+	(doindex index frame slot downspaced)
+	(doindex index frame slot baseform)
 	(when (and window (compound? v))
 	  (let* ((words (words->vector downspaced))
 		 (basewords (words->vector baseform))
 		 (frags (choice (vector->frags words window)
 				(vector->frags basewords window))))
-	    (index-frame index frame slot frags)))))))
+	    (doindex index frame slot frags)))))))
 
 (define (index-kindof index frame slot (values))
   (let ((v (if (bound? values) values (get frame slot))))
     (when (exists? v)
-      (index-frame index frame slot (get v kindof*)))))
+      (doindex index frame slot (get v kindof*)))))
 
 (define (index-frame* index frame slot base)
   (do ((g (get frame base) (difference (get g base) seen))
        (seen frame (choice g seen)))
       ((empty? g))
-    (index-frame index frame slot g)))
+    (doindex index frame slot g)))
 
 (define (index-gloss index frame slotid (value #f))
   (let* ((wordlist (getwords (or value (get frame slotid))))
 	 (gloss-words (filter-choices (word (elts wordlist))
 			(< (length word) 16))))
-    (index-frame index frame slotid
-		 (choice gloss-words (porter-stem gloss-words)))))
+    (doindex index frame slotid
+	     (choice gloss-words (porter-stem gloss-words)))))
 
 (define kindof*-slotids
   '{@1/2c274{PARTOF}
@@ -194,16 +212,13 @@
 (define referenced @1/2ab5a{REFERENCED})
 
 (define (index-brico index frame)
-  (index-frame index frame 'type)
-  (when (test frame '%index) (index-frame index frame (get frame '%index)))
-  (index-frame index frame '%id (get frame '%mnemonic))
-  (index-frame index frame 'has (getslots frame))
-  (when (test frame '%slots)
-    (index-frame index frame (get frame '%slots))))
+  (doindex index frame '{type sense-category})
+  (when (test frame '%index) (doindex index frame (get frame '%index)))
+  (doindex index frame '%id (get frame '%mnemonic))
+  (doindex index frame 'has (getslots frame)))
 
 (define (index-concept index concept)
   (index-brico index concept)
-  (index-frame index concept '{wikiref sense-category %norm})
   (index-string index concept english (get concept 'words) #f)
   (index-name index concept 'names (qc (get concept 'names)) #f)
   (index-name index concept 'names
@@ -214,10 +229,10 @@
 		      (tryif (oid? slotid)
 			     (%get concept (get slotid 'slots))))))
   (do-choices (slotid concept-slotids)
-    (index-frame index concept slotid
-		 (choice (%get concept slotid)
-			 (tryif (oid? slotid)
-				(%get concept (get slotid 'slots))))))
+    (doindex index concept slotid
+	     (choice (%get concept slotid)
+		     (tryif (oid? slotid)
+			    (%get concept (get slotid 'slots))))))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store
@@ -227,28 +242,34 @@
   ;;  slots because it is easier to just get @?defterms
   ;;  and @?refterms.
   (when (%test concept defines)
-    (index-frame index (%get concept defines) defterms concept))
+    (doindex index (%get concept defines) defterms concept))
   (when (test concept referenced)
-    (index-frame index (%get concept referenced) refterms concept))
+    (doindex index (%get concept referenced) refterms concept))
   (when (test concept 'gloss)
-    (index-frame index concept 'has english-gloss))
+    (doindex index concept 'has english-gloss))
   (when (test concept '%glosses)
-    (index-frame index concept 'has
-		 (get gloss-map (car (get concept '%glosses)))))
+    (doindex index concept 'has
+	     (get gloss-map (car (get concept '%glosses)))))
   (do-choices (xlation (get concept '%words))
     (let ((lang (get language-map (car xlation))))
       (index-string index concept lang (cdr xlation) 1)))
-  (comment
-   (do-choices (xlation (get concept '%norm))
-     (let ((lang (get norm-map (car xlation))))
-       (index-string index concept lang (cdr xlation) #f)))
-   (do-choices (xlation (get concept '%indices))
-     (let ((lang (get indices-map (car xlation))))
-       (index-string index concept lang (cdr xlation) #f))))
+  (do-choices (xlation (get concept '%norm))
+    (let ((lang (get norm-map (car xlation))))
+      (index-string index concept lang (cdr xlation) #f)))
+  (do-choices (xlation (get concept '%indices))
+    (let ((lang (get index-map (car xlation))))
+      (index-string index concept lang (cdr xlation) #f)))
   (index-frame* index concept kindof* kindof)
   (index-frame* index concept partof* partof)
   (index-frame* index concept memberof* memberof)
   (index-frame* index concept ingredientof* ingredientof))
+
+(define (indexer index concept (slotids) (values))
+  (if (bound? slotids)
+      (if (bound? values)
+	  (doindex index concept slotids values)
+	  (doindex index concept slotids))
+      (index-concept index concept)))
 
 (define (next-expansion expansions visited)
   (let ((oids (get expansions (getkeys expansions))))
@@ -275,12 +296,15 @@
 
 (define (indexer-prefetch oids)
   (prefetch-oids! oids)
-  (let ((kovalues (get oids kindof*-slotids)))
-    (let ((visited (choice->hashset kovalues)))
-      (do ((scan kovalues
-		 (reject (%get visited kindof) visited)))
+  (prefetch-keys! (cons refterms oids))
+  (let ((kovalues (%get oids kindof*-slotids)))
+    (prefetch-oids! kovalues)
+    (let* ((base (choice kovalues (%get kovalues isa)))
+	   (visited (choice->hashset base)))
+      (do ((scan base (reject (get scan genls) visited)))
 	  ((empty? scan))
 	(prefetch-oids! scan)
+	(prefetch-keys! (cons specls scan))
 	(hashset-add! visited scan))))
   (prefetch-expansions
    (qc oids) (qc kindof partof memberof ingredientof)))
