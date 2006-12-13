@@ -87,6 +87,7 @@ typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;
   unsigned int n_slots, hashv, *offsets;
   struct FD_DTYPE_STREAM stream;
+  fdtype slotids;
   U8_MUTEX_DECL(lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
 

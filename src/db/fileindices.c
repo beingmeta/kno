@@ -36,8 +36,10 @@ static char versionid[] =
 fd_exception fd_FileIndexOverflow=_("file index hash overflow");
 fd_exception fd_FileIndexError=_("Internal error with index file");
 
-static fdtype set_symbol, drop_symbol;
+static fdtype set_symbol, drop_symbol, slotids_symbol;
 static struct FD_INDEX_HANDLER fileindex_handler;
+
+static fdtype fileindex_fetch(fd_index ix,fdtype key);
 
 static fd_index open_fileindex(u8_string fname,int read_only)
 {
@@ -65,6 +67,11 @@ static fd_index open_fileindex(u8_string fname,int read_only)
   index->n_slots=fd_dtsread_4bytes(s);
   index->offsets=NULL; index->read_only=read_only;
   fd_init_mutex(&(index->lock));
+  index->slotids=FD_VOID;
+  {
+    fdtype slotids=fileindex_fetch((fd_index)index,slotids_symbol);
+    if (!(FD_EMPTY_CHOICEP(slotids)))
+      index->slotids=fd_simplify_choice(slotids);}
   return (fd_index)index;
 }
 
@@ -134,11 +141,40 @@ FD_FASTOP unsigned int fileindex_hash(struct FD_FILE_INDEX *fx,fdtype x)
   return -1;
 }
 
+/* This does a simple binary search of a sorted choice vector,
+   looking for a particular element. */
+FD_FASTOP int choice_containsp(fdtype x,struct FD_CHOICE *choice)
+{
+  int size=FD_XCHOICE_SIZE(choice);
+  const fdtype *bottom=FD_XCHOICE_DATA(choice), *top=bottom+(size-1);
+  while (top>=bottom) {
+    const fdtype *middle=bottom+(top-bottom)/2;
+    if (x == *middle) return 1;
+    else if (x < *middle) top=middle-1;
+    else bottom=middle+1;}
+  return 0;
+}
+
+FD_FASTOP int redundantp(struct FD_FILE_INDEX *fx,fdtype key)
+{
+  if ((FD_PAIRP(key)) && (!(FD_VOIDP(fx->slotids)))) {
+    fdtype slotid=FD_CAR(key), slotids=fx->slotids;
+    if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) 
+      if ((FD_CHOICEP(slotids)) ?
+	  (choice_containsp(slotid,(fd_choice)slotids)) :
+	  (FD_EQ(slotid,slotids)))
+	return 0;
+      else return 1;
+    else return  0;}
+  else return 0;
+}
+
 static fdtype fileindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   fd_lock_mutex(&(fx->lock));
-  {
+  if (redundantp(fx,key)) return FD_EMPTY_CHOICE;
+  else {
     fd_dtype_stream stream=&(fx->stream);
     unsigned int hashval=fileindex_hash(fx,key);
     unsigned int n_probes=0;
@@ -439,7 +475,9 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
   fdtype *values=u8_malloc(sizeof(fdtype)*n);
   int i=0, schedule_size=0, init_schedule_size; while (i < n) {
     fdtype key=keys[i], cached=fd_hashtable_get(&(fx->cache),key,FD_VOID);
-    if (FD_VOIDP(cached)) {
+    if (redundantp(fx,key))
+      values[i++]=FD_EMPTY_CHOICE;
+    else if (FD_VOIDP(cached)) {
       struct KEY_FETCH_SCHEDULE *ksched=
 	(struct KEY_FETCH_SCHEDULE *)&(schedule[schedule_size]);
       int hashcode=fileindex_hash(fx,key);
@@ -881,12 +919,17 @@ static int fileindex_commit(struct FD_INDEX *ix)
     unsigned int *value_locs=
       ((n_edits) ? (u8_malloc(sizeof(unsigned int)*n_edits)) : (NULL));
     struct FD_HASHENTRY **scan=ix->adds.slots, **limit=scan+ix->adds.n_slots;
+    fdtype slotids=fx->slotids;
     while (scan < limit)
       if (*scan) {
 	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
 	while (kvscan<kvlimit) {
-	  kdata[n].key=kvscan->key;
+	  fdtype key=kvscan->key;
+	  /* It would be nice to update slotids here, but we'll
+	     decline for now and require that those be managed
+	     manually. */
+	  kdata[n].key=key;
 	  /* We'll use this to sort back into the order of the adds table */
 	  kdata[n].serial=n; 
 	  /* Initialize the other fields */
@@ -1029,6 +1072,7 @@ FD_EXPORT fd_init_fileindices_c()
 
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
+  slotids_symbol=fd_intern("%%SLOTIDS");
   fd_register_index_opener(FD_FILE_INDEX_MAGIC_NUMBER,open_fileindex);
   fd_register_index_opener(FD_MULT_FILE_INDEX_MAGIC_NUMBER,open_fileindex);
 }
