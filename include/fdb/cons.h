@@ -120,6 +120,12 @@ FD_EXPORT void fd_recycle_cons(struct FD_CONS *);
 FD_EXPORT fdtype fd_copy(fdtype x);
 FD_EXPORT fdtype fd_deep_copy(fdtype x);
 
+/*  Defining this causes a warning to be issued whenever a
+     reference count passes HUGE_REFCOUNT.  This is helpful
+     for rare occasions of reference count debugging.
+    #define HUGE_REFCOUNT 0x4000
+*/
+
 #if (!(FD_NO_GC))
 static fdtype _fd_incref(struct FD_CONS *x) 
 {
@@ -128,6 +134,10 @@ static fdtype _fd_incref(struct FD_CONS *x)
     FD_UNLOCK_PTR(x);
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);}
   else if (FD_CONSBITS(x)>=0x80) {
+#ifdef HUGE_REFCOUNT
+    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT) 
+      u8_warn("HUGEREFCOUNT","Huge refcount for %lx",x);
+#endif
     x->consbits=x->consbits+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}

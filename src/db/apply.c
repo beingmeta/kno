@@ -644,7 +644,7 @@ static void recycle_tail_call(struct FD_CONS *c)
   struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
   fdtype *scan=&(tc->head), *limit=scan+tc->n_elts;
   if (!(tc->flags&FD_TAIL_CALL_ATOMIC_ARGS)) {
-    scan=scan++; while (scan<limit) {fd_decref(*scan); scan++;}}
+    while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
   else fd_decref(*scan);
   if (FD_MALLOCD_CONSP(c))
