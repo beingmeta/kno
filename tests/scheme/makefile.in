@@ -166,12 +166,21 @@ batchtest:
 	@echo "***" "Done with fdbatch success test"
 	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1; sleep 3
 	sleep 12;
-	@# This should have been deleted by the atexit handler
+	@# This should have been deleted by the watch process
 	@if (test -f countup.pid); then echo fdbatch failure countup.pid error; exit 1; fi;
 	@if (test -f countup.done); then echo fdbatch failure countup.done error; exit 1; fi;
 	@# This should have been created at exit
 	@if (test ! -f countup.died); then echo fdbatch failure countup.died error; exit 1; fi;
 	@echo "***" "Done with fdbatch failure test"
+	./fdbatch countup.scm "countup.killed" 10 1; sleep 3
+	kill -9 `cat countup.pid`; sleep 12
+	@# This should have been deleted by the watch process
+	@if (test -f countup.pid); then echo fdbatch failure countup.pid error; exit 1; fi;
+	@# This should have been deleted by the watch process
+	@if (test -f countup.done); then echo fdbatch failure countup.done error; exit 1; fi;
+	@# This should have been created at exit by the watch process
+	@if (test ! -f countup.died); then echo fdbatch failure countup.died error; exit 1; fi;
+	@echo "***" "Done with fdbatch kill test"
 
 batchchaintest:
 	@echo "***" Testing batch scripts which call CHAIN

@@ -94,12 +94,6 @@ static void fdbatch_atexit()
 {
   if ((pid_file) && (u8_file_existsp(pid_file)))
     u8_removefile(pid_file);
-  if (died_file) {
-    FILE *f=u8_fopen(died_file,"w");
-    if (f) {
-      /* Output the current data/time with millisecond precision. */
-      u8_fprintf(f,"Process died unexpectedly at %*iMSt\n");
-      u8_fclose(f);}}
 }
 
 static void signal_shutdown(int sig)
@@ -114,6 +108,35 @@ static void signal_shutdown(int sig)
 		 sig);
       u8_fclose(f);}}
     
+}
+
+static u8_condition job_stopped="Job stopped";
+static u8_condition job_exited="Job exited";
+static u8_condition job_terminated="Job terminated";
+
+static void wait_for_the_end(u8_string name,pid_t pid)
+{
+  int status=0; char buf[1024];
+  waitpid(pid,&status,0);
+  while (WIFSTOPPED(status)) {
+    u8_warn(job_stopped,"%s <%d> has been stopped with the signal %d",
+	    name,pid,WSTOPSIG(status));
+    waitpid(pid,&status,0);}
+  if (WIFEXITED(status))
+    u8_warn(job_exited,"%s <%d> exited with return value %d",
+	    name,pid,WSTOPSIG(status));
+  else {
+    char buf[1024];
+    if ((pid_file) && (u8_file_existsp(pid_file)))
+      u8_removefile(pid_file);
+    if (died_file) {
+      FILE *f=u8_fopen(died_file,"w");
+      if (f) {
+	/* Output the current data/time with millisecond precision. */
+	u8_fprintf(f,"Process %s <%d> killed at %*iMSt with signal %d\n",
+		   name,pid,WTERMSIG(status));
+	u8_fclose(f);}}}
+  exit(0);
 }
 
 int main(int argc,char **argv)
@@ -173,7 +196,8 @@ int main(int argc,char **argv)
       if (log_file) close(log_fd);
       exit(-1);}}
   /* Now, do the fork. */
-  if ((chained==0) && (pid=fork())) {
+  if ((chained==0) && (fork())) exit(0);
+  else if ((chained==0) && (pid=fork())) {
     char buf[256];
     sprintf(buf,"%d",pid); write(pid_fd,buf,strlen(buf)); close(pid_fd);
     /* The parent process just reports what it did. */
@@ -182,21 +206,17 @@ int main(int argc,char **argv)
       u8_notify("Fork started","Process %d stdout >> %s",pid,log_file);
     if (err_file)
       u8_notify("Fork started","Process %d stderr >> %s",pid,err_file);
-    exit(0);}
+    wait_for_the_end(filebase,pid);
+    if (log_file) close(log_fd);
+    if (err_file) close(err_fd);}
   else {
     /* The child process redirects stdio, runs fdexec, and
        removes the pid file and writes the done file when
        when it exits normally. */
     int retval=-1;
-    atexit(fdbatch_atexit);
-#ifdef SIGTERM
-    signal(SIGTERM,signal_shutdown);
-#endif
-#ifdef SIGQUIT
-    signal(SIGQUIT,signal_shutdown);
-#endif
     if (log_file) {dup2(log_fd,1); u8_free(log_file);}
     if (err_file) {dup2(err_fd,2); u8_free(err_file);}
+    atexit(fdbatch_atexit);
     u8_free(filebase);
     retval=do_main(argc,argv);
     if (retval>=0) {
