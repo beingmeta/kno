@@ -172,9 +172,9 @@ FD_FASTOP int redundantp(struct FD_FILE_INDEX *fx,fdtype key)
 static fdtype fileindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
-  fd_lock_mutex(&(fx->lock));
   if (redundantp(fx,key)) return FD_EMPTY_CHOICE;
-  else {
+  else  fd_lock_mutex(&(fx->lock));
+  {
     fd_dtype_stream stream=&(fx->stream);
     unsigned int hashval=fileindex_hash(fx,key);
     unsigned int n_probes=0;
