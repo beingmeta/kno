@@ -32,6 +32,7 @@ static U8_XOUTPUT u8stderr;
 static fd_exception fd_ReloadError=_("Module reload error");
 static fd_exception NoSuchFile=_("file does not exist");
 static fd_exception RemoveFailed=_("File removal failed");
+static fd_exception LinkFailed=_("File link failed");
 
 static u8_condition SnapshotSaved=_("Snapshot Saved");
 static u8_condition SnapshotRestored=_("Snapshot Restored");
@@ -274,7 +275,7 @@ static fdtype link_file_prim(fdtype from,fdtype to,fdtype must_exist)
   u8_string fromname=FD_STRDATA(from);
   if (u8_file_existsp(fromname)) 
     if (u8_linkfile(FD_STRDATA(from),FD_STRDATA(to))<0) {
-      fdtype err=fd_err(RemoveFailed,"link_file_prim",fromname,to);
+      fdtype err=fd_err(LinkFailed,"link_file_prim",fromname,to);
       return err;}
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist)) 
