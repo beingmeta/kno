@@ -37,6 +37,15 @@ static int debug_maxelts=32, debug_maxchars=80;
 static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;
 static int n_configs=0;
 
+static char *get_app_arg(int argc,char **argv)
+{
+  int i=1;
+  while (i<argc)
+    if (strchr(argv[i],'=')) i++;
+    else return argv[i];
+  return "fdb";
+}
+
 static fdtype chain_prim(int n,fdtype *args)
 {
   if (n_configs>=MAX_CONFIGS)
@@ -103,7 +112,7 @@ int main(int argc,char **argv)
   FD_INIT_SCHEME_BUILTINS();
 #endif
   fd_init_schemeio();
-  u8_identify_application(argv[1]);
+  u8_identify_application(get_app_arg(argc,argv));
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
     if (strchr(argv[i],'=')) {

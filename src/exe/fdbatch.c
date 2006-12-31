@@ -149,7 +149,7 @@ int main(int argc,char **argv)
   u8_show_procinfo=1;
   fd_init_dtypelib();
   fd_argv_config(argc,argv);
-  filebase=get_filebase(argv[1]);
+  filebase=get_filebase(get_app_arg(argc,argv));
   u8_notify("FDBATCH","Filebase is %s",filebase);
   pid_file=get_pidfile(filebase);
   if (u8_file_existsp(pid_file)) {
@@ -223,7 +223,8 @@ int main(int argc,char **argv)
       FILE *f=u8_fopen(done_file,"w");
       if (f) {
 	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",argv[1],retval);
+	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",
+		   get_app_arg(argc,argv),retval);
 	u8_fclose(f);
 	if (died_file) {
 	  if (u8_file_existsp(died_file))
@@ -234,7 +235,8 @@ int main(int argc,char **argv)
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
 	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"%s died at %*iMSt, retval=%d",argv[1],retval);
+	u8_fprintf(f,"%s died at %*iMSt, retval=%d",
+		   get_app_arg(argc,argv),retval);
 	u8_fclose(f);}
       died_file=NULL;}
     return retval;}
