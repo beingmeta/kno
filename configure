@@ -1947,7 +1947,7 @@ else
   with_i18n="no"
 fi
 
-if test $with_i18n == "yes"; then
+if test $with_i18n = "yes"; then
   for ac_func in gettext
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
@@ -2475,7 +2475,7 @@ else
   with_tcmalloc="no"
 fi
 
-if test $with_tcmalloc == "yes"; then
+if test $with_tcmalloc = "yes"; then
   echo $ac_n "checking for malloc in -ltcmalloc""... $ac_c" 1>&6
 echo "configure:2481: checking for malloc in -ltcmalloc" >&5
 ac_lib_var=`echo tcmalloc'_'malloc | sed 'y%./+-%__p_%'`

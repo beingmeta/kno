@@ -154,7 +154,7 @@ else
 fi
 
 AC_ARG_WITH(i18n,--with[out]-i18n built and install message catalogs,,with_i18n="no")
-if test $with_i18n == "yes"; then
+if test $with_i18n = "yes"; then
   AC_CHECK_FUNCS(gettext,[doi18n="yes"])
 fi
 if test $doi18n = "yes"; then
@@ -185,7 +185,7 @@ fi
 dnl When available, use the thread-optimized tcmalloc functions from
 dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
-if test $with_tcmalloc == "yes"; then
+if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
 fi
 
