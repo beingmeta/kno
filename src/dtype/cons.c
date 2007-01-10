@@ -10,7 +10,13 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/cons.h"
+
+#include <libu8/u8printf.h>
+
 #include <stdarg.h>
+
+/* For sprintf */
+#include <stdio.h>
 
 fd_exception fd_MallocFailed=_("malloc/realloc failed");
 fd_exception fd_TypeError=_("Type error"), fd_RangeError=_("Range error");

@@ -14,6 +14,11 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
 
+#include <libu8/u8printf.h>
+
+/* For sprintf */
+#include <stdio.h>
+
 fd_exception fd_NoSuchKey=_("No such key");
 static fd_exception HashsetOverflow=_("Hashset Overflow");
 static u8_string NotATable=_("Not a table");

@@ -17,7 +17,6 @@ static char versionid[] =
 #include "fdb/fdweb.h"
 
 #include <libu8/xfiles.h>
-#include <libu8/u8stringfns.h>
 
 /* TODO:
     Make XML parsing record the markup string as the %raw slot.

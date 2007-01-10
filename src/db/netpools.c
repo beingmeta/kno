@@ -16,6 +16,8 @@ static char versionid[] =
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
 
+#include <stdarg.h>
+
 static struct FD_POOL_HANDLER netpool_handler;
 
 static fdtype pool_data_symbol, new_oid_symbol, get_load_symbol;

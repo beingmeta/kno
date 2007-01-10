@@ -15,8 +15,6 @@
 #include "fdb/texttools.h"
 
 #include <libu8/libu8.h>
-#include <libu8/u8stringfns.h>
-#include <libu8/u8ctype.h>
 
 fd_exception fd_BadExtractData=_("Bad extract data");
 fd_exception fd_BadMorphRule=_("Bad morphrule");

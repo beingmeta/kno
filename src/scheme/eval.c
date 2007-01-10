@@ -18,6 +18,7 @@ static char versionid[] =
 #include "fdb/sequences.h"
 
 #include <libu8/u8timefns.h>
+#include <libu8/u8printf.h>
 
 #include <math.h>
 #include <pthread.h>

@@ -13,10 +13,15 @@ static char versionid[] =
 #define U8_INLINE_IO 1
 #include "fdb/dtype.h"
 
+#include <libu8/u8printf.h>
+#include <libu8/u8streamio.h>
+
 #include <ctype.h>
 #include <errno.h>
 /* We include this for sscanf, but we're not using the FILE functions */
 #include <stdio.h>
+
+#include <stdarg.h>
 
 /* Common macros, functions and declarations */
 

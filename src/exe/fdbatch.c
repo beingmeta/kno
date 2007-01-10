@@ -14,8 +14,6 @@ static char versionid[] =
 #include "fdexec.c"
 #undef main
 
-#include <libu8/u8filefns.h>
-
 #define LOGMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
 
 static u8_string get_filebase(u8_string scriptfile)

@@ -18,6 +18,7 @@ static char versionid[] =
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
+#include <libu8/u8printf.h>
 
 static fd_exception ServerUndefined=_("Server unconfigured");
 static fdtype quote_symbol;

@@ -47,11 +47,17 @@ static char vcid[] = "$Id$";
 #include "fdb/bigints.h"
 #include "fdb/numbers.h"
 
+#include <libu8/u8stringfns.h>
+#include <libu8/u8printf.h>
+
 #include <stdlib.h>
 #include <limits.h>
 #include <errno.h>
 #include <math.h>
 #include "biginternals.h"
+
+/* For sprintf */
+#include <stdio.h>
 
 fd_exception fd_BigIntException=_("BigInt Exception");
 fd_exception fd_DivideByZero=_("Division by zero");

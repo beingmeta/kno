@@ -19,6 +19,8 @@ static char versionid[] =
 #include "fdb/methods.h"
 #include "fdb/sequences.h"
 
+#include "libu8/u8printf.h"
+
 static fdtype pools_symbol, indices_symbol, id_symbol;
 
 static fdtype slotidp(fdtype arg)
@@ -639,6 +641,27 @@ static fdtype inpoolp(fdtype x,fdtype pool_arg)
   fd_pool op=fd_oid2pool(x);
   if (p == op) return FD_TRUE;
   else return FD_FALSE;
+}
+
+static fdtype validoidp(fdtype x,fdtype pool_arg)
+{
+  if (FD_VOIDP(pool_arg)) {
+    fd_pool p=fd_oid2pool(x);
+    FD_OID base=p->base, addr=FD_OID_ADDR(x);
+    unsigned int offset=FD_OID_DIFFERENCE(x,base);
+    unsigned int load=fd_pool_load(p);
+    if (offset<load) return FD_TRUE;
+    else return FD_FALSE;}
+  else {
+    fd_pool p=fd_lisp2pool(pool_arg);
+    fd_pool op=fd_oid2pool(x);
+    if (p == op) {
+      FD_OID base=p->base, addr=FD_OID_ADDR(x);
+      unsigned int offset=FD_OID_DIFFERENCE(x,base);
+      unsigned int load=fd_pool_load(p);
+      if (offset<load) return FD_TRUE;
+      else return FD_FALSE;}
+    else return FD_FALSE;}
 }
 
 /* Prefetching functions */
@@ -1471,6 +1494,9 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim1x("OID-POOL",oidpool,1,fd_oid_type,FD_VOID));
   fd_idefn(fd_xscheme_module,
 	   fd_make_cprim2x("IN-POOL?",inpoolp,2,
+			   fd_oid_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_cprim2x("VALID-OID?",validoidp,1,
 			   fd_oid_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));

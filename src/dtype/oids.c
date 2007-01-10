@@ -10,6 +10,9 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
+/* For sprintf */
+#include <stdio.h>
+
 static fd_exception OIDBaseOverflow;
 
 static FD_OID _base_oids[1024];

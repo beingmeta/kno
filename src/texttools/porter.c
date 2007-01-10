@@ -24,6 +24,8 @@
 
 #include "fdb/dtype.h"
 
+#include <libu8/u8stringfns.h>
+
 #define isvowel(c) \
   (((c) == 'a') || ((c) == 'e') || ((c) == 'i') || \
    ((c) == 'o') || ((c) == 'u'))

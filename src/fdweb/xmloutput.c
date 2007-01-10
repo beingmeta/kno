@@ -20,7 +20,6 @@ static char versionid[] =
 #include "fdb/fdweb.h"
 
 #include <libu8/xfiles.h>
-#include <libu8/u8stringfns.h>
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
 

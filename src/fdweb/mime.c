@@ -17,7 +17,6 @@ static char versionid[] =
 #include "fdb/fdweb.h"
 
 #include <libu8/xfiles.h>
-#include <libu8/u8stringfns.h>
 #include <libu8/u8convert.h>
 
 static fd_exception NoMultiPartSeparator=_("Multipart MIME document has no separator");
