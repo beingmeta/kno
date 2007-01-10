@@ -128,7 +128,7 @@ FD_EXPORT void fd_init_dtype_stream
   s->end=s->start; /* Initialize to not having anything to read */
   s->mpool=bufpool; s->conspool=conspool; /* Initialize memory pools */
   /* Initialize the on-demand reader */
-  s->fillfn=fill_dtype_stream;
+  s->fillfn=fill_dtype_stream; s->flushfn=NULL;
   s->bufsiz=bufsiz; s->bits=FD_DTSTREAM_READING;
 }
 
@@ -210,6 +210,7 @@ FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)
     unsigned int ptroff=s->ptr-s->start, endoff=s->end-s->start;
     s->start=u8_realloc(s->start,bufsiz);
     s->ptr=s->start+ptroff; s->end=s->start+endoff;
+    s->bufsiz=bufsiz;
   }
 }
 

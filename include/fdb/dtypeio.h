@@ -102,15 +102,26 @@ FD_FASTOP unsigned int fd_flip_ushort(unsigned short _w)
 
 /* Byte Streams */
 
+typedef struct FD_BYTE_OUTPUT *fd_byte_output;
+typedef struct FD_BYTE_INPUT *fd_byte_input;
+
 typedef struct FD_BYTE_OUTPUT {
   unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool;} FD_BYTE_OUTPUT;
-typedef struct FD_BYTE_OUTPUT *fd_byte_output;
+  FD_MEMORY_POOL_TYPE *mpool;
+  /* FD_BYTE_OUTPUT has a fillfn because DTYPE streams
+     alias as both input and output streams, so we need
+     to have both pointers. */
+  int (*fillfn)(fd_byte_input,int);
+  int (*flushfn)(fd_byte_output);} FD_BYTE_OUTPUT;
+
 typedef struct FD_BYTE_INPUT {
   unsigned char *start, *ptr, *end;
   FD_MEMORY_POOL_TYPE *mpool;
-  int (*fillfn)(struct FD_BYTE_INPUT *,int);} FD_BYTE_INPUT;
-typedef struct FD_BYTE_INPUT *fd_byte_input;
+  /* FD_BYTE_INPUT has a flushfn because DTYPE streams
+     alias as both input and output streams, so we need
+     to have both pointers. */
+  int (*fillfn)(fd_byte_input,int);
+  int (*flushfn)(fd_byte_output);} FD_BYTE_INPUT;
 
 FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x);
 FD_EXPORT fdtype fd_read_dtype
@@ -122,7 +133,8 @@ FD_EXPORT fdtype fd_read_dtype
   (bo)->end=(bo)->start+sz; (bo)->mpool=(mp)
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)		   \
-  (bi)->ptr=(bi)->start=b; (bi)->end=b+(sz); (bi)->fillfn=NULL
+  (bi)->ptr=(bi)->start=b; (bi)->end=b+(sz); (bi)->fillfn=NULL; \
+  (bi)->flushfn=NULL /* Might not be used */
 
 FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
 FD_EXPORT int _fd_write_bytes

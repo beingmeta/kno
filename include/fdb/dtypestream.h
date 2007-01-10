@@ -38,6 +38,7 @@ typedef struct FD_DTYPE_STREAM {
   unsigned char *start, *ptr, *end;
   FD_MEMORY_POOL_TYPE *mpool;
   int (*fillfn)(struct FD_DTYPE_STREAM *,int);
+  int (*flushfn)(struct FD_DTYPE_STREAM *);
   FD_MEMORY_POOL_TYPE *conspool; u8_string id;
   int mallocd, bufsiz; off_t filepos, maxpos; 
   int fd, bits;} FD_DTYPE_STREAM;
