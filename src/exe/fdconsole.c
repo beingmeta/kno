@@ -111,6 +111,7 @@ int main(int argc,char **argv)
   /* Initialize the libu8 stdio library if it won't happen automatically. */
 #if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
+  u8_init_chardata_c();
 #endif
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))

@@ -258,18 +258,32 @@ int main(int argc,char **argv)
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env; 
+
+  /* INITIALIZING MODULES */
+  /* Normally, modules have initialization functions called when
+     dynamically loaded.  However, if we are statically linked, or we
+     don't have the "constructor attributes" use to declare init functions,
+     we need to call some initializers explicitly. */
+
   u8_now(&boot_time);
-  u8_use_syslog(1);
-  u8_show_procinfo=1;
-#if FD_TESTCONFIG /* Set when statically linked for testing. */
+  
+  /* Initialize the libu8 stdio library if it won't happen automatically. */
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
+  u8_initialize_u8stdio();
   u8_init_chardata_c();
+#endif
+
+  u8_show_procinfo=1;
+  u8_use_syslog(1);
+
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_fdscheme();
   fd_init_schemeio();
-  fd_init_fdweb();
   fd_init_texttools();
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif
+
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   dtype_server.flags=
