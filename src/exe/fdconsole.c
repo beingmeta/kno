@@ -101,17 +101,30 @@ int main(int argc,char **argv)
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c;
   u8_string source_file=NULL;
-  /* Initialize Scheme primitives */
-#if FD_TESTCONFIG /* Set when statically linked for testing. */
+
+  /* INITIALIZING MODULES */
+  /* Normally, modules have initialization functions called when
+     dynamically loaded.  However, if we are statically linked, or we
+     don't have the "constructor attributes" use to declare init functions,
+     we need to call some initializers explicitly. */
+
+  /* Initialize the libu8 stdio library if it won't happen automatically. */
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
-  u8_init_chardata_c();
-  fd_init_fdscheme();
+#endif
+
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_schemeio();
-  fd_init_fdweb();
   fd_init_texttools();
+  fd_init_fdweb();
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif
+
+  /* We keep this outside of the include because it will force
+     the module to be linked in. */
+  fd_init_fdscheme();
+
   fd_register_config("SHOWTIME",fd_dblconfig_get,fd_dblconfig_set,
 		     &showtime_threshold);
   fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,

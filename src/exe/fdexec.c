@@ -103,16 +103,27 @@ int main(int argc,char **argv)
 #ifndef FDEXEC_INCLUDED
   fd_argv_config(argc,argv);
 #endif
-  /* Initialize these primitives */
-#if FD_TESTCONFIG /* Set when statically linked for testing. */
+
+  /* INITIALIZING MODULES */
+  /* Normally, modules have initialization functions called when
+     dynamically loaded.  However, if we are statically linked, or we
+     don't have the "constructor attributes" use to declare init functions,
+     we need to call some initializers explicitly. */
+
+  /* Initialize the libu8 stdio library if it won't happen automatically. */
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
   u8_init_chardata_c();
+#endif
+
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_fdscheme();
   fd_init_texttools();
   fd_init_fdweb();
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif
+
   fd_init_schemeio();
   u8_identify_application(get_app_arg(argc,argv));
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
