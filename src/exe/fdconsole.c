@@ -103,6 +103,7 @@ int main(int argc,char **argv)
   u8_string source_file=NULL;
   /* Initialize Scheme primitives */
 #if FD_TESTCONFIG /* Set when statically linked for testing. */
+  u8_initialize_u8stdio();
   u8_init_chardata_c();
   fd_init_fdscheme();
   fd_init_schemeio();
