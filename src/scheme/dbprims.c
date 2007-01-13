@@ -648,7 +648,7 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
   if (FD_VOIDP(pool_arg)) {
     fd_pool p=fd_oid2pool(x);
     FD_OID base=p->base, addr=FD_OID_ADDR(x);
-    unsigned int offset=FD_OID_DIFFERENCE(x,base);
+    unsigned int offset=FD_OID_DIFFERENCE(addr,base);
     unsigned int load=fd_pool_load(p);
     if (offset<load) return FD_TRUE;
     else return FD_FALSE;}
@@ -657,7 +657,7 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
     fd_pool op=fd_oid2pool(x);
     if (p == op) {
       FD_OID base=p->base, addr=FD_OID_ADDR(x);
-      unsigned int offset=FD_OID_DIFFERENCE(x,base);
+      unsigned int offset=FD_OID_DIFFERENCE(addr,base);
       unsigned int load=fd_pool_load(p);
       if (offset<load) return FD_TRUE;
       else return FD_FALSE;}
