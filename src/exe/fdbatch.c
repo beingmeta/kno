@@ -212,8 +212,10 @@ int main(int argc,char **argv)
        removes the pid file and writes the done file when
        when it exits normally. */
     int retval=-1;
-    if (log_file) {dup2(log_fd,1); u8_free(log_file);}
-    if (err_file) {dup2(err_fd,2); u8_free(err_file);}
+    if (log_file) {
+      dup2(log_fd,1); u8_free(log_file); close(log_fd);}
+    if (err_file) {
+      dup2(err_fd,2); u8_free(err_file); close(err_fd);}
     atexit(fdbatch_atexit);
     u8_free(filebase);
     retval=do_main(argc,argv);
