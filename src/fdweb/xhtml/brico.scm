@@ -8,7 +8,7 @@
 (define sup* markup*fn)
 
 (define (attrib-true? x)
-  (and x (overlaps? x {"yes" "true" "on" "yeah" "oui" "ja" "si"})))
+  (and x (overlaps? x {#t "yes" "true" "on" "yeah" "oui" "ja" "si"})))
 
 ;; Language related exports
 (module-export!
@@ -85,8 +85,10 @@
 		'name (symbol->string var) 'value val
 		'onclick onclick
 		(if selected "checked" ""))
-      (xmlelt 'input 'type
-	      (if multi 'checkbox 'radio) 'name (symbol->string var) 'value val
+      (xmlelt 'input
+	      'type (if multi "checkbox" "radio")
+	      'name (symbol->string var)
+	      'value val
 	      (if selected "checked" "") )))
 
 (define (get-language-name language) (get language '%id))
@@ -121,7 +123,7 @@
        (when (attrib-true? selectbox)
 	 (span (class "nobreak")
 	   (strong " or ")
-	   (xmlblock SELECT (name (stringout "X_" (upcase name)))
+	   (xmlblock SELECT (name (stringout "X_" var))
 	     (xmlblock OPTION (value {}) "Pick a different language")
 	     (doseq (l (sorted (difference all-languages
 					   (choice language languages))
