@@ -109,6 +109,16 @@
 		   (map (lambda (b) (dotighten b env bound dolex))
 			body)))))
 
+(define (tighten-dosubsets handler expr env bound dolex)
+  (let ((bindspec (cadr expr)) (body (cddr expr)))
+    `(,handler (,(car bindspec) ,(dotighten (cadr bindspec) env bound dolex)
+		,@(cddr bindspec))
+	       ,@(let ((bound (if (= (length bindspec) 4)
+				  (cons (list (first bindspec) (fourth bindspec)) bound)
+				  (cons (list (first bindspec)) bound))))
+		   (map (lambda (b) (dotighten b env bound dolex))
+			body)))))
+
 (define (tighten-let*-bindings bindings env bound dolex)
   (if (null? bindings) '()
       `((,(car (car bindings))
@@ -176,6 +186,7 @@
       tighten-block)
 (add! special-form-tighteners case tighten-case)
 (add! special-form-tighteners cond tighten-cond)
+(add! special-form-tighteners do-subsets tighten-dosubsets)
 (when (bound? parallel)
   (add! special-form-tighteners
 	(choice parallel spawn)
