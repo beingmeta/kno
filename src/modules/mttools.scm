@@ -118,7 +118,7 @@
 	  `(,mt-apply ,n-threads
 		      (lambda (,arg) ,@(cdr (cdr expr)))
 		      (qc ,choice-generator))
-	  (let ((blockproc (get-arg control-spec 3 #t))
+	  (let ((blockproc (get-arg control-spec 3 #f))
 		(blocksize (get-arg control-spec 4 #f))
 		(progressfn (get-arg control-spec 5 default-progress-report)))
 	    `(let ((_choice ,choice-generator)
@@ -134,7 +134,7 @@
 		   (when _progressfn
 		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
 				  (elapsed-time _start) _prep_time #f #f))
-		   (_blockproc (qc _block))
+		   (when _blockproc (_blockproc (qc _block)))
 		   (set! _block_prep (elapsed-time _blockstart))
 		   (set! _prep_time (+ _prep_time _block_prep))
 		   (when _progressfn
@@ -164,10 +164,13 @@
     (commit) (clearcaches)
     (prefetch-keys! index keys)))
 
+(define (mt/fetchoids f) (clearcaches) (prefetch-oids! f))
+
 (module-export! '{mt-apply
 		  do-choices-mt
 		  interval-string
 		  short-interval-string
+		  mt/fetchoids
 		  mt/save/fetch
 		  mt/save/lock/fetch
 		  mt/save/fetchkeys})
