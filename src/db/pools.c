@@ -423,7 +423,10 @@ int fd_prefetch_oids(fdtype oids)
 	FD_ADD_TO_CHOICE(toget[i],oid);}}
     else {}}
   i=0; while (i < n_pools) {
-    fd_pool_prefetch(pools[i],toget[i]);
+    int retval=fd_pool_prefetch(pools[i],toget[i]);
+    if (retval<0) {
+      while (i<n_pools) {fd_decref(toget[i]); i++;}
+      return -1;}
     total=total+FD_CHOICE_SIZE(toget[i]);
     fd_decref(toget[i]); i++;}
   return total;

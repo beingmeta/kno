@@ -4,6 +4,7 @@
 
 (use-module '{fdweb xhtml xhtml/clickit brico})
 
+;; We use these for languages (at least)
 (define sub* markup*fn)
 (define sup* markup*fn)
 
@@ -11,23 +12,16 @@
   (and x (overlaps? x {#t "yes" "true" "on" "yeah" "oui" "ja" "si"})))
 
 ;; Language related exports
-(module-export!
- '{languagebox languagesbox getlanguages getlanguage get-languages get-language
-   get-browse-language output-words just-output-words})
+(module-export! '{getlanguages getlanguage get-languages get-language})
+
+;; Dialogs
+(module-export! '{languagebox languagesbox languagedropbox languagesdropbox})
 
 ;; Displaying words with language subscripts
-(module-export! '{showterm wordform})
+(module-export! '{showterm wordform output-words just-output-words})
 
 ;; Displaying concepts in various ways
-(module-export!
- '{
-   ;; showconcepts concept-string showlattice showwords
-   showconcept  })
-
-;; SPIDERs: Dialogues for browsing concept spaces
-; (module-export!
-;  '{spider interpret-text-cue get-unique-concepts get-unknown-cues
-; 	  get-spider-constraints})
+(module-export! '{showconcept})
 
 ;;;; Getting language information
 
@@ -78,27 +72,18 @@
 	   (first (get-preferred-languages)))))
 (define getlanguage get-language)
 
-(define (display-checkbox var val selected onclick multi)
-  (if onclick
-      (xmlempty 'input
-		'type (if multi "checkbox" "radio")
-		'name (symbol->string var) 'value val
-		'onclick onclick
-		(if selected "checked" ""))
-      (xmlelt 'input
-	      'type (if multi "checkbox" "radio")
-	      'name (symbol->string var)
-	      'value val
-	      (if selected "checked" "") )))
-
 (define (get-language-name language) (get language '%id))
 
 ;; This is to be used in browse URI generation
-(define (get-browse-language f)
-  (let* ((var 'language)
-	 (preferred (get-preferred-languages))
-	 (languages (try (cgiget var #t) (car preferred))))
-    languages))
+;; (define (get-browse-language f)
+;;   (let* ((var 'language)
+;; 	 (preferred (get-preferred-languages))
+;; 	 (languages (try (cgiget var #t) (car preferred))))
+;;     languages))
+
+
+;;; Language Dialogs
+
 ;; This is used to figure out the language and displaying an option box
 (define (languagebox  %env (name 'language)
 		      (onchange #f) (action #f) (selectbox #f)
@@ -133,6 +118,7 @@
 	   (xmlelt 'input 'type "SUBMIT" 'name 'action 'value
 		   action))))
     (xmlout)))
+
 (define (languagesbox
 	 name (onchange #f) (action #f) (selectbox #t) (multiple #t))
   (let* ((var (getsym name))
@@ -175,7 +161,6 @@
 	 (unless (eq? l language)
 	   (xmlblock OPTION ((value l)) (get-language-name l)))))
     (xmlout)))
-(module-export! 'languagedropbox)
 
 (define (languagesdropbox
 	 id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
@@ -193,7 +178,20 @@
 	(unless (eq? l language)
 	  (xmlblock OPTION ((value l)) (get-language-name l)))))
     language))
-(module-export! 'languagesdropbox)
+
+
+(define (display-checkbox var val selected onclick multi)
+  (if onclick
+      (xmlempty 'input
+		'type (if multi "checkbox" "radio")
+		'name (symbol->string var) 'value val
+		'onclick onclick
+		(if selected "checked" ""))
+      (xmlelt 'input
+	      'type (if multi "checkbox" "radio")
+	      'name (symbol->string var)
+	      'value val
+	      (if selected "checked" "") )))
 
 ;;;; Displaying words
 
@@ -256,9 +254,10 @@
 ;;; Displaying concepts
 
 (define (get-sorted-words concept language)
-  (try (if (eq? language @?english) (get concept 'ranked) (fail))
-       (sorted (get concept language)
-	       (lambda (x) (choice-size (?? language x))))))
+  (try (tryif (eq? language @?english) (get concept 'ranked))
+       (append (choice->vector (get concept (get norm-map language)))
+	       (sorted (get concept language)
+		       (lambda (x) (choice-size (?? language x)))))))
 
 (define (output-words c language
 		      (languages #{}) (wordlim #f) (shown #f)
@@ -310,25 +309,16 @@
  	     (set+! shown word)
  	     (set! count (1+ count)))
  	    (else)))
-;     (let* ((words (try (get c 'words) (cdr (get c '%words))))
-; 	   (two-words (sorted (pick-n words 2))))
-;       (if (empty? words)
-; 	  (if (exists? (get c '%id)) (xmlout " ?" (get c '%id) "? ")
-; 	      (xmlout " ??" c "?? "))
-; 	  (do-choices (word words)
-; 	    (cond ((overlaps? word shown))
-; 		  ((or (not wordlim) (< count wordlim))
-; 		   (span ((class "wordform")) word)
-; 		   (set+! shown word)
-; 		   (set! count (1+ count)))
-; 		  (else)))))
     (if wordlim shown)))
+
 (define (just-output-words c language
 			   (languages #{}) (wordlim #f) (shown #f)
 			   (searchurl #f))
   (output-words c language languages wordlim (qc shown) searchurl)
   (xmlout))
 
+
+;;; Showing concepts
 
 (define (showconcept c (language #f) (expansion #f) (wordlim 2))
   (if (fail? c) (xmlout)

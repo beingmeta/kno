@@ -60,10 +60,11 @@ define inchoicep
   print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->elt0),((((struct FD_CHOICE *)$arg1)->size)&(0x7FFFFFFF)))
 end
 
-break u8_seterr
-break u8_raise
 break fd_err
 break fd_seterr
 break _fd_dbg
+break u8_seterr
+break u8_raise
 
+cond 1 (ex != fd_throw_condition)
 set env MALLOC_CHECK_=2

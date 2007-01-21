@@ -147,7 +147,7 @@
 				  (choice-size _block) (choice-size _choice)
 				  (elapsed-time _start) _prep_time
 				  (elapsed-time _blockstart) _block_prep))))
-	       (_blockproc (qc))
+	       (when _blockproc (_blockproc (qc)))
 	       (when _progressfn
 		 (_progressfn (choice-size _choice) 0
 			      (choice-size _choice)

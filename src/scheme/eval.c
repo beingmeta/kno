@@ -785,7 +785,7 @@ static void *thread_call(void *data)
 	FD_GET_CONS(result,fd_error_type,struct FD_EXCEPTION_OBJECT *);
       U8_INIT_OUTPUT(&out,8192);
       fd_print_backtrace(&out,80,e->backtrace);
-      u8_warn(ThreadReturnError,out.u8_outbuf);
+      u8_warn(ThreadReturnError,"%s",out.u8_outbuf);
       u8_free(out.u8_outbuf);}}
   if (tstruct->resultptr) *(tstruct->resultptr)=result;
   else fd_decref(result);
