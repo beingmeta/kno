@@ -1039,7 +1039,7 @@ static fdtype fdscripturl(int n,fdtype *args)
       fd_uri_output(&out,FD_STRDATA(args[1]),"#&=;");
     else if (FD_OIDP(args[1])) {
       FD_OID addr=FD_OID_ADDR(args[1]);
-      u8_printf(&out,"?:@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
+      u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
     else {
       u8_string as_string=fd_dtype2string(args[1]);
       u8_putc(&out,':');
