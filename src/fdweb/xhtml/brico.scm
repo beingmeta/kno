@@ -195,33 +195,35 @@
 
 ;;;; Displaying words
 
-(define (wordform word (concept #f) (action #f))
-  (cond ((not action) (inner-wordform word concept))
-	((string? action)
-	 (anchor (scripturl action 'word word)
-		 (inner-wordform word concept)))
-	((applicable? action)
-	 (anchor (action word)
-		 (inner-wordform word concept)))
-	(else (inner-wordform word concept))))
-
-(define (showterm word)
-  (if (position #\Space word)
-      (let ((pos (position #\Space word)))
-	(if (and (> (length word) pos) (eq? (elt word (1+ pos)) #\())
-	    (xmlout word)
-	    (xmlout "\"" word "\"")))
+(define (showterm word (quoted #f))
+  (if quoted
+      (if (position #\Space word)
+	  (let ((pos (position #\Space word)))
+	    (if (and (> (length word) pos) (eq? (elt word (1+ pos)) #\())
+		(xmlout word)
+		(xmlout "\"" word "\"")))
+	  (xmlout word))
       (xmlout word)))
-(define (showterm word) (xmlout word))
 
-(define (inner-wordform word (concept #f))
+(define (wordform word (concept #f) (action #f))
   (if concept
       (let ((languages (get-languages-for word (qc concept))))
 	(span ((class "wordform")
 	       (xml:lang (get (pick-one languages) 'iso639/1)))
-	  (showterm word)
+	  (cond ((not action) (showterm word))
+		((string? action)
+		 (anchor (scripturl action 'word word) (showterm word)))
+		((applicable? action)
+		 (anchor (action word) (showterm word)))
+		(else (showterm word)))
 	  (display-langids (qc languages))))
-      (span (class "wordform") (showterm word))))
+      (span (class "wordform")
+	(cond ((not action) (showterm word))
+	      ((string? action)
+	       (anchor (scripturl action 'word word) (showterm word)))
+	      ((applicable? action)
+	       (anchor (action word) (showterm word)))
+	      (else (showterm word))))))
 
 ;;; Displaying language information for wordforms
 
@@ -262,22 +264,18 @@
 (define (output-words c language
 		      (languages #{}) (wordlim #f) (shown #f)
 		      (searchurl #f))
-  (let ((multi-lingual (ambiguous? (choice language languages)))
-	(shown (or shown {}))
+  "This outputs words to XHTML and returns the words output"
+  (let ((shown (or shown {}))
 	(count 0))
     (doseq (word (get-sorted-words c language))
       (cond ((overlaps? word shown))
 	    ((or (not wordlim) (< count wordlim))
 	     (xmlout
-	      (if (> count 0) " . ")
-	      (if searchurl
-		  (anchor* (fdscripturl searchurl
-					'word word 'language language)
-			   ((title "Click to see other meanings"))
-			   (if multi-lingual (wordform word c)
-			       (span ((class "wordform")) (showterm word))))
-		  (if multi-lingual (wordform word c)
-		      (span ((class "wordform")) (showterm word))))
+	       (if (> count 0) " . ")
+	       (wordform word c
+			 (and searchurl
+			      (fdscripturl
+			       searchurl 'word word 'language language)))
 	      " ")
 	     (set+! shown word)
 	     (set! count (1+ count)))
@@ -288,14 +286,10 @@
 	      ((or (not wordlim) (< count wordlim))
 	       (xmlout 
 		(if (> count 0) " . ")
-		(if searchurl
-		  (anchor* (fdscripturl searchurl
-					'word word 'language lang)
-			   ((title "Click to see other meanings"))
-			   (if multi-lingual (wordform word c)
-			       (span ((class "wordform")) (showterm word))))
-		  (if multi-lingual (wordform word c)
-		      (span ((class "wordform")) (showterm word))))
+	       (wordform word c
+			 (and searchurl
+			      (fdscripturl
+			       searchurl 'word word 'language language)))
 		" ")
 	       (set+! shown word)
 	       (set! count (1+ count)))
