@@ -55,7 +55,8 @@
 ;;; Tab buttons
 
 (define (tabbutton text image content
-		   (selectvar livetab) (defaultselect #f))
+		   (selectvar 'livetab) (defaultselect #f)
+		   (title #f))
   (if (and selectvar (cgitest selectvar))
       (when (cgitest selectvar content)
 	(input id (stringout selectvar "_INPUT") 
@@ -75,6 +76,7 @@
 	 (onmouseover "_fdb_tab_mouseover(event);")
 	 (onmouseout "_fdb_tab_mouseout(event);")
 	 (onclick "return _fdb_tab_click(event);")
+	 (title (if title title))
 	 (contentid content))
     (if image
 	(image SRC image ALT text)

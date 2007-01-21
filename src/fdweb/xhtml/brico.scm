@@ -212,7 +212,8 @@
 	       (xml:lang (get (pick-one languages) 'iso639/1)))
 	  (cond ((not action) (showterm word))
 		((string? action)
-		 (anchor (scripturl action 'word word) (showterm word)))
+		 (anchor (fdscripturl action 'word word 'language languages)
+		   (showterm word)))
 		((applicable? action)
 		 (anchor (action word) (showterm word)))
 		(else (showterm word)))
@@ -220,7 +221,7 @@
       (span (class "wordform")
 	(cond ((not action) (showterm word))
 	      ((string? action)
-	       (anchor (scripturl action 'word word) (showterm word)))
+	       (anchor (fdscripturl action 'word word) (showterm word)))
 	      ((applicable? action)
 	       (anchor (action word) (showterm word)))
 	      (else (showterm word))))))
@@ -272,10 +273,7 @@
 	    ((or (not wordlim) (< count wordlim))
 	     (xmlout
 	       (if (> count 0) " . ")
-	       (wordform word c
-			 (and searchurl
-			      (fdscripturl
-			       searchurl 'word word 'language language)))
+	       (wordform word c searchurl)
 	      " ")
 	     (set+! shown word)
 	     (set! count (1+ count)))
@@ -286,10 +284,7 @@
 	      ((or (not wordlim) (< count wordlim))
 	       (xmlout 
 		(if (> count 0) " . ")
-	       (wordform word c
-			 (and searchurl
-			      (fdscripturl
-			       searchurl 'word word 'language language)))
+	       (wordform word c searchurl)
 		" ")
 	       (set+! shown word)
 	       (set! count (1+ count)))
