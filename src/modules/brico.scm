@@ -219,7 +219,7 @@
 
 (define (index-concept index concept)
   (index-brico index concept)
-  (index-string index concept english (get concept 'words) #f)
+  (index-string index concept english (get concept 'words) 1)
   (index-name index concept 'names (qc (get concept 'names)) #f)
   (index-name index concept 'names
 	      (qc (pick  (cdr (get concept '%words)) capitalized?)) #f)
@@ -243,7 +243,7 @@
   ;;  and @?refterms.
   (when (%test concept defines)
     (doindex index (%get concept defines) defterms concept))
-  (when (test concept referenced)
+  (when (%test concept referenced)
     (doindex index (%get concept referenced) refterms concept))
   (when (test concept 'gloss)
     (doindex index concept 'has english-gloss))
@@ -296,7 +296,7 @@
 
 (define (indexer-prefetch oids)
   (prefetch-oids! oids)
-  (prefetch-keys! (cons refterms oids))
+  (prefetch-keys! (cons (choice refterms referenced) oids))
   (let ((kovalues (%get oids kindof*-slotids)))
     (prefetch-oids! kovalues)
     (let* ((base (choice kovalues (%get kovalues isa)))
