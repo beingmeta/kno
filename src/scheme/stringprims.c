@@ -192,6 +192,20 @@ static fdtype capitalize1(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
+static fdtype downcase1(fdtype string)
+{
+  if (FD_STRINGP(string)) {
+    u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
+    if (u8_islower(c)) return fd_incref(string);
+    else {
+      struct U8_OUTPUT out; int word_start=1;
+      U8_INIT_OUTPUT(&out,FD_STRLEN(string)+4);
+      u8_putc(&out,u8_tolower(c));
+      u8_puts(&out,scan);
+      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}}
+  else return fd_type_error(_("string or character"),"capitalize1",string);
+}
+
 static fdtype string_stdspace(fdtype string)
 {
   u8_byte *scan=FD_STRDATA(string); int c, white=1;
@@ -690,6 +704,7 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZED?",capitalizedp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",downcase1,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("COMPOUND?",string_compoundp,1,
