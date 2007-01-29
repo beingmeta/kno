@@ -3,7 +3,9 @@
 (use-module '{texttools fdweb meltcache})
 ;(use-module '{gnosys/webapp/userinfo gnosys/urldb gnosys/metakeys/tagmaps})
 
-(module-export! '{delicious/geturls delicious/getbookmarks delicious/gettags})
+(module-export!
+   '{delicious/geturls delicious/getbookmarks delicious/gettags
+		       delicious/istag})
 
 (define trace-delicious #f)
 (define trace-delicious-config
@@ -255,6 +257,9 @@
 
 (define (delicious/getbookmarks tags users)
   (getbookmarks (qc tags) users))
+
+(define (delicious/istag tag)
+  (exists?  (meltcache/get delicious-cache rssgeturls tag #f)))
 
 
 ;;; The lookup method
