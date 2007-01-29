@@ -14,6 +14,16 @@
 ;; Good value for debugging
 ;; (define meltcache-threshold 2)
 
+(define meltcache-threshold-config
+  (slambda (var (val 'unbound))
+    (cond ((eq? val 'unbound) meltcache-threshold)
+	  ((equal? meltcache-threshold val))
+	  ((integer? val)
+	   (set! meltcache-threshold val))
+	  (else (error 'typeerror 'meltcache-threshold-config
+		       "Not a valid API key value" val)))))
+(config-def! 'meltcache-threshold meltcache-threshold-config)
+
 (define (set-meltcache-threshold! fcn value)
   (store! meltcache-threshold-table fcn value))
 (module-export! 'set-meltcache-threshold!)
