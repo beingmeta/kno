@@ -289,15 +289,16 @@
 	       (set+! shown word)
 	       (set! count (1+ count)))
 	      (else))))
-    (do-choices (word (get c 'names))
-      (cond ((overlaps? word shown))
- 	    ((or (not wordlim) (< count wordlim))
- 	     (xmlout
- 	      (if (> count 0) " . ")
- 	      (span ((class "wordform")) (showterm word)) " ")
- 	     (set+! shown word)
- 	     (set! count (1+ count)))
- 	    (else)))
+    (when (fail? shown)
+      (do-choices (word (get c 'names))
+	(cond ((overlaps? word shown))
+	      ((or (not wordlim) (< count wordlim))
+	       (xmlout
+		 (if (> count 0) " . ")
+		 (span ((class "wordform")) (showterm word)) " ")
+	       (set+! shown word)
+	       (set! count (1+ count)))
+	      (else))))
     (if wordlim shown)))
 
 (define (just-output-words c language
