@@ -74,7 +74,7 @@
 	    minutes ":")
 	  (printout (if (< seconds 10) "0")
 	    (cond ((> secs 600) (inexact->exact (round seconds)))
-		  ((> secs 10) (inexact->string seconds 2))
+		  ((>= secs 10) (inexact->string seconds 2))
 		  (else seconds)))))))
 
 ;;; The default method for reporting progress emits status reports
