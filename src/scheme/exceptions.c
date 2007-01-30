@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/support.h"
@@ -68,7 +68,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       fd_decref(value); fd_decref(handler);
       return err_result;}
     else {
-      fd_decref(value); fd_decref(handler);
+      fd_decref(value);
       return handler;}}
   else if (FD_VOIDP(default_handler))
     return value;
