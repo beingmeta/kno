@@ -16,6 +16,7 @@ static char versionid[] =
 #include "fdb/pools.h"
 #include "fdb/indices.h"
 #include "fdb/frames.h"
+#include "fdb/dtypestream.h"
 #include "fdb/ports.h"
 
 fd_exception fd_UnknownEncoding=_("Unknown encoding");
@@ -167,6 +168,38 @@ static fdtype write_dtype(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
+  if (bytes<0) return fd_erreify();
+  else return FD_INT2DTYPE(bytes);
+}
+
+static fdtype zread_dtype(fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  fdtype object=fd_zread_dtype(ds->dt_stream);
+  if (object == FD_EOD) return FD_EOF;
+  else return object;
+}
+
+static fdtype zwrite_dtype(fdtype object,fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  int bytes=fd_zwrite_dtype(ds->dt_stream,object);
+  if (bytes<0) return fd_erreify();
+  else return FD_INT2DTYPE(bytes);
+}
+
+static fdtype zread_int(fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  unsigned int ival=fd_dtsread_zint(ds->dt_stream);
+  return FD_INT2DTYPE(ival);
+}
+
+static fdtype zwrite_int(fdtype object,fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  int ival=fd_getint(object);
+  int bytes=fd_dtswrite_zint(ds->dt_stream,ival);
   if (bytes<0) return fd_erreify();
   else return FD_INT2DTYPE(bytes);
 }
@@ -1062,6 +1095,20 @@ FD_EXPORT void fd_init_portfns_c()
 	   fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
+			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("ZREAD-DTYPE",
+			   zread_dtype,1,fd_dtstream_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
+			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("ZREAD-INT",
+			   zread_int,1,fd_dtstream_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("ZWRITE-INT",zwrite_int,2,
 			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,

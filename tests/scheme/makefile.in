@@ -157,7 +157,7 @@ batchtest:
 	@if (test ! -s countup.done); then echo countup.done error; exit 1; fi;
 	@# This was written by the script
 	@if (test ! -s countup.finished); then echo fdbatch success countup.finished error; exit 1; fi;
-	@if (test ! -s countup.err); then echo fdbatch success countup.err error; exit 1; fi;
+	@if (test ! -f countup.err); then echo fdbatch success countup.err error; exit 1; fi;
 	@if (test ! -s countup.log); then echo fdbatch success countup.log error; exit 1; fi;
 	@# These should have been deleted on successful exit
 	@if (test -f countup.died); then echo fdbatch success countup.died error; exit 1; fi;

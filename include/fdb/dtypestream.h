@@ -97,6 +97,9 @@ FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x);
 FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,int len,unsigned int *words);
 FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words);
 
+FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x);
+FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s);
+
 #if FD_INLINE_DTYPEIO
 FD_FASTOP int fd_dtsread_byte(fd_dtype_stream s)
 {
@@ -160,7 +163,6 @@ FD_FASTOP unsigned int fd_dtsread_zint(fd_dtype_stream s)
     else break;
   return result<<7|probe;
 }
-
 
 /* Inline writers */
 
@@ -235,6 +237,7 @@ FD_EXPORT off_t _fd_dtsread_off_t(struct FD_DTYPE_STREAM *stream);
 #define fd_dtsread_byte   _fd_dtsread_byte(x)
 #define fd_dtsread_4bytes _fd_dtsread_4bytes 
 #define fd_dtsread_bytes  _fd_dtsread_bytes 
+#define fd_dtsread_zint  _fd_dtsread_zint 
 
 FD_EXPORT int _fd_dtswrite_byte
   (struct FD_DTYPE_STREAM *stream,int b);
@@ -245,6 +248,7 @@ FD_EXPORT int _fd_dtswrite_bytes
 #define fd_dtswrite_byte   _fd_dtswrite_byte 
 #define fd_dtswrite_4bytes _fd_dtswrite_4bytes 
 #define fd_dtswrite_bytes  _fd_dtswrite_bytes 
+#define fd_dtswrite_zint  _fd_dtswrite_zint 
 
 #endif  /* FD_INLINE_DTYPEIO */
 #endif /* FD_DTYPESTREAM_H */

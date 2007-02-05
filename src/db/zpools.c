@@ -260,6 +260,16 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
   return result;
 }
 
+FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
+{
+  return zread_dtype(s);
+}
+
+FD_EXPORT fdtype _fd_dtsread_zint(struct FD_DTYPE_STREAM *s)
+{
+  return fd_dtsread_zint(s);
+}
+
 /* This reads a non frame value with compression. */
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
@@ -274,6 +284,18 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
   u8_free(zbytes); u8_free(out.start);
   return size;
 }
+
+FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  return zwrite_dtype(s,x);
+}
+
+FD_EXPORT fdtype _fd_dtswrite_zint(struct FD_DTYPE_STREAM *s,int val)
+{
+  return fd_dtswrite_zint(s,val);
+}
+
+
 
 /* This reads an OID value.
    A compressed OID value has one of the forms:
