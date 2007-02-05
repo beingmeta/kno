@@ -472,12 +472,19 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
 {
   if (FD_STRINGP(filename)) {
     struct FD_DTYPE_STREAM *out; int bytes;
-    out=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_CREATE);
+    u8_string temp_name=u8_mkstring("%s.part",FD_STRDATA(filename));
+    out=fd_dtsopen(temp_name,FD_DTSTREAM_CREATE);
     if (out==NULL) return fd_erreify();
     if (FD_FIXNUMP(bufsiz))
       fd_dtsbufsize(out,FD_FIX2INT(bufsiz));
     bytes=fd_dtswrite_dtype(out,object);
+    if (bytes<0) {
+      fd_dtsclose(out,FD_DTSCLOSE_FULL);
+      u8_free(temp_name);
+      return fd_erreify();}
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
+    u8_movefile(temp_name,FD_STRDATA(filename));
+    u8_free(temp_name);
     return FD_INT2DTYPE(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
