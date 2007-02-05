@@ -7,7 +7,7 @@
 
 (module-export!
  '{brico-pool
-   brico-index
+   brico-index doindex
    english english-gloss spanish french get-norm
    genls genls* kindof kindof* specls specls*
    parts parts* partof partof*

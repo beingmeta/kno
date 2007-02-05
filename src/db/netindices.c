@@ -30,6 +30,8 @@ static fdtype ixserver_changes, ixserver_add, ixserver_drop, ixserver_addn, ixse
 
 static fdtype set_symbol, drop_symbol;
 
+fd_exception fd_NoServerMethod=_("Server doesn't support method");
+
 static int reopen_network_index(struct FD_NETWORK_INDEX *ix);
 
 FD_FASTOP fdtype quote_lisp(fdtype x)
@@ -273,7 +275,7 @@ static int netindex_commit(fd_index ix)
 		     fd_incref(scan->value));
 	  else dtcallnr(nix,4,ixserver_reset,nix->xname,
 			fd_incref(FD_CDR(key)),fd_incref(scan->value));}
-	else u8_warn("Server %s doesn't support resets",ix->source);
+	else u8_warn(fd_NoServerMethod,"Server %s doesn't support resets",ix->source);
       else if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol))) 
 	if (nix->capabilities&FD_ISERVER_DROP) {
 	  n_transactions++;
@@ -282,7 +284,7 @@ static int netindex_commit(fd_index ix)
 		     fd_incref(FD_CDR(key)),fd_incref(scan->value));
 	  else dtcallnr(nix,4,ixserver_drop,nix->xname,
 			fd_incref(FD_CDR(key)),fd_incref(scan->value));}
-	else u8_warn("Server %s doesn't support drops",ix->source);
+	else u8_warn(fd_NoServerMethod,"Server %s doesn't support drops",ix->source);
       else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
       scan++;}
     scan=kvals; while (scan<kvals) {

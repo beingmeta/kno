@@ -374,7 +374,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
     if (fd_setpos(s,label_loc)>0) {
       label=fd_dtsread_dtype(s);
       if (FD_STRINGP(label)) pool->label=u8_strdup(FD_STRDATA(label));
-      else u8_warn(fd_BadFilePoolLabel,fd_dtype2string(label));
+      else u8_warn(fd_BadFilePoolLabel,"label: %s",fd_dtype2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",

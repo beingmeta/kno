@@ -65,7 +65,7 @@ int main(int argc,char **argv)
   ht=fd_make_hashtable(NULL,64,NULL);
   in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
   if (in==NULL) {
-    u8_warn("Couldn't open file %s",argv[1]);
+    u8_warn("No such file","Couldn't open file %s",argv[1]);
     exit(1);}
   fd_dtsbufsize(in,65536*2);
   item=fd_dtsread_dtype(in); i=1;
