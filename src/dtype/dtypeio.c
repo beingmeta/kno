@@ -132,7 +132,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     return 5;}
   case fd_immediate_ptr_type: { /* output constant */
     fd_ptr_type itype=FD_IMMEDIATE_TYPE(x);
-    int data=FD_GET_IMMEDIATE(x,itype);
+    int data=FD_GET_IMMEDIATE(x,itype), retval=0;
     if (itype == fd_symbol_type) { /* output symbol */
       fdtype name=fd_symbol_names[data];
       struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
@@ -167,18 +167,27 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 	  output_byte(out,3); output_4bytes(out,data);
 	  return 7;}}
       return 5;}
-    else switch (data) {
-    case 0: output_byte(out,dt_void); return 1;
-    case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
-    case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
-    case 3:
-      output_byte(out,dt_framerd_package);
-      output_byte(out,dt_small_choice);
-      output_byte(out,0);
-      return 3;
-    case 4: output_byte(out,dt_empty_list); return 1;
-    default:
-      fd_seterr(_("Invalid constant"),NULL,NULL,x);
+    else if (itype==fd_constant_type)
+      switch (data) {
+      case 0: output_byte(out,dt_void); return 1;
+      case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
+      case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
+      case 3:
+	output_byte(out,dt_framerd_package);
+	output_byte(out,dt_small_choice);
+	output_byte(out,0);
+	return 3;
+      case 4: output_byte(out,dt_empty_list); return 1;
+      default:
+	fd_seterr(_("Invalid constant"),NULL,NULL,x);
+	return -1;}
+    else if ((itype < FD_TYPE_MAX) && (fd_dtype_writers[itype]))
+      return fd_dtype_writers[itype](out,x);
+    else if ((fd_dtype_error) &&
+	     (retval=fd_dtype_error(out,x,"no handler"))) 
+      return retval;
+    else {
+      fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
       return -1;}
     break;}
   case fd_cons_ptr_type: {/* output cons */
@@ -375,11 +384,15 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
     scan=v->slots; limit=scan+v->n_slots;
     while (scan < limit)
       if (*scan) {
-	struct FD_HASHENTRY *he=*scan++;
+	struct FD_HASHENTRY *he=*scan++; 
 	struct FD_KEYVAL *kscan=&(he->keyval0), *klimit=kscan+he->n_keyvals;
 	while (kscan < klimit) {
-	  output_dtype(dtype_len,out,kscan->key);
-	  output_dtype(dtype_len,out,kscan->value);
+	  if (try_dtype_output(&dtype_len,out,kscan->key)<0) {
+	    fd_unlock_mutex(&(v->lock));
+	    return -1;}
+	  if (try_dtype_output(&dtype_len,out,kscan->value)<0) {
+	    fd_unlock_mutex(&(v->lock));
+	    return -1;}
 	  kscan++;}}
       else scan++;}
   fd_unlock_mutex(&(v->lock));
@@ -405,7 +418,10 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
     scan=v->slots; limit=scan+v->n_slots;
     while (scan < limit)
       if (*scan) {
-	output_dtype(dtype_len,out,*scan); scan++;}
+	if (try_dtype_output(&dtype_len,out,*scan)<0) {
+	  fd_unlock_mutex(&(v->lock));
+	  return -1;}
+	scan++;}
       else scan++;}
   fd_unlock_mutex(&(v->lock));
   return dtype_len;
