@@ -100,6 +100,8 @@ FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words);
 FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x);
 FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s);
 
+FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x);
+
 #if FD_INLINE_DTYPEIO
 FD_FASTOP int fd_dtsread_byte(fd_dtype_stream s)
 {

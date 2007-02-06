@@ -172,6 +172,22 @@ static fdtype write_dtype(fdtype object,fdtype stream)
   else return FD_INT2DTYPE(bytes);
 }
 
+static fdtype read_int(fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  unsigned int ival=fd_dtsread_4bytes(ds->dt_stream);
+  return FD_INT2DTYPE(ival);
+}
+
+static fdtype write_int(fdtype object,fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  int ival=fd_getint(object);
+  int bytes=fd_dtswrite_4bytes(ds->dt_stream,ival);
+  if (bytes<0) return fd_erreify();
+  else return FD_INT2DTYPE(bytes);
+}
+
 static fdtype zread_dtype(fdtype stream)
 {
   struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
@@ -184,6 +200,14 @@ static fdtype zwrite_dtype(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   int bytes=fd_zwrite_dtype(ds->dt_stream,object);
+  if (bytes<0) return fd_erreify();
+  else return FD_INT2DTYPE(bytes);
+}
+
+static fdtype zwrite_dtypes(fdtype object,fdtype stream)
+{
+  struct FD_DTSTREAM *ds=FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  int bytes=fd_zwrite_dtypes(ds->dt_stream,object);
   if (bytes<0) return fd_erreify();
   else return FD_INT2DTYPE(bytes);
 }
@@ -1098,10 +1122,19 @@ FD_EXPORT void fd_init_portfns_c()
 			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("READ-INT",read_int,1,fd_dtstream_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("WRITE-INT",write_int,2,
+			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ZREAD-DTYPE",
 			   zread_dtype,1,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
+			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("ZWRITE-DTYPES",zwrite_dtypes,2,
 			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,

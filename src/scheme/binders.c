@@ -97,6 +97,42 @@ static fdtype set_default_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_VOID;}}
 }
 
+#if FD_THREADS_ENABLED
+static u8_mutex sset_lock;
+#endif
+
+/* This implements a simple version of globally synchronized set, which
+   wraps a mutex around a regular set call, including evaluation of the
+   value expression.  This can be used, for instance, to safely increment
+   a variable. */
+static fdtype sset_handler(fdtype expr,fd_lispenv env)
+{
+  int retval;
+  fdtype var=fd_get_arg(expr,1), val_expr=fd_get_arg(expr,2), value;
+  if (FD_VOIDP(var))
+    return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
+  else if (!(FD_SYMBOLP(var)))
+    return fd_err(fd_NotAnIdentifier,"SSET!",NULL,expr);
+  else if (FD_VOIDP(val_expr))
+    return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
+  fd_lock_mutex(&(sset_lock));
+  value=fasteval(val_expr,env);
+  if (FD_ABORTP(value)) {
+    fd_unlock_mutex(&(sset_lock));
+    return value;}
+  else if (retval=fd_set_value(var,value,env)) {
+    fd_decref(value); fd_unlock_mutex(&(sset_lock));
+    if (retval<0) return fd_erreify();
+    else return FD_VOID;}
+  else if (retval=fd_bind_value(var,value,env)) {
+    fd_decref(value); fd_unlock_mutex(&(sset_lock));
+    if (retval<0) return fd_erreify();
+    else return FD_VOID;}
+  else {
+    fd_unlock_mutex(&(sset_lock));
+    return fd_err(fd_BindError,"SSET!",NULL,var);}
+}
+
 /* Environment utilities */
 
 static int check_bindexprs(fdtype bindexprs,fdtype *why_not)
@@ -828,6 +864,10 @@ FD_EXPORT void fd_init_binders_c()
   lambda_symbol=fd_intern("LAMBDA");
   tail_symbol=fd_intern("%TAIL");
 
+#if FD_THREADS_ENABLED
+  fd_init_mutex(&sset_lock);
+#endif
+
   fd_sproc_type=fd_register_cons_type("scheme procedure");
   fd_macro_type=fd_register_cons_type(_("scheme syntactic macro"));
 
@@ -841,6 +881,7 @@ FD_EXPORT void fd_init_binders_c()
 
   fd_defspecial(fd_scheme_module,"SET!",set_handler);
   fd_defspecial(fd_scheme_module,"SET+!",set_plus_handler);
+  fd_defspecial(fd_scheme_module,"SSET!",sset_handler);
 
   fd_defspecial(fd_scheme_module,"LET",let_handler);
   fd_defspecial(fd_scheme_module,"LET*",letstar_handler);

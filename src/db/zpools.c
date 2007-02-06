@@ -290,6 +290,31 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
   return zwrite_dtype(s,x);
 }
 
+/* This reads a non frame value with compression. */
+static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  fdtype result;
+  unsigned char *zbytes; int zlen, size;
+  struct FD_BYTE_OUTPUT out;
+  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  if (FD_CHOICEP(x)) {
+    FD_DO_CHOICES(v,x) {fd_write_dtype(&out,v);}}
+  else if (FD_VECTORP(x)) {
+    int i=0, len=FD_VECTOR_LENGTH(x); fdtype *data=FD_VECTOR_DATA(x);
+    while (i<len) {fd_write_dtype(&out,data[i]); i++;}}
+  else fd_write_dtype(&out,x);
+  zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+  size=fd_dtswrite_zint(s,zlen); size=size+zlen;
+  fd_dtswrite_bytes(s,zbytes,zlen);
+  u8_free(zbytes); u8_free(out.start);
+  return size;
+}
+
+FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  return zwrite_dtypes(s,x);
+}
+
 FD_EXPORT fdtype _fd_dtswrite_zint(struct FD_DTYPE_STREAM *s,int val)
 {
   return fd_dtswrite_zint(s,val);
