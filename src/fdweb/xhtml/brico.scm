@@ -113,7 +113,8 @@
 	     (doseq (l (sorted (difference all-languages
 					   (choice language languages))
 			       get-language-name))
-	       (xmlblock OPTION (value l) (get-language-name l))))))
+	       (when (string? (get l '%id))
+		 (xmlblock OPTION (value l) (get-language-name l)))))))
        (if action
 	   (xmlelt 'input 'type "SUBMIT" 'name 'action 'value
 		   action))))
@@ -158,7 +159,8 @@
       (do-choices (lang language)
 	(xmlblock OPTION ((value lang)) (get-language-name lang)))
        (doseq (l languages)
-	 (unless (eq? l language)
+	 (unless (or (eq? l language)
+		     (not (string? (get l '%id))))
 	   (xmlblock OPTION ((value l)) (get-language-name l)))))
     (xmlout)))
 
