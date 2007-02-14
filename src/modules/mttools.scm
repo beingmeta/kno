@@ -165,12 +165,17 @@
     (prefetch-keys! index keys)))
 
 (define (mt/fetchoids f) (clearcaches) (prefetch-oids! f))
+(define (mt/lockoids f)
+  (commit) (clearcaches)
+  (lock-oids! f)
+  (prefetch-oids! f))
 
 (module-export! '{mt-apply
 		  do-choices-mt
 		  interval-string
 		  short-interval-string
 		  mt/fetchoids
+		  mt/lockoids
 		  mt/save/fetch
 		  mt/save/lock/fetch
 		  mt/save/fetchkeys})
