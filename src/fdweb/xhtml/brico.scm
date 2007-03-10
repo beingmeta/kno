@@ -95,29 +95,29 @@
     (unless (overlaps? language languages)
       (cgiset! 'languages (choice language languages)))
     (xmlout
-     (span (class "langbox_title") (if title (xmleval title %env)))
-     (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
-       (span (class "hotcheck")
-	 (display-checkbox var language #t onchange #f)
-	 (span (class "language") (get-language-name language)))
-       (doseq (lang (sorted (difference languages language) 'english-names))
-	 (span (class "hotcheck")
-	   (display-checkbox var lang #f onchange #f)
-	   (span (class "language") (get-language-name lang)))
-	 (xmlout "  "))
-       (when (attrib-true? selectbox)
-	 (span (class "nobreak")
-	   (strong " or ")
-	   (xmlblock SELECT (name (stringout "X_" var))
-	     (xmlblock OPTION (value {}) "Pick a different language")
-	     (doseq (l (sorted (difference all-languages
-					   (choice language languages))
-			       get-language-name))
-	       (when (string? (get l '%id))
-		 (xmlblock OPTION (value l) (get-language-name l)))))))
-       (if action
-	   (xmlelt 'input 'type "SUBMIT" 'name 'action 'value
-		   action))))
+      (span (class "langbox_title") (if title (xmleval title %env)))
+      (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
+	(span (class "hotcheck")
+	  (display-checkbox var language #t onchange #f)
+	  (span (class "language") (get-language-name language)))
+	(doseq (lang (sorted (difference languages language) 'english-names))
+	  (span (class "hotcheck")
+	    (display-checkbox var lang #f onchange #f)
+	    (span (class "language") (get-language-name lang)))
+	  (xmlout "  "))
+	(when (attrib-true? selectbox)
+	  (span (class "nobreak")
+	    (strong " or ")
+	    (xmlblock SELECT (name (stringout "X_" var))
+	      (xmlblock OPTION (value {}) "Pick a different language")
+	      (doseq (l (sorted (difference all-languages
+					    (choice language languages))
+				get-language-name))
+		(when (string? (get l '%id))
+		  (xmlblock OPTION (value l) (get-language-name l)))))))
+	(if action
+	    (xmlelt 'input 'type "SUBMIT" 'name 'action 'value
+		    action))))
     (xmlout)))
 
 (define (languagesbox
@@ -188,12 +188,12 @@
 		'type (if multi "checkbox" "radio")
 		'name (symbol->string var) 'value val
 		'onclick onclick
-		(if selected "checked" ""))
-      (xmlelt 'input
-	      'type (if multi "checkbox" "radio")
-	      'name (symbol->string var)
-	      'value val
-	      (if selected "checked" "") )))
+		(if selected "CHECKED" ""))
+      (xmlempty 'input
+		'type (if multi "checkbox" "radio")
+		'name (symbol->string var)
+		'value val
+		(if selected "CHECKED" "") )))
 
 ;;;; Displaying words
 
