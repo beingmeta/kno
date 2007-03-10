@@ -1,10 +1,12 @@
 ;; Indentation information
 
 (defvar *framerd-keywords*
-  '("do-choices-mt"
-    "do-choices" "doseq" "dolist" "dotimes" "for-choices" "filter-choices"
-    "while" "until"
-    "find-frames" "pick" "reject"))
+  '("\\<do-choices-mt\\>"
+    "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
+    "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>"
+    "\\<while\\>" "\\<until\\>"
+    "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
+    "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"))
 
 ;;; FRAMERD stuff
 (put 'when 'scheme-indent-function 1)
