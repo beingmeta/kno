@@ -14,7 +14,7 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    isa inverse =is= disjoint implies implies*
-   get-gloss get-short-gloss get-expstring gloss
+   get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-kindof index-frame*
    indexer index-concept
@@ -88,6 +88,11 @@
     (if (position #\; s)
 	(subseq s 0 (position #\; s))
 	s)))
+(define (get-single-gloss concept (language #f))
+  (if (or (not language) (eq? language english))
+      (try (pick-one (get concept 'gloss))
+	   (pick-one (get-gloss concept language)))
+      (pick-one  (get-gloss concept language))))
 (define (get-expstring concept (language english))
   (stringout
       (let ((words (get concept (choice language 'names))))
