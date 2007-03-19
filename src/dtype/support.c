@@ -211,6 +211,12 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   return retval;
 }
 
+FD_EXPORT void fd_config_lock(int lock)
+{
+  if (lock) fd_lock_mutex(&config_lock);
+  else fd_unlock_mutex(&config_lock);
+}
+
 FD_EXPORT int fd_register_config
   (u8_string var,
    fdtype (*getfn)(fdtype,void *),
@@ -823,6 +829,7 @@ void fd_init_support_c()
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&config_lookup_lock);
+  fd_init_mutex(&config_lock);
 #endif
 
   fd_register_config_lookup(getenv_config_lookup);

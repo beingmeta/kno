@@ -252,7 +252,7 @@ static fdtype lisp_load_config(fdtype string)
 /* Config config */
 
 #if FD_THREADS_ENABLED
-static u8_mutex config_lock;
+static u8_mutex config_file_lock;
 #endif
 
 static FD_CONFIG_RECORD *config_records=NULL, *config_stack=NULL;
@@ -260,11 +260,11 @@ static FD_CONFIG_RECORD *config_records=NULL, *config_stack=NULL;
 static fdtype get_config_files(fdtype var)
 {
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
-  fd_lock_mutex(&config_lock);
+  fd_lock_mutex(&config_file_lock);
   scan=config_records; while (scan) {
     result=fd_init_pair(NULL,fdtype_string(scan->source),result);
     scan=scan->next;}
-  fd_unlock_mutex(&config_lock);
+  fd_unlock_mutex(&config_file_lock);
   return result;
 }
 
@@ -274,29 +274,29 @@ static int add_config_file(fdtype var,fdtype val)
     int retval;
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
     u8_string pathname=u8_abspath(FD_STRDATA(val),NULL);
-    fd_lock_mutex(&config_lock);
+    fd_lock_mutex(&config_file_lock);
     scan=config_stack; while (scan)
       if (strcmp(scan->source,pathname)==0) {
-	fd_unlock_mutex(&config_lock);
+	fd_unlock_mutex(&config_file_lock);
 	u8_free(pathname);
 	return 0;}
       else scan=scan->next;
     on_stack.source=pathname;
     on_stack.next=config_stack;
     config_stack=&on_stack;
-    fd_unlock_mutex(&config_lock);
+    fd_config_lock(0);
     retval=fd_load_config(pathname);
+    fd_config_lock(1);
     if (retval<0) {
-      fd_lock_mutex(&config_lock);
+      fd_lock_mutex(&config_file_lock);
       u8_free(pathname); config_stack=on_stack.next;
-      fd_unlock_mutex(&config_lock);
+      fd_unlock_mutex(&config_file_lock);
       return retval;}
-    fd_lock_mutex(&config_lock);
     newrec=u8_malloc(sizeof(struct FD_CONFIG_RECORD));
     newrec->source=pathname;
     newrec->next=config_records;
     config_records=newrec;
-    fd_unlock_mutex(&config_lock);
+    fd_unlock_mutex(&config_file_lock);
     return retval;}
   else return -1;
 }
@@ -308,7 +308,7 @@ FD_EXPORT void fd_init_load_c()
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&sourcefns_lock);
-  fd_init_mutex(&config_lock);
+  fd_init_mutex(&config_file_lock);
  u8_new_threadkey(&sourcebase_key,NULL);
 #endif
 
