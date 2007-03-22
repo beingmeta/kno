@@ -14,6 +14,7 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    isa inverse =is= disjoint implies implies*
+   make%id
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-kindof index-frame*
@@ -74,9 +75,10 @@
 (define default-language english)
 
 (define (get-norm concept (language default-language))
-  (try (pick-one (get (get concept '%norm) language))
-       (pick-one (get concept language))
-       (pick-one (get concept english))))
+  (try (pick-one (largest (get (get concept '%norm) language)))
+       (pick-one (largest (get concept language)))
+       (pick-one (largest (get concept english)))
+       (pick-one (largest (cdr (get concept '%words))))))
 
 (define (get-gloss concept (language default-language))
   (try (tryif language (get concept (get gloss-map language)))
@@ -109,6 +111,20 @@
 		      (printout (if (> i 0) " . " " ") "\"" word "\"")
 		      (printout (if (> i 0) " . " " ") word))))
 	      (get concept implies) implies)))
+
+(define (make%id f (lang default-language))
+  `(,(pick-one (difference (get f 'sense-category) 'NOUN.TOPS))
+    ,(get-norm f lang)
+    ,(cond ((%test f partof) 'PARTOF)
+	   ((%test f 'hypernym) 'GENLS)
+	   ((%test f genls) 'GENLS)
+	   ((%test f ISA) 'ISA)
+	   (else 'TOP))
+    ,@(map get-norm
+	   (choice->list
+	    (try (%get f partof) (%get f 'hypernym) (%get f genls) (%get f isa))))))
+
+;;; Configuring bricosource
 
 (define bricosource-config
   (slambda (var (val 'unbound))
@@ -157,9 +173,9 @@
 	(doindex index frame slot baseform)
 	(when (and window (compound? v))
 	  (let* ((words (words->vector stdspaced))
-		 (basewords (words->vector baseform))
+		 (stdwords (words->vector (stdstring stdspaced)))
 		 (frags (choice (vector->frags words window)
-				(vector->frags basewords window))))
+				(vector->frags stdwords window))))
 	    (doindex index frame slot frags)))))))
 
 (define (index-name index frame slot (value #f) (window 2))
