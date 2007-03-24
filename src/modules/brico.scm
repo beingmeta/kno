@@ -78,6 +78,7 @@
   (try (pick-one (largest (get (get concept '%norm) language)))
        (pick-one (largest (get concept language)))
        (pick-one (largest (get concept english)))
+       (pick-one (largest (get concept 'names)))
        (pick-one (largest (cdr (get concept '%words))))))
 
 (define (get-gloss concept (language default-language))
@@ -113,16 +114,25 @@
 	      (get concept implies) implies)))
 
 (define (make%id f (lang default-language))
-  `(,(pick-one (difference (get f 'sense-category) 'NOUN.TOPS))
+  `(,(pick-one (try (difference (get f 'sense-category) 'NOUN.TOPS)
+		    (get f 'sense-category)))
     ,(get-norm f lang)
-    ,(cond ((%test f partof) 'PARTOF)
+    ,(cond ((and (test f 'sense-category 'noun.location)
+		 (%test f partof))
+	    'PARTOF)
 	   ((%test f 'hypernym) 'GENLS)
 	   ((%test f genls) 'GENLS)
 	   ((%test f ISA) 'ISA)
+	   ((%test f partof) 'PARTOF)
 	   (else 'TOP))
     ,@(map get-norm
 	   (choice->list
-	    (try (%get f partof) (%get f 'hypernym) (%get f genls) (%get f isa))))))
+	    (try (tryif (test f 'sense-category 'noun.location)
+			(%get f partof))
+		 (%get f 'hypernym)
+		 (%get f genls)
+		 (%get f isa)
+		 (%get f partof))))))
 
 ;;; Configuring bricosource
 
