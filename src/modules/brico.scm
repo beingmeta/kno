@@ -115,7 +115,8 @@
 
 (define (make%id f (lang default-language))
   `(,(pick-one (try (difference (get f 'sense-category) 'NOUN.TOPS)
-		    (get f 'sense-category)))
+		    (get f 'sense-category)
+		    'VAGUE))
     ,(get-norm f lang)
     ,(cond ((and (test f 'sense-category 'noun.location)
 		 (%test f partof))
@@ -243,7 +244,9 @@
 (define referenced @1/2ab5a{REFERENCED})
 
 (define (index-brico index frame)
-  (doindex index frame '{type sense-category})
+  (doindex index frame '{type sense-category fips-code})
+  (when (ambiguous? (get frame 'sense-category))
+    (doindex index frame 'sense-category 'vague))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
   (doindex index frame '%id (get frame '%mnemonic))
   (doindex index frame 'has (getslots frame)))
