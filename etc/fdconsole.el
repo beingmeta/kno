@@ -6,7 +6,7 @@
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>"
     "\\<while\\>" "\\<until\\>"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
-    "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"))
+    "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>" "\\<try-choices>\\"))
 
 ;;; FRAMERD stuff
 (put 'when 'scheme-indent-function 1)
@@ -25,6 +25,7 @@
 (put 'do-subsets 'scheme-indent-function 1)
 (put 'for-choices 'scheme-indent-function 1)
 (put 'filter-choices 'scheme-indent-function 1)
+(put 'try-choices 'scheme-indent-function 1)
 (put 'while 'scheme-indent-function 1)
 (put 'until 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
