@@ -17,7 +17,7 @@
    make%id
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
-   index-string index-name index-gloss index-kindof index-frame*
+   index-string index-name index-gloss index-genls index-frame*
    indexer index-concept
    basic-concept-frequency concept-frequency use-corpus-frequency})
 
@@ -29,9 +29,9 @@
 (define spanish @1/2c1fc"Spanish")
 (define french @1/2c122"French")
 (define genls @1/2c272"SubClassOf")
-(define genls* @1/2c27b{KINDOF*})
+(define genls* @1/2c27b{GENLS*})
 (define kindof @1/2c272"SubClassOf")
-(define kindof* @1/2c27b{KINDOF*})
+(define kindof* @1/2c27b{GENLS*})
 (define specls @1/2c273"SubClasses")
 (define specls* @1/2c27c{KINDS*})
 (define parts @1/2c275{PARTS})
@@ -161,7 +161,7 @@
 ;;; This optionally takes a slotmap as an index, where the slotmap
 ;;;  maps slot values to indices.
 (define doindex
-  (ambda (index frame slotids (values))
+  (ambda (index frame slotids (values) (inverse #f))
     (if (index? index)
 	(if (bound? values)
 	    (index-frame index frame slotids values)
@@ -173,7 +173,9 @@
 		(warning "No index found for " slotid)
 		(if (bound? values)
 		    (index-frame index frame slotids values)
-		    (index-frame index frame slotids))))))))
+		    (index-frame index frame slotids))))))
+    (if (and (bound? values) inverse)
+	(doindex index values inverse frame))))
 
 (define (index-string index frame slot (value #f) (window 2))
   (let ((values (if value value (get frame slot))))
@@ -203,16 +205,16 @@
 				(vector->frags basewords window))))
 	    (doindex index frame slot frags)))))))
 
-(define (index-kindof index frame slot (values))
+(define (index-genls index frame slot (values))
   (let ((v (if (bound? values) values (get frame slot))))
     (when (exists? v)
-      (doindex index frame slot (get v kindof*)))))
+      (doindex index frame slot (get v genls*)))))
 
-(define (index-frame* index frame slot base)
+(define (index-frame* index frame slot base (inverse #f))
   (do ((g (get frame base) (difference (get g base) seen))
        (seen frame (choice g seen)))
       ((empty? g))
-    (doindex index frame slot g)))
+    (doindex index frame slot g inverse)))
 
 (define (index-gloss index frame slotid (value #f))
   (let* ((wordlist (getwords (or value (get frame slotid))))
@@ -221,7 +223,7 @@
     (doindex index frame slotid
 	     (choice gloss-words (porter-stem gloss-words)))))
 
-(define kindof*-slotids
+(define genls*-slotids
   '{@1/2c274{PARTOF}
     @1/2c277{INGREDIENT-OF}
     @1/2c279{MEMBER-OF}
@@ -232,12 +234,13 @@
    @1/2ab57{REFTERMS}
    @1/2b74c{INCLUDES}
    @1/2c275{PARTS}
-   @1/2c272{KINDOF}
+   @1/2c272{GENLS}
+   @1/2c273{SPECLS}
    @1/2c276{INGREDIENTS}
    @1/2c278{MEMBERS}
    @1/2c281{PARTOF*}})
 
-(define kindof @1/2c272{KINDOF})
+(define genls @1/2c272{GENLS})
 (define defterms @1/2ab4d{DEFTERMS})
 (define defines @1/2ab55{DEFINES})
 (define refterms @1/2ab57{REFTERMS})
@@ -257,11 +260,11 @@
   (index-name index concept 'names (qc (get concept 'names)) #f)
   (index-name index concept 'names
 	      (qc (pick  (cdr (get concept '%words)) capitalized?)) #f)
-  (do-choices (slotid kindof*-slotids)
-    (index-kindof index concept slotid
-		  (qc (%get concept slotid)
-		      (tryif (oid? slotid)
-			     (%get concept (get slotid 'slots))))))
+  (do-choices (slotid genls*-slotids)
+    (index-genls index concept slotid
+		 (qc (%get concept slotid)
+		     (tryif (oid? slotid)
+			    (%get concept (get slotid 'slots))))))
   (do-choices (slotid concept-slotids)
     (doindex index concept slotid
 	     (choice (%get concept slotid)
@@ -293,7 +296,7 @@
   (do-choices (xlation (get concept '%indices))
     (let ((lang (get index-map (car xlation))))
       (index-string index concept lang (cdr xlation) #f)))
-  (index-frame* index concept kindof* kindof)
+  (index-frame* index concept genls* genls specls*)
   (index-frame* index concept partof* partof)
   (index-frame* index concept memberof* memberof)
   (index-frame* index concept ingredientof* ingredientof))
@@ -331,7 +334,7 @@
 (define (indexer-prefetch oids)
   (prefetch-oids! oids)
   (prefetch-keys! (cons (choice refterms referenced) oids))
-  (let ((kovalues (%get oids kindof*-slotids)))
+  (let ((kovalues (%get oids genls*-slotids)))
     (prefetch-oids! kovalues)
     (let* ((base (choice kovalues (%get kovalues isa)))
 	   (visited (choice->hashset base)))
@@ -341,7 +344,7 @@
 	(prefetch-keys! (cons specls scan))
 	(hashset-add! visited scan))))
   (prefetch-expansions
-   (qc oids) (qc kindof partof memberof ingredientof)))
+   (qc oids) (qc genls partof memberof ingredientof)))
 
 (module-export!
  '{index-brico
