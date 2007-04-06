@@ -14,7 +14,7 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    isa inverse =is= disjoint implies implies*
-   make%id
+   make%id make%id!
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-genls index-frame*
@@ -134,6 +134,8 @@
 		 (%get f genls)
 		 (%get f isa)
 		 (%get f partof))))))
+(define (make%id! f (lang default-language))
+  (store! f '%id (make%id f lang)))
 
 ;;; Configuring bricosource
 
@@ -208,6 +210,7 @@
 (define (index-genls index frame slot (values))
   (let ((v (if (bound? values) values (get frame slot))))
     (when (exists? v)
+      (doindex index frame slot (list v))
       (doindex index frame slot (get v genls*)))))
 
 (define (index-frame* index frame slot base (inverse #f))
