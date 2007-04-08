@@ -77,7 +77,7 @@ static config_intern(u8_string start)
   if (nameout.u8_streaminfo&U8_STREAM_OWNS_BUF) {
     fdtype symbol=
       fd_make_symbol(nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
-    u8_close(&nameout);
+    u8_close((u8_stream)&nameout);
     return symbol;}
   else return fd_make_symbol
 	 (nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);

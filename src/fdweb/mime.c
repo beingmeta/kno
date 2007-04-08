@@ -32,7 +32,7 @@ static fdtype parse_fieldname(char *start,char *end)
   while (scan<end) {
     int c=*scan++; u8_putc(&out,toupper(c));}
   fieldid=fd_intern(out.u8_outbuf);
-  u8_close(&out);
+  u8_close((u8_stream)&out);
   return fieldid;
 }
 

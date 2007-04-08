@@ -55,7 +55,7 @@ static u8_string breakup_path(fdtype f,u8_string start)
 	fd_add(f,name_symbol,eltstring); fd_decref(eltstring);}
       fd_add(f,path_symbol,path);
       fd_decref(path);
-      u8_close(&eltout); 
+      u8_close((u8_stream)&eltout); 
       if (c<0) return scan; else return scan-1;}
     else {
       u8_putc(&eltout,c);

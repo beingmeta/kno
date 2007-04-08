@@ -2403,7 +2403,7 @@ FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keysarg)
       {FD_DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
     fd_decref(values);}
   fd_decref(keys);
-  u8_close(tmp);
+  u8_close((u8_stream)tmp);
 }
 
 /* Table max functions */

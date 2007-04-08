@@ -569,7 +569,7 @@ static int close_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
   fd_dtsclose(&(client->in),2);
-  u8_close(&(client->out));
+  u8_close((u8_stream)&(client->out));
 }
 
 static char *portfile=NULL;

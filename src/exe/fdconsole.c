@@ -55,13 +55,13 @@ static int debug_maxelts=32, debug_maxchars=80;
 static void close_consoles()
 {
   if (inconsole) {
-    u8_close(inconsole);
+    u8_close((u8_stream)inconsole);
     inconsole=NULL;}
   if (outconsole) {
-    u8_close(outconsole);
+    u8_close((u8_stream)outconsole);
     outconsole=NULL;}
   if (errconsole) {
-    u8_close(errconsole);
+    u8_close((u8_stream)errconsole);
     errconsole=NULL;}
   if (console_env) {
     fd_recycle_environment(console_env);

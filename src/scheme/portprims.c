@@ -1026,7 +1026,7 @@ static fdtype lisp_show_table(fdtype tables,fdtype slotids,fdtype portarg)
 	  u8_printf(out,"   %q:\n",slotid);
 	  {FD_DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
 	fd_decref(values);}}
-      u8_close(tmp);}
+      u8_close((u8_stream)tmp);}
     else fd_display_table(out,table,slotids);
   u8_flush(out);
   return FD_VOID;
