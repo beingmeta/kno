@@ -77,10 +77,15 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs apxs2)
-AC_AIX
 
-apache_conf_dir=`$APXS -q SYSCONFDIR`
-apache_modules_dir=`$APXS -q LIBEXECDIR`
+if test ! -z $APXS; then
+  apache_conf_dir=`$APXS -q SYSCONFDIR`
+  apache_modules_dir=`$APXS -q LIBEXECDIR`
+else
+  echo "Warning: No apache development environment, can't build mod_fdserv"
+fi
+
+AC_AIX
 
 if test $doi18n = "yes"; then
   I18N="i18n"
