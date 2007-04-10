@@ -14,6 +14,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
 #include "fdb/indices.h"
+#include "fdb/apply.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>
@@ -880,6 +881,12 @@ FD_EXPORT fd_init_indices_c()
 #endif
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
   u8_new_threadkey(&index_delays_key,NULL);
+#endif
+
+#if FD_CALLTRACK_ENABLED
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("KEYS");
+    cts->enabled=1; cts->intfcn=fd_index_cache_load;}
 #endif
 }
 

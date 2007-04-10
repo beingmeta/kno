@@ -14,6 +14,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
 #include "fdb/pools.h"
+#include "fdb/apply.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -1253,6 +1254,13 @@ FD_EXPORT fd_init_pools_c()
   fd_register_config("ANONYMOUSOK",
 		     config_get_anonymousok,
 		     config_set_anonymousok,NULL);
+
+#if FD_CALLTRACK_ENABLED
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("OIDS");
+    cts->enabled=1; cts->intfcn=fd_object_cache_load;}
+#endif
+
 }
 
 

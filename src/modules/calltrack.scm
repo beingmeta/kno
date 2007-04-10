@@ -8,6 +8,8 @@
 ;;  special form execution (which doesn't bottom out in function application) 
 ;;  is credited towards the function itself.
 
+(use-module 'texttools)
+
 (module-export! '{ct/load ct/simple ct/report ct/summary ct/detailed})
 
 (module-export!
@@ -57,6 +59,18 @@
 
 (define (handle-calltrack-entry call return context cxttable fntable)
   ;; (lineout "handle-calltrack-entry: \n\t" call "\n\t" return)
+  (let ((delta (list->vector (cons 1 (vector->list (map - (subseq return 1) (subseq call 1))))))
+	(cxtentry (get cxttable context))
+	(fnentry (get fntable (first call))))
+    (if (fail? cxtentry)
+	(store! cxttable context delta)
+	(store! cxttable context (map + cxtentry delta)))
+    (if (fail? fnentry)
+	(store! fntable (first call) delta)
+	(store! fntable (first call) (map + cxtentry delta)))))
+
+(define (handle-calltrack-entry call return context cxttable fntable)
+  ;; (lineout "handle-calltrack-entry: \n\t" call "\n\t" return)
   (let ((runtime (- (record-elapsed return)
 		    (record-elapsed call)))
 	(objects (- (record-objects return)
@@ -80,6 +94,18 @@
 			(+ objects (elt fnentry 2))
 			(+ fetches (elt fnentry 3)))))))
 
+(define (handle-calltrack-entry call return context cxttable fntable)
+  ;; (lineout "handle-calltrack-entry: \n\t" call "\n\t" return)
+  (let ((delta (->vector (cons 1 (->list (map - (subseq return 1) (subseq call 1))))))
+	(cxtentry (get cxttable context))
+	(fnentry (get fntable (first call))))
+    (if (fail? cxtentry)
+	(store! cxttable context delta)
+	(store! cxttable context (map + cxtentry delta)))
+    (if (fail? fnentry)
+	(store! fntable (first call) delta)
+	(store! fntable (first call) (map + fnentry delta)))))
+
 (define (ct/load file)
   (let* ((f (open-input-file file))
 	 (callstack '())
@@ -90,11 +116,15 @@
 	 (fntable (make-hashtable))
 	 (clocktime #f) (objs #f) (keys #f)
 	 (line (getline f))
+	 (fields '(CALLS TIME OIDS KEYS))
 	 (startup #t))
     (until (eof-object? line)
       ;; (lineout "calltrack: " line)
       ;; (lineout "callstack: " callstack)
       (cond ((eq? (elt line 0) #\#)
+	     (set! line (getline f)))
+	    ((eq? (elt line 0) #\:)
+	     (set! fields (segment (subseq line 1) " "))
 	     (set! line (getline f)))
 	    ((and (eq? (elt line 0) #\<) startup)
 	     (set! line (getline f)))
@@ -125,7 +155,7 @@
 	       (set! line (getline f))))
 	    (else (message "Bad data line: " line)
 		  (set! line (getline f)))))
-    (vector contexts callees fntable cxttable)))
+    (vector contexts callees fntable cxttable fields)))
 
 ;;;; Accessing records
 

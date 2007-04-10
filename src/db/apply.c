@@ -23,14 +23,50 @@ fd_exception fd_TooManyArgs=_("too many arguments");
 fd_exception fd_TooFewArgs=_("too few arguments");
 fd_exception fd_ProfilingDisabled=_("profiling not built");
 
+static fd_exception TooManyCalltrackSensors=_("Too many calltrack sensors");
+
 /* Internal profiling support */
 
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
+#ifndef MAX_CALLTRACK_SENSORS
+#define MAX_CALLTRACK_SENSORS 64
+#endif
+
+#if FD_THREADS_ENABLED
+u8_mutex calltrack_sensor_lock;
+#endif
+
+static struct FD_CALLTRACK_SENSOR calltrack_sensors[MAX_CALLTRACK_SENSORS];
+static int n_calltrack_sensors=0;
+
+FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id)
+{
+  int i=0; fd_lock_mutex(&calltrack_sensor_lock);
+  while (i<n_calltrack_sensors) 
+    if (strcmp(id,calltrack_sensors[i].name)==0) {
+      fd_unlock_mutex(&calltrack_sensor_lock);
+      return &(calltrack_sensors[i]);}
+    else i++;
+  if (i<MAX_CALLTRACK_SENSORS) {
+    calltrack_sensors[i].name=u8_strdup(id);
+    calltrack_sensors[i].enabled=0;
+    calltrack_sensors[i].intfcn=NULL;
+    calltrack_sensors[i].dblfcn=NULL;
+    fd_unlock_mutex(&calltrack_sensor_lock);
+    return &calltrack_sensors[n_calltrack_sensors++];}
+  else {
+    fd_seterr(TooManyCalltrackSensors,"fd_get_calltrack_sensor",
+	      u8_strdup(id),FD_VOID);
+    fd_unlock_mutex(&calltrack_sensor_lock);
+    return NULL;}
+}
+
 #if (FD_USE_TLS)
 static u8_tld_key calltrack_log_key;
 struct CALLTRACK_DATA {
   FILE *f; char *filename;};
+
 static void free_calltrack_log(void *ptr)
 {
   struct CALLTRACK_DATA *data=ptr;
@@ -60,6 +96,12 @@ FD_EXPORT int fd_start_calltrack(char *filename)
     fprintf(f,"# Calltrack start\n");
     cd=u8_malloc_type(struct CALLTRACK_DATA);
     cd->f=f; cd->filename=u8_strdup(filename);
+    fprintf(f,":TIME");
+    {int i=0; while (i<n_calltrack_sensors) 
+      if (calltrack_sensors[i].enabled) 
+	fprintf(f," %s",calltrack_sensors[i++].name);
+      else i++;
+    fprintf(f,"\n");
     u8_tld_set(calltrack_log_key,cd);
     return current;}
   else {
@@ -92,6 +134,12 @@ FD_EXPORT int fd_start_calltrack(char *filename)
     fprintf(f,"# Calltrack start\n");
     calltrack_logfilename=u8_strdup(filename);
     calltrack_logfile=f;
+    fprintf(f,":TIME");
+    {int i=0; while (i<n_calltrack_sensors) 
+      if (calltrack_sensors[i].enabled) 
+	fprintf(f," %s",calltrack_sensors[i++].name);
+      else i++;}
+    fprintf(f,"\n");
     return retval;}
   else {
     u8_graberr(-1,"fd_start_calltrack",u8_strdup(filename));
@@ -102,17 +150,33 @@ static void calltrack_call(u8_string name)
 {
   FILE *f=get_calltrack_logfile();
   if (f) {
-    int ocache=fd_object_cache_load(), kcache=fd_index_cache_load();
-    double timer=u8_elapsed_time();
-    fprintf(f,"> %s %f %d %d\n",name,timer,ocache,kcache);}
+    double timer=u8_elapsed_time(); int i=0;
+    fprintf(f,"> %s %f",name,timer);
+    while (i<n_calltrack_sensors) 
+      if (calltrack_sensors[i].enabled) 
+	if (calltrack_sensors[i].dblfcn)
+	  fprintf(f," %f",calltrack_sensors[i++].dblfcn());
+	else if (calltrack_sensors[i].intfcn)
+	  fprintf(f," %d",calltrack_sensors[i++].intfcn());
+	else fprintf(f," 0");
+      else i++;
+    fprintf(f,"\n");}
 }
 static void calltrack_return(u8_string name)
 {
   FILE *f=get_calltrack_logfile();
   if (f) {
-    int ocache=fd_object_cache_load(), kcache=fd_index_cache_load();
-    double timer=u8_elapsed_time();
-    fprintf(f,"< %s %f %d %d\n",name,timer,ocache,kcache);}
+    double timer=u8_elapsed_time(); int i=0;
+    fprintf(f,"< %s %f",name,timer);
+    while (i<n_calltrack_sensors) 
+      if (calltrack_sensors[i].enabled) 
+	if (calltrack_sensors[i].dblfcn)
+	  fprintf(f," %f",calltrack_sensors[i++].dblfcn());
+	else if (calltrack_sensors[i].intfcn)
+	  fprintf(f," %d",calltrack_sensors[i++].intfcn());
+	else fprintf(f," 0");
+      else i++;
+    fprintf(f,"\n");}
 }
 FD_EXPORT
 void fd_calltrack_call(u8_string name)
@@ -766,6 +830,10 @@ FD_EXPORT void fd_init_apply_c()
 
   fd_unparsers[fd_tail_call_type]=unparse_tail_call;
   fd_recyclers[fd_tail_call_type]=recycle_tail_call;
+
+#if (FD_THREADS_ENABLED)
+  u8_init_mutex(&calltrack_sensor_lock);
+#endif
 
 }
 
