@@ -313,7 +313,7 @@ static fdtype loadcontent(fdtype path)
   u8_string pathname=FD_STRDATA(path), oldsource;
   double load_start=u8_elapsed_time();
   u8_string content=u8_filestring(pathname,NULL);
-  if (traceweb>1)
+  if (traceweb>0)
     u8_notify("LOADING","Loading %s",pathname);
   if (content[0]=='<') {
     U8_INPUT in; FD_XML *xml; fd_lispenv env;
@@ -460,8 +460,10 @@ static int webservefn(u8_client ucl)
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   fd_set_default_output(&(client->out));
   if (FD_ABORTP(proc)) result=fd_incref(proc);
-  else if (FD_PRIM_TYPEP(proc,fd_sproc_type))
-    result=fd_cgiexec(proc,cgidata);
+  else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+    if (traceweb>1)
+      u8_notify("START","Handling %q with Scheme procedure %q",path,proc);
+    result=fd_cgiexec(proc,cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
@@ -469,6 +471,8 @@ static int webservefn(u8_client ucl)
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
+    if (traceweb>1)
+      u8_notify("START","Handling %q with template",path);
     setup_proc=fd_symeval(setup_symbol,base);
     if (FD_VOIDP(setup_proc)) {}
     else if (FD_CHOICEP(setup_proc)) {
