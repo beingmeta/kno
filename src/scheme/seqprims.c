@@ -721,6 +721,71 @@ static fdtype seqelt_prim(fdtype x,fdtype offset)
   else return result;
 }
 
+/* This is for use in filters, especially PICK and REJECT */
+
+enum COMPARISON {
+  cmp_lt, cmp_lte, cmp_eq, cmp_gte, cmp_gt };
+
+static int has_length_helper(fdtype x,fdtype length_arg,enum COMPARISON cmp)
+{
+  int seqlen=fd_seq_length(x), testlen;
+  if (seqlen<0) return fd_type_error(_("sequence"),"seqlen",x);
+  else if (FD_FIXNUMP(length_arg))
+    testlen=(FD_FIX2INT(length_arg));
+  else return fd_type_error(_("fixnum"),"has-length?",x);
+  switch (cmp) {
+  case cmp_lt: return (seqlen<testlen);
+  case cmp_lte: return (seqlen<=testlen);
+  case cmp_eq: return (seqlen==testlen);
+  case cmp_gte: return (seqlen>=testlen);
+  case cmp_gt: return (seqlen>testlen);
+  default:
+    fd_seterr("Unknown length comparison","has_length_helper",NULL,x);
+    return -1;}
+}
+
+static fdtype has_length_prim(fdtype x,fdtype length_arg)
+{
+  int retval=has_length_helper(x,length_arg,cmp_eq);
+  if (retval<0) return fd_erreify();
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype has_length_lt_prim(fdtype x,fdtype length_arg)
+{
+  int retval=has_length_helper(x,length_arg,cmp_lt);
+  if (retval<0) return fd_erreify();
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype has_length_lte_prim(fdtype x,fdtype length_arg)
+{
+  int retval=has_length_helper(x,length_arg,cmp_lte);
+  if (retval<0) return fd_erreify();
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype has_length_gt_prim(fdtype x,fdtype length_arg)
+{
+  int retval=has_length_helper(x,length_arg,cmp_gt);
+  if (retval<0) return fd_erreify();
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype has_length_gte_prim(fdtype x,fdtype length_arg)
+{
+  int retval=has_length_helper(x,length_arg,cmp_gte);
+  if (retval<0) return fd_erreify();
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+/* Element access */
+
 /* We separate this out to give the compiler the option of not inline coding this guy. */
 static fdtype check_empty_list_range
   (u8_string prim,fdtype seq,
@@ -1435,6 +1500,13 @@ FD_EXPORT void fd_init_sequences_c()
   /* Generic sequence functions */
   fd_idefn(fd_scheme_module,fd_make_cprim1("SEQUENCE?",sequencep_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LENGTH",seqlen_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH=",has_length_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH>",has_length_gt_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH>=",has_length_gte_prim,2));
+  fd_defalias(fd_scheme_module,"LENGTH=>","LENGTH>="); 
+  fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH<",has_length_lt_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH=<",has_length_lte_prim,2));
+  fd_defalias(fd_scheme_module,"LENGTH<=","LENGTH=<");
   fd_idefn(fd_scheme_module,fd_make_cprim2("ELT",seqelt_prim,2));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("SLICE",slice_prim,2,
