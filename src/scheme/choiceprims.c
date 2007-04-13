@@ -549,6 +549,21 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
+/* TRY */
+
+static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype value_expr=fd_get_arg(expr,1);
+  fdtype value=FD_EMPTY_CHOICE;
+  if (FD_VOIDP(value_expr))
+    return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
+  else if (!(FD_EMPTY_LISTP(FD_CDR(FD_CDR(expr)))))
+    return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
+  else value=fd_eval(value_expr,env);
+  if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
+  else return value;
+}
+
 /* Predicates */
 
 static fdtype emptyp(fdtype x)
@@ -1078,6 +1093,8 @@ FD_EXPORT void fd_init_choicefns_c()
     fd_idefn(fd_scheme_module,empty_prim);
     fd_store(fd_scheme_module,fd_intern("FAIL?"),empty_prim);
   }
+
+  fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_handler);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("SATISFIED?",satisfiedp,1)));
