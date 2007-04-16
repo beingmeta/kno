@@ -300,9 +300,9 @@
     (let ((lang (get index-map (car xlation))))
       (index-string index concept lang (cdr xlation) #f)))
   (index-frame* index concept genls* genls specls*)
-  (index-frame* index concept partof* partof)
-  (index-frame* index concept memberof* memberof)
-  (index-frame* index concept ingredientof* ingredientof))
+  (index-frame* index concept partof* partof parts*)
+  (index-frame* index concept memberof* memberof members*)
+  (index-frame* index concept ingredientof* ingredientof ingredients*))
 
 (define (indexer index concept (slotids) (values))
   (if (bound? slotids)
