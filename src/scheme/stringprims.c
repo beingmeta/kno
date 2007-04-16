@@ -184,7 +184,7 @@ static fdtype capitalize1(fdtype string)
     u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
     if (u8_isupper(c)) return fd_incref(string);
     else {
-      struct U8_OUTPUT out; int word_start=1;
+      struct U8_OUTPUT out;
       U8_INIT_OUTPUT(&out,FD_STRLEN(string)+4);
       u8_putc(&out,u8_toupper(c));
       u8_puts(&out,scan);
@@ -198,7 +198,7 @@ static fdtype downcase1(fdtype string)
     u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
     if (u8_islower(c)) return fd_incref(string);
     else {
-      struct U8_OUTPUT out; int word_start=1;
+      struct U8_OUTPUT out;
       U8_INIT_OUTPUT(&out,FD_STRLEN(string)+4);
       u8_putc(&out,u8_tolower(c));
       u8_puts(&out,scan);
@@ -249,7 +249,7 @@ static fdtype string_stdstring(fdtype string)
 static fdtype string_basestring(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c, white=1;
+    u8_byte *scan=FD_STRDATA(string); int c;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {

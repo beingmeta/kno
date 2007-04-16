@@ -19,6 +19,8 @@ static char versionid[] =
 #include "fdb/dtypestream.h"
 #include "fdb/ports.h"
 
+#include <libu8/u8streamio.h>
+
 fd_exception fd_UnknownEncoding=_("Unknown encoding");
 
 /* The port type */
@@ -90,7 +92,7 @@ static int use_u8_message(u8_output f)
   if (f->u8_streaminfo&U8_STREAM_MALLOCD) u8_free(f);
 }
 
-static u8_output get_default_output_port()
+FD_INLINE_FCN u8_output get_default_output_port()
 {
   u8_output f=fd_get_default_output();
   if (f) return f;
@@ -261,7 +263,6 @@ static fdtype portdata(fdtype port_arg)
 
 static fdtype write_prim(fdtype x,fdtype portarg)
 {
-  fdtype err=FD_EMPTY_CHOICE;
   U8_OUTPUT *out=get_output_port(portarg);
   if (out) {
     u8_printf(out,"%q",x);
@@ -272,7 +273,6 @@ static fdtype write_prim(fdtype x,fdtype portarg)
 
 static fdtype display_prim(fdtype x,fdtype portarg)
 {
-  fdtype err=FD_EMPTY_CHOICE;
   U8_OUTPUT *out=get_output_port(portarg);
   if (out) {
     if (FD_STRINGP(x))
@@ -300,7 +300,6 @@ static fdtype putchar_prim(fdtype char_arg,fdtype port)
 
 static fdtype newline_prim(fdtype portarg)
 {
-  fdtype err=FD_EMPTY_CHOICE;
   U8_OUTPUT *out=get_output_port(portarg);
   if (out) {
     u8_puts(out,"\n");
@@ -503,17 +502,17 @@ static fdtype read_prim(fdtype port)
 
 static int find_substring(u8_string string,fdtype strings,int *lenp)
 {
-  int off=-1, matchlen=-1; u8_string match=NULL;
+  int off=-1, matchlen=-1;
   FD_DO_CHOICES(s,strings) {
     u8_string next=strstr(string,FD_STRDATA(s));
-    if (next)
+    if (next) {
       if (off<0) {
 	off=next-string; matchlen=FD_STRLEN(s);}
       else if ((next-string)<off) {
 	off=next-string;
 	if (matchlen<(FD_STRLEN(s))) {
 	  matchlen=FD_STRLEN(s);}}
-      else {}}
+      else {}}}
   *lenp=matchlen;
   return off;
 }
@@ -625,7 +624,7 @@ FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
 	      int indent,int col,int maxcol,int initial)
 {
-  int startoff=out->u8_outptr-out->u8_outbuf, i, n_chars;
+  int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
   if (initial==0) u8_putc(out,' ');
   fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
@@ -713,10 +712,10 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_pair=1; 
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    if (slotmap_size==0) 
+    if (slotmap_size==0) {
       if (initial) {
 	u8_printf(out," #[]"); return 3;}
-      else {u8_printf(out," #[]"); return 4;}
+      else {u8_printf(out," #[]"); return 4;}}
     fd_lock_mutex(&(sm->lock));
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
@@ -740,7 +739,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
 	       int indent,int col,int maxcol,int initial,
 	       fd_pprintfn fn,void *data)
 {
-  int startoff=out->u8_outptr-out->u8_outbuf, i, n_chars;
+  int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
   if (fn) {
     int newcol=fn(out,x,prefix,indent,col,maxcol,initial,data);
     if (newcol>=0) return newcol;}
@@ -829,10 +828,10 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     int slotmap_size, first_pair=1; 
     fd_lock_mutex(&(sm->lock));
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    if (slotmap_size==0) 
+    if (slotmap_size==0) {
       if (initial) {
 	u8_printf(out," #[]"); return 3;}
-      else {u8_printf(out," #[]"); return 4;}
+      else {u8_printf(out," #[]"); return 4;}}
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {

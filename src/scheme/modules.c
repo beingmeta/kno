@@ -5,15 +5,15 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8filefns.h>
+
+static MAYBE_UNUSED char versionid[] =
+  "$Id$";
 
 static fdtype loadstamp_symbol;
 
@@ -47,7 +47,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
     else return module;}
   else {
     struct MODULE_LOADER *scan=module_loaders;
-    u8_string module_name; int retval;
+    u8_string module_name;
     if (FD_SYMBOLP(spec))
       module_name=u8_downcase(FD_SYMBOL_NAME(spec));
     else if (FD_STRINGP(spec))
@@ -92,7 +92,7 @@ int fd_persist_module(fdtype module)
     fd_persist_hashtable(ht,fd_function_type);
     fd_persist_hashtable(ht,fd_specform_type);
     return 1;}
-  else if (FD_TABLEP(module)) {}
+  else if (FD_TABLEP(module)) return 0;
   else {
     fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
     return -1;}
@@ -226,7 +226,7 @@ static fdtype within_module(fdtype expr,fd_lispenv env)
 static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
 {
   fdtype module=
-    ((FD_PTR_TYPEP(module,fd_environment_type)) ?
+    ((FD_PTR_TYPEP(module_spec,fd_environment_type)) ?
      (fd_incref(module_spec)) :
      (fd_get_module(module_spec,safe)));
   if (FD_ABORTP(module)) {

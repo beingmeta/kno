@@ -127,12 +127,13 @@ FD_EXPORT fdtype fd_deep_copy(fdtype x);
 */
 
 #if (!(FD_NO_GC))
-static fdtype _fd_incref(struct FD_CONS *x) 
+FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x) 
 {
   FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>0xFFFFFF80) {
     FD_UNLOCK_PTR(x);
-    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);}
+    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
+    return (fdtype)NULL;}
   else if (FD_CONSBITS(x)>=0x80) {
 #ifdef HUGE_REFCOUNT
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT) 
@@ -146,7 +147,7 @@ static fdtype _fd_incref(struct FD_CONS *x)
     return fd_copy((fdtype)x);}
 }
 
-static void _fd_decref(struct FD_CONS *x) 
+FD_INLINE_FCN void _fd_decref(struct FD_CONS *x) 
 {
   FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>=0xFFFFFF80) {

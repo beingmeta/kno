@@ -15,9 +15,12 @@ static char versionid[] =
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8streamio.h>
 #include <libu8/u8netfns.h>
 
 #include <curl/curl.h>
+
+#include <ctype.h>
 
 static fdtype curl_defaults, url_symbol;
 static fdtype content_type_symbol, charset_symbol, type_symbol;
@@ -47,8 +50,6 @@ typedef struct INBUF {
 
 typedef struct OUTBUF {
   unsigned char *scan, *end;} OUTBUF;
-
-static char *cookies_file=NULL;
 
 #if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
 static u8_tld_key curl_threadkey;
@@ -125,7 +126,7 @@ void handle_content_type(char *value,fdtype table)
   full_type=fdtype_string(value);
   fd_add(table,type_symbol,full_type); *end=endbyte;
   fd_decref(major_type); fd_decref(full_type);
-  if (chset=strstr(value,"charset=")) {
+  if ((chset=(strstr(value,"charset=")))) {
     fdtype chset_val;
     chset_end=chset=chset+8; if (*chset=='"') {
       chset++; chset_end=strchr(chset,'"');}
@@ -143,11 +144,12 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
   char *cdata=(char *)ptr, *copy=u8_malloc(byte_len+1), *valstart;
   strncpy(copy,cdata,byte_len); copy[byte_len]='\0';
   /* Strip off the CRLF */
-  if ((copy[byte_len-1]='\n') && (copy[byte_len-2]='\r'))
+  if ((copy[byte_len-1]='\n') && (copy[byte_len-2]='\r')) {
     if (byte_len==2) {
       u8_free(copy); return byte_len;}
-    else copy[byte_len-2]='\0';
-  if (valstart=strchr(copy,':')) {
+    else copy[byte_len-2]='\0';}
+  else {}
+  if ((valstart=(strchr(copy,':')))) {
     *valstart++='\0'; while (isspace(*valstart)) valstart++;
     if (!(FD_TABLEP(val)))
       *valptr=val=fd_init_slotmap(NULL,0,NULL,NULL);
@@ -174,13 +176,13 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
   return byte_len;
 }
 
-static fdtype addtexttype(fdtype type)
+FD_INLINE_FCN fdtype addtexttype(fdtype type)
 {
   FD_ADD_TO_CHOICE(text_types,fd_incref(type));
   return FD_VOID;
 }
 
-static struct FD_CURL_HANDLE *curl_err(u8_string cxt,int code)
+FD_INLINE_FCN struct FD_CURL_HANDLE *curl_err(u8_string cxt,int code)
 {
   fd_seterr(CurlError,cxt,
 	    u8_fromlibc((char *)curl_easy_strerror(code)),
@@ -238,7 +240,6 @@ FD_EXPORT
 struct FD_CURL_HANDLE *fd_open_curl_handle()
 {
   struct FD_CURL_HANDLE *h=u8_malloc(sizeof(struct FD_CURL_HANDLE));
-  CURLcode cr; fdtype temp=FD_VOID;
 #define curl_set(hl,o,v) \
    if (_curl_set("fd_open_curl_handle",hl,o,(void *)v)) return NULL;
 #define curl_set2dtype(hl,o,f,s) \
@@ -573,7 +574,7 @@ static fdtype urlpost(int n,fdtype *args)
 {
   INBUF data; CURLcode retval; 
   int start, consed_handle=0;
-  u8_string url; u8_byte *tmpbuf=NULL;
+  u8_string url;
   struct FD_CURL_HANDLE *h=NULL;
   fdtype result=FD_VOID, cval;
   if (FD_PTR_TYPEP(args[0],fd_curl_type))
@@ -612,7 +613,6 @@ static fdtype urlpost(int n,fdtype *args)
     int i=start;
     struct curl_httppost *post = NULL, *last = NULL;
     while (i<n) {
-      u8_string *keyname, *content_type=NULL;
       fdtype key=args[i], val=args[i+1]; i=i+2;
       if (!(FD_SYMBOLP(key)))
 	return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);
@@ -663,7 +663,7 @@ static fdtype urlput(int n,fdtype *args)
 {
   INBUF data; OUTBUF rdbuf; CURLcode retval; 
   int start=1, consed_handle=0;
-  u8_string url; u8_byte *tmpbuf=NULL;
+  u8_string url;
   struct FD_CURL_HANDLE *h=NULL;
   fdtype result=FD_VOID, toput=FD_VOID, cval;
   if (FD_PTR_TYPEP(args[0],fd_curl_type))

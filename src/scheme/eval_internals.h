@@ -20,7 +20,7 @@ static void free_environment(struct FD_ENVIRONMENT *env)
     while (i < n) {fd_decref(vals[i]); i++;}}
 }
 
-static passerr_env(fdtype error,fd_lispenv env)
+FD_INLINE_FCN fdtype passerr_env(fdtype error,fd_lispenv env)
 {
   fdtype bindings=copy_bindings(env);
   free_environment(env);

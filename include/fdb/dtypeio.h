@@ -139,16 +139,17 @@ FD_EXPORT fdtype fd_read_dtype
 FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
 FD_EXPORT int _fd_write_bytes
    (struct FD_BYTE_OUTPUT *,unsigned char *,int len);
+FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *,unsigned int);
 
 #define fd_write_byte(stream,b)					     \
   ((FD_EXPECT_TRUE(stream->ptr < stream->end)) ? (*stream->ptr++=b,1) \
    : (_fd_write_byte(stream,b)))
 #define fd_write_4bytes(stream,w)		   \
   ((FD_EXPECT_TRUE(stream->ptr+4 < stream->end)) ? \
-   (*(stream->ptr++)=(((w>>24)&0xFF)), \
-    *(stream->ptr++)=(((w>>16)&0xFF)), \
-    *(stream->ptr++)=(((w>>8)&0xFF)),  \
-    *(stream->ptr++)=(((w>>0)&0xFF)),4) \
+   (*(stream->ptr++)=((unsigned char)((w>>24)&0xFF)), \
+    *(stream->ptr++)=((unsigned char)((w>>16)&0xFF)), \
+    *(stream->ptr++)=((unsigned char)((w>>8)&0xFF)),  \
+    *(stream->ptr++)=((unsigned char)((w>>0)&0xFF)),4) \
    : (_fd_write_4bytes(stream,w)))
 #define fd_write_bytes(stream,bvec,len)	 \
   ((FD_EXPECT_TRUE((stream)->ptr+len < (stream)->end)) ? \

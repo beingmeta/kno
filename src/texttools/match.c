@@ -193,13 +193,19 @@
 
 */
 
-static char vcid[] = "$Id$";
-
 #define U8_INLINE_IO 1
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 #include "fdb/texttools.h"
+
+#include <libu8/u8printf.h>
+#include <libu8/u8ctype.h>
+
+#include <ctype.h>
+
+static MAYBE_UNUSED char vcid[] =
+  "$Id$";
 
 fd_exception fd_InternalMatchError=_("Internal match error");
 fd_exception fd_MatchSyntaxError=_("match syntax error");
@@ -955,7 +961,7 @@ static fdtype match_and
     fdtype combined;
     matches[1]=fd_text_domatch(pat2,next,env,string,off,lim,flags);
     if (FD_EMPTY_CHOICEP(matches[1])) combined=FD_EMPTY_CHOICE;
-    else combined=fd_intersect_choices(matches,2);
+    else combined=fd_intersection(matches,2);
     fd_decref(matches[0]); fd_decref(matches[1]);
     return combined;}
 }
@@ -1122,18 +1128,22 @@ static fdtype subst_extract
 	else {
 	  fdtype method=FD_VOID;
 	  if (FD_APPLICABLEP(r)) method=fd_incref(r);
-	  else if (FD_SYMBOLP(r))
+	  else if (FD_SYMBOLP(r)) {
 	    if (env) method=fd_symeval(r,env);
-	    else method=fd_get(fd_scheme_module,r,FD_VOID);
+	    else method=fd_get(fd_scheme_module,r,FD_VOID);}
+	  else {}
 	  if (FD_ABORTP(method)) replacement=method;
 	  else if (!(FD_APPLICABLEP(method))) {
 	    replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,method);
 	    fd_decref(method);}
 	  else {
-	    fdtype size=FD_CAR(extraction), data=FD_CDR(extraction), lst; 
-	    fdtype tmpstring=fd_extract_string(NULL,string+off,string+fd_getint(size));
-	    fdtype args[16]; int n=fillargs(args,1,16,FD_CDR(FD_CDR(FD_CDR(pat))));
-	    if (n<0) replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
+	    fdtype size=FD_CAR(extraction);
+	    fdtype tmpstring=
+	      fd_extract_string(NULL,string+off,string+fd_getint(size));
+	    fdtype args[16];
+	    int n=fillargs(args,1,16,FD_CDR(FD_CDR(FD_CDR(pat))));
+	    if (n<0)
+	      replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
 	    else {
 	      args[0]=tmpstring;
 	      replacement=fd_apply(method,n,args);}
@@ -2498,12 +2508,12 @@ static fdtype capword_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype matches=FD_EMPTY_CHOICE;
-  u8_byte *scan=string+off, *slim=string+lim, *last=scan;
+  u8_byte *scan=string+off, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
   if (!(u8_isupper(ch))) return matches;
   while ((u8_isalpha(ch)) || (apostrophep(ch)) || (ch == '-')) {
-    if (ch == '-') FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));
+    if (ch == '-') {FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}
     last=scan; ch=u8_sgetc(&scan);}
   if (last > string+off) {
     FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}
@@ -2540,7 +2550,7 @@ static fdtype anumber_match
     while ((scan<=slim) && (ch<0x80) && (isxdigit(ch))) {
       last=scan; ch=u8_sgetc(&scan);}
   else if (base == 2)
-    while ((scan<=slim) && (ch == '0') || (ch == '1')) {
+    while ((scan<=slim) && ((ch == '0') || (ch == '1'))) {
       last=scan; ch=u8_sgetc(&scan);}
   else while ((scan<=slim) && (ch<0x80) && (u8_isdigit(ch))) {
     last=scan; ch=u8_sgetc(&scan);}
@@ -2658,7 +2668,6 @@ static u8_byteoff hashset_search
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
   else {
-    fd_hashset h=to_hashset(hs);
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_match(pat,FD_VOID,env,string,try,lim,flags);
@@ -2698,7 +2707,6 @@ static u8_byteoff hashset_not_search
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_search",pat);
   else {
-    fd_hashset h=to_hashset(hs);
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_not_match(pat,FD_VOID,env,string,try,lim,flags);
@@ -2837,7 +2845,7 @@ u8_byteoff fd_text_search
     if (env) {
       fdtype vpat=fd_symeval(pat,env);
       if (FD_ABORTP(pat)) {
-	int val=fd_interr(pat);
+	fd_interr(pat);
 	return -2;}
       else if (FD_VOIDP(pat)) {
 	fd_seterr(fd_UnboundIdentifier,"fd_text_search",NULL,fd_incref(pat));

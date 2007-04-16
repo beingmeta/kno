@@ -108,7 +108,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
 FD_EXPORT fdtype fd_step_call(fdtype c);
 FD_EXPORT fdtype _fd_finish_call(fdtype);
 
-static fdtype fd_finish_call(fdtype pt)
+FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 {
   if (FD_PTR_TYPEP(pt,fd_tail_call_type))
     return _fd_finish_call(pt);

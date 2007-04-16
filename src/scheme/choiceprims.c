@@ -13,6 +13,8 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
+#include "fdb/numbers.h"
+#include "fdb/frames.h"
 
 /* Choice iteration */
 
@@ -775,7 +777,7 @@ static fdtype choice2vector(fdtype x)
 
 static fdtype choice2list(fdtype x)
 {
-  int i=0, n=FD_CHOICE_SIZE(x); fdtype lst=FD_EMPTY_LIST;
+  fdtype lst=FD_EMPTY_LIST;
   FD_DO_CHOICES(elt,x) lst=fd_init_pair(NULL,fd_incref(elt),lst);
   return lst;
 }
@@ -852,7 +854,7 @@ static fdtype xreduce_choice
 
 static fdtype choicesize_prim(fdtype x)
 {
-  int i=0, n=FD_CHOICE_SIZE(x);
+  int n=FD_CHOICE_SIZE(x);
   return FD_INT2DTYPE(n);
 }
 
@@ -874,7 +876,7 @@ static fdtype pickone(fdtype x)
 static fdtype samplen(fdtype x,fdtype count)
 {
   if (FD_FIXNUMP(count)) {
-    fdtype normal=fd_make_simple_choice(x), chosen=FD_EMPTY_CHOICE;
+    fdtype normal=fd_make_simple_choice(x);
     int n=FD_CHOICE_SIZE(normal), howmany=fd_getint(count);
     if (!(FD_CHOICEP(normal))) return normal;
     if (n<=howmany) return normal;
@@ -894,7 +896,7 @@ static fdtype samplen(fdtype x,fdtype count)
 static fdtype pickn(fdtype x,fdtype count)
 {
   if (FD_FIXNUMP(count)) {
-    fdtype normal=fd_make_simple_choice(x), chosen=FD_EMPTY_CHOICE;
+    fdtype normal=fd_make_simple_choice(x);
     int n=FD_CHOICE_SIZE(normal), howmany=fd_getint(count);
     if (!(FD_CHOICEP(normal))) return normal;
     if (n<=howmany) return normal;
@@ -904,7 +906,6 @@ static fdtype pickn(fdtype x,fdtype count)
       struct FD_CHOICE *result=fd_alloc_choice(howmany);
       const fdtype *read=FD_XCHOICE_DATA(base);
       fdtype *write=(fdtype *)FD_XCHOICE_DATA(result);
-      int atomicp=1;
       if (FD_XCHOICE_ATOMICP(base)) {
 	fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);
 	memcpy(write,read,sizeof(fdtype)*howmany);}
@@ -961,7 +962,9 @@ static int sort_helper(const void *vx,const void *vy)
 	     (ytype==fd_complex_type))
       return 1;
     else if (xtype<ytype) return -1;
-    else if (xtype>ytype) return 1;}
+    else if (xtype>ytype) return 1;
+    /* Never reached */
+    else return 0;}
 }
 
 static fdtype apply_keyfn(fdtype x,fdtype keyfn)
@@ -980,7 +983,7 @@ static fdtype apply_keyfn(fdtype x,fdtype keyfn)
     while (i<len) {vecdata[i]=apply_keyfn(x,keyfns[i]); i++;}
     return fd_init_vector(NULL,len,vecdata);}
   else if ((FD_OIDP(x)) && (FD_SYMBOLP(keyfn)))
-    return fd_frame_get(x,keyfn,FD_EMPTY_CHOICE);
+    return fd_frame_get(x,keyfn);
   else if (FD_TABLEP(x))
     return fd_get(x,keyfn,FD_EMPTY_CHOICE);
   else return FD_EMPTY_CHOICE;
@@ -993,8 +996,7 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse)
   else if (FD_CHOICEP(choices)) {
     int i=0, n=FD_CHOICE_SIZE(choices), j=0;
     fdtype *vecdata=u8_malloc(sizeof(fdtype)*n);
-    struct FD_SORT_ENTRY *sentries=
-      u8_malloc(sizeof(struct FD_SORT_ENTRY)*n), *scan=sentries;
+    struct FD_SORT_ENTRY *sentries=u8_malloc(sizeof(struct FD_SORT_ENTRY)*n);
     FD_DO_CHOICES(elt,choices) {
       fdtype value=apply_keyfn(elt,keyfn);
       if (FD_ABORTP(value)) {

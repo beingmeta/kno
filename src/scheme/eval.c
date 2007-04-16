@@ -14,8 +14,12 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/support.h"
+#include "fdb/fddb.h"
 #include "fdb/eval.h"
+#include "fdb/dtproc.h"
+#include "fdb/numbers.h"
 #include "fdb/sequences.h"
+#include "fdb/ports.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>
@@ -282,8 +286,9 @@ int fd_recycle_environment(fd_lispenv env)
       fd_decref(env->bindings); fd_decref(env->exports);
       if (env->parent) fd_decref((fdtype)(env->parent));
       env->consbits=(0xFFFFFF80|(env->consbits&0x7F));
-      u8_free(env);}
-    else {fd_decref((fdtype)env); return FD_VOID;}}
+      u8_free(env);
+      return 1;}
+    else {fd_decref((fdtype)env); return 0;}}
 }
 
 /* Unpacking expressions, non-inline versions */
@@ -360,7 +365,6 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 /* The evaluator itself */
 
 static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env);
-static fdtype call_ndlexpr(struct FD_FUNCTION *fn,fdtype args,fdtype env);
 
 FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 {
@@ -488,12 +492,13 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
     if (FD_ABORTP(result))
       /* This could extend the backtrace */
       return result;
-    else if (prune) return FD_EMPTY_CHOICE;}
-  if (arg_count != args_length) 
+    else {if (prune) return FD_EMPTY_CHOICE;}}
+  if (arg_count != args_length) {
     if (fcn->defaults) 
       while (arg_count<args_length) {
 	args[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
-    else while (arg_count<args_length) args[arg_count++]=FD_VOID;
+    else while (arg_count<args_length) args[arg_count++]=FD_VOID;}
+  else {}
   if ((fd_optimize_tail_calls) && (FD_PTR_TYPEP(fn,fd_sproc_type)))
     result=fd_tail_call(fn,n_args,args);
   else if ((fcn->ndprim==0) && (nd_args))
@@ -1552,7 +1557,7 @@ static void init_localfns()
 {
   fd_defspecial(fd_scheme_module,"EVAL",eval_handler);
   fd_defspecial(fd_scheme_module,"BOUND?",boundp_handler);
-  /* fd_defspecial(fd_scheme_module,"%ENV",env_handler); */
+  fd_defspecial(fd_scheme_module,"%ENV",env_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("%LEXREF",lexref_prim,2,
@@ -1589,6 +1594,25 @@ static void init_localfns()
   fd_register_config
     ("TAILCALL",fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
 }
+
+FD_EXPORT void fd_init_exceptions_c(void);
+FD_EXPORT void fd_init_conditionals_c(void);
+FD_EXPORT void fd_init_iterators_c(void);
+FD_EXPORT void fd_init_choicefns_c(void);
+FD_EXPORT void fd_init_binders_c(void);
+FD_EXPORT void fd_init_corefns_c(void);
+FD_EXPORT void fd_init_tablefns_c(void);
+FD_EXPORT void fd_init_strings_c(void);
+FD_EXPORT void fd_init_dbfns_c(void);
+FD_EXPORT void fd_init_sequences_c(void);
+FD_EXPORT void fd_init_modules_c(void);
+FD_EXPORT void fd_init_load_c(void);
+FD_EXPORT void fd_init_portfns_c(void);
+FD_EXPORT void fd_init_timeprims_c(void);
+FD_EXPORT void fd_init_numeric_c(void);
+FD_EXPORT void fd_init_side_effects_c(void);
+FD_EXPORT void fd_init_reflection_c(void);
+FD_EXPORT void fd_init_history_c(void);
 
 static void init_core_builtins()
 {

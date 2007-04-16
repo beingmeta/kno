@@ -92,6 +92,7 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 
 FD_EXPORT void fd_set_module_resolver(u8_string (*resolve)(u8_string,int));
 FD_EXPORT fdtype fd_find_module(fdtype,int,int);
+FD_EXPORT fdtype fd_new_module(char *name,int flags);
 
 /* SPROCs */
 
@@ -107,6 +108,10 @@ typedef struct FD_SPROC *fd_sproc;
 FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args);
 FD_EXPORT fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype));
+
+FD_EXPORT fdtype fd_make_sproc(u8_string name,
+			       fdtype arglist,fdtype body,fd_lispenv env,
+			       int nd,int sync);
 
 /* Loading files and config data */
 
@@ -207,6 +212,8 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     if (FD_PTR_TYPEP(x,fd_pair_type))
       return fd_eval(x,env);
     else return fd_incref(x);
+  default: /* Never reached */
+    return x;
   }
 }
 
@@ -229,6 +236,7 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
   return expr;
 }
 #else
+FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 #define fd_eval(x,env) _fd_eval(x,env)
 #define fd_symeval(x,env) _fd_symeval(x,env)
 #define fd_lexref(x,env) _fd_lexref(x,env)

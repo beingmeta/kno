@@ -17,6 +17,7 @@ static char versionid[] =
 #include "fdb/indices.h"
 #include "fdb/frames.h"
 #include "fdb/numbers.h"
+#include "fdb/support.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -226,7 +227,7 @@ static fdtype times_lexpr(int n,fdtype *args)
   if ((floating==0) && (generic==0)) {
     int fixresult=1;
     i=0; while (i < n) {
-      int val=0, mult=fd_getint(args[i]);
+      int mult=fd_getint(args[i]);
       if (mult==0) fixresult=0;
       else {
 	int prod=fixresult*mult;
@@ -273,7 +274,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
       else if (FD_FLONUMP(args[i])) {floating=1; i++;}
       else {generic=1; i++;}
     if ((floating==0) && (generic==0)) {
-      int fixresult; 
+      int fixresult=0; 
       i=0; while (i < n) {
 	int val=0;
 	if (FD_FIXNUMP(args[i])) val=FD_FIX2INT(args[i]);
@@ -283,7 +284,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
 	i++;}
       return FD_INT2DTYPE(fixresult);}
     else if (generic == 0) {
-      double floresult;
+      double floresult=0.0;
       i=0; while (i < n) {
 	double val;
 	if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
@@ -309,6 +310,11 @@ static double todouble(fdtype x)
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_PTR_TYPEP(x,fd_double_type))
     return (((struct FD_DOUBLE *)x)->flonum);
+  else {
+    /* This won't really work, but we should catch the error before
+       this point.  */
+    fd_seterr(fd_TypeError,"todouble",NULL,x);
+    return -1.0;}
 }
 
 static fdtype div_lexpr(int n,fdtype *args)

@@ -75,6 +75,8 @@ FD_EXPORT void fd_add_content(struct FD_XML *node,fdtype item);
 FD_EXPORT u8_string fd_xmlns_lookup(FD_XML *xml,u8_string s,u8_string *nsp);
 FD_EXPORT fdtype fd_make_qid(u8_string eltname,u8_string namespace);
 
+FD_EXPORT void fd_attrib_entify(u8_output out,u8_string value);
+
 FD_EXPORT void *fd_walk_xml
   (U8_INPUT *in,
    void (*contentfn)(FD_XML *,u8_string,int),
@@ -83,6 +85,8 @@ FD_EXPORT void *fd_walk_xml
    FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
    FD_XML *(*popfn)(FD_XML *),
    FD_XML *node);
+
+FD_EXPORT int fd_xmlparseoptions(fdtype x);
 
 /* XMLEVAL stuff */
 
@@ -118,6 +122,15 @@ FD_EXPORT fdtype fd_parse_multipart_mime(fdtype,char *,char *);
 FD_EXPORT fdtype fd_parse_mime(char *,char *);
 FD_EXPORT fdtype fd_handle_compound_mime_field(fdtype,fdtype,fdtype);
 
+/* Init functions */
+
+FD_EXPORT void fd_init_xmldata_c(void);
+FD_EXPORT void fd_init_xmlinput_c(void);
 FD_EXPORT void fd_init_mime_c(void);
+FD_EXPORT void fd_init_xmleval_c(void);
+FD_EXPORT void fd_init_cgiexec_c(void);
+FD_EXPORT void fd_init_urifns_c(void);
+FD_EXPORT void fd_init_exif_c(void);
+FD_EXPORT void fd_init_curl_c(void);
 
 #endif /* FDB_FDWEB_H */

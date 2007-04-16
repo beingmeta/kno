@@ -8,6 +8,7 @@
 #include "fdb/pools.h"
 #include "fdb/indices.h"
 #include "fdb/dtypestream.h"
+#include "fdb/texttools.h"
 
 #include "fdb/tagger.h"
 
@@ -566,7 +567,6 @@ static fdtype getxkeys
   fdtype last_head=FD_EMPTY_CHOICE, prefixes=FD_EMPTY_CHOICE;
   FD_DOLIST(word,sentence)
     if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>2)) {
-      fdtype term=FD_VECTOR_REF(word,0);
       fdtype tag=FD_VECTOR_REF(word,1);
       fdtype root=FD_VECTOR_REF(word,2);
       fdtype spectrum=FD_VOID;
@@ -649,7 +649,6 @@ static fdtype getxlinks
       fdtype word=FD_VECTOR_REF(term,0);
       fdtype tag=FD_VECTOR_REF(term,1);
       fdtype root=FD_VECTOR_REF(term,2);
-      fdtype spectrum=FD_VOID;
       if (fd_overlapp(tag,prefix_tags)) {
 	fdtype prefix_entry=
 	  fd_make_vector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));

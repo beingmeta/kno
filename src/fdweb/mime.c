@@ -19,6 +19,8 @@ static char versionid[] =
 #include <libu8/xfiles.h>
 #include <libu8/u8convert.h>
 
+#include <ctype.h>
+
 static fd_exception NoMultiPartSeparator=_("Multipart MIME document has no separator");
 
 static fdtype content_type_slotid, headers_slotid, content_disposition_slotid, content_slotid;
@@ -102,10 +104,10 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
     fdtype err=fd_err(fd_TypeError,"fd_handle_compound_mime_field",_("string"),value);
     fd_decref(value); return err;}
   else {
-    fdtype major_type=FD_VOID; int c;
+    fdtype major_type=FD_VOID;
     u8_string data=FD_STRDATA(value), start=data, end, scan;
     if (FD_SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
-    if (end=strchr(start,';')) { 
+    if ((end=(strchr(start,';')))) { 
       fdtype segval=fd_extract_string(NULL,start,end);
       fd_store(fields,slotid,segval); fd_decref(segval);}
     if ((scan=strchr(start,'/')) && ((end==NULL) || (scan<end))) {
@@ -176,7 +178,8 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
 {
   char *scan=start, *boundary; int boundary_len;
   fdtype charenc, dataenc;
-  fdtype majtype=fd_handle_compound_mime_field(slotmap,content_type_slotid,FD_VOID);
+  fdtype majtype=fd_handle_compound_mime_field
+    (slotmap,content_type_slotid,FD_VOID);
   fdtype parts=FD_EMPTY_LIST;
   fdtype sepval=fd_get(slotmap,separator_slotid,FD_VOID);
   if (!(FD_STRINGP(sepval))) {
@@ -187,12 +190,14 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
   strcpy(boundary,"--"); strcat(boundary,FD_STRDATA(sepval));
   start=scan; scan=strstr(start,boundary);
   if (scan==NULL) {
-    fd_store(slotmap,preamble_slotid,convert_content(start,scan,majtype,dataenc,charenc));
+    fd_store(slotmap,preamble_slotid,
+	     convert_content(start,scan,majtype,dataenc,charenc));
     fd_store(slotmap,parts_slotid,FD_EMPTY_LIST);}
   else {
     fdtype *point=&parts;
     if (scan>start)
-      fd_store(slotmap,preamble_slotid,convert_content(scan,end,majtype,dataenc,charenc));
+      fd_store(slotmap,preamble_slotid,
+	       convert_content(scan,end,majtype,dataenc,charenc));
     start=scan+boundary_len;
     while (start<end) {
       fdtype new_pair;
@@ -202,7 +207,9 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
       scan=strstr(start,boundary);
       if (scan)
 	new_pair=fd_init_pair(NULL,fd_parse_mime(start,scan),FD_EMPTY_LIST);
-      else new_pair=fd_init_pair(NULL,fd_parse_mime(start,start+strlen(start)),FD_EMPTY_LIST);
+      else new_pair=
+	     fd_init_pair(NULL,fd_parse_mime(start,start+strlen(start)),
+			  FD_EMPTY_LIST);
       *point=new_pair; point=&(FD_CDR(new_pair));
       if (scan==NULL)  break; else start=scan+boundary_len;}
     fd_store(slotmap,parts_slotid,parts);}
@@ -215,7 +222,7 @@ fdtype fd_parse_mime(char *start,char *end)
   fdtype slotmap=fd_init_slotmap(NULL,0,NULL,NULL);
   char *scan=parse_headers(slotmap,start,end);
   fdtype majtype=fd_handle_compound_mime_field(slotmap,content_type_slotid,FD_VOID);
-  fdtype charenc, dataenc, sep;
+  fdtype charenc, dataenc;
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
   if (FD_ABORTP(majtype)) 
     return fd_passerr(majtype,slotmap);

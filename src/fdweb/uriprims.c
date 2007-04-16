@@ -35,7 +35,7 @@ static void assign_substring
 
 static u8_string breakup_path(fdtype f,u8_string start)
 {
-  fdtype path=FD_EMPTY_LIST, *tail=&path, name;
+  fdtype path=FD_EMPTY_LIST, *tail=&path;
   u8_string scan=start; int c=u8_sgetc(&scan);
   U8_OUTPUT eltout; U8_INIT_OUTPUT(&eltout,128);
   while (1)
@@ -62,7 +62,7 @@ static u8_string breakup_path(fdtype f,u8_string start)
       c=u8_sgetc(&scan);}
 }
 
-static fdtype handle_path_end(fdtype f,u8_string start,u8_string path_end)
+static void handle_path_end(fdtype f,u8_string start,u8_string path_end)
 {
   assign_substring(f,pathstring_symbol,start,path_end);
   if (path_end==NULL) {}
@@ -116,7 +116,8 @@ static int uri_merge(fdtype uri,fdtype base)
       path_end=breakup_path(uri,out.u8_outbuf);
       handle_path_end(uri,out.u8_outbuf,path_end);
       u8_free(out.u8_outbuf);
-      return 1;}}
+      return 1;}
+    else return 0;}
   else return 0;
 }
 
@@ -138,7 +139,7 @@ fdtype fd_parse_uri(u8_string uri,fdtype base)
 {
   fdtype f=fd_init_slotmap(NULL,0,NULL,NULL);
   u8_string start=uri, colon, slash, path_end;
-  int default_portno;
+  int default_portno=80;
   colon=strchr(start,':'); slash=strchr(uri,'/');
   if ((colon) && ((slash==NULL) || (colon<slash)))  {
     default_portno=guess_portno(start,colon-start);
@@ -254,6 +255,7 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
       if (do_uriencode)
 	uri_output(&out,FD_STRDATA(name),URI_ESCAPES);
       else u8_puts(&out,FD_STRDATA(name));
+    else {}
     if (FD_STRINGP(query)) {
       u8_putc(&out,'?');
       if (do_uriencode)

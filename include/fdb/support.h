@@ -49,6 +49,15 @@ FD_EXPORT void fd_set_thread_config(fdtype table);
 FD_EXPORT
 void fd_register_config_lookup(fdtype (*fn)(fdtype));
 
+FD_EXPORT int fd_register_config
+  (u8_string var,
+   fdtype (*getfn)(fdtype,void *),
+   int (*setfn)(fdtype,fdtype,void *),
+   void *data);
+
+
+FD_EXPORT void fd_config_lock(int lock);
+
 /* Error handling */
 
 typedef struct FD_ERRDATA {

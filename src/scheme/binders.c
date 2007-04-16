@@ -15,6 +15,8 @@ static char versionid[] =
 #include "eval_internals.h"
 #include "fdb/fddb.h"
 
+#include <libu8/u8printf.h>
+
 fd_exception fd_BadArglist=_("Malformed argument list");
 fd_exception fd_BindError=_("Can't bind variable");
 fd_exception fd_BindSyntaxError=_("Bad binding expression");
@@ -46,11 +48,11 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewExpressions,"SET!",NULL,expr);
   value=fasteval(val_expr,env);
   if (FD_ABORTP(value)) return value;
-  else if (retval=fd_set_value(var,value,env)) {
+  else if ((retval=(fd_set_value(var,value,env)))) {
     fd_decref(value);
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
-  else if (retval=fd_bind_value(var,value,env)) {
+  else if ((retval=(fd_bind_value(var,value,env)))) {
     fd_decref(value);
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
@@ -120,11 +122,11 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(value)) {
     fd_unlock_mutex(&(sset_lock));
     return value;}
-  else if (retval=fd_set_value(var,value,env)) {
+  else if ((retval=(fd_set_value(var,value,env)))) {
     fd_decref(value); fd_unlock_mutex(&(sset_lock));
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
-  else if (retval=fd_bind_value(var,value,env)) {
+  else if ((retval=(fd_bind_value(var,value,env)))) {
     fd_decref(value); fd_unlock_mutex(&(sset_lock));
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
@@ -140,7 +142,6 @@ static int check_bindexprs(fdtype bindexprs,fdtype *why_not)
   int n=0;
   FD_DOLIST(bindexpr,bindexprs) {
     fdtype var=fd_get_arg(bindexpr,0);
-    fdtype val_expr=fd_get_arg(bindexpr,1);
     if (FD_VOIDP(var)) {
       *why_not=fd_err(fd_BindSyntaxError,NULL,NULL,bindexpr);
       return -1;}
@@ -177,28 +178,6 @@ static fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
   fdtype *vals=u8_malloc(sizeof(fdtype)*n);
   fdtype schemap=fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals,NULL);
   while (i<n) {vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
-  FD_INIT_CONS(e,fd_environment_type);
-  e->copy=e; e->bindings=schemap; e->exports=FD_VOID;
-  e->parent=fd_copy_env(parent);
-  return e;
-}
-
-static fd_lispenv make_dynamic_envx
-  (fdtype bindexprs,fd_lispenv parent,fdtype *why_not)
-{
-  struct FD_ENVIRONMENT *e;
-  fdtype *vars, *vals, schemap;
-  int i=0, n=0;
-  FD_DOLIST(expr,bindexprs) {
-    fdtype var=fd_get_arg(expr,0);
-    if (FD_VOIDP(var)) {
-      *why_not=fd_err(fd_BindSyntaxError,NULL,NULL,bindexprs);
-      return NULL;}
-    else n++;}
-  vars=u8_malloc(sizeof(fdtype)*n);
-  {FD_DOLIST(expr,bindexprs) {vars[i++]=fd_get_arg(expr,0);}}
-  schemap=fd_make_schemap(NULL,n,0,vars,NULL,NULL);
-  e=u8_malloc(sizeof(struct FD_ENVIRONMENT));
   FD_INIT_CONS(e,fd_environment_type);
   e->copy=e; e->bindings=schemap; e->exports=FD_VOID;
   e->parent=fd_copy_env(parent);
@@ -418,7 +397,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	 else vals[i++]=FD_VOID;}
       assert(i==fn->n_vars);}
   else { /* We have a lexpr */
-    int i=0, j=n-1, lim=fn->n_vars-1;
+    int i=0, j=n-1;
     if (fn->n_vars>6) {
       vals=u8_malloc(sizeof(fdtype)*fn->n_vars); free_vals=1;}
     bindings.values=vals;
@@ -461,7 +440,7 @@ static fdtype make_sproc(u8_string name,
 			  fdtype arglist,fdtype body,fd_lispenv env,
 			  int nd,int sync)
 {
-  int i=0, n_vars=0, min_args=0, max_args=0, defaults_start=0;
+  int i=0, n_vars=0, min_args=0;
   fdtype scan=arglist;
   struct FD_SPROC *s=u8_malloc_type(struct FD_SPROC);
   FD_INIT_CONS(s,fd_sproc_type);
@@ -507,7 +486,6 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
 
 FD_EXPORT void recycle_sproc(struct FD_CONS *c)
 {
-  int i=0;
   struct FD_SPROC *sproc=(struct FD_SPROC *)c;
   if (sproc->name) u8_free(sproc->name);
   if (sproc->typeinfo) u8_free(sproc->typeinfo);
@@ -571,7 +549,6 @@ static fdtype macro_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT void recycle_macro(struct FD_CONS *c)
 {
-  int i=0;
   struct FD_MACRO *mproc=(struct FD_MACRO *)c;
   if (mproc->name) u8_free(mproc->name);
   fd_decref(mproc->transformer);
@@ -662,7 +639,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       else {
 	fd_decref(value);
 	return fd_err(fd_BindError,"DEFINE",NULL,var);}}}
-  else fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
+  else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
 /* Extended apply */

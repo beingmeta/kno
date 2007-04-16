@@ -343,5 +343,6 @@ FD_EXPORT int fd_choice_containsp(fdtype key,fdtype x);
 FD_EXPORT int fd_overlapp(fdtype,fdtype);
 FD_EXPORT int fd_containsp(fdtype,fdtype);
 
+FD_EXPORT fdtype fd_intersect_choices(struct FD_CHOICE **,int);
 
 #endif /* FDB_CHOICES_H */

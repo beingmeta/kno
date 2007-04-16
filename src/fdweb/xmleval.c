@@ -13,13 +13,16 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
 #include "fdb/eval.h"
+#include "fdb/apply.h"
 #include "fdb/ports.h"
+#include "fdb/frames.h"
 #include "fdb/fdweb.h"
 #include "fdb/sequences.h"
 #include "fdb/fileprims.h"
 
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8streamio.h>
 
 fd_lispenv fdxml_module;
 
@@ -206,7 +209,7 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
     fdtype content=fd_get(xml,content_slotid,FD_VOID);
     if (FD_VOIDP(content)) return FD_EMPTY_CHOICE;
     else {
-      struct FD_KEYVAL *kv=u8_malloc(sizeof(struct FD_KEYVAL)*2), slotmap;
+      struct FD_KEYVAL *kv=u8_malloc(sizeof(struct FD_KEYVAL)*2);
       /* This generates a "blank node" which generates its content
 	 without any container. */
       kv[0].key=rawname_slotid; kv[0].value=pblank_symbol;
@@ -309,15 +312,15 @@ static fdtype extract_var(u8_string start,u8_string end)
 static fdtype parse_infix(u8_string start)
 {
   u8_string split;
-  if (split=strchr(start,'.')) 
+  if ((split=(strchr(start,'.')))) 
     return fd_make_list(3,get_symbol,extract_var(start,split),
 			fd_make_list(2,quote_symbol,fd_parse(split+1)));
-  else if (split=strchr(start,'#'))
+  else if ((split=(strchr(start,'#'))))
     return fd_make_list(2,fd_parse(split+1),extract_var(start,split));
-  else if (split=strchr(start,'[')) 
+  else if ((split=(strchr(start,'['))))
     return fd_make_list(3,elt_symbol,extract_var(start,split),
 			fd_parse(split+1));
-  else if (split=strchr(start,'@'))
+  else if ((split=(strchr(start,'@'))))
     if (split[1]=='?')
       return fd_make_list
 	(3,get_symbol,extract_var(start,split),fd_parse(split));
@@ -334,7 +337,7 @@ static fdtype xmlevalify(u8_string string)
 	(NULL,xmleval2expr_tag,parse_infix(string+2));
     else return fd_parse(string+1);
   else if (string[0]=='$') {
-    u8_string start=string+1, split;
+    u8_string start=string+1;
     int c=u8_sgetc(&start);
     if (u8_isalpha(c))
       return fd_init_pair(NULL,xmleval_tag,parse_infix(string+1));
@@ -394,7 +397,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
   else if (FD_VOIDP(escape)) 
     fd_add_content(node,fd_extract_string(NULL,s,s+len));
   else if (FD_STRINGP(escape)) {
-    int escape_len=FD_STRLEN(escape), c;
+    int escape_len=FD_STRLEN(escape);
     u8_string escape_string=FD_STRDATA(escape);
     u8_string start=s, scan=strstr(s,escape_string), limit=s+len;
     while ((scan) && (scan<limit)) {
@@ -921,7 +924,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
 static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
 {
   u8_output out=fd_get_default_output();
-  fdtype choices=fdxml_get(xpr,choice_symbol,env), *iterval=NULL;
+  fdtype choices=fdxml_get(xpr,choice_symbol,env);
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
   fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
@@ -980,9 +983,8 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
 static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
 {
   u8_output out=fd_get_default_output(); int i=0, limit;
-  fdtype limit_val=fdxml_get(xpr,max_symbol,env), *iterval=NULL;
+  fdtype limit_val=fdxml_get(xpr,max_symbol,env);
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
-  fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -1109,6 +1111,7 @@ FD_EXPORT void fd_init_xmleval_c()
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);
   fd_defspecial((fdtype)fdxml_module,"INSERT",fdxml_insert);
   fd_defspecial((fdtype)fdxml_module,"DEFINE",fdxml_define);
+  fd_defspecial((fdtype)fdxml_module,"FIND",fdxml_find);
   fd_defspecial((fdtype)fdxml_module,"TRY",fdxml_try);
   fd_defspecial((fdtype)fdxml_module,"UNION",fdxml_union);
   fd_defspecial((fdtype)fdxml_module,"INTERSECTION",fdxml_intersection);

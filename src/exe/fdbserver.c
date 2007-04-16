@@ -54,7 +54,7 @@ static void init_server(void);
 
 static int n_ports=0;
 
-static int config_serve_port(fdtype var,fdtype val,void *data)
+static int config_serve_port(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 {
   if (server_initialized==0) init_server();
   if (n_ports<0) return -1;
@@ -73,7 +73,7 @@ static int config_serve_port(fdtype var,fdtype val,void *data)
     return -1;}
 }
 
-static fdtype config_get_ports(fdtype var,void *data)
+static fdtype config_get_ports(fdtype var,void MAYBE_UNUSED *data)
 {
   fdtype results=FD_EMPTY_CHOICE;
   int i=0, lim=dtype_server.n_servers;
@@ -85,14 +85,14 @@ static fdtype config_get_ports(fdtype var,void *data)
 
 static int fullscheme=1;
 
-static int config_set_fullscheme(fdtype var,fdtype val,void *data)
+static int config_set_fullscheme(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 {
   int oldval=fullscheme;
   if (FD_TRUEP(val))  fullscheme=1; else fullscheme=0;
   return (oldval!=fullscheme);
 }
 
-static fdtype config_get_fullscheme(fdtype var,void *data)
+static fdtype config_get_fullscheme(fdtype var,void MAYBE_UNUSED *data)
 {
   if (fullscheme) return FD_TRUE; else return FD_FALSE;
 }
@@ -190,7 +190,7 @@ static fdtype config_get_modules(fdtype var,void *data)
 {
   return fd_incref(module_list);
 }
-static fdtype config_use_module(fdtype var,fdtype val,void *data)
+static int config_use_module(fdtype var,fdtype val,void *data)
 {
   fdtype safe_module=fd_find_module(val,1,1), module=safe_module;
   if (FD_VOIDP(module)) {}

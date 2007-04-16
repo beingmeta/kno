@@ -139,10 +139,9 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
   int free1=0, free2=0; 
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
   struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
-  double diff;
-    if ((t1 == NULL) || (t2 == NULL)) {
-      if (free1) u8_free(t1); if (free2) u8_free(t2);
-      return fd_erreify();}
+  if ((t1 == NULL) || (t2 == NULL)) {
+    if (free1) u8_free(t1); if (free2) u8_free(t2);
+    return fd_erreify();}
   else {
     if (free1) u8_free(t1); if (free2) u8_free(t2);
     return fd_init_double(NULL,u8_xtime_diff(&(t1->xtime),&(t2->xtime)));}

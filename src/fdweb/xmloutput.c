@@ -14,10 +14,18 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
+#include "fdb/frames.h"
 #include "fdb/tables.h"
 #include "fdb/eval.h"
 #include "fdb/ports.h"
 #include "fdb/fdweb.h"
+#include "fdb/support.h"
+
+#include "fdb/support.h"
+
+FD_EXPORT void fd_pprint_focus
+  (U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
+   int indent,int width,u8_string focus_prefix,u8_string focus_suffix);
 
 #include <libu8/xfiles.h>
 
@@ -57,7 +65,7 @@ static void attrib_entify(u8_output out,u8_string value)
     else u8_putc(out,c);
 } 
 
-static void entify(u8_output out,u8_string value)
+FD_INLINE_FCN void entify(u8_output out,u8_string value)
 {
   u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
@@ -67,7 +75,7 @@ static void entify(u8_output out,u8_string value)
     else u8_putc(out,c);
 } 
 
-static void entify_lower(u8_output out,u8_string value)
+FD_INLINE_FCN void entify_lower(u8_output out,u8_string value)
 {
   u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
@@ -89,7 +97,7 @@ void fd_attrib_entify(u8_output out,u8_string value)
   attrib_entify(out,value);
 }
 
-static int emit_xmlattrib
+static void emit_xmlattrib
   (u8_output out,u8_output tmp,u8_string name,fdtype value)
 {
   int c; u8_byte *scan=name;
@@ -165,7 +173,7 @@ static fdtype oid2id(fdtype oid,fdtype prefix)
   return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);
 }
 
-static fdtype oidunxmlify(fdtype string)
+FD_INLINE_FCN fdtype oidunxmlify(fdtype string)
 {
   u8_string s=FD_STRDATA(string), addr_start=strchr(s,'_');
   FD_OID addr; unsigned int hi, lo;
@@ -175,7 +183,7 @@ static fdtype oidunxmlify(fdtype string)
   return fd_make_oid(addr);
 }
 
-static int emit_xmlcontent(u8_output out,u8_string content)
+static void emit_xmlcontent(u8_output out,u8_string content)
 {
   entify(out,content);
 }
@@ -660,7 +668,7 @@ static void output_backtrace(u8_output s,fdtype bt,fdtype head)
       U8_INIT_OUTPUT(&tmp,128);
       u8_printf(s,"<div class='expr'>");
       fd_pprint_focus(&tmp,entry,focus,NULL,0,80,"#@?#","#@?#");
-      if (focus_start=strstr(tmp.u8_outbuf,"#@?#")) {
+      if ((focus_start=(strstr(tmp.u8_outbuf,"#@?#")))) {
 	u8_byte *focus_end=strstr(focus_start+4,"#@?#");
 	*focus_start='\0'; fd_entify(s,tmp.u8_outbuf);
 	*focus_end='\0'; u8_printf(s,"<span class='focus'>");
@@ -720,7 +728,7 @@ static fdtype get_browse_info(fdtype arg)
 static fdtype set_browse_info
   (fdtype poolarg,fdtype script,fdtype classname,fdtype displayer)
 {
-  fd_pool p; fdtype entry;
+  fd_pool p=NULL; fdtype entry;
   if (FD_PTR_TYPEP(poolarg,fd_pool_type)) p=fd_lisp2pool(poolarg);
   else if (FD_STRINGP(poolarg)) 
     p=fd_name2pool(FD_STRDATA(poolarg));
@@ -1422,7 +1430,8 @@ FD_EXPORT void fd_init_fdweb()
     fd_persist_module(safe_fdweb_module);
     fd_persist_module(fdweb_module);
     fd_persist_module(xhtml_module);}
-  fd_register_config("ERRORSTYLESHEET",fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
+  fd_register_config
+    ("ERRORSTYLESHEET",fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
   fd_register_source_file(FDB_FDWEB_H_VERSION);
   fd_register_source_file(versionid);
 }

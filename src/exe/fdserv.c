@@ -68,11 +68,11 @@ static int servlet_backlog=-1, servlet_threads=-1;
 
 /* TRACEWEB config  */
 
-static fdtype traceweb_get(fdtype var)
+static fdtype traceweb_get(fdtype var,void MAYBE_UNUSED *data)
 {
   if (traceweb) return FD_INT2DTYPE(traceweb); else return FD_FALSE;
 }
-static int traceweb_set(fdtype var,fdtype val)
+static int traceweb_set(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 {
   if (FD_FIXNUMP(val))
     traceweb=FD_FIX2INT(val);

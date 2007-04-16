@@ -315,7 +315,7 @@ fdtype fd_md5(fdtype string)
     unsigned char *digest=
       MDPacket(FD_PACKET_DATA(string),FD_PACKET_LENGTH(string));
     return fd_init_packet(NULL,16,digest);}
-  else fd_type_error(_("string or packet"),"fd_md5",string);
+  else return fd_type_error(_("string or packet"),"fd_md5",string);
 }
 
 

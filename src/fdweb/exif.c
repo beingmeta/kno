@@ -9,6 +9,7 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
+#include "fdb/numbers.h"
 #include "fdb/eval.h"
 
 #include <libu8/libu8io.h>
@@ -30,8 +31,8 @@ static fdtype exif2lisp(ExifEntry *exentry)
   case EXIF_FORMAT_BYTE: case EXIF_FORMAT_SBYTE: {
     int n=exentry->components, i=0;
     fdtype *lispdata=u8_malloc(n*sizeof(fdtype));
-    ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
-    int item_size=exif_format_get_size(exentry->format);
+    /* ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent); */
+    /* int item_size=exif_format_get_size(exentry->format); */
     unsigned char *exifdata=exentry->data;
     if (exentry->format==EXIF_FORMAT_SBYTE)
       while (i < n) {
@@ -254,7 +255,7 @@ static fdtype exif_get(fdtype x,fdtype prop)
       scan++;}
     return slotmap;}
   else {
-    ExifData *exdata; ExifEntry *exentry; ExifTag tag;
+    ExifEntry *exentry; ExifTag tag;
     fdtype tagval=fd_hashtable_get(&exif_tagmap,prop,FD_VOID);
     if (!(FD_FIXNUMP(tagval)))
       return fd_type_error(_("exif tag"),"exif_get",prop);

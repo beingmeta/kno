@@ -18,7 +18,6 @@ static fdtype else_symbol;
 
 static fdtype if_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype err=FD_VOID;
   fdtype test_expr=fd_get_arg(expr,1), test_result;
   fdtype consequent_expr=fd_get_arg(expr,2);
   fdtype else_expr=fd_get_arg(expr,3);
@@ -39,7 +38,6 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
 
 static fdtype tryif_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype err=FD_VOID;
   fdtype test_expr=fd_get_arg(expr,1), test_result;
   fdtype consequent_expr=fd_get_arg(expr,2);
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))

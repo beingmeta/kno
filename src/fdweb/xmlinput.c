@@ -18,6 +18,8 @@ static char versionid[] =
 
 #include <libu8/xfiles.h>
 
+#include <ctype.h>
+
 /* TODO:
     Make XML parsing record the markup string as the %raw slot.
     Record %rawname when parsing.
@@ -208,7 +210,7 @@ static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
       fd_add(xml->attribs,xmlns_symbol,nsval);
       fd_decref(nsval);
       return 1;}
-    else if (nsprefix=strchr(name,':')) {
+    else if ((nsprefix=(strchr(name,':')))) {
       fdtype entry=
 	fd_init_pair(NULL,fdtype_string(nsprefix+1),
 		     fdtype_string(val));
@@ -269,7 +271,7 @@ FD_EXPORT
 int fd_parse_element(u8_byte **scanner,u8_byte *end,
 		     u8_byte **elts,int max_elts)
 {
-  int n_elts=0, in_quote=0;
+  int n_elts=0;
   u8_byte *scan=*scanner, *elt_start=scan;
   if ((*scan=='/') || (*scan=='?')) {
     scan++; elt_start=scan;}
@@ -680,6 +682,7 @@ void *fd_walk_xml(U8_INPUT *in,
 	if (more_data)
 	  contentfn(node,combined,size+more_data+5);
 	else contentfn(node,combined,size+2);
+      else {}
       u8_free(combined);
       if (more_data) u8_free(remainder);}
     else if (type == xmlcdata) {

@@ -13,6 +13,8 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 #include "fdb/sequences.h"
+#include "fdb/frames.h"
+#include "fdb/numbers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -169,7 +171,7 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
       else start++;
     return -1;}
   case fd_pair_type: {
-    int pos=0; fdtype scan=x, head;
+    int pos=0; fdtype scan=x;
     if (start==end) return -1;
     while (FD_PAIRP(scan))
       if (pos<start) {pos++; scan=FD_CDR(scan);}
@@ -248,7 +250,7 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
 FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
 {
   if ((FD_STRINGP(key)) && (FD_STRINGP(x))) {
-    u8_byte *starts=string_start(FD_STRDATA(x),start), *found, *ends;
+    u8_byte *starts=string_start(FD_STRDATA(x),start), *found;
     if (starts == NULL) return -2;
     found=strstr(starts,FD_STRDATA(key));
     if (end<0) {
@@ -447,10 +449,10 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
   fdtype result, *results, _argvec[8], *argvec=NULL;
   fd_ptr_type result_type=FD_PTR_TYPE(firstseq);
   if (FD_PPTRP(fn)) fn=fd_pptr_ref(fn);
-  if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn)))
+  if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
     if (n_seqs>1)
       return fd_err(fd_TooManyArgs,"fd_foreach",NULL,fn);
-    else if (FD_EMPTY_LISTP(firstseq)) return firstseq;
+    else if (FD_EMPTY_LISTP(firstseq)) return firstseq;}
   if (!(FD_SEQUENCEP(firstseq)))
     return fd_type_error("sequence","fd_mapseq",firstseq);
   else seqlen=fd_seq_length(firstseq);
@@ -482,12 +484,12 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
     if (result_type == fd_string_type) {
       if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
 	result_type=fd_vector_type;}
-    else if (result_type == fd_packet_type) 
+    else if (result_type == fd_packet_type) {
       if (FD_FIXNUMP(new_elt)) {
 	int intval=FD_FIX2INT(new_elt);
 	if ((intval<0) || (intval>=0x100))
 	  result_type=fd_vector_type;}
-      else result_type=fd_vector_type;
+      else result_type=fd_vector_type;}
     if (FD_ABORTP(new_elt)) {
       int j=0; while (j<i) {fd_decref(results[j]); j++;}
       u8_free(results);
@@ -505,10 +507,10 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
   fdtype fn=args[0], *sequences=args+1, firstseq=sequences[0];
   fdtype _argvec[8], *argvec=NULL;
   fd_ptr_type result_type=FD_PTR_TYPE(firstseq);
-  if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn)))
+  if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
     if (n_seqs>1)
       return fd_err(fd_TooManyArgs,"fd_foreach",NULL,fn);
-    else if (FD_EMPTY_LISTP(firstseq)) return firstseq;
+    else if (FD_EMPTY_LISTP(firstseq)) return firstseq;}
   if (!(FD_SEQUENCEP(firstseq)))
     return fd_type_error("sequence","fd_mapseq",firstseq);
   else seqlen=fd_seq_length(firstseq);
@@ -539,12 +541,12 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
     if (result_type == fd_string_type) {
       if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
 	result_type=fd_vector_type;}
-    else if (result_type == fd_packet_type) 
+    else if (result_type == fd_packet_type) {
       if (FD_FIXNUMP(new_elt)) {
 	int intval=FD_FIX2INT(new_elt);
 	if ((intval<0) || (intval>=0x100))
 	  result_type=fd_vector_type;}
-      else result_type=fd_vector_type;
+      else result_type=fd_vector_type;}
     if (FD_ABORTP(new_elt)) return new_elt;
     else {fd_decref(new_elt); i++;}}
   return FD_VOID;
@@ -558,7 +560,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
   else if ((FD_APPLICABLEP(fn)) || (FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
     int i=0, len=fd_seq_length(sequence);
     fd_ptr_type result_type=FD_PTR_TYPE(sequence);
-    fdtype *results=u8_malloc(sizeof(fdtype)*len), result;
+    fdtype *results=u8_malloc(sizeof(fdtype)*len);
     while (i < len) {
       fdtype elt=fd_seq_elt(sequence,i), new_elt;
       if (FD_TABLEP(fn))
@@ -572,12 +574,12 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
       if (result_type == fd_string_type) {
 	if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
 	  result_type=fd_vector_type;}
-      else if (result_type == fd_packet_type) 
+      else if (result_type == fd_packet_type) {
 	if (FD_FIXNUMP(new_elt)) {
 	  int intval=FD_FIX2INT(new_elt);
 	  if ((intval<0) || (intval>=0x100))
 	    result_type=fd_vector_type;}
-	else result_type=fd_vector_type;
+	else result_type=fd_vector_type;}
       if (FD_ABORTP(new_elt)) {
 	int j=0; while (j<i) {fd_decref(results[j]); j++;}
 	u8_free(results);
@@ -812,7 +814,6 @@ static fdtype check_range(u8_string prim,fdtype seq,
 			   fdtype start_arg,fdtype end_arg,
 			   int *startp,int *endp)
 {
-  int len;
   if (FD_EMPTY_LISTP(seq))
     return check_empty_list_range(prim,seq,start_arg,end_arg,startp,endp);
   else if (!(FD_SEQUENCEP(seq)))
@@ -920,7 +921,7 @@ static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 
 static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int start, end, len;
+  int start, end;
   fdtype check=check_range("every_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
@@ -954,7 +955,7 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 
 static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int start, end, len;
+  int start, end;
   fdtype check=check_range("some_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
@@ -1021,7 +1022,7 @@ static fdtype rest(fdtype x)
   else {
     fdtype v=fd_slice(x,1,-1);
     if (FD_TROUBLEP(v))
-      fd_err(fd_retcode_to_exception(v),"rest",NULL,x);
+      return fd_err(fd_retcode_to_exception(v),"rest",NULL,x);
     else return v;}
 }
 
@@ -1238,7 +1239,7 @@ static fdtype seq2vector(fdtype seq)
   if (FD_EMPTY_LISTP(seq))
     return fd_init_vector(NULL,0,NULL);
   else if (FD_SEQUENCEP(seq)) {
-    int i=0, n; fdtype *data=fd_elts(seq,&n);
+    int n; fdtype *data=fd_elts(seq,&n);
     return fd_init_vector(NULL,n,data);}
   else return fd_type_error(_("sequence"),"seq2list",seq);
 }
@@ -1369,7 +1370,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   if (FD_ABORTP(check)) return check;
   else switch (ctype) {
   case fd_vector_type: {
-    fdtype *elts, *write, *read, *limit;
+    fdtype *read, *limit;
     read=FD_VECTOR_DATA(x)+start; limit=FD_VECTOR_DATA(x)+end;
     while (read<limit) {
       fdtype v=*read++; FD_ADD_TO_CHOICE(results,fd_incref(v));}
@@ -1380,7 +1381,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
       int v=*read++; FD_ADD_TO_CHOICE(results,FD_INT2DTYPE(v));}
     return results;}
   case fd_pair_type: {
-    int j=0; fdtype scan=x, head=FD_EMPTY_LIST, *tail=&head;
+    int j=0; fdtype scan=x, head=FD_EMPTY_LIST;
     while (FD_PAIRP(scan))
       if (j==end) return head;
       else if (j>=start) {

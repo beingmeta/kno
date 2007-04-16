@@ -15,6 +15,9 @@
    "$Id$"
 
 FD_EXPORT void fd_init_texttools(void) FD_LIBINIT_FN;
+FD_EXPORT void fd_init_match_c(void);
+FD_EXPORT void fd_init_tagger_c(void);
+FD_EXPORT void fd_init_tagxtract_c(void);
 
 FD_EXPORT fd_exception fd_BadExtractData;
 

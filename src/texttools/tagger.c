@@ -8,12 +8,18 @@
 #include "fdb/pools.h"
 #include "fdb/indices.h"
 #include "fdb/dtypestream.h"
+#include "fdb/sequences.h"
+#include "fdb/numbers.h"
+#include "fdb/support.h"
 
 #include "fdb/tagger.h"
 
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
+#include <libu8/u8ctype.h>
+
+#include <ctype.h>
 
 #include <time.h>
 #include <stdlib.h>
@@ -157,13 +163,13 @@ struct FD_GRAMMAR *fd_default_grammar()
   return get_default_grammar();
 }
 
-static fdtype config_get_lexdata(fdtype var)
+static fdtype config_get_lexdata(fdtype var,void MAYBE_UNUSED *data)
 {
   if (lexdata_source) 
     return fdtype_string(lexdata_source);
   else return FD_EMPTY_CHOICE;
 }
-static int config_set_lexdata(fdtype var,fdtype val)
+static int config_set_lexdata(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 {
   if (!(FD_STRINGP(val)))
     return fd_reterr(fd_TypeError,"config_set_lexdata",
@@ -435,7 +441,7 @@ static fdtype lower_compound(fdtype compound)
       if (FD_STRINGP(word)) {
 	u8_string sdata=FD_STRDATA(word);
 	int c=u8_sgetc(&sdata);
-	if (u8_isupper(c)) new_elt=tolower(sdata);
+	if (u8_isupper(c)) new_elt=lower_string(sdata);
 	else new_elt=fd_incref(word);}
       else new_elt=fd_incref(word);
       newpair=fd_init_pair(NULL,new_elt,FD_EMPTY_LIST);
@@ -448,12 +454,12 @@ static fdtype lower_compound(fdtype compound)
     Arguments: a fdtype string
     Returns: Fetches the vector stored in the lexicon for the string.
 */
-static fdtype lexicon_fetch(fd_index ix,fdtype key)
+FD_INLINE_FCN fdtype lexicon_fetch(fd_index ix,fdtype key)
 {
   return fd_index_get(ix,key);
 }
 
-static fdtype lexicon_fetch_lower(fd_index ix,u8_string string)
+FD_INLINE_FCN fdtype lexicon_fetch_lower(fd_index ix,u8_string string)
 {
   struct U8_OUTPUT out; int ch; u8_string in=string; fdtype key, value;
   U8_INIT_OUTPUT(&out,128);
@@ -658,7 +664,7 @@ static u8_string skip_wordbreak(u8_string input,int xml)
 static void lexer(fd_parse_context pc,u8_string start,u8_string end)
 {
   u8_string scan=start;
-  int ch=u8_sgetc(&scan), skip_markup=(pc->flags&FD_TAGGER_SKIP_MARKUP), len;
+  int ch=u8_sgetc(&scan), skip_markup=(pc->flags&FD_TAGGER_SKIP_MARKUP);
   if (pc->n_inputs>0) fd_reset_parse_context(pc);
   pc->start=start; pc->end=end;
   scan=start; while ((ch>=0) && (scan<end)) {
@@ -679,7 +685,7 @@ static void lexer(fd_parse_context pc,u8_string start,u8_string end)
 
 static fdtype make_compound(fd_parse_context pc,int start,int end,int lower)
 {
-  fdtype elts[16], compound=FD_EMPTY_LIST, lcompound=FD_EMPTY_LIST, lexentry;
+  fdtype elts[16], compound=FD_EMPTY_LIST;
   int i=0, lim=end-start; while (i<lim) {
     int fc=u8_string_ref(pc->input[start+i].spelling);
     if ((lower) && (u8_isupper(fc)))
@@ -751,7 +757,6 @@ static void identify_compounds(fd_parse_context pc)
 FD_EXPORT
 void fd_parser_set_text(struct FD_PARSE_CONTEXT *pcxt,u8_string in)
 {
-  u8_string scan=in; int c;
   if (pcxt->n_inputs>0) fd_reset_parse_context(pcxt);
   pcxt->n_calls++;
   pcxt->buf=pcxt->start=u8_strdup(in);
@@ -855,7 +860,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   int capitalized=0, capitalized_in_lexicon=0, i, slen, ends_in_s=0;
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
-  fdtype ls=fd_init_string(NULL,-1,s), key, value=get_lexinfo(pc,ls);
+  fdtype ls=fd_init_string(NULL,-1,s), value=get_lexinfo(pc,ls);
   if ((word_limit > 0) && (((int)pc->n_inputs) >= word_limit))
     return fd_reterr(TooManyWords,"add_input",NULL,FD_VOID);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
@@ -963,7 +968,7 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word)
 static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
 {
   u8_string s=strdup(spelling); int i;
-  fdtype ls=fd_init_string(NULL,-1,s), key, value;
+  fdtype ls=fd_init_string(NULL,-1,s), value;
   value=get_lexinfo(pc,ls);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
   if (FD_EMPTY_CHOICEP(value))
@@ -1116,7 +1121,8 @@ static int quote_stringp(u8_string s)
 	       ((c>=0x2018) && (c<=0x201F)) ||
 	       (c==0x2039) || (c==0x203A))
 	return 1;
-      else return 0;}
+      else return 0;
+    return 0;}
 }
 
 static void expand_state_on_word
@@ -1124,7 +1130,7 @@ static void expand_state_on_word
 {
   struct FD_PARSER_STATE *s=&(pc->states[sr]);
   struct FD_OFSM_NODE *n=s->node;
-  unsigned int i=1, in=s->input, dist=s->distance;
+  unsigned int i=1, dist=s->distance;
   while (i < pc->grammar->n_arcs)
     if ((wd->weights[i] != 255) && (n->arcs[i].n_entries > 0)) {
       int j=0, limit=n->arcs[i].n_entries;
@@ -1180,7 +1186,7 @@ static void expand_state(fd_parse_context pc,fd_parse_state sr)
 {
   struct FD_PARSER_STATE *s=&(pc->states[sr]);
   struct FD_OFSM_NODE *n=s->node;
-  unsigned int i=1, in=s->input, dist=s->distance;
+  unsigned int in=s->input, dist=s->distance;
 #if TRACING
   if (tracing_tagger) print_state(pc,"Expanding",sr,stderr);
 #endif
@@ -1266,6 +1272,7 @@ static int possessive_suffixp(fdtype word)
     if (FD_STRINGP(FD_CAR(last)))
       return possessive_suffixp(FD_CAR(last));
     else return 0;}
+  else return 0;
 }
 
 static fdtype possessive_root(fdtype word)
@@ -1302,7 +1309,6 @@ static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid,int c
       normalized=lower_string(FD_STRDATA(base));
     else normalized=fd_incref(base);}
   else if ((FD_PAIRP(base)) && (FD_STRINGP(FD_CAR(base)))) {
-    fdtype first_word=FD_CAR(base);
     u8_string scan=FD_STRDATA(base);
     int firstc=u8_sgetc(&scan);
     if (u8_isupper(firstc))
@@ -1364,7 +1370,6 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 {
   fdtype answer=FD_EMPTY_LIST, sentence=FD_EMPTY_LIST;
   fdtype arc_names=pc->grammar->arc_names;
-  unsigned char *head_tags=pc->grammar->head_tags;
   unsigned char *mod_tags=pc->grammar->mod_tags;
   u8_byte *bufptr=pc->end;
   int glom_phrases=pc->flags&FD_TAGGER_GLOM_PHRASES;
@@ -1475,9 +1480,7 @@ fdtype fd_analyze_text
   fdtype (*fn)(fd_parse_context,fd_parse_state,void *),
   void *data)
 {
-  int skip_markup=(pcxt->flags&FD_TAGGER_SKIP_MARKUP);
-  fdtype head=FD_EMPTY_LIST, *tail=&head;
-  int free_pcxt=0, n_sentences=0;
+  int free_pcxt=0;
   if (pcxt==NULL) {
     struct FD_GRAMMAR *grammar=get_default_grammar();
     if (grammar==NULL)
@@ -1517,7 +1520,6 @@ fdtype fd_analyze_text
     double start_time=u8_elapsed_time();
     fd_parse_state final;
     fdtype retval;
-    u8_string start=pcxt->start;
     lexer(pcxt,pcxt->start,NULL);
     identify_compounds(pcxt);
     add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);
@@ -1576,7 +1578,7 @@ fdtype fd_tag_text(struct FD_PARSE_CONTEXT *pcxt,u8_string text)
 static fdtype xml_symbol, plaintext_symbol, glom_symbol, noglom_symbol;
 static fdtype allcaps_symbol, whole_symbol, timing_symbol, source_symbol, textpos_symbol;
 
-static interpret_parse_flags(fdtype arg)
+static int interpret_parse_flags(fdtype arg)
 {
   int flags=FD_TAGGER_DEFAULT_FLAGS;
   if (FD_QCHOICEP(arg)) arg=FD_XQCHOICE(arg)->choice;
@@ -1752,13 +1754,14 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
 	  int weight=get_weight(weights,i);
 	  if (FD_VECTORP(weights)) {
 	    FD_VECTOR_SET(weights,i,fd_incref(value));}
-	  else if (FD_PACKETP(weights))
+	  else if (FD_PACKETP(weights)) {
 	    if (FD_FALSEP(value)) {
 	      FD_PACKET_DATA(weights)[i]=255;}
 	    else if ((FD_FIXNUMP(value)) &&
 		     (FD_FIX2INT(value)>=0) &&
 		     (FD_FIX2INT(value)<128))
-	      FD_PACKET_DATA(weights)[i]=FD_FIX2INT(value);
+	      FD_PACKET_DATA(weights)[i]=FD_FIX2INT(value);}
+	  else {}
 	  if (weight==255) return FD_FALSE;
 	  else return FD_INT2DTYPE(weight);}
       else i++;
@@ -1777,8 +1780,6 @@ static fdtype lextags_prim()
 static void init_parser_symbols(void);
 static fdtype lisp_report_stats(void);
 static fdtype lisp_set_word_limit(fdtype x);
-
-static fdtype configsrc=FD_EMPTY_CHOICE;
 
 static fd_index openindexsource(u8_string base,u8_string component)
 {

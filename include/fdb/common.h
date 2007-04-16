@@ -33,6 +33,10 @@ typedef unsigned int fdtype;
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef FD_INLINE_FCN
+#define FD_INLINE_FCN U8_INLINE_FCN
+#endif
+
 typedef u8_condition fd_exception;
 
 FD_EXPORT int fd_init_iobase(void);

@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #define U8_INLINE_IO 1
 
 #include "fdb/dtype.h"
@@ -18,6 +15,9 @@ static char versionid[] =
 
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>
+
+static MAYBE_UNUSED char versionid[] =
+  "$Id$";
 
 static fdtype name_slotid, content_slotid;
 

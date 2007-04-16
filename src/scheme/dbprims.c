@@ -470,9 +470,9 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
-    int i=0, lim=fd_pool_load(p), buckets=0, k=0;
+    int i=0, lim=fd_pool_load(p);
     fdtype result=FD_EMPTY_CHOICE;
-    FD_OID base=p->base, scan=base, bases[1024];
+    FD_OID base=p->base;
     if (lim<0) return fd_erreify();
     if (FD_VOIDP(start)) {}
     else if (FD_FIXNUMP(start))
@@ -536,7 +536,7 @@ static fdtype oid_range(fdtype start,fdtype end)
 {
   int i=0, lim=fd_getint(end); 
   fdtype result=FD_EMPTY_CHOICE;
-  FD_OID base=FD_OID_ADDR(start), scan=base;
+  FD_OID base=FD_OID_ADDR(start);
   if (lim<0) return fd_erreify();
   else while (i<lim) {
     fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
@@ -551,7 +551,7 @@ static fdtype oid_vector(fdtype start,fdtype end)
   else {
     fdtype result=fd_init_vector(NULL,lim,NULL);
     fdtype *data=FD_VECTOR_DATA(result);
-    FD_OID base=FD_OID_ADDR(start), scan=base; 
+    FD_OID base=FD_OID_ADDR(start);
     while (i<lim) {
       fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
       data[i++]=each;}
@@ -579,7 +579,7 @@ static fdtype pool_vec(fdtype arg)
   else {
     int i=0, lim=fd_pool_load(p);
     fdtype result=fd_init_vector(NULL,lim,NULL);
-    FD_OID base=p->base, scan=base;
+    FD_OID base=p->base;
     if (lim<0) return fd_erreify();
     else while (i<lim) {
       fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
@@ -599,10 +599,10 @@ static fdtype cachecount(fdtype arg)
   else if (FD_EQ(arg,indices_symbol)) {
     int count=fd_index_cache_load();
     return FD_INT2DTYPE(count);}
-  else if (p=(fd_lisp2pool(arg))) {
+  else if ((p=(fd_lisp2pool(arg)))) {
     int count=p->cache.n_keys;
     return FD_INT2DTYPE(count);}
-  else if (ix=(fd_lisp2index(arg))) {
+  else if ((ix=(fd_lisp2index(arg)))) {
     int count=ix->cache.n_keys;
     return FD_INT2DTYPE(count);}
   else return fd_type_error(_("pool or index"),"cachecount",arg);
@@ -984,7 +984,7 @@ static fdtype pick_helper(int n,fdtype *args,int noinfer)
     FD_DO_CHOICES(candidate,candidates) {
       int testval=0;
       FD_DO_CHOICES(slotid,args[i]) {
-	if (testval=dotest(candidate,slotid,args[i+1],noinfer)) {
+	if ((testval=(dotest(candidate,slotid,args[i+1],noinfer)))) {
 	  FD_STOP_DO_CHOICES; break;}}
       if (testval<0) {
 	fd_decref(candidates); fd_decref(next);
@@ -1016,12 +1016,12 @@ static fdtype binary_pick(fdtype candidates,fdtype test,int noinfer)
     FD_DO_CHOICES(candidate,candidates)
       if (FD_CHOICEP(test)) {
 	int hit=0;
-	FD_DO_CHOICES(p,test)
+	FD_DO_CHOICES(p,test) {
 	  if (binary_test(candidate,p,noinfer)) {
 	    hit=1; FD_STOP_DO_CHOICES; break;}
-	  else {}
-	if (hit)
-	  FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
+	  else {}}
+	if (hit) {
+	  FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
       else if (binary_test(candidate,test,noinfer)) {
 	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
       else {}
@@ -1145,7 +1145,6 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
   else if (FD_FALSEP(args[0])) {
     fdtype slotmap=fd_init_slotmap(NULL,0,NULL,NULL);
     int i=1; while (i<n) {
-      fdtype values=args[i+1];
       FD_DO_CHOICES(slotid,args[i])
 	fd_add(slotmap,slotid,args[i+1]);
       i=i+2;}
@@ -1161,7 +1160,6 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
       fd_decref(slotmap);
       return fd_erreify();}
     while (i<n) {
-      fdtype values=args[i+1];
       FD_DO_CHOICES(slotid,args[i])
 	fd_frame_add(oid,slotid,args[i+1]);
       i=i+2;}
@@ -1267,6 +1265,7 @@ static fdtype oid_ptrdata_prim(fdtype oid)
 static fdtype make_oid_prim(fdtype high,fdtype low)
 {
   unsigned int hi, lo; FD_OID addr;
+  FD_SET_OID_HI(addr,0); FD_SET_OID_LO(addr,0);
   if (FD_FIXNUMP(high))
     if ((FD_FIX2INT(high))<0)
       return fd_type_error("uint32","make_oid_prim",high);
@@ -1335,7 +1334,8 @@ static fdtype applyfn(fdtype fn,fdtype node)
       if (FD_ABORTP(v)) {
 	fd_decref(results);
 	return v;}
-      else {FD_ADD_TO_CHOICE(results,v);}}}
+      else {FD_ADD_TO_CHOICE(results,v);}}
+    return results;}
   else if (FD_APPLICABLEP(fn))
     return fd_apply(fn,1,&node);
   else if (FD_TABLEP(fn))
@@ -1584,7 +1584,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprim3("FORGRAPH",mapgraph,3)));
+	   fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
 

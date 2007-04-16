@@ -23,6 +23,7 @@ static char versionid[] =
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8streamio.h>
 #include <libu8/xfiles.h>
 
 static U8_XINPUT u8stdin;
@@ -125,7 +126,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   fdtype filename_arg=fd_get_arg(expr,1);
   fdtype filename_val=fd_eval(filename_arg,env);
   fdtype body=fd_get_body(expr,2);
-  u8_string filename; U8_OUTPUT *f, *oldf; int doclose;
+  U8_OUTPUT *f, *oldf; int doclose;
   if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PTR_TYPEP(filename_val,fd_port_type)) {
     FD_PORT *port=FD_GET_CONS(filename_val,fd_port_type,FD_PORT *);
@@ -206,7 +207,7 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
 	argv[argc++]=as_libc_string; u8_free(as_string);}
     argv[argc++]=NULL;
     if (flags&FD_DO_FORK) 
-      if (pid=fork()) {
+      if ((pid=(fork()))) {
 	i=0; while (i<argc) if (argv[i]) u8_free(argv[i++]); else i++;
 	u8_free(argv);
 	return FD_INT2DTYPE(pid);}
@@ -517,7 +518,7 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
 static fdtype file2dtype(fdtype filename)
 {
   if (FD_STRINGP(filename)) {
-    struct FD_DTYPE_STREAM *in; int bytes=0;
+    struct FD_DTYPE_STREAM *in;
     fdtype object=FD_VOID;
     in=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_READ);
     if (in==NULL) return fd_erreify();
@@ -535,7 +536,7 @@ static fdtype file2dtype(fdtype filename)
 static fdtype file2dtypes(fdtype filename)
 {
   if (FD_STRINGP(filename)) {
-    struct FD_DTYPE_STREAM *in; int bytes=0;
+    struct FD_DTYPE_STREAM *in;
     fdtype results=FD_EMPTY_CHOICE, object=FD_VOID;
     in=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_READ);
     if (in==NULL) return fd_erreify();
@@ -1150,6 +1151,8 @@ static fdtype load_dll(fdtype filename)
 /* The init function */
 
 static int scheme_fileio_initialized=0;
+
+FD_EXPORT void fd_init_filedb_c(void);
 
 FD_EXPORT void fd_init_fileio_c()
 {

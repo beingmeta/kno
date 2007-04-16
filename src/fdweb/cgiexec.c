@@ -15,9 +15,14 @@ static char versionid[] =
 #include "fdb/tables.h"
 #include "fdb/eval.h"
 #include "fdb/ports.h"
+#include "fdb/fdweb.h"
+#include "fdb/support.h"
 
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8streamio.h>
+
+#include <ctype.h>
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method;
@@ -155,7 +160,7 @@ static void get_form_args(fd_slotmap c)
     fd_handle_compound_mime_field((fdtype)c,cgi_content_type,FD_VOID);
     if (fd_test((fdtype)c,cgi_content_type,form_data_string)) {
       fdtype postdata=fd_slotmap_get(c,post_data_slotid,FD_VOID);
-      fdtype parts;
+      fdtype parts=FD_EMPTY_LIST;
       if (FD_STRINGP(postdata))
 	parts=fd_parse_multipart_mime
 	  ((fdtype)c,FD_STRING_DATA(postdata),
@@ -226,7 +231,7 @@ static void parse_query_string(fd_slotmap c,char *data,int len)
     else if (*scan == '%') 
       if (scan+3>end) end=scan;
       else {
-	char buf[4]; int i=0, c; scan++;
+	char buf[4]; int c; scan++;
 	buf[0]=*scan++; buf[1]=*scan++; buf[2]='\0';
 	c=strtol(buf,NULL,16);
 	if (c>=0x80) isascii=0;
@@ -296,7 +301,7 @@ static void convert_cookie_arg(fd_slotmap c)
       else if (*scan == '%') 
 	if (scan+3>=end) end=scan;
 	else {
-	  char buf[4]; int i=0, c; scan++;
+	  char buf[4]; int c; scan++;
 	  buf[0]=*scan++; buf[1]=*scan++; buf[2]='\0';
 	  c=strtol(buf,NULL,16);
 	  if (c>=0x80) isascii=0;
@@ -330,7 +335,6 @@ static fdtype cgi_prepfns=FD_EMPTY_CHOICE;
 FD_EXPORT int fd_parse_cgidata(fdtype data)
 {
   struct FD_SLOTMAP *cgidata=FD_XSLOTMAP(data);
-  fdtype method;
   convert_accept(cgidata,accept_language);
   convert_accept(cgidata,accept_type);
   convert_accept(cgidata,accept_charset);
@@ -352,7 +356,7 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
 
 static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,fd_lispenv env)
 {
-  U8_OUTPUT *prev; int result;
+  U8_OUTPUT *prev;
   prev=fd_get_default_output();
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {

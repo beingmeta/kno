@@ -14,6 +14,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/sequences.h"
 #include "fdb/fddb.h"
+#include "fdb/numbers.h"
 #include "eval_internals.h"
 
 /* Helper functions */
@@ -356,7 +357,6 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
 
 static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 {
-  fdtype results=FD_EMPTY_CHOICE;
   fdtype exprs=fd_get_body(begin_expr,1);
   return eval_body(exprs,env);
 }
@@ -415,7 +415,7 @@ static fdtype trace_ipeval_handler(fdtype expr,fd_lispenv env)
 
 static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
 {
-  struct IPEVAL_STRUCT tmp; int old_trace=fd_trace_ipeval;
+  struct IPEVAL_STRUCT tmp;
   struct FD_IPEVAL_RECORD *records; int n_cycles; double total_time;
   fdtype *vec; int i=0;
   tmp.expr=fd_car(fd_cdr(expr)); tmp.env=env; tmp.value=FD_VOID;

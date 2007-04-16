@@ -65,7 +65,7 @@ FD_EXPORT fdtype fd_history_ref(fdtype history,int ref)
 
 FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
 {
-  int top, len; fdtype *data, current; fd_hashtable h;
+  int top, len; fdtype *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_set",history);
   if (ref>=top)
@@ -82,7 +82,7 @@ FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
 
 FD_EXPORT int fd_history_keep(fdtype history,int ref,fdtype value)
 {
-  int top, len; fdtype *data, current; fd_hashtable h;
+  int top, len; fdtype *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_set",history);
   if (fd_hashtable_store(h,FD_INT2DTYPE(ref),value)<0)
@@ -169,7 +169,7 @@ FD_EXPORT int fd_histfind(fdtype value)
 static int histkeep(int ref,fdtype value)
 {
   fdtype history=fd_thread_get(history_symbol);
-  if (FD_VOIDP(history)) return;
+  if (FD_VOIDP(history)) return 0;
   else if (fd_history_keep(history,ref,value)<0) {
     fd_decref(history);
     return -1;}
@@ -255,8 +255,8 @@ static fdtype histclear_prim(fdtype arg)
 	u8_warn(_("History error"),"Couldn't find item in history: %q",arg);
 	return FD_FALSE;}
       else {
-	fdtype history=
-	  fd_history_set(history,loc,FD_VOID);
+	fdtype history=fd_thread_get(history_symbol);
+	fd_history_set(history,loc,FD_VOID);
 	return FD_TRUE;}}}
 }
 

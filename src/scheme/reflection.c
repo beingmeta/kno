@@ -5,15 +5,14 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] = 
-  "$Id$";
-
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_PPTRS 1
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 
+static MAYBE_UNUSED char versionid[] = 
+  "$Id$";
 
 static fdtype macrop(fdtype x)
 {

@@ -11,6 +11,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/support.h"
 #include "fdb/eval.h"
+#include "fdb/ports.h"
 
 /* Returning errors */
 
@@ -58,7 +59,6 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(handler))
       return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
     else if (FD_APPLICABLEP(handler)) {
-      struct FD_FUNCTION *f=(fd_function)handler;
       fdtype err_result;
       if (FD_ERRORP(value)) {
 	FD_SET_CONS_TYPE(value,fd_exception_type);}

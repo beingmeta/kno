@@ -97,6 +97,8 @@ FD_EXPORT fdtype fd_cached_keys(fd_index p);
 FD_EXPORT fd_index fd_lisp2index(fdtype lp);
 FD_EXPORT fdtype fd_index2lisp(fd_index ix);
 
+FD_EXPORT int fd_add_to_background(fd_index ix);
+
 /* Network indices */
 
 typedef struct FD_NETWORK_INDEX {

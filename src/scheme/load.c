@@ -5,19 +5,21 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 #include "fdb/dtypestream.h"
+#include "fdb/support.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8streamio.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 
 #include <stdio.h>
+
+static MAYBE_UNUSED char versionid[] =
+  "$Id$";
 
 fd_exception fd_NotAFilename=_("Not a filename");
 fd_exception fd_FileNotFound=_("File not found");
@@ -120,7 +122,7 @@ FD_EXPORT fdtype fd_load_source
 
 static u8_string get_component(u8_string spec)
 {
-  u8_string base=fd_sourcebase(), path; int len=strlen(spec);
+  u8_string base=fd_sourcebase();
   if (base) return u8_realpath(spec,base);
   else return u8_strdup(spec);
 }
@@ -134,7 +136,7 @@ FD_EXPORT
 */
 u8_string fd_get_component(u8_string spec)
 {
-  u8_string base=fd_sourcebase(), path; int len=strlen(spec);
+  u8_string base=fd_sourcebase();
   if (base) return u8_realpath(spec,base);
   else return u8_strdup(spec);
 }
@@ -168,7 +170,6 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
   struct U8_INPUT stream; int retval;
   u8_string sourcebase=NULL;
   u8_string content=fd_get_source(sourceid,NULL,&sourcebase,NULL);
-  u8_byte *input=content;
   if (content==NULL) return fd_erreify();
   else if (sourcebase) u8_free(sourcebase);
   U8_INIT_STRING_INPUT((&stream),-1,content);
@@ -257,7 +258,7 @@ static u8_mutex config_file_lock;
 
 static FD_CONFIG_RECORD *config_records=NULL, *config_stack=NULL;
 
-static fdtype get_config_files(fdtype var)
+static fdtype get_config_files(fdtype var,void MAYBE_UNUSED *data)
 {
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
   fd_lock_mutex(&config_file_lock);
@@ -268,7 +269,7 @@ static fdtype get_config_files(fdtype var)
   return result;
 }
 
-static int add_config_file(fdtype var,fdtype val)
+static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 {
   if (FD_STRINGP(val)) {
     int retval;

@@ -16,6 +16,7 @@ static char versionid[] =
 #include "fdb/pools.h"
 #include "fdb/indices.h"
 #include "fdb/frames.h"
+#include "fdb/numbers.h"
 
 static fdtype tablep(fdtype arg)
 {

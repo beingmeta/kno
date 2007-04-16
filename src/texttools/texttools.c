@@ -15,6 +15,7 @@
 #include "fdb/texttools.h"
 
 #include <libu8/libu8.h>
+#include <libu8/u8printf.h>
 
 fd_exception fd_BadExtractData=_("Bad extract data");
 fd_exception fd_BadMorphRule=_("Bad morphrule");
@@ -82,7 +83,7 @@ static fdtype whitespace_segment(u8_string s)
 
 static fdtype dosegment(u8_string string,fdtype separators)
 {
-  u8_byte *brk=NULL; fdtype sepstring, tail;
+  u8_byte *brk=NULL; fdtype sepstring=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(sep,separators)
     if (FD_STRINGP(sep)) {
       u8_byte *try=strstr(string,FD_STRDATA(sep));
@@ -205,7 +206,6 @@ static fdtype getwordsv(u8_string string)
   fdtype *wordsv=u8_malloc(sizeof(fdtype)*max);
   u8_string start=skip_notword(string);
   while (start) {
-    fdtype newcons;
     u8_string end=skip_word(start);
     if (n>=max) {
       wordsv=u8_realloc(wordsv,sizeof(fdtype)*max*2);
@@ -318,7 +318,7 @@ static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
 */
 static fdtype vector2frags_prim(fdtype vec,fdtype window)
 {
-  int i=0, n=FD_VECTOR_LENGTH(vec), span=FD_FIX2INT(window), k=0;
+  int i=0, n=FD_VECTOR_LENGTH(vec), span=FD_FIX2INT(window);
   fdtype *data=FD_VECTOR_DATA(vec), results=FD_EMPTY_CHOICE;
   if (span<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
@@ -692,7 +692,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
   else {
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
     while (start>=0) {
-      fdtype substring, match_result=
+      fdtype match_result=
 	fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end=-1;
       {FD_DO_CHOICES(match,match_result) {
@@ -933,7 +933,6 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	return -1;}
       else {
 	fdtype parser=fd_get_arg(xtract,3);
-	fdtype stringval;
 	struct U8_OUTPUT _out; int retval;
 	U8_INIT_OUTPUT(&_out,32);
 	retval=framify(f,&_out,content);
@@ -1057,7 +1056,7 @@ static fdtype textslice(fdtype string,fdtype prefix,fdtype keep_prefixes)
      start is where we last added a string, and end is the greedy limit
      of the matched prefix. */
   while (scan>=0) {
-    fdtype substring, match_result=
+    fdtype match_result=
       fd_text_matcher(prefix,NULL,FD_STRDATA(string),scan,len,0);
     int end=-1;
     /* Figure out how long the prefix is, taking the longest result. */
@@ -1074,7 +1073,7 @@ static fdtype textslice(fdtype string,fdtype prefix,fdtype keep_prefixes)
     if ((end<0) || (end==scan)) {
       /* You're at the start of an empty but positive match, so just make
 	 the first character into a string and start after that. */
-      u8_string scanner=data+start; int c=u8_sgetc(&scanner);
+      u8_string scanner=data+start; int MAYBE_UNUSED c=u8_sgetc(&scanner);
       fdtype substring=fd_extract_string(NULL,data+start,scanner);
       fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
       *tail=newpair; tail=&(FD_CDR(newpair));
@@ -1320,8 +1319,6 @@ static int doadds(fdtype table,u8_output out,fdtype xtract)
 	  return -1;}
 	else {
 	  int outlen=newout.u8_outptr-newout.u8_outbuf;
-	  fdtype stringval=
-	    fd_init_string(NULL,outlen,newout.u8_outbuf);
 	  if (out) u8_putn(out,newout.u8_outbuf,outlen);}}}
     else if (sym==subst_symbol) {
       fdtype content=fd_get_arg(xtract,2);
