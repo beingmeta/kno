@@ -48,6 +48,7 @@ DB_HEADERS=\
  include/fdb/dtproc.h                            \
  include/fdb/frames.h                            \
  include/fdb/methods.h
+DBFILE_HEADERS=include/fdb/dbfile.h
 SCHEME_HEADERS=include/fdb/eval.h include/fdb/sequences.h
 
 BASE0OBJS=src/misc/stdio.o src/misc/simplerr.o
@@ -89,7 +90,7 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig src/scripts/repack-index
 
 FDB_SOURCES=\
-	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) \
+	$(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
 	src/dtype/cons.c src/dtype/oids.c src/dtype/pptrs.c src/dtype/symbols.c \
         src/dtype/choices.c src/dtype/tables.c \
         src/dtype/dtypeio.c src/dtype/textio.c \
@@ -360,7 +361,8 @@ install-dylib: $(LIBINSTALLDIR)/libfdtype@suffix@.dylib \
 	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib
 install-headers: $(INCINSTALLDIR)
 	$(INSTALL) -p @install_file_opts@ \
-		   $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) \
+		   $(DTYPE_HEADERS) $(DB_HEADERS) \
+		   $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
 		$(INCINSTALLDIR)
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	$(INSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
@@ -427,14 +429,16 @@ $(EXECUTABLES): src/exe/revision.h
 # Dependency information
 
 $(DTYPE_OBJS): $(DTYPE_HEADERS)
-$(DB_OBJS): $(DB_HEADERS) $(DTYPE_HEADERS) 
-$(FDBSERV_OBJS): $(DB_HEADERS) $(DTYPE_HEADERS)
+$(DB_OBJS): $(DBFILE_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS) 
+$(FDBSERV_OBJS): $(DBFILE_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
 $(CORE_SCHEME_OBJS): src/scheme/eval_internals.h \
-	$(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
-$(SCHEME_OBJS): $(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
-$(SCHEMEIO_OBJS): include/fdb/ports.h $(SCHEME_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
+	$(SCHEME_HEADERS) $(DBFILE_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
+$(SCHEME_OBJS): \
+	$(SCHEME_HEADERS) $(DBFILE_HEADERS)  $(DB_HEADERS) $(DTYPE_HEADERS)
+$(SCHEMEIO_OBJS): include/fdb/ports.h \
+	$(SCHEME_HEADERS) $(DBFILE_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS)
 $(FDWEB_OBJS): include/fdb/fdweb.h \
-	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
+	$(DTYPE_HEADERS) $(DBFILE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
 $(TEXTTOOLS_OBJS): include/fdb/texttools.h include/fdb/tagger.h \
-	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
+	$(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
 
