@@ -103,7 +103,7 @@ FD_EXPORT int fd_start_calltrack(char *filename)
       else i++;
     fprintf(f,"\n");
     u8_tld_set(calltrack_log_key,cd);
-    return current;}
+    return current;}}
   else {
     u8_graberr(-1,"fd_start_calltrack",u8_strdup(filename));
     return -1;}
@@ -198,10 +198,10 @@ void fd_calltrack_return(u8_string name)
 
 /* Calltrack configuration */
 
-static int set_calltrack(fdtype ignored,void *lval)
+static int set_calltrack(fdtype ignored,fdtype path_arg,void MAYBE_UNUSED *data)
 {
 #if FD_CALLTRACK_ENABLED
-  fdtype path_arg=(fdtype)lval; int retval=-1;
+  int retval=-1;
   if (FD_STRINGP(path_arg)) 
     return fd_start_calltrack(FD_STRDATA(path_arg));
   else if (FD_FALSEP(path_arg))
