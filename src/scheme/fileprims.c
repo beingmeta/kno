@@ -585,7 +585,7 @@ static fdtype setbufprim(fdtype portarg,fdtype insize,fdtype outsize)
     struct FD_DTSTREAM *dts=FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
     fd_dtsbufsize(dts->dt_stream,FD_FIX2INT(insize));
     return FD_VOID;}
-  else {
+  else if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     if (FD_FIXNUMP(insize)) {
@@ -598,6 +598,7 @@ static fdtype setbufprim(fdtype portarg,fdtype insize,fdtype outsize)
       if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
 	u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FD_FIX2INT(outsize));}}
     return FD_VOID;}
+  else return fd_type_error("port/stream","setbuf",portarg);
 }
 
 static fdtype getpos_prim(fdtype portarg)
@@ -1179,8 +1180,7 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2("OPEN-INPUT-FILE",open_input_file,1));
   fd_idefn(fileio_module,fd_make_cprim3x("SETBUF",setbufprim,2,
-					 fd_port_type,FD_VOID,
-					 -1,FD_FALSE,-1,FD_FALSE));
+					 -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
   
 
   fd_idefn(fileio_module,
