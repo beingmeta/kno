@@ -252,7 +252,7 @@
 (define (index-brico index frame)
   (doindex index frame '{type sense-category fips-code})
   (when (ambiguous? (get frame 'sense-category))
-    (doindex index frame 'sense-category 'vague))
+      (doindex index frame 'sense-category 'vague))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
   (doindex index frame '%id (get frame '%mnemonic))
   (doindex index frame 'has (getslots frame)))
