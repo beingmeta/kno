@@ -316,12 +316,12 @@ FD_EXPORT int fd_n_base_oids;
 */
 #define FD_OID_ADDR(x) \
   (FD_OID_PLUS(fd_base_oids[((x>>2)&0x3FF)],(x>>12)))
-#define FD_CONSTRUCT_OID(base,offset) ((base<<2)|(offset<<12)|3)
+#define FD_CONSTRUCT_OID(base,offset) ((fdtype) (((base)<<2)|((offset)<<12)|3))
 FD_EXPORT fdtype fd_make_oid(FD_OID addr);
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 
-#define FD_OID_BASE_ID(x) ((x>>2)&0x3FF)
-#define FD_OID_BASE_OFFSET(x) (x>>12)
+#define FD_OID_BASE_ID(x) (((x)>>2)&0x3FF)
+#define FD_OID_BASE_OFFSET(x) ((x)>>12)
 #define FD_OID_BUCKET_SIZE    (1<<12)
 
 /* Fixnums */

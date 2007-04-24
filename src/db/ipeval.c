@@ -12,6 +12,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
+#include "fdb/apply.h"
 #include "fdb/fddb.h"
 #include "fdb/pools.h"
 #include "fdb/indices.h"
