@@ -9,7 +9,7 @@
 		    (random 200000))
 	    (* (random 256) 0x100000)))
 
-(define (random-oid)
+(define (randomized-oid)
   (oid-plus (pick-one random-super-pools)
 	    (random 0x100000)))
 (define (random-fixnum) (random 1000000))
@@ -37,11 +37,11 @@
   (let ((type (random 8)))
     (cond ((= type 0) (random-string))
 	  ((= type 1) (random-symbol))
-	  ((= type 2) (random-oid))
+	  ((= type 2) (randomized-oid))
 	  ((= type 3) (random (* 65536 256 64)))
 	  ((= type 4) (random 65536))
 	  ((= type 5) (random-symbol))
-	  ((= type 6) (random-oid))
+	  ((= type 6) (randomized-oid))
 	  ((= type 7) (random-character))
 	  (else (pick-one (allsymbols))))))
 
@@ -65,7 +65,7 @@
 	  (else (random-primobj)))))
 
 (define (random-slotid)
-  (if (zero? (random 2)) (random-oid) (random-symbol)))
+  (if (zero? (random 2)) (randomized-oid) (random-symbol)))
 
 (define (random-pair)
   (cons (random-primobj) (random-primobj)))
