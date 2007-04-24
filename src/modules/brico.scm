@@ -46,6 +46,10 @@
 (define ingredients* @1/2c286{INGREDIENTS*})
 (define ingredientof @1/2c277{INGREDIENTOF})
 (define ingredientof* @1/2c285{INGREDIENTOF*})
+(define defterms @1/2ab4d{DEFTERMS})
+(define defines @1/2ab55{DEFINES})
+(define refterms @1/2ab57{REFTERMS})
+(define referenced @1/2ab5a{REFERENCED})
 (define isa @1/2c27e{ISA})
 (define =is= @1/2d9e9{=IS=})
 (define sameas @1/2d9e9{SAMEAS})
@@ -53,6 +57,16 @@
 (define disjoint @1/2c27d{DISJOINT})
 (define implies @1/3f65f{IMPLIES})
 (define implies* @1/2f201{IMPLIES*})
+
+
+(define brico-slotids
+  (choice genls genls* kindof kindof*
+	  specls specls*
+	  parts parts* partof partof*
+	  members members* memberof memberof*
+	  ingredients ingredients* ingredientof ingredientof*
+	  isa =is= sameas inverse disjoint implies implies*
+	  defterms defines refterms referenced))
 
 (define language-map (file->dtype (get-component "langmap.table")))
 (define gloss-map (file->dtype (get-component "glossmap.table")))
@@ -70,6 +84,19 @@
    (store! norm-map (get l 'key) l))
  (do-choices (l (?? 'type 'index))
    (store! index-map (get l 'key) l)))
+
+(set+! %constants
+       '{english-gloss
+	 english spanish french
+	 genls genls* kindof kindof*
+	 specls specls*
+	 parts parts* partof partof*
+	 members members* memberof memberof*
+	 ingredients ingredients* ingredientof ingredientof*
+	 isa =is= sameas inverse disjoint implies implies*
+	 defterms defines refterms referenced
+	 language-map gloss-map norm-map index-map})
+
 
 ;;; Mostly the roots of WordNet....
 (define default-language english)
@@ -243,12 +270,6 @@
    @1/2c278{MEMBERS}
    @1/2c281{PARTOF*}})
 
-(define genls @1/2c272{GENLS})
-(define defterms @1/2ab4d{DEFTERMS})
-(define defines @1/2ab55{DEFINES})
-(define refterms @1/2ab57{REFTERMS})
-(define referenced @1/2ab5a{REFERENCED})
-
 (define (index-brico index frame)
   (doindex index frame '{type sense-category fips-code})
   (when (ambiguous? (get frame 'sense-category))
@@ -290,6 +311,15 @@
   (when (test concept '%glosses)
     (doindex index concept 'has
 	     (get gloss-map (car (get concept '%glosses)))))
+  (when (test concept '%words)
+    (doindex index concept 'has
+	     (get language-map (car (get concept '%words)))))
+  (when (test concept '%norm)
+    (doindex index concept 'has
+	     (get norm-map (car (get concept '%norm)))))
+  (when (test concept '%indices)
+    (doindex index concept 'has
+	     (get index-map (car (get concept '%indices)))))
   (do-choices (xlation (get concept '%words))
     (let ((lang (get language-map (car xlation))))
       (index-string index concept lang (cdr xlation) 1)))
@@ -318,7 +348,7 @@
     (let ((table (make-hashtable)))
       (do-choices (slotid (getkeys expansions))
 	(prefetch-keys! (cons (get slotid inverse) (get expansions slotid)))
-	(let ((next (reject (%get (get expansions slotid) slotid)
+	(let ((next (reject (get (get expansions slotid) slotid)
 			    visited)))
 	  (when (exists? next)
 	    (add! table slotid next))))
@@ -328,24 +358,25 @@
   (let ((visited (choice->hashset oids))
 	(next (make-hashtable)))
     (prefetch-oids! oids)
+    (prefetch-keys! (cons (get (pick slotids oid?) 'inverse) oids))
     (do-choices (slotid slotids)
-      (prefetch-keys! (cons (get slotid 'inverse) oids))
       (add! next slotid (get oids slotid)))
-    (do ((scan next (next-expansion scan visited)))
+    (do ((scan next (next-expansion (qc scan) visited)))
 	((fail? scan)))))
+
+(define (indexer-slotid-prefetch)
+  (prefetch-oids! (choice brico-slotids
+			  genls*-slotids concept-slotids
+			  (get language-map (getkeys language-map))
+			  (get norm-map (getkeys norm-map))
+			  (get index-map (getkeys index-map))
+			  (get gloss-map (getkeys gloss-map)))))
 
 (define (indexer-prefetch oids)
   (prefetch-oids! oids)
   (prefetch-keys! (cons (choice refterms referenced) oids))
   (let ((kovalues (%get oids genls*-slotids)))
-    (prefetch-oids! kovalues)
-    (let* ((base (choice kovalues (%get kovalues isa)))
-	   (visited (choice->hashset base)))
-      (do ((scan base (reject (get scan genls) visited)))
-	  ((empty? scan))
-	(prefetch-oids! scan)
-	(prefetch-keys! (cons specls scan))
-	(hashset-add! visited scan))))
+    (prefetch-expansions (qc kovalues) genls))
   (prefetch-expansions
    (qc oids) (qc genls partof memberof ingredientof)))
 
@@ -353,6 +384,7 @@
  '{index-brico
    index-concept
    indexer-prefetch
+   indexer-slotid-prefetch
    prefetch-expansions})
 
 ;;; Displaying glosses
@@ -431,4 +463,11 @@
 	       (choice-size (find-frames corpus
 			      conceptslot concept
 			      wordslot word))))))))
+
+(comment
+ (define (check-prefetch index f)
+   (clearcaches)
+   (indexer-slotid-prefetch)
+   (indexer-prefetch (qc f))
+   (trackrefs (lambda () (index-concept index f)))))
 
