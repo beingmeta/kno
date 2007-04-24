@@ -38,10 +38,10 @@ DTYPE_HEADERS=\
  include/fdb/malloc.h include/fdb/dtype.h      \
  include/fdb/ptr.h include/fdb/cons.h         \
  include/fdb/choices.h include/fdb/tables.h   \
+ include/fdb/apply.h                             \
  include/fdb/dtypeio.h
 DB_HEADERS=\
  include/fdb/dtypestream.h                       \
- include/fdb/apply.h                             \
  include/fdb/fddb.h                              \
  include/fdb/pools.h                             \
  include/fdb/indices.h                           \
@@ -54,14 +54,14 @@ SCHEME_HEADERS=include/fdb/eval.h include/fdb/sequences.h
 BASE0OBJS=src/misc/stdio.o src/misc/simplerr.o
 STDBASEOBJS=src/misc/stdio.o src/misc/dynamic.o
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o \
-	  src/dtype/symbols.o src/dtype/numbers.o \
+	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
           src/dtype/choices.o src/dtype/tables.o \
           src/dtype/dtypeio.o src/dtype/textio.o \
 	  src/dtype/fdtype.o src/dtype/support.o
 DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
 	src/db/indices.o src/db/netindices.o src/db/compoundindices.o \
 	src/db/pools.o src/db/netpools.o  \
-	src/db/apply.o src/db/dtproc.o src/db/methods.o src/db/xtables.o \
+	src/db/dtproc.o src/db/methods.o src/db/xtables.o \
 	src/db/ipeval.o src/db/frames.o
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o
@@ -94,11 +94,11 @@ FDB_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/pptrs.c src/dtype/symbols.c \
         src/dtype/choices.c src/dtype/tables.c \
         src/dtype/dtypeio.c src/dtype/textio.c \
-	src/dtype/fdtype.c src/dtype/support.c \
+	src/dtype/fdtype.c src/dtype/support.c src/dtype/apply.c \
 	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c \
 	src/db/indices.c src/db/netindices.c src/db/compoundindices.c \
 	src/db/pools.c src/db/netpools.c \
-	src/db/apply.c src/db/dtproc.c src/db/methods.c src/db/xtables.c \
+	src/db/dtproc.c src/db/methods.c src/db/xtables.c \
 	src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c \
 	src/db/hashdtype.c src/db/fileindices.c src/db/zindices.c \
