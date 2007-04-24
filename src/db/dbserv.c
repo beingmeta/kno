@@ -181,17 +181,17 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
 
 /** OID Locking **/
 
-static struct FD_HASHTABLE oid_locks, oid_locks_inv;
+static struct FD_HASHTABLE server_locks, server_locks_inv;
 static unsigned int n_locks=0;
 static FD_DTYPE_STREAM *locks_file=NULL;
 static u8_string locks_filename=NULL;
-static void update_oid_lock_file();
+static void update_server_lock_file();
 
 fd_exception OIDNotLocked=_("The OID is not locked");
 fd_exception CantLockOID=_("Can't lock OID");
 
 #if FD_THREADS_ENABLED
-static u8_mutex oid_locks_lock;
+static u8_mutex server_locks_lock;
 #endif
 
 static int pool_writablep(fd_pool p)
@@ -205,125 +205,125 @@ static int lock_oid(fdtype oid,fdtype id)
 {
   fdtype holder;
   if (locking == 0) return 1;
-  fd_lock_mutex(&oid_locks_lock);
-  holder=fd_hashtable_get(&oid_locks,oid,FD_EMPTY_CHOICE);
+  fd_lock_mutex(&server_locks_lock);
+  holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(holder)) {
     fd_pool p=fd_oid2pool(oid);
     if ((fd_pool_lock(p,oid)) == 0) {
-      fd_unlock_mutex(&oid_locks_lock); return 0;}
-    fd_hashtable_store(&oid_locks,oid,id); n_locks++;
-    fd_hashtable_add(&oid_locks_inv,id,oid); 
+      fd_unlock_mutex(&server_locks_lock); return 0;}
+    fd_hashtable_store(&server_locks,oid,id); n_locks++;
+    fd_hashtable_add(&server_locks_inv,id,oid); 
     if (locks_file) {
       fd_dtswrite_dtype(locks_file,oid);
       fd_dtswrite_dtype(locks_file,id);
       fd_dtsflush(locks_file);}
-    fd_unlock_mutex(&oid_locks_lock);
+    fd_unlock_mutex(&server_locks_lock);
     return 1;}
   else if (FDTYPE_EQUAL(id,holder)) {
-    fd_unlock_mutex(&oid_locks_lock); fd_decref(holder);
+    fd_unlock_mutex(&server_locks_lock); fd_decref(holder);
     return 1;}
   else {
-    fd_unlock_mutex(&oid_locks_lock);
+    fd_unlock_mutex(&server_locks_lock);
     fd_decref(holder);
     return 0;}
 }
 
-static int check_oid_lock(fdtype oid,fdtype id)
+static int check_server_lock(fdtype oid,fdtype id)
 {
-  fdtype holder=fd_hashtable_get(&oid_locks,oid,FD_EMPTY_CHOICE);
+  fdtype holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(holder)) return 0;
   else if (FDTYPE_EQUAL(id,holder)) {
     fd_decref(holder); return 1;}
   else {fd_decref(holder); return 0;}
 }
 
-static int clear_oid_lock(fdtype oid,fdtype id)
+static int clear_server_lock(fdtype oid,fdtype id)
 {
   fdtype holder;
   if (locking == 0) return 1;
-  fd_lock_mutex(&oid_locks_lock);
-  holder=fd_hashtable_get(&oid_locks,oid,FD_EMPTY_CHOICE);
-  if (FD_EMPTY_CHOICEP(holder)) {fd_unlock_mutex(&oid_locks_lock); return 0;}
+  fd_lock_mutex(&server_locks_lock);
+  holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
+  if (FD_EMPTY_CHOICEP(holder)) {fd_unlock_mutex(&server_locks_lock); return 0;}
   else if (FDTYPE_EQUAL(id,holder)) {
-    fdtype all_locks=fd_hashtable_get(&oid_locks_inv,id,FD_EMPTY_CHOICE);
+    fdtype all_locks=fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
     int lock_count=FD_CHOICE_SIZE(all_locks);
     fd_decref(holder);
-    fd_hashtable_store(&oid_locks,oid,FD_EMPTY_CHOICE);
+    fd_hashtable_store(&server_locks,oid,FD_EMPTY_CHOICE);
     if (lock_count == 0) 
       return fd_err(OIDNotLocked,"lock_oid",fd_strdata(id),oid);
     else if (lock_count == 1)
-      fd_hashtable_store(&oid_locks_inv,id,FD_EMPTY_CHOICE);
-    else fd_hashtable_drop(&oid_locks_inv,id,oid);
-    fd_hashtable_drop(&oid_locks,oid,FD_VOID); n_locks--;
+      fd_hashtable_store(&server_locks_inv,id,FD_EMPTY_CHOICE);
+    else fd_hashtable_drop(&server_locks_inv,id,oid);
+    fd_hashtable_drop(&server_locks,oid,FD_VOID); n_locks--;
     if (locks_file) {
       fd_dtswrite_dtype(locks_file,id);
       fd_dtswrite_dtype(locks_file,oid);
       fd_dtsflush(locks_file);}
-    fd_unlock_mutex(&oid_locks_lock);
+    fd_unlock_mutex(&server_locks_lock);
     return 1;}
   else {
     fd_decref(holder);
-    fd_unlock_mutex(&oid_locks_lock);
+    fd_unlock_mutex(&server_locks_lock);
     return 0;}
 }
 
-static void remove_all_oid_locks(fdtype id)
+static void remove_all_server_locks(fdtype id)
 {
   if (locking == 0) return;
-  fd_lock_mutex(&oid_locks_lock);
+  fd_lock_mutex(&server_locks_lock);
   {
-    fdtype locks=fd_hashtable_get(&oid_locks_inv,id,FD_EMPTY_CHOICE);
+    fdtype locks=fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(oid,locks) {
-      fd_hashtable_drop(&oid_locks,oid,FD_VOID);}
+      fd_hashtable_drop(&server_locks,oid,FD_VOID);}
     fd_decref(locks);
-    fd_hashtable_store(&oid_locks_inv,id,FD_EMPTY_CHOICE);
-    fd_unlock_mutex(&oid_locks_lock);
+    fd_hashtable_store(&server_locks_inv,id,FD_EMPTY_CHOICE);
+    fd_unlock_mutex(&server_locks_lock);
   }
 }
 
-static int add_to_oid_locks_file(fdtype key,fdtype value,void *outfilep)
+static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 {
   struct FD_DTYPE_STREAM *out=(struct FD_DTYPE_STREAM *)outfilep;
   fd_dtswrite_dtype(out,key); fd_dtswrite_dtype(out,value);
   return 0;
 }
 
-static void open_oid_lock_stream(u8_string file)
+static void open_server_lock_stream(u8_string file)
 {
   if (u8_file_existsp(file)) {
     FD_DTYPE_STREAM *in=fd_open_dtype_file_x(file,FD_DTSTREAM_READ,65536,NULL,NULL);
     fdtype a=fd_dtsread_dtype(in), b=fd_dtsread_dtype(in);
     while (!(FD_EOFP(a))) {
-      if (FD_OIDP(a)) lock_oid(a,b); else clear_oid_lock(b,a);
+      if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
       a=fd_dtsread_dtype(in); b=fd_dtsread_dtype(in);}
     fd_dtsclose(in,1);
     u8_removefile(file);}
   locks_file=fd_open_dtype_file_x(file,FD_DTSTREAM_CREATE,65536,NULL,NULL);
   locks_filename=u8_strdup(file);
-  fd_for_hashtable(&oid_locks,add_to_oid_locks_file,(void *)locks_file,1);
+  fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_dtsflush(locks_file);
 }
 
 /* This writes out the current state of locks in memory to an external file.
    The locks file is appended to while the server is running; this means that
-   it may contain OIDs which have been unlocked.  update_oid_lock_file updates
+   it may contain OIDs which have been unlocked.  update_server_lock_file updates
    the file from memory, making it only include the OIDs which are currently
    locked.  */
-static void update_oid_lock_file()
+static void update_server_lock_file()
 {
   u8_string temp_file;
   fd_pair *scan, *limit; int n_locks=0;
   if (locks_filename == NULL) return;
-  fd_lock_mutex(&oid_locks_lock);
+  fd_lock_mutex(&server_locks_lock);
   temp_file=u8_mkstring("%s.bak",locks_filename);
   if (locks_file) fd_dtsclose(locks_file,1);
   u8_movefile(locks_filename,temp_file);
   locks_file=fd_open_dtype_file_x(locks_filename,FD_DTSTREAM_CREATE,65536,NULL,NULL);
-  fd_for_hashtable(&oid_locks,add_to_oid_locks_file,(void *)locks_file,1);
+  fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_dtsflush(locks_file);
   u8_removefile(temp_file);
   u8_free(temp_file);
-  fd_unlock_mutex(&oid_locks_lock);
+  fd_unlock_mutex(&server_locks_lock);
 }
 
 static fdtype config_get_locksfile(fdtype var,void MAYBE_UNUSED *data)
@@ -339,7 +339,7 @@ static int config_set_locksfile(fdtype var,fdtype val,void MAYBE_UNUSED *data)
       return 0;
     else return fd_reterr(_("Locks file already set"),"fd_config_set",NULL,val);
   else if (FD_STRINGP(val)) {
-    open_oid_lock_stream(FD_STRDATA(val));
+    open_server_lock_stream(FD_STRDATA(val));
     return 1;}
   else return fd_reterr(fd_TypeError,"fd_config_set",u8_strdup("string"),val);
 }
@@ -364,45 +364,45 @@ static fdtype unlock_oid_prim(fdtype oid,fdtype id,fdtype value)
     return FD_TRUE;}
   else {
     fd_pool p=fd_oid2pool(oid);
-    if (check_oid_lock(oid,id)) {
+    if (check_server_lock(oid,id)) {
       fd_set_oid_value(oid,value);
-      clear_oid_lock(oid,id);
+      clear_server_lock(oid,id);
       add_to_changelog(&oid_changelog,oid);
       fd_pool_commit(p,oid,1);
       return FD_TRUE;}
     else return FD_FALSE;}
 }
 
-static fdtype clear_oid_lock_prim(fdtype oid,fdtype id)
+static fdtype clear_server_lock_prim(fdtype oid,fdtype id)
 {
   if (locking == 0) return FD_TRUE;
-  else if (clear_oid_lock(oid,id)) {
+  else if (clear_server_lock(oid,id)) {
     return FD_TRUE;}
   else return FD_FALSE;
 }
 
-static fdtype break_oid_lock_prim(fdtype oid)
+static fdtype break_server_lock_prim(fdtype oid)
 {
   if (locking == 0) return FD_TRUE;
   else {
-    fdtype id=fd_hashtable_get(&oid_locks,oid,FD_EMPTY_CHOICE);
+    fdtype id=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
     if (FD_EMPTY_CHOICEP(id)) return FD_FALSE;
     else {
-      clear_oid_lock(oid,id);
+      clear_server_lock(oid,id);
       fd_decref(id);
       return FD_TRUE;}}
 }
 
 static fdtype unlock_all_prim(fdtype id)
 {
-  remove_all_oid_locks(id);
-  update_oid_lock_file();
+  remove_all_server_locks(id);
+  update_server_lock_file();
   return FD_TRUE;
 }
 
 static fdtype update_locks_prim()
 {
-  update_oid_lock_file();
+  update_server_lock_file();
   return FD_VOID;
 }
 
@@ -429,7 +429,7 @@ static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
     i=0; while (i < l) {
       fdtype oid=FD_VECTOR_REF(vec,i);
       if (!(FD_OIDP(oid))) i=i+2;
-      else if (check_oid_lock(oid,id)) i=i+2;
+      else if (check_server_lock(oid,id)) i=i+2;
       else fd_raise_exception(OIDNotLocked);}}
   /* Then set the corresponding OID value, but don't commit yet. */
   i=0; while (i < l) {
@@ -443,7 +443,7 @@ static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
   if (locking) {
     i=0; while (i < l) {
       fdtype oid=FD_VECTOR_REF(vec,i);
-      if (FD_OIDP(oid)) clear_oid_lock(oid,id);
+      if (FD_OIDP(oid)) clear_server_lock(oid,id);
       i=i+2;}}
   add_to_changelog(&oid_changelog,changed_oids); fd_decref(changed_oids);
   return FD_TRUE;
@@ -784,11 +784,11 @@ void fd_init_dbserv_c()
 
   init_timestamp=(int)time(NULL);
 
-  fd_init_hashtable(&oid_locks,0,NULL,NULL);
-  fd_init_hashtable(&oid_locks_inv,0,NULL,NULL);
+  fd_init_hashtable(&server_locks,0,NULL,NULL);
+  fd_init_hashtable(&server_locks_inv,0,NULL,NULL);
 
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&oid_locks_lock);
+  fd_init_mutex(&server_locks_lock);
   fd_init_mutex(&changelog_lock);
 #endif
 
@@ -832,8 +832,8 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim,0));
   fd_defn(module,fd_make_cprim2("LOCK-OID",lock_oid_prim,2));
   fd_defn(module,fd_make_cprim3("UNLOCK-OID",unlock_oid_prim,3));
-  fd_defn(module,fd_make_cprim2("CLEAR-OID-LOCK",clear_oid_lock_prim,2));
-  fd_defn(module,fd_make_cprim1("BREAK-OID-LOCK",break_oid_lock_prim,1));
+  fd_defn(module,fd_make_cprim2("CLEAR-OID-LOCK",clear_server_lock_prim,2));
+  fd_defn(module,fd_make_cprim1("BREAK-OID-LOCK",break_server_lock_prim,1));
   fd_defn(module,fd_make_cprim1("UNLOCK-ALL",unlock_all_prim,1));
   fd_defn(module,fd_make_cprim2("OID-CHANGES",oid_server_changes,2));
 
