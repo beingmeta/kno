@@ -988,6 +988,28 @@ static int do_commit(fd_pool p,void *data)
   else return 0;
 }
 
+FD_EXPORT int fd_commit_oids(fdtype oids,int unlock)
+{
+  struct POOL2OID { fd_pool pool; fdtype oids;} pool2oids[32];
+  int i=0, n_pool2oids=0;
+  FD_DO_CHOICES(oid,oids) {
+    fd_pool p=fd_oid2pool(oid);
+    if (p) {
+      int j=0; while (j<n_pool2oids) 
+	if (pool2oids[j].pool==p) {
+	  FD_ADD_TO_CHOICE(pool2oids[j].oids,oid); i++;}
+	else j++;
+      if (n_pool2oids==32)
+	return fd_reterr(_("Too many pools for commit"),"fd_commit_oids",NULL,oids);
+      pool2oids[n_pool2oids].pool=p; pool2oids[n_pool2oids].oids=oid; n_pool2oids++;}
+    else return fd_reterr(_("No pool for OID"),"fd_commit_oids",NULL,oid);}
+  while (i<n_pool2oids) {
+    fdtype simple=fd_simplify_choice(pool2oids[i].oids);
+    fd_pool_commit(pool2oids[i].pool,simple,unlock);
+    fd_decref(simple); i++;}
+  return n_pool2oids;
+}
+
 FD_EXPORT int fd_commit_pools()
 {
   return fd_for_pools(do_commit,(void *)NULL);
@@ -1153,7 +1175,7 @@ static fdtype config_get_anonymousok(fdtype var,void *data)
   else return FD_TRUE;
 }
 
-static fdtype config_set_anonymousok(fdtype var,fdtype val,void *data)
+static int config_set_anonymousok(fdtype var,fdtype val,void *data)
 {
   if (FD_TRUEP(val)) fd_ignore_anonymous_oids=1;
   else fd_ignore_anonymous_oids=0;
