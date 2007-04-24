@@ -68,3 +68,4 @@ break u8_raise
 
 cond 1 (ex != fd_throw_condition)
 set env MALLOC_CHECK_=2
+
