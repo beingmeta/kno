@@ -143,5 +143,11 @@ FD_EXPORT int fd_trace_ipeval;
 FD_EXPORT u8_mutex fd_ipeval_lock;
 #endif
 
+/* Cache calls */
+
+FD_EXPORT int fd_callcache_load(void);
+FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
+FD_EXPORT void fd_clear_callcache(fdtype arg);
+
 #endif
 

@@ -715,75 +715,6 @@ static void recycle_tail_call(struct FD_CONS *c)
     u8_free_x(c,sizeof(struct FD_TAIL_CALL)+(tc->n_elts*sizeof(fdtype)));
 }
 
-/* Cache calls */
-
-static struct FD_HASHTABLE fcn_caches;
-
-static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
-{
-  fdtype cache=fd_hashtable_get(&fcn_caches,fcn,FD_VOID);
-  if (FD_VOIDP(cache)) {
-    cache=fd_make_hashtable(NULL,512,NULL);
-    fd_hashtable_store(&fcn_caches,fcn,cache);
-    return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);}
-  else return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);
-}
-
-FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
-{
-  fdtype vec, cached;
-  struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
-  struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.data=((n==0) ? (NULL) : (args));
-  FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
-  vec=FDTYPE_CONS(&vecstruct);
-  cached=fd_hashtable_get(cache,vec,FD_VOID);
-  if (FD_VOIDP(cached)) {
-    int state=fd_ipeval_status();
-    fdtype result=fd_dapply(fcn,n,args);
-    if (FD_ABORTP(result)) {
-      fd_decref((fdtype)cache);
-      return result;}
-    else if (fd_ipeval_status()==state) {
-      fdtype *datavec=((n) ? (u8_malloc(sizeof(fdtype)*n)) : (NULL));
-      fdtype key=fd_init_vector(NULL,n,datavec);
-      int i=0; while (i<n) {
-	datavec[i]=fd_incref(args[i]); i++;}
-      fd_hashtable_store(cache,key,result);
-      fd_decref(key);}
-    fd_decref((fdtype)cache);
-    return result;}
-  else {
-    fd_decref((fdtype)cache);
-    return cached;}
-}
-
-FD_EXPORT void fd_clear_callcache(fdtype arg)
-{
-  if (fcn_caches.n_keys==0) return;
-  if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
-  else if (fd_hashtable_probe(&fcn_caches,arg))
-    fd_hashtable_store(&fcn_caches,arg,FD_VOID);
-}
-
-static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
-{
-  if (FD_HASHTABLEP(v)) {
-    fd_hashtable h=(fd_hashtable)v;
-    int *count=(int *)ptr;
-    *count=*count+h->n_keys;}
-  return 0;
-}
-
-FD_EXPORT int fd_callcache_load()
-{
-  int count=0;
-  fd_for_hashtable(&fcn_caches,hashtable_cachecount,&count,1);
-  return count;
-}
-
 /* Initializations */
 
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn)
@@ -813,8 +744,6 @@ FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from)
 FD_EXPORT void fd_init_apply_c()
 {
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
-
-  fd_make_hashtable(&fcn_caches,128,NULL);
 
   fd_register_source_file(versionid);
   fd_register_source_file(FDB_APPLY_H_VERSION);

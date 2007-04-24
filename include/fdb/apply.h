@@ -115,12 +115,6 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
   else return pt;
 }
 
-/* Cache calls */
-
-FD_EXPORT int fd_callcache_load(void);
-FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
-FD_EXPORT void fd_clear_callcache(fdtype arg);
-
 #define FD_DTYPE2FCN(x) ((FD_PPTRP(x)) ? ((fd_function)(fd_pptr_ref(x))) : ((fd_function)x))
 
 /* Profiling */
