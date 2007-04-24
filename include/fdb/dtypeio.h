@@ -127,36 +127,68 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x);
 FD_EXPORT fdtype fd_read_dtype
 (struct FD_BYTE_INPUT *in,FD_MEMORY_POOL_TYPE *p);
 
-/* These are for input */
+/* These are for input or output */
 #define FD_INIT_BYTE_OUTPUT(bo,sz,mp)      \
   (bo)->ptr=(bo)->start=u8_pmalloc(mp,sz); \
   (bo)->end=(bo)->start+sz; (bo)->mpool=(mp)
+
+#define FD_INIT_FIXED_BYTE_OUTPUT(bo,buf,sz)	\
+  (bo)->ptr=(bo)->start=buf; \
+  (bo)->end=(bo)->start+sz; (bo)->mpool=NULL
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)		   \
   (bi)->ptr=(bi)->start=b; (bi)->end=b+(sz); (bi)->fillfn=NULL; \
   (bi)->flushfn=NULL /* Might not be used */
 
 FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
-FD_EXPORT int _fd_write_bytes
-   (struct FD_BYTE_OUTPUT *,unsigned char *,int len);
+FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *,unsigned char);
+FD_EXPORT int _fd_write_bytes(struct FD_BYTE_OUTPUT *,unsigned char *,int len);
 FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *,unsigned int);
 
 #define fd_write_byte(stream,b)					     \
-  ((FD_EXPECT_TRUE(stream->ptr < stream->end)) ? (*stream->ptr++=b,1) \
-   : (_fd_write_byte(stream,b)))
+  ((FD_EXPECT_TRUE((stream)->ptr < (stream)->end)) ? (*((stream)->ptr)++=b,1) \
+   : (_fd_write_byte((stream),b)))
 #define fd_write_4bytes(stream,w)		   \
-  ((FD_EXPECT_TRUE(stream->ptr+4 < stream->end)) ? \
-   (*(stream->ptr++)=((unsigned char)((w>>24)&0xFF)), \
-    *(stream->ptr++)=((unsigned char)((w>>16)&0xFF)), \
-    *(stream->ptr++)=((unsigned char)((w>>8)&0xFF)),  \
-    *(stream->ptr++)=((unsigned char)((w>>0)&0xFF)),4) \
-   : (_fd_write_4bytes(stream,w)))
+  ((FD_EXPECT_TRUE((stream)->ptr+4 < (stream)->end)) ?	\
+   (*((stream)->ptr++)=((unsigned char)((w>>24)&0xFF)),	\
+    *((stream)->ptr++)=((unsigned char)((w>>16)&0xFF)),	\
+    *((stream)->ptr++)=((unsigned char)((w>>8)&0xFF)),	\
+    *((stream)->ptr++)=((unsigned char)((w>>0)&0xFF)),4)	\
+   : (_fd_write_4bytes((stream),w)))
 #define fd_write_bytes(stream,bvec,len)	 \
   ((FD_EXPECT_TRUE((stream)->ptr+len < (stream)->end)) ? \
    (memcpy(((stream)->ptr),bvec,len),	 \
     (stream)->ptr=(stream)->ptr+len,     \
     len)                                 \
   : (_fd_write_bytes(stream,bvec,len)))
+
+FD_FASTOP int fd_write_zint(struct FD_BYTE_OUTPUT *s,int n)
+{
+  if (n < (1<<7)) {
+    return fd_write_byte(s,n);}    
+  else if (n < (1<<14)) {
+    if (fd_write_byte(s,((0x80)|(n>>7)))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 2;}
+  else if (n < (1<<21)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 3;}
+  else if (n < (1<<28)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 4;}
+  else {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 5;}
+}
 
 #define fd_get_byte(membuf) (*(membuf))
 #define fd_get_4bytes(membuf)		  \
@@ -209,11 +241,20 @@ FD_FASTOP int fd_read_bytes
     return len;}
   else return -1;
 }
+FD_FASTOP unsigned int fd_read_zint(struct FD_BYTE_INPUT *s)
+{
+  unsigned int result=0, probe;
+  while (probe=fd_read_byte(s))
+    if (probe&0x80) result=result<<7|(probe&0x7F);
+    else break;
+  return result<<7|probe;
+}
 #else /*  FD_INLINE_DTYPEIO */
 #define fd_read_byte _fd_read_byte
 #define fd_unread_byte _fd_unread_byte
 #define fd_read_4bytes _fd_read_4bytes
 #define fd_read_bytes _fd_read_bytes
+#define fd_read_zint _fd_read_zint
 #endif
 
 typedef struct FD_COMPOUND_CONSTRUCTOR {
