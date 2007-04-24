@@ -92,7 +92,7 @@
 		     (short-interval-string (* time (/ (- limit count) count)))
 		     " to go"))
 		 "; " (get% blocktime time) "% (~"
-		 (short-interval-string preptime) ") in setup."))
+		 (short-interval-string blocktime) ") in setup."))
 	(blockprep
 	 (status "After processing " count " items "
 		 "in " (short-interval-string (- time blockprep)) ", "
