@@ -430,7 +430,7 @@ static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
       fdtype oid=FD_VECTOR_REF(vec,i);
       if (!(FD_OIDP(oid))) i=i+2;
       else if (check_server_lock(oid,id)) i=i+2;
-      else fd_raise_exception(OIDNotLocked);}}
+      else return fd_err(OIDNotLocked,"bulk_commit_proc",NULL,oid);}}
   /* Then set the corresponding OID value, but don't commit yet. */
   i=0; while (i < l) {
     fdtype oid=FD_VECTOR_REF(vec,i);
