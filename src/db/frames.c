@@ -731,7 +731,7 @@ FD_EXPORT fdtype fd_bg_get(fdtype slotid,fdtype value)
 	  return result;}
 	else {FD_ADD_TO_CHOICE(results,result);}}}
     fd_decref(features);
-    return results;}
+    return fd_simplify_choice(results);}
   else return FD_EMPTY_CHOICE;
 }
 
