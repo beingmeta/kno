@@ -222,6 +222,7 @@ int main(int argc,char **argv)
       fd_dtsflush(eval_server);
       result=fd_dtsread_dtype(eval_server);}
     else result=fd_eval(expr,env);
+    if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
     finish_ocache=fd_object_cache_load();
     finish_icache=fd_index_cache_load();
