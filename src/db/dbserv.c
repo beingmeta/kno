@@ -349,6 +349,8 @@ static int config_set_locksfile(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 static fdtype lock_oid_prim(fdtype oid,fdtype id)
 {
   fdtype result=FD_VOID;
+  if (!(FD_OIDP(oid)))
+    return fd_type_error(_("oid"),"lock_oid_prim",oid);
   if ((locking == 0) ||  (lock_oid(oid,id))) {
     return fd_oid_value(oid);}
   else return fd_err(CantLockOID,"lock_oid_prim",NULL,oid);

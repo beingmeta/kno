@@ -287,6 +287,10 @@ FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
       fd_hashtable_iterkeys(&(p->locks),fd_table_store,
 			    FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
 			    FD_EMPTY_CHOICE);
+    else if (FD_ABORTP(result)) return result;
+    else if (FD_EXCEPTIONP(result)) {
+      FD_SET_CONS_TYPE(result,fd_error_type);
+      return result;}
     else fd_hashtable_store(&(p->locks),result,FD_EMPTY_CHOICE);
     return result;}
 }

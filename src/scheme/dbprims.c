@@ -1155,6 +1155,8 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
       return fd_type_error(_("pool spec"),"frame_create_lexpr",args[0]);
     oid=fd_pool_alloc(p,1);
     if (FD_ABORTP(oid)) return oid;
+    else if (!(FD_OIDP(oid)))
+      return fd_type_error(_("oid"),"frame_create_lexpr",oid);
     slotmap=fd_init_slotmap(NULL,0,NULL,NULL);
     if (fd_set_oid_value(oid,slotmap)<0) {
       fd_decref(slotmap);
