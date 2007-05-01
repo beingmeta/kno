@@ -764,6 +764,8 @@ FD_EXPORT void fd_init_curl_c()
   
   FD_ADD_TO_CHOICE(text_types,text_symbol);
   FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/xml"));
+  FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/rss+xml"));
+  FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/atom+xml"));
   
 
   curl_defaults=fd_init_slotmap(NULL,0,NULL,NULL);
