@@ -357,8 +357,9 @@ static fdtype timed_evalx(fdtype expr,fd_lispenv env)
 static fdtype watched_eval(fdtype expr,fd_lispenv env)
 {
   fdtype toeval=fd_get_arg(expr,1);
+  double start=u8_elapsed_time();
   fdtype value=fd_eval(toeval,env);
-  u8_notify("%WATCH","%q => %q",toeval,value);
+  u8_notify("%WATCH","<%fsec> %q => %q",u8_elapsed_time()-start,toeval,value);
   return value;
 }
 
