@@ -362,6 +362,33 @@ static fdtype list2phrase_prim(fdtype arg)
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
+static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
+{
+  if (FD_EXPECT_FALSE(!(FD_SEQUENCEP(arg))))
+    return fd_type_error("sequence","seq2phrase_prim",arg);
+  else {
+    int dospace=0, start=FD_FIX2INT(start_arg), end, len=fd_seq_length(arg);
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+    if (start<0) start=len+start;
+    if ((start<0) || (start>=len)) {
+      char buf[32]; sprintf(buf,"%d",FD_FIX2INT(start_arg));
+      return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}
+    if (!(FD_FIXNUMP(end_arg))) end=len;
+    else {
+      end=FD_FIX2INT(end_arg);
+      if (end<0) end=len+end;
+      if ((end<0) || (end>=len)) {
+	char buf[32]; sprintf(buf,"%d",FD_FIX2INT(end_arg));
+	return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
+    while (start<end) {
+      fdtype word=fd_seq_elt(arg,start);
+      if (dospace) {u8_putc(&out,' ');} else dospace=1;
+      if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
+      else u8_printf(&out,"%q",word);
+      fd_decref(word); start++;}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+}
+
 /* String predicates */
 
 static fdtype isspace_percentage(fdtype string)
@@ -1360,6 +1387,10 @@ void fd_init_texttools()
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("WORDS->VECTOR",getwordsv_prim,1)));
   fd_idefn(texttools_module,fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
+  fd_idefn(texttools_module,fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
+					    -1,FD_VOID,
+					    fd_fixnum_type,FD_INT2DTYPE(0),
+					    fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim2x("VECTOR->FRAGS",vector2frags_prim,1,
 			   fd_vector_type,FD_VOID,
