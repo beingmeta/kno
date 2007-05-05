@@ -14,7 +14,7 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    isa inverse =is= disjoint implies implies*
-   make%id make%id!
+   make%id make%id! cap%wds cap%frame!
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-genls index-frame*
@@ -163,6 +163,30 @@
 		 (%get f partof))))))
 (define (make%id! f (lang default-language))
   (store! f '%id (make%id f lang)))
+
+;;; Capitalizing word entries
+
+(define (cap%wds e (cautious #f))
+  (if (pair? e)
+      (if (capitalized? (cdr e)) e
+	  (if cautious
+	      (cons (car e) (choice (cdr e) (capitalize (cdr e))))
+	      (cons (car e) (capitalize (cdr e)))))
+      e))
+
+(define (cap%frame! f (cautious #f))
+  (let* ((words (get f '%words))
+	 (norm (get f '%norm))
+	 (cwords (cap%wds words cautious))
+	 (cnorm (cap%wds norm cautious))
+	 (changed #f))
+    (unless (identical? words cwords)
+      (store! f '%words cwords)
+      (set! changed #t))
+    (unless (identical? norm cnorm)
+      (store! f '%norm cnorm)
+      (set! changed #t))
+    changed))
 
 ;;; Configuring bricosource
 
