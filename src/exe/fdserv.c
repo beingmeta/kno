@@ -636,6 +636,21 @@ int main(int argc,char **argv)
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
 
+  
+  /* We doe this using the Unix environment (rather than configuration
+      variables) because we want to redirect errors from the configuration
+      variables themselves and we want to be able to set this in the
+      environment we wrap around calls. */
+  if (getenv("LOGFILE")) {
+    /* This doesn't seem to work and I don't know why. */
+    char *logfile=u8_strdup(getenv("LOGFILE"));
+    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|O_SYNC,0644);
+    if (log_fd<0) {
+      u8_warn("Couldn't open log file %s",logfile);
+      exit(1);}
+    dup2(log_fd,1);
+    dup2(log_fd,2);}
+
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we

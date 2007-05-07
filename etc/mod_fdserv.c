@@ -401,8 +401,9 @@ static const char *socket_file(cmd_parms *parms,void *mconfig,const char *arg)
 static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-  if (file_writablep(parms->pool,parms->server,arg)) {
-    dconfig->log_file=arg;
+  char *fullpath=ap_server_root_relative(parms->pool,arg);
+  if (file_writablep(parms->pool,parms->server,fullpath)) {
+    dconfig->log_file=fullpath;
     return NULL;}
   else return "LogFile is not writable";
 }
@@ -584,8 +585,6 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
   argv[0]=(char *)exename;
   argv[1]=(char *)sockname;
 
-  envp[0]=NULL;
-  
   if (scan_config) {
     while (*scan_config) {
       if (n_configs>30) {/* blow up */}
@@ -600,24 +599,8 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		  "couldn't set child process attributes: %s", r->filename);
   if (dconfig->log_file) {
-    apr_file_t *logfile;
-    if (apr_file_open(&logfile,dconfig->log_file,
-		      APR_READ|APR_WRITE|APR_APPEND|APR_CREATE,
-		      APR_OS_DEFAULT,p)
-	!=APR_SUCCESS) 
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,"couldn't open log file %s",dconfig->log_file);
-#if 0
-    else if ((rv=apr_procattr_io_set(attr,0,0,0)) != APR_SUCCESS)
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
-		    "couldn't set child process i/o attributes: %s", r->filename);
-#endif
-    else if ((rv=apr_procattr_child_out_set(attr,logfile,NULL)) != APR_SUCCESS)
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
-		    "couldn't set child stdout: %s", r->filename);
-    else if ((rv=apr_procattr_child_err_set(attr,logfile,NULL)) != APR_SUCCESS)
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
-		    "couldn't set child stderr to: %s", r->filename);}
-  
+    envp[0]=apr_psprintf(p,"LOGFILE=%s",dconfig->log_file);
+    envp[1]=NULL;}  
   if (stat(sockname,&stat_data) == 0) {
     if (remove(sockname) == 0)
       ap_log_error

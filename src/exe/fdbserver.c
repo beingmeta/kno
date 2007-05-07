@@ -272,7 +272,7 @@ int main(int argc,char **argv)
      we need to call some initializers explicitly. */
 
   u8_now(&boot_time);
-  
+
   /* Initialize the libu8 stdio library if it won't happen automatically. */
 #if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
