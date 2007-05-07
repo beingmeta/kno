@@ -44,6 +44,8 @@ static struct U8_XTIME boot_time;
 
 static int max_tasks=32, n_threads=8, server_initialized=0;
 
+static int evaltrace=0;
+
 #if FD_THREADS_ENABLED
 static u8_mutex init_server_lock;
 #endif
@@ -138,7 +140,10 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return 0;}
   else {
-    fdtype value=fd_eval(expr,client->env);
+    fdtype value;
+    if (evaltrace) u8_message("%s: > %q",client->idstring,expr);
+    value=fd_eval(expr,client->env);
+    if (evaltrace) u8_message("%s: < %q",client->idstring,value);
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
     fd_decref(expr); fd_decref(value);
@@ -294,6 +299,7 @@ int main(int argc,char **argv)
   fd_register_config("PORT",config_get_ports,config_serve_port,NULL);
   fd_register_config("MODULE",config_get_modules,config_use_module,NULL);
   fd_register_config("FULLSCHEME",config_get_fullscheme,config_set_fullscheme,NULL);
+  fd_register_config("EVALTRACE",fd_boolconfig_get,fd_boolconfig_set,&evaltrace);
   atexit(shutdown_dtypeserver);
 #ifdef SIGTERM
   signal(SIGTERM,signal_shutdown);
