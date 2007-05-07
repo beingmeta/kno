@@ -427,6 +427,7 @@ static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
   consed->socket=sock; consed->flags=0;
   fd_init_dtype_stream(&(consed->in),sock,4096,NULL,NULL);
   U8_INIT_OUTPUT(&(consed->out),8192);
+  u8_set_nodelay(sock);
   return (u8_client) consed;
 }
 static int webservefn(u8_client ucl)
