@@ -19,7 +19,8 @@
    language-map gloss-map norm-map index-map
    index-string index-name index-gloss index-genls index-frame*
    indexer index-concept
-   basic-concept-frequency concept-frequency use-corpus-frequency})
+   basic-concept-frequency concept-frequency use-corpus-frequency
+   brico-prefetch! brico-prefetch})
 
 (define bricosource #f)
 (define brico-pool {})
@@ -208,6 +209,23 @@
 	       (begin (set! brico-index {})
 		      #f))))))
 (config-def! 'bricosource bricosource-config)
+
+;;; Generic prefetching
+
+;;; These functions do generic prefetching for BRICO concepts,
+;;;  retrieving both OIDs and the inverted slotid keys used by
+;;;  inference.
+
+(define brico-prefetch!
+  (ambda (concepts)
+    (prefetch-oids! concepts)
+    (prefetch-keys! (cons brico-slotids concepts))
+    (prefetch-oids! (?? (choice @?specls* @?parts*) concepts))))
+  
+(define brico-prefetch
+  (ambda (concepts)
+    (brico-prefetch! concepts)
+    concepts))
 
 ;;; Indexing functions
 
