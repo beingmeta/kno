@@ -451,9 +451,15 @@ static int webservefn(u8_client ucl)
       proc=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);}
   else {
+    fdtype uri;
     setup_time=u8_elapsed_time();
     cgidata=fd_dtsread_dtype(&(client->in)), result;
     path=fd_get(cgidata,script_filename,FD_VOID);
+    if (traceweb>0) {
+      uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      if (FD_STRINGP(uri)) 
+	u8_notify("REQUEST","Handling request for %s",FD_STRDATA(uri));
+      fd_decref(uri);}
     proc=getcontent(path);
     fd_parse_cgidata(cgidata);
     parse_time=u8_elapsed_time();
