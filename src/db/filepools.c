@@ -262,40 +262,22 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
   return result;
 }
 
-static void write_file_pool_recovery_data(struct FD_FILE_POOL *fp);
+static void write_file_pool_recovery_data
+  (struct FD_FILE_POOL *fp,unsigned int *off);
 
 static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p; FD_OID base=p->base;
-  unsigned int *offsets=u8_malloc(sizeof(unsigned int)*n);
+  /* This stores the offset where the DTYPE representation of each changed OID
+     has been written, indexed by the OIDs position in *oids. */
+  unsigned int *changed_offsets=u8_malloc(sizeof(unsigned int)*n);
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   /* Make sure that pos_limit fits into an int, in case off_t is an int. */
   off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n, load, offsets_at_end=0;
   fd_lock_mutex(&(fp->lock)); load=fp->load;
-  /* Get the endpos after the file pool is locked. */
+  /* Get the endpos after the file pool structure is locked. */
   endpos=fd_endpos(stream);
-#if HAVE_MMAP
-  if (fp->offsets) {
-    /* Since we were just reading, the buffer was only as big
-       as the load, not the capacity. */
-    int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
-    unsigned int *newmmap;
-    if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
-      fp->offsets=NULL; errno=0;}
-    else fp->offsets=NULL;
-    newmmap=
-      mmap(NULL,(4*fp->load)+24,
-	   PROT_READ|PROT_WRITE,
-	   MAP_SHARED,stream->fd,0);
-    if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:mmap",fp->cid);
-      fp->offsets=NULL; errno=0;}
-    else {
-      fp->offsets=newmmap+6;
-      fp->offsets_size=fp->load;}}
-#endif
   while (i<n) {
     FD_OID oid=FD_OID_ADDR(oids[i]);
     unsigned int oid_off=FD_OID_DIFFERENCE(oid,base);
@@ -311,81 +293,73 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 		"file_pool_storen",u8_strdup(fp->cid),
 		oids[i]);
       retcode=-1; break;}
-    offsets[i]=endpos; endpos=endpos+delta;
+    changed_offsets[i]=endpos; endpos=endpos+delta;
     i++;}
   /* Write recovery information which can be used to restore the
      offsets table and load. */
-  if (fp->offsets) write_file_pool_recovery_data(fp);
   if (retcode<0) {}
   else if (fp->offsets) {
-    int i=0; while (i<n) {
+    unsigned int *new_offsets=NULL, gc_new_offsets=0;
+    if ((HAVE_MMAP) && (fp->offsets)) {
+      /* If we're using MMAP, we can't modify fp->offsets,
+	 so we make a new one and copy it. */
+      unsigned int *old_offsets=fp->offsets;
+      int i=0, n=fp->load, cap=fp->capacity;
+      new_offsets=u8_malloc(sizeof(unsigned int)*(fp->load));
+      gc_new_offsets=1;
+      while (i<n) {
+	new_offsets[i]=offget(old_offsets,i); i++;}}
+    else if (fp->offsets)
+      new_offsets=fp->offsets;
+    else {
+      new_offsets=u8_malloc(sizeof(unsigned int)*(fp->load));
+      gc_new_offsets=1;
+      fd_setpos(stream,24);
+      fd_dtsread_ints(stream,fp->load,new_offsets);}
+    i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       unsigned int oid_off=FD_OID_DIFFERENCE(addr,base);
-      set_offset(fp->offsets,oid_off,offsets[i]);
-      i++;}}
+      new_offsets[oid_off]=changed_offsets[i];
+      i++;}
+    u8_free(changed_offsets);
+    write_file_pool_recovery_data(fp,new_offsets);
+    fd_setpos(stream,24);
+    fd_dtswrite_ints(stream,fp->load,new_offsets);
+    /* Free the new_offsets if they were consed. */
+    if (gc_new_offsets) u8_free(new_offsets);}
   else {
     int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       unsigned int reloff=FD_OID_DIFFERENCE(addr,base);
       if (fd_setpos(stream,24+4*reloff)<0) {
 	retcode=-1; break;}
-      fd_dtswrite_4bytes(stream,offsets[i]);
+      fd_dtswrite_4bytes(stream,changed_offsets[i]);
       i++;}}
-  u8_free(offsets);
-#if HAVE_MMAP
-  if (fp->offsets) {
-    int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
-    unsigned int *newmmap;
-    if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
-      fp->offsets=NULL; errno=0;}
-    else {
-      fp->offsets=NULL; fp->offsets_size=0;}
-    newmmap=
-      /* When allocating an offset buffer to read, we only have to make it as
-	 big as the file pools load. */
-      mmap(NULL,(4*fp->load)+24,
-	   PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd,0);
-    if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
-      fp->offsets=NULL; errno=0;}
-    else {
-      fp->offsets_size=fp->load;
-      fp->offsets=newmmap+6;}}
-#else
-  if ((retcode>=0) && (fp->offsets)) {
-    if (fd_setpos(stream,24)<0) retcode=-1;
-    else fd_dtswrite_ints(stream,fp->offsets_size,offsets);}
-#endif
-  if (retcode>=0) {
-    if (fd_setpos(stream,16)<0) retcode=-1;
-    else {
-      fd_dtswrite_4bytes(stream,fp->load);
-      fd_dtsflush(stream);
-      update_modtime(fp);
-      fsync(stream->fd);}}
-  fd_setpos(stream,0);
-  fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
-  fd_dtsflush(stream); fsync(stream->fd);
-  /* Now erase the recovery information since we don't need it anymore. */
+  fd_setpos(stream,16);
+  fd_dtswrite_4bytes(stream,fp->load);
+  update_modtime(fp);
   if (fp->offsets) {
     off_t end=fd_endpos(stream);
+    fd_setpos(stream,0);
+    /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
+       fd_write_file_pool_recovery_data. */
+    fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
+    fd_dtsflush(stream); fsync(stream->fd);
     fd_movepos(stream,-(4*(fp->capacity+1)));
     ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
   fd_unlock_mutex(&(fp->lock));
   return retcode;
 }
 
-static void write_file_pool_recovery_data(struct FD_FILE_POOL *fp)
+static void write_file_pool_recovery_data
+   (struct FD_FILE_POOL *fp,unsigned int *offsets)
 {
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   int i=0, load=fp->load, len=fp->capacity;
-  if (fp->offsets==NULL) return;
   fd_endpos(stream);
   fd_dtswrite_4bytes(stream,load);
   while (i<load) {
-    unsigned int off=offget(fp->offsets,i);
-    fd_dtswrite_4bytes(stream,off); i++;}
+    fd_dtswrite_4bytes(stream,offsets[i]); i++;}
   while (i<len) {fd_dtswrite_4bytes(stream,0); i++;}
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_FILE_POOL_TO_RECOVER);

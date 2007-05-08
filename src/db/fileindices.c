@@ -31,7 +31,7 @@ static char versionid[] =
 #define set_offset(offvec,offset,v) (offvec)[offset]=(v)
 #endif
 
-static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx);
+static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,unsigned int *);
 static int recover_file_index(struct FD_FILE_INDEX *fx);
 
 #define SLOTSIZE (sizeof(unsigned int))
@@ -634,11 +634,11 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
     This finds where all the keys are, reserving slots for them if neccessary.
     It also fetches the current number of values and the valuepos.
    Returns the number of new keys or -1 on error. */
-static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n)
+static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,unsigned int *offsets)
 {
   struct RESERVATIONS reserved;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
-  unsigned int *offsets=fx->offsets, pos_offset=fx->n_slots*4, chain_length=0;
+  unsigned int pos_offset=fx->n_slots*4, chain_length=0;
   int i=0, max=n, new_keys=0;
   if (offsets == NULL) {
     reserved.slotnos=u8_malloc(SLOTSIZE*64);
@@ -858,9 +858,9 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   return n_edits;
 }
 
-static void write_keys(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata)
+static void write_keys(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata,unsigned int *offsets)
 {
-  unsigned int *offsets=fx->offsets, pos_offset=fx->n_slots*4;
+  unsigned int pos_offset=fx->n_slots*4;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   off_t pos=fd_endpos(stream);
   int i=0; while (i<n) {
@@ -869,15 +869,14 @@ static void write_keys(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata)
     fd_dtswrite_4bytes(stream,(unsigned int)kdata[i].pos);
     pos=pos+fd_dtswrite_dtype(stream,kdata[i].key)+8;
     if (offsets)
-      set_offset(offsets,kdata[i].slotno,(kpos-pos_offset));
+      offsets[kdata[i].slotno]=(kpos-pos_offset);
     else kdata[i].pos=(kpos-pos_offset);
     i++;}
 }     
 
-static void write_offsets(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata)
+static void write_offsets(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata,unsigned int *offsets)
 {
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
-  unsigned int *offsets=fx->offsets;
   if (offsets) {
     fd_setpos(stream,8);
     fd_dtswrite_ints(stream,fx->n_slots,offsets);
@@ -898,26 +897,27 @@ static int fileindex_commit(struct FD_INDEX *ix)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
+  unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->n_slots*4, newcount;
   fd_lock_mutex(&(ix->adds.lock));
   fd_lock_mutex(&(ix->edits.lock));
   fd_lock_mutex(&(fx->lock));
   fd_dts_start_write(stream);
+  /* Get the current offsets from the index */
 #if HAVE_MMAP
   if (fx->offsets) {
-    int retval=munmap(fx->offsets-2,(SLOTSIZE*fx->n_slots)+8);
-    unsigned int *newmmap;
-    if (retval<0) {
-      u8_warn(u8_strerror(errno),"fileindex_commit:munmap %s",fx->source);
-      fx->offsets=NULL; errno=0;}
-    newmmap=
-      mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
-	   PROT_READ|PROT_WRITE,MMAP_FLAGS,
-	   stream->fd,0);
-    if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"fileindex_commit:mmap %s",fx->source);
-      fx->offsets=NULL; errno=0;}
-    else fx->offsets=newmmap+2;}
+    int i=0, n=fx->n_slots; 
+    /* We have to copy these if they're MMAPd, because
+       we can't modify them (while updating) otherwise.  */
+    new_offsets=u8_malloc(sizeof(unsigned int)*(fx->n_slots));
+    gc_new_offsets=1;
+    while (i<n) {
+      new_offsets[i]=offget(fx->offsets,i); i++;}}
+#else  
+  if (fx->offsets) {
+    new_offsets=fx->offsets;
+    fd_setpos(stream,8);
+    fd_dtsread_ints(stream,fx->n_slots,new_offsets);}
 #endif
   {
     off_t filepos;
@@ -956,10 +956,11 @@ static int fileindex_commit(struct FD_INDEX *ix)
     i=add_index; while (i<n) {
       kdata[i].serial=i; value_locs[i-add_index]=((unsigned int)kdata[i].pos);
       i++;}
-    newcount=fetch_keydata(fx,kdata,n);
+    newcount=fetch_keydata(fx,kdata,n,new_offsets);
     if (newcount<0) {
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
+      if (gc_new_offsets) u8_free(new_offsets);
       fd_unlock_mutex(&(ix->adds.lock));
       fd_unlock_mutex(&(ix->edits.lock));
       fd_unlock_mutex(&(fx->lock));
@@ -989,43 +990,28 @@ static int fileindex_commit(struct FD_INDEX *ix)
 	  i++; kvscan++;}
 	scan++;}
       else scan++;
-    write_keys(fx,n,kdata);
+    write_keys(fx,n,kdata,new_offsets);
     /* Write recovery information which can be used to restore the
        offsets table. */
-    write_file_index_recovery_data(fx);
-#if HAVE_MMAP
-    if (fx->offsets) {
-      int retval=munmap(fx->offsets-2,(SLOTSIZE*fx->n_slots)+8);
-      unsigned int *newmmap;
-      if (retval<0) {
-	u8_warn(u8_strerror(errno),"fileindex_commit:munmap %s",fx->source);
-	fx->offsets=NULL; errno=0;}
-      newmmap=
-	mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
-	     PROT_READ,MMAP_FLAGS,stream->fd,0);
-      if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"fileindex_commit:mmap %s",fx->source);
-	fx->offsets=NULL; errno=0;}
-      else fx->offsets=newmmap+2;}
-    else write_offsets(fx,n,kdata);
-#else
-    write_offsets(fx,n,kdata);
-#endif
-    fd_dtsflush(stream);
-    fd_setpos(stream,0);
-    if (fx->hashv==1)
+    if (new_offsets) write_file_index_recovery_data(fx,new_offsets);
+    /* Now, start writing the offsets themsleves */
+    write_offsets(fx,n,kdata,new_offsets);
+    if (new_offsets) fd_setpos(stream,0);
+    if (new_offsets==NULL) {}
+    else if (fx->hashv==1)
       fd_dtswrite_4bytes(stream,FD_FILE_INDEX_MAGIC_NUMBER);
     else if (fx->hashv==2)
       fd_dtswrite_4bytes(stream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
     fd_dtsflush(stream); fsync(stream->fd);
-    /* Now erase the recover information, since we don't need it anymore. */
-    if (fx->offsets) {
+    /* Now erase the recovery information, since we don't need it anymore. */
+    if (new_offsets) {
       off_t end=fd_endpos(stream);
       fd_movepos(stream,-(4*(fx->n_slots)));
       ftruncate(stream->fd,end-(4*(fx->n_slots)));}
     fd_unlock_mutex(&(fx->lock));
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
+    if (gc_new_offsets) u8_free(new_offsets);
     fd_reset_hashtable(&(ix->adds),67,0);
     fd_unlock_mutex(&(ix->adds.lock));
     fd_reset_hashtable(&(ix->edits),67,0);
@@ -1033,16 +1019,17 @@ static int fileindex_commit(struct FD_INDEX *ix)
     return n;}
 }
 
-static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx)
+static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,unsigned int *offsets)
 {
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   int i=0, n_slots=fx->n_slots; unsigned int magic_no;
-  if (fx->offsets==NULL) return;
   fd_endpos(stream);
   while (i<n_slots) {
-    unsigned int off=offget(fx->offsets,i);
+    unsigned int off=offget(offsets,i);
     fd_dtswrite_4bytes(stream,off); i++;}
   fd_setpos(stream,0); magic_no=fd_dtsread_4bytes(stream);
+  /* Compute a variant magic number indicating that the
+     index needs to be restored. */
   magic_no=magic_no|0x20;
   fd_setpos(stream,0); fd_dtswrite_4bytes(stream,magic_no);
   fd_dtsflush(stream);
