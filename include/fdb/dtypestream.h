@@ -16,7 +16,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
-FD_EXPORT fd_exception fd_CantWrite, fd_CantRead;
+FD_EXPORT fd_exception fd_ReadOnlyStream;
+FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
+FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
+
 
 #define FD_DTSTREAM_BUFSIZ_DEFAULT 32*1024
 #define FD_DTSTREAM_READING 1
@@ -74,7 +77,7 @@ FD_EXPORT off_t _fd_getpos(fd_dtype_stream s);
    ((s->filepos>=0) ? (s->filepos+(s->ptr-s->start)) : (_fd_getpos(s))) \
    : (-1))
 FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos);
-FD_EXPORT off_t fd_movepos(fd_dtype_stream s,off_t dleta);
+FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta);
 FD_EXPORT off_t fd_endpos(fd_dtype_stream s);
 
 FD_EXPORT int fd_set_read(fd_dtype_stream s,int read);

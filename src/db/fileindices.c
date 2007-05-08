@@ -31,6 +31,9 @@ static char versionid[] =
 #define set_offset(offvec,offset,v) (offvec)[offset]=(v)
 #endif
 
+static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx);
+static int recover_file_index(struct FD_FILE_INDEX *fx);
+
 #define SLOTSIZE (sizeof(unsigned int))
 
 fd_exception fd_FileIndexOverflow=_("file index hash overflow");
@@ -57,6 +60,12 @@ static fd_index open_fileindex(u8_string fname,int read_only)
   if (index->stream.bits&FD_DTSTREAM_READ_ONLY) read_only=1;
   index->stream.mallocd=0;
   magicno=fd_dtsread_4bytes(s);
+  index->n_slots=fd_dtsread_4bytes(s);
+  if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
+      (magicno==FD_MULT_FILE_INDEX_TO_RECOVER) ||
+      (magicno==FD_MULT_FILE3_INDEX_TO_RECOVER)) {
+    recover_file_index(index);
+    magicno=magicno&(~0x20);}
   if (magicno == FD_FILE_INDEX_MAGIC_NUMBER) index->hashv=1;
   else if (magicno == FD_MULT_FILE_INDEX_MAGIC_NUMBER) index->hashv=2;
   else if (magicno == FD_MULT_FILE3_INDEX_MAGIC_NUMBER) index->hashv=3;
@@ -64,7 +73,6 @@ static fd_index open_fileindex(u8_string fname,int read_only)
     fd_seterr3(fd_NotAFileIndex,"open_fileindex",u8_strdup(fname));
     u8_free(index);
     return NULL;}
-  index->n_slots=fd_dtsread_4bytes(s);
   index->offsets=NULL; index->read_only=read_only;
   fd_init_mutex(&(index->lock));
   index->slotids=FD_VOID;
@@ -982,6 +990,9 @@ static int fileindex_commit(struct FD_INDEX *ix)
 	scan++;}
       else scan++;
     write_keys(fx,n,kdata);
+    /* Write recovery information which can be used to restore the
+       offsets table. */
+    write_file_index_recovery_data(fx);
 #if HAVE_MMAP
     if (fx->offsets) {
       int retval=munmap(fx->offsets-2,(SLOTSIZE*fx->n_slots)+8);
@@ -1001,7 +1012,17 @@ static int fileindex_commit(struct FD_INDEX *ix)
     write_offsets(fx,n,kdata);
 #endif
     fd_dtsflush(stream);
-    fsync(stream->fd);
+    fd_setpos(stream,0);
+    if (fx->hashv==1)
+      fd_dtswrite_4bytes(stream,FD_FILE_INDEX_MAGIC_NUMBER);
+    else if (fx->hashv==2)
+      fd_dtswrite_4bytes(stream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+    fd_dtsflush(stream); fsync(stream->fd);
+    /* Now erase the recover information, since we don't need it anymore. */
+    if (fx->offsets) {
+      off_t end=fd_endpos(stream);
+      fd_movepos(stream,-(4*(fx->n_slots)));
+      ftruncate(stream->fd,end-(4*(fx->n_slots)));}
     fd_unlock_mutex(&(fx->lock));
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
@@ -1010,6 +1031,42 @@ static int fileindex_commit(struct FD_INDEX *ix)
     fd_reset_hashtable(&(ix->edits),67,0);
     fd_unlock_mutex(&(ix->edits.lock));
     return n;}
+}
+
+static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx)
+{
+  struct FD_DTYPE_STREAM *stream=&(fx->stream);
+  int i=0, n_slots=fx->n_slots; unsigned int magic_no;
+  if (fx->offsets==NULL) return;
+  fd_endpos(stream);
+  while (i<n_slots) {
+    unsigned int off=offget(fx->offsets,i);
+    fd_dtswrite_4bytes(stream,off); i++;}
+  fd_setpos(stream,0); magic_no=fd_dtsread_4bytes(stream);
+  magic_no=magic_no|0x20;
+  fd_setpos(stream,0); fd_dtswrite_4bytes(stream,magic_no);
+  fd_dtsflush(stream);
+}
+
+static int recover_file_index(struct FD_FILE_INDEX *fx)
+{
+  /* This reads the offsets vector written at the end of the file
+     during commitment. */
+  int i=0, len=fx->n_slots, load; off_t new_end;
+  unsigned int *offsets=u8_malloc(4*len), magic_no;
+  struct FD_DTYPE_STREAM *s=&(fx->stream);
+  fd_endpos(s); new_end=fd_movepos(s,-(4*len));
+  while (i<len) {
+    offsets[i]=fd_dtsread_4bytes(s); i++;}
+  fd_setpos(s,24);
+  i=0; while (i<len) {
+    fd_dtswrite_4bytes(s,offsets[i]); i++;}
+  fd_setpos(s,0); magic_no=fd_dtsread_4bytes(s);
+  fd_dtswrite_4bytes(s,(magic_no&(~0x20)));
+  fd_dtsflush(s);
+  ftruncate(s->fd,new_end);
+  fsync(s->fd);
+  return 0;
 }
 
 static void fileindex_close(fd_index ix)
@@ -1075,174 +1132,7 @@ FD_EXPORT fd_init_fileindices_c()
   slotids_symbol=fd_intern("%%SLOTIDS");
   fd_register_index_opener(FD_FILE_INDEX_MAGIC_NUMBER,open_fileindex);
   fd_register_index_opener(FD_MULT_FILE_INDEX_MAGIC_NUMBER,open_fileindex);
+  fd_register_index_opener(FD_FILE_INDEX_TO_RECOVER,open_fileindex);
+  fd_register_index_opener(FD_MULT_FILE_INDEX_TO_RECOVER,open_fileindex);
 }
 
-
-/* The CVS log for this file
-   $Log: fileindices.c,v $
-   Revision 1.77  2006/03/15 16:33:23  haase
-   Fixed bug with negative zero pun in file/zindex fetch and commit
-
-   Revision 1.76  2006/02/07 16:06:34  haase
-   Fixed context arg to fileindex_fetch error
-
-   Revision 1.75  2006/02/07 16:02:59  haase
-   Fixed bug in fetchn with caching
-
-   Revision 1.74  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.73  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.72  2006/01/16 17:58:07  haase
-   Fixes to empty choice cases for indices and better error handling
-
-   Revision 1.71  2006/01/16 16:14:19  haase
-   Fix to handling of existing but empty keys in indices
-
-   Revision 1.70  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.69  2005/12/30 18:35:53  haase
-   Minor whitespace changes
-
-   Revision 1.68  2005/12/28 23:03:29  haase
-   Made choices be direct blocks of elements, including various fixes, simplifications, and more detailed documentation.
-
-   Revision 1.67  2005/12/20 00:54:23  haase
-   Fixed bug in slotno reservation for file indices
-
-   Revision 1.66  2005/12/19 00:47:22  haase
-   Cleaned up leak in fetchkeys
-
-   Revision 1.65  2005/12/13 19:22:07  haase
-   Fixed recursive lock error on file indices
-
-   Revision 1.64  2005/12/12 16:59:00  haase
-   Moved lock point for file index commits
-
-   Revision 1.63  2005/11/29 17:53:25  haase
-   Catch file index overflows and 0/1 cases of index getkeys and getsizes
-
-   Revision 1.62  2005/11/11 04:31:17  haase
-   Fixed bug with setting keys to no values by storing or dropping
-
-   Revision 1.61  2005/10/30 04:13:19  haase
-   Fixed bug in index dropping
-
-   Revision 1.60  2005/08/18 17:03:09  haase
-   Fixed some incremental change bugs in file indices
-
-   Revision 1.59  2005/08/11 17:08:15  haase
-   Fixed bug with commiting drops that end up emptying a key
-
-   Revision 1.58  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.57  2005/08/07 20:50:34  haase
-   Fixed bug where fetchn ignored local adds
-
-   Revision 1.56  2005/07/18 18:54:47  haase
-   Fixes to file index prefetching
-
-   Revision 1.55  2005/06/18 23:22:38  haase
-   Fixed some subtle index bugs
-
-   Revision 1.54  2005/06/05 22:50:01  haase
-   More fileindex fixes
-
-   Revision 1.53  2005/06/05 04:21:02  haase
-   Further fixes to index commitment
-
-   Revision 1.52  2005/06/05 03:42:28  haase
-   Index simplifications and bug fixes for store/add combinations
-
-   Revision 1.51  2005/06/04 12:43:25  haase
-   Fix error in saving indices with mixed adds and stores
-
-   Revision 1.50  2005/05/26 12:41:11  haase
-   More return value error handling fixes
-
-   Revision 1.49  2005/05/25 18:05:19  haase
-   Check for -1 return value from mmap as well as NULL
-
-   Revision 1.48  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.47  2005/04/26 01:22:49  haase
-   Fixed bulk fetching bug in zindices and fileindices
-
-   Revision 1.46  2005/04/16 19:23:32  haase
-   Fixed some locking errors
-
-   Revision 1.45  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.44  2005/04/12 20:42:45  haase
-   Used #define FD_FILEDB_BUFSIZE to set default buffer size (initially 256K)
-
-   Revision 1.43  2005/04/06 18:31:51  haase
-   Fixed mmap error calls to produce warnings rather than raising errors and to use u8_strerror to get the condition name
-
-   Revision 1.42  2005/03/30 15:30:00  haase
-   Made calls to new seterr do appropriate strdups
-
-   Revision 1.41  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.40  2005/03/28 19:19:35  haase
-   Added metadata reading and writing and file pool/index creation
-
-   Revision 1.39  2005/03/26 04:46:58  haase
-   Added fd_index_sizes
-
-   Revision 1.38  2005/03/25 19:49:47  haase
-   Removed base library for eframerd, deferring to libu8
-
-   Revision 1.37  2005/03/18 02:27:33  haase
-   Various file pool and index fixes
-
-   Revision 1.36  2005/03/07 19:19:54  haase
-   Fixes to fileindices and zindices
-
-   Revision 1.35  2005/03/07 14:17:34  haase
-   Patched leak in key reading and added file index consistency checks
-
-   Revision 1.34  2005/03/06 19:26:44  haase
-   Plug some leaks and some failures to return values
-
-   Revision 1.33  2005/03/06 18:28:21  haase
-   Added timeprims
-
-   Revision 1.32  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.31  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.30  2005/03/03 17:58:14  haase
-   Moved stdio dependencies out of fddb and reorganized make structure
-
-   Revision 1.29  2005/03/01 23:13:54  haase
-   Fixes to index commitment implementation
-
-   Revision 1.28  2005/03/01 19:40:23  haase
-   Fixed commitment issues in file indices
-
-   Revision 1.27  2005/02/27 03:01:35  haase
-   Fixes to make index commitment work
-
-   Revision 1.26  2005/02/25 19:47:46  haase
-   Fixed commitment of cached file indices
-
-   Revision 1.25  2005/02/25 19:45:24  haase
-   Fixed commitment of cached file pools
-
-   Revision 1.24  2005/02/19 16:25:02  haase
-   Replaced fd_parse with fd_intern
-
-   Revision 1.23  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

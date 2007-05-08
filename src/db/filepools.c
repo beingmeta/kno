@@ -45,6 +45,8 @@ static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock);
 
 static struct FD_POOL_HANDLER filepool_handler;
 
+static int recover_file_pool(struct FD_FILE_POOL *);
+
 static fd_pool open_std_file_pool(u8_string fname,int read_only)
 {
   struct FD_FILE_POOL *pool=u8_malloc(sizeof(struct FD_FILE_POOL));
@@ -54,7 +56,8 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL);
+  fd_init_dtype_file_stream
+    (&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL);
   /* See if it ended up read only */
   if (pool->stream.bits&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->stream.mallocd=0;
@@ -64,6 +67,10 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   capacity=fd_dtsread_4bytes(s);
   fd_init_pool((fd_pool)pool,base,capacity,&filepool_handler,fname,rname);
   u8_free(rname);
+  if (magicno==FD_FILE_POOL_TO_RECOVER) {
+    if (recover_file_pool(pool)<0) {
+      fd_seterr(fd_MallocFailed,"open_file_pool",NULL,FD_VOID);
+      return NULL;}}
   load=fd_dtsread_4bytes(s);
   label_loc=(off_t)fd_dtsread_4bytes(s);
   if (label_loc) {
@@ -255,6 +262,8 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
   return result;
 }
 
+static void write_file_pool_recovery_data(struct FD_FILE_POOL *fp);
+
 static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p; FD_OID base=p->base;
@@ -262,7 +271,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   /* Make sure that pos_limit fits into an int, in case off_t is an int. */
   off_t endpos, pos_limit=0xFFFFFFFF;
-  int i=0, retcode=n, load;
+  int i=0, retcode=n, load, offsets_at_end=0;
   fd_lock_mutex(&(fp->lock)); load=fp->load;
   /* Get the endpos after the file pool is locked. */
   endpos=fd_endpos(stream);
@@ -304,6 +313,9 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       retcode=-1; break;}
     offsets[i]=endpos; endpos=endpos+delta;
     i++;}
+  /* Write recovery information which can be used to restore the
+     offsets table and load. */
+  if (fp->offsets) write_file_pool_recovery_data(fp);
   if (retcode<0) {}
   else if (fp->offsets) {
     int i=0; while (i<n) {
@@ -352,8 +364,56 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fd_dtsflush(stream);
       update_modtime(fp);
       fsync(stream->fd);}}
+  fd_setpos(stream,0);
+  fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
+  fd_dtsflush(stream); fsync(stream->fd);
+  /* Now erase the recovery information since we don't need it anymore. */
+  if (fp->offsets) {
+    off_t end=fd_endpos(stream);
+    fd_movepos(stream,-(4*(fp->capacity+1)));
+    ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
   fd_unlock_mutex(&(fp->lock));
   return retcode;
+}
+
+static void write_file_pool_recovery_data(struct FD_FILE_POOL *fp)
+{
+  struct FD_DTYPE_STREAM *stream=&(fp->stream);
+  int i=0, load=fp->load, len=fp->capacity;
+  if (fp->offsets==NULL) return;
+  fd_endpos(stream);
+  fd_dtswrite_4bytes(stream,load);
+  while (i<load) {
+    unsigned int off=offget(fp->offsets,i);
+    fd_dtswrite_4bytes(stream,off); i++;}
+  while (i<len) {fd_dtswrite_4bytes(stream,0); i++;}
+  fd_setpos(stream,0);
+  fd_dtswrite_4bytes(stream,FD_FILE_POOL_TO_RECOVER);
+  fd_dtsflush(stream);
+}
+
+static int recover_file_pool(struct FD_FILE_POOL *fp)
+{
+  /* This reads the offsets vector written at the end of the file
+     during commitment. */
+  int i=0, len=fp->capacity, load; off_t new_end;
+  unsigned int *offsets=u8_malloc(4*len);
+  struct FD_DTYPE_STREAM *s=&(fp->stream);
+  fd_endpos(s); new_end=fd_movepos(s,-(4+4*len));
+  load=fd_dtsread_4bytes(s);
+  while (i<len) {
+    offsets[i]=fd_dtsread_4bytes(s); i++;}
+  fd_setpos(s,16);
+  fd_dtswrite_4bytes(s,load);
+  fd_setpos(s,24);
+  i=0; while (i<len) {
+    fd_dtswrite_4bytes(s,offsets[i]); i++;}
+  fd_setpos(s,0);
+  fd_dtswrite_4bytes(s,FD_FILE_POOL_MAGIC_NUMBER);
+  fd_dtsflush(s); fp->load=load;
+  ftruncate(s->fd,new_end);
+  fsync(s->fd);
+  return 0;
 }
 
 static fdtype file_pool_alloc(fd_pool p,int n)
@@ -543,100 +603,8 @@ FD_EXPORT fd_init_filepools_c()
   fd_register_pool_opener
     (FD_FILE_POOL_MAGIC_NUMBER,
      open_std_file_pool,fd_read_pool_metadata,fd_write_pool_metadata);
+  fd_register_pool_opener
+    (FD_FILE_POOL_TO_RECOVER,
+     open_std_file_pool,fd_read_pool_metadata,fd_write_pool_metadata);
 }
 
-
-/* The CVS log for this file
-   $Log: filepools.c,v $
-   Revision 1.47  2006/03/14 04:30:19  haase
-   Signal error when a pool is exhausted
-
-   Revision 1.46  2006/02/05 13:53:26  haase
-   Added locking around file pool stores
-
-   Revision 1.45  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.44  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.43  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.42  2006/01/05 19:16:44  haase
-   Fix file pool lock/unlock inconsistency
-
-   Revision 1.41  2006/01/05 18:04:44  haase
-   Made pool access check return values from fd_setpos
-
-   Revision 1.40  2005/12/22 14:39:28  haase
-   Renamed file pool opener to avoid conflict with generic filepool opener
-
-   Revision 1.39  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.38  2005/05/30 00:03:54  haase
-   Fixes to pool declaration, allowing the USE-POOL primitive to return multiple pools correctly when given a ; spearated list or a pool server which provides multiple pools
-
-   Revision 1.37  2005/05/26 11:03:21  haase
-   Fixed some bugs with read-only pools and indices
-
-   Revision 1.36  2005/05/25 18:05:19  haase
-   Check for -1 return value from mmap as well as NULL
-
-   Revision 1.35  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.34  2005/05/17 18:41:27  haase
-   Fixed bug in oid commitment and unlocking
-
-   Revision 1.33  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.32  2005/04/12 20:42:45  haase
-   Used #define FD_FILEDB_BUFSIZE to set default buffer size (initially 256K)
-
-   Revision 1.31  2005/04/06 18:31:51  haase
-   Fixed mmap error calls to produce warnings rather than raising errors and to use u8_strerror to get the condition name
-
-   Revision 1.30  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.29  2005/03/28 19:19:36  haase
-   Added metadata reading and writing and file pool/index creation
-
-   Revision 1.28  2005/03/25 19:49:47  haase
-   Removed base library for eframerd, deferring to libu8
-
-   Revision 1.27  2005/03/07 19:37:33  haase
-   Added fsyncs and mmap/munmamp return value checking
-
-   Revision 1.26  2005/03/07 14:18:19  haase
-   Moved lock counting into pool handlers and made swapout devoid the locks table
-
-   Revision 1.25  2005/03/06 19:26:44  haase
-   Plug some leaks and some failures to return values
-
-   Revision 1.24  2005/03/06 18:28:21  haase
-   Added timeprims
-
-   Revision 1.23  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.22  2005/03/03 17:58:15  haase
-   Moved stdio dependencies out of fddb and reorganized make structure
-
-   Revision 1.21  2005/02/26 21:39:56  haase
-   Moved lock increments into pools.c
-
-   Revision 1.20  2005/02/25 19:45:24  haase
-   Fixed commitment of cached file pools
-
-   Revision 1.19  2005/02/25 19:23:32  haase
-   Fixes to pool locking and commitment
-
-   Revision 1.18  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
- 

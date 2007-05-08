@@ -36,6 +36,7 @@ fd_exception fd_ReadOnlyStream=_("Read-only stream");
 fd_exception fd_CantRead=_("Can't read data");
 fd_exception fd_CantWrite=_("Can't write data");
 fd_exception fd_BadSeek=_("Bad seek argument");
+fd_exception fd_CantSeek=_("Can't seek on stream");
 fd_exception fd_BadLSEEK=_("lseek() failed");
 fd_exception fd_OverSeek=_("Seeking past end of file");
 fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
@@ -414,7 +415,7 @@ FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos)
   fd_dtsflush(s);
   return (s->filepos=(lseek(s->fd,pos,SEEK_SET)));
 }
-FD_EXPORT off_t fd_movepos(fd_dtype_stream s,off_t delta)
+FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta)
 {
   if ((s->bits&FD_DTSTREAM_CANSEEK) == 0) return -1;
   else if (s->filepos<0) {
@@ -594,10 +595,10 @@ FD_EXPORT int _fd_dtswrite_bytes
 
 FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words)
 {
-  if (s->bits&FD_DTSTREAM_READING)
+  if ((s->bits)&FD_DTSTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;
   /* This is special because we ignore the buffer if we can. */
-  if (s->bits&FD_DTSTREAM_CANSEEK) {
+  if ((s->bits)&FD_DTSTREAM_CANSEEK) {
     off_t real_pos; int bytes_written;
     fd_dtsflush(s);
     real_pos=fd_getpos(s);
@@ -624,94 +625,3 @@ FD_EXPORT int fd_init_dtypestream_c()
   fd_register_source_file(versionid);
 }
 
-
-/* The CVS log for this file
-   $Log: dtypestream.c,v $
-   Revision 1.44  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.43  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.42  2006/01/07 23:12:46  haase
-   Moved framerd object dtype handling into the main fd_read_dtype core, which led to substantial performanc improvements
-
-   Revision 1.41  2006/01/07 14:01:13  haase
-   Fixed some leaks
-
-   Revision 1.40  2006/01/05 18:20:33  haase
-   Added missing return keyword
-
-   Revision 1.39  2006/01/05 18:03:58  haase
-   Made fd_setpos and fd_movepos require that their location be within the file
-
-   Revision 1.38  2005/12/19 00:44:19  haase
-   Made stream closing always free the associated id string
-
-   Revision 1.37  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.36  2005/08/08 16:23:58  haase
-   Added FD_DTSTREAM_WRITE mode for non-truncating creation
-
-   Revision 1.35  2005/06/17 01:02:47  haase
-   Added O_LARGEFILE conditionalization
-
-   Revision 1.34  2005/06/04 18:42:29  haase
-   Made dtsread_ints reset the buffer
-
-   Revision 1.33  2005/05/26 11:03:21  haase
-   Fixed some bugs with read-only pools and indices
-
-   Revision 1.32  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.31  2005/05/22 20:30:03  haase
-   Pass initialization errors out of config-def! and other error improvements
-
-   Revision 1.30  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.29  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.28  2005/04/12 20:41:58  haase
-   Added flag to control syncing
-
-   Revision 1.27  2005/04/06 18:31:51  haase
-   Fixed mmap error calls to produce warnings rather than raising errors and to use u8_strerror to get the condition name
-
-   Revision 1.26  2005/03/31 16:27:34  haase
-   Provide headers for u8_localpath
-
-   Revision 1.25  2005/03/31 01:08:36  haase
-   Use u8_localpath when opening dtypestreams
-
-   Revision 1.24  2005/03/30 15:30:00  haase
-   Made calls to new seterr do appropriate strdups
-
-   Revision 1.23  2005/03/29 04:12:36  haase
-   Added pool/index making primitives
-
-   Revision 1.22  2005/03/25 19:49:47  haase
-   Removed base library for eframerd, deferring to libu8
-
-   Revision 1.21  2005/03/24 17:16:16  haase
-   Made dtsclose use shutdown for sockets
-
-   Revision 1.20  2005/03/07 19:22:13  haase
-   Add commented out dtype size checking code
-
-   Revision 1.19  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.18  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.17  2005/02/27 03:02:11  haase
-   Fix filepos updates
-
-   Revision 1.16  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
