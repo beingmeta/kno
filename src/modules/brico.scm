@@ -4,6 +4,8 @@
 
 ;; For index-name, at least
 (use-module 'texttools)
+;; When BRICOSOURCE is ".db"
+(use-module 'usedb)
 
 (module-export!
  '{brico-pool
@@ -200,6 +202,14 @@
 	   (message "Redundant configuration of BRICOSOURCE "
 		    "which is already provided from " brico-pool)
 	   #f)
+	  ((and (string? val)
+		(or (has-suffix val ".db")
+		    (file-exists? (string-append val ".db"))))
+	   (set! brico-index (usedb val))
+	   (set! brico-pool (name->pool "brico.framerd.org"))
+	   (if (exists? brico-pool) #t
+	       (begin (set! brico-index {})
+		      #f)))
 	  (else
 	   (set! bricosource val)
 	   (use-pool val)

@@ -16,6 +16,8 @@
       (for-choices (index (get dbdata 'indices))
 	(cond ((not (string? index)))
 	      ((position #\@ index) (use-index index))
-	      ((has-prefix pool "/") (use-index index))
+	      ((has-prefix index "/") (use-index index))
 	      (else (use-index (get-component index dbname))))))))
+
+
 
