@@ -24,6 +24,7 @@ FD_EXPORT fd_exception fd_FileSizeOverflow;
 FD_EXPORT fd_exception fd_CorruptedPool;
 FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;
 FD_EXPORT fd_exception fd_MMAPError, fd_MUNMAPError;
+FD_EXPORT fd_exception fd_RecoveryRequired;
 
 #define FD_FILE_POOL_MAGIC_NUMBER 67179521
 #define FD_FILE_POOL_TO_RECOVER 67179523

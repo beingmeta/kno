@@ -64,6 +64,7 @@ static fd_index open_fileindex(u8_string fname,int read_only)
   if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
       (magicno==FD_MULT_FILE_INDEX_TO_RECOVER) ||
       (magicno==FD_MULT_FILE3_INDEX_TO_RECOVER)) {
+    u8_warn(fd_RecoveryRequired,"Recovering the file index %s",fname);
     recover_file_index(index);
     magicno=magicno&(~0x20);}
   if (magicno == FD_FILE_INDEX_MAGIC_NUMBER) index->hashv=1;
@@ -649,18 +650,18 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,un
     int hash=fileindex_hash(fx,key);
     int probe=hash%(fx->n_slots), chain_width=hash%(fx->n_slots-2)+1;
     if (offsets) {
-      int koff=offget(offsets,probe);
+      int koff=offsets[probe];
       /* Skip over all the reserved slots */
       while (koff==1) {
 	probe=(probe+chain_width)%(fx->n_slots);
-	koff=offget(offsets,probe);}
+	koff=offsets[probe];}
       if (koff) {
 	/* We found a full slot, queue it for examination. */
 	kdata[i].slotno=probe; kdata[i].chain_width=chain_width;
 	kdata[i].pos=koff+pos_offset;}
       else {
 	/* We have an empty slot we can fill */
-	set_offset(offsets,probe,1); new_keys++; /* Fill it */
+	offsets[probe]=1; new_keys++; /* Fill it */
 	kdata[i].slotno=probe;
 	kdata[i].chain_width=-1; /* Declare it found */
 	/* We initialize .n_values to zero unless it has already been 
@@ -712,20 +713,20 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,un
 	  /* Compute the next probe location, skipping slots
 	     already taken by keys being dumped for the first time,
 	     which is indicated by an offset value of 1. */
-	  while ((offsets[next_probe]) && (offget(offsets,next_probe)==1))
+	  while ((offsets[next_probe]) && ((offsets[next_probe])==1))
 	    next_probe=(next_probe+kdata[i].chain_width)%(fx->n_slots);
 	  if (offsets[next_probe]) {
 	    /* If we have an offset, it is a key on disk that we need
 	       to look at. */
 	    kdata[i].slotno=next_probe;
-	    kdata[i].pos=offget(offsets,next_probe)+pos_offset;}
+	    kdata[i].pos=offsets[next_probe]+pos_offset;}
 	  else {
 	    /* Otherwise, we have an empty slot we can put this value in. */
 	    new_keys++;
 	    kdata[i].slotno=next_probe;
 	    kdata[i].pos=0;
 	    if (kdata[i].n_values<0) kdata[i].n_values=0;
-	    set_offset(offsets,next_probe,1);
+	    offsets[next_probe]=1;
 	    kdata[i].chain_width=-1;}}
 	else {
 	  int next_probe=(kdata[i].slotno+kdata[i].chain_width)%(fx->n_slots);

@@ -39,6 +39,7 @@ fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
 fd_exception fd_CorruptedPool=_("Corrupted file pool");
 fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
+fd_exception fd_RecoveryRequired=_("RECOVERY");
 
 static void update_modtime(struct FD_FILE_POOL *fp);
 static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock);
@@ -68,6 +69,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   fd_init_pool((fd_pool)pool,base,capacity,&filepool_handler,fname,rname);
   u8_free(rname);
   if (magicno==FD_FILE_POOL_TO_RECOVER) {
+    u8_warn(fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_file_pool(pool)<0) {
       fd_seterr(fd_MallocFailed,"open_file_pool",NULL,FD_VOID);
       return NULL;}}
