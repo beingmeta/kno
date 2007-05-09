@@ -110,6 +110,7 @@ FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int,fdtype metadata);
 unsigned int fd_hash_dtype1(fdtype x);
 unsigned int fd_hash_dtype2(fdtype x);
 unsigned int fd_hash_dtype3(fdtype x);
+unsigned int fd_hash_dtype_rep(fdtype x);
 
 #endif /* #ifndef FDB_DBFILE_H */
 

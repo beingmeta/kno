@@ -471,6 +471,23 @@ unsigned int fd_hash_dtype3(fdtype x)
   return hash_dtype3(x);
 }
 
+FD_EXPORT
+/* fd_hash_dtype_rep:
+     Arguments: a list pointer
+     Returns: an unsigned int
+  This is a better hashing algorithm than the legacy used for years.
+*/
+unsigned int fd_hash_dtype_rep(fdtype x)
+{
+  struct FD_BYTE_OUTPUT out; unsigned int hashval;
+  FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
+  fd_write_dtype(&out,x);
+  hashval=mult_hash_string(out.start,out.ptr-out.start);
+  u8_free(out.start);
+  return hashval;
+}
+
+
 /* Initialization function */
 
 FD_EXPORT fd_init_hashdtype_c()
