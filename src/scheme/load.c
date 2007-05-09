@@ -232,10 +232,14 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
   return result;
 }
 
-static fdtype lisp_get_component(fdtype string)
+static fdtype lisp_get_component(fdtype string,fdtype base)
 {
-  u8_string fullpath=get_component(FD_STRDATA(string));
-  return fd_init_string(NULL,strlen(fullpath),fullpath);
+  if (FD_VOIDP(base)) {
+    u8_string fullpath=get_component(FD_STRDATA(string));
+    return fd_init_string(NULL,strlen(fullpath),fullpath);}
+  else {
+    u8_string thepath=u8_realpath(FD_STRDATA(string),FD_STRDATA(base));
+    return fd_init_string(NULL,strlen(thepath),thepath);}
 }
 
 static fdtype lisp_load_config(fdtype string)
@@ -320,7 +324,8 @@ FD_EXPORT void fd_init_load_c()
 	   fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("GET-COMPONENT",lisp_get_component,1,
+	   fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
+			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
 
   fd_register_config("CONFIG",get_config_files,add_config_file,NULL);
