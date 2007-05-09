@@ -423,7 +423,7 @@ activate-fdserv: etc/mod_fdserv.so
 # Tracking revision information
 
 src/exe/revision.h: $(FDB_SOURCES)
-	echo "#define SVN_REVISION \""`svnversion`"\"" > src/exe/revision.h
+	echo "#define SVN_REVISION \""`svnversion .`"\"" > src/exe/revision.h
 $(EXECUTABLES): src/exe/revision.h
 
 # Dependency information
