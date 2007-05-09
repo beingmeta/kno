@@ -274,7 +274,7 @@ int fd_make_file_pool
     fd_init_dtype_file_stream
     (&_stream,filename,FD_DTSTREAM_CREATE,8192,NULL,NULL);
   if (stream==NULL) return -1;
-  else if (stream->bits&FD_DTSTREAM_READ_ONLY) {
+  else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
     fd_dtsclose(stream,1);
     return -1;}
@@ -316,7 +316,7 @@ int fd_make_file_index
     fd_init_dtype_file_stream
     (&_stream,filename,FD_DTSTREAM_CREATE,8192,NULL,NULL);
   if (stream==NULL) return -1;
-  else if (stream->bits&FD_DTSTREAM_READ_ONLY) {
+  else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
     fd_dtsclose(stream,1);
     return -1;}

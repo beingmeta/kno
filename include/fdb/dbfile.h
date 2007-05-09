@@ -47,7 +47,7 @@ typedef struct FD_FILE_POOL {
   U8_MUTEX_DECL(lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
 
-#define FD_FILEPOOL_LOCKED(fp) ((fp->stream.bits)&FD_DTSTREAM_LOCKED)
+#define FD_FILEPOOL_LOCKED(fp) (((fp)->stream.flags)&FD_DTSTREAM_LOCKED)
 
 typedef struct FD_SCHEMA_TABLE {
   int schema_index; int size; fdtype *schema;} FD_SCHEMA_TABLE;

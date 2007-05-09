@@ -22,13 +22,13 @@ FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
 
 #define FD_DTSTREAM_BUFSIZ_DEFAULT 32*1024
-#define FD_DTSTREAM_READING 1
-#define FD_DTSTREAM_READ_ONLY 2
-#define FD_DTSTREAM_CANSEEK 4
-#define FD_DTSTREAM_NEEDS_LOCK 8
-#define FD_DTSTREAM_LOCKED 16
-#define FD_DTSTREAM_SOCKET 32
-#define FD_DTSTREAM_DOSYNC 64
+#define FD_DTSTREAM_READING        ((FD_DTYPEV2)<<1)
+#define FD_DTSTREAM_READ_ONLY      ((FD_DTSTREAM_READING)<<1)
+#define FD_DTSTREAM_CANSEEK        ((FD_DTSTREAM_READ_ONLY)<<1)
+#define FD_DTSTREAM_NEEDS_LOCK     ((FD_DTSTREAM_CANSEEK)<<1)
+#define FD_DTSTREAM_LOCKED         ((FD_DTSTREAM_NEEDS_LOCK)<<1)
+#define FD_DTSTREAM_SOCKET         ((FD_DTSTREAM_LOCKED)<<1)
+#define FD_DTSTREAM_DOSYNC         ((FD_DTSTREAM_SOCKET)<<1)
 
 typedef enum FD_DTSTREAM_MODE {
   FD_DTSTREAM_READ, /* Read only, must exist */
@@ -39,12 +39,12 @@ typedef enum FD_DTSTREAM_MODE {
 
 typedef struct FD_DTYPE_STREAM {
   unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool;
+  FD_MEMORY_POOL_TYPE *mpool; int flags;
   int (*fillfn)(struct FD_DTYPE_STREAM *,int);
   int (*flushfn)(struct FD_DTYPE_STREAM *);
   FD_MEMORY_POOL_TYPE *conspool; u8_string id;
   int mallocd, bufsiz; off_t filepos, maxpos; 
-  int fd, bits;} FD_DTYPE_STREAM;
+  int fd;} FD_DTYPE_STREAM;
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
 FD_EXPORT void fd_init_dtype_stream
@@ -73,8 +73,8 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
 FD_EXPORT off_t _fd_getpos(fd_dtype_stream s);
 #define fd_getpos(s) \
-  ((s->bits&FD_DTSTREAM_CANSEEK) ? \
-   ((s->filepos>=0) ? (s->filepos+(s->ptr-s->start)) : (_fd_getpos(s))) \
+  ((((s)->flags)&FD_DTSTREAM_CANSEEK) ? \
+   ((((s)->filepos)>=0) ? (((s)->filepos)+(((s)->ptr)-((s)->start))) : (_fd_getpos(s))) \
    : (-1))
 FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos);
 FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta);
@@ -88,9 +88,9 @@ FD_EXPORT int fd_dtsunlock(fd_dtype_stream s);
 FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz);
 
 #define fd_dts_start_read(s) \
-  if ((s->bits&FD_DTSTREAM_READING) == 0) if (fd_set_read(s,1)<0) return -1;
+  if ((((s)->flags)&FD_DTSTREAM_READING) == 0) if (fd_set_read(s,1)<0) return -1;
 #define fd_dts_start_write(s) \
-  if (s->bits&FD_DTSTREAM_READING) if (fd_set_read(s,0)<0) return -1;
+  if (((s)->flags)&FD_DTSTREAM_READING) if (fd_set_read(s,0)<0) return -1;
 
 /* Readers and writers */
 

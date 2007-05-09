@@ -28,6 +28,11 @@ typedef enum dt_type_code {
   dt_exception = 0x0d,
   dt_oid = 0x0e,
   dt_zstring = 0x0f,
+  /* These are all for DTYPE protocol V2 */
+  dt_tiny_symbol=0x10,
+  dt_tiny_string=0x11,
+  dt_tiny_choice=0x12,
+  dt_empty_choice=0x13,
 
   dt_character_package = 0x40,
   dt_numeric_package = 0x41,
@@ -105,9 +110,12 @@ FD_FASTOP unsigned int fd_flip_ushort(unsigned short _w)
 typedef struct FD_BYTE_OUTPUT *fd_byte_output;
 typedef struct FD_BYTE_INPUT *fd_byte_input;
 
+#define FD_BYTEBUF_MALLOCD 1
+#define FD_DTYPEV2         ((FD_BYTEBUF_MALLOCD)<<1)
+
 typedef struct FD_BYTE_OUTPUT {
   unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool;
+  FD_MEMORY_POOL_TYPE *mpool; int flags;
   /* FD_BYTE_OUTPUT has a fillfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -116,7 +124,7 @@ typedef struct FD_BYTE_OUTPUT {
 
 typedef struct FD_BYTE_INPUT {
   unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool;
+  FD_MEMORY_POOL_TYPE *mpool; int flags;
   /* FD_BYTE_INPUT has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -130,15 +138,17 @@ FD_EXPORT fdtype fd_read_dtype
 /* These are for input or output */
 #define FD_INIT_BYTE_OUTPUT(bo,sz,mp)      \
   (bo)->ptr=(bo)->start=u8_pmalloc(mp,sz); \
-  (bo)->end=(bo)->start+sz; (bo)->mpool=(mp)
+  (bo)->end=(bo)->start+sz; (bo)->mpool=(mp);\
+  (bo)->flags=FD_BYTEBUF_MALLOCD;
 
 #define FD_INIT_FIXED_BYTE_OUTPUT(bo,buf,sz)	\
   (bo)->ptr=(bo)->start=buf; \
-  (bo)->end=(bo)->start+sz; (bo)->mpool=NULL
+  (bo)->end=(bo)->start+sz; (bo)->mpool=NULL; \
+  (bo)->flags=0
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)		   \
   (bi)->ptr=(bi)->start=b; (bi)->end=b+(sz); (bi)->fillfn=NULL; \
-  (bi)->flushfn=NULL /* Might not be used */
+  (bi)->flags=0; (bi)->flushfn=NULL /* flushfn might not be used */
 
 FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *,unsigned char);

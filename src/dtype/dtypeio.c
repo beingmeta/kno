@@ -136,10 +136,17 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     if (itype == fd_symbol_type) { /* output symbol */
       fdtype name=fd_symbol_names[data];
       struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
-      {output_byte(out,dt_symbol);}
-      {output_4bytes(out,s->length);}
-      {output_bytes(out,s->bytes,s->length);}
-      return s->length+5;}
+      int len=s->length;
+      if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
+	{output_byte(out,dt_symbol);}
+	{output_byte(out,len);}
+	{output_bytes(out,s->bytes,len);}
+	return len+2;}
+      else {
+	{output_byte(out,dt_symbol);}
+	{output_4bytes(out,len);}
+	{output_bytes(out,s->bytes,len);}
+	return len+5;}}
     else if (itype == fd_character_type) { /* Output unicode character */
       output_byte(out,dt_character_package);
       if (data<128) {
@@ -173,10 +180,14 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
       case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
       case 3:
-	output_byte(out,dt_framerd_package);
-	output_byte(out,dt_small_choice);
-	output_byte(out,0);
-	return 3;
+	if ((out->flags)&(FD_DTYPEV2)) {
+	  output_byte(out,dt_empty_choice);
+	  return 1;}
+	else {
+	  output_byte(out,dt_framerd_package);
+	  output_byte(out,dt_small_choice);
+	  output_byte(out,0);
+	  return 3;}
       case 4: output_byte(out,dt_empty_list); return 1;
       default:
 	fd_seterr(_("Invalid constant"),NULL,NULL,x);
@@ -195,11 +206,17 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     int ctype=FD_CONS_TYPE(cons);
     switch (ctype) {
     case fd_string_type: {
-      struct FD_STRING *s=(struct FD_STRING *) cons;
-      output_byte(out,dt_string);
-      output_4bytes(out,s->length);
-      output_bytes(out,s->bytes,s->length);
-      return 5+s->length;}
+      struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->length;
+      if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
+	output_byte(out,dt_tiny_string);
+	output_byte(out,len);
+	output_bytes(out,s->bytes,len);
+	return 2+len;}
+      else {
+	output_byte(out,dt_string);
+	output_4bytes(out,len);
+	output_bytes(out,s->bytes,len);
+	return 5+len;}}
     case fd_packet_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons;
       output_byte(out,dt_packet);
@@ -237,13 +254,19 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       struct FD_CHOICE *v=(struct FD_CHOICE *) cons;
       const fdtype *data=FD_XCHOICE_DATA(v);
       int i=0, len=FD_CHOICE_SIZE(x), dtype_len;
-      output_byte(out,dt_framerd_package);
-      if (len < 256) {
-	dtype_len=3;
-	output_byte(out,dt_small_choice);
-	output_byte(out,len);}
+      if (len < 256)
+	if ((out->flags)&(FD_DTYPEV2)) {
+	  dtype_len=2;
+	  output_byte(out,dt_tiny_choice);
+	  output_byte(out,len);}
+	else {
+	  dtype_len=3;
+	  output_byte(out,dt_framerd_package);
+	  output_byte(out,dt_small_choice);
+	  output_byte(out,len);}
       else {
 	dtype_len=6;
+	output_byte(out,dt_framerd_package);
 	output_byte(out,dt_choice);
 	output_4bytes(out,len);}
       while (i < len) {
@@ -427,7 +450,7 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
   return dtype_len;
 }
 
-#define newpos(pos,ptr,lim) ((ptr+pos <= lim) ? (pos) : (-1)) 
+#define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1)) 
 
 static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
 {
@@ -449,6 +472,19 @@ static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
       return validate_dtype(validate_dtype(validate_dtype(pos+1,ptr,lim),
 					   ptr,lim),
 			    ptr,lim);
+    case dt_tiny_symbol: case dt_tiny_string: 
+      if (ptr+pos+1 >= lim) return -1;
+      else return newpos(pos+1+ptr[pos+1],ptr,lim);
+    case dt_empty_choice:
+      return newpos(pos+1,ptr,lim);
+    case dt_tiny_choice:
+      if (ptr+pos+1 >= lim) return -1;
+      else {
+	int i=0, len=ptr[pos+1];
+	while (i<len) {
+	  int i=0, len=ptr[pos+1], npos=pos+2;
+	  while ((i < len) && (npos > 0)) npos=validate_dtype(npos,ptr,lim);
+	  return npos;}}
     case dt_symbol: case dt_packet: case dt_string: case dt_zstring:
       if (ptr+pos+5 >= lim) return -1;
       else {
@@ -530,6 +566,7 @@ FD_EXPORT fdtype fd_read_dtype
     switch (code) {
     case dt_empty_list: return FD_EMPTY_LIST;
     case dt_void: return FD_VOID;
+    case dt_empty_choice: return FD_EMPTY_CHOICE;
     case dt_boolean:
       if (nobytes(in,1))
 	return return_errcode(FD_EOD);
@@ -650,6 +687,25 @@ FD_EXPORT fdtype fd_read_dtype
 	  case dt_packet:
 	    return fd_init_packet(u8_pmalloc(p,sizeof(struct FD_STRING)),
 				  len,data);}}}
+    case dt_tiny_symbol:
+      if (nobytes(in,1)) return return_errcode(FD_EOD);
+      else {
+	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
+	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	else {
+	  u8_byte data[257];
+	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
+	  return fd_make_symbol(data,len);}}
+    case dt_tiny_string:
+      if (nobytes(in,1)) return return_errcode(FD_EOD);
+      else {
+	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
+	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	else {
+	  u8_byte *data=u8_pmalloc(p,len+1);
+	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
+	  return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
+				len,data);}}
     case dt_symbol: case dt_zstring:
       if (nobytes(in,4)) return return_errcode(FD_EOD);
       else {
@@ -679,6 +735,20 @@ FD_EXPORT fdtype fd_read_dtype
 	    return fd_init_vector(u8_pmalloc(p,sizeof(struct FD_VECTOR)),
 				  len,data);
 	  else return return_errcode(why_not);}}
+    case dt_tiny_choice:
+      if (nobytes(in,1)) return return_errcode(FD_EOD);
+      else {
+	fdtype result;
+	int i=0, len=fd_read_byte(in);
+	struct FD_CHOICE *ch=fd_palloc_choice(p,len);
+	fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch), *limit=write+len;
+	while (write<limit) {
+	  fdtype v=fd_read_dtype(in,p);
+	  if (FD_ABORTP(v)) {
+	    u8_pfree(p,ch);
+	    return v;}
+	  *write++=v;}
+	return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
     case dt_framerd_package: {
       int code, lenlen, len;
       if (nobytes(in,2)) return return_errcode(FD_EOD);
@@ -892,57 +962,6 @@ static fdtype make_character_type
     return fd_make_mystery_packet(p,dt_character_package,code,len,bytes);
   }
 }
-
-#if 0
-static fdtype make_framerd_type
-  (FD_MEMORY_POOL_TYPE *p,int code,int len,fdtype *data)
-{
-  switch (code) {
-  case dt_choice: case dt_small_choice:
-    if (len==0) return FD_EMPTY_CHOICE;
-    else if (FD_EXPECT_TRUE(len>1)) 
-      return fd_init_choice(fd_palloc_choice(p,len),len,data,
-			    (FD_CHOICE_FREEDATA|FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
-    else {
-      fdtype v=data[0]; u8_pfree_x(p,data,sizeof(fdtype)*len);
-      return v;}
-  case dt_qchoice: case dt_small_qchoice:
-    if (len==0)
-      return fd_init_qchoice(u8_pmalloc(p,sizeof(struct FD_QCHOICE)),
-			     FD_EMPTY_CHOICE);
-    else if (FD_EXPECT_TRUE(len>1)) {
-      fdtype choice=fd_init_choice
-	(fd_palloc_choice(p,len),len,data,
-	 (FD_CHOICE_FREEDATA|FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
-      if (FD_CHOICEP(choice))
-	return fd_init_qchoice(u8_pmalloc(p,sizeof(struct FD_QCHOICE)),choice);
-      else return choice;}
-    else {
-      fdtype v=data[0]; u8_pfree_x(p,data,sizeof(fdtype)*len);
-      return v;}
-  case dt_slotmap: case dt_small_slotmap:
-    return fd_init_slotmap(u8_pmalloc(p,sizeof(struct FD_SLOTMAP)),
-			   len/2,(struct FD_KEYVAL *)data,p);
-  case dt_hashtable: case dt_small_hashtable: {
-    fdtype table; int i=0;
-    table=fd_init_hashtable
-      (u8_pmalloc(p,sizeof(struct FD_HASHTABLE)),
-       len/2,(struct FD_KEYVAL *)data,p);
-    while (i<len) {fd_decref(data[i]); i++;}
-    u8_pfree_x(p,data,sizeof(fdtype)*len);
-    return table;}
-  case dt_hashset: case dt_small_hashset: {
-    struct FD_HASHSET *h=u8_pmalloc(p,sizeof(struct FD_HASHSET));
-    fdtype *scan=data, *limit=scan+len;
-    fd_init_hashset(h,len*3);
-    while (scan<limit) {fd_hashset_init_add(h,*scan); scan++;}
-    u8_pfree_x(p,data,sizeof(fdtype)*len);
-    return FDTYPE_CONS(h);}
-  default:
-    return fd_make_mystery_vector(p,dt_framerd_package,code,len,data);
-  }
-}
-#endif
 
 FD_EXPORT fdtype fd_make_mystery_packet
   (FD_MEMORY_POOL_TYPE *p,int package,int typecode,

@@ -129,7 +129,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
     return (fd_pool) NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
   fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
-  s->bits=s->bits|FD_DTSTREAM_DOSYNC;
+  s->flags=s->flags|FD_DTSTREAM_DOSYNC;
   np->cid=cid; np->xid=xid;
   pooldata=dtcall(np,2,pool_data_symbol,client_id);
   if (FD_ABORTP(pooldata)) {

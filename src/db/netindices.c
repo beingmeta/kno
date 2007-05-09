@@ -157,7 +157,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
     fd_init_index(ix,&netindex_handler,spec);
     ix->xname=xname; ix->xid=xid;
     fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
-    s->mallocd=0; s->bits=s->bits|FD_DTSTREAM_DOSYNC;
+    s->mallocd=0; s->flags=s->flags|FD_DTSTREAM_DOSYNC;
     if (FD_VOIDP(xname))
       writable_response=dtcall(ix,1,iserver_writable);
     else writable_response=dtcall(ix,2,ixserver_writable,xname);

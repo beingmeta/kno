@@ -285,7 +285,7 @@ static fd_index open_zindex(u8_string fname,int read_only)
     fd_seterr3(fd_CantOpenFile,"open_zindex",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if (index->stream.bits&FD_DTSTREAM_READ_ONLY) read_only=1;
+  if ((index->stream.flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   index->stream.mallocd=0;
   magicno=fd_dtsread_4bytes(s);
   if (magicno == FD_ZINDEX_MAGIC_NUMBER) index->hashv=2;

@@ -60,7 +60,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   fd_init_dtype_file_stream
     (&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL);
   /* See if it ended up read only */
-  if (pool->stream.bits&FD_DTSTREAM_READ_ONLY) read_only=1;
+  if ((((pool)->stream).flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->stream.mallocd=0;
   magicno=fd_dtsread_4bytes(s);
   hi=fd_dtsread_4bytes(s); lo=fd_dtsread_4bytes(s);
@@ -98,7 +98,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
   if (FD_FILEPOOL_LOCKED(fp)) return 1;
-  else if ((fp->stream.bits)&(FD_DTSTREAM_READ_ONLY)) return 0;
+  else if ((fp->stream.flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
   else {
     struct FD_DTYPE_STREAM *s=&(fp->stream);
     struct stat fileinfo;
