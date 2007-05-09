@@ -230,7 +230,7 @@
   (ambda (concepts)
     (prefetch-oids! concepts)
     (prefetch-keys! (cons brico-slotids concepts))
-    (prefetch-oids! (?? (choice @?specls* @?parts*) concepts))))
+    (prefetch-oids! (?? (choice specls* parts*) concepts))))
   
 (define brico-prefetch
   (ambda (concepts)
