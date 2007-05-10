@@ -1771,7 +1771,9 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
 static fdtype lextags_prim()
 {
   fd_grammar g=fd_default_grammar();
-  return fd_incref(g->arc_names);
+  if (g==NULL)
+    return fd_erreify();
+  else return fd_incref(g->arc_names);
 }
 
 
