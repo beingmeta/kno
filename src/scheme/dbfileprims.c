@@ -18,6 +18,8 @@ static char versionid[] =
 #include "fdb/indices.h"
 #include "fdb/frames.h"
 
+static fdtype baseoids_symbol, slotids_symbol;
+
 static fdtype make_file_pool
   (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
 {
@@ -99,6 +101,35 @@ static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
   else return FD_TRUE;
 }
 
+static fdtype make_hash_index(fdtype fname,fdtype size,
+			      fdtype metadata,fdtype from,fdtype keys,
+			      fdtype blocksize_arg)
+{
+  int retval, blocksize=-1; fd_index ix;
+  fdtype slotids=FD_VOID, baseoids=FD_VOID;
+  if (FD_TABLEP(metadata)) {
+    slotids=fd_get(metadata,slotids_symbol,FD_VOID);
+    baseoids=fd_get(metadata,baseoids_symbol,FD_VOID);}
+  if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
+  retval=fd_make_hashindex(FD_STRDATA(fname),FD_FIX2INT(size),
+			   slotids,baseoids,metadata,-1,-1);
+  if (retval<0) return fd_erreify();
+  else ix=fd_open_index(FD_STRDATA(fname));
+  if ((FD_TABLEP(from)) && (FD_VOIDP(keys))) keys=fd_getkeys(from);
+  else if (FD_VOIDP(keys)) keys=FD_EMPTY_CHOICE;
+  if (FD_FALSEP(slotids)) {
+    slotids=FD_EMPTY_CHOICE;
+    {FD_DO_CHOICES(key,keys)
+       if (FD_PAIRP(key)) {
+	 fdtype car=FD_CAR(key);
+	 if ((FD_SYMBOLP(car)) || (FD_OIDP(car))) {
+	   FD_ADD_TO_CHOICE(slotids,car);}}
+       else {}}}
+  retval=fd_populate_hashindex((struct FD_HASH_INDEX *)ix,from,keys,blocksize);
+  if (retval<0) return fd_erreify();
+  return FD_INT2DTYPE(retval);
+}
+
 /* Hashing functions */
 
 static fdtype lisphashdtype1(fdtype x)
@@ -131,6 +162,10 @@ static int scheme_filedb_initialized=0;
 FD_EXPORT void fd_init_filedb_c()
 {
   fdtype filedb_module;
+
+  baseoids_symbol=fd_intern("%BASEOIDS");
+  slotids_symbol=fd_intern("%SLOTIDS");
+
   if (scheme_filedb_initialized) return;
   scheme_filedb_initialized=1;
   fd_init_fdscheme();
@@ -168,6 +203,12 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim2x("LABEL-POOL!",label_file_pool,2,
 					 fd_string_type,FD_VOID,
 					 fd_string_type,FD_VOID));
+
+  fd_idefn(filedb_module,fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
+					 fd_string_type,FD_VOID,
+					 fd_fixnum_type,FD_VOID,
+					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+					 fd_fixnum_type,FD_VOID));
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));

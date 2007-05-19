@@ -64,7 +64,8 @@ DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
 	src/db/dtproc.o src/db/methods.o src/db/xtables.o \
 	src/db/ipeval.o src/db/frames.o
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
-	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o
+	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o \
+	    src/db/hashindices.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
 	         src/scheme/conditionals.o src/scheme/iterators.o
@@ -101,7 +102,7 @@ FDB_SOURCES=\
 	src/db/dtproc.c src/db/methods.c src/db/xtables.c \
 	src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c \
-	src/db/hashdtype.c src/db/fileindices.c src/db/zindices.c \
+	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c src/db/zindices.c \
 	src/scheme/eval.c src/scheme/binders.c src/scheme/exceptions.c \
 	src/scheme/conditionals.c src/scheme/iterators.c \
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
@@ -111,7 +112,7 @@ FDB_SOURCES=\
 	src/scheme/portprims.c src/scheme/fileprims.c src/scheme/dbfileprims.c \
 	src/scheme/arithprims.c src/scheme/side-effects.c src/scheme/timeprims.c \
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
-	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c      \
+	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c \
 	src/fdweb/curl.c src/fdweb/mime.c src/fdweb/exif.c \
 	src/texttools/texttools.c include/fdb/texttools.h \
 	src/texttools/match.c src/texttools/porter.c \
