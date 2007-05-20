@@ -156,8 +156,8 @@ typedef struct FD_HASH_INDEX {
   int n_slotids; fdtype *slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
   int n_baseoids;
-  FD_OID *baseoids;
-  struct FD_BASEOID_LOOKUP *baseoid_lookup;
+  unsigned int *baseoid_ids;
+  short *ids2baseoids;
   
   /* Pointers into keyblocks for the hashtable */
   struct FD_BLOCK_REF *buckets; int n_buckets;
@@ -170,8 +170,8 @@ typedef struct FD_HASH_INDEX {
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
 FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize);
-
 FD_EXPORT int fd_make_hashindex(u8_string,int,fdtype,fdtype,fdtype,time_t,time_t);
+FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
 
 
 #endif /* #ifndef FDB_DBFILE_H */
