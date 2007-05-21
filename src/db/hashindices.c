@@ -611,7 +611,7 @@ static int hashindex_fetchsize(fd_index ix,fdtype key)
 
 struct FETCH_SCHEDULE {
   int index; fdtype key; unsigned int key_start, size;
-  unsigned int bucket;};
+  unsigned int bucket; FD_BLOCK_REF ref;};
 
 #if 0
 static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
@@ -619,17 +619,101 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
   fdtype *values=u8_malloc(sizeof(fdtype)*n);
   struct FD_BYTE_OUTPUT out;
   struct FETCH_SCHEDULE *schedule=u8_malloc(sizeof(struct FETCH_SCHEDULE)*n);
-  int i=0;
+  int i=0, n_entries=0;
   FD_INIT_BYTE_OUTPUT(&out,n*64,NULL);
   while (i<n) {
-    int start=out.ptr-out.start, size;
-    schedule[i].index=i; schedule[i].key=key;
-    schedule[i].key_start=start;
+    int dt_start=out.ptr-out.start, dt_size, bucket;
+    schedule[n_entries].index=i; schedule[n_entries].key=key;
+    schedule[n_entries].key_start=dt_start;
     write_zkey(hx,out,key);
-    size=(out.ptr-out.start)-start;
-    schedule[i].key_size=size;
-    schedule[i].bucket=hash_bytes(out.start+start,size)%hx->n_buckets;
+    dt_size=(out.ptr-out.start)-start;
+    schedule[n_entries].key_size=dt_size;
+    schedule[n_entries].bucket=bucket=
+      hash_bytes(out.start+dt_start,dt_size)%(hx->n_entries);
+    if (hx->buckets) {
+      schedule[i].ref=get_block_ref(hx,bucket);
+      if (schedule[n_entries].ref.size==0) {
+	/* It is empty, so we don't even need to handle this entry. */
+	values[i]=FD_EMPTY_CHOICE;
+	out.ptr=out.start+start;}
+      else n_entries++;}
+    else n_entries++;
     i++;}
+  if (hx->buckets==NULL) {
+    int write_at=0;
+    qsort(schedule,sizeof(struct KEY_SCHEDULE),n_entries,
+	  sort_ks_by_bucket);
+    i=0; while (i<n_entries) {
+      schedule[i].ref=get_block_ref(hx,bucket);
+      if (schedule[i].ref.size==0) {
+	values[schedule[i].index]=FD_EMPTY_CHOICE; i++;}
+      else if (write_at==i) {write_at++; i++;}
+      else {schedule[write_at++]=schedule[i++];}}
+    n_entries=write-schedule;}
+  qsort(schedule,sizeof(struct KEY_SCHEDULE),n_entries,
+	sort_ks_by_refpos);
+  {
+    struct FD_BYTE_INPUT keyblock;
+    unsigned char _buf[1024], *buf=NULL;
+    int bucket=-1, j=0, bufsiz=0;
+    while (j<n_entries) {
+      int k=0, n_keys, found=0;
+      fd_off_t blockpos=schedule[j].ref.pos;
+      fd_size_t blocksize=schedule[j].ref.size;
+      if (schedule[j].bucket!=bucket) {
+	if (blocksize<1024)
+	  open_block(&keyblock,hx,blockpos,blocksize,_buf);
+	else if (buf)
+	  if (blocksize<bufsiz)
+	    open_block(&keyblock,hx,blockpos,blocksize,buf);
+	  else {
+	    buf=u8_realloc(buf,blocksize); bufsiz=blocksize;
+	    open_block(&keyblock,hx,blockpos,blocksize,buf);}
+	else {
+	  buf=u8_malloc(blocksize); bufsiz=blocksize;
+	  open_block(&keyblock,hx,blockpos,blocksize,buf);}}
+      else keyblock.ptr=keyblock.start;
+      n_keys=fd_read_zint(&keyblock);
+      while (k<n_keys) {
+	int n_vals, vsize;
+	fd_size_t dtsize=fd_read_zint(&keyblock);
+	if ((dtsize==schedule[i].dtsize) &&
+	    (memcmp(out.start+schedule[i].start,keyblock.ptr,dtsize)==0)) {
+	  keyblock.ptr=keyblock.ptr+dtsize;
+	  n_vals=fd_read_zint(&keyblock);
+	  if (nvals==0) 
+	    values[schedule[j].index]=FD_EMPTY_CHOICE;
+	  else if (nvals==1)
+	    values[schedule[j].index]=read_zvalue(hx,&keyblock);
+	  else {}
+	  break;}
+	else keyblock.ptr=keyblock.ptr+dtsize;
+	n_vals=fd_read_zint(&keyblock);
+	if (n_vals==0) {}
+	else if (n_vals==1) {
+	  fdtype val=fd_read_dtype(&keyblock);
+	  fd_decref(val);}
+	else {
+	  int vsize=fd_read_zint(&keyblock);
+	  if (vsize) fd_read_4bytes(&keyblock);}
+	k++;}
+      j++;}
+	    
+	
+
+  i=0; while (i<n_entries) {
+    int n_keys;
+    if (schedule[i].ref.size<1024)
+      open_block(&keyblock,hx,schedule[i]ref.pos,schedule[i].ref.size,
+		 _buf);
+    else {
+      buf=u8_malloc(schedule[i].ref.size);
+      open_block(&keyblock,hx,schedule[i]ref.pos,schedule[i].ref.size,
+		 buf);}
+    n_keys=fd_read_zint(&keyblock);
+    
+  
+    
 }
 
 #endif
