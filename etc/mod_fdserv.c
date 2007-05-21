@@ -405,7 +405,13 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   if (file_writablep(parms->pool,parms->server,fullpath)) {
     dconfig->log_file=fullpath;
     return NULL;}
-  else return "LogFile is not writable";
+#if APACHE20
+  return apr_psprintf(parms->pool,"FDServletLog '%s' is not writable '%s'",
+		      arg,fullpath);
+#else
+  return ap_psprintf(parms->pool,"FDServletLog '%s' is not writable '%s'",
+		     arg,fullpath);
+#endif
 }
 
 static const command_rec fdserv_cmds[] =
