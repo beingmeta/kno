@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 /* Notes:
     A normal 32-bit hash index with N buckets consists of 256 bytes of
@@ -1363,6 +1363,45 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
   u8_free(psched);
   u8_free(bucket_refs);
   return bucket_count;
+}
+
+
+/* COMMIT */
+
+/* General design:
+   Handle edits first, converting drops into sets and adding them to the commit schedule.
+   Then handle adds, pushing them onto the commit schedule.
+   Fill in the block refs for all the entries in the commit schedule.
+   Sort the commit schedule by ref and read data for some number of buckets,
+   parsing each bucket data into a KEYBUCKET structure made up of KEYENTRY structs.
+   Add buckref values to each commit entry for the retrieved keybucket it is in.
+   Iterate over the commit schedule, updating the keybucket structure for each key,
+   potentially writing value blocks to disk.
+   Then iterate over the keybucket structure, outputting keyblocks and updating
+   a global bucket/blockrefs mapping.
+
+   On a first pass implementation, don't process it in chunks.  The disadvantage
+   is that you'll have lots of keyblocks in memory, but we can deal with that for now.
+
+*/
+
+struct COMMIT_SCHEDULE {
+  fdtype key, value; int bucket; FD_BLOCK_REF ref;
+  short adds, buckref;};
+
+struct KEYENTRY {
+  int dtype_size, n_values; 
+  unsigned char *dtype_start;
+  fdtype value; FD_BLOCK_REF vref;};
+
+struct KEYBUCKET {
+  int bucket, n_keys; unsigned char *keybuf; struct KEYENTRY key0;};
+
+static int hash_index_commit(struct FD_INDEX *ix)
+{
+  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  struct FD_DTYPE_STREAM *stream=&(hx->stream);
+  return 0;
 }
 
 
