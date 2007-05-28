@@ -43,10 +43,12 @@
 #include "unistd.h"
 #include "fdb/config.h"
 
-#ifdef HAVE_FTIME
+#ifndef TRACK_EXECUTION_TIMES
+#if HAVE_FTIME
 #define TRACK_EXECUTION_TIMES 1
 #else
-#define TRACK_EXECUTION_TIMES 0
+#define TRACK_EXECUTION_TIMES 1
+#endif
 #endif
 
 #if TRACK_EXECUTION_TIMES
@@ -726,7 +728,11 @@ static int fdserv_handler(request_rec *r)
 #endif
   BUFF *out=ap_bcreate(r->pool,B_WR|B_SOCKET);
   BUFF *in=ap_bcreate(r->pool,B_RD|B_SOCKET);
-  int socket=connect_to_servlet(r);
+  int socket;
+#if TRACK_EXECUTION_TIMES
+  ftime(&start);
+#endif
+  socket=connect_to_servlet(r);
   errno=0; if (socket < 0) {
     ap_log_error(APLOG_MARK,APLOG_ERR,r->server,
 		 "Connection failed to %s for %s",
@@ -742,9 +748,6 @@ static int fdserv_handler(request_rec *r)
   else ap_log_error(APLOG_MARK,APLOG_DEBUG,r->server,
 		    "Socket %d serves %s for %s",
 		    socket,r->filename,r->unparsed_uri);
-#if TRACK_EXECUTION_TIMES
-  ftime(&start);
-#endif
   ap_add_common_vars(r); ap_add_cgi_vars(r);
   ap_bpushfd(in,socket,-1);
   ap_bpushfd(out,-1,socket);
@@ -831,6 +834,7 @@ static int fdserv_handler(request_rec *r)
   apr_bucket *b;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
+  ftime(&start);
 #endif
   if(strcmp(r->handler, FDSERV_MAGIC_TYPE) && strcmp(r->handler, "fdservlet"))
     return DECLINED;
@@ -856,9 +860,6 @@ static int fdserv_handler(request_rec *r)
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "Handling request for %s by using %s with socket %d",
 	       r->unparsed_uri,r->filename,sock);
-#if TRACK_EXECUTION_TIMES
-  ftime(&start);
-#endif
   ap_add_common_vars(r); ap_add_cgi_vars(r);
   if (r->method_number == M_POST) {
     char bigbuf[4096];
