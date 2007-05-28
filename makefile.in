@@ -125,7 +125,11 @@ FDB_SOURCES=\
 
 # Targets
 
+default: all
 all: testbin exe TAGS
+rebuild:
+	make clean
+	make default
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a \
 	lib/libfdschemeio@suffix@.a lib/libfdscheme@suffix@.a lib/libfdbserv@suffix@.a \
