@@ -115,7 +115,6 @@ unsigned int fd_hash_dtype1(fdtype x);
 unsigned int fd_hash_dtype2(fdtype x);
 unsigned int fd_hash_dtype3(fdtype x);
 unsigned int fd_hash_dtype_rep(fdtype x);
-unsigned int fd_hash_dtype_rep2(fdtype x);
 
 /* Hash indices */
 

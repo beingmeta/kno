@@ -159,18 +159,6 @@ static fdtype lisphashdtyperep(fdtype x)
   return FD_INT2DTYPE(hash);
 }
 
-static fdtype lisphashdtyperep2(fdtype x)
-{
-  unsigned int hash=fd_hash_dtype_rep2(x);
-  return FD_INT2DTYPE(hash);
-}
-
-static fdtype lisphashdtyperep3(fdtype x)
-{
-  unsigned int hash=fd_hash_dtype_rep3(x);
-  return FD_INT2DTYPE(hash);
-}
-
 /* The init function */
 
 static int scheme_filedb_initialized=0;
@@ -237,48 +225,8 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE1",lisphashdtype1,1));
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE-REP",lisphashdtyperep,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE-REP2",lisphashdtyperep2,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE-REP3",lisphashdtyperep3,1));
 
   fd_finish_module(filedb_module);
   fd_persist_module(filedb_module);
 }
 
-
-/* The CVS log for this file
-   $Log: filedb.c,v $
-   Revision 1.11  2006/02/09 22:46:28  haase
-   Added LABEL-POOL
-
-   Revision 1.10  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.9  2005/09/13 03:34:52  haase
-   Make filedb init dbfile
-
-   Revision 1.8  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.7  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.6  2005/05/17 20:30:03  haase
-   Made default make-file-index create a version 2 index and added make-legacy-file-index
-
-   Revision 1.5  2005/05/09 20:04:19  haase
-   Move dtype hash functions into dbfile and made libfdscheme independent of libfddbfile
-
-   Revision 1.4  2005/05/04 09:42:42  haase
-   Added module loading locking stuff
-
-   Revision 1.3  2005/04/28 14:31:28  haase
-   Created modules for FILEIO and FILEDB
-
-   Revision 1.2  2005/04/21 19:03:26  haase
-   Add initialization procedures
-
-   Revision 1.1  2005/03/29 04:12:36  haase
-   Added pool/index making primitives
-
-
-*/
