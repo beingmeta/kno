@@ -14,6 +14,10 @@ static char versionid[] =
 #include "fdb/dtypeio.h"
 #include <errno.h>
 
+#ifndef FD_DEBUG_DTYPEIO
+#define FD_DEBUG_DTYPEIO 0
+#endif
+
 int (*fd_dtype_error)
      (struct FD_BYTE_OUTPUT *,fdtype x,u8_string details)=NULL;
 
@@ -30,7 +34,7 @@ static fdtype _return_errcode(fdtype x)
   return x;
 }
 
-#if 1
+#if FD_DEBUG_DTYPEIO
 #define return_errcode(x) (_return_errcode(x))
 #else
 #define return_errcode(x) (x)
@@ -143,7 +147,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
       int len=s->length;
       if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
-	{output_byte(out,dt_symbol);}
+	{output_byte(out,dt_tiny_symbol);}
 	{output_byte(out,len);}
 	{output_bytes(out,s->bytes,len);}
 	return len+2;}
