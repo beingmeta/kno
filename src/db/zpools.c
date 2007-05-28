@@ -40,7 +40,7 @@ static char versionid[] =
 #endif
 
 static void update_modtime(struct FD_ZPOOL *fp);
-static void reload_filepool_cache(struct FD_ZPOOL *fp,int lock);
+static void reload_file_pool_cache(struct FD_ZPOOL *fp,int lock);
 
 static struct FD_POOL_HANDLER zpool_handler;
 
@@ -451,14 +451,14 @@ static fd_pool open_zpool(u8_string fname,int read_only)
 
 static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
 {
-  if (FD_FILEPOOL_LOCKED(fp)) return 1;
+  if (FD_FILE_POOL_LOCKED(fp)) return 1;
   else if ((fp->stream.flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
   else {
     struct FD_DTYPE_STREAM *s=&(fp->stream);
     struct stat fileinfo;
     if (use_mutex) fd_lock_mutex(&(fp->lock));
     /* Handle race condition by checking when locked */
-    if (FD_FILEPOOL_LOCKED(fp)) {
+    if (FD_FILE_POOL_LOCKED(fp)) {
       if (use_mutex) fd_unlock_mutex(&(fp->lock));
       return 1;}
     if (fd_dtslock(s)==0) {
@@ -467,7 +467,7 @@ static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
     fstat(s->fd,&fileinfo);
     if (fileinfo.st_mtime>fp->modtime) {
       /* Make sure we're up to date. */
-      if (fp->offsets) reload_filepool_cache(fp,0);
+      if (fp->offsets) reload_file_pool_cache(fp,0);
       else {
 	fd_reset_hashtable(&(fp->cache),-1,1);
 	fd_reset_hashtable(&(fp->locks),32,1);}}
@@ -486,7 +486,7 @@ static void update_modtime(struct FD_ZPOOL *fp)
 static int zpool_load(fd_pool p)
 {
   struct FD_ZPOOL *fp=(struct FD_ZPOOL *)p;
-  if (FD_FILEPOOL_LOCKED(fp)) return fp->load;
+  if (FD_FILE_POOL_LOCKED(fp)) return fp->load;
   else {
     int load;
     fd_lock_mutex(&(fp->lock));
@@ -709,7 +709,7 @@ static fdtype zpool_alloc(fd_pool p,int n)
   fdtype results=FD_EMPTY_CHOICE; int i=0;
   struct FD_ZPOOL *fp=(struct FD_ZPOOL *)p;
   fd_lock_mutex(&(fp->lock));
-  if (!(FD_FILEPOOL_LOCKED(fp))) lock_zpool(fp,0);
+  if (!(FD_FILE_POOL_LOCKED(fp))) lock_zpool(fp,0);
   if (fp->load+n>=fp->capacity) {
     fd_unlock_mutex(&(fp->lock));
     return fd_err(fd_ExhaustedPool,"zpool_alloc",p->cid,FD_VOID);}
@@ -735,7 +735,7 @@ static int zpool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_ZPOOL *fp=(struct FD_ZPOOL *)p;
   if (fp->n_locks == 0) return 0;
-  else if (!(FD_FILEPOOL_LOCKED(fp))) return 0;
+  else if (!(FD_FILE_POOL_LOCKED(fp))) return 0;
   else if (FD_CHOICEP(oids))
     fp->n_locks=fp->n_locks-FD_CHOICE_SIZE(oids);
   else if (FD_EMPTY_CHOICEP(oids)) {}
@@ -798,7 +798,7 @@ static void zpool_setcache(fd_pool p,int level)
       fp->offsets=NULL; fp->offsets_size=0;}
 }
 
-static void reload_filepool_cache(struct FD_ZPOOL *fp,int lock)
+static void reload_file_pool_cache(struct FD_ZPOOL *fp,int lock)
 {
 #if HAVE_MMAP
 #else
@@ -868,7 +868,7 @@ static fdtype zpool_metadata(fd_pool p,fdtype md)
 /* Initialization */
 
 static struct FD_POOL_HANDLER zpool_handler={
-  "filepool", 1, sizeof(struct FD_ZPOOL), 12,
+  "file_pool", 1, sizeof(struct FD_ZPOOL), 12,
    zpool_close, /* close */
    zpool_setcache, /* setcache */
    zpool_setbuf, /* setbuf */

@@ -42,9 +42,9 @@ fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
 fd_exception fd_RecoveryRequired=_("RECOVERY");
 
 static void update_modtime(struct FD_FILE_POOL *fp);
-static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock);
+static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock);
 
-static struct FD_POOL_HANDLER filepool_handler;
+static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
@@ -66,7 +66,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   hi=fd_dtsread_4bytes(s); lo=fd_dtsread_4bytes(s);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
   capacity=fd_dtsread_4bytes(s);
-  fd_init_pool((fd_pool)pool,base,capacity,&filepool_handler,fname,rname);
+  fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,fname,rname);
   u8_free(rname);
   if (magicno==FD_FILE_POOL_TO_RECOVER) {
     u8_warn(fd_RecoveryRequired,"Recovering the file pool %s",fname);
@@ -97,14 +97,14 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
 
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
-  if (FD_FILEPOOL_LOCKED(fp)) return 1;
+  if (FD_FILE_POOL_LOCKED(fp)) return 1;
   else if ((fp->stream.flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
   else {
     struct FD_DTYPE_STREAM *s=&(fp->stream);
     struct stat fileinfo;
     if (use_mutex) fd_lock_mutex(&(fp->lock));
     /* Handle race condition by checking when locked */
-    if (FD_FILEPOOL_LOCKED(fp)) {
+    if (FD_FILE_POOL_LOCKED(fp)) {
       if (use_mutex) fd_unlock_mutex(&(fp->lock));
       return 1;}
     if (fd_dtslock(s)==0) {
@@ -113,7 +113,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
     fstat(s->fd,&fileinfo);
     if (fileinfo.st_mtime>fp->modtime) {
       /* Make sure we're up to date. */
-      if (fp->offsets) reload_filepool_cache(fp,0);
+      if (fp->offsets) reload_file_pool_cache(fp,0);
       else {
 	fd_reset_hashtable(&(fp->cache),-1,1);
 	fd_reset_hashtable(&(fp->locks),32,1);}}
@@ -132,7 +132,7 @@ static void update_modtime(struct FD_FILE_POOL *fp)
 static int file_pool_load(fd_pool p)
 {
   fd_file_pool fp=(fd_file_pool)p;
-  if (FD_FILEPOOL_LOCKED(fp)) return fp->load;
+  if (FD_FILE_POOL_LOCKED(fp)) return fp->load;
   else {
     int load;
     fd_lock_mutex(&(fp->lock));
@@ -397,7 +397,7 @@ static fdtype file_pool_alloc(fd_pool p,int n)
   fdtype results=FD_EMPTY_CHOICE; int i=0;
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   fd_lock_mutex(&(fp->lock));
-  if (!(FD_FILEPOOL_LOCKED(fp))) lock_file_pool(fp,0);
+  if (!(FD_FILE_POOL_LOCKED(fp))) lock_file_pool(fp,0);
   if (fp->load+n>=fp->capacity) {
     fd_unlock_mutex(&(fp->lock));
     return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->cid,FD_VOID);}
@@ -423,7 +423,7 @@ static int file_pool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   if (fp->n_locks == 0) return 0;
-  else if (!(FD_FILEPOOL_LOCKED(fp))) return 0;
+  else if (!(FD_FILE_POOL_LOCKED(fp))) return 0;
   else if (FD_CHOICEP(oids))
     fp->n_locks=fp->n_locks-FD_CHOICE_SIZE(oids);
   else if (FD_EMPTY_CHOICEP(oids)) {}
@@ -485,7 +485,7 @@ static void file_pool_setcache(fd_pool p,int level)
       fp->offsets=NULL; fp->offsets_size=0;}
 }
 
-static void reload_filepool_cache(struct FD_FILE_POOL *fp,int lock)
+static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
 {
 #if HAVE_MMAP
   /* This should grow the offsets if the load has changed. */
@@ -555,8 +555,8 @@ static fdtype file_pool_metadata(fd_pool p,fdtype md)
 
 /* The handler struct */
 
-static struct FD_POOL_HANDLER filepool_handler={
-  "filepool", 1, sizeof(struct FD_FILE_POOL), 12,
+static struct FD_POOL_HANDLER file_pool_handler={
+  "file_pool", 1, sizeof(struct FD_FILE_POOL), 12,
    file_pool_close, /* close */
    file_pool_setcache, /* setcache */
    file_pool_setbuf, /* setbuf */
@@ -572,7 +572,7 @@ static struct FD_POOL_HANDLER filepool_handler={
 
 /* Module (file) Initialization */
 
-FD_EXPORT fd_init_filepools_c()
+FD_EXPORT fd_init_file_pools_c()
 {
   fd_register_source_file(versionid);
 

@@ -398,7 +398,7 @@ FD_FASTOP unsigned int zindex_hash(struct FD_ZINDEX *fx,fdtype x)
   case 3:
     return fd_hash_dtype3(x);
   default:
-    u8_raise(_("Bad hash version"),"fileindex_hash",fx->cid);}
+    u8_raise(_("Bad hash version"),"file_index_hash",fx->cid);}
   /* Never reached */
   return -1;
 }

@@ -328,7 +328,7 @@ static fdtype dbx_pool_alloc(fd_pool p,int n)
 }
 
 static struct FD_POOL_HANDLER dbxpool_handler={
-  "filepool", 1, sizeof(struct FD_FILE_POOL), 12,
+  "file_pool", 1, sizeof(struct FD_FILE_POOL), 12,
    dbx_pool_close, /* close */
    NULL, /* setcache */
    NULL, /* setbuf */

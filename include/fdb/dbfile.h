@@ -47,7 +47,7 @@ typedef struct FD_FILE_POOL {
   U8_MUTEX_DECL(lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
 
-#define FD_FILEPOOL_LOCKED(fp) (((fp)->stream.flags)&FD_DTSTREAM_LOCKED)
+#define FD_FILE_POOL_LOCKED(fp) (((fp)->stream.flags)&FD_DTSTREAM_LOCKED)
 
 typedef struct FD_SCHEMA_TABLE {
   int schema_index; int size; fdtype *schema;} FD_SCHEMA_TABLE;
@@ -169,10 +169,10 @@ typedef struct FD_HASH_INDEX {
   unsigned char *mmap;} FD_HASH_INDEX;
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
-FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize);
-FD_EXPORT int fd_make_hashindex(u8_string,int,fdtype,fdtype,fdtype,time_t,time_t);
-FD_EXPORT int fd_hashindex_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate);
-FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
+FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize);
+FD_EXPORT int fd_make_hash_index(u8_string,int,fdtype,fdtype,fdtype,time_t,time_t);
+FD_EXPORT int fd_hash_index_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate);
+FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
 
 
 #endif /* #ifndef FDB_DBFILE_H */

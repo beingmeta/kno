@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: fileindices.c 1023 2007-05-09 23:09:38Z haase $";
+  "$Id:$";
 
 /* Notes:
     A normal 32-bit hash index with N buckets consists of 256 bytes of
@@ -97,9 +97,9 @@ static char versionid[] =
 
 static fdtype read_zvalues(fd_hash_index,int,off_t,size_t);
 
-static struct FD_INDEX_HANDLER hashindex_handler;
+static struct FD_INDEX_HANDLER hash_index_handler;
 
-static fd_exception CorruptedHashIndex=_("Corrupted hashindex file");
+static fd_exception CorruptedHashIndex=_("Corrupted hash_index file");
 
 /* Utilities for DTYPE I/O */
 
@@ -168,7 +168,7 @@ static int init_slotids
 static int init_baseoids
   (struct FD_HASH_INDEX *hx,int n_baseoids,fdtype *baseoids_init);
 
-static fd_index open_hashindex(u8_string fname,int read_only)
+static fd_index open_hash_index(u8_string fname,int read_only)
 {
   struct FD_HASH_INDEX *index=u8_malloc(sizeof(struct FD_HASH_INDEX));
   struct FD_DTYPE_STREAM *s=&(index->stream);
@@ -177,11 +177,11 @@ static fd_index open_hashindex(u8_string fname,int read_only)
   fd_size_t slotids_size, baseoids_size, metadata_size;  
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index(index,&hashindex_handler,fname);
+  fd_init_index(index,&hash_index_handler,fname);
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL)
       == NULL) {
     u8_free(index);
-    fd_seterr3(fd_CantOpenFile,"open_fileindex",u8_strdup(fname));
+    fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
   if (index->stream.flags&FD_DTSTREAM_READ_ONLY) read_only=1;
@@ -297,7 +297,7 @@ static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
 
 /* Making a hash index */
 
-FD_EXPORT int fd_make_hashindex(u8_string fname,int n_buckets_arg,
+FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
 				fdtype slotids_init,fdtype baseoids_init,fdtype metadata_init,
 				time_t ctime,time_t mtime)
 {
@@ -570,7 +570,7 @@ static fdtype read_zkey(fd_hash_index hx,fd_byte_input in)
   else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
 }
 
-FD_EXPORT int fd_hashindex_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate)
+FD_EXPORT int fd_hash_index_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate)
 {
   struct FD_BYTE_OUTPUT out; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
@@ -639,7 +639,7 @@ static fdtype read_zvalue(fd_hash_index hx,fd_byte_input in)
 
 /* Fetching */
 
-static fdtype hashindex_fetch(fd_index ix,fdtype key)
+static fdtype hash_index_fetch(fd_index ix,fdtype key)
 {
   struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
   struct FD_BYTE_OUTPUT out; unsigned char buf[64];
@@ -731,7 +731,7 @@ static fdtype read_zvalues
 			FD_CHOICE_REALLOC);
 }
 
-static int hashindex_fetchsize(fd_index ix,fdtype key)
+static int hash_index_fetchsize(fd_index ix,fdtype key)
 {
   struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
   struct FD_BYTE_OUTPUT out; unsigned char buf[64];
@@ -967,7 +967,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
   return values;
 }
 
-static fdtype *hashindex_fetchn(fd_index ix,int n,fdtype *keys)
+static fdtype *hash_index_fetchn(fd_index ix,int n,fdtype *keys)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fdtype *results;
@@ -1005,7 +1005,7 @@ static int sort_blockrefs_by_off(const void *v1,const void *v2)
   else return 0;
 }
 
-static fdtype hashindex_fetchkeys(fd_index ix)
+static fdtype hash_index_fetchkeys(fd_index ix)
 {
   fdtype results=FD_EMPTY_CHOICE;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
@@ -1070,7 +1070,7 @@ static fdtype hashindex_fetchkeys(fd_index ix)
   return fd_simplify_choice(results);
 }
 
-static fdtype hashindex_fetchsizes(fd_index ix)
+static fdtype hash_index_fetchsizes(fd_index ix)
 {
   fdtype results=FD_EMPTY_CHOICE;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
@@ -1139,7 +1139,7 @@ static fdtype hashindex_fetchsizes(fd_index ix)
 
 /* Cache setting */
 
-static void hashindex_setcache(fd_index ix,int level)
+static void hash_index_setcache(fd_index ix,int level)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
 #if (HAVE_MMAP)
@@ -1166,7 +1166,7 @@ static void hashindex_setcache(fd_index ix,int level)
 	mmap(NULL,(n_buckets*sizeof(struct FD_BLOCK_REF))+256,
 	     PROT_READ,MMAP_FLAGS,s->fd,0)+256;
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"fileindex_setcache:mmap %s",hx->source);
+	u8_warn(u8_strerror(errno),"file_index_setcache:mmap %s",hx->source);
 	hx->buckets=NULL; errno=0;}
       else hx->buckets=buckets=newmmap;
 #else
@@ -1188,7 +1188,7 @@ static void hashindex_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       retval=munmap(hx->buckets-256,(hx->n_buckets*sizeof(FD_BLOCK_REF))+256);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"fileindex_setcache:munmap %s",hx->source);
+	u8_warn(u8_strerror(errno),"file_index_setcache:munmap %s",hx->source);
 	hx->buckets=NULL; errno=0;}
 #else
       u8_free(hx->buckets);
@@ -1251,7 +1251,7 @@ static int populate_prefetch
 static int watch_for_bucket=-1;
 #endif
 
-FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize)
+FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize)
 {
   int i=0, n_buckets=hx->n_buckets, n_keys=FD_CHOICE_SIZE(keys);
   int filled_buckets=0, bucket_count=0, fetch_max=-1;
@@ -1368,7 +1368,7 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
 
 /* Miscellaneous methods */
 
-static void hashindex_close(fd_index ix)
+static void hash_index_close(fd_index ix)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_lock_mutex(&(hx->lock));
@@ -1377,7 +1377,7 @@ static void hashindex_close(fd_index ix)
 #if HAVE_MMAP
     int retval=munmap(hx->buckets,(sizeof(FD_BLOCK_REF)*hx->n_buckets));
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"fileindex_close:munmap %s",hx->source);
+      u8_warn(u8_strerror(errno),"file_index_close:munmap %s",hx->source);
       errno=0;}
 #else
     u8_free(hx->buckets); 
@@ -1387,7 +1387,7 @@ static void hashindex_close(fd_index ix)
   fd_unlock_mutex(&(hx->lock));
 }
 
-static void hashindex_setbuf(fd_index ix,int bufsiz)
+static void hash_index_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_HASH_INDEX *fx=(struct FD_HASH_INDEX *)ix;
   fd_lock_mutex(&(fx->lock));
@@ -1395,7 +1395,7 @@ static void hashindex_setbuf(fd_index ix,int bufsiz)
   fd_unlock_mutex(&(fx->lock));
 }
 
-static fdtype hashindex_metadata(fd_index ix,fdtype md)
+static fdtype hash_index_metadata(fd_index ix,fdtype md)
 {
   struct FD_HASH_INDEX *fx=(struct FD_HASH_INDEX *)ix;
   if (FD_VOIDP(md))
@@ -1406,32 +1406,32 @@ static fdtype hashindex_metadata(fd_index ix,fdtype md)
 
 /* The handler struct */
 
-static struct FD_INDEX_HANDLER hashindex_handler={
-  "hashindex", 1, sizeof(struct FD_HASH_INDEX), 12,
-  hashindex_close, /* close */
+static struct FD_INDEX_HANDLER hash_index_handler={
+  "hash_index", 1, sizeof(struct FD_HASH_INDEX), 12,
+  hash_index_close, /* close */
   NULL, /* commit */
-  hashindex_setcache, /* setcache */
-  hashindex_setbuf, /* setbuf */
-  hashindex_fetch, /* fetch */
-  hashindex_fetchsize, /* fetchsize */
+  hash_index_setcache, /* setcache */
+  hash_index_setbuf, /* setbuf */
+  hash_index_fetch, /* fetch */
+  hash_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */
-  hashindex_fetchn, /* fetchn */
-  hashindex_fetchkeys, /* fetchkeys */
-  hashindex_fetchsizes, /* fetchsizes */
-  hashindex_metadata, /* metadata */
+  hash_index_fetchn, /* fetchn */
+  hash_index_fetchkeys, /* fetchkeys */
+  hash_index_fetchsizes, /* fetchsizes */
+  hash_index_metadata, /* metadata */
   NULL /* sync */
 };
 
-FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix)
+FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 {
-  return (ix->handler==&hashindex_handler);
+  return (ix->handler==&hash_index_handler);
 }
 
 FD_EXPORT fd_init_hashindices_c()
 {
   fd_register_source_file(versionid);
 
-  fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hashindex);
+  fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index);
 }
 
 /* TODO:

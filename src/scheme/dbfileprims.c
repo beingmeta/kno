@@ -101,34 +101,34 @@ static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
   else return FD_TRUE;
 }
 
-static fdtype make_hashindex(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata)
+static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata)
 {
   int retval, blocksize=-1; fd_index ix;
-  retval=fd_make_hashindex(FD_STRDATA(fname),FD_FIX2INT(size),
+  retval=fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
 			   slotids,baseoids,metadata,-1,-1);
   if (retval<0) return fd_erreify();
   else return FD_VOID;
 }
 
-static fdtype populate_hashindex
+static fdtype populate_hash_index
   (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
   fd_index ix=fd_lisp2index(ix_arg); int blocksize=-1, retval;
-  if (!(fd_hashindexp(ix)))
-    return fd_type_error(_("hash index"),"populate_hashindex",ix_arg);
+  if (!(fd_hash_indexp(ix)))
+    return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
   if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
   if (FD_VOIDP(keys)) keys=fd_getkeys(from);
-  retval=fd_populate_hashindex((struct FD_HASH_INDEX *)ix,from,keys,blocksize);
+  retval=fd_populate_hash_index((struct FD_HASH_INDEX *)ix,from,keys,blocksize);
   if (retval<0) return fd_erreify();
   else return FD_INT2DTYPE(retval);
 }
 
-static fdtype hashindex_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
+static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
 {
   fd_index ix=fd_lisp2index(ix_arg); int bucket;
-  if (!(fd_hashindexp(ix)))
-    return fd_type_error(_("hash index"),"populate_hashindex",ix_arg);
-  bucket=fd_hashindex_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
+  if (!(fd_hash_indexp(ix)))
+    return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
+  bucket=fd_hash_index_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
   if (FD_FIXNUMP(modulus))
     return FD_INT2DTYPE((bucket%FD_FIX2INT(modulus)));
   else return FD_INT2DTYPE(bucket);
@@ -208,14 +208,14 @@ FD_EXPORT void fd_init_filedb_c()
 					 fd_string_type,FD_VOID,
 					 fd_string_type,FD_VOID));
 
-  fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASHINDEX",populate_hashindex,2,
+  fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
 					 -1,FD_VOID,-1,FD_VOID,
 					 fd_fixnum_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,fd_make_cprim5x("MAKE-HASHINDEX",make_hashindex,2,
+  fd_idefn(filedb_module,fd_make_cprim5x("MAKE-HASH-INDEX",make_hash_index,2,
 					 fd_string_type,FD_VOID,
 					 fd_fixnum_type,FD_VOID,
 					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,fd_make_cprim3x("HASHINDEX-BUCKET",hashindex_bucket,2,
+  fd_idefn(filedb_module,fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
 					 -1,FD_VOID,-1,FD_VOID));
 
 

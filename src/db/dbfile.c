@@ -489,7 +489,7 @@ FD_EXPORT int fd_init_dbfile()
 
   fd_init_hashdtype_c();
   fd_init_fileindices_c();
-  fd_init_filepools_c();
+  fd_init_file_pools_c();
   fd_init_zpools_c();
   fd_init_zindices_c();
   fd_init_hashindices_c();
