@@ -75,6 +75,17 @@ static char versionid[] =
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
+#ifndef FD_DEBUG_HASHINDICES
+#define FD_DEBUG_HASHINDICES 0
+#endif
+
+#if FD_DEBUG_HASHINDICES
+#define CHECK_ENDPOS(pos,stream) \
+   if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");
+#else
+#define CHECK_ENDPOS(pos,stream)
+#endif
+
 static fdtype read_zvalues(fd_hash_index,int,off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
@@ -921,8 +932,74 @@ static fdtype hashindex_fetchkeys(fd_index ix)
 	  fd_decref(val);}
 	else fd_read_zint(&keyblock);}
       else {
-	fd_read_zint(&keyblock);
-	fd_read_4bytes(&keyblock);}
+	fd_read_4bytes(&keyblock);
+	fd_read_zint(&keyblock);}
+      j++;}
+    i++;}
+  if (keybuf) u8_free(keybuf);
+  if (buckets) u8_free(buckets);
+  return fd_simplify_choice(results);
+}
+
+static fdtype hashindex_fetchsizes(fd_index ix)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  fd_dtype_stream s=&(hx->stream);
+  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0;
+  FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*n_buckets);
+  unsigned char _keybuf[512], *keybuf=NULL; int keyblock_size=-1;
+  if (hx->buckets==NULL) {
+    fd_setpos(s,256);
+    while (i<n_buckets) {
+      fd_off_t off; fd_size_t size;
+      off=fd_dtsread_4bytes(s);
+      size=fd_dtsread_4bytes(s);
+      if (size) {
+	buckets[n_to_fetch].off=off;
+	buckets[n_to_fetch].size=size;
+	n_to_fetch++;}
+      i++;}}
+  else while (i<n_buckets) {
+      FD_BLOCK_REF ref=get_block_ref(hx,i);
+      if (ref.size) {
+	buckets[n_to_fetch].off=ref.off;
+	buckets[n_to_fetch].size=ref.size;
+	n_to_fetch++;}
+      i++;}
+  /* qsort(buckets,n_to_fetch,sizeof(FD_BLOCK_REF),sort_blockrefs_by_off); */
+  i=0; while (i<n_to_fetch) {
+    struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
+    if (buckets[i].size<512) 
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf);
+    else {
+      if (keybuf==NULL) {
+	keyblock_size=buckets[i].size;
+	keybuf=u8_malloc(keyblock_size);}
+      else if (buckets[i].size<keyblock_size) {}
+      else {
+	keyblock_size=buckets[i].size;
+	keybuf=u8_realloc(keybuf,keyblock_size);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf);}
+    n_keys=fd_read_zint(&keyblock);
+    while (j<n_keys) {
+      fdtype key, key_and_size; int n_vals, size;
+      /* Ignore size */
+      size=fd_read_zint(&keyblock);
+      key=read_zkey(hx,&keyblock);
+      n_vals=fd_read_zint(&keyblock);
+      key_and_size=fd_init_pair(NULL,key,FD_INT2DTYPE(n_vals));
+      FD_ADD_TO_CHOICE(results,key_and_size);
+      if (n_vals==0) {}
+      else if (n_vals==1) {
+	int code=fd_read_zint(&keyblock);
+	if (code==0) {
+	  fdtype val=fd_read_dtype(&keyblock,NULL);
+	  fd_decref(val);}
+	else fd_read_zint(&keyblock);}
+      else {
+	fd_read_4bytes(&keyblock);
+	fd_read_zint(&keyblock);}
       j++;}
     i++;}
   if (keybuf) u8_free(keybuf);
@@ -1041,7 +1118,9 @@ static int populate_prefetch
   return k;
 }
 
+#if FD_DEBUG_HASHINDICES
 static int watch_for_bucket=-1;
+#endif
 
 FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize)
 {
@@ -1079,8 +1158,10 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
     struct FD_BYTE_OUTPUT keyblock; int retval;
     unsigned char buf[4096];
     unsigned int bucket=psched[i].bucket, load=0, j=i;
+#if FD_DEBUG_HASHINDICES
     if (bucket==watch_for_bucket)
       u8_warn("Event","Hit the bucket %d",watch_for_bucket);
+#endif
     while ((j<n_keys) && (psched[j].bucket==bucket)) j++;
     bucket_refs[bucket_count].bucket=bucket;
     load=j-i; FD_INIT_FIXED_BYTE_OUTPUT(&keyblock,buf,4096);
@@ -1095,7 +1176,7 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
       if (FD_EMPTY_CHOICEP(values)) {}
       else if (FD_CHOICEP(values)) {
 	int bytes_written=0;
-	if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");
+	CHECK_ENDPOS(endpos,stream);
 	fd_write_4bytes(&keyblock,endpos);
 	retval=fd_dtswrite_zint(stream,FD_CHOICE_SIZE(values));
 	if (retval<0) {
@@ -1120,7 +1201,7 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
 	fd_dtswrite_byte(stream,0); bytes_written++;
 	fd_write_zint(&keyblock,bytes_written);
 	endpos=endpos+bytes_written;
-	if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");}
+	CHECK_ENDPOS(endpos,stream);}
       else write_zvalue(hx,&keyblock,values);
       fd_decref(values);
       i++;}
@@ -1136,7 +1217,7 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
       return -1;}
     else bucket_refs[bucket_count].size=retval;
     endpos=endpos+retval;
-    if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");
+    CHECK_ENDPOS(endpos,stream);
     bucket_count++;}
   qsort(bucket_refs,bucket_count,sizeof(struct BUCKET_REF),sort_br_by_bucket);
   i=0; while (i<bucket_count) {
@@ -1203,8 +1284,8 @@ static struct FD_INDEX_HANDLER hashindex_handler={
   NULL, /* prefetch */
   hashindex_fetchn, /* fetchn */
   hashindex_fetchkeys, /* fetchkeys */
-  NULL, /* fetchsizes */
-  hashindex_metadata, /* fetchsizes */
+  hashindex_fetchsizes, /* fetchsizes */
+  hashindex_metadata, /* metadata */
   NULL /* sync */
 };
 
