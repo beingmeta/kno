@@ -47,7 +47,12 @@ static int grow_byte_buffer(struct FD_BYTE_OUTPUT *b,int delta)
   while (new_limit < need_size)
     if (new_limit>=0x40000) new_limit=new_limit+0x40000;
     else new_limit=new_limit*2;
-  new=u8_prealloc(b->mpool,b->start,new_limit);
+  if ((b->flags)&(FD_BYTEBUF_MALLOCD))
+    new=u8_prealloc(b->mpool,b->start,new_limit);
+  else {
+    new=u8_pmalloc(b->mpool,new_limit);
+    if (new) memcpy(new,b->start,current_size);
+    b->flags=b->flags|FD_BYTEBUF_MALLOCD;}
   if (new == NULL) return 0;
   b->start=new; b->ptr=new+current_size;
   b->end=b->start+new_limit;
@@ -1093,7 +1098,7 @@ FD_EXPORT int
   else return -1;
 }
 
-FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream)
+FD_EXPORT unsigned int _fd_read_zint(struct FD_BYTE_INPUT *stream)
 {
   return fd_read_zint(stream);
 }
