@@ -444,15 +444,15 @@ static fdtype read_zkey(fd_hash_index hx,fd_byte_input in)
   else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
 }
 
-FD_EXPORT int fd_hashindex_bucket(struct FD_HASH_INDEX *hx,fdtype key)
+FD_EXPORT int fd_hashindex_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate)
 {
   struct FD_BYTE_OUTPUT out; unsigned char buf[1024];
-  unsigned int hashval, bucket; int dtype_len;
+  unsigned int hashval; int dtype_len;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,1024);
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.start,dtype_len);
-  bucket=hashval%(hx->n_buckets);
-  return bucket;
+  if (modulate) return hashval%(hx->n_buckets);
+  else return hashval;
 }
 
 /* ZVALUEs */

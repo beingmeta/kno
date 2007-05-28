@@ -6,8 +6,14 @@
   (ambda (keys hashfns (sizes #f))
     (for-choices (hashfn hashfns)
       (for-choices (size sizes)
+	;; If the size is a float (inexact) use it as a loading multiplier
+	;;  on the number of keys to get a table size
 	(when (inexact? size)
 	  (set! size (inexact->exact (* size (choice-size keys)))))
+	;; Try to pick a good hashtable size using the builtin function
+	;; A negative size arg says to just use the size argument directly.
+	(when (and (number? size) (< size 0))
+	  (set! size (pick-hashtable-size (- size))))
 	(let ((buckets (make-hashtable (* 3 (choice-size keys))))
 	      (bucketsizes (make-hashtable (* 3 (choice-size keys)))))
 	  (do-choices (key keys)
@@ -43,6 +49,8 @@
 	      "Averaging " (/~ sum n) " keys per bucket over "
 	      n " buckets, " (+ empty missing) " empty, " direct " direct, "
 	      (- n direct empty) " collisions\n"
+	      "The " (- n direct empty) " collisions average "
+	      (/~ (- sum direct) (- n direct empty)) " keys per bucket\n"
 	      "The highest bucket used was " highest
 	      " and the most loaded bucket, " maxkey ", had "
 	      max " keys.\n")))

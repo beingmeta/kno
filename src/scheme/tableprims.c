@@ -30,6 +30,13 @@ static fdtype make_hashtable(fdtype size)
   else return fd_make_hashtable(NULL,0,NULL);
 }
 
+static fdtype pick_hashtable_size(fdtype count_arg)
+{
+  int count=FD_FIX2INT(count_arg);
+  int size=fd_get_hashtable_size(count);
+  return FD_INT2DTYPE(size);
+}
+
 static fdtype reset_hashtable(fdtype table,fdtype n_slots)
 {
   fd_reset_hashtable((fd_hashtable)table,FD_FIX2INT(n_slots),1);
@@ -318,6 +325,12 @@ static fdtype hashtable_skim(fdtype table,fdtype threshold,fdtype scope)
   return fd_hashtable_skim(FD_XHASHTABLE(table),threshold,scope);
 }
 
+static fdtype hashtable_buckets(fdtype table)
+{
+  fd_hashtable h=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
+  return FD_INT2DTYPE(h->n_slots);
+}
+
 static fdtype table_size(fdtype table)
 {
   int size=fd_getsize(table);
@@ -457,6 +470,11 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim0("MAKE-HASHSET",fd_make_hashset,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
 
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("PICK-HASHTABLE-SIZE",pick_hashtable_size,1,
+			   fd_fixnum_type,FD_VOID));
+
+
   fd_idefn(fd_xscheme_module,
 	   fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
 			   fd_hashtable_type,FD_VOID,
@@ -513,9 +531,11 @@ FD_EXPORT void fd_init_tablefns_c()
 	   fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
 			   fd_hashtable_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("HASHTABLE-SKIM",hashtable_skim,2,
-			   fd_hashtable_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
+			   fd_hashtable_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("HASHTABLE-BUCKETS",hashtable_buckets,1,
+			   fd_hashtable_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
 
