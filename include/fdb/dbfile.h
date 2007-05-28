@@ -120,6 +120,9 @@ unsigned int fd_hash_dtype_rep(fdtype x);
 
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
+#define FD_HASH_INDEX_FN_MASK 0xF
+#define FD_HASH_INDEX_DTYPEV2 0x10
+
 #ifndef FD_USE_OFF_T
 #define FD_USE_OFF_T 0
 #endif
@@ -170,7 +173,7 @@ typedef struct FD_HASH_INDEX {
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
 FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize);
-FD_EXPORT int fd_make_hash_index(u8_string,int,fdtype,fdtype,fdtype,time_t,time_t);
+FD_EXPORT int fd_make_hash_index(u8_string,int,unsigned int,unsigned int,fdtype,fdtype,fdtype,time_t,time_t);
 FD_EXPORT int fd_hash_index_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate);
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
 

@@ -100,6 +100,7 @@ static fdtype read_zvalues(fd_hash_index,int,off_t,size_t);
 static struct FD_INDEX_HANDLER hash_index_handler;
 
 static fd_exception CorruptedHashIndex=_("Corrupted hash_index file");
+static fd_exception BadHashFn=_("hash_index has unknown hash function");
 
 /* Utilities for DTYPE I/O */
 
@@ -192,11 +193,17 @@ static fd_index open_hash_index(u8_string fname,int read_only)
 #if 0
   if (magicno==FD_HASH_INDEX_TO_RECOVER) {
     u8_warn(fd_RecoveryRequired,"Recovering the file index %s",fname);
-    recover_file_index(index);
+    recover_hash_index(index);
     magicno=magicno&(~0x20);}
 #endif
   index->buckets=NULL; index->read_only=read_only;
   index->hxflags=fd_dtsread_4bytes(s);
+
+  if (((index->hxflags)&(FD_HASH_INDEX_FN_MASK))!=0) {
+    u8_free(index);
+    fd_seterr3(BadHashFn,"open_hash_index",NULL);
+    return NULL;}
+  
   index->hxcustom=fd_dtsread_4bytes(s);
 
   n_keys=fd_dtsread_4bytes(s); /* Currently ignored */
@@ -298,8 +305,9 @@ static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
 /* Making a hash index */
 
 FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
-				fdtype slotids_init,fdtype baseoids_init,fdtype metadata_init,
-				time_t ctime,time_t mtime)
+				 unsigned int flags,unsigned int hashconst,
+				 fdtype slotids_init,fdtype baseoids_init,fdtype metadata_init,
+				 time_t ctime,time_t mtime)
 {
   int n_buckets;
   time_t now=time(NULL);
@@ -318,8 +326,8 @@ FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_HASH_INDEX_MAGIC_NUMBER);
   fd_dtswrite_4bytes(stream,n_buckets);
-  fd_dtswrite_4bytes(stream,0); /* No hxflags now. */
-  fd_dtswrite_4bytes(stream,0); /* No custom hash constant */
+  fd_dtswrite_4bytes(stream,flags); /* No hxflags now. */
+  fd_dtswrite_4bytes(stream,hashconst); /* No custom hash constant */
   fd_dtswrite_4bytes(stream,0); /* No keys to start */
   
   /* This is where we store the offset and size for the slotid init */
@@ -575,6 +583,8 @@ FD_EXPORT int fd_hash_index_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modul
   struct FD_BYTE_OUTPUT out; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,1024);
+  if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
+    out.flags=out.flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.start,dtype_len);
   if (modulate) return hashval%(hx->n_buckets);
@@ -649,6 +659,8 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   off_t vblock_off; size_t vblock_size;
   FD_BLOCK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
+  if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
+    out.flags=out.flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.start,dtype_len);
   bucket=hashval%(hx->n_buckets);
@@ -740,6 +752,8 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   off_t vblock_off; size_t vblock_size;
   FD_BLOCK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
+  if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
+    out.flags=out.flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.start,dtype_len);
   bucket=hashval%(hx->n_buckets);
@@ -810,6 +824,8 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
   struct VALUE_SCHEDULE *vsched=u8_malloc(sizeof(struct VALUE_SCHEDULE)*n);
   int i=0, n_entries=0, vsched_size=0;
   FD_INIT_BYTE_OUTPUT(&out,n*16,NULL);
+  if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
+    out.flags=out.flags|FD_DTYPEV2;
   while (i<n) {
     fdtype key=keys[i];
     int dt_start=out.ptr-out.start, dt_size, bucket;
@@ -1263,6 +1279,9 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
   
   if (FD_INDEXP(from)) ix=fd_lisp2index(from);
 
+  if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
+    out.flags=out.flags|FD_DTYPEV2;
+
   /* Fill the key schedule and count the number of buckets used */
   memset(psched,0,n_keys*sizeof(struct POP_SCHEDULE));
   {
@@ -1294,6 +1313,10 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
     while ((j<n_keys) && (psched[j].bucket==bucket)) j++;
     bucket_refs[bucket_count].bucket=bucket;
     load=j-i; FD_INIT_FIXED_BYTE_OUTPUT(&keyblock,buf,4096);
+
+    if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
+      keyblock.flags=keyblock.flags|FD_DTYPEV2;
+
     fd_write_zint(&keyblock,load);
     if ((ix) && (i>=fetch_max))
       fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);

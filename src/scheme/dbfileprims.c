@@ -101,10 +101,12 @@ static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
   else return FD_TRUE;
 }
 
-static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata)
+static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata,
+			      fdtype v2)
 {
   int retval, blocksize=-1; fd_index ix;
   retval=fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
+			    ((FD_TRUEP(v2)) ? (FD_HASH_INDEX_DTYPEV2) : (0)),0,
 			   slotids,baseoids,metadata,-1,-1);
   if (retval<0) return fd_erreify();
   else return FD_VOID;
@@ -211,10 +213,11 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
 					 -1,FD_VOID,-1,FD_VOID,
 					 fd_fixnum_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,fd_make_cprim5x("MAKE-HASH-INDEX",make_hash_index,2,
+  fd_idefn(filedb_module,fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
 					 fd_string_type,FD_VOID,
 					 fd_fixnum_type,FD_VOID,
-					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+					 -1,FD_FALSE));
   fd_idefn(filedb_module,fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
 					 -1,FD_VOID,-1,FD_VOID));
 
