@@ -220,6 +220,7 @@ FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INPUT *stream,int byte);
 FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INPUT *stream);
 FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len);
+FD_EXPORT unsigned int _fd_read_zint(struct FD_BYTE_INPUT *stream);
 
 #if FD_INLINE_DTYPEIO
 #define fd_read_byte(stream) \

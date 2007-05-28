@@ -130,7 +130,7 @@ FD_EXPORT void fd_init_dtype_stream
   s->mpool=bufpool; s->conspool=conspool; /* Initialize memory pools */
   /* Initialize the on-demand reader */
   s->fillfn=fill_dtype_stream; s->flushfn=NULL;
-  s->bufsiz=bufsiz; s->flags=FD_DTSTREAM_READING;
+  s->bufsiz=bufsiz; s->flags=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
 }
 
 FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream

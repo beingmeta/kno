@@ -110,15 +110,26 @@ static fdtype make_hashindex(fdtype fname,fdtype size,fdtype slotids,fdtype base
   else return FD_VOID;
 }
 
-static fdtype populate_hashindex(fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
+static fdtype populate_hashindex
+  (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
   fd_index ix=fd_lisp2index(ix_arg); int blocksize=-1, retval;
   if (!(fd_hashindexp(ix)))
     return fd_type_error(_("hash index"),"populate_hashindex",ix_arg);
   if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
+  if (FD_VOIDP(keys)) keys=fd_getkeys(from);
   retval=fd_populate_hashindex((struct FD_HASH_INDEX *)ix,from,keys,blocksize);
   if (retval<0) return fd_erreify();
   else return FD_INT2DTYPE(retval);
+}
+
+static fdtype hashindex_bucket(fdtype ix_arg,fdtype key)
+{
+  fd_index ix=fd_lisp2index(ix_arg); int blocksize=-1, retval;
+  if (!(fd_hashindexp(ix)))
+    return fd_type_error(_("hash index"),"populate_hashindex",ix_arg);
+  int bucket=fd_hashindex_bucket(ix,key);
+  return FD_INT2DTYPE(bucket);
 }
 
 /* Hashing functions */
@@ -202,6 +213,9 @@ FD_EXPORT void fd_init_filedb_c()
 					 fd_string_type,FD_VOID,
 					 fd_fixnum_type,FD_VOID,
 					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn(filedb_module,fd_make_cprim2x("HASHINDEX-BUCKET",hashindex_bucket,2,
+					 -1,FD_VOID,-1,FD_VOID));
+
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));

@@ -79,6 +79,8 @@ static fdtype read_zvalues(fd_hash_index,int,off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
 
+static fd_exception CorruptedHashIndex=_("Corrupted hashindex file");
+
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
 #define MIDDLIN_MODULUS 573786077 /* 256000001 */
@@ -414,10 +416,32 @@ static int write_zkey(fd_hash_index hx,fd_byte_output out,fdtype key)
       slotid_index=get_slotid_index(hx,car);
       if (slotid_index<0) 
 	return fd_write_byte(out,0)+fd_write_dtype(out,key);
-      else return fd_write_zint(out,slotid_index)+
+      else return fd_write_zint(out,slotid_index+1)+
 	     fd_write_dtype(out,FD_CDR(key));}
-    else return fd_write_dtype(out,key);}
-  else return fd_write_dtype(out,key);
+    else return fd_write_byte(out,0)+fd_write_dtype(out,key);}
+  else return fd_write_byte(out,0)+fd_write_dtype(out,key);
+}
+
+static fdtype read_zkey(fd_hash_index hx,fd_byte_input in)
+{
+  int code=fd_read_zint(in);
+  if (code==0) return fd_read_dtype(in,NULL);
+  else if ((code-1)<hx->n_slotids) {
+    fdtype cdr=fd_read_dtype(in,NULL);
+    if (FD_ABORTP(cdr)) return cdr;
+    else return fd_init_pair(NULL,hx->slotids[code-1],cdr);}
+  else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
+}
+
+FD_EXPORT int fd_hashindex_bucket(struct FD_HASH_INDEX *hx,fdtype key)
+{
+  struct FD_BYTE_OUTPUT out; unsigned char buf[1024];
+  unsigned int hashval, bucket; int dtype_len;
+  FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,1024);
+  dtype_len=write_zkey(hx,&out,key);
+  hashval=hash_bytes(out.start,dtype_len);
+  bucket=hashval%(hx->n_buckets);
+  return bucket;
 }
 
 /* ZVALUEs */
@@ -501,9 +525,8 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
   n_keys=fd_read_zint(&keystream);
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);
-    if (key_len!=dtype_len) 
-      keystream.ptr=keystream.ptr+key_len;
-    else if (memcmp(keystream.ptr,out.start,dtype_len)==0) {
+    if ((key_len==dtype_len) &&
+	(memcmp(keystream.ptr,out.start,dtype_len)==0)) {
       keystream.ptr=keystream.ptr+key_len;
       n_values=fd_read_zint(&keystream);
       if (n_values==0) {
@@ -609,56 +632,88 @@ static int hashindex_fetchsize(fd_index ix,fdtype key)
 
 /* Fetching multiple keys */
 
-struct FETCH_SCHEDULE {
+struct KEY_SCHEDULE {
   int index; fdtype key; unsigned int key_start, size;
-  unsigned int bucket; FD_BLOCK_REF ref;};
+  int bucket; FD_BLOCK_REF ref;};
+struct VALUE_SCHEDULE {
+  int index; fdtype *write; int atomicp; FD_BLOCK_REF ref;};
 
-#if 0
-static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
+static int sort_ks_by_bucket(const void *k1,const void *k2)
+{
+  struct KEY_SCHEDULE *ks1=(struct KEY_SCHEDULE *)k1;
+  struct KEY_SCHEDULE *ks2=(struct KEY_SCHEDULE *)k2;
+  if (ks1->bucket<ks2->bucket) return -1;
+  else if (ks1->bucket>ks2->bucket) return 1;
+  else return 0;
+}
+
+static int sort_ks_by_refoff(const void *k1,const void *k2)
+{
+  struct KEY_SCHEDULE *ks1=(struct KEY_SCHEDULE *)k1;
+  struct KEY_SCHEDULE *ks2=(struct KEY_SCHEDULE *)k2;
+  if (ks1->ref.off<ks2->ref.off) return -1;
+  else if (ks1->ref.off>ks2->ref.off) return 1;
+  else return 0;
+}
+
+static int sort_vs_by_refoff(const void *v1,const void *v2)
+{
+  struct KEY_SCHEDULE *vs1=(struct KEY_SCHEDULE *)v1;
+  struct KEY_SCHEDULE *vs2=(struct KEY_SCHEDULE *)v2;
+  if (vs1->ref.off<vs2->ref.off) return -1;
+  else if (vs1->ref.off>vs2->ref.off) return 1;
+  else return 0;
+}
+
+static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
 {
   fdtype *values=u8_malloc(sizeof(fdtype)*n);
   struct FD_BYTE_OUTPUT out;
-  struct FETCH_SCHEDULE *schedule=u8_malloc(sizeof(struct FETCH_SCHEDULE)*n);
-  int i=0, n_entries=0;
-  FD_INIT_BYTE_OUTPUT(&out,n*64,NULL);
+  struct KEY_SCHEDULE *schedule=u8_malloc(sizeof(struct KEY_SCHEDULE)*n);
+  struct VALUE_SCHEDULE *vsched=u8_malloc(sizeof(struct VALUE_SCHEDULE)*n);
+  int i=0, n_entries=0, vsched_size=0;
+  FD_INIT_BYTE_OUTPUT(&out,n*16,NULL);
   while (i<n) {
+    fdtype key=keys[i];
     int dt_start=out.ptr-out.start, dt_size, bucket;
     schedule[n_entries].index=i; schedule[n_entries].key=key;
     schedule[n_entries].key_start=dt_start;
-    write_zkey(hx,out,key);
-    dt_size=(out.ptr-out.start)-start;
-    schedule[n_entries].key_size=dt_size;
+    write_zkey(hx,&out,key);
+    dt_size=(out.ptr-out.start)-dt_start;
+    schedule[n_entries].size=dt_size;
     schedule[n_entries].bucket=bucket=
-      hash_bytes(out.start+dt_start,dt_size)%(hx->n_entries);
+      hash_bytes(out.start+dt_start,dt_size)%(hx->n_buckets);
     if (hx->buckets) {
       schedule[i].ref=get_block_ref(hx,bucket);
       if (schedule[n_entries].ref.size==0) {
 	/* It is empty, so we don't even need to handle this entry. */
 	values[i]=FD_EMPTY_CHOICE;
-	out.ptr=out.start+start;}
+	/* We don't need to keep its dtype representation around either,
+	   so we reset the key stream. */
+	out.ptr=out.start+dt_start;}
       else n_entries++;}
     else n_entries++;
     i++;}
   if (hx->buckets==NULL) {
     int write_at=0;
-    qsort(schedule,sizeof(struct KEY_SCHEDULE),n_entries,
+    qsort(schedule,n_entries,sizeof(struct KEY_SCHEDULE),
 	  sort_ks_by_bucket);
     i=0; while (i<n_entries) {
-      schedule[i].ref=get_block_ref(hx,bucket);
+      schedule[i].ref=get_block_ref(hx,schedule[i].bucket);
       if (schedule[i].ref.size==0) {
 	values[schedule[i].index]=FD_EMPTY_CHOICE; i++;}
       else if (write_at==i) {write_at++; i++;}
       else {schedule[write_at++]=schedule[i++];}}
-    n_entries=write-schedule;}
-  qsort(schedule,sizeof(struct KEY_SCHEDULE),n_entries,
-	sort_ks_by_refpos);
+    n_entries=write_at;}
+  qsort(schedule,n_entries,sizeof(struct KEY_SCHEDULE),
+	sort_ks_by_refoff);
   {
     struct FD_BYTE_INPUT keyblock;
     unsigned char _buf[1024], *buf=NULL;
-    int bucket=-1, j=0, bufsiz=0;
+    int bucket=-1, j=0, bufsiz=0, key_found=0;
     while (j<n_entries) {
       int k=0, n_keys, found=0;
-      fd_off_t blockpos=schedule[j].ref.pos;
+      fd_off_t blockpos=schedule[j].ref.off;
       fd_size_t blocksize=schedule[j].ref.size;
       if (schedule[j].bucket!=bucket) {
 	if (blocksize<1024)
@@ -677,46 +732,203 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
       while (k<n_keys) {
 	int n_vals, vsize;
 	fd_size_t dtsize=fd_read_zint(&keyblock);
-	if ((dtsize==schedule[i].dtsize) &&
-	    (memcmp(out.start+schedule[i].start,keyblock.ptr,dtsize)==0)) {
+	if ((dtsize==schedule[j].size) &&
+	    (memcmp(out.start+schedule[j].key_start,keyblock.ptr,dtsize)==0)) {
+	  keyblock.ptr=keyblock.ptr+dtsize; key_found=1;
+	  n_vals=fd_read_zint(&keyblock);
+	  if (n_vals==0) 
+	    values[schedule[j].index]=FD_EMPTY_CHOICE;
+	  else if (n_vals==1)
+	    values[schedule[j].index]=read_zvalue(hx,&keyblock);
+	  else {
+	    fd_off_t block_off=fd_read_4bytes(&keyblock);
+	    fd_size_t block_size=fd_read_zint(&keyblock);
+	    struct FD_CHOICE *result=fd_alloc_choice(n_vals);
+	    FD_SET_CONS_TYPE(result,fd_choice_type);
+	    result->size=n_vals;
+	    values[schedule[j].index]=(fdtype)result;
+	    vsched[vsched_size].index=schedule[j].index;
+	    vsched[vsched_size].ref.off=block_off;
+	    vsched[vsched_size].ref.size=block_size;
+	    vsched[vsched_size].write=(fdtype *)FD_XCHOICE_DATA(result);
+	    vsched[vsched_size].atomicp=1;
+	    vsched_size++;
+	    break;}}
+	else {
 	  keyblock.ptr=keyblock.ptr+dtsize;
 	  n_vals=fd_read_zint(&keyblock);
-	  if (nvals==0) 
-	    values[schedule[j].index]=FD_EMPTY_CHOICE;
-	  else if (nvals==1)
-	    values[schedule[j].index]=read_zvalue(hx,&keyblock);
-	  else {}
-	  break;}
-	else keyblock.ptr=keyblock.ptr+dtsize;
-	n_vals=fd_read_zint(&keyblock);
-	if (n_vals==0) {}
-	else if (n_vals==1) {
-	  fdtype val=fd_read_dtype(&keyblock);
-	  fd_decref(val);}
-	else {
-	  int vsize=fd_read_zint(&keyblock);
-	  if (vsize) fd_read_4bytes(&keyblock);}
+	  if (n_vals==0) {}
+	  else if (n_vals==1) {
+	    fdtype v=read_zvalue(hx,&keyblock);
+	    fd_decref(v);}
+	  else {
+	    /* Skip offset information */
+	    fd_read_4bytes(&keyblock);
+	    fd_read_zint(&keyblock);}}
 	k++;}
+      if (!(key_found)) 
+	values[schedule[j].index]=FD_EMPTY_CHOICE;
       j++;}
-	    
-	
-
-  i=0; while (i<n_entries) {
-    int n_keys;
-    if (schedule[i].ref.size<1024)
-      open_block(&keyblock,hx,schedule[i]ref.pos,schedule[i].ref.size,
-		 _buf);
-    else {
-      buf=u8_malloc(schedule[i].ref.size);
-      open_block(&keyblock,hx,schedule[i]ref.pos,schedule[i].ref.size,
-		 buf);}
-    n_keys=fd_read_zint(&keyblock);
-    
-  
-    
+    if (buf) u8_free(buf);}
+  u8_free(schedule);
+  {
+    struct FD_BYTE_INPUT vblock;
+    unsigned char _vbuf[8192], *vbuf=NULL;
+    unsigned int vbuf_size=0;
+    while (vsched_size) {
+      qsort(vsched,vsched_size,sizeof(struct VALUE_SCHEDULE),
+	    sort_vs_by_refoff);
+      i=0; while (i<vsched_size) {
+	int j=0, n_vals;
+	fd_size_t next_size;
+	if (vsched[i].ref.size>8192) {
+	  if (vsched[i].ref.size<vbuf_size) {
+	    vbuf=u8_realloc(vbuf,vsched[i].ref.size);
+	    vbuf_size=vsched[i].ref.size;}
+	  open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,vbuf);}
+	else open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,_vbuf);
+	n_vals=fd_read_zint(&vblock);
+	while (j<n_vals) {
+	  fdtype v=read_zvalue(hx,&vblock);
+	  if (FD_CONSP(v)) vsched[i].atomicp=0;
+	  *(vsched[i].write++)=v; j++;}
+	next_size=fd_read_zint(&vblock);
+	if (next_size) {
+	  vsched[i].ref.size=next_size;
+	  vsched[i].ref.off=fd_read_4bytes(&vblock);}
+	else {
+	  vsched[i].ref.size=0;
+	  vsched[i].ref.off=0;}
+	i++;}
+      {
+	struct VALUE_SCHEDULE *read=&(vsched[0]), *write=&(vsched[0]);
+	struct VALUE_SCHEDULE *limit=read+vsched_size;
+	vsched_size=0; while (read<limit) {
+	  if (read->ref.size) {
+	    *write++=*read++; vsched_size++;}
+	  else {
+	    /* We're now done with this value, so we finalize it,
+	       using fd_init_choice to sort it.  Note that (rarely),
+	       fd_init_choice will free what was passed to it (if it
+	       had zero or one element), so the real result is what is
+	       returned and not what was passed in. */
+	    int index=read->index, atomicp=read->atomicp;
+	    struct FD_CHOICE *result=(struct FD_CHOICE *)values[index];
+	    int n_values=result->size;
+	    fdtype realv=fd_init_choice(result,n_values,NULL,
+					FD_CHOICE_DOSORT|
+					((atomicp)?(FD_CHOICE_ISATOMIC):
+					 (FD_CHOICE_ISCONSES))|
+					FD_CHOICE_REALLOC);
+	    values[index]=realv;
+	    read++;}}}}
+    if (vbuf) u8_free(vbuf);}
+  u8_free(vsched); 
+  return values;
 }
 
-#endif
+static fdtype *hashindex_fetchn(fd_index ix,int n,fdtype *keys)
+{
+  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  fdtype *results;
+  fd_lock_mutex(&(hx->lock));
+  results=fetchn(hx,n,keys);
+  if (results) {
+    int i=0;
+    fd_lock_mutex(&(hx->adds.lock));
+    while (i<n) {
+      fdtype v=fd_hashtable_get_nolock(&(hx->adds),keys[i],FD_EMPTY_CHOICE);
+      if (FD_ABORTP(v)) {
+	int j=0; while (j<n) { fd_decref(results[j]); j++;}
+	u8_free(results);
+	fd_unlock_mutex(&(hx->lock));
+	fd_unlock_mutex(&(hx->adds.lock));
+	fd_interr(v);
+	return NULL;}
+      else if (FD_EMPTY_CHOICEP(v)) i++;
+      else {
+	FD_ADD_TO_CHOICE(results[i],v); i++;}}
+    fd_unlock_mutex(&(hx->adds.lock));}
+  fd_unlock_mutex(&(hx->lock));
+  return results;
+}
+
+
+/* Getting all keys */
+
+static int sort_blockrefs_by_off(const void *v1,const void *v2)
+{
+  struct FD_BLOCK_REF *br1=(struct FD_BLOCK_REF *)v1;
+  struct FD_BLOCK_REF *br2=(struct FD_BLOCK_REF *)v2;
+  if (br1->off<br2->off) return -1;
+  else if (br1->off>br2->off) return 1;
+  else return 0;
+}
+
+static fdtype hashindex_fetchkeys(fd_index ix)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  fd_dtype_stream s=&(hx->stream);
+  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0;
+  FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*n_buckets);
+  unsigned char _keybuf[512], *keybuf=NULL; int keyblock_size=-1;
+  if (hx->buckets==NULL) {
+    fd_setpos(s,256);
+    while (i<n_buckets) {
+      fd_off_t off; fd_size_t size;
+      off=fd_dtsread_4bytes(s);
+      size=fd_dtsread_4bytes(s);
+      if (size) {
+	buckets[n_to_fetch].off=off;
+	buckets[n_to_fetch].size=size;
+	n_to_fetch++;}
+      i++;}}
+  else while (i<n_buckets) {
+      FD_BLOCK_REF ref=get_block_ref(hx,i);
+      if (ref.size) {
+	buckets[n_to_fetch].off=ref.off;
+	buckets[n_to_fetch].size=ref.size;
+	n_to_fetch++;}
+      i++;}
+  /* qsort(buckets,n_to_fetch,sizeof(FD_BLOCK_REF),sort_blockrefs_by_off); */
+  i=0; while (i<n_to_fetch) {
+    struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
+    if (buckets[i].size<512) 
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf);
+    else {
+      if (keybuf==NULL) {
+	keyblock_size=buckets[i].size;
+	keybuf=u8_malloc(keyblock_size);}
+      else if (buckets[i].size<keyblock_size) {}
+      else {
+	keyblock_size=buckets[i].size;
+	keybuf=u8_realloc(keybuf,keyblock_size);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf);}
+    n_keys=fd_read_zint(&keyblock);
+    while (j<n_keys) {
+      fdtype key; int n_vals, size;
+      /* Ignore size */
+      size=fd_read_zint(&keyblock);
+      key=read_zkey(hx,&keyblock);
+      n_vals=fd_read_zint(&keyblock);
+      FD_ADD_TO_CHOICE(results,key);
+      if (n_vals==0) {}
+      else if (n_vals==1) {
+	int code=fd_read_zint(&keyblock);
+	if (code==0) {
+	  fdtype val=fd_read_dtype(&keyblock,NULL);
+	  fd_decref(val);}
+	else fd_read_zint(&keyblock);}
+      else {
+	fd_read_zint(&keyblock);
+	fd_read_4bytes(&keyblock);}
+      j++;}
+    i++;}
+  if (keybuf) u8_free(keybuf);
+  if (buckets) u8_free(buckets);
+  return fd_simplify_choice(results);
+}
 
 
 /* Cache setting */
@@ -785,8 +997,7 @@ static void hashindex_setcache(fd_index ix,int level)
    It is commonly used when initializing a hash index. */
 
 struct POP_SCHEDULE {
-  fdtype key; unsigned int pos, size;
-  unsigned int bucket;};
+  fdtype key; unsigned int size, bucket;};
 struct BUCKET_REF {
   unsigned int bucket; fd_off_t off; fd_size_t size;};
 
@@ -808,10 +1019,12 @@ static int sort_br_by_bucket(const void *p1,const void *p2)
   else return 0;
 }
 
-static int doprefetch(struct POP_SCHEDULE *psched,fd_index ix,int i,int blocksize,int n_keys)
+static int populate_prefetch
+   (struct POP_SCHEDULE *psched,fd_index ix,int i,int blocksize,int n_keys)
 {
   fdtype prefetch=FD_EMPTY_CHOICE;
   int k=i, lim=k+blocksize, final_bckt;
+  u8_message("Swapping out index %s",ix->cid);
   fd_index_swapout(ix);
   if (lim>n_keys) lim=n_keys;
   while (k<lim) {
@@ -822,17 +1035,20 @@ static int doprefetch(struct POP_SCHEDULE *psched,fd_index ix,int i,int blocksiz
     else {
       fdtype key=psched[k++].key; fd_incref(key);
       FD_ADD_TO_CHOICE(prefetch,key);}
+  u8_message("Prefetching %d keys from %s",lim-i,ix->cid);
   fd_index_prefetch(ix,prefetch);
   fd_decref(prefetch);
   return k;
 }
+
+static int watch_for_bucket=-1;
 
 FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize)
 {
   int i=0, n_buckets=hx->n_buckets, n_keys=FD_CHOICE_SIZE(keys);
   int filled_buckets=0, bucket_count=0, fetch_max=-1;
   struct POP_SCHEDULE *psched=u8_malloc(n_keys*sizeof(struct POP_SCHEDULE));
-  struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,n_keys*32,NULL);
+  struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,8192,NULL);
   struct BUCKET_REF *bucket_refs; fd_index ix=NULL;
   fd_dtype_stream stream=&(hx->stream);
   off_t endpos=fd_endpos(stream);
@@ -844,11 +1060,12 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
   {
     int cur_bucket=-1;
     FD_DO_CHOICES(key,keys) {
-      int buf_off=out.ptr-out.start; int bucket;
-      psched[i].key=key; psched[i].pos=buf_off;
+      int bucket, size;
+      out.ptr=out.start; /* Reset stream */
+      psched[i].key=key;
       write_zkey(hx,&out,key);
-      psched[i].size=(out.ptr-out.start)-buf_off;
-      bucket=hash_bytes(out.start+psched[i].pos,psched[i].size)%n_buckets;
+      psched[i].size=(out.ptr-out.start);
+      bucket=hash_bytes(out.start,psched[i].size)%n_buckets;
       psched[i].bucket=bucket;
       if (bucket!=cur_bucket) {cur_bucket=bucket; filled_buckets++;}
       i++;}
@@ -862,20 +1079,23 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
     struct FD_BYTE_OUTPUT keyblock; int retval;
     unsigned char buf[4096];
     unsigned int bucket=psched[i].bucket, load=0, j=i;
+    if (bucket==watch_for_bucket)
+      u8_warn("Event","Hit the bucket %d",watch_for_bucket);
     while ((j<n_keys) && (psched[j].bucket==bucket)) j++;
     bucket_refs[bucket_count].bucket=bucket;
     load=j-i; FD_INIT_FIXED_BYTE_OUTPUT(&keyblock,buf,4096);
     fd_write_zint(&keyblock,load);
     if ((ix) && (i>=fetch_max))
-      fetch_max=doprefetch(psched,ix,i,blocksize,n_keys);
+      fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);
     while (i<j) {
       fdtype key=psched[i].key, values=fd_get(from,key,FD_EMPTY_CHOICE);
       fd_write_zint(&keyblock,psched[i].size);
-      fd_write_bytes(&keyblock,out.start+psched[i].pos,psched[i].size);
+      write_zkey(hx,&keyblock,key);
       fd_write_zint(&keyblock,FD_CHOICE_SIZE(values));
       if (FD_EMPTY_CHOICEP(values)) {}
       else if (FD_CHOICEP(values)) {
 	int bytes_written=0;
+	if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");
 	fd_write_4bytes(&keyblock,endpos);
 	retval=fd_dtswrite_zint(stream,FD_CHOICE_SIZE(values));
 	if (retval<0) {
@@ -899,7 +1119,8 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
 	/* Write a NULL to indicate no continuation. */
 	fd_dtswrite_byte(stream,0); bytes_written++;
 	fd_write_zint(&keyblock,bytes_written);
-	endpos=endpos+bytes_written;}
+	endpos=endpos+bytes_written;
+	if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");}
       else write_zvalue(hx,&keyblock,values);
       fd_decref(values);
       i++;}
@@ -915,6 +1136,7 @@ FD_EXPORT int fd_populate_hashindex(struct FD_HASH_INDEX *hx,fdtype from,fdtype 
       return -1;}
     else bucket_refs[bucket_count].size=retval;
     endpos=endpos+retval;
+    if (endpos!=fd_getpos(stream)) u8_warn("Mismatch","endpos/getpos mismatch");
     bucket_count++;}
   qsort(bucket_refs,bucket_count,sizeof(struct BUCKET_REF),sort_br_by_bucket);
   i=0; while (i<bucket_count) {
@@ -979,8 +1201,8 @@ static struct FD_INDEX_HANDLER hashindex_handler={
   hashindex_fetch, /* fetch */
   hashindex_fetchsize, /* fetchsize */
   NULL, /* prefetch */
-  NULL, /* fetchn */
-  NULL, /* fetchkeys */
+  hashindex_fetchn, /* fetchn */
+  hashindex_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
   hashindex_metadata, /* fetchsizes */
   NULL /* sync */
