@@ -1165,6 +1165,19 @@ static void hash_index_setcache(fd_index ix,int level)
     if (hx->mmap) {
       fd_unlock_mutex(&(hx->lock));
       return;}
+    hx->mmap=
+      mmap(NULL,u8_file_size(hx->cid),PROT_READ,MMAP_FLAGS,hx->stream.fd,0);
+    if (hx->mmap==NULL) {
+      u8_warn(u8_strerror(errno),"hash_index_setcache:mmap %s",hx->source);
+      hx->mmap=NULL; errno=0;}
+    fd_unlock_mutex(&(hx->lock));}
+  if ((level<3) && (hx->mmap)) {
+    int retval;
+    fd_lock_mutex(&(hx->lock));
+    retval=munmap(hx->mmap,u8_file_size(hx->cid));
+    if (retval<0) {
+      u8_warn(u8_strerror(errno),"hash_index_setcache:munmap %s",hx->source);
+      hx->mmap=NULL; errno=0;}
     fd_unlock_mutex(&(hx->lock));}
 #endif
   if (level >= 2)
