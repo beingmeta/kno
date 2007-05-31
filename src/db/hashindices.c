@@ -1433,6 +1433,7 @@ struct COMMIT_SCHEDULE {
 
 struct KEYENTRY {
   int dtype_size, n_values; 
+  /* Make this into an int relative to the parent keybucket's keybuf */
   unsigned char *dtype_start;
   fdtype values; FD_BLOCK_REF vref;};
 
@@ -1464,7 +1465,8 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	if (FD_PAIRP(key))
 	  if ((FD_CAR(key))==set_symbol) {
 	    fd_hashset_add(taken,FD_CDR(key));
-	    s[i].key=FD_CDR(key); s[i].values=fd_incref(kvscan->value);
+	    s[i].key=FD_CDR(key);
+	    s[i].values=fd_make_simple_choice(kvscan->value);
 	    s[i].replace=1; i++;}
 	  else if ((FD_CAR(key))==drop_symbol) {
 	    fdtype key_to_drop=FD_CDR(key);
@@ -1522,7 +1524,8 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
       while (kvscan<kvlimit) {
 	fdtype key=kvscan->key;
 	if (!(fd_hashset_get(taken,key))) {
-	  s[i].key=key; s[i].values=fd_incref(kvscan->value);
+	  s[i].key=key;
+	  s[i].values=fd_make_simple_choice(kvscan->value);
 	  s[i].replace=0; i++;}
 	kvscan++;}
       scan++;}
@@ -1670,14 +1673,17 @@ static int hash_index_commit(struct FD_INDEX *ix)
       u8_malloc(sizeof(struct COMMIT_SCHEDULE)*schedule_max);
     struct FD_HASHSET taken;
     struct FD_BYTE_OUTPUT out, newkeys;
-    struct FD_BYTE_INPUT keyblock;
-    unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
     fd_init_hashset(&taken,3*(hx->edits.n_keys));
+    /* Get all the keys we need to write.  */
     schedule_size=process_edits(hx,&taken,schedule,schedule_size);
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
     FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
     FD_INIT_BYTE_OUTPUT(&newkeys,1024,NULL);
+    if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2)) {
+      out.flags=out.flags|FD_DTYPEV2;
+      newkeys.flags=newkeys.flags|FD_DTYPEV2;}
+    /* Compute all the buckets for all the keys */
     i=0; while (i<schedule_size) {
       fdtype key=schedule[i].key; int bucket;
       out.ptr=out.start;
@@ -1685,25 +1691,27 @@ static int hash_index_commit(struct FD_INDEX *ix)
       schedule[i].bucket=bucket=
 	hash_bytes(out.start,out.ptr-out.start)%(hx->n_buckets);
       i++;}
+    /* TODO: Add a pass getting the block refs for each entry.  Also compute
+             total number of keyblocks.  */
+    /* TODO: Sort the schedule by ref not bucket */
     qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
 	  sort_cs_by_bucket);
+    /* Iterate through the schedule, getting the information for each keyblock */
+    /* TODO: Keep a vector of keyblocks to read this stuff into.  Then add
+              a second iterate to extend each keyblock. */
     i=0; while (i<schedule_size) {
       int bucket=schedule[i].bucket, j=i, n_keys, k;
-      while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
+      struct FD_BYTE_INPUT keyblock; struct KEYBUCKET *kb;
       FD_BLOCK_REF ref=get_block_ref(hx,bucket);
-      struct KEYBUCKET *kb;
+      unsigned char *keybuf;
+      while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       if (ref.size) {
-	if (ref.size<512)
-	  open_block(&keyblock,hx,ref.off,ref.size,_keybuf);
-	else {
-	  if (keybuf==NULL) {
-	    keybuf=u8_malloc(ref.size); keybuf_size=ref.size;}
-	  else if (ref.size>=keybuf_size) {
-	    keybuf=u8_realloc(keybuf,ref.size); keybuf_size=ref.size;}
-	  open_block(&keyblock,hx,ref.off,ref.size,keybuf);}
+	keybuf=u8_malloc(ref.size);
+	open_block(&keyblock,hx,ref.off,ref.size,keybuf);
 	n_keys=fd_read_zint(&keyblock);
 	kb=u8_malloc(sizeof(struct KEYBUCKET)+
 		     sizeof(struct KEYENTRY)*((j-i)+n_keys));
+	kb->n_keys=n_keys; kb->keybuf=keybuf;
 	parse_keybucket(hx,kb,&keyblock,n_keys);}
       else {
 	kb=u8_malloc(sizeof(struct KEYBUCKET));
@@ -1716,6 +1724,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
 	buckets[schedule[i].bucket].off=startpos;
 	buckets[schedule[i].bucket].size=endpos-startpos;}
       i=j;}
+    /* Todo: Cleanup keyblocks, keybuckets, buffers, etc. */
+    i=0; while (i<schedule_size) {
+      fd_decref(schedule[i].values);}
   }
   fd_setpos(stream,256);
   fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
