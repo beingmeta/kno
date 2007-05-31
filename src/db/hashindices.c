@@ -102,6 +102,8 @@ static struct FD_INDEX_HANDLER hash_index_handler;
 static fd_exception CorruptedHashIndex=_("Corrupted hash_index file");
 static fd_exception BadHashFn=_("hash_index has unknown hash function");
 
+static fdtype set_symbol, drop_symbol;
+
 /* Utilities for DTYPE I/O */
 
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
@@ -983,30 +985,35 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
   return values;
 }
 
-static fdtype *hash_index_fetchn(fd_index ix,int n,fdtype *keys)
+static fdtype *hash_index_fetchn_inner(fd_index ix,int n,fdtype *keys,int lock)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fdtype *results;
-  fd_lock_mutex(&(hx->lock));
+  if (lock) fd_lock_mutex(&(hx->lock));
   results=fetchn(hx,n,keys);
   if (results) {
     int i=0;
-    fd_lock_mutex(&(hx->adds.lock));
+    if (lock) fd_lock_mutex(&(hx->adds.lock));
     while (i<n) {
       fdtype v=fd_hashtable_get_nolock(&(hx->adds),keys[i],FD_EMPTY_CHOICE);
       if (FD_ABORTP(v)) {
 	int j=0; while (j<n) { fd_decref(results[j]); j++;}
 	u8_free(results);
-	fd_unlock_mutex(&(hx->lock));
-	fd_unlock_mutex(&(hx->adds.lock));
+	if (lock) fd_unlock_mutex(&(hx->lock));
+	if (lock) fd_unlock_mutex(&(hx->adds.lock));
 	fd_interr(v);
 	return NULL;}
       else if (FD_EMPTY_CHOICEP(v)) i++;
       else {
 	FD_ADD_TO_CHOICE(results[i],v); i++;}}
-    fd_unlock_mutex(&(hx->adds.lock));}
-  fd_unlock_mutex(&(hx->lock));
+    if (lock) fd_unlock_mutex(&(hx->adds.lock));}
+  if (lock) fd_unlock_mutex(&(hx->lock));
   return results;
+}
+
+static fdtype *hash_index_fetchn(fd_index ix,int n,fdtype *keys)
+{
+  return hash_index_fetchn_inner(ix,n,keys,1);
 }
 
 
@@ -1422,21 +1429,301 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
 */
 
 struct COMMIT_SCHEDULE {
-  fdtype key, value; int bucket; FD_BLOCK_REF ref;
-  short adds, buckref;};
+  fdtype key, values; int bucket; int replace;};
 
 struct KEYENTRY {
   int dtype_size, n_values; 
   unsigned char *dtype_start;
-  fdtype value; FD_BLOCK_REF vref;};
+  fdtype values; FD_BLOCK_REF vref;};
 
 struct KEYBUCKET {
-  int bucket, n_keys; unsigned char *keybuf; struct KEYENTRY key0;};
+  int n_keys; unsigned char *keybuf; struct KEYENTRY elt0;};
+
+static int sort_cs_by_bucket(const void *k1,const void *k2)
+{
+  struct COMMIT_SCHEDULE *ks1=(struct COMMIT_SCHEDULE *)k1;
+  struct COMMIT_SCHEDULE *ks2=(struct COMMIT_SCHEDULE *)k2;
+  if (ks1->bucket<ks2->bucket) return -1;
+  else if (ks1->bucket>ks2->bucket) return 1;
+  else return 0;
+}
+
+static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
+			 struct COMMIT_SCHEDULE *s,int i)
+{
+  fd_hashtable adds=&(hx->adds), edits=&(hx->edits), cache=&(hx->cache);
+  fdtype *drops=u8_malloc(sizeof(fdtype)*(edits->n_keys)), *drop_values;
+  int j=0, n_drops=0;
+  struct FD_HASHENTRY **scan=edits->slots, **lim=scan+edits->n_slots;
+  while (scan < lim)
+    if (*scan) {
+      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      while (kvscan<kvlimit) {
+	fdtype key=kvscan->key;
+	if (FD_PAIRP(key))
+	  if ((FD_CAR(key))==set_symbol) {
+	    fd_hashset_add(taken,FD_CDR(key));
+	    s[i].key=FD_CDR(key); s[i].values=fd_incref(kvscan->value);
+	    s[i].replace=1; i++;}
+	  else if ((FD_CAR(key))==drop_symbol) {
+	    fdtype key_to_drop=FD_CDR(key);
+	    fdtype cached=fd_hashtable_get(cache,key_to_drop,FD_VOID);
+	    if (FD_VOIDP(cached))
+	      drops[n_drops++]=FD_CDR(key);
+	    else {
+	      fdtype added=fd_hashtable_get(adds,key_to_drop,FD_EMPTY_CHOICE);
+	      FD_ADD_TO_CHOICE(cached,added);
+	      s[i].key=key_to_drop;
+	      s[i].values=fd_difference(cached,kvscan->value);
+	      s[i].replace=1;
+	      fd_decref(cached);
+	      i++;}}
+	  else {}
+	else {}
+	kvscan++;}
+      scan++;}
+    else scan++;
+  drop_values=hash_index_fetchn_inner((fd_index)hx,n_drops,drops,0);
+  scan=edits->slots; lim=scan+edits->n_slots;
+  j=0; while (scan < lim)
+	 if (*scan) {
+	   struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+	   struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+	   while (kvscan<kvlimit) {
+	     fdtype key=kvscan->key, key_to_drop=FD_CDR(key);
+	     if ((FD_PAIRP(key)) && ((FD_CAR(key))==drop_symbol)) {
+	       if (FD_CDR(key)==drops[j]) {
+		 fdtype cached=drop_values[j];
+		 fdtype added=
+		   fd_hashtable_get(adds,key_to_drop,FD_EMPTY_CHOICE);
+		 FD_ADD_TO_CHOICE(cached,added);
+		 s[i].key=key_to_drop;
+		 s[i].values=fd_difference(cached,kvscan->value);
+		 s[i].replace=1;
+		 fd_decref(cached);
+		 i++; j++;}}
+	     kvscan++;}
+	   scan++;}
+	 else scan++;
+  u8_free(drops); u8_free(drop_values);
+  return i;
+}
+
+static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
+			struct COMMIT_SCHEDULE *s,int i)
+{
+  fd_hashtable adds=&(hx->adds), edits=&(hx->edits), cache=&(hx->cache);
+  struct FD_HASHENTRY **scan=adds->slots, **lim=scan+adds->n_slots;
+  while (scan < lim)
+    if (*scan) {
+      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      while (kvscan<kvlimit) {
+	fdtype key=kvscan->key;
+	if (!(fd_hashset_get(taken,key))) {
+	  s[i].key=key; s[i].values=fd_incref(kvscan->value);
+	  s[i].replace=0; i++;}
+	kvscan++;}
+      scan++;}
+    else scan++;
+  return i;
+}
+
+static void parse_keybucket(fd_hash_index hx,struct KEYBUCKET *kb,
+			    fd_byte_input in,int n_keys)
+{
+  int i=0; struct KEYENTRY *base_entry=&(kb->elt0);
+  kb->n_keys=n_keys;
+  while (i<n_keys) {
+    int dt_size=fd_read_zint(in), n_values;
+    struct KEYENTRY *entry=base_entry+i;
+    entry->dtype_size=dt_size; entry->dtype_start=in->ptr;
+    in->ptr=in->ptr+dt_size;
+    n_values=fd_read_zint(in);
+    if (n_values==0) entry->values=FD_EMPTY_CHOICE;
+    else if (n_values==1) entry->values=read_zvalue(hx,in);
+    else {
+      entry->vref.off=fd_read_4bytes(in);
+      entry->vref.size=fd_read_zint(in);}
+    i++;}
+}
+
+static FD_BLOCK_REF write_value_block
+(struct FD_HASH_INDEX *hx,fd_dtype_stream stream,
+ fdtype values,fdtype extra,
+ int cont_off,int cont_size,fd_off_t startpos)
+{
+  fd_off_t endpos=startpos; FD_BLOCK_REF retval;
+  if (FD_CHOICEP(values)) {
+    int full_size=FD_CHOICE_SIZE(values)+((FD_VOIDP(extra))?0:1);
+    endpos=endpos+fd_dtswrite_zint(stream,full_size);
+    if (!(FD_VOIDP(extra)))
+      endpos=endpos+dtswrite_zvalue(hx,stream,extra);
+    {FD_DO_CHOICES(value,values)
+	endpos=endpos+dtswrite_zvalue(hx,stream,value);}}
+  else {
+    endpos=endpos+fd_dtswrite_zint(stream,1);
+    endpos=endpos+dtswrite_zvalue(hx,stream,values);}
+  endpos=endpos+fd_dtswrite_zint(stream,cont_size);
+  if (cont_size)
+    endpos=endpos+fd_dtswrite_4bytes(stream,cont_off);
+  retval.off=startpos; retval.size=endpos-startpos;
+  return retval;
+}
+
+static fd_off_t extend_keybucket
+  (fd_hash_index hx,struct KEYBUCKET *kb,
+   struct COMMIT_SCHEDULE *schedule,int i,int j,
+   fd_byte_output newkeys,fd_off_t endpos)
+{
+  int k=i; int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
+  if (FD_EXPECT_FALSE((j-i)>16) )  {
+    keyoffs=u8_malloc(sizeof(int)*(j-i));
+    keysizes=u8_malloc(sizeof(int)*(j-i));}
+  else {keyoffs=_keyoffs; keysizes=_keysizes;}
+  while (k<j) {
+    int off;
+    keyoffs[k-i]=off=newkeys->ptr-newkeys->start;
+    write_zkey(hx,newkeys,schedule[k].key);
+    keysizes[k-i]=(newkeys->ptr-newkeys->start)-off;
+    k++;}
+  k=i; while (k<j) {
+    unsigned char *keydata=newkeys->start+keyoffs[k-i];
+    struct KEYENTRY *ke=&(kb->elt0);
+    int keysize=keysizes[k-i];
+    int scan=0, n_keys=kb->n_keys, n_values;
+    while (scan<n_keys)
+      if ((ke[scan].dtype_size)!= keysize) scan++;
+      else if (memcmp(keydata,ke[scan].dtype_start,keysize)) scan++;
+      else {
+	/* The key is already in there, so we write a value
+	   block and update the key entry.  Note that if
+	   the current value is a singleton, and stored in the keyblock,
+	   we need to add that the value block we emit. */
+	int n_values=ke[scan].n_values;
+	int n_values_added=FD_CHOICE_SIZE(schedule[k].values);
+	ke[scan].n_values=n_values+n_values_added;
+	if (n_values==0) {}
+	else if (n_values==1) {
+	  ke[scan].vref=
+	    write_value_block(hx,&(hx->stream),schedule[k].values,
+			      ke[scan].values,0,0,endpos);
+	  endpos=ke[scan].vref.off+ke[scan].vref.size;}
+	else {
+	  ke[scan].vref=
+	    write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
+			      ke[scan].vref.off,ke[scan].vref.size,
+			      endpos);
+	  endpos=ke[scan].vref.off+ke[scan].vref.size;}
+	scan++;
+	continue;}
+    ke[n_keys].dtype_size=keysize;
+    ke[n_keys].n_values=n_values=FD_CHOICE_SIZE(schedule[k].values);
+    ke[n_keys].dtype_start=newkeys->start+keyoffs[k-i];
+    if (n_values==0) ke[n_keys].values=FD_EMPTY_CHOICE;
+    if (n_values==1) ke[n_keys].values=schedule[k].values;
+    else {
+      ke[n_keys].vref=
+	write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
+			  0,0,endpos);
+      endpos=ke[scan].vref.off+ke[scan].vref.size;}
+    kb->n_keys++; k++;}
+  return endpos;
+}
+
+static fd_off_t write_keybucket
+  (fd_hash_index hx,fd_dtype_stream stream,struct KEYBUCKET *kb,fd_off_t endpos)
+{
+  int i=0, n_keys=kb->n_keys;
+  struct KEYENTRY *ke=&(kb->elt0);
+  endpos=endpos+fd_dtswrite_zint(stream,n_keys);
+  while (i<n_keys) {
+    int dtype_size=ke[i].dtype_size, n_values=ke[i].n_values;
+    endpos=endpos+fd_dtswrite_zint(stream,dtype_size);
+    endpos=endpos+fd_dtswrite_bytes(stream,ke[i].dtype_start,dtype_size);
+    endpos=endpos+fd_dtswrite_zint(stream,n_values);
+    if (n_values==1)
+      endpos=endpos+dtswrite_zvalue(hx,stream,ke[i].values);
+    else {
+      endpos=endpos+fd_dtswrite_4bytes(stream,ke[i].vref.off);
+      endpos=endpos+fd_dtswrite_zint(stream,ke[i].vref.size);}
+    i++;}
+  return endpos;
+}
 
 static int hash_index_commit(struct FD_INDEX *ix)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(hx->stream);
+  struct FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*(hx->n_buckets));
+  fd_off_t endpos;
+  fd_lock_mutex(&(hx->lock));
+  fd_lock_mutex(&(hx->adds.lock));
+  fd_lock_mutex(&(hx->edits.lock));
+  fd_setpos(stream,256);
+  fd_dtsread_ints(stream,(hx->n_buckets)*2,(unsigned int *)buckets);
+  {
+    int i=0;
+    int schedule_max=hx->adds.n_keys+hx->edits.n_keys, schedule_size=0;
+    struct COMMIT_SCHEDULE *schedule=
+      u8_malloc(sizeof(struct COMMIT_SCHEDULE)*schedule_max);
+    struct FD_HASHSET taken;
+    struct FD_BYTE_OUTPUT out, newkeys;
+    struct FD_BYTE_INPUT keyblock;
+    unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
+    fd_init_hashset(&taken,3*(hx->edits.n_keys));
+    schedule_size=process_edits(hx,&taken,schedule,schedule_size);
+    schedule_size=process_adds(hx,&taken,schedule,schedule_size);
+    fd_recycle_hashset(&taken);
+    FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
+    FD_INIT_BYTE_OUTPUT(&newkeys,1024,NULL);
+    i=0; while (i<schedule_size) {
+      fdtype key=schedule[i].key; int bucket;
+      out.ptr=out.start;
+      write_zkey(hx,&out,key);
+      schedule[i].bucket=bucket=
+	hash_bytes(out.start,out.ptr-out.start)%(hx->n_buckets);
+      i++;}
+    qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
+	  sort_cs_by_bucket);
+    i=0; while (i<schedule_size) {
+      int bucket=schedule[i].bucket, j=i, n_keys, k;
+      while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
+      FD_BLOCK_REF ref=get_block_ref(hx,bucket);
+      struct KEYBUCKET *kb;
+      if (ref.size) {
+	if (ref.size<512)
+	  open_block(&keyblock,hx,ref.off,ref.size,_keybuf);
+	else {
+	  if (keybuf==NULL) {
+	    keybuf=u8_malloc(ref.size); keybuf_size=ref.size;}
+	  else if (ref.size>=keybuf_size) {
+	    keybuf=u8_realloc(keybuf,ref.size); keybuf_size=ref.size;}
+	  open_block(&keyblock,hx,ref.off,ref.size,keybuf);}
+	n_keys=fd_read_zint(&keyblock);
+	kb=u8_malloc(sizeof(struct KEYBUCKET)+
+		     sizeof(struct KEYENTRY)*((j-i)+n_keys));
+	parse_keybucket(hx,kb,&keyblock,n_keys);}
+      else {
+	kb=u8_malloc(sizeof(struct KEYBUCKET));
+	kb->n_keys=0; kb->keybuf=NULL;}
+      endpos=fd_endpos(stream);
+      endpos=extend_keybucket(hx,kb,schedule,i,j,&newkeys,endpos);
+      {
+	fd_off_t startpos=endpos;
+	endpos=write_keybucket(hx,stream,kb,endpos);
+	buckets[schedule[i].bucket].off=startpos;
+	buckets[schedule[i].bucket].size=endpos-startpos;}
+      i=j;}
+  }
+  fd_setpos(stream,256);
+  fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
+  fd_dtsflush(stream); fsync(stream->fd);
+  fd_unlock_mutex(&(hx->lock));
+  fd_unlock_mutex(&(hx->adds.lock));
+  fd_unlock_mutex(&(hx->edits.lock));
+  u8_free(buckets);
   return 0;
 }
 
@@ -1484,7 +1771,7 @@ static fdtype hash_index_metadata(fd_index ix,fdtype md)
 static struct FD_INDEX_HANDLER hash_index_handler={
   "hash_index", 1, sizeof(struct FD_HASH_INDEX), 12,
   hash_index_close, /* close */
-  NULL, /* commit */
+  hash_index_commit, /* commit */
   hash_index_setcache, /* setcache */
   hash_index_setbuf, /* setbuf */
   hash_index_fetch, /* fetch */
@@ -1504,6 +1791,9 @@ FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 
 FD_EXPORT fd_init_hashindices_c()
 {
+  set_symbol=fd_intern("SET");
+  drop_symbol=fd_intern("DROP");
+
   fd_register_source_file(versionid);
 
   fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index);
