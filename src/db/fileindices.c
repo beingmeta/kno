@@ -1040,7 +1040,7 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
 {
   /* This reads the offsets vector written at the end of the file
      during commitment. */
-  int i=0, len=fx->n_slots, load; off_t new_end;
+  int i=0, len=fx->n_slots; off_t new_end;
   unsigned int *offsets=u8_malloc(4*len), magic_no;
   struct FD_DTYPE_STREAM *s=&(fx->stream);
   fd_endpos(s); new_end=fd_movepos(s,-(4*len));

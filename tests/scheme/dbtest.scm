@@ -12,7 +12,8 @@
 	 (set! testindex (open-index source)))
 	(else
 	 (make-file-pool (append source ".pool") @17/0 64000)
-	 (make-file-index (append source ".index") 500000)
+	 (make-hash-index (append source ".index") 500000)
+	 ;; (make-file-index (append source ".index") 500000)
 	 (set! dbsource source)
 	 (set! testpool (use-pool source))
 	 (set! testindex (open-index source)))))

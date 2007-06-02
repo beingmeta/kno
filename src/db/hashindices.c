@@ -170,6 +170,7 @@ static int init_slotids
   (struct FD_HASH_INDEX *hx,int n_slotids,fdtype *slotids_init);
 static int init_baseoids
   (struct FD_HASH_INDEX *hx,int n_baseoids,fdtype *baseoids_init);
+static int recover_hash_index(struct FD_HASH_INDEX *hx);
 
 static fd_index open_hash_index(u8_string fname,int read_only)
 {
@@ -192,12 +193,10 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   index->mmap=NULL;
   magicno=fd_dtsread_4bytes(s);
   index->n_buckets=fd_dtsread_4bytes(s);
-#if 0
   if (magicno==FD_HASH_INDEX_TO_RECOVER) {
-    u8_warn(fd_RecoveryRequired,"Recovering the file index %s",fname);
+    u8_warn(fd_RecoveryRequired,"Recovering the hash index %s",fname);
     recover_hash_index(index);
     magicno=magicno&(~0x20);}
-#endif
   index->buckets=NULL; index->read_only=read_only;
   index->hxflags=fd_dtsread_4bytes(s);
 
@@ -1713,7 +1712,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct FD_DTYPE_STREAM *stream=&(hx->stream);
   struct FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*(hx->n_buckets));
   fd_off_t endpos;
-  int n_keyblocks=0;
+  int n_keyblocks=0, new_keys=0;
   fd_lock_mutex(&(hx->lock));
   fd_lock_mutex(&(hx->adds.lock));
   fd_lock_mutex(&(hx->edits.lock));
@@ -1778,11 +1777,13 @@ static int hash_index_commit(struct FD_INDEX *ix)
     i=0; bscan=0; endpos=fd_endpos(stream);
     while (i<schedule_size) {
       struct KEYBUCKET *kb=keybuckets[bscan];
-      int bucket=schedule[i].bucket, j=i, n_keys, k;
+      int bucket=schedule[i].bucket, j=i, n_keys, k, cur_keys;
       assert(bucket==kb->bucket);
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       endpos=fd_endpos(stream);
+      cur_keys=kb->n_keys;
       endpos=extend_keybucket(hx,kb,schedule,i,j,&newkeys,endpos);
+      new_keys=new_keys+(kb->n_keys-cur_keys);
       {
 	fd_off_t startpos=endpos;
 	endpos=write_keybucket(hx,stream,kb,endpos);
@@ -1803,13 +1804,55 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_free(out.start);
     u8_free(newkeys.start);
   }
+  /* Write the new offsets information to the end of the file
+     for recovery if we die while doing the actual write. */
+  fd_endpos(stream);
+  fd_dtswrite_4bytes(stream,new_keys);
+  fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
+  fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
+  fd_dtsflush(stream); fsync(stream->fd);
+  /* Now, write the data it where it is supposed to be. */
+  if (new_keys) {
+    int cur_keys;
+    fd_setpos(stream,16); cur_keys=fd_dtsread_4bytes(stream);
+    fd_setpos(stream,16); fd_dtswrite_4bytes(stream,cur_keys+new_keys);}
   fd_setpos(stream,256);
   fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
+  fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_MAGIC_NUMBER);
   fd_dtsflush(stream); fsync(stream->fd);
+
+  {
+    /* Now erase the recovery information, since we don't need it anymore. */
+    off_t end=fd_endpos(stream);
+    int recovery_size=(8*(hx->n_buckets))+4;
+    ftruncate(stream->fd,end-recovery_size);}
+
+  /* And unlock all the locks. */
   fd_unlock_mutex(&(hx->lock));
   fd_unlock_mutex(&(hx->adds.lock));
   fd_unlock_mutex(&(hx->edits.lock));
   u8_free(buckets);
+  return 0;
+}
+
+static int recover_hash_index(struct FD_HASH_INDEX *hx)
+{
+  /* This reads the offsets vector written at the end of the file
+     during commitment. */
+  int i=0, len=hx->n_buckets, cur_keys, new_keys; off_t new_end;
+  unsigned int *offsets=u8_malloc(8*len), magic_no;
+  struct FD_DTYPE_STREAM *s=&(hx->stream);
+  fd_endpos(s); new_end=fd_movepos(s,-(8*(len+1)));
+  new_keys=fd_dtsread_4bytes(s);
+  fd_dtsread_ints(s,len*2,offsets);
+  fd_setpos(s,16); cur_keys=fd_dtsread_4bytes(s);
+  fd_setpos(s,16); fd_dtswrite_4bytes(s,cur_keys+new_keys);
+  fd_setpos(s,256);
+  fd_dtswrite_ints(s,len*2,offsets);  
+  fd_setpos(s,0); fd_dtswrite_4bytes(s,FD_HASH_INDEX_MAGIC_NUMBER);
+  fd_dtsflush(s);
+  ftruncate(s->fd,new_end);
+  fsync(s->fd);
   return 0;
 }
 
@@ -1883,6 +1926,7 @@ FD_EXPORT fd_init_hashindices_c()
   fd_register_source_file(versionid);
 
   fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index);
+  fd_register_index_opener(FD_HASH_INDEX_TO_RECOVER,open_hash_index);
 }
 
 /* TODO:
