@@ -232,6 +232,10 @@ static fd_index open_hash_index(u8_string fname,int read_only)
       fd_dtsclose(s,1);
       u8_free(index);
       return NULL;}}
+  else {
+    index->n_slotids=0;
+    index->slotids=NULL;
+    index->slotid_lookup=NULL;}
 
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
@@ -251,6 +255,10 @@ static fd_index open_hash_index(u8_string fname,int read_only)
       fd_dtsclose(s,1);
       u8_free(index);
       return NULL;}}
+  else {
+    index->n_baseoids=0;
+    index->baseoid_ids=NULL;
+    index->ids2baseoids=NULL;}
 
   fd_init_mutex(&(index->lock));
 
