@@ -778,7 +778,9 @@ FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...)
 
 FD_EXPORT int fd_bg_prefetch(fdtype keys)
 {
-  if (fd_background) fd_index_prefetch((fd_index)fd_background,keys);
+  if (fd_background)
+    return fd_index_prefetch((fd_index)fd_background,keys);
+  else return 0;
 }
 
 /* Checking the cache load for the slot/test caches */
