@@ -156,9 +156,9 @@ typedef struct FD_HASH_INDEX {
   unsigned int hxflags, hxcustom;
   
   /* This is used to store compressed keys and values. */
-  int n_slotids; fdtype *slotids;
+  int n_slotids, new_slotids; fdtype *slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
-  int n_baseoids;
+  int n_baseoids, new_baseoids;
   unsigned int *baseoid_ids;
   short *ids2baseoids;
   

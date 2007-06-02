@@ -217,7 +217,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   if (slotids_size) {
     fdtype slotids_vector=read_dtype_at_pos(s,slotids_pos);
     if (FD_VOIDP(slotids_vector)) {
-      index->n_slotids=0;
+      index->n_slotids=0; index->new_slotids=0;
       index->slotids=NULL;
       index->slotid_lookup=NULL;}
     else if (FD_VECTORP(slotids_vector)) {
@@ -232,7 +232,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
       u8_free(index);
       return NULL;}}
   else {
-    index->n_slotids=0;
+    index->n_slotids=0; index->new_slotids=0;
     index->slotids=NULL;
     index->slotid_lookup=NULL;}
 
@@ -240,7 +240,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   if (baseoids_size) {
     fdtype baseoids_vector=read_dtype_at_pos(s,baseoids_pos);
     if (FD_VOIDP(baseoids_vector)) {
-      index->n_baseoids=0;
+      index->n_baseoids=0; index->new_baseoids=0;
       index->baseoid_ids=NULL;
       index->ids2baseoids=NULL;}
     else if (FD_VECTORP(baseoids_vector)) {
@@ -255,7 +255,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
       u8_free(index);
       return NULL;}}
   else {
-    index->n_baseoids=0;
+    index->n_baseoids=0; index->new_baseoids=0;
     index->baseoid_ids=NULL;
     index->ids2baseoids=NULL;}
 
@@ -278,7 +278,7 @@ static int init_slotids(fd_hash_index hx,int n_slotids,fdtype *slotids_init)
   hx->slotids=slotids=u8_malloc(sizeof(fdtype)*n_slotids);
   hx->slotid_lookup=lookup=
     u8_malloc(sizeof(FD_SLOTID_LOOKUP)*n_slotids);
-  hx->n_slotids=n_slotids;
+  hx->n_slotids=n_slotids; hx->new_slotids=0;
   while (i<n_slotids) {
     fdtype slotid=slotids_init[i];
     slotids[i]=slotid;
@@ -301,7 +301,7 @@ static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
   short *ids2baseoids=u8_malloc(sizeof(short)*1024);
   memset(baseoid_ids,0,sizeof(unsigned int)*n_baseoids);
   i=0; while (i<1024) ids2baseoids[i++]=-1;
-  hx->n_baseoids=n_baseoids;
+  hx->n_baseoids=n_baseoids; hx->new_baseoids;
   hx->baseoid_ids=baseoid_ids;
   hx->ids2baseoids=ids2baseoids;
   i=0; while (i<n_baseoids) {
