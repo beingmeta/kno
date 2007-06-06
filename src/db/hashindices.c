@@ -79,6 +79,10 @@ static char versionid[] =
 #define FD_DEBUG_HASHINDICES 0
 #endif
 
+#ifndef FD_DEBUG_HASHINDICES
+#define FD_DEBUG_HASHINDICES 0
+#endif
+
 #ifndef FD_DEBUG_DTYPEIO
 #define FD_DEBUG_DTYPEIO 0
 #endif
@@ -1721,10 +1725,14 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_lock_mutex(&(hx->lock));
   fd_lock_mutex(&(hx->adds.lock));
   fd_lock_mutex(&(hx->edits.lock));
-  /* u8_message("Reading buckets for %s",hx->cid); */
+#if FD_DEBUG_HASHINDICES
+  u8_message("Reading buckets for %s",hx->cid);
+#endif
   fd_setpos(stream,256);
   fd_dtsread_ints(stream,(hx->n_buckets)*2,(unsigned int *)buckets);
-  /* u8_message("Read buckets for %s",hx->cid); */
+#if FD_DEBUG_HASHINDICES
+  u8_message("Read buckets for %s",hx->cid);
+#endif
   {
     int i=0, n_buckets=0, cur_bucket=-1, bscan=0;
     int schedule_max=hx->adds.n_keys+hx->edits.n_keys, schedule_size=0;
@@ -1737,10 +1745,14 @@ static int hash_index_commit(struct FD_INDEX *ix)
     struct FD_HASHSET taken;
     struct FD_BYTE_OUTPUT out, newkeys;
     fd_init_hashset(&taken,3*(hx->edits.n_keys));
-    /* u8_message("Adding %d edits to the schedule",hx->edits.n_keys); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Adding %d edits to the schedule",hx->edits.n_keys);
+#endif
     /* Get all the keys we need to write.  */
     schedule_size=process_edits(hx,&taken,schedule,schedule_size);
-    /* u8_message("Adding %d adds to the schedule",hx->adds.n_keys); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Adding %d adds to the schedule",hx->adds.n_keys);
+#endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
     FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
@@ -1749,7 +1761,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
       out.flags=out.flags|FD_DTYPEV2;
       newkeys.flags=newkeys.flags|FD_DTYPEV2;}
     /* Compute all the buckets for all the keys */
-    /* u8_message("Computing the buckets for %d scheduled keys",schedule_size); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Computing the buckets for %d scheduled keys",schedule_size);
+#endif
     i=0; while (i<schedule_size) {
       fdtype key=schedule[i].key; int bucket;
       out.ptr=out.start;
@@ -1757,7 +1771,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
       schedule[i].bucket=bucket=
 	hash_bytes(out.start,out.ptr-out.start)%(hx->n_buckets);
       i++;}
-    /* u8_message("Fetching bucket locations"); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Fetching bucket locations");
+#endif
     qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
 	  sort_cs_by_bucket);
     i=0; bscan=0; while (i<schedule_size) {
@@ -1768,7 +1784,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
       bucket_locs[n_buckets].max_new=j-i;
       n_buckets++; i=j;}
     /* Read all the buckets in order, reading each keyblock */
-    /* u8_message("Reading all the %d buckets in order",n_buckets); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Reading all the %d buckets in order",n_buckets);
+#endif
     qsort(bucket_locs,n_buckets,sizeof(struct BUCKET_REF),
 	  sort_br_by_off);
     i=0; while (i<n_buckets) {
@@ -1777,13 +1795,18 @@ static int hash_index_commit(struct FD_INDEX *ix)
 		       bucket_locs[i].ref,bucket_locs[i].max_new);
       if ((keybuckets[i]->n_keys)==0) new_buckets++;
       i++;}
-    /* u8_message("Created %d new buckets",new_buckets); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Created %d new buckets",new_buckets);
+#endif
     /* We could free bucket_locs here, but we don't. */
     /* Sort both the schedule and keybuckets by bucket. */
     qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
 	  sort_cs_by_bucket);
     qsort(keybuckets,n_buckets,sizeof(struct KEYBUCKET *),sort_kb_by_bucket);
-    /* u8_message("Extending for %d keys over %d buckets",schedule_size,n_buckets); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Extending for %d keys over %d buckets",
+	       schedule_size,n_buckets);
+#endif
     /* March along the commit schedule (keys) and keybuckets (buckets)
        in parallel. */
     i=0; bscan=0; endpos=fd_endpos(stream);
@@ -1801,7 +1824,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
 	buckets[schedule[i].bucket].off=startpos;
 	buckets[schedule[i].bucket].size=endpos-startpos;}
       i=j; bscan++;}
-    /* u8_message("Cleaning up"); */
+#if FD_DEBUG_HASHINDICES
+    u8_message("Cleaning up");
+#endif
     /* Free the various things we've allocated or incref'd */
     u8_free(bucket_locs);
     /* Free all the buckets */
@@ -1815,21 +1840,24 @@ static int hash_index_commit(struct FD_INDEX *ix)
     /* Note that the values stored in the schedule were copied
        into keyentries without being incref'd, so they were freed
        when we freed the keybuckets. */
-    /* i=0; while (i<schedule_size) { fd_decref(schedule[i].values);} */
     u8_free(schedule);
     u8_free(out.start);
     u8_free(newkeys.start);
     n_keys=schedule_size;
   }
-  /* u8_message("Writing recovery data"); */
+#if FD_DEBUG_HASHINDICES
+  u8_message("Writing recovery data");
+#endif
   /* Write the new offsets information to the end of the file
      for recovery if we die while doing the actual write. */
   fd_endpos(stream);
   fd_dtswrite_4bytes(stream,new_keys);
   fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
   fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
-  fd_dtsflush(stream); fsync(stream->fd);
-  /* u8_message("Writing offset data changes"); */
+  fd_dtsflush(stream); /* fsync(stream->fd); */
+#if FD_DEBUG_HASHINDICES
+  u8_message("Writing offset data changes");
+#endif
   /* Now, write the data it where it is supposed to be. */
   if (new_keys) {
     int cur_keys;
@@ -1840,6 +1868,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_MAGIC_NUMBER);
   fd_dtsflush(stream); fsync(stream->fd);
 
+#if FD_DEBUG_HASHINDICES
+  u8_message("Erasing old recovery information");
+#endif
   {
     /* Now erase the recovery information, since we don't need it anymore. */
     off_t end=fd_endpos(stream);
@@ -1849,12 +1880,21 @@ static int hash_index_commit(struct FD_INDEX *ix)
   /* And unlock all the locks. */
   fd_unlock_mutex(&(hx->lock));
   
+#if FD_DEBUG_HASHINDICES
+  u8_message("Resetting tables");
+#endif
+
   /* And reset the modifications */
   fd_reset_hashtable(&(ix->adds),67,0);
   fd_unlock_mutex(&(ix->adds.lock));
   fd_reset_hashtable(&(ix->edits),67,0);
   fd_unlock_mutex(&(ix->edits.lock));
   u8_free(buckets);
+
+#if FD_DEBUG_HASHINDICES
+  u8_message("Returning from hash_index_commit()");
+#endif
+
   return n_keys;
 }
 
