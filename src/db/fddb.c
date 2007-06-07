@@ -404,6 +404,7 @@ FD_EXPORT int fd_init_db()
   fd_init_xtables_c();
   fd_init_apply_c();
   fd_init_dtproc_c();
+  fd_init_dtcall_c();
   fd_init_frames_c();
   fd_init_ipeval_c();
   fd_init_methods_c();

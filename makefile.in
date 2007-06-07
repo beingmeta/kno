@@ -1,6 +1,6 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004-2005 beingmeta, inc.
-# This file is a part of beingmeta's FramerD implementation, Fdb.
+# This file is a part of beingmeta's FramerD implementation, FDB.
 MAKEFILE_VERSION="$Id$"
 
 CC	= @CC@
@@ -46,6 +46,7 @@ DB_HEADERS=\
  include/fdb/pools.h                             \
  include/fdb/indices.h                           \
  include/fdb/dtproc.h                            \
+ include/fdb/dtcall.h                            \
  include/fdb/frames.h                            \
  include/fdb/methods.h
 DBFILE_HEADERS=include/fdb/dbfile.h
@@ -61,7 +62,7 @@ DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o \
 DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
 	src/db/indices.o src/db/netindices.o src/db/compoundindices.o \
 	src/db/pools.o src/db/netpools.o  \
-	src/db/dtproc.o src/db/methods.o src/db/xtables.o \
+	src/db/dtproc.o src/db/dtcall.o src/db/methods.o src/db/xtables.o \
 	src/db/ipeval.o src/db/frames.o
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o \
@@ -99,7 +100,7 @@ FDB_SOURCES=\
 	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c \
 	src/db/indices.c src/db/netindices.c src/db/compoundindices.c \
 	src/db/pools.c src/db/netpools.c \
-	src/db/dtproc.c src/db/methods.c src/db/xtables.c \
+	src/db/dtproc.c src/db/dtcall.c src/db/methods.c src/db/xtables.c \
 	src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c \
 	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c src/db/zindices.c \

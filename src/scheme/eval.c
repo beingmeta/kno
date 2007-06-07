@@ -20,6 +20,7 @@ static char versionid[] =
 #include "fdb/numbers.h"
 #include "fdb/sequences.h"
 #include "fdb/ports.h"
+#include "fdb/dtcall.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>
@@ -1450,6 +1451,47 @@ static fdtype clear_callcache(fdtype arg)
   return FD_VOID;
 }
 
+/* Remote evaluation */
+
+static fdtype dteval(fdtype server,fdtype expr)
+{
+  if (FD_PRIM_TYPEP(server,fd_dtserver_type)) 
+    return fd_dteval(FD_GET_CONS(server,fd_dtserver_type,fd_dtserver),expr);
+  else if (FD_STRINGP(server)) {
+    fdtype s=fd_open_dtserver(FD_STRDATA(server),-1);
+    if (FD_ABORTP(s)) return s;
+    else {
+      fdtype result=fd_dteval((fd_dtserver)s,expr);
+      fd_decref(s);
+      return result;}}
+  else return fd_type_error(_("server"),"dteval",server);
+}
+
+static fdtype dtcall(int n,fdtype *args)
+{
+  fdtype server; fdtype request=FD_EMPTY_LIST, result; int i=n-1;
+  if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,FD_VOID);
+  if (FD_PRIM_TYPEP(args[0],fd_dtserver_type))
+    server=fd_incref(args[0]);
+  else if (FD_STRINGP(args[0])) server=fd_open_dtserver(FD_STRDATA(args[0]),-1);
+  else return fd_type_error(_("server"),"eval/dtcall",args[0]);
+  while (i>0) {
+    fdtype param=args[i];
+    if ((i>1) && ((FD_SYMBOLP(param)) || (FD_PAIRP(param))))
+      request=fd_init_pair(NULL,fd_make_list(2,quote_symbol,param),request);
+    else request=fd_init_pair(NULL,param,request);
+    fd_incref(param); i++;
+    return request;}
+  result=fd_dteval((fd_dtserver)server,request);
+  fd_decref(request); fd_decref(server);
+  return result;
+}
+
+static fdtype open_dtserver(fdtype server,fdtype bufsiz)
+{
+  return fd_open_dtserver(FD_STRDATA(server),((FD_VOIDP(bufsiz)) ? (-1) : (FD_FIX2INT(bufsiz))));
+}
+
 /* Test functions */
 
 static fdtype applytest(int n,fdtype *args)
@@ -1591,6 +1633,12 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,1)));
 
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("DTCALL",dtcall,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
+					    fd_string_type,FD_VOID,
+					    fd_fixnum_type,FD_VOID));
 
   fd_register_config
     ("TAILCALL",fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
