@@ -1102,7 +1102,7 @@ FD_EXPORT int
   else return -1;
 }
 
-FD_EXPORT unsigned int _fd_read_zint(struct FD_BYTE_INPUT *stream)
+FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream)
 {
   return fd_read_zint(stream);
 }

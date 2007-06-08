@@ -220,7 +220,7 @@ FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INPUT *stream,int byte);
 FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INPUT *stream);
 FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len);
-FD_EXPORT unsigned int _fd_read_zint(struct FD_BYTE_INPUT *stream);
+FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream);
 
 #if FD_INLINE_DTYPEIO
 #define fd_read_byte(stream) \
@@ -252,11 +252,12 @@ FD_FASTOP int fd_read_bytes
     return len;}
   else return -1;
 }
-FD_FASTOP unsigned int fd_read_zint(struct FD_BYTE_INPUT *s)
+FD_FASTOP int fd_read_zint(struct FD_BYTE_INPUT *s)
 {
-  unsigned int result=0, probe;
+  unsigned int result=0; int probe;
   while (probe=fd_read_byte(s))
-    if (probe&0x80) result=result<<7|(probe&0x7F);
+    if (probe<0) return -1;
+    else if (probe&0x80) result=result<<7|(probe&0x7F);
     else break;
   return result<<7|probe;
 }
