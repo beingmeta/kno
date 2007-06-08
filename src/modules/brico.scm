@@ -19,7 +19,7 @@
    make%id make%id! cap%wds cap%frame!
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
-   index-string index-name index-gloss index-genls index-frame*
+   index-string index-name index-frags index-gloss index-genls index-frame*
    indexer index-concept
    basic-concept-frequency concept-frequency use-corpus-frequency
    brico-prefetch! brico-prefetch})
@@ -258,33 +258,39 @@
     (if (and (bound? values) inverse)
 	(doindex index values inverse frame))))
 
-(define (index-string index frame slot (value #f) (window 2))
-  (let ((values (if value value (get frame slot))))
-    (do-choices (v values)
-      (let* ((stdspaced (stdspace v))
-	     (baseform (basestring stdspaced)))
-	(doindex index frame slot stdspaced)
-	(doindex index frame slot baseform)
-	(when (and window (compound? v))
-	  (let* ((words (words->vector stdspaced))
-		 (stdwords (words->vector (stdstring stdspaced)))
-		 (frags (choice (vector->frags words window)
-				(vector->frags stdwords window))))
-	    (doindex index frame slot frags)))))))
+(define default-frag-window #f)
 
-(define (index-name index frame slot (value #f) (window 2))
-  (let ((values (if value value (get frame slot))))
-    (do-choices (v values)
-      (let* ((downspaced (downcase (stdspace v)))
-	     (baseform (basestring downspaced)))
-	(doindex index frame slot downspaced)
-	(doindex index frame slot baseform)
-	(when (and window (compound? v))
-	  (let* ((words (words->vector downspaced))
-		 (basewords (words->vector baseform))
-		 (frags (choice (vector->frags words window)
-				(vector->frags basewords window))))
-	    (doindex index frame slot frags)))))))
+(define fragwindow-config
+  (slambda (var (val 'unbound))
+    (cond ((eq? val 'unbound) default-frag-window)
+	  ((equal? val default-frag-window) default-frag-window)
+	  ((not val) (set! default-frag-window #f))
+	  ((and (number? val) (exact? val) (> val 0))
+	   (set! default-frag-window #f))
+	  (else (warning "Invalid fragment window" val)))))
+(config-def! 'fragwindow fragwindow-config)
+
+(define index-frags
+  (ambda (index frame slot values window)
+    (doindex index frame slot
+	     (vector->frags
+	      (words->vector (choice values (stdstring values)))))))
+
+(define index-string
+  (ambda (index frame slot (value #f) (window default-frag-window))
+    (let* ((values (stdspace (if value value (get frame slot))))
+	   (expvalues (choice values (basestring values))))
+      (doindex index frame slot expvalues)
+      (when window
+	(index-frags index frame slot expvalues window)))))
+
+(define index-name
+  (ambda (index frame slot (value #f) (window default-frag-window))
+    (let* ((values (downcase (stdspace (if value value (get frame slot)))))
+	   (expvalues (choice values (basestring values))))
+      (doindex index frame slot expvalues)
+      (when window
+	(index-frags index frame slot expvalues window)))))
 
 (define (index-genls index frame slot (values))
   (let ((v (if (bound? values) values (get frame slot))))
