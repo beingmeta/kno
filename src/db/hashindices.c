@@ -1878,9 +1878,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
     end=fd_endpos(stream);
     ftruncate(stream->fd,end-recovery_size);}
 
-  /* And unlock all the locks. */
-  fd_unlock_mutex(&(hx->lock));
-  
+  if (hx->mmap) {
+    hx->mmap=
+      mmap(hx->mmap,u8_file_size(hx->cid),PROT_READ,MMAP_FLAGS,hx->stream.fd,0);}
+
 #if FD_DEBUG_HASHINDICES
   u8_message("Resetting tables");
 #endif
@@ -1892,6 +1893,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_unlock_mutex(&(ix->edits.lock));
   u8_free(buckets);
 
+  /* And unlock all the locks. */
+  fd_unlock_mutex(&(hx->lock));
+  
 #if FD_DEBUG_HASHINDICES
   u8_message("Returning from hash_index_commit()");
 #endif
