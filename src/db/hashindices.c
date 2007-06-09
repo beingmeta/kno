@@ -1845,16 +1845,18 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_free(newkeys.start);
     n_keys=schedule_size;
   }
+  if (fd_acid_files) {
 #if FD_DEBUG_HASHINDICES
-  u8_message("Writing recovery data");
+    u8_message("Writing recovery data");
 #endif
-  /* Write the new offsets information to the end of the file
-     for recovery if we die while doing the actual write. */
-  fd_endpos(stream);
-  fd_dtswrite_4bytes(stream,new_keys);
-  fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
-  fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
-  fd_dtsflush(stream); /* fsync(stream->fd); */
+    /* Write the new offsets information to the end of the file
+       for recovery if we die while doing the actual write. */
+    fd_endpos(stream);
+    fd_dtswrite_4bytes(stream,new_keys);
+    fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
+    fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
+    fd_dtsflush(stream); /* fsync(stream->fd); */
+  }
 #if FD_DEBUG_HASHINDICES
   u8_message("Writing offset data changes");
 #endif
@@ -1865,16 +1867,15 @@ static int hash_index_commit(struct FD_INDEX *ix)
     fd_setpos(stream,16); fd_dtswrite_4bytes(stream,cur_keys+new_keys);}
   fd_setpos(stream,256);
   fd_dtswrite_ints(stream,2*(hx->n_buckets),(unsigned int *)buckets);
-  fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_MAGIC_NUMBER);
-  fd_dtsflush(stream); fsync(stream->fd);
-
+  if (fd_acid_files) {
+    off_t end; int recovery_size=(8*(hx->n_buckets))+4;
 #if FD_DEBUG_HASHINDICES
-  u8_message("Erasing old recovery information");
+    u8_message("Erasing old recovery information");
 #endif
-  {
+    fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_MAGIC_NUMBER);
+    fd_dtsflush(stream); fsync(stream->fd);
     /* Now erase the recovery information, since we don't need it anymore. */
-    off_t end=fd_endpos(stream);
-    int recovery_size=(8*(hx->n_buckets))+4;
+    end=fd_endpos(stream);
     ftruncate(stream->fd,end-recovery_size);}
 
   /* And unlock all the locks. */

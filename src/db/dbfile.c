@@ -21,6 +21,8 @@ static char versionid[] =
 
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 
+int fd_acid_files=0;
+
 /* Opening file pools */
 
 static struct FD_POOL_OPENER pool_openers[FD_N_POOL_OPENERS];
@@ -500,6 +502,12 @@ FD_EXPORT int fd_init_dbfile()
   fd_register_index_opener(0x42c20000,open_memindex,NULL,NULL);
   fd_register_index_opener(0x42c20100,open_memindex,NULL,NULL);
   fd_register_index_opener(0x42c20200,open_memindex,NULL,NULL);
+
+  fd_register_config("ACIDFILES",
+		     fd_boolconfig_get,
+		     fd_boolconfig_set,
+		     &fd_acid_files);
+
 
   return fddbfile_initialized;
 }

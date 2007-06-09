@@ -994,21 +994,22 @@ static int file_index_commit(struct FD_INDEX *ix)
     write_keys(fx,n,kdata,new_offsets);
     /* Write recovery information which can be used to restore the
        offsets table. */
-    if (new_offsets) write_file_index_recovery_data(fx,new_offsets);
+    if ((fd_acid_files) && (new_offsets)) write_file_index_recovery_data(fx,new_offsets);
     /* Now, start writing the offsets themsleves */
     write_offsets(fx,n,kdata,new_offsets);
-    if (new_offsets) fd_setpos(stream,0);
-    if (new_offsets==NULL) {}
-    else if (fx->hashv==1)
-      fd_dtswrite_4bytes(stream,FD_FILE_INDEX_MAGIC_NUMBER);
-    else if (fx->hashv==2)
-      fd_dtswrite_4bytes(stream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
-    fd_dtsflush(stream); fsync(stream->fd);
-    /* Now erase the recovery information, since we don't need it anymore. */
-    if (new_offsets) {
-      off_t end=fd_endpos(stream);
-      fd_movepos(stream,-(4*(fx->n_slots)));
-      ftruncate(stream->fd,end-(4*(fx->n_slots)));}
+    if (fd_acid_files) {
+      if (new_offsets) fd_setpos(stream,0);
+      if (new_offsets==NULL) {}
+      else if (fx->hashv==1)
+	fd_dtswrite_4bytes(stream,FD_FILE_INDEX_MAGIC_NUMBER);
+      else if (fx->hashv==2)
+	fd_dtswrite_4bytes(stream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+      fd_dtsflush(stream);
+      /* Now erase the recovery information, since we don't need it anymore. */
+      if (new_offsets) {
+	off_t end=fd_endpos(stream);
+	fd_movepos(stream,-(4*(fx->n_slots)));
+	ftruncate(stream->fd,end-(4*(fx->n_slots)));}}
     fd_unlock_mutex(&(fx->lock));
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
@@ -1066,7 +1067,8 @@ static void file_index_close(fd_index ix)
 #if HAVE_MMAP
     int retval=munmap(fx->offsets-2,(SLOTSIZE*fx->n_slots)+8);
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_index_close:munmap %s",fx->source);
+      u8_warn(u8_strerror(errno),"[%d:%d] file_index_close:munmap %s",
+	      retval,errno,fx->source);
       errno=0;}
 #else
     u8_free(fx->offsets); 
