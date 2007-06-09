@@ -20,7 +20,7 @@
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-frags index-gloss index-genls index-frame*
-   indexer index-concept
+   indexer index-concept index-brico index-words index-relations
    basic-concept-frequency concept-frequency use-corpus-frequency
    brico-prefetch! brico-prefetch})
 
@@ -85,7 +85,7 @@
    (store! gloss-map (get l 'key) l))
  (do-choices (l (?? 'type 'norm))
    (store! norm-map (get l 'key) l))
- (do-choices (l (?? 'type 'index))
+ (do-choices (l (?? 'type 'indices))
    (store! index-map (get l 'key) l)))
 
 (set+! %constants
@@ -328,20 +328,52 @@
    @1/2c278{MEMBERS}
    @1/2c281{PARTOF*}})
 
+
+
+(define (index-concept index concept)
+  (index-brico index concept)
+  (index-relations index concept)  
+  (index-words index concept))
+
 (define (index-brico index frame)
   (doindex index frame '{type sense-category fips-code})
   (when (ambiguous? (get frame 'sense-category))
       (doindex index frame 'sense-category 'vague))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
   (doindex index frame '%id (get frame '%mnemonic))
-  (doindex index frame 'has (getslots frame)))
+  (doindex index frame 'has (getslots frame))
+  ;; Special case 'has' indexing
+  (when (test frame 'gloss)
+    (doindex index frame 'has english-gloss))
+  (when (test frame '%glosses)
+    (doindex index frame 'has
+	     (get gloss-map (car (get frame '%glosses)))))
+  (when (test frame '%words)
+    (doindex index frame 'has
+	     (get language-map (car (get frame '%words)))))
+  (when (test frame '%norm)
+    (doindex index frame 'has
+	     (get norm-map (car (get frame '%norm)))))
+  (when (test frame '%indices)
+    (doindex index frame 'has
+	     (get index-map (car (get frame '%indices))))))
 
-(define (index-concept index concept)
-  (index-brico index concept)
-  (index-string index concept english (get concept 'words) 1)
-  (index-name index concept 'names (qc (get concept 'names)) #f)
+(define (index-words index concept)
+  (index-string index concept english (get concept 'words))
+  (index-name index concept 'names (get concept 'names))
   (index-name index concept 'names
-	      (qc (pick  (cdr (get concept '%words)) capitalized?)) #f)
+	      (pick  (cdr (get concept '%words)) capitalized?))
+  (do-choices (xlation (get concept '%words))
+    (let ((lang (get language-map (car xlation))))
+      (index-string index concept lang (cdr xlation))))
+  (do-choices (xlation (get concept '%norm))
+    (let ((lang (get norm-map (car xlation))))
+      (index-string index concept lang (cdr xlation))))
+  (do-choices (xlation (get concept '%indices))
+    (let ((lang (get index-map (car xlation))))
+      (index-string index concept lang (cdr xlation)))))
+
+(define (index-relations index concept)
   (do-choices (slotid genls*-slotids)
     (index-genls index concept slotid
 		 (qc (%get concept slotid)
@@ -364,29 +396,6 @@
     (doindex index (%get concept defines) defterms concept))
   (when (%test concept referenced)
     (doindex index (%get concept referenced) refterms concept))
-  (when (test concept 'gloss)
-    (doindex index concept 'has english-gloss))
-  (when (test concept '%glosses)
-    (doindex index concept 'has
-	     (get gloss-map (car (get concept '%glosses)))))
-  (when (test concept '%words)
-    (doindex index concept 'has
-	     (get language-map (car (get concept '%words)))))
-  (when (test concept '%norm)
-    (doindex index concept 'has
-	     (get norm-map (car (get concept '%norm)))))
-  (when (test concept '%indices)
-    (doindex index concept 'has
-	     (get index-map (car (get concept '%indices)))))
-  (do-choices (xlation (get concept '%words))
-    (let ((lang (get language-map (car xlation))))
-      (index-string index concept lang (cdr xlation) 1)))
-  (do-choices (xlation (get concept '%norm))
-    (let ((lang (get norm-map (car xlation))))
-      (index-string index concept lang (cdr xlation) #f)))
-  (do-choices (xlation (get concept '%indices))
-    (let ((lang (get index-map (car xlation))))
-      (index-string index concept lang (cdr xlation) #f)))
   (index-frame* index concept genls* genls specls*)
   (index-frame* index concept partof* partof parts*)
   (index-frame* index concept memberof* memberof members*)
