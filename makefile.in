@@ -89,8 +89,10 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig src/scripts/repack-index
 
+FDB_HEADERS= \
+       $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
+
 FDB_SOURCES=\
-	$(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
 	src/dtype/cons.c src/dtype/oids.c src/dtype/pptrs.c src/dtype/symbols.c \
         src/dtype/choices.c src/dtype/tables.c \
         src/dtype/dtypeio.c src/dtype/textio.c \
@@ -211,6 +213,12 @@ $(LIBINSTALLDIR)/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
 	ln -sf $(shell basename $<) $@
 $(BININSTALLDIR)/%: exe/%
 
+# Making dependency information
+
+depend:
+	makedepend -- $(CFLAGS) -- $(FDB_SOURCES)
+
+
 # Utility targets
 
 TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
@@ -319,8 +327,8 @@ lib/libtexttools.dylib: lib/libtexttools@suffix@.@VERSION@.dylib
 $(LOCALEDIR)/%/LC_MESSAGES/fdb.mo: etc/intl/%.gmo
 	install $^ $@
 
-etc/intl/fdb.pot: $(FDB_SOURCES)
-	xgettext -dfdb -oetc/intl/fdb.pot -k_ $(FDB_SOURCES)
+etc/intl/fdb.pot: $(FDB_SOURCES) $(FDB_HEADERS)
+	xgettext -dfdb -oetc/intl/fdb.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
 etc/intl/%.po: etc/intl/fdb.pot
 	msgmerge -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
@@ -426,11 +434,11 @@ activate-fdserv: etc/mod_fdserv.so
 
 # Tracking revision information
 
-src/exe/revision.h: $(FDB_SOURCES)
+src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
 	echo "#define SVN_REVISION \""`svnversion .`"\"" > src/exe/revision.h
 $(EXECUTABLES): src/exe/revision.h
 
-# Dependency information
+# DO NOT DELETE THIS LINE -- make depend depends on it.
 
 $(DTYPE_OBJS): $(DTYPE_HEADERS)
 $(DB_OBJS): $(DBFILE_HEADERS) $(DB_HEADERS) $(DTYPE_HEADERS) 
