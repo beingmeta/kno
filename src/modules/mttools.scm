@@ -1,6 +1,11 @@
 (in-module 'mttools)
 (use-module 'reflection)
 
+(define (legacy-blockproc proc)
+  (if (= (procedure-arity proc) 1)
+      (lambda (args done) (unless done (proc (qc args))))
+      proc))
+
 (define (nrange start end)
   (if (>= start end) (fail)
       (choice start (nrange (1+ start) end))))
@@ -123,7 +128,7 @@
 		(progressfn (get-arg control-spec 5 default-progress-report)))
 	    `(let ((_choice ,choice-generator)
 		   (_blocksize ,blocksize)
-		   (_blockproc ,blockproc)
+		   (_blockproc (,legacy-blockproc ,blockproc))
 		   (_progressfn ,progressfn)
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
@@ -134,7 +139,11 @@
 		   (when _progressfn
 		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
 				  (elapsed-time _start) _prep_time #f #f))
-		   (when _blockproc (_blockproc (qc _block)))
+		   (cond ((not _blockproc))
+			 ((applicable? _blockproc) (_blockproc (qc _block) #f))
+			 ((and (vector? _blockproc) (> (length _blockproc) 0)
+			       (applicable? (elt _blockproc 0)))
+			  ((elt _blockproc 0) (qc _block))))
 		   (set! _block_prep (elapsed-time _blockstart))
 		   (set! _prep_time (+ _prep_time _block_prep))
 		   (when _progressfn
@@ -142,6 +151,11 @@
 				  (elapsed-time _start) _prep_time
 				  #f _block_prep))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
+		   (cond ((not _blockproc))
+			 ((applicable? _blockproc) (_blockproc (qc _block) #t))
+			 ((and (vector? _blockproc) (> (length _blockproc) 1)
+			       (applicable? (elt _blockproc 1)))
+			  ((elt _blockproc 1) (qc _block))))
 		   (when _progressfn
 		     (_progressfn (+ (* _blockno _blocksize) (choice-size _block))
 				  (choice-size _block) (choice-size _choice)
@@ -153,22 +167,24 @@
 			      (choice-size _choice)
 			      (elapsed-time _start) _prep_time 0 0))))))))
 
-(define (mt/save/fetch oids)
-  (commit) (clearcaches)
-  (prefetch-oids! oids))
+(define (mt/save/fetch oids done)
+  (when done (commit) (clearcaches))
+  (unless done (prefetch-oids! oids)))
 (define (mt/save/lock/fetch oids)
-  (commit) (clearcaches)
-  (prefetch-oids! oids))
+  (when done (commit) (clearcaches))
+  (unless done (prefetch-oids! oids)))
 (define (mt/save/fetchkeys index)
-  (lambda (keys)
-    (commit) (clearcaches)
-    (prefetch-keys! index keys)))
+  (lambda (keys done)
+    (when done (commit) (clearcaches))
+    (unless done (prefetch-keys! index keys))))
 
-(define (mt/fetchoids f) (clearcaches) (prefetch-oids! f))
-(define (mt/lockoids f)
-  (commit) (clearcaches)
-  (lock-oids! f)
-  (prefetch-oids! f))
+(define (mt/fetchoids f done)
+  (when done (clearcaches))
+  (unless done (prefetch-oids! f)))
+(define (mt/lockoids f done)
+  (when done (commit) (clearcaches))
+  (unless done
+    (lock-oids! f) (prefetch-oids! f)))
 
 (module-export! '{mt-apply
 		  do-choices-mt
