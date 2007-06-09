@@ -1184,8 +1184,9 @@ static void hash_index_setcache(fd_index ix,int level)
     if (hx->mmap) {
       fd_unlock_mutex(&(hx->lock));
       return;}
+    hx->mmap_size=u8_file_size(hx->cid);
     hx->mmap=
-      mmap(NULL,u8_file_size(hx->cid),PROT_READ,MMAP_FLAGS,hx->stream.fd,0);
+      mmap(NULL,hx->mmap_size,PROT_READ,MMAP_FLAGS,hx->stream.fd,0);
     if (hx->mmap==NULL) {
       u8_warn(u8_strerror(errno),"hash_index_setcache:mmap %s",hx->source);
       hx->mmap=NULL; errno=0;}
@@ -1193,7 +1194,7 @@ static void hash_index_setcache(fd_index ix,int level)
   if ((level<3) && (hx->mmap)) {
     int retval;
     fd_lock_mutex(&(hx->lock));
-    retval=munmap(hx->mmap,u8_file_size(hx->cid));
+    retval=munmap(hx->mmap,hx->mmap_size);
     if (retval<0) {
       u8_warn(u8_strerror(errno),"hash_index_setcache:munmap %s",hx->source);
       hx->mmap=NULL; errno=0;}
@@ -1234,7 +1235,7 @@ static void hash_index_setcache(fd_index ix,int level)
       int retval;
       fd_lock_mutex(&(hx->lock));
 #if HAVE_MMAP
-      retval=munmap(hx->buckets-256,(hx->n_buckets*sizeof(FD_BLOCK_REF))+256);
+      retval=munmap((hx->buckets)-256,((hx->n_buckets)*sizeof(FD_BLOCK_REF))+256);
       if (retval<0) {
 	u8_warn(u8_strerror(errno),"file_index_setcache:munmap %s",hx->source);
 	hx->buckets=NULL; errno=0;}
@@ -1879,8 +1880,13 @@ static int hash_index_commit(struct FD_INDEX *ix)
     ftruncate(stream->fd,end-recovery_size);}
 
   if (hx->mmap) {
+    int retval=munmap(hx->mmap,hx->mmap_size);
+    if (retval<0) {
+      u8_warn("MUNMAP","hashindex MUNMAP failed with %s",u8_strerror(errno));
+      errno=0;}
+    hx->mmap_size=u8_file_size(hx->cid);
     hx->mmap=
-      mmap(hx->mmap,u8_file_size(hx->cid),PROT_READ,MMAP_FLAGS,hx->stream.fd,0);}
+      mmap(NULL,hx->mmap_size,PROT_READ,MMAP_FLAGS,hx->stream.fd,0);}
 
 #if FD_DEBUG_HASHINDICES
   u8_message("Resetting tables");

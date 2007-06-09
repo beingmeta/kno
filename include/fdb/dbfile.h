@@ -171,7 +171,7 @@ typedef struct FD_HASH_INDEX {
      for modification if the file is memmaped. */
   struct FD_DTYPE_STREAM stream;
   /* When non-null, a memmapped pointer to the file contents. */
-  unsigned char *mmap;} FD_HASH_INDEX;
+  size_t mmap_size; unsigned char *mmap;} FD_HASH_INDEX;
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
 FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize);
