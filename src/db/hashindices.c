@@ -1289,7 +1289,6 @@ static int populate_prefetch
 {
   fdtype prefetch=FD_EMPTY_CHOICE;
   int k=i, lim=k+blocksize, final_bckt;
-  u8_message("Swapping out index %s",ix->cid);
   fd_index_swapout(ix);
   if (lim>n_keys) lim=n_keys;
   while (k<lim) {
@@ -1300,7 +1299,6 @@ static int populate_prefetch
     else {
       fdtype key=psched[k++].key; fd_incref(key);
       FD_ADD_TO_CHOICE(prefetch,key);}
-  u8_message("Prefetching %d keys from %s",lim-i,ix->cid);
   fd_index_prefetch(ix,prefetch);
   fd_decref(prefetch);
   return k;
@@ -1319,6 +1317,7 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
   struct BUCKET_REF *bucket_refs; fd_index ix=NULL;
   fd_dtype_stream stream=&(hx->stream);
   off_t endpos=fd_endpos(stream);
+  double start_time=u8_elapsed_time();
   
   if (FD_INDEXP(from)) ix=fd_lisp2index(from);
 
@@ -1359,10 +1358,21 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
 
     if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
       keyblock.flags=keyblock.flags|FD_DTYPEV2;
-
+    
     fd_write_zint(&keyblock,load);
-    if ((ix) && (i>=fetch_max))
+    if ((ix) && (i>=fetch_max)) {
+      double fetch_start=u8_elapsed_time();
+      if (i>0) {
+	double elapsed=fetch_start-start_time;
+	double togo=elapsed*((1.0*(n_keys-i))/(1.0*i));
+	double total=elapsed+togo;
+	double percent=(100.0*i)/(1.0*n_keys);
+	u8_message("Processed %d of %d keys (%.2f%%) from %s in %.2f secs, ~%.2f secs to go (~%.2f secs total)",
+		   i,n_keys,percent,ix->cid,elapsed,togo,total);}
       fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);
+      u8_message("Prefetched %d keys from %s in %.3f seconds",
+		 fetch_max-i,ix->cid,u8_elapsed_time()-fetch_start);}
+
     while (i<j) {
       fdtype key=psched[i].key, values=fd_get(from,key,FD_EMPTY_CHOICE);
       fd_write_zint(&keyblock,psched[i].size);
