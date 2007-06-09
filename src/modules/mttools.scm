@@ -60,7 +60,9 @@
 
 (define (short-interval-string secs (precise #t))
   (if (< secs 180)
-      (stringout (if (< secs 10) secs (inexact->string secs 2))
+      (stringout (cond ((< secs 0) secs)
+		       ((< secs 10) (inexact->string secs 3))
+		       (else (inexact->string secs 2)))
 	" secs")
       (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
 	     (hours (inexact->exact
@@ -87,31 +89,107 @@
 ;;;  a final report
 
 (define (default-progress-report count thisblock limit
-	  time preptime blocktime blockprep)
-  (cond ((and blocktime blockprep)
-	 (status "Processed " (get% count limit) "%: "
-		 count " of " limit " items in "
-		 (short-interval-string time)
-		 (when (> count 0)
-		   (printout ", ~ "
-		     (short-interval-string (* time (/ (- limit count) count)))
-		     " to go"))
-		 "; " (get% blocktime time) "% (~"
-		 (short-interval-string blocktime) ") in setup."))
-	(blockprep
-	 (status "After processing " count " items "
-		 "in " (short-interval-string (- time blockprep)) ", "
-		 "finished setup for " thisblock " more items in "
-		 (short-interval-string blockprep)))
-	((= count 0)
-	 (notify "Processing " limit " elements "
-		 "in chunks of " thisblock " items"))
-	((= count limit)
+	  time preptime posttime blockprep blocktime blockpost)
+  (cond ((= count limit)
 	 (status "Processed all " limit " elements "
 		 " in " (short-interval-string time)
-		 " with " (get% preptime time) "% (~"
-		 (short-interval-string preptime) ") in block preparation."))
+		 " with " (get% preptime time) "% ("
+		 (short-interval-string preptime) ") in pre-processing and "
+		 (get% preptime time) "% ("
+		 (short-interval-string posttime) ") in post-processing."))
+	((not (or blocktime blockprep blockpost))
+	 (if (= count 0)
+	     (notify "Processing " limit " elements "
+		     "in chunks of " thisblock " items")
+	     (status "Processed " (get% count limit) "%: "
+		     count " of " limit " items in "
+		     (short-interval-string time)
+		     (when (> count 0)
+		       (printout ", ~ "
+			 (short-interval-string (* time (/ (- limit count) count)))
+			 " to go "
+			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
+			 " total)")))))
+	(blockpost
+	 (let ((total (+ blockprep blocktime blockpost)))
+	   (status "Processed " thisblock " items in " (short-interval-string total)
+		   "; prep took " (short-interval-string blockprep) " (" (get% blockprep total) "%)"
+		   ", exec took " (short-interval-string blocktime) " (" (get% blocktime total) "%)"
+		   ", post took " (short-interval-string blockpost) " (" (get% blockpost total) "%)")))
+	(blocktime
+	 (status "Finished core execution of " thisblock " items in " (short-interval-string blocktime)))
+	(blockprep)
 	(else)))
+(define mt/default-progress default-progress-report)
+
+(define (mt/sparse-progress count thisblock limit
+	  time preptime posttime blockprep blocktime blockpost)
+  (cond ((= count limit)
+	 (status "Processed all " limit " elements "
+		 " in " (short-interval-string time)
+		 " with " (get% preptime time) "% ("
+		 (short-interval-string preptime) ") in pre-processing and "
+		 (get% preptime time) "% ("
+		 (short-interval-string posttime) ") in post-processing."))
+	((not (or blocktime blockprep blockpost))
+	 (if (= count 0)
+	     (notify "Processing " limit " elements "
+		     "in chunks of " thisblock " items")
+	     (status "Processed " (get% count limit) "%: "
+		     count " of " limit " items in "
+		     (short-interval-string time)
+		     (when (> count 0)
+		       (printout ", ~ "
+			 (short-interval-string (* time (/ (- limit count) count)))
+			 " to go "
+			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
+			 " total)")))))
+	(blockpost)
+	(blocktime)
+	(blockprep)
+	(else)))
+
+(define (mt/detailed-progress
+	 count thisblock limit
+	 time preptime posttime blockprep blocktime blockpost)
+  (cond ((= count limit)
+	 (status "Processed all " limit " elements "
+		 " in " (short-interval-string time)
+		 " with " (get% preptime time) "% ("
+		 (short-interval-string preptime) ") in pre-processing and "
+		 (get% preptime time) "% ("
+		 (short-interval-string posttime) ") in post-processing."))
+	((not (or blocktime blockprep blockpost))
+	 (if (= count 0)
+	     (notify "Processing " limit " elements "
+		     "in chunks of " thisblock " items")
+	     (status "Processed " (get% count limit) "%: "
+		     count " of " limit " items in "
+		     (short-interval-string time)
+		     (when (> count 0)
+		       (printout ", ~ "
+			 (short-interval-string (* time (/ (- limit count) count)))
+			 " to go "
+			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
+			 " total)")))))
+	(blockpost
+	 (status "Finished post processing for " thisblock " items in "
+		 (short-interval-string blockpost))
+	 (let ((total (+ blockprep blocktime blockpost)))
+	   (status "Processed " thisblock " items in " (short-interval-string total)
+		   "; prep took " (short-interval-string blockprep) " (" (get% blockprep total) "%)"
+		   ", exec took " (short-interval-string blocktime) " (" (get% blocktime total) "%)"
+		   ", post took " (short-interval-string blockpost) " (" (get% blockpost total) "%)")))
+	(blocktime
+	 (status "Finished execution for " thisblock " items in "
+		 (short-interval-string blocktime)))
+	(blockprep
+	 (status "Finished preparation for " thisblock " items in "
+		 (short-interval-string blockprep)))
+	(else)))
+
+(define (mt/noprogress count thisblock limit
+	  time preptime posttime blockprep blocktime blockpost))
 
 (define do-choices-mt
   (macro expr
@@ -133,43 +211,54 @@
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
-		   (_prep_time 0))
+		   (_prep_time 0)
+		   (_post_time 0))
 	       (do-subsets (_block _choice _blocksize _blockno)
-		 (let ((_blockstart (elapsed-time)) (_block_prep #f))
+		 (let ((_blockstart (elapsed-time))
+		       (_prep_done #f)
+		       (_core_done #f)
+		       (_post_done #f))
 		   (when _progressfn
 		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time #f #f))
+				  (elapsed-time _start) _prep_time _post_time #f #f #f))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #f))
 			 ((and (vector? _blockproc) (> (length _blockproc) 0)
 			       (,procedure? (elt _blockproc 0)))
 			  ((elt _blockproc 0) (qc _block))))
-		   (set! _block_prep (elapsed-time _blockstart))
-		   (set! _prep_time (+ _prep_time _block_prep))
+		   (set! _prep_done (elapsed-time))
 		   (when _progressfn
 		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time
-				  #f _block_prep))
+				  (elapsed-time _start) _prep_time _post_time 
+				  (- _prep_done _blockstart) #f #f))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
+		   (set! _core_done (elapsed-time))
+		   (when _progressfn
+		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
+				  (elapsed-time _start) _prep_time _post_time 
+				  (- _prep_done _blockstart) (- _core_done _blockstart) #f))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
 			       (,procedure? (elt _blockproc 1)))
 			  ((elt _blockproc 1) (qc _block))))
+		   (set! _post_done (elapsed-time))
 		   (when _progressfn
-		     (_progressfn (+ (* _blockno _blocksize) (choice-size _block))
-				  (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time
-				  (elapsed-time _blockstart) _block_prep))))
+		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
+				  (elapsed-time _start) _prep_time _post_time 
+				  (- _prep_done _blockstart) (- _core_done _prep_done)
+				  (- _post_done _core_done)))
+		   (set! _prep_time (+ _prep_time (- _prep_done _blockstart)))
+		   (set! _post_time (+ _post_time (- _post_done _core_done)))))
 	       (cond ((not _blockproc))
 		     ((,procedure? _blockproc) (_blockproc (qc) #t))
 		     ((and (vector? _blockproc) (> (length _blockproc) 1)
 			   (,procedure? (elt _blockproc 1)))
 		      ((elt _blockproc 1) (qc) #t)))
 	       (when _progressfn
-		 (_progressfn (choice-size _choice) 0
-			      (choice-size _choice)
-			      (elapsed-time _start) _prep_time 0 0))))))))
+		 (_progressfn (choice-size _choice) 0 (choice-size _choice)
+			      (elapsed-time _start) _prep_time _post_time 
+			      #f #f #f))))))))
 
 (define (mt/save/fetch oids done)
   (when done (commit) (clearcaches))
@@ -198,5 +287,9 @@
 		  mt/lockoids
 		  mt/save/fetch
 		  mt/save/lock/fetch
-		  mt/save/fetchkeys})
+		  mt/save/fetchkeys
+		  mt/detailed-progress
+		  mt/sparse-progress
+		  mt/default-progress
+		  mt/noprogress})
 
