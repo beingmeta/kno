@@ -2,7 +2,7 @@
 (use-module 'reflection)
 
 (define (legacy-blockproc proc)
-  (if (= (procedure-arity proc) 1)
+  (if (= (fcn-arity proc) 1)
       (lambda (args done) (unless done (proc (qc args))))
       proc))
 
@@ -140,9 +140,9 @@
 		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
 				  (elapsed-time _start) _prep_time #f #f))
 		   (cond ((not _blockproc))
-			 ((applicable? _blockproc) (_blockproc (qc _block) #f))
+			 ((,procedure? _blockproc) (_blockproc (qc _block) #f))
 			 ((and (vector? _blockproc) (> (length _blockproc) 0)
-			       (applicable? (elt _blockproc 0)))
+			       (,procedure? (elt _blockproc 0)))
 			  ((elt _blockproc 0) (qc _block))))
 		   (set! _block_prep (elapsed-time _blockstart))
 		   (set! _prep_time (+ _prep_time _block_prep))
@@ -152,16 +152,20 @@
 				  #f _block_prep))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (cond ((not _blockproc))
-			 ((applicable? _blockproc) (_blockproc (qc _block) #t))
+			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
-			       (applicable? (elt _blockproc 1)))
+			       (,procedure? (elt _blockproc 1)))
 			  ((elt _blockproc 1) (qc _block))))
 		   (when _progressfn
 		     (_progressfn (+ (* _blockno _blocksize) (choice-size _block))
 				  (choice-size _block) (choice-size _choice)
 				  (elapsed-time _start) _prep_time
 				  (elapsed-time _blockstart) _block_prep))))
-	       (when _blockproc (_blockproc (qc)))
+	       (cond ((not _blockproc))
+		     ((,procedure? _blockproc) (_blockproc (qc) #t))
+		     ((and (vector? _blockproc) (> (length _blockproc) 1)
+			   (,procedure? (elt _blockproc 1)))
+		      ((elt _blockproc 1) (qc) #t)))
 	       (when _progressfn
 		 (_progressfn (choice-size _choice) 0
 			      (choice-size _choice)
