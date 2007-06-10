@@ -21,7 +21,7 @@ static char versionid[] =
 
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 
-int fd_acid_files=0;
+int fd_acid_files=1;
 
 /* Opening file pools */
 
