@@ -20,7 +20,9 @@
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
    language-map gloss-map norm-map index-map
    index-string index-name index-frags index-gloss index-genls index-frame*
-   indexer index-concept index-brico index-words index-relations
+   indexer index-concept
+   ;; Specialized versions
+   index-brico index-words index-fragments index-relations index-lattice
    basic-concept-frequency concept-frequency use-corpus-frequency
    brico-prefetch! brico-prefetch})
 
@@ -328,12 +330,11 @@
    @1/2c278{MEMBERS}
    @1/2c281{PARTOF*}})
 
-
-
 (define (index-concept index concept)
-  (index-brico index concept)
-  (index-relations index concept)  
-  (index-words index concept))
+  (index-brico index concept)  
+  (index-words index concept)
+  (index-relations index concept)
+  (index-lattice index concept))
 
 (define (index-brico index frame)
   (doindex index frame '{type sense-category fips-code})
@@ -373,6 +374,21 @@
     (let ((lang (get index-map (car xlation))))
       (index-string index concept lang (cdr xlation)))))
 
+(define (index-fragments index concept (window 1))
+  (index-frags index concept english (get concept 'words) window)
+  (index-frags index concept 'names (get concept 'names) window)
+  (index-frags index concept 'names
+	       (pick  (cdr (get concept '%words)) capitalized?) window)
+  (do-choices (xlation (get concept '%words))
+    (let ((lang (get language-map (car xlation))))
+      (index-frags index concept lang (cdr xlation) window)))
+  (do-choices (xlation (get concept '%norm))
+    (let ((lang (get norm-map (car xlation))))
+      (index-frags index concept lang (cdr xlation) window)))
+  (do-choices (xlation (get concept '%indices))
+    (let ((lang (get index-map (car xlation))))
+      (index-frags index concept lang (cdr xlation) window))))
+
 (define (index-relations index concept)
   (do-choices (slotid genls*-slotids)
     (index-genls index concept slotid
@@ -395,7 +411,9 @@
   (when (%test concept defines)
     (doindex index (%get concept defines) defterms concept))
   (when (%test concept referenced)
-    (doindex index (%get concept referenced) refterms concept))
+    (doindex index (%get concept referenced) refterms concept)))
+
+(define (index-lattice index concept)
   (index-frame* index concept genls* genls specls*)
   (index-frame* index concept partof* partof parts*)
   (index-frame* index concept memberof* memberof members*)
