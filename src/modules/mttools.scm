@@ -88,7 +88,16 @@
 ;;;  after each time consuming chunk, together with an initial and
 ;;;  a final report
 
-(define (default-progress-report count thisblock limit
+(define (report-preamble block limit nthreads)
+  (if (< block limit)
+      (status "Processing " limit " items in "
+	      (1+ (quotient limit block)) " chunks of "
+	      block " items using " nthreads
+	      (if (= nthreads 1) " thread" " threads"))
+      (status "Processing " limit " items in one chunk using "
+	      nthreads (if (= nthreads 1) " thread" " threads"))))
+
+(define (default-progress-report count thisblock limit nthreads
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (status "Processed all " limit " elements "
@@ -99,17 +108,16 @@
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
-	     (notify "Processing " limit " elements "
-		     "in chunks of " thisblock " items")
-	     (status "Processed " (get% count limit) "%: "
-		     count " of " limit " items in "
-		     (short-interval-string time)
-		     (when (> count 0)
-		       (printout ", ~ "
-			 (short-interval-string (* time (/ (- limit count) count)))
-			 " to go "
-			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
-			 " total)")))))
+	     (report-preamble thisblock limit nthreads)
+	     (let ((togo (* time (/ (- limit count) count))))
+	       (status "Processed " (get% count limit) "%: "
+		       count " of " limit " items in "
+		       (short-interval-string time)
+		       (when (> count 0)
+			 (printout ", ~ "
+			   (short-interval-string togo) " to go "
+			   "(~" (short-interval-string (+ togo time))
+			   " total)"))))))
 	(blockpost
 	 (let ((total (+ blockprep blocktime blockpost)))
 	   (status "Processed " thisblock " items in " (short-interval-string total)
@@ -117,12 +125,13 @@
 		   ", exec took " (short-interval-string blocktime) " (" (get% blocktime total) "%)"
 		   ", post took " (short-interval-string blockpost) " (" (get% blockpost total) "%)")))
 	(blocktime
-	 (status "Finished core execution of " thisblock " items in " (short-interval-string blocktime)))
+	 (status "EXEC: Finished core processing of " thisblock " items in " (short-interval-string blocktime)
+		 " using " nthreads (if (= nthreads 1) " thread" " threads")))
 	(blockprep)
 	(else)))
 (define mt/default-progress default-progress-report)
 
-(define (mt/sparse-progress count thisblock limit
+(define (mt/sparse-progress count thisblock limit nthreads
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (status "Processed all " limit " elements "
@@ -133,8 +142,7 @@
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
-	     (notify "Processing " limit " elements "
-		     "in chunks of " thisblock " items")
+	     (report-preamble thisblock limit nthreads)
 	     (status "Processed " (get% count limit) "%: "
 		     count " of " limit " items in "
 		     (short-interval-string time)
@@ -150,7 +158,7 @@
 	(else)))
 
 (define (mt/detailed-progress
-	 count thisblock limit
+	 count thisblock limit nthreads
 	 time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (status "Processed all " limit " elements "
@@ -161,8 +169,7 @@
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
-	     (notify "Processing " limit " elements "
-		     "in chunks of " thisblock " items")
+	     (report-preamble thisblock limit nthreads)
 	     (status "Processed " (get% count limit) "%: "
 		     count " of " limit " items in "
 		     (short-interval-string time)
@@ -188,7 +195,7 @@
 		 (short-interval-string blockprep)))
 	(else)))
 
-(define (mt/noprogress count thisblock limit
+(define (mt/noprogress count thisblock limit nthreads
 	  time preptime posttime blockprep blocktime blockpost))
 
 (define do-choices-mt
@@ -219,8 +226,10 @@
 		       (_core_done #f)
 		       (_post_done #f))
 		   (when _progressfn
-		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time _post_time #f #f #f))
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (choice-size _choice) _nthreads
+		      (elapsed-time _start) _prep_time _post_time #f #f #f))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #f))
 			 ((and (vector? _blockproc) (> (length _blockproc) 0)
@@ -228,15 +237,20 @@
 			  ((elt _blockproc 0) (qc _block))))
 		   (set! _prep_done (elapsed-time))
 		   (when _progressfn
-		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time _post_time 
-				  (- _prep_done _blockstart) #f #f))
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (choice-size _choice) _nthreads
+		      (elapsed-time _start) _prep_time _post_time 
+		      (- _prep_done _blockstart) #f #f))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (set! _core_done (elapsed-time))
 		   (when _progressfn
-		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time _post_time 
-				  (- _prep_done _blockstart) (- _core_done _blockstart) #f))
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (choice-size _choice) _nthreads
+		      (elapsed-time _start) _prep_time _post_time 
+		      (- _prep_done _blockstart)
+		      (- _core_done _blockstart) #f))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
@@ -244,10 +258,12 @@
 			  ((elt _blockproc 1) (qc _block))))
 		   (set! _post_done (elapsed-time))
 		   (when _progressfn
-		     (_progressfn (* _blockno _blocksize) (choice-size _block) (choice-size _choice)
-				  (elapsed-time _start) _prep_time _post_time 
-				  (- _prep_done _blockstart) (- _core_done _prep_done)
-				  (- _post_done _core_done)))
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (choice-size _choice) _nthreads
+		      (elapsed-time _start) _prep_time _post_time 
+		      (- _prep_done _blockstart) (- _core_done _prep_done)
+		      (- _post_done _core_done)))
 		   (set! _prep_time (+ _prep_time (- _prep_done _blockstart)))
 		   (set! _post_time (+ _post_time (- _post_done _core_done)))))
 	       (cond ((not _blockproc))
@@ -256,9 +272,10 @@
 			   (,procedure? (elt _blockproc 1)))
 		      ((elt _blockproc 1) (qc) #t)))
 	       (when _progressfn
-		 (_progressfn (choice-size _choice) 0 (choice-size _choice)
-			      (elapsed-time _start) _prep_time _post_time 
-			      #f #f #f))))))))
+		 (_progressfn
+		  (choice-size _choice) 0 (choice-size _choice) _nthreads
+		  (elapsed-time _start) _prep_time _post_time 
+		  #f #f #f))))))))
 
 (define (mt/save/fetch oids done)
   (when done (commit) (clearcaches))
