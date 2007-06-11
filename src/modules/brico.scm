@@ -77,6 +77,7 @@
 (define gloss-map (file->dtype (get-component "glossmap.table")))
 (define norm-map (file->dtype (get-component "normmap.table")))
 (define index-map (file->dtype (get-component "indexmap.table")))
+(define frag-map (file->dtype (get-component "fragmap.table")))
 
 ;;; This is how these tables where generated
 (comment
@@ -88,6 +89,8 @@
  (do-choices (l (?? 'type 'norm))
    (store! norm-map (get l 'key) l))
  (do-choices (l (?? 'type 'indices))
+   (store! index-map (get l 'key) l))
+ (do-choices (l (?? 'type 'fragments))
    (store! index-map (get l 'key) l)))
 
 (set+! %constants
@@ -274,9 +277,13 @@
 
 (define index-frags
   (ambda (index frame slot values window)
-    (doindex index frame slot
-	     (vector->frags
-	      (words->vector (choice values (stdstring values)))))))
+    (let* ((compounds (pick values compound?))
+	   (stdcompounds (stdstring compounds)))
+      (doindex index frame slot
+	       (vector->frags
+		(words->vector
+		 (choice compounds stdcompounds))
+		window)))))
 
 (define index-string
   (ambda (index frame slot (value #f) (window default-frag-window))
@@ -375,18 +382,12 @@
       (index-string index concept lang (cdr xlation)))))
 
 (define (index-fragments index concept (window 1))
-  (index-frags index concept english (get concept 'words) window)
-  (index-frags index concept 'names (get concept 'names) window)
-  (index-frags index concept 'names
+  (index-frags index concept (get frag-map english) (get concept 'words) window)
+  (index-frags index concept 'namefrags (get concept 'names) window)
+  (index-frags index concept 'namefrags
 	       (pick  (cdr (get concept '%words)) capitalized?) window)
   (do-choices (xlation (get concept '%words))
-    (let ((lang (get language-map (car xlation))))
-      (index-frags index concept lang (cdr xlation) window)))
-  (do-choices (xlation (get concept '%norm))
-    (let ((lang (get norm-map (car xlation))))
-      (index-frags index concept lang (cdr xlation) window)))
-  (do-choices (xlation (get concept '%indices))
-    (let ((lang (get index-map (car xlation))))
+    (let ((lang (get frag-map (get language-map (car xlation)))))
       (index-frags index concept lang (cdr xlation) window))))
 
 (define (index-relations index concept)
@@ -461,7 +462,10 @@
   (prefetch-oids! oids)
   (prefetch-keys! (cons (choice refterms referenced) oids))
   (let ((kovalues (%get oids genls*-slotids)))
-    (prefetch-expansions (qc kovalues) genls))
+    (prefetch-expansions (qc kovalues) genls)))
+
+(define (indexer-lattice-prefetch oids)
+  (prefetch-oids! oids)
   (prefetch-expansions
    (qc oids) (qc genls partof memberof ingredientof)))
 
@@ -469,6 +473,7 @@
  '{index-brico
    index-concept
    indexer-prefetch
+   indexer-lattice-prefetch
    indexer-slotid-prefetch
    prefetch-expansions})
 
