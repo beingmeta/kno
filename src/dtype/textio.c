@@ -207,7 +207,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
 static int unparse_compound(U8_OUTPUT *out,fdtype x)
 {
   struct FD_COMPOUND *c=(struct FD_COMPOUND *)x;
-  u8_printf(out,"#%(%q %q)",c->tag,c->data);
+  u8_printf(out,"#%%(%q %q)",c->tag,c->data);
   return 1;
 }
 
@@ -853,7 +853,7 @@ static fdtype recreate_record(FD_MEMORY_POOL_TYPE *p,int n,fdtype *v)
 static fdtype parse_record(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
 {
   int n_elts;
-  fdtype *elts=parse_vec(p,in,'>',&n_elts);
+  fdtype *elts=parse_vec(p,in,')',&n_elts);
   if (n_elts>0)
     return recreate_record(p,n_elts,elts);
   else if (n_elts==0)
