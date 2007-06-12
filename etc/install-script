@@ -1,4 +1,0 @@
-#!/bin/sh
-echo "#!"$1 | cat - $2 > $3/$(basename $2)
-chmod a-w $3/$(basename $2)
-chmod a+x $3/$(basename $2)

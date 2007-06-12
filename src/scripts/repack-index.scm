@@ -1,4 +1,3 @@
-#!@prefix@/bin/fdexec
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)

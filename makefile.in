@@ -378,9 +378,12 @@ install-headers: $(INCINSTALLDIR)
 		$(INCINSTALLDIR)
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	$(INSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-install-scripts: install-shell-scripts
+install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+install-scheme-scripts:
+	etc/install-script src/scripts/repack-index.scm
+	etc/install-script src/scripts/make-hash-index.scm
 
 $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)

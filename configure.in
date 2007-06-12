@@ -451,8 +451,10 @@ AC_OUTPUT(makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD
 	  etc/fdserv.conf etc/fdserv.load
-	  src/scripts/repack-index)
+	  etc/install-script)
 
-chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d src/scripts/repack-index
+chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
+
+
 
 
