@@ -1,11 +1,11 @@
 Stuff to do with beingmeta's FramerD implementation
 ---------------------------------------------------
 Make pick/reject use the fact that its input is already ordered
-Made index_keys handlers return an unsorted vector rather than a choice
+?? Made index_keys handlers return an unsorted vector rather than a choice
 Move repack-file-index into fdb
 Implement new generic pool format that includes sizes in offset table, etc
 Speed up hashindex commit and scaling
-Implement generic script install and more scripts
+# Implement generic script install and more scripts (6June2007)
 Parallel commits under commit-all
 Implement journaling for pool/index collections
 Web-based fdmanager interface
@@ -13,3 +13,4 @@ Move libu8 to WIN32
 Move fdb to WIN32
 Explore using const in dtype streams and libu8 stream
 Add do-vector-mt
+Make cons compare be more inline
