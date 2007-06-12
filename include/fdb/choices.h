@@ -251,7 +251,28 @@ static int cons_compare(fdtype x,fdtype y)
     else return -1;
   else if (FD_ATOMICP(y))
     return 1;
-  else return fdtype_compare(x,y,1);
+  else {
+    fd_ptr_type xtype=FD_PTR_TYPE(x);
+    fd_ptr_type ytype=FD_PTR_TYPE(y);
+    if (FD_NUMBER_TYPEP(xtype))
+      if (FD_NUMBER_TYPEP(ytype))
+	return fd_numcompare(x,y);
+      else return -1;
+    else if (FD_NUMBER_TYPEP(ytype))
+      return 1;
+    else if (xtype<ytype) return -1;
+    else if (xtype>ytype) return 1;
+    else switch (xtype) {
+    case fd_pair_type: {
+      int car_cmp=FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
+      if (car_cmp == 0) return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
+      else return car_cmp;}
+    case fd_string_type: {
+      int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
+      if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+      else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+    default:
+      return fdtype_compare(x,y,1);}}
 }
 static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
 {
