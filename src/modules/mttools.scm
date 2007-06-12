@@ -125,7 +125,8 @@
 		   ", exec took " (short-interval-string blocktime) " (" (get% blocktime total) "%)"
 		   ", post took " (short-interval-string blockpost) " (" (get% blockpost total) "%)")))
 	(blocktime
-	 (status "EXEC: Finished core processing of " thisblock " items in " (short-interval-string blocktime)
+	 (status (config 'appid) ": "
+		 "Finished core processing of " thisblock " items in " (short-interval-string blocktime)
 		 " using " nthreads (if (= nthreads 1) " thread" " threads")))
 	(blockprep)
 	(else)))
