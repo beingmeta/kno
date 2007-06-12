@@ -1319,6 +1319,11 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
   off_t endpos=fd_endpos(stream);
   double start_time=u8_elapsed_time();
   
+  if (psched==NULL) {
+    u8_free(out.bytes);
+    fd_seterr(fd_MallocFailed,"populuate_hash_index",NULL,FD_VOID);
+    return -1;}
+
   if (FD_INDEXP(from)) ix=fd_lisp2index(from);
 
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
