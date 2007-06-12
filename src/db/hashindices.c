@@ -1320,7 +1320,7 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
   double start_time=u8_elapsed_time();
   
   if (psched==NULL) {
-    u8_free(out.bytes);
+    u8_free(out.start);
     fd_seterr(fd_MallocFailed,"populuate_hash_index",NULL,FD_VOID);
     return -1;}
 
