@@ -56,7 +56,13 @@ static fdtype xmlget(fdtype doc,fdtype attrib_id)
 /* This returns the content field as parsed. */
 static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
 {
-  if (FD_VOIDP(attrib_id)) 
+  if ((FD_CHOICEP(doc)) || (FD_ACHOICEP(doc))) {
+    fdtype contents=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(docelt,doc) {
+      fdtype content=xmlcontents(docelt,attrib_id);
+      FD_ADD_TO_CHOICE(contents,content);}
+    return contents;}
+  else if (FD_VOIDP(attrib_id)) 
     if (FD_EMPTY_LISTP(doc)) return doc;
     else if ((FD_PAIRP(doc)) || (FD_STRINGP(doc))) return fd_incref(doc);
     else if (FD_SLOTMAPP(doc)) 
@@ -79,8 +85,14 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
 /* This returns the content field as a string. */
 static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 {
-  if (FD_VOIDP(attrib_id))
-    if (FD_EMPTY_LISTP(doc)) return doc;
+  if ((FD_CHOICEP(doc)) || (FD_ACHOICEP(doc))) {
+    fdtype contents=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(docelt,doc) {
+      fdtype content=xmlcontent(docelt,attrib_id);
+      FD_ADD_TO_CHOICE(contents,content);}
+    return contents;}
+  else if (FD_VOIDP(attrib_id))
+    if (FD_EMPTY_LISTP(doc)) return fd_init_string(NULL,0,u8_strdup(""));
     else if (FD_STRINGP(doc)) return fd_incref(doc);
     else if (FD_PAIRP(doc)) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
@@ -96,7 +108,7 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
       fdtype as_string=xmlcontent(content,FD_VOID);
       fd_decref(content);
       return as_string;}
-    else return fd_type_error("XML node","xmlcontents",doc);
+    else return fd_type_error("XML node","xmlcontent",doc);
   else if (FD_PAIRP(doc)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DOLIST(docelt,doc) {
