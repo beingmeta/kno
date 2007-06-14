@@ -392,14 +392,17 @@ FD_XML *fd_default_popfn(FD_XML *node)
       (node->parent==NULL) ||
       (node->parent->parent==NULL)) {
     if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
-    add_content(node->parent,node->attribs);
-    node->attribs=FD_EMPTY_CHOICE;}
+    if (node->parent!=NULL) {
+      add_content(node->parent,node->attribs);
+      node->attribs=FD_EMPTY_CHOICE;}}
   if ((node->bits&FD_XML_SLOTIFY) && (slotify_nodep(node))) {
     fdtype slotid;
     if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
     if (FD_EMPTY_CHOICEP(node->parent->attribs))
       init_node_attribs(node->parent);
     slotid=fd_get(node->attribs,name_symbol,FD_EMPTY_CHOICE);
+    if ((node->bits)&FD_XML_KEEP_RAW)
+      add_content(node->parent,fd_incref(node->attribs));
     node->parent->bits=node->parent->bits|FD_XML_HASDATA;
     if ((FD_PAIRP(node->head)) &&
 	(!((node->bits)&FD_XML_HASDATA)) &&
