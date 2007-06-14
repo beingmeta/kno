@@ -278,6 +278,87 @@
 		  (elapsed-time _start) _prep_time _post_time 
 		  #f #f #f))))))))
 
+(define do-vector-mt
+  (macro expr
+    (let* ((control-spec (get-arg expr 1))
+	   (arg (get-arg control-spec 0))
+	   (vec-generator (get-arg control-spec 1))
+	   (n-threads (get-arg control-spec 2 10)))
+      (if (<= (length control-spec) 3)
+	  `(,mt-apply ,n-threads
+		      (lambda (,arg) ,@(cdr (cdr expr)))
+		      (qc (elts (,vec-generator))))
+	  (let ((blockproc (get-arg control-spec 3 #f))
+		(blocksize (get-arg control-spec 4 #f))
+		(progressfn (get-arg control-spec 5 default-progress-report)))
+	    `(let ((_vec ,vec-generator)
+		   (_blocksize ,blocksize)
+		   (_blockproc (,legacy-blockproc ,blockproc))
+		   (_progressfn ,progressfn)
+		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
+		   (_nthreads ,n-threads)
+		   (_start (elapsed-time))
+		   (_prep_time 0)
+		   (_post_time 0))
+	       (dotimes (_blockno (1+ (quotient (length _vec) _blocksize)))
+		 (let ((_block (elts _vec (* _blockno _blocksize)
+				     (min (* (1+ _blockno) _blocksize) (length _vec))))
+		       (_blockstart (elapsed-time))
+		       (_prep_done #f)
+		       (_core_done #f)
+		       (_post_done #f))
+		   (when _progressfn
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (length _vec) _nthreads
+		      (elapsed-time _start) _prep_time _post_time #f #f #f))
+		   (cond ((not _blockproc))
+			 ((,procedure? _blockproc) (_blockproc (qc _block) #f))
+			 ((and (vector? _blockproc) (> (length _blockproc) 0)
+			       (,procedure? (elt _blockproc 0)))
+			  ((elt _blockproc 0) (qc _block))))
+		   (set! _prep_done (elapsed-time))
+		   (when _progressfn
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (length _vec) _nthreads
+		      (elapsed-time _start) _prep_time _post_time 
+		      (- _prep_done _blockstart) #f #f))
+		   (,mt-apply _nthreads _bodyproc (qc _block))
+		   (set! _core_done (elapsed-time))
+		   (when _progressfn
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (length _vec) _nthreads
+		      (elapsed-time _start) _prep_time _post_time 
+		      (- _prep_done _blockstart)
+		      (- _core_done _blockstart) #f))
+		   (cond ((not _blockproc))
+			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
+			 ((and (vector? _blockproc) (> (length _blockproc) 1)
+			       (,procedure? (elt _blockproc 1)))
+			  ((elt _blockproc 1) (qc _block))))
+		   (set! _post_done (elapsed-time))
+		   (when _progressfn
+		     (_progressfn
+		      (* _blockno _blocksize) (choice-size _block)
+		      (length _vec) _nthreads
+		      (elapsed-time _start) _prep_time _post_time 
+		      (- _prep_done _blockstart) (- _core_done _prep_done)
+		      (- _post_done _core_done)))
+		   (set! _prep_time (+ _prep_time (- _prep_done _blockstart)))
+		   (set! _post_time (+ _post_time (- _post_done _core_done)))))
+	       (cond ((not _blockproc))
+		     ((,procedure? _blockproc) (_blockproc (qc) #t))
+		     ((and (vector? _blockproc) (> (length _blockproc) 1)
+			   (,procedure? (elt _blockproc 1)))
+		      ((elt _blockproc 1) (qc) #t)))
+	       (when _progressfn
+		 (_progressfn
+		  (length _vec) 0 (length _vec) _nthreads
+		  (elapsed-time _start) _prep_time _post_time 
+		  #f #f #f))))))))
+
 (define (mt/save/fetch oids done)
   (when done (commit) (clearcaches))
   (unless done (prefetch-oids! oids)))
@@ -299,6 +380,7 @@
 
 (module-export! '{mt-apply
 		  do-choices-mt
+		  do-vector-mt
 		  interval-string
 		  short-interval-string
 		  mt/fetchoids
