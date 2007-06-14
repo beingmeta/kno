@@ -87,7 +87,7 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
             exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
-SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig src/scripts/repack-index
+SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
