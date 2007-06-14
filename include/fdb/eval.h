@@ -176,6 +176,7 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
 }
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 {
+  if (env==NULL) return FD_VOID;
   if (env->copy) env=env->copy;
   while (env) {
     fdtype val=fastget(env->bindings,symbol);
