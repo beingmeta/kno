@@ -761,9 +761,8 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
     return -1;}
 }
 
-static fdtype xmlparse(fdtype input,fdtype options)
+static fdtype xmlparse_core(fdtype input,int flags)
 {
-  int flags=fd_xmlparseoptions(options);
   struct FD_XML object, *retval;
   struct U8_INPUT *in, _in;
   if (flags<0) return fd_erreify();
@@ -788,12 +787,26 @@ static fdtype xmlparse(fdtype input,fdtype options)
   else return fd_erreify();
 }
 
+static fdtype xmlparse(fdtype input,fdtype options)
+{
+  if (FD_CHOICEP(input)) {
+    int flags=fd_xmlparseoptions(options);
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(in,input) {
+      fdtype result=xmlparse_core(in,flags);
+      FD_ADD_TO_CHOICE(results,result);}
+    return results;}
+  else if (FD_QCHOICEP(input))
+    return xmlparse(FD_XQCHOICE(input)->choice,options);
+  else return xmlparse_core(input,fd_xmlparseoptions(options));
+}
+
 /* Initialization functions */
 
 FD_EXPORT void fd_init_xmlinput_c()
 {
   fdtype module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
-  fd_idefn(module,fd_make_cprim2("XMLPARSE",xmlparse,1));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("XMLPARSE",xmlparse,1)));
 
   attribs_symbol=fd_intern("%ATTRIBS");
   content_symbol=fd_intern("%CONTENT");
