@@ -26,6 +26,7 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_NOCONTENTS 256
 #define FD_XML_NSFREE 512  /* With respect to John Wayne... */ 
 #define FD_XML_NOEMPTY 1024
+#define FD_XML_HASDATA 2048
 
 #define FD_XML_INHERIT_BITS                                   \
   ((FD_XML_EMPTY_CLOSE)|(FD_XML_AUTOCLOSE)|(FD_XML_KEEP_RAW)| \

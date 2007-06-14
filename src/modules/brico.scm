@@ -18,7 +18,7 @@
    isa inverse =is= disjoint implies implies*
    make%id make%id! cap%wds cap%frame!
    get-gloss get-single-gloss get-short-gloss get-expstring gloss
-   language-map gloss-map norm-map index-map
+   language-map gloss-map norm-map index-map frag-map
    index-string index-name index-frags index-gloss index-genls index-frame*
    indexer index-concept
    ;; Specialized versions

@@ -400,7 +400,9 @@ FD_XML *fd_default_popfn(FD_XML *node)
     if (FD_EMPTY_CHOICEP(node->parent->attribs))
       init_node_attribs(node->parent);
     slotid=fd_get(node->attribs,name_symbol,FD_EMPTY_CHOICE);
+    node->parent->bits=node->parent->bits|FD_XML_HASDATA;
     if ((FD_PAIRP(node->head)) &&
+	(!((node->bits)&FD_XML_HASDATA)) &&
 	(!(FD_PAIRP(FD_CDR(node->head)))))
       fd_add(node->parent->attribs,slotid,FD_CAR(node->head));
     else fd_add(node->parent->attribs,slotid,node->attribs);}
@@ -455,6 +457,7 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
 {
   u8_string namespace, attrib_name=ns_get(xml,name,&namespace);
   if (FD_EMPTY_CHOICEP(xml->attribs)) init_node_attribs(xml);
+  xml->bits=xml->bits|FD_XML_HASDATA;
   if (val) {
     fdtype slotid=nsref2slotid(attrib_name);
     fdtype slotval=((quote>0) ? (fd_lispify(val)) : (fd_parse(val)));
@@ -485,11 +488,13 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   return 1;
 }
 
+/* This attribute function always stores strings and never parses the args. */
 FD_EXPORT
 int fd_strict_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
 {
   u8_string namespace, attrib_name=ns_get(xml,name,&namespace);
   if (FD_EMPTY_CHOICEP(xml->attribs)) init_node_attribs(xml);
+  xml->bits=xml->bits|FD_XML_HASDATA;
   if (val) {
     fdtype slotid=fd_parse(attrib_name);
     fdtype slotval=fdtype_string(val);
