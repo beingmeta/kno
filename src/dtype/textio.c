@@ -566,8 +566,9 @@ void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len))
 
 static fdtype default_parse_oid(u8_string start,int len)
 {
-  FD_OID oid; unsigned int hi, lo, c=start[len];
-  start[len]='\0'; sscanf(start,"@%x/%x",&hi,&lo); start[len]=c;
+  FD_OID oid; unsigned int hi, lo, c=start[len]; int items;
+  start[len]='\0'; items=sscanf(start,"@%x/%x",&hi,&lo); start[len]=c;
+  if (items!=2) return FD_PARSE_ERROR;
   FD_SET_OID_HI(oid,hi); FD_SET_OID_LO(oid,lo);
   return fd_make_oid(oid);
 }
@@ -586,6 +587,7 @@ static fdtype parse_oid(U8_INPUT *in,FD_MEMORY_POOL_TYPE *p)
   else if (oid_parser)
     result=oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   else result=default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+  if (FD_ABORTP(result)) return result;
   if (strchr("({\"",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */

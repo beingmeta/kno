@@ -61,7 +61,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     u8_byte prefix[64], suffix[64], *copy_start, *copy_end;
     copy_start=((start[1]=='/') ? (start+2) : (start+1));
     copy_end=strchr(copy_start,'/');
-    if (copy_end==NULL) return FD_EOX;
+    if (copy_end==NULL) return FD_PARSE_ERROR;
     strncpy(prefix,copy_start,(copy_end-copy_start));
     prefix[(copy_end-copy_start)]='\0';
     if (start[1]=='/') {
@@ -70,13 +70,13 @@ static fdtype better_parse_oid(u8_string start,int len)
       else base=p->base;}
     else {
       unsigned int hi;
-      sscanf(prefix,"%x",&hi);
+      if (sscanf(prefix,"%x",&hi)<1) return FD_PARSE_ERROR;
       FD_SET_OID_LO(base,0);
       FD_SET_OID_HI(base,hi);}
     copy_start=copy_end+1; copy_end=start+len;
     strncpy(suffix,copy_start,(copy_end-copy_start));
     suffix[(copy_end-copy_start)]='\0';
-    sscanf(suffix,"%x",&delta);
+    if (sscanf(prefix,"%x",&delta)<1)  return FD_PARSE_ERROR;
     result=FD_OID_PLUS(base,delta);
     return fd_make_oid(result);}
 }

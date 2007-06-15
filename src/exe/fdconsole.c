@@ -200,6 +200,7 @@ int main(int argc,char **argv)
     else u8_ungetc(((u8_input)in),c);
     expr=fd_parser((u8_input)in,NULL);
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
+    /* Clear the buffer (should do more?) */
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
 	(FD_EQ(expr,that_symbol))) {
       is_histref=1;
@@ -217,11 +218,18 @@ int main(int argc,char **argv)
       u8_flush(out);
       continue;}
     start_time=u8_elapsed_time();
-    if (eval_server) {
-      fd_dtswrite_dtype(eval_server,expr);
-      fd_dtsflush(eval_server);
-      result=fd_dtsread_dtype(eval_server);}
-    else result=fd_eval(expr,env);
+    if (FD_ABORTP(expr)) {
+      result=fd_incref(expr);
+      u8_printf(out,";; Flushing input, parse error @%d\n",
+		in->u8_inptr-in->u8_inbuf);
+      u8_flush_input((u8_input)in);
+      u8_flush((u8_output)out);}
+    else {
+      if (eval_server) {
+	fd_dtswrite_dtype(eval_server,expr);
+	fd_dtsflush(eval_server);
+	result=fd_dtsread_dtype(eval_server);}
+      else result=fd_eval(expr,env);}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
     finish_ocache=fd_object_cache_load();
@@ -252,7 +260,7 @@ int main(int argc,char **argv)
       fputs(out.u8_outbuf,stderr);
       u8_free(out.u8_outbuf);}
     else if (FD_TROUBLEP(result)) {
-      fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;
+      fd_exception ex; u8_context cxt; u8_string details=NULL; fdtype irritant=FD_VOID;
       if (fd_poperr(&ex,&cxt,&details,&irritant)) {
 	u8_fprintf(stderr,";; (ERROR %m)",ex);
 	if (details) u8_fprintf(stderr," %m",details);
