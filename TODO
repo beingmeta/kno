@@ -21,5 +21,5 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
 # Make XMLPARSE take flags as ND-ARG (14 June 2007)
 # Fix XML parsing bug (14 June 2007)
-Fix @@ parsing bug
+# Fix @@ parsing bug
 
