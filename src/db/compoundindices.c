@@ -46,10 +46,10 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
 
 static int compound_prefetch(fd_index ix,fdtype keys)
 {
-  int n_fetches=0, i=0, lim;
+  int n_fetches=0, i=0, lim, n=FD_CHOICE_SIZE(keys);
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
-  fdtype *keyv=u8_malloc(sizeof(fdtype)*FD_CHOICE_SIZE(keys));
-  fdtype *valuev=u8_malloc(sizeof(fdtype)*FD_CHOICE_SIZE(keys));
+  fdtype *keyv=u8_malloc(sizeof(fdtype)*n);
+  fdtype *valuev=u8_malloc(sizeof(fdtype)*n);
   FD_DO_CHOICES(key,keys)
     if (!(fd_hashtable_probe(&(cix->cache),key))) {
       keyv[n_fetches]=key; valuev[n_fetches]=FD_EMPTY_CHOICE; n_fetches++;}
@@ -70,6 +70,10 @@ static int compound_prefetch(fd_index ix,fdtype keys)
       FD_ADD_TO_CHOICE(valuev[j],values[j]); j++;}
     u8_free(values);
     i++;}
+  i=0; while (i<n) 
+    if (FD_ACHOICEP(valuev[i])) {
+      valuev[i]=fd_simplify_choice(valuev[i]); i++;}
+    else i++;
   /* The operation fd_table_add_empty_noref will create an entry even if the value
      is the empty choice. */
   fd_hashtable_iter(&(cix->cache),fd_table_add_empty_noref,n_fetches,keyv,valuev);
