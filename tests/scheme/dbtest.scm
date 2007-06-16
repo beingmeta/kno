@@ -4,6 +4,11 @@
 (define testpool #f)
 (define testindex #f)
 
+(define slotids-vec
+  #(type in-file created defines expr atoms 
+	 filename created contents-as-choice contents-as-frames
+	 has %id))
+
 (define (initdb source)
   (cond ((or (position #\@ source)
 	     (file-exists? (append source ".pool")))
@@ -12,8 +17,14 @@
 	 (set! testindex (open-index source)))
 	(else
 	 (make-file-pool (append source ".pool") @17/0 64000)
-	 (make-hash-index (append source ".index") 500000)
-	 ;; (make-file-index (append source ".index") 500000)
+	 (if (config 'hashindex #f)
+	     (if (eq? (config 'hashindex #t) 'COMPRESS)
+		 (begin (message "Making compressed hash index for tests")
+			(make-hash-index (append source ".index") -500000
+					 slotids-vec (vector @17/0)))
+		 (begin (message "Making hash index for tests")
+			(make-hash-index (append source ".index") -500000)))
+	     (make-file-index (append source ".index") -500000))
 	 (set! dbsource source)
 	 (set! testpool (use-pool source))
 	 (set! testindex (open-index source)))))

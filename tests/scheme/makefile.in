@@ -121,6 +121,11 @@ dbtests:
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
 	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
 
+dbhashtests:
+	@echo "***" Running scheme tests to exercise the database layer with hashindices
+	make FD_HASHINDEX=yes dbtests
+	make FD_HASHINDEX=:COMPRESS dbtests
+
 memtests:
 	@echo "***" Running alltests with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
@@ -135,7 +140,7 @@ memtabletests:
 
 memdbtests:
 	@echo "***" Running tests on database layers with memory debugging
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 
 randomtests:
 	@echo "***" Running alltests with a really random seed
