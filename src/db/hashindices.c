@@ -76,11 +76,7 @@ static char versionid[] =
 #endif
 
 #ifndef FD_DEBUG_HASHINDICES
-#define FD_DEBUG_HASHINDICES 0
-#endif
-
-#ifndef FD_DEBUG_HASHINDICES
-#define FD_DEBUG_HASHINDICES 0
+#define FD_DEBUG_HASHINDICES 1
 #endif
 
 #ifndef FD_DEBUG_DTYPEIO
@@ -672,6 +668,19 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   off_t vblock_off; size_t vblock_size;
   FD_BLOCK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
+#if FD_DEBUG_HASHINDICES
+  u8_message("Fetching the key %q from %s",key,hx->cid);
+#endif
+  /* If the index doesn't have oddkeys and you're looking up some feature (pair)
+     whose slotid isn't in the slotids, the key isn't in the table. */
+  if ((!((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS))) && (FD_PAIRP(key))) {
+    fdtype slotid=FD_CAR(key);
+    if (((FD_SYMBOLP(slotid)) || (FD_SYMBOLP(slotid))) &&
+	(get_slotid_index(hx,slotid)<0)) {
+#if FD_DEBUG_HASHINDICES
+      u8_message("The slotid %q isn't indexed in %s, returning {}",slotid,hx->cid);
+#endif
+      return FD_EMPTY_CHOICE;}}
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
     out.flags=out.flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
@@ -835,13 +844,24 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
   struct FD_BYTE_OUTPUT out;
   struct KEY_SCHEDULE *schedule=u8_malloc(sizeof(struct KEY_SCHEDULE)*n);
   struct VALUE_SCHEDULE *vsched=u8_malloc(sizeof(struct VALUE_SCHEDULE)*n);
-  int i=0, n_entries=0, vsched_size=0;
+  int i=0, n_entries=0, vsched_size=0, oddkeys=((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS));
+#if FD_DEBUG_HASHINDICES
+  u8_message("Reading %d keys from %s",n,hx->cid);
+#endif
   FD_INIT_BYTE_OUTPUT(&out,n*16,NULL);
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
     out.flags=out.flags|FD_DTYPEV2;
   while (i<n) {
     fdtype key=keys[i];
     int dt_start=out.ptr-out.start, dt_size, bucket;
+   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
+     whose slotid isn't in the slotids, the key isn't in the table. */
+    if ((!oddkeys) && (FD_PAIRP(key))) {
+      fdtype slotid=FD_CAR(key);
+      if (((FD_SYMBOLP(slotid)) || (FD_SYMBOLP(slotid))) &&
+	  (get_slotid_index(hx,slotid)<0)) {
+	values[i++]=FD_EMPTY_CHOICE;
+	continue;}}
     schedule[n_entries].index=i; schedule[n_entries].key=key;
     schedule[n_entries].key_start=dt_start;
     write_zkey(hx,&out,key);
@@ -994,6 +1014,9 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
 	    read++;}}}}
     if (vbuf) u8_free(vbuf);}
   u8_free(vsched); 
+#if FD_DEBUG_HASHINDICES
+  u8_message("Finished reading %d keys from %s",n,hx->cid);
+#endif
   return values;
 }
 
@@ -1310,6 +1333,8 @@ static int watch_for_bucket=-1;
 
 FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize)
 {
+  /* This overwrites all the data in *hx* with the key/value mappings in the table *from*
+     for the keys *keys*. */
   int i=0, n_buckets=hx->n_buckets, n_keys=FD_CHOICE_SIZE(keys);
   int filled_buckets=0, bucket_count=0, fetch_max=-1;
   struct POP_SCHEDULE *psched=u8_malloc(n_keys*sizeof(struct POP_SCHEDULE));
@@ -1326,6 +1351,10 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
 
   if (FD_INDEXP(from)) ix=fd_lisp2index(from);
 
+  /* Population doesn't leave any odd keys */
+  if ((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS)) 
+    hx->hxflags=hx->hxflags&(~(FD_HASH_INDEX_ODDKEYS));
+  
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
     out.flags=out.flags|FD_DTYPEV2;
 
@@ -1501,7 +1530,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 {
   fd_hashtable adds=&(hx->adds), edits=&(hx->edits), cache=&(hx->cache);
   fdtype *drops=u8_malloc(sizeof(fdtype)*(edits->n_keys)), *drop_values;
-  int j=0, n_drops=0;
+  int j=0, n_drops=0, oddkeys=0;
   struct FD_HASHENTRY **scan=edits->slots, **lim=scan+edits->n_slots;
   while (scan < lim)
     if (*scan) {
@@ -1511,8 +1540,12 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	fdtype key=kvscan->key;
 	if (FD_PAIRP(key))
 	  if ((FD_CAR(key))==set_symbol) {
-	    fd_hashset_add(taken,FD_CDR(key));
-	    s[i].key=FD_CDR(key);
+	    fdtype real_key=FD_CDR(key);
+	    fd_hashset_add(taken,real_key);
+	    if ((oddkeys==0) && (FD_PAIRP(real_key)) &&
+		((FD_OIDP(FD_CAR(real_key))) || (FD_SYMBOLP(FD_CAR(real_key))))) {
+	      if (get_slotid_index(hx,key)<0) oddkeys=1;}
+	    s[i].key=real_key;
 	    s[i].values=fd_make_simple_choice(kvscan->value);
 	    s[i].replace=1; i++;}
 	  else if ((FD_CAR(key))==drop_symbol) {
@@ -1533,6 +1566,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	kvscan++;}
       scan++;}
     else scan++;
+  if (oddkeys) hx->flags=((hx->flags)|(FD_HASH_INDEX_ODDKEYS));
   drop_values=hash_index_fetchn_inner((fd_index)hx,n_drops,drops,0);
   scan=edits->slots; lim=scan+edits->n_slots;
   j=0; while (scan < lim)
@@ -1562,6 +1596,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
 			struct COMMIT_SCHEDULE *s,int i)
 {
+  int oddkeys=((hx->flags)&(FD_HASH_INDEX_ODDKEYS));
   fd_hashtable adds=&(hx->adds), edits=&(hx->edits), cache=&(hx->cache);
   struct FD_HASHENTRY **scan=adds->slots, **lim=scan+adds->n_slots;
   while (scan < lim)
@@ -1571,12 +1606,16 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
       while (kvscan<kvlimit) {
 	fdtype key=kvscan->key;
 	if (!(fd_hashset_get(taken,key))) {
+	  if ((oddkeys==0) && (FD_PAIRP(key)) &&
+	      ((FD_OIDP(FD_CAR(key))) || (FD_SYMBOLP(FD_CAR(key))))) {
+	    if (get_slotid_index(hx,key)<0) oddkeys=1;}
 	  s[i].key=key;
 	  s[i].values=fd_make_simple_choice(kvscan->value);
 	  s[i].replace=0; i++;}
 	kvscan++;}
       scan++;}
     else scan++;
+  if (oddkeys) hx->flags=((hx->flags)|(FD_HASH_INDEX_ODDKEYS));
   return i;
 }
 
@@ -1879,6 +1918,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
   /* Now, write the data it where it is supposed to be. */
   if (new_keys) {
     int cur_keys;
+    /* Write any changed flags */
+    fd_setpos(stream,8); fd_dtswrite_4bytes(stream,hx->flags);
+    /* Write the new key count */
     fd_setpos(stream,16); cur_keys=fd_dtsread_4bytes(stream);
     fd_setpos(stream,16); fd_dtswrite_4bytes(stream,cur_keys+new_keys);}
   fd_setpos(stream,256);

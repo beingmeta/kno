@@ -124,6 +124,9 @@ unsigned int fd_hash_dtype_rep(fdtype x);
 
 #define FD_HASH_INDEX_FN_MASK 0xF
 #define FD_HASH_INDEX_DTYPEV2 0x10
+/* This determines if the hash index only has pair keys
+   whose cars are in its slotids.  */
+#define FD_HASH_INDEX_ODDKEYS (FD_HASH_INDEX_DTYPEV2<<1)
 
 #ifndef FD_USE_OFF_T
 #define FD_USE_OFF_T 0
