@@ -844,6 +844,8 @@ void fd_init_support_c()
 		     &fd_mergesort_threshold);
   fd_register_config("SHOWPROCINFO",fd_boolconfig_get,fd_boolconfig_set,
 		     &u8_show_procinfo);
+  fd_register_config("SHOWELAPSED",fd_boolconfig_get,fd_boolconfig_set,
+		     &u8_show_elapsed);
   fd_register_config("DISPLAYMAXCHARS",fd_intconfig_get,fd_intconfig_set,
 		     &fd_unparse_maxchars);
   fd_register_config("DISPLAYMAXELTS",fd_intconfig_get,fd_intconfig_set,
