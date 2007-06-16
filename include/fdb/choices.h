@@ -331,6 +331,23 @@ static fdtype _add_to_choice(fdtype current,fdtype new)
   else return fd_make_achoice(current,new);
 }
 #define FD_ADD_TO_CHOICE(x,v) x=_add_to_choice(x,v)
+/* This does a simple binary search of a sorted choice vector made up,
+   solely of atoms.  */
+static int atomic_choice_containsp(fdtype x,fdtype ch)
+{
+  if (FD_ATOMICP(ch)) return (x==ch);
+  else {
+    struct FD_CHOICE *choice=FD_GET_CONS(ch,fd_choice_type,fd_choice);
+    int size=FD_XCHOICE_SIZE(choice);
+    const fdtype *bottom=FD_XCHOICE_DATA(choice), *top=bottom+(size-1);
+    while (top>=bottom) {
+      const fdtype *middle=bottom+(top-bottom)/2;
+      if (x == *middle) return 1;
+      else if (FD_CONSP(*middle)) top=middle-1;
+      else if (x < *middle) top=middle-1;
+      else bottom=middle+1;}
+    return 0;}
+}
 #else
 #define FD_ADD_TO_CHOICE(x,v)                    \
    if (FD_DEBUG_BADPTRP(v))                      \

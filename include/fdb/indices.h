@@ -27,7 +27,8 @@ FD_EXPORT fd_exception
   int serialno, read_only, cache_level, flags;   \
   u8_string source, cid, xid;                    \
   struct FD_INDEX_HANDLER *handler;              \
-  struct FD_HASHTABLE cache, adds, edits
+  struct FD_HASHTABLE cache, adds, edits;        \
+  fdtype has_slotids
 
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
@@ -144,7 +145,11 @@ FD_EXPORT struct FD_COMPOUND_INDEX *fd_background;
 #if FD_INLINE_INDICES
 FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
 {
-  fdtype cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
+  fdtype cached;
+  if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
+      (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))
+    return FD_EMPTY_CHOICE;
+  else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
   if (FD_VOIDP(cached)) return fd_index_fetch(ix,key);
   else return cached;
 }
@@ -162,6 +167,10 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
 	  (fd_background->cache.n_keys))
 	retval=fd_hashtable_op(&(fd_background->cache),fd_table_replace,key,FD_VOID);
+      if ((!(FD_VOIDP(ix->has_slotids))) && (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
+	  (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) || (FD_SYMBOLP(FD_CAR(key))))) &&
+	  (FD_EXPECT_FALSE(!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))) {
+	fd_decref(ix->has_slotids); ix->has_slotids=FD_VOID;}
       return retval;}
   else return _fd_index_add(ix,key,value);
 }

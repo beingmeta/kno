@@ -76,7 +76,7 @@ static char versionid[] =
 #endif
 
 #ifndef FD_DEBUG_HASHINDICES
-#define FD_DEBUG_HASHINDICES 1
+#define FD_DEBUG_HASHINDICES 0
 #endif
 
 #ifndef FD_DEBUG_DTYPEIO
@@ -274,18 +274,27 @@ static int sort_by_slotid(const void *p1,const void *p2)
 
 static int init_slotids(fd_hash_index hx,int n_slotids,fdtype *slotids_init)
 {
-  fdtype *slotids; struct FD_SLOTID_LOOKUP *lookup; int i=0;
+  struct FD_SLOTID_LOOKUP *lookup; int i=0;
+  fdtype *slotids, slotids_choice=FD_EMPTY_CHOICE;
   hx->slotids=slotids=u8_malloc(sizeof(fdtype)*n_slotids);
   hx->slotid_lookup=lookup=
     u8_malloc(sizeof(FD_SLOTID_LOOKUP)*n_slotids);
   hx->n_slotids=n_slotids; hx->new_slotids=0;
+  if ((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS)) slotids_choice=FD_VOID;
   while (i<n_slotids) {
     fdtype slotid=slotids_init[i];
+    if (FD_VOIDP(slotids_choice)) {}
+    else if (FD_ATOMICP(slotid)) {
+      FD_ADD_TO_CHOICE(slotids_choice,slotid);}
+    else {
+      fd_decref(slotids_choice); slotids_choice=FD_VOID;}
     slotids[i]=slotid;
     lookup[i].zindex=i;
     lookup[i].slotid=fd_incref(slotid);
     i++;}
   qsort(lookup,n_slotids,sizeof(FD_SLOTID_LOOKUP),sort_by_slotid);
+  if (!(FD_VOIDP(slotids_choice)))
+    hx->has_slotids=fd_simplify_choice(slotids_choice);
 }
 
 static int sort_by_baseoid(const void *p1,const void *p2)
@@ -669,7 +678,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   FD_BLOCK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
 #if FD_DEBUG_HASHINDICES
-  u8_message("Fetching the key %q from %s",key,hx->cid);
+  /* u8_message("Fetching the key %q from %s",key,hx->cid); */
 #endif
   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
      whose slotid isn't in the slotids, the key isn't in the table. */
@@ -720,7 +729,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
 	if (code==0) {
 	  fdtype val=fd_read_dtype(&keystream,NULL);
 	  fd_decref(val);}
-	else keystream.ptr=keystream.ptr+3;}
+	else fd_read_zint(&keystream);}
       else {
 	fd_read_4bytes(&keystream);
 	fd_read_zint(&keystream);}}
@@ -1566,7 +1575,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	kvscan++;}
       scan++;}
     else scan++;
-  if (oddkeys) hx->flags=((hx->flags)|(FD_HASH_INDEX_ODDKEYS));
+  if (oddkeys) hx->hxflags=((hx->hxflags)|(FD_HASH_INDEX_ODDKEYS));
   drop_values=hash_index_fetchn_inner((fd_index)hx,n_drops,drops,0);
   scan=edits->slots; lim=scan+edits->n_slots;
   j=0; while (scan < lim)
@@ -1596,7 +1605,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
 			struct COMMIT_SCHEDULE *s,int i)
 {
-  int oddkeys=((hx->flags)&(FD_HASH_INDEX_ODDKEYS));
+  int oddkeys=((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS));
   fd_hashtable adds=&(hx->adds), edits=&(hx->edits), cache=&(hx->cache);
   struct FD_HASHENTRY **scan=adds->slots, **lim=scan+adds->n_slots;
   while (scan < lim)
@@ -1615,7 +1624,7 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	kvscan++;}
       scan++;}
     else scan++;
-  if (oddkeys) hx->flags=((hx->flags)|(FD_HASH_INDEX_ODDKEYS));
+  if (oddkeys) hx->hxflags=((hx->hxflags)|(FD_HASH_INDEX_ODDKEYS));
   return i;
 }
 
@@ -1919,7 +1928,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   if (new_keys) {
     int cur_keys;
     /* Write any changed flags */
-    fd_setpos(stream,8); fd_dtswrite_4bytes(stream,hx->flags);
+    fd_setpos(stream,8); fd_dtswrite_4bytes(stream,hx->hxflags);
     /* Write the new key count */
     fd_setpos(stream,16); cur_keys=fd_dtsread_4bytes(stream);
     fd_setpos(stream,16); fd_dtswrite_4bytes(stream,cur_keys+new_keys);}

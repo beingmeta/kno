@@ -9,6 +9,7 @@ static char versionid[] =
   "$Id$";
 
 #define FD_INLINE_INDICES 1
+#define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
 
 #include "fdb/dtype.h"
@@ -425,7 +426,11 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
 }
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 {
-  fdtype cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
+  fdtype cached;
+  if ((!(FD_VOIDP(ix->has_slotids))) &&
+      (!(atomic_choice_containsp(key,ix->has_slotids))))
+    return FD_EMPTY_CHOICE;
+  else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
   if (FD_VOIDP(cached))
     if (fd_ipeval_status(1)) {
       delay_index_fetch(ix,key);
@@ -455,6 +460,14 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key), retval;
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
+    if (!(FD_VOIDP(ix->has_slotids))) {
+      fdtype slotids=ix->has_slotids;
+      int i=0; while (i<n) {
+	fdtype key=keys[i++], slotid;
+	if (FD_PAIRP(key)) slotid=FD_CAR(key); else continue;
+	if ((FD_OIDP(slotid)) || (FD_SYMBOLP(slotid)))
+	  if (atomic_choice_containsp(slotid,slotids)) continue;
+	  else {fd_decref(slotids); ix->has_slotids=FD_VOID;}}}
     if (ix->cache_level>0)
       fd_hashtable_iterkeys(&(ix->cache),fd_table_add_if_present,n,keys,value);}
   else {
@@ -618,6 +631,7 @@ FD_EXPORT void fd_init_index
   ix->cid=u8_strdup(source);
   ix->source=u8_strdup(source);
   ix->xid=NULL;
+  ix->has_slotids=FD_VOID;
 }
 
 static int unparse_index(u8_output out,fdtype x)
