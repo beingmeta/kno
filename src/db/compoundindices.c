@@ -70,7 +70,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
       FD_ADD_TO_CHOICE(valuev[j],values[j]); j++;}
     u8_free(values);
     i++;}
-  i=0; while (i<n) 
+  i=0; while (i<n_fetches) 
     if (FD_ACHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
