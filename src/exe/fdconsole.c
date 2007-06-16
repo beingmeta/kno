@@ -211,7 +211,8 @@ int main(int argc,char **argv)
 	U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
 	u8_printf(&out,"%q:\n",expr);
 	fd_display_table(&out,v,FD_VOID);
-	fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);}
+	fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
+	fflush(stdout);}
       else u8_printf(out,"OID value: %q\n",v);
       fd_decref(v);
       u8_printf(out,EVAL_PROMPT);
