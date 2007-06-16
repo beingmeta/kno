@@ -250,6 +250,7 @@ clean: tidy
 	rm -f exe/fdexec@suffix@ exe/fdexec@suffix@.static exe/fdbatch@suffix@
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
 	rm -f exe/fdconsole@suffix@
+	rm -f src/exe/revision.h
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
