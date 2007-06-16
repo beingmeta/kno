@@ -850,7 +850,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
     schedule[n_entries].bucket=bucket=
       hash_bytes(out.start+dt_start,dt_size)%(hx->n_buckets);
     if (hx->buckets) {
-      schedule[i].ref=get_block_ref(hx,bucket);
+      schedule[n_entries].ref=get_block_ref(hx,bucket);
       if (schedule[n_entries].ref.size==0) {
 	/* It is empty, so we don't even need to handle this entry. */
 	values[i]=FD_EMPTY_CHOICE;
