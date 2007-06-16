@@ -22,4 +22,5 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 # Make XMLPARSE take flags as ND-ARG (14 June 2007)
 # Fix XML parsing bug (14 June 2007)
 # Fix @@ parsing bug
-
+# Add has_slotids to all indices to reduce cache load (16Jun2007)
+# Add hashindices test to tests/scheme/dbtest (16Jun2007)
