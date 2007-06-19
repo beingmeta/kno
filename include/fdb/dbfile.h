@@ -177,11 +177,15 @@ typedef struct FD_HASH_INDEX {
   size_t mmap_size; unsigned char *mmap;} FD_HASH_INDEX;
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
-FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize);
-FD_EXPORT int fd_make_hash_index(u8_string,int,unsigned int,unsigned int,fdtype,fdtype,fdtype,time_t,time_t);
-FD_EXPORT int fd_hash_index_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modulate);
+FD_EXPORT int fd_populate_hash_index
+  (struct FD_HASH_INDEX *hx,fdtype from,
+   const fdtype *keys,int n_keys, int blocksize);
+FD_EXPORT int fd_make_hash_index
+  (u8_string,int,unsigned int,unsigned int,
+   fdtype,fdtype,fdtype,time_t,time_t);
+FD_EXPORT int fd_hash_index_bucket
+   (struct FD_HASH_INDEX *hx,fdtype key,int modulate);
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
-
 
 #endif /* #ifndef FDB_DBFILE_H */
 

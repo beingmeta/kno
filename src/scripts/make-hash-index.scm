@@ -25,20 +25,20 @@
 
 (define (make-hash-index-from file from . pools)
   (let* ((source (open-index from))
-	 (keys (getkeys source))
+	 (keys (index-keysvec source))
 	 (slotfreq (make-hashtable))
 	 (baseoids (->vector (remove-dups (get-baseoids pools)))))
-    (do-choices (key keys)
+    (doseq (key keys)
       (when (pair? key) (hashtable-increment! slotfreq (car key))))
     (message "Creating hash index for "
 	     (choice-size (getkeys slotfreq)) " slotids with "
 	     (length baseoids) " baseoids")
-    (make-hash-index file (- (* 2 (choice-size keys)))
+    (make-hash-index file (- (* 2 (length keys)))
 		     (rsorted (getkeys slotfreq) slotfreq)
 		     baseoids)
     (message "Populating hash index " file " with "
-	     (choice-size keys) " items from " (write from))
-    (populate-hash-index (open-index file) source 250000 (qc keys))))
+	     (length keys) " items from " (write from))
+    (populate-hash-index (open-index file) source 250000 keys)))
 
 (define (main file from . pools)
   (tighten! make-hash-index-from)

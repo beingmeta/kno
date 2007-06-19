@@ -116,11 +116,37 @@ static fdtype populate_hash_index
   (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
   fd_index ix=fd_lisp2index(ix_arg); int blocksize=-1, retval;
+  const fdtype *keyvec; unsigned int n_keys, free_keyvec=0;
   if (!(fd_hash_indexp(ix)))
     return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
   if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
-  if (FD_VOIDP(keys)) keys=fd_getkeys(from);
-  retval=fd_populate_hash_index((struct FD_HASH_INDEX *)ix,from,keys,blocksize);
+  if (FD_CHOICEP(keys)) {
+    keyvec=FD_CHOICE_DATA(keys); n_keys=FD_CHOICE_SIZE(keys);}
+  else if (FD_VECTORP(keys)) {
+    keyvec=FD_VECTOR_DATA(keys); n_keys=FD_VECTOR_LENGTH(keys);}
+  else if (FD_VOIDP(keys)) {
+    fdtype keys_choice=FD_VOID;
+    if (FD_INDEXP(from)) {
+      fd_index ix=fd_lisp2index(from);
+      if (ix->handler->fetchkeys!=NULL) {
+	keyvec=ix->handler->fetchkeys(ix,&n_keys);
+	free_keyvec=1;}
+      else keys_choice=fd_getkeys(from);}
+    else keys_choice=fd_getkeys(from);
+    if (!(FD_VOIDP(keys_choice)))
+      if (FD_CHOICEP(keys_choice)) {
+	keyvec=FD_CHOICE_DATA(keys_choice);
+	n_keys=FD_CHOICE_SIZE(keys_choice);}
+      else {
+	keyvec=&keys; n_keys=1;}}
+  else {
+    keyvec=&keys; n_keys=1;}
+  retval=fd_populate_hash_index
+    ((struct FD_HASH_INDEX *)ix,from,keyvec,n_keys,blocksize);
+  if (free_keyvec) {
+    int i=0; while (i<n_keys) {
+      fd_decref(keyvec[i]); i++;}
+    u8_free((fdtype *)keyvec);}
   if (retval<0) return fd_erreify();
   else return FD_INT2DTYPE(retval);
 }

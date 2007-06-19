@@ -913,6 +913,18 @@ static fdtype indexsizes(fdtype ixarg)
   return fd_index_sizes(ix);
 }
 
+static fdtype indexkeysvec(fdtype ixarg)
+{
+  fdtype *keys; unsigned int n_keys;
+  fd_index ix=fd_lisp2index(ixarg);
+  if (ix==NULL) return fd_erreify();
+  if (ix->handler->fetchkeys) {
+    fdtype *keys; unsigned int n_keys;
+    keys=ix->handler->fetchkeys(ix,&n_keys);
+    return fd_init_vector(NULL,n_keys,keys);}
+  else return fd_index_keys(ix);
+}
+
 /* Other operations */
 
 static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
@@ -1570,6 +1582,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-ADD!",indexadd,3));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-GET",indexget,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYS",indexkeys,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",indexkeysvec,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",indexsizes,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",indexdecache,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("BGDECACHE",bgdecache,1));

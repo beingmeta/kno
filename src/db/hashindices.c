@@ -1077,7 +1077,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   fdtype *results=NULL;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_dtype_stream s=&(hx->stream);
-  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0;
+  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0, key_count=0;
   FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*n_buckets);
   unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
@@ -1121,7 +1121,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
       size=fd_read_zint(&keyblock);
       key=read_zkey(hx,&keyblock);
       n_vals=fd_read_zint(&keyblock);
-      results[j++]=key;
+      results[key_count++]=key;
       if (n_vals==0) {}
       else if (n_vals==1) {
 	int code=fd_read_zint(&keyblock);
@@ -1144,7 +1144,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_dtype_stream s=(fd_lock_mutex(&(hx->lock)),&(hx->stream));
-  int i=0, j=0, n_buckets=(hx->n_buckets), n_to_fetch=0, keybuf_size=-1;
+  int i=0, j=0, n_buckets=(hx->n_buckets), n_to_fetch=0, key_count=0, keybuf_size=-1;
   FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*n_buckets);
   unsigned char _keybuf[512], *keybuf=NULL; 
   struct FD_KEY_SIZE *sizes=u8_malloc(sizeof(FD_KEY_SIZE)*(hx->n_keys));
@@ -1187,7 +1187,9 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
       size=fd_read_zint(&keyblock);
       key=read_zkey(hx,&keyblock);
       n_vals=fd_read_zint(&keyblock);
-      sizes[j].key=key; sizes[j].n_values=n_vals; j++;
+      assert(key!=0);
+      sizes[key_count].key=key; sizes[key_count].n_values=n_vals;
+      key_count++;
       if (n_vals==0) {}
       else if (n_vals==1) {
 	int code=fd_read_zint(&keyblock);
@@ -1200,6 +1202,8 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 	fd_read_zint(&keyblock);}
       j++;}
     i++;}
+  assert(key_count==hx->n_keys);
+  *n=hx->n_keys;
   if (keybuf) u8_free(keybuf);
   if (buckets) u8_free(buckets);
   fd_unlock_mutex(&(hx->lock));
@@ -1343,12 +1347,16 @@ static int populate_prefetch
 static int watch_for_bucket=-1;
 #endif
 
-FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype keys,int blocksize)
+FD_EXPORT int fd_populate_hash_index
+  (struct FD_HASH_INDEX *hx,fdtype from,
+   const fdtype *keys,int n_keys, int blocksize)
 {
   /* This overwrites all the data in *hx* with the key/value mappings in the table *from*
      for the keys *keys*. */
-  int i=0, n_buckets=hx->n_buckets, n_keys=FD_CHOICE_SIZE(keys);
+  int i=0, n_buckets=hx->n_buckets;
   int filled_buckets=0, bucket_count=0, fetch_max=-1;
+  int cycle_buckets=0, cycle_keys=0, cycle_max=0;
+  int overall_buckets=0, overall_keys=0, overall_max=0;
   struct POP_SCHEDULE *psched=u8_malloc(n_keys*sizeof(struct POP_SCHEDULE));
   struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,8192,NULL);
   struct BUCKET_REF *bucket_refs; fd_index ix=NULL;
@@ -1374,7 +1382,9 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
   memset(psched,0,n_keys*sizeof(struct POP_SCHEDULE));
   {
     int cur_bucket=-1;
-    FD_DO_CHOICES(key,keys) {
+    const fdtype *keyscan=keys, *keylim=keys+n_keys;
+    while (keyscan<keylim) {
+      fdtype key=*keyscan++;
       int bucket, size;
       out.ptr=out.start; /* Reset stream */
       psched[i].key=key;
@@ -1399,6 +1409,8 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
       u8_warn("Event","Hit the bucket %d",watch_for_bucket);
 #endif
     while ((j<n_keys) && (psched[j].bucket==bucket)) j++;
+    cycle_buckets++; cycle_keys=cycle_keys+(j-i);
+    if ((j-i)>cycle_max) cycle_max=j-i;
     bucket_refs[bucket_count].bucket=bucket;
     load=j-i; FD_INIT_FIXED_BYTE_OUTPUT(&keyblock,buf,4096);
 
@@ -1413,8 +1425,22 @@ FD_EXPORT int fd_populate_hash_index(struct FD_HASH_INDEX *hx,fdtype from,fdtype
 	double togo=elapsed*((1.0*(n_keys-i))/(1.0*i));
 	double total=elapsed+togo;
 	double percent=(100.0*i)/(1.0*n_keys);
+	u8_message("Distributed %d keys over %d buckets, averaging %.2f keys per bucket (%d keys max)",
+		   cycle_keys,cycle_buckets,
+		   ((1.0*cycle_keys)/(1.0*cycle_buckets)),
+		   cycle_max);
+	overall_keys=overall_keys+cycle_keys;
+	overall_buckets=overall_buckets+cycle_buckets;
+	if (cycle_max>overall_max) overall_max=cycle_max;
+	cycle_keys=cycle_buckets=cycle_max=0;
+	
+	
 	u8_message("Processed %d of %d keys (%.2f%%) from %s in %.2f secs, ~%.2f secs to go (~%.2f secs total)",
 		   i,n_keys,percent,ix->cid,elapsed,togo,total);}
+      u8_message("Overall, distributed %d keys over %d buckets, averaging %.2f keys per bucket (%d keys max)",
+		 overall_keys,overall_buckets,
+		 ((1.0*overall_keys)/(1.0*overall_buckets)),
+		 overall_max);
       fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);
       u8_message("Prefetched %d keys from %s in %.3f seconds",
 		 fetch_max-i,ix->cid,u8_elapsed_time()-fetch_start);}
