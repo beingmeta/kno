@@ -401,14 +401,29 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
   return n_fetched;
 }
 
+static int add_key_fn(fdtype key,fdtype val,void *data)
+{
+  fdtype **write=(fdtype **)data;
+  *(*write++)=fd_incref(key);
+  /* Means keep going */
+  return 0;
+}
+
 FD_EXPORT fdtype fd_index_keys(fd_index ix)
 {
   if (ix->handler->fetchkeys) {
-    fdtype current=ix->handler->fetchkeys(ix);
+    int n_fetched=0, n_total; fd_choice result;
+    fdtype *fetched=ix->handler->fetchkeys(ix,&n_fetched);
+    if (n_fetched==0) return fd_hashtable_keys(&(ix->adds));
+    n_total=n_fetched+ix->adds.n_keys;
+    result=fd_alloc_choice(n_total);
+    memcpy(&(result->elt0),fetched,sizeof(fdtype)*n_fetched);
+    u8_free(fetched);
     if (ix->adds.n_keys) {
-      fdtype added=fd_hashtable_keys(&(ix->adds));
-      FD_ADD_TO_CHOICE(current,added);}
-    return current;}
+      fdtype *write_at=&(result->elt0)+n_fetched;
+      fd_for_hashtable(&(ix->adds),add_key_fn,&write_at,1);}
+    return fd_init_choice(result,n_total,NULL,
+			  FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
 }
 static fdtype table_getkeys(fdtype ixarg)
@@ -418,12 +433,52 @@ static fdtype table_getkeys(fdtype ixarg)
   else return fd_erreify();
 }
 
+static int copy_value_sizes(fdtype key,fdtype value,void *vptr)
+{
+  struct FD_HASHTABLE *sizes=(struct FD_HASHTABLE *)vptr;
+  int value_size=((FD_VOIDP(value)) ? (0) : FD_CHOICE_SIZE(value));
+  fd_hashtable_store(sizes,key,FD_INT2DTYPE(value_size));
+  return 0;
+}
+
 FD_EXPORT fdtype fd_index_sizes(fd_index ix)
 {
-  if (ix->handler->fetchsizes) 
-    return ix->handler->fetchsizes(ix);
-  else return fd_err(fd_NoMethod,"fd_index_sizes",NULL,fd_index2lisp(ix));
+  if (ix->handler->fetchsizes) {
+    int n_fetched=0;
+    struct FD_KEY_SIZE *fetched=ix->handler->fetchsizes(ix,&n_fetched);
+    if ((n_fetched==0) && (ix->adds.n_keys)) return FD_EMPTY_CHOICE;
+    else if ((ix->adds.n_keys)==0) {
+      fd_choice result=fd_alloc_choice(n_fetched);
+      fdtype *write=&(result->elt0);
+      int i=0; while (i<n_fetched) {
+	fdtype key=fetched[i].key, pair;
+	unsigned int n_values=fetched[i].n_values;
+	pair=fd_init_pair(NULL,fd_incref(key),FD_INT2DTYPE(n_values));
+	*write++=pair; i++;}
+      u8_free(fetched);
+      return fd_init_choice(result,n_fetched,NULL,
+			    FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
+    else {
+      struct FD_HASHTABLE added_sizes;
+      fd_choice result; int i=0, n_total; fdtype *write;
+      /* Get the sizes for added keys. */
+      fd_make_hashtable(&added_sizes,ix->adds.n_slots,NULL);
+      fd_for_hashtable(&(ix->adds),copy_value_sizes,&added_sizes,1);
+      n_total=n_fetched+ix->adds.n_keys;
+      result=fd_alloc_choice(n_total); write=&(result->elt0);
+      while (i<n_fetched) {
+	fdtype key=fetched[i].key, pair;
+	unsigned int n_values=fetched[i].n_values;
+	fdtype added=fd_hashtable_get(&added_sizes,key,FD_INT2DTYPE(0));
+	n_values=n_values+fd_getint(added); fd_decref(added);
+	pair=fd_init_pair(NULL,fd_incref(key),FD_INT2DTYPE(n_values));
+	*write++=pair; i++;}
+      fd_recycle_hashtable(&added_sizes); u8_free(fetched);
+      return fd_init_choice(result,n_total,NULL,
+			    FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}}
+  else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
 }
+
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 {
   fdtype cached;
@@ -798,24 +853,39 @@ static fdtype *memindex_fetchn(fd_index ix,int n,fdtype *keys)
   return results;
 }
 
-static fdtype memindex_fetchkeys(fd_index ix)
+static fdtype *memindex_fetchkeys(fd_index ix,int *n)
 {
-  return fd_hashtable_keys(&(ix->cache));
+  fdtype keys=fd_hashtable_keys(&(ix->cache));
+  int n_elts=FD_CHOICE_SIZE(keys);
+  fdtype *result=u8_malloc(sizeof(fdtype)*n_elts);
+  int j=0;
+  FD_DO_CHOICES(key,keys) {result[j++]=key;}
+  *n=n_elts;
+  return result;
 }
 
 static int memindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
 {
-  fdtype *results=(fdtype *)ptr;
-  fdtype entry=fd_init_pair(NULL,fd_incref(key),FD_INT2DTYPE(FD_CHOICE_SIZE(value)));
-  FD_ADD_TO_CHOICE(*results,entry);
+  struct FD_KEY_SIZE **key_size_ptr;
+  (*key_size_ptr)->key=fd_incref(key);
+  (*key_size_ptr)->n_values=FD_CHOICE_SIZE(value);
+  *key_size_ptr++;
   return 0;
 }
 
-static fdtype memindex_fetchsizes(fd_index ix)
+static struct FD_KEY_SIZE *memindex_fetchsizes(fd_index ix,int *n)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  fd_for_hashtable(&(ix->cache),memindex_fetchsizes_helper,(void *)&results,1);
-  return results;
+  if (ix->cache.n_keys) {
+    struct FD_KEY_SIZE *sizes, *write; int n_keys;
+    fd_lock_mutex(&(ix->cache.lock));
+    n_keys=ix->cache.n_keys;
+    sizes=u8_malloc(sizeof(FD_KEY_SIZE)*n_keys); write=&(sizes[0]);
+    fd_for_hashtable(&(ix->cache),memindex_fetchsizes_helper,
+		     (void *)write,0);
+    *n=n_keys;
+    return sizes;}
+  else {
+    *n=0; return NULL;}
 }
 
 static int memindex_commit(fd_index ix)

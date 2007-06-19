@@ -283,57 +283,70 @@ static int sort_offsets(const void *vox,const void *voy)
   else return 0;
 }
 
-static fdtype file_index_fetchkeys(fd_index ix)
+static fdtype *file_index_fetchkeys(fd_index ix,int *n)
 {
-  fdtype result=FD_EMPTY_CHOICE;
+  fdtype *result=NULL;
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
-  unsigned int n_slots, i=0, *offsets, pos_offset;
+  unsigned int n_slots, i=0, j=0, *offsets, pos_offset, n_keys=0;
   fd_lock_mutex(&(fx->lock));
   n_slots=fx->n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=SLOTSIZE*n_slots;
   fd_setpos(&(fx->stream),8);
   fd_dtsread_ints(&(fx->stream),fx->n_slots,offsets);
+  while (i<n_slots) if (offsets[i]) {n_keys++; i++;} else i++;
   qsort(offsets,fx->n_slots,SLOTSIZE,sort_offsets);
-  while (i < n_slots)
+  result=u8_malloc(sizeof(fdtype)*n_keys);
+  i=0; while (i < n_slots)
     if (offsets[i]) {
       fdtype key;
       fd_setpos(stream,(SLOTSIZE*n_slots)+offsets[i]+8);
       key=fd_dtsread_dtype(stream);
-      FD_ADD_TO_CHOICE(result,key);
+      result[j++]=key;
       i++;}
     else i++;
   fd_unlock_mutex(&(fx->lock));
   u8_free(offsets);
-  return fd_simplify_choice(result);
+  *n=n_keys;
+  return result;
 }
 
-static fdtype file_index_fetchsizes(fd_index ix)
+static int compress_offsets(unsigned int *offsets,int n)
 {
-  fdtype result=FD_EMPTY_CHOICE;
+  unsigned int *read=offsets, *write=offsets, *limit=read+n;
+  while (read<limit)
+    if (*read)
+      if (read==write) {read++; write++;}
+      else *write++=*read++;
+    else read++;
+  return write-offsets;
+}
+
+static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
+{
+  struct FD_KEY_SIZE *sizes;
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
-  unsigned int n_slots, i=0, *offsets, pos_offset;
+  unsigned int n_slots, i=0, pos_offset, *offsets, n_keys;
   fd_lock_mutex(&(fx->lock));
   n_slots=fx->n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=SLOTSIZE*n_slots;
   fd_setpos(&(fx->stream),8);
   fd_dtsread_ints(&(fx->stream),fx->n_slots,offsets);
-  qsort(offsets,fx->n_slots,SLOTSIZE,sort_offsets);
-  while (i < n_slots)
-    if (offsets[i]) {
-      fdtype key, pair; int size, vpos;
-      fd_setpos(stream,(SLOTSIZE*n_slots)+offsets[i]);
-      size=fd_dtsread_4bytes(stream);
-      vpos=fd_dtsread_4bytes(stream);
-      key=fd_dtsread_dtype(stream);
-      pair=fd_init_pair(NULL,key,FD_INT2DTYPE(size));
-      FD_ADD_TO_CHOICE(result,pair);
-      i++;}
-    else i++;
-  fd_unlock_mutex(&(fx->lock));
+  n_keys=compress_offsets(offsets,fx->n_slots);
+  sizes=u8_malloc(sizeof(FD_KEY_SIZE)*n_keys);
+  qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
+  while (i < n_keys) {
+    fdtype key, pair; int size, vpos;
+    fd_setpos(stream,pos_offset+offsets[i]);
+    size=fd_dtsread_4bytes(stream);
+    vpos=fd_dtsread_4bytes(stream);
+    key=fd_dtsread_dtype(stream);
+    sizes[i].key=key; sizes[i].n_values=size;
+    i++;}
+  *n=n_keys;
   u8_free(offsets);
-  return fd_simplify_choice(result);
+  return sizes;
 }
 
 /* Fetch N */

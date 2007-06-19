@@ -12,7 +12,7 @@ Web-based fdmanager interface
 Move libu8 to WIN32
 Move fdb to WIN32
 Explore using const in dtype streams and libu8 stream
-# Add do-vector-mt
+# Add do-vector-mt (12 June 2007)
 Make cons compare be more inline
 Check memory leak in mod_fdserv
 Check MEMCHECK in fdbserver

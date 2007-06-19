@@ -1768,14 +1768,14 @@ FD_EXPORT int fd_hashtable_stats
   return n_keys;
 }
 
-static fdtype copy_hashtable(fdtype table)
+FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 {
-  struct FD_HASHTABLE *ptr=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
-  struct FD_HASHTABLE *nptr=u8_malloc(sizeof(struct FD_HASHTABLE));
   struct FD_HASHENTRY **slots, **nslots, **read, **write, **read_limit;
-  int n_slots=ptr->n_slots;
+  int n_slots;
+  if (nptr==NULL) nptr=u8_malloc(sizeof(struct FD_HASHTABLE));
+  fd_lock_mutex(&(ptr->lock));
   FD_INIT_CONS(nptr,fd_hashtable_type);
-  nptr->n_slots=n_slots;
+  nptr->n_slots=n_slots=ptr->n_slots;;
   nptr->mpool=NULL;
   nptr->modified=0;
   nptr->n_keys=ptr->n_keys;
@@ -1789,7 +1789,8 @@ static fdtype copy_hashtable(fdtype table)
     else {
       struct FD_KEYVAL *kvread, *kvwrite, *kvlimit;
       struct FD_HASHENTRY *he=*read++, *newhe; int n=he->n_keyvals;
-      *write++=newhe=u8_malloc(sizeof(struct FD_HASHENTRY)+(n-1)*sizeof(struct FD_KEYVAL));
+      *write++=newhe=
+	u8_malloc(sizeof(struct FD_HASHENTRY)+(n-1)*sizeof(struct FD_KEYVAL));
       kvread=&(he->keyval0); kvwrite=&(newhe->keyval0); 
       newhe->n_keyvals=n; kvlimit=kvread+n;
       while (kvread<kvlimit) {
@@ -1802,10 +1803,18 @@ static fdtype copy_hashtable(fdtype table)
 	  else kvwrite->value=fd_copy(val);
 	else kvwrite->value=val;
 	kvwrite++;}}
+  fd_unlock_mutex(&(ptr->lock));
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(nptr->lock));
 #endif
   return FDTYPE_CONS(nptr);
+}
+
+static fdtype copy_hashtable(fdtype table)
+{
+  struct FD_HASHTABLE *ptr=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
+  struct FD_HASHTABLE *nptr=u8_malloc(sizeof(struct FD_HASHTABLE));
+  return fd_copy_hashtable(nptr,ptr);
 }
 
 static int unparse_hashtable(u8_output out,fdtype x)

@@ -207,7 +207,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   
   index->hxcustom=fd_dtsread_4bytes(s);
 
-  n_keys=fd_dtsread_4bytes(s); /* Currently ignored */
+  index->n_keys=n_keys=fd_dtsread_4bytes(s); /* Currently ignored */
 
   slotids_pos=fd_dtsread_4bytes(s); slotids_size=fd_dtsread_4bytes(s);
   baseoids_pos=fd_dtsread_4bytes(s); baseoids_size=fd_dtsread_4bytes(s);
@@ -1072,14 +1072,16 @@ static int sort_blockrefs_by_off(const void *v1,const void *v2)
   else return 0;
 }
 
-static fdtype hash_index_fetchkeys(fd_index ix)
+static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
 {
-  fdtype results=FD_EMPTY_CHOICE;
+  fdtype *results=NULL;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_dtype_stream s=&(hx->stream);
-  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0;
+  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0;
   FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*n_buckets);
   unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
+  fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
+  results=u8_malloc(sizeof(fdtype)*total_keys);
   if (hx->buckets==NULL) {
     fd_setpos(s,256);
     while (i<n_buckets) {
@@ -1119,7 +1121,7 @@ static fdtype hash_index_fetchkeys(fd_index ix)
       size=fd_read_zint(&keyblock);
       key=read_zkey(hx,&keyblock);
       n_vals=fd_read_zint(&keyblock);
-      FD_ADD_TO_CHOICE(results,key);
+      results[j++]=key;
       if (n_vals==0) {}
       else if (n_vals==1) {
 	int code=fd_read_zint(&keyblock);
@@ -1134,17 +1136,18 @@ static fdtype hash_index_fetchkeys(fd_index ix)
     i++;}
   if (keybuf) u8_free(keybuf);
   if (buckets) u8_free(buckets);
-  return fd_simplify_choice(results);
+  *n=total_keys;
+  return results;
 }
 
-static fdtype hash_index_fetchsizes(fd_index ix)
+static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 {
-  fdtype results=FD_EMPTY_CHOICE;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
-  fd_dtype_stream s=&(hx->stream);
-  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0;
+  fd_dtype_stream s=(fd_lock_mutex(&(hx->lock)),&(hx->stream));
+  int i=0, j=0, n_buckets=(hx->n_buckets), n_to_fetch=0, keybuf_size=-1;
   FD_BLOCK_REF *buckets=u8_malloc(sizeof(FD_BLOCK_REF)*n_buckets);
-  unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
+  unsigned char _keybuf[512], *keybuf=NULL; 
+  struct FD_KEY_SIZE *sizes=u8_malloc(sizeof(FD_KEY_SIZE)*(hx->n_keys));
   if (hx->buckets==NULL) {
     fd_setpos(s,256);
     while (i<n_buckets) {
@@ -1184,8 +1187,7 @@ static fdtype hash_index_fetchsizes(fd_index ix)
       size=fd_read_zint(&keyblock);
       key=read_zkey(hx,&keyblock);
       n_vals=fd_read_zint(&keyblock);
-      key_and_size=fd_init_pair(NULL,key,FD_INT2DTYPE(n_vals));
-      FD_ADD_TO_CHOICE(results,key_and_size);
+      sizes[j].key=key; sizes[j].n_values=n_vals; j++;
       if (n_vals==0) {}
       else if (n_vals==1) {
 	int code=fd_read_zint(&keyblock);
@@ -1200,7 +1202,8 @@ static fdtype hash_index_fetchsizes(fd_index ix)
     i++;}
   if (keybuf) u8_free(keybuf);
   if (buckets) u8_free(buckets);
-  return fd_simplify_choice(results);
+  fd_unlock_mutex(&(hx->lock));
+  return sizes;
 }
 
 

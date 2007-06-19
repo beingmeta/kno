@@ -395,6 +395,8 @@ FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht);
 FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,fd_ptr_type);
 
+FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
+
 FD_EXPORT int fd_hashtable_op
    (fd_hashtable ht,fd_tableop op,fdtype key,fdtype value);
 FD_EXPORT int fd_hashtable_iter

@@ -241,7 +241,7 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
     return NULL;}
 }
 
-static fdtype netindex_fetchkeys(fd_index ix)
+static fdtype *netindex_fetchkeys(fd_index ix,int *n)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   fdtype result;
@@ -249,8 +249,22 @@ static fdtype netindex_fetchkeys(fd_index ix)
   if (FD_VOIDP(nix->xname))
     result=dtcall(nix,1,iserver_fetchkeys);
   else result=dtcall(nix,2,ixserver_fetchkeys,nix->xname);
+  if (FD_ABORTP(result)) {
+    fd_unlock_mutex(&(nix->lock)); *n=-1;
+    fd_interr(result);
+    return NULL;}
   fd_unlock_mutex(&(nix->lock));
-  return result;
+  if (FD_CHOICEP(result)) {
+    int size=FD_CHOICE_SIZE(result);
+    fdtype *dtypes=u8_malloc(sizeof(fdtype)*size);
+    memcpy(dtypes,FD_CHOICE_DATA(result),sizeof(fdtype)*size);
+    *n=size;
+    u8_free((fd_cons)result);
+    return dtypes;}
+  else {
+    fdtype *dtypes=u8_malloc(sizeof(fdtype)); *n=1;
+    dtypes[0]=result;
+    return dtypes;}
 }
 
 static int netindex_commit(fd_index ix)

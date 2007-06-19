@@ -158,7 +158,7 @@ typedef struct FD_HASH_INDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int hxflags, hxcustom;
+  unsigned int hxflags, hxcustom, n_keys;
   
   /* This is used to store compressed keys and values. */
   int n_slotids, new_slotids; fdtype *slotids;

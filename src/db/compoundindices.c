@@ -82,7 +82,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   return n_fetches;
 }
 
-static fdtype compound_fetchkeys(fd_index ix)
+static fdtype *compound_fetchkeys(fd_index ix,int *n)
 {
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
   fdtype combined=FD_EMPTY_CHOICE;
@@ -95,10 +95,28 @@ static fdtype compound_fetchkeys(fd_index ix)
     if (FD_ABORTP(keys)) {
       fd_decref(combined);
       fd_unlock_mutex(&(cix->lock));
-      return keys;}
+      fd_interr(keys);
+      return NULL;}
     else {FD_ADD_TO_CHOICE(combined,keys);}}
   fd_unlock_mutex(&(cix->lock));
-  return combined;
+  {
+    fdtype simple=fd_simplify_choice(combined);
+    int j=0, n_elts=FD_CHOICE_SIZE(simple);
+    fdtype *results=((n>0) ? (u8_malloc(sizeof(fdtype)*n_elts)) : (NULL));
+    if (n_elts==0) {
+      *n=0; return results;}
+    else if (n_elts==1) {
+      results[0]=simple; *n=1;
+      return results;}
+    else if (FD_CONS_REFCOUNT((fd_cons)simple)==1) {
+      FD_DO_CHOICES(key,simple) {results[j]=key;}
+      u8_free((fd_cons)simple);
+      *n=n_elts; return results;}
+    else {
+      FD_DO_CHOICES(key,simple) {results[j]=fd_incref(key);}
+      fd_decref(simple);
+      *n=n_elts; return results;}
+  }
 }
 
 static u8_string get_compound_id(int n,fd_index *indices)
