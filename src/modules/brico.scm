@@ -22,7 +22,7 @@
    index-string index-name index-frags index-gloss index-genls index-frame*
    indexer index-concept
    ;; Specialized versions
-   index-brico index-words index-fragments index-relations index-lattice
+   index-core index-brico index-words index-fragments index-relations index-lattice
    basic-concept-frequency concept-frequency use-corpus-frequency
    brico-prefetch! brico-prefetch})
 
@@ -343,10 +343,12 @@
   (index-relations index concept)
   (index-lattice index concept))
 
-(define (index-brico index frame)
+(define wordform-slotids '{word of language rank type})
+
+(define (index-core index frame)
   (doindex index frame '{type sensecat fips-code})
   (when (ambiguous? (get frame 'sensecat))
-      (doindex index frame 'sensecat 'vague))
+    (doindex index frame 'sensecat 'vague))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
   (doindex index frame '%id (get frame '%mnemonic))
   (doindex index frame 'has (getslots frame))
@@ -365,6 +367,33 @@
   (when (test frame '%indices)
     (doindex index frame 'has
 	     (get index-map (car (get frame '%indices))))))
+
+(define (index-brico index frame)
+  (cond ((empty? (getslots frame))
+	 (index-frame index frame 'status 'deleted))
+	((test frame 'type 'wordform)
+	 (index-frame index frame wordform-slotids))
+	((exists? (get frame 'sensecat))
+	 (index-core index frame))
+	((test frame 'type 'language)
+	 (index-frame index frame
+	   '{langid language iso639/1 iso639/B iso639/T})
+	 (index-frame index frame '%id (get frame 'language))
+	 (index-frame index frame
+	   '%id
+	   (intern (upcase (get frame '{english-names noms-français}))))
+	 (index-core index frame)
+	 (index-frame index frame
+	   '{get-methods test-methods add-effects drop-effects
+			 key through derivation inverse closure-of slots
+			 primary-slot index %id}))
+	((test frame '{get-methods test-methods add-effects drop-effects})
+	 (message "INdexing slotid " frame)
+	 (index-core index frame)
+	 (index-frame index frame
+	   '{get-methods test-methods add-effects drop-effects
+			 key through derivation inverse closure-of slots
+			 primary-slot index %id}))))
 
 (define (index-words index concept)
   (index-string index concept english (get concept 'words))
