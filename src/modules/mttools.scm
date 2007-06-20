@@ -120,10 +120,14 @@
 			   " total)"))))))
 	(blockpost
 	 (let ((total (+ blockprep blocktime blockpost)))
-	   (status "Processed " thisblock " items in " (short-interval-string total)
-		   "; prep took " (short-interval-string blockprep) " (" (get% blockprep total) "%)"
-		   ", exec took " (short-interval-string blocktime) " (" (get% blocktime total) "%)"
-		   ", post took " (short-interval-string blockpost) " (" (get% blockpost total) "%)")))
+	   (status "Processed " thisblock " items in "
+		   (short-interval-string total)
+		   "= " (short-interval-string blockprep)
+		   " (" (get% blockprep total) "%) "
+		   "+ " (short-interval-string blocktime)
+		   " (" (get% blocktime total) "%) "
+		   "+ " (short-interval-string blockpost)
+		   " (" (get% blockpost total) "%)")))
 	(blocktime
 	 (status (config 'appid) ": "
 		 "Finished core processing of " thisblock " items in " (short-interval-string blocktime)
@@ -184,10 +188,14 @@
 	 (status "Finished post processing for " thisblock " items in "
 		 (short-interval-string blockpost))
 	 (let ((total (+ blockprep blocktime blockpost)))
-	   (status "Processed " thisblock " items in " (short-interval-string total)
-		   "; prep took " (short-interval-string blockprep) " (" (get% blockprep total) "%)"
-		   ", exec took " (short-interval-string blocktime) " (" (get% blocktime total) "%)"
-		   ", post took " (short-interval-string blockpost) " (" (get% blockpost total) "%)")))
+	   (status "Processed " thisblock " items in "
+		   (short-interval-string total)
+		   "= " (short-interval-string blockprep)
+		   " (" (get% blockprep total) "%) "
+		   "+ " (short-interval-string blocktime)
+		   " (" (get% blocktime total) "%) "
+		   "+ " (short-interval-string blockpost)
+		   " (" (get% blockpost total) "%)")))
 	(blocktime
 	 (status "Finished execution for " thisblock " items in "
 		 (short-interval-string blocktime)))
