@@ -1,7 +1,7 @@
 Stuff to do with beingmeta's FramerD implementation
 ---------------------------------------------------
 Make pick/reject use the fact that its input is already ordered
-?? Made index_keys handlers return an unsorted vector rather than a choice
+# Made index_keys handlers return an unsorted vector rather than a choice (19 June 2007)
 Move repack-file-index into fdb
 Implement new generic pool format that includes sizes in offset table, etc
 Speed up hashindex commit and scaling
