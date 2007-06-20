@@ -35,7 +35,7 @@
 	     (length baseoids) " baseoids")
     (make-hash-index file (- (* 2 (length keys)))
 		     (rsorted (getkeys slotfreq) slotfreq)
-		     baseoids)
+		     baseoids #f (config 'DTYPEV2 #f))
     (message "Populating hash index " file " with "
 	     (length keys) " items from " (write from))
     (populate-hash-index (open-index file) source 250000 keys)))
