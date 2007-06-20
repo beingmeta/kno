@@ -149,11 +149,11 @@
 	      (get concept implies) implies)))
 
 (define (make%id f (lang default-language))
-  `(,(pick-one (try (difference (get f 'sense-category) 'NOUN.TOPS)
-		    (get f 'sense-category)
+  `(,(pick-one (try (difference (get f 'sensecat) 'NOUN.TOPS)
+		    (get f 'sensecat)
 		    'VAGUE))
     ,(get-norm f lang)
-    ,(cond ((and (test f 'sense-category 'noun.location)
+    ,(cond ((and (test f 'sensecat 'noun.location)
 		 (%test f partof))
 	    'PARTOF)
 	   ((%test f 'hypernym) 'GENLS)
@@ -163,7 +163,7 @@
 	   (else 'TOP))
     ,@(map get-norm
 	   (choice->list
-	    (try (tryif (test f 'sense-category 'noun.location)
+	    (try (tryif (test f 'sensecat 'noun.location)
 			(%get f partof))
 		 (%get f 'hypernym)
 		 (%get f genls)
@@ -344,9 +344,9 @@
   (index-lattice index concept))
 
 (define (index-brico index frame)
-  (doindex index frame '{type sense-category fips-code})
-  (when (ambiguous? (get frame 'sense-category))
-      (doindex index frame 'sense-category 'vague))
+  (doindex index frame '{type sensecat fips-code})
+  (when (ambiguous? (get frame 'sensecat))
+      (doindex index frame 'sensecat 'vague))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
   (doindex index frame '%id (get frame '%mnemonic))
   (doindex index frame 'has (getslots frame))
