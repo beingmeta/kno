@@ -1433,14 +1433,13 @@ FD_EXPORT int fd_populate_hash_index
 	overall_buckets=overall_buckets+cycle_buckets;
 	if (cycle_max>overall_max) overall_max=cycle_max;
 	cycle_keys=cycle_buckets=cycle_max=0;
-	
-	
 	u8_message("Processed %d of %d keys (%.2f%%) from %s in %.2f secs, ~%.2f secs to go (~%.2f secs total)",
 		   i,n_keys,percent,ix->cid,elapsed,togo,total);}
-      u8_message("Overall, distributed %d keys over %d buckets, averaging %.2f keys per bucket (%d keys max)",
-		 overall_keys,overall_buckets,
-		 ((1.0*overall_keys)/(1.0*overall_buckets)),
-		 overall_max);
+      if (i>0)
+	u8_message("Overall, distributed %d keys over %d buckets, averaging %.2f keys per bucket (%d keys max)",
+		   overall_keys,overall_buckets,
+		   ((1.0*overall_keys)/(1.0*overall_buckets)),
+		   overall_max);
       fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);
       u8_message("Prefetched %d keys from %s in %.3f seconds",
 		 fetch_max-i,ix->cid,u8_elapsed_time()-fetch_start);}
