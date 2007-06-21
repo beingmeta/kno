@@ -278,7 +278,7 @@
 (define index-frags
   (ambda (index frame slot values window)
     (let* ((compounds (pick values compound?))
-	   (stdcompounds (stdstring compounds)))
+	   (stdcompounds (basestring compounds)))
       (doindex index frame slot
 	       (vector->frags
 		(words->vector
@@ -388,21 +388,20 @@
 			 key through derivation inverse closure-of slots
 			 primary-slot index %id}))
 	((test frame '{get-methods test-methods add-effects drop-effects})
-	 (message "INdexing slotid " frame)
 	 (index-core index frame)
 	 (index-frame index frame
 	   '{get-methods test-methods add-effects drop-effects
 			 key through derivation inverse closure-of slots
 			 primary-slot index %id}))))
 
-(define (index-words index concept)
-  (index-string index concept english (get concept 'words))
+(define (index-words index concept (window #f))
+  (index-string index concept english (get concept 'words) window)
   (index-name index concept 'names (get concept 'names))
   (index-name index concept 'names
 	      (pick  (cdr (get concept '%words)) capitalized?))
   (do-choices (xlation (get concept '%words))
     (let ((lang (get language-map (car xlation))))
-      (index-string index concept lang (cdr xlation))))
+      (index-string index concept lang (cdr xlation) window)))
   (do-choices (xlation (get concept '%norm))
     (let ((lang (get norm-map (car xlation))))
       (index-string index concept lang (cdr xlation))))
