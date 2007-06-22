@@ -548,9 +548,20 @@ static int possessive_namep(fd_parse_context pc,u8_string string)
 static int add_input(fd_parse_context pc,u8_string s,u8_byte *bufp);
 static void add_punct(fd_parse_context pc,u8_string s,u8_byte *bufp);
 
+/* This could be more general and should probably use a table of some kind. */
+static int wordbreak_markup(u8_string s)
+{
+  return ((strncmp(s,"br",2)==0) ||
+	  (strncmp(s,"hr",2)==0) ||
+	  (strncmp(s,"p",1)==0) ||
+	  (strncmp(s,"/p",2)==0) ||
+	  (strncmp(s,"/div",4)==0) ||
+	  (strncmp(s,"div",3)==0));
+}
+
 static u8_string process_word(fd_parse_context pc,u8_string input)
 {
-  struct U8_OUTPUT word_stream; 
+  struct U8_OUTPUT word_stream;  int xml=(pc->flags&FD_TAGGER_SKIP_MARKUP);
   u8_string tmp=input, start=input;
   int ch=u8_sgetc(&input), abbrev=0;
   U8_INIT_OUTPUT(&word_stream,16);
@@ -562,9 +573,15 @@ static u8_string process_word(fd_parse_context pc,u8_string input)
 	add_input(pc,word_stream.u8_outbuf,start);
       else free(word_stream.u8_outbuf);
       return tmp;}
-    else if (ch=='<') {
+    else if ((ch=='<') && (xml)) {
+      int wordbreak=wordbreak_markup(input);
       while ((ch>=0) && (ch != '>')) ch=u8_sgetc(&input);
-      ch=u8_sgetc(&input);}
+      if (wordbreak) { /* This will end the word */
+	if ((word_stream.u8_outptr-word_stream.u8_outbuf) < 40)
+	  add_input(pc,word_stream.u8_outbuf,start);
+	else free(word_stream.u8_outbuf);
+	return tmp;}
+      else ch=u8_sgetc(&input);}
     else { /* Ambiguous word terminator (punctuation) */
       int next_char=u8_sgetc(&input);
       if (u8_isalnum(next_char)) {
