@@ -27,3 +27,4 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 Try adding some immediate opcodes to the evaluator
 Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
 Separate out nlp from texttools
+Make when and unless not treat {} as true

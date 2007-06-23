@@ -126,6 +126,7 @@ static fdtype when_handler(fdtype expr,fd_lispenv env)
   else test_val=fd_eval(test_expr,env);
   if (FD_ABORTP(test_val)) return test_val;
   else if (FD_FALSEP(test_val)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(test_val)) return FD_VOID;
   else {
     fd_decref(test_val);
     return fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);}
@@ -140,6 +141,7 @@ static fdtype unless_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(test_val)) return test_val;
   else if (FD_FALSEP(test_val))
     return fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
+  else if (FD_EMPTY_CHOICEP(test_val)) return FD_VOID;
   else {
     fd_decref(test_val);
     return FD_VOID;}
