@@ -2,7 +2,7 @@
 
 (use-module 'reflection)
 
-(module-export! '{tighten! tighten-module!})
+(module-export! '{tighten! tighten-procedure! tighten-module!})
 
 ;; This module optimizes an expression or procedure by replacing
 ;; certain variable references with their values directly, which
@@ -29,6 +29,26 @@
 	      (if (eq? (car bindlist) sym) sym
 		  (get-lexref sym (cdr bindlist) base))))))
 
+;;; Opcode mapping
+
+;;; When opcodes are introduced, the idea is that a given primitive 
+;;;  may map into an opcode to be zippily executed in the evaluator.
+;;; The opcode-map is a table for identifying the opcode for a given procedure.
+;;;  It's keys are either primitive (presumably) procedures or pairs
+;;;   of procedures and integers (number of subexpressions).  This allows
+;;;   opcode substitution to be limited to simpler forms and allows opcode
+;;;   execution to make assumptions about the number of arguments.  Note that
+;;;   this means that this file needs to be synchronized with src/scheme/eval.c
+
+(define opcode-map (make-hashtable))
+
+(define (map-opcode value length)
+  (try (get opcode-map (cons value length))
+       (get opcode-map value)
+       value))
+
+;;; The core loop
+
 (define dotighten
   (ambda (expr env bound dolex)
     (cond ((ambiguous? expr)
@@ -51,15 +71,18 @@
 	  ((or (and (symbol? (car expr)) (not (symbol-bound? (car expr) env))))
 	   expr)
 	  (else (let* ((head (car expr))
+		       (n-exprs (length (cdr expr)))
 		       (value (if (symbol? head)
 				  (or (get-lexref head bound 0) (get env head))
 				  head))
 		       (from (and (symbol? head) (wherefrom head env))))
 		  (cond ((applicable? value)
-			 (cons (cond ((not from) value)
-				     ((test from '%notighten head) head)
-				     ((test from '%volatile head) `(,%get ,from ',head))
-				     (else value))
+			 (cons (map-opcode
+				(cond ((not from) value)
+				      ((test from '%notighten head) head)
+				      ((test from '%volatile head) `(,%get ,from ',head))
+				      (else value))
+				n-exprs)
 			       (map (lambda (x)
 				      (if (empty? x) x
 					  (dotighten (qc x) env bound dolex)))
@@ -72,7 +95,7 @@
 			 (dotighten (macroexpand value expr) env bound dolex))
 			(else expr)))))))
 
-(define (tighten! proc (dolex #t))
+(define (tighten-procedure! proc (dolex #t))
   (let* ((env (procedure-env proc))
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
@@ -89,6 +112,21 @@
 	(when (compound-procedure? value)
 	  (set! count (1+ count)) (tighten! value))))
     count))
+
+(define (tighten*! . args)
+  (dolist (arg args)
+    (cond ((compound-procedure? arg) (tighten-procedure! arg))
+	  ((module? arg) (tighten-module! arg))
+	  (else (error "Invalid tighten argument" arg)))))
+
+(define tighten!
+  (macro expr
+    (cons tighten*!
+	  (map (lambda (x)
+		 (if (and (singleton? x) (pair? x) (eq? (car x) 'quote))
+		     `(get-module ,x)
+		     x))
+	       (cdr expr)))))
 
 
 ;;;; Special form handlers
