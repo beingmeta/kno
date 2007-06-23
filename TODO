@@ -32,3 +32,4 @@ Separate out nlp from texttools
 ? Rename tighten to optimize.
 # Make tighten! take module names (23 June 2007)
 # Add some sample functions (23 June 2007)
+? Add expression rails to speed up the evaluator
