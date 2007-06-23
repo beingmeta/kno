@@ -64,7 +64,6 @@
       (add! opcode-map prim (make-opcode code))))
 
 (when (bound? make-opcode)
-  (message "Using opcode optimization")
   (def-opcode 'QUOTE 0)
   (def-opcode AMBIGUOUS? 1 1)
   (def-opcode SINGLETON? 2 1)
