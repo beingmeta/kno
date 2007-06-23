@@ -1583,6 +1583,14 @@ static fdtype quasiquote_handler(fdtype obj,fd_lispenv env)
   else return fd_err(fd_SyntaxError,"QUASIQUOTE",NULL,obj);
 }
 
+static fdtype quote_handler(fdtype obj,fd_lispenv env)
+{
+  if ((FD_PAIRP(obj)) && (FD_PAIRP(FD_CDR(obj))) &&
+      ((FD_CDR(FD_CDR(obj)))==FD_EMPTY_LIST))
+    return fd_incref(FD_CAR(FD_CDR(obj)));
+  else return fd_err(fd_SyntaxError,"QUOTE",NULL,obj);
+}
+
 /* Call/cc */
 
 static fdtype call_continuation(struct FD_FUNCTION *f,fdtype arg)
@@ -1810,6 +1818,7 @@ static void init_localfns()
 {
   fd_defspecial(fd_scheme_module,"EVAL",eval_handler);
   fd_defspecial(fd_scheme_module,"BOUND?",boundp_handler);
+  fd_defspecial(fd_scheme_module,"QUOTE",quote_handler);
   fd_defspecial(fd_scheme_module,"%ENV",env_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));

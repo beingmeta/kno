@@ -52,7 +52,7 @@
 (define opcode-map (make-hashtable))
 
 (define (map-opcode value length)
-  (if use-opcodes
+  (if useopcodes
       (try (get opcode-map (cons value length))
 	   (get opcode-map value)
 	   value)
@@ -64,7 +64,7 @@
       (add! opcode-map prim (make-opcode code))))
 
 (when (bound? make-opcode)
-  (def-opcode 'QUOTE 0)
+  (def-opcode QUOTE 0)
   (def-opcode AMBIGUOUS? 1 1)
   (def-opcode SINGLETON? 2 1)
   (def-opcode FAIL? 3 1)
