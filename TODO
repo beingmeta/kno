@@ -16,7 +16,7 @@ Explore using const in dtype streams and libu8 stream
 Make cons compare be more inline
 Check memory leak in mod_fdserv
 Check MEMCHECK in fdbserver
-fdbserver raw timiings
+fdbserver raw timings
 MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
 # Make XMLPARSE take flags as ND-ARG (14 June 2007)
@@ -24,7 +24,8 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 # Fix @@ parsing bug
 # Add has_slotids to all indices to reduce cache load (16Jun2007)
 # Add hashindices test to tests/scheme/dbtest (16Jun2007)
-Try adding some immediate opcodes to the evaluator
+Finish adding opcode handling to the evaluator.
+Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
 Separate out nlp from texttools
-Make when and unless not treat {} as true
+# Make when and unless not treat {} as true (23 June 2007)

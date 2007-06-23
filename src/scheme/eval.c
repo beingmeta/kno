@@ -438,13 +438,13 @@ FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
 
 static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
-  fdtype result=FD_VOID;
+  fdtype result=FD_VOID, body=FD_CDR(expr);
   struct FD_FUNCTION *fcn=(struct FD_FUNCTION *)fn;
   fdtype argv[FD_STACK_ARGS], *args;
   int arg_count=0, n_args=0, args_need_gc=0, nd_args=0, prune=0;
   int max_arity=fcn->arity, min_arity=fcn->min_arity, args_length=max_arity;
   /* First, count the arguments */
-  FD_DOLIST(elt,FD_CDR(expr)) n_args++;
+  FD_DOLIST(elt,body) n_args++;
   /* Then, catch the obvious too many args case.  Note that if
      max_arity is negative, the procedure takes any number of
      arguments.  */
@@ -459,7 +459,7 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
   /* Otherwise, just use the stack vector */
   else args=argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
-  {FD_DOLIST(elt,FD_CDR(expr)) {
+  {FD_DOLIST(elt,body) {
       fdtype argval;
       if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))) {
 	args_length--; continue;}

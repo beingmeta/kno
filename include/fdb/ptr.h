@@ -118,7 +118,9 @@ typedef enum FD_PTR_TYPE {
   fd_character_type=FD_IMMEDIATE_TYPECODE(1),
   fd_symbol_type=FD_IMMEDIATE_TYPECODE(2),
   fd_pptr_type=FD_IMMEDIATE_TYPECODE(3),
-  fd_lexref_type=FD_IMMEDIATE_TYPECODE(4), /* Reserved as a constant for an evaluator */
+  /* Reserved as constants for an evaluator */
+  fd_lexref_type=FD_IMMEDIATE_TYPECODE(4),
+  fd_opcode_type=FD_IMMEDIATE_TYPECODE(5),
 
   fd_string_type=FD_CONS_TYPECODE(0),
   fd_packet_type=FD_CONS_TYPECODE(1),
@@ -148,7 +150,7 @@ typedef enum FD_PTR_TYPE {
   } fd_ptr_type;
 
 #define FD_BUILTIN_CONS_TYPES 24
-#define FD_BUILTIN_IMMEDIATE_TYPES 5
+#define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_max_cons_type;
 FD_EXPORT unsigned int fd_max_immediate_type;
 
@@ -485,6 +487,21 @@ static fdtype fd_pptr_ref(fdtype ref)
   (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
     (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
     (FD_PTR_TYPE(fd_pptr_ref(x))) : (FD_PTR_TYPE(x)))
+
+/* Opcodes */
+
+/* These are used by the evaluator.  We define the immediate type here,
+   rather than dyanmically, so that they can be compile time constants
+   and dispatch very quickly. */
+
+#define FD_OPCODEP(x) \
+  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x)==fd_opcode_type))
+
+#define FD_OPCODE(num) (FDTYPE_IMMEDIATE(fd_opcode_type,num))
+#define FD_OPCODE_NUM(num) (FD_GET_IMMEDIATE(x,fd_opcode_type))
+#define FD_NEXT_OPCODE(op) \
+  (FDTYPE_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
 
 /* Numeric macros */
 

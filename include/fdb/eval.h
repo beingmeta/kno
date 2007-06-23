@@ -283,5 +283,32 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #endif /* FD_THREADS_ENABLED */
 
 
+/* Opcodes */
+
+#define FD_IF_OPCODE         FD_OPCODE(1)
+#define FD_BEGIN_OPCODE      FD_OPCODE(2)
+#define FD_WHEN_OPCODE       FD_OPCODE(3)
+#define FD_UNLESS_OPCODE     FD_OPCODE(4)
+#define FD_EQ_OPCODE         FD_OPCODE(5)
+#define FD_EQUAL_OPCODE      FD_OPCODE(6)
+#define FD_EQV_OPCODE        FD_OPCODE(7)
+#define FD_GET_OPCODE        FD_OPCODE(8)
+#define FD_TEST_OPCODE       FD_OPCODE(9)
+#define FD_CHOICE_OPCODE     FD_OPCODE(10)
+#define FD_AMBIGP_OPCODE     FD_OPCODE(11)
+#define FD_SINGLETONP_OPCODE FD_OPCODE(12)
+#define FD_FAILP_OPCODE      FD_OPCODE(13)
+#define FD_EXISTSP_OPCODE    FD_OPCODE(14)
+#define FD_PLUS1_OPCODE      FD_OPCODE(15)
+#define FD_MINUS1_OPCODE     FD_OPCODE(16)
+#define FD_LESSTHAN_OPCODE   FD_OPCODE(17)
+#define FD_NULLP_OPCODE      FD_OPCODE(18)
+#define FD_NUMBERP_OPCODE    FD_OPCODE(19)
+#define FD_VECTORP_OPCODE    FD_OPCODE(20)
+#define FD_PAIRP_OPCODE      FD_OPCODE(21)
+#define FD_CAR_OPCODE        FD_OPCODE(22)
+#define FD_CDR_OPCODE        FD_OPCODE(23)
+#define FD_ELT_OPCODE        FD_OPCODE(24)
+
 #endif /* FDB_EVAL_H */
 
