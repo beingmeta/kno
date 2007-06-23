@@ -2,6 +2,15 @@
 
 (use-module 'reflection)
 
+(define useopcodes #t)
+
+(define opcodeopt-config
+  (slambda (var (val 'unbound))
+    (cond ((eq? val 'unbound) useopcodes)
+	  (val (set! useopcodes #t))
+	  (val (set! useopcodes #f)))))
+(config-def! 'opcodeopt opcodeopt-config)
+
 (module-export! '{tighten! tighten-procedure! tighten-module!})
 
 ;; This module optimizes an expression or procedure by replacing
@@ -43,9 +52,11 @@
 (define opcode-map (make-hashtable))
 
 (define (map-opcode value length)
-  (try (get opcode-map (cons value length))
-       (get opcode-map value)
-       value))
+  (if use-opcodes
+      (try (get opcode-map (cons value length))
+	   (get opcode-map value)
+	   value)
+      value))
 
 (define (def-opcode prim code (n-args #f))
   (if n-args
@@ -157,7 +168,7 @@
 (define (tighten*! . args)
   (dolist (arg args)
     (cond ((compound-procedure? arg) (tighten-procedure! arg))
-	  ((module? arg) (tighten-module! arg))
+	  ((table? arg) (tighten-module! arg))
 	  (else (error "Invalid tighten argument" arg)))))
 
 (define tighten!
