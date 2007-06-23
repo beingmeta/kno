@@ -545,7 +545,6 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
     case FD_WHEN_OPCODE: {
       if (!(FD_FALSEP(arg1))) {
 	fdtype test_body=remainder;
-	fd_decref(arg1);
 	while (FD_PAIRP(test_body)) {
 	  fdtype tmp=fd_eval(FD_CAR(test_body),env);
 	  fd_decref(tmp);
@@ -555,7 +554,6 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
     case FD_UNLESS_OPCODE: {
       if (FD_FALSEP(arg1)) {
 	fdtype test_body=remainder;
-	fd_decref(arg1);
 	while (FD_PAIRP(test_body)) {
 	  fdtype tmp=fd_eval(FD_CAR(test_body),env);
 	  fd_decref(tmp);
