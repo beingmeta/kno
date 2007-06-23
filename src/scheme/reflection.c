@@ -180,6 +180,13 @@ static fdtype module_bindings(fdtype arg)
   else return fd_type_error(_("module"),"module_bindings",arg);
 }
 
+static fdtype modulep(fdtype arg)
+{
+  if ((FD_PTR_TYPEP(arg,fd_environment_type)) || (FD_TABLEP(arg)))
+    return FD_TRUE;
+  else return FD_TRUE;
+}
+
 static fdtype module_exports(fdtype arg)
 {
   if (FD_PTR_TYPEP(arg,fd_environment_type)) {
@@ -242,6 +249,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",special_formp,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
   fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));
+  fd_idefn(module,fd_make_cprim1("MODULE?",modulep,1));
   fd_idefn(module,fd_make_cprim1("FCN-NAME",fcn_name,1));
   fd_idefn(module,fd_make_cprim1("FCN-FILENAME",fcn_filename,1));
   fd_idefn(module,fd_make_cprim1("FCN-ARITY",fcn_arity,1));
