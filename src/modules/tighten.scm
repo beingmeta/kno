@@ -47,6 +47,47 @@
        (get opcode-map value)
        value))
 
+(define (def-opcode prim code (n-args #f))
+  (if n-args
+      (add! opcode-map (cons prim n-args) (make-opcode code))
+      (add! opcode-map prim (make-opcode code))))
+
+(when (bound? make-opcode)
+  (message "Using opcode optimization")
+  (def-opcode 'QUOTE 0)
+  (def-opcode AMBIGUOUS? 1 1)
+  (def-opcode SINGLETON? 2 1)
+  (def-opcode FAIL? 3 1)
+  (def-opcode EMPTY? 3 1)
+  (def-opcode EXISTS? 4 1)
+  (def-opcode 1+ 5 1)
+  (def-opcode 1- 6 1)
+  (def-opcode -1+ 6 1)
+  (def-opcode ZERO? 7 1)
+  (def-opcode NULL? 8 1)
+  (def-opcode NUMBER? 9 1)
+  (def-opcode VECTOR? 10 1)
+  (def-opcode PAIR? 11 1)
+  (def-opcode CAR 12 1)
+  (def-opcode CDR 13 1)
+  (def-opcode SINGLETON 14 1)
+  (def-opcode EQ? 15 2)
+  (def-opcode EQV? 16 2)
+  (def-opcode EQUAL? 17 2)
+  (def-opcode GET 18 2)
+  (def-opcode TEST 19)
+  (def-opcode ELT 20 2)
+  (def-opcode > 21 2)
+  (def-opcode >= 22 2)
+  (def-opcode < 23 2)
+  (def-opcode <= 24 2)
+  (def-opcode = 25 2)
+  (def-opcode IF 26 2)
+  (def-opcode IF 26 3)
+  (def-opcode BEGIN 27)
+  (def-opcode WHEN 28)
+  (def-opcode UNLESS 29))
+
 ;;; The core loop
 
 (define dotighten
@@ -132,8 +173,9 @@
 ;;;; Special form handlers
 
 (define (tighten-block handler expr env bound dolex)
-  (cons handler (map (lambda (x) (dotighten x env bound dolex))
-		     (cdr expr))))
+  (cons (map-opcode handler (length (cdr expr)))
+	(map (lambda (x) (dotighten x env bound dolex))
+	     (cdr expr))))
 
 (define (tighten-let handler expr env bound dolex)
   (let ((bindexprs (cadr expr)) (body (cddr expr)))

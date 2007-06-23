@@ -167,6 +167,11 @@ static fdtype opcodep(fdtype x)
   if (FD_OPCODEP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype make_opcode(fdtype x)
+{
+  return FD_OPCODE(FD_FIX2INT(x));
+}
+
 static fdtype booleanp(fdtype x)
 {
   if ((FD_TRUEP(x)) || (FD_FALSEP(x)))
@@ -564,11 +569,16 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("LIST?",listp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("VECTOR?",vectorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
+
   fd_defalias(fd_scheme_module,"CHAR?","CHARACTER?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("BOOLEAN?",booleanp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NUMBER?",numberp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
 
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
+			   fd_fixnum_type,FD_VOID));
+  
   fd_idefn(fd_scheme_module,fd_make_cprimn("+",plus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("-",minus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("*",times_lexpr,-1));
