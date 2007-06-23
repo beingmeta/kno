@@ -1,6 +1,6 @@
 Stuff to do with beingmeta's FramerD implementation
 ---------------------------------------------------
-Make pick/reject use the fact that its input is already ordered
+# Make pick/reject use the fact that its input is already ordered (23 June 2007)
 # Made index_keys handlers return an unsorted vector rather than a choice (19 June 2007)
 Move repack-file-index into fdb
 Implement new generic pool format that includes sizes in offset table, etc
@@ -24,3 +24,6 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 # Fix @@ parsing bug
 # Add has_slotids to all indices to reduce cache load (16Jun2007)
 # Add hashindices test to tests/scheme/dbtest (16Jun2007)
+Try adding some immediate opcodes to the evaluator
+Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
+Separate out nlp from texttools

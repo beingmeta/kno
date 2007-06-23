@@ -933,9 +933,16 @@ static fdtype suggest_hash_size(fdtype size)
 
 /* Other operations */
 
-static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
+FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
 {
-  if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
+  if (FD_CHOICEP(pred)) {
+    FD_DO_CHOICES(p,pred) {
+      int retval;
+      if (retval=test_relation(f,p,val,noinfer)) {
+	FD_STOP_DO_CHOICES;
+	return retval;}}
+    return 0;}
+  else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
     if (noinfer)
       return fd_test(f,pred,val);
     else return fd_frame_test(f,pred,val);
@@ -945,6 +952,16 @@ static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
     return fd_test(pred,f,val);
   else if (FD_APPLICABLEP(pred)) {
     fdtype rail[2], result;
+    /* Handle the case where the 'slotid' is a unary function which can
+       be used to extract an argument. */
+    if ((FD_PRIM_TYPEP(pred,fd_sproc_type)) ||
+	(FD_PRIM_TYPEP(pred,fd_function_type))) {
+      fd_function fcn=FD_DTYPE2FCN(pred);
+      if (fcn->arity==1) {
+	fdtype value=fd_apply(pred,1,&f);
+	if (fd_overlapp(value,val)) {
+	  fd_decref(value); return 1;}
+	else {fd_decref(value); return 0;}}}
     rail[0]=f; rail[1]=val;
     result=fd_apply(pred,2,rail);
     if (FD_ABORTP(result))
@@ -954,13 +971,19 @@ static int dotest(fdtype f,fdtype pred,fdtype val,int noinfer)
     else {
       fd_decref(result);
       return 1;}}
-  else return fd_reterr(fd_TypeError,"dotest",u8_strdup("test predicate"),
-			pred);
+  else return fd_type_error(_("test relation"),"test_relation",pred);
 }
 
-static int binary_test(fdtype candidate,fdtype test,int noinfer)
+FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
 {
-  if ((FD_OIDP(candidate)) && ((FD_SYMBOLP(test)) || (FD_OIDP(test))))
+  if (FD_CHOICEP(test)) {
+    int retval=0;
+    FD_DO_CHOICES(t,test) {
+      if (retval=test_predicate(candidate,t,noinfer)) {
+	FD_STOP_DO_CHOICES;
+	return retval;}}
+    return retval;}
+  else if ((FD_OIDP(candidate)) && ((FD_SYMBOLP(test)) || (FD_OIDP(test))))
     if (noinfer)
       return fd_test(candidate,test,FD_VOID);
     else return fd_frame_test(candidate,test,FD_VOID);
@@ -983,129 +1006,161 @@ static int binary_test(fdtype candidate,fdtype test,int noinfer)
     else return 0;
   else if (FD_TABLEP(test))
     return fd_test(test,candidate,FD_VOID);
-  else return fd_type_error(_("test object"),"binary_pick",test);
+  else return fd_type_error(_("test object"),"test_predicate",test);
 }
 
-static fdtype binary_pick(fdtype candidates,fdtype test,int);
-
-static fdtype pick_helper(int n,fdtype *args,int noinfer)
+FD_FASTOP int test_and(fdtype candidate,int n,fdtype *args,int noinfer)
 {
-  fdtype start=args[0], candidates, next;
-  int i=1;
-  if (n==2) return binary_pick(args[0],args[1],noinfer);
-  if ((n%2)==0)
-    return fd_err(fd_SyntaxError,"wrong number of args to PICK",
-		  NULL,FD_VOID);
-  if ((fd_prefetch) && (fd_ipeval_status()>0)) prefetch_oids(start);
-  candidates=fd_incref(start); next=FD_EMPTY_CHOICE;
-  while (i<n) {
-    FD_DO_CHOICES(candidate,candidates) {
-      int testval=0;
-      FD_DO_CHOICES(slotid,args[i]) {
-	if ((testval=(dotest(candidate,slotid,args[i+1],noinfer)))) {
-	  FD_STOP_DO_CHOICES; break;}}
-      if (testval<0) {
-	fd_decref(candidates); fd_decref(next);
-	return fd_erreify();}
-      else if (testval) {
-	FD_ADD_TO_CHOICE(next,fd_incref(candidate));}}
-    fd_decref(candidates);
-    candidates=next;
-    next=FD_EMPTY_CHOICE;
-    i=i+2;}
-  return candidates;
+  if (n==1)
+    return test_predicate(candidate,args[0],noinfer);
+  else if (n%2) {
+    int i=1; fdtype field=args[0], value;
+    if ((FD_OIDP(field)) || (FD_SYMBOLP(field)))
+      value=fd_get(candidate,field,FD_VOID);
+    else if (FD_TABLEP(field))
+      value=fd_hashtable_get((fd_hashtable)field,candidate,FD_VOID);
+    else if (FD_APPLICABLEP(field)) 
+      value=fd_apply(field,1,&candidate);
+    else fd_type_error("field","test_and",field);
+    if (FD_VOIDP(value)) return 0;
+    else if (FD_EMPTY_CHOICEP(value)) return 0;
+    else if (FD_CHOICEP(value)) {
+      FD_DO_CHOICES(v,value) {
+	int testval=test_and(v,n-1,args+1,noinfer);
+	if (testval) {
+	  FD_STOP_DO_CHOICES;
+	  fd_decref(value);
+	  return testval;}}
+      fd_decref(value);
+      return 0;}
+    else {
+      int testval=test_and(value,n-1,args+1,noinfer);
+      fd_decref(value);
+      return testval;}}
+  else {
+    int i=0; while (i<n) {
+      fdtype slotids=args[i], values=args[i+1];
+      int retval=test_relation(candidate,slotids,values,noinfer);
+      if (retval<0) return retval;
+      else if (retval) i=i+2;
+      else return 0;}
+    return 1;}
 }
-
+  
+static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
+{
+  int retval;
+  if (FD_CHOICEP(candidates)) {
+    int n_elts=FD_CHOICE_SIZE(candidates);
+    fd_choice read_choice=FD_XCHOICE(candidates);
+    fd_choice write_choice=fd_alloc_choice(n_elts);
+    const fdtype *read=FD_XCHOICE_DATA(read_choice), *limit=read+n_elts;
+    fdtype *write=(fdtype *)FD_XCHOICE_DATA(write_choice);
+    int n_results=0, atomic_results=1;
+    while (read<limit) {
+      fdtype candidate=*read++;
+      int retval=test_and(candidate,n,tests,noinfer);
+      if (retval<0) {
+	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
+	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
+	u8_free(write_choice);
+	return fd_erreify();}
+      else if (retval) {
+	*write++=candidate; n_results++;
+	if (FD_CONSP(candidate)) {
+	  atomic_results=0;
+	  fd_incref(candidate);}}}
+    if (n_results==0) {
+      u8_free(write_choice);
+      return FD_EMPTY_CHOICE;}
+    else if (n_results==1) {
+      fdtype result=FD_XCHOICE_DATA(write_choice)[0];
+      u8_free(write_choice);
+      return fd_incref(result);}
+    else if (n_results*2<n_elts)
+      return fd_init_choice
+	(fd_realloc_choice(write_choice,n_results),n_results,NULL,
+	 ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
+    else return fd_init_choice
+	   (write_choice,n_results,NULL,
+	    ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
+  else if (n==1)
+    if (retval=test_predicate(candidates,tests[0],noinfer))
+      if (retval<0) return fd_erreify();
+      else return fd_incref(candidates);
+    else return FD_EMPTY_CHOICE;
+  else if (retval=test_and(candidates,n,tests,noinfer))
+    if (retval<0) return fd_erreify();
+    else return fd_incref(candidates);
+  else return FD_EMPTY_CHOICE;
+}
+  
 static fdtype pick_lexpr(int n,fdtype *args)
 {
-  return pick_helper(n,args,0);
+  return pick_helper(args[0],n-1,args+1,0);
 }
 
 static fdtype prim_pick_lexpr(int n,fdtype *args)
 {
-  return pick_helper(n,args,1);
+  return pick_helper(args[0],n-1,args+1,1);
 }
 
-static fdtype binary_pick(fdtype candidates,fdtype test,int noinfer)
+static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  if (FD_EMPTY_CHOICEP(test)) return results;
-  else {
-    FD_DO_CHOICES(candidate,candidates)
-      if (FD_CHOICEP(test)) {
-	int hit=0;
-	FD_DO_CHOICES(p,test) {
-	  if (binary_test(candidate,p,noinfer)) {
-	    hit=1; FD_STOP_DO_CHOICES; break;}
-	  else {}}
-	if (hit) {
-	  FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
-      else if (binary_test(candidate,test,noinfer)) {
-	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
-      else {}
-    return results;}
-}
-  
-static fdtype binary_reject(fdtype candidates,fdtype test,int);
-
-static fdtype reject_helper(int n,fdtype *args,int noinfer)
-{
-  fdtype start=args[0], candidates;
-  fdtype rejects=FD_EMPTY_CHOICE, next;
-  int i=1;
-  if (n==2) return binary_reject(args[0],args[1],noinfer);
-  if ((n%2)==0)
-    return fd_err(fd_SyntaxError,"wrong number of args to REJECT",
-		  NULL,FD_VOID);
-  if ((fd_prefetch) && (fd_ipeval_status()>0)) prefetch_oids(start);
-  candidates=fd_incref(start);
-  while (i<n) {
-    FD_DO_CHOICES(candidate,candidates) {
-      int testval=0;
-      FD_DO_CHOICES(slotid,args[i]) {
-	if ((testval=dotest(candidate,slotid,args[i+1],noinfer))) {
-	  FD_STOP_DO_CHOICES; break;}}
-      if (testval<0) {
-	fd_decref(candidates); fd_decref(rejects);
+  int retval;
+  if (FD_CHOICEP(candidates)) {
+    int n_elts=FD_CHOICE_SIZE(candidates);
+    fd_choice read_choice=FD_XCHOICE(candidates);
+    fd_choice write_choice=fd_alloc_choice(n_elts);
+    const fdtype *read=FD_XCHOICE_DATA(read_choice), *limit=read+n_elts;
+    fdtype *write=(fdtype *)FD_XCHOICE_DATA(write_choice);
+    int n_results=0, atomic_results=1;
+    while (read<limit) {
+      fdtype candidate=*read++;
+      int retval=test_and(candidate,n,tests,noinfer);
+      if (retval<0) {
+	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
+	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
+	u8_free(write_choice);
 	return fd_erreify();}
-      else if (testval) {
-	FD_ADD_TO_CHOICE(rejects,fd_incref(candidate));}}
-    next=fd_difference(candidates,rejects);
-    fd_decref(candidates); candidates=next;
-    fd_decref(rejects); rejects=FD_EMPTY_CHOICE;
-    next=FD_EMPTY_CHOICE; 
-    i=i+2;}
-  return candidates;
+      else if (retval==0) {
+	*write++=candidate; n_results++;
+	if (FD_CONSP(candidate)) {
+	  atomic_results=0;
+	  fd_incref(candidate);}}}
+    if (n_results==0) {
+      u8_free(write_choice);
+      return FD_EMPTY_CHOICE;}
+    else if (n_results==1) {
+      fdtype result=FD_XCHOICE_DATA(write_choice)[0];
+      u8_free(write_choice);
+      return fd_incref(result);}
+    else if (n_results*2<n_elts)
+      return fd_init_choice
+	(fd_realloc_choice(write_choice,n_results),n_results,NULL,
+	 ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
+    else return fd_init_choice
+	   (write_choice,n_results,NULL,
+	    ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
+  else if (n==1)
+    if (retval=test_predicate(candidates,tests[0],noinfer))
+      if (retval<0) return fd_erreify();
+      else return FD_EMPTY_CHOICE;
+    else return fd_incref(candidates);
+  else if (retval=test_and(candidates,n,tests,noinfer))
+    if (retval<0) return fd_erreify();
+    else return FD_EMPTY_CHOICE;
+  else return fd_incref(candidates);
 }
 
 static fdtype reject_lexpr(int n,fdtype *args)
 {
-  return reject_helper(n,args,0);
+  return reject_helper(args[0],n-1,args+1,0);
 }
 
 static fdtype prim_reject_lexpr(int n,fdtype *args)
 {
-  return reject_helper(n,args,1);
-}
-
-static fdtype binary_reject(fdtype candidates,fdtype test,int noinfer)
-{
-  fdtype results=FD_EMPTY_CHOICE;
-  if (FD_EMPTY_CHOICEP(test)) return fd_incref(candidates);
-  else {
-    FD_DO_CHOICES(candidate,candidates)
-      if (FD_CHOICEP(test)) {
-	int hit=0;
-	FD_DO_CHOICES(p,test)
-	  if (binary_test(candidate,p,noinfer)) {
-	    hit=1; FD_STOP_DO_CHOICES; break;}
-	  else {}
-	if (hit) {}
-	else {FD_ADD_TO_CHOICE(results,fd_incref(candidate));}}
-      else if (binary_test(candidate,test,noinfer)) {}
-      else {
-	FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
-    return results;}
+  return reject_helper(args[0],n-1,args+1,1);
 }
 
 /* Kleene* operations */
