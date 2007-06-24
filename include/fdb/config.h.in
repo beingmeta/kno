@@ -193,4 +193,16 @@
 /* This is where the fdbserver executable will be installed */
 #undef FD_DBSERVER
 
+/* Whether we're being built with the GNU profiling tools */
+#undef FD_WITH_PROFILING
+
+/* Whether we're being built with the Google perftools profiling tools */
+#undef FD_WITH_PROFILER
+
+/* Whether we've got the profiler headers */
+#undef HAVE_GOOGLE_PROFILER_H
+
+/* Whether we've got the profiler headers */
+#undef HAVE_LIBPROFILER
+
 #endif

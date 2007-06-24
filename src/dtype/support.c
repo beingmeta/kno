@@ -10,6 +10,16 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
+#if 0
+typedef int bool;
+
+extern bool ProfilerStart(const char* fname);
+
+extern void ProfilerStop();
+
+extern void ProfilerFlush();
+#endif
+
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
 #if FD_FILECONFIG_ENABLED
@@ -758,6 +768,40 @@ static fdtype getutf8warn(fdtype var,void *data)
   else return FD_FALSE;
 }
 
+/* Google profiling control */
+
+#if 0
+static u8_string google_profile=NULL;
+
+static int set_google_profile(fdtype var,fdtype val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    if (google_profile!=NULL) {
+      ProfilerStop();
+      u8_free(google_profile);
+      google_profile=NULL;}
+    ProfilerStart(FD_STRDATA(val));
+    google_profile=u8_strdup(FD_STRDATA(val));
+    return 1;}
+  else if (FD_FALSEP(val)) {
+    if (google_profile) {
+      ProfilerStop();
+      u8_free(google_profile);
+      google_profile=NULL;
+      return 1;}
+    else return 0;}
+  else return -1;
+}
+
+static fdtype get_google_profile(fdtype var,void *data)
+{
+  if (google_profile)
+    return fdtype_string(google_profile);
+  else return FD_FALSE;
+}
+#endif
+
+
 /* Random seed initialization */
 
 static fd_exception ClockFailed="call to clock() failed";
@@ -850,6 +894,11 @@ void fd_init_support_c()
 		     &fd_unparse_maxchars);
   fd_register_config("DISPLAYMAXELTS",fd_intconfig_get,fd_intconfig_set,
 		     &fd_unparse_maxelts);
+
+#if 0
+  fd_register_config("GOOGLEPROFILE",get_google_profile,set_google_profile,
+		     NULL);
+#endif
 
 #if FD_FILECONFIG_ENABLED
   fd_register_config
