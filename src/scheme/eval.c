@@ -387,8 +387,7 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
 	if (FD_EXPECT_FALSE(!(FD_NUMBERP(arg2)))) {
 	  fd_decref(arg1);
 	  return fd_type_error(_("number"),"opcode_dispatch",arg2);}}
-      else return fd_err(fd_SyntaxError,"opcode_dispatch",NULL,body);
-  }
+      else return fd_err(fd_SyntaxError,"opcode_dispatch",NULL,body);}
   if (FD_ABORTP(arg2)) {
     fd_decref(arg1); return arg2;}
   else switch (opcode) {
@@ -413,17 +412,15 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
 	int iarg=FD_FIX2INT(arg1);
 	return FD_INT2DTYPE(iarg+1);}
       else {
-	fdtype result=fd_plus(arg1,FD_FIX2INT(1));
-	fd_decref(arg1);
-	return result;}}
+	retval=fd_plus(arg1,FD_FIX2INT(1));
+	break;}}
     case FD_MINUS1_OPCODE: {
       if (FD_FIXNUMP(arg1)) {
 	int iarg=FD_FIX2INT(arg1);
 	return FD_INT2DTYPE(iarg-1);}
       else {
-	fdtype result=fd_plus(arg1,FD_FIX2INT(-1));
-	fd_decref(arg1);
-	return result;}}
+	retval=fd_plus(arg1,FD_FIX2INT(-1));
+	break;}}
     case FD_ZEROP_OPCODE: {
       if (arg1==FD_INT2DTYPE(0)) retval=FD_TRUE; else retval=FD_FALSE;
       break;}
@@ -441,10 +438,12 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
       break;}
     case FD_CAR_OPCODE: {
       if (FD_PAIRP(arg1)) retval=fd_incref(FD_CAR(arg1));
-      else return fd_type_error(_("pair"),"inline CAR",arg1);}
+      else return fd_type_error(_("pair"),"inline CAR",arg1);
+      break;}
     case FD_CDR_OPCODE: {
       if (FD_PAIRP(arg1)) retval=fd_incref(FD_CDR(arg1)); 
-      else return fd_type_error(_("pair"),"inline CDR",arg1);}
+      else return fd_type_error(_("pair"),"inline CDR",arg1);
+      break;}
     case FD_SINGLETON_OPCODE:
       if (FD_CHOICEP(arg1)) retval=FD_EMPTY_CHOICE;
       else retval=fd_incref(arg1);
@@ -468,9 +467,8 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
       if ((FD_ATOMICP(arg1)) && (FD_ATOMICP(arg2)))
 	return fd_get(arg1,arg2,FD_EMPTY_CHOICE);
       else {
-	fdtype result=fd_get(arg1,arg2,FD_EMPTY_CHOICE);
-	fd_decref(arg1); fd_decref(arg2);
-	return result;}}
+	retval=fd_get(arg1,arg2,FD_EMPTY_CHOICE);
+	break;}}
     case FD_TEST_OPCODE: {
       fdtype arg3=FD_VOID;
       if (FD_PAIRP(FD_CDR(remainder)))
@@ -480,49 +478,55 @@ FD_FASTOP fdtype opcode_dispatch(fdtype opcode,fdtype body,fd_lispenv env)
 	return fd_test(arg1,arg2,arg3);
       else {
 	int result=fd_test(arg1,arg2,arg3);
-	fd_decref(arg1); fd_decref(arg2); fd_decref(arg3);
-	if (result) return FD_TRUE; else return FD_FALSE;}}
+	if (result) retval=FD_TRUE; else retval=FD_FALSE;
+	break;}}
     case FD_ELT_OPCODE:
       if (!(FD_SEQUENCEP(arg1)))
 	return fd_type_error(_("sequence"),"opcode ELT",arg1);
       else if (!(FD_FIXNUMP(arg2)))
 	return fd_type_error(_("fixnum"),"opcode ELT",arg2);
-      else retval=fd_seq_elt(arg1,fd_getint(arg2));
+      else {
+	retval=fd_seq_elt(arg1,fd_getint(arg2)); break;}
     case FD_GT_OPCODE: {
       if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2))) 
 	if ((FD_FIX2INT(arg1))>(FD_FIX2INT(arg2)))
 	  return FD_TRUE;
 	else return FD_FALSE;
       else if (fd_numcompare(arg1,arg2)>0) retval=FD_TRUE;
-      else retval=FD_FALSE;}
+      else retval=FD_FALSE;
+      break;}
     case FD_GTE_OPCODE: {
       if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2))) 
 	if ((FD_FIX2INT(arg1))>=(FD_FIX2INT(arg2)))
 	  return FD_TRUE;
 	else return FD_FALSE;
       else if (fd_numcompare(arg1,arg2)>=0) retval=FD_TRUE;
-      else retval=FD_FALSE;}
+      else retval=FD_FALSE;
+      break;}
     case FD_LT_OPCODE: {
       if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2))) 
 	if ((FD_FIX2INT(arg1))<(FD_FIX2INT(arg2)))
 	  return FD_TRUE;
 	else return FD_FALSE;
       else if (fd_numcompare(arg1,arg2)<0) retval=FD_TRUE;
-      else retval=FD_FALSE;}
+      else retval=FD_FALSE;
+      break;}
     case FD_LTE_OPCODE: {
       if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2))) 
 	if ((FD_FIX2INT(arg1))<=(FD_FIX2INT(arg2)))
 	  return FD_TRUE;
 	else return FD_FALSE;
       else if (fd_numcompare(arg1,arg2)<=0) retval=FD_TRUE;
-      else retval=FD_FALSE;}
+      else retval=FD_FALSE;
+      break;}
     case FD_NUMEQ_OPCODE: {
       if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2))) 
 	if ((FD_FIX2INT(arg1))==(FD_FIX2INT(arg2)))
 	  return FD_TRUE;
 	else return FD_FALSE;
       else if (fd_numcompare(arg1,arg2)==0) retval=FD_TRUE;
-      else retval=FD_FALSE;}
+      else retval=FD_FALSE;
+      break;}
     case FD_IF_OPCODE: {
       fdtype consequent_expr=FD_VOID;
       if (FD_EMPTY_CHOICEP(arg1)) consequent_expr=arg1;

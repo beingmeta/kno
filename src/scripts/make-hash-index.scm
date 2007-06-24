@@ -28,9 +28,10 @@
 	 (keys (index-keysvec source))
 	 (slotfreq (make-hashtable))
 	 (baseoids (->vector (remove-dups (get-baseoids pools)))))
+    (message "The index " (write from) " contains " (length keys) " keys")
     (doseq (key keys)
       (when (pair? key) (hashtable-increment! slotfreq (car key))))
-    (message "Creating hash index for "
+    (message "Creating new hash index for "
 	     (choice-size (getkeys slotfreq)) " slotids with "
 	     (length baseoids) " baseoids")
     (make-hash-index file (- (* 2 (length keys)))
