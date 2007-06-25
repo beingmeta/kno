@@ -125,8 +125,9 @@ static u8_string get_compound_id(int n,fd_index *indices)
     struct U8_OUTPUT out; int i=0;
     U8_INIT_OUTPUT(&out,80);
     while (i < n) {
-      if (i) u8_puts(&out,"|");
+      if (i) u8_puts(&out,"|"); else u8_puts(&out,"{");
       u8_puts(&out,indices[i]->cid); i++;}
+    u8_puts(&out,"}");
     return out.u8_outbuf;}
   else return u8_strdup("compound");
 }
