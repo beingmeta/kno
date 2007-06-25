@@ -912,6 +912,15 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_TRUE;}}
 }
 
+static fdtype voidp_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype result=fd_eval(fd_get_arg(expr,1),env);
+  if (FD_VOIDP(result)) return FD_TRUE;
+  else {
+    fd_decref(result);
+    return FD_FALSE;}
+}
+
 static fdtype env_handler(fdtype expr,fd_lispenv env)
 {
   return (fdtype)fd_copy_env(env);
@@ -1820,6 +1829,7 @@ static void init_localfns()
 {
   fd_defspecial(fd_scheme_module,"EVAL",eval_handler);
   fd_defspecial(fd_scheme_module,"BOUND?",boundp_handler);
+  fd_defspecial(fd_scheme_module,"VOID?",voidp_handler);
   fd_defspecial(fd_scheme_module,"QUOTE",quote_handler);
   fd_defspecial(fd_scheme_module,"%ENV",env_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));

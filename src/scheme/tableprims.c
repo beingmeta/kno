@@ -23,6 +23,18 @@ static fdtype tablep(fdtype arg)
   if (FD_TABLEP(arg)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype slotmapp(fdtype x)
+{
+  if (FD_SLOTMAPP(x)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype schemapp(fdtype x)
+{
+  if (FD_SCHEMAPP(x)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype make_hashtable(fdtype size)
 {
   if (FD_FIXNUMP(size))
@@ -466,6 +478,8 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_register_source_file(versionid);
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("TABLE?",tablep,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("SLOTMAP?",slotmapp,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("SCHEMAP?",schemapp,1));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim0("MAKE-HASHSET",fd_make_hashset,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
