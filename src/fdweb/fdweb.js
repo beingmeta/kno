@@ -568,6 +568,16 @@ function autoprompt_setup()
 	elt.className='autoprompt_empty';}
 }
 
+// Removes autoprompt text from empty fields
+function autoprompt_cleanup()
+{
+  var elements=document.getElementsByTagName('INPUT');
+  var i=0; if (elements) while (i<elements.length) {
+    var elt=elements[i++];
+    if (elt.className=='autoprompt_empty')
+      elt.value="";}
+}
+
 /* hide/show toggles */
 
 function _fdb_hideshow_toggle(evt)
