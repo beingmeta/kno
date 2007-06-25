@@ -706,7 +706,11 @@ int fd_index_frame(fd_index ix,fdtype frame,fdtype slotid,fdtype values)
   if (FD_ABORTP(values)) 
     return fd_interr(values);
   else features=make_features(slotid,values);
-  {FD_DO_CHOICES(feature,features) fd_index_add(ix,feature,frame);}
+  {FD_DO_CHOICES(feature,features) {
+    int retval=fd_index_add(ix,feature,frame);
+    if (retval<0) {
+      fd_decref(features); fd_decref(values);
+      return retval;}}}
   fd_decref(features); fd_decref(values);
   return 1;
 }
