@@ -24,7 +24,7 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 # Fix @@ parsing bug
 # Add has_slotids to all indices to reduce cache load (16Jun2007)
 # Add hashindices test to tests/scheme/dbtest (16Jun2007)
-# Finish adding opcode handling to the evaluator. (23 June 2007)
+# Finish adding opcode handling to the evaluator. (24 June 2007)
 Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
 Separate out nlp from texttools
@@ -33,3 +33,7 @@ Separate out nlp from texttools
 # Make tighten! take module names (23 June 2007)
 # Add some sample functions (23 June 2007)
 ? Add expression rails to speed up the evaluator
+# Add some test functionality to /build/brico/makefile
+Add DTYPE I/O flag for emitting unserializable objects
+# Fix cid aliasing with compound indices (24 June 2007)
+# Fix registration of pools with invalid overlaps (24 June 2007)
