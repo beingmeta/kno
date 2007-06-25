@@ -1084,6 +1084,8 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     else return fd_init_choice
 	   (write_choice,n_results,NULL,
 	    ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
+  else if (FD_EMPTY_CHOICEP(candidates))
+    return FD_EMPTY_CHOICE;
   else if (n==1)
     if (retval=test_predicate(candidates,tests[0],noinfer))
       if (retval<0) return fd_erreify();
@@ -1142,6 +1144,8 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     else return fd_init_choice
 	   (write_choice,n_results,NULL,
 	    ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
+  else if (FD_EMPTY_CHOICEP(candidates))
+    return FD_EMPTY_CHOICE;
   else if (n==1)
     if (retval=test_predicate(candidates,tests[0],noinfer))
       if (retval<0) return fd_erreify();
