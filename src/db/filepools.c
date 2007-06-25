@@ -349,6 +349,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     fd_dtsflush(stream); fsync(stream->fd);
     fd_movepos(stream,-(4*(fp->capacity+1)));
     ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
+  else fd_dtsflush(stream);
   fd_unlock_mutex(&(fp->lock));
   return retcode;
 }

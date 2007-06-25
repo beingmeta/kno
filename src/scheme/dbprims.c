@@ -1211,7 +1211,7 @@ static fdtype allocate_oids(fdtype pool,fdtype howmany)
   if (FD_VOIDP(howmany))
     return fd_pool_alloc(p,1);
   else if (FD_FIXNUMP(howmany))
-    return fd_pool_alloc(p,FD_INT2DTYPE(howmany));
+    return fd_pool_alloc(p,FD_FIX2INT(howmany));
   else return fd_type_error(_("fixnum"),"allocate_oids",howmany);
 }
 
