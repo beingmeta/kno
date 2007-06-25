@@ -521,7 +521,7 @@
     ;;  as a single instance, providing that it is actually applicable.
     ;; This doesn't do any term morphology, which is handled elsewhere.
     (if (zero? sum) 
-	(if (or (test concept language term)
+	(if (or (not term) (test concept language term)
 		(and (capitalized? term)
 		     (or (test concept 'names term)
 			 (overlaps? (stdstring term)
