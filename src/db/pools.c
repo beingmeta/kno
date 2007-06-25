@@ -32,6 +32,7 @@ fd_exception fd_AnonymousOID=_("no pool covers this OID");
 fd_exception fd_NotAPool=_("pool");
 fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
 fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
+fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
 
 int fd_n_pools=0;
 
@@ -134,6 +135,10 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   /* Set up the serial number */
   serial_no=p->serialno=pool_serial_count++; fd_n_pools++;
   pool_serial_table[serial_no]=p;
+  if ((capacity>=FD_TOP_POOL_SIZE) && ((p->base)%FD_TOP_POOL_SIZE)) {
+    fd_seterr(fd_InvalidPoolRange,"fd_register_pool",u8_strdup(p->cid),FD_VOID);
+    fd_unlock_mutex(&(pool_registry_lock));
+    return -1;}
   if (capacity>=FD_TOP_POOL_SIZE) {
     int i=0, lim=capacity/FD_TOP_POOL_SIZE;
     /* Now get a baseid and register the pool in top_pools */
