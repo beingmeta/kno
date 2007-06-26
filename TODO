@@ -37,3 +37,4 @@ Separate out nlp from texttools
 Add DTYPE I/O flag for emitting unserializable objects
 # Fix cid aliasing with compound indices (24 June 2007)
 # Fix registration of pools with invalid overlaps (24 June 2007)
+Add AND/OR/NOT to OPCODES
