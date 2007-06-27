@@ -350,7 +350,9 @@
   (when (ambiguous? (get frame 'sensecat))
     (doindex index frame 'sensecat 'vague))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
-  (doindex index frame '%id (get frame '%mnemonic))
+  (doindex index frame '%id (get frame '%mnemonics))
+  (doindex index frame '%mnemonic)
+  (doindex index frame '%mnemonics)
   (doindex index frame 'has (getslots frame))
   ;; Special case 'has' indexing
   (when (test frame 'gloss)
@@ -369,31 +371,21 @@
 	     (get index-map (car (get frame '%indices))))))
 
 (define (index-brico index frame)
-  (cond ((empty? (getslots frame))
-	 (index-frame index frame 'status 'deleted))
-	((test frame 'type 'wordform)
-	 (index-frame index frame wordform-slotids))
-	((exists? (get frame 'sensecat))
-	 (index-core index frame))
-	((test frame 'type 'language)
-	 (index-frame index frame
-	   '{langid language iso639/1 iso639/B iso639/T})
-	 (index-frame index frame '%id (get frame 'language))
-	 (index-frame index frame
-	   '%id
-	   (intern (upcase (get frame '{english-names noms-français}))))
-	 (index-core index frame)
-	 (index-frame index frame
-	   '{get-methods test-methods add-effects drop-effects
-			 key through derivation inverse closure-of slots
-			 primary-slot index %id}))
-	((test frame '{get-methods test-methods add-effects drop-effects})
-	 (index-core index frame)
-	 (index-frame index frame
-	   '{get-methods test-methods add-effects drop-effects
-			 key through derivation inverse closure-of slots
-			 primary-slot index %id}))))
-
+  (if (empty? (getslots frame))
+      (index-frame index frame 'status 'deleted)
+      (begin
+	(index-core index frame)
+	(when (test frame 'type 'wordform)
+	  (index-frame index frame wordform-slotids))
+	(when (test frame 'type 'language)
+	  (index-frame index frame
+	    '{langid language iso639/1 iso639/B iso639/T}))
+	(when (test frame '{get-methods test-methods add-effects drop-effects})
+	  (index-frame index frame
+	    '{get-methods test-methods add-effects drop-effects
+			  key through derivation inverse closure-of slots
+			  primary-slot index %id})))))
+  
 (define (index-words index concept (window #f))
   (index-string index concept english (get concept 'words) window)
   (index-name index concept 'names (get concept 'names))
