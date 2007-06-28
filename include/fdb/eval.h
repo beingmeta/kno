@@ -315,6 +315,10 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_BEGIN_OPCODE      FD_OPCODE(27)
 #define FD_WHEN_OPCODE       FD_OPCODE(28)
 #define FD_UNLESS_OPCODE     FD_OPCODE(29)
+#define FD_IFELSE_OPCODE     FD_OPCODE(30)
+#define FD_AND_OPCODE        FD_OPCODE(31)
+#define FD_OR_OPCODE         FD_OPCODE(32)
+#define FD_NOT_OPCODE        FD_OPCODE(33)
 
 #endif /* FDB_EVAL_H */
 

@@ -96,7 +96,11 @@
   (def-opcode IF 26 3)
   (def-opcode BEGIN 27)
   (def-opcode WHEN 28)
-  (def-opcode UNLESS 29))
+  (def-opcode UNLESS 29)
+  (def-opcode IFELSE 30)
+  (def-opcode AND 31)
+  (def-opcode OR 32)
+  (def-opcode NOT 33))
 
 ;;; The core loop
 
