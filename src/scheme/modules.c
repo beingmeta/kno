@@ -153,7 +153,9 @@ static fd_lispenv switch_module
   if (FD_STRINGP(module_name))
     module_spec=fd_intern(FD_STRDATA(module_name));
   else module_spec=fd_eval(module_name,env);
-  module=fd_get_module(module_spec,safe);
+  if (FD_SYMBOLP(module_spec))
+    module=fd_get_module(module_spec,safe);
+  else module=module_spec;
   if (FD_HASHTABLEP(module)) {
     fd_seterr(OpaqueModule,"IN-MODULE",NULL,module_spec);
     return NULL;}
