@@ -36,6 +36,32 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
     else return fasteval(consequent_expr,env);}
 }
 
+static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype test_expr=fd_get_arg(expr,1), test_result;
+  fdtype consequent_expr=fd_get_arg(expr,2);
+  if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))
+    return fd_err(fd_TooFewExpressions,"IFELSE",NULL,expr);
+  test_result=fd_eval(test_expr,env);
+  if (FD_ABORTP(test_result)) return test_result;
+  else if (FD_FALSEP(test_result)) {
+    fdtype alt=FD_CDR(FD_CDR(expr));
+    while (FD_PAIRP(alt)) {
+      if (FD_PAIRP(FD_CDR(alt))) {
+	fdtype alt_expr=FD_CAR(alt); alt=FD_CDR(alt);
+	fdtype result=fd_eval(alt_expr,env);
+	fd_decref(result);}
+      else if (FD_PAIRP(FD_CAR(alt)))
+	return fd_tail_eval(FD_CAR(alt),env);
+      else return fasteval(FD_CAR(alt),env);}
+    return FD_VOID;}
+  else {
+    fd_decref(test_result);
+    if (FD_PAIRP(consequent_expr))
+      return fd_tail_eval(consequent_expr,env);
+    else return fasteval(consequent_expr,env);}
+}
+
 static fdtype tryif_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1), test_result;
@@ -176,6 +202,7 @@ FD_EXPORT void fd_init_conditionals_c()
   else_symbol=fd_intern("ELSE");
 
   fd_defspecial(fd_scheme_module,"IF",if_handler);
+  fd_defspecial(fd_scheme_module,"IFELSE",ifelse_handler);
   fd_defspecial(fd_scheme_module,"TRYIF",tryif_handler);
   fd_defspecial(fd_scheme_module,"COND",cond_handler);
   fd_defspecial(fd_scheme_module,"CASE",case_handler);
