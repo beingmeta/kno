@@ -29,7 +29,7 @@ Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
 Separate out nlp from texttools
 # Make when and unless not treat {} as true (23 June 2007)
-Rename tighten to optimize.
+# Rename tighten to optimize. (28 June 2007)
 # Make tighten! take module names (23 June 2007)
 # Add some sample functions (23 June 2007)
 ? Add expression rails to speed up the evaluator
