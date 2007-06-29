@@ -21,8 +21,12 @@
 static MAYBE_UNUSED char versionid[] =
   "$Id$";
 
+u8_condition FileLoad=_("File Load"), FileDone=_("File Done");
+
 fd_exception fd_NotAFilename=_("Not a filename");
 fd_exception fd_FileNotFound=_("File not found");
+
+static int trace_load=0;
 
 /* Getting sources */
 
@@ -95,8 +99,11 @@ FD_EXPORT fdtype fd_load_source
   u8_string encoding=((enc_name)?(enc_name):((u8_string)("auto")));
   u8_string content=fd_get_source(sourceid,encoding,&sourcebase,NULL);
   u8_byte *input=content;
+  double start=u8_elapsed_time();
   if (content==NULL) return fd_erreify();
   else outer_sourcebase=bind_sourcebase(sourcebase);
+  if (trace_load) 
+    u8_notify(FileLoad,"Loading %s (%d bytes)",sourcebase,u8_strlen(content));
   if ((input[0]=='#') && (input[1]=='!')) input=strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
@@ -114,6 +121,9 @@ FD_EXPORT fdtype fd_load_source
 	return result;}
       expr=fd_parser(&stream,NULL);}
     if (expr==FD_PARSE_ERROR) result=fd_erreify();
+    if (trace_load) 
+      u8_notify(FileDone,"Loaded %s in %f seconds",
+		sourcebase,u8_elapsed_time()-start);
     fd_decref(last_expr);
     restore_sourcebase(outer_sourcebase); u8_free(sourcebase);
     u8_free(content);
@@ -329,6 +339,8 @@ FD_EXPORT void fd_init_load_c()
 			   fd_string_type,FD_VOID));
 
   fd_register_config("CONFIG",get_config_files,add_config_file,NULL);
+  fd_register_config
+    ("TRACELOAD",fd_boolconfig_get,fd_boolconfig_set,&trace_load);
 }
 
 

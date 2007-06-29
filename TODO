@@ -38,4 +38,6 @@ Add DTYPE I/O flag for emitting unserializable objects
 # Fix cid aliasing with compound indices (24 June 2007)
 # Fix registration of pools with invalid overlaps (24 June 2007)
 # Add AND/OR/NOT to OPCODES (28 June 2007)
-# Added IFELSE (28 June 2007)
+# Add IFELSE (28 June 2007)
+# Add TRACELOAD configuration variable (28 June 2007)
+
