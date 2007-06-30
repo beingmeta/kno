@@ -50,3 +50,6 @@ LDAP access libraries
 SQL access libraries
 Simple python bindings
 # Fix fencepost bug in fdexec (30 June 2007)
+Make (load) work with URI's
+Provide a file access to mod_dav servers.
+
