@@ -363,7 +363,7 @@ int main(int argc,char **argv)
     else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
     {
       fdtype startup_proc=fd_symeval(fd_intern("STARTUP"),env);
-      shutdown_proc=fd_symeval(fd_intern("STARTUP"),env);
+      shutdown_proc=fd_symeval(fd_intern("SHUTDOWN"),env);
       if (FD_VOIDP(startup_proc)) {}
       else {
 	FD_DO_CHOICES(p,startup_proc) {

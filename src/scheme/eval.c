@@ -1212,6 +1212,9 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
   u8_free(cv);
 }
 
+/* These functions generically access the locks on CONDVARs
+   and SPROCs */
+
 static fdtype synchro_lock(fdtype x)
 {
   if (FD_PTR_TYPEP(x,fd_condvar_type)) {

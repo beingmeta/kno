@@ -40,4 +40,12 @@ Add DTYPE I/O flag for emitting unserializable objects
 # Add AND/OR/NOT to OPCODES (28 June 2007)
 # Add IFELSE (28 June 2007)
 # Add TRACELOAD configuration variable (28 June 2007)
-
+Make libu8 use mallinfo when available
+Make SWAPCHECK use real bytes
+Move thread functions in eval.c into their own file
+Add accessor/control functions for thread objects
+Add ability to reuse threads with new calls/applications
+Add some kind of global thread managment functionality
+LDAP access libraries
+SQL access libraries
+Simple python bindings
