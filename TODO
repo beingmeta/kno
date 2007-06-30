@@ -40,8 +40,8 @@ Add DTYPE I/O flag for emitting unserializable objects
 # Add AND/OR/NOT to OPCODES (28 June 2007)
 # Add IFELSE (28 June 2007)
 # Add TRACELOAD configuration variable (28 June 2007)
-Make libu8 use mallinfo when available
-Make SWAPCHECK use real bytes
+# Make libu8 use mallinfo when available (30 June 2007)
+# Make SWAPCHECK use real bytes (30 June 2007)
 Move thread functions in eval.c into their own file
 Add accessor/control functions for thread objects
 Add ability to reuse threads with new calls/applications
@@ -52,4 +52,3 @@ Simple python bindings
 # Fix fencepost bug in fdexec (30 June 2007)
 Make (load) work with URI's
 Provide a file access to mod_dav servers.
-

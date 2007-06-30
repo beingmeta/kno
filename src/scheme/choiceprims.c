@@ -893,33 +893,35 @@ static fdtype samplen(fdtype x,fdtype count)
   else return fd_type_error("integer","samplen",count);
 }
 
-static fdtype pickn(fdtype x,fdtype count)
+static fdtype pickn(fdtype x,fdtype count,fdtype offset)
 {
   if (FD_FIXNUMP(count)) {
     fdtype normal=fd_make_simple_choice(x);
-    int n=FD_CHOICE_SIZE(normal), howmany=fd_getint(count);
+    int n=FD_CHOICE_SIZE(normal), howmany=fd_getint(count), start;
     if (!(FD_CHOICEP(normal))) return normal;
     if (n<=howmany) return normal;
-    else if (n) {
+    else if (FD_FIXNUMP(offset)) {
+      start=FD_FIX2INT(offset);
+      if ((n-start)<howmany) howmany=n-start;}
+    else start=u8_random(n-howmany);
+    if (n) {
       struct FD_CHOICE *base=
 	(FD_GET_CONS(normal,fd_choice_type,struct FD_CHOICE *));
       struct FD_CHOICE *result=fd_alloc_choice(howmany);
-      const fdtype *read=FD_XCHOICE_DATA(base);
+      const fdtype *read=FD_XCHOICE_DATA(base)+start, *limit=read+howmany;
       fdtype *write=(fdtype *)FD_XCHOICE_DATA(result);
       if (FD_XCHOICE_ATOMICP(base)) {
-	fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);
-	memcpy(write,read,sizeof(fdtype)*howmany);}
+	memcpy(write,read,sizeof(fdtype)*howmany);
+	fd_decref(normal);
+	return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
       else {
 	int atomicp=1; const fdtype *readlim=read+howmany;
 	while (read<readlim) {
-	  fdtype v=*read++; if (FD_ATOMICP(v))
-	    *write++=v;
+	  fdtype v=*read++;
+	  if (FD_ATOMICP(v)) *write++=v;
 	  else {atomicp=0; fd_incref(v); *write++=v;}}
-	fd_init_choice(result,howmany,
-		       FD_XCHOICE_DATA(result),
-		       FD_CHOICE_ISATOMIC);}
-      fd_decref(normal);
-      return FDTYPE_CONS(result);}
+	fd_decref(normal);
+	return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}}
     else return FD_EMPTY_CHOICE;}
   else return fd_type_error("integer","topn",count);
 }
@@ -1152,7 +1154,9 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("SAMPLE-N",samplen,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("PICK-N",pickn,2)));
+	   fd_make_ndprim(fd_make_cprim3x("PICK-N",pickn,2,
+					  -1,FD_VOID,fd_fixnum_type,FD_VOID,
+					  fd_fixnum_type,FD_VOID)));
 }
 
 
