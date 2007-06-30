@@ -196,7 +196,7 @@ typedef struct FD_CONS *fd_cons;
 #define FD_NULLP(x) (((void *)x)==NULL)
 
 #define FDTYPE_IMMEDIATE(tcode,serial) \
-  ((((tcode-0x04)&0x7F)<<25)|((serial)<<2)|fd_immediate_ptr_type)
+  ((fdtype)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|fd_immediate_ptr_type))
 #define FD_GET_IMMEDIATE(x,tcode) (((x)>>2)&0x7FFFFF)
 #define FD_IMMEDIATE_TYPE_FIELD(x) (((x)>>25)&0x7F)
 #define FD_IMMEDIATE_TYPE(x) ((((x)>>25)&0x7F)+0x4)
