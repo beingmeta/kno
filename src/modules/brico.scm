@@ -22,7 +22,8 @@
    index-string index-name index-frags index-gloss index-genls index-frame*
    indexer index-concept
    ;; Specialized versions
-   index-core index-brico index-words index-fragments index-relations index-lattice
+   index-core index-brico index-wordform
+   index-words index-fragments index-relations index-lattice
    basic-concept-frequency concept-frequency use-corpus-frequency
    brico-prefetch! brico-prefetch})
 
@@ -370,13 +371,15 @@
     (doindex index frame 'has
 	     (get index-map (car (get frame '%indices))))))
 
+(define (index-wordform index frame)
+  (when (test frame 'type 'wordform)
+    (index-frame index frame wordform-slotids)))
+
 (define (index-brico index frame)
   (if (empty? (getslots frame))
       (index-frame index frame 'status 'deleted)
       (begin
 	(index-core index frame)
-	(when (test frame 'type 'wordform)
-	  (index-frame index frame wordform-slotids))
 	(when (test frame 'type 'language)
 	  (index-frame index frame
 	    '{langid language iso639/1 iso639/B iso639/T}))
