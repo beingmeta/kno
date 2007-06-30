@@ -641,6 +641,17 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     if (FD_OPCODEP(head))
       if (head==FD_QUOTE_OPCODE)
 	return fd_car(FD_CDR(expr));
+      else if (head==FD_BEGIN_OPCODE) {
+	fdtype scan=FD_CDR(expr); while (FD_PAIRP(scan)) {
+	  fdtype subexpr=FD_CAR(scan); scan=FD_CDR(scan);
+	  if (FD_EMPTY_LISTP(scan))
+	    if (FD_PAIRP(subexpr))
+	      return fd_tail_eval(subexpr,env);
+	    else return fasteval(subexpr,env);
+	  else {
+	    fdtype value=fd_eval(subexpr,env);
+	    fd_decref(value);}}
+	return FD_VOID;}
       else if (FD_PAIRP(FD_CDR(expr))) {
 	fdtype arg1_expr=FD_CAR(FD_CDR(expr));
 	fdtype arg1=fd_eval(arg1_expr,env);
