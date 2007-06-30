@@ -63,8 +63,6 @@ static fdtype chain_prim(int n,fdtype *args)
       if (FD_STRINGP(args[i])) {
 	u8_printf(&argstring," %s",FD_STRDATA(args[i]));
 	cargv[cargc]=u8_tolibc(FD_STRDATA(args[i]));
-	u8_message("Converted arg %d %q to arg %d '%s'",
-		   i,args[i],cargc,cargv[cargc]);
 	i++; cargc++;}
       else {
 	u8_string as_string=fd_dtype2string(args[i]);
@@ -72,8 +70,6 @@ static fdtype chain_prim(int n,fdtype *args)
 	u8_printf(&argstring," %s",as_string);
 	u8_free(as_string);
 	cargv[cargc]=libc_string;
-	u8_message("Converted arg %d %q to arg %d '%s'",
-		   i,args[i],cargc,cargv[cargc]);
 	i++; cargc++;}
     i=0; while (i<n_configs) {
       u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
@@ -84,9 +80,6 @@ static fdtype chain_prim(int n,fdtype *args)
     fflush(stdout); fflush(stderr);
     fd_close_pools();
     fd_close_indices();
-    {
-      int j=0; while (j<cargc) {
-	fprintf(stderr,"%s\n",cargv[j]); j++;}}
     return execvp(exe_arg,cargv);}
 }
 
