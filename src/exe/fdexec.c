@@ -52,33 +52,42 @@ static fdtype chain_prim(int n,fdtype *args)
   if (n_configs>=MAX_CONFIGS)
     return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,FD_VOID);
   else {
-    int i=0, argc=0;
+    int i=0, cargc=0;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
-    char **argv=u8_malloc(sizeof(char *)*(n+n_configs+2)); 
+    char **cargv=u8_malloc(sizeof(char *)*(n+n_configs+3)); 
     U8_INIT_OUTPUT(&argstring,512);
-    argv[argc++]=exe_arg;
-    argv[argc++]=file_arg;
+    cargv[cargc++]=exe_arg;
+    cargv[cargc++]=file_arg;
     i=0; while (i<n)
       if (FD_STRINGP(args[i])) {
 	u8_printf(&argstring," %s",FD_STRDATA(args[i]));
-	argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));}
+	cargv[cargc]=u8_tolibc(FD_STRDATA(args[i]));
+	u8_message("Converted arg %d %q to arg %d '%s'",
+		   i,args[i],cargc,cargv[cargc]);
+	i++; cargc++;}
       else {
-	u8_string as_string=fd_dtype2string(args[i++]);
+	u8_string as_string=fd_dtype2string(args[i]);
 	char *libc_string=u8_tolibc(as_string);
 	u8_printf(&argstring," %s",as_string);
-	argv[argc++]=libc_string;
-	u8_free(as_string);}
+	u8_free(as_string);
+	cargv[cargc]=libc_string;
+	u8_message("Converted arg %d %q to arg %d '%s'",
+		   i,args[i],cargc,cargv[cargc]);
+	i++; cargc++;}
     i=0; while (i<n_configs) {
-      u8_printf(&argstring," %+s",u8_fromlibc(configs[i]));
-      argv[argc++]=configs[i++];}
-    argv[argc++]=NULL;
-    u8_notify("CHAIN",">> %+s %s",u8_fromlibc(file_arg),argstring.u8_outbuf);
+      u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
+      cargv[cargc++]=configs[i++];}
+    cargv[cargc++]=NULL;
+    u8_notify("CHAIN",">> %s%s",u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
     fflush(stdout); fflush(stderr);
     fd_close_pools();
     fd_close_indices();
-    return execvp(exe_arg,argv);}
+    {
+      int j=0; while (j<cargc) {
+	fprintf(stderr,"%s\n",cargv[j]); j++;}}
+    return execvp(exe_arg,cargv);}
 }
 
 int main(int argc,char **argv)

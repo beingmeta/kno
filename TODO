@@ -49,3 +49,4 @@ Add some kind of global thread managment functionality
 LDAP access libraries
 SQL access libraries
 Simple python bindings
+# Fix fencepost bug in fdexec (30 June 2007)
