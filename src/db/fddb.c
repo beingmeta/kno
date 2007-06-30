@@ -355,7 +355,7 @@ static int cache_load()
 
 FD_EXPORT int fd_swapcheck()
 {
-  int memgap; unsigned long usage=cache_load();
+  int memgap; size_t usage=u8_memusage();
   fdtype l_memgap=fd_config_get("SWAPCHECK");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {
