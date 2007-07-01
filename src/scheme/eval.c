@@ -370,11 +370,15 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
   fdtype body=FD_CDR(expr), remainder;
   if (opcode>=FD_IF_OPCODE) {
+    /* It's a conditional opcode */
     fdtype test=FD_VOID;
     if (FD_EXPECT_FALSE(!(FD_PAIRP(body))))
       return fd_err(fd_SyntaxError,"OPCODE conditional",NULL,expr);
     test=fd_eval(FD_CAR(body),env); remainder=FD_CDR(body);
-    switch (opcode) {
+    if (FD_ABORTP(test)) return test;
+    else if (FD_VOIDP(test))
+      return fd_err(fd_VoidArgument,"conditional OPCODE",NULL,FD_CAR(body));
+    else switch (opcode) {
     case FD_IF_OPCODE: {
       fdtype consequent_expr=FD_VOID;
       if (FD_EMPTY_CHOICEP(test))
