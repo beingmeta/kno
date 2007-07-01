@@ -475,17 +475,17 @@ FD_FASTOP fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv en
     if (!(FD_PAIRP(body)))
       return fd_err(fd_SyntaxError,"OR opcode",NULL,expr);
     else while (FD_PAIRP(body)) {
-      fdtype each=FD_CAR(body); body=FD_CDR(body);
-      fd_decref(retval);
-      if (FD_PAIRP(body)) {
-	retval=fd_eval(each,env);
-	if (FD_ABORTP(retval)) return retval;
-	else if (FD_VOIDP(retval))
-	  return fd_err(fd_VoidArgument,"OR opcode",NULL,each);
-	else if (!(FD_FALSEP(retval))) return retval;
+	fdtype each=FD_CAR(body); body=FD_CDR(body);
+	fd_decref(retval);
+	if (FD_PAIRP(body)) {
+	  retval=fd_eval(each,env);
+	  if (FD_ABORTP(retval)) return retval;
+	  else if (FD_VOIDP(retval))
+	    return fd_err(fd_VoidArgument,"OR opcode",NULL,each);
+	  else if (!(FD_FALSEP(retval))) return retval;}
 	else if (FD_PAIRP(each))
 	  return fd_tail_eval(each,env);
-	else return fasteval(each,env);}}
+	else return fasteval(each,env);}
     return FD_FALSE;}
   case FD_NOT_OPCODE: {
     if (!(FD_PAIRP(body)))
@@ -662,8 +662,18 @@ FD_FASTOP fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     else return FD_FALSE;
     break;}
   case FD_ELT_OPCODE:
-    if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2)))
-      return fd_seq_elt(arg1,fd_getint(arg2));
+    if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
+      fdtype result;
+      int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
+      if (off<0) off=len+off;
+      result=fd_seq_elt(arg1,off);
+      if (result == FD_TYPE_ERROR)
+	return fd_type_error(_("sequence"),"seqelt_prim",arg1);
+      else if (result == FD_RANGE_ERROR) {
+	char buf[32];
+	sprintf(buf,"%d",off);
+	return fd_err(fd_RangeError,"seqelt_prim",u8_strdup(buf),arg1);}
+      else return result;}
     else if (!(FD_SEQUENCEP(arg1)))
       return fd_type_error(_("sequence"),"opcode ELT",arg1);
     else return fd_type_error(_("fixnum"),"opcode ELT",arg2);
@@ -799,10 +809,12 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 	    fd_decref(arg1); fd_decref(arg2);
 	    return results;}
 	else {
-	  /* This is the numeric dispatch case where we just call the method. */
+	  /* This is the dispatch case where we just go to dispatch. */
 	  fdtype result;
-	  if (FD_EXPECT_FALSE(!((opcode<FD_EQ_OPCODE) && (FD_NUMBERP(arg2)))))
-	    result=fd_type_error(_("number"),"numeric opcode",arg2);
+	  if (opcode<FD_EQ_OPCODE) /* Numeric operation */
+	    if (FD_EXPECT_FALSE(!(FD_NUMBERP(arg2))))
+	      result=fd_type_error(_("number"),"numeric opcode",arg2);
+	    else result=opcode_binary_dispatch(head,arg1,arg2);
 	  else result=opcode_binary_dispatch(head,arg1,arg2);
 	  fd_decref(arg1); fd_decref(arg2);
 	  return result;}}
