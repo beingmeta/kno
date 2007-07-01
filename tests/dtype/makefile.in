@@ -36,10 +36,10 @@ all: $(TESTBIN)
 memtests:
 	make "TESTPROG=$(VALGRIND)" mosttests
 alltests: dtypetests choicetests mergechoicetests \
-		tabletests slotmaptests slotmaptests2 \
-		smallbricotests mediumbricotests bigbricotests
-mosttests: dtypetests choicetests tabletests slotmaptests slotmaptests2 \
-		smallbricotests
+		tabletests slotmaptests slotmaptests2
+#		smallbricotests mediumbricotests bigbricotests
+mosttests: dtypetests choicetests tabletests slotmaptests slotmaptests2
+#		smallbricotests
 dtypetests:
 	@echo "***" Testing calls from C API
 	$(RUNTEST) ./testcapi
