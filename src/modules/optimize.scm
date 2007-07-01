@@ -84,6 +84,7 @@
   (def-opcode CAR        0x25 1)
   (def-opcode CDR        0x26 1)
   (def-opcode LENGTH     0x27 1)
+  (def-opcode QCHOICE    0x28 1)
 
   (def-opcode 1-         0x40 1)
   (def-opcode -1+        0x40 1)
