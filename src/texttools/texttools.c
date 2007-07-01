@@ -83,20 +83,23 @@ static fdtype whitespace_segment(u8_string s)
 
 static fdtype dosegment(u8_string string,fdtype separators)
 {
-  u8_byte *brk=NULL; fdtype sepstring=FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(sep,separators)
-    if (FD_STRINGP(sep)) {
-      u8_byte *try=strstr(string,FD_STRDATA(sep));
-      if (try==NULL) {}
-      else if ((brk==NULL) || (try<brk)) {
-	sepstring=sep; brk=try;}}
-    else return fd_type_error(_("string"),"dosegment",sep);
-  if (brk) {
-    fdtype tail=dosegment(brk+FD_STRLEN(sepstring),separators);
-    if (FD_ABORTP(tail)) return tail;
-    else return fd_init_pair
-	   (NULL,fd_extract_string(NULL,string,brk),tail);}
-  else return fd_init_pair(NULL,fdtype_string(string),FD_EMPTY_LIST);
+  u8_byte *scan=string;
+  fdtype result=FD_EMPTY_LIST, *resultp=&result;
+  while (scan) {
+    fdtype sepstring=FD_EMPTY_CHOICE, pair;
+    u8_byte *brk=NULL;
+    FD_DO_CHOICES(sep,separators)
+      if (FD_STRINGP(sep)) {
+	u8_byte *try=strstr(scan,FD_STRDATA(sep));
+	if (try==NULL) {}
+	else if ((brk==NULL) || (try<brk)) {
+	  sepstring=sep; brk=try;}}
+      else return fd_type_error(_("string"),"dosegment",sep);
+    if (brk==NULL) return result;
+    pair=fd_init_pair(NULL,fd_extract_string(NULL,scan,brk),FD_EMPTY_LIST);
+    *resultp=pair;
+    resultp=&(((struct FD_PAIR *)pair)->cdr);
+    scan=brk+FD_STRLEN(sepstring);}
 }
 
 static fdtype segment_prim(fdtype inputs,fdtype separators)
