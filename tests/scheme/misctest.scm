@@ -1,5 +1,7 @@
 ;;; -*- Mode: fdscript; text-encoding: latin-1 -*-
 
+(load-component "common.scm")
+
 (use-module 'reflection)
 
 (applytest #t procedure? car)

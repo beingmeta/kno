@@ -1,3 +1,5 @@
+(load-component "common.scm")
+
 ;;;; Random object generation
 
 (define random-super-pools

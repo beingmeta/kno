@@ -1,5 +1,7 @@
 ;;; -*- Mode: Scheme; Text-encoding: latin-1; -*-
 
+(load-component "common.scm")
+
 (use-module 'texttools)
 
 (applytest #t has-suffix "foo.scm" ".scm")

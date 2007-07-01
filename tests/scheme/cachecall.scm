@@ -1,3 +1,5 @@
+(load-component "common.scm")
+
 (define call-count 0)
 (define count-call (slambda () (set! call-count (1+ call-count))))
 (define call-count 0)

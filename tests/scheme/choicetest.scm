@@ -1,12 +1,16 @@
+(load-component "common.scm")
+
 (define (nrange start end)
   (let ((answer {}))
     (dotimes (i (- end start))
       (set+! answer (+ start i)))
     answer))
+(test-optimize! nrange)
 
 (define (nrange-r start end)
   (if (= start end) {}
       (choice start (nrange-r (+ start 1) end))))
+(test-optimize! nrange-r)
 
 (define (srange cstart cend)
   (let ((start (char->integer cstart)) (end (char->integer cend)))
@@ -14,6 +18,7 @@
       (dotimes (i (- end start))
 	(set+! answer (string (integer->char (+ start i)))))
       answer)))
+(test-optimize! srange)
 
 (evaltest 100 (choice-size (intersection (nrange 0 300) (nrange 200 800))))
 (applytest (choice 20 21 22 23 24 25 26 27 28 29) intersection

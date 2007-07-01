@@ -1,5 +1,7 @@
 ;;; -*- Mode: scheme; text-encoding: latin-1; -*-
 
+(load-component "common.scm")
+
 (applytest  '() subseq '(1 2 3) 0 0)
 (applytest  '() subseq '(1 2 3) 1 1)
 (applytest  "" subseq "123" 1 1)

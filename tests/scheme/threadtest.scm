@@ -1,3 +1,5 @@
+(load-component "common.scm")
+
 (define numbers '())
 (define addnumber
   (slambda (n) (set! numbers (cons n numbers))))
