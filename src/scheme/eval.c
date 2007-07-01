@@ -763,8 +763,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   /* Check the type for numeric arguments here. */
   else if (FD_EXPECT_FALSE
 	   (((opcode>=FD_NUMERIC2_OPCODES) && (opcode<FD_BINARY_OPCODES)) &&
-	    (!(numeric_argp(arg1)))))
-    return fd_type_error(_("number"),"numeric opcode",arg1);
+	    (!(numeric_argp(arg1))))) {
+    fdtype result=fd_type_error(_("number"),"numeric opcode",arg1);
+    fd_decref(arg1);
+    return result;}
   else if (FD_EMPTY_LISTP(body)) /* Unary call */
     /* Now we know that there is only one argument, which means you're either
        dispatching without doing ND iteration or with doing it.  */
@@ -799,13 +801,17 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	fdtype result=opcode_unary_dispatch(opcode,arg1);
 	fd_decref(arg1);
 	return result;}
-    else /* At this point, we must not have enough arguments. */
-      return fd_err(fd_TooFewArgs,"opcode eval",NULL,expr);
+    else { /* At this point, we must not have enough arguments, since
+	      the opcode is past the unary operation range. */
+      fd_decref(arg1);
+      return fd_err(fd_TooFewArgs,"opcode eval",NULL,expr);}
   /* If we get here, we have additional arguments. */
-  else if (opcode<FD_NUMERIC2_OPCODES)
-    /* All unary opcodes live beneath FD_NUMERIC2_OPCODES. */
-    return fd_err(fd_TooManyArgs,"opcode eval",NULL,expr);
-  else if (opcode<FD_NARY_OPCODES) /* Binary opcodes live beneath FD_NARY_OPCODES */ { 
+  else if (FD_EXPECT_FALSE(opcode<FD_NUMERIC2_OPCODES)) {
+    /* All unary opcodes live beneath FD_NUMERIC2_OPCODES.
+       We should probably catch this earlier. */
+    fd_decref(arg1);
+    return fd_err(fd_TooManyArgs,"opcode eval",NULL,expr);}
+  else if (opcode<FD_NARY_OPCODES) /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
     /* Binary calls start by evaluating the second argument */
     fdtype arg2=fd_eval(FD_CAR(body),env), result;
     if (FD_ABORTP(arg2)) {
@@ -815,6 +821,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       return fd_err(fd_VoidArgument,"opcode eval",NULL,FD_CAR(body));}
     else if ((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1)) ||
 	     (FD_CHOICEP(arg2)) || (FD_ACHOICEP(arg2))) 
+      /* opcode_binary_nd_dispatch handles decref of arg1 and arg2 */
       return opcode_binary_nd_dispatch(opcode,arg1,arg2);
     else {
       /* This is the dispatch case where we just go to dispatch. */
@@ -826,7 +833,9 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else result=opcode_binary_dispatch(opcode,arg1,arg2);
       fd_decref(arg1); fd_decref(arg2);
       return result;}}
-  else return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);
+  else {
+    fd_decref(arg1);
+    return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
 }
 
 /* The evaluator itself */
