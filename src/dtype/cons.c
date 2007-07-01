@@ -70,9 +70,39 @@ void fd_recycle_cons(struct FD_CONS *c)
     if (fd_recyclers[ctype]) {
       fd_recyclers[ctype](c); return;}
   case fd_pair_type: {
+    /* This is hairy in order to iteratively free up long lists. */
     struct FD_PAIR *p=(struct FD_PAIR *)c;
-    fd_decref(p->car); fd_decref(p->cdr);
-    if (mallocd) u8_free_x(p,sizeof(struct FD_PAIR));
+    fdtype cdr=p->cdr;
+    fd_decref(p->car); 
+    if ((FD_PAIRP(cdr)) &&
+	(FD_CONS_REFCOUNT((fd_pair)cdr)==1))
+      while ((FD_PAIRP(cdr)) &&
+	     (FD_CONS_REFCOUNT((fd_pair)cdr)==1)) {
+	struct FD_PAIR *x=(struct FD_PAIR *)cdr;
+	FD_LOCK_PTR(x);
+        if (FD_CONSBITS(x)>=0xFFFFFF80) {
+	  FD_UNLOCK_PTR(x);
+	  u8_raise(fd_DoubleGC,"fd_decref",NULL);}
+	else if (FD_CONSBITS(x)>=0x100) {
+	  /* This is a weird case, probably when another thread
+	     popped in and grabbed the CDR between when we
+	     checked the refcount above and when we locked the
+	     pointer. */
+	  x->consbits=x->consbits-0x80;
+	  FD_UNLOCK_PTR(x);}
+	else if (FD_CONSBITS(x)>=0x80) {
+	  x->consbits=(0xFFFFFF80|(x->consbits&0x7F));
+	  FD_UNLOCK_PTR(x);
+	  fd_decref(x->car); cdr=x->cdr;
+	  if (!(FD_PAIRP(cdr))) {
+	    fd_decref(cdr); break;}
+	  else u8_free_x(x,sizeof(struct FD_PAIR));}
+	else {
+	  FD_UNLOCK_PTR(x);
+	  u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
+    else {
+      fd_decref(cdr);
+      if (mallocd) u8_free_x(p,sizeof(struct FD_PAIR));}
     break;}
   case fd_string_type: case fd_packet_type: {
     struct FD_STRING *s=(struct FD_STRING *)c;
