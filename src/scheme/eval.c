@@ -776,7 +776,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	/* We handle choice normalization here so that the
 	   inner code can be faster. */
 	fdtype simplified=fd_make_simple_choice(arg1);
-	fdtype result=opcode_unary_nd_dispatch(opcode,arg1);
+	fdtype result=opcode_unary_nd_dispatch(opcode,simplified);
 	fd_decref(arg1); fd_decref(simplified);
 	return result;}
       else {
