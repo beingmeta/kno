@@ -277,6 +277,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Make sure that pos_limit fits into an int, in case off_t is an int. */
   off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n, load, offsets_at_end=0;
+  unsigned int *tmp_offsets=NULL, old_size=0;
   fd_lock_mutex(&(fp->lock)); load=fp->load;
   /* Get the endpos after the file pool structure is locked. */
   endpos=fd_endpos(stream);
@@ -301,35 +302,35 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
      offsets table and load. */
   if (retcode<0) {}
   else if (fp->offsets) {
-    unsigned int *new_offsets=NULL, gc_new_offsets=0;
-    if ((HAVE_MMAP) && (fp->offsets)) {
-      /* If we're using MMAP, we can't modify fp->offsets,
-	 so we make a new one and copy it. */
-      unsigned int *old_offsets=fp->offsets;
-      int i=0, n=fp->load, cap=fp->capacity;
-      new_offsets=u8_malloc(sizeof(unsigned int)*(fp->load));
-      gc_new_offsets=1;
-      while (i<n) {
-	new_offsets[i]=offget(old_offsets,i); i++;}}
-    else if (fp->offsets)
-      new_offsets=fp->offsets;
+    int i=0, load=fp->load;
+    unsigned int *old_offsets=fp->offsets;
+    old_size=fp->offsets_size;
+    tmp_offsets=u8_malloc(sizeof(unsigned int)*load);
+    /* Initialize tmp_offsets from the current offsets */
+    if (HAVE_MMAP) {
+      /* If we're mmapped, the latest values are there. */
+      while (i<old_size) {
+	tmp_offsets[i]=offget(old_offsets,i); i++;}
+      while (i<load) tmp_offsets[i++]=0;}
     else {
-      new_offsets=u8_malloc(sizeof(unsigned int)*(fp->load));
-      gc_new_offsets=1;
-      fd_setpos(stream,24);
-      fd_dtsread_ints(stream,fp->load,new_offsets);}
+      /* Otherwise, we just copy them from the old offsets. */
+      memcpy(tmp_offsets,old_offsets,sizeof(unsigned int)*old_size);
+      memset(tmp_offsets+old_size,0,sizeof(unsigned int)*(load-old_size));}
+    /* Write the changes */
     i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       unsigned int oid_off=FD_OID_DIFFERENCE(addr,base);
-      new_offsets[oid_off]=changed_offsets[i];
+      tmp_offsets[oid_off]=changed_offsets[i];
       i++;}
     u8_free(changed_offsets);
-    write_file_pool_recovery_data(fp,new_offsets);
+    /* Now write the new offset values to the end of the file. */
+    write_file_pool_recovery_data(fp,tmp_offsets);
+    /* Now write the real data */
     fd_setpos(stream,24);
-    fd_dtswrite_ints(stream,fp->load,new_offsets);
-    /* Free the new_offsets if they were consed. */
-    if (gc_new_offsets) u8_free(new_offsets);}
+    fd_dtswrite_ints(stream,fp->load,tmp_offsets);}
   else {
+    /* If we don't have an offsets cache, we don't bother
+       with ACID and just write the changed offsets directly */
     int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       unsigned int reloff=FD_OID_DIFFERENCE(addr,base);
@@ -350,6 +351,27 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     fd_movepos(stream,-(4*(fp->capacity+1)));
     ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
   else fd_dtsflush(stream);
+  /* Update the offsets, if you have any */
+  if (fp->offsets==NULL) {}
+  else if (HAVE_MMAP) {
+    int retval=munmap((fp->offsets)-6,4*old_size+24);
+    unsigned int *newmmap;
+    if (retval<0) {
+      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
+      fp->offsets=NULL; errno=0;}
+    newmmap=mmap(NULL,(4*fp->load)+24,PROT_READ,
+		 MAP_SHARED|MAP_NORESERVE,stream->fd,0);
+    if ((newmmap==NULL) || (newmmap==((void *)-1))) {
+      u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
+      fp->offsets=NULL; fp->offsets_size=0; errno=0;}
+    else {
+      fp->offsets=newmmap+6;
+      fp->offsets_size=fp->load;}
+    u8_free(tmp_offsets);}
+  else {
+    u8_free(fp->offsets);
+    fp->offsets=tmp_offsets;
+    fp->offsets_size=fp->load;}
   fd_unlock_mutex(&(fp->lock));
   return retcode;
 }
