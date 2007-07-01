@@ -285,6 +285,7 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 
 /* Opcodes */
 
+#define FD_SPECIAL_OPCODES   FD_OPCODE(0x00)
 /* Special forms, which may not evaluate or use their first argument. */
 #define FD_QUOTE_OPCODE      FD_OPCODE(0x00)
 #define FD_BEGIN_OPCODE      FD_OPCODE(0x01)
@@ -292,10 +293,13 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_OR_OPCODE         FD_OPCODE(0x03)
 #define FD_NOT_OPCODE        FD_OPCODE(0x04)
 #define FD_FAIL_OPCODE       FD_OPCODE(0x05)
+
 #define FD_IF_OPCODE         FD_OPCODE(0x10)
 #define FD_WHEN_OPCODE       FD_OPCODE(0x11)
 #define FD_UNLESS_OPCODE     FD_OPCODE(0x12)
 #define FD_IFELSE_OPCODE     FD_OPCODE(0x13)
+
+#define FD_UNARY_ND_OPCODES  FD_OPCODE(0x20)
 /* Unary primitives which handle their own non-determinism. */
 #define FD_AMBIGP_OPCODE     FD_OPCODE(0x20)
 #define FD_SINGLETONP_OPCODE FD_OPCODE(0x21)
@@ -305,6 +309,9 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_CAR_OPCODE        FD_OPCODE(0x25)
 #define FD_CDR_OPCODE        FD_OPCODE(0x26)
 #define FD_LENGTH_OPCODE     FD_OPCODE(0x27)
+#define FD_QCHOICE_OPCODE    FD_OPCODE(0x28)
+
+#define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */
 #define FD_MINUS1_OPCODE     FD_OPCODE(0x40)
 #define FD_PLUS1_OPCODE      FD_OPCODE(0x41)
@@ -313,17 +320,26 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_VECTORP_OPCODE    FD_OPCODE(0x44)
 #define FD_PAIRP_OPCODE      FD_OPCODE(0x45)
 #define FD_NULLP_OPCODE      FD_OPCODE(0x46)
+#define FD_STRINGP_OPCODE    FD_OPCODE(0x47)
+#define FD_OIDP_OPCODE       FD_OPCODE(0x48)
+#define FD_SYMBOLP_OPCODE    FD_OPCODE(0x49)
+
+#define FD_NUMERIC2_OPCODES   FD_OPCODE(0x60)
 /* Arithmetic primitives with two arguments */
 #define FD_NUMEQ_OPCODE      FD_OPCODE(0x60)
 #define FD_GT_OPCODE         FD_OPCODE(0x61)
 #define FD_GTE_OPCODE        FD_OPCODE(0x62)
 #define FD_LT_OPCODE         FD_OPCODE(0x63)
 #define FD_LTE_OPCODE        FD_OPCODE(0x64)
+
+#define FD_BINARY_OPCODES    FD_OPCODE(0x80)
 /* Other primitives with two arguments */
 #define FD_EQ_OPCODE         FD_OPCODE(0x80)
 #define FD_EQV_OPCODE        FD_OPCODE(0x81)
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
 #define FD_ELT_OPCODE        FD_OPCODE(0x83)
+
+#define FD_NARY_OPCODES      FD_OPCODE(0xa0)
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_OPCODE(0xa0)
 #define FD_TEST_OPCODE       FD_OPCODE(0xa1)

@@ -74,6 +74,7 @@
   (def-opcode WHEN       0x11)
   (def-opcode UNLESS     0x12)
   (def-opcode IFELSE     0x13)
+
   (def-opcode AMBIGUOUS? 0x20 1)
   (def-opcode SINGLETON? 0x21 1)
   (def-opcode FAIL?      0x22 1)
@@ -83,6 +84,7 @@
   (def-opcode CAR        0x25 1)
   (def-opcode CDR        0x26 1)
   (def-opcode LENGTH     0x27 1)
+
   (def-opcode 1-         0x40 1)
   (def-opcode -1+        0x40 1)
   (def-opcode 1+         0x41 1)
@@ -91,15 +93,21 @@
   (def-opcode VECTOR?    0x44 1)
   (def-opcode PAIR?      0x45 1)
   (def-opcode NULL?      0x46 1)
+  (def-opcode STRING?    0x47 1)
+  (def-opcode OID?       0x48 1)
+  (def-opcode SYMBOL?    0x49 1)
+
   (def-opcode =          0x60 2)
   (def-opcode >          0x61 2)
   (def-opcode >=         0x62 2)
   (def-opcode <          0x63 2)
   (def-opcode <=         0x64 2)
+
   (def-opcode EQ?        0x80 2)
   (def-opcode EQV?       0x81 2)
   (def-opcode EQUAL?     0x82 2)
   (def-opcode ELT        0x83 2)
+
   ;;(def-opcode GET 18 2)
   ;;(def-opcode TEST 19)
   )
