@@ -248,6 +248,7 @@ FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock);
 FD_EXPORT int fd_pool_load(fd_pool p);
 
 FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value);
+FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid);
 
 FD_EXPORT int fd_swapout_pools(void);
 FD_EXPORT int fd_close_pools(void);
