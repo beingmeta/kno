@@ -301,6 +301,12 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Write recovery information which can be used to restore the
      offsets table and load. */
   if (retcode<0) {}
+  else if ((fp->offsets) && ((endpos+((fp->load)*4))>=pos_limit)) {
+    /* No space to write the recovery information! */
+    fd_seterr(fd_FileSizeOverflow,
+	      "file_pool_storen",u8_strdup(fp->cid),
+	      FD_VOID);
+    retcode=-1;}
   else if (fp->offsets) {
     int i=0, load=fp->load;
     unsigned int *old_offsets=fp->offsets;
@@ -338,40 +344,46 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 	retcode=-1; break;}
       fd_dtswrite_4bytes(stream,changed_offsets[i]);
       i++;}}
-  fd_setpos(stream,16);
-  fd_dtswrite_4bytes(stream,fp->load);
-  update_modtime(fp);
-  if (fp->offsets) {
-    off_t end=fd_endpos(stream);
-    fd_setpos(stream,0);
-    /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
-       fd_write_file_pool_recovery_data. */
-    fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
-    fd_dtsflush(stream); fsync(stream->fd);
-    fd_movepos(stream,-(4*(fp->capacity+1)));
-    ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
-  else fd_dtsflush(stream);
-  /* Update the offsets, if you have any */
-  if (fp->offsets==NULL) {}
-  else if (HAVE_MMAP) {
-    int retval=munmap((fp->offsets)-6,4*old_size+24);
-    unsigned int *newmmap;
-    if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
-      fp->offsets=NULL; errno=0;}
-    newmmap=mmap(NULL,(4*fp->load)+24,PROT_READ,
-		 MAP_SHARED|MAP_NORESERVE,stream->fd,0);
-    if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
-      fp->offsets=NULL; fp->offsets_size=0; errno=0;}
+  if (retcode>=0) {
+    /* Now we update the load and do other cleanup.  */
+    fd_setpos(stream,16);
+    fd_dtswrite_4bytes(stream,fp->load);
+    update_modtime(fp);
+    /* Now, we set the file's magic number back to something
+       that doesn't require recovery and truncate away the saved
+       recovery information. */
+    if (fp->offsets) {
+      off_t end=fd_endpos(stream);
+      fd_setpos(stream,0);
+      /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
+	 fd_write_file_pool_recovery_data. */
+      fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
+      fd_dtsflush(stream); fsync(stream->fd);
+      fd_movepos(stream,-(4*(fp->capacity+1)));
+      ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
+    else fd_dtsflush(stream);
+    /* Update the offsets, if you have any */
+    if (fp->offsets==NULL) {}
+    else if (HAVE_MMAP) {
+      int retval=munmap((fp->offsets)-6,4*old_size+24);
+      unsigned int *newmmap;
+      if (retval<0) {
+	u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
+	fp->offsets=NULL; errno=0;}
+      newmmap=mmap(NULL,(4*fp->load)+24,PROT_READ,
+		   MAP_SHARED|MAP_NORESERVE,stream->fd,0);
+      if ((newmmap==NULL) || (newmmap==((void *)-1))) {
+	u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
+	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
+      else {
+	fp->offsets=newmmap+6;
+	fp->offsets_size=fp->load;}
+      u8_free(tmp_offsets);}
     else {
-      fp->offsets=newmmap+6;
-      fp->offsets_size=fp->load;}
-    u8_free(tmp_offsets);}
-  else {
-    u8_free(fp->offsets);
-    fp->offsets=tmp_offsets;
-    fp->offsets_size=fp->load;}
+      u8_free(fp->offsets);
+      fp->offsets=tmp_offsets;
+      fp->offsets_size=fp->load;}}
+  /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_mutex(&(fp->lock));
   return retcode;
 }
