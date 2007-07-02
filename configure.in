@@ -96,7 +96,7 @@ gcc_version=`gcc -dumpversion`
 
 case $gcc_version in
   4*)
-   CFLAGS="-Wno-pointer-sign $CFLAGS"
+   CFLAGS="-Wno-pointer-sign -Wimplicit $CFLAGS"
   ;;
 esac
 

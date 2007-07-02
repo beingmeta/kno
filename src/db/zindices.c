@@ -279,7 +279,7 @@ static fd_index open_zindex(u8_string fname,int read_only)
   unsigned int magicno, n_slots;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index(index,&zindex_handler,fname);
+  fd_init_index((fd_index)index,&zindex_handler,fname);
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL)==NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_zindex",u8_strdup(fname));
@@ -1274,14 +1274,14 @@ static struct FD_INDEX_HANDLER zindex_handler={
   NULL /* sync */
 };
 
-FD_EXPORT fd_init_zindices_c()
+FD_EXPORT void fd_init_zindices_c()
 {
   fd_register_source_file(versionid);
 
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
-  fd_register_index_opener(FD_ZINDEX_MAGIC_NUMBER,open_zindex);
-  fd_register_index_opener(FD_ZINDEX3_MAGIC_NUMBER,open_zindex);
+  fd_register_index_opener(FD_ZINDEX_MAGIC_NUMBER,open_zindex,NULL,NULL);
+  fd_register_index_opener(FD_ZINDEX3_MAGIC_NUMBER,open_zindex,NULL,NULL);
 }
 
 

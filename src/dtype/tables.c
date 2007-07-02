@@ -13,6 +13,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
+#include "fdb/numbers.h"
 
 #include <libu8/u8printf.h>
 

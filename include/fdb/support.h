@@ -77,6 +77,8 @@ FD_EXPORT void fd_seterr
 #define fd_seterr1(c) \
    fd_seterr(c,NULL,NULL,FD_VOID)
 
+FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant);
+
 FD_EXPORT int fd_geterr
   (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant);
 FD_EXPORT int fd_poperr

@@ -11,7 +11,7 @@ static char versionid[] =
 #define FD_INLINE_DTYPEIO 1
 
 #include "fdb/dtype.h"
-#include "fdb/pools.h"
+#include "fdb/fddb.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
@@ -338,7 +338,7 @@ static void init_client_id()
   fd_unlock_mutex(&client_id_lock);
 }
 
-FD_EXPORT fd_init_netpools_c()
+FD_EXPORT void fd_init_netpools_c()
 {
   fd_register_source_file(versionid);
 

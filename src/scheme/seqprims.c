@@ -11,9 +11,9 @@ static char versionid[] =
 #define FD_INLINE_PPTRS 1
 
 #include "fdb/dtype.h"
+#include "fdb/fddb.h"
 #include "fdb/eval.h"
 #include "fdb/sequences.h"
-#include "fdb/frames.h"
 #include "fdb/numbers.h"
 
 #include <libu8/libu8.h>

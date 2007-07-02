@@ -9,6 +9,7 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
+#include "fdb/numbers.h"
 
 #if 0
 typedef int bool;
@@ -74,7 +75,7 @@ static u8_mutex config_lookup_lock;
 
 static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
 
-static config_intern(u8_string start)
+static fdtype config_intern(u8_string start)
 {
   fdtype symbol; U8_OUTPUT nameout; u8_byte buf[64], *scan=start;
   U8_INIT_OUTPUT_BUF(&nameout,64,buf);

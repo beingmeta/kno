@@ -1004,7 +1004,7 @@ static u8_string lisp_printf_handler
   return NULL;
 }
 
-FD_EXPORT fd_init_textio_c()
+FD_EXPORT void fd_init_textio_c()
 {
   fd_register_source_file(versionid);
 

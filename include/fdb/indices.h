@@ -74,9 +74,15 @@ struct FD_INDEX_HANDLER some_handler={
 
 FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);
 
+FD_EXPORT void fd_init_index
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source);
+
+FD_EXPORT void fd_register_index(fd_index ix);
+
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_commit(fd_index ix);
+FD_EXPORT void fd_index_close(fd_index ix);
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_keys(fd_index ix);

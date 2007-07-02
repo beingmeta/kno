@@ -1109,7 +1109,7 @@ FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream)
 
 /* File initialization */
 
-FD_EXPORT fd_init_dtypeio_c()
+FD_EXPORT void fd_init_dtypeio_c()
 {
   fd_register_source_file(versionid);
 

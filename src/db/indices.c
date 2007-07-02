@@ -13,12 +13,12 @@ static char versionid[] =
 #define FD_INLINE_IPEVAL 1
 
 #include "fdb/dtype.h"
-#include "fdb/tables.h"
-#include "fdb/indices.h"
+#include "fdb/fddb.h"
 #include "fdb/apply.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8printf.h>
 
 fd_exception fd_EphemeralIndex=_("ephemeral index");
 fd_exception fd_ReadOnlyIndex=_("read-only index");
@@ -938,7 +938,7 @@ static int check_index(fdtype x)
   else return (fd_secondary_indices[serial-FD_N_PRIMARY_INDICES]!=NULL);
 }
 
-FD_EXPORT fd_init_indices_c()
+FD_EXPORT void fd_init_indices_c()
 {
   fd_register_source_file(versionid);
 

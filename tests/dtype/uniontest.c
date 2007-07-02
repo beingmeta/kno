@@ -11,6 +11,9 @@ static char versionid[] = "$Id$";
 
 #include "fdb/dtype.h"
 
+#include <libu8/libu8.h>
+#include <libu8/u8stdio.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,7 +21,7 @@ static char versionid[] = "$Id$";
 #include <time.h>
 
 static struct timeval start;
-static started=0;
+static int started=0;
 
 double get_elapsed()
 {

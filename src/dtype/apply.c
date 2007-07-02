@@ -13,6 +13,8 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/apply.h"
 
+#include <libu8/u8printf.h>
+
 #include <stdarg.h>
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];

@@ -12,12 +12,16 @@ static char versionid[] =
 #include "fdb/eval.h"
 
 #include "libu8/libu8.h"
+#include "libu8/u8stdio.h"
 
 #include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
+
+FD_EXPORT void fd_init_texttools(void);
+FD_EXPORT void fd_init_fdweb(void);
 
 int main(int argc,char **argv)
 {

@@ -446,6 +446,9 @@ FD_EXPORT void fd_hash_quality
    unsigned int *nbucketsp,unsigned int *maxbucketp,
    unsigned int *ncollisionsp);
 
+FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
+FD_EXPORT int fd_free_hashvec(struct FD_HASHENTRY **slots,int slots_to_free);
+
 /* Hashsets */
 
 typedef struct FD_HASHSET {
@@ -468,5 +471,8 @@ FD_EXPORT fdtype fd_hashset_elts(fd_hashset h,int clean);
 
 FD_EXPORT void fd_init_hashset(fd_hashset h,int n);
 FD_EXPORT fdtype fd_make_hashset(void);
+FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
+
+
 
 #endif /* FDB_TABLES_H */

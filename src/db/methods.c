@@ -9,10 +9,9 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "fdb/tables.h"
+#include "fdb/fddb.h"
 #include "fdb/apply.h"
-#include "fdb/frames.h"
 #include "fdb/methods.h"
 
 static fdtype frame_symbol, slot_symbol, value_symbol;
@@ -84,7 +83,7 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
       fdtype v=fd_frame_get(node,slotid);
       if (FD_ABORTP(v)) {
 	fd_decref(root);
-	fd_recycle_hashtable(&ht);
+	fd_recycle_hashset(&ht);
 	return v;}
       else {FD_ADD_TO_CHOICE(root,v);}}}}
   fd_collect_tree(&ht,root,lattice);

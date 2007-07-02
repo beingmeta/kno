@@ -490,7 +490,7 @@ unsigned int fd_hash_dtype_rep(fdtype x)
 
 /* Initialization function */
 
-FD_EXPORT fd_init_hashdtype_c()
+FD_EXPORT void fd_init_hashdtype_c()
 {
   fd_register_source_file(versionid);
 }

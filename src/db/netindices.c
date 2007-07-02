@@ -11,8 +11,7 @@ static char versionid[] =
 #define FD_INLINE_DTYPEIO 1
 
 #include "fdb/dtype.h"
-#include "fdb/dtypestream.h"
-#include "fdb/indices.h"
+#include "fdb/fddb.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
@@ -154,7 +153,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
     u8_free(ix);
     return NULL;}
   else {
-    fd_init_index(ix,&netindex_handler,spec);
+    fd_init_index((fd_index)ix,&netindex_handler,spec);
     ix->xname=xname; ix->xid=xid;
     fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
     s->mallocd=0; s->flags=s->flags|FD_DTSTREAM_DOSYNC;
@@ -173,7 +172,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
 
     fd_init_mutex(&(ix->lock));
     ix->sock=sock;
-    if (ix) fd_register_index(ix);
+    if (ix) fd_register_index((fd_index)ix);
     return (fd_index) ix;}
 }
 
@@ -365,7 +364,7 @@ static struct FD_INDEX_HANDLER netindex_handler={
   NULL /* sync */
 };
 
-FD_EXPORT fd_init_netindices_c()
+FD_EXPORT void fd_init_netindices_c()
 {
   fd_register_source_file(versionid);
 

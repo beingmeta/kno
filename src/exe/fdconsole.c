@@ -10,16 +10,18 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
-#include "fdb/eval.h"
 #include "fdb/fddb.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "fdb/eval.h"
 #include "fdb/history.h"
+#include "fdb/ports.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8netfns.h>
+#include <libu8/u8streamio.h>
+#include <libu8/u8stdio.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,8 +29,12 @@ static char versionid[] =
 #include <strings.h>
 #include <sys/time.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "revision.h"
+
+FD_EXPORT void fd_init_fdweb(void);
+FD_EXPORT void fd_init_texttools(void);
 
 #define EVAL_PROMPT ";; Eval: "
 

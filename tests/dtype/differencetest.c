@@ -10,12 +10,15 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
+#include <libu8/libu8.h>
+#include <libu8/u8stdio.h>
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
 
 static struct timeval start;
-static started=0;
+static int started=0;
 
 double get_elapsed()
 {

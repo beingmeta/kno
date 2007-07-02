@@ -13,7 +13,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
-#include "fdb/pools.h"
+#include "fdb/fddb.h"
 #include "fdb/apply.h"
 
 #include <libu8/libu8.h>
@@ -21,6 +21,7 @@ static char versionid[] =
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8netfns.h>
+#include <libu8/u8printf.h>
 
 fd_exception fd_UnknownPool=_("Unknown pool");
 fd_exception fd_CantLockOID=_("Can't lock OID");
@@ -97,10 +98,10 @@ int fd_ignore_anonymous_oids=0;
 static u8_mutex pool_registry_lock;
 #endif
 
-FD_EXPORT fdtype fd_anonymous_oid(fdtype oid)
+FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
 {
   if (fd_ignore_anonymous_oids) return FD_EMPTY_CHOICE;
-  else return fd_err(fd_AnonymousOID,NULL,NULL,oid);
+  else return fd_err(fd_AnonymousOID,cxt,NULL,oid);
 }
 
 /* Pool caching */
@@ -767,7 +768,7 @@ FD_EXPORT fd_pool _fd_oid2pool(fdtype oid)
 FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
 {
   fdtype value;
-  if (p==NULL) return fd_anonymous_oid(oid);
+  if (p==NULL) return fd_anonymous_oid("fd_fetch_oid",oid);
   else if (p->n_locks)
     if (fd_hashtable_probe_novoid(&(p->locks),oid)) {
       value=fd_hashtable_get(&(p->locks),oid,FD_VOID);
@@ -1263,7 +1264,7 @@ static u8_string _more_oid_info(fdtype oid)
   else return "not an oid!";
 }
 
-FD_EXPORT fd_init_pools_c()
+FD_EXPORT void fd_init_pools_c()
 {
   int i=0; while (i < 1024) fd_top_pools[i++]=NULL;
 

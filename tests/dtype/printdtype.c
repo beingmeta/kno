@@ -11,6 +11,9 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/dtypestream.h"
 
+#include <libu8/libu8.h>
+#include <libu8/u8stdio.h>
+
 #include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>

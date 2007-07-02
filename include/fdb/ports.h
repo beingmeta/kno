@@ -43,7 +43,7 @@ FD_EXPORT int fd_xpprint(u8_output out,fdtype x,u8_string prefix,int indent,int 
 			 fd_pprintfn fn,void *data);
 
 FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,int width,fdtype bt);
-
+FD_EXPORT void fd_print_error(U8_OUTPUT *out,FD_EXCEPTION_OBJECT *e);
 
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT_FN;
 

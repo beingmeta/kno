@@ -209,7 +209,7 @@ static void copy_timeinfo(struct U8_XTIME *tp,fdtype md,fdtype slotid)
   else u8_localtime(tp,time(NULL));
 }
 
-static write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata)
+static fdtype write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata)
 {
   struct U8_XTIME _gentime, _packtime, _modtime;
   int rev, capacity, mdpos, mdversion;
@@ -471,6 +471,13 @@ static fd_index open_memindex(u8_string file,int read_only)
 /* Initialization */
 
 static int fddbfile_initialized=0;
+
+FD_EXPORT void fd_init_hashdtype_c(void);
+FD_EXPORT void fd_init_fileindices_c(void);
+FD_EXPORT void fd_init_file_pools_c(void);
+FD_EXPORT void fd_init_zpools_c(void);
+FD_EXPORT void fd_init_zindices_c(void);
+FD_EXPORT void fd_init_hashindices_c(void);
 
 FD_EXPORT int fd_init_dbfile()
 {

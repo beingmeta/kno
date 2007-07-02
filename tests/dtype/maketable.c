@@ -11,6 +11,9 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/dtypestream.h"
 
+#include <libu8/libu8.h>
+#include <libu8/u8stdio.h>
+
 #include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,7 +21,7 @@ static char versionid[] =
 #include <time.h>
 
 static struct timeval start;
-static started=0;
+static int started=0;
 
 double get_elapsed()
 {
@@ -36,7 +39,7 @@ double get_elapsed()
 #define SLOTMAP(x) (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
 #define HASHTABLE(x) (FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *))
 
-static report_on_hashtable(fdtype ht)
+static void report_on_hashtable(fdtype ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
   fd_hashtable_stats(FD_GET_CONS(ht,fd_hashtable_type,struct FD_HASHTABLE *),

@@ -531,6 +531,9 @@ FD_EXPORT fd_oid_info_fn _fd_oid_info;
 
 #define fd_intcmp(x,y) ((x<y) ? (-1) : (x>y) ? (1) : (0))
 FD_EXPORT int fdtype_compare(fdtype x,fdtype y,int);
+FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
+FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
+
 
 #define FD_EQUAL FDTYPE_EQUAL
 #if FD_PROFILING_ENABLED

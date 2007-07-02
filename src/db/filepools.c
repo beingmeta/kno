@@ -607,7 +607,7 @@ static struct FD_POOL_HANDLER file_pool_handler={
 
 /* Module (file) Initialization */
 
-FD_EXPORT fd_init_file_pools_c()
+FD_EXPORT void fd_init_file_pools_c()
 {
   fd_register_source_file(versionid);
 

@@ -74,6 +74,12 @@ FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
 
 /* File indices */
 
+FD_EXPORT void fd_register_index_opener
+  (unsigned int id,
+   fd_index (*opener)(u8_string filename,int read_only),
+   fdtype (*mdreader)(FD_DTYPE_STREAM *),
+   fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype));
+
 typedef struct FD_INDEX_OPENER {
   unsigned int initial_word;
   fd_index (*opener)(u8_string filename,int read_only);

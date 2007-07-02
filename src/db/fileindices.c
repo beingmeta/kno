@@ -51,7 +51,7 @@ static fd_index open_file_index(u8_string fname,int read_only)
   unsigned int magicno, n_slots;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index(index,&file_index_handler,fname);
+  fd_init_index((fd_index)index,&file_index_handler,fname);
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL) == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
@@ -1126,16 +1126,16 @@ static struct FD_INDEX_HANDLER file_index_handler={
   NULL /* sync */
 };
 
-FD_EXPORT fd_init_fileindices_c()
+FD_EXPORT void fd_init_fileindices_c()
 {
   fd_register_source_file(versionid);
 
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
   slotids_symbol=fd_intern("%%SLOTIDS");
-  fd_register_index_opener(FD_FILE_INDEX_MAGIC_NUMBER,open_file_index);
-  fd_register_index_opener(FD_MULT_FILE_INDEX_MAGIC_NUMBER,open_file_index);
-  fd_register_index_opener(FD_FILE_INDEX_TO_RECOVER,open_file_index);
-  fd_register_index_opener(FD_MULT_FILE_INDEX_TO_RECOVER,open_file_index);
+  fd_register_index_opener(FD_FILE_INDEX_MAGIC_NUMBER,open_file_index,NULL,NULL);
+  fd_register_index_opener(FD_MULT_FILE_INDEX_MAGIC_NUMBER,open_file_index,NULL,NULL);
+  fd_register_index_opener(FD_FILE_INDEX_TO_RECOVER,open_file_index,NULL,NULL);
+  fd_register_index_opener(FD_MULT_FILE_INDEX_TO_RECOVER,open_file_index,NULL,NULL);
 }
 

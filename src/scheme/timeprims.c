@@ -106,7 +106,7 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     u8_xtime_plus(&(tm->xtime),FD_FIX2INT(arg));
     return tm;}
   else {
-    fd_set_type_error(fd_TypeError,"timestamp",arg);
+    fd_set_type_error("timestamp",arg);
     return NULL;}
 }
 

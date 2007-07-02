@@ -14,10 +14,8 @@ static char versionid[] =
 #define FD_INLINE_IPEVAL 1
 
 #include "fdb/dtype.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "fdb/fddb.h"
 #include "fdb/apply.h"
-#include "fdb/frames.h"
 
 #include <stdarg.h>
 
@@ -348,7 +346,7 @@ static struct FD_FUNCTION *lookup_method(fdtype arg)
 static fdtype get_slotid_methods(fdtype slotid,fdtype method_name)
 {
   fd_pool p=fd_oid2pool(slotid); fdtype smap, result;
-  if (FD_EXPECT_FALSE(p == NULL)) return fd_anonymous_oid(slotid);
+  if (FD_EXPECT_FALSE(p == NULL)) return fd_anonymous_oid("get_slotid_methods",slotid);
   else smap=fd_fetch_oid(p,slotid);
   if (FD_EXPECT_FALSE(FD_ABORTP(smap)))
     return smap;

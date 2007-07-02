@@ -882,7 +882,7 @@ static struct FD_POOL_HANDLER zpool_handler={
    zpool_metadata, /* metdata */
    NULL}; /* sync */
 
-FD_EXPORT fd_init_zpools_c()
+FD_EXPORT void fd_init_zpools_c()
 {
   fd_register_source_file(versionid);
   fd_register_pool_opener

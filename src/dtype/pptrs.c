@@ -19,6 +19,8 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
+#include <libu8/u8printf.h>
+
 #define FD_PPTR_MAX (FD_PPTR_NBLOCKS*FD_PPTR_BLOCKSIZE)
 
 fd_exception fd_InvalidPPtr=_("Invalid persistent pointer reference");

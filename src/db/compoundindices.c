@@ -11,7 +11,7 @@ static char versionid[]=
 #define FD_INLINE_DTYPEIO 1
 
 #include "fdb/dtype.h"
-#include "fdb/indices.h"
+#include "fdb/fddb.h"
 
 #include <libu8/libu8.h>
 
@@ -179,7 +179,7 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
   NULL /* sync */
 };
 
-FD_EXPORT fd_init_compoundindices_c()
+FD_EXPORT void fd_init_compoundindices_c()
 {
   fd_register_source_file(versionid);
 }

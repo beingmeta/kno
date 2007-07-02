@@ -54,6 +54,7 @@ static char vcid[] = "$Id$";
 #include <limits.h>
 #include <errno.h>
 #include <math.h>
+#include <ctype.h>
 #include "biginternals.h"
 
 /* For sprintf */

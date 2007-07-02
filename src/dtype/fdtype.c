@@ -42,7 +42,7 @@ static void register_header_files()
   fd_register_source_file(FDB_DTYPEIO_H_VERSION);
 }
 
-static init_type_names()
+static void init_type_names()
 {
   fd_type_names[fd_oid_type]=_("oid");
   fd_type_names[fd_fixnum_type]=_("fixnum");
@@ -76,6 +76,16 @@ static init_type_names()
 }
 
 static int fdtype_version=101;
+
+FD_EXPORT void fd_init_cons_c(void);
+FD_EXPORT void fd_init_oids_c(void);
+FD_EXPORT void fd_init_textio_c(void);
+FD_EXPORT void fd_init_tables_c(void);
+FD_EXPORT void fd_init_symbols_c(void);
+FD_EXPORT void fd_init_numbers_c(void);
+FD_EXPORT void fd_init_choices_c(void);
+FD_EXPORT void fd_init_support_c(void);
+FD_EXPORT void fd_init_pptrs_c(void);
 
 FD_EXPORT int fd_init_dtypelib()
 {

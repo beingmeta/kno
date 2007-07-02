@@ -12,8 +12,10 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
+#include "fdb/fddb.h"
 #include "fdb/dbfile.h"
 #include "fdb/eval.h"
+#include "fdb/ports.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8timefns.h>
@@ -30,6 +32,9 @@ static char versionid[] =
 #include <strings.h>
 #include <sys/time.h>
 #include <time.h>
+
+FD_EXPORT void fd_init_fdweb(void);
+FD_EXPORT void fd_init_texttools(void);
 
 #define MAX_CONFIGS 256
 

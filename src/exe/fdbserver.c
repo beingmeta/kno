@@ -9,11 +9,12 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
+#include "fdb/numbers.h"
 #include "fdb/tables.h"
-#include "fdb/eval.h"
 #include "fdb/fddb.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "fdb/eval.h"
+#include "fdb/ports.h"
+
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -34,6 +35,8 @@ static char versionid[] =
 #include <stdio.h>
 
 #include "revision.h"
+
+FD_EXPORT void fd_init_texttools(void);
 
 static fd_exception BadPortSpec=_("Bad port spec");
 static u8_condition NoServers=_("NoServers");
@@ -249,6 +252,8 @@ static void init_server()
   u8_server_init(&dtype_server,max_tasks,n_threads,simply_accept,dtypeserver,close_fdclient);
   fd_unlock_mutex(&init_server_lock);
 }
+
+FD_EXPORT void fd_init_fddbserv(void);
 
 int main(int argc,char **argv)
 {

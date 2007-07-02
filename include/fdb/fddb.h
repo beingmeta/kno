@@ -149,5 +149,12 @@ FD_EXPORT int fd_callcache_load(void);
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
 FD_EXPORT void fd_clear_callcache(fdtype arg);
 
+/* Include other stuff */
+
+#include "pools.h"
+#include "indices.h"
+#include "frames.h"
+
+
 #endif
 

@@ -13,13 +13,12 @@ static char versionid[] =
 #define FD_INLINE_IPEVAL 1
 
 #include "fdb/dtype.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "fdb/fddb.h"
 #include "fdb/apply.h"
-#include "fdb/frames.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8srvfns.h>
+#include <libu8/u8filefns.h>
 
 static int check_pool_validity=0;
 static fd_pool primary_pool=NULL;

@@ -9,10 +9,6 @@
 #define FDB_FRAMES_H 1
 #define FDB_FRAMES_H_VERSION "$Id$"
 
-#include "fddb.h"
-#include "pools.h"
-#include "indices.h"
-
 /* Adjuncts: these are indices which function as slotids. */
 
 FD_EXPORT int fd_set_adjunct(fd_index ix,fdtype slotid,fd_pool p);

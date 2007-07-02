@@ -268,7 +268,7 @@ FD_EXPORT int fd_callcache_load()
 
 /* Initialization stuff */
 
-FD_EXPORT fd_init_ipeval_c()
+FD_EXPORT void fd_init_ipeval_c()
 {
   fd_register_source_file(versionid);
   fd_register_config("TRACEIPEVAL",

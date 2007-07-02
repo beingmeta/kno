@@ -67,6 +67,8 @@ static char versionid[] =
 #include <errno.h>
 #include <sys/stat.h>
 
+#include <libu8/u8filefns.h>
+
 #if (HAVE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -181,7 +183,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   fd_size_t slotids_size, baseoids_size, metadata_size;  
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index(index,&hash_index_handler,fname);
+  fd_init_index((fd_index)index,&hash_index_handler,fname);
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL)
       == NULL) {
     u8_free(index);
@@ -2086,15 +2088,15 @@ FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
   return (ix->handler==&hash_index_handler);
 }
 
-FD_EXPORT fd_init_hashindices_c()
+FD_EXPORT void fd_init_hashindices_c()
 {
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
 
   fd_register_source_file(versionid);
 
-  fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index);
-  fd_register_index_opener(FD_HASH_INDEX_TO_RECOVER,open_hash_index);
+  fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index,NULL,NULL);
+  fd_register_index_opener(FD_HASH_INDEX_TO_RECOVER,open_hash_index,NULL,NULL);
 }
 
 /* TODO:

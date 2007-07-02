@@ -25,3 +25,7 @@ FD_EXPORT fdtype fd_make_inexact(fdtype);
 
 FD_EXPORT double fd_todouble(fdtype x);
 FD_EXPORT double fd_bigint_to_double(fd_bigint x);
+FD_EXPORT fd_bigint fd_ulong_to_bigint(unsigned long x);
+
+FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
+

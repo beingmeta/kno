@@ -239,6 +239,8 @@ FD_EXPORT unsigned int _fd_dtsread_4bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT void _fd_dtsread_bytes
   (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
 FD_EXPORT off_t _fd_dtsread_off_t(struct FD_DTYPE_STREAM *stream);
+FD_EXPORT unsigned int _fd_dtsread_zint(fd_dtype_stream s);
+
 #define fd_dtsread_byte   _fd_dtsread_byte(x)
 #define fd_dtsread_4bytes _fd_dtsread_4bytes 
 #define fd_dtsread_bytes  _fd_dtsread_bytes 
@@ -250,6 +252,8 @@ FD_EXPORT int _fd_dtswrite_4bytes
   (struct FD_DTYPE_STREAM *stream,int w);
 FD_EXPORT int _fd_dtswrite_bytes
   (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
+FD_EXPORT int _fd_dtswrite_zint
+  (struct FD_DTYPE_STREAM *stream,int b);
 #define fd_dtswrite_byte   _fd_dtswrite_byte 
 #define fd_dtswrite_4bytes _fd_dtswrite_4bytes 
 #define fd_dtswrite_bytes  _fd_dtswrite_bytes 

@@ -9,6 +9,7 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
+#include "fdb/numbers.h"
 #include "fdb/dtypestream.h"
 
 #include <string.h>

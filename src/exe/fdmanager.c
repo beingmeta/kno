@@ -21,6 +21,7 @@ static char versionid[] =
 #include <pwd.h>
 #include <grp.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #define NUL '\0'
 

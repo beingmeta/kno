@@ -9,11 +9,12 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "fdb/fddb.h"
 
 #include <libu8/libu8.h>
+#include <libu8/u8printf.h>
 #include <libu8/u8rusage.h>
+
 #include <stdarg.h>
 /* We include this for sscanf, but we're not really using stdio. */
 #include <stdio.h>
@@ -388,6 +389,18 @@ static void register_header_files()
   fd_register_source_file(FDB_POOLS_H_VERSION);
   fd_register_source_file(FDB_INDICES_H_VERSION);
 }
+
+FD_EXPORT void fd_init_pools_c(void);
+FD_EXPORT void fd_init_indices_c(void);
+FD_EXPORT void fd_init_netpools_c(void);
+FD_EXPORT void fd_init_netindices_c(void);
+FD_EXPORT void fd_init_xtables_c(void);
+FD_EXPORT void fd_init_apply_c(void);
+FD_EXPORT void fd_init_dtproc_c(void);
+FD_EXPORT void fd_init_dtcall_c(void);
+FD_EXPORT void fd_init_frames_c(void);
+FD_EXPORT void fd_init_ipeval_c(void);
+FD_EXPORT void fd_init_methods_c(void);
 
 FD_EXPORT int fd_init_db()
 {

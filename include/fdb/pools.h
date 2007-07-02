@@ -137,6 +137,8 @@ FD_EXPORT int fd_n_pools;
 
 FD_EXPORT int fd_register_pool(fd_pool p);
 
+FD_EXPORT fdtype fd_all_pools(void);
+
 /* Pool handlers */
 
 struct FD_POOL_HANDLER {
@@ -309,6 +311,8 @@ FD_FASTOP fdtype fd_oid_value(fdtype oid)
 #define fd_oid2pool _fd_oid2pool
 #endif
 
+FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
+
 /* Network Pools */
 
 typedef struct FD_NETWORK_POOL {
@@ -322,6 +326,12 @@ typedef struct FD_NETWORK_POOL *fd_network_pool;
 /* File pool opener */
 
 FD_EXPORT fd_pool (*fd_file_pool_opener)(u8_string);
+
+FD_EXPORT void fd_register_pool_opener
+  (unsigned int id,
+   fd_pool (*opener)(u8_string filename,int read_only),
+   fdtype (*mdreader)(FD_DTYPE_STREAM *),
+   fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype));
 
 #endif /* FDB_POOLS_H */
 

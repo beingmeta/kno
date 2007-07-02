@@ -12,9 +12,8 @@ static char versionid[] =
 #include "fdb/tables.h"
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
 #include "fdb/fdweb.h"
+#include "fdb/ports.h"
 #include "fdb/fileprims.h"
 
 #include <libu8/libu8io.h>
@@ -33,6 +32,9 @@ static char versionid[] =
 #include <signal.h>
 
 #include "revision.h"
+
+FD_EXPORT void fd_init_fdweb(void);
+FD_EXPORT void fd_init_texttools(void);
 
 /* Logging declarations */
 static u8_mutex log_lock;
@@ -625,6 +627,8 @@ static void doexit(int sig)
 {
   exit(0);
 }
+
+FD_EXPORT void fd_init_dbfile(void); 
 
 int main(int argc,char **argv)
 {
