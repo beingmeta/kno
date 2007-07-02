@@ -29,6 +29,7 @@ static fdtype text_symbol, content_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
 static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
+static fdtype maxtime_symbol, timeout_symbol;
 
 static fdtype text_types=FD_EMPTY_CHOICE;
 
@@ -252,6 +253,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
 	      strdup("curl_easy_init failed"),FD_VOID);
     return NULL;}
   curl_set(h,CURLOPT_NOPROGRESS,1);
+  curl_set(h,CURLOPT_NOSIGNAL,1);
   curl_set(h,CURLOPT_WRITEFUNCTION,copy_content_data);
   curl_set(h,CURLOPT_HEADERFUNCTION,handle_header);
   if (fd_test(curl_defaults,useragent_symbol,FD_VOID)) {
@@ -269,6 +271,10 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,cookie_symbol);
   if (fd_test(curl_defaults,cookiejar_symbol,FD_VOID))
     curl_set2dtype(h,CURLOPT_REFERER,curl_defaults,cookiejar_symbol);
+  if (fd_test(curl_defaults,maxtime_symbol,FD_VOID))
+    curl_set2dtype(h,CURLOPT_TIMEOUT,curl_defaults,maxtime_symbol);
+  if (fd_test(curl_defaults,timeout_symbol,FD_VOID))
+    curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
   {
     fdtype http_headers=fd_get(curl_defaults,header_symbol,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(header,http_headers) {
@@ -312,6 +318,14 @@ static fdtype set_curlopt
     if (FD_STRINGP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_USERAGENT,FD_STRDATA(val));
     else return fd_type_error("string","set_curlopt",val);
+  else if (FD_EQ(opt,maxtime_symbol))
+    if (FD_FIXNUMP(val)) 
+      curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT,fd_getint(val));
+    else return fd_type_error("fixnum","set_curlopt",val);
+  else if (FD_EQ(opt,timeout_symbol))
+    if (FD_FIXNUMP(val)) 
+      curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT,fd_getint(val));
+    else return fd_type_error("fixnum","set_curlopt",val);
   else if (FD_EQ(opt,authinfo_symbol))
     if (FD_STRINGP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
@@ -761,6 +775,11 @@ FD_EXPORT void fd_init_curl_c()
   date_symbol=fd_intern("DATE");
   last_modified_symbol=fd_intern("LAST-MODIFIED");
   name_symbol=fd_intern("NAME");
+  /* MAXTIME is the maximum time for a result, and TIMEOUT is the max time to
+     establish a connection. */
+  maxtime_symbol=fd_intern("MAXTIME");
+  timeout_symbol=fd_intern("TIMEOUT");
+
   
   FD_ADD_TO_CHOICE(text_types,text_symbol);
   FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/xml"));
