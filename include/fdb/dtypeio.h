@@ -90,6 +90,16 @@ FD_FASTOP unsigned int fd_flip_word(unsigned int _w)
 { return ((((_w) << 24) & 0xff000000) | (((_w) << 8) & 0x00ff0000) | 
           (((_w) >> 8) & 0x0000ff00) | ((_w) >>24) );}
 
+FD_FASTOP unsigned int fd_flip_word8(unsigned long long _w)
+{ return (((_w&(0xFF)) << 56) |
+	  ((_w&(0xFF00)) << 48) |
+	  ((_w&(0xFF0000)) << 24) |
+	  ((_w&(0xFF000000)) << 8) |
+	  ((_w>>56) & 0xFF) |
+	  ((_w>>48) & 0xFF00) |
+	  ((_w>>24) & 0xFF0000) |
+	  ((_w>>8) & 0xFF000000));}
+
 FD_FASTOP unsigned int fd_flip_ushort(unsigned short _w)
 { return ((((_w) >> 8) & 0x0000ff) | (((_w) << 8) & 0x0000ff00) );}
 

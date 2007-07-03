@@ -21,6 +21,10 @@ FD_EXPORT int fd_acid_files;
 
 FD_EXPORT int fd_init_dbfile(void) FD_LIBINIT_FN;
 
+typedef enum FD_OFFSET_TYPE { FD_B32=0, FD_B40=1, FD_B64=2 } fd_offset_type;
+typedef enum FD_COMPRESSION_TYPE { FD_NOCOMPRESS=0, FD_ZLIB=1, FD_BZ2=2 }
+  fd_compression_type;
+
 FD_EXPORT fd_exception fd_FileIndexError;
 FD_EXPORT fd_exception fd_FileSizeOverflow;
 FD_EXPORT fd_exception fd_CorruptedPool;
@@ -30,7 +34,11 @@ FD_EXPORT fd_exception fd_RecoveryRequired;
 
 #define FD_FILE_POOL_MAGIC_NUMBER 67179521
 #define FD_FILE_POOL_TO_RECOVER 67179523
+
 #define FD_ZPOOL_MAGIC_NUMBER 436491265
+
+#define FD_OIDPOOL_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
+#define FD_OIDPOOL_TO_RECOVER ((0x11<<24)|(0x09<<16)|(0x04<<8)|(0x12))
 
 /* File Pools */
 
@@ -65,6 +73,31 @@ typedef struct FD_ZPOOL {
   struct FD_SCHEMA_TABLE *schemas_byval;
   U8_MUTEX_DECL(lock);} FD_ZPOOL;
 typedef struct FD_ZPOOL *fd_zpool;
+
+/* OID Pools */
+
+#define FD_OIDPOOL_READONLY 0x40
+#define FD_OIDPOOL_OFFMODE 0x07
+#define FD_OIDPOOL_COMPRESSION 0x38
+
+#define FD_OIDPOOL_LOCKED(x) (FD_FILE_POOL_LOCKED(x))
+
+typedef struct FD_SCHEMA_ENTRY {
+  int n_slotids; fdtype *slotids, normal;
+  unsigned int *mapin, *mapout;}  FD_SCHEMA_ENTRY;
+typedef struct FD_SCHEMA_ENTRY *fd_schema_entry;
+
+typedef struct FD_OIDPOOL {
+  FD_POOL_FIELDS;
+  uint dbflags; fd_offset_type offtype; fd_compression_type compression;
+  time_t modtime;
+  int n_schemas; struct FD_SCHEMA_ENTRY *schemas;
+  struct FD_SCHEMA_TABLE **schemas_byptr, **schemas_by_normal;
+  unsigned int load, *offsets, offsets_size;
+  struct FD_DTYPE_STREAM stream;
+  size_t mmap_size; unsigned char *mmap;
+  U8_MUTEX_DECL(lock);} FD_OIDPOOL;
+typedef struct FD_OIDPOOL *fd_oidpool;
 
 FD_EXPORT fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds);
 FD_EXPORT fdtype fd_write_pool_metadata(fd_dtype_stream,fdtype);
@@ -145,6 +178,12 @@ typedef off_t fd_off_t;
 typedef size_t fd_size_t;
 #endif
 
+/* Full sized chunk refs, usually passed and returned but not
+   directly stored on disk. */
+typedef struct FD_CHUNK_REF {
+  off_t off; size_t size;} FD_CHUNK_REF;
+typedef struct FD_CHUNK_REF *fd_chunk_ref;
+
 typedef struct FD_BLOCK_REF {
   fd_off_t off; fd_size_t size;} FD_BLOCK_REF;
 typedef struct FD_BLOCK_REF *fd_block_ref;
@@ -165,6 +204,7 @@ typedef struct FD_HASH_INDEX {
      hxcustom is a placeholder for a value to customize
      the hash function. */
   unsigned int hxflags, hxcustom, n_keys;
+  fd_offset_type offtype;
   
   /* This is used to store compressed keys and values. */
   int n_slotids, new_slotids; fdtype *slotids;
