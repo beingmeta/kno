@@ -108,6 +108,22 @@ static fdtype open_dtype_file(fdtype fname)
     return fd_erreify();}
 }
 
+static fdtype extend_dtype_file(fdtype fname)
+{
+  u8_string filename=FD_STRDATA(fname);
+  struct FD_DTSTREAM *dts=u8_malloc(sizeof(struct FD_DTSTREAM));
+  FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+  if (u8_file_existsp(filename))
+    dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
+  else dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_CREATE);
+  if (dts->dt_stream) {
+    fd_endpos(dts->dt_stream);
+    return FDTYPE_CONS(dts);}
+  else {
+    u8_free(dts);
+    return fd_erreify();}
+}
+
 /* FILEOUT */
 
 static int printout_helper(U8_OUTPUT *out,fdtype x)
@@ -1185,6 +1201,9 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_file,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
 			   fd_string_type,FD_VOID));
 
 

@@ -52,5 +52,10 @@ Simple python bindings
 # Fix fencepost bug in fdexec (30 June 2007)
 Make (load) work with URI's
 Provide a file access to mod_dav servers.
-Add function prototypes for everything
-URLGET timeouts
+# Add function prototypes for everything (2 July 2007)
+# URLGET timeouts (2 July 2007)
+# Add EXTEND-DTYPE-FILE (2 July 2007)
+Add editline to fdconsole
+Separate out loading/accessing pools and using them as OID sources
+Make hash indices be able to have implicit pools
+Have bigger hash indices
