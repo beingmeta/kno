@@ -35,7 +35,7 @@ static fdtype hours_symbol, minutes_symbol, seconds_symbol;
 static fdtype milliseconds_symbol, microseconds_symbol, nanoseconds_symbol;
 static fdtype precision_symbol, isostring_symbol, tzoff_symbol;
 static fdtype spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
-static fdtype season_symbol, gmt_symbol;
+static fdtype season_symbol, gmt_symbol, timezone_symbol;
 static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
@@ -453,7 +453,15 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
       xt->u8_tptr.tm_sec=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
-  else return -1;
+  else if (FD_EQ(slotid,timezone_symbol))
+    if (FD_STRINGP(value)) {
+      int tz=u8_parse_tzspec(FD_STRDATA(value),xt->u8_tzoff);
+      xt->u8_tzoff=tz;}
+    else if (FD_FIXNUMP(value)) 
+      if ((FD_FIX2INT(value)>=-12) && (FD_FIX2INT(value)<=12))
+	xt->u8_tzoff=3600*FD_FIX2INT(value);
+      else xt->u8_tzoff=FD_FIX2INT(value);
+    else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
   return 0;
 }
 
@@ -717,6 +725,8 @@ FD_EXPORT void fd_init_timeprims_c()
 
   dowid_symbol=fd_intern("DOWID");
   monthid_symbol=fd_intern("MONTHID");
+
+  timezone_symbol=fd_intern("TIMEZONE");
 
   gmt_symbol=fd_intern("GMT");
 
