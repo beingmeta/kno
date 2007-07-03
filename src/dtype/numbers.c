@@ -2055,7 +2055,6 @@ fdtype fd_string2number(u8_string string,int base)
       if (string[1]=='\0') return FD_INT2DTYPE(0);
       else if ((string[1]=='x') || (string[1]=='X')) {
 	start=string+2; nbase=16;}
-      else nbase=8;
     if ((base<0) && (nbase)) base=nbase;
     else if (base<0) base=10;
     errno=0;
