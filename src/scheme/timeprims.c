@@ -327,18 +327,26 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dmy_symbol))
     if (xt->u8_prec>=u8_hour) {
-      char buf[64];
-      sprintf(buf,"%d%s%04d",xt->u8_tptr.tm_mday,
-	      month_names[xt->u8_tptr.tm_mday],xt->u8_tptr.tm_year+1900);
-      return fd_init_string(NULL,-1,u8_strdup(buf));}
+      if ((xt->u8_tptr.tm_mon>=0) && (xt->u8_tptr.tm_mon<11)) {
+	char buf[64];
+	sprintf(buf,"%d%s%04d",xt->u8_tptr.tm_mday,
+		month_names[xt->u8_tptr.tm_mon],xt->u8_tptr.tm_year+1900);
+	return fd_init_string(NULL,-1,u8_strdup(buf));}
+      else if (reterr)
+	return fd_err(fd_InvalidTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      else return FD_EMPTY_CHOICE;}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dm_symbol))
-    if (xt->u8_prec>=u8_hour) {
-      char buf[64];
-      sprintf(buf,"%d%s",xt->u8_tptr.tm_mday,month_names[xt->u8_tptr.tm_mday]);
-      return fd_init_string(NULL,-1,u8_strdup(buf));}
+    if (xt->u8_prec>=u8_hour)
+      if ((xt->u8_tptr.tm_mon>=0) && (xt->u8_tptr.tm_mon<11)) {
+	char buf[64];
+	sprintf(buf,"%d%s",xt->u8_tptr.tm_mday,month_names[xt->u8_tptr.tm_mon]);
+	return fd_init_string(NULL,-1,u8_strdup(buf));}
+      else if (reterr)
+	return fd_err(fd_InvalidTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      else return FD_EMPTY_CHOICE;
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
