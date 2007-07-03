@@ -57,6 +57,13 @@ static enum u8_timestamp_precision get_precision(fdtype sym)
   else return (enum u8_timestamp_precision) -1;
 }
 
+static fdtype timestampp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_timestamp_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype gmtimestamp_prim()
 {
   struct FD_TIMESTAMP *tm=u8_malloc(sizeof(struct FD_TIMESTAMP));
@@ -764,6 +771,8 @@ FD_EXPORT void fd_init_timeprims_c()
   resident_symbol=fd_intern("RESIDENT");
   utime_symbol=fd_intern("UTIME");
   stime_symbol=fd_intern("STIME");
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP?",timestampp,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GMTIMESTAMP",gmtimestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP",timestamp_prim,0));
