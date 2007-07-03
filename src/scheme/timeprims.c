@@ -440,7 +440,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("date")),value);
   else if (FD_EQ(slotid,hours_symbol))
     if ((FD_FIXNUMP(value)) &&
-	(FD_FIX2INT(value)>0) && (FD_FIX2INT(value)<32))
+	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<32))
       xt->u8_tptr.tm_hour=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("hours")),value);
   else if (FD_EQ(slotid,minutes_symbol))
@@ -456,11 +456,24 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
   else if (FD_EQ(slotid,timezone_symbol))
     if (FD_STRINGP(value)) {
       int tz=u8_parse_tzspec(FD_STRDATA(value),xt->u8_tzoff);
-      xt->u8_tzoff=tz;}
-    else if (FD_FIXNUMP(value)) 
+#if HAVE_TM_GMTOFF
+      xt->u8_tptr.tm_gmtoff=tz;
+      xt->u8_tptr.tm_zone=NULL;
+#else
+      xt->u8_tzoff=tz;
+#endif
+    }
+    else if (FD_FIXNUMP(value)) {
+      int offset=0;
       if ((FD_FIX2INT(value)>=-12) && (FD_FIX2INT(value)<=12))
-	xt->u8_tzoff=3600*FD_FIX2INT(value);
-      else xt->u8_tzoff=FD_FIX2INT(value);
+	offset=3600*FD_FIX2INT(value);
+      else offset=FD_FIX2INT(value);
+#if HAVE_TM_GMTOFF
+      xt->u8_tptr.tm_gmtoff=offset;
+#else
+      xt->u8_tzoff=offset;
+#endif
+    }
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
   return 0;
 }
@@ -477,7 +490,7 @@ static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
     else return result;}
 }
 
-static fdtype modtime_prim(fdtype slotmap,fdtype base)
+static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
 {
   fdtype result;
   if (FD_VOIDP(base)) 
@@ -494,9 +507,16 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base)
       if (xtime_set(xt,key,val)<0) {
 	result=fd_erreify(); FD_STOP_DO_CHOICES; break;}
       else {}}
-    if (!(FD_ABORTP(result))) u8_mktime(xt);
-    return result;}
-}
+    if (FD_ABORTP(result)) return result;
+    else if (FD_FALSEP(togmt)) {
+      u8_mktime(xt);
+      return result;}
+    else {
+      time_t moment=u8_mktime(xt);
+      u8_offtime(xt,moment,0);
+      return result;}}
+}      
+
 
 static fdtype timestring()
 {
@@ -742,7 +762,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("ELAPSED-TIME",elapsed_time,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("TIMESTRING",timestring,0));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim2("MODTIME",modtime_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("MODTIME",modtime_prim,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIMESTAMP+",timestamp_plus,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DIFFTIME",timestamp_diff,2));

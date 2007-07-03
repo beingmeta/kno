@@ -2,6 +2,8 @@
 
 (use-module 'texttools)
 
+(module-export! '{parsetime parsegmtime})
+
 (define month-names
   (vector (qc "Jan" "January")
 	  (qc "Feb" "February")
@@ -34,21 +36,24 @@
 (define generic-patterns
   (choice `#((label DATE #((isdigit) (opt (isdigit))) #t)
 	     (spaces*)
-	     (label MONTH ,monthstrings ,monthnum)
+	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#((label MONTH ,monthstrings ,monthnum)
+	  `#((IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
 	     (label DATE #((isdigit) (opt (isdigit))) #t)
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#((label HOUR #((isdigit) (opt (isdigit))) #t) ":"
-	     (label MINUTES #((isdigit) (isdigit)) #t)
+	  `#({(spaces) (bol)}
+	     (label HOURS #((isdigit) (opt (isdigit))) #t) 
+	     (opt #(":" (label MINUTES #((isdigit) (isdigit)) #t)))
 	     (opt #(":" (label SECONDS #((isdigit) (isdigit)) #t)))
 	     (spaces*)
 	     (opt (label AMPM (IC {"AM" "PM"})))
 	     (spaces*)
-	     (opt (label TIMEZONE (IC ,timezones))))
+	     (opt (label TIMEZONE {(IC ,timezones)
+				   #({"+" "-"} (isdigit) (opt (isdigit))
+				     (opt #(":" (isdigit) (isdigit))))})))
 	  )
   )
 
@@ -70,8 +75,29 @@
   (let ((matches (text->frames (if us (qc us-patterns) (qc terran-patterns))
 			       string)))
     (if (exists? matches)
-	(modtime (qc matches) (or base (gmtimestamp)))
+	(begin
+	  (when (test matches 'ampm '{"PM" "pm"})
+	    (let* ((frame (pick matches 'hours))
+		   (hours (get frame 'hours)))
+	      (unless (> (+ 12 hours) 24)
+		(store! frame 'hours (+ 12 hours)))))
+	  (modtime (qc matches) (or base (timestamp))))
 	(fail))))
+
+(define (parsegmtime string (base #f) (us #t))
+  (let ((matches (text->frames (if us (qc us-patterns) (qc terran-patterns))
+			       string)))
+    (if (exists? matches)
+	(begin
+	  (when (test matches 'ampm '{"PM" "pm"})
+	    (let* ((frame (pick matches 'hours))
+		   (hours (get frame 'hours)))
+	      (unless (> (+ 12 hours) 24)
+		(store! frame 'hours (+ 12 hours)))))
+	  (modtime (qc matches) (or base (timestamp)) #t))
+	(fail))))
+
+
 
 
 
