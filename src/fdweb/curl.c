@@ -218,6 +218,14 @@ static int _curl_set2dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
 		u8_fromlibc((char *)curl_easy_strerror(retval)),
 		FD_VOID);}
     return retval;}
+  else if (FD_FIXNUMP(v)) {
+    CURLcode retval=curl_easy_setopt(h->handle,option,(long)(fd_getint(v)));
+    if (retval) {
+      u8_free(h); fd_decref(v);
+      fd_seterr(CurlError,cxt,
+		u8_fromlibc((char *)curl_easy_strerror(retval)),
+		FD_VOID);}
+    return retval;}
   else {
     fd_seterr(fd_TypeError,cxt,u8_strdup("string"),v);
     return -1;}
