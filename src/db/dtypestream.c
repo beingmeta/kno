@@ -154,7 +154,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
   fd=open(localname,flags,0666); stream->flags=0;
   /* If we fail and we're modifying, try to open read-only */
   if ((fd<0) && (mode == FD_DTSTREAM_MODIFY)) {
-    fd=open(localname,O_RDWR,0666);
+    fd=open(localname,O_RDONLY,0666);
     if (fd>0) writing=0;}
   if (fd>0) {
     fd_init_dtype_stream(stream,fd,bufsiz,bufpool,conspool);

@@ -187,6 +187,23 @@ static fdtype lisphashdtyperep(fdtype x)
   return FD_INT2DTYPE(hash);
 }
 
+/* Opening unregistered file pools */
+
+static fdtype open_file_pool(fdtype name)
+{
+  fd_pool p=fd_unregistered_file_pool(FD_STRDATA(name));
+  if (p) return (fdtype) p;
+  else return fd_erreify();
+}
+
+static fdtype file_pool_prefetch(fdtype pool,fdtype oids)
+{
+  fd_pool p=(fd_pool)pool;
+  int retval=fd_pool_prefetch(p,oids);
+  if (retval<0) return fd_erreify();
+  else return FD_VOID;
+}
+
 /* The init function */
 
 static int scheme_filedb_initialized=0;
@@ -235,6 +252,13 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim2x("LABEL-POOL!",label_file_pool,2,
 					 fd_string_type,FD_VOID,
 					 fd_string_type,FD_VOID));
+
+  fd_idefn(filedb_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
+					 fd_string_type,FD_VOID));
+  fd_idefn(filedb_module,
+	   fd_make_ndprim(fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
+					  fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+
 
   fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
 					 -1,FD_VOID,-1,FD_VOID,

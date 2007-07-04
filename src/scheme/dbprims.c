@@ -376,6 +376,8 @@ static fdtype swapout_lexpr(int n,fdtype *args)
       fd_index_swapout(fd_lisp2index(arg));
     else if (FD_PTR_TYPEP(arg,fd_pool_type))
       fd_pool_swapout(fd_lisp2pool(arg));
+    else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
+      fd_pool_swapout((fd_pool)arg);
     else return fd_type_error(_("pool or index"),"swapout_lexpr",arg);
     return FD_VOID;}
   else return fd_err(fd_TooManyArgs,"swapout",NULL,FD_VOID);
@@ -395,6 +397,8 @@ static fdtype commit_lexpr(int n,fdtype *args)
       retval=fd_index_commit(fd_lisp2index(arg));
     else if (FD_PTR_TYPEP(arg,fd_pool_type))
       retval=fd_pool_commit_all(fd_lisp2pool(arg),1);
+    else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
+      retval=fd_pool_commit_all((fd_pool)arg,1);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
@@ -426,6 +430,8 @@ static fdtype swapcheck_prim()
 static fd_pool arg2pool(fdtype arg)
 {
   if (FD_POOLP(arg)) return fd_lisp2pool(arg);
+  else if (FD_PRIM_TYPEP(arg,fd_raw_pool_type))
+    return (fd_pool)arg;
   else if (FD_STRINGP(arg)) {
     fd_pool p=fd_name2pool(FD_STRDATA(arg));
     if (p) return p;

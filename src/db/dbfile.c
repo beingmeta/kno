@@ -108,7 +108,7 @@ static fd_pool open_file_pool(u8_string filename)
 FD_EXPORT
 fd_pool fd_unregistered_file_pool(u8_string filename)
 {
-  int i=0, byte, word; 
+  int i=0, byte, word=0; 
   u8_string pool_filename=get_pool_filename(filename);
   FILE *f=fopen(pool_filename,"rb");
   if (f==NULL) {

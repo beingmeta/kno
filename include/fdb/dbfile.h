@@ -107,6 +107,9 @@ FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
 				FD_OID,unsigned int,unsigned int,
 				fdtype);
 
+FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
+
+
 /* File indices */
 
 FD_EXPORT void fd_register_index_opener

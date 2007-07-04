@@ -1084,6 +1084,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 			    struct FD_POOL_HANDLER *h,
 			    u8_string source,u8_string cid)
 {
+  FD_INIT_CONS(p,fd_raw_pool_type);
   p->base=base; p->capacity=capacity;
   p->serialno=-1; p->cache_level=-1; p->read_only=1; p->flags=0;
   fd_make_hashtable(&(p->cache),64,NULL);
@@ -1112,6 +1113,36 @@ static struct FD_POOL_HANDLER gluepool_handler={
 fd_pool (*fd_file_pool_opener)(u8_string spec);
 
 FD_EXPORT fd_pool fd_use_pool(u8_string spec)
+{
+  if (strchr(spec,';')) {
+    fd_pool p=NULL;
+    u8_byte *copy=u8_strdup(spec);
+    u8_byte *start=copy, *end=strchr(start,';');
+    *end='\0'; while (start) {
+      p=fd_use_pool(start);
+      if (p==NULL) {
+	u8_free(copy); return NULL;}
+      if ((end) && (end[1])) {
+	start=end+1; end=strchr(start,';');
+	if (end) *end='\0';}
+      else start=NULL;}
+    u8_free(copy);
+    return p;}
+  else if (strchr(spec,'@')) {
+    fd_pool p=fd_find_pool_by_cid(spec);
+    if (p==NULL) p=fd_open_network_pool(spec,1);
+    if (p) fd_register_pool(p);
+    return p;}
+  else if (fd_file_pool_opener) {
+    fd_pool p=fd_file_pool_opener(spec);
+    if (p) fd_register_pool(p);
+    return p;}
+  else {
+    fd_seterr3(fd_NoFilePools,"fd_use_pool",u8_strdup(spec));
+    return NULL;}
+}
+
+FD_EXPORT fd_pool fd_open_pool(u8_string spec)
 {
   if (strchr(spec,';')) {
     fd_pool p=NULL;
@@ -1161,6 +1192,23 @@ static int unparse_pool(u8_output out,fdtype x)
       u8_printf(out,"#<POOL 0x%lx \"%s|%s\">",x,p->source,p->xid);
     else u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
   else u8_printf(out,"#<POOL 0x%lx>",x);  
+  return 1;
+}
+
+static int unparse_raw_pool(u8_output out,fdtype x)
+{
+  fd_pool p=(fd_pool)x;
+  if (p==NULL) return 0;
+  else if (p->label)
+    if ((p->xid) && (strcmp(p->source,p->xid)))
+      u8_printf(out,"#<RAWPOOL 0x%lx \"%s\" \"%s|%s\">",
+		x,p->label,p->source,p->xid);
+    else u8_printf(out,"#<RAWPOOL 0x%lx \"%s\" \"%s\">",x,p->label,p->source);
+  else if (p->source)
+    if ((p->xid) && (strcmp(p->source,p->xid)))
+      u8_printf(out,"#<RAWPOOL 0x%lx \"%s|%s\">",x,p->source,p->xid);
+    else u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
+  else u8_printf(out,"#<RAWPOOL 0x%lx>",x);  
   return 1;
 }
 
@@ -1216,9 +1264,41 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
     return 0;}
 }
 
+/* Raw pool table operations */
+
+static fdtype raw_pool_get(fdtype arg,fdtype key,fdtype dflt)
+{
+  if (FD_OIDP(key)) {
+    fd_pool p=(fd_pool)arg;
+    FD_OID addr=FD_OID_ADDR(key);
+    FD_OID base=p->base;
+    if (FD_OID_COMPARE(addr,base)<0)
+      return fd_incref(dflt);
+    else {
+      unsigned int offset=FD_OID_DIFFERENCE(addr,base);
+      unsigned int load=fd_pool_load(p);
+      if (offset<load) 
+	return fd_fetch_oid(p,key);
+      else return fd_incref(dflt);}}
+  else return fd_incref(dflt);
+}
+
+static fdtype raw_pool_keys(fdtype arg)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  fd_pool p=(fd_pool)arg;
+  FD_OID base=p->base;
+  unsigned int i=0, load=fd_pool_load(p);
+  while (i<load) {
+    fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
+    FD_ADD_TO_CHOICE(results,each);
+    i++;}
+  return results;
+}
+
 /* Initialize */
 
-fd_ptr_type fd_pool_type;
+fd_ptr_type fd_pool_type, fd_raw_pool_type;
 
 static int check_pool(fdtype x)
 {
@@ -1271,6 +1351,7 @@ FD_EXPORT void fd_init_pools_c()
   fd_register_source_file(versionid);
 
   fd_pool_type=fd_register_immediate_type("pool",check_pool);
+  fd_raw_pool_type=fd_register_cons_type("raw pool");
 
   _fd_oid_info=_more_oid_info;
 
@@ -1283,9 +1364,15 @@ FD_EXPORT void fd_init_pools_c()
   u8_new_threadkey(&fd_pool_delays_key,NULL);
 #endif
   fd_unparsers[fd_pool_type]=unparse_pool;
+  fd_unparsers[fd_raw_pool_type]=unparse_raw_pool;
   fd_register_config("ANONYMOUSOK",
 		     config_get_anonymousok,
 		     config_set_anonymousok,NULL);
+  
+  fd_tablefns[fd_raw_pool_type]=u8_malloc_type(struct FD_TABLEFNS);
+  fd_tablefns[fd_raw_pool_type]->get=(fd_table_get_fn)raw_pool_get;
+  fd_tablefns[fd_raw_pool_type]->keys=(fd_table_keys_fn)raw_pool_keys;
+
 
 #if FD_CALLTRACK_ENABLED
   {

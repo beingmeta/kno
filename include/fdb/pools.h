@@ -121,6 +121,7 @@ FD_EXPORT fd_exception
 FD_EXPORT int fd_ignore_anonymous_oids;
 
 #define FD_POOL_FIELDS \
+  FD_CONS_HEADER;                                          \
   FD_OID base;                                             \
   unsigned int capacity, read_only;                        \
   int serialno; int cache_level, flags;                    \

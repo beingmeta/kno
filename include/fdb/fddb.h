@@ -45,7 +45,7 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 #define FD_NET_BUFSIZE 64*1024
 #endif
 
-FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type;
+FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type, fd_raw_pool_type;
 
 #define FD_INDEXP(x) (FD_PTR_TYPEP(x,fd_index_type))
 #define FD_POOLP(x) (FD_PTR_TYPEP(x,fd_pool_type))
