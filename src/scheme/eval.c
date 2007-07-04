@@ -1243,7 +1243,7 @@ static fdtype apply_lexpr(int n,fdtype *args)
     while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
     i=0; while (j<n_args) {
       values[j]=fd_seq_elt(final_arg,i); j++; i++;}
-    result=fd_applyfns[ctype](args[0],n_args,values);
+    result=fd_ndapply(args[0],n_args,values);
     i=0; while (i<n_args) {fd_decref(values[i]); i++;}
     u8_free(values);
     return result;}
