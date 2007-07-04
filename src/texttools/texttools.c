@@ -131,7 +131,7 @@ static fdtype decode_entities_prim(fdtype input)
   else return fd_incref(input);
 }
 
-/* Get words */
+/* Breaking up strings into words */
 
 static u8_string skip_word(u8_string start)
 {
@@ -310,6 +310,8 @@ static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
   else return fd_type_error(_("string"),"getwordsv_prim",arg);
 }
 
+/* Making fragments from word vectors */
+
 /* This function takes a vector of words and returns a choice
      of lists enumerating subsequences of the vector.  It also
      creates subsequences starting and ending with false (#f)
@@ -365,6 +367,9 @@ static fdtype list2phrase_prim(fdtype arg)
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
+static fdtype seq2phrase_ndhelper
+  (u8_string base,fdtype seq,int start,int end,int dospace);
+
 static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
 {
   if (FD_EXPECT_FALSE(!(FD_SEQUENCEP(arg))))
@@ -385,11 +390,44 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
 	return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
     while (start<end) {
       fdtype word=fd_seq_elt(arg,start);
+      if (FD_CHOICEP(word)) {
+	fdtype result=
+	  seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
+	fd_decref(word); u8_free(out.u8_outbuf);
+	return fd_simplify_choice(result);}
       if (dospace) {u8_putc(&out,' ');} else dospace=1;
       if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
       else u8_printf(&out,"%q",word);
       fd_decref(word); start++;}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+}
+
+static fdtype seq2phrase_ndhelper
+  (u8_string base,fdtype seq,int start,int end,int dospace)
+{
+  if (start==end)
+    return fd_init_string(NULL,-1,u8_strdup(base));
+  else {
+    fdtype elt=fd_seq_elt(seq,start), results=FD_EMPTY_CHOICE;
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+    FD_DO_CHOICES(s,elt) {
+      fdtype result;
+      if (!(FD_STRINGP(s))) {
+	fd_decref(elt); u8_free(out.u8_outbuf);
+	fd_decref(results);
+	return fd_type_error(_("string"),"seq2phrase_ndhelper",s);}
+      out.u8_outptr=out.u8_outbuf;
+      u8_puts(&out,base);
+      if (dospace) u8_putc(&out,' ');
+      u8_puts(&out,FD_STRDATA(s));
+      result=seq2phrase_ndhelper(out.u8_outbuf,seq,start+1,end,1);
+      if (FD_ABORTP(result)) {
+	fd_decref(elt); fd_decref(results);
+	u8_free(out.u8_outbuf);
+	return result;}
+      FD_ADD_TO_CHOICE(results,result);}
+    u8_free(out.u8_outbuf);
+    return results;}
 }
 
 /* String predicates */
