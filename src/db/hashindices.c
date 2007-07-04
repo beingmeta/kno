@@ -1219,7 +1219,7 @@ static void hash_index_setcache(fd_index ix,int level)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
 #if (HAVE_MMAP)
-  if (level == 3) {
+  if (level > 2) {
     if (hx->mmap) return;
     fd_lock_mutex(&(hx->lock));
     if (hx->mmap) {

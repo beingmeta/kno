@@ -89,7 +89,9 @@ typedef struct FD_SCHEMA_ENTRY *fd_schema_entry;
 
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
-  uint dbflags; fd_offset_type offtype; fd_compression_type compression;
+  uint dbflags;
+  fd_offset_type offtype;
+  fd_compression_type compression;
   time_t modtime;
   int n_schemas; struct FD_SCHEMA_ENTRY *schemas;
   struct FD_SCHEMA_TABLE **schemas_byptr, **schemas_by_normal;
