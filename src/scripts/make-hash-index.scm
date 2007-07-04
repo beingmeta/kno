@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)
-(use-module 'tighten)
+(use-module 'optimize)
 
 (define (get-baseoids pools)
   (if (null? pools) '()
@@ -42,5 +42,5 @@
     (populate-hash-index (open-index file) source 250000 keys)))
 
 (define (main file from . pools)
-  (tighten! make-hash-index-from)
+  (optimize! make-hash-index-from)
   (apply make-hash-index-from file from pools))

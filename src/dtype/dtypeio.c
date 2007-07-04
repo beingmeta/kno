@@ -75,20 +75,30 @@ FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *b,unsigned char byte)
   else return -1;
 }
 
-FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *b,unsigned int w)
+FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *b,fd_4bytes w)
 {
   if (fd_needs_space(b,4)==0)
     return -1;
-#if FD_WORDS_ARE_ALIGNED
   *(b->ptr++)=(((w>>24)&0xFF));
   *(b->ptr++)=(((w>>16)&0xFF));
   *(b->ptr++)=(((w>>8)&0xFF));
   *(b->ptr++)=(((w>>0)&0xFF));
-#else
-  *((unsigned int *) (b->ptr))=fd_net_order(word);
-  b->ptr=b->ptr+4;
-#endif
   return 4;
+}
+
+FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTPUT *b,fd_8bytes w)
+{
+  if (fd_needs_space(b,8)==0)
+    return -1;
+  *(b->ptr++)=((w>>56)&0xFF);
+  *(b->ptr++)=((w>>48)&0xFF);
+  *(b->ptr++)=((w>>40)&0xFF);
+  *(b->ptr++)=((w>>32)&0xFF);
+  *(b->ptr++)=((w>>24)&0xFF);
+  *(b->ptr++)=((w>>16)&0xFF);
+  *(b->ptr++)=((w>>8)&0xFF);
+  *(b->ptr++)=((w>>0)&0xFF);
+  return 8;
 }
 
 FD_EXPORT int _fd_write_bytes
@@ -1092,6 +1102,17 @@ FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INPUT *stream)
     return 0;}
 }
 
+FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INPUT *stream)
+{
+  if (fd_needs_bytes(stream,8)) {
+    unsigned int bytes=fd_get_8bytes(stream->ptr);
+    stream->ptr=stream->ptr+8;
+    return bytes;}
+  else {
+    fd_seterr1(fd_UnexpectedEOD);
+    return 0;}
+}
+
 FD_EXPORT int
   _fd_read_bytes(unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len) 
 {
@@ -1105,6 +1126,11 @@ FD_EXPORT int
 FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream)
 {
   return fd_read_zint(stream);
+}
+
+FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INPUT *stream)
+{
+  return fd_read_zint8(stream);
 }
 
 /* File initialization */

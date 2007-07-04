@@ -28,11 +28,14 @@ static char versionid[] =
 12     XXXX    hash function constant
 16     XXXX    number of keys
 20     XXXX    file offset of slotids vector
-24     XXXX    size of slotids DTYPE representation
-28     XXXX    file offset of baseoids vector
-32     XXXX    size of baseoids DTYPE representation
-36     XXXX    file offset of index metadata
-40     XXXX    size of metadata DTYPE representation
+24     XXXX     (64 bits)
+28     XXXX    size of slotids DTYPE representation
+32     XXXX    file offset of baseoids vector
+36     XXXX     (64 bits)
+40     XXXX    size of baseoids DTYPE representation
+44     XXXX    file offset of index metadata
+48     XXXX     (64 bits) 
+52     XXXX    size of metadata DTYPE representation
 
     There are two basic kinds of data blocks: key blocks and value
     blocks.  Continuation offsets are not currently supported for key
@@ -97,6 +100,10 @@ static char versionid[] =
 #define MIDDLIN_MODULUS 573786077 /* 256000001 */
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
+#define FD_HASHINDEX_SLOTIDS_POS 20
+#define FD_HASHINDEX_BASEOIDS_POS 32
+#define FD_HASHINDEX_METADATA_POS 44
+
 static fdtype read_zvalues(fd_hash_index,int,off_t,size_t);
 
 static struct FD_INDEX_HANDLER hash_index_handler;
@@ -129,7 +136,7 @@ static fdtype set_symbol, drop_symbol;
 
 FD_FASTOP fd_byte_input open_block
   (struct FD_BYTE_INPUT *bi,FD_HASH_INDEX *hx,
-   fd_off_t off,fd_size_t size,unsigned char *buf)
+   off_t off,fd_size_t size,unsigned char *buf)
 {
   if (hx->mmap) {
     FD_INIT_BYTE_INPUT(bi,hx->mmap+off,size);
@@ -141,7 +148,7 @@ FD_FASTOP fd_byte_input open_block
     return bi;}
 }
 
-FD_FASTOP fdtype read_dtype_at_pos(fd_dtype_stream s,fd_off_t off)
+FD_FASTOP fdtype read_dtype_at_pos(fd_dtype_stream s,off_t off)
 {
   fd_setpos(s,off);
   return fd_dtsread_dtype(s);
@@ -179,7 +186,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   struct FD_HASH_INDEX *index=u8_malloc(sizeof(struct FD_HASH_INDEX));
   struct FD_DTYPE_STREAM *s=&(index->stream);
   unsigned int magicno, n_buckets, hash_const, n_keys;
-  fd_off_t slotids_pos, baseoids_pos, metadata_pos;
+  off_t slotids_pos, baseoids_pos, metadata_pos;
   fd_size_t slotids_size, baseoids_size, metadata_size;  
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
@@ -211,9 +218,14 @@ static fd_index open_hash_index(u8_string fname,int read_only)
 
   index->n_keys=n_keys=fd_dtsread_4bytes(s); /* Currently ignored */
 
-  slotids_pos=fd_dtsread_4bytes(s); slotids_size=fd_dtsread_4bytes(s);
-  baseoids_pos=fd_dtsread_4bytes(s); baseoids_size=fd_dtsread_4bytes(s);
-  metadata_pos=fd_dtsread_4bytes(s); metadata_size=fd_dtsread_4bytes(s);
+  slotids_pos=fd_dtsread_8bytes(s);
+  slotids_size=fd_dtsread_4bytes(s);
+
+  baseoids_pos=fd_dtsread_8bytes(s);
+  baseoids_size=fd_dtsread_4bytes(s);
+
+  metadata_pos=fd_dtsread_8bytes(s);
+  metadata_size=fd_dtsread_4bytes(s);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
@@ -351,13 +363,16 @@ FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
   fd_dtswrite_4bytes(stream,0); /* No keys to start */
   
   /* This is where we store the offset and size for the slotid init */
-  fd_dtswrite_4bytes(stream,0); fd_dtswrite_4bytes(stream,0);
+  fd_dtswrite_8bytes(stream,0);
+  fd_dtswrite_4bytes(stream,0);
   
   /* This is where we store the offset and size for the baseoids init */
-  fd_dtswrite_4bytes(stream,0); fd_dtswrite_4bytes(stream,0);
+  fd_dtswrite_8bytes(stream,0);
+  fd_dtswrite_4bytes(stream,0);
   
   /* This is where we store the offset and size for the metadata */
-  fd_dtswrite_4bytes(stream,0); fd_dtswrite_4bytes(stream,0);
+  fd_dtswrite_8bytes(stream,0);
+  fd_dtswrite_4bytes(stream,0);
 
   /* Write the index creation time */
   if (ctime<0) ctime=now;
@@ -403,16 +418,16 @@ FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
     metadata_size=fd_getpos(stream)-metadata_pos;}
 
   if (slotids_pos) {
-    fd_setpos(stream,20);
-    fd_dtswrite_4bytes(stream,slotids_pos);
+    fd_setpos(stream,FD_HASHINDEX_SLOTIDS_POS);
+    fd_dtswrite_8bytes(stream,slotids_pos);
     fd_dtswrite_4bytes(stream,slotids_size);}
   if (baseoids_pos) {
-    fd_setpos(stream,28);
-    fd_dtswrite_4bytes(stream,baseoids_pos);
+    fd_setpos(stream,FD_HASHINDEX_BASEOIDS_POS);
+    fd_dtswrite_8bytes(stream,baseoids_pos);
     fd_dtswrite_4bytes(stream,baseoids_size);}
   if (metadata_pos) {
-    fd_setpos(stream,36);
-    fd_dtswrite_4bytes(stream,metadata_pos);
+    fd_setpos(stream,FD_HASHINDEX_METADATA_POS);
+    fd_dtswrite_8bytes(stream,metadata_pos);
     fd_dtswrite_4bytes(stream,metadata_size);}
 
   fd_dtsclose(stream,1);
@@ -782,7 +797,7 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   struct FD_BYTE_OUTPUT out; unsigned char buf[64];
   struct FD_BYTE_INPUT keystream; unsigned char _inbuf[256], *inbuf;
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
-  off_t vblock_off; size_t vblock_size;
+  fd_off_t vblock_off; size_t vblock_size;
   FD_BLOCK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
@@ -910,7 +925,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
     int bucket=-1, j=0, bufsiz=0;
     while (j<n_entries) {
       int k=0, n_keys, found=0;
-      fd_off_t blockpos=schedule[j].ref.off;
+      off_t blockpos=schedule[j].ref.off;
       fd_size_t blocksize=schedule[j].ref.size;
       if (schedule[j].bucket!=bucket) {
 	if (blocksize<1024)
@@ -938,7 +953,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
 	  else if (n_vals==1)
 	    values[schedule[j].index]=read_zvalue(hx,&keyblock);
 	  else {
-	    fd_off_t block_off=fd_read_4bytes(&keyblock);
+	    off_t block_off=fd_read_4bytes(&keyblock);
 	    fd_size_t block_size=fd_read_zint(&keyblock);
 	    struct FD_CHOICE *result=fd_alloc_choice(n_vals);
 	    FD_SET_CONS_TYPE(result,fd_choice_type);
@@ -1087,7 +1102,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   if (hx->buckets==NULL) {
     fd_setpos(s,256);
     while (i<n_buckets) {
-      fd_off_t off; fd_size_t size;
+      off_t off; fd_size_t size;
       off=fd_dtsread_4bytes(s);
       size=fd_dtsread_4bytes(s);
       if (size) {

@@ -23,6 +23,18 @@ typedef unsigned long fdtype;
 typedef unsigned int fdtype;
 #endif
 
+#if (SIZEOF_LONG == 8)
+typedef unsigned long fd_8bytes;
+#elif (SIZEOF_LONG_LONG == 8)
+typedef unsigned long long fd_8bytes;
+#endif
+
+#if (SIZEOF_INT == 4)
+typedef unsigned int fd_4bytes;
+#elif (SIZEOF_LONG == 4)
+typedef unsigned long fd_4bytes;
+#endif
+
 #include <libu8/libu8.h>
 #include <libu8/u8ctype.h>
 #include <libu8/u8stringfns.h>

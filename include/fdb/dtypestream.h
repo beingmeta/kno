@@ -124,6 +124,16 @@ FD_FASTOP unsigned int fd_dtsread_4bytes(fd_dtype_stream s)
   else fd_whoops(fd_UnexpectedEOD);
 }
 
+FD_FASTOP fd_8bytes fd_dtsread_8bytes(fd_dtype_stream s)
+{
+  fd_dts_start_read(s);
+  if (fd_needs_bytes((fd_byte_input)s,8)) {
+    fd_8bytes bytes=fd_get_8bytes(s->ptr);
+    s->ptr=s->ptr+8;
+    return bytes;}
+  else fd_whoops(fd_UnexpectedEOD);
+}
+
 FD_FASTOP int fd_dtsread_bytes
   (fd_dtype_stream s,unsigned char *bytes,int len) 
 {
@@ -179,6 +189,15 @@ FD_FASTOP unsigned int fd_dtsread_zint(fd_dtype_stream s)
   return result<<7|probe;
 }
 
+FD_FASTOP fd_8bytes fd_dtsread_zint8(fd_dtype_stream s)
+{
+  fd_8bytes result=0, probe;
+  while (probe=fd_dtsread_byte(s))
+    if (probe&0x80) result=result<<7|(probe&0x7F);
+    else break;
+  return result<<7|probe;
+}
+
 /* Inline writers */
 
 FD_FASTOP int fd_dtswrite_byte(fd_dtype_stream s,int b)
@@ -188,6 +207,7 @@ FD_FASTOP int fd_dtswrite_byte(fd_dtype_stream s,int b)
   *(s->ptr++)=b;
   return 1;
 }
+
 FD_FASTOP int fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
 {
   fd_dts_start_write(s);
@@ -198,6 +218,22 @@ FD_FASTOP int fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
   *(s->ptr++)=((w>>0)&0xFF);
   return 4;
 }
+
+FD_FASTOP int fd_dtswrite_8bytes(fd_dtype_stream s,unsigned long long w)
+{
+  fd_dts_start_write(s);
+  if (s->ptr+8>=s->end) fd_dtsflush(s);
+  *(s->ptr++)=((w>>56)&0xFF);
+  *(s->ptr++)=((w>>48)&0xFF);
+  *(s->ptr++)=((w>>40)&0xFF);
+  *(s->ptr++)=((w>>32)&0xFF);
+  *(s->ptr++)=((w>>24)&0xFF);
+  *(s->ptr++)=((w>>16)&0xFF);
+  *(s->ptr++)=((w>>8)&0xFF);
+  *(s->ptr++)=((w>>0)&0xFF);
+  return 8;
+}
+
 FD_FASTOP int fd_dtswrite_bytes
   (fd_dtype_stream s,unsigned char *bytes,int n)
 {
@@ -245,11 +281,13 @@ static int fd_dtswrite_zint(fd_dtype_stream s,int n)
 }
 #else /* FD_INLINE_DTYPEIO */
 FD_EXPORT unsigned int _fd_dtsread_byte(struct FD_DTYPE_STREAM *stream);
-FD_EXPORT unsigned int _fd_dtsread_4bytes(struct FD_DTYPE_STREAM *stream);
+FD_EXPORT fd_4bytes _fd_dtsread_4bytes(struct FD_DTYPE_STREAM *stream);
+FD_EXPORT fd_8bytes _fd_dtsread_8bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT void _fd_dtsread_bytes
   (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
 FD_EXPORT off_t _fd_dtsread_off_t(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT unsigned int _fd_dtsread_zint(fd_dtype_stream s);
+FD_EXPORT unsigned int _fd_dtsread_zint8(fd_dtype_stream s);
 
 #define fd_dtsread_byte   _fd_dtsread_byte(x)
 #define fd_dtsread_4bytes _fd_dtsread_4bytes 

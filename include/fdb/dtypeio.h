@@ -164,10 +164,12 @@ FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *,unsigned char);
 FD_EXPORT int _fd_write_bytes(struct FD_BYTE_OUTPUT *,unsigned char *,int len);
 FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *,unsigned int);
+FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTPUT *,fd_8bytes);
 
 #define fd_write_byte(stream,b)					     \
   ((FD_EXPECT_TRUE((stream)->ptr < (stream)->end)) ? (*((stream)->ptr)++=b,1) \
    : (_fd_write_byte((stream),b)))
+
 #define fd_write_4bytes(stream,w)		   \
   ((FD_EXPECT_TRUE((stream)->ptr+4 < (stream)->end)) ?	\
    (*((stream)->ptr++)=((unsigned char)((w>>24)&0xFF)),	\
@@ -175,6 +177,19 @@ FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *,unsigned int);
     *((stream)->ptr++)=((unsigned char)((w>>8)&0xFF)),	\
     *((stream)->ptr++)=((unsigned char)((w>>0)&0xFF)),4)	\
    : (_fd_write_4bytes((stream),w)))
+
+#define fd_write_8bytes(stream,w)		        \
+  ((FD_EXPECT_TRUE((stream)->ptr+8 < (stream)->end)) ?	\
+   ((*(s->ptr++)=((w>>56)&0xFF)),                       \
+    (*(s->ptr++)=((w>>48)&0xFF)),                       \
+    (*(s->ptr++)=((w>>40)&0xFF)),                       \
+    (*(s->ptr++)=((w>>32)&0xFF)),                       \
+    (*(s->ptr++)=((w>>24)&0xFF)),                       \
+    (*(s->ptr++)=((w>>16)&0xFF)),                       \
+    (*(s->ptr++)=((w>>8)&0xFF)),                        \
+    (*(s->ptr++)=((w>>0)&0xFF))) :                      \
+   (_fd_write_8bytes((stream),w)))
+
 #define fd_write_bytes(stream,bvec,len)	 \
   ((FD_EXPECT_TRUE((stream)->ptr+len < (stream)->end)) ? \
    (memcpy(((stream)->ptr),bvec,len),	 \
@@ -210,10 +225,43 @@ FD_FASTOP int fd_write_zint(struct FD_BYTE_OUTPUT *s,int n)
     return 5;}
 }
 
+FD_FASTOP int fd_write_zint8(struct FD_BYTE_OUTPUT *s,fd_8bytes n)
+{
+  if (n < (1<<7)) {
+    return fd_write_byte(s,n);}    
+  else if (n < (1<<14)) {
+    if (fd_write_byte(s,((0x80)|(n>>7)))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 2;}
+  else if (n < (1<<21)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 3;}
+  else if (n < (1<<28)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 4;}
+  else {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 5;}
+}
+
 #define fd_get_byte(membuf) (*(membuf))
 #define fd_get_4bytes(membuf)		  \
   ((*(membuf))<<24|(*(membuf+1))<<16|	\
    (*(membuf+2))<<8|(*(membuf+3)))
+#define fd_get_8bytes(membuf)		                                \
+  ((((fd_8bytes)(*(membuf)))<<56)|(((fd_8bytes)(*(membuf+1)))<<48)   |  \
+   (((fd_8bytes)(*(membuf+2)))<<40)|(((fd_8bytes)(*(membuf+3)))<<32) |  \
+   (((fd_8bytes)(*(membuf+4)))<<24)|(((fd_8bytes)(*(membuf+5)))<<16) |  \
+   (((fd_8bytes)(*(membuf+6)))<<8)|((fd_8bytes)(*(membuf+7))))
 #define fd_get_bytes(bytes,membuf,len) \
    memcpy(bytes,membuf,len)
 
@@ -227,7 +275,8 @@ FD_FASTOP int fd_write_zint(struct FD_BYTE_OUTPUT *s,int n)
 
 FD_EXPORT int _fd_read_byte(struct FD_BYTE_INPUT *stream);
 FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INPUT *stream,int byte);
-FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INPUT *stream);
+FD_EXPORT fd_4bytes _fd_read_4bytes(struct FD_BYTE_INPUT *stream);
+FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INPUT *stream);
 FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len);
 FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream);
@@ -244,13 +293,22 @@ FD_FASTOP int fd_unread_byte(struct FD_BYTE_INPUT *stream,int byte)
   else return _fd_unread_byte(stream,byte);
 }
 
-FD_FASTOP unsigned int fd_read_4bytes(struct FD_BYTE_INPUT *stream)
+FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_BYTE_INPUT *stream)
 {
   if (fd_needs_bytes(stream,4)) {
     unsigned int bytes=fd_get_4bytes(stream->ptr);
     stream->ptr=stream->ptr+4;
     return bytes;}
   else return _fd_read_4bytes(stream);
+}
+
+FD_FASTOP fd_8bytes fd_read_8bytes(struct FD_BYTE_INPUT *stream)
+{
+  if (fd_needs_bytes(stream,8)) {
+    unsigned int bytes=fd_get_8bytes(stream->ptr);
+    stream->ptr=stream->ptr+8;
+    return bytes;}
+  else return _fd_read_8bytes(stream);
 }
 
 FD_FASTOP int fd_read_bytes
@@ -265,6 +323,15 @@ FD_FASTOP int fd_read_bytes
 FD_FASTOP int fd_read_zint(struct FD_BYTE_INPUT *s)
 {
   unsigned int result=0; int probe;
+  while (probe=fd_read_byte(s))
+    if (probe<0) return -1;
+    else if (probe&0x80) result=result<<7|(probe&0x7F);
+    else break;
+  return result<<7|probe;
+}
+FD_FASTOP int fd_read_zint8(struct FD_BYTE_INPUT *s)
+{
+  fd_8bytes result=0; int probe;
   while (probe=fd_read_byte(s))
     if (probe<0) return -1;
     else if (probe&0x80) result=result<<7|(probe&0x7F);

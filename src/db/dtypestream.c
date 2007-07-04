@@ -488,6 +488,16 @@ FD_EXPORT unsigned int _fd_dtsread_4bytes(fd_dtype_stream s)
   else {fd_whoops(fd_UnexpectedEOD); return 0;}
 }
 
+FD_EXPORT fd_8bytes _fd_dtsread_8bytes(fd_dtype_stream s)
+{
+  fd_dts_start_read(s);
+  if (fd_needs_bytes((fd_byte_input)s,8)) {
+    fd_8bytes bytes=fd_get_8bytes(s->ptr);
+    s->ptr=s->ptr+8;
+    return bytes;}
+  else {fd_whoops(fd_UnexpectedEOD); return 0;}
+}
+
 FD_EXPORT int _fd_dtsread_bytes
   (fd_dtype_stream s,unsigned char *bytes,int len)
 {
@@ -562,6 +572,7 @@ FD_EXPORT int _fd_dtswrite_byte(fd_dtype_stream s,int b)
   *(s->ptr++)=b;
   return 1;
 }
+
 FD_EXPORT int _fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
 {
   if ((s->flags)&FD_DTSTREAM_READING)
@@ -572,6 +583,22 @@ FD_EXPORT int _fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
   *(s->ptr++)=((w>>8)&0xFF);
   *(s->ptr++)=((w>>0)&0xFF);
   return 4;
+}
+
+FD_EXPORT int _fd_dtswrite_8bytes(fd_dtype_stream s,fd_8bytes w)
+{
+  if ((s->flags)&FD_DTSTREAM_READING)
+    if (fd_set_read(s,0)<0) return -1;  
+  if (s->ptr+8>=s->end) fd_dtsflush(s);
+  *(s->ptr++)=((w>>56)&0xFF);
+  *(s->ptr++)=((w>>48)&0xFF);
+  *(s->ptr++)=((w>>40)&0xFF);
+  *(s->ptr++)=((w>>32)&0xFF);
+  *(s->ptr++)=((w>>24)&0xFF);
+  *(s->ptr++)=((w>>16)&0xFF);
+  *(s->ptr++)=((w>>8)&0xFF);
+  *(s->ptr++)=((w>>0)&0xFF);
+  return 8;
 }
 
 FD_EXPORT int _fd_dtswrite_bytes
