@@ -279,6 +279,71 @@ static int fd_dtswrite_zint(fd_dtype_stream s,int n)
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
     return 5;}
 }
+static int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
+{
+  if (n < (((fd_8bytes)1)<<7)) {
+    return fd_dtswrite_byte(s,n);}    
+  else if (n < (((fd_8bytes)1)<<14)) {
+    if (fd_dtswrite_byte(s,((0x80)|(n>>7)))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 2;}
+  else if (n < (((fd_8bytes)1)<<21)) {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 3;}
+  else if (n < (((fd_8bytes)1)<<28)) {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 4;}
+  else if (n < (((fd_8bytes)1)<<35)) {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 5;}
+  else if (n < (((fd_8bytes)1)<<42)) {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 6;}
+  else if (n < (((fd_8bytes)1)<<49)) {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>42))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 7;}
+  else if (n < (((fd_8bytes)1)<<56)) {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>49))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>42))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 8;}
+  else {
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>56))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>49))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>42))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
+    return 5;}
+}
 #else /* FD_INLINE_DTYPEIO */
 FD_EXPORT unsigned int _fd_dtsread_byte(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT fd_4bytes _fd_dtsread_4bytes(struct FD_DTYPE_STREAM *stream);
@@ -302,6 +367,7 @@ FD_EXPORT int _fd_dtswrite_bytes
   (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
 FD_EXPORT int _fd_dtswrite_zint
   (struct FD_DTYPE_STREAM *stream,int b);
+FD_EXPORT int _fd_dtswrite_zint8(struct FD_DTYPE_STREAM *stream,fd_8bytes b);
 #define fd_dtswrite_byte   _fd_dtswrite_byte 
 #define fd_dtswrite_4bytes _fd_dtswrite_4bytes 
 #define fd_dtswrite_bytes  _fd_dtswrite_bytes 

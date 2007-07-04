@@ -227,24 +227,62 @@ FD_FASTOP int fd_write_zint(struct FD_BYTE_OUTPUT *s,int n)
 
 FD_FASTOP int fd_write_zint8(struct FD_BYTE_OUTPUT *s,fd_8bytes n)
 {
-  if (n < (1<<7)) {
+  if (n < (((fd_8bytes)1)<<7)) {
     return fd_write_byte(s,n);}    
-  else if (n < (1<<14)) {
+  else if (n < (((fd_8bytes)1)<<14)) {
     if (fd_write_byte(s,((0x80)|(n>>7)))<0) return -1;
     if (fd_write_byte(s,n&0x7F)<0) return -1;
     return 2;}
-  else if (n < (1<<21)) {
+  else if (n < (((fd_8bytes)1)<<21)) {
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;;
     if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;;
     if (fd_write_byte(s,n&0x7F)<0) return -1;
     return 3;}
-  else if (n < (1<<28)) {
+  else if (n < (((fd_8bytes)1)<<28)) {
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
     if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
     if (fd_write_byte(s,n&0x7F)<0) return -1;
     return 4;}
+  else if (n < (((fd_8bytes)1)<<35)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 5;}
+  else if (n < (((fd_8bytes)1)<<42)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 6;}
+  else if (n < (((fd_8bytes)1)<<49)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>42))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 7;}
+  else if (n < (((fd_8bytes)1)<<56)) {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>49))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>42))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
+    if (fd_write_byte(s,n&0x7F)<0) return -1;
+    return 8;}
   else {
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>56))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>49))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>42))))<0) return -1;
+    if (fd_write_byte(s,((0x80)|(0x7F&(n>>35))))<0) return -1;
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>28))))<0) return -1;
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>21))))<0) return -1;
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
@@ -280,6 +318,7 @@ FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INPUT *stream);
 FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len);
 FD_EXPORT int _fd_read_zint(struct FD_BYTE_INPUT *stream);
+FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INPUT *stream);
 
 #if FD_INLINE_DTYPEIO
 #define fd_read_byte(stream) \
@@ -329,7 +368,7 @@ FD_FASTOP int fd_read_zint(struct FD_BYTE_INPUT *s)
     else break;
   return result<<7|probe;
 }
-FD_FASTOP int fd_read_zint8(struct FD_BYTE_INPUT *s)
+FD_FASTOP fd_8bytes fd_read_zint8(struct FD_BYTE_INPUT *s)
 {
   fd_8bytes result=0; int probe;
   while (probe=fd_read_byte(s))

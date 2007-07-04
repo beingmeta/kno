@@ -733,7 +733,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
 	if (inbuf) u8_free(inbuf);
 	return read_zvalue(hx,&keystream);}
       else {
-	vblock_off=(off_t)fd_read_4bytes(&keystream);
+	vblock_off=(off_t)fd_read_zint8(&keystream);
 	vblock_size=(size_t)fd_read_zint(&keystream);
 	if (inbuf) u8_free(inbuf);
 	return read_zvalues(hx,n_values,vblock_off,vblock_size);}}
@@ -748,7 +748,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
 	  fd_decref(val);}
 	else fd_read_zint(&keystream);}
       else {
-	fd_read_4bytes(&keystream);
+	fd_read_zint8(&keystream);
 	fd_read_zint(&keystream);}}
     i++;}
   if (inbuf) u8_free(inbuf);
@@ -781,7 +781,7 @@ static fdtype read_zvalues
     /* For vblock continuation pointers, we make the size be first,
        so that we don't need to store an offset if it's zero. */
     vblock_size=fd_read_zint(&instream);
-    if (vblock_size) vblock_off=fd_read_4bytes(&instream);
+    if (vblock_size) vblock_off=fd_read_zint8(&instream);
     else vblock_off=0;}
   if (vbuf) u8_free(vbuf);
   return fd_init_choice(result,n_values,NULL,
@@ -797,7 +797,7 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   struct FD_BYTE_OUTPUT out; unsigned char buf[64];
   struct FD_BYTE_INPUT keystream; unsigned char _inbuf[256], *inbuf;
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
-  fd_off_t vblock_off; size_t vblock_size;
+  off_t vblock_off; size_t vblock_size;
   FD_BLOCK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
@@ -817,7 +817,7 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);
     n_values=fd_read_zint(&keystream);
-    vblock_off=(off_t)fd_read_zint(&keystream);
+    vblock_off=(off_t)fd_read_zint8(&keystream);
     vblock_size=(size_t)fd_read_zint(&keystream);
     if (key_len!=dtype_len) 
       keystream.ptr=keystream.ptr+key_len;
@@ -953,7 +953,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
 	  else if (n_vals==1)
 	    values[schedule[j].index]=read_zvalue(hx,&keyblock);
 	  else {
-	    off_t block_off=fd_read_4bytes(&keyblock);
+	    off_t block_off=fd_read_zint8(&keyblock);
 	    fd_size_t block_size=fd_read_zint(&keyblock);
 	    struct FD_CHOICE *result=fd_alloc_choice(n_vals);
 	    FD_SET_CONS_TYPE(result,fd_choice_type);
@@ -976,7 +976,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
 	    fd_decref(v);}
 	  else {
 	    /* Skip offset information */
-	    fd_read_4bytes(&keyblock);
+	    fd_read_zint8(&keyblock);
 	    fd_read_zint(&keyblock);}}
 	k++;}
       if (!(found)) 
@@ -1011,7 +1011,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
 	next_size=fd_read_zint(&vblock);
 	if (next_size) {
 	  vsched[i].ref.size=next_size;
-	  vsched[i].ref.off=fd_read_4bytes(&vblock);}
+	  vsched[i].ref.off=fd_read_zint8(&vblock);}
 	else {
 	  vsched[i].ref.size=0;
 	  vsched[i].ref.off=0;}
@@ -1147,7 +1147,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
 	  fd_decref(val);}
 	else fd_read_zint(&keyblock);}
       else {
-	fd_read_4bytes(&keyblock);
+	fd_read_zint8(&keyblock);
 	fd_read_zint(&keyblock);}
       j++;}
     i++;}
@@ -1215,7 +1215,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 	  fd_decref(val);}
 	else fd_read_zint(&keyblock);}
       else {
-	fd_read_4bytes(&keyblock);
+	fd_read_zint8(&keyblock);
 	fd_read_zint(&keyblock);}
       j++;}
     i++;}
@@ -1470,7 +1470,7 @@ FD_EXPORT int fd_populate_hash_index
       else if (FD_CHOICEP(values)) {
 	int bytes_written=0;
 	CHECK_ENDPOS(endpos,stream);
-	fd_write_4bytes(&keyblock,endpos);
+	fd_write_zint8(&keyblock,endpos);
 	retval=fd_dtswrite_zint(stream,FD_CHOICE_SIZE(values));
 	if (retval<0) {
 	  if ((keyblock.flags)&(FD_BYTEBUF_MALLOCD))
@@ -1688,7 +1688,7 @@ FD_FASTOP void parse_keybucket(fd_hash_index hx,struct KEYBUCKET *kb,
     else if (n_values==1) entry->values=read_zvalue(hx,in);
     else {
       entry->values=FD_VOID;
-      entry->vref.off=fd_read_4bytes(in);
+      entry->vref.off=fd_read_zint8(in);
       entry->vref.size=fd_read_zint(in);}
     i++;}
 }
@@ -1715,7 +1715,7 @@ FD_FASTOP FD_BLOCK_REF write_value_block
     endpos=endpos+dtswrite_zvalue(hx,stream,values);}
   endpos=endpos+fd_dtswrite_zint(stream,cont_size);
   if (cont_size)
-    endpos=endpos+fd_dtswrite_4bytes(stream,cont_off);
+    endpos=endpos+fd_dtswrite_zint8(stream,cont_off);
   retval.off=startpos; retval.size=endpos-startpos;
   return retval;
 }
@@ -1795,7 +1795,7 @@ FD_FASTOP fd_off_t write_keybucket
     if (n_values==1)
       endpos=endpos+dtswrite_zvalue(hx,stream,ke[i].values);
     else {
-      endpos=endpos+fd_dtswrite_4bytes(stream,ke[i].vref.off);
+      endpos=endpos+fd_dtswrite_zint8(stream,ke[i].vref.off);
       endpos=endpos+fd_dtswrite_zint(stream,ke[i].vref.size);}
     i++;}
   return endpos;

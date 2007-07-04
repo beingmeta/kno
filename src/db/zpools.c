@@ -265,11 +265,6 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
   return zread_dtype(s);
 }
 
-FD_EXPORT fdtype _fd_dtsread_zint(struct FD_DTYPE_STREAM *s)
-{
-  return fd_dtsread_zint(s);
-}
-
 /* This reads a non frame value with compression. */
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {

@@ -24,9 +24,9 @@ typedef unsigned int fdtype;
 #endif
 
 #if (SIZEOF_LONG == 8)
-typedef unsigned long fd_8bytes;
+typedef long fd_8bytes;
 #elif (SIZEOF_LONG_LONG == 8)
-typedef unsigned long long fd_8bytes;
+typedef long long fd_8bytes;
 #endif
 
 #if (SIZEOF_INT == 4)

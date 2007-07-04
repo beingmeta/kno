@@ -522,6 +522,16 @@ FD_EXPORT int _fd_dtsread_bytes
     return len;}
 }
 
+FD_EXPORT int _fd_dtsread_zint(fd_dtype_stream stream)
+{
+  return fd_dtsread_zint(stream);
+}
+
+FD_EXPORT fd_8bytes _fd_dtsread_zint8(fd_dtype_stream stream)
+{
+  return fd_dtsread_zint8(stream);
+}
+
 FD_EXPORT off_t _fd_dtsread_off_t(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
