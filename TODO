@@ -2,9 +2,11 @@ Stuff to do with beingmeta's FramerD implementation
 ---------------------------------------------------
 # Make pick/reject use the fact that its input is already ordered (23 June 2007)
 # Made index_keys handlers return an unsorted vector rather than a choice (19 June 2007)
-Move repack-file-index into fdb
-Implement new generic pool format that includes sizes in offset table, etc
+# Move repack-file-index into fdb (replaced with copy-index, 5 July 2007)
+# Implement new generic pool format that includes sizes in offset table, etc (4 July 2007)
 Speed up hashindex commit and scaling
+# Make hashindices future proof (4 July 2007)
+Make hashindices able to be larger than 4GB
 # Implement generic script install and more scripts (6June2007)
 Parallel commits under commit-all
 Implement journaling for pool/index collections
@@ -40,17 +42,8 @@ Add DTYPE I/O flag for emitting unserializable objects
 # Add AND/OR/NOT to OPCODES (28 June 2007)
 # Add IFELSE (28 June 2007)
 # Add TRACELOAD configuration variable (28 June 2007)
-<<<<<<< .mine
-<<<<<<< .mine
-Make libu8 use mallinfo when available
-Make SWAPCHECK use real bytes
-=======
 # Make libu8 use mallinfo when available (30 June 2007)
 # Make SWAPCHECK use real bytes (30 June 2007)
->>>>>>> .r1285
-=======
-Make libu8 use mallinfo when available
-Make SWAPCHECK use real bytes
 Move thread functions in eval.c into their own file
 Add accessor/control functions for thread objects
 Add ability to reuse threads with new calls/applications
@@ -59,14 +52,16 @@ LDAP access libraries
 SQL access libraries
 Simple python bindings
 # Fix fencepost bug in fdexec (30 June 2007)
-Make (load) work with URI's
+Make (load <file>) work with URI's
 Provide a file access to mod_dav servers.
 # Add function prototypes for everything (2 July 2007)
 # URLGET timeouts (2 July 2007)
 # Add EXTEND-DTYPE-FILE (2 July 2007)
 Add editline to fdconsole
-Separate out loading/accessing pools and using them as OID sources
+# Separate out loading/accessing pools and using them as OID sources (4 July 2007)
 Make hash indices be able to have implicit pools
-Have bigger hash indices
 Remove all the memory pool stuff
-
+Make copy-index smarter as a replacement for repack-* functions
+Add background search methods for slots
+Add generic composition for slotids
+Finish adding slotid and zlib/bz2 compression to OIDPOOLs
