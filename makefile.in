@@ -217,6 +217,8 @@ $(BININSTALLDIR)/%: exe/%
 
 depend:
 	makedepend -- $(CFLAGS) -- $(FDB_SOURCES)
+depend.in:
+	makedepend -fmakefile.in -- $(CFLAGS) -- $(FDB_SOURCES)
 
 
 # Utility targets
@@ -386,6 +388,7 @@ install-scheme-scripts:
 	etc/install-script src/scripts/repack-index.scm
 	etc/install-script src/scripts/make-hash-index.scm
 	etc/install-script src/scripts/make-oidpool.scm
+	etc/install-script src/scripts/copy-pool.scm
 
 $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -445,660 +448,680 @@ $(EXECUTABLES): src/exe/revision.h
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-src/db/compoundindices.o: include/fdb/dtype.h include/fdb/common.h
-src/db/compoundindices.o: include/fdb/defines.h include/fdb/config.h
-src/db/compoundindices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/compoundindices.o: include/fdb/support.h include/fdb/ptr.h
-src/db/compoundindices.o: include/fdb/cons.h include/fdb/choices.h
-src/db/compoundindices.o: include/fdb/tables.h include/fdb/indices.h
-src/db/compoundindices.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/db/compoundindices.o: include/fdb/dtype.h
-src/db/dbfile.o: include/fdb/dtype.h include/fdb/common.h
-src/db/dbfile.o: include/fdb/defines.h include/fdb/config.h
-src/db/dbfile.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/dbfile.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/dbfile.o: include/fdb/choices.h include/fdb/tables.h
-src/db/dbfile.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/db/dbfile.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/dbfile.o: include/fdb/pools.h include/fdb/indices.h
-src/db/dbserv.o: include/fdb/dtype.h include/fdb/common.h
-src/db/dbserv.o: include/fdb/defines.h include/fdb/config.h
-src/db/dbserv.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/dbserv.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/dbserv.o: include/fdb/choices.h include/fdb/tables.h
-src/db/dbserv.o: include/fdb/pools.h include/fdb/fddb.h
-src/db/dbserv.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/dbserv.o: include/fdb/indices.h include/fdb/apply.h
-src/db/dbserv.o: include/fdb/frames.h include/fdb/pools.h
-src/db/dbserv.o: include/fdb/indices.h
-src/db/dbxpool.o: include/fdb/dtype.h include/fdb/common.h
-src/db/dbxpool.o: include/fdb/defines.h include/fdb/config.h
-src/db/dbxpool.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/dbxpool.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/dbxpool.o: include/fdb/choices.h include/fdb/tables.h
-src/db/dbxpool.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/db/dbxpool.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/dbxpool.o: include/fdb/pools.h include/fdb/indices.h
-src/db/dbxpool.o: include/fdb/dbxfile.h
-src/db/dtcall.o: include/fdb/dtype.h include/fdb/common.h
-src/db/dtcall.o: include/fdb/defines.h include/fdb/config.h
-src/db/dtcall.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/dtcall.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/dtcall.o: include/fdb/choices.h include/fdb/tables.h
-src/db/dtcall.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/dtcall.o: include/fdb/apply.h include/fdb/fddb.h
-src/db/dtcall.o: include/fdb/dtypestream.h include/fdb/dtcall.h
-src/db/dtproc.o: include/fdb/dtype.h include/fdb/common.h
-src/db/dtproc.o: include/fdb/defines.h include/fdb/config.h
-src/db/dtproc.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/dtproc.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/dtproc.o: include/fdb/choices.h include/fdb/tables.h
-src/db/dtproc.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/dtproc.o: include/fdb/apply.h include/fdb/fddb.h
-src/db/dtproc.o: include/fdb/dtypestream.h include/fdb/dtproc.h
-src/db/dtypestream.o: include/fdb/dtype.h include/fdb/common.h
-src/db/dtypestream.o: include/fdb/defines.h include/fdb/config.h
-src/db/dtypestream.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/dtypestream.o: include/fdb/support.h include/fdb/ptr.h
-src/db/dtypestream.o: include/fdb/cons.h include/fdb/choices.h
-src/db/dtypestream.o: include/fdb/tables.h include/fdb/dtypestream.h
-src/db/dtypestream.o: include/fdb/dtype.h
-src/db/fddb.o: include/fdb/dtype.h include/fdb/common.h include/fdb/defines.h
-src/db/fddb.o: include/fdb/config.h include/fdb/malloc.h
-src/db/fddb.o: include/fdb/dtypeio.h include/fdb/support.h include/fdb/ptr.h
-src/db/fddb.o: include/fdb/cons.h include/fdb/choices.h include/fdb/tables.h
-src/db/fddb.o: include/fdb/pools.h include/fdb/fddb.h
-src/db/fddb.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/fddb.o: include/fdb/indices.h
-src/db/fileindices.o: include/fdb/dtype.h include/fdb/common.h
-src/db/fileindices.o: include/fdb/defines.h include/fdb/config.h
-src/db/fileindices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/fileindices.o: include/fdb/support.h include/fdb/ptr.h
-src/db/fileindices.o: include/fdb/cons.h include/fdb/choices.h
-src/db/fileindices.o: include/fdb/tables.h include/fdb/dbfile.h
-src/db/fileindices.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/db/fileindices.o: include/fdb/dtype.h include/fdb/pools.h
-src/db/fileindices.o: include/fdb/indices.h
-src/db/filepools.o: include/fdb/dtype.h include/fdb/common.h
-src/db/filepools.o: include/fdb/defines.h include/fdb/config.h
-src/db/filepools.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/filepools.o: include/fdb/support.h include/fdb/ptr.h
-src/db/filepools.o: include/fdb/cons.h include/fdb/choices.h
-src/db/filepools.o: include/fdb/tables.h include/fdb/dbfile.h
-src/db/filepools.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/db/filepools.o: include/fdb/dtype.h include/fdb/pools.h
-src/db/filepools.o: include/fdb/indices.h
-src/db/frames.o: include/fdb/dtype.h include/fdb/common.h
-src/db/frames.o: include/fdb/defines.h include/fdb/config.h
-src/db/frames.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/frames.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/frames.o: include/fdb/choices.h include/fdb/tables.h
-src/db/frames.o: include/fdb/pools.h include/fdb/fddb.h
-src/db/frames.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/frames.o: include/fdb/indices.h include/fdb/apply.h
-src/db/frames.o: include/fdb/frames.h include/fdb/pools.h
-src/db/frames.o: include/fdb/indices.h
-src/db/hashdtype.o: include/fdb/dtype.h include/fdb/common.h
-src/db/hashdtype.o: include/fdb/defines.h include/fdb/config.h
-src/db/hashdtype.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/hashdtype.o: include/fdb/support.h include/fdb/ptr.h
-src/db/hashdtype.o: include/fdb/cons.h include/fdb/choices.h
-src/db/hashdtype.o: include/fdb/tables.h include/fdb/dbfile.h
-src/db/hashdtype.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/db/hashdtype.o: include/fdb/dtype.h include/fdb/pools.h
-src/db/hashdtype.o: include/fdb/indices.h
-src/db/hashindices.o: include/fdb/dtype.h include/fdb/common.h
-src/db/hashindices.o: include/fdb/defines.h include/fdb/config.h
-src/db/hashindices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/hashindices.o: include/fdb/support.h include/fdb/ptr.h
-src/db/hashindices.o: include/fdb/cons.h include/fdb/choices.h
-src/db/hashindices.o: include/fdb/tables.h include/fdb/dtypeio.h
-src/db/hashindices.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/hashindices.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/db/hashindices.o: include/fdb/dtypestream.h include/fdb/pools.h
-src/db/hashindices.o: include/fdb/indices.h
-src/db/oidpools.o: include/fdb/dtype.h include/fdb/common.h
-src/db/oidpools.o: include/fdb/defines.h include/fdb/config.h
-src/db/oidpools.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/oidpools.o: include/fdb/support.h include/fdb/ptr.h
-src/db/oidpools.o: include/fdb/cons.h include/fdb/choices.h
-src/db/oidpools.o: include/fdb/tables.h include/fdb/dtypeio.h
-src/db/oidpools.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/oidpools.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/db/oidpools.o: include/fdb/dtypestream.h include/fdb/pools.h
-src/db/oidpools.o: include/fdb/indices.h
-src/db/indices.o: include/fdb/dtype.h include/fdb/common.h
-src/db/indices.o: include/fdb/defines.h include/fdb/config.h
-src/db/indices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/indices.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/indices.o: include/fdb/choices.h include/fdb/tables.h
-src/db/indices.o: include/fdb/tables.h include/fdb/indices.h
-src/db/indices.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/db/indices.o: include/fdb/dtype.h include/fdb/apply.h
-src/db/ipeval.o: include/fdb/dtype.h include/fdb/common.h
-src/db/ipeval.o: include/fdb/defines.h include/fdb/config.h
-src/db/ipeval.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/ipeval.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/ipeval.o: include/fdb/choices.h include/fdb/tables.h
-src/db/ipeval.o: include/fdb/tables.h include/fdb/apply.h include/fdb/fddb.h
-src/db/ipeval.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/ipeval.o: include/fdb/pools.h include/fdb/fddb.h include/fdb/indices.h
-src/db/methods.o: include/fdb/dtype.h include/fdb/common.h
-src/db/methods.o: include/fdb/defines.h include/fdb/config.h
-src/db/methods.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/methods.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/methods.o: include/fdb/choices.h include/fdb/tables.h
-src/db/methods.o: include/fdb/pools.h include/fdb/fddb.h
-src/db/methods.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/methods.o: include/fdb/indices.h include/fdb/apply.h
-src/db/methods.o: include/fdb/frames.h include/fdb/pools.h
-src/db/methods.o: include/fdb/indices.h include/fdb/methods.h
-src/db/netindices.o: include/fdb/dtype.h include/fdb/common.h
-src/db/netindices.o: include/fdb/defines.h include/fdb/config.h
-src/db/netindices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/netindices.o: include/fdb/support.h include/fdb/ptr.h
-src/db/netindices.o: include/fdb/cons.h include/fdb/choices.h
-src/db/netindices.o: include/fdb/tables.h include/fdb/dtypestream.h
-src/db/netindices.o: include/fdb/dtype.h include/fdb/indices.h
-src/db/netindices.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/db/netpools.o: include/fdb/dtype.h include/fdb/common.h
-src/db/netpools.o: include/fdb/defines.h include/fdb/config.h
-src/db/netpools.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/netpools.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/netpools.o: include/fdb/choices.h include/fdb/tables.h
-src/db/netpools.o: include/fdb/pools.h include/fdb/fddb.h
-src/db/netpools.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/pools.o: include/fdb/dtype.h include/fdb/common.h
-src/db/pools.o: include/fdb/defines.h include/fdb/config.h
-src/db/pools.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/pools.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/pools.o: include/fdb/choices.h include/fdb/tables.h
-src/db/pools.o: include/fdb/tables.h include/fdb/pools.h include/fdb/fddb.h
-src/db/pools.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/pools.o: include/fdb/apply.h
-src/db/xtables.o: include/fdb/dtype.h include/fdb/common.h
-src/db/xtables.o: include/fdb/defines.h include/fdb/config.h
-src/db/xtables.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/xtables.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/xtables.o: include/fdb/choices.h include/fdb/tables.h
-src/db/xtables.o: include/fdb/pools.h include/fdb/fddb.h
-src/db/xtables.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/xtables.o: include/fdb/indices.h include/fdb/apply.h
-src/db/xtables.o: include/fdb/frames.h include/fdb/pools.h
-src/db/xtables.o: include/fdb/indices.h
-src/db/zindices.o: include/fdb/dtype.h include/fdb/common.h
-src/db/zindices.o: include/fdb/defines.h include/fdb/config.h
-src/db/zindices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/zindices.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/zindices.o: include/fdb/choices.h include/fdb/tables.h
-src/db/zindices.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/db/zindices.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/zindices.o: include/fdb/pools.h include/fdb/indices.h
-src/db/zpools.o: include/fdb/dtype.h include/fdb/common.h
-src/db/zpools.o: include/fdb/defines.h include/fdb/config.h
-src/db/zpools.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/db/zpools.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/db/zpools.o: include/fdb/choices.h include/fdb/tables.h
-src/db/zpools.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/db/zpools.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/db/zpools.o: include/fdb/pools.h include/fdb/indices.h
-src/dtype/apply.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/apply.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/apply.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/apply.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/dtype/apply.o: include/fdb/choices.h include/fdb/tables.h
-src/dtype/apply.o: include/fdb/apply.h
-src/dtype/choices.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/choices.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/choices.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/choices.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/choices.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/choices.o: include/fdb/tables.h
-src/dtype/cons.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/cons.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/cons.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/cons.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/dtype/cons.o: include/fdb/choices.h include/fdb/tables.h
-src/dtype/cons.o: include/fdb/cons.h
-src/dtype/dtypeio.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/dtypeio.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/dtypeio.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/dtypeio.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/dtypeio.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/dtypeio.o: include/fdb/tables.h include/fdb/dtypeio.h
-src/dtype/fdtype.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/fdtype.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/fdtype.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/fdtype.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/fdtype.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/fdtype.o: include/fdb/tables.h
-src/dtype/numbers.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/numbers.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/numbers.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/numbers.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/numbers.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/numbers.o: include/fdb/tables.h include/fdb/bigints.h
-src/dtype/numbers.o: include/fdb/numbers.h src/dtype/biginternals.h
-src/dtype/oids.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/oids.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/oids.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/oids.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/dtype/oids.o: include/fdb/choices.h include/fdb/tables.h
-src/dtype/pptrs.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/pptrs.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/pptrs.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/pptrs.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/dtype/pptrs.o: include/fdb/choices.h include/fdb/tables.h
-src/dtype/support.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/support.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/support.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/support.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/support.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/support.o: include/fdb/tables.h
-src/dtype/symbols.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/symbols.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/symbols.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/symbols.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/symbols.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/symbols.o: include/fdb/tables.h
-src/dtype/tables.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/tables.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/tables.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/tables.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/tables.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/tables.o: include/fdb/tables.h include/fdb/tables.h
-src/dtype/textio.o: include/fdb/dtype.h include/fdb/common.h
-src/dtype/textio.o: include/fdb/defines.h include/fdb/config.h
-src/dtype/textio.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/dtype/textio.o: include/fdb/support.h include/fdb/ptr.h
-src/dtype/textio.o: include/fdb/cons.h include/fdb/choices.h
-src/dtype/textio.o: include/fdb/tables.h
-src/exe/fdbatch.o: src/exe/fdexec.c include/fdb/dtype.h include/fdb/common.h
-src/exe/fdbatch.o: include/fdb/defines.h include/fdb/config.h
-src/exe/fdbatch.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/exe/fdbatch.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/exe/fdbatch.o: include/fdb/choices.h include/fdb/tables.h
-src/exe/fdbatch.o: include/fdb/tables.h include/fdb/dbfile.h
-src/exe/fdbatch.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/exe/fdbatch.o: include/fdb/dtype.h include/fdb/pools.h
-src/exe/fdbatch.o: include/fdb/indices.h include/fdb/eval.h
-src/exe/fdbatch.o: include/fdb/apply.h
-src/exe/fdbserver.o: include/fdb/dtype.h include/fdb/common.h
-src/exe/fdbserver.o: include/fdb/defines.h include/fdb/config.h
-src/exe/fdbserver.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/exe/fdbserver.o: include/fdb/support.h include/fdb/ptr.h
-src/exe/fdbserver.o: include/fdb/cons.h include/fdb/choices.h
-src/exe/fdbserver.o: include/fdb/tables.h include/fdb/tables.h
-src/exe/fdbserver.o: include/fdb/eval.h include/fdb/apply.h
-src/exe/fdbserver.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/exe/fdbserver.o: include/fdb/dtype.h include/fdb/pools.h
-src/exe/fdbserver.o: include/fdb/fddb.h include/fdb/indices.h
-src/exe/fdbserver.o: src/exe/revision.h
-src/exe/fdconsole.o: include/fdb/dtype.h include/fdb/common.h
-src/exe/fdconsole.o: include/fdb/defines.h include/fdb/config.h
-src/exe/fdconsole.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/exe/fdconsole.o: include/fdb/support.h include/fdb/ptr.h
-src/exe/fdconsole.o: include/fdb/cons.h include/fdb/choices.h
-src/exe/fdconsole.o: include/fdb/tables.h include/fdb/tables.h
-src/exe/fdconsole.o: include/fdb/eval.h include/fdb/apply.h
-src/exe/fdconsole.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/exe/fdconsole.o: include/fdb/dtype.h include/fdb/pools.h
-src/exe/fdconsole.o: include/fdb/fddb.h include/fdb/indices.h
-src/exe/fdconsole.o: include/fdb/history.h src/exe/revision.h
-src/exe/fdexec.o: include/fdb/dtype.h include/fdb/common.h
-src/exe/fdexec.o: include/fdb/defines.h include/fdb/config.h
-src/exe/fdexec.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/exe/fdexec.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/exe/fdexec.o: include/fdb/choices.h include/fdb/tables.h
-src/exe/fdexec.o: include/fdb/tables.h include/fdb/dbfile.h
-src/exe/fdexec.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/exe/fdexec.o: include/fdb/dtype.h include/fdb/pools.h
-src/exe/fdexec.o: include/fdb/indices.h include/fdb/eval.h
-src/exe/fdexec.o: include/fdb/apply.h
-src/exe/fdmanager.o: include/fdb/dtype.h include/fdb/common.h
-src/exe/fdmanager.o: include/fdb/defines.h include/fdb/config.h
-src/exe/fdmanager.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/exe/fdmanager.o: include/fdb/support.h include/fdb/ptr.h
-src/exe/fdmanager.o: include/fdb/cons.h include/fdb/choices.h
-src/exe/fdmanager.o: include/fdb/tables.h
-src/exe/fdserv.o: include/fdb/dtype.h include/fdb/common.h
-src/exe/fdserv.o: include/fdb/defines.h include/fdb/config.h
-src/exe/fdserv.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/exe/fdserv.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/exe/fdserv.o: include/fdb/choices.h include/fdb/tables.h
-src/exe/fdserv.o: include/fdb/tables.h include/fdb/eval.h include/fdb/apply.h
-src/exe/fdserv.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/exe/fdserv.o: include/fdb/dtype.h include/fdb/pools.h include/fdb/fddb.h
-src/exe/fdserv.o: include/fdb/indices.h include/fdb/fdweb.h
-src/exe/fdserv.o: include/fdb/fileprims.h src/exe/revision.h
-src/fdweb/cgiexec.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/cgiexec.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/cgiexec.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/cgiexec.o: include/fdb/support.h include/fdb/ptr.h
-src/fdweb/cgiexec.o: include/fdb/cons.h include/fdb/choices.h
-src/fdweb/cgiexec.o: include/fdb/tables.h include/fdb/tables.h
-src/fdweb/cgiexec.o: include/fdb/eval.h include/fdb/apply.h
-src/fdweb/cgiexec.o: include/fdb/ports.h include/fdb/fdweb.h
-src/fdweb/cgiexec.o: include/fdb/support.h
-src/fdweb/curl.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/curl.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/curl.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/curl.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/fdweb/curl.o: include/fdb/choices.h include/fdb/tables.h
-src/fdweb/curl.o: include/fdb/tables.h include/fdb/eval.h include/fdb/apply.h
-src/fdweb/curl.o: include/fdb/fdweb.h
-src/fdweb/exif.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/exif.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/exif.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/exif.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/fdweb/exif.o: include/fdb/choices.h include/fdb/tables.h
-src/fdweb/exif.o: include/fdb/numbers.h include/fdb/eval.h
-src/fdweb/exif.o: include/fdb/apply.h
-src/fdweb/mime.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/mime.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/mime.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/mime.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/fdweb/mime.o: include/fdb/choices.h include/fdb/tables.h
-src/fdweb/mime.o: include/fdb/tables.h include/fdb/eval.h include/fdb/apply.h
-src/fdweb/mime.o: include/fdb/ports.h include/fdb/fdweb.h
-src/fdweb/uriprims.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/uriprims.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/uriprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/uriprims.o: include/fdb/support.h include/fdb/ptr.h
-src/fdweb/uriprims.o: include/fdb/cons.h include/fdb/choices.h
-src/fdweb/uriprims.o: include/fdb/tables.h include/fdb/tables.h
-src/fdweb/uriprims.o: include/fdb/eval.h include/fdb/apply.h
-src/fdweb/uriprims.o: include/fdb/ports.h include/fdb/fdweb.h
-src/fdweb/xmldata.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/xmldata.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/xmldata.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/xmldata.o: include/fdb/support.h include/fdb/ptr.h
-src/fdweb/xmldata.o: include/fdb/cons.h include/fdb/choices.h
-src/fdweb/xmldata.o: include/fdb/tables.h include/fdb/tables.h
-src/fdweb/xmldata.o: include/fdb/eval.h include/fdb/apply.h
-src/fdweb/xmldata.o: include/fdb/ports.h include/fdb/fdweb.h
-src/fdweb/xmleval.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/xmleval.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/xmleval.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/xmleval.o: include/fdb/support.h include/fdb/ptr.h
-src/fdweb/xmleval.o: include/fdb/cons.h include/fdb/choices.h
-src/fdweb/xmleval.o: include/fdb/tables.h include/fdb/tables.h
-src/fdweb/xmleval.o: include/fdb/eval.h include/fdb/apply.h
-src/fdweb/xmleval.o: include/fdb/ports.h include/fdb/frames.h
-src/fdweb/xmleval.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/fdweb/xmleval.o: include/fdb/dtype.h include/fdb/pools.h
-src/fdweb/xmleval.o: include/fdb/indices.h include/fdb/fdweb.h
-src/fdweb/xmleval.o: include/fdb/sequences.h include/fdb/fileprims.h
-src/fdweb/xmlinput.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/xmlinput.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/xmlinput.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/xmlinput.o: include/fdb/support.h include/fdb/ptr.h
-src/fdweb/xmlinput.o: include/fdb/cons.h include/fdb/choices.h
-src/fdweb/xmlinput.o: include/fdb/tables.h include/fdb/tables.h
-src/fdweb/xmlinput.o: include/fdb/eval.h include/fdb/apply.h
-src/fdweb/xmlinput.o: include/fdb/ports.h include/fdb/fdweb.h
-src/fdweb/xmloutput.o: include/fdb/dtype.h include/fdb/common.h
-src/fdweb/xmloutput.o: include/fdb/defines.h include/fdb/config.h
-src/fdweb/xmloutput.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/fdweb/xmloutput.o: include/fdb/support.h include/fdb/ptr.h
-src/fdweb/xmloutput.o: include/fdb/cons.h include/fdb/choices.h
-src/fdweb/xmloutput.o: include/fdb/tables.h include/fdb/fddb.h
-src/fdweb/xmloutput.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/fdweb/xmloutput.o: include/fdb/pools.h include/fdb/fddb.h
-src/fdweb/xmloutput.o: include/fdb/frames.h include/fdb/pools.h
-src/fdweb/xmloutput.o: include/fdb/indices.h include/fdb/tables.h
-src/fdweb/xmloutput.o: include/fdb/eval.h include/fdb/apply.h
-src/fdweb/xmloutput.o: include/fdb/ports.h include/fdb/fdweb.h
-src/fdweb/xmloutput.o: include/fdb/support.h
-src/scheme/arithprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/arithprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/arithprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/arithprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/arithprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/arithprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/arithprims.o: include/fdb/apply.h include/fdb/numbers.h
-src/scheme/binders.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/binders.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/binders.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/binders.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/binders.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/binders.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/binders.o: include/fdb/apply.h src/scheme/eval_internals.h
-src/scheme/binders.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/scheme/binders.o: include/fdb/dtype.h
-src/scheme/choiceprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/choiceprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/choiceprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/choiceprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/choiceprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/choiceprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/choiceprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/choiceprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/choiceprims.o: include/fdb/numbers.h include/fdb/frames.h
-src/scheme/choiceprims.o: include/fdb/fddb.h include/fdb/pools.h
-src/scheme/choiceprims.o: include/fdb/indices.h
-src/scheme/conditionals.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/conditionals.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/conditionals.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/conditionals.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/conditionals.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/conditionals.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/conditionals.o: include/fdb/apply.h src/scheme/eval_internals.h
-src/scheme/coreprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/coreprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/coreprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/coreprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/coreprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/coreprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/coreprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/coreprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/coreprims.o: include/fdb/pools.h include/fdb/fddb.h
-src/scheme/coreprims.o: include/fdb/indices.h include/fdb/frames.h
-src/scheme/coreprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/coreprims.o: include/fdb/numbers.h include/fdb/support.h
-src/scheme/dbfileprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/dbfileprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/dbfileprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/dbfileprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/dbfileprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/dbfileprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/dbfileprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/dbfileprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/dbfileprims.o: include/fdb/dbfile.h include/fdb/fddb.h
-src/scheme/dbfileprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/dbfileprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/dbfileprims.o: include/fdb/frames.h
-src/scheme/dbprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/dbprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/dbprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/dbprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/dbprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/dbprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/dbprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/dbprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/dbprims.o: include/fdb/pools.h include/fdb/fddb.h
-src/scheme/dbprims.o: include/fdb/indices.h include/fdb/frames.h
-src/scheme/dbprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/dbprims.o: include/fdb/methods.h include/fdb/sequences.h
-src/scheme/eval.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/eval.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/eval.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/eval.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/scheme/eval.o: include/fdb/choices.h include/fdb/tables.h
-src/scheme/eval.o: include/fdb/support.h include/fdb/fddb.h
-src/scheme/eval.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/eval.o: include/fdb/eval.h include/fdb/apply.h
-src/scheme/eval.o: include/fdb/dtproc.h include/fdb/numbers.h
-src/scheme/eval.o: include/fdb/sequences.h include/fdb/ports.h
-src/scheme/eval.o: include/fdb/dtcall.h
-src/scheme/exceptions.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/exceptions.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/exceptions.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/exceptions.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/exceptions.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/exceptions.o: include/fdb/tables.h include/fdb/support.h
-src/scheme/exceptions.o: include/fdb/eval.h include/fdb/apply.h
-src/scheme/exceptions.o: include/fdb/ports.h
-src/scheme/fileprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/fileprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/fileprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/fileprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/fileprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/fileprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/fileprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/fileprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/fileprims.o: include/fdb/pools.h include/fdb/fddb.h
-src/scheme/fileprims.o: include/fdb/indices.h include/fdb/frames.h
-src/scheme/fileprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/fileprims.o: include/fdb/ports.h include/fdb/numbers.h
-src/scheme/fileprims.o: include/fdb/fileprims.h
-src/scheme/history.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/history.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/history.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/history.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/history.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/history.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/history.o: include/fdb/apply.h include/fdb/history.h
-src/scheme/iterators.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/iterators.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/iterators.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/iterators.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/iterators.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/iterators.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/iterators.o: include/fdb/apply.h include/fdb/sequences.h
-src/scheme/iterators.o: include/fdb/fddb.h include/fdb/dtypestream.h
-src/scheme/iterators.o: include/fdb/dtype.h include/fdb/numbers.h
+src/dtype/cons.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/cons.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/cons.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/cons.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/cons.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/cons.o: ./include/fdb/tables.h ./include/fdb/cons.h
+src/dtype/oids.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/oids.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/oids.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/oids.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/oids.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/oids.o: ./include/fdb/tables.h
+src/dtype/pptrs.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/pptrs.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/pptrs.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/pptrs.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/pptrs.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/pptrs.o: ./include/fdb/tables.h
+src/dtype/symbols.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/symbols.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/symbols.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/symbols.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/symbols.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/symbols.o: ./include/fdb/tables.h
+src/dtype/choices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/choices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/choices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/choices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/choices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/choices.o: ./include/fdb/tables.h
+src/dtype/tables.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/tables.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/tables.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/tables.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/tables.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/tables.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/dtype/tables.o: ./include/fdb/numbers.h
+src/dtype/dtypeio.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/dtypeio.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/dtypeio.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/dtypeio.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/dtypeio.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/dtypeio.o: ./include/fdb/tables.h ./include/fdb/dtypeio.h
+src/dtype/textio.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/textio.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/textio.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/textio.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/textio.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/textio.o: ./include/fdb/tables.h
+src/dtype/fdtype.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/fdtype.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/fdtype.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/fdtype.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/fdtype.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/fdtype.o: ./include/fdb/tables.h
+src/dtype/support.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/support.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/support.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/support.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/support.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/support.o: ./include/fdb/tables.h ./include/fdb/numbers.h
+src/dtype/apply.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/dtype/apply.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/dtype/apply.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/dtype/apply.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/dtype/apply.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/dtype/apply.o: ./include/fdb/tables.h ./include/fdb/apply.h
+src/db/fddb.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/fddb.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/fddb.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/fddb.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/fddb.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/fddb.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/fddb.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/fddb.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/fddb.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/dtypestream.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/dtypestream.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/dtypestream.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/dtypestream.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/dtypestream.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/dtypestream.o: ./include/fdb/tables.h ./include/fdb/dtypestream.h
+src/db/dtypestream.o: ./include/fdb/dtype.h
+src/db/dbserv.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/dbserv.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/dbserv.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/dbserv.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/dbserv.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/dbserv.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/dbserv.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/dbserv.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/dbserv.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/dbserv.o: ./include/fdb/apply.h
+src/db/indices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/indices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/indices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/indices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/indices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/indices.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/indices.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/indices.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/indices.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/indices.o: ./include/fdb/apply.h
+src/db/netindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/netindices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/netindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/netindices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/netindices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/netindices.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/netindices.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/netindices.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/netindices.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/compoundindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/compoundindices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/compoundindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/compoundindices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/compoundindices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/compoundindices.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/compoundindices.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/compoundindices.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/compoundindices.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/pools.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/pools.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/pools.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/pools.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/pools.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/pools.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/db/pools.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/db/pools.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/db/pools.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/db/pools.o: ./include/fdb/frames.h ./include/fdb/apply.h
+src/db/netpools.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/netpools.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/netpools.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/netpools.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/netpools.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/netpools.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/netpools.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/netpools.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/netpools.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/dtproc.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/dtproc.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/dtproc.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/dtproc.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/dtproc.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/dtproc.o: ./include/fdb/tables.h ./include/fdb/dtypestream.h
+src/db/dtproc.o: ./include/fdb/dtype.h ./include/fdb/apply.h
+src/db/dtproc.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/db/dtproc.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/dtproc.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/dtproc.o: ./include/fdb/dtproc.h
+src/db/dtcall.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/dtcall.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/dtcall.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/dtcall.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/dtcall.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/dtcall.o: ./include/fdb/tables.h ./include/fdb/dtypestream.h
+src/db/dtcall.o: ./include/fdb/dtype.h ./include/fdb/apply.h
+src/db/dtcall.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/db/dtcall.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/dtcall.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/dtcall.o: ./include/fdb/dtcall.h
+src/db/methods.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/methods.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/methods.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/methods.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/methods.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/methods.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/db/methods.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/db/methods.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/db/methods.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/db/methods.o: ./include/fdb/frames.h ./include/fdb/apply.h
+src/db/methods.o: ./include/fdb/methods.h
+src/db/xtables.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/xtables.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/xtables.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/xtables.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/xtables.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/xtables.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/xtables.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/xtables.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/xtables.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/xtables.o: ./include/fdb/apply.h
+src/db/ipeval.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/ipeval.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/ipeval.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/ipeval.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/ipeval.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/ipeval.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/db/ipeval.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/db/ipeval.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/ipeval.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/ipeval.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/ipeval.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/db/frames.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/frames.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/frames.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/frames.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/frames.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/frames.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/frames.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/frames.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/frames.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/frames.o: ./include/fdb/apply.h
+src/db/dbfile.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/dbfile.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/dbfile.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/dbfile.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/dbfile.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/dbfile.o: ./include/fdb/tables.h ./include/fdb/dbfile.h
+src/db/dbfile.o: ./include/fdb/fddb.h ./include/fdb/pools.h
+src/db/dbfile.o: ./include/fdb/indices.h ./include/fdb/dtypestream.h
+src/db/dbfile.o: ./include/fdb/dtype.h
+src/db/filepools.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/filepools.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/filepools.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/filepools.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/filepools.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/filepools.o: ./include/fdb/tables.h ./include/fdb/dbfile.h
+src/db/filepools.o: ./include/fdb/fddb.h ./include/fdb/pools.h
+src/db/filepools.o: ./include/fdb/indices.h ./include/fdb/dtypestream.h
+src/db/filepools.o: ./include/fdb/dtype.h
+src/db/zpools.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/zpools.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/zpools.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/zpools.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/zpools.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/zpools.o: ./include/fdb/tables.h ./include/fdb/dbfile.h
+src/db/zpools.o: ./include/fdb/fddb.h ./include/fdb/pools.h
+src/db/zpools.o: ./include/fdb/indices.h ./include/fdb/dtypestream.h
+src/db/zpools.o: ./include/fdb/dtype.h
+src/db/oidpools.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/oidpools.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/oidpools.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/oidpools.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/oidpools.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/oidpools.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/db/oidpools.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/oidpools.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/db/oidpools.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/oidpools.o: ./include/fdb/dtypestream.h ./include/fdb/dbfile.h
+src/db/hashdtype.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/hashdtype.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/hashdtype.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/hashdtype.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/hashdtype.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/hashdtype.o: ./include/fdb/tables.h ./include/fdb/dbfile.h
+src/db/hashdtype.o: ./include/fdb/fddb.h ./include/fdb/pools.h
+src/db/hashdtype.o: ./include/fdb/indices.h ./include/fdb/dtypestream.h
+src/db/hashdtype.o: ./include/fdb/dtype.h
+src/db/fileindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/fileindices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/fileindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/fileindices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/fileindices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/fileindices.o: ./include/fdb/tables.h ./include/fdb/dbfile.h
+src/db/fileindices.o: ./include/fdb/fddb.h ./include/fdb/pools.h
+src/db/fileindices.o: ./include/fdb/indices.h ./include/fdb/dtypestream.h
+src/db/fileindices.o: ./include/fdb/dtype.h
+src/db/hashindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/hashindices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/hashindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/hashindices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/hashindices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/hashindices.o: ./include/fdb/tables.h ./include/fdb/dtypeio.h
+src/db/hashindices.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/db/hashindices.o: ./include/fdb/dbfile.h ./include/fdb/fddb.h
+src/db/hashindices.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/db/hashindices.o: ./include/fdb/dtypestream.h
+src/db/zindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/db/zindices.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/db/zindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/db/zindices.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/db/zindices.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/db/zindices.o: ./include/fdb/tables.h ./include/fdb/dbfile.h
+src/db/zindices.o: ./include/fdb/fddb.h ./include/fdb/pools.h
+src/db/zindices.o: ./include/fdb/indices.h ./include/fdb/dtypestream.h
+src/db/zindices.o: ./include/fdb/dtype.h
+src/scheme/eval.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/eval.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/eval.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/eval.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/eval.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/eval.o: ./include/fdb/tables.h ./include/fdb/support.h
+src/scheme/eval.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/scheme/eval.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/scheme/eval.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/scheme/eval.o: ./include/fdb/frames.h ./include/fdb/eval.h
+src/scheme/eval.o: ./include/fdb/apply.h ./include/fdb/dtproc.h
+src/scheme/eval.o: ./include/fdb/numbers.h ./include/fdb/sequences.h
+src/scheme/eval.o: ./include/fdb/ports.h ./include/fdb/dtcall.h
+src/scheme/binders.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/binders.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/binders.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/binders.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/binders.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/binders.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/binders.o: ./include/fdb/apply.h src/scheme/eval_internals.h
+src/scheme/binders.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/scheme/binders.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/scheme/binders.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/scheme/binders.o: ./include/fdb/frames.h
+src/scheme/exceptions.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/exceptions.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/exceptions.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/exceptions.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/exceptions.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/exceptions.o: ./include/fdb/tables.h ./include/fdb/support.h
+src/scheme/exceptions.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/scheme/exceptions.o: ./include/fdb/ports.h
+src/scheme/conditionals.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/conditionals.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/conditionals.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/conditionals.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/conditionals.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/conditionals.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/conditionals.o: ./include/fdb/apply.h src/scheme/eval_internals.h
+src/scheme/iterators.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/iterators.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/iterators.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/iterators.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/iterators.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/iterators.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/iterators.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/scheme/iterators.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/scheme/iterators.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/scheme/iterators.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/scheme/iterators.o: ./include/fdb/frames.h ./include/fdb/numbers.h
 src/scheme/iterators.o: src/scheme/eval_internals.h
-src/scheme/load.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/load.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/load.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/load.o: include/fdb/support.h include/fdb/ptr.h include/fdb/cons.h
-src/scheme/load.o: include/fdb/choices.h include/fdb/tables.h
-src/scheme/load.o: include/fdb/eval.h include/fdb/apply.h
-src/scheme/load.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/load.o: include/fdb/support.h
-src/scheme/modules.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/modules.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/modules.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/modules.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/modules.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/modules.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/modules.o: include/fdb/apply.h
-src/scheme/portprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/portprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/portprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/portprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/portprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/portprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/portprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/portprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/portprims.o: include/fdb/pools.h include/fdb/fddb.h
-src/scheme/portprims.o: include/fdb/indices.h include/fdb/frames.h
-src/scheme/portprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/portprims.o: include/fdb/dtypestream.h include/fdb/ports.h
-src/scheme/reflection.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/reflection.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/reflection.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/reflection.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/reflection.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/reflection.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/reflection.o: include/fdb/apply.h
-src/scheme/seqprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/seqprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/seqprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/seqprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/seqprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/seqprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/seqprims.o: include/fdb/apply.h include/fdb/sequences.h
-src/scheme/seqprims.o: include/fdb/frames.h include/fdb/fddb.h
-src/scheme/seqprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/seqprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/seqprims.o: include/fdb/numbers.h
-src/scheme/side-effects.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/side-effects.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/side-effects.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/side-effects.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/side-effects.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/side-effects.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/side-effects.o: include/fdb/apply.h include/fdb/sequences.h
-src/scheme/stringprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/stringprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/stringprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/stringprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/stringprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/stringprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/stringprims.o: include/fdb/apply.h
-src/scheme/tableprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/tableprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/tableprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/tableprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/tableprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/tableprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/tableprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/tableprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/tableprims.o: include/fdb/pools.h include/fdb/fddb.h
-src/scheme/tableprims.o: include/fdb/indices.h include/fdb/frames.h
-src/scheme/tableprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/tableprims.o: include/fdb/numbers.h
-src/scheme/timeprims.o: include/fdb/dtype.h include/fdb/common.h
-src/scheme/timeprims.o: include/fdb/defines.h include/fdb/config.h
-src/scheme/timeprims.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/scheme/timeprims.o: include/fdb/support.h include/fdb/ptr.h
-src/scheme/timeprims.o: include/fdb/cons.h include/fdb/choices.h
-src/scheme/timeprims.o: include/fdb/tables.h include/fdb/eval.h
-src/scheme/timeprims.o: include/fdb/apply.h include/fdb/fddb.h
-src/scheme/timeprims.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/scheme/timeprims.o: include/fdb/pools.h include/fdb/fddb.h
-src/scheme/timeprims.o: include/fdb/indices.h include/fdb/frames.h
-src/scheme/timeprims.o: include/fdb/pools.h include/fdb/indices.h
-src/scheme/timeprims.o: include/fdb/numbers.h
-src/texttools/match.o: include/fdb/dtype.h include/fdb/common.h
-src/texttools/match.o: include/fdb/defines.h include/fdb/config.h
-src/texttools/match.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/texttools/match.o: include/fdb/support.h include/fdb/ptr.h
-src/texttools/match.o: include/fdb/cons.h include/fdb/choices.h
-src/texttools/match.o: include/fdb/tables.h include/fdb/eval.h
-src/texttools/match.o: include/fdb/apply.h include/fdb/texttools.h
-src/texttools/md5c.o: src/texttools/md5.h include/fdb/dtype.h
-src/texttools/md5c.o: include/fdb/common.h include/fdb/defines.h
-src/texttools/md5c.o: include/fdb/config.h include/fdb/malloc.h
-src/texttools/md5c.o: include/fdb/dtypeio.h include/fdb/support.h
-src/texttools/md5c.o: include/fdb/ptr.h include/fdb/cons.h
-src/texttools/md5c.o: include/fdb/choices.h include/fdb/tables.h
-src/texttools/porter.o: include/fdb/dtype.h include/fdb/common.h
-src/texttools/porter.o: include/fdb/defines.h include/fdb/config.h
-src/texttools/porter.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/texttools/porter.o: include/fdb/support.h include/fdb/ptr.h
-src/texttools/porter.o: include/fdb/cons.h include/fdb/choices.h
-src/texttools/porter.o: include/fdb/tables.h
-src/texttools/tagger.o: include/fdb/dtype.h include/fdb/common.h
-src/texttools/tagger.o: include/fdb/defines.h include/fdb/config.h
-src/texttools/tagger.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/texttools/tagger.o: include/fdb/support.h include/fdb/ptr.h
-src/texttools/tagger.o: include/fdb/cons.h include/fdb/choices.h
-src/texttools/tagger.o: include/fdb/tables.h include/fdb/eval.h
-src/texttools/tagger.o: include/fdb/apply.h include/fdb/fddb.h
-src/texttools/tagger.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/texttools/tagger.o: include/fdb/pools.h include/fdb/fddb.h
-src/texttools/tagger.o: include/fdb/indices.h include/fdb/dtypestream.h
-src/texttools/tagger.o: include/fdb/sequences.h include/fdb/numbers.h
-src/texttools/tagger.o: include/fdb/support.h include/fdb/tagger.h
-src/texttools/tagxtract.o: include/fdb/dtype.h include/fdb/common.h
-src/texttools/tagxtract.o: include/fdb/defines.h include/fdb/config.h
-src/texttools/tagxtract.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/texttools/tagxtract.o: include/fdb/support.h include/fdb/ptr.h
-src/texttools/tagxtract.o: include/fdb/cons.h include/fdb/choices.h
-src/texttools/tagxtract.o: include/fdb/tables.h include/fdb/eval.h
-src/texttools/tagxtract.o: include/fdb/apply.h include/fdb/fddb.h
-src/texttools/tagxtract.o: include/fdb/dtypestream.h include/fdb/dtype.h
-src/texttools/tagxtract.o: include/fdb/pools.h include/fdb/fddb.h
-src/texttools/tagxtract.o: include/fdb/indices.h include/fdb/dtypestream.h
-src/texttools/tagxtract.o: include/fdb/texttools.h include/fdb/tagger.h
-src/texttools/texttools.o: include/fdb/dtype.h include/fdb/common.h
-src/texttools/texttools.o: include/fdb/defines.h include/fdb/config.h
-src/texttools/texttools.o: include/fdb/malloc.h include/fdb/dtypeio.h
-src/texttools/texttools.o: include/fdb/support.h include/fdb/ptr.h
-src/texttools/texttools.o: include/fdb/cons.h include/fdb/choices.h
-src/texttools/texttools.o: include/fdb/tables.h include/fdb/eval.h
-src/texttools/texttools.o: include/fdb/apply.h include/fdb/sequences.h
-src/texttools/texttools.o: include/fdb/texttools.h
+src/scheme/modules.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/modules.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/modules.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/modules.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/modules.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/modules.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/modules.o: ./include/fdb/apply.h
+src/scheme/load.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/load.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/load.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/load.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/load.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/load.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/load.o: ./include/fdb/apply.h ./include/fdb/dtypestream.h
+src/scheme/load.o: ./include/fdb/dtype.h ./include/fdb/support.h
+src/scheme/reflection.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/reflection.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/reflection.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/reflection.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/reflection.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/reflection.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/reflection.o: ./include/fdb/apply.h
+src/scheme/coreprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/coreprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/coreprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/coreprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/coreprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/coreprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/coreprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/coreprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/coreprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/coreprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/coreprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/scheme/coreprims.o: ./include/fdb/frames.h ./include/fdb/numbers.h
+src/scheme/coreprims.o: ./include/fdb/support.h
+src/scheme/dbprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/dbprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/dbprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/dbprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/dbprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/dbprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/dbprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/dbprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/dbprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/dbprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/dbprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/scheme/dbprims.o: ./include/fdb/frames.h ./include/fdb/methods.h
+src/scheme/dbprims.o: ./include/fdb/sequences.h
+src/scheme/tableprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/tableprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/tableprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/tableprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/tableprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/tableprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/tableprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/tableprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/tableprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/tableprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/tableprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/scheme/tableprims.o: ./include/fdb/frames.h ./include/fdb/numbers.h
+src/scheme/choiceprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/choiceprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/choiceprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/choiceprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/choiceprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/choiceprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/choiceprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/choiceprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/choiceprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/choiceprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/choiceprims.o: ./include/fdb/numbers.h ./include/fdb/frames.h
+src/scheme/seqprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/seqprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/seqprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/seqprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/seqprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/seqprims.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/scheme/seqprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/seqprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/seqprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/seqprims.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/scheme/seqprims.o: ./include/fdb/sequences.h ./include/fdb/numbers.h
+src/scheme/stringprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/stringprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/stringprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/stringprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/stringprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/stringprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/stringprims.o: ./include/fdb/apply.h
+src/scheme/portprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/portprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/portprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/portprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/portprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/portprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/portprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/portprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/portprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/portprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/portprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/scheme/portprims.o: ./include/fdb/frames.h ./include/fdb/dtypestream.h
+src/scheme/portprims.o: ./include/fdb/ports.h
+src/scheme/fileprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/fileprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/fileprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/fileprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/fileprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/fileprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/fileprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/fileprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/fileprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/fileprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/fileprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/scheme/fileprims.o: ./include/fdb/frames.h ./include/fdb/ports.h
+src/scheme/fileprims.o: ./include/fdb/numbers.h ./include/fdb/fileprims.h
+src/scheme/dbfileprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/dbfileprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/dbfileprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/dbfileprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/dbfileprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/dbfileprims.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/scheme/dbfileprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/dbfileprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/dbfileprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/dbfileprims.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/scheme/dbfileprims.o: ./include/fdb/dbfile.h ./include/fdb/sequences.h
+src/scheme/arithprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/arithprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/arithprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/arithprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/arithprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/arithprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/arithprims.o: ./include/fdb/apply.h ./include/fdb/numbers.h
+src/scheme/side-effects.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/side-effects.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/side-effects.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/side-effects.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/side-effects.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/side-effects.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/side-effects.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/scheme/timeprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/timeprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/timeprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/timeprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/timeprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/timeprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/timeprims.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/timeprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/timeprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/timeprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/timeprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/scheme/timeprims.o: ./include/fdb/frames.h ./include/fdb/numbers.h
+src/fdweb/xmloutput.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/xmloutput.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/xmloutput.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/xmloutput.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/xmloutput.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/xmloutput.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/fdweb/xmloutput.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/fdweb/xmloutput.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/fdweb/xmloutput.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/fdweb/xmloutput.o: ./include/fdb/pools.h ./include/fdb/frames.h
+src/fdweb/xmloutput.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/fdweb/xmloutput.o: ./include/fdb/apply.h ./include/fdb/ports.h
+src/fdweb/xmloutput.o: ./include/fdb/fdweb.h ./include/fdb/support.h
+src/fdweb/xmlinput.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/xmlinput.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/xmlinput.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/xmlinput.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/xmlinput.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/xmlinput.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/fdweb/xmlinput.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/xmlinput.o: ./include/fdb/ports.h ./include/fdb/fdweb.h
+src/fdweb/xmldata.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/xmldata.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/xmldata.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/xmldata.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/xmldata.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/xmldata.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/fdweb/xmldata.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/xmldata.o: ./include/fdb/ports.h ./include/fdb/fdweb.h
+src/fdweb/xmleval.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/xmleval.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/xmleval.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/xmleval.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/xmleval.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/xmleval.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/fdweb/xmleval.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/fdweb/xmleval.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/fdweb/xmleval.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/fdweb/xmleval.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/xmleval.o: ./include/fdb/ports.h ./include/fdb/fdweb.h
+src/fdweb/xmleval.o: ./include/fdb/sequences.h ./include/fdb/fileprims.h
+src/fdweb/cgiexec.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/cgiexec.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/cgiexec.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/cgiexec.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/cgiexec.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/cgiexec.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/fdweb/cgiexec.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/cgiexec.o: ./include/fdb/ports.h ./include/fdb/fdweb.h
+src/fdweb/cgiexec.o: ./include/fdb/support.h
+src/fdweb/uriprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/uriprims.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/uriprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/uriprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/uriprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/uriprims.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/fdweb/uriprims.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/uriprims.o: ./include/fdb/ports.h ./include/fdb/fdweb.h
+src/fdweb/curl.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/curl.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/curl.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/curl.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/curl.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/curl.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/fdweb/curl.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/curl.o: ./include/fdb/fdweb.h
+src/fdweb/mime.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/mime.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/mime.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/mime.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/mime.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/mime.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/fdweb/mime.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/fdweb/mime.o: ./include/fdb/ports.h ./include/fdb/fdweb.h
+src/fdweb/exif.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/fdweb/exif.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/fdweb/exif.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/fdweb/exif.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/fdweb/exif.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/fdweb/exif.o: ./include/fdb/tables.h ./include/fdb/numbers.h
+src/fdweb/exif.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/texttools/texttools.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/texttools/texttools.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/texttools/texttools.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/texttools/texttools.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/texttools/texttools.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/texttools/texttools.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/texttools/texttools.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/texttools/texttools.o: ./include/fdb/texttools.h
+src/texttools/match.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/texttools/match.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/texttools/match.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/texttools/match.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/texttools/match.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/texttools/match.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/texttools/match.o: ./include/fdb/apply.h ./include/fdb/texttools.h
+src/texttools/porter.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/texttools/porter.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/texttools/porter.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/texttools/porter.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/texttools/porter.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/texttools/porter.o: ./include/fdb/tables.h
+src/texttools/md5c.o: src/texttools/md5.h ./include/fdb/dtype.h
+src/texttools/md5c.o: ./include/fdb/common.h ./include/fdb/defines.h
+src/texttools/md5c.o: ./include/fdb/config.h ./include/fdb/malloc.h
+src/texttools/md5c.o: ./include/fdb/dtypeio.h ./include/fdb/support.h
+src/texttools/md5c.o: ./include/fdb/ptr.h ./include/fdb/cons.h
+src/texttools/md5c.o: ./include/fdb/choices.h ./include/fdb/tables.h
+src/texttools/tagger.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/texttools/tagger.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/texttools/tagger.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/texttools/tagger.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/texttools/tagger.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/texttools/tagger.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/texttools/tagger.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/texttools/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/texttools/tagger.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/texttools/tagger.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/texttools/tagger.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/texttools/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/sequences.h
+src/texttools/tagger.o: ./include/fdb/numbers.h ./include/fdb/support.h
+src/texttools/tagger.o: ./include/fdb/tagger.h
+src/texttools/tagxtract.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/texttools/tagxtract.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/texttools/tagxtract.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/texttools/tagxtract.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/texttools/tagxtract.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/texttools/tagxtract.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/texttools/tagxtract.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/texttools/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/texttools/tagxtract.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/texttools/tagxtract.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/texttools/tagxtract.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/texttools/tagxtract.o: ./include/fdb/dtypestream.h
+src/texttools/tagxtract.o: ./include/fdb/texttools.h ./include/fdb/tagger.h
+src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/exe/fdconsole.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/exe/fdconsole.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/exe/fdconsole.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/exe/fdconsole.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/exe/fdconsole.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/exe/fdconsole.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/exe/fdconsole.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/exe/fdconsole.o: ./include/fdb/frames.h ./include/fdb/eval.h
+src/exe/fdconsole.o: ./include/fdb/apply.h ./include/fdb/history.h
+src/exe/fdconsole.o: ./include/fdb/ports.h src/exe/revision.h
+src/exe/fdexec.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/exe/fdexec.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/exe/fdexec.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/exe/fdexec.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/exe/fdexec.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/exe/fdexec.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/exe/fdexec.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/exe/fdexec.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/exe/fdexec.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/exe/fdexec.o: ./include/fdb/frames.h ./include/fdb/dbfile.h
+src/exe/fdexec.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/exe/fdexec.o: ./include/fdb/ports.h
+src/exe/fdbatch.o: src/exe/fdexec.c ./include/fdb/dtype.h
+src/exe/fdbatch.o: ./include/fdb/common.h ./include/fdb/defines.h
+src/exe/fdbatch.o: ./include/fdb/config.h ./include/fdb/malloc.h
+src/exe/fdbatch.o: ./include/fdb/dtypeio.h ./include/fdb/support.h
+src/exe/fdbatch.o: ./include/fdb/ptr.h ./include/fdb/cons.h
+src/exe/fdbatch.o: ./include/fdb/choices.h ./include/fdb/tables.h
+src/exe/fdbatch.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/exe/fdbatch.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/exe/fdbatch.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/exe/fdbatch.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/exe/fdbatch.o: ./include/fdb/dbfile.h ./include/fdb/eval.h
+src/exe/fdbatch.o: ./include/fdb/apply.h ./include/fdb/ports.h
+src/exe/fdserv.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/exe/fdserv.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/exe/fdserv.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/exe/fdserv.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/exe/fdserv.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/exe/fdserv.o: ./include/fdb/tables.h ./include/fdb/tables.h
+src/exe/fdserv.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/exe/fdserv.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
+src/exe/fdserv.o: ./include/fdb/dtype.h ./include/fdb/pools.h
+src/exe/fdserv.o: ./include/fdb/fddb.h ./include/fdb/indices.h
+src/exe/fdserv.o: ./include/fdb/frames.h ./include/fdb/fdweb.h
+src/exe/fdserv.o: ./include/fdb/ports.h ./include/fdb/fileprims.h
+src/exe/fdserv.o: src/exe/revision.h
+src/exe/fdbserver.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/exe/fdbserver.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/exe/fdbserver.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/exe/fdbserver.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/exe/fdbserver.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/exe/fdbserver.o: ./include/fdb/tables.h ./include/fdb/numbers.h
+src/exe/fdbserver.o: ./include/fdb/tables.h ./include/fdb/fddb.h
+src/exe/fdbserver.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/exe/fdbserver.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/exe/fdbserver.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/exe/fdbserver.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/exe/fdbserver.o: ./include/fdb/ports.h src/exe/revision.h
