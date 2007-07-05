@@ -113,8 +113,9 @@ static fdtype make_oidpool(int n,fdtype *args)
     FD_OID end=FD_OID_PLUS(base,cap-1);
     unsigned int base_lo=FD_OID_LO(base);
     unsigned int end_lo=FD_OID_LO(end);
-    if (((base_lo)/(1024*1024)) != ((end_lo)/(1024*1024)))
-      return fd_err(_("Misaligned pool"),"make_oidpool",NULL,FD_VOID);
+    if (((base_lo)/(1024*1024)) == ((end_lo)/(1024*1024))) {}
+    else if (((base_lo%(1024*1024))==0) && ((cap%(1024*1024))==0)) {}
+    else return fd_err(_("Misaligned pool"),"make_oidpool",NULL,FD_VOID);
   }
 
   if (FD_VOIDP(schemas)) {}

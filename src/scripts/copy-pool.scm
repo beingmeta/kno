@@ -12,18 +12,21 @@
 
 (define (make-new-pool filename old)
   (cond ((config 'OLDPOOL #f)
-	 (make-file-pool filename (pool-base old) (pool-capacity old)
+	 (make-file-pool filename (pool-base old)
+			 (or (config 'NEWCAP #f) (pool-capacity old))
 			 (pool-load old))
 	 (label-pool! filename (or (config 'label #f) (pool-label old)))
 	 (use-pool filename))
 	((config 'OIDPOOL #f)
-	 (make-oidpool filename (pool-base old) (pool-capacity old)
+	 (make-oidpool filename (pool-base old)
+		       (or (config 'NEWCAP #f) (pool-capacity old))
 		       (pool-load old) (getflags) #f #f
 		       (or (config 'LABEL #f)
 			   (try (pool-label old) #f)))
 	 (use-pool filename))
 	(else 
-	 (make-file-pool filename (pool-base old) (pool-capacity old)
+	 (make-file-pool filename (pool-base old)
+			 (or (config 'NEWCAP #f) (pool-capacity old))
 			 (pool-load old))
 	 (use-pool filename))))
 
