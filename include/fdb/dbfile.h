@@ -76,16 +76,21 @@ typedef struct FD_ZPOOL *fd_zpool;
 
 /* OID Pools */
 
-#define FD_OIDPOOL_READONLY 0x40
 #define FD_OIDPOOL_OFFMODE 0x07
 #define FD_OIDPOOL_COMPRESSION 0x38
+#define FD_OIDPOOL_READONLY 0x40
+#define FD_OIDPOOL_DTYPEV2 0x80
 
 #define FD_OIDPOOL_LOCKED(x) (FD_FILE_POOL_LOCKED(x))
 
 typedef struct FD_SCHEMA_ENTRY {
-  int n_slotids; fdtype *slotids, normal;
+  int n_slotids, id; fdtype *slotids, normal;
   unsigned int *mapin, *mapout;}  FD_SCHEMA_ENTRY;
 typedef struct FD_SCHEMA_ENTRY *fd_schema_entry;
+
+typedef struct FD_SCHEMA_LOOKUP {
+  int id, n_slotids; fdtype *slotids;}  FD_SCHEMA_LOOKUP;
+typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
@@ -93,8 +98,9 @@ typedef struct FD_OIDPOOL {
   fd_offset_type offtype;
   fd_compression_type compression;
   time_t modtime;
-  int n_schemas; struct FD_SCHEMA_ENTRY *schemas;
-  struct FD_SCHEMA_TABLE **schemas_byptr, **schemas_by_normal;
+  int n_schemas, max_slotids;
+  struct FD_SCHEMA_ENTRY *schemas;
+  struct FD_SCHEMA_LOOKUP *schbyptr, *schbyval;
   unsigned int load, *offsets, offsets_size;
   struct FD_DTYPE_STREAM stream;
   size_t mmap_size; unsigned char *mmap;
@@ -108,6 +114,13 @@ FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
 				fdtype);
 
 FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
+
+
+FD_EXPORT int fd_make_oidpool
+  (u8_string fname,u8_string label,
+   FD_OID base,unsigned int capacity,unsigned int load,
+   unsigned int flags,fdtype schemas_init,fdtype metadata_init,
+   time_t ctime,time_t mtime,int cycles);
 
 
 /* File indices */

@@ -251,6 +251,7 @@ typedef struct FD_SCHEMAP *fd_schemap;
 #define FD_SCHEMAPP(x) (FD_PTR_TYPEP(x,fd_schemap_type))
 #define FD_XSCHEMAP(x) (FD_GET_CONS(x,fd_schemap_type,struct FD_SCHEMAP *))
 #define FD_XSCHEMAP_SIZE(sm) ((sm)->size)
+#define FD_XSCHEMAP_FLAGS(sm) ((sm)->flags)
 #define FD_XSCHEMAP_READONLYP(sm) (((sm)->flags)&FD_SCHEMAP_READONLY)
 #define FD_XSCHEMAP_MODIFIEDP(sm) (((sm)->flags)&FD_SCHEMAP_MODIFIED)
 #define FD_XSCHEMAP_MARK_MODIFIED(sm) \
@@ -258,6 +259,7 @@ typedef struct FD_SCHEMAP *fd_schemap;
 #define FD_XSCHEMAP_SET_READONLY(sm) \
   ((sm)->flags)=(((sm)->flags)|FD_SCHEMAP_READONLY)
 #define FD_SCHEMAP_SIZE(x) (FD_XSCHEMAP_SIZE(FD_XSCHEMAP(x)))
+#define FD_SCHEMAP_FLAGS(x) (FD_XSCHEMAP_FLAGS(FD_XSCHEMAP(x)))
 #define FD_SCHEMAP_READONLYP(x) (FD_XSCHEMAP_READONLYP(FD_XSCHEMAP(x)))
 #define FD_SCHEMAP_MODIFIEDP(x) (FD_XSCHEMAP_MODIFIEDP(FD_XSCHEMAP(x)))
 #define FD_SCHEMAP_MARK_MODIFIED(x) \

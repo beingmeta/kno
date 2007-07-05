@@ -349,7 +349,7 @@ FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
     fd_init_dtype_file_stream(&_stream,fname,FD_DTSTREAM_CREATE,8192,NULL,NULL);
   if (stream==NULL) return -1;
   else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(fname));
+    fd_seterr3(fd_CantWrite,"fd_make_hash_index",u8_strdup(fname));
     fd_dtsclose(stream,1);
     return -1;}
   stream->mallocd=0;

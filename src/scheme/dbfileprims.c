@@ -11,12 +11,10 @@ static char versionid[] =
 #define FD_PROVIDE_FASTEVAL 1
 
 #include "fdb/dtype.h"
-#include "fdb/eval.h"
 #include "fdb/fddb.h"
+#include "fdb/eval.h"
 #include "fdb/dbfile.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
-#include "fdb/frames.h"
+#include "fdb/sequences.h"
 
 static fdtype baseoids_symbol, slotids_symbol;
 
@@ -72,6 +70,85 @@ static fdtype label_file_pool(fdtype fname,fdtype label)
 	  retval=1; fd_dtsclose(stream,1);}}}}
   if (retval<0) return fd_erreify();
   else return FD_TRUE;
+}
+
+static fdtype make_oidpool(int n,fdtype *args)
+{
+  FD_OID base; int retval, flags=0, load, cap; u8_string filename, label;
+  fdtype fname=args[0], base_arg=args[1], capacity=args[2];
+  fdtype label_arg=FD_VOID, flags_arg=FD_VOID, schemas=FD_VOID;
+  fdtype metadata=FD_VOID, load_arg=FD_INT2DTYPE(0), flags_val;
+  if (n>3) load_arg=args[3];
+  if (n>4) flags_arg=args[4];
+  if (n>5) schemas=args[5];  
+  if (n>6) metadata=args[6];  
+  if (n>7) label_arg=args[7];
+
+  if (!(FD_OIDP(base_arg))) 
+    return fd_type_error(_("OID"),"make_oidpool",base_arg);
+  else base=FD_OID_ADDR(base_arg);
+
+  if (!(FD_STRINGP(fname)))
+    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
+  else filename=FD_STRDATA(fname);
+
+  if (FD_STRINGP(label_arg)) label=FD_STRDATA(label_arg);
+  else if (FD_FALSEP(label_arg)) label=NULL;
+  else if (FD_VOIDP(label_arg)) label=NULL;
+  else return fd_type_error(_("string"),"make_oidpool",capacity);
+  
+  if (!(FD_FIXNUMP(capacity)))
+    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
+  else cap=FD_FIX2INT(capacity);
+
+  if (!(FD_FIXNUMP(load_arg)))
+    return fd_type_error(_("fixnum"),"make_oidpool",load_arg);
+  else load=FD_FIX2INT(load_arg);
+  
+  if (FD_FALSEP(metadata)) metadata=FD_VOID;
+
+  /* Check that pool alignment is legal */
+  
+  {
+    FD_OID end=FD_OID_PLUS(base,cap-1);
+    unsigned int base_lo=FD_OID_LO(base);
+    unsigned int end_lo=FD_OID_LO(end);
+    if (((base_lo)/(1024*1024)) != ((end_lo)/(1024*1024)))
+      return fd_err(_("Misaligned pool"),"make_oidpool",NULL,FD_VOID);
+  }
+
+  if (FD_VOIDP(schemas)) {}
+  else if (FD_FALSEP(schemas))  schemas=FD_VOID;
+  else if (FD_VECTORP(schemas)) {}
+  else return fd_type_error(_("vector"),"make_oidpool",schemas);
+
+  if (FD_SEQUENCEP(flags_arg)) {
+    if (fd_position(fd_intern("B64"),flags_arg,0,-1)>=0)
+      flags=flags|FD_B64;
+    else if (fd_position(fd_intern("B32"),flags_arg,0,-1)>=0) {}
+    else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0)
+      flags=flags|FD_B40;
+    else flags=flags|FD_B40;
+
+    if (fd_position(fd_intern("NOCOMPRESS"),flags_arg,0,-1)>=0) {}
+    else if (fd_position(fd_intern("ZLIB9"),flags_arg,0,-1)>=0)
+      flags=flags|((FD_ZLIB)<<2);
+    else if (fd_position(fd_intern("BZ2"),flags_arg,0,-1)>=0)
+      flags=flags|((FD_BZ2)<<2);
+
+    if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
+      flags=flags|FD_OIDPOOL_DTYPEV2;
+
+    if (fd_position(fd_intern("READONLY"),flags_arg,0,-1)>=0)
+      flags=flags|FD_OIDPOOL_READONLY;}
+
+  retval=fd_make_oidpool(filename,label,
+			 base,cap,load,flags,
+			 schemas,metadata,
+			 time(NULL),time(NULL),1);
+  
+  if (retval<0) return fd_erreify();
+  else return FD_VOID;
 }
 
 static fdtype make_file_index(fdtype fname,fdtype size,fdtype metadata)
@@ -249,6 +326,10 @@ FD_EXPORT void fd_init_filedb_c()
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID));
+
+  fd_idefn(filedb_module,
+	   fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
+
   fd_idefn(filedb_module,fd_make_cprim2x("LABEL-POOL!",label_file_pool,2,
 					 fd_string_type,FD_VOID,
 					 fd_string_type,FD_VOID));

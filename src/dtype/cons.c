@@ -528,6 +528,7 @@ FD_EXPORT fdtype fd_err
   exo->backtrace=FD_EMPTY_LIST;
   return FDTYPE_CONS(exo);
 }
+
 FD_EXPORT fdtype fd_passerr(fdtype err,fdtype context)
 {
   if (FD_ERRORP(err)) {

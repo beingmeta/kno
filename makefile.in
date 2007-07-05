@@ -64,7 +64,7 @@ DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
 	src/db/ipeval.o src/db/frames.o
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o \
-	    src/db/hashindices.o
+	    src/db/hashindices.o src/db/oidpools.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
 	         src/scheme/conditionals.o src/scheme/iterators.o
@@ -102,7 +102,7 @@ FDB_SOURCES=\
 	src/db/pools.c src/db/netpools.c \
 	src/db/dtproc.c src/db/dtcall.c src/db/methods.c src/db/xtables.c \
 	src/db/ipeval.c src/db/frames.c \
-	src/db/dbfile.c src/db/filepools.c src/db/zpools.c \
+	src/db/dbfile.c src/db/filepools.c src/db/zpools.c src/db/oidpools.c \
 	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c src/db/zindices.c \
 	src/scheme/eval.c src/scheme/binders.c src/scheme/exceptions.c \
 	src/scheme/conditionals.c src/scheme/iterators.c \
@@ -385,6 +385,7 @@ install-shell-scripts:
 install-scheme-scripts:
 	etc/install-script src/scripts/repack-index.scm
 	etc/install-script src/scripts/make-hash-index.scm
+	etc/install-script src/scripts/make-oidpool.scm
 
 $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -556,6 +557,16 @@ src/db/hashindices.o: include/fdb/dtypestream.h include/fdb/dtype.h
 src/db/hashindices.o: include/fdb/dbfile.h include/fdb/fddb.h
 src/db/hashindices.o: include/fdb/dtypestream.h include/fdb/pools.h
 src/db/hashindices.o: include/fdb/indices.h
+src/db/oidpools.o: include/fdb/dtype.h include/fdb/common.h
+src/db/oidpools.o: include/fdb/defines.h include/fdb/config.h
+src/db/oidpools.o: include/fdb/malloc.h include/fdb/dtypeio.h
+src/db/oidpools.o: include/fdb/support.h include/fdb/ptr.h
+src/db/oidpools.o: include/fdb/cons.h include/fdb/choices.h
+src/db/oidpools.o: include/fdb/tables.h include/fdb/dtypeio.h
+src/db/oidpools.o: include/fdb/dtypestream.h include/fdb/dtype.h
+src/db/oidpools.o: include/fdb/dbfile.h include/fdb/fddb.h
+src/db/oidpools.o: include/fdb/dtypestream.h include/fdb/pools.h
+src/db/oidpools.o: include/fdb/indices.h
 src/db/indices.o: include/fdb/dtype.h include/fdb/common.h
 src/db/indices.o: include/fdb/defines.h include/fdb/config.h
 src/db/indices.o: include/fdb/malloc.h include/fdb/dtypeio.h

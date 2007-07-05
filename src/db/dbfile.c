@@ -478,6 +478,8 @@ FD_EXPORT void fd_init_file_pools_c(void);
 FD_EXPORT void fd_init_zpools_c(void);
 FD_EXPORT void fd_init_zindices_c(void);
 FD_EXPORT void fd_init_hashindices_c(void);
+FD_EXPORT void fd_init_oidpools_c(void);
+
 
 FD_EXPORT int fd_init_dbfile()
 {
@@ -502,6 +504,7 @@ FD_EXPORT int fd_init_dbfile()
   fd_init_zpools_c();
   fd_init_zindices_c();
   fd_init_hashindices_c();
+  fd_init_oidpools_c();
 
   fd_file_pool_opener=open_file_pool;
   fd_file_index_opener=open_file_index;
