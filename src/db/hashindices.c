@@ -1880,6 +1880,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
       schedule[i].bucket=bucket=
 	hash_bytes(out.start,out.ptr-out.start)%(hx->n_buckets);
       i++;}
+    /* Get all the bucket locations.  It may be that we can fold this
+       into the phase above when we have the offsets table in memory. */
 #if FD_DEBUG_HASHINDICES
     u8_message("Fetching bucket locations");
 #endif
@@ -1892,7 +1894,11 @@ static int hash_index_commit(struct FD_INDEX *ix)
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       bucket_locs[n_buckets].max_new=j-i;
       n_buckets++; i=j;}
-    /* Read all the buckets in order, reading each keyblock */
+    /* Read all the buckets in order, reading each keyblock.
+       We may be able to combine this with extending the bucket
+       below, but that would entail moving the writing of values
+       out of the bucket extension (since both want to get at the file)
+       Could we have two pointers into the file?  */
 #if FD_DEBUG_HASHINDICES
     u8_message("Reading all the %d buckets in order",n_buckets);
 #endif
@@ -1917,7 +1923,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
 	       schedule_size,n_buckets);
 #endif
     /* March along the commit schedule (keys) and keybuckets (buckets)
-       in parallel. */
+       in parallel, extending each bucket.  This is where values are written
+       out and their offsets stored in the loaded bucket structure. */
     i=0; bscan=0; endpos=fd_endpos(stream);
     while (i<schedule_size) {
       struct KEYBUCKET *kb=keybuckets[bscan];
@@ -1969,7 +1976,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDICES
   u8_message("Writing offset data changes");
 #endif
-  /* Now, write the data it where it is supposed to be. */
+  /* Now, write the data it where it is supposed to be.
+     It might be possible to use MMAP to do this more efficiently, as
+     worked with OIDPOOLs.  */
   if (new_keys) {
     int cur_keys;
     /* Write any changed flags */
