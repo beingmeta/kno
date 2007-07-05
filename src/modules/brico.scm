@@ -150,28 +150,36 @@
 	      (get concept implies) implies)))
 
 (define (make%id f (lang default-language))
-  `(,(pick-one (try (difference (get f 'sensecat) 'NOUN.TOPS)
-		    (get f 'sensecat)
-		    'VAGUE))
-    ,(get-norm f lang)
-    ,(cond ((and (test f 'sensecat 'noun.location)
-		 (%test f partof))
-	    'PARTOF)
-	   ((%test f 'hypernym) 'GENLS)
-	   ((%test f genls) 'GENLS)
-	   ((%test f ISA) 'ISA)
-	   ((%test f partof) 'PARTOF)
-	   (else 'TOP))
-    ,@(map get-norm
-	   (choice->list
-	    (try (tryif (test f 'sensecat 'noun.location)
-			(%get f partof))
-		 (%get f 'hypernym)
-		 (%get f genls)
-		 (%get f isa)
-		 (%get f partof))))))
+  (if (test f 'source @1/1) (make-roget-id f lang)
+      `(,(pick-one (try (difference (get f 'sensecat) 'NOUN.TOPS)
+			(get f 'sensecat)
+			'VAGUE))
+	,(get-norm f lang)
+	,(cond ((and (test f 'sensecat 'noun.location)
+		     (%test f partof))
+		'PARTOF)
+	       ((%test f 'hypernym) 'GENLS)
+	       ((%test f genls) 'GENLS)
+	       ((%test f ISA) 'ISA)
+	       ((%test f partof) 'PARTOF)
+	       (else 'TOP))
+	,@(map get-norm
+	       (choice->list
+		(try (tryif (test f 'sensecat 'noun.location)
+			    (%get f partof))
+		     (%get f 'hypernym)
+		     (%get f genls)
+		     (%get f isa)
+		     (%get f partof)))))))
 (define (make%id! f (lang default-language))
   (store! f '%id (make%id f lang)))
+
+(define (make-roget-id f (lang default-language))
+  `(ROGET
+    ,(get-norm f lang)
+    WITHIN
+    , (try (get-norm (pick-one (get f 'roget-within)) lang)
+	   (get (pick-one (get f 'roget-within)) '%id))))
 
 ;;; Capitalizing word entries
 
@@ -355,6 +363,7 @@
   (doindex index frame '%mnemonic)
   (doindex index frame '%mnemonics)
   (doindex index frame 'has (getslots frame))
+  (doindex index frame 'source)
   ;; Special case 'has' indexing
   (when (test frame 'gloss)
     (doindex index frame 'has english-gloss))
