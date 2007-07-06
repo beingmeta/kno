@@ -245,6 +245,10 @@ typedef struct FD_SCHEMAP {
 #define FD_SCHEMAP_MODIFIED 4
 #define FD_SCHEMAP_STACK_SCHEMA 8
 #define FD_SCHEMAP_READONLY 16
+/* This disallows the addition or removal of fields */
+#define FD_SCHEMAP_FIXED 32
+/* Tagged schemaps keep an integer ID in their n+1st element */
+#define FD_SCHEMAP_TAGGED 64
 
 typedef struct FD_SCHEMAP *fd_schemap;
 

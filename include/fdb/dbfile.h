@@ -100,7 +100,7 @@ typedef struct FD_OIDPOOL {
   time_t modtime;
   int n_schemas, max_slotids;
   struct FD_SCHEMA_ENTRY *schemas;
-  struct FD_SCHEMA_LOOKUP *schbyptr, *schbyval;
+  struct FD_SCHEMA_LOOKUP *schbyval;
   unsigned int load, *offsets, offsets_size;
   struct FD_DTYPE_STREAM stream;
   size_t mmap_size; unsigned char *mmap;

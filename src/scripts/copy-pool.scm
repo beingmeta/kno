@@ -10,6 +10,22 @@
 	   (tryif (config 'B40 #f) 'B40)
 	   (tryif (config 'B64 #f) 'B64))))
 
+(define default-schematize #f)
+
+(define (get-schemas old)
+  (and (or (and default-schematize (not (config 'NOSCHEMAS #f)))
+	   (config 'SCHEMAS #f))
+       (let ((table (make-hashtable)))
+	 (message "Computing schemas from " (pool-load old) " OIDs in " old)
+	 (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
+			   (lambda (oids done)
+			     (unless done (file-pool-prefetch! old oids)))
+			   (config 'blocksize (/ (pool-load old) 10)))
+	   (hashtable-increment! table (sorted (getkeys f)))
+	   (swapout f))
+	 (message "Identified " (choice-size (getkeys table)) " schemas")
+	 (rsorted (getkeys table) table))))
+  
 (define (make-new-pool filename old)
   (cond ((config 'OLDPOOL #f)
 	 (make-file-pool filename (pool-base old)
@@ -20,7 +36,7 @@
 	((config 'OIDPOOL #f)
 	 (make-oidpool filename (pool-base old)
 		       (or (config 'NEWCAP #f) (pool-capacity old))
-		       (pool-load old) (getflags) #f #f
+		       (pool-load old) (getflags) (get-schemas old) #f
 		       (or (config 'LABEL #f)
 			   (try (pool-label old) #f)))
 	 (use-pool filename))

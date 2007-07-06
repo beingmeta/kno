@@ -197,11 +197,11 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int 
 {
   *word2=ref.size;
   if (ref.size>=0x1000000) return -1;
-  else if (ref.off<0x100000000)
-    *word1=(ref.off)&(0xFFFFFFFF);
+  else if (ref.off<0x100000000LL)
+    *word1=(ref.off)&(0xFFFFFFFFLL);
   else {
-    *word1=(ref.off)&(0xFFFFFFFF);
-    *word2=ref.size|(((ref.off)>>8)&(0xFF000000));}
+    *word1=(ref.off)&(0xFFFFFFFFLL);
+    *word2=ref.size|(((ref.off)>>8)&(0xFF000000LL));}
   return 0;
 }
 
@@ -296,6 +296,33 @@ static unsigned char *do_zcompress
     return NULL;}
 }
 
+/* Schema functions */
+
+FD_FASTOP void lispv_swap(fdtype *a,fdtype *b)
+{
+  fdtype t;
+  t = *a;
+  *a = *b;
+  *b = t;
+}
+
+static void sort_schema(fdtype *v,int n)
+{
+  unsigned i, j, ln, rn;
+  while (n > 1) {
+    lispv_swap(&v[0], &v[n/2]);
+    for (i = 0, j = n; ; ) {
+      do --j; while (v[j] > v[0]);
+      do ++i; while (i < j && v[i] < v[0]);
+      if (i >= j) break; lispv_swap(&v[i], &v[j]);}
+    lispv_swap(&v[j], &v[0]);
+    ln = j;
+    rn = n - ++j;
+    if (ln < rn) {
+      fd_sort_schema(ln, v); v += j; n = rn;}
+    else {fd_sort_schema(rn,v + j); n = ln;}}
+}
+
 /* Making and opening oidpools */
 
 static int init_schemas(fd_oidpool,fdtype);
@@ -387,7 +414,7 @@ static void update_modtime(struct FD_OIDPOOL *fp)
 static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
 {
   int i=0, len=FD_VECTOR_LENGTH(vec);
-  fdtype *slotids=u8_malloc(sizeof(fdtype)*len);
+  fdtype *slotids=u8_malloc(sizeof(fdtype)*(len+1));
   unsigned int *mapin=u8_malloc(sizeof(unsigned int)*len);
   unsigned int *mapout=u8_malloc(sizeof(unsigned int)*len);
   e->id=pos; e->n_slotids=len; e->normal=fd_incref(vec);
@@ -395,7 +422,9 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
   while (i<len) {
     fdtype val=FD_VECTOR_REF(vec,i);
     slotids[i]=fd_incref(val); i++;}
-  fd_sort_schema(len,slotids);
+  sort_schema(slotids,len);
+  /* This will make it fast to get the pos from the schema pointer */
+  slotids[len]=FD_INT2DTYPE(pos);
   i=0; while (i<len) {
     fdtype val=FD_VECTOR_REF(vec,i);
     int j=0; while (j<len)
@@ -404,15 +433,6 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
     mapin[i]=j; mapout[j]=i;
     i++;}
   return 0;
-}
-
-static int compare_schema_ptrs(const void *p1,const void *p2)
-{
-  struct FD_SCHEMA_LOOKUP *se1=(struct FD_SCHEMA_LOOKUP *)p1;
-  struct FD_SCHEMA_LOOKUP *se2=(struct FD_SCHEMA_LOOKUP *)p2;
-  if (se1->slotids<se2->slotids) return -1;
-  else if (se1->slotids>se2->slotids) return 1;
-  else return 0;
 }
 
 static int compare_schema_vals(const void *p1,const void *p2)
@@ -430,18 +450,10 @@ static int compare_schema_vals(const void *p1,const void *p2)
     return 0;}
 }
 
-static int compare_schema_norms(const void *p1,const void *p2)
-{
-  struct FD_SCHEMA_ENTRY *se1=*((struct FD_SCHEMA_ENTRY **)p1);
-  struct FD_SCHEMA_ENTRY *se2=*((struct FD_SCHEMA_ENTRY **)p2);
-  return fdtype_compare(se1->normal,se2->normal,0);
-}
-
 static int init_schemas(fd_oidpool op,fdtype schema_vec)
 {
   if (!(FD_VECTORP(schema_vec))) {
-    op->n_schemas=0; op->schemas=NULL;
-    op->schbyptr=NULL; op->schbyval=NULL;
+    op->n_schemas=0; op->schemas=NULL; op->schbyval=NULL;
     op->max_slotids=0;}
   else {
     int i=0, n=FD_VECTOR_LENGTH(schema_vec), max_slotids=0;
@@ -457,27 +469,8 @@ static int init_schemas(fd_oidpool op,fdtype schema_vec)
       schbyptr[i].slotids=schemas[i].slotids;
       i++;}
     op->max_slotids=max_slotids;
-    qsort(schbyptr,n,sizeof(struct FD_SCHEMA_LOOKUP),
-	  compare_schema_ptrs);
     qsort(schbyval,n,sizeof(struct FD_SCHEMA_LOOKUP),
 	  compare_schema_vals);}
-}
-
-static int find_schema_byptr(fd_oidpool op,fdtype *slotids)
-{
-  int size=op->n_schemas;
-  struct FD_SCHEMA_LOOKUP *table=op->schbyptr, *max=table+size; 
-  struct FD_SCHEMA_LOOKUP *bot=table, *top=max, *middle=bot+(size)/2;
-  while (top>bot) {
-    if (slotids==(middle->slotids)) return middle-table;
-    else if (slotids<(middle->slotids)) {
-      top=middle-1; middle=bot+(top-bot)/2;}
-    else {
-      bot=middle+1; middle=bot+(top-bot)/2;}}
-  if ((middle<max) && (middle>=table) &&
-      (slotids==(middle->slotids)))
-    return middle-table;
-  else return -1;
 }
 
 static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,fdtype *slotids,int n)
@@ -496,7 +489,7 @@ static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,fdtype *slotids,int n)
 static int find_schema_byval(fd_oidpool op,fdtype *slotids,int n)
 {
   int size=op->n_schemas, cmp;
-  struct FD_SCHEMA_LOOKUP *table=op->schbyptr, *max=table+size; 
+  struct FD_SCHEMA_LOOKUP *table=op->schbyval, *max=table+size; 
   struct FD_SCHEMA_LOOKUP *bot=table, *top=max, *middle=bot+(size)/2;
   while (top>bot) {
     cmp=compare_schemas(middle,slotids,n);
@@ -510,6 +503,8 @@ static int find_schema_byval(fd_oidpool op,fdtype *slotids,int n)
     return middle-table;
   else return -1;
 }
+
+/* OIDPOOL operations */
 
 static int lock_oidpool(struct FD_OIDPOOL *fp,int use_mutex)
 {
@@ -823,6 +818,37 @@ static int compare_oidoffs(const void *p1,const void *p2)
   else return 0;
 }
 
+static int get_schema_id(fd_oidpool op,fdtype value)
+{
+  if ((FD_SCHEMAPP(value)) &&
+      ((FD_SCHEMAP_FLAGS(value))&(FD_SCHEMAP_SORTED))) {
+    struct FD_SCHEMAP *sm=(fd_schemap)value;
+    fdtype *slotids=sm->schema, size=sm->size;
+    if ((sm->flags)&(FD_SCHEMAP_TAGGED)) {
+      fdtype pos=slotids[size+1];
+      int intpos=fd_getint(pos);
+      if ((intpos<op->n_schemas) &&
+	  (op->schemas[intpos].slotids==slotids))
+	return intpos;}
+    return find_schema_byval(op,slotids,size);}
+  else if (FD_SLOTMAPP(value)) {
+    fdtype _tmp_slotids[32], *tmp_slotids;
+    struct FD_SLOTMAP *sm=(fd_slotmap)value;
+    int i=0, size=FD_XSLOTMAP_SIZE(sm);
+    if (size<32) 
+      tmp_slotids=_tmp_slotids;
+    else tmp_slotids=u8_malloc(sizeof(fdtype)*size);
+    while (i<size) {
+      tmp_slotids[i]=sm->keyvals[i].key; i++;}
+    if (tmp_slotids==_tmp_slotids)
+      return find_schema_byval(op,tmp_slotids,size);
+    else {
+      int retval=find_schema_byval(op,tmp_slotids,size);
+      u8_free(tmp_slotids);
+      return retval;}}
+  else return -1;
+}
+
 static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
 			       struct FD_BYTE_OUTPUT *tmpout,
 			       unsigned char **zbuf,int *zbuf_size)
@@ -834,27 +860,30 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
   if (p->n_schemas==0) {
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
-  else {
-    u8_warn(_("Out of luck"),"Saving with schemas is not currently supporte");
-    fd_write_byte(tmpout,0);
-    fd_write_dtype(tmpout,value);}
-#if 0
-  else if ((FD_SCHEMAPP(value)) &&
-	   (!((FD_SCHEMAP_FLAGS(value))&(FD_SCHEMAP_PRIVATE)))) {
-    struct FD_SCHEMAP *smap=(struct FD_SCHEMAP *)value;
-    int schema_id=get_schema_id(p,smap->size,smap->schema);
+  else if ((FD_SCHEMAPP(value)) || (FD_SLOTMAPP(value))) {
+    int schema_id=get_schema_id(p,value);
     if (schema_id<0) {
       fd_write_byte(tmpout,0);
-      fd_write_dtype(tmpout,value);}
+      return 1+fd_write_dtype(tmpout,value);}
     else {
-      int i=0, n=smap->size; fdtype *values=sm->values;
+      struct FD_SCHEMA_ENTRY *se=&(p->schemas[schema_id]);
       fd_write_zint(tmpout,schema_id+1);
-      while (i<n) {
-	fd_write_dtype(tmpout,values[i]); i++;}}}
+      if (FD_SCHEMAPP(value)) {
+	struct FD_SCHEMAP *sm=(fd_schemap)value;
+	int i=0, size=sm->size; fdtype *values=sm->values;
+	while (i<size) {
+	  fd_write_dtype(tmpout,values[se->mapout[i]]);
+	  i++;}}
+      else {
+	struct FD_SLOTMAP *sm=(fd_slotmap)value;
+	struct FD_KEYVAL *data=sm->keyvals;
+	int i=0, size=FD_XSLOTMAP_SIZE(sm);
+	while (i<size) {
+	  fd_write_dtype(tmpout,data[se->mapout[i]].key);
+	  i++;}}}}
   else {
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
-#endif
   if (p->compression==FD_NOCOMPRESS) {
     fd_dtswrite_bytes(stream,tmpout->start,tmpout->ptr-tmpout->start);
     return tmpout->ptr-tmpout->start;}
@@ -880,6 +909,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   off_t endpos=fd_endpos(stream), recovery_pos;
   FD_OID base=op->base;
   FD_INIT_BYTE_OUTPUT(&tmpout,4096,NULL);
+  if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
+    tmpout.flags=tmpout.flags|FD_DTYPEV2;
   while (i<n) {
     FD_OID addr=FD_OID_ADDR(oids[i]);
     fdtype value=values[i];
