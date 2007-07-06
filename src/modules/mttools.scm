@@ -207,6 +207,29 @@
 (define (mt/noprogress count thisblock limit nthreads
 	  time preptime posttime blockprep blocktime blockpost))
 
+(define (mt/custom-progress task)
+  (lambda (count thisblock limit nthreads
+		 time preptime posttime blockprep blocktime blockpost)
+    (cond ((= count limit)
+	   (status task ": finished all " limit " elements "
+		   " in " (short-interval-string time)
+		   " with " (get% preptime time) "% ("
+		   (short-interval-string preptime) ") in pre-processing and "
+		   (get% preptime time) "% ("
+		   (short-interval-string posttime) ") in post-processing."))
+	  ((not (or blocktime blockprep blockpost))
+	   (unless (= count 0)
+	     (let ((togo (* time (/ (- limit count) count))))
+	       (status task ": finished " (get% count limit) "% ("
+		       count "/" limit ") in "
+		       (short-interval-string time)
+		       (when (> count 0)
+			 (printout ", ~ "
+				   (short-interval-string togo) " to go "
+				   "(~" (short-interval-string (+ togo time))
+				   " total)"))))))
+	  (else))))
+
 (define do-choices-mt
   (macro expr
     (let* ((control-spec (get-arg expr 1))
@@ -399,5 +422,6 @@
 		  mt/detailed-progress
 		  mt/sparse-progress
 		  mt/default-progress
-		  mt/noprogress})
+		  mt/noprogress
+		  mt/custom-progress})
 
