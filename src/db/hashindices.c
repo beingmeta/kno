@@ -214,6 +214,8 @@ static fd_index open_hash_index(u8_string fname,int read_only)
     fd_seterr3(BadHashFn,"open_hash_index",NULL);
     return NULL;}
   
+  index->offtype=(fd_offset_type)(((index->hxflags)&(FD_HASH_OFFTYPE_MASK))>>8);
+
   index->hxcustom=fd_dtsread_4bytes(s);
 
   index->n_keys=n_keys=fd_dtsread_4bytes(s); /* Currently ignored */
