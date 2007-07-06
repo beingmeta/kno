@@ -104,7 +104,7 @@
 		 " in " (short-interval-string time)
 		 " with " (get% preptime time) "% ("
 		 (short-interval-string preptime) ") in pre-processing and "
-		 (get% preptime time) "% ("
+		 (get% posttime time) "% ("
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
@@ -143,7 +143,7 @@
 		 " in " (short-interval-string time)
 		 " with " (get% preptime time) "% ("
 		 (short-interval-string preptime) ") in pre-processing and "
-		 (get% preptime time) "% ("
+		 (get% posttime time) "% ("
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
@@ -170,7 +170,7 @@
 		 " in " (short-interval-string time)
 		 " with " (get% preptime time) "% ("
 		 (short-interval-string preptime) ") in pre-processing and "
-		 (get% preptime time) "% ("
+		 (get% posttime time) "% ("
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
@@ -215,7 +215,7 @@
 		   " in " (short-interval-string time)
 		   " with " (get% preptime time) "% ("
 		   (short-interval-string preptime) ") in pre-processing and "
-		   (get% preptime time) "% ("
+		   (get% posttime time) "% ("
 		   (short-interval-string posttime) ") in post-processing."))
 	  ((not (or blocktime blockprep blockpost))
 	   (unless (= count 0)
