@@ -263,7 +263,7 @@ static unsigned char *do_zuncompress
 }
 
 static unsigned char *do_zcompress
-   (unsigned char *bytes,int n_bytes,int *cbytes,unsigned char *init_cbuf)
+   (unsigned char *bytes,int n_bytes,int *cbytes,unsigned char *init_cbuf,int level)
 {
   fd_exception error=NULL; int zerror;
   unsigned long dsize=n_bytes, csize, csize_max;
@@ -272,7 +272,7 @@ static unsigned char *do_zcompress
     csize=csize_max=dsize; cbuf=u8_malloc(csize_max);}
   else {
     cbuf=init_cbuf; csize=csize_max=*cbytes;}
-  while ((zerror=compress(cbuf,&csize,dbuf,dsize)) < Z_OK)
+  while ((zerror=compress2(cbuf,&csize,dbuf,dsize,level)) < Z_OK)
     if (zerror == Z_MEM_ERROR) {
       error=_("ZLIB ran out of memory"); break;}
     else if (zerror == Z_BUF_ERROR) {
@@ -904,7 +904,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
   else if (p->compression==FD_ZLIB) {
     unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
     int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->start,tmpout->ptr-tmpout->start,&cbuf_size,_cbuf);
+    cbuf=do_zcompress(tmpout->start,tmpout->ptr-tmpout->start,&cbuf_size,_cbuf,9);
     fd_dtswrite_bytes(stream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);
     return cbuf_size;}
