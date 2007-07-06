@@ -171,7 +171,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       break;}
     case FD_B64: 
       if (fd_setpos(stream,256+offset*8)<0) error=1;
-      result.off=fd_dtsread_off8_t(stream);
+      result.off=fd_dtsread_8bytes(stream);
       result.size=fd_dtsread_4bytes(stream);
       break;
     default:
@@ -323,6 +323,14 @@ static void sort_schema(fdtype *v,int n)
     else {fd_sort_schema(rn,v + j); n = ln;}}
 }
 
+static int schema_sortedp(fdtype *v,int n)
+{
+  int i=0; while (i<n-1) 
+    if (v[i]<v[i+1]) i++;
+    else return 0;
+  return 1;
+}
+
 /* Making and opening oidpools */
 
 static int init_schemas(fd_oidpool,fdtype);
@@ -353,7 +361,8 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
     /* If the pool is intrinsically read-only make it so. */
     read_only=1; fd_dtsclose(stream,1);
     fd_init_dtype_file_stream
-      (stream,fname,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE,NULL,NULL);}
+      (stream,fname,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE,NULL,NULL);
+    fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   pool->compression=
     (fd_compression_type)(((flags)&(FD_OIDPOOL_COMPRESSION))>>3);
@@ -365,8 +374,14 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
       fd_seterr(fd_MallocFailed,"open_oidpool",NULL,FD_VOID);
       return NULL;}}
   /* Get the label */
-  label_loc=fd_dtsread_off_t(stream);
+  label_loc=fd_dtsread_8bytes(stream);
   label_size=fd_dtsread_4bytes(stream);
+  /* Skip the metadata field */
+  fd_dtsread_8bytes(stream);
+  fd_dtsread_4bytes(stream); /* Ignore size */
+  /* Read and initialize the schemas_loc */
+  schemas_loc=fd_dtsread_8bytes(stream);
+  fd_dtsread_4bytes(stream); /* Ignore size */
   if (label_loc) {
     if (fd_setpos(stream,label_loc)>0) {
       label=fd_dtsread_dtype(stream);
@@ -380,12 +395,6 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
       fd_dtsclose(stream,1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
-  /* Skip the metadata field */
-  fd_dtsread_off_t(stream);
-  fd_dtsread_4bytes(stream); /* Ignore size */
-  /* Read and initialize the schemas_loc */
-  schemas_loc=fd_dtsread_off_t(stream);
-  fd_dtsread_4bytes(stream); /* Ignore size */
   if (schemas_loc) {
     fdtype schemas;
     fd_setpos(stream,schemas_loc);
@@ -430,6 +439,7 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
     int j=0; while (j<len)
       if (slotids[j]==val) break;
       else j++;
+    /* assert(i<len); assert(j<len); */
     mapin[i]=j; mapout[j]=i;
     i++;}
   return 0;
@@ -458,17 +468,17 @@ static int init_schemas(fd_oidpool op,fdtype schema_vec)
   else {
     int i=0, n=FD_VECTOR_LENGTH(schema_vec), max_slotids=0;
     struct FD_SCHEMA_ENTRY *schemas=u8_malloc(sizeof(FD_SCHEMA_ENTRY)*n);
-    struct FD_SCHEMA_LOOKUP *schbyptr=u8_malloc(sizeof(FD_SCHEMA_LOOKUP)*n);
     struct FD_SCHEMA_LOOKUP *schbyval=u8_malloc(sizeof(FD_SCHEMA_LOOKUP)*n);
     while (i<n) {
       fdtype slotids=FD_VECTOR_REF(schema_vec,i);
       int n_slotids=FD_VECTOR_LENGTH(slotids);
       if (n_slotids>max_slotids) max_slotids=n_slotids;
       init_schema_entry(&(schemas[i]),i,slotids);
-      schbyptr[i].id=i; schbyptr[i].n_slotids=n_slotids;
-      schbyptr[i].slotids=schemas[i].slotids;
+      schbyval[i].id=i; schbyval[i].n_slotids=n_slotids;
+      schbyval[i].slotids=schemas[i].slotids;
       i++;}
-    op->max_slotids=max_slotids;
+    op->schemas=schemas; op->schbyval=schbyval;
+    op->max_slotids=max_slotids; op->n_schemas=n;
     qsort(schbyval,n,sizeof(struct FD_SCHEMA_LOOKUP),
 	  compare_schema_vals);}
 }
@@ -493,14 +503,14 @@ static int find_schema_byval(fd_oidpool op,fdtype *slotids,int n)
   struct FD_SCHEMA_LOOKUP *bot=table, *top=max, *middle=bot+(size)/2;
   while (top>bot) {
     cmp=compare_schemas(middle,slotids,n);
-    if (cmp==0) return middle-table;
+    if (cmp==0) return middle->id;
     else if (cmp<0) {
       top=middle-1; middle=bot+(top-bot)/2;}
     else {
       bot=middle+1; middle=bot+(top-bot)/2;}}
   if ((middle<max) && (middle>=table) &&
       (compare_schemas(middle,slotids,n)==0))
-    return middle-table;
+    return middle->id;
   else return -1;
 }
 
@@ -841,6 +851,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
     else tmp_slotids=u8_malloc(sizeof(fdtype)*size);
     while (i<size) {
       tmp_slotids[i]=sm->keyvals[i].key; i++;}
+    /* assert(schema_sortedp(tmp_slotids,size)); */
     if (tmp_slotids==_tmp_slotids)
       return find_schema_byval(op,tmp_slotids,size);
     else {
@@ -865,7 +876,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
     int schema_id=get_schema_id(p,value);
     if (schema_id<0) {
       fd_write_byte(tmpout,0);
-      return 1+fd_write_dtype(tmpout,value);}
+      fd_write_dtype(tmpout,value);}
     else {
       struct FD_SCHEMA_ENTRY *se=&(p->schemas[schema_id]);
       fd_write_zint(tmpout,schema_id+1);
@@ -882,7 +893,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
 	int i=0, size=FD_XSLOTMAP_SIZE(sm);
 	fd_write_zint(tmpout,size);
 	while (i<size) {
-	  fd_write_dtype(tmpout,data[se->mapout[i]].key);
+	  fd_write_dtype(tmpout,data[se->mapin[i]].value);
 	  i++;}}}}
   else {
     fd_write_byte(tmpout,0);

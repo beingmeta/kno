@@ -288,7 +288,7 @@ FD_FASTOP int fd_write_zint8(struct FD_BYTE_OUTPUT *s,fd_8bytes n)
     if (fd_write_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
     if (fd_write_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
     if (fd_write_byte(s,n&0x7F)<0) return -1;
-    return 5;}
+    return 9;}
 }
 
 #define fd_get_byte(membuf) (*(membuf))

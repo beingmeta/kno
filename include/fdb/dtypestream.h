@@ -170,16 +170,6 @@ FD_FASTOP off_t fd_dtsread_off_t(fd_dtype_stream s)
   else return (off_t) -1;
 }
 
-FD_FASTOP off_t fd_dtsread_off8_t(fd_dtype_stream s)
-{
-  fd_dts_start_read(s);
-  if (fd_needs_bytes((fd_byte_input)s,4)) {
-    unsigned int bytes=fd_get_4bytes(s->ptr);
-    s->ptr=s->ptr+4;
-    return (off_t) bytes;}
-  else return (off_t) -1;
-}
-
 FD_FASTOP unsigned int fd_dtsread_zint(fd_dtype_stream s)
 {
   unsigned int result=0, probe;
