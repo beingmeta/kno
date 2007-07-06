@@ -114,7 +114,7 @@
 		       count " of " limit " items in "
 		       (short-interval-string time)
 		       (when (> count 0)
-			 (printout ", ~ "
+			 (printout ", ~"
 			   (short-interval-string togo) " to go "
 			   "(~" (short-interval-string (+ togo time))
 			   " total)"))))))
@@ -152,7 +152,7 @@
 		     count " of " limit " items in "
 		     (short-interval-string time)
 		     (when (> count 0)
-		       (printout ", ~ "
+		       (printout ", ~"
 			 (short-interval-string (* time (/ (- limit count) count)))
 			 " to go "
 			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
@@ -179,7 +179,7 @@
 		     count " of " limit " items in "
 		     (short-interval-string time)
 		     (when (> count 0)
-		       (printout ", ~ "
+		       (printout ", ~"
 			 (short-interval-string (* time (/ (- limit count) count)))
 			 " to go "
 			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
@@ -224,7 +224,7 @@
 		       count "/" limit ") in "
 		       (short-interval-string time)
 		       (when (> count 0)
-			 (printout ", ~ "
+			 (printout ", ~"
 				   (short-interval-string togo) " to go "
 				   "(~" (short-interval-string (+ togo time))
 				   " total)"))))))

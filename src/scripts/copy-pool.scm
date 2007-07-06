@@ -23,7 +23,7 @@
 	     (message "Using existing schemas from " (config 'schemafile #f))
 	     (file->dtype (config 'schemafile #f)))
 	   (let ((table (make-hashtable)))
-	     (message "Computing schemas from " (pool-load old) " OIDs in " old)
+	     (message "Computing schemas from " (pool-load old) " OIDs in " (or (pool-source old) old))
 	     (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
 			       (lambda (oids done)
 				 (when done (clearcaches))
@@ -38,8 +38,10 @@
 			(choice-size schemas))
 	       (if (config 'schemafile #t)
 		   (let ((schemas (rsorted (getkeys table) table)))
-		     (message "Writing schemas to " (config 'schemafile #f))
-		     (dtype->file schemas (config 'schemafile #t))
+		     (when (and (config 'schemafile #f)
+				(string? (config 'schemafile #f)))
+		       (message "Writing schemas to " (config 'schemafile #f))
+		       (dtype->file schemas (config 'schemafile #t)))
 		     schemas)
 		   (rsorted picked table)))))))
 
@@ -64,7 +66,10 @@
 	 (use-pool filename))))
 
 (define (copy-oids old new)
-  (message "Copying OIDs from " old " into " new)
+  (message "Copying OIDs " (if (pool-label old)
+			       (append "for " (pool-label old)))
+	   "from " (or (pool-source old) old)
+	   " into " (or (pool-source new) new))
   (let* ((prefetcher (lambda (oids done)
 		       (when done (commit) (clearcaches))
 		       (unless done

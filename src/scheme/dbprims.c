@@ -528,6 +528,18 @@ static fdtype pool_label(fdtype arg,fdtype use_source)
   else return FD_FALSE;
 }
 
+static fdtype pool_source(fdtype arg)
+{
+  fd_pool p=arg2pool(arg);
+  if (p==NULL)
+    return fd_type_error(_("pool spec"),"pool_label",arg);
+  else if (p->source)
+    return fdtype_string(p->source);
+  else if (p->cid)
+    return fdtype_string(p->source);
+  else return FD_FALSE;
+}
+
 static fdtype pool_close_prim(fdtype arg)
 {
   fd_pool p=arg2pool(arg);
@@ -1557,6 +1569,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETPOOL",getpool,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("POOL-LABEL",pool_label,1,
 					    -1,FD_VOID,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-SOURCE",pool_source,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-BASE",pool_base,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-CAPACITY",pool_capacity,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-LOAD",pool_load,1));
