@@ -668,16 +668,17 @@ static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
   else if (zip_code==0)
     return fd_read_dtype(in,NULL);
   else {
-    struct FD_SCHEMA_ENTRY *se=op->schemas+(zip_code-1);
+    struct FD_SCHEMA_ENTRY *se=&(op->schemas[zip_code-1]);
     int n_vals=fd_read_zint(in), n_slotids=se->n_slotids;
     if (FD_EXPECT_TRUE(n_vals==n_slotids)) {
       fdtype *values=u8_malloc(sizeof(fdtype)*n_vals);
       unsigned int i=0, *mapin=se->mapin;
       /* We reorder the values coming in to agree with the
-	 schema sorting for fast lookup. */
+	 schema sorting done in memory for fast lookup. That
+	 translation is stored in the mapin field. */
       while (i<n_vals) {
 	values[mapin[i]]=fd_read_dtype(in,NULL); i++;}
-      return fd_make_schemap(NULL,n_vals,0,
+      return fd_make_schemap(NULL,n_vals,FD_SCHEMAP_SORTED|FD_SCHEMAP_TAGGED,
 			     se->slotids,values,NULL);}
     else return fd_err(fd_SchemaInconsistency,cxt,op->cid,FD_VOID);}
 }
@@ -871,6 +872,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
       if (FD_SCHEMAPP(value)) {
 	struct FD_SCHEMAP *sm=(fd_schemap)value;
 	int i=0, size=sm->size; fdtype *values=sm->values;
+	fd_write_zint(tmpout,size);
 	while (i<size) {
 	  fd_write_dtype(tmpout,values[se->mapout[i]]);
 	  i++;}}
@@ -878,6 +880,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
 	struct FD_SLOTMAP *sm=(fd_slotmap)value;
 	struct FD_KEYVAL *data=sm->keyvals;
 	int i=0, size=FD_XSLOTMAP_SIZE(sm);
+	fd_write_zint(tmpout,size);
 	while (i<size) {
 	  fd_write_dtype(tmpout,data[se->mapout[i]].key);
 	  i++;}}}}
