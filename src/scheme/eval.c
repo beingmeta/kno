@@ -1448,8 +1448,6 @@ static fdtype synchro_unlock(fdtype x)
   else return fd_type_error("lockable","synchro_unlock",x);
 }
 
-
-
 /* Functions */
 
 FD_EXPORT
@@ -1465,9 +1463,10 @@ fd_thread_struct fd_thread_call
   tstruct->flags=0;
   tstruct->applydata.fn=fd_incref(fn);
   tstruct->applydata.n_args=n; tstruct->applydata.args=rail; 
+  /* We need to do this first, before the thread exits and recycles itself! */
+  fd_incref((fdtype)tstruct);
   pthread_create(&(tstruct->tid),pthread_attr_default,
 		 thread_call,(void *)tstruct);
-  fd_incref((fdtype)tstruct);
   return tstruct;
 }
 
@@ -1483,9 +1482,10 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
   tstruct->flags=FD_EVAL_THREAD;
   tstruct->evaldata.expr=fd_incref(expr);
   tstruct->evaldata.env=fd_copy_env(env);
+  /* We need to do this first, before the thread exits and recycles itself! */
+  fd_incref((fdtype)tstruct);
   pthread_create(&(tstruct->tid),pthread_attr_default,
 		 thread_call,(void *)tstruct);
-  fd_incref((fdtype)tstruct);
   return tstruct;
 }
 
@@ -1493,10 +1493,11 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
 
 static fdtype threadcall_prim(int n,fdtype *args)
 {
-  fdtype *call_args=u8_malloc(sizeof(fdtype)*(n-1));
+  fdtype *call_args=u8_malloc(sizeof(fdtype)*(n-1)), thread;
   int i=1; while (i<n) {
     call_args[i-1]=fd_incref(args[i]); i++;}
-  return (fdtype)fd_thread_call(NULL,args[0],n-1,call_args);
+  thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args);
+  return thread;
 }
 
 static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
