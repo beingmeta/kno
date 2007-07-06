@@ -901,6 +901,13 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
   if (p->compression==FD_NOCOMPRESS) {
     fd_dtswrite_bytes(stream,tmpout->start,tmpout->ptr-tmpout->start);
     return tmpout->ptr-tmpout->start;}
+  else if (p->compression==FD_ZLIB) {
+    unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
+    int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
+    cbuf=do_zcompress(tmpout->start,tmpout->ptr-tmpout->start,&cbuf_size,_cbuf);
+    fd_dtswrite_bytes(stream,cbuf,cbuf_size);
+    if (cbuf!=_cbuf) u8_free(cbuf);
+    return cbuf_size;}
   else {
     u8_warn(_("Out of luck"),"Compressed oidpools are not yet supported");
     exit(-1);}

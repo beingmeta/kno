@@ -132,10 +132,10 @@ static fdtype make_oidpool(int n,fdtype *args)
     else flags=flags|FD_B40;
 
     if (fd_position(fd_intern("NOCOMPRESS"),flags_arg,0,-1)>=0) {}
-    else if (fd_position(fd_intern("ZLIB9"),flags_arg,0,-1)>=0)
-      flags=flags|((FD_ZLIB)<<2);
+    else if (fd_position(fd_intern("ZLIB"),flags_arg,0,-1)>=0)
+      flags=flags|((FD_ZLIB)<<3);
     else if (fd_position(fd_intern("BZ2"),flags_arg,0,-1)>=0)
-      flags=flags|((FD_BZ2)<<2);
+      flags=flags|((FD_BZ2)<<3);
 
     if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
       flags=flags|FD_OIDPOOL_DTYPEV2;

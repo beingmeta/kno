@@ -8,7 +8,8 @@
    (choice (tryif (config 'dtypev2 #f) 'dtypev2)
 	   (tryif (config 'B32 #f) 'B32)
 	   (tryif (config 'B40 #f) 'B40)
-	   (tryif (config 'B64 #f) 'B64))))
+	   (tryif (config 'B64 #f) 'B64)
+	   (tryif (config 'ZLIB #f) 'ZLIB))))
 
 (define default-schematize #f)
 
