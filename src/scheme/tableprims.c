@@ -60,7 +60,7 @@ static fdtype static_hashtable(fdtype table)
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
   fd_lock_mutex(&(ht->lock));
   ht->modified=-1;
-  fd_lock_mutex(&(ht->lock));
+  fd_unlock_mutex(&(ht->lock));
   return fd_incref(table);
 }
 
