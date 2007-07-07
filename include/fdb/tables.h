@@ -368,7 +368,7 @@ struct FD_HASHENTRY {
 
 typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;
-  unsigned int n_slots, n_keys, loading, modified;
+  unsigned int n_slots, n_keys, loading; int modified;
   struct FD_HASHENTRY **slots;
   FD_MEMORY_POOL_TYPE *mpool;
   U8_MUTEX_DECL(lock);} FD_HASHTABLE;
