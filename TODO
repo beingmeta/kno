@@ -64,4 +64,5 @@ Remove all the memory pool stuff
 Make copy-index smarter as a replacement for repack-* functions
 Add background search methods for slots
 Add generic composition for slotids
-Finish adding slotid and zlib/bz2 compression to OIDPOOLs
+# Finish adding slotid and zlib/bz2 compression to OIDPOOLs (6 July 2007)
+Implement a simple queueing system
