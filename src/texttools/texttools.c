@@ -503,6 +503,34 @@ static fdtype stem_prim(fdtype arg)
   return fd_init_string(NULL,-1,stemmed);
 }
 
+/* Disemvoweling */
+
+static u8_string default_vowels="aeiouy";
+
+static fdtype disemvowel(fdtype string,fdtype use_base_arg,fdtype vowels)
+{
+  struct U8_OUTPUT out; struct U8_INPUT in; 
+  U8_INIT_STRING_INPUT(&in,FD_STRLEN(string),FD_STRDATA(string));
+  U8_INIT_OUTPUT(&out,FD_STRING_LENGTH(string));
+  int c=u8_getc(&in), use_base=1; u8_string vowelset;
+  if (FD_STRINGP(vowels)) vowelset=FD_STRDATA(vowels);
+  else vowelset=default_vowels;
+  if (FD_FALSEP(use_base_arg)) use_base=0;
+  while (c>=0) {
+    int bc=u8_base_char(c);
+    if (bc<0x80) {
+      if (strchr(vowelset,bc)==NULL)
+	u8_putc(&out,c);}
+    else {
+      char buf[16]; U8_OUTPUT tmp;
+      U8_INIT_FIXED_OUTPUT(&tmp,16,buf);
+      u8_putc(&tmp,bc);
+      if (strstr(vowelset,buf)==NULL)
+	u8_putc(&out,c);}
+    c=u8_getc(&in);}
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
 /* Skipping markup */
 
 static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
@@ -1421,6 +1449,10 @@ void fd_init_texttools()
   fd_idefn(texttools_module,fd_make_cprim1("MD5",fd_md5,1));
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
 					    fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim3x("DISEMVOWEL",disemvowel,1,
+			   fd_string_type,FD_VOID,-1,FD_TRUE,
+			   fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
   fd_idefn(texttools_module,
