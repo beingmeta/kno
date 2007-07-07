@@ -691,12 +691,14 @@ FD_EXPORT void fd_init_index
 
 static int unparse_index(u8_output out,fdtype x)
 {
-  fd_index ix=fd_lisp2index(x);
+  fd_index ix=fd_lisp2index(x); u8_string type;
   if (ix==NULL) return 0;
+  if ((ix->handler) && (ix->handler->name)) type=ix->handler->name;
+  else type="unrecognized";
   if ((ix->xid) && (strcmp(ix->source,ix->xid)))
-    u8_printf(out,_("#<INDEX 0x%lx \"%s|%s\">"),
-	      x,ix->source,ix->xid);
-  else u8_printf(out,_("#<INDEX 0x%lx \"%s\">"),x,ix->source);
+    u8_printf(out,_("#<INDEX %s 0x%lx \"%s|%s\">"),
+	      type,x,ix->source,ix->xid);
+  else u8_printf(out,_("#<INDEX %s 0x%lx \"%s\">"),type,x,ix->source);
   return 1;
 }
 

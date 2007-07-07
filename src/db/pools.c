@@ -1180,35 +1180,39 @@ FD_EXPORT fd_pool fd_name2pool(u8_string spec)
 
 static int unparse_pool(u8_output out,fdtype x)
 {
-  fd_pool p=fd_lisp2pool(x);
+  fd_pool p=fd_lisp2pool(x); u8_string type;
   if (p==NULL) return 0;
-  else if (p->label)
+  if ((p->handler) && (p->handler->name)) type=p->handler->name;
+  else type="unrecognized";
+  if (p->label)
     if ((p->xid) && (strcmp(p->source,p->xid)))
-      u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s|%s\">",
-		x,p->label,p->source,p->xid);
-    else u8_printf(out,"#<POOL 0x%lx \"%s\" \"%s\">",x,p->label,p->source);
+      u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s|%s\">",
+		type,x,p->label,p->source,p->xid);
+    else u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s\">",type,x,p->label,p->source);
   else if (p->source)
     if ((p->xid) && (strcmp(p->source,p->xid)))
-      u8_printf(out,"#<POOL 0x%lx \"%s|%s\">",x,p->source,p->xid);
-    else u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
-  else u8_printf(out,"#<POOL 0x%lx>",x);  
+      u8_printf(out,"#<POOL %s 0x%lx \"%s|%s\">",type,x,p->source,p->xid);
+    else u8_printf(out,"#<POOL %s 0x%lx \"%s\">",type,x,p->source);
+  else u8_printf(out,"#<POOL %s,0x%lx>",type,x);  
   return 1;
 }
 
 static int unparse_raw_pool(u8_output out,fdtype x)
 {
-  fd_pool p=(fd_pool)x;
+  fd_pool p=(fd_pool)x; u8_string type;
   if (p==NULL) return 0;
-  else if (p->label)
+  if ((p->handler) && (p->handler->name)) type=p->handler->name;
+  else type="unrecognized";
+  if (p->label)
     if ((p->xid) && (strcmp(p->source,p->xid)))
-      u8_printf(out,"#<RAWPOOL 0x%lx \"%s\" \"%s|%s\">",
-		x,p->label,p->source,p->xid);
-    else u8_printf(out,"#<RAWPOOL 0x%lx \"%s\" \"%s\">",x,p->label,p->source);
+      u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s|%s\">",
+		type,x,p->label,p->source,p->xid);
+    else u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s\">",type,x,p->label,p->source);
   else if (p->source)
     if ((p->xid) && (strcmp(p->source,p->xid)))
-      u8_printf(out,"#<RAWPOOL 0x%lx \"%s|%s\">",x,p->source,p->xid);
-    else u8_printf(out,"#<POOL 0x%lx \"%s\">",x,p->source);
-  else u8_printf(out,"#<RAWPOOL 0x%lx>",x);  
+      u8_printf(out,"#<POOL %s 0x%lx \"%s|%s\">",type,x,p->source,p->xid);
+    else u8_printf(out,"#<POOL %s 0x%lx \"%s\">",type,x,p->source);
+  else u8_printf(out,"#<POOL %s,0x%lx>",type,x);  
   return 1;
 }
 
