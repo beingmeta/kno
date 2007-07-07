@@ -179,13 +179,34 @@ static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
   else return FD_TRUE;
 }
 
+static int get_make_hash_index_flags(fdtype flags_arg)
+{
+  if (FD_SEQUENCEP(flags_arg)) {
+    int flags=0;
+    if (fd_position(fd_intern("B64"),flags_arg,0,-1)>=0)
+      flags=flags|(FD_B64<<4);
+    else if (fd_position(fd_intern("B32"),flags_arg,0,-1)>=0) {}
+    else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0)
+      flags=flags|(FD_B40<<4);
+    else flags=flags|(FD_B40<<4);
+    if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
+      flags=flags|FD_HASH_INDEX_DTYPEV2;}
+  else if (FD_EQ(flags_arg,fd_intern("DTYPEV2")))
+    return FD_HASH_INDEX_DTYPEV2;
+  else if (FD_EQ(flags_arg,fd_intern("B40")))
+    return (FD_B40<<4);
+  else if (FD_EQ(flags_arg,fd_intern("B64")))
+    return (FD_B64<<4);
+  else return 0;
+}
+
 static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata,
-			      fdtype v2)
+			      fdtype flags_arg)
 {
   int retval, blocksize=-1; fd_index ix;
   retval=fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
-			    ((FD_TRUEP(v2)) ? (FD_HASH_INDEX_DTYPEV2) : (0)),0,
-			   slotids,baseoids,metadata,-1,-1);
+			    get_make_hash_index_flags(flags_arg),0,
+			    slotids,baseoids,metadata,-1,-1);
   if (retval<0) return fd_erreify();
   else return FD_VOID;
 }
