@@ -1976,13 +1976,12 @@ static fdtype dtcall(int n,fdtype *args)
     server=fd_incref(args[0]);
   else if (FD_STRINGP(args[0])) server=fd_open_dtserver(FD_STRDATA(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
-  while (i>0) {
+  while (i>=1) {
     fdtype param=args[i];
     if ((i>1) && ((FD_SYMBOLP(param)) || (FD_PAIRP(param))))
       request=fd_init_pair(NULL,fd_make_list(2,quote_symbol,param),request);
     else request=fd_init_pair(NULL,param,request);
-    fd_incref(param); i++;
-    return request;}
+    fd_incref(param); i--;}
   result=fd_dteval((fd_dtserver)server,request);
   fd_decref(request); fd_decref(server);
   return result;
