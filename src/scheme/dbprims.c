@@ -33,7 +33,9 @@ static fdtype slotidp(fdtype arg)
 
 static fdtype find_frames_lexpr(int n,fdtype *args)
 {
-  return fd_finder(args[0],n-1,args+1);
+  if (n%2)
+    return fd_finder(args[0],n-1,args+1);
+  else return fd_bgfinder(n,args);
 }
 
 static fdtype xfind_frames_lexpr(int n,fdtype *args)

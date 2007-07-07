@@ -39,6 +39,19 @@ static fd_exception BadZKEY=_("Bad ZKEY reference");
 
 #define FD_DEFAULT_ZLEVEL 9
 
+#define get_stream(fp) ((fp->stream.sock>0) ? (&(fp->stream)) : (reopen_stream(fp)));
+
+static fd_dtype_stream reopen_stream(fd_file_pool fp)
+{
+  fd_dtstream_mode mode=
+    ((fp->read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
+  fd_lock_mutex(&(fp->lock));
+  fd_init_dtype_file_stream
+    (&(fp->stream),fp->source,mode,FD_FILEDB_BUFSIZE,NULL,NULL);
+  fd_unlock_mutex(&(fp->lock));
+  return &(fp->stream);
+}
+
 /* Reading compressed oid values */
 
 static unsigned char *do_uncompress

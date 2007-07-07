@@ -121,21 +121,6 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
   (fdtype key,struct FD_KEYVAL **kvp,int *sizep);
 
 #if FD_INLINE_TABLES
-#if (!FD_INLINE_CHOICES)
-static int cons_compare(fdtype x,fdtype y)
-{
-  if (FD_ATOMICP(x))
-    if (FD_ATOMICP(y))
-      if (x < y) return -1;
-      else if (x == y)
-	return 0;
-      else return 1;
-    else return -1;
-  else if (FD_ATOMICP(y))
-    return 1;
-  else return fdtype_compare(x,y,1);
-}
-#endif
 static struct FD_KEYVAL *fd_sortvec_get
    (fdtype key,struct FD_KEYVAL *keyvals,int size)
 {

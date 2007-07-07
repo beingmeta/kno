@@ -741,6 +741,22 @@ static fdtype urlput(int n,fdtype *args)
   return result;
 }
 
+/* Using URLs for code source */
+
+#if 0
+static u8_string url_sourcefn(u8_string path,u8_string enc,u8_string *path,time_t time)
+{
+  if (((strncmp(path,"http:",5))==0) ||
+      ((strncmp(path,"https:",6))==0) ||
+      ((strncmp(path,"ftp:",4))==0)) {
+    u8_string content;}
+  else return NULL;
+}
+#endif
+
+
+/* Initialization stuff */
+
 static int curl_initialized=0;
 
 FD_EXPORT void fd_init_curl_c(void) FD_LIBINIT_FN;

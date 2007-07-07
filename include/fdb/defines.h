@@ -105,6 +105,12 @@
 #define FD_INLINE_CHOICES 0
 #endif
 
+#if ((FD_INLINE_CHOICES)||(FD_INLINE_TABLES))
+#define FD_INLINE_COMPARE 1
+#elif (!(defined(FD_INLINE_COMPARE)))
+#define FD_INLINE_COMPARE 0
+#endif
+
 #ifndef FD_INLINE_TABLES
 #define FD_INLINE_TABLES 0
 #endif

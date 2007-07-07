@@ -96,22 +96,6 @@ static void sort_keyvals(struct FD_KEYVAL *v,int n)
     else {sort_keyvals(v + j, rn); n = ln;}}
 }
 
-#if (!FD_INLINE_CHOICES)
-static int cons_compare(fdtype x,fdtype y)
-{
-  if (FD_ATOMICP(x))
-    if (FD_ATOMICP(y))
-      if (x < y) return -1;
-      else if (x == y)
-	return 0;
-      else return 1;
-    else return -1;
-  else if (FD_ATOMICP(y))
-    return 1;
-  else return fdtype_compare(x,y,1);
-}
-#endif
-
 static void cons_sort_keyvals(struct FD_KEYVAL *v,int n)
 {
   unsigned i, j, ln, rn;
@@ -200,7 +184,7 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   size=osize=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_insert(key,&(sm->keyvals),&size);
   if (FD_EXPECT_FALSE(result==NULL)) {
-    fd_lock_mutex(&sm->lock);
+    fd_unlock_mutex(&sm->lock);
     fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
     return -1;}
   fd_decref(result->value); result->value=fd_incref(value);
@@ -224,7 +208,7 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   size=osize=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_insert(key,&(sm->keyvals),&size);
   if (FD_EXPECT_FALSE(result==NULL)) {
-    fd_lock_mutex(&sm->lock);
+    fd_unlock_mutex(&sm->lock);
     fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
     return -1;}
   FD_ADD_TO_CHOICE(result->value,fd_incref(value)); 
@@ -1423,7 +1407,7 @@ FD_EXPORT int fd_hashtable_iter
     else do_hashtable_op(ht,op,keys[i],values[i]);
     i++;}
   if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));  
-  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+  else if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
@@ -1470,7 +1454,7 @@ FD_EXPORT int fd_hashtable_itervals
     else do_hashtable_op(ht,op,key,values[i]);
     i++;}
   if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));  
-  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+  else if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
