@@ -55,6 +55,15 @@ static fdtype reset_hashtable(fdtype table,fdtype n_slots)
   return FD_VOID;
 }
 
+static fdtype static_hashtable(fdtype table)
+{
+  struct FD_HASHTABLE *ht=(fd_hashtable)table;
+  fd_lock_mutex(&(ht->lock));
+  ht->modified=-1;
+  fd_lock_mutex(&(ht->lock));
+  return fd_incref(table);
+}
+
 static fdtype hash_lisp_prim(fdtype x)
 {
   int val=fd_hash_lisp(x);
@@ -483,6 +492,7 @@ FD_EXPORT void fd_init_tablefns_c()
 
   fd_idefn(fd_xscheme_module,fd_make_cprim0("MAKE-HASHSET",fd_make_hashset,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("STATIC-HASHTABLE",static_hashtable,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("PICK-HASHTABLE-SIZE",pick_hashtable_size,1,

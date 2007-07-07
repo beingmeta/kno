@@ -21,6 +21,7 @@ static char versionid[] =
 #include <stdio.h>
 
 fd_exception fd_NoSuchKey=_("No such key");
+fd_exception fd_ReadOnlyHashtable=_("Read-Only hashtable");
 static fd_exception HashsetOverflow=_("Hashset Overflow");
 static u8_string NotATable=_("Not a table");
 static u8_string CantGet=_("Table doesn't support get");
@@ -1005,19 +1006,20 @@ FD_EXPORT fdtype fd_hashtable_get
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return dflt;
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   if (ht->n_keys == 0) {
-    fd_unlock_mutex(&(ht->lock)); return dflt;}
+      if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
+      return dflt;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
     fdtype v=((FD_ACHOICEP(rv)) ?
 	       (fd_make_simple_choice(rv)) :
 	       (fd_incref(rv)));
-    fd_unlock_mutex(&(ht->lock));
+    if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
     return v;}
   else {
-    fd_unlock_mutex((&(ht->lock)));
+      if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
     return fd_incref(dflt);}
 }
 
@@ -1044,15 +1046,16 @@ FD_EXPORT int fd_hashtable_probe(struct FD_HASHTABLE *ht,fdtype key)
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   if (ht->n_keys == 0) {
-    fd_unlock_mutex(&(ht->lock)); return 0;}
+      if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
+      return 0;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
-    fd_unlock_mutex(&(ht->lock));
+      if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
     return 1;}
   else {
-    fd_unlock_mutex((&(ht->lock)));
+      if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
     return 0;}
 }
 
@@ -1061,9 +1064,10 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   if (ht->n_keys == 0) {
-    fd_unlock_mutex(&(ht->lock)); return 0;}
+    if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
+    return 0;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype current=result->value; int cmp;
@@ -1075,10 +1079,10 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
-    fd_unlock_mutex(&(ht->lock));
+    if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
     return cmp;}
   else {
-    fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
     return 0;}
 }
 
@@ -1088,15 +1092,16 @@ FD_EXPORT int fd_hashtable_probe_novoid(struct FD_HASHTABLE *ht,fdtype key)
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   if (ht->n_keys == 0) {
-    fd_unlock_mutex(&(ht->lock)); return 0;}
+    if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
+    return 0;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if ((result) && (!(FD_VOIDP(result->value)))) {
-    fd_unlock_mutex(&(ht->lock));
+    if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));
     return 1;}
   else {
-    fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
     return 0;}
 }
 
@@ -1116,6 +1121,9 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   fdtype newv, oldv;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (FD_EXPECT_FALSE(FD_ABORTP(value))) return fd_interr(value);
+  if (ht->modified<0) {
+    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
+    return -1;}
   fd_lock_mutex(&(ht->lock));
   if (ht->n_slots == 0) setup_hashtable(ht,17);
   n_keys=ht->n_keys;
@@ -1141,6 +1149,9 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result; int n_keys, added; fdtype newv;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  if (ht->modified<0) {
+    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
+    return -1;}
   if (FD_EXPECT_FALSE(FD_EMPTY_CHOICEP(value)))
     return 0;
   else if (FD_EXPECT_FALSE(FD_ABORTP(value)))
@@ -1179,6 +1190,9 @@ FD_EXPORT int fd_hashtable_drop
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
+  if (ht->modified<0) {
+    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
+    return -1;}
   fd_lock_mutex(&(ht->lock));
   result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
@@ -1254,6 +1268,9 @@ static int do_hashtable_op
 {
   struct FD_KEYVAL *result; int achoicep=0, added=0;
   if (FD_EMPTY_CHOICEP(key)) return 0;
+  if ((ht->modified<0) && (op!=fd_table_test)) {
+    fd_seterr(fd_ReadOnlyHashtable,"do_hashtable_op",NULL,FD_VOID);
+    return -1;}
   switch (op) {
   case fd_table_replace: case fd_table_replace_novoid: case fd_table_drop:
   case fd_table_add_if_present: case fd_table_test:
@@ -1398,14 +1415,14 @@ FD_EXPORT int fd_hashtable_iter
 {
   int i=0, added=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,keys[i],values[i]);
     else do_hashtable_op(ht,op,keys[i],values[i]);
     i++;}
-  fd_unlock_mutex(&(ht->lock));  
+  if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));  
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1420,17 +1437,17 @@ FD_EXPORT int fd_hashtable_iterkeys
 {
   int i=0, added=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,keys[i],value);
     else do_hashtable_op(ht,op,keys[i],value);
     if (added<0) {
-      fd_unlock_mutex(&(ht->lock));  
+      if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));  
       return added;}
     i++;}
-  fd_unlock_mutex(&(ht->lock));  
+  if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));  
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1445,14 +1462,14 @@ FD_EXPORT int fd_hashtable_itervals
 {
   int i=0, added=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_lock_mutex(&(ht->lock));
+  if (ht->modified>=0) fd_lock_mutex(&(ht->lock));
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,key,values[i]);
     else do_hashtable_op(ht,op,key,values[i]);
     i++;}
-  fd_unlock_mutex(&(ht->lock));  
+  if (ht->modified>=0) fd_unlock_mutex(&(ht->lock));  
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1471,7 +1488,7 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 {
   fdtype result=FD_EMPTY_CHOICE;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
-  fd_lock_mutex(&ptr->lock);
+  if (ptr->modified>=0) fd_lock_mutex(&ptr->lock);
   {
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     while (scan < lim)
@@ -1483,7 +1500,7 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 	  kvscan++;}
 	scan++;}
       else scan++;}
-  fd_unlock_mutex(&ptr->lock);
+  if (ptr->modified>=0) fd_unlock_mutex(&ptr->lock);
   return fd_simplify_choice(result);
 }
 
@@ -1516,7 +1533,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   struct FD_HASHENTRY **slots; int slots_to_free=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (n_slots<0) n_slots=ht->n_slots;
-  if (lock) fd_lock_mutex(&(ht->lock));
+  if ((lock) && (ht->modified>=0)) fd_lock_mutex(&(ht->lock));
   /* Grab the slots and their length. We'll free them after we've reset
      the table and released its lock. */
   slots=ht->slots; slots_to_free=ht->n_slots;
@@ -1530,7 +1547,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
     ht->slots=slotvec=u8_pmalloc(mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if (lock) fd_unlock_mutex(&(ht->lock));
+  if ((lock) && (ht->modified>=0)) fd_unlock_mutex(&(ht->lock));
   /* Now, free the old data... */
   if (slots_to_free) {
     free_hashvec(slots,slots_to_free,ht->mpool);
@@ -1547,7 +1564,7 @@ FD_EXPORT int fd_fast_reset_hashtable
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (slotsptr==NULL) return fd_reset_hashtable(ht,n_slots,lock);
   if (n_slots<0) n_slots=ht->n_slots;
-  if (lock) fd_lock_mutex(&(ht->lock));
+  if ((lock) && (ht->modified>=0)) fd_lock_mutex(&(ht->lock));
   if (ht->mpool) {
     /* If we have an mpool, free the data right away, just in case. */
     free_hashvec(ht->slots,ht->n_slots,ht->mpool);
@@ -1568,7 +1585,7 @@ FD_EXPORT int fd_fast_reset_hashtable
       (ht->mpool,sizeof(struct FD_HASHENTRY *)*n_slots);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if (lock) fd_unlock_mutex(&(ht->lock));
+  if ((lock) && (ht->modified>=0)) fd_unlock_mutex(&(ht->lock));
   return n_slots;
 }
 
