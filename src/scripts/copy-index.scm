@@ -1,0 +1,138 @@
+;;; -*- Mode: Scheme -*-
+
+(config! 'cachelevel 2)
+(use-module '{optimize mttools})
+
+(define (getflags)
+  (choice->vector
+   (choice (tryif (config 'dtypev2 #t) 'dtypev2)
+	   (tryif (config 'B32 #f) 'B32)
+	   (tryif (config 'B40 #f) 'B40)
+	   (tryif (config 'B64 #f) 'B64)
+	   ;; (tryif (config 'ZLIB #f) 'ZLIB)
+	   )))
+
+;;; Computing baseoids 
+
+(define baseoids {})
+
+(config-def! 'baseoid (slambda (var val)
+			(if (bound? val)
+			    (set+! baseoids val)
+			    baseoids)))
+(config-def! 'pool (slambda (var val)
+		     (if (bound? val)
+			 (set+! baseoids (get-baseoids-from-pool val))
+			 (fail))))
+
+(define (get-baseoids-from-pool pool)
+  (get-baseoids-from-base (pool-base pool) (pool-capacity pool)))
+
+(define (get-baseoids-from-base base capacity)
+  (choice base
+	  (tryif (> capacity 0)
+		 (get-baseoids-from-base (oid-plus base capacity)
+					 (- capacity (* 1024 1024))))))
+
+;;; Computing slotids
+
+(define slotids #f)
+
+(config-def! 'slotid (slambda (var val)
+		       (if (bound? val)
+			   (if slotids (set! slotids (append slotids (list val)))
+			       (set! slotids (list val)))
+			   slotids)))
+
+(define (compute-slotids keys)
+  (let ((slotids-config (config 'slotids)))
+    (if (and (string? slotids-config) (file-exists? slotids-config))
+	(append (if slotids (->vector slotids) # ())
+		(file->dtype slotids-config))
+	(let ((table (make-hashtable)))
+	  (do-choices (key keys)
+	    (when (pair? key) (hashtable-increment! table (car key))))
+	  (message "Found " (choice-size (getkeys table)) " slotids across " (choice-size keys))
+	  (if slotids (drop! table (elts slotids)))
+	  (append (if slotids (->vector slotids) # ())
+		  (rsorted (getkeys table) table))))))
+  
+
+;;; Other features
+
+(define (get-new-size base)
+  (config 'newsize (inexact->exact (* (config 'newload 3) base))))
+
+(define (get-metadata base)
+  (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
+
+(define (get-metadata)
+  (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
+
+(define (get-baseoids ))
+
+(define (make-new-index filename old)
+  (let ((keys (getkeys old)))
+    (cond ((config 'STDINDEX #f)
+	   (make-file-index filename (max (* 2 (choice-size keys))
+					  (get-new-size (choice-size keys))))
+	   (open-index filename))
+	  ((config 'HASHINDEX #f)
+	   (make-hash-index filename (get-new-size (choice-size keys))
+			    (get-slotids (qc keys)) (get-baseoids)
+			    (get-metadata))
+	   (use-pool filename))
+	(else
+	   (make-hash-index filename (get-new-size (choice-size keys))
+			    (get-slotids (qc keys))
+			    (stored baseoids) (get-metadata)
+			    (or (config 'NEWCAP #f) (pool-capacity old))
+			    (pool-load old) (getflags) (get-schemas old) #f
+			    (or (config 'LABEL #f)
+				(try (pool-label old) #f)))
+	 (use-pool filename)))))
+
+(define (copy-keys old new)
+  (message "Copying keys" 
+	   " from " (or (pool-source old) old)
+	   " into " (or (pool-source new) new))
+  (let* ((prefetcher (lambda (keys done)
+		       (when done (commit) (clearcaches))
+		       (unless done
+			 (prefetch-keys! old keys)))))
+    (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
+		      prefetcher (config 'blocksize 50000)
+		      (mt/custom-progress "Copying keys"))
+      (add! new key (get old key)))))
+
+(define (main from (to #f))
+  (optimize! copy-keys) (optimize! compute-slotids)
+  (cond ((not to) (repack-index from))
+	((and (file-exists? to) (not (config 'OVERWRITE #f)))
+	 (message "Not overwriting " to))
+	((not (file-exists? from))
+	 (message "Can't locate source " from))
+	(else
+	 (when (file-exists? to) (remove-file to))
+	 (let* ((old (open-file-pool from))
+		(new (make-new-pool to old)))
+	   (copy-oids old new)))))
+
+(define (repack-index from)
+  (message "Repacking the index " from)
+  (let* ((base (basename from))
+	 (tmpfile (or (config 'TMPFILE #f)
+		      (and (config 'TMPDIR #f)
+			   (mkpath (config 'TMPDIR)
+				   (string-append base ".tmp")))
+		      (string-append base ".tmp")))
+	 (bakfile (or (config 'BAKFILE #f)
+		      (string-append base ".tmp"))))
+    (let* ((old (open-index from))
+	   (new (make-new-index tmpfile old)))
+      (copy-keys old new))
+    (move-file from bakfile)
+    (move-file tmpfile from)))
+
+
+

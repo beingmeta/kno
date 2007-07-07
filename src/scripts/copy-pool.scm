@@ -59,10 +59,12 @@
 		       (or (config 'LABEL #f)
 			   (try (pool-label old) #f)))
 	 (use-pool filename))
-	(else 
-	 (make-file-pool filename (pool-base old)
-			 (or (config 'NEWCAP #f) (pool-capacity old))
-			 (pool-load old))
+	(else
+	 (make-oidpool filename (pool-base old)
+		       (or (config 'NEWCAP #f) (pool-capacity old))
+		       (pool-load old) (getflags) (get-schemas old) #f
+		       (or (config 'LABEL #f)
+			   (try (pool-label old) #f)))
 	 (use-pool filename))))
 
 (define (copy-oids old new)
