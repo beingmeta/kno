@@ -35,7 +35,7 @@ Separate out nlp from texttools
 # Make tighten! take module names (23 June 2007)
 # Add some sample functions (23 June 2007)
 ? Add expression rails to speed up the evaluator
-# Add some test functionality to /build/brico/makefile
+# Add some test functionality to /build/brico/makefile (5 July 2007)
 Add DTYPE I/O flag for emitting unserializable objects
 # Fix cid aliasing with compound indices (24 June 2007)
 # Fix registration of pools with invalid overlaps (24 June 2007)
@@ -66,4 +66,5 @@ Add background search methods for slots
 Add generic composition for slotids
 # Finish adding slotid and zlib/bz2 compression to OIDPOOLs (6 July 2007)
 Implement a simple queueing system
-# Fix find-frames with no index (even arguments) to do a background search
+# Fix find-frames with no index (even arguments) to do a background search (7 July 2007)
+# Make modules files of the form foo/foo.scm work (7 July 2007)
