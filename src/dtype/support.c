@@ -28,6 +28,14 @@ extern void ProfilerFlush();
 #include <libu8/libu8io.h>
 #endif
 
+#include <sys/time.h>
+
+#if HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
+u8_condition SetRLimit=_("SetRLimit");
+
 fd_exception fd_UnknownError=_("Unknown error condition");
 fd_exception fd_ConfigError=_("Configuration error");
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
@@ -425,6 +433,65 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
 			FD_SYMBOL_NAME(var),v);
 }
 
+
+/* RLIMIT configs */
+
+#if HAVE_SYS_RESOURCE_H
+
+struct NAMED_RLIMIT {
+  u8_string name; int code;};
+
+#ifdef RLIMIT_CPU
+static struct NAMED_RLIMIT MAXCPU={"max cpu",RLIMIT_CPU};
+#endif
+#ifdef RLIMIT_RSS
+static struct NAMED_RLIMIT MAXRSS={"max resident memory",RLIMIT_RSS};
+#endif
+#ifdef RLIMIT_CORE
+static struct NAMED_RLIMIT MAXCORE={"max core file size",RLIMIT_CORE};
+#endif
+
+FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
+{
+  struct rlimit rlim;
+  struct NAMED_RLIMIT *nrl=(struct NAMED_RLIMIT *)vptr;
+  int retval=getrlimit(nrl->code,&rlim);
+  if (retval<0) {
+    u8_condition cond=u8_strerror(errno);
+    errno=0;
+    return fd_err(cond,"rlimit_get",NULL,FD_VOID);}
+  else if (rlim.rlim_cur==RLIM_INFINITY)
+    return FD_FALSE;
+  else return FD_INT2DTYPE((long long)(rlim.rlim_cur));
+}
+
+FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
+{
+  struct rlimit rlim;
+  struct NAMED_RLIMIT *nrl=(struct NAMED_RLIMIT *)vptr;
+  rlim_t setval=((FD_FALSEP(v)) ? (RLIM_INFINITY) : (fd_getint(v)));
+  int retval=getrlimit(nrl->code,&rlim);
+  if (retval<0) {
+    u8_condition cond=u8_strerror(errno); errno=0;
+    return fd_err(cond,"rlimit_get",NULL,FD_VOID);}
+  else if (setval>rlim.rlim_max) {
+    /* Should be more informative */
+    fd_seterr(_("RLIMIT too high"),"set_rlimit",NULL,FD_VOID);
+    return -1;}
+  if (setval==rlim.rlim_cur)
+    u8_warn(SetRLimit,"Setting %s did not need to change",nrl->name);
+  else if (setval==RLIM_INFINITY)
+    u8_warn(SetRLimit,"Setting %s to unlimited from %d",nrl->name,rlim.rlim_cur);
+  else u8_warn(SetRLimit,"Setting %s to %lld from %lld",nrl->name,(long long)setval,rlim.rlim_cur);
+  rlim.rlim_cur=setval;
+  retval=setrlimit(nrl->code,&rlim);
+  if (retval<0) {
+    u8_condition cond=u8_strerror(errno); errno=0;
+    return fd_err(cond,"rlimit_set",NULL,FD_VOID);}
+  else return 1;
+}
+
+#endif
 
 /* Managing error data */
 
@@ -895,6 +962,21 @@ void fd_init_support_c()
 		     &fd_unparse_maxchars);
   fd_register_config("DISPLAYMAXELTS",fd_intconfig_get,fd_intconfig_set,
 		     &fd_unparse_maxelts);
+
+#if HAVE_SYS_RESOURCE_H
+#ifdef RLIMIT_CPU
+  fd_register_config("MAXCPU",fd_config_rlimit_get,fd_config_rlimit_set,
+		     (void *)&MAXCPU);
+#endif
+#ifdef RLIMIT_RSS
+  fd_register_config("MAXRSS",fd_config_rlimit_get,fd_config_rlimit_set,
+		     (void *)&MAXRSS);
+#endif
+#ifdef RLIMIT_CORE
+  fd_register_config("MAXCORE",fd_config_rlimit_get,fd_config_rlimit_set,
+		     (void *)&MAXCORE);
+#endif
+#endif
 
 #if 0
   fd_register_config("GOOGLEPROFILE",get_google_profile,set_google_profile,
