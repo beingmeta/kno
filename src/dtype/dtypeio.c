@@ -135,6 +135,21 @@ static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 #define output_dtype(len,out,x) \
   if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
+static int write_opaque(struct FD_BYTE_OUTPUT *out,fdtype x)
+{
+  u8_string srep=fd_dtype2string(x);
+  int slen=strlen(srep);
+  output_byte(out,dt_compound);
+  output_byte(out,dt_symbol);
+  output_4bytes(out,11);
+  output_bytes(out,"OPAQUEDTYPE",11); /* 17 bytes up to here */
+  output_byte(out,dt_string);
+  output_4bytes(out,slen);
+  output_bytes(out,srep,slen);
+  u8_free(srep);
+  return 17+5+slen;
+}
+
 FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
@@ -213,6 +228,8 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 	return -1;}
     else if ((itype < FD_TYPE_MAX) && (fd_dtype_writers[itype]))
       return fd_dtype_writers[itype](out,x);
+    else if ((out->flags)&(FD_WRITE_OPAQUE))
+      return write_opaque(out,x);
     else if ((fd_dtype_error) &&
 	     (retval=fd_dtype_error(out,x,"no handler"))) 
       return retval;
@@ -328,6 +345,8 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
       if ((ctype < FD_TYPE_MAX) && (fd_dtype_writers[ctype]))
 	return fd_dtype_writers[ctype](out,x);
+      else if ((out->flags)&(FD_WRITE_OPAQUE))
+	return write_opaque(out,x);
       else if ((fd_dtype_error) &&
 	       (dtype_len=fd_dtype_error(out,x,"no handler"))) 
 	return dtype_len;

@@ -122,6 +122,7 @@ typedef struct FD_BYTE_INPUT *fd_byte_input;
 
 #define FD_BYTEBUF_MALLOCD 1
 #define FD_DTYPEV2         ((FD_BYTEBUF_MALLOCD)<<1)
+#define FD_WRITE_OPAQUE    ((FD_DTYPEV2)<<1)
 
 typedef struct FD_BYTE_OUTPUT {
   unsigned char *start, *ptr, *end;
