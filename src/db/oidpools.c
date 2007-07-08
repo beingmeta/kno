@@ -1266,7 +1266,7 @@ static void oidpool_setcache(fd_pool p,int level)
 #if HAVE_MMAP
       /* Since we were just reading, the buffer was only as big
 	 as the load, not the capacity. */
-      retval=munmap((fp->offsets)-64,chunkref_size*(fp->offsets_size)+256);
+      retval=munmap((fp->offsets)-256,chunkref_size*(fp->offsets_size)+256);
       if (retval<0) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
@@ -1327,7 +1327,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
     u8_warn(u8_strerror(errno),"reload_offsets:msync %s",fp->cid);
     retval=0;}
   /* Unmap the current buffer */
-  retval=munmap((fp->offsets)-64,sizeof(unsigned int)*(fp->offsets_size)+256);
+  retval=munmap((fp->offsets)-256,sizeof(unsigned int)*(fp->offsets_size)+256);
   if (retval<0) {
     u8_warn(u8_strerror(errno),"oidpool_reload_offsets:munmap %s",fp->cid);
     fp->offsets=NULL; errno=0;}
@@ -1381,7 +1381,7 @@ static void oidpool_close(fd_pool p)
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
-    int retval=munmap((op->offsets)-6,4*op->offsets_size+24);
+    int retval=munmap((op->offsets)-256,4*op->offsets_size+256);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"oidpool_close:munmap offsets %s",op->cid);

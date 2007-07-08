@@ -450,6 +450,15 @@ static struct NAMED_RLIMIT MAXRSS={"max resident memory",RLIMIT_RSS};
 #ifdef RLIMIT_CORE
 static struct NAMED_RLIMIT MAXCORE={"max core file size",RLIMIT_CORE};
 #endif
+#ifdef RLIMIT_NPROC
+static struct NAMED_RLIMIT MAXNPROC={"max number of simulaneous processes",RLIMIT_NPROC};
+#endif
+#ifdef RLIMIT_NOFILE
+static struct NAMED_RLIMIT MAXFILES={"max number of open files",RLIMIT_NOFILE};
+#endif
+#ifdef RLIMIT_STACK
+static struct NAMED_RLIMIT MAXSTACK={"max tack size",RLIMIT_STACK};
+#endif
 
 FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
 {
@@ -459,7 +468,7 @@ FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
   if (retval<0) {
     u8_condition cond=u8_strerror(errno);
     errno=0;
-    return fd_err(cond,"rlimit_get",NULL,FD_VOID);}
+    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),FD_VOID);}
   else if (rlim.rlim_cur==RLIM_INFINITY)
     return FD_FALSE;
   else return FD_INT2DTYPE((long long)(rlim.rlim_cur));
@@ -473,13 +482,13 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
   int retval=getrlimit(nrl->code,&rlim);
   if (retval<0) {
     u8_condition cond=u8_strerror(errno); errno=0;
-    return fd_err(cond,"rlimit_get",NULL,FD_VOID);}
+    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),FD_VOID);}
   else if (setval>rlim.rlim_max) {
     /* Should be more informative */
-    fd_seterr(_("RLIMIT too high"),"set_rlimit",NULL,FD_VOID);
+    fd_seterr(_("RLIMIT too high"),"set_rlimit",u8_strdup(nrl->name),FD_VOID);
     return -1;}
   if (setval==rlim.rlim_cur)
-    u8_warn(SetRLimit,"Setting %s did not need to change",nrl->name);
+    u8_warn(SetRLimit,"Setting for %s did not need to change",nrl->name);
   else if (setval==RLIM_INFINITY)
     u8_warn(SetRLimit,"Setting %s to unlimited from %d",nrl->name,rlim.rlim_cur);
   else u8_warn(SetRLimit,"Setting %s to %lld from %lld",nrl->name,(long long)setval,rlim.rlim_cur);
@@ -487,7 +496,7 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
   retval=setrlimit(nrl->code,&rlim);
   if (retval<0) {
     u8_condition cond=u8_strerror(errno); errno=0;
-    return fd_err(cond,"rlimit_set",NULL,FD_VOID);}
+    return fd_err(cond,"rlimit_set",u8_strdup(nrl->name),FD_VOID);}
   else return 1;
 }
 
@@ -976,6 +985,19 @@ void fd_init_support_c()
   fd_register_config("MAXCORE",fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXCORE);
 #endif
+#ifdef RLIMIT_NPROC
+  fd_register_config("MAXNPROC",fd_config_rlimit_get,fd_config_rlimit_set,
+		     (void *)&MAXNPROC);
+#endif
+#ifdef RLIMIT_NOFILE
+  fd_register_config("MAXFILES",fd_config_rlimit_get,fd_config_rlimit_set,
+		     (void *)&MAXFILES);
+#endif
+#ifdef RLIMIT_STACK
+  fd_register_config("MAXSTACK",fd_config_rlimit_get,fd_config_rlimit_set,
+		     (void *)&MAXSTACK);
+#endif
+
 #endif
 
 #if 0
