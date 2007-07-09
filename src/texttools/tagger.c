@@ -697,6 +697,39 @@ static void lexer(fd_parse_context pc,u8_string start,u8_string end)
   pc->start=end;
 }
 
+#if 0
+static void add_alt(fd_parse_context pc,int i,fdtype alt)
+{
+  fdtype phrase;
+  if (FD_PAIRP(alt)) {
+    phrase=alt; fd_incref(alt);}
+  else if (FD_STRINGP(alt)) {
+    fd_incref(alt);
+    phrase=fd_init_pair(NULL,alt,FD_EMPTY_LIST);}
+  FD_ADD_TO_CHOICE(pc->inputs[i].compounds,phrase);
+}
+
+static void preparsed(fd_parse_context pc,fdtype words)
+{
+  if (pc->n_inputs>0) fd_reset_parse_context(pc);
+  {
+    FD_DOLIST(wd,words) {
+      int at=pc->n_inputs, i=0;
+      if (FD_PAIRP(alt)) {
+	FD_DOLIST(alt,wd) {
+	  if (i==0) {
+	    add_input(pc,FD_STRDATA(alt),FD_STRLEN(alt)); i++;}
+	  else {
+	    add_alt(pc,at,FD_STRDATA(alt),FD_STRLEN(alt),1);}}}
+      else {
+	FD_DO_CHOICES(alt,wd) {
+	  if (i==0) {
+	    add_input(pc,FD_STRDATA(alt),FD_STRLEN(alt)); i++;}
+	  else {
+	    add_alt(pc,at,FD_STRDATA(alt),FD_STRLEN(alt),1);}}}}}
+}
+#endif
+
 
 /* Identifying compounds */
 
