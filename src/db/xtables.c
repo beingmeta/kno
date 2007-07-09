@@ -136,7 +136,7 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
     fd_index adj=get_adjunct(slotid,p); fdtype smap;
     if (adj) return fd_index_get(adj,f);
     else smap=fd_fetch_oid(p,f);
-    if (FD_EXPECT_FALSE(FD_ABORTP(smap)))
+    if (FD_ABORTP(smap))
       return smap;
     else if (FD_SLOTMAPP(smap)) {
       fdtype value=fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
@@ -165,7 +165,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     fd_index adj=get_adjunct(slotid,p); 
     if (adj) return fd_index_add(adj,f,value);
     else smap=fd_locked_oid_value(p,f);
-    if (FD_EXPECT_FALSE(FD_ABORTP(smap)))
+    if (FD_ABORTP(smap))
       return fd_interr(smap);
     else if (FD_SLOTMAPP(smap))
       retval=fd_slotmap_add(FD_XSLOTMAP(smap),slotid,value);

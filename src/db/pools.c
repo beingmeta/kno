@@ -317,7 +317,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     else {
       int n_fetches=0;
       FD_DO_CHOICES(oid,oids) {
-	fdtype v=fd_pool_fetch(p,oid); n_fetches++; fd_decref(v);}
+	fdtype v=fd_pool_fetch(p,oid);
+	if (FD_ABORTP(v)) {
+	  FD_STOP_DO_CHOICES; return v;}
+	n_fetches++; fd_decref(v);}
       return n_fetches;}
   if (FD_ACHOICEP(oids)) {
     oids=fd_make_simple_choice(oids); decref_oids=1;}
@@ -802,12 +805,14 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
     if (retval<0) return fd_erreify();
     else if (retval) {
       fdtype v=fd_pool_fetch(p,oid);
+      if (FD_ABORTP(v)) return v;
       fd_hashtable_store(&(p->locks),oid,v);
       return v;}
     else return fd_err(fd_CantLockOID,"fd_locked_oid_value",
 		       u8_strdup(p->source),oid);}
   else if (smap==FD_LOCKHOLDER) {
     fdtype v=fd_pool_fetch(p,oid);
+    if (FD_ABORTP(v)) return v;
     fd_hashtable_store(&(p->locks),oid,v);
     return v;}
   else return smap;
