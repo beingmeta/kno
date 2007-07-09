@@ -95,7 +95,10 @@ static fdtype dosegment(u8_string string,fdtype separators)
 	else if ((brk==NULL) || (try<brk)) {
 	  sepstring=sep; brk=try;}}
       else return fd_type_error(_("string"),"dosegment",sep);
-    if (brk==NULL) return result;
+    if (brk==NULL) {
+      pair=fd_init_pair(NULL,fdtype_string(scan),FD_EMPTY_LIST);
+      *resultp=pair;
+      return result;}
     pair=fd_init_pair(NULL,fd_extract_string(NULL,scan,brk),FD_EMPTY_LIST);
     *resultp=pair;
     resultp=&(((struct FD_PAIR *)pair)->cdr);
