@@ -138,11 +138,11 @@ config_dir=$with_config_dir
 
 AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/scm)
 module_dir=$with_module_dir
-AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_dir/%/%.scm:$with_module_dir/%/module.scm:$with_module_dir/%.scm")
+AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_dir/%/module.scm:$with_module_dir/%.scm")
 
 AC_ARG_WITH(safe_module_dir,--with-safe-module-dir location,,with_safe_module_dir=$with_data_dir/scm/safe)
 safe_module_dir=$with_safe_module_dir
-AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_dir/%/%.scm:$with_safe_module_dir/%/module.scm:$with_safe_module_dir/%.scm")
+AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_dir/%/module.scm:$with_safe_module_dir/%.scm")
 
 AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
 AC_DEFINE_UNQUOTED(FD_DEFAULT_DLLOADPATH,"$with_dload_path")

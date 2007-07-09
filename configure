@@ -5528,7 +5528,7 @@ else
 fi;
 module_dir=$with_module_dir
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_LOADPATH "$with_module_dir/%/%.scm:$with_module_dir/%/module.scm:$with_module_dir/%.scm"
+#define FD_DEFAULT_LOADPATH "$with_module_dir/%/module.scm:$with_module_dir/%.scm"
 _ACEOF
 
 
@@ -5542,7 +5542,7 @@ else
 fi;
 safe_module_dir=$with_safe_module_dir
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_SAFE_LOADPATH "$with_safe_module_dir/%/%.scm:$with_safe_module_dir/%/module.scm:$with_safe_module_dir/%.scm"
+#define FD_DEFAULT_SAFE_LOADPATH "$with_safe_module_dir/%/module.scm:$with_safe_module_dir/%.scm"
 _ACEOF
 
 
