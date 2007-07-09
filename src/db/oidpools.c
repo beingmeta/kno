@@ -154,7 +154,9 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
     }}
   else {
     int error=0;
-    fd_dtype_stream stream=&(p->stream);
+    fd_dtype_stream stream;
+    fd_lock_mutex(&(p->lock));
+    stream=&(p->stream);
     switch (p->offtype) {
     case FD_B32:
       if (fd_setpos(stream,256+offset*8)<0) error=1;
@@ -180,8 +182,8 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       result.off=-1;
       result.size=-1;}
     if (error) {
-      result.off=(off_t)-1; result.size=(size_t)-1;}}
-  fd_unlock_mutex(&(p->lock));
+      result.off=(off_t)-1; result.size=(size_t)-1;}
+    fd_unlock_mutex(&p->lock);}
   return result;
 }
 
@@ -804,6 +806,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     qsort(schedule,n,sizeof(struct OIDPOOL_FETCH_SCHEDULE),
 	  compare_offsets);
     i=0; while (i<n) {
+      /* Should we grab the lock for the whole fetch? */
       fdtype value=read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");
       if (FD_ABORTP(value)) {
 	int j=0; while (j<i) { fd_decref(values[j]); j++;}
