@@ -947,6 +947,12 @@ static fdtype indexkeysvec(fdtype ixarg)
   else return fd_index_keys(ix);
 }
 
+static fdtype indexsource(fdtype ix_arg)
+{
+  fd_index ix=fd_lisp2index(ix_arg);
+  return fdtype_string(ix->source);
+}
+
 static fdtype suggest_hash_size(fdtype size)
 {
   unsigned int suggestion=fd_get_hashtable_size(fd_getint(size));
@@ -1672,6 +1678,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYS",indexkeys,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",indexkeysvec,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",indexsizes,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",indexsource,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
 					    fd_fixnum_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",indexdecache,2));

@@ -47,17 +47,16 @@
 (define (compute-slotids keys)
   (let ((slotids-config (config 'slotids)))
     (if (and (string? slotids-config) (file-exists? slotids-config))
-	(append (if slotids (->vector slotids) # ())
+	(append (if slotids (->vector slotids) #())
 		(file->dtype slotids-config))
 	(let ((table (make-hashtable)))
 	  (do-choices (key keys)
 	    (when (pair? key) (hashtable-increment! table (car key))))
-	  (message "Found " (choice-size (getkeys table)) " slotids across " (choice-size keys))
+	  (message "Found " (choice-size (getkeys table)) " slotids across " (choice-size keys) " keys")
 	  (if slotids (drop! table (elts slotids)))
-	  (append (if slotids (->vector slotids) # ())
+	  (append (if slotids (->vector slotids) #())
 		  (rsorted (getkeys table) table))))))
   
-
 ;;; Other features
 
 (define (get-new-size base)
@@ -69,8 +68,6 @@
 (define (get-metadata)
   (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
 
-(define (get-baseoids ))
-
 (define (make-new-index filename old)
   (let ((keys (getkeys old)))
     (cond ((config 'STDINDEX #f)
@@ -79,28 +76,24 @@
 	   (open-index filename))
 	  ((config 'HASHINDEX #f)
 	   (make-hash-index filename (get-new-size (choice-size keys))
-			    (get-slotids (qc keys)) (get-baseoids)
+			    (compute-slotids (qc keys)) (sorted baseoids)
 			    (get-metadata))
-	   (use-pool filename))
+	   (open-index filename))
 	(else
 	   (make-hash-index filename (get-new-size (choice-size keys))
-			    (get-slotids (qc keys))
-			    (stored baseoids) (get-metadata)
-			    (or (config 'NEWCAP #f) (pool-capacity old))
-			    (pool-load old) (getflags) (get-schemas old) #f
-			    (or (config 'LABEL #f)
-				(try (pool-label old) #f)))
-	 (use-pool filename)))))
+			    (compute-slotids (qc keys)) (sorted baseoids)
+			    (get-metadata))
+	   (open-index filename)))))
 
 (define (copy-keys old new)
   (message "Copying keys" 
-	   " from " (or (pool-source old) old)
-	   " into " (or (pool-source new) new))
+	   " from " (or (index-source old) old)
+	   " into " (or (index-source new) new))
   (let* ((prefetcher (lambda (keys done)
 		       (when done (commit) (clearcaches))
 		       (unless done
 			 (prefetch-keys! old keys)))))
-    (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
+    (do-choices-mt (key (getkeys old) (config 'nthreads 4)
 		      prefetcher (config 'blocksize 50000)
 		      (mt/custom-progress "Copying keys"))
       (add! new key (get old key)))))

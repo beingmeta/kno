@@ -389,6 +389,7 @@ install-scheme-scripts:
 	etc/install-script src/scripts/make-hash-index.scm
 	etc/install-script src/scripts/make-oidpool.scm
 	etc/install-script src/scripts/copy-pool.scm
+	etc/install-script src/scripts/copy-index.scm
 
 $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
