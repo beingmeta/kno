@@ -154,7 +154,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
   if ((valstart=(strchr(copy,':')))) {
     *valstart++='\0'; while (isspace(*valstart)) valstart++;
     if (!(FD_TABLEP(val)))
-      *valptr=val=fd_init_slotmap(NULL,0,NULL,NULL);
+      *valptr=val=fd_init_slotmap(NULL,0,NULL);
     slotid=fd_parse(copy);
     if (FD_EQ(slotid,content_type_symbol)) {
       handle_content_type(valstart,val);
@@ -166,7 +166,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
 	     (FD_EQ(slotid,last_modified_symbol))) {
       time_t now, moment=curl_getdate(valstart,&now);
       struct U8_XTIME xt; u8_offtime(&xt,moment,0);
-      hval=fd_make_timestamp(&xt,NULL);}
+      hval=fd_make_timestamp(&xt);}
     else hval=fdtype_string(valstart);
     fd_add(val,slotid,hval);
     fd_decref(hval); u8_free(copy);}
@@ -373,7 +373,7 @@ static fdtype set_curlopt
 static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string uri)
 {
   INBUF data; CURLcode retval; int consed_handle=0;
-  fdtype result=fd_init_slotmap(NULL,0,NULL,NULL), cval, url, handle;
+  fdtype result=fd_init_slotmap(NULL,0,NULL), cval, url, handle;
   u8_string urltext=FD_STRDATA(url);
   fd_add(result,url_symbol,url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
@@ -466,7 +466,7 @@ static fdtype urlcontent(fdtype arg1,fdtype arg2)
 static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
 {
   INBUF data; struct FD_CURL_HANDLE *h; CURLcode retval;
-  fdtype result=fd_init_slotmap(NULL,0,NULL,NULL), cval;
+  fdtype result=fd_init_slotmap(NULL,0,NULL), cval;
   fdtype url, xmloptions, handle;
   u8_string urltext; char *urienc=NULL;
   int flags;
@@ -597,7 +597,7 @@ static fdtype urlpost(int n,fdtype *args)
     fd_err(fd_SyntaxError,"CURLPOST",NULL,FD_VOID);
   else {consed_handle=1; h=fd_open_curl_handle();}
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  result=fd_init_slotmap(NULL,0,NULL,NULL);
+  result=fd_init_slotmap(NULL,0,NULL);
   curl_easy_setopt(h->handle,CURLOPT_URL,url);
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -691,7 +691,7 @@ static fdtype urlput(int n,fdtype *args)
     _curl_set_header(h->handle,"Content-Type","text");
   else _curl_set_header(h->handle,"Content-Type","application");
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  result=fd_init_slotmap(NULL,0,NULL,NULL);
+  result=fd_init_slotmap(NULL,0,NULL);
   curl_easy_setopt(h->handle,CURLOPT_URL,url);
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -810,7 +810,7 @@ FD_EXPORT void fd_init_curl_c()
   FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/atom+xml"));
   
 
-  curl_defaults=fd_init_slotmap(NULL,0,NULL,NULL);
+  curl_defaults=fd_init_slotmap(NULL,0,NULL);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
   fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));

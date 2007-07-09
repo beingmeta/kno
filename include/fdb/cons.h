@@ -261,7 +261,7 @@ typedef struct FD_PAIR *fd_pair;
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_list(int len,...);
-FD_EXPORT fdtype fd_pmake_list(FD_MEMORY_POOL_TYPE *p,int len,...);
+FD_EXPORT fdtype fd_pmake_list(int len,...);
 
 #define FD_XPAIR(x) (FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))
 
@@ -407,15 +407,14 @@ typedef struct FD_TIMESTAMP {
   struct U8_XTIME xtime;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
-FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm,FD_MEMORY_POOL_TYPE *mp);
+FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm);
 FD_EXPORT fdtype fd_time2timestamp(time_t moment);
 
 /* Compounds */
 
-typedef fdtype (*fd_compound_parsefn)(FD_MEMORY_POOL_TYPE *p,int n,fdtype *);
+typedef fdtype (*fd_compound_parsefn)(int n,fdtype *);
 typedef fdtype (*fd_compound_dumpfn)(fdtype);
-typedef fdtype (*fd_compound_restorefn)
-      (FD_MEMORY_POOL_TYPE *p,fdtype,fdtype);
+typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype);
 
 typedef struct FD_COMPOUND_ENTRY {
   fdtype tag;

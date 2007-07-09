@@ -45,7 +45,7 @@ static fdtype read_dtype_from_file(FILE *f)
       else u8_raise("Read error","u8recode",NULL);
     else fd_write_bytes(&out,buf,delta);}
   FD_INIT_BYTE_INPUT(&in,out.start,out.ptr-out.start);
-  object=fd_read_dtype(&in,NULL);
+  object=fd_read_dtype(&in);
   u8_free(out.start);
   return object;
 }

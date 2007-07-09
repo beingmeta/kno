@@ -164,7 +164,7 @@ int main(int argc,char **argv)
       u8_warn("Connection failed","Couldn't open connection to %s",source_file);
       exit(-1);}
     newstream=u8_malloc(sizeof(struct FD_DTYPE_STREAM));
-    fd_init_dtype_stream(newstream,sock,65536,NULL,NULL);
+    fd_init_dtype_stream(newstream,sock,65536);
     fd_use_pool(source_file);
     fd_use_index(source_file);
     eval_server=newstream;}
@@ -195,7 +195,7 @@ int main(int argc,char **argv)
     start_ocache=fd_object_cache_load();
     start_icache=fd_index_cache_load();
     if (c == '=') {
-      fdtype sym=fd_parser((u8_input)in,NULL);
+      fdtype sym=fd_parser((u8_input)in);
       if (FD_SYMBOLP(sym)) {
 	fd_bind_value(sym,lastval,env);
 	u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
@@ -204,7 +204,7 @@ int main(int argc,char **argv)
       u8_flush(out);
       fd_decref(sym); continue;}
     else u8_ungetc(((u8_input)in),c);
-    expr=fd_parser((u8_input)in,NULL);
+    expr=fd_parser((u8_input)in);
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
     /* Clear the buffer (should do more?) */
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||

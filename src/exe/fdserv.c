@@ -152,7 +152,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
       fd_dtsclose(reqlog,1); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
     reqlog=u8_malloc(sizeof(struct FD_DTYPE_STREAM));
-    if (fd_init_dtype_file_stream(reqlog,filename,FD_DTSTREAM_WRITE,16384,NULL,NULL)) {
+    if (fd_init_dtype_file_stream(reqlog,filename,FD_DTSTREAM_WRITE,16384)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
       fdtype logstart_entry=fd_init_string(NULL,-1,logstart);
@@ -337,7 +337,7 @@ static fdtype loadcontent(fdtype path)
     return fd_init_pair(NULL,ldata,lenv);}
   else {
     fd_environment newenv=
-      ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17,NULL),server_env)) :
+      ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17),server_env)) :
        (fd_working_environment()));
     fdtype main_proc, load_result;
     /* We reload the file.  There should really be an API call to
@@ -371,7 +371,7 @@ static fdtype getcontent(fdtype path)
       content=loadcontent(path);
       if (FD_ABORTP(content)) {
 	u8_free(lpath); return content;}
-      table_value=fd_init_pair(NULL,fd_make_timestamp(&mtime,NULL),
+      table_value=fd_init_pair(NULL,fd_make_timestamp(&mtime),
 			       fd_incref(content));
       fd_hashtable_store(&pagemap,path,table_value);
       u8_free(lpath);
@@ -391,9 +391,10 @@ static fdtype getcontent(fdtype path)
 	fdtype new_content=loadcontent(path);
 	struct U8_XTIME mtime;
 	u8_offtime(&mtime,fileinfo.st_mtime,0);
-	fd_hashtable_store(&pagemap,path,
-			 fd_init_pair(NULL,fd_make_timestamp(&mtime,NULL),
-				      fd_incref(new_content)));
+	fd_hashtable_store
+	  (&pagemap,path,
+	   fd_init_pair(NULL,fd_make_timestamp(&mtime),
+			fd_incref(new_content)));
 	u8_free(lpath); fd_decref(value);
 	return new_content;}
       else {
@@ -427,7 +428,7 @@ static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
   fd_webconn consed=u8_malloc(sizeof(FD_WEBCONN));
   consed->socket=sock; consed->flags=0;
-  fd_init_dtype_stream(&(consed->in),sock,4096,NULL,NULL);
+  fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);
   u8_set_nodelay(sock,1);
   return (u8_client) consed;
@@ -707,7 +708,7 @@ int main(int argc,char **argv)
 
   update_preloads();
 
-  fd_make_hashtable(&pagemap,0,NULL);
+  fd_make_hashtable(&pagemap,0);
   u8_server_init(&fdwebserver,
 		 servlet_backlog,servlet_threads,
 		 simply_accept,webservefn,close_webclient);

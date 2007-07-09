@@ -1390,7 +1390,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_handler);
   fd_defspecial(xhtml_module,"JAVASTMT",javastmt_handler);
 
-  fd_make_hashtable(&browse_info_table,17,NULL);
+  fd_make_hashtable(&browse_info_table,17);
 
   xmloidfn_symbol=fd_intern("%XMLOID");
   id_symbol=fd_intern("%ID");

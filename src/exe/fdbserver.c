@@ -124,8 +124,8 @@ static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
   fd_client consed=u8_malloc(sizeof(FD_CLIENT));
   consed->socket=sock; consed->flags=0;
-  fd_init_dtype_stream(&(consed->stream),sock,4096,NULL,NULL);
-  consed->env=fd_make_env(fd_make_hashtable(NULL,16,NULL),server_env);
+  fd_init_dtype_stream(&(consed->stream),sock,4096);
+  consed->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   u8_set_nodelay(sock,1);
   return (u8_client) consed;
 }
@@ -233,7 +233,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 
 static fdtype get_boot_time()
 {
-  return fd_make_timestamp(&boot_time,NULL);
+  return fd_make_timestamp(&boot_time);
 }
 
 static fdtype get_uptime()

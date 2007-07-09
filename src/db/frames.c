@@ -151,7 +151,7 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op)
 
 static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
 {
-  fdtype table=fd_make_hashtable(NULL,17,NULL);
+  fdtype table=fd_make_hashtable(NULL,17);
   fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,table);
   fd_decref(table);
@@ -161,7 +161,7 @@ static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
 
 static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 {
-  fdtype table=fd_make_hashtable(NULL,17,NULL);
+  fdtype table=fd_make_hashtable(NULL,17);
   fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&test_caches,slotid,table);
   fd_decref(table);
@@ -818,10 +818,10 @@ FD_EXPORT void fd_init_frames_c()
   drop_effects=fd_intern("DROP-EFFECTS");
   fget_symbol=fd_intern("FGET");
 
-  fd_make_hashtable(&slot_caches,17,NULL);
-  fd_make_hashtable(&test_caches,17,NULL);
+  fd_make_hashtable(&slot_caches,17);
+  fd_make_hashtable(&test_caches,17);
 
-  fd_make_hashtable(&implications,17,NULL);
+  fd_make_hashtable(&implications,17);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&slotcache_lock);

@@ -115,10 +115,6 @@
 #define FD_INLINE_TABLES 0
 #endif
 
-#ifndef FD_MEMORY_POOL_TYPE
-#define FD_MEMORY_POOL_TYPE void
-#endif
-
 #ifndef FD_TYPE_MAX
 #define FD_TYPE_MAX 256
 #endif

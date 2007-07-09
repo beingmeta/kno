@@ -108,7 +108,7 @@ FD_EXPORT fdtype fd_load_source
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     fdtype result=FD_VOID;
-    fdtype expr=fd_parser(&stream,NULL), last_expr=FD_VOID;
+    fdtype expr=fd_parser(&stream), last_expr=FD_VOID;
     while (!(FD_TROUBLEP(expr))) {
       fd_decref(result);
       result=fd_eval(expr,env);
@@ -119,7 +119,7 @@ FD_EXPORT fdtype fd_load_source
 	u8_free(content);
 	fd_decref(last_expr);
 	return result;}
-      expr=fd_parser(&stream,NULL);}
+      expr=fd_parser(&stream);}
     if (expr==FD_PARSE_ERROR) result=fd_erreify();
     if (trace_load) 
       u8_notify(FileDone,"Loaded %s in %f seconds",

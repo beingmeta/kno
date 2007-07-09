@@ -631,7 +631,7 @@ FD_EXPORT void fd_init_methods_c()
 
   init_symbols();
 
-  fd_make_hashtable(&method_table,67,NULL);
+  fd_make_hashtable(&method_table,67);
   m=fd_method_table=((fdtype)(&method_table));
 
   fd_defn(m,fd_make_cprim2("FD:INHERITED-GET",inherited_get_method,2));

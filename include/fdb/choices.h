@@ -137,8 +137,6 @@ typedef struct FD_CHOICE *fd_choice;
   (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 #define fd_realloc_choice(ch,n)						\
   (assert(n>0),u8_realloc((ch),sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
-#define fd_palloc_choice(p,n)						\
-  (assert(n>0),u8_pmalloc(p,sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 
 /* Flags to pass to fd_init_choice (and fd_make_choice) */
 

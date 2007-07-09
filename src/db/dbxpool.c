@@ -202,7 +202,7 @@ static fdtype dbx_pool_fetch(fd_pool p,fdtype oid)
       u8_unlock_mutex(&(fp->lock));
       return fd_err(db_strerror(retval),"dbx_pool_fetch",fp->cid,oid);}
   FD_INIT_BYTE_INPUT(&in,value.data,value.size);
-  result=fd_read_dtype(&in,NULL);
+  result=fd_read_dtype(&in);
   u8_unlock_mutex(&(fp->lock));
   return result;
 }
@@ -248,7 +248,7 @@ static fdtype *dbx_pool_fetchn(fd_pool p,int n,fdtype *oids)
 	return NULL;}
       else {
 	FD_INIT_BYTE_INPUT(in,value.data,value.size);
-	result=fd_read_dtype(&in,NULL);
+	result=fd_read_dtype(&in);
 	values[schedule[i].serial]=result;}
       i++;}}
   dbc->c_close(dbc);

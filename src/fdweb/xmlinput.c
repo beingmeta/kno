@@ -109,7 +109,7 @@ static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
 static void init_node_attribs(struct FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->attribs))
-    node->attribs=fd_init_slotmap(NULL,0,NULL,NULL);
+    node->attribs=fd_init_slotmap(NULL,0,NULL);
   set_elt_name(node,node->eltname);
 }
 

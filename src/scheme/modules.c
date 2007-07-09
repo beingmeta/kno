@@ -74,7 +74,7 @@ int fd_finish_module(fdtype module)
   if (FD_TABLEP(module)) {
     struct U8_XTIME xtptr; fdtype timestamp;
     u8_localtime(&xtptr,time(NULL));
-    timestamp=fd_make_timestamp(&xtptr,NULL);
+    timestamp=fd_make_timestamp(&xtptr);
     fd_store(module,loadstamp_symbol,timestamp);
     fd_decref(timestamp);
     return 1;}
@@ -169,7 +169,7 @@ static fd_lispenv switch_module
       fd_decref(env->exports); env->exports=fd_incref(menv->exports);}}
   else if (FD_VOIDP(module)) {
     if (!(FD_HASHTABLEP(env->exports)))
-      env->exports=fd_make_hashtable(NULL,0,NULL);
+      env->exports=fd_make_hashtable(NULL,0);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
 		       ((safe) ? (FD_MODULE_SAFE) : (0)));}
   fd_decref(module);
@@ -302,7 +302,7 @@ static fd_hashtable get_exports(fd_lispenv env)
   if (FD_HASHTABLEP(env->exports)) {
     fd_unlock_mutex(&exports_lock);
     return (fd_hashtable) env->exports;}
-  exports=(fd_hashtable)(env->exports=fd_make_hashtable(NULL,16,NULL));
+  exports=(fd_hashtable)(env->exports=fd_make_hashtable(NULL,16));
   fd_unlock_mutex(&exports_lock);
   return exports;
 }

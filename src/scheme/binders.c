@@ -176,7 +176,7 @@ static fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
   struct FD_ENVIRONMENT *e=u8_malloc(sizeof(struct FD_ENVIRONMENT));
   fdtype *vars=u8_malloc(sizeof(fdtype)*n);
   fdtype *vals=u8_malloc(sizeof(fdtype)*n);
-  fdtype schemap=fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals,NULL);
+  fdtype schemap=fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals);
   while (i<n) {vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
   FD_INIT_CONS(e,fd_environment_type);
   e->copy=e; e->bindings=schemap; e->exports=FD_VOID;

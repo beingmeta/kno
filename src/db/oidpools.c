@@ -345,7 +345,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
-  fd_init_dtype_file_stream(stream,fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL);
+  fd_init_dtype_file_stream(stream,fname,mode,FD_FILEDB_BUFSIZE);
   /* See if it ended up read only */
   if ((stream->flags)&(FD_DTSTREAM_READ_ONLY)) read_only=1;
   pool->stream.mallocd=0;
@@ -360,8 +360,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   if ((read_only==0) && ((flags)&(FD_OIDPOOL_READONLY))) {
     /* If the pool is intrinsically read-only make it so. */
     read_only=1; fd_dtsclose(stream,1);
-    fd_init_dtype_file_stream
-      (stream,fname,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE,NULL,NULL);
+    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   pool->compression=
@@ -554,8 +553,7 @@ FD_EXPORT int fd_make_oidpool
   off_t schemas_pos=0, metadata_pos=0, label_pos=0;
   size_t schemas_size=0, metadata_size=0, label_size=0;
   struct FD_DTYPE_STREAM _stream, *stream=
-    fd_init_dtype_file_stream(&_stream,fname,
-			      FD_DTSTREAM_CREATE,8192,NULL,NULL);
+    fd_init_dtype_file_stream(&_stream,fname,FD_DTSTREAM_CREATE,8192);
   fd_offset_type offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   if (stream==NULL) return -1;
   else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
@@ -676,7 +674,7 @@ static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
   if (FD_EXPECT_FALSE(zip_code>(op->n_schemas)))
     return fd_err(fd_InvalidSchemaRef,"oidpool_fetch",op->cid,FD_VOID);
   else if (zip_code==0)
-    return fd_read_dtype(in,NULL);
+    return fd_read_dtype(in);
   else {
     struct FD_SCHEMA_ENTRY *se=&(op->schemas[zip_code-1]);
     int n_vals=fd_read_zint(in), n_slotids=se->n_slotids;
@@ -687,9 +685,9 @@ static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
 	 schema sorting done in memory for fast lookup. That
 	 translation is stored in the mapin field. */
       while (i<n_vals) {
-	values[mapin[i]]=fd_read_dtype(in,NULL); i++;}
+	values[mapin[i]]=fd_read_dtype(in); i++;}
       return fd_make_schemap(NULL,n_vals,FD_SCHEMAP_SORTED|FD_SCHEMAP_TAGGED,
-			     se->slotids,values,NULL);}
+			     se->slotids,values);}
     else return fd_err(fd_SchemaInconsistency,cxt,op->cid,FD_VOID);}
 }
 
@@ -965,7 +963,9 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
 {
   if (fp->offsets) {
 #if HAVE_MMAP
-    unsigned int *offsets; reload_offsets(fp,0,1); offsets=fp->offsets;
+    unsigned int *offsets;
+    if (fp->offsets) reload_offsets(fp,0,1);
+    offsets=fp->offsets;
     switch (fp->offtype) {
     case FD_B64: {
       int k=0; while (k<n) {
@@ -994,7 +994,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
       u8_warn("Bad offset type for %s",fp->cid);
       u8_free(saveinfo);
       exit(-1);}
-    reload_offsets(fp,0,-1);
+    if (fp->offsets) reload_offsets(fp,0,-1);
 #else
     int i=0, refsize=get_chunkref_size(fp), offsize=fp->offsets_size;
     unsigned int *offsets=
@@ -1321,7 +1321,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
   int retval=0, chunkref_size=get_chunkref_size(fp);
   if (lock) fd_lock_mutex(&(fp->lock));
   if (write<0) 
-    retval=msync(fp->offsets-64,fp->offsets_size*sizeof(unsigned int)+256,
+    retval=msync(fp->offsets-256,fp->offsets_size*sizeof(unsigned int)+256,
 		 MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_warn(u8_strerror(errno),"reload_offsets:msync %s",fp->cid);

@@ -143,7 +143,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
     if (mdpos) {
       fd_setpos(ds,mdpos);
       metadata=fd_dtsread_dtype(ds);}
-    else metadata=fd_init_slotmap(NULL,0,NULL,NULL);
+    else metadata=fd_init_slotmap(NULL,0,NULL);
     fd_store(metadata,rev_symbol,FD_INT2DTYPE(rev));
     return metadata;}
   else if (mdversion!=0xFFFFFFFE)
@@ -169,11 +169,11 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
   if (mdpos) {
     fd_setpos(ds,mdpos);
     metadata=fd_dtsread_dtype(ds);}
-  else metadata=fd_init_slotmap(NULL,0,NULL,NULL);
+  else metadata=fd_init_slotmap(NULL,0,NULL);
   fd_store(metadata,rev_symbol,FD_INT2DTYPE(rev));
-  fd_store(metadata,gentime_symbol,fd_make_timestamp(&_gentime,NULL));
-  fd_store(metadata,packtime_symbol,fd_make_timestamp(&_packtime,NULL));
-  fd_store(metadata,modtime_symbol,fd_make_timestamp(&_modtime,NULL));
+  fd_store(metadata,gentime_symbol,fd_make_timestamp(&_gentime));
+  fd_store(metadata,packtime_symbol,fd_make_timestamp(&_packtime));
+  fd_store(metadata,modtime_symbol,fd_make_timestamp(&_modtime));
   return metadata;
 }
 
@@ -273,8 +273,7 @@ int fd_make_file_pool
   int i, hi, lo;
   struct FD_DTYPE_STREAM _stream;
   struct FD_DTYPE_STREAM *stream=
-    fd_init_dtype_file_stream
-    (&_stream,filename,FD_DTSTREAM_CREATE,8192,NULL,NULL);
+    fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);
   if (stream==NULL) return -1;
   else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
@@ -295,7 +294,7 @@ int fd_make_file_pool
   fd_dtswrite_4bytes(stream,40);
   i=0; while (i<8) {fd_dtswrite_4bytes(stream,0); i++;}
   if (FD_VOIDP(metadata))
-    metadata=fd_init_slotmap(NULL,0,NULL,NULL);
+    metadata=fd_init_slotmap(NULL,0,NULL);
   fd_write_pool_metadata(stream,metadata);
   fd_dtsclose(stream,1);
   fd_decref(metadata);
@@ -315,8 +314,7 @@ int fd_make_file_index
   int i, hi, lo, n_slots;
   struct FD_DTYPE_STREAM _stream;
   struct FD_DTYPE_STREAM *stream=
-    fd_init_dtype_file_stream
-    (&_stream,filename,FD_DTSTREAM_CREATE,8192,NULL,NULL);
+    fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);
   if (stream==NULL) return -1;
   else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
@@ -334,7 +332,7 @@ int fd_make_file_index
   fd_dtswrite_4bytes(stream,40);
   i=0; while (i<8) {fd_dtswrite_4bytes(stream,0); i++;}
   if (FD_VOIDP(metadata))
-    metadata=fd_init_slotmap(NULL,0,NULL,NULL);
+    metadata=fd_init_slotmap(NULL,0,NULL);
   fd_write_index_metadata(stream,metadata);
   fd_decref(metadata);
   fd_dtsclose(stream,1);
@@ -432,7 +430,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
   struct FD_DTYPE_STREAM stream, *rstream;
   if ((ix->adds.n_keys>0) || (ix->edits.n_keys>0)) {
     rstream=fd_init_dtype_file_stream
-      (&stream,file,FD_DTSTREAM_CREATE,FD_FILEDB_BUFSIZE,NULL,NULL);
+      (&stream,file,FD_DTSTREAM_CREATE,FD_FILEDB_BUFSIZE);
     if (rstream==NULL) return -1;
     stream.mallocd=0;
     fd_set_read(&stream,0);
@@ -448,9 +446,9 @@ static fd_index open_memindex(u8_string file,int read_only)
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_file_stream
-    (&stream,file,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE,NULL,NULL);
+    (&stream,file,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE);
   stream.mallocd=0;
-  lispval=fd_read_dtype((fd_byte_input)&stream,NULL);
+  lispval=fd_read_dtype((fd_byte_input)&stream);
   fd_dtsclose(&stream,1);
   if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;
   else {
@@ -463,7 +461,6 @@ static fd_index open_memindex(u8_string file,int read_only)
   mix->cache.n_keys=h->n_keys;
   mix->cache.loading=h->loading;
   mix->cache.slots=h->slots;
-  mix->cache.mpool=h->mpool;
   u8_free(h);
   return (fd_index)mix;
 }

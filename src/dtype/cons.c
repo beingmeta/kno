@@ -406,7 +406,7 @@ FD_EXPORT fdtype fd_make_list(int len,...)
   return result;
 }
 
-FD_EXPORT fdtype fd_pmake_list(FD_MEMORY_POOL_TYPE *p,int len,...)
+FD_EXPORT fdtype fd_pmake_list(int len,...)
 {
   va_list args; int i=0;
   fdtype *elts=u8_malloc(sizeof(fdtype)*len), result=FD_EMPTY_LIST;
@@ -414,7 +414,7 @@ FD_EXPORT fdtype fd_pmake_list(FD_MEMORY_POOL_TYPE *p,int len,...)
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
   i=len-1; while (i>=0) {
-    result=fd_init_pair(u8_pmalloc(p,sizeof(struct FD_PAIR)),elts[i],result); i--;}
+    result=fd_init_pair(u8_malloc(sizeof(struct FD_PAIR)),elts[i],result); i--;}
   u8_free(elts);
   return result;
 }
@@ -762,9 +762,9 @@ FD_EXPORT
     Arguments: a pointer to a U8_XTIME struct and a memory pool
     Returns: a dtype pointer to a timestamp
  */
-fdtype fd_make_timestamp(struct U8_XTIME *tm,FD_MEMORY_POOL_TYPE *mp)
+fdtype fd_make_timestamp(struct U8_XTIME *tm)
 {
-  struct FD_TIMESTAMP *tstamp=u8_pmalloc(mp,sizeof(struct FD_TIMESTAMP));
+  struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
   return FDTYPE_CONS(tstamp);
@@ -779,7 +779,7 @@ fdtype fd_time2timestamp(time_t moment)
 {
   struct U8_XTIME xt; struct FD_TIMESTAMP *tstamp;
   u8_localtime(&xt,moment);
-  return fd_make_timestamp(&xt,NULL);
+  return fd_make_timestamp(&xt);
 }
 
 static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
@@ -792,7 +792,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype timestamp_parsefn(FD_MEMORY_POOL_TYPE *pool,int n,fdtype *args)
+static fdtype timestamp_parsefn(int n,fdtype *args)
 {
   struct FD_TIMESTAMP *tm=u8_malloc(sizeof(struct FD_TIMESTAMP));
   u8_string timestring;
@@ -853,21 +853,21 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   return size;
 }
 
-static fdtype timestamp_restore(FD_MEMORY_POOL_TYPE *p,fdtype tag,fdtype x)
+static fdtype timestamp_restore(fdtype tag,fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    struct FD_TIMESTAMP *tm=u8_pmalloc_type(p,struct FD_TIMESTAMP);
+    struct FD_TIMESTAMP *tm=u8_malloc_type(struct FD_TIMESTAMP);
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),FD_FIX2INT(x),0);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
-    struct FD_TIMESTAMP *tm=u8_pmalloc_type(p,struct FD_TIMESTAMP);
+    struct FD_TIMESTAMP *tm=u8_malloc_type(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),tval,0);
     return FDTYPE_CONS(tm);}
   else if (FD_VECTORP(x)) {
-    struct FD_TIMESTAMP *tm=u8_pmalloc_type(p,struct FD_TIMESTAMP);
+    struct FD_TIMESTAMP *tm=u8_malloc_type(struct FD_TIMESTAMP);
     int secs=fd_getint(FD_VECTOR_REF(x,0));
     int nsecs=fd_getint(FD_VECTOR_REF(x,1));
     int iprec=fd_getint(FD_VECTOR_REF(x,2));

@@ -290,14 +290,14 @@ static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 static void open_server_lock_stream(u8_string file)
 {
   if (u8_file_existsp(file)) {
-    FD_DTYPE_STREAM *in=fd_open_dtype_file_x(file,FD_DTSTREAM_READ,65536,NULL,NULL);
+    FD_DTYPE_STREAM *in=fd_open_dtype_file_x(file,FD_DTSTREAM_READ,65536);
     fdtype a=fd_dtsread_dtype(in), b=fd_dtsread_dtype(in);
     while (!(FD_EOFP(a))) {
       if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
       a=fd_dtsread_dtype(in); b=fd_dtsread_dtype(in);}
     fd_dtsclose(in,1);
     u8_removefile(file);}
-  locks_file=fd_open_dtype_file_x(file,FD_DTSTREAM_CREATE,65536,NULL,NULL);
+  locks_file=fd_open_dtype_file_x(file,FD_DTSTREAM_CREATE,65536);
   locks_filename=u8_strdup(file);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_dtsflush(locks_file);
@@ -317,7 +317,7 @@ static void update_server_lock_file()
   temp_file=u8_mkstring("%s.bak",locks_filename);
   if (locks_file) fd_dtsclose(locks_file,1);
   u8_movefile(locks_filename,temp_file);
-  locks_file=fd_open_dtype_file_x(locks_filename,FD_DTSTREAM_CREATE,65536,NULL,NULL);
+  locks_file=fd_open_dtype_file_x(locks_filename,FD_DTSTREAM_CREATE,65536);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_dtsflush(locks_file);
   u8_removefile(temp_file);
@@ -785,15 +785,15 @@ void fd_init_dbserv_c()
 
   init_timestamp=(int)time(NULL);
 
-  fd_init_hashtable(&server_locks,0,NULL,NULL);
-  fd_init_hashtable(&server_locks_inv,0,NULL,NULL);
+  fd_init_hashtable(&server_locks,0,NULL);
+  fd_init_hashtable(&server_locks_inv,0,NULL);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&server_locks_lock);
   fd_init_mutex(&changelog_lock);
 #endif
 
-  module=fd_make_hashtable(NULL,67,NULL);
+  module=fd_make_hashtable(NULL,67);
 
   fd_defn(module,fd_make_cprim1("POOL-DATA",server_pool_data,0));
   fd_defn(module,fd_make_cprim1("OID-VALUE",server_oid_value,1));

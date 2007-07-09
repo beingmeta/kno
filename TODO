@@ -60,7 +60,7 @@ Provide a file access to mod_dav servers.
 Add editline to fdconsole
 # Separate out loading/accessing pools and using them as OID sources (4 July 2007)
 Make hash indices be able to have implicit pools
-Remove all the memory pool stuff
+# Remove all the memory pool stuff (8 July 2007)
 Make copy-index smarter as a replacement for repack-* functions
 Add background search methods for slots
 Add generic composition for slotids
@@ -68,3 +68,4 @@ Add generic composition for slotids
 Implement a simple queueing system
 # Fix find-frames with no index (even arguments) to do a background search (7 July 2007)
 # Make modules files of the form foo/foo.scm work (7 July 2007)
+# Undo above, reorganize existing modules to avoid too many contentful module.scm (8 July 2007)

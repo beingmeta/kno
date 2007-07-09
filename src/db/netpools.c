@@ -128,7 +128,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
     u8_free(np);
     return (fd_pool) NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
-  fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
+  fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE);
   s->flags=s->flags|FD_DTSTREAM_DOSYNC;
   np->cid=cid; np->xid=xid;
   pooldata=dtcall(np,2,pool_data_symbol,client_id);
@@ -152,7 +152,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
 	if (u8_set_nodelay(sock,1)<0) 
 	  u8_warn("DelayError","Can't set delay flag for socket");
 	p=u8_malloc(sizeof(struct FD_NETWORK_POOL));
-	fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
+	fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE);
 	p->xid=xid;
 	p->stream.mallocd=0;}
       init_network_pool(p,pd,spec,cid);
@@ -176,7 +176,7 @@ static int reopen_network_pool(struct FD_NETWORK_POOL *p)
     if (p->xid) {u8_free(p->xid); p->xid=NULL;}
     if (newsock>=0) {
       p->xid=xid;
-      fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
+      fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE);
       return 1;}
     else return -1;}
 }

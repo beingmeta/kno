@@ -65,7 +65,7 @@ int main(int argc,char **argv)
   double span;
   FD_DO_LIBINIT(fd_init_dtypelib);
   span=get_elapsed(); /* Start the timer */
-  ht=fd_make_hashtable(NULL,64,NULL);
+  ht=fd_make_hashtable(NULL,64);
   in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
   if (in==NULL) {
     u8_warn("No such file","Couldn't open file %s",argv[1]);

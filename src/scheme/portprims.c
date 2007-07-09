@@ -496,7 +496,7 @@ static fdtype read_prim(fdtype port)
   if (in) {
     int c=fd_skip_whitespace(in);
     if (c<0) return FD_EOF;
-    else return fd_parser(in,NULL);}
+    else return fd_parser(in);}
   else return fd_type_error(_("input port"),"read_prim",port);
 }
 

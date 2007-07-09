@@ -46,8 +46,7 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts); 
     return socket;}
   fd_init_dtype_stream(&(dts->stream),socket,
-		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)),
-		       NULL,NULL);
+		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)));
   fd_init_mutex(&(dts->lock));
   FD_INIT_CONS(dts,fd_dtserver_type);
   return FDTYPE_CONS(dts);
@@ -82,8 +81,7 @@ static int server_reconnect(fd_dtserver dts)
 	    dts->server);
     u8_free(server_addr); return -1;}
   fd_init_dtype_stream(&(dts->stream),newsock,
-		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)),
-		       NULL,NULL);
+		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)));
   return newsock;
 }
 

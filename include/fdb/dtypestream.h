@@ -38,33 +38,24 @@ typedef enum FD_DTSTREAM_MODE {
 } fd_dtstream_mode;
 
 typedef struct FD_DTYPE_STREAM {
-  unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool; int flags;
+  unsigned char *start, *ptr, *end;  int flags;
   int (*fillfn)(struct FD_DTYPE_STREAM *,int);
   int (*flushfn)(struct FD_DTYPE_STREAM *);
-  FD_MEMORY_POOL_TYPE *conspool; u8_string id;
-  int mallocd, bufsiz; off_t filepos, maxpos; 
-  int fd;} FD_DTYPE_STREAM;
+  u8_string id; int mallocd, bufsiz;
+  off_t filepos, maxpos; int fd;} FD_DTYPE_STREAM;
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
 FD_EXPORT void fd_init_dtype_stream
-  (struct FD_DTYPE_STREAM *s,int sock,int bufsiz,
-   FD_MEMORY_POOL_TYPE *bpool,
-   FD_MEMORY_POOL_TYPE *dpool);
+  (struct FD_DTYPE_STREAM *s,int sock,int bufsiz);
 
 FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
    (struct FD_DTYPE_STREAM *stream,
-    u8_string filename,fd_dtstream_mode mode,int bufsiz,
-    FD_MEMORY_POOL_TYPE *bufpool,
-    FD_MEMORY_POOL_TYPE *conspool);
+    u8_string filename,fd_dtstream_mode mode,int bufsiz);
 
 FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
-  (u8_string filename,fd_dtstream_mode mode,int bufsiz,
-   FD_MEMORY_POOL_TYPE *bufpool,
-   FD_MEMORY_POOL_TYPE *conspool);
+  (u8_string filename,fd_dtstream_mode mode,int bufsiz);
 #define fd_dtsopen(filename,mode) \
-  fd_open_dtype_file_x(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT, \
-                       NULL,NULL)
+  fd_open_dtype_file_x(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT)
 #define FD_DTSCLOSE_FD 1
 #define FD_DTSCLOSE_FULL 2
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);

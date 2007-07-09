@@ -115,19 +115,16 @@ static int writeall(int fd,unsigned char *data,int n)
 /* Initialization functions */
 
 FD_EXPORT void fd_init_dtype_stream
-  (struct FD_DTYPE_STREAM *s,int sock,int bufsiz,
-   FD_MEMORY_POOL_TYPE *bufpool,
-   FD_MEMORY_POOL_TYPE *conspool)
+  (struct FD_DTYPE_STREAM *s,int sock,int bufsiz)
 {
-  unsigned char *buf=u8_pmalloc(bufpool,bufsiz);
+  unsigned char *buf=u8_malloc(bufsiz);
   /* If you can't get a whole buffer, try smaller */
   while ((bufsiz>=1024) && (buf==NULL)) {
-    bufsiz=bufsiz/2; buf=u8_pmalloc(bufpool,bufsiz);}
+    bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
   if (buf==NULL) bufsiz=0;
   s->mallocd=0; s->fd=sock; s->filepos=-1; s->maxpos=-1; s->id=NULL;
   FD_INIT_BYTE_INPUT((fd_byte_input)s,buf,bufsiz);
   s->end=s->start; /* Initialize to not having anything to read */
-  s->mpool=bufpool; s->conspool=conspool; /* Initialize memory pools */
   /* Initialize the on-demand reader */
   s->fillfn=fill_dtype_stream; s->flushfn=NULL;
   s->bufsiz=bufsiz; s->flags=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
@@ -135,9 +132,7 @@ FD_EXPORT void fd_init_dtype_stream
 
 FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
    (struct FD_DTYPE_STREAM *stream,
-    u8_string fname,fd_dtstream_mode mode,int bufsiz,
-    FD_MEMORY_POOL_TYPE *bufpool,
-    FD_MEMORY_POOL_TYPE *conspool)
+    u8_string fname,fd_dtstream_mode mode,int bufsiz)
  {
   int fd, flags=POSIX_OPEN_FLAGS, lock, reading=0, writing=0;
   char *localname=u8_localpath(fname);
@@ -157,7 +152,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
     fd=open(localname,O_RDONLY,0666);
     if (fd>0) writing=0;}
   if (fd>0) {
-    fd_init_dtype_stream(stream,fd,bufsiz,bufpool,conspool);
+    fd_init_dtype_stream(stream,fd,bufsiz);
     stream->mallocd=1; stream->id=u8_strdup(fname);
     stream->flags=stream->flags|FD_DTSTREAM_CANSEEK|FD_DTSTREAM_NEEDS_LOCK;
     if (writing == 0) stream->flags=stream->flags|FD_DTSTREAM_READ_ONLY;
@@ -171,14 +166,12 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
 }
 
 FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
-   (u8_string fname,fd_dtstream_mode mode,int bufsiz,
-    FD_MEMORY_POOL_TYPE *bufpool,
-    FD_MEMORY_POOL_TYPE *conspool)
+   (u8_string fname,fd_dtstream_mode mode,int bufsiz)
 {
   struct FD_DTYPE_STREAM *stream=
     u8_malloc(sizeof(struct FD_DTYPE_STREAM));
   struct FD_DTYPE_STREAM *opened=
-    fd_init_dtype_file_stream(stream,fname,mode,bufsiz,bufpool,conspool);
+    fd_init_dtype_file_stream(stream,fname,mode,bufsiz);
   if (opened) return opened;
   else {
     u8_free(stream);
@@ -191,7 +184,7 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   if (s->fd<0) return;
   /* Flush data */
   if ((s->flags&FD_DTSTREAM_READING) == 0) fd_dtsflush(s);
-  u8_pfree_x(s->mpool,s->start,s->bufsiz);
+  u8_free_x(s->start,s->bufsiz);
   if (close_fd>0) {
     fsync(s->fd);
     if (s->flags&FD_DTSTREAM_SOCKET)
@@ -199,9 +192,9 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
     else close(s->fd);}
   s->fd=-1;
   if (s->id)
-    u8_pfree_x(s->mpool,s->id,strlen(s->id));
+    u8_free_x(s->id,strlen(s->id));
   if (s->mallocd)
-    u8_pfree_x(s->mpool,s,sizef(struct FD_DTYPE_STREAM *));
+    u8_free_x(s,sizef(struct FD_DTYPE_STREAM *));
 }
 
 FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)
@@ -219,7 +212,7 @@ FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
 {
   if ((s->flags&FD_DTSTREAM_READING) == 0)
     if (fd_set_read(s,1)<0) return fd_erreify();
-  return fd_read_dtype((struct FD_BYTE_INPUT *)s,s->conspool);
+  return fd_read_dtype((struct FD_BYTE_INPUT *)s);
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
 {
@@ -250,7 +243,7 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
     while (new_size<n)
       if (new_size>=0x40000) new_size=new_size+0x40000;
       else new_size=new_size*2;
-    newbuf=u8_prealloc(df->mpool,df->start,new_size);
+    newbuf=u8_realloc(df->start,new_size);
     df->start=newbuf; df->ptr=newbuf+ptr_pos; df->end=newbuf+end_pos;
     df->bufsiz=new_size;}
   n_buffered=df->end-df->start;

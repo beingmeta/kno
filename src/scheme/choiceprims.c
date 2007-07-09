@@ -49,14 +49,14 @@ static fdtype retenv1(fdtype var,fdtype val)
 {
   struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL));
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
-  return fd_init_slotmap(NULL,1,keyvals,NULL);
+  return fd_init_slotmap(NULL,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
-  return fd_init_slotmap(NULL,2,keyvals,NULL);
+  return fd_init_slotmap(NULL,2,keyvals);
 }
 
 /* This iterates over a set of choices, evaluating its body for each value.

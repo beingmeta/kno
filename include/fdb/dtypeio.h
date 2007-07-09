@@ -62,16 +62,11 @@ enum dt_framerd_subtypes
 
 /* Arithmetic stubs */
 
-FD_EXPORT fdtype
-  (*_fd_make_rational)(FD_MEMORY_POOL_TYPE *,fdtype car,fdtype cdr);
-FD_EXPORT void
-  (*_fd_unpack_rational)(fdtype,fdtype *,fdtype *);
-FD_EXPORT fdtype
-  (*_fd_make_complex)(FD_MEMORY_POOL_TYPE *,fdtype car,fdtype cdr);
-FD_EXPORT void
-  (*_fd_unpack_complex)(fdtype,fdtype *,fdtype *);
-FD_EXPORT fdtype
-  (*_fd_make_double)(FD_MEMORY_POOL_TYPE *,double);
+FD_EXPORT fdtype(*_fd_make_rational)(fdtype car,fdtype cdr);
+FD_EXPORT void(*_fd_unpack_rational)(fdtype,fdtype *,fdtype *);
+FD_EXPORT fdtype(*_fd_make_complex)(fdtype car,fdtype cdr);
+FD_EXPORT void(*_fd_unpack_complex)(fdtype,fdtype *,fdtype *);
+FD_EXPORT fdtype(*_fd_make_double)(double);
 
 /* Packing and unpacking */
 
@@ -126,7 +121,7 @@ typedef struct FD_BYTE_INPUT *fd_byte_input;
 
 typedef struct FD_BYTE_OUTPUT {
   unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool; int flags;
+  int flags;
   /* FD_BYTE_OUTPUT has a fillfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -134,8 +129,7 @@ typedef struct FD_BYTE_OUTPUT {
   int (*flushfn)(fd_byte_output);} FD_BYTE_OUTPUT;
 
 typedef struct FD_BYTE_INPUT {
-  unsigned char *start, *ptr, *end;
-  FD_MEMORY_POOL_TYPE *mpool; int flags;
+  unsigned char *start, *ptr, *end; int flags;
   /* FD_BYTE_INPUT has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -143,18 +137,17 @@ typedef struct FD_BYTE_INPUT {
   int (*flushfn)(fd_byte_output);} FD_BYTE_INPUT;
 
 FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x);
-FD_EXPORT fdtype fd_read_dtype
-(struct FD_BYTE_INPUT *in,FD_MEMORY_POOL_TYPE *p);
+FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in);
 
 /* These are for input or output */
-#define FD_INIT_BYTE_OUTPUT(bo,sz,mp)      \
-  (bo)->ptr=(bo)->start=u8_pmalloc(mp,sz); \
-  (bo)->end=(bo)->start+sz; (bo)->mpool=(mp);\
+#define FD_INIT_BYTE_OUTPUT(bo,sz,mp)  \
+  (bo)->ptr=(bo)->start=u8_malloc(sz); \
+  (bo)->end=(bo)->start+sz;            \
   (bo)->flags=FD_BYTEBUF_MALLOCD;
 
 #define FD_INIT_FIXED_BYTE_OUTPUT(bo,buf,sz)	\
   (bo)->ptr=(bo)->start=buf; \
-  (bo)->end=(bo)->start+sz; (bo)->mpool=NULL; \
+  (bo)->end=(bo)->start+sz;  \
   (bo)->flags=0
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)		   \
@@ -387,7 +380,7 @@ FD_FASTOP fd_8bytes fd_read_zint8(struct FD_BYTE_INPUT *s)
 #endif
 
 typedef struct FD_COMPOUND_CONSTRUCTOR {
-  fdtype (*make)(FD_MEMORY_POOL_TYPE *p,fdtype tag,fdtype data);
+  fdtype (*make)(fdtype tag,fdtype data);
   struct FD_COMPOUND_CONSTRUCTOR *next;} FD_COMPOUND_CONSTRUCTOR;
 typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 

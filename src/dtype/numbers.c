@@ -2044,7 +2044,7 @@ fdtype fd_string2number(u8_string string,int base)
     double flonum; u8_byte *end=NULL;
     flonum=strtod(string,(char **)&end);
     if (end>string) 
-      return _fd_make_double(NULL,flonum);
+      return _fd_make_double(flonum);
     else return FD_VOID;}
   else if (strchr(string+1,'+')) return FD_VOID;
   else if (strchr(string+1,'-')) return FD_VOID;

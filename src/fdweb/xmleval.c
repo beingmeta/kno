@@ -213,7 +213,7 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
 	 without any container. */
       kv[0].key=rawname_slotid; kv[0].value=pblank_symbol;
       kv[1].key=content_slotid; kv[1].value=content;
-      return fd_init_slotmap(NULL,2,kv,NULL);}}
+      return fd_init_slotmap(NULL,2,kv);}}
   else {
     fdtype values=fd_get(xml,sym,FD_VOID);
     if (FD_VOIDP(values)) return FD_VOID;
@@ -412,12 +412,12 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 	  /* If there's not a terminating $, or the string is really
 	     long (missing close $), just call the parser,
 	     skipping the initial $. */
-	  u8_getc(&in); expr=fd_parser(&in,NULL);}
+	  u8_getc(&in); expr=fd_parser(&in);}
 	else {
 	  strncpy(buf,start,end-start); buf[end-start]='\0';
 	  expr=parse_infix(buf);
 	  in.u8_inptr=end+1;}}
-      else expr=fd_parser(&in,NULL);
+      else expr=fd_parser(&in);
       if (FD_STRINGP(expr)) {
 	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
 	fd_unparse(&out,expr); fd_decref(expr);
@@ -771,7 +771,7 @@ static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
 {
   u8_output out=fd_get_default_output();
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
-  fdtype attribs=fd_get(expr,attribids,FD_VOID), table=fd_init_slotmap(NULL,0,NULL,NULL);
+  fdtype attribs=fd_get(expr,attribids,FD_VOID), table=fd_init_slotmap(NULL,0,NULL);
   fd_lispenv inner_env=fd_make_env(table,env);
   {FD_DO_CHOICES(attrib,attribs) {
     fdtype val=fdxml_get(expr,attrib,env);
@@ -835,7 +835,7 @@ static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
   struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
-  return fd_init_slotmap(NULL,2,keyvals,NULL);
+  return fd_init_slotmap(NULL,2,keyvals);
 }
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
@@ -844,21 +844,21 @@ static fdtype iterenv2
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   keyvals[2].key=xvar; keyvals[2].value=fd_incref(xval);
-  return fd_init_slotmap(NULL,3,keyvals,NULL);
+  return fd_init_slotmap(NULL,3,keyvals);
 }
 
 static fdtype retenv1(fdtype var,fdtype val)
 {
   struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL));
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
-  return fd_init_slotmap(NULL,1,keyvals,NULL);
+  return fd_init_slotmap(NULL,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
-  return fd_init_slotmap(NULL,2,keyvals,NULL);
+  return fd_init_slotmap(NULL,2,keyvals);
 }
 
 static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
@@ -1102,7 +1102,7 @@ FD_EXPORT void fd_init_xmleval_c()
   if (xmleval_initialized) return;
   xmleval_initialized=1;
   fd_init_fdscheme();
-  fdxml_module=fd_make_env(fd_make_hashtable(NULL,17,NULL),NULL);
+  fdxml_module=fd_make_env(fd_make_hashtable(NULL,17),NULL);
   module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
   fd_idefn(module,fd_make_cprim2("PARSE-FDXML",parsefdxml,1));
 

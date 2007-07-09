@@ -73,7 +73,7 @@ static int open_server(fd_dtproc dtp)
   sock=u8_connect(server_spec);
   u8_free(server_spec);
   if (sock>=0)
-    fd_init_dtype_stream(&(dtp->stream),sock,FD_NET_BUFSIZE,NULL,NULL);
+    fd_init_dtype_stream(&(dtp->stream),sock,FD_NET_BUFSIZE);
   else return -1;
   return 1;
 }
@@ -98,7 +98,7 @@ static int server_reconnect(fd_dtproc dtp)
     fd_decref(serverid);}
   if (newsock<0) return -1;
   else if (u8_set_nodelay(newsock,1)<0) return -1;
-  fd_init_dtype_stream(&(dtp->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
+  fd_init_dtype_stream(&(dtp->stream),newsock,FD_NET_BUFSIZE);
   return 1;
 }
 

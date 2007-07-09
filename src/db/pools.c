@@ -191,8 +191,8 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   pool->label="gluepool"; pool->source=NULL;
   pool->n_subpools=0; pool->subpools=NULL;
   pool->handler=&gluepool_handler;
-  fd_make_hashtable(&(pool->cache),64,NULL);
-  fd_make_hashtable(&(pool->locks),64,NULL);
+  fd_make_hashtable(&(pool->cache),64);
+  fd_make_hashtable(&(pool->locks),64);
   return pool;
 }
 
@@ -1087,8 +1087,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->base=base; p->capacity=capacity;
   p->serialno=-1; p->cache_level=-1; p->read_only=1; p->flags=0;
-  fd_make_hashtable(&(p->cache),64,NULL);
-  fd_make_hashtable(&(p->locks),0,NULL); 
+  fd_make_hashtable(&(p->cache),64);
+  fd_make_hashtable(&(p->locks),0); 
   p->n_adjuncts=0; p->adjuncts=NULL;
   p->n_locks=0;
   p->handler=h;
@@ -1216,7 +1216,7 @@ static int unparse_raw_pool(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype pool_parsefn(FD_MEMORY_POOL_TYPE *pool,int n,fdtype *args)
+static fdtype pool_parsefn(int n,fdtype *args)
 {
   fd_pool p=NULL;
   if (n<3) return FD_VOID;
@@ -1363,7 +1363,7 @@ FD_EXPORT void fd_init_pools_c()
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"));
     e->parser=pool_parsefn;}
 
-  fd_make_hashtable(&poolid_table,32,NULL);
+  fd_make_hashtable(&poolid_table,32);
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
   u8_new_threadkey(&fd_pool_delays_key,NULL);
 #endif

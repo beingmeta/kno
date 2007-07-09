@@ -462,7 +462,7 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
       struct FD_HASHTABLE added_sizes;
       fd_choice result; int i=0, n_total; fdtype *write;
       /* Get the sizes for added keys. */
-      fd_make_hashtable(&added_sizes,ix->adds.n_slots,NULL);
+      fd_make_hashtable(&added_sizes,ix->adds.n_slots);
       fd_for_hashtable(&(ix->adds),copy_value_sizes,&added_sizes,1);
       n_total=n_fetched+ix->adds.n_keys;
       result=fd_alloc_choice(n_total); write=&(result->elt0);
@@ -679,9 +679,9 @@ FD_EXPORT void fd_init_index
   (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source)
 {
   ix->serialno=-1; ix->cache_level=-1; ix->read_only=1; ix->flags=0;
-  fd_make_hashtable(&(ix->cache),0,NULL);
-  fd_make_hashtable(&(ix->adds),0,NULL);
-  fd_make_hashtable(&(ix->edits),0,NULL); 
+  fd_make_hashtable(&(ix->cache),0);
+  fd_make_hashtable(&(ix->adds),0);
+  fd_make_hashtable(&(ix->edits),0); 
   ix->handler=h;
   ix->cid=u8_strdup(source);
   ix->source=u8_strdup(source);
@@ -702,7 +702,7 @@ static int unparse_index(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype index_parsefn(FD_MEMORY_POOL_TYPE *p,int n,fdtype *args)
+static fdtype index_parsefn(int n,fdtype *args)
 {
   fd_index ix=NULL;
   if (n<2) return FD_VOID;

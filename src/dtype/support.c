@@ -173,8 +173,8 @@ static fdtype file_config_lookup(fdtype symbol)
     if (content[0]==0) {
       struct FD_BYTE_INPUT in;
       in.start=in.ptr=content+1; in.end=in.start+n_bytes;
-      in.mpool=0; in.fillfn=NULL;
-      result=fd_read_dtype(&in,NULL);}
+      in.fillfn=NULL;
+      result=fd_read_dtype(&in);}
     else {
       /* Zap any trailing newlines */
       if ((n_bytes>1) && (content[n_bytes-1]=='\n'))
@@ -317,7 +317,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
     else if (c == '(') {
       fdtype entry;
       u8_ungetc(in,c);
-      entry=fd_parser(in,NULL);
+      entry=fd_parser(in);
       if ((FD_PAIRP(entry)) &&
 	  (FD_SYMBOLP(FD_CAR(entry))) &&
 	  (FD_PAIRP(FD_CDR(entry)))) {
@@ -746,7 +746,7 @@ static fdtype get_threadtable()
   fdtype table=(fdtype)u8_tld_get(threadtable_key);
   if (table) return table;
   else {
-    table=fd_init_slotmap(NULL,0,NULL,NULL);
+    table=fd_init_slotmap(NULL,0,NULL);
     u8_tld_set(threadtable_key,(void*)table);
     return table;}
 }
@@ -755,14 +755,14 @@ static fdtype __thread thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
-  else return (thread_table=fd_init_slotmap(NULL,0,NULL,NULL));
+  else return (thread_table=fd_init_slotmap(NULL,0,NULL));
 }
 #else
 static fdtype thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
-  else return (thread_table=fd_init_slotmap(NULL,0,NULL,NULL));
+  else return (thread_table=fd_init_slotmap(NULL,0,NULL));
 }
 #endif
 
@@ -946,7 +946,7 @@ void fd_init_support_c()
   u8_new_threadkey(&errdata_key,NULL);
   u8_new_threadkey(&threadtable_key,NULL);
 #endif
-  global_config=fd_make_hashtable(NULL,16,NULL);
+  global_config=fd_make_hashtable(NULL,16);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&config_lookup_lock);

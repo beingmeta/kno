@@ -32,7 +32,7 @@ int main(int argc,char **argv)
   if (socket<0) {
     u8_fprintf(stderr,"Couldn't open socket to %s\n",argv[1]);
     exit(1);}
-  fd_init_dtype_stream(&ds,socket,1024,NULL,NULL);
+  fd_init_dtype_stream(&ds,socket,1024);
   i=argc-1; while (i>1) expr=fd_make_pair(fd_parse(argv[i--]),expr);
   u8_fprintf(stderr,_("Sending: %q\n"),expr);
   fd_dtswrite_dtype(&ds,expr); 

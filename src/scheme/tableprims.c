@@ -38,8 +38,8 @@ static fdtype schemapp(fdtype x)
 static fdtype make_hashtable(fdtype size)
 {
   if (FD_FIXNUMP(size))
-    return fd_make_hashtable(NULL,FD_FIX2INT(size),NULL);
-  else return fd_make_hashtable(NULL,0,NULL);
+    return fd_make_hashtable(NULL,FD_FIX2INT(size));
+  else return fd_make_hashtable(NULL,0);
 }
 
 static fdtype pick_hashtable_size(fdtype count_arg)
@@ -412,13 +412,13 @@ static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
 {
   int n_keys=FD_CHOICE_SIZE(keys);
   fdtype table;
-  if (FD_FALSEP(hashp)) table=fd_init_slotmap(NULL,0,NULL,NULL);
-  else if (FD_TRUEP(hashp)) table=fd_make_hashtable(NULL,n_keys*2,NULL);
+  if (FD_FALSEP(hashp)) table=fd_init_slotmap(NULL,0,NULL);
+  else if (FD_TRUEP(hashp)) table=fd_make_hashtable(NULL,n_keys*2);
   else if (FD_FIXNUMP(hashp))
-    if (n_keys>(FD_FIX2INT(hashp))) table=fd_make_hashtable(NULL,n_keys*2,NULL);
-    else table=fd_init_slotmap(NULL,0,NULL,NULL);
-  else if (n_keys>8) table=fd_make_hashtable(NULL,n_keys*2,NULL);
-  else table=fd_init_slotmap(NULL,0,NULL,NULL);
+    if (n_keys>(FD_FIX2INT(hashp))) table=fd_make_hashtable(NULL,n_keys*2);
+    else table=fd_init_slotmap(NULL,0,NULL);
+  else if (n_keys>8) table=fd_make_hashtable(NULL,n_keys*2);
+  else table=fd_init_slotmap(NULL,0,NULL);
   if ((FD_SYMBOLP(fn)) || (FD_OIDP(fn))) {
     FD_DO_CHOICES(k,keys) {
       fdtype v=((FD_OIDP(k)) ? (fd_frame_get(k,fn)) : (fd_get(k,fn,FD_EMPTY_CHOICE)));

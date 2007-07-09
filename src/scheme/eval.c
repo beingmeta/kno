@@ -1067,12 +1067,12 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
 FD_EXPORT fd_lispenv fd_working_environment()
 {
   if (fdscheme_initialized==0) fd_init_fdscheme();
-  return fd_make_env(fd_make_hashtable(NULL,17,NULL),default_env);
+  return fd_make_env(fd_make_hashtable(NULL,17),default_env);
 }
 FD_EXPORT fd_lispenv fd_safe_working_environment()
 {
   if (fdscheme_initialized==0) fd_init_fdscheme();
-  return fd_make_env(fd_make_hashtable(NULL,17,NULL),safe_default_env);
+  return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
 }
 
 FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags)
@@ -1106,7 +1106,7 @@ FD_EXPORT fdtype fd_new_module(char *name,int flags)
   fdtype module_name, module, as_stored;
   if (fdscheme_initialized==0) fd_init_fdscheme();
   module_name=fd_intern(name);
-  module=fd_make_hashtable(NULL,0,NULL);
+  module=fd_make_hashtable(NULL,0);
   if (flags&FD_MODULE_SAFE) {
     fd_hashtable_op
       (&safe_module_map,fd_table_default,module_name,module);
@@ -1802,7 +1802,7 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
 {
   int i=0, len=FD_SLOTMAP_SIZE(obj);
   struct FD_KEYVAL *keyvals=FD_XSLOTMAP(obj)->keyvals;
-  fdtype result=fd_init_slotmap(NULL,0,NULL,NULL);
+  fdtype result=fd_init_slotmap(NULL,0,NULL);
   struct FD_SLOTMAP *new_slotmap=FD_XSLOTMAP(result);
   while (i < len) {
     fdtype slotid=keyvals[i].key;
@@ -2083,14 +2083,14 @@ void fd_init_eval_c()
   profile_symbol=fd_intern("%PROFILE");
   _fd_comment_symbol=comment_symbol=fd_intern("COMMENT");
 
-  fd_make_hashtable(&module_map,67,NULL);
-  fd_make_hashtable(&safe_module_map,67,NULL);
+  fd_make_hashtable(&module_map,67);
+  fd_make_hashtable(&safe_module_map,67);
 }
 
 static void init_scheme_module()
 {
-  fd_xscheme_module=fd_make_hashtable(NULL,71,NULL);
-  fd_scheme_module=fd_make_hashtable(NULL,71,NULL);
+  fd_xscheme_module=fd_make_hashtable(NULL,71);
+  fd_scheme_module=fd_make_hashtable(NULL,71);
   fd_register_module("SCHEME",fd_scheme_module,
 		     (FD_MODULE_DEFAULT|FD_MODULE_SAFE));
   fd_register_module("XSCHEME",fd_xscheme_module,(FD_MODULE_DEFAULT));
@@ -2198,8 +2198,8 @@ FD_EXPORT int fd_init_fdscheme()
 
   fd_init_eval_c();
 
-  default_env=fd_make_env(fd_make_hashtable(NULL,0,NULL),NULL);
-  safe_default_env=fd_make_env(fd_make_hashtable(NULL,0,NULL),NULL);
+  default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
+  safe_default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
 
   fd_register_source_file(FDB_EVAL_H_VERSION);
   fd_register_source_file(versionid);

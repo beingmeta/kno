@@ -243,7 +243,7 @@ static fdtype exif_get(fdtype x,fdtype prop)
     u8_free(data);}
   else return fd_type_error(_("filename or packet"),"exif_get",x);
   if (FD_VOIDP(prop)) {
-    fdtype slotmap=fd_init_slotmap(NULL,0,NULL,NULL);
+    fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
     struct TAGINFO *scan=taginfo;
     
     while (scan->tagname) {
@@ -270,7 +270,7 @@ FD_EXPORT void fd_init_exif_c()
 {
   fdtype fdweb_module=fd_new_module("FDWEB",FD_MODULE_DEFAULT);
   struct TAGINFO *scan=taginfo;
-  fd_make_hashtable(&exif_tagmap,139,NULL);
+  fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {
     fdtype symbol=fd_intern(scan->tagname);
     fd_hashtable_store(&exif_tagmap,symbol,FD_INT2DTYPE(scan->tagid));

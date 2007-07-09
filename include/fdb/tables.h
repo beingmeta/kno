@@ -66,7 +66,6 @@ typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
 typedef struct FD_SLOTMAP {
   FD_CONS_HEADER; unsigned int size;
   struct FD_KEYVAL *keyvals;
-  FD_MEMORY_POOL_TYPE *mpool;
   U8_MUTEX_DECL(lock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
 
@@ -102,8 +101,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define fd_slotmap_modifiedp(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 
 FD_EXPORT fdtype fd_init_slotmap
-  (struct FD_SLOTMAP *ptr,int len,struct FD_KEYVAL *data,
-   FD_MEMORY_POOL_TYPE *mpool);
+  (struct FD_SLOTMAP *ptr,int len,struct FD_KEYVAL *data);
 FD_EXPORT int fd_slotmap_store
   (struct FD_SLOTMAP *sm,fdtype key,fdtype value);
 FD_EXPORT int fd_slotmap_add
@@ -222,7 +220,6 @@ FD_EXPORT fdtype _fd_slotmap_test
 typedef struct FD_SCHEMAP {
   FD_CONS_HEADER; short size, flags;
   fdtype *schema, *values;
-  FD_MEMORY_POOL_TYPE *mpool;
   U8_MUTEX_DECL(lock);} FD_SCHEMAP;
 
 #define FD_SCHEMAP_SORTED 1
@@ -258,11 +255,10 @@ typedef struct FD_SCHEMAP *fd_schemap;
 
 FD_EXPORT fdtype fd_make_schemap
   (struct FD_SCHEMAP *ptr,short n_slots,short flags,
-   fdtype *schema,fdtype *values,
-   FD_MEMORY_POOL_TYPE *mpool);
+   fdtype *schema,fdtype *values);
 FD_EXPORT fdtype fd_init_schemap
   (struct FD_SCHEMAP *ptr,short n_keyvals,
-   struct FD_KEYVAL *init,FD_MEMORY_POOL_TYPE *mpool);
+   struct FD_KEYVAL *init);
 
 FD_EXPORT int fd_schemap_store
   (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
@@ -355,7 +351,6 @@ typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;
   unsigned int n_slots, n_keys, loading; int modified;
   struct FD_HASHENTRY **slots;
-  FD_MEMORY_POOL_TYPE *mpool;
   U8_MUTEX_DECL(lock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
@@ -375,11 +370,9 @@ FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min);
 FD_EXPORT unsigned int fd_hash_string(u8_string string,int len);
 FD_EXPORT unsigned int fd_hash_lisp(fdtype x);
 
-FD_EXPORT fdtype fd_make_hashtable
-   (fd_hashtable ptr,int n_slots,FD_MEMORY_POOL_TYPE *mpool);
+FD_EXPORT fdtype fd_make_hashtable(fd_hashtable ptr,int n_slots);
 FD_EXPORT fdtype fd_init_hashtable
-   (fd_hashtable ptr,int n_keyvals,
-    struct FD_KEYVAL *init,FD_MEMORY_POOL_TYPE *mpool);
+   (fd_hashtable ptr,int n_keyvals,struct FD_KEYVAL *init);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
 				      struct FD_HASHENTRY ***,int *);

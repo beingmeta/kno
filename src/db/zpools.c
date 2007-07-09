@@ -254,8 +254,8 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
   unsigned char *bytes;
   bytes=u8_malloc(n_bytes); fd_dtsread_bytes(s,bytes,n_bytes);
   in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
-  in.end=in.start+dbytes; in.fillfn=NULL; in.mpool=NULL;
-  result=fd_read_dtype(&in,NULL);
+  in.end=in.start+dbytes; in.fillfn=NULL;
+  result=fd_read_dtype(&in);
   u8_free(bytes); u8_free(in.start);
   return result;
 }
@@ -346,15 +346,13 @@ fdtype read_oid_value
       u8_free(bytes);
       return fd_erreify();}
     in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
-    in.end=in.start+dbytes; in.fillfn=NULL; in.mpool=NULL;
+    in.end=in.start+dbytes; in.fillfn=NULL;
     /* Read the values for the slotmap */
     while ((in.ptr < in.end) && (i < n_values)) {
-      values[i]=fd_read_dtype(&in,NULL); i++;}
+      values[i]=fd_read_dtype(&in); i++;}
     u8_free(bytes); u8_free(in.start);
     return fd_make_schemap
-      (NULL,n_values,0,
-       schemas[schema_index].schema,values,
-       NULL);}
+      (NULL,n_values,0,schemas[schema_index].schema,values);}
   else return zread_dtype(f);
 }
 
@@ -400,7 +398,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL);
+  fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE);
   /* See if it ended up read only */
   if ((pool->stream.flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->stream.mallocd=0;

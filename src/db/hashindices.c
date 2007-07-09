@@ -191,7 +191,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&hash_index_handler,fname);
-  if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE,NULL,NULL)
+  if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE)
       == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
@@ -348,7 +348,7 @@ FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
   off_t slotids_pos=0, baseoids_pos=0, metadata_pos=0;
   size_t slotids_size=0, baseoids_size=0, metadata_size=0;
   struct FD_DTYPE_STREAM _stream, *stream=
-    fd_init_dtype_file_stream(&_stream,fname,FD_DTSTREAM_CREATE,8192,NULL,NULL);
+    fd_init_dtype_file_stream(&_stream,fname,FD_DTSTREAM_CREATE,8192);
   if (stream==NULL) return -1;
   else if ((stream->flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_hash_index",u8_strdup(fname));
@@ -564,9 +564,9 @@ static int fast_read_dtype(fd_byte_input in)
 	int len=fd_get_4bytes(in->ptr+1); in->ptr=in->ptr+5;
 	if (nobytes(in,len)) return return_errcode(FD_EOD);
 	else {
-	  unsigned char *data=u8_pmalloc(p,len+1);
+	  unsigned char *data=u8_malloc(len+1);
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
+	  return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
 				len,data);}}
   case dt_tiny_string:
     if (nobytes(in,2)) return return_errcode(FD_EOD);
@@ -574,9 +574,9 @@ static int fast_read_dtype(fd_byte_input in)
       int len=fd_get_byte(in->ptr+1); in->ptr=in->ptr+2;
       if (nobytes(in,len)) return return_errcode(FD_EOD);
       else {
-	unsigned char *data=u8_pmalloc(p,len+1);
+	unsigned char *data=u8_malloc(len+1);
 	memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	return fd_init_string(u8_pmalloc(p,sizeof(struct FD_STRING)),
+	return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
 			      len,data);}}
     case dt_symbol:
       if (nobytes(in,5)) return return_errcode(FD_EOD);
@@ -600,7 +600,7 @@ static int fast_read_dtype(fd_byte_input in)
 	  memcpy(_buf,in->ptr,len); _buf[len]='\0'; in->ptr=in->ptr+len;
 	  return fd_make_symbol(_buf,len);}}
     default:
-      return fd_read_dtype(in,NULL);
+      return fd_read_dtype(in);
     }}
 }
 
@@ -677,7 +677,7 @@ FD_FASTOP fdtype dtswrite_zvalue(fd_hash_index hx,fd_dtype_stream out,fdtype val
 FD_FASTOP fdtype read_zvalue(fd_hash_index hx,fd_byte_input in)
 {
   int prefix=fd_read_zint(in);
-  if (prefix==0) return fd_read_dtype(in,NULL);
+  if (prefix==0) return fd_read_dtype(in);
   else {
     unsigned int base=hx->baseoid_ids[prefix-1];
     unsigned int offset=fd_read_zint(in);
@@ -746,7 +746,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
       else if (n_values==1) {
 	int code=fd_read_zint(&keystream);
 	if (code==0) {
-	  fdtype val=fd_read_dtype(&keystream,NULL);
+	  fdtype val=fd_read_dtype(&keystream);
 	  fd_decref(val);}
 	else fd_read_zint(&keystream);}
       else {
@@ -1145,7 +1145,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
       else if (n_vals==1) {
 	int code=fd_read_zint(&keyblock);
 	if (code==0) {
-	  fdtype val=fd_read_dtype(&keyblock,NULL);
+	  fdtype val=fd_read_dtype(&keyblock);
 	  fd_decref(val);}
 	else fd_read_zint(&keyblock);}
       else {
@@ -1213,7 +1213,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
       else if (n_vals==1) {
 	int code=fd_read_zint(&keyblock);
 	if (code==0) {
-	  fdtype val=fd_read_dtype(&keyblock,NULL);
+	  fdtype val=fd_read_dtype(&keyblock);
 	  fd_decref(val);}
 	else fd_read_zint(&keyblock);}
       else {

@@ -243,14 +243,14 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,gmt_symbol))
     if (xt->u8_tzoff==0) 
-      return fd_make_timestamp(xt,NULL);
+      return fd_make_timestamp(xt);
     else {
       struct U8_XTIME asgmt;
       if (xt->u8_prec>u8_second)
 	u8_offtime_x(&asgmt,xt->u8_secs,xt->u8_nsecs,0);
       else u8_offtime_x(&asgmt,xt->u8_secs,-1,0);
       asgmt.u8_prec=xt->u8_prec;
-      return fd_make_timestamp(&asgmt,NULL);}
+      return fd_make_timestamp(&asgmt);}
   else if (FD_EQ(slotid,month_symbol))
     if (xt->u8_prec>=u8_month)
       return FD_INT2DTYPE(xt->u8_tptr.tm_mon);
@@ -633,7 +633,7 @@ static fdtype rusage_prim(fdtype field)
   if (u8_getrusage(RUSAGE_SELF,&r)<0) 
     return fd_erreify();
   else if (FD_VOIDP(field)) {
-    fdtype result=fd_init_slotmap(NULL,0,NULL,NULL);
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
     fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));
     fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
     fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));

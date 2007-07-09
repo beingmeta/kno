@@ -30,7 +30,7 @@ static fdtype read_dtype_from_file(FILE *f)
       else u8_raise("Read error","u8recode",NULL);
     else fd_write_bytes(&out,buf,delta);}
   FD_INIT_BYTE_INPUT(&in,out.start,out.ptr-out.start);
-  object=fd_read_dtype(&in,NULL);
+  object=fd_read_dtype(&in);
   u8_free(out.start);
   return object;
 }
@@ -57,7 +57,7 @@ int main(int argc,char **argv)
   FD_DO_LIBINIT(fd_init_dtypelib);
   if (f) {
     ht=read_dtype_from_file(f); fclose(f);}
-  else ht=fd_make_hashtable(NULL,64,NULL);
+  else ht=fd_make_hashtable(NULL,64);
   if (argc == 2) {
     fdtype keys=fd_hashtable_keys(HASHTABLE(ht));
     FD_DO_CHOICES(key,keys) {

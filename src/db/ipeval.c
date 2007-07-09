@@ -205,7 +205,7 @@ static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
 {
   fdtype cache=fd_hashtable_get(&fcn_caches,fcn,FD_VOID);
   if (FD_VOIDP(cache)) {
-    cache=fd_make_hashtable(NULL,512,NULL);
+    cache=fd_make_hashtable(NULL,512);
     fd_hashtable_store(&fcn_caches,fcn,cache);
     return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);}
   else return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);
@@ -280,7 +280,7 @@ FD_EXPORT void fd_init_ipeval_c()
   u8_new_threadkey(&fd_ipeval_state_key,NULL);
 #endif
 
-  fd_make_hashtable(&fcn_caches,128,NULL);
+  fd_make_hashtable(&fcn_caches,128);
 
 }
 

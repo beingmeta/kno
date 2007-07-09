@@ -611,7 +611,7 @@ static fdtype set_body_attribs(int n,fdtype *args)
   fdtype attribs=FD_EMPTY_LIST; int i=n-1;
   fdtype table=fd_thread_get(cgidata_symbol);
   if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL,NULL);
+    table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);}
   while (i>=0) {
     attribs=fd_init_pair(NULL,fd_incref(args[i]),attribs); i--;}
@@ -669,7 +669,7 @@ static fdtype cgiget(fdtype var,fdtype dflt)
   fdtype table=fd_thread_get(cgidata_symbol), val;
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
   if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL,NULL);
+    table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);}
   val=fd_get(table,var,FD_VOID); fd_decref(table);
   if (FD_VOIDP(val))
@@ -683,7 +683,7 @@ static fdtype cgitest(fdtype vars,fdtype val)
 {
   fdtype table=fd_thread_get(cgidata_symbol);
   if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL,NULL);
+    table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);}
   if (FD_TABLEP(table)) {
     FD_DO_CHOICES(var,vars) {
@@ -697,7 +697,7 @@ static fdtype cgiset(fdtype vars,fdtype value)
 {
   fdtype table=fd_thread_get(cgidata_symbol);
   if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL,NULL);
+    table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);}
   {FD_DO_CHOICES(var,vars) {
     if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
@@ -711,7 +711,7 @@ static fdtype cgiadd(fdtype var,fdtype value)
   fdtype table=fd_thread_get(cgidata_symbol);
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
   if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL,NULL);
+    table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);}
   fd_add(table,var,value);
   fd_decref(table);

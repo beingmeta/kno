@@ -155,7 +155,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdtype xname)
   else {
     fd_init_index((fd_index)ix,&netindex_handler,spec);
     ix->xname=xname; ix->xid=xid;
-    fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE,NULL,NULL);
+    fd_init_dtype_stream(s,sock,FD_NET_BUFSIZE);
     s->mallocd=0; s->flags=s->flags|FD_DTSTREAM_DOSYNC;
     if (FD_VOIDP(xname))
       writable_response=dtcall(ix,1,iserver_writable);
@@ -188,7 +188,7 @@ static int reopen_network_index(struct FD_NETWORK_INDEX *ix)
     if (ix->xid) u8_free(ix->xid); ix->xid=NULL;
     if (newsock>=0) {
       ix->xid=xid;
-      fd_init_dtype_stream(&(ix->stream),newsock,FD_NET_BUFSIZE,NULL,NULL);
+      fd_init_dtype_stream(&(ix->stream),newsock,FD_NET_BUFSIZE);
       return 1;}
     else return -1;}
 }
