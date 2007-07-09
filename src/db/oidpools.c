@@ -1381,7 +1381,7 @@ static void oidpool_close(fd_pool p)
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
-    int retval=munmap((op->offsets)-256,4*op->offsets_size+256);
+    int retval=munmap((op->offsets)-64,sizeof(unsigned int)*op->offsets_size+256);
     unsigned int *newmmap;
     if (retval<0) {
       u8_warn(u8_strerror(errno),"oidpool_close:munmap offsets %s",op->cid);
