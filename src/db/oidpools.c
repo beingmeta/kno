@@ -1246,8 +1246,8 @@ static void oidpool_setcache(fd_pool p,int level)
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
 	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
-      fp->offsets=offsets=newmmap+64;
-      fp->offsets_size=fp->load*get_chunkref_size(fp);
+      fp->offsets=offsets=newmmap+256;
+      fp->offsets_size=fp->load*chunkref_size;
 #else
       fd_dts_start_read(s);
       fd_setpos(s,12);
@@ -1255,7 +1255,7 @@ static void oidpool_setcache(fd_pool p,int level)
       offsets=u8_malloc(chunkref_size*load);
       fd_setpos(s,24);
       fd_dtsread_ints(s,load,offsets);
-      fp->offsets=offsets; fp->offsets_size=load*get_chunkref_size(op);
+      fp->offsets=offsets; fp->offsets_size=load*chunkref_size;
 #endif
       fd_unlock_mutex(&(fp->lock));}
   else if (level < 2)
@@ -1266,7 +1266,7 @@ static void oidpool_setcache(fd_pool p,int level)
 #if HAVE_MMAP
       /* Since we were just reading, the buffer was only as big
 	 as the load, not the capacity. */
-      retval=munmap((fp->offsets)-256,chunkref_size*(fp->offsets_size)+256);
+      retval=munmap((fp->offsets)-256,sizeof(unsigned int)*chunkref_size*(fp->offsets_size)+256);
       if (retval<0) {
 	u8_warn(u8_strerror(errno),"file_pool_setcache:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
@@ -1344,7 +1344,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_warn(u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
       fp->offsets=NULL; fp->offsets_size=0; errno=0;}
-    fp->offsets=newmmap+64;
+    fp->offsets=newmmap+256;
     fp->offsets_size=fp->load*get_chunkref_size(fp);}
   if (lock) fd_lock_mutex(&(fp->lock));
 #else
