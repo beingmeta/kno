@@ -302,6 +302,20 @@ FD_FASTOP fd_byte_input open_block
     return bi;}
 }
 
+FD_FASTOP fd_byte_input open_block_nolock
+  (struct FD_BYTE_INPUT *bi,FD_HASH_INDEX *hx,
+   off_t off,fd_size_t size,unsigned char *buf)
+{
+  if (hx->mmap) {
+    FD_INIT_BYTE_INPUT(bi,hx->mmap+off,size);
+    return bi;}
+  else {
+    fd_setpos(&(hx->stream),off);
+    fd_dtsread_bytes(&(hx->stream),buf,size);
+    FD_INIT_BYTE_INPUT(bi,buf,size);
+    return bi;}
+}
+
 FD_FASTOP fdtype read_dtype_at_pos(fd_dtype_stream s,off_t off)
 {
   fd_setpos(s,off);
@@ -1944,7 +1958,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
   struct KEYBUCKET *kb; unsigned char *keybuf;
   if (ref.size) {
     keybuf=u8_malloc(ref.size);
-    open_block(&keyblock,hx,ref.off,ref.size,keybuf);
+    open_block_nolock(&keyblock,hx,ref.off,ref.size,keybuf);
     n_keys=fd_read_zint(&keyblock);
     kb=u8_malloc(sizeof(struct KEYBUCKET)+
 		 sizeof(struct KEYENTRY)*((extra+n_keys)-1));
