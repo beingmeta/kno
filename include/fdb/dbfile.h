@@ -203,10 +203,6 @@ typedef struct FD_CHUNK_REF {
   off_t off; size_t size;} FD_CHUNK_REF;
 typedef struct FD_CHUNK_REF *fd_chunk_ref;
 
-typedef struct FD_BLOCK_REF {
-  fd_off_t off; fd_size_t size;} FD_BLOCK_REF;
-typedef struct FD_BLOCK_REF *fd_block_ref;
-
 typedef struct FD_SLOTID_LOOKUP {
   int zindex; fdtype slotid;} FD_SLOTID_LOOKUP;
 typedef struct FD_SLOTID_LOOKUP *fd_slotid_lookup;
@@ -233,7 +229,7 @@ typedef struct FD_HASH_INDEX {
   short *ids2baseoids;
   
   /* Pointers into keyblocks for the hashtable */
-  struct FD_BLOCK_REF *buckets; int n_buckets;
+  unsigned int *offdata; int n_buckets;
   
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */

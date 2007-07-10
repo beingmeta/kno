@@ -110,6 +110,8 @@ fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value d
 
 */
 
+/* Getting chunk refs */
+
 typedef long long int ll;
 
 static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)

@@ -190,14 +190,15 @@ static int get_make_hash_index_flags(fdtype flags_arg)
       flags=flags|(FD_B40<<4);
     else flags=flags|(FD_B40<<4);
     if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
-      flags=flags|FD_HASH_INDEX_DTYPEV2;}
+      flags=flags|FD_HASH_INDEX_DTYPEV2;
+    return flags;}
   else if (FD_EQ(flags_arg,fd_intern("DTYPEV2")))
     return FD_HASH_INDEX_DTYPEV2;
   else if (FD_EQ(flags_arg,fd_intern("B40")))
     return (FD_B40<<4);
   else if (FD_EQ(flags_arg,fd_intern("B64")))
     return (FD_B64<<4);
-  else return 0;
+  else return (FD_B40<<4);
 }
 
 static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata,

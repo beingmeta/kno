@@ -504,6 +504,17 @@ static fdtype table_indexget(fdtype ixarg,fdtype key,fdtype dflt)
 }
 
 
+static void extend_slotids(fd_index ix,const fdtype *keys,int n)
+{
+  fdtype slotids=ix->has_slotids;
+  int i=0; while (i<n) {
+    fdtype key=keys[i++], slotid;
+    if (FD_PAIRP(key)) slotid=FD_CAR(key); else continue;
+    if ((FD_OIDP(slotid)) || (FD_SYMBOLP(slotid)))
+      if (atomic_choice_containsp(slotid,slotids)) continue;
+      else {fd_decref(slotids); ix->has_slotids=FD_VOID;}}
+}
+
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
   if (ix->read_only) {
@@ -515,14 +526,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key), retval;
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
-    if (!(FD_VOIDP(ix->has_slotids))) {
-      fdtype slotids=ix->has_slotids;
-      int i=0; while (i<n) {
-	fdtype key=keys[i++], slotid;
-	if (FD_PAIRP(key)) slotid=FD_CAR(key); else continue;
-	if ((FD_OIDP(slotid)) || (FD_SYMBOLP(slotid)))
-	  if (atomic_choice_containsp(slotid,slotids)) continue;
-	  else {fd_decref(slotids); ix->has_slotids=FD_VOID;}}}
+    if (!(FD_VOIDP(ix->has_slotids))) extend_slotids(ix,keys,n);
     if (ix->cache_level>0)
       fd_hashtable_iterkeys(&(ix->cache),fd_table_add_if_present,n,keys,value);}
   else {
@@ -538,6 +542,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
       fd_hashtable_iterkeys
 	(&(fd_background->cache),fd_table_replace,n,keys,FD_VOID);}
     else fd_hashtable_op(&(fd_background->cache),fd_table_replace,key,FD_VOID);
+  if (!(FD_VOIDP(ix->has_slotids))) extend_slotids(ix,&key,1);
   return 1;
 }
 static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)

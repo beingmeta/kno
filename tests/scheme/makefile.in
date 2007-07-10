@@ -124,7 +124,12 @@ dbtests:
 dbhashtests:
 	@echo "***" Running scheme tests to exercise the database layer with hashindices
 	make FD_HASHINDEX=yes dbtests
-	make FD_HASHINDEX=:COMPRESS dbtests
+	make FD_HASHINDEX="(COMPRESS B40)" dbtests
+
+dbhash32tests:
+	@echo "***" Running scheme tests to exercise the database layer with hashindices
+	make FD_HASHINDEX=yes dbtests
+	make FD_HASHINDEX="(COMPRESS B32)" dbtests
 
 memtests:
 	@echo "***" Running alltests with memory debugging

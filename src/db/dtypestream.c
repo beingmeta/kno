@@ -376,7 +376,7 @@ FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos)
     /* We're not tracking filepos, so we'll check by hand. */
     off_t maxpos;
     fd_dtsflush(s);
-    maxpos=lseek(s->fd,0,SEEK_END);
+    maxpos=lseek(s->fd,(off_t)0,SEEK_END);
     if (maxpos<0)
       return fd_reterr(fd_BadLSEEK,"fd_setpos",
 		       ((s->id)?(u8_strdup(s->id)):(NULL)),
