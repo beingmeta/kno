@@ -1262,7 +1262,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   /* But only if we have to. */
   else fd_unlock_mutex(&(hx->lock));
   while (i<n_buckets) {
-    FD_CHUNK_REF ref=get_chunk_ref(hx,i);
+    FD_CHUNK_REF ref=get_chunk_ref_nolock(hx,i);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
   /* Now we actually unlock it if we kept it locked. */
@@ -1324,7 +1324,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   /* But only if we have to. */
   else fd_unlock_mutex(&(hx->lock));
   while (i<n_buckets) {
-    FD_CHUNK_REF ref=get_chunk_ref(hx,i);
+    FD_CHUNK_REF ref=get_chunk_ref_nolock(hx,i);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
   /* Now we actually unlock it if we kept it locked. */
