@@ -384,4 +384,13 @@ typedef struct FD_COMPOUND_CONSTRUCTOR {
   struct FD_COMPOUND_CONSTRUCTOR *next;} FD_COMPOUND_CONSTRUCTOR;
 typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 
+
+/* Returning error codes */
+
+#if FD_DEBUG_DTYPEIO
+#define fd_return_errcode(x) ((fdtype)(_fd_return_errcode(x)))
+#else
+#define fd_return_errcode(x) ((fdtype)(x))
+#endif
+
 #endif /* FDB_DTYPEIO_H */

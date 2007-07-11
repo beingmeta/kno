@@ -29,16 +29,10 @@ static fd_exception BadUnReadByte=_("Inconsistent read/unread byte");
 static u8_mutex dtype_unpacker_lock;
 #endif
 
-static fdtype _return_errcode(fdtype x)
+static fdtype _fd_return_errcode(fdtype x)
 {
   return x;
 }
-
-#if FD_DEBUG_DTYPEIO
-#define return_errcode(x) (_return_errcode(x))
-#else
-#define return_errcode(x) (x)
-#endif
 
 /* Byte output */
 
@@ -602,7 +596,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_empty_choice: return FD_EMPTY_CHOICE;
     case dt_boolean:
       if (nobytes(in,1))
-	return return_errcode(FD_EOD);
+	return fd_return_errcode(FD_EOD);
       else if (*(in->ptr++))
 	return FD_TRUE;
       else return FD_FALSE;
@@ -610,7 +604,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       if (havebytes(in,4)) {
 	int intval=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
 	return FD_INT2DTYPE(intval);}
-      else return return_errcode(FD_EOD);
+      else return fd_return_errcode(FD_EOD);
     case dt_flonum: {
       char bytes[4];
       float *f=(float *)&bytes; double flonum;
@@ -706,10 +700,10 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       case dt_complex:
 	return _fd_make_complex(car,cdr);}}
     case dt_packet: case dt_string:
-      if (nobytes(in,4)) return return_errcode(FD_EOD);
+      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char *data=u8_malloc(len+1);
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
@@ -721,29 +715,29 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    return fd_init_packet(u8_malloc(sizeof(struct FD_STRING)),
 				  len,data);}}}
     case dt_tiny_symbol:
-      if (nobytes(in,1)) return return_errcode(FD_EOD);
+      if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  u8_byte data[257];
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  return fd_make_symbol(data,len);}}
     case dt_tiny_string:
-      if (nobytes(in,1)) return return_errcode(FD_EOD);
+      if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  u8_byte *data=u8_malloc(len+1);
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
 				len,data);}}
     case dt_symbol: case dt_zstring:
-      if (nobytes(in,4)) return return_errcode(FD_EOD);
+      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char buf[64], *data; fdtype result;
 	  if (len >= 64) data=u8_malloc(len); else data=buf;
@@ -756,7 +750,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  if (data != buf) u8_free_x(data,len);
 	  return result;}}
     case dt_vector:
-      if (nobytes(in,4)) return return_errcode(FD_EOD);
+      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
 	int i=0, len=fd_read_4bytes(in);
 	if (FD_EXPECT_FALSE(len == 0))
@@ -767,9 +761,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  if (FD_EXPECT_TRUE((data!=NULL)))
 	    return fd_init_vector(u8_malloc(sizeof(struct FD_VECTOR)),
 				  len,data);
-	  else return return_errcode(why_not);}}
+	  else return fd_return_errcode(why_not);}}
     case dt_tiny_choice:
-      if (nobytes(in,1)) return return_errcode(FD_EOD);
+      if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
 	fdtype result;
 	int i=0, len=fd_read_byte(in);
@@ -784,9 +778,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
     case dt_framerd_package: {
       int code, lenlen, len;
-      if (nobytes(in,2)) return return_errcode(FD_EOD);
+      if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
       code=*(in->ptr++); lenlen=((code&0x40) ? 4 : 1); 
-      if (nobytes(in,lenlen)) return return_errcode(FD_EOD);
+      if (nobytes(in,lenlen)) return fd_return_errcode(FD_EOD);
       else if (lenlen==4) len=fd_read_4bytes(in);
       else len=fd_read_byte(in);
       switch (code) {
@@ -861,7 +855,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       if ((code >= 0x40) && (code < 0x80))
 	return read_packaged_dtype(code,in);
       else return FD_DTYPE_ERROR;}}
-  else return return_errcode(FD_EOD);
+  else return fd_return_errcode(FD_EOD);
 }
 
 /* Vector and packet unpackers */
@@ -923,16 +917,16 @@ static fdtype read_packaged_dtype
 {
   fdtype result, *vector; unsigned char *packet;
   unsigned int code, lenlen, len, vectorp;
-  if (nobytes(in,2)) return return_errcode(FD_EOD);
+  if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
   code=*(in->ptr++); lenlen=((code&0x40) ? 4 : 1); vectorp=(code&0x80);
-  if (nobytes(in,lenlen)) return return_errcode(FD_EOD);
+  if (nobytes(in,lenlen)) return fd_return_errcode(FD_EOD);
   else if (lenlen==4) len=fd_read_4bytes(in);
   else len=fd_read_byte(in);
   if (vectorp) {
     fdtype why_not;
     vector=read_dtypes(len,in,&why_not);
-    if ((len>0) && (vector==NULL)) return return_errcode(why_not);}
-  else if (nobytes(in,len)) return return_errcode(FD_EOD);
+    if ((len>0) && (vector==NULL)) return fd_return_errcode(why_not);}
+  else if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
   else {
     packet=u8_malloc(len);
     memcpy(packet,in->ptr,len); in->ptr=in->ptr+len;}

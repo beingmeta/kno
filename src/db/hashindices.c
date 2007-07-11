@@ -129,17 +129,11 @@ static fdtype set_symbol, drop_symbol;
 #define output_bytes(out,bytes,n)				\
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
-#if FD_DEBUG_DTYPEIO
-#define return_errcode(x) (_return_errcode(x))
-#else
-#define return_errcode(x) (x)
-#endif
-
 /* Getting chunk refs */
 
 typedef long long int ll;
 
-static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,unsigned int bucket)
+static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,unsigned int bucket,int dolock)
 {
   if (ix->offdata) {
     FD_CHUNK_REF result;
@@ -170,7 +164,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,unsigned int bucket)
   else {
     int error=0;  FD_CHUNK_REF result;
     fd_dtype_stream stream;
-    fd_lock_mutex(&(ix->lock));
+    if (dolock) fd_lock_mutex(&(ix->lock));
     stream=&(ix->stream);
     switch (ix->offtype) {
     case FD_B32:
@@ -198,68 +192,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,unsigned int bucket)
       result.size=-1;}
     if (error) {
       result.off=(off_t)-1; result.size=(size_t)-1;}
-    fd_unlock_mutex(&(ix->lock));
-    return result;}
-}
-
-static FD_CHUNK_REF get_chunk_ref_nolock(struct FD_HASH_INDEX *ix,unsigned int bucket)
-{
-  if (ix->offdata) {
-    FD_CHUNK_REF result;
-    if (FD_EXPECT_FALSE(ix->offtype==FD_B64)) {
-      unsigned long long word1=(ix->offdata)[bucket*3];
-      unsigned long long word2=(ix->offdata)[bucket*3+1];
-      unsigned int word3=(ix->offdata)[bucket*3+2];
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      word1=fd_flip_word(word1); word2=fd_flip_word(word2);
-      word3=fd_flip_word(word3);
-#endif
-      result.off=(off_t) (((word1)<<32)|(((word2))));
-      result.size=(size_t) word3;}
-    else {
-      unsigned int word1, word2;
-      word1=(ix->offdata)[bucket*2];
-      word2=(ix->offdata)[bucket*2+1];
-#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      word1=fd_flip_word(word1);
-      word2=fd_flip_word(word2);
-#endif
-      if (ix->offtype==FD_B40) {
-	result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
-	result.size=(ll)((word2)&(0x00FFFFFF));}
-      else {
-	result.off=word1; result.size=word2;}}
-    return result;}
-  else {
-    int error=0;  FD_CHUNK_REF result;
-    fd_dtype_stream stream;
-    stream=&(ix->stream);
-    switch (ix->offtype) {
-    case FD_B32:
-      if (fd_setpos(stream,256+bucket*8)<0) error=1;
-      result.off=fd_dtsread_off_t(stream);
-      result.size=fd_dtsread_4bytes(stream);
-      break;
-    case FD_B40: {
-      unsigned int word1, word2;
-      if (fd_setpos(stream,256+bucket*8)<0) error=1;
-      word1=fd_dtsread_4bytes(stream);
-      word2=fd_dtsread_4bytes(stream);
-      result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
-      result.size=(ll)((word2)&(0x00FFFFFF));
-      break;}
-    case FD_B64: 
-      if (fd_setpos(stream,256+bucket*8)<0) error=1;
-      result.off=fd_dtsread_8bytes(stream);
-      result.size=fd_dtsread_4bytes(stream);
-      break;
-    default:
-      u8_warn(CorruptedHashIndex,"Invalid offset type for %s: 0x%x",
-	      ix->cid,ix->offtype);
-      result.off=-1;
-      result.size=-1;}
-    if (error) {
-      result.off=(off_t)-1; result.size=(size_t)-1;}
+    if (dolock) fd_unlock_mutex(&(ix->lock));
     return result;}
 }
 
@@ -288,30 +221,17 @@ static int convert_FD_B40_ref
 
 FD_FASTOP fd_byte_input open_block
   (struct FD_BYTE_INPUT *bi,FD_HASH_INDEX *hx,
-   off_t off,fd_size_t size,unsigned char *buf)
+   off_t off,fd_size_t size,unsigned char *buf,
+   int dolock)
 {
   if (hx->mmap) {
     FD_INIT_BYTE_INPUT(bi,hx->mmap+off,size);
     return bi;}
   else {
-    fd_lock_mutex(&(hx->lock));
+    if (dolock) fd_lock_mutex(&(hx->lock));
     fd_setpos(&(hx->stream),off);
     fd_dtsread_bytes(&(hx->stream),buf,size);
-    fd_unlock_mutex(&(hx->lock));
-    FD_INIT_BYTE_INPUT(bi,buf,size);
-    return bi;}
-}
-
-FD_FASTOP fd_byte_input open_block_nolock
-  (struct FD_BYTE_INPUT *bi,FD_HASH_INDEX *hx,
-   off_t off,fd_size_t size,unsigned char *buf)
-{
-  if (hx->mmap) {
-    FD_INIT_BYTE_INPUT(bi,hx->mmap+off,size);
-    return bi;}
-  else {
-    fd_setpos(&(hx->stream),off);
-    fd_dtsread_bytes(&(hx->stream),buf,size);
+    if (dolock) fd_unlock_mutex(&(hx->lock));
     FD_INIT_BYTE_INPUT(bi,buf,size);
     return bi;}
 }
@@ -694,44 +614,44 @@ FD_FASTOP int write_zkey(fd_hash_index hx,fd_byte_output out,fdtype key)
   else return fd_write_byte(out,0)+fd_write_dtype(out,key);
 }
 
-static int fast_read_dtype(fd_byte_input in)
+static fdtype fast_read_dtype(fd_byte_input in)
 {
-  if (nobytes(in,1)) return return_errcode(FD_EOD);
+  if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
   else {
     int code=*(in->ptr);
     switch (code) {
     case dt_oid:
-      if (nobytes(in,9)) return return_errcode(FD_EOD);
+      if (nobytes(in,9)) return fd_return_errcode(FD_EOD);
       else {
 	FD_OID addr; in->ptr++;
 	FD_SET_OID_HI(addr,fd_read_4bytes(in));
 	FD_SET_OID_LO(addr,fd_read_4bytes(in));
 	return fd_make_oid(addr);}
     case dt_string:
-      if (nobytes(in,5)) return return_errcode(FD_EOD);
+      if (nobytes(in,5)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_4bytes(in->ptr+1); in->ptr=in->ptr+5;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char *data=u8_malloc(len+1);
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
 				len,data);}}
   case dt_tiny_string:
-    if (nobytes(in,2)) return return_errcode(FD_EOD);
+    if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
     else {
       int len=fd_get_byte(in->ptr+1); in->ptr=in->ptr+2;
-      if (nobytes(in,len)) return return_errcode(FD_EOD);
+      if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
       else {
 	unsigned char *data=u8_malloc(len+1);
 	memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
 			      len,data);}}
     case dt_symbol:
-      if (nobytes(in,5)) return return_errcode(FD_EOD);
+      if (nobytes(in,5)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_4bytes(in->ptr+1); in->ptr=in->ptr+5;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char _buf[256], *buf=NULL; fdtype symbol;
 	  if (len<256) buf=_buf; else buf=u8_malloc(len+1);
@@ -740,16 +660,24 @@ static int fast_read_dtype(fd_byte_input in)
 	  if (buf!=_buf) u8_free(buf);
 	  return symbol;}}
     case dt_tiny_symbol:
-      if (nobytes(in,2)) return return_errcode(FD_EOD);
+      if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
       else {
 	int len=fd_get_byte(in->ptr+1); in->ptr=in->ptr+2;
-	if (nobytes(in,len)) return return_errcode(FD_EOD);
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char _buf[256];
 	  memcpy(_buf,in->ptr,len); _buf[len]='\0'; in->ptr=in->ptr+len;
 	  return fd_make_symbol(_buf,len);}}
     default:
       return fd_read_dtype(in);
+#if 0
+      {
+      fdtype result=fd_read_dtype(in);
+      if (FD_CHECK_PTR(result)) return result;
+      else {
+	u8_warn("Bad Pointer","from fd_read_dtype");
+	return FD_VOID;}}
+#endif
     }}
 }
 
@@ -863,13 +791,13 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.start,dtype_len);
   bucket=hashval%(hx->n_buckets);
-  keyblock=get_chunk_ref(hx,bucket);
+  keyblock=get_chunk_ref(hx,bucket,LOCK_STREAM);
   if (keyblock.size==0) return FD_EMPTY_CHOICE;
   if (keyblock.size<512)
-    open_block(&keystream,hx,keyblock.off,keyblock.size,_inbuf);
+    open_block(&keystream,hx,keyblock.off,keyblock.size,_inbuf,LOCK_STREAM);
   else {
     inbuf=u8_malloc(keyblock.size);
-    open_block(&keystream,hx,keyblock.off,keyblock.size,inbuf);}
+    open_block(&keystream,hx,keyblock.off,keyblock.size,inbuf,LOCK_STREAM);}
   n_keys=fd_read_zint(&keystream);
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);
@@ -917,13 +845,13 @@ static fdtype read_zvalues
   while (vblock_off != 0) {
     int n_elts, i;
     if (vblock_size<1024)
-      open_block(&instream,hx,vblock_off,vblock_size,_vbuf);
+      open_block(&instream,hx,vblock_off,vblock_size,_vbuf,LOCK_STREAM);
     else if (vbuf_size>vblock_size)
-      open_block(&instream,hx,vblock_off,vblock_size,vbuf);
+      open_block(&instream,hx,vblock_off,vblock_size,vbuf,LOCK_STREAM);
     else {
       if (vbuf) vbuf=u8_realloc(vbuf,vblock_size);
       else vbuf=u8_malloc(vblock_size);
-      open_block(&instream,hx,vblock_off,vblock_size,vbuf);}
+      open_block(&instream,hx,vblock_off,vblock_size,vbuf,LOCK_STREAM);}
     n_elts=fd_read_zint(&instream);
     i=0; while (i<n_elts) {
       fdtype val=read_zvalue(hx,&instream);
@@ -956,14 +884,14 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.start,dtype_len);
   bucket=hashval%(hx->n_buckets);
-  keyblock=get_chunk_ref(hx,bucket);
+  keyblock=get_chunk_ref(hx,bucket,LOCK_STREAM);
   if (keyblock.size==0) return 0;
   if (keyblock.size==0) return FD_EMPTY_CHOICE;
   if (keyblock.size<512)
-    open_block(&keystream,hx,keyblock.off,keyblock.size,_inbuf);
+    open_block(&keystream,hx,keyblock.off,keyblock.size,_inbuf,LOCK_STREAM);
   else {
     inbuf=u8_malloc(keyblock.size);
-    open_block(&keystream,hx,keyblock.off,keyblock.size,inbuf);}
+    open_block(&keystream,hx,keyblock.off,keyblock.size,inbuf,LOCK_STREAM);}
   n_keys=fd_read_zint(&keystream);
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);
@@ -1050,9 +978,9 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
     schedule[n_entries].bucket=bucket=
       hash_bytes(out.start+dt_start,dt_size)%(hx->n_buckets);
     if (hx->offdata) {
-      /* Because we have an offsets table, get_chunk_ref won't ever need
-	 to lock the stream. */
-      schedule[n_entries].ref=get_chunk_ref(hx,bucket);
+      /* Because we have an offsets table, get_chunk_ref won't ever
+	 actually need to lock the stream. */
+      schedule[n_entries].ref=get_chunk_ref(hx,bucket,LOCK_STREAM);
       if (schedule[n_entries].ref.size==0) {
 	/* It is empty, so we don't even need to handle this entry. */
 	values[i]=FD_EMPTY_CHOICE;
@@ -1069,8 +997,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
     qsort(schedule,n_entries,sizeof(struct KEY_SCHEDULE),
 	  sort_ks_by_bucket);
     i=0; while (i<n_entries) {
-      schedule[i].ref=((stream_locked) ? (get_chunk_ref_nolock(hx,schedule[i].bucket)) :
-		       (get_chunk_ref(hx,schedule[i].bucket)));
+      schedule[i].ref=(get_chunk_ref(hx,schedule[i].bucket,(!(stream_locked))));
       if (schedule[i].ref.size==0) {
 	values[schedule[i].index]=FD_EMPTY_CHOICE; i++;}
       else if (write_at==i) {write_at++; i++;}
@@ -1088,16 +1015,16 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
       fd_size_t blocksize=schedule[j].ref.size;
       if (schedule[j].bucket!=bucket) {
 	if (blocksize<1024)
-	  open_block(&keyblock,hx,blockpos,blocksize,_buf);
+	  open_block(&keyblock,hx,blockpos,blocksize,_buf,LOCK_STREAM);
 	else if (buf)
 	  if (blocksize<bufsiz)
-	    open_block(&keyblock,hx,blockpos,blocksize,buf);
+	    open_block(&keyblock,hx,blockpos,blocksize,buf,LOCK_STREAM);
 	  else {
 	    buf=u8_realloc(buf,blocksize); bufsiz=blocksize;
-	    open_block(&keyblock,hx,blockpos,blocksize,buf);}
+	    open_block(&keyblock,hx,blockpos,blocksize,buf,LOCK_STREAM);}
 	else {
 	  buf=u8_malloc(blocksize); bufsiz=blocksize;
-	  open_block(&keyblock,hx,blockpos,blocksize,buf);}}
+	  open_block(&keyblock,hx,blockpos,blocksize,buf,LOCK_STREAM);}}
       else keyblock.ptr=keyblock.start;
       n_keys=fd_read_zint(&keyblock);
       while (k<n_keys) {
@@ -1160,8 +1087,8 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
 	  else if (vsched[i].ref.size>vbuf_size) {
 	    vbuf=u8_realloc(vbuf,vsched[i].ref.size);
 	    vbuf_size=vsched[i].ref.size;}
-	  open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,vbuf);}
-	else open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,_vbuf);
+	  open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,vbuf,LOCK_STREAM);}
+	else open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,_vbuf,LOCK_STREAM);
 	n_vals=fd_read_zint(&vblock);
 	while (j<n_vals) {
 	  fdtype v=read_zvalue(hx,&vblock);
@@ -1262,7 +1189,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   /* But only if we have to. */
   else fd_unlock_mutex(&(hx->lock));
   while (i<n_buckets) {
-    FD_CHUNK_REF ref=get_chunk_ref_nolock(hx,i);
+    FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
   /* Now we actually unlock it if we kept it locked. */
@@ -1271,7 +1198,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
     if (buckets[i].size<512) 
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf);
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf,LOCK_STREAM);
     else {
       if (keybuf==NULL) {
 	keybuf_size=buckets[i].size;
@@ -1280,7 +1207,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
       else {
 	keybuf_size=buckets[i].size;
 	keybuf=u8_realloc(keybuf,keybuf_size);}
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf,LOCK_STREAM);}
     n_keys=fd_read_zint(&keyblock);
     while (j<n_keys) {
       fdtype key; int n_vals, size;
@@ -1324,7 +1251,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   /* But only if we have to. */
   else fd_unlock_mutex(&(hx->lock));
   while (i<n_buckets) {
-    FD_CHUNK_REF ref=get_chunk_ref_nolock(hx,i);
+    FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
   /* Now we actually unlock it if we kept it locked. */
@@ -1333,7 +1260,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
     if (buckets[i].size<512) 
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf);
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf,LOCK_STREAM);
     else {
       if (keybuf==NULL) {
 	keybuf_size=buckets[i].size;
@@ -1342,7 +1269,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
       else {
 	keybuf_size=buckets[i].size;
 	keybuf=u8_realloc(keybuf,keybuf_size);}
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf,LOCK_STREAM);}
     n_keys=fd_read_zint(&keyblock);
     while (j<n_keys) {
       fdtype key, key_and_size; int n_vals, size;
@@ -1958,7 +1885,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
   struct KEYBUCKET *kb; unsigned char *keybuf;
   if (ref.size) {
     keybuf=u8_malloc(ref.size);
-    open_block_nolock(&keyblock,hx,ref.off,ref.size,keybuf);
+    open_block(&keyblock,hx,ref.off,ref.size,keybuf,DONT_LOCK_STREAM);
     n_keys=fd_read_zint(&keyblock);
     kb=u8_malloc(sizeof(struct KEYBUCKET)+
 		 sizeof(struct KEYENTRY)*((extra+n_keys)-1));
@@ -2037,7 +1964,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     i=0; bscan=0; while (i<schedule_size) {
       int bucket=schedule[i].bucket, j=i;
       bucket_locs[changed_buckets].bucket=bucket;
-      bucket_locs[changed_buckets].ref=get_chunk_ref_nolock(hx,bucket);
+      bucket_locs[changed_buckets].ref=get_chunk_ref(hx,bucket,DONT_LOCK_STREAM);
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       bucket_locs[changed_buckets].max_new=j-i;
       changed_buckets++; i=j;}

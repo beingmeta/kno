@@ -310,13 +310,6 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
   return zwrite_dtypes(s,x);
 }
 
-FD_EXPORT fdtype _fd_dtswrite_zint(struct FD_DTYPE_STREAM *s,int val)
-{
-  return fd_dtswrite_zint(s,val);
-}
-
-
-
 /* This reads an OID value.
    A compressed OID value has one of the forms:
     0 n_bytes <data>

@@ -515,7 +515,7 @@ FD_EXPORT int _fd_dtsread_bytes
     return len;}
 }
 
-FD_EXPORT int _fd_dtsread_zint(fd_dtype_stream stream)
+FD_EXPORT fd_4bytes _fd_dtsread_zint(fd_dtype_stream stream)
 {
   return fd_dtsread_zint(stream);
 }
@@ -576,7 +576,7 @@ FD_EXPORT int _fd_dtswrite_byte(fd_dtype_stream s,int b)
   return 1;
 }
 
-FD_EXPORT int _fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
+FD_EXPORT int _fd_dtswrite_4bytes(fd_dtype_stream s,fd_4bytes w)
 {
   if ((s->flags)&FD_DTSTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;  
@@ -602,6 +602,11 @@ FD_EXPORT int _fd_dtswrite_8bytes(fd_dtype_stream s,fd_8bytes w)
   *(s->ptr++)=((w>>8)&0xFF);
   *(s->ptr++)=((w>>0)&0xFF);
   return 8;
+}
+
+FD_EXPORT int _fd_dtswrite_zint(struct FD_DTYPE_STREAM *s,fd_4bytes val)
+{
+  return fd_dtswrite_zint(s,val);
 }
 
 FD_EXPORT int _fd_dtswrite_bytes
