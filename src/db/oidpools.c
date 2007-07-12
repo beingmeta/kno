@@ -113,6 +113,7 @@ fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value d
 /* Getting chunk refs */
 
 typedef long long int ll;
+typedef unsigned long long ull;
 
 static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
 {
@@ -120,7 +121,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
   if (p->offsets) {
     switch (p->offtype) {
     case FD_B32: {
-#if ((HAVE_MMAP) && (!(FD_WORDS_BIGENDIAN)))
+#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
       unsigned int word1=fd_flip_word((p->offsets)[offset*2]);
       unsigned int word2=fd_flip_word((p->offsets)[offset*2+1]);
 #else
@@ -130,18 +131,18 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       result.off=word1; result.size=word2;
       break;}
     case FD_B40: {
-#if ((HAVE_MMAP) && (!(FD_WORDS_BIGENDIAN)))
+#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
       unsigned int word1=fd_flip_word((p->offsets)[offset*2]);
       unsigned int word2=fd_flip_word((p->offsets)[offset*2+1]);
 #else
       unsigned int word1=(p->offsets)[offset*2];
       unsigned int word2=(p->offsets)[offset*2+1];
 #endif
-      result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
-      result.size=(ll)((word2)&(0x00FFFFFF));
+      result.off=(((((ull)(word2))&(0xFF000000))<<8)|((ull)word1));
+      result.size=((word2)&(0x00FFFFFF));
       break;}
     case FD_B64: {
-#if ((HAVE_MMAP) && (!(FD_WORDS_BIGENDIAN)))
+#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
       unsigned int word1=fd_flip_word((p->offsets)[offset*3]);
       unsigned int word2=fd_flip_word((p->offsets)[offset*3+1]);
       unsigned int word3=fd_flip_word((p->offsets)[offset*3+2]);
@@ -199,10 +200,10 @@ static int get_chunkref_size(fd_oidpool p)
 
 static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int *word2)
 {
-  *word2=ref.size;
   if (ref.size>=0x1000000) return -1;
-  else if (ref.off<0x100000000LL)
+  else if (ref.off<0x100000000LL) {
     *word1=(ref.off)&(0xFFFFFFFFLL);
+    *word2=ref.size;}
   else {
     *word1=(ref.off)&(0xFFFFFFFFLL);
     *word2=ref.size|(((ref.off)>>8)&(0xFF000000LL));}
