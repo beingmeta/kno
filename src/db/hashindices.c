@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id$";
+  "$Id: hashindices.c 1372 2007-07-11 16:24:28Z haase $";
 
 /* Notes:
     A normal 32-bit hash index with N buckets consists of 256 bytes of
