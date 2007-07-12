@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+   "$Id:$";
 
 #define FD_INLINE_DTYPEIO 1
 
