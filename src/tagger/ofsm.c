@@ -28,7 +28,7 @@
 #include <windows.h>
 #endif
 
-#define ZEROP(x) ((fd_getint(x)) == 0)
+#define ZEROP(x) ((x)==(FD_SHORT2DTYPE(0)))
 
 static fd_exception TooManyWords=_("Too many words");
 static fd_exception ParseFailed=_("Parser failed");
@@ -2019,14 +2019,14 @@ static void init_parser_symbols()
   parse_failed_symbol=fd_intern("NOPARSE");
 }
 
-/* fd_init_tagger_c: 
+/* fd_init_ofsm_c: 
       Arguments: none
       Returns: nothing
 */
 FD_EXPORT
-void fd_init_tagger_c()
+void fd_init_ofsm_c()
 {
-  fdtype menv=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
+  fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   init_parser_symbols();
 
 #if FD_THREADS_ENABLED
@@ -2048,115 +2048,3 @@ void fd_init_tagger_c()
   
   fd_register_config("LEXDATA",config_get_lexdata,config_set_lexdata,NULL);
 }
-
-/* The CVS log for this file
-   $Log: tagger.c,v $
-   Revision 1.55  2006/02/07 03:14:03  haase
-   Fix buffer growing bug with punctuation
-
-   Revision 1.54  2006/01/26 19:02:32  haase
-   Initialize contents of pointer arg to u8_parse_entity
-
-   Revision 1.53  2006/01/25 18:18:08  haase
-   Simplified some parsing code by using u8_parse_entity
-
-   Revision 1.52  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.51  2005/11/06 01:11:50  haase
-   Fixed bug in proper name glomming with lowercase name elements
-
-   Revision 1.50  2005/09/11 19:43:58  haase
-   Fixed glomming to include epsilon transitions
-
-   Revision 1.49  2005/08/21 01:56:04  haase
-   Signal no grammar error
-
-   Revision 1.48  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.47  2005/07/18 19:46:02  haase
-   Made tagger able to use POS data stored in packets as well as vectors
-
-   Revision 1.46  2005/07/16 19:00:08  haase
-   Extended the sentence segmentation algorithm and made segmenter smarter about strings with no words
-
-   Revision 1.45  2005/07/09 02:31:40  haase
-   Fixed capitalization bumping and added LEXWEIGHT primitive
-
-   Revision 1.44  2005/07/08 20:19:26  haase
-   Various XML parsing fixes
-
-   Revision 1.43  2005/07/07 18:21:13  haase
-   Fixes to tagxtract
-
-   Revision 1.42  2005/07/06 20:28:08  haase
-   Fixed weight bumping bug for capitalized lexicon entries
-
-   Revision 1.41  2005/06/30 14:36:40  haase
-   Fixed bug in sentence-end handling in the tag extractor
-
-   Revision 1.40  2005/06/30 02:58:00  haase
-   Fixes to pseudo morphology
-
-   Revision 1.39  2005/06/27 17:03:28  haase
-   Fixed unlocked access to total_inputs statistic
-
-   Revision 1.38  2005/06/25 16:25:47  haase
-   Added threading primitives
-
-   Revision 1.37  2005/06/24 16:44:47  haase
-   Fixed VOID root bug
-
-   Revision 1.36  2005/06/23 15:11:33  haase
-   Kludged glomming to be case consistent as a proxy for more complex glomming rules
-
-   Revision 1.35  2005/06/22 22:51:25  haase
-   Fixed initialization gc bug
-
-   Revision 1.34  2005/06/21 23:50:53  haase
-   Various parser fixes
-
-   Revision 1.33  2005/06/21 17:52:15  haase
-   Reorganized tagger to use parse context flags and its own string buffer.
-
-   Revision 1.32  2005/06/21 16:01:23  haase
-   Added flags argument to tagging primitives
-
-   Revision 1.31  2005/06/21 15:28:29  haase
-   Better parse context cleanup
-
-   Revision 1.30  2005/06/20 15:49:39  haase
-   Improved tagger's handling of possessives
-
-   Revision 1.29  2005/06/19 02:51:14  haase
-   Added ->bits field to parse contexts and fixed handling of compound glomming
-
-   Revision 1.28  2005/06/19 02:38:07  haase
-   Added initial pass at phrase glomming
-
-   Revision 1.27  2005/06/18 02:58:00  haase
-   Fixes to tagxtract
-
-   Revision 1.26  2005/06/17 18:14:21  haase
-   Removed dead code and fixed parse stats reporting and access
-
-   Revision 1.25  2005/06/17 16:37:20  haase
-   Only try downcasing for starts and post puncts
-
-   Revision 1.24  2005/06/16 22:51:20  haase
-   Improved built-in morphology routines for English
-
-   Revision 1.23  2005/06/16 02:36:43  haase
-   Added tag extraction functions
-
-   Revision 1.22  2005/06/15 15:00:35  haase
-   Fixed to handle new fragment conventions
-
-   Revision 1.21  2005/06/15 02:00:09  haase
-   Added name tags to tagger
-
-   Revision 1.20  2005/06/15 01:19:45  haase
-   Added log entries to texttools files
-
-*/

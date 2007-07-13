@@ -2,10 +2,11 @@
 
 /* texttools.c
    This is the core texttools file for the FDB library
-
-   Copyright (C) 2005-2006 beingmeta, inc.
-
+   Copyright (C) 2005-2007 beingmeta, inc.
 */
+
+static char versionid[] =
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
@@ -1444,11 +1445,10 @@ void fd_init_texttools()
 {
   fdtype texttools_module;
   if (texttools_init) return;
+  fd_register_source_file(versionid);
   texttools_init=1;
   texttools_module=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
   fd_init_match_c();
-  fd_init_tagger_c();
-  fd_init_tagxtract_c();
   fd_idefn(texttools_module,fd_make_cprim1("MD5",fd_md5,1));
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
 					    fd_string_type,FD_VOID));
@@ -1598,148 +1598,3 @@ void fd_init_texttools()
   fd_finish_module(texttools_module);
   fd_persist_module(texttools_module);
 }
-
-/* The CVS log for this file
-   $Log: texttools.c,v $
-   Revision 1.59  2006/02/07 16:08:17  haase
-   Fix the zero-string case for some text functions
-
-   Revision 1.58  2006/02/01 15:57:44  haase
-   Improved some error passing in texttools
-
-   Revision 1.57  2006/01/31 03:17:41  haase
-   Whitespace changes
-
-   Revision 1.56  2006/01/30 16:30:30  haase
-   Fixed some empty string cases
-
-   Revision 1.55  2006/01/26 22:06:33  haase
-   Fixed UTF-8 handling bug
-
-   Revision 1.54  2006/01/26 19:02:32  haase
-   Initialize contents of pointer arg to u8_parse_entity
-
-   Revision 1.53  2006/01/26 17:49:45  haase
-   Cleaned up and documented the text matcher model and internals
-
-   Revision 1.52  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.51  2006/01/25 18:18:08  haase
-   Simplified some parsing code by using u8_parse_entity
-
-   Revision 1.50  2006/01/24 23:04:29  haase
-   Changed internal match/extract API to allow a next pattern pointer and implement the (*) wildcard
-
-   Revision 1.49  2006/01/21 21:10:58  haase
-   Added subst/rewrite return value checking
-
-   Revision 1.48  2006/01/21 20:15:20  haase
-   Added ability to have transformation functions in SUBST matcher expressions
-
-   Revision 1.47  2006/01/21 19:01:46  haase
-   Made TEXTSUBST use substitution expressions in lieu of direct strings
-
-   Revision 1.46  2006/01/16 22:02:27  haase
-   Implemented columnize
-
-   Revision 1.45  2006/01/16 17:58:07  haase
-   Fixes to empty choice cases for indices and better error handling
-
-   Revision 1.44  2006/01/09 20:20:37  haase
-   Added DECODE-ENTITIES
-
-   Revision 1.43  2006/01/09 01:17:24  haase
-   Fix TEXT-SUBST of empty strings
-
-   Revision 1.42  2006/01/08 14:09:39  haase
-   Made STRING-SUBST handle an empty string initial argument
-
-   Revision 1.41  2005/12/31 20:53:49  haase
-   Added GATHER->LIST, made TEXTSUBST into TEXTREQRITE and used TEXTSUBST for STRING-SUBST analog
-
-   Revision 1.40  2005/12/30 02:18:10  haase
-   Added STRING-SUBST texttools primitive
-
-   Revision 1.39  2005/12/22 15:46:28  haase
-   Fixed text amatching leak
-
-   Revision 1.38  2005/12/13 22:43:02  haase
-   Fixed bug with gather and text->frames where matched regions adjoined each other
-
-   Revision 1.37  2005/11/15 18:44:08  haase
-   Fixed empty string case for strip-markup
-
-   Revision 1.36  2005/11/06 22:20:09  haase
-   Added list->phrase
-
-   Revision 1.35  2005/09/16 17:27:35  haase
-   Added parsing of &amp;
-
-   Revision 1.34  2005/09/06 00:28:59  haase
-   Fix strip-markup to handle entities correctly
-
-   Revision 1.33  2005/08/29 20:47:38  haase
-   Added HAS-WORD-SUFFIX/PREFIX
-
-   Revision 1.32  2005/08/29 12:26:27  haase
-   Added STRIP-MARKUP to TEXTOOLS
-
-   Revision 1.31  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.30  2005/07/28 02:43:44  haase
-   Made empty list rule be the identity
-
-   Revision 1.29  2005/07/28 02:32:45  haase
-   Made morphrules accept doubly non-deterministic suffix rules
-
-   Revision 1.28  2005/07/27 01:14:33  haase
-   Added optional limit argument to text pattern matching primitives
-
-   Revision 1.27  2005/07/19 20:12:49  haase
-   Fixed some text matching bugs
-
-   Revision 1.26  2005/07/16 18:23:08  haase
-   Made textsearch return #f if the pattern is not found, rather than {}
-
-   Revision 1.25  2005/07/11 17:12:05  haase
-   Fixed some string segmentation errors
-
-   Revision 1.24  2005/07/09 16:18:00  haase
-   Added text percent analysis functions
-
-   Revision 1.23  2005/07/09 14:39:04  haase
-   Fixed typo in entity parsing
-
-   Revision 1.22  2005/07/09 02:34:01  haase
-   Add support for handling entity references
-
-   Revision 1.21  2005/07/08 20:18:48  haase
-   Fixed empty string bug in getwords and added type declaration for PORTER-STEM primitive
-
-   Revision 1.20  2005/07/06 15:05:35  haase
-   Made getwords handle XML markup
-
-   Revision 1.19  2005/07/04 13:39:47  haase
-   Added more text processing utilities, including TEXTSLICE, TEXT->FRAME, AND TEXT->FRAMES
-
-   Revision 1.18  2005/06/30 02:57:15  haase
-   Additional argument to getwords now preserves punctuation
-
-   Revision 1.17  2005/06/28 18:31:15  haase
-   Improved morphrules, allowing inner alternatives
-
-   Revision 1.16  2005/06/28 17:11:08  haase
-   Made MORPHRULE use TEXTMATCH substitution patterns
-
-   Revision 1.15  2005/06/25 18:00:06  haase
-   Fixes to getwords
-
-   Revision 1.14  2005/06/16 02:36:43  haase
-   Added tag extraction functions
-
-   Revision 1.13  2005/06/15 01:19:45  haase
-   Added log entries to texttools files
-
-*/

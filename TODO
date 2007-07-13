@@ -29,14 +29,14 @@ MAPROPOS (module apropos finds module for symbol, including by name)
 # Finish adding opcode handling to the evaluator. (24 June 2007)
 Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
-Separate out nlp from texttools
+# Separate out nlp from texttools (12 July 2007)
 # Make when and unless not treat {} as true (23 June 2007)
 # Rename tighten to optimize. (28 June 2007)
 # Make tighten! take module names (23 June 2007)
 # Add some sample functions (23 June 2007)
 ? Add expression rails to speed up the evaluator
 # Add some test functionality to /build/brico/makefile (5 July 2007)
-Add DTYPE I/O flag for emitting unserializable objects
+# Add DTYPE I/O flag for emitting unserializable objects (early July 2007)
 # Fix cid aliasing with compound indices (24 June 2007)
 # Fix registration of pools with invalid overlaps (24 June 2007)
 # Add AND/OR/NOT to OPCODES (28 June 2007)
@@ -61,7 +61,7 @@ Add editline to fdconsole
 # Separate out loading/accessing pools and using them as OID sources (4 July 2007)
 Make hash indices be able to have implicit pools
 # Remove all the memory pool stuff (8 July 2007)
-Make copy-index smarter as a replacement for repack-* functions
+# Make copy-index smarter as a replacement for repack-* functions (10 July 2007)
 Add background search methods for slots
 Add generic composition for slotids
 # Finish adding slotid and zlib/bz2 compression to OIDPOOLs (6 July 2007)
@@ -69,3 +69,4 @@ Implement a simple queueing system
 # Fix find-frames with no index (even arguments) to do a background search (7 July 2007)
 # Make modules files of the form foo/foo.scm work (7 July 2007)
 # Undo above, reorganize existing modules to avoid too many contentful module.scm (8 July 2007)
+# Add opcodes for overlaps

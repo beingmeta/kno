@@ -81,8 +81,8 @@ FDWEB_OBJS=src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/uriprims.o \
 	src/fdweb/xmleval.o src/fdweb/cgiexec.o @exifo@ @curlo@
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
-	src/texttools/md5c.o src/texttools/porter.o \
-	src/texttools/tagger.o src/texttools/tagxtract.o
+	src/texttools/md5c.o src/texttools/porter.o
+TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
             exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
@@ -118,7 +118,7 @@ FDB_SOURCES=\
 	src/texttools/texttools.c include/fdb/texttools.h \
 	src/texttools/match.c src/texttools/porter.c \
 	src/texttools/md5c.c src/texttools/md5.h \
-	src/texttools/tagger.c src/texttools/tagxtract.c \
+	src/tagger/tagger.c src/tagger/ofsm.c src/tagger/tagxtract.c \
 	include/fdb/tagger.h \
 	src/exe/fdconsole.c \
 	src/exe/fdexec.c src/exe/fdbatch.c \
@@ -132,7 +132,7 @@ rebuild:
 	make clean
 	make default
 libs: static-libs @SHARED_LIB_TARGET@
-static-libs: lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a \
+static-libs: lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a lib/libtagger@suffix@.a \
 	lib/libfdschemeio@suffix@.a lib/libfdscheme@suffix@.a lib/libfdbserv@suffix@.a \
 	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a lib/libfdtype@suffix@.a
 shared-libs: lib/libfdtype@suffix@.@shared_suffix@ \
@@ -142,7 +142,8 @@ shared-libs: lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libfdscheme@suffix@.@shared_suffix@ \
 	lib/libfdschemeio@suffix@.@shared_suffix@ \
 	lib/libfdweb@suffix@.@shared_suffix@ \
-	lib/libtexttools@suffix@.@shared_suffix@
+	lib/libtexttools@suffix@.@shared_suffix@ \
+	lib/libtagger@suffix@.@shared_suffix@
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
 dtypetestbin: libs  src/exe/revision.h
 	cd tests/dtype; make
@@ -225,11 +226,11 @@ depend.in:
 
 TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
-		src/texttools/*.c src/texttools/*.h \
+		src/texttools/*.c src/texttools/*.h src/tagger/*.c \
 		include/fdb/*.h 
 	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
-	      src/texttools/*.c src/texttools/*.h \
+	      src/texttools/*.c src/texttools/*.h src/tagger/*.c \
 	      include/fdb/*.h
 
 profile-clean:
@@ -247,7 +248,7 @@ tidy: profile-clean
 	rm -f config.log
 clean: tidy
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
-	rm -f src/fdweb/*.o src/texttools/*.o src/exe/*.o
+	rm -f src/fdweb/*.o src/texttools/*.o src/tagger/*.o src/exe/*.o
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib lib/*@suffix@.so.* 
 	rm -f exe/fdexec@suffix@ exe/fdexec@suffix@.static exe/fdbatch@suffix@
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
@@ -325,6 +326,17 @@ lib/libtexttools@suffix@.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
 lib/libtexttools.dylib: lib/libtexttools@suffix@.@VERSION@.dylib
 
+lib/libtagger@suffix@.a: $(TAGGER_OBJS)
+lib/libtagger@suffix@.so.@VERSION@: $(TAGGER_OBJS)
+	$(MKSO) @curlconfig@ -o $@ $^ -ltexttools
+lib/libtagger@suffix@.so: lib/libtagger@suffix@.so.@VERSION@
+lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
+	lib/libtexttools@suffix@.@VERSION@.dylib \
+	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
+	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
+	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
+lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
+
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/fdb.mo: etc/intl/%.gmo
@@ -355,7 +367,8 @@ install-static: static-libs
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a \
-		$(LIBINSTALLDIR)/libtexttools@suffix@.a
+		$(LIBINSTALLDIR)/libtexttools@suffix@.a \
+		$(LIBINSTALLDIR)/libtagger@suffix@.a
 install-shared: shared-libs 
 	make install-@shared_suffix@
 install-so: $(LIBINSTALLDIR)/libfdtype@suffix@.so \
@@ -365,7 +378,8 @@ install-so: $(LIBINSTALLDIR)/libfdtype@suffix@.so \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.so \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.so \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.so \
-		$(LIBINSTALLDIR)/libtexttools@suffix@.so
+		$(LIBINSTALLDIR)/libtexttools@suffix@.so \
+		$(LIBINSTALLDIR)/libtagger@suffix@.so
 install-dylib: $(LIBINSTALLDIR)/libfdtype@suffix@.dylib \
 	$(LIBINSTALLDIR)/libfddb@suffix@.dylib \
 	$(LIBINSTALLDIR)/libfdbserv@suffix@.dylib \
@@ -373,7 +387,8 @@ install-dylib: $(LIBINSTALLDIR)/libfdtype@suffix@.dylib \
 	$(LIBINSTALLDIR)/libfdscheme@suffix@.dylib \
 	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib \
 	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib
+	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib \
+	$(LIBINSTALLDIR)/libtagger@suffix@.dylib
 install-headers: $(INCINSTALLDIR)
 	$(INSTALL) -p @install_file_opts@ \
 		   $(DTYPE_HEADERS) $(DB_HEADERS) \
@@ -1038,33 +1053,47 @@ src/texttools/md5c.o: ./include/fdb/config.h ./include/fdb/malloc.h
 src/texttools/md5c.o: ./include/fdb/dtypeio.h ./include/fdb/support.h
 src/texttools/md5c.o: ./include/fdb/ptr.h ./include/fdb/cons.h
 src/texttools/md5c.o: ./include/fdb/choices.h ./include/fdb/tables.h
-src/texttools/tagger.o: ./include/fdb/dtype.h ./include/fdb/common.h
-src/texttools/tagger.o: ./include/fdb/defines.h ./include/fdb/config.h
-src/texttools/tagger.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
-src/texttools/tagger.o: ./include/fdb/support.h ./include/fdb/ptr.h
-src/texttools/tagger.o: ./include/fdb/cons.h ./include/fdb/choices.h
-src/texttools/tagger.o: ./include/fdb/tables.h ./include/fdb/eval.h
-src/texttools/tagger.o: ./include/fdb/apply.h ./include/fdb/fddb.h
-src/texttools/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
-src/texttools/tagger.o: ./include/fdb/pools.h ./include/fdb/fddb.h
-src/texttools/tagger.o: ./include/fdb/indices.h ./include/fdb/frames.h
-src/texttools/tagger.o: ./include/fdb/pools.h ./include/fdb/indices.h
-src/texttools/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/sequences.h
-src/texttools/tagger.o: ./include/fdb/numbers.h ./include/fdb/support.h
-src/texttools/tagger.o: ./include/fdb/tagger.h
-src/texttools/tagxtract.o: ./include/fdb/dtype.h ./include/fdb/common.h
-src/texttools/tagxtract.o: ./include/fdb/defines.h ./include/fdb/config.h
-src/texttools/tagxtract.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
-src/texttools/tagxtract.o: ./include/fdb/support.h ./include/fdb/ptr.h
-src/texttools/tagxtract.o: ./include/fdb/cons.h ./include/fdb/choices.h
-src/texttools/tagxtract.o: ./include/fdb/tables.h ./include/fdb/eval.h
-src/texttools/tagxtract.o: ./include/fdb/apply.h ./include/fdb/fddb.h
-src/texttools/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
-src/texttools/tagxtract.o: ./include/fdb/pools.h ./include/fdb/fddb.h
-src/texttools/tagxtract.o: ./include/fdb/indices.h ./include/fdb/frames.h
-src/texttools/tagxtract.o: ./include/fdb/pools.h ./include/fdb/indices.h
-src/texttools/tagxtract.o: ./include/fdb/dtypestream.h
-src/texttools/tagxtract.o: ./include/fdb/texttools.h ./include/fdb/tagger.h
+src/tagger/tagger.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/tagger/tagger.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/tagger/tagger.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/tagger/tagger.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/tagger/tagger.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/tagger/tagger.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/tagger/tagger.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/tagger/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/tagger/tagger.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/tagger/tagger.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/tagger/tagger.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/tagger/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/sequences.h
+src/tagger/tagger.o: ./include/fdb/numbers.h ./include/fdb/support.h
+src/tagger/tagger.o: ./include/fdb/tagger.h
+src/tagger/ofsm.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/tagger/ofsm.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/tagger/ofsm.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/tagger/ofsm.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/tagger/ofsm.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/tagger/ofsm.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/tagger/ofsm.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/tagger/ofsm.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/tagger/ofsm.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/tagger/ofsm.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/tagger/ofsm.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/tagger/ofsm.o: ./include/fdb/dtypestream.h ./include/fdb/sequences.h
+src/tagger/ofsm.o: ./include/fdb/numbers.h ./include/fdb/support.h
+src/tagger/ofsm.o: ./include/fdb/tagger.h
+src/tagger/tagxtract.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/tagger/tagxtract.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/tagger/tagxtract.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/tagger/tagxtract.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/tagger/tagxtract.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/tagger/tagxtract.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/tagger/tagxtract.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/tagger/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/tagger/tagxtract.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/indices.h
+src/tagger/tagxtract.o: ./include/fdb/dtypestream.h
+src/tagger/tagxtract.o: ./include/fdb/tagger.h ./include/fdb/tagger.h
 src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdconsole.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/exe/fdconsole.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h

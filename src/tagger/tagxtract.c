@@ -713,7 +713,7 @@ static fdtype getxlinks_prim
 FD_EXPORT
 void fd_init_tagxtract_c()
 {
-  fdtype menv=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
+  fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   
   compound_symbol=fd_intern("COMPOUND");
   star_symbol=fd_intern("*");
