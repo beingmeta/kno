@@ -370,18 +370,24 @@ static fdtype set_curlopt
 
 /* The core get function */
 
-static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string uri)
+static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval; int consed_handle=0;
   fdtype result=fd_init_slotmap(NULL,0,NULL), cval, url, handle;
-  u8_string urltext=FD_STRDATA(url);
+  char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
   if (h==NULL) {h=fd_open_curl_handle(); consed_handle=1;}
-  curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
+  curl_easy_setopt(h->handle,CURLOPT_URL,urltext);  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
+  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,&errbuf);
   retval=curl_easy_perform(h->handle);
+  if (retval!=CURLE_OK) {
+    fdtype urlstr=fdtype_string(urltext);
+    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,urlstr);
+    fd_decref(result); u8_free(data.bytes); fd_decref(urlstr);
+    return errval;}
   if (data.size<data.limit) data.bytes[data.size]='\0';
   else {
     data.bytes=u8_realloc(data.bytes,data.size+4);
