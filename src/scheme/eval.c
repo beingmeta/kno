@@ -533,7 +533,8 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
     if (FD_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
     else return fd_incref(arg1);
   case FD_CAR_OPCODE: 
-    if (FD_PAIRP(arg1))
+    if (FD_EMPTY_CHOICEP(arg1)) return arg1;
+    else if (FD_PAIRP(arg1))
       return fd_incref(FD_CAR(arg1));
     else if (FD_CHOICEP(arg1)) {
       fdtype results=FD_EMPTY_CHOICE;
@@ -547,7 +548,8 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
       return results;}
     else return fd_type_error(_("pair"),"CAR opcode",arg1);
   case FD_CDR_OPCODE: 
-    if (FD_PAIRP(arg1))
+    if (FD_EMPTY_CHOICEP(arg1)) return arg1;
+    else if (FD_PAIRP(arg1))
       return fd_incref(FD_CDR(arg1));
     else if (FD_CHOICEP(arg1)) {
       fdtype results=FD_EMPTY_CHOICE;
@@ -789,7 +791,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	return result;}
     else if (opcode<FD_NUMERIC2_OPCODES)
       /* Otherwise, we iterate over the argument */
-      if (FD_EXPECT_FALSE((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1)))) {
+      if (FD_EMPTY_CHOICEP(arg1)) return arg1;
+      else if (FD_EXPECT_FALSE((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1)))) {
 	fdtype results=FD_EMPTY_CHOICE;
 	FD_DO_CHOICES(arg,arg1) {
 	  fdtype result=opcode_unary_dispatch(opcode,arg);
