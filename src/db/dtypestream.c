@@ -502,7 +502,7 @@ FD_EXPORT int _fd_dtsread_bytes
     s->ptr=s->ptr+len;
     return len;}
   else {
-    int n_buffered=s->ptr-s->start;
+    int n_buffered=s->end-s->ptr;
     int n_read=0, n_to_read=len-n_buffered;
     unsigned char *start=bytes+n_buffered;
     memcpy(bytes,s->ptr,n_buffered);

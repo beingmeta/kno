@@ -150,7 +150,7 @@ FD_FASTOP int fd_dtsread_bytes
     memcpy(bytes,s->ptr,len);
     s->ptr=s->ptr+len;
     return len;}
-  else return _fd_dtsread_bytes(s,bytes,len);
+   else return _fd_dtsread_bytes(s,bytes,len);
 #if 0
   else {
     int n_buffered=s->end-s->ptr;

@@ -759,15 +759,17 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
   int offset=FD_OID_DIFFERENCE(addr,op->base);
   if (FD_EXPECT_FALSE(offset>=op->load)) {
     /* Double check by going to disk */
-    if (offset>=(oidpool_load(p))) {
-      fd_unlock_mutex(&(op->lock));
-      return fd_err(fd_UnallocatedOID,"file_pool_fetch",op->cid,oid);}}
+    if (offset>=(oidpool_load(p))) 
+      return fd_err(fd_UnallocatedOID,"file_pool_fetch",op->cid,oid);}
   else {
     FD_CHUNK_REF ref=get_chunk_ref(op,offset);
     if (ref.off<0) return fd_erreify();
     else if (ref.off==0)
       return FD_EMPTY_CHOICE;
-    else return read_oid_value_at(op,ref,"oidpool_fetch");}
+    else {
+      fdtype value;
+      value=read_oid_value_at(op,ref,"oidpool_fetch");
+      return value;}}
 }
 
 struct OIDPOOL_FETCH_SCHEDULE {
@@ -1227,7 +1229,6 @@ static void oidpool_setcache(fd_pool p,int level)
   fd_oidpool fp=(fd_oidpool)p; int chunkref_size=get_chunkref_size(fp);
   if (chunkref_size<0) {
     u8_warn(fd_CorruptedPool,"Pool structure invalid: %s",p->cid);
-    fd_unlock_mutex(&(fp->lock));
     return;}
   if (level == 2)
     if (fp->offsets) return;
@@ -1349,7 +1350,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
       fp->offsets=NULL; fp->offsets_size=0; errno=0;}
     fp->offsets=newmmap+64;
     fp->offsets_size=fp->load*get_chunkref_size(fp);}
-  if (lock) fd_lock_mutex(&(fp->lock));
+  if (lock) fd_unlock_mutex(&(fp->lock));
 #else
   fd_dtype_stream s=&(fp->stream);
   /* Read new offsets table, compare it with the current, and
