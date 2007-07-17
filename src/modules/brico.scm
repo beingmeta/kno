@@ -13,7 +13,7 @@
  '{brico-pool
    brico-index doindex
    make%id make%id! cap%wds cap%frame!
-   get-gloss get-single-gloss get-short-gloss get-expstring gloss
+   get-gloss get-single-gloss get-short-gloss get-expstring gloss get-norm
    language-map gloss-map norm-map index-map frag-map
    index-string index-name index-frags index-gloss index-implied index-frame*
    indexer index-concept
@@ -25,7 +25,8 @@
 
 (module-export!
  '{english
-   english-gloss spanish french get-norm
+   english-gloss enorm
+   spanish french
    implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*
    genls genls* kindof kindof* specls specls*
@@ -37,10 +38,13 @@
 (define bricosource #f)
 (define brico-pool {})
 (define brico-index {})
+
 (define english @1/2c1c7"English")
 (define english-gloss @1/2ffbd"Gloss (English)")
+(define enorm @1/44896)
 (define spanish @1/2c1fc"Spanish")
 (define french @1/2c122"French")
+
 (define genls @1/2c272{GENLS})
 (define genls* @1/2c27b{GENLS*})
 (define kindof @1/2c272{GENLS})
@@ -48,7 +52,10 @@
 (define specls @1/2c273{SPECLS})
 (define specls* @1/2c27c{SPECLS*})
 (define implies @1/2c27e{IMPLIES})
-(define implies* @1/2f201{ENTAILS*})
+(define implies* @1/2f201{IMPLIES*})
+(define impliedby @1/2c27f{IMPLIEDBY})
+(define impliedby* @/brico/44c99{IMPLIEDBY*})
+
 (define parts @1/2c275{PARTS})
 (define parts* @1/2c282{PARTS*})
 (define partof @1/2c274{PARTOF})
@@ -61,6 +68,11 @@
 (define ingredients* @1/2c286{INGREDIENTS*})
 (define ingredientof @1/2c277{INGREDIENTOF})
 (define ingredientof* @1/2c285{INGREDIENTOF*})
+(define entails @1/3f65f{ENTAILS})
+(define entailedby @/brico/2b74c{ENTAILEDBY})
+(define entails* @1/44c9a{ENTAILS*})
+(define entailedby* @1/44c9b{ENTAILEDBY*})
+
 (define defterms @1/2ab4d{DEFTERMS})
 (define defines @1/2ab55{DEFINES})
 (define refterms @1/2ab57{REFTERMS})
@@ -69,9 +81,6 @@
 (define sameas @1/2d9e9{SAMEAS})
 (define inverse @1/2c27a{INVERSE})
 (define disjoint @1/2c27d{DISJOINT})
-(define entails @1/3f65f{ENTAILS})
-
-(define isa #f)
 
 (define brico-slotids
   (choice genls genls* kindof kindof*
@@ -79,7 +88,7 @@
 	  parts parts* partof partof*
 	  members members* memberof memberof*
 	  ingredients ingredients* ingredientof ingredientof*
-	  isa =is= sameas inverse disjoint implies implies*
+	  =is= sameas inverse disjoint 
 	  defterms defines refterms referenced))
 
 (define language-map (file->dtype (get-component "langmap.table")))

@@ -362,7 +362,7 @@ static fdtype copy_slotmap(fdtype smap)
     int n=FD_XSLOTMAP_SIZE(cur);
     struct FD_KEYVAL *read=cur->keyvals, *read_limit=read+n;
     struct FD_KEYVAL *write;
-    if (n) write=u8_alloc(struct FD_KEYVAL);
+    if (n) write=u8_alloc_n(n,struct FD_KEYVAL);
     else write=NULL;
     FD_INIT_CONS(fresh,fd_slotmap_type);
     fresh->size=n; fresh->keyvals=write;
