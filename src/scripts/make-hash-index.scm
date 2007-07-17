@@ -3,6 +3,11 @@
 (config! 'cachelevel 2)
 (use-module 'optimize)
 
+(define (get-baseoids-from-base base capacity)
+  (choice base
+	  (tryif (> capacity 0)
+		 (get-baseoids-from-base (oid-plus base capacity)
+					 (- capacity (* 1024 1024))))))
 (define (get-baseoids pool)
   (get-baseoids-from-base (pool-base pool) (pool-capacity pool)))
 
