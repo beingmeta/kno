@@ -154,7 +154,6 @@ static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
   fdtype table=fd_make_hashtable(NULL,17);
   fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,table);
-  fd_decref(table);
   fd_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
@@ -164,7 +163,6 @@ static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
   fdtype table=fd_make_hashtable(NULL,17);
   fd_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&test_caches,slotid,table);
-  fd_decref(table);
   fd_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
@@ -377,7 +375,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
       cachev=fd_hashtable_get(&slot_caches,slotid,FD_VOID);
       if (FD_VOIDP(cachev)) {
 	cache=make_slot_cache(slotid);
-	cached=FD_VOID;}
+	cached=FD_VOID; cachev=(fdtype)cache;}
       else if (FD_EMPTY_CHOICEP(cachev)) {
 	cache=NULL; cached=FD_VOID;}
       else {
@@ -410,6 +408,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	  value=fd_dapply((fdtype)fn,2,args);
 	  if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
 	    fd_pop_opstack(&fop); fd_decref(computed); fd_decref(methods);
+	    if (fop.dependencies) u8_free(fop.dependencies);
 	    fd_decref(cachev);
 	    return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
 	  FD_ADD_TO_CHOICE(computed,value);}}}
@@ -419,8 +418,8 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
       if ((cache) && ((fd_ipeval_status()==ipestate))) {
 	fdtype factoid=fd_init_pair(NULL,fd_incref(f),fd_incref(slotid));
 	record_dependencies(&fop,factoid); fd_decref(factoid);
-	u8_free(fop.dependencies);
 	fd_hashtable_store(cache,f,computed);}
+      if (fop.dependencies) u8_free(fop.dependencies);
       fd_decref(cachev);
       return computed;}}
   else if (FD_EMPTY_CHOICEP(f)) return FD_EMPTY_CHOICE;
@@ -447,7 +446,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
       fdtype cachev=fd_hashtable_get(&test_caches,slotid,FD_VOID);
       fdtype cached, computed=FD_EMPTY_CHOICE, methods, key;
       if (FD_VOIDP(cachev)) {
-	cache=make_test_cache(slotid);
+	cache=make_test_cache(slotid); cachev=(fdtype)cache;
 	cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
 	fd_hashtable_store(cache,f,cached);}
       else if (FD_EMPTY_CHOICEP(cachev)) {
@@ -461,11 +460,17 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	fd_decref(cachev);}
       if (FD_PAIRP(cached)) {
 	fdtype in=FD_CAR(cached), out=FD_CDR(cached);
-	if (fd_hashset_get(FD_XHASHSET(in),value)) return 1;
-	else if (fd_hashset_get(FD_XHASHSET(out),value)) return 0;
+	if (fd_hashset_get(FD_XHASHSET(in),value)) {
+	  fd_decref(cachev);
+	  return 1;}
+	else if (fd_hashset_get(FD_XHASHSET(out),value)) {
+	  fd_decref(cachev);
+	  return 0;}
 	else methods=get_slotid_methods(slotid,test_methods);}
       else methods=get_slotid_methods(slotid,test_methods);
-      if (FD_VOIDP(methods)) return 0;
+      if (FD_VOIDP(methods)) {
+	fd_decref(cachev);
+	return 0;}
       else if (FD_EMPTY_CHOICEP(methods)) {
 	fdtype values=fd_frame_get(f,slotid);
 	result=fd_overlapp(value,values);
@@ -482,18 +487,19 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
 		fd_pop_opstack(&fop); fd_decref(methods);
+		if (fop.dependencies) u8_free(fop.dependencies);
+		fd_decref(cachev);
 		return fd_interr(v);}
 	      else if (FD_TRUEP(v)) {
 		result=1; fd_decref(v); break;}
 	      else {}}}}
 	fd_pop_opstack(&fop);}
       if ((cache) && (!(fd_ipeval_failp()))) {
-	fdtype factoid=fd_init_pair(NULL,fd_incref(f),
-				     fd_init_pair(NULL,fd_incref(slotid),fd_incref(value)));
-	record_dependencies(&fop,factoid); fd_decref(factoid);
-	u8_free(fop.dependencies);
+	fdtype factoid=fd_make_list(3,fd_incref(f),fd_incref(slotid),fd_incref(value));
 	if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
 	else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);}
+      if (fop.dependencies) u8_free(fop.dependencies);
+      fd_decref(cachev);
       return result;}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
   else {
