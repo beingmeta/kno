@@ -2,6 +2,8 @@
 
 (define %notighten '{freqfns bricosource brico-pool brico-index})
 
+(define indexinfer #t)
+
 ;; For index-name, at least
 (use-module 'texttools)
 ;; When BRICOSOURCE is ".db"
@@ -10,22 +12,27 @@
 (module-export!
  '{brico-pool
    brico-index doindex
-   english english-gloss spanish french get-norm
+   make%id make%id! cap%wds cap%frame!
+   get-gloss get-single-gloss get-short-gloss get-expstring gloss
+   language-map gloss-map norm-map index-map frag-map
+   index-string index-name index-frags index-gloss index-implied index-frame*
+   indexer index-concept
+   ;; Specialized versions
+   index-core index-brico index-wordform
+   index-words index-relations index-lattice
+   basic-concept-frequency concept-frequency use-corpus-frequency
+   brico-prefetch! brico-prefetch})
+
+(module-export!
+ '{english
+   english-gloss spanish french get-norm
+   implies implies* impliedby impliedby*
+   entails entails* entailedby entailedby*
    genls genls* kindof kindof* specls specls*
    parts parts* partof partof*
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
-   isa inverse =is= disjoint implies implies*
-   make%id make%id! cap%wds cap%frame!
-   get-gloss get-single-gloss get-short-gloss get-expstring gloss
-   language-map gloss-map norm-map index-map frag-map
-   index-string index-name index-frags index-gloss index-genls index-frame*
-   indexer index-concept
-   ;; Specialized versions
-   index-core index-brico index-wordform
-   index-words index-fragments index-relations index-lattice
-   basic-concept-frequency concept-frequency use-corpus-frequency
-   brico-prefetch! brico-prefetch})
+   inverse =is= disjoint})
 
 (define bricosource #f)
 (define brico-pool {})
@@ -34,12 +41,14 @@
 (define english-gloss @1/2ffbd"Gloss (English)")
 (define spanish @1/2c1fc"Spanish")
 (define french @1/2c122"French")
-(define genls @1/2c272"SubClassOf")
+(define genls @1/2c272{GENLS})
 (define genls* @1/2c27b{GENLS*})
-(define kindof @1/2c272"SubClassOf")
+(define kindof @1/2c272{GENLS})
 (define kindof* @1/2c27b{GENLS*})
-(define specls @1/2c273"SubClasses")
-(define specls* @1/2c27c{KINDS*})
+(define specls @1/2c273{SPECLS})
+(define specls* @1/2c27c{SPECLS*})
+(define implies @1/2c27e{IMPLIES})
+(define implies* @1/2f201{ENTAILS*})
 (define parts @1/2c275{PARTS})
 (define parts* @1/2c282{PARTS*})
 (define partof @1/2c274{PARTOF})
@@ -56,14 +65,13 @@
 (define defines @1/2ab55{DEFINES})
 (define refterms @1/2ab57{REFTERMS})
 (define referenced @1/2ab5a{REFERENCED})
-(define isa @1/2c27e{ISA})
 (define =is= @1/2d9e9{=IS=})
 (define sameas @1/2d9e9{SAMEAS})
 (define inverse @1/2c27a{INVERSE})
 (define disjoint @1/2c27d{DISJOINT})
-(define implies @1/3f65f{IMPLIES})
-(define implies* @1/2f201{IMPLIES*})
+(define entails @1/3f65f{ENTAILS})
 
+(define isa #f)
 
 (define brico-slotids
   (choice genls genls* kindof kindof*
@@ -149,28 +157,38 @@
 		      (printout (if (> i 0) " . " " ") word))))
 	      (get concept implies) implies)))
 
+(define (make-wordform-id f)
+  `(WORDFORM ,(get f 'word)
+	     ,(try (get (get f 'language) '%mnemonic)
+		   (get (get f 'language) 'iso639/1)
+		   (get (get f 'language) 'iso639/b)
+		   '??)
+	     ,(get f 'of)))
+
 (define (make%id f (lang default-language))
   (if (test f 'source @1/1) (make-roget-id f lang)
-      `(,(pick-one (try (difference (get f 'sensecat) 'NOUN.TOPS)
-			(get f 'sensecat)
-			'VAGUE))
-	,(get-norm f lang)
-	,(cond ((and (test f 'sensecat 'noun.location)
-		     (%test f partof))
-		'PARTOF)
-	       ((%test f 'hypernym) 'GENLS)
-	       ((%test f genls) 'GENLS)
-	       ((%test f ISA) 'ISA)
-	       ((%test f partof) 'PARTOF)
-	       (else 'TOP))
-	,@(map get-norm
-	       (choice->list
-		(try (tryif (test f 'sensecat 'noun.location)
-			    (%get f partof))
-		     (%get f 'hypernym)
-		     (%get f genls)
-		     (%get f isa)
-		     (%get f partof)))))))
+      (if (test f 'type 'wordform)
+	  (make-wordform-id f)
+	  `(,(pick-one (try (difference (get f 'sensecat) 'NOUN.TOPS)
+			    (get f 'sensecat)
+			    'VAGUE))
+	    ,(get-norm f lang)
+	    ,(cond ((and (test f 'sensecat 'noun.location)
+			 (%test f partof))
+		    'PARTOF)
+		   ((%test f 'hypernym) 'GENLS)
+		   ((%test f genls) 'GENLS)
+		   ((%test f ISA) 'ISA)
+		   ((%test f partof) 'PARTOF)
+		   (else 'TOP))
+	    ,@(map get-norm
+		   (choice->list
+		    (try (tryif (test f 'sensecat 'noun.location)
+				(%get f partof))
+			 (%get f 'hypernym)
+			 (%get f genls)
+			 (%get f isa)
+			 (%get f partof))))))))
 (define (make%id! f (lang default-language))
   (store! f '%id (make%id f lang)))
 
@@ -233,6 +251,15 @@
 	       (begin (set! brico-index {})
 		      #f))))))
 (config-def! 'bricosource bricosource-config)
+
+(define indexinfer-config
+  (slambda (var (val 'unbound))
+    (cond ((eq? val 'unbound) indexinfer)
+	  ((equal? val indexinfer)
+	   indexinfer)
+	  (else
+	   (set! indexinfer val)))))
+(config-def! 'indexinfer indexinfer-config)
 
 ;;; Generic prefetching
 
@@ -310,11 +337,17 @@
       (when window
 	(index-frags index frame slot expvalues window)))))
 
-(define (index-genls index frame slot (values))
-  (let ((v (if (bound? values) values (get frame slot))))
-    (when (exists? v)
-      (doindex index frame slot (list v))
-      (doindex index frame slot (get v genls*)))))
+(define index-implied
+  (ambda (index frame slot (values))
+    (do-choices (index index)
+      (do-choices (slot slot)
+	(let ((v (if (bound? values) values (get frame slot))))
+	  (when (exists? v)
+	    (doindex index frame slot (list v))
+	    (doindex index frame slot
+		     (if indexinfer
+			 (?? impliedby* v)
+			 (get v implies*)))))))))
 
 (define (index-frame* index frame slot base (inverse #f))
   (do ((g (get frame base) (difference (get g base) seen))
@@ -329,11 +362,10 @@
     (doindex index frame slotid
 	     (choice gloss-words (porter-stem gloss-words)))))
 
-(define genls*-slotids
+(define implied-slotids
   '{@1/2c274{PARTOF}
     @1/2c277{INGREDIENT-OF}
-    @1/2c279{MEMBER-OF}
-    @1/2c27e{ISA}})
+    @1/2c279{MEMBER-OF}})
 
 (define concept-slotids
   {@1/2ab4d{DEFTERMS}
@@ -413,26 +445,28 @@
     (let ((lang (get index-map (car xlation))))
       (index-string index concept lang (cdr xlation)))))
 
-(define (index-fragments index concept (window 1))
-  (index-frags index concept (get frag-map english) (get concept 'words) window)
-  (index-frags index concept 'namefrags (get concept 'names) window)
-  (index-frags index concept 'namefrags
-	       (pick  (cdr (get concept '%words)) capitalized?) window)
-  (do-choices (xlation (get concept '%words))
-    (let ((lang (get frag-map (get language-map (car xlation)))))
-      (index-frags index concept lang (cdr xlation) window))))
+;; (define (index-fragments index concept (window 1))
+;;   (index-frags index concept (get frag-map english) (get concept 'words) window)
+;;   (index-frags index concept 'namefrags (get concept 'names) window)
+;;   (index-frags index concept 'namefrags
+;; 	       (pick  (cdr (get concept '%words)) capitalized?) window)
+;;   (do-choices (xlation (get concept '%words))
+;;     (let ((lang (get frag-map (get language-map (car xlation)))))
+;;       (index-frags index concept lang (cdr xlation) window))))
+
+(define (getallvalues concept slotids)
+  (choice (%get concept slotids)
+	  (tryif (and (oid? slotid)
+		      (exists? (%get slotid 'slots)))
+		 (getallvalues concept (qc (%get slotid 'slots))))))
 
 (define (index-relations index concept)
-  (do-choices (slotid genls*-slotids)
-    (index-genls index concept slotid
-		 (qc (%get concept slotid)
-		     (tryif (oid? slotid)
-			    (%get concept (get slotid 'slots))))))
+  (do-choices (slotid implied-slotids)
+    (index-implied index concept slotid
+		   (getallvalues concept slotid)))
   (do-choices (slotid concept-slotids)
     (doindex index concept slotid
-	     (choice (%get concept slotid)
-		     (tryif (oid? slotid)
-			    (%get concept (get slotid 'slots))))))
+	     (getallvalues concept slotid)))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store
@@ -447,6 +481,8 @@
     (doindex index (%get concept referenced) refterms concept)))
 
 (define (index-lattice index concept)
+  (index-frame* index concept entails* entails entailed*)
+  (index-frame* index concept implies* implies implied*)
   (index-frame* index concept genls* genls specls*)
   (index-frame* index concept partof* partof parts*)
   (index-frame* index concept memberof* memberof members*)
@@ -484,7 +520,7 @@
 
 (define (indexer-slotid-prefetch)
   (prefetch-oids! (choice brico-slotids
-			  genls*-slotids concept-slotids
+			  implied-slotids concept-slotids
 			  (get language-map (getkeys language-map))
 			  (get norm-map (getkeys norm-map))
 			  (get index-map (getkeys index-map))
@@ -493,7 +529,7 @@
 (define (indexer-prefetch oids)
   (prefetch-oids! oids)
   (prefetch-keys! (cons (choice refterms referenced) oids))
-  (let ((kovalues (%get oids genls*-slotids)))
+  (let ((kovalues (%get oids implied-slotids)))
     (prefetch-expansions (qc kovalues) genls)))
 
 (define (indexer-lattice-prefetch oids)

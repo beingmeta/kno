@@ -914,7 +914,7 @@ static int file_index_commit(struct FD_INDEX *ix)
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->n_slots*4, newcount;
   fd_lock_struct(&(ix->adds));
-  fd_lock_struct(&(ix->adds));
+  fd_lock_struct(&(ix->edits));
   fd_lock_struct(fx);
   fd_dts_start_write(stream);
   /* Get the current offsets from the index */
