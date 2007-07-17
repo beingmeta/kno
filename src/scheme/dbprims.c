@@ -1104,7 +1104,8 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     else if (n_results==1) {
       fdtype result=FD_XCHOICE_DATA(write_choice)[0];
       u8_free(write_choice);
-      return fd_incref(result);}
+      /* This was incref'd during the loop. */
+      return result;}
     else if (n_results*2<n_elts)
       return fd_init_choice
 	(fd_realloc_choice(write_choice,n_results),n_results,NULL,
@@ -1164,7 +1165,8 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     else if (n_results==1) {
       fdtype result=FD_XCHOICE_DATA(write_choice)[0];
       u8_free(write_choice);
-      return fd_incref(result);}
+      /* This was incref'd during the loop. */
+      return result;}
     else if (n_results*2<n_elts)
       return fd_init_choice
 	(fd_realloc_choice(write_choice,n_results),n_results,NULL,
