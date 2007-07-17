@@ -49,7 +49,7 @@ FD_EXPORT fdtype fd_pptr_register(fdtype x)
     return fd_err(fd_PPtrOverflow,"fd_register_pptr",NULL,x);}
   serialno=_fd_npptrs++;
   if ((serialno%FD_PPTR_BLOCKSIZE)==0) {
-    struct FD_CONS **block=u8_malloc(sizeof(struct FD_CONS *)*FD_PPTR_BLOCKSIZE);
+    struct FD_CONS **block=u8_alloc_n(FD_PPTR_BLOCKSIZE,struct FD_CONS *);
     int i=0, n=FD_PPTR_BLOCKSIZE;
     while (i<n) block[i++]=NULL;
     _fd_pptrs[serialno/FD_PPTR_BLOCKSIZE]=block;}

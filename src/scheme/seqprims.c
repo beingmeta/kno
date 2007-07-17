@@ -95,7 +95,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     if (end<0) end=FD_VECTOR_LENGTH(x);
     else if (start>FD_VECTOR_LENGTH(x)) return FD_RANGE_ERROR;
     else if (end>FD_VECTOR_LENGTH(x)) return FD_RANGE_ERROR;
-    write=elts=u8_malloc(sizeof(fdtype)*(end-start));
+    write=elts=u8_alloc_n((end-start),fdtype);
     read=FD_VECTOR_DATA(x)+start; limit=FD_VECTOR_DATA(x)+end;
     while (read<limit) {
       fdtype v=*read++; *write++=fd_incref(v);}
@@ -300,7 +300,7 @@ fdtype *fd_elts(fdtype seq,int *n)
   if (len==0) {*n=0; return NULL;}
   else {
     fd_ptr_type ctype=FD_PTR_TYPE(seq);
-    fdtype *vec=u8_malloc(len*sizeof(fdtype));
+    fdtype *vec=u8_alloc_n(len,fdtype);
     *n=len;
     switch (ctype) {
     case fd_packet_type: {
@@ -369,7 +369,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
       i++;}
     return fd_init_packet(NULL,n,bytes);}
   case fd_vector_type: {
-    fdtype *elts=u8_malloc(sizeof(fdtype)*n); int i=0;
+    fdtype *elts=u8_alloc_n(n,fdtype); int i=0;
     while (i < n) {
       elts[i]=fd_incref(v[i]); i++;}
     return fd_init_vector(NULL,n,elts);}
@@ -395,7 +395,7 @@ FD_EXPORT fdtype fd_reverse(fdtype sequence)
   if (FD_EMPTY_LISTP(sequence)) return sequence;
   else {
     int i, j, len; fdtype *elts=fd_elts(sequence,&len), result;
-    fdtype *tmp=((len) ? (u8_malloc(sizeof(fdtype)*len)) : (NULL));
+    fdtype *tmp=((len) ? (u8_alloc_n(len,fdtype)) : (NULL));
     if (len) {
       i=0; j=len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
     result=fd_makeseq(FD_PTR_TYPE(sequence),len,tmp);
@@ -403,6 +403,8 @@ FD_EXPORT fdtype fd_reverse(fdtype sequence)
     if (elts) u8_free(elts); if (tmp) u8_free(tmp);
     return result;}
 }
+
+typedef fdtype *fdtypep;
 
 FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
 {
@@ -413,8 +415,8 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     int i=0, k=0, *lengths, _lengths[16], total_length=0;
     if (FD_EMPTY_LISTP(sequences[0])) result_type=fd_pair_type;
     if (n>16) {
-      lengths=u8_malloc(n*sizeof(int));
-      elts=u8_malloc(n*(sizeof(fdtype *)));}
+      lengths=u8_alloc_n(n,int);
+      elts=u8_alloc_n(n,fdtypep);}
     else {lengths=_lengths; elts=_elts;}
     while (i < n) {
       fdtype seq=sequences[i];
@@ -427,7 +429,7 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
 	if (n>16) {u8_free(lengths); u8_free(elts);}
 	return fd_type_error(_("sequence"),"fd_append",seq);}
       else i++;}
-    combined=u8_malloc(sizeof(fdtype)*total_length);
+    combined=u8_alloc_n(total_length,fdtype);
     i=0; while (i < n) {
       int j=0, lim=lengths[i]; fdtype *seqelts=elts[i];
       while (j<lim) combined[k++]=seqelts[j++];
@@ -463,10 +465,10 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
       return fd_err(SequenceMismatch,"fd_foreach",NULL,sequences[i]);
     else i++;
   if (seqlen==0) return fd_incref(firstseq);
-  results=u8_malloc(sizeof(fdtype)*seqlen);
+  results=u8_alloc_n(seqlen,fdtype);
   if (FD_APPLICABLEP(fn)) {
     if (n_seqs<8) argvec=_argvec;
-    else argvec=u8_malloc(n_seqs*sizeof(fdtype));}
+    else argvec=u8_alloc_n(n_seqs,fdtype);}
   i=0; while (i < seqlen) {
     fdtype elt=fd_seq_elt(firstseq,i), new_elt;
     if (FD_APPLICABLEP(fn)) {
@@ -523,7 +525,7 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
   if (seqlen==0) return FD_VOID;
   if (FD_APPLICABLEP(fn)) {
     if (n_seqs<8) argvec=_argvec;
-    else argvec=u8_malloc(n_seqs*sizeof(fdtype));}
+    else argvec=u8_alloc_n(n_seqs,fdtype);}
   i=0; while (i < seqlen) {
     fdtype elt=fd_seq_elt(firstseq,i), new_elt;
     if (FD_TABLEP(fn))
@@ -560,7 +562,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
   else if ((FD_APPLICABLEP(fn)) || (FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
     int i=0, len=fd_seq_length(sequence);
     fd_ptr_type result_type=FD_PTR_TYPE(sequence);
-    fdtype *results=u8_malloc(sizeof(fdtype)*len);
+    fdtype *results=u8_alloc_n(len,fdtype);
     while (i < len) {
       fdtype elt=fd_seq_elt(sequence,i), new_elt;
       if (FD_TABLEP(fn))
@@ -599,7 +601,7 @@ FD_EXPORT fdtype fd_remove(fdtype item,fdtype sequence)
   else {
     int i=0, j=0, removals=0, len=fd_seq_length(sequence);
     fd_ptr_type result_type=FD_PTR_TYPE(sequence);
-    fdtype *results=u8_malloc(sizeof(fdtype)*len), result;
+    fdtype *results=u8_alloc_n(len,fdtype), result;
     while (i < len) {
       fdtype elt=fd_seq_elt(sequence,i); i++;
       if (FDTYPE_EQUAL(elt,item)) {removals++; fd_decref(elt);}
@@ -649,7 +651,7 @@ FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence)
   else {
     int i=0, j=0, removals=0, len=fd_seq_length(sequence);
     fd_ptr_type result_type=FD_PTR_TYPE(sequence);
-    fdtype *results=u8_malloc(sizeof(fdtype)*len), result;
+    fdtype *results=u8_alloc_n(len,fdtype), result;
     while (i < len) {
       fdtype elt=fd_seq_elt(sequence,i);
       int compare=applytest(test,elt); i++;
@@ -1215,7 +1217,7 @@ static fdtype list(int n,fdtype *elts)
 
 static fdtype vector(int n,fdtype *elts)
 {
-  fdtype *copied=u8_malloc(n*sizeof(fdtype));
+  fdtype *copied=u8_alloc_n(n,fdtype);
   int i=0; while (i < n) {
     copied[i]=fd_incref(elts[i]); i++;}
   return fd_init_vector(NULL,n,copied);
@@ -1227,7 +1229,7 @@ static fdtype make_vector(fdtype size,fdtype dflt)
   if (n==0)
     return fd_init_vector(NULL,0,NULL);
   else if (n>0) {
-    fdtype *data=u8_malloc(n*sizeof(fdtype));
+    fdtype *data=u8_alloc_n(n,fdtype);
     int i=0; while (i < n) {
       data[i]=fd_incref(dflt); i++;}
     return fd_init_vector(NULL,n,data);}

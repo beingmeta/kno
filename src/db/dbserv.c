@@ -60,7 +60,7 @@ static int n_subindex_changelogs=0;
 
 static void init_changelog(struct FD_CHANGELOG *clog,int size)
 {
-  clog->entries=u8_malloc(sizeof(struct FD_CHANGELOG_ENTRY)*size);
+  clog->entries=u8_alloc_n(size,struct FD_CHANGELOG_ENTRY);
   clog->max=size; clog->point=0; clog->full=0;
 }
 
@@ -73,11 +73,12 @@ static struct FD_CHANGELOG *get_subindex_changelog(fd_index ix,int make)
   if (subindex_changelogs[i].ix == ix) clog=(subindex_changelogs[i].clog);
   else if (make == 0) clog=NULL;
   else {
-    clog=u8_malloc(sizeof(struct FD_CHANGELOG));
+    clog=u8_alloc(struct FD_CHANGELOG);
     if (subindex_changelogs)
-      subindex_changelogs=u8_realloc(subindex_changelogs,
-				     sizeof(struct FD_SUBINDEX_CHANGELOG)*(n_subindex_changelogs+1));
-    else subindex_changelogs=u8_malloc(sizeof(struct FD_SUBINDEX_CHANGELOG));
+      subindex_changelogs=
+	u8_realloc_n(subindex_changelogs,n_subindex_changelogs+1,
+		     struct FD_SUBINDEX_CHANGELOG);
+    else subindex_changelogs=u8_alloc(struct FD_SUBINDEX_CHANGELOG);
     subindex_changelogs[n_subindex_changelogs].ix=ix; subindex_changelogs[n_subindex_changelogs].clog=clog;
     init_changelog(clog,1024);
     n_subindex_changelogs++;}
@@ -558,9 +559,9 @@ static fdtype server_fetch_oids(fdtype oidvec)
     return fd_type_error(_("oid vector"),"server_fetch_oids",oidvec);
   else if (p=fd_oid2pool(elts[0]))
     if (served_poolp(p)) {
-      fdtype *results=u8_malloc(sizeof(fdtype)*n);
+      fdtype *results=u8_alloc_n(n,fdtype);
       if (p->handler->fetchn) {
-	fdtype *fetch=u8_malloc(sizeof(fdtype)*n);
+	fdtype *fetch=u8_alloc_n(n,fdtype);
 	fd_hashtable cache=&(p->cache), locks=&(p->locks);
 	int i=0; while (i<n)
 		   if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
@@ -582,7 +583,7 @@ static fdtype server_fetch_oids(fdtype oidvec)
 static fdtype server_pool_data(fdtype session_id)
 {
   int len=n_served_pools;
-  fdtype *elts=u8_malloc(sizeof(fdtype)*len);
+  fdtype *elts=u8_alloc_n(len,fdtype);
   int i=0; while (i<len) {
     fd_pool p=served_pools[i];
     fdtype base=fd_make_oid(p->base);
@@ -604,7 +605,7 @@ static fdtype iserver_bulk_get(fdtype keys)
 {
   if (FD_VECTORP(keys)) {
     int i=0, n=FD_VECTOR_LENGTH(keys), retval;
-    fdtype *data=FD_VECTOR_DATA(keys), *results=u8_malloc(sizeof(fdtype)*n);
+    fdtype *data=FD_VECTOR_DATA(keys), *results=u8_alloc_n(n,fdtype);
     /* |FD_CHOICE_ISATOMIC */
     fdtype aschoice=fd_make_choice
       (n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
@@ -651,7 +652,7 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
       fd_index ix=fd_lisp2index(index);
       int i=0, n=FD_VECTOR_LENGTH(keys);
       fdtype *data=FD_VECTOR_DATA(keys),
-	*results=u8_malloc(sizeof(fdtype)*n);
+	*results=u8_alloc_n(n,fdtype);
       fdtype aschoice=
 	fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
       fd_index_prefetch(ix,aschoice);

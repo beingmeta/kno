@@ -95,7 +95,7 @@ FD_EXPORT int fd_start_calltrack(char *filename)
   else f=fopen(filename,"w+");
   if (f) {
     fprintf(f,"# Calltrack start\n");
-    cd=u8_malloc_type(struct CALLTRACK_DATA);
+    cd=u8_alloc(struct CALLTRACK_DATA);
     cd->f=f; cd->filename=u8_strdup(filename);
     fprintf(f,":TIME");
     {int i=0; while (i<n_calltrack_sensors) 
@@ -333,7 +333,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       /* Fill in defaults */
       int i=0; fdtype *defaults=f->defaults;
       if (f->arity<=8) args=argbuf;
-      else args=u8_malloc(sizeof(fdtype)*(f->arity));
+      else args=u8_alloc_n((f->arity),fdtype);
       while (i<n) {args[i]=argvec[i]; i++;}
       if (defaults)
 	while (i<f->arity) {args[i]=defaults[i]; i++;}
@@ -420,7 +420,7 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
     fdtype argbuf[6], *d_args;
     fdtype retval, results=FD_EMPTY_CHOICE;
     /* Initialize the d_args vector */
-    if (n>6) d_args=u8_malloc(sizeof(fdtype)*n);
+    if (n>6) d_args=u8_alloc_n(n,fdtype);
     else d_args=argbuf;
     retval=ndapply_loop(f,&results,f->typeinfo,0,n,args,d_args);
     if (FD_ABORTP(retval)) {
@@ -469,15 +469,14 @@ static void recycle_function(struct FD_CONS *c)
   struct FD_FUNCTION *fn=(struct FD_FUNCTION *)c;
   if (fn->typeinfo) u8_free(fn->typeinfo);
   if (fn->defaults) u8_free(fn->defaults);
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(c,sizeof(struct FD_FUNCTION));
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Declaring functions */
 
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=-1; f->typeinfo=NULL; f->defaults=NULL;
@@ -487,7 +486,7 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=0; f->typeinfo=NULL; f->defaults=NULL;
@@ -497,7 +496,7 @@ FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=1; f->typeinfo=NULL; f->defaults=NULL;
@@ -507,7 +506,7 @@ FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=2; f->typeinfo=NULL; f->defaults=NULL;
@@ -517,7 +516,7 @@ FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=3; f->typeinfo=NULL; f->defaults=NULL;
@@ -527,7 +526,7 @@ FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=4; f->typeinfo=NULL; f->defaults=NULL;
@@ -537,7 +536,7 @@ FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=5; f->typeinfo=NULL; f->defaults=NULL;
@@ -547,7 +546,7 @@ FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
 
 FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity)
 {
-  struct FD_FUNCTION *f=u8_malloc(sizeof(struct FD_FUNCTION));
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
   f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=6; f->typeinfo=NULL; f->defaults=NULL;
@@ -566,8 +565,8 @@ FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 
 static void init_fn_info(struct FD_FUNCTION *f,va_list args)
 {
-  int *typeinfo=u8_malloc(sizeof(int)*f->arity), i=0;
-  fdtype *defaults=u8_malloc(sizeof(fdtype)*f->arity);
+  int *typeinfo=u8_alloc_n(f->arity,int), i=0;
+  fdtype *defaults=u8_alloc_n(f->arity,fdtype);
   while (i < f->arity) {
     int tcode=va_arg(args,int); fdtype dflt=va_arg(args,fdtype);
     typeinfo[i]=tcode; defaults[i]=dflt; i++;}
@@ -653,7 +652,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
   int atomic=1, nd=0;
   struct FD_TAIL_CALL *tc=
-    u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
+    (struct FD_TAIL_CALL *)u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
   fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
   int i=0;
   FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
@@ -712,8 +711,7 @@ static void recycle_tail_call(struct FD_CONS *c)
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
   else fd_decref(*scan);
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(c,sizeof(struct FD_TAIL_CALL)+(tc->n_elts*sizeof(fdtype)));
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Initializations */

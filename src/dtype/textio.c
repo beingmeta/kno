@@ -655,7 +655,7 @@ static fdtype parse_packet(U8_INPUT *in)
 
 static fdtype *parse_vec(u8_input in,char end_char,int *size)
 {
-  fdtype *elts=u8_malloc(sizeof(fdtype)*32);
+  fdtype *elts=u8_alloc_n(32,fdtype);
   unsigned int n_elts=0, max_elts=32;
   int ch=skip_whitespace(in);
   while ((ch>=0) && (ch != end_char)) {
@@ -663,18 +663,18 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     if (FD_ABORTP(elt)) {
       int i=0; while (i < n_elts) {
 	fd_decref(elts[i]); i++;}
-      u8_free_x(elts,sizeof(fdtype)*max_elts); 
+      u8_free(elts); 
       if (elt == FD_EOX) *size=-1;
       else if (elt == FD_PARSE_ERROR) *size=-2;
       else *size=-3;
       if (FD_ABORTP(elt)) fd_interr(elt);
       return NULL;}
     else if (n_elts == max_elts) {
-      fdtype *new_elts=u8_realloc(elts,sizeof(fdtype)*max_elts*2);
+      fdtype *new_elts=u8_realloc_n(elts,max_elts*2,fdtype);
       if (new_elts) {elts=new_elts; max_elts=max_elts*2;}
       else {
 	int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
-	u8_free_x(elts,sizeof(fdtype)*max_elts); *size=n_elts;
+	u8_free(elts); *size=n_elts;
 	return NULL;}}
     elts[n_elts++]=elt;
     ch=skip_whitespace(in);}
@@ -683,11 +683,11 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     ch=u8_getc(in); /* Skip the end char */
     if (n_elts) return elts;
     else {
-      u8_free_x(elts,sizeof(fdtype)*max_elts); 
+      u8_free(elts); 
       return NULL;}}
   else {
     int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
-    u8_free_x(elts,sizeof(fdtype)*max_elts); *size=ch;
+    u8_free(elts); *size=ch;
     return NULL;}
 }
 
@@ -709,7 +709,7 @@ static fdtype parse_list(U8_INPUT *in)
     if (FD_ABORTP(car))
       return car;
     else {
-      scan=u8_malloc(sizeof(struct FD_PAIR));
+      scan=u8_alloc(struct FD_PAIR);
       FD_INIT_CONS(scan,fd_pair_type);
       if (scan == NULL) {fd_decref(car); return FD_OOM;}
       else head=fd_init_pair(scan,car,FD_EMPTY_LIST);}
@@ -725,7 +725,7 @@ static fdtype parse_list(U8_INPUT *in)
       list_elt=fd_parser(in);
       if (FD_ABORTP(list_elt)) {
 	fd_decref(head); return list_elt;}
-      new_pair=u8_malloc_type(struct FD_PAIR);
+      new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
 	scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
 	scan=new_pair;}
@@ -756,7 +756,7 @@ static fdtype parse_vector(U8_INPUT *in)
   int n_elts;
   fdtype *elts=parse_vec(in,')',&n_elts);
   if (n_elts>=0) 
-    return fd_init_vector(u8_malloc_type(struct FD_VECTOR),n_elts,elts);
+    return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else if (n_elts==-1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
@@ -766,7 +766,7 @@ static fdtype parse_slotmap(U8_INPUT *in)
   int n_elts;
   fdtype *elts=parse_vec(in,']',&n_elts);
   if (n_elts>=0) 
-    return fd_init_slotmap(u8_malloc_type(struct FD_SLOTMAP),n_elts/2,
+    return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),n_elts/2,
 			   (struct FD_KEYVAL *)elts);
   else if (n_elts==-1) return FD_EOX;
   else return FD_PARSE_ERROR;
@@ -790,7 +790,7 @@ static fdtype parse_choice(U8_INPUT *in)
       fdtype result=fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
       if (FD_XCHOICE_SIZE(ch)==1) {
 	result=FD_XCHOICE_DATA(ch)[0];
-	u8_free_x(ch,sizeof(struct FD_CHOICE));}
+	u8_free(ch);}
       u8_free(elts);
       return result;}
     else if (n_elts == -1) return FD_EOX;
@@ -802,7 +802,7 @@ static fdtype parse_qchoice(U8_INPUT *in)
   int n_elts;
   fdtype *elts=parse_vec(in,'}',&n_elts);
   if (n_elts==0)
-    return fd_init_qchoice(u8_malloc_type(struct FD_QCHOICE),
+    return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
 			   FD_EMPTY_CHOICE);
   else if (n_elts==1) return elts[0];
   else if (n_elts>1) {
@@ -812,7 +812,7 @@ static fdtype parse_qchoice(U8_INPUT *in)
       fdtype result=FD_XCHOICE_DATA(xch)[0];
       u8_free(elts); return result;}
     u8_free(elts);
-    return fd_init_qchoice(u8_malloc_type(struct FD_QCHOICE),choice);}
+    return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),choice);}
   else if (n_elts==-1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
@@ -829,7 +829,7 @@ static fdtype recreate_record(int n,fdtype *v)
     return result;}
   if (n==2) {
     fdtype compound=
-      fd_init_compound(u8_malloc(sizeof(struct FD_COMPOUND)),
+      fd_init_compound(u8_alloc(struct FD_COMPOUND),
 		       v[0],v[1]);
     u8_free(v);
     return compound;}

@@ -163,7 +163,7 @@ int main(int argc,char **argv)
     if (sock<0) {
       u8_warn("Connection failed","Couldn't open connection to %s",source_file);
       exit(-1);}
-    newstream=u8_malloc(sizeof(struct FD_DTYPE_STREAM));
+    newstream=u8_alloc(struct FD_DTYPE_STREAM);
     fd_init_dtype_stream(newstream,sock,65536);
     fd_use_pool(source_file);
     fd_use_index(source_file);

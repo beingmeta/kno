@@ -151,7 +151,7 @@ static fd_lispenv dynamic_environment(fd_lispenv env)
 {
   if (env->copy) return env->copy;
   else {
-    struct FD_ENVIRONMENT *newenv=u8_malloc_type(struct FD_ENVIRONMENT);
+    struct FD_ENVIRONMENT *newenv=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_CONS(newenv,fd_environment_type);
     if (env->parent) 
       newenv->parent=copy_environment(env->parent);
@@ -233,7 +233,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       int envcount=0;
       struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
       int i=0, n_slots; struct FD_HASHENTRY **slots; 
-      fd_lock_mutex(&(ht->lock));
+      fd_lock_struct(ht);
       n_slots=ht->n_slots; slots=ht->slots;
       while (i<n_slots)
 	if (slots[i]) {
@@ -243,7 +243,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
 	  while (j<n_keyvals) {
 	    envcount=envcount+count_envrefs(keyvals[j].value,env,depth-1); j++;}}
 	else i++;
-      fd_unlock_mutex(&(ht->lock));
+      fd_unlock_struct(ht);
       return envcount;}
     default:
       if (constype==fd_environment_type) {
@@ -938,7 +938,7 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewArgs,"apply_function",fcn->name,expr);
   if (args_length>FD_STACK_ARGS)
     /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
-    args=u8_malloc(args_length*sizeof(fdtype));
+    args=u8_alloc_n(args_length,fdtype);
   /* Otherwise, just use the stack vector */
   else args=argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
@@ -996,7 +996,7 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
        up in an environment on the backtrace. */
-    fdtype *avec=u8_malloc(sizeof(fdtype)*(arg_count+1));
+    fdtype *avec=u8_alloc_n((arg_count+1),fdtype);
     memcpy(avec+1,args,sizeof(fdtype)*(arg_count));
     if (fcn->filename)
       if (fcn->name)
@@ -1036,7 +1036,7 @@ FD_EXPORT fd_lispenv fd_make_env(fdtype bindings,fd_lispenv parent)
 	      bindings);
     return NULL;}
   else {
-    struct FD_ENVIRONMENT *e=u8_malloc(sizeof(struct FD_ENVIRONMENT));
+    struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_CONS(e,fd_environment_type);
     e->bindings=bindings; e->exports=FD_VOID;
     e->parent=fd_copy_env(parent);
@@ -1059,7 +1059,7 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
 	      exports);
     return NULL;}
   else {
-    struct FD_ENVIRONMENT *e=u8_malloc(sizeof(struct FD_ENVIRONMENT));
+    struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_CONS(e,fd_environment_type);
     e->bindings=fd_incref(exports); e->exports=fd_incref(e->bindings);
     e->parent=fd_copy_env(parent);
@@ -1144,7 +1144,7 @@ FD_EXPORT fdtype fd_get_module(fdtype name,int safe)
 
 FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn)
 {
-  struct FD_SPECIAL_FORM *f=u8_malloc_type(struct FD_SPECIAL_FORM);
+  struct FD_SPECIAL_FORM *f=u8_alloc(struct FD_SPECIAL_FORM);
   FD_INIT_CONS(f,fd_specform_type);
   f->name=name; f->eval=fn;
   return FDTYPE_CONS(f);
@@ -1152,7 +1152,7 @@ FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn)
 
 FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn)
 {
-  struct FD_SPECIAL_FORM *f=u8_malloc_type(struct FD_SPECIAL_FORM);
+  struct FD_SPECIAL_FORM *f=u8_alloc(struct FD_SPECIAL_FORM);
   FD_INIT_CONS(f,fd_specform_type);
   f->name=name; f->eval=fn;
   fd_store(mod,fd_intern(name),FDTYPE_CONS(f));
@@ -1240,7 +1240,7 @@ static fdtype apply_lexpr(int n,fdtype *args)
     fdtype final_arg=args[n-1], result;
     int final_length=fd_seq_length(final_arg);
     int n_args=(n-2)+final_length;
-    fdtype *values=u8_malloc(sizeof(fdtype)*n_args);
+    fdtype *values=u8_alloc_n(n_args,fdtype);
     int i=1, j=0, lim=n-1, ctype=FD_PRIM_TYPE(args[0]);
     /* Copy regular arguments */
     while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
@@ -1326,7 +1326,7 @@ FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
 
 static fdtype make_condvar()
 {
-  struct FD_CONSED_CONDVAR *cv=u8_malloc(sizeof(struct FD_CONSED_CONDVAR));
+  struct FD_CONSED_CONDVAR *cv=u8_alloc(struct FD_CONSED_CONDVAR);
   FD_INIT_CONS(cv,fd_condvar_type);
   fd_init_mutex(&(cv->lock)); u8_init_condvar(&(cv->cvar));
   return FDTYPE_CONS(cv);
@@ -1388,7 +1388,7 @@ static fdtype condvar_lock(fdtype x)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  fd_lock_mutex(&(cv->lock));
+  fd_lock_struct(cv);
   return FD_TRUE;
 }
 
@@ -1396,7 +1396,7 @@ static fdtype condvar_unlock(fdtype x)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  fd_unlock_mutex(&(cv->lock));
+  fd_unlock_struct(cv);
   return FD_TRUE;
 }
 
@@ -1424,12 +1424,12 @@ static fdtype synchro_lock(fdtype x)
   if (FD_PTR_TYPEP(x,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    fd_lock_mutex(&(cv->lock));
+    fd_lock_struct(cv);
     return FD_TRUE;}
   else if (FD_PTR_TYPEP(x,fd_sproc_type)) {
     struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
-      fd_lock_mutex(&(sp->lock));}
+      fd_lock_struct(sp);}
     else return fd_type_error("lockable","synchro_lock",x);
     return FD_TRUE;}
   else return fd_type_error("lockable","synchro_lock",x);
@@ -1440,12 +1440,12 @@ static fdtype synchro_unlock(fdtype x)
   if (FD_PTR_TYPEP(x,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    fd_unlock_mutex(&(cv->lock));
+    fd_unlock_struct(cv);
     return FD_TRUE;}
   else if (FD_PTR_TYPEP(x,fd_sproc_type)) {
     struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
-      fd_unlock_mutex(&(sp->lock));}
+      fd_unlock_struct(sp);}
     else return fd_type_error("lockable","synchro_lock",x);
     return FD_TRUE;}
   else return fd_type_error("lockable","synchro_unlock",x);
@@ -1457,7 +1457,7 @@ FD_EXPORT
 fd_thread_struct fd_thread_call
   (fdtype *resultptr,fdtype fn,int n,fdtype *rail)
 {
-  struct FD_THREAD_STRUCT *tstruct=u8_malloc(sizeof(struct FD_THREAD_STRUCT));
+  struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
   FD_INIT_CONS(tstruct,fd_thread_type);
   if (resultptr) {
     tstruct->resultptr=resultptr; tstruct->result=FD_NULL;}
@@ -1476,7 +1476,7 @@ fd_thread_struct fd_thread_call
 FD_EXPORT
 fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
 {
-  struct FD_THREAD_STRUCT *tstruct=u8_malloc(sizeof(struct FD_THREAD_STRUCT));
+  struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
   FD_INIT_CONS(tstruct,fd_thread_type);
   if (resultptr) {
     tstruct->resultptr=resultptr; tstruct->result=FD_NULL;}
@@ -1496,7 +1496,7 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
 
 static fdtype threadcall_prim(int n,fdtype *args)
 {
-  fdtype *call_args=u8_malloc(sizeof(fdtype)*(n-1)), thread;
+  fdtype *call_args=u8_alloc_n((n-1),fdtype), thread;
   int i=1; while (i<n) {
     call_args[i-1]=fd_incref(args[i]); i++;}
   thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args);
@@ -1544,8 +1544,8 @@ static fdtype parallel_handler(fdtype expr,fd_lispenv env)
   while (FD_PAIRP(scan)) {n_exprs++; scan=FD_CDR(scan);}
   /* Malloc two vectors if neccessary. */
   if (n_exprs>6) {
-    results=u8_malloc(sizeof(fdtype)*n_exprs);
-    threads=u8_malloc(sizeof(fd_thread_struct)*n_exprs);}
+    results=u8_alloc_n(n_exprs,fdtype);
+    threads=u8_alloc_n(n_exprs,fd_thread_struct);}
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
   scan=FD_CDR(expr); while (FD_PAIRP(scan)) {
@@ -1741,7 +1741,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
   int i=0, j=0, len=FD_VECTOR_LENGTH(obj), newlen=len;
   if (len==0) return fd_incref(obj);
   else {
-    fdtype *newelts=u8_malloc(sizeof(fdtype)*len);
+    fdtype *newelts=u8_alloc_n(len,fdtype);
     while (i < len) {
       fdtype elt=FD_VECTOR_REF(obj,i);
       if ((FD_PAIRP(elt)) &&
@@ -1764,7 +1764,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 	  else return fd_err(fd_SyntaxError,
 			     "splicing UNQUOTE for an improper list",
 			     NULL,insertion);
-	  newelts=u8_realloc(newelts,sizeof(fdtype)*(newlen+addlen));
+	  newelts=u8_realloc_n(newelts,newlen+addlen,fdtype);
 	  newlen=newlen+addlen;
 	  if (FD_PAIRP(insertion)) {
 	    fdtype scan=insertion; while (FD_PAIRP(scan)) {
@@ -1896,7 +1896,7 @@ static fdtype callcc (fdtype proc)
 {
   fdtype throwval=
     fd_err(fd_throw_condition,NULL,NULL,FD_VOID), value=FD_VOID, cont;
-  struct FD_CONTINUATION *f=u8_malloc(sizeof(struct FD_CONTINUATION));
+  struct FD_CONTINUATION *f=u8_alloc(struct FD_CONTINUATION);
   FD_INIT_CONS(f,fd_function_type);
   f->name="continuation"; f->filename=NULL; 
   f->ndprim=1; f->xprim=1; f->arity=1; f->min_arity=1; 
@@ -2063,7 +2063,7 @@ static fdtype dbg_prim(fdtype x,fdtype msg)
 
 void fd_init_eval_c()
 {
-  struct FD_TABLEFNS *fns=u8_malloc_type(struct FD_TABLEFNS);
+  struct FD_TABLEFNS *fns=u8_alloc(struct FD_TABLEFNS);
   fns->get=lispenv_get; fns->store=lispenv_store;
   fns->add=NULL; fns->drop=NULL; fns->test=NULL;
   

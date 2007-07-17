@@ -10,8 +10,9 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 
-struct FD_SYMBOL_ENTRY {
-  struct FD_STRING name; int serial;};
+typedef struct FD_SYMBOL_ENTRY {
+  struct FD_STRING name; int serial;} FD_SYMBOL_ENTRY;
+typedef struct FD_SYMBOL_ENTRY *fd_symbol_entry;
 struct FD_SYMBOL_TABLE {
   int size; struct FD_SYMBOL_ENTRY **entries;} fd_symbol_table;
 fdtype *fd_symbol_names;
@@ -50,9 +51,8 @@ static void init_symbol_tables()
   else {
     int new_max=((fd_max_symbols) ? (fd_max_symbols) : (fd_initial_symbols));
     int new_size=fd_get_hashtable_size(new_max*2);
-    struct FD_SYMBOL_ENTRY **new_entries=
-      u8_malloc(new_size*sizeof(struct FD_SYMBOL_ENTRY *));
-    fdtype *new_symbol_names=u8_malloc(new_max*sizeof(fdtype));
+    struct FD_SYMBOL_ENTRY **new_entries=u8_alloc_n(new_size,fd_symbol_entry);
+    fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
     int i=0, lim=new_size; while (i < lim) new_entries[i++]=NULL;
     i=0; lim=new_max; while (i < lim) new_symbol_names[i++]=FD_VOID;
     fd_symbol_table.size=new_size; fd_symbol_table.entries=new_entries;
@@ -66,9 +66,8 @@ static void grow_symbol_tables()
   int new_max=fd_max_symbols*2;
   int new_size=fd_get_hashtable_size(new_max*2);
   struct FD_SYMBOL_ENTRY **old_entries=fd_symbol_table.entries;
-  struct FD_SYMBOL_ENTRY **new_entries=
-    u8_malloc(new_size*sizeof(struct FD_SYMBOL_ENTRY *));
-  fdtype *new_symbol_names=u8_malloc(new_max*sizeof(fdtype));
+  struct FD_SYMBOL_ENTRY **new_entries=u8_alloc_n(new_size,fd_symbol_entry);
+  fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
   {
     int i=0, lim=fd_symbol_table.size;
     while (i < new_size) new_entries[i++]=NULL;
@@ -121,7 +120,7 @@ fdtype fd_make_symbol(u8_string bytes,int len)
       return fd_make_symbol(bytes,len);}
     else {
       int id=fd_n_symbols++; fdtype symbol;
-      entries[probe]=u8_malloc(sizeof(struct FD_SYMBOL_ENTRY));
+      entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
       symbol=entries[probe]->serial=id;
       fd_init_string(&(entries[probe]->name),len,u8_strdup(bytes));
       fd_symbol_names[id]=FDTYPE_CONS(&(entries[probe]->name));

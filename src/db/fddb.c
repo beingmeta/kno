@@ -296,8 +296,8 @@ static void fast_reset_hashtable
 {
   int i=todo->n_to_free;
   if (todo->n_to_free==todo->max_to_free) {
-    todo->to_free=u8_realloc
-      (todo->to_free,sizeof(struct HASHVEC_TO_FREE)*(todo->max_to_free)*2);
+    todo->to_free=u8_realloc_n
+      (todo->to_free,(todo->max_to_free)*2,struct HASHVEC_TO_FREE);
     todo->max_to_free=(todo->max_to_free)*2;}
   fd_fast_reset_hashtable(h,n_slots_arg,1,
 			  &(todo->to_free[i].slots),
@@ -327,7 +327,7 @@ FD_EXPORT void fd_fast_swapout_all()
 {
   int i=0;
   struct HASHVECS_TODO todo;
-  todo.to_free=u8_malloc(sizeof(struct HASHVEC_TO_FREE)*128);
+  todo.to_free=u8_alloc_n(128,struct HASHVEC_TO_FREE);
   todo.n_to_free=0; todo.max_to_free=128;
   fd_for_indices(fast_swapout_index,(void *)&todo);
   fd_for_pools(fast_swapout_pool,(void *)&todo);

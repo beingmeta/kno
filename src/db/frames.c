@@ -238,7 +238,7 @@ static void init_dependencies(fd_frameop_stack *cxt)
 {
   if (cxt->dependencies) return;
   else {
-    cxt->dependencies=u8_malloc(sizeof(struct FD_DEPENDENCY_RECORD)*32);
+    cxt->dependencies=u8_alloc_n(32,struct FD_DEPENDENCY_RECORD);
     cxt->n_deps=0; cxt->max_deps=32;}
 }
 
@@ -249,7 +249,7 @@ static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdt
       int n=scan->n_deps; struct FD_DEPENDENCY_RECORD *records=NULL;
       if (scan->n_deps>=scan->max_deps) {
 	scan->dependencies=records=
-	  u8_realloc(scan->dependencies,sizeof(struct FD_DEPENDENCY_RECORD)*scan->max_deps*2);
+	  u8_realloc_n(scan->dependencies,scan->max_deps*2,struct FD_DEPENDENCY_RECORD);
 	scan->max_deps=scan->max_deps*2;}
       else records=scan->dependencies;
       records[n].frame=frame; records[n].slotid=slotid; records[n].value=value;
@@ -263,7 +263,7 @@ static void record_dependencies(fd_frameop_stack *cxt,fdtype factoid)
   if (cxt->dependencies) {
     int i=0, n=cxt->n_deps;
     struct FD_DEPENDENCY_RECORD *records=cxt->dependencies;
-    fdtype *factoids=u8_malloc(sizeof(fdtype)*n);
+    fdtype *factoids=u8_alloc_n(n,fdtype);
     while (i<n) {
       fdtype depends;
       if (FD_VOIDP(records[i].value))
@@ -636,7 +636,7 @@ FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals)
   int i=0, n_conjuncts=n/2;
   fdtype _conjuncts[6], *conjuncts=_conjuncts, result;
   if (FD_EMPTY_CHOICEP(indices)) return FD_EMPTY_CHOICE;
-  if (n_conjuncts>6) conjuncts=u8_malloc(sizeof(fdtype)*n_conjuncts);
+  if (n_conjuncts>6) conjuncts=u8_alloc_n(n_conjuncts,fdtype);
   while (i < n_conjuncts) {
     conjuncts[i]=fd_prim_find(indices,slotvals[i*2],slotvals[i*2+1]);
     if (FD_ABORTP(conjuncts[i])) {
@@ -663,7 +663,7 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
   while (!(FD_VOIDP(val))) {
     if (n_slotvals>=max_slotvals)
       if (max_slotvals == 64) {
-	fdtype *newsv=u8_malloc(sizeof(fdtype)*128); int i=0;
+	fdtype *newsv=u8_alloc_n(128,fdtype); int i=0;
 	while (i<64) {newsv[i]=slotvals[i]; i++;}
 	slotvals=newsv; max_slotvals=128;}
       else {
@@ -742,7 +742,7 @@ FD_EXPORT fdtype fd_bgfinder(int n,fdtype *slotvals)
   int i=0, n_conjuncts=n/2;
   fdtype _conjuncts[6], *conjuncts=_conjuncts, result;
   if (fd_background==NULL) return FD_EMPTY_CHOICE;
-  if (n_conjuncts>6) conjuncts=u8_malloc(sizeof(fdtype)*n_conjuncts);
+  if (n_conjuncts>6) conjuncts=u8_alloc_n(n_conjuncts,fdtype);
   while (i < n_conjuncts) {
     _conjuncts[i]=fd_bg_get(slotvals[i*2],slotvals[i*2+1]); i++;}
   result=fd_intersection(conjuncts,n_conjuncts);
@@ -761,11 +761,11 @@ FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...)
   while (!(FD_VOIDP(val))) {
     if (n_slotvals>=max_slotvals)
       if (max_slotvals == 64) {
-	fdtype *newsv=u8_malloc(sizeof(fdtype)*128); int i=0;
+	fdtype *newsv=u8_alloc_n(128,fdtype); int i=0;
 	while (i<64) {newsv[i]=slotvals[i]; i++;}
 	slotvals=newsv; max_slotvals=128;}
       else {
-	slotvals=u8_realloc(slotvals,sizeof(fdtype)*max_slotvals*2);
+	slotvals=u8_realloc_n(slotvals,max_slotvals*2,fdtype);
 	max_slotvals=max_slotvals*2;}
     slotvals[n_slotvals++]=val; val=va_arg(args,fdtype);}
   if (n_slotvals%2) {

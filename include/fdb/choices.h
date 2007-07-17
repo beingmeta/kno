@@ -253,7 +253,7 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
     else comparison=cons_compare(*(ch->write-1),nv);
   else comparison=1;
   if (comparison==0) {fd_decref(nv); return;}
-  if (ch->uselock) fd_lock_mutex(&(ch->lock));
+  if (ch->uselock) fd_lock_struct(ch);
   if (ch->write >= ch->limit) {
     struct FD_CHOICE *nch;
     old_size=ch->limit-ch->data; write_off=ch->write-ch->data;
@@ -277,7 +277,7 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
   else if ((ch->atomicp) && (FD_CONSP(nv))) {
     ch->size++; ch->atomicp=0;}
   else ch->size++;
-  if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+  if (ch->uselock) fd_unlock_struct(ch);
 }
 static fdtype _add_to_choice(fdtype current,fdtype new)
 {

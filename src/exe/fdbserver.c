@@ -122,7 +122,7 @@ typedef struct FD_CLIENT *fd_client;
 
 static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
-  fd_client consed=u8_malloc(sizeof(FD_CLIENT));
+  fd_client consed=u8_alloc(FD_CLIENT);
   consed->socket=sock; consed->flags=0;
   fd_init_dtype_stream(&(consed->stream),sock,4096);
   consed->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);

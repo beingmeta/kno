@@ -168,7 +168,7 @@ static int become_runas()
 
 static char **generate_argv(char *exe,char *control_file,char *string)
 {
-  char **argvec=u8_malloc(sizeof(char *)*64), **result;
+  char **argvec=u8_alloc_n(64,char *), **result;
   int argc=2, max_args=16;
   char *start=skip_whitespace(string), *end=skip_arg(start);
   char *lim=start+strlen(start);
@@ -176,7 +176,7 @@ static char **generate_argv(char *exe,char *control_file,char *string)
   argvec[1]=u8_strdup(control_file);
   while (end>start) {
     if (argc+1 >= max_args) {
-      argvec=u8_realloc(argvec,sizeof(char *)*(max_args+16));
+      argvec=u8_realloc_n(argvec,max_args+16,u8_charstring);
       max_args=max_args+16;}
     *end=NUL; argvec[argc++]=u8_strdup(start);
     start=skip_whitespace(end+1);
@@ -546,7 +546,7 @@ int main(int argc,char *argv[])
 	   _("the master list of control files (%s) cannot be opened\n"),
 	   argv[1]);
     exit(1);}
-  servers=u8_malloc(sizeof(struct SERVER_ENTRY)*64); max_servers=64;
+  servers=u8_alloc_n(64,struct SERVER_ENTRY); max_servers=64;
   setup_signals();
   while (fgets(control_line,512,control_file)) {
     int interval=0;
@@ -557,7 +557,7 @@ int main(int argc,char *argv[])
       sleep(interval); continue;}
     /* Grow the table if neccessary */
     if (n_servers+1 == max_servers) {
-      servers=u8_realloc(servers,sizeof(char *)*(max_servers+64));
+      servers=u8_realloc_n(servers,max_servers+64,struct SERVER_ENTRY);
       max_servers=max_servers+64;}
     /* (Try to) Start the server */
     if (start_fdserver(&servers[n_servers],control_line) > 0) {

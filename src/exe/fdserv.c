@@ -151,7 +151,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
     else if (reqlog) {
       fd_dtsclose(reqlog,1); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
-    reqlog=u8_malloc(sizeof(struct FD_DTYPE_STREAM));
+    reqlog=u8_alloc(struct FD_DTYPE_STREAM);
     if (fd_init_dtype_file_stream(reqlog,filename,FD_DTSTREAM_WRITE,16384)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
@@ -269,7 +269,7 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
 	return 0;}
       else scan=scan->next;}
     if (server_env==NULL) server_env=fd_working_environment();
-    scan=u8_malloc(sizeof(struct FD_PRELOAD_LIST));
+    scan=u8_alloc(struct FD_PRELOAD_LIST);
     scan->filename=u8_strdup(filename);
     scan->mtime=(time_t)-1;
     scan->next=preloads;
@@ -426,7 +426,7 @@ static void output_content(fd_webconn ucl,fdtype content)
 
 static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
-  fd_webconn consed=u8_malloc(sizeof(FD_WEBCONN));
+  fd_webconn consed=u8_alloc(FD_WEBCONN);
   consed->socket=sock; consed->flags=0;
   fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);

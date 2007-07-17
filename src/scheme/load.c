@@ -49,7 +49,7 @@ FD_EXPORT u8_string fd_get_source
 }
 FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *))
 {
-  struct FD_SOURCEFN *new_entry=u8_malloc_type(struct FD_SOURCEFN);
+  struct FD_SOURCEFN *new_entry=u8_alloc(struct FD_SOURCEFN);
   fd_lock_mutex(&sourcefns_lock);
   new_entry->getsource=fn; new_entry->next=sourcefns; sourcefns=new_entry;
   fd_unlock_mutex(&sourcefns_lock);
@@ -307,7 +307,7 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
       u8_free(pathname); config_stack=on_stack.next;
       fd_unlock_mutex(&config_file_lock);
       return retval;}
-    newrec=u8_malloc(sizeof(struct FD_CONFIG_RECORD));
+    newrec=u8_alloc(struct FD_CONFIG_RECORD);
     newrec->source=pathname;
     newrec->next=config_records;
     config_records=newrec;

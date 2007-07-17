@@ -52,6 +52,8 @@ static char *get_app_arg(int argc,char **argv)
   return "fdb";
 }
 
+typedef char *charp;
+
 static fdtype chain_prim(int n,fdtype *args)
 {
   if (n_configs>=MAX_CONFIGS)
@@ -60,7 +62,7 @@ static fdtype chain_prim(int n,fdtype *args)
     int i=0, cargc=0;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
-    char **cargv=u8_malloc(sizeof(char *)*(n+n_configs+3)); 
+    char **cargv=u8_alloc_n(n+n_configs+3,charp); 
     U8_INIT_OUTPUT(&argstring,512);
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
@@ -94,7 +96,7 @@ int main(int argc,char **argv)
   u8_string source_file=NULL;
   fd_lispenv env=fd_working_environment();
   fdtype main_proc=FD_VOID, result=FD_VOID;
-  fdtype *args=u8_malloc(sizeof(fdtype)*argc);
+  fdtype *args=u8_alloc_n(argc,fdtype);
   int i=1, n_args=0, retval=0;
   if (argc<2) {
     fprintf(stderr,"Usage: fdexec filename [config=val]*\n");

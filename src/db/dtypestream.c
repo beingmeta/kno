@@ -169,7 +169,7 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
    (u8_string fname,fd_dtstream_mode mode,int bufsiz)
 {
   struct FD_DTYPE_STREAM *stream=
-    u8_malloc(sizeof(struct FD_DTYPE_STREAM));
+    u8_alloc(struct FD_DTYPE_STREAM);
   struct FD_DTYPE_STREAM *opened=
     fd_init_dtype_file_stream(stream,fname,mode,bufsiz);
   if (opened) return opened;
@@ -184,7 +184,7 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   if (s->fd<0) return;
   /* Flush data */
   if ((s->flags&FD_DTSTREAM_READING) == 0) fd_dtsflush(s);
-  u8_free_x(s->start,s->bufsiz);
+  u8_free(s->start);
   if (close_fd>0) {
     fsync(s->fd);
     if (s->flags&FD_DTSTREAM_SOCKET)
@@ -192,9 +192,8 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
     else close(s->fd);}
   s->fd=-1;
   if (s->id)
-    u8_free_x(s->id,strlen(s->id));
-  if (s->mallocd)
-    u8_free_x(s,sizef(struct FD_DTYPE_STREAM *));
+    u8_free(s->id);
+  if (s->mallocd) u8_free(s);
 }
 
 FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)

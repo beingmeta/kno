@@ -46,7 +46,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key);
 
 static fd_index open_file_index(u8_string fname,int read_only)
 {
-  struct FD_FILE_INDEX *index=u8_malloc(sizeof(struct FD_FILE_INDEX));
+  struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_DTYPE_STREAM *s=&(index->stream);
   unsigned int magicno, n_slots;
   fd_dtstream_mode mode=
@@ -98,9 +98,9 @@ static void file_index_setcache(fd_index ix,int level)
     else {
       fd_dtype_stream s=&(fx->stream);
       unsigned int *offsets, *newmmap;
-      fd_lock_mutex(&(fx->lock));
+      fd_lock_struct(fx);
       if (fx->offsets) {
-	fd_unlock_mutex(&(fx->lock));
+	fd_unlock_struct(fx);
 	return;}
 #if HAVE_MMAP
       newmmap=
@@ -117,12 +117,12 @@ static void file_index_setcache(fd_index ix,int level)
       fd_dtsread_ints(s,fx->n_slots,offsets);
       fx->offsets=offsets; 
 #endif
-      fd_unlock_mutex(&(fx->lock));}
+      fd_unlock_struct(fx);}
   else if (level < 2)
     if (fx->offsets == NULL) return;
     else {
       int retval;
-      fd_lock_mutex(&(fx->lock));
+      fd_lock_struct(fx);
 #if HAVE_MMAP
       retval=munmap(fx->offsets-2,(fx->n_slots*SLOTSIZE)+8);
       if (retval<0) {
@@ -132,7 +132,7 @@ static void file_index_setcache(fd_index ix,int level)
       u8_free(fx->offsets);
 #endif
       fx->offsets=NULL;
-      fd_unlock_mutex(&(fx->lock));}
+      fd_unlock_struct(fx);}
 }
 
 FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,fdtype x)
@@ -182,7 +182,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   if (redundantp(fx,key)) return FD_EMPTY_CHOICE;
-  else  fd_lock_mutex(&(fx->lock));
+  else  fd_lock_struct(fx);
   {
     fd_dtype_stream stream=&(fx->stream);
     unsigned int hashval=file_index_hash(fx,key);
@@ -245,7 +245,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
 static int file_index_fetchsize(fd_index ix,fdtype key)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(fx);
   {
     fd_dtype_stream stream=&(fx->stream);
     unsigned int hashval=file_index_hash(fx,key);
@@ -261,7 +261,7 @@ static int file_index_fetchsize(fd_index ix,fdtype key)
       n_vals=fd_dtsread_4bytes(stream); val_start=fd_dtsread_4bytes(stream);
       thiskey=fd_dtsread_dtype(stream);
       if (FDTYPE_EQUAL(key,thiskey)) {
-	fd_unlock_mutex(&(fx->lock));
+	fd_unlock_struct(fx);
 	return n_vals;}
       else if (n_probes>256) {
 	fd_unlock_mutex(&fx->lock);
@@ -289,14 +289,14 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   unsigned int n_slots, i=0, j=0, *offsets, pos_offset, n_keys=0;
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(fx);
   n_slots=fx->n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=SLOTSIZE*n_slots;
   fd_setpos(&(fx->stream),8);
   fd_dtsread_ints(&(fx->stream),fx->n_slots,offsets);
   while (i<n_slots) if (offsets[i]) {n_keys++; i++;} else i++;
   qsort(offsets,fx->n_slots,SLOTSIZE,sort_offsets);
-  result=u8_malloc(sizeof(fdtype)*n_keys);
+  result=u8_alloc_n(n_keys,fdtype);
   i=0; while (i < n_slots)
     if (offsets[i]) {
       fdtype key;
@@ -305,7 +305,7 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
       result[j++]=key;
       i++;}
     else i++;
-  fd_unlock_mutex(&(fx->lock));
+  fd_unlock_struct(fx);
   u8_free(offsets);
   *n=n_keys;
   return result;
@@ -328,13 +328,13 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   unsigned int n_slots, i=0, pos_offset, *offsets, n_keys;
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(fx);
   n_slots=fx->n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=SLOTSIZE*n_slots;
   fd_setpos(&(fx->stream),8);
   fd_dtsread_ints(&(fx->stream),fx->n_slots,offsets);
   n_keys=compress_offsets(offsets,fx->n_slots);
-  sizes=u8_malloc(sizeof(FD_KEY_SIZE)*n_keys);
+  sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
   qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
   while (i < n_keys) {
     fdtype key, pair; int size, vpos;
@@ -493,8 +493,8 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
 static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
 {
   unsigned int *offsets=fx->offsets, pos_offset=SLOTSIZE*fx->n_slots;
-  union SCHEDULE *schedule=u8_malloc(sizeof(union SCHEDULE)*n);
-  fdtype *values=u8_malloc(sizeof(fdtype)*n);
+  union SCHEDULE *schedule=u8_alloc_n(n,union SCHEDULE);
+  fdtype *values=u8_alloc_n(n,fdtype);
   int i=0, schedule_size=0, init_schedule_size; while (i < n) {
     fdtype key=keys[i], cached=fd_hashtable_get(&(fx->cache),key,FD_VOID);
     if (redundantp(fx,key))
@@ -546,9 +546,9 @@ static fdtype *file_index_fetchn(fd_index ix,int n,fdtype *keys)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   fdtype *results;
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(fx);
   results=fetchn(fx,n,keys,1);
-  fd_unlock_mutex(&(fx->lock));
+  fd_unlock_struct(fx);
   return results;
 }
 
@@ -806,7 +806,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   fdtype *dropkeys, *dropvals;
   struct FD_HASHENTRY **scan, **limit;
   if (f->edits.n_keys==0) return 0;
-  dropkeys=u8_malloc(sizeof(fdtype)*f->edits.n_keys);
+  dropkeys=u8_alloc_n(f->edits.n_keys,fdtype);
   scan=f->edits.slots; limit=scan+f->edits.n_slots;
   while (scan < limit)
     if (*scan) {
@@ -913,9 +913,9 @@ static int file_index_commit(struct FD_INDEX *ix)
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->n_slots*4, newcount;
-  fd_lock_mutex(&(ix->adds.lock));
-  fd_lock_mutex(&(ix->edits.lock));
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(&(ix->adds));
+  fd_lock_struct(&(ix->adds));
+  fd_lock_struct(fx);
   fd_dts_start_write(stream);
   /* Get the current offsets from the index */
 #if HAVE_MMAP
@@ -923,7 +923,7 @@ static int file_index_commit(struct FD_INDEX *ix)
     int i=0, n=fx->n_slots; 
     /* We have to copy these if they're MMAPd, because
        we can't modify them (while updating) otherwise.  */
-    new_offsets=u8_malloc(sizeof(unsigned int)*(fx->n_slots));
+    new_offsets=u8_alloc_n((fx->n_slots),unsigned int);
     gc_new_offsets=1;
     while (i<n) {
       new_offsets[i]=offget(fx->offsets,i); i++;}}
@@ -937,9 +937,9 @@ static int file_index_commit(struct FD_INDEX *ix)
     off_t filepos;
     int n_adds=ix->adds.n_keys, n_edits=ix->edits.n_keys;
     int i=0, n=0, n_changes=n_adds+n_edits, add_index, keyret;
-    struct KEYDATA *kdata=u8_malloc(sizeof(struct KEYDATA)*n_changes);
+    struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
     unsigned int *value_locs=
-      ((n_edits) ? (u8_malloc(sizeof(unsigned int)*n_edits)) : (NULL));
+      ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
     struct FD_HASHENTRY **scan=ix->adds.slots, **limit=scan+ix->adds.n_slots;
     fdtype slotids=fx->slotids;
     while (scan < limit)
@@ -975,9 +975,9 @@ static int file_index_commit(struct FD_INDEX *ix)
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
       if (gc_new_offsets) u8_free(new_offsets);
-      fd_unlock_mutex(&(ix->adds.lock));
-      fd_unlock_mutex(&(ix->edits.lock));
-      fd_unlock_mutex(&(fx->lock));
+      fd_unlock_struct((&(ix->adds)));
+      fd_unlock_struct((&(ix->edits)));
+      fd_unlock_struct(fx);
       return newcount;}
     filepos=fd_endpos(stream);
     /* Sort back into the original order. */
@@ -1023,14 +1023,14 @@ static int file_index_commit(struct FD_INDEX *ix)
 	off_t end=fd_endpos(stream);
 	fd_movepos(stream,-(4*(fx->n_slots)));
 	ftruncate(stream->fd,end-(4*(fx->n_slots)));}}
-    fd_unlock_mutex(&(fx->lock));
+    fd_unlock_struct(fx);
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
     fd_reset_hashtable(&(ix->adds),67,0);
-    fd_unlock_mutex(&(ix->adds.lock));
+    fd_unlock_struct(&(ix->adds));
     fd_reset_hashtable(&(ix->edits),67,0);
-    fd_unlock_mutex(&(ix->edits.lock));
+    fd_unlock_struct(&(ix->edits));
     return n;}
 }
 
@@ -1074,7 +1074,7 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
 static void file_index_close(fd_index ix)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(fx);
   fd_dtsclose(&(fx->stream),1);
   if (fx->offsets) {
 #if HAVE_MMAP
@@ -1088,15 +1088,15 @@ static void file_index_close(fd_index ix)
 #endif
     fx->offsets=NULL;
     fx->cache_level=-1;}
-  fd_unlock_mutex(&(fx->lock));
+  fd_unlock_struct(fx);
 }
 
 static void file_index_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
-  fd_lock_mutex(&(fx->lock));
+  fd_lock_struct(fx);
   fd_dtsbufsize(&(fx->stream),bufsiz);
-  fd_unlock_mutex(&(fx->lock));
+  fd_unlock_struct(fx);
 }
 
 static fdtype file_index_metadata(fd_index ix,fdtype md)

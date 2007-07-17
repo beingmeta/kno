@@ -377,7 +377,7 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v)
 static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
 {
   int dtype_len;
-  fd_lock_mutex(&(v->lock));
+  fd_lock_struct(v);
   {
     struct FD_KEYVAL *keyvals=v->keyvals;
     int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
@@ -393,14 +393,14 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
     while (i < kvsize) {
       output_dtype(dtype_len,out,keyvals[i].key);
       output_dtype(dtype_len,out,keyvals[i].value); i++;}}
-  fd_unlock_mutex(&(v->lock));
+  fd_unlock_struct(v);
   return dtype_len;
 }
 
 static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
 {
   int dtype_len;
-  fd_lock_mutex(&(v->lock));
+  fd_lock_struct(v);
   {
     fdtype *schema=v->schema, *values=v->values;
     int i=0, schemasize=FD_XSCHEMAP_SIZE(v), len=schemasize*2;
@@ -416,14 +416,14 @@ static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
     while (i < schemasize) {
       output_dtype(dtype_len,out,schema[i]);
       output_dtype(dtype_len,out,values[i]); i++;}}
-  fd_unlock_mutex(&(v->lock));
+  fd_unlock_struct(v);
   return dtype_len;
 }
 
 static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
 {
   int dtype_len;
-  fd_lock_mutex(&(v->lock));
+  fd_lock_struct(v);
   {
     int size=v->n_keys;
     struct FD_HASHENTRY **scan=v->slots, **limit=scan+v->n_slots;
@@ -443,21 +443,21 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
 	struct FD_KEYVAL *kscan=&(he->keyval0), *klimit=kscan+he->n_keyvals;
 	while (kscan < klimit) {
 	  if (try_dtype_output(&dtype_len,out,kscan->key)<0) {
-	    fd_unlock_mutex(&(v->lock));
+	    fd_unlock_struct(v);
 	    return -1;}
 	  if (try_dtype_output(&dtype_len,out,kscan->value)<0) {
-	    fd_unlock_mutex(&(v->lock));
+	    fd_unlock_struct(v);
 	    return -1;}
 	  kscan++;}}
       else scan++;}
-  fd_unlock_mutex(&(v->lock));
+  fd_unlock_struct(v);
   return dtype_len;
 }
 
 static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
 {
   int dtype_len;
-  fd_lock_mutex(&(v->lock));
+  fd_lock_struct(v);
   {
     int size=v->n_keys;
     fdtype *scan=v->slots, *limit=scan+v->n_slots;
@@ -474,11 +474,11 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
     while (scan < limit)
       if (*scan) {
 	if (try_dtype_output(&dtype_len,out,*scan)<0) {
-	  fd_unlock_mutex(&(v->lock));
+	  fd_unlock_struct(v);
 	  return -1;}
 	scan++;}
       else scan++;}
-  fd_unlock_mutex(&(v->lock));
+  fd_unlock_struct(v);
   return dtype_len;
 }
 
@@ -575,7 +575,7 @@ static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,fdtype *why_not)
 {
   if (n==0) return NULL;
   else {
-    fdtype *vec=u8_malloc(sizeof(fdtype)*n);
+    fdtype *vec=u8_alloc_n(n,fdtype);
     int i=0; while (i < n) {
       fdtype v=fd_read_dtype(in);
       if (FD_COOLP(v)) vec[i++]=v;
@@ -621,11 +621,11 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_error: {
       fdtype content=fd_read_dtype(in);
       return fd_init_compound
-	(u8_malloc(sizeof(struct FD_COMPOUND)),FD_ERROR_TAG,content);}
+	(u8_alloc(struct FD_COMPOUND),FD_ERROR_TAG,content);}
     case dt_exception: {
       fdtype content=fd_read_dtype(in);
       return fd_init_compound
-	(u8_malloc(sizeof(struct FD_COMPOUND)),FD_EXCEPTION_TAG,content);}
+	(u8_alloc(struct FD_COMPOUND),FD_EXCEPTION_TAG,content);}
 #endif
     case dt_error: case dt_exception: {
       /* Return an exception object if possible (content as expected)
@@ -652,10 +652,10 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  else irritant=fd_incref(FD_CDR(FD_CDR(content)));}}
       else if (code == dt_exception)
 	return fd_init_compound
-	  (u8_malloc(sizeof(struct FD_COMPOUND)),
+	  (u8_alloc(struct FD_COMPOUND),
 	   FD_EXCEPTION_TAG,content);
       else return fd_init_compound
-	     (u8_malloc(sizeof(struct FD_COMPOUND)),FD_ERROR_TAG,content);
+	     (u8_alloc(struct FD_COMPOUND),FD_ERROR_TAG,content);
       exo=fd_make_exception(exname,NULL,details,irritant,FD_EMPTY_LIST);
       fd_decref(content);
       return exo;}
@@ -667,7 +667,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  fd_decref(head); return car;}
 	else {
 	  fdtype new_pair=
-	    fd_init_pair(u8_malloc(sizeof(struct FD_PAIR)),
+	    fd_init_pair(u8_alloc(struct FD_PAIR),
 			 car,FD_EMPTY_LIST);
 	  int dtcode=fd_read_byte(in);
 	  *tail=new_pair; tail=&(FD_CDR(new_pair));
@@ -694,7 +694,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  fd_decref(cdr);
 	  return result;}
 	else return fd_init_compound
-	       (u8_malloc(sizeof(struct FD_COMPOUND)),car,cdr);}
+	       (u8_alloc(struct FD_COMPOUND),car,cdr);}
       case dt_rational:
 	return _fd_make_rational(car,cdr);
       case dt_complex:
@@ -709,10 +709,10 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  switch (code) {
 	  case dt_string:
-	    return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
+	    return fd_init_string(u8_alloc(struct FD_STRING),
 				  len,data);
 	  case dt_packet:
-	    return fd_init_packet(u8_malloc(sizeof(struct FD_STRING)),
+	    return fd_init_packet(u8_alloc(struct FD_STRING),
 				  len,data);}}}
     case dt_tiny_symbol:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
@@ -731,7 +731,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	else {
 	  u8_byte *data=u8_malloc(len+1);
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
+	  return fd_init_string(u8_alloc(struct FD_STRING),
 				len,data);}}
     case dt_symbol: case dt_zstring:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
@@ -747,7 +747,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    result=fd_make_symbol(data,len);
 	  case dt_zstring:
 	    result=fd_make_symbol(data,len);}
-	  if (data != buf) u8_free_x(data,len);
+	  if (data != buf) u8_free(data);
 	  return result;}}
     case dt_vector:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
@@ -755,11 +755,11 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	int i=0, len=fd_read_4bytes(in);
 	if (FD_EXPECT_FALSE(len == 0))
 	  return fd_init_vector
-	    (u8_malloc(sizeof(struct FD_VECTOR)),0,NULL);
+	    (u8_alloc(struct FD_VECTOR),0,NULL);
 	else {
 	  fdtype why_not=FD_EOD, *data=read_dtypes(len,in,&why_not);
 	  if (FD_EXPECT_TRUE((data!=NULL)))
-	    return fd_init_vector(u8_malloc(sizeof(struct FD_VECTOR)),
+	    return fd_init_vector(u8_alloc(struct FD_VECTOR),
 				  len,data);
 	  else return fd_return_errcode(why_not);}}
     case dt_tiny_choice:
@@ -786,7 +786,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       switch (code) {
       case dt_qchoice: case dt_small_qchoice:
 	if (len==0)
-	  return fd_init_qchoice(u8_malloc(sizeof(struct FD_QCHOICE)),FD_EMPTY_CHOICE);
+	  return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),FD_EMPTY_CHOICE);
       case dt_choice: case dt_small_choice:
 	if (len==0) return FD_EMPTY_CHOICE;
 	else {
@@ -797,32 +797,30 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  result=fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
 	  if (FD_CHOICEP(result))
 	    if ((code==dt_qchoice) || (code==dt_small_qchoice))
-	      return fd_init_qchoice(u8_malloc(sizeof(struct FD_QCHOICE)),result);
+	      return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),result);
 	    else return result;
 	  else return result;}
       case dt_slotmap: case dt_small_slotmap:
 	if (len==0) 
-	  return fd_init_slotmap(u8_malloc(sizeof(struct FD_SLOTMAP)),
+	  return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),
 				 0,NULL);
 	else {
 	  int n_slots=len/2;
-	  struct FD_KEYVAL *keyvals=
-	    u8_malloc(n_slots*sizeof(struct FD_KEYVAL));
+	  struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
 	  struct FD_KEYVAL *write=keyvals, *limit=keyvals+n_slots;
 	  while (write<limit) {
 	    write->key=fd_read_dtype(in);
 	    write->value=fd_read_dtype(in);
 	    write++;}
-	  return fd_init_slotmap(u8_malloc(sizeof(struct FD_SLOTMAP)),
+	  return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),
 				 n_slots,keyvals);}
       case dt_hashtable: case dt_small_hashtable:
 	if (len==0) 
-	  return fd_init_hashtable(u8_malloc(sizeof(struct FD_HASHTABLE)),
+	  return fd_init_hashtable(u8_alloc(struct FD_HASHTABLE),
 				 0,NULL);
 	else {
 	  fdtype result; int n_slots=len/2, n_read=0;
-	  struct FD_KEYVAL *keyvals=
-	    u8_malloc(n_slots*sizeof(struct FD_KEYVAL));
+	  struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
 	  struct FD_KEYVAL *write=keyvals, *scan=keyvals,
 	    *limit=keyvals+n_slots;
 	  while (n_read<n_slots) {
@@ -833,14 +831,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	      fd_decref(write->key);}
 	    else write++;}
 	  limit=write;
-	  result=fd_init_hashtable(u8_malloc(sizeof(struct FD_HASHTABLE)),
+	  result=fd_init_hashtable(u8_alloc(struct FD_HASHTABLE),
 				   limit-keyvals,keyvals);
 	  while (scan<limit) {
 	    fd_decref(scan->key); fd_decref(scan->value); scan++;}
 	  u8_free(keyvals);
 	  return result;}
       case dt_hashset: case dt_small_hashset: {
-	int i=0; struct FD_HASHSET *h=u8_malloc(sizeof(struct FD_HASHSET));
+	int i=0; struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
 	fd_init_hashset(h,len);
 	while (i<len) {
 	  fdtype v=fd_read_dtype(in);
@@ -848,7 +846,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  i++;}
 	return FDTYPE_CONS(h);}
       default: {
-	int i=0; fdtype *data=u8_malloc(sizeof(fdtype)*len);
+	int i=0; fdtype *data=u8_alloc_n(len,fdtype);
 	while (i<len) data[i++]=fd_read_dtype(in);
 	return fd_make_mystery_vector(dt_framerd_package,code,len,data);}}}
     default: 
@@ -876,7 +874,7 @@ FD_EXPORT int fd_register_vector_unpacker
   if (dtype_packages[package_offset]==NULL) {
     struct FD_DTYPE_PACKAGE *pkg=
       dtype_packages[package_offset]=
-      u8_malloc(sizeof(struct FD_DTYPE_PACKAGE));
+      u8_alloc(struct FD_DTYPE_PACKAGE);
     memset(pkg,0,sizeof(struct FD_DTYPE_PACKAGE));
     replaced=2;}
   else if (dtype_packages[package_offset]->vectorfns[code_offset])
@@ -897,7 +895,7 @@ FD_EXPORT int fd_register_packet_unpacker
   if (dtype_packages[package_offset]==NULL) {
     struct FD_DTYPE_PACKAGE *pkg=
       dtype_packages[package_offset]=
-      u8_malloc(sizeof(struct FD_DTYPE_PACKAGE));
+      u8_alloc(struct FD_DTYPE_PACKAGE);
     memset(pkg,0,sizeof(struct FD_DTYPE_PACKAGE));
     replaced=2;}
   else if (dtype_packages[package_offset]->packetfns[code_offset])
@@ -953,12 +951,12 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
 {
   switch (code) {
   case dt_ascii_char: {
-    int c=bytes[0]; u8_free_x(bytes,len);
+    int c=bytes[0]; u8_free(bytes);
     return FD_CODE2CHAR(c);}
   case dt_unicode_char: {
     int c=0, i=0; while (i<len) {
       c=c<<8|bytes[i]; i++;}
-    u8_free_x(bytes,len);
+    u8_free(bytes);
     return FD_CODE2CHAR(c);}
   case dt_unicode_short_string: case dt_unicode_string: {
     struct U8_OUTPUT os; unsigned char *scan, *limit;
@@ -967,8 +965,8 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
       u8_putc(&os,c);}
-    u8_free_x(bytes,len);
-    return fd_init_string(u8_malloc(sizeof(struct FD_STRING)),
+    u8_free(bytes);
+    return fd_init_string(u8_alloc(struct FD_STRING),
 			  os.u8_outptr-os.u8_outbuf,os.u8_outbuf);}
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
     fdtype sym;
@@ -979,8 +977,7 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
       int c=scan[0]<<8|scan[1]; scan=scan+2;
       u8_putc(&os,c);}
     sym=fd_make_symbol(os.u8_outbuf,os.u8_outptr-os.u8_outbuf);
-    u8_free_x(bytes,len);
-    u8_free_x(os.u8_outbuf,os.u8_outptr-os.u8_outbuf);
+    u8_free(bytes); u8_free(os.u8_outbuf);
     return sym;}
   default:
     return fd_make_mystery_packet(dt_character_package,code,len,bytes);
@@ -996,7 +993,7 @@ FD_EXPORT fdtype fd_make_mystery_packet
   if ((package_offset<0x40) && (dtype_packages[package_offset]) &&
       (dtype_packages[package_offset]->packetfns[code_offset]))
     return (dtype_packages[package_offset]->packetfns[code_offset])(len,bytes);
-  myst=u8_malloc(sizeof(struct FD_MYSTERY));
+  myst=u8_alloc(struct FD_MYSTERY);
   FD_INIT_CONS(myst,fd_mystery_type);
   myst->package=package; myst->code=typecode;
   myst->payload.packet=bytes; myst->size=len;
@@ -1012,7 +1009,7 @@ FD_EXPORT fdtype fd_make_mystery_vector
   if ((package_offset<0x40) && (dtype_packages[package_offset]) &&
       (dtype_packages[package_offset]->vectorfns[code_offset]))
     return (dtype_packages[package_offset]->vectorfns[code_offset])(len,elts);
-  myst=u8_malloc(sizeof(struct FD_MYSTERY));
+  myst=u8_alloc(struct FD_MYSTERY);
   FD_INIT_CONS(myst,fd_mystery_type);
   myst->package=package; myst->code=typecode;
   myst->payload.vector=elts; myst->size=len;
@@ -1023,7 +1020,7 @@ FD_EXPORT fdtype fd_make_mystery_vector
 
 static fdtype default_make_rational(fdtype car,fdtype cdr)
 {
-  struct FD_PAIR *p=u8_malloc(sizeof(struct FD_PAIR));
+  struct FD_PAIR *p=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_rational_type);
   p->car=car; p->cdr=cdr;
   return FDTYPE_CONS(p);
@@ -1038,7 +1035,7 @@ static void default_unpack_rational
 
 static fdtype default_make_complex(fdtype car,fdtype cdr)
 {
-  struct FD_PAIR *p=u8_malloc(sizeof(struct FD_PAIR));
+  struct FD_PAIR *p=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_complex_type);
   p->car=car; p->cdr=cdr;
   return FDTYPE_CONS(p);
@@ -1053,7 +1050,7 @@ static void default_unpack_complex
 
 static fdtype default_make_double(double d)
 {
-  struct FD_DOUBLE *ds=u8_malloc(sizeof(struct FD_DOUBLE));
+  struct FD_DOUBLE *ds=u8_alloc(struct FD_DOUBLE);
   FD_INIT_CONS(ds,fd_double_type); ds->flonum=d;
   return FDTYPE_CONS(ds);
 }

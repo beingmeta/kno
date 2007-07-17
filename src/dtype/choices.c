@@ -32,14 +32,14 @@ static void recycle_achoice(struct FD_CONS *c)
     if (ch->mallocd) u8_free(ch->nch);}
   fd_decref(ch->normalized);
   if (ch->uselock) fd_destroy_mutex(&(ch->lock));
-  u8_free_x(ch,sizeof(struct FD_ACHOICE));
+  u8_free(ch);
 }
 
 static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
 {
   fd_decref(ch->normalized);
   if (ch->uselock) fd_destroy_mutex(&(ch->lock));
-  u8_free_x(ch,sizeof(struct FD_ACHOICE));
+  u8_free(ch);
 }
 static int write_achoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
 {
@@ -249,7 +249,7 @@ FD_EXPORT
 */
 fdtype fd_make_achoice(fdtype x,fdtype y)
 {
-  struct FD_ACHOICE *ch=u8_malloc(sizeof(struct FD_ACHOICE));
+  struct FD_ACHOICE *ch=u8_alloc(struct FD_ACHOICE);
   fdtype nx=fd_simplify_choice(x), ny=fd_simplify_choice(y);
   FD_INIT_CONS(ch,fd_achoice_type);
   ch->nch=fd_alloc_choice(64);
@@ -286,7 +286,7 @@ FD_EXPORT
    is NULL, an FD_ACHOICE structure is allocated. */
 fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
 {
-  if (ch==NULL) ch=u8_malloc_type(struct FD_ACHOICE);
+  if (ch==NULL) ch=u8_alloc(struct FD_ACHOICE);
   FD_INIT_CONS(ch,fd_achoice_type);
   ch->nch=fd_alloc_choice(lim);
   ch->write=ch->data=(fdtype *)FD_XCHOICE_DATA(ch->nch);
@@ -329,23 +329,23 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
     if (free_achoice) {
       if (FD_CONS_REFCOUNT(ch)>1) {
 	free_achoice=0; fd_decref(x);}}
-    if (ch->uselock) fd_lock_mutex(&(ch->lock));
+    if (ch->uselock) fd_lock_struct(ch);
     /* If you have a normalized value, use it. */
     if (!(FD_VOIDP(ch->normalized))) {
       fdtype v=fd_incref(ch->normalized);
-      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_struct(ch);
       if (free_achoice) fd_decref(x);
       return v;}
     /* If it's really empty, just return the empty choice. */
     else if ((ch->write-ch->data) == 0) {
-      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_struct(ch);
       if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
       else ch->normalized=FD_EMPTY_CHOICE;
       return FD_EMPTY_CHOICE;}
     /* If it's only got one value, return it. */
     else if ((ch->write-ch->data) == 1) {
       fdtype value=fd_incref(*(ch->data));
-      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_struct(ch);
       if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
       ch->normalized=fd_incref(value);
       return value;}
@@ -359,7 +359,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       else flags=flags|FD_CHOICE_ISCONSES;
       if (ch->muddled) flags=flags|FD_CHOICE_DOSORT;
       else flags=flags|FD_CHOICE_COMPRESS;
-      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_struct(ch);
       recycle_achoice_wrapper(ch);
       return fd_init_choice(nch,n,NULL,flags);}
     else if (ch->n_nested==0) {
@@ -374,7 +374,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       else flags=flags|FD_CHOICE_COMPRESS;
       result=fd_make_choice(n_elts,ch->data,flags);
       ch->normalized=fd_incref(result);
-      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_struct(ch);
       return result;}
     else if (1) { /* (ch->size<fd_mergesort_threshold) */
       /* If the choice is small enough, we can call convert_achoice,
@@ -384,12 +384,12 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
 	 sort the huge vector. */
       fdtype converted=convert_achoice(ch,free_achoice);
       if (free_achoice) {
-	if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+	if (ch->uselock) fd_unlock_struct(ch);
 	fd_decref(x);
 	return converted;}
       else {
 	ch->normalized=fd_incref(converted);
-	if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+	if (ch->uselock) fd_unlock_struct(ch);
 	return converted;}}
     else {
       /* This is the hairy case, where you are actually merging a bunch
@@ -404,7 +404,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       if (n_vals) n_choices=ch->n_nested+1; else n_choices=ch->n_nested;
       /* We try to use a stack mallocd choices vector. */
       if (n_choices>16)
-	choices=u8_malloc(sizeof(struct FD_CHOICE *)*n_choices);
+	choices=u8_alloc_n(n_choices,struct FD_CHOICE *);
       else choices=_choices;
       /* If we are using a tmp_choice, we initialize it and fill it while copying
 	 choice elements. */
@@ -430,7 +430,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       /* We free the tmp_choice if we made it. */
       if (n_vals) u8_free((struct FD_CHOICE *)tmp_choice);
       if (n_choices>16) u8_free(choices);
-      if (ch->uselock) fd_unlock_mutex(&(ch->lock));
+      if (ch->uselock) fd_unlock_struct(ch);
       if (free_achoice) {
 	recycle_achoice((struct FD_CONS *)ch);
 	return result;}
@@ -582,7 +582,7 @@ fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
   fdtype *write;
   struct FD_CHOICE *new_choice;
   struct FD_CHOICE_SCANNER *scanners=
-    u8_malloc(sizeof(struct FD_CHOICE_SCANNER)*n_choices);
+    u8_alloc_n(n_choices,struct FD_CHOICE_SCANNER);
   /* Initialize the scanners. */
   int i=0; while (i < n_scanners) {
     const fdtype *data=FD_XCHOICE_DATA(choices[i]);
@@ -680,7 +680,7 @@ FD_EXPORT
  */
 fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice)
 {
-  if (ptr==NULL) ptr=u8_malloc(sizeof(struct FD_QCHOICE));
+  if (ptr==NULL) ptr=u8_alloc(struct FD_QCHOICE);
   FD_INIT_CONS(ptr,fd_qchoice_type);
   ptr->choice=choice;
   return FDTYPE_CONS(ptr);
@@ -728,7 +728,7 @@ fdtype fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
   qsort(choices,n_choices,sizeof(struct FD_CHOICE *),
 	compare_choicep_size);
   max_results=FD_XCHOICE_SIZE(choices[0]);
-  write=results=u8_malloc(sizeof(fdtype)*max_results);
+  write=results=u8_alloc_n(max_results,fdtype);
   {
     const fdtype *scan=FD_XCHOICE_DATA(choices[0]);
     const fdtype *limit=scan+max_results;
@@ -820,8 +820,8 @@ fdtype fd_intersection(fdtype *v,int n)
       fdtype result=FD_VOID; int i, n_choices=0, n_conversions=0;
       /* Try to use a stack vector if possible. */
       if (n>16) {
-	choices=u8_malloc(sizeof(struct FD_CHOICE *)*n);
-	conversions=u8_malloc(sizeof(fdtype)*n);}
+	choices=u8_alloc_n(n,struct FD_CHOICE *);
+	conversions=u8_alloc_n(n,fdtype);}
       else {choices=_choices; conversions=_conversions;}
       i=0; while (i < n)
 	/* We go down doing conversions.  Note that we do the same thing
@@ -863,7 +863,7 @@ fdtype fd_intersection(fdtype *v,int n)
       struct FD_CHOICE **choices, *_choices[16];
       fdtype result; int i=0;
       if (n>16) 
-	choices=u8_malloc(sizeof(struct FD_CHOICE *)*n);
+	choices=u8_alloc_n(n,struct FD_CHOICE *);
       else choices=_choices;
       while (i < n) {choices[i]=(struct FD_CHOICE *)v[i]; i++;}
       result=fd_intersect_choices(choices,n);

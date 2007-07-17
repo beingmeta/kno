@@ -116,9 +116,9 @@ int main(int argc,char **argv)
   report_on_hashtable(ht);
   n_keys=FD_HASHTABLE_SIZE(ht);
   n_slots=FD_HASHTABLE_SLOTS(ht);
-  tmpbuf=u8_malloc(sizeof(unsigned int)*n_keys*6);
+  tmpbuf=u8_alloc_n(n_keys*6,unsigned int);
   tmpbuf_size=n_keys*6;
-  hashv=u8_malloc(sizeof(unsigned int)*n_keys);
+  hashv=u8_alloc_n(n_keys,unsigned int);
   keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
   {
     FD_DO_CHOICES(key,keys) {

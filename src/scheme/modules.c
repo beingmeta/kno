@@ -101,7 +101,7 @@ int fd_persist_module(fdtype module)
 FD_EXPORT
 void fd_add_module_loader(int (*loader)(u8_string,int))
 {
-  struct MODULE_LOADER *consed=u8_malloc(sizeof(struct MODULE_LOADER));
+  struct MODULE_LOADER *consed=u8_alloc(struct MODULE_LOADER);
   fd_lock_mutex(&module_loaders_lock);
   consed->loader=loader;
   consed->next=module_loaders;

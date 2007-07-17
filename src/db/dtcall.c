@@ -29,7 +29,7 @@ fd_ptr_type fd_dtserver_type;
 
 FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
 {
-  struct FD_DTSERVER *dts=u8_malloc(sizeof(struct FD_DTSERVER));
+  struct FD_DTSERVER *dts=u8_alloc(struct FD_DTSERVER);
   u8_string server_addr; int socket;
   if ((*server)==':') {
     fdtype server_id=fd_config_get(server+1);
@@ -99,12 +99,12 @@ FD_EXPORT fdtype fd_dteval(fd_dtserver dts,fdtype expr)
 FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
 {
   fd_dtype_stream stream=&(dts->stream);
-  fdtype *params=u8_malloc(sizeof(fdtype)*(n+1)), request, result;
+  fdtype *params=u8_alloc_n((n+1),fdtype), request, result;
   int i=0; va_list args;
-  fd_lock_mutex(&(dts->lock));
+  fd_lock_struct(dts);
   if (stream->fd<0)
     if (server_reconnect(dts)<0) {
-      fd_unlock_mutex(&(dts->lock));
+      fd_unlock_struct(dts);
       return fd_erreify();}
     else {}
   params[i++]=fd_intern(fcn);

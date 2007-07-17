@@ -117,21 +117,21 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_NotAnIdentifier,"SSET!",NULL,expr);
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
-  fd_lock_mutex(&(sset_lock));
+  fd_lock_mutex(&sset_lock);
   value=fasteval(val_expr,env);
   if (FD_ABORTP(value)) {
-    fd_unlock_mutex(&(sset_lock));
+    fd_unlock_mutex(&sset_lock);
     return value;}
   else if ((retval=(fd_set_value(var,value,env)))) {
-    fd_decref(value); fd_unlock_mutex(&(sset_lock));
+    fd_decref(value); fd_unlock_mutex(&sset_lock);
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
   else if ((retval=(fd_bind_value(var,value,env)))) {
-    fd_decref(value); fd_unlock_mutex(&(sset_lock));
+    fd_decref(value); fd_unlock_mutex(&sset_lock);
     if (retval<0) return fd_erreify();
     else return FD_VOID;}
   else {
-    fd_unlock_mutex(&(sset_lock));
+    fd_unlock_mutex(&sset_lock);
     return fd_err(fd_BindError,"SSET!",NULL,var);}
 }
 
@@ -173,9 +173,9 @@ static fd_lispenv init_static_env
 static fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
 {
   int i=0;
-  struct FD_ENVIRONMENT *e=u8_malloc(sizeof(struct FD_ENVIRONMENT));
-  fdtype *vars=u8_malloc(sizeof(fdtype)*n);
-  fdtype *vals=u8_malloc(sizeof(fdtype)*n);
+  struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
+  fdtype *vars=u8_alloc_n(n,fdtype);
+  fdtype *vals=u8_alloc_n(n,fdtype);
   fdtype schemap=fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals);
   while (i<n) {vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
   FD_INIT_CONS(e,fd_environment_type);
@@ -287,8 +287,8 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       inner_env=make_dynamic_env(n,env);
       bindings=inner_env->bindings; sm=(struct FD_SCHEMAP *)bindings;
       vars=sm->schema; vals=sm->values;
-      updaters=u8_malloc(sizeof(fdtype)*n);
-      tmp=u8_malloc(sizeof(fdtype)*n);}
+      updaters=u8_alloc_n(n,fdtype);
+      tmp=u8_alloc_n(n,fdtype);}
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals; updaters=_updaters; tmp=_tmp;}
@@ -386,7 +386,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       /* This code handles argument defaults for sprocs */
       int i=0;
       free_vals=1; bindings.values=vals=
-		     u8_malloc(sizeof(fdtype)*fn->n_vars); ;
+		     u8_alloc_n(fn->n_vars,fdtype); ;
       {FD_DOLIST(arg,fn->arglist)
 	 if (i<n) {vals[i]=args[i]; i++;}
 	 else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
@@ -399,7 +399,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   else { /* We have a lexpr */
     int i=0, j=n-1;
     if (fn->n_vars>6) {
-      vals=u8_malloc(sizeof(fdtype)*fn->n_vars); free_vals=1;}
+      vals=u8_alloc_n(fn->n_vars,fdtype); free_vals=1;}
     bindings.values=vals;
     {FD_DOLIST(arg,fn->arglist)
        if (i<n) {vals[i]=args[i]; i++;}
@@ -414,14 +414,14 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       j--;}
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
-  if (fn->synchronized) fd_lock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_lock_struct(fn);
   result=eval_body(fn->body,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if (FD_ABORTP(result)) {
     if (fn->filename) result=fd_passerr(result,sproc_id(fn));}
   /* If we're synchronized, unlock the mutex. */
-  if (fn->synchronized) fd_unlock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_unlock_struct(fn);
   fd_destroy_mutex(&(bindings.lock));
   fd_decref(lexpr_arg);
   if (free_vals) u8_free(vals);
@@ -442,7 +442,7 @@ static fdtype make_sproc(u8_string name,
 {
   int i=0, n_vars=0, min_args=0;
   fdtype scan=arglist;
-  struct FD_SPROC *s=u8_malloc_type(struct FD_SPROC);
+  struct FD_SPROC *s=u8_alloc(struct FD_SPROC);
   FD_INIT_CONS(s,fd_sproc_type);
   s->name=((name) ? (u8_strdup(name)) : (NULL));
   while (FD_PAIRP(scan)) {
@@ -457,7 +457,7 @@ static fdtype make_sproc(u8_string name,
   s->handler.fnptr=NULL;
   s->typeinfo=NULL; 
   if (n_vars)
-    s->schema=u8_malloc(sizeof(fdtype)*(n_vars+1));
+    s->schema=u8_alloc_n((n_vars+1),fdtype);
   else s->schema=NULL;
   s->defaults=NULL;
   s->body=fd_incref(body); s->arglist=fd_incref(arglist);
@@ -496,8 +496,7 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
     fd_decref((fdtype)sproc->env->copy);}
   if (sproc->synchronized) fd_destroy_mutex(&(sproc->lock));
   if (sproc->filename) u8_free(sproc->filename);
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(sproc,sizeof(struct FD_SPROC));
+  if (FD_MALLOCD_CONSP(c)) u8_free(sproc);
 }
 
 static int unparse_sproc(u8_output out,fdtype x)
@@ -523,7 +522,7 @@ FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
 {
   int xftype=FD_PRIM_TYPE(xformer);
   if ((xftype<FD_TYPE_MAX) && (fd_applyfns[xftype])) {
-    struct FD_MACRO *s=u8_malloc_type(struct FD_MACRO);
+    struct FD_MACRO *s=u8_alloc(struct FD_MACRO);
     FD_INIT_CONS(s,fd_macro_type);
     s->name=((name) ? (u8_strdup(name)) : (NULL));
     s->transformer=fd_incref(xformer);
@@ -552,8 +551,7 @@ FD_EXPORT void recycle_macro(struct FD_CONS *c)
   struct FD_MACRO *mproc=(struct FD_MACRO *)c;
   if (mproc->name) u8_free(mproc->name);
   fd_decref(mproc->transformer);
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(mproc,sizeof(struct FD_MACRO));
+  if (FD_MALLOCD_CONSP(c)) u8_free(mproc);
 }
 
 static int unparse_macro(u8_output out,fdtype x)
@@ -671,7 +669,7 @@ fdtype fd_xapply_sproc
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
   if (fn->n_vars>=12)
-    bindings.values=vals=u8_malloc(sizeof(fdtype)*fn->n_vars);
+    bindings.values=vals=u8_alloc_n(fn->n_vars,fdtype);
   else bindings.values=vals=_vals;
   while (FD_PAIRP(arglist)) {
     fdtype argspec=FD_CAR(arglist), argname=FD_VOID, argval;
@@ -703,14 +701,14 @@ fdtype fd_xapply_sproc
     else vals[i++]=argval;}
   assert(i==fn->n_vars);
   /* If we're synchronized, lock the mutex. */
-  if (fn->synchronized) fd_lock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_lock_struct(fn);
   result=eval_body(fn->body,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if (FD_ABORTP(result)) {
     if (fn->filename) result=fd_passerr(result,sproc_id(fn));}
   /* If we're synchronized, unlock the mutex. */
-  if (fn->synchronized) fd_unlock_mutex(&(fn->lock));
+  if (fn->synchronized) fd_unlock_struct(fn);
   {
     int j=0; while (j<i) {fd_decref(vals[j]); j++;}
     if (vals!=_vals) u8_free(vals);}

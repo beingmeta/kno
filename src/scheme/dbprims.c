@@ -42,7 +42,7 @@ static fdtype xfind_frames_lexpr(int n,fdtype *args)
 {
   int i=1; while (i<n)
     if (FD_EMPTY_CHOICEP(args[i+1])) {
-      fdtype *slotvals=u8_malloc(sizeof(fdtype)*(n)), results;
+      fdtype *slotvals=u8_alloc_n((n),fdtype), results;
       int j=0; i=1; while (i<n)
 	if (FD_EMPTY_CHOICEP(args[i+1])) i=i+2;
 	else {
@@ -308,7 +308,7 @@ static fdtype unlockoids(fdtype oids,fdtype commitp)
 
 static fdtype make_compound_index(int n,fdtype *args)
 {
-  fd_index *sources=u8_malloc(sizeof(fd_index)*8);
+  fd_index *sources=u8_alloc_n(8,fd_index);
   int n_sources=0, max_sources=8;
   int i=0; while (i<n) {
     FD_DO_CHOICES(source,args[i]) {
@@ -321,7 +321,7 @@ static fdtype make_compound_index(int n,fdtype *args)
 	else if (FD_INDEXP(val)) ix=fd_lisp2index(source);}
       if (ix) {
 	if (n_sources>=max_sources) {
-	  sources=u8_realloc(sources,sizeof(fd_index)*(max_sources+8));
+	  sources=u8_realloc_n(sources,max_sources+8,fd_index);
 	  max_sources=max_sources+8;}
 	sources[n_sources++]=ix;}
       else {

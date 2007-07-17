@@ -208,7 +208,7 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
     fdtype content=fd_get(xml,content_slotid,FD_VOID);
     if (FD_VOIDP(content)) return FD_EMPTY_CHOICE;
     else {
-      struct FD_KEYVAL *kv=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+      struct FD_KEYVAL *kv=u8_alloc_n(2,struct FD_KEYVAL);
       /* This generates a "blank node" which generates its content
 	 without any container. */
       kv[0].key=rawname_slotid; kv[0].value=pblank_symbol;
@@ -602,7 +602,7 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
 FD_EXPORT
 struct FD_XML *fd_read_fdxml(u8_input in,int bits)
 {
-  struct FD_XML *xml=u8_malloc(sizeof(struct FD_XML)), *retval;
+  struct FD_XML *xml=u8_alloc(struct FD_XML), *retval;
   fd_lispenv working_env=fd_working_environment();
   fd_bind_value(xml_env_symbol,(fdtype)fdxml_module,working_env);
   fd_init_xml_node(xml,NULL,"top");
@@ -746,7 +746,7 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
   int len=0, n=0, i=0;
   fdtype _v[16], *v, result=FD_EMPTY_CHOICE;
   {FD_DOLIST(elt,body) len++;}
-  if (len<16) v=_v; else v=u8_malloc(sizeof(fdtype)*len);
+  if (len<16) v=_v; else v=u8_alloc_n(len,fdtype);
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body)
       if (FD_STRINGP(elt)) {}
@@ -832,7 +832,7 @@ static fdtype iter_var;
 /* These are for returning binding information in the backtrace. */
 static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+  struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   return fd_init_slotmap(NULL,2,keyvals);
@@ -840,7 +840,7 @@ static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*3);
+  struct FD_KEYVAL *keyvals=u8_alloc_n(3,struct FD_KEYVAL);
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   keyvals[2].key=xvar; keyvals[2].value=fd_incref(xval);
@@ -849,13 +849,13 @@ static fdtype iterenv2
 
 static fdtype retenv1(fdtype var,fdtype val)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL));
+  struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   return fd_init_slotmap(NULL,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+  struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
   return fd_init_slotmap(NULL,2,keyvals);
@@ -1029,7 +1029,7 @@ static fdtype index_symbol, with_symbol, slot_symbol, value_symbol;
 static fdtype fdxml_find(fdtype expr,fd_lispenv env)
 {
   fdtype index_arg=fdxml_get(expr,index_symbol,env), results;
-  fdtype *slotvals=u8_malloc(sizeof(fdtype)*16);
+  fdtype *slotvals=u8_alloc_n(16,fdtype);
   fdtype content=fd_get(expr,content_slotid,FD_EMPTY_LIST);
   int i=0, n=0, lim=16;
   FD_DOLIST(elt,content) {
@@ -1038,7 +1038,7 @@ static fdtype fdxml_find(fdtype expr,fd_lispenv env)
       fdtype slotid=fdxml_get(expr,slot_symbol,env);
       fdtype slotval=fdxml_get(expr,value_symbol,env);
       if (n>=lim) {
-	slotvals=u8_realloc(slotvals,sizeof(fdtype)*lim*2);
+	slotvals=u8_realloc_n(slotvals,lim*2,fdtype);
 	lim=lim*2;}
       slotvals[n++]=slotid; slotvals[n++]=slotval;}}
   if (FD_VOIDP(index_arg))

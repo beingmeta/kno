@@ -210,12 +210,12 @@ static fdtype getwords(u8_string string)
 static fdtype getwordsv(u8_string string)
 {
   int n=0, max=8;
-  fdtype *wordsv=u8_malloc(sizeof(fdtype)*max);
+  fdtype *wordsv=u8_alloc_n(max,fdtype);
   u8_string start=skip_notword(string);
   while (start) {
     u8_string end=skip_word(start);
     if (n>=max) {
-      wordsv=u8_realloc(wordsv,sizeof(fdtype)*max*2);
+      wordsv=u8_realloc_n(wordsv,max*2,fdtype);
       max=max*2;}
     if ((end) && (start<end))
       wordsv[n++]=fd_extract_string(NULL,start,end);
@@ -247,14 +247,14 @@ static fdtype getwordspunct(u8_string string)
 static fdtype getwordspunctv(u8_string string)
 {
   int n=0, max=8;
-  fdtype *wordsv=u8_malloc(sizeof(fdtype)*max);
+  fdtype *wordsv=u8_alloc_n(max,fdtype);
   u8_string start=skip_whitespace(string);
   while (start) {
     u8_string scan=start, end;
     int c=egetc(&scan);
     if (c<0) break;
     else if (n>=max) {
-      wordsv=u8_realloc(wordsv,sizeof(fdtype)*max*2);
+      wordsv=u8_realloc_n(wordsv,max*2,fdtype);
       max=max*2;}
     if (u8_ispunct(c)) end=skip_punct(start);
     else end=skip_word(start);
@@ -595,7 +595,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
     if (FD_FIXNUMP(elt)) i++;
     else return fd_type_error(_("column width"),"columnize_prim",elt);}
   if (FD_SEQUENCEP(parse)) parselen=fd_seq_length(parselen);
-  fields=u8_malloc(sizeof(fdtype)*n_fields);
+  fields=u8_alloc_n(n_fields,fdtype);
   buf=u8_malloc(FD_STRLEN(string)+1);
   while (field<n_fields) {
     fdtype parsefn;

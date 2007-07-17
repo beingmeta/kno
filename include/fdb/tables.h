@@ -343,9 +343,10 @@ FD_EXPORT fdtype _fd_schemap_test
 
 /* Hashtables */
 
-struct FD_HASHENTRY {
+typedef struct FD_HASHENTRY {
   int n_keyvals;
-  struct FD_KEYVAL keyval0;};
+  struct FD_KEYVAL keyval0;} FD_HASHENTRY;
+typedef struct FD_HASHENTRY *fd_hashentry;
 
 typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;

@@ -24,7 +24,7 @@ static fdtype iter_var;
 /* These are for returning binding information in the backtrace. */
 static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+  struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   return fd_init_slotmap(NULL,2,keyvals);
@@ -32,7 +32,7 @@ static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*3);
+  struct FD_KEYVAL *keyvals=u8_alloc_n(3,struct FD_KEYVAL);
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   keyvals[2].key=xvar; keyvals[2].value=fd_incref(xval);
@@ -420,7 +420,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
   fdtype *vec; int i=0;
   tmp.expr=fd_car(fd_cdr(expr)); tmp.env=env; tmp.value=FD_VOID;
   fd_tracked_ipeval_call((fd_ipevalfn)ipeval_step,&tmp,&records,&n_cycles,&total_time);
-  vec=u8_malloc(sizeof(fdtype)*n_cycles);
+  vec=u8_alloc_n(n_cycles,fdtype);
   i=0; while (i<n_cycles) {
     struct FD_IPEVAL_RECORD *record=&(records[i]);
     vec[i++]=

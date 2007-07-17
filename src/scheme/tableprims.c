@@ -58,9 +58,9 @@ static fdtype reset_hashtable(fdtype table,fdtype n_slots)
 static fdtype static_hashtable(fdtype table)
 {
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
-  fd_lock_mutex(&(ht->lock));
+  fd_lock_struct(ht);
   ht->modified=-1;
-  fd_unlock_mutex(&(ht->lock));
+  fd_unlock_struct(ht);
   return fd_incref(table);
 }
 
@@ -473,7 +473,7 @@ static fdtype hashsetelts(fdtype hs)
 
 static fdtype choice2hashset(fdtype arg)
 {
-  struct FD_HASHSET *h=u8_malloc(sizeof(struct FD_HASHSET));
+  struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
   int size=3*FD_CHOICE_SIZE(arg);
   fd_init_hashset(h,((size<17) ? (17) : (size)));
   {FD_DO_CHOICES(elt,arg) fd_hashset_add(h,elt);}

@@ -65,7 +65,7 @@ FD_EXPORT void fd_init_pool_delays()
   int i=0;
   fdtype *delays= (fdtype *) u8_tld_get(fd_pool_delays_key);
   if (delays) return;
-  delays=u8_malloc(sizeof(fdtype)*FD_N_POOL_DELAYS);
+  delays=u8_alloc_n(FD_N_POOL_DELAYS,fdtype);
   while (i<FD_N_POOL_DELAYS) delays[i++]=FD_EMPTY_CHOICE;
   u8_tld_set(fd_pool_delays_key,delays);
 }
@@ -78,7 +78,7 @@ FD_EXPORT void fd_init_pool_delays()
 {
   int i=0;
   if (fd_pool_delays) return;
-  fd_pool_delays=u8_malloc(sizeof(fdtype)*FD_N_POOL_DELAYS);
+  fd_pool_delays=u8_alloc_n(FD_N_POOL_DELAYS,fdtype);
   while (i<FD_N_POOL_DELAYS) fd_pool_delays[i++]=FD_EMPTY_CHOICE;
 }
 #endif
@@ -132,13 +132,13 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   int baseindex=fd_get_oid_base_index(p->base,1);
   if (p->serialno>=0) return 0;
   else if (baseindex<0) return baseindex;
-  fd_lock_mutex(&(pool_registry_lock));
+  fd_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
   serial_no=p->serialno=pool_serial_count++; fd_n_pools++;
   pool_serial_table[serial_no]=p;
   if ((capacity>=FD_TOP_POOL_SIZE) && ((p->base)%FD_TOP_POOL_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",u8_strdup(p->cid),FD_VOID);
-    fd_unlock_mutex(&(pool_registry_lock));
+    fd_unlock_mutex(&pool_registry_lock);
     return -1;}
   if (capacity>=FD_TOP_POOL_SIZE) {
     int i=0, lim=capacity/FD_TOP_POOL_SIZE;
@@ -147,11 +147,11 @@ FD_EXPORT int fd_register_pool(fd_pool p)
       FD_OID base=FD_OID_PLUS(p->base,(FD_TOP_POOL_SIZE*i));
       int baseid=fd_get_oid_base_index(base,1);
       if (baseid<0) {
-	fd_unlock_mutex(&(pool_registry_lock));
+	fd_unlock_mutex(&pool_registry_lock);
 	return -1;}
       else if (fd_top_pools[baseid]) {
 	pool_conflict(p,fd_top_pools[baseid]);
-	fd_unlock_mutex(&(pool_registry_lock));
+	fd_unlock_mutex(&pool_registry_lock);
 	return -1;}
       else fd_top_pools[baseid]=p;
       i++;}}
@@ -161,10 +161,10 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     add_to_gluepool(gluepool,p);}
   else if (fd_top_pools[baseindex]->capacity) {
     pool_conflict(p,fd_top_pools[baseindex]);
-    fd_unlock_mutex(&(pool_registry_lock));
+    fd_unlock_mutex(&pool_registry_lock);
     return -1;}
   else add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[baseindex],p);
-  fd_unlock_mutex(&(pool_registry_lock));
+  fd_unlock_mutex(&pool_registry_lock);
   if (p->label) {
     u8_byte *dot=strchr(p->label,'.');
     fdtype pkey, probe;
@@ -185,7 +185,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
 
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
 {
-  struct FD_GLUEPOOL *pool=u8_malloc(sizeof(struct FD_GLUEPOOL));
+  struct FD_GLUEPOOL *pool=u8_alloc(struct FD_GLUEPOOL);
   pool->base=base; pool->capacity=0; pool->read_only=1;
   pool->serialno=fd_get_oid_base_index(base,1);
   pool->label="gluepool"; pool->source=NULL;
@@ -199,7 +199,7 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
 static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
 {
   if (gp->n_subpools == 0) {
-    struct FD_POOL **pools=u8_malloc(sizeof(struct FD_POOL *));
+    struct FD_POOL **pools=u8_alloc_n(1,fd_pool);
     pools[0]=p; gp->n_subpools=1; gp->subpools=pools;}
   else {
     int comparison;
@@ -217,7 +217,7 @@ static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     /* If there is a conflict, we report it and quit */
     if (comparison==0) {pool_conflict(p,*middle); return;}
     /* Now we make a new vector to copy into */
-    write=new=u8_malloc(sizeof(struct FD_POOL *)*(gp->n_subpools+1));
+    write=new=u8_alloc_n((gp->n_subpools+1),struct FD_POOL *);
     /* Figure out where we should put the new pool */
     if (comparison>0)
       ipoint=write+(middle-gp->subpools)+1;
@@ -339,7 +339,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   else if (FD_CHOICEP(oids)) {
     int i=0, n=FD_CHOICE_SIZE(oids), some_locked=0;
     struct FD_HASHTABLE *cache=&(p->cache), *locks=&(p->locks);
-    fdtype *values, *oidv=u8_malloc(sizeof(fdtype)*n), *write=oidv;
+    fdtype *values, *oidv=u8_alloc_n(n,fdtype), *write=oidv;
     FD_DO_CHOICES(o,oids)
       if ((fd_hashtable_probe_novoid(cache,o)==0) &&
 	  (fd_hashtable_probe_novoid(locks,o)==0))
@@ -421,15 +421,15 @@ int fd_prefetch_oids(fdtype oids)
 	  else if (max_pools==32) {
 	    /* Running out of space for the first time. */
 	    int j=0;
-	    pools=u8_malloc(sizeof(fd_pool)*64);
-	    toget=u8_malloc(sizeof(fdtype)*64);
+	    pools=u8_alloc_n(64,fd_pool);
+	    toget=u8_alloc_n(64,fdtype);
 	    while (j<n_pools) {
 	      pools[j]=_pools[j]; toget[j]=_toget[j]; j++;}
 	    max_pools=64;}
 	  else {
 	    /* Running out of space again. */
-	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
-	    toget=u8_realloc(toget,sizeof(fdtype)*(max_pools+32));
+	    pools=u8_realloc_n(pools,max_pools+32,fd_pool);
+	    toget=u8_realloc_n(toget,max_pools+32,fdtype);
 	    max_pools=max_pools+32;}
 	  pools[i]=p; toget[i]=FD_EMPTY_CHOICE; n_pools++;}
 
@@ -469,14 +469,14 @@ FD_EXPORT int fd_lock_oids(fdtype oids)
 	/* Grow the tables if neccessary */
 	  else if (max_pools==32) {
 	    int j=0;
-	    pools=u8_malloc(sizeof(fd_pool)*64);
-	    tolock=u8_malloc(sizeof(fdtype)*64);
+	    pools=u8_alloc_n(64,fd_pool);
+	    tolock=u8_alloc_n(64,fdtype);
 	    while (j<n_pools) {
 	      pools[j]=_pools[j]; tolock[j]=_tolock[j]; j++;}
 	    max_pools=64;}
 	  else {
-	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
-	    tolock=u8_realloc(tolock,sizeof(fdtype)*(max_pools+32));
+	    pools=u8_realloc_n(pools,max_pools+32,fd_pool);
+	    tolock=u8_realloc_n(tolock,max_pools+32,fdtype);
 	    max_pools=max_pools+32;}
 	/* Now, i is bound to the index for the pools and to gets */
 	FD_ADD_TO_CHOICE(tolock[i],oid);}}
@@ -511,14 +511,14 @@ FD_EXPORT int fd_unlock_oids(fdtype oids,int commit)
 	/* Grow the tables if neccessary */
 	  else if (max_pools==32) {
 	    int j=0;
-	    pools=u8_malloc(sizeof(fd_pool)*64);
-	    tounlock=u8_malloc(sizeof(fdtype)*64);
+	    pools=u8_alloc_n(64,fd_pool);
+	    tounlock=u8_alloc_n(64,fdtype);
 	    while (j<n_pools) {
 	      pools[j]=_pools[j]; tounlock[j]=_tounlock[j]; j++;}
 	    max_pools=64;}
 	  else {
-	    pools=u8_realloc(pools,sizeof(fd_pool)*(max_pools+32));
-	    tounlock=u8_realloc(tounlock,sizeof(fdtype)*(max_pools+32));
+	    pools=u8_realloc_n(pools,max_pools+32,fd_pool);
+	    tounlock=u8_realloc_n(tounlock,max_pools+32,fdtype);
 	    max_pools=max_pools+32;}
 	/* Now, i is bound to the index for the pools and to gets */
 	FD_ADD_TO_CHOICE(tounlock[i],oid);}}
@@ -655,7 +655,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     int n_oids=FD_CHOICE_SIZE(oids), retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(n_oids);
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *owrite=oidv;
-    fdtype *values=u8_malloc(sizeof(fdtype)*n_oids), *vwrite=values;
+    fdtype *values=u8_alloc_n(n_oids,fdtype), *vwrite=values;
     FD_DO_CHOICES(o,oids) {
       fdtype v=fd_hashtable_get(locks,o,FD_VOID);
       if (FD_VOIDP(v)) {}
@@ -1378,7 +1378,7 @@ FD_EXPORT void fd_init_pools_c()
 		     config_get_anonymousok,
 		     config_set_anonymousok,NULL);
   
-  fd_tablefns[fd_raw_pool_type]=u8_malloc_type(struct FD_TABLEFNS);
+  fd_tablefns[fd_raw_pool_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_raw_pool_type]->get=(fd_table_get_fn)raw_pool_get;
   fd_tablefns[fd_raw_pool_type]->keys=(fd_table_keys_fn)raw_pool_keys;
 

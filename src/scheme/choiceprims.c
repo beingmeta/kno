@@ -47,13 +47,13 @@ static fdtype parse_control_spec
 
 static fdtype retenv1(fdtype var,fdtype val)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL));
+  struct FD_KEYVAL *keyvals=u8_alloc(struct FD_KEYVAL);
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   return fd_init_slotmap(NULL,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
-  struct FD_KEYVAL *keyvals=u8_malloc(sizeof(struct FD_KEYVAL)*2);
+  struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
   return fd_init_slotmap(NULL,2,keyvals);
@@ -645,7 +645,7 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
   int i=0; while (i<n)
     if (FD_EMPTY_CHOICEP(nd_args[i])) return FD_FALSE;
     else i++;
-  d_args=u8_malloc((n-1)*sizeof(fdtype));
+  d_args=u8_alloc_n((n-1),fdtype);
   {FD_DO_CHOICES(fcn,nd_args[0])
      if (FD_APPLICABLEP(fcn)) {
        struct FD_FUNCTION *f=(fd_function)fcn;
@@ -702,7 +702,7 @@ static fdtype forall_lexpr(int n,fdtype *nd_args)
   int i=0; while (i<n)
     if (FD_EMPTY_CHOICEP(nd_args[i])) return FD_TRUE;
     else i++;
-  d_args=u8_malloc((n-1)*sizeof(fdtype));
+  d_args=u8_alloc_n(n-1,fdtype);
   {FD_DO_CHOICES(fcn,nd_args[0])
      if (FD_APPLICABLEP(fcn)) {
        struct FD_FUNCTION *f=(fd_function)fcn;
@@ -770,7 +770,7 @@ static fdtype difference_lexpr(int n,fdtype *args)
 static fdtype choice2vector(fdtype x)
 {
   int i=0, n=FD_CHOICE_SIZE(x);
-  fdtype *elts=u8_malloc(sizeof(fdtype)*n);
+  fdtype *elts=u8_alloc_n(n,fdtype);
   FD_DO_CHOICES(elt,x) elts[i++]=fd_incref(elt);
   return fd_init_vector(NULL,i,elts);
 }
@@ -981,7 +981,7 @@ static fdtype apply_keyfn(fdtype x,fdtype keyfn)
   else if (FD_VECTORP(keyfn)) {
     int i=0, len=FD_VECTOR_LENGTH(keyfn);
     fdtype *keyfns=FD_VECTOR_DATA(keyfn);
-    fdtype *vecdata=u8_malloc(sizeof(fdtype)*len);
+    fdtype *vecdata=u8_alloc_n(len,fdtype);
     while (i<len) {vecdata[i]=apply_keyfn(x,keyfns[i]); i++;}
     return fd_init_vector(NULL,len,vecdata);}
   else if ((FD_OIDP(x)) && (FD_SYMBOLP(keyfn)))
@@ -997,8 +997,8 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse)
     return fd_init_vector(NULL,0,NULL);
   else if (FD_CHOICEP(choices)) {
     int i=0, n=FD_CHOICE_SIZE(choices), j=0;
-    fdtype *vecdata=u8_malloc(sizeof(fdtype)*n);
-    struct FD_SORT_ENTRY *sentries=u8_malloc(sizeof(struct FD_SORT_ENTRY)*n);
+    fdtype *vecdata=u8_alloc_n(n,fdtype);
+    struct FD_SORT_ENTRY *sentries=u8_alloc_n(n,struct FD_SORT_ENTRY);
     FD_DO_CHOICES(elt,choices) {
       fdtype value=apply_keyfn(elt,keyfn);
       if (FD_ABORTP(value)) {
@@ -1020,7 +1020,7 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse)
     u8_free(sentries);
     return fd_init_vector(NULL,n,vecdata);}
   else {
-    fdtype *vec=u8_malloc(sizeof(fdtype));
+    fdtype *vec=u8_alloc_n(1,fdtype);
     vec[0]=fd_incref(choices);
     return fd_init_vector(NULL,1,vec);}
 }

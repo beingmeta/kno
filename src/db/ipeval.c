@@ -129,7 +129,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
 				     int *n_cycles,double *total_time)
 {
   int state, saved_state, ipeval_count=1, n_records=16, delays, retval=0;
-  struct FD_IPEVAL_RECORD *records=u8_malloc(16*sizeof(struct FD_IPEVAL_RECORD));
+  struct FD_IPEVAL_RECORD *records=u8_alloc_n(16,struct FD_IPEVAL_RECORD);
   double start, point, exec_time, fetch_time;
 #if FD_GLOBAL_IPEVAL
   if (fd_ipeval_status()>0) 
@@ -162,7 +162,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
       ipeval_done_msg(ipeval_fetch,ipeval_count,fetch_time);
 #endif
     if (ipeval_count>=n_records) {
-      records=u8_realloc(records,sizeof(struct FD_IPEVAL_RECORD)*(n_records+16));
+      records=u8_realloc_n(records,n_records+16,struct FD_IPEVAL_RECORD);
       n_records=n_records+16;}
     records[ipeval_count-1].cycle=ipeval_count;
     records[ipeval_count-1].delays=delays;
@@ -229,7 +229,7 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
       fd_decref((fdtype)cache);
       return result;}
     else if (fd_ipeval_status()==state) {
-      fdtype *datavec=((n) ? (u8_malloc(sizeof(fdtype)*n)) : (NULL));
+      fdtype *datavec=((n) ? (u8_alloc_n(n,fdtype)) : (NULL));
       fdtype key=fd_init_vector(NULL,n,datavec);
       int i=0; while (i<n) {
 	datavec[i]=fd_incref(args[i]); i++;}

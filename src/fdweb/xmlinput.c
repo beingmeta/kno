@@ -161,7 +161,7 @@ static void ns_add(FD_XML *xml,u8_string prefix,u8_string url)
   strcpy(entry+prefix_len+1,url);
   if (xml->size>=xml->limit) {
     int new_limit=((xml->limit) ? (2*xml->limit) : (4));
-    xml->nsmap=u8_realloc(xml->nsmap,new_limit*sizeof(u8_string));
+    xml->nsmap=u8_realloc_n(xml->nsmap,new_limit,u8_string);
     xml->limit=new_limit;}
   xml->nsmap[xml->size++]=entry;  
 }
@@ -629,7 +629,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
     else {
-      FD_XML *newnode=u8_malloc(sizeof(struct FD_XML));
+      FD_XML *newnode=u8_alloc(struct FD_XML);
       u8_string name=u8_strdup(elts[0]);
       if ((node->bits&FD_XML_CLOSE_REPEATS) &&
 	  ((strcmp(node->eltname,elts[0])==0))) {

@@ -30,7 +30,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
     else return fdtype_string(exentry->data);
   case EXIF_FORMAT_BYTE: case EXIF_FORMAT_SBYTE: {
     int n=exentry->components, i=0;
-    fdtype *lispdata=u8_malloc(n*sizeof(fdtype));
+    fdtype *lispdata=u8_alloc_n(n,fdtype);
     /* ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent); */
     /* int item_size=exif_format_get_size(exentry->format); */
     unsigned char *exifdata=exentry->data;
@@ -49,7 +49,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_SHORT: case EXIF_FORMAT_SSHORT: {
     int n=exentry->components, i=0;
-    fdtype *lispdata=u8_malloc(n*sizeof(fdtype));
+    fdtype *lispdata=u8_alloc_n(n,fdtype);
     ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
     int item_size=exif_format_get_size(exentry->format);
     unsigned char *exifdata=exentry->data;
@@ -68,7 +68,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_LONG: case EXIF_FORMAT_SLONG: {
     int n=exentry->components, i=0;
-    fdtype *lispdata=u8_malloc(n*sizeof(fdtype));
+    fdtype *lispdata=u8_alloc_(n,fdtype);
     ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
     int item_size=exif_format_get_size(exentry->format);
     unsigned char *exifdata=exentry->data;
@@ -87,7 +87,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_RATIONAL: case EXIF_FORMAT_SRATIONAL: {
     int n=exentry->components, i=0;
-    fdtype *lispdata=u8_malloc(n*sizeof(fdtype));
+    fdtype *lispdata=u8_alloc_n(n,fdtype);
     ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
     int item_size=exif_format_get_size(exentry->format);
     unsigned char *exifdata=exentry->data;

@@ -25,7 +25,7 @@ static fdtype quote_symbol;
 
 FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int arity,int min_arity)
 {
-  struct FD_DTPROC *f=u8_malloc(sizeof(struct FD_DTPROC));
+  struct FD_DTPROC *f=u8_alloc(struct FD_DTPROC);
   FD_INIT_CONS(f,fd_dtproc_type);
   f->name=u8_mkstring("%s/%s",name,server); f->filename=u8_strdup(server);
   f->server=u8_strdup(server); f->fcnsym=fd_intern(name);
@@ -105,7 +105,7 @@ static int server_reconnect(fd_dtproc dtp)
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
-  fd_lock_mutex(&(dtp->lock));
+  fd_lock_struct(dtp);
   if (dtp->stream.fd<0)
     if (open_server(dtp)<0)
       return fd_erreify();
@@ -131,7 +131,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   if (FD_ABORTP(result)) {
     struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)result;
     if (exo->data.cxt==NULL) exo->data.cxt=dtp->server;}
-  fd_unlock_mutex(&(dtp->lock));
+  fd_unlock_struct(dtp);
   return result;
 }
 

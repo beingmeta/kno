@@ -65,7 +65,7 @@ int main(int argc,char **argv)
 {
   FILE *f;
   int i=2, j=0, write_binary=0;
-  fdtype *args=u8_malloc(sizeof(fdtype)*(argc-2)), common;
+  fdtype *args=u8_alloc_n(argc-2,fdtype), common;
   double starttime, inputtime, donetime;
   FD_DO_LIBINIT(fd_init_dtypelib);
   starttime=get_elapsed();

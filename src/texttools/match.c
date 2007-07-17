@@ -301,7 +301,7 @@ static int n_match_operators, limit_match_operators;
 
 static void init_match_operators_table()
 {
-  match_operators=u8_malloc(sizeof(struct FD_TEXTMATCH_OPERATOR)*16);
+  match_operators=u8_alloc_n(16,struct FD_TEXTMATCH_OPERATOR);
   n_match_operators=0; limit_match_operators=16;
 }
 
@@ -315,9 +315,9 @@ void fd_add_match_operator
   while (scan < limit) if (FD_EQ(scan->symbol,sym)) break; else scan++;
   if (scan < limit) {scan->matcher=matcher; return;}
   if (n_match_operators >= limit_match_operators) {
-    match_operators=u8_realloc
-      (match_operators,
-       sizeof(struct FD_TEXTMATCH_OPERATOR)*(limit_match_operators)*2);
+    match_operators=u8_realloc_n
+      (match_operators,(limit_match_operators)*2,
+       struct FD_TEXTMATCH_OPERATOR);
     limit_match_operators=limit_match_operators*2;}
   match_operators[n_match_operators].symbol=sym;
   match_operators[n_match_operators].matcher=matcher;
@@ -1828,7 +1828,7 @@ static fdtype match_char_not_core
     return fd_type_error("string","match_char_not_core",arg1);
   else {
     u8_byte *scan=FD_STRDATA(arg1); int c=u8_sgetc(&scan);
-    break_chars=u8_malloc(sizeof(unsigned int)*FD_STRLEN(arg1));
+    break_chars=u8_alloc_n(FD_STRLEN(arg1),unsigned int);
     while (!(c<0)) {
       if (flags&(FD_MATCH_IGNORE_CASE))
 	break_chars[n_break_chars++]=u8_tolower(c);
@@ -2885,7 +2885,7 @@ int fd_text_match
 FD_EXPORT
 fdtype fd_textclosure(fdtype expr,fd_lispenv env)
 {
-  struct FD_TXCLOSURE *txc=u8_malloc(sizeof(struct FD_TXCLOSURE));
+  struct FD_TXCLOSURE *txc=u8_alloc(struct FD_TXCLOSURE);
   FD_INIT_CONS(txc,fd_txclosure_type);
   txc->pattern=fd_incref(expr); txc->env=fd_copy_env(env);
   return (fdtype) txc;

@@ -22,7 +22,7 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
   fdtype combined=FD_EMPTY_CHOICE;
   int i=0, lim;
-  fd_lock_mutex(&(cix->lock));
+  fd_lock_struct(cix);
   lim=cix->n_indices;
   while (i < lim) {
     fd_index eix=cix->indices[i++];
@@ -37,10 +37,10 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
       value=fd_index_get(eix,key);
     else value=eix->handler->fetch(eix,key);
     if (FD_ABORTP(value)) {
-      fd_decref(combined); fd_unlock_mutex(&(cix->lock));
+      fd_decref(combined); fd_unlock_struct(cix);
       return value;}
     else {FD_ADD_TO_CHOICE(combined,value);}}
-  fd_unlock_mutex(&(cix->lock));
+  fd_unlock_struct(cix);
   return combined;
 }
 
@@ -48,15 +48,15 @@ static int compound_prefetch(fd_index ix,fdtype keys)
 {
   int n_fetches=0, i=0, lim, n=FD_CHOICE_SIZE(keys);
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
-  fdtype *keyv=u8_malloc(sizeof(fdtype)*n);
-  fdtype *valuev=u8_malloc(sizeof(fdtype)*n);
+  fdtype *keyv=u8_alloc_n(n,fdtype);
+  fdtype *valuev=u8_alloc_n(n,fdtype);
   FD_DO_CHOICES(key,keys)
     if (!(fd_hashtable_probe(&(cix->cache),key))) {
       keyv[n_fetches]=key; valuev[n_fetches]=FD_EMPTY_CHOICE; n_fetches++;}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(valuev);
     return 0;}
-  fd_lock_mutex(&(cix->lock));
+  fd_lock_struct(cix);
   lim=cix->n_indices;
   while (i < lim) {
     int j=0; fd_index eix=cix->indices[i];
@@ -64,7 +64,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
       eix->handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
       u8_free(keyv); u8_free(valuev);
-      fd_unlock_mutex(&(cix->lock));
+      fd_unlock_struct(cix);
       return -1;}
     while (j<n_fetches) {
       FD_ADD_TO_CHOICE(valuev[j],values[j]); j++;}
@@ -78,7 +78,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
      is the empty choice. */
   fd_hashtable_iter(&(cix->cache),fd_table_add_empty_noref,n_fetches,keyv,valuev);
   u8_free(keyv); u8_free(valuev);
-  fd_unlock_mutex(&(cix->lock));
+  fd_unlock_struct(cix);
   return n_fetches;
 }
 
@@ -87,22 +87,22 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
   fdtype combined=FD_EMPTY_CHOICE;
   int i=0, lim;
-  fd_lock_mutex(&(cix->lock));
+  fd_lock_struct(cix);
   lim=cix->n_indices;
   while (i < lim) {
     fd_index eix=cix->indices[i++];
     fdtype keys=fd_index_keys(eix);
     if (FD_ABORTP(keys)) {
       fd_decref(combined);
-      fd_unlock_mutex(&(cix->lock));
+      fd_unlock_struct(cix);
       fd_interr(keys);
       return NULL;}
     else {FD_ADD_TO_CHOICE(combined,keys);}}
-  fd_unlock_mutex(&(cix->lock));
+  fd_unlock_struct(cix);
   {
     fdtype simple=fd_simplify_choice(combined);
     int j=0, n_elts=FD_CHOICE_SIZE(simple);
-    fdtype *results=((n>0) ? (u8_malloc(sizeof(fdtype)*n_elts)) : (NULL));
+    fdtype *results=((n>0) ? (u8_alloc_n(n_elts,fdtype)) : (NULL));
     if (n_elts==0) {
       *n=0; return results;}
     else if (n_elts==1) {
@@ -134,7 +134,7 @@ static u8_string get_compound_id(int n,fd_index *indices)
 
 FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices)
 {
-  struct FD_COMPOUND_INDEX *cix=u8_malloc_type(struct FD_COMPOUND_INDEX);
+  struct FD_COMPOUND_INDEX *cix=u8_alloc(struct FD_COMPOUND_INDEX);
   u8_string cid=get_compound_id(n_indices,indices);
   fd_init_index((fd_index)cix,&compoundindex_handler,cid);
   fd_init_mutex(&(cix->lock)); u8_free(cid);
@@ -149,12 +149,11 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     int i=0, n=cix->n_indices;
     while (i < n)
       if (cix->indices[i] == add) {
-	fd_unlock_mutex(&(cix->lock)); return 0;}
+	fd_unlock_struct(cix); return 0;}
       else i++;
     if (cix->indices)
-      cix->indices=
-	u8_realloc(cix->indices,sizeof(fd_index)*(cix->n_indices+1));
-    else cix->indices=u8_malloc(sizeof(fd_index));
+      cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
+    else cix->indices=u8_alloc_n(1,fd_index);
     cix->indices[cix->n_indices++]=add;
     u8_free(cix->cid);
     cix->cid=cix->source=get_compound_id(cix->n_indices,cix->indices);

@@ -110,7 +110,7 @@ FD_EXPORT fd_pool fd_open_dbx_pool(u8_string filename,u8_string dbname)
       fd_seterr(db_strerror(retval),"fd_open_dbx_pool",filename,FD_VOID);
       u8_free(rname);
       return NULL;}
-    dbxp=u8_malloc(sizeof(struct FD_DBX_POOL));
+    dbxp=u8_alloc(struct FD_DBX_POOL);
     fd_init_pool((fd_pool)dbxp,base,capacity,&dbxpool_handler,filename,rname);
     dbxp->dbp=dbp; dbxp->read_only=1;
     dbxp->filename=filename; dbxp->dbname=dbname; u8_free(rname);
@@ -126,19 +126,19 @@ static int dbx_pool_lock(struct FD_DBX_POOL *fp,int use_mutex)
     u8_string rname=u8_realpath(fp->filename,NULL);
     if (dbname) sprintf(namebuf,"%s_pool",dbname);
     else strcpy(namebuf,"pool");
-    u8_lock_mutex(&(fp->mutex));
+    u8_lock_struct(fp);
     if (retval=(dbp->close(dbp,0))) {
       fd_seterr(db_strerror(retval),"dbx_pool_lock",fp->filename,FD_VOID);
-      u8_unlock_mutex(&(fp->mutex));
+      u8_unlock_struct(fp);
       u8_free(rname);
       return -1;}
     if (retval=(dbp->open(dbp,rname,dbname,DB_RECNO,DB_THREAD,0))) {
       fd_seterr(db_strerror(retval),"dbx_pool_lock",fp->filename,FD_VOID);
-      u8_unlock_mutex(&(fp->mutex));
+      u8_unlock_struct(fp);
       u8_free(rname);
       return -1;}
     fp->locked=1;
-    u8_unlock_mutex(&(fp->mutex));
+    u8_unlock_struct(fp);
     return 1;}
 }
 
@@ -149,19 +149,19 @@ static int dbx_pool_unlock(struct FD_DBX_POOL *fp,int use_mutex)
     u8_string rname=u8_realpath(fp->filename,NULL);
     if (dbname) sprintf(namebuf,"%s_pool",dbname);
     else strcpy(namebuf,"pool");
-    u8_lock_mutex(&(fp->mutex));
+    u8_lock_struct(fp);
     if (retval=(dbp->close(dbp,0))) {
       fd_seterr(db_strerror(retval),"dbx_pool_unlock",fp->filename,FD_VOID);
-      u8_unlock_mutex(&(fp->mutex));
+      u8_unlock_struct(fp);
       u8_free(rname);
       return -1;}
     if (retval=(dbp->open(dbp,rname,dbname,DB_RECNO,DB_RDONLY|DB_THREAD,0))) {
       fd_seterr(db_strerror(retval),"dbx_pool_unlock",fp->filename,FD_VOID);
-      u8_unlock_mutex(&(fp->mutex));
+      u8_unlock_struct(fp);
       u8_free(rname);
       return -1;}
     fp->locked=1;
-    u8_unlock_mutex(&(fp->mutex));
+    u8_unlock_struct(fp);
     return 1;}
   else return 0;
 }
@@ -173,12 +173,12 @@ static int dbx_pool_load(fd_pool p)
   else {
     int load; DB *dbp=fp->dbp;
     struct DB_BTREE_STAT *stats;
-    u8_lock_mutex(&(fp->lock));
+    u8_lock_struct(fp);
     if (dbp->stat(dbp,&stats,NULL,DB_RECORDCOUNT)) {
       fd_seterr(db_strerror(retval),"dbx_pool_load",fp->filename,FD_VOID);
-      u8_unlock_mutex(&(fp->lock));
+      u8_unlock_struct(fp);
       return -1;}
-    u8_unlock_mutex(&(fp->lock));
+    u8_unlock_struct(fp);
     return stats->bt_ndata;}
 }
 
@@ -189,21 +189,21 @@ static fdtype dbx_pool_fetch(fd_pool p,fdtype oid)
   FD_OID addr=FD_OID_ADDR(oid); struct FD_BYTE_INPUT in;
   int offset=FD_OID_DIFFERENCE(addr,fp->base);
   DB *dbp=fp->dbp; DBT key, value; db_recno_t loc=offset;
-  u8_lock_mutex(&(fp->lock));
+  u8_lock_struct(fp);
   key.data=&loc; key.size=sizeof(db_recno_t);
   if (retval=(dbp->get(dbp,NULL,&key,&value)))
     if (retval==DB_NOTFOUND) {
-      u8_unlock_mutex(&(fp->lock));
+      u8_unlock_struct(fp);
       return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->cid,oid);}
     else if (retval==DB_KEYEMPTY) {
-      u8_unlock_mutex(&(fp->lock));
+      u8_unlock_struct(fp);
       return FD_VOID;}
     else {
-      u8_unlock_mutex(&(fp->lock));
+      u8_unlock_struct(fp);
       return fd_err(db_strerror(retval),"dbx_pool_fetch",fp->cid,oid);}
   FD_INIT_BYTE_INPUT(&in,value.data,value.size);
   result=fd_read_dtype(&in);
-  u8_unlock_mutex(&(fp->lock));
+  u8_unlock_struct(fp);
   return result;
 }
 
@@ -224,13 +224,13 @@ static fdtype *dbx_pool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FETCH_SCHEDULE *schedule; fdtype *values;
   FD_OID base=fp->base;
   DB *dbp=fp->dbp; DBC *cursor; int retval;
-  u8_lock_mutex(&(fp->lock));
+  u8_lock_struct(fp);
   if (retval=(dbp->cursor(dbp,NULL,&cursor,0))) {
     fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,FD_VOID);
-    u8_unlock_mutex(&(fp->lock));
+    u8_unlock_struct(fp);
     return NULL;}
-  schedule=u8_malloc(sizeof(struct FETCH_SCHEDULE)*n);
-  values=u8_malloc(sizeof(fdtype)*n);
+  schedule=u8_alloc_n(n,struct FETCH_SCHEDULE);
+  values=u8_alloc_n(n,fdtype);
   {int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       schedule[i].oid=oids[i]; schedule[i].serial=i;
@@ -244,7 +244,7 @@ static fdtype *dbx_pool_fetchn(fd_pool p,int n,fdtype *oids)
       recno=schedule[i].offset;
       if (retval=(dbc->c_get(dbc,&key,&value,0))) {
 	fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,oids[schedule[i].serial]);
-	u8_unlock_mutex(&(fp->lock));
+	u8_unlock_struct(fp);
 	return NULL;}
       else {
 	FD_INIT_BYTE_INPUT(in,value.data,value.size);
@@ -252,7 +252,7 @@ static fdtype *dbx_pool_fetchn(fd_pool p,int n,fdtype *oids)
 	values[schedule[i].serial]=result;}
       i++;}}
   dbc->c_close(dbc);
-  u8_unlock_mutex(&(fp->lock));
+  u8_unlock_struct(fp);
   u8_free(schedule);
   return values;
 }
@@ -264,13 +264,13 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   FD_OID base=fp->base;
   DB *dbp=fp->dbp; DBC *cursor; int retval;
   struct FD_BYTE_OUTPUT out;
-  u8_lock_mutex(&(fp->lock));
+  u8_lock_struct(fp);
   if (retval=(dbp->cursor(dbp,NULL,&cursor,0))) {
     fd_seterr(db_strerror(retval),"dbx_pool_storen",fp->filename,FD_VOID);
-    u8_unlock_mutex(&(fp->lock));
+    u8_unlock_struct(fp);
     return NULL;}
-  schedule=u8_malloc(sizeof(struct FETCH_SCHEDULE)*n);
-  values=u8_malloc(sizeof(fdtype)*n);
+  schedule=u8_alloc_n(n,struct FETCH_SCHEDULE);
+  values=u8_alloc_n(n,fdtype);
   FD_INIT_BYTE_OUTPUT(&out,4096,NULL);
   {int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
@@ -285,19 +285,19 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       recno=schedule[i].offset;
       out.ptr=out.start;
       if (fd_write_dtype(&out,values[schedule[i].serial])<0) {
-	u8_unlock_mutex(&(fp->lock));
+	u8_unlock_struct(fp);
 	u8_free(schedule);
 	u8_free(values);
 	return NULL;}
       value.data=out.start; value.size=out.ptr-out.start;
       if (retval=(dbc->c_put(dbc,&key,&value,0))) {
 	fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,oids[schedule[i].serial]);
-	u8_unlock_mutex(&(fp->lock));
+	u8_unlock_struct(fp);
 	u8_free(schedule);
 	u8_free(values);
 	return NULL;}
       i++;}}
-  u8_unlock_mutex(&(fp->lock));
+  u8_unlock_struct(fp);
   dbc->c_close(dbc);
   u8_free(schedule);
   return values;
@@ -307,7 +307,7 @@ static fdtype dbx_pool_alloc(fd_pool p,int n)
 {
   fdtype results=FD_EMPTY_CHOICE; int i=0;
   struct FD_DBX_POOL *fp=(struct FD_FILE_POOL *)p;
-  u8_lock_mutex(&(fp->lock));
+  u8_lock_struct(fp);
   if (!(FD_DBXPOOL_LOCKED(fp))) dbx_pool_lock(fp,0);
   if (!(FD_DBXPOOL_LOCKED(fp)))
     return fd_erreify();
@@ -315,7 +315,7 @@ static fdtype dbx_pool_alloc(fd_pool p,int n)
     int retval; unsigned int offset;
     DBT key, value; value.data=NULL; value.size=0;
     if (retval=(dbp->put(dbp,key,value,DB_APPEND))) {
-      u8_unlock_mutex(&(fp->lock));
+      u8_unlock_struct(fp);
       fd_decref(results);
       return fd_err(db_strerror(retval),"dbx_pool_storen",fp->filename,FD_VOID);}
     offset=*((unsigned int *)db.data);
@@ -323,7 +323,7 @@ static fdtype dbx_pool_alloc(fd_pool p,int n)
     fdtype new_oid=fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
     i++; fp->load++; fp->n_locks++;}
-  u8_unlock_mutex(&(fp->lock));
+  u8_unlock_struct(fp);
   return results;
 }
 

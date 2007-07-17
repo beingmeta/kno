@@ -1797,7 +1797,7 @@ static int output_bigint(struct U8_OUTPUT *out,fd_bigint bi,int base)
 {
   int n_bytes=fd_bigint_length_in_bytes(bi), n_digits=n_bytes*3;
   unsigned char _digits[128], *digits, *scan;
-  if (n_digits>128) scan=digits=u8_malloc(sizeof(unsigned char)*n_digits);
+  if (n_digits>128) scan=digits=u8_alloc_n(n_digits,unsigned char);
   else scan=digits=_digits;
   if (bigint_test(bi)==fd_bigint_less) {
     base=10; u8_putc(out,'-');}
@@ -1877,8 +1877,7 @@ static int hash_bigint(fdtype x,unsigned int (*fn)(fdtype))
   else if (FD_BIGINTP(rem)) {
     struct FD_CONS *brem=(struct FD_CONS *) rem;
     unsigned long irem=fd_bigint_to_long((fd_bigint)rem);
-    if (FD_MALLOCD_CONSP(brem)) {
-      u8_free_x(brem,sizeof(struct FD_BIGINT));}
+    if (FD_MALLOCD_CONSP(brem)) u8_free(brem);
     if (irem<0) return -irem; else return irem;}
   else return fd_err(_("bad bigint"),"hash_bigint",NULL,x);
 }
@@ -1901,14 +1900,14 @@ static fdtype unpack_bigint(unsigned int n,unsigned char *packet)
 static void recycle_bigint(struct FD_CONS *c)
 {
   if (FD_MALLOCD_CONSP(c)) {
-    u8_free_x(c,sizeof(struct FD_BIGINT));}
+    u8_free(c);}
 }
 
 /* Flonums */
 
 FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum)
 {
-  if (ptr == NULL) ptr=u8_malloc_type(struct FD_DOUBLE);
+  if (ptr == NULL) ptr=u8_alloc(struct FD_DOUBLE);
   FD_INIT_CONS(ptr,fd_double_type);
   ptr->flonum=flonum;
   return FDTYPE_CONS(ptr);
@@ -1963,8 +1962,7 @@ static int dtype_double(struct FD_BYTE_OUTPUT *out,fdtype x)
 
 static void recycle_double(struct FD_CONS *c)
 {
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(c,sizeof(struct FD_DOUBLE));
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static int compare_double(fdtype x,fdtype y,int f)
@@ -2194,7 +2192,7 @@ static fdtype make_complex(fdtype real,fdtype imag)
   if (fd_numcompare(imag,FD_INT2DTYPE(0))==0) {
     fd_decref(imag); return real;}
   else {
-    struct FD_COMPLEX *result=u8_malloc(sizeof(struct FD_COMPLEX));
+    struct FD_COMPLEX *result=u8_alloc(struct FD_COMPLEX);
     FD_INIT_CONS(result,fd_complex_type);
     result->realpart=real; result->imagpart=imag;
     return (fdtype) result;}
@@ -2249,7 +2247,7 @@ static fdtype make_rational(fdtype num,fdtype denom)
       return new_num;
     else {num=new_num; denom=new_denom;}}
   else return fd_err(_("Non integral components"),"fd_make_rational",NULL,num);
-  result=u8_malloc(sizeof(struct FD_RATIONAL));
+  result=u8_alloc(struct FD_RATIONAL);
   FD_INIT_CONS(result,fd_rational_type);
   result->numerator=num;
   result->denominator=denom;

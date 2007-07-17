@@ -42,7 +42,7 @@ static u8_condition SnapshotRestored=_("Snapshot Restored");
 
 static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out)
 {
-  struct FD_PORT *port=u8_malloc_type(struct FD_PORT);
+  struct FD_PORT *port=u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
   port->in=in; port->out=out;
   return FDTYPE_CONS(port);
@@ -96,7 +96,7 @@ static fdtype open_input_file(fdtype fname,fdtype encid)
 static fdtype open_dtype_file(fdtype fname)
 {
   u8_string filename=FD_STRDATA(fname);
-  struct FD_DTSTREAM *dts=u8_malloc(sizeof(struct FD_DTSTREAM));
+  struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
   FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
   if (u8_file_existsp(filename))
     dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
@@ -111,7 +111,7 @@ static fdtype open_dtype_file(fdtype fname)
 static fdtype extend_dtype_file(fdtype fname)
 {
   u8_string filename=FD_STRDATA(fname);
-  struct FD_DTSTREAM *dts=u8_malloc(sizeof(struct FD_DTSTREAM));
+  struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
   FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
   if (u8_file_existsp(filename))
     dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
@@ -210,7 +210,7 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
   if (!(FD_STRINGP(args[0])))
     return fd_type_error("pathname","fdexec_prim",args[0]);
   else {
-    char **argv=u8_malloc(sizeof(char *)*n+2), *filename=u8_tolibc(FD_STRDATA(args[0]));
+    char **argv=u8_alloc_n(n+2,char *), *filename=u8_tolibc(FD_STRDATA(args[0]));
     int i=1, argc=0; pid_t pid;
     if (flags&FD_IS_SCHEME) argv[argc++]=u8_strdup(FD_EXEC);
     argv[argc++]=filename;
@@ -813,7 +813,7 @@ static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime)
       fd_unlock_mutex(&load_record_lock);
       return;}
     else scan=scan->next;
-  scan=u8_malloc(sizeof(struct FD_LOAD_RECORD));
+  scan=u8_alloc(struct FD_LOAD_RECORD);
   scan->filename=filename; scan->env=env; scan->mtime=mtime;
   scan->next=load_records; load_records=scan;
   fd_unlock_mutex(&load_record_lock);
@@ -904,7 +904,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 	time_t mod_time=u8_file_mtime(FD_STRDATA(FD_CAR(entry)));
 	if (mod_time>loadstamp->xtime.u8_secs) {
 	  struct FD_PAIR *pair=(struct FD_PAIR *)entry;
-	  struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+	  struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
 	  FD_INIT_CONS(tstamp,fd_timestamp_type);
 	  u8_localtime(&(tstamp->xtime),mod_time);
 	  fd_decref(pair->cdr);
@@ -932,7 +932,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 	if (mod_time<=last_loaded) return 0;
 	else {
 	  struct FD_PAIR *pair=(struct FD_PAIR *)entry;
-	  struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+	  struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
 	  FD_INIT_CONS(tstamp,fd_timestamp_type);
 	  u8_localtime(&(tstamp->xtime),mod_time);
 	  fd_decref(pair->cdr);
@@ -943,7 +943,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 	return -1;}
     else {
       time_t mod_time=u8_file_mtime(abspath);
-      struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+      struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
       FD_INIT_CONS(tstamp,fd_timestamp_type);
       u8_localtime(&(tstamp->xtime),mod_time);
       entry=fd_init_pair(NULL,fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));

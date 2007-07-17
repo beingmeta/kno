@@ -57,7 +57,7 @@ FD_EXPORT void fd_init_index_delays()
   if (delays) return;
   else {
     int i=0;
-    delays=u8_malloc(sizeof(fdtype)*FD_N_INDEX_DELAYS);
+    delays=u8_alloc_n(FD_N_INDEX_DELAYS,fdtype);
     while (i<FD_N_INDEX_DELAYS) delays[i++]=FD_EMPTY_CHOICE;
     u8_tld_set(index_delays_key,delays);}
 
@@ -69,7 +69,7 @@ FD_EXPORT void fd_init_index_delays()
   if (index_delays) return;
   else {
     int i=0;
-    index_delays=u8_malloc(sizeof(fdtype)*FD_N_INDEX_DELAYS);
+    index_delays=u8_alloc_n(FD_N_INDEX_DELAYS,fdtype);
     while (i<FD_N_INDEX_DELAYS) index_delays[i++]=FD_EMPTY_CHOICE;}
 
 }
@@ -117,9 +117,9 @@ FD_EXPORT void fd_register_index(fd_index ix)
       fd_primary_indices[fd_n_primary_indices++]=ix;}
     else {
       if (fd_secondary_indices) 
-	fd_secondary_indices=u8_realloc
-	  (fd_secondary_indices,sizeof(fd_index)*(fd_n_secondary_indices+1));
-      else fd_secondary_indices=u8_malloc(sizeof(fd_index));
+	fd_secondary_indices=u8_realloc_n
+	  (fd_secondary_indices,fd_n_secondary_indices+1,fd_index);
+      else fd_secondary_indices=u8_alloc_n(1,fd_index);
       ix->serialno=fd_n_secondary_indices+FD_N_PRIMARY_INDICES;
       fd_secondary_indices[fd_n_secondary_indices++]=ix;}
     fd_unlock_mutex(&indices_lock);}
@@ -191,7 +191,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   if (fd_background) 
     fd_add_to_compound_index(fd_background,ix);
   else {
-    fd_index *indices=u8_malloc(sizeof(fd_index));
+    fd_index *indices=u8_alloc_n(1,fd_index);
     indices[0]=ix;
     fd_background=
       (struct FD_COMPOUND_INDEX *)fd_make_compound_index(1,indices);}
@@ -327,7 +327,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  if (write) *write++=key;
 	  else if (FD_VOIDP(singlekey)) singlekey=key;
 	  else {
-	    write=keyvec=u8_malloc(sizeof(fdtype)*FD_CHOICE_SIZE(keys));
+	    write=keyvec=u8_alloc_n(FD_CHOICE_SIZE(keys),fdtype);
 	    write[0]=singlekey; write[1]=key; write=write+2;}
 	fd_decref(set_key);}}
     else {
@@ -336,7 +336,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  if (write) *write++=key;
 	  else if (FD_VOIDP(singlekey)) singlekey=key;
 	  else {
-	    write=keyvec=u8_malloc(sizeof(fdtype)*FD_CHOICE_SIZE(keys));
+	    write=keyvec=u8_alloc_n(FD_CHOICE_SIZE(keys),fdtype);
 	    write[0]=singlekey; write[1]=key; write=write+2;}}
     if (write==NULL)
       if (FD_VOIDP(singlekey)) {}
@@ -853,7 +853,7 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 
 static fdtype *memindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
-  fdtype *results=u8_malloc(sizeof(fdtype)*n);
+  fdtype *results=u8_alloc_n(n,fdtype);
   int i=0; while (i<n) {
     results[i]=fd_hashtable_get(&(ix->cache),keys[i],FD_EMPTY_CHOICE);
     i++;}
@@ -864,7 +864,7 @@ static fdtype *memindex_fetchkeys(fd_index ix,int *n)
 {
   fdtype keys=fd_hashtable_keys(&(ix->cache));
   int n_elts=FD_CHOICE_SIZE(keys);
-  fdtype *result=u8_malloc(sizeof(fdtype)*n_elts);
+  fdtype *result=u8_alloc_n(n_elts,fdtype);
   int j=0;
   FD_DO_CHOICES(key,keys) {result[j++]=key;}
   *n=n_elts;
@@ -884,11 +884,10 @@ static struct FD_KEY_SIZE *memindex_fetchsizes(fd_index ix,int *n)
 {
   if (ix->cache.n_keys) {
     struct FD_KEY_SIZE *sizes, *write; int n_keys;
-    fd_lock_mutex(&(ix->cache.lock));
     n_keys=ix->cache.n_keys;
-    sizes=u8_malloc(sizeof(FD_KEY_SIZE)*n_keys); write=&(sizes[0]);
+    sizes=u8_alloc_n(n_keys,FD_KEY_SIZE); write=&(sizes[0]);
     fd_for_hashtable(&(ix->cache),memindex_fetchsizes_helper,
-		     (void *)write,0);
+		     (void *)write,1);
     *n=n_keys;
     return sizes;}
   else {
@@ -924,7 +923,7 @@ static struct FD_INDEX_HANDLER memindex_handler={
 FD_EXPORT
 fd_index fd_make_mem_index()
 {
-  struct FD_MEM_INDEX *mix=u8_malloc(sizeof(struct FD_MEM_INDEX));
+  struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)mix,&memindex_handler,"ephemeral");
   mix->cache_level=1; mix->read_only=0; mix->flags=FD_INDEX_NOSWAP;
   fd_register_index((fd_index)mix);
@@ -955,7 +954,7 @@ FD_EXPORT void fd_init_indices_c()
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("INDEX"));
     e->parser=index_parsefn;}
 
-  fd_tablefns[fd_index_type]=u8_malloc_type(struct FD_TABLEFNS);
+  fd_tablefns[fd_index_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_index_type]->get=table_indexget;
   fd_tablefns[fd_index_type]->add=table_indexadd;
   fd_tablefns[fd_index_type]->drop=table_indexdrop;

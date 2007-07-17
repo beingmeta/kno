@@ -249,7 +249,7 @@ static int _curl_set_header(CURL *h,u8_string field,u8_string value)
 FD_EXPORT
 struct FD_CURL_HANDLE *fd_open_curl_handle()
 {
-  struct FD_CURL_HANDLE *h=u8_malloc(sizeof(struct FD_CURL_HANDLE));
+  struct FD_CURL_HANDLE *h=u8_alloc(struct FD_CURL_HANDLE);
 #define curl_set(hl,o,v) \
    if (_curl_set("fd_open_curl_handle",hl,o,(void *)v)) return NULL;
 #define curl_set2dtype(hl,o,f,s) \
@@ -307,8 +307,7 @@ static void recycle_curl_handle(struct FD_CONS *c)
   struct FD_CURL_HANDLE *ch=(struct FD_CURL_HANDLE *)c;
   curl_easy_cleanup(ch->handle);
   fd_decref(ch->strings);
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(c,sizeof(struct FD_CURL_HANDLE));
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static int unparse_curl_handle(u8_output out,fdtype x)

@@ -106,7 +106,7 @@ FD_EXPORT
 void fd_register_config_lookup(fdtype (*fn)(fdtype))
 {
   struct FD_CONFIG_LOOKUPS *entry=
-    u8_malloc(sizeof(struct FD_CONFIG_LOOKUPS));
+    u8_alloc(struct FD_CONFIG_LOOKUPS);
   fd_lock_mutex(&config_lookup_lock);
   entry->lookup=fn; entry->next=config_lookupfns;
   config_lookupfns=entry;
@@ -252,7 +252,7 @@ FD_EXPORT int fd_register_config
       break;}
     else scan=scan->next;
   if (scan==NULL) {
-    scan=u8_malloc(sizeof(struct FD_CONFIG_HANDLER));
+    scan=u8_alloc(struct FD_CONFIG_HANDLER);
     scan->var=symbol;
     scan->config_get_method=getfn;
     scan->config_set_method=setfn;
@@ -541,7 +541,7 @@ static FD_ERRDATA *adopt_u8errors()
   struct FD_ERRDATA *head=NULL, *tail=NULL, *current=get_errdata();
   u8_condition cond; u8_context cxt; u8_string details;
   while (u8_poperr(&cond,&cxt,&details)) {
-    struct FD_ERRDATA *newdata=u8_malloc(sizeof(struct FD_ERRDATA));
+    struct FD_ERRDATA *newdata=u8_alloc(struct FD_ERRDATA);
     newdata->cond=cond; newdata->cxt=cxt; newdata->details=details;
     newdata->irritant=FD_VOID;
     if (head==NULL) head=newdata;
@@ -559,7 +559,7 @@ FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
   struct FD_ERRDATA *current=adopt_u8errors();
-  struct FD_ERRDATA *newdata=u8_malloc(sizeof(struct FD_ERRDATA));
+  struct FD_ERRDATA *newdata=u8_alloc(struct FD_ERRDATA);
   newdata->cond=c;
   newdata->cxt=cxt;
   newdata->details=details;
@@ -783,7 +783,7 @@ static struct FD_SOURCE_FILE_RECORD *source_files=NULL;
 FD_EXPORT void fd_register_source_file(u8_string s)
 {
   struct FD_SOURCE_FILE_RECORD *rec=
-    u8_malloc(sizeof(struct FD_SOURCE_FILE_RECORD));
+    u8_alloc(struct FD_SOURCE_FILE_RECORD);
   rec->filename=s; rec->next=source_files;
   source_files=rec;
 }

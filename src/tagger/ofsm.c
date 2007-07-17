@@ -306,7 +306,7 @@ static void grow_inputs(fd_parse_context pc)
   pc->cache=
     realloc(pc->cache,sizeof(fd_parse_state *)*pc->max_n_inputs);
   while (i < pc->max_n_inputs) {
-    fd_parse_state *vec=u8_malloc(sizeof(fd_parse_state)*pc->grammar->n_nodes);
+    fd_parse_state *vec=u8_alloc_n(pc->grammar->n_nodes,fd_parse_state);
     unsigned int j=0; while (j < pc->grammar->n_nodes) vec[j++]=-1;
     pc->cache[i++]=vec;}
 }
@@ -1535,7 +1535,7 @@ fdtype fd_analyze_text
     struct FD_GRAMMAR *grammar=get_default_grammar();
     if (grammar==NULL)
       return fd_err(NoGrammar,"fd_analyze_text",NULL,FD_VOID);
-    pcxt=u8_malloc(sizeof(struct FD_PARSE_CONTEXT));
+    pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
     fd_init_parse_context(pcxt,grammar); 
     free_pcxt=1;}
   fd_parser_set_text(pcxt,text);
@@ -1612,7 +1612,7 @@ fdtype fd_tag_text(struct FD_PARSE_CONTEXT *pcxt,u8_string text)
     fd_grammar grammar=get_default_grammar();
     if (grammar==NULL)
       return fd_err(NoGrammar,"fd_tag_text",NULL,FD_VOID);
-    free_pcxt=1; pcxt=u8_malloc(sizeof(struct FD_PARSE_CONTEXT));
+    free_pcxt=1; pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
     fd_init_parse_context(pcxt,grammar);}
   retval=fd_analyze_text(pcxt,text,tag_text_helper,&result);
   if (FD_ABORTP(retval)) {
@@ -1848,7 +1848,7 @@ FD_EXPORT
 struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
 {
   fdtype nouns, verbs, names, heads, mods, arc_names;
-  struct FD_GRAMMAR *g=u8_malloc(sizeof(struct FD_GRAMMAR));
+  struct FD_GRAMMAR *g=u8_alloc(struct FD_GRAMMAR);
   g->id=u8_strdup(spec);
   g->lexicon=openindexsource(lexdata_source,"lexicon");
   if (g->lexicon==NULL) 
@@ -1866,7 +1866,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   mods=fd_index_get(g->lexicon,mods_symbol);
   {
     int len=g->n_arcs;
-    unsigned char *taginfo=u8_malloc(sizeof(unsigned char)*len);
+    unsigned char *taginfo=u8_alloc_n(len,unsigned char);
     fdtype *data=FD_VECTOR_DATA(g->arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],names)) taginfo[i++]=1; else taginfo[i++]=0;
@@ -1874,7 +1874,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
     fd_decref(names);}
   {
     int len=g->n_arcs;
-    unsigned char *taginfo=u8_malloc(sizeof(unsigned char)*len);
+    unsigned char *taginfo=u8_alloc_n(len,unsigned char);
     fdtype *data=FD_VECTOR_DATA(g->arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],nouns)) taginfo[i++]=1; else taginfo[i++]=0;
@@ -1882,7 +1882,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
     fd_decref(nouns);}
   {
     int len=g->n_arcs;
-    unsigned char *taginfo=u8_malloc(sizeof(unsigned char)*len);
+    unsigned char *taginfo=u8_alloc_n(len,unsigned char);
     fdtype *data=FD_VECTOR_DATA(g->arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],heads)) taginfo[i++]=1; else taginfo[i++]=0;
@@ -1890,7 +1890,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
     fd_decref(heads);}
   {
     int len=g->n_arcs;
-    unsigned char *taginfo=u8_malloc(sizeof(unsigned char)*len);
+    unsigned char *taginfo=u8_alloc_n(len,unsigned char);
     fdtype *data=FD_VECTOR_DATA(g->arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],mods)) taginfo[i++]=1; else taginfo[i++]=0;
@@ -1898,7 +1898,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
     fd_decref(mods);}
   {
     int len=g->n_arcs;
-    unsigned char *taginfo=u8_malloc(sizeof(unsigned char)*len);
+    unsigned char *taginfo=u8_alloc_n(len,unsigned char);
     fdtype *data=FD_VECTOR_DATA(g->arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],verbs)) taginfo[i++]=1; else taginfo[i++]=0;

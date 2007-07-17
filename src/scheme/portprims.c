@@ -40,8 +40,7 @@ static void recycle_port(struct FD_CONS *c)
     u8_close_input(p->in);}
   if (p->out) {
     u8_close_output(p->out);}
-  if (FD_MALLOCD_CONSP(c)) {
-    u8_free_x(c,sizeof(struct FD_PORT));}
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Getting default output */
@@ -105,7 +104,7 @@ FD_INLINE_FCN u8_output get_default_output_port()
 
 static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out)
 {
-  struct FD_PORT *port=u8_malloc_type(struct FD_PORT);
+  struct FD_PORT *port=u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
   port->in=in; port->out=out;
   return FDTYPE_CONS(port);
@@ -154,8 +153,7 @@ static void recycle_dtstream(struct FD_CONS *c)
 {
   struct FD_DTSTREAM *p=(struct FD_DTSTREAM *)c;
   fd_dtsclose(p->dt_stream,p->owns_socket);
-  if (FD_MALLOCD_CONSP(c)) {
-    u8_free_x(c,sizeof(struct FD_DTSTREAM));}
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static fdtype read_dtype(fdtype stream)
@@ -234,7 +232,7 @@ static fdtype zwrite_int(fdtype object,fdtype stream)
 
 static fdtype open_output_string()
 {
-  U8_OUTPUT *out=u8_malloc_type(struct U8_OUTPUT);
+  U8_OUTPUT *out=u8_alloc(struct U8_OUTPUT);
   U8_INIT_OUTPUT(out,256);
   return make_port(NULL,out);
 }
@@ -242,7 +240,7 @@ static fdtype open_output_string()
 static fdtype open_input_string(fdtype arg)
 {
   if (FD_STRINGP(arg)) {
-    U8_INPUT *in=u8_malloc_type(struct U8_INPUT);
+    U8_INPUT *in=u8_alloc(struct U8_INPUT);
     U8_INIT_STRING_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(FD_STRDATA(arg)));
     in->u8_streaminfo=in->u8_streaminfo|U8_STREAM_OWNS_BUF;
     return make_port(in,NULL);}
@@ -716,7 +714,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       if (initial) {
 	u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}}
-    fd_lock_mutex(&(sm->lock));
+    fd_lock_struct(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
@@ -726,7 +724,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    fd_unlock_mutex(&(sm->lock));
+    fd_unlock_struct(sm);
     return col+1;}
   else {
     int startoff=out->u8_outptr-out->u8_outbuf;
@@ -826,7 +824,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_pair=1; 
-    fd_lock_mutex(&(sm->lock));
+    fd_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) {
       if (initial) {
@@ -842,7 +840,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    fd_unlock_mutex(&(sm->lock));
+    fd_unlock_struct(sm);
     return col+1;}
   else {
     int startoff=out->u8_outptr-out->u8_outbuf;
@@ -938,16 +936,16 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(expr);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
-    fd_lock_mutex(&(sm->lock));
+    fd_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->key)) {
-	fd_unlock_mutex(&(sm->lock)); return 1;}
+	fd_unlock_struct(sm); return 1;}
       else if (embeddedp(focus,scan->value)) {
-	fd_unlock_mutex(&(sm->lock)); return 1;}
+	fd_unlock_struct(sm); return 1;}
       else scan++;
-    fd_unlock_mutex(&(sm->lock));
+    fd_unlock_struct(sm);
     return 0;}
   else return 0;
 }

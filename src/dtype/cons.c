@@ -96,26 +96,26 @@ void fd_recycle_cons(struct FD_CONS *c)
 	  fd_decref(x->car); cdr=x->cdr;
 	  if (!(FD_PAIRP(cdr))) {
 	    fd_decref(cdr); break;}
-	  else u8_free_x(x,sizeof(struct FD_PAIR));}
+	  else u8_free(x);}
 	else {
 	  FD_UNLOCK_PTR(x);
 	  u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
     else {
       fd_decref(cdr);
-      if (mallocd) u8_free_x(p,sizeof(struct FD_PAIR));}
+      if (mallocd) u8_free(p);}
     break;}
   case fd_string_type: case fd_packet_type: {
     struct FD_STRING *s=(struct FD_STRING *)c;
-    if (s->bytes) u8_free_x(s->bytes,s->length);
-    if (mallocd) u8_free_x(s,sizeof(struct FD_STRING));
+    if (s->bytes) u8_free(s->bytes);
+    if (mallocd) u8_free(s);
     break;}
   case fd_vector_type: {
     struct FD_VECTOR *v=(struct FD_VECTOR *)c;
     int len=v->length; fdtype *scan=v->data, *limit=scan+len;
     if (scan) {
       while (scan<limit) {fd_decref(*scan); scan++;}
-      u8_free_x(v->data,sizeof(fdtype)*len);}
-    if (mallocd) u8_free_x(v,sizeof(struct FD_VECTOR));
+      u8_free(v->data);}
+    if (mallocd) u8_free(v);
     break;}
   case fd_choice_type: {
     struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
@@ -124,12 +124,12 @@ void fd_recycle_cons(struct FD_CONS *c)
     const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
     if (scan == NULL) break;
     if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
-    if (mallocd) u8_free_x(cv,sizeof(struct FD_CHOICE));
+    if (mallocd) u8_free(cv);
     break;}
   case fd_qchoice_type: {
     struct FD_QCHOICE *qc=(struct FD_QCHOICE *)c;
     fd_decref(qc->choice);
-    if (mallocd) u8_free_x(qc,sizeof(struct FD_QCHOICE));
+    if (mallocd) u8_free(qc);
     break;}
   default: {
     if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
@@ -297,7 +297,7 @@ fdtype fd_deep_copy(fdtype x)
     case fd_vector_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
       fdtype *olddata=v->data;
-      fdtype *newdata=u8_malloc(sizeof(fdtype)*(v->length));
+      fdtype *newdata=u8_alloc_n((v->length),fdtype);
       int i=0, len=v->length; while (i<len) {
 	newdata[i]=fd_deep_copy(olddata[i]); i++;}
       return fd_init_vector(NULL,v->length,newdata);}
@@ -340,7 +340,7 @@ fdtype fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string)
 {
   int len=((slen<0) ? (strlen(string)) : (slen));
-  if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_STRING));
+  if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
   FD_INIT_CONS(ptr,fd_string_type);
   if ((len==0) && (string==NULL)) {
     string=u8_malloc(1); *string='\0';}
@@ -360,7 +360,7 @@ fdtype fd_extract_string
   (struct FD_STRING *ptr,u8_byte *start,u8_byte *end)
 {
   int len=((end==NULL) ? (strlen(start)) : (end-start));
-  if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_STRING));
+  if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->length=len; ptr->bytes=u8_strndup(start,len+1);
   ptr->bytes[len]='\0';
@@ -382,7 +382,7 @@ fdtype fdtype_string(u8_string string)
 
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr)
 {
-  if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_PAIR));
+  if (ptr == NULL) ptr=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(ptr,fd_pair_type);
   ptr->car=car; ptr->cdr=cdr;
   return FDTYPE_CONS(ptr);
@@ -396,7 +396,7 @@ FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr)
 FD_EXPORT fdtype fd_make_list(int len,...)
 {
   va_list args; int i=0;
-  fdtype *elts=u8_malloc(sizeof(fdtype)*len), result=FD_EMPTY_LIST;
+  fdtype *elts=u8_alloc_n(len,fdtype), result=FD_EMPTY_LIST;
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
@@ -409,12 +409,12 @@ FD_EXPORT fdtype fd_make_list(int len,...)
 FD_EXPORT fdtype fd_pmake_list(int len,...)
 {
   va_list args; int i=0;
-  fdtype *elts=u8_malloc(sizeof(fdtype)*len), result=FD_EMPTY_LIST;
+  fdtype *elts=u8_alloc_n(len,fdtype), result=FD_EMPTY_LIST;
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
   i=len-1; while (i>=0) {
-    result=fd_init_pair(u8_malloc(sizeof(struct FD_PAIR)),elts[i],result); i--;}
+    result=fd_init_pair(u8_alloc(struct FD_PAIR),elts[i],result); i--;}
   u8_free(elts);
   return result;
 }
@@ -423,10 +423,10 @@ FD_EXPORT fdtype fd_pmake_list(int len,...)
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
-  if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_VECTOR));
+  if (ptr == NULL) ptr=u8_alloc(struct FD_VECTOR);
   FD_INIT_CONS(ptr,fd_vector_type);
   if ((data == NULL) && (len)) {
-    int i=0; data=u8_malloc(sizeof(fdtype)*len);
+    int i=0; data=u8_alloc_n(len,fdtype);
     while (i < len) data[i++]=FD_VOID;}
   ptr->length=len; ptr->data=data;
   return FDTYPE_CONS(ptr);
@@ -435,7 +435,7 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
 FD_EXPORT fdtype fd_make_vector(int len,...)
 {
   va_list args; int i=0;
-  fdtype *elts=u8_malloc(sizeof(fdtype)*len), result=FD_EMPTY_LIST;
+  fdtype *elts=u8_alloc_n(len,fdtype), result=FD_EMPTY_LIST;
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
@@ -447,7 +447,7 @@ FD_EXPORT fdtype fd_make_vector(int len,...)
 FD_EXPORT fdtype fd_init_packet
   (struct FD_STRING *ptr,int len,unsigned char *data)
 {
-  if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_STRING));
+  if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
     int i=0; data=u8_malloc(len);
@@ -461,7 +461,7 @@ FD_EXPORT fdtype fd_init_packet
 FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *ptr,fdtype tag,fdtype data)
 {
-  if (ptr == NULL) ptr=u8_malloc(sizeof(struct FD_COMPOUND));
+  if (ptr == NULL) ptr=u8_alloc(struct FD_COMPOUND);
   FD_INIT_CONS(ptr,fd_compound_type);
   ptr->tag=tag; ptr->data=data;
   return FDTYPE_CONS(ptr);
@@ -471,8 +471,7 @@ static void recycle_compound(struct FD_CONS *c)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
   fd_decref(compound->tag); fd_decref(compound->data);
-  if (FD_MALLOCD_CONSP(c))
-    u8_free_x(c,sizeof(struct FD_COMPOUND));
+  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static int compare_compounds(fdtype x,fdtype y,int quick)
@@ -502,7 +501,7 @@ FD_EXPORT fdtype fd_make_exception
    u8_string details,fdtype irritant,fdtype backtrace)
 {
   struct FD_EXCEPTION_OBJECT *exo=
-    u8_malloc(sizeof(struct FD_EXCEPTION_OBJECT));
+    u8_alloc(struct FD_EXCEPTION_OBJECT);
   FD_INIT_CONS(exo,fd_exception_type);
   exo->data.next=NULL; exo->data.cond=ex; exo->data.cxt=cxt;
   if (details) exo->data.details=u8_strdup(details);
@@ -517,7 +516,7 @@ FD_EXPORT fdtype fd_err
   (fd_exception ex,u8_context cxt,u8_string details,fdtype irritant)
 {
   struct FD_EXCEPTION_OBJECT *exo=
-    u8_malloc(sizeof(struct FD_EXCEPTION_OBJECT));
+    u8_alloc(struct FD_EXCEPTION_OBJECT);
   FD_INIT_CONS(exo,fd_error_type);
   exo->data.next=NULL; exo->data.cond=ex; exo->data.cxt=cxt;
   if (details) exo->data.details=u8_strdup(details);
@@ -537,13 +536,13 @@ FD_EXPORT fdtype fd_passerr(fdtype err,fdtype context)
     exo->backtrace=fd_init_pair(NULL,context,exo->backtrace);
     return err;}
   else if (FD_TROUBLEP(err)) {
-    struct FD_EXCEPTION_OBJECT *exo=u8_malloc_type(struct FD_EXCEPTION_OBJECT);
+    struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
     exo->data.cond=fd_retcode_to_exception(err); exo->data.cxt=NULL;
     exo->data.details=NULL; exo->data.irritant=FD_VOID;
     exo->backtrace=fd_init_pair(NULL,context,FD_EMPTY_LIST);
     return err;}
   else {
-    struct FD_EXCEPTION_OBJECT *exo=u8_malloc_type(struct FD_EXCEPTION_OBJECT);
+    struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
     exo->data.cond=fd_UnknownError; exo->data.cxt=NULL;
     exo->data.details=NULL; exo->data.irritant=FD_VOID;
     exo->backtrace=fd_init_pair(NULL,context,FD_EMPTY_LIST);
@@ -578,7 +577,7 @@ static void recycle_exception(struct FD_CONS *c)
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
   u8_free(exo->data.details);
   fd_decref(exo->data.irritant); fd_decref(exo->backtrace);
-  u8_free_x(exo,sizeof(struct FD_EXCEPTION_OBJECT));
+  u8_free(exo);
 }
 
 static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
@@ -676,7 +675,7 @@ static void recycle_mystery(struct FD_CONS *c)
   if (myst->code&0x80)
     u8_free(myst->payload.vector);
   else u8_free(myst->payload.packet);
-  u8_free_x(myst,sizeof(struct FD_MYSTERY));
+  u8_free(myst);
 }
 
 /* Registering new primitive types */
@@ -734,7 +733,7 @@ FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol)
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->next;
-  newrec=u8_malloc(sizeof(struct FD_COMPOUND_ENTRY));
+  newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
   newrec->next=fd_compound_entries; newrec->tag=symbol;
   newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
   newrec->tablefns=NULL;
@@ -764,7 +763,7 @@ FD_EXPORT
  */
 fdtype fd_make_timestamp(struct U8_XTIME *tm)
 {
-  struct FD_TIMESTAMP *tstamp=u8_malloc(sizeof(struct FD_TIMESTAMP));
+  struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
   return FDTYPE_CONS(tstamp);
@@ -794,7 +793,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
 
 static fdtype timestamp_parsefn(int n,fdtype *args)
 {
-  struct FD_TIMESTAMP *tm=u8_malloc(sizeof(struct FD_TIMESTAMP));
+  struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
   u8_string timestring;
   FD_INIT_CONS(tm,fd_timestamp_type);
   if ((n==2) && (FD_STRINGP(args[1])))
@@ -808,14 +807,14 @@ static fdtype timestamp_parsefn(int n,fdtype *args)
 
 static void recycle_timestamp(struct FD_CONS *c)
 {
-  u8_free_x(c,sizeof(struct FD_TIMESTAMP));
+  u8_free(c);
 }
 
 static fdtype copy_timestamp(fdtype x)
 {
   struct FD_TIMESTAMP *tm=
     FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
-  struct FD_TIMESTAMP *newtm=u8_malloc_type(struct FD_TIMESTAMP);
+  struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(newtm,fd_timestamp_type);
   memcpy(&(newtm->xtime),&(tm->xtime),sizeof(struct U8_XTIME));
   return FDTYPE_CONS(newtm);
@@ -856,18 +855,18 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
 static fdtype timestamp_restore(fdtype tag,fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    struct FD_TIMESTAMP *tm=u8_malloc_type(struct FD_TIMESTAMP);
+    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),FD_FIX2INT(x),0);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
-    struct FD_TIMESTAMP *tm=u8_malloc_type(struct FD_TIMESTAMP);
+    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),tval,0);
     return FDTYPE_CONS(tm);}
   else if (FD_VECTORP(x)) {
-    struct FD_TIMESTAMP *tm=u8_malloc_type(struct FD_TIMESTAMP);
+    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     int secs=fd_getint(FD_VECTOR_REF(x,0));
     int nsecs=fd_getint(FD_VECTOR_REF(x,1));
     int iprec=fd_getint(FD_VECTOR_REF(x,2));

@@ -31,10 +31,10 @@ int main(int argc,char **argv)
   int lispv=fd_init_dtypelib();
   fdtype fix1=FD_INT2DTYPE(33994);
   fdtype dbl1=fd_init_double(NULL,3.445);
-  fdtype dbl2=fd_init_double(u8_malloc_type(struct FD_DOUBLE),-3.9994);
+  fdtype dbl2=fd_init_double(u8_alloc(struct FD_DOUBLE),-3.9994);
   fdtype string1=fd_init_string(NULL,3,u8_strdup("foo"));
   fdtype string2=fd_init_string
-    (u8_malloc_type(struct FD_STRING),3,u8_strdup("bar"));
+    (u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
   fdtype compound=
     fd_init_compound(NULL,
 		     fd_probe_symbol("QUOTE",5),
