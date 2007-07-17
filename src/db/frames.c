@@ -382,9 +382,9 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	cache=NULL; cached=FD_VOID;}
       else {
 	cache=FD_XHASHTABLE(cachev);
-	cached=fd_hashtable_get(cache,f,FD_VOID);
-	fd_decref(cachev);}
-      if (!(FD_VOIDP(cached))) return cached;
+	cached=fd_hashtable_get(cache,f,FD_VOID);}
+      if (!(FD_VOIDP(cached))) {
+	fd_decref(cachev); return cached;}
       methods=get_slotid_methods(slotid,get_methods);
       /* Methods will be void only if the value of the slotoid isn't a table,
 	 which is typically only the case when it hasn't been fetched yet. */
@@ -394,10 +394,13 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	fdtype value=fd_oid_get(f,slotid,FD_EMPTY_CHOICE);
 	if (FD_EMPTY_CHOICEP(value))
 	  methods=get_slotid_methods(slotid,compute_methods);
-	else return value;}
+	else {
+	  fd_decref(cachev);
+	  return value;}}
       if (FD_VOIDP(methods)) return FD_EMPTY_CHOICE;
-      else if (FD_EXPECT_FALSE(FD_ABORTP(methods))) 
-	return methods;
+      else if (FD_EXPECT_FALSE(FD_ABORTP(methods))) {
+	fd_decref(cachev);
+	return methods;}
       fd_push_opstack(&fop);
       init_dependencies(&fop);
       {FD_DO_CHOICES(method,methods) {
@@ -407,6 +410,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	  value=fd_dapply((fdtype)fn,2,args);
 	  if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
 	    fd_pop_opstack(&fop); fd_decref(computed); fd_decref(methods);
+	    fd_decref(cachev);
 	    return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
 	  FD_ADD_TO_CHOICE(computed,value);}}}
       computed=fd_simplify_choice(computed);
@@ -417,6 +421,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	record_dependencies(&fop,factoid); fd_decref(factoid);
 	u8_free(fop.dependencies);
 	fd_hashtable_store(cache,f,computed);}
+      fd_decref(cachev);
       return computed;}}
   else if (FD_EMPTY_CHOICEP(f)) return FD_EMPTY_CHOICE;
   else {
