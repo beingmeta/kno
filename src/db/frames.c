@@ -109,17 +109,24 @@ FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *op)
 }
 
 /* Pops an entry from the frame operation stack. */
-FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op)
+FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
 {
   struct FD_FRAMEOP_STACK *ops=get_opstack();
   if (ops != op) u8_raise("Corrupted ops stack","fd_pop_opstack",NULL);
-  else {
+  else if (op->dependencies) 
+    if (normal) u8_free(op->dependencies);
+    else {
+      struct FD_DEPENDENCY_RECORD *scan=op->dependencies; 
+      struct FD_DEPENDENCY_RECORD *limit=scan+op->n_deps;
+      while (scan<limit) {
+	fd_decref(scan->frame); fd_decref(scan->slotid); fd_decref(scan->value);
+	scan++;}
+      u8_free(op->dependencies);}
 #if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
-    u8_tld_set(opstack_key,op->next);
+  u8_tld_set(opstack_key,op->next);
 #else
-    opstack=op->next;
+  opstack=op->next;
 #endif
-  }
 }
 
 
@@ -242,7 +249,8 @@ static void init_dependencies(fd_frameop_stack *cxt)
 
 static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdtype value)
 {
-  fd_frameop_stack *scan=cxt; while (scan)
+  fd_frameop_stack *scan=cxt;
+  while (scan)
     if (scan->dependencies) {
       int n=scan->n_deps; struct FD_DEPENDENCY_RECORD *records=NULL;
       if (scan->n_deps>=scan->max_deps) {
@@ -250,7 +258,9 @@ static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdt
 	  u8_realloc_n(scan->dependencies,scan->max_deps*2,struct FD_DEPENDENCY_RECORD);
 	scan->max_deps=scan->max_deps*2;}
       else records=scan->dependencies;
-      records[n].frame=frame; records[n].slotid=slotid; records[n].value=value;
+      records[n].frame=fd_incref(frame);
+      records[n].slotid=fd_incref(slotid);
+      records[n].value=fd_incref(value);
       scan->n_deps=n+1;
       return;}
     else scan=scan->next;
@@ -265,9 +275,8 @@ static void record_dependencies(fd_frameop_stack *cxt,fdtype factoid)
     while (i<n) {
       fdtype depends;
       if (FD_VOIDP(records[i].value))
-	depends=fd_init_pair(NULL,fd_incref(records[i].frame),fd_incref(records[i].slotid));
-      else depends=fd_init_pair(NULL,fd_incref(records[i].frame),
-				fd_init_pair(NULL,fd_incref(records[i].slotid),fd_incref(records[i].value)));
+	depends=fd_init_pair(NULL,records[i].frame,records[i].slotid);
+      else depends=fd_make_list(3,records[i].frame,records[i].slotid,records[i].value);
       factoids[i++]=depends;}
     fd_hashtable_iterkeys(&implications,fd_table_add,n,factoids,factoid);
     i=0; while (i<n) {fd_decref(factoids[i]); i++;}
@@ -399,27 +408,28 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
       else if (FD_EXPECT_FALSE(FD_ABORTP(methods))) {
 	fd_decref(cachev);
 	return methods;}
+      /* At this point, we're computing the slot value */
       fd_push_opstack(&fop);
       init_dependencies(&fop);
       {FD_DO_CHOICES(method,methods) {
-	struct FD_FUNCTION *fn=lookup_method(method);
-	if (fn) {
-	  fdtype args[2], value; args[0]=f; args[1]=slotid;
-	  value=fd_dapply((fdtype)fn,2,args);
-	  if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
-	    fd_pop_opstack(&fop); fd_decref(computed); fd_decref(methods);
-	    if (fop.dependencies) u8_free(fop.dependencies);
-	    fd_decref(cachev);
-	    return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
-	  FD_ADD_TO_CHOICE(computed,value);}}}
+	  struct FD_FUNCTION *fn=lookup_method(method);
+	  if (fn) {
+	    fdtype args[2], value; args[0]=f; args[1]=slotid;
+	    value=fd_dapply((fdtype)fn,2,args);
+	    if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
+	      fd_decref(computed); fd_decref(methods);
+	      fd_pop_opstack(&fop,0);
+	      fd_decref(cachev);
+	      return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
+	    FD_ADD_TO_CHOICE(computed,value);}}}
       computed=fd_simplify_choice(computed);
       fd_decref(methods);
-      fd_pop_opstack(&fop);
       if ((cache) && ((fd_ipeval_status()==ipestate))) {
 	fdtype factoid=fd_init_pair(NULL,fd_incref(f),fd_incref(slotid));
 	record_dependencies(&fop,factoid); fd_decref(factoid);
-	fd_hashtable_store(cache,f,computed);}
-      if (fop.dependencies) u8_free(fop.dependencies);
+	fd_hashtable_store(cache,f,computed);
+	fd_pop_opstack(&fop,1);}
+      else fd_pop_opstack(&fop,0);
       fd_decref(cachev);
       return computed;}}
   else if (FD_EMPTY_CHOICEP(f)) return FD_EMPTY_CHOICE;
@@ -486,19 +496,19 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	    if (fn) {
 	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
-		fd_pop_opstack(&fop); fd_decref(methods);
-		if (fop.dependencies) u8_free(fop.dependencies);
-		fd_decref(cachev);
+		fd_decref(methods); fd_decref(cachev);
+		fd_pop_opstack(&fop,0);
 		return fd_interr(v);}
 	      else if (FD_TRUEP(v)) {
 		result=1; fd_decref(v); break;}
-	      else {}}}}
-	fd_pop_opstack(&fop);}
+	      else {}}}}}
       if ((cache) && (!(fd_ipeval_failp()))) {
 	fdtype factoid=fd_make_list(3,fd_incref(f),fd_incref(slotid),fd_incref(value));
 	if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
-	else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);}
-      if (fop.dependencies) u8_free(fop.dependencies);
+	else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
+	record_dependencies(&fop,factoid); fd_decref(factoid);
+	fd_pop_opstack(&fop,0);}
+      else fd_pop_opstack(&fop,0);
       fd_decref(cachev);
       return result;}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
@@ -529,12 +539,12 @@ FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
 	    if (fn) {
 	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
-		fd_pop_opstack(&fop);
+		fd_pop_opstack(&fop,0);
 		fd_decref(methods);
 		return fd_interr(v);}
 	      else fd_decref(v);}}}
-	  fd_pop_opstack(&fop);
-	  return 1;}}}
+	fd_pop_opstack(&fop,1);
+	return 1;}}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
   else {
     fd_decache(f,slotid,value);
@@ -564,11 +574,11 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 	    if (fn) {
 	      fdtype v=fd_apply((fdtype)fn,3,args);
 	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
-		fd_pop_opstack(&fop);
+		fd_pop_opstack(&fop,0);
 		fd_decref(methods);
 		return fd_interr(v);}
 	      else fd_decref(v);}}}
-	fd_pop_opstack(&fop);
+	fd_pop_opstack(&fop,1);
 	return 1;}}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
   else {

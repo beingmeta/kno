@@ -45,7 +45,7 @@ typedef struct FD_FRAMEOP_STACK fd_frameop_stack;
 
 FD_EXPORT int fd_in_progressp(struct FD_FRAMEOP_STACK *op);
 FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *);
-FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *);
+FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *,int normal);
 
 FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt);
 FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value);
