@@ -1178,11 +1178,10 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   fdtype *results=NULL;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_dtype_stream s=&(hx->stream);
-  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0, key_count=0;
+  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0, key_count=0, bucket_size=0;
   FD_CHUNK_REF *buckets; unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
   fd_lock_struct(hx);
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
-  buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   results=u8_alloc_n(total_keys,fdtype);
   if (hx->offdata==NULL) {
     /* We keep the index locked while we fetch offsets from disk. */
@@ -2033,8 +2032,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_free(schedule);
     u8_free(out.start);
     u8_free(newkeys.start);
-    n_keys=schedule_size;
-  }
+    n_keys=schedule_size;}
   if (fd_acid_files) {
     int i=0; off_t recovery_start;
 #if FD_DEBUG_HASHINDICES
@@ -2061,7 +2059,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDICES
   u8_message("Writing offset data changes");
 #endif
-  update_hash_index_ondisk(hx,hx->hxflags,new_keys,changed_buckets,bucket_locs);
+  update_hash_index_ondisk
+    (hx,hx->hxflags,total_keys,changed_buckets,bucket_locs);
   if (fd_acid_files) {
     off_t end; off_t recovery_pos;
 #if FD_DEBUG_HASHINDICES
@@ -2069,7 +2068,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #endif
     fd_dtsflush(stream); fsync(stream->fd);
     /* Now erase the recovery information, since we don't need it anymore. */
-    end=fd_endpos(stream); fd_movepos(stream,-8); recovery_pos=fd_dtsread_8bytes(stream);
+    end=fd_endpos(stream); fd_movepos(stream,-8);
+    recovery_pos=fd_dtsread_8bytes(stream);
     ftruncate(stream->fd,recovery_pos);}
 
   /* Remap the file */
@@ -2140,8 +2140,9 @@ static int make_offsets_unwritable(fd_hash_index hx)
 }
 #endif
 
-static int update_hash_index_ondisk(fd_hash_index hx,unsigned int flags,unsigned int cur_keys,
-				    unsigned int changed_buckets,struct BUCKET_REF *bucket_locs)
+static int update_hash_index_ondisk
+  (fd_hash_index hx,unsigned int flags,unsigned int cur_keys,
+   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs)
 {
   struct FD_DTYPE_STREAM *stream=&(hx->stream); int i=0; unsigned int *buckets=hx->offdata;
 #if (HAVE_MMAP)
