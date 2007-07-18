@@ -54,7 +54,7 @@
 (define implies @1/2c27e{IMPLIES})
 (define implies* @1/2f201{IMPLIES*})
 (define impliedby @1/2c27f{IMPLIEDBY})
-(define impliedby* @/brico/44c99{IMPLIEDBY*})
+(define impliedby* @1/44c99{IMPLIEDBY*})
 
 (define parts @1/2c275{PARTS})
 (define parts* @1/2c282{PARTS*})
@@ -69,7 +69,7 @@
 (define ingredientof @1/2c277{INGREDIENTOF})
 (define ingredientof* @1/2c285{INGREDIENTOF*})
 (define entails @1/3f65f{ENTAILS})
-(define entailedby @/brico/2b74c{ENTAILEDBY})
+(define entailedby @1/2b74c{ENTAILEDBY})
 (define entails* @1/44c9a{ENTAILS*})
 (define entailedby* @1/44c9b{ENTAILEDBY*})
 
