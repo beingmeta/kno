@@ -68,7 +68,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_LONG: case EXIF_FORMAT_SLONG: {
     int n=exentry->components, i=0;
-    fdtype *lispdata=u8_alloc_(n,fdtype);
+    fdtype *lispdata=u8_alloc_n(n,fdtype);
     ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
     int item_size=exif_format_get_size(exentry->format);
     unsigned char *exifdata=exentry->data;
