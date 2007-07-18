@@ -466,20 +466,19 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	cached=fd_hashtable_get(cache,f,FD_VOID);
 	if (FD_VOIDP(cached)) {
 	  cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
-	  fd_hashtable_store(cache,f,cached);}
-	fd_decref(cachev);}
+	  fd_hashtable_store(cache,f,cached);}}
       if (FD_PAIRP(cached)) {
 	fdtype in=FD_CAR(cached), out=FD_CDR(cached);
 	if (fd_hashset_get(FD_XHASHSET(in),value)) {
-	  fd_decref(cachev);
+	  fd_decref(cached); fd_decref(cachev);
 	  return 1;}
 	else if (fd_hashset_get(FD_XHASHSET(out),value)) {
-	  fd_decref(cachev);
+	  fd_decref(cached); fd_decref(cachev);
 	  return 0;}
 	else methods=get_slotid_methods(slotid,test_methods);}
       else methods=get_slotid_methods(slotid,test_methods);
       if (FD_VOIDP(methods)) {
-	fd_decref(cachev);
+	fd_decref(cached); fd_decref(cachev);
 	return 0;}
       else if (FD_EMPTY_CHOICEP(methods)) {
 	fdtype values=fd_frame_get(f,slotid);
@@ -503,13 +502,15 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 		result=1; fd_decref(v); break;}
 	      else {}}}}}
       if ((cache) && (!(fd_ipeval_failp()))) {
-	fdtype factoid=fd_make_list(3,fd_incref(f),fd_incref(slotid),fd_incref(value));
+	fdtype factoid=fd_make_list(3,fd_incref(f),
+				    fd_incref(slotid),
+				    fd_incref(value));
 	if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
 	else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
 	record_dependencies(&fop,factoid); fd_decref(factoid);
 	fd_pop_opstack(&fop,0);}
       else fd_pop_opstack(&fop,0);
-      fd_decref(cachev);
+      fd_decref(cached); fd_decref(cachev);
       return result;}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
   else {

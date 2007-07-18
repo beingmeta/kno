@@ -167,7 +167,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   fd_unlock_mutex(&pool_registry_lock);
   if (p->label) {
     u8_byte *dot=strchr(p->label,'.');
-    fdtype pkey, probe;
+    fdtype pkey=FD_VOID, probe=FD_VOID;
     if (dot) {
       pkey=fd_extract_string(NULL,p->label,dot);
       probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
