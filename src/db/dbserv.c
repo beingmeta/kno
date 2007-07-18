@@ -759,6 +759,11 @@ static int serve_index(fdtype var,fdtype val,void *data)
   else if (FD_INDEXP(val)) ix=fd_lisp2index(val);
   else if (FD_STRINGP(val)) 
     ix=fd_open_index(FD_STRDATA(val));
+  else if (val==FD_TRUE) 
+    if (fd_background) ix=(fd_index)fd_background;
+    else {
+      u8_warn(_("No background"),"No current background index");
+      return 0;}
   else {}
   if (ix) {
     u8_notify("SERVE_INDEX","Serving index %s",ix->cid);
