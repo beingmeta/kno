@@ -277,6 +277,11 @@
 				 (cdr clause))))
 		    (cddr expr))))
 
+(define (tighten-unwind-protect handler expr env bound dolex)
+  `(,handler ,(dotighten (cadr expr) env bound dolex)
+	     ,@(map (lambda (uwclause) (dotighten uwclause env bound dolex))
+		    (cddr expr))))
+
 ;;; Declare them
 
 (add! special-form-tighteners (choice let letq) tighten-let)
@@ -305,6 +310,8 @@
 (add! special-form-tighteners
       (choice printout lineout stringout message notify)
       tighten-block)
+
+(add! special-form-tighteners unwind-protect tighten-unwind-protect)
 
 (when (bound? fileout)
   (add! special-form-tighteners

@@ -167,6 +167,22 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
 	return retval;}}}
 }
 
+static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
+{
+  fdtype heart=fd_get_arg(uwp,1), unwind=fd_get_body(uwp,2);
+  fdtype result=fd_eval(heart,env);
+  {FD_DOLIST(expr,unwind) {
+      fdtype uw_result=fd_eval(expr,env);
+      if (FD_ABORTP(uw_result))
+	if (FD_ABORTP(result)) {
+	  fd_interr(result); fd_interr(uw_result);
+	  return fd_erreify();}
+	else {
+	  fd_decref(result); result=uw_result; break;}
+      else fd_decref(uw_result);}}
+  return result;
+}
+
 FD_EXPORT void fd_init_exceptions_c()
 {
   fd_register_source_file(versionid);
@@ -180,4 +196,5 @@ FD_EXPORT void fd_init_exceptions_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1x("EXCEPTION-IRRITANT",exception_condition,1,fd_exception_type,FD_VOID));
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);
+  fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_handler);
 }
