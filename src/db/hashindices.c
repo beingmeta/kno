@@ -1182,12 +1182,10 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   FD_CHUNK_REF *buckets; unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
   fd_lock_struct(hx);
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
+  buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   results=u8_alloc_n(total_keys,fdtype);
-  if (hx->offdata==NULL) {
-    /* We keep the index locked while we fetch offsets from disk. */
-    fd_setpos(s,256);}
-  /* But only if we have to. */
-  else fd_unlock_struct(hx);
+  /* If we don't have chunk offsets in memory, we keep the stream locked while we get them. */
+  if (hx->offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
@@ -1245,11 +1243,8 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
   buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   sizes=u8_alloc_n(total_keys,FD_KEY_SIZE);
-  if (hx->offdata==NULL) {
-    /* We keep the index locked while we fetch offsets from disk. */
-    fd_setpos(s,256);}
-  /* But only if we have to. */
-  else fd_unlock_struct(hx);
+  /* If we don't have chunk offsets in memory, we keep the stream locked while we get them. */
+  if (hx->offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
