@@ -37,7 +37,7 @@ int main(int argc,char **argv)
     (u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
   fdtype compound=
     fd_init_compound(NULL,
-		     fd_probe_symbol("QUOTE",5),
+		     fd_probe_symbol("QUOTE",5),1,
 		     fd_make_pair(FD_INT2DTYPE(5),FD_TRUE));
   fdtype vec=fd_make_vector(3,fix1,dbl1,string1);
   fdtype lst=fd_make_list(4,vec,string2,dbl2,compound);
