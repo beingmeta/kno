@@ -19,7 +19,7 @@
    indexer index-concept
    ;; Specialized versions
    index-core index-brico index-wordform
-   index-words index-relations index-lattice
+   index-words index-relations index-lattice index-implies
    basic-concept-frequency concept-frequency use-corpus-frequency
    brico-prefetch! brico-prefetch})
 
@@ -353,10 +353,10 @@
 	(let ((v (if (bound? values) values (get frame slot))))
 	  (when (exists? v)
 	    (doindex index frame slot (list v))
-	    (doindex index frame slot
-		     (if indexinfer
-			 (?? impliedby* v)
-			 (get v implies*)))))))))
+	    (if indexinfer
+		(begin (doindex index frame slot v)
+		       (doindex index frame slot (?? impliedby* v)))
+		(doindex index frame slot (get v implies*)))))))))
 
 (define (index-frame* index frame slot base (inverse #f))
   (do ((g (get frame base) (difference (get g base) seen))
@@ -371,21 +371,29 @@
     (doindex index frame slotid
 	     (choice gloss-words (porter-stem gloss-words)))))
 
+;; These are slotids whose indexed values should include implications
 (define implied-slotids
   '{@1/2c274{PARTOF}
     @1/2c277{INGREDIENT-OF}
     @1/2c279{MEMBER-OF}})
 
+;; These are slotids whose inverses should also be indexed
 (define concept-slotids
-  {@1/2ab4d{DEFTERMS}
-   @1/2ab57{REFTERMS}
-   @1/2b74c{INCLUDES}
-   @1/2c275{PARTS}
+  {@1/3f65f{ENTAILS}
+   @1/2c27e{IMPLIES}
    @1/2c272{GENLS}
    @1/2c273{SPECLS}
+   @1/2c274{PARTOF}
+   @1/2c275{PARTS}
+   @1/2c277{STUFFOF}
    @1/2c276{INGREDIENTS}
+   @1/2c279{MEMBEROF}
    @1/2c278{MEMBERS}
-   @1/2c281{PARTOF*}})
+   @1/2c27d{DISJOINT}
+   @1/2d9e9{=IS=}
+   @1/2ab4d{DEFTERMS}
+   @1/2ab57{REFTERMS}})
+;(define asymmetric-slotids {@1/2ab4d{DEFTERMS} @1/2ab57{REFTERMS}})
 
 (define (index-concept index concept)
   (index-brico index concept)  
@@ -465,9 +473,9 @@
 
 (define (getallvalues concept slotids)
   (choice (%get concept slotids)
-	  (tryif (and (oid? slotid)
-		      (exists? (%get slotid 'slots)))
-		 (getallvalues concept (qc (%get slotid 'slots))))))
+	  (let ((next (difference (%get (pick slotids oid?) 'slots) slotids)))
+	    (tryif (exists? next)
+		   (getallvalues concept (qc next))))))
 
 (define (index-relations index concept)
   (do-choices (slotid implied-slotids)
@@ -475,7 +483,9 @@
 		   (getallvalues concept slotid)))
   (do-choices (slotid concept-slotids)
     (doindex index concept slotid
-	     (getallvalues concept slotid)))
+	     (get concept slotid)
+	     (and (oid? slotid)
+		  (try (get slotid 'inverse) #f))))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store
@@ -490,12 +500,14 @@
     (doindex index (%get concept referenced) refterms concept)))
 
 (define (index-lattice index concept)
-  (index-frame* index concept entails* entails entailed*)
-  (index-frame* index concept implies* implies implied*)
   (index-frame* index concept genls* genls specls*)
   (index-frame* index concept partof* partof parts*)
   (index-frame* index concept memberof* memberof members*)
   (index-frame* index concept ingredientof* ingredientof ingredients*))
+
+(define (index-implies index concept)
+  (index-frame* index concept entails* entails entailedby*)
+  (index-frame* index concept implies* implies impliedby*))
 
 (define (indexer index concept (slotids) (values))
   (if (bound? slotids)
