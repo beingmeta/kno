@@ -101,6 +101,8 @@ FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *op)
 {
   struct FD_FRAMEOP_STACK *ops=get_opstack();
   op->next=ops;
+  op->dependencies=NULL;
+  op->n_deps=op->max_deps=0;
 #if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
   u8_tld_set(opstack_key,op);
 #else
@@ -500,16 +502,16 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 		return fd_interr(v);}
 	      else if (FD_TRUEP(v)) {
 		result=1; fd_decref(v); break;}
-	      else {}}}}}
-      if ((cache) && (!(fd_ipeval_failp()))) {
-	fdtype factoid=fd_make_list(3,fd_incref(f),
-				    fd_incref(slotid),
-				    fd_incref(value));
-	if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
-	else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
-	record_dependencies(&fop,factoid); fd_decref(factoid);
-	fd_pop_opstack(&fop,0);}
-      else fd_pop_opstack(&fop,0);
+	      else {}}}}
+	if ((cache) && (!(fd_ipeval_failp()))) {
+	  fdtype factoid=fd_make_list(3,fd_incref(f),
+				      fd_incref(slotid),
+				      fd_incref(value));
+	  record_dependencies(&fop,factoid); fd_decref(factoid);
+	  fd_pop_opstack(&fop,0);}
+	else fd_pop_opstack(&fop,0);}
+      if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
+      else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
       fd_decref(cached); fd_decref(cachev);
       return result;}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
