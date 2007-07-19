@@ -170,7 +170,7 @@ static fd_lispenv copy_environment(fd_lispenv env)
   return (fd_lispenv) fd_incref((fdtype)dynamic);
 }
 
-static fdtype lisp_copy_environment(fdtype env)
+static fdtype lisp_copy_environment(fdtype env,int deep)
 {
   return (fdtype) copy_environment((fd_lispenv)env);
 }

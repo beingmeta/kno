@@ -49,7 +49,7 @@ static int write_achoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
   return n_bytes;
 }
 
-static fdtype copy_achoice(fdtype x)
+static fdtype copy_achoice(fdtype x,int deep)
 {
   return normalize_choice(x,0);
 }

@@ -297,18 +297,43 @@ FD_EXPORT fdtype fd_make_vector(int len,...);
 
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
-  fdtype tag;
-  fdtype data;} FD_COMPOUND;
+  fdtype tag; int n_elts;
+#if FD_THREADS_ENABLED
+  u8_mutex lock;
+#endif
+  fdtype elt0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
 
 #define FD_COMPOUNDP(x) (FD_PTR_TYPE(x) == fd_compound_type)
 #define FD_COMPOUND_TAG(x) \
   ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->tag)
 #define FD_COMPOUND_DATA(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->data)
+  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0)
+#define FD_COMPOUND_TYPEP(x,tag)			\
+  ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x)==tag))
+#define FD_COMPOUND_ELTS(x) \
+  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))
+#define FD_COMPOUND_REF(x,i)						\
+  ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))[i])
+#define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
 
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *ptr,fdtype tag,fdtype data);
+  (struct FD_COMPOUND *ptr,fdtype tag,int n,...);
+
+FD_EXPORT fdtype fd_compound_descriptor_type;
+
+#define FD_COMPOUND_DESCRIPTORP(x) \
+  (FD_COMPOUND_TYPEP(x,fd_compound_descriptor_type))
+
+#define FD_COMPOUND_TYPE_TAG 0
+#define FD_COMPOUND_TYPE_SIZE 1
+#define FD_COMPOUND_TYPE_FIELDS 2
+#define FD_COMPOUND_TYPE_INITFN 3
+#define FD_COMPOUND_TYPE_FREEFN 4
+#define FD_COMPOUND_TYPE_COMPAREFN 5
+#define FD_COMPOUND_TYPE_STRINGFN 6
+#define FD_COMPOUND_TYPE_DUMPFN 7
+#define FD_COMPOUND_TYPE_RESTOREFN 8
 
 /* BIG INTs */
 
@@ -412,6 +437,7 @@ FD_EXPORT fdtype fd_time2timestamp(time_t moment);
 
 /* Compounds */
 
+typedef fdtype (*fd_compound_unparsefn)(u8_output out,fdtype);
 typedef fdtype (*fd_compound_parsefn)(int n,fdtype *);
 typedef fdtype (*fd_compound_dumpfn)(fdtype);
 typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype);
@@ -419,6 +445,7 @@ typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype);
 typedef struct FD_COMPOUND_ENTRY {
   fdtype tag;
   fd_compound_parsefn parser;
+  fd_compound_unparsefn unparser;
   fd_compound_dumpfn dump;
   fd_compound_restorefn restore;
   struct FD_TABLEFNS *tablefns;

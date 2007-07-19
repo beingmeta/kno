@@ -517,7 +517,7 @@ typedef void (*fd_recycle_fn)(struct FD_CONS *x);
 typedef int (*fd_unparse_fn)(u8_output,fdtype);
 typedef int (*fd_dtype_fn)(struct FD_BYTE_OUTPUT *,fdtype);
 typedef int (*fd_compare_fn)(fdtype,fdtype,int);
-typedef fdtype (*fd_copy_fn)(fdtype);
+typedef fdtype (*fd_copy_fn)(fdtype,int);
 
 FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];

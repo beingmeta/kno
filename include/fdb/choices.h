@@ -124,6 +124,8 @@ typedef struct FD_CHOICE *fd_choice;
 #define FD_CHOICE_DATA(x) \
   (FD_XCHOICE_DATA(FD_STRIP_CONS(x,fd_choice_type,struct FD_CHOICE *)))
 #define FD_XCHOICE_SIZE(ch) ((ch->size)&(FD_CHOICE_SIZE_MASK))
+#define FD_XCHOICE_FLAGS(ch) ((ch->size)&(~(FD_CHOICE_SIZE_MASK)))
+#define FD_CHOICE_FLAGS(ch) (FD_XCHOICE_FLAGS(FD_XCHOICE(ch)))
 
 #define FD_ATOMIC_CHOICE_MASK 0x80000000
 #define FD_ATOMIC_CHOICEP(x) ((FD_CHOICE_BITS(x))&(FD_ATOMIC_CHOICE_MASK))

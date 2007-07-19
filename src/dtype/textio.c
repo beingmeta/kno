@@ -204,13 +204,6 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,"\"");
 }
 
-static int unparse_compound(U8_OUTPUT *out,fdtype x)
-{
-  struct FD_COMPOUND *c=(struct FD_COMPOUND *)x;
-  u8_printf(out,"#%%(%q %q)",c->tag,c->data);
-  return 1;
-}
-
 static int unparse_pair(U8_OUTPUT *out,fdtype x)
 {
   fdtype car=FD_CAR(x);
@@ -827,18 +820,11 @@ static fdtype recreate_record(int n,fdtype *v)
     fdtype result=entry->parser(n,v);
     while (i<n) {fd_decref(v[i]); i++;}
     return result;}
-  if (n==2) {
-    fdtype compound=
-      fd_init_compound(u8_alloc(struct FD_COMPOUND),
-		       v[0],v[1]);
-    u8_free(v);
-    return compound;}
-  else if (n>2)
-    u8_warn(fd_CantParseRecord,"record %q %q %q",v[0],v[1],v[2]);
-  else if (n> 1)
-    u8_warn(fd_CantParseRecord,"record %q",v[0],v[1]);
-  else u8_warn(fd_CantParseRecord,"record %q",v[0]);
-  return fd_err(fd_CantParseRecord,"fd_recreate_record",NULL,v[0]);
+  else {
+    struct FD_COMPOUND *c=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
+    fdtype *data=&(c->elt0); fd_init_compound(c,v[0],0); c->n_elts=n-1;
+    i=1; while (i<n) {data[i-1]=v[i]; i++;}
+    return FDTYPE_CONS(c);}
 }
 
 static fdtype parse_record(U8_INPUT *in)
@@ -851,6 +837,31 @@ static fdtype parse_record(U8_INPUT *in)
     return fd_err(fd_CantParseRecord,"parse_record","empty record",FD_VOID);
   else if (n_elts==-1) return FD_EOX;
   else return FD_PARSE_ERROR;
+}
+
+static fdtype get_compound_tag(fdtype tag)
+{
+  if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
+    struct FD_COMPOUND *c=FD_XCOMPOUND(tag);
+    return fd_incref(c->elt0);}
+  else return tag;
+}
+
+static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+  fdtype tag=get_compound_tag(xc->tag);
+  struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(tag);
+  if ((entry) && (entry->unparser))
+    return entry->unparser(out,x);
+  else {
+    fdtype *data=&(xc->elt0);
+    int i=0, n=xc->n_elts; 
+    u8_printf(out,"#%%(%q",xc->tag);
+    while (i<n) {
+      u8_printf(out," %q",data[i]); i++;}
+    u8_printf(out,")");
+    return 1;}
 }
 
 /* The main parser procedure */
@@ -995,12 +1006,12 @@ FD_EXPORT void fd_init_textio_c()
 
   u8_printf_handlers['q']=lisp_printf_handler;
 
+  fd_unparsers[fd_compound_type]=unparse_compound;
   fd_unparsers[fd_string_type]=unparse_string;
   fd_unparsers[fd_packet_type]=unparse_packet;
   fd_unparsers[fd_vector_type]=unparse_vector;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
-  fd_unparsers[fd_compound_type]=unparse_compound;
 
   quote_symbol=fd_intern("QUOTE");
   quasiquote_symbol=fd_intern("QUASIQUOTE");

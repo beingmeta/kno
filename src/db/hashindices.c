@@ -1594,6 +1594,14 @@ FD_EXPORT int fd_populate_hash_index
   fd_setpos(stream,16);
   fd_dtswrite_4bytes(stream,n_keys);
   fd_dtsflush(stream);
+  overall_keys=overall_keys+cycle_keys;
+  overall_buckets=overall_buckets+cycle_buckets;
+  if (cycle_max>overall_max) overall_max=cycle_max;
+  u8_message("Finished in %f seconds, placing %d keys over %d buckets, averaging %.2f keys/bucket (%d keys max)",
+	     u8_elapsed_time()-start_time,
+	     overall_keys,overall_buckets,
+	     ((1.0*overall_keys)/(1.0*overall_buckets)),
+	     overall_max);
   u8_free(out.start);
   u8_free(psched);
   u8_free(bucket_refs);

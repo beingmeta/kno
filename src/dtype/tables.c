@@ -353,7 +353,7 @@ FD_EXPORT fdtype fd_init_slotmap
   return FDTYPE_CONS(ptr);
 }
 
-static fdtype copy_slotmap(fdtype smap)
+static fdtype copy_slotmap(fdtype smap,int deep)
 {
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
@@ -373,7 +373,9 @@ static fdtype copy_slotmap(fdtype smap)
       if (FD_CONSP(val))
 	if (FD_ACHOICEP(val))
 	  write->value=fd_make_simple_choice(val);
-	else write->value=fd_copy(val);
+	else if (deep)
+	  write->value=fd_deep_copy(val);
+	else write->value=fd_incref(val);
       else write->value=val;
       write++;}
     fd_unlock_struct(cur);}
@@ -495,7 +497,7 @@ FD_EXPORT fdtype *fd_register_schema(int n,fdtype *schema)
   return schema;
 }
 
-static fdtype copy_schemap(fdtype schemap)
+static fdtype copy_schemap(fdtype schemap,int deep)
 {
   struct FD_SCHEMAP *ptr=
     FD_GET_CONS(schemap,fd_schemap_type,struct FD_SCHEMAP *);
@@ -514,11 +516,15 @@ static fdtype copy_schemap(fdtype schemap)
       if (FD_CONSP(val))
 	if (FD_ACHOICEP(val))
 	  values[i]=fd_make_simple_choice(val);
-	else values[i]=fd_copy(val);
+	else if (deep)
+	  values[i]=fd_copy(val);
+	else values[i]=fd_incref(val);
       else values[i]=val;
       i++;}
+  else if (deep) while (i < size) {
+      values[i]=fd_deep_copy(ovalues[i]); i++;}
   else while (i < size) {
-    values[i]=fd_incref(ovalues[i]); i++;}
+      values[i]=fd_incref(ovalues[i]); i++;}
   nptr->values=values;
   nptr->size=size;
   if (ptr->flags&FD_SCHEMAP_STACK_SCHEMA)
@@ -1779,7 +1785,7 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
   return FDTYPE_CONS(nptr);
 }
 
-static fdtype copy_hashtable(fdtype table)
+static fdtype copy_hashtable(fdtype table,int deep)
 {
   struct FD_HASHTABLE *ptr=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
   struct FD_HASHTABLE *nptr=u8_alloc(struct FD_HASHTABLE);

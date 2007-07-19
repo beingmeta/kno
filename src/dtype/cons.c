@@ -293,7 +293,7 @@ fdtype fd_deep_copy(fdtype x)
     switch (ctype) {
     case fd_pair_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,ctype,struct FD_PAIR *);
-      return fd_make_pair(p->car,p->cdr);}
+      return fd_init_pair(NULL,fd_deep_copy(p->car),fd_deep_copy(p->cdr));}
     case fd_vector_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
       fdtype *olddata=v->data;
@@ -304,12 +304,22 @@ fdtype fd_deep_copy(fdtype x)
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       return fd_init_string(NULL,s->length,u8_strndup(s->bytes,s->length));}
-    case fd_compound_type: {
-      struct FD_COMPOUND *c=FD_STRIP_CONS(x,ctype,struct FD_COMPOUND *);
-      return fd_init_compound(NULL,fd_incref(c->tag),fd_deep_copy(c->data));}
+    case fd_packet_type: {
+      struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
+      return fd_init_packet(NULL,s->length,u8_strndup(s->bytes,s->length));}
+    case fd_choice_type: {
+      int i=0, n=FD_CHOICE_SIZE(x);
+      struct FD_CHOICE *copy=fd_alloc_choice(n);
+      const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
+      fdtype *write=(fdtype *)&(copy->elt0);
+      if (FD_ATOMIC_CHOICEP(x))
+	while (read<limit) *write++=*read++;
+      else while (read<limit) {
+	  fdtype v=*read++; fd_incref(v); *write++=v;}
+      return fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));}
     default:
       if (fd_copiers[ctype])
-	return (fd_copiers[ctype])(x);
+	return (fd_copiers[ctype])(x,1);
       else return fd_err(fd_NoMethod,"fd_deep_copy",fd_type_names[ctype],x);}}
 }
 
@@ -458,19 +468,60 @@ FD_EXPORT fdtype fd_init_packet
 
 /* Compounds */
 
-FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *ptr,fdtype tag,fdtype data)
+fdtype fd_compound_descriptor_type;
+
+/* This checks if a given compound is acceptable for a given call to make_compound */
+static fdtype check_compound_type(fdtype tag,int n)
 {
-  if (ptr == NULL) ptr=u8_alloc(struct FD_COMPOUND);
-  FD_INIT_CONS(ptr,fd_compound_type);
-  ptr->tag=tag; ptr->data=data;
-  return FDTYPE_CONS(ptr);
+  if (FD_COMPOUND_DESCRIPTORP(tag)) {
+    struct FD_COMPOUND *ctype=FD_XCOMPOUND(tag);
+    fdtype *fields=&(ctype->elt0);
+    int reclen=fd_getint(fields[FD_COMPOUND_TYPE_SIZE]);
+    if (reclen!=n)
+      return fd_err(_("Bad compound"),"check_compound_type",NULL,tag);
+    else return fields[FD_COMPOUND_TYPE_INITFN];}
+  else return FD_FALSE;
 }
 
+FD_EXPORT fdtype fd_init_compound(struct FD_COMPOUND *p,fdtype tag,int n,...)
+{
+  va_list args; int i=0; fdtype *write, *limit, initfn=FD_FALSE;
+  if (n<0) {
+    /* Consume the arguments, just in case the implementation is a little flaky. */
+    va_start(args,n);
+    while (i<n) {va_arg(args,fdtype); i++;}
+    return fd_type_error(_("positive int"),"make_compound",FD_INT2DTYPE(n));}
+  else if (p==NULL)
+    if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
+    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
+  FD_INIT_CONS(p,fd_compound_type);
+  fd_init_mutex(&(p->lock)); p->tag=fd_incref(tag);
+  if (n>0) {
+    p->n_elts=n; write=&(p->elt0); limit=write+n;
+    va_start(args,n);
+    while (write<limit) {
+      fdtype value=va_arg(args,fdtype);
+      *write=value; write++;}
+    va_end(args);
+    if (FD_ABORTP(initfn)) {
+      write=&(p->elt0);
+      while (write<limit) {fd_decref(*write); write++;}
+      return initfn;}
+#if 0
+    else if (FD_APPLICABLEP(initfn)) {
+      fdtype result=(FDTYPE_CONS(p));
+      return fd_apply(initfn,1,&p);}
+#endif
+    else return FDTYPE_CONS(p);}
+  else return FDTYPE_CONS(p);
+}
+ 
 static void recycle_compound(struct FD_CONS *c)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
-  fd_decref(compound->tag); fd_decref(compound->data);
+  int i=0, n=compound->n_elts; fdtype *data=&(compound->elt0);
+  while (i<n) {fd_decref(data[i]); i++;}
+  fd_decref(compound->tag);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -481,7 +532,16 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
   int cmp;
   if (xc == yc) return 0;
   else if (cmp=FD_COMPARE(xc->tag,yc->tag,quick)) return cmp;
-  else return FD_COMPARE(xc->data,yc->data,quick);
+  else if (xc->n_elts<yc->n_elts) return -1;
+  else if (xc->n_elts>yc->n_elts) return 1;
+  else {
+    int i=0, len=xc->n_elts;
+    fdtype *xdata=&(xc->elt0), *ydata=&(yc->elt0); 
+    while (i<len)
+      if ((cmp=(FD_COMPARE(xdata[i],ydata[i],quick)))==0)
+	i++;
+      else return cmp;
+    return 0;}
 }
 
 static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
@@ -490,8 +550,36 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
   int n_bytes=1;
   fd_write_byte(out,dt_compound);
   n_bytes=n_bytes+fd_write_dtype(out,xc->tag);
-  n_bytes=n_bytes+fd_write_dtype(out,xc->data);
+  if (xc->n_elts==1) 
+    n_bytes=n_bytes+fd_write_dtype(out,xc->elt0);
+  else {
+    int i=0, n=xc->n_elts; fdtype *data=&(xc->elt0);
+    fd_write_byte(out,dt_vector);
+    fd_write_4bytes(out,xc->n_elts);
+    n_bytes=n_bytes+5;
+    while (i<n) {
+      int written=fd_write_dtype(out,data[i]);
+      if (written<0) return written;
+      else n_bytes=n_bytes+written;
+      i++;}}
   return n_bytes;
+}
+
+static fdtype copy_compound(fdtype x,int deep)
+{
+  struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+  int i=0, n=xc->n_elts; 
+  struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
+  fdtype *data=&(xc->elt0), *write=&(nc->elt0);
+  FD_INIT_CONS(nc,fd_compound_type);
+  fd_init_mutex(&(nc->lock));
+  nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
+  if (deep)
+    while (i<n) {
+      *write=fd_deep_copy(data[i]); i++; write++;}
+  else while (i<n) {
+      *write=fd_incref(data[i]); i++; write++;}
+  return FDTYPE_CONS(nc);
 }
 
 /* Exceptions */
@@ -634,7 +722,7 @@ static int unparse_error(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype copy_exception(fdtype x)
+static fdtype copy_exception(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
@@ -644,7 +732,7 @@ static fdtype copy_exception(fdtype x)
   FD_SET_CONS_TYPE(ex,fd_exception_type);
 }
 
-static fdtype copy_error(fdtype x)
+static fdtype copy_error(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
@@ -810,7 +898,7 @@ static void recycle_timestamp(struct FD_CONS *c)
   u8_free(c);
 }
 
-static fdtype copy_timestamp(fdtype x)
+static fdtype copy_timestamp(fdtype x,int deep)
 {
   struct FD_TIMESTAMP *tm=
     FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
@@ -933,6 +1021,7 @@ void fd_init_cons_c()
 
   fd_comparators[fd_compound_type]=compare_compounds;
 
+  fd_copiers[fd_compound_type]=copy_compound;
   fd_copiers[fd_exception_type]=copy_exception;
   fd_copiers[fd_error_type]=copy_error;
 
@@ -970,198 +1059,17 @@ void fd_init_cons_c()
   fd_comparators[fd_timestamp_type]=compare_timestamps;
   fd_recyclers[fd_timestamp_type]=recycle_timestamp;
 
+  fd_compound_descriptor_type=
+    fd_init_compound(NULL,FD_VOID,9,
+		     fd_intern("COMPOUNDTYPE"),FD_INT2DTYPE(9),
+		     fd_make_vector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
+				    fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
+				    fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
+		     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
+		     FD_FALSE,FD_FALSE);
+  ((struct FD_COMPOUND *)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;
+  fd_incref(fd_compound_descriptor_type);
 }
 
-
-/* The CVS log for this file
-   $Log: cons.c,v $
-   Revision 1.92  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
 
-   Revision 1.91  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
 
-   Revision 1.90  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.89  2006/01/07 23:12:46  haase
-   Moved framerd object dtype handling into the main fd_read_dtype core, which led to substantial performanc improvements
-
-   Revision 1.88  2006/01/07 18:26:46  haase
-   Added pointer checking, both built in and configurable
-
-   Revision 1.87  2006/01/05 19:43:54  haase
-   Added GMT property for timestamps
-
-   Revision 1.86  2005/12/28 23:03:29  haase
-   Made choices be direct blocks of elements, including various fixes, simplifications, and more detailed documentation.
-
-   Revision 1.85  2005/12/26 20:14:26  haase
-   Further fixes to type reorganization
-
-   Revision 1.84  2005/12/26 18:19:44  haase
-   Reorganized and documented dtype pointers and conses
-
-   Revision 1.83  2005/12/22 14:38:08  haase
-   Add timestamp recycler
-
-   Revision 1.82  2005/12/19 00:41:56  haase
-   Free string conses even if they're zero length
-
-   Revision 1.81  2005/12/17 17:36:14  haase
-   Fixes to fd_deep_copy bugs with atoms and vectors and made fdtype_equal defer to numeric comparison before going to type specific functions
-
-   Revision 1.80  2005/12/17 15:10:39  haase
-   Fixed achoice comparison for fdtype_equal
-
-   Revision 1.79  2005/12/17 05:58:38  haase
-   Fixes to packet comparison
-
-   Revision 1.78  2005/12/01 23:28:46  haase
-   Fixed bug in vector and packet comparison
-
-   Revision 1.77  2005/10/31 02:05:58  haase
-   Fixed bug with choice comparison and made fdtype_equal do a quick comparison
-
-   Revision 1.76  2005/10/10 16:53:49  haase
-   Fixes for new mktime/offtime functions
-
-   Revision 1.75  2005/09/18 03:58:04  haase
-   Warning-based fixes for 64-bit compilation
-
-   Revision 1.74  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.73  2005/07/13 23:07:45  haase
-   Added global adjuncts and LISP access to adjunct declaration
-
-   Revision 1.72  2005/06/27 16:54:30  haase
-   Thread function improvements and addition of THREADJOIN primitive
-
-   Revision 1.71  2005/06/19 19:40:04  haase
-   Regularized use of FD_CONS_HEADER
-
-   Revision 1.70  2005/06/11 16:34:22  haase
-   Fixes to non-quick comparison of vectors and choices
-
-   Revision 1.69  2005/06/04 16:52:06  haase
-   Added MORPHRULE
-
-   Revision 1.68  2005/05/30 18:04:43  haase
-   Removed legacy numeric plugin layer
-
-   Revision 1.67  2005/05/30 17:49:59  haase
-   Distinguished FD_QCOMPARE and FDTYPE_COMPARE
-
-   Revision 1.66  2005/05/27 21:27:19  haase
-   Made error functions use FD_CHECK_PTR on irritants
-
-   Revision 1.65  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.64  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.63  2005/04/24 01:56:48  haase
-   Fix nasty bug in equals for strings
-
-   Revision 1.62  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.61  2005/04/12 15:22:12  haase
-   Fixed bug with dynamic type allocation
-
-   Revision 1.60  2005/04/11 21:29:17  haase
-   Made fd_passerr always return an object
-
-   Revision 1.59  2005/04/10 01:10:53  haase
-   Made fd_deep_copy return errors when not handled
-
-   Revision 1.58  2005/04/09 01:12:30  haase
-   Made unparse_exception return 1, indicating that it has handled the output
-
-   Revision 1.57  2005/04/08 04:47:11  haase
-   Made fd_type_error synthesize more useful details and ignore context
-
-   Revision 1.56  2005/04/04 22:21:52  haase
-   Improved integration of error facilities
-
-   Revision 1.55  2005/04/03 06:21:32  haase
-   Modifications to allow varieties of sloppy parsing
-
-   Revision 1.54  2005/04/02 20:56:50  haase
-   Fixes to timestamp parsing
-
-   Revision 1.53  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.52  2005/03/29 01:51:24  haase
-   Added U8_MUTEX_DECL and used it
-
-   Revision 1.51  2005/03/28 19:09:39  haase
-   Defined fd_make_timestamp to convert a U8_XTIME to a dtype pointer
-
-   Revision 1.50  2005/03/24 17:16:16  haase
-   Added DTYPE emitter for exceptions
-
-   Revision 1.49  2005/03/23 03:39:35  haase
-   Added DTYPE dumping and restore of timestamps
-
-   Revision 1.48  2005/03/23 01:43:39  haase
-   Moved timestamp structure into fdlisp core
-
-   Revision 1.47  2005/03/22 20:24:01  haase
-   Added some more conditions and conversion of immediate error return values
-
-   Revision 1.46  2005/03/17 03:59:30  haase
-   Fixed empty vector GC bug
-
-   Revision 1.45  2005/03/16 22:22:46  haase
-   Added bignums
-
-   Revision 1.44  2005/03/14 05:49:31  haase
-   Updated comments and internal documentation
-
-   Revision 1.43  2005/03/11 14:43:54  haase
-   Added more time functions
-
-   Revision 1.42  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.41  2005/03/05 19:40:18  haase
-   Lisp exception unparsing uses i18n catalogs
-
-   Revision 1.40  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.39  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.38  2005/03/01 19:44:55  haase
-   Removed harmless zero malloc call
-
-   Revision 1.37  2005/02/23 22:49:27  haase
-   Created generalized compound registry and made compound dtypes and #< reading use it
-
-   Revision 1.36  2005/02/22 21:22:16  haase
-   Added better FD_CHECK_PTR function
-
-   Revision 1.35  2005/02/18 00:42:37  haase
-   Added type checking for arithmetic operations
-
-   Revision 1.34  2005/02/16 02:34:58  haase
-   Various optmizations, etc
-
-   Revision 1.33  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.32  2005/02/14 02:08:38  haase
-   Added dtype writer for compounds
-
-   Revision 1.31  2005/02/14 01:30:45  haase
-   IRemoved built in packet copier for better code coverage
-
-   Revision 1.30  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

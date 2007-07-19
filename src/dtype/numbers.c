@@ -1783,7 +1783,7 @@ FD_EXPORT fdtype fd_make_bigint(long long intval)
     return (fd_fixnum_type|FD_FIXNUM_SIGN_BIT|((-(intval))<<2));
 }
 
-static fdtype copy_bigint(fdtype x)
+static fdtype copy_bigint(fdtype x,int deep)
 {
   fd_bigint bi=FD_GET_CONS(x,fd_bigint_type,fd_bigint);
   return FDTYPE_CONS(bigint_copy(bi));
@@ -1925,7 +1925,7 @@ static int unparse_double(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype copy_double(fdtype x)
+static fdtype copy_double(fdtype x,int deep)
 {
   struct FD_DOUBLE *d=FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
   return fd_init_double(NULL,d->flonum);

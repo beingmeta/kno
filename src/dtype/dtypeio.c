@@ -653,9 +653,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       else if (code == dt_exception)
 	return fd_init_compound
 	  (u8_alloc(struct FD_COMPOUND),
-	   FD_EXCEPTION_TAG,content);
+	   FD_EXCEPTION_TAG,1,content);
       else return fd_init_compound
-	     (u8_alloc(struct FD_COMPOUND),FD_ERROR_TAG,content);
+	     (u8_alloc(struct FD_COMPOUND),FD_ERROR_TAG,1,content);
       exo=fd_make_exception(exname,NULL,details,irritant,FD_EMPTY_LIST);
       fd_decref(content);
       return exo;}
@@ -693,8 +693,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  fdtype result=e->restore(car,cdr);
 	  fd_decref(cdr);
 	  return result;}
-	else return fd_init_compound
-	       (u8_alloc(struct FD_COMPOUND),car,cdr);}
+	else return fd_init_compound(u8_alloc(struct FD_COMPOUND),car,1,cdr);}
       case dt_rational:
 	return _fd_make_rational(car,cdr);
       case dt_complex:
