@@ -321,8 +321,8 @@ int fd_make_file_index
     fd_dtsclose(stream,1);
     return -1;}
   stream->mallocd=0;
-  if (n_slots_arg<0) n_slots=fd_get_hashtable_size(-n_slots_arg);
-  else n_slots=n_slots_arg;
+  if (n_slots_arg<0) n_slots=-n_slots_arg;
+  else n_slots=fd_get_hashtable_size(n_slots_arg);
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,magicno);
   fd_dtswrite_4bytes(stream,n_slots);
