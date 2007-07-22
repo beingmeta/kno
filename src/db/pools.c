@@ -659,6 +659,8 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     FD_DO_CHOICES(o,oids) {
       fdtype v=fd_hashtable_get(locks,o,FD_VOID);
       if (FD_VOIDP(v)) {}
+      /* Skip saving OIDs which have been locked but not set */
+      else if (v==FD_LOCKHOLDER) {}
       else if (FD_SLOTMAPP(v))
 	if (FD_SLOTMAP_MODIFIEDP(v)) {
 	  *owrite++=o; *vwrite++=v;}
