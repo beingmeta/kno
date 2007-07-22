@@ -505,9 +505,8 @@
   (index-frame* index concept memberof* memberof members*)
   (index-frame* index concept ingredientof* ingredientof ingredients*))
 
-(define (index-implies index concept)
-  (index-frame* index concept entails* entails entailedby*)
-  (index-frame* index concept implies* implies impliedby*))
+(define (index-implies index concept slotid)
+  (index-frame index concept slotid (get (get concept slotid) @?implies*)))
 
 (define (indexer index concept (slotids) (values))
   (if (bound? slotids)

@@ -2,10 +2,11 @@
 
 ;;; Simple FIFO queue gated by a condition variable
 
-(module-export! '{make-fifo fifo-push fifo-pop fifo-loop})
+(module-export!
+ '{make-fifo fifo-push fifo-pop fifo-loop fifo-queue close-fifo})
 
 (define (make-fifo (size 64))
-  (vector (make-condvar) (make-vector size) 0 0))
+  (vector (make-condvar) (make-vector size) 0 0 #t))
 
 (define (fifo-push fifo item (broadcast #f))
   (unwind-protect
@@ -36,23 +37,33 @@
     (condvar-unlock (first fifo))))
 
 (define (fifo-pop fifo)
-  (unwind-protect
-      (begin (condvar-lock (first fifo))
-	     (while (= (elt fifo 2) (elt fifo 3))
-	       (condvar-wait (first fifo)))
-	     (let* ((vec (elt fifo 1))
-		    (start (elt fifo 2))
-		    (end (elt fifo 3))
-		    (item (elt vec start)))
-	       ;; Replace the item with false
-	       (vector-set! vec start #f)
-	       ;; Advance the start pointer
-	       (vector-set! fifo 2 (1+ start))
-	       item))
-    (condvar-unlock (first fifo))))
+  (if (elt fifo 4)
+      (unwind-protect
+	  (begin (condvar-lock (first fifo))
+		 (while (= (elt fifo 2) (elt fifo 3))
+		   (condvar-wait (first fifo)))
+		 (let* ((vec (elt fifo 1))
+			(start (elt fifo 2))
+			(end (elt fifo 3))
+			(item (elt vec start)))
+		   ;; Replace the item with false
+		   (vector-set! vec start #f)
+		   ;; Advance the start pointer
+		   (vector-set! fifo 2 (1+ start))
+		   item))
+	(condvar-unlock (first fifo)))
+      (fail)))
 
 (define (fifo-loop fifo handler)
   (let ((result #t))
-    (while result
+    (while (and (exists? result) result)
       (set! result (handler (fifo-pop fifo))))))
+
+
+(define (close-fifo fifo)
+  (vector-set! fifo 4 #f))
+
+(define (fifo-queue fifo)
+  (subseq (elt fifo 1) (elt fifo 2) (elt fifo 3)))
+
 
