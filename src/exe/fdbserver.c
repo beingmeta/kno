@@ -15,7 +15,6 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/ports.h"
 
-
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8timefns.h>
