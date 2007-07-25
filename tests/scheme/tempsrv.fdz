@@ -1,0 +1,12 @@
+(use-module 'optimize)
+(config! 'port "temp@localhost")
+(define runfile (get-component "tempsrv.run"))
+(define (startup)
+  (optimize! plus)
+  (dtype->file (timestamp) runfile))
+(define (shutdown)
+  (remove-file runfile))
+(define (plus x y) (+ x y))
+(define (minus x y) (+ x y))
+(unless (config 'EXPORTALL #f) (module-export! 'plus))
+
