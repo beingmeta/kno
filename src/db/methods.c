@@ -474,6 +474,36 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
     return answers;}
 }
 
+static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
+{
+  fdtype answers=FD_EMPTY_CHOICE, through, key;
+  through=fd_frame_get(slotid,through_slot);
+  if (FD_ABORTP(through)) return through;
+  else key=fd_frame_get(slotid,key_slot);
+  if (FD_ABORTP(key)) {
+    fd_decref(through); return key;}
+  else {
+    FD_DO_CHOICES(th_slot,through) {
+      fdtype entries=fd_frame_get(f,th_slot);
+      if (FD_ABORTP(entries)) {
+	fd_decref(answers); fd_decref(through); fd_decref(key);
+	return entries;}
+      else {
+	int ambigkey=FD_CHOICEP(key), ambigval=FD_CHOICEP(values);
+	FD_DO_CHOICES(e,entries)
+	  if (FD_PAIRP(e)) {
+	    fdtype car=FD_CAR(e), cdr=FD_CDR(e);
+	    if (((ambigkey|(FD_CHOICEP(car))) ? (fd_overlapp(car,key)) : (FD_EQ(car,key))) &&
+		((FD_VOIDP(values)) ||
+		 ((ambigval|(FD_CHOICEP(cdr))) ? (fd_overlapp(cdr,values)) : (FD_EQUAL(cdr,values))))) {
+	      fd_decref(entries); fd_decref(key); fd_decref(through);
+	      FD_STOP_DO_CHOICES;
+	      return FD_TRUE;}}
+	fd_decref(entries);}}
+    fd_decref(through); fd_decref(key);
+    return FD_FALSE;}
+}
+
 static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
 {
   fdtype answers=FD_EMPTY_CHOICE, through, key;
@@ -648,6 +678,7 @@ FD_EXPORT void fd_init_methods_c()
     fd_store(m,fd_intern("FD:INV-TEST"),invtest);}
 
   fd_defn(m,fd_make_cprim2("FD:ASSOC-GET",assoc_get_method,2));
+  fd_defn(m,fd_make_cprim3("FD:ASSOC-TEST",assoc_test_method,2));
   fd_defn(m,fd_make_cprim3("FD:ASSOC-ADD",assoc_add_method,3));
   fd_defn(m,fd_make_cprim3("FD:ASSOC-DROP",assoc_drop_method,3));
   fd_defn(m,fd_make_cprim2("FD:CAR-GET",car_get_method,2));
@@ -668,55 +699,3 @@ FD_EXPORT void fd_init_methods_c()
 
 }
 
-
-/* The CVS log for this file
-   $Log: methods.c,v $
-   Revision 1.29  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.28  2005/10/31 00:27:33  haase
-   Fixed multi slot implementation
-
-   Revision 1.27  2005/10/25 18:32:11  haase
-   Made it possible to handle multi slots which include theirselves (their stored values).
-
-   Revision 1.26  2005/08/28 00:38:40  haase
-   Added fd:add fd:drop and fd:clear-implies effects
-
-   Revision 1.25  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.24  2005/08/02 22:51:54  haase
-   Moved inference methods to use hashsets rather than hashtables
-
-   Revision 1.23  2005/08/02 22:34:12  haase
-   Fixed error passing in tree walking methods
-
-   Revision 1.22  2005/07/17 21:15:19  haase
-   Fixes to inheritance methods to avoid recursive (and failing) slot accesses
-
-   Revision 1.21  2005/06/01 13:07:55  haase
-   Fixes for less forgiving compilers
-
-   Revision 1.20  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.19  2005/04/10 01:11:52  haase
-   Don't bother increfing the static method table
-
-   Revision 1.18  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.17  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.16  2005/02/26 22:31:41  haase
-   Remodularized choice and oid add into xtables.c
-
-   Revision 1.15  2005/02/26 21:39:25  haase
-   Made fd_oid_get take a default argument
-
-   Revision 1.14  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
