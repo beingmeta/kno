@@ -870,6 +870,52 @@ static fdtype testp(int n,fdtype *args)
     return FD_FALSE;}
 }
 
+static fdtype getpath(int n,fdtype *args)
+{
+  fdtype cur=args[0]; int i=1;
+  while (i<n) {
+    fdtype slotids=args[i];
+    fdtype next=FD_EMPTY_CHOICE, old=FD_VOID;
+    if (FD_EMPTY_CHOICEP(cur)) return cur;
+    else {
+      FD_DO_CHOICES(c,cur) {
+	FD_DO_CHOICES(sl,slotids) {
+	  if (FD_OIDP(c)) {
+	    fdtype v=fd_frame_get(c,sl);
+	    FD_ADD_TO_CHOICE(next,v);}
+	  else {
+	    fdtype v=fd_get(c,sl,FD_EMPTY_CHOICE);
+	    FD_ADD_TO_CHOICE(next,v);}}}}
+    if (i>1) fd_decref(cur); cur=next;
+    i++;}
+  if (i==1) return fd_incref(cur);
+  else return fd_simplify_choice(cur);
+}
+
+static fdtype getpathstar(int n,fdtype *args)
+{
+  fdtype cur=args[0], result=fd_incref(cur); int i=1;
+  while (i<n) {
+    fdtype slotids=args[i];
+    fdtype next=FD_EMPTY_CHOICE, old=FD_VOID;
+    if (FD_EMPTY_CHOICEP(cur))
+      return result;
+    else {
+      FD_DO_CHOICES(c,cur) {
+	FD_DO_CHOICES(sl,slotids) {
+	  if (FD_OIDP(c)) {
+	    fdtype v=fd_frame_get(c,sl);
+	    FD_ADD_TO_CHOICE(next,v);}
+	  else {
+	    fdtype v=fd_get(c,sl,FD_EMPTY_CHOICE);
+	    FD_ADD_TO_CHOICE(next,v);}}}}
+    if (i>1) FD_ADD_TO_CHOICE(result,cur);
+    cur=next;
+    i++;}
+  FD_ADD_TO_CHOICE(result,cur);
+  return fd_simplify_choice(result);
+}
+
 /* Index operations */
 
 static fdtype indexget(fdtype ixarg,fdtype key)
@@ -1550,6 +1596,10 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprim1("GETSLOTS",fd_getkeys,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("SUMFRAME",sumframe_prim,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("GETPATH",getpath,1)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar,1)));
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET*",getstar,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));
