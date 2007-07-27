@@ -17,7 +17,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 RANLIB		= @RANLIB@
-VALGRIND	= valgrind --tool=memcheck --leak-check=yes --num-callers=9
+VALGRIND	= valgrind --tool=memcheck --leak-check=yes --num-callers=9 --error-exitcode=-1
 TESTPROG	= 
 RUNENV		= 
 RUNTEST		= $(RUNENV)$(TESTPROG)

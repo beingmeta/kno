@@ -28,6 +28,8 @@ fd_exception fd_FileNotFound=_("File not found");
 
 static int trace_load=0;
 
+static fdtype after_symbol;
+
 /* Getting sources */
 
 static struct FD_SOURCEFN *sourcefns=NULL;
@@ -107,26 +109,33 @@ FD_EXPORT fdtype fd_load_source
   if ((input[0]=='#') && (input[1]=='!')) input=strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
+    /* This does a read/eval loop. */
     fdtype result=FD_VOID;
     fdtype expr=fd_parser(&stream), last_expr=FD_VOID;
     while (!(FD_TROUBLEP(expr))) {
       fd_decref(result);
       result=fd_eval(expr,env);
-      fd_decref(last_expr);  last_expr=expr;
+      fd_decref(last_expr);  last_expr=expr; expr=FD_VOID;
       if (FD_ABORTP(result)) {
 	restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
-	fd_decref(last_expr);
-	return result;}
+	return fd_passerr(result,fd_make_list(2,expr,fd_make_list(2,after_symbol,last_expr)));}
       expr=fd_parser(&stream);}
-    if (expr==FD_PARSE_ERROR) result=fd_erreify();
+    if (expr==FD_PARSE_ERROR) {
+      fd_decref(result);
+      result=fd_passerr(fd_erreify(),fd_make_list(1,fd_make_list(2,after_symbol,last_expr)));}
+    else if (FD_TROUBLEP(expr)) {
+      fd_decref(result);
+      result=fd_passerr(expr,fd_make_list(1,fd_make_list(2,after_symbol,last_expr)));}
+    else fd_decref(last_expr);
     if (trace_load) 
       u8_notify(FileDone,"Loaded %s in %f seconds",
 		sourcebase,u8_elapsed_time()-start);
-    fd_decref(last_expr);
-    restore_sourcebase(outer_sourcebase); u8_free(sourcebase);
+    restore_sourcebase(outer_sourcebase);
+    u8_free(sourcebase);
     u8_free(content);
+    fd_decref(expr);
     return result;}
 }
 
@@ -327,101 +336,21 @@ FD_EXPORT void fd_init_load_c()
  u8_new_threadkey(&sourcebase_key,NULL);
 #endif
 
-  fd_defspecial(fd_xscheme_module,"LOAD",load_source);
-  fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
-
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
-			   fd_string_type,FD_VOID));
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
-
-  fd_register_config("CONFIG",get_config_files,add_config_file,NULL);
-  fd_register_config
-    ("TRACELOAD",fd_boolconfig_get,fd_boolconfig_set,&trace_load);
+ after_symbol=fd_intern("AFTEREXPR");
+ 
+ fd_defspecial(fd_xscheme_module,"LOAD",load_source);
+ fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
+ 
+ fd_idefn(fd_scheme_module,
+	  fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
+			  fd_string_type,FD_VOID));
+ fd_idefn(fd_scheme_module,
+	  fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
+			  fd_string_type,FD_VOID,
+			  fd_string_type,FD_VOID));
+ 
+ fd_register_config("CONFIG",get_config_files,add_config_file,NULL);
+ fd_register_config
+   ("TRACELOAD",fd_boolconfig_get,fd_boolconfig_set,&trace_load);
 }
 
-
-/* The CVS log for this file
-   $Log: load.c,v $
-   Revision 1.38  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.37  2006/01/23 00:34:59  haase
-   Added API for sourcebase binding
-
-   Revision 1.36  2006/01/19 21:52:25  haase
-   Added fd_get_component
-
-   Revision 1.35  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.34  2005/12/19 00:43:25  haase
-   Fixed minor leak in file loading
-
-   Revision 1.33  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.32  2005/07/23 22:21:48  haase
-   Made load find an environment it can modify (e.g. a hashtable)
-
-   Revision 1.31  2005/05/21 17:51:23  haase
-   Added DTPROCs (remote procedures)
-
-   Revision 1.30  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.29  2005/05/17 20:31:00  haase
-   Fixed missing return keyword in loading
-
-   Revision 1.28  2005/04/24 02:09:05  haase
-   Don't use realpath until inside the file to get get/load-component to work right
-
-   Revision 1.27  2005/04/21 19:02:55  haase
-   Track last expr on loading
-
-   Revision 1.26  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.25  2005/04/11 00:39:54  haase
-   Convert load-time parse errors into exception objects
-
-   Revision 1.24  2005/04/04 22:18:12  haase
-   Added LOAD-CONFIG and the CONFIG config variable
-
-   Revision 1.23  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.22  2005/03/26 00:16:13  haase
-   Made loading facility be generic and moved the rest of file access into fileio.c
-
-   Revision 1.21  2005/03/25 13:25:11  haase
-   Seperated out file io functions from generic port functions
-
-   Revision 1.20  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.19  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.18  2005/03/04 04:08:33  haase
-   Fixes for minor libu8 changes
-
-   Revision 1.17  2005/02/23 23:14:26  haase
-   Fixes to get-component handling
-
-   Revision 1.16  2005/02/15 13:34:32  haase
-   Updated fd_parser to use input streams rather than just strings
-
-   Revision 1.15  2005/02/12 03:39:51  haase
-   Updated loading to use u8_filestring
-
-   Revision 1.14  2005/02/12 02:35:58  haase
-   Added init for current file threadkey
-
-   Revision 1.13  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

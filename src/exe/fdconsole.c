@@ -99,7 +99,7 @@ int main(int argc,char **argv)
   unsigned char data[1024], *input;
   time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
-  fdtype lastval=FD_VOID, that_symbol, histref_symbol;
+  fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID, that_symbol, histref_symbol;
   fdtype quiet_config=FD_VOID;
   u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
@@ -190,7 +190,6 @@ int main(int argc,char **argv)
     int start_icache, finish_icache;
     int start_ocache, finish_ocache;
     double start_time, finish_time;
-    fdtype result, expr;
     int histref=-1, stat_line=0, is_histref=0;
     start_ocache=fd_object_cache_load();
     start_icache=fd_index_cache_load();
@@ -205,7 +204,8 @@ int main(int argc,char **argv)
       fd_decref(sym); continue;}
     else u8_ungetc(((u8_input)in),c);
     expr=fd_parser((u8_input)in);
-    if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
+    if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
+      fd_decref(result); break;}
     /* Clear the buffer (should do more?) */
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
 	(FD_EQ(expr,that_symbol))) {
@@ -252,7 +252,7 @@ int main(int argc,char **argv)
 	      (finish_ocache!=start_ocache) ||
 	      (finish_icache!=start_icache)))
       stat_line=1;
-    fd_decref(expr);
+    fd_decref(expr); expr=FD_VOID;
     if (FD_CHECK_PTR(result)==0) {
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
     else if (FD_ERRORP(result)) {
@@ -317,7 +317,7 @@ int main(int argc,char **argv)
 		     finish_icache-start_icache);
     fd_clear_errors(1);
     fd_decref(lastval);
-    lastval=result;
+    lastval=result; result=FD_VOID;
     if ((FD_CHECK_PTR(lastval)) &&
 	(!(FD_ABORTP(lastval))) &&
 	(!(FDTYPE_CONSTANTP(lastval))))
@@ -327,6 +327,7 @@ int main(int argc,char **argv)
   if (eval_server) fd_dtsclose(eval_server,1);
   u8_free(eval_server);
   fd_decref(lastval);
+  fd_decref(result);
   return 0;
 }
 

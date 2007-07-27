@@ -246,6 +246,7 @@
 	  ((and (string? val)
 		(or (has-suffix val ".db")
 		    (file-exists? (string-append val ".db"))))
+	   (set! bricosource val)
 	   (set! brico-index (usedb val))
 	   (set! brico-pool (name->pool "brico.framerd.org"))
 	   (if (exists? brico-pool) #t
