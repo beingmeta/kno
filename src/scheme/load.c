@@ -125,6 +125,10 @@ FD_EXPORT fdtype fd_load_source
     if (expr==FD_PARSE_ERROR) {
       fd_decref(result);
       result=fd_passerr(fd_erreify(),fd_make_list(1,fd_make_list(2,after_symbol,last_expr)));}
+    else if (expr==FD_EOX) {
+      /* This should really be something else, because it also ignores
+	 expressions that really end in the middle. */
+      fd_decref(last_expr); last_expr=FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
       fd_decref(result);
       result=fd_passerr(expr,fd_make_list(1,fd_make_list(2,after_symbol,last_expr)));}

@@ -73,3 +73,4 @@ Implement a simple queueing system
 # Make modules files of the form foo/foo.scm work (7 July 2007)
 # Undo above, reorganize existing modules to avoid too many contentful module.scm (8 July 2007)
 # Add opcodes for overlaps
+# Fix fd_load_source and FD_EOX
