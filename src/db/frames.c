@@ -278,10 +278,10 @@ static void record_dependencies(fd_frameop_stack *cxt,fdtype factoid)
       fdtype depends;
       if (FD_VOIDP(records[i].value))
 	depends=fd_init_pair(NULL,records[i].frame,records[i].slotid);
-      else depends=fd_make_list(3,records[i].frame,records[i].slotid,records[i].value);
+      else depends=fd_make_list(3,records[i].frame,records[i].slotid,fd_incref(records[i].value));
       factoids[i++]=depends;}
     fd_hashtable_iterkeys(&implications,fd_table_add,n,factoids,factoid);
-    i=0; while (i<n) {fd_decref(factoids[i]); i++;}
+    i=0; while (i<n) {fdtype factoid=factoids[i++]; fd_decref(factoid);}
     u8_free(factoids);}
 }
 
