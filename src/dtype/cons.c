@@ -12,6 +12,7 @@ static char versionid[] =
 #include "fdb/cons.h"
 
 #include <libu8/u8printf.h>
+#include <libu8/u8timefns.h>
 
 #include <stdarg.h>
 
@@ -73,7 +74,8 @@ void fd_recycle_cons(struct FD_CONS *c)
     /* This is hairy in order to iteratively free up long lists. */
     struct FD_PAIR *p=(struct FD_PAIR *)c;
     fdtype cdr=p->cdr;
-    fd_decref(p->car); 
+    fd_decref(p->car);
+    if (mallocd) u8_free(p);
     if ((FD_PAIRP(cdr)) &&
 	(FD_CONS_REFCOUNT((fd_pair)cdr)==1))
       while ((FD_PAIRP(cdr)) &&
@@ -94,15 +96,11 @@ void fd_recycle_cons(struct FD_CONS *c)
 	  x->consbits=(0xFFFFFF80|(x->consbits&0x7F));
 	  FD_UNLOCK_PTR(x);
 	  fd_decref(x->car); cdr=x->cdr;
-	  if (!(FD_PAIRP(cdr))) {
-	    fd_decref(cdr); break;}
-	  else u8_free(x);}
+	  if (FD_MALLOCD_CONSP(x)) u8_free(x);}
 	else {
 	  FD_UNLOCK_PTR(x);
 	  u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
-    else {
-      fd_decref(cdr);
-      if (mallocd) u8_free(p);}
+    fd_decref(cdr);
     break;}
   case fd_string_type: case fd_packet_type: {
     struct FD_STRING *s=(struct FD_STRING *)c;
@@ -412,19 +410,6 @@ FD_EXPORT fdtype fd_make_list(int len,...)
   va_end(args);
   i=len-1; while (i>=0) {
     result=fd_init_pair(NULL,elts[i],result); i--;}
-  u8_free(elts);
-  return result;
-}
-
-FD_EXPORT fdtype fd_pmake_list(int len,...)
-{
-  va_list args; int i=0;
-  fdtype *elts=u8_alloc_n(len,fdtype), result=FD_EMPTY_LIST;
-  va_start(args,len);
-  while (i<len) elts[i++]=va_arg(args,fdtype);
-  va_end(args);
-  i=len-1; while (i>=0) {
-    result=fd_init_pair(u8_alloc(struct FD_PAIR),elts[i],result); i--;}
   u8_free(elts);
   return result;
 }
@@ -944,6 +929,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
 {
   if (FD_FIXNUMP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
+    memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),FD_FIX2INT(x),0);
     return FDTYPE_CONS(tm);}
