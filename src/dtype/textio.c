@@ -819,11 +819,13 @@ static fdtype recreate_record(int n,fdtype *v)
   if ((entry) && (entry->parser)) {
     fdtype result=entry->parser(n,v);
     while (i<n) {fd_decref(v[i]); i++;}
+    if (v) u8_free(v);
     return result;}
   else {
     struct FD_COMPOUND *c=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
     fdtype *data=&(c->elt0); fd_init_compound(c,v[0],0); c->n_elts=n-1;
     i=1; while (i<n) {data[i-1]=v[i]; i++;}
+    if (v) u8_free(v);
     return FDTYPE_CONS(c);}
 }
 
