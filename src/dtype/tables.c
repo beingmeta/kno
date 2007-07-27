@@ -1494,7 +1494,8 @@ static int free_hashvec
 	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
 	while (kvscan<kvlimit) {
-	  fd_decref(kvscan->key); fd_decref(kvscan->value);
+	  fd_decref(kvscan->key);
+	  fd_decref(kvscan->value);
 	  kvscan++;}
 	u8_free(*scan);
 	*scan++=NULL;}
