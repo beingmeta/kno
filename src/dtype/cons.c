@@ -610,16 +610,18 @@ FD_EXPORT fdtype fd_passerr(fdtype err,fdtype context)
     return err;}
   else if (FD_TROUBLEP(err)) {
     struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
+    FD_INIT_CONS(exo,fd_error_type);
     exo->data.cond=fd_retcode_to_exception(err); exo->data.cxt=NULL;
     exo->data.details=NULL; exo->data.irritant=FD_VOID;
     exo->backtrace=fd_init_pair(NULL,context,FD_EMPTY_LIST);
-    return err;}
+    return FDTYPE_CONS(exo);}
   else {
     struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
+    FD_INIT_CONS(exo,fd_error_type);
     exo->data.cond=fd_UnknownError; exo->data.cxt=NULL;
     exo->data.details=NULL; exo->data.irritant=FD_VOID;
     exo->backtrace=fd_init_pair(NULL,context,FD_EMPTY_LIST);
-    return err;}
+    return FDTYPE_CONS(exo);}
 }
 FD_EXPORT fdtype fd_passerr2(fdtype err,fdtype context1,fdtype context2)
 {

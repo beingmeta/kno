@@ -953,6 +953,23 @@ fdtype fd_parser(u8_input in)
 }
   
 FD_EXPORT
+/* fd_parse_expr:
+     Arguments: a U8 input stream
+     Returns: a lisp object
+
+     This returns FD_EOF if there is nothing to read.
+     It is distinct from fd_parser which returns FD_EOX
+      (an error) if there is nothing to read.
+*/
+fdtype fd_parse_expr(u8_input in)
+{
+  int inchar=skip_whitespace(in);
+  if (inchar<0)
+    return FD_EOF;
+  else return fd_parser(in);
+}
+
+FD_EXPORT
 /* fd_parser:
      Arguments: a string
      Returns: a lisp object

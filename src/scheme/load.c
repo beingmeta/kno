@@ -111,27 +111,26 @@ FD_EXPORT fdtype fd_load_source
   {
     /* This does a read/eval loop. */
     fdtype result=FD_VOID;
-    fdtype expr=fd_parser(&stream), last_expr=FD_VOID;
-    while (!(FD_TROUBLEP(expr))) {
+    fdtype expr=fd_parse_expr(&stream), last_expr=FD_VOID;
+    while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
       result=fd_eval(expr,env);
-      fd_decref(last_expr);  last_expr=expr; expr=FD_VOID;
       if (FD_ABORTP(result)) {
 	restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
-	return fd_passerr(result,fd_make_list(2,expr,fd_make_list(2,after_symbol,last_expr)));}
-      expr=fd_parser(&stream);}
-    if (expr==FD_PARSE_ERROR) {
-      fd_decref(result);
-      result=fd_passerr(fd_erreify(),fd_make_list(1,fd_make_list(2,after_symbol,last_expr)));}
-    else if (expr==FD_EOX) {
-      /* This should really be something else, because it also ignores
-	 expressions that really end in the middle. */
+	fd_decref(last_expr);
+	return fd_passerr(result,expr);}
+      fd_decref(last_expr);  last_expr=expr;
+      expr=fd_parse_expr(&stream);}
+    if (expr==FD_EOF) {
       fd_decref(last_expr); last_expr=FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
       fd_decref(result);
-      result=fd_passerr(expr,fd_make_list(1,fd_make_list(2,after_symbol,last_expr)));}
+      result=fd_err(fd_retcode_to_exception(expr),"fd_parse_expr","just after",last_expr);
+      fd_decref(last_expr); last_expr=FD_VOID; expr=FD_VOID;}
+    else if (FD_ABORTP(expr)) {
+      result=expr; expr=FD_VOID;}
     else fd_decref(last_expr);
     if (trace_load) 
       u8_notify(FileDone,"Loaded %s in %f seconds",

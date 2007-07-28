@@ -21,6 +21,7 @@ FD_EXPORT double fd_load_start;
 
 FD_EXPORT int fd_init_dtypelib(void) FD_LIBINIT_FN;
 
+FD_EXPORT fdtype fd_parse_expr(struct U8_INPUT *);
 FD_EXPORT fdtype fd_parser(struct U8_INPUT *);
 FD_EXPORT fdtype fd_parse(u8_string string);
 FD_EXPORT fdtype fd_parse_arg(u8_string string);

@@ -1140,6 +1140,19 @@ FD_EXPORT fdtype fd_get_module(fdtype name,int safe)
     else return module;}
 }
 
+FD_EXPORT int fd_discard_module(fdtype name,int safe)
+{
+  if (safe)
+    return fd_hashtable_store(&safe_module_map,name,FD_VOID);
+  else {
+    fdtype module=fd_hashtable_get(&module_map,name,FD_VOID);
+    if (FD_VOIDP(module))
+      return fd_hashtable_store(&safe_module_map,name,FD_VOID);
+    else {
+      fd_decref(module);
+      return fd_hashtable_store(&module_map,name,FD_VOID);}}
+}
+
 /* Making some functions */
 
 FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn)

@@ -61,7 +61,9 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 	if (FD_VOIDP(module)) return fd_err(MissingModule,NULL,NULL,spec);
 	fd_finish_module(module);
 	return module;}
-      else if (retval<0) return fd_erreify();
+      else if (retval<0) {
+	fd_discard_module(spec,safe);
+	return fd_erreify();}
       else scan=scan->next;}
     if (err)
       return fd_err(fd_NoSuchModule,NULL,module_name,spec);
