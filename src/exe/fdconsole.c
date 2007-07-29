@@ -23,6 +23,10 @@ static char versionid[] =
 #include <libu8/u8streamio.h>
 #include <libu8/u8stdio.h>
 
+#if ((FD_WITH_EDITLINE) && (HAVE_HISTEDIT_H))
+#include <histedit.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <locale.h>
@@ -73,6 +77,23 @@ static void close_consoles()
     fd_recycle_environment(console_env);
     console_env=NULL;}
 }
+
+#if 0
+static fdtype direct_console_read()
+{
+  int c=skip_whitespace((u8_input)in);
+  if (c<0) return FD_EOF;
+  else if (c=='=') {
+    fdtype sym=fd_parse_expr(in);
+    if (FD_SYMBOLP(sym)) {
+      fd_bind_value(sym,lastval,env);
+      u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
+    else u8_printf(out,_(";; Bad assignment expression\n"));
+    return FD_VOID;}
+  else return fd_parse_expr(in);
+
+}
+#endif
 
 /* Returns 1 if x is worth adding to the history. */
 static int historicp(fdtype x)
