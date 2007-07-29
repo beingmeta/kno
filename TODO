@@ -74,3 +74,5 @@ Implement a simple queueing system
 # Undo above, reorganize existing modules to avoid too many contentful module.scm (8 July 2007)
 # Add opcodes for overlaps
 # Fix fd_load_source and FD_EOX (27 July 2007)
+# Add LOADED? MODIFIED? LOCKED? (29 Junly 2007)
+# Add soundex encoding

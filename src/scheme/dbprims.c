@@ -277,6 +277,14 @@ static fdtype lockoid(fdtype o,fdtype soft)
   else return FD_INT2DTYPE(retval);
 }
 
+static fdtype oidlockedp(fdtype arg)
+{
+  fd_pool p=fd_oid2pool(arg);
+  if (fd_hashtable_probe_novoid(&(p->locks),arg))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype lockoids(fdtype oids)
 {
   int retval=fd_lock_oids(oids);
@@ -1577,6 +1585,124 @@ static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
     return results;}
 }
 
+/* Helpful predicates */
+
+static fdtype dbloadedp(fdtype arg1,fdtype arg2)
+{
+  if (FD_VOIDP(arg2))
+    if (FD_OIDP(arg1)) {
+      fd_pool p=fd_oid2pool(arg1);
+      if (fd_hashtable_probe(&(p->locks),arg1)) {
+	fdtype v=fd_hashtable_probe(&(p->locks),arg1);
+	if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
+	  fd_decref(v); return FD_TRUE;}
+	else return FD_FALSE;}
+      else if (fd_hashtable_probe(&(p->cache),arg1))
+	return FD_TRUE;
+      else return FD_FALSE;}
+    else if (fd_hashtable_probe(&(fd_background->cache),arg1))
+      return FD_TRUE;
+    else return FD_FALSE;
+  else if (FD_INDEXP(arg2)) {
+    fd_index ix=fd_lisp2index(arg2);
+    if (ix==NULL)
+      return fd_type_error("index","loadedp",arg2);
+    else if (fd_hashtable_probe(&(ix->cache),arg1))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_POOLP(arg2))
+    if (FD_OIDP(arg1)) {
+      fd_pool p=fd_lisp2pool(arg2);
+      if (p==NULL)
+	return fd_type_error("pool","loadedp",arg2);
+      if (fd_hashtable_probe(&(p->locks),arg1)) {
+	fdtype v=fd_hashtable_probe(&(p->locks),arg1);
+	if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
+	  fd_decref(v); return FD_TRUE;}
+	else return FD_FALSE;}
+      else if (fd_hashtable_probe(&(p->cache),arg1))
+	return FD_TRUE;
+      else return FD_FALSE;}
+    else return FD_FALSE;
+  else if ((FD_STRINGP(arg2)) && (FD_OIDP(arg1))) {
+    fd_pool p=fd_lisp2pool(arg2); fd_index ix;
+    if (p) 
+      if (fd_hashtable_probe(&(p->cache),arg1))
+	return FD_TRUE;
+      else return FD_FALSE;
+    else ix=fd_lisp2index(arg2);
+    if (ix==NULL)
+      return fd_type_error("pool/index","loadedp",arg2);
+    else if (fd_hashtable_probe(&(ix->cache),arg1))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return fd_type_error("pool/index","loadedp",arg2);
+}
+
+static int oidmodifiedp(fd_pool p,fdtype oid)
+{
+  if (fd_hashtable_probe(&(p->locks),oid)) {
+    fdtype v=fd_hashtable_get(&(p->locks),oid,FD_VOID);
+    int modified=1;
+    if ((FD_VOIDP(v)) || (v==FD_LOCKHOLDER)) 
+      modified=0;
+    else if (FD_SLOTMAPP(v))
+      if (FD_SLOTMAP_MODIFIEDP(v)) {}
+      else modified=0;
+    else if (FD_SCHEMAPP(v)) 
+      if (FD_SCHEMAP_MODIFIEDP(v)) {}
+      else modified=0;
+    fd_decref(v);
+    if (modified) return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
+{
+  if (FD_VOIDP(arg2))
+    if (FD_OIDP(arg1)) {
+      fd_pool p=fd_oid2pool(arg1);
+      if (oidmodifiedp(p,arg1))
+	return FD_TRUE;
+      else return FD_FALSE;}
+    else if ((fd_hashtable_probe(&(fd_background->adds),arg1)) ||
+	     (fd_hashtable_probe(&(fd_background->edits),arg1)))
+      return FD_TRUE;
+    else return FD_FALSE;
+  else if (FD_INDEXP(arg2)) {
+    fd_index ix=fd_lisp2index(arg2);
+    if (ix==NULL)
+      return fd_type_error("index","loadedp",arg2);
+    else if ((fd_hashtable_probe(&(ix->adds),arg1)) ||
+	     (fd_hashtable_probe(&(ix->edits),arg1)))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_POOLP(arg2))
+    if (FD_OIDP(arg1)) {
+      fd_pool p=fd_lisp2pool(arg2);
+      if (p==NULL)
+	return fd_type_error("pool","loadedp",arg2);
+      else if (oidmodifiedp(p,arg1))
+	return FD_TRUE;
+      else return FD_FALSE;}
+    else return FD_FALSE;
+  else if ((FD_STRINGP(arg2)) && (FD_OIDP(arg1))) {
+    fd_pool p=fd_lisp2pool(arg2); fd_index ix;
+    if (p) 
+      if (oidmodifiedp(p,arg1))
+	return FD_TRUE;
+      else return FD_FALSE;
+    else ix=fd_lisp2index(arg2);
+    if (ix==NULL)
+      return fd_type_error("pool/index","loadedp",arg2);
+    else if ((fd_hashtable_probe(&(ix->adds),arg1)) ||
+	     (fd_hashtable_probe(&(ix->edits),arg1)))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return fd_type_error("pool/index","loadedp",arg2);
+}
+
 /* Initializing */
 
 FD_EXPORT void fd_init_dbfns_c()
@@ -1584,6 +1710,9 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_register_source_file(versionid);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLOTID?",slotidp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("LOADED?",dbloadedp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("MODIFIED?",dbmodifiedp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("LOCKED?",oidlockedp,1));
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET",fget,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",ftest,2)));
@@ -1759,256 +1888,3 @@ FD_EXPORT void fd_init_dbfns_c()
 
 }
 
-
-/* The CVS log for this file
-   $Log: dbfns.c,v $
-   Revision 1.111  2006/01/27 21:31:29  haase
-   Fixed leak in binary pick/reject
-
-   Revision 1.110  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.109  2006/01/20 13:05:27  haase
-   Fixed leak in setoidvalue
-
-   Revision 1.108  2006/01/18 17:28:22  haase
-   Added OID-PTRDATA primitive
-
-   Revision 1.107  2006/01/18 14:37:11  haase
-   Added OID-RANGE and OID-VECTOR primitives
-
-   Revision 1.106  2006/01/16 22:17:08  haase
-   Added SUMFRAME
-
-   Revision 1.105  2006/01/16 22:02:50  haase
-   Added SEQ->FRAME
-
-   Revision 1.104  2006/01/16 17:58:07  haase
-   Fixes to empty choice cases for indices and better error handling
-
-   Revision 1.103  2006/01/07 23:12:46  haase
-   Moved framerd object dtype handling into the main fd_read_dtype core, which led to substantial performanc improvements
-
-   Revision 1.102  2006/01/07 19:08:00  haase
-   Made MAKE-OID handle bigint args
-
-   Revision 1.101  2006/01/05 18:20:33  haase
-   Added missing return keyword
-
-   Revision 1.100  2006/01/02 22:40:22  haase
-   Various prefetching fixes
-
-   Revision 1.99  2006/01/01 19:51:15  haase
-   Added FORGRAPH and MAPGRAPH primitives which handle circularities
-
-   Revision 1.98  2006/01/01 00:02:44  haase
-   Added missing header file to dbfns.c
-
-   Revision 1.97  2005/12/20 19:05:53  haase
-   Switched to u8_random and added RANDOMSEED config variable
-
-   Revision 1.96  2005/12/02 22:09:25  haase
-   Fixed handling of binary pick and reject with slotids
-
-   Revision 1.95  2005/11/29 17:53:25  haase
-   Catch file index overflows and 0/1 cases of index getkeys and getsizes
-
-   Revision 1.94  2005/11/16 23:19:39  haase
-   Made hashtable indices work for unspecified value argument
-
-   Revision 1.93  2005/11/16 18:34:37  haase
-   Made hashtables work for index-frame and find-frames
-
-   Revision 1.92  2005/11/08 15:22:29  haase
-   Made (COMMIT) ignore (but warn) on individual errors for now
-
-   Revision 1.91  2005/11/03 20:46:10  haase
-   Made PICK and REJECT handle non-frame table candidates
-
-   Revision 1.90  2005/10/25 16:07:11  haase
-   Added background decache primitive
-
-   Revision 1.89  2005/10/13 16:02:59  haase
-   Added INDEX-DECACHE
-
-   Revision 1.88  2005/08/19 21:51:51  haase
-   Extended PICK and REJECT to take hashtables and functions as predicates
-
-   Revision 1.87  2005/08/18 17:03:09  haase
-   Fixed some incremental change bugs in file indices
-
-   Revision 1.86  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.85  2005/08/08 00:47:50  haase
-   Added return value to function cache clearing
-
-   Revision 1.84  2005/08/02 22:35:14  haase
-   Fixed GC error in recursive descent primitives
-
-   Revision 1.83  2005/07/30 17:22:23  haase
-   SET-OID-VALUE with schemaps and hashtables now copy and mark modified
-
-   Revision 1.82  2005/07/30 16:15:36  haase
-   Added INHERIT prim
-
-   Revision 1.81  2005/07/25 19:38:18  haase
-   Added LOCK-OID
-
-   Revision 1.80  2005/07/23 21:13:03  haase
-   Added OID->STRING to get an OID address directly
-
-   Revision 1.79  2005/07/16 15:59:22  haase
-   Added POOL? and INDEX? primitives
-
-   Revision 1.78  2005/07/14 02:18:07  haase
-   Added TESTP primitive
-
-   Revision 1.77  2005/07/13 23:37:37  haase
-   More extensions to adjunct handling
-
-   Revision 1.76  2005/07/13 23:07:45  haase
-   Added global adjuncts and LISP access to adjunct declaration
-
-   Revision 1.75  2005/07/13 22:22:50  haase
-   Added semantics for fd_test when the value argument is VOID, which just tests for any values
-
-   Revision 1.74  2005/07/13 21:39:31  haase
-   XSLOTMAP/XSCHEMAP renaming
-
-   Revision 1.73  2005/07/12 21:38:47  haase
-   Fixed bug which made the primitive OPEN-INDEX always call USE-INDEX which made for a busy background
-
-   Revision 1.72  2005/07/08 20:18:04  haase
-   Fixed TEST primitive to work on non-frames
-
-   Revision 1.71  2005/07/01 00:25:17  haase
-   Fixed prefetch-keys! case with a non-deterministic index arg
-
-   Revision 1.70  2005/07/01 00:24:07  haase
-   Fixed prefetch-keys! case with a non-deterministic index arg
-
-   Revision 1.69  2005/07/01 00:21:00  haase
-   Fixed prefetch-keys! case with a non-deterministic index arg
-
-   Revision 1.68  2005/05/30 00:03:54  haase
-   Fixes to pool declaration, allowing the USE-POOL primitive to return multiple pools correctly when given a ; spearated list or a pool server which provides multiple pools
-
-   Revision 1.67  2005/05/29 22:38:47  haase
-   Simplified db layer fd_use_pool and fd_use_index
-
-   Revision 1.66  2005/05/29 18:26:35  haase
-   Defined version of 'pick' and 'reject' with a single argument which can be a function, hashset, table, or slotid and treats non-empty values as true
-
-   Revision 1.65  2005/05/27 20:39:53  haase
-   Added OID swapout
-
-   Revision 1.64  2005/05/26 20:48:42  haase
-   Made USE-POOL return a pool, rather than void, again
-
-   Revision 1.63  2005/05/26 11:03:00  haase
-   Made set-oid-value! check for an error return value
-
-   Revision 1.62  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.61  2005/05/17 18:40:04  haase
-   Added OID? primitive
-
-   Revision 1.60  2005/05/12 22:41:32  haase
-   Added in-pool?
-
-   Revision 1.59  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.58  2005/05/09 20:04:19  haase
-   Move dtype hash functions into dbfile and made libfdscheme independent of libfddbfile
-
-   Revision 1.57  2005/05/06 16:13:08  haase
-   Made USE-POOL/USE-INDEX return void on string arguments and accept separated pool lists
-
-   Revision 1.56  2005/04/26 00:06:22  haase
-   Made name->pool return the empty choice when it fails to identify a pool
-
-   Revision 1.55  2005/04/25 13:11:34  haase
-   Added cache size counting
-
-   Revision 1.54  2005/04/24 02:00:53  haase
-   Don't bother prefetching under ipeval
-
-   Revision 1.53  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.52  2005/04/14 01:32:41  haase
-   Fix bug in open_index/use_index changes
-
-   Revision 1.51  2005/04/14 01:25:22  haase
-   Made use-pool/index functions take opened pools and indices as arguments
-
-   Revision 1.50  2005/04/13 15:00:09  haase
-   Added OID utility functions
-
-   Revision 1.49  2005/04/12 20:41:15  haase
-   Fixed type definition for set-oid-value
-
-   Revision 1.48  2005/04/10 17:24:03  haase
-   Fixed error in hashtable copier
-
-   Revision 1.47  2005/04/09 22:44:15  haase
-   Added REJECT primitive
-
-   Revision 1.46  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.45  2005/03/28 19:18:45  haase
-   Added prefetching configuration variable PREFETCH
-
-   Revision 1.44  2005/03/26 18:31:41  haase
-   Various configuration fixes
-
-   Revision 1.43  2005/03/26 04:47:47  haase
-   Added index-set and index-sizes primitives
-
-   Revision 1.42  2005/03/06 00:07:45  haase
-   Dropped exclamation from index-frame
-
-   Revision 1.41  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.40  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.39  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.38  2005/03/02 15:52:24  haase
-   Remove cache level setting primitive and simplified pool ops to use fd_lisp2pool
-
-   Revision 1.37  2005/03/01 19:38:35  haase
-   Define GETSLOTS alias for GETKEYS
-
-   Revision 1.36  2005/03/01 02:12:03  haase
-   Defined set-oid-value primitive
-
-   Revision 1.35  2005/02/27 03:03:45  haase
-   Added index-frame primitive and simplified other index primitives to use expanded fd_lisp2index
-
-   Revision 1.34  2005/02/25 20:13:03  haase
-   Add special cases and comprehensive retract
-
-   Revision 1.33  2005/02/24 19:12:46  haase
-   Fixes to handling index arguments which are strings specifiying index sources
-
-   Revision 1.32  2005/02/19 21:23:10  haase
-   Added FIND-FRAMES back
-
-   Revision 1.31  2005/02/19 16:23:16  haase
-   Added ALLOCATE-OIDS, FRAME-CREATE, MAKE-OID, and OID-PLUS
-
-   Revision 1.30  2005/02/11 03:50:12  haase
-   Added some eval branch predictions
-
-   Revision 1.29  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
