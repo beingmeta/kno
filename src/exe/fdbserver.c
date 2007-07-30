@@ -116,8 +116,9 @@ static fdtype config_get_ports(fdtype var,void MAYBE_UNUSED *data)
 
 static fdtype config_get_dtype_server_flag(fdtype var,void *data)
 {
-  unsigned long long bigmask=(unsigned long long)data;
-  unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF), flags; fdtype result;
+  fdtype result;
+  fd_ptrbits bigmask=(fd_ptrbits)data;
+  unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF), flags;
   fd_lock_mutex(&init_server_lock);
   if (server_initialized) flags=dtype_server.flags;
   else flags=server_flags;
@@ -127,7 +128,7 @@ static fdtype config_get_dtype_server_flag(fdtype var,void *data)
 
 static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
 {
-  unsigned long long bigmask=(unsigned long long)data;
+  fd_ptrbits bigmask=(fd_ptrbits)data;
   unsigned int mask=(bigmask&0xFFFFFFFF), *flagsp, flags;
   fd_lock_mutex(&init_server_lock);
   if (server_initialized) {

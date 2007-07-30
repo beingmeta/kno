@@ -17,10 +17,13 @@
 
 #if (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
 typedef unsigned long long fdtype;
+typedef unsigned long long fd_ptrbits;
 #elif (SIZEOF_LONG == SIZEOF_VOID_P)
 typedef unsigned long fdtype;
+typedef unsigned long fd_ptrbits;
 #else
 typedef unsigned int fdtype;
+typedef unsigned int fd_ptrbits;
 #endif
 
 #if (SIZEOF_LONG == 8)
