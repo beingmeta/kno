@@ -32,25 +32,27 @@
 			(vector-set! fifo 1 newvec)
 			(vector-set! fifo 2 0)
 			(vector-set! fifo 3 (- end start))
-			(vector-set! newvec (- end start) item)))))
-	     (condvar-signal (first fifo) broadcast))
+			(vector-set! newvec (- end start) item))))
+	       (condvar-signal (first fifo) broadcast)))
     (condvar-unlock (first fifo))))
 
 (define (fifo-pop fifo)
   (if (elt fifo 4)
       (unwind-protect
 	  (begin (condvar-lock (first fifo))
-		 (while (= (elt fifo 2) (elt fifo 3))
+		 (while (and (elt fifo 4) (= (elt fifo 2) (elt fifo 3)))
 		   (condvar-wait (first fifo)))
-		 (let* ((vec (elt fifo 1))
-			(start (elt fifo 2))
-			(end (elt fifo 3))
-			(item (elt vec start)))
-		   ;; Replace the item with false
-		   (vector-set! vec start #f)
-		   ;; Advance the start pointer
-		   (vector-set! fifo 2 (1+ start))
-		   item))
+		 (if (elt fifo 4) 
+		     (let* ((vec (elt fifo 1))
+			    (start (elt fifo 2))
+			    (end (elt fifo 3))
+			    (item (elt vec start)))
+		       ;; Replace the item with false
+		       (vector-set! vec start #f)
+		       ;; Advance the start pointer
+		       (vector-set! fifo 2 (1+ start))
+		       item)
+		     (fail)))
 	(condvar-unlock (first fifo)))
       (fail)))
 
@@ -59,9 +61,12 @@
     (while (and (exists? result) result)
       (set! result (handler (fifo-pop fifo))))))
 
-
-(define (close-fifo fifo)
-  (vector-set! fifo 4 #f))
+(define (close-fifo fifo (broadcast #t))
+  (vector-set! fifo 4 #f)
+  (when broadcast
+    (condvar-lock (first fifo))
+    (condvar-signal (first fifo) #t)
+    (condvar-unlock (first fifo))))
 
 (define (fifo-queue fifo)
   (subseq (elt fifo 1) (elt fifo 2) (elt fifo 3)))
