@@ -670,6 +670,12 @@
 		(if (overlaps? concept (?? (get norm-map language) term)) 3 1)
 		1))))
 
+(define usewordforms-config
+  (slambda (var (value))
+    (if (bound? value)
+	(set! use-wordforms value)
+	use-wordforms)))
+(config-def! 'usewordforms usewordforms-config)
 
 (set! freqfns (list (vector 'wordform wordform-concept-frequency)
 		    (vector 'defterms defterms)
