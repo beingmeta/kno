@@ -16,7 +16,7 @@
    get-gloss get-single-gloss get-short-gloss get-expstring gloss get-norm
    language-map gloss-map norm-map index-map frag-map
    index-string index-name index-frags index-gloss index-implied index-frame*
-   indexer index-concept
+   indexer index-concept unindex
    ;; Specialized versions
    index-core index-brico index-wordform
    index-words index-relations index-lattice index-implies
@@ -123,19 +123,59 @@
 	 defterms defines refterms referenced
 	 language-map gloss-map norm-map index-map})
 
+;;; Custom data sources
+
+(define custom-norms #f)
+(define custom-glosses #f)
+
+(define (custom-get frame language custom)
+  (if (null? custom) (fail)
+      (let ((entry (car custom)))
+	(try (if (pair? entry)
+		 (tryif (eq? (car entry) language)
+			(get (cdr entry) frame))
+		 (get entry (cons frame language)))
+	     (custom-get frame language (cdr custom))))))
+
+(define (config-custom-norm (value))
+  (if (bound? value)
+      custom-norms
+      (if (or (and (pair? value) (oid? (car value)) (table? (cdr value)))
+	      (and (not (pair? value)) (table? value)))
+	  (if custom-norms
+	      (set! custom-norms (cons value custom-norms))
+	      (set! custom-norms (list value)))
+	  (error 'type "Not a valid norm table"))))
+(config-def! 'NORMSOURCE config-custom-norm)
+
+(define (config-custom-gloss (value))
+  (if (bound? value)
+      custom-glosses
+      (if (or (and (pair? value) (oid? (car value)) (table? (cdr value)))
+	      (and (not (pair? value)) (table? value)))
+	  (if custom-glosses
+	      (set! custom-glosses (cons value custom-glosses))
+	      (set! custom-glosses (list value)))
+	  (error 'type "Not a valid glosses table"))))
+(config-def! 'GLOSSOURCE config-custom-gloss)
+
+;;; Getting norms, glosses, etc.
 
 ;;; Mostly the roots of WordNet....
 (define default-language english)
 
 (define (get-norm concept (language default-language))
-  (try (pick-one (largest (get (get concept '%norm) language)))
+  (try (tryif custom-norms
+	      (pick-one (largest (custom-get concept language custom-norms))))
+       (pick-one (largest (get (get concept '%norm) language)))
        (pick-one (largest (get concept language)))
        (pick-one (largest (get concept english)))
        (pick-one (largest (get concept 'names)))
        (pick-one (largest (cdr (get concept '%words))))))
 
 (define (get-gloss concept (language default-language))
-  (try (tryif language (get concept (get gloss-map language)))
+  (try (tryif custom-glosses (custom-get concept language custom-glosses))
+       (tryif language (get concept (get gloss-map language)))
        (tryif language (get (get concept '%glosses) language))
        (get concept english-gloss)
        (get concept 'gloss)))
@@ -308,6 +348,13 @@
 		    (index-frame index frame slotids))))))
     (if (and (bound? values) inverse)
 	(doindex index values inverse frame))))
+
+(define (unindex index frame slot value)
+  (if (not index)
+      (do-choices (index (config 'background))
+	(unindex index frame slot value))
+      (when (%test index (cons slot value) frame)
+	(drop! index  (cons slot value) frame))))
 
 (define default-frag-window #f)
 
