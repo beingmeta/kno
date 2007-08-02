@@ -782,22 +782,47 @@ static fdtype choice2list(fdtype x)
   return lst;
 }
 
-static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start)
+static fdtype get_part(fdtype x,fdtype part)
 {
-  if (FD_APPLICABLEP(fn)) {
+  if (FD_VOIDP(part)) return fd_incref(x);
+  else if (FD_APPLICABLEP(part))
+    return fd_apply(part,1,&x);
+  else if ((FD_TABLEP(part)) && (!(FD_OIDP(part))))
+    return fd_get(part,x,FD_EMPTY_CHOICE);
+  else if (FD_OIDP(x))
+    return fd_frame_get(x,part);
+  else return FD_EMPTY_CHOICE;
+}
+
+#define FD_PARTP(x) \
+  ((FD_SYMBOLP(x)) || (FD_OIDP(x)) || (FD_VOIDP(x)) || \
+   (FD_TABLEP(x)) || (FD_APPLICABLEP(x)))
+
+static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
+{
+  if ((FD_APPLICABLEP(fn)) && ((FD_VOIDP(part)) || (FD_PARTP(part)))) {
     fdtype state=fd_incref(start);
-    FD_DO_CHOICES(item,choice) 
-      if (FD_VOIDP(state)) state=fd_incref(item);
+    FD_DO_CHOICES(each,choice) {
+      fdtype item=get_part(each,part);
+      if (FD_ABORTP(item)) {
+	FD_STOP_DO_CHOICES;
+	fd_decref(state);
+	return item;}
+      else if (FD_VOIDP(state)) state=fd_incref(item);
       else {
 	fdtype rail[2], next_state;
 	rail[0]=item; rail[1]=state;
 	next_state=fd_apply(fn,2,rail);
 	if (FD_ABORTP(next_state)) {
-	  fd_decref(state); FD_STOP_DO_CHOICES;
+	  fd_decref(state); fd_decref(item);
+	  FD_STOP_DO_CHOICES;
 	  return next_state;}
 	fd_decref(state); state=next_state;}
+      fd_decref(item);}
     return state;}
-  else return fd_type_error(_("function"),"reduce_choice",fn);
+  else if (!(FD_APPLICABLEP(fn)))
+    return fd_type_error(_("function"),"reduce_choice",fn);
+  else return fd_type_error(_("part"),"reduce_choice",part);
 }
 
 static fdtype apply_map(fdtype fn,fdtype val)
@@ -1135,7 +1160,7 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("CHOICE->LIST",choice2list,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("REDUCE-CHOICE",reduce_choice,2)));
+	   fd_make_ndprim(fd_make_cprim4("REDUCE-CHOICE",reduce_choice,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim4("XREDUCE",xreduce_choice,3)));
 
