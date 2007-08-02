@@ -5,7 +5,7 @@
 (define indexinfer #t)
 
 ;; For index-name, at least
-(use-module 'texttools)
+(use-module '{texttools reflection})
 ;; When BRICOSOURCE is ".db"
 (use-module 'usedb)
 
@@ -20,7 +20,7 @@
    ;; Specialized versions
    index-core index-brico index-wordform
    index-words index-relations index-lattice index-implies
-   basic-concept-frequency concept-frequency use-corpus-frequency
+   concept-frequency concept-frequency-prefetch
    brico-prefetch! brico-prefetch})
 
 (module-export!
@@ -349,12 +349,17 @@
     (if (and (bound? values) inverse)
 	(doindex index values inverse frame))))
 
-(define (unindex index frame slot value)
-  (if (not index)
-      (do-choices (index (config 'background))
-	(unindex index frame slot value))
-      (when (%test index (cons slot value) frame)
-	(drop! index  (cons slot value) frame))))
+(define unindex
+  (ambda (frame slot value (index #f))
+    (do-choices (slot slot)
+      (do-choices (value value)
+	(if (not index)
+	    (do-choices (index (config 'background))
+	      (when (%test index (cons slot value) frame)
+		(message "Dropping references from " index)
+		(drop! index  (cons slot value) frame)))
+	    (when (%test index (cons slot value) frame)
+	      (drop! index  (cons slot value) frame)))))))
 
 (define default-frag-window #f)
 
@@ -623,39 +628,60 @@
 
 ;;; Getting concept frequency information
 
-(define (basic-concept-frequency concept (language #f) (term #f))
-  (let ((sum 0) (language (or language english)))
-    (do-choices (wf (if term (?? 'of concept 'word term 'language language)
-			(?? 'of concept)))
-      (set! sum (+ sum (try (get wf 'freq) 0))))
-    ;; If there is no frequency data, use the native language occurence
-    ;;  as a single instance, providing that it is actually applicable.
-    ;; This doesn't do any term morphology, which is handled elsewhere.
-    (if (zero? sum) 
-	(if (or (not term) (test concept language term)
-		(and (capitalized? term)
-		     (or (test concept 'names term)
-			 (overlaps? (stdstring term)
-				    (stdstring (get concept 'names))))))
-	    ;; Weight brico concepts higher than external concepts
-	    (if (in-pool? concept brico-pool) 2 1)
-	    0)
-	sum)))
-
 ;; This is a list of functions to get concept/term frequency information.
-;;  Each item is a car of a name (which is an arbitrary value) and a function
+;;  Each item is a sequence whose first element is a name (typically a symbol)
+;;  and whose remaining elements specify a way to get frequency information.
+;;  These can be 
 ;;  of three arguments (concept, language, term) that returns a count of
 ;;  either co-occurences of term in language with concept or the absolute
 ;;  frequency of the concept if language and term are false.
-(define freqfns (list (cons 'basic basic-concept-frequency)))
+(define freqfns '())
 
 (define (concept-frequency concept (language #f) (term #f))
   (let ((sum 0))
-    (dolist (method freqfns)
-      (let ((freq ((cdr method) concept language term)))
-	(when (and (exists? freq) (number? freq))
-	  (set! sum (+ sum freq)))))
-    sum))
+    (dolist (method-spec freqfns)
+      (let ((method (second method-spec)))
+	(if (applicable? method)
+	    (set! sum (+ sum (or (try (method concept language term) 0) 0)))
+	    (if (slotid? method)
+		(let ((wordslot
+		       (and (> (length method-spec) 2) (third method-spec)))
+		      (index (and (> (length method-spec) 3) (fourth method-spec))))
+		  (set! sum
+			(+ sum
+			   (if (and wordslot term)
+			       (if index
+				   (choice-size (find-frames index method concept wordslot term))
+				   (choice-size (?? method concept wordslot term)))
+			       (if index
+				   (choice-size (find-frames index method concept))
+				   (choice-size (?? method concept)))))))))))
+      sum))
+
+(define use-wordforms #t)
+
+(define (wordform-concept-frequency concept language term)
+  (and use-wordforms (in-pool? concept brico-pool) (eq? language english)
+       (try (tryif term
+		   (get (?? 'of concept 'word term 'language language) 'freq))
+	    (reduce-choice + (?? 'of concept) 0 'freq)
+	    ;; Otherwise, this make a wild guess, biasing norms
+	    (if term
+		(if (overlaps? concept (?? (get norm-map language) term)) 3 1)
+		1))))
+
+
+(set! freqfns (list (vector 'wordform wordform-concept-frequency)
+		    (vector 'defterms defterms)
+		    (vector 'refterms refterms)))
+
+(define concept-frequency-prefetch
+  (ambda (concepts language words)
+    (prefetch-keys! (cons (pick (elts (map second freqfns)) oid?)
+			  concepts))
+    (when (and use-wordforms (eq? language english))
+      (prefetch-keys! (choice (cons 'of (pick concepts brico-pool))
+			      (cons 'word words))))))
 
 ;;; Configuring freqfns
 
@@ -699,5 +725,7 @@
    (indexer-slotid-prefetch)
    (indexer-prefetch (qc f))
    (trackrefs (lambda () (index-concept index f)))))
+
+
 
 
