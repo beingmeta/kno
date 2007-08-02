@@ -253,11 +253,39 @@ static fdtype config_get_indices(fdtype var,void *data)
     i++;}
   return results;
 }
+static int config_open_index(fdtype var,fdtype spec,void *data)
+{
+  if (FD_STRINGP(spec))
+    if (fd_open_index(FD_STRDATA(spec))) return 1;
+    else return -1;
+  else {
+    fd_seterr(fd_TypeError,"config_open_index",NULL,fd_incref(spec));
+    return -1;}
+}
+
+static fdtype config_get_background(fdtype var,void *data)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  if (fd_background==NULL) return results;
+  else {
+    int i=0, n; fd_index *indices;
+    fd_lock_mutex(&(fd_background->lock));
+    n=fd_background->n_indices; indices=fd_background->indices;
+    while (i<n) {
+      fdtype lix=fd_index2lisp(indices[i]); i++;
+      FD_ADD_TO_CHOICE(results,lix);}
+    fd_unlock_mutex(&(fd_background->lock));
+    return results;}
+}
 static int config_use_index(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
     if (fd_use_index(FD_STRDATA(spec))) return 1;
     else return -1;
+  else if (FD_INDEXP(spec))
+    if (fd_add_to_background(fd_lisp2index(spec))) return 1;
+    else return -1;
+
   else {
     fd_seterr(fd_TypeError,"config_use_index",NULL,fd_incref(spec));
     return -1;}
@@ -443,97 +471,8 @@ FD_EXPORT int fd_init_db()
 		     set_prefetch,
 		     NULL);
   fd_register_config("POOLS",config_get_pools,config_use_pool,NULL);
-  fd_register_config("INDICES",config_get_indices,config_use_index,NULL);
+  fd_register_config("INDICES",config_get_indices,config_open_index,NULL);
+  fd_register_config("BACKGROUND",config_get_background,config_use_index,NULL);
 
   return fddb_initialized;
 }
-
-
-/* The CVS log for this file
-   $Log: fddb.c,v $
-   Revision 1.53  2006/02/19 13:41:49  haase
-   Added trailing } to oid names
-
-   Revision 1.52  2006/02/13 18:36:34  haase
-   More retval checking for print_oid_name
-
-   Revision 1.51  2006/02/11 18:06:24  haase
-   Completed implementation of OID name printing
-
-   Revision 1.50  2006/02/10 17:25:04  haase
-   Made errors get returned from OID name printing
-
-   Revision 1.49  2006/02/10 14:23:44  haase
-   Made oid unparsing use its own function for displaying names to avoid infinite recurrence and thread unsafe globals
-
-   Revision 1.48  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.47  2006/01/05 18:04:27  haase
-   Moved fd_BadMetaData into fddb core
-
-   Revision 1.46  2005/12/24 00:59:21  haase
-   Made default unparse_oid obey U8_STREAM_SPARSE
-
-   Revision 1.45  2005/12/19 18:36:37  haase
-   Made default_get_oid_name check that its argument is a frame first
-
-   Revision 1.44  2005/08/19 00:25:42  haase
-   Fixed bug in OID display to check locks as well as caches to determine whether an OID is in memory
-
-   Revision 1.43  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.42  2005/07/09 16:18:19  haase
-   Fixed return types for config methods
-
-   Revision 1.41  2005/07/08 20:56:44  haase
-   Added return value to better_unparse_oid base case
-
-   Revision 1.40  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.39  2005/05/21 17:51:23  haase
-   Added DTPROCs (remote procedures)
-
-   Revision 1.38  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.37  2005/05/17 22:09:24  haase
-   Added commit reports
-
-   Revision 1.36  2005/05/17 18:40:50  haase
-   made oid lookup uses %id and removed redundant OIDDISPLAY config declaration
-
-   Revision 1.35  2005/05/16 18:50:57  haase
-   Fixes to OID display to use %ID property and sometimes check for cache status
-
-   Revision 1.34  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.33  2005/03/28 19:18:45  haase
-   Added prefetching configuration variable PREFETCH
-
-   Revision 1.32  2005/03/02 15:51:43  haase
-   Minor refactor
-
-   Revision 1.31  2005/02/28 02:41:44  haase
-   Addded config procedures
-
-   Revision 1.30  2005/02/26 22:31:41  haase
-   Remodularized choice and oid add into xtables.c
-
-   Revision 1.29  2005/02/25 02:17:09  haase
-   Fixed recursive OID name printing problem
-
-   Revision 1.28  2005/02/15 13:34:32  haase
-   Updated fd_parser to use input streams rather than just strings
-
-   Revision 1.27  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.26  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
-
