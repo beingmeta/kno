@@ -138,4 +138,9 @@
 (applytest 1 reduce-choice min {1 2 3 4 5 6})
 (applytest 6 reduce-choice max {1 2 3 4 5 6})
 
+(applytest 12 reduce-choice + {3 4 5 5 4})
+(applytest 12 reduce-choice + {"3" "4" "5"} 0 string->number)
+(applytest 12 reduce-choice + {"3" "4" "5" "5"} 0 string->number)
+(applytest 17 reduce-choice + {"3" "4" "5" "+5"} 0 string->number)
+
 (message "CHOICETEST successfuly completed")

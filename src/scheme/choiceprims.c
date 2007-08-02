@@ -803,22 +803,34 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
   if ((FD_APPLICABLEP(fn)) && ((FD_VOIDP(part)) || (FD_PARTP(part)))) {
     fdtype state=fd_incref(start);
     FD_DO_CHOICES(each,choice) {
-      fdtype item=get_part(each,part);
-      if (FD_ABORTP(item)) {
+      fdtype items=get_part(each,part);
+      if (FD_ABORTP(items)) {
 	FD_STOP_DO_CHOICES;
 	fd_decref(state);
-	return item;}
-      else if (FD_VOIDP(state)) state=fd_incref(item);
+	return items;}
+      else if (FD_VOIDP(state)) state=fd_incref(items);
+      else if (FD_EMPTY_CHOICEP(items)) {}
+      else if (FD_CHOICEP(items)) {
+	FD_DO_CHOICES(item,items) {
+	  fdtype rail[2], next_state;
+	  rail[0]=item; rail[1]=state;
+	  next_state=fd_apply(fn,2,rail);
+	  if (FD_ABORTP(next_state)) {
+	    fd_decref(state); fd_decref(items);
+	    FD_STOP_DO_CHOICES;
+	    return next_state;}
+	  fd_decref(state); state=next_state;}}
       else {
+	fdtype item=items;
 	fdtype rail[2], next_state;
 	rail[0]=item; rail[1]=state;
 	next_state=fd_apply(fn,2,rail);
 	if (FD_ABORTP(next_state)) {
-	  fd_decref(state); fd_decref(item);
+	  fd_decref(state); fd_decref(items);
 	  FD_STOP_DO_CHOICES;
 	  return next_state;}
 	fd_decref(state); state=next_state;}
-      fd_decref(item);}
+      fd_decref(items);}
     return state;}
   else if (!(FD_APPLICABLEP(fn)))
     return fd_type_error(_("function"),"reduce_choice",fn);
