@@ -398,8 +398,10 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	fdtype test_body=remainder;
 	while (FD_PAIRP(test_body)) {
 	  fdtype tmp=fd_eval(FD_CAR(test_body),env);
+	  if (FD_ABORTP(tmp)) return tmp;
 	  fd_decref(tmp);
-	  test_body=FD_CDR(test_body);}}
+	  test_body=FD_CDR(test_body);}
+	return FD_VOID;}
       fd_decref(test);
       return FD_VOID;}
     case FD_UNLESS_OPCODE: {
@@ -407,8 +409,10 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	fdtype test_body=remainder;
 	while (FD_PAIRP(test_body)) {
 	  fdtype tmp=fd_eval(FD_CAR(test_body),env);
+	  if (FD_ABORTP(tmp)) return tmp;
 	  fd_decref(tmp);
-	  test_body=FD_CDR(test_body);}}
+	  test_body=FD_CDR(test_body);}
+	return FD_VOID;}
       fd_decref(test);
       return FD_VOID;}
     case FD_IFELSE_OPCODE: {
