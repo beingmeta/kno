@@ -686,11 +686,11 @@ FD_EXPORT fdtype _fd_finish_call(fdtype pt)
   while (FD_PTR_TYPEP(pt,fd_tail_call_type)) {
     struct FD_TAIL_CALL *tc=
       FD_GET_CONS(pt,fd_tail_call_type,struct FD_TAIL_CALL *);
-    fdtype result=
-      ((tc->flags&FD_TAIL_CALL_ND_ARGS) ? 
-       (fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1)) :
-       (fd_dapply(tc->head,tc->n_elts-1,(&(tc->head))+1)));
-    if (FD_CONS_REFCOUNT(tc)==1) recycle_tail_call((struct FD_CONS *)tc);
+    fdtype result=((tc->flags&FD_TAIL_CALL_ND_ARGS) ? 
+		   (fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1)) :
+		   (fd_dapply(tc->head,tc->n_elts-1,(&(tc->head))+1)));
+    if (FD_CONS_REFCOUNT(tc)==1)
+      recycle_tail_call((struct FD_CONS *)tc);
     else fd_decref(pt);
     pt=result;}
   return pt;
