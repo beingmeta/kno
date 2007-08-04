@@ -223,39 +223,6 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
 
-FD_EXPORT int fd_check_immediate(fdtype);
-
-#define FD_CHECK_PTR(x)                            \
- ((FD_FIXNUMP(x)) ? (1) :                          \
-  (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
-  (x==0) ? (0) :                                   \
-  (FD_CONSP(x)) ?                                  \
-  (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
-   (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
-   (FD_CONS_TYPE((FD_CONS *)x)<=fd_max_cons_type)) : \
-  (fd_check_immediate(x)))
-
-#define FD_CHECK_ATOMIC_PTR(x)                     \
- ((FD_FIXNUMP(x)) ? (1) :                          \
-  (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
-  (x==0) ? (0) :                                   \
-  (FD_CONSP(x)) ? (1) :                            \
-  (fd_check_immediate(x)))
-
-#ifdef FD_DEBUG_PTRCHECK
-#if (FD_DEBUG_PTRCHECK>2)
-#define FD_DEBUG_BADPTRP(x) (!(FD_CHECK_PTR(x)))
-#elif (FD_DEBUG_PTRCHECK==2)
-#define FD_DEBUG_BADPTRP(x) (!(FD_CHECK_ATOMIC_PTR(x)))
-#elif (FD_DEBUG_PTRCHECK==1)
-#define FD_DEBUG_BADPTRP(x) ((x)==FD_NULL)
-#else
-#define FD_DEBUG_BADPTRP(x) (0)
-#endif
-#else
-#define FD_DEBUG_BADPTRP(x) (0)
-#endif
-
 /* OIDs */
 
 #if FD_STRUCT_OIDS
@@ -551,6 +518,124 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
   (fdtype_compare(x,y,0))
 #define FD_COMPARE(x,y,fast) \
   ((fast) ? (FD_QCOMPARE(x,y)) : (FDTYPE_COMPARE(x,y)))
+#endif
+
+/* Pointer check functions and macros */
+
+/* Pointer checking for internal debugging */
+
+FD_EXPORT int fd_check_immediate(fdtype);
+
+#define FD_CHECK_PTR(x)                            \
+ ((FD_FIXNUMP(x)) ? (1) :                          \
+  (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
+  (x==0) ? (0) :                                   \
+  (FD_CONSP(x)) ?                                  \
+  (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
+   (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
+   (FD_CONS_TYPE((FD_CONS *)x)<=fd_max_cons_type)) : \
+  (fd_check_immediate(x)))
+
+#define FD_CHECK_ATOMIC_PTR(x)                     \
+ ((FD_FIXNUMP(x)) ? (1) :                          \
+  (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
+  (x==0) ? (0) :                                   \
+  (FD_CONSP(x)) ? (1) :                            \
+  (fd_check_immediate(x)))
+
+#ifdef FD_DEBUG_PTRCHECK
+#if (FD_DEBUG_PTRCHECK>2)
+#define FD_DEBUG_BADPTRP(x) (FD_EXPECT_FALSE(!(FD_CHECK_PTR(x))))
+#elif (FD_DEBUG_PTRCHECK==2)
+#define FD_DEBUG_BADPTRP(x) (FD_EXPECT_FALSE(!(FD_CHECK_ATOMIC_PTR(x))))
+#elif (FD_DEBUG_PTRCHECK==1)
+#define FD_DEBUG_BADPTRP(x) (FD_EXPECT_FALSE((x)==FD_NULL))
+#else
+#define FD_DEBUG_BADPTRP(x) (0)
+#endif
+#else
+#define FD_DEBUG_BADPTRP(x) (0)
+#endif
+
+/* These are a simple API for including ptr checks which
+   turn into noops depending on the debug level, which
+   can be specified in different ways.  */
+
+/* FD_CHECK_PTRn is the return value call,
+   FD_PTR_CHECKn is the side-effect call.
+
+   FD_PTR_CHECK_LEVEL enables the numbered versions
+    of each call.  If it's negative, the runtime
+    variable fd_ptr_check_level is used instead.
+
+   Each higher level includes the levels below it.
+
+   As a rule of thumb, currently, the levels should be used as follows:
+    1: topical debugging for places you think something odd is happening;
+        the system code should almost never use this level
+    2: assignment debugging (called when a pointer is called)
+    3: return value debugging (called when a pointer is returned.
+
+   Setting a breakpoint at _fd_bad_pointer is a good idea.
+*/
+
+FD_EXPORT int fd_ptr_check_level;
+
+FD_EXPORT void _fd_bad_pointer(fdtype,u8_context);
+
+static fdtype _fd_check_ptr(fdtype x,u8_context cxt) {
+  if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);
+  return x;
+}
+
+#if (FD_PTR_CHECK_LEVEL<0)
+/* When the check level is negative, use a runtime variable. */
+#define FD_CHECK_PTR1(x,cxt) ((_fd_ptr_check_level>0) ? (_fd_check_ptr(x,cxt)) : (x))
+#define FD_PTR_CHECK1(x,cxt)						\
+  {if ((_fd_ptr_check_level>0) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,cxt);}
+#define FD_CHECK_PTR2(x,cxt) ((_fd_ptr_check_level>1) ? (_fd_check_ptr(x,cxt)) : (x))
+#define FD_PTR_CHECK2(x,cxt)						\
+  {if ((_fd_ptr_check_level>1) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,cxt);}
+#define FD_CHECK_PTR3(x,cxt) ((_fd_ptr_check_level>2) ? (_fd_check_ptr(x,cxt)) : (x))
+#define FD_PTR_CHECK3(x,cxt)						\
+  {if ((_fd_ptr_check_level>2) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,cxt);}
+#else
+#if (FD_PTR_CHECK_LEVEL > 0)
+#define FD_CHECK_PTR1(x,cxt) (_fd_check_ptr((x),cxt))
+#define FD_PTR_CHECK1(x,cxt)			\
+  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);}
+#endif
+#if (FD_PTR_CHECK_LEVEL > 1)
+#define FD_CHECK_PTR2(x,cxt) (_fd_check_ptr((x),cxt))
+#define FD_PTR_CHECK2(x,cxt)			\
+  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);}
+#endif
+#if (FD_PTR_CHECK_LEVEL > 2)
+#define FD_CHECK_PTR3(x,cxt) (_fd_check_ptr((x),cxt))
+#define FD_PTR_CHECK3(x,cxt)			\
+  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);}
+#endif
+#endif
+
+/* Now define any undefined operations. */
+#ifndef FD_PTR_CHECK1
+#define FD_PTR_CHECK1(x,cxt)
+#endif
+#ifndef FD_PTR_CHECK2
+#define FD_PTR_CHECK2(x,cxt)
+#endif
+#ifndef FD_PTR_CHECK3
+#define FD_PTR_CHECK3(x,cxt)
+#endif
+
+#ifndef FD_CHECK_PTR1
+#define FD_CHECK_PTR1(x,cxt)
+#endif
+#ifndef FD_CHECK_PTR2
+#define FD_CHECK_PTR2(x,cxt)
+#endif
+#ifndef FD_CHECK_PTR3
+#define FD_CHECK_PTR3(x,cxt)
 #endif
 
 #endif /* ndef FDB_PTR_H */

@@ -283,8 +283,8 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
 }
 static fdtype _add_to_choice(fdtype current,fdtype new)
 {
-  if (FD_DEBUG_BADPTRP(new)) u8_raise(fd_BadPtr,"add_to_choice",NULL);
-  else if (FD_EMPTY_CHOICEP(new)) return current;
+  FD_PTR_CHECK1(new,"_add_to_choice");
+  if (FD_EMPTY_CHOICEP(new)) return current;
   else if (FD_EMPTY_CHOICEP(current))
     if (FD_ACHOICEP(new))
       if ((FD_CONS_REFCOUNT(((struct FD_CONS *)new)))>1)
@@ -319,7 +319,7 @@ static int atomic_choice_containsp(fdtype x,fdtype ch)
 #else
 #define FD_ADD_TO_CHOICE(x,v)                    \
    if (FD_DEBUG_BADPTRP(v))                      \
-    u8_raise(fd_BadPtr,"FD_ADD_TO_CHOICE",NULL); \
+    _fd_bad_pointer(v,"FD_ADD_TO_CHOICE");       \
    else x=_fd_add_to_choice(x,v)
 #endif
 
@@ -327,9 +327,8 @@ static int atomic_choice_containsp(fdtype x,fdtype ch)
   fdtype elt, _val=valexpr, _singlev[1]; \
   const fdtype *_scan, *_limit;          \
   int _need_gc=0; \
-  if (FD_DEBUG_BADPTRP(_val)) \
-    u8_raise(fd_BadPtr,"add_to_choice",NULL); \
-  else if (FD_ACHOICEP(_val)) {\
+  FD_PTR_CHECK1(_val,"FD_DO_CHOICES");              \
+  if (FD_ACHOICEP(_val)) {\
     _need_gc=1; _val=fd_make_simple_choice(_val);} \
    if (FD_CHOICEP(_val)) {\
     _scan=FD_CHOICE_DATA(_val); _limit=_scan+FD_CHOICE_SIZE(_val);} \

@@ -977,6 +977,13 @@ FD_EXPORT int _fd_find_elt(fdtype x,fdtype *v,int n)
   return -1;
 }
 
+int _fd_ptr_check_level=1;
+
+FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
+{
+  u8_raise(fd_BadPtr,cxt,NULL);
+}
+
 
 /* Initialization */
 

@@ -45,6 +45,23 @@
 #define FD_NO_GC 0
 #endif
 
+/* This determines the level of pointer checking to do.
+   0 = no checking
+   1 = check non-null
+   2 = check integrity of immediates 
+   3 = check integrity of cons pointers
+*/
+#ifndef FD_DEBUG_PTRCHECK
+#define FD_DEBUG_PTR_CHECK 1
+#endif
+
+/* This determines when to check for pointers (as controlled above)
+   There are four basic levels, with zero being no checking
+*/
+#ifndef FD_PTR_CHECK_LEVEL
+#define FD_DEBUG_PTR_CHECK 1
+#endif
+
 /* This is true (1) for executables built in the tests/ subdirectories.
    If true, the executables call the various module init functions 
    (e.g. fd_init_texttools()) directly; when dynamically linked, the
