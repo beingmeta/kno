@@ -739,7 +739,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char buf[64], *data; fdtype result;
-	  if (len >= 64) data=u8_malloc(len); else data=buf;
+	  if (len >= 64) data=u8_malloc(len+1); else data=buf;
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  switch (code) {
 	  case dt_symbol:
