@@ -34,17 +34,20 @@
 (define timezones {"GMT" "UTC" "EDT" "EST" "PST" "PDT" "CST" "CDT"})
 
 (define generic-patterns
-  (choice `#((label DATE #((isdigit) (opt (isdigit))) #t)
+  (choice `#({(bol) (spaces)}
+	     (label DATE #((isdigit) (opt (isdigit))) #t)
 	     (spaces)
 	     (IC (label MONTH ,monthstrings ,monthnum)) (opt ",")
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#((IC (label MONTH ,monthstrings ,monthnum))
+	  `#({(bol) (spaces)}
+	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
 	     (label DATE #((isdigit) (opt (isdigit))) #t) (opt ",")
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#((IC (label MONTH ,monthstrings ,monthnum))
+	  `#({(bol) (spaces)}
+	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
 	  `#({(spaces) (bol)}
@@ -77,33 +80,39 @@
 	    (label MONTH #((isdigit) (opt (isdigit))))
 	    (opt (label YEAR #("." (isdigit+)))))))
 
+(define (merge-matches-loop matches fields)
+  (let ((slotids (sorted (getkeys matches))))
+    (if (null? fields) (frame-create #f)
+	(let* ((slotid (car fields))
+	       (values (get matches slotid))
+	       (remainder (merge-matches-loop (qc matches) (cdr fields))))
+	  (for-choices (r remainder)
+	    (if (ambiguous? values)
+		(for-choices (value values)
+		  (add! (deep-copy remainder) slotid value))
+		(begin (add! remainder slotid values)
+		       remainder)))))))
+(define (merge-matches matches)
+  (merge-matches-loop (qc matches)
+		      (->list (sorted (getkeys matches)))))
+
 (define (parsetime string (base #f) (us #t))
-  (let ((matches (text->frames (if us (qc us-patterns) (qc terran-patterns))
-			       string)))
-    (if (exists? matches)
-	(begin
-	  (when (test matches 'ampm '{"PM" "pm"})
-	    (let* ((frame (pick matches 'hours))
-		   (hours (get frame 'hours)))
-	      (unless (> (+ 12 hours) 24)
-		(store! frame 'hours (+ 12 hours)))))
-	  (modtime (qc matches) (or base (timestamp))))
-	(fail))))
+  (let ((matches
+	 (text->frames (qc (if us us-patterns terran-patterns))
+		       string)))
+    (when (test matches 'ampm '{"PM" "pm"})
+      (let ((hours (get matches 'hours)))
+	(unless (> (+ 12 hours) 24)
+	  (store! matches 'hours (+ 12 hours)))))
+    (if (or (ambiguous? (get matches 'year))
+	    (ambiguous? (get matches 'month))
+	    (ambiguous? (get matches 'date))
+	    (ambiguous? (get matches 'hour))
+	    (ambiguous? (get matches 'minutes)))
+	(modtime (pick matches 'year) (or base (timestamp)))
+	(modtime (qc matches) (or base (timestamp))))))
 
+;; This needs to do something special.
 (define (parsegmtime string (base #f) (us #t))
-  (let ((matches (text->frames (if us (qc us-patterns) (qc terran-patterns))
-			       string)))
-    (if (exists? matches)
-	(begin
-	  (when (test matches 'ampm '{"PM" "pm"})
-	    (let* ((frame (pick matches 'hours))
-		   (hours (get frame 'hours)))
-	      (unless (> (+ 12 hours) 24)
-		(store! frame 'hours (+ 12 hours)))))
-	  (modtime (qc matches) (or base (timestamp)) #t))
-	(fail))))
-
-
-
-
+  (parsetime string base us))
 
