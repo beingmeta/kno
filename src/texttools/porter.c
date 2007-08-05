@@ -18,13 +18,13 @@
     This program has been ported to beingmeta's FDB library.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
 #include "fdb/dtype.h"
 
 #include <libu8/u8stringfns.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 
 #define isvowel(c) \
   (((c) == 'a') || ((c) == 'e') || ((c) == 'i') || \

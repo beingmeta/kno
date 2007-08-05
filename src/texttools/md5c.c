@@ -318,23 +318,6 @@ fdtype fd_md5(fdtype string)
   else return fd_type_error(_("string or packet"),"fd_md5",string);
 }
 
-
-
-/* File specific stuff */
-
-/* The CVS log for this file
-   $Log: md5c.c,v $
-   Revision 1.3  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.2  2005/06/15 01:19:45  haase
-   Added log entries to texttools files
-
-   Revision 1.1  2005/05/21 00:27:30  haase
-   Added texttools library and initial functions
-
-*/
-
 /* Emacs local variables
 ;;;  Local variables: ***
 ;;;  compile-command: "cd ../..; make" ***

@@ -1441,6 +1441,9 @@ FD_EXPORT fdtype fd_md5(fdtype string);
 
 static int texttools_init=0;
 
+FD_EXPORT fdtype fd_soundex(fdtype);
+FD_EXPORT fdtype fd_dblmetaphone(fdtype);
+
 void fd_init_texttools()
 {
   fdtype texttools_module;
@@ -1450,6 +1453,9 @@ void fd_init_texttools()
   texttools_module=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
   fd_init_match_c();
   fd_idefn(texttools_module,fd_make_cprim1("MD5",fd_md5,1));
+  fd_idefn(texttools_module,fd_make_cprim1("SOUNDEX",fd_soundex,1));
+  fd_idefn(texttools_module,fd_make_cprim1("DBLMETAPHONE",fd_dblmetaphone,1));
+
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
 					    fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
