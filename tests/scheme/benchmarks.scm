@@ -1,3 +1,5 @@
+(use-module 'optimize)
+
 (define (do-n-inner n proc args)
    (if (> n 0)
        (begin (apply proc args)
@@ -39,59 +41,50 @@
   (cond ((not (< y x)) z)
 	(else (takflt (takflt (- x 1.0) y z) (takflt (- y 1.0) z x) (takflt (- z 1.0) x y)))))
 
-;;   The Great Computer Language Shootout
-;;    http://shootout.alioth.debian.org/
-;;
-;;    Adapted from the C (gcc) code by Sebastien Loisel
-;;
-;;    Contributed by Christopher Neufeld
-;;    Modified by Juho Snellman 2005-10-26
-;;      * Use SIMPLE-ARRAY instead of ARRAY in declarations
-;;      * Use TRUNCATE instead of / for fixnum division
-;;      * Rearrange EVAL-A to make it more readable and a bit faster
+;; Spectral norm implementation
 
-;; Note that sbcl is at least 10 times faster than either clisp or gcl
-;; on this program, running with an argument of 500.  It would be nice
-;; to know why the others are so slow.
+(define (eval-a i j)
+  (/~ 1.0 (+ i 1 (* (+ i j) (/ (+ i j 1) 2.0)))))
 
-(define (eval-AtA-times-u n u)
-  (eval-At-times-u n (eval-A-times-u n u)))
+(define (eval-a-times-u u)
+  (let ((result (make-vector (length u))))
+    (doseq (v u ukey)
+      (let ((sum 0))
+	(doseq (v u key)
+	  (set! sum (+ sum (* v (eval-a ukey key)))))
+	(vector-set! result ukey sum)))
+    result))
 
-;; This is our most expensive function.  Optimized with the knowledge
-;; that 'n' will never be "huge".  This will break if 'n' exceeds
-;; approximately half of the square root of the largest fixnum
-;; supported by the implementation.  On sbcl 0.9.3,
-;; 'most-positive-fixnum' is 536870911, and we can support values of
-;; 'n' above 11000.
-(define (eval-A i j)
-  (let* ((n (+ i j))
-         (n+1 (1+ n)))
-    (/ 1.0 (+ (truncate  (/~ (* n n+1) 2)) i 1))))
+(define (eval-at-times-u u)
+  (let ((result (make-vector (length u))))
+    (doseq (v u ukey)
+      (let ((sum 0))
+	(doseq (v u key)
+	  (set! sum (+ sum (* v (eval-a key ukey)))))
+	(vector-set! result ukey sum)))
+    result))
 
-(define (eval-A-times-u n u)
-  (let ((retval (make-vector n 0.0)))
-    (dotimes (i n)
-      (dotimes (j n)
-	(vector-set! retval i (* (eval-A i j) (elt u j)))))
-    retval))
+(define (eval-ata-times-u u)
+  (eval-at-times-u (eval-a-times-u u)))
 
-(define (eval-At-times-u n u)
-  (let ((retval (make-vector n 0.0)))
-    (dotimes (i n)
-      (dotimes (j n)
-        (vector-set! retval i (* (eval-A j i) (elt u j)))))
-    retval))
-
-(define (spectral-norm (n 2000))
-  (let ((u (make-vector n 1.0))
-	(v (make-vector n 0.0)))
+(define (spectral-norm n)
+  (let ((u (make-vector n 1))
+	(v (make-vector n 1)))
     (dotimes (i 10)
-      (set! v (eval-AtA-times-u n u))
-      (set! u (eval-AtA-times-u n v)))
-      (let ((vBv 0.0)
-            (vv 0.0))
-        (dotimes (i n)
-          (set! vBv (+ vBv (* (elt u i) (elt v i))))
-          (set! vv (+ vv (* (elt v i) (elt v i)))))
-	;; (format t "~11,9F~%" (sqrt (the (double-float 0d0) (/ vBv vv))))
-        (lineout (sqrt (/ vBv vv))))))
+      (set! v (eval-ata-times-u u))
+      (set! u (eval-ata-times-u v)))
+    (let ((vBv 0) (vv 0))
+      (doseq (value u i)
+	(set! vBv (+ vBv (* value (elt v i)))))
+      (doseq (value v)
+	(set! vv (+ vv (* value value))))
+      (sqrt (/ vbv vv)))))
+
+(define (optimizeit)
+  (optimize! eval-a eval-a-times-u eval-at-times-u eval-ata-times-u
+	     spectral-norm))
+
+
+
+
+
