@@ -61,7 +61,8 @@ FD_EXPORT u8_string fd_metaphone(u8_string string)
     scan=start=u8_malloc(FD_STRLEN(string)+1);
   else scan=start=buf;
   while (c>0)  {
-    c=u8_toupper(u8_base_char(c));
+    if (u8_isspace(c)) c=' ';
+    else c=u8_toupper(u8_base_char(c));
     if ((c<0x80) && (c!=lastc)) *scan++=c;
     lastc=c;
     c=u8_sgetc(&s);}
@@ -76,7 +77,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string)
     scan++; *scan='W';}
   while (*scan) {
     switch (*scan) {
-    case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
+    case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
       u8_putc(&out,*scan); break;
     case 'Q': u8_putc(&out,'K'); break;
     case 'V': u8_putc(&out,'F'); break;
