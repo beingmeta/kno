@@ -188,8 +188,9 @@ static int canonicalize_string(u8_byte *string,char *copy,int space)
     else {
       int c=u8_sgetc(&read);
       int bc=u8_base_char(c);
-      if (bc < 0x80) *write++=tolower(bc);
-      else *write++=((bc)&0x7f); /* Yuck */}
+      int lc=u8_tolower(bc);
+      if (lc < 0x80) *write++=lc;
+      else *write++=((lc)&0x7f); /* Yuck */}
   if (write < limit) {*write='\0'; return write-copy;}
   else return 1;
 }
@@ -205,10 +206,15 @@ FD_EXPORT
     the porter stem is usually not itself a word you would recognize. */
 char *fd_stem_english_word(u8_byte *original)
 {
-  char copy[256]; int do1b1=0;
+  char *copy; int do1b1=0, len=strlen(original);
   struct WORD w;
   /* Initialize word */
-  w.spelling=copy; w.length=canonicalize_string(original,copy,256); w.changed=0;
+  if (len==0) return u8_strdup(original);
+  else copy=u8_malloc(len+1);
+  memset(copy,0,len+1);
+  w.spelling=copy;
+  w.length=canonicalize_string(original,copy,len);
+  w.changed=0;
   if (w.length == 0) return u8_strdup(original);
   /* Step 1a rules */
   if (w.changed == 0) w=apply_rule(w,none,"sses",4,"ss",0);
@@ -292,7 +298,7 @@ char *fd_stem_english_word(u8_byte *original)
   w.changed=0;
   w=apply_rule(w,big_double_l,"",0,"",1);
   fflush(stderr);
-  return u8_strdup(copy);
+  return copy;
 }
 
 

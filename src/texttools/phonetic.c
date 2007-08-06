@@ -8,7 +8,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
@@ -59,11 +59,11 @@ FD_EXPORT u8_string fd_soundex(u8_string string)
 FD_EXPORT u8_string fd_metaphone(u8_string string)
 {
   struct U8_OUTPUT out; char buf[32], *start, *scan;
-  u8_byte *s=string; int c=u8_sgetc(&s), lastc=-1, len=u8_strlen(string);
+  u8_byte *s=string; int c=u8_sgetc(&s), lastc=-1, len=strlen(string);
   U8_INIT_OUTPUT(&out,32);
   /* First we write an uppercase ASCII version of the string to a buffer. */
-  if (len>32)
-    scan=start=u8_malloc(FD_STRLEN(string)+1);
+  if (len>=32)
+    scan=start=u8_malloc(len+1);
   else scan=start=buf;
   while (c>0)  {
     if (u8_isspace(c)) c=' ';
