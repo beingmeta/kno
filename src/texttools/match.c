@@ -2821,7 +2821,7 @@ u8_byteoff fd_text_search
   else if ((FD_CHOICEP(pat)) || (FD_ACHOICEP(pat))) {
     int nlim=lim, loc=-1;
     FD_DO_CHOICES(epat,pat) {
-      u8_byteoff nxt=fd_text_search(epat,env,string,off,nlim,flags);
+      u8_byteoff nxt=fd_text_search(epat,env,string,off,lim,flags);
       if (nxt < 0) {
 	if (nxt==-2) {
 	  FD_STOP_DO_CHOICES;
