@@ -37,13 +37,13 @@
   (choice `#({(bol) (spaces)}
 	     (label DATE #((isdigit) (opt (isdigit))) #t)
 	     (spaces)
-	     (IC (label MONTH ,monthstrings ,monthnum)) (opt ",")
+	     (IC (label MONTH ,monthstrings ,monthnum)) (opt #({"" (spaces)} ","))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
 	  `#({(bol) (spaces)}
 	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
-	     (label DATE #((isdigit) (opt (isdigit))) #t) (opt ",")
+	     (label DATE #((isdigit) (opt (isdigit))) #t) (opt #({"" (spaces)} ","))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
 	  `#({(bol) (spaces)}
@@ -107,12 +107,24 @@
     (if (or (ambiguous? (get matches 'year))
 	    (ambiguous? (get matches 'month))
 	    (ambiguous? (get matches 'date))
-	    (ambiguous? (get matches 'hour))
+	    (ambiguous? (get matches 'hours))
 	    (ambiguous? (get matches 'minutes)))
 	(modtime (pick matches 'year) (or base (timestamp)))
 	(modtime (qc matches) (or base (timestamp))))))
 
-;; This needs to do something special.
 (define (parsegmtime string (base #f) (us #t))
-  (parsetime string base us))
+  (let ((matches
+	 (text->frames (qc (if us us-patterns terran-patterns))
+		       string)))
+    (when (test matches 'ampm '{"PM" "pm"})
+      (let ((hours (get matches 'hours)))
+	(unless (> (+ 12 hours) 24)
+	  (store! matches 'hours (+ 12 hours)))))
+    (if (or (ambiguous? (get matches 'year))
+	    (ambiguous? (get matches 'month))
+	    (ambiguous? (get matches 'date))
+	    (ambiguous? (get matches 'hours))
+	    (ambiguous? (get matches 'minutes)))
+	(modtime (pick matches 'year) (or base (gmtimestamp)))
+	(modtime (qc matches) (or base (gmtimestamp))))))
 
