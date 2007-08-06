@@ -68,17 +68,17 @@
 
 (define us-patterns
   (choice generic-patterns
-	  #((label MONTH #((isdigit) (opt (isdigit)))) "/"
-	    (label DATE #((isdigit) (opt (isdigit))))
-	    (opt (label YEAR #("/" (isdigit+)))))))
+	  #((label MONTH #((isdigit) (opt (isdigit))) #t) "/"
+	    (label DATE #((isdigit) (opt (isdigit))) #t)
+	    (opt #("/" (label YEAR (isdigit+)))))))
 (define terran-patterns
   (choice generic-patterns
-	  #((label DATE #((isdigit) (opt (isdigit)))) "/"
-	    (label MONTH #((isdigit) (opt (isdigit))))
-	    (opt (label YEAR #("/" (isdigit+)))))
-	  #((label DATE #((isdigit) (opt (isdigit)))) "."
-	    (label MONTH #((isdigit) (opt (isdigit))))
-	    (opt (label YEAR #("." (isdigit+)))))))
+	  #((label DATE #((isdigit) (opt (isdigit))) #t) "/"
+	    (label MONTH #((isdigit) (opt (isdigit))) #t)
+	    (opt #("/" (label YEAR (isdigit+)))))
+	  #((label DATE #((isdigit) (opt (isdigit))) #t) "."
+	    (label MONTH #((isdigit) (opt (isdigit))) #t)
+	    (opt #("." (label YEAR (isdigit+)))))))
 
 (define (merge-matches-loop matches fields)
   (let ((slotids (sorted (getkeys matches))))
@@ -96,7 +96,7 @@
   (merge-matches-loop (qc matches)
 		      (->list (sorted (getkeys matches)))))
 
-(define (parsetime string (base #f) (us #t))
+(define (parsetime string (base #f) (us #f))
   (let ((matches
 	 (text->frames (qc (if us us-patterns terran-patterns))
 		       string)))
@@ -104,6 +104,17 @@
       (let ((hours (get matches 'hours)))
 	(unless (> (+ 12 hours) 24)
 	  (store! matches 'hours (+ 12 hours)))))
+    (when (and (test matches 'year) (string? (get matches 'year)))
+      (if (= (length (get matches 'year)) 2)
+	  (store! matches 'year (+ 1900 (string->number (get matches 'year))))
+	  (store! matches 'year (string->number (get matches 'year)))	  ))
+    ;; Handle the case where people swapped the month and date according
+    ;;  to US conventions .vs. the rest of the world
+    (when (and (test matches 'month) (test matches 'date)
+	       (> (get matches 'month) 12)
+	       (<= (get matches 'date) 12))
+      (let ((m (get matches 'month)) (d (get matches 'date)))
+	(store! matches 'month d) (store! matches 'date m)))
     (if (or (ambiguous? (get matches 'year))
 	    (ambiguous? (get matches 'month))
 	    (ambiguous? (get matches 'date))
@@ -112,19 +123,7 @@
 	(modtime (pick matches 'year) (or base (timestamp)))
 	(modtime (qc matches) (or base (timestamp))))))
 
-(define (parsegmtime string (base #f) (us #t))
-  (let ((matches
-	 (text->frames (qc (if us us-patterns terran-patterns))
-		       string)))
-    (when (test matches 'ampm '{"PM" "pm"})
-      (let ((hours (get matches 'hours)))
-	(unless (> (+ 12 hours) 24)
-	  (store! matches 'hours (+ 12 hours)))))
-    (if (or (ambiguous? (get matches 'year))
-	    (ambiguous? (get matches 'month))
-	    (ambiguous? (get matches 'date))
-	    (ambiguous? (get matches 'hours))
-	    (ambiguous? (get matches 'minutes)))
-	(modtime (pick matches 'year) (or base (gmtimestamp)))
-	(modtime (qc matches) (or base (gmtimestamp))))))
+(define (parsegmtime string (base #f) (us #f))
+  (parsetime string (or base (gmtimestamp)) us))
+
 
