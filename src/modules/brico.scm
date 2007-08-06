@@ -1,5 +1,7 @@
 (in-module 'brico)
 
+(define version "$Id:$")
+
 (define %notighten '{freqfns bricosource brico-pool brico-index})
 
 (define indexinfer #t)
@@ -13,14 +15,20 @@
  '{brico-pool
    brico-index doindex
    make%id make%id! cap%wds cap%frame!
+   ;; Linguistic functions
    get-gloss get-single-gloss get-short-gloss get-expstring gloss get-norm
    language-map gloss-map norm-map index-map frag-map
+   ;; Lookup functions
+   lookup-word lookup-combo
+   ;; Indexing functions
    index-string index-name index-frags index-gloss index-implied index-frame*
    indexer index-concept unindex
    ;; Specialized versions
    index-core index-brico index-wordform
    index-words index-relations index-lattice index-implies
+   ;; Getting frequency information
    concept-frequency concept-frequency-prefetch
+   ;; Prefetchers for OIDs and inverted index slotids
    brico-prefetch! brico-prefetch})
 
 (module-export!
@@ -361,35 +369,18 @@
 	    (when (%test index (cons slot value) frame)
 	      (drop! index  (cons slot value) frame)))))))
 
-(define default-frag-window #f)
-
-(define fragwindow-config
-  (slambda (var (val 'unbound))
-    (cond ((eq? val 'unbound) default-frag-window)
-	  ((equal? val default-frag-window) default-frag-window)
-	  ((not val) (set! default-frag-window #f))
-	  ((and (number? val) (exact? val) (> val 0))
-	   (set! default-frag-window #f))
-	  (else (warning "Invalid fragment window" val)))))
-(config-def! 'fragwindow fragwindow-config)
-
-(define index-frags
-  (ambda (index frame slot values window)
-    (let* ((compounds (pick values compound?))
-	   (stdcompounds (basestring compounds)))
-      (doindex index frame slot
-	       (vector->frags
-		(words->vector
-		 (choice compounds stdcompounds))
-		window)))))
+;;; Slot indexing functions
 
 (define index-string
-  (ambda (index frame slot (value #f) (window default-frag-window))
+  (ambda (index frame slot (value #f) (window default-frag-window) (phonetic #f))
     (let* ((values (stdspace (if value value (get frame slot))))
 	   (expvalues (choice values (basestring values))))
       (doindex index frame slot expvalues)
+      (when phonetic
+	(doindex index frame slot (metaphone values))
+	(doindex index frame slot (metaphone (porter-stem values))))
       (when window
-	(index-frags index frame slot expvalues window)))))
+	(index-frags index frame slot expvalues window phonetic)))))
 
 (define index-name
   (ambda (index frame slot (value #f) (window default-frag-window))
@@ -424,16 +415,46 @@
     (doindex index frame slotid
 	     (choice gloss-words (porter-stem gloss-words)))))
 
+;;; Indexing string fragments
+
+(define default-frag-window #f)
+
+(define fragwindow-config
+  (slambda (var (val 'unbound))
+    (cond ((eq? val 'unbound) default-frag-window)
+	  ((equal? val default-frag-window) default-frag-window)
+	  ((not val) (set! default-frag-window #f))
+	  ((and (number? val) (exact? val) (> val 0))
+	   (set! default-frag-window #f))
+	  (else (warning "Invalid fragment window" val)))))
+(config-def! 'fragwindow fragwindow-config)
+
+(define index-frags
+  (ambda (index frame slot values window (phonetic #f))
+    (let* ((compounds (pick values compound?))
+	   (stdcompounds (basestring compounds))
+	   (wordv (words->vector compounds))
+	   (swordv (words->vector stdcompounds)))
+      (doindex index frame slot (vector->frags (choice wordv swordv) window))
+      (when phonetic
+	(doindex index frame slot
+		 (vector->frags (map (lambda (w) (metaphone w #t)) wordv)))
+	(doindex index frame slot
+		 (vector->frags (map (lambda (w) (metaphone (porter-stem w) #t))
+				     wordv)))))))
+
+;;; Frame indexing functions
+
 ;; These are slotids whose indexed values should include implications
 (define implied-slotids
   '{@1/2c274{PARTOF}
     @1/2c277{INGREDIENT-OF}
-    @1/2c279{MEMBER-OF}})
+    @1/2c279{MEMBER-OF}
+    @1/2c27e{IMPLIES}})
 
 ;; These are slotids whose inverses should also be indexed
 (define concept-slotids
   {@1/3f65f{ENTAILS}
-   @1/2c27e{IMPLIES}
    @1/2c272{GENLS}
    @1/2c273{SPECLS}
    @1/2c274{PARTOF}
@@ -562,7 +583,10 @@
   (index-frame* index concept ingredientof* ingredientof ingredients*))
 
 (define (index-implies index concept slotid)
-  (index-frame index concept slotid (get (get concept slotid) implies*)))
+  (let ((values (get concept slotid)))
+    (index-frame index concept slotid (list values))
+    (index-frame index concept slotid
+		 (get (get concept slotid) implies*))))
 
 (define (indexer index concept (slotids) (values))
   (if (bound? slotids)
@@ -621,10 +645,102 @@
    indexer-slotid-prefetch
    prefetch-expansions})
 
+;;; Looking up words
+
+;; These replace indexed language mappings
+(define useoverrides #f)
+(define key-overrides {})
+(define language-overrides {})
+
+(define (override-get word language)
+  (choice (get (get language-overrides language) word)
+	  (get key-overrides (cons language word))))
+
+(define (word-override-config var (value))
+  (if (bound? value)
+      (begin
+	(set! useoverrides #t)
+	(if (pair? value)
+	    (set+! language-overrides value)
+	    (set+! key-overrides value)))
+      (choice language-overrides key-overrides)))
+(config-def! 'wordoverride word-override-config)
+
+;; These combine with indexed language mappings
+(define useoverlays #f)
+(define key-overlays {})
+(define language-overlays {})
+
+(define (word-overlay-config var (value))
+  (if (bound? value)
+      (begin
+	(set! useoverlays #t)
+	(if (pair? value)
+	    (set+! language-overlays value)
+	    (set+! key-overlays value)))
+      (choice language-overlays key-overlays)))
+(config-def! 'wordoverlay word-overlay-config)
+
+(define (override-get word language)
+  (choice (get (get language-overlays language) word)
+	  (get key-overlays (cons language word))))
+
+;;; Looking up words
+
+(define (lookup-word word (language default-language) (tryhard #f))
+  (if (has-prefix word "~")
+      (lookup-word (subseq word 1) language #t)
+      (if useoverrides
+	  (let ((override (override-get word language)))
+	    (if (exists? override) (or override (fail))
+		(lookup-word-core word language tryhard)))
+	  (lookup-word-core word language tryhard))))
+
+(define (lookup-word-core word language tryhard)
+  (try (?? language (stdspace word))
+       (tryif useoverlays (overlay-get word language))
+       ;; Find misspellings, etc
+       (tryif tryhard
+	      (?? language
+		  (choice (metaphone word #t)
+			  (metaphone (porter-stem word) #t))))
+       ;; Find concept which have 
+       (tryif (and (number? tryhard) (> tryhard 1))
+	      (let* ((table (make-hashtable))
+		     (wordv (words->vector string))
+		     (words (elts wordv))
+		     (altwords (choice (metaphone words #t)
+				       (metaphone (porter-stem words) #t)))
+		     (minscore (min (if (> tryhard 2) 3 4) (length wordv))))
+		(prefetch-keys! (list language (choice words altwords)))
+		(do-choices (word words)
+		  (hashtable-increment! table (?? language (list word))))
+		(do-choices (word words)
+		  (hashtable-increment! table (overlay-get (list word) language)))
+		(do-choices (word altwords)
+		  (hashtable-increment! table (overlay-get (list word) language)))
+		(doseq (word altwords)
+		  (hashtable-increment! table (?? language (list word))))
+		(tryif (and (exists? (table-maxval table))
+			    (> (table-maxval table) minscore))
+		       (table-max table))))))
+
+;;; Looking up combos
+
+(define default-combo-slotids (choice partof* genls* implies*))
+
+(define (lookup-combo word1 word2 (slotid #f) (language default-language))
+  (intersection (lookup-word word1 language)
+		(?? (or slotid default-combo-slotids)
+		    (lookup-word word2 language))))
+
+
 ;;; Displaying glosses
 
 (define (gloss f (slotid english-gloss))
-  (lineout f "\t" (get f slotid)))
+  (if (applicable? slotid)
+      (lineout f "\t" (slotid f))
+      (lineout f "\t" (get f slotid))))
 
 ;;; Getting concept frequency information
 
