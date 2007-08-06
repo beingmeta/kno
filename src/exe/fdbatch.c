@@ -19,17 +19,17 @@ static char versionid[] =
 
 #define LOGMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
 
-static u8_string get_filebase(u8_string scriptfile)
+static u8_string get_runbase(u8_string scriptfile)
 {
-  fdtype filebase=fd_config_get("FILEBASE");
-  if (FD_STRINGP(filebase)) 
-    if (u8_directoryp(FD_STRDATA(filebase))) {
-      u8_string abspath=u8_abspath(FD_STRDATA(filebase),NULL);
+  fdtype runbase=fd_config_get("RUNBASE");
+  if (FD_STRINGP(runbase)) 
+    if (u8_directoryp(FD_STRDATA(runbase))) {
+      u8_string abspath=u8_abspath(FD_STRDATA(runbase),NULL);
       u8_string basepath=u8_basename(scriptfile,".scm");
       u8_string combined=u8_mkpath(abspath,basepath);
       u8_free(abspath); u8_free(basepath);
       return combined;}
-    else return u8_abspath(FD_STRDATA(filebase),NULL);
+    else return u8_abspath(FD_STRDATA(runbase),NULL);
   else {
     u8_string base=u8_basename(scriptfile,".scm");
     u8_string abspath=u8_abspath(base,NULL);
@@ -144,15 +144,15 @@ int main(int argc,char **argv)
 {
   pid_t pid;
   int pid_fd, log_fd, err_fd, chained=0;
-  u8_string filebase;
+  u8_string runbase;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
   u8_show_procinfo=1;
   fd_init_dtypelib();
   fd_argv_config(argc,argv);
-  filebase=get_filebase(get_app_arg(argc,argv));
-  u8_notify("FDBATCH","Filebase is %s",filebase);
-  pid_file=get_pidfile(filebase);
+  runbase=get_runbase(get_app_arg(argc,argv));
+  u8_notify("FDBATCH","Runbase is %s",runbase);
+  pid_file=get_pidfile(runbase);
   if (u8_file_existsp(pid_file)) {
     FILE *f=u8_fopen(pid_file,"r");
     int ival=-1, retval; pid_t pid=getpid();
@@ -173,8 +173,8 @@ int main(int argc,char **argv)
 	      pid_file,ival,pid);
       exit(1);}}
   
-  done_file=get_donefile(filebase);
-  died_file=get_diedfile(filebase);
+  done_file=get_donefile(runbase);
+  died_file=get_diedfile(runbase);
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_warn(fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
@@ -184,13 +184,13 @@ int main(int argc,char **argv)
   if (u8_file_existsp(died_file)) u8_removefile(died_file);
   /* If either stdout or stderr are interactive, redirect them to files. */
   if (isatty(1)) {
-    log_file=get_logfile(filebase);
+    log_file=get_logfile(runbase);
     if ((log_fd=u8_open_fd(log_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
       u8_warn(fd_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
       exit(-1);}}
   if (isatty(2)) {
-    err_file=get_errfile(filebase);
+    err_file=get_errfile(runbase);
     if ((err_fd=u8_open_fd(err_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
       u8_warn(fd_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
@@ -207,7 +207,7 @@ int main(int argc,char **argv)
       u8_notify("Fork started","Process %d stdout >> %s",pid,log_file);
     if (err_file)
       u8_notify("Fork started","Process %d stderr >> %s",pid,err_file);
-    wait_for_the_end(filebase,pid);
+    wait_for_the_end(runbase,pid);
     if (log_file) close(log_fd);
     if (err_file) close(err_fd);}
   else {
@@ -220,7 +220,7 @@ int main(int argc,char **argv)
     if (err_file) {
       dup2(err_fd,2); u8_free(err_file); close(err_fd);}
     atexit(fdbatch_atexit);
-    u8_free(filebase);
+    u8_free(runbase);
     retval=do_main(argc,argv);
     if (retval>=0) {
       FILE *f=u8_fopen(done_file,"w");

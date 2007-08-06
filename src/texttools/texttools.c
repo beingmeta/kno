@@ -1435,14 +1435,27 @@ static int doadds(fdtype table,u8_output out,fdtype xtract)
   return 1;
 }
 
+/* Phonetic prims */
+
+static fdtype soundex_prim(fdtype string,fdtype packetp)
+{
+  if (FD_FALSEP(packetp))
+    return fd_init_string(NULL,-1,fd_soundex(FD_STRDATA(string)));
+  else return fd_init_packet(NULL,4,fd_soundex(FD_STRDATA(string)));
+}
+
+static fdtype metaphone_prim(fdtype string,fdtype packetp)
+{
+  if (FD_FALSEP(packetp))
+    return fd_init_string(NULL,-1,fd_metaphone(FD_STRDATA(string)));
+  else {
+    u8_string dblm=fd_metaphone(FD_STRDATA(string));
+    return fd_init_packet(NULL,strlen(dblm),dblm);}
+}
+
 /* Initialization */
 
-FD_EXPORT fdtype fd_md5(fdtype string);
-
 static int texttools_init=0;
-
-FD_EXPORT fdtype fd_soundex(fdtype);
-FD_EXPORT fdtype fd_dblmetaphone(fdtype);
 
 void fd_init_texttools()
 {
@@ -1453,9 +1466,15 @@ void fd_init_texttools()
   texttools_module=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
   fd_init_match_c();
   fd_idefn(texttools_module,fd_make_cprim1("MD5",fd_md5,1));
-  fd_idefn(texttools_module,fd_make_cprim1("SOUNDEX",fd_soundex,1));
-  fd_idefn(texttools_module,fd_make_cprim1("DBLMETAPHONE",fd_dblmetaphone,1));
-
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("SOUNDEX",soundex_prim,1,
+			   fd_string_type,FD_VOID,
+			   -1,FD_FALSE));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("METAPHONE",metaphone_prim,1,
+			   fd_string_type,FD_VOID,
+			   -1,FD_FALSE));
+  
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
 					    fd_string_type,FD_VOID));
   fd_idefn(texttools_module,

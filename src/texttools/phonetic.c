@@ -13,6 +13,8 @@
 #include <libu8/u8streamio.h>
 #include <libu8/u8stringfns.h>
 
+#define VOWELS "AEIOUY"
+
 static int soundex_class(int c)
 {
   switch (c) {
@@ -29,10 +31,10 @@ static int soundex_class(int c)
     return 0;}
 }
 
-FD_EXPORT fdtype fd_soundex(fdtype string)
+FD_EXPORT u8_string fd_soundex(u8_string string)
 {
   struct U8_OUTPUT out; int c, lastc;
-  u8_byte *s=FD_STRDATA(string), buf[8];
+  u8_byte *s=string, buf[8];
   U8_INIT_FIXED_OUTPUT(&out,8,buf);
   c=u8_sgetc(&s);
   c=u8_toupper(u8_base_char(c));
@@ -40,26 +42,28 @@ FD_EXPORT fdtype fd_soundex(fdtype string)
   lastc=c; c=u8_sgetc(&s);
   while (c>=0) {
     if ((out.u8_outptr-out.u8_outbuf)>=4)
-      return fdtype_string(out.u8_outbuf);
+      return u8_strdup(out.u8_outbuf);
     c=soundex_class(u8_toupper(u8_base_char(c)));
     if ((c>0) && (c!=lastc)) u8_putc(&out,c);
     if (c>=0) lastc=c;
     c=u8_sgetc(&s);}
   while ((out.u8_outptr-out.u8_outbuf)<4) u8_putc(&out,'0');
-  return fdtype_string(out.u8_outbuf);
+  return u8_strdup(out.u8_outbuf);
 }
 
-FD_EXPORT fdtype fd_dblmetaphone(fdtype string)
+FD_EXPORT u8_string fd_metaphone(u8_string string)
 {
-  struct U8_OUTPUT out; char buf[64], *start, *scan;
-  u8_byte *s=FD_STRDATA(string); int c=u8_sgetc(&s);
-  U8_INIT_OUTPUT(&out,FD_STRLEN(string));
-  if (FD_STRLEN(string)>64)
+  struct U8_OUTPUT out; char buf[32], *start, *scan;
+  u8_byte *s=string; int c=u8_sgetc(&s), lastc=-1, len=u8_strlen(string);
+  U8_INIT_OUTPUT(&out,32);
+  /* First we write an uppercase ASCII version of the string to a buffer. */
+  if (len>32)
     scan=start=u8_malloc(FD_STRLEN(string)+1);
   else scan=start=buf;
   while (c>0)  {
     c=u8_toupper(u8_base_char(c));
-    if (c<0x80) *scan++=c;
+    if ((c<0x80) && (c!=lastc)) *scan++=c;
+    lastc=c;
     c=u8_sgetc(&s);}
   *scan='\0';
   scan=start;
@@ -101,13 +105,13 @@ FD_EXPORT fdtype fd_dblmetaphone(fdtype string)
       break;
     case 'G':
       if ((strncmp(scan,"GN",2)==0) || (strncmp(scan,"GNED",4)==0)) break;
-      else if ((strncmp(scan,"GH",2)==0) && (scan[2]!='\0') && (strchr("AEIOU",scan[2])==NULL)) break;
+      else if ((strncmp(scan,"GH",2)==0) && (scan[2]!='\0') && (strchr(VOWELS,scan[2])==NULL)) break;
       else if (((scan[1]=='I') || (scan[1]=='E') || (scan[1]=='Y')) && (scan>start) && (scan[-1]!='G'))
 	u8_putc(&out,'J');
       else u8_putc(&out,'K');
       break;
     case 'H':
-      if ((scan>start) && (strchr("AEIOU",scan[-1])) && (strchr("AEIOU",scan[1])==NULL)) {}
+      if ((scan>start) && (strchr(VOWELS,scan[-1])) && (strchr(VOWELS,scan[1])==NULL)) {}
       else u8_putc(&out,'H');
       break;
     case 'K':
@@ -118,10 +122,12 @@ FD_EXPORT fdtype fd_dblmetaphone(fdtype string)
       if (scan[1]=='H') {
 	u8_putc(&out,'F'); scan=scan+2; continue;}
       else u8_putc(&out,'P');
+      break;
     case 'S':
-      if ((scan[1]=='H') ||
-	  ((scan>start) &&
-	   ((strncmp(scan,"sio",3)==0) || (strncmp(scan,"sia",3)==0))))
+      if (scan[1]=='H') {
+	u8_putc(&out,'X'); scan=scan+2; continue;}
+      else if (((scan>start) &&
+		((strncmp(scan,"sio",3)==0) || (strncmp(scan,"sia",3)==0))))
 	u8_putc(&out,'X');
       else u8_putc(&out,'S');
       break;
@@ -134,15 +140,16 @@ FD_EXPORT fdtype fd_dblmetaphone(fdtype string)
       else u8_putc(&out,'T');
       break;
     case 'W': case 'Y':
-      if (strchr("AEIOU",scan[1])) u8_putc(&out,*scan);
+      if (strchr(VOWELS,scan[1])) u8_putc(&out,*scan);
       else {}
       break;
     case 'X':
       u8_puts(&out,"KS");
       break;
-    default: {}}
+    default: if (scan==start) u8_putc(&out,*scan);}
     scan++;}
-  return fdtype_string(out.u8_outbuf);
+  if (start!=buf) u8_free(start);
+  return out.u8_outbuf;
 }
 
 
