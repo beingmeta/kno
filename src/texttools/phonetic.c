@@ -7,6 +7,11 @@
    algorithms for spelling correction etc.
 */
 
+static char versionid[] =
+  "$Id:$";
+
+#define U8_INLINE_IO 1
+
 #include "fdb/dtype.h"
 
 #include <libu8/libu8.h>
