@@ -220,6 +220,75 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+/* FORSEQ */
+
+static fdtype forseq_handler(fdtype expr,fd_lispenv env)
+{
+  int i=0, lim;
+  fdtype seq, count_var=FD_VOID, *iterval=NULL, *results, result;
+  fdtype var=parse_control_spec(expr,&seq,&count_var,env);
+  fdtype body=fd_get_body(expr,2);
+  fdtype vars[2], vals[2], inner_env;
+  struct FD_SCHEMAP bindings;
+  struct FD_ENVIRONMENT envstruct;
+  if (FD_ABORTP(var)) return var;
+  else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
+  else if (!(FD_SEQUENCEP(seq)))
+    return fd_type_error("sequence","forseq_handler",seq);
+  else lim=fd_seq_length(seq);
+  if (lim==0) return fd_incref(seq);
+  else results=u8_alloc_n(lim,fdtype);
+  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.schema=vars; bindings.values=vals; bindings.size=1;
+  fd_init_mutex(&(bindings.lock));
+  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  envstruct.parent=env;  
+  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
+  envstruct.copy=NULL;
+  inner_env=(fdtype)(&envstruct); 
+  vars[0]=var; vals[0]=FD_VOID;
+  if (!(FD_VOIDP(count_var))) {
+    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    bindings.size=2; iterval=&(vals[1]);} 
+  while (i<lim) {
+    fdtype elt=fd_seq_elt(seq,i), val=FD_VOID;
+    if (envstruct.copy) {
+      fd_set_value(var,elt,envstruct.copy);
+      if (iterval)
+	fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+    else {
+      vals[0]=elt;
+      if (iterval) *iterval=FD_INT2DTYPE(i);}
+    {FD_DOLIST(expr,body) {
+	fd_decref(val);
+	val=fasteval(expr,&envstruct);
+	if (FD_THROWP(val)) {
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  fd_destroy_mutex(&(bindings.lock));
+	  fd_decref(elt); fd_decref(seq);
+	  return val;}
+	else if (FD_ABORTP(val)) {
+	  fdtype errbind;
+	  if (iterval) errbind=iterenv1(seq,var,elt);
+	  else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+	  fd_destroy_mutex(&(bindings.lock));
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  fd_decref(elt); fd_decref(seq);
+	  return fd_passerr(val,errbind);}}}
+    if (envstruct.copy) {
+      fd_recycle_environment(envstruct.copy);
+      envstruct.copy=NULL;}
+    fd_decref(vals[0]);
+    results[i]=val;
+    i++;}
+  fd_decref(seq);
+  fd_destroy_mutex(&(bindings.lock));
+  result=fd_makeseq(FD_PTR_TYPE(seq),lim,results);
+  i=0; while (i<lim) {fdtype v=results[i++]; fd_decref(v);}
+  return result;
+}
+
 /* TRYSEQ */
 
 static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
@@ -234,7 +303,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(var)) return var;
   else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
   else if (!(FD_SEQUENCEP(seq)))
-    return fd_type_error("sequence","doseq_handler",seq);
+    return fd_type_error("sequence","try_handler",seq);
   else lim=fd_seq_length(seq);
   if (lim==0) {
     fd_decref(seq);
@@ -445,6 +514,7 @@ FD_EXPORT void fd_init_iterators_c()
   fd_defspecial(fd_scheme_module,"DOTIMES",dotimes_handler);
   fd_defspecial(fd_scheme_module,"DOLIST",dolist_handler);
   fd_defspecial(fd_scheme_module,"DOSEQ",doseq_handler);
+  fd_defspecial(fd_scheme_module,"FORSEQ",forseq_handler);
   fd_defspecial(fd_scheme_module,"TRYSEQ",tryseq_handler);
 
   fd_defspecial(fd_scheme_module,"BEGIN",begin_handler);
@@ -458,91 +528,3 @@ FD_EXPORT void fd_init_iterators_c()
 
 }
 
-
-/* The CVS log for this file
-   $Log: iterators.c,v $
-   Revision 1.41  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.40  2006/01/20 04:08:59  haase
-   Fixed leak in iterating over zero-length vectors
-
-   Revision 1.39  2006/01/18 04:33:06  haase
-   Fixed various iteration binding bugs
-
-   Revision 1.38  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.37  2006/01/02 19:59:30  haase
-   Fixed erroneous identity of iterative environments
-
-   Revision 1.36  2005/12/23 16:58:29  haase
-   Added IPEVAL LET/LET* binding forms
-
-   Revision 1.35  2005/12/22 19:15:50  haase
-   Added more comprehensive environment recycling
-
-   Revision 1.34  2005/12/19 01:23:36  haase
-   Added COMMENT and ******* (alias) special forms
-
-   Revision 1.33  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.32  2005/06/20 17:37:13  haase
-   Fixed stack consed environment initialization
-
-   Revision 1.31  2005/06/20 13:56:59  haase
-   Fixes to regularize CONS header initialization
-
-   Revision 1.30  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.29  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.28  2005/04/30 16:13:23  haase
-   Made UNTIL handle error returns correctly
-
-   Revision 1.27  2005/04/24 18:30:27  haase
-   Made ipeval step function return -1 on error and abort
-
-   Revision 1.26  2005/04/16 16:54:46  haase
-   Fix empty list case for DOLIST
-
-   Revision 1.25  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.24  2005/04/13 15:01:06  haase
-   Fixed GC bug
-
-   Revision 1.23  2005/04/08 04:46:30  haase
-   Improvements to backtrace accumulation
-
-   Revision 1.22  2005/04/07 19:25:03  haase
-   Fix schemap inits for stack schemas
-
-   Revision 1.21  2005/04/07 19:11:30  haase
-   Made backtraces include environments, fixed some minor GC issues
-
-   Revision 1.20  2005/04/01 15:12:07  haase
-   Cleanup from exports reimplementation
-
-   Revision 1.19  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.18  2005/03/14 05:49:31  haase
-   Updated comments and internal documentation
-
-   Revision 1.17  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.16  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.15  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.14  2005/02/13 23:55:41  haase
-   whitespace changes
-
-*/

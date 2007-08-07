@@ -292,7 +292,7 @@
       tighten-set-form)
 
 (add! special-form-tighteners
-      (choice do-choices for-choices filter-choices dolist dotimes doseq)
+      (choice do-choices for-choices filter-choices dolist dotimes doseq forseq)
       tighten-doexpression)
 
 (add! special-form-tighteners
