@@ -19,7 +19,7 @@
    get-gloss get-single-gloss get-short-gloss get-expstring gloss get-norm
    language-map gloss-map norm-map index-map frag-map
    ;; Lookup functions
-   lookup-word lookup-combo
+   lookup-word lookup-combo word-override?
    ;; Indexing functions
    index-string index-name index-frags index-gloss index-implied index-frame*
    indexer index-concept unindex
@@ -377,8 +377,8 @@
 	   (expvalues (choice values (basestring values))))
       (doindex index frame slot expvalues)
       (when phonetic
-	(doindex index frame slot (metaphone values))
-	(doindex index frame slot (metaphone (porter-stem values))))
+	(doindex index frame slot (metaphone values #t))
+	(doindex index frame slot (metaphone (porter-stem values) #t)))
       (when window
 	(index-frags index frame slot expvalues window phonetic)))))
 
@@ -666,6 +666,9 @@
       (choice language-overrides key-overrides)))
 (config-def! 'wordoverride word-override-config)
 
+(define (word-override? word language)
+  (exists? (override-get word language)))
+
 ;; These combine with indexed language mappings
 (define useoverlays #f)
 (define key-overlays {})
@@ -681,7 +684,7 @@
       (choice language-overlays key-overlays)))
 (config-def! 'wordoverlay word-overlay-config)
 
-(define (override-get word language)
+(define (overlay-get word language)
   (choice (get (get language-overlays language) word)
 	  (get key-overlays (cons language word))))
 
@@ -697,17 +700,28 @@
 	  (lookup-word-core word language tryhard))))
 
 (define (lookup-word-core word language tryhard)
-  (try (?? language (stdspace word))
-       (tryif useoverlays (overlay-get word language))
+  (try (choice (?? language (stdspace word))
+	       (tryif useoverlays (overlay-get word language)))
+       (let ((sbword (stdspace (basestring word))))
+	 (choice (?? language sbword)
+		 (tryif useoverlays (overlay-get sbword language))))
+;;        (tryif tryhard
+;; 	      (?? language (choice (downcase word)
+;; 				   (capitalize word)
+;; 				   (capitalize1 word))))
+;;        (tryif (and tryhard (uppercase? word))
+;; 	      (?? language (choice (downcase word)
+;; 				   (capitalize (downcase word))
+;; 				   (capitalize1 (downcase word)))))
        ;; Find misspellings, etc
-       (tryif tryhard
-	      (?? language
-		  (choice (metaphone word #t)
-			  (metaphone (porter-stem word) #t))))
-       ;; Find concept which have 
        (tryif (and (number? tryhard) (> tryhard 1))
+ 	      (?? language
+ 		  (choice (metaphone word #t)
+ 			  (metaphone (porter-stem word) #t))))
+       ;; Find concept which have 
+       (tryif (and (number? tryhard) (> tryhard 2))
 	      (let* ((table (make-hashtable))
-		     (wordv (words->vector string))
+		     (wordv (words->vector word))
 		     (words (elts wordv))
 		     (altwords (choice (metaphone words #t)
 				       (metaphone (porter-stem words) #t)))
@@ -719,7 +733,7 @@
 		  (hashtable-increment! table (overlay-get (list word) language)))
 		(do-choices (word altwords)
 		  (hashtable-increment! table (overlay-get (list word) language)))
-		(doseq (word altwords)
+		(do-choices (word altwords)
 		  (hashtable-increment! table (?? language (list word))))
 		(tryif (and (exists? (table-maxval table))
 			    (> (table-maxval table) minscore))
