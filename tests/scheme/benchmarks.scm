@@ -80,11 +80,40 @@
 	(set! vv (+ vv (* value value))))
       (sqrt (/ vbv vv)))))
 
+(define (xeval-a-times-u u)
+  (forseq (v u ukey)
+     (let ((sum 0))
+       (doseq (v u key)
+	 (set! sum (+ sum (* v (eval-a ukey key)))))
+       sum)))
+
+(define (xeval-at-times-u u)
+  (forseq (v u ukey)
+    (let ((sum 0))
+      (doseq (v u key)
+	(set! sum (+ sum (* v (eval-a key ukey)))))
+      sum)))
+
+(define (xeval-ata-times-u u)
+  (xeval-at-times-u (xeval-a-times-u u)))
+
+(define (xspectral-norm n)
+  (let ((u (make-vector n 1))
+	(v (make-vector n 1)))
+    (dotimes (i 10)
+      (set! v (xeval-ata-times-u u))
+      (set! u (xeval-ata-times-u v)))
+    (let ((vBv 0) (vv 0))
+      (doseq (value u i)
+	(set! vBv (+ vBv (* value (elt v i)))))
+      (doseq (value v)
+	(set! vv (+ vv (* value value))))
+      (sqrt (/ vbv vv)))))
+
 (define (optimizeit)
-  (optimize! eval-a eval-a-times-u eval-at-times-u eval-ata-times-u
-	     spectral-norm))
-
-
-
+  (optimize! eval-a
+	     eval-a-times-u eval-at-times-u eval-ata-times-u
+	     xeval-a-times-u xeval-at-times-u xeval-ata-times-u
+	     spectral-norm xspectral-norm))
 
 
