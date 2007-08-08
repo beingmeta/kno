@@ -683,6 +683,39 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     else if (FD_EQUAL(arg1,arg2)) return FD_TRUE;
     else return FD_FALSE;
     break;}
+  case FD_PLUS_OPCODE:
+    if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
+      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      return FD_INT2DTYPE(m+n);}
+    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+      double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
+      return fd_init_double(NULL,x+y);}
+    else return fd_plus(arg1,arg2);
+  case FD_MINUS_OPCODE:
+    if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
+      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      return FD_INT2DTYPE(m-n);}
+    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+      double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
+      return fd_init_double(NULL,x-y);}
+    else return fd_subtract(arg1,arg2);
+  case FD_TIMES_OPCODE:
+    if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
+      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      return FD_INT2DTYPE(m*n);}
+    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+      double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
+      return fd_init_double(NULL,x*y);}
+    else return fd_multiply(arg1,arg2);
+  case FD_FLODIV_OPCODE:
+    if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
+      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      double x=(double)m, y=(double)n;
+      return fd_init_double(NULL,x/y);}
+    else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
+      double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
+      return fd_init_double(NULL,x/y);}
+    else return fd_multiply(arg1,arg2);
   case FD_ELT_OPCODE:
     if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
       fdtype result;

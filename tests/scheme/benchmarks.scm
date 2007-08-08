@@ -44,7 +44,7 @@
 ;; Spectral norm implementation
 
 (define (eval-a i j)
-  (/~ 1.0 (+ i 1 (* (+ i j) (/ (+ i j 1) 2.0)))))
+  (/~ 1.0 (+ (1+ i) (* (+ i j) (/~ (+ (+ i j) 1) 2)))))
 
 (define (eval-a-times-u u)
   (let ((result (make-vector (length u))))

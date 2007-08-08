@@ -333,6 +333,10 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_GTE_OPCODE        FD_OPCODE(0x62)
 #define FD_LT_OPCODE         FD_OPCODE(0x63)
 #define FD_LTE_OPCODE        FD_OPCODE(0x64)
+#define FD_PLUS_OPCODE       FD_OPCODE(0x65)
+#define FD_MINUS_OPCODE      FD_OPCODE(0x66)
+#define FD_TIMES_OPCODE      FD_OPCODE(0x67)
+#define FD_FLODIV_OPCODE     FD_OPCODE(0x68)
 
 #define FD_BINARY_OPCODES    FD_OPCODE(0x80)
 /* Other primitives with two arguments */

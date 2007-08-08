@@ -103,6 +103,10 @@
   (def-opcode >=         0x62 2)
   (def-opcode <          0x63 2)
   (def-opcode <=         0x64 2)
+  (def-opcode +          0x65 2)
+  (def-opcode -          0x66 2)
+  (def-opcode *          0x67 2)
+  (def-opcode /~          0x68 2)
 
   (def-opcode EQ?        0x80 2)
   (def-opcode EQV?       0x81 2)
