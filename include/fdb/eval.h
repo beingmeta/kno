@@ -312,6 +312,7 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_CDR_OPCODE        FD_OPCODE(0x26)
 #define FD_LENGTH_OPCODE     FD_OPCODE(0x27)
 #define FD_QCHOICE_OPCODE    FD_OPCODE(0x28)
+#define FD_CHOICE_SIZE_OPCODE FD_OPCODE(0x29)
 
 #define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */

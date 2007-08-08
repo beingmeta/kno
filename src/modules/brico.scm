@@ -372,13 +372,16 @@
 ;;; Slot indexing functions
 
 (define index-string
-  (ambda (index frame slot (value #f) (window default-frag-window) (phonetic #f))
+  (ambda (index frame slot (value #f)
+		(window default-frag-window) (phonetic #f))
     (let* ((values (stdspace (if value value (get frame slot))))
 	   (expvalues (choice values (basestring values))))
       (doindex index frame slot expvalues)
       (when phonetic
-	(doindex index frame slot (metaphone values #t))
-	(doindex index frame slot (metaphone (porter-stem values) #t)))
+	(let* ((tohash (reject values uppercase?))
+	       (tostem (reject tohash length {1 2 3 4})))
+	  (doindex index frame slot (metaphone tohash #t))
+	  (doindex index frame slot (metaphone (porter-stem tostem) #t))))
       (when window
 	(index-frags index frame slot expvalues window phonetic)))))
 

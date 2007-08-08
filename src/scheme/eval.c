@@ -591,6 +591,18 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
     else if (FD_EMPTY_CHOICEP(arg1))
       return fd_init_qchoice(NULL,FD_EMPTY_CHOICE);
     else return fd_incref(arg1);
+  case FD_CHOICE_SIZE_OPCODE:
+    if (FD_CHOICEP(arg1)) {
+      int sz=FD_CHOICE_SIZE(arg1);
+      return FD_INT2DTYPE(sz);}
+    else if (FD_ACHOICEP(arg1)) {
+      fdtype simple=fd_make_simple_choice(arg1);
+      int size=FD_CHOICE_SIZE(simple);
+      fd_decref(simple);
+      return FD_INT2DTYPE(size);}
+    else if (FD_EMPTY_CHOICEP(arg1))
+      return FD_INT2DTYPE(0);
+    else return FD_INT2DTYPE(1);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }

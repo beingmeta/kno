@@ -85,6 +85,7 @@
   (def-opcode CDR        0x26 1)
   (def-opcode LENGTH     0x27 1)
   (def-opcode QCHOICE    0x28 1)
+  (def-opcode CHOICE-SIZE 0x29 1)
 
   (def-opcode 1-         0x40 1)
   (def-opcode -1+        0x40 1)
@@ -106,7 +107,7 @@
   (def-opcode +          0x65 2)
   (def-opcode -          0x66 2)
   (def-opcode *          0x67 2)
-  (def-opcode /~          0x68 2)
+  (def-opcode /~         0x68 2)
 
   (def-opcode EQ?        0x80 2)
   (def-opcode EQV?       0x81 2)
