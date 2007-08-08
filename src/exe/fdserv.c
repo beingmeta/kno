@@ -229,6 +229,27 @@ static void dolog
   fd_unlock_mutex(&log_lock);
 }
 
+/* Writing the PID file */
+
+static void write_pid_file(char *sockname)
+{
+  FILE *f;
+  int len=strlen(sockname);
+  char *dot=strchr(sockname,'.');
+  char *pidfile=u8_malloc(len+8);
+  if (dot) {
+    strncpy(pidfile,sockname,dot-sockname);
+    pidfile[dot-sockname]='\0';}
+  else strcpy(pidfile,sockname);
+  strcat(pidfile,".pid");
+  f=fopen(pidfile,"w");
+  if (f==NULL)
+    u8_warn("Couldn't write file","Couldn't write PID file %s",pidfile);
+  else {
+    fprintf(f,"%d",getpid());
+    fclose(f);}
+}
+
 /* Preloads */
 
 struct FD_PRELOAD_LIST {
@@ -754,6 +775,8 @@ int main(int argc,char **argv)
     fd_clear_errors(1);
     return -1;}
   chmod(argv[1],0777);
+
+  write_pid_file(argv[1]);
 
   portfile=u8_strdup(argv[1]);
 
