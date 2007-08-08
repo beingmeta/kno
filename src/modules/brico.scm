@@ -325,14 +325,18 @@
 ;;;  retrieving both OIDs and the inverted slotid keys used by
 ;;;  inference.
 
+(define default-brico-slotids
+  (choice genls specls partof))
+
 (define brico-prefetch!
-  (ambda (concepts)
+  (ambda (concepts (slotids default-brico-slotids))
     (prefetch-oids! concepts)
-    (prefetch-keys! (cons brico-slotids concepts))
-    (prefetch-oids! (?? (choice specls* parts*) concepts))))
+    (prefetch-keys! (cons (choice (get slotids 'inverse)
+				  (get (get slotids 'slots) 'inverse))
+			  concepts))))
   
 (define brico-prefetch
-  (ambda (concepts)
+  (ambda (concepts (slotids default-brico-slotids))
     (brico-prefetch! concepts)
     concepts))
 
