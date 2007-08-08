@@ -76,11 +76,12 @@ FD_EXPORT int fd_skip_whitespace(u8_input s)
 
 /* Tables */
 
-static int n_const_names=17;
+static int n_const_names=20;
 static u8_string const_names[]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
   "#baddtype","#badparse","#oom","#typeerror","#rangeerror",
-  "#exception","#error","#lockholder","#unbound",NULL};
+  "#badptr","#exception","#error","#unbound","#neverseen",
+  "#lockholder","#dflt",NULL};
   
 static int n_character_constants=14;
 static u8_string character_constant_names[]={
@@ -427,12 +428,12 @@ static int read_escape(u8_input in)
 
 /* Atom parsing */
 
-static int n_constants=6;
+static int n_constants=7;
 static u8_string constant_names[]={
-  "#T","#F","#TRUE","#FALSE","#VOID","#EOF",
+  "#T","#F","#TRUE","#FALSE","#VOID","#EOF","#DFLT",
   NULL};
 static fdtype constant_values[]={
-  FD_TRUE,FD_FALSE,FD_TRUE,FD_FALSE,FD_VOID,FD_EOF,
+  FD_TRUE,FD_FALSE,FD_TRUE,FD_FALSE,FD_VOID,FD_EOF,FD_DEFAULT_VALUE,
   0};
 
 static int skip_atom(u8_input s)

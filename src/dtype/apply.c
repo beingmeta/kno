@@ -22,6 +22,7 @@ fd_applyfn fd_applyfns[FD_TYPE_MAX];
 fd_exception fd_NotAFunction=_("calling a non function");
 fd_exception fd_TooManyArgs=_("too many arguments");
 fd_exception fd_TooFewArgs=_("too few arguments");
+fd_exception fd_NoDefault=_("no default value for #default argument");
 fd_exception fd_ProfilingDisabled=_("profiling not built");
 
 static fd_exception TooManyCalltrackSensors=_("Too many calltrack sensors");
@@ -334,7 +335,8 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       int i=0; fdtype *defaults=f->defaults;
       if (f->arity<=8) args=argbuf;
       else args=u8_alloc_n((f->arity),fdtype);
-      while (i<n) {args[i]=argvec[i]; i++;}
+      while (i<n) {
+	args[i]=argvec[i]; i++;}
       if (defaults)
 	while (i<f->arity) {args[i]=defaults[i]; i++;}
       else while (i<f->arity) {args[i]=FD_VOID; i++;}}

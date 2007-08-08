@@ -16,8 +16,8 @@ Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
 ? Add expression rails to speed up the evaluator
 Explore using const more to improve performance in dtype streams and libu8 stream
 Add real record functions and library, along with opcodes.
-Add opcodes for arithmetic operations, maybe get, test, pick, etc.
-Add opcodes for TRY and TRYIF.
+# Add opcodes for arithmetic operations, maybe get, test, pick, etc. (7 August 2007)
+? Add opcodes for TRY and TRYIF.
 Reorganize opcodes and add opcode name tables.
 Move thread functions in eval.c into their own file
 Add accessor/control functions for thread objects
@@ -31,6 +31,8 @@ Add editline to fdconsole
 Make hash indices be able to have implicit pools
 Add background search methods for slots
 Add generic composition for slotids
+Add #dflt to specify that arguments should use their default value 
+#Add .pid file from fdserv (7 August 2007)
 # Implement a simple queueing system (July 2007)
 # Make pick/reject use the fact that its input is already ordered (23 June 2007)
 # Made index_keys handlers return an unsorted vector rather than a choice (19 June 2007)

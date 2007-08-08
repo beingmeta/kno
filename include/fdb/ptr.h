@@ -338,6 +338,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_UNBOUND                FD_CONSTANT(16)
 #define FD_NEVERSEEN              FD_CONSTANT(17)
 #define FD_LOCKHOLDER             FD_CONSTANT(18)
+#define FD_DEFAULT_VALUE          FD_CONSTANT(19)
 
 #define FD_VOIDP(x) (x == FD_VOID)
 #define FD_FALSEP(x) (x == FD_FALSE)
