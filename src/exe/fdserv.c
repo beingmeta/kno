@@ -45,6 +45,8 @@ static fd_dtype_stream reqlog=NULL;
 static int reqloglevel=0;
 static int traceweb=0;
 
+static char *pidfile;
+
 #define FD_REQERRS 1 /* records only transactions which return errors */
 #define FD_ALLREQS 2 /* records all requests */
 #define FD_ALLRESP 3 /* records all requests and the response set back */
@@ -236,7 +238,7 @@ static void write_pid_file(char *sockname)
   FILE *f;
   int len=strlen(sockname);
   char *dot=strchr(sockname,'.');
-  char *pidfile=u8_malloc(len+8);
+  pidfile=u8_malloc(len+8);
   if (dot) {
     strncpy(pidfile,sockname,dot-sockname);
     pidfile[dot-sockname]='\0';}
@@ -615,6 +617,8 @@ static void shutdown_fdwebserver()
   if (portfile)
     if (remove(portfile)>=0) {
       u8_free(portfile); portfile=NULL;}
+  if (pidfile) u8_removefile(pidfile);
+  pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
 }
 
@@ -786,175 +790,9 @@ int main(int argc,char **argv)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
   u8_server_loop(&fdwebserver);
 
+  if (pidfile) u8_removefile(pidfile);
+  pidfile=NULL;
+
   return 0;
 }
 
-
-/* The CVS log for this file
-   $Log: fdwebservlet.c,v $
-   Revision 1.26  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.25  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.24  2006/01/25 20:20:53  haase
-   Fixed some termination leaks for fdwebservlet
-
-   Revision 1.23  2006/01/23 00:34:59  haase
-   Added API for sourcebase binding
-
-   Revision 1.22  2006/01/21 21:11:26  haase
-   Removed some leaks associated with reifying error states as objects
-
-   Revision 1.21  2006/01/20 04:10:13  haase
-   Fixed leaks in CGI execution
-
-   Revision 1.20  2006/01/19 21:54:31  haase
-   Made fdxml execution bind cgidata
-
-   Revision 1.19  2006/01/18 21:44:43  haase
-   Fixes to XML parsing and unparsing
-
-   Revision 1.18  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.17  2005/12/23 17:00:45  haase
-   Added bool config functions and changed fd_iconfig to fd_intconfig
-
-   Revision 1.16  2005/10/10 17:01:19  haase
-   Fixes for new mktime/offtime functions
-
-   Revision 1.15  2005/09/19 16:53:37  haase
-   Made fdwebservlet clear its signal mask on startup to make it killable
-
-   Revision 1.14  2005/09/19 16:34:38  haase
-   Delete socket file when closing
-
-   Revision 1.13  2005/09/19 16:16:31  haase
-   Made fdwebservlet report in-request elapsed time directly
-
-   Revision 1.12  2005/09/17 02:24:10  haase
-   Add signal handlers to shut down servers
-
-   Revision 1.11  2005/09/13 03:35:20  haase
-   Removed default texttools init from fdwebservlet
-
-   Revision 1.10  2005/08/30 11:14:56  haase
-   Added explanation to timing details
-
-   Revision 1.9  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.8  2005/08/10 05:47:43  haase
-   Undid previous rename of executables
-
-   Revision 1.5  2005/08/08 16:24:11  haase
-   Added various logging options
-
-   Revision 1.4  2005/08/06 20:36:15  haase
-   Fixed bug in initial preloading
-
-   Revision 1.3  2005/08/05 12:52:28  haase
-   Added PRELOAD and other config support to fdbservlet
-
-   Revision 1.2  2005/08/05 11:06:11  haase
-   Added fdbservlet preload stuff
-
-   Revision 1.1  2005/08/05 10:11:28  haase
-   renamed fdwebservlet.c to fdbservlet.c
-
-   Revision 1.6  2005/08/04 23:24:13  haase
-   Added (optional) automatic module updating
-
-   Revision 1.5  2005/07/12 21:39:21  haase
-   Added trace statemnts for individual executions
-
-   Revision 1.4  2005/06/01 13:07:55  haase
-   Fixes for less forgiving compilers
-
-   Revision 1.3  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.2  2005/05/12 03:14:16  haase
-   Config inits for fdwebservlet
-
-   Revision 1.1  2005/05/10 18:43:17  haase
-   Added fdwebservlet
-
-   Revision 1.13  2005/05/09 20:06:24  haase
-   Added SIGHUP handler for fdwebserv
-
-   Revision 1.12  2005/05/04 09:11:44  haase
-   Moved FD_INIT_SCHEME_BUILTINS into individual executables in order to dance around an OS X dependency problem
-
-   Revision 1.11  2005/05/03 02:13:57  haase
-   Added TRACEP slot for cgidata which can cause trace statements to be emitted
-
-   Revision 1.10  2005/04/29 04:05:58  haase
-   Made preface production be surpressed in the event of a non-string doctype
-
-   Revision 1.9  2005/04/24 22:06:55  haase
-   Added BODY! primitive to set attribute body and changed xthtml_header fn to xhtml_preface
-
-   Revision 1.8  2005/04/24 02:17:41  haase
-   Fixed writeall
-
-   Revision 1.7  2005/04/21 19:07:58  haase
-   Fixed bug in writeall which rewrite prefixes
-
-   Revision 1.6  2005/04/16 17:00:39  haase
-   Check argc
-
-   Revision 1.5  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.4  2005/04/13 14:59:26  haase
-   Handle load exceptions
-
-   Revision 1.3  2005/04/11 04:32:27  haase
-   Fixes to handling of fdxml documents
-
-   Revision 1.2  2005/04/10 17:24:03  haase
-   Initial attempt at allowing fdxml handling in fdwebserv
-
-   Revision 1.1  2005/04/10 02:05:25  haase
-   Added fdwebserv to tests
-
-   Revision 1.6  2005/04/06 19:25:05  haase
-   Added MODULES config to fdtypeserver
-
-   Revision 1.5  2005/04/06 15:39:17  haase
-   Added server level logging
-
-   Revision 1.4  2005/04/04 22:22:27  haase
-   Better error reporting from executables
-
-   Revision 1.3  2005/03/26 00:16:13  haase
-   Made loading facility be generic and moved the rest of file access into fileio.c
-
-   Revision 1.2  2005/03/24 17:16:00  haase
-   Fixes to fdtypeserver
-
-   Revision 1.1  2005/03/24 00:30:18  haase
-   Added fdtypeserver
-
-   Revision 1.22  2005/03/06 02:03:06  haase
-   Fixed include statements for system header files
-
-   Revision 1.21  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.20  2005/03/05 19:38:39  haase
-   Added setlocale call
-
-   Revision 1.19  2005/02/28 03:20:01  haase
-   Added optional load file and config processing to fdconsole
-
-   Revision 1.18  2005/02/24 19:12:46  haase
-   Fixes to handling index arguments which are strings specifiying index sources
-
-   Revision 1.17  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
