@@ -511,26 +511,52 @@ static fdtype stem_prim(fdtype arg)
 
 static u8_string default_vowels="aeiouy";
 
-static fdtype disemvowel(fdtype string,fdtype use_base_arg,fdtype vowels)
+static int all_asciip(u8_string s)
+{
+  int c=u8_sgetc(&s);
+  while (c>0)
+    if (c>=0x80) return 0;
+    else c=u8_sgetc(&s);
+  return 1;
+}
+
+static fdtype disemvowel(fdtype string,fdtype vowels)
 {
   struct U8_OUTPUT out; struct U8_INPUT in; 
   U8_INIT_STRING_INPUT(&in,FD_STRLEN(string),FD_STRDATA(string));
   U8_INIT_OUTPUT(&out,FD_STRING_LENGTH(string));
-  int c=u8_getc(&in), use_base=1; u8_string vowelset;
+  int c=u8_getc(&in), all_ascii;
+  u8_string vowelset;
   if (FD_STRINGP(vowels)) vowelset=FD_STRDATA(vowels);
   else vowelset=default_vowels;
-  if (FD_FALSEP(use_base_arg)) use_base=0;
+  all_ascii=all_asciip(vowelset);
   while (c>=0) {
     int bc=u8_base_char(c);
     if (bc<0x80) {
       if (strchr(vowelset,bc)==NULL)
 	u8_putc(&out,c);}
+    else if (all_ascii) {}
     else {
       char buf[16]; U8_OUTPUT tmp;
       U8_INIT_FIXED_OUTPUT(&tmp,16,buf);
       u8_putc(&tmp,bc);
       if (strstr(vowelset,buf)==NULL)
 	u8_putc(&out,c);}
+    c=u8_getc(&in);}
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
+/* Depuncting strings (removing punctuation and whitespace) */
+
+static fdtype depunct(fdtype string)
+{
+  struct U8_OUTPUT out; struct U8_INPUT in; 
+  U8_INIT_STRING_INPUT(&in,FD_STRLEN(string),FD_STRDATA(string));
+  U8_INIT_OUTPUT(&out,FD_STRING_LENGTH(string));
+  int c=u8_getc(&in);
+  while (c>=0) {
+    if (!((u8_isspace(c)) || (u8_ispunct(c))))
+      u8_putc(&out,c);
     c=u8_getc(&in);}
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
@@ -985,20 +1011,55 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
   return results;
 }
 
-static fdtype string_matches(fdtype string,fdtype pattern)
+/* PICK/REJECT predicates */
+
+/* These are matching functions with the arguments reversed
+   to be especially useful as arguments to PICK and REJECT. */
+
+static fdtype string_matches(fdtype string,fdtype pattern,
+			     fdtype start_arg,fdtype end_arg)
 {
-  int retval=fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0);
-  if (retval<0) return fd_erreify();
-  else if (retval) return FD_TRUE;
-  else return FD_FALSE;
+  int off, lim;
+  convert_offsets(string,start_arg,end_arg,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  else {
+    int retval=fd_text_match(pattern,NULL,FD_STRDATA(string),off,lim,0);
+    if (retval<0) return fd_erreify();
+    else if (retval) return FD_TRUE;
+    else return FD_FALSE;}
 }
 
-static fdtype string_contains(fdtype string,fdtype pattern)
+static fdtype string_contains(fdtype string,fdtype pattern,
+			      fdtype start_arg,fdtype end_arg)
 {
-  int retval=fd_text_search(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0);
-  if (retval<-1) return fd_erreify();
-  else if (retval<0) return FD_FALSE;
-  else return FD_TRUE;
+  int off, lim;
+  convert_offsets(string,start_arg,end_arg,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  else {
+    int retval=fd_text_search(pattern,NULL,FD_STRDATA(string),off,lim,0);
+    if (retval<-1) return fd_erreify();
+    else if (retval<0) return FD_FALSE;
+    else return FD_TRUE;}
+}
+
+static fdtype string_starts_with(fdtype string,fdtype pattern,
+				 fdtype start_arg,fdtype end_arg)
+{
+  int off, lim, retval;
+  convert_offsets(string,start_arg,end_arg,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  else {
+    fdtype match_result=fd_text_matcher
+      (pattern,NULL,FD_STRDATA(string),off,lim,0);
+    if (FD_ABORTP(match_result)) return match_result;
+    else if (FD_EMPTY_CHOICEP(match_result))
+      return FD_FALSE;
+    else {
+      fd_decref(match_result);
+      return FD_TRUE;}}
 }
 
 /* text2frame */
@@ -1478,9 +1539,11 @@ void fd_init_texttools()
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
 					    fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("DISEMVOWEL",disemvowel,1,
-			   fd_string_type,FD_VOID,-1,FD_TRUE,
+	   fd_make_cprim2x("DISEMVOWEL",disemvowel,1,
+			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim1x("DEPUNCT",depunct,1,fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
   fd_idefn(texttools_module,
@@ -1566,11 +1629,22 @@ void fd_init_texttools()
 			   fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("TEXTFILTER",textfilter,2)));
-  fd_idefn(texttools_module,fd_make_cprim2x("STRING-MATCHES?",string_matches,2,
-					    fd_string_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(texttools_module,fd_make_cprim2x("STRING-CONTAINS?",string_contains,2,
-					    fd_string_type,FD_VOID,-1,FD_VOID));
-
+  fd_idefn(texttools_module,fd_make_cprim4x
+	   ("STRING-MATCHES?",string_matches,2,
+	    fd_string_type,FD_VOID,-1,FD_VOID,
+	    fd_fixnum_type,FD_INT2DTYPE(0),
+	    fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,fd_make_cprim4x
+	   ("STRING-CONTAINS?",string_contains,2,
+	    fd_string_type,FD_VOID,-1,FD_VOID,
+	    fd_fixnum_type,FD_INT2DTYPE(0),
+	    fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,fd_make_cprim4x
+	   ("STRING-STARTS-WITH?",string_starts_with,2,
+	    fd_string_type,FD_VOID,-1,FD_VOID,
+	    fd_fixnum_type,FD_INT2DTYPE(0),
+	    fd_fixnum_type,FD_VOID));
+  
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("TEXT->FRAME",text2frame,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID,

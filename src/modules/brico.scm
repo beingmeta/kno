@@ -1,3 +1,5 @@
+;;; -*- Mode: Scheme; Character-Encoding: UTF-8; -*-
+
 (in-module 'brico)
 
 (define version "$Id:$")
@@ -697,6 +699,35 @@
 
 ;;; Looking up words
 
+;;; This code looks up words in BRICO, potentially applying
+;;;  some entirely textual cleverness.  Note that this doesn't
+;;;  do any morphological regularization because that lives in
+;;;  a different module and this module (BRICO) should be pretty
+;;;  freestanding.
+
+;;; It also allows applications to provide OVERRIDES and OVERLAYS
+;;;  for word lookup.  OVERRIDES keep searches from going to the
+;;;  background index; OVERLAYS are just combined with the background
+;;;  index.
+
+;;; The TRYHARD argument indicates how hard to try when doing a lookup.
+;;; The values are roughly interpreted as follows:
+;;;  #f don't try anything but basestring normalization (Malmö ==> Malmo)
+;;;  #t or 1 strips out internal punctuation (e.g. set-up ==> setup)
+;;;  >1 looks for misspellings (using metaphone) and also combines
+;;;     porter-stemming with metaphone.  Note that these are probably
+;;;     not really portable between languages, but that's a TODO.
+;;;  >2 look for compounds with overlapping words and picks the
+;;;      highest ranking concepts that have an overlap greater 3,
+;;;      where a correctly spelled word gets 2 points and a possible
+;;;      variant gets 1.
+;;;  >4 just like above but accepts any overlap grather than 2
+;;;  Warning: this compound finding algorithm has a potential issue
+;;;   in that BRICO's fragment indexing doesn't distinguish fragments
+;;;   from the same compound, so a concept with terms "George Bush" and
+;;;   "Scourge of Washington" would match a fragment-based search for
+;;;   "George Washington".
+
 (define (lookup-word word (language default-language) (tryhard #f))
   (if (has-prefix word "~")
       (lookup-word (subseq word 1) language #t)
@@ -712,6 +743,11 @@
        (let ((sbword (stdspace (basestring word))))
 	 (choice (?? language sbword)
 		 (tryif useoverlays (overlay-get sbword language))))
+       (tryif (and tryhard
+		   (or (position #\- word)
+		       (position #\Space word)
+		       (position #\_ word)))
+	      (?? language (depunct word)))
 ;;        (tryif tryhard
 ;; 	      (?? language (choice (downcase word)
 ;; 				   (capitalize word)
@@ -732,7 +768,7 @@
 		     (words (elts wordv))
 		     (altwords (choice (metaphone words #t)
 				       (metaphone (porter-stem words) #t)))
-		     (minscore (min (if (> tryhard 2) 3 4) (length wordv))))
+		     (minscore (min (if (> tryhard 3) 3 4) (length wordv))))
 		(prefetch-keys! (list language (choice words altwords)))
 		(do-choices (word words)
 		  (hashtable-increment! table (?? language (list word))))
