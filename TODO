@@ -18,6 +18,9 @@ Explore using const more to improve performance in dtype streams and libu8 strea
 Add real record functions and library, along with opcodes.
 # Add opcodes for arithmetic operations, maybe get, test, pick, etc. (7 August 2007)
 ? Add opcodes for TRY and TRYIF.
+Make METAPHONE optionally preserve initial capitalization
+Make PORTER-STEM (at least from BRICO) map across compounds (maybe do
+   both mapped and unmapped)
 Implement WITH-SLOTS to bind variables from a frame
 Reorganize opcodes and add opcode name tables.
 Move thread functions in eval.c into their own file
