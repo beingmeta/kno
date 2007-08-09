@@ -213,9 +213,9 @@ char *fd_stem_english_word(u8_byte *original)
   else copy=u8_malloc(len+1);
   memset(copy,0,len+1);
   w.spelling=copy;
-  w.length=canonicalize_string(original,copy,len);
+  w.length=canonicalize_string(original,copy,len+1);
   w.changed=0;
-  if (w.length == 0) return u8_strdup(original);
+  if (w.length == 0) return copy;
   /* Step 1a rules */
   if (w.changed == 0) w=apply_rule(w,none,"sses",4,"ss",0);
   if (w.changed == 0) w=apply_rule(w,none,"ies",3,"i",0);
