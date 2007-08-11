@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; Character-Encoding: UTF-8; -*-
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
 
 (in-module 'brico)
 
@@ -43,7 +43,8 @@
    parts parts* partof partof*
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
-   inverse =is= disjoint})
+   inverse =is= disjoint
+   refterms defterms})
 
 (define bricosource #f)
 (define brico-pool {})
@@ -377,6 +378,9 @@
 
 ;;; Slot indexing functions
 
+(define (stem-compound string)
+  (seq->phrase (map porter-stem (words->vector string))))
+
 (define index-string
   (ambda (index frame slot (value #f)
 		(window default-frag-window) (phonetic #f))
@@ -385,9 +389,12 @@
       (doindex index frame slot expvalues)
       (when phonetic
 	(let* ((tohash (reject values uppercase?))
-	       (tostem (reject tohash length {1 2 3 4})))
+	       (tostem (reject tohash length {1 2 3 4}))
+	       (tocompoundstem (pick tostem compound?)))
 	  (doindex index frame slot (metaphone tohash #t))
-	  (doindex index frame slot (metaphone (porter-stem tostem) #t))))
+	  (doindex index frame slot (metaphone (porter-stem tostem) #t))
+	  (doindex index frame slot
+		   (metaphone (stem-compound tocompoundstem) #t))))
       (when window
 	(index-frags index frame slot expvalues window phonetic)))))
 
@@ -477,6 +484,10 @@
    @1/2ab4d{DEFTERMS}
    @1/2ab57{REFTERMS}})
 ;(define asymmetric-slotids {@1/2ab4d{DEFTERMS} @1/2ab57{REFTERMS}})
+
+;; These are various other slotids which are useful to index
+(define misc-slotids
+  '{PERTAINYM COUNTRY})
 
 (define (index-concept index concept)
   (index-brico index concept)  
@@ -572,6 +583,8 @@
 	     (get concept slotid)
 	     (and (oid? slotid)
 		  (try (get slotid 'inverse) #f))))
+  (do-choices (slotid misc-slotids)
+    (doindex index concept slotid (get concept slotid)))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store
