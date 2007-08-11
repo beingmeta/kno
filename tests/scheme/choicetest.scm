@@ -125,6 +125,13 @@
 
 (set! fnlist '())
 
+;;; Pick tests
+
+(applytest {10 11 12} pick> (choice 5 6 7 10 11 12) 9)
+(applytest {10.5 11 12} pick> (choice 5 6.3 7 10.5 11 12) 9)
+
+(applytest @1/0 pickoids (choice "foo" 8 @1/0))
+
 ;;; Reduce-choice tests
 
 (applytest 15 reduce-choice + {1 2 3 4 5})

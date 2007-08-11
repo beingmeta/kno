@@ -1090,6 +1090,42 @@ static fdtype getrange_prim(fdtype arg1,fdtype endval)
   return results;
 }
 
+static fdtype pick_gt_prim(fdtype items,fdtype num,fdtype checktype)
+{
+  fdtype lower_bound=FD_VOID;
+  FD_DO_CHOICES(n,num) {
+    if (!(FD_NUMBERP(n)))
+      return fd_type_error("number","pick_gt_prim",n);
+    else if (FD_VOIDP(lower_bound)) lower_bound=n;
+    else if (fd_numcompare(n,lower_bound)<0) lower_bound=n;}
+  {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(item,items)
+      if (FD_NUMBERP(item))
+	if (fd_numcompare(item,lower_bound)>0) {
+	  fd_incref(item);
+	  FD_ADD_TO_CHOICE(results,item);}
+	else {}
+      else if (checktype==FD_TRUE)
+	return fd_type_error("number","pick_gt_prim",item);
+      else {}
+    return results;
+  }
+}
+
+static fdtype pick_oids_prim(fdtype items)
+{
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_OIDP(item)) {
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
 /* Initialize functions */
 
 FD_EXPORT void fd_init_choicefns_c()
@@ -1184,6 +1220,14 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3x("PICK>",pick_gt_prim,1,
+					  -1,FD_VOID,
+					  -1,FD_INT2DTYPE(0),
+					  -1,FD_FALSE)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim1("PICKOIDS",pick_oids_prim,1)));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("GETRANGE",getrange_prim,1));
