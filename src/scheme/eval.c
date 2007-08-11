@@ -727,7 +727,9 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
       return fd_init_double(NULL,x/y);}
-    else return fd_multiply(arg1,arg2);
+    else {
+      double x=fd_todouble(arg1), y=fd_todouble(arg2);
+      return fd_init_double(NULL,x/y);}
   case FD_ELT_OPCODE:
     if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
       fdtype result;
@@ -875,6 +877,9 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else if (FD_VOIDP(arg2)) {
       fd_decref(arg1);
       return fd_err(fd_VoidArgument,"opcode eval",NULL,FD_CAR(body));}
+    else if (FD_EMPTY_CHOICEP(arg2)) {
+      /* Prune the call */
+      fd_decref(arg1); return arg2;}
     else if ((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1)) ||
 	     (FD_CHOICEP(arg2)) || (FD_ACHOICEP(arg2))) 
       /* opcode_binary_nd_dispatch handles decref of arg1 and arg2 */
