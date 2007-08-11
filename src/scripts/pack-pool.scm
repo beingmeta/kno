@@ -83,8 +83,9 @@
 		      (mt/custom-progress "Copying OIDs"))
       (set-oid-value! f (get old f)))))
 
-(define (main from (to #f))
-  (cond ((not to) (repack-pool from))
+(define (main (from) (to #f))
+  (cond ((not (bound? from)) (usage))
+	((not to) (repack-pool from))
 	((and (file-exists? to) (not (config 'OVERWRITE #f)))
 	 (message "Not overwriting " to))
 	((not (file-exists? from))
@@ -109,6 +110,14 @@
       (copy-oids old new))
     (move-file from bakfile)
     (move-file tmpfile from)))
+
+(define (usage)
+  (lineout "Usage: pack-pool <from> [to]")
+  (lineout "    Repacks the file pool stored in <from>.  The new file ")
+  (lineout "    pool is either replace <from> or is written into [to].")
+  (lineout "    [to] if specified must not exist unless OVERWRITE=yes")
+  (lineout "    OLDPOOL=yes generates a standard file pool")
+  (lineout "    OIDPOOL=yes generates a new model OID pool"))
 
 (optimize! copy-oids)
 

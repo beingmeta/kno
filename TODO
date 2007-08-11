@@ -10,6 +10,10 @@ IPV6 for fdbserver
 # fdbserver raw timings (late July 2007)
 MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
+Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>)
+Make DEFINE- analogous for ambda and slambda.
+Add PICKOIDS and PICK>
+Make fdexec generate use a USAGE definition on arguments
 Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add support for converting expressions into "expression blocks".
 Add C-coded functional combinators, e.g. CURRYN, COMPOSE, etc.
