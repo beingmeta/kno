@@ -20,6 +20,7 @@ static char versionid[] =
 fd_exception fd_BadArglist=_("Malformed argument list");
 fd_exception fd_BindError=_("Can't bind variable");
 fd_exception fd_BindSyntaxError=_("Bad binding expression");
+fd_exception fd_BadDefineForm=_("Bad procedure defining form");
 
 fd_ptr_type fd_sproc_type, fd_macro_type;
 
@@ -640,6 +641,64 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
+static fdtype define_synchronized_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_TooFewExpressions,"DEFINE-SYNCHRONIZED",NULL,expr);
+  else if (FD_SYMBOLP(var))
+    return fd_err(fd_BadDefineForm,"DEFINE-SYNCHRONIZED",NULL,expr);
+  else if (FD_PAIRP(var)) {
+    fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
+    fdtype body=fd_get_body(expr,2);
+    if (!(FD_SYMBOLP(fn_name)))
+      fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
+    else {
+      fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
+      if (FD_ABORTP(value)) return value;
+      else if (fd_bind_value(fn_name,value,env)) {
+	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
+	  struct FD_SPROC *s=(fd_sproc)value;
+	  if (s->filename==NULL) {
+	    u8_string sourcebase=fd_sourcebase();
+	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
+	fd_decref(value);
+	return FD_VOID;}
+      else {
+	fd_decref(value);
+	return fd_err(fd_BindError,"DEFINE-SYNCHRONIZED",NULL,var);}}}
+  else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
+}
+
+static fdtype define_amb_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_TooFewExpressions,"DEFINE-AMB",NULL,expr);
+  else if (FD_SYMBOLP(var))
+    return fd_err(fd_BadDefineForm,"DEFINE-AMB",NULL,expr);
+  else if (FD_PAIRP(var)) {
+    fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
+    fdtype body=fd_get_body(expr,2);
+    if (!(FD_SYMBOLP(fn_name)))
+      fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
+    else {
+      fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
+      if (FD_ABORTP(value)) return value;
+      else if (fd_bind_value(fn_name,value,env)) {
+	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
+	  struct FD_SPROC *s=(fd_sproc)value;
+	  if (s->filename==NULL) {
+	    u8_string sourcebase=fd_sourcebase();
+	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
+	fd_decref(value);
+	return FD_VOID;}
+      else {
+	fd_decref(value);
+	return fd_err(fd_BindError,"DEFINE-AMB",NULL,var);}}}
+  else return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,var);
+}
+
 /* Extended apply */
 
 static fdtype tail_symbol;
@@ -864,6 +923,8 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);
   fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_handler);
   fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
+  fd_defspecial(fd_scheme_module,"DEFINE-SYNCHRONIZED",define_synchronized_handler);
+  fd_defspecial(fd_scheme_module,"DEFINE-AMBDA",define_amb_handler);
 
   fd_defspecial(fd_scheme_module,"MACRO",macro_handler);
 
