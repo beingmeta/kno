@@ -1256,6 +1256,7 @@ static int do_hashtable_op
   case fd_table_replace: case fd_table_replace_novoid: case fd_table_drop:
   case fd_table_add_if_present: case fd_table_test:
   case fd_table_increment_if_present: case fd_table_multiply_if_present:
+  case fd_table_maximize_if_present: case fd_table_minimize_if_present:
     /* These are operations which can be resolved immediately if the key
        does not exist in the table.  It doesn't bother setting up the hashtable
        if it doesn't have to. */
@@ -1306,6 +1307,9 @@ static int do_hashtable_op
     break;
   case fd_table_increment: case fd_table_increment_if_present:
     if (FD_EMPTY_CHOICEP(result->value)) result->value=fd_incref(value);
+    else if (!(FD_NUMBERP(result->value))) {
+      fd_seterr(fd_TypeError,"fd_table_increment",u8_strdup("number"),result->value);
+      return -1;}
     else {
       fdtype current=result->value;
       FD_DO_CHOICES(v,value)
@@ -1320,13 +1324,19 @@ static int do_hashtable_op
 	  if (FD_FIXNUMP(v))
 	    dbl->flonum=dbl->flonum+FD_FIX2INT(v);
 	  else dbl->flonum=dbl->flonum+FD_FLONUM(v);}
-	else {
+	else if (FD_NUMBERP(v)) {
 	  fdtype newnum=fd_plus(current,v);
 	  if (newnum != current) {
-	    fd_decref(current); result->value=newnum;}}}
+	    fd_decref(current); result->value=newnum;}}
+	else {
+	  fd_seterr(fd_TypeError,"fd_table_increment",u8_strdup("number"),v);
+	  return -1;}}
     break;
   case fd_table_multiply: case fd_table_multiply_if_present:
     if (FD_EMPTY_CHOICEP(result->value)) result->value=fd_incref(value);
+    else if (!(FD_NUMBERP(result->value))) {
+      fd_seterr(fd_TypeError,"fd_table_multiply",u8_strdup("number"),result->value);
+      return -1;}
     else {
       fdtype current=result->value;
       FD_DO_CHOICES(v,value)
@@ -1341,10 +1351,45 @@ static int do_hashtable_op
 	  if (FD_FIXNUMP(v))
 	    dbl->flonum=dbl->flonum*FD_FIX2INT(v);
 	  else dbl->flonum=dbl->flonum*FD_FLONUM(v);}
-	else {
+	else if (FD_NUMBERP(v)) {
 	  fdtype newnum=fd_multiply(current,v);
 	  if (newnum != current) {
-	    fd_decref(current); result->value=newnum;}}}
+	    fd_decref(current); result->value=newnum;}}
+	else {
+	  fd_seterr(fd_TypeError,"table_multiply_op",u8_strdup("number"),v);
+	  return -1;}}
+    break;
+  case fd_table_maximize: case fd_table_maximize_if_present:
+    if (FD_EMPTY_CHOICEP(result->value))
+      result->value=fd_incref(value);
+    else if (!(FD_NUMBERP(result->value))) {
+      fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),result->value);
+      return -1;}
+    else {
+      fdtype current=result->value;
+      if ((FD_NUMBERP(current)) && (FD_NUMBERP(value))) {
+	if (fd_numcompare(value,current)>0) {
+	  result->value=fd_incref(value);
+	  fd_decref(current);}}
+      else {
+	fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),value);
+	return -1;}}
+    break;
+  case fd_table_minimize: case fd_table_minimize_if_present:
+    if (FD_EMPTY_CHOICEP(result->value))
+      result->value=fd_incref(value);
+    else if (!(FD_NUMBERP(result->value))) {
+      fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),result->value);
+      return -1;}
+    else {
+      fdtype current=result->value;
+      if ((FD_NUMBERP(current)) && (FD_NUMBERP(value))) {
+	if (fd_numcompare(value,current)<0) {
+	  result->value=fd_incref(value);
+	  fd_decref(current);}}
+      else {
+	fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),value);
+	return -1;}}
     break;
   case fd_table_push:
     if ((FD_VOIDP(result->value)) || (FD_EMPTY_CHOICEP(result->value)))

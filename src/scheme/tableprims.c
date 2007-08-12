@@ -334,6 +334,215 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
   else return fd_type_error("table","table_multiply_existing",table);
 }
 
+/* Table MAXIMIZE
+   Stores a value in a table if the current value is either empty or
+   less than the new value. */
+
+static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
+{
+  if (!(FD_NUMBERP(maxval)))
+    return fd_type_error("number","table_maximize",maxval);
+  else if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize,keys,maxval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else if (FD_TABLEP(table)) {
+    FD_DO_CHOICES(key,keys) {
+      fdtype cur=fd_get(table,key,FD_VOID);
+      if (FD_VOIDP(cur))
+	fd_store(table,key,maxval);
+      else if (FD_NUMBERP(cur)) {
+	if (fd_numcompare(maxval,cur)>0) {
+	  fd_store(table,key,maxval);
+	  fd_decref(cur);}
+	else {fd_decref(cur);}}
+      else return fd_type_error("number","table_maximize",cur);}
+    return FD_VOID;}
+  else return fd_type_error("table","table_maximize",table);
+}
+
+static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
+{
+  if (!(FD_NUMBERP(maxval)))
+    return fd_type_error("number","table_maximize_existing",maxval);
+  else if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize_if_present,keys,maxval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else if (FD_TABLEP(table)) {
+    FD_DO_CHOICES(key,keys) {
+      fdtype cur=fd_get(table,key,FD_VOID);
+      if (FD_VOIDP(cur)) {}
+      else if (FD_NUMBERP(cur)) {
+	if (fd_numcompare(maxval,cur)>0) {
+	  fd_store(table,key,maxval);
+	  fd_decref(cur);}
+	else {fd_decref(cur);}}
+      else return fd_type_error("number","table_maximize",cur);}
+    return FD_VOID;}
+  else return fd_type_error("table","table_maximize",table);
+}
+
+static fdtype hashtable_maximize(fdtype table,fdtype keys,fdtype maxval)
+{
+  if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize,keys,maxval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else return fd_type_error("table","hashtable_maximize",table);
+}
+
+static fdtype hashtable_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
+{
+  if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize_if_present,keys,maxval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else return fd_type_error("table","hashtable_maximize_existing",table);
+}
+
+/* Table MINIMIZE
+   Stores a value in a table if the current value is either empty or
+   less than the new value. */
+
+static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
+{
+  if (!(FD_NUMBERP(minval)))
+    return fd_type_error("number","table_minimize",minval);
+  else if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize,keys,minval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else if (FD_TABLEP(table)) {
+    FD_DO_CHOICES(key,keys) {
+      fdtype cur=fd_get(table,key,FD_VOID);
+      if (FD_VOIDP(cur))
+	fd_store(table,key,minval);
+      else if (FD_NUMBERP(cur)) {
+	if (fd_numcompare(minval,cur)<0) {
+	  fd_store(table,key,minval);
+	  fd_decref(cur);}
+	else {fd_decref(cur);}}
+      else return fd_type_error("number","table_minimize",cur);}
+    return FD_VOID;}
+  else return fd_type_error("table","table_minimize",table);
+}
+
+static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
+{
+  if (!(FD_NUMBERP(minval)))
+    return fd_type_error("number","table_minimize_existing",minval);
+  else if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize_if_present,keys,minval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else if (FD_TABLEP(table)) {
+    FD_DO_CHOICES(key,keys) {
+      fdtype cur=fd_get(table,key,FD_VOID);
+      if (FD_VOIDP(cur)) {}
+      else if (FD_NUMBERP(cur)) {
+	if (fd_numcompare(minval,cur)<0) {
+	  fd_store(table,key,minval);
+	  fd_decref(cur);}
+	else {fd_decref(cur);}}
+      else return fd_type_error("number","table_minimize_existing",cur);}
+    return FD_VOID;}
+  else return fd_type_error("table","table_minimize",table);
+}
+
+static fdtype hashtable_minimize(fdtype table,fdtype keys,fdtype minval)
+{
+  if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize,keys,minval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else return fd_type_error("table","hashtable_minimize",table);
+}
+
+
+static fdtype hashtable_minimize_existing(fdtype table,fdtype keys,fdtype minval)
+{
+  if (FD_HASHTABLEP(table))
+    if (FD_CHOICEP(keys)) {
+      const fdtype *elts=FD_CHOICE_DATA(keys);
+      int n_elts=FD_CHOICE_SIZE(keys);
+      if (fd_hashtable_iterkeys
+	  (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
+	return fd_erreify();}
+      else return FD_VOID;}
+    else if (FD_EMPTY_CHOICEP(keys))
+      return FD_VOID;
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize_if_present,keys,minval)<0)
+      return fd_erreify();
+    else return FD_VOID;
+  else return fd_type_error("table","hashtable_minimize_existing",table);
+}
+
+/* Getting max values out of tables, especially hashtables. */
+
 static fdtype hashtable_max(fdtype table,fdtype scope)
 {
   if (FD_EMPTY_CHOICEP(scope))
@@ -536,6 +745,19 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("TABLE-MULTIPLY-EXISTING!",
 					 table_multiply_existing,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("TABLE-MAXIMIZE!",
+					 table_maximize,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("TABLE-MAXIMIZE-EXISTING!",
+					 table_maximize_existing,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("TABLE-MINIMIZE!",
+					 table_minimize,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("TABLE-MINIMIZE-EXISTING!",
+					 table_minimize_existing,2)));
+
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASH-LISP",hash_lisp_prim,1));
 
@@ -551,6 +773,20 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MULTIPLY-EXISTING!",
 					 hashtable_multiply_existing,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MAXIMIZE!",
+					 hashtable_maximize,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MAXIMIZE-EXISTING!",
+					 hashtable_maximize_existing,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MINIMIZE!",
+					 hashtable_minimize,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MINIMIZE-EXISTING!",
+					 hashtable_minimize_existing,2)));
+
+
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
 			   fd_hashtable_type,FD_VOID,-1,FD_VOID));
