@@ -784,9 +784,11 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIMESTAMP+",timestamp_plus,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DIFFTIME",timestamp_diff,2));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("TIME-EARLIER?",timestamp_earlier,1));
+	   fd_make_cprim2("PAST-TIME?",timestamp_earlier,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("TIME-LATER?",timestamp_later,1));
+	   fd_make_cprim2("FUTURE-TIME?",timestamp_later,1));
+  fd_defalias(fd_scheme_module,"TIME-EARLIER?","PAST-TIME?");
+  fd_defalias(fd_scheme_module,"TIME-LATER?","FUTURE-TIME?");
 
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLEEP",sleep_prim,1));
