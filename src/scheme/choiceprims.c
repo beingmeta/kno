@@ -24,6 +24,12 @@ static fdtype parse_control_spec
   fdtype control_expr=fd_get_arg(expr,1);
   if (FD_VOIDP(control_expr))
     return fd_err(fd_TooFewExpressions,NULL,NULL,expr);
+  else if (FD_SYMBOLP(control_expr)) {
+    fdtype values=fd_eval(control_expr,env);
+    if (FD_ABORTP(values)) {
+      *value=FD_VOID; return values;}
+    *value=values; *iter_var=FD_VOID;
+    return control_expr;}
   else {
     fdtype var=fd_get_arg(control_expr,0), ivar=fd_get_arg(control_expr,2);
     fdtype val_expr=fd_get_arg(control_expr,1), val;
@@ -134,7 +140,8 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_VOIDP(count_var)) {
+  if (FD_ABORTP(var)) return var;
+  else if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
   else {
@@ -197,7 +204,8 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_VOIDP(count_var)) {
+  if (FD_ABORTP(var)) return var;
+  else if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
   else {
@@ -259,7 +267,8 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   fdtype test_expr=fd_get_arg(expr,2), *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_VOIDP(count_var)) {
+  if (FD_ABORTP(var)) return var;
+  else if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}

@@ -10,9 +10,9 @@ IPV6 for fdbserver
 # fdbserver raw timings (late July 2007)
 MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
-Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>)
-Make DEFINE- analogous for ambda and slambda.
-Add PICKOIDS and PICK>
+Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>) (11 August 2007)
+Make DEFINE- analogous for ambda and slambda (11 August 2007)
+Add PICKOIDS and PICK> (11 August 2007)
 Make fdexec generate use a USAGE definition on arguments
 Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add support for converting expressions into "expression blocks".
@@ -24,7 +24,7 @@ Add real record functions and library, along with opcodes.
 ? Add opcodes for TRY and TRYIF.
 Make METAPHONE optionally preserve initial capitalization
 Make PORTER-STEM (at least from BRICO) map across compounds (maybe do
-   both mapped and unmapped)
+   both mapped and unmapped) (9 August 2007)
 Implement WITH-SLOTS to bind variables from a frame
 Reorganize opcodes and add opcode name tables.
 Move thread functions in eval.c into their own file
