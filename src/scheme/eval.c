@@ -760,7 +760,11 @@ static fdtype opcode_other_dispatch
 
 static int numeric_argp(fdtype x)
 {
-  if (FD_EXPECT_TRUE(FD_NUMBERP(x))) return 1;
+  /* This checks if there is a type error.
+     The empty choice isn't a type error since it will just
+     generate an empty choice as a result. */
+  if (FD_EMPTY_CHOICEP(x)) return 1;
+  else if (FD_EXPECT_TRUE(FD_NUMBERP(x))) return 1;
   else if ((FD_ACHOICEP(x))||(FD_CHOICEP(x))) {
     FD_DO_CHOICES(a,x)
       if (FD_EXPECT_TRUE(FD_NUMBERP(a))) {}
@@ -824,6 +828,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype result=fd_type_error(_("number"),"numeric opcode",arg1);
     fd_decref(arg1);
     return result;}
+  else if (FD_EXPECT_FALSE
+	   (((opcode>=FD_NUMERIC2_OPCODES) && (opcode<FD_BINARY_OPCODES)) &&
+	    (FD_EMPTY_CHOICEP(arg1))))
+    return arg1;
   else if (FD_EMPTY_LISTP(body)) /* Unary call */
     /* Now we know that there is only one argument, which means you're either
        dispatching without doing ND iteration or with doing it.  */
