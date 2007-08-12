@@ -641,7 +641,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
-static fdtype define_synchronized_handler(fdtype expr,fd_lispenv env)
+static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
 {
   fdtype var=fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -670,7 +670,7 @@ static fdtype define_synchronized_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
-static fdtype define_amb_handler(fdtype expr,fd_lispenv env)
+static fdtype defambda_handler(fdtype expr,fd_lispenv env)
 {
   fdtype var=fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -923,8 +923,8 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);
   fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_handler);
   fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
-  fd_defspecial(fd_scheme_module,"DEFINE-SYNCHRONIZED",define_synchronized_handler);
-  fd_defspecial(fd_scheme_module,"DEFINE-AMBDA",define_amb_handler);
+  fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_handler);
+  fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_handler);
 
   fd_defspecial(fd_scheme_module,"MACRO",macro_handler);
 
