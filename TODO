@@ -8,11 +8,15 @@ Move fdb to WIN32
 SSL for fdbserver
 IPV6 for fdbserver
 # fdbserver raw timings (late July 2007)
+Make richer libu8 exceptions, move functionality from fdb
+Add dynamic contours to libu8
+Make fdb use dynamic contours
 MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
-Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>) (11 August 2007)
-Make DEFINE- analogous for ambda and slambda (11 August 2007)
-Add PICKOIDS and PICK> (11 August 2007)
+Add named s/a/lambda and letrec
+# Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>) (11 August 2007)
+# Make DEFINE- analogous for ambda and slambda (11 August 2007)
+# Add PICKOIDS and PICK> (11 August 2007)
 Make fdexec generate use a USAGE definition on arguments
 Make call bodies (CDRs) able to be vectors, for better cache coherence.
 Add support for converting expressions into "expression blocks".

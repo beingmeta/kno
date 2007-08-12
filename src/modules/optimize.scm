@@ -223,6 +223,21 @@
 				  (cons (list (first bindspec)) bound))))
 		   (map (lambda (b) (dotighten b env bound dolex))
 			body)))))
+(define (tighten-do2expression handler expr env bound dolex)
+  (let ((bindspec (cadr expr)) (body (cddr expr)))
+    `(,handler ,(cond ((pair? bindspec)
+		       `(,(car bindspec) ,(dotighten (cadr bindspec) env bound dolex)
+			 ,@(cddr bindspec)))
+		      ((symbol? bindspec)
+		       `(,bindspec ,(dotighten bindspec env bound dolex)))
+		      (else (error 'syntax "Bad do-* expression")))
+	       ,@(let ((bound (if (symbol? bindspec)
+				  (cons (list bindspec) bound)
+				  (if (= (length bindspec) 3)
+				      (cons (list (first bindspec) (third bindspec)) bound)
+				      (cons (list (first bindspec)) bound)))))
+		   (map (lambda (b) (dotighten b env bound dolex))
+			body)))))
 
 (define (tighten-dosubsets handler expr env bound dolex)
   (let ((bindspec (cadr expr)) (body (cddr expr)))
@@ -297,8 +312,11 @@
       tighten-set-form)
 
 (add! special-form-tighteners
-      (choice do-choices for-choices filter-choices dolist dotimes doseq forseq)
+      (choice dolist dotimes doseq forseq)
       tighten-doexpression)
+(add! special-form-tighteners
+      (choice do-choices for-choices filter-choices try-choices)
+      tighten-do2expression)
 
 (add! special-form-tighteners
       (choice begin prog1 until while ipeval
