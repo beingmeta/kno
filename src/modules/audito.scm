@@ -59,37 +59,33 @@
 
 (define auto+!
   (ambda (frame slotid value)
-    (if (not auditor) (error NOCONFIG "No auditor configured"))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(if (exists check-audit (get frame '%adds) slotid value)
 	    (notify "Deferring assertion due to audit: "
-		    slot "(" frame ")=" value)
+		    slotid "(" frame ")=" value)
 	    (assert! frame slotid value))))))
 
 (define auto+!
   (ambda (frame slotid value)
-    (if (not auditor) (error NOCONFIG "No auditor configured"))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(if (exists check-audit (get frame '%adds) slotid value)
 	    (notify "Deferring assertion due to audit: "
-		    slot "(" frame ")=" value)
+		    slotid "(" frame ")=" value)
 	    (assert! frame slotid value))))))
 
 (define auto-!
   (ambda (frame slotid value)
-    (if (not auditor) (error NOCONFIG "No auditor configured"))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(if (exists check-audit (get frame '%adds) slotid value)
 	    (notify "Deferring retraction due to audit: "
-		    slot "(" frame ")=" value)
+		    slotid "(" frame ")=" value)
 	    (retract! frame slotid value))))))
 
 (define auto!
   (ambda (frame slotid arg3 (arg4))
-    (if (not auditor) (error NOCONFIG "No auditor configured"))
     (if (and (eq? arg3 'not) (bound? arg4))
 	(auto-! frame slotid arg4)
 	(if (not (bound? arg4))
