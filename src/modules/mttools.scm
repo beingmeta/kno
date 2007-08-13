@@ -241,7 +241,7 @@
 		  ((> days 0) (printout days " days, ")))
 	  (when (> hours 0) (printout hours ":"))
 	  (printout 
-	      (if (and (> hours 0) (< minutes 10)) "0")
+	    (if (and (> hours 0) (< minutes 10)) "0")
 	    minutes ":")
 	  (printout (if (< seconds 10) "0")
 	    (cond ((> secs 600) (inexact->exact (round seconds)))
