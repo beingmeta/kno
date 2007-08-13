@@ -345,14 +345,6 @@
 		       (position #\Space word)
 		       (position #\_ word)))
 	      (?? language (depunct word)))
-;;        (tryif tryhard
-;; 	      (?? language (choice (downcase word)
-;; 				   (capitalize word)
-;; 				   (capitalize1 word))))
-;;        (tryif (and tryhard (uppercase? word))
-;; 	      (?? language (choice (downcase word)
-;; 				   (capitalize (downcase word))
-;; 				   (capitalize1 (downcase word)))))
        ;; Find misspellings, etc
        (tryif (and (number? tryhard) (> tryhard 1))
  	      (?? language
@@ -378,6 +370,21 @@
 		(tryif (and (exists? (table-maxval table))
 			    (> (table-maxval table) minscore))
 		       (table-max table))))))
+
+(defambda (lookup-word-prefetch words (language default-language) (tryhard #f))
+  (let* ((stds (stdstring words))
+	 (bases (basestring stds))
+	 (words (choice stds bases))
+	 (extra (choice (tryif tryhard (depunct words))
+			(tryif (and tryhard (> tryhard 1))
+			       (choice (metaphone words #t)
+				       (metaphone (porter-stem words) #t)))))
+	 (frags (tryif (and tryhard (> tryhard 2))
+		       (let* ((frags (elts (words->vector words)))
+			      (altfrags (choice (metaphone frags #t)
+						(metaphone (porter-stem frags) #t))))
+			 (list frags)))))
+    (prefetch-keys! (cons language frags))))
 
 ;;; Looking up combos
 
@@ -999,7 +1006,7 @@
 (module-export! {get-gloss get-single-gloss get-short-gloss get-norm  get-expstring})
 
 ;; Looking up words
-(module-export! {lookup-word lookup-combo word-override?})
+(module-export! {lookup-word lookup-combo word-override? lookup-word-prefetch})
 
 ;; UI-ish functions
 (module-export! '{gloss brico/lookup})
@@ -1012,10 +1019,11 @@
   index-words index-relations index-lattice index-implies
   indexer index-concept unindex})
 
-(module-export!
- { ;; Getting frequency information
-  concept-frequency
-  concept-frequency-prefetch})
+;; Getting frequency information
+(module-export! '{concept-frequency concept-frequency-prefetch})
+
+;;; Miscellaneous functions
+(module-export! '{make%id make%id! cap%wds cap%frame!})
 
 ;;;; For the compiler/optimizer
 
