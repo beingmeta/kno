@@ -1409,9 +1409,20 @@ u8_string find_end(u8_string start,u8_string lim)
 {
   u8_string scan=start, end=start; int c;
   if (lim) while ((scan<lim) && ((c=u8_sgetc(&scan))>0))
-    if (u8_isspace(c)) {} else end=scan;
+    if (u8_isspace(c)) {}
+    else if (c=='<') {
+      while (c=='<')
+	while ((scan<lim) && (c>0) && (c!='>'))
+	  c=u8_sgetc(&scan);}
+    else end=scan;
   else while ((c=u8_sgetc(&scan))>0)
-    if (u8_isspace(c)) {} else end=scan;
+    if (u8_isspace(c)) {}
+    else if (c=='<') {
+      u8_string markup_start=scan;
+      while (c=='<')
+	while ((c>0) && (c!='>'))
+	  c=u8_sgetc(&scan);}
+    else end=scan;
   return end;
 }
 
@@ -1423,9 +1434,10 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
   unsigned char *mod_tags=pc->grammar->mod_tags;
   u8_byte *bufptr=pc->end;
   int glom_phrases=pc->flags&FD_TAGGER_GLOM_PHRASES;
+  int last_byte_pos=-1, last_char_pos=-1;
   while (s >= 0) {
     fdtype source=FD_VOID;
-    int text_start=-1, text_end=-1;
+    int text_start=-1, text_end=-1, char_start=-1, char_end=-1;
     struct FD_PARSER_STATE *state=&(pc->states[s]);
     if (state->arc == 0) s=state->previous;
     else if (pc->grammar->head_tags[state->arc]) {
@@ -1472,12 +1484,18 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	  text_start=start-pc->buf;
 	  text_end=find_end(start,bufptr)-pc->buf;
 	  bufptr=start;}}
+      if (last_byte_pos>=0) 
+	char_start=last_char_pos+
+	  u8_strlen_x(pc->buf+last_byte_pos,text_start-last_byte_pos);
+      else char_start=u8_strlen_x(pc->buf,text_start);
+      char_end=char_start+u8_strlen_x(pc->buf+text_start,text_end-text_start);
+      last_byte_pos=text_end; last_char_pos=char_end;
       if (FD_VOIDP(glom))
 	word_entry=make_word_entry(word,fd_incref(tag),rootstring,
-				   state->distance,source,text_start,text_end);
+				   state->distance,source,char_start,char_end);
       else {
 	word_entry=make_word_entry(glom,fd_incref(tag),glom_root,
-				   state->distance,source,text_start,text_end);
+				   state->distance,source,char_start,char_end);
 	fd_decref(word);}
       sentence=fd_init_pair(NULL,word_entry,sentence);
       s=scan;}
@@ -1502,9 +1520,11 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	  text_start=start-pc->buf;
 	  text_end=find_end(start,bufptr)-pc->buf;
 	  bufptr=start;}}
+      char_start=u8_strlen_x(pc->buf,text_start);
+      char_end=char_start+u8_strlen_x(pc->buf+text_start,text_end-text_start);
       word_entry=
 	make_word_entry(word,fd_incref(tag),rootstring,
-			state->distance,source,text_start,text_end);
+			state->distance,source,char_start,char_end);
       fd_decref(root);
       if (state->arc==pc->grammar->sentence_end_tag)
 	if (FD_EMPTY_LISTP(sentence))
