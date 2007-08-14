@@ -11,6 +11,7 @@ LDFLAGS=@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 LIBS=@LIBS@ -lm -lz -lu8 -lu8fns -lu8io
 
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
+		  ../../lib/libtagger@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
 		  ../../lib/libfdschemeio@suffix@.a
 DESTDIR		=

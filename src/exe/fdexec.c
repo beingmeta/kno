@@ -35,6 +35,7 @@ static char versionid[] =
 
 FD_EXPORT void fd_init_fdweb(void);
 FD_EXPORT void fd_init_texttools(void);
+FD_EXPORT void fd_init_tagger(void);
 
 #define MAX_CONFIGS 256
 
@@ -128,6 +129,7 @@ int main(int argc,char **argv)
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_fdscheme();
   fd_init_texttools();
+  fd_init_tagger();
   fd_init_fdweb();
 #else
   FD_INIT_SCHEME_BUILTINS();

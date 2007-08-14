@@ -35,6 +35,7 @@ static char versionid[] =
 
 FD_EXPORT void fd_init_fdweb(void);
 FD_EXPORT void fd_init_texttools(void);
+FD_EXPORT void fd_init_tagger(void);
 
 /* Logging declarations */
 static u8_mutex log_lock;
@@ -700,6 +701,7 @@ int main(int argc,char **argv)
   fd_init_fdscheme();
   fd_init_schemeio();
   fd_init_texttools();
+  fd_init_tagger();
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif
