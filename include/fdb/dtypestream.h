@@ -345,7 +345,7 @@ static int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
     if (fd_dtswrite_byte(s,((0x80)|(0x7F&(n>>14))))<0) return -1;
     if (fd_dtswrite_byte(s,((0x80)|(0x7f&(n>>7))))<0) return -1;
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
-    return 5;}
+    return 9;}
 }
 #else /* FD_INLINE_DTYPEIO */
 #define fd_dtsread_byte   _fd_dtsread_byte(x)
