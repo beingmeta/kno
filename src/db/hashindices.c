@@ -264,7 +264,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE)
       == NULL) {
     u8_free(index);
-    fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
+    fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
   if (index->stream.flags&FD_DTSTREAM_READ_ONLY) read_only=1;
@@ -810,8 +810,9 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
 	if (inbuf) u8_free(inbuf);
 	return FD_EMPTY_CHOICE;}
       else if (n_values==1) {
+	fdtype value=read_zvalue(hx,&keystream);
 	if (inbuf) u8_free(inbuf);
-	return read_zvalue(hx,&keystream);}
+	return value;}
       else {
 	vblock_off=(off_t)fd_read_zint8(&keystream);
 	vblock_size=(size_t)fd_read_zint(&keystream);
@@ -1339,7 +1340,7 @@ static void hash_index_setcache(fd_index ix,int level)
 	mmap(NULL,(n_buckets*sizeof(unsigned int)*chunk_ref_size)+256,
 	     PROT_READ,MMAP_FLAGS,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"file_index_setcache:mmap %s",hx->source);
+	u8_warn(u8_strerror(errno),"hash_index_setcache:mmap %s",hx->source);
 	hx->offdata=NULL; errno=0;}
       else hx->offdata=buckets=newmmap+64;
 #else
@@ -1364,7 +1365,7 @@ static void hash_index_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       retval=munmap((hx->offdata)-64,((hx->n_buckets)*sizeof(unsigned int)*chunk_ref_size)+256);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"file_index_setcache:munmap %s",hx->source);
+	u8_warn(u8_strerror(errno),"hash_index_setcache:munmap %s",hx->source);
 	hx->offdata=NULL; errno=0;}
 #else
       u8_free(hx->offdata);
@@ -2112,12 +2113,12 @@ static int make_offsets_writable(fd_hash_index hx)
   unsigned int *newmmap, n_buckets=hx->n_buckets, chunk_ref_size=get_chunk_ref_size(hx);
   int retval=munmap(hx->offdata-64,(n_buckets*sizeof(unsigned int)*chunk_ref_size)+256);
   if (retval<0) {
-    u8_warn(u8_strerror(errno),"make_offsets_writable:munmap %s",hx->source);
+    u8_warn(u8_strerror(errno),"hash_index/make_offsets_writable:munmap %s",hx->source);
     return retval;}
   newmmap=mmap(NULL,(n_buckets*sizeof(unsigned int)*chunk_ref_size)+256,
 	       PROT_READ|PROT_WRITE,MMAP_FLAGS,hx->stream.fd,0);
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-    u8_warn(u8_strerror(errno),"file_index_setcache:mmap %s",hx->source);
+    u8_warn(u8_strerror(errno),"hash_index/make_offsets_writable:mmap %s",hx->source);
     hx->offdata=NULL; errno=0;}
   else hx->offdata=newmmap+64;
 }
@@ -2128,16 +2129,16 @@ static int make_offsets_unwritable(fd_hash_index hx)
   int retval=msync(hx->offdata-64,(n_buckets*sizeof(unsigned int)*chunk_ref_size)+256,
 		   MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
-    u8_warn(u8_strerror(errno),"unmake_offsets_writable:msync %s",hx->source);
+    u8_warn(u8_strerror(errno),"hash_index/make_offsets_unwritable:msync %s",hx->source);
     return retval;}
   retval=munmap(hx->offdata-64,(n_buckets*sizeof(unsigned int)*chunk_ref_size)+256);
   if (retval<0) {
-    u8_warn(u8_strerror(errno),"make_offsets_writable:munmap %s",hx->source);
+    u8_warn(u8_strerror(errno),"hash_index/make_offsets_unwritable:munmap %s",hx->source);
     return retval;}
   newmmap=mmap(NULL,(n_buckets*sizeof(unsigned int)*chunk_ref_size)+256,
 	       PROT_READ,MMAP_FLAGS,hx->stream.fd,0);
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-    u8_warn(u8_strerror(errno),"file_index_setcache:mmap %s",hx->source);
+    u8_warn(u8_strerror(errno),"hash_index/make_offsets_unwritable:mmap %s",hx->source);
     hx->offdata=NULL; errno=0;}
   else hx->offdata=newmmap+64;
 }
@@ -2256,9 +2257,9 @@ static void hash_index_close(fd_index ix)
   fd_dtsclose(&(hx->stream),1);
   if (hx->offdata) {
 #if HAVE_MMAP
-    int retval=munmap(hx->offdata,(sizeof(FD_CHUNK_REF)*hx->n_buckets));
+    int retval=munmap(hx->offdata-64,(sizeof(FD_CHUNK_REF)*hx->n_buckets)+256);
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_index_close:munmap %s",hx->source);
+      u8_warn(u8_strerror(errno),"hash_index_close:munmap %s",hx->source);
       errno=0;}
 #else
     u8_free(hx->offdata); 
