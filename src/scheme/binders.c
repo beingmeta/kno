@@ -594,6 +594,15 @@ static fdtype slambda_handler(fdtype expr,fd_lispenv env)
   return make_sproc(NULL,arglist,body,env,0,1);
 }
 
+static fdtype sambda_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype arglist=fd_get_arg(expr,1);
+  fdtype body=fd_get_body(expr,2);
+  if (FD_VOIDP(arglist))
+    return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
+  return make_sproc(NULL,arglist,body,env,1,1);
+}
+
 /* DEFINE */
 
 static fdtype define_handler(fdtype expr,fd_lispenv env)
@@ -741,7 +750,9 @@ fdtype fd_xapply_sproc
       int j=0; while (j<i) {fd_decref(vals[j]); j++;}
       if (vals!=_vals) u8_free(vals);
       return argval;}
-    else if ((FD_VOIDP(argval)) && (FD_PAIRP(argspec))) {
+    else if ((FD_VOIDP(argval)) &&
+	     (FD_PAIRP(argspec)) &&
+	     (FD_PAIRP(FD_CDR(argspec)))) {
       fdtype default_expr=FD_CADR(argspec);
       fdtype default_value=fd_eval(default_expr,fn->env);
       vals[i++]=default_value;}
@@ -922,6 +933,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"LAMBDA",lambda_handler);
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);
   fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_handler);
+  fd_defspecial(fd_scheme_module,"SAMBDA",sambda_handler);
   fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
   fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_handler);
   fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_handler);

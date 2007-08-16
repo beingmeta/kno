@@ -72,6 +72,16 @@ static fdtype char_punctuationp(fdtype arg)
 
 /* String predicates */
 
+static fdtype asciip(fdtype string)
+{
+  u8_byte *scan=FD_STRDATA(string);
+  u8_byte *limit=scan+FD_STRLEN(string);
+  while (scan<limit)
+    if (*scan>=0x80) return FD_FALSE;
+    else scan++;
+  return FD_TRUE;
+}
+
 static fdtype lowercasep(fdtype string)
 {
   if (FD_STRINGP(string)) {
@@ -608,6 +618,7 @@ FD_EXPORT void fd_init_strings_c()
 {
   fd_register_source_file(versionid);
 
+  fd_idefn(fd_scheme_module,fd_make_cprim1x("ASCII?",asciip,1,fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOWERCASE?",lowercasep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE",downcase,1));
   fd_idefn(fd_scheme_module,
