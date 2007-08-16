@@ -134,6 +134,8 @@ static fdtype sentence_end_symbol, sxproper_name, sxproper_possessive;
 
 static fdtype parse_failed_symbol;
 
+static int quote_mark_tag=-1, noise_tag=-1;
+
 /* Default grammar */
 
 static u8_string lexdata_source=NULL;
@@ -326,6 +328,8 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
     fdtype anything_symbol=fd_intern("ANYTHING");
     fdtype punctuation_symbol=fd_intern("PUNCTUATION");
     fdtype possessive_symbol=fd_intern("POSSESSIVE");
+    fdtype quote_mark_symbol=fd_intern("QUOTE-MARK");
+    fdtype noise_symbol=fd_intern("NOISE");
     fdtype arcs=g->arc_names;
     int j=0, lim=g->n_arcs;
     while (j<lim)
@@ -337,6 +341,11 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
 	g->possessive_tag=j++;
       else if (FD_EQ(FD_VECTOR_REF(arcs,j),sentence_end_symbol))
 	g->sentence_end_tag=j++;
+    /* These should really be on the grammar as a noise[] vector. */
+      else if (FD_EQ(FD_VECTOR_REF(arcs,j),quote_mark_symbol))
+	quote_mark_tag=j++;
+      else if (FD_EQ(FD_VECTOR_REF(arcs,j),noise_symbol))
+	noise_tag=j++;
       else j++;}
   while (i < g->n_nodes) {
     fdtype spec=fd_incref(FD_VECTOR_REF(vector,i+2)); unsigned int j;
@@ -1388,7 +1397,7 @@ static fdtype word2string(fdtype word)
     struct U8_OUTPUT out; int i=0; U8_INIT_OUTPUT(&out,32);
     {FD_DOLIST(elt,word) {
       u8_string s=FD_STRDATA(elt); int firstc=u8_sgetc(&s);
-      if ((i>0) && (u8_isalnum(firstc))) u8_putc(&out,' '); 
+      if ((i>0) && (u8_isalnum(firstc))) u8_putc(&out,' ');
       u8_puts(&out,FD_STRDATA(elt)); i++;}}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_incref(word);
@@ -1452,9 +1461,17 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	  struct FD_PARSER_STATE *nextstate=&(pc->states[scan]);
 	  if ((mod_tags[nextstate->arc]) &&
 	      ((glom_caps) || (!(capitalizedp(nextstate->word))))) {
-	    if (FD_VOIDP(glom)) {
-	      glom=fd_make_list(2,fd_incref(nextstate->word),fd_incref(word));
-	      glom_root=fd_make_list(2,fd_incref(nextstate->word),rootstring);}
+	    if (FD_VOIDP(glom))
+	      if ((nextstate->arc==quote_mark_tag) ||
+		  (nextstate->arc==noise_tag)) {
+		glom=fd_make_list(1,fd_incref(word));
+		glom_root=fd_make_list(1,rootstring);}
+	      else {
+		glom=fd_make_list(2,fd_incref(nextstate->word),fd_incref(word));
+		glom_root=fd_make_list(2,fd_incref(nextstate->word),rootstring);}
+	    else if ((nextstate->arc==quote_mark_tag) ||
+		     (nextstate->arc==noise_tag))
+	      {}
 	    else {
 	      glom=fd_init_pair(NULL,fd_incref(nextstate->word),glom);
 	      glom_root=
