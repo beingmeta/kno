@@ -61,28 +61,31 @@
   (ambda (frame slotid value)
     (do-choices (frame frame)
       (do-choices (slotid slotid)
-	(if (exists check-audit (get frame '%adds) slotid value)
-	    (notify "Deferring assertion due to audit: "
-		    slotid "(" frame ")=" value)
-	    (assert! frame slotid value))))))
+	(do-choices (value value)
+	  (if (exists check-audit (get frame '%adds) slotid value)
+	      (notify "Deferring assertion due to audit: "
+		      slotid "(" frame ")=" value)
+	      (assert! frame slotid value)))))))
 
 (define auto+!
   (ambda (frame slotid value)
     (do-choices (frame frame)
       (do-choices (slotid slotid)
-	(if (exists check-audit (get frame '%adds) slotid value)
-	    (notify "Deferring assertion due to audit: "
-		    slotid "(" frame ")=" value)
-	    (assert! frame slotid value))))))
+	(do-choices (value value)
+	  (if (exists check-audit (get frame '%adds) slotid value)
+	      (notify "Deferring assertion due to audit: "
+		      slotid "(" frame ")=" value)
+	      (assert! frame slotid value)))))))
 
 (define auto-!
   (ambda (frame slotid value)
     (do-choices (frame frame)
       (do-choices (slotid slotid)
-	(if (exists check-audit (get frame '%adds) slotid value)
-	    (notify "Deferring retraction due to audit: "
-		    slotid "(" frame ")=" value)
-	    (retract! frame slotid value))))))
+	(do-choices (value value)
+	  (if (exists check-audit (get frame '%adds) slotid value)
+	      (notify "Deferring retraction due to audit: "
+		      slotid "(" frame ")=" value)
+	      (retract! frame slotid value)))))))
 
 (define auto!
   (ambda (frame slotid arg3 (arg4))
