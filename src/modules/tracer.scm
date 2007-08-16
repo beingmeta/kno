@@ -1,4 +1,10 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'tracer)
+
+;;; Simple tracing facility, not really used anymore.
+
+(define version "$Id:$")
 
 (define tracelevel #f)
 

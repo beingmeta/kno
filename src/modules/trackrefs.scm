@@ -1,4 +1,14 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'trackrefs)
+
+;;; This code helps debugging prefetching by executing a prefetch function
+;;;  and then executing a thunk and tracking OID/background loads during
+;;;  its execution.
+
+(define version "$Id:$")
+
+(module-export! 'trackrefs)
 
 (define (trackrefs thunk (trackfn #f))
    (let ((preoids (cached-oids))
@@ -15,8 +25,6 @@
 		  (message "Loaded " (choice-size loaded-keys) " keys: "
 			   loaded-keys)))))
        value)))
-
-(module-export! 'trackrefs)
 
 
 

@@ -1,4 +1,10 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'delicious)
+
+;;; Provides access to del.icio.us through both their API and RSS urls
+
+(define version "$Id:$")
 
 (use-module '{texttools fdweb meltcache})
 ;(use-module '{gnosys/webapp/userinfo gnosys/urldb gnosys/metakeys/tagmaps})

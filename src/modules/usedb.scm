@@ -1,4 +1,13 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'usedb)
+
+;;; This provides a layer for accessing database configurations.
+;;;  Currently, it just allows for configurations specifying pools
+;;;  and indices, but the intent is to keep information relevant to
+;;;  journalling and syncing in this same data structure.
+
+(define version "$Id:$")
 
 (module-export! 'usedb)
 

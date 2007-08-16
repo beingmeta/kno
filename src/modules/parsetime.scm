@@ -1,4 +1,11 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'parsetime)
+
+;;; Simple generic time parser making heavy use of TEXTTOOLS
+;;; pattern matching and extraction.
+
+(define version "$Id:$")
 
 (use-module 'texttools)
 

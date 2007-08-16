@@ -1,4 +1,14 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'optimize)
+
+;; This module optimizes an expression or procedure by replacing
+;; certain variable references with their values directly, which
+;; avoids many environment lookups.  The trick is to not replace
+;; anything which will change and so produce an equivalent expression
+;; or function which just runs faster.
+
+(define version "$Id:$")
 
 (use-module 'reflection)
 
@@ -13,11 +23,7 @@
 
 (module-export! '{optimize! optimize-procedure! optimize-module!})
 
-;; This module optimizes an expression or procedure by replacing
-;; certain variable references with their values directly, which
-;; avoids many environment lookups.  The trick is to not replace
-;; anything which will change and so produce an equivalent expression
-;; or function which just runs faster.
+;;; Utility functions
 
 (define special-form-tighteners (make-hashtable))
 

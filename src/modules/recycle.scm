@@ -1,4 +1,10 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'recycle)
+
+;;; Provides for the reuse of OIDs which are indexed as status: deleted.
+
+(define version "$Id:$")
 
 (module-export!
  '{recycle-oids! get-recycled-oid update-status-index! newframe})

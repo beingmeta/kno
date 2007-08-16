@@ -2,9 +2,9 @@
 
 (in-module 'brico/indexing)
 
-(use-module '{brico texttools})
-
 (define version "$Id:$")
+
+(use-module '{brico texttools})
 
 (define indexinfer #t)
 

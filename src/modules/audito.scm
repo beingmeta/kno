@@ -1,7 +1,11 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'audito)
 
 ;;; This provides for both audited edits and automatic assignment which respects
 ;;;  audited values.
+
+(define version "$Id:$")
 
 ;;; Auditing
 

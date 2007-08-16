@@ -1,6 +1,12 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'myweb)
 
+;;; Access to Yahoo's MYWEB through API and RSS
+
 (use-module '{texttools fdweb meltcache})
+
+(define version "$Id:$")
 
 (module-export!
  '{myweb/gettags

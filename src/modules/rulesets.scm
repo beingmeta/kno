@@ -1,3 +1,5 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'rulesets)
 
 ;;; Rulesets are just lists or sets (choices) whose entries are named.
@@ -5,21 +7,11 @@
 ;;; or replaces the identically named item on the list (it actually
 ;;; conses a new list, so you have to use the return value).
 
+(define version "$Id:$")
+
 (module-export! 'ruleset+)
-;;; This adds an entry to a rule set.  It takes a rule and a ruleset
-;;;  and returns a new ruleset.  The caller is responsible for putting
-;;;  the new rulset back where it belongs.
-;;; The optional third argument is a name accessor, which is a function,
-;;;  and defaults to FIRST.
 
 (module-export! 'ruleset-configfn)
-;;; This returns a CONFIG handler for adding to a ruleset.  It requires
-;;;  the name of a local variable which stores the ruleset and optionally
-;;;  takes a second argument of a function to call on inputs to get
-;;;  the object to be added.
-
-;;; If the rule list is false, it is taken as '() so the result is the
-;;; list of the single rule.
 
 (define (ruleset-replace-list rule name rule-list (fcn first))
   (if (null? rule-list) (fail)
@@ -32,6 +24,11 @@
     (choice rule (difference ruleset existing))))
 
 (defambda (ruleset+ rule rules (fcn first))
+  "This adds an entry to a rule set.  It takes a rule and a ruleset \
+   and returns a new ruleset.  The caller is responsible for putting \
+   the new rulset back where it belongs.  \
+   The optional third argument is a name accessor, which is a function, \
+   and defaults to FIRST."
   (let ((name (fcn rule)))
     (if (and (exists? rules) (singleton? rules)
 	     (or (pair? rules) (null? rules) (not rules)))
@@ -51,6 +48,13 @@
 
 (define ruleset-configfn
   (macro ruleconfigexpr
+    "This returns a CONFIG handler for adding to a ruleset.  It requires \
+     the name of a local variable which stores the ruleset and optionally \
+     takes a second argument of a function to call on inputs to get \
+     the object to be added.\n\
+     If the rule list is false, it is taken as '() so the result is the \
+     list of the single rule."
+
     (let ((rulevar (get-arg ruleconfigexpr 1))
 	  (ruleconverter (get-arg ruleconfigexpr 2 #f)))
       `(sambda (var (value))
@@ -60,5 +64,7 @@
 				   `(,ruleconverter value)
 				   'value)
 			      ,rulevar)))))))
+
+
 
 

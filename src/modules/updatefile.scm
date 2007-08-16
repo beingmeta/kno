@@ -1,4 +1,11 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'updatefile)
+
+;;; This handles automatic updating of files into environments. 
+
+(define version "$Id:$")
+
 (use-module 'fileio)
 
 (module-export! '{updatefile updatefiles})
@@ -23,6 +30,8 @@
 		(when (,needs-reload? filename %loadtimes)
 		  (load filename)
 		  (store! %loadtimes filename (,file-modtime filename))))))))
+
+
 
 
 

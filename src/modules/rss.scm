@@ -1,4 +1,10 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'rss)
+
+;;; Provides access to RSS feeds with automatic caching and intervals.
+
+(define version "$Id:$")
 
 (use-module '{fdweb texttools})
 

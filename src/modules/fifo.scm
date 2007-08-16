@@ -1,9 +1,15 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'fifo)
 
 ;;; Simple FIFO queue gated by a condition variable
 
+(define version "$Id:$")
+
 (module-export!
  '{make-fifo fifo-push fifo-pop fifo-loop fifo-queue close-fifo})
+
+;;;; Implementation
 
 (define (make-fifo (size 64))
   (vector (make-condvar) (make-vector size) 0 0 #t))

@@ -1,3 +1,5 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'meltcache)
 
 (use-module 'reflection)
@@ -6,7 +8,11 @@
 ;;;  fast changing values decay more quickly and slower changing values
 ;;;  decay more slowly.
 
+(define version "$Id:$")
+
 (module-export! '{meltcache/get meltcache/probe meltcache/accumulate melted?})
+
+;;;; Implementation
 
 ;; Default threshold in seconds: 15 minutes
 (define meltcache-threshold (* 15 60))

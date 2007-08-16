@@ -1,4 +1,8 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'dopool)
+
+(define version "$Id:$")
 
 (define dopool
   (macro expr

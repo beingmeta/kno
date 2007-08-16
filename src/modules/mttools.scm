@@ -1,5 +1,33 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'mttools)
+
+;;; This provides macros for easy use of multiple threads (and cores)
+;;; in applications.  It also provides a way to easily implement the
+;;; prefetch/execute cycles which can improve performance on many
+;;; database-intensive operations. 
+
+(define version "$Id:$")
+
 (use-module 'reflection)
+
+(module-export! '{mt-apply
+		  do-choices-mt
+		  do-vector-mt
+		  interval-string
+		  short-interval-string
+		  mt/fetchoids
+		  mt/lockoids
+		  mt/save/fetch
+		  mt/save/lock/fetch
+		  mt/save/fetchkeys
+		  mt/detailed-progress
+		  mt/sparse-progress
+		  mt/default-progress
+		  mt/noprogress mt/no-progress
+		  mt/custom-progress})
+
+;;; Utility functions
 
 (define (legacy-blockproc proc)
   (if (= (fcn-arity proc) 1)
@@ -17,6 +45,8 @@
 	    (set! counter (1+ c))
 	    c)
 	  (fail)))))
+
+;;;; Primary functions
 
 (define (threadfcn id proc vec counter)
   (let ((entry (counter)))
@@ -450,19 +480,5 @@
   (unless done
     (lock-oids! f) (prefetch-oids! f)))
 
-(module-export! '{mt-apply
-		  do-choices-mt
-		  do-vector-mt
-		  interval-string
-		  short-interval-string
-		  mt/fetchoids
-		  mt/lockoids
-		  mt/save/fetch
-		  mt/save/lock/fetch
-		  mt/save/fetchkeys
-		  mt/detailed-progress
-		  mt/sparse-progress
-		  mt/default-progress
-		  mt/noprogress mt/no-progress
-		  mt/custom-progress})
+
 

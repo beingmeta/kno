@@ -1,6 +1,15 @@
+;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+
 (in-module 'hashstats)
 
+;;; Provides various virtual hashtable statistics for evaluating
+;;;  hash functions over data sets.
+
+(define version "$Id:$")
+
 (module-export! '{hashstats hs/summary})
+
+;;;; Implementation
 
 (define hashstats
   (ambda (keys hashfns (sizes #f))
