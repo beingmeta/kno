@@ -415,19 +415,20 @@ $(BININSTALLDIR):
 
 confdirs: @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@
 
-@data_dir@ @config_dir@ @module_dir@ @safe_module_dir@:
+@data_dir@ @config_dir@ @module_dir@ @standard_module_dir@ @safe_module_dir@: 
 	$(INSTALL) @install_dir_opts@ $@
 	touch @data_dir@/servers
-link-modules: $(CONFDIR)/scm
+link-modules: @module_dir@ @standard_module_dir@ 
 	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
-	ln -sf $(BUILD)/src/modules/*.scm @module_dir@
-	ln -sf $(BUILD)/src/modules/*.table @module_dir@
+	rm -rf  @standard_module_dir@
+	ln -sf $(BUILD)/src/modules @standard_module_dir@
 	ln -sf $(BUILD)/src/fdweb/xhtml @module_dir@
 copy-modules: $(CONFDIR)/scm
-	cp -pf `pwd`/etc/*.el $(CONFDIR)/etc
-	cp -pf src/modules/*.scm @module_dir@
-	cp -pf src/modules/*.table @module_dir@
-	cp -rf src/fdweb/xhtml @module_dir@
+	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
+	$(INSTALL) @install_dir_opts@ @standard_module_dir@ @module_dir@ @safe_module_dir@
+	cp -pf $(BUILD)/src/modules/*.scm @standard_module_dir@
+	cp -pf $(BUILD)/src/modules/*.table @standard_module_dir@
+	cp -rf $(BUILD)/src/fdweb/xhtml @module_dir@
 
 setup-rc.d:
 	$(INSTALL) --mode=0555 etc/framerd-rc.d /etc/init.d/framerd

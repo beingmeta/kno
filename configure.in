@@ -34,6 +34,15 @@ INSTALLI18N=""
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 A2EN="none"
+standard_module_path=""
+safe_module_path=""
+site_module_path=""
+safe_site_module_path=""
+extra_module_path=""
+safe_extra_module_path=""
+module_load_path=""
+safe_module_load_path=""
+
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -55,6 +64,7 @@ AC_SUBST(scheme_builtins_init)
 AC_SUBST(data_dir)
 AC_SUBST(module_dir)
 AC_SUBST(safe_module_dir)
+AC_SUBST(standard_module_dir)
 AC_SUBST(config_dir)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
@@ -136,13 +146,26 @@ AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$with_data_di
 AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_config_dir/%")
 config_dir=$with_config_dir
 
-AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/scm)
+AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/scheme_modules)
 module_dir=$with_module_dir
-AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_dir/%/module.scm:$with_module_dir/%.scm")
 
-AC_ARG_WITH(safe_module_dir,--with-safe-module-dir location,,with_safe_module_dir=$with_data_dir/scm/safe)
+AC_ARG_WITH(safe_module_dir,--with-safe-module-dir location,,with_safe_module_dir=$module_dir/safe)
 safe_module_dir=$with_safe_module_dir
-AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_dir/%/module.scm:$with_safe_module_dir/%.scm")
+standard_safe_module_path=$safe_module_dir/standard/%/module.scm:$safe_module_dir/standard/%.scm
+
+AC_ARG_WITH(standard_module_dir,--with-standard-module-dir location,,with_standard_module_dir=$with_data_dir/standard_modules)
+standard_module_path=$with_standard_module_dir/%/module.scm:$with_standard_module_dir/%.scm
+standard_safe_module_path=$with_standard_module_dir/safe/%/module.scm:$with_standard_module_dir/safe/%.scm
+standard_module_dir=$with_standard_module_dir
+
+default_module_path=$module_dir/%/module.scm:$module_dir/%.scm:$standard_module_path
+default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%.scm:$standard_safe_module_path
+
+AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
+AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
+
+AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_path")
+AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_path")
 
 AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
 AC_DEFINE_UNQUOTED(FD_DEFAULT_DLLOADPATH,"$with_dload_path")

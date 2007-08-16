@@ -667,6 +667,7 @@ scheme_builtins_init
 data_dir
 module_dir
 safe_module_dir
+standard_module_dir
 config_dir
 apache_modules_dir
 apache_conf_dir
@@ -1307,6 +1308,9 @@ Optional Packages:
 --with-config-dir location
 --with-module-dir location
 --with-safe-module-dir location
+--with-standard-module-dir location
+--with-module-path location
+--with-safe-module-path location
 --with-dload-path location
 --with-boot-config configstring
 --without-i18n built and install message catalogs
@@ -1788,6 +1792,15 @@ INSTALLI18N=""
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 A2EN="none"
+standard_module_path=""
+safe_module_path=""
+site_module_path=""
+safe_site_module_path=""
+extra_module_path=""
+safe_extra_module_path=""
+module_load_path=""
+safe_module_load_path=""
+
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -1821,6 +1834,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -6129,26 +6143,60 @@ config_dir=$with_config_dir
 if test "${with_module_dir+set}" = set; then
   withval=$with_module_dir;
 else
-  with_module_dir=$with_data_dir/scm
+  with_module_dir=$with_data_dir/scheme_modules
 fi
 
 module_dir=$with_module_dir
-cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_LOADPATH "$with_module_dir/%/module.scm:$with_module_dir/%.scm"
-_ACEOF
-
 
 
 # Check whether --with-safe_module_dir was given.
 if test "${with_safe_module_dir+set}" = set; then
   withval=$with_safe_module_dir;
 else
-  with_safe_module_dir=$with_data_dir/scm/safe
+  with_safe_module_dir=$module_dir/safe
 fi
 
 safe_module_dir=$with_safe_module_dir
+standard_safe_module_path=$safe_module_dir/standard/%/module.scm:$safe_module_dir/standard/%.scm
+
+
+# Check whether --with-standard_module_dir was given.
+if test "${with_standard_module_dir+set}" = set; then
+  withval=$with_standard_module_dir;
+else
+  with_standard_module_dir=$with_data_dir/standard_modules
+fi
+
+standard_module_path=$with_standard_module_dir/%/module.scm:$with_standard_module_dir/%.scm
+standard_safe_module_path=$with_standard_module_dir/safe/%/module.scm:$with_standard_module_dir/safe/%.scm
+standard_module_dir=$with_standard_module_dir
+
+default_module_path=$module_dir/%/module.scm:$module_dir/%.scm:$standard_module_path
+default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%.scm:$standard_safe_module_path
+
+
+# Check whether --with-module_path was given.
+if test "${with_module_path+set}" = set; then
+  withval=$with_module_path;
+else
+  with_module_path=$default_module_path
+fi
+
+
+# Check whether --with-safe_module_path was given.
+if test "${with_safe_module_path+set}" = set; then
+  withval=$with_safe_module_path;
+else
+  with_safe_module_path=$default_safe_module_path
+fi
+
+
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_SAFE_LOADPATH "$with_safe_module_dir/%/module.scm:$with_safe_module_dir/%.scm"
+#define FD_DEFAULT_LOADPATH "$with_module_path"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DEFAULT_SAFE_LOADPATH "$with_safe_module_path"
 _ACEOF
 
 
@@ -10378,6 +10426,7 @@ scheme_builtins_init!$scheme_builtins_init$ac_delim
 data_dir!$data_dir$ac_delim
 module_dir!$module_dir$ac_delim
 safe_module_dir!$safe_module_dir$ac_delim
+standard_module_dir!$standard_module_dir$ac_delim
 config_dir!$config_dir$ac_delim
 apache_modules_dir!$apache_modules_dir$ac_delim
 apache_conf_dir!$apache_conf_dir$ac_delim
@@ -10420,7 +10469,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 93; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 94; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
