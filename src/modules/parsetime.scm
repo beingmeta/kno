@@ -2,7 +2,7 @@
 
 (use-module 'texttools)
 
-(module-export! '{parsetime parsegmtime})
+(module-export! '{parsetime parsegmtime time-patterns time-pattern})
 
 (define month-names
   (vector (qc "Jan" "January")
@@ -35,7 +35,7 @@
 
 (define generic-patterns
   (choice `#({(bol) (spaces)}
-	     (label DATE #((isdigit) (opt (isdigit))) #t)
+	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
 	     (spaces)
 	     (IC (label MONTH ,monthstrings ,monthnum)) (opt #({"" (spaces)} ","))
 	     (spaces)
@@ -43,7 +43,8 @@
 	  `#({(bol) (spaces)}
 	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
-	     (label DATE #((isdigit) (opt (isdigit))) #t) (opt #({"" (spaces)} ","))
+	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
+	     (opt #({"" (spaces)} ","))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
 	  `#({(bol) (spaces)}
@@ -79,6 +80,11 @@
 	  #((label DATE #((isdigit) (opt (isdigit))) #t) "."
 	    (label MONTH #((isdigit) (opt (isdigit))) #t)
 	    (opt #("." (label YEAR (isdigit+)))))))
+
+(define time-patterns
+  (choice generic-patterns us-patterns terran-patterns))
+(define time-pattern
+  `#(,time-patterns (* #(,time-patterns (opt ",") (spaces)))))
 
 (define (merge-matches-loop matches fields)
   (let ((slotids (sorted (getkeys matches))))
