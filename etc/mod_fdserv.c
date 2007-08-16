@@ -29,6 +29,12 @@
 #define APACHE13 1
 #endif
 
+#if (APR_SIZEOF_VOIDP==8)
+typedef unsigned long long INTPOINTER;
+#else
+typedef unsigned int INTPOINTER;
+#endif
+
 #include "util_script.h"
 #if APACHE13
 #include "multithread.h"
@@ -331,7 +337,7 @@ static char **extend_config(apr_pool_t *p,char **config_args,const char *var,con
   char *config_arg=apr_pstrcat(p,var,"=",val,NULL);
   if (config_args==NULL) {
     char **vec=apr_palloc(p,2*sizeof(char *));
-    vec[0]=config_arg;
+    vec[0]=config_arg; vec[1]=NULL;
     return vec;}
   else {
     char **scan=config_args, **grown; int n_configs=0;
@@ -598,6 +604,7 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
       if (n_configs>30) {/* blow up */}
       argv[2+n_configs]=(char *)(*scan_config);
       scan_config++; n_configs++;}}
+  
   argv[2+n_configs]=NULL;
   
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
@@ -608,7 +615,8 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
 		  "couldn't set child process attributes: %s", r->filename);
   if (dconfig->log_file) {
     envp[0]=apr_psprintf(p,"LOGFILE=%s",dconfig->log_file);
-    envp[1]=NULL;}  
+    envp[1]=NULL;}
+  else envp[0]=NULL;
   if (stat(sockname,&stat_data) == 0) {
     if (remove(sockname) == 0)
       ap_log_error
@@ -795,7 +803,7 @@ typedef struct BUFFERED_SOCKET { apr_pool_t *p; int sock; BUFF buf; } BUFFSOCK;
 
 static int sock_fgets(char *buf,int n_bytes,void *stream)
 {
-  int sock=(int)stream;
+  int sock=(INTPOINTER)stream;
   char bytes[1], *write=buf, *limit=buf+n_bytes;; 
   while (read(sock,bytes,1)>0) { 
     if (write>=limit) break; else *write++=bytes[0];
@@ -887,7 +895,7 @@ static int fdserv_handler(request_rec *r)
   sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
   
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,"Waiting for response from servlet");
-  ap_scan_script_header_err_core(r,errbuf,sock_fgets,(void *)sock);
+  ap_scan_script_header_err_core(r,errbuf,sock_fgets,(void *)((INTPOINTER)sock));
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,"Got response, sending header");
   ap_send_http_header(r);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,"Header sent, sending content");
