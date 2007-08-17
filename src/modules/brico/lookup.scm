@@ -2,7 +2,7 @@
 
 (in-module 'brico/lookup)
 
-(define version "$Id:$")
+(define version "$Id$")
 
 ;;; Looking up terms in BRICO
 
@@ -125,9 +125,9 @@
  	      (?? language
  		  (choice (metaphone word #t)
  			  (metaphone (porter-stem word) #t))))
-       ;; Find concept which have 
+       ;; Find concepts which have some overlapping words
        (tryif (and (number? tryhard) (> tryhard 2))
-	      (lookup-close-match ))))
+	      (lookup-close-match word language tryhard))))
 
 (define (lookup-close-match word language tryhard)
   (let* ((table (make-hashtable))
