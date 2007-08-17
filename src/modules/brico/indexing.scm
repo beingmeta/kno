@@ -2,7 +2,7 @@
 
 (in-module 'brico/indexing)
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module '{brico texttools})
 
@@ -155,7 +155,7 @@
 
 ;; These are various other slotids which are useful to index
 (define misc-slotids
-  '{PERTAINYM COUNTRY})
+  '{PERTAINYM REGION COUNTRY})
 
 (define (index-concept index concept)
   (index-brico index concept)  
