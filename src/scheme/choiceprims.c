@@ -560,7 +560,7 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
-/* TRY */
+/* IFEXISTS */
 
 static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
 {

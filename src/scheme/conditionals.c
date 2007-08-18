@@ -65,18 +65,20 @@ static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
 static fdtype tryif_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1), test_result;
-  fdtype consequent_expr=fd_get_arg(expr,2);
-  if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))
-    return fd_err(fd_TooFewExpressions,"IF",NULL,expr);
+  fdtype first_consequent=fd_get_arg(expr,2);
+  if ((FD_VOIDP(test_expr)) || (FD_VOIDP(first_consequent)))
+    return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result=fd_eval(test_expr,env);
   if (FD_ABORTP(test_result)) return test_result;
   else if (FD_FALSEP(test_result))
     return FD_EMPTY_CHOICE; 
   else {
-    fd_decref(test_result);
-    if (FD_PAIRP(consequent_expr))
-      return fd_tail_eval(consequent_expr,env);
-    else return fasteval(consequent_expr,env);}
+    fdtype consequents=fd_get_body(expr,2), value=FD_VOID;
+    FD_DOLIST(clause,consequents) {
+      fd_decref(value); value=fd_eval(clause,env);
+      if (!(FD_EMPTY_CHOICEP(value)))
+	return value;}
+    return value;}
 }
 
 static fdtype not_prim(fdtype arg)

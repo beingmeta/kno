@@ -708,6 +708,30 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,var);
 }
 
+/* DEFINE-LOCAL */
+
+/* This defines an identifier in the local environment to
+   the value it would have anyway by environment inheritance.
+   This is helpful if it was to rexport it, for example. */
+static fdtype define_local_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
+  else if (FD_SYMBOLP(var)) {
+    fdtype inherited=fd_symeval(var,env->parent);
+    if (FD_ABORTP(inherited)) return inherited;
+    else if (FD_VOIDP(inherited))
+      return fd_err(fd_UnboundIdentifier,"DEFINE-LOCAL",NULL,var);
+    else if (fd_bind_value(var,inherited,env)) {
+      fd_decref(inherited);
+      return FD_VOID;}
+    else {
+      fd_decref(inherited);
+      return fd_err(fd_BindError,"DEFINE",NULL,var);}}
+  else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
+}
+
 /* Extended apply */
 
 static fdtype tail_symbol;
@@ -937,6 +961,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
   fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_handler);
   fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_handler);
+  fd_defspecial(fd_scheme_module,"DEFINE-LOCAL",define_local_handler);
 
   fd_defspecial(fd_scheme_module,"MACRO",macro_handler);
 

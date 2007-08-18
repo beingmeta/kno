@@ -106,6 +106,34 @@ static fdtype lisptest(fdtype f,fdtype slotid,fdtype val)
     else return FD_FALSE;}
 }
 
+static fdtype lisp_pick_keys(fdtype table,fdtype howmany)
+{
+  if (!(FD_TABLEP(table)))
+    return fd_type_error(_("table"),"lisp_pick_key",table);
+  else {
+    fdtype x=fd_getkeys(table);
+    fdtype normal=fd_make_simple_choice(x);
+    int n=FD_CHOICE_SIZE(normal), howmany=FD_FIX2INT(howmany);
+    if (!(FD_CHOICEP(normal))) return normal;
+    if (n<=howmany) return normal;
+    else if (howmany==1) {
+      int i=u8_random(n);
+      const fdtype *data=FD_CHOICE_DATA(normal);
+      fdtype result=data[i];
+      fd_incref(result); fd_decref(normal);
+      return result;}
+    else if (n) {
+      struct FD_HASHSET h;
+      const fdtype *data=FD_CHOICE_DATA(normal);
+      int j=0; fd_init_hashset(&h,n*3);
+      while (j<howmany) {
+	int i=u8_random(n);
+	if (fd_hashset_mod(&h,data[i],1)) j++;}
+      fd_decref(normal);
+      return fd_hashset_elts(&h,1);}
+    else return FD_EMPTY_CHOICE;}
+}
+
 /* Various table operations */
 
 static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
@@ -724,6 +752,8 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("STORE!",lispstore,3)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETKEYS",fd_getkeys,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
+					    -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));
