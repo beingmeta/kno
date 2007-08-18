@@ -110,43 +110,55 @@
 	      (let ((sbword (basestring word)))
 		(choice (?? language sbword)
 			(tryif word-overlays (overlay-get sbword language)))))
-       (tryif tryhard
-	      (choice 
-	       (tryif (or (position #\- word) (position #\Space word) (position #\_ word))
-		      (?? language (depunct word)))
-	       (tryif (and (compound? word) (textsearch '(isupper) word))
-		      (let ((words (words->vector word)))
-			(try (choice (lookup-word (seq->phrase words 1) language #f)
-				     (lookup-word (seq->phrase words 0 -1) language #f))
-			     (tryif (> (length words) 2)
-				    (lookup-word (seq->phrase words 2) language #f)))))))
+       (tryif tryhard (lookup-simple-variants word language tryhard))
        ;; Find misspellings, etc
+       ;; This is probably somewhat language-specific
        (tryif (and (number? tryhard) (> tryhard 1))
  	      (?? language
  		  (choice (metaphone word #t)
  			  (metaphone (porter-stem word) #t))))
        ;; Find concepts which have some overlapping words
        (tryif (and (number? tryhard) (> tryhard 2))
-	      (lookup-close-match word language tryhard))))
+	      (lookup-overlapping-words word language tryhard))))
 
-(define (lookup-close-match word language tryhard)
+(define (lookup-simple-variants word language tryhar)
+  (choice 
+   (tryif (or (position #\- word) (position #\Space word) (position #\_ word))
+	  (?? language (depunct word)))
+   (tryif (and (compound? word) (textsearch '(isupper) word))
+	  (let* ((wordv (words->vector word))
+		 (len (length wordv)))
+	    (tryif (or (and (number? tryhard) (> tryhard 3))
+		       (> len 2))
+		   ;; Try trimming the first word from the compound
+		   ;;  if either there are more than 2 words or
+		   ;;  tryhard > 3.
+		   (try (choice
+			 (lookup-word (seq->phrase wordv 1) language #f)
+			 (lookup-word (seq->phrase wordv 0 -1) language #f))
+			(tryif (> len 3)
+			 (lookup-word (seq->phrase words 2) language #f))
+			(tryif (> len 4)
+			 (lookup-word (seq->phrase words 3) language #f))))))))
+
+(define (lookup-overlapping-words word language tryhard)
   (let* ((table (make-hashtable))
 	 (wordv (words->vector word))
 	 (words (elts wordv))
 	 (altwords (choice (metaphone words #t)
 			   (metaphone (porter-stem words) #t)))
-	 (minscore (min (if (> tryhard 3) 3 4) (length wordv))))
+	 (minscore (max 1 (- (length wordv) (- tryhard 2)))))
     (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
-      (hashtable-increment! table (?? language (list word))))
-    (do-choices (word words)
-      (hashtable-increment! table
-	  (overlay-get (list word) language)))
-    (do-choices (word altwords)
-      (hashtable-increment! table
-	  (overlay-get (list word) language)))
-    (do-choices (word altwords)
-      (hashtable-increment! table (?? language (list word))))
+      (let* ((alt (tryif (> tryhard 4)
+			 (choice (metaphone word #t)
+				 (metaphone (porter-stem word) #t))))
+	     (word+alt (choice word alt)))
+	(hashtable-increment! table (?? language (list word+alt)))
+	(hashtable-increment! table
+	    (overlay-get (list word+alt) language))
+	(hashtable-increment! table
+	    (overlay-get (list word+alt) language))))
     (tryif (and (exists? (table-maxval table))
 		(> (table-maxval table) minscore))
 	   (table-max table))))
