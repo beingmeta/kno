@@ -2,7 +2,7 @@
 
 (in-module 'brico)
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (define %notighten '{freqfns bricosource brico-pool brico-index})
 
@@ -108,6 +108,7 @@
 
 ;;; Common tables
 
+(define all-languages (file->dtype (get-component "languages.dtype")))
 (define language-map (file->dtype (get-component "langmap.table")))
 (define gloss-map (file->dtype (get-component "glossmap.table")))
 (define norm-map (file->dtype (get-component "normmap.table")))
@@ -453,7 +454,7 @@
 (module-export!
  '{brico-pool
    brico-index
-   default-language
+   default-language all-languages
    ;; Maps for particular languages
    language-map gloss-map norm-map index-map frag-map
    ;; Prefetchers for OIDs and inverted index slotids

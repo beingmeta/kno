@@ -49,6 +49,11 @@
 (config-def! 'MORPHRULES
 	     (ruleset-configfn morphrules conform-maprule))
 
+(define (getbaselang s)
+  (if (overlaps? s all-languages) s
+      (try (get norm-map s)
+	   (get index-map s))))
+
 (define (vary-word word language)
   (for-choices (rule (pick morphrules custom-map-language
 			   (choice #f language)))
@@ -100,7 +105,7 @@
 (define (lookup-word-core word language tryhard)
   (try (choice (?? language word)
 	       (tryif word-overlays (overlay-get word language))
-	       (for-choices (variant (vary-word word language))
+	       (for-choices (variant (vary-word word (getbaselang language)))
 		 (if (string? variant)
 		     (?? language variant)
 		     (if (pair? variant)
@@ -121,7 +126,7 @@
        (tryif (and (number? tryhard) (> tryhard 2))
 	      (lookup-overlapping-words word language tryhard))))
 
-(define (lookup-simple-variants word language tryhar)
+(define (lookup-simple-variants word language tryhard)
   (choice 
    (tryif (or (position #\- word) (position #\Space word) (position #\_ word))
 	  (?? language (depunct word)))
@@ -137,9 +142,9 @@
 			 (lookup-word (seq->phrase wordv 1) language #f)
 			 (lookup-word (seq->phrase wordv 0 -1) language #f))
 			(tryif (> len 3)
-			 (lookup-word (seq->phrase words 2) language #f))
+			 (lookup-word (seq->phrase wordv 2) language #f))
 			(tryif (> len 4)
-			 (lookup-word (seq->phrase words 3) language #f))))))))
+			 (lookup-word (seq->phrase wordv 3) language #f))))))))
 
 (define (lookup-overlapping-words word language tryhard)
   (let* ((table (make-hashtable))
@@ -252,19 +257,25 @@
 
 (config-def! 'TERMRULES (ruleset-configfn termrules))
 
-(define (try-termrules word language)
-  (for-choices (match (text->frame termrules word))
-    (cons (get match 'word)
-	  (qc (intersection (try (?? @?implies (lookup-word (get match 'implies))
-				     @?partof* (lookup-word (get match 'partof)))
-				 (?? @?implies (lookup-word (get match 'implies)))
-				 (?? @?genls* (lookup-word (get match 'genls)))
-				 (?? @?partof* (lookup-word (get match 'partof))))
-			    (lookup-word (get match 'word) language))))))
+(define (try-termrules word language tryhard)
+  (let ((cxthard (and (number? tryhard) (if (<= tryhard 1) #f (-1+ tryhard)))))
+    (for-choices (match (text->frame termrules word))
+      (cons (get match 'word)
+	    (qc (intersection (try (?? @?implies (try (lookup-word (get match 'implies) (get norm-map language) cxthard)
+						      (lookup-word (get match 'implies) language cxthard))
+				       @?partof* (try (lookup-word (get match 'partof) (get norm-map language) cxthard)
+						      (lookup-word (get match 'partof) language)))
+				   (?? @?implies (try (lookup-word (get match 'implies) (get norm-map language) cxthard)
+						       (lookup-word (get match 'implies) language)))
+				   (?? @?genls* (try (lookup-word (get match 'genls) (get norm-map language) cxthard)
+						     (lookup-word (get match 'genls) language)))
+				   (?? @?partof* (try (lookup-word (get match 'partof) (get norm-map language) cxthard)
+						      (lookup-word (get match 'partof) language))))
+			      (lookup-word (get match 'word) language tryhard)))))))
 
-(define (lookup-term term (language default-language))
-  (try (cons term (lookup-word term language))
-       (try-termrules term language)))
+(define (lookup-term term (language default-language) (tryhard 1))
+  (try (cons term (lookup-word term language tryhard))
+       (try-termrules term language tryhard)))
 
 (define (brico/resolve term (language default-language))
   (cdr (lookup-term term language)))
