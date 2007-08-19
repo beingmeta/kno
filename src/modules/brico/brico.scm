@@ -452,6 +452,32 @@
    (indexer-prefetch (qc f))
    (trackrefs (lambda () (index-concept index f)))))
 
+;;; Apply ISA
+
+(define (assign-genls f genl)
+  (assert! f genls genl)
+  (assert! f 'sensecat (get genl 'sensecat))
+  (make%id! f))
+
+(define (fixcaps wdpair wds)
+  (cons (car wdpair)
+	(let ((wd (cdr wdpair)))
+	  (if (capitalized? wd) wd
+	      (let ((pos (largest (search wds wd))))
+		(if pos
+		    (string-append (capitalize (subseq wd 0 pos))
+				   (subseq wd pos))
+		    (capitalize1 wd)))))))
+
+(define (assign-isa f isa (fixcase #t))
+  (assert! f implies isa)
+  (assert! f 'sensecat (get isa 'sensecat))
+  (when fixcase
+    (let ((isa-terms (get isa english)))
+      (store! f '%words (fixcaps (get f '%words) (qc isa-terms)))
+      (store! f '%norm (fixcaps (get f '%norm) (qc isa-terms)))))
+  (make%id! f))
+
 ;;; EXPORTS
 
 (module-export!
@@ -493,7 +519,7 @@
 (module-export! '{concept-frequency concept-frequency-prefetch})
 
 ;;; Miscellaneous functions
-(module-export! '{make%id make%id! cap%wds cap%frame!})
+(module-export! '{make%id make%id! cap%wds cap%frame! assign-isa assign-genls})
 
 ;;;; For the compiler/optimizer
 
