@@ -21,7 +21,7 @@ static char versionid[] =
 
 #include "libu8/u8printf.h"
 
-static fdtype pools_symbol, indices_symbol, id_symbol;
+static fdtype pools_symbol, indices_symbol, id_symbol, drop_symbol;
 
 static fdtype slotidp(fdtype arg)
 {
@@ -1390,6 +1390,50 @@ static fdtype seq2frame_prim
     return frame;}
 }
 
+static int doassert(fdtype f,fdtype s,fdtype v)
+{
+  if (FD_EMPTY_CHOICEP(v)) return 0;
+  else if (FD_OIDP(f))
+    return fd_frame_add(f,s,v);
+  else return fd_add(f,s,v);
+}
+
+static int doretract(fdtype f,fdtype s,fdtype v)
+{
+  if (FD_EMPTY_CHOICEP(v)) return 0;
+  else if (FD_OIDP(f))
+    return fd_frame_drop(f,s,v);
+  else return fd_drop(f,s,v);
+}
+
+static fdtype modify_frame_lexpr(int n,fdtype *args)
+{
+  if (n%2==0)
+    return fd_err(fd_SyntaxError,"FRAME-MODIFY",NULL,FD_VOID);
+  else {
+    FD_DO_CHOICES(frame,args[0]) {
+      int i=1; while (i<n) {
+	FD_DO_CHOICES(slotid,args[i])
+	  if (FD_PAIRP(slotid))
+	    if ((FD_PAIRP(FD_CDR(slotid))) &&
+		((FD_OIDP(FD_CAR(slotid))) || (FD_SYMBOLP(FD_CAR(slotid)))) &&
+		(FD_EQ(FD_CADR(slotid),drop_symbol))) 
+	      if (doretract(frame,FD_CAR(slotid),args[i+1])<0) {
+		FD_STOP_DO_CHOICES;
+		return fd_erreify();}
+	      else {}
+	    else {
+	      u8_warn(fd_TypeError,"frame_modify_lexpr","slotid");}
+	  else if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
+	    if (doassert(frame,slotid,args[i+1])<0) {
+	      FD_STOP_DO_CHOICES;
+	      return fd_erreify();}
+	    else {}
+	  else u8_warn(fd_TypeError,"frame_modify_lexpr","slotid");
+	i=i+2;}}
+    return fd_incref(args[0]);}
+}
+
 /* OID operations */
 
 static fdtype oid_plus_prim(fdtype oid,fdtype increment)
@@ -1803,6 +1847,8 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim
 	   (fd_make_cprimn("FRAME-CREATE",frame_create_lexpr,1)));
   fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("MODIFY-FRAME",modify_frame_lexpr,3)));
+  fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim4("SEQ->FRAME",seq2frame_prim,3)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("ALLOCATE-OIDS",allocate_oids,1));
@@ -1893,6 +1939,7 @@ FD_EXPORT void fd_init_dbfns_c()
   adjunct_symbol=fd_intern("%ADJUNCT");
   pools_symbol=fd_intern("POOLS");
   indices_symbol=fd_intern("INDICES");
+  drop_symbol=fd_intern("DROP");
 
 }
 
