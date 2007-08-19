@@ -8,7 +8,7 @@
 ;; anything which will change and so produce an equivalent expression
 ;; or function which just runs faster.
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module 'reflection)
 
@@ -153,10 +153,13 @@
 				  (or (get-lexref head bound 0) (get env head))
 				  head))
 		       (from (and (symbol? head) (wherefrom head env))))
-		  (cond ((applicable? value)
+		  (cond ((if from (test from '%unoptimized head)
+			     (and env (test env '%unoptimized head)))
+			 expr)
+			((applicable? value)
 			 (cons (map-opcode
 				(cond ((not from) value)
-				      ((test from '%notighten head) head)
+				      ((test from '%nosubst head) head)
 				      ((test from '%volatile head) `(,%get ,from ',head))
 				      (else value))
 				n-exprs)
