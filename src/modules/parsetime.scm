@@ -5,7 +5,7 @@
 ;;; Simple generic time parser making heavy use of TEXTTOOLS
 ;;; pattern matching and extraction.
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module 'texttools)
 
@@ -86,7 +86,7 @@
 	    (opt #("/" (label YEAR (isdigit+)))))
 	  #((label DATE #((isdigit) (opt (isdigit))) #t) "."
 	    (label MONTH #((isdigit) (opt (isdigit))) #t)
-	    (opt #("." (label YEAR (isdigit+)))))))
+	    #("." (label YEAR (isdigit+))))))
 
 (define time-patterns
   (choice generic-patterns us-patterns terran-patterns))
