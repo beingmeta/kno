@@ -167,7 +167,7 @@
 		    (overlay-get (list word+alt) language)
 		    (overlay-get (list word+alt) language)))))
     (tryif (and (exists? (table-maxval table))
-		(> (table-maxval table) minscore))
+		(>= (table-maxval table) minscore))
 	   (table-max table))))
 
 (defambda (lookup-word-prefetch words (language default-language) (tryhard #f))
