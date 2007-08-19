@@ -51,6 +51,7 @@
 (put 'lineout 'scheme-indent-function 0)
 (put 'fileout 'scheme-indent-function 0)
 (put 'stringout 'scheme-indent-function 0)
+(put 'logif 'scheme-indent-function 1)
 
 (put 'with-output 'scheme-indent-function 1)
 (put 'with-output-to-string 'scheme-indent-function 0)
