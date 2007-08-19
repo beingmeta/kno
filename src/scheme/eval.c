@@ -571,8 +571,8 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
     else if (FD_CHOICEP(arg1)) {
       fdtype results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(arg,arg1) {
-	if (FD_SEQUENCEP(arg1)) {
-	  int len=fd_seq_length(arg1);
+	if (FD_SEQUENCEP(arg)) {
+	  int len=fd_seq_length(arg);
 	  fdtype dlen=FD_INT2DTYPE(len);
 	  FD_ADD_TO_CHOICE(results,dlen);}
 	else {
@@ -731,7 +731,9 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
       double x=fd_todouble(arg1), y=fd_todouble(arg2);
       return fd_init_double(NULL,x/y);}
   case FD_ELT_OPCODE:
-    if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
+    if (FD_EMPTY_CHOICEP(arg1)) {
+      fd_decref(arg2); return arg1;}
+    else if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
       fdtype result;
       int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
       if (off<0) off=len+off;
@@ -877,6 +879,9 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
        We should probably catch this earlier. */
     fd_decref(arg1);
     return fd_err(fd_TooManyArgs,"opcode eval",NULL,expr);}
+  else if ((opcode<FD_NARY_OPCODES) && (FD_EMPTY_CHOICEP(arg1)))
+    /* Prune calls */
+    return arg1;
   else if (opcode<FD_NARY_OPCODES) /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
     /* Binary calls start by evaluating the second argument */
     fdtype arg2=fd_eval(FD_CAR(body),env), result;
