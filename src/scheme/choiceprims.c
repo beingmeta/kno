@@ -548,6 +548,19 @@ static fdtype qchoice_prim(int n,fdtype *args)
   else return presults;
 }
 
+static fdtype qchoicex_prim(int n,fdtype *args)
+{
+  int i=0; fdtype results=FD_EMPTY_CHOICE, presults;
+  while (i < n) {
+    FD_ADD_TO_CHOICE(results,fd_incref(args[i])); i++;}
+  presults=fd_simplify_choice(results);
+  if (FD_EMPTY_CHOICEP(presults))
+    return presults;
+  else if (FD_CHOICEP(presults))
+    return fd_init_qchoice(NULL,presults);
+  else return presults;
+}
+
 /* TRY */
 
 static fdtype try_handler(fdtype expr,fd_lispenv env)
@@ -1156,6 +1169,13 @@ FD_EXPORT void fd_init_choicefns_c()
       fd_make_ndprim(fd_make_cprimn("QCHOICE",qchoice_prim,0));
     fd_idefn(fd_scheme_module,qc_prim);
     fd_store(fd_scheme_module,fd_intern("QC"),qc_prim);
+  }
+
+  {
+    fdtype qcx_prim=
+      fd_make_ndprim(fd_make_cprimn("QCHOICEX",qchoicex_prim,0));
+    fd_idefn(fd_scheme_module,qcx_prim);
+    fd_store(fd_scheme_module,fd_intern("QCX"),qcx_prim);
   }
 
   fd_idefn(fd_scheme_module,
