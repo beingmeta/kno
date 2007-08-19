@@ -6,6 +6,8 @@
 
 (use-module '{brico texttools})
 
+(define %nosubst '{indexinfer default-frag-window})
+
 (define indexinfer #t)
 
 (define indexinfer-config
@@ -76,7 +78,7 @@
     (when window
       (index-frags index frame slot expvalues window))))
 
-(defambda (index-implied index frame slot (values))
+(defambda (index-implied-values index frame slot (values))
   (do-choices (index index)
     (do-choices (slot slot)
       (let ((v (if (bound? values) values (get frame slot))))
@@ -166,10 +168,11 @@
 (define wordform-slotids '{word of language rank type})
 
 (define (index-core index frame)
-  (doindex index frame '{type sensecat fips-code})
-  (when (ambiguous? (get frame 'sensecat))
-    (doindex index frame 'sensecat 'vague))
+  (doindex index frame '{type sensecat fips-code source})
   (when (and (or (%test frame 'words) (%test frame '%words))
+	     (ambiguous? (get frame 'sensecat)))
+    (doindex index frame 'sensecat 'ambiguous))
+  (when (and 
 	     (not (test frame 'sensecat)))
     (doindex index frame 'sensecat 'senseless))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
@@ -177,7 +180,6 @@
   (doindex index frame '%mnemonic)
   (doindex index frame '%mnemonics)
   (doindex index frame 'has (getslots frame))
-  (doindex index frame 'source)
   ;; Special case 'has' indexing
   (when (test frame 'gloss)
     (doindex index frame 'has english-gloss))
@@ -201,17 +203,22 @@
 (define (index-brico index frame)
   (if (empty? (getslots frame))
       (index-frame index frame 'status 'deleted)
-      (begin
-	(index-core index frame)
-	(when (test frame 'type 'language)
-	  (index-frame index frame
-	    '{langid language iso639/1 iso639/B iso639/T}))
-	(when (test frame '{get-methods test-methods add-effects drop-effects})
-	  (index-frame index frame
-	    '{get-methods test-methods add-effects drop-effects
-			  key through derivation inverse closure-of slots
-			  primary-slot index %id})))))
-  
+      (if (test frame 'source @1/1)
+	  ;; We minimally index the Roget frames, since they tend
+	  ;;  to mostly get in the way and often be archaic
+	  (begin (doindex index frame '{type source})
+		 (doindex index frame 'has (getslots frame)))
+	  (begin
+	    (index-core index frame)
+	    (when (test frame 'type 'language)
+	      (index-frame index frame
+		'{langid language iso639/1 iso639/B iso639/T}))
+	    (when (test frame '{get-methods test-methods add-effects drop-effects})
+	      (index-frame index frame
+		'{get-methods test-methods add-effects drop-effects
+			      key through derivation inverse closure-of slots
+			      primary-slot index %id}))))))
+
 (define (index-words index concept (window #f))
   (index-string index concept english (get concept 'words) window)
   (index-name index concept 'names (get concept 'names))
@@ -244,8 +251,7 @@
 
 (define (index-relations index concept)
   (do-choices (slotid implied-slotids)
-    (index-implied index concept slotid
-		   (getallvalues concept slotid)))
+    (index-implied-values index concept slotid (getallvalues concept slotid)))
   (do-choices (slotid concept-slotids)
     (doindex index concept slotid
 	     (get concept slotid)
@@ -271,12 +277,6 @@
   (index-frame* index concept partof* partof parts*)
   (index-frame* index concept memberof* memberof members*)
   (index-frame* index concept ingredientof* ingredientof ingredients*))
-
-(define (index-implies index concept slotid)
-  (let ((values (get concept slotid)))
-    (index-frame index concept slotid (list values))
-    (index-frame index concept slotid
-		 (get (get concept slotid) implies*))))
 
 (define (indexer index concept (slotids) (values))
   (if (bound? slotids)
@@ -335,13 +335,14 @@
  '{
    doindex
    indexer unindex
-   index-string index-name index-frags index-frame* index-implied })
+   index-string index-name index-frags index-frame*
+   index-implied-values})
 
 ;;; These all support indexing BRICO itself
 (module-export!
  '{index-brico
    index-core index-brico index-wordform
-   index-words index-relations index-lattice index-implies
+   index-words index-relations index-lattice
    index-concept
    indexer-prefetch
    indexer-lattice-prefetch

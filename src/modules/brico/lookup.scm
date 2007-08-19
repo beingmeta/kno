@@ -21,6 +21,9 @@
 		  word-override? lookup-word-prefetch
 		  lookup-term brico/resolve})
 
+(define %nosubst
+  '{word-overrides word-overlays morphrules termrules})
+
 ;;; LOOKING up words
 
 ;;; There are two ways of customizing lookup: overrides and overlays.

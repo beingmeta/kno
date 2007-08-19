@@ -4,7 +4,10 @@
 
 (define version "$Id$")
 
-(define %notighten '{freqfns bricosource brico-pool brico-index})
+(define %nosubst '{bricosource
+		   brico-pool brico-index
+		   freqfns custom-norms custom-glosses
+		   use-wordforms})
 
 ;; For index-name, at least
 (use-module '{texttools reflection})
@@ -469,7 +472,7 @@
 (module-export!
  ;; OIDs by name
  '{english
-   english-gloss enorm
+   english-gloss english-norm
    spanish french
    implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*
@@ -495,7 +498,7 @@
 ;;;; For the compiler/optimizer
 
 (set+! %constants
-       '{english-gloss
+       '{english-gloss english-norm
 	 english spanish french
 	 genls genls* kindof kindof*
 	 specls specls*
