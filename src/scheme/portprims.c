@@ -1154,6 +1154,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"STATUS",status_handler);
   fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
   fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
+  fd_defspecial(fd_scheme_module,"%LOGGER",message_handler);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
