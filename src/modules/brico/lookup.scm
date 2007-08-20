@@ -13,7 +13,7 @@
 (use-module '{texttools reflection})
 (use-module 'rulesets)
 
-(define logger message)
+(define logger comment)
 
 ;;; EXPORTS
 
@@ -253,14 +253,15 @@
 ;;;  useful ways (e.g. "fish:animal").
 
 (define termrules
-  (choice #((label implies (capword)) (spaces) (label word (rest)))
-	  #((label implies #((capword) (spaces) (capword))) (spaces) (label word (rest)))	  
-	  #((label word (not> ",")) "," (spaces) (label partof (rest)))
+  (choice #((label word (not> ",")) "," (spaces) (label partof (rest)))
+	  #((label word (not> ",")) "," (spaces)
+	    (label partof (not> "("))
+	    "(" (label implies (not> ")")) ")")
 	  #((label word (not> ":")) ":" (label genls (rest)))
-	  #((label word (not> "(")) "(" (label implies (rest)) ")")
-	  #((label word (not> "(")) "(" (label partof (rest)) ")")
+	  #((label word (not> "(")) "(" (label implies (not> ")"))  ")")
+	  #((label word (not> "(")) "(" (label partof (not> ")")) ")")
 	  #((label word (not> "(")) "(e.g." (spaces) (label eg (rest)) ")")
-	  #((label word (not> "(")) "(c." (spaces) (label circa (rest)) ")")))
+	  #((label word (not> "(")) "(*" (label defterm (not> ")")) ")")))
 
 (config-def! 'TERMRULES (ruleset-configfn termrules))
 
@@ -270,24 +271,26 @@
 	(partof-cxt (lookup-word (get match 'partof) language tryhard))
 	(genls-cxt (lookup-word (get match 'genls) language tryhard))
 	(eg-cxt (lookup-word (get match 'eg) language tryhard))
-	(circa-cxt (lookup-word (get match 'circa) language tryhard)))
+	(defterm-cxt (lookup-word (get match 'defterm) language tryhard)))
     (if (exists? partof-cxt)
 	(try (intersection (?? partof* partof-cxt) (?? implies implies-cxt))
-	     (intersection (?? partof* partof-cxt) (?? defterms circa-cxt))
+	     (intersection (?? partof* partof-cxt) (?? defterms defterm-cxt))
 	     (?? partof* partof-cxt))
 	(if (exists? implies-cxt)
-	    (if (fail? (choice genls-cxt eg-cxt circa-cxt))
+	    (if (fail? (choice genls-cxt eg-cxt defterm-cxt))
 		(?? implies implies-cxt)
 		(intersection (?? implies implies-cxt)
-			      (choice (?? @?specls* eg-cxt) (?? @?specls* (get eg-cxt @?implies))
-				      (?? @?defterms circa-cxt) (?? @?genls* genls-cxt))))
-	    (choice (?? @?specls* eg-cxt) (?? @?specls* (get eg-cxt @?implies))
-		    (?? @?defterms circa-cxt) (?? @?genls* genls-cxt))))))
+			      (choice (?? specls* eg-cxt)
+				      (?? specls* (get eg-cxt implies))
+				      (?? defterms defterm-cxt)
+				      (?? genls* genls-cxt))))
+	    (choice (?? specls* eg-cxt) (?? specls* (get eg-cxt implies))
+		    (?? defterms defterm-cxt) (?? genls* genls-cxt))))))
 
 (define (try-termrules word language tryhard)
   (let ((cxthard (and (number? tryhard) (if (<= tryhard 1) #f (-1+ tryhard)))))
     (for-choices (match (text->frame termrules word))
-      (let* ((word (get match 'word))
+      (let* ((word (stdspace (get match 'word)))
 	     (norm (get norm-map language))
 	     (normcxt (lookup-context match norm tryhard)))
 	(cons word

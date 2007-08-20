@@ -1,6 +1,6 @@
 (in-module 'brico/dterms)
 
-(module-export! '{find-dterm get-dterm})
+(module-export! '{find-dterm get-dterm find-dterm-prefetch!})
 
 (use-module '{brico brico/lookup})
 
@@ -63,26 +63,25 @@
     (try (try-choices defisa
 	   (try-choices (defisaterm (get-norm defisa language))
 	     (tryif (probeisa concept norm defisaterm language normslot)
-		    (stringout norm " (" defisaterm ")")))
-	 (try-choices otherisa
-	   (tryif (singleton? (?? language norm @?implies otherisa)))))
+		    (stringout norm " (" defisaterm ")"))))
 	 (try-choices otherisa
 	   (try-choices (otherisaterm (get-norm otherisa language))
 	     (tryif (probeisa concept norm otherisaterm language normslot)
 		    (stringout norm " (" otherisaterm ")")))))))
 
 (define (find-generic-dterm concept language norm)
-  (try (let ((sensecat (get concept 'sensecat))
-	     (normslot (get norm-map language)))
-	 (try-choices (term (get sensecathints (cons sensecat language)))
+  (let ((sensecat (get concept 'sensecat))
+	(normslot (get norm-map language)))
+    (try (try-choices (term (get sensecathints (cons sensecat language)))
 	   (tryif (singleton? (?? language norm @?genls* (?? normslot term)))
-		  (string-append norm ":" term))))
-       (try-choices (d (difference (get concept language) norm))
-	 (tryif (singleton? (?? language norm language d))
-		(string-append norm ":"  d)))
-       (try-choices (d (difference (get (get concept @?defterms) @?en_norm) norm))
-	 (tryif (singleton? (?? language norm @?defterms (?? normslot d)))
-		(string-append norm " (ca. "  d ")")))))
+		  (string-append norm ":" term)))
+	 (try-choices (d (difference (get concept language) norm))
+	   (tryif (singleton? (?? language norm language d))
+		  (string-append norm ":"  d)))
+	 (try-choices (d (difference (get (get concept @?defterms) @?en_norm)
+				     norm))
+	   (tryif (singleton? (?? language norm @?defterms (?? normslot d)))
+		  (string-append norm " (*"  d ")"))))))
 
 ;;; Prefetching
 
@@ -90,6 +89,9 @@
   (default! norm (get-norm concept language))
   (prefetch-oids! concept)
   (prefetch-oids! (%get concept '{region country @?partof @?implies}))
-  (prefetch-keys! (cons (choice language (get norm-map language))
-			(choice (get sensecathints (cons (get concept 'sensecat) language))
-				norm (get (%get concept '{region country @?partof @?implies}) @?en_norm)))))
+  (prefetch-keys!
+   (cons (choice language (get norm-map language))
+	 (choice (get sensecathints (cons (get concept 'sensecat) language))
+		 norm
+		 (get (%get concept '{region country @?partof @?implies})
+		      @?en_norm)))))
