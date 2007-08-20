@@ -13,6 +13,8 @@
 (use-module '{texttools reflection})
 (use-module 'rulesets)
 
+(define logger message)
+
 ;;; EXPORTS
 
 ;; Looking up words
@@ -118,13 +120,14 @@
 	      (let ((sbword (basestring word)))
 		(choice (?? language sbword)
 			(tryif word-overlays (overlay-get sbword language)))))
-       (tryif tryhard (lookup-simple-variants word language tryhard))
        ;; Find misspellings, etc
-       ;; This is probably somewhat language-specific
+       ;; This is really language-specific and the implementation
+       ;;  doesnt currently reflect that.
        (tryif (and (number? tryhard) (> tryhard 1))
  	      (?? language
  		  (choice (metaphone word #t)
  			  (metaphone (porter-stem word) #t))))
+       (tryif tryhard (lookup-simple-variants word language tryhard))
        ;; Find concepts which have some overlapping words
        (tryif (and (number? tryhard) (> tryhard 2))
 	      (lookup-overlapping-words word language tryhard))))
@@ -255,34 +258,50 @@
 	  #((label word (not> ",")) "," (spaces) (label partof (rest)))
 	  #((label word (not> ":")) ":" (label genls (rest)))
 	  #((label word (not> "(")) "(" (label implies (rest)) ")")
-	  #((label word (not> "(")) "(" (label partof (rest)) ")")))
+	  #((label word (not> "(")) "(" (label partof (rest)) ")")
+	  #((label word (not> "(")) "(e.g." (spaces) (label eg (rest)) ")")
+	  #((label word (not> "(")) "(c." (spaces) (label circa (rest)) ")")))
 
 (config-def! 'TERMRULES (ruleset-configfn termrules))
+
+(define (lookup-context match language (tryhard #f))
+  (logger "Looking up context " match " in " language ", tryhard=" tryhard)
+  (let ((implies-cxt (lookup-word (get match 'implies) language tryhard))
+	(partof-cxt (lookup-word (get match 'partof) language tryhard))
+	(genls-cxt (lookup-word (get match 'genls) language tryhard))
+	(eg-cxt (lookup-word (get match 'eg) language tryhard))
+	(circa-cxt (lookup-word (get match 'circa) language tryhard)))
+    (if (exists? partof-cxt)
+	(try (intersection (?? partof* partof-cxt) (?? implies implies-cxt))
+	     (intersection (?? partof* partof-cxt) (?? defterms circa-cxt))
+	     (?? partof* partof-cxt))
+	(if (exists? implies-cxt)
+	    (if (fail? (choice genls-cxt eg-cxt circa-cxt))
+		(?? implies implies-cxt)
+		(intersection (?? implies implies-cxt)
+			      (choice (?? @?specls* eg-cxt) (?? @?specls* (get eg-cxt @?implies))
+				      (?? @?defterms circa-cxt) (?? @?genls* genls-cxt))))
+	    (choice (?? @?specls* eg-cxt) (?? @?specls* (get eg-cxt @?implies))
+		    (?? @?defterms circa-cxt) (?? @?genls* genls-cxt))))))
 
 (define (try-termrules word language tryhard)
   (let ((cxthard (and (number? tryhard) (if (<= tryhard 1) #f (-1+ tryhard)))))
     (for-choices (match (text->frame termrules word))
-      (let ((word (get match 'word))
-	    (implies (get match 'implies))
-	    (partof (get match 'partof))
-	    (genls (get match 'genls))
-	    (norm (get norm-map language)))
-	(cons (get match 'word)
-	      (qcx (intersection (lookup-word word language tryhard)
-				 (try (?? implies (try (lookup-word implies norm cxthard)
-						       (lookup-word implies language cxthard))
-					  partof* (try (lookup-word partof norm cxthard)
-						       (lookup-word partof language)))
-				      (?? implies (try (lookup-word implies norm cxthard)
-						       (lookup-word implies language)))
-				      (?? genls* (try (lookup-word genls norm cxthard)
-						      (lookup-word genls language)))
-				      (?? partof* (try (lookup-word partof norm cxthard)
-						       (lookup-word partof language)))))))))))
+      (let* ((word (get match 'word))
+	     (norm (get norm-map language))
+	     (normcxt (lookup-context match norm tryhard)))
+	(cons word
+	      (qcx (try (intersection (lookup-word word norm tryhard) normcxt)
+			(intersection (lookup-word word language tryhard) normcxt)
+			(intersection
+			 (lookup-word word language tryhard)
+			 (lookup-context match language tryhard)))))))))
 
 (define (lookup-term term (language default-language) (tryhard 1))
-  (try (cons term (lookup-word term language tryhard))
-       (try-termrules term language tryhard)))
+  (try (cons term (singleton (lookup-word term language #f)))
+       (if (or (position #\, term) (position #\: term) (position #\( term))
+	   (try-termrules term language tryhard)
+	   (cons term (qcx (lookup-word term language 3))))))
 
 (define (brico/resolve term (language default-language))
   (cdr (lookup-term term language)))
