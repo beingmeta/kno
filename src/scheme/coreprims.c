@@ -602,7 +602,10 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONFIG",config_get,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("CONFIG!",config_set,2)));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("CONFIG-DEF!",config_def,2));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("CONFIG-DEF!",config_def,2,
+			   fd_symbol_type,FD_VOID,-1,FD_VOID,
+			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("THREADGET",thread_get,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADSET!",thread_set,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INTERN",lisp_intern,1));
