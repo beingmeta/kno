@@ -352,8 +352,9 @@ FD_EXPORT void fd_init_load_c()
 			  fd_string_type,FD_VOID,
 			  fd_string_type,FD_VOID));
  
- fd_register_config("CONFIG",get_config_files,add_config_file,NULL);
- fd_register_config
-   ("TRACELOAD",fd_boolconfig_get,fd_boolconfig_set,&trace_load);
+ fd_register_config("CONFIG","Add a CONFIG file or URI to process",
+		    get_config_files,add_config_file,NULL);
+ fd_register_config("TRACELOAD","Trace file load starts and ends",
+		    fd_boolconfig_get,fd_boolconfig_set,&trace_load);
 }
 

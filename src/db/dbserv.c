@@ -845,19 +845,19 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim2("OID-CHANGES",oid_server_changes,2));
 
 
-  fd_register_config("SERVEPOOLS",
+  fd_register_config("SERVEPOOLS","OID pools to be served",
 		     get_served_pools,
 		     serve_pool,
 		     NULL);
-  fd_register_config("PRIMARYPOOL",
+  fd_register_config("PRIMARYPOOL","OID pool where new OIDs are allocated",
 		     get_primary_pool,
 		     serve_primary_pool,
 		     NULL);
-  fd_register_config("SERVEINDICES",
+  fd_register_config("SERVEINDICES","indices to be served",
 		     get_served_indices,
 		     serve_index,
 		     NULL);
-  fd_register_config("LOCKSFILE",
+  fd_register_config("LOCKSFILE","location of the persistent locks file",
 		     config_get_locksfile,
 		     config_set_locksfile,
 		     NULL);

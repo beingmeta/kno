@@ -11,8 +11,10 @@
 
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
 
+#define FD_CONFIG_HANDLER_INVOKED 1
+
 typedef struct FD_CONFIG_HANDLER {
-  fdtype var; void *data;
+  fdtype var; void *data; int flags; u8_string doc;
   fdtype (*config_get_method)(fdtype var,void *data);
   int (*config_set_method)(fdtype var,fdtype val,void *data);
   struct FD_CONFIG_HANDLER *next;} FD_CONFIG_HANDLER;
@@ -25,6 +27,7 @@ typedef struct FD_CONFIG_LOOKUPS *fd_config_lookups;
 
 FD_EXPORT fdtype fd_config_get(u8_string var);
 FD_EXPORT int fd_config_set(u8_string var,fdtype val);
+FD_EXPORT int fd_config_default(u8_string var,fdtype val);
 FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val);
 
 FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp);
@@ -50,7 +53,7 @@ FD_EXPORT
 void fd_register_config_lookup(fdtype (*fn)(fdtype));
 
 FD_EXPORT int fd_register_config
-  (u8_string var,
+(u8_string var,u8_string doc,
    fdtype (*getfn)(fdtype,void *),
    int (*setfn)(fdtype,fdtype,void *),
    void *data);
@@ -103,6 +106,10 @@ FD_EXPORT void fd_raise_error(void);
 
 FD_EXPORT fdtype fd_thread_get(fdtype var);
 FD_EXPORT fdtype fd_thread_set(fdtype var,fdtype val);
+
+/* Runbase */
+
+FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
 /* File and module recording */
 

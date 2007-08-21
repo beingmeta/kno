@@ -748,7 +748,8 @@ FD_EXPORT void fd_init_apply_c()
 
   fd_register_source_file(versionid);
   fd_register_source_file(FDB_APPLY_H_VERSION);
-  fd_register_config("CALLTRACK",get_calltrack,set_calltrack,NULL);
+  fd_register_config("CALLTRACK",_("File used for calltrack profiling (non #f enables it)"),
+		     get_calltrack,set_calltrack,NULL);
 
 #if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
   u8_new_threadkey(&calltrack_log_key,free_calltrack_log);

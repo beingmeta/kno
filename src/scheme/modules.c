@@ -436,7 +436,8 @@ FD_EXPORT void fd_init_modules_c()
 #endif
 
   fd_add_module_loader(load_dynamic_module);
-  fd_register_config("DLLOADPATH",fd_lconfig_get,fd_lconfig_push,&dloadpath);
+  fd_register_config("DLLOADPATH","Add directories for dynamic compiled modules",
+		     fd_lconfig_get,fd_lconfig_push,&dloadpath);
 
   {
     u8_string path=u8_getenv("FD_DLLOADPATH");

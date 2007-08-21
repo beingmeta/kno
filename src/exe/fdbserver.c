@@ -424,17 +424,27 @@ int main(int argc,char **argv)
 
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_register_config("MAXTASKS",fd_intconfig_get,fd_intconfig_set,&max_tasks);
-  fd_register_config("NTHREADS",fd_intconfig_get,fd_intconfig_set,&n_threads);
-  fd_register_config("PORT",config_get_ports,config_serve_port,NULL);
-  fd_register_config("MODULE",config_get_modules,config_use_module,NULL);
-  fd_register_config("FULLSCHEME",config_get_fullscheme,config_set_fullscheme,NULL);
-  fd_register_config("LOGEVAL",fd_boolconfig_get,fd_boolconfig_set,&logeval);
-  fd_register_config("LOGTRANS",fd_intconfig_get,fd_intconfig_set,&logtrans);
-  fd_register_config("TRACKTIME",fd_boolconfig_get,fd_boolconfig_set,&tracktime);
-  fd_register_config("U8LOGCONN",config_get_dtype_server_flag,config_set_dtype_server_flag,
+  fd_register_config("MAXTASKS",_("Max number of pending requests allowed"),
+		     fd_intconfig_get,fd_intconfig_set,&max_tasks);
+  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
+		     fd_intconfig_get,fd_intconfig_set,&n_threads);
+  fd_register_config("PORT",_("port or port@host to listen on"),
+		     config_get_ports,config_serve_port,NULL);
+  fd_register_config("MODULE",_("modules to provide in the server environment"),
+		     config_get_modules,config_use_module,NULL);
+  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpretation to client"), 
+		     config_get_fullscheme,config_set_fullscheme,NULL);
+  fd_register_config("LOGEVAL",_("Whether to log each request and response"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logeval);
+  fd_register_config("LOGTRANS",_("Whether to log each transaction"),
+		     fd_intconfig_get,fd_intconfig_set,&logtrans);
+  fd_register_config("TRACKTIME",_("Whether to track clock time for each client"),
+		     fd_boolconfig_get,fd_boolconfig_set,&tracktime);
+  fd_register_config("U8LOGCONN",_("Whether to have libu8 log each connection"),
+		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_CONNECT));
-  fd_register_config("U8LOGTRANS",config_get_dtype_server_flag,config_set_dtype_server_flag,
+  fd_register_config("U8LOGTRANS",_("Whether to have libu8 log each transaction"),
+		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
 
   /* Prepare for the end */

@@ -155,14 +155,15 @@ int main(int argc,char **argv)
      the module to be linked in. */
   fd_init_fdscheme();
 
-  fd_register_config("SHOWTIME",fd_dblconfig_get,fd_dblconfig_set,
+  fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
+		     fd_dblconfig_get,fd_dblconfig_set,
 		     &showtime_threshold);
-  fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("DEBUGMAXCHARS",_("Max number of string characters to display in debug message"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("DEBUGMAXELTS",_("Max number of list/vector/choice elements to display in debug message"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
-  fd_register_config("BOOTSPEED",fd_dblconfig_get,fd_dblconfig_set,
-		     &startup_time);
   fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   inconsole=in;
   outconsole=out;

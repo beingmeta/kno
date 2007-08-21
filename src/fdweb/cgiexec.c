@@ -803,7 +803,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   text_symbol=fd_intern("TEXT");
   parts_slotid=fd_intern("PARTS");
 
-  fd_register_config("CGIPREP",fd_lconfig_get,fd_lconfig_set,&cgi_prepfns);
+  fd_register_config("CGIPREP","Functions to execute between parsing and responding to a CGI request",
+		     fd_lconfig_get,fd_lconfig_set,&cgi_prepfns);
 
   fd_register_source_file(versionid);
 }

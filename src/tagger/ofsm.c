@@ -2078,5 +2078,6 @@ void fd_init_ofsm_c()
   fd_idefn(menv,fd_make_cprim1("SET-WORD-LIMIT!",lisp_set_word_limit,1));
   fd_idefn(menv,fd_make_cprim1("TRACE-TAGGER!",lisp_trace_tagger,1));
   
-  fd_register_config("LEXDATA",config_get_lexdata,config_set_lexdata,NULL);
+  fd_register_config("LEXDATA","The location (file/server) for the tagger lexicon",
+		     config_get_lexdata,config_set_lexdata,NULL);
 }

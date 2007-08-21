@@ -2226,7 +2226,8 @@ static void init_localfns()
 					    fd_fixnum_type,FD_VOID));
 
   fd_register_config
-    ("TAILCALL",fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
+    ("TAILCALL","Enable tail recursion in the Scheme evaluator",
+     fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
 }
 
 FD_EXPORT void fd_init_exceptions_c(void);

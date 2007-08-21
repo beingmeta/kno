@@ -510,10 +510,8 @@ FD_EXPORT int fd_init_dbfile()
   fd_register_index_opener(0x42c20100,open_memindex,NULL,NULL);
   fd_register_index_opener(0x42c20200,open_memindex,NULL,NULL);
 
-  fd_register_config("ACIDFILES",
-		     fd_boolconfig_get,
-		     fd_boolconfig_set,
-		     &fd_acid_files);
+  fd_register_config("ACIDFILES","Maintain acidity of individual file pools and indices",
+		     fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
 
 
   return fddbfile_initialized;

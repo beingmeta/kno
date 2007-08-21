@@ -1431,7 +1431,8 @@ FD_EXPORT void fd_init_fdweb()
     fd_persist_module(fdweb_module);
     fd_persist_module(xhtml_module);}
   fd_register_config
-    ("ERRORSTYLESHEET",fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
+    ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
+     fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
   fd_register_source_file(FDB_FDWEB_H_VERSION);
   fd_register_source_file(versionid);
 }

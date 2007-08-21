@@ -710,13 +710,20 @@ int main(int argc,char **argv)
   fd_init_dbfile(); 
   init_symbols();
   
-  fd_register_config("TRACEWEB",traceweb_get,traceweb_set,NULL);
-  fd_register_config("PRELOAD",preload_get,preload_set,NULL);
-  fd_register_config("THREADS",fd_intconfig_get,fd_intconfig_set,&servlet_threads);
-  fd_register_config("BACKLOG",fd_intconfig_get,fd_intconfig_set,&servlet_backlog);
-  fd_register_config("URLLOG",urllog_get,urllog_set,NULL);
-  fd_register_config("REQLOG",reqlog_get,reqlog_set,NULL);
-  fd_register_config("REQLOGLEVEL",fd_intconfig_get,fd_intconfig_set,&reqloglevel);
+  fd_register_config("TRACEWEB",_("Trace all web transactions"),
+		     traceweb_get,traceweb_set,NULL);
+  fd_register_config("PRELOAD",_("Files to preload into the shared environment"),
+		     preload_get,preload_set,NULL);
+  fd_register_config("THREADS",_("Number of threads in the thread pool"),
+		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
+  fd_register_config("BACKLOG",_("Low level socket backlog setting"),
+		     fd_intconfig_get,fd_intconfig_set,&servlet_backlog);
+  fd_register_config("URLLOG",_("Where to write URLs where were requested"),
+		     urllog_get,urllog_set,NULL);
+  fd_register_config("REQLOG",_("Where to write request objects"),
+		     reqlog_get,reqlog_set,NULL);
+  fd_register_config("REQLOGLEVEL",_("Level of transaction logging"),
+		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
 #if FD_THREADS_ENABLED
   fd_init_mutex(&log_lock);
 #endif

@@ -498,10 +498,11 @@ static int lconfig_set(fdtype var,fdtype val,void *data)
   else return 0;
 }
 
-static fdtype config_def(fdtype var,fdtype handler)
+static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
   int retval=
     fd_register_config(FD_SYMBOL_NAME(var),
+		       ((FD_VOIDP(docstring)) ? (NULL) : (FD_STRDATA(docstring))),
 		       lconfig_get,lconfig_set,(void *) handler);
   if (retval<0) return fd_erreify();
   fd_incref(handler);

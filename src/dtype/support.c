@@ -11,6 +11,8 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/numbers.h"
 
+#include <libu8/u8pathfns.h>
+
 #if 0
 typedef int bool;
 
@@ -218,6 +220,29 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       fd_lock_mutex(&config_lock);
+      scan->flags=scan->flags|FD_CONFIG_HANDLER_INVOKED;
+      retval=scan->config_set_method(symbol,val,scan->data);
+      fd_unlock_mutex(&config_lock);
+      break;}
+    else scan=scan->next;
+  if (scan==NULL) return config_set(var,val);
+  else if (retval<0) {
+    u8_string errsum=fd_errstring(NULL);
+    u8_warn(fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+    u8_free(errsum);}
+  return retval;
+}
+
+FD_EXPORT int fd_config_default(u8_string var,fdtype val)
+{
+  fdtype symbol=config_intern(var); int retval;
+  struct FD_CONFIG_HANDLER *scan=config_handlers;
+  while (scan)
+    if (FD_EQ(scan->var,symbol)) {
+      fd_lock_mutex(&config_lock);
+      if ((scan->flags)&(FD_CONFIG_HANDLER_INVOKED)) {
+	fd_unlock_mutex(&config_lock); break;}
+      scan->flags=scan->flags|FD_CONFIG_HANDLER_INVOKED;
       retval=scan->config_set_method(symbol,val,scan->data);
       fd_unlock_mutex(&config_lock);
       break;}
@@ -237,7 +262,7 @@ FD_EXPORT void fd_config_lock(int lock)
 }
 
 FD_EXPORT int fd_register_config
-  (u8_string var,
+  (u8_string var,u8_string doc,
    fdtype (*getfn)(fdtype,void *),
    int (*setfn)(fdtype,fdtype,void *),
    void *data)
@@ -246,6 +271,11 @@ FD_EXPORT int fd_register_config
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
+      if (doc) {
+	/* We don't override a real doc with a NULL doc.
+	   Possibly not the right thing. */
+	if (scan->doc) u8_free(scan->doc);
+	scan->doc=u8_strdup(doc);}
       scan->config_get_method=getfn;
       scan->config_set_method=setfn;
       scan->data=data;
@@ -254,6 +284,8 @@ FD_EXPORT int fd_register_config
   if (scan==NULL) {
     scan=u8_alloc(struct FD_CONFIG_HANDLER);
     scan->var=symbol;
+    if (doc) scan->doc=u8_strdup(doc); else scan->doc=NULL;
+    scan->flags=0; 
     scan->config_get_method=getfn;
     scan->config_set_method=setfn;
     scan->data=data;
@@ -803,25 +835,12 @@ FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x)
 
 /* Configuration for session and app id info */
 
-static fdtype getsessionid(fdtype var,void *data)
-{
-  return fdtype_string(u8_sessionid());
-}
-
-static int setsessionid(fdtype var,fdtype val,void *data)
-{
-  if (FD_STRINGP(val)) {
-    u8_identify_session(FD_STRDATA(val));
-    return 1;}
-  else return -1;
-}
-
-static fdtype getappid(fdtype var,void *data)
+static fdtype config_getappid(fdtype var,void *data)
 {
   return fdtype_string(u8_appid());
 }
 
-static int setappid(fdtype var,fdtype val,void *data)
+static int config_setappid(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_identify_application(FD_STRDATA(val));
@@ -829,20 +848,33 @@ static int setappid(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
-static int setutf8warn(fdtype var,fdtype val,void *data)
+static fdtype config_getsessionid(fdtype var,void *data)
+{
+  return fdtype_string(u8_sessionid());
+}
+
+static int config_setsessionid(fdtype var,fdtype val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    u8_identify_session(FD_STRDATA(val));
+    return 1;}
+  else return -1;
+}
+
+static fdtype config_getutf8warn(fdtype var,void *data)
+{
+  if (u8_config_utf8warn(-1))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static int config_setutf8warn(fdtype var,fdtype val,void *data)
 {
   if (FD_TRUEP(val))
     if (u8_config_utf8warn(1)) return 0;
     else return 1;
   else if (u8_config_utf8warn(0)) return 1;
   else return 0;
-}
-
-static fdtype getutf8warn(fdtype var,void *data)
-{
-  if (u8_config_utf8warn(-1))
-    return FD_TRUE;
-  else return FD_FALSE;
 }
 
 /* Google profiling control */
@@ -886,13 +918,13 @@ static fd_exception TimeFailed="call to time() failed";
 
 static unsigned int randomseed=0x327b23c6;
 
-static fdtype getrandomseed(fdtype var,void *data)
+static fdtype config_getrandomseed(fdtype var,void *data)
 {
   if (randomseed<FD_MAX_FIXNUM) return FD_INT2DTYPE(randomseed);
   else return (fdtype)fd_ulong_to_bigint(randomseed);
 }
 
-static int setrandomseed(fdtype var,fdtype val,void *data)
+static int config_setrandomseed(fdtype var,fdtype val,void *data)
 {
   if (((FD_SYMBOLP(val)) && ((strcmp(FD_SYMBOL_NAME(val),"TIME"))==0)) ||
       ((FD_STRINGP(val)) && ((strcmp(FD_STRDATA(val),"TIME"))==0))) {
@@ -914,6 +946,40 @@ static int setrandomseed(fdtype var,fdtype val,void *data)
     u8_randomize(randomseed);
     return 1;}
   else return -1;
+}
+
+/* RUNBASE */
+
+static u8_string runbase_config=NULL, runbase=0;
+
+FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
+{
+  if (runbase==NULL)
+    if (runbase_config==NULL) {
+      u8_string wd=u8_getcwd(), appid=u8_appid();
+      runbase=u8_mkpath(wd,appid);}
+    else if (u8_directoryp(runbase_config))
+      runbase=u8_mkpath(runbase_config,u8_appid());
+    else runbase=u8_strdup(runbase_config);
+  if (suffix==NULL)
+    return u8_strdup(runbase);
+  else return u8_string_append(runbase,suffix,NULL);
+}
+
+static fdtype config_getrunbase(fdtype var,void *data)
+{
+  if (runbase==NULL) return FD_FALSE;
+  else return fdtype_string(runbase);
+}
+
+static int config_setrunbase(fdtype var,fdtype val,void *data)
+{
+  if (runbase)
+    return fd_err("Runbase already set and used","config_set_runbase",runbase,FD_VOID);
+  else if (FD_STRINGP(val)) {
+    runbase_config=u8_strdup(FD_STRDATA(val));
+    return 1;}
+  else return fd_type_error(_("string"),"config_setrunbase",val);
 }
 
 /* Initialization */
@@ -957,185 +1023,79 @@ void fd_init_support_c()
 
   boot_config();
 
-  fd_register_config("APPID",getappid,setappid,NULL);
-  fd_register_config("SESSIONID",getsessionid,setsessionid,NULL);
-  fd_register_config("RANDOMSEED",getrandomseed,setrandomseed,NULL);
-  fd_register_config("UTF8WARN",getutf8warn,setutf8warn,NULL);
-  fd_register_config("MERGECHOICES",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("APPID",_("application ID used in messages and SESSIONID"),
+		     config_getappid,config_setappid,NULL);
+  fd_register_config("SESSIONID",_("unique session identifier"),
+		     config_getsessionid,config_setsessionid,NULL);
+  fd_register_config("UTF8WARN",_("warn on bad UTF-8 sequences"),
+		     config_getutf8warn,config_setutf8warn,NULL);
+  fd_register_config("RANDOMSEED",_("random seed used for stochastic operations"),
+		     config_getrandomseed,config_setrandomseed,NULL);
+  fd_register_config("MERGECHOICES",_("Threshold at which to use an external hashset for merging"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &fd_mergesort_threshold);
-  fd_register_config("SHOWPROCINFO",fd_boolconfig_get,fd_boolconfig_set,
+  fd_register_config("SHOWPROCINFO",_("Whether to show PID/appid info in messages"),
+		     fd_boolconfig_get,fd_boolconfig_set,
 		     &u8_show_procinfo);
-  fd_register_config("SHOWELAPSED",fd_boolconfig_get,fd_boolconfig_set,
+  fd_register_config("SHOWELAPSED",_("Whether to show elapsed time in messages"),
+		     fd_boolconfig_get,fd_boolconfig_set,
 		     &u8_show_elapsed);
-  fd_register_config("DISPLAYMAXCHARS",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("DISPLAYMAXCHARS",_("Max number of chars to show in strings"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &fd_unparse_maxchars);
-  fd_register_config("DISPLAYMAXELTS",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("DISPLAYMAXELTS",_("Max number of elements to show in vectors/lists/choices, etc"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &fd_unparse_maxelts);
+
+  fd_register_config("RUNBASE",_("Path prefix for program state files"),
+		     config_getrunbase,config_setrunbase,NULL);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
-  fd_register_config("MAXCPU",fd_config_rlimit_get,fd_config_rlimit_set,
+  fd_register_config("MAXCPU",_("Max CPU execution time limit"),
+		     fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXCPU);
 #endif
 #ifdef RLIMIT_RSS
-  fd_register_config("MAXRSS",fd_config_rlimit_get,fd_config_rlimit_set,
+  fd_register_config("MAXRSS",_("Max resident set (RSS) size"),
+		     fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXRSS);
 #endif
 #ifdef RLIMIT_CORE
-  fd_register_config("MAXCORE",fd_config_rlimit_get,fd_config_rlimit_set,
+  fd_register_config("MAXCORE",_("Max core dump size"),
+		     fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXCORE);
 #endif
 #ifdef RLIMIT_NPROC
-  fd_register_config("MAXNPROC",fd_config_rlimit_get,fd_config_rlimit_set,
+  fd_register_config("MAXNPROC",_("Max number of subprocesses"),
+		     fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXNPROC);
 #endif
 #ifdef RLIMIT_NOFILE
-  fd_register_config("MAXFILES",fd_config_rlimit_get,fd_config_rlimit_set,
+  fd_register_config("MAXFILES",_("Max number of open file descriptors"),
+		     fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXFILES);
 #endif
 #ifdef RLIMIT_STACK
-  fd_register_config("MAXSTACK",fd_config_rlimit_get,fd_config_rlimit_set,
+  fd_register_config("MAXSTACK",_("Max stack depth"),
+		     fd_config_rlimit_get,fd_config_rlimit_set,
 		     (void *)&MAXSTACK);
 #endif
 
 #endif
 
 #if 0
-  fd_register_config("GOOGLEPROFILE",get_google_profile,set_google_profile,
+  fd_register_config("GOOGLEPROFILE",_("File to store profile output from Google perftools"),
+		     get_google_profile,set_google_profile,
 		     NULL);
 #endif
 
 #if FD_FILECONFIG_ENABLED
   fd_register_config
-    ("CONFIGDATA",fd_sconfig_get,fd_sconfig_set,&configdata_path);
+    ("CONFIGDATA",_("Directory for looking up config entries"),
+     fd_sconfig_get,fd_sconfig_set,&configdata_path);
   fd_register_config_lookup(file_config_lookup);
 #endif
 }
 
-
-/* The CVS log for this file
-   $Log: support.c,v $
-   Revision 1.50  2006/02/10 14:24:55  haase
-   Added CONFIG support for unparse length limits
 
-   Revision 1.49  2006/02/03 19:13:00  haase
-   Added PROCINFO config variable
-
-   Revision 1.48  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.47  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.46  2006/01/21 21:11:26  haase
-   Removed some leaks associated with reifying error states as objects
-
-   Revision 1.45  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.44  2006/01/07 18:26:46  haase
-   Added pointer checking, both built in and configurable
-
-   Revision 1.43  2006/01/07 03:43:16  haase
-   Fixes to choice mergesort implementation
-
-   Revision 1.42  2006/01/04 18:52:24  haase
-   Added UTF8WARN config
-
-   Revision 1.41  2005/12/23 17:00:45  haase
-   Added bool config functions and changed fd_iconfig to fd_intconfig
-
-   Revision 1.40  2005/12/20 19:05:53  haase
-   Switched to u8_random and added RANDOMSEED config variable
-
-   Revision 1.39  2005/08/21 18:07:36  haase
-   Fixes to fileconfig move
-
-   Revision 1.38  2005/08/21 17:57:58  haase
-   Moved file config code into fdlisp, controled by configure --enable-fileconfig
-
-   Revision 1.37  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.36  2005/08/05 12:51:48  haase
-   Added fd_iconfig for integer config variables
-
-   Revision 1.35  2005/06/01 13:07:55  haase
-   Fixes for less forgiving compilers
-
-   Revision 1.34  2005/05/27 21:27:19  haase
-   Made error functions use FD_CHECK_PTR on irritants
-
-   Revision 1.33  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.32  2005/04/28 14:53:23  haase
-   Made CONFIG variables be interned as uppercase without punctuation other than slash (/)
-
-   Revision 1.31  2005/04/25 19:14:50  haase
-   Fixed bug in config_get introduced by modular lookup handlers
-
-   Revision 1.30  2005/04/25 01:46:14  haase
-   Added modular config lookup framework
-
-   Revision 1.29  2005/04/24 01:55:50  haase
-   Handle config var case canonicalization
-
-   Revision 1.28  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.27  2005/04/14 01:33:28  haase
-   Made return value for config registration
-
-   Revision 1.26  2005/04/11 00:38:10  haase
-   Catch NULL call to u8_strdup
-
-   Revision 1.25  2005/04/06 19:23:42  haase
-   Fix bug in registering config variables after configuration
-
-   Revision 1.24  2005/04/06 14:59:48  haase
-   Added APPID config init
-
-   Revision 1.23  2005/04/04 22:17:56  haase
-   Added fd_read_config and improved error reporting, including seamless integration of u8 errors
-
-   Revision 1.22  2005/04/04 14:05:19  haase
-   Added fd_thread_get/set and fd_read_config
-
-   Revision 1.21  2005/03/31 16:24:29  haase
-   Added SESSIONID config variable
-
-   Revision 1.20  2005/03/30 15:30:00  haase
-   Made calls to new seterr do appropriate strdups
-
-   Revision 1.19  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.18  2005/03/29 01:51:24  haase
-   Added U8_MUTEX_DECL and used it
-
-   Revision 1.17  2005/03/26 18:31:41  haase
-   Various configuration fixes
-
-   Revision 1.16  2005/03/24 17:41:42  haase
-   Added atexit error reporting
-
-   Revision 1.15  2005/03/22 20:22:21  haase
-   Added some more conditions and conversion of immediate error return values
-
-   Revision 1.14  2005/03/05 19:40:31  haase
-   Register eframerd textdomain
-
-   Revision 1.13  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.12  2005/02/28 02:41:44  haase
-   Addded config procedures
-
-   Revision 1.11  2005/02/13 23:56:34  haase
-   Support function for type extraction
-
-   Revision 1.10  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

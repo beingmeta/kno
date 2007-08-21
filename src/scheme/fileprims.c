@@ -1320,10 +1320,12 @@ FD_EXPORT void fd_init_fileio_c()
   fd_init_filedb_c();
 
   fd_add_module_loader(load_source_module);
-  fd_register_config("UPDATEMODULES",
+  fd_register_config("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
 		     updatemodules_config_get,updatemodules_config_set,NULL);
-  fd_register_config("LOADPATH",fd_lconfig_get,fd_lconfig_push,&loadpath);
-  fd_register_config("SAFELOADPATH",fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
+  fd_register_config("LOADPATH","Directories/URIs to search for modules (not sandbox)",
+		     fd_lconfig_get,fd_lconfig_push,&loadpath);
+  fd_register_config("SAFELOADPATH","Directories/URIs to search for sandbox modules",
+		     fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));

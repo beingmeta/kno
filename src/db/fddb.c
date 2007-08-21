@@ -458,21 +458,24 @@ FD_EXPORT int fd_init_db()
   fd_init_mutex(&fd_swapcheck_lock);
 #endif
 
-  fd_register_config("CACHELEVEL",
+  fd_register_config("CACHELEVEL",_("Sets a level of time/memory tradeoff [0-3], default 1"),
 		     get_default_cache_level,
 		     set_default_cache_level,
 		     NULL);
-  fd_register_config("OIDDISPLAY",
+  fd_register_config("OIDDISPLAY",_("Default oid display level [0-3]"),
 		     get_oid_display_level,
 		     set_oid_display_level,
 		     NULL);
-  fd_register_config("PREFETCH",
+  fd_register_config("PREFETCH",_("Whether to prefetch for large operations"),
 		     get_prefetch,
 		     set_prefetch,
 		     NULL);
-  fd_register_config("POOLS",config_get_pools,config_use_pool,NULL);
-  fd_register_config("INDICES",config_get_indices,config_open_index,NULL);
-  fd_register_config("BACKGROUND",config_get_background,config_use_index,NULL);
+  fd_register_config("POOLS",_("pools used for OID resolution"),
+		     config_get_pools,config_use_pool,NULL);
+  fd_register_config("INDICES",_("indices opened"),
+		     config_get_indices,config_open_index,NULL);
+  fd_register_config("BACKGROUND",_("indices in the default search background"),
+		     config_get_background,config_use_index,NULL);
 
   return fddb_initialized;
 }

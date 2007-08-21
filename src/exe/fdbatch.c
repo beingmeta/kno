@@ -19,74 +19,44 @@ static char versionid[] =
 
 #define LOGMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
 
-static u8_string get_runbase(u8_string scriptfile)
-{
-  fdtype runbase=fd_config_get("RUNBASE");
-  if (FD_STRINGP(runbase)) 
-    if (u8_directoryp(FD_STRDATA(runbase))) {
-      u8_string abspath=u8_abspath(FD_STRDATA(runbase),NULL);
-      u8_string basepath=u8_basename(scriptfile,".scm");
-      u8_string combined=u8_mkpath(abspath,basepath);
-      u8_free(abspath); u8_free(basepath);
-      return combined;}
-    else return u8_abspath(FD_STRDATA(runbase),NULL);
-  else {
-    u8_string base=u8_basename(scriptfile,".scm");
-    u8_string abspath=u8_abspath(base,NULL);
-    u8_free(base);
-    return abspath;}
-}
-
-static u8_string get_pidfile(u8_string abspath)
+static u8_string get_pidfile()
 {
   fdtype as_configured=fd_config_get("PIDFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
-  else return u8_string_append(abspath,".pid",NULL);
+  else return fd_runbase_filename(".pid");
 }
 
-static u8_string get_logfile(u8_string abspath)
+static u8_string get_logfile()
 {
   fdtype as_configured=fd_config_get("LOGFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
-  else {
-    u8_string simple=u8_mkstring("%s.log",abspath);
-    if (u8_file_existsp(simple)) u8_removefile(simple);
-    return simple;}
+  else return fd_runbase_filename(".log");
 }
 
-static u8_string get_errfile(u8_string abspath)
+static u8_string get_errfile()
 {
   fdtype as_configured=fd_config_get("ERRFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
-  else {
-    u8_string simple=u8_mkstring("%s.err",abspath);
-    if (u8_file_existsp(simple)) u8_removefile(simple);
-    return simple;}
+  else return fd_runbase_filename(".err");
 }
 
-static u8_string get_donefile(u8_string abspath)
+static u8_string get_donefile()
 {
   fdtype as_configured=fd_config_get("DONEFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
-  else {
-    u8_string simple=u8_string_append(abspath,".done",NULL);
-    if (u8_file_existsp(simple)) u8_removefile(simple);
-    return simple;}
+  else return fd_runbase_filename(".done");
 }
 
-static u8_string get_diedfile(u8_string abspath)
+static u8_string get_diedfile()
 {
   fdtype as_configured=fd_config_get("DIEDFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
-  else {
-    u8_string simple=u8_string_append(abspath,".died",NULL);
-    if (u8_file_existsp(simple)) u8_removefile(simple);
-    return simple;}
+  else return fd_runbase_filename(".died");
 }
 
 static u8_string pid_file=NULL, died_file=NULL;
@@ -149,10 +119,9 @@ int main(int argc,char **argv)
   /* We just initialize this for now. */
   u8_show_procinfo=1;
   fd_init_dtypelib();
-  fd_argv_config(argc,argv);
-  runbase=get_runbase(get_app_arg(argc,argv));
-  u8_notify("FDBATCH","Runbase is %s",runbase);
-  pid_file=get_pidfile(runbase);
+  fd_argv_config(argc,argv); 
+  identify_application(argc,argv,"fdbatch");
+  pid_file=get_pidfile();
   if (u8_file_existsp(pid_file)) {
     FILE *f=u8_fopen(pid_file,"r");
     int ival=-1, retval; pid_t pid=getpid();
@@ -173,8 +142,8 @@ int main(int argc,char **argv)
 	      pid_file,ival,pid);
       exit(1);}}
   
-  done_file=get_donefile(runbase);
-  died_file=get_diedfile(runbase);
+  done_file=get_donefile();
+  died_file=get_diedfile();
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_warn(fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
@@ -184,13 +153,13 @@ int main(int argc,char **argv)
   if (u8_file_existsp(died_file)) u8_removefile(died_file);
   /* If either stdout or stderr are interactive, redirect them to files. */
   if (isatty(1)) {
-    log_file=get_logfile(runbase);
+    log_file=get_logfile();
     if ((log_fd=u8_open_fd(log_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
       u8_warn(fd_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
       exit(-1);}}
   if (isatty(2)) {
-    err_file=get_errfile(runbase);
+    err_file=get_errfile();
     if ((err_fd=u8_open_fd(err_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
       u8_warn(fd_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
@@ -226,8 +195,7 @@ int main(int argc,char **argv)
       FILE *f=u8_fopen(done_file,"w");
       if (f) {
 	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",
-		   get_app_arg(argc,argv),retval);
+	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",u8_appid(),retval);
 	u8_fclose(f);
 	if (died_file) {
 	  if (u8_file_existsp(died_file))
@@ -238,8 +206,7 @@ int main(int argc,char **argv)
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
 	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"%s died at %*iMSt, retval=%d",
-		   get_app_arg(argc,argv),retval);
+	u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
 	u8_fclose(f);}
       died_file=NULL;}
     return retval;}

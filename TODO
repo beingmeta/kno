@@ -14,6 +14,10 @@ Make fdb use dynamic contours
 MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
 Add named s/a/lambda and letrec
+Move RUNBASE into dtypes/support
+# Add MODIFY-FRAME, QCX (19 August 2007)
+# Add PICK-KEYS, DEFINE-LOCAL QCX (18 August 2007)
+# Add SAMBDA (16 August 2007)
 # Make iterative bodies take a symbolic spec <sym> as equivalent to (<sym> <sym>) (11 August 2007)
 # Make DEFINE- analogous for ambda and slambda (11 August 2007)
 # Add PICKOIDS and PICK> (11 August 2007)

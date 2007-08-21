@@ -44,13 +44,19 @@ static int debug_maxelts=32, debug_maxchars=80;
 static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;
 static int n_configs=0;
 
-static char *get_app_arg(int argc,char **argv)
+static void identify_application(int argc,char **argv,char *dflt)
 {
   int i=1;
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
-    else return argv[i];
-  return "fdb";
+    else {
+      char *copy=u8_strdup(argv[i]);
+      char *dot=strchr(copy,'.');
+      if (dot) *dot='\0';
+      u8_identify_application(copy);
+      u8_free(copy);
+      return;}
+  u8_identify_application(dflt);
 }
 
 typedef char *charp;
@@ -104,9 +110,11 @@ int main(int argc,char **argv)
     return -1;}
   if (exe_arg==NULL) exe_arg=u8_strdup(argv[0]);
   fd_register_source_file(versionid);
-  fd_register_config("DEBUGMAXCHARS",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("DEBUGMAXCHARS",_("Max number of chars in strings output with error reports"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",fd_intconfig_get,fd_intconfig_set,
+  fd_register_config("DEBUGMAXELTS",_("Max number of elements in vectors/choices/lists output with error reports"),
+		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
   setlocale(LC_ALL,"");
   /* Process command line config arguments */
@@ -136,7 +144,7 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_schemeio();
-  u8_identify_application(get_app_arg(argc,argv));
+  identify_application(argc,argv,"fdexec");
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
     if (strchr(argv[i],'=')) {

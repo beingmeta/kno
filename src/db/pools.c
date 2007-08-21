@@ -1376,7 +1376,7 @@ FD_EXPORT void fd_init_pools_c()
 #endif
   fd_unparsers[fd_pool_type]=unparse_pool;
   fd_unparsers[fd_raw_pool_type]=unparse_raw_pool;
-  fd_register_config("ANONYMOUSOK",
+  fd_register_config("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
 		     config_get_anonymousok,
 		     config_set_anonymousok,NULL);
   
