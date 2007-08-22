@@ -1075,86 +1075,15 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
       exit(-1);}
   fd_setpos(stream,FD_OIDPOOL_LOAD_POS);
   fd_dtswrite_4bytes(stream,fp->load);
+  if (fp->mmap) {
+    int retval=munmap(fp->mmap,fp->mmap_size);
+    if (retval<0) {
+      u8_warn("MUNMAP","oidpool MUNMAP failed with %s",u8_strerror(errno));
+      errno=0;}
+    fp->mmap_size=u8_file_size(fp->cid);
+    fp->mmap=
+      mmap(NULL,fp->mmap_size,PROT_READ,MMAP_FLAGS,fp->stream.fd,0);}
 }
-
-#if 0
-static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
-			    int n,struct OIDPOOL_SAVEINFO *saveinfo,
-			    unsigned int load)
-{
-  if (fp->offsets) {
-    int i=0, refsize=get_chunkref_size(fp), offsize=fp->offsets_size;
-    unsigned int *offsets=u8_malloc(load*refsize), *cur=fp->offsets;
-#if  ((HAVE_MMAP) && (WORDS_BIGENDIAN))
-    i=0; while (i<offsize) {offsets[i]=fd_flip_word(cur[i]); i++;}
-#else
-    memcpy(offsets,fp->offsets,sizeof(unsigned int)*offsize);
-#endif
-    switch (fp->offtype) {
-    case FD_B64: {
-      int k=0; while (k<n) {
-	unsigned int oidoff=saveinfo[k].oidoff;
-	offsets[oidoff*3]=(saveinfo[k].chunk.off)>>32;
-	offsets[oidoff*3+1]=(saveinfo[k].chunk.off)&(0xFFFFFFFF);
-	offsets[oidoff*3+2]=saveinfo[k].chunk.size;
-	k++;}
-      break;}
-    case FD_B32: {
-      int k=0; while (k<n) {
-	unsigned int oidoff=saveinfo[k].oidoff;
-	offsets[oidoff*2]=saveinfo[k].chunk.off;
-	offsets[oidoff*2+1]=saveinfo[k].chunk.size;
-	k++;}
-      break;}
-    case FD_B40: {
-      int k=0; while (k<n) {
-	unsigned int oidoff=saveinfo[k].oidoff, w1, w2;
-	convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
-	offsets[oidoff*2]=w1; offsets[oidoff*2+1]=w2;
-	k++;}
-      break;}
-    default:
-      u8_warn("Bad offset type for %s",fp->cid);
-      u8_free(saveinfo);
-      exit(-1);}
-    fd_setpos(stream,256);
-    fd_dtswrite_ints(stream,load*refsize,offsets);
-    u8_free(offsets);
-    reload_oidpool_offsets(fp,0);}
-  else switch (fp->offtype) {
-  case FD_B64: {
-    int k=0; while (k<n) {
-      unsigned int oidoff=saveinfo[k].oidoff;
-      fd_setpos(stream,256+oidoff*12);
-      fd_dtswrite_8bytes(stream,saveinfo[k].chunk.off);
-      fd_dtswrite_4bytes(stream,saveinfo[k].chunk.size);
-      k++;}
-    break;}
-  case FD_B32: {
-    int k=0; while (k<n) {
-      unsigned int oidoff=saveinfo[k].oidoff;
-      fd_setpos(stream,256+oidoff*8);
-      fd_dtswrite_4bytes(stream,saveinfo[k].chunk.off);
-      fd_dtswrite_4bytes(stream,saveinfo[k].chunk.size);
-      k++;}
-    break;}
-  case FD_B40: {
-    int k=0; while (k<n) {
-      unsigned int oidoff=saveinfo[k].oidoff, w1, w2;
-      fd_setpos(stream,256+oidoff*8);
-      convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
-      fd_dtswrite_4bytes(stream,w1);
-      fd_dtswrite_4bytes(stream,w2);
-      k++;}
-    break;}
-  default:
-    u8_warn("Bad offset type for %s",fp->cid);
-    u8_free(saveinfo);
-    exit(-1);}
-  fd_setpos(stream,FD_OIDPOOL_LOAD_POS);
-  fd_dtswrite_4bytes(stream,fp->load);
-}
-#endif
 
 
 static int recover_oidpool(struct FD_OIDPOOL *fp)
