@@ -5,7 +5,7 @@
 ;;; This provides for both audited edits and automatic assignment which respects
 ;;;  audited values.
 
-(define version "$Id:$")
+(define version "$Id$")
 
 ;;; Auditing
 
@@ -101,3 +101,20 @@
 
 (module-export! '{auto+! auto-! auto!})
 
+;;; Reapplying audits
+
+(define (reaudit frame)
+  (let ((audits
+	 (choice (for-choices (add (get frame '%adds))
+		   (vector (elt add 3) 'ADD add))
+		 (for-choices (add (get frame '%adds))
+		   (vector (elt add 3) 'drop add)))))
+    (doseq (audit (sorted audits first))
+      (if (eq? (elt audit 0) 'add)
+	  (assert! frame (elt (elt audit 2) 0)
+		   (elt (elt audit 2) 1))
+	  (if (eq? (elt audit 0) 'drop)
+	      (assert! frame (elt (elt audit 2) 0)
+		       (elt (elt audit 2) 1)))))))
+
+(module-export! 'reaudit)
