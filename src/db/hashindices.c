@@ -2150,7 +2150,7 @@ static int update_hash_index_ondisk
 {
   struct FD_DTYPE_STREAM *stream=&(hx->stream); int i=0; unsigned int *buckets=hx->offdata;
 #if (HAVE_MMAP)
-  make_offsets_writable(hx); buckets=hx->offdata;
+  if (buckets) {make_offsets_writable(hx); buckets=hx->offdata;}
 #endif
   if ((buckets) && (hx->offtype==FD_B64))
     while (i<changed_buckets) {
