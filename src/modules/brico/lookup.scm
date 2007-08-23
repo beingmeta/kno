@@ -120,22 +120,26 @@
 	      (let ((sbword (basestring word)))
 		(choice (?? language sbword)
 			(tryif word-overlays (overlay-get sbword language)))))
-       ;; Find misspellings, etc
-       ;; This is really language-specific and the implementation
-       ;;  doesnt currently reflect that.
-       (tryif (and (number? tryhard) (> tryhard 1))
- 	      (?? language
- 		  (choice (metaphone word #t)
- 			  (metaphone (porter-stem word) #t))))
        (tryif tryhard (lookup-simple-variants word language tryhard))
        ;; Find concepts which have some overlapping words
        (tryif (and (number? tryhard) (> tryhard 2))
-	      (lookup-overlapping-words word language tryhard))))
+	      (lookup-overlapping-words word language tryhard))
+       ;; Find misspellings, etc
+       ;; This is really language-specific and the implementation
+       ;;  doesnt currently reflect that.
+       (tryif (and (number? tryhard) (> tryhard 2))
+ 	      (?? language
+ 		  (choice (metaphone word #t)
+ 			  (metaphone (porter-stem word) #t))))))
 
 (define (lookup-simple-variants word language tryhard)
   (choice 
    (tryif (or (position #\- word) (position #\Space word) (position #\_ word))
 	  (?? language (depunct word)))
+   (tryif (position #\- word)
+	  (?? language (string-subst word "-" " ")))
+   (tryif (position #\_ word)
+	  (?? language (string-subst word "-" " ")))
    (tryif (and (compound? word) (textsearch '(isupper) word))
 	  (let* ((wordv (words->vector word))
 		 (len (length wordv)))
@@ -158,7 +162,7 @@
 	 (words (elts wordv))
 	 (altwords (choice (metaphone words #t)
 			   (metaphone (porter-stem words) #t)))
-	 (minscore (max 1 (- (length wordv) (- tryhard 3)))))
+	 (minscore (max 2 (- (length wordv) (- tryhard 3)))))
     (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
       (let* ((alt (tryif (> tryhard 4)
@@ -304,7 +308,7 @@
   (try (cons term (singleton (lookup-word term language #f)))
        (if (or (position #\, term) (position #\: term) (position #\( term))
 	   (try-termrules term language tryhard)
-	   (cons term (qcx (lookup-word term language 3))))))
+	   (cons term (qcx (lookup-word term language tryhard))))))
 
 (define (brico/resolve term (language default-language))
   (cdr (lookup-term term language)))
