@@ -66,17 +66,7 @@
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(do-choices (value value)
-	  (if (exists check-audit (get frame '%adds) slotid value)
-	      (notify "Deferring assertion due to audit: "
-		      slotid "(" frame ")=" value)
-	      (assert! frame slotid value)))))))
-
-(define auto+!
-  (ambda (frame slotid value)
-    (do-choices (frame frame)
-      (do-choices (slotid slotid)
-	(do-choices (value value)
-	  (if (exists check-audit (get frame '%adds) slotid value)
+	  (if (exists check-audit (get frame '%drops) slotid value)
 	      (notify "Deferring assertion due to audit: "
 		      slotid "(" frame ")=" value)
 	      (assert! frame slotid value)))))))
