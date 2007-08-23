@@ -85,17 +85,17 @@ static u8_condition job_stopped="Job stopped";
 static u8_condition job_exited="Job exited";
 static u8_condition job_terminated="Job terminated";
 
-static void wait_for_the_end(u8_string name,pid_t pid)
+static void wait_for_the_end(pid_t pid)
 {
   int status=0; char buf[1024];
   waitpid(pid,&status,0);
   while (WIFSTOPPED(status)) {
     u8_warn(job_stopped,"%s <%d> has been stopped with the signal %d",
-	    name,pid,WSTOPSIG(status));
+	    u8_appid(),pid,WSTOPSIG(status));
     waitpid(pid,&status,0);}
   if (WIFEXITED(status))
     u8_warn(job_exited,"%s <%d> exited with return value %d",
-	    name,pid,WSTOPSIG(status));
+	    u8_appid(),pid,WSTOPSIG(status));
   else {
     char buf[1024];
     if ((pid_file) && (u8_file_existsp(pid_file)))
@@ -105,7 +105,7 @@ static void wait_for_the_end(u8_string name,pid_t pid)
       if (f) {
 	/* Output the current data/time with millisecond precision. */
 	u8_fprintf(f,"Process %s <%d> killed at %*iMSt with signal %d\n",
-		   name,pid,WTERMSIG(status));
+		   u8_appid(),pid,WTERMSIG(status));
 	u8_fclose(f);}}}
   exit(0);
 }
@@ -114,7 +114,6 @@ int main(int argc,char **argv)
 {
   pid_t pid;
   int pid_fd, log_fd, err_fd, chained=0;
-  u8_string runbase;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
   u8_show_procinfo=1;
@@ -176,7 +175,7 @@ int main(int argc,char **argv)
       u8_notify("Fork started","Process %d stdout >> %s",pid,log_file);
     if (err_file)
       u8_notify("Fork started","Process %d stderr >> %s",pid,err_file);
-    wait_for_the_end(runbase,pid);
+    wait_for_the_end(pid);
     if (log_file) close(log_fd);
     if (err_file) close(err_fd);}
   else {
@@ -189,7 +188,6 @@ int main(int argc,char **argv)
     if (err_file) {
       dup2(err_fd,2); u8_free(err_file); close(err_fd);}
     atexit(fdbatch_atexit);
-    u8_free(runbase);
     retval=do_main(argc,argv);
     if (retval>=0) {
       FILE *f=u8_fopen(done_file,"w");
