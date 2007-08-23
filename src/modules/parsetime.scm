@@ -9,7 +9,7 @@
 
 (use-module 'texttools)
 
-(module-export! '{parsetime parsegmtime time-patterns time-pattern})
+(module-export! '{parsetime parsegmtime timeparser time-patterns time-pattern})
 
 (define month-names
   (vector (qc "Jan" "January")
@@ -108,6 +108,10 @@
 (define (merge-matches matches)
   (merge-matches-loop (qc matches)
 		      (->list (sorted (getkeys matches)))))
+
+(define (timeparser string (us #t))
+  (text->frames (qc (if us us-patterns terran-patterns))
+		string))
 
 (define (parsetime string (base #f) (us #f))
   (let ((matches
