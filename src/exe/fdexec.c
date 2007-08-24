@@ -44,6 +44,8 @@ static int debug_maxelts=32, debug_maxchars=80;
 static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;
 static int n_configs=0;
 
+static u8_condition FileWait=_("FILEWAIT");
+
 static void identify_application(int argc,char **argv,char *dflt)
 {
   int i=1;
@@ -97,6 +99,8 @@ static fdtype chain_prim(int n,fdtype *args)
     return execvp(exe_arg,cargv);}
 }
 
+static u8_string wait_for_file=NULL;
+
 int main(int argc,char **argv)
 {
   unsigned char data[1024], *input;
@@ -110,12 +114,18 @@ int main(int argc,char **argv)
     return -1;}
   if (exe_arg==NULL) exe_arg=u8_strdup(argv[0]);
   fd_register_source_file(versionid);
-  fd_register_config("DEBUGMAXCHARS",_("Max number of chars in strings output with error reports"),
+  fd_register_config("DEBUGMAXCHARS",
+		     _("Max number of chars in strings output with error reports"),
 		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",_("Max number of elements in vectors/choices/lists output with error reports"),
+  fd_register_config("DEBUGMAXELTS",
+		     _("Max number of elements in vectors/choices/lists output with error reports"),
 		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
+  fd_register_config("FILEWAIT",
+		     _("File to wait to exist before starting"),
+		     fd_sconfig_get,fd_sconfig_set,
+		     &wait_for_file);
   setlocale(LC_ALL,"");
   /* Process command line config arguments */
 #ifndef FDEXEC_INCLUDED
@@ -145,6 +155,19 @@ int main(int argc,char **argv)
 
   fd_init_schemeio();
   identify_application(argc,argv,"fdexec");
+  if (wait_for_file)
+    if (u8_file_existsp(wait_for_file))
+      u8_notify(FileWait,"Starting now because '%s' exists",wait_for_file);
+    else {
+      int n=0;  u8_notify(FileWait,"Waiting for '%s' to exist",wait_for_file);
+      while (1) {
+	n++; if (n<15) sleep(n); else sleep(15);
+	if (u8_file_existsp(wait_for_file)) {
+	  u8_notify(FileWait,"[%d] Starting now because '%s' exists",n,wait_for_file);
+	  break;}
+	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
+	  u8_notify(FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}
+  
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
     if (strchr(argv[i],'=')) {
