@@ -10,11 +10,11 @@
 ;;  special form execution (which doesn't bottom out in function application) 
 ;;  is credited towards the function itself.
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module 'texttools)
 
-(module-export! '{ct/load ct/simple ct/report ct/summary ct/detailed})
+(module-export! '{ct/load ct/simple ct/report ct/summary ct/detailed ct/callpoints})
 
 (module-export!
  '{
@@ -185,15 +185,16 @@
   (if (pair? fn)
       (let ((data (get (ctd/calldata tables) fn)))
 	(if (fail? data)
-	    (message "The trackpoint " fn " never occurred")
-	    (message "The trackpoint " fn " was invoked "
+	    (lineout "The trackpoint " fn " never occurred")
+	    (lineout "Trackpoint: " fn "\n"
+		     "This trackpoint was invoked "
 		     (cte/callcount data) " times, taking "
 		     (cte/runtime data) " seconds, retrieving "
 		     (cte/objloads data) " objects, and fetching "
 		     (cte/keyfetches data) " index keys")))
       (let ((data (get (ctd/fndata tables) fn)))
 	(if (fail? data) (message fn " was not called")
-	    (message fn " was called " (cte/callcount data) " times, taking "
+	    (lineout fn " was called " (cte/callcount data) " times, taking "
 		     (cte/runtime data) " seconds, retrieving "
 		     (cte/objloads data) " objects, and fetching "
 		     (cte/keyfetches data) " index keys")))))
@@ -203,38 +204,47 @@
       (let ((fnname (if (pair? fn) (car fn) fn))
 	    ;; (if relative (relative-callcxt fn relative) fn)
 	    (data (get (elt tables 3) fn)))
-	(if (fail? data) (message "The trackpoint " fnname " was not called")
+	(if (fail? data) (lineout "The trackpoint " fnname " was not called")
 	    (let* ((children (get (elt tables 1) fn))
-		   (childdata (calltrack-sum (qc (get (elt tables 3) children)))))
-	      (message "The trackpoint " fnname " occurred " (elt data 0) " times, taking "
+		   (childdata
+		    (calltrack-sum (qc (get (elt tables 3) children)))))
+	      (lineout "The trackpoint " fnname
+		       " occurred " (elt data 0) " times, taking "
 		       (elt data 1) " seconds, retrieving "
 		       (elt data 2) " objects, and fetching "
 		       (elt data 3) " index keys")
 	      (if (exists? children)
-		  (message "The trackpoint " fn " itself took "
-			   (- (elt data 1) (elt childdata 1)) " seconds, retrieving "
-			   (- (elt data 2) (elt childdata 2)) " objects, and fetching "
-			   (- (elt data 3) (elt childdata 3)) " index keys")
-		  (message "The trackpoint " fnname " made no calls of its own")))))
+		  (lineout "The trackpoint " fn " itself took "
+			   (- (elt data 1) (elt childdata 1)) " seconds, "
+			   "retrieving " (- (elt data 2) (elt childdata 2))
+			   " objects, and fetching "
+			   (- (elt data 3) (elt childdata 3))
+			   " index keys")
+		  (lineout
+		      "The trackpoint " fnname " made no calls of its own")))))
       (let ((data (get (elt tables 2) fn)))
-	(if (fail? data) (message fn " was not called")
+	(if (fail? data) (lineout fn " was not called")
 	    (let* ((children (get (elt tables 1) fn))
 		   (childdata (calltrack-sum (qc (get (elt tables 3) children)))))
-	      (message fn " was called " (elt data 0) " times, taking "
+	      (lineout fn " was called " (elt data 0) " times, taking "
 		       (elt data 1) " seconds, retrieving "
 		       (elt data 2) " objects, and fetching "
 		       (elt data 3) " index keys")
 	      (if (exists? children)
-		  (message "Calling " fn " itself took "
-			   (- (elt data 1) (elt childdata 1)) " seconds, retrieving "
-			   (- (elt data 2) (elt childdata 2)) " objects, and fetching "
-			   (- (elt data 3) (elt childdata 3)) " index keys")
-		  (message fn " didn't call any other procedures, spending all its time on itself.")))))))
+		  (lineout
+		      "Calling " fn " itself took "
+		      (- (elt data 1) (elt childdata 1)) " seconds, retrieving "
+		      (- (elt data 2) (elt childdata 2)) " objects, and fetching "
+		      (- (elt data 3) (elt childdata 3)) " index keys")
+		  (lineout fn
+		    " didn't call any other procedures, "
+		    "spending all its time on itself.")))))))
 
 (define (ct/detailed tables fn)
   (ct/simple tables fn)
-  (let* ((callpoints (filter-choices (callpoint (getkeys (ctd/calldata tables)))
-		       (position fn callpoint)))
+  (let* ((callpoints
+	  (filter-choices (callpoint (getkeys (ctd/calldata tables)))
+	    (position fn callpoint)))
 	 (fns (car callpoints))
 	 (combined (make-hashtable)))
     (do-choices (fn fns)
@@ -244,10 +254,18 @@
 	(store! combined fn calldata)))
     (doseq (fn (rsorted fns (lambda (x) (cte/runtime (get combined x)))))
       (let ((data (get combined fn)))
-	(message fn " was called " (elt data 0) " times, taking "
+	(lineout fn " was called " (elt data 0) " times, taking "
 		 (elt data 1) " seconds, retrieving "
 		 (elt data 2) " objects, and fetching "
 		 (elt data 3) " index keys")))))
+
+(define (ct/callpoints tables fn)
+  (ct/simple tables fn)
+  (let* ((callpoints
+	  (filter-choices (callpoint (getkeys (ctd/calldata tables)))
+	    (position fn callpoint))))
+    (doseq (callpoint (rsorted callpoints second))
+      (ct/simple tables callpoint))))
 
 (define (calltrack-sum calls)
   (let ((count 0) (secs 0) (objects 0) (keys 0))
