@@ -15,6 +15,8 @@
 
 (define logger comment)
 
+(define metaphone-max 16)
+
 ;;; EXPORTS
 
 ;; Looking up words
@@ -127,10 +129,14 @@
        ;; Find misspellings, etc
        ;; This is really language-specific and the implementation
        ;;  doesnt currently reflect that.
-       (tryif (and (number? tryhard) (> tryhard 2))
- 	      (?? language
- 		  (choice (metaphone word #t)
- 			  (metaphone (porter-stem word) #t))))))
+       (tryif (and (number? tryhard) (> tryhard 2)
+		   (not (uppercase? word))
+		   (> (length word) 4))
+	      (choice-max
+	       (?? language
+		   (choice (metaphone word #t)
+			   (metaphone (porter-stem word) #t)))
+	       metaphone-max))))
 
 (define (lookup-simple-variants word language tryhard)
   (choice 
