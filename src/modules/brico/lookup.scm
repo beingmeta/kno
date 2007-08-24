@@ -310,6 +310,6 @@
 	   (try-termrules term language tryhard)
 	   (cons term (qcx (lookup-word term language tryhard))))))
 
-(define (brico/resolve term (language default-language))
-  (cdr (lookup-term term language)))
+(define (brico/resolve term (language default-language) (tryhard 2))
+  (cdr (lookup-term term language tryhard)))
 
