@@ -408,7 +408,9 @@
 			concepts))
   (when (and use-wordforms (eq? language english))
     (prefetch-keys! (choice (cons 'of (pick concepts brico-pool))
-			    (cons 'word words)))))
+			    (cons 'word words))))
+  (prefetch-oids! (?? 'of (pick concepts brico-pool)
+		      'word words)))
 
 ;;; Configuring freqfns
 
