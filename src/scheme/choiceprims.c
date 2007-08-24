@@ -636,6 +636,18 @@ static fdtype singleton(fdtype x)
   else return simple;
 }
 
+static fdtype choice_max(fdtype x,fdtype lim)
+{
+  fdtype simple=fd_make_simple_choice(x);
+  if (FD_EMPTY_CHOICEP(x)) return x;
+  else if (FD_CHOICEP(simple)) {
+    int max_size=fd_getint(lim);
+    if (FD_CHOICE_SIZE(simple)>max_size) {
+      fd_decref(simple); return FD_EMPTY_CHOICE;}
+    else return simple;}
+  else return simple;
+}
+
 static fdtype simplify(fdtype x)
 {
   return fd_make_simple_choice(x);
@@ -1229,6 +1241,9 @@ FD_EXPORT void fd_init_choicefns_c()
 	   fd_make_ndprim(fd_make_cprim1("AMBIGUOUS?",ambiguousp,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("SINGLETON",singleton,1)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2x("CHOICE-MAX",choice_max,2,
+					  -1,FD_VOID,fd_fixnum_type,FD_VOID)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("SIMPLIFY",simplify,1)));
 

@@ -150,4 +150,9 @@
 (applytest 12 reduce-choice + {"3" "4" "5" "5"} 0 string->number)
 (applytest 17 reduce-choice + {"3" "4" "5" "+5"} 0 string->number)
 
+;;; CHOICE-MAX tests
+
+(applytest {} choice-max (nrange 1 10) 5)
+(applytest (nrange 1 5) choice-max (nrange 1 5) 5)
+
 (message "CHOICETEST successfuly completed")
