@@ -25,7 +25,7 @@ static char versionid[] =
 #include <ctype.h>
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
-static fdtype server_port, remote_port, request_method;
+static fdtype server_port, remote_port, request_method, status_field;
 static fdtype get_method, post_method, cgidata_symbol;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookies_symbol, text_symbol;
@@ -549,12 +549,27 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
 }      
 
 /* Generating the XML */
-
 void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
 {
   fdtype ctype=fd_get(cgidata,content_type,FD_VOID);
+  fdtype status=fd_get(cgidata,status_field,FD_VOID);
   fdtype headers=fd_get(cgidata,http_headers,FD_EMPTY_CHOICE);
   fdtype cookies=fd_get(cgidata,cookies_symbol,FD_EMPTY_CHOICE);
+#if 0
+  if (FD_VOIDP(status)) 
+    u8_printf(out,"HTTP/1.1 200 Success\r\n");
+  else if (FD_FIXNUMP(status)) 
+    u8_printf(out,"HTTP/1.1 %d Success\r\n",FD_FIX2INT(status));
+  else if (FD_STRINGP(status))
+    u8_printf(out,"HTTP/1.1 500 %s\r\n",FD_STRDATA(status));
+  else if ((FD_PAIRP(status)) &&
+	   (FD_FIXNUMP(FD_CAR(status))) &&
+	   (FD_STRINGP(FD_CDR(status))))
+    u8_printf(out,"HTTP/1.1 %d %s\r\n",
+	      FD_FIX2INT(FD_CAR(status)),
+	      FD_STRDATA(FD_CDR(status)));
+  else u8_printf(out,"HTTP/1.1 500 Bad STATUS data\r\n");
+#endif
   if (FD_STRINGP(ctype))
     u8_printf(out,"%s\r\n",FD_STRDATA(ctype));
   else u8_printf(out,"%s\r\n",DEFAULT_CONTENT_TYPE);
@@ -784,6 +799,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   get_method=fd_intern("GET");
   post_method=fd_intern("POST");
 
+  status_field=fd_intern("STATUS");
   http_headers=fd_intern("HTTP-HEADERS");
   html_headers=fd_intern("HTML-HEADERS");
 
