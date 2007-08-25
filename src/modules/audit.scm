@@ -50,7 +50,10 @@
 	    (audit+! frame slotid arg3)
 	    (error SYNTAX "Bad AUDIT! call")))))
 
-(module-export! '{audit+! audit-! audit!})
+(define (audit-get frame slotid)
+  (second (pick (get frame '%adds) first slotid)))
+
+(module-export! '{audit+! audit-! audit! audit-get})
 
 ;;; AUTO procedures
 
