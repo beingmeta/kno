@@ -578,7 +578,9 @@ static FD_ERRDATA *adopt_u8errors()
     newdata->irritant=FD_VOID;
     if (head==NULL) head=newdata;
     if (tail) {
-      newdata->next=tail->next; tail->next=newdata;}
+      newdata->next=tail->next;
+      tail->next=newdata;
+      tail=newdata;}
     else {tail=newdata; newdata->next=NULL;}}
   if (tail) {
     tail->next=current;

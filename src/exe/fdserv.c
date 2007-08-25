@@ -806,8 +806,10 @@ int main(int argc,char **argv)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
   u8_server_loop(&fdwebserver);
 
-  if (pidfile) u8_removefile(pidfile);
-  pidfile=NULL;
+  if (pidfile) {
+    u8_removefile(pidfile);
+    u8_free(pidfile);
+    pidfile=NULL;}
 
   return 0;
 }

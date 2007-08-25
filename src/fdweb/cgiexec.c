@@ -392,6 +392,7 @@ static fdtype httpheader(fdtype expr,fd_lispenv env)
       U8_OUTPUT *port=fd_get_default_output();
       u8_printf(port,"http>> %s\n",out.u8_outbuf);
       u8_free(out.u8_outbuf);}
+    fd_decref(cgidata);
     return FD_VOID;}
 }
 	  
@@ -408,13 +409,14 @@ static fdtype htmlheader(fdtype expr,fd_lispenv env)
     if (FD_TABLEP(cgidata)) {
       fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-      fdtype new=fd_init_pair(NULL,header,fd_incref(current));
+      fdtype new=fd_init_pair(NULL,header,current);
       fd_store(cgidata,html_headers,new);
       fd_decref(new);}
     else {
       U8_OUTPUT *port=fd_get_default_output();
       u8_printf(port,"http>> %s\n",out.u8_outbuf);
       u8_free(out.u8_outbuf);}
+    fd_decref(cgidata);
     return FD_VOID;}
 }      
 
@@ -495,8 +497,9 @@ static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
   else {
     fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-    fdtype new=fd_init_pair(NULL,header,fd_incref(current));
+    fdtype new=fd_init_pair(NULL,header,current);
     fd_store(cgidata,html_headers,new);
+    fd_decref(cgidata);
     fd_decref(new);}
   return FD_VOID;
 }
@@ -516,9 +519,10 @@ static fdtype add_javascript(fdtype url)
   else {
     fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-    fdtype new=fd_init_pair(NULL,header,fd_incref(current));
+    fdtype new=fd_init_pair(NULL,header,current);
     fd_store(cgidata,html_headers,new);
     fd_decref(new);}
+  fd_decref(cgidata);
   return FD_VOID;
 }
 
@@ -537,13 +541,14 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     if (FD_TABLEP(cgidata)) {
       fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-      fdtype new=fd_init_pair(NULL,header,fd_incref(current));
+      fdtype new=fd_init_pair(NULL,header,current);
       fd_store(cgidata,html_headers,new);
       fd_decref(new);}
     else {
       U8_OUTPUT *port=fd_get_default_output();
       u8_printf(port,"http>> %s\n",out.u8_outbuf);
       u8_free(out.u8_outbuf);}
+    fd_decref(cgidata);
     fd_decref(result);
     return FD_VOID;}
 }      
@@ -631,6 +636,7 @@ static fdtype set_body_attribs(int n,fdtype *args)
   while (i>=0) {
     attribs=fd_init_pair(NULL,fd_incref(args[i]),attribs); i--;}
   fd_store(table,body_attribs_slotid,attribs);
+  fd_decref(table);
   fd_decref(attribs);
   return FD_VOID;
 }
@@ -696,16 +702,16 @@ static fdtype cgiget(fdtype var,fdtype dflt)
 
 static fdtype cgitest(fdtype vars,fdtype val)
 {
-  fdtype table=fd_thread_get(cgidata_symbol);
+  fdtype table=fd_thread_get(cgidata_symbol), result=FD_FALSE;
   if (!(FD_TABLEP(table))) {
     table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);}
   if (FD_TABLEP(table)) {
     FD_DO_CHOICES(var,vars) {
       if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-      if (fd_test(table,var,val)) return FD_TRUE;}
-    return FD_FALSE;}
-  else return FD_FALSE;
+      if (fd_test(table,var,val)) result=FD_TRUE;}}
+  fd_decref(table);
+  return result;
 }
 
 static fdtype cgiset(fdtype vars,fdtype value)
