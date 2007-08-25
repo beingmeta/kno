@@ -854,7 +854,7 @@ static void write_table_as_slotmap
 /* Handling fdserv requests */
 
 #if APACHE13
-static int fdserv_handler(request_rec *r)
+static int fdserv_handler(request_rec *r) /* 1.3 */
 {
   char sbuf[MAX_STRING_LEN], *post_data; int post_size;
 #if TRACK_EXECUTION_TIMES
@@ -956,7 +956,7 @@ static void copy_script_output(int sock,request_rec *r)
     ap_rwrite(buf,bytes_read,r); ap_rflush(r);}
 }
 
-static int fdserv_handler(request_rec *r)
+static int fdserv_handler(request_rec *r) /* 2.0 */
 {
   BUFF *reqdata;
   char sbuf[MAX_STRING_LEN], *post_data, errbuf[512];
@@ -965,18 +965,17 @@ static int fdserv_handler(request_rec *r)
   apr_file_t *script_out = NULL, *script_in = NULL, *script_err = NULL;
   apr_bucket_brigade *bb;
   apr_bucket *b;
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-		"Entered fdserv_handler for %s from %s",
-		r->filename,r->unparsed_uri);
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
-  ftime(&start);
 #endif
   if(strcmp(r->handler, FDSERV_MAGIC_TYPE) && strcmp(r->handler, "fdservlet"))
     return DECLINED;
   else if (!((r->method_number == M_GET) || (r->method_number == M_POST)))
     return DECLINED;
-  else sock=connect_to_servlet(r);
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
+		"Entered fdserv_handler for %s from %s",
+		r->filename,r->unparsed_uri);
+  sock=connect_to_servlet(r);
   errno=0; if (sock < 0) {
     ap_log_error(APLOG_MARK,APLOG_ERR,OK,r->server,
 		 "Connection failed to %s for %s",
@@ -989,9 +988,13 @@ static int fdserv_handler(request_rec *r)
     ap_rprintf(r,"Cannot start fdservlet for %s",r->filename);
     ap_rvputs(r,"</BODY>\n</HTML>",NULL);
     return HTTP_SERVICE_UNAVAILABLE;}
-  else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		    "Socket %d serves %s for %s",
-		    sock,r->filename,r->unparsed_uri);
+  else {
+#if TRACK_EXECUTION_TIMES
+    ftime(&start);
+#endif
+    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+		 "Socket %d serves %s for %s",
+		 sock,r->filename,r->unparsed_uri);}
   reqdata=ap_bcreate(r->pool,0);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "Handling request for %s by using %s with socket %d",
@@ -1101,7 +1104,8 @@ module MODULE_VAR_EXPORT fdserv_module = {
 #else
 static void register_hooks(apr_pool_t *p)
 {
-  ap_hook_handler(fdserv_handler, NULL, NULL, APR_HOOK_MIDDLE);
+  /* static const char * const run_first[]={ "mod_mime",NULL }; */
+  ap_hook_handler(fdserv_handler, NULL, NULL, APR_HOOK_LAST);
   ap_hook_post_config(fdserv_init, NULL, NULL, APR_HOOK_MIDDLE);
 
 }
