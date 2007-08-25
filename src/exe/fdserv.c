@@ -16,6 +16,7 @@ static char versionid[] =
 #include "fdb/ports.h"
 #include "fdb/fileprims.h"
 
+#include <libu8/libu8.h>
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8pathfns.h>
@@ -32,6 +33,8 @@ static char versionid[] =
 #include <signal.h>
 
 #include "revision.h"
+
+static u8_condition Startup=_("FDSERV Startup");
 
 FD_EXPORT void fd_init_fdweb(void);
 FD_EXPORT void fd_init_texttools(void);
@@ -247,7 +250,7 @@ static void write_pid_file(char *sockname)
   strcat(pidfile,".pid");
   f=fopen(pidfile,"w");
   if (f==NULL)
-    u8_warn("Couldn't write file","Couldn't write PID file %s",pidfile);
+    u8_warn(Startup,"Couldn't write file","Couldn't write PID file %s",pidfile);
   else {
     fprintf(f,"%d",getpid());
     fclose(f);}
@@ -350,7 +353,7 @@ static fdtype loadcontent(fdtype path)
     fd_restore_sourcebase(oldsource);
     if (xml==NULL) {
       u8_free(content);
-      u8_warn("ERROR","Error parsing %s",pathname);
+      u8_warn(Startup,"ERROR","Error parsing %s",pathname);
       return fd_erreify();}
     env=(fd_lispenv)xml->data;
     lenv=(fdtype)env; ldata=xml->head;
@@ -659,15 +662,17 @@ FD_EXPORT void fd_init_dbfile(void);
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_fdscheme();
+  int u8_version=u8_initialize();
+  int fd_version; /* Wait to set this until we have a log file */
   unsigned char data[1024], *input;
   int i=2, n_threads=-1, n_tasks=-1;
   u8_string source_file=NULL;
   if (argc<2) {
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
-
   
+  u8_warn(Startup,"LOGFILE='%s'",getenv("LOGFILE"));
+
   /* We doe this using the Unix environment (rather than configuration
       variables) because we want to redirect errors from the configuration
       variables themselves and we want to be able to set this in the
@@ -677,11 +682,13 @@ int main(int argc,char **argv)
     char *logfile=u8_strdup(getenv("LOGFILE"));
     int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|O_SYNC,0644);
     if (log_fd<0) {
-      u8_warn("Couldn't open log file %s",logfile);
+      u8_warn(Startup,"Couldn't open log file %s",logfile);
       exit(1);}
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
+  fd_version=fd_init_fdscheme();
+  
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we

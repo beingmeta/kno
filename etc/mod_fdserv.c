@@ -21,6 +21,10 @@
 #include "http_protocol.h"
 #include "http_request.h"
 
+#ifndef HEAVY_DEBUGGING
+#define HEAVY_DEBUGGING 0
+#endif
+
 #ifdef STANDARD20_MODULE_STUFF
 #define APACHE20 1
 #define APACHE13 0
@@ -34,6 +38,9 @@ typedef unsigned long long INTPOINTER;
 #else
 typedef unsigned int INTPOINTER;
 #endif
+
+#define SPAWN_TIMEOUT 20
+#define MAX_CONFIGS 32
 
 #include "util_script.h"
 #if APACHE13
@@ -454,46 +461,104 @@ static const char *get_sockname(request_rec *r,const char *spec)
       ap_get_module_config(r->server->module_config,&fdserv_module);
     struct FDSERV_DIR_CONFIG *dconfig=
       ap_get_module_config(r->per_dir_config,&fdserv_module);
-    if (dconfig->socket_file) {
-      apr_table_set(socketname_table,spec,dconfig->socket_file);
-      return (char *) dconfig->socket_file;}
+    const char *socket_file=
+      (((dconfig->socket_file)!=NULL) ? (dconfig->socket_file) : (NULL));
+    const char *socket_prefix=
+      ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
+       (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
+       "/tmp/fdserv::");
+    if ((socket_file)&&(socket_file[0]=='/')) {
+      /* Absolute socket file name, just use it. */
+      apr_table_set(socketname_table,spec,socket_file);
+      return socket_file;}
+    else if (socket_file) {
+      /* Relative socket file name, just append it. */
+      char socketpath[PATH_MAX];
+      if ((strlen(socket_prefix)+strlen(socket_file)+1)>PATH_MAX) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,500,r,
+	   "Socket file name %s+%s exceeded PATH_MAX (%d)",
+	   socket_prefix,socket_file,PATH_MAX);
+	return NULL;}
+      strcpy(socketpath,socket_prefix); strcat(socketpath,socket_file);
+      apr_table_set(socketname_table,spec,socketpath);
+      return apr_table_get(socketname_table,spec);}
+    else if ((strlen(socket_prefix)+strlen(spec)+1)>PATH_MAX) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_ERR,500,r,
+	 "Socket file name %s+%s exceeded PATH_MAX (%d)",
+	 socket_prefix,spec,PATH_MAX);
+      return NULL;}
     else {
-      const char *prefix=
-	((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
-	 (sconfig->socket_prefix) ? (sconfig->socket_prefix) : "/tmp/fdserv::");
+      /* Convert the spec (essentially the path to the location plus
+	 the server name) into a socket name by converting / to : */
       char buf[PATH_MAX], *write=buf, *read=(char *)spec;
-      strcpy(buf,prefix); write=buf+strlen(prefix);
+      strcpy(buf,socket_prefix); write=buf+strlen(socket_prefix);
       while (*read)
 	if ((*read == '/') || (*read == '\\')) {*write++=':'; read++;}
 	else *write++=*read++;
       *write='\0';
       apr_table_set(socketname_table,spec,buf);
+      /* Setting it in the table will get it strdup'd so
+	 we just store it and return it from the table. */
       return (char *) apr_table_get(socketname_table,spec);}}
 }
 
 /* Launching fdservlet processes */
 
-static void spawn_fdservlet (request_rec *r,apr_pool_t *p,const char *sockname);
+static int spawn_fdservlet (request_rec *r,apr_pool_t *p,const char *sockname);
 
-int connect_to_servlet(request_rec *r)
+static int connect_to_servlet(request_rec *r)
 {
   int sock; char buf[512];
   sprintf(buf,"%s:%s",r->server->server_hostname,r->uri);
   const char *sockname=get_sockname(r,buf);
   struct sockaddr_un servname;
-
-  ap_log_error
-    (APLOG_HEAD,r->server,"Resolving request for %s through %s",
-     r->unparsed_uri,sockname);
+  
+  if (sockname==NULL)
+    ap_log_rerror
+      (APLOG_MARK,LOG_CRIT,500,r,
+       "Couldn't resolve socket name for %s",r->unparsed_uri);
+  else ap_log_error
+	 (APLOG_MARK,LOG_NOTICE,OK,r->server,
+	  "Resolving request for %s through %s",r->unparsed_uri,sockname);
 
   sock=socket(PF_LOCAL,SOCK_STREAM,0);
+  if (sock<0) {
+    ap_log_rerror
+      (APLOG_MARK,LOG_CRIT,500,r,"Couldn't open socket for %s (errno=%d:%s)",
+       sockname,errno,strerror(errno));
+    errno=0;
+    return sock;}
+  else ap_log_rerror
+	 (APLOG_MARK,LOG_DEBUG,OK,r,"Opened socket %d for %s",sock,sockname);
+
+  
   servname.sun_family=AF_LOCAL; strcpy(servname.sun_path,sockname);
   if ((connect(sock,(struct sockaddr *)&servname,SUN_LEN(&servname))) < 0) {
-    spawn_fdservlet(r,r->pool,sockname);
-    if ((connect(sock,(struct sockaddr *)&servname,SUN_LEN(&servname))) < 0)
-      return -1;
-    else return sock;}
-  else return sock;  
+    int rv=spawn_fdservlet(r,r->pool,sockname);
+    if (rv<0) {
+      ap_log_rerror
+	(APLOG_MARK,LOG_CRIT,500,r,"Couldn't spawn fdservlet @ %s",sockname);
+      return -1;}
+    else ap_log_rerror
+	   (APLOG_MARK,LOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
+    if ((connect(sock,(struct sockaddr *)&servname,SUN_LEN(&servname))) < 0) {
+      ap_log_rerror
+	(APLOG_MARK,LOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
+	 sockname,errno,strerror(errno));
+      errno=0;
+      return -1;}
+    else {
+      ap_log_rerror
+	(APLOG_MARK,LOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
+	 sockname,sock);
+      return sock;}}
+  else {
+    ap_log_rerror
+      (APLOG_MARK,LOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
+       sockname,sock);
+    return sock;}
 }
 
 #if APACHE13
@@ -502,7 +567,7 @@ struct FDSERV_INFO {
   char **config_args;
   uid_t uid; gid_t gid;};
 
-static int exec_fdserv(void *child_stuff, child_info *pinfo)
+static int exec_fdserv(void *child_stuff, child_info *pinfo) /* 1.3 */
 {
   char *argv[32], *envp[5], buf[32];
   struct FDSERV_INFO *info=(struct FDSERV_INFO *) child_stuff;
@@ -528,7 +593,7 @@ static int exec_fdserv(void *child_stuff, child_info *pinfo)
   return -1; /* Should never return */
 }
 
-static void spawn_fdservlet
+static int spawn_fdservlet /* 1.3 */
   (request_rec *r,apr_pool_t *p,const char *sockname) 
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
@@ -561,24 +626,43 @@ static void spawn_fdservlet
 	 sockname);}}
   
   errno=0;
-  ap_log_error
-    (APLOG_MARK,APLOG_NOTICE,s,
+  ap_log_rerror
+    (APLOG_MARK,APLOG_NOTICE,r,
      "Spawning %s @%s for %s[pid=%d,uid=%d,gid=%d]",
      info.exename,sockname,r->unparsed_uri,getpid(),info.uid,info.gid);
   
   ap_bspawn_child(p,exec_fdserv,&info,0,NULL,NULL,NULL);
 
   /* Now wait for the file to exist */
-  sleep(2); while (stat(sockname,&stat_data) < 0) {
-    sleep(1); perror(sockname);}
+  {
+    int sleep_count=1;
+    sleep(1); while (stat(sockname,&stat_data) < 0) {
+      if (sleep_count>SPAWN_TIMEOUT) {
+	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
+		      "Failed to spawn socket file %s (%d:%s)",
+		      sockname,errno,strerror(errno));
+	errno=0;
+	return -1;}
+      if (sleep_count==4) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_NOTICE,rv,r,
+	   "Still waiting for %s to exist (errno=%d:%s)",
+	   sockname,errno,strerror(errno));
+	errno=0; sleep(2);}
+      else sleep(1);
+      sleep_count++;}}
+
+  return 0;
 }
 #endif
 
 #if APACHE20
-static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname) 
+static int spawn_fdservlet /* 2.0 */
+  (request_rec *r,apr_pool_t *p,const char *sockname) 
 {
   apr_proc_t pid; apr_procattr_t *attr;
-  char *argv[32], *envp[5];
+  /* Executable, socket name, NULL, LOGFILE env, NULL */
+  const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0;
 
   server_rec *s=r->server;
@@ -596,16 +680,27 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
 			    (sconfig->config_args) ?
 			    (sconfig->config_args) :
 			    (NULL));
-  argv[0]=(char *)exename;
-  argv[1]=(char *)sockname;
 
+  ap_log_error(APLOG_MARK,APLOG_DEBUG,rv,s,"Spawning fdservlet %s @%s for %s",
+	       exename,sockname,r->unparsed_uri);
+
+  *write_argv++=(char *)exename;
+  *write_argv++=(char *)sockname;
+  
   if (scan_config) {
     while (*scan_config) {
-      if (n_configs>30) {/* blow up */}
-      argv[2+n_configs]=(char *)(*scan_config);
-      scan_config++; n_configs++;}}
+      if (n_configs>MAX_CONFIGS) {/* blow up */}
+      *write_argv++=(char *)(*scan_config); scan_config++;
+      n_configs++;}}
   
-  argv[2+n_configs]=NULL;
+  *write_argv++=NULL;
+  
+  if (dconfig->log_file) {
+    char *env_entry=apr_psprintf(p,"LOGFILE=%s",dconfig->log_file);
+    envp=write_argv; 
+    *write_argv++=(char *)env_entry;
+    *write_argv++=NULL;}
+  else envp=NULL;
   
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
       ((rv=apr_procattr_cmdtype_set(attr,APR_PROGRAM)) != APR_SUCCESS) ||
@@ -613,10 +708,9 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
       ((rv=apr_procattr_dir_set(attr,ap_make_dirstr_parent(p,r->filename))) != APR_SUCCESS))
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		  "couldn't set child process attributes: %s", r->filename);
-  if (dconfig->log_file) {
-    envp[0]=apr_psprintf(p,"LOGFILE=%s",dconfig->log_file);
-    envp[1]=NULL;}
-  else envp[0]=NULL;
+  else ap_log_rerror(APLOG_MARK, APLOG_DEBUG, rv, r,
+		     "Successfully set child process attributes: %s", r->filename);
+  
   if (stat(sockname,&stat_data) == 0) {
     if (remove(sockname) == 0)
       ap_log_error
@@ -627,21 +721,52 @@ static void spawn_fdservlet(request_rec *r,apr_pool_t *p,const char *sockname)
 	(APLOG_MARK,APLOG_NOTICE,OK,s,"Could not remove socket file %s",
 	 sockname);}}
   
+#if HEAVY_DEBUGGING
+  {
+    const char **scanner=argv; while (scanner<write_argv) {
+      if ((envp) && (scanner>=envp))
+	ap_log_rerror(APLOG_MARK, APLOG_DEBUG, OK, r,
+		      "%s ENV[%d]='%s'",
+		      exename,scanner-argv,*scanner);
+      else ap_log_rerror(APLOG_MARK, APLOG_DEBUG, OK, r,
+			 "%s ARG[%d]='%s'",
+			 exename,scanner-argv,*scanner);
+      scanner++;}}
+#endif
+
   errno=0;
-  rv=apr_proc_create(&pid,exename,(const char **)argv,(const char **)envp,attr,p);
+  rv=apr_proc_create(&pid,exename,(const char **)argv,envp,
+		     attr,p);
   if (rv!=APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d]",
 		  exename,sockname,r->unparsed_uri,rv,pid);
-    return;}
+    return -1;}
   else ap_log_error
 	 (APLOG_MARK,APLOG_NOTICE,rv,s,
 	  "Spawned %s @%s for %s [rv=%d,pid=%d]",
 	  exename,sockname,r->unparsed_uri,rv,pid);
   
-  /* Now wait for the file to exist */
-  sleep(2); while (stat(sockname,&stat_data) < 0) {
-    sleep(5); perror(sockname);}
+  /* Now wait for the socket file to exist */
+  {
+    int sleep_count=1;
+    sleep(1); while (stat(sockname,&stat_data) < 0) {
+      if (sleep_count>SPAWN_TIMEOUT) {
+	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
+		      "Failed to spawn socket file %s (%d:%s)",
+		      sockname,errno,strerror(errno));
+	errno=0;
+	return -1;}
+      if (sleep_count==4) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_NOTICE,rv,r,
+	   "Still waiting for %s to exist (errno=%d:%s)",
+	   sockname,errno,strerror(errno));
+	errno=0; sleep(2);}
+      else sleep(1);
+      sleep_count++;}}
+
+  return 0;
 }
 #endif
 
@@ -708,7 +833,8 @@ static void buf_write_symbol(char *string,BUFF *b)
   ap_bputc(0x07,b); buf_write_4bytes(len,b); ap_bputs(string,b);
 }
 
-static void write_table_as_slotmap(request_rec *r,apr_table_t *t,BUFF *b,int post_size,char *post_data)
+static void write_table_as_slotmap
+  (request_rec *r,apr_table_t *t,BUFF *b,int post_size,char *post_data)
 {
   const apr_array_header_t *ah=apr_table_elts(t); int n_elts=ah->nelts;
   apr_table_entry_t *scan=(apr_table_entry_t *) ah->elts, *limit=scan+n_elts;
@@ -737,10 +863,15 @@ static int fdserv_handler(request_rec *r)
   BUFF *out=ap_bcreate(r->pool,B_WR|B_SOCKET);
   BUFF *in=ap_bcreate(r->pool,B_RD|B_SOCKET);
   int socket;
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
+		"Entered fdserv_handler for %s from %s",
+		r->filename,r->unparsed_uri);
 #if TRACK_EXECUTION_TIMES
   ftime(&start);
 #endif
   socket=connect_to_servlet(r);
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
+		"Got server socket for %s",r->filename);
   errno=0; if (socket < 0) {
     ap_log_error(APLOG_MARK,APLOG_ERR,r->server,
 		 "Connection failed to %s for %s",
@@ -776,16 +907,10 @@ static int fdserv_handler(request_rec *r)
     else {post_data=NULL; post_size=0;}}
   else {post_data=NULL; post_size=0;}
   /* Still need to handle posted data */
-  write_table_as_slotmap(r,r->subprocess_env,out,post_size,post_data); ap_bflush(out);
+  write_table_as_slotmap(r,r->subprocess_env,out,post_size,post_data);
+  ap_bflush(out);
   ap_scan_script_header_err_buff(r, in, sbuf); ap_send_http_header(r);
-#if 0
-  {
-    char buf[4096]; int bytes_read;
-    while ((bytes_read=ap_bread(in,buf,4096))>0) {
-      ap_rwrite(buf,bytes_read,r); ap_rflush(r);}}
-#else
   ap_send_fb(in,r); ap_rflush(r);
-#endif
 #if TRACK_EXECUTION_TIMES
   {char buf[64]; double interval; ftime(&end);
    interval=1000*(end.time-start.time)+(end.millitm-start.millitm);
@@ -840,6 +965,9 @@ static int fdserv_handler(request_rec *r)
   apr_file_t *script_out = NULL, *script_in = NULL, *script_err = NULL;
   apr_bucket_brigade *bb;
   apr_bucket *b;
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
+		"Entered fdserv_handler for %s from %s",
+		r->filename,r->unparsed_uri);
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
   ftime(&start);
