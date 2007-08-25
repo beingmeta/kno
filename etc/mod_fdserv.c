@@ -467,6 +467,12 @@ static const char *get_sockname(request_rec *r,const char *spec)
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
        "/tmp/fdserv::");
+
+    ap_log_rerror
+      (APLOG_MARK,APLOG_DEBUG,OK,r,
+       "config socket_file=%s, socket_prefix=%s",
+       socket_file,socket_prefix);
+    
     if ((socket_file)&&(socket_file[0]=='/')) {
       /* Absolute socket file name, just use it. */
       apr_table_set(socketname_table,spec,socket_file);
