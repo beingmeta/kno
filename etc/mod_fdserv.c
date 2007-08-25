@@ -681,7 +681,8 @@ static int spawn_fdservlet /* 2.0 */
 			    (sconfig->config_args) :
 			    (NULL));
 
-  ap_log_error(APLOG_MARK,APLOG_DEBUG,rv,s,"Spawning fdservlet %s @%s for %s",
+  ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,s,
+	       "Spawning fdservlet %s @%s for %s",
 	       exename,sockname,r->unparsed_uri);
 
   *write_argv++=(char *)exename;
@@ -788,7 +789,8 @@ static void ap_bputc(unsigned char c,BUFF *b)
 {
   if (b->ptr+1 >= b->lim) {
     int old_size=b->lim-b->buf, off=b->ptr-b->buf;
-    unsigned char *nbuf=prealloc(b->p,(char *)b->buf,old_size*2,old_size);
+    unsigned char *nbuf=
+      (unsigned char *)prealloc(b->p,(char *)b->buf,old_size*2,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+old_size*2;}
   *(b->ptr++)=c;
 }
@@ -799,7 +801,7 @@ static void ap_bputs(char *string,BUFF *b)
     int old_size=b->lim-b->buf, off=b->ptr-b->buf, new_size=old_size, need_size=off+len+1;
     unsigned char *nbuf;
     while (new_size < need_size) new_size=new_size*2;
-    nbuf=prealloc(b->p,(char *)b->buf,new_size,old_size);
+    nbuf=(unsigned char *)prealloc(b->p,(char *)b->buf,new_size,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+new_size;}
   strcpy((char *)b->ptr,string); b->ptr=b->ptr+len;
 }
@@ -809,7 +811,7 @@ static void ap_bwrite(BUFF *b,char *string,int len)
     int old_size=b->lim-b->buf, off=b->ptr-b->buf, new_size=old_size, need_size=off+len+1;
     unsigned char *nbuf;
     while (new_size < need_size) new_size=new_size*2;
-    nbuf=prealloc(b->p,(char *)b->buf,new_size,old_size);
+    nbuf=(unsigned char *)prealloc(b->p,(char *)b->buf,new_size,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+new_size;}
   strncpy((char *)b->ptr,string,len); b->ptr=b->ptr+len;
 }
@@ -965,12 +967,8 @@ static void copy_script_output(int sock,request_rec *r)
 static int fdserv_handler(request_rec *r) /* 2.0 */
 {
   BUFF *reqdata;
-  char sbuf[MAX_STRING_LEN], *post_data, errbuf[512];
+  char *post_data, errbuf[512];
   int sock, post_size;
-  conn_rec *c = r->connection;
-  apr_file_t *script_out = NULL, *script_in = NULL, *script_err = NULL;
-  apr_bucket_brigade *bb;
-  apr_bucket *b;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
