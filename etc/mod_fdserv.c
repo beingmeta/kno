@@ -695,11 +695,17 @@ static int spawn_fdservlet /* 2.0 */
   
   *write_argv++=NULL;
   
-  if (dconfig->log_file) {
-    char *env_entry=apr_psprintf(p,"LOGFILE=%s",dconfig->log_file);
-    envp=write_argv; 
-    *write_argv++=(char *)env_entry;
-    *write_argv++=NULL;}
+  if (dconfig->log_file)
+    if (file_writablep(r->pool,r->server,dconfig->log_file)) {
+      char *env_entry=apr_psprintf(p,"LOGFILE=%s",dconfig->log_file);
+      envp=write_argv; 
+      *write_argv++=(char *)env_entry;
+      *write_argv++=NULL;}
+    else {
+      ap_log_error(APLOG_MARK,APLOG_CRIT,500,s,
+		   "Logfile %s isn't writable for processing %s",
+		   dconfig->log_file,r->unparsed_uri);
+      return -1;}
   else envp=NULL;
   
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
