@@ -660,7 +660,7 @@ static int spawn_fdservlet /* 1.3 */
 static int spawn_fdservlet /* 2.0 */
   (request_rec *r,apr_pool_t *p,const char *sockname) 
 {
-  apr_proc_t pid; apr_procattr_t *attr;
+  apr_proc_t proc; apr_procattr_t *attr;
   /* Executable, socket name, NULL, LOGFILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0;
@@ -741,17 +741,17 @@ static int spawn_fdservlet /* 2.0 */
 #endif
 
   errno=0;
-  rv=apr_proc_create(&pid,exename,(const char **)argv,envp,
+  rv=apr_proc_create(&proc,exename,(const char **)argv,envp,
 		     attr,p);
   if (rv!=APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d]",
-		  exename,sockname,r->unparsed_uri,rv,pid);
+		  exename,sockname,r->unparsed_uri,rv,proc.pid);
     return -1;}
   else ap_log_error
 	 (APLOG_MARK,APLOG_NOTICE,rv,s,
 	  "Spawned %s @%s for %s [rv=%d,pid=%d]",
-	  exename,sockname,r->unparsed_uri,rv,pid);
+	  exename,sockname,r->unparsed_uri,rv,proc.pid);
   
   /* Now wait for the socket file to exist */
   {
@@ -788,7 +788,7 @@ static void ap_bputc(unsigned char c,BUFF *b)
 {
   if (b->ptr+1 >= b->lim) {
     int old_size=b->lim-b->buf, off=b->ptr-b->buf;
-    unsigned char *nbuf=prealloc(b->p,b->buf,old_size*2,old_size);
+    unsigned char *nbuf=prealloc(b->p,(char *)b->buf,old_size*2,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+old_size*2;}
   *(b->ptr++)=c;
 }
@@ -799,9 +799,9 @@ static void ap_bputs(char *string,BUFF *b)
     int old_size=b->lim-b->buf, off=b->ptr-b->buf, new_size=old_size, need_size=off+len+1;
     unsigned char *nbuf;
     while (new_size < need_size) new_size=new_size*2;
-    nbuf=prealloc(b->p,b->buf,new_size,old_size);
+    nbuf=prealloc(b->p,(char *)b->buf,new_size,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+new_size;}
-  strcpy(b->ptr,string); b->ptr=b->ptr+len;
+  strcpy((char *)b->ptr,string); b->ptr=b->ptr+len;
 }
 static void ap_bwrite(BUFF *b,char *string,int len)
 {
@@ -809,9 +809,9 @@ static void ap_bwrite(BUFF *b,char *string,int len)
     int old_size=b->lim-b->buf, off=b->ptr-b->buf, new_size=old_size, need_size=off+len+1;
     unsigned char *nbuf;
     while (new_size < need_size) new_size=new_size*2;
-    nbuf=prealloc(b->p,b->buf,new_size,old_size);
+    nbuf=prealloc(b->p,(char *)b->buf,new_size,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+new_size;}
-  strncpy(b->ptr,string,len); b->ptr=b->ptr+len;
+  strncpy((char *)b->ptr,string,len); b->ptr=b->ptr+len;
 }
 static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
 {
@@ -944,7 +944,7 @@ static int sock_fgets(char *buf,int n_bytes,void *stream)
   else return  write-buf;
 }
 
-static int sock_write(request_rec *r,char *buf,int n_bytes,int sock)
+static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,int sock)
 {
   int bytes_written=0, bytes_to_write=n_bytes;
   while (bytes_written < bytes_to_write) {
