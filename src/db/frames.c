@@ -443,7 +443,9 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 
 FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 {
-  if (FD_OIDP(slotid)) {
+  if (!(FD_OIDP(f)))
+    return fd_test(f,slotid,value);
+  else if (FD_OIDP(slotid)) {
     struct FD_FRAMEOP_STACK fop;
     FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_testop,f,slotid,value);
     if (fd_in_progressp(&fop)) return 0;

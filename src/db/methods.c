@@ -428,6 +428,7 @@ static fdtype inverse_test_method(fdtype root,fdtype slotid,fdtype value)
   int direct_test=fd_oid_test(root,slotid,value);
   if (direct_test<0) return fd_erreify();
   else if (direct_test) return (FD_TRUE);
+  else if (!(FD_OIDP(value))) return FD_FALSE;
   else {
     fdtype inv_slots=fd_oid_get(slotid,inverse_slot,FD_EMPTY_CHOICE);
     if (FD_ABORTP(inv_slots)) return inv_slots;
