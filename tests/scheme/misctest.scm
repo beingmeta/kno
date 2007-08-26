@@ -254,6 +254,27 @@
 (applytest {"phi" "betx" "deltx" "gxmmx" "omegx" "xlphx" "epsilon"}
 	   runlisttest2 stringlist)
 
+(define (get-expr-atoms expr)
+  (cond ((pair? expr)
+	 (choice (get-expr-atoms (car expr)) (get-expr-atoms (cdr expr))))
+        ((vector? expr) (get-expr-atoms (elts expr)))
+        ((table? expr)
+         (let ((keys (getkeys expr)))
+           (choice (get-expr-atoms keys) (get-expr-atoms (get expr keys)))))
+        (else expr)))
+
+(define (get-atoms x)
+   (if (procedure? x) (get-expr-atoms (procedure-body x))
+       (get-expr-atoms x)))
+
+(define (leaker x)
+  (let* ((atoms (get-atoms x))
+         (pnames (symbol->string (pick atoms symbol?)))
+         (pnamelist (sorted pnames)))
+     (map (lambda (x) (length x)) pnamelist)))
+
+(applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
+
 (message "MISCTEST successfuly completed")
 
 
