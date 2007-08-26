@@ -414,6 +414,8 @@ static fd_index open_file_index(u8_string filename)
 	break;}
       else i++;
     if (ix) {
+      if (ix->cid) {
+	u8_free(ix->cid); ix->cid=NULL;}
       ix->cid=index_filename;
       ix->xid=u8_realpath(index_filename,NULL);
       fd_register_index(ix);

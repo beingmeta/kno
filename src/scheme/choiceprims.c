@@ -120,7 +120,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
 	envstruct.copy=NULL;}
-      fd_decref(*vloc);
+      fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
@@ -184,7 +184,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
 	fd_decref(choices);
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	return val;}
-      fd_decref(*vloc);
+      fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
@@ -247,7 +247,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
 	envstruct.copy=NULL;}
-      fd_decref(*vloc);
+      fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
@@ -312,7 +312,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
 	envstruct.copy=NULL;}
-      fd_decref(*vloc);
+      fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     *vloc=FD_VOID;
     fd_decref(choices);

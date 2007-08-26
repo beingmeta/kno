@@ -155,7 +155,12 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
       cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
     else cix->indices=u8_alloc_n(1,fd_index);
     cix->indices[cix->n_indices++]=add;
-    u8_free(cix->cid);
+    if ((cix->cid) || (cix->source)) 
+      if ((cix->cid)==(cix->source)) {
+	u8_free(cix->cid); cix->cid=cix->source=NULL;}
+      else {
+	if (cix->cid) {u8_free(cix->cid); cix->cid=NULL;}
+	if (cix->source) {u8_free(cix->source); cix->source=NULL;}}
     cix->cid=cix->source=get_compound_id(cix->n_indices,cix->indices);
     fd_reset_hashtable(&(cix->cache),-1,1);
     return 1;}

@@ -1243,7 +1243,7 @@ static fdtype seq2vector(fdtype seq)
   else if (FD_SEQUENCEP(seq)) {
     int n; fdtype *data=fd_elts(seq,&n);
     return fd_init_vector(NULL,n,data);}
-  else return fd_type_error(_("sequence"),"seq2list",seq);
+  else return fd_type_error(_("sequence"),"seq2vector",seq);
 }
 
 static fdtype seq2list(fdtype seq)
@@ -1252,7 +1252,7 @@ static fdtype seq2list(fdtype seq)
   else if (FD_SEQUENCEP(seq)) {
     int n; fdtype *data=fd_elts(seq,&n), result=FD_EMPTY_LIST;
     n--; while (n>=0) {
-      result=fd_make_pair(data[n],result); n--;}
+      result=fd_init_pair(NULL,fd_incref(data[n]),result); n--;}
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2list",seq);

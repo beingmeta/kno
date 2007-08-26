@@ -12,8 +12,20 @@ static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
 
 static void free_environment(struct FD_ENVIRONMENT *env)
 {
+  /* There are three cases:
+        a simple static environment (env->copy==NULL)
+        a static environment copied into a dynamic environment
+	  (env->copy!=env)
+	a dynamic environment (env->copy==env->copy)
+  */
   if (env->copy) 
-    fd_recycle_environment(env->copy);
+    if (env==env->copy)
+      fd_recycle_environment(env->copy);
+    else {
+      struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
+      int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
+      while (i < n) {fd_decref(vals[i]); i++;}
+      fd_recycle_environment(env->copy);}
   else {
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
     int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;

@@ -2103,6 +2103,7 @@ FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)
   u8_free(h->slots);
   fd_unlock_struct(h); 
   fd_destroy_mutex(&(h->lock));
+  if (!(FD_STACK_CONSP(h))) u8_free(h);
   return 1;
 }
 

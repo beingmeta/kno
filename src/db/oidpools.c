@@ -820,6 +820,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
 	return NULL;}
       else values[schedule[i].value_at]=value;
       i++;}
+    u8_free(schedule);
     return values;}
 }
 

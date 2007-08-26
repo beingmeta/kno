@@ -736,10 +736,12 @@ static fdtype set_browse_info
   else if (p==NULL)
     return fd_type_error("pool","set_browse_info",poolarg);
   if (FD_VOIDP(script)) script=fdtype_string("browse.fdcgi");
+  else fd_incref(script);
   if (FD_VOIDP(classname)) classname=fdtype_string("oid");
-  if (FD_VOIDP(displayer)) displayer=fd_intern("OBJ-NAME");
-  entry=fd_make_vector(3,fd_incref(script),fd_incref(classname),
-		       fd_incref(displayer));
+  else fd_incref(classname);
+  if (FD_VOIDP(displayer)) displayer=fd_intern("%ID");
+  else fd_incref(displayer);
+  entry=fd_make_vector(3,script,classname,displayer);
   if (FD_FALSEP(poolarg)) {
     fd_decref(default_browse_info);
     default_browse_info=fd_incref(entry);}
@@ -785,24 +787,25 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
 		     FD_OID_HI(addr),FD_OID_LO(addr),
 		     FD_STRDATA(FD_VECTOR_REF(browse_info,1)));
     else u8_printf(out,"<a href='browse.fdcgi?:@%x/%x' class='oid'>",
-		   FD_OID_HI(addr),(FD_OID_LO(addr)));}
+		   FD_OID_HI(addr),(FD_OID_LO(addr)));
+    fd_decref(browse_info);}
   else {
     return fd_type_error(_("valid anchor target"),"doanchor",target);}
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
-      fd_decref(xmloidfn);
+      fd_decref(xmloidfn); fd_decref(target);
       return value;}
     else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
       fd_decref(value);
     else {
-      fd_decref(xmloidfn);
+      fd_decref(xmloidfn); fd_decref(target);
       return value;}
     body=FD_CDR(body);}
   u8_printf(out,"</a>");
   u8_flush(out);
-  fd_decref(xmloidfn);
+  fd_decref(xmloidfn); fd_decref(target);
   if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   return FD_VOID;
 }
@@ -821,7 +824,7 @@ static int has_class_attrib(fdtype attribs)
 static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 {
   U8_OUTPUT *out=fd_get_default_output(), tmpout;
-  fdtype target=fd_eval(fd_get_arg(expr,1),env), xmloidfn;
+  fdtype target=fd_eval(fd_get_arg(expr,1),env), xmloidfn=FD_VOID;
   fdtype attribs=fd_get_arg(expr,2);
   fdtype body=fd_get_body(expr,3);
   u8_byte buf[128]; U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
@@ -843,7 +846,8 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
     fdtype browse_info=get_browse_info(target);
-    if (has_class_attrib(attribs)) {}
+    if (has_class_attrib(attribs))
+      fd_incref(attribs);
     else if ((FD_VECTORP(browse_info)) &&
 	     (FD_VECTOR_LENGTH(browse_info)>1) &&
 	     (FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
@@ -852,8 +856,8 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 	 fd_init_pair(NULL,fd_incref(FD_VECTOR_REF(browse_info,1)),
 		      fd_incref(attribs)));
     else attribs=fd_init_pair
-      (NULL,fd_intern("CLASS"),
-       fd_init_pair(NULL,fdtype_string("oid"),fd_incref(attribs)));
+	   (NULL,fd_intern("CLASS"),
+	    fd_init_pair(NULL,fdtype_string("oid"),fd_incref(attribs)));
     tmpout.u8_outptr=tmpout.u8_outbuf;
     if ((FD_VECTORP(browse_info)) &&
 	(FD_VECTOR_LENGTH(browse_info)>0) &&
@@ -869,27 +873,29 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 		   FD_OID_HI(addr),(FD_OID_LO(addr)));
     attribs=fd_init_pair
       (NULL,href_symbol,
-       fd_init_pair(NULL,fd_init_string
-		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf),
-		    fd_incref(attribs)));}
+       fd_init_pair(NULL,
+		    fd_extract_string(NULL,tmpout.u8_outbuf,tmpout.u8_outptr),
+		    attribs));
+    fd_decref(browse_info);}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
-  if (open_markup(out,&tmpout,"a",attribs,env,0)<0)
-    return fd_erreify();
+  if (open_markup(out,&tmpout,"a",attribs,env,0)<0) {
+    fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
+    return fd_erreify();}
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
-      fd_decref(xmloidfn);
+      fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
       return value;}
     else if (xmlout_helper(out,&tmpout,value,xmloidfn,env))
       fd_decref(value);
     else {
-      fd_decref(xmloidfn);
+      fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
       return value;}
     body=FD_CDR(body);}
   u8_printf(out,"</a>");
   u8_flush(out);
-  fd_decref(xmloidfn);
+  fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
   if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   return FD_VOID;
 }

@@ -258,7 +258,8 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
 	fd_bind_value(var,value,inner_env->copy);
 	fd_decref(value);}
       else {
-	vars[i]=var; vals[i]=value; i++;}}}
+	vars[i]=var; vals[i]=value;}
+      i++;}}
     result=eval_body(body,inner_env);
     free_environment(inner_env);
     return result;}
