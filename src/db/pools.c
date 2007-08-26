@@ -261,7 +261,7 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 {
   if (pool_conflict_handler) pool_conflict_handler(upstart,holder);
   else 
-    u8_warn(_("Pool conflict"),"%s (from %s) and existing pool %s (from %s)\n",
+    u8_log(LOG_WARN,_("Pool conflict"),"%s (from %s) and existing pool %s (from %s)\n",
 	    upstart->label,upstart->source,holder->label,holder->source);
 }
 
@@ -696,12 +696,12 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       fd_decref(needy);}
     else u8_free(oidc);
     if (retval<0)
-      u8_warn(fd_Commitment,
+      u8_log(LOG_WARN,fd_Commitment,
 		"Error saving %d OIDs from %s in %f secs",n,p->cid,
 		u8_elapsed_time()-start_time);
-    else u8_notify(fd_Commitment,
-		   "Saved %d OIDs from %s in %f secs",n,p->cid,
-		   u8_elapsed_time()-start_time);
+    else u8_log(LOG_INFO,fd_Commitment,
+		"Saved %d OIDs from %s in %f secs",n,p->cid,
+		u8_elapsed_time()-start_time);
     return retval;}
   else {
     int retcode;
@@ -712,7 +712,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     retcode=p->handler->storen(p,1,oidv,values);
     fd_decref(value);
     if (retcode<0) {
-      u8_warn(fd_Commitment,
+      u8_log(LOG_WARN,fd_Commitment,
 	      "[%*t] Error saving one OID from %s in %f secs",
 	      p->cid,u8_elapsed_time()-start_time);
       return retcode;}
@@ -720,9 +720,9 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       if (unlock) {
 	if (p->handler->unlock(p,oids)) 
 	  fd_hashtable_op(locks,fd_table_store,oids,FD_VOID);}
-      u8_notify(fd_Commitment,
-		"[%*t] Saved one OID from %s in %f secs",
-		 p->cid,u8_elapsed_time()-start_time);
+      u8_log(LOG_INFO,fd_Commitment,
+	     "[%*t] Saved one OID from %s in %f secs",
+	     p->cid,u8_elapsed_time()-start_time);
       return 1;}
     else return 0;}
 }
@@ -999,7 +999,7 @@ static int do_commit(fd_pool p,void *data)
   int retval=fd_pool_unlock_all(p,1);
   if (retval<0)
     if (data) {
-      u8_warn("POOL_COMMIT_FAIL","Error when commiting pool %s",p->cid);
+      u8_log(LOG_WARN,"POOL_COMMIT_FAIL","Error when commiting pool %s",p->cid);
       return 0;}
     else return -1;
   else return 0;
@@ -1265,11 +1265,11 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
     /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
-      u8_notify(ipeval_objfetch,"Fetching %d oids from %s: %q",
-		FD_CHOICE_SIZE(todo),p->cid,todo);
+      u8_log(LOG_INFO,ipeval_objfetch,"Fetching %d oids from %s: %q",
+	     FD_CHOICE_SIZE(todo),p->cid,todo);
     else if (fd_trace_ipeval)
-      u8_notify(ipeval_objfetch,"Fetching %d oids from %s",
-		FD_CHOICE_SIZE(todo),p->cid);
+      u8_log(LOG_INFO,ipeval_objfetch,"Fetching %d oids from %s",
+	     FD_CHOICE_SIZE(todo),p->cid);
 #endif
     fd_pool_prefetch(p,todo);
     return 0;}

@@ -654,11 +654,11 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 	ix->handler->setcache(ix,fd_default_cache_level);}
     retval=ix->handler->commit(ix);
     if (retval<0)
-      u8_warn(fd_Commitment,_("Error saving %d keys to %s after %f secs"),
+      u8_log(LOG_WARN,fd_Commitment,_("Error saving %d keys to %s after %f secs"),
 	      n_keys,ix->cid,u8_elapsed_time()-start_time);
     else if (retval>0)
-      u8_notify(fd_Commitment,_("Saved %d keys to %s in %f secs"),
-		retval,ix->cid,u8_elapsed_time()-start_time);
+      u8_log(LOG_NOTICE,fd_Commitment,_("Saved %d keys to %s in %f secs"),
+	     retval,ix->cid,u8_elapsed_time()-start_time);
     else {}
     return retval;}
   else return 0;
@@ -756,7 +756,7 @@ FD_EXPORT int fd_commit_indices_noerr()
   int i=0; while (i < fd_n_primary_indices) {
     int retval=fd_index_commit(fd_primary_indices[i]);
     if (retval<0) {
-      u8_warn("INDEX_COMMIT_FAIL","Error committing %s",
+      u8_log(LOG_WARN,"INDEX_COMMIT_FAIL","Error committing %s",
 	      fd_primary_indices[i]->cid);
       fd_clear_errors(1);
       count=-1;}
@@ -765,7 +765,7 @@ FD_EXPORT int fd_commit_indices_noerr()
   i=0; while (i < fd_n_secondary_indices) {
     int retval=fd_index_commit(fd_secondary_indices[i]);
     if (retval<0) {
-      u8_warn("INDEX_COMMIT_FAIL","Error committing %s",
+      u8_log(LOG_WARN,"INDEX_COMMIT_FAIL","Error committing %s",
 	      fd_secondary_indices[i]->cid);
       fd_clear_errors(1);
       count=-1;}
@@ -840,11 +840,11 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
-      u8_notify(ipeval_ixfetch,"Fetching %d keys from %s: %q",
-		FD_CHOICE_SIZE(todo),ix->cid,todo);
+      u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s: %q",
+	     FD_CHOICE_SIZE(todo),ix->cid,todo);
     else if (fd_trace_ipeval)
-      u8_notify(ipeval_ixfetch,"Fetching %d keys from %s",
-		FD_CHOICE_SIZE(todo),ix->cid);
+      u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s",
+	     FD_CHOICE_SIZE(todo),ix->cid);
 #endif
     return fd_index_prefetch(ix,todo);}
 }

@@ -407,7 +407,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
     if (fd_setpos(s,label_loc)>0) {
       label=fd_dtsread_dtype(s);
       if (FD_STRINGP(label)) pool->label=u8_strdup(FD_STRDATA(label));
-      else u8_warn(fd_BadFilePoolLabel,"label: %s",fd_dtype2string(label));
+      else u8_log(LOG_WARN,fd_BadFilePoolLabel,"label: %s",fd_dtype2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
@@ -612,7 +612,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=NULL; fp->offsets_size=0;}
     newmmap=
@@ -620,7 +620,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 	   PROT_READ|PROT_WRITE,
 	   MAP_SHARED,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=newmmap+6; fp->offsets_size=fp->load;}}
 #endif
@@ -662,7 +662,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0)  {
-      u8_warn(u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=NULL; fp->offsets_size;}
     newmmap=
@@ -671,7 +671,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       mmap(NULL,(4*fp->load)+24,
 	   PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
     else {fp->offsets=newmmap+6; fp->offsets_size=0;}}
 #else
@@ -751,7 +751,7 @@ static void zpool_setcache(fd_pool p,int level)
 	mmap(NULL,(4*fp->load)+24,PROT_READ,
 	     MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"zpool_setcache:mmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"zpool_setcache:mmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
       else {
 	fp->offsets=offsets=newmmap+6;
@@ -776,7 +776,7 @@ static void zpool_setcache(fd_pool p,int level)
 	 as the load, not the capacity. */
       retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"zpool_setcache:munmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"zpool_setcache:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
 #else
       u8_free(fp->offsets);
@@ -824,7 +824,7 @@ static void zpool_close(fd_pool p)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"zpool_close:munmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"zpool_close:munmap %s",fp->cid);
       errno=0;}
 #else
     u8_free(fp->offsets);

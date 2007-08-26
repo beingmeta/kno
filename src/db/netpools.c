@@ -59,7 +59,7 @@ static fdtype dtcall(struct FD_NETWORK_POOL *np,int n_elts,...)
   if ((fd_dtswrite_dtype(stream,request)<0) ||
       (fd_dtsflush(stream)<0)) {
     /* Close the stream and sleep a second before reconnecting. */
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s",np->xid);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",np->xid);
     fd_dtsclose(stream,1); sleep(1);
     if ((reopen_network_pool(np)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)) {
@@ -68,7 +68,7 @@ static fdtype dtcall(struct FD_NETWORK_POOL *np,int n_elts,...)
   result=fd_dtsread_dtype(stream);
   if (FD_EQ(result,FD_EOD)) {
     /* Close the stream and sleep a second before reconnecting. */
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s",np->xid);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",np->xid);
     fd_dtsclose(stream,1); sleep(1);
     if ((reopen_network_pool(np)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)) {
@@ -150,7 +150,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
       else {
 	u8_connection newsock=u8_connect_x(spec,&xid);
 	if (u8_set_nodelay(sock,1)<0) 
-	  u8_warn("DelayError","Can't set delay flag for socket");
+	  u8_log(LOG_WARN,"DelayError","Can't set delay flag for socket");
 	p=u8_alloc(struct FD_NETWORK_POOL);
 	fd_init_dtype_stream(&(p->stream),newsock,FD_NET_BUFSIZE);
 	p->xid=xid;

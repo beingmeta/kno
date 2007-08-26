@@ -388,21 +388,20 @@ FD_EXPORT int fd_swapcheck()
   fdtype l_memgap=fd_config_get("SWAPCHECK");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {
-    u8_warn(fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);
+    u8_log(LOG_WARN,fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);
     fd_decref(l_memgap);
     return -1;}
   else return 0;
   if (usage<(membase+memgap)) return 0;
   fd_lock_mutex(&fd_swapcheck_lock);
   if (usage>(membase+memgap)) {
-    u8_notify(SwapCheck,"Swapping because %ld>%ld+%ld",
-	      usage,membase,memgap);
+    u8_log(LOG_NOTICE,SwapCheck,"Swapping because %ld>%ld+%ld",
+	   usage,membase,memgap);
     fd_clear_slotcaches();
     fd_clear_callcache(FD_VOID);
     fd_swapout_all();
     membase=u8_memusage();
-    u8_notify(SwapCheck,"Swapped out, new membase=%ld",
-	      membase);
+    u8_log(LOG_NOTICE,SwapCheck,"Swapped out, new membase=%ld",membase);
     fd_unlock_mutex(&fd_swapcheck_lock);}
   else {
     fd_unlock_mutex(&fd_swapcheck_lock);}

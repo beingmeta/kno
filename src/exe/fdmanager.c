@@ -122,7 +122,7 @@ static int setup_runas()
   gid_t gid=getgid();
   struct group *gentry=NULL;
   if ((uid<0) || (gid<0)) {
-    u8_warn(SecurityAbort,"Couldn't determine user or group");
+    u8_log(LOG_WARN,SecurityAbort,"Couldn't determine user or group");
     exit(2);}
   if (getenv("FDAEMON_GROUP"))
     gentry=getgrnam(getenv("FDAEMON_GROUP"));
@@ -130,7 +130,7 @@ static int setup_runas()
   if (gentry==NULL) gentry=getgrnam("daemon");
   if (gentry==NULL) gentry=getgrnam("nogroup");
   if (gentry) {
-    u8_warn(SecurityEvent,"Servers will run as group '%s' (%d)",
+    u8_log(LOG_WARN,SecurityEvent,"Servers will run as group '%s' (%d)",
 	    gentry->gr_name,gentry->gr_gid);
     runas_gid=gentry->gr_gid;}
   if (uid==0) {
@@ -142,11 +142,11 @@ static int setup_runas()
     if (uentry==NULL) uentry=getpwnam("daemon");
     if (uentry==NULL) uentry=getpwnam("nobody");
     if ((uentry) && (uentry->pw_uid)) {
-      u8_warn(SecurityEvent,"Servers will run as user '%s' (%d)",
+      u8_log(LOG_WARN,SecurityEvent,"Servers will run as user '%s' (%d)",
 	      uentry->pw_name,uentry->pw_uid);
       runas_uid=uentry->pw_uid;}
     else {
-      u8_warn(SecurityAbort,"Couldn't find non-root UID to use");
+      u8_log(LOG_WARN,SecurityAbort,"Couldn't find non-root UID to use");
       exit(1);}}
 }
 
@@ -154,12 +154,12 @@ static int become_runas()
 {
   if (setgid(runas_gid)<0) {
     u8_graberr(-1,"server startup",NULL);
-    u8_warn(SecurityAbort,"Couldn't change GID (%d)",runas_gid);
+    u8_log(LOG_WARN,SecurityAbort,"Couldn't change GID (%d)",runas_gid);
     exit(1);}
   if (runas_uid)
     if (setuid(runas_uid)<0) {
       u8_graberr(-1,"server startup",NULL);
-      u8_warn(SecurityAbort,"Couldn't change UID to %d",runas_uid);
+      u8_log(LOG_WARN,SecurityAbort,"Couldn't change UID to %d",runas_uid);
       exit(1);}
 }
 
@@ -468,7 +468,7 @@ static int dont_be_root()
   uid_t uid=getuid();
   gid_t gid=getgid();
   if ((uid<0) || (gid<0)) {
-    u8_warn(SecurityAbort,"Couldn't determine user or group");
+    u8_log(LOG_WARN,SecurityAbort,"Couldn't determine user or group");
     exit(2);}
   if (uid==0) {
     /* When running as root, change your uid and possibly group */
@@ -486,32 +486,32 @@ static int dont_be_root()
     if (gentry)
       if (setgid(gentry->gr_gid)<0) {
 	u8_graberr(-1,"server startup",NULL);
-	u8_warn(SecurityAbort,"Couldn't set GID to %d (%s)",
+	u8_log(LOG_WARN,SecurityAbort,"Couldn't set GID to %d (%s)",
 		gentry->gr_gid,gentry->gr_name);
 	exit(1);}
-      else u8_warn(SecurityEvent,"Changed GID to %d (%s)",
+      else u8_log(LOG_WARN,SecurityEvent,"Changed GID to %d (%s)",
 		   gentry->gr_gid,gentry->gr_name);
     else {
-      u8_warn(SecurityAbort,"Couldn't find non-root GID to use");
+      u8_log(LOG_WARN,SecurityAbort,"Couldn't find non-root GID to use");
       exit(1);}
     if (uentry)
       if (setuid(uentry->pw_uid)<0) {
 	u8_graberr(-1,"server startup",NULL);
-	u8_warn(SecurityAbort,"Couldn't set UID to %d (%s)",
+	u8_log(LOG_WARN,SecurityAbort,"Couldn't set UID to %d (%s)",
 		uentry->pw_uid,uentry->pw_name);
 	exit(1);}
-      else u8_warn(SecurityEvent,"Changed uid to %d (%s)",
+      else u8_log(LOG_WARN,SecurityEvent,"Changed uid to %d (%s)",
 		   uentry->pw_uid,uentry->pw_name);
     else {
-      u8_warn(SecurityAbort,"Couldn't find non-root UID to use");
+      u8_log(LOG_WARN,SecurityAbort,"Couldn't find non-root UID to use");
       exit(1);}}
   else {
     struct passwd *uentry=getpwuid(uid);
     struct group *gentry=getgrgid(gid);
     if ((uentry==NULL) || (gentry==NULL)) {
-      u8_warn(SecurityAbort,"Couldn't determine user or group");
+      u8_log(LOG_WARN,SecurityAbort,"Couldn't determine user or group");
       exit(2);}
-    u8_warn(SecurityEvent,"Running as user %s (%d) and group %s (%d)",
+    u8_log(LOG_WARN,SecurityEvent,"Running as user %s (%d) and group %s (%d)",
 	    uentry->pw_name,uentry->pw_uid,gentry->gr_name,gentry->gr_gid);}
 }
 

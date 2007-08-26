@@ -90,12 +90,12 @@ static void wait_for_the_end(pid_t pid)
   int status=0; char buf[1024];
   waitpid(pid,&status,0);
   while (WIFSTOPPED(status)) {
-    u8_warn(job_stopped,"%s <%d> has been stopped with the signal %d",
-	    u8_appid(),pid,WSTOPSIG(status));
+    u8_log(LOG_CRIT,job_stopped,"%s <%d> has been stopped with the signal %d",
+	   u8_appid(),pid,WSTOPSIG(status));
     waitpid(pid,&status,0);}
   if (WIFEXITED(status))
-    u8_warn(job_exited,"%s <%d> exited with return value %d",
-	    u8_appid(),pid,WSTOPSIG(status));
+    u8_log(LOG_CRIT,job_exited,"%s <%d> exited with return value %d",
+	   u8_appid(),pid,WSTOPSIG(status));
   else {
     char buf[1024];
     if ((pid_file) && (u8_file_existsp(pid_file)))
@@ -128,24 +128,24 @@ int main(int argc,char **argv)
     else retval=fscanf(f,"%d",&ival);
     fclose(f);
     if (retval<0) {
-      u8_warn("Launch error","Error reading PID file %s (retval=%d)",
-	      pid_file,retval);
+      u8_log(LOG_CRIT,"Launch error","Error reading PID file %s (retval=%d)",
+	     pid_file,retval);
       exit(1);}
     else if (((pid_t)ival)==pid) {
-      u8_notify("CHAINED",
-		"Chained fdbatch invocation, pid=%d",ival);
+      u8_log(LOG_NOTICE,"CHAINED",
+	     "Chained fdbatch invocation, pid=%d",ival);
       chained=1;}
     else {
-      u8_warn("Launch scrubbed",
-	      "PID file %s exists, with pid %d != %d",
-	      pid_file,ival,pid);
+      u8_log(LOG_CRIT,"Launch scrubbed",
+	     "PID file %s exists, with pid %d != %d",
+	     pid_file,ival,pid);
       exit(1);}}
   
   done_file=get_donefile();
   died_file=get_diedfile();
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
-    u8_warn(fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
+    u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
     exit(-1);}
   /* Remove any pre-existing done file. */
   if (u8_file_existsp(done_file)) u8_removefile(done_file);
@@ -154,13 +154,13 @@ int main(int argc,char **argv)
   if (isatty(1)) {
     log_file=get_logfile();
     if ((log_fd=u8_open_fd(log_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
-      u8_warn(fd_CantOpenFile,"Couldn't open log file %s",log_file);
+      u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
       exit(-1);}}
   if (isatty(2)) {
     err_file=get_errfile();
     if ((err_fd=u8_open_fd(err_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
-      u8_warn(fd_CantOpenFile,"Couldn't open err file %s",err_file);
+      u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
       if (log_file) close(log_fd);
       exit(-1);}}
@@ -170,11 +170,11 @@ int main(int argc,char **argv)
     char buf[256];
     sprintf(buf,"%d",pid); write(pid_fd,buf,strlen(buf)); close(pid_fd);
     /* The parent process just reports what it did. */
-    u8_notify("Fork started","Launched process pid=%d",pid);
+    u8_log(LOG_NOTICE,"Fork started","Launched process pid=%d",pid);
     if (log_file)
-      u8_notify("Fork started","Process %d stdout >> %s",pid,log_file);
+      u8_log(LOG_NOTICE,"Fork started","Process %d stdout >> %s",pid,log_file);
     if (err_file)
-      u8_notify("Fork started","Process %d stderr >> %s",pid,err_file);
+      u8_log(LOG_NOTICE,"Fork started","Process %d stderr >> %s",pid,err_file);
     wait_for_the_end(pid);
     if (log_file) close(log_fd);
     if (err_file) close(err_fd);}

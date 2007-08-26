@@ -1423,13 +1423,13 @@ static fdtype modify_frame_lexpr(int n,fdtype *args)
 		return fd_erreify();}
 	      else {}
 	    else {
-	      u8_warn(fd_TypeError,"frame_modify_lexpr","slotid");}
+	      u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");}
 	  else if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
 	    if (doassert(frame,slotid,args[i+1])<0) {
 	      FD_STOP_DO_CHOICES;
 	      return fd_erreify();}
 	    else {}
-	  else u8_warn(fd_TypeError,"frame_modify_lexpr","slotid");
+	  else u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");
 	i=i+2;}}
     return fd_incref(args[0]);}
 }

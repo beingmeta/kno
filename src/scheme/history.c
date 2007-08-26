@@ -225,7 +225,7 @@ static fdtype histref_prim(arg)
     fdtype val=fd_histref(FD_FIX2INT(arg));
     if (FD_ABORTP(val)) return val;
     else if (FD_VOIDP(val))
-      u8_warn(_("Lost history"),"Lost history for ##%q",arg);
+      u8_log(LOG_WARN,_("Lost history"),"Lost history for ##%q",arg);
     else if (histkeep(FD_FIX2INT(arg),val)<0)
       return fd_erreify();
     return val;}
@@ -252,7 +252,7 @@ static fdtype histclear_prim(fdtype arg)
     else {
       int loc=fd_histfind(arg);
       if (loc<0) {
-	u8_warn(_("History error"),"Couldn't find item in history: %q",arg);
+	u8_log(LOG_WARN,_("History error"),"Couldn't find item in history: %q",arg);
 	return FD_FALSE;}
       else {
 	fdtype history=fd_thread_get(history_symbol);

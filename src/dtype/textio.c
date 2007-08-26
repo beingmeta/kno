@@ -327,7 +327,7 @@ int fd_unparse(u8_output out,fdtype x)
       sprintf(buf,"#!%lx",x);
       retval=u8_puts(out,buf);
       sprintf(buf,"#!%lx (type=%d)",x,ct);
-      u8_warn(fd_CantUnparse,buf);
+      u8_log(LOG_WARN,fd_CantUnparse,buf);
       return retval;}}
   }
 }

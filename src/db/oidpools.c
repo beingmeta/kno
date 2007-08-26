@@ -180,7 +180,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       result.size=fd_dtsread_4bytes(stream);
       break;
     default:
-      u8_warn(fd_CorruptedPool,"Invalid offset type for %s: 0x%x",
+      u8_log(LOG_WARN,fd_CorruptedPool,"Invalid offset type for %s: 0x%x",
 	      p->cid,p->offtype);
       result.off=-1;
       result.size=-1;}
@@ -373,7 +373,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname);
   u8_free(rname); /* Done with this */
   if (magicno==FD_FILE_POOL_TO_RECOVER) {
-    u8_warn(fd_RecoveryRequired,"Recovering the file pool %s",fname);
+    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_oidpool(pool)<0) {
       fd_seterr(fd_MallocFailed,"open_oidpool",NULL,FD_VOID);
       return NULL;}}
@@ -390,7 +390,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
     if (fd_setpos(stream,label_loc)>0) {
       label=fd_dtsread_dtype(stream);
       if (FD_STRINGP(label)) pool->label=u8_strdup(FD_STRDATA(label));
-      else u8_warn(fd_BadFilePoolLabel,fd_dtype2string(label));
+      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_oidpool",
@@ -916,7 +916,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
     if (cbuf!=_cbuf) u8_free(cbuf);
     return cbuf_size;}
   else {
-    u8_warn(_("Out of luck"),"Compressed oidpools are not yet supported");
+    u8_log(LOG_WARN,_("Out of luck"),"Compressed oidpools are not yet supported");
     exit(-1);}
 }
 
@@ -1000,7 +1000,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
 	k++;}
       break;}
     default:
-      u8_warn("Bad offset type for %s",fp->cid);
+      u8_log(LOG_WARN,"Bad offset type for %s",fp->cid);
       u8_free(saveinfo);
       exit(-1);}
     if (fp->offsets) reload_offsets(fp,0,-1);
@@ -1011,7 +1011,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
     if (offsets) {
       fp->offsets=offsets; fp->offsets_size=refsize*fp->load;}
     else {
-      u8_warn("Realloc failed","When writing offsets");
+      u8_log(LOG_WARN,"Realloc failed","When writing offsets");
       return -1;}
     switch (fp->offtype) {
     case FD_B64: {
@@ -1038,7 +1038,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
 	k++;}
       break;}
     default:
-      u8_warn("Bad offset type for %s",fp->cid);
+      u8_log(LOG_WARN,"Bad offset type for %s",fp->cid);
       u8_free(saveinfo);
       exit(-1);}
     fd_setpos(stream,256);
@@ -1071,7 +1071,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
 	k++;}
       break;}
     default:
-      u8_warn("Bad offset type for %s",fp->cid);
+      u8_log(LOG_WARN,"Bad offset type for %s",fp->cid);
       u8_free(saveinfo);
       exit(-1);}
   fd_setpos(stream,FD_OIDPOOL_LOAD_POS);
@@ -1079,7 +1079,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
   if (fp->mmap) {
     int retval=munmap(fp->mmap,fp->mmap_size);
     if (retval<0) {
-      u8_warn("MUNMAP","oidpool MUNMAP failed with %s",u8_strerror(errno));
+      u8_log(LOG_WARN,"MUNMAP","oidpool MUNMAP failed with %s",u8_strerror(errno));
       errno=0;}
     fp->mmap_size=u8_file_size(fp->cid);
     fp->mmap=
@@ -1158,7 +1158,7 @@ static void oidpool_setcache(fd_pool p,int level)
 {
   fd_oidpool fp=(fd_oidpool)p; int chunkref_size=get_chunkref_size(fp);
   if (chunkref_size<0) {
-    u8_warn(fd_CorruptedPool,"Pool structure invalid: %s",p->cid);
+    u8_log(LOG_WARN,fd_CorruptedPool,"Pool structure invalid: %s",p->cid);
     return;}
   if (level == 2)
     if (fp->offsets) return;
@@ -1178,7 +1178,7 @@ static void oidpool_setcache(fd_pool p,int level)
 	mmap(NULL,(sizeof(unsigned int)*chunkref_size*(fp->load))+256,
 	     PROT_READ,MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"oidpool_setcache:mmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"oidpool_setcache:mmap %s",fp->cid);
 	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
       fp->offsets=offsets=newmmap+64;
       fp->offsets_size=fp->load*chunkref_size;
@@ -1202,7 +1202,7 @@ static void oidpool_setcache(fd_pool p,int level)
 	 as the load, not the capacity. */
       retval=munmap((fp->offsets)-64,sizeof(unsigned int)*chunkref_size*(fp->offsets_size)+256);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"oidpool_setcache:munmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"oidpool_setcache:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
 #else
       u8_free(fp->offsets);
@@ -1220,7 +1220,7 @@ static void oidpool_setcache(fd_pool p,int level)
 	return;}
       mmap_size=u8_file_size(fp->cid);
       if (mmap_size<0) {
-	u8_warn(u8_strerror(errno),
+	u8_log(LOG_WARN,u8_strerror(errno),
 		"oidpool u8_file_size for mmap %s",fp->source);
 	errno=0;
 	fd_unlock_struct(fp);
@@ -1230,7 +1230,7 @@ static void oidpool_setcache(fd_pool p,int level)
       if (mmapped) {
 	fp->mmap=mmapped; fp->mmap_size=mmap_size;}
       else {
-	u8_warn(u8_strerror(errno),"oidpool_setcache:mmap %s",fp->source);
+	u8_log(LOG_WARN,u8_strerror(errno),"oidpool_setcache:mmap %s",fp->source);
 	errno=0;}
       fd_unlock_struct(fp);}
   else if (fp->mmap) {
@@ -1241,7 +1241,7 @@ static void oidpool_setcache(fd_pool p,int level)
       return;}
     retval=munmap(fp->mmap,fp->mmap_size);
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"hash_index_setcache:munmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"hash_index_setcache:munmap %s",fp->cid);
       fp->mmap=NULL; errno=0;}
     fd_unlock_struct(fp);}
 #endif
@@ -1258,12 +1258,12 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
     retval=msync(fp->offsets-64,fp->offsets_size*sizeof(unsigned int)+256,
 		 MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
-    u8_warn(u8_strerror(errno),"reload_offsets:msync %s",fp->cid);
+    u8_log(LOG_WARN,u8_strerror(errno),"reload_offsets:msync %s",fp->cid);
     retval=0;}
   /* Unmap the current buffer */
   retval=munmap((fp->offsets)-64,sizeof(unsigned int)*(fp->offsets_size)+256);
   if (retval<0) {
-    u8_warn(u8_strerror(errno),"oidpool_reload_offsets:munmap %s",fp->cid);
+    u8_log(LOG_WARN,u8_strerror(errno),"oidpool_reload_offsets:munmap %s",fp->cid);
     fp->offsets=NULL; errno=0;}
   else {
     fd_dtype_stream s=&(fp->stream);
@@ -1276,7 +1276,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
 	   ((write>0) ? (PROT_READ|PROT_WRITE) : (PROT_READ)),
 	   MAP_SHARED|MAP_NORESERVE,s->fd,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_warn(u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
       fp->offsets=NULL; fp->offsets_size=0; errno=0;}
     fp->offsets=newmmap+64;
     fp->offsets_size=fp->load*get_chunkref_size(fp);}
@@ -1318,7 +1318,7 @@ static void oidpool_close(fd_pool p)
     int retval=munmap((op->offsets)-64,sizeof(unsigned int)*op->offsets_size+256);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"oidpool_close:munmap offsets %s",op->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"oidpool_close:munmap offsets %s",op->cid);
       errno=0;}
 #else
     u8_free(op->offsets);
@@ -1329,7 +1329,7 @@ static void oidpool_close(fd_pool p)
   if (op->mmap) {
     int retval=munmap(op->mmap,op->mmap_size);
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"oidpool_close:munmap %s",op->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"oidpool_close:munmap %s",op->cid);
       errno=0;}}
 #endif
   fd_dtsclose(&(op->stream),1);

@@ -137,7 +137,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
   else if (FD_CONSBITS(x)>=0x80) {
 #ifdef HUGE_REFCOUNT
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT) 
-      u8_warn("HUGEREFCOUNT","Huge refcount for %lx",x);
+      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
 #endif
     x->consbits=x->consbits+0x80;
     FD_UNLOCK_PTR(x);

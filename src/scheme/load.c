@@ -105,7 +105,7 @@ FD_EXPORT fdtype fd_load_source
   if (content==NULL) return fd_erreify();
   else outer_sourcebase=bind_sourcebase(sourcebase);
   if (trace_load) 
-    u8_notify(FileLoad,"Loading %s (%d bytes)",sourcebase,u8_strlen(content));
+    u8_log(LOG_INFO,FileLoad,"Loading %s (%d bytes)",sourcebase,u8_strlen(content));
   if ((input[0]=='#') && (input[1]=='!')) input=strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
@@ -133,8 +133,8 @@ FD_EXPORT fdtype fd_load_source
       result=expr; expr=FD_VOID;}
     else fd_decref(last_expr);
     if (trace_load) 
-      u8_notify(FileDone,"Loaded %s in %f seconds",
-		sourcebase,u8_elapsed_time()-start);
+      u8_log(LOG_INFO,FileDone,"Loaded %s in %f seconds",
+	     sourcebase,u8_elapsed_time()-start);
     restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);
     u8_free(content);

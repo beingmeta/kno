@@ -624,14 +624,14 @@ fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice)
   while (scan < limit) {
     fdtype v=*scan;
     if (write>=write_limit) {
-      u8_warn("achoice_inconsistency",
+      u8_log(LOG_WARN,"achoice_inconsistency",
 	      "total size is more than the recorded %d",ch->size);
       abort();}
     else if (FD_CHOICEP(v)) {
       struct FD_CHOICE *each=(struct FD_CHOICE *)v;
       int freed=((freeing_achoice) && (FD_CONS_REFCOUNT(each)==1));
       if (write+FD_XCHOICE_SIZE(each)>write_limit) {
-	u8_warn("achoice_inconsistency",
+	u8_log(LOG_WARN,"achoice_inconsistency",
 		"total size is more than the recorded %d",ch->size);
 	abort();}
       else if (FD_XCHOICE_ATOMICP(each)) {

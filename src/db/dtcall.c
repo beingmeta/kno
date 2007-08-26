@@ -71,13 +71,13 @@ static int server_reconnect(fd_dtserver dts)
 		u8_strdup(dts->server),server_id);
       return -1;}}
   else server_addr=u8_strdup(server);
-  u8_warn(fd_ServerReconnect,"Resetting connection to %s",dts->server);
+  u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",dts->server);
   newsock=u8_connect_x(server,&(dts->addr));
   if (newsock<0) {
-    u8_warn(fd_ServerReconnect,"Failed to reconnect to %s",dts->server);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Failed to reconnect to %s",dts->server);
     u8_free(server_addr); return newsock;}
   else if (u8_set_nodelay(newsock,1)<0) {
-    u8_warn(fd_ServerReconnect,"Failed to set nodelay on socket to %s",
+    u8_log(LOG_WARN,fd_ServerReconnect,"Failed to set nodelay on socket to %s",
 	    dts->server);
     u8_free(server_addr); return -1;}
   fd_init_dtype_stream(&(dts->stream),newsock,
@@ -120,7 +120,7 @@ FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
   if ((fd_dtswrite_dtype(stream,request)<0) ||
       (fd_dtsflush(stream)<0)) {
     /* Close the stream and sleep a second before reconnecting. */
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s",dts->server);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",dts->server);
     fd_dtsclose(stream,1); sleep(1);
     if ((server_reconnect(dts)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0) ||
@@ -130,7 +130,7 @@ FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
   result=fd_dtsread_dtype(stream);
   if (FD_EQ(result,FD_EOD)) {
     /* Close the stream and sleep a second before reconnecting. */
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s/",dts->server,dts->addr);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s/",dts->server,dts->addr);
     fd_dtsclose(stream,1); sleep(1);
     if ((server_reconnect(dts)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)  ||

@@ -91,7 +91,7 @@ static fdtype chain_prim(int n,fdtype *args)
       u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
       cargv[cargc++]=configs[i++];}
     cargv[cargc++]=NULL;
-    u8_notify("CHAIN",">> %s%s",u8_fromlibc(file_arg),argstring.u8_outbuf);
+    u8_log(LOG_NOTICE,"CHAIN",">> %s%s",u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
     fflush(stdout); fflush(stderr);
     fd_close_pools();
@@ -157,16 +157,16 @@ int main(int argc,char **argv)
   identify_application(argc,argv,"fdexec");
   if (wait_for_file)
     if (u8_file_existsp(wait_for_file))
-      u8_notify(FileWait,"Starting now because '%s' exists",wait_for_file);
+      u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",wait_for_file);
     else {
-      int n=0;  u8_notify(FileWait,"Waiting for '%s' to exist",wait_for_file);
+      int n=0;  u8_log(LOG_NOTICE,FileWait,"Waiting for '%s' to exist",wait_for_file);
       while (1) {
 	n++; if (n<15) sleep(n); else sleep(15);
 	if (u8_file_existsp(wait_for_file)) {
-	  u8_notify(FileWait,"[%d] Starting now because '%s' exists",n,wait_for_file);
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",n,wait_for_file);
 	  break;}
 	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
-	  u8_notify(FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}
   
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)

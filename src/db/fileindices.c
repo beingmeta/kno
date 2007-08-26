@@ -64,7 +64,7 @@ static fd_index open_file_index(u8_string fname,int read_only)
   if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
       (magicno==FD_MULT_FILE_INDEX_TO_RECOVER) ||
       (magicno==FD_MULT_FILE3_INDEX_TO_RECOVER)) {
-    u8_warn(fd_RecoveryRequired,"Recovering the file index %s",fname);
+    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file index %s",fname);
     recover_file_index(index);
     magicno=magicno&(~0x20);}
   if (magicno == FD_FILE_INDEX_MAGIC_NUMBER) index->hashv=1;
@@ -107,7 +107,7 @@ static void file_index_setcache(fd_index ix,int level)
 	mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
 	     PROT_READ,MMAP_FLAGS,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"file_index_setcache:mmap %s",fx->source);
+	u8_log(LOG_WARN,u8_strerror(errno),"file_index_setcache:mmap %s",fx->source);
 	fx->offsets=NULL; errno=0;}
       else fx->offsets=offsets=newmmap+2;
 #else
@@ -126,7 +126,7 @@ static void file_index_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       retval=munmap(fx->offsets-2,(fx->n_slots*SLOTSIZE)+8);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"file_index_setcache:munmap %s",fx->source);
+	u8_log(LOG_WARN,u8_strerror(errno),"file_index_setcache:munmap %s",fx->source);
 	fx->offsets=NULL; errno=0;}
 #else
       u8_free(fx->offsets);
@@ -199,7 +199,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       n_vals=fd_dtsread_4bytes(stream);
       val_start=fd_dtsread_4bytes(stream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
-	u8_warn(fd_FileIndexError,"file_index_fetch %s",u8_strdup(ix->cid));
+	u8_log(LOG_WARN,fd_FileIndexError,"file_index_fetch %s",u8_strdup(ix->cid));
       thiskey=fd_dtsread_dtype(stream);
       if (FDTYPE_EQUAL(key,thiskey))
 	if (n_vals==0) {
@@ -636,7 +636,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
   insertpos=slotnos+insertoff;
   if (!(((insertpos<=slotnos) || (slotno>insertpos[-1])) &&
 	((insertpos>=(slotnos+r->n_reservations)) || (slotno<insertpos[0]))))
-    u8_warn(fd_FileIndexError,"Corrupt reservations table when saving index");
+    u8_log(LOG_WARN,fd_FileIndexError,"Corrupt reservations table when saving index");
   if (insertoff<r->n_reservations)
     memmove(insertpos+1,insertpos,(SLOTSIZE*(r->n_reservations-insertoff)));
   *insertpos=slotno;
@@ -1080,7 +1080,7 @@ static void file_index_close(fd_index ix)
 #if HAVE_MMAP
     int retval=munmap(fx->offsets-2,(SLOTSIZE*fx->n_slots)+8);
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"[%d:%d] file_index_close:munmap %s",
+      u8_log(LOG_WARN,u8_strerror(errno),"[%d:%d] file_index_close:munmap %s",
 	      retval,errno,fx->source);
       errno=0;}
 #else

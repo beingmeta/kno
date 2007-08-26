@@ -217,7 +217,7 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return 0;}
   else if (FD_ABORTP(expr)) {
-    u8_warn(BadRequest,"%s[%d]: Received bad request",client->idstring,client->n_trans);
+    u8_log(LOG_ERR,BadRequest,"%s[%d]: Received bad request",client->idstring,client->n_trans);
     fd_clear_errors(1);
     u8_client_close(ucl);
     return 0;}
@@ -226,33 +226,33 @@ static int dtypeserver(u8_client ucl)
     int tracethis=((logtrans) && ((client->n_trans==1) || (((client->n_trans)%logtrans)==0)));
     double xstart, elapsed=-1.0;
     if (logeval)
-      u8_message("%s[%d]: > %q",client->idstring,client->n_trans,expr);
-    else if (logtrans) u8_message("%s[%d]: Received request",client->idstring,client->n_trans);
+      u8_log(LOG_INFO,"%s[%d]: > %q",client->idstring,client->n_trans,expr);
+    else if (logtrans) u8_log(LOG_INFO,"%s[%d]: Received request",client->idstring,client->n_trans);
     xstart=((tracktime) ? (u8_elapsed_time()) : (-1.0));
     value=fd_eval(expr,client->env);
     if (xstart>=0) elapsed=u8_elapsed_time()-xstart;
     if (logeval)
       if (xstart>=0)
-	u8_message("%s[%d]: < %q in %f",client->idstring,client->n_trans,value,
+	u8_log(LOG_INFO,"%s[%d]: < %q in %f",client->idstring,client->n_trans,value,
 		   u8_elapsed_time()-xstart);
-      else u8_message("%s[%d]: < %q",client->idstring,client->n_trans,value);
+      else u8_log(LOG_INFO,"%s[%d]: < %q",client->idstring,client->n_trans,value);
     else if (tracethis)
       if ((FD_ABORTP(value)) || (FD_EXCEPTIONP(value))) {
 	if (elapsed>=0)
-	  u8_message("%s[%d]: Error returned in %fs",client->idstring,client->n_trans,elapsed);
-	else u8_message("%s[%d]: Error returned",client->idstring,client->n_trans);
+	  u8_log(LOG_INFO,"%s[%d]: Error returned in %fs",client->idstring,client->n_trans,elapsed);
+	else u8_log(LOG_INFO,"%s[%d]: Error returned",client->idstring,client->n_trans);
       	client->n_errs++;}
       else if (elapsed>=0)
-	u8_message("%s[%d]: Normal return in %fs",client->idstring,client->n_trans,elapsed);
-      else u8_message("%s[%d]: Normal return",client->idstring,client->n_trans);
+	u8_log(LOG_INFO,"%s[%d]: Normal return in %fs",client->idstring,client->n_trans,elapsed);
+      else u8_log(LOG_INFO,"%s[%d]: Normal return",client->idstring,client->n_trans);
     if (tracktime) client->elapsed=client->elapsed+elapsed;
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
     if (tracktime) time(&(client->lastlive));
     if ((tracethis) && (xstart>=0))
-      u8_message("%s[%d]: Response sent after %fs",
+      u8_log(LOG_INFO,"%s[%d]: Response sent after %fs",
 		 client->idstring,client->n_trans,u8_elapsed_time()-xstart);
-    else if (logtrans) u8_message("%s[%d]: Response sent",client->idstring,client->n_trans);
+    else if (logtrans) u8_log(LOG_INFO,"%s[%d]: Response sent",client->idstring,client->n_trans);
     fd_decref(expr); fd_decref(value);
     fd_swapcheck();
     return 1;}
@@ -314,29 +314,29 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 
 static void shutdown_dtypeserver_onsignal(int sig)
 {
-  u8_warn(ServerShutdown,"Shutting down server on signal %d",sig);
+  u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on signal %d",sig);
   u8_server_shutdown(&dtype_server);
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype sigval=FD_INT2DTYPE(sig), value;
-    u8_warn(ServerShutdown,"Calling shutdown procedure %q",shutdown_proc);
+    u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",shutdown_proc);
     value=fd_apply(shutdown_proc,1,&sigval);
     fd_decref(value);}
   cleanup_state_files();
-  u8_warn(ServerShutdown,"Done shutting down server");
+  u8_log(LOG_CRIT,ServerShutdown,"Done shutting down server");
 }
 
 static void shutdown_dtypeserver_onexit()
 {
-  u8_warn(ServerShutdown,"Shutting down server on exit");
+  u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on exit");
   u8_server_shutdown(&dtype_server);
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype shutval, value;
     if (normal_exit) shutval=FD_FALSE; else shutval=FD_TRUE;
-    u8_warn(ServerShutdown,"Calling shutdown procedure %q",shutdown_proc);
+    u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",shutdown_proc);
     value=fd_apply(shutdown_proc,1,&shutval);
     fd_decref(value);}
   cleanup_state_files();
-  u8_warn(ServerShutdown,"Done shutting down server");
+  u8_log(LOG_WARN,ServerShutdown,"Done shutting down server");
 }
 
 /* Miscellaneous Server functions */
@@ -497,13 +497,13 @@ int main(int argc,char **argv)
       fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;
       /* Abort if there are any errors loading the file. */
       if (fd_poperr(&ex,&cxt,&details,&irritant)) {
-	u8_warn(ex,";; (ERROR %m) %m (%s)\n",ex,
+	u8_log(LOG_WARN,ex,";; (ERROR %m) %m (%s)\n",ex,
 		((details)?(details):((u8_string)"")),
 		((cxt)?(cxt):((u8_string)"")));
 	if (!(FD_VOIDP(irritant)))
-	  u8_warn("INIT Error",";; %q\n",irritant);
+	  u8_log(LOG_WARN,"INIT Error",";; %q\n",irritant);
 	if (details) u8_free(details); fd_decref(irritant);}
-      else u8_warn("INIT Error",";; Unexplained error result %q\n",result);
+      else u8_log(LOG_WARN,"INIT Error",";; Unexplained error result %q\n",result);
       u8_free(source_file);
       fd_decref((fdtype)env);
       return -1;}
@@ -556,7 +556,7 @@ int main(int argc,char **argv)
 	fprintf(f,"%d\n",getpid());
 	fclose(f);}
       else {
-	u8_warn(u8_strerror(errno),
+	u8_log(LOG_WARN,u8_strerror(errno),
 		"Couldn't write PID %d to '%s'",getpid(),pid_file);
 	errno=0;}
       /* Write the NID file */
@@ -569,13 +569,13 @@ int main(int argc,char **argv)
 	else fprintf(f,"temp.socket\n");
 	fclose(f);}
       else {
-	u8_warn(u8_strerror(errno),
+	u8_log(LOG_WARN,u8_strerror(errno),
 		"Couldn't write NID info to '%s'",getpid(),pid_file);
 	if (dtype_server.n_servers) {
 	  int i=0; while (i<dtype_server.n_servers) {
-	    u8_notify(ServerStartup,"%s\n",dtype_server.server_info[i].idstring);
+	    u8_log(LOG_NOTICE,ServerStartup,"%s\n",dtype_server.server_info[i].idstring);
 	    i++;}}
-	else u8_notify(ServerStartup,"temp.socket\n");
+	else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
 	errno=0;}
       u8_free(fullname); u8_free(bname);}
     u8_free(source_file);
@@ -587,17 +587,17 @@ int main(int argc,char **argv)
   if (fullscheme==0) {
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
   if (n_ports>0) {
-    u8_message("FramerD (r%s) fdbserver running, %d/%d pools/indices",
+    u8_log(LOG_INFO,"FramerD (r%s) fdbserver running, %d/%d pools/indices",
 	       SVN_REVISION,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
       ("beingmeta FramerD, (C) beingmeta 2004-2007, all rights reserved");
-    u8_notify(ServerStartup,"Serving on %d sockets",n_ports);
+    u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
     u8_server_loop(&dtype_server); normal_exit=1;
-    u8_notify(ServerShutdown,"Exited server loop",n_ports);
+    u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop",n_ports);
     return 0;}
   else if (n_ports==0) {
-    u8_warn(NoServers,"No servers configured, exiting..");
+    u8_log(LOG_WARN,NoServers,"No servers configured, exiting..");
     return -1;}
   else {
     fd_clear_errors(1);

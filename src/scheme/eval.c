@@ -360,7 +360,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   fdtype toeval=fd_get_arg(expr,1);
   double start=u8_elapsed_time();
   fdtype value=fd_eval(toeval,env);
-  u8_notify("%WATCH","<%fsec> %q => %q",u8_elapsed_time()-start,toeval,value);
+  u8_log(-1,"%WATCH","<%fsec> %q => %q",u8_elapsed_time()-start,toeval,value);
   return value;
 }
 
@@ -1354,9 +1354,9 @@ static void *thread_call(void *data)
 		     tstruct->applydata.args);
   if (FD_ABORTP(result)) {
     if (tstruct->flags&FD_EVAL_THREAD)
-      u8_warn(ThreadReturnError,"Thread evaluating %q returned %q",
+      u8_log(LOG_WARN,ThreadReturnError,"Thread evaluating %q returned %q",
 	      tstruct->evaldata.expr,result);
-    else u8_warn(ThreadReturnError,"Thread apply %q returned %q",
+    else u8_log(LOG_WARN,ThreadReturnError,"Thread apply %q returned %q",
 		 tstruct->applydata.fn,result);
     if ((fd_threaderror_backtrace) && (FD_PTR_TYPEP(result,fd_error_type))) {
       struct U8_OUTPUT out;
@@ -1364,7 +1364,7 @@ static void *thread_call(void *data)
 	FD_GET_CONS(result,fd_error_type,struct FD_EXCEPTION_OBJECT *);
       U8_INIT_OUTPUT(&out,8192);
       fd_print_backtrace(&out,80,e->backtrace);
-      u8_warn(ThreadReturnError,"%s",out.u8_outbuf);
+      u8_log(LOG_WARN,ThreadReturnError,"%s",out.u8_outbuf);
       u8_free(out.u8_outbuf);}}
   if (tstruct->resultptr) *(tstruct->resultptr)=result;
   else fd_decref(result);
@@ -1610,7 +1610,7 @@ static fdtype threadjoin_prim(fdtype threads)
       if ((tstruct->resultptr)==&(tstruct->result))
 	if (!(FD_VOIDP(tstruct->result))) {
 	  FD_ADD_TO_CHOICE(results,fd_incref(tstruct->result));}}
-    else u8_warn(ThreadReturnError,"Bad return code %d (%s) from %q",
+    else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
 		 retval,strerror(retval),thread);}}
   return results;
 }
@@ -1991,20 +1991,20 @@ static fdtype callcc (fdtype proc)
     fd_decref(throwval);
     f->retval=FD_NULL;
     if (FD_CONS_REFCOUNT(f)>1) 
-      u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
+      u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
     fd_decref(cont);
     return retval;}
   else if (FD_VOIDP(f->retval)) {
     fd_decref(throwval);
     if (FD_CONS_REFCOUNT(f)>1) {
-      u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
+      u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
       f->retval=FD_NULL;}
     fd_decref(cont);
     return value;}
   else {
     fdtype errobj=fd_err(LostThrow,"callcc",NULL,f->retval);
     if (FD_CONS_REFCOUNT(f)>1) {
-      u8_warn(ExpiredThrow,"Dangling pointer exists to continuation");
+      u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
       f->retval=FD_NULL;}
     fd_decref(throwval); fd_decref(cont);
     return errobj;}

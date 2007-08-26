@@ -289,7 +289,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	if (FD_VOIDP(slotid)) value=buf2string(buf,isascii);
 	else value=buf2lisp(buf,isascii);
 	if (FD_VOIDP(slotid))
-	  u8_warn(_("malformed cookie"),"strange cookie syntax: \"%s\"",
+	  u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		  FD_STRDATA(qval));
 	else {
 	  fdtype cookiedata=fd_make_vector(2,slotid,value);
@@ -315,7 +315,7 @@ static void convert_cookie_arg(fd_slotmap c)
       if (FD_VOIDP(slotid)) value=buf2string(buf,isascii);
       else value=buf2lisp(buf,isascii);
       if (FD_VOIDP(slotid))
-	u8_warn(_("malformed cookie"),"strange cookie syntax: \"%s\"",
+	u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		FD_STRDATA(qval));
       else {
 	fdtype cookiedata=fd_make_vector(2,slotid,value);
@@ -348,7 +348,7 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
     if (FD_APPLICABLEP(handler)) {
       fdtype value=fd_apply(handler,1,&data);
       fd_decref(value);}
-    else u8_warn("Not Applicable","Invalid CGI prep handler %q",handler);}}
+    else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
   return 1;
 }
 
@@ -584,7 +584,7 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
        u8_putn(out,"\r\n",2);}}
   {FD_DO_CHOICES(cookie,cookies)
      if (handle_cookie(out,cgidata,cookie)<0)
-       u8_warn(CGIDataInconsistency,"Bad cookie data: %q",cookie);}
+       u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
   u8_putn(out,"\r\n",2);
   fd_decref(ctype); fd_decref(headers); fd_decref(cookies);
 }

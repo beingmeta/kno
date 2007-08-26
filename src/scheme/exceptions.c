@@ -162,7 +162,7 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
 	fd_decref(windval);
 	fd_decref(wind); fd_decref(doit); fd_decref(unwind);
 	if (FD_ABORTP(unwindval))
-	  u8_warn(UnwindError,"DYNAMIC-WIND: %q",unwindval);
+	  u8_log(LOG_WARN,UnwindError,"DYNAMIC-WIND: %q",unwindval);
 	fd_decref(unwindval);
 	return retval;}}}
 }

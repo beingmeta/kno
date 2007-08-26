@@ -84,12 +84,12 @@ static int server_reconnect(fd_dtproc dtp)
   /* This reopens the socket for a closed network pool. */
   if (dtp->stream.fd>=0) fd_dtsclose(&(dtp->stream),1);
   if (strchr(dtp->server,'@')) {
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s for %q",dtp->server,dtp->fcnsym);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s for %q",dtp->server,dtp->fcnsym);
     newsock=u8_connect(dtp->server);}
   else {
     fdtype serverid=fd_config_get(dtp->server);
     if (FD_STRINGP(serverid)) {
-      u8_warn(fd_ServerReconnect,"Resetting connection to %s (%s) for %q",
+      u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s (%s) for %q",
 	      dtp->server,serverid,dtp->fcnsym);
       newsock=u8_connect(dtp->server);}
     else {

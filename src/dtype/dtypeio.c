@@ -122,7 +122,7 @@ static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
   if (dlen<0)
     return -1;
   else if ((olen+dlen) != (out->ptr-out->start))
-    u8_warn("trouble","inconsistent dlen");
+    u8_log(LOG_WARN,"trouble","inconsistent dlen");
   *len=*len+dlen;
   return dlen;
 }

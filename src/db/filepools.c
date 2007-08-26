@@ -68,7 +68,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,fname,rname);
   u8_free(rname);
   if (magicno==FD_FILE_POOL_TO_RECOVER) {
-    u8_warn(fd_RecoveryRequired,"Recovering the file pool %s",fname);
+    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_file_pool(pool)<0) {
       fd_seterr(fd_MallocFailed,"open_file_pool",NULL,FD_VOID);
       return NULL;}}
@@ -78,7 +78,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
     if (fd_setpos(s,label_loc)>0) {
       label=fd_dtsread_dtype(s);
       if (FD_STRINGP(label)) pool->label=u8_strdup(FD_STRDATA(label));
-      else u8_warn(fd_BadFilePoolLabel,fd_dtype2string(label));
+      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
@@ -367,12 +367,12 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       int retval=munmap((fp->offsets)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
       newmmap=mmap(NULL,(4*fp->load)+24,PROT_READ,
 		   MAP_SHARED|MAP_NORESERVE,stream->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
 	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
       else {
 	fp->offsets=newmmap+6;
@@ -487,7 +487,7 @@ static void file_pool_setcache(fd_pool p,int level)
 	mmap(NULL,(4*fp->load)+24,PROT_READ,
 	     MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_warn(u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
 	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
       fp->offsets=offsets=newmmap+6;
       fp->offsets_size=fp->load;
@@ -511,7 +511,7 @@ static void file_pool_setcache(fd_pool p,int level)
 	 as the load, not the capacity. */
       retval=munmap((fp->offsets)-6,4*fp->load+24);
       if (retval<0) {
-	u8_warn(u8_strerror(errno),"file_pool_setcache:munmap %s",fp->cid);
+	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->cid);
 	fp->offsets=NULL; errno=0;}
 #else
       u8_free(fp->offsets);
@@ -560,7 +560,7 @@ static void file_pool_close(fd_pool p)
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_warn(u8_strerror(errno),"file_pool_close:munmap %s",fp->cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->cid);
       errno=0;}
 #else
     u8_free(fp->offsets);

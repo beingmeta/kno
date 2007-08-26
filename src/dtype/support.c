@@ -228,7 +228,7 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   if (scan==NULL) return config_set(var,val);
   else if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
-    u8_warn(fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+    u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
     u8_free(errsum);}
   return retval;
 }
@@ -250,7 +250,7 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
   if (scan==NULL) return config_set(var,val);
   else if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
-    u8_warn(fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+    u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
     u8_free(errsum);}
   return retval;
 }
@@ -520,10 +520,10 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
     fd_seterr(_("RLIMIT too high"),"set_rlimit",u8_strdup(nrl->name),FD_VOID);
     return -1;}
   if (setval==rlim.rlim_cur)
-    u8_warn(SetRLimit,"Setting for %s did not need to change",nrl->name);
+    u8_log(LOG_WARN,SetRLimit,"Setting for %s did not need to change",nrl->name);
   else if (setval==RLIM_INFINITY)
-    u8_warn(SetRLimit,"Setting %s to unlimited from %d",nrl->name,rlim.rlim_cur);
-  else u8_warn(SetRLimit,"Setting %s to %lld from %lld",nrl->name,(long long)setval,rlim.rlim_cur);
+    u8_log(LOG_WARN,SetRLimit,"Setting %s to unlimited from %d",nrl->name,rlim.rlim_cur);
+  else u8_log(LOG_WARN,SetRLimit,"Setting %s to %lld from %lld",nrl->name,(long long)setval,rlim.rlim_cur);
   rlim.rlim_cur=setval;
   retval=setrlimit(nrl->code,&rlim);
   if (retval<0) {
@@ -742,7 +742,7 @@ static int clear_fderrors(struct FD_ERRDATA *ed,int report)
     U8_INIT_OUTPUT_BUF(&out,128,buf);
     u8_printf(&out,"[%d]%m",retval,"Clearing error ");
     fd_errout(&out,ed);
-    u8_message(out.u8_outbuf);
+    u8_log(LOG_ERR,NULL,"%s",out.u8_outbuf);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);}
   if (ed->details) u8_free(ed->details);
   u8_free(ed);

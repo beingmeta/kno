@@ -1009,7 +1009,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
        if (FD_SYMBOLP(sym)) {
 	 fdtype val=fd_symeval(sym,env);
 	 if (FD_VOIDP(val)) 
-	   u8_warn(SnapshotTrouble,"The snapshot variable %q is unbound",sym);
+	   u8_log(LOG_WARN,SnapshotTrouble,"The snapshot variable %q is unbound",sym);
 	 else fd_add(slotmap,sym,val);
 	 fd_decref(val);} 
        else {
@@ -1020,7 +1020,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
 	 fdtype val=fd_config_get(FD_SYMBOL_NAME(sym));
 	 fdtype config_entry=fd_init_pair(NULL,sym,val);
 	 if (FD_VOIDP(val)) 
-	   u8_warn(SnapshotTrouble,"The snapshot config %q is not set",
+	   u8_log(LOG_WARN,SnapshotTrouble,"The snapshot config %q is not set",
 		   sym);
 	 else fd_add(slotmap,configinfo,config_entry);
 	 fd_decref(val);}
@@ -1033,8 +1033,8 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
       return -1;}
     else bytes=fd_dtswrite_dtype(out,slotmap);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
-    u8_notify(SnapshotSaved,"Saved snapshot of %d items to %s",
-	      FD_SLOTMAP_SIZE(slotmap),filename);
+    u8_log(LOG_INFO,SnapshotSaved,"Saved snapshot of %d items to %s",
+	   FD_SLOTMAP_SIZE(slotmap),filename);
     fd_decref(slotmap); 
     return bytes;}
 }
@@ -1084,8 +1084,8 @@ int fd_snapback(fd_lispenv env,u8_string filename)
   else {
     return fd_reterr(fd_TypeError,"fd_snapback", u8_strdup("slotmap"),
 		     slotmap);}
-  u8_notify(SnapshotRestored,"Restored snapshot of %d items from %s",
-	    FD_SLOTMAP_SIZE(slotmap),filename);
+  u8_log(LOG_INFO,SnapshotRestored,"Restored snapshot of %d items from %s",
+	 FD_SLOTMAP_SIZE(slotmap),filename);
   fd_decref(slotmap);
   return actions;
 }

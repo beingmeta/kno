@@ -250,7 +250,7 @@ static void write_pid_file(char *sockname)
   strcat(pidfile,".pid");
   f=fopen(pidfile,"w");
   if (f==NULL)
-    u8_warn(Startup,"Couldn't write file","Couldn't write PID file %s",pidfile);
+    u8_log(LOG_WARN,Startup,"Couldn't write file","Couldn't write PID file %s",pidfile);
   else {
     fprintf(f,"%d",getpid());
     fclose(f);}
@@ -343,7 +343,7 @@ static fdtype loadcontent(fdtype path)
   double load_start=u8_elapsed_time();
   u8_string content=u8_filestring(pathname,NULL);
   if (traceweb>0)
-    u8_notify("LOADING","Loading %s",pathname);
+    u8_log(LOG_NOTICE,"LOADING","Loading %s",pathname);
   if (content[0]=='<') {
     U8_INPUT in; FD_XML *xml; fd_lispenv env;
     fdtype lenv, ldata;
@@ -353,12 +353,12 @@ static fdtype loadcontent(fdtype path)
     fd_restore_sourcebase(oldsource);
     if (xml==NULL) {
       u8_free(content);
-      u8_warn(Startup,"ERROR","Error parsing %s",pathname);
+      u8_log(LOG_WARN,Startup,"ERROR","Error parsing %s",pathname);
       return fd_erreify();}
     env=(fd_lispenv)xml->data;
     lenv=(fdtype)env; ldata=xml->head;
     if (traceweb>0)
-      u8_notify("LOADED","Loaded %s in %f secs",
+      u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
     u8_free(content); u8_free(xml);
     return fd_init_pair(NULL,ldata,lenv);}
@@ -377,7 +377,7 @@ static fdtype loadcontent(fdtype path)
     main_proc=fd_eval(main_symbol,newenv);
     fd_decref((fdtype)newenv);
     if (traceweb>0)
-      u8_notify("LOADED","Loaded %s in %f secs",
+      u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
     return main_proc;}
 }
@@ -488,7 +488,7 @@ static int webservefn(u8_client ucl)
     if (traceweb>0) {
       uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if (FD_STRINGP(uri)) 
-	u8_notify("REQUEST","Handling request for %s",FD_STRDATA(uri));
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
       fd_decref(uri);}
     proc=getcontent(path);
     fd_parse_cgidata(cgidata);
@@ -499,7 +499,7 @@ static int webservefn(u8_client ucl)
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
     if (traceweb>1)
-      u8_notify("START","Handling %q with Scheme procedure %q",path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result=fd_cgiexec(proc,cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
@@ -509,7 +509,7 @@ static int webservefn(u8_client ucl)
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     if (traceweb>1)
-      u8_notify("START","Handling %q with template",path);
+      u8_log(LOG_NOTICE,"START","Handling %q with template",path);
     setup_proc=fd_symeval(setup_symbol,base);
     if (FD_VOIDP(setup_proc)) {}
     else if (FD_CHOICEP(setup_proc)) {
@@ -536,15 +536,15 @@ static int webservefn(u8_client ucl)
   if (FD_ERRORP(result)) {
     struct FD_EXCEPTION_OBJECT *eo=(FD_EXCEPTION_OBJECT *)result;
     if (FD_VOIDP(eo->data.irritant))
-      u8_message("Unexpected error \"%m \"for %s:@%s (%s)",
-		 eo->data.cond,FD_STRDATA(path),
-		 ((eo->data.cxt) ? (eo->data.cxt) : ((u8_context)"somewhere")),
-		 ((eo->data.details) ? (eo->data.details) : ((u8_string)"no more details")));
-    else u8_message("Unexpected error \"%m\" for %s:%s (%s) %q",
-		    eo->data.cond,FD_STRDATA(path),
-		    ((eo->data.cxt) ? (eo->data.cxt) : ((u8_context)"somewhere")),
-		    ((eo->data.details) ? (eo->data.details) : ((u8_string)"no more details")),
-		    eo->data.irritant);
+      u8_log(LOG_INFO,eo->data.cond,"Unexpected error \"%m \"for %s:@%s (%s)",
+	     eo->data.cond,FD_STRDATA(path),
+	     ((eo->data.cxt) ? (eo->data.cxt) : ((u8_context)"somewhere")),
+	     ((eo->data.details) ? (eo->data.details) : ((u8_string)"no more details")));
+    else u8_log(LOG_INFO,eo->data.cond,"Unexpected error \"%m\" for %s:%s (%s) %q",
+		eo->data.cond,FD_STRDATA(path),
+		((eo->data.cxt) ? (eo->data.cxt) : ((u8_context)"somewhere")),
+		((eo->data.details) ? (eo->data.details) : ((u8_string)"no more details")),
+		eo->data.irritant);
     write_string(client->socket,
 		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
     fd_xhtmlerrorpage(&(client->out),result);
@@ -580,13 +580,13 @@ static int webservefn(u8_client ucl)
   if (traceweb>0) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
-      u8_notify("DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs.",
+      u8_log(LOG_NOTICE,"DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs.",
 		path,write_time-start_time,
 		setup_time-start_time,
 		parse_time-setup_time,
 		exec_time-parse_time,
 		write_time-exec_time);
-    else u8_notify("DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs",
+    else u8_log(LOG_NOTICE,"DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs",
 		   path,query,
 		   write_time-start_time,
 		   setup_time-start_time,
@@ -671,7 +671,7 @@ int main(int argc,char **argv)
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
   
-  u8_warn(Startup,"LOGFILE='%s'",getenv("LOGFILE"));
+  u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
 
   /* We doe this using the Unix environment (rather than configuration
       variables) because we want to redirect errors from the configuration
@@ -682,7 +682,7 @@ int main(int argc,char **argv)
     char *logfile=u8_strdup(getenv("LOGFILE"));
     int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|O_SYNC,0644);
     if (log_fd<0) {
-      u8_warn(Startup,"Couldn't open log file %s",logfile);
+      u8_log(LOG_WARN,Startup,"Couldn't open log file %s",logfile);
       exit(1);}
     dup2(log_fd,1);
     dup2(log_fd,2);}
@@ -735,11 +735,11 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  u8_notify("LAUNCH","fdserv %s",argv[1]);
+  u8_log(LOG_NOTICE,"LAUNCH","fdserv %s",argv[1]);
 
   while (i<argc)
     if (strchr(argv[i],'=')) {
-      u8_notify("CONFIG","   %s",argv[i]);
+      u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
   if (u8_file_existsp(argv[1])) remove(argv[1]);
@@ -782,7 +782,7 @@ int main(int argc,char **argv)
    sigaddset(&newset,SIGHUP);
 #endif
    if (sigprocmask(SIG_UNBLOCK,&newset,&oldset)<0)
-     u8_warn("Sigerror","Error setting signal mask");
+     u8_log(LOG_WARN,"Sigerror","Error setting signal mask");
  }
 #elif HAVE_SIGSETMASK
   /* We set this here because otherwise, it will often inherit

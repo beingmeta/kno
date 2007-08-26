@@ -377,7 +377,7 @@ static fdtype message_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   fd_set_default_output(stream);
-  u8_message_string(out->u8_outbuf);
+  u8_logger(-1,NULL,out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -397,7 +397,7 @@ static fdtype notify_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   fd_set_default_output(stream);
-  u8_notice_string(out->u8_outbuf);
+  u8_logger(LOG_NOTICE,NULL,out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -417,7 +417,7 @@ static fdtype status_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   fd_set_default_output(stream);
-  u8_status_string(out->u8_outbuf);
+  u8_logger(LOG_INFO,NULL,out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -437,7 +437,7 @@ static fdtype warning_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   fd_set_default_output(stream);
-  u8_warning_string(out->u8_outbuf);
+  u8_logger(LOG_WARN,NULL,out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -466,7 +466,7 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
 	return value;}
       body=FD_CDR(body);}
     fd_set_default_output(stream);
-    u8_message_string(out->u8_outbuf);
+    u8_logger(-1,NULL,out->u8_outbuf);
     u8_close_output(out);
     return FD_VOID;}
 }

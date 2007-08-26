@@ -67,7 +67,7 @@ static fdtype dtcall(struct FD_NETWORK_INDEX *ni,int n_elts,...)
   if ((fd_dtswrite_dtype(stream,request)<0) ||
       (fd_dtsflush(stream)<0)) {
     /* Close the stream and sleep a second before reconnecting. */
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s",ni->xid);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",ni->xid);
     fd_dtsclose(stream,1); sleep(1);
     if ((reopen_network_index(ni)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)) {
@@ -76,7 +76,7 @@ static fdtype dtcall(struct FD_NETWORK_INDEX *ni,int n_elts,...)
   result=fd_dtsread_dtype(stream);
   if (FD_EQ(result,FD_EOD)) {
     /* Close the stream and sleep a second before reconnecting. */
-    u8_warn(fd_ServerReconnect,"Resetting connection to %s",ni->xid);
+    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",ni->xid);
     fd_dtsclose(stream,1); sleep(1);
     if ((reopen_network_index(ni)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)) {
@@ -288,7 +288,7 @@ static int netindex_commit(fd_index ix)
 		     fd_incref(scan->value));
 	  else dtcallnr(nix,4,ixserver_reset,nix->xname,
 			fd_incref(FD_CDR(key)),fd_incref(scan->value));}
-	else u8_warn(fd_NoServerMethod,"Server %s doesn't support resets",ix->source);
+	else u8_log(LOG_WARN,fd_NoServerMethod,"Server %s doesn't support resets",ix->source);
       else if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol))) 
 	if (nix->capabilities&FD_ISERVER_DROP) {
 	  n_transactions++;
@@ -297,7 +297,7 @@ static int netindex_commit(fd_index ix)
 		     fd_incref(FD_CDR(key)),fd_incref(scan->value));
 	  else dtcallnr(nix,4,ixserver_drop,nix->xname,
 			fd_incref(FD_CDR(key)),fd_incref(scan->value));}
-	else u8_warn(fd_NoServerMethod,"Server %s doesn't support drops",ix->source);
+	else u8_log(LOG_WARN,fd_NoServerMethod,"Server %s doesn't support drops",ix->source);
       else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
       scan++;}
     scan=kvals; while (scan<kvals) {
