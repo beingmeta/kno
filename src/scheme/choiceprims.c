@@ -954,7 +954,7 @@ static fdtype samplen(fdtype x,fdtype count)
     else if (n) {
       struct FD_HASHSET h;
       const fdtype *data=FD_CHOICE_DATA(normal);
-      int j=0; fd_init_hashset(&h,n*3);
+      int j=0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
       while (j<howmany) {
 	int i=u8_random(n);
 	if (fd_hashset_mod(&h,data[i],1)) j++;}

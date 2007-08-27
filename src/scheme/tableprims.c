@@ -125,7 +125,7 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany)
     else if (n) {
       struct FD_HASHSET h;
       const fdtype *data=FD_CHOICE_DATA(normal);
-      int j=0; fd_init_hashset(&h,n*3);
+      int j=0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
       while (j<howmany) {
 	int i=u8_random(n);
 	if (fd_hashset_mod(&h,data[i],1)) j++;}
@@ -712,7 +712,7 @@ static fdtype choice2hashset(fdtype arg)
 {
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
   int size=3*FD_CHOICE_SIZE(arg);
-  fd_init_hashset(h,((size<17) ? (17) : (size)));
+  fd_init_hashset(h,((size<17) ? (17) : (size)),FD_MALLOCD_CONS);
   {FD_DO_CHOICES(elt,arg) fd_hashset_add(h,elt);}
   return FDTYPE_CONS(h);
 }

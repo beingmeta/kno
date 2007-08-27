@@ -1923,11 +1923,13 @@ FD_EXPORT int fd_for_hashtable
 
 /* Hashsets */
 
-FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size)
+FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_cons)
 {
   fdtype *slots;
   int i=0, n_slots=fd_get_hashtable_size(size);
-  FD_INIT_CONS(hashset,fd_hashset_type);
+  if (stack_cons) {
+    FD_INIT_STACK_CONS(hashset,fd_hashset_type);}
+  else {FD_INIT_CONS(hashset,fd_hashset_type);}
   hashset->n_slots=n_slots; hashset->n_keys=0;
   hashset->atomicp=1; hashset->loading=default_hashset_loading;
   hashset->slots=slots=u8_alloc_n(n_slots,fdtype);
@@ -1939,7 +1941,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size)
 FD_EXPORT fdtype fd_make_hashset()
 {
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
-  fd_init_hashset(h,17);
+  fd_init_hashset(h,17,FD_MALLOCD_CONS);
   FD_INIT_CONS(h,fd_hashset_type);
   return FDTYPE_CONS(h);
 }
@@ -2008,8 +2010,12 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 	    if (FD_CONSP(v)) {atomicp=0; fd_incref(v);}}
 	  else fd_incref(v);
 	  *write++=v;}}
-      if (clean) u8_free(h->slots);
-      fd_unlock_struct(h);
+      if (clean)
+	if (FD_MALLOCD_CONSP(h)) fd_decref((fdtype)h);
+	else {
+	  u8_free(h->slots); h->n_slots=h->n_keys=0;
+	  fd_unlock_struct(h);}
+      else fd_unlock_struct(h);
       return fd_init_choice(new_choice,write-base,base,
 			    (FD_CHOICE_DOSORT|
 			     ((atomicp)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES))|

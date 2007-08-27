@@ -1594,7 +1594,7 @@ static fdtype forgraph(fdtype fcn,fdtype roots,fdtype arcs)
 	    (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
 	return fd_type_error("mapfn","mapgraph",each);}
   else return fd_type_error("mapfn","mapgraph",arcs);
-  fd_init_hashset(&hashset,1024);
+  fd_init_hashset(&hashset,1024,FD_STACK_CONS);
   fd_incref(roots);
   retval=walkgraph(fcn,roots,arcs,&hashset,NULL);
   if (retval<0) {
@@ -1624,7 +1624,7 @@ static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
 	    (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
 	return fd_type_error("mapfn","mapgraph",each);}
   else return fd_type_error("mapfn","mapgraph",arcs);
-  fd_init_hashset(&hashset,1024); fd_incref(roots);
+  fd_init_hashset(&hashset,1024,FD_STACK_CONS); fd_incref(roots);
   retval=walkgraph(fcn,roots,arcs,&hashset,&results);
   if (retval<0) {
     fd_decref((fdtype)&hashset);

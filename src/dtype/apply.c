@@ -395,6 +395,7 @@ static fdtype ndapply_loop
     fdtype value=fd_dapply((fdtype)f,n,d_args);
     if (FD_ABORTP(value)) return value;
     else {
+      value=fd_finish_call(value);
       FD_ADD_TO_CHOICE(*results,value);}}
   else if (FD_PTR_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
@@ -768,111 +769,3 @@ FD_EXPORT void fd_init_apply_c()
 #endif
 
 }
-
-
-/* The CVS log for this file
-   $Log: apply.c,v $
-   Revision 1.42  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.41  2006/01/16 17:58:07  haase
-   Fixes to empty choice cases for indices and better error handling
-
-   Revision 1.40  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.39  2006/01/07 18:26:46  haase
-   Added pointer checking, both built in and configurable
-
-   Revision 1.38  2005/12/30 18:35:41  haase
-   Fixed 32/64 bit bug in initializing function info
-
-   Revision 1.37  2005/12/19 00:47:43  haase
-   Made recycling function for primitives
-
-   Revision 1.36  2005/12/17 05:59:30  haase
-   Added fd_defalias and other decls
-
-   Revision 1.35  2005/11/22 11:18:26  haase
-   More fixes to function application
-
-   Revision 1.34  2005/11/22 00:39:54  haase
-   Moved apply default handling into fd_dapply
-
-   Revision 1.33  2005/11/21 23:02:52  haase
-   Fixed initialization bug in apply
-
-   Revision 1.32  2005/08/19 22:50:10  haase
-   More filename field fixes
-
-   Revision 1.31  2005/08/15 03:28:56  haase
-   Added file information to functions and display it in regular and HTML backtraces
-
-   Revision 1.30  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.29  2005/07/29 18:16:50  haase
-   Fixed erroneous free
-
-   Revision 1.28  2005/07/09 02:38:43  haase
-   Fixed bug in calltrack handling
-
-   Revision 1.27  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.26  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.25  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.24  2005/05/09 20:02:43  haase
-   Fix typo in fopen call for profiling
-
-   Revision 1.23  2005/05/03 02:15:03  haase
-   Fixed bug in calltracking and made setting the calltrack to the same file just flush output
-
-   Revision 1.22  2005/05/02 05:23:16  haase
-   Made initialization of the calltrack key be condtional on using TLS
-
-   Revision 1.21  2005/05/02 04:36:06  haase
-   Initialized calltrack key under TLS and defined delete function
-
-   Revision 1.20  2005/05/02 04:26:10  haase
-   Fixed calltrack handling using TLS
-
-   Revision 1.19  2005/04/30 16:23:25  haase
-   Made calltrack config option gettable
-
-   Revision 1.18  2005/04/30 12:45:03  haase
-   Added CALLTRACK, an internal profiling mechanism
-
-   Revision 1.17  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.16  2005/04/13 15:03:49  haase
-   Made built-in type checking ignore unbound (FD_VOID) arguments
-
-   Revision 1.15  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.14  2005/03/26 20:06:52  haase
-   Exposed APPLY to scheme and made optional arguments generally available
-
-   Revision 1.13  2005/03/26 18:31:41  haase
-   Various configuration fixes
-
-   Revision 1.12  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.11  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.10  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.9  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
-

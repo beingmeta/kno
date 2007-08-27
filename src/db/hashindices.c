@@ -1931,7 +1931,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       u8_alloc_n(schedule_max,struct KEYBUCKET *);
     struct FD_HASHSET taken;
     struct FD_BYTE_OUTPUT out, newkeys;
-    fd_init_hashset(&taken,3*(hx->edits.n_keys));
+    fd_init_hashset(&taken,3*(hx->edits.n_keys),FD_STACK_CONS);
 #if FD_DEBUG_HASHINDICES
     u8_message("Adding %d edits to the schedule",hx->edits.n_keys);
 #endif

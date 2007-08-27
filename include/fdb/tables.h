@@ -456,7 +456,7 @@ FD_EXPORT int fd_hashset_init_add(fd_hashset h,fdtype key);
 #define fd_hashset_drop(h,key) fd_hashset_mod(h,key,0)
 FD_EXPORT fdtype fd_hashset_elts(fd_hashset h,int clean);
 
-FD_EXPORT void fd_init_hashset(fd_hashset h,int n);
+FD_EXPORT void fd_init_hashset(fd_hashset h,int n,int stack_cons);
 FD_EXPORT fdtype fd_make_hashset(void);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 

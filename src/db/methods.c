@@ -52,7 +52,7 @@ FD_EXPORT int
 fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
 {
   struct FD_HASHSET ht; fdtype h; int retval=0;
-  ht.consbits=0; fd_init_hashset(&ht,1024);
+  ht.consbits=0; fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {FD_DO_CHOICES(root,roots) 
      if ((retval=keep_walking(&ht,root,slotids,walk,data))<=0) {
        fd_recycle_hashset(&ht);
@@ -77,7 +77,7 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
 {
   struct FD_HASHSET ht;
   fdtype root=FD_EMPTY_CHOICE, result=FD_EMPTY_CHOICE;
-  ht.consbits=0; fd_init_hashset(&ht,1024);
+  ht.consbits=0; fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {FD_DO_CHOICES(node,collection) {
     FD_DO_CHOICES(slotid,lattice) {
       fdtype v=fd_frame_get(node,slotid);
@@ -375,7 +375,7 @@ static fdtype kleene_get_method(fdtype root,fdtype slotid)
   if (FD_ABORTP(slotids)) return slotids;
   else {
     struct FD_HASHSET hs; hs.consbits=0;
-    fd_init_hashset(&hs,1024);
+    fd_init_hashset(&hs,1024,FD_STACK_CONS);
     if (kleene_get_helper(&hs,root,slotids)<0) {
       fd_recycle_hashset(&hs);
       fd_decref(slotids);
