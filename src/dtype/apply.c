@@ -441,9 +441,10 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 
 FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  if (f->ndprim) return fd_dapply((fdtype)f,n,args);
-  else return fd_ndapply((fdtype)f,n,args);
+  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp); fdtype result;
+  if (f->ndprim) result=fd_dapply((fdtype)f,n,args);
+  else result=fd_ndapply((fdtype)f,n,args);
+  return fd_finish_call(result);
 }
 static int unparse_function(struct U8_OUTPUT *out,fdtype x)
 {

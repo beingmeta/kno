@@ -352,106 +352,14 @@ int main(int argc,char **argv)
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);
+  /* Hollow out the environment, which should let you reclaim it.
+     This patches around the classic issue with circular references in
+     a reference counting garbage collector.  If the
+     working_environment contains procedures which are closed in the
+     working environment, it will not be GC'd because of those
+     circular pointers. */
+  if (FD_PRIM_TYPEP(env->bindings,fd_hashtable_type))
+    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
+  fd_recycle_environment(env);
   return 0;
 }
-
-
-/* The CVS log for this file
-   $Log: fdconsole.c,v $
-   Revision 1.33  2006/02/10 14:27:31  haase
-   Added CONFIGurable debug unparse length limits
-
-   Revision 1.32  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.31  2006/01/25 02:32:27  haase
-   Fixed some end of session leaks in fdconsole
-
-   Revision 1.30  2006/01/21 21:11:26  haase
-   Removed some leaks associated with reifying error states as objects
-
-   Revision 1.29  2006/01/16 22:16:31  haase
-   Made fdconsole(s) handle achoice return values by listing them
-
-   Revision 1.28  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.27  2005/06/06 01:53:25  haase
-   Add builtin inits to fdconsole
-
-   Revision 1.26  2005/06/04 19:50:41  haase
-   Don't save errors into THAT
-
-   Revision 1.25  2005/05/30 01:28:28  haase
-   Made fdconsole init OIDDISPLAY to 3 and and removed redundant explicit POOLS and INDICES config
-
-   Revision 1.24  2005/05/27 20:50:10  haase
-   Made fdconsole bind THAT to immediate non-constants
-
-   Revision 1.23  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.22  2005/04/25 22:02:18  haase
-   Made fdconsole report object/index loads
-
-   Revision 1.21  2005/04/24 22:49:21  haase
-   Cleaned up executables to use common libraries
-
-   Revision 1.20  2005/04/21 19:07:03  haase
-   Reorganized initializations
-
-   Revision 1.19  2005/04/17 17:05:57  haase
-   Call fileio init explicitly
-
-   Revision 1.18  2005/04/17 12:39:40  haase
-   Fix error reporting in console loop
-
-   Revision 1.17  2005/04/12 00:39:53  haase
-   Added that binding and =var functionality to fdconsole
-
-   Revision 1.16  2005/04/11 21:30:14  haase
-   Don't try to print invalid pointers in fdconsole
-
-   Revision 1.15  2005/04/08 04:49:17  haase
-   Better backtrace printing
-
-   Revision 1.14  2005/04/07 20:03:12  haase
-   Better backtrace printing
-
-   Revision 1.13  2005/04/06 15:24:57  haase
-   Added application identification and better command-line argument processing, as well as more config var setting
-
-   Revision 1.12  2005/04/04 22:22:27  haase
-   Better error reporting from executables
-
-   Revision 1.11  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.10  2005/03/26 18:31:41  haase
-   Various configuration fixes
-
-   Revision 1.9  2005/03/26 00:16:13  haase
-   Made loading facility be generic and moved the rest of file access into fileio.c
-
-   Revision 1.8  2005/03/06 02:03:06  haase
-   Fixed include statements for system header files
-
-   Revision 1.7  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.6  2005/03/05 19:38:39  haase
-   Added setlocale call
-
-   Revision 1.5  2005/02/28 03:20:01  haase
-   Added optional load file and config processing to fdconsole
-
-   Revision 1.4  2005/02/24 19:12:46  haase
-   Fixes to handling index arguments which are strings specifiying index sources
-
-   Revision 1.3  2005/02/16 02:34:26  haase
-   Made real fdconsole use u8 xfiles
-
-   Revision 1.17  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

@@ -220,6 +220,29 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
   }
 }
 
+FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
+{
+  switch (FD_PTR_MANIFEST_TYPE(x)) {
+  case fd_oid_ptr_type: case fd_fixnum_ptr_type:
+    return x;
+  case fd_immediate_ptr_type:
+    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+      return fd_lexref(x,env);
+    else if (FD_SYMBOLP(x)) {
+      fdtype val=fd_symeval(x,env);
+      if (FD_EXPECT_FALSE(FD_VOIDP(val)))
+	return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,x);
+      else return val;}
+    else return x;
+  case fd_cons_ptr_type:
+    if (FD_PTR_TYPEP(x,fd_pair_type))
+      return fd_tail_eval(x,env);
+    else return fd_incref(x);
+  default: /* Never reached */
+    return x;
+  }
+}
+
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
   while (FD_PAIRP(expr))

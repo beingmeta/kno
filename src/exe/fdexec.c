@@ -224,94 +224,16 @@ int main(int argc,char **argv)
     else u8_fprintf(stderr,";; Unexplained error result %q\n",result);
     retval=-1;}
   fd_decref(result);
+  /* Hollow out the environment, which should let you reclaim it.
+     This patches around the classic issue with circular references in
+     a reference counting garbage collector.  If the
+     working_environment contains procedures which are closed in the
+     working environment, it will not be GC'd because of those
+     circular pointers. */
+  if (FD_PRIM_TYPEP(env->bindings,fd_hashtable_type))
+    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
   fd_recycle_environment(env);
   i=0; while (i<n_args) {fd_decref(args[i]); i++;}
   u8_free(args);
   return retval;
 }
-
-
-/* The CVS log for this file
-   $Log: fdexec.c,v $
-   Revision 1.28  2006/02/10 14:27:31  haase
-   Added CONFIGurable debug unparse length limits
-
-   Revision 1.27  2006/01/27 22:07:39  haase
-   Streamlined code and fixed some one-time leaks in fdexec
-
-   Revision 1.26  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.25  2006/01/21 21:11:26  haase
-   Removed some leaks associated with reifying error states as objects
-
-   Revision 1.24  2005/08/21 02:18:23  haase
-   Added usage message for fdexec with no args
-
-   Revision 1.23  2005/08/11 12:47:51  haase
-   fdexec uses builtins declaration
-
-   Revision 1.22  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.21  2005/08/10 05:47:43  haase
-   Undid previous rename of executables
-
-   Revision 1.1  2005/08/05 10:19:57  haase
-   Added fdbservlet and did some executable renames as part of the big FDB switch
-
-   Revision 1.19  2005/06/01 13:07:55  haase
-   Fixes for less forgiving compilers
-
-   Revision 1.18  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.17  2005/04/24 22:49:21  haase
-   Cleaned up executables to use common libraries
-
-   Revision 1.16  2005/04/21 19:07:03  haase
-   Reorganized initializations
-
-   Revision 1.15  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.14  2005/04/06 15:16:41  haase
-   Added application identification and better command-line argument processing, as well as more config var setting
-
-   Revision 1.13  2005/04/04 22:22:27  haase
-   Better error reporting from executables
-
-   Revision 1.12  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.11  2005/03/26 20:06:52  haase
-   Exposed APPLY to scheme and made optional arguments generally available
-
-   Revision 1.10  2005/03/26 18:31:41  haase
-   Various configuration fixes
-
-   Revision 1.9  2005/03/26 00:16:13  haase
-   Made loading facility be generic and moved the rest of file access into fileio.c
-
-   Revision 1.8  2005/03/06 19:26:44  haase
-   Plug some leaks and some failures to return values
-
-   Revision 1.7  2005/03/06 02:03:06  haase
-   Fixed include statements for system header files
-
-   Revision 1.6  2005/03/05 19:38:39  haase
-   Added setlocale call
-
-   Revision 1.5  2005/03/03 17:58:15  haase
-   Moved stdio dependencies out of fddb and reorganized make structure
-
-   Revision 1.4  2005/02/15 23:09:51  haase
-   Fixed log entries
-
-   Revision 1.3  2005/02/15 22:56:21  haase
-   Fixed bug introduced with index cleanups
-
-   Revision 1.2  2005/02/11 04:51:17  haase
-   Added version stuff
-
-*/
