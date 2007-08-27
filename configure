@@ -7839,7 +7839,7 @@ else
   with_editline="yes"
 fi
 
-if test $with_tcmalloc = "yes"; then
+if test $with_editline = "yes"; then
   if test "${ac_cv_header_histedit_h+set}" = set; then
   { echo "$as_me:$LINENO: checking for histedit.h" >&5
 echo $ECHO_N "checking for histedit.h... $ECHO_C" >&6; }
