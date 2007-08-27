@@ -957,6 +957,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 	int xformer_type=FD_PRIM_TYPE(xformer);
 	if (fd_applyfns[xformer_type]) {
 	  fdtype new_expr=(fd_applyfns[xformer_type])(xformer,1,&expr);
+	  new_expr=fd_finish_call(new_expr);
 	  if (FD_ABORTP(new_expr))
 	    result=fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
 	  else result=fd_eval(new_expr,env);

@@ -198,7 +198,8 @@ int main(int argc,char **argv)
     if (FD_APPLICABLEP(main_proc)) {
       int ctype=FD_PRIM_TYPE(main_proc);
       fd_decref(result);
-      result=fd_applyfns[ctype](main_proc,n_args,args);}}
+      result=fd_applyfns[ctype](main_proc,n_args,args);
+      result=fd_finish_call(result);}}
   if (FD_ERRORP(result)) {
     struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
     int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;

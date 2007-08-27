@@ -137,6 +137,7 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
 	/* These are special forms which do all the evaluating themselves */
 	fdtype new_expr=
 	  (fd_applyfns[xformer_type])(fd_pptr_ref(macrofn->transformer),1,&expr);
+	new_expr=fd_finish_call(new_expr);
 	if (FD_ABORTP(new_expr))
 	  return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
 	else return new_expr;}

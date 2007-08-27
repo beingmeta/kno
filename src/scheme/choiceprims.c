@@ -1048,7 +1048,8 @@ static fdtype apply_keyfn(fdtype x,fdtype keyfn)
   else if (FD_TABLEP(keyfn)) return fd_get(keyfn,x,FD_EMPTY_CHOICE);
   else if (FD_APPLICABLEP(keyfn)) {
     fd_ptr_type keytype=FD_PRIM_TYPE(keyfn);
-    return fd_applyfns[keytype](keyfn,1,&x);}
+    fdtype result=fd_applyfns[keytype](keyfn,1,&x);
+    return fd_finish_call(result);}
   else if (FD_VECTORP(keyfn)) {
     int i=0, len=FD_VECTOR_LENGTH(keyfn);
     fdtype *keyfns=FD_VECTOR_DATA(keyfn);
