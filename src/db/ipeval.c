@@ -224,7 +224,7 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
   cached=fd_hashtable_get(cache,vec,FD_VOID);
   if (FD_VOIDP(cached)) {
     int state=fd_ipeval_status();
-    fdtype result=fd_dapply(fcn,n,args);
+    fdtype result=fd_finish_call(fd_dapply(fcn,n,args));
     if (FD_ABORTP(result)) {
       fd_decref((fdtype)cache);
       return result;}

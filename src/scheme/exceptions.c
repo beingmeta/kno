@@ -77,7 +77,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(handler))
       return fd_passerr(handler,fd_passerr(value,FD_EMPTY_LIST));
     else if (FD_APPLICABLEP(handler)) {
-      fdtype result=fd_dapply(handler,1,&value);
+      fdtype result=fd_finish_call(fd_dapply(handler,1,&value));
       fd_decref(value);
       return result;}
     else {

@@ -1353,6 +1353,7 @@ static void *thread_call(void *data)
     result=fd_dapply(tstruct->applydata.fn,
 		     tstruct->applydata.n_args,
 		     tstruct->applydata.args);
+  result=fd_finish_call(result);
   if (FD_ABORTP(result)) {
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,"Thread evaluating %q returned %q",

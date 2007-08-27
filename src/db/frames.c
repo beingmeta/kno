@@ -417,7 +417,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	  struct FD_FUNCTION *fn=lookup_method(method);
 	  if (fn) {
 	    fdtype args[2], value; args[0]=f; args[1]=slotid;
-	    value=fd_dapply((fdtype)fn,2,args);
+	    value=fd_finish_call(fd_dapply((fdtype)fn,2,args));
 	    if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
 	      fd_decref(computed); fd_decref(methods);
 	      fd_pop_opstack(&fop,0);

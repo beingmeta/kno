@@ -466,7 +466,7 @@ static fdtype getmagnitude(fdtype val,fdtype magfn)
       return fd_get(magfn,val,FD_EMPTY_CHOICE);
     default:
       if (FD_APPLICABLEP(magfn))
-	return fd_dapply(magfn,1,&val);
+	return fd_finish_call(fd_dapply(magfn,1,&val));
       else return fd_get(val,magfn,FD_EMPTY_CHOICE);}}
 }
 
@@ -698,7 +698,7 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
 static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args)
 {
   if (i==n) {
-    fdtype val=fd_dapply((fdtype)fn,n,d_args);
+    fdtype val=fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
     if ((FD_FALSEP(val)) || (FD_EMPTY_CHOICEP(val))) {
       return 0;}
     else if (FD_ABORTP(val)) {
@@ -755,7 +755,7 @@ static fdtype forall_lexpr(int n,fdtype *nd_args)
 static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args)
 {
   if (i==n) {
-    fdtype val=fd_dapply((fdtype)fn,n,d_args);
+    fdtype val=fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
     if ((FD_FALSEP(val)))
       return 0;
     else if (FD_EMPTY_CHOICEP(val))
