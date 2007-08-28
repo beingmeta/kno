@@ -7,7 +7,7 @@
 ;;; prefetch/execute cycles which can improve performance on many
 ;;; database-intensive operations. 
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module 'reflection)
 
@@ -284,19 +284,19 @@
 
 (define (report-preamble block limit nthreads)
   (if (< block limit)
-      (status (if (config 'appid) (printout (config 'appid) ": "))
+      (notify (if (config 'appid) (printout (config 'appid) ": "))
 	      "Processing " limit " items in "
 	      (1+ (quotient limit block)) " chunks of "
 	      block " items using " nthreads
 	      (if (= nthreads 1) " thread" " threads"))
-      (status (if (config 'appid) (printout (config 'appid) ": "))
+      (notify (if (config 'appid) (printout (config 'appid) ": "))
 	      "Processing " limit " items in one chunk using "
 	      nthreads (if (= nthreads 1) " thread" " threads"))))
 
 (define (default-progress-report count thisblock limit nthreads
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Processed all " limit " elements "
 		 " in " (short-interval-string time)
 		 " with " (get% preptime time) "% ("
@@ -307,7 +307,7 @@
 	 (if (= count 0)
 	     (report-preamble thisblock limit nthreads)
 	     (let ((togo (* time (/ (- limit count) count))))
-	       (status (if (config 'appid) (printout (config 'appid) ": "))
+	       (notify (if (config 'appid) (printout (config 'appid) ": "))
 		       "Processed " (get% count limit) "%: "
 		       count " of " limit " items in "
 		       (short-interval-string time)
@@ -318,7 +318,7 @@
 			   " total)"))))))
 	(blockpost
 	 (let ((total (+ blockprep blocktime blockpost)))
-	   (status (if (config 'appid) (printout (config 'appid) ": "))
+	   (notify (if (config 'appid) (printout (config 'appid) ": "))
 		   "Processed " thisblock " items in "
 		   (short-interval-string total)
 		   "= " (short-interval-string blockprep)
@@ -328,7 +328,7 @@
 		   "+ " (short-interval-string blockpost)
 		   " (" (get% blockpost total) "%)")))
 	(blocktime
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished core processing of " thisblock " items in " (short-interval-string blocktime)
 		 " using " nthreads (if (= nthreads 1) " thread" " threads")))
 	(blockprep)
@@ -338,7 +338,7 @@
 (define (mt/sparse-progress count thisblock limit nthreads
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Processed all " limit " elements "
 		 " in " (short-interval-string time)
 		 " with " (get% preptime time) "% ("
@@ -348,7 +348,7 @@
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
 	     (report-preamble thisblock limit nthreads)
-	     (status (if (config 'appid) (printout (config 'appid) ": "))
+	     (notify (if (config 'appid) (printout (config 'appid) ": "))
 		     "Processed " (get% count limit) "%: "
 		     count " of " limit " items in "
 		     (short-interval-string time)
@@ -367,7 +367,7 @@
 	 count thisblock limit nthreads
 	 time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Processed all " limit " elements "
 		 " in " (short-interval-string time)
 		 " with " (get% preptime time) "% ("
@@ -377,7 +377,7 @@
 	((not (or blocktime blockprep blockpost))
 	 (if (= count 0)
 	     (report-preamble thisblock limit nthreads)
-	     (status (if (config 'appid) (printout (config 'appid) ": "))
+	     (notify (if (config 'appid) (printout (config 'appid) ": "))
 		     "Processed " (get% count limit) "%: "
 		     count " of " limit " items in "
 		     (short-interval-string time)
@@ -388,11 +388,11 @@
 			 "(~" (short-interval-string (+ (* time (/ (- limit count) count)) time))
 			 " total)")))))
 	(blockpost
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished post processing for " thisblock " items in "
 		 (short-interval-string blockpost))
 	 (let ((total (+ blockprep blocktime blockpost)))
-	   (status (if (config 'appid) (printout (config 'appid) ": "))
+	   (notify (if (config 'appid) (printout (config 'appid) ": "))
 		   "Processed " thisblock " items in "
 		   (short-interval-string total)
 		   "= " (short-interval-string blockprep)
@@ -402,11 +402,11 @@
 		   "+ " (short-interval-string blockpost)
 		   " (" (get% blockpost total) "%)")))
 	(blocktime
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished execution for " thisblock " items in "
 		 (short-interval-string blocktime)))
 	(blockprep
-	 (status (if (config 'appid) (printout (config 'appid) ": "))
+	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished preparation for " thisblock " items in "
 		 (short-interval-string blockprep)))
 	(else)))
@@ -420,7 +420,7 @@
   (lambda (count thisblock limit nthreads
 		 time preptime posttime blockprep blocktime blockpost)
     (cond ((= count limit)
-	   (status task ": finished all " limit " elements "
+	   (notify task ": finished all " limit " elements "
 		   " in " (short-interval-string time)
 		   " with " (get% preptime time) "% ("
 		   (short-interval-string preptime) ") in pre-processing and "
@@ -429,7 +429,7 @@
 	  ((not (or blocktime blockprep blockpost))
 	   (unless (= count 0)
 	     (let ((togo (* time (/ (- limit count) count))))
-	       (status task ": finished " (get% count limit) "% ("
+	       (notify task ": finished " (get% count limit) "% ("
 		       count "/" limit ") in "
 		       (short-interval-string time)
 		       (when (> count 0)
