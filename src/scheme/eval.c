@@ -55,6 +55,8 @@ fd_exception
   fd_CantBind=_("can't add binding to environment"),
   fd_ReadOnlyEnv=_("Read only environment");
 
+u8_context fd_eval_context="EVAL";
+
 /* Environment functions */
 
 static fdtype lexref_prim(fdtype upv,fdtype acrossv)
@@ -968,9 +970,10 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       else if (FD_ABORTP(headval))
 	result=fd_incref(headval);
       else result=fd_err(fd_NotAFunction,NULL,NULL,headval);
-      if (FD_THROWP(result)) {}
-      else if (FD_ABORTP(result))
-	result=fd_passerr(result,fd_incref(expr));
+      if (FD_THROWP(result)) {} 
+      else if (FD_ABORTP(result)) {
+	fd_push_error_context(fd_eval_context,fd_incref(expr));
+	return result;}
       if (gc) fd_decref(headval);
       return result;}}
   case fd_slotmap_type:
@@ -1073,7 +1076,8 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
     else if (fcn->name) avec[0]=fd_intern(fcn->name);
     else avec[0]=fd_intern("LAMBDA");
     if (args!=argv) u8_free(args);
-    return fd_passerr(result,fd_init_vector(NULL,arg_count+1,avec));}
+    fd_push_error_context(fd_apply_context,fd_init_vector(NULL,arg_count+1,avec));
+    return result;}
   else if (args_need_gc) {
     int i=0; while (i < arg_count) {
       fdtype arg=args[i++]; fd_decref(arg);}}
@@ -1355,20 +1359,19 @@ static void *thread_call(void *data)
 		     tstruct->applydata.args);
   result=fd_finish_call(result);
   if (FD_ABORTP(result)) {
+    u8_exception ex=u8_erreify(), root=ex;
+    u8_string errstring=fd_errstring(ex);
     if (tstruct->flags&FD_EVAL_THREAD)
-      u8_log(LOG_WARN,ThreadReturnError,"Thread evaluating %q returned %q",
-	      tstruct->evaldata.expr,result);
+      u8_log(LOG_WARN,ThreadReturnError,
+	     "Thread evaluating %q encountered an error: %s",
+	     tstruct->evaldata.expr,errstring);
     else u8_log(LOG_WARN,ThreadReturnError,"Thread apply %q returned %q",
-		 tstruct->applydata.fn,result);
-    if ((fd_threaderror_backtrace) && (FD_PTR_TYPEP(result,fd_error_type))) {
-      struct U8_OUTPUT out;
-      struct FD_EXCEPTION_OBJECT *e=
-	FD_GET_CONS(result,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-      U8_INIT_OUTPUT(&out,8192);
-      fd_print_backtrace(&out,80,e->backtrace);
-      u8_log(LOG_WARN,ThreadReturnError,"%s",out.u8_outbuf);
-      u8_free(out.u8_outbuf);}}
-  if (tstruct->resultptr) *(tstruct->resultptr)=result;
+		tstruct->applydata.fn,errstring);
+    u8_free(errstring);
+    if (tstruct->resultptr)
+      *(tstruct->resultptr)=fd_init_exception(NULL,ex);
+    else u8_free_exception(ex,1);}
+  else if (tstruct->resultptr) *(tstruct->resultptr)=result;
   else fd_decref(result);
   tstruct->flags=tstruct->flags|FD_THREAD_DONE;
   fd_decref((fdtype)tstruct);
@@ -1638,13 +1641,7 @@ static fdtype parallel_handler(fdtype expr,fd_lispenv env)
     pthread_join(threads[i]->tid,NULL);
     /* If any threads return errors, return the errors, combining
        them as contexts if multiple. */
-    if (FD_ABORTP(result))
-      if (FD_ABORTP(results[i]))
-	result=fd_passerr(results[i],result);
-      else fd_decref(results[i]);
-    else if (FD_ABORTP(results[i])) {
-      fd_decref(result); result=results[i];}
-    else {FD_ADD_TO_CHOICE(result,results[i]);}
+    FD_ADD_TO_CHOICE(result,results[i]);
     fd_decref((fdtype)(threads[i]));
     i++;}
   if (n_exprs>6) {
@@ -1968,48 +1965,33 @@ static fdtype call_continuation(struct FD_FUNCTION *f,fdtype arg)
     return fd_err(ExpiredThrow,"call_continuation",NULL,arg);
   else if (FD_VOIDP(cont->retval)) {
     cont->retval=fd_incref(arg);
-    return fd_incref(cont->throwval);}
+    return FD_THROW_VALUE;}
   else return fd_err(DoubleThrow,"call_continuation",NULL,arg);
 }
 
-u8_condition fd_throw_condition="CALL/CC THROW";
-
 static fdtype callcc (fdtype proc)
 {
-  fdtype throwval=
-    fd_err(fd_throw_condition,NULL,NULL,FD_VOID), value=FD_VOID, cont;
+  fdtype continuation, value;
   struct FD_CONTINUATION *f=u8_alloc(struct FD_CONTINUATION);
   FD_INIT_CONS(f,fd_function_type);
   f->name="continuation"; f->filename=NULL; 
   f->ndprim=1; f->xprim=1; f->arity=1; f->min_arity=1; 
   f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.xcall1=call_continuation;
-  f->throwval=throwval; f->retval=FD_VOID;
-  cont=FDTYPE_CONS(f);
-  value=fd_apply(proc,1,&cont);
-  if (value==throwval) {
+  f->handler.xcall1=call_continuation; f->retval=FD_VOID;
+  continuation=FDTYPE_CONS(f);
+  value=fd_apply(proc,1,&continuation);
+  if ((value==FD_THROW_VALUE) && (!(FD_VOIDP(f->retval)))) {
     fdtype retval=f->retval;
-    fd_decref(value);
-    fd_decref(throwval);
     f->retval=FD_NULL;
     if (FD_CONS_REFCOUNT(f)>1) 
       u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
-    fd_decref(cont);
+    fd_decref(continuation);
     return retval;}
-  else if (FD_VOIDP(f->retval)) {
-    fd_decref(throwval);
-    if (FD_CONS_REFCOUNT(f)>1) {
-      u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
-      f->retval=FD_NULL;}
-    fd_decref(cont);
-    return value;}
   else {
-    fdtype errobj=fd_err(LostThrow,"callcc",NULL,f->retval);
-    if (FD_CONS_REFCOUNT(f)>1) {
+    if (FD_CONS_REFCOUNT(f)>1) 
       u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
-      f->retval=FD_NULL;}
-    fd_decref(throwval); fd_decref(cont);
-    return errobj;}
+    fd_decref(continuation);
+    return value;}
 }
 
 /* Making DTPROCs */

@@ -32,7 +32,7 @@ static fdtype make_file_pool
   retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
 			   FD_OID_ADDR(base),fd_getint(capacity),
 			   load,metadata);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
 
@@ -51,7 +51,7 @@ static fdtype make_zpool
     fd_make_file_pool(FD_STRDATA(fname),FD_ZPOOL_MAGIC_NUMBER,
 		      FD_OID_ADDR(base),fd_getint(capacity),
 		      load,metadata);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
 
@@ -68,7 +68,7 @@ static fdtype label_file_pool(fdtype fname,fdtype label)
 	fd_setpos(stream,20);
 	if (fd_write_4bytes(((fd_byte_output)stream),(unsigned int)endpos)>=0) {
 	  retval=1; fd_dtsclose(stream,1);}}}}
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
 
@@ -148,7 +148,7 @@ static fdtype make_oidpool(int n,fdtype *args)
 			 schemas,metadata,
 			 time(NULL),time(NULL),1);
   
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 
@@ -157,7 +157,7 @@ static fdtype make_file_index(fdtype fname,fdtype size,fdtype metadata)
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
 		       fd_getint(size),metadata);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
 
@@ -166,7 +166,7 @@ static fdtype make_legacy_file_index(fdtype fname,fdtype size,fdtype metadata)
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
 		       fd_getint(size),metadata);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
 
@@ -175,7 +175,7 @@ static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_ZINDEX_MAGIC_NUMBER,
 		       fd_getint(size),metadata);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
 
@@ -208,7 +208,7 @@ static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype bas
   retval=fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
 			    get_make_hash_index_flags(flags_arg),0,
 			    slotids,baseoids,metadata,-1,-1);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 
@@ -247,7 +247,7 @@ static fdtype populate_hash_index
     int i=0; while (i<n_keys) {
       fd_decref(keyvec[i]); i++;}
     u8_free((fdtype *)keyvec);}
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(retval);
 }
 
@@ -293,14 +293,14 @@ static fdtype open_file_pool(fdtype name)
 {
   fd_pool p=fd_unregistered_file_pool(FD_STRDATA(name));
   if (p) return (fdtype) p;
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype file_pool_prefetch(fdtype pool,fdtype oids)
 {
   fd_pool p=(fd_pool)pool;
   int retval=fd_pool_prefetch(p,oids);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 

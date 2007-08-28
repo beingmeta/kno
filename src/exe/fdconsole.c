@@ -279,28 +279,18 @@ int main(int argc,char **argv)
     fd_decref(expr); expr=FD_VOID;
     if (FD_CHECK_PTR(result)==0) {
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
-    else if (FD_ERRORP(result)) {
-      struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
+    else if (FD_TROUBLEP(result)) {
+      u8_exception ex=u8_erreify(), root=ex;
       int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+      while (root->u8x_prev) root=root->u8x_prev;
       fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
-      fd_print_error(&out,e);
-      fd_print_backtrace(&out,80,e->backtrace);
-      fd_print_error(&out,e);
+      fd_print_exception(&out,root);
+      fd_print_backtrace(&out,ex,80);
       fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
       fputs(out.u8_outbuf,stderr);
-      u8_free(out.u8_outbuf);}
-    else if (FD_TROUBLEP(result)) {
-      fd_exception ex; u8_context cxt; u8_string details=NULL; fdtype irritant=FD_VOID;
-      if (fd_poperr(&ex,&cxt,&details,&irritant)) {
-	u8_fprintf(stderr,";; (ERROR %m)",ex);
-	if (details) u8_fprintf(stderr," %m",details);
-	if (cxt) u8_fprintf(stderr," (%s)",cxt);
-	u8_fprintf(stderr,"\n");
-	if (!(FD_VOIDP(irritant)))
-	  u8_fprintf(stderr,";; %q\n",irritant);}
-      else u8_fprintf(stderr,";; Unexplained error result %q\n",result);
-      if (details) u8_free(details); fd_decref(irritant);}
+      u8_free(out.u8_outbuf);
+      u8_free_exception(ex,1);}
     else if (FD_VOIDP(result)) {}
     else if ((FD_CHOICEP(result)) || (FD_ACHOICEP(result)))
       /* u8_printf(out,"%q\n",result); */
@@ -360,6 +350,7 @@ int main(int argc,char **argv)
      circular pointers. */
   if (FD_PRIM_TYPEP(env->bindings,fd_hashtable_type))
     fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
-  fd_recycle_environment(env);
+  /* Freed as console_env */
+  /* fd_recycle_environment(env); */
   return 0;
 }

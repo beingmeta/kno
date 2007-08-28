@@ -37,13 +37,17 @@ FD_EXPORT void fd_set_global_output(u8_output);
 FD_EXPORT u8_output fd_get_default_output();
 FD_EXPORT void fd_set_default_output(u8_output);
 
-FD_EXPORT int fd_pprint(u8_output out,fdtype x,u8_string prefix,int indent,int col,int maxcol,int initial);
+FD_EXPORT int fd_pprint
+  (u8_output out,fdtype x,
+   u8_string prefix,int indent,int col,int maxcol,int initial);
 typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,int,void *);
-FD_EXPORT int fd_xpprint(u8_output out,fdtype x,u8_string prefix,int indent,int col,int maxcol,int initial,
-			 fd_pprintfn fn,void *data);
+FD_EXPORT int fd_xpprint
+  (u8_output out,fdtype x,
+   u8_string prefix,int indent,int col,int maxcol,int initial,
+   fd_pprintfn fn,void *data);
 
-FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,int width,fdtype bt);
-FD_EXPORT void fd_print_error(U8_OUTPUT *out,FD_EXCEPTION_OBJECT *e);
+FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width);
+FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
 
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT_FN;
 

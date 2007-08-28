@@ -108,7 +108,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   fd_lock_struct(dtp);
   if (dtp->stream.fd<0)
     if (open_server(dtp)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
   while (i>=0) {
     if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i]))) 
       expr=fd_init_pair(NULL,fd_make_list(2,quote_symbol,fd_incref(args[i])),
@@ -118,19 +118,16 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   expr=fd_init_pair(NULL,dtp->fcnsym,expr);
   if ((fd_dtswrite_dtype(&(dtp->stream),expr)<0) ||
       (fd_dtsflush(&(dtp->stream))<0)) {
-    if (server_reconnect(dtp)<0) return fd_erreify();}
+    if (server_reconnect(dtp)<0) return FD_ERROR_VALUE;}
   result=fd_dtsread_dtype(&(dtp->stream));
   if (FD_EQ(result,FD_EOD)) {
     if ((server_reconnect(dtp)<0) ||
 	(fd_dtswrite_dtype(&(dtp->stream),expr)<0) ||
 	(fd_dtsflush(&(dtp->stream))<0))
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else result=fd_dtsread_dtype(&(dtp->stream));
     if (FD_EQ(result,FD_EOD))
       return fd_err(fd_UnexpectedEOD,"",dtp->server,expr);}
-  if (FD_ABORTP(result)) {
-    struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)result;
-    if (exo->data.cxt==NULL) exo->data.cxt=dtp->server;}
   fd_unlock_struct(dtp);
   return result;
 }

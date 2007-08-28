@@ -294,9 +294,7 @@ FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
 			    FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
 			    FD_EMPTY_CHOICE);
     else if (FD_ABORTP(result)) return result;
-    else if (FD_EXCEPTIONP(result)) {
-      FD_SET_CONS_TYPE(result,fd_error_type);
-      return result;}
+    else if (FD_EXCEPTIONP(result)) return result;
     else fd_hashtable_store(&(p->locks),result,FD_EMPTY_CHOICE);
     return result;}
 }
@@ -804,7 +802,7 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
   fdtype smap=fd_hashtable_get(&(p->locks),oid,FD_VOID);
   if (FD_VOIDP(smap)) {
     int retval=fd_pool_lock(p,oid);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else if (retval) {
       fdtype v=fd_pool_fetch(p,oid);
       if (FD_ABORTP(v)) return v;
@@ -1080,7 +1078,7 @@ fdtype fd_cached_oids(fd_pool p)
     fd_for_pools(accumulate_cached,(void *)&result);
     if (retval<0) {
       fd_decref(result);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else return result;}
   else return fd_hashtable_keys(&(p->cache));
 }

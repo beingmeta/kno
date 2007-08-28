@@ -14,10 +14,10 @@
 		   (lambda () (set! count (1+ count))))
 	       #f)
 	      count))
-(evaltest "Type error"
+(evaltest '|Type error|
 	  (onerror (+ 2 'a)
 		   (lambda (ex) (exception-condition ex))))
-(evaltest "too few arguments"
+(evaltest '|too few arguments|
 	  (onerror (cons 8)
 		   (lambda (ex) (exception-condition ex))))
 

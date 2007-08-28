@@ -26,13 +26,11 @@ fd_ptr_type fd_sproc_type, fd_macro_type;
 
 static fdtype lambda_symbol;
 
-static fdtype sproc_id(struct FD_SPROC *fn)
+static u8_string sproc_id(struct FD_SPROC *fn)
 {
-  U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   if (fn->name)
-    u8_printf(&out,"%s:%s",fn->name,fn->filename);
-  else u8_puts(&out,fn->filename);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    return u8_mkstring("%s:%s",fn->name,fn->filename);
+  else return u8_mkstring("LAMBDA:%s",fn->filename);
 }
 
 /* Set operations */
@@ -51,11 +49,11 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(value)) return value;
   else if ((retval=(fd_set_value(var,value,env)))) {
     fd_decref(value);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else if ((retval=(fd_bind_value(var,value,env)))) {
     fd_decref(value);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else return fd_err(fd_BindError,"SET!",NULL,var);
 }
@@ -125,11 +123,11 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
     return value;}
   else if ((retval=(fd_set_value(var,value,env)))) {
     fd_decref(value); fd_unlock_mutex(&sset_lock);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else if ((retval=(fd_bind_value(var,value,env)))) {
     fd_decref(value); fd_unlock_mutex(&sset_lock);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else {
     fd_unlock_mutex(&sset_lock);
@@ -218,7 +216,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
 	return value;}
       else {
 	vars[i]=var; vals[i]=value; i++;}}}
-    result=eval_body(body,inner_env);
+    result=eval_body(":LET",body,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -253,14 +251,14 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,inner_env);
       if (FD_ABORTP(value))
-	return passerr_env(value,inner_env);
+	return return_error_env(value,":LET*",inner_env);
       else if (inner_env->copy) {
 	fd_bind_value(var,value,inner_env->copy);
 	fd_decref(value);}
       else {
 	vars[i]=var; vals[i]=value;}
       i++;}}
-    result=eval_body(body,inner_env);
+    result=eval_body(":LET*",body,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -312,7 +310,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
     testval=fd_eval(testexpr,inner_env);
     if (FD_ABORTP(testval)) {
       if (n>16) {u8_free(tmp); u8_free(updaters);}
-      return passerr_env(testval,inner_env);}
+      return return_error_env(testval,":DO",inner_env);}
     /* The iteration itself */
     while (FD_FALSEP(testval)) {
       int i=0;
@@ -321,7 +319,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 	fdtype result=fasteval(bodyexpr,inner_env);
 	if (FD_ABORTP(result)) {
 	  if (n>16) {u8_free(tmp); u8_free(updaters);}
-	  return passerr_env(result,inner_env);}
+	  return return_error_env(result,":DO",inner_env);}
 	else fd_decref(result);}
       /* Do an update, storing new values in tmp[] to be consistent. */
       while (i < n) {
@@ -335,7 +333,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 	  /* Free the temporary arrays if neccessary */
 	  if (n>16) {u8_free(tmp); u8_free(updaters);}
 	  /* Return the error result, adding the expr and environment. */
-	  return passerr_env(tmp[i],inner_env);}
+	  return return_error_env(tmp[i],":DO",inner_env);}
 	else i++;}
       /* Now, free the current values and replace them with the values
 	 from tmp[]. */
@@ -350,12 +348,12 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       if (FD_ABORTP(testval)) {
 	/* If necessary, free the temporary arrays. */
 	if (n>16) {u8_free(tmp); u8_free(updaters);}
-	return passerr_env(testval,inner_env);}}
+	return return_error_env(testval,":DO",inner_env);}}
     /* Now we're done, so we set result to testval. */
     result=testval;
     if (FD_PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
-      result=eval_body(FD_CDR(exitexprs),inner_env);}
+      result=eval_body(":DO",FD_CDR(exitexprs),inner_env);}
     /* Free the environment. */
     free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -417,11 +415,13 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_struct(fn);
-  result=eval_body(fn->body,&envstruct);
+  result=eval_body(":SPROC",fn->body,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if (FD_ABORTP(result)) {
-    if (fn->filename) result=fd_passerr(result,sproc_id(fn));}
+  else if ((FD_ABORTP(result)) && (fn->filename)) 
+    u8_current_exception->u8x_details=sproc_id(fn);
+  else if ((FD_ABORTP(result)) && (fn->name))
+    u8_current_exception->u8x_details=u8_strdup(fn->name);
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
   fd_destroy_mutex(&(bindings.lock));
@@ -797,11 +797,11 @@ fdtype fd_xapply_sproc
   assert(i==fn->n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_struct(fn);
-  result=eval_body(fn->body,&envstruct);
+  result=eval_body(":XPROC",fn->body,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if (FD_ABORTP(result)) {
-    if (fn->filename) result=fd_passerr(result,sproc_id(fn));}
+  else if ((FD_ABORTP(result)) && (fn->filename)) 
+    u8_current_exception->u8x_details=sproc_id(fn);
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
   {
@@ -885,13 +885,13 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
       fdtype bind_expr=FD_CAR(scan), var=FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_VOID; scan=FD_CDR(scan); i++;}
     if (ipeval_let_binding(n,vals,bindexprs,env)<0) {
-      fdtype errobj=fd_erreify();
-      return passerr_env(errobj,env);}
+      fdtype errobj=FD_ERROR_VALUE;
+      return return_error_env(errobj,":LETQ",env);}
     {FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTP(result))
-	return passerr_env(result,inner_env);}}
+	return return_error_env(result,":LETQ",inner_env);}}
     free_environment(inner_env);
     return result;}
 }
@@ -914,13 +914,13 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
       fdtype bind_expr=FD_CAR(scan), var=FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_UNBOUND; scan=FD_CDR(scan); i++;}
     if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) {
-      fdtype errobj=fd_erreify();
-      return passerr_env(errobj,inner_env);}
+      fdtype errobj=FD_ERROR_VALUE;
+      return return_error_env(errobj,":LETQ*",inner_env);}
     {FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTP(result)) {
-	return passerr_env(result,inner_env);}}}
+	return return_error_env(result,":LETQ*",inner_env);}}}
     if (inner_env->copy) free_environment(inner_env->copy);
     return result;}
 }

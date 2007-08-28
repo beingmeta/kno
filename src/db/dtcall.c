@@ -89,10 +89,10 @@ FD_EXPORT fdtype fd_dteval(fd_dtserver dts,fdtype expr)
 {
   if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
       (fd_dtsflush(&(dts->stream))<0)) {
-    if (server_reconnect(dts)<0) return fd_erreify();}
+    if (server_reconnect(dts)<0) return FD_ERROR_VALUE;}
   if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
       (fd_dtsflush(&(dts->stream))<0))
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   else return fd_dtsread_dtype(&(dts->stream));
 }
 
@@ -105,7 +105,7 @@ FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
   if (stream->fd<0)
     if (server_reconnect(dts)<0) {
       fd_unlock_struct(dts);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else {}
   params[i++]=fd_intern(fcn);
   va_start(args,n);
@@ -126,7 +126,7 @@ FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
 	(fd_dtswrite_dtype(stream,request)<0) ||
 	(fd_dtsflush(&(dts->stream))<0)) {
       fd_decref(request);
-      return fd_erreify();}}
+      return FD_ERROR_VALUE;}}
   result=fd_dtsread_dtype(stream);
   if (FD_EQ(result,FD_EOD)) {
     /* Close the stream and sleep a second before reconnecting. */
@@ -136,7 +136,7 @@ FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
 	(fd_dtswrite_dtype(stream,request)<0)  ||
 	(fd_dtsflush(&(dts->stream))<0)) {
       fd_decref(request);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else result==fd_dtsread_dtype(stream);
     if (FD_EQ(result,FD_EOD))
       return fd_err(fd_UnexpectedEOD,"fd_dtcall",dts->addr,FD_VOID);}

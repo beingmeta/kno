@@ -40,7 +40,8 @@ static fdtype read_choice(char *file)
   while (fgets(buf,8192,f)) {
     fdtype item=fd_parse(buf);
     if (FD_ABORTP(item)) {
-      u8_fprintf(stderr,"Error at %s[%d]\n",file,i);
+      if (!(FD_THROWP(item)))
+	u8_fprintf(stderr,"Error at %s[%d]\n",file,i);
       fd_decref(results); return item;}
     FD_ADD_TO_CHOICE(results,item); i++;}
   fclose(f);

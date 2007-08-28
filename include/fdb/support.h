@@ -63,16 +63,21 @@ FD_EXPORT void fd_config_lock(int lock);
 
 /* Error handling */
 
-typedef struct FD_ERRDATA {
-  u8_condition cond;
-  u8_context cxt;
-  u8_string details;
-  fdtype irritant;
-  struct FD_ERRDATA *next;} FD_ERRDATA;
-typedef struct FD_ERRDATA *fd_errdata;
+FD_EXPORT void fd_free_exception_xdata(void *ptr);
+
+FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
+FD_EXPORT void fd_push_error_context(u8_context cxt,fdtype data);
+
+FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
+
+FD_EXPORT void fd_print_exception(U8_OUTPUT *out,u8_exception e);
+FD_EXPORT void fd_sum_exception(U8_OUTPUT *out,u8_exception e);
+FD_EXPORT u8_string fd_errstring(u8_exception e);
+FD_EXPORT fdtype fd_exception_xdata(u8_exception e);
 
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+
 #define fd_seterr3(c,cxt,details) \
    fd_seterr(c,cxt,details,FD_VOID)
 #define fd_seterr2(c,cxt) \
@@ -87,8 +92,6 @@ FD_EXPORT int fd_geterr
 FD_EXPORT int fd_poperr
   (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant);
 
-FD_EXPORT u8_string fd_errstring(struct FD_ERRDATA *);
-FD_EXPORT int fd_errout(U8_OUTPUT *,struct FD_ERRDATA *);
 
 FD_EXPORT int fd_reterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
@@ -99,8 +102,6 @@ FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err);
 
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
-
-FD_EXPORT void fd_raise_error(void);
 
 /* Thread vars */
 

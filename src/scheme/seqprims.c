@@ -679,7 +679,7 @@ FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
       return fd_err(EmptyReduce,"fd_reduce",NULL,sequence);
     else return fd_incref(result);
   else if (len<0)
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   else if (!(FD_APPLICABLEP(fn)))
     return fd_err(fd_NotAFunction,"MAP",NULL,fn);
   else if (FD_VOIDP(result)) {
@@ -751,7 +751,7 @@ static int has_length_helper(fdtype x,fdtype length_arg,enum COMPARISON cmp)
 static fdtype has_length_prim(fdtype x,fdtype length_arg)
 {
   int retval=has_length_helper(x,length_arg,cmp_eq);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -759,7 +759,7 @@ static fdtype has_length_prim(fdtype x,fdtype length_arg)
 static fdtype has_length_lt_prim(fdtype x,fdtype length_arg)
 {
   int retval=has_length_helper(x,length_arg,cmp_lt);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -767,7 +767,7 @@ static fdtype has_length_lt_prim(fdtype x,fdtype length_arg)
 static fdtype has_length_lte_prim(fdtype x,fdtype length_arg)
 {
   int retval=has_length_helper(x,length_arg,cmp_lte);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -775,7 +775,7 @@ static fdtype has_length_lte_prim(fdtype x,fdtype length_arg)
 static fdtype has_length_gt_prim(fdtype x,fdtype length_arg)
 {
   int retval=has_length_helper(x,length_arg,cmp_gt);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -783,7 +783,7 @@ static fdtype has_length_gt_prim(fdtype x,fdtype length_arg)
 static fdtype has_length_gte_prim(fdtype x,fdtype length_arg)
 {
   int retval=has_length_helper(x,length_arg,cmp_gte);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }

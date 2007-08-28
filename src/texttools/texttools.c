@@ -727,7 +727,7 @@ static fdtype textmatch(fdtype pattern,fdtype string,
   else {
     int retval=
       fd_text_match(pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_TRUE;
     else return FD_FALSE;}
 }
@@ -742,7 +742,7 @@ static fdtype textsearch(fdtype pattern,fdtype string,
   else {
     int pos=fd_text_search(pattern,NULL,FD_STRDATA(string),off,lim,0);
     if (pos<0)
-      if (pos==-2) return fd_erreify();
+      if (pos==-2) return FD_ERROR_VALUE;
       else return FD_FALSE;
     else return FD_INT2DTYPE(u8_charoffset(FD_STRDATA(string),pos));}
 }
@@ -802,7 +802,7 @@ static fdtype textgather(fdtype pattern,fdtype string,
 	     (pattern,NULL,data,forward_char(data,end),lim,0);}
     if (start==-2) {
       fd_decref(results);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else return results;}
 }
 
@@ -837,7 +837,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
 	     (pattern,NULL,data,forward_char(data,end),lim,0);}
     if (start==-2) {
       fd_decref(head);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else return head;}
 }
 
@@ -899,7 +899,7 @@ static fdtype textrewrite(fdtype pattern,fdtype string,
 	  U8_INIT_OUTPUT(&out,(lim-off)*2);
 	  if (dorewrite(&out,FD_CDR(extraction))<0) {
 	    fd_decref(subst_results); fd_decref(extract_results);
-	    u8_free(out.u8_outbuf); return fd_erreify();}
+	    u8_free(out.u8_outbuf); return FD_ERROR_VALUE;}
 	  stringval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 	  FD_ADD_TO_CHOICE(subst_results,stringval);}
       fd_decref(extract_results);
@@ -955,7 +955,7 @@ static fdtype textsubst(fdtype string,
 		  u8_puts(&tmpout,out.u8_outbuf);
 		  if (dorewrite(&tmpout,FD_CDR(xt))<0) {
 		    u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
-		    fd_decref(results); results=fd_erreify();
+		    fd_decref(results); results=FD_ERROR_VALUE;
 		    FD_STOP_DO_CHOICES; break;}
 		  stringval=fd_init_string
 		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
@@ -969,7 +969,7 @@ static fdtype textsubst(fdtype string,
 		    u8_puts(&tmpout,out.u8_outbuf);
 		    if (dorewrite(&tmpout,FD_CDR(xt))<0) {
 		      u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
-		      fd_decref(results); results=fd_erreify();
+		      fd_decref(results); results=FD_ERROR_VALUE;
 		      FD_STOP_DO_CHOICES; break;}
 		    u8_puts(&tmpout,FD_STRDATA(rem));
 		    stringval=fd_init_string
@@ -982,7 +982,7 @@ static fdtype textsubst(fdtype string,
 	    else {
 	      if (dorewrite(&out,FD_CDR(xtract))<0) {
 		u8_free(out.u8_outbuf); fd_decref(xtract);
-		return fd_erreify();}
+		return FD_ERROR_VALUE;}
 	      fd_decref(xtract);}}
 	  last=end; start=fd_text_search(pattern,NULL,data,last,lim,0);}
 	else if (end==lim) break;
@@ -991,7 +991,7 @@ static fdtype textsubst(fdtype string,
       u8_puts(&out,data+last);
       return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
     else if (start==-2) 
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return fd_extract_string(NULL,data+off,data+lim);}
 }
 
@@ -1025,7 +1025,7 @@ static fdtype string_matches(fdtype string,fdtype pattern,
     return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
   else {
     int retval=fd_text_match(pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_TRUE;
     else return FD_FALSE;}
 }
@@ -1039,7 +1039,7 @@ static fdtype string_contains(fdtype string,fdtype pattern,
     return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
   else {
     int retval=fd_text_search(pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (retval<-1) return fd_erreify();
+    if (retval<-1) return FD_ERROR_VALUE;
     else if (retval<0) return FD_FALSE;
     else return FD_TRUE;}
 }
@@ -1150,7 +1150,7 @@ static fdtype text2frame(fdtype pattern,fdtype string,
 	  fdtype frame=fd_init_slotmap(NULL,0,NULL);
 	  if (framify(frame,NULL,FD_CDR(extraction))<0) {
 	    fd_decref(frame_results); fd_decref(extract_results);
-	    return fd_erreify();}
+	    return FD_ERROR_VALUE;}
 	  FD_ADD_TO_CHOICE(frame_results,frame);}
       return frame_results;}}
 }
@@ -1201,7 +1201,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 	     (pattern,NULL,data,forward_char(data,max),lim,0);}
     if (start==-2) {
       fd_decref(results);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else return results;}
 }
 
@@ -1245,7 +1245,7 @@ static fdtype textslice(fdtype string,fdtype prefix,fdtype keep_prefixes)
       scan=fd_text_search(prefix,NULL,data,end,len,0);}}
   if (scan==-2) {
     fd_decref(slices);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else if (start<len) {
     fdtype substring=fdtype_string(data+start);
     fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);

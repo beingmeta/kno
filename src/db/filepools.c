@@ -159,7 +159,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   else {
     if (fd_setpos(&(fp->stream),24+4*offset)<0) {
       fd_unlock_struct(fp);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     data_pos=fd_dtsread_4bytes(&(fp->stream));}
   if (data_pos == 0) value=FD_EMPTY_CHOICE;
   else if (FD_EXPECT_FALSE(data_pos<24+fp->load*4)) {
@@ -172,7 +172,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   else {
     if (fd_setpos(&(fp->stream),data_pos)<0) {
       fd_unlock_struct(fp);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     value=fd_dtsread_dtype(&(fp->stream));}
   fd_unlock_struct(fp);
   return value;

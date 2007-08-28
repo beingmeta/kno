@@ -536,105 +536,170 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
 
 /* Managing error data */
 
-#if FD_USE_TLS
-static u8_tld_key errdata_key;
-#elif FD_THREADS_ENABLED
-static __thread struct FD_ERRDATA *errdata=NULL;
-#else
-static struct FD_ERRDATA *errdata=NULL;
-#endif
-
-#if FD_USE_TLS
-static void set_errdata(struct FD_ERRDATA *ed)
+FD_EXPORT void fd_free_exception_xdata(void *ptr)
 {
-  u8_tld_set(errdata_key,(void *)ed);
-}
-static struct FD_ERRDATA * get_errdata()
-{
-  return (struct FD_ERRDATA *) u8_tld_get(errdata_key);
-}
-#else
-static void set_errdata(struct FD_ERRDATA *ed)
-{
-  errdata=ed;
-}
-static struct FD_ERRDATA * get_errdata()
-{
-  return errdata;
-}
-#endif
-
-static FD_ERRDATA *adopt_u8errors()
-{
-  /* This copies the u8 errors to fd errors (clearing them in the process).
-     It tries to maintain the chronological/accmulative structure of the U8
-     errors, which means building a chain copying the U8 errors and pointing
-     the end of that chain to the top of the current fd error stack. */
-  struct FD_ERRDATA *head=NULL, *tail=NULL, *current=get_errdata();
-  u8_condition cond; u8_context cxt; u8_string details;
-  while (u8_poperr(&cond,&cxt,&details)) {
-    struct FD_ERRDATA *newdata=u8_alloc(struct FD_ERRDATA);
-    newdata->cond=cond; newdata->cxt=cxt; newdata->details=details;
-    newdata->irritant=FD_VOID;
-    if (head==NULL) head=newdata;
-    if (tail) {
-      newdata->next=tail->next;
-      tail->next=newdata;
-      tail=newdata;}
-    else {tail=newdata; newdata->next=NULL;}}
-  if (tail) {
-    tail->next=current;
-    set_errdata(head);
-    return head;}
-  else return current;
+  fdtype v=(fdtype)ptr;
+  fd_decref(v);
 }
 
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
-  struct FD_ERRDATA *current=adopt_u8errors();
-  struct FD_ERRDATA *newdata=u8_alloc(struct FD_ERRDATA);
-  newdata->cond=c;
-  newdata->cxt=cxt;
-  newdata->details=details;
-  if (FD_CHECK_PTR(irritant))
-    newdata->irritant=irritant;
-  else newdata->irritant=FD_BADPTR;
-  newdata->next=current;
-  set_errdata(newdata);
+  u8_push_exception(c,cxt,details,(void *)irritant,fd_free_exception_xdata);
 }
 
-FD_EXPORT int fd_geterr
-  (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant)
-{
-  struct FD_ERRDATA *current=adopt_u8errors();
-  if (current) {
-    if (c) *c=current->cond;
-    if (cxt) *cxt=current->cxt;
-    if (details)
-      if (current->details) *details=u8_strdup(current->details);
-      else *details=NULL;
-    if (irritant) *irritant=fd_incref(current->irritant);
-    return 1;}
-  else return 0;
-}
 FD_EXPORT int fd_poperr
   (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant)
 {
-  struct FD_ERRDATA *current=adopt_u8errors();
-  if (current) {
-    if (c) *c=current->cond;
-    if (cxt) *cxt=current->cxt;
-    if (details)
-      if (current->details) *details=current->details;
-      else {u8_free(current->details); *details=NULL;}
-    if (irritant) *irritant=fd_incref(current->irritant);
-    else fd_decref(current->irritant);
-    set_errdata(current->next);
-    u8_free(current);
-    return 1;}
-  else return 0;
+  u8_exception current=u8_current_exception;
+  if (current==NULL) return 0;
+  if (c) *c=current->u8x_cond;
+  if (cxt) *cxt=current->u8x_context;
+  if (details) {
+    /* If we're hanging onto the details, clear it from
+       the structure before popping. */
+    *details=current->u8x_details;
+    current->u8x_details=NULL;}
+  if (irritant)
+    if ((current->u8x_xdata) &&
+	(current->u8x_free_xdata==fd_free_exception_xdata)) {
+      /* Likewise for the irritant */
+      *irritant=(fdtype)(current->u8x_xdata);
+      current->u8x_xdata=NULL;
+      current->u8x_free_xdata=NULL;}
+    else *irritant=FD_VOID;
+  u8_pop_exception();
+  return 1;
 }
+
+FD_EXPORT fdtype fd_exception_xdata(u8_exception ex)
+{
+  if ((ex->u8x_xdata) &&
+      (ex->u8x_free_xdata==fd_free_exception_xdata)) 
+    return (fdtype)(ex->u8x_xdata);
+  else return FD_VOID;
+}
+
+FD_EXPORT int fd_reterr
+  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
+{
+  fd_seterr(c,cxt,details,irritant);
+  return -1;
+}
+
+FD_EXPORT int fd_interr(fdtype x)
+{
+  return -1;
+}
+
+FD_EXPORT fdtype fd_err
+  (fd_exception ex,u8_context cxt,u8_string details,fdtype irritant)
+{
+  if (details)
+    fd_seterr(ex,cxt,u8_strdup(details),fd_incref(irritant));
+  else fd_seterr(ex,cxt,NULL,fd_incref(irritant));
+  return FD_ERROR_VALUE;
+}
+
+FD_EXPORT void fd_push_error_context(u8_context cxt,fdtype data)
+{
+  u8_push_exception
+    (NULL,cxt,NULL,(void *)data,fd_free_exception_xdata);
+}
+
+FD_EXPORT fdtype fd_type_error
+  (u8_string type_name,u8_context cxt,fdtype irritant)
+{
+  u8_string msg=u8_mkstring(_("object is not a %m"),type_name);
+  fd_seterr(fd_TypeError,cxt,msg,fd_incref(irritant));
+  return FD_TYPE_ERROR;
+}
+
+FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant)
+{
+  u8_string msg=u8_mkstring(_("object is not a %m"),type_name);
+  fd_seterr(fd_TypeError,NULL,msg,fd_incref(irritant));
+}
+
+FD_EXPORT
+void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
+{
+  u8_printf(out,";;(ERROR %m)",ex->u8x_cond);
+  if (ex->u8x_details) u8_printf(out," %m",ex->u8x_details);
+  if (ex->u8x_context) u8_printf(out," (%s)",ex->u8x_context);
+  u8_printf(out,"\n");
+  if (ex->u8x_xdata) {
+    fdtype irritant=fd_exception_xdata(ex);
+    u8_printf(out,";;\t%q\n",irritant);}
+}
+
+FD_EXPORT
+void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
+{
+  u8_exception root=u8_exception_root(ex);
+  int stacklen=u8_exception_stacklen(ex);
+
+  fdtype root_irritant=fd_exception_xdata(ex);
+
+  if ((ex->u8x_cond)==(root->u8x_cond)) {
+    u8_printf(out,"%m",root->u8x_cond);
+    if (stacklen>4) u8_printf(out,"..%d..",stacklen);
+    else {int i=0; while (i<stacklen) {u8_putc(out,'.'); i++;}}}
+  else {
+    u8_printf(out,"%m",ex->u8x_cond);
+    if (stacklen>4) u8_printf(out,"..%d..",stacklen);
+    else {int i=0; while (i<stacklen) {u8_putc(out,'.'); i++;}}
+    u8_printf(out,"%m",root->u8x_cond);}
+  
+  if (((ex->u8x_context)==NULL) && ((root->u8x_context)==NULL)) {}
+  else if (((ex->u8x_context)==(root->u8x_context)) || (ex->u8x_context==NULL))
+    u8_printf(out," @%m",root->u8x_context);
+  else u8_printf(out," @%m/%m",ex->u8x_context,root->u8x_context);
+  
+  if (((ex->u8x_details)==NULL) && ((root->u8x_details)==NULL)) {}
+  else if (((ex->u8x_details)==(root->u8x_details)) || (ex->u8x_details==NULL))
+    u8_printf(out," (%s)",root->u8x_details);
+  else u8_printf(out," (%s/%s)",ex->u8x_details,root->u8x_details);
+
+  if (!(FD_VOIDP(root_irritant)))
+    u8_printf(out," -- %q",root_irritant);
+  
+}
+
+FD_EXPORT u8_string fd_errstring(u8_exception ex)
+{
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+  fd_sum_exception(&out,ex);
+  return out.u8_outbuf;
+}
+
+FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err) 
+{
+  switch (err) {
+  case FD_EOF: case FD_EOD: return fd_UnexpectedEOD; 
+  case FD_PARSE_ERROR: case FD_EOX: return fd_ParseError; 
+  case FD_TYPE_ERROR: return fd_TypeError;
+  case FD_RANGE_ERROR: return fd_RangeError;
+  case FD_OOM: return fd_OutOfMemory; 
+  case FD_DTYPE_ERROR: return fd_DTypeError;
+  default: return fd_UnknownError;
+  }
+}
+
+FD_EXPORT
+int fd_clear_errors(int report)
+{
+  u8_exception ex=u8_erreify(), scan=ex; int n_errs=0;
+  while (scan) {
+    u8_string sum=u8_errstring(scan);
+    u8_logger(LOG_ERR,scan->u8x_cond,sum);
+    u8_free(sum);
+    scan=scan->u8x_prev;
+    n_errs++;}
+  return n_errs;
+}
+
+#if 0
 
 FD_EXPORT int fd_errout(U8_OUTPUT *out,struct FD_ERRDATA *ed)
 {
@@ -668,68 +733,6 @@ FD_EXPORT u8_string fd_errstring(struct FD_ERRDATA *ed)
     return out.u8_outbuf;}
 }
 
-FD_EXPORT void fd_raise_error()
-{
-  struct FD_ERRDATA *current=adopt_u8errors();
-  if (FD_VOIDP(current->irritant))
-    u8_raise(current->cond,current->cxt,current->details);
-  else {
-    struct U8_OUTPUT out;
-    U8_INIT_OUTPUT(&out,512);
-    u8_printf(&out,"%m: %q",current->details,current->irritant);
-    u8_raise(current->cond,current->cxt,out.u8_outbuf);}
-}
-
-FD_EXPORT int fd_reterr
-  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
-{
-  fd_seterr(c,cxt,details,irritant);
-  return -1;
-}
-
-FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err) 
-{
-  switch (err) {
-  case FD_EOF: case FD_EOD: return fd_UnexpectedEOD; 
-  case FD_PARSE_ERROR: case FD_EOX: return fd_ParseError; 
-  case FD_TYPE_ERROR: return fd_TypeError;
-  case FD_RANGE_ERROR: return fd_RangeError;
-  case FD_OOM: return fd_OutOfMemory; 
-  case FD_DTYPE_ERROR: return fd_DTypeError;
-  default: return fd_UnknownError;
-  }
-}
-  
-FD_EXPORT int fd_interr(fdtype x)
-{
-  if (FD_ERRORP(x)) {
-    struct FD_EXCEPTION_OBJECT *xo=
-      FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-    fd_seterr(xo->data.cond,xo->data.cxt,
-	      ((xo->data.details) ? (u8_strdup(xo->data.details)) : (NULL)),
-	      fd_incref(xo->data.irritant));
-    fd_decref(x);
-    return -1;}
-  else if (FD_TROUBLEP(x)) {
-    fd_exception ex=fd_retcode_to_exception(x);
-    if (ex) {
-      fd_seterr(ex,NULL,NULL,FD_VOID);
-      return -1;}
-    else return 0;}
-  else {
-    fd_decref(x);
-    return 0;}
-}
-
-FD_EXPORT fdtype fd_erreify()
-{
-  u8_condition c; u8_context context; u8_string details; fdtype irritant;
-  if (fd_poperr(&c,&context,&details,&irritant)) {
-    fdtype retval=fd_err(c,context,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);
-    return retval;}
-  else return fd_err(fd_UnknownError,NULL,NULL,FD_VOID);
-}
 
 int fd_report_errors_atexit=1;
 
@@ -749,14 +752,7 @@ static int clear_fderrors(struct FD_ERRDATA *ed,int report)
   return retval;
 }
 
-FD_EXPORT
-int fd_clear_errors(int report)
-{
-  struct FD_ERRDATA *ed=adopt_u8errors();
-  int n_errors=clear_fderrors(ed,report);
-  set_errdata(NULL);
-  return n_errors;
-}
+
 
 static void report_errors_atexit()
 {
@@ -770,6 +766,8 @@ int fd_errorp(void)
   struct FD_ERRDATA *ed=adopt_u8errors();
   if (ed==NULL) return 0; else return 1;
 }
+
+#endif
 
 /* Thread Tables */
 
@@ -1007,7 +1005,7 @@ void fd_init_support_c()
 
   u8_register_textdomain("eframerd");
 
-  atexit(report_errors_atexit);
+  /* atexit(report_errors_atexit); */
 
 #if FD_USE_TLS
   u8_new_threadkey(&thread_config_var,NULL);

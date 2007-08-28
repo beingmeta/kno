@@ -485,7 +485,7 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
   flags=fd_xmlparseoptions(xmloptions);
   /* Check that the XML options are okay */
   if (flags<0) {
-    fd_decref(result); return fd_erreify();}
+    fd_decref(result); return FD_ERROR_VALUE;}
   urltext=FD_STRDATA(url);
   fd_add(result,url_symbol,url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
@@ -540,7 +540,7 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
       return result;}
     else {
       fd_decref(result); u8_free(buf);
-      return fd_erreify();}}
+      return FD_ERROR_VALUE;}}
   else {
     fdtype err;
     cval=fd_init_packet(NULL,data.size,data.bytes);

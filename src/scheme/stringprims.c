@@ -588,7 +588,7 @@ static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
   else data=u8_localize(enc,&scan,limit,'\\',0,NULL,&n_bytes);
   if (data)
     return fd_init_packet(NULL,n_bytes,data);
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype packet2string(fdtype packet,fdtype encoding)
@@ -608,7 +608,7 @@ static fdtype packet2string(fdtype packet,fdtype encoding)
       enc=u8_get_encoding(FD_SYMBOL_NAME(encoding));
     else return fd_type_error(_("text encoding"),"packet2string",encoding);
     if (u8_convert(enc,0,&out,&scan,limit)<0) {
-      u8_free(out.u8_outbuf); return fd_erreify();}
+      u8_free(out.u8_outbuf); return FD_ERROR_VALUE;}
     else return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
 }
 

@@ -182,7 +182,7 @@ fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds)
 {
   int capacity; off_t mdblockpos;
   int ret=fd_setpos(ds,12);
-  if (ret<0) return fd_erreify();
+  if (ret<0) return FD_ERROR_VALUE;
   else capacity=fd_dtsread_4bytes(ds);
   mdblockpos=24+capacity*4;
   return read_metadata(ds,mdblockpos);
@@ -193,7 +193,7 @@ fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds)
 {
   int n_slots; off_t mdblockpos;
   int ret=fd_setpos(ds,4);
-  if (ret<0) return fd_erreify();
+  if (ret<0) return FD_ERROR_VALUE;
   else n_slots=fd_dtsread_4bytes(ds);
   mdblockpos=8+n_slots*4;
   return read_metadata(ds,mdblockpos);
@@ -243,7 +243,7 @@ fdtype fd_write_pool_metadata(fd_dtype_stream ds,fdtype metadata)
 {
   off_t md_pos;
   int ret=fd_setpos(ds,12);
-  if (ret<0) return fd_erreify();
+  if (ret<0) return FD_ERROR_VALUE;
   else md_pos=fd_dtsread_4bytes(ds)*4+24;
   write_metadata(ds,md_pos,metadata);
 }
@@ -253,7 +253,7 @@ fdtype fd_write_index_metadata(fd_dtype_stream ds,fdtype metadata)
 {
   off_t md_pos; 
   int ret=fd_setpos(ds,4);
-  if (ret<0) return fd_erreify();
+  if (ret<0) return FD_ERROR_VALUE;
   else md_pos=4*fd_dtsread_4bytes(ds)+8;
   return write_metadata(ds,md_pos,metadata);
 }

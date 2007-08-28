@@ -29,6 +29,8 @@ FD_EXPORT fdtype _fd_comment_symbol;
 FD_EXPORT int fd_init_fdscheme(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_schemeio(void);
 
+FD_EXPORT u8_context fd_eval_context;
+
 /* Constants */
 
 #define FD_STACK_ARGS 6
@@ -273,16 +275,8 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 /* Simple continuations */
 
 typedef struct FD_CONTINUATION {
-  FD_FUNCTION_FIELDS;
-  fdtype throwval, retval;} *fd_continuation;
-typedef struct FD_CONTINUATION FD_CONTINUATION;
-
-FD_EXPORT u8_condition fd_throw_condition;
-
-#define FD_THROWP(result) \
-  ((FD_PTR_TYPEP(result,fd_error_type)) && \
-   (((FD_STRIP_CONS(result,fd_exception_type,fd_exception_object)) \
-     ->data.cond) == fd_throw_condition))
+  FD_FUNCTION_FIELDS; fdtype retval;} FD_CONTINUATION;
+typedef struct FD_CONTINUATION *fd_continuation;
 
 /* Threading stuff */
 

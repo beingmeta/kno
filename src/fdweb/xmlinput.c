@@ -773,7 +773,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
 {
   struct FD_XML object, *retval;
   struct U8_INPUT *in, _in;
-  if (flags<0) return fd_erreify();
+  if (flags<0) return FD_ERROR_VALUE;
   if (FD_PTR_TYPEP(input,fd_port_type)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
@@ -792,7 +792,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
     fdtype result=fd_incref(object.head);
     free_node(&object,0);
     return result;}
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype xmlparse(fdtype input,fdtype options)

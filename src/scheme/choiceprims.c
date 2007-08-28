@@ -115,7 +115,8 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
 	  else env=retenv1(var,elt);
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  return fd_passerr(val,env);}
+	  fd_push_error_context(":DO-CHOICES",env);
+	  return val;}
 	fd_decref(val);}}
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
@@ -178,7 +179,8 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
 	  else env=retenv1(var,elt);
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  return fd_passerr(val,env);}}}
+	  fd_push_error_context(":TRY-CHOICES",env);
+	  return val;}}}
       if (!(FD_EMPTY_CHOICEP(val))) {
 	FD_STOP_DO_CHOICES;
 	fd_decref(choices);
@@ -242,7 +244,8 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
 	  else env=retenv1(var,elt);
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  return fd_passerr(val,env);}}}
+	  fd_push_error_context(":FOR-CHOICES",env);
+	  return val;}}}
       FD_ADD_TO_CHOICE(results,val);
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
@@ -304,7 +307,8 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
 	else env=retenv1(var,elt);
 	fd_decref(choices);
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	return fd_passerr(val,env);}
+	fd_push_error_context(":FILTER-CHOICES",env);
+	return val;}
       else if (FD_FALSEP(val)) {}
       else {
 	fd_decref(val);
@@ -405,7 +409,8 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  if (free_v) fd_decref(v);
-	  return fd_passerr(val,env);}
+	  fd_push_error_context(":DO-SUBSETS",env);
+	  return val;}
 	fd_decref(val);}}
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
@@ -684,7 +689,7 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
      if (FD_APPLICABLEP(fcn)) {
        struct FD_FUNCTION *f=(fd_function)fcn;
        int retval=test_exists(f,0,n-1,nd_args+1,d_args);
-       if (retval<0) return fd_erreify();
+       if (retval<0) return FD_ERROR_VALUE;
        else if (retval) {
 	 u8_free(d_args);
 	 return FD_TRUE;}}
@@ -741,7 +746,7 @@ static fdtype forall_lexpr(int n,fdtype *nd_args)
      if (FD_APPLICABLEP(fcn)) {
        struct FD_FUNCTION *f=(fd_function)fcn;
        int retval=test_forall(f,0,n-1,nd_args+1,d_args);
-       if (retval<0) return fd_erreify();
+       if (retval<0) return FD_ERROR_VALUE;
        else if (retval) {
 	 u8_free(d_args);
 	 return FD_TRUE;}}

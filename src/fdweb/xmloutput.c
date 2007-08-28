@@ -23,6 +23,10 @@ static char versionid[] =
 
 #include "fdb/support.h"
 
+#ifndef BACKTRACE_INDENT_DEPTH
+#define BACKTRACE_INDENT_DEPTH 12
+#endif
+
 FD_EXPORT void fd_pprint_focus
   (U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
    int indent,int width,u8_string focus_prefix,u8_string focus_suffix);
@@ -424,7 +428,7 @@ static fdtype xmlentry(fdtype expr,fd_lispenv env)
   else if (open_markup(out,NULL,tagname,args,env,1)<0) {
     fd_decref(head);
     u8_flush(out);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else {
     fd_decref(head);
     u8_flush(out);
@@ -470,7 +474,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
   U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
   if (open_markup(out,&tmpout,tagname,attribs,env,0)<0) {
     fd_decref(xmloidfn);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
@@ -485,7 +489,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
     body=FD_CDR(body);}
   if (close_markup(out,tagname)<0) {
     fd_decref(xmloidfn);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   if (tagname!=tagbuf) u8_free(tagname);
   u8_flush(out);
   fd_decref(xmloidfn);
@@ -511,7 +515,7 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
     if (block) u8_printf(out,"\n");
     if (open_markup(out,&tmpout,tagname,attribs,env,0)<0) {
       fd_decref(xmloidfn);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     if (block) u8_printf(out,"\n");
     while (FD_PAIRP(body)) {
       fdtype value=fasteval(FD_CAR(body),env);
@@ -529,7 +533,7 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
     if (block) u8_printf(out,"\n");
     if (close_markup(out,tagname)<0) {
       fd_decref(xmloidfn);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     if (block) u8_printf(out,"\n");
     if (tagname!=tagbuf) u8_free(tagname);
     u8_flush(out);
@@ -567,7 +571,7 @@ static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
   if (tagname==NULL)
     return fd_err(fd_SyntaxError,"emptymarkup_handler",NULL,expr);
   else if (open_markup(out,NULL,tagname,args,env,1)<0)
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   else {
     return FD_VOID;}
 }
@@ -580,7 +584,7 @@ static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
 #define DEFAULT_XMLPI \
   "<?xml version='1.0' charset='utf-8' ?>"
 
-static u8_string error_stylesheet="/css/fdweberr.css";
+static u8_string error_stylesheet="/css/fdweb.css";
 
 static int embeddedp(fdtype focus,fdtype expr)
 {
@@ -621,93 +625,131 @@ static int embeddedp(fdtype focus,fdtype expr)
   else return 0;
 }
 
-static void output_backtrace(u8_output s,fdtype bt,fdtype head)
+static fdtype exception_data(u8_exception ex)
 {
-  if (FD_PAIRP(bt)) {
-    fdtype entry=FD_CAR(bt); 
-    if (FD_VECTORP(entry)) {
-      fdtype head=FD_VECTOR_REF(entry,0);
-      int i=1, len=FD_VECTOR_LENGTH(entry);
-      output_backtrace(s,FD_CDR(bt),FD_VOID);
-      u8_printf(s,"<div class='rail'>(<span class='name'>%lk</span>",head);
-      while (i<len) {
-	fdtype elt=FD_VECTOR_REF(entry,i); i++;
-	if ((FD_PAIRP(elt)) || (FD_SYMBOLP(elt)))
-	  u8_printf(s,"<span class='arg'>&apos;%lk</span>",elt);
-	else u8_printf(s,"<span class='arg'>%lk</span>",elt);}
-      u8_printf(s,")</div>\n");}
-    else if ((!(FD_PAIRP(entry))) && (FD_TABLEP(entry))) {
-      fdtype keys=fd_getkeys(entry);
-      output_backtrace(s,FD_CDR(bt),FD_VOID);
-      u8_printf(s,"<div class='bindings'>");
-      if (FD_SYMBOLP(head))
-	u8_printf(s,"<span class='head'>%lk</span>",head);
-      if (FD_ABORTP(keys)) {
-	fd_decref(keys);
-	u8_printf(s,"%lk</div>\n",entry);}
-      else {
-	FD_DO_CHOICES(key,keys) {
-	  fdtype val=fd_get(entry,key,FD_VOID);
-	  u8_printf(s,"<span class='binding'>%lk=%lk;</span> ",key,val);
-	  fd_decref(val);}
-	fd_decref(keys);
-	u8_printf(s,"</div>\n");}}
-    else if (FD_STRINGP(entry)) {
-      output_backtrace(s,FD_CDR(bt),head);
-      u8_printf(s,"<div class='defcxt'>%k</div>\n",FD_STRDATA(entry));}
+  if ((ex->u8x_xdata) && (ex->u8x_free_xdata==fd_free_exception_xdata))
+    return (fdtype)(ex->u8x_xdata);
+  else return FD_VOID;
+}
+
+static u8_exception get_innermost_expr(u8_exception ex,fdtype expr)
+{
+  u8_exception scan=ex; fdtype xdata;
+  if (ex==NULL) return ex;
+  else xdata=exception_data(scan);
+  if ((FD_PAIRP(xdata)) && (embeddedp(xdata,expr))) {
+    u8_exception bottom=get_innermost_expr(ex->u8x_prev,xdata);
+    if (bottom) return bottom; else return ex;}
+  else return NULL;
+}
+
+static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
+{
+  if (ex==NULL) return;
+  else if (ex->u8x_prev==NULL)
+    u8_printf(s,"<div class='last_entry'>\n");
+  if (ex->u8x_context==fd_eval_context) {
+    fdtype expr=exception_data(ex);
+    struct U8_OUTPUT tmp; u8_string focus_start;
+    u8_exception innermost=get_innermost_expr(ex->u8x_prev,expr);
+    fdtype focus=((innermost) ? (exception_data(innermost)) : (FD_VOID));
+    U8_INIT_OUTPUT(&tmp,1024);
+    u8_printf(s,"<div class='expr'>");
+    fd_pprint_focus(&tmp,expr,focus,NULL,0,80,"#@?#","#@?#");
+    if ((focus_start=(strstr(tmp.u8_outbuf,"#@?#")))) {
+      u8_byte *focus_end=strstr(focus_start+4,"#@?#");
+      *focus_start='\0'; fd_entify(s,tmp.u8_outbuf);
+      *focus_end='\0'; u8_printf(s,"<span class='focus'>");
+      fd_entify(s,focus_start+4);
+      u8_printf(s,"</span>");
+      fd_entify(s,focus_end+4);}
+    else u8_puts(s,tmp.u8_outbuf);
+    u8_free(tmp.u8_outbuf);
+    u8_printf(s,"</div>\n");
+    if (innermost) {
+      if (ex->u8x_prev==NULL) u8_printf(s,"</div>\n");
+      return innermost->u8x_prev;}}
+  else if (ex->u8x_context==fd_apply_context) {
+    fdtype entry=exception_data(ex);
+    int i=1, len=FD_VECTOR_LENGTH(entry);
+    u8_printf(s,"<div class='rail'>(<span class='name'>%lk</span>",FD_VECTOR_REF(entry,0));
+    /* u8_printf(s,"<span class='head'>CALL</span>"); */
+    while (i<len) {
+      fdtype elt=FD_VECTOR_REF(entry,i); i++;
+      if ((FD_PAIRP(elt)) || (FD_SYMBOLP(elt)))
+	u8_printf(s,"<span class='arg'>&apos;%lk</span>",elt);
+      else u8_printf(s,"<span class='arg'>%lk</span>",elt);}
+    u8_printf(s,")</div>\n");}
+  else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
+    fdtype entry=exception_data(ex);
+    fdtype keys=fd_getkeys(entry);
+    u8_string head=((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
+		    (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
+		    ((u8_string)"BINDINGS"));
+    u8_printf(s,"<div class='bindings'>");
+    u8_printf(s,"<span class='head'>%s</span>",head);
+    /* u8_printf(s,"<span class='head'>%lk</span>",ex->u8x_context); */
+    if (FD_ABORTP(keys)) {
+      fd_decref(keys);
+      u8_printf(s,"%lk</div>\n",entry);}
     else {
-      fdtype scan=FD_CDR(bt), focus=entry;
-      U8_OUTPUT tmp; u8_byte *focus_start;
-      while ((FD_PAIRP(scan)) &&
-	     (FD_PAIRP(FD_CAR(scan))) &&
-	     (embeddedp(FD_CAR(scan),entry))) {
-	focus=FD_CAR(scan); scan=FD_CDR(scan);}
-      if (FD_PAIRP(focus))
-	output_backtrace(s,scan,FD_CAR(focus));
-      else output_backtrace(s,scan,FD_VOID);
-      U8_INIT_OUTPUT(&tmp,128);
-      u8_printf(s,"<div class='expr'>");
-      fd_pprint_focus(&tmp,entry,focus,NULL,0,80,"#@?#","#@?#");
-      if ((focus_start=(strstr(tmp.u8_outbuf,"#@?#")))) {
-	u8_byte *focus_end=strstr(focus_start+4,"#@?#");
-	*focus_start='\0'; fd_entify(s,tmp.u8_outbuf);
-	*focus_end='\0'; u8_printf(s,"<span class='focus'>");
-	fd_entify(s,focus_start+4);
-	u8_printf(s,"</span>");
-	fd_entify(s,focus_end+4);}
-      else u8_puts(s,tmp.u8_outbuf);
-      u8_free(tmp.u8_outbuf);
-      u8_printf(s,"\n</div>\n");}}
+      FD_DO_CHOICES(key,keys) {
+	fdtype val=fd_get(entry,key,FD_VOID);
+	u8_printf(s,"<span class='binding'>%lk=%lk;</span> ",key,val);
+	fd_decref(val);}
+      fd_decref(keys);
+      u8_printf(s,"</div>\n");}}
+  else {
+    fdtype irritant=exception_data(ex);
+    u8_printf(s,"<div class='error'>\n");
+    /* u8_printf(s,"<span class='head'>ERR</span>"); */
+    if (ex->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",ex->u8x_context);
+    u8_printf(s," <span class='ex'>%k</span>",ex->u8x_cond);
+    if (ex->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",ex->u8x_details);
+    if (!(FD_VOIDP(irritant))) 
+      u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+    u8_printf(s,"</div>\n");}
+  if (ex->u8x_prev==NULL) u8_printf(s,"</div>\n");
+  return ex->u8x_prev;
+}
+
+static void output_backtrace(u8_output s,u8_exception ex)
+{
+  u8_exception scan=ex; int n=0;
+  u8_printf(s,"<div class='backtrace'>\n");
+  while ((scan) && (n<BACKTRACE_INDENT_DEPTH)) {
+    u8_printf(s,"<div class='backtrace_indent'>\n");
+    scan=output_backtrace_entry(s,scan); n++;}
+  while (scan) scan=output_backtrace_entry(s,scan);
+  while (n>0) {u8_printf(s,"</div>\n"); n--;}
+  u8_printf(s,"</div>\n");
 }
 
 FD_EXPORT
-void fd_xhtmlerrorpage(u8_output s,fdtype error)
+void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
-  struct FD_EXCEPTION_OBJECT *eo=
-    FD_GET_CONS(error,fd_error_type,FD_EXCEPTION_OBJECT *);
-  struct FD_ERRDATA *e=&(eo->data);
+  u8_exception e=u8_exception_root(ex);
+  fdtype irritant=fd_exception_xdata(e);
   s->u8_outptr=s->u8_outbuf;
   u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
   u8_printf(s,"<html>\n<head>\n<title>");
-  u8_printf(s,"%k",e->cond);
-  if (e->cxt) u8_printf(s,"%k",e->cxt);
-  if (e->details) u8_printf(s," (%k)",e->details);
-  if (!(FD_VOIDP(e->irritant))) u8_printf(s,": %lk",e->irritant);
+  u8_printf(s,"%k",e->u8x_cond);
+  if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
+  if (!(FD_VOIDP(irritant))) u8_printf(s," %lk",irritant);
+  if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
   u8_printf(s,"</title>\n");
   u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
 	    error_stylesheet);
-  u8_printf(s,"</head>\n<body>\n<h1 class='server_sorry'>");
-  u8_printf(s,"There was an unexpected error processing your request</h1>\n");
+  u8_printf(s,"</head>\n<body id='ERRORPAGE'>\n<div class='server_sorry'>");
+  u8_printf(s,"There was an unexpected error processing your request\n");
   u8_printf(s,"<div class='error'>\n");
-  if (e->cxt) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->cxt);
-  u8_printf(s," <span class='ex'>%k</span>",e->cond);
-  if (e->details) u8_printf(s," <span class='details'>%k</span>",e->details);
-  if (!(FD_VOIDP(e->irritant))) 
-    u8_printf(s,"<span class='irritant'>%lk</span>",e->irritant);
-  u8_printf(s,"</div>\n");
-  u8_printf(s,"<div class='backtrace'>\n");
-  output_backtrace(s,eo->backtrace,FD_VOID);
-  u8_printf(s,"</div>\n");
+  if (e->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->u8x_context);
+  u8_printf(s," <span class='ex'>%k</span>",e->u8x_cond);
+  if (e->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",e->u8x_details);
+  if (!(FD_VOIDP(irritant))) 
+    u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+  u8_printf(s,"</div></div>\n");
+  output_backtrace(s,ex);
   u8_printf(s,"</body>\n</html>\n");  
 }
 
@@ -881,7 +923,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
   if (open_markup(out,&tmpout,"a",attribs,env,0)<0) {
     fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {

@@ -48,7 +48,7 @@ static fdtype dtcall(struct FD_NETWORK_POOL *np,int n_elts,...)
   int i=0; fdtype *params=u8_alloc_n(n_elts,fdtype), request, result;
   va_list args;
   if (stream->fd<0)
-    if (reopen_network_pool(np)<0) return fd_erreify();
+    if (reopen_network_pool(np)<0) return FD_ERROR_VALUE;
   va_start(args,n_elts);
   while (i<n_elts) params[i++]=va_arg(args,fdtype);
   request=FD_EMPTY_LIST; i=n_elts-1;
@@ -64,7 +64,7 @@ static fdtype dtcall(struct FD_NETWORK_POOL *np,int n_elts,...)
     if ((reopen_network_pool(np)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)) {
       fd_decref(request);
-      return fd_erreify();}}
+      return FD_ERROR_VALUE;}}
   result=fd_dtsread_dtype(stream);
   if (FD_EQ(result,FD_EOD)) {
     /* Close the stream and sleep a second before reconnecting. */
@@ -73,7 +73,7 @@ static fdtype dtcall(struct FD_NETWORK_POOL *np,int n_elts,...)
     if ((reopen_network_pool(np)<0) ||
 	(fd_dtswrite_dtype(stream,request)<0)) {
       fd_decref(request);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else result=fd_dtsread_dtype(stream);
     if (FD_EQ(result,FD_EOD))
       return fd_err(fd_UnexpectedEOD,"dtcall/netpools.c",np->xid,FD_VOID);}

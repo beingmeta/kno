@@ -23,7 +23,7 @@ static fd_exception OddFindFramesArgs=_("Odd number of args to find frames");
 
 static struct FD_HASHTABLE slot_caches, test_caches;
 static fdtype get_methods, compute_methods, test_methods;
-static fdtype add_effects, drop_effects, fget_symbol;
+static fdtype add_effects, drop_effects;
 
 #if FD_THREADS_ENABLED
 static u8_mutex slotcache_lock;
@@ -357,7 +357,7 @@ static fdtype get_slotid_methods(fdtype slotid,fdtype method_name)
   fd_pool p=fd_oid2pool(slotid); fdtype smap, result;
   if (FD_EXPECT_FALSE(p == NULL)) return fd_anonymous_oid("get_slotid_methods",slotid);
   else smap=fd_fetch_oid(p,slotid);
-  if (FD_EXPECT_FALSE(FD_ABORTP(smap)))
+  if (FD_ABORTP(smap))
     return smap;
   else if (FD_SLOTMAPP(smap)) 
     result=fd_slotmap_get((fd_slotmap)smap,method_name,FD_EMPTY_CHOICE);
@@ -407,7 +407,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	  fd_decref(cachev);
 	  return value;}}
       if (FD_VOIDP(methods)) return FD_EMPTY_CHOICE;
-      else if (FD_EXPECT_FALSE(FD_ABORTP(methods))) {
+      else if (FD_ABORTP(methods)) {
 	fd_decref(cachev);
 	return methods;}
       /* At this point, we're computing the slot value */
@@ -418,11 +418,12 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
 	  if (fn) {
 	    fdtype args[2], value; args[0]=f; args[1]=slotid;
 	    value=fd_finish_call(fd_dapply((fdtype)fn,2,args));
-	    if (FD_EXPECT_FALSE(FD_ABORTP(value))) {
+	    if (FD_ABORTP(value)) {
+	      fd_push_error_context(fd_apply_context,fd_make_vector(3,method,f,slotid));
 	      fd_decref(computed); fd_decref(methods);
 	      fd_pop_opstack(&fop,0);
 	      fd_decref(cachev);
-	      return fd_passerr(value,fd_make_list(3,fget_symbol,f,slotid));}
+	      return value;}
 	    FD_ADD_TO_CHOICE(computed,value);}}}
       computed=fd_simplify_choice(computed);
       fd_decref(methods);
@@ -498,7 +499,9 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
 	      fdtype v=fd_apply((fdtype)fn,3,args);
-	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
+	      if (FD_ABORTP(v)) {
+		fd_push_error_context
+		  (fd_apply_context,fd_make_vector(4,method,f,slotid,fd_incref(value)));
 		fd_decref(methods); fd_decref(cachev);
 		fd_pop_opstack(&fop,0);
 		return fd_interr(v);}
@@ -543,7 +546,7 @@ FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
 	      fdtype v=fd_apply((fdtype)fn,3,args);
-	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
+	      if (FD_ABORTP(v)) {
 		fd_pop_opstack(&fop,0);
 		fd_decref(methods);
 		return fd_interr(v);}
@@ -578,7 +581,7 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 	    struct FD_FUNCTION *fn=lookup_method(method);
 	    if (fn) {
 	      fdtype v=fd_apply((fdtype)fn,3,args);
-	      if (FD_EXPECT_FALSE(FD_ABORTP(v))) {
+	      if (FD_ABORTP(v)) {
 		fd_pop_opstack(&fop,0);
 		fd_decref(methods);
 		return fd_interr(v);}
@@ -613,7 +616,7 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
 	fd_index ix=fd_lisp2index(index);
 	if (ix==NULL) {
 	  fd_decref(combined);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	else {
 	  FD_DO_CHOICES(slotid,slotids) {
 	    FD_DO_CHOICES(value,values) {
@@ -646,7 +649,7 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
     fd_index ix=fd_lisp2index(indices);
     if (ix==NULL) {
       fd_decref(combined);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else {
       FD_DO_CHOICES(slotid,slotids) {
 	FD_DO_CHOICES(value,values) {
@@ -750,7 +753,7 @@ FD_EXPORT fdtype fd_bg_get(fdtype slotid,fdtype value)
     if ((fd_prefetch) && (fd_ipeval_status()==0) &&
 	(FD_CHOICEP(features)) &&
 	(fd_index_prefetch((fd_index)fd_background,features)<0)) {
-      fd_decref(features); return fd_erreify();}
+      fd_decref(features); return FD_ERROR_VALUE;}
     else {
       FD_DO_CHOICES(feature,features) {
 	fdtype result=fd_index_get((fd_index)fd_background,feature);
@@ -842,7 +845,6 @@ FD_EXPORT void fd_init_frames_c()
   test_methods=fd_intern("TEST-METHODS");
   add_effects=fd_intern("ADD-EFFECTS");
   drop_effects=fd_intern("DROP-EFFECTS");
-  fget_symbol=fd_intern("FGET");
 
   fd_make_hashtable(&slot_caches,17);
   fd_make_hashtable(&test_caches,17);

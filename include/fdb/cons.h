@@ -409,24 +409,14 @@ typedef struct FD_MYSTERY *fd_mystery;
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
-  FD_CONS_HEADER;
-  struct FD_ERRDATA data;
-  fdtype backtrace;} FD_EXCEPTION_OBJECT;
+  FD_CONS_HEADER; u8_exception ex;} FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
-FD_EXPORT fdtype fd_make_exception
-  (fd_exception,u8_context,u8_string,fdtype,fdtype);
-FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
-FD_EXPORT fdtype fd_passerr(fdtype err,fdtype context);
-FD_EXPORT fdtype fd_passerr2(fdtype err,fdtype context,fdtype context2);
-FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
+FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
+FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
 
 #define FD_EXCEPTIONP(x) (FD_PTR_TYPEP(x,fd_exception_type))
 #define FD_ERRORP(x) (FD_PTR_TYPEP(x,fd_error_type))
-
-#define FD_ABORTP(x) \
-  (FD_EXPECT_FALSE((FD_TROUBLEP(x)) || (FD_PTR_TYPEP(x,fd_error_type))))
-
 
 /* Timestamps */
 

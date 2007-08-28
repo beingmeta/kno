@@ -227,7 +227,7 @@ static fdtype histref_prim(arg)
     else if (FD_VOIDP(val))
       u8_log(LOG_WARN,_("Lost history"),"Lost history for ##%q",arg);
     else if (histkeep(FD_FIX2INT(arg),val)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     return val;}
 }
 

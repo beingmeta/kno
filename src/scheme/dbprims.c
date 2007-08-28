@@ -83,17 +83,17 @@ static fdtype index_frame_prim
 	hashtable_index_frame(index,frames,slotids,values);
       else {
 	fd_index ix=fd_lisp2index(index);
-	if (ix==NULL) return fd_erreify();
+	if (ix==NULL) return FD_ERROR_VALUE;
 	else if (fd_index_frame(ix,frames,slotids,values)<0)
-	  return fd_erreify();}}
+	  return FD_ERROR_VALUE;}}
   else if (FD_HASHTABLEP(indices)) {
     hashtable_index_frame(indices,frames,slotids,values);
     return FD_VOID;}
   else {
     fd_index ix=fd_lisp2index(indices);
-    if (ix==NULL) return fd_erreify();
+    if (ix==NULL) return FD_ERROR_VALUE;
     else if (fd_index_frame(ix,frames,slotids,values)<0)
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
   return FD_VOID;
 }
 
@@ -127,12 +127,12 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
   else if (FD_POOLP(arg)) {
     fd_pool p=fd_lisp2pool(arg);
     if (p) fd_pool_setcache(p,FD_FIX2INT(level));
-    else return fd_erreify();
+    else return FD_ERROR_VALUE;
     return FD_VOID;}
   else if (FD_INDEXP(arg)) {
     fd_index ix=fd_lisp2index(arg);
     if (ix) fd_index_setcache(ix,FD_FIX2INT(level));
-    else return fd_erreify();
+    else return FD_ERROR_VALUE;
     return FD_VOID;}
   else return fd_type_error("pool or index","set_cache_level",arg);
 }
@@ -151,14 +151,14 @@ static fdtype use_pool(fdtype arg1,fdtype arg2)
 	fdtype temp;
 	if (fd_use_pool(start)==NULL) {
 	  fd_decref(results); u8_free(copy);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	else temp=fd_find_pools_by_cid(start);
 	FD_ADD_TO_CHOICE(results,temp);}
       else {
 	fd_pool p=fd_use_pool(start);
 	if (p==NULL) {
 	  fd_decref(results); u8_free(copy);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	else {
 	  fdtype pval=fd_pool2lisp(p);
 	  FD_ADD_TO_CHOICE(results,pval);}}
@@ -174,7 +174,7 @@ static fdtype use_pool(fdtype arg1,fdtype arg2)
     fd_pool p=fd_name2pool(FD_STRDATA(arg2));
     if (p==NULL) p=fd_use_pool(FD_STRDATA(arg1));
     if (p) return fd_pool2lisp(p);
-    else return fd_erreify();}
+    else return FD_ERROR_VALUE;}
 }
 
 static fdtype use_index(fdtype arg)
@@ -196,7 +196,7 @@ static fdtype use_index(fdtype arg)
 	if (ix==NULL) {
 	  u8_free(copy);
 	  fd_decref(results);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	else {
 	  fdtype ixv=fd_index2lisp(ix);
 	  FD_ADD_TO_CHOICE(results,ixv);}
@@ -209,7 +209,7 @@ static fdtype use_index(fdtype arg)
     else ix=fd_use_index(FD_STRDATA(arg));
   else return fd_type_error(_("index spec"),"use_index",arg);
   if (ix) return fd_index2lisp(ix);
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype open_index(fdtype arg)
@@ -227,7 +227,7 @@ static fdtype open_index(fdtype arg)
 	if (ix==NULL) {
 	  u8_free(copy);
 	  fd_decref(results);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	else {
 	  fdtype ixv=fd_index2lisp(ix);
 	  FD_ADD_TO_CHOICE(results,ixv);}
@@ -241,7 +241,7 @@ static fdtype open_index(fdtype arg)
   else if (FD_INDEXP(arg)) ix=fd_lisp2index(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
   if (ix) return fd_index2lisp(ix);
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 static fdtype oidvalue(fdtype arg)
 {
@@ -262,7 +262,7 @@ static fdtype setoidvalue(fdtype o,fdtype v)
   else v=fd_incref(v);
   retval=fd_set_oid_value(o,v);
   fd_decref(v);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 
@@ -273,7 +273,7 @@ static fdtype lockoid(fdtype o,fdtype soft)
     if (FD_TRUEP(soft)) {
       fd_poperr(NULL,NULL,NULL,NULL);
       return FD_FALSE;}
-    else return fd_erreify();
+    else return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(retval);
 }
 
@@ -289,7 +289,7 @@ static fdtype lockoids(fdtype oids)
 {
   int retval=fd_lock_oids(oids);
   if (retval<0)
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(retval);
 }
 
@@ -304,13 +304,13 @@ static fdtype unlockoids(fdtype oids,fdtype commitp)
 	       (fd_name2pool(FD_STRDATA(oids))));
     if (p) {
       int retval=fd_pool_unlock_all(p,force_commit);
-      if (retval<0) return fd_erreify();
+      if (retval<0) return FD_ERROR_VALUE;
       else return FD_INT2DTYPE(retval);}
     else return fd_type_error("pool or OID","unlockoids",oids);}
   else {
     int retval=fd_unlock_oids(oids,force_commit);
     if (retval<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_INT2DTYPE(retval);}
 }
 
@@ -345,7 +345,7 @@ static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
     fd_index ix=fd_lisp2index(lcx);
     if (fd_add_to_compound_index((struct FD_COMPOUND_INDEX *)ix,
 				 fd_lisp2index(aix))<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;}
   else return fd_type_error(_("index"),"add_to_compound_index",lcx);
 }
@@ -357,16 +357,16 @@ static fdtype adjunct_symbol;
 static fdtype use_adjunct(fdtype index_arg,fdtype slotid,fdtype pool_arg)
 {
   fd_index ix=fd_lisp2index(index_arg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   if (FD_VOIDP(slotid)) slotid=fd_index_get(ix,adjunct_symbol);
   if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
     if (FD_VOIDP(pool_arg))
-      if (fd_set_adjunct(ix,slotid,NULL)<0) return fd_erreify();
+      if (fd_set_adjunct(ix,slotid,NULL)<0) return FD_ERROR_VALUE;
       else return FD_VOID;
     else {
       fd_pool p=fd_lisp2pool(pool_arg);
-      if (p==NULL) return fd_erreify();
-      else if (fd_set_adjunct(ix,slotid,p)<0) return fd_erreify();
+      if (p==NULL) return FD_ERROR_VALUE;
+      else if (fd_set_adjunct(ix,slotid,p)<0) return FD_ERROR_VALUE;
       else return FD_VOID;}
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
@@ -397,9 +397,9 @@ static fdtype commit_lexpr(int n,fdtype *args)
 {
   if (n == 0) {
     if (fd_commit_indices()<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     if (fd_commit_pools()<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     return FD_VOID;}
   else if (n == 1) {
     fdtype arg=args[0]; int retval=0;
@@ -410,7 +410,7 @@ static fdtype commit_lexpr(int n,fdtype *args)
     else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
       retval=fd_pool_commit_all((fd_pool)arg,1);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else return fd_err(fd_TooManyArgs,"commit",NULL,FD_VOID);
 }
@@ -461,7 +461,7 @@ static fdtype pool_load(fdtype arg)
   else {
     int load=fd_pool_load(p);
     if (load>=0) return FD_INT2DTYPE(load);
-    else return fd_erreify();}
+    else return FD_ERROR_VALUE;}
 }
 
 static fdtype pool_capacity(fdtype arg)
@@ -489,7 +489,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
     int i=0, lim=fd_pool_load(p);
     fdtype result=FD_EMPTY_CHOICE;
     FD_OID base=p->base;
-    if (lim<0) return fd_erreify();
+    if (lim<0) return FD_ERROR_VALUE;
     if (FD_VOIDP(start)) {}
     else if (FD_FIXNUMP(start))
       if (FD_FIX2INT(start)<0)
@@ -565,7 +565,7 @@ static fdtype oid_range(fdtype start,fdtype end)
   int i=0, lim=fd_getint(end); 
   fdtype result=FD_EMPTY_CHOICE;
   FD_OID base=FD_OID_ADDR(start);
-  if (lim<0) return fd_erreify();
+  if (lim<0) return FD_ERROR_VALUE;
   else while (i<lim) {
     fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
     FD_ADD_TO_CHOICE(result,each); i++;}
@@ -575,7 +575,7 @@ static fdtype oid_range(fdtype start,fdtype end)
 static fdtype oid_vector(fdtype start,fdtype end)
 {
   int i=0, lim=fd_getint(end); 
-  if (lim<0) return fd_erreify();
+  if (lim<0) return FD_ERROR_VALUE;
   else {
     fdtype result=fd_init_vector(NULL,lim,NULL);
     fdtype *data=FD_VECTOR_DATA(result);
@@ -608,7 +608,7 @@ static fdtype pool_vec(fdtype arg)
     int i=0, lim=fd_pool_load(p);
     fdtype result=fd_init_vector(NULL,lim,NULL);
     FD_OID base=p->base;
-    if (lim<0) return fd_erreify();
+    if (lim<0) return FD_ERROR_VALUE;
     else while (i<lim) {
       fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
       FD_VECTOR_SET(result,i,each); i++;}
@@ -699,7 +699,7 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
 static fdtype prefetch_oids(fdtype oids)
 {
   if (fd_prefetch_oids(oids)>=0) return FD_TRUE;
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype fetchoids_prim(fdtype oids)
@@ -712,7 +712,7 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
 {
   if (FD_VOIDP(arg2)) {
     if (fd_bg_prefetch(arg1)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;}
   else {
     FD_DO_CHOICES(arg,arg1) {
@@ -720,7 +720,7 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
 	fd_index ix=fd_lisp2index(arg);
 	if (fd_index_prefetch(ix,arg2)<0) {
 	  FD_STOP_DO_CHOICES;
-	  return fd_erreify();}}
+	  return FD_ERROR_VALUE;}}
       else return fd_type_error(_("index"),"prefetch_keys",arg);}
     return FD_VOID;}
 }
@@ -792,7 +792,7 @@ static fdtype fassert(fdtype frames,fdtype slotids,fdtype values)
       FD_DO_CHOICES(slotid,slotids) {
 	FD_DO_CHOICES(value,values) {
 	  if (fd_frame_add(frame,slotid,value)<0)
-	    return fd_erreify();}}}
+	    return FD_ERROR_VALUE;}}}
     return FD_VOID;}
 }
 static fdtype fretract(fdtype frames,fdtype slotids,fdtype values)
@@ -806,12 +806,12 @@ static fdtype fretract(fdtype frames,fdtype slotids,fdtype values)
 	  FD_DO_CHOICES(value,values) {
 	    if (fd_frame_drop(frame,slotid,value)<0) {
 	      fd_decref(values);
-	      return fd_erreify();}}
+	      return FD_ERROR_VALUE;}}
 	  fd_decref(values);}
 	else {
 	  FD_DO_CHOICES(value,values) {
 	    if (fd_frame_drop(frame,slotid,value)<0)
-	      return fd_erreify();}}}}
+	      return FD_ERROR_VALUE;}}}}
     return FD_VOID;}
 }
 
@@ -822,11 +822,11 @@ static fdtype ftest(fdtype frames,fdtype slotids,fdtype values)
       FD_DO_CHOICES(value,values)
 	if (FD_OIDP(frame)) {
 	  int result=fd_frame_test(frame,slotid,value);
-	  if (result<0) return fd_erreify();
+	  if (result<0) return FD_ERROR_VALUE;
 	  else if (result) return FD_TRUE;}
 	else {
 	  int result=fd_test(frame,slotid,value);
-	  if (result<0) return fd_erreify();
+	  if (result<0) return FD_ERROR_VALUE;
 	  else if (result) return FD_TRUE;}}}
   return FD_FALSE;
 }
@@ -935,14 +935,14 @@ static fdtype getpathstar(int n,fdtype *args)
 static fdtype indexget(fdtype ixarg,fdtype key)
 {
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   else return fd_index_get(ix,key);
 }
 
 static fdtype indexadd(fdtype ixarg,fdtype key,fdtype values)
 {
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   fd_index_add(ix,key,values);
   return FD_VOID;
 }
@@ -950,7 +950,7 @@ static fdtype indexadd(fdtype ixarg,fdtype key,fdtype values)
 static fdtype indexset(fdtype ixarg,fdtype key,fdtype values)
 {
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   fd_index_store(ix,key,values);
   return FD_VOID;
 }
@@ -958,7 +958,7 @@ static fdtype indexset(fdtype ixarg,fdtype key,fdtype values)
 static fdtype indexdecache(fdtype ixarg,fdtype key,fdtype value)
 {
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   if (FD_VOIDP(value))
     fd_hashtable_op(&(ix->cache),fd_table_replace,key,FD_VOID);
   else {
@@ -971,7 +971,7 @@ static fdtype indexdecache(fdtype ixarg,fdtype key,fdtype value)
 static fdtype bgdecache(fdtype key,fdtype value)
 {
   fd_index ix=(fd_index)fd_background;
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   if (FD_VOIDP(value))
     fd_hashtable_op(&(ix->cache),fd_table_replace,key,FD_VOID);
   else {
@@ -984,14 +984,14 @@ static fdtype bgdecache(fdtype key,fdtype value)
 static fdtype indexkeys(fdtype ixarg)
 {
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   return fd_index_keys(ix);
 }
 
 static fdtype indexsizes(fdtype ixarg)
 {
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   return fd_index_sizes(ix);
 }
 
@@ -999,7 +999,7 @@ static fdtype indexkeysvec(fdtype ixarg)
 {
   fdtype *keys; unsigned int n_keys;
   fd_index ix=fd_lisp2index(ixarg);
-  if (ix==NULL) return fd_erreify();
+  if (ix==NULL) return FD_ERROR_VALUE;
   if (ix->handler->fetchkeys) {
     fdtype *keys; unsigned int n_keys;
     keys=ix->handler->fetchkeys(ix,&n_keys);
@@ -1152,7 +1152,7 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
 	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
 	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
 	u8_free(write_choice);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else if (retval) {
 	*write++=candidate; n_results++;
 	if (FD_CONSP(candidate)) {
@@ -1177,11 +1177,11 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     return FD_EMPTY_CHOICE;
   else if (n==1)
     if (retval=test_predicate(candidates,tests[0],noinfer))
-      if (retval<0) return fd_erreify();
+      if (retval<0) return FD_ERROR_VALUE;
       else return fd_incref(candidates);
     else return FD_EMPTY_CHOICE;
   else if (retval=test_and(candidates,n,tests,noinfer))
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return fd_incref(candidates);
   else return FD_EMPTY_CHOICE;
 }
@@ -1213,7 +1213,7 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
 	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
 	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
 	u8_free(write_choice);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else if (retval==0) {
 	*write++=candidate; n_results++;
 	if (FD_CONSP(candidate)) {
@@ -1238,11 +1238,11 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     return FD_EMPTY_CHOICE;
   else if (n==1)
     if (retval=test_predicate(candidates,tests[0],noinfer))
-      if (retval<0) return fd_erreify();
+      if (retval<0) return FD_ERROR_VALUE;
       else return FD_EMPTY_CHOICE;
     else return fd_incref(candidates);
   else if (retval=test_and(candidates,n,tests,noinfer))
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;
   else return fd_incref(candidates);
 }
@@ -1327,7 +1327,7 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
     slotmap=fd_init_slotmap(NULL,0,NULL);
     if (fd_set_oid_value(oid,slotmap)<0) {
       fd_decref(slotmap);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     while (i<n) {
       FD_DO_CHOICES(slotid,args[i])
 	fd_frame_add(oid,slotid,args[i+1]);
@@ -1359,7 +1359,7 @@ static fdtype seq2frame_prim
       slotmap=fd_init_slotmap(NULL,0,NULL);
       if (fd_set_oid_value(oid,slotmap)<0) {
 	fd_decref(slotmap);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else {
 	fd_decref(slotmap); frame=oid;}}
     while ((i<slen) && (i<vlen)) {
@@ -1372,7 +1372,7 @@ static fdtype seq2frame_prim
       if (retval<0) {
 	fd_decref(slotid); fd_decref(value);
 	if (FD_FALSEP(poolspec)) fd_decref(frame);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       fd_decref(slotid); fd_decref(value);
       i++;}
     if (!(FD_VOIDP(dflt)))
@@ -1385,7 +1385,7 @@ static fdtype seq2frame_prim
 	if (retval<0) {
 	  fd_decref(slotid);
 	  if (FD_FALSEP(poolspec)) fd_decref(frame);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	fd_decref(slotid); i++;}
     return frame;}
 }
@@ -1420,14 +1420,14 @@ static fdtype modify_frame_lexpr(int n,fdtype *args)
 		(FD_EQ(FD_CADR(slotid),drop_symbol))) 
 	      if (doretract(frame,FD_CAR(slotid),args[i+1])<0) {
 		FD_STOP_DO_CHOICES;
-		return fd_erreify();}
+		return FD_ERROR_VALUE;}
 	      else {}
 	    else {
 	      u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");}
 	  else if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
 	    if (doassert(frame,slotid,args[i+1])<0) {
 	      FD_STOP_DO_CHOICES;
-	      return fd_erreify();}
+	      return FD_ERROR_VALUE;}
 	    else {}
 	  else u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");
 	i=i+2;}}
@@ -1452,7 +1452,7 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
   else if (FD_POOLP(against)) {
     fd_pool p=fd_lisp2pool(against);
     if (p) {base=p->base; cap=p->capacity;}
-    else return fd_erreify();}
+    else return FD_ERROR_VALUE;}
   else if ((FD_VOIDP(against)) || (FD_FALSEP(against))) {
     fd_pool p=fd_oid2pool(oidarg);
     if (p) {base=p->base; cap=p->capacity;}
@@ -1520,7 +1520,7 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
 	fd_decref(results); return value;}
       else if (fd_add(slotmap,slotid,value)<0) {
 	fd_decref(results); fd_decref(value);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       fd_decref(value);}
     if (FD_OIDP(frame)) {
       FD_OID addr=FD_OID_ADDR(frame);
@@ -1528,7 +1528,7 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
       fdtype idstring=fd_init_string(NULL,-1,s);
       if (fd_add(slotmap,id_symbol,idstring)<0) {
 	fd_decref(results); fd_decref(idstring);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else fd_decref(idstring);}
     FD_ADD_TO_CHOICE(results,slotmap);}
   return results;
@@ -1599,7 +1599,7 @@ static fdtype forgraph(fdtype fcn,fdtype roots,fdtype arcs)
   retval=walkgraph(fcn,roots,arcs,&hashset,NULL);
   if (retval<0) {
     fd_decref((fdtype)&hashset);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else {
     fd_decref((fdtype)&hashset);
     return FD_VOID;}
@@ -1629,7 +1629,7 @@ static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
   if (retval<0) {
     fd_decref((fdtype)&hashset);
     fd_decref(results);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else {
     fd_decref((fdtype)&hashset);
     return results;}

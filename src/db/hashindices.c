@@ -716,12 +716,12 @@ FD_FASTOP fdtype write_zvalue(fd_hash_index hx,fd_byte_output out,fdtype value)
     if (baseoid_index<0) {
       int bytes_written; fd_write_byte(out,0);
       bytes_written=fd_write_dtype(out,value);
-      if (bytes_written<0) return fd_erreify();
+      if (bytes_written<0) return FD_ERROR_VALUE;
       else return bytes_written+1;}
     else {
       int offset=FD_OID_BASE_OFFSET(value), bytes_written;
       bytes_written=fd_write_zint(out,baseoid_index+1);
-      if (bytes_written<0) return fd_erreify();
+      if (bytes_written<0) return FD_ERROR_VALUE;
       bytes_written=bytes_written+fd_write_zint(out,offset);
       return bytes_written;}}
   else {
@@ -738,12 +738,12 @@ FD_FASTOP fdtype dtswrite_zvalue(fd_hash_index hx,fd_dtype_stream out,fdtype val
     if (baseoid_index<0) {
       int bytes_written; fd_dtswrite_byte(out,0);
       bytes_written=fd_dtswrite_dtype(out,value);
-      if (bytes_written<0) return fd_erreify();
+      if (bytes_written<0) return FD_ERROR_VALUE;
       else return bytes_written+1;}
     else {
       int offset=FD_OID_BASE_OFFSET(value), bytes_written;
       bytes_written=fd_dtswrite_zint(out,baseoid_index+1);
-      if (bytes_written<0) return fd_erreify();
+      if (bytes_written<0) return FD_ERROR_VALUE;
       bytes_written=bytes_written+fd_dtswrite_zint(out,offset);
       return bytes_written;}}
   else {

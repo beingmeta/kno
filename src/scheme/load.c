@@ -102,7 +102,7 @@ FD_EXPORT fdtype fd_load_source
   u8_string content=fd_get_source(sourceid,encoding,&sourcebase,NULL);
   u8_byte *input=content;
   double start=u8_elapsed_time();
-  if (content==NULL) return fd_erreify();
+  if (content==NULL) return FD_ERROR_VALUE;
   else outer_sourcebase=bind_sourcebase(sourcebase);
   if (trace_load) 
     u8_log(LOG_INFO,FileLoad,"Loading %s (%d bytes)",sourcebase,u8_strlen(content));
@@ -120,7 +120,7 @@ FD_EXPORT fdtype fd_load_source
 	u8_free(sourcebase);
 	u8_free(content);
 	fd_decref(last_expr);
-	return fd_passerr(result,expr);}
+	return result;}
       fd_decref(last_expr);  last_expr=expr;
       expr=fd_parse_expr(&stream);}
     if (expr==FD_EOF) {
@@ -192,7 +192,7 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
   struct U8_INPUT stream; int retval;
   u8_string sourcebase=NULL;
   u8_string content=fd_get_source(sourceid,NULL,&sourcebase,NULL);
-  if (content==NULL) return fd_erreify();
+  if (content==NULL) return FD_ERROR_VALUE;
   else if (sourcebase) u8_free(sourcebase);
   U8_INIT_STRING_INPUT((&stream),-1,content);
   retval=fd_read_config(&stream);
@@ -234,7 +234,7 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
   else source=fd_eval(source_expr,env);
   if (FD_ABORTP(source))
-    return fd_passerr(source,fd_incref(expr));
+    return source;
   else if (!(FD_STRINGP(source)))
     return fd_err(fd_NotAFilename,"LOAD-COMPONENT",NULL,source);
   encval=fd_eval(encname_expr,env);
@@ -269,10 +269,8 @@ static fdtype lisp_load_config(fdtype string)
   u8_string abspath=u8_abspath(FD_STRDATA(string),NULL);
   int retval=fd_load_config(abspath);
   u8_free(abspath);
-  if (retval<0) {
-    fdtype immediate_error=fd_erreify();
-    fdtype underlying_error=fd_erreify();
-    return fd_passerr(immediate_error,underlying_error);}
+  if (retval<0) 
+    return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(retval);
 }
 

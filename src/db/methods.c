@@ -139,7 +139,7 @@ fdtype fd_inherit_values(fdtype root,fdtype slotid,fdtype through)
   ivs.result=FD_EMPTY_CHOICE; ivs.slotids=slotid;
   if (fd_walk_tree(root,through,inherit_values_fn,&ivs)<0) {
     fd_decref(ivs.result);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else return fd_simplify_choice(ivs.result);
 }
 
@@ -155,7 +155,7 @@ fdtype fd_inherit_inferred_values(fdtype root,fdtype slotid,fdtype through)
   ivs.result=FD_EMPTY_CHOICE; ivs.slotids=slotid;
   if (fd_walk_tree(root,through,inherit_inferred_values_fn,&ivs)<0) {
     fd_decref(ivs.result);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else return fd_simplify_choice(ivs.result);
 }
 
@@ -299,16 +299,16 @@ static fdtype multi_add_method(fdtype root,fdtype slotid,fdtype value)
 	if (FD_ABORTP(v)) return v;
 	else if (!(FD_EMPTY_CHOICEP(v)))
 	  if (fd_frame_add(root,subslotid,value)<0)
-	    return fd_erreify();
+	    return FD_ERROR_VALUE;
 	fd_decref(v);}
       fd_decref(slotids);}}
   else if (primary_slot==slotid) {
     if (fd_add(root,primary_slot,value)<0) {
       fd_decref(primary_slot);
-      return fd_erreify();}}
+      return FD_ERROR_VALUE;}}
   else if (fd_frame_add(root,primary_slot,value)<0) {
     fd_decref(primary_slot);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   fd_decref(primary_slot);
   return FD_VOID;
 }
@@ -324,16 +324,16 @@ static fdtype multi_drop_method(fdtype root,fdtype slotid,fdtype value)
       if (primary_slot==slotid) {
 	if (fd_drop(root,primary_slot,value)<0) {
 	  fd_decref(primary_slot);
-	  return fd_erreify();}}
+	  return FD_ERROR_VALUE;}}
       else if (fd_frame_drop(root,primary_slot,value)<0) {
 	fd_decref(primary_slot);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
     {FD_DO_CHOICES(subslotid,slotids) {
       int probe=fd_frame_test(root,subslotid,value);
-      if (probe<0) return fd_erreify();
+      if (probe<0) return FD_ERROR_VALUE;
       else if (probe)
 	if (fd_frame_drop(root,subslotid,value)<0)
-	  return fd_erreify();}}
+	  return FD_ERROR_VALUE;}}
     fd_decref(slotids);
     return FD_VOID;}
 }
@@ -379,7 +379,7 @@ static fdtype kleene_get_method(fdtype root,fdtype slotid)
     if (kleene_get_helper(&hs,root,slotids)<0) {
       fd_recycle_hashset(&hs);
       fd_decref(slotids);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else {
       results=fd_hashset_elts(&hs,1);
       fd_decref(slotids); 
@@ -399,7 +399,7 @@ static fdtype inherited_test_method(fdtype root,fdtype slotid,fdtype value)
     answer=fd_inherits_valuep(root,baseslot,through,value);
   else answer=fd_inherits_inferred_valuep(root,baseslot,through,value);
   fd_decref(through); fd_decref(baseslot);
-  if (answer<0) return fd_erreify();
+  if (answer<0) return FD_ERROR_VALUE;
   else if (answer) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -426,7 +426,7 @@ static fdtype inverse_get_method(fdtype root,fdtype slotid)
 static fdtype inverse_test_method(fdtype root,fdtype slotid,fdtype value)
 {
   int direct_test=fd_oid_test(root,slotid,value);
-  if (direct_test<0) return fd_erreify();
+  if (direct_test<0) return FD_ERROR_VALUE;
   else if (direct_test) return (FD_TRUE);
   else if (!(FD_OIDP(value))) return FD_FALSE;
   else {
@@ -438,7 +438,7 @@ static fdtype inverse_test_method(fdtype root,fdtype slotid,fdtype value)
 	int testval=fd_frame_test(value,inv_slot,root);
 	if (testval) {found=testval; break;}}
       fd_decref(inv_slots);
-      if (found<0) return fd_erreify();
+      if (found<0) return FD_ERROR_VALUE;
       else if (found) return (FD_TRUE);
       else return (FD_FALSE);}}
 }
@@ -587,7 +587,7 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
 {
   if (FD_PAIRP(v)) {
     if (fd_oid_drop(f,slotid,v)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;}
   else {
     int found=0;
@@ -610,7 +610,7 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
 	    FD_ADD_TO_CHOICE(new_values,fd_incref(value));}}
 	if (fd_store(f,slotid,new_values)<0) {
 	  fd_decref(values); fd_decref(new_values);
-	  return fd_erreify();}
+	  return FD_ERROR_VALUE;}
 	fd_decref(values); fd_decref(new_values);
 	return FD_VOID;}
       else {
@@ -645,12 +645,12 @@ static void init_symbols()
 
 static fdtype lisp_add(fdtype f,fdtype s,fdtype v)
 {
-  if (fd_add(f,s,v)<0) return fd_erreify();
+  if (fd_add(f,s,v)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 static fdtype lisp_drop(fdtype f,fdtype s,fdtype v)
 {
-  if (fd_drop(f,s,v)<0) return fd_erreify();
+  if (fd_drop(f,s,v)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 

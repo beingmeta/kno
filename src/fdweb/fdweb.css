@@ -4,43 +4,52 @@ span.nobreak { white-space: nowrap; }
 
 /* Error pages */
 
-body#ERRORPAGE { margin: 12pt; background-color: silver;}
+body#ERRORPAGE {
+  margin: 22px; margin-right: 40px;
+  background-color: black; color: ivory;}
+
+div.server_sorry {
+  font-family: sans; font-size: 120%; color: silver;}
+div.server_sorry div.error {
+  font-weight: bold; font-size: 140%; color: white;}
 
 div.error {
-  margin-left: 8em; text-indent: -8em;
-  font-size: 16pt; font-family: sans; }
+  margin-left: 8em; text-indent: -8em; font-family: sans; }
 div.error span.ex { font-weight: bold;}
-div.error span.cxt { font-family: fixed; }
+div.error span.cxt { font-weight: normal; }
 div.error span.details { font-weight: normal; font-style: italic; }
 div.error span.irritant {
-  background-color: white; color: red; margin-left: 6pt;
-  font-weight: normal; font-family: fixed; white-space: nowrap;}
-div.backtrace { }
+  margin-left: 6pt; white-space: nowrap;
+  color: red;}
+
+div.backtrace { margin-top: 18px; font-size: 120%;}
+
+div.backtrace_indent {
+  margin-left: 8px; font-size: 98%;}
+
 div.backtrace div.expr {
-  white-space: pre;
-  font-family: fixed; text-align: left; font-size: 12pt;}
+  font-family: courier,fixed; white-space: pre; text-align: left;}
 div.backtrace div.expr span.focus {
-  font-weight: bold; color: red; font-size: 120%;}
+  font-weight: bold; color: yellow; font-size: 120%;}
 
 div.backtrace div.bindings {
-  background-color: lightblue; width: 100%;}
+  background-color: blue; 
+  padding-left: 64px; text-indent: -64px;}
 div.backtrace div.bindings span.binding {
   font-family: fixed; font-weight: bold; white-space: nowrap; }
 div.backtrace div.bindings span.head {
-  padding-right: 12pt; color: purple; font-weight: bold;}
+  padding-right: 12pt; color: rose; font-weight: bold;}
 
 div.backtrace div.rail {
-  background-color: lightblue; width: 100%;}
+  background-color: green;}
 div.backtrace div.rail span.name {
-  color: purple; font-family: sans; font-weight: bold; padding-right: 8pt;}
+  color: yellow; font-family: sans; font-weight: bold; padding-right: 8pt;}
 div.backtrace div.rail span.arg {
-  color: black; font-family: fixed; font-weight: bold;
+  color: white; font-family: fixed; font-weight: bold;
   padding-right: 6pt; padding-left: 6pt;}
 
-div.backtrace div.defcxt {
-  color: blue; font-family: fixed;}
-
-div.call { margin-left: 3pt;}
+div.backtrace div.last_entry {
+  font-size: 160%;}
 
 /* Default frame description */
 

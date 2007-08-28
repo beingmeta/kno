@@ -709,7 +709,7 @@ static fdtype read_oid_value_at(fd_oidpool op,FD_CHUNK_REF ref,const u8_string c
     else if (ref.size>FD_OIDPOOL_FETCHBUF_SIZE) {
       buf=read_chunk(op,ref.off,ref.size,NULL); free_buf=1;}
     else buf=read_chunk(op,ref.off,ref.size,_buf);
-    if (buf==NULL) return fd_erreify();
+    if (buf==NULL) return FD_ERROR_VALUE;
     else if (op->compression==FD_NOCOMPRESS)
       if (free_buf) {
 	FD_BYTE_INPUT in;
@@ -738,7 +738,7 @@ static fdtype read_oid_value_at(fd_oidpool op,FD_CHUNK_REF ref,const u8_string c
       if (ubuf==NULL) {
 	if (free_buf) u8_free(buf);
 	if (ubuf!=_ubuf) u8_free(ubuf);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else if ((free_buf) || (ubuf!=_ubuf)) {
 	FD_BYTE_INPUT in; fdtype result;
 	FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);	  
@@ -763,7 +763,7 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
       return fd_err(fd_UnallocatedOID,"file_pool_fetch",op->cid,oid);}
   else {
     FD_CHUNK_REF ref=get_chunk_ref(op,offset);
-    if (ref.off<0) return fd_erreify();
+    if (ref.off<0) return FD_ERROR_VALUE;
     else if (ref.off==0)
       return FD_EMPTY_CHOICE;
     else {

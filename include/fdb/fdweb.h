@@ -109,7 +109,7 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata);
 FD_EXPORT int fd_open_markup
   (u8_output out,u8_string eltname,fdtype attribs,int empty);
 
-FD_EXPORT void fd_xhtmlerrorpage(u8_output s,fdtype error);
+FD_EXPORT void fd_xhtmlerrorpage(u8_output s,u8_exception ex);
 FD_EXPORT int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata);
 FD_EXPORT void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata);
 

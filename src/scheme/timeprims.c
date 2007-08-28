@@ -149,7 +149,7 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
   struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
   if ((t1 == NULL) || (t2 == NULL)) {
     if (free1) u8_free(t1); if (free2) u8_free(t2);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
   else {
     if (free1) u8_free(t1); if (free2) u8_free(t2);
     return fd_init_double(NULL,u8_xtime_diff(&(t1->xtime),&(t2->xtime)));}
@@ -159,7 +159,7 @@ static fdtype timestamp_earlier(fdtype timestamp1,fdtype timestamp2)
 {
   int free1=0; 
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
-  if (t1==NULL) return fd_erreify();
+  if (t1==NULL) return FD_ERROR_VALUE;
   else if (FD_VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
@@ -171,7 +171,7 @@ static fdtype timestamp_earlier(fdtype timestamp1,fdtype timestamp2)
     struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free1);
     if (t2 == NULL) {
       if (free1) u8_free(t1); if (free2) u8_free(t2);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
     if (diff<0) return FD_TRUE; else return FD_FALSE;}
 }
@@ -180,7 +180,7 @@ static fdtype timestamp_later(fdtype timestamp1,fdtype timestamp2)
 {
   int free1=0; 
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
-  if (t1==NULL) return fd_erreify();
+  if (t1==NULL) return FD_ERROR_VALUE;
   else if (FD_VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
@@ -192,7 +192,7 @@ static fdtype timestamp_later(fdtype timestamp1,fdtype timestamp2)
     struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free1);
     if (t2 == NULL) {
       if (free1) u8_free(t1); if (free2) u8_free(t2);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
     if (diff>0) return FD_TRUE; else return FD_FALSE;}
 }
@@ -520,7 +520,7 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
     FD_DO_CHOICES(key,keys) {
       fdtype val=fd_get(slotmap,key,FD_VOID);
       if (xtime_set(xt,key,val)<0) {
-	result=fd_erreify(); FD_STOP_DO_CHOICES; break;}
+	result=FD_ERROR_VALUE; FD_STOP_DO_CHOICES; break;}
       else {}}
     if (FD_ABORTP(result)) return result;
     else if (FD_FALSEP(togmt)) {
@@ -631,7 +631,7 @@ static fdtype rusage_prim(fdtype field)
   struct rusage r;
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0) 
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   else if (FD_VOIDP(field)) {
     fdtype result=fd_init_slotmap(NULL,0,NULL);
     fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));

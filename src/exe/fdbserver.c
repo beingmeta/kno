@@ -237,7 +237,7 @@ static int dtypeserver(u8_client ucl)
 		   u8_elapsed_time()-xstart);
       else u8_log(LOG_INFO,"%s[%d]: < %q",client->idstring,client->n_trans,value);
     else if (tracethis)
-      if ((FD_ABORTP(value)) || (FD_EXCEPTIONP(value))) {
+      if (FD_ABORTP(value)) {
 	if (elapsed>=0)
 	  u8_log(LOG_INFO,"%s[%d]: Error returned in %fs",client->idstring,client->n_trans,elapsed);
 	else u8_log(LOG_INFO,"%s[%d]: Error returned",client->idstring,client->n_trans);
@@ -481,30 +481,15 @@ int main(int argc,char **argv)
        It's exports are then exposed through the server. */
     fd_lispenv env=fd_working_environment();
     fdtype result=fd_load_source(source_file,env,NULL);
-    if (FD_ERRORP(result)) {
-      struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
+    if (FD_TROUBLEP(result)) {
+      u8_exception e=u8_erreify();
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
-      fd_print_error(&out,e);
-      fd_print_backtrace(&out,80,e->backtrace);
-      fd_print_error(&out,e);
+      fd_print_exception(&out,e);
+      fd_print_backtrace(&out,e,80);
       fputs(out.u8_outbuf,stderr);
       u8_free(out.u8_outbuf);
       u8_free(source_file);
       fd_decref(result);
-      fd_decref((fdtype)env);
-      return -1;}
-    else if (FD_TROUBLEP(result)) {
-      fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;
-      /* Abort if there are any errors loading the file. */
-      if (fd_poperr(&ex,&cxt,&details,&irritant)) {
-	u8_log(LOG_WARN,ex,";; (ERROR %m) %m (%s)\n",ex,
-		((details)?(details):((u8_string)"")),
-		((cxt)?(cxt):((u8_string)"")));
-	if (!(FD_VOIDP(irritant)))
-	  u8_log(LOG_WARN,"INIT Error",";; %q\n",irritant);
-	if (details) u8_free(details); fd_decref(irritant);}
-      else u8_log(LOG_WARN,"INIT Error",";; Unexplained error result %q\n",result);
-      u8_free(source_file);
       fd_decref((fdtype)env);
       return -1;}
     else {fd_decref(result); result=FD_VOID;}

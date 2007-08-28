@@ -1854,7 +1854,7 @@ static fdtype lextags_prim()
 {
   fd_grammar g=fd_default_grammar();
   if (g==NULL)
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   else return fd_incref(g->arc_names);
 }
 

@@ -80,7 +80,7 @@ static int n_const_names=20;
 static u8_string const_names[]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
   "#baddtype","#badparse","#oom","#typeerror","#rangeerror",
-  "#badptr","#exception","#error","#unbound","#neverseen",
+  "#error","#badptr","#throw","#exception_tag","#unbound","#neverseen",
   "#lockholder","#dflt",NULL};
   
 static int n_character_constants=14;

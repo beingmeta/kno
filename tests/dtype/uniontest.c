@@ -43,7 +43,8 @@ static fdtype read_choice(char *file)
   while (fgets(buf,8192,f)) {
     fdtype item=fd_parse(buf);
     if (FD_ABORTP(item)) {
-      fd_decref(results); return item;}
+      fd_decref(results);
+      return item;}
     FD_ADD_TO_CHOICE(results,item);}
   fclose(f);
   return fd_simplify_choice(results);
@@ -79,7 +80,8 @@ int main(int argc,char **argv)
     else {
       fdtype item=read_choice(argv[i]);
       if (FD_ABORTP(item)) {
-	u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+	if (!(FD_THROWP(item)))
+	  u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
 	return -1;}
       u8_fprintf(stderr,"Read %d items from %s\n",
 		 FD_CHOICE_SIZE(item),argv[i]);

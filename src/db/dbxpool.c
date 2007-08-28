@@ -310,7 +310,7 @@ static fdtype dbx_pool_alloc(fd_pool p,int n)
   u8_lock_struct(fp);
   if (!(FD_DBXPOOL_LOCKED(fp))) dbx_pool_lock(fp,0);
   if (!(FD_DBXPOOL_LOCKED(fp)))
-    return fd_erreify();
+    return FD_ERROR_VALUE;
   while (i < n) {
     int retval; unsigned int offset;
     DBT key, value; value.data=NULL; value.size=0;

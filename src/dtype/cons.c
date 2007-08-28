@@ -569,165 +569,103 @@ static fdtype copy_compound(fdtype x,int deep)
 
 /* Exceptions */
 
+FD_EXPORT fdtype fd_init_exception
+   (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
+{
+  if (exo==NULL) exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
+  FD_INIT_CONS(exo,fd_exception_type); exo->ex=ex;
+  return FDTYPE_CONS(exo);
+}
+
 FD_EXPORT fdtype fd_make_exception
-  (fd_exception ex,u8_context cxt,
-   u8_string details,fdtype irritant,fdtype backtrace)
+  (fd_exception c,u8_context cxt,u8_string details,fdtype content)
 {
-  struct FD_EXCEPTION_OBJECT *exo=
-    u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_exception_type);
-  exo->data.next=NULL; exo->data.cond=ex; exo->data.cxt=cxt;
-  if (details) exo->data.details=u8_strdup(details);
-  else exo->data.details=details;
-  if (FD_CHECK_PTR(irritant)) 
-    exo->data.irritant=fd_incref(irritant);
-  else exo->data.irritant=FD_BADPTR;
-  exo->backtrace=backtrace;
-  return FDTYPE_CONS(exo);
-}
-FD_EXPORT fdtype fd_err
-  (fd_exception ex,u8_context cxt,u8_string details,fdtype irritant)
-{
-  struct FD_EXCEPTION_OBJECT *exo=
-    u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_error_type);
-  exo->data.next=NULL; exo->data.cond=ex; exo->data.cxt=cxt;
-  if (details) exo->data.details=u8_strdup(details);
-  else exo->data.details=details;
-  if (FD_CHECK_PTR(irritant)) 
-    exo->data.irritant=fd_incref(irritant);
-  else exo->data.irritant=FD_BADPTR;
-  exo->backtrace=FD_EMPTY_LIST;
-  return FDTYPE_CONS(exo);
-}
-
-FD_EXPORT fdtype fd_passerr(fdtype err,fdtype context)
-{
-  if (FD_ERRORP(err)) {
-    struct FD_EXCEPTION_OBJECT *exo=
-      FD_GET_CONS(err,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-    exo->backtrace=fd_init_pair(NULL,context,exo->backtrace);
-    return err;}
-  else if (FD_TROUBLEP(err)) {
-    struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
-    FD_INIT_CONS(exo,fd_error_type);
-    exo->data.cond=fd_retcode_to_exception(err); exo->data.cxt=NULL;
-    exo->data.details=NULL; exo->data.irritant=FD_VOID;
-    exo->backtrace=fd_init_pair(NULL,context,FD_EMPTY_LIST);
-    return FDTYPE_CONS(exo);}
+  struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
+  u8_exception ex; void *xdata; u8_exception_xdata_freefn freefn;
+  if (FD_VOIDP(content)) {
+    xdata=NULL; freefn=NULL;}
   else {
-    struct FD_EXCEPTION_OBJECT *exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
-    FD_INIT_CONS(exo,fd_error_type);
-    exo->data.cond=fd_UnknownError; exo->data.cxt=NULL;
-    exo->data.details=NULL; exo->data.irritant=FD_VOID;
-    exo->backtrace=fd_init_pair(NULL,context,FD_EMPTY_LIST);
-    return FDTYPE_CONS(exo);}
-}
-FD_EXPORT fdtype fd_passerr2(fdtype err,fdtype context1,fdtype context2)
-{
-  struct FD_EXCEPTION_OBJECT *exo=
-    FD_GET_CONS(err,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  exo->backtrace=
-    fd_init_pair(NULL,context2,fd_init_pair(NULL,context1,exo->backtrace));
-  return err;
-}
-
-FD_EXPORT fdtype fd_type_error
-  (u8_string type_name,u8_context cxt,fdtype irritant)
-{
-  u8_string msg=u8_mkstring(_("object is not a %m"),type_name);
-  fdtype errobj=fd_err(fd_TypeError,cxt,msg,irritant);
-  u8_free(msg);
-  return errobj;
-}
-
-FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant)
-{
-  struct U8_OUTPUT out; 
-  return fd_seterr(fd_TypeError,type_name,NULL,irritant);
+    xdata=(void *) content;
+    freefn=fd_free_exception_xdata;}
+  ex=u8_make_exception(c,cxt,details,xdata,freefn);
+  FD_INIT_CONS(exo,fd_exception_type); exo->ex=ex;
+  return FDTYPE_CONS(exo);
 }
 
 static void recycle_exception(struct FD_CONS *c)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
-  u8_free(exo->data.details);
-  fd_decref(exo->data.irritant); fd_decref(exo->backtrace);
+  if (exo->ex) u8_free_exception(exo->ex,1);
   u8_free(exo);
 }
 
 static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)x;
-  fdtype vector=fd_init_vector(NULL,4,NULL);
-  int n_bytes;
-  FD_VECTOR_SET(vector,0,fdtype_string((u8_string)exo->data.cond));
-  if (exo->data.details) {
-    FD_VECTOR_SET(vector,1,fdtype_string(exo->data.details));}
-  else {FD_VECTOR_SET(vector,1,FD_VOID);}
-  FD_VECTOR_SET(vector,2,fd_incref(exo->data.irritant));
-  FD_VECTOR_SET(vector,3,fd_incref(exo->backtrace));
-  fd_write_byte(out,dt_exception);
-  n_bytes=1+fd_write_dtype(out,vector);
-  fd_decref(vector);
-  return n_bytes;
-}
-
-static int dtype_error(struct FD_BYTE_OUTPUT *out,fdtype x)
-{
-  struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)x;
-  fdtype vector=fd_init_vector(NULL,4,NULL);
-  int n_bytes;
-  FD_VECTOR_SET(vector,0,fdtype_string((u8_string)exo->data.cond));
-  if (exo->data.details) {
-    FD_VECTOR_SET(vector,1,fdtype_string(exo->data.details));}
-  else {FD_VECTOR_SET(vector,1,FD_VOID);}
-  FD_VECTOR_SET(vector,2,fd_incref(exo->data.irritant));
-  FD_VECTOR_SET(vector,3,fd_incref(exo->backtrace));
-  fd_write_byte(out,dt_error);
-  n_bytes=1+fd_write_dtype(out,vector);
-  fd_decref(vector);
-  return n_bytes;
+  if (exo->ex==NULL) {
+    u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
+    fd_write_byte(out,dt_void);
+    return 1;}
+  else {
+    u8_exception ex=exo->ex;
+    fdtype irritant=fd_exception_xdata(ex);
+    int veclen=((FD_VOIDP(irritant)) ? (3) : (4));
+    fdtype vector=fd_init_vector(NULL,veclen,NULL);
+    int n_bytes;
+    FD_VECTOR_SET(vector,0,fd_intern((u8_string)(ex->u8x_cond)));
+    FD_VECTOR_SET(vector,1,fd_intern((u8_string)(ex->u8x_context)));
+    if (ex->u8x_details) {
+      FD_VECTOR_SET(vector,2,fdtype_string(ex->u8x_details));}
+    else {FD_VECTOR_SET(vector,1,FD_FALSE);}
+    if (!(FD_VOIDP(irritant)))
+      FD_VECTOR_SET(vector,3,fd_incref(irritant));
+    fd_write_byte(out,dt_exception);
+    n_bytes=1+fd_write_dtype(out,vector);
+    fd_decref(vector);
+    return n_bytes;}
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
-  u8_printf(out,"#<!EXCEPTION ");
-  fd_errout(out,&(xo->data));
-  u8_printf(out,"!>");
+  u8_exception ex=xo->ex;
+  if (ex==NULL)
+    u8_printf(out,"#<!OLDEXCEPTION>");
+  else {
+    u8_printf(out,"#<!EXCEPTION ");
+    fd_sum_exception(out,xo->ex);
+    u8_printf(out,"!>");}
   return 1;
 }
 
-static int unparse_error(struct U8_OUTPUT *out,fdtype x)
+static u8_exception copy_exception_helper(u8_exception ex,int deep)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_printf(out,"#<!ERROR ");
-  fd_errout(out,&(xo->data));
-  u8_printf(out,"!>");
-  return 1;
+  u8_exception newex; u8_string details=NULL; fdtype irritant;
+  if (ex==NULL) return ex;
+  if (ex->u8x_details) details=u8_strdup(ex->u8x_details);
+  irritant=fd_exception_xdata(ex);
+  if (FD_VOIDP(irritant))
+    newex=u8_make_exception
+      (ex->u8x_cond,ex->u8x_context,details,NULL,NULL);
+  else if (deep)
+    newex=u8_make_exception
+      (ex->u8x_cond,ex->u8x_context,details,
+       (void *)fd_deep_copy(irritant),fd_free_exception_xdata);
+  else newex=u8_make_exception
+	 (ex->u8x_cond,ex->u8x_context,details,
+	  (void *)fd_incref(irritant),fd_free_exception_xdata);
+  newex->u8x_prev=copy_exception_helper(ex->u8x_prev,deep);
+  return newex;
 }
 
 static fdtype copy_exception(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
-  fdtype ex=fd_make_exception
-    (xo->data.cond,xo->data.cxt,u8_strdup(xo->data.details),
-     fd_incref(xo->data.irritant),fd_incref(xo->backtrace));
-  FD_SET_CONS_TYPE(ex,fd_exception_type);
+  return fd_init_exception(NULL,copy_exception_helper(xo->ex,deep));
 }
 
-static fdtype copy_error(fdtype x,int deep)
-{
-  struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  fdtype ex=fd_make_exception
-    (xo->data.cond,xo->data.cxt,u8_strdup(xo->data.details),
-     fd_incref(xo->data.irritant),fd_incref(xo->backtrace));
-  FD_SET_CONS_TYPE(ex,fd_error_type);
-}
 
 /* Mystery types */
 
@@ -1010,25 +948,18 @@ void fd_init_cons_c()
   i=0; while (i<64) fd_immediate_checkfns[i++]=NULL;
 
   fd_recyclers[fd_exception_type]=recycle_exception;
-  fd_recyclers[fd_error_type]=recycle_exception;
+  fd_copiers[fd_exception_type]=copy_exception;
+  if (fd_dtype_writers[fd_exception_type]==NULL)
+    fd_dtype_writers[fd_exception_type]=dtype_exception;
+  if (fd_unparsers[fd_exception_type]==NULL)
+    fd_unparsers[fd_exception_type]=unparse_exception;
+
   fd_recyclers[fd_mystery_type]=recycle_mystery;
   fd_recyclers[fd_compound_type]=recycle_compound;
 
   fd_comparators[fd_compound_type]=compare_compounds;
 
   fd_copiers[fd_compound_type]=copy_compound;
-  fd_copiers[fd_exception_type]=copy_exception;
-  fd_copiers[fd_error_type]=copy_error;
-
-  if (fd_dtype_writers[fd_exception_type]==NULL)
-    fd_dtype_writers[fd_exception_type]=dtype_exception;
-  if (fd_dtype_writers[fd_error_type]==NULL)
-    fd_dtype_writers[fd_error_type]=dtype_error;
-
-  if (fd_unparsers[fd_exception_type]==NULL)
-    fd_unparsers[fd_exception_type]=unparse_exception;
-  if (fd_unparsers[fd_error_type]==NULL)
-    fd_unparsers[fd_error_type]=unparse_error;
 
   if (fd_unparsers[fd_mystery_type]==NULL)
     fd_unparsers[fd_mystery_type]=unparse_mystery;

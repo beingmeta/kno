@@ -208,14 +208,14 @@ static void dolog
   else if (FD_ABORTP(val)) {
     if (urllog) {
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID); u8_string tmp;
-      if (FD_ERRORP(val)) {
-	struct FD_EXCEPTION_OBJECT *eo=(FD_EXCEPTION_OBJECT *)val;
-	if (eo->data.cxt)
+      if (FD_TROUBLEP(val)) {
+	u8_exception ex=u8_erreify();
+	if (ex->u8x_context)
 	  tmp=u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
 			  exectime,u8_elapsed_time(),
-			  eo->data.cond,eo->data.cxt);
+			  ex->u8x_cond,ex->u8x_context);
 	else tmp=u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_STRDATA(uri),
-			     exectime,u8_elapsed_time(),eo->data.cond);}
+			     exectime,u8_elapsed_time(),ex->u8x_cond);}
       else tmp=u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_STRDATA(uri),
 			   exectime,u8_elapsed_time(),val);
       fputs(tmp,urllog); u8_free(tmp);}
@@ -354,7 +354,7 @@ static fdtype loadcontent(fdtype path)
     if (xml==NULL) {
       u8_free(content);
       u8_log(LOG_WARN,Startup,"ERROR","Error parsing %s",pathname);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     env=(fd_lispenv)xml->data;
     lenv=(fdtype)env; ldata=xml->head;
     if (traceweb>0)
@@ -372,14 +372,13 @@ static fdtype loadcontent(fdtype path)
        use that. */
     u8_free(content);
     load_result=fd_load_source(pathname,newenv,NULL);
-    if (FD_ERRORP(load_result)) return load_result;
+    if (FD_TROUBLEP(load_result)) return load_result;
     fd_decref(load_result);
     main_proc=fd_eval(main_symbol,newenv);
-    fd_decref((fdtype)newenv);
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
-    return main_proc;}
+    return fd_init_pair(NULL,main_proc,(fdtype)newenv);}
 }
 
 static fdtype getcontent(fdtype path)
@@ -393,11 +392,12 @@ static fdtype getcontent(fdtype path)
       int retval=stat(lpath,&fileinfo);
       if (retval<0) {
 	u8_graberr(-1,"getcontent",lpath);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       u8_offtime(&mtime,fileinfo.st_mtime,0);
       content=loadcontent(path);
       if (FD_ABORTP(content)) {
-	u8_free(lpath); return content;}
+	u8_free(lpath);
+	return content;}
       table_value=fd_init_pair(NULL,fd_make_timestamp(&mtime),
 			       fd_incref(content));
       fd_hashtable_store(&pagemap,path,table_value);
@@ -413,16 +413,22 @@ static fdtype getcontent(fdtype path)
       if (stat(lpath,&fileinfo)<0) {
 	u8_graberr(-1,"getcontent",u8_strdup(FD_STRDATA(path)));
 	u8_free(lpath); fd_decref(value);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else if (fileinfo.st_mtime>lmtime->xtime.u8_secs) {
 	fdtype new_content=loadcontent(path);
 	struct U8_XTIME mtime;
+	fdtype content_record=
+	  fd_init_pair(NULL,fd_make_timestamp(&mtime),
+		       fd_incref(new_content));
 	u8_offtime(&mtime,fileinfo.st_mtime,0);
-	fd_hashtable_store
-	  (&pagemap,path,
-	   fd_init_pair(NULL,fd_make_timestamp(&mtime),
-			fd_incref(new_content)));
-	u8_free(lpath); fd_decref(value);
+	fd_hashtable_store(&pagemap,path,content_record);
+	u8_free(lpath); fd_decref(content_record);
+	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
+	    (FD_PRIM_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
+	  fd_lispenv env=(fd_lispenv)(FD_CDR(FD_CDR(value)));
+	  if (FD_HASHTABLEP(env->bindings))
+	    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);}
+	fd_decref(value);
 	return new_content;}
       else {
 	fdtype retval=fd_incref(cval);
@@ -501,6 +507,10 @@ static int webservefn(u8_client ucl)
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result=fd_cgiexec(proc,cgidata);}
+  else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+    if (traceweb>1)
+      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+    result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
@@ -533,21 +543,21 @@ static int webservefn(u8_client ucl)
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
   fd_set_default_output(NULL);
-  if (FD_ERRORP(result)) {
-    struct FD_EXCEPTION_OBJECT *eo=(FD_EXCEPTION_OBJECT *)result;
-    if (FD_VOIDP(eo->data.irritant))
-      u8_log(LOG_INFO,eo->data.cond,"Unexpected error \"%m \"for %s:@%s (%s)",
-	     eo->data.cond,FD_STRDATA(path),
-	     ((eo->data.cxt) ? (eo->data.cxt) : ((u8_context)"somewhere")),
-	     ((eo->data.details) ? (eo->data.details) : ((u8_string)"no more details")));
-    else u8_log(LOG_INFO,eo->data.cond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-		eo->data.cond,FD_STRDATA(path),
-		((eo->data.cxt) ? (eo->data.cxt) : ((u8_context)"somewhere")),
-		((eo->data.details) ? (eo->data.details) : ((u8_string)"no more details")),
-		eo->data.irritant);
+  if (FD_TROUBLEP(result)) {
+    u8_exception ex=u8_erreify();
+    u8_condition excond=ex->u8x_cond;
+    u8_context excxt=((ex->u8x_context) ? (ex->u8x_context) : ((u8_context)"somewhere"));
+    u8_context exdetails=((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
+    fdtype irritant=fd_exception_xdata(ex);
+    if (FD_VOIDP(irritant))
+      u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
+	     excond,FD_STRDATA(path),excxt,exdetails);
+    else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
+		excond,FD_STRDATA(path),excxt,exdetails,irritant);
     write_string(client->socket,
 		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
-    fd_xhtmlerrorpage(&(client->out),result);
+    fd_xhtmlerrorpage(&(client->out),ex);
+    u8_free_exception(ex,1);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);
     u8_writeall(client->socket,client->out.u8_outbuf,

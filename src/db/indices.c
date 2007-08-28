@@ -430,7 +430,7 @@ static fdtype table_getkeys(fdtype ixarg)
 {
   fd_index ix=fd_lisp2index(ixarg);
   if (ix) return fd_index_keys(ix);
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static int copy_value_sizes(fdtype key,fdtype value,void *vptr)
@@ -500,7 +500,7 @@ static fdtype table_indexget(fdtype ixarg,fdtype key,fdtype dflt)
     fdtype v=fd_index_get(ix,key);
     if (FD_EMPTY_CHOICEP(v)) return fd_incref(dflt);
     else return v;}
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 
@@ -821,7 +821,7 @@ fdtype fd_cached_keys(fd_index ix)
     fd_for_indices(accumulate_cached,(void *)&result);
     if (retval<0) {
       fd_decref(result);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     else return result;}
   else return fd_hashtable_keys(&(ix->cache));
 }

@@ -19,6 +19,8 @@ static char versionid[] =
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];
 
+u8_condition fd_apply_context="APPLY";
+
 fd_exception fd_NotAFunction=_("calling a non function");
 fd_exception fd_TooManyArgs=_("too many arguments");
 fd_exception fd_TooFewArgs=_("too few arguments");
@@ -255,9 +257,10 @@ FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
      into the FD_DAPPLY (fd_dapply_ct/fd_dapply) code. */
   if (!(FD_CHECK_PTR(result)))
     return fd_err(fd_BadPtr,"fd_dapply",f->name,(fdtype)f);
-  else if (FD_TROUBLEP(result)) {
-    fd_exception ex=fd_retcode_to_exception(result);
-    if (ex) result=fd_err(ex,NULL,NULL,FD_VOID);}
+  else if (FD_TROUBLEP(result))
+    if (u8_current_exception==NULL) {
+      fd_exception ex=fd_retcode_to_exception(result);
+      if (ex) result=fd_err(ex,NULL,NULL,FD_VOID);}
   calltrack_return(name);
   return result;
 }
@@ -720,18 +723,20 @@ static void recycle_tail_call(struct FD_CONS *c)
 
 /* Initializations */
 
+static u8_condition DefnFailed=_("Definition Failed");
+
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn)
 {
   struct FD_FUNCTION *f=FD_GET_CONS(fcn,fd_function_type,struct FD_FUNCTION *);
   if (fd_store(table,fd_intern(f->name),fcn)<0)
-    fd_raise_error();
+    u8_raise(DefnFailed,"fd_defn",NULL);
 }
 
 FD_EXPORT void fd_idefn(fdtype table,fdtype fcn)
 {
   struct FD_FUNCTION *f=FD_GET_CONS(fcn,fd_function_type,struct FD_FUNCTION *);
   if (fd_store(table,fd_intern(f->name),fcn)<0)
-    fd_raise_error();
+    u8_raise(DefnFailed,"fd_defn",NULL);
   fd_decref(fcn);
 }
 

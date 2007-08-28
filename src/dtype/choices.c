@@ -198,7 +198,7 @@ fdtype fd_init_choice
   const fdtype *base, *scan, *limit;
   if (ch==NULL) {
     ch=fd_alloc_choice(n);
-    if (ch==NULL) return fd_erreify();
+    if (ch==NULL) return FD_ERROR_VALUE;
     if (data)
       memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
     else {

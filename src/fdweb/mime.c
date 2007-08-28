@@ -225,7 +225,7 @@ fdtype fd_parse_mime(char *start,char *end)
   fdtype charenc, dataenc;
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
   if (FD_ABORTP(majtype)) 
-    return fd_passerr(majtype,slotmap);
+    return majtype;
   charenc=fd_get(slotmap,charset_slotid,FD_VOID);
   dataenc=fd_get(slotmap,encoding_slotid,FD_VOID);
   if (fd_test(slotmap,content_type_slotid,multipart_symbol)) {

@@ -32,14 +32,14 @@ static void free_environment(struct FD_ENVIRONMENT *env)
     while (i < n) {fd_decref(vals[i]); i++;}}
 }
 
-FD_INLINE_FCN fdtype passerr_env(fdtype error,fd_lispenv env)
+FD_INLINE_FCN fdtype return_error_env(fdtype error,u8_context cxt,fd_lispenv env)
 {
-  fdtype bindings=copy_bindings(env);
+  fd_push_error_context(cxt,copy_bindings(env));
   free_environment(env);
-  return fd_passerr(error,bindings);
+  return error;
 }
 
-FD_FASTOP fdtype eval_body(fdtype body,fd_lispenv inner_env)
+FD_FASTOP fdtype eval_body(u8_context cxt,fdtype body,fd_lispenv inner_env)
 {
   fdtype result=FD_VOID;
   FD_DOLIST(bodyexpr,body) {
@@ -48,12 +48,29 @@ FD_FASTOP fdtype eval_body(fdtype body,fd_lispenv inner_env)
     if (FD_ABORTP(result))
       if (FD_THROWP(result))
 	return result;
-      else return fd_passerr(result,copy_bindings(inner_env));
+      else {
+	fd_push_error_context(cxt,copy_bindings(inner_env));
+	return result;}
     else {fd_decref(result);}
     result=fast_tail_eval(bodyexpr,inner_env);}
   if (FD_THROWP(result)) return result;
-  else if (FD_ABORTP(result))
-    return fd_passerr(result,copy_bindings(inner_env));
+  else if (FD_ABORTP(result)) {
+    fd_push_error_context(cxt,copy_bindings(inner_env));
+    return result;}
   else return result;
 }
 
+FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
+{
+  fdtype result=FD_VOID;
+  FD_DOLIST(bodyexpr,body) {
+    if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+      result=_fd_finish_call(result);
+    if (FD_ABORTP(result))
+      if (FD_THROWP(result))
+	return result;
+      else return result;
+    else {fd_decref(result);}
+    result=fd_tail_eval(bodyexpr,inner_env);}
+  return result;
+}

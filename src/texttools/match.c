@@ -781,7 +781,7 @@ static fdtype match_star
   if (FD_EMPTY_LISTP(FD_CDR(pat))) {
     u8_byteoff nextpos=((FD_VOIDP(next))?(-1):
 		 (fd_text_search(next,env,string,off,lim,flags)));
-    if (nextpos==-2) return fd_erreify();
+    if (nextpos==-2) return FD_ERROR_VALUE;
     else if (nextpos<0) return FD_INT2DTYPE(lim);
     else return FD_INT2DTYPE(nextpos);}
   else {
@@ -803,7 +803,7 @@ static fdtype extract_star
     u8_byteoff nextpos=
       ((FD_VOIDP(next)) ? (-1) :
        (fd_text_search(next,env,string,off,lim,flags)));
-    if (nextpos==-2) return fd_erreify();
+    if (nextpos==-2) return FD_ERROR_VALUE;
     else if (next<0)
       return fd_init_pair(NULL,FD_INT2DTYPE(nextpos),
 			  fd_extract_string(NULL,string+off,string+lim));
@@ -996,7 +996,7 @@ static fdtype match_not_gt
   else {
     u8_byteoff pos=fd_text_search(pat_arg,env,string,off,lim,flags);
     if (pos < 0)
-      if (pos==-2) return fd_erreify();
+      if (pos==-2) return FD_ERROR_VALUE;
       else return FD_INT2DTYPE(lim);
     /* else if (pos == off) return FD_EMPTY_CHOICE; */
     else if (pos >= lim) return FD_INT2DTYPE(lim);

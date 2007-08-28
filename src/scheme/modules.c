@@ -63,7 +63,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 	return module;}
       else if (retval<0) {
 	fd_discard_module(spec,safe);
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else scan=scan->next;}
     if (err)
       return fd_err(fd_NoSuchModule,NULL,module_name,spec);
@@ -133,7 +133,7 @@ static fdtype dynamic_load_prim(fdtype arg)
   if (*name=='/') {
     void *mod=u8_dynamic_load(name);
     if (mod) return FD_TRUE;
-    else return fd_erreify();}
+    else return FD_ERROR_VALUE;}
   else {
     FD_DOLIST(elt,dloadpath) {
       if (FD_STRINGP(elt)) {
@@ -142,7 +142,7 @@ static fdtype dynamic_load_prim(fdtype arg)
 	  void *mod=u8_dynamic_load(module_name);
 	  u8_free(module_name);
 	  if (mod) return FD_TRUE;
-	  else return fd_erreify();}}}
+	  else return FD_ERROR_VALUE;}}}
     return FD_FALSE;}
 }
 
@@ -183,7 +183,7 @@ static fdtype safe_in_module(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(module_name))
     return fd_err(fd_TooFewExpressions,"IN-MODULE",NULL,expr);
   else if (switch_module(env,module_name,1)) return FD_VOID;
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype in_module(fdtype expr,fd_lispenv env)
@@ -192,7 +192,7 @@ static fdtype in_module(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(module_name))
     return fd_err(fd_TooFewExpressions,"IN-MODULE",NULL,expr);
   else if (switch_module(env,module_name,0)) return FD_VOID;
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype safe_within_module(fdtype expr,fd_lispenv env)
@@ -208,7 +208,7 @@ static fdtype safe_within_module(fdtype expr,fd_lispenv env)
       fd_decref(result); result=fd_eval(elt,consed_env);}
     fd_decref((fdtype)consed_env);
     return result;}
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype within_module(fdtype expr,fd_lispenv env)
@@ -224,7 +224,7 @@ static fdtype within_module(fdtype expr,fd_lispenv env)
       fd_decref(result); result=fd_eval(elt,consed_env);}
     fd_decref((fdtype)consed_env);
     return result;}
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
@@ -269,7 +269,7 @@ static fdtype accessing_module(fdtype expr,fd_lispenv env)
     return result;}
   else {
     fd_decref(module_name);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
 }
 
 static fdtype safe_accessing_module(fdtype expr,fd_lispenv env)
@@ -288,7 +288,7 @@ static fdtype safe_accessing_module(fdtype expr,fd_lispenv env)
     return result;}
   else {
     fd_decref(module_name);
-    return fd_erreify();}
+    return FD_ERROR_VALUE;}
 }
 
 /* Exporting from modules */

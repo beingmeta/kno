@@ -111,7 +111,7 @@ static fdtype do_compare(int n,fdtype *v,int testspec[3])
 {
   int i=1; while (i < n) {
     int comparison=numeric_compare(v[i-1],v[i]);
-    if (comparison>1) return fd_erreify();
+    if (comparison>1) return FD_ERROR_VALUE;
     else if (testspec[comparison+1]) i++;
     else return FD_FALSE;}
   return FD_TRUE;
@@ -475,7 +475,7 @@ static fdtype config_set(fdtype var,fdtype val)
   else if (FD_SYMBOLP(var))
     retval=fd_config_set(FD_SYMBOL_NAME(var),val);
   else return fd_type_error(_("string or symbol"),"config_set",var);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 
@@ -504,7 +504,7 @@ static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
     fd_register_config(FD_SYMBOL_NAME(var),
 		       ((FD_VOIDP(docstring)) ? (NULL) : (FD_STRDATA(docstring))),
 		       lconfig_get,lconfig_set,(void *) handler);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   fd_incref(handler);
   return FD_VOID;
 }

@@ -203,7 +203,7 @@ static fdtype inexact2exact(fdtype x)
       double result=cname(val); \
       if (errno==0) return fd_init_double(NULL,result); \
       else {u8_graberr(-1,sname,u8_mkstring("%f",val)); \
-            return fd_erreify();}} \
+            return FD_ERROR_VALUE;}} \
     else return err;}
 
 arithdef("SQRT",lsqrt,sqrt);
@@ -227,7 +227,7 @@ arithdef("EXP",lexp,exp);
       double result=cname(xval,yval);       \
       if (errno==0) return fd_init_double(NULL,result); \
       else {u8_graberr(-1,sname,u8_mkstring("%f %f",xval,yval)); \
-            return fd_erreify();}}          \
+            return FD_ERROR_VALUE;}}          \
     else return err;}
 
 arithdef2("ATAN2",latan2,atan2);

@@ -25,6 +25,8 @@ fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
 fd_exception fd_DTypeError=_("Malformed DTYPE representation");
 static fd_exception BadUnReadByte=_("Inconsistent read/unread byte");
 
+static fdtype error_symbol;
+
 #if FD_THREADS_ENABLED
 static u8_mutex dtype_unpacker_lock;
 #endif
@@ -567,6 +569,7 @@ static u8_string tostring(fdtype x)
   else return fd_dtype2string(x);
 }
 
+static fdtype restore_dtype_exception(fdtype content);
 FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
 static fdtype read_packaged_dtype(int,struct FD_BYTE_INPUT *);
@@ -617,48 +620,13 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       FD_SET_OID_HI(addr,fd_read_4bytes(in));
       FD_SET_OID_LO(addr,fd_read_4bytes(in));
       return fd_make_oid(addr);}
-#if 0
     case dt_error: {
       fdtype content=fd_read_dtype(in);
       return fd_init_compound
-	(u8_alloc(struct FD_COMPOUND),FD_ERROR_TAG,content);}
+	(u8_alloc(struct FD_COMPOUND),error_symbol,content);}
     case dt_exception: {
       fdtype content=fd_read_dtype(in);
-      return fd_init_compound
-	(u8_alloc(struct FD_COMPOUND),FD_EXCEPTION_TAG,content);}
-#endif
-    case dt_error: case dt_exception: {
-      /* Return an exception object if possible (content as expected)
-	 and a compound if there are any big surprises */
-      fdtype content=fd_read_dtype(in);
-      u8_string exname="Unknown error", details=NULL;
-      fdtype irritant=FD_VOID, exo;
-      if (FD_TROUBLEP(content)) return content;
-      else if (FD_VECTORP(content)) {
-	int len=FD_VECTOR_LENGTH(content);
-	if (len>0) exname=tostring(FD_VECTOR_REF(content,0));
-	if (len>1) details=tostring(FD_VECTOR_REF(content,1));
-	if (len==3) {
-	  irritant=FD_VECTOR_REF(content,2); fd_decref(content);}
-	else return fd_make_exception
-	       (exname,NULL,details,content,FD_EMPTY_LIST);}
-      else if (FD_PAIRP(content)) {
-	exname=tostring(FD_CAR(content));
-	if (FD_PAIRP(FD_CDR(content))) {
-	  details=tostring(FD_CADR(content));
-	  if ((FD_PAIRP(FD_CDR(FD_CDR(content)))) &&
-	      (FD_EMPTY_LISTP(FD_CDR(FD_CDR(FD_CDR(content))))))
-	    irritant=fd_incref(FD_CAR(FD_CDR(FD_CDR(content))));
-	  else irritant=fd_incref(FD_CDR(FD_CDR(content)));}}
-      else if (code == dt_exception)
-	return fd_init_compound
-	  (u8_alloc(struct FD_COMPOUND),
-	   FD_EXCEPTION_TAG,1,content);
-      else return fd_init_compound
-	     (u8_alloc(struct FD_COMPOUND),FD_ERROR_TAG,1,content);
-      exo=fd_make_exception(exname,NULL,details,irritant,FD_EMPTY_LIST);
-      fd_decref(content);
-      return exo;}
+      return restore_dtype_exception(content);}
     case dt_pair: {
       fdtype head=FD_EMPTY_LIST, *tail=&head;
       while (1) {
@@ -675,7 +643,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    fdtype cdr;
 	    if (fd_unread_byte(in,dtcode)<0) {
 	      fd_decref(head);
-	      return fd_erreify();}
+	      return FD_ERROR_VALUE;}
 	    cdr=fd_read_dtype(in);
 	    if (FD_ABORTP(cdr)) {
 	      fd_decref(head); return cdr;}
@@ -1015,6 +983,65 @@ FD_EXPORT fdtype fd_make_mystery_vector
   return FDTYPE_CONS(myst);
 }  
 
+static fdtype restore_dtype_exception(fdtype content)
+{
+  /* Return an exception object if possible (content as expected)
+     and a compound if there are any big surprises */
+  fd_exception exname=_("Poorly Restored Error");
+  u8_context context=NULL; u8_string details=NULL;
+  fdtype irritant=FD_VOID, exo; int new_format=0;
+  if (FD_TROUBLEP(content)) return content;
+  else if (FD_VECTORP(content)) {
+    int len=FD_VECTOR_LENGTH(content);
+    /* One old format was:
+         #(ex details irritant backtrace)
+         where ex is a string
+       The new format is:
+         #(ex context details irritant)
+         where ex and context are symbols
+       We handle both cases
+    */
+    if (len>0) {
+      fdtype elt0=FD_VECTOR_REF(content,0);
+      if (FD_SYMBOLP(elt0)) {
+	exname=FD_SYMBOL_NAME(elt0); new_format=1;}
+      else if (FD_STRINGP(elt0)) { /* Old format */
+	exname=FD_SYMBOL_NAME(elt0); new_format=0;}
+      else {
+	u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
+	new_format=-1;}}
+    if (new_format<0) {}
+    else if (new_format) 
+      if ((len<3) ||
+	  (!(FD_SYMBOLP(FD_VECTOR_REF(content,0)))) ||
+	  (!((FD_FALSEP(FD_VECTOR_REF(content,1))) ||
+	     (FD_SYMBOLP(FD_VECTOR_REF(content,1))))) ||
+	  (!((FD_FALSEP(FD_VECTOR_REF(content,2))) ||
+	     (FD_STRINGP(FD_VECTOR_REF(content,1))))))
+	u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
+      else {
+	exname=(u8_condition)(FD_SYMBOL_NAME(FD_VECTOR_REF(content,0)));
+	context=(u8_context)
+	  ((FD_FALSEP(FD_VECTOR_REF(content,1))) ? (NULL) :
+	   (FD_SYMBOL_NAME(FD_VECTOR_REF(content,1))));
+	details=(u8_string)
+	  ((FD_FALSEP(FD_VECTOR_REF(content,2))) ? (NULL) :
+	   (FD_STRDATA(content)));
+	if (len>3) irritant=FD_VECTOR_REF(content,3);}
+    else { /* Old format */
+      if ((len>0) && (FD_SYMBOLP(FD_VECTOR_REF(content,0)))) {
+	fdtype sym=fd_intern(FD_STRDATA(FD_VECTOR_REF(content,0)));
+	exname=(u8_condition)FD_SYMBOL_NAME(sym);}
+      else if ((len>0) && (FD_STRINGP(FD_VECTOR_REF(content,0)))) {
+	exname=(u8_condition)FD_SYMBOL_NAME(FD_VECTOR_REF(content,0));}
+      if ((len>1) && (FD_STRINGP(FD_VECTOR_REF(content,1)))) 
+	details=FD_STRDATA(FD_VECTOR_REF(content,1));
+      if (len>2) irritant=FD_VECTOR_REF(content,2);}
+    return fd_make_exception(exname,context,details,irritant);}
+  else return fd_make_exception
+	 (fd_DTypeError,"restore_dtype_exception",NULL,content);
+}
+
 /* Arith stubs */
 
 static fdtype default_make_rational(fdtype car,fdtype cdr)
@@ -1127,6 +1154,8 @@ FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INPUT *stream)
 FD_EXPORT void fd_init_dtypeio_c()
 {
   fd_register_source_file(versionid);
+
+  error_symbol=fd_intern("%ERROR");
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(dtype_unpacker_lock));

@@ -138,11 +138,10 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
 	fd_destroy_mutex(&(bindings.lock));
 	return val;}
       else if (FD_ABORTP(val)) {
-	fdtype retval=
-	  fd_passerr(val,iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+	fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
 	fd_destroy_mutex(&(bindings.lock));
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	return retval;}
+	return val;}
       fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
@@ -208,7 +207,8 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
 	fd_destroy_mutex(&(bindings.lock));
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	fd_decref(elt); fd_decref(seq);
-	return fd_passerr(val,errbind);}
+	fd_push_error_context(":DOSEQ",errbind);
+	return val;}
       fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
@@ -275,7 +275,8 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
 	  fd_destroy_mutex(&(bindings.lock));
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  fd_decref(elt); fd_decref(seq);
-	  return fd_passerr(val,errbind);}}}
+	  fd_push_error_context(":FORSEQ",errbind);
+	  return val;}}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
@@ -345,7 +346,8 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
 	  fd_destroy_mutex(&(bindings.lock));
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  fd_decref(elt); fd_decref(seq);
-	  return fd_passerr(val,errbind);}
+	  fd_push_error_context(":TRYSEQ",errbind);
+	  return val;}
 	fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
@@ -409,7 +411,8 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	fd_destroy_mutex(&(bindings.lock));
 	fd_decref(list);
-	return fd_passerr(val,errenv);}
+	fd_push_error_context(":DOLIST",errenv);
+	return val;}
       fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
@@ -427,7 +430,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
 static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 {
   fdtype exprs=fd_get_body(begin_expr,1);
-  return eval_body(exprs,env);
+  return eval_exprs(exprs,env);
 }
 
 static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)

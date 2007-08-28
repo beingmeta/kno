@@ -130,7 +130,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *s)
     if (md_loc) {
       if (fd_setpos(s,md_loc)<0)
 	return fd_err(fd_BadMetaData,"read_metadata","seek failed",
-		      fd_erreify());
+		      FD_ERROR_VALUE);
       else return fd_dtsread_dtype(s);}}
   else if (probe == 0xFFFFFFFE) { /* Version 2 */
     fdtype metadata=FD_EMPTY_CHOICE;
@@ -140,7 +140,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *s)
     if (md_loc) {
       if (fd_setpos(s,md_loc)<0)
 	return fd_err(fd_BadMetaData,"read_metadata","seek failed",
-		      fd_erreify());
+		      FD_ERROR_VALUE);
       return fd_dtsread_dtype(s);}
     else return FD_EMPTY_CHOICE;}
   else return FD_EMPTY_CHOICE;
@@ -337,7 +337,7 @@ fdtype read_oid_value
     bytes=u8_malloc(n_bytes);
     if (fd_dtsread_bytes(f,bytes,n_bytes)<n_bytes) {
       u8_free(bytes);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
     in.end=in.start+dbytes; in.fillfn=NULL;
     /* Read the values for the slotmap */
@@ -412,14 +412,14 @@ static fd_pool open_zpool(u8_string fname,int read_only)
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
 		u8_strdup("bad label loc"),
-		fd_erreify());
+		FD_ERROR_VALUE);
       fd_dtsclose(&(pool->stream),1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
   if (fd_setpos(s,24+capacity*4)<0) {
     fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
 	      u8_strdup("bad label loc"),
-	      fd_erreify());
+	      FD_ERROR_VALUE);
     fd_dtsclose(&(pool->stream),1);
     u8_free(rname); u8_free(pool);
     return NULL;}
@@ -500,7 +500,7 @@ static fdtype zpool_fetch(fd_pool p,fdtype oid)
   else {
     if (fd_setpos(&(fp->stream),24+4*offset)<0) {
       fd_unlock_struct(fp);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     data_pos=fd_dtsread_4bytes(&(fp->stream));}
   if (data_pos == 0) value=FD_EMPTY_CHOICE;
   else if (FD_EXPECT_FALSE(data_pos<24+fp->load*4)) {
@@ -513,7 +513,7 @@ static fdtype zpool_fetch(fd_pool p,fdtype oid)
   else {
     if (fd_setpos(&(fp->stream),data_pos)<0) {
       fd_unlock_struct(fp);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     value=read_oid_value(&(fp->stream),fp->schemas,fp->n_schemas);}
   fd_unlock_struct(fp);
   return value;

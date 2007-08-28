@@ -622,7 +622,7 @@ static fdtype parsefdxml(fdtype input,fdtype sloppy)
   int flags=FD_XML_KEEP_RAW;
   struct FD_XML *retval;
   struct U8_INPUT *in, _in;
-  if (flags<0) return fd_erreify();
+  if (flags<0) return FD_ERROR_VALUE;
   if (FD_PTR_TYPEP(input,fd_port_type)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
@@ -640,7 +640,7 @@ static fdtype parsefdxml(fdtype input,fdtype sloppy)
     fdtype result=fd_incref(retval->head);
     /* free_node(&object,0); */
     return result;}
-  else return fd_erreify();
+  else return FD_ERROR_VALUE;
 }
 
 /* FDXML special forms */
@@ -908,7 +908,8 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
 	fd_destroy_mutex(&(bindings.lock));
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	fd_decref(elt); fd_decref(seq);
-	return fd_passerr(val,errbind);}
+	fd_push_error_context(":FDXMLSEQ",errbind);
+	return val;}
       fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
@@ -967,7 +968,8 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
 	  else env=retenv1(var,elt);
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  return fd_passerr(val,env);}
+	  fd_push_error_context(":FDXMLCHOICE",env);
+	  return val;}
 	fd_decref(val);}}
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
@@ -1007,11 +1009,10 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
     {FD_DOLIST(expr,body) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
-	fdtype retval=
-	  fd_passerr(val,iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+	fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
 	fd_destroy_mutex(&(bindings.lock));
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	return retval;}
+	return val;}
       fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);

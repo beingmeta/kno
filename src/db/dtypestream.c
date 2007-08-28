@@ -210,7 +210,7 @@ FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)
 FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
 {
   if ((s->flags&FD_DTSTREAM_READING) == 0)
-    if (fd_set_read(s,1)<0) return fd_erreify();
+    if (fd_set_read(s,1)<0) return FD_ERROR_VALUE;
   return fd_read_dtype((struct FD_BYTE_INPUT *)s);
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)

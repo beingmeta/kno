@@ -612,7 +612,7 @@ static fdtype iserver_bulk_get(fdtype keys)
     retval=fd_index_prefetch((fd_index)(primary_index),aschoice);
     if (retval<0) {
       fd_decref(aschoice); u8_free(results);
-      return fd_erreify();}
+      return FD_ERROR_VALUE;}
     while (i<n) {
       results[i]=fd_index_get((fd_index)(primary_index),data[i]); i++;}
     fd_decref(aschoice);

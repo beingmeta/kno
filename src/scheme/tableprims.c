@@ -78,20 +78,20 @@ static fdtype lispget(fdtype f,fdtype slotid)
 static fdtype lispadd(fdtype f,fdtype slotid,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
-  else if (fd_add(f,slotid,val)<0) return fd_erreify();
+  else if (fd_add(f,slotid,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 static fdtype lispdrop(fdtype f,fdtype slotid,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
   if (FD_EMPTY_CHOICEP(slotid)) return FD_VOID;
-  else if (fd_drop(f,slotid,val)<0) return fd_erreify();
+  else if (fd_drop(f,slotid,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 static fdtype lispstore(fdtype f,fdtype slotid,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
-  else if (fd_store(f,slotid,val)<0) return fd_erreify();
+  else if (fd_store(f,slotid,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 static fdtype lisptest(fdtype f,fdtype slotid,fdtype val)
@@ -101,7 +101,7 @@ static fdtype lisptest(fdtype f,fdtype slotid,fdtype val)
   else if (FD_EMPTY_CHOICEP(val)) return FD_FALSE;
   else {
     int retval=fd_test(f,slotid,val);
-    if (retval<0) return fd_erreify();
+    if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_TRUE;
     else return FD_FALSE;}
 }
@@ -145,12 +145,12 @@ static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,increment)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_increment",table);
 }
@@ -166,12 +166,12 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,increment)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -204,14 +204,14 @@ static fdtype hashtable_increment_existing
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
 				fd_table_increment_if_present,
 				n_elts,elts,increment)<0) {
-	fd_decref(keys); return fd_erreify();}
+	fd_decref(keys); return FD_ERROR_VALUE;}
       else {fd_decref(keys); return FD_VOID;}}
     else if (FD_EMPTY_CHOICEP(key))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),
 			     fd_table_increment_if_present,
 			     key,increment)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_increment_existing",table);
 }
@@ -227,12 +227,12 @@ static fdtype table_increment_existing(fdtype table,fdtype keys,fdtype increment
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,increment)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -263,14 +263,14 @@ static fdtype hashtable_multiply(fdtype table,fdtype key,fdtype factor)
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
 				fd_table_multiply,
 				n_elts,elts,factor)<0) {
-	fd_decref(keys); return fd_erreify();}
+	fd_decref(keys); return FD_ERROR_VALUE;}
       else {fd_decref(keys); return FD_VOID;}}
     else if (FD_EMPTY_CHOICEP(key))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),
 			     fd_table_multiply,
 			     key,factor)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_multiply",table);
 }
@@ -286,12 +286,12 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_multiply,n_elts,elts,factor)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_multiply,keys,factor)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -319,14 +319,14 @@ static fdtype hashtable_multiply_existing
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
 				fd_table_multiply_if_present,
 				n_elts,elts,factor)<0) {
-	fd_decref(keys); return fd_erreify();}
+	fd_decref(keys); return FD_ERROR_VALUE;}
       else {fd_decref(keys); return FD_VOID;}}
     else if (FD_EMPTY_CHOICEP(key))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),
 			     fd_table_multiply_if_present,
 			     key,factor)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_multiply_existing",table);
 }
@@ -342,12 +342,12 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_multiply_if_present,n_elts,elts,factor)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_multiply_if_present,keys,factor)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -376,12 +376,12 @@ static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize,keys,maxval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -408,12 +408,12 @@ static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize_if_present,keys,maxval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -437,12 +437,12 @@ static fdtype hashtable_maximize(fdtype table,fdtype keys,fdtype maxval)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize,keys,maxval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_maximize",table);
 }
@@ -455,12 +455,12 @@ static fdtype hashtable_maximize_existing(fdtype table,fdtype keys,fdtype maxval
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_maximize_if_present,keys,maxval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_maximize_existing",table);
 }
@@ -479,12 +479,12 @@ static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize,keys,minval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -511,12 +511,12 @@ static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize_if_present,keys,minval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
@@ -540,12 +540,12 @@ static fdtype hashtable_minimize(fdtype table,fdtype keys,fdtype minval)
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize,keys,minval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_minimize",table);
 }
@@ -559,12 +559,12 @@ static fdtype hashtable_minimize_existing(fdtype table,fdtype keys,fdtype minval
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
 	  (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
-	return fd_erreify();}
+	return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_minimize_if_present,keys,minval)<0)
-      return fd_erreify();
+      return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_minimize_existing",table);
 }
@@ -592,7 +592,7 @@ static fdtype hashtable_buckets(fdtype table)
 static fdtype table_size(fdtype table)
 {
   int size=fd_getsize(table);
-  if (size<0) return fd_erreify();
+  if (size<0) return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(size);
 }
 
@@ -682,7 +682,7 @@ static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
 static fdtype hashsetget(fdtype hs,fdtype key)
 {
   int retval=fd_hashset_get((fd_hashset)hs,key);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -690,7 +690,7 @@ static fdtype hashsetget(fdtype hs,fdtype key)
 static fdtype hashsetadd(fdtype hs,fdtype key)
 {
   int retval=fd_hashset_add((fd_hashset)hs,key);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -698,7 +698,7 @@ static fdtype hashsetadd(fdtype hs,fdtype key)
 static fdtype hashsetdrop(fdtype hs,fdtype key)
 {
   int retval=fd_hashset_drop((fd_hashset)hs,key);
-  if (retval<0) return fd_erreify();
+  if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }

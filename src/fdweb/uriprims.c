@@ -195,7 +195,7 @@ static fdtype mergeuris(fdtype uri,fdtype base)
   else {
     fdtype copy=fd_deep_copy(uri);
     if (uri_merge(copy,base)<0) {
-      fd_decref(copy); return fd_erreify();}
+      fd_decref(copy); return FD_ERROR_VALUE;}
     else return copy;}
 }
 

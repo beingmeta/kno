@@ -139,17 +139,16 @@ typedef enum FD_PTR_TYPE {
   fd_mystery_type=FD_CONS_TYPECODE(14),
   fd_function_type=FD_CONS_TYPECODE(15),
   fd_exception_type=FD_CONS_TYPECODE(16),
-  fd_error_type=FD_CONS_TYPECODE(17),
-  fd_complex_type=FD_CONS_TYPECODE(18),
-  fd_rational_type=FD_CONS_TYPECODE(19),
-  fd_double_type=FD_CONS_TYPECODE(20),
-  fd_timestamp_type=FD_CONS_TYPECODE(21),
-  fd_dtproc_type=FD_CONS_TYPECODE(22),
-  fd_tail_call_type=FD_CONS_TYPECODE(23)
+  fd_complex_type=FD_CONS_TYPECODE(17),
+  fd_rational_type=FD_CONS_TYPECODE(18),
+  fd_double_type=FD_CONS_TYPECODE(19),
+  fd_timestamp_type=FD_CONS_TYPECODE(20),
+  fd_dtproc_type=FD_CONS_TYPECODE(21),
+  fd_tail_call_type=FD_CONS_TYPECODE(22)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 24
+#define FD_BUILTIN_CONS_TYPES 23
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_max_cons_type;
 FD_EXPORT unsigned int fd_max_immediate_type;
@@ -332,13 +331,14 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_OOM                    FD_CONSTANT(10)
 #define FD_TYPE_ERROR             FD_CONSTANT(11)
 #define FD_RANGE_ERROR            FD_CONSTANT(12)
-#define FD_BADPTR                 FD_CONSTANT(13)
-#define FD_EXCEPTION_TAG          FD_CONSTANT(14)
-#define FD_ERROR_TAG              FD_CONSTANT(15)
-#define FD_UNBOUND                FD_CONSTANT(16)
-#define FD_NEVERSEEN              FD_CONSTANT(17)
-#define FD_LOCKHOLDER             FD_CONSTANT(18)
-#define FD_DEFAULT_VALUE          FD_CONSTANT(19)
+#define FD_ERROR_VALUE            FD_CONSTANT(13)
+#define FD_BADPTR                 FD_CONSTANT(14)
+#define FD_THROW_VALUE            FD_CONSTANT(15)
+#define FD_EXCEPTION_TAG          FD_CONSTANT(16)
+#define FD_UNBOUND                FD_CONSTANT(17)
+#define FD_NEVERSEEN              FD_CONSTANT(18)
+#define FD_LOCKHOLDER             FD_CONSTANT(19)
+#define FD_DEFAULT_VALUE          FD_CONSTANT(20)
 
 #define FD_VOIDP(x) (x == FD_VOID)
 #define FD_FALSEP(x) (x == FD_FALSE)
@@ -351,10 +351,16 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_EODP(x) (x == FD_EOD)
 #define FD_EOXP(x) (x == FD_EOX)
 
+#define FD_THROWP(result) ((result)==(FD_THROW_VALUE))
+
+#define FD_ABORTP(x) \
+  (((FD_PTR_TYPEP(x,fd_constant_type)) && \
+    (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
+    (FD_GET_IMMEDIATE(x,fd_constant_type)<=15)))
 #define FD_TROUBLEP(x) \
   (((FD_PTR_TYPEP(x,fd_constant_type)) && \
-    (FD_GET_IMMEDIATE(x,fd_constant_type)>5) && \
-    (FD_GET_IMMEDIATE(x,fd_constant_type)<=13)))
+    (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
+    (FD_GET_IMMEDIATE(x,fd_constant_type)<15)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
 
 #define FDTYPE_CONSTANTP(x) \

@@ -200,29 +200,18 @@ int main(int argc,char **argv)
       fd_decref(result);
       result=fd_applyfns[ctype](main_proc,n_args,args);
       result=fd_finish_call(result);}}
-  if (FD_ERRORP(result)) {
-    struct FD_EXCEPTION_OBJECT *e=(struct FD_EXCEPTION_OBJECT *)result;
+  if (FD_TROUBLEP(result)) {
+    struct U8_OUTPUT backtrace;
+    u8_exception e=u8_erreify(), root=e;
     int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
     fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
-    fd_print_error(&out,e);
-    fd_print_backtrace(&out,80,e->backtrace);
-    fd_print_error(&out,e);
+    while (root->u8x_prev) root=root->u8x_prev;
+    fd_print_exception(&out,root);
+    fd_print_backtrace(&out,e,80);
     fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
     fputs(out.u8_outbuf,stderr);
     u8_free(out.u8_outbuf);
-    retval=-1;}
-  else if (FD_TROUBLEP(result)) {
-    fd_exception ex; u8_context cxt; u8_string details; fdtype irritant;
-    if (fd_poperr(&ex,&cxt,&details,&irritant)) {
-      u8_fprintf(stderr,";; (ERROR %m)",ex);
-      if (details) u8_fprintf(stderr," %m",details);
-      if (cxt) u8_fprintf(stderr," (%s)",cxt);
-      u8_fprintf(stderr,"\n");
-      if (!(FD_VOIDP(irritant)))
-	u8_fprintf(stderr,";; %q\n",irritant);
-      if (details) u8_free(details); fd_decref(irritant);}
-    else u8_fprintf(stderr,";; Unexplained error result %q\n",result);
     retval=-1;}
   fd_decref(result);
   /* Hollow out the environment, which should let you reclaim it.
