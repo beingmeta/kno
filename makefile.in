@@ -68,7 +68,7 @@ DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
 	         src/scheme/conditionals.o src/scheme/iterators.o
-SCHEME_OBJS=$(CORE_SCHEME_OBJS) src/scheme/exceptions.o \
+SCHEME_OBJS=$(CORE_SCHEME_OBJS) src/scheme/errors.o \
 	    src/scheme/modules.o src/scheme/load.o src/scheme/history.o \
 	    src/scheme/reflection.o \
 	    src/scheme/coreprims.o src/scheme/dbprims.o \
@@ -106,7 +106,7 @@ FDB_SOURCES=\
 	src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c src/db/oidpools.c \
 	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c src/db/zindices.c \
-	src/scheme/eval.c src/scheme/binders.c src/scheme/exceptions.c \
+	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c \
 	src/scheme/conditionals.c src/scheme/iterators.c \
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
 	src/scheme/coreprims.c src/scheme/dbprims.c \
@@ -767,14 +767,14 @@ src/scheme/binders.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
 src/scheme/binders.o: ./include/fdb/dtype.h ./include/fdb/pools.h
 src/scheme/binders.o: ./include/fdb/fddb.h ./include/fdb/indices.h
 src/scheme/binders.o: ./include/fdb/frames.h
-src/scheme/exceptions.o: ./include/fdb/dtype.h ./include/fdb/common.h
-src/scheme/exceptions.o: ./include/fdb/defines.h ./include/fdb/config.h
-src/scheme/exceptions.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
-src/scheme/exceptions.o: ./include/fdb/support.h ./include/fdb/ptr.h
-src/scheme/exceptions.o: ./include/fdb/cons.h ./include/fdb/choices.h
-src/scheme/exceptions.o: ./include/fdb/tables.h ./include/fdb/support.h
-src/scheme/exceptions.o: ./include/fdb/eval.h ./include/fdb/apply.h
-src/scheme/exceptions.o: ./include/fdb/ports.h
+src/scheme/errors.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/errors.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/errors.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/errors.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/errors.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/errors.o: ./include/fdb/tables.h ./include/fdb/support.h
+src/scheme/errors.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/scheme/errors.o: ./include/fdb/ports.h
 src/scheme/conditionals.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/scheme/conditionals.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/scheme/conditionals.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h

@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -116,7 +116,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       return handler;}}
 }
 
-static fdtype exception_condition(fdtype x)
+static fdtype error_condition(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
@@ -126,7 +126,7 @@ static fdtype exception_condition(fdtype x)
   else return fd_intern((u8_string)(ex->u8x_cond));
 }
 
-static fdtype exception_context(fdtype x)
+static fdtype error_context(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
@@ -136,7 +136,7 @@ static fdtype exception_context(fdtype x)
   else return fd_intern((u8_string)(ex->u8x_context));
 }
 
-static fdtype exception_details(fdtype x)
+static fdtype error_details(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
@@ -146,7 +146,7 @@ static fdtype exception_details(fdtype x)
   else return fdtype_string((u8_string)(ex->u8x_details));
 }
 
-static fdtype exception_irritant(fdtype x)
+static fdtype error_irritant(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
@@ -160,7 +160,7 @@ static fdtype exception_irritant(fdtype x)
   else return fd_incref(irritant);
 }
 
-static fdtype exception_xdata(fdtype x)
+static fdtype error_xdata(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
@@ -236,7 +236,7 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
   return result;
 }
 
-FD_EXPORT void fd_init_exceptions_c()
+FD_EXPORT void fd_init_errors_c()
 {
   fd_register_source_file(versionid);
   
@@ -245,19 +245,19 @@ FD_EXPORT void fd_init_exceptions_c()
   fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXCEPTION-CONDITION",exception_condition,1,
+	   fd_make_cprim1x("ERROR-CONDITION",error_condition,1,
 			   fd_exception_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXCEPTION-CONTEXT",exception_context,1,
+	   fd_make_cprim1x("ERROR-CONTEXT",error_context,1,
 			   fd_exception_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXCEPTION-DETAILS",exception_details,1,
+	   fd_make_cprim1x("ERROR-DETAILS",error_details,1,
 			   fd_exception_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXCEPTION-IRRITANT",exception_irritant,1,
+	   fd_make_cprim1x("ERROR-IRRITANT",error_irritant,1,
 			   fd_exception_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXCEPTION-XDATA",exception_xdata,1,
+	   fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
 			   fd_exception_type,FD_VOID));
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);

@@ -2214,7 +2214,7 @@ static void init_localfns()
      fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
 }
 
-FD_EXPORT void fd_init_exceptions_c(void);
+FD_EXPORT void fd_init_errors_c(void);
 FD_EXPORT void fd_init_conditionals_c(void);
 FD_EXPORT void fd_init_iterators_c(void);
 FD_EXPORT void fd_init_choicefns_c(void);
@@ -2237,7 +2237,7 @@ static void init_core_builtins()
 {
   init_localfns();
   init_threadfns();
-  fd_init_exceptions_c();
+  fd_init_errors_c();
   fd_init_conditionals_c();
   fd_init_iterators_c();
   fd_init_choicefns_c();
