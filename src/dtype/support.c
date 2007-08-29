@@ -445,6 +445,11 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
   int *ptr=vptr;
   if (FD_FALSEP(v)) {
     *ptr=0; return 1;}
+  else if (FD_FIXNUMP(v)) {
+    /* Strictly speaking, this isn't exactly right, but it's not uncommon
+       to have int-valued config variables where 1 is a default setting
+       but others are possible. */
+    *ptr=FD_FIX2INT(v); return 1;}
   else if ((FD_STRINGP(v)) && (false_stringp(FD_STRDATA(v)))) {
     *ptr=0; return 1;}
   else if ((FD_STRINGP(v)) && (true_stringp(FD_STRDATA(v)))) {
@@ -995,7 +1000,7 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
 static int loglevelconfig_set(fdtype var,fdtype val,void *data)
 {
   if (FD_FIXNUMP(val)) {
-    int *valp=(int *)valp; *valp=FD_FIX2INT(val);
+    int *valp=(int *)data; *valp=FD_FIX2INT(val);
     return 1;}
   else if ((FD_STRINGP(val)) || (FD_SYMBOLP(val))) {
     u8_string *scan=u8_loglevels; int loglevel=-1;
@@ -1007,7 +1012,7 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
 	loglevel=scan-u8_loglevels; break;}
       else scan++;
     if (loglevel>=0) {
-      int *valp=(int *)valp; *valp=loglevel;
+      int *valp=(int *)data; *valp=loglevel;
       return 1;}
     else {
       fd_seterr(fd_TypeError,"config_setloglevel",
@@ -1061,6 +1066,7 @@ static int boot_config()
 {
   u8_string config_string=u8_getenv("FD_BOOT_CONFIG"), scan, end; int count=0;
   if (config_string==NULL) config_string=u8_strdup(FD_BOOT_CONFIG);
+  else config_string=u8_strdup(config_string);
   scan=config_string; end=strchr(scan,';');
   while (scan) {
     if (end==NULL) {
