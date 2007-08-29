@@ -89,11 +89,11 @@ FD_EXPORT fdtype fd_dteval(fd_dtserver dts,fdtype expr)
 {
   if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
       (fd_dtsflush(&(dts->stream))<0)) {
-    if (server_reconnect(dts)<0) return FD_ERROR_VALUE;}
-  if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
-      (fd_dtsflush(&(dts->stream))<0))
-    return FD_ERROR_VALUE;
-  else return fd_dtsread_dtype(&(dts->stream));
+    if (server_reconnect(dts)<0) return FD_ERROR_VALUE;
+    else if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
+	     (fd_dtsflush(&(dts->stream))<0))
+      return FD_ERROR_VALUE;}
+  return fd_dtsread_dtype(&(dts->stream));
 }
 
 FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
