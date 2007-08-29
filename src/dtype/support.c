@@ -430,18 +430,60 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
 	 fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
 }
 
+/* Boolean configs */
+
+static int false_stringp(u8_string string);
+static int true_stringp(u8_string string);
+
 FD_EXPORT fdtype fd_boolconfig_get(fdtype ignored,void *vptr)
 {
   int *ptr=vptr;
   if (*ptr) return FD_TRUE; else return FD_FALSE;
 }
-FD_EXPORT int fd_boolconfig_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
 {
   int *ptr=vptr;
   if (FD_FALSEP(v)) {
     *ptr=0; return 1;}
+  else if ((FD_STRINGP(v)) && (false_stringp(FD_STRDATA(v)))) {
+    *ptr=0; return 1;}
+  else if ((FD_STRINGP(v)) && (true_stringp(FD_STRDATA(v)))) {
+    *ptr=1; return 1;}
+  else if (FD_STRINGP(v)) {
+    fd_seterr(fd_TypeError,"fd_boolconfig_set",
+	      u8_strdup(FD_SYMBOL_NAME(var)),fd_incref(v));
+    return -1;}
   else {*ptr=1; return 1;}
 }
+
+/* Someday, these should be configurable. */
+static u8_string false_strings[]={
+  "no","false","off","n","f" "#f","#false","non","nei","not",NULL};
+
+static int false_stringp(u8_string string)
+{
+  u8_string *scan=false_strings;
+  while (*scan)
+    if (strcasecmp(string,*scan)==0) return 1;
+    else scan++;
+  return 0;
+}
+
+static u8_string true_strings[]={
+  "yes","true","on","y","t" "#t","#true",
+  "oui","yah","yeah","yep","sure",NULL};
+
+static int true_stringp(u8_string string)
+{
+  u8_string *scan=true_strings;
+  while (*scan)
+    if (strcasecmp(string,*scan)==0) return 1;
+    else scan++;
+  return 0;
+}
+
+
+/* Double config methods */
 
 FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
 {
@@ -948,6 +990,37 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
+/* LOGLEVEL */
+
+static int loglevelconfig_set(fdtype var,fdtype val,void *data)
+{
+  if (FD_FIXNUMP(val)) {
+    int *valp=(int *)valp; *valp=FD_FIX2INT(val);
+    return 1;}
+  else if ((FD_STRINGP(val)) || (FD_SYMBOLP(val))) {
+    u8_string *scan=u8_loglevels; int loglevel=-1;
+    u8_string level_name;
+    if (FD_STRINGP(val)) level_name=FD_STRDATA(val);
+    else level_name=FD_SYMBOL_NAME(val);
+    while (*scan)
+      if (strcasecmp(*scan,level_name)) {
+	loglevel=scan-u8_loglevels; break;}
+      else scan++;
+    if (loglevel>=0) {
+      int *valp=(int *)valp; *valp=loglevel;
+      return 1;}
+    else {
+      fd_seterr(fd_TypeError,"config_setloglevel",
+		u8_strdup(FD_SYMBOL_NAME(var)),
+		fd_incref(val));
+      return -1;}}
+  else {
+    fd_seterr(fd_TypeError,"config_setloglevel",
+	      u8_strdup(FD_SYMBOL_NAME(var)),
+	      fd_incref(val));
+    return -1;}
+}
+
 /* RUNBASE */
 
 static u8_string runbase_config=NULL, runbase=0;
@@ -1023,30 +1096,51 @@ void fd_init_support_c()
 
   boot_config();
 
-  fd_register_config("APPID",_("application ID used in messages and SESSIONID"),
-		     config_getappid,config_setappid,NULL);
-  fd_register_config("SESSIONID",_("unique session identifier"),
-		     config_getsessionid,config_setsessionid,NULL);
-  fd_register_config("UTF8WARN",_("warn on bad UTF-8 sequences"),
-		     config_getutf8warn,config_setutf8warn,NULL);
-  fd_register_config("RANDOMSEED",_("random seed used for stochastic operations"),
-		     config_getrandomseed,config_setrandomseed,NULL);
-  fd_register_config("MERGECHOICES",_("Threshold at which to use an external hashset for merging"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &fd_mergesort_threshold);
-  fd_register_config("SHOWPROCINFO",_("Whether to show PID/appid info in messages"),
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &u8_show_procinfo);
-  fd_register_config("SHOWELAPSED",_("Whether to show elapsed time in messages"),
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &u8_show_elapsed);
-  fd_register_config("DISPLAYMAXCHARS",_("Max number of chars to show in strings"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &fd_unparse_maxchars);
-  fd_register_config("DISPLAYMAXELTS",_("Max number of elements to show in vectors/lists/choices, etc"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &fd_unparse_maxelts);
+  fd_register_config
+    ("APPID",_("application ID used in messages and SESSIONID"),
+     config_getappid,config_setappid,NULL);
+  fd_register_config
+    ("SESSIONID",_("unique session identifier"),
+     config_getsessionid,config_setsessionid,NULL);
+  fd_register_config
+    ("UTF8WARN",_("warn on bad UTF-8 sequences"),
+     config_getutf8warn,config_setutf8warn,NULL);
+  fd_register_config
+    ("RANDOMSEED",_("random seed used for stochastic operations"),
+     config_getrandomseed,config_setrandomseed,NULL);
+  fd_register_config
+    ("MERGECHOICES",
+     _("Threshold at which to use an external hashset for merging"),
+     fd_intconfig_get,fd_intconfig_set,
+     &fd_mergesort_threshold);
+  
+  fd_register_config
+    ("LOGLEVEL",_("Required priority for messages to be displayed"),
+     fd_intconfig_get,loglevelconfig_set,
+     &u8_loglevel);
+  fd_register_config
+    ("SHOWDATE",_("Whether to show the date in log messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_date);
+  fd_register_config
+    ("SHOWPROCINFO",_("Whether to show PID/appid info in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_procinfo);
+  fd_register_config
+    ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_elapsed);
 
+  fd_register_config
+    ("DISPLAYMAXCHARS",_("Max number of chars to show in strings"),
+     fd_intconfig_get,fd_intconfig_set,
+     &fd_unparse_maxchars);
+  fd_register_config
+    ("DISPLAYMAXELTS",
+     _("Max number of elements to show in vectors/lists/choices, etc"),
+     fd_intconfig_get,fd_intconfig_set,
+     &fd_unparse_maxelts);
+  
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
 		     config_getrunbase,config_setrunbase,NULL);
 
