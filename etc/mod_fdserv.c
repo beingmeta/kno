@@ -39,7 +39,7 @@ typedef unsigned long long INTPOINTER;
 typedef unsigned int INTPOINTER;
 #endif
 
-#define SPAWN_TIMEOUT 20
+#define DEFAULT_SERVLET_WAIT 10
 #define MAX_CONFIGS 32
 
 #include "util_script.h"
@@ -196,6 +196,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *server_executable;
   const char **config_args;
   const char *socket_prefix;
+  const char *log_prefix;
   uid_t uid; gid_t gid;};
 
 struct FDSERV_DIR_CONFIG {
@@ -203,7 +204,9 @@ struct FDSERV_DIR_CONFIG {
   const char **config_args;
   const char *log_file;
   const char *socket_file;
-  const char *socket_prefix;};
+  const char *socket_prefix;
+  const char *log_prefix;
+  int servlet_wait;};
 
 static void *create_server_config(apr_pool_t *p,server_rec *s)
 {
@@ -212,6 +215,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->server_executable=NULL;
   config->config_args=NULL;
   config->socket_prefix=NULL;
+  config->log_prefix=NULL;
   config->uid=-1; config->gid=-1;
   return (void *) config;
 }
@@ -251,11 +255,11 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->socket_prefix=apr_pstrdup(p,parent->socket_prefix);
   else config->socket_prefix=NULL;
 
-  if (child->socket_prefix)
-    config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
+  if (child->log_prefix)
+    config->log_prefix=apr_pstrdup(p,child->log_prefix);
   else if (parent->socket_prefix)
-    config->socket_prefix=apr_pstrdup(p,parent->socket_prefix);
-  else config->socket_prefix=NULL;
+    config->log_prefix=apr_pstrdup(p,parent->log_prefix);
+  else config->log_prefix=NULL;
 
   return (void *) config;
 }
@@ -269,6 +273,8 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->log_file=NULL;
   config->socket_file=NULL;
   config->socket_prefix=NULL;
+  config->log_prefix=NULL;
+  config->servlet_wait=DEFAULT_SERVLET_WAIT;
   return (void *) config;
 }
 
@@ -311,6 +317,12 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   else if (parent->socket_file)
     config->socket_file=apr_pstrdup(p,parent->socket_file);
   else config->socket_file=NULL;
+
+  if (child->log_prefix)
+    config->log_prefix=apr_pstrdup(p,child->log_prefix);
+  else if (parent->log_prefix)
+    config->log_prefix=apr_pstrdup(p,parent->log_prefix);
+  else config->log_prefix=NULL;
 
   if (child->log_file)
     config->log_file=apr_pstrdup(p,child->log_file);
@@ -406,19 +418,43 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
   else return "Invalid socket prefix (directory does not exist or is not writable)";
 }
 
+static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  if (file_writablep(parms->pool,parms->server,arg))
+    if (parms->path) {
+      dconfig->log_prefix=arg;
+      return NULL;}
+    else {
+      sconfig->log_prefix=arg;
+      return NULL;}
+  else return "Invalid log prefix (directory does not exist or is not writable)";
+}
+
 static const char *socket_file(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-  dconfig->socket_file=arg;
+  /* struct FDSERV_SERVER_CONFIG *sconfig=mconfig; */
+  if (parms->path)
+    dconfig->socket_file=arg;
+  else {}
   return NULL;
 }
 
 static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-  char *fullpath=ap_server_root_relative(parms->pool,arg);
+  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
+  const char *log_prefix=((parms->path) ? (dconfig->log_prefix) : (sconfig->log_prefix));
+  const char *fullpath=((*arg=='/') ? (arg) :
+			(log_prefix) ? (apr_pstrcat(parms->pool,log_prefix,arg,NULL)) :
+			(ap_server_root_relative(parms->pool,arg)));
   if (file_writablep(parms->pool,parms->server,fullpath)) {
-    dconfig->log_file=fullpath;
+    if (parms->path)
+      dconfig->log_file=fullpath;
+    else {} /* sconfig->log_file=fullpath; */
     return NULL;}
 #if APACHE20
   return apr_psprintf(parms->pool,"FDServletLog '%s' is not writable '%s'",
@@ -427,6 +463,16 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   return ap_psprintf(parms->pool,"FDServletLog '%s' is not writable '%s'",
 		     arg,fullpath);
 #endif
+}
+
+static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  if (parms->path) {
+    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+    int wait_interval=atoi(arg);
+    dconfig->servlet_wait=wait_interval;
+    return NULL;}
+  else return NULL;
 }
 
 static const command_rec fdserv_cmds[] =
@@ -445,8 +491,12 @@ static const command_rec fdserv_cmds[] =
 	       "the prefix to be appended to socket names"),
   AP_INIT_TAKE1("FDServletSocket", socket_file, NULL, OR_ALL,
 	       "the socket file to be used for a particular script"),
+  AP_INIT_TAKE1("FDServletLogPrefix", log_prefix, NULL, OR_ALL,
+	       "the prefix for the logfile to be used for scripts"),
   AP_INIT_TAKE1("FDServletLog", log_file, NULL, OR_ALL,
 	       "the logfile to be used for scripts"),
+  AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
+		"the number of seconds to wait for the servlet to startup"),
   {NULL}
 };
 
@@ -609,6 +659,7 @@ static int spawn_fdservlet /* 1.3 */
   struct FDSERV_INFO info;
   server_rec *s=r->server;
   struct stat stat_data;
+  int servlet_wait=dconfig->servlet_wait;
   info.exename=(char *)
     ((dconfig->server_executable) ? (dconfig->server_executable) :
      (sconfig->server_executable) ? (sconfig->server_executable) :
@@ -643,7 +694,7 @@ static int spawn_fdservlet /* 1.3 */
   {
     int sleep_count=1;
     sleep(1); while (stat(sockname,&stat_data) < 0) {
-      if (sleep_count>SPAWN_TIMEOUT) {
+      if (sleep_count>servlet_wait) {
 	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
 		      "Failed to spawn socket file %s (%d:%s)",
 		      sockname,errno,strerror(errno));
@@ -686,6 +737,7 @@ static int spawn_fdservlet /* 2.0 */
 			    (sconfig->config_args) ?
 			    (sconfig->config_args) :
 			    (NULL));
+  int servlet_wait=dconfig->servlet_wait;
 
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,s,
 	       "Spawning fdservlet %s @%s for %s",
@@ -764,7 +816,7 @@ static int spawn_fdservlet /* 2.0 */
   {
     int sleep_count=1;
     sleep(1); while (stat(sockname,&stat_data) < 0) {
-      if (sleep_count>SPAWN_TIMEOUT) {
+      if (sleep_count>servlet_wait) {
 	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
 		      "Failed to spawn socket file %s (%d:%s)",
 		      sockname,errno,strerror(errno));
