@@ -811,9 +811,10 @@ int main(int argc,char **argv)
 
   portfile=u8_strdup(argv[1]);
 
-  u8_message("FramerD (r%s) fdserv servlet running, %d/%d pools/indices",
-	     SVN_REVISION,fd_n_pools,
-	     fd_n_primary_indices+fd_n_secondary_indices);
+  u8_log(LOG_INFO,NULL,
+	 "FramerD (r%s) fdserv servlet running, %d/%d pools/indices",
+	 SVN_REVISION,fd_n_pools,
+	 fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
   u8_server_loop(&fdwebserver);
 

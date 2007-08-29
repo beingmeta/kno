@@ -45,6 +45,8 @@ static u8_condition NoServers=_("NoServers");
 static u8_condition ServerStartup=_("ServerStart");
 static u8_condition ServerShutdown=_("ServerShutdown");
 
+static u8_condition Incoming=_("Incoming"), Outgoing=_("Outgoing");
+
 /* This is the global lisp environment for all servers.
    It is modified to include various modules, including dbserv. */
 static fd_lispenv server_env;
@@ -60,7 +62,7 @@ static struct U8_XTIME boot_time;
 static int max_tasks=32, n_threads=8, server_initialized=0;
 /* Controlling trace activity: logeval prints expressions, logtrans reports
    transactions (request/response pairs). */
-static int logeval=0, logtrans=0, tracktime=1;
+static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
 
 #if FD_THREADS_ENABLED
 static u8_mutex init_server_lock;
@@ -207,7 +209,6 @@ static int dtypeserver(u8_client ucl)
   fdtype expr;
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
-  client->n_trans++;
   if (client->stream.id==NULL) {
     if (client->idstring)
       client->stream.id=u8_strdup(client->idstring);
@@ -224,35 +225,62 @@ static int dtypeserver(u8_client ucl)
   else {
     fdtype value;
     int tracethis=((logtrans) && ((client->n_trans==1) || (((client->n_trans)%logtrans)==0)));
-    double xstart, elapsed=-1.0;
+    double xstart=(u8_elapsed_time()), elapsed=-1.0;
     if (logeval)
-      u8_log(LOG_INFO,"%s[%d]: > %q",client->idstring,client->n_trans,expr);
-    else if (logtrans) u8_log(LOG_INFO,"%s[%d]: Received request",client->idstring,client->n_trans);
-    xstart=((tracktime) ? (u8_elapsed_time()) : (-1.0));
+      u8_log(LOG_INFO,Incoming,
+	     "%s[%d]: > %q",client->idstring,client->n_trans,expr);
+    else if (logtrans)
+      u8_log(LOG_INFO,Incoming,
+	     "%s[%d]: Received request for execution",client->idstring,client->n_trans);
     value=fd_eval(expr,client->env);
-    if (xstart>=0) elapsed=u8_elapsed_time()-xstart;
-    if (logeval)
-      if (xstart>=0)
-	u8_log(LOG_INFO,"%s[%d]: < %q in %f",client->idstring,client->n_trans,value,
-		   u8_elapsed_time()-xstart);
-      else u8_log(LOG_INFO,"%s[%d]: < %q",client->idstring,client->n_trans,value);
+    elapsed=u8_elapsed_time()-xstart;
+    if (FD_ABORTP(value)) {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+      u8_exception ex=u8_erreify(), root=u8_exception_root(ex);
+      fdtype irritant=fd_exception_xdata(root);
+      if ((logeval) || (logerrs) || (tracethis)) {
+	if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
+	  u8_log(LOG_ERR,Outgoing,
+		 "%s[%d]: %m@%s (%s) %q returned in %fs",
+		 client->idstring,client->n_trans,
+		 root->u8x_cond,root->u8x_context,
+		 root->u8x_details,irritant,
+		 elapsed);
+	else if (root->u8x_details)
+	  u8_log(LOG_ERR,Outgoing,
+		 "%s[%d]: %m@%s (%s) returned in %fs",
+		 client->idstring,client->n_trans,
+		 root->u8x_cond,root->u8x_context,root->u8x_details,elapsed);
+      	else if (!(FD_VOIDP(irritant)))
+	  u8_log(LOG_ERR,Outgoing,
+		 "%s[%d]: %m@%s -- %q returned in %fs",
+		 client->idstring,client->n_trans,
+		 root->u8x_cond,root->u8x_context,irritant,elapsed);
+	else u8_log(LOG_ERR,Outgoing,
+		    "%s[%d]: %m@%s -- %q returned in %fs",
+		    client->idstring,client->n_trans,
+		    root->u8x_cond,root->u8x_context,elapsed);
+	fd_summarize_backtrace(&out,ex);
+	u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
+	if (logbacktrace) {
+	  out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+	  fd_print_backtrace(&out,ex,120);
+	  u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);}}
+      u8_free_exception(ex,1);}
+    else if (logeval)
+      u8_log(LOG_INFO,Outgoing,
+	     "%s[%d]: < %q in %f",client->idstring,client->n_trans,value,
+	     elapsed);
     else if (tracethis)
-      if (FD_ABORTP(value)) {
-	if (elapsed>=0)
-	  u8_log(LOG_INFO,"%s[%d]: Error returned in %fs",client->idstring,client->n_trans,elapsed);
-	else u8_log(LOG_INFO,"%s[%d]: Error returned",client->idstring,client->n_trans);
-      	client->n_errs++;}
-      else if (elapsed>=0)
-	u8_log(LOG_INFO,"%s[%d]: Normal return in %fs",client->idstring,client->n_trans,elapsed);
-      else u8_log(LOG_INFO,"%s[%d]: Normal return",client->idstring,client->n_trans);
-    if (tracktime) client->elapsed=client->elapsed+elapsed;
+      u8_log(LOG_INFO,Outgoing,
+	     "%s[%d]: Request executed in %fs",client->idstring,client->n_trans,elapsed);
+    client->elapsed=client->elapsed+elapsed;
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
-    if (tracktime) time(&(client->lastlive));
-    if ((tracethis) && (xstart>=0))
-      u8_log(LOG_INFO,"%s[%d]: Response sent after %fs",
-		 client->idstring,client->n_trans,u8_elapsed_time()-xstart);
-    else if (logtrans) u8_log(LOG_INFO,"%s[%d]: Response sent",client->idstring,client->n_trans);
+    time(&(client->lastlive));
+    if (tracethis)
+      u8_log(LOG_INFO,Outgoing,"%s[%d]: Response sent after %fs",
+	     client->idstring,client->n_trans,u8_elapsed_time()-xstart);
     fd_decref(expr); fd_decref(value);
     fd_swapcheck();
     return 1;}
@@ -438,9 +466,11 @@ int main(int argc,char **argv)
   fd_register_config("LOGEVAL",_("Whether to log each request and response"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logeval);
   fd_register_config("LOGTRANS",_("Whether to log each transaction"),
-		     fd_intconfig_get,fd_intconfig_set,&logtrans);
-  fd_register_config("TRACKTIME",_("Whether to track clock time for each client"),
-		     fd_boolconfig_get,fd_boolconfig_set,&tracktime);
+		     fd_intconfig_get,fd_boolconfig_set,&logtrans);
+  fd_register_config("LOGERRS",_("Whether to log errors returned by the server to clients"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
+  fd_register_config("LOGBACKTRACE",_("Whether to include a detailed backtrace when logging errors"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
   fd_register_config("U8LOGCONN",_("Whether to have libu8 log each connection"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_CONNECT));
@@ -573,7 +603,7 @@ int main(int argc,char **argv)
   if (fullscheme==0) {
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
   if (n_ports>0) {
-    u8_log(LOG_INFO,"FramerD (r%s) fdbserver running, %d/%d pools/indices",
+    u8_log(LOG_INFO,NULL,"FramerD (r%s) fdbserver running, %d/%d pools/indices",
 	       SVN_REVISION,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
