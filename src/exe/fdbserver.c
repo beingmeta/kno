@@ -410,7 +410,8 @@ int main(int argc,char **argv)
 #endif
 
   /* Show more information */
-  u8_show_procinfo=1;
+  u8_log_show_date=1;
+  u8_log_show_procinfo=1;
   u8_use_syslog(1);
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))

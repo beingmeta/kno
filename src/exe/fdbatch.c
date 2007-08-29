@@ -116,7 +116,7 @@ int main(int argc,char **argv)
   int pid_fd, log_fd, err_fd, chained=0;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
-  u8_show_procinfo=1;
+  u8_log_show_procinfo=1;
   fd_init_dtypelib();
   fd_argv_config(argc,argv); 
   identify_application(argc,argv,"fdbatch");
