@@ -613,10 +613,12 @@ static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
     fdtype vector=fd_init_vector(NULL,veclen,NULL);
     int n_bytes;
     FD_VECTOR_SET(vector,0,fd_intern((u8_string)(ex->u8x_cond)));
-    FD_VECTOR_SET(vector,1,fd_intern((u8_string)(ex->u8x_context)));
+    if (ex->u8x_context) {
+      FD_VECTOR_SET(vector,1,fd_intern((u8_string)(ex->u8x_context)));}
+    else {FD_VECTOR_SET(vector,1,FD_FALSE);}
     if (ex->u8x_details) {
       FD_VECTOR_SET(vector,2,fdtype_string(ex->u8x_details));}
-    else {FD_VECTOR_SET(vector,1,FD_FALSE);}
+    else {FD_VECTOR_SET(vector,2,FD_FALSE);}
     if (!(FD_VOIDP(irritant)))
       FD_VECTOR_SET(vector,3,fd_incref(irritant));
     fd_write_byte(out,dt_exception);
