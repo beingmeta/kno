@@ -1088,7 +1088,6 @@ void fd_init_support_c()
 
 #if FD_USE_TLS
   u8_new_threadkey(&thread_config_var,NULL);
-  u8_new_threadkey(&errdata_key,NULL);
   u8_new_threadkey(&threadtable_key,NULL);
 #endif
   global_config=fd_make_hashtable(NULL,16);
