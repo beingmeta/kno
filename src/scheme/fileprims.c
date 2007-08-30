@@ -870,11 +870,60 @@ FD_EXPORT int fd_update_file_modules(int force)
   return n_reloads;
 }
 
+FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
+{
+  struct FD_LOAD_RECORD *scan; double reload_time;
+  fd_lock_mutex(&load_record_lock);
+  reload_time=u8_elapsed_time();
+  scan=load_records;
+  while (scan)
+    if (strcmp(scan->filename,module_filename)==0) {
+      time_t mtime=u8_file_mtime(scan->filename);
+      if ((force) || (mtime>scan->mtime)) {
+	fdtype load_result=
+	  fd_load_source(scan->filename,scan->env,"auto");
+	if (FD_ABORTP(load_result)) {
+	  fd_seterr(fd_ReloadError,"fd_reload_modules",
+		    u8_strdup(scan->filename),load_result);
+	  fd_unlock_mutex(&load_record_lock);
+	  return -1;}
+	else {
+	  fd_decref(load_result);
+	  scan->mtime=mtime;
+	  fd_unlock_mutex(&load_record_lock);
+	  return 1;}}
+      fd_unlock_mutex(&load_record_lock);
+      return 0;}
+    else scan=scan->next;
+  fd_unlock_mutex(&load_record_lock);
+  /* Maybe, this should load it. */
+  fd_seterr(fd_ReloadError,"fd_update_file_module",
+	    u8_mkstring(_("The file %s has never been loaded"),module_filename),
+	    FD_VOID);
+  return 0;
+}
+
 static fdtype update_modules_prim(fdtype flag)
 {
   if (fd_update_file_modules((!FD_FALSEP(flag)))<0)
     return FD_ERROR_VALUE;
   else return FD_VOID;
+}
+
+static fdtype update_module_prim(fdtype spec,fdtype force)
+{
+  if (FD_FALSEP(force)) {
+    u8_string module_filename=get_module_filename(spec,0);
+    if (module_filename) {
+      int retval=fd_update_file_module(module_filename,0);
+      if (retval) return FD_TRUE;
+      else return FD_FALSE;}
+    else {
+      fd_seterr(fd_ReloadError,"update_module_prim",
+		u8_strdup(_("Module does not exist")),
+		spec);
+      return FD_ERROR_VALUE;}}
+  else return load_source_module(spec,0);
 }
 
 static fdtype updatemodules_config_get(fdtype var,void *ignored)
@@ -1360,6 +1409,9 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1("RELOAD-MODULE",reload_module,1));
   fd_idefn(fileio_module,
 	   fd_make_cprim1("UPDATE-MODULES",update_modules_prim,0));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
+			   -1,FD_VOID,-1,FD_FALSE));
 
   {
     u8_string path=u8_getenv("FD_LOADPATH");
