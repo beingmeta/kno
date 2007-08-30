@@ -72,7 +72,7 @@ struct U8_SERVER fdwebserver;
 /* This environment is the parent of all script/page environments spun off
    from this server. */
 static fd_lispenv server_env=NULL;
-static int servlet_backlog=-1, servlet_threads=-1;
+static int servlet_backlog=64, servlet_threads=8;
 
 /* TRACEWEB config  */
 
@@ -732,7 +732,7 @@ int main(int argc,char **argv)
 		     traceweb_get,traceweb_set,NULL);
   fd_register_config("PRELOAD",_("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);
-  fd_register_config("THREADS",_("Number of threads in the thread pool"),
+  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
   fd_register_config("BACKLOG",_("Low level socket backlog setting"),
 		     fd_intconfig_get,fd_intconfig_set,&servlet_backlog);
@@ -755,9 +755,6 @@ int main(int argc,char **argv)
     else i++;
   if (u8_file_existsp(argv[1])) remove(argv[1]);
   
-  if (servlet_threads<0) servlet_threads=4;
-  if (servlet_backlog<0) servlet_backlog=32;
-
   update_preloads();
 
   fd_make_hashtable(&pagemap,0);

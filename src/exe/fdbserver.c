@@ -455,7 +455,7 @@ int main(int argc,char **argv)
 
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_register_config("MAXTASKS",_("Max number of pending requests allowed"),
+  fd_register_config("BACKLOG",_("Max number of pending requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_tasks);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&n_threads);
