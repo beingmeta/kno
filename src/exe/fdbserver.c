@@ -235,7 +235,6 @@ static int dtypeserver(u8_client ucl)
     value=fd_eval(expr,client->env);
     elapsed=u8_elapsed_time()-xstart;
     if (FD_ABORTP(value)) {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
       u8_exception ex=u8_erreify(), root=u8_exception_root(ex);
       fdtype irritant=fd_exception_xdata(root);
       if ((logeval) || (logerrs) || (tracethis)) {
@@ -260,12 +259,15 @@ static int dtypeserver(u8_client ucl)
 		    "%s[%d]: %m@%s -- %q returned in %fs",
 		    client->idstring,client->n_trans,
 		    root->u8x_cond,root->u8x_context,elapsed);
-	fd_summarize_backtrace(&out,ex);
-	u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
 	if (logbacktrace) {
+	  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
 	  out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
 	  fd_print_backtrace(&out,ex,120);
-	  u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);}}
+	  u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
+	  if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF)) u8_free(out.u8_outbuf);}}
+      value=fd_make_exception(ex->u8x_cond,ex->u8x_context,
+			      ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
+			      fd_incref(irritant));
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,
