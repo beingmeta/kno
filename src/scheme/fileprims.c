@@ -838,7 +838,8 @@ static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime)
       return;}
     else scan=scan->next;
   scan=u8_alloc(struct FD_LOAD_RECORD);
-  scan->filename=filename; scan->env=env; scan->mtime=mtime;
+  scan->filename=u8_strdup(filename);
+  scan->env=env; scan->mtime=mtime;
   scan->next=load_records; load_records=scan;
   fd_unlock_mutex(&load_record_lock);
 }
