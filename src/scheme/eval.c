@@ -1150,11 +1150,11 @@ FD_EXPORT fd_lispenv fd_safe_working_environment()
   return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
 }
 
-FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags)
+FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
 {
   if (flags&FD_MODULE_SAFE)
-    fd_hashtable_store(&safe_module_map,fd_intern(name),module);
-  else fd_hashtable_store(&module_map,fd_intern(name),module);
+    fd_hashtable_store(&safe_module_map,name,module);
+  else fd_hashtable_store(&module_map,name,module);
   if (flags&FD_MODULE_DEFAULT) {
     fd_lispenv scan;
     if (flags&FD_MODULE_SAFE) {
@@ -1174,6 +1174,11 @@ FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags)
     default_env->parent=
       fd_make_env(fd_incref(module),default_env->parent);}
   return module;
+}
+
+FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags)
+{
+  return fd_register_module_x(fd_intern(name),module,flags);
 }
 
 FD_EXPORT fdtype fd_new_module(char *name,int flags)

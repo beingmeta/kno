@@ -84,6 +84,7 @@ FD_EXPORT fd_lispenv fd_working_environment(void);
 FD_EXPORT fd_lispenv fd_safe_working_environment(void);
 FD_EXPORT fd_lispenv fd_make_env(fdtype module,fd_lispenv parent);
 FD_EXPORT fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent);
+FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags);
 FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags);
 FD_EXPORT fdtype fd_get_module(fdtype name,int safe);
 FD_EXPORT int fd_discard_module(fdtype name,int safe);
@@ -96,7 +97,7 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 FD_EXPORT fdtype fd_find_module(fdtype,int,int);
 FD_EXPORT fdtype fd_new_module(char *name,int flags);
 
-FD_EXPORT void fd_add_module_loader(int (*loader)(u8_string,int));
+FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int));
 
 /* SPROCs */
 

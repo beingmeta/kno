@@ -23,7 +23,7 @@ fd_exception MissingModule=_("Loading failed to resolve module");
 fd_exception OpaqueModule=_("Can't switch to opaque module");
 
 static struct MODULE_LOADER {
-  int (*loader)(u8_string,int);
+  int (*loader)(fdtype,int);
   struct MODULE_LOADER *next;} *module_loaders=NULL;
 
 #if FD_THREADS_ENABLED
@@ -47,16 +47,11 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
     else return module;}
   else {
     struct MODULE_LOADER *scan=module_loaders;
-    u8_string module_name;
-    if (FD_SYMBOLP(spec))
-      module_name=u8_downcase(FD_SYMBOL_NAME(spec));
-    else if (FD_STRINGP(spec))
-      module_name=u8_downcase(FD_STRDATA(spec));
+    if ((FD_SYMBOLP(spec)) || (FD_STRINGP(spec))) {}
     else return fd_type_error(_("module name"),"fd_find_module",spec);
     while (scan) {
-      int retval=scan->loader(module_name,safe);
+      int retval=scan->loader(spec,safe);
       if (retval>0) {
-	u8_free(module_name);
 	module=fd_get_module(spec,safe);
 	if (FD_VOIDP(module)) return fd_err(MissingModule,NULL,NULL,spec);
 	fd_finish_module(module);
@@ -66,7 +61,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 	return FD_ERROR_VALUE;}
       else scan=scan->next;}
     if (err)
-      return fd_err(fd_NoSuchModule,NULL,module_name,spec);
+      return fd_err(fd_NoSuchModule,"fd_find_module",NULL,spec);
     else return FD_FALSE;}
 }
 
@@ -101,7 +96,7 @@ int fd_persist_module(fdtype module)
 }
 
 FD_EXPORT
-void fd_add_module_loader(int (*loader)(u8_string,int))
+void fd_add_module_loader(int (*loader)(fdtype,int))
 {
   struct MODULE_LOADER *consed=u8_alloc(struct MODULE_LOADER);
   fd_lock_mutex(&module_loaders_lock);
@@ -115,16 +110,25 @@ void fd_add_module_loader(int (*loader)(u8_string,int))
 
 static fdtype dloadpath=FD_EMPTY_LIST;
 
-static int load_dynamic_module(u8_string name,int safe)
+static int load_dynamic_module(fdtype spec,int safe)
 {
-  FD_DOLIST(elt,dloadpath) {
-    if (FD_STRINGP(elt)) {
-      u8_string module_name=u8_find_file(name,FD_STRDATA(elt),NULL);
-      if (module_name) {
-	void *mod=u8_dynamic_load(module_name);
-	u8_free(module_name);
-	if (mod) return 1; else return -1;}}}
-  return 0;
+  if (FD_SYMBOLP(spec)) {
+    u8_string name=u8_downcase(FD_SYMBOL_NAME(spec));
+    FD_DOLIST(elt,dloadpath) {
+      if (FD_STRINGP(elt)) {
+	u8_string module_name=u8_find_file(name,FD_STRDATA(elt),NULL);
+	if (module_name) {
+	  void *mod=u8_dynamic_load(module_name);
+	  u8_free(module_name); u8_free(name);
+	  if (mod) return 1; else return -1;}}}
+    u8_free(name);
+    return 0;}
+  else if  ((safe==0) &&
+	    (FD_STRINGP(spec)) &&
+	    (u8_file_existsp(FD_STRDATA(spec)))) {
+    void *mod=u8_dynamic_load(FD_STRDATA(spec));
+    if (mod) return 1; else return -1;}
+  else return 0;
 }
 
 static fdtype dynamic_load_prim(fdtype arg)
@@ -468,92 +472,3 @@ FD_EXPORT void fd_init_modules_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("PERSIST-MODULE",persist_module,1));
 }
-
-
-/* The CVS log for this file
-   $Log: modules.c,v $
-   Revision 1.32  2006/01/27 23:20:02  haase
-   Fix to safe USE-MODULE
-
-   Revision 1.31  2006/01/27 22:06:14  haase
-   Fixed leak in USE-MODULE
-
-   Revision 1.30  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.29  2006/01/18 04:33:06  haase
-   Fixed various iteration binding bugs
-
-   Revision 1.28  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.27  2005/12/19 00:43:05  haase
-   Fixed typo in ACCESSING-MODULE declaration
-
-   Revision 1.26  2005/11/11 05:37:50  haase
-   Added DYNAMIC-LOAD primitive
-
-   Revision 1.25  2005/09/13 03:34:30  haase
-   Fixed WITHIN-MODULE and added ACCESSING-MODULE
-
-   Revision 1.24  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.23  2005/08/04 23:24:13  haase
-   Added (optional) automatic module updating
-
-   Revision 1.22  2005/07/21 00:19:44  haase
-   Fixed some error passing bugs
-
-   Revision 1.21  2005/06/23 15:51:19  haase
-   Fixed some module GC bugs
-
-   Revision 1.20  2005/06/23 02:08:25  haase
-   Added cast for change to switch_module
-
-   Revision 1.19  2005/06/23 02:07:17  haase
-   Fixed GC bug in switch_module and added GET-MODULE primitive
-
-   Revision 1.18  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.17  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.16  2005/05/04 09:42:42  haase
-   Added module loading locking stuff
-
-   Revision 1.15  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.14  2005/04/14 16:22:44  haase
-   Add distinction of export environments for environments created by use-module etc.
-
-   Revision 1.13  2005/04/13 15:00:25  haase
-   Fixed USE-MODULE to handle non-determnistic arguments
-
-   Revision 1.12  2005/04/06 19:24:51  haase
-   Fixes to the module system
-
-   Revision 1.11  2005/04/03 16:35:22  haase
-   Added XML output functionality
-
-   Revision 1.10  2005/04/01 02:42:40  haase
-   Reimplemented module exports to be faster and less kludgy
-
-   Revision 1.9  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.8  2005/03/26 00:16:13  haase
-   Made loading facility be generic and moved the rest of file access into fileio.c
-
-   Revision 1.7  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.6  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.5  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

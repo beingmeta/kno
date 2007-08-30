@@ -729,51 +729,77 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
 static fdtype safe_loadpath=FD_EMPTY_LIST;
 static fdtype loadpath=FD_EMPTY_LIST;
 static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime);
-static int load_source_module(u8_string name,int safe)
+static u8_string get_module_filename(fdtype spec,int safe);
+static int load_source_for_module(u8_string module_filename,int safe);
+
+static int load_source_module(fdtype spec,int safe)
 {
-  if (safe==0) {
-    FD_DOLIST(elt,loadpath) {
-      if (FD_STRINGP(elt)) {
-	u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
-	if (module_filename) {
-	  fd_lispenv working_env=fd_working_environment();
-	  time_t mtime=u8_file_mtime(module_filename);
-	  fdtype load_result=
-	    fd_load_source(module_filename,working_env,"auto");
-	  if (FD_ABORTP(load_result)) {
-	    u8_free(module_filename);
-	    fd_decref((fdtype)working_env);
-	    return fd_interr(load_result);}
-	  else {
-	    fd_decref(load_result);
-	    add_load_record(module_filename,working_env,mtime);
-	    return 1;}}}}}
-  {
-    FD_DOLIST(elt,safe_loadpath) {
-      if (FD_STRINGP(elt)) {
-	u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
-	if (module_filename) {
-	  fd_lispenv working_env=fd_safe_working_environment();
-	  time_t mtime=u8_file_mtime(module_filename);
-	  fdtype load_result=
-	    fd_load_source(module_filename,working_env,"auto");
-	  if (FD_ABORTP(load_result)) {
-	    u8_free(module_filename);
-	    fd_decref((fdtype)working_env);
-	    return fd_interr(load_result);}
-	  else {
-	    fd_decref(load_result);
-	    add_load_record(module_filename,working_env,mtime);
-	    return 1;}}}}}
-  return 0;
+  u8_string module_filename=get_module_filename(spec,safe);
+  if (module_filename) {
+    fdtype load_result=load_source_for_module(module_filename,safe);
+    if (FD_ABORTP(load_result)) {
+      u8_free(module_filename); fd_decref(load_result);
+      return -1;}
+    else {
+      fdtype module_key=fdtype_string(module_filename);
+      /* Register the module under its filename too. */
+      fd_register_module_x(module_key,load_result,safe);
+      fd_decref(module_key); u8_free(module_filename);
+      fd_decref(load_result);
+      return 1;}}
+  else return 0;
+}
+
+static u8_string get_module_filename(fdtype spec,int safe)
+{
+  if (FD_SYMBOLP(spec)) {
+    u8_string name=u8_downcase(FD_SYMBOL_NAME(spec));
+    u8_string module_filename=NULL;
+    if (safe==0) {
+      FD_DOLIST(elt,loadpath) {
+	if (FD_STRINGP(elt)) {
+	  module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
+	  if (module_filename) {
+	    u8_free(name);
+	    return module_filename;}}}}
+    if (module_filename==NULL)  {
+      FD_DOLIST(elt,safe_loadpath) {
+	if (FD_STRINGP(elt)) {
+	  module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
+	  if (module_filename) {
+	    u8_free(name);
+	    return module_filename;}}}}
+    u8_free(name);
+    return module_filename;}
+  else if ((safe==0) &&
+	   (FD_STRINGP(spec)) &&
+	   (u8_file_existsp(FD_STRDATA(spec))))
+    return u8_strdup(FD_STRDATA(spec));
+  else return NULL;
+}
+
+static int load_source_for_module(u8_string module_filename,int safe)
+{
+  fd_lispenv env=
+    ((safe) ?
+     (fd_safe_working_environment()) :
+     (fd_working_environment()));
+  time_t mtime=u8_file_mtime(module_filename);
+  fdtype load_result=fd_load_source(module_filename,env,"auto");
+  if (FD_ABORTP(load_result)) {
+    if (FD_PRIM_TYPEP(env->bindings,fd_hashtable_type)) 
+      fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
+    fd_decref((fdtype)env);
+    return load_result;}
+  add_load_record(module_filename,env,mtime);
+  fd_decref(load_result);
+  return (fdtype)env;
 }
 
 static fdtype reload_module(fdtype module)
 {
   if (FD_SYMBOLP(module)) {
-    u8_string module_name=u8_downcase(FD_SYMBOL_NAME(module));
-    int retval=load_source_module(module_name,0);
-    u8_free(module_name);
+    int retval=load_source_module(module,0);
     if (retval) return FD_TRUE; else return FD_FALSE;}
   else return fd_err(fd_TypeError,"reload_module",NULL,module);
 }
@@ -781,9 +807,7 @@ static fdtype reload_module(fdtype module)
 static fdtype safe_reload_module(fdtype module)
 {
   if (FD_SYMBOLP(module)) {
-    u8_string module_name=u8_downcase(FD_SYMBOL_NAME(module));
-    int retval=load_source_module(module_name,0);
-    u8_free(module_name);
+    int retval=load_source_module(module,0);
     if (retval) return FD_TRUE; else return FD_FALSE;}
   else return fd_err(fd_TypeError,"reload_module",NULL,module);
 }
@@ -1320,13 +1344,16 @@ FD_EXPORT void fd_init_fileio_c()
   fd_init_filedb_c();
 
   fd_add_module_loader(load_source_module);
-  fd_register_config("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
+  fd_register_config
+    ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
 		     updatemodules_config_get,updatemodules_config_set,NULL);
-  fd_register_config("LOADPATH","Directories/URIs to search for modules (not sandbox)",
+  fd_register_config
+    ("LOADPATH","Directories/URIs to search for modules (not sandbox)",
 		     fd_lconfig_get,fd_lconfig_push,&loadpath);
-  fd_register_config("SAFELOADPATH","Directories/URIs to search for sandbox modules",
-		     fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
-
+  fd_register_config
+    ("SAFELOADPATH","Directories/URIs to search for sandbox modules",
+     fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
+  
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));
   fd_idefn(fileio_module,
@@ -1369,141 +1396,3 @@ FD_EXPORT void fd_init_schemeio()
   fd_init_fileio_c();
   fd_init_filedb_c();
 }
-
-
-
-/* The CVS log for this file
-   $Log: fileio.c,v $
-   Revision 1.44  2006/02/07 03:14:34  haase
-   Fixed condition for snapshot restores
-
-   Revision 1.43  2006/02/05 13:53:40  haase
-   Added notifications of snapshot/snapback calls
-
-   Revision 1.42  2006/01/28 02:39:57  haase
-   Added getpos and setpos primitives
-
-   Revision 1.41  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.40  2006/01/16 02:10:47  haase
-   Fixes to snapshots
-
-   Revision 1.39  2006/01/15 21:33:39  haase
-   Reorganized session saving into snapshots
-
-   Revision 1.38  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.37  2006/01/07 19:45:08  haase
-   Added savesession/restoresession primitives
-
-   Revision 1.36  2006/01/04 18:05:14  haase
-   Made FILESTRING default to explicit UTF-8 encoding
-
-   Revision 1.35  2006/01/03 15:50:03  haase
-   Added more file manipulation primitives
-
-   Revision 1.34  2006/01/03 15:42:51  haase
-   Make file move/etc functions grab their errno
-
-   Revision 1.33  2005/12/30 23:09:50  haase
-   Added SETBUF primitive
-
-   Revision 1.32  2005/12/22 14:37:18  haase
-   Fix leak in file loading
-
-   Revision 1.31  2005/12/19 19:09:58  haase
-   Added REMOVE-FILE primitive
-
-   Revision 1.30  2005/12/17 21:56:15  haase
-   Added EXIT primitive
-
-   Revision 1.29  2005/11/29 16:59:22  haase
-   Make filestring and filedata primitives pass on non-existent file errors
-
-   Revision 1.28  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.27  2005/08/04 23:24:13  haase
-   Added (optional) automatic module updating
-
-   Revision 1.26  2005/07/23 21:38:51  haase
-   Renaming file info primitives
-
-   Revision 1.25  2005/07/23 21:35:57  haase
-   Added file info primitives
-
-   Revision 1.24  2005/06/23 15:51:19  haase
-   Fixed some module GC bugs
-
-   Revision 1.23  2005/06/15 02:46:30  haase
-   Added file->dtypes to return multiple dtypes
-
-   Revision 1.22  2005/06/04 21:04:01  haase
-   Added DTYPE->FILE+ for appending a DTYPE to a file
-
-   Revision 1.21  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.20  2005/05/16 04:20:22  haase
-   Added mime parsing
-
-   Revision 1.19  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.18  2005/05/04 09:42:42  haase
-   Added module loading locking stuff
-
-   Revision 1.17  2005/04/28 14:31:28  haase
-   Created config handler for SAFELOADPATH, and distinct module for FILEIO
-
-   Revision 1.16  2005/04/28 03:00:07  haase
-   Added dirname and basename
-
-   Revision 1.15  2005/04/24 02:09:05  haase
-   Don't use realpath until inside the file to get get/load-component to work right
-
-   Revision 1.14  2005/04/21 19:03:26  haase
-   Add initialization procedures
-
-   Revision 1.13  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.12  2005/04/14 02:02:06  haase
-   Added reload modules primitive
-
-   Revision 1.11  2005/04/06 15:25:22  haase
-   Added default loadpath from conf-defines.h
-
-   Revision 1.10  2005/04/04 22:21:52  haase
-   Improved integration of error facilities
-
-   Revision 1.9  2005/04/02 16:05:43  haase
-   Make LOAD-DLL return errors
-
-   Revision 1.8  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.7  2005/03/29 04:12:36  haase
-   Added pool/index making primitives
-
-   Revision 1.6  2005/03/26 20:20:32  haase
-   Made flush-output do an fsync for XFILEs
-
-   Revision 1.5  2005/03/26 18:31:41  haase
-   Various configuration fixes
-
-   Revision 1.4  2005/03/26 00:16:13  haase
-   Made loading facility be generic and moved the rest of file access into fileio.c
-
-   Revision 1.3  2005/03/25 17:48:37  haase
-   More fixes for fileio separation
-
-   Revision 1.2  2005/03/25 17:19:17  haase
-   Added init of fd_default_output by fileio
-
-   Revision 1.1  2005/03/25 13:25:40  haase
-   Seperated out file io functions from generic port functions
-
-*/

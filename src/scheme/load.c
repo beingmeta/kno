@@ -127,8 +127,9 @@ FD_EXPORT fdtype fd_load_source
       fd_decref(last_expr); last_expr=FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
       fd_decref(result);
-      result=fd_err(fd_retcode_to_exception(expr),"fd_parse_expr","just after",last_expr);
-      fd_decref(last_expr); last_expr=FD_VOID; expr=FD_VOID;}
+      fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
+		last_expr);
+      result=fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
       result=expr; expr=FD_VOID;}
     else fd_decref(last_expr);
