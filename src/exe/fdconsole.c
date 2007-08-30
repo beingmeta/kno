@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -206,7 +206,7 @@ int main(int argc,char **argv)
     u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
 	       SVN_REVISION,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
-    u8_message("beingmeta FramerD, (C) beingmeta 2004-2006, all rights reserved");
+    u8_message("beingmeta FramerD, (C) beingmeta 2004-2007, all rights reserved");
     fd_decref(quiet_config);}
   u8_printf(out,EVAL_PROMPT);
   u8_flush(out);

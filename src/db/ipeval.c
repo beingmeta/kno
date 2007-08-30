@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -283,44 +283,3 @@ FD_EXPORT void fd_init_ipeval_c()
   fd_make_hashtable(&fcn_caches,128);
 
 }
-
-
-/* The CVS log for this file
-   $Log: ipeval.c,v $
-   Revision 1.27  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.26  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.25  2005/12/23 16:58:07  haase
-   Added config var for ipeval tracing
-
-   Revision 1.24  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.23  2005/07/12 21:10:28  haase
-   Cleaned up some ipeval trace statements
-
-   Revision 1.22  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.21  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.20  2005/04/30 02:46:17  haase
-   Made recursive ipeval possible
-
-   Revision 1.19  2005/04/24 18:30:27  haase
-   Made ipeval step function return -1 on error and abort
-
-   Revision 1.18  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.17  2005/03/03 17:00:54  haase
-   Remove stdio dependency in ipeval
-
-   Revision 1.16  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

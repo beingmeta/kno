@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -793,98 +793,3 @@ FD_EXPORT void fd_init_strings_c()
   entity_escape=fd_intern("ENTITIES");
 
 }
-
-
-/* The CVS log for this file
-   $Log: strings.c,v $
-   Revision 1.33  2006/02/08 16:53:27  haase
-   Fixed empty string bugs
-
-   Revision 1.32  2006/02/03 19:03:36  haase
-   Added string/packet functions
-
-   Revision 1.31  2006/01/31 13:47:24  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.30  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.29  2006/01/01 21:21:05  haase
-   Made case functions be generic
-
-   Revision 1.28  2005/12/17 05:55:41  haase
-   Added more r4rs functions
-
-   Revision 1.27  2005/10/29 23:51:29  haase
-   Added lexicographic and case-insensitive string comparison functions
-
-   Revision 1.26  2005/09/11 19:44:27  haase
-   Made capitalize work on compounds
-
-   Revision 1.25  2005/09/04 21:03:10  haase
-   Added COMPOUND? string primitive
-
-   Revision 1.24  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.23  2005/07/12 03:12:45  haase
-   Added CAPITALIZE primitive
-
-   Revision 1.22  2005/06/08 01:50:43  haase
-   Added char-punctuation?
-
-   Revision 1.21  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.20  2005/05/12 22:11:03  haase
-   Added character predicates
-
-   Revision 1.19  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.18  2005/04/29 04:04:59  haase
-   Fixes to space normalization to also trim trailing and leading pspaces
-
-   Revision 1.17  2005/04/25 23:03:53  haase
-   Fixed bug in stdstring which only kept the first whitespace break
-
-   Revision 1.16  2005/04/14 16:21:53  haase
-   Fix integer/char conversions
-
-   Revision 1.15  2005/04/12 13:27:06  haase
-   Made empty lists count as sequences and fixed some static details fd_err bugs
-
-   Revision 1.14  2005/04/11 22:06:59  haase
-   Fixed bugs in stdspace and stdstring
-
-   Revision 1.13  2005/04/10 01:34:33  haase
-   Added uppercase?/lowercase?/capitalized? primitives
-
-   Revision 1.12  2005/03/06 02:02:52  haase
-   Defined BIGRAMS and TRIGRAMS primitives
-
-   Revision 1.11  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.10  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.9  2005/02/21 22:44:12  haase
-   Changed log entry
-
-   Revision 1.8  2005/02/21 22:13:08  haase
-   Added readable record printing
-
-   Revision 1.7  2005/02/20 14:47:12  haase
-   Added has-prefix and has-suffix primitives
-
-   Revision 1.6  2005/02/19 16:21:30  haase
-   Added type declarations and left type checking to evaluator, also added char->integer and integer->char
-
-   Revision 1.5  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.4  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

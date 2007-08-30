@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -111,44 +111,3 @@ FD_EXPORT int fd_init_dtypelib()
   fd_init_pptrs_c();
   return fdtype_initialized;
 }
-
-
-/* The CVS log for this file
-   $Log: fdlisp.c,v $
-   Revision 1.28  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.27  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.26  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.25  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.24  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.23  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.22  2005/04/13 15:03:27  haase
-   Added more type declarations
-
-   Revision 1.21  2005/03/25 19:49:47  haase
-   Removed base library for eframerd, deferring to libu8
-
-   Revision 1.20  2005/03/17 02:27:51  haase
-   Fixes to bignum/number handling
-
-   Revision 1.19  2005/03/16 22:22:46  haase
-   Added bignums
-
-   Revision 1.18  2005/02/13 23:56:12  haase
-   Comments
-
-   Revision 1.17  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -519,69 +519,3 @@ FD_EXPORT void fd_init_numeric_c()
 					    fd_fixnum_type,FD_VOID,
 					    fd_fixnum_type,FD_INT2DTYPE(2)));
 }
-
-
-/* The CVS log for this file
-   $Log: numeric.c,v $
-   Revision 1.20  2006/02/03 16:49:54  haase
-   Added LOG and EXP primitives
-
-   Revision 1.19  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.18  2006/01/19 22:25:08  haase
-   Fixed scalerep typo
-
-   Revision 1.17  2006/01/17 00:07:33  haase
-   Added atan2
-
-   Revision 1.16  2005/12/24 15:24:55  haase
-   Fixed some floating point standards violations
-
-   Revision 1.15  2005/12/23 16:45:28  haase
-   Added primitives for complex/rational component extraction
-
-   Revision 1.14  2005/12/20 20:46:22  haase
-   Fixes to modulo and quotient
-
-   Revision 1.13  2005/12/19 00:42:48  haase
-   Added modulo gcd and lcm
-
-   Revision 1.12  2005/12/17 05:57:07  haase
-   Added R4RS functions
-
-   Revision 1.11  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.10  2005/07/16 01:08:56  haase
-   Added ILOG prim
-
-   Revision 1.9  2005/06/22 22:50:43  haase
-   Added inexact/exact conversions
-
-   Revision 1.8  2005/05/30 18:04:43  haase
-   Removed legacy numeric plugin layer
-
-   Revision 1.7  2005/05/20 01:50:30  haase
-   Added SCALEREP primitive
-
-   Revision 1.6  2005/05/19 22:06:07  haase
-   Added full support for rationals and complex numbers
-
-   Revision 1.5  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.4  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.3  2005/05/02 04:26:23  haase
-   Various include and declaration fixes
-
-   Revision 1.2  2005/04/25 19:15:22  haase
-   Added max and min
-
-   Revision 1.1  2005/04/11 21:32:13  haase
-   Added numeric primitives cos, asin, etc.
-
-
-*/

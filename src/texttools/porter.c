@@ -8,7 +8,7 @@
    Minor changes to algorithm are commented.
 
    Copyright (C) 1998, 1999 Massachusetts Institute of Technology
-   Copyright (C) 2000-2006 beingmeta, inc.
+   Copyright (C) 2000-2007 beingmeta, inc.
 
     Use, modification, and redistribution of this program is permitted
     under the terms of either (at the developer's discretion) the GNU
@@ -300,24 +300,6 @@ char *fd_stem_english_word(u8_byte *original)
   fflush(stderr);
   return copy;
 }
-
-
-
-/* File specific stuff */
-
-/* The CVS log for this file
-   $Log: porter.c,v $
-   Revision 1.3  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.2  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.1  2005/05/21 00:27:30  haase
-   Added texttools library and initial functions
-
-
-*/
 
 /* Emacs local variables
 ;;;  Local variables: ***

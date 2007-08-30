@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -187,71 +187,3 @@ FD_EXPORT void fd_init_compoundindices_c()
 {
   fd_register_source_file(versionid);
 }
-
-
-/* The CVS log for this file
-   $Log: compoundindices.c,v $
-   Revision 1.27  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.26  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.25  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.24  2006/01/02 22:40:22  haase
-   Various prefetching fixes
-
-   Revision 1.23  2005/11/11 04:31:53  haase
-   Made compound indices have their caches reset when subindices are added to them.
-
-   Revision 1.22  2005/08/21 20:10:26  haase
-   Fixed bugs with not initializing the cache level for elements of compound indices
-
-   Revision 1.21  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.20  2005/07/12 21:11:45  haase
-   Fixed tricky race condition in compound indices with multiple threads
-
-   Revision 1.19  2005/07/09 16:17:41  haase
-   Fix compound index handler declaration
-
-   Revision 1.18  2005/06/19 02:39:57  haase
-   Initialize the compound index key values before prefetching
-
-   Revision 1.17  2005/06/04 12:56:01  haase
-   More error passing fixes
-
-   Revision 1.16  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.15  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.14  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.13  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.12  2005/03/28 19:19:35  haase
-   Added metadata reading and writing and file pool/index creation
-
-   Revision 1.11  2005/03/06 19:26:44  haase
-   Plug some leaks and some failures to return values
-
-   Revision 1.10  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.9  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.8  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.7  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

@@ -595,17 +595,6 @@ int main(int argc,char *argv[])
   return 0;
 }
 
-
-/* File specific stuff */
-
-/* The CVS log for this file
-   $Log: fdmanager.c,v $
-   Revision 1.1  2006/01/30 16:31:18  haase
-   Started adding fdmanager to FDB
-
-
-*/
-
 /* Emacs local variables
 ;;;  Local variables: ***
 ;;;  compile-command: "cd ../..; make" ***

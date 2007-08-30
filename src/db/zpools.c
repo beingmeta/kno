@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -880,98 +880,3 @@ FD_EXPORT void fd_init_zpools_c()
      fd_read_pool_metadata,fd_write_pool_metadata);
   schemas_slotid=fd_intern("SCHEMAS");
 }
-
-
-/* The CVS log for this file
-   $Log: zpools.c,v $
-   Revision 1.39  2006/03/14 04:30:19  haase
-   Signal error when a pool is exhausted
-
-   Revision 1.38  2006/02/05 13:53:26  haase
-   Added locking around file pool stores
-
-   Revision 1.37  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.36  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.35  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.34  2006/01/05 19:16:44  haase
-   Fix file pool lock/unlock inconsistency
-
-   Revision 1.33  2006/01/05 18:04:44  haase
-   Made pool access check return values from fd_setpos
-
-   Revision 1.32  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.31  2005/08/02 23:17:22  haase
-   Incomplete fixes to zpool writing
-
-   Revision 1.30  2005/07/13 21:39:31  haase
-   XSLOTMAP/XSCHEMAP renaming
-
-   Revision 1.29  2005/05/30 00:03:54  haase
-   Fixes to pool declaration, allowing the USE-POOL primitive to return multiple pools correctly when given a ; spearated list or a pool server which provides multiple pools
-
-   Revision 1.28  2005/05/26 11:03:21  haase
-   Fixed some bugs with read-only pools and indices
-
-   Revision 1.27  2005/05/25 18:05:19  haase
-   Check for -1 return value from mmap as well as NULL
-
-   Revision 1.26  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.25  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.24  2005/04/12 20:42:45  haase
-   Used #define FD_FILEDB_BUFSIZE to set default buffer size (initially 256K)
-
-   Revision 1.23  2005/04/06 18:31:51  haase
-   Fixed mmap error calls to produce warnings rather than raising errors and to use u8_strerror to get the condition name
-
-   Revision 1.22  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.21  2005/03/28 19:19:36  haase
-   Added metadata reading and writing and file pool/index creation
-
-   Revision 1.20  2005/03/25 19:49:47  haase
-   Removed base library for eframerd, deferring to libu8
-
-   Revision 1.19  2005/03/07 19:37:33  haase
-   Added fsyncs and mmap/munmamp return value checking
-
-   Revision 1.18  2005/03/06 19:26:44  haase
-   Plug some leaks and some failures to return values
-
-   Revision 1.17  2005/03/06 18:28:21  haase
-   Added timeprims
-
-   Revision 1.16  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.15  2005/03/03 17:58:15  haase
-   Moved stdio dependencies out of fddb and reorganized make structure
-
-   Revision 1.14  2005/02/26 22:31:41  haase
-   Remodularized choice and oid add into xtables.c
-
-   Revision 1.13  2005/02/25 19:45:24  haase
-   Fixed commitment of cached file pools
-
-   Revision 1.12  2005/02/24 00:11:17  haase
-   Fixed bug in dtype stream overreading
-
-   Revision 1.11  2005/02/11 04:44:06  haase
-   Fixed some null vectors and miscellaneous leaks
-
-   Revision 1.10  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

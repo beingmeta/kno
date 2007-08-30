@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -799,80 +799,3 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("MEMUSAGE",memusage_prim,0));
 }
-
-
-/* The CVS log for this file
-   $Log: timeprims.c,v $
-   Revision 1.24  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.23  2006/01/05 19:52:38  haase
-   Added GMTIMESTAMP primitive
-
-   Revision 1.22  2006/01/05 19:43:54  haase
-   Added GMT property for timestamps
-
-   Revision 1.21  2005/11/03 14:07:12  haase
-   Renaming and reorganizing in TIMESTAMP.  TIMESTAMP now interprets an integer argument as a time_t and TIMESTAMP+ computes an offset from the current moment when called with one argument
-
-   Revision 1.20  2005/10/31 15:52:20  haase
-   Added SLEEP primitive
-
-   Revision 1.19  2005/10/29 19:44:15  haase
-   Move RETURN-ERROR to eval.c and defined ONERROR to provide simple error catching
-
-   Revision 1.18  2005/08/29 12:23:08  haase
-   Added secs->string
-
-   Revision 1.17  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.16  2005/07/25 19:38:10  haase
-   Added more virtual timestamp features
-
-   Revision 1.15  2005/07/24 02:04:57  haase
-   Fixes to timeprims time-of-day generation
-
-   Revision 1.14  2005/07/23 22:21:48  haase
-   Fixed time-earlier?
-
-   Revision 1.13  2005/07/23 21:12:42  haase
-   Added more timestamp properties
-
-   Revision 1.12  2005/07/15 02:09:31  haase
-   Renamed some time primitives and added TIME-EARLIER?
-
-   Revision 1.11  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.10  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.9  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.8  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.7  2005/03/26 19:09:24  haase
-   Added TIMESTRING primitive
-
-   Revision 1.6  2005/03/23 02:11:51  haase
-   Extended timestamp properties to include season and time of day
-
-   Revision 1.5  2005/03/23 01:43:39  haase
-   Moved timestamp structure into fdlisp core
-
-   Revision 1.4  2005/03/18 02:21:13  haase
-   Added elapsed-time primitive
-
-   Revision 1.3  2005/03/11 15:12:40  haase
-   More timestamp extensions
-
-   Revision 1.2  2005/03/11 14:43:54  haase
-   Added more time functions
-
-   Revision 1.1  2005/03/06 18:28:21  haase
-   Added timeprims
-
-*/

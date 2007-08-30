@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1061,107 +1061,3 @@ void fd_init_choices_c()
 
   fd_type_names[fd_choice_type]="choice";
 }
-
-
-/* The CVS log for this file
-   $Log: choices.c,v $
-   Revision 1.66  2006/02/04 05:13:59  haase
-   Fixed bug in choice conversion
-
-   Revision 1.65  2006/01/31 03:16:59  haase
-   Made fd_init_choice generate its structure if neccessary and catch malloc failures
-
-   Revision 1.64  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.63  2006/01/09 00:13:33  haase
-   Added const declarations to hashset functions
-
-   Revision 1.62  2006/01/08 22:39:11  haase
-   Added more const declarations
-
-   Revision 1.61  2006/01/08 13:36:01  haase
-   Optimized final loop of choice mergesort
-
-   Revision 1.60  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.59  2006/01/07 23:12:46  haase
-   Moved framerd object dtype handling into the main fd_read_dtype core, which led to substantial performanc improvements
-
-   Revision 1.58  2006/01/07 18:26:46  haase
-   Added pointer checking, both built in and configurable
-
-   Revision 1.57  2006/01/07 03:43:16  haase
-   Fixes to choice mergesort implementation
-
-   Revision 1.56  2006/01/03 05:39:25  haase
-   Fixed bug in choice merging
-
-   Revision 1.55  2005/12/28 23:03:29  haase
-   Made choices be direct blocks of elements, including various fixes, simplifications, and more detailed documentation.
-
-   Revision 1.54  2005/12/17 21:47:08  haase
-   Fixed bug in choice code
-
-   Revision 1.53  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.52  2005/07/29 18:16:23  haase
-   Fixed missing initialization
-
-   Revision 1.51  2005/07/13 21:28:14  haase
-   Renamed FD_OPTIMIZE_CHOICES to FD_INLINE_CHOICES
-
-   Revision 1.50  2005/06/20 13:56:59  haase
-   Fixes to regularize CONS header initialization
-
-   Revision 1.49  2005/06/20 02:06:42  haase
-   Various GC related fixes
-
-   Revision 1.48  2005/06/20 01:53:51  haase
-   Fixed nasty achoice size bug
-
-   Revision 1.47  2005/06/19 19:39:28  haase
-   Fix to memory allocation bug in achoices
-
-   Revision 1.46  2005/05/30 17:49:59  haase
-   Distinguished FD_QCOMPARE and FDTYPE_COMPARE
-
-   Revision 1.45  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.44  2005/04/14 16:24:13  haase
-   Typo in code for fd_overlapsp
-
-   Revision 1.43  2005/04/12 01:26:08  haase
-   Added compare_achoice as comparator for regular choices
-
-   Revision 1.42  2005/04/12 01:15:45  haase
-   Added fd_overlapp and its applications
-
-   Revision 1.41  2005/04/10 17:24:03  haase
-   Fixed error in hashtable copier
-
-   Revision 1.40  2005/04/10 01:11:25  haase
-   Added copier for achoices
-
-   Revision 1.39  2005/03/14 05:49:31  haase
-   Updated comments and internal documentation
-
-   Revision 1.38  2005/02/25 02:17:09  haase
-   Fixed recursive OID name printing problem
-
-   Revision 1.37  2005/02/17 02:40:46  haase
-   Fix GC bug in choice normalization
-
-   Revision 1.36  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.35  2005/02/11 04:45:07  haase
-   Made fd_init_qchoice not incref its argument
-
-   Revision 1.34  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

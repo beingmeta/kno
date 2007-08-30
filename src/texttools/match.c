@@ -6,7 +6,7 @@
      at the MIT Media Laboratory.
 
    Copyright (C) 1999 Massachusetts Institute of Technology
-   Copyright (C) 1999-2006 beingmeta,inc 
+   Copyright (C) 1999-2007 beingmeta,inc 
 
 */
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1169,59 +1169,3 @@ FD_EXPORT void fd_init_xmleval_c()
 
   fd_register_source_file(versionid);
 }
-
-
-/* The CVS log for this file
-   $Log: xmleval.c,v $
-   Revision 1.18  2006/03/19 23:42:15  haase
-   Fixes to parsing for FDXML
-
-   Revision 1.17  2006/03/06 17:27:31  haase
-   Experimenting with improved FDXML execution
-
-   Revision 1.16  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.15  2006/01/23 04:10:48  haase
-   Fixed xmleval for new argattrib model
-
-   Revision 1.14  2006/01/19 21:55:02  haase
-   Fixes to handling of load= and module= fdxml PIs
-
-   Revision 1.13  2006/01/19 02:55:18  haase
-   Fixed some XMLEVAL I/O consistency questions
-
-   Revision 1.12  2006/01/18 21:44:43  haase
-   Fixes to XML parsing and unparsing
-
-   Revision 1.11  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.10  2005/05/19 16:44:21  haase
-   Added source file registration for fdweb files and fixed header in exif.c
-
-   Revision 1.9  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.8  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.7  2005/04/21 19:06:09  haase
-   Cleaned up and unified initialization routines
-
-   Revision 1.6  2005/04/17 15:36:56  haase
-   Added explicit calls to fd_init_fdscheme to fdweb initializations
-
-   Revision 1.5  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.4  2005/04/14 16:24:39  haase
-   Use fd_make_export_env
-
-   Revision 1.3  2005/04/11 04:33:56  haase
-   Fixes to XML regeneration
-
-   Revision 1.2  2005/04/09 19:06:46  haase
-   Further xmleval improvements, especially around allowing evaluation in more contexts
-
-*/

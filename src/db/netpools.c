@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -357,83 +357,3 @@ FD_EXPORT void fd_init_netpools_c()
   get_load_symbol=fd_intern("GET-LOAD");
   boundp=fd_intern("BOUND?");
 }
-
-
-/* The CVS log for this file
-   $Log: netpools.c,v $
-   Revision 1.39  2006/01/31 13:47:23  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.38  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.37  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.36  2005/12/06 14:58:37  haase
-   Fixed network pool getload function
-
-   Revision 1.35  2005/08/11 12:43:10  haase
-   Trying to use a network pool adopts any errors returned from the POOL-DATA request
-
-   Revision 1.34  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.33  2005/06/04 12:44:09  haase
-   Fixed error catching for prefetches
-
-   Revision 1.32  2005/05/30 00:03:54  haase
-   Fixes to pool declaration, allowing the USE-POOL primitive to return multiple pools correctly when given a ; spearated list or a pool server which provides multiple pools
-
-   Revision 1.31  2005/05/26 20:48:42  haase
-   Made USE-POOL return a pool, rather than void, again
-
-   Revision 1.30  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.29  2005/05/22 20:30:03  haase
-   Pass initialization errors out of config-def! and other error improvements
-
-   Revision 1.28  2005/05/21 18:00:19  haase
-   Enlarged network buffer sizes and regularized in FD_NET_BUFSIZE
-
-   Revision 1.27  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.26  2005/04/17 14:06:41  haase
-   Fix network pool calls to dtcall
-
-   Revision 1.25  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.24  2005/04/14 00:33:43  haase
-   Made newtork streams be synchronized
-
-   Revision 1.23  2005/04/04 22:20:36  haase
-   Improved integration of error facilities
-
-   Revision 1.22  2005/03/31 16:35:00  haase
-   Delay getting session id until needed
-
-   Revision 1.21  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.20  2005/03/28 19:19:36  haase
-   Added metadata reading and writing and file pool/index creation
-
-   Revision 1.19  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.18  2005/02/19 16:25:02  haase
-   Replaced fd_parse with fd_intern
-
-   Revision 1.17  2005/02/11 19:04:12  haase
-   Fixes to compilation using POSIX tls
-
-   Revision 1.16  2005/02/11 18:55:12  haase
-   Add some cleaning casts
-
-   Revision 1.15  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

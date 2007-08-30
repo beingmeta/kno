@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -204,106 +204,5 @@ void fd_list_symbol_table()
       fprintf(stderr,"\t%d\n",chain);
       i++;}
     else i++;
-}
-#endif
-
-
-/* The CVS log for this file
-   $Log: symbols.c,v $
-   Revision 1.20  2006/01/31 13:47:24  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.19  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.18  2006/01/09 01:25:07  haase
-   Added const decls
-
-   Revision 1.17  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.16  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.15  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.14  2005/04/02 16:06:46  haase
-   Made module declarations effective current environments by doing a rplacd for the default environments
-
-   Revision 1.13  2005/04/01 15:11:11  haase
-   Adapted the string hash algorithm and added some branch expectations
-
-   Revision 1.12  2005/03/29 01:51:24  haase
-   Added U8_MUTEX_DECL and used it
-
-   Revision 1.11  2005/03/18 21:15:18  haase
-   Configuration fixes around constructor attributes and __thread declarations
-
-   Revision 1.10  2005/02/22 21:22:16  haase
-   Added better FD_CHECK_PTR function
-
-   Revision 1.9  2005/02/19 16:25:44  haase
-   Added fd_all_symbols
-
-   Revision 1.8  2005/02/14 02:07:47  haase
-   Fixed bug in fd_probe_symbol
-
-   Revision 1.7  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
-
-#if 0
-static unsigned int hash_mult(unsigned int x,unsigned int y)
-{
-  if (x == 1) return y;
-  else if (y == 1) return x;
-  if ((x == 0) || (y == 0)) return 0;
-#if (SIZEOF_LONG_LONG == 8)
-  else {
-    unsigned long long result=x*y;
-    return (result%(MYSTERIOUS_MODULUS));}
-#else
-  else {
-    unsigned int a=(x>>16), b=(x&0xFFFF); 
-    unsigned int c=(y>>16), d=(y&0xFFFF); 
-    unsigned int bd=b*d, ad=a*d, bc=b*c, ac=a*c;
-    unsigned int hi=ac, lo=(bd&0xFFFF), tmp, carry, i;
-    tmp=(bd>>16)+(ad&0xFFFF)+(bc&0xFFFF);
-    lo=lo+((tmp&0xFFFF)<<16); carry=(tmp>>16);
-    hi=hi+carry+(ad>>16)+(bc>>16);
-    i=0; while (i++ < 4) {
-      hi=((hi<<8)|(lo>>24))%(MYSTERIOUS_MODULUS); lo=lo<<8;}
-    return hi;
-  }
-#endif
-}
-
-static unsigned int hash_combine(unsigned int x,unsigned int y)
-{
-  if ((x == 0) && (y == 0)) return MYSTERIOUS_MODULUS+2;
-  else if ((x == 0) || (y == 0))
-    return x+y;
-  else return hash_mult(x,y);
-}
-
-FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
-{
-  unsigned int prod=1, asint;
-  unsigned char *ptr=start, *limit=ptr+len;
-  /* Compute a starting place */
-  while (ptr < limit) prod=prod+*ptr++;
-  /* Now do a multiplication */
-  ptr=start; limit=ptr+((len%4) ? (4*(len/4)) : (len));
-  while (ptr < limit) {
-    asint=(ptr[0]<<24)|(ptr[1]<<16)|(ptr[2]<<8)|(ptr[3]);
-    prod=hash_combine(prod,asint); ptr=ptr+4;}
-  switch (len%4) {
-  case 0: asint=1; break;
-  case 1: asint=ptr[0]; break;
-  case 2: asint=ptr[0]|(ptr[1]<<8); break;
-  case 3: asint=ptr[0]|(ptr[1]<<8)|(ptr[2]<<16); break;}
-  return hash_combine(prod,asint);
 }
 #endif

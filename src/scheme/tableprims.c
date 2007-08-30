@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -851,80 +851,3 @@ FD_EXPORT void fd_init_tablefns_c()
 
 
 }
-
-
-/* The CVS log for this file
-   $Log: tablefns.c,v $
-   Revision 1.30  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.29  2005/12/26 21:15:02  haase
-   Added fd_getsize and TABLE-SIZE
-
-   Revision 1.28  2005/12/17 21:51:30  haase
-   Added HASH-LISP primitive
-
-   Revision 1.27  2005/09/04 19:50:45  haase
-   Added DROP with 2 args (means drop all values)
-
-   Revision 1.26  2005/08/25 20:34:34  haase
-   Added generic table skim functions
-
-   Revision 1.25  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.24  2005/08/01 01:08:11  haase
-   Fixed name of TABLE-MAX and TABLE-MAXVAL
-
-   Revision 1.23  2005/07/31 22:02:13  haase
-   Added slotmap and generic max procedures
-
-   Revision 1.22  2005/07/26 21:23:33  haase
-   Caught empty choice calls to hashtable increment/multiply and added hashtable-multiply
-
-   Revision 1.21  2005/06/28 17:38:39  haase
-   Added ENVIRONMENT? and SYMBOL-BOUND? primitives
-
-   Revision 1.20  2005/06/21 00:01:00  haase
-   Added earlier gcc compatability
-
-   Revision 1.19  2005/06/15 02:37:17  haase
-   Added CHOICE->HASHSET
-
-   Revision 1.18  2005/06/06 15:46:28  haase
-   Make SCHEME table primitives prune (rather than err) when the first argument is the empty choice
-
-   Revision 1.17  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.16  2005/05/16 18:50:57  haase
-   Added hashtable-multiply! primitive
-
-   Revision 1.15  2005/05/12 21:39:35  haase
-   Made hashtable-max take a scope to select against
-
-   Revision 1.14  2005/05/12 21:16:57  haase
-   Added hashtable-max and hashtable-skim primitives in C and Scheme
-
-   Revision 1.13  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.12  2005/04/11 00:39:23  haase
-   Added hashset primitives
-
-   Revision 1.11  2005/03/05 21:07:39  haase
-   Numerous i18n updates
-
-   Revision 1.10  2005/03/05 05:58:27  haase
-   Various message changes for better initialization
-
-   Revision 1.9  2005/03/01 19:38:16  haase
-   Made SCHEME tableops pass in choice args
-
-   Revision 1.8  2005/02/13 23:55:41  haase
-   whitespace changes
-
-   Revision 1.7  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

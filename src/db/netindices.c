@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -395,68 +395,3 @@ FD_EXPORT void fd_init_netindices_c()
   ixserver_addn=fd_intern("IXSERVER-BULK-ADD!");
   iserver_reset=fd_intern("IXSERVER-RESET!");
 }
-
-
-/* The CVS log for this file
-   $Log: netindices.c,v $
-   Revision 1.34  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.33  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.32  2005/10/13 16:01:02  haase
-   Made indices which return errors for iserver-writable? be read-only
-
-   Revision 1.31  2005/08/10 06:34:08  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.30  2005/06/04 12:44:09  haase
-   Fixed error catching for prefetches
-
-   Revision 1.29  2005/05/26 12:41:11  haase
-   More return value error handling fixes
-
-   Revision 1.28  2005/05/23 00:53:24  haase
-   Fixes to header ordering to get off_t consistently defined
-
-   Revision 1.27  2005/05/21 18:00:19  haase
-   Enlarged network buffer sizes and regularized in FD_NET_BUFSIZE
-
-   Revision 1.26  2005/05/21 17:51:23  haase
-   Added DTPROCs (remote procedures)
-
-   Revision 1.25  2005/05/18 19:25:19  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.24  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.23  2005/04/14 00:33:43  haase
-   Made newtork streams be synchronized
-
-   Revision 1.22  2005/04/04 22:20:36  haase
-   Improved integration of error facilities
-
-   Revision 1.21  2005/03/30 14:48:43  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.20  2005/03/28 19:19:36  haase
-   Added metadata reading and writing and file pool/index creation
-
-   Revision 1.19  2005/03/26 04:47:21  haase
-   Added fd_index_sizes
-
-   Revision 1.18  2005/03/25 19:49:47  haase
-   Removed base library for eframerd, deferring to libu8
-
-   Revision 1.17  2005/02/19 16:25:02  haase
-   Replaced fd_parse with fd_intern
-
-   Revision 1.16  2005/02/11 18:55:12  haase
-   Add some cleaning casts
-
-   Revision 1.15  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -111,34 +111,3 @@ int main(int argc,char **argv)
   if (f) fclose(f);
   exit(0);
 }
-
-
-/* The CVS log for this file
-   $Log: differencetest.c,v $
-   Revision 1.20  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.19  2006/01/07 04:23:29  haase
-   Made choicetests include mergesort testing
-
-   Revision 1.18  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.17  2005/05/30 17:48:08  haase
-   Fixed some header ordering problems
-
-   Revision 1.16  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.15  2005/02/19 19:09:15  haase
-   Report line number in reporting choice reading errors
-
-   Revision 1.14  2005/02/15 03:03:40  haase
-   Updated to use the new libu8
-
-   Revision 1.13  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
-
-

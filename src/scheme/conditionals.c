@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -214,41 +214,3 @@ FD_EXPORT void fd_init_conditionals_c()
   fd_defspecial(fd_scheme_module,"OR",or_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("NOT",not_prim,1));
 }
-
-
-/* The CVS log for this file
-   $Log: conditionals.c,v $
-   Revision 1.17  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.16  2005/12/17 05:57:39  haase
-   Added CASE and ==> application in COND
-
-   Revision 1.15  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.14  2005/05/18 19:25:20  haase
-   Fixes to header ordering to make off_t defaults be pervasive
-
-   Revision 1.13  2005/05/10 18:43:35  haase
-   Added context argument to fd_type_error
-
-   Revision 1.12  2005/04/26 00:37:39  haase
-   Added TRYIF and CATCH-ERROR
-
-   Revision 1.11  2005/04/13 15:01:31  haase
-   Fixed bugs in error passing behaviour
-
-   Revision 1.10  2005/03/30 14:48:44  haase
-   Extended error reporting to distinguish context discrimination (a const string) from details (malloc'd)
-
-   Revision 1.9  2005/03/25 17:50:09  haase
-   Added else clauses to COND
-
-   Revision 1.8  2005/03/05 18:19:18  haase
-   More i18n modifications
-
-   Revision 1.7  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/

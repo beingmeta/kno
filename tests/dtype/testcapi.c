@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -54,29 +54,3 @@ int main(int argc,char **argv)
   u8_free(as_string); 
   return 0;
 }
-
-
-/* The CVS log for this file
-   $Log: testcapi.c,v $
-   Revision 1.7  2006/01/31 13:47:24  haase
-   Changed fd_str[n]dup into u8_str[n]dup
-
-   Revision 1.6  2006/01/26 14:44:33  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.5  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.4  2005/05/30 17:48:09  haase
-   Fixed some header ordering problems
-
-   Revision 1.3  2005/04/15 14:37:35  haase
-   Made all malloc calls go to libu8
-
-   Revision 1.2  2005/02/15 13:34:32  haase
-   Updated fd_parser to use input streams rather than just strings
-
-   Revision 1.1  2005/02/14 02:11:36  haase
-   Added C API test program
-
-*/

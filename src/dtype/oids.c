@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2006 beingmeta, inc.
+/* Copyright (C) 2004-2007 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -97,20 +97,3 @@ void fd_init_oids_c()
   fd_init_mutex(&(base_oid_lock));
 #endif
 }
-
-
-/* The CVS log for this file
-   $Log: oids.c,v $
-   Revision 1.11  2006/01/26 14:44:32  haase
-   Fixed copyright dates and removed dangling EFRAMERD references
-
-   Revision 1.10  2006/01/07 23:46:32  haase
-   Moved thread API into libu8
-
-   Revision 1.9  2005/08/10 06:34:09  haase
-   Changed module name to fdb, moving header file as well
-
-   Revision 1.8  2005/02/11 02:51:14  haase
-   Added in-file CVS logs
-
-*/
