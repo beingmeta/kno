@@ -87,13 +87,23 @@ static int server_reconnect(fd_dtserver dts)
 
 FD_EXPORT fdtype fd_dteval(fd_dtserver dts,fdtype expr)
 {
+  fdtype result;
   if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
       (fd_dtsflush(&(dts->stream))<0)) {
     if (server_reconnect(dts)<0) return FD_ERROR_VALUE;
     else if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
 	     (fd_dtsflush(&(dts->stream))<0))
       return FD_ERROR_VALUE;}
-  return fd_dtsread_dtype(&(dts->stream));
+  result=fd_dtsread_dtype(&(dts->stream));
+  if (result == FD_EOD) {
+    u8_exception ex=u8_erreify();
+    if (ex) u8_free_exception(ex,1);
+    if (server_reconnect(dts)<0) return FD_ERROR_VALUE;
+    else if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
+	     (fd_dtsflush(&(dts->stream))<0))
+      return FD_ERROR_VALUE;
+    else return fd_dtsread_dtype(&(dts->stream));}
+  else return result;
 }
 
 FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
