@@ -165,7 +165,10 @@
 	((not (pair? expr)) expr)
 	((pair? (car expr))
 	 (map (lambda (x) (dotighten x env bound dolex)) expr))
-	((or (and (symbol? (car expr)) (not (symbol-bound? (car expr) env))))
+	((and (symbol? (car expr)) (get-lexref (car expr) bound 0))
+	 expr)
+	((and (symbol? (car expr))
+	      (not (symbol-bound? (car expr) env)))
 	 (when optdowarn
 	   (codewarning (cons* 'UNBOUND expr bound))
 	   (warning "The symbol " (car expr) " in " expr " appears to be unbound given bindings "
@@ -180,7 +183,7 @@
 		(cond ((if from (test from '%unoptimized head)
 			   (and env (test env '%unoptimized head)))
 		       expr)
-		      ((applicable? value)
+		      ((or (applicable? value) (opcode? value))
 		       (when (and optdowarn (fcn? value))
 			 (when (and (fcn-min-arity value) (< n-exprs (fcn-min-arity value)))
 			   (codewarning (list 'TOOFEWARGS expr value))

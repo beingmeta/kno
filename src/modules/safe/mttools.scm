@@ -464,7 +464,7 @@
 (define (mt/save/fetch oids done)
   (when done (commit) (clearcaches))
   (unless done (prefetch-oids! oids)))
-(define (mt/save/lock/fetch oids)
+(define (mt/save/lock/fetch oids done)
   (when done (commit) (clearcaches))
   (unless done (prefetch-oids! oids)))
 (define (mt/save/fetchkeys index)

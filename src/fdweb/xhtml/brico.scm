@@ -33,13 +33,13 @@
 (define (lookup-langid langid)
   (try (if (string? langid) (?? 'langid (intern langid)) (fail))
        (?? 'langid langid)
-       (?? 'langid (string-downcase langid))
+       (?? 'langid (downcase langid))
        (?? 'langid (subseq langid 0 2))
-       (?? 'langid (string-downcase (subseq langid 0 2)))))
+       (?? 'langid (downcase (subseq langid 0 2)))))
 
 (define (remove-duplicates lst)
   (if (null? lst) '()
-      (if (member? (car lst) (cdr lst)) (remove-duplicates (cdr lst))
+      (if (member (car lst) (cdr lst)) (remove-duplicates (cdr lst))
 	  (cons (car lst) (remove-duplicates (cdr lst))))))
 
 (define (get-preferred-languages)
@@ -50,7 +50,7 @@
 					 cdr))
 		  (langs (remove-duplicates
 			  (map lookup-langid
-			       (map car (vector->list (reverse ordered-prefs)))))))
+			       (map car (->list (reverse ordered-prefs)))))))
 	     (if (< (length (cgiget 'accepted-languages)) 3)
 		 (append langs
 			 (choice->list (difference (elts default-languages)
@@ -122,7 +122,7 @@
 
 (define (languagesbox
 	 name (onchange #f) (action #f) (selectbox #t) (multiple #t))
-  (let* ((var (getsym name))
+  (let* ((var (if (string? name) (string->symbol name) name))
 	 (preferred (get-preferred-languages))
 	 (languages (try (cgiget var) (car preferred))))
     (if (and (fail? (cgiget var)) (= (length preferred) 1) (not selectbox))
@@ -134,7 +134,7 @@
 	    (span (class "language") (get-language-name lang)))
 	  (xmlout "  "))
 	(do-choices (language languages)
-	  (unless (member? language preferred)
+	  (unless (member language preferred)
 	    (span (class "nobreak")
 	      (display-checkbox var language (overlaps? language languages) onchange #t)
 	      (span (class "language") (get-language-name language)))
@@ -326,7 +326,7 @@
 	  " « "))
       (do-choices (expval (get c expansion) i)
 	(if (> i 0) (xmlout " . "))
-	(if (frame? expval) (showconcept expval (qc language))
+	(if (oid? expval) (showconcept expval (qc language))
 	  (xmlout expval)))
       (xmlout))))
 
