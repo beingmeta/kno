@@ -6,7 +6,7 @@
 ;;;  distances and the ability to get ambiguous lat/long keys to use for
 ;;;  location indexing.
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module 'texttools)
 

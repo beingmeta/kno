@@ -4,7 +4,7 @@
 
 ;;; Simple FIFO queue gated by a condition variable
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (module-export!
  '{make-fifo fifo-push fifo-pop fifo-loop fifo-queue close-fifo})

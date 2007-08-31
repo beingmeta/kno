@@ -7,7 +7,7 @@
 ;;; or replaces the identically named item on the list (it actually
 ;;; conses a new list, so you have to use the return value).
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (module-export! 'ruleset+)
 
