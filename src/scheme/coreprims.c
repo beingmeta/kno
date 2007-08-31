@@ -518,7 +518,9 @@ static fdtype thread_get(fdtype var)
 
 static fdtype thread_set(fdtype var,fdtype val)
 {
-  return fd_thread_set(var,val);
+  if (fd_thread_set(var,val)<0)
+    return FD_ERROR_VALUE;
+  else return FD_VOID;
 }
 
 

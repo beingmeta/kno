@@ -106,7 +106,7 @@ FD_EXPORT int fd_clear_errors(int);
 /* Thread vars */
 
 FD_EXPORT fdtype fd_thread_get(fdtype var);
-FD_EXPORT fdtype fd_thread_set(fdtype var,fdtype val);
+FD_EXPORT int fd_thread_set(fdtype var,fdtype val);
 
 /* Runbase */
 

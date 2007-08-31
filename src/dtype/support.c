@@ -850,7 +850,7 @@ FD_EXPORT fdtype fd_thread_get(fdtype var)
   return fd_get(get_threadtable(),var,FD_VOID);
 }
 
-FD_EXPORT fdtype fd_thread_set(fdtype var,fdtype val)
+FD_EXPORT int fd_thread_set(fdtype var,fdtype val)
 {
   return fd_store(get_threadtable(),var,val);
 }
