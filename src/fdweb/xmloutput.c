@@ -783,7 +783,7 @@ static fdtype set_browse_info
   else fd_incref(classname);
   if (FD_VOIDP(displayer)) displayer=fd_intern("%ID");
   else fd_incref(displayer);
-  entry=fd_make_vector(3,script,classname,displayer);
+  entry=fd_make_vector(3,fd_incref(script),fd_incref(classname),fd_incref(displayer));
   if (FD_FALSEP(poolarg)) {
     fd_decref(default_browse_info);
     default_browse_info=fd_incref(entry);}

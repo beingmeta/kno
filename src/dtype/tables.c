@@ -987,11 +987,11 @@ FD_EXPORT fdtype fd_hashtable_get
 {
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
-  if (ht->n_keys == 0) return dflt;
+  if (ht->n_keys == 0) return fd_incref(dflt);
   if (ht->modified>=0) fd_lock_struct(ht);
   if (ht->n_keys == 0) {
       if (ht->modified>=0) fd_unlock_struct(ht);
-      return dflt;}
+      return fd_incref(dflt);}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
@@ -1010,8 +1010,7 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
 {
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
-  if (ht->n_keys == 0) return dflt;
-  if (ht->n_keys == 0) return dflt;
+  if (ht->n_keys == 0) return fd_incref(dflt);
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
@@ -2159,7 +2158,7 @@ FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 	    if (FD_ABORTP(values)) {
 	      fd_decref(results); return values;}
 	    FD_ADD_TO_CHOICE(results,values);}
-	  if (FD_EMPTY_CHOICEP(results)) return dflt;
+	  if (FD_EMPTY_CHOICEP(results)) return fd_incref(dflt);
 	  else return results;}
 	else return (fd_tablefns[argtype]->get)(arg,key,dflt);
       else return fd_err(fd_NoMethod,CantGet,NULL,arg);
