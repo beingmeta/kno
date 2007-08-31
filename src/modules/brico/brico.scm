@@ -427,7 +427,7 @@
 		(try (edit-freqfns (car val) (cdr val) freqfns)
 		     (cons val freqfns)))
 	  (set! freqfns (cons (cons #f val) freqfns)))
-      disambigfns))
+      freqfns))
 (config-def! 'freqfns freqfns-config)
 
 ;; This returns a method for using indexed corpora to provided
