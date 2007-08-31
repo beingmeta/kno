@@ -218,7 +218,9 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return 0;}
   else if (FD_ABORTP(expr)) {
-    u8_log(LOG_ERR,BadRequest,"%s[%d]: Received bad request",client->idstring,client->n_trans);
+    u8_log(LOG_ERR,BadRequest,
+	   "%s[%d]: Received bad request",
+	   client->idstring,client->n_trans);
     fd_clear_errors(1);
     u8_client_close(ucl);
     return 0;}
@@ -227,11 +229,12 @@ static int dtypeserver(u8_client ucl)
     int tracethis=((logtrans) && ((client->n_trans==1) || (((client->n_trans)%logtrans)==0)));
     double xstart=(u8_elapsed_time()), elapsed=-1.0;
     if (logeval)
-      u8_log(LOG_INFO,Incoming,
-	     "%s[%d]: > %q",client->idstring,client->n_trans,expr);
+      u8_log(LOG_INFO,Incoming,"%s[%d]: > %q",
+	     client->idstring,client->n_trans,expr);
     else if (logtrans)
       u8_log(LOG_INFO,Incoming,
-	     "%s[%d]: Received request for execution",client->idstring,client->n_trans);
+	     "%s[%d]: Received request for execution",
+	     client->idstring,client->n_trans);
     value=fd_eval(expr,client->env);
     elapsed=u8_elapsed_time()-xstart;
     if (FD_ABORTP(value)) {
@@ -271,11 +274,11 @@ static int dtypeserver(u8_client ucl)
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,
-	     "%s[%d]: < %q in %f",client->idstring,client->n_trans,value,
-	     elapsed);
+	     "%s[%d]: < %q in %f",
+	     client->idstring,client->n_trans,value,elapsed);
     else if (tracethis)
-      u8_log(LOG_INFO,Outgoing,
-	     "%s[%d]: Request executed in %fs",client->idstring,client->n_trans,elapsed);
+      u8_log(LOG_INFO,Outgoing,"%s[%d]: Request executed in %fs",
+	     client->idstring,client->n_trans,elapsed);
     client->elapsed=client->elapsed+elapsed;
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
@@ -348,7 +351,8 @@ static void shutdown_dtypeserver_onsignal(int sig)
   u8_server_shutdown(&dtype_server);
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype sigval=FD_INT2DTYPE(sig), value;
-    u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",shutdown_proc);
+    u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",
+	   shutdown_proc);
     value=fd_apply(shutdown_proc,1,&sigval);
     fd_decref(value);}
   cleanup_state_files();
@@ -362,7 +366,8 @@ static void shutdown_dtypeserver_onexit()
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype shutval, value;
     if (normal_exit) shutval=FD_FALSE; else shutval=FD_TRUE;
-    u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",shutdown_proc);
+    u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",
+	   shutdown_proc);
     value=fd_apply(shutdown_proc,1,&shutval);
     fd_decref(value);}
   cleanup_state_files();
@@ -575,7 +580,8 @@ int main(int argc,char **argv)
 	fclose(f);}
       else {
 	u8_log(LOG_WARN,u8_strerror(errno),
-		"Couldn't write PID %d to '%s'",getpid(),pid_file);
+		"Couldn't write PID %d to '%s'",
+	       getpid(),pid_file);
 	errno=0;}
       /* Write the NID file */
       f=u8_fopen(nid_file,"w");
@@ -588,10 +594,12 @@ int main(int argc,char **argv)
 	fclose(f);}
       else {
 	u8_log(LOG_WARN,u8_strerror(errno),
-		"Couldn't write NID info to '%s'",getpid(),pid_file);
+	       "Couldn't write NID info to '%s'",
+	       getpid(),pid_file);
 	if (dtype_server.n_servers) {
 	  int i=0; while (i<dtype_server.n_servers) {
-	    u8_log(LOG_NOTICE,ServerStartup,"%s\n",dtype_server.server_info[i].idstring);
+	    u8_log(LOG_NOTICE,ServerStartup,"%s\n",
+		   dtype_server.server_info[i].idstring);
 	    i++;}}
 	else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
 	errno=0;}
@@ -605,9 +613,10 @@ int main(int argc,char **argv)
   if (fullscheme==0) {
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
   if (n_ports>0) {
-    u8_log(LOG_INFO,NULL,"FramerD (r%s) fdbserver running, %d/%d pools/indices",
-	       SVN_REVISION,fd_n_pools,
-	       fd_n_primary_indices+fd_n_secondary_indices);
+    u8_log(LOG_INFO,NULL,
+	   "FramerD (r%s) fdbserver running, %d/%d pools/indices",
+	   SVN_REVISION,fd_n_pools,
+	   fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
       ("beingmeta FramerD, (C) beingmeta 2004-2007, all rights reserved");
     u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
