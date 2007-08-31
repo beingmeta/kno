@@ -192,17 +192,22 @@
 	  (set! count (1+ count)) (optimize! value))))
     count))
 
+(defambda (module-arg? arg)
+  (or (fail? arg) (string? arg)
+      (and (pair? arg) (eq? (car arg) 'quote))
+      (and (ambiguous? arg) (fail? (reject arg module-arg?)))))
+
 (define (optimize*! . args)
   (dolist (arg args)
     (cond ((compound-procedure? arg) (optimize-procedure! arg))
 	  ((table? arg) (optimize-module! arg))
-	  (else (error "Invalid tighten argument" arg)))))
+	  (else (error '|TypeError| 'optimize* "Invalid tighten argument: " arg)))))
 
 (define optimize!
   (macro expr
     (cons optimize*!
 	  (map (lambda (x)
-		 (if (and (singleton? x) (pair? x) (eq? (car x) 'quote))
+		 (if (module-arg? x)
 		     `(get-module ,x)
 		     x))
 	       (cdr expr)))))
