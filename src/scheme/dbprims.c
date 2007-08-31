@@ -1919,14 +1919,14 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",indexdecache,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("BGDECACHE",bgdecache,1));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,3)));
+	   fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,3)));
+	   fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,3)));
+	   fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,3)));
+	   fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));
