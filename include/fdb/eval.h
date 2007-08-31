@@ -324,16 +324,18 @@ FD_EXPORT int fd_opcode_table_len;
 
 #define FD_UNARY_ND_OPCODES  FD_OPCODE(0x20)
 /* Unary primitives which handle their own non-determinism. */
-#define FD_AMBIGP_OPCODE     FD_OPCODE(0x20)
-#define FD_SINGLETONP_OPCODE FD_OPCODE(0x21)
-#define FD_FAILP_OPCODE      FD_OPCODE(0x22)
-#define FD_EXISTSP_OPCODE    FD_OPCODE(0x23)
-#define FD_SINGLETON_OPCODE  FD_OPCODE(0x24)
-#define FD_CAR_OPCODE        FD_OPCODE(0x25)
-#define FD_CDR_OPCODE        FD_OPCODE(0x26)
-#define FD_LENGTH_OPCODE     FD_OPCODE(0x27)
-#define FD_QCHOICE_OPCODE    FD_OPCODE(0x28)
+#define FD_AMBIGP_OPCODE      FD_OPCODE(0x20)
+#define FD_SINGLETONP_OPCODE  FD_OPCODE(0x21)
+#define FD_FAILP_OPCODE       FD_OPCODE(0x22)
+#define FD_EXISTSP_OPCODE     FD_OPCODE(0x23)
+#define FD_SINGLETON_OPCODE   FD_OPCODE(0x24)
+#define FD_CAR_OPCODE         FD_OPCODE(0x25)
+#define FD_CDR_OPCODE         FD_OPCODE(0x26)
+#define FD_LENGTH_OPCODE      FD_OPCODE(0x27)
+#define FD_QCHOICE_OPCODE     FD_OPCODE(0x28)
 #define FD_CHOICE_SIZE_OPCODE FD_OPCODE(0x29)
+#define FD_PICKOIDS_OPCODE    FD_OPCODE(0x2A)
+#define FD_PICKSTRINGS_OPCODE FD_OPCODE(0x2B)
 
 #define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */
@@ -347,6 +349,9 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_STRINGP_OPCODE    FD_OPCODE(0x47)
 #define FD_OIDP_OPCODE       FD_OPCODE(0x48)
 #define FD_SYMBOLP_OPCODE    FD_OPCODE(0x49)
+#define FD_FIRST_OPCODE      FD_OPCODE(0x4A)
+#define FD_SECOND_OPCODE     FD_OPCODE(0x4B)
+#define FD_THIRD_OPCODE      FD_OPCODE(0x4C)
 
 #define FD_NUMERIC2_OPCODES   FD_OPCODE(0x60)
 /* Arithmetic primitives with two arguments */

@@ -92,6 +92,8 @@
   (def-opcode LENGTH     0x27 1)
   (def-opcode QCHOICE    0x28 1)
   (def-opcode CHOICE-SIZE 0x29 1)
+  (def-opcode PICKOIDS    0x2A 1)
+  (def-opcode PICKSTRINGS 0x2B 1)
 
   (def-opcode 1-         0x40 1)
   (def-opcode -1+        0x40 1)
@@ -104,6 +106,9 @@
   (def-opcode STRING?    0x47 1)
   (def-opcode OID?       0x48 1)
   (def-opcode SYMBOL?    0x49 1)
+  (def-opcode FIRST      0x4A 1)
+  (def-opcode SECOND     0x4B 1)
+  (def-opcode THIRD      0x4C 1)
 
   (def-opcode =          0x60 2)
   (def-opcode >          0x61 2)

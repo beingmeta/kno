@@ -378,14 +378,14 @@ const u8_string fd_opcode_names[256]={
   /* 0x20 */
   "ambigp","singeltonp","failp","existsp",
   "singleton","car","cdr","length","qchoice","choicesize",
-  NULL,NULL,NULL,NULL,NULL,NULL,
+  "pickoids","pickstrings",NULL,NULL,NULL,NULL,
   /* 0x30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0x40 */
   "minus1","plus1","numberp","zerop",
   "vectorp","pairp","emptylistp","stringp",
-  "oidp","symbolp",NULL,NULL,NULL,NULL,NULL,NULL,
+  "oidp","symbolp","first","second","third",NULL,NULL,NULL,
   /* 0x50 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -600,6 +600,47 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   }
 }
 
+static fdtype pickoids_opcode(fdtype arg1)
+{
+  if (FD_OIDP(arg1)) return arg1;
+  else if (FD_EMPTY_CHOICEP(arg1)) return arg1;
+  else if ((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1))) {
+    fdtype choice, results=FD_EMPTY_CHOICE;
+    int free_choice=0, all_oids=1;
+    if (FD_CHOICEP(arg1)) choice=arg1;
+    else {choice=fd_make_simple_choice(arg1); free_choice=1;}
+    {FD_DO_CHOICES(elt,choice) {
+	if (FD_OIDP(elt)) {FD_ADD_TO_CHOICE(results,elt);}
+	else if (all_oids) all_oids=0;}}
+    if (all_oids) {
+      fd_decref(results);
+      if (free_choice) return choice;
+      else return fd_incref(choice);}
+    else if (free_choice) fd_decref(choice);
+    return fd_simplify_choice(results);}
+  else return FD_EMPTY_CHOICE;
+}
+
+static fdtype pickstrings_opcode(fdtype arg1)
+{
+  if ((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1))) {
+    fdtype choice, results=FD_EMPTY_CHOICE;
+    int free_choice=0, all_strings=1;
+    if (FD_CHOICEP(arg1)) choice=arg1;
+    else {choice=fd_make_simple_choice(arg1); free_choice=1;}
+    {FD_DO_CHOICES(elt,choice) {
+	if (FD_STRINGP(elt)) {FD_ADD_TO_CHOICE(results,fd_incref(elt));}
+	else if (all_strings) all_strings=0;}}
+    if (all_strings) {
+      fd_decref(results);
+      if (free_choice) return choice;
+      else return fd_incref(choice);}
+    else if (free_choice) fd_decref(choice);
+    return fd_simplify_choice(results);}
+  else if (FD_STRINGP(arg1)) return fd_incref(arg1);
+  else return FD_EMPTY_CHOICE;
+}
+
 static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
 {
   int delta=1;
@@ -686,9 +727,36 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
     else if (FD_EMPTY_CHOICEP(arg1))
       return FD_INT2DTYPE(0);
     else return FD_INT2DTYPE(1);
+  case FD_PICKOIDS_OPCODE:
+    return pickoids_opcode(arg1);
+  case FD_PICKSTRINGS_OPCODE:
+    return pickstrings_opcode(arg1);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }
+}
+
+static fdtype first_opcode(fdtype arg1)
+{
+  if (FD_PAIRP(arg1)) return fd_incref(FD_CAR(arg1));
+  else if (FD_VECTORP(arg1))
+    if (FD_VECTOR_LENGTH(arg1)>0)
+      return fd_incref(FD_VECTOR_REF(arg1,0));
+    else return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
+  else if (FD_STRINGP(arg1)) {
+    u8_string data=FD_STRDATA(arg1); int c=u8_sgetc(&data);
+    if (c<0) return fd_err(fd_RangeError,"FD_FIRST_OPCODE",NULL,arg1);
+    else return FD_CODE2CHAR(c);}
+  else return fd_seq_elt(arg1,0);
+}
+
+static fdtype eltn_opcode(fdtype arg1,int n,u8_context opname)
+{
+  if (FD_VECTORP(arg1))
+    if (FD_VECTOR_LENGTH(arg1)>n)
+      return fd_incref(FD_VECTOR_REF(arg1,n));
+    else return fd_err(fd_RangeError,opname,NULL,arg1);
+  else return fd_seq_elt(arg1,n);
 }
 
 static fdtype opcode_unary_dispatch(fdtype opcode,fdtype arg1)
@@ -719,9 +787,36 @@ static fdtype opcode_unary_dispatch(fdtype opcode,fdtype arg1)
     if (FD_OIDP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_SYMBOLP_OPCODE: 
     if (FD_SYMBOLP(arg1)) return FD_TRUE; else return FD_FALSE;
+  case FD_FIRST_OPCODE:
+    return first_opcode(arg1);
+  case FD_SECOND_OPCODE:
+    return eltn_opcode(arg1,1,"FD_SECOND_OPCODE");
+  case FD_THIRD_OPCODE:
+    return eltn_opcode(arg1,2,"FD_THIRD_OPCODE");
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }
+}
+
+static fdtype elt_opcode(fdtype arg1,fdtype arg2)
+{
+  if (FD_EMPTY_CHOICEP(arg1)) {
+    fd_decref(arg2); return arg1;}
+  else if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
+    fdtype result;
+    int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
+    if (off<0) off=len+off;
+    result=fd_seq_elt(arg1,off);
+    if (result == FD_TYPE_ERROR)
+      return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
+    else if (result == FD_RANGE_ERROR) {
+      char buf[32];
+      sprintf(buf,"%d",off);
+      return fd_err(fd_RangeError,"FD_OPCODE_ELT",u8_strdup(buf),arg1);}
+    else return result;}
+  else if (!(FD_SEQUENCEP(arg1)))
+    return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
+  else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
 }
 
 static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
@@ -814,23 +909,7 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
       double x=fd_todouble(arg1), y=fd_todouble(arg2);
       return fd_init_double(NULL,x/y);}
   case FD_ELT_OPCODE:
-    if (FD_EMPTY_CHOICEP(arg1)) {
-      fd_decref(arg2); return arg1;}
-    else if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
-      fdtype result;
-      int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
-      if (off<0) off=len+off;
-      result=fd_seq_elt(arg1,off);
-      if (result == FD_TYPE_ERROR)
-	return fd_type_error(_("sequence"),"seqelt_prim",arg1);
-      else if (result == FD_RANGE_ERROR) {
-	char buf[32];
-	sprintf(buf,"%d",off);
-	return fd_err(fd_RangeError,"seqelt_prim",u8_strdup(buf),arg1);}
-      else return result;}
-    else if (!(FD_SEQUENCEP(arg1)))
-      return fd_type_error(_("sequence"),"opcode ELT",arg1);
-    else return fd_type_error(_("fixnum"),"opcode ELT",arg2);
+    return elt_opcode(arg1,arg2);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }
