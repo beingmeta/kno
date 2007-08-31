@@ -16,9 +16,9 @@
 	      count))
 (evaltest '|Type error|
 	  (onerror (+ 2 'a)
-		   (lambda (ex) (exception-condition ex))))
+		   (lambda (ex) (error-condition ex))))
 (evaltest '|too few arguments|
 	  (onerror (cons 8)
-		   (lambda (ex) (exception-condition ex))))
+		   (lambda (ex) (error-condition ex))))
 
 (message "EXCEPTIONS tests successfuly completed")
