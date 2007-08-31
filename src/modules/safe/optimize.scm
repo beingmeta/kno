@@ -166,6 +166,10 @@
 	((pair? (car expr))
 	 (map (lambda (x) (dotighten x env bound dolex)) expr))
 	((or (and (symbol? (car expr)) (not (symbol-bound? (car expr) env))))
+	 (when optdowarn
+	   (codewarning (cons* 'UNBOUND expr bound))
+	   (warning "The symbol " (car expr) " in " expr " appears to be unbound given bindings "
+		    (apply append bound)))
 	 expr)
 	(else (let* ((head (car expr))
 		     (n-exprs (length (cdr expr)))
@@ -200,7 +204,13 @@
 			     expr)))
 		      ((macro? value)
 		       (dotighten (macroexpand value expr) env bound dolex))
-		      (else expr))))))
+		      (else
+		       (when optdowarn
+			 (codewarning (cons* 'NOTFCN expr value))
+			 (warning "The value of " head  " for " expr ", " value ","
+				  " doesn't appear to be a applicable given "
+				  (apply append bound)))
+		       expr))))))
 
 (define (optimize-procedure! proc (dolex #t))
   (let* ((env (procedure-env proc))
