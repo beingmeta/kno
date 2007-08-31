@@ -657,24 +657,29 @@ FD_EXPORT fdtype fd_make_cprim6x
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
-  int atomic=1, nd=0;
-  struct FD_TAIL_CALL *tc=
-    (struct FD_TAIL_CALL *)u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
-  fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
-  int i=0;
-  FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
-  *write++=fd_incref(fcn);
-  while (write<write_limit) {
-    fdtype v=*read++;
-    if (FD_CONSP(v)) {
-      atomic=0;
-      if (FD_CHOICEP(v)) nd=1;
-      else if (FD_QCHOICEP(v)) nd=1;
-      *write++=fd_incref(v);}
-    else *write++=v;}
-  if (atomic) tc->flags=tc->flags|FD_TAIL_CALL_ATOMIC_ARGS;
-  if (nd) tc->flags=tc->flags|FD_TAIL_CALL_ND_ARGS;
-  return FDTYPE_CONS(tc);
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)fcn;
+  if (FD_EXPECT_FALSE(((f->arity)>=0) && (n>(f->arity)))) {
+    fd_seterr(fd_TooManyArgs,"fd_tail_call",u8_mkstring("%d",n),fcn);
+    return FD_ERROR_VALUE;}
+  else {
+    int atomic=1, nd=0;
+    struct FD_TAIL_CALL *tc=
+      (struct FD_TAIL_CALL *)u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
+    fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
+    int i=0;
+    FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
+    *write++=fd_incref(fcn);
+    while (write<write_limit) {
+      fdtype v=*read++;
+      if (FD_CONSP(v)) {
+	atomic=0;
+	if (FD_CHOICEP(v)) nd=1;
+	else if (FD_QCHOICEP(v)) nd=1;
+	*write++=fd_incref(v);}
+      else *write++=v;}
+    if (atomic) tc->flags=tc->flags|FD_TAIL_CALL_ATOMIC_ARGS;
+    if (nd) tc->flags=tc->flags|FD_TAIL_CALL_ND_ARGS;
+    return FDTYPE_CONS(tc);}
 }
 
 FD_EXPORT fdtype fd_step_call(fdtype c)

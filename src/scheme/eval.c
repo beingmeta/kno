@@ -1165,7 +1165,7 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
   if (max_arity<0) args_length=n_args;
   else if (n_args>max_arity)
     return fd_err(fd_TooManyArgs,"apply_function",fcn->name,expr);
-  else if ((min_arity>=0) && (n_args<min_arity))
+  if ((min_arity>=0) && (n_args<min_arity))
     return fd_err(fd_TooFewArgs,"apply_function",fcn->name,expr);
   if (args_length>FD_STACK_ARGS)
     /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
