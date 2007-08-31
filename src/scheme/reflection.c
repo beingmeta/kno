@@ -249,6 +249,10 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("COMPOUND-PROCEDURE?",compound_procedurep,1));
   fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",special_formp,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
+  /* FCN? is defined separately because it tells whether or not you can apply the
+     FCN-* functions.  Note that this isn't consistent and that PROCEDURE?
+     should probably really be COMPOUND-PROCEDURE? */
+  fd_idefn(module,fd_make_cprim1("FCN?",procedurep,1));
   fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));
   fd_idefn(module,fd_make_cprim1("MODULE?",modulep,1));
   fd_idefn(module,fd_make_cprim1("FCN-NAME",fcn_name,1));
