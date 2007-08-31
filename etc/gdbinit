@@ -64,5 +64,16 @@ break u8_push_exception
 break _fd_dbg
 break u8_raise
 
+# For LIBC
 set env MALLOC_CHECK_=2
+# For OS X
+#set env MallocHelp=1 
+set env MallocGuardEdges=1
+set env MallocScribble=1
+set env MallocBadFreeAbort=1
+set env MallocCheckHeapAbort=1
 
+define check_heap
+  set env MallocCheckHeapStart=0
+  set env MallocCheckHeapEach=$arg0
+end
