@@ -305,6 +305,9 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 
 /* Opcodes */
 
+FD_EXPORT const u8_string fd_opcode_names[];
+FD_EXPORT int fd_opcode_table_len;
+
 #define FD_SPECIAL_OPCODES   FD_OPCODE(0x00)
 /* Special forms, which may not evaluate or use their first argument. */
 #define FD_QUOTE_OPCODE      FD_OPCODE(0x00)
@@ -364,10 +367,10 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
 #define FD_ELT_OPCODE        FD_OPCODE(0x83)
 
-#define FD_NARY_OPCODES      FD_OPCODE(0xa0)
+#define FD_NARY_OPCODES      FD_OPCODE(0xA0)
 /* Other primitives with more than two arguments */
-#define FD_GET_OPCODE        FD_OPCODE(0xa0)
-#define FD_TEST_OPCODE       FD_OPCODE(0xa1)
+#define FD_GET_OPCODE        FD_OPCODE(0xA0)
+#define FD_TEST_OPCODE       FD_OPCODE(0xA1)
 
 
 #endif /* FDB_EVAL_H */

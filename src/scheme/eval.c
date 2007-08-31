@@ -366,6 +366,87 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   return value;
 }
 
+/* Opcode names */
+
+const u8_string fd_opcode_names[256]={
+  /* 0x00 */
+  "quote","begin","and","or","not","fail",
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x10 */
+  "if","when","unless","ifelse",
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x20 */
+  "ambigp","singeltonp","failp","existsp",
+  "singleton","car","cdr","length","qchoice","choicesize",
+  NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x30 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x40 */
+  "minus1","plus1","numberp","zerop",
+  "vectorp","pairp","emptylistp","stringp",
+  "oidp","symbolp",NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x50 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x60 */
+  "numeq","numgt","numgte","numle","numlte",
+  "plus","subtract","multiple","flodiv",
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x70 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x80 */
+  "eq","eqv","equal","elt",NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0x90 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0xA0 */
+  "get","test",NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0xB0 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0xC0 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0xD0 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0xE0 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  /* 0xF0 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+};
+
+int fd_opcode_table_len=256;
+
+static int unparse_opcode(u8_output out,fdtype x)
+{
+  int opcode_offset=(FD_GET_IMMEDIATE(x,fd_opcode_type));
+  if (opcode_offset>fd_opcode_table_len) {
+    u8_printf(out,"##invalidop");
+    return 1;}
+  else if (fd_opcode_names[opcode_offset]==NULL) {
+    u8_printf(out,"##unknownop");
+    return 1;}
+  else {
+    u8_printf(out,"##op_%s",fd_opcode_names[opcode_offset]);
+    return 1;}
+}
+
+static int validate_opcode(fdtype x)
+{
+  int opcode_offset=(FD_GET_IMMEDIATE(x,fd_opcode_type));
+  if ((opcode_offset>=0) && (opcode_offset<fd_opcode_table_len) &&
+      (fd_opcode_names[opcode_offset] != NULL))
+    return 1;
+  else return 0;
+}
+
 /* OPCODE dispatching */
 
 static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
@@ -2136,6 +2217,9 @@ void fd_init_eval_c()
   fns->get=lispenv_get; fns->store=lispenv_store;
   fns->add=NULL; fns->drop=NULL; fns->test=NULL;
   
+  fd_unparsers[fd_opcode_type]=unparse_opcode;
+  fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
+
   fd_environment_type=fd_register_cons_type(_("scheme environment"));
   fd_specform_type=fd_register_cons_type(_("scheme special form"));
 

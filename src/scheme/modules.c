@@ -116,10 +116,10 @@ static int load_dynamic_module(fdtype spec,int safe)
     u8_string name=u8_downcase(FD_SYMBOL_NAME(spec));
     FD_DOLIST(elt,dloadpath) {
       if (FD_STRINGP(elt)) {
-	u8_string module_name=u8_find_file(name,FD_STRDATA(elt),NULL);
-	if (module_name) {
-	  void *mod=u8_dynamic_load(module_name);
-	  u8_free(module_name); u8_free(name);
+	u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
+	if (module_filename) {
+	  void *mod=u8_dynamic_load(module_filename);
+	  u8_free(module_filename); u8_free(name);
 	  if (mod) return 1; else return -1;}}}
     u8_free(name);
     return 0;}

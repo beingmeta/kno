@@ -744,7 +744,8 @@ static int load_source_module(fdtype spec,int safe)
       fdtype module_key=fdtype_string(module_filename);
       /* Register the module under its filename too. */
       fd_register_module_x(module_key,load_result,safe);
-      fd_decref(module_key); u8_free(module_filename);
+      fd_decref(module_key);
+      u8_free(module_filename);
       fd_decref(load_result);
       return 1;}}
   else return 0;
