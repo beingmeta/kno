@@ -2364,7 +2364,7 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,3)));
+	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest);
 
   fd_idefn(fd_scheme_module,
