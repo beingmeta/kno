@@ -1,4 +1,6 @@
-(use-module 'optimize)
+(in-module 'test/benchmarks)
+
+(module-export! '{ack fib fibtr fact facttr fibflt tak takflt spectral-norm xspectral-norm})
 
 (define (do-n-inner n proc args)
    (if (> n 0)
@@ -110,10 +112,6 @@
 	(set! vv (+ vv (* value value))))
       (sqrt (/ vbv vv)))))
 
-(define (optimizeit)
-  (optimize! eval-a
-	     eval-a-times-u eval-at-times-u eval-ata-times-u
-	     xeval-a-times-u xeval-at-times-u xeval-ata-times-u
-	     spectral-norm xspectral-norm))
+
 
 
