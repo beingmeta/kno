@@ -13,13 +13,24 @@
 (use-module 'reflection)
 
 (define useopcodes #t)
+(define optdowarn #t)
+
+(defslambda (codewarning warning)
+  (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
 
 (define opcodeopt-config
   (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) useopcodes)
 	  (val (set! useopcodes #t))
-	  (val (set! useopcodes #f)))))
+	  (else (set! useopcodes #f)))))
 (config-def! 'opcodeopt opcodeopt-config)
+
+(define optdowarn-config
+  (slambda (var (val 'unbound))
+    (cond ((eq? val 'unbound) optdowarn)
+	  (val (set! optdowarn #t))
+	  (else (set! optdowarn #f)))))
+(config-def! 'optdowarn optdowarn-config)
 
 (module-export! '{optimize! optimize-procedure! optimize-module!})
 
@@ -145,7 +156,12 @@
 			       (list 'quote (qc v))
 			       v))
 			 (list %get module (list 'quote expr)))
-		     expr)))))
+		     (begin
+		       (when optdowarn
+			 (codewarning (cons* 'UNBOUND expr bound))
+			 (warning "The symbol " expr " appears to be unbound given bindings "
+				  (apply append bound)))
+		       expr))))))
 	((not (pair? expr)) expr)
 	((pair? (car expr))
 	 (map (lambda (x) (dotighten x env bound dolex)) expr))
@@ -161,6 +177,13 @@
 			   (and env (test env '%unoptimized head)))
 		       expr)
 		      ((applicable? value)
+		       (when (and optdowarn (fcn? value))
+			 (when (and (fcn-min-arity value) (< n-exprs (fcn-min-arity value)))
+			   (codewarning (list 'TOOFEWARGS expr value))
+			   (warning "The call to " expr " provides too few arguments for " value))
+			 (when (and (fcn-arity value) (> n-exprs (fcn-arity value)))
+			   (codewarning (list 'TOOMANYARGS expr value))
+			   (warning "The call to " expr " provides too many arguments for " value)))
 		       (cons (map-opcode
 			      (cond ((not from) value)
 				    ((test from '%nosubst head) head)
@@ -184,9 +207,13 @@
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
 	 (bound (list (arglist->vars arglist))))
+    (threadset! 'codewarnings #{})
     (set-procedure-body!
      proc (map (lambda (b) (dotighten b env bound dolex))
-	       body))))
+	       body))
+    (when (exists? (threadget 'codewarnings))
+      (warning "Errors optimizing " proc)
+      (threadset! 'codewarnings #{}))))
 
 (define (optimize-module! module)
   (let ((bindings (module-bindings module))
