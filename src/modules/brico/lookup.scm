@@ -123,20 +123,20 @@
 		(choice (?? language sbword)
 			(tryif word-overlays (overlay-get sbword language)))))
        (tryif tryhard (lookup-simple-variants word language tryhard))
-       ;; Find concepts which have some overlapping words
-       (tryif (and (number? tryhard) (> tryhard 2))
-	      (lookup-overlapping-words word language tryhard))
        ;; Find misspellings, etc
        ;; This is really language-specific and the implementation
        ;;  doesnt currently reflect that.
-       (tryif (and (number? tryhard) (> tryhard 2)
+       (tryif (and (number? tryhard) (> tryhard 1)
 		   (not (uppercase? word))
 		   (> (length word) 4))
 	      (choice-max
 	       (?? language
 		   (choice (metaphone word #t)
 			   (metaphone (porter-stem word) #t)))
-	       metaphone-max))))
+	       metaphone-max))
+       ;; Find concepts which have some overlapping words
+       (tryif (and (number? tryhard) (> tryhard 2))
+	      (lookup-overlapping-words word language tryhard))))
 
 (define (lookup-simple-variants word language tryhard)
   (choice 
@@ -147,6 +147,9 @@
    (tryif (position #\_ word)
 	  (?? language (string-subst word "-" " ")))
    (tryif (uppercase? word) (?? language (capitalize word)))
+   ;; This method identifies compounds by stripping off the initial or
+   ;; final words and seeing if the resulting phrase has an
+   ;; unambiguous meaning.
    (tryif (and (compound? word) (textsearch '(isupper) word))
 	  (let* ((wordv (words->vector word))
 		 (len (length wordv)))
@@ -156,12 +159,12 @@
 		   ;;  if either there are more than 2 words or
 		   ;;  tryhard > 3.
 		   (try (choice
-			 (lookup-word (seq->phrase wordv 1) language #f)
-			 (lookup-word (seq->phrase wordv 0 -1) language #f))
+			 (singleton (lookup-word (seq->phrase wordv 1) language #f))
+			 (singleton (lookup-word (seq->phrase wordv 0 -1) language #f)))
 			(tryif (> len 3)
-			 (lookup-word (seq->phrase wordv 2) language #f))
+			 (singleton (lookup-word (seq->phrase wordv 2) language #f)))
 			(tryif (> len 4)
-			 (lookup-word (seq->phrase wordv 3) language #f))))))))
+			 (singleton (lookup-word (seq->phrase wordv 3) language #f)))))))))
 
 (define (lookup-overlapping-words word language tryhard)
   (let* ((table (make-hashtable))
@@ -169,7 +172,7 @@
 	 (words (elts wordv))
 	 (altwords (choice (metaphone words #t)
 			   (metaphone (porter-stem words) #t)))
-	 (minscore (max 2 (- (length wordv) (- tryhard 3)))))
+	 (minscore (max 2 (- (length wordv) (- tryhard 2)))))
     (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
       (let* ((alt (tryif (> tryhard 4)
