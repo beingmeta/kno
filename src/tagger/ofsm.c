@@ -652,8 +652,9 @@ static u8_string skip_whitespace(u8_string input)
     return tmp;}
 }
 
-static u8_string skip_markup(u8_string input)
+static u8_string skip_markup(u8_string initial_input)
 {
+  u8_string input=initial_input;
   if (input==NULL) return input;
   else {
     u8_string tmp=input; int ch=u8_sgetc(&input);
@@ -664,11 +665,25 @@ static u8_string skip_markup(u8_string input)
 	if (next) {
 	  input=next+3;}
 	else return NULL;}
+      else if (strncasecmp(input,"script",6)==0) {
+	u8_byte *tag_end=strchr(input+6,'>');
+	if ((tag_end) && (tag_end[-1]=='/'))
+	  input=tag_end+1;
+	else if ((tag_end) && (strcasestr(input,"src=")) &&
+		 (strcasestr(input,"src=")<((char *)tag_end)))
+	  input=tag_end+1;
+	else {
+	  u8_byte *script_end=strchr(input,'<');
+	  while ((script_end) && (strncasecmp(script_end,"</script>",9)!=0))
+	    script_end=strchr(script_end+1,'<');
+	  if (script_end==NULL) {ch=-1; input=script_end;}
+	  else input=script_end+9;}}
       else {
 	while ((ch>=0) && (ch!='>')) {
 	  tmp=input; ch=u8_sgetc(&input);}
 	input=tmp;}
-    else return input;
+    else if (ch=='>') return input;
+    else return initial_input;
     if (input==NULL) return input;
     else if (*input) return skip_markup(input);
     else return NULL;}
