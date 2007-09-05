@@ -697,7 +697,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       u8_log(LOG_WARN,fd_Commitment,
 		"Error saving %d OIDs from %s in %f secs",n,p->cid,
 		u8_elapsed_time()-start_time);
-    else u8_log(LOG_INFO,fd_Commitment,
+    else u8_log(LOG_NOTICE,fd_Commitment,
 		"Saved %d OIDs from %s in %f secs",n,p->cid,
 		u8_elapsed_time()-start_time);
     return retval;}
@@ -718,7 +718,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       if (unlock) {
 	if (p->handler->unlock(p,oids)) 
 	  fd_hashtable_op(locks,fd_table_store,oids,FD_VOID);}
-      u8_log(LOG_INFO,fd_Commitment,
+      u8_log(LOG_NOTICE,fd_Commitment,
 	     "[%*t] Saved one OID from %s in %f secs",
 	     p->cid,u8_elapsed_time()-start_time);
       return 1;}
@@ -1263,10 +1263,10 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
     /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
-      u8_log(LOG_INFO,ipeval_objfetch,"Fetching %d oids from %s: %q",
+      u8_log(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s: %q",
 	     FD_CHOICE_SIZE(todo),p->cid,todo);
     else if (fd_trace_ipeval)
-      u8_log(LOG_INFO,ipeval_objfetch,"Fetching %d oids from %s",
+      u8_log(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s",
 	     FD_CHOICE_SIZE(todo),p->cid);
 #endif
     fd_pool_prefetch(p,todo);
