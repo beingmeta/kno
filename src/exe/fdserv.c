@@ -72,7 +72,7 @@ struct U8_SERVER fdwebserver;
 /* This environment is the parent of all script/page environments spun off
    from this server. */
 static fd_lispenv server_env=NULL;
-static int servlet_backlog=64, servlet_threads=8;
+static int servlet_ntasks=64, servlet_threads=8;
 
 /* TRACEWEB config  */
 
@@ -734,8 +734,8 @@ int main(int argc,char **argv)
 		     preload_get,preload_set,NULL);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
-  fd_register_config("BACKLOG",_("Low level socket backlog setting"),
-		     fd_intconfig_get,fd_intconfig_set,&servlet_backlog);
+  fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
+		     fd_intconfig_get,fd_intconfig_set,&servlet_ntasks);
   fd_register_config("URLLOG",_("Where to write URLs where were requested"),
 		     urllog_get,urllog_set,NULL);
   fd_register_config("REQLOG",_("Where to write request objects"),
@@ -759,7 +759,7 @@ int main(int argc,char **argv)
 
   fd_make_hashtable(&pagemap,0);
   u8_server_init(&fdwebserver,
-		 servlet_backlog,servlet_threads,
+		 servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
   fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
   atexit(shutdown_fdwebserver);

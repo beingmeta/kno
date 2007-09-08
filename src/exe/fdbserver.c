@@ -407,7 +407,9 @@ static void init_server()
   fd_lock_mutex(&init_server_lock);
   if (server_initialized) return;
   server_initialized=1;
-  u8_server_init(&dtype_server,max_tasks,n_threads,simply_accept,dtypeserver,close_fdclient);
+  u8_server_init
+    (&dtype_server,max_tasks,n_threads,simply_accept,
+     dtypeserver,close_fdclient);
   dtype_server.flags=dtype_server.flags|server_flags;
   fd_unlock_mutex(&init_server_lock);
 }
@@ -460,7 +462,7 @@ int main(int argc,char **argv)
 
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_register_config("BACKLOG",_("Max number of pending requests allowed"),
+  fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
 		     fd_intconfig_get,fd_intconfig_set,&max_tasks);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&n_threads);
