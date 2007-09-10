@@ -73,6 +73,9 @@ struct U8_SERVER fdwebserver;
    from this server. */
 static fd_lispenv server_env=NULL;
 static int servlet_ntasks=64, servlet_threads=8;
+/* This is the backlog of connection requests not transactions.
+   It is passed as the argument to listen() */
+static int max_backlog=-1;
 
 /* TRACEWEB config  */
 
@@ -732,10 +735,13 @@ int main(int argc,char **argv)
 		     traceweb_get,traceweb_set,NULL);
   fd_register_config("PRELOAD",_("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);
-  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
-		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
+  fd_register_config("BACKLOG",
+		     _("Number of pending connection requests allowed"),
+		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
   fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
 		     fd_intconfig_get,fd_intconfig_set,&servlet_ntasks);
+  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
+		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
   fd_register_config("URLLOG",_("Where to write URLs where were requested"),
 		     urllog_get,urllog_set,NULL);
   fd_register_config("REQLOG",_("Where to write request objects"),
@@ -759,7 +765,7 @@ int main(int argc,char **argv)
 
   fd_make_hashtable(&pagemap,0);
   u8_server_init(&fdwebserver,
-		 servlet_ntasks,servlet_threads,
+		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
   fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
   atexit(shutdown_fdwebserver);

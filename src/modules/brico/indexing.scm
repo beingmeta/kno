@@ -309,8 +309,7 @@
 	((fail? scan)))))
 
 (define (indexer-slotid-prefetch)
-  (prefetch-oids! (choice brico-slotids
-			  implied-slotids concept-slotids
+  (prefetch-oids! (choice implied-slotids concept-slotids
 			  (get language-map (getkeys language-map))
 			  (get norm-map (getkeys norm-map))
 			  (get index-map (getkeys index-map))

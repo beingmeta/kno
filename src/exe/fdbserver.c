@@ -60,6 +60,9 @@ static struct U8_XTIME boot_time;
 
 /*  Total number of queued requests, served threads, etc. */
 static int max_tasks=32, n_threads=8, server_initialized=0;
+/* This is the backlog of connection requests not transactions.
+   It is passed as the argument to listen() */
+static int max_backlog=-1;
 /* Controlling trace activity: logeval prints expressions, logtrans reports
    transactions (request/response pairs). */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
@@ -408,7 +411,7 @@ static void init_server()
   if (server_initialized) return;
   server_initialized=1;
   u8_server_init
-    (&dtype_server,max_tasks,n_threads,simply_accept,
+    (&dtype_server,max_backlog,max_tasks,n_threads,simply_accept,
      dtypeserver,close_fdclient);
   dtype_server.flags=dtype_server.flags|server_flags;
   fd_unlock_mutex(&init_server_lock);
@@ -462,6 +465,9 @@ int main(int argc,char **argv)
 
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
+  fd_register_config("BACKLOG",
+		     _("Number of pending connection requests allowed"),
+		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
   fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
 		     fd_intconfig_get,fd_intconfig_set,&max_tasks);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
