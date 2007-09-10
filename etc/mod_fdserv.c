@@ -257,7 +257,7 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   else if (parent->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,parent->socket_prefix);
   else config->socket_prefix=NULL;
-
+  
   if (child->socket_file)
     config->socket_file=apr_pstrdup(p,child->socket_file);
   else if (parent->socket_file)
@@ -453,12 +453,17 @@ static const char *socket_file(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
-  const char *socket_prefix=
-    ((parms->path) ? (dconfig->socket_prefix) : (sconfig->socket_prefix));
-  const char *fullpath=
-    ((*arg=='/') ? (arg) :
-     (socket_prefix) ? (apr_pstrcat(parms->pool,socket_prefix,arg,NULL)) :
-     (ap_server_root_relative(parms->pool,(char *)arg)));
+  struct FDSERV_SERVER_CONFIG *smodconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  const char *socket_prefix=NULL, *fullpath=NULL;
+  if (parms->path)
+    socket_prefix=dconfig->socket_prefix;
+  else socket_prefix=sconfig->socket_prefix;
+  if (socket_prefix==NULL) socket_prefix=smodconfig->socket_prefix;
+  if (arg[0]=='/') fullpath=arg;
+  else if (socket_prefix)
+    fullpath=apr_pstrcat(parms->pool,socket_prefix,arg,NULL);
+  else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
   if (file_writablep(parms->pool,parms->server,fullpath)) {
     if (parms->path)
       dconfig->socket_file=fullpath;
@@ -477,12 +482,17 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
-  const char *log_prefix=
-    ((parms->path) ? (dconfig->log_prefix) : (sconfig->log_prefix));
-  const char *fullpath=
-    ((*arg=='/') ? (arg) :
-     (log_prefix) ? (apr_pstrcat(parms->pool,log_prefix,arg,NULL)) :
-     (ap_server_root_relative(parms->pool,(char *)arg)));
+  struct FDSERV_SERVER_CONFIG *smodconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  const char *log_prefix=NULL, *fullpath=NULL;
+  if (parms->path)
+    log_prefix=dconfig->log_prefix;
+  else log_prefix=sconfig->log_prefix;
+  if (log_prefix==NULL) log_prefix=smodconfig->log_prefix;
+  if (arg[0]=='/') fullpath=arg;
+  else if (log_prefix)
+    fullpath=apr_pstrcat(parms->pool,log_prefix,arg,NULL);
+  else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
   if (file_writablep(parms->pool,parms->server,fullpath)) {
     if (parms->path)
       dconfig->log_file=fullpath;
@@ -575,7 +585,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
 
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,r,
-       "config socket_file=%s, socket_prefix=%s",
+       "spawn get_sockname socket_file=%s, socket_prefix=%s",
        socket_file,socket_prefix);
     
     if ((socket_file)&&(socket_file[0]=='/')) {
@@ -627,11 +637,11 @@ static const char *get_logfile(request_rec *r) /* 1.3 */
   const char *log_prefix=
     ((dconfig->log_prefix) ? (dconfig->log_prefix) :
      (sconfig->log_prefix) ? (sconfig->log_prefix) :
-     "/tmp/fdserv::");
+     (NULL));
   
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,r,
-     "config log_file=%s, log_prefix=%s",
+     "spawn get_logfile log_file=%s, log_prefix=%s",
      log_file,log_prefix);
   
   if (log_file==NULL) return NULL;
@@ -809,7 +819,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,
-       "config socket_file=%s, socket_prefix=%s",
+       "spawn get_sockname socket_file=%s, socket_prefix=%s",
        socket_file,socket_prefix);
     
     if ((socket_file)&&(socket_file[0]=='/')) {
@@ -861,11 +871,11 @@ static const char *get_logfile(request_rec *r) /* 2.0 */
   const char *log_prefix=
     ((dconfig->log_prefix) ? (dconfig->log_prefix) :
      (sconfig->log_prefix) ? (sconfig->log_prefix) :
-     "/tmp/fdserv::");
+     (NULL));
   
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,OK,r,
-     "config log_file=%s, log_prefix=%s",
+     "spawn get_logfile log_file=%s, log_prefix=%s",
      log_file,log_prefix);
   
   if (log_file==NULL) return NULL;
@@ -949,8 +959,9 @@ static int spawn_fdservlet /* 2.0 */
 	 sockname);
     else {
       ap_log_error
-	(APLOG_MARK,APLOG_NOTICE,OK,s,"Could not remove socket file %s",
-	 sockname);}}
+	(APLOG_MARK,APLOG_CRIT,500,s,"Could not remove socket file %s",
+	 sockname);
+      return -1;}}
   
 #if HEAVY_DEBUGGING
   {
@@ -973,10 +984,15 @@ static int spawn_fdservlet /* 2.0 */
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d]",
 		  exename,sockname,r->unparsed_uri,rv,proc.pid);
     return -1;}
+  else if (log_file)
+    ap_log_error
+      (APLOG_MARK,APLOG_NOTICE,rv,s,
+       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d]",
+       exename,sockname,log_file,r->unparsed_uri,rv,proc.pid);
   else ap_log_error
-	 (APLOG_MARK,APLOG_NOTICE,rv,s,
-	  "Spawned %s @%s for %s [rv=%d,pid=%d]",
-	  exename,sockname,r->unparsed_uri,rv,proc.pid);
+      (APLOG_MARK,APLOG_NOTICE,rv,s,
+       "Spawned %s @%s (nologfile) for %s [rv=%d,pid=%d]",
+       exename,sockname,r->unparsed_uri,rv,proc.pid);
   
   /* Now wait for the socket file to exist */
   {
