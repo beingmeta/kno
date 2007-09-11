@@ -172,7 +172,7 @@
   (when (and (or (%test frame 'words) (%test frame '%words))
 	     (ambiguous? (get frame 'sensecat)))
     (doindex index frame 'sensecat 'ambiguous))
-  (when (and 
+  (when (and (test frame '{%words words word type})
 	     (not (test frame 'sensecat)))
     (doindex index frame 'sensecat 'senseless))
   (when (test frame '%index) (doindex index frame (get frame '%index)))
