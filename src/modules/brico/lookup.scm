@@ -23,7 +23,7 @@
 (module-export! '{brico/lookup
 		  lookup-word lookup-combo vary-word
 		  word-override? lookup-word-prefetch
-		  lookup-term brico/resolve})
+		  lookup-term brico/resolve brico/resolveone})
 
 (define %nosubst
   '{word-overrides word-overlays morphrules termrules})
@@ -102,7 +102,7 @@
 
 (define (lookup-word word (language default-language) (tryhard #f))
   (if (has-prefix word "~")
-      (lookup-word (subseq word 1) language #t)
+      (lookup-word (subseq word 1) language 2)
       (if word-overrides
 	  (let ((override (override-get word language)))
 	    (if (exists? override) (or override (fail))
@@ -315,15 +315,28 @@
 			 (lookup-context match language tryhard)))))))))
 
 (define (lookup-term term (language default-language) (tryhard 1))
-  (try (cons term (singleton (lookup-word term language #f)))
-       (if (or (position #\, term) (position #\: term) (position #\( term))
-	   (try (try-termrules term language tryhard)
-		(tryif (uppercase? term)
-		       (try-termrules (capitalize term) language tryhard)))
-	   (try (tryif (uppercase? term)
-		       (cons term (qcx (lookup-word (capitalize term) language tryhard))))
-		(cons term (qcx (lookup-word term language tryhard)))))))
+  (if (has-prefix term "~")
+      (lookup-term (subseq term 1) language 2)
+      (try (cons term (singleton (lookup-word term language #f)))
+	   (if (or (position #\, term) (position #\: term) (position #\( term))
+	       (try (try-termrules term language tryhard)
+		    (tryif (uppercase? term)
+			   (try-termrules (capitalize term) language tryhard)))
+	       (try (tryif (uppercase? term)
+			   (cons term (qcx (lookup-word (capitalize term) language tryhard))))
+		    (cons term (qcx (lookup-word term language tryhard))))))))
 
 (define (brico/resolve term (language default-language) (tryhard 2))
   (cdr (lookup-term term language tryhard)))
+
+(define (absfreq c) (choice-size (?? @?refterms c)))
+
+(define (brico/resolveone term (language default-language) (tryhard 2))
+  (let ((possible (cdr (lookup-term term language tryhard))))
+    (if (fail? possible) {}
+	(try (singleton possible)
+	     (singleton (difference possible (?? @?defterms possible)))
+	     (pick-one (largest possible absfreq))))))
+
+
 
