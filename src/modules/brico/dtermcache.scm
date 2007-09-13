@@ -14,7 +14,7 @@
 
 (use-module '{brico brico/dterms fifo})
 
-(module-export! '{cached-dterm launch-dtermdaemons})
+(module-export! '{cached-dterm launch-dtermdaemons require-dterm})
 
 ;;;; The dterm cache
 
@@ -38,6 +38,20 @@
        (begin (store! dterm-cache (cons concept language) #f)
 	      (fifo-push dterm-fifo (cons concept language))
 	      (fail))))
+
+(define (cache-dterm! concept language dterm)
+  (synchro-lock cache-compute-dterm)
+  (store! dterm-cache (cons concept language) dterm)
+  (synchro-unlock cache-compute-dterm))
+
+(define (require-dterm concept (language english))
+  (if (singleton? (?? language (get-norm concept language)))
+      (get-norm concept language)
+      (or (try (get dterm-cache (cons concept language))
+	       (let ((dterm (find-dterm concept language)))
+		 (cache-dterm! concept language dterm)
+		 dterm))
+	  (fail))))
 
 (define (ignore x) (fail))
 
