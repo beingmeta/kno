@@ -6,6 +6,7 @@
 
 (define %nosubst '{bricosource
 		   brico-pool brico-index
+		   xbrico-pool names-pool places-pool
 		   freqfns custom-norms custom-glosses
 		   use-wordforms})
 
@@ -22,6 +23,10 @@
 (define brico-pool {})
 (define brico-index {})
 
+(define xbrico-pool {})
+(define names-pool {})
+(define places-pool {})
+
 (define bricosource-config
   (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) bricosource)
@@ -37,6 +42,9 @@
 	   (set! bricosource val)
 	   (set! brico-index (usedb val))
 	   (set! brico-pool (name->pool "brico.framerd.org"))
+	   (set! xbrico-pool (name->pool "xbrico.beingmeta.com"))
+	   (set! names-pool (name->pool "namedb.beingmeta.com"))
+	   (set! places-pool (name->pool "placedb.beingmeta.com"))
 	   (if (exists? brico-pool) #t
 	       (begin (set! brico-index {})
 		      #f)))
@@ -45,6 +53,9 @@
 	   (use-pool val)
 	   (set! brico-index (onerror (use-index val) #f))
 	   (set! brico-pool (name->pool "brico.framerd.org"))
+	   (set! xbrico-pool (name->pool "xbrico.beingmeta.com"))
+	   (set! names-pool (name->pool "namedb.beingmeta.com"))
+	   (set! places-pool (name->pool "placedb.beingmeta.com"))
 	   (if (exists? brico-pool) #t
 	       (begin (set! brico-index {})
 		      #f))))))
@@ -485,6 +496,7 @@
 (module-export!
  '{brico-pool
    brico-index
+   xbrico-pool names-pool places-pool
    default-language all-languages
    ;; Maps for particular languages
    language-map gloss-map norm-map index-map frag-map
