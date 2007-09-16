@@ -16,6 +16,7 @@ FD_EXPORT fd_exception fd_InternalError, fd_AmbiguousObjectName,
 FD_EXPORT u8_condition fd_ServerReconnect;
 FD_EXPORT u8_condition fd_Commitment;
 FD_EXPORT fd_exception fd_BadMetaData;
+FD_EXPORT fd_exception fd_ConnectionFailed;
 
 FD_EXPORT int fd_init_db(void) FD_LIBINIT_FN;
 

@@ -44,7 +44,8 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
   socket=u8_connect_x(server,&(dts->addr));
   if (socket<0) {
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts); 
-    return socket;}
+    return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
+		  u8_strdup(server),FD_VOID);}
   fd_init_dtype_stream(&(dts->stream),socket,
 		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)));
   fd_init_mutex(&(dts->lock));

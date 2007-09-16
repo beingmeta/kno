@@ -2208,6 +2208,7 @@ static fdtype dtcall(int n,fdtype *args)
     server=fd_incref(args[0]);
   else if (FD_STRINGP(args[0])) server=fd_open_dtserver(FD_STRDATA(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
+  if (FD_ABORTP(server)) return server;
   while (i>=1) {
     fdtype param=args[i];
     if ((i>1) && ((FD_SYMBOLP(param)) || (FD_PAIRP(param))))

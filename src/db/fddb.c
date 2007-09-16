@@ -25,11 +25,11 @@ fd_exception fd_InternalError=_("FramerD Database internal error"),
   fd_BadServerResponse=_("bad server response"),
   fd_NoBackground=_("No default background indices"),
   fd_UnallocatedOID=_("Reference to unallocated OID");
+fd_exception fd_ConnectionFailed=_("Connection to server failed");
 u8_condition fd_Commitment=_("COMMIT");
 u8_condition fd_ServerReconnect=_("Resetting server connection");
 static u8_condition SwapCheck=_("SwapCheck");
 fd_exception fd_BadMetaData=_("Error getting metadata");
-
 
 int fd_default_cache_level=1;
 int fd_oid_display_level=2;
