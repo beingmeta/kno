@@ -10,6 +10,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/tables.h"
+#include "fdb/numbers.h"
 #include "fdb/eval.h"
 #include "fdb/fddb.h"
 #include "fdb/fdweb.h"
@@ -50,6 +51,9 @@ static int reqloglevel=0;
 static int traceweb=0;
 
 static char *pidfile;
+
+/* When the server started, used by UPTIME */
+static struct U8_XTIME boot_time;
 
 #define FD_REQERRS 1 /* records only transactions which return errors */
 #define FD_ALLREQS 2 /* records all requests */
@@ -444,7 +448,6 @@ static fdtype getcontent(fdtype path)
 
 /* Document generation */
 
-
 #define write_string(sock,string) u8_writeall(sock,string,strlen(string))
 
 static void output_content(fd_webconn ucl,fdtype content)
@@ -664,6 +667,28 @@ static void init_symbols()
   cgidata_symbol=fd_intern("CGIDATA");
 }
 
+/* Utility functions */
+
+/* Miscellaneous Server functions */
+
+static fdtype get_boot_time()
+{
+  return fd_make_timestamp(&boot_time);
+}
+
+static fdtype get_uptime()
+{
+  struct U8_XTIME now; u8_now(&now);
+  return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
+}
+
+static fdtype get_server_status()
+{
+  u8_string status=u8_server_status(&fdwebserver,NULL,0);
+  return fd_init_string(NULL,-1,status);
+}
+
+
 /* The main() event */
 
 static void doexit(int sig)
@@ -702,6 +727,9 @@ int main(int argc,char **argv)
 
   fd_version=fd_init_fdscheme();
   
+  /* Record the startup time for UPTIME */
+  u8_now(&boot_time);
+
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we
@@ -731,6 +759,14 @@ int main(int argc,char **argv)
   fd_init_dbfile(); 
   init_symbols();
   
+  if (server_env==NULL)
+    server_env=fd_working_environment();
+  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
+  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
+  fd_idefn((fdtype)server_env,
+	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
+
+
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
 		     traceweb_get,traceweb_set,NULL);
   fd_register_config("PRELOAD",_("Files to preload into the shared environment"),

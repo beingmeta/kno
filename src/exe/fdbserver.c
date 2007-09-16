@@ -229,7 +229,9 @@ static int dtypeserver(u8_client ucl)
     return 0;}
   else {
     fdtype value;
-    int tracethis=((logtrans) && ((client->n_trans==1) || (((client->n_trans)%logtrans)==0)));
+    int tracethis=((logtrans) &&
+		   ((client->n_trans==1) ||
+		    (((client->n_trans)%logtrans)==0)));
     double xstart=(u8_elapsed_time()), elapsed=-1.0;
     if (logeval)
       u8_log(LOG_INFO,Incoming,"%s[%d]: > %q",
@@ -390,6 +392,12 @@ static fdtype get_uptime()
   return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
 }
 
+static fdtype get_server_status()
+{
+  u8_string status=u8_server_status(&dtype_server,NULL,0);
+  return fd_init_string(NULL,-1,status);
+}
+
 static fdtype boundp_handler(fdtype expr,fd_lispenv env)
 {
   fdtype symbol=fd_get_arg(expr,1);
@@ -509,6 +517,8 @@ int main(int argc,char **argv)
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
   fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
   fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime,0));
+  fd_idefn((fdtype)core_env,
+	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
 
   /* And create the exposed environment */
   exposed_environment=fd_make_env(fd_incref(fd_fdbserv_module),core_env);
