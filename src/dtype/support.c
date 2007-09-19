@@ -1008,7 +1008,7 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
     if (FD_STRINGP(val)) level_name=FD_STRDATA(val);
     else level_name=FD_SYMBOL_NAME(val);
     while (*scan)
-      if (strcasecmp(*scan,level_name)) {
+      if (strcasecmp(*scan,level_name)==0) {
 	loglevel=scan-u8_loglevels; break;}
       else scan++;
     if (loglevel>=0) {

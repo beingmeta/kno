@@ -204,13 +204,10 @@ fd_parse_context fd_init_parse_context
   /* Initialize parsing data */
   pc->input=u8_malloc(sizeof(struct FD_WORD)*FD_INITIAL_N_INPUTS);
   pc->n_inputs=0; pc->max_n_inputs=FD_INITIAL_N_INPUTS;
-  memset(pc->input,0,sizeof(struct FD_WORD)*FD_INITIAL_N_INPUTS);
   pc->states=u8_malloc(sizeof(struct FD_PARSER_STATE)*FD_INITIAL_N_STATES);
   pc->n_states=0; pc->max_n_states=FD_INITIAL_N_STATES;
-  memset(pc->states,0,sizeof(struct FD_PARSER_STATE)*FD_INITIAL_N_STATES);
   pc->queue=-1; pc->last=-1; pc->runtime=0.0;
   pc->cache=u8_malloc(sizeof(fd_parse_state *)*FD_INITIAL_N_INPUTS);
-  memset(pc->cache,0,sizeof(fd_parse_state *)*FD_INITIAL_N_INPUTS);
   while (i < FD_INITIAL_N_INPUTS) {
     fd_parse_state *vec=u8_malloc(sizeof(fd_parse_state)*pc->grammar->n_nodes);
     unsigned int j=0;
@@ -235,8 +232,8 @@ void fd_reset_parse_context(fd_parse_context pcxt)
   fd_unlock_mutex(&parser_stats_lock);
   /* Report timing info if requested. */
   if (pcxt->flags&FD_TAGGER_VERBOSE_TIMER)
-    u8_message("Parsed %d inputs, exploring %d states in %f seconds",
-	       pcxt->n_inputs,pcxt->n_states,pcxt->runtime);
+    u8_log(LOG_DEBUG,"DoneParse","Parsed %d inputs, exploring %d states in %f seconds",
+	   pcxt->n_inputs,pcxt->n_states,pcxt->runtime);
   /* Update stats for this parse context. */
   pcxt->cumulative_inputs=pcxt->cumulative_inputs+pcxt->n_inputs;
   pcxt->cumulative_states=pcxt->cumulative_states+pcxt->n_states;
@@ -273,8 +270,9 @@ void fd_free_parse_context(fd_parse_context pcxt)
   fd_unlock_mutex(&parser_stats_lock);
   /* Report timing info if requested. */
   if (pcxt->flags&FD_TAGGER_VERBOSE_TIMER)
-    u8_message("Parsed %d inputs, exploring %d states in %f seconds",
-	       pcxt->n_inputs,pcxt->n_states,pcxt->runtime);
+    u8_log(LOG_DEBUG,"DoneParse",
+	   "Parsed %d inputs, exploring %d states in %f seconds",
+	   pcxt->n_inputs,pcxt->n_states,pcxt->runtime);
   /* Free memory structures for inputs */
   i=0; while (i < pcxt->n_inputs) {
     /* Freed by fd_decref */
@@ -750,12 +748,15 @@ static int count_chars(u8_string start,u8_string end)
 static int get_char_pos(fd_parse_context pc,u8_string bufp)
 {
   int n=pc->n_inputs-1;
-  while (n>0)
-    if ((pc->input[n].char_pos)>0) 
+  while (n>=0)
+    if ((pc->input[n].char_pos)>0) {
+      /* u8_message("Basing cpos for %d on %d",pc->n_inputs,n); */
       return (pc->input[n].char_pos)+
-	count_chars((pc->input[n].bufptr),bufp);
+	count_chars((pc->input[n].bufptr),bufp);}
     else n--;
-  return count_chars(pc->buf,bufp);
+  if (bufp<pc->start) return 0;
+  if (bufp>pc->end) return 0;
+  else return count_chars(pc->buf,bufp);
 }
 
 #if 0
@@ -884,7 +885,7 @@ struct SENTENCE_BREAK_MARKUP {
   NULL};
 static int sentence_break_markups_len=2;
 
-static int sentence_break_markup(u8_string s)
+FD_FASTOP int sentence_break_markup(u8_string s)
 {
   struct SENTENCE_BREAK_MARKUP *scan=sentence_break_markups,
     *lim=scan+sentence_break_markups_len;
@@ -1060,8 +1061,20 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
 	   pc->grammar->n_arcs);}
   pc->input[pc->n_inputs].spelling=s;
   pc->input[pc->n_inputs].bufptr=bufp;
-  pc->input[pc->n_inputs].char_pos=get_char_pos(pc,bufp);  
-  pc->input[pc->n_inputs].char_len=u8_strlen(s);
+#if 0
+  {
+    double start=u8_elapsed_time();
+    int cpval=get_char_pos(pc,bufp);
+    pc->input[pc->n_inputs].char_pos=cpval;
+    u8_message("word cpos=%d@%d computed in %f",
+	       cpval,pc->n_inputs,u8_elapsed_time()-start);}
+#else
+  if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
+      (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
+    pc->input[pc->n_inputs].char_pos=get_char_pos(pc,bufp);}
+  else {
+    pc->input[pc->n_inputs].char_pos=0;}
+#endif
   pc->input[pc->n_inputs].lstr=ls;
   pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;  
   pc->input[pc->n_inputs].cap=capitalized_in_lexicon; 
@@ -1122,6 +1135,20 @@ static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
 	   pc->grammar->n_arcs);}
   pc->input[pc->n_inputs].spelling=s;
   pc->input[pc->n_inputs].bufptr=bufptr;
+#if 0
+  {
+    double start=u8_elapsed_time();
+    int cpval=get_char_pos(pc,bufptr);
+    pc->input[pc->n_inputs].char_pos=cpval;
+    u8_message("punct cpos=%d@%d computed in %f",
+	       cpval,pc->n_inputs,u8_elapsed_time()-start);}
+#else
+  if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
+      (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
+    pc->input[pc->n_inputs].char_pos=get_char_pos(pc,bufptr);}
+  else {
+    pc->input[pc->n_inputs].char_pos=0;}
+#endif
   pc->input[pc->n_inputs].lstr=ls;
   pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;  
   pc->input[pc->n_inputs].next=pc->n_inputs+1;
@@ -1639,23 +1666,30 @@ fdtype fd_analyze_text
     free_pcxt=1;}
   fd_parser_set_text(pcxt,text);
   if (pcxt->flags&FD_TAGGER_SPLIT_SENTENCES) {
+    double full_start=u8_elapsed_time();
+    double lextime=0.0, comptime=0.0, parsetime=0.0, proctime=0.0;
     u8_byte *sentence=pcxt->start, *sentence_end; int n_calls=0;
     while ((sentence) && (*sentence) &&
 	   (sentence_end=find_sentence_end(sentence))) {
       double start_time=u8_elapsed_time();
+      double lexdone, compdone, parsedone, procdone;
       fd_parse_state final;
       fdtype retval;
       lexer(pcxt,sentence,sentence_end);
+      lexdone=u8_elapsed_time();
       if (pcxt->n_inputs==0) {
 	if (sentence_end) 
 	  sentence=skip_whitespace(sentence_end);
 	else sentence=sentence_end;
 	continue;}
       identify_compounds(pcxt);
+      compdone=u8_elapsed_time();
       add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);
       final=fd_run_parser(pcxt);
+      parsedone=u8_elapsed_time();
       pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
       retval=fn(pcxt,final,data);
+      procdone=u8_elapsed_time();
       if (FD_ABORTP(retval)) {
 	if (free_pcxt) fd_free_parse_context(pcxt);
 	return retval;}
@@ -1663,7 +1697,16 @@ fdtype fd_analyze_text
 	n_calls++;
 	if (sentence_end) 
 	  sentence=skip_whitespace(sentence_end);
-	else sentence=sentence_end;}}
+	else sentence=sentence_end;}
+      lextime=lextime+(lexdone-start_time);
+      comptime=comptime+(compdone-lexdone);
+      parsetime=parsetime+(parsedone-compdone);
+      proctime=proctime+(procdone-parsedone);}
+    if (pcxt->flags&FD_TAGGER_VERBOSE_TIMER)
+      u8_log(LOG_INFO,"DoneSentences",
+	     "Parsed %d sentences in %f seconds; %f/%f/%f/%f lex/comp/parse/proc",
+	     n_calls,u8_elapsed_time()-full_start,
+	     lextime,comptime,parsetime,proctime);
     return FD_INT2DTYPE(n_calls);}
   else {
     double start_time=u8_elapsed_time();
@@ -1741,7 +1784,7 @@ static int interpret_parse_flags(fdtype arg)
     flags=flags|FD_TAGGER_ODDCAPS;    
   if (fd_overlapp(arg,whole_symbol))
     flags=flags&(~FD_TAGGER_SPLIT_SENTENCES);    
-  if (fd_overlapp(arg,whole_symbol))
+  if (fd_overlapp(arg,timing_symbol))
     flags=flags|FD_TAGGER_VERBOSE_TIMER;    
   if (fd_overlapp(arg,source_symbol))
     flags=flags|FD_TAGGER_INCLUDE_SOURCE;    
