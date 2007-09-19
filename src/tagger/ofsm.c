@@ -554,18 +554,32 @@ static int possessive_namep(fd_parse_context pc,u8_string string)
 
 /* Sentences into words */
 
+struct WORD_BREAK_MARKUP {
+  const u8_string string; int len;} word_break_markups[]={
+  {"br",2},
+  {"hr",2},
+  {"p",1},
+  {"/p",2},
+  {"div",3},
+  {"/div",4},
+  {"h1",2},
+  {"/h1",3},
+  {"h2",2},
+  {"/h3",3},
+  NULL};
+static int word_break_markups_len=10;
+
 static int add_input(fd_parse_context pc,u8_string s,u8_byte *bufp);
 static void add_punct(fd_parse_context pc,u8_string s,u8_byte *bufp);
 
-/* This could be more general and should probably use a table of some kind. */
 static int wordbreak_markup(u8_string s)
 {
-  return ((strncmp(s,"br",2)==0) ||
-	  (strncmp(s,"hr",2)==0) ||
-	  (strncmp(s,"p",1)==0) ||
-	  (strncmp(s,"/p",2)==0) ||
-	  (strncmp(s,"/div",4)==0) ||
-	  (strncmp(s,"div",3)==0));
+  struct WORD_BREAK_MARKUP *scan=word_break_markups,
+    *lim=scan+word_break_markups_len;
+  while (scan<lim)
+    if (strncasecmp(s,scan->string,scan->len)==0) return 1;
+    else scan++;
+  return 0;
 }
 
 static u8_string process_word(fd_parse_context pc,u8_string input)
@@ -840,6 +854,23 @@ void fd_parser_set_text(struct FD_PARSE_CONTEXT *pcxt,u8_string in)
 
 /* Strings into sentences */
 
+struct SENTENCE_BREAK_MARKUP {
+  const u8_string string; int len;} sentence_break_markups[]={
+  {"br",2},
+  {"hr",2},
+  NULL};
+static int sentence_break_markups_len=2;
+
+static int sentence_break_markup(u8_string s)
+{
+  struct SENTENCE_BREAK_MARKUP *scan=sentence_break_markups,
+    *lim=scan+sentence_break_markups_len;
+  while (scan<lim)
+    if (strncasecmp(s,scan->string,scan->len)==0) return 1;
+    else scan++;
+  return 0;
+}
+
 static int atspace(u8_string s)
 {
   int c=u8_sgetc(&s);
@@ -868,8 +899,8 @@ static u8_string find_sentence_end(u8_string string)
       u8_string next=strstr(string,"-->");
       if (next) string=next+3; else return NULL;}
     else {
-      int c=u8_sgetc(&string); while ((c>0) && (c!='>'))
-	c=u8_sgetc(&string);
+      int c=u8_sgetc(&string);
+      while ((c>0) && (c!='>')) c=u8_sgetc(&string);
       start=string;}
   else string++;
   /* Go till you get to a possible terminator */
@@ -899,6 +930,8 @@ static u8_string find_sentence_end(u8_string string)
 	return string;
       else if ((strncasecmp(string,"<dd",3)==0)  &&
 	       ((string[3]=='>') || (isspace(string[3]))))
+	return string;
+      else if (sentence_break_markup(string))
 	return string;
       else while ((*string) && (*string != '>')) string++;
     else if (*string=='\n') {
