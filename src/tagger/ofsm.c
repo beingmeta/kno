@@ -1015,7 +1015,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
 	capitalized_in_lexicon=1;}
       else value=lexicon_fetch(lex,sxproper_possessive);
     else value=lexicon_fetch(lex,spossessive);
-  else if (isdigit(first_char))
+  else if (u8_isdigit(first_char))
     if (strchr(spelling,'-')) value=lexicon_fetch(lex,sscore);
     else value=lexicon_fetch(lex,snumber);
   else if ((first_char == '$') && (u8_isdigit(u8_sgetc(&spelling))))
