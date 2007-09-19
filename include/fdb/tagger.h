@@ -37,6 +37,7 @@ FD_EXPORT void fd_init_tagxtract_c(void);
 
 struct FD_WORD {
   u8_string spelling; u8_byte *bufptr;
+  short char_pos, char_len;
   fdtype lstr, compounds;
   unsigned char weights[FD_MAX_ARCS];
   short cap, tag, d, w; int previous, next;};
