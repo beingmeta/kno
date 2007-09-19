@@ -1974,7 +1974,14 @@ static fdtype lexicon_prefetch(fdtype keys)
   if (g==NULL)
     return FD_ERROR_VALUE;
   else {
-    fd_index_prefetch(g->lexicon,keys);
+    fdtype tofetch=fd_incref(keys);
+    FD_DO_CHOICES(key,keys) {
+      if (FD_STRINGP(key)) {
+	fdtype prefix=fd_init_pair(NULL,fd_incref(key),FD_EMPTY_LIST);
+	FD_ADD_TO_CHOICE(tofetch,prefix);}
+      else {}}
+    fd_index_prefetch(g->lexicon,tofetch);
+    fd_decref(tofetch);
     return FD_VOID;}
 }
 
