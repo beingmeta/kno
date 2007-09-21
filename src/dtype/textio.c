@@ -1016,7 +1016,9 @@ fdtype fd_parse_arg(u8_string arg)
 static u8_string lisp_printf_handler
   (u8_output s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
-  fd_unparse(s,va_arg(*args,fdtype));
+  fdtype value=va_arg(*args,fdtype);
+  fd_unparse(s,value);
+  if (strchr(cmd,'-')) fd_decref(value);
   return NULL;
 }
 
