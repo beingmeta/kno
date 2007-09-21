@@ -944,6 +944,8 @@ static u8_string find_sentence_end(u8_string string)
 	else if ((strncasecmp(string,"</dd",4)==0)  &&
 		 ((string[4]=='>') || (isspace(string[4]))))
 	  return string;
+	else if (sentence_break_markup(string))
+	  return string;
 	else while ((*string) && (*string != '>')) string++;
       else if (((string[1]=='P') || (string[1]=='p')) && (atspace(string+2)))
 	return string;
@@ -955,7 +957,7 @@ static u8_string find_sentence_end(u8_string string)
       else if ((strncasecmp(string,"<dd",3)==0)  &&
 	       ((string[3]=='>') || (isspace(string[3]))))
 	return string;
-      else if (sentence_break_markup(string))
+      else if (sentence_break_markup(string+1))
 	return string;
       else while ((*string) && (*string != '>')) string++;
     else if (*string=='\n') {
