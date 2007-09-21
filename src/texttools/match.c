@@ -1162,6 +1162,99 @@ static fdtype subst_extract
     return answers;}
 }
 
+/* Match preferred */
+
+/* This is just like a choice pattern except that when searching,
+   we use the patterns in order and bound subsequent searches by previous
+   results. */
+
+static fdtype match_pref
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  if (flags&(FD_MATCH_BE_GREEDY)) {
+    u8_byteoff max=-1;
+    FD_DOLIST(each,FD_CDR(pat)) {
+      fdtype answer=fd_text_domatch(each,next,env,string,off,lim,flags);
+      if (FD_EMPTY_CHOICEP(answer)) {}
+      else if (FD_ABORTP(answer)) {
+	return answer;}
+      else if (FD_FIXNUMP(answer)) {
+	u8_byteoff val=FD_FIX2INT(answer);
+	if (val>max) max=val;}
+      else if (FD_CHOICEP(answer)) {
+	FD_DO_CHOICES(a,answer)
+	  if (FD_FIXNUMP(a)) {
+	    u8_byteoff val=FD_FIX2INT(a);
+	      if (val>max) max=val;}
+	    else {
+	      fdtype err=fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,a);
+	      fd_decref(answer); answer=err;
+	      FD_STOP_DO_CHOICES;
+	      break;}
+	  if (FD_ABORTP(answer)) {
+	    FD_STOP_DO_CHOICES; return answer;}
+	  else fd_decref(answer);}
+	else {
+	  fd_decref(answer);
+	  return fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,each);}}
+    if (max<0) return FD_EMPTY_CHOICE; else return FD_INT2DTYPE(max);}
+  else {
+    fdtype answers=FD_EMPTY_CHOICE;
+    FD_DOLIST(epat,FD_CDR(pat)) {
+      fdtype answer=fd_text_domatch(epat,next,env,string,off,lim,flags);
+      if (FD_ABORTP(answer)) {
+	fd_decref(answers);
+	return answer;}
+      FD_ADD_TO_CHOICE(answers,answer);}
+    return answers;}
+}
+
+static fdtype extract_pref
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype answers=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(epat,pat) {
+    fdtype extractions=textract(epat,next,env,string,off,lim,flags);
+    FD_DO_CHOICES(extraction,extractions)
+      if (FD_ABORTP(extraction)) {
+	fd_decref(answers); answers=fd_incref(extraction);
+	FD_STOP_DO_CHOICES;
+	break;}
+      else if (FD_PAIRP(extraction)) {
+	FD_ADD_TO_CHOICE(answers,fd_incref(extraction));}
+      else {
+	fd_decref(answers);
+	answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
+	FD_STOP_DO_CHOICES;
+	break;}
+    if (FD_ABORTP(answers)) {
+      fd_decref(extractions);
+      return answers;}
+    fd_decref(extractions);}
+  if ((flags&FD_MATCH_BE_GREEDY) &&
+      ((FD_CHOICEP(answers)) || (FD_ACHOICEP(answers)))) {
+    fdtype result=get_longest_extractions(answers);
+    return result;}
+  else return answers;
+}
+
+static int search_pref
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  int nlim=lim, loc=-1;
+  FD_DOLIST(epat,FD_CDR(pat)) {
+    u8_byteoff nxt=fd_text_search(epat,env,string,off,nlim,flags);
+    if (nxt < 0) {
+      if (nxt==-2) {
+	return nxt;}}
+    else if (nxt < nlim) {nlim=nxt; loc=nxt;}}
+  return loc;
+}
+
+
 /* Word match */
 
 static int word_startp(u8_string string,u8_byteoff off)
@@ -2786,7 +2879,8 @@ u8_byteoff fd_text_search
 		     string,off,lim);
     else next=strstr(string+off,FD_STRDATA(pat));
     string[lim]=c;
-    if (next) return next-string;
+    if ((next) && (next<string+lim))
+      return next-string;
     else return -1;}
   else if (FD_VECTORP(pat)) {
     fdtype initial=FD_VECTOR_REF(pat,0);
@@ -2921,6 +3015,7 @@ void fd_init_match_c()
   fd_add_match_operator("AND",match_and,search_and,NULL);
   fd_add_match_operator("NOT>",match_not_gt,search_not,NULL);
   fd_add_match_operator("CHOICE",match_choice,search_choice,extract_choice);
+  fd_add_match_operator("PREF",match_pref,search_pref,extract_pref);
 
   fd_add_match_operator("=",match_bind,search_bind,NULL);
   fd_add_match_operator("LABEL",label_match,label_search,label_extract);
