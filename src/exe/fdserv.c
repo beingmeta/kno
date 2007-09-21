@@ -682,7 +682,7 @@ static fdtype get_uptime()
   return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
 }
 
-static fdtype get_server_status()
+static fdtype get_servlet_status()
 {
   u8_string status=u8_server_status(&fdwebserver,NULL,0);
   return fd_init_string(NULL,-1,status);
@@ -764,7 +764,7 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
   fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
   fd_idefn((fdtype)server_env,
-	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
+	   fd_make_cprim0("SERVLET-STATUS",get_servlet_status,0));
 
 
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
