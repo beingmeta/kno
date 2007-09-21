@@ -1968,20 +1968,52 @@ static fdtype lextags_prim()
   else return fd_incref(g->arc_names);
 }
 
+static fdtype lexfragp(fdtype string)
+{
+  fd_grammar g=fd_default_grammar();
+  if (g==NULL)
+    return FD_ERROR_VALUE;
+  else if (FD_PAIRP(string)) {
+    fdtype v=fd_index_get(g->lexicon,string);
+    if (FD_EMPTY_CHOICEP(v)) return FD_FALSE;
+    else {
+      fd_decref(v);
+      return FD_TRUE;}}
+  else {
+    fdtype stringpair=
+      fd_init_pair(NULL,fd_incref(string),FD_EMPTY_LIST);
+    fdtype v=fd_index_get(g->lexicon,stringpair);
+    if (FD_EMPTY_CHOICEP(v)) {
+      fd_decref(stringpair);
+      return FD_FALSE;}
+    else {
+      fd_decref(stringpair);
+      fd_decref(v);
+      return FD_TRUE;}}
+}
+
+static fdtype lexwordp(fdtype string)
+{
+  fd_grammar g=fd_default_grammar();
+  if (g==NULL)
+    return FD_ERROR_VALUE;
+  else {
+    fdtype v=fd_index_get(g->lexicon,string);
+    if (FD_ABORTP(v)) return v;
+    else if (FD_EMPTY_CHOICEP(v)) return FD_FALSE;
+    else if (FD_FALSEP(v)) return FD_FALSE;
+    else {
+      fd_decref(v);
+      return FD_TRUE;}}
+}
+
 static fdtype lexicon_prefetch(fdtype keys)
 {
   fd_grammar g=fd_default_grammar();
   if (g==NULL)
     return FD_ERROR_VALUE;
   else {
-    fdtype tofetch=fd_incref(keys);
-    FD_DO_CHOICES(key,keys) {
-      if (FD_STRINGP(key)) {
-	fdtype prefix=fd_init_pair(NULL,fd_incref(key),FD_EMPTY_LIST);
-	FD_ADD_TO_CHOICE(tofetch,prefix);}
-      else {}}
-    fd_index_prefetch(g->lexicon,tofetch);
-    fd_decref(tofetch);
+    fd_index_prefetch(g->lexicon,keys);
     return FD_VOID;}
 }
 
@@ -2207,6 +2239,8 @@ void fd_init_ofsm_c()
   
   fd_idefn(menv,fd_make_ndprim
 	   (fd_make_cprim1("LEXICON-PREFETCH!",lexicon_prefetch,1)));
+  fd_idefn(menv,fd_make_cprim1("LEXFRAG?",lexfragp,1));
+  fd_idefn(menv,fd_make_cprim1("LEXWORD?",lexwordp,1));
 
   fd_register_config("LEXDATA","The location (file/server) for the tagger lexicon",
 		     config_get_lexdata,config_set_lexdata,NULL);
