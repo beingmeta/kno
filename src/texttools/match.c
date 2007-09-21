@@ -1215,19 +1215,17 @@ static fdtype extract_pref
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype answers=FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(epat,pat) {
+  FD_DOLIST(epat,FD_CDR(pat)) {
     fdtype extractions=textract(epat,next,env,string,off,lim,flags);
     FD_DO_CHOICES(extraction,extractions)
       if (FD_ABORTP(extraction)) {
 	fd_decref(answers); answers=fd_incref(extraction);
-	FD_STOP_DO_CHOICES;
 	break;}
       else if (FD_PAIRP(extraction)) {
 	FD_ADD_TO_CHOICE(answers,fd_incref(extraction));}
       else {
 	fd_decref(answers);
 	answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
-	FD_STOP_DO_CHOICES;
 	break;}
     if (FD_ABORTP(answers)) {
       fd_decref(extractions);
