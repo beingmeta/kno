@@ -1107,20 +1107,11 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
 	   pc->grammar->n_arcs);}
   pc->input[pc->n_inputs].spelling=s;
   pc->input[pc->n_inputs].bufptr=bufp;
-#if 0
-  {
-    double start=u8_elapsed_time();
-    int cpval=get_char_pos(pc,bufp);
-    pc->input[pc->n_inputs].char_pos=cpval;
-    u8_message("word cpos=%d@%d computed in %f",
-	       cpval,pc->n_inputs,u8_elapsed_time()-start);}
-#else
   if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
       (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
     pc->input[pc->n_inputs].char_pos=get_char_pos(pc,bufp);}
   else {
     pc->input[pc->n_inputs].char_pos=0;}
-#endif
   pc->input[pc->n_inputs].lstr=ls;
   pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;  
   pc->input[pc->n_inputs].cap=capitalized_in_lexicon; 
