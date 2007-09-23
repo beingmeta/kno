@@ -1,4 +1,12 @@
-/* C Mode */
+/* -*- Mode: C; -*- */
+
+/* ofsm.c
+   Copyright (C) 2001-2007 beingmeta, inc.
+   This is the main OFSM (optimizing finite state machine) engine.
+*/
+
+static char versionid[] =
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
@@ -2265,6 +2273,8 @@ void fd_init_ofsm_c()
 {
   fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   init_parser_symbols();
+
+  fd_register_source_file(versionid);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&default_grammar_lock);

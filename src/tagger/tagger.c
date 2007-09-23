@@ -1,12 +1,12 @@
-/* C Mode */
+/* -*- Mode: C; -*- */
 
-/* texttools.c
-   This is the core texttools file for the FDB library
+/* tagger.c
    Copyright (C) 2005-2007 beingmeta, inc.
+   This is the initialization file for the tagger module.
 */
 
 static char versionid[] =
-  "$Id: filepools.c 1354 2007-07-09 04:04:49Z haase $";
+  "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/fddb.h"

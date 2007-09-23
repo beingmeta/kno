@@ -1,4 +1,12 @@
-/* C Mode */
+/* -*- Mode: C; -*- */
+
+/* tagxtract.c
+   Copyright (C) 2005-2007 beingmeta, inc.
+   This file implements primitives for pulling patterns out of tagged parses
+*/
+
+static char versionid[] =
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
@@ -715,6 +723,8 @@ void fd_init_tagxtract_c()
 {
   fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   
+  fd_register_source_file(versionid);
+
   compound_symbol=fd_intern("COMPOUND");
   star_symbol=fd_intern("*");
   plus_symbol=fd_intern("+");
