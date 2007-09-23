@@ -2051,6 +2051,30 @@ static fdtype lexwordp(fdtype string)
       return FD_TRUE;}}
 }
 
+static fdtype lexprefixp(fdtype string)
+{
+  fd_grammar g=fd_default_grammar();
+  if (g==NULL)
+    return FD_ERROR_VALUE;
+  else {
+    fdtype v=fd_index_get(g->lexicon,string);
+    if (FD_ABORTP(v)) return v;
+    else if (FD_EMPTY_CHOICEP(v)) return FD_FALSE;
+    else if (FD_FALSEP(v)) return FD_FALSE;
+    else if (FD_VECTORP(v)) {
+      fdtype flag=FD_VECTOR_REF(v,1), result=FD_FALSE;
+      if ((FD_FIXNUMP(flag)) && ((FD_FIX2INT(flag))>=0))
+	result=FD_TRUE;
+      fd_decref(v);
+      return result;}
+    else if (FD_PACKETP(v)) {
+      int val=FD_PACKET_REF(v,1), retval=0;
+      if (val<128) retval=1;
+      fd_decref(v);
+      if (retval) return FD_TRUE; else return FD_FALSE;}
+    else return FD_FALSE;}
+}
+
 static fdtype lexicon_prefetch(fdtype keys)
 {
   fd_grammar g=fd_default_grammar();
@@ -2287,6 +2311,7 @@ void fd_init_ofsm_c()
   fd_idefn(menv,fd_make_ndprim
 	   (fd_make_cprim1("LEXICON-PREFETCH!",lexicon_prefetch,1)));
   fd_idefn(menv,fd_make_cprim1("LEXWORD?",lexwordp,1));
+  fd_idefn(menv,fd_make_cprim1("LEXPREFIX?",lexprefixp,1));
 
   fd_register_config("LEXDATA","The location (file/server) for the tagger lexicon",
 		     config_get_lexdata,config_set_lexdata,NULL);
