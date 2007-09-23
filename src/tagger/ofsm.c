@@ -70,6 +70,8 @@ static int capitalizedp(fdtype x)
   if (FD_STRINGP(x)) {
     u8_string s=FD_STRDATA(x); int c=u8_sgetc(&s);
     return u8_isupper(c);}
+  else if ((FD_VECTORP(x)) && (FD_VECTOR_LENGTH(x)>0))
+    return capitalizedp(FD_VECTOR_REF(x,0));
   else if (FD_PAIRP(x))
     return capitalizedp(FD_CAR(x));
   else return 0;
@@ -123,7 +125,7 @@ static double total_parse_time=0.0;
 static fdtype noun_symbol, verb_symbol, name_symbol, compound_symbol;
 static fdtype lexget_symbol, verb_root_symbol, noun_root_symbol;
 static fdtype nouns_symbol, verbs_symbol, names_symbol, grammar_symbol;
-static fdtype heads_symbol, mods_symbol;
+static fdtype heads_symbol, mods_symbol, prefix_symbol;
 
 /* These simple syntactic categories are used when words aren't
    in the lexicon. */
@@ -134,7 +136,7 @@ static fdtype sentence_end_symbol, sxproper_name, sxproper_possessive;
 
 static fdtype parse_failed_symbol;
 
-static int quote_mark_tag=-1, noise_tag=-1;
+static int quote_mark_tag=-1, noise_tag=-1, prefix_tag=1;
 
 /* Default grammar */
 
@@ -438,26 +440,53 @@ static fdtype lower_string(u8_string string)
 
 static fdtype lower_compound(fdtype compound)
 {
-  int needs_lower=0;
-  FD_DOLIST(word,compound)
-    if (FD_STRINGP(word)) {
-      u8_string sdata=FD_STRDATA(word);
-      int c=u8_sgetc(&sdata);
-      if (u8_isupper(c)) {needs_lower=1; break;}}
-  if (needs_lower) {
-    fdtype head=FD_EMPTY_LIST, *tail=&head, newpair;
-    FD_DOLIST(word,compound) {
-      fdtype new_elt;
+  if (FD_VECTORP(compound))  {
+    fdtype *elts=FD_VECTOR_DATA(compound);
+    int needs_lower=0, i=0, n=FD_VECTOR_LENGTH(compound);
+    while (i<n)
+      if (FD_STRINGP(elts[i])) {
+      	u8_string sdata=FD_STRDATA(elts[i]);
+	int c=u8_sgetc(&sdata);
+	if (u8_isupper(c)) {needs_lower=1; break;}
+	else i++;}
+      else {
+	u8_log(LOG_WARN,"Bad Compound phrase","element is not a string",
+	       compound);
+	return fd_incref(compound);}
+    if (needs_lower) {
+      fdtype *newelts=u8_alloc_n(n,fdtype);
+      i=0; while (i<n) {
+	fdtype elt=elts[i], new_elt;
+	if (FD_STRINGP(elt)) {
+	  u8_string sdata=FD_STRDATA(elt);
+	  int c=u8_sgetc(&sdata);
+	  if (u8_isupper(c)) new_elt=lower_string(sdata);
+	  else new_elt=fd_incref(elt);}
+	else new_elt=fd_incref(elt);
+	i++;}
+      return fd_init_vector(NULL,n,newelts);}
+    else return fd_incref(compound);}
+  else if (FD_PAIRP(compound)) {
+    int needs_lower=0;
+    FD_DOLIST(word,compound)
       if (FD_STRINGP(word)) {
 	u8_string sdata=FD_STRDATA(word);
 	int c=u8_sgetc(&sdata);
-	if (u8_isupper(c)) new_elt=lower_string(sdata);
-	else new_elt=fd_incref(word);}
-      else new_elt=fd_incref(word);
-      newpair=fd_init_pair(NULL,new_elt,FD_EMPTY_LIST);
-      *tail=newpair; tail=&(FD_CDR(newpair));}
-    return head;}
-  else return fd_incref(compound);
+	if (u8_isupper(c)) {needs_lower=1; break;}}
+    if (needs_lower) {
+      fdtype head=FD_EMPTY_LIST, *tail=&head, newpair;
+      FD_DOLIST(word,compound) {
+	fdtype new_elt;
+	if (FD_STRINGP(word)) {
+	  u8_string sdata=FD_STRDATA(word);
+	  int c=u8_sgetc(&sdata);
+	  if (u8_isupper(c)) new_elt=lower_string(sdata);
+	  else new_elt=fd_incref(word);}
+	else new_elt=fd_incref(word);
+	newpair=fd_init_pair(NULL,new_elt,FD_EMPTY_LIST);
+	*tail=newpair; tail=&(FD_CDR(newpair));}
+      return head;}
+    else return fd_incref(compound);}
 }
 
 /* lexicon_fetch: (static)
@@ -763,7 +792,9 @@ static int get_char_pos(fd_parse_context pc,u8_string bufp)
 static void add_alt(fd_parse_context pc,int i,fdtype alt)
 {
   fdtype phrase;
-  if (FD_PAIRP(alt)) {
+  if (FD_VECTORP(alt)) {
+    phrase=alt; fd_incref(alt);}
+  else if (FD_PAIRP(alt)) {
     phrase=alt; fd_incref(alt);}
   else if (FD_STRINGP(alt)) {
     fd_incref(alt);
@@ -795,42 +826,47 @@ static void preparsed(fd_parse_context pc,fdtype words)
 
 /* Identifying compounds */
 
-static fdtype make_compound(fd_parse_context pc,int start,int end,int lower)
+static int check_compound(fdtype compound,fd_parse_context pc,int start,int lim,int trylower)
 {
-  fdtype elts[16], compound=FD_EMPTY_LIST;
-  int i=0, lim=end-start; while (i<lim) {
-    int fc=u8_string_ref(pc->input[start+i].spelling);
-    if ((lower) && (u8_isupper(fc)))
-      elts[i]=lower_string(pc->input[start+i].spelling);
-    else elts[i]=fd_incref(pc->input[start+i].lstr);
-    i++;}
-  i--; while (i>=0)
-    compound=fd_init_pair(NULL,elts[i--],compound);
-  return compound;
+  int i=0, len=FD_VECTOR_LENGTH(compound);
+  while (i<len) {
+    fdtype word=FD_VECTOR_REF(compound,i);
+    if ((trylower) ? (strcasecmp(pc->input[start+i].spelling,FD_STRDATA(word))==0) :
+	(strcmp(pc->input[start+i].spelling,FD_STRDATA(word))==0))
+      i++;
+    else return 0;}
+  return 1;
 }
 
 static fdtype probe_compound
   (fd_parse_context pc,int start,int end,int lim,int lower)
 {
   if (end>lim) return FD_EMPTY_CHOICE;
+  else if (start+1>=lim)
+    return FD_EMPTY_CHOICE;
+  else if (pc->input[start].weights[prefix_tag]!=0)
+    return FD_EMPTY_CHOICE;
   else {
-    fdtype compound=make_compound(pc,start,end,lower);
-    fdtype lexdata=get_lexinfo(pc,compound);
-    if (FD_EMPTY_CHOICEP(lexdata)) {
-      fd_decref(compound); return FD_EMPTY_CHOICE;}
+    fdtype prefix_key=
+      fd_init_pair
+      (NULL,((lower) ? (lower_string(pc->input[start].spelling)) :
+	     (fd_incref(pc->input[start].lstr))),
+       ((lower) ? (lower_string(pc->input[start+1].spelling)) :
+	(fd_incref(pc->input[start+1].lstr))));
+    fdtype compounds=get_lexinfo(pc,prefix_key);
+    if (FD_EMPTY_CHOICEP(compounds)) return compounds;
     else {
-      if ((FD_VECTORP(lexdata)) || (FD_PACKETP(lexdata))) {
-	fdtype results=fd_init_pair(NULL,compound,lexdata);
-	fdtype more_results=probe_compound(pc,start,end+1,lim,lower);
-	FD_ADD_TO_CHOICE(results,more_results);
-	return results;}
-      else if (FD_FALSEP(lexdata)) {
-	fd_decref(compound);
-	return probe_compound(pc,start,end+1,lim,lower);}
-      else {
-	fd_decref(lexdata);
-	fd_decref(compound);
-	return FD_EMPTY_CHOICE;}}}
+      fdtype results=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(compound,compounds)
+	if (!(FD_VECTORP(compound))) {}
+	else if ((FD_VECTOR_LENGTH(compound))>(lim-start)) {}
+	else if (check_compound(compound,pc,start,lim,lower)) {
+	  fdtype lexinfo=get_lexinfo(pc,compound);
+	  fdtype lexpair=fd_init_pair(NULL,fd_incref(compound),lexinfo);
+	  FD_ADD_TO_CHOICE(results,lexpair);}
+	else {}
+      fd_decref(compounds); fd_decref(prefix_key);
+      return results;}}
 }
 
 static void bump_weights_for_capitalization(fd_parse_context pc,int word);
@@ -1427,6 +1463,10 @@ static int possessive_suffixp(fdtype word)
     if ((len>1) && (s[len-1]=='\'')) return 1;
     else if ((len>2) && (s[len-1]=='s') && (s[len-2]=='\'')) return 1;
     else return 0;}
+  else if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
+    int n=FD_VECTOR_LENGTH(word)-1;
+    fdtype last=FD_VECTOR_REF(word,n);
+    return possessive_suffixp(last);}
   else if (FD_PAIRP(word)) {
     fdtype last=word, scan=FD_CDR(word);
     while (FD_PAIRP(scan)) {last=scan; scan=FD_CDR(scan);}
@@ -1445,6 +1485,13 @@ static fdtype possessive_root(fdtype word)
     else if ((len>2) && (s[len-1]=='s') && (s[len-2]=='\''))
       return fd_extract_string(NULL,s,s+(len-2));
     else return fd_incref(word);}
+  else if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
+    int i=0, n=FD_VECTOR_LENGTH(word)-1;
+    fdtype last=FD_VECTOR_REF(word,n), *newelts=u8_alloc_n(n,fdtype), new;
+    while (i<n) {
+      newelts[i]=fd_incref(FD_VECTOR_REF(word,i)); i++;}
+    newelts[i]=possessive_root(FD_VECTOR_REF(word,i));
+    return fd_init_vector(NULL,n,newelts);}
   else if (FD_PAIRP(word))
     if (FD_PAIRP(FD_CDR(word)))
       return fd_init_pair(NULL,fd_incref(FD_CAR(word)),
@@ -1469,7 +1516,9 @@ static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid,int c
     if (u8_isupper(firstc)) 
       normalized=lower_string(FD_STRDATA(base));
     else normalized=fd_incref(base);}
-  else if ((FD_PAIRP(base)) && (FD_STRINGP(FD_CAR(base)))) {
+  else if (((FD_PAIRP(base)) && (FD_STRINGP(FD_CAR(base)))) ||
+	   ((FD_VECTORP(base)) && (FD_VECTOR_LENGTH(base)>0) &&
+	    (FD_STRINGP(FD_VECTOR_REF(base,0))))) {
     u8_string scan=FD_STRDATA(base);
     int firstc=u8_sgetc(&scan);
     if (u8_isupper(firstc))
@@ -1495,7 +1544,25 @@ FD_EXPORT fdtype fd_get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid
 
 static fdtype word2string(fdtype word)
 {
-  if (FD_PAIRP(word)) {
+  if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
+    struct U8_OUTPUT out;
+    fdtype *elts=FD_VECTOR_DATA(word);
+    int i=0, n=FD_VECTOR_LENGTH(word);
+    U8_INIT_OUTPUT(&out,32);
+    while (i<n)
+      if (FD_STRINGP(elts[i])) {
+	u8_string s=FD_STRDATA(elts[i]); int firstc=u8_sgetc(&s);
+	if ((i>0) && (u8_isalnum(firstc))) u8_putc(&out,' ');
+	u8_puts(&out,FD_STRDATA(elts[i])); i++;}
+      else {
+	u8_log(LOG_WARN,"Bad Compound phrase","element is not a string",
+	       word);
+	if (i>0)
+	  u8_printf(&out," %q",elts[i]);
+	else u8_printf(&out,"%q",elts[i]);
+	i++;}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else if (FD_PAIRP(word)) {
     struct U8_OUTPUT out; int i=0; U8_INIT_OUTPUT(&out,32);
     {FD_DOLIST(elt,word) {
       u8_string s=FD_STRDATA(elt); int firstc=u8_sgetc(&s);
@@ -1970,30 +2037,6 @@ static fdtype lextags_prim()
   else return fd_incref(g->arc_names);
 }
 
-static fdtype lexfragp(fdtype string)
-{
-  fd_grammar g=fd_default_grammar();
-  if (g==NULL)
-    return FD_ERROR_VALUE;
-  else if (FD_PAIRP(string)) {
-    fdtype v=fd_index_get(g->lexicon,string);
-    if (FD_EMPTY_CHOICEP(v)) return FD_FALSE;
-    else {
-      fd_decref(v);
-      return FD_TRUE;}}
-  else {
-    fdtype stringpair=
-      fd_init_pair(NULL,fd_incref(string),FD_EMPTY_LIST);
-    fdtype v=fd_index_get(g->lexicon,stringpair);
-    if (FD_EMPTY_CHOICEP(v)) {
-      fd_decref(stringpair);
-      return FD_FALSE;}
-    else {
-      fd_decref(stringpair);
-      fd_decref(v);
-      return FD_TRUE;}}
-}
-
 static fdtype lexwordp(fdtype string)
 {
   fd_grammar g=fd_default_grammar();
@@ -2193,6 +2236,7 @@ static void init_parser_symbols()
   heads_symbol=fd_intern("%HEADS");
   mods_symbol=fd_intern("%MODS");
 
+  prefix_symbol=fd_intern("PREFIX");
   noun_symbol=fd_intern("NOUN");
   verb_symbol=fd_intern("VERB");
   name_symbol=fd_intern("NAME");
@@ -2241,7 +2285,6 @@ void fd_init_ofsm_c()
   
   fd_idefn(menv,fd_make_ndprim
 	   (fd_make_cprim1("LEXICON-PREFETCH!",lexicon_prefetch,1)));
-  fd_idefn(menv,fd_make_cprim1("LEXFRAG?",lexfragp,1));
   fd_idefn(menv,fd_make_cprim1("LEXWORD?",lexwordp,1));
 
   fd_register_config("LEXDATA","The location (file/server) for the tagger lexicon",
