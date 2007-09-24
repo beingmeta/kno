@@ -935,11 +935,19 @@ struct MARKUP_TAG sentence_break_markup[]={
   {"/th",3},
   {NULL,-1}};
 
+static int tagendp(u8_string s)
+{
+  int c=u8_sgetc(&s);
+  if (c=='>') return 1;
+  else return u8_isspace(c);
+}
+
 FD_FASTOP int markup_is_sentence_breakp(u8_string s)
 {
   struct MARKUP_TAG *scan=sentence_break_markup;
   while ((scan->string) && (scan->len>=0))
-    if (strncasecmp(s,scan->string,scan->len)==0) return 1;
+    if (strncasecmp(s,scan->string,scan->len)==0)
+      return tagendp(s+scan->len);
     else scan++;
   return 0;
 }
@@ -983,28 +991,26 @@ static u8_string find_sentence_end(u8_string string)
 	u8_string next=strstr(string,"-->");
 	if (next) string=next+3; else return NULL;}
       else if (string[1]=='/')
-	if (((string[2]=='P') || (string[2]=='p')) && (atspace(string+2)))
+	if (((string[2]=='P') || (string[2]=='p')) && (tagendp(string+2)))
 	  return string;
-	else if (((string[2]=='H') || (string[2]=='h')) && (isdigit(string[3])))
+	else if (((string[2]=='H') || (string[2]=='h')) &&
+		 (isdigit(string[3])) && (tagendp(string+3)))
 	  return string;
-	else if ((strncasecmp(string,"</div",5)==0) &&
-		 ((string[5]=='>') || (isspace(string[5]))))
+	else if ((strncasecmp(string,"</div",5)==0) && (tagendp(string+5)))
 	  return string;
-	else if ((strncasecmp(string,"</dd",4)==0)  &&
-		 ((string[4]=='>') || (isspace(string[4]))))
+	else if ((strncasecmp(string,"</dd",4)==0)  && (tagendp(string+4)))
 	  return string;
 	else if (markup_is_sentence_breakp(string+2))
 	  return string;
 	else while ((*string) && (*string != '>')) string++;
-      else if (((string[1]=='P') || (string[1]=='p')) && (atspace(string+2)))
+      else if (((string[1]=='P') || (string[1]=='p')) && (tagendp(string+2)))
 	return string;
-      else if (((string[1]=='H') || (string[1]=='h')) && (isdigit(string[2])))
+      else if (((string[1]=='H') || (string[1]=='h')) &&
+	       (isdigit(string[2])) && (tagendp(string+3)))
 	return string;
-      else if ((strncasecmp(string,"<div",4)==0) &&
-	       ((string[4]=='>') || (isspace(string[4]))))
+      else if ((strncasecmp(string,"<div",4)==0) && (tagendp(string+4)))
 	return string;
-      else if ((strncasecmp(string,"<dd",3)==0)  &&
-	       ((string[3]=='>') || (isspace(string[3]))))
+      else if ((strncasecmp(string,"<dd",3)==0)  && (tagendp(string+3)))
 	return string;
       else if (markup_is_sentence_breakp(string+1))
 	return string;
