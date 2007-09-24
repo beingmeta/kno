@@ -592,8 +592,10 @@ static int possessive_namep(fd_parse_context pc,u8_string string)
 
 /* Sentences into words */
 
-struct WORD_BREAK_MARKUP {
-  const u8_string string; int len;} word_break_markups[]={
+typedef struct MARKUP_TAG {
+  const u8_string string; int len;} MARKUP_TAG;
+
+struct MARKUP_TAG whitespace_markup[]={
   {"br",2},
   {"hr",2},
   {"p",1},
@@ -604,17 +606,19 @@ struct WORD_BREAK_MARKUP {
   {"/h1",3},
   {"h2",2},
   {"/h3",3},
-  NULL};
-static int word_break_markups_len=10;
+  {"th",2},
+  {"/th",3},
+  {"td",2},
+  {"/td",3},
+  {NULL,-1}};
 
 static int add_input(fd_parse_context pc,u8_string s,u8_byte *bufp);
 static void add_punct(fd_parse_context pc,u8_string s,u8_byte *bufp);
 
-static int wordbreak_markup(u8_string s)
+static int is_whitespace_markup(u8_string s)
 {
-  struct WORD_BREAK_MARKUP *scan=word_break_markups,
-    *lim=scan+word_break_markups_len;
-  while (scan<lim)
+  struct MARKUP_TAG *scan=whitespace_markup;
+  while ((scan->string) && (scan->len>=0))
     if (strncasecmp(s,scan->string,scan->len)==0) return 1;
     else scan++;
   return 0;
@@ -635,7 +639,7 @@ static u8_string process_word(fd_parse_context pc,u8_string input)
       else free(word_stream.u8_outbuf);
       return tmp;}
     else if ((ch=='<') && (xml)) {
-      int wordbreak=wordbreak_markup(input);
+      int wordbreak=is_whitespace_markup(input);
       while ((ch>=0) && (ch != '>')) ch=u8_sgetc(&input);
       if (wordbreak) { /* This will end the word */
 	if ((word_stream.u8_outptr-word_stream.u8_outbuf) < 40)
@@ -922,18 +926,19 @@ void fd_parser_set_text(struct FD_PARSE_CONTEXT *pcxt,u8_string in)
 
 /* Strings into sentences */
 
-struct SENTENCE_BREAK_MARKUP {
-  const u8_string string; int len;} sentence_break_markups[]={
+struct MARKUP_TAG sentence_break_markup[]={
   {"br",2},
   {"hr",2},
-  NULL};
-static int sentence_break_markups_len=2;
+  {"td",2},
+  {"/td",3},
+  {"th",2},
+  {"/th",3},
+  {NULL,-1}};
 
-FD_FASTOP int sentence_break_markup(u8_string s)
+FD_FASTOP int markup_is_sentence_breakp(u8_string s)
 {
-  struct SENTENCE_BREAK_MARKUP *scan=sentence_break_markups,
-    *lim=scan+sentence_break_markups_len;
-  while (scan<lim)
+  struct MARKUP_TAG *scan=sentence_break_markup;
+  while ((scan->string) && (scan->len>=0))
     if (strncasecmp(s,scan->string,scan->len)==0) return 1;
     else scan++;
   return 0;
@@ -988,7 +993,7 @@ static u8_string find_sentence_end(u8_string string)
 	else if ((strncasecmp(string,"</dd",4)==0)  &&
 		 ((string[4]=='>') || (isspace(string[4]))))
 	  return string;
-	else if (sentence_break_markup(string))
+	else if (markup_is_sentence_breakp(string+2))
 	  return string;
 	else while ((*string) && (*string != '>')) string++;
       else if (((string[1]=='P') || (string[1]=='p')) && (atspace(string+2)))
@@ -1001,7 +1006,7 @@ static u8_string find_sentence_end(u8_string string)
       else if ((strncasecmp(string,"<dd",3)==0)  &&
 	       ((string[3]=='>') || (isspace(string[3]))))
 	return string;
-      else if (sentence_break_markup(string+1))
+      else if (markup_is_sentence_breakp(string+1))
 	return string;
       else while ((*string) && (*string != '>')) string++;
     else if (*string=='\n') {
