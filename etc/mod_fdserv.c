@@ -218,7 +218,10 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->server_executable=NULL;
   config->config_args=NULL;
   config->socket_prefix=NULL;
+  config->socket_file=NULL;
   config->log_prefix=NULL;
+  config->log_file=NULL;
+  config->servlet_wait=DEFAULT_SERVLET_WAIT;
   config->uid=-1; config->gid=-1;
   return (void *) config;
 }
@@ -251,7 +254,7 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     *write=NULL;
     config->config_args=(const char **)fresh;}
   else config->config_args=NULL;
-
+  
   if (child->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
   else if (parent->socket_prefix)
@@ -266,7 +269,7 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
 
   if (child->log_prefix)
     config->log_prefix=apr_pstrdup(p,child->log_prefix);
-  else if (parent->socket_prefix)
+  else if (parent->log_prefix)
     config->log_prefix=apr_pstrdup(p,parent->log_prefix);
   else config->log_prefix=NULL;
 
@@ -286,10 +289,10 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
     apr_palloc(p,sizeof(struct FDSERV_DIR_CONFIG));
   config->server_executable=NULL;
   config->config_args=NULL;
-  config->log_file=NULL;
-  config->socket_file=NULL;
   config->socket_prefix=NULL;
+  config->socket_file=NULL;
   config->log_prefix=NULL;
+  config->log_file=NULL;
   config->servlet_wait=DEFAULT_SERVLET_WAIT;
   return (void *) config;
 }
