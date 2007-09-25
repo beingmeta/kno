@@ -40,6 +40,11 @@
 
 (define timezones {"GMT" "UTC" "EDT" "EST" "PST" "PDT" "CST" "CDT"})
 
+(define (add1900 string)
+  (string-append "19" string))
+(define (add2000 string)
+  (string-append "20" string))
+
 (define generic-patterns
   (choice `#({(bol) (spaces)}
 	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
@@ -71,7 +76,13 @@
 		    {(IC ,timezones)
 		     #({"+" "-"} (isdigit) (opt (isdigit))
 		       (opt #(":" (isdigit) (isdigit))))})
-	     {(eol) (spaces)}))
+	     {(eol) (spaces)})
+	  `#({(bol) (spaces)}
+	     (label year #("19" (isdigit) (isdigit))) "/"
+	     (label year #((isdigit) (isdigit)) ,add1900))
+	  	  `#({(bol) (spaces)}
+	     (label year #("20" (isdigit) (isdigit))) "/"
+	     (label year #((isdigit) (isdigit)) ,add2000)))
   )
 
 (define us-patterns
@@ -137,7 +148,9 @@
 	    (ambiguous? (get matches 'date))
 	    (ambiguous? (get matches 'hours))
 	    (ambiguous? (get matches 'minutes)))
-	(modtime (pick matches 'year) (or base (timestamp)))
+	(modtime (for-choices (year (get matches 'year))
+		   (frame-create #f 'year year))
+		 (or base (timestamp)))
 	(modtime (qc matches) (or base (timestamp))))))
 
 (define (parsegmtime string (base #f) (us #f))
