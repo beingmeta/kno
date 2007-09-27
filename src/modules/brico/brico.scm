@@ -286,9 +286,10 @@
 
 (defambda (brico-prefetch! concepts (slotids default-brico-slotids))
   (prefetch-oids! concepts)
-  (prefetch-keys! (cons (choice (get slotids 'inverse)
-				(get (get slotids 'slots) 'inverse))
-			concepts)))
+  (prefetch-keys!
+   (cons (choice (get slotids 'inverse)
+		 (get (pick (get slotids 'slots) oid?) 'inverse))
+	 concepts)))
 
 (defambda (brico-prefetch concepts (slotids default-brico-slotids))
   (brico-prefetch! concepts)
