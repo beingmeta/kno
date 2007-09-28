@@ -4,7 +4,7 @@
 
 ;;; This provides various sample functions for testing and benchmarking
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (module-export! '{fibr fibi fibflt factr facti})
 (module-export! '{ack tak takflt})
@@ -23,6 +23,12 @@
 (define (fibflt n)
   (cond ((< n 2.0) 1.0)
 	(else (+ (fibflt (- n 2.0)) (fibflt (- n 1.0))))))
+
+(use-module 'logger)
+(define (dfibr n)
+  (%debug "Calling dfibr on " n)
+  (if (< n 3) 1 (+ (fibr (- n 1)) (fibr (- n 2)))))
+(module-export! 'dfibr)
 
 ;;; Factorial
 

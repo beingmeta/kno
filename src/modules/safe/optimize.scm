@@ -150,12 +150,13 @@
 	   (if lexref (if dolex lexref expr)
 	       (let ((module (wherefrom expr env)))
 		 (if module
-		     (if (%test module '%constants expr)
-			 (let ((v (%get module expr)))
-			   (if (or (pair? v) (symbol? v) (ambiguous? v))
-			       (list 'quote (qc v))
-			       v))
-			 (list %get module (list 'quote expr)))
+		     (cond ((%test module '%nosubst expr) head)
+			   ((%test module '%constants expr)
+			    (let ((v (%get module expr)))
+			      (if (or (pair? v) (symbol? v) (ambiguous? v))
+				  (list 'quote (qc v))
+				  v)))
+			   (else `(,%get ,module ',expr)))
 		     (begin
 		       (when optdowarn
 			 (codewarning (cons* 'UNBOUND expr bound))
