@@ -61,7 +61,7 @@ DB_OBJS=src/db/fddb.o src/db/dtypestream.o \
 	src/db/indices.o src/db/netindices.o src/db/compoundindices.o \
 	src/db/pools.o src/db/netpools.o  \
 	src/db/dtproc.o src/db/dtcall.o src/db/methods.o src/db/xtables.o \
-	src/db/ipeval.o src/db/frames.o
+	src/db/threadcache.o src/db/ipeval.o src/db/frames.o
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o \
 	    src/db/hashindices.o src/db/oidpools.o
@@ -103,7 +103,7 @@ FDB_SOURCES=\
 	src/db/indices.c src/db/netindices.c src/db/compoundindices.c \
 	src/db/pools.c src/db/netpools.c \
 	src/db/dtproc.c src/db/dtcall.c src/db/methods.c src/db/xtables.c \
-	src/db/ipeval.c src/db/frames.c \
+	src/db/threadcache.c src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c src/db/oidpools.c \
 	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c src/db/zindices.c \
 	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c \

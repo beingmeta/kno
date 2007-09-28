@@ -990,18 +990,18 @@ FD_EXPORT fdtype fd_hashtable_get
   if (ht->n_keys == 0) return fd_incref(dflt);
   if (ht->modified>=0) fd_lock_struct(ht);
   if (ht->n_keys == 0) {
-      if (ht->modified>=0) fd_unlock_struct(ht);
-      return fd_incref(dflt);}
+    if (ht->modified>=0) fd_unlock_struct(ht);
+    return fd_incref(dflt);}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
     fdtype v=((FD_ACHOICEP(rv)) ?
-	       (fd_make_simple_choice(rv)) :
-	       (fd_incref(rv)));
+	      (fd_make_simple_choice(rv)) :
+	      (fd_incref(rv)));
     if (ht->modified>=0) fd_unlock_struct(ht);
     return v;}
   else {
-      if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
     return fd_incref(dflt);}
 }
 

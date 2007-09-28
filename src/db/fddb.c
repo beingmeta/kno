@@ -417,6 +417,7 @@ static void register_header_files()
   fd_register_source_file(FDB_INDICES_H_VERSION);
 }
 
+FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
 FD_EXPORT void fd_init_indices_c(void);
 FD_EXPORT void fd_init_netpools_c(void);
@@ -437,6 +438,7 @@ FD_EXPORT int fd_init_db()
   register_header_files();
   fd_register_source_file(versionid);
 
+  fd_init_threadcache_c();
   fd_init_pools_c();
   fd_init_indices_c();
   fd_init_netpools_c();

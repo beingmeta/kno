@@ -71,10 +71,14 @@ static void ipeval_done_msg(u8_condition c,int iteration,double interval)
 FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
 {
   int state, saved_state, ipeval_count=1, retval=0;
+  /* This will be NULL if a thread cache is already in force. */
+  struct FD_THREAD_CACHE *tc=fd_use_threadcache();
   double start, point;
 #if FD_GLOBAL_IPEVAL
   if (fd_ipeval_status()>0) {
-    retval=fcn(data); return retval;}
+    retval=fcn(data);
+    if (tc) fd_pop_threadcache(tc);
+    return retval;}
   fd_lock_mutex(&global_ipeval_lock);
 #endif
   saved_state=state=fd_ipeval_status();
@@ -121,6 +125,7 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
 #if FD_GLOBAL_IPEVAL
   fd_unlock_mutex(&global_ipeval_lock);
 #endif
+  if (tc) fd_pop_threadcache(tc);
   return retval;
 }
 
@@ -129,11 +134,15 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
 				     int *n_cycles,double *total_time)
 {
   int state, saved_state, ipeval_count=1, n_records=16, delays, retval=0;
+  /* This will be NULL if a thread cache is already in force. */
+  struct FD_THREAD_CACHE *tc=fd_use_threadcache();
+  /* This keeps track of execution. */
   struct FD_IPEVAL_RECORD *records=u8_alloc_n(16,struct FD_IPEVAL_RECORD);
   double start, point, exec_time, fetch_time;
 #if FD_GLOBAL_IPEVAL
-  if (fd_ipeval_status()>0) 
-    return fcn(data);
+  if (fd_ipeval_status()>0) {
+    if (tc) fd_pop_threadcache(tc);
+    return fcn(data);}
   fd_lock_mutex(&global_ipeval_lock);
 #endif
   saved_state=state=fd_ipeval_status();
@@ -194,6 +203,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
 #if FD_GLOBAL_IPEVAL
   fd_unlock_mutex(&global_ipeval_lock);
 #endif
+  if (tc) fd_pop_threadcache(tc);
   return retval;
 }
 
@@ -279,6 +289,73 @@ FD_EXPORT int fd_callcache_load()
   int count=0;
   fd_for_hashtable(&fcn_caches,hashtable_cachecount,&count,1);
   return count;
+}
+
+FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args)
+{
+  fdtype vec; int iscached=0;
+  struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
+  struct FD_VECTOR vecstruct;
+  vecstruct.consbits=0;
+  vecstruct.length=n;
+  vecstruct.data=((n==0) ? (NULL) : (args));
+  FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
+  vec=FDTYPE_CONS(&vecstruct);
+  iscached=fd_hashtable_probe(cache,vec);
+  fd_decref((fdtype)cache);
+  return iscached;
+}
+
+/* Thread cache calls */
+
+#define TCACHECALL_STACK_ELTS 8
+
+FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
+{
+  if (fd_threadcache) {
+    fd_thread_cache tc=fd_threadcache;
+    struct FD_VECTOR vecstruct;
+    fdtype _elts[TCACHECALL_STACK_ELTS], *elts=NULL, vec, cached;
+    /* Initialize the stack vector */
+    vecstruct.consbits=0;
+    vecstruct.length=n+1;
+    FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
+    /* Allocate an elements vector if neccessary */
+    if ((n+1)>(TCACHECALL_STACK_ELTS)) 
+      elts=u8_alloc_n(n+1,fdtype);
+    else elts=_elts;
+    /* Initialize the elements */
+    elts[0]=fcn; memcpy(elts+1,args,sizeof(fdtype)*n);
+    vecstruct.data=elts;
+    vec=FDTYPE_CONS(&vecstruct);
+    /* Look it up in the cache. */
+    cached=fd_hashtable_get_nolock(&(tc->fdtc_calls),vec,FD_VOID);
+    if (!(FD_VOIDP(cached))) {
+      if (elts!=_elts) u8_free(elts);
+      return cached;}
+    else {
+      int state=fd_ipeval_status();
+      fdtype result=fd_finish_call(fd_dapply(fcn,n,args));
+      if (FD_ABORTP(result)) {
+	if (elts!=_elts) u8_free(elts);
+	return result;}
+      else if (fd_ipeval_status()==state) {
+	if (elts==_elts) {
+	  int i=0, nelts=n+1;
+	  elts=u8_alloc_n(n+1,fdtype);
+	  while (i<nelts) {elts[i]=fd_incref(_elts[i]); i++;}
+	  vec=fd_init_vector(NULL,nelts,elts);}
+	else {
+	  int i=0, nelts=n+1;
+	  while (i<nelts) {fd_incref(elts[i]); i++;}
+	  vec=fd_init_vector(NULL,nelts,elts);}
+	fd_hashtable_store(&(tc->fdtc_calls),vec,result);
+	fd_decref(vec);
+	return result;}
+      else return result;}}
+  else if (fd_cachecall_probe(fcn,n,args))
+    return fd_cachecall(fcn,n,args);
+  else return fd_finish_call(fd_dapply(fcn,n,args));
 }
 
 /* Initialization stuff */

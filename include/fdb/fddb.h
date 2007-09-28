@@ -149,6 +149,38 @@ FD_EXPORT u8_mutex fd_ipeval_lock;
 FD_EXPORT int fd_callcache_load(void);
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
 FD_EXPORT void fd_clear_callcache(fdtype arg);
+FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args);
+
+FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
+
+/* Thread caches */
+
+typedef struct FD_THREAD_CACHE {
+  struct FD_HASHTABLE fdtc_calls;
+  struct FD_HASHTABLE fdtc_oids;
+  struct FD_HASHTABLE fdtc_bground;
+  struct FD_HASHTABLE fdtc_keys;
+  struct FD_THREAD_CACHE *fdtc_prev;} FD_THREAD_CACHE;
+typedef struct FD_THREAD_CACHE *fd_thread_cache;
+
+#if (FD_USE_TLS)
+FD_EXPORT u8_tld_key fd_threadcache_key;
+#define fd_threadcache ((fdtype *)u8_tld_get(fd_threadcache_key))
+#elif (FD_USE__THREAD)
+FD_EXPORT __thread struct FD_THREAD_CACHE *fd_threadcache;
+#else
+FD_EXPORT struct FD_THREAD_CACHE *fd_threadcache;
+#endif
+
+FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc);
+FD_EXPORT int fd_pop_threadcache(struct FD_THREAD_CACHE *tc);
+
+FD_EXPORT fd_thread_cache fd_new_thread_cache(void);
+FD_EXPORT fd_thread_cache
+  fd_cons_thread_cache(int ccsize,int ocsize,int bcsize,int kcsize);
+
+FD_EXPORT fd_thread_cache fd_push_threadcache(fd_thread_cache);
+FD_EXPORT fd_thread_cache fd_use_threadcache(void);
 
 /* Include other stuff */
 
