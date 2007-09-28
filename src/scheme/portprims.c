@@ -471,6 +471,44 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
+static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype test_expr=fd_get_arg(expr,1), value=FD_FALSE, loglevel_arg;
+  if (FD_ABORTP(test_expr)) return test_expr;
+  else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
+    return fd_reterr(fd_SyntaxError,"logif_handler",_("LOGIF condition expression cannot be a string"),expr);
+  else value=fasteval(test_expr,env);
+  if (FD_ABORTP(value)) return value;
+  else if ((FD_FALSEP(value)) || (FD_VOIDP(value)) ||
+	   (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
+    return FD_VOID;
+  else loglevel_arg=fd_eval(fd_get_arg(expr,2),env);
+  if (FD_ABORTP(loglevel_arg)) return loglevel_arg;
+  else if (FD_VOIDP(loglevel_arg))
+    return fd_reterr(fd_SyntaxError,"logif_plus_handler",
+		     _("LOGIF+ loglevel invalid"),expr);
+  else if (!(FD_FIXNUMP(loglevel_arg)))
+    return fd_reterr(fd_TypeError,"logif_plus_handler",
+		     _("LOGIF+ loglevel invalid"),loglevel_arg);
+  else {
+    fdtype body=fd_get_body(expr,3);
+    U8_OUTPUT *out=u8_open_output_string(1024);
+    U8_OUTPUT *stream=fd_get_default_output();
+    fd_decref(value); fd_set_default_output(out);
+    while (FD_PAIRP(body)) {
+      fdtype value=fasteval(FD_CAR(body),env);
+      if (printout_helper(out,value)) fd_decref(value);
+      else {
+	fd_set_default_output(stream);
+	u8_close_output(out);
+	return value;}
+      body=FD_CDR(body);}
+    fd_set_default_output(stream);
+    u8_logger(FD_FIX2INT(loglevel_arg),NULL,out->u8_outbuf);
+    u8_close_output(out);
+    return FD_VOID;}
+}
+
 static fdtype stringout_handler(fdtype expr,fd_lispenv env)
 {
   struct U8_OUTPUT out; fdtype result;
@@ -1182,6 +1220,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"STATUS",status_handler);
   fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
   fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
+  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
   fd_defspecial(fd_scheme_module,"%LOGGER",message_handler);
 
   fd_idefn(fd_scheme_module,
