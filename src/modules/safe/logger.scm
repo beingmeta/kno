@@ -17,5 +17,5 @@
 (define lognotice
   (macro expr `(logif+ (>= %loglevel 5) 5 ,@(cdr expr))))
 (define %debug
-  (macro expr `(logif+ (>= %loglevel 5) 5 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel 7) 7 ,@(cdr expr))))
 
