@@ -150,7 +150,7 @@
 	   (if lexref (if dolex lexref expr)
 	       (let ((module (wherefrom expr env)))
 		 (if module
-		     (cond ((%test module '%nosubst expr) head)
+		     (cond ((%test module '%nosubst expr) expr)
 			   ((%test module '%constants expr)
 			    (let ((v (%get module expr)))
 			      (if (or (pair? v) (symbol? v) (ambiguous? v))
