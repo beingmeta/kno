@@ -38,6 +38,8 @@ static char versionid[] =
 FD_EXPORT void fd_init_texttools(void);
 FD_EXPORT void fd_init_tagger(void);
 
+static int debug_maxelts=32, debug_maxchars=80;
+
 /* Various exceptions */
 static fd_exception BadPortSpec=_("Bad port spec");
 static fd_exception BadRequest=_("Bad client request");
@@ -500,6 +502,12 @@ int main(int argc,char **argv)
   fd_register_config("U8LOGTRANS",_("Whether to have libu8 log each transaction"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
+  fd_register_config("DEBUGMAXCHARS",_("Max number of string characters to display in debug message"),
+		     fd_intconfig_get,fd_intconfig_set,
+		     &debug_maxchars);
+  fd_register_config("DEBUGMAXELTS",_("Max number of list/vector/choice elements to display in debug message"),
+		     fd_intconfig_get,fd_intconfig_set,
+		     &debug_maxelts);
 
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);
@@ -575,8 +583,20 @@ int main(int argc,char **argv)
       else {
 	FD_DO_CHOICES(p,startup_proc) {
 	  fdtype result=fd_apply(p,0,NULL);
-	  if (FD_ABORTP(result))
-	    exit(fd_interr(result));
+	  if (FD_ABORTP(result)) {
+	    u8_exception ex=u8_erreify(), root=ex;
+	    int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+	    U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+	    while (root->u8x_prev) root=root->u8x_prev;
+	    fd_unparse_maxchars=debug_maxchars;
+	    fd_unparse_maxelts=debug_maxelts;
+	    fd_print_exception(&out,root);
+	    fd_print_backtrace(&out,ex,80);
+	    fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+	    fputs(out.u8_outbuf,stderr);
+	    u8_free(out.u8_outbuf);
+	    u8_free_exception(ex,1);
+	    exit(fd_interr(result));}
 	  else fd_decref(result);}}}
 
     /* You're done loading the file now. */
