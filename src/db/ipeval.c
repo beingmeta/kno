@@ -246,8 +246,23 @@ FD_EXPORT void fd_clear_callcache(fdtype arg)
 {
   if (fcn_caches.n_keys==0) return;
   if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
+  else if ((FD_VECTORP(arg)) && (FD_VECTOR_LENGTH(arg)>0)) {
+    fdtype fcn=FD_VECTOR_REF(arg,0);
+    fdtype table=fd_hashtable_get(&fcn_caches,fcn,FD_EMPTY_CHOICE);
+    if (FD_EMPTY_CHOICEP(table)) return;
+    /* This should probably reall signal an error. */
+    else if (!(FD_HASHTABLEP(table))) return;
+    else {
+      int i=0, n_args=FD_VECTOR_LENGTH(arg)-1;
+      fdtype *datavec=u8_alloc_n(n_args,fdtype);
+      fdtype key=fd_init_vector(NULL,n_args,datavec);
+      while (i<n_args) {
+	datavec[i]=fd_incref(FD_VECTOR_REF(arg,i+1)); i++;}
+      fd_hashtable_drop((fd_hashtable)table,key,FD_VOID);
+      fd_decref(key);}}
   else if (fd_hashtable_probe(&fcn_caches,arg))
     fd_hashtable_store(&fcn_caches,arg,FD_VOID);
+  else return;
 }
 
 static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
