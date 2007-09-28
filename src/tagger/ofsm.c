@@ -1666,7 +1666,9 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 	if (scan<0) {
 	  start=pc->input[0].bufptr;
 	  end=find_end(pc->input[0].bufptr,bufptr);
-	  source=fdtype_string(start);
+	  if (bufptr)
+	    source=fd_extract_string(NULL,start,bufptr);
+	  else source=fdtype_string(start);
 	  char_start=pc->input[0].char_pos;
 	  char_end=char_start+count_chars(start,end);}
 	else {
