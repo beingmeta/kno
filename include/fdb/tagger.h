@@ -67,7 +67,7 @@ struct FD_PARSER_STATS {
 typedef struct FD_GRAMMAR {
   u8_string id;
   int n_nodes, n_arcs; 
-  fdtype grammar, arc_names;
+  fdtype grammar, arc_names, common_arcs;
   fd_index lexicon, noun_roots, verb_roots;
   int anything_tag, punctuation_tag, possessive_tag, sentence_end_tag;
   unsigned char *noun_tags, *verb_tags, *name_tags, *head_tags, *mod_tags;

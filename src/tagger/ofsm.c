@@ -939,6 +939,7 @@ static int tagendp(u8_string s)
 {
   int c=u8_sgetc(&s);
   if (c=='>') return 1;
+  else if (c=='/') return 1;
   else return u8_isspace(c);
 }
 
@@ -2136,6 +2137,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   verbs=fd_index_get(g->lexicon,verbs_symbol);
   heads=fd_index_get(g->lexicon,heads_symbol);
   mods=fd_index_get(g->lexicon,mods_symbol);
+  g->common_arcs=fd_index_get(g->lexicon,fd_intern("%COMMON"));
   {
     int len=g->n_arcs;
     unsigned char *taginfo=u8_alloc_n(len,unsigned char);
