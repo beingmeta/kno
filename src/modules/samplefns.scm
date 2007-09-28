@@ -24,12 +24,6 @@
   (cond ((< n 2.0) 1.0)
 	(else (+ (fibflt (- n 2.0)) (fibflt (- n 1.0))))))
 
-(use-module 'logger)
-(define (dfibr n)
-  (%debug "Calling dfibr on " n)
-  (if (< n 3) 1 (+ (fibr (- n 1)) (fibr (- n 2)))))
-(module-export! 'dfibr)
-
 ;;; Factorial
 
 (define (factr n)
