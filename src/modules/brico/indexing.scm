@@ -55,6 +55,11 @@
 (define (stem-compound string)
   (seq->phrase (map porter-stem (words->vector string))))
 
+(define (cap-metaphone string)
+  (if (capitalized? string)
+      (string->packet (capitalize (metaphone string)))
+      (metaphone string #t)))
+
 (defambda (index-string index frame slot (value #f)
 			(window default-frag-window) (phonetic #f))
   (let* ((values (stdspace (if value value (get frame slot))))
@@ -64,7 +69,8 @@
       (let* ((tohash (reject values uppercase?))
 	     (tostem (reject (reject tohash capitalized?) length {1 2 3 4}))
 	     (tocompoundstem (pick tostem compound?)))
-	(doindex index frame slot (metaphone tohash #t))
+	(doindex index frame slot (metaphone (reject tohash capitalized?) #t))
+	(doindex index frame slot (cap-metaphone (pick tohash capitalized?)))
 	(doindex index frame slot (metaphone (porter-stem tostem) #t))
 	(doindex index frame slot
 		 (metaphone (stem-compound tocompoundstem) #t))))
