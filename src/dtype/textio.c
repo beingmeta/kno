@@ -43,6 +43,7 @@ fd_exception fd_BadPointerRef=_("bad pointer reference");
 fd_exception fd_ParseError=_("LISP expression parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 fd_exception fd_CantParseRecord=_("Can't parse record object");
+fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
 
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
@@ -647,12 +648,14 @@ static fdtype parse_packet(U8_INPUT *in)
 
 /* Compound object parsing */
 
+#define iscloser(c) (((c)==')') || ((c)==']') || ((c)=='}'))
+
 static fdtype *parse_vec(u8_input in,char end_char,int *size)
 {
   fdtype *elts=u8_alloc_n(32,fdtype);
   unsigned int n_elts=0, max_elts=32;
   int ch=skip_whitespace(in);
-  while ((ch>=0) && (ch != end_char)) {
+  while ((ch>=0) && (ch != end_char) && (!(iscloser(ch)))) {
     fdtype elt=fd_parser(in);
     if (FD_ABORTP(elt)) {
       int i=0; while (i < n_elts) {
@@ -682,6 +685,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
   else {
     int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
     u8_free(elts); *size=ch;
+    fd_seterr(fd_MismatchedClose,"parse_vec",NULL,FD_CODE2CHAR(end_char));
     return NULL;}
 }
 
@@ -695,6 +699,9 @@ static fdtype parse_list(U8_INPUT *in)
   else if (ch == ')') {
     /* The empty list case */
     u8_getc(in); return FD_EMPTY_LIST;}
+  else if (ch == ']') {
+    fd_seterr(fd_MismatchedClose,"parse_list",NULL,head);
+    return FD_PARSE_ERROR;}
   else {
     /* This is where we build the list.  We recur in the CAR direction and
        iterate in the CDR direction to avoid growing the stack. */
@@ -732,6 +739,69 @@ static fdtype parse_list(U8_INPUT *in)
       if (ch==-1) return FD_EOX;
       else return FD_PARSE_ERROR;}
     else if (ch == ')') {
+      u8_getc(in);
+      return head;}
+    else {
+      fdtype tail;
+      tail=fd_parser(in);
+      if (FD_ABORTP(tail)) {
+	fd_decref(head); return tail;}
+      skip_whitespace(in); ch=u8_getc(in);
+      if (ch == ')') {scan->cdr=tail; return head;}
+      fd_decref(head); fd_decref(tail);
+      return FD_PARSE_ERROR;}}
+}
+
+static fdtype parse_bracket_list(U8_INPUT *in)
+{
+  /* This starts parsing the list after a '(' has been read. */
+  int ch=skip_whitespace(in); fdtype head;
+  if (ch<0)
+    if (ch==-1) return FD_EOX;
+    else return FD_PARSE_ERROR;
+  else if (ch == ']') {
+    /* The empty list case */
+    u8_getc(in); return FD_EMPTY_LIST;}
+  else if (ch == ')') {
+    fd_seterr(fd_MismatchedClose,"parse_bracket_list",NULL,head);
+    return FD_PARSE_ERROR;}
+  else {
+    /* This is where we build the list.  We recur in the CAR direction and
+       iterate in the CDR direction to avoid growing the stack. */
+    struct FD_PAIR *scan;
+    fdtype car=fd_parser(in), head;
+    if (FD_ABORTP(car))
+      return car;
+    else {
+      scan=u8_alloc(struct FD_PAIR);
+      FD_INIT_CONS(scan,fd_pair_type);
+      if (scan == NULL) {fd_decref(car); return FD_OOM;}
+      else head=fd_init_pair(scan,car,FD_EMPTY_LIST);}
+    ch=skip_whitespace(in);
+    while ((ch>=0) && (ch != ']')) {
+      /* After starting with the head, we iterate until we get to
+	 the closing paren, except for the dotted pair exit clause. */
+      fdtype list_elt; struct FD_PAIR *new_pair;
+      if (ch == '.') {
+	int nextch=u8_getc(in), probed=u8_probec(in);
+	if (u8_isspace(probed)) break;
+	else u8_ungetc(in,nextch);}
+      list_elt=fd_parser(in);
+      if (FD_ABORTP(list_elt)) {
+	fd_decref(head); return list_elt;}
+      new_pair=u8_alloc(struct FD_PAIR);
+      if (new_pair) {
+	scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+	scan=new_pair;}
+      else {
+	fd_decref(head); fd_decref(list_elt);
+	return FD_OOM;}
+      ch=skip_whitespace(in);}
+    if (ch<0) {
+      fd_decref(head);
+      if (ch==-1) return FD_EOX;
+      else return FD_PARSE_ERROR;}
+    else if (ch == ']') {
       u8_getc(in);
       return head;}
     else {
@@ -893,6 +963,9 @@ fdtype fd_parser(u8_input in)
   case '(': 
     /* Skip the open paren and parse the list */
     u8_getc(in); return parse_list(in);
+  case '[': 
+    /* Skip the open paren and parse the list */
+    u8_getc(in); return parse_bracket_list(in);
   case '{':
     /* Skip the open brace and parse the choice */
     u8_getc(in); return parse_choice(in);

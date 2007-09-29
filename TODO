@@ -2,6 +2,10 @@ Stuff to do with beingmeta's FramerD implementation
 ---------------------------------------------------
 Parallel commits under commit-all
 Implement journaling for pool/index collections
+Connection pools in libu8
+Mail API for libu8 (?)
+Add timeout APIs
+Add portmap for fdbserver
 Web-based fdmanager interface
 Move libu8 to WIN32
 Move fdb to WIN32
@@ -19,8 +23,8 @@ Add generic rewrites to optimize
 ?Make fdb use dynamic contours
 MAPROPOS (module apropos finds module for symbol, including by name)
 ?? Move XML functions out of fdweb?
-Add named s/a/lambda and letrec
-Move RUNBASE into dtypes/support
+#Add named s/a/lambda and letrec
+#Move RUNBASE into dtypes/support
 # Add MODIFY-FRAME, QCX (19 August 2007)
 # Add PICK-KEYS, DEFINE-LOCAL QCX (18 August 2007)
 # Add SAMBDA (16 August 2007)

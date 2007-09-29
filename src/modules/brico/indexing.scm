@@ -62,7 +62,7 @@
     (doindex index frame slot expvalues)
     (when phonetic
       (let* ((tohash (reject values uppercase?))
-	     (tostem (reject tohash length {1 2 3 4}))
+	     (tostem (reject (reject tohash capitalized?) length {1 2 3 4}))
 	     (tocompoundstem (pick tostem compound?)))
 	(doindex index frame slot (metaphone tohash #t))
 	(doindex index frame slot (metaphone (porter-stem tostem) #t))
