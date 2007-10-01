@@ -46,38 +46,41 @@
   (string-append "20" string))
 
 (define generic-patterns
-  (choice `#({(bol) (spaces)}
+  (choice `#({(bol) (spaces) ">"}
 	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
 	     (spaces)
 	     (IC (label MONTH ,monthstrings ,monthnum)) (opt #({"" (spaces)} ","))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#({(bol) (spaces)}
+	  `#({(bol) (spaces) ">"}
 	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
 	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
 	     (opt #({"" (spaces)} ","))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#({(bol) (spaces)}
+	  `#({(bol) (spaces) ">"}
 	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces)
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
-	  `#({(spaces) (bol)}
+	  `#({(spaces) (bol) ">"}
 	     (label HOURS #((isdigit) (opt (isdigit))) #t)
-	     {(spaces) (eol) 
+	     {(spaces) (eol) "<"
 	      #(":" (label MINUTES #((isdigit) (isdigit)) #t)
 		{(spaces) (eol)
 		 #(":" (label SECONDS #((isdigit) (isdigit)) #t)
-		   {(spaces) (eol) #("." (label FRACTION (isdigit+)))})})})
-	  `#({(bol) (spaces)} (label AMPM (IC {"AM" "PM"})) {(eol) (spaces)})
-	  `#({(bol) (spaces)}
+		   {(spaces) (eol)
+		    #("." (label FRACTION (isdigit+)))
+		    "<"})})})
+	  `#({(bol) (spaces) ">"}
+	     (label AMPM (IC {"AM" "PM"})) {(eol) (spaces) "<"})
+	  `#({(bol) (spaces) ">"}
 	     (label TIMEZONE
 		    {(IC ,timezones)
 		     #({"+" "-"} (isdigit) (opt (isdigit))
 		       (opt #(":" (isdigit) (isdigit))))})
-	     {(eol) (spaces)})
-	  `#({(bol) (spaces)}
+	     {(eol) (spaces) "<"})
+	  `#({(bol) (spaces) ">"}
 	     (label year #("19" (isdigit) (isdigit))) "/"
 	     (label year #((isdigit) (isdigit)) ,add1900))
 	  	  `#({(bol) (spaces)}
@@ -102,7 +105,7 @@
 (define time-patterns
   (choice generic-patterns us-patterns terran-patterns))
 (define time-pattern
-  `#(,time-patterns (* #(,time-patterns (opt ",") (spaces)))))
+  `#(,time-patterns (* #(,time-patterns (opt ",") {(spaces) "" (eol) "<"}))))
 
 (define (merge-matches-loop matches fields)
   (let ((slotids (sorted (getkeys matches))))
