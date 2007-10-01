@@ -902,7 +902,7 @@ static void identify_compounds(fd_parse_context pc)
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
       else {
 	fdtype entry=fd_init_pair(NULL,fd_make_list(1,lowered),lexdata);
-	bump_weights_for_capitalization(pc,i);
+	if (start==0) bump_weights_for_capitalization(pc,i);
 	FD_ADD_TO_CHOICE(compounds,entry);}
       tmp=probe_compound(pc,i,i+1,pc->n_inputs,1);
       FD_ADD_TO_CHOICE(compounds,tmp);}
@@ -1128,6 +1128,12 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;  
   pc->input[pc->n_inputs].cap=capitalized_in_lexicon; 
   pc->input[pc->n_inputs].next=pc->n_inputs+1;
+#if 0
+  /* If the term is capitalized but not recognized as a known
+     capitalized word, then it might be anything, so take all
+     the impossible (w=255) options and make them a little
+     possible (w=4).  This may have been more helpful before there
+     were alt arcs. */
   if ((capitalized) && (!(capitalized_in_lexicon)) &&
       (pc->n_inputs>0)) {
     int i=0; while (i < pc->grammar->n_arcs)
@@ -1135,6 +1141,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
 	  (pc->input[pc->n_inputs].weights[i]==255)) {
 	pc->input[pc->n_inputs].weights[i]=4; i++;}
       else i++;}
+#endif
   if (!(u8_isalnum(first_char)))
     pc->input[pc->n_inputs].weights[pc->grammar->punctuation_tag]=1;
   pc->n_inputs++;
