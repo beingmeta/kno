@@ -90,7 +90,7 @@ testclean:
 	rm -f *.log *.err *.done *.finished *.pid *.died
 	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
 	rm -f logfile thirty2fifty thirtythree 
-alltests: dtypetests tabletests dbtests
+alltests: dtypetests tabletests indextests hashindextests dbtests
 dtypetests:
 	@echo "***" Running scheme tests to exercise the data/eval layer
 	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
@@ -108,10 +108,19 @@ tabletests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
+
+indextests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
+
+hashindextests:
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex $(TESTSIZE)
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
 
 dbtests:
