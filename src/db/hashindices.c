@@ -1704,25 +1704,25 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
   drop_values=hash_index_fetchn_inner((fd_index)hx,n_drops,drops,1,1);
   scan=edits->slots; lim=scan+edits->n_slots;
   j=0; while (scan < lim)
-	 if (*scan) {
-	   struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-	   struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
-	   while (kvscan<kvlimit) {
-	     fdtype key=kvscan->key, key_to_drop=FD_CDR(key);
-	     if ((FD_PAIRP(key)) && ((FD_CAR(key))==drop_symbol)) {
-	       if (FD_CDR(key)==drops[j]) {
-		 fdtype cached=drop_values[j];
-		 fdtype added=
-		   fd_hashtable_get(adds,key_to_drop,FD_EMPTY_CHOICE);
-		 FD_ADD_TO_CHOICE(cached,added);
-		 s[i].key=key_to_drop;
-		 s[i].values=fd_difference(cached,kvscan->value);
-		 s[i].replace=1;
-		 fd_decref(cached);
-		 i++; j++;}}
-	     kvscan++;}
-	   scan++;}
-	 else scan++;
+    if (*scan) {
+      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      while (kvscan<kvlimit) {
+	fdtype key=kvscan->key, key_to_drop=FD_CDR(key);
+	if ((FD_PAIRP(key)) && ((FD_CAR(key))==drop_symbol)) {
+	  if (FD_CDR(key)==drops[j]) {
+	    fdtype cached=drop_values[j];
+	    fdtype added=
+	      fd_hashtable_get(adds,key_to_drop,FD_EMPTY_CHOICE);
+	    FD_ADD_TO_CHOICE(cached,added);
+	    s[i].key=key_to_drop;
+	    s[i].values=fd_difference(cached,kvscan->value);
+	    s[i].replace=1;
+	    fd_decref(cached);
+	    i++; j++;}}
+	kvscan++;}
+      scan++;}
+    else scan++;
   u8_free(drops); u8_free(drop_values);
   return i;
 }
@@ -1824,20 +1824,43 @@ FD_FASTOP off_t extend_keybucket
     while (scan<n_keys)
       if ((ke[scan].dtype_size)!= keysize) scan++;
       else if (memcmp(keydata,ke[scan].dtype_start,keysize)) scan++;
+      else if (schedule[k].replace) {
+	/* The key is already in there, but we are ignoring
+	   it's current value.  If key has more than one associated
+	   values, we write a value block, otherwise we store the value
+	   in the key entry. */
+	int n_values=FD_CHOICE_SIZE(schedule[k].values);
+	ke[scan].n_values=n_values;
+	if (n_values==0) ke[scan].values=FD_EMPTY_CHOICE;
+	else if (n_values==1) ke[scan].values=schedule[k].values;
+	else {
+	  ke[scan].values=FD_VOID;
+	  ke[scan].vref=
+	    write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
+			      0,0,endpos);
+	  endpos=ke[scan].vref.off+ke[scan].vref.size;}
+	scan++;
+	break;}
       else {
-	/* The key is already in there, so we write a value
-	   block and update the key entry.  Note that if
-	   the current value is a singleton, and stored in the keyblock,
-	   we need to add that the value block we emit. */
+	/* The key is already in there and has values, so we write
+	   a value block with a pointer to the current value block
+	   and update the key entry.  */
 	int n_values=ke[scan].n_values;
 	int n_values_added=FD_CHOICE_SIZE(schedule[k].values);
 	ke[scan].n_values=n_values+n_values_added;
 	if (n_values==0) {}
 	else if (n_values==1) {
+	  /* This is the special case is where there is one current value
+	     and we are adding to that.  The value block we write must
+	     contain both the current singleton value and whatever values
+	     we are adding.  We pass this as the fourth (extra) argument
+	     to write_value_block.  */
+	  fdtype current=ke[scan].values;
 	  ke[scan].vref=
-	    write_value_block(hx,&(hx->stream),schedule[k].values,
-			      ke[scan].values,0,0,endpos);
-	  endpos=ke[scan].vref.off+ke[scan].vref.size;}
+	    write_value_block(hx,&(hx->stream),schedule[k].values,current,
+			      0,0,endpos);
+	  endpos=ke[scan].vref.off+ke[scan].vref.size;
+	  ke[scan].values=FD_VOID; fd_decref(current);}
 	else {
 	  ke[scan].vref=
 	    write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
@@ -1845,19 +1868,21 @@ FD_FASTOP off_t extend_keybucket
 			      endpos);
 	  endpos=ke[scan].vref.off+ke[scan].vref.size;}
 	scan++;
-	continue;}
-    ke[n_keys].dtype_size=keysize;
-    ke[n_keys].n_values=n_values=FD_CHOICE_SIZE(schedule[k].values);
-    ke[n_keys].dtype_start=newkeys->start+keyoffs[k-i];
-    if (n_values==0) ke[n_keys].values=FD_EMPTY_CHOICE;
-    if (n_values==1) ke[n_keys].values=schedule[k].values;
-    else {
-      ke[n_keys].values=FD_VOID;
-      ke[n_keys].vref=
-	write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
-			  0,0,endpos);
-      endpos=ke[scan].vref.off+ke[scan].vref.size;}
-    kb->n_keys++; k++;}
+	break;}
+    if (scan==n_keys) {
+      ke[n_keys].dtype_size=keysize;
+      ke[n_keys].n_values=n_values=FD_CHOICE_SIZE(schedule[k].values);
+      ke[n_keys].dtype_start=newkeys->start+keyoffs[k-i];
+      if (n_values==0) ke[n_keys].values=FD_EMPTY_CHOICE;
+      if (n_values==1) ke[n_keys].values=schedule[k].values;
+      else {
+	ke[n_keys].values=FD_VOID;
+	ke[n_keys].vref=
+	  write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
+			    0,0,endpos);
+	endpos=ke[scan].vref.off+ke[scan].vref.size;}
+      kb->n_keys++;}
+    k++;}
   return endpos;
 }
 
