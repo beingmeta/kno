@@ -110,18 +110,34 @@ tabletests:
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
 
 indextests:
+	rm -f edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index edit.dtype
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index edit.dtype
 
 hashindextests:
+	rm -f edit.dtype
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex edit.dtype
 
 dbtests:
 	@echo "***" Running scheme tests to exercise the database layer
