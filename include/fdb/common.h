@@ -79,10 +79,13 @@ FD_EXPORT fd_exception
 #define fd_condvar_wait(x,y) u8_condvar_wait(x,y)
 #define fd_init_condvar(x) u8_init_condvar(x)
 #define fd_destroy_condvar(x) u8_destroy_condvar(x)
+#define fd_tld_get(key) (u8_tld_get(key))
+#define fd_tld_set(key,v) (u8_tld_set(key,v))
 #define fd_lock_struct(p) (u8_lock_mutex(&((p)->lock)))
 #define fd_unlock_struct(p) (u8_unlock_mutex(&((p)->lock)))
 #define fd_locked_struct(p) (u8_lock_mutex(&((p)->lock)),(p))
 #else
+typedef void *u8_tld_key;
 #define fd_lock_mutex(x)
 #define fd_unlock_mutex(x)
 #define fd_init_mutex(x)
@@ -93,6 +96,8 @@ FD_EXPORT fd_exception
 #define fd_lock_struct(p)
 #define fd_unlock_struct(p)
 #define fd_locked_struct(p) (p)
+#define fd_tld_get(key) ((*key))
+#define fd_tld_set(key,v) ((*key)=v)
 #endif
 
 /* Generic support */
