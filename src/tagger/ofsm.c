@@ -1013,6 +1013,19 @@ static u8_string find_sentence_end(u8_string string)
 	return string;
       else if ((strncasecmp(string,"<dd",3)==0)  && (tagendp(string+3)))
 	return string;
+      else if (strncasecmp(string,"<script",7)==0) {
+	u8_byte *tag_end=strchr(string+7,'>');
+	if ((tag_end) && (tag_end[-1]=='/'))
+	  string=tag_end+1;
+	else if ((tag_end) && (strcasestr(string,"src=")) &&
+		 (strcasestr(string,"src=")<((char *)tag_end)))
+	  string=tag_end+1;
+	else {
+	  u8_byte *script_end=strchr(string,'<');
+	  while ((script_end) && (strncasecmp(script_end,"</script>",9)!=0))
+	    script_end=strchr(script_end+1,'<');
+	  if (script_end==NULL) {string=script_end;}
+	  else string=script_end+9;}}
       else if (markup_is_sentence_breakp(string+1))
 	return string;
       else while ((*string) && (*string != '>')) string++;
