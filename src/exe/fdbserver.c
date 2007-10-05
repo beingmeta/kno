@@ -234,14 +234,15 @@ static int dtypeserver(u8_client ucl)
     int tracethis=((logtrans) &&
 		   ((client->n_trans==1) ||
 		    (((client->n_trans)%logtrans)==0)));
+    int trans_id=client->n_trans, sock=client->socket;
     double xstart=(u8_elapsed_time()), elapsed=-1.0;
     if (logeval)
-      u8_log(LOG_INFO,Incoming,"%s[%d]: > %q",
-	     client->idstring,client->n_trans,expr);
+      u8_log(LOG_INFO,Incoming,"%s[%d/%d]: > %q",
+	     client->idstring,sock,trans_id,expr);
     else if (logtrans)
       u8_log(LOG_INFO,Incoming,
-	     "%s[%d]: Received request for execution",
-	     client->idstring,client->n_trans);
+	     "%s[%d/%d]: Received request for execution",
+	     client->idstring,sock,trans_id);
     value=fd_eval(expr,client->env);
     elapsed=u8_elapsed_time()-xstart;
     if (FD_ABORTP(value)) {
@@ -250,24 +251,24 @@ static int dtypeserver(u8_client ucl)
       if ((logeval) || (logerrs) || (tracethis)) {
 	if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
 	  u8_log(LOG_ERR,Outgoing,
-		 "%s[%d]: %m@%s (%s) %q returned in %fs",
-		 client->idstring,client->n_trans,
+		 "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
+		 client->idstring,sock,trans_id,
 		 root->u8x_cond,root->u8x_context,
 		 root->u8x_details,irritant,
 		 elapsed);
 	else if (root->u8x_details)
 	  u8_log(LOG_ERR,Outgoing,
-		 "%s[%d]: %m@%s (%s) returned in %fs",
-		 client->idstring,client->n_trans,
+		 "%s[%d/%d]: %m@%s (%s) returned in %fs",
+		 client->idstring,sock,trans_id,
 		 root->u8x_cond,root->u8x_context,root->u8x_details,elapsed);
       	else if (!(FD_VOIDP(irritant)))
 	  u8_log(LOG_ERR,Outgoing,
-		 "%s[%d]: %m@%s -- %q returned in %fs",
-		 client->idstring,client->n_trans,
+		 "%s[%d/%d]: %m@%s -- %q returned in %fs",
+		 client->idstring,sock,trans_id,
 		 root->u8x_cond,root->u8x_context,irritant,elapsed);
 	else u8_log(LOG_ERR,Outgoing,
-		    "%s[%d]: %m@%s -- %q returned in %fs",
-		    client->idstring,client->n_trans,
+		    "%s[%d/%d]: %m@%s -- %q returned in %fs",
+		    client->idstring,sock,trans_id,
 		    root->u8x_cond,root->u8x_context,elapsed);
 	if (logbacktrace) {
 	  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
@@ -281,18 +282,18 @@ static int dtypeserver(u8_client ucl)
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,
-	     "%s[%d]: < %q in %f",
-	     client->idstring,client->n_trans,value,elapsed);
+	     "%s[%d/%d]: < %q in %f",
+	     client->idstring,sock,trans_id,value,elapsed);
     else if (tracethis)
-      u8_log(LOG_INFO,Outgoing,"%s[%d]: Request executed in %fs",
-	     client->idstring,client->n_trans,elapsed);
+      u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
+	     client->idstring,sock,trans_id,elapsed);
     client->elapsed=client->elapsed+elapsed;
     fd_dtswrite_dtype(&(client->stream),value);
     fd_dtsflush(&(client->stream));
     time(&(client->lastlive));
     if (tracethis)
-      u8_log(LOG_INFO,Outgoing,"%s[%d]: Response sent after %fs",
-	     client->idstring,client->n_trans,u8_elapsed_time()-xstart);
+      u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
+	     client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
     fd_decref(expr); fd_decref(value);
     fd_swapcheck();
     return 1;}
