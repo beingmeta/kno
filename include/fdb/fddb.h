@@ -165,7 +165,7 @@ typedef struct FD_THREAD_CACHE *fd_thread_cache;
 
 #if (FD_USE_TLS)
 FD_EXPORT u8_tld_key fd_threadcache_key;
-#define fd_threadcache ((fdtype *)u8_tld_get(fd_threadcache_key))
+#define fd_threadcache ((struct FD_THREAD_CACHE *)u8_tld_get(fd_threadcache_key))
 #elif (FD_USE__THREAD)
 FD_EXPORT __thread struct FD_THREAD_CACHE *fd_threadcache;
 #else
