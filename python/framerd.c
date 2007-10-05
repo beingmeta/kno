@@ -1,13 +1,14 @@
 #include <Python.h>
 #include <structmember.h>
-#include <eframerd/lisp.h>
-#include <eframerd/fddb.h>
-#include <eframerd/pools.h>
-#include <eframerd/indices.h>
+#include <fdb/ptr.h>
+#include <fdb/cons.h>
+#include <fdb/fddb.h>
+#include <fdb/pools.h>
+#include <fdb/indices.h>
 
 typedef struct FD_PYTHON_WRAPPER {
   PyObject_HEAD /* Header stuff */
-  fd_lisp lispval;} pylisp;
+  fdtype lispval;} pylisp;
 
 typedef struct FD_PYTHON_POOL {
   PyObject_HEAD /* Header stuff */
@@ -17,9 +18,9 @@ typedef struct FD_PYTHON_INDEX {
   PyObject_HEAD /* Header stuff */
   fd_index index;} pyindex;
 
-static fd_lisp py2lisp(PyObject *o);
-static fd_lisp py2lispx(PyObject *o);
-static PyObject *lisp2py(fd_lisp x);
+static fdtype py2lisp(PyObject *o);
+static fdtype py2lispx(PyObject *o);
+static PyObject *lisp2py(fdtype x);
 
 staticforward PyTypeObject ChoiceType;
 staticforward PyTypeObject FramerDType;
@@ -29,10 +30,10 @@ static PyObject *FramerDError;
 
 static PyObject *framerd_error;
 
-static PyObject *pass_error(fd_lisp exo)
+static PyObject *pass_error(fdtype exo)
 {
   PyObject *err;
-  fd_exception ex; u8_string details; fd_lisp irritant;
+  fd_exception ex; u8_string details; fdtype irritant;
   U8_OUTPUT out;
   if (FD_VOIDP(exo))
     fd_poperr(&ex,&details,&irritant);
@@ -92,13 +93,13 @@ pylisp_compare(v, w)
      pylisp *v, *w;
 {
   int i, test;              /* compare objects and return -1, 0 or 1 */
-  return (FD_LISP_COMPARE(v->lispval,w->lispval));
+  return (FDTYPE_COMPARE(v->lispval,w->lispval));
 }
 
 static PyObject *pylisp_str(PyObject *self)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
-  char *exprstring=fd_lisp2string(pw->lispval); 
+  char *exprstring=fdtype2string(pw->lispval); 
   return PyString_FromFormat("framerd.ref('%s')",exprstring);
 }
 
@@ -113,11 +114,11 @@ static PyObject *choice_str(PyObject *self)
 static PyObject *pylisp_get(PyObject *self,PyObject *arg)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
-  fd_lisp frames=py2lisp(self), slotids=py2lispx(arg), value=FD_EMPTY_CHOICE;
+  fdtype frames=py2lisp(self), slotids=py2lispx(arg), value=FD_EMPTY_CHOICE;
   PyObject *result;
   FD_DO_CHOICES(frame,frames) {
     FD_DO_CHOICES(slotid,slotids) {
-      fd_lisp v;
+      fdtype v;
       if (FD_OIDP(frame)) v=fd_frame_get(frame,slotid);
       else v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
       FD_ADD_TO_CHOICE(value,v);}}
@@ -129,7 +130,7 @@ static PyObject *pylisp_get(PyObject *self,PyObject *arg)
 static int pylisp_set(PyObject *self,PyObject *arg,PyObject *val)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
-  fd_lisp frames=py2lisp(self), slotids=py2lisp(arg), values=py2lisp(val);
+  fdtype frames=py2lisp(self), slotids=py2lisp(arg), values=py2lisp(val);
   FD_DO_CHOICES(frame,frames) {
     FD_DO_CHOICES(slotid,slotids) {
       fd_store(frame,slotid,values);}}
@@ -143,7 +144,7 @@ pylisp_print(pw, fp, flags)
      FILE *fp;
      int flags;                      /* print self to file */
 {                                   /* or repr or str */
-  char *exprstring=fd_lisp2string(pw->lispval); 
+  char *exprstring=fdtype2string(pw->lispval); 
   fprintf(fp,"framerd.ref('%s')",exprstring);
   fd_free(exprstring);
   return 0;                       /* return status, not object */
@@ -158,9 +159,9 @@ static int choice_length(pw)
 static PyObject *choice_merge(pw1,pw2)
      PyObject *pw1, *pw2;
 {                                   /* or repr or str */
-  fd_lisp choices[2]; PyObject *result;
+  fdtype choices[2]; PyObject *result;
   choices[0]=py2lisp(pw1); choices[1]=py2lisp(pw2);
-  fd_lisp combined=fd_union(choices,2);
+  fdtype combined=fd_union(choices,2);
   result=lisp2py(combined);
   fd_decref(combined); fd_decref(choices[0]); fd_decref(choices[1]);
   return result;
@@ -382,7 +383,7 @@ static PyTypeObject IndexType = {      /* main python type-descriptor */
 static PyObject *pylisp_ref(PyObject *self,PyObject *arg)
 {
   if (PyString_Check(arg)) {
-    fd_lisp obj;
+    fdtype obj;
     PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
     if (u8) obj=fd_parse(PyString_AS_STRING(u8));
     else return pass_error(FD_VOID);
@@ -455,11 +456,11 @@ static PyObject *lispget(PyObject *self,PyObject *args)
   if ((PyTuple_Check(args)) && (PyTuple_GET_SIZE(args)==2)) {
     PyObject *arg0=PyTuple_GET_ITEM(args,0);
     PyObject *arg1=PyTuple_GET_ITEM(args,1), *result;
-    fd_lisp frames=py2lispx(arg0), slotids=py2lispx(arg1);
-    fd_lisp results=FD_EMPTY_CHOICE;
+    fdtype frames=py2lispx(arg0), slotids=py2lispx(arg1);
+    fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(f,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	fd_lisp v=fd_frame_get(f,slotid);
+	fdtype v=fd_frame_get(f,slotid);
 	FD_ADD_TO_CHOICE(results,v);}}
     result=lisp2py(results);
     fd_decref(frames); fd_decref(slotids); fd_decref(results);
@@ -473,7 +474,7 @@ static PyObject *lispfind(PyObject *self,PyObject *args)
   if ((PyTuple_Check(args)) && (PyTuple_GET_SIZE(args)==2)) {
     PyObject *arg0=PyTuple_GET_ITEM(args,0);
     PyObject *arg1=PyTuple_GET_ITEM(args,1), *result;
-    fd_lisp slotids=py2lispx(arg0), values=py2lisp(arg1), results=FD_EMPTY_CHOICE;
+    fdtype slotids=py2lispx(arg0), values=py2lisp(arg1), results=FD_EMPTY_CHOICE;
     results=fd_bgfind(slotids,values,FD_VOID);
     result=lisp2py(results);
     fd_decref(values); fd_decref(slotids); fd_decref(results);
@@ -495,15 +496,15 @@ static struct PyMethodDef framerd_methods[]=
 
 /* Python/LISP mapping */
 
-static fd_lisp py2lisp(PyObject *o)
+static fdtype py2lisp(PyObject *o)
 {
   if (PyInt_Check(o))
-    return FD_LISPFIX(PyInt_AS_LONG(o));
+    return FDTYPEFIX(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return fd_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    return fd_lisp_string(PyString_AS_STRING(u8));}
+    return fdtype_string(PyString_AS_STRING(u8));}
   else if ((PyObject_TypeCheck(o,&PoolType))) {
     struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
     return fd_pool2lisp(pp->pool);}
@@ -517,15 +518,15 @@ static fd_lisp py2lisp(PyObject *o)
   else return FD_VOID;
 }
 
-static fd_lisp py2lispx(PyObject *o)
+static fdtype py2lispx(PyObject *o)
 {
   if (PyInt_Check(o))
-    return FD_LISPFIX(PyInt_AS_LONG(o));
+    return FDTYPEFIX(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return fd_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    fd_lisp v=fd_parse(PyString_AS_STRING(u8));
+    fdtype v=fd_parse(PyString_AS_STRING(u8));
     Py_DECREF(u8);
     return v;}
   else if ((PyObject_TypeCheck(o,&PoolType))) {
@@ -541,7 +542,7 @@ static fd_lisp py2lispx(PyObject *o)
   else return FD_VOID;
 }
 
-static PyObject *lisp2py(fd_lisp o)
+static PyObject *lisp2py(fdtype o)
 {
   if (FD_FIXNUMP(o))
     return PyInt_FromLong(FD_FIXLISP(o));
