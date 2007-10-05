@@ -64,6 +64,13 @@ static int skip_whitespace(u8_input s)
     if (c==';') {
       while ((c>=0) && (c != '\n')) c=u8_getc(s);
       if (c<0) return -1;}
+    else if ((c=='#') && (u8_probec(s)=='|')) {
+      int bar=0; c=u8_getc(s); 
+      while ((c=u8_getc(s))>=0)
+	if (c=='|') bar=1;
+	else if ((bar) && (c=='#')) break;
+	else bar=0;
+      if (c=='#') c=u8_getc(s);}
     else break;}
   if (c<0) return c;
   u8_ungetc(s,c);
