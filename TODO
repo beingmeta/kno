@@ -44,9 +44,10 @@ Make METAPHONE optionally preserve initial capitalization
 #Make PORTER-STEM (at least from BRICO) map across compounds (maybe do both mapped and unmapped) (9 August 2007)
 Implement WITH-SLOTS to bind variables from a frame
 #Reorganize opcodes and add opcode name tables (31 August 2007)
-Move quasiquote from eval.c into its own file
-Move thread functions in eval.c into their own file
-Move opcode dispatch into its own file (#included in eval.c, probably)
+#Add #| comments (3 Oct 2007)
+#Move quasiquote from eval.c into its own file (3 Oct 2007)
+#Move thread functions in eval.c into their own file (3 Oct 2007)
+#Move opcode dispatch into its own file (#included in eval.c, probably) (3 Oct 2007)
 Add accessor/control functions for thread objects
 Add ability to reuse threads with new calls/applications
 Add some kind of global thread managment functionality
@@ -54,7 +55,7 @@ LDAP access libraries
 SQL access libraries
 Simple python bindings
 Provide a file access to mod_dav servers.
-Add editline to fdconsole
+#Add editline to fdconsole/fdsh (3 Oct 2007)
 Make hash indices be able to have implicit pools
 Add background search methods for slots
 Add generic composition for slotids

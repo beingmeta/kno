@@ -67,8 +67,10 @@ DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o \
 	    src/db/hashindices.o src/db/oidpools.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
+                 src/scheme/threadprims.o src/scheme/quasiquote.o \
+		 src/scheme/errors.o \
 	         src/scheme/conditionals.o src/scheme/iterators.o
-SCHEME_OBJS=$(CORE_SCHEME_OBJS) src/scheme/errors.o \
+SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	    src/scheme/modules.o src/scheme/load.o src/scheme/history.o \
 	    src/scheme/reflection.o \
 	    src/scheme/coreprims.o src/scheme/dbprims.o \
@@ -84,7 +86,7 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/md5c.o src/texttools/porter.o src/texttools/phonetic.o
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
 
-EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
+EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdshell@suffix@ \
             exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
@@ -105,9 +107,11 @@ FDB_SOURCES=\
 	src/db/dtproc.c src/db/dtcall.c src/db/methods.c src/db/xtables.c \
 	src/db/threadcache.c src/db/ipeval.c src/db/frames.c \
 	src/db/dbfile.c src/db/filepools.c src/db/zpools.c src/db/oidpools.c \
-	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c src/db/zindices.c \
+	src/db/hashdtype.c src/db/fileindices.c src/db/hashindices.c \
+        src/db/zindices.c \
 	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c \
-	src/scheme/conditionals.c src/scheme/iterators.c \
+	src/scheme/conditionals.c src/scheme/iterators.c           \
+        src/scheme/threadprims.c src/scheme/quasiquote.c \
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
 	src/scheme/coreprims.c src/scheme/dbprims.c \
 	src/scheme/tableprims.c src/scheme/choiceprims.c \

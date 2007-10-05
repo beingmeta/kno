@@ -29,7 +29,7 @@ TESTCONFIG	=
 RUNTEST		= $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
-TESTBIN=fdeval fdconsole fdexec fdbatch fdbserver fdserv
+TESTBIN=fdeval fdconsole fdexec fdbatch fdbserver fdserv fdsh
 
 all: $(TESTBIN) 
 
