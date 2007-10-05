@@ -86,7 +86,7 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/md5c.o src/texttools/porter.o src/texttools/phonetic.o
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
 
-EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdshell@suffix@ \
+EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdsh@suffix@ \
             exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig

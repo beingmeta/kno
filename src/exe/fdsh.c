@@ -235,6 +235,7 @@ int main(int argc,char **argv)
   el_set(console,EL_PROMPT,promptfn);
   el_set(console,EL_EDITOR,"emacs");
   el_set(console,EL_HIST,history,consolehistory);
+  /* history(consolehistory,NULL,H_SETSIZE,256); */
   /* u8_printf(out,EVAL_PROMPT);*/
   while ((input=el_gets(console,&n_chars))!=NULL) {
     int start_icache, finish_icache;
@@ -252,6 +253,7 @@ int main(int argc,char **argv)
       /* u8_printf(out,EVAL_PROMPT); */
       u8_flush(out);
       fd_decref(sym); continue;}
+    /* history(consolehistory,NULL,H_ENTER,input); */
     expr=fd_parse((char *)input);
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
       fd_decref(result); break;}
