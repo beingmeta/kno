@@ -62,6 +62,7 @@ static char vcid[] = "$Id$";
 
 fd_exception fd_BigIntException=_("BigInt Exception");
 fd_exception fd_DivideByZero=_("Division by zero");
+fd_exception fd_InvalidNumericLiteral=_("Invalid numeric literal");
 
 /* These macros come from the original MIT Scheme code */
 #define	DEFUN(name, arglist, args)	name(args)
@@ -70,6 +71,8 @@ fd_exception fd_DivideByZero=_("Division by zero");
 
 typedef void (*bigint_consumer)(void *,int);
 typedef unsigned int (*bigint_producer)(void *);
+
+static double todouble(fdtype x);
 
 
 static fd_bigint
@@ -1993,7 +1996,59 @@ static fdtype make_rational(fdtype n,fdtype d);
 FD_EXPORT
 fdtype fd_string2number(u8_string string,int base)
 {
-  if ((strchr(string,'i')) || (strchr(string,'I'))) {
+  if (string[0]=='#') {
+    switch (string[1]) {
+    case 'o': case 'O':
+      return fd_string2number(string+2,8);
+    case 'x': case 'X':
+      return fd_string2number(string+2,16);
+    case 'd': case 'D':
+      return fd_string2number(string+2,10);
+    case 'b': case 'B':
+      return fd_string2number(string+2,2);
+    case 'i': case 'I': {
+      fdtype result=fd_string2number(string+2,base);
+      double dbl=todouble(result);
+      fdtype inexresult=fd_init_double(NULL,dbl);
+      fd_decref(result);
+      return inexresult;}
+    case 'e': case 'E': {
+      if (strchr(string,'.')) {
+	fdtype num, den=FD_INT2DTYPE(1);
+	u8_byte *copy=u8_strdup(string+2);
+	u8_byte *dot=strchr(copy,'.'), *scan=dot+1;
+	*dot='\0'; num=fd_string2number(copy,10);
+	while (*scan)
+	  if (isdigit(*scan)) {
+	    fdtype numx10=fd_multiply(num,FD_INT2DTYPE(10));
+	    int numweight=u8_digit_weight(*scan);
+	    fdtype add_digit=FD_INT2DTYPE(numweight);
+	    fdtype nextnum=fd_plus(numx10,add_digit);
+	    fdtype nextden=fd_multiply(den,FD_INT2DTYPE(10));
+	    fd_decref(numx10); fd_decref(num); fd_decref(den);
+	    num=nextnum; den=nextden;
+	    scan++;}
+	  else if (strchr("sSeEfFlL",*scan)) {
+	    int i=0, exponent=strtol(scan+1,NULL,10);
+	    if (exponent>=0)
+	      while (i<exponent) {
+		fdtype nextnum=fd_multiply(num,FD_INT2DTYPE(10));
+		fd_decref(num); num=nextnum; i++;}
+	    else {
+	      exponent=-exponent;
+	      while (i<exponent) {
+		fdtype nextden=fd_multiply(den,FD_INT2DTYPE(10));
+		fd_decref(den); den=nextden; i++;}}
+	    break;}
+	  else {
+	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",u8_strdup(string));
+	    return FD_PARSE_ERROR;}
+	return make_rational(num,den);}
+      else return fd_string2number(string+2,base);}
+    default:
+      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",u8_strdup(string));
+      return FD_PARSE_ERROR;}}
+  else if ((strchr(string,'i')) || (strchr(string,'I'))) {
     u8_byte *copy=u8_strdup(string);
     u8_byte *iend, *istart; fdtype real, imag;
     iend=strchr(copy,'i');
@@ -2077,7 +2132,7 @@ static fdtype default_parse_number(u8_string string)
   return fd_string2number(string,-1);
 }
 
-fdtype (*_fd_parse_number)(u8_string)=default_parse_number;
+fdtype (*_fd_parse_number)(u8_string,int)=fd_string2number;
 
 static int read_digit_weight(u8_byte **scan)
 {
@@ -2141,7 +2196,6 @@ int fd_output_number(u8_output out,fdtype num,int base)
   ((FD_FIXNUMP(x)) || (FD_FLONUMP(x)) || (FD_BIGINTP(x)) || \
    (FD_COMPLEXP(x)) || (FD_RATIONALP(x)))
 
-static double todouble(fdtype x);
 static double todoublex(fdtype x,fd_ptr_type xt)
 {
   if (xt == fd_double_type) return ((struct FD_DOUBLE *)x)->flonum;
@@ -2683,8 +2737,8 @@ fdtype fd_make_inexact(fdtype x)
   else if (xt == fd_bigint_type)
     return fd_init_double(NULL,((double) fd_bigint_to_double((fd_bigint)x)));
   else if (xt == fd_rational_type) {
-    double num=todouble(NUMERATOR(xt));
-    double den=todouble(DENOMINATOR(xt));
+    double num=todouble(NUMERATOR(x));
+    double den=todouble(DENOMINATOR(x));
     return fd_init_double(NULL,num/den);}
   else if (xt == fd_complex_type) {
     fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);

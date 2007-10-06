@@ -407,6 +407,16 @@ static int read_escape(u8_input in)
   case '"': return '"';
   case '\\': return '\\';
   case '\'': return '\'';
+  case 'x': {
+    u8_byte buf[16]; int len;
+    u8_string parsed=u8_gets_x(buf,16,in,";",&len);
+    if (parsed) {
+      int code=-1;
+      if (sscanf(buf,"%x",&code)<1) code=-1;
+      return code;}
+    else {
+      fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",NULL);
+      return -1;}}
   case 'u': {
     char buf[16]; int code=-1;
     buf[0]='\\'; buf[1]='u'; u8_getn(buf+2,4,in);
@@ -497,13 +507,16 @@ fdtype fd_parse_atom(u8_string start,int len)
       else return fd_err
 	     (fd_NoPointerExpressions,"fd_parse_atom",
 	      u8_strdup(start),FD_VOID);
+    if (strchr("XxOoBbEeIiDd",start[1])) {
+      fdtype result=_fd_parse_number(start,-1);
+      if (!(FD_VOIDP(result))) return result;}
     fd_seterr3(fd_InvalidConstant,"fd_parse_atom",u8_strdup(start));
     return FD_PARSE_ERROR;}
   else {
     fdtype result;
     if ((isdigit(start[0])) || (start[0]=='+') ||
 	(start[0]=='-') || (start[0]=='.')) {
-      result=_fd_parse_number(start);
+      result=_fd_parse_number(start,-1);
       if (!(FD_VOIDP(result))) return result;}
     return fd_make_symbol(start,len);}
 }

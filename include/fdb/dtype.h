@@ -39,7 +39,7 @@ FD_EXPORT int fd_register_record_tag
   (fdtype symbol,fdtype (*recreate)(int n,fdtype *v));
 
 FD_EXPORT int fd_parse_pointers;
-FD_EXPORT fdtype (*_fd_parse_number)(u8_string);
+FD_EXPORT fdtype (*_fd_parse_number)(u8_string,int);
 
 FD_EXPORT int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details);
 FD_EXPORT int (*fd_dtype_error)(struct FD_BYTE_OUTPUT *,fdtype x,u8_string details);
