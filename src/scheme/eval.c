@@ -304,6 +304,18 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i)
   return fd_get_body(expr,i);
 }
 
+FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
+static fdtype getopt_prim(fdtype opts,fdtype key,fdtype dflt)
+{
+  return fd_getopt(opts,key,dflt);
+}
+static fdtype optplus_prim(fdtype opts,fdtype key,fdtype val)
+{
+  if (FD_VOIDP(val))
+    return fd_init_pair(NULL,key,fd_incref(opts));
+  else return fd_init_pair(NULL,fd_init_pair(NULL,key,fd_incref(val)),fd_incref(opts));
+}
+
 /* Quote */
 
 static fdtype quote_handler(fdtype obj,fd_lispenv env)
@@ -1122,6 +1134,15 @@ static void init_localfns()
 					    fd_fixnum_type,FD_VOID,
 					    fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("GETOPT",getopt_prim,2,
+			   -1,FD_VOID,fd_symbol_type,FD_VOID,
+			   -1,FD_FALSE));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("OPT+",optplus_prim,2,
+			   -1,FD_VOID,fd_symbol_type,FD_VOID,
+			   -1,FD_FALSE));
+
   fd_idefn(fd_scheme_module,fd_make_cprimn("APPLY",apply_lexpr,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim4x
 	   ("DTPROC",make_dtproc,2,

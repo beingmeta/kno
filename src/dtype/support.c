@@ -222,11 +222,21 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
   return retval;
 }
 
+FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val)
+{
+  int retval=fd_config_set(var,val);
+  if (retval<0) return retval;
+  fd_decref(val);
+  return retval;
+}
+
 FD_EXPORT void fd_config_lock(int lock)
 {
   if (lock) fd_lock_mutex(&config_lock);
   else fd_unlock_mutex(&config_lock);
 }
+
+/* Registering new configuration values */
 
 FD_EXPORT int fd_register_config
   (u8_string var,u8_string doc,
@@ -265,14 +275,9 @@ FD_EXPORT int fd_register_config
   return retval;
 }
 
-FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val)
-{
-  int retval=fd_config_set(var,val);
-  if (retval<0) return retval;
-  fd_decref(val);
-  return retval;
-}
+/* Lots of different ways to specify configuration */
 
+/* This takes a string of the form var=value */
 FD_EXPORT int fd_config_assignment(u8_string assignment)
 {
   u8_byte *equals;
@@ -292,6 +297,8 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
   else return -1;
 }
 
+/* This takes an argv, argc combination and processes the argv elements
+   which are configs (var=value again) */
 FD_EXPORT int fd_argv_config(int argc,char **argv)
 {
   int i=0, n=0; while (i<argc)
@@ -305,6 +312,9 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
   return n;
 }
 
+/* This reads a config file.  It consists of a series of entries, each of which is
+   either a list (var value) or an assignment var=value.
+   Both # and ; are comment characters */
 FD_EXPORT int fd_read_config(U8_INPUT *in)
 {
   int c,n =0; u8_string buf;
@@ -340,9 +350,9 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
   return n;
 }
 
-/* Utility functions for configuration variables which effect
-   dtype pointers. */
+/* Utility configuration functions */
 
+/* For configuration variables which get/set dtype value. */
 FD_EXPORT fdtype fd_lconfig_get(fdtype ignored,void *lispp)
 {
   fdtype *val=(fdtype *)lispp;
@@ -366,6 +376,8 @@ FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp)
   *val=fd_init_pair(NULL,fd_incref(v),*val);
   return 1;
 }
+
+/* For configuration variables which get/set strings. */
 FD_EXPORT fdtype fd_sconfig_get(fdtype ignored,void *vptr)
 {
   u8_string *ptr=vptr;
@@ -382,6 +394,7 @@ FD_EXPORT int fd_sconfig_set(fdtype ignored,fdtype v,void *vptr)
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
 
+/* For configuration variables which get/set ints. */
 FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *vptr)
 {
   int *ptr=vptr;
@@ -397,7 +410,29 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
 	 fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
 }
 
-/* Boolean configs */
+/* Double config methods */
+FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
+{
+  double *ptr=vptr;
+  if (*ptr) return fd_init_double(NULL,*ptr);
+  else return FD_FALSE;
+}
+FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
+{
+  double *ptr=vptr;
+  if (FD_FALSEP(v)) {
+    *ptr=0.0; return 1;}
+  else if (FD_PTR_TYPEP(v,fd_double_type)) {
+    *ptr=FD_FLONUM(v);}
+  else if (FD_FIXNUMP(v)) {
+    int intval=FD_FIX2INT(v);
+    double dblval=(double)intval;
+    *ptr=dblval;}
+  else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
+			FD_SYMBOL_NAME(var),v);
+}
+
+/* Boolean configuration handlers */
 
 static int false_stringp(u8_string string);
 static int true_stringp(u8_string string);
@@ -443,7 +478,7 @@ static int false_stringp(u8_string string)
 
 static u8_string true_strings[]={
   "yes","true","on","y","t" "#t","#true",
-  "oui","yah","yeah","yep","sure",NULL};
+  "oui","yah","yeah","yep","sure","hai",NULL};
 
 static int true_stringp(u8_string string)
 {
@@ -452,31 +487,6 @@ static int true_stringp(u8_string string)
     if (strcasecmp(string,*scan)==0) return 1;
     else scan++;
   return 0;
-}
-
-
-/* Double config methods */
-
-FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
-{
-  double *ptr=vptr;
-  if (*ptr) return fd_init_double(NULL,*ptr);
-  else return FD_FALSE;
-}
-
-FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
-{
-  double *ptr=vptr;
-  if (FD_FALSEP(v)) {
-    *ptr=0.0; return 1;}
-  else if (FD_PTR_TYPEP(v,fd_double_type)) {
-    *ptr=FD_FLONUM(v);}
-  else if (FD_FIXNUMP(v)) {
-    int intval=FD_FIX2INT(v);
-    double dblval=(double)intval;
-    *ptr=dblval;}
-  else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
-			FD_SYMBOL_NAME(var),v);
 }
 
 
@@ -546,6 +556,38 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
   else return 1;
 }
 #endif
+
+
+/* Option objects */
+
+static fd_exception WeirdOption=_("Weird option specification");
+
+FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
+{
+  while (!(FD_VOIDP(opts)))
+    if (FD_PAIRP(opts)) {
+      fdtype car=FD_CAR(opts), val;
+      if (FD_SYMBOLP(car)) {
+	if (FD_EQ(key,car)) return FD_TRUE;}
+      else if (FD_PAIRP(car)) {
+	if (FD_EQ(FD_CAR(car),key))
+	  return fd_incref(FD_CDR(car));}
+      else if (FD_TABLEP(car)) {
+	fdtype value=fd_get(car,key,FD_VOID);
+	if (!(FD_VOIDP(value))) return value;}
+      else {
+	u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+      opts=FD_CDR(opts);}
+    else if (FD_SYMBOLP(opts)) 
+      if (FD_EQ(key,opts)) return FD_TRUE;
+      else return fd_incref(dflt);
+    else if (FD_TABLEP(opts))
+      return fd_get(opts,key,dflt);
+    else if (FD_EMPTY_LISTP(opts)) return fd_incref(dflt);
+    else {
+      u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
+      return fd_incref(dflt);}
+}	
 
 
 /* Managing error data */
