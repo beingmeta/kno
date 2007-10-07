@@ -80,6 +80,7 @@
       (add! opcode-map (cons prim n-args) (make-opcode code))
       (add! opcode-map prim (make-opcode code))))
 
+
 (when (bound? make-opcode)
   (def-opcode QUOTE      0x00)
   (def-opcode BEGIN      0x01)

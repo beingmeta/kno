@@ -434,20 +434,20 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       fdtype headval=fasteval(head,env), result;
       int ctype=FD_PTR_TYPE(headval), gc=1;
       if (ctype==fd_pptr_type) {
-	headval=fd_pptr_ref(headval);
-	ctype=FD_PTR_TYPE(headval);
+	fdtype realval=fd_pptr_ref(headval);
+	ctype=FD_PTR_TYPE(realval);
 	gc=0;}
       if (fd_applyfns[ctype]) 
 	result=apply_function(headval,expr,env);
-      else if (FD_PTR_TYPEP(headval,fd_specform_type)) {
+      else if (FD_PRIM_TYPEP(headval,fd_specform_type)) {
 	/* These are special forms which do all the evaluating themselves */
 	struct FD_SPECIAL_FORM *handler=
-	  FD_GET_CONS(headval,fd_specform_type,struct FD_SPECIAL_FORM *);
+	  FD_PTR2CONS(headval,fd_specform_type,struct FD_SPECIAL_FORM *);
 	/* fd_calltrack_call(handler->name); */
 	result=handler->eval(expr,env);
 	/* fd_calltrack_return(handler->name); */
       }
-      else if (FD_PTR_TYPEP(headval,fd_macro_type)) {
+      else if (FD_PRIM_TYPEP(headval,fd_macro_type)) {
 	/* These are special forms which do all the evaluating themselves */
 	struct FD_MACRO *macrofn=
 	  FD_GET_CONS(headval,fd_macro_type,struct FD_MACRO *);
@@ -489,7 +489,7 @@ FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
 static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID, body=FD_CDR(expr);
-  struct FD_FUNCTION *fcn=(struct FD_FUNCTION *)fn;
+  struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
   fdtype argv[FD_STACK_ARGS], *args;
   int arg_count=0, n_args=0, args_need_gc=0, nd_args=0, prune=0;
   int max_arity=fcn->arity, min_arity=fcn->min_arity, args_length=max_arity;

@@ -84,11 +84,12 @@ FD_EXPORT
 int fd_persist_module(fdtype module)
 {
   if (FD_HASHTABLEP(module)) {
+    int conversions=0;
     struct FD_HASHTABLE *ht=(fd_hashtable)module;
-    fd_persist_hashtable(ht,fd_sproc_type);
-    fd_persist_hashtable(ht,fd_function_type);
-    fd_persist_hashtable(ht,fd_specform_type);
-    return 1;}
+    conversions=conversions+fd_persist_hashtable(ht,fd_sproc_type);
+    conversions=conversions+fd_persist_hashtable(ht,fd_function_type);
+    conversions=conversions+fd_persist_hashtable(ht,fd_specform_type);
+    return conversions;}
   else if (FD_TABLEP(module)) return 0;
   else {
     fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
@@ -404,26 +405,28 @@ static fdtype get_module(fdtype modname)
   return module;
 }
 
-static fdtype persist_module(fdtype module)
+static fdtype bronze_module(fdtype module)
 {
   if (FD_HASHTABLEP(module)) {
     int conversions=fd_persist_module(module);
-    return FD_INT2DTYPE(conversions);}
+    if (conversions<0) return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(conversions);}
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv env=(fd_lispenv) module;
-    int conversions=0;
+    int conversions=0, delta;
     if (FD_HASHTABLEP(env->bindings))
-      conversions=conversions+
-	fd_persist_module(env->bindings);
+      delta=fd_persist_module(env->bindings);
+    if (conversions<0) return FD_ERROR_VALUE;
+    else conversions=conversions+delta;
     if ((env->exports) && (FD_HASHTABLEP(env->exports)))
-      conversions=conversions+
-	fd_persist_module(env->exports);
-    return FD_INT2DTYPE(conversions);}
+      delta=fd_persist_module(env->exports);
+    if (conversions<0) return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(conversions+delta);}
   else {
     fdtype module_val=fd_find_module(module,0,0);
     if (FD_ABORTP(module_val)) return module_val;
     else {
-      fdtype result=persist_module(module_val);
+      fdtype result=bronze_module(module_val);
       fd_decref(module_val);
       return result;}}
 }
@@ -470,5 +473,5 @@ FD_EXPORT void fd_init_modules_c()
   fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("PERSIST-MODULE",persist_module,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("BRONZE-MODULE!",bronze_module,1));
 }
