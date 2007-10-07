@@ -21,7 +21,8 @@ typedef struct FD_CONFIG_HANDLER {
 typedef struct FD_CONFIG_HANDLER *fd_config_handler;
   
 typedef struct FD_CONFIG_LOOKUPS {
-  fdtype (*lookup)(fdtype var);
+  fdtype (*fdcfg_lookup)(fdtype var,void *data);
+  void *fdcfg_lookup_data;
   struct FD_CONFIG_LOOKUPS *next;} FD_CONFIG_LOOKUPS;
 typedef struct FD_CONFIG_LOOKUPS *fd_config_lookups;
 
@@ -50,7 +51,7 @@ FD_EXPORT int fd_read_config(u8_input in);
 FD_EXPORT void fd_set_thread_config(fdtype table);
 
 FD_EXPORT
-void fd_register_config_lookup(fdtype (*fn)(fdtype));
+void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *);
 
 FD_EXPORT int fd_register_config
 (u8_string var,u8_string doc,

@@ -47,37 +47,7 @@ fd_exception fd_ExitException=_("Unhandled exception at exit");
 
 struct FD_CONFIG_HANDLER *config_handlers=NULL;
 
-static fdtype global_config;
-
-#if FD_USE_TLS
-static u8_tld_key thread_config_var;
-#elif FD_THREADS_ENABLED
-static fdtype __thread thread_config=(fdtype)0;
-#else
-static fdtype thread_config=(fdtype)0;
-#endif
-
-#if FD_USE_TLS
-#define get_thread_config() ((fdtype)(u8_tld_get(thread_config_var)))
-FD_EXPORT void fd_set_thread_config(fdtype table)
-{
-  fdtype current=get_thread_config();
-  if (FD_EMPTY_CHOICEP(table)) {
-    if (current) fd_decref(current);
-    u8_tld_set(thread_config_var,(void *)NULL);}
-  else {
-    if (current) fd_decref(current);
-    fd_incref(table);
-    u8_tld_set(thread_config_var,(void *)table);}
-}
-#else
-#define get_thread_config() (thread_config)
-FD_EXPORT void fd_set_thread_config(fdtype table)
-{
-  if (thread_config) fd_decref(thread_config);
-  thread_config=fd_incref(table);
-}
-#endif
+static fdtype configuration_table;
 
 #if FD_THREADS_ENABLED
 static u8_mutex config_lookup_lock;
@@ -105,38 +75,35 @@ static fdtype config_intern(u8_string start)
 }
 
 FD_EXPORT
-void fd_register_config_lookup(fdtype (*fn)(fdtype))
+void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *ldata)
 {
   struct FD_CONFIG_LOOKUPS *entry=
     u8_alloc(struct FD_CONFIG_LOOKUPS);
   fd_lock_mutex(&config_lookup_lock);
-  entry->lookup=fn; entry->next=config_lookupfns;
+  entry->fdcfg_lookup=fn;
+  entry->fdcfg_lookup_data=ldata;
+  entry->next=config_lookupfns;
   config_lookupfns=entry;
   fd_unlock_mutex(&config_lookup_lock);
 }
 
 static fdtype config_get(u8_string var)
 {
-  fdtype symbol=config_intern(var), probe=FD_VOID;
-  fdtype table=get_thread_config();
-  if (table) {
-    probe=fd_get(table,symbol,FD_VOID);
-    if (!(FD_VOIDP(probe))) return probe;
-    else probe=fd_get(global_config,symbol,FD_VOID);}
-  else probe=fd_get(global_config,symbol,FD_VOID);
+  fdtype symbol=config_intern(var);
+  fdtype probe=fd_get(configuration_table,symbol,FD_VOID);
+  /* This lookups configuration information using various methods */ 
   if (FD_VOIDP(probe)) {
     fdtype value=FD_VOID;
     struct FD_CONFIG_LOOKUPS *scan=config_lookupfns;
     while (scan) {
-      value=scan->lookup(symbol);
+      value=scan->fdcfg_lookup(symbol,scan->fdcfg_lookup_data);
       if (FD_VOIDP(value)) scan=scan->next; else break;}
-    if (table) fd_store(table,symbol,value);
-    else fd_store(global_config,symbol,value);
+    fd_store(configuration_table,symbol,value);
     return value;}
   else return probe;
 }
 
-static fdtype getenv_config_lookup(fdtype symbol)
+static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
 {
   U8_OUTPUT out; 
   char *getenv_result, *u8result; fdtype result;
@@ -154,9 +121,7 @@ static fdtype getenv_config_lookup(fdtype symbol)
 int config_set(u8_string var,fdtype val)
 {
   fdtype symbol=config_intern(var);
-  fdtype table=get_thread_config();
-  if (table) return fd_store(table,symbol,val);
-  else return fd_store(global_config,symbol,val);
+  return fd_store(configuration_table,symbol,val);
 }
 
 /* File-based configuration */
@@ -164,10 +129,12 @@ int config_set(u8_string var,fdtype val)
 #if FD_FILECONFIG_ENABLED
 static u8_string configdata_path=NULL;
 
-static fdtype file_config_lookup(fdtype symbol)
+static fdtype file_config_lookup(fdtype symbol,void *pathdata)
 {
   u8_string path=
-    ((configdata_path) ? (configdata_path) : ((u8_string)FD_CONFIG_FILE_PATH));
+    ((pathdata==NULL) ?
+     ((configdata_path) ? (configdata_path) : ((u8_string)FD_CONFIG_FILE_PATH)) :
+     ((u8_string)pathdata));
   u8_string filename=u8_find_file(FD_SYMBOL_NAME(symbol),path,NULL);
   if (filename) {
     int n_bytes; fdtype result;
@@ -578,8 +545,8 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
     return fd_err(cond,"rlimit_set",u8_strdup(nrl->name),FD_VOID);}
   else return 1;
 }
-
 #endif
+
 
 /* Managing error data */
 
@@ -745,76 +712,6 @@ int fd_clear_errors(int report)
     n_errs++;}
   return n_errs;
 }
-
-#if 0
-
-FD_EXPORT int fd_errout(U8_OUTPUT *out,struct FD_ERRDATA *ed)
-{
-  if (ed==NULL) ed=adopt_u8errors();
-  if (ed==NULL) return 0;
-  else if (!(FD_VOIDP(ed->irritant)))
-    if ((ed->cxt) && (ed->details))
-      return u8_printf(out,"%m (%s): %q (%m)",
-		       ed->cond,ed->cxt,ed->irritant,ed->details);
-    else if (ed->cxt)
-      return u8_printf(out,"%m (%s): %q",ed->cond,ed->cxt,ed->irritant);
-    else if (ed->details)
-      return u8_printf(out,"%m: %q (%m)",ed->cond,ed->irritant,ed->details);
-    else return u8_printf(out,"%m: %q",ed->cond,ed->irritant);
-  else if ((ed->cxt) && (ed->details))
-    return u8_printf(out,"%m (%s): %m",
-		     ed->cond,ed->cxt,ed->details);
-  else if (ed->cxt)
-    return u8_printf(out,"%m (%s)",ed->cond,ed->cxt);
-  else if (ed->details)
-    return u8_printf(out,"%m: %m",ed->cond,ed->details);
-  else return u8_printf(out,"%m",ed->cond);
-}
-FD_EXPORT u8_string fd_errstring(struct FD_ERRDATA *ed)
-{
-  if (ed==NULL) ed=adopt_u8errors();
-  if (ed==NULL) return NULL;
-  else {
-    U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-    fd_errout(&out,ed);
-    return out.u8_outbuf;}
-}
-
-
-int fd_report_errors_atexit=1;
-
-static int clear_fderrors(struct FD_ERRDATA *ed,int report)
-{
-  struct U8_OUTPUT out; u8_byte buf[128]; int retval=0;
-  if (ed==NULL) return 0;
-  if (ed->next) retval=1+clear_fderrors(ed->next,report);
-  if (report) {
-    U8_INIT_OUTPUT_BUF(&out,128,buf);
-    u8_printf(&out,"[%d]%m",retval,"Clearing error ");
-    fd_errout(&out,ed);
-    u8_log(LOG_ERR,NULL,"%s",out.u8_outbuf);
-    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);}
-  if (ed->details) u8_free(ed->details);
-  u8_free(ed);
-  return retval;
-}
-
-
-
-static void report_errors_atexit()
-{
-  if (fd_report_errors_atexit==0) return;
-  fd_clear_errors(1);
-}
-
-FD_EXPORT
-int fd_errorp(void)
-{
-  struct FD_ERRDATA *ed=adopt_u8errors();
-  if (ed==NULL) return 0; else return 1;
-}
-
-#endif
 
 /* Thread Tables */
 
@@ -1090,14 +987,14 @@ void fd_init_support_c()
   u8_new_threadkey(&thread_config_var,NULL);
   u8_new_threadkey(&threadtable_key,NULL);
 #endif
-  global_config=fd_make_hashtable(NULL,16);
+  configuration_table=fd_make_hashtable(NULL,16);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&config_lookup_lock);
   fd_init_mutex(&config_lock);
 #endif
 
-  fd_register_config_lookup(getenv_config_lookup);
+  fd_register_config_lookup(getenv_config_lookup,NULL);
 
   boot_config();
 
@@ -1193,7 +1090,7 @@ void fd_init_support_c()
   fd_register_config
     ("CONFIGDATA",_("Directory for looking up config entries"),
      fd_sconfig_get,fd_sconfig_set,&configdata_path);
-  fd_register_config_lookup(file_config_lookup);
+  fd_register_config_lookup(file_config_lookup,NULL);
 #endif
 }
 
