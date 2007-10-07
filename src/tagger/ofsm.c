@@ -1875,22 +1875,21 @@ static fdtype allcaps_symbol, whole_symbol, timing_symbol, source_symbol, textpo
 static int interpret_parse_flags(fdtype arg)
 {
   int flags=FD_TAGGER_DEFAULT_FLAGS;
-  if (FD_QCHOICEP(arg)) arg=FD_XQCHOICE(arg)->choice;
-  if (fd_overlapp(arg,xml_symbol)) 
+  if (fd_testopt(arg,xml_symbol,FD_VOID)) 
     flags=flags|FD_TAGGER_SKIP_MARKUP;
-  if (fd_overlapp(arg,plaintext_symbol))
+  if (fd_testopt(arg,plaintext_symbol,FD_VOID))
     flags=flags&(~FD_TAGGER_SKIP_MARKUP);
-  if (fd_overlapp(arg,glom_symbol))
+  if (fd_testopt(arg,glom_symbol,FD_VOID))
     flags=flags|FD_TAGGER_GLOM_PHRASES;    
-  if (fd_overlapp(arg,allcaps_symbol))
+  if (fd_testopt(arg,allcaps_symbol,FD_VOID))
     flags=flags|FD_TAGGER_ODDCAPS;    
-  if (fd_overlapp(arg,whole_symbol))
+  if (fd_testopt(arg,whole_symbol,FD_VOID))
     flags=flags&(~FD_TAGGER_SPLIT_SENTENCES);    
-  if (fd_overlapp(arg,timing_symbol))
+  if (fd_testopt(arg,timing_symbol,FD_VOID))
     flags=flags|FD_TAGGER_VERBOSE_TIMER;    
-  if (fd_overlapp(arg,source_symbol))
+  if (fd_testopt(arg,source_symbol,FD_VOID))
     flags=flags|FD_TAGGER_INCLUDE_SOURCE;    
-  if (fd_overlapp(arg,textpos_symbol))
+  if (fd_testopt(arg,textpos_symbol,FD_VOID))
     flags=flags|FD_TAGGER_INCLUDE_TEXTRANGE;    
   return flags;
 }

@@ -304,10 +304,14 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i)
   return fd_get_body(expr,i);
 }
 
-FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 static fdtype getopt_prim(fdtype opts,fdtype key,fdtype dflt)
 {
   return fd_getopt(opts,key,dflt);
+}
+static fdtype testopt_prim(fdtype opts,fdtype key,fdtype val)
+{
+  if (fd_testopt(opts,key,val)) return FD_TRUE;
+  else return FD_FALSE;
 }
 static fdtype optplus_prim(fdtype opts,fdtype key,fdtype val)
 {
@@ -1139,9 +1143,13 @@ static void init_localfns()
 			   -1,FD_VOID,fd_symbol_type,FD_VOID,
 			   -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("TESTOPT",testopt_prim,2,
+			   -1,FD_VOID,fd_symbol_type,FD_VOID,
+			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("OPT+",optplus_prim,2,
 			   -1,FD_VOID,fd_symbol_type,FD_VOID,
-			   -1,FD_FALSE));
+			   -1,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("APPLY",apply_lexpr,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim4x

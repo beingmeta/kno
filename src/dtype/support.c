@@ -564,9 +564,19 @@ static fd_exception WeirdOption=_("Weird option specification");
 
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
 {
-  while (!(FD_VOIDP(opts)))
+  if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+    FD_DO_CHOICES(opt,opts) {
+      fdtype value=fd_getopt(opt,key,FD_VOID);
+      if (!(FD_VOIDP(value))) {
+	FD_STOP_DO_CHOICES; return value;}}
+    return fd_incref(dflt);}
+  else if (FD_QCHOICEP(opts)) 
+    return fd_getopt(FD_XQCHOICE(opts)->choice,key,dflt);
+  else if (FD_EMPTY_CHOICEP(opts))
+    return fd_incref(dflt);
+  else while (!(FD_VOIDP(opts)))
     if (FD_PAIRP(opts)) {
-      fdtype car=FD_CAR(opts), val;
+      fdtype car=FD_CAR(opts);
       if (FD_SYMBOLP(car)) {
 	if (FD_EQ(key,car)) return FD_TRUE;}
       else if (FD_PAIRP(car)) {
@@ -588,6 +598,81 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
       u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
       return fd_incref(dflt);}
 }	
+
+static int boolopt(fdtype opts,fdtype key)
+{
+  while (!(FD_VOIDP(opts)))
+    if (FD_PAIRP(opts)) {
+      fdtype car=FD_CAR(opts);
+      if (FD_SYMBOLP(car)) {
+	if (FD_EQ(key,car)) return 1;}
+      else if (FD_PAIRP(car)) {
+	if (FD_EQ(FD_CAR(car),key))
+	  if (FD_FALSEP(FD_CDR(car))) return 0;
+	  else return 1;}
+      else if (FD_TABLEP(car)) {
+	fdtype value=fd_get(car,key,FD_VOID);
+	if (FD_FALSEP(value)) return 0;
+	else if (!(FD_VOIDP(value))) {
+	  fd_decref(value); return 1;}}
+      else {
+	u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+      opts=FD_CDR(opts);}
+    else if (FD_SYMBOLP(opts)) 
+      if (FD_EQ(key,opts)) return 1;
+      else return 0;
+    else if (FD_TABLEP(opts)) {
+      fdtype value=fd_get(opts,key,FD_VOID);
+      if (FD_FALSEP(value)) return 0;
+      else if (FD_VOIDP(value)) return 0;
+      else return 1;}
+    else if (FD_EMPTY_LISTP(opts)) return 0;
+    else {
+      u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
+      return 0;}
+}
+
+FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
+{
+  if (FD_VOIDP(val)) return boolopt(opts,key);
+  else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+    FD_DO_CHOICES(opt,opts)
+      if (fd_testopt(opt,key,val)) {
+	FD_STOP_DO_CHOICES; return 1;}
+    return 0;}
+  else if (FD_QCHOICEP(opts)) 
+    return fd_testopt(FD_XQCHOICE(opts)->choice,key,val);
+  else if (FD_EMPTY_CHOICEP(opts))
+    return 0;
+  else while (!(FD_VOIDP(opts)))
+	 if (FD_PAIRP(opts)) {
+	   fdtype car=FD_CAR(opts);
+	   if (FD_SYMBOLP(car)) {
+	     if ((FD_EQ(key,car)) && (FD_TRUEP(val)))
+	       return 1;}
+	   else if (FD_PAIRP(car)) {
+	     if (FD_EQ(FD_CAR(car),key))
+	       if (FD_EQUAL(val,FD_CDR(car)))
+		 return 1;
+	       else return 0;}
+	   else if (FD_TABLEP(car)) {
+	     int tv=fd_test(car,key,val);
+	     if (tv) return tv;}
+	   else {
+	     u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+	   opts=FD_CDR(opts);}
+	 else if (FD_SYMBOLP(opts)) 
+	   if (FD_EQ(key,opts))
+	     if (FD_TRUEP(val)) return 1;
+	     else return 0;
+	   else return 0;
+	 else if (FD_TABLEP(opts))
+	   return fd_test(opts,key,val);
+	 else if (FD_EMPTY_LISTP(opts)) return 0;
+	 else {
+	   u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
+	   return 0;}
+}
 
 
 /* Managing error data */

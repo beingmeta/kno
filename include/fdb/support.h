@@ -123,5 +123,11 @@ typedef struct FD_SOURCE_FILE_RECORD *fd_source_file_record;
 FD_EXPORT void fd_register_source_file(u8_string s);
 FD_EXPORT void fd_for_source_files(void (*f)(u8_string s,void *),void *data);
 
+/* Handling options */
+
+FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
+FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
+
+
 #endif /* #ifndef FDB_SUPPORT_H */
 
