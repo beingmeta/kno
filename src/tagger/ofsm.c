@@ -885,7 +885,8 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word);
 
 static void identify_compounds(fd_parse_context pc)
 {
-  int strange_capitalization=(pc->flags&FD_TAGGER_ODDCAPS);
+  int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
+  int allcaps=(pc->flags&FD_TAGGER_ALLCAPS);
   int start=1, i=0, lim=pc->n_inputs-1;
   while (i < lim) {
     fdtype compounds=FD_EMPTY_CHOICE, tmp;
@@ -895,14 +896,14 @@ static void identify_compounds(fd_parse_context pc)
       start=1; i++; continue;}
     tmp=probe_compound(pc,i,i+1,pc->n_inputs,0);
     FD_ADD_TO_CHOICE(compounds,tmp);
-    if ((u8_isupper(fc)) &&
-	(start|strange_capitalization|u8_isupper(c2))) {
+    if ((u8_isupper(fc)) && (start|oddcaps|u8_isupper(c2))) {
       fdtype lowered=lower_string(pc->input[i].spelling);
       fdtype lexdata=get_lexinfo(pc,lowered);
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
       else {
 	fdtype entry=fd_init_pair(NULL,fd_make_list(1,lowered),lexdata);
-	if (start==0) bump_weights_for_capitalization(pc,i);
+	if ((start==0) && (!(allcaps)))
+	  bump_weights_for_capitalization(pc,i);
 	FD_ADD_TO_CHOICE(compounds,entry);}
       tmp=probe_compound(pc,i,i+1,pc->n_inputs,1);
       FD_ADD_TO_CHOICE(compounds,tmp);}
@@ -1095,9 +1096,10 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
     if (oddcaps) {
       fdtype lowered=lower_string(s);
       fdtype lexdata=get_lexinfo(pc,lowered);
-      if (FD_VOIDP(lexdata))
+      if (FD_EMPTY_CHOICEP(lexdata))
 	value=lexicon_fetch(lex,sproper_name);
-      else value=lexicon_fetch(lex,sxproper_name);
+      else 
+        value=lexicon_fetch(lex,sxproper_name);
       fd_decref(lowered); fd_decref(lexdata);}
     else value=lexicon_fetch(lex,sproper_name);
   else if ((slen>2) && (strcmp(s+(slen-2),"ed")==0))
@@ -1870,7 +1872,7 @@ fdtype fd_tag_text(struct FD_PARSE_CONTEXT *pcxt,u8_string text)
 /* Interpreting parser flags */
 
 static fdtype xml_symbol, plaintext_symbol, glom_symbol, noglom_symbol;
-static fdtype allcaps_symbol, whole_symbol, timing_symbol, source_symbol, textpos_symbol;
+static fdtype oddcaps_symbol, allcaps_symbol, whole_symbol, timing_symbol, source_symbol, textpos_symbol;
 
 static int interpret_parse_flags(fdtype arg)
 {
@@ -1881,8 +1883,10 @@ static int interpret_parse_flags(fdtype arg)
     flags=flags&(~FD_TAGGER_SKIP_MARKUP);
   if (fd_testopt(arg,glom_symbol,FD_VOID))
     flags=flags|FD_TAGGER_GLOM_PHRASES;    
-  if (fd_testopt(arg,allcaps_symbol,FD_VOID))
+  if (fd_testopt(arg,oddcaps_symbol,FD_VOID))
     flags=flags|FD_TAGGER_ODDCAPS;    
+  if (fd_testopt(arg,allcaps_symbol,FD_VOID))
+    flags=flags|FD_TAGGER_ALLCAPS;    
   if (fd_testopt(arg,whole_symbol,FD_VOID))
     flags=flags&(~FD_TAGGER_SPLIT_SENTENCES);    
   if (fd_testopt(arg,timing_symbol,FD_VOID))
@@ -2303,7 +2307,8 @@ static void init_parser_symbols()
   plaintext_symbol=fd_intern("PLAINTEXT");
   glom_symbol=fd_intern("GLOM");
   noglom_symbol=fd_intern("NOGLOM");
-  allcaps_symbol=fd_intern("ODDCAPS");
+  oddcaps_symbol=fd_intern("ODDCAPS");
+  allcaps_symbol=fd_intern("ALLCAPS");
   whole_symbol=fd_intern("WHOLE");
   timing_symbol=fd_intern("TIMING");
   source_symbol=fd_intern("SOURCE");
