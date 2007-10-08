@@ -634,12 +634,12 @@ static int boolopt(fdtype opts,fdtype key)
 
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
 {
-  if (FD_VOIDP(val)) return boolopt(opts,key);
-  else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+  if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
     FD_DO_CHOICES(opt,opts)
       if (fd_testopt(opt,key,val)) {
 	FD_STOP_DO_CHOICES; return 1;}
     return 0;}
+  else if (FD_VOIDP(val)) return boolopt(opts,key);
   else if (FD_QCHOICEP(opts)) 
     return fd_testopt(FD_XQCHOICE(opts)->choice,key,val);
   else if (FD_EMPTY_CHOICEP(opts))
