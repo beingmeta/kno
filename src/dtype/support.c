@@ -1111,7 +1111,6 @@ void fd_init_support_c()
   /* atexit(report_errors_atexit); */
 
 #if FD_USE_TLS
-  u8_new_threadkey(&thread_config_var,NULL);
   u8_new_threadkey(&threadtable_key,NULL);
 #endif
   configuration_table=fd_make_hashtable(NULL,16);
