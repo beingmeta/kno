@@ -679,6 +679,13 @@ static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
 
 /* Hashset operations */
 
+static fdtype hashsetp(fdtype x)
+{
+  if (FD_PRIM_TYPEP(x,fd_hashset_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype hashsetget(fdtype hs,fdtype key)
 {
   int retval=fd_hashset_get((fd_hashset)hs,key);
@@ -833,6 +840,8 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim
 	   (fd_make_cprim1("CHOICE->HASHSET",choice2hashset,1)));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHSET?",hashsetp,1));
+
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("HASHSET-GET",hashsetget,2,
 			   fd_hashset_type,FD_VOID,
