@@ -127,6 +127,21 @@
   (text->frames (qc (if us us-patterns terran-patterns))
 		string))
 
+(defambda (getfields matches)
+  (try (tryif (test matches 'second) '(second minute hour date month year))
+       (tryif (test matches 'minute) '(minute hour date month year))
+       (tryif (test matches 'hour) '(hour date month year))
+       (tryif (test matches 'date) '(date month year))
+       (tryif (test matches 'month) '(month year))
+       (tryif (test matches 'year) '(year))))
+
+(defambda (matches->timestamps matches fields base)
+  (if (null? fields) base
+      (for-choices (v (get matches (car fields)))
+	(matches->timestamps
+	 matches (cdr fields)
+	 (modtime (frame-create #f (car fields) v) base #f)))))
+
 (define (parsetime string (base #f) (us #f))
   (let ((matches
 	 (text->frames (qc (if us us-patterns terran-patterns))
@@ -146,15 +161,9 @@
 	       (<= (get matches 'date) 12))
       (let ((m (get matches 'month)) (d (get matches 'date)))
 	(store! matches 'month d) (store! matches 'date m)))
-    (if (or (ambiguous? (get matches 'year))
-	    (ambiguous? (get matches 'month))
-	    (ambiguous? (get matches 'date))
-	    (ambiguous? (get matches 'hours))
-	    (ambiguous? (get matches 'minutes)))
-	(modtime (for-choices (year (get matches 'year))
-		   (frame-create #f 'year year))
-		 (or base (timestamp)))
-	(modtime (qc matches) (or base (timestamp))))))
+    (let* ((fields (getfields matches))
+	   (base (timestamp (car fields))))
+      (matches->timestamps matches fields base))))
 
 (define (parsegmtime string (base #f) (us #f))
   (parsetime string (or base (gmtimestamp)) us))
