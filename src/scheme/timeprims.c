@@ -515,7 +515,8 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
   else result=timestamp_prim(base);
   if (FD_ABORTP(result)) return result;
   else {
-    struct U8_XTIME *xt=&((FD_GET_CONS(result,fd_timestamp_type,struct FD_TIMESTAMP *))->xtime);
+    struct U8_XTIME *xt=
+      &((FD_GET_CONS(result,fd_timestamp_type,struct FD_TIMESTAMP *))->xtime);
     fdtype keys=fd_getkeys(slotmap); 
     FD_DO_CHOICES(key,keys) {
       fdtype val=fd_get(slotmap,key,FD_VOID);
