@@ -65,14 +65,18 @@
   (let* ((values (stdspace (if value value (get frame slot))))
 	 (expvalues (choice values (basestring values))))
     (doindex index frame slot expvalues)
+    (index-frame index frame slot
+		 (choice (list #f (downcase (pick values capitalized?)) #f)
+			 (list #f (stdstring (pick values capitalized?)) #f)))
     (when phonetic
       (let* ((tohash (reject values uppercase?))
 	     (tostem (reject (reject tohash capitalized?) length {1 2 3 4}))
-	     (tocompoundstem (pick tostem compound?)))
-	(doindex index frame slot (metaphone (reject tohash capitalized?) #t))
-	(doindex index frame slot (cap-metaphone (pick tohash capitalized?)))
-	(doindex index frame slot (metaphone (porter-stem tostem) #t))
-	(doindex index frame slot
+	     (tocompoundstem (pick tostem compound?))
+	     (phindex (if (index? phonetic) phonetic index)))
+	(doindex phindex frame slot (metaphone (reject tohash capitalized?) #t))
+	(doindex phindex frame slot (cap-metaphone (pick tohash capitalized?)))
+	(doindex phindex frame slot (metaphone (porter-stem tostem) #t))
+	(doindex phindex frame slot
 		 (metaphone (stem-compound tocompoundstem) #t))))
     (when window
       (index-frags index frame slot expvalues window phonetic))))

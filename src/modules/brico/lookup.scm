@@ -43,7 +43,7 @@
 (define (word-override? word language)
   (exists? (override-get word language)))
 (define (overlay-get word language)
-  (custom-get word language word-overlays))
+  (pickoids (custom-get word language word-overlays)))
 
 (config-def! 'WORDOVERRIDE
 	     (ruleset-configfn word-overrides conform-maprule))
@@ -119,7 +119,9 @@
 			 (?? language (first variant)
 			     (second variant) (third variant))))))
        (tryif (not (ascii? word))
-	      (let ((sbword (basestring word)))
+	      (let ((sbword (choice (basestring word)
+				    (list #f (downcase word) #f)
+				    (list #f (stdstring word) #f))))
 		(choice (?? language sbword)
 			(tryif word-overlays (overlay-get sbword language)))))
        (tryif tryhard (lookup-simple-variants word language tryhard))
