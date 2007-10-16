@@ -56,8 +56,7 @@
 	     (IC (label MONTH ,monthstrings ,monthnum))
 	     (spaces*)
 	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
-	     (opt #({"" (spaces)} ","))
-	     (spaces)
+	     {"" (spaces) #("," (spaces))}
 	     (opt (label YEAR #({"1" "2"} (isdigit) (isdigit) (isdigit)) #t)))
 	  `#({(bol) (spaces) ">"}
 	     (IC (label MONTH ,monthstrings ,monthnum))
@@ -137,10 +136,12 @@
 
 (defambda (matches->timestamps matches fields base)
   (if (null? fields) base
-      (for-choices (v (get matches (car fields)))
-	(matches->timestamps
-	 matches (cdr fields)
-	 (modtime (frame-create #f (car fields) v) base #f)))))
+      (if (exists? (get matches (car fields)))
+	  (for-choices (v (get matches (car fields)))
+	    (matches->timestamps
+	     matches (cdr fields)
+	     (modtime (frame-create #f (car fields) v) base #f)))
+	  (matches->timestamps matches (cdr fields) base))))
 
 (define (parsetime string (base #f) (us #f))
   (let ((matches
