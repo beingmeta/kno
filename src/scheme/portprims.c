@@ -697,25 +697,25 @@ static fdtype quote_symbol, unquote_symbol, quasiquote_symbol, unquote_star_symb
 
 FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
-	      int indent,int col,int maxcol,int initial)
+	      int indent,int col,int maxcol,int is_initial)
 {
   int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
-  if (initial==0) u8_putc(out,' ');
+  if (is_initial==0) u8_putc(out,' ');
   fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
      new column position. */
-  if ((PPRINT_ATOMICP(x)) && ((initial) || (col+n_chars<maxcol)))
+  if ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol)))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
   out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
-  if ((initial==0) && (col+n_chars>=maxcol)) {
+  if ((is_initial==0) && (col+n_chars>=maxcol)) {
     int i=indent; u8_putc(out,'\n');
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
     startoff=out->u8_outptr-out->u8_outbuf;}
-  else if (initial==0) u8_putc(out,' ');
+  else if (is_initial==0) u8_putc(out,' ');
   /* Handle quote, quasiquote and friends */
   if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
       (FD_PAIRP(FD_CDR(x))) && (FD_EMPTY_LISTP(FD_CDR(FD_CDR(x))))) {
@@ -788,7 +788,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     int slotmap_size, first_pair=1; 
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) {
-      if (initial) {
+      if (is_initial) {
 	u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}}
     fd_lock_struct(sm);
@@ -811,29 +811,29 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
 
 FD_EXPORT
 int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
-	       int indent,int col,int maxcol,int initial,
+	       int indent,int col,int maxcol,int is_initial,
 	       fd_pprintfn fn,void *data)
 {
   int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
   if (fn) {
-    int newcol=fn(out,x,prefix,indent,col,maxcol,initial,data);
+    int newcol=fn(out,x,prefix,indent,col,maxcol,is_initial,data);
     if (newcol>=0) return newcol;}
-  if (initial==0) u8_putc(out,' ');
+  if (is_initial==0) u8_putc(out,' ');
   fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
      new column position. */
-  if ((PPRINT_ATOMICP(x)) && ((initial) || (col+n_chars<maxcol)))
+  if ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol)))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
   out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
-  if ((initial==0) && (col+n_chars>=maxcol)) {
+  if ((is_initial==0) && (col+n_chars>=maxcol)) {
     int i=indent; u8_putc(out,'\n'); 
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
     startoff=out->u8_outptr-out->u8_outbuf;}
-  else if (initial==0) u8_putc(out,' ');
+  else if (is_initial==0) u8_putc(out,' ');
   /* Handle quote, quasiquote and friends */
   if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
       (FD_PAIRP(FD_CDR(x))) && (FD_EMPTY_LISTP(FD_CDR(FD_CDR(x))))) {
@@ -904,7 +904,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     fd_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) {
-      if (initial) {
+      if (is_initial) {
 	u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}}
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
@@ -930,12 +930,12 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
 struct FOCUS_STRUCT {fdtype focus; u8_string prefix, suffix;};
 
 static int focus_pprint(u8_output out,fdtype x,u8_string prefix,
-			int indent,int col,int maxcol,int initial,void *data)
+			int indent,int col,int maxcol,int is_initial,void *data)
 {
   struct FOCUS_STRUCT *fs=(struct FOCUS_STRUCT *) data;
   if (FD_EQ(x,fs->focus)) {
     int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
-    if (initial==0) u8_putc(out,' ');
+    if (is_initial==0) u8_putc(out,' ');
     fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
     out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
     if (col+n_chars>=maxcol) {
@@ -943,7 +943,7 @@ static int focus_pprint(u8_output out,fdtype x,u8_string prefix,
       if (prefix) u8_puts(out,prefix);
       while (i>0) {u8_putc(out,' '); i--;}
       col=indent+((prefix) ? (u8_strlen(prefix)) : (0));}
-    else if (initial==0) {u8_putc(out,' '); col++;}
+    else if (is_initial==0) {u8_putc(out,' '); col++;}
     if (fs->prefix) u8_puts(out,fs->prefix);
     col=fd_pprint(out,x,prefix,indent,col,maxcol,1);
     if (fs->suffix) u8_puts(out,fs->suffix);

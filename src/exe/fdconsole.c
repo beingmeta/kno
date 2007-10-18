@@ -116,19 +116,114 @@ static u8_string stats_message_w_history=
 
 static double startup_time=-1.0;
 
+static int console_width=80, quiet_console=0, show_elts=5;
+
+static int fits_consolep(fdtype elt)
+{
+  struct U8_OUTPUT tmpout; u8_byte buf[1024];
+  U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
+  fd_unparse(&tmpout,elt);
+  if (((tmpout.u8_outptr-tmpout.u8_outbuf)>=1024) ||
+      ((tmpout.u8_outptr-tmpout.u8_outbuf)>=console_width))
+    return 0;
+  else return 1;
+}
+
+static void output_element(u8_output out,fdtype elt)
+{
+  if (historicp(elt))
+    if ((console_width==0) || (fits_consolep(elt)))
+      u8_printf(out,"\n  %q ;=##%d",elt,fd_histpush(elt));
+    else {
+      u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
+      fd_pprint(out,elt,"  ",2,2,console_width,1);}
+  else u8_printf(out,"\n  %q",elt);
+}
+
+static int list_length(fdtype scan)
+{
+  int len=0;
+  while (1)
+    if (FD_EMPTY_LISTP(scan)) return len;
+    else if (FD_PAIRP(scan)) {
+      scan=FD_CDR(scan); len++;}
+    else return len+1;
+}
+
+static void output_result(u8_output out,fdtype result,int histref)
+{
+  if (FD_VOIDP(result)) {}
+  else if (fits_consolep(result))
+    if (histref<0)
+      u8_printf(out,"%q\n",result);
+    else u8_printf(out,"%q  ;; =##%d\n",result,histref);
+  else if (!((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
+	     (FD_PAIRP(result))))
+    if (histref<0)
+      u8_printf(out,"%Q\n",result);
+    else if (console_width<=0)
+      u8_printf(out,"%q\n;; =##%d\n",result,histref);
+    else {
+      fd_pprint(out,result,NULL,0,0,console_width,0);
+      u8_printf(out,"%Q\n;; =##%d\n",result,histref);}
+  else {
+    u8_string start_with=NULL, end_with=NULL;
+    int count=0, max_elts, n_elts=0;
+    if (FD_CHOICEP(result)) {
+      start_with="{"; end_with="}"; n_elts=FD_CHOICE_SIZE(result);}
+    else if (FD_VECTORP(result)) {
+      start_with="#("; end_with=")"; n_elts=FD_VECTOR_LENGTH(result);}
+    else if (FD_PAIRP(result)) {
+      start_with="("; end_with=")"; n_elts=list_length(result);}
+    else {}
+    if ((show_elts>0) && (n_elts>(show_elts*2)))
+      max_elts=show_elts;
+    else max_elts=n_elts;
+    if (max_elts<n_elts)
+      u8_printf(out,_("%s ;; ##%d= (%d/%d items)"),
+		start_with,histref,max_elts,n_elts);
+    else u8_printf(out,_("%s ;; ##%d= (%d items)"),start_with,histref,n_elts);
+    if (FD_CHOICEP(result)) {
+      FD_DO_CHOICES(elt,result) {
+	if ((max_elts>0) && (count<max_elts)) {
+	  output_element(out,elt); count++;}
+	else {FD_STOP_DO_CHOICES; break;}}}
+    else if (FD_VECTORP(result)) {
+      fdtype *elts=FD_VECTOR_DATA(result);
+      while (count<max_elts) {
+	output_element(out,elts[count]); count++;}}
+    else if (FD_PAIRP(result)) {
+      fdtype scan=result;
+      while (count<max_elts) 
+	if (FD_PAIRP(scan)) {
+	  output_element(out,FD_CAR(scan));
+	  count++; scan=FD_CDR(scan);}
+	else {
+	  u8_printf(out,"\n  . ;; improper list");
+	  output_element(out,scan);
+	  count++; scan=FD_VOID;
+	  break;}}
+    else {}
+    if (max_elts<n_elts) {
+      u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
+      u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",end_with,histref,max_elts,n_elts);}
+    else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
+}
+
 int main(int argc,char **argv)
 {
+  int i=1, c;
   unsigned char data[1024], *input;
   time_t boot_time=time(NULL);
-  fd_lispenv env=fd_working_environment();
-  fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID, that_symbol, histref_symbol;
-  fdtype quiet_config=FD_VOID;
+  fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
+  fdtype that_symbol, histref_symbol;
   u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
-  int i=1, c;
-  u8_string source_file=NULL;
+  u8_string source_file=NULL; /* The file loaded, if any */
+  /* This is the environment the console will start in */
+  fd_lispenv env=fd_working_environment();
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
@@ -142,39 +237,61 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
-#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
+  /* Initialize builtin scheme modules.
+     These include all modules specified by (e.g.):
+     configure --enable-fdweb */
+#if ((HAVE_CONSTRUCTOR_ATTRIBUTES) && (!(FD_TESTCONFIG)))
+  FD_INIT_SCHEME_BUILTINS();
+#else
+  /* If we're a "test" executable (FD_TESTCONFIG), we're
+     statically linked, so we need to initialize some modules
+     explicitly (since the "onload" initializers may not be invoked). */
   fd_init_schemeio();
   fd_init_texttools();
   fd_init_tagger();
   fd_init_fdweb();
-#else
-  FD_INIT_SCHEME_BUILTINS();
 #endif
 
-  /* We keep this outside of the include because it will force
-     the module to be linked in. */
-  fd_init_fdscheme();
-
+  /* Register configuration parameters */
   fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
-		     fd_dblconfig_get,fd_dblconfig_set,
-		     &showtime_threshold);
-  fd_register_config("DEBUGMAXCHARS",_("Max number of string characters to display in debug message"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",_("Max number of list/vector/choice elements to display in debug message"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxelts);
-  fd_config_set("BOOTED",fd_time2timestamp(boot_time));
+		     fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
+  fd_register_config
+    ("DEBUGMAXCHARS",
+     _("Max number of string characters to display in debug message"),
+     fd_intconfig_get,fd_intconfig_set,&debug_maxchars);
+  fd_register_config
+    ("DEBUGMAXELTS",
+     _("Max number of sequence/choice elements to display in debug message"),
+     fd_intconfig_get,fd_intconfig_set,&debug_maxelts);
+  fd_register_config
+    ("QUIET",
+     _("Whether to be minimalist in console interaction"),
+     fd_boolconfig_get,fd_boolconfig_set,&quiet_console);
+  fd_register_config
+    ("CONSOLEWIDTH",
+     _("Number of characters available for pretty-printing console output"),
+     fd_intconfig_get,fd_intconfig_set,&console_width);
+  fd_register_config
+    ("SHOWELTS",
+     _("Number of elements to initially show in displaying results"),
+     fd_intconfig_get,fd_intconfig_set,&show_elts);
+
+  /* Initialize console streams */
   inconsole=in;
   outconsole=out;
   errconsole=err;
   console_env=env;
   atexit(close_consoles);
+
+  /* Other initialization for FramerD libraries */
   u8_identify_application(argv[0]);
   fd_config_set("OIDDISPLAY",FD_INT2DTYPE(3));
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
+
+  /* Process config fields in the arguments,
+     storing the first non config field as a source file. */
   while (i<argc)
     if (strchr(argv[i],'=')) 
       fd_config_assignment(argv[i++]);
@@ -185,7 +302,8 @@ int main(int argc,char **argv)
     int sock=u8_connect(source_file);
     struct FD_DTYPE_STREAM *newstream;
     if (sock<0) {
-      u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",source_file);
+      u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",
+	     source_file);
       exit(-1);}
     newstream=u8_alloc(struct FD_DTYPE_STREAM);
     fd_init_dtype_stream(newstream,sock,65536);
@@ -196,18 +314,24 @@ int main(int argc,char **argv)
     fdtype sourceval=fdtype_string(u8_realpath(source_file,NULL));
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
+
+  /* This is argv[0], the name of the executable by which we
+     entered fdconsole. */
   {
     fdtype interpval=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
-  quiet_config=fd_config_get("QUIET");
-  fd_histinit(0);
+
+  /* Announce preamble, suppressed by quiet_config */
+  fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   startup_time=u8_elapsed_time()-fd_load_start;
-  if (FD_VOIDP(quiet_config))  {
+  if (!(quiet_console))  {
     u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
 	       SVN_REVISION,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
-    u8_message("beingmeta FramerD, (C) beingmeta 2004-2007, all rights reserved");
-    fd_decref(quiet_config);}
+    u8_message
+      ("beingmeta FramerD, (C) beingmeta 2004-2007, all rights reserved");}
+
+  fd_histinit(0);
   u8_printf(out,EVAL_PROMPT);
   u8_flush(out);
   while ((c=skip_whitespace((u8_input)in))>=0) {
@@ -291,35 +415,8 @@ int main(int argc,char **argv)
       fputs(out.u8_outbuf,stderr);
       u8_free(out.u8_outbuf);
       u8_free_exception(ex,1);}
-    else if (FD_VOIDP(result)) {}
-    else if ((FD_CHOICEP(result)) || (FD_ACHOICEP(result)))
-      /* u8_printf(out,"%q\n",result); */
-      if ((FD_CHOICE_SIZE(result)>16) && (is_histref==0)) {
-	/* Truncated output for large result sets. */
-	int n=FD_CHOICE_SIZE(result), count=0;
-	u8_printf(out,_("{ ;; ##%d= (9/%d results)\n"),histref,n);
-	{FD_DO_CHOICES(elt,result) {
-	  if (count>8) {FD_STOP_DO_CHOICES; break;}
-	  else {
-	    if (historicp(elt))
-	      u8_printf(out,"  %q ;=##%d\n",elt,fd_histpush(elt));
-	    else u8_printf(out,"  %q\n",elt);
-	    count++;}}
-	u8_printf(out,"  ;; ...................\n");
-	u8_printf(out,_("} ;; =##%d (%d results)\n"),histref,n);}}
-      else {
-	int n=FD_CHOICE_SIZE(result);
-	u8_printf(out,_("{ ;; ##%d= (%d results)\n"),histref,n);
-	fd_prefetch_oids(result);
-	{FD_DO_CHOICES(elt,result) {
-	  if (historicp(elt))
-	    u8_printf(out,"  %q ;=##%d\n",elt,fd_histpush(elt));
-	  else u8_printf(out,"  %q\n",elt);}}
-	u8_printf(out,_("} ;; =##%d (%d results)\n"),histref,n);}
-    else if (histref<0)
-      u8_printf(out,"%q\n",result);
-    else u8_printf(out,"%q  ;; =##%d\n",result,histref);
-    if  (stat_line)
+    else output_result(out,result,histref);
+    if (stat_line)
       if (histref<0)
 	u8_printf (out,stats_message,
 		   (finish_time-start_time),
