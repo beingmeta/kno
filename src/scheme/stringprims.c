@@ -126,7 +126,8 @@ static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
 {
   int window=FD_FIX2INT(window_arg);
   u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan), i=0;
-  if (window<=0)
+  if (c<0) return FD_FALSE;
+  else if (window<=0)
     while (c>0) {
       if (u8_isupper(c)) return FD_TRUE;
       else return FD_FALSE;
@@ -135,6 +136,7 @@ static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
       if (u8_isupper(c)) return FD_TRUE;
       else return FD_FALSE;
       c=u8_sgetc(&scan); i++;}
+  return FD_FALSE;
 }
 
 static fdtype string_compoundp(fdtype string)
@@ -730,7 +732,7 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZED?",capitalizedp,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x
-	   ("SOMECAP?",some_capitalizedp,2,
+	   ("SOMECAP?",some_capitalizedp,1,
 	    fd_string_type,FD_VOID,
 	    fd_fixnum_type,FD_INT2DTYPE(5)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
