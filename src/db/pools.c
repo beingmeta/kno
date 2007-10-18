@@ -1185,20 +1185,24 @@ FD_EXPORT fd_pool fd_name2pool(u8_string spec)
 
 static int unparse_pool(u8_output out,fdtype x)
 {
-  fd_pool p=fd_lisp2pool(x); u8_string type;
+  fd_pool p=fd_lisp2pool(x); u8_string type; char addrbuf[128];
   if (p==NULL) return 0;
   if ((p->handler) && (p->handler->name)) type=p->handler->name;
   else type="unrecognized";
+  sprintf(addrbuf,"@%x/%x+0x%x",FD_OID_HI(p->base),FD_OID_LO(p->base),p->capacity);
   if (p->label)
     if ((p->xid) && (strcmp(p->source,p->xid)))
-      u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s|%s\">",
-                type,x,p->label,p->source,p->xid);
-    else u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s\">",type,x,p->label,p->source);
+      u8_printf(out,"#<POOL %s %s #!%lx \"%s\" \"%s|%s\">",
+                type,addrbuf,x,p->label,p->source,p->xid);
+    else u8_printf(out,"#<POOL %s %s #!%lx \"%s\" \"%s\">",
+		   type,addrbuf,x,p->label,p->source);
   else if (p->source)
     if ((p->xid) && (strcmp(p->source,p->xid)))
-      u8_printf(out,"#<POOL %s 0x%lx \"%s|%s\">",type,x,p->source,p->xid);
-    else u8_printf(out,"#<POOL %s 0x%lx \"%s\">",type,x,p->source);
-  else u8_printf(out,"#<POOL %s,0x%lx>",type,x);  
+      u8_printf(out,"#<POOL %s %s #!%lx \"%s|%s\">",
+		type,addrbuf,x,p->source,p->xid);
+    else u8_printf(out,"#<POOL %s %s #!%lx \"%s\">",
+		   type,addrbuf,x,p->source);
+  else u8_printf(out,"#<POOL %s,0x%lx>",type,addrbuf,x);  
   return 1;
 }
 
