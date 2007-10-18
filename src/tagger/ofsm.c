@@ -73,16 +73,31 @@ static int utf8_point(u8_string s)
 #define isquote(c) \
    ((c == '"') || (c == '\'') || (c == '`'))
 
+static int capwindow=5;
+
 static int capitalizedp(fdtype x)
 {
   if (FD_STRINGP(x)) {
-    u8_string s=FD_STRDATA(x); int c=u8_sgetc(&s);
-    return u8_isupper(c);}
+    u8_string s=FD_STRDATA(x);
+    int i=0, c=u8_sgetc(&s);
+    while ((i<capwindow) && (c>0))
+      if (u8_isupper(c)) return 1;
+      else {c=u8_sgetc(&s); i++;}
+    return 0;}
   else if ((FD_VECTORP(x)) && (FD_VECTOR_LENGTH(x)>0))
     return capitalizedp(FD_VECTOR_REF(x,0));
   else if (FD_PAIRP(x))
     return capitalizedp(FD_CAR(x));
   else return 0;
+}
+
+static int string_capitalizedp(u8_string s)
+{
+  int i=0, c=u8_sgetc(&s);
+  while ((i<capwindow) && (c>0))
+    if (u8_isupper(c)) return 1;
+    else {c=u8_sgetc(&s); i++;}
+  return 0;
 }
 
 static int textgetc(u8_string *scanner)
@@ -1060,7 +1075,8 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
 {
   u8_string s=strdup(spelling);
   int first_char=u8_sgetc(&spelling);
-  int capitalized=0, capitalized_in_lexicon=0, i, slen, ends_in_s=0;
+  int capitalized=string_capitalizedp(spelling), capitalized_in_lexicon=0;
+  int i, slen, ends_in_s=0;
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
   fdtype ls=fd_init_string(NULL,-1,s), value=get_lexinfo(pc,ls);
@@ -1073,7 +1089,6 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   i=0; while (i < FD_MAX_ARCS) pc->input[pc->n_inputs].weights[i++]=255;
   if (!((FD_VECTORP(value)) || (FD_PACKETP(value)))) {
     fd_decref(value); value=FD_EMPTY_CHOICE;}
-  if (u8_isupper(first_char)) capitalized=1;
   if (!(FD_EMPTY_CHOICEP(value))) capitalized_in_lexicon=1;
   /* Here are the default rules for getting POS data */
   else if (possessivep(spelling))
