@@ -35,6 +35,16 @@ static fdtype schemapp(fdtype x)
   else return FD_FALSE;
 }
 
+FD_EXPORT fdtype make_hashset(fdtype arg)
+{
+  struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
+  if (FD_VOIDP(arg)) 
+    fd_init_hashset(h,17,FD_MALLOCD_CONS);
+  else fd_init_hashset(h,FD_FIX2INT(arg),FD_MALLOCD_CONS);
+  FD_INIT_CONS(h,fd_hashset_type);
+  return FDTYPE_CONS(h);
+}
+
 static fdtype make_hashtable(fdtype size)
 {
   if (FD_FIXNUMP(size))
@@ -734,7 +744,9 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("SLOTMAP?",slotmapp,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("SCHEMAP?",schemapp,1));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim0("MAKE-HASHSET",fd_make_hashset,0));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_cprim1x("MAKE-HASHSET",make_hashset,0,
+			   fd_fixnum_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("STATIC-HASHTABLE",static_hashtable,1));
 
