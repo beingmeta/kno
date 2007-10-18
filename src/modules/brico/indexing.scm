@@ -60,26 +60,17 @@
       (string->packet (capitalize (metaphone string)))
       (metaphone string #t)))
 
-(defambda (index-string index frame slot (value #f)
-			(window default-frag-window) (phonetic #f))
+(defambda (index-string index frame slot (value #f))
   (let* ((values (stdspace (if value value (get frame slot))))
-	 (expvalues (choice values (basestring values))))
-    (doindex index frame slot expvalues)
-    (index-frame index frame slot
-		 (choice (vector (downcase (pick values capitalized?)))
-			 (vector (stdstring (pick values capitalized?)))))
-    (when phonetic
-      (let* ((tohash (reject values uppercase?))
-	     (tostem (reject (reject tohash capitalized?) length {1 2 3 4}))
-	     (tocompoundstem (pick tostem compound?))
-	     (phindex (if (index? phonetic) phonetic index)))
-	(doindex phindex frame slot (metaphone (reject tohash capitalized?) #t))
-	(doindex phindex frame slot (cap-metaphone (pick tohash capitalized?)))
-	(doindex phindex frame slot (metaphone (porter-stem tostem) #t))
-	(doindex phindex frame slot
-		 (metaphone (stem-compound tocompoundstem) #t))))
-    (when window
-      (index-frags index frame slot expvalues window phonetic))))
+	 (expvalues (choice values (basestring values)))
+	 (normvalues (capitalize (pick expvalues somecap?))))
+    ;; By default, we index strings under their direct values, under
+    ;;  their values without diacritics, and under versions with normalized
+    ;;  capitalization.  Normalizing capitalization makes all elements of a
+    ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
+    ;;  be lowercased.
+    (doindex index frame slot (choice expvalues normvalues))
+    (doindex index frame slot (cap-metaphone (choice values normvalues)))))
 
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))
@@ -126,6 +117,13 @@
 	  (else (warning "Invalid fragment window" val)))))
 (config-def! 'fragwindow fragwindow-config)
 
+(define (metaphone1 w)
+  (tryif (and (not (uppercase? w)) (> (length w) 3))
+	 (metaphone w #t)))
+(define (metaphone2 w)
+  (tryif (and (not (uppercase? w)) (> (length w) 5))
+	 (metaphone (porter-stem w) #t)))
+
 (defambda (index-frags index frame slot values window (phonetic #f))
   (let* ((compounds (pick values compound?))
 	 (stdcompounds (basestring compounds))
@@ -134,10 +132,9 @@
     (doindex index frame slot (vector->frags (choice wordv swordv) window))
     (when phonetic
       (doindex index frame slot
-	       (vector->frags (map (lambda (w) (metaphone w #t)) wordv)))
+	       (vector->frags (map metaphone1 wordv)))
       (doindex index frame slot
-	       (vector->frags (map (lambda (w) (metaphone (porter-stem w) #t))
-				   wordv))))))
+	       (vector->frags (map metaphone2 wordv))))))
 
 ;;; Frame indexing functions
 
@@ -229,14 +226,14 @@
 			      key through derivation inverse closure-of slots
 			      primary-slot index %id}))))))
 
-(define (index-words index concept (window #f))
-  (index-string index concept english (get concept 'words) window)
+(define (index-words index concept)
+  (index-string index concept english (get concept 'words))
   (index-name index concept 'names (get concept 'names))
   (index-name index concept 'names
 	      (pick  (cdr (get concept '%words)) capitalized?))
   (do-choices (xlation (get concept '%words))
     (let ((lang (get language-map (car xlation))))
-      (index-string index concept lang (cdr xlation) window)))
+      (index-string index concept lang (cdr xlation))))
   (do-choices (xlation (get concept '%norm))
     (let ((lang (get norm-map (car xlation))))
       (index-string index concept lang (cdr xlation))))
