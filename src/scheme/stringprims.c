@@ -122,6 +122,21 @@ static fdtype capitalizedp(fdtype string)
   else return fd_type_error("string or character","capitalizedp",string);
 }
 
+static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
+{
+  int window=FD_FIX2INT(window_arg);
+  u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan), i=0;
+  if (window<=0)
+    while (c>0) {
+      if (u8_isupper(c)) return FD_TRUE;
+      else return FD_FALSE;
+      c=u8_sgetc(&scan);}
+  else while ((c>0) && (i<window)) {
+      if (u8_isupper(c)) return FD_TRUE;
+      else return FD_FALSE;
+      c=u8_sgetc(&scan); i++;}
+}
+
 static fdtype string_compoundp(fdtype string)
 {
   u8_byte *scan=FD_STRDATA(string);
@@ -713,6 +728,11 @@ FD_EXPORT void fd_init_strings_c()
 			   fd_character_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZED?",capitalizedp,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x
+	   ("SOMECAP?",some_capitalizedp,2,
+	    fd_string_type,FD_VOID,
+	    fd_fixnum_type,FD_INT2DTYPE(5)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",downcase1,1));
