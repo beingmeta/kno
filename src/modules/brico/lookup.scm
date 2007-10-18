@@ -118,12 +118,13 @@
 		     (if (pair? variant)
 			 (?? language (first variant)
 			     (second variant) (third variant))))))
-       (tryif (not (ascii? word))
-	      (let ((sbword (choice (basestring word)
-				    (list #f (downcase word) #f)
-				    (list #f (stdstring word) #f))))
+       (tryif (or (capitalized? word) (not (ascii? word)))
+	      (let ((sbword (basestring word)))
 		(choice (?? language sbword)
 			(tryif word-overlays (overlay-get sbword language)))))
+       (tryif (and tryhard (or (somecap? word) (not (ascii? word))))
+	      (?? language (vector (downcase word)))
+	      (?? language (vector (stdstring word))))
        (tryif tryhard (lookup-simple-variants word language tryhard))
        ;; Find misspellings, etc
        ;; This is really language-specific and the implementation
@@ -147,7 +148,7 @@
    (tryif (position #\- word)
 	  (?? language (string-subst word "-" " ")))
    (tryif (position #\_ word)
-	  (?? language (string-subst word "-" " ")))
+	  (?? language (string-subst word "_" " ")))
    (tryif (uppercase? word) (?? language (capitalize word)))
    ;; This method identifies compounds by stripping off the initial or
    ;; final words and seeing if the resulting phrase has an

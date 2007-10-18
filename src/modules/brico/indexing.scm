@@ -66,8 +66,8 @@
 	 (expvalues (choice values (basestring values))))
     (doindex index frame slot expvalues)
     (index-frame index frame slot
-		 (choice (list #f (downcase (pick values capitalized?)) #f)
-			 (list #f (stdstring (pick values capitalized?)) #f)))
+		 (choice (vector (downcase (pick values capitalized?)))
+			 (vector (stdstring (pick values capitalized?)))))
     (when phonetic
       (let* ((tohash (reject values uppercase?))
 	     (tostem (reject (reject tohash capitalized?) length {1 2 3 4}))
