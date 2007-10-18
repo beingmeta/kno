@@ -150,7 +150,7 @@ static int list_length(fdtype scan)
     else return len+1;
 }
 
-static void output_result(u8_output out,fdtype result,int histref)
+static int output_result(u8_output out,fdtype result,int histref)
 {
   if (FD_VOIDP(result)) {}
   else if (fits_consolep(result))
@@ -164,8 +164,9 @@ static void output_result(u8_output out,fdtype result,int histref)
     else if (console_width<=0)
       u8_printf(out,"%q\n;; =##%d\n",result,histref);
     else {
-      fd_pprint(out,result,NULL,0,0,console_width,0);
-      u8_printf(out,"%Q\n;; =##%d\n",result,histref);}
+      fd_pprint(out,result,NULL,0,0,console_width,1);
+      u8_putc(out,'\n');
+      return 1;}
   else {
     u8_string start_with=NULL, end_with=NULL;
     int count=0, max_elts, n_elts=0;
@@ -208,6 +209,7 @@ static void output_result(u8_output out,fdtype result,int histref)
       u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
       u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",end_with,histref,max_elts,n_elts);}
     else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
+  return 0;
 }
 
 int main(int argc,char **argv)
@@ -415,7 +417,7 @@ int main(int argc,char **argv)
       fputs(out.u8_outbuf,stderr);
       u8_free(out.u8_outbuf);
       u8_free_exception(ex,1);}
-    else output_result(out,result,histref);
+    else stat_line=output_result(out,result,histref);
     if (stat_line)
       if (histref<0)
 	u8_printf (out,stats_message,
