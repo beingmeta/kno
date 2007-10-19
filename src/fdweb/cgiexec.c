@@ -33,7 +33,10 @@ static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
 static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype parts_slotid, name_slotid, filename_slotid;
 
-static u8_condition CGIDataInconsistency;
+static int log_cgidata=0;
+
+static u8_condition CGIData="CGIDATA";
+static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 
 #define DEFAULT_CONTENT_TYPE \
   "Content-type: text/html; charset=utf-8;"
@@ -682,6 +685,14 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else value=fd_apply(proc,0,NULL);
   fd_thread_set(cgidata_symbol,FD_VOID);
+  if (log_cgidata) {
+    fdtype keys=fd_getkeys(cgidata);
+    FD_DO_CHOICES(key,keys) {
+      fdtype value=fd_get(cgidata,key,FD_VOID);
+      if (!(FD_VOIDP(value)))
+	u8_log(LOG_DEBUG,CGIData,"%q = %q",key,value);
+      fd_decref(value);}
+    fd_decref(keys);}
   return value;
 }
 
@@ -825,8 +836,12 @@ FD_EXPORT void fd_init_cgiexec_c()
   text_symbol=fd_intern("TEXT");
   parts_slotid=fd_intern("PARTS");
 
-  fd_register_config("CGIPREP","Functions to execute between parsing and responding to a CGI request",
-		     fd_lconfig_get,fd_lconfig_set,&cgi_prepfns);
+  fd_register_config
+    ("CGIPREP","Functions to execute between parsing and responding to a CGI request",
+     fd_lconfig_get,fd_lconfig_set,&cgi_prepfns);
+  fd_register_config
+    ("LOGCGI","Whether to log CGI bindings passed to FramerD",
+     fd_boolconfig_get,fd_boolconfig_set,&log_cgidata);
 
   fd_register_source_file(versionid);
 }
