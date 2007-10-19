@@ -1317,6 +1317,37 @@ static fdtype javastmt_handler(fdtype expr,fd_lispenv env)
     u8_free(out.u8_outbuf); return retval;}
 }
 
+/* Soap envelope generation */
+
+/* This should probably be customizable */
+static u8_string soapenvprefix="SE";
+static u8_string soapenvopen=
+  "<SE:Envelope xmlns:SE='http://www.w3.org/2003/05/soap-envelope'>\n";
+static u8_string soapenvclose="\n</SE:Envelope>";
+static u8_string soapbodyopen="<SE:Body>";
+static u8_string soapbodyclose="</SE:Body>";
+static u8_string soapheaderopen="  <SE:Header>\n";
+static u8_string soapheaderclose="\n  </SE:Header>";
+
+static fdtype soapenvelope_handler(fdtype expr,fd_lispenv env)
+{
+  U8_OUTPUT *out=fd_get_default_output();
+  fdtype header_arg=fd_get_arg(expr,1);
+  fdtype body=fd_get_body(expr,2);
+  u8_puts(out,soapenvopen);
+  if ((FD_PAIRP(header_arg)) || (FD_SYMBOLP(header_arg))) {
+    fdtype value;
+    u8_puts(out,soapheaderopen);
+    value=fd_eval(header_arg,env);
+    if (FD_STRINGP(value)) u8_puts(out,FD_STRDATA(value));
+    fd_decref(value);
+    u8_puts(out,soapheaderclose);}
+  u8_puts(out,soapbodyopen);
+  fd_printout_to(out,body,env);
+  u8_puts(out,soapbodyclose);
+  u8_puts(out,soapenvclose);
+}
+
 /* Initialization functions */
 
 static u8_string markup_printf_handler
@@ -1334,9 +1365,12 @@ static u8_string markup_printf_handler
 
 FD_EXPORT void fd_init_xmloutput_c()
 {
-  fdtype fdweb_module=fd_new_module("FDWEB",FD_MODULE_DEFAULT);
-  fdtype safe_fdweb_module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
-  fdtype xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
+  fdtype fdweb_module=
+    fd_new_module("FDWEB",FD_MODULE_DEFAULT);
+  fdtype safe_fdweb_module=
+    fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+  fdtype xhtml_module=
+    fd_new_module("XHTML",FD_MODULE_SAFE);
 
   fdtype markup_prim=fd_make_special_form("markup",markup_handler);
   fdtype markupstar_prim=fd_make_special_form("markup*",markupstar_handler);
@@ -1371,7 +1405,9 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defn(module,oid2id_proc);
     fd_defn(module,scripturl_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
-    fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);}
+    fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
+    fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
+  }
   
   {
     fdtype module=fdweb_module;
@@ -1383,7 +1419,9 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_idefn(module,scripturl_proc);
     fd_idefn(module,fdscripturl_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
-    fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);}
+    fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
+    fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
+  }
   
   fd_defspecial(xhtml_module,"ANCHOR",doanchor);
   fd_defspecial(xhtml_module,"ANCHOR*",doanchor_star);
