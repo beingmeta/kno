@@ -12,6 +12,7 @@ static char versionid[] =
 #include "fdb/tables.h"
 #include "fdb/eval.h"
 #include "fdb/fdweb.h"
+#include "fdb/ports.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -732,6 +733,78 @@ static fdtype urlput(int n,fdtype *args)
   return result;
 }
 
+static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype handle=fd_eval(fd_get_arg(expr,1),env);
+  fdtype url_arg=fd_eval(fd_get_arg(expr,2),env);
+  fdtype ctype=fd_eval(fd_get_arg(expr,3),env);
+  fdtype body=fd_get_body(expr,4);
+  struct U8_OUTPUT out;
+  INBUF data; OUTBUF rdbuf; CURLcode retval; 
+  int start=1, consed_handle=0;
+  u8_string url;
+  struct FD_CURL_HANDLE *h=NULL;
+  fdtype result=FD_VOID, toput=FD_VOID, cval;
+
+  /* Check argument types */
+  if (FD_STRINGP(url_arg)) url=FD_STRDATA(url_arg);
+  else {
+    fd_decref(ctype); fd_decref(handle);
+    return fd_type_error("string","urlpostdata_handler",url_arg);}
+  if (FD_STRINGP(ctype)) url=FD_STRDATA(url_arg);
+  else {
+    fd_decref(url_arg); fd_decref(handle);
+    return fd_type_error("string","urlpostdata_handler",ctype);}
+
+  if (FD_PTR_TYPEP(handle,fd_curl_type))
+    h=FD_GET_CONS(handle,fd_curl_type,fd_curl_handle);
+  else {
+    fd_decref(handle); /* Should be error maybe? */
+    consed_handle=1; h=fd_open_curl_handle();}
+
+  _curl_set_header(h->handle,"Content-Type",FD_STRDATA(ctype));
+
+  U8_INIT_OUTPUT(&out,8192);
+
+  fd_printout_to(&out,body,env);
+
+  curl_easy_setopt(h->handle,CURLOPT_URL,url);
+
+  rdbuf.scan=out.u8_outbuf; rdbuf.end=out.u8_outptr;
+  curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,NULL);
+  curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,rdbuf.end-rdbuf.scan);
+  curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
+  curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
+
+  data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
+  curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
+  curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
+  curl_easy_setopt(h->handle,CURLOPT_POST,1);
+  result=fd_init_slotmap(NULL,0,NULL);
+
+  retval=curl_easy_perform(h->handle);
+
+  if (fd_test(result,type_symbol,text_symbol)) {
+    fdtype chset=fd_get(result,charset_symbol,FD_VOID);
+    if (FD_STRINGP(chset)) {
+      U8_OUTPUT out;
+      u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
+      if (data.size==0)
+	cval=fd_init_string(NULL,0,NULL);
+      else if (enc) {
+	unsigned char *scan=data.bytes;
+	U8_INIT_OUTPUT(&out,data.size);
+	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
+	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
+    else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
+    u8_free(data.bytes);}
+  else cval=fd_init_packet(NULL,data.size,data.bytes);
+  fd_add(result,content_symbol,cval);
+  fd_decref(cval);
+  return result;
+}
+
 /* Using URLs for code source */
 
 static u8_string url_sourcefn(u8_string uri,u8_string enc,u8_string *path,time_t *timep)
@@ -816,6 +889,8 @@ FD_EXPORT void fd_init_curl_c()
   
 
   curl_defaults=fd_init_slotmap(NULL,0,NULL);
+
+  fd_defspecial(module,"URLPOSTOUT",urlpostdata_handler);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
   fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));
