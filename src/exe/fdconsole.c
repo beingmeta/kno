@@ -135,8 +135,13 @@ static void output_element(u8_output out,fdtype elt)
     if ((console_width==0) || (fits_consolep(elt)))
       u8_printf(out,"\n  %q ;=##%d",elt,fd_histpush(elt));
     else {
+      struct U8_OUTPUT tmpout;
       u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
-      fd_pprint(out,elt,"  ",2,2,console_width,1);}
+      U8_INIT_OUTPUT(&tmpout,512);
+      fd_pprint(&tmpout,elt,"  ",2,2,console_width,1);
+      u8_puts(out,tmpout.u8_outbuf);
+      u8_free(tmpout.u8_outbuf);
+      u8_flush(out);}
   else u8_printf(out,"\n  %q",elt);
 }
 
@@ -164,8 +169,12 @@ static int output_result(u8_output out,fdtype result,int histref)
     else if (console_width<=0)
       u8_printf(out,"%q\n;; =##%d\n",result,histref);
     else {
-      fd_pprint(out,result,NULL,0,0,console_width,1);
-      u8_putc(out,'\n');
+      struct U8_OUTPUT tmpout;
+      U8_INIT_OUTPUT(&tmpout,512);
+      fd_pprint(&tmpout,result,"  ",2,2,console_width,1);
+      u8_puts(out,tmpout.u8_outbuf); u8_putc(out,'\n');
+      u8_free(tmpout.u8_outbuf);
+      u8_flush(out);
       return 1;}
   else {
     u8_string start_with=NULL, end_with=NULL;

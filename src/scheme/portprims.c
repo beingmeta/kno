@@ -741,11 +741,13 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     if (FD_EMPTY_LISTP(scan)) {
       u8_putc(out,')');  return col+1;}
     else {
-      startoff=out->u8_outptr-out->u8_outbuf; u8_printf(out," . %q)",scan);
+      startoff=out->u8_outptr-out->u8_outbuf;
+      u8_printf(out," . %q)",scan);
       n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
 	int i=indent;
-	out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
+	out->u8_outptr=out->u8_outbuf+startoff;
+	out->u8_outbuf[startoff]='\0';
 	u8_putc(out,'\n');
 	if (prefix) u8_puts(out,prefix);
 	while (i>0) {u8_putc(out,' '); i--;}
@@ -789,8 +791,8 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) {
       if (is_initial) {
-	u8_printf(out," #[]"); return 3;}
-      else {u8_printf(out," #[]"); return 4;}}
+	u8_printf(out," #[]"); return col+3;}
+      else {u8_printf(out," #[]"); return col+4;}}
     fd_lock_struct(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
