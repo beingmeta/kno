@@ -435,7 +435,7 @@ static fdtype xmlentry(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype xmlblock(fdtype expr,fd_lispenv env)
+static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
 {
   fdtype tagspec=fd_get_arg(expr,1), attribs, body;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
@@ -475,6 +475,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
   if (open_markup(out,&tmpout,tagname,attribs,env,0)<0) {
     fd_decref(xmloidfn);
     return FD_ERROR_VALUE;}
+  if (newline) u8_putc(out,'\n');
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
@@ -487,6 +488,7 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
       fd_decref(xmloidfn);
       return value;}
     body=FD_CDR(body);}
+  if (newline) u8_putc(out,'\n');
   if (close_markup(out,tagname)<0) {
     fd_decref(xmloidfn);
     return FD_ERROR_VALUE;}
@@ -495,6 +497,15 @@ static fdtype xmlblock(fdtype expr,fd_lispenv env)
   fd_decref(xmloidfn);
   if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
   return FD_VOID;
+}
+
+static fdtype xmlblock(fdtype expr,fd_lispenv env)
+{
+  return doxmlblock(expr,env,0);
+}
+static fdtype xmlblockn(fdtype expr,fd_lispenv env)
+{
+  return doxmlblock(expr,env,1);
 }
 
 static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
@@ -1320,14 +1331,14 @@ static fdtype javastmt_handler(fdtype expr,fd_lispenv env)
 /* Soap envelope generation */
 
 /* This should probably be customizable */
-static u8_string soapenvprefix="SE";
+static u8_string soapenvprefix="SOAP-ENV";
 static u8_string soapenvopen=
-  "<SE:Envelope xmlns:SE='http://www.w3.org/2003/05/soap-envelope'>\n";
-static u8_string soapenvclose="\n</SE:Envelope>";
-static u8_string soapbodyopen="<SE:Body>";
-static u8_string soapbodyclose="</SE:Body>";
-static u8_string soapheaderopen="  <SE:Header>\n";
-static u8_string soapheaderclose="\n  </SE:Header>";
+  "<SOAP-ENV:Envelope xmlns:SE='http://www.w3.org/2003/05/soap-envelope' xmlns:xsd='http://www.w3.org/2001/XMLSchema' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>\n";
+static u8_string soapenvclose="\n</SOAP-ENV:Envelope>";
+static u8_string soapbodyopen="<SOAP-ENV:Body>";
+static u8_string soapbodyclose="</SOAP-ENV:Body>";
+static u8_string soapheaderopen="  <SOAP-ENV:Header>\n";
+static u8_string soapheaderclose="\n  </SOAP-ENV:Header>";
 
 static fdtype soapenvelope_handler(fdtype expr,fd_lispenv env)
 {
@@ -1346,6 +1357,7 @@ static fdtype soapenvelope_handler(fdtype expr,fd_lispenv env)
   fd_printout_to(out,body,env);
   u8_puts(out,soapbodyclose);
   u8_puts(out,soapenvclose);
+  return FD_VOID;
 }
 
 /* Initialization functions */
@@ -1382,6 +1394,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_special_form("emptymarkup",emptymarkup_handler);
   fdtype xmlout_prim=fd_make_special_form("XMLOUT",xmlout);
   fdtype xmlblock_prim=fd_make_special_form("XMLBLOCK",xmlblock);
+  fdtype xmlblockn_prim=fd_make_special_form("XMLBLOCKN",xmlblockn);
   fdtype xmlelt_prim=fd_make_special_form("XMLELT",xmlentry);
 
   /* Applicable XML generators (not special forms) */
@@ -1399,6 +1412,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fdtype module=safe_fdweb_module;
     fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
     fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
+    fd_store(module,fd_intern("XMLBLOCKN"),xmlblockn_prim);
     fd_store(module,fd_intern("XMLELT"),xmlelt_prim);
     fd_defn(module,xmlempty_proc);
     fd_defn(module,xmlify_proc);
@@ -1413,6 +1427,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fdtype module=fdweb_module;
     fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
     fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
+    fd_store(module,fd_intern("XMLBLOCKN"),xmlblockn_prim);
     fd_idefn(module,xmlempty_proc);
     fd_idefn(module,xmlify_proc);
     fd_idefn(module,oid2id_proc);
@@ -1470,7 +1485,8 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_decref(markup_prim); fd_decref(markupstar_prim);
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);
   fd_decref(emptymarkup_prim); fd_decref(xmlout_prim);
-  fd_decref(xmlblock_prim); fd_decref(xmlelt_prim);
+  fd_decref(xmlblockn_prim); fd_decref(xmlblock_prim);
+  fd_decref(xmlelt_prim);
 
   /* Not strictly XML of course, but a neighbor */
   fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_handler);

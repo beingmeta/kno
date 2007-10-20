@@ -60,7 +60,10 @@
 ;;; XML/HTML generation
 (put 'xmlout 'scheme-indent-function 0)
 (put 'xmlblock 'scheme-indent-function 2)
+(put 'xmlblockn 'scheme-indent-function 2)
 (put 'xmlelt 'scheme-indent-function 0)
+
+(put 'soapenvelope 'scheme-indent-function 2)
 
 (put 'xhtml 'scheme-indent-function 0)
 (put 'span 'scheme-indent-function 1)
