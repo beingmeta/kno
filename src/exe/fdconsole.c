@@ -155,7 +155,7 @@ static int list_length(fdtype scan)
     else return len+1;
 }
 
-static int output_result(u8_output out,fdtype result,int histref)
+static int output_result(u8_output out,fdtype result,int histref,int showall)
 {
   if (FD_VOIDP(result)) {}
   else if (fits_consolep(result))
@@ -186,7 +186,7 @@ static int output_result(u8_output out,fdtype result,int histref)
     else if (FD_PAIRP(result)) {
       start_with="("; end_with=")"; n_elts=list_length(result);}
     else {}
-    if ((show_elts>0) && (n_elts>(show_elts*2)))
+    if ((showall==0) && ((show_elts>0) && (n_elts>(show_elts*2))))
       max_elts=show_elts;
     else max_elts=n_elts;
     if (max_elts<n_elts)
@@ -426,7 +426,7 @@ int main(int argc,char **argv)
       fputs(out.u8_outbuf,stderr);
       u8_free(out.u8_outbuf);
       u8_free_exception(ex,1);}
-    else stat_line=output_result(out,result,histref);
+    else stat_line=output_result(out,result,histref,is_histref);
     if (stat_line)
       if (histref<0)
 	u8_printf (out,stats_message,
