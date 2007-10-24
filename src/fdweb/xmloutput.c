@@ -744,7 +744,9 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
   s->u8_outptr=s->u8_outbuf;
   u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
   u8_printf(s,"<html>\n<head>\n<title>");
-  u8_printf(s,"%k",e->u8x_cond);
+  if (e->u8x_cond)
+    u8_printf(s,"%k",e->u8x_cond);
+  else u8_printf(s,"Unknown Exception");
   if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
   if (!(FD_VOIDP(irritant))) u8_printf(s," %lk",irritant);
   if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
@@ -1371,7 +1373,8 @@ static u8_string markup_printf_handler
     emit_xmlcontent(s,str); u8_free(str);}
   else {
     u8_string str=va_arg(*args,u8_string);
-    emit_xmlcontent(s,str);}
+    if (str) emit_xmlcontent(s,str);
+    else emit_xmlcontent(s,"(null)");}
   return NULL;
 }
 
