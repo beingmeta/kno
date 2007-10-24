@@ -47,6 +47,8 @@
 
 (define generic-patterns
   (choice `#({(bol) (spaces) ">"}
+	     (label year #({"19" "20"} (isdigit) (isdigit))))
+	  `#({(bol) (spaces) ">"}
 	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
 	     (spaces)
 	     (IC (label MONTH ,monthstrings ,monthnum)) (opt #({"" (spaces)} ","))
