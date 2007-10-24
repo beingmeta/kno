@@ -275,6 +275,40 @@
 
 (applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
 
-(message "MISCTEST successfuly completed")
+;;; This tests that comments as arguments work
+
+(define errors {})
+
+(define (plus3 x y z) (+ x y z))
+(onerror (evaltest 27 (plus3 8 9 10))
+  (lambda (ex) (set! errors ex)))
+(onerror (evaltest 27 (plus3 8 #;() 9 10))
+  (lambda (ex) (set+! errors ex)))
+
+(define (plus4 x y z (q 8)) (+ x y z q))
+(evaltest 77 (plus4 8 9 10 50))
+(onerror (evaltest 30 (plus4 8 #;() 9 10 3))
+  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+(onerror (evaltest 35 (plus4 8 #;() 9 10))
+  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+
+(evaltest {3 4 5 7} (choice 3 4 5 7))
+(onerror (evaltest {3 4 5 7} (choice 3 4 5 #;6 7))
+  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+
+(evaltest #f (test '(a . b) 'c 8))
+(onerror (evaltest #f (test '(a . b) 'c #;"test" 8))
+  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+
+(evaltest #t (test '(a . b) 'a 'b))
+(onerror (evaltest #t (test '(a . b) 'a #;"test" 'b))
+  (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
+
+(if (exists? errors)
+    (begin (message (choice-size errors)
+		    " Errors during MISCTSEST")
+	   (error 'tests-failed))
+    (message "MISCTEST successfuly completed"))
+
 
 
