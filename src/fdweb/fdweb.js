@@ -625,7 +625,7 @@ function fdbSetHideShow(elt,visible)
     else if ((content.tagName=='DIV') || (content.tagName=='P') ||
 	     (content.tagName=='UL') || (content.tagName=='OL') ||
 	     (content.tagName=='LI'))
-      content.style.display='block';
+      display_style='block';
     content.style.display=display_style;
     // Update the element title
     if (elt.getAttribute('OPENTITLE'))
