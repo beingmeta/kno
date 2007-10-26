@@ -2,6 +2,8 @@
 
 (in-module 'audit)
 
+(use-module 'brico)
+
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
 
@@ -46,9 +48,16 @@
     (if (not auditor) (error NOCONFIG "No auditor configured"))
     (if (and (eq? arg3 'not) (bound? arg4))
 	(audit-! frame slotid arg4)
-	(if (not (bound? arg4))
-	    (audit+! frame slotid arg3)
-	    (error SYNTAX "Bad AUDIT! call")))))
+	(if (bound? arg4)
+	    (begin (audit+! frame slotid arg3)
+		   (audit-! frame slotid arg4))
+	    (do-choices frame
+	      (do-choices slotid
+		(let* ((current (get frame slotid))
+		       (add (difference arg3 current))
+		       (drop (difference current arg3)))
+		  (audit+! frame slotid add)
+		  (audit-! frame slotid add))))))))
 
 (define (audit-get frame slotid)
   (second (pick (get frame '%adds) first slotid)))
@@ -111,3 +120,40 @@
 		       (elt (elt audit 2) 1)))))))
 
 (module-export! 'reaudit)
+
+(define (audit-genl! f genls)
+  (audit-! f @?genls (difference (get f @?genls) genls))
+  (audit+! f @?genls genls)
+  (let ((scat (try (difference (get genls 'sensecat) 'NOUN.TOPS)
+		   (pick-one (get (?? @?genls genls) 'sensecat)))))
+    (audit-! f 'sensecat (difference (get f 'sensecat) scat))
+    (audit+! f 'sensecat scat))
+  (make%id! f))
+
+(module-export! 'audit-genl!)
+
+(defambda (newterm term genls (opts '()) (gloss #f) . slotids)
+  (if (not auditor) (error NOCONFIG "No auditor configured"))
+  (if (and (not gloss) (null? slotids))
+      (audit+! genls (getopt opts 'language default-language)
+	       term)
+      (let ((f (frame-create (getopt opts 'pool xbrico-pool)
+		 @?genls genls '%created (cons auditor (timestamp)))))
+	(assert! f (getopt opts 'language default-language) term)
+	(let ((scat (try (difference (get genls 'sensecat) 'NOUN.TOPS)
+			 (pick-one (get (?? @?genls genls) 'sensecat)))))
+	  (store! f 'sensecat scat))
+	(when gloss
+	  (assert! f (get gloss-map
+			  (getopt opts 'language default-language))
+		   gloss))
+	(do ((slotids slotids (cddr slotids)))
+	    ((null? slotids)
+	     (make%id! f)
+	     f)
+	  (assert! f (car slotids) (cadr slotids))))))
+
+(module-export! 'newterm)
+
+
+
