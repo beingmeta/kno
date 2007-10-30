@@ -86,10 +86,10 @@
 
 ;;; Hide/show buttons
 
-(define (hideshow contentid hidetext showtext (var #f))
+(define (hideshow contentid hidetext showtext (var #f) (title #f))
   (span ((class "hideshow")
 	 (onclick "_fdb_hideshow_toggle(event);")
-	 (title "click to hide or reveal additional content")
+	 (title (or title "click to hide or reveal additional content"))
 	 (content contentid))
     "["
     (span ((class "whenHidden")) hidetext)

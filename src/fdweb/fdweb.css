@@ -195,7 +195,7 @@ input.autoprompt_empty {
 
 /* Narrative classes */
 
-span.narrative {
+.narrative {
   color: purple; font-style: italic; }
 span.narrative_hidden {
   color: purple; font-style: italic;

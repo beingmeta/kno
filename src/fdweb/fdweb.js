@@ -931,3 +931,72 @@ function fdbEventString(evt)
     ((evt.ctrlKey)?("ctrl;"):"");
 }
 
+/* DYTOC (Dynamic table of contents) support */
+
+var dytoc_picked=null, dytoc_default=null, dytoc_displayed=null;
+
+function dytoc_display_sectid(event)
+{
+  var cur=dytoc_displayed;
+  var elt=fdbFindClass(event.target,'sectref');
+  if (elt==null) return;
+  var sectid=fdbGetAttrib(elt,"SECTID");
+  var section=fdbByID(sectid);
+  elt.style.textDecoration='underline';
+  if (section==dytoc_displayed) return;
+  if (dytoc_displayed) dytoc_displayed.style.display='none';
+  dytoc_displayed=section;
+  section.style.display='block';
+  if (cur) cur.style.display='none';
+}
+
+function dytoc_undisplay_sectid(event)
+{
+  var elt=fdbFindClass(event.target,'sectref');
+  if (elt==null) return;
+  elt.style.textDecoration='none';
+  var sectid=fdbGetAttrib(elt,"SECTID");
+  var section=fdbByID(sectid);
+  if ((section) && (section != dytoc_default))
+    section.style.display='none';
+  dytoc_display_default();
+}
+
+function dytoc_display_default()
+{
+  if (dytoc_default==null) return;
+  if (dytoc_default==dytoc_displayed) return;
+  if (dytoc_displayed!=null)
+    dytoc_displayed.style.display='none';
+  if (dytoc_default!=null)
+    dytoc_default.style.display='block';
+  dytoc_displayed=dytoc_default;
+}
+
+function dytoc_set_default(event)
+{
+  var elt=fdbFindClass(event.target,'sectref');
+  if (elt==null) return;
+  var sectid=fdbGetAttrib(elt,"SECTID");
+  var section=fdbByID(sectid);
+  if (section!=null) {
+    if (dytoc_picked) fdbSetAttrib(dytoc_picked,'picked','no');
+    dytoc_picked=elt;
+    fdbSetAttrib(elt,'picked','yes');
+    dytoc_default=section;}
+}
+
+function dytoc_set_default_to(sectid,sectrefid)
+{
+  var sectref=fdbByID(sectrefid);
+  var section=fdbByID(sectid);
+  if (dytoc_picked!=null) 
+    fdbSetAttrib(dytoc_picked,'picked','no');
+  dytoc_picked=sectref;
+  if (sectref)
+    fdbSetAttrib(sectref,'picked','yes');
+  dytoc_default=section;
+  if (dytoc_displayed==null)
+    dytoc_display_default();
+}
+
