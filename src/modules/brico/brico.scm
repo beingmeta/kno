@@ -427,18 +427,14 @@
 ;;; Configuring freqfns
 
 (define (edit-freqfns name fn scan)
-  (if (null? scan) (fail)
-      (if (and name (equal? (car (car scan)) name))
-	  (cons (cons name fn) (cdr scan))
+  (if (null? scan) (list fn)
+      (if (and name (equal? (first (car scan)) name))
+	  (cons fn (cdr scan))
 	  (cons (car scan) (edit-freqfns name fn (cdr scan))))))
 
 (define (freqfns-config var (val))
   (if (bound? val)
-      (if (pair? val)
-	  (set! freqfns
-		(try (edit-freqfns (car val) (cdr val) freqfns)
-		     (cons val freqfns)))
-	  (set! freqfns (cons (cons #f val) freqfns)))
+      (set! freqfns (edit-freqfns (first val) val freqfns))
       freqfns))
 (config-def! 'freqfns freqfns-config)
 
