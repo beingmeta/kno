@@ -317,6 +317,12 @@ static int unparse_curl_handle(u8_output out,fdtype x)
   return 1;
 }
 
+static fdtype curlhandlep(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_curl_type)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype set_curlopt
   (struct FD_CURL_HANDLE *ch,fdtype opt,fdtype val)
 {
@@ -900,6 +906,7 @@ FD_EXPORT void fd_init_curl_c()
   fd_idefn(module,fd_make_cprimn("CURLOPEN",curlopen,0));
   fd_idefn(module,fd_make_cprim3("CURLSETOPT!",curlsetopt,2));
   fd_idefn(module,fd_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
+  fd_idefn(module,fd_make_cprim1("CURL-HANDLE?",curlhandlep,1));
 
   fd_register_sourcefn(url_sourcefn);
 
