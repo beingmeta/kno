@@ -94,7 +94,7 @@ typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
-  uint dbflags;
+  unsigned int dbflags;
   fd_offset_type offtype;
   fd_compression_type compression;
   time_t modtime;
