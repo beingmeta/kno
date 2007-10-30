@@ -40,6 +40,7 @@ fd_exception fd_InvalidCharacterConstant=_("Invalid character constant");
 fd_exception fd_BadAtom=_("Bad atomic expression");
 fd_exception fd_NoPointerExpressions=_("no pointer expressions allowed");
 fd_exception fd_BadPointerRef=_("bad pointer reference");
+fd_exception fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
 fd_exception fd_ParseError=_("LISP expression parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 fd_exception fd_CantParseRecord=_("Can't parse record object");
@@ -704,8 +705,13 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
       return NULL;}}
   else {
     int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
-    u8_free(elts); *size=ch;
-    fd_seterr(fd_MismatchedClose,"parse_vec",NULL,FD_CODE2CHAR(end_char));
+    u8_free(elts);
+    if (ch<0) {
+      *size=ch;
+      fd_seterr(fd_UnexpectedEOF,"parse_vec",NULL,FD_VOID);}
+    else {
+      *size=-1;
+      fd_seterr(fd_MismatchedClose,"parse_vec",NULL,FD_CODE2CHAR(end_char));}
     return NULL;}
 }
 
@@ -839,20 +845,18 @@ static fdtype parse_vector(U8_INPUT *in)
 {
   int n_elts;
   fdtype *elts=parse_vec(in,')',&n_elts);
-  if (n_elts>=0) 
+  if ((elts) && (n_elts>=0)) 
     return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
-  else if (n_elts==-1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
 
 static fdtype parse_slotmap(U8_INPUT *in)
 {
-  int n_elts;
+  int n_elts=-1;
   fdtype *elts=parse_vec(in,']',&n_elts);
-  if (n_elts>=0) 
+  if ((elts) && (n_elts>=0)) 
     return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),n_elts/2,
 			   (struct FD_KEYVAL *)elts);
-  else if (n_elts==-1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
 
@@ -866,10 +870,12 @@ static fdtype parse_choice(U8_INPUT *in)
   else {
     int n_elts; fdtype *elts=parse_vec(in,'}',&n_elts);
     if (n_elts==0) return FD_EMPTY_CHOICE;
+    else if (elts==NULL)
+      return FD_PARSE_ERROR;
     else if (n_elts==1) {
       fdtype v=elts[0]; u8_free(elts);
       return v;}
-    else if (n_elts>0) {
+    else if ((elts) && (n_elts>0)) {
       struct FD_CHOICE *ch=fd_alloc_choice(n_elts);
       fdtype result=fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
       if (FD_XCHOICE_SIZE(ch)==1) {
@@ -877,7 +883,6 @@ static fdtype parse_choice(U8_INPUT *in)
 	u8_free(ch);}
       u8_free(elts);
       return result;}
-    else if (n_elts == -1) return FD_EOX;
     else return FD_PARSE_ERROR;}
 }
 
