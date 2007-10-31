@@ -57,7 +57,7 @@
 		       (add (difference arg3 current))
 		       (drop (difference current arg3)))
 		  (audit+! frame slotid add)
-		  (audit-! frame slotid add))))))))
+		  (audit-! frame slotid drop))))))))
 
 (define (audit-get frame slotid)
   (second (pick (get frame '%adds) first slotid)))
