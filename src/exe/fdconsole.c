@@ -14,6 +14,7 @@ static char versionid[] =
 #include "fdb/eval.h"
 #include "fdb/history.h"
 #include "fdb/ports.h"
+#include "fdb/sequences.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -155,10 +156,23 @@ static int list_length(fdtype scan)
     else return len+1;
 }
 
+static int result_size(fdtype result)
+{
+  if (FD_ATOMICP(result)) return 1;
+  else if (FD_CHOICEP(result))
+    return FD_CHOICE_SIZE(result);
+  else if (FD_VECTORP(result))
+    return FD_VECTOR_LENGTH(result);
+  else if (FD_PAIRP(result))
+    return fd_seq_length(result);
+  else return 1;
+}
+
 static int output_result(u8_output out,fdtype result,int histref,int showall)
 {
   if (FD_VOIDP(result)) {}
-  else if (fits_consolep(result))
+  else if (((FD_VECTORP(result)) || (FD_PAIRP(result))) &&
+	   (result_size(result)<8) && (fits_consolep(result)))
     if (histref<0)
       u8_printf(out,"%q\n",result);
     else u8_printf(out,"%q  ;; =##%d\n",result,histref);
