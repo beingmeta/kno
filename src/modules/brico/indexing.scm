@@ -60,7 +60,7 @@
       (string->packet (capitalize (metaphone string)))
       (metaphone string #t)))
 
-(defambda (index-string index frame slot (value #f))
+(defambda (index-string index frame slot (value #f) (frag #f))
   (let* ((values (stdspace (if value value (get frame slot))))
 	 (expvalues (choice values (basestring values)))
 	 (normvalues (capitalize (pick expvalues somecap?))))
@@ -70,7 +70,8 @@
     ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
     ;;  be lowercased.
     (doindex index frame slot (choice expvalues normvalues))
-    (doindex index frame slot (cap-metaphone (choice values normvalues)))))
+    (doindex index frame slot (cap-metaphone (choice values normvalues)))
+    (when frag (index-frags index frame slot values 1 #f))))
 
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))
