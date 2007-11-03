@@ -8,9 +8,13 @@
 ;;;  fast changing values decay more quickly and slower changing values
 ;;;  decay more slowly.
 
-(define version "$Id:$")
+(define version "$Id$")
 
-(module-export! '{meltcache/get meltcache/probe meltcache/accumulate melted?})
+(module-export!
+ '{meltcache/get
+   meltcache/probe meltcache/accumulate
+   meltcache/bypass meltcache/bypass+
+   melted?})
 
 ;;;; Implementation
 
@@ -136,6 +140,7 @@
 		     (store! cache (cons prockey args) entry)
 		     (meltcache-entry-value entry))))
 	(meltcache-entry-value cached))))
+
 (define (meltcache/probe cache fcn . args)
   (let* ((procname (procedure-name fcn))
 	 (prockey (if (index? cache) procname fcn))
@@ -145,6 +150,46 @@
 	(meltcache-entry-value cached))))
 
 (define (meltcache/accumulate cache fcn . args)
+  (let* ((procname (procedure-name fcn))
+	 (prockey (if (index? cache) procname fcn))
+	 (cached (get cache (cons prockey args)))
+	 (threshold (try (get meltcache-threshold-table fcn)
+			 (get meltcache-threshold-table procname)
+			 #f)))
+    (if (or (fail? cached) (melted? cached))
+	(onerror (apply fcn args)
+		 (lambda (value)
+		   (let ((entry (meltcache-errentry (qc value) (qc cached)
+						    threshold)))
+		     (store! cache (cons prockey args) entry)
+		     (meltcache-entry-value entry)))
+		 (lambda (value)
+		   (let ((entry (meltcache-accumulate-entry
+				 (qc value) (qc cached) threshold)))
+		     (store! cache (cons prockey args) entry)
+		     (meltcache-entry-value entry))))
+	(meltcache-entry-value cached))))
+
+(define (meltcache/bypass cache fcn . args)
+  (let* ((procname (procedure-name fcn))
+	 (prockey (if (index? cache) procname fcn))
+	 (threshold (try (get meltcache-threshold-table fcn)
+			 (get meltcache-threshold-table procname)
+			 #f))
+	 (cached (get cache (cons prockey args))))
+    (onerror (apply fcn args)
+	     (lambda (value)
+	       (let ((entry (meltcache-errentry (qc value) (qc cached)
+						threshold)))
+		 (store! cache (cons prockey args) entry)
+		 (meltcache-entry-value entry)))
+	     (lambda (value)
+	       (let ((entry (meltcache-entry (qc value) (qc cached)
+					     threshold)))
+		 (store! cache (cons prockey args) entry)
+		 (meltcache-entry-value entry))))))
+
+(define (meltcache/bypass+ cache fcn . args)
   (let* ((procname (procedure-name fcn))
 	 (prockey (if (index? cache) procname fcn))
 	 (cached (get cache (cons prockey args)))
