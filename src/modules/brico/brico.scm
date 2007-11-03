@@ -124,10 +124,14 @@
 
 (define all-languages (file->dtype (get-component "languages.dtype")))
 (define language-map (file->dtype (get-component "langmap.table")))
-(define gloss-map (file->dtype (get-component "glossmap.table")))
 (define norm-map (file->dtype (get-component "normmap.table")))
+(define gloss-map (file->dtype (get-component "glossmap.table")))
 (define index-map (file->dtype (get-component "indexmap.table")))
 (define frag-map (file->dtype (get-component "fragmap.table")))
+
+(define all-languages (get language-map (getkeys language-map)))
+(define all-norms (get norm-map (getkeys norm-map)))
+(define all-glosses (get gloss-map (getkeys gloss-map)))
 
 ;;; This is how these tables where generated
 (comment
@@ -497,6 +501,7 @@
    default-language all-languages
    ;; Maps for particular languages
    language-map gloss-map norm-map index-map frag-map
+   all-languages all-glosses all-norms
    ;; Prefetchers for OIDs and inverted index slotids
    brico-prefetch! brico-prefetch})
 

@@ -118,6 +118,11 @@
 		     (if (pair? variant)
 			 (?? language (first variant)
 			     (second variant) (third variant))))))
+       ;; Try looking it up with normalized capitalzation
+       (tryif (somecap? word)
+	      (let ((variant (capitalize word)))
+		(choice (?? language variant)
+			(tryif word-overlays (overlay-get variant language)))))
        ;; Try looking it up without diacritics
        (tryif (not (ascii? word))
 	      (let ((variant (basestring word)))
@@ -133,12 +138,8 @@
 		     (let ((variant (capitalize (basestring word))))
 		       (choice (?? language variant)
 			       (tryif word-overlays (overlay-get variant language))))))
-       ;; Try looking it up with normalized capitalzation
-       (tryif (somecap? word)
-	      (let ((variant (capitalize word)))
-		(choice (?? language variant)
-			(tryif word-overlays (overlay-get variant language)))))
        (lookup-simple-variants word language tryhard)
+       (lookup-simple-variants (basestring word) language tryhard)
        (tryif tryhard (lookup-subphrase word language tryhard))
        ;; Find misspellings, etc
        ;; This is really language-specific and the implementation
@@ -147,19 +148,20 @@
 		   (not (uppercase? word))
 		   (> (length word) 4))
 	      (choice
-	       (if (capitalized? word)
-		   (?? language (downcase word))
-		   (?? language (capitalize word)))
-	       (if (capitalized? word)
-		   (?? language (downcase (basestring word)))
-		   (?? language (capitalize (basestring word))))
 	       (choice-max
 		(?? language
 		    (if (somecap? word)
 			(string->packet (capitalize (metaphone word)))
 			(choice (metaphone word #t)
 				(metaphone (porter-stem word) #t))))
-		metaphone-max)))))
+		metaphone-max)
+	       (tryif (and (number? tryhard) (> tryhard 2))
+		      (if (capitalized? word)
+			  (?? language (downcase word))
+			  (?? language (capitalize word)))
+		      (if (capitalized? word)
+			  (?? language (downcase (basestring word)))
+			  (?? language (capitalize (basestring word)))))))))
 
 (define (lookup-simple-variants word language tryhard)
   (choice 
@@ -200,7 +202,7 @@
 	 (minscore (max 2 (- (length wordv) (- tryhard 3)))))
     (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
-      (let* ((alt (tryif (> tryhard 4)
+      (let* ((alt (tryif (and (number? tryhard) (> tryhard 4))
 			 (choice (metaphone word #t)
 				 (metaphone (porter-stem word) #t))))
 	     (word+alt (choice word alt)))
@@ -213,23 +215,58 @@
 	   (table-max table))))
 
 (defambda (lookup-word-prefetch words (language default-language) (tryhard #f))
-  (let* ((stds (stdspace words))
-	 (bases (basestring stds))
-	 (words (choice stds bases))
-	 (extra (choice (tryif tryhard (depunct words))
-			(tryif (and tryhard (number? tryhard) (> tryhard 1))
-			       (choice (metaphone words #t)
-				       (metaphone (porter-stem words) #t)))))
-	 (shortfrags (tryif tryhard
-			    (let ((compounds (words->vector (pick words compound?))))
-			      (choice (subseq compounds 1) (subseq compounds 0 -1)
-				      (subseq (pick compounds length > 2) 2)))))
-	 (frags (tryif (and tryhard (number? tryhard) (> tryhard 2))
+  (let* ((words (stdspace words))
+	 (bases (basestring words))
+	 (words+bases (choice words bases))
+	 (simple-vary
+	  (choice (depunct (pick words+bases string-contains? {"-" " " "_"}))
+		  (string-subst words+bases "-" " ")
+		  (string-subst words+bases "_" " ")
+		  (capitalize (pick words+bases uppercase?))))
+	 (rich-vary (vary-word words+bases (getbaselang language)))
+	 (variations (choice (pick rich-vary string?)
+			     (car (pick rich-vary pair?))))
+	 (vary-constraints (for-choices (entry (pick rich-vary pair?))
+			     (cons (second entry) (third entry)))))
+    (if (or (not tryhard) (eq? tryhard 0))
+	(prefetch-keys!
+	 (choice (cons @?en (choice words+bases simple-vary variations))
+		 vary-constraints))
+	(let* ((caps (pick words+bases capitalized?))
+	       (lower (capitalize (reject words+bases capitalized?)))
+	       (metaphones
+		(tryif (and tryhard (number? tryhard) (> tryhard 1))
+		       (choice (metaphone bases #t)
+			       (metaphone (porter-stem bases) #t)
+			       (string->packet (capitalize (metaphone caps))))))
+	       (capvary (tryif (and (number? tryhard) (> tryhard 2))
+			       (choice (downcase (reject caps uppercase?)) (capitalize lower))))
+	       (shortfrags
+		(tryif tryhard
+		       (let ((compounds
+			      (words->vector
+			       (pick words+bases compound?))))
+			 (choice (subseq compounds 1) (subseq compounds 0 -1)
+				 (subseq (pick compounds length > 2) 2)))))
+	       (frags (tryif
+		       #f 
+		       ;; (and tryhard (number? tryhard) (> tryhard 2))
 		       (let* ((frags (elts (words->vector words)))
-			      (altfrags (choice (metaphone frags #t)
-						(metaphone (porter-stem frags) #t))))
+			      (altfrags
+			       (choice (metaphone frags #t)
+				       (metaphone (porter-stem frags) #t))))
 			 (list frags)))))
-    (prefetch-keys! (cons language (choice words extra shortfrags frags)))))
+	  (prefetch-keys!
+	   (choice (cons @?en (choice words+bases simple-vary variations
+				      metaphones shortfrags capvary frags))
+		   vary-constraints))))))
+
+(define (track-lookup-word word (language default-language) (tryhard 1))
+  (clearcaches)
+  (lookup-word-prefetch word language tryhard)
+  ((within-module 'trackrefs trackrefs)
+   (lambda () (choice-size (lookup-word word language tryhard)))))
+(module-export! 'track-lookup-word)
 
 ;;; Looking up combos
 
