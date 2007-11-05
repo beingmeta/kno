@@ -1460,6 +1460,11 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(xhtml_module,fd_intern("H2"),markupblock_prim);
   fd_store(xhtml_module,fd_intern("H2*"),markupstarblock_prim);
 
+  fd_store(xhtml_module,fd_intern("UL"),markupblock_prim);
+  fd_store(xhtml_module,fd_intern("UL*"),markupstarblock_prim);
+  fd_store(xhtml_module,fd_intern("LI"),markupblock_prim);
+  fd_store(xhtml_module,fd_intern("LI*"),markupstarblock_prim);
+
   fd_store(xhtml_module,fd_intern("STRONG"),markup_prim);
   fd_store(xhtml_module,fd_intern("EM"),markup_prim);
   fd_store(xhtml_module,fd_intern("TT"),markup_prim);

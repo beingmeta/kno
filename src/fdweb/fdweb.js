@@ -915,10 +915,11 @@ function printfire()
 
 function fdbMessage(aMessage)
 {
-  var consoleService =
-    Components.classes["@mozilla.org/consoleservice;1"].getService
-      (Components.interfaces.nsIConsoleService);
-  consoleService.logStringMessage("fdb: " + aMessage);
+  console.log(aMessage);
+  //  var consoleService =
+  //    Components.classes["@mozilla.org/consoleservice;1"].getService
+  //      (Components.interfaces.nsIConsoleService);
+  //  consoleService.logStringMessage("fdb: " + aMessage);
 }
 
 
