@@ -2,7 +2,7 @@
 
 (module-export! '{find-dterm get-dterm find-dterm-prefetch!})
 
-(use-module '{brico brico/lookup})
+(use-module '{brico brico/lookup morph/en})
 
 (define sensecathints
   (file->dtype (get-component "sensecathints.table")))
@@ -15,8 +15,13 @@
 
 ;;; Finding dterms
 
+(define (termnorm concept language)
+  (if (and (test concept 'type 'verb) (eq? language @?en))
+      (try (gerund (get-norm concept language)) (get-norm concept language))
+      (get-norm concept language)))
+
 (define (find-dterm concept (language default-language) (norm))
-  (default! norm (get-norm concept language))
+  (default! norm (termnorm concept language))
   (if (singleton? (?? language norm)) norm
       (if (test concept 'type 'individual)
 	  (if (test concept 'sensecat 'noun.location)
@@ -71,16 +76,23 @@
 
 (define (find-generic-dterm concept language norm)
   (let ((sensecat (get concept 'sensecat))
-	(normslot (get norm-map language)))
+	(normslot (get norm-map language))
+	(meanings (lookup-word norm language)))
     (try (try-choices (term (get sensecathints (cons sensecat language)))
-	   (tryif (singleton? (?? language norm @?genls* (?? normslot term)))
+	   (tryif (singleton? (intersection meanings (?? @?genls* (?? normslot term))))
 		  (string-append norm ":" term)))
+	 (try-choices (gn (get-norm (get concept @?genls) language))
+	   (tryif (singleton? (intersection meanings (?? @?genls* (?? language gn))))
+		  (string-append norm ":"  gn)))
+	 (try-choices (gn (get-norm (?? @?specls* concept) language))
+	   (tryif (singleton? (intersection meanings (?? @?genls* (?? language gn))))
+		  (string-append norm ":"  gn)))
 	 (try-choices (d (difference (get concept language) norm))
-	   (tryif (singleton? (?? language norm language d))
-		  (string-append norm ":"  d)))
+	   (tryif (singleton? (intersection meanings (?? language d)))
+		  (string-append norm "="  d)))
 	 (try-choices (d (difference (get (get concept @?defterms) @?en_norm)
 				     norm))
-	   (tryif (singleton? (?? language norm @?defterms (?? normslot d)))
+	   (tryif (singleton? (intersection meanings (?? @?defterms (?? normslot d))))
 		  (string-append norm " (*"  d ")"))))))
 
 ;;; Prefetching
