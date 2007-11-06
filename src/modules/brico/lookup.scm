@@ -104,11 +104,17 @@
 (define (lookup-word word (language default-language) (tryhard #f))
   (if (has-prefix word "~")
       (lookup-word (subseq word 1) language 2)
-      (if word-overrides
-	  (let ((override (override-get word language)))
-	    (if (exists? override) (or override (fail))
-		(lookup-word-core word language tryhard)))
-	  (lookup-word-core word language tryhard))))
+      (if (has-prefix word "$")
+	  (lookup-word word english tryhard)
+	  (if (textmatcher #((isalpha) (isalpha) "$") word)
+	      (lookup-word (subseq word 3)
+			   (?? 'iso639/1 (subseq word 0 2))
+			   tryhard)
+	      (if word-overrides
+		  (let ((override (override-get word language)))
+		    (if (exists? override) (or override (fail))
+			(lookup-word-core word language tryhard)))
+		  (lookup-word-core word language tryhard))))))
 
 (define (lookup-word-core word language tryhard)
   (try (choice (?? language word)
