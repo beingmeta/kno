@@ -1,6 +1,6 @@
 (in-module 'brico/dterms)
 
-(module-export! '{find-dterm get-dterm find-dterm-prefetch!})
+(module-export! '{find-dterm get-dterm displayterm find-dterm-prefetch!})
 
 (use-module '{brico brico/lookup morph/en})
 
@@ -78,7 +78,8 @@
   (let ((sensecat (get concept 'sensecat))
 	(normslot (get norm-map language))
 	(meanings (lookup-word norm language)))
-    (try (try-choices (term (get sensecathints (cons sensecat language)))
+    (try (tryif (singleton? (?? language norm)) norm)
+	 (try-choices (term (get sensecathints (cons sensecat language)))
 	   (tryif (singleton? (intersection meanings (?? @?genls* (?? normslot term))))
 		  (string-append norm ":" term)))
 	 (try-choices (gn (get-norm (get concept @?genls) language))
@@ -93,7 +94,41 @@
 	 (try-choices (d (difference (get (get concept @?defterms) @?en_norm)
 				     norm))
 	   (tryif (singleton? (intersection meanings (?? @?defterms (?? normslot d))))
-		  (string-append norm " (*"  d ")"))))))
+		  (string-append norm " (*"  d ")")))
+	 (try-choices (n (get-norm concept language))
+	   (tryif (not (equal? n norm))
+		  (find-generic-dterm concept language n)))
+	 (tryif (not (eq? language english))
+		(try-choices (term (get sensecathints (cons sensecat english)))
+		  (tryif (singleton? (intersection meanings (?? @?genls* (?? english term))))
+			 (string-append norm ":en$" term)))
+		(try-choices (gn (get-norm (get concept @?genls) english))
+		  (tryif (singleton? (intersection meanings (?? @?genls* (?? english gn))))
+			 (string-append norm ":en$"  gn)))
+		(try-choices (enorm (get-norm concept english))
+		  (tryif (singleton? (?? english enorm))
+			 (string-append "en$"  enorm)))
+		(try-choices (enorm (get-norm concept english))
+		  (try-choices (term (get sensecathints (cons sensecat english)))
+		    (tryif (singleton? (intersection (?? english enorm)
+						     (?? @?genls* (?? english term))))
+			   (string-append "en$" enorm ":en$" term))))
+		(try-choices (enorm (get-norm concept english))
+		  (try-choices (gn (get-norm (get concept @?genls) english))
+		    (tryif (singleton? (intersection meanings (?? @?genls* (?? english gn))))
+			   (string-append "en$" enorm ":en$"  gn))))
+		(try-choices (enorm (get-norm concept english))
+		  (try-choices (gn (get-norm (get concept @?genls) english))
+		    (tryif (singleton? (intersection meanings (?? @?genls* (?? english gn))))
+			   (string-append "en$" enorm ":en$"  gn))))
+		(try-choices (enorm (get-norm concept english))
+		  (try-choices (gn (get-norm (?? @?specls* concept) english))
+		    (tryif (singleton? (intersection (?? @?en enorm) (?? @?genls* (?? english gn))))
+			   (string-append "en$" enorm ":$"  gn))))
+		(try-choices (d (get concept english))
+		  (tryif (singleton? (intersection meanings (?? language d)))
+			 (string-append norm "=en$"  d)))))))
+
 
 ;;; Prefetching
 
@@ -107,3 +142,17 @@
 		 norm
 		 (get (%get concept '{region country @?partof @?implies})
 		      @?en_norm)))))
+
+;;; Getting display terms
+
+(defambda (displayterm concept language concepts (suffix #f))
+  (try (try-choices (norm (get-norm concept language))
+	 (tryif (singleton? (intersection (lookup-word norm language) concepts))
+		norm))
+       (get-dterm concept language)
+       (if suffix
+	   (string-append (get-norm concept language) " "
+			  (if (string? suffix) suffix "(alt)"))
+	   (get-norm concept language))))
+
+
