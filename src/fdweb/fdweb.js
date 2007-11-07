@@ -667,6 +667,25 @@ function fdbHideShow(eltid,hiddenmsg,visiblemsg,initvisible)
   return topelt;
 }
 
+function _fdb_vistoggle(evt)
+{
+  var target=evt.target;
+  while (target)
+    if (target.className=='vistoggle_hidden') {
+      var id=fdbGet(target,'content');
+      var elt=fdbByID(id);
+      elt.style.display=null;
+      target.className='vistoggle_shown';
+      return;}
+    else if (target.className=='vistoggle_shown') {
+      var id=fdbGet(target,'content');
+      var elt=fdbByID(id);
+      elt.style.display='none';
+      target.className='vistoggle_hidden';
+      return;}
+    else target=target.parentNode;
+}
+
 /* collapsars */
 
 /* A collapsar is a 'button' which hides or reveals everything

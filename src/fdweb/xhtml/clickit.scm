@@ -98,6 +98,17 @@
 
 (module-export! 'hideshow)
 
+;;; Vistoggle
+
+(define vistoggle
+  (macro expr
+    `(xmlblock ((class "vistoggle_hidden")
+		(onclick "_fdb_vistoggle(event);")
+		(content ,(get-arg expr 1)))
+	 ,@(get-body expr 2))))
+
+(module-export! 'vistoggle)
+
 ;;; Hot checkboxes
 
 (define (hotcheck var val (text #f) (title #f))
