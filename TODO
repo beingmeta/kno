@@ -2,7 +2,7 @@ Stuff to do with beingmeta's FramerD implementation
 ---------------------------------------------------
 Parallel commits under commit-all
 Implement journaling for pool/index collections
-Connection pools in libu8
+#Connection pools in libu8
 Mail API for libu8 (?)
 Add timeout APIs
 Add portmap for fdbserver
@@ -40,7 +40,7 @@ Explore using const more to improve performance in dtype streams and libu8 strea
 Add real record functions and library, along with opcodes.
 # Add opcodes for arithmetic operations, maybe get, test, pick, etc. (7 August 2007)
 ? Add opcodes for TRY and TRYIF.
-Make METAPHONE optionally preserve initial capitalization
+#Make METAPHONE optionally preserve initial capitalization
 #Make PORTER-STEM (at least from BRICO) map across compounds (maybe do both mapped and unmapped) (9 August 2007)
 Implement WITH-SLOTS to bind variables from a frame
 #Reorganize opcodes and add opcode name tables (31 August 2007)

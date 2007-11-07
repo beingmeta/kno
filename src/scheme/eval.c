@@ -1205,6 +1205,7 @@ static void init_localfns()
 }
 
 FD_EXPORT void fd_init_errors_c(void);
+FD_EXPORT void fd_init_compounds_c(void);
 FD_EXPORT void fd_init_threadprims_c(void);
 FD_EXPORT void fd_init_conditionals_c(void);
 FD_EXPORT void fd_init_iterators_c(void);
@@ -1236,6 +1237,7 @@ static void init_core_builtins()
   fd_init_binders_c();
   fd_init_corefns_c();
   fd_init_tablefns_c();
+  fd_init_compounds_c();
   fd_init_strings_c();
   fd_init_dbfns_c();
   fd_init_sequences_c();

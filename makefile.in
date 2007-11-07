@@ -72,7 +72,7 @@ CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o \
 	         src/scheme/conditionals.o src/scheme/iterators.o
 SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	    src/scheme/modules.o src/scheme/load.o src/scheme/history.o \
-	    src/scheme/reflection.o \
+	    src/scheme/reflection.o src/scheme/compounds.o \
 	    src/scheme/coreprims.o src/scheme/dbprims.o \
 	    src/scheme/tableprims.o src/scheme/choiceprims.o \
 	    src/scheme/seqprims.o src/scheme/stringprims.o \
@@ -114,7 +114,7 @@ FDB_SOURCES=\
         src/scheme/threadprims.c src/scheme/quasiquote.c \
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
 	src/scheme/coreprims.c src/scheme/dbprims.c \
-	src/scheme/tableprims.c src/scheme/choiceprims.c \
+	src/scheme/tableprims.c src/scheme/choiceprims.c src/scheme/compounds.c \
 	src/scheme/seqprims.c src/scheme/stringprims.c \
 	src/scheme/portprims.c src/scheme/fileprims.c src/scheme/dbfileprims.c \
 	src/scheme/arithprims.c src/scheme/side-effects.c src/scheme/timeprims.c \

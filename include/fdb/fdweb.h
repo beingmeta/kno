@@ -129,7 +129,9 @@ FD_EXPORT fdtype fd_handle_compound_mime_field(fdtype,fdtype,fdtype);
 
 FD_EXPORT void fd_init_xmldata_c(void);
 FD_EXPORT void fd_init_xmlinput_c(void);
+FD_EXPORT void fd_init_xmloutput_c(void);
 FD_EXPORT void fd_init_mime_c(void);
+FD_EXPORT void fd_init_email_c(void);
 FD_EXPORT void fd_init_xmleval_c(void);
 FD_EXPORT void fd_init_cgiexec_c(void);
 FD_EXPORT void fd_init_urifns_c(void);
