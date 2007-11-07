@@ -1509,40 +1509,10 @@ FD_EXPORT void fd_init_xmloutput_c()
   obj_name=fd_intern("OBJ-NAME");
   quote_symbol=fd_intern("QUOTE");
   raw_name_symbol=fd_intern("%%NAME");
-}
 
-static int fdweb_init_done=0;
-
-FD_EXPORT void fd_init_fdweb()
-{
-  if (fdweb_init_done) return;
-  else {
-    fdtype fdweb_module=fd_new_module("FDWEB",FD_MODULE_DEFAULT);
-    fdtype safe_fdweb_module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
-    fdtype xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
-    fdweb_init_done=1;
-    fd_init_xmloutput_c();
-    fd_init_xmldata_c();
-    fd_init_xmlinput_c();
-    fd_init_mime_c();
-    fd_init_xmleval_c();
-    fd_init_cgiexec_c();
-    fd_init_urifns_c();
-#if (FD_WITH_CURL)
-    fd_init_curl_c();
-#endif
-#if (FD_WITH_EXIF)
-    fd_init_exif_c();
-#endif
-    fd_finish_module(safe_fdweb_module);
-    fd_finish_module(fdweb_module);
-    fd_finish_module(xhtml_module);
-    fd_persist_module(safe_fdweb_module);
-    fd_persist_module(fdweb_module);
-    fd_persist_module(xhtml_module);}
   fd_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
      fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
-  fd_register_source_file(FDB_FDWEB_H_VERSION);
-  fd_register_source_file(versionid);
 }
+
+
