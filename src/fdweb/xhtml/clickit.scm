@@ -102,10 +102,11 @@
 
 (define vistoggle
   (macro expr
-    `(xmlblock ((class "vistoggle_hidden")
-		(onclick "_fdb_vistoggle(event);")
-		(content ,(get-arg expr 1)))
-	 ,@(get-body expr 2))))
+    `(xmlblock SPAN
+	 ((class "vistoggle_hidden")
+	  (onclick "_fdb_vistoggle(event);")
+	  (content ,(get-arg expr 1)))
+       ,@(subseq expr 2))))
 
 (module-export! 'vistoggle)
 
