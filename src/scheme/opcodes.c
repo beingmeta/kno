@@ -35,7 +35,7 @@ const u8_string fd_opcode_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xA0 */
-  "get","test",NULL,NULL,NULL,NULL,NULL,NULL,
+  "get","test","xref",NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xB0 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -573,7 +573,6 @@ static int numeric_argp(fdtype x)
 
 static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 {
-  
   if (FD_EXPECT_FALSE((opcode<FD_EQ_OPCODE) && (!(numeric_argp(arg2))))) {
     fd_decref(arg1);
     return fd_type_error(_("number"),"numeric opcode",arg2);}
@@ -596,6 +595,19 @@ static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 	FD_STOP_DO_CHOICES; break;}}
     fd_decref(arg1); fd_decref(arg2);
     return results;}
+}
+
+static fdtype xref_opcode(fdtype x,int i,fdtype tag)
+{
+  struct FD_COMPOUND *c=(fd_compound)x;
+  if ((FD_VOIDP(tag)) || ((c->tag)==tag))
+    if (i<c->n_elts) {
+      fdtype *values=&(c->elt0), value=values[i];
+      return fd_incref(value);}
+    else {
+      fd_seterr(fd_RangeError,"xref",NULL,x);
+      return FD_ERROR_VALUE;}
+  else return fd_err(fd_TypeError,"xref",fd_dtype2string(tag),x);
 }
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
@@ -701,6 +713,21 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else result=opcode_binary_dispatch(opcode,arg1,arg2);
       fd_decref(arg1); fd_decref(arg2);
       return result;}}
+  else if (opcode==FD_XREF_OPCODE) {
+    fdtype offset_arg=fd_get_arg(expr,2);
+    fdtype type_arg=fd_get_arg(expr,3);
+    if ((FD_PAIRP(type_arg)) &&
+	(FD_EQ(FD_CAR(type_arg),quote_symbol)) &&
+	(FD_PAIRP(FD_CDR(type_arg))))
+      type_arg=FD_CAR(FD_CDR(type_arg));
+    if (FD_CHOICEP(arg1)) {
+      fdtype results=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(a1,arg1) {
+	fdtype result=xref_opcode(a1,FD_FIX2INT(offset_arg),type_arg);
+	FD_ADD_TO_CHOICE(results,result);}
+      fd_decref(arg1);
+      return results;}
+    else return xref_opcode(arg1,FD_FIX2INT(offset_arg),type_arg);}
   else {
     fd_decref(arg1);
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}

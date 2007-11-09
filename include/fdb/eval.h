@@ -376,6 +376,7 @@ FD_EXPORT int fd_opcode_table_len;
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_OPCODE(0xA0)
 #define FD_TEST_OPCODE       FD_OPCODE(0xA1)
+#define FD_XREF_OPCODE       FD_OPCODE(0xA2)
 
 
 #endif /* FDB_EVAL_H */

@@ -492,11 +492,6 @@ FD_EXPORT fdtype fd_init_compound(struct FD_COMPOUND *p,fdtype tag,int n,...)
       write=&(p->elt0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
-#if 0
-    else if (FD_APPLICABLEP(initfn)) {
-      fdtype result=(FDTYPE_CONS(p));
-      return fd_apply(initfn,1,&p);}
-#endif
     else return FDTYPE_CONS(p);}
   else return FDTYPE_CONS(p);
 }

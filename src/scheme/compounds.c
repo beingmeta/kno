@@ -61,7 +61,8 @@ static fdtype make_compound(int n,fdtype *args)
   struct FD_COMPOUND *compound=u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
   FD_INIT_CONS(compound,fd_compound_type);
-  compound->tag=fd_incref(args[0]);
+  compound->tag=fd_incref(args[0]); compound->n_elts=n-1;
+  fd_init_mutex(&(compound->lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return FDTYPE_CONS(compound);
@@ -73,7 +74,8 @@ static fdtype vector2compound(fdtype vector,fdtype tag)
   struct FD_COMPOUND *compound=u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   fdtype *write=&(compound->elt0);
   FD_INIT_CONS(compound,fd_compound_type);
-  compound->tag=fd_incref(tag);
+  compound->tag=fd_incref(tag); compound->n_elts=n;
+  fd_init_mutex(&(compound->lock));
   while (i<n) {
     fdtype elt=FD_VECTOR_REF(vector,i);
     fd_incref(elt);
@@ -84,8 +86,8 @@ static fdtype vector2compound(fdtype vector,fdtype tag)
 FD_EXPORT void fd_init_compounds_c()
 {
   fd_register_source_file(versionid);
-  
-  fd_idefn(fd_scheme_module,fd_make_cprim2("COMPOUND?",compoundp,1));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("COMPOUND-LENGTH",compound_tag,1,fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
