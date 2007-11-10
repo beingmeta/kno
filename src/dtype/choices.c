@@ -196,7 +196,10 @@ fdtype fd_init_choice
 {
   int atomicp=1, newlen=n;
   const fdtype *base, *scan, *limit;
-  if (ch==NULL) {
+  if (FD_EXPECT_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
+    if (ch) u8_free(ch);
+    return FD_EMPTY_CHOICE;}
+  else if (ch==NULL) {
     ch=fd_alloc_choice(n);
     if (ch==NULL) return FD_ERROR_VALUE;
     if (data)
