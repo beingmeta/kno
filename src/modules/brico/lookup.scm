@@ -388,7 +388,7 @@
 	  (lookup-term (subseq term 1) language 2))
       (if (has-prefix term "$")
 	  (lookup-term (subseq term 1) english)
-	  (if (exists? (textmatcher #((isalpha) (isalpha "$")) term))
+	  (if (exists? (textmatcher #((isalpha) (isalpha) "$") term))
 	      (lookup-term (subseq term 3) (?? 'iso639/1 (subseq term 0 2)))
 	      (try (cons term (singleton (lookup-word term language #f)))
 		   (if (or (position #\, term) (position #\: term)
