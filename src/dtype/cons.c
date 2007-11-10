@@ -568,7 +568,7 @@ FD_EXPORT fdtype fd_init_exception
    (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
 {
   if (exo==NULL) exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_exception_type); exo->ex=ex;
+  FD_INIT_CONS(exo,fd_error_type); exo->ex=ex;
   return FDTYPE_CONS(exo);
 }
 
@@ -583,7 +583,7 @@ FD_EXPORT fdtype fd_make_exception
     xdata=(void *) content;
     freefn=fd_free_exception_xdata;}
   ex=u8_make_exception(c,cxt,details,xdata,freefn);
-  FD_INIT_CONS(exo,fd_exception_type); exo->ex=ex;
+  FD_INIT_CONS(exo,fd_error_type); exo->ex=ex;
   return FDTYPE_CONS(exo);
 }
 
@@ -625,7 +625,7 @@ static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
 static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
   if (ex==NULL)
     u8_printf(out,"#<!OLDEXCEPTION>");
@@ -659,7 +659,7 @@ static u8_exception copy_exception_helper(u8_exception ex,int deep)
 static fdtype copy_exception(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   return fd_init_exception(NULL,copy_exception_helper(xo->ex,deep));
 }
 
@@ -944,12 +944,12 @@ void fd_init_cons_c()
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
   i=0; while (i<64) fd_immediate_checkfns[i++]=NULL;
 
-  fd_recyclers[fd_exception_type]=recycle_exception;
-  fd_copiers[fd_exception_type]=copy_exception;
-  if (fd_dtype_writers[fd_exception_type]==NULL)
-    fd_dtype_writers[fd_exception_type]=dtype_exception;
-  if (fd_unparsers[fd_exception_type]==NULL)
-    fd_unparsers[fd_exception_type]=unparse_exception;
+  fd_recyclers[fd_error_type]=recycle_exception;
+  fd_copiers[fd_error_type]=copy_exception;
+  if (fd_dtype_writers[fd_error_type]==NULL)
+    fd_dtype_writers[fd_error_type]=dtype_exception;
+  if (fd_unparsers[fd_error_type]==NULL)
+    fd_unparsers[fd_error_type]=unparse_exception;
 
   fd_recyclers[fd_mystery_type]=recycle_mystery;
   fd_recyclers[fd_compound_type]=recycle_compound;

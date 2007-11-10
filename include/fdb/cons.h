@@ -434,8 +434,7 @@ typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
 FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
 
-#define FD_EXCEPTIONP(x) (FD_PTR_TYPEP(x,fd_exception_type))
-#define FD_ERRORP(x) (FD_PTR_TYPEP(x,fd_error_type))
+#define FD_EXCEPTIONP(x) (FD_PTR_TYPEP(x,fd_error_type))
 
 /* Timestamps */
 

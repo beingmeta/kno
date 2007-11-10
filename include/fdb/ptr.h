@@ -138,7 +138,7 @@ typedef enum FD_PTR_TYPE {
   fd_wrapper_type=FD_CONS_TYPECODE(13),
   fd_mystery_type=FD_CONS_TYPECODE(14),
   fd_function_type=FD_CONS_TYPECODE(15),
-  fd_exception_type=FD_CONS_TYPECODE(16),
+  fd_error_type=FD_CONS_TYPECODE(16),
   fd_complex_type=FD_CONS_TYPECODE(17),
   fd_rational_type=FD_CONS_TYPECODE(18),
   fd_double_type=FD_CONS_TYPECODE(19),

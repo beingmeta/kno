@@ -89,7 +89,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       fdtype err_result=fd_apply(handler,1,&err_value);
       if (FD_ABORTP(err_result)) {
 	fd_exception_object exo=
-	  FD_GET_CONS(err_value,fd_exception_type,fd_exception_object);
+	  FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
 	/* Erase this just in case there's a dangling pointer to it */
 	exo->ex=NULL;
 	u8_restore_exception(ex);
@@ -119,7 +119,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
 static fdtype error_condition(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
   while ((ex) && (ex->u8x_cond==NULL)) ex=ex->u8x_prev;
   if (ex==NULL) return FD_FALSE;
@@ -129,7 +129,7 @@ static fdtype error_condition(fdtype x)
 static fdtype error_context(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
   while ((ex) && (ex->u8x_context==NULL)) ex=ex->u8x_prev;
   if (ex==NULL) return FD_FALSE;
@@ -139,7 +139,7 @@ static fdtype error_context(fdtype x)
 static fdtype error_details(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
   while ((ex) && (ex->u8x_details==NULL)) ex=ex->u8x_prev;
   if (ex==NULL) return FD_FALSE;
@@ -149,7 +149,7 @@ static fdtype error_details(fdtype x)
 static fdtype error_irritant(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex, last=ex;
   fdtype irritant;
   while (ex) {
@@ -163,7 +163,7 @@ static fdtype error_irritant(fdtype x)
 static fdtype error_xdata(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
   fdtype xdata=fd_exception_xdata(ex);
   if (FD_VOIDP(xdata)) return FD_FALSE;
@@ -246,19 +246,19 @@ FD_EXPORT void fd_init_errors_c()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-CONDITION",error_condition,1,
-			   fd_exception_type,FD_VOID));
+			   fd_error_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-CONTEXT",error_context,1,
-			   fd_exception_type,FD_VOID));
+			   fd_error_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-DETAILS",error_details,1,
-			   fd_exception_type,FD_VOID));
+			   fd_error_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-IRRITANT",error_irritant,1,
-			   fd_exception_type,FD_VOID));
+			   fd_error_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
-			   fd_exception_type,FD_VOID));
+			   fd_error_type,FD_VOID));
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);
   fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_handler);
