@@ -1991,10 +1991,14 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 	  if (clean) {
 	    fdtype v=*scan;
 	    u8_free(h->slots);
-	    return v;}
+	    if (FD_VOIDP(v)) return FD_EMPTY_CHOICE;
+	    else return v;}
 	  else {
+	    fdtype v=fd_incref(*scan);
 	    fd_unlock_struct(h);
-	    return fd_incref(*scan);}
+	    if (FD_VOIDP(v))
+	      return FD_EMPTY_CHOICE;
+	    else return v;}
 	else scan++;}
     else {
       int n=h->n_keys, atomicp=1; 
@@ -2004,10 +2008,12 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
       fdtype *write=base, *writelim=base+n;
       if (clean)
 	while ((scan<limit) && (write<writelim))
-	  if (*scan) *write++=*scan++; else scan++;
+	  if (*scan) {
+	    fdtype v=*scan++; if (!(FD_VOIDP(v))) *write++=v;}
+	  else scan++;
       else while ((scan<limit) && (write<writelim)) {
 	fdtype v=*scan++;
-	if (v) {
+	if ((v) && (!(FD_VOIDP(v)))) {
 	  if (atomicp) {
 	    if (FD_CONSP(v)) {atomicp=0; fd_incref(v);}}
 	  else fd_incref(v);
