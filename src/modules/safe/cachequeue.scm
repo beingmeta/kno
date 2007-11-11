@@ -8,7 +8,13 @@
 (use-module '{ezrecords fifo logger})
 
 (module-export! '{cachequeue cqompute cqonsume cachequeue/status})
-;;(module-export! '{cachequeue-cache cachequeue-method cachequeue-fifo cqdaemon})
+#|
+(module-export!
+ '{cachequeue-cache
+   cachequeue-method cachequeue-fifo
+   cachequeue-state cachequeue-consumers
+   cqdaemon})
+|#
 
 ;;; Making cache qeueues
 
