@@ -102,9 +102,9 @@
 		(cons-meltentry
 		 (meltentry-value previous)
 		 (meltentry-creation previous)
-		 (timestamp+ (roundup (quotient (+ thisspan lastspan) 2))))
+		 (timestamp+ (roundup (/ (+ thisspan lastspan) 2))))
 		(cons-meltentry value (timestamp)
-				(timestamp+ (roundup (quotient lastspan 4))))))
+				(timestamp+ (roundup (/ lastspan 4))))))
 	  (cons-meltentry value (timestamp)
 			  (timestamp+ (or threshold meltcache-threshold))))))
 
@@ -122,11 +122,11 @@
 		(cons-meltentry
 		 (meltentry-value previous)
 		 (meltentry-creation previous)
-		 (timestamp+ (roundup (quotient (+ thisspan lastspan) 2))))
+		 (timestamp+ (roundup (/ (+ thisspan lastspan) 2))))
 		;; Otherwise, add the new value(s) to the previous values
 		(cons-meltentry (choice value (meltentry-value previous))
 				(timestamp)
-				(timestamp+ (roundup (quotient lastspan 4))))))
+				(timestamp+ (roundup (/ lastspan 4))))))
 	  (cons-meltentry value (timestamp)
 			  (timestamp+ (or threshold meltcache-threshold))))))
 
@@ -146,7 +146,7 @@
 			 (meltentry-creation previous))))))
 	(cons-meltentry
 	 (meltentry-value previous) (meltentry-creation previous)
-	 (timestamp+ (quotient (+ lastspan meltcache-threshold) 2))
+	 (timestamp+ (/ (+ lastspan meltcache-threshold) 2))
 	 error))))
 
 ;;; Variant meltcache functions
