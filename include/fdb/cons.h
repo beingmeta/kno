@@ -341,6 +341,9 @@ typedef struct FD_COMPOUND *fd_compound;
 
 FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *ptr,fdtype tag,short mutable,short n,...);
+FD_EXPORT fdtype fd_init_compound_from_elts
+  (struct FD_COMPOUND *p,fdtype tag,short mutable,short n,fdtype *elts);
+
 
 FD_EXPORT fdtype fd_compound_descriptor_type;
 

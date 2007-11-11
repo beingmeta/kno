@@ -499,6 +499,31 @@ FD_EXPORT fdtype fd_init_compound
   else return FDTYPE_CONS(p);
 }
  
+FD_EXPORT fdtype fd_init_compound_from_elts
+  (struct FD_COMPOUND *p,fdtype tag,short mutable,short n,fdtype *elts)
+{
+  va_list args; int i=0;
+  fdtype *write, *limit, *read=elts, initfn=FD_FALSE;
+  if (n<0) 
+    return fd_type_error(_("positive int"),"make_compound",FD_SHORT2DTYPE(n));
+  else if (p==NULL)
+    if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
+    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
+  FD_INIT_CONS(p,fd_compound_type);
+  if (mutable) fd_init_mutex(&(p->lock));
+  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n;
+  if (n>0) {
+    write=&(p->elt0); limit=write+n;
+    while (write<limit) {
+      *write=*read++; write++;}
+    if (FD_ABORTP(initfn)) {
+      write=&(p->elt0);
+      while (write<limit) {fd_decref(*write); write++;}
+      return initfn;}
+    else return FDTYPE_CONS(p);}
+  else return FDTYPE_CONS(p);
+}
+
 static void recycle_compound(struct FD_CONS *c)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
