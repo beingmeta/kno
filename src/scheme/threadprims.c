@@ -30,6 +30,7 @@ static char versionid[] =
 #include <errno.h>
 
 static u8_condition ThreadReturnError=_("Thread returned with error");
+static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
 /* Thread functions */
 
@@ -221,6 +222,11 @@ static void *thread_call(void *data)
     else u8_log(LOG_WARN,ThreadReturnError,"Thread apply %q returned %q",
 		tstruct->applydata.fn,errstring);
     u8_free(errstring);
+    if (fd_threaderror_backtrace) {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
+      fd_print_backtrace(&out,ex,120);
+      u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
+      u8_free(out.u8_outbuf);}
     if (tstruct->resultptr)
       *(tstruct->resultptr)=fd_init_exception(NULL,ex);
     else u8_free_exception(ex,1);}
