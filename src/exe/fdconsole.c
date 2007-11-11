@@ -430,16 +430,18 @@ int main(int argc,char **argv)
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
     else if (FD_TROUBLEP(result)) {
       u8_exception ex=u8_erreify(), root=ex;
-      int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
-      while (root->u8x_prev) root=root->u8x_prev;
-      fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
-      fd_print_exception(&out,root);
-      fd_print_backtrace(&out,ex,80);
-      fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
-      fputs(out.u8_outbuf,stderr);
-      u8_free(out.u8_outbuf);
-      u8_free_exception(ex,1);}
+      if (ex) {
+	int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+	U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+	while (root->u8x_prev) root=root->u8x_prev;
+	fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
+	fd_print_exception(&out,root);
+	fd_print_backtrace(&out,ex,80);
+	fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+	fputs(out.u8_outbuf,stderr);
+	u8_free(out.u8_outbuf);
+	u8_free_exception(ex,1);}
+      else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}
     else stat_line=output_result(out,result,histref,is_histref);
     if (stat_line)
       if (histref<0)
