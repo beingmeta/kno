@@ -16,6 +16,11 @@
    cqdaemon})
 |#
 
+(define (doconsume method result)
+  (if (pair? method)
+      (apply (car method) result (cdr method))
+      (method result)))
+
 ;;; Making cache qeueues
 
 (defrecord cachequeue cache method fifo state compute consumers props)
