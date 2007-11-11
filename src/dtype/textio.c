@@ -843,18 +843,18 @@ static fdtype parse_bracket_list(U8_INPUT *in)
 
 static fdtype parse_vector(U8_INPUT *in)
 {
-  int n_elts;
+  int n_elts=-2;
   fdtype *elts=parse_vec(in,')',&n_elts);
-  if ((elts) && (n_elts>=0)) 
+  if (n_elts>=0) 
     return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
 
 static fdtype parse_slotmap(U8_INPUT *in)
 {
-  int n_elts=-1;
+  int n_elts=-2;
   fdtype *elts=parse_vec(in,']',&n_elts);
-  if ((elts) && (n_elts>=0)) 
+  if (n_elts>=0) 
     return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),n_elts/2,
 			   (struct FD_KEYVAL *)elts);
   else return FD_PARSE_ERROR;
@@ -868,7 +868,7 @@ static fdtype parse_choice(U8_INPUT *in)
   else if (ch < 0) 
     if (ch==-1) return FD_EOX; else return FD_PARSE_ERROR;
   else {
-    int n_elts; fdtype *elts=parse_vec(in,'}',&n_elts);
+    int n_elts=-2; fdtype *elts=parse_vec(in,'}',&n_elts);
     if (n_elts==0) return FD_EMPTY_CHOICE;
     else if (elts==NULL)
       return FD_PARSE_ERROR;
@@ -888,7 +888,7 @@ static fdtype parse_choice(U8_INPUT *in)
 
 static fdtype parse_qchoice(U8_INPUT *in)
 {
-  int n_elts;
+  int n_elts=-2;
   fdtype *elts=parse_vec(in,'}',&n_elts);
   if (n_elts==0)
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
