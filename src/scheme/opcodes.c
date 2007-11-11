@@ -603,10 +603,10 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
   if ((FD_VOIDP(tag)) || ((c->tag)==tag))
     if (i<c->n_elts) {
       fdtype *values=&(c->elt0), value;
-      fd_lock_struct(c);
+      if (c->mutable) fd_lock_struct(c);
       value=values[i];
       fd_incref(value);
-      fd_unlock_struct(c);
+      if (c->mutable) fd_unlock_struct(c);
       return value;}
     else {
       fd_seterr(fd_RangeError,"xref",NULL,x);

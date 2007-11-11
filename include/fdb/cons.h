@@ -317,7 +317,7 @@ FD_EXPORT fdtype fd_make_vector(int len,...);
 
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
-  fdtype tag; int n_elts;
+  fdtype tag; short mutable; short n_elts;
 #if FD_THREADS_ENABLED
   u8_mutex lock;
 #endif
@@ -340,7 +340,7 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
 
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *ptr,fdtype tag,int n,...);
+  (struct FD_COMPOUND *ptr,fdtype tag,short mutable,short n,...);
 
 FD_EXPORT fdtype fd_compound_descriptor_type;
 

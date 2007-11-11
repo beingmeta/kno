@@ -468,21 +468,24 @@ static fdtype check_compound_type(fdtype tag,int n)
   else return FD_FALSE;
 }
 
-FD_EXPORT fdtype fd_init_compound(struct FD_COMPOUND *p,fdtype tag,int n,...)
+FD_EXPORT fdtype fd_init_compound
+  (struct FD_COMPOUND *p,fdtype tag,short mutable,short n,...)
 {
   va_list args; int i=0; fdtype *write, *limit, initfn=FD_FALSE;
   if (n<0) {
-    /* Consume the arguments, just in case the implementation is a little flaky. */
+    /* Consume the arguments, just in case the implementation is a
+       little flaky. */
     va_start(args,n);
     while (i<n) {va_arg(args,fdtype); i++;}
-    return fd_type_error(_("positive int"),"make_compound",FD_INT2DTYPE(n));}
+    return fd_type_error(_("positive int"),"make_compound",FD_SHORT2DTYPE(n));}
   else if (p==NULL)
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
   FD_INIT_CONS(p,fd_compound_type);
-  fd_init_mutex(&(p->lock)); p->tag=fd_incref(tag);
+  if (mutable) fd_init_mutex(&(p->lock));
+  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n;
   if (n>0) {
-    p->n_elts=n; write=&(p->elt0); limit=write+n;
+    write=&(p->elt0); limit=write+n;
     va_start(args,n);
     while (write<limit) {
       fdtype value=va_arg(args,fdtype);
@@ -502,6 +505,7 @@ static void recycle_compound(struct FD_CONS *c)
   int i=0, n=compound->n_elts; fdtype *data=&(compound->elt0);
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->tag);
+  if (compound->mutable) fd_destroy_mutex(&(compound->lock));
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -552,13 +556,14 @@ static fdtype copy_compound(fdtype x,int deep)
   struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
   fdtype *data=&(xc->elt0), *write=&(nc->elt0);
   FD_INIT_CONS(nc,fd_compound_type);
-  fd_init_mutex(&(nc->lock));
+  if (xc->mutable) fd_init_mutex(&(nc->lock));
+  nc->mutable=xc->mutable;
   nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
   if (deep)
     while (i<n) {
       *write=fd_deep_copy(data[i]); i++; write++;}
   else while (i<n) {
-      *write=fd_incref(data[i]); i++; write++;}
+    *write=fd_incref(data[i]); i++; write++;}
   return FDTYPE_CONS(nc);
 }
 
