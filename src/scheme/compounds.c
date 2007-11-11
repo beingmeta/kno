@@ -155,9 +155,9 @@ FD_EXPORT void fd_init_compounds_c()
 			   fd_compound_type,FD_VOID,-1,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprimn("MAKE-COMPOUND",make_compound,1));
+	   fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprimn("MAKE-MUTABLE-COMPOUND",make_mutable_compound,1));
+	   fd_make_ndprim(fd_make_cprimn("MAKE-MUTABLE-COMPOUND",make_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("VECTOR->COMPOUND",vector2compound,2,
 			   fd_vector_type,FD_VOID,-1,FD_VOID,
