@@ -1,6 +1,7 @@
 (in-module 'cachequeue)
 
-;;; Module for cached and distributed processing
+;;; Cache queues support the queued computation and caching of complex
+;;; functions.
 
 (define version "$Id: fifo.scm 1761 2007-08-31 11:20:52Z haase $")
 
@@ -29,10 +30,9 @@
 		       state)
 		     (begin (if consumer (add! consumers args consumer))
 			    (cqompute-inner cq args)))))))
-      (let ((cq (make-cachequeue
-		 cache method (make-fifo)
-		 statetable cqmethod consumers
-		 (frame-create #f))))
+      (let ((cq (cons-cachequeue cache method (make-fifo)
+				 statetable cqmethod consumers
+				 (frame-create #f))))
 	(dotimes (i nthreads)
 	  (threadcall cqdaemon cq i #f))
 	cq))))

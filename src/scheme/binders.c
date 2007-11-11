@@ -98,6 +98,28 @@ static fdtype set_default_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_VOID;}}
 }
 
+static fdtype bind_default_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype symbol=fd_get_arg(expr,1);
+  fdtype value_expr=fd_get_arg(expr,2);
+  if (!(FD_SYMBOLP(symbol)))
+    return fd_err(fd_SyntaxError,"bind_default_handler",NULL,fd_incref(expr));
+  else if (FD_VOIDP(value_expr))
+    return fd_err(fd_SyntaxError,"bind_default_handler",NULL,fd_incref(expr));
+  else if (env==NULL)
+    return fd_err(fd_SyntaxError,"bind_default_handler",NULL,fd_incref(expr));
+  else {
+    fdtype val=fd_get(env->bindings,symbol,FD_VOID);
+    if (FD_VOIDP(val)) {
+      fdtype value=fd_eval(value_expr,env);
+      if (FD_ABORTP(value)) return value;
+      fd_bind_value(symbol,value,env);
+      fd_decref(value);
+      return FD_VOID;}
+    else {
+      fd_decref(val); return FD_VOID;}}
+}
+
 #if FD_THREADS_ENABLED
 static u8_mutex sset_lock;
 #endif
@@ -969,6 +991,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"DO",do_handler);
 
   fd_defspecial(fd_scheme_module,"DEFAULT!",set_default_handler);
+  fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_handler);
 
   fd_defspecial(fd_scheme_module,"LETQ",letq_handler);
   fd_defspecial(fd_scheme_module,"LETQ*",letqstar_handler);

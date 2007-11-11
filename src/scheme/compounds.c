@@ -40,10 +40,41 @@ static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
   int off=FD_FIX2INT(offset), len=compound->n_elts;
+  fd_lock_struct(compound);
   if (((compound->tag==tag) || (FD_VOIDP(tag))) && (off<len)) {
     fdtype value=*((&(compound->elt0))+off);
-    return fd_incref(value);}
-  else if ((compound->tag!=tag) && (!(FD_VOIDP(tag)))) {
+    fd_incref(value);
+    fd_unlock_struct(compound);
+    return value;}
+  /* Unlock and figure out the details of the error */
+  fd_unlock_struct(compound);
+  if ((compound->tag!=tag) && (!(FD_VOIDP(tag)))) {
+    u8_string type_string=fd_dtype2string(tag);
+    fd_seterr(fd_TypeError,"compound_ref",type_string,x);
+    return FD_ERROR_VALUE;}
+  else if (!(FD_VOIDP(tag))) {
+    u8_string type_string=fd_dtype2string(tag);
+    fd_seterr(fd_RangeError,"compound_ref",type_string,off);
+    return FD_ERROR_VALUE;}
+  else {
+    fd_seterr(fd_RangeError,"compound_ref",NULL,off);
+    return FD_ERROR_VALUE;}
+}
+
+static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
+{
+  struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
+  int off=FD_FIX2INT(offset), len=compound->n_elts;
+  fd_lock_struct(compound);
+  if (((compound->tag==tag) || (FD_VOIDP(tag))) && (off<len)) {
+    fdtype *valuep=((&(compound->elt0))+off), old_value=*valuep;
+    fd_incref(value); *valuep=value;
+    fd_decref(old_value);
+    fd_unlock_struct(compound);
+    return value;}
+  /* Unlock and figure out the details of the error */
+  fd_unlock_struct(compound);
+  if ((compound->tag!=tag) && (!(FD_VOIDP(tag)))) {
     u8_string type_string=fd_dtype2string(tag);
     fd_seterr(fd_TypeError,"compound_ref",type_string,x);
     return FD_ERROR_VALUE;}
@@ -87,11 +118,23 @@ FD_EXPORT void fd_init_compounds_c()
 {
   fd_register_source_file(versionid);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,fd_compound_type,FD_VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim1x("COMPOUND-LENGTH",compound_tag,1,fd_compound_type,FD_VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
-					    fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprimn("MAKE-COMPOUND",make_compound,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("VECTOR->COMPOUND",vector2compound,2));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
+			   fd_compound_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("COMPOUND-LENGTH",compound_tag,1,
+			   fd_compound_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
+			   fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
+			   fd_compound_type,FD_VOID,-1,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprimn("MAKE-COMPOUND",make_compound,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2("VECTOR->COMPOUND",vector2compound,2));
 }
