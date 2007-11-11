@@ -12,6 +12,7 @@
 
 (module-export!
  '{meltcache/get
+   meltcache/entry
    meltcache/probe meltcache/accumulate
    meltcache/bypass meltcache/bypass+
    melted?})
@@ -56,6 +57,25 @@
 		     (meltentry-value entry))))
 	(meltentry-value cached))))
 
+(define (meltcache/entry cache fcn . args)
+  (let* ((procname (procedure-name fcn))
+	 (prockey (if (index? cache) procname fcn))
+	 (threshold (try (get meltcache-threshold-table fcn)
+			 (get meltcache-threshold-table procname)
+			 #f))
+	 (cached (try (get cache (cons prockey args)) #f)))
+    (if (or (not cached) (melted? cached))
+	(onerror (apply fcn args)
+		 (lambda (value)
+		   (let ((entry (error-meltentry (qc value) cached threshold)))
+		     (store! cache (cons prockey args) entry)
+		     entry))
+		 (lambda (value)
+		   (let ((entry (new-meltentry (qc value) cached threshold)))
+		     (store! cache (cons prockey args) entry)
+		     entry)))
+	cached)))
+
 (define (meltcache/probe cache fcn . args)
   (let* ((procname (procedure-name fcn))
 	 (prockey (if (index? cache) procname fcn))
@@ -72,41 +92,43 @@
 ;; If it has changed, we set the expiration date to be half of the previous
 ;; span.
 (define (new-meltentry value previous (threshold #f))
-  (if (and (exists? previous) (meltentry? previous))
-      (let ((thisspan (difftime (timestamp) (meltentry-creation previous)))
-	    (lastspan
-	     (difftime (meltentry-expiration previous)
-		       (meltentry-creation previous))))
-	(if (identical? value (meltentry-value previous))
-	    (cons-meltentry
-	     (meltentry-value previous)
-	     (meltentry-creation previous)
-	     (timestamp+ (roundup (quotient (+ thisspan lastspan) 2))))
-	    (cons-meltentry value (timestamp)
-			    (timestamp+ (roundup (quotient lastspan 4))))))
-      (cons-meltentry value (timestamp)
-		      (timestamp+ (or threshold meltcache-threshold)))))
+  (if (meltentry? value) value
+      (if (and (exists? previous) (meltentry? previous))
+	  (let ((thisspan (difftime (timestamp) (meltentry-creation previous)))
+		(lastspan
+		 (difftime (meltentry-expiration previous)
+			   (meltentry-creation previous))))
+	    (if (identical? value (meltentry-value previous))
+		(cons-meltentry
+		 (meltentry-value previous)
+		 (meltentry-creation previous)
+		 (timestamp+ (roundup (quotient (+ thisspan lastspan) 2))))
+		(cons-meltentry value (timestamp)
+				(timestamp+ (roundup (quotient lastspan 4))))))
+	  (cons-meltentry value (timestamp)
+			  (timestamp+ (or threshold meltcache-threshold))))))
 
 ;;; This is a version which accumulates returned values,
 ;;;  rather than using them directly.
 (define (accumulate-meltentry value previous (threshold #f))
-  (if (and (exists? previous) (meltentry? previous))
-      (let ((thisspan (difftime (timestamp) (meltentry-creation previous)))
-	    (lastspan
-	     (difftime (meltentry-expiration previous)
-		       (meltentry-creation previous))))
-	;; If there aren't any new values, just extend the meltentry
-	(if (empty? (difference value (meltentry-value previous)))
-	    (cons-meltentry
-	     (meltentry-value previous)
-	     (meltentry-creation previous)
-	     (timestamp+ (roundup (quotient (+ thisspan lastspan) 2))))
-	    ;; Otherwise, add the new value(s) to the previous values
-	    (cons-meltentry (choice value (meltentry-value previous))
-			    (timestamp)
-			    (timestamp+ (roundup (quotient lastspan 4))))))
-      (cons-meltentry value (timestamp)
-		      (timestamp+ (or threshold meltcache-threshold)))))
+  (if (meltentry? value) value
+      (if (and (exists? previous) (meltentry? previous))
+	  (let ((thisspan (difftime (timestamp) (meltentry-creation previous)))
+		(lastspan
+		 (difftime (meltentry-expiration previous)
+			   (meltentry-creation previous))))
+	    ;; If there aren't any new values, just extend the meltentry
+	    (if (empty? (difference value (meltentry-value previous)))
+		(cons-meltentry
+		 (meltentry-value previous)
+		 (meltentry-creation previous)
+		 (timestamp+ (roundup (quotient (+ thisspan lastspan) 2))))
+		;; Otherwise, add the new value(s) to the previous values
+		(cons-meltentry (choice value (meltentry-value previous))
+				(timestamp)
+				(timestamp+ (roundup (quotient lastspan 4))))))
+	  (cons-meltentry value (timestamp)
+			  (timestamp+ (or threshold meltcache-threshold))))))
 
 ;; This is called when calling the inner function returned an error.
 ;;  In this case, we use the last value and set an expiration
