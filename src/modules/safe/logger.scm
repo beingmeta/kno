@@ -18,7 +18,7 @@
 
 (define logger
   (macro expr
-    `(logif (>= %loglevel ,(car expr)) ,(car expr) ,@(cdr expr))))
+    `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
 (define logdebug
   (macro expr `(logif+ (>= %loglevel 7) 7 ,@(cdr expr))))
