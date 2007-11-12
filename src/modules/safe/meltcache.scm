@@ -15,7 +15,7 @@
    meltcache/entry
    meltcache/probe meltcache/accumulate
    meltcache/bypass meltcache/bypass+
-   melted?})
+   melted? meltentry? meltentry/ttl})
 
 (define (now) (gmtimestamp))
 (define (now+ delta) (timestamp+ (gmtimestamp) delta))
@@ -40,6 +40,8 @@
 
 (define (melted? entry)
   (time-earlier? (meltentry-expiration entry)))
+(define (meltentry/ttl entry)
+  (difftime (meltentry-expiration entry) (gmtimestamp)))
 
 (define (meltcache/get cache fcn . args)
   (let* ((procname (procedure-name fcn))
