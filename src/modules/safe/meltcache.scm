@@ -17,6 +17,9 @@
    meltcache/bypass meltcache/bypass+
    melted?})
 
+(define (now) (gmtimestamp))
+(define (now+ delta) (timestamp+ (gmtimestamp) delta))
+
 ;;;; Implementation
 
 ;; Default threshold in seconds: 15 minutes
@@ -94,7 +97,7 @@
 (define (new-meltentry value previous (threshold #f))
   (if (meltentry? value) value
       (if (and (exists? previous) (meltentry? previous))
-	  (let ((thisspan (difftime (timestamp) (meltentry-creation previous)))
+	  (let ((thisspan (difftime (now) (meltentry-creation previous)))
 		(lastspan
 		 (difftime (meltentry-expiration previous)
 			   (meltentry-creation previous))))
@@ -102,18 +105,18 @@
 		(cons-meltentry
 		 (meltentry-value previous)
 		 (meltentry-creation previous)
-		 (timestamp+ (roundup (/ (+ thisspan lastspan) 2))))
-		(cons-meltentry value (timestamp)
-				(timestamp+ (roundup (/ lastspan 4))))))
-	  (cons-meltentry value (timestamp)
-			  (timestamp+ (or threshold meltcache-threshold))))))
+		 (now+ (roundup (/ (+ thisspan lastspan) 2))))
+		(cons-meltentry value (now)
+				(now+ (roundup (/ lastspan 4))))))
+	  (cons-meltentry value (now)
+			  (now+ (or threshold meltcache-threshold))))))
 
 ;;; This is a version which accumulates returned values,
 ;;;  rather than using them directly.
 (define (accumulate-meltentry value previous (threshold #f))
   (if (meltentry? value) value
       (if (and (exists? previous) (meltentry? previous))
-	  (let ((thisspan (difftime (timestamp) (meltentry-creation previous)))
+	  (let ((thisspan (difftime (now) (meltentry-creation previous)))
 		(lastspan
 		 (difftime (meltentry-expiration previous)
 			   (meltentry-creation previous))))
@@ -122,13 +125,13 @@
 		(cons-meltentry
 		 (meltentry-value previous)
 		 (meltentry-creation previous)
-		 (timestamp+ (roundup (/ (+ thisspan lastspan) 2))))
+		 (now+ (roundup (/ (+ thisspan lastspan) 2))))
 		;; Otherwise, add the new value(s) to the previous values
 		(cons-meltentry (choice value (meltentry-value previous))
-				(timestamp)
-				(timestamp+ (roundup (/ lastspan 4))))))
-	  (cons-meltentry value (timestamp)
-			  (timestamp+ (or threshold meltcache-threshold))))))
+				(now)
+				(now+ (roundup (/ lastspan 4))))))
+	  (cons-meltentry value (now)
+			  (now+ (or threshold meltcache-threshold))))))
 
 ;; This is called when calling the inner function returned an error.
 ;;  In this case, we use the last value and set an expiration
@@ -136,8 +139,8 @@
 ;;  for the entry.
 (define (error-meltentry error previous threshold)
   (if (fail? previous)
-      (cons-meltentry {} (timestamp)
-		      (timestamp+ (or threshold meltcache-threshold))
+      (cons-meltentry {} (now)
+		      (now+ (or threshold meltcache-threshold))
 		      error)
       (let ((lastspan 
 	     (inexact->exact
@@ -146,7 +149,7 @@
 			 (meltentry-creation previous))))))
 	(cons-meltentry
 	 (meltentry-value previous) (meltentry-creation previous)
-	 (timestamp+ (/ (+ lastspan meltcache-threshold) 2))
+	 (now+ (/ (+ lastspan meltcache-threshold) 2))
 	 error))))
 
 ;;; Variant meltcache functions
