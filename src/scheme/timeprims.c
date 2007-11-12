@@ -167,8 +167,8 @@ static fdtype timestamp_earlier(fdtype timestamp1,fdtype timestamp2)
     diff=u8_xtime_diff(&(t1->xtime),&xtime);
     if (diff<0) return FD_TRUE; else return FD_FALSE;}
   else {
-    double diff; int free2;
-    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free1);
+    double diff; int free2=0;
+    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
     if (t2 == NULL) {
       if (free1) u8_free(t1); if (free2) u8_free(t2);
       return FD_ERROR_VALUE;}
@@ -188,8 +188,8 @@ static fdtype timestamp_later(fdtype timestamp1,fdtype timestamp2)
     diff=u8_xtime_diff(&(t1->xtime),&xtime);
     if (diff>0) return FD_TRUE; else return FD_FALSE;}
   else {
-    double diff; int free2;
-    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free1);
+    double diff; int free2=0;
+    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
     if (t2 == NULL) {
       if (free1) u8_free(t1); if (free2) u8_free(t2);
       return FD_ERROR_VALUE;}
