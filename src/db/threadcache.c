@@ -18,7 +18,6 @@ static u8_condition FreeingForeignThreadCache=
 
 #if (FD_USE_TLS)
 u8_tld_key fd_threadcache_key;
-#define fd_threadcache ((fdtype *)u8_tld_get(fd_threadcache_key))
 
 #elif (FD_USE__THREAD)
 __thread struct FD_THREAD_CACHE *fd_threadcache=NULL;
