@@ -45,17 +45,19 @@
 	 (region (get concept 'region))
 	 (region-norm (get-norm region language))
 	 (isa (get concept @?implies)))
-    (try (tryif (identical? concept (probe-location concept norm country-norm language))
-		(stringout norm ", " country-norm))
-	 (tryif (identical? concept (probe-location concept norm region-norm language))
-		(stringout norm ", " region-norm))
+    (try (try-choices country-norm
+	   (tryif (identical? concept (probe-location concept norm country-norm language))
+		  (stringout norm ", " country-norm)))
+	 (try-choices region-norm
+	   (tryif (identical? concept (probe-location concept norm region-norm language))
+		  (stringout norm ", " region-norm)))
 	 (try-choices (isa (get concept @?implies))
 	   (try-choices (isaterm (get-norm isa language))
 	     (tryif (identical? concept (probe-location concept norm region-norm language isaterm))
 		    (stringout norm ", " region-norm
 			       " (" isaterm ")"))))
 	 (tryif (test concept 'fips-code)
-		(stringout norm "(FIPS-CODE=" (get concept 'fips-code) ")")))))
+		(stringout norm "(FIPS-CODE=" (smallest (get concept 'fips-code) length) ")")))))
 
 (define (probeisa concept norm isaterm language normlang)
   (identical? concept (?? language norm @?implies (?? normlang isaterm))))
