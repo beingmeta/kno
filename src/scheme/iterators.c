@@ -297,18 +297,18 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype body=fd_get_body(expr,2), val=FD_VOID;
+  fdtype body=fd_get_body(expr,2), val=FD_EMPTY_CHOICE;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
-  else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","try_handler",seq);
   else lim=fd_seq_length(seq);
   if (lim==0) {
     fd_decref(seq);
-    return FD_VOID;}
+    return FD_EMPTY_CHOICE;}
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
