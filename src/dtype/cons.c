@@ -899,12 +899,14 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),FD_FIX2INT(x),0);
+    xtm->xtime.u8_prec=u8_second; xtm->xtime.u8_tzoff=0;
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),tval,0);
+    xtm->xtime.u8_prec=u8_second; xtm->xtime.u8_tzoff=0;
     return FDTYPE_CONS(tm);}
   else if (FD_VECTORP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
