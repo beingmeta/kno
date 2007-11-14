@@ -178,7 +178,10 @@
 	  (?? language (string-subst word "-" " ")))
    (tryif (position #\_ word)
 	  (?? language (string-subst word "_" " ")))
-   (tryif (uppercase? word) (?? language (capitalize word)))))
+   (tryif (uppercase? word)
+	  (?? language (capitalize word)))
+   (tryif (and tryhard (> tryhard 1) (lowercase? word))
+	  (?? language (capitalize word)))))
 
 (define (lookup-subphrase word language tryhard)
   ;; This method identifies compounds by stripping off the initial or

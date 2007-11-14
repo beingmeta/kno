@@ -1,6 +1,7 @@
 (in-module 'brico/dterms)
 
-(module-export! '{find-dterm get-dterm displayterm find-dterm-prefetch!})
+(module-export!
+ '{find-dterm get-dterm displayterm find-dterm-prefetch! dterm-caches})
 
 (use-module '{brico brico/lookup morph/en})
 
@@ -16,7 +17,11 @@
       (try (cachecall find-dterm concept language norm)
 	   (try-choices (alt (difference (get concept language) norm))
 	     (cachecall find-dterm concept language alt)))
-      (try (tryseq (dtc dterm-caches) (get dtc (cons language concept)))
+      (try (tryseq (dtc dterm-caches)
+	     (if (pair? dtc)
+		 (tryif (overlaps? (car dtc) language)
+			(get (cdr dtc) concept))
+		 (get dtc (cons language concept))))
 	   (get-dterm concept language (get-norm concept language)))))
 
 ;;; Finding dterms
@@ -165,5 +170,16 @@
 	   (string-append (get-norm concept language) " "
 			  (if (string? suffix) suffix "(alt)"))
 	   (get-norm concept language))))
+
+;;; Configuring DTERMCACHES
+
+(defslambda (dtermcaches-config var (value))
+  (if (bound? value)
+      (unless (position value dterm-caches)
+	(set! dterm-caches (cons value dterm-caches)))
+      dterm-caches))
+
+(config-def! 'dtermcaches dtermcaches-config)
+
 
 
