@@ -82,6 +82,10 @@
 (put 'tr* 'scheme-indent-function 1)
 (put 'th* 'scheme-indent-function 1)
 (put 'td* 'scheme-indent-function 1)
+(put 'ul 'scheme-indent-function 1)
+(put 'li 'scheme-indent-function 1)
+(put 'ul* 'scheme-indent-function 1)
+(put 'li* 'scheme-indent-function 2)
 (put 'form 'scheme-indent-function 1)
 
 (put 'find-frames 'scheme-indent-function 1)
