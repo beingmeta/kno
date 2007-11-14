@@ -151,8 +151,9 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
     if (free1) u8_free(t1); if (free2) u8_free(t2);
     return FD_ERROR_VALUE;}
   else {
+    double diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
     if (free1) u8_free(t1); if (free2) u8_free(t2);
-    return fd_init_double(NULL,u8_xtime_diff(&(t1->xtime),&(t2->xtime)));}
+    return fd_init_double(NULL,diff);}
 }
 
 static fdtype timestamp_earlier(fdtype timestamp1,fdtype timestamp2)
