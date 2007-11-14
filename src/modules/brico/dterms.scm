@@ -4,14 +4,20 @@
 
 (use-module '{brico brico/lookup morph/en})
 
+(define dterm-caches '())
+
+;;; Top level functions
+
 (define sensecathints
   (file->dtype (get-component "sensecathints.table")))
 
-(define (get-dterm concept (language default-language) (norm) (tryhard #f))
-  (default! norm (get-norm concept language))
-  (try (cachecall find-dterm concept language norm)
-       (try-choices (alt (difference (get concept language) norm))
-	 (cachecall find-dterm concept language alt))))
+(define (get-dterm concept (language default-language) (norm #f) (tryhard #f))
+  (if norm
+      (try (cachecall find-dterm concept language norm)
+	   (try-choices (alt (difference (get concept language) norm))
+	     (cachecall find-dterm concept language alt)))
+      (try (tryseq (dtc dterm-caches) (get dtc (cons language concept)))
+	   (get-dterm concept language (get-norm concept language)))))
 
 ;;; Finding dterms
 
