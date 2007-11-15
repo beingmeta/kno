@@ -154,17 +154,17 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
   timelo=fd_dtsread_4bytes(ds);
   if (timehi) 
     return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->id),FD_VOID);
-  u8_offtime(&_gentime,timelo,0);
+  u8_init_xtime(&_gentime,timelo,u8_second,0,0);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
   if (timehi) 
     return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->id),FD_VOID);
-  u8_offtime(&_packtime,timelo,0);
+  u8_init_xtime(&_packtime,timelo,u8_second,0,0);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
   if (timehi) 
     return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->id),FD_VOID);
-  u8_offtime(&_modtime,timelo,0);
+  u8_init_xtime(&_modtime,timelo,u8_second,0,0);
   mdpos=fd_dtsread_4bytes(ds);
   if (mdpos) {
     fd_setpos(ds,mdpos);
@@ -206,7 +206,7 @@ static void copy_timeinfo(struct U8_XTIME *tp,fdtype md,fdtype slotid)
     struct FD_TIMESTAMP *tstamp=
       FD_GET_CONS(tval,fd_timestamp_type,struct FD_TIMESTAMP *);
     memcpy(tp,&(tstamp->xtime),sizeof(struct U8_XTIME));}
-  else u8_localtime(tp,time(NULL));
+  else u8_init_xtime(tp,-1,u8_second,0,0);
 }
 
 static fdtype write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata)

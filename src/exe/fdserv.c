@@ -400,7 +400,7 @@ static fdtype getcontent(fdtype path)
       if (retval<0) {
 	u8_graberr(-1,"getcontent",lpath);
 	return FD_ERROR_VALUE;}
-      u8_offtime(&mtime,fileinfo.st_mtime,0);
+      u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0);
       content=loadcontent(path);
       if (FD_ABORTP(content)) {
 	u8_free(lpath);
@@ -427,7 +427,7 @@ static fdtype getcontent(fdtype path)
 	fdtype content_record=
 	  fd_init_pair(NULL,fd_make_timestamp(&mtime),
 		       fd_incref(new_content));
-	u8_offtime(&mtime,fileinfo.st_mtime,0);
+	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0);
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&

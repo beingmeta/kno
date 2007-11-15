@@ -33,10 +33,13 @@ static fd_exception strftime_error=_("internal strftime error");
 static fdtype year_symbol, month_symbol, date_symbol;
 static fdtype hours_symbol, minutes_symbol, seconds_symbol;
 static fdtype milliseconds_symbol, microseconds_symbol, nanoseconds_symbol;
-static fdtype precision_symbol, isostring_symbol, tzoff_symbol;
+static fdtype picoseconds_symbol, femtoseconds_symbol;
+static fdtype precision_symbol, tzoff_symbol;
 static fdtype spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
 static fdtype season_symbol, gmt_symbol, timezone_symbol;
 static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
+static fdtype tick_symbol, xtick_symbol;
+static fdtype iso_symbol, isostring_symbol, iso8601_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
 static fdtype hms_symbol, dmy_symbol, dm_symbol, string_symbol, shortstring_symbol;
@@ -64,22 +67,13 @@ static fdtype timestampp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype gmtimestamp_prim()
-{
-  struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
-  memset(tm,0,sizeof(struct FD_TIMESTAMP));
-  FD_INIT_CONS(tm,fd_timestamp_type);
-  u8_offtime(&(tm->xtime),time(NULL),0);
-  return FDTYPE_CONS(tm);
-}
-
 static fdtype timestamp_prim(fdtype arg)
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
   memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if (FD_VOIDP(arg)) {
-    u8_now(&(tm->xtime));
+    u8_local_xtime(&(tm->xtime),-1,u8_femtosecond,0);
     return FDTYPE_CONS(tm);}
   else if (FD_STRINGP(arg)) {
     u8_iso8601_to_xtime(FD_STRDATA(arg),&(tm->xtime));
@@ -88,17 +82,59 @@ static fdtype timestamp_prim(fdtype arg)
     enum u8_timestamp_precision prec=get_precision(arg);
     if (((int)prec)<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
-    u8_now(&(tm->xtime));
-    tm->xtime.u8_prec=prec;
+    u8_local_xtime(&(tm->xtime),-1,prec,-1);
     return FDTYPE_CONS(tm);}
   else if (FD_FIXNUMP(arg)) {
-    u8_offtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),0);
+    u8_local_xtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),u8_second,-1);
     return FDTYPE_CONS(tm);}
   else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
     int tv=fd_bigint2int((fd_bigint)arg);
-    u8_offtime(&(tm->xtime),(time_t)tv,0);
+    u8_local_xtime(&(tm->xtime),(time_t)tv,u8_second,-1);
     return FDTYPE_CONS(tm);}
-  else return fd_type_error("timestamp arg","timestamp_prim",arg);
+  else if (FD_PTR_TYPEP(arg,fd_double_type)) {
+    double dv=FD_FLONUM(arg);
+    double dsecs=floor(dv), dnsecs=(dv-dsecs)*1000000000;
+    unsigned int secs=(unsigned int)dsecs, nsecs=(unsigned int)dnsecs;
+    u8_local_xtime(&(tm->xtime),(time_t)secs,u8_second,nsecs);
+    return FDTYPE_CONS(tm);}
+  else {
+    u8_free(tm);
+    return fd_type_error("timestamp arg","timestamp_prim",arg);}
+}
+
+static fdtype gmtimestamp_prim(fdtype arg)
+{
+  struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
+  memset(tm,0,sizeof(struct FD_TIMESTAMP));
+  FD_INIT_CONS(tm,fd_timestamp_type);
+  if (FD_VOIDP(arg)) {
+    u8_init_xtime(&(tm->xtime),-1,u8_femtosecond,0,0);
+    return FDTYPE_CONS(tm);}
+  else if (FD_STRINGP(arg)) {
+    u8_iso8601_to_xtime(FD_STRDATA(arg),&(tm->xtime));
+    return FDTYPE_CONS(tm);}
+  else if (FD_SYMBOLP(arg)) {
+    enum u8_timestamp_precision prec=get_precision(arg);
+    if (((int)prec)<0)
+      return fd_type_error("timestamp precision","timestamp_prim",arg);
+    u8_init_xtime(&(tm->xtime),-1,prec,-1,0);
+    return FDTYPE_CONS(tm);}
+  else if (FD_FIXNUMP(arg)) {
+    u8_init_xtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),u8_second,-1,0);
+    return FDTYPE_CONS(tm);}
+  else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
+    int tv=fd_bigint2int((fd_bigint)arg);
+    u8_init_xtime(&(tm->xtime),(time_t)tv,u8_second,-1,0);
+    return FDTYPE_CONS(tm);}
+  else if (FD_PTR_TYPEP(arg,fd_double_type)) {
+    double dv=FD_FLONUM(arg);
+    double dsecs=floor(dv), dnsecs=(dv-dsecs)*1000000000;
+    unsigned int secs=(unsigned int)dsecs, nsecs=(unsigned int)dnsecs;
+    u8_init_xtime(&(tm->xtime),(time_t)secs,u8_second,nsecs,0);
+    return FDTYPE_CONS(tm);}
+  else {
+    u8_free(tm);
+    return fd_type_error("timestamp arg","timestamp_prim",arg);}
 }
 
 static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
@@ -132,7 +168,8 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
     if ((FD_FIXNUMP(arg1)) || (FD_FLONUMP(arg1)) || (FD_RATIONALP(arg1)))
       delta=fd_todouble(arg1);
     else return fd_type_error("number","timestamp_plus",arg1);
-    u8_now(&tmp); btime=&tmp;}
+    u8_init_xtime(&tmp,-1,u8_femtosecond,-1,0);
+    btime=&tmp;}
   else if ((FD_FIXNUMP(arg2)) || (FD_FLONUMP(arg2)) || (FD_RATIONALP(arg2))) {
     delta=fd_todouble(arg2);
     oldtm=get_timestamp(arg1,&free_old);
@@ -247,15 +284,19 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
+  else if ((FD_EQ(slotid,iso_symbol)) ||
+	   (FD_EQ(slotid,isostring_symbol)) ||
+	   (FD_EQ(slotid,iso8601_symbol))) {
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,128);
+    u8_xtime_to_iso8601(&out,xt);
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,gmt_symbol))
     if (xt->u8_tzoff==0) 
       return fd_make_timestamp(xt);
     else {
       struct U8_XTIME asgmt;
-      if (xt->u8_prec>u8_second)
-	u8_offtime_x(&asgmt,xt->u8_secs,xt->u8_nsecs,0);
-      else u8_offtime_x(&asgmt,xt->u8_secs,-1,0);
-      asgmt.u8_prec=xt->u8_prec;
+      u8_init_xtime(&asgmt,xt->u8_secs,xt->u8_prec,xt->u8_nsecs,0);
       return fd_make_timestamp(&asgmt);}
   else if (FD_EQ(slotid,month_symbol))
     if (xt->u8_prec>=u8_month)
@@ -389,23 +430,34 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,tzoff_symbol))
     return FD_INT2DTYPE(xt->u8_tzoff);
+  else if (FD_EQ(slotid,tick_symbol))
+    if (xt->u8_prec>=u8_second) {
+      time_t tick=xt->u8_secs;
+      return FD_INT2DTYPE((long)tick);}
+    else if (reterr)
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
+    else return FD_EMPTY_CHOICE;
+  else if (FD_EQ(slotid,xtick_symbol))
+    if (xt->u8_prec>=u8_second) {
+      double dsecs=(double)(xt->u8_secs), dnsecs=(double)(xt->u8_nsecs);
+      return fd_init_double(NULL,dsecs+(dnsecs/1000000000.0));}
+    else if (reterr)
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
+    else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,precision_symbol))
     switch (xt->u8_prec) {
-    case u8_year: year_symbol;
-    case u8_month: month_symbol;
-    case u8_day: date_symbol;
-    case u8_hour: hours_symbol;
-    case u8_minute: minutes_symbol;
-    case u8_second: seconds_symbol;
-    case u8_millisecond: milliseconds_symbol;
-    case u8_microsecond: microseconds_symbol;
-    case u8_nanosecond: nanoseconds_symbol;
+    case u8_year: return year_symbol;
+    case u8_month: return month_symbol;
+    case u8_day: return date_symbol;
+    case u8_hour: return hours_symbol;
+    case u8_minute: return minutes_symbol;
+    case u8_second: return seconds_symbol;
+    case u8_millisecond: return milliseconds_symbol;
+    case u8_microsecond: return microseconds_symbol;
+    case u8_nanosecond: return nanoseconds_symbol;
     default: return FD_EMPTY_CHOICE;}
-  else if (FD_EQ(slotid,isostring_symbol)) {
-    struct U8_OUTPUT out;
-    U8_INIT_OUTPUT(&out,32);
-    u8_xtime_to_iso8601(&out,xt);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,season_symbol))
     if (xt->u8_prec>=u8_month) {
       fdtype results=FD_EMPTY_CHOICE;
@@ -535,15 +587,14 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
       return result;}
     else {
       time_t moment=u8_mktime(xt);
-      u8_offtime(xt,moment,0);
+      u8_init_xtime(xt,moment,xt->u8_prec,xt->u8_nsecs,0);
       return result;}}
 }      
-
 
 static fdtype timestring()
 {
   struct U8_XTIME onstack; struct U8_OUTPUT out;
-  u8_localtime(&onstack,time(NULL));
+  u8_local_xtime(&onstack,-1,u8_second,0);
   U8_INIT_OUTPUT(&out,16);
   u8_printf(&out,"%02d:%02d:%02d",
 	    onstack.u8_tptr.tm_hour,
@@ -736,9 +787,20 @@ FD_EXPORT void fd_init_timeprims_c()
   hours_symbol=fd_intern("HOURS");
   minutes_symbol=fd_intern("MINUTES");
   seconds_symbol=fd_intern("SECONDS");
-  isostring_symbol=fd_intern("ISO8601");
   precision_symbol=fd_intern("PRECISION");
   tzoff_symbol=fd_intern("TZOFF");
+
+  milliseconds_symbol=fd_intern("MILLISECONDS");
+  microseconds_symbol=fd_intern("MICROSECONDS");
+  nanoseconds_symbol=fd_intern("NANOSECONDS");
+  picoseconds_symbol=fd_intern("PICOSECONDS");
+  femtoseconds_symbol=fd_intern("FEMTOSECONDS");
+
+  tick_symbol=fd_intern("TICK");
+  xtick_symbol=fd_intern("XTICK");
+  iso_symbol=fd_intern("ISO");
+  isostring_symbol=fd_intern("ISOSTRING");
+  iso8601_symbol=fd_intern("ISO8601");
 
   time_of_day_symbol=fd_intern("TIME-OF-DAY");
   morning_symbol=fd_intern("MORNING");
@@ -781,7 +843,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP?",timestampp,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GMTIMESTAMP",gmtimestamp_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("GMTIMESTAMP",gmtimestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP",timestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ELAPSED-TIME",elapsed_time,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("TIMESTRING",timestring,0));

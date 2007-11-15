@@ -818,7 +818,7 @@ FD_EXPORT
 fdtype fd_time2timestamp(time_t moment)
 {
   struct U8_XTIME xt; struct FD_TIMESTAMP *tstamp;
-  u8_localtime(&xt,moment);
+  u8_init_xtime(&xt,moment,u8_second,0,0);
   return fd_make_timestamp(&xt);
 }
 
@@ -901,16 +901,14 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_offtime(&(tm->xtime),FD_FIX2INT(x),0);
-    tm->xtime.u8_prec=u8_second; tm->xtime.u8_tzoff=0;
+    u8_init_xtime(&(tm->xtime),FD_FIX2INT(x),u8_second,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_offtime(&(tm->xtime),tval,0);
-    tm->xtime.u8_prec=u8_second; tm->xtime.u8_tzoff=0;
+    u8_init_xtime(&(tm->xtime),tval,u8_second,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_VECTORP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -920,9 +918,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
     int tzoff=fd_getint(FD_VECTOR_REF(x,3));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_offtime(&(tm->xtime),secs,tzoff);
-    tm->xtime.u8_nsecs=nsecs;
-    tm->xtime.u8_prec=iprec;
+    u8_init_xtime(&(tm->xtime),secs,iprec,nsecs,tzoff);
     return FDTYPE_CONS(tm);}
   else return fd_err(fd_DTypeError,"bad timestamp compound",NULL,x);
 }
