@@ -67,6 +67,7 @@ static fdtype timestampp(fdtype arg)
 static fdtype gmtimestamp_prim()
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
+  memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   u8_offtime(&(tm->xtime),time(NULL),0);
   return FDTYPE_CONS(tm);
@@ -75,6 +76,7 @@ static fdtype gmtimestamp_prim()
 static fdtype timestamp_prim(fdtype arg)
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
+  memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if (FD_VOIDP(arg)) {
     u8_now(&(tm->xtime));
@@ -106,10 +108,12 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     return FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);}
   else if (FD_STRINGP(arg)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
+    memset(tm,0,sizeof(struct FD_TIMESTAMP));
     u8_iso8601_to_xtime(FD_STRDATA(arg),&(tm->xtime)); *freeit=1;
     return tm;}
   else if (FD_FIXNUMP(arg)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP); 
+    memset(tm,0,sizeof(struct FD_TIMESTAMP));
     u8_now(&(tm->xtime)); *freeit=1;
     u8_xtime_plus(&(tm->xtime),FD_FIX2INT(arg));
     return tm;}
@@ -123,6 +127,7 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
   double delta; int free_old=0;
   struct U8_XTIME tmp, *btime;
   struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP), *oldtm;
+  memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   if (FD_VOIDP(arg2)) {
     if ((FD_FIXNUMP(arg1)) || (FD_FLONUMP(arg1)) || (FD_RATIONALP(arg1)))
       delta=fd_todouble(arg1);

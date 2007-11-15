@@ -726,14 +726,36 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       type_arg=FD_CAR(FD_CDR(type_arg));
     if (FD_CHOICEP(arg1)) {
       fdtype results=FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(a1,arg1) {
-	fdtype result=xref_opcode(a1,FD_FIX2INT(offset_arg),type_arg);
-	FD_ADD_TO_CHOICE(results,result);}
+      FD_DO_CHOICES(a1,arg1)
+	if (FD_COMPOUNDP(a1)) {
+	  fdtype result=xref_opcode(a1,FD_FIX2INT(offset_arg),type_arg);
+	  if (FD_ABORTP(result)) {
+	    fd_decref(results);
+	    return result;}
+	  else {FD_ADD_TO_CHOICE(results,result);}}
+	else {
+	  fdtype result=
+	    fd_err(fd_TypeError,"xref",
+		   ((FD_VOIDP(type_arg)) ? (u8_strdup("compound")) :
+		    (fd_dtype2string(type_arg))),
+		   a1);
+	  fd_decref(results); 
+	  fd_decref(arg1); 
+	  return result;}
       fd_decref(arg1);
       return results;}
-    else return xref_opcode(arg1,FD_FIX2INT(offset_arg),type_arg);}
+    else if (FD_COMPOUNDP(arg1))
+      return xref_opcode(arg1,FD_FIX2INT(offset_arg),type_arg);
+    else {
+      fdtype result=fd_err(fd_TypeError,"xref",
+			   ((FD_VOIDP(type_arg)) ? (u8_strdup("compound")) :
+			    (fd_dtype2string(type_arg))),arg1);
+      fd_decref(arg1);
+      return result;}}
   else {
     fd_decref(arg1);
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
 }
+
+
 

@@ -804,6 +804,7 @@ FD_EXPORT
 fdtype fd_make_timestamp(struct U8_XTIME *tm)
 {
   struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
+  memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
   return FDTYPE_CONS(tstamp);
@@ -835,6 +836,7 @@ static fdtype timestamp_parsefn(int n,fdtype *args)
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
   u8_string timestring;
+  memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if ((n==2) && (FD_STRINGP(args[1])))
     timestring=FD_STRDATA(args[1]);
@@ -855,6 +857,7 @@ static fdtype copy_timestamp(fdtype x,int deep)
   struct FD_TIMESTAMP *tm=
     FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
   struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP);
+  memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(newtm,fd_timestamp_type);
   memcpy(&(newtm->xtime),&(tm->xtime),sizeof(struct U8_XTIME));
   return FDTYPE_CONS(newtm);
@@ -904,6 +907,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
+    memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),tval,0);
     tm->xtime.u8_prec=u8_second; tm->xtime.u8_tzoff=0;
@@ -914,6 +918,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
     int nsecs=fd_getint(FD_VECTOR_REF(x,1));
     int iprec=fd_getint(FD_VECTOR_REF(x,2));
     int tzoff=fd_getint(FD_VECTOR_REF(x,3));
+    memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_offtime(&(tm->xtime),secs,tzoff);
     tm->xtime.u8_nsecs=nsecs;

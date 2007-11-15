@@ -938,8 +938,8 @@ static int sort_ks_by_refoff(const void *k1,const void *k2)
 
 static int sort_vs_by_refoff(const void *v1,const void *v2)
 {
-  struct KEY_SCHEDULE *vs1=(struct KEY_SCHEDULE *)v1;
-  struct KEY_SCHEDULE *vs2=(struct KEY_SCHEDULE *)v2;
+  struct VALUE_SCHEDULE *vs1=(struct VALUE_SCHEDULE *)v1;
+  struct VALUE_SCHEDULE *vs2=(struct VALUE_SCHEDULE *)v2;
   if (vs1->ref.off<vs2->ref.off) return -1;
   else if (vs1->ref.off>vs2->ref.off) return 1;
   else return 0;

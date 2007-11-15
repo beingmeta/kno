@@ -96,7 +96,8 @@ static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
 
 static fdtype make_compound(int n,fdtype *args)
 {
-  struct FD_COMPOUND *compound=u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
+  struct FD_COMPOUND *compound=
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
   FD_INIT_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]); compound->n_elts=n-1; compound->mutable=0;
@@ -107,7 +108,8 @@ static fdtype make_compound(int n,fdtype *args)
 
 static fdtype make_mutable_compound(int n,fdtype *args)
 {
-  struct FD_COMPOUND *compound=u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
+  struct FD_COMPOUND *compound=
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
   FD_INIT_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]); compound->n_elts=n-1; compound->mutable=1;
@@ -120,7 +122,8 @@ static fdtype make_mutable_compound(int n,fdtype *args)
 static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable)
 {
   int i=0, n=FD_VECTOR_LENGTH(vector);
-  struct FD_COMPOUND *compound=u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
+  struct FD_COMPOUND *compound=
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*sizeof(fdtype)));
   fdtype *write=&(compound->elt0);
   FD_INIT_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(tag); compound->n_elts=n;

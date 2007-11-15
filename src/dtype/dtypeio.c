@@ -622,8 +622,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       return fd_make_oid(addr);}
     case dt_error: {
       fdtype content=fd_read_dtype(in);
-      return fd_init_compound
-	(u8_alloc(struct FD_COMPOUND),error_symbol,0,1,content);}
+      return fd_init_compound(NULL,error_symbol,0,1,content);}
     case dt_exception: {
       fdtype content=fd_read_dtype(in);
       return restore_dtype_exception(content);}
@@ -663,13 +662,15 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  return result;}
 	else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {
 	  struct FD_VECTOR *vec=(struct FD_VECTOR *)cdr;
-	  fdtype result=fd_init_compound_from_elts
-	    (u8_alloc(struct FD_COMPOUND),car,0,(short)vec->length,vec->data);
+	  short n_elts=(short)(vec->length);
+	  fdtype result=
+	    fd_init_compound_from_elts(NULL,car,0,n_elts,vec->data);
 	  /* Note that the incref'd values are now stored in the compound,
 	     so we don't decref them ourselves. */
 	  u8_free(vec);
 	  return result;}
-	else return fd_init_compound(u8_alloc(struct FD_COMPOUND),car,1,1,cdr);}
+	else return fd_init_compound
+	       (u8_alloc(struct FD_COMPOUND),car,1,1,cdr);}
       case dt_rational:
 	return _fd_make_rational(car,cdr);
       case dt_complex:
