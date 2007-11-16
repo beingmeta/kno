@@ -27,6 +27,8 @@ static char versionid[] =
 #define BACKTRACE_INDENT_DEPTH 12
 #endif
 
+static int backtrace_indent_depth=BACKTRACE_INDENT_DEPTH;
+
 FD_EXPORT void fd_pprint_focus
   (U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
    int indent,int width,u8_string focus_prefix,u8_string focus_suffix);
@@ -656,7 +658,7 @@ static u8_exception get_innermost_expr(u8_exception ex,fdtype expr)
 
 static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
 {
-  if (ex==NULL) return;
+  if (ex==NULL) return NULL;
   else if (ex->u8x_prev==NULL)
     u8_printf(s,"<div class='last_entry'>\n");
   if (ex->u8x_context==fd_eval_context) {
@@ -724,6 +726,40 @@ static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
   return ex->u8x_prev;
 }
 
+static u8_exception next_backtrace_entry(u8_exception ex)
+{
+  if (ex==NULL) return NULL;
+  else if (ex->u8x_context==fd_eval_context) {
+    fdtype expr=exception_data(ex);
+    u8_exception innermost=get_innermost_expr(ex->u8x_prev,expr);
+    if (innermost) return innermost->u8x_prev;
+    else return ex->u8x_prev;}
+  else return ex->u8x_prev;
+}
+
+static int output_backtrace_entries(u8_output s,u8_exception ex)
+{
+  int depth=0;
+  if (ex==NULL) return 0;
+  depth=output_backtrace_entries(s,next_backtrace_entry(ex));
+  if (depth<backtrace_indent_depth)
+    u8_printf(s,"<div class='backtrace_indent'/>\n");
+  output_backtrace_entry(s,ex);
+  if (depth<backtrace_indent_depth) return depth+1; else return depth;
+}
+
+static void output_backtrace(u8_output s,u8_exception ex)
+{
+  int i=0, depth;
+  u8_printf(s,"<div class='backtrace'>\n");
+  output_backtrace_entry(s,ex);
+  if (ex->u8x_prev) output_backtrace_entry(s,ex->u8x_prev);
+  depth=output_backtrace_entries(s,ex);
+  while (i<depth) {u8_printf(s,"</div>\n"); i++;}
+  u8_printf(s,"</div>\n");
+}
+
+#if 0
 static void output_backtrace(u8_output s,u8_exception ex)
 {
   u8_exception scan=ex; int n=0;
@@ -735,6 +771,7 @@ static void output_backtrace(u8_output s,u8_exception ex)
   while (n>0) {u8_printf(s,"</div>\n"); n--;}
   u8_printf(s,"</div>\n");
 }
+#endif
 
 FD_EXPORT
 void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
@@ -1513,6 +1550,11 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
      fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
+  fd_register_config
+    ("HTMLBACKTRACEINDENT",
+     _("How many entries in a web backtrace to indent "),
+     fd_intconfig_get,fd_intconfig_set,&backtrace_indent_depth);
+
 }
 
 

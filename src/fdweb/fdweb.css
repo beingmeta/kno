@@ -28,15 +28,17 @@ div.backtrace_indent {
   margin-left: 8px; font-size: 98%;}
 
 div.backtrace div.expr {
-  font-family: courier,fixed; white-space: pre; text-align: left;}
+  font-family: courier,fixed; white-space: pre; text-align: left;
+  padding-top: 3px; padding-bottom: 3px;}
 div.backtrace div.expr span.focus {
   font-weight: bold; color: yellow; font-size: 120%;}
 
 div.backtrace div.bindings {
-  background-color: blue; 
-  padding-left: 64px; text-indent: -64px;}
+  background-color: ivory;  color: black;
+  padding-left: 64px; text-indent: -64px;
+  padding-top: 4px; padding-bottom: 4px;}
 div.backtrace div.bindings span.binding {
-  font-family: fixed; font-weight: bold; white-space: nowrap; }
+  font-family: fixed; font-weight: bold; color: red; white-space: nowrap; }
 div.backtrace div.bindings span.head {
   padding-right: 12pt; color: rose; font-weight: bold;}
 
