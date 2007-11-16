@@ -220,6 +220,13 @@
 (config-def! 'CUSTOMGLOSSES
 	     (ruleset-configfn custom-glosses conform-maprule))
 
+;;; Getting IDs
+
+(define (getid concept (language default-language))
+  (try (get (get concept '%ids) language)
+       (get concept '%id)
+       (oid->string concept)))
+
 ;;; Getting norms, glosses, etc.
 
 (define (get-norm concept (language default-language))
@@ -528,8 +535,9 @@
 
 ;; Getting glosses, norms, etc.
 (module-export!
- '{get-gloss get-norm get-expstring
-	     get-single-gloss get-short-gloss gloss})
+ '{getid
+   get-gloss get-norm get-expstring
+   get-single-gloss get-short-gloss gloss})
 
 ;; Getting frequency information
 (module-export! '{concept-frequency concept-frequency-prefetch})
