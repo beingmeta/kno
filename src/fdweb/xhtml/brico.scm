@@ -13,6 +13,7 @@
 
 ;; Language related exports
 (module-export! '{getlanguages getlanguage get-languages get-language})
+(module-export! '{get-preferred-languages get-preferred-language})
 
 ;; Dialogs
 (module-export! '{languagebox languagesbox languagedropbox languagesdropbox})
@@ -58,6 +59,9 @@
 	       langs))
 	 default-languages)     
        default-languages))
+
+(define (get-preferred-language)
+  (first (get-preferred-languages)))
 
 (define (get-languages (var 'languages))
   (try (cgiget var) (elts (get-preferred-languages))))
