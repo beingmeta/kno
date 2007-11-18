@@ -143,7 +143,25 @@ static fdtype string_compoundp(fdtype string)
 {
   u8_byte *scan=FD_STRDATA(string);
   if (strchr(scan,' ')) return FD_TRUE;
-  else return FD_FALSE;
+  else {
+    u8_byte *lim=scan+FD_STRLEN(string);
+    int c=u8_sgetc(&scan);
+    while ((c>=0) && (scan<lim))
+      if (u8_isspace(c)) return FD_TRUE;
+      else c=u8_sgetc(&scan);
+    return FD_FALSE;}
+}
+
+static fdtype empty_stringp(fdtype string)
+{
+  if (FD_STRLEN(string)==0) return FD_TRUE;
+  else {
+    u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
+    int c=u8_sgetc(&scan);
+    while ((c>=0) && (scan<lim))
+      if (u8_isspace(c)) c=u8_sgetc(&scan);
+      else return FD_FALSE;
+    return FD_TRUE;}
 }
 
 /* String conversions */
@@ -739,6 +757,9 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",downcase1,1));
 
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EMPTY-STRING?",empty_stringp,1,
+			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("COMPOUND?",string_compoundp,1,
 			   fd_string_type,FD_VOID));
