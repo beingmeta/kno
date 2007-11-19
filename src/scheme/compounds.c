@@ -63,35 +63,48 @@ static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
 
 static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
 {
-  struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
-  int off=FD_FIX2INT(offset), len=compound->n_elts;
-  if ((compound->mutable) &&
-      ((compound->tag==tag) || (FD_VOIDP(tag))) &&
-      (off<len)) {
-    fdtype *valuep=((&(compound->elt0))+off), old_value;
-    fd_lock_struct(compound);
-    old_value=*valuep;
-    fd_incref(value);
-    *valuep=value;
-    fd_decref(old_value);
-    fd_unlock_struct(compound);
+  if (FD_EMPTY_CHOICEP(x)) return FD_EMPTY_CHOICE;
+  else if (FD_CHOICEP(x)) {
+    FD_DO_CHOICES(eachx,x)
+      if (FD_COMPOUNDP(eachx)) {
+	fdtype value=compound_set(eachx,offset,value,tag);
+	if (FD_ABORTP(value)) {
+	  FD_STOP_DO_CHOICES;
+	  return value;}
+	else fd_decref(value);}
+      else return fd_type_error("compound","compound_set",eachx);
     return FD_VOID;}
-  /* Unlock and figure out the details of the error */
-  fd_unlock_struct(compound);
-  if (compound->mutable==0) {
-    fd_seterr(_("Immutable record"),"set_compound",NULL,x);
-    return FD_ERROR_VALUE;}
-  else if ((compound->tag!=tag) && (!(FD_VOIDP(tag)))) {
-    u8_string type_string=fd_dtype2string(tag);
-    fd_seterr(fd_TypeError,"compound_ref",type_string,x);
-    return FD_ERROR_VALUE;}
-  else if (!(FD_VOIDP(tag))) {
-    u8_string type_string=fd_dtype2string(tag);
-    fd_seterr(fd_RangeError,"compound_ref",type_string,off);
-    return FD_ERROR_VALUE;}
   else {
-    fd_seterr(fd_RangeError,"compound_ref",NULL,off);
-    return FD_ERROR_VALUE;}
+    struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
+    int off=FD_FIX2INT(offset), len=compound->n_elts;
+    if ((compound->mutable) &&
+	((compound->tag==tag) || (FD_VOIDP(tag))) &&
+	(off<len)) {
+      fdtype *valuep=((&(compound->elt0))+off), old_value;
+      fd_lock_struct(compound);
+      old_value=*valuep;
+      fd_incref(value);
+      *valuep=value;
+      fd_decref(old_value);
+      fd_unlock_struct(compound);
+      return FD_VOID;}
+    /* Unlock and figure out the details of the error */
+    fd_unlock_struct(compound);
+    if (compound->mutable==0) {
+      fd_seterr(_("Immutable record"),"set_compound",NULL,x);
+      return FD_ERROR_VALUE;}
+    else if ((compound->tag!=tag) && (!(FD_VOIDP(tag)))) {
+      u8_string type_string=fd_dtype2string(tag);
+      fd_seterr(fd_TypeError,"compound_ref",type_string,x);
+      return FD_ERROR_VALUE;}
+    else if (!(FD_VOIDP(tag))) {
+      u8_string type_string=fd_dtype2string(tag);
+      fd_seterr(fd_RangeError,"compound_ref",type_string,off);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_seterr(fd_RangeError,"compound_ref",NULL,off);
+      return FD_ERROR_VALUE;}
+  }
 }
 
 static fdtype make_compound(int n,fdtype *args)
@@ -154,9 +167,10 @@ FD_EXPORT void fd_init_compounds_c()
 	   fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
 			   fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
-			   fd_compound_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID));
+	   fd_make_ndprim
+	   (fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
+			    -1,FD_VOID,-1,FD_VOID,
+			    -1,FD_VOID,-1,FD_VOID)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
   fd_idefn(fd_scheme_module,
