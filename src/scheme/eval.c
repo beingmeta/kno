@@ -951,7 +951,9 @@ static fdtype callcc (fdtype proc)
 
 static fdtype cachecall(int n,fdtype *args)
 {
-  return fd_cachecall(args[0],n-1,args+1);
+  if (FD_HASHTABLEP(args[0]))
+    return fd_xcachecall((fd_hashtable)args[0],args[1],n-2,args+2);
+  else return fd_cachecall(args[0],n-1,args+1);
 }
 
 static fdtype clear_callcache(fdtype arg)

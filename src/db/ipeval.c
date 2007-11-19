@@ -252,6 +252,34 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
     return cached;}
 }
 
+FD_EXPORT fdtype fd_xcachecall
+  (struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args)
+{
+  fdtype vec, cached;
+  struct FD_VECTOR vecstruct;
+  vecstruct.consbits=0;
+  vecstruct.length=n;
+  vecstruct.data=((n==0) ? (NULL) : (args));
+  FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
+  vec=FDTYPE_CONS(&vecstruct);
+  cached=fd_hashtable_get(cache,vec,FD_VOID);
+  if (FD_VOIDP(cached)) {
+    int state=fd_ipeval_status();
+    fdtype result=fd_finish_call(fd_dapply(fcn,n,args));
+    if (FD_ABORTP(result)) {
+      fd_decref((fdtype)cache);
+      return result;}
+    else if (fd_ipeval_status()==state) {
+      fdtype *datavec=((n) ? (u8_alloc_n(n,fdtype)) : (NULL));
+      fdtype key=fd_init_vector(NULL,n,datavec);
+      int i=0; while (i<n) {
+	datavec[i]=fd_incref(args[i]); i++;}
+      fd_hashtable_store(cache,key,result);
+      fd_decref(key);}
+    return result;}
+  else return cached;
+}
+
 FD_EXPORT void fd_clear_callcache(fdtype arg)
 {
   if (fcn_caches.n_keys==0) return;
