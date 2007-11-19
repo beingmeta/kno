@@ -755,6 +755,33 @@ static fdtype define_local_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
+/* DEFINE-INIT */
+
+/* This defines an identifier in the local environment only if
+   it is not currently defined. */
+static fdtype define_init_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  fdtype init_expr=fd_get_arg(expr,2);
+  if (FD_VOIDP(var))
+    return fd_err(fd_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
+  else if (FD_VOIDP(init_expr))
+    return fd_err(fd_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
+  else if (FD_SYMBOLP(var)) {
+    fdtype current=fd_get(env->bindings,var,FD_VOID);
+    if (FD_ABORTP(current)) return current;
+    else if (!(FD_VOIDP(current))) {
+      fd_decref(current);
+      return FD_VOID;}
+    else {
+      fdtype init_value=fd_eval(init_expr,env);
+      if (fd_bind_value(var,init_value,env)) {
+	fd_decref(init_value);
+	return FD_VOID;}
+      else return fd_err(fd_BindError,"DEFINE",NULL,var);}}
+  else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
+}
+
 /* Extended apply */
 
 static fdtype tail_symbol;
@@ -984,6 +1011,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
   fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_handler);
   fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_handler);
+  fd_defspecial(fd_scheme_module,"DEFINE-INIT",define_init_handler);
   fd_defspecial(fd_scheme_module,"DEFINE-LOCAL",define_local_handler);
 
   fd_defspecial(fd_scheme_module,"MACRO",macro_handler);
