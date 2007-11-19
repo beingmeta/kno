@@ -85,7 +85,8 @@
 (put 'ul 'scheme-indent-function 1)
 (put 'li 'scheme-indent-function 1)
 (put 'ul* 'scheme-indent-function 1)
-(put 'li* 'scheme-indent-function 2)
+(put 'li* 'scheme-indent-function 1)
+(put 'vistoggle 'scheme-indent-function 1)
 (put 'form 'scheme-indent-function 1)
 
 (put 'find-frames 'scheme-indent-function 1)
