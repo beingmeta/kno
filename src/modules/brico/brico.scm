@@ -223,20 +223,22 @@
 ;;; Getting IDs
 
 (define (getid concept (language default-language))
-  (try (get (get concept '%ids) language)
+  (try (tryif (eq? language english) (get concept '%id))
+       (get (get concept '%ids) language)
        (get concept '%id)
        (oid->string concept)))
 
 ;;; Getting norms, glosses, etc.
 
-(define (get-norm concept (language default-language))
+(define (get-norm concept (language default-language) (tryhard #t))
   (try (tryif custom-norms
 	      (pick-one (largest (custom-get concept language custom-norms))))
        (pick-one (largest (get (get concept '%norm) language)))
        (pick-one (largest (get concept language)))
-       (pick-one (largest (get concept english)))
-       (pick-one (largest (get concept 'names)))
-       (pick-one (largest (cdr (get concept '%words))))))
+       (tryif tryhard
+	      (try (pick-one (largest (get concept english)))
+		   (pick-one (largest (get concept 'names)))
+		   (pick-one (largest (cdr (get concept '%words))))))))
 
 (define (get-gloss concept (language default-language))
   (try (tryif custom-glosses (custom-get concept language custom-glosses))
