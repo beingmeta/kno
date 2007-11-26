@@ -369,7 +369,7 @@ static int kleene_get_helper
   return 1;
 }
 
-static fdtype kleene_get_method(fdtype root,fdtype slotid)
+static fdtype kleene_star_get_method(fdtype root,fdtype slotid)
 {
   fdtype slotids=fd_frame_get(slotid,closure_of_slot), results;
   if (FD_ABORTP(slotids)) return slotids;
@@ -381,6 +381,24 @@ static fdtype kleene_get_method(fdtype root,fdtype slotid)
       fd_decref(slotids);
       return FD_ERROR_VALUE;}
     else {
+      results=fd_hashset_elts(&hs,1);
+      fd_decref(slotids); 
+      return results;}}
+}
+
+static fdtype kleene_plus_get_method(fdtype root,fdtype slotid)
+{
+  fdtype slotids=fd_frame_get(slotid,closure_of_slot), results;
+  if (FD_ABORTP(slotids)) return slotids;
+  else {
+    struct FD_HASHSET hs; hs.consbits=0;
+    fd_init_hashset(&hs,1024,FD_STACK_CONS);
+    if (kleene_get_helper(&hs,root,slotids)<0) {
+      fd_recycle_hashset(&hs);
+      fd_decref(slotids);
+      return FD_ERROR_VALUE;}
+    else {
+      FD_DO_CHOICES(r,root) {fd_hashset_drop(&hs,r);}
       results=fd_hashset_elts(&hs,1);
       fd_decref(slotids); 
       return results;}}
@@ -683,7 +701,9 @@ FD_EXPORT void fd_init_methods_c()
   fd_defn(m,fd_make_cprim3("FD:ASSOC-ADD",assoc_add_method,3));
   fd_defn(m,fd_make_cprim3("FD:ASSOC-DROP",assoc_drop_method,3));
   fd_defn(m,fd_make_cprim2("FD:CAR-GET",car_get_method,2));
-  fd_defn(m,fd_make_cprim2("FD:KLEENE-GET",kleene_get_method,2));
+  fd_defn(m,fd_make_cprim2("FD:KLEENE-GET",kleene_plus_get_method,2));
+  fd_defn(m,fd_make_cprim2("FD:KLEENE+-GET",kleene_plus_get_method,2));
+  fd_defn(m,fd_make_cprim2("FD:KLEENE*-GET",kleene_star_get_method,2));
 #if 0
   fd_defn(m,fd_make_cprim2("FD:IX-GET",ix_get_method,2));
   fd_defn(m,fd_make_cprim3("FD:IX-TEST",ix_test_method,3));
