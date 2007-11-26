@@ -85,10 +85,9 @@
     (do-choices (slot slot)
       (let ((v (if (bound? values) values (get frame slot))))
 	(when (exists? v)
-	  (doindex index frame slot (list v))
+	  (doindex index frame slot (choice v (list v)))
 	  (if indexinfer
-	      (begin (doindex index frame slot v)
-		     (doindex index frame slot (?? impliedby* v)))
+	      (doindex index frame slot (?? impliedby* v))
 	      (doindex index frame slot (get v implies*))))))))
 
 (define (index-frame* index frame slot base (inverse #f))

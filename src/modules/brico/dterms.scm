@@ -34,7 +34,7 @@
 (define (find-dterm concept (language default-language) (norm))
   (default! norm (termnorm concept language))
   (if (singleton? (?? language norm)) norm
-      (if (test concept 'type 'individual)
+      (if (test concept 'type '{individual name})
 	  (if (test concept 'sensecat 'noun.location)
 	      (find-location-dterm concept language norm)
 	      (find-individual-dterm concept language norm))
@@ -144,7 +144,6 @@
 		(try-choices (d (get concept english))
 		  (tryif (singleton? (intersection meanings (?? language d)))
 			 (string-append norm "=en$"  d)))))))
-
 
 ;;; Prefetching
 

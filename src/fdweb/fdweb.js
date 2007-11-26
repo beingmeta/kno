@@ -1020,3 +1020,11 @@ function dytoc_set_default_to(sectid,sectrefid)
     dytoc_display_default();
 }
 
+/* Setup methods */
+
+function _fdb_setup()
+{
+  // fdbMessage("_fdb_setup running");
+  autoprompt_setup();
+  seenote_setup();
+}
