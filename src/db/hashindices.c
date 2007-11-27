@@ -1776,7 +1776,7 @@ FD_FASTOP void parse_keybucket(fd_hash_index hx,struct KEYBUCKET *kb,
 FD_FASTOP FD_CHUNK_REF write_value_block
 (struct FD_HASH_INDEX *hx,fd_dtype_stream stream,
  fdtype values,fdtype extra,
- int cont_off,int cont_size,off_t startpos)
+ off_t cont_off,off_t cont_size,off_t startpos)
 {
   off_t endpos=startpos; FD_CHUNK_REF retval;
   if (FD_CHOICEP(values)) {
