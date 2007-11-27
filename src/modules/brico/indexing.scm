@@ -158,8 +158,9 @@
    @1/2c278{MEMBERS}
    @1/2c27d{DISJOINT}
    @1/2d9e9{=IS=}
-   @1/2ab4d{DEFTERMS}
-   @1/2ab57{REFTERMS}})
+   ;; @1/2ab4d{DEFTERMS}
+   ;; @1/2ab57{REFTERMS}
+   })
 ;(define asymmetric-slotids {@1/2ab4d{DEFTERMS} @1/2ab57{REFTERMS}})
 
 ;; These are various other slotids which are useful to index
