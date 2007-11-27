@@ -255,7 +255,7 @@ FD_FASTOP int fd_dtswrite_bytes
     memcpy(s->ptr,bytes,n); s->ptr=s->ptr+n;}
   return n;
 }
-static int fd_dtswrite_zint(fd_dtype_stream s,int n)
+static int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
 {
   if (n < (1<<7)) {
     return fd_dtswrite_byte(s,n);}    
