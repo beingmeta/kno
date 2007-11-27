@@ -904,6 +904,11 @@ FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x)
   return FD_PTR_TYPE(x);
 }
 
+FD_EXPORT fdtype _fd_debug(fdtype x)
+{
+  return x;
+}
+
 /* Configuration for session and app id info */
 
 static fdtype config_getappid(fdtype var,void *data)

@@ -61,7 +61,7 @@ define inchoicep
 end
 
 break u8_push_exception
-break _fd_dbg
+break _fd_debug
 break u8_raise
 
 # For LIBC

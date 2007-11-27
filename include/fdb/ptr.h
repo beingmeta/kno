@@ -529,6 +529,11 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
 /* Pointer check functions and macros */
 
+/* Debugging support */
+
+FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x);
+FD_EXPORT fdtype _fd_debug(fdtype x);
+
 /* Pointer checking for internal debugging */
 
 FD_EXPORT int fd_check_immediate(fdtype);

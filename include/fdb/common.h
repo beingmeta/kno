@@ -27,9 +27,9 @@ typedef unsigned int fd_ptrbits;
 #endif
 
 #if (SIZEOF_LONG == 8)
-typedef long fd_8bytes;
+typedef unsigned long fd_8bytes;
 #elif (SIZEOF_LONG_LONG == 8)
-typedef long long fd_8bytes;
+typedef unsigned long long fd_8bytes;
 #endif
 
 #if (SIZEOF_INT == 4)

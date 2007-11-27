@@ -1088,7 +1088,8 @@ static fdtype evaltest(fdtype expr,fd_lispenv env)
 
 FD_EXPORT fdtype _fd_dbg(fdtype x)
 {
-  return fd_incref(x);
+  fdtype result=_fd_debug(x);
+  return fd_incref(result);
 }
 
 static fdtype dbg_prim(fdtype x,fdtype msg)
