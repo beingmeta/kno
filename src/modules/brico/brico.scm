@@ -237,8 +237,13 @@
        (pick-one (largest (get concept language)))
        (tryif tryhard
 	      (try (pick-one (largest (get concept english)))
-		   (pick-one (largest (get concept 'names)))
 		   (pick-one (largest (cdr (get concept '%words))))))))
+
+(define (%get-norm concept (language default-language))
+  (try (pick-one (largest (get (get concept '%norm) language)))
+       (tryif (eq? language english) (pick-one (largest (get concept 'words))))
+       (pick-one (largest (get (get concept '%words) (get language 'key))))
+       (pick-one (largest (cdr (get concept '%words))))))
 
 (define (get-gloss concept (language default-language))
   (try (tryif custom-glosses (custom-get concept language custom-glosses))
@@ -360,9 +365,9 @@
 
 (define (make-wordform-id f)
   `(WORDFORM ,(get f 'word)
-	     ,(try (get (get f 'language) '%mnemonic)
-		   (get (get f 'language) 'iso639/1)
-		   (get (get f 'language) 'iso639/b)
+	     ,(try (get (get f 'lang) '%mnemonic)
+		   (get (get f 'lang) 'iso639/1)
+		   (get (get f 'lang) 'iso639/b)
 		   '??)
 	     ,(get f 'of)))
 
