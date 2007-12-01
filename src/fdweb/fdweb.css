@@ -40,7 +40,7 @@ div.backtrace div.bindings {
 div.backtrace div.bindings span.binding {
   font-family: fixed; font-weight: bold; color: red; white-space: nowrap; }
 div.backtrace div.bindings span.head {
-  padding-right: 12pt; color: rose; font-weight: bold;}
+  padding-right: 12pt; color: pink; font-weight: bold;}
 
 div.backtrace div.rail {
   background-color: green;}
