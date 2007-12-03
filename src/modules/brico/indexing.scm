@@ -8,6 +8,9 @@
 
 (define %nosubst '{indexinfer default-frag-window})
 
+;; When true, this assumes that the lattice has been indexed,
+;;  so that closures can be computed based on their inverses
+;;  (e.g. (get x genls*)== (?? @?specls* x))
 (define indexinfer #t)
 
 (define indexinfer-config
@@ -171,6 +174,7 @@
   (index-brico index concept)  
   (index-words index concept)
   (index-relations index concept)
+  (index-refterms index concept)
   (index-lattice index concept))
 
 (define wordform-slotids '{word of language rank type})
@@ -269,7 +273,11 @@
 	     (and (oid? slotid)
 		  (try (get slotid 'inverse) #f))))
   (do-choices (slotid misc-slotids)
-    (doindex index concept slotid (get concept slotid)))
+    (doindex index concept slotid (get concept slotid))))
+
+(define (index-refterms index concept)
+  (doindex index concept refterms (%get concept refterms))
+  (doindex index concept defterms (%get concept defterms))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store
@@ -353,6 +361,7 @@
  '{index-brico
    index-core index-brico index-wordform
    index-words index-relations index-lattice
+   index-refterms
    index-concept
    indexer-prefetch
    indexer-lattice-prefetch
