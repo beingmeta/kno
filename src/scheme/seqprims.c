@@ -1290,6 +1290,7 @@ static fdtype x2string(fdtype seq)
     u8_putc(&out,c);
     return fdtype_string(out.u8_outbuf);}
   else if (FD_EMPTY_LISTP(seq)) return fdtype_string("");
+  else if (FD_STRINGP(seq)) return fd_incref(seq);
   else if (FD_SEQUENCEP(seq)) {
     U8_OUTPUT out;
     int i=0, n;
