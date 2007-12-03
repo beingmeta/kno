@@ -295,11 +295,11 @@ static void convert_cookie_arg(fd_slotmap c)
 	  u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		  FD_STRDATA(qval));
 	else {
-	  fdtype cookiedata=fd_make_vector(2,slotid,value);
+	  fdtype cookiedata=fd_make_vector(2,slotid,fd_incref(value));
 	  fd_slotmap_add(c,slotid,value);
 	  setcookiedata((fdtype)c,cookiedata);
 	  fd_decref(cookiedata);}
-	value=FD_VOID; slotid=FD_VOID;
+	fd_decref(value); value=FD_VOID; slotid=FD_VOID;
 	write=buf; isascii=1; scan++;}
       else if (*scan == '%') 
 	if (scan+3>=end) end=scan;
@@ -321,7 +321,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		FD_STRDATA(qval));
       else {
-	fdtype cookiedata=fd_make_vector(2,slotid,value);
+	fdtype cookiedata=fd_make_vector(2,slotid,fd_incref(value));
 	fd_slotmap_add(c,slotid,value);
 	setcookiedata((fdtype)c,cookiedata);
 	fd_decref(cookiedata);}
@@ -431,8 +431,9 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
   if (!(FD_VECTORP(cookie))) return -1;
   else len=FD_VECTOR_LENGTH(cookie);
   if ((len<2) || (!(FD_SYMBOLP(FD_VECTOR_REF(cookie,0))))) return -1;
-  if (FD_TABLEP(cgidata)) 
-    real_val=fd_get(cgidata,FD_VECTOR_REF(cookie,0),FD_VECTOR_REF(cookie,1));
+  if (FD_TABLEP(cgidata)) {
+    real_val=fd_get(cgidata,FD_VECTOR_REF(cookie,0),FD_VOID);
+    if (FD_VOIDP(real_val)) real_val=fd_incref(FD_VECTOR_REF(cookie,1));}
   else real_val=fd_incref(FD_VECTOR_REF(cookie,1));
   if ((len>2) || (!(FD_EQ(real_val,FD_VECTOR_REF(cookie,1))))) {
     fdtype var=FD_VECTOR_REF(cookie,0);
