@@ -436,7 +436,7 @@
 (defambda (concept-frequency-prefetch concepts language words)
   (prefetch-keys! (cons (pick (elts (map second freqfns)) oid?)
 			concepts))
-  (when (and use-wordforms (eq? language english))
+  (when (and use-wordforms (eq? language english) (exists? words))
     (prefetch-keys! (choice (cons 'of (pick concepts brico-pool))
 			    (cons 'word words))))
   (prefetch-oids! (?? 'of (pick concepts brico-pool)
