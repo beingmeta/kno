@@ -14,7 +14,7 @@
   (let* ((field-name (if (pair? field) (car field) field))
 	 (get-method-name (string->symbol (stringout tag "-" field-name))))
     `(define (,get-method-name ,tag)
-       (,xref-opcode ,tag ,(position field fields) ,tag))))
+       (,xref-opcode ,tag ,(position field fields) ',tag))))
 (define (make-modifier-def field tag fields)
   (let* ((field-name (if (pair? field) (car field) field))
 	 (set-method-name
