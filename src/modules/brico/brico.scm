@@ -233,7 +233,7 @@
 (define (get-norm concept (language default-language) (tryhard #t))
   (try (tryif custom-norms
 	      (pick-one (largest (custom-get concept language custom-norms))))
-       (pick-one (largest (get (get concept '%norm) language)))
+       (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
        (tryif tryhard
 	      (try (pick-one (largest (get concept english)))
