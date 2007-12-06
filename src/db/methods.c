@@ -38,7 +38,8 @@ static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
 	else {
 	  int retval=0;
 	  FD_DO_CHOICES(v,values)
-	    if (fd_hashset_get(seen,v)) {}
+	    if (!(FD_OIDP(v))) {}
+	    else if (fd_hashset_get(seen,v)) {}
 	    else if ((retval=keep_walking(seen,v,slotids,walk,data))>0) {}
 	    else {
 	      fd_decref(values);
