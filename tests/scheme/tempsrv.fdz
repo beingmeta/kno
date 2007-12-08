@@ -1,4 +1,4 @@
-(use-module 'optimize)
+(use-module '{optimize samplefns})
 (config! 'port "temp@localhost")
 (define runfile (get-component "tempsrv.run"))
 (define (startup)
@@ -8,5 +8,8 @@
   (remove-file runfile))
 (define (plus x y) (+ x y))
 (define (minus x y) (+ x y))
-(unless (config 'EXPORTALL #f) (module-export! 'plus))
+(define (slowfib n) (sleep n) (fibi n))
+(unless (config 'EXPORTALL #f)
+  (module-export! '{plus fibr fibi slowfib}))
+
 
