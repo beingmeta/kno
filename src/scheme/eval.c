@@ -983,15 +983,25 @@ static fdtype with_threadcache_handler(fdtype expr,fd_lispenv env)
 
 /* Making DTPROCs */
 
-static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arity)
+static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arity,fdtype minsock,fdtype maxsock,fdtype initsock)
 {
   fdtype result;
   if (FD_VOIDP(min_arity))
-    result=fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,-1,-1);
+    result=fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,-1,-1,
+			  FD_FIX2INT(minsock),FD_FIX2INT(maxsock),
+			  FD_FIX2INT(initsock));
   else if (FD_VOIDP(arity))
-    result=fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,fd_getint(arity),fd_getint(arity));
+    result=fd_make_dtproc
+      (FD_SYMBOL_NAME(name),FD_STRDATA(server),
+       1,fd_getint(arity),fd_getint(arity),
+       FD_FIX2INT(minsock),FD_FIX2INT(maxsock),
+       FD_FIX2INT(initsock));
   else result=
-	 fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,fd_getint(arity),fd_getint(min_arity));
+	 fd_make_dtproc
+	 (FD_SYMBOL_NAME(name),FD_STRDATA(server),1,
+	  fd_getint(arity),fd_getint(min_arity),
+	  FD_FIX2INT(minsock),FD_FIX2INT(maxsock),
+	  FD_FIX2INT(initsock));
   return result;
 }
 
@@ -1168,10 +1178,13 @@ static void init_localfns()
 			   -1,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("APPLY",apply_lexpr,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim4x
+  fd_idefn(fd_xscheme_module,fd_make_cprim7x
 	   ("DTPROC",make_dtproc,2,
 	    fd_symbol_type,FD_VOID,fd_string_type,FD_VOID,
-	    -1,FD_VOID,-1,FD_VOID));
+	    -1,FD_VOID,-1,FD_VOID,
+	    fd_fixnum_type,FD_INT2DTYPE(2),
+	    fd_fixnum_type,FD_INT2DTYPE(4),
+	    fd_fixnum_type,FD_INT2DTYPE(1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
