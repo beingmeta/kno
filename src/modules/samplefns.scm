@@ -6,7 +6,7 @@
 
 (define version "$Id$")
 
-(module-export! '{fibr fibi fibflt factr facti})
+(module-export! '{fibr fibi fibflt factr facti slowfib})
 (module-export! '{ack tak takflt})
 (module-export! 'spectral-norm)
 
@@ -93,4 +93,10 @@
       (doseq (value v)
 	(set! vv (+ vv (* value value))))
       (sqrt (/ vbv vv)))))
+
+;;; Odd functions for different tests
+
+(define (slowfib n (wait #f))
+  (sleep (or wait n))
+  (fibi n))
 
