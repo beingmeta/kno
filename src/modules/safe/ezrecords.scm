@@ -10,20 +10,20 @@
 (define (make-xref-generator off tag)
   (lambda (expr) `(,xref-opcode ,(cadr expr) ,off ',tag)))
 
-(define (make-accessor-def field tag fields)
+(define (make-accessor-def field tag prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
-	 (get-method-name (string->symbol (stringout tag "-" field-name))))
+	 (get-method-name (string->symbol (stringout prefix "-" field-name))))
     `(define (,get-method-name ,tag)
        (,xref-opcode ,tag ,(position field fields) ',tag))))
-(define (make-modifier-def field tag fields)
+(define (make-modifier-def field tag prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
 	 (set-method-name
-	  (string->symbol (stringout "SET-" tag "-" field-name "!"))))
+	  (string->symbol (stringout "SET-" prefix "-" field-name "!"))))
     `(defambda (,set-method-name ,tag _value)
        (,compound-set! ,tag ,(position field fields) _value ',tag))))
-(define (make-accessor-subst field tag fields)
+(define (make-accessor-subst field tag prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
-	 (get-method-name (string->symbol (stringout tag "-" field-name))))
+	 (get-method-name (string->symbol (stringout prefix "-" field-name))))
     `(set+! %rewrite
 	    (cons ',get-method-name
 		  (,make-xref-generator ,(position field fields) ',tag)))))
@@ -36,6 +36,7 @@
 	   (tag (if (symbol? defspec) defspec
 		    (if (pair? defspec) (car defspec)
 			(get defspec 'tag))))
+	   (prefix (or (getopt defspec 'prefix) tag))
 	   (ismutable (or (and (pair? defspec) (position 'mutable defspec))
 			  (and (table? defspec) (test defspec 'mutable))))
 	   (fields (cddr expr))
@@ -47,12 +48,12 @@
 		(,(if ismutable make-mutable-compound make-compound) ',tag ,@field-names))
 	      (define (,predicate-method-name ,tag)
 		(,compound-type? ,tag ',tag))
-	      ,@(map (lambda (field) (make-accessor-def field tag fields))
+	      ,@(map (lambda (field) (make-accessor-def field tag prefix fields))
 		     fields)
-	      ,@(map (lambda (field) (make-accessor-subst field tag fields))
+	      ,@(map (lambda (field) (make-accessor-subst field tag prefix fields))
 		     fields)
 	      ,@(if ismutable
-		    (map (lambda (field) (make-modifier-def field tag fields))
+		    (map (lambda (field) (make-modifier-def field tag prefix fields))
 			 fields)
 		    '())))))
 
