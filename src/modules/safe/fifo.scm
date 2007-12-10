@@ -9,7 +9,7 @@
 (use-module 'ezrecords)
 
 (module-export!
- '{make-fifo fifo-push fifo-pop fifo-loop fifo-queued close-fifo})
+ '{make-fifo fifo-push fifo-pop fifo-jump fifo-loop fifo-queued close-fifo})
 
 ;;;; Implementation
 
@@ -51,9 +51,11 @@
   (if (fifo-live? fifo)
       (unwind-protect
 	  (begin (condvar-lock (fifo-condvar fifo))
+		 ;; Wait for something to pop
 		 (while (and (fifo-live? fifo)
 			     (= (fifo-start fifo) (fifo-end fifo)))
 		   (condvar-wait (fifo-condvar fifo)))
+		 ;; If it's still alive, do the pop
 		 (if (fifo-live? fifo) 
 		     (let* ((vec (fifo-queue fifo))
 			    (start (fifo-start fifo))
@@ -64,6 +66,29 @@
 		       ;; Advance the start pointer
 		       (set-fifo-start! fifo (1+ start))
 		       item)
+		     (fail)))
+	(condvar-unlock (fifo-condvar fifo)))
+      (fail)))
+
+(define (fifo-jump fifo item)
+  (if (fifo-live? fifo)
+      (unwind-protect
+	  (begin (condvar-lock (fifo-condvar fifo))
+		 (if (and (fifo-live? fifo)
+			  (< (fifo-start fifo) (fifo-end fifo)))
+		     (let* ((vec (fifo-queue fifo))
+			    (start (fifo-start fifo))
+			    (end (fifo-end fifo))
+			    (pos (position item vec start)))
+		       (if pos
+			   (let ((queued (elt vec pos)))
+			     ;; Move everything else down
+			     (dotimes (i (- end pos))
+			       (vector-set! vec (+ pos i) (elt vec (+ pos i 1))))
+			     (vector-set! vec end #f)
+			     (set-fifo-end! fifo (-1+ end))
+			     queued)
+			   (fail)))
 		     (fail)))
 	(condvar-unlock (fifo-condvar fifo)))
       (fail)))
