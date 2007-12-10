@@ -3,7 +3,7 @@
 ;;; Cache queues support the queued computation and caching of complex
 ;;; functions.
 
-(define version "$Id: fifo.scm 1761 2007-08-31 11:20:52Z haase $")
+(define version "$Id$")
 
 (use-module '{ezrecords fifo logger reflection})
 
