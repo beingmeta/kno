@@ -5,9 +5,9 @@
 
 (define version "$Id$")
 
-(use-module '{ezrecords fifo logger reflection})
+(use-module '{ezrecords meltcache fifo logger reflection})
 
-(define %loglevel 9)
+(define %loglevel %warning!)
 
 (module-export!
  '{cachequeue
@@ -30,6 +30,7 @@
   compute   ; This is the procedure to actually process a queued request.
             ;   It wraps the method (above) in various bookkeeping operations.
   consumers ; This is the callbacks waiting on this value
+  meltpoint ; This is the duration of entries in the the cache, or #f for forever
   props     ; These are miscellaneous properties of the object
   )
 
@@ -38,7 +39,7 @@
 ;; (We're not using this right now)
 (define cqthreads (make-hashtable))
 
-(define (cachequeue method (cache (make-hashtable)) (nthreads 4))
+(define (cachequeue method (cache (make-hashtable)) (nthreads 4) (meltpoint #f))
   "Create a cachequeue which allows for scheduled cached computations. \
    CACHE is a table used to store results, METHOD is used to compte them \
    and THREADS is the number of threads to start for processing them."
@@ -47,57 +48,91 @@
     (let ((cqmethod
 	   (slambda (cq args consumer)
 	     (if (test cache args)
-		 (if (not consumer) (get cache args)
-		     (doconsume consumer (get cache args)))
+		 (let ((v (get cache args)))
+		   (when (meltentry? v)
+		     (when (melted? v)
+		       (%debug "recomputing "
+			       (or (procedure-name (cq-method cq)) (cq-method cq)) 
+			       " for " args)
+		       (cqompute-inner cq args))
+		     (set! v (meltentry-value v)))
+		   (if (not consumer) v(doconsume consumer v)))
 		 (if (test statetable args)
 		     (let ((state (get statetable args)))
-		       (if (error? (car state))
-			   (doconsume consumer (car state))
+		       (if (error? (first state))
+			   (doconsume consumer (first state))
 			   (if consumer (add! consumers args consumer)))
 		       state)
 		     (begin (if consumer (add! consumers args consumer))
 			    (cqompute-inner cq args)))))))
       (let ((cq (cons-cachequeue cache method (make-fifo)
 				 statetable cqmethod consumers
-				 (frame-create #f))))
+				 meltpoint (frame-create #f))))
 	(dotimes (i nthreads)
 	  (add! cqthreads cq (threadcall cqdaemon cq i #f)))
 	cq))))
 
 (defambda (cq/reserve cq args token)
-  (try (tryif (test (cq-cache cq) args) #f)
-       (get (cq-state cq) args)
-       (begin (store! (cq-state cq) args token)
-	      token)))
+  (if (test (cq-cache cq) args)
+      (let ((v (get (cq-cache cq) args)))
+	(if (and (meltentry? v) (melted? v))
+	    (try (get (cq-state cq) args)
+		 (begin (store! (cq-state cq) args token)
+			token))
+	    #f))
+      (try (get (cq-state cq) args)
+	   (begin (store! (cq-state cq) args token)
+		  token))))
 
 ;; This is used by the cachequeue compute method
 (define (cqompute-inner cq args)
   "Internal function queues a call"
-  (let* ((token (list '|queued...| (timestamp)))
+  (let* ((token (vector '|queued...| (timestamp)))
 	 (active (cq/reserve cq args token)))
-    (if (eq? token active)
-	(fifo-push (cq-fifo cq) args))
+    (when (eq? token active)
+      (%debug "queuing "
+	      (or (procedure-name (cq-method cq)) (cq-method cq)) 
+	      " for " args)
+      (fifo-push (cq-fifo cq) args))
     (if (not active)
 	(get (cq-cache cq) args)
 	active)))
+
+(define (cq/cached? cq args)
+  (let ((v (get (cq-cache cq) args)))
+    (and (exists? v)
+	 (and (cq-meltpoint cq)
+	      (time-later? (timestamp+ (third v) (cq-meltpoint cq)))))))
 
 ;;; Using cachequeues
 
 (define (cq/call cq . args)
   "Invokes a cachequeue on some arguments, returning cached values
    or queueing the request."
-  (car
-    (try (get (cq-cache cq) args)
-	 ((cq-compute cq) cq args #f))))
+  (let ((v (get (cq-cache cq) args)))
+    (if (fail? v)
+	((cq-compute cq) cq args #f)
+	(if (meltentry? v)
+	    (begin (if (melted? v) ((cq-compute cq) cq args #f))
+		   (meltentry-value v))
+	    v))))
 (define cqompute cq/call)
 
 (define (cq/consume cq args . consumer)
   "Invokes a cachequeue on some arguments, and applies a consumer \
    to the result (as a callback).  This works immediately if the  \
    value is cached."
-  (if (test (cq-cache cq) args)
-      (doconsume consumer (car (get (cq-cache cq) args)))
-      (apply (cq-compute cq) cq args consumer)))
+  (let ((v (get (cq-cache cq) args)))
+    (if (fail? v)
+	((cq-compute cq) cq args #f)
+	(if (meltentry? v)
+	    (if (melted? v)
+		((cq-compute cq) cq args consumer)
+		(doconsume consumer (meltentry-value v)))
+	    (dconsume consumer v))
+	(if (and (meltentry? v) (melted? v))
+	    ((cq-compute cq) cq args consumer)
+	    (doconsume consumer (meltentry-value v))))))
 (define cqconsume cq/consume)
 
 (define (cq/request cq . args)
@@ -112,20 +147,20 @@
 (define (cq/require cq . args)
   "Jumps the cachequeue to process particular arguments"
   (if (test (cq-cache cq) args)
-      (first (get (cq-cache cq) args))
+      (apply cq/call cq args)
       (let ((statetable (cq-state cq)))
-	(let* ((token (list '|queued...| (timestamp)))
+	(let* ((token (vector '|queued...| (timestamp)))
 	       (active (cq/reserve cq args token)))
 	  (if (not active) (get (cq-cache cq) args)
 	      (if (eq? token active)
 		  (begin
 		    (cqdaemon-step cq args)
-		    (first (get (cq-cache cq) args)))
+		    (meltvalue (get (cq-cache cq) args)))
 		  (let ((consumers (cq-consumers cq))
 			(cv (make-condvar)))
 		    (add! consumers args (list cqwait cv))
 		    (condvar-wait cv)
-		    (first (get (cq-cache cq) args)))))))))
+		    (meltvalue (get (cq-cache cq) args)))))))))
 
 ;;; The daemon which gets requests and processes them
 
@@ -135,25 +170,28 @@
 	 (method (cq-method cq))
 	 (cache (cq-cache cq))
 	 (token (get statetable entry)))
-    (when (eq? (car token) '|queued...|)
+    (when (eq? (first token) '|queued...|)
       ;; Update the state table
       (store! statetable entry
-	      (list '|computing...| (timestamp) (second token)))
-      (logger %debug! "Applying " (or (procedure-name method) method)
+	      (vector '|computing...| (timestamp) (second token)))
+      (%debug "Applying " (or (procedure-name method) method)
 	      " to " entry)
       ;; Apply the result
       (onerror (let ((result (apply method entry)))
-		 (logger %debug! "Applied " (or (procedure-name method) method)
+		 (%debug "Applied " (or (procedure-name method) method)
 			 " to " entry)
 		 (store! cache entry
-			 (list result (second token)
-			       (timestamp) (config 'sessionid)))
+			 (if (cq-meltpoint cq)
+			     (if (meltentry? result) result
+				 (cons-meltentry result (timestamp)
+						 (timestamp+ (cq-meltpoint cq))))
+			     result))
 		 (do-choices (consumer (get consumers entry))
 		   (onerror (doconsume consumer result)
 			    (lambda (ex)
-			      (warn "Error consuming " result
-				    " for " entry " in " cq ": "
-				    ex))))
+			      (logger %error! "Error consuming " result
+				      " for " entry " in " cq ": "
+				      ex))))
 		 (drop! statetable entry)
 		 (drop! consumers entry))
 	       (lambda (ex)

@@ -15,7 +15,8 @@
    meltcache/entry
    meltcache/probe meltcache/accumulate
    meltcache/bypass meltcache/bypass+
-   melted? meltentry? meltentry/ttl})
+   melted? meltentry? meltentry/ttl
+   cons-meltentry meltentry-value meltvalue})
 
 (define (now) (gmtimestamp))
 (define (now+ delta) (timestamp+ (gmtimestamp) delta))
@@ -42,6 +43,7 @@
   (time-earlier? (meltentry-expiration entry)))
 (define (meltentry/ttl entry)
   (difftime (meltentry-expiration entry) (gmtimestamp)))
+(define (meltvalue v) (if (meltentry? v) (meltentry-value v) v))
 
 (define (meltcache/get cache fcn . args)
   (let* ((procname (procedure-name fcn))
