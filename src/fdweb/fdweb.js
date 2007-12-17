@@ -898,6 +898,16 @@ function refile_form(evt)
   if (target.form) target.form.submit();
 }
 
+function fdb_follow_href(evt)
+{
+  var target=evt.target;
+  while (target)
+    if (target.hasAttribute("href")) break;
+    else target=target.parentNode;
+  if (target)
+    window.location=target.getAttribute("href");
+}
+
 // Adding search engines
 var browser_coverage="Mozilla/Firefox/Netscape 6";
 
