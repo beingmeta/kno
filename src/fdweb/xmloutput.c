@@ -597,7 +597,7 @@ static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
 #define DEFAULT_XMLPI \
   "<?xml version='1.0' charset='utf-8' ?>"
 
-static u8_string error_stylesheet="/css/fdweb.css";
+static u8_string error_stylesheet=NULL;
 
 static int embeddedp(fdtype focus,fdtype expr)
 {
@@ -1547,9 +1547,11 @@ FD_EXPORT void fd_init_xmloutput_c()
   quote_symbol=fd_intern("QUOTE");
   raw_name_symbol=fd_intern("%%NAME");
 
+  error_stylesheet=u8_strdup("/css/fdweb.css");
   fd_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
      fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
+
   fd_register_config
     ("HTMLBACKTRACEINDENT",
      _("How many entries in a web backtrace to indent "),
