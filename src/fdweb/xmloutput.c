@@ -645,15 +645,44 @@ static fdtype exception_data(u8_exception ex)
   else return FD_VOID;
 }
 
-static u8_exception get_innermost_expr(u8_exception ex,fdtype expr)
+static fdtype get_focus_expr(u8_exception ex)
+{
+  u8_exception scan=ex; fdtype xdata, focus=FD_VOID;
+  if (ex==NULL) return FD_VOID;
+  else {
+    xdata=exception_data(scan);
+    scan=ex->u8x_prev;}
+  if (FD_PAIRP(xdata)) {
+    while (scan) {
+      fdtype sdata=exception_data(scan);
+      if (FD_PAIRP(sdata))
+	if (embeddedp(sdata,xdata)) {
+	  focus=sdata; scan=scan->u8x_prev;}
+	else return focus;
+      else if (FD_TABLEP(sdata)) {
+	scan=scan->u8x_prev;}
+      else break;}
+    return focus;}
+  else return FD_VOID;
+}
+
+static u8_exception get_next_frame(u8_exception ex)
 {
   u8_exception scan=ex; fdtype xdata;
-  if (ex==NULL) return ex;
-  else xdata=exception_data(scan);
-  if ((FD_PAIRP(xdata)) && (embeddedp(xdata,expr))) {
-    u8_exception bottom=get_innermost_expr(ex->u8x_prev,xdata);
-    if (bottom) return bottom; else return ex;}
-  else return NULL;
+  if (ex==NULL) return NULL;
+  else {
+    xdata=exception_data(scan);
+    scan=ex->u8x_prev;}
+  if (FD_PAIRP(xdata)) {
+    while (scan) {
+      fdtype sdata=exception_data(scan);
+      if (FD_PAIRP(sdata))
+	if (embeddedp(sdata,xdata)) {
+	  scan=scan->u8x_prev;}
+	else return scan;
+      else return scan;}
+    return scan;}
+  else return scan;
 }
 
 static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
@@ -664,8 +693,7 @@ static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
   if (ex->u8x_context==fd_eval_context) {
     fdtype expr=exception_data(ex);
     struct U8_OUTPUT tmp; u8_string focus_start;
-    u8_exception innermost=get_innermost_expr(ex->u8x_prev,expr);
-    fdtype focus=((innermost) ? (exception_data(innermost)) : (FD_VOID));
+    fdtype focus=get_focus_expr(ex);
     U8_INIT_OUTPUT(&tmp,1024);
     u8_printf(s,"<div class='expr'>");
     fd_pprint_focus(&tmp,expr,focus,NULL,0,80,"#@?#","#@?#");
@@ -678,10 +706,7 @@ static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
       fd_entify(s,focus_end+4);}
     else u8_puts(s,tmp.u8_outbuf);
     u8_free(tmp.u8_outbuf);
-    u8_printf(s,"</div>\n");
-    if (innermost) {
-      if (ex->u8x_prev==NULL) u8_printf(s,"</div>\n");
-      return innermost->u8x_prev;}}
+    u8_printf(s,"</div>\n");}
   else if (ex->u8x_context==fd_apply_context) {
     fdtype entry=exception_data(ex);
     int i=1, len=FD_VECTOR_LENGTH(entry);
@@ -723,25 +748,14 @@ static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
       u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
     u8_printf(s,"</div>\n");}
   if (ex->u8x_prev==NULL) u8_printf(s,"</div>\n");
-  return ex->u8x_prev;
-}
-
-static u8_exception next_backtrace_entry(u8_exception ex)
-{
-  if (ex==NULL) return NULL;
-  else if (ex->u8x_context==fd_eval_context) {
-    fdtype expr=exception_data(ex);
-    u8_exception innermost=get_innermost_expr(ex->u8x_prev,expr);
-    if (innermost) return innermost->u8x_prev;
-    else return ex->u8x_prev;}
-  else return ex->u8x_prev;
+  return get_next_frame(ex);
 }
 
 static int output_backtrace_entries(u8_output s,u8_exception ex)
 {
   int depth=0;
   if (ex==NULL) return 0;
-  depth=output_backtrace_entries(s,next_backtrace_entry(ex));
+  depth=output_backtrace_entries(s,get_next_frame(ex));
   if (depth<backtrace_indent_depth)
     u8_printf(s,"<div class='backtrace_indent'/>\n");
   output_backtrace_entry(s,ex);
