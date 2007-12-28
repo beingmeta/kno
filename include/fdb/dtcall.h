@@ -10,23 +10,12 @@
 #define FDB_DTCALL_H_VERSION "$Id:$"
 
 #include "ptr.h"
+#include <libu8/u8netfns.h>
 #include <stdarg.h>
 
-FD_EXPORT fd_ptr_type fd_dtserver_type;
-
-typedef struct FD_DTSERVER {
-  FD_CONS_HEADER;
-  u8_string server, addr;
-  struct FD_DTYPE_STREAM stream;
-#if FD_THREADS_ENABLED
-  u8_mutex lock;
-#endif
-} FD_DTSERVER;
-typedef struct FD_DTSERVER *fd_dtserver;
-
-FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz);
-FD_EXPORT fdtype fd_dteval(fd_dtserver srv,fdtype expr);
-FD_EXPORT fdtype fd_dtcall(fd_dtserver srv,u8_string,int,...);
-
+FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr);
+FD_EXPORT fdtype fd_dtapply(struct U8_CONNPOOL *cp,int n,fdtype *args);
+FD_EXPORT fdtype fd_dtcall(struct U8_CONNPOOL *cp,int n,...);
+FD_EXPORT fdtype fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...);
 
 #endif

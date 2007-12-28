@@ -35,6 +35,10 @@ int fd_default_cache_level=1;
 int fd_oid_display_level=2;
 int fd_prefetch=FD_PREFETCHING_ENABLED;
 
+int fd_dbconn_reserve_default=FD_DBCONN_RESERVE_DEFAULT;
+int fd_dbconn_cap_default=FD_DBCONN_CAP_DEFAULT;
+int fd_dbconn_init_default=FD_DBCONN_INIT_DEFAULT;
+
 static fdtype id_symbol;
 
 static int fddb_initialized=0;
@@ -420,12 +424,12 @@ static void register_header_files()
 FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
 FD_EXPORT void fd_init_indices_c(void);
+FD_EXPORT void fd_init_dtcall_c(void);
 FD_EXPORT void fd_init_netpools_c(void);
 FD_EXPORT void fd_init_netindices_c(void);
 FD_EXPORT void fd_init_xtables_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 FD_EXPORT void fd_init_dtproc_c(void);
-FD_EXPORT void fd_init_dtcall_c(void);
 FD_EXPORT void fd_init_frames_c(void);
 FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
@@ -441,12 +445,12 @@ FD_EXPORT int fd_init_db()
   fd_init_threadcache_c();
   fd_init_pools_c();
   fd_init_indices_c();
+  fd_init_dtcall_c();
   fd_init_netpools_c();
   fd_init_netindices_c();
   fd_init_xtables_c();
   fd_init_apply_c();
   fd_init_dtproc_c();
-  fd_init_dtcall_c();
   fd_init_frames_c();
   fd_init_ipeval_c();
   fd_init_methods_c();
@@ -477,6 +481,13 @@ FD_EXPORT int fd_init_db()
 		     config_get_indices,config_open_index,NULL);
   fd_register_config("BACKGROUND",_("indices in the default search background"),
 		     config_get_background,config_use_index,NULL);
+
+  fd_register_config("DBCONNRESERVE",_("Number of connections (default) to keep for each DB server"),
+		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_reserve_default);
+  fd_register_config("DBCONNCAP",_("Max number of connections (default) for each DB server"),
+		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_cap_default);
+  fd_register_config("DBCONNINIT",_("Number of connections (default) to initially create for each DB server"),
+		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_init_default);
 
   return fddb_initialized;
 }

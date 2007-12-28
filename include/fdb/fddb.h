@@ -46,6 +46,20 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 #define FD_NET_BUFSIZE 64*1024
 #endif
 
+#ifndef FD_DBCONN_RESERVE_DEFAULT
+#define FD_DBCONN_RESERVE_DEFAULT 2
+#endif
+
+#ifndef FD_DBCONN_CAP_DEFAULT
+#define FD_DBCONN_CAP_DEFAULT 6
+#endif
+
+#ifndef FD_DBCONN_INIT_DEFAULT
+#define FD_DBCONN_INIT_DEFAULT 1
+#endif
+
+FD_EXPORT int fd_dbconn_reserve_default, fd_dbconn_cap_default, fd_dbconn_init_default;
+
 FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type, fd_raw_pool_type;
 
 #define FD_INDEXP(x) (FD_PTR_TYPEP(x,fd_index_type))
@@ -157,6 +171,19 @@ FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args);
 FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 
 /* Thread caches */
+
+#ifndef FD_THREAD_CALLCACHE_SIZE
+#define FD_THREAD_CALLCACHE_SIZE 128
+#endif
+#ifndef FD_THREAD_OIDCACHE_SIZE
+#define FD_THREAD_OIDCACHE_SIZE 0
+#endif
+#ifndef FD_THREAD_BGCACHE_SIZE
+#define FD_THREAD_BGCACHE_SIZE 0
+#endif
+#ifndef FD_THREAD_KEYCACHE_SIZE
+#define FD_THREAD_KEYCACHE_SIZE 0
+#endif
 
 typedef struct FD_THREAD_CACHE {
   struct FD_HASHTABLE fdtc_calls;

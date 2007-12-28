@@ -56,16 +56,18 @@ FD_EXPORT fd_thread_cache fd_cons_thread_cache(int ccsize,int ocsize,int bcsize,
 {
   struct FD_THREAD_CACHE *tc=u8_alloc(struct FD_THREAD_CACHE);
   fd_make_hashtable(&(tc->fdtc_calls),ccsize);
-  fd_make_hashtable(&(tc->fdtc_oids),0);
-  fd_make_hashtable(&(tc->fdtc_bground),0);
-  fd_make_hashtable(&(tc->fdtc_keys),0);
+  fd_make_hashtable(&(tc->fdtc_oids),ocsize);
+  fd_make_hashtable(&(tc->fdtc_bground),bcsize);
+  fd_make_hashtable(&(tc->fdtc_keys),kcsize);
   tc->fdtc_prev=NULL;
   return tc;
 }
 
 FD_EXPORT fd_thread_cache fd_new_thread_cache()
 {
-  return fd_cons_thread_cache(128,0,0,0);
+  return fd_cons_thread_cache
+    (FD_THREAD_CALLCACHE_SIZE,FD_THREAD_OIDCACHE_SIZE,
+     FD_THREAD_BGCACHE_SIZE,FD_THREAD_KEYCACHE_SIZE);
 }
 
 FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)

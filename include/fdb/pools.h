@@ -318,10 +318,8 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
 
 typedef struct FD_NETWORK_POOL {
   FD_POOL_FIELDS;
-  int sock;
-  struct FD_DTYPE_STREAM stream;
-  int bulk_commitp;
-  U8_MUTEX_DECL(lock);} FD_NETWORK_POOL;
+  struct U8_CONNPOOL *connpool;
+  int bulk_commitp;} FD_NETWORK_POOL;
 typedef struct FD_NETWORK_POOL *fd_network_pool;
 
 /* File pool opener */

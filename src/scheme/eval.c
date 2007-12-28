@@ -1007,15 +1007,44 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arit
 
 /* Remote evaluation */
 
+static fd_exception ServerUndefined=_("Server unconfigured");
+fd_ptr_type fd_dtserver_type;
+
+FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
+{
+  struct FD_DTSERVER *dts=u8_alloc(struct FD_DTSERVER);
+  u8_string server_addr; int socket;
+  if ((*server)==':') {
+    fdtype server_id=fd_config_get(server+1);
+    if (FD_STRINGP(server_id))
+      server_addr=u8_strdup(FD_STRDATA(server_id));
+    else  {
+      fd_seterr(ServerUndefined,"open_server",u8_strdup(dts->server),server_id);
+      u8_free(dts);
+      return -1;}}
+  else server_addr=u8_strdup(server);
+  dts->server=u8_strdup(server); dts->addr=server_addr;
+  socket=u8_connect_x(server,&(dts->addr));
+  if (socket<0) {
+    u8_free(dts->server); u8_free(dts->addr); u8_free(dts); 
+    return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
+		  u8_strdup(server),FD_VOID);}
+  else close(socket);
+  dts->connpool=u8_open_connpool(dts->server,2,4,1);
+  FD_INIT_CONS(dts,fd_dtserver_type);
+  return FDTYPE_CONS(dts);
+}
+
 static fdtype dteval(fdtype server,fdtype expr)
 {
-  if (FD_PRIM_TYPEP(server,fd_dtserver_type)) 
-    return fd_dteval(FD_GET_CONS(server,fd_dtserver_type,fd_dtserver),expr);
+  if (FD_PRIM_TYPEP(server,fd_dtserver_type))  {
+    struct FD_DTSERVER *dtsrv=FD_GET_CONS(server,fd_dtserver_type,fd_dtserver);
+    return fd_dteval(dtsrv->connpool,expr);}
   else if (FD_STRINGP(server)) {
     fdtype s=fd_open_dtserver(FD_STRDATA(server),-1);
     if (FD_ABORTP(s)) return s;
     else {
-      fdtype result=fd_dteval((fd_dtserver)s,expr);
+      fdtype result=fd_dteval(((fd_dtserver)s)->connpool,expr);
       fd_decref(s);
       return result;}}
   else return fd_type_error(_("server"),"dteval",server);
@@ -1036,7 +1065,7 @@ static fdtype dtcall(int n,fdtype *args)
       request=fd_init_pair(NULL,fd_make_list(2,quote_symbol,param),request);
     else request=fd_init_pair(NULL,param,request);
     fd_incref(param); i--;}
-  result=fd_dteval((fd_dtserver)server,request);
+  result=fd_dteval(((fd_dtserver)server)->connpool,request);
   fd_decref(request); fd_decref(server);
   return result;
 }

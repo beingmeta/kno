@@ -78,6 +78,16 @@ typedef struct FD_MACRO {
   fdtype transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
 
+/* DT servers */
+
+FD_EXPORT fd_ptr_type fd_dtserver_type;
+
+typedef struct FD_DTSERVER {
+  FD_CONS_HEADER;
+  u8_string server, addr;
+  struct U8_CONNPOOL *connpool;} FD_DTSERVER;
+typedef struct FD_DTSERVER *fd_dtserver;
+
 /* Modules */
 
 FD_EXPORT fd_lispenv fd_working_environment(void);

@@ -45,7 +45,7 @@ typedef struct FD_DTYPE_STREAM {
   off_t filepos, maxpos; int fd;} FD_DTYPE_STREAM;
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
-FD_EXPORT void fd_init_dtype_stream
+FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
   (struct FD_DTYPE_STREAM *s,int sock,int bufsiz);
 
 FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream

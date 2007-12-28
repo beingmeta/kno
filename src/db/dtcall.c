@@ -6,182 +6,102 @@
 */
 
 static char versionid[] =
-  "$Id:$";
-
-#define FD_INLINE_DTYPEIO 1
+  "$Id: apply.c 2163 2007-12-08 16:07:24Z haase $";
 
 #include "fdb/dtype.h"
-#include "fdb/dtypestream.h"
-#include "fdb/apply.h"
-#include "fdb/fddb.h"
 #include "fdb/dtcall.h"
+#include "fdb/dtypestream.h"
 
-#include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
-#include <libu8/u8printf.h>
 
-static fd_exception ServerUndefined=_("Server unconfigured");
-static fdtype quote_symbol;
-static int dtcall_init_done=0;
+#include <stdarg.h>
 
-
-fd_ptr_type fd_dtserver_type;
-
-FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
+static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
 {
-  struct FD_DTSERVER *dts=u8_alloc(struct FD_DTSERVER);
-  u8_string server_addr; int socket;
-  if ((*server)==':') {
-    fdtype server_id=fd_config_get(server+1);
-    if (FD_STRINGP(server_id))
-      server_addr=u8_strdup(FD_STRDATA(server_id));
-    else  {
-      fd_seterr(ServerUndefined,"open_server",u8_strdup(dts->server),server_id);
-      u8_free(dts);
-      return -1;}}
-  else server_addr=u8_strdup(server);
-  dts->server=u8_strdup(server); dts->addr=server_addr;
-  socket=u8_connect_x(server,&(dts->addr));
-  if (socket<0) {
-    u8_free(dts->server); u8_free(dts->addr); u8_free(dts); 
-    return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
-		  u8_strdup(server),FD_VOID);}
-  fd_init_dtype_stream(&(dts->stream),socket,
-		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)));
-  fd_init_mutex(&(dts->lock));
-  FD_INIT_CONS(dts,fd_dtserver_type);
-  return FDTYPE_CONS(dts);
-}
-
-static int server_reconnect(fd_dtserver dts)
-{
-  u8_connection newsock; u8_string server, server_addr; int bufsiz=-1;
-  /* This reopens the socket for a closed network pool. */
-  if (dts->stream.fd>=0) {
-    fd_dtsclose(&(dts->stream),1);
-    bufsiz=dts->stream.bufsiz;}
-  server=dts->server; server_addr=dts->addr;
-  if (dts->addr) {u8_free(dts->addr); dts->addr=NULL;}
-  if ((*server)==':') {
-    fdtype server_id=fd_config_get(server+1);
-    if (FD_STRINGP(server_id))
-      server_addr=u8_strdup(FD_STRDATA(server_id));
-    else  {
-      fd_decref(server_id);
-      fd_seterr(ServerUndefined,"server_reconnect",
-		u8_strdup(dts->server),server_id);
-      return -1;}}
-  else server_addr=u8_strdup(server);
-  u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",dts->server);
-  newsock=u8_connect_x(server,&(dts->addr));
-  if (newsock<0) {
-    u8_log(LOG_WARN,fd_ServerReconnect,"Failed to reconnect to %s",dts->server);
-    u8_free(server_addr); return newsock;}
-  else if (u8_set_nodelay(newsock,1)<0) {
-    u8_log(LOG_WARN,fd_ServerReconnect,"Failed to set nodelay on socket to %s",
-	    dts->server);
-    u8_free(server_addr); return -1;}
-  fd_init_dtype_stream(&(dts->stream),newsock,
-		       ((bufsiz<0) ? (FD_NET_BUFSIZE) : (bufsiz)));
-  return newsock;
-}
-
-FD_EXPORT fdtype fd_dteval(fd_dtserver dts,fdtype expr)
-{
-  fdtype result;
-  if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
-      (fd_dtsflush(&(dts->stream))<0)) {
-    if (server_reconnect(dts)<0) return FD_ERROR_VALUE;
-    else if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
-	     (fd_dtsflush(&(dts->stream))<0))
-      return FD_ERROR_VALUE;}
-  result=fd_dtsread_dtype(&(dts->stream));
-  if (result == FD_EOD) {
-    u8_exception ex=u8_erreify();
-    if (ex) u8_free_exception(ex,1);
-    if (server_reconnect(dts)<0) return FD_ERROR_VALUE;
-    else if ((fd_dtswrite_dtype(&(dts->stream),expr)<0) ||
-	     (fd_dtsflush(&(dts->stream))<0))
-      return FD_ERROR_VALUE;
-    else return fd_dtsread_dtype(&(dts->stream));}
-  else return result;
-}
-
-FD_EXPORT fdtype fd_dtcall(fd_dtserver dts,u8_string fcn,int n,...)
-{
-  fd_dtype_stream stream=&(dts->stream);
-  fdtype *params=u8_alloc_n((n+1),fdtype), request, result;
-  int i=0; va_list args;
-  fd_lock_struct(dts);
-  if (stream->fd<0)
-    if (server_reconnect(dts)<0) {
-      fd_unlock_struct(dts);
-      return FD_ERROR_VALUE;}
-    else {}
-  params[i++]=fd_intern(fcn);
-  va_start(args,n);
-  while (i<n) params[i++]=va_arg(args,fdtype);
-  request=FD_EMPTY_LIST; i=n-1;
-  while (i>=0) {
-    if ((i>0) && ((FD_SYMBOLP(params[i])) || (FD_PAIRP(params[i]))))
-      request=fd_init_pair(NULL,fd_make_list(2,quote_symbol,params[i]),request);
-    else request=fd_init_pair(NULL,params[i],request);
-    fd_incref(params[i]); i--;}
-  u8_free(params);
-  if ((fd_dtswrite_dtype(stream,request)<0) ||
-      (fd_dtsflush(stream)<0)) {
-    /* Close the stream and sleep a second before reconnecting. */
-    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s",dts->server);
-    fd_dtsclose(stream,1); sleep(1);
-    if ((server_reconnect(dts)<0) ||
-	(fd_dtswrite_dtype(stream,request)<0) ||
-	(fd_dtsflush(&(dts->stream))<0)) {
-      fd_decref(request);
+  fdtype result; 
+  struct FD_DTYPE_STREAM stream;
+  u8_connection conn=u8_get_connection(cpool);
+  fd_init_dtype_stream(&stream,conn,8192);
+  stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
+  if ((fd_dtswrite_dtype(&stream,expr)<0) ||
+      (fd_dtsflush(&stream)<0)) {
+    if ((conn=u8_reconnect(cpool,conn))<0) {
+      u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}}
-  result=fd_dtsread_dtype(stream);
+  result=fd_dtsread_dtype(&stream);
   if (FD_EQ(result,FD_EOD)) {
-    /* Close the stream and sleep a second before reconnecting. */
-    u8_log(LOG_WARN,fd_ServerReconnect,"Resetting connection to %s/",dts->server,dts->addr);
-    fd_dtsclose(stream,1); sleep(1);
-    if ((server_reconnect(dts)<0) ||
-	(fd_dtswrite_dtype(stream,request)<0)  ||
-	(fd_dtsflush(&(dts->stream))<0)) {
-      fd_decref(request);
+    if (((conn=u8_reconnect(cpool,conn))<0) ||
+	(fd_dtswrite_dtype(&stream,expr)<0) ||
+	(fd_dtsflush(&stream)<0)) {
+      u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
-    else result==fd_dtsread_dtype(stream);
-    if (FD_EQ(result,FD_EOD))
-      return fd_err(fd_UnexpectedEOD,"fd_dtcall",dts->addr,FD_VOID);}
+    else result=fd_dtsread_dtype(&stream);
+    if (FD_EQ(result,FD_EOD)) {
+      u8_discard_connection(cpool,conn);
+      return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
+  u8_return_connection(cpool,conn);
+  return result;
+}
+FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr)
+{
+  return dteval(cp,expr);
+}
+
+static fdtype quote_symbol;
+
+FD_FASTOP fdtype quote_lisp(fdtype x,int dorefs)
+{
+  if (dorefs) fd_incref(x);
+  if ((FD_SYMBOLP(x)) || (FD_PAIRP(x)))
+    return fd_init_pair(NULL,quote_symbol,fd_init_pair(NULL,x,FD_EMPTY_LIST));
+  else return x;
+}
+static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,fdtype *args)
+{
+  fdtype request=FD_EMPTY_LIST, result=FD_VOID;
+  n--; while (n>0) {
+    request=fd_init_pair(NULL,quote_lisp(args[n],dorefs),request);
+    n--;}
+  if (dorefs) fd_incref(args[0]);
+  request=fd_init_pair(NULL,args[0],request);
+  result=dteval(cp,request);
   fd_decref(request);
   return result;
 }
-
-static int unparse_dtserver(u8_output out,fdtype x)
+FD_EXPORT fdtype fd_dtapply(struct U8_CONNPOOL *cp,int n,fdtype *args)
 {
-  struct FD_DTSERVER *dts=
-    FD_GET_CONS(x,fd_dtserver_type,struct FD_DTSERVER *);
-  u8_printf(out,"#<DTSERVER \"%s\" %s>",dts->server,dts->addr);
-  return 1;
+  return dtapply(cp,n,1,args);
 }
 
-FD_EXPORT void recycle_dtserver(struct FD_CONS *c)
+FD_EXPORT fdtype fd_dtcall(struct U8_CONNPOOL *cp,int n,...)
 {
-  struct FD_DTSERVER *dts=(struct FD_DTSERVER *)c;
-  fd_dtsclose(&(dts->stream),1);
-  u8_free(dts);
+  int i=0; va_list arglist;
+  fdtype *args, _args[8], result;
+  va_start(arglist,n);
+  if (n>8)
+    args=u8_alloc_n(n,fdtype);
+  else args=_args;
+  while (i<n) args[i++]=va_arg(arglist,fdtype);
+  result=dtapply(cp,n,1,args);
+  if (args!=_args) u8_free(args);
+  return result;
 }
 
-FD_EXPORT void fd_init_dtcall_c()
+FD_EXPORT fdtype fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...)
 {
-  if (dtcall_init_done) return;
-  dtcall_init_done=0;
-  fd_dtserver_type=fd_register_cons_type(_("thread"));
-  fd_recyclers[fd_dtserver_type]=recycle_dtserver;
-  fd_unparsers[fd_dtserver_type]=unparse_dtserver;
+  int i=0; va_list arglist;
+  fdtype *args, _args[8], result;
+  va_start(arglist,n);
+  if (n>8)
+    args=u8_alloc_n(n,fdtype);
+  else args=_args;
+  while (i<n) args[i++]=va_arg(arglist,fdtype);
+  result=dtapply(cp,n,0,args);
+  if (args!=_args) u8_free(args);
+  return result;
+}
 
+FD_EXPORT int fd_init_dtcall_c()
+{
   quote_symbol=fd_intern("QUOTE");
-  
-  fd_register_source_file(versionid);
-  fd_register_source_file(FDB_DTCALL_H_VERSION);
-
-  
 }
