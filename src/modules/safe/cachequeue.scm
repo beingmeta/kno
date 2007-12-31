@@ -7,7 +7,8 @@
 
 (use-module '{ezrecords meltcache fifo logger reflection})
 
-(define %loglevel %warning!)
+;(define %loglevel %warning!)
+(define %loglevel %debug!)
 
 (module-export!
  '{cachequeue
@@ -56,7 +57,7 @@
 			       " for " args)
 		       (cqompute-inner cq args))
 		     (set! v (meltentry-value v)))
-		   (if (not consumer) v(doconsume consumer v)))
+		   (if (not consumer) v (doconsume consumer v)))
 		 (if (test statetable args)
 		     (let ((state (get statetable args)))
 		       (if (error? (first state))
@@ -124,7 +125,9 @@
    value is cached."
   (let ((v (get (cq-cache cq) args)))
     (if (fail? v)
-	((cq-compute cq) cq args #f)
+	(if (null? consumer)
+	    ((cq-compute cq) cq args #f)
+	    ((cq-compute cq) cq args consumer))
 	(if (meltentry? v)
 	    (if (melted? v)
 		((cq-compute cq) cq args consumer)
@@ -133,7 +136,7 @@
 	(if (and (meltentry? v) (melted? v))
 	    ((cq-compute cq) cq args consumer)
 	    (doconsume consumer (meltentry-value v))))))
-(define cqconsume cq/consume)
+(define cqonsume cq/consume)
 
 (define (cq/request cq . args)
   "This queues a request for cache queue but doesn't wait around \
