@@ -132,7 +132,7 @@
 	    (if (melted? v)
 		((cq-compute cq) cq args consumer)
 		(doconsume consumer (meltentry-value v)))
-	    (dconsume consumer v))
+	    (doconsume consumer v))
 	(if (and (meltentry? v) (melted? v))
 	    ((cq-compute cq) cq args consumer)
 	    (doconsume consumer (meltentry-value v))))))
