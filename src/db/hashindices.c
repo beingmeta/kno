@@ -2019,7 +2019,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
     /* bucket_locs should still be sorted by bucket. */
     qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
 	  sort_cs_by_bucket);
-    qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),sort_kb_by_bucket);
+    qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),
+	  sort_kb_by_bucket);
     qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
 	  sort_br_by_bucket);
 #if FD_DEBUG_HASHINDICES

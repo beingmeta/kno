@@ -36,7 +36,10 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int a
   if (maxsock<0) maxsock=minsock+3;
   if (initsock<0) initsock=1;
   f->connpool=u8_open_connpool(f->server,minsock,maxsock,initsock);
-  return FDTYPE_CONS(f);
+  if (f->connpool==NULL) {
+    u8_free(f->name); u8_free(f->filename); u8_free(f);
+    return FD_ERROR_VALUE;}
+  else return FDTYPE_CONS(f);
 }
 
 static int unparse_dtproc(u8_output out,fdtype x)
