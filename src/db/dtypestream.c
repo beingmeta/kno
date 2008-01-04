@@ -105,7 +105,8 @@ static int writeall(int fd,unsigned char *data,int n)
     if (delta<0)
       if (errno==EAGAIN) errno=0;
       else {
-	u8_log(LOG_WARN,"write failed","writeall %d errno=%d (%s) written=%d/%d",
+	u8_log(LOG_ERROR,
+	       "write failed","writeall %d errno=%d (%s) written=%d/%d",
 		fd,errno,strerror(errno),written,n);
 	return delta;}
     else written=written+delta;}

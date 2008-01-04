@@ -408,10 +408,11 @@ static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
 
 /* Making a hash index */
 
-FD_EXPORT int fd_make_hash_index(u8_string fname,int n_buckets_arg,
-				 unsigned int flags,unsigned int hashconst,
-				 fdtype slotids_init,fdtype baseoids_init,fdtype metadata_init,
-				 time_t ctime,time_t mtime)
+FD_EXPORT int fd_make_hash_index
+  (u8_string fname,int n_buckets_arg,
+   unsigned int flags,unsigned int hashconst,
+   fdtype slotids_init,fdtype baseoids_init,fdtype metadata_init,
+   time_t ctime,time_t mtime)
 {
   int n_buckets;
   time_t now=time(NULL);
@@ -1089,8 +1090,10 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
 	  else if (vsched[i].ref.size>vbuf_size) {
 	    vbuf=u8_realloc(vbuf,vsched[i].ref.size);
 	    vbuf_size=vsched[i].ref.size;}
-	  open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,vbuf,LOCK_STREAM);}
-	else open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,_vbuf,LOCK_STREAM);
+	  open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,
+		     vbuf,LOCK_STREAM);}
+	else open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,
+			_vbuf,LOCK_STREAM);
 	n_vals=fd_read_zint(&vblock);
 	while (j<n_vals) {
 	  fdtype v=read_zvalue(hx,&vblock);
@@ -1197,7 +1200,8 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
     if (buckets[i].size<512) 
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf,LOCK_STREAM);
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,
+		 _keybuf,LOCK_STREAM);
     else {
       if (keybuf==NULL) {
 	keybuf_size=buckets[i].size;
@@ -1206,7 +1210,8 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
       else {
 	keybuf_size=buckets[i].size;
 	keybuf=u8_realloc(keybuf,keybuf_size);}
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf,LOCK_STREAM);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,
+		 keybuf,LOCK_STREAM);}
     n_keys=fd_read_zint(&keyblock);
     while (j<n_keys) {
       fdtype key; int n_vals, size;
@@ -1256,7 +1261,8 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
     if (buckets[i].size<512) 
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,_keybuf,LOCK_STREAM);
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,
+		 _keybuf,LOCK_STREAM);
     else {
       if (keybuf==NULL) {
 	keybuf_size=buckets[i].size;
@@ -1265,7 +1271,8 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
       else {
 	keybuf_size=buckets[i].size;
 	keybuf=u8_realloc(keybuf,keybuf_size);}
-      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,keybuf,LOCK_STREAM);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,
+		 keybuf,LOCK_STREAM);}
     n_keys=fd_read_zint(&keyblock);
     while (j<n_keys) {
       fdtype key, key_and_size; int n_vals, size;
@@ -1917,13 +1924,15 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
     open_block(&keyblock,hx,ref.off,ref.size,keybuf,DONT_LOCK_STREAM);
     n_keys=fd_read_zint(&keyblock);
     kb=(struct KEYBUCKET *)
-      u8_malloc(sizeof(struct KEYBUCKET)+sizeof(struct KEYENTRY)*((extra+n_keys)-1));
+      u8_malloc(sizeof(struct KEYBUCKET)+
+		sizeof(struct KEYENTRY)*((extra+n_keys)-1));
     kb->bucket=bucket;
     kb->n_keys=n_keys; kb->keybuf=keybuf;
     parse_keybucket(hx,kb,&keyblock,n_keys);}
   else {
     kb=(struct KEYBUCKET *)
-      u8_malloc(sizeof(struct KEYBUCKET)+sizeof(struct KEYENTRY)*(extra-1));
+      u8_malloc(sizeof(struct KEYBUCKET)+
+		sizeof(struct KEYENTRY)*(extra-1));
     kb->bucket=bucket;
     kb->n_keys=0; kb->keybuf=NULL;}
   return kb;
