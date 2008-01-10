@@ -31,6 +31,7 @@ static char versionid[] =
 #define POSIX_OPEN_FLAGS 0
 #endif
 
+unsigned int fd_check_dtsize=0;
 
 fd_exception fd_ReadOnlyStream=_("Read-only stream");
 fd_exception fd_CantRead=_("Can't read data");
@@ -40,6 +41,8 @@ fd_exception fd_CantSeek=_("Can't seek on stream");
 fd_exception fd_BadLSEEK=_("lseek() failed");
 fd_exception fd_OverSeek=_("Seeking past end of file");
 fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
+
+static fd_exception InconsistentDTypeSize=_("Inconsistent DTYPE size");
 
 static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n);
 
@@ -219,10 +222,23 @@ FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
 {
-  int n_bytes;
-  if (s->flags&FD_DTSTREAM_READING)
+  int n_bytes; off_t start;
+  if ((s->flags)&(FD_DTSTREAM_READING))
     if (fd_set_read(s,0)<0) return -1;
+  if (fd_check_dtsize) start=fd_getpos(s); else start=(off_t)-1;
   n_bytes=fd_write_dtype((struct FD_BYTE_OUTPUT *)s,x);
+  if ((fd_check_dtsize) && (start>=0)) {
+    off_t end=fd_getpos(s);
+    if ((end-start)!= n_bytes) 
+      u8_log((((s->flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
+	     InconsistentDTypeSize,
+	     "Inconsistent dtype length %d/%d for %q",n_bytes,end-start,x);
+    else {
+      fd_dtsflush(s); end=fd_getpos(s);
+      if ((end-start)!= n_bytes) 
+	u8_log((((s->flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
+	       InconsistentDTypeSize,
+	       "Inconsistent dtype length (on disk) %d/%d for %q",n_bytes,end-start,x);}}
   if ((s->ptr-s->start)*4>=(s->bufsiz*3)) fd_dtsflush(s);
   return n_bytes;
 }
