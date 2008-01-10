@@ -1022,6 +1022,22 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
     return fd_incref(dflt);}
 }
 
+FD_EXPORT fdtype fd_hashtable_get_noref
+  (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt)
+{
+  struct FD_KEYVAL *result;
+  KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
+  if (ht->n_keys == 0) return fd_incref(dflt);
+  else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
+  if (result) {
+    fdtype rv=result->value;
+    if (FD_ACHOICEP(rv)) {
+      result->value=fd_simplify_choice(rv);
+      return result->value;}
+    else return rv;}
+  else return dflt;
+}
+
 FD_EXPORT int fd_hashtable_probe(struct FD_HASHTABLE *ht,fdtype key)
 {
   struct FD_KEYVAL *result;
