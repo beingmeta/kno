@@ -60,7 +60,8 @@ FD_EXPORT int fd_init_errbase(void);
 #define fd_whoops(ex) u8_raise(ex,NULL,NULL)
 
 FD_EXPORT fd_exception
-fd_UnexpectedEOD, fd_UnexpectedEOF, fd_ParseError, fd_TypeError, fd_DTypeError,
+  fd_UnexpectedEOD, fd_UnexpectedEOF, fd_ParseError, fd_TypeError,
+  fd_DTypeError, fd_InconsistentDTypeSize,
   fd_RangeError, fd_BadEscapeSequence, fd_ConstantTooLong,
   fd_CantParseRecord, fd_CantUnparse, fd_InvalidConstant,
   fd_InvalidCharacterConstant, fd_BadAtom, fd_NoPointerExpressions,

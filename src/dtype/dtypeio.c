@@ -23,6 +23,8 @@ int (*fd_dtype_error)
 
 fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
 fd_exception fd_DTypeError=_("Malformed DTYPE representation");
+fd_exception fd_InconsistentDTypeSize=_("Inconsistent DTYPE size");
+
 static fd_exception BadUnReadByte=_("Inconsistent read/unread byte");
 
 static fdtype error_symbol;
@@ -123,8 +125,10 @@ static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
   int dlen=fd_write_dtype(out,x);
   if (dlen<0)
     return -1;
-  else if ((olen+dlen) != (out->ptr-out->start))
-    u8_log(LOG_WARN,"trouble","inconsistent dlen");
+  else if ((out->flushfn==NULL) &&
+	   ((olen+dlen) != (out->ptr-out->start)))
+    /* If you're writing straight to memory, check dtype size argument */
+    u8_log(LOG_WARN,"","inconsistent dtype size");
   *len=*len+dlen;
   return dlen;
 }
