@@ -180,7 +180,7 @@
 	  (?? language (string-subst word "_" " ")))
    (tryif (uppercase? word)
 	  (?? language (capitalize word)))
-   (tryif (and tryhard (> tryhard 1) (lowercase? word))
+   (tryif (and tryhard (number? tryhard) (> tryhard 1) (lowercase? word))
 	  (?? language (capitalize word)))))
 
 (define (lookup-subphrase word language tryhard)
