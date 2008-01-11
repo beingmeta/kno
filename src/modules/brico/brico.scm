@@ -293,6 +293,28 @@
       (set! changed #t))
     changed))
 
+(define (low%wds e (cautious #f))
+  (if (pair? e)
+      (if (lowercase? (cdr e)) e
+	  (if cautious
+	      (cons (car e) (choice (cdr e) (downcase (cdr e))))
+	      (cons (car e) (downcase (cdr e)))))
+      e))
+
+(define (low%frame! f (cautious #f))
+  (let* ((words (get f '%words))
+	 (norm (get f '%norm))
+	 (cwords (low%wds words cautious))
+	 (cnorm (low%wds norm cautious))
+	 (changed #f))
+    (unless (identical? words cwords)
+      (store! f '%words cwords)
+      (set! changed #t))
+    (unless (identical? norm cnorm)
+      (store! f '%norm cnorm)
+      (set! changed #t))
+    changed))
+
 ;;; Generic prefetching
 
 ;;; These functions do generic prefetching for BRICO concepts,
@@ -550,7 +572,11 @@
 (module-export! '{concept-frequency concept-frequency-prefetch})
 
 ;;; Miscellaneous functions
-(module-export! '{make%id make%id! cap%wds cap%frame! assign-isa assign-genls})
+(module-export!
+ '{make%id
+   make%id!
+   cap%wds cap%frame! low%wds low%frame!
+   assign-isa assign-genls})
 
 ;;;; For the compiler/optimizer
 
