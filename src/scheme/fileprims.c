@@ -730,7 +730,7 @@ static fdtype safe_loadpath=FD_EMPTY_LIST;
 static fdtype loadpath=FD_EMPTY_LIST;
 static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime);
 static u8_string get_module_filename(fdtype spec,int safe);
-static int load_source_for_module(u8_string module_filename,int safe);
+static fdtype load_source_for_module(u8_string module_filename,int safe);
 
 static int load_source_module(fdtype spec,int safe)
 {
@@ -779,7 +779,7 @@ static u8_string get_module_filename(fdtype spec,int safe)
   else return NULL;
 }
 
-static int load_source_for_module(u8_string module_filename,int safe)
+static fdtype load_source_for_module(u8_string module_filename,int safe)
 {
   fd_lispenv env=
     ((safe) ?
