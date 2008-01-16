@@ -454,13 +454,47 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 
 /* The default apply function */
 
+static int contains_qchoicep(int n,fdtype *args);
+static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args);
+
 FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp); fdtype result;
-  if (f->ndprim) result=fd_dapply((fdtype)f,n,args);
+  if (f->ndprim) 
+    if (!(FD_EXPECT_FALSE(contains_qchoicep(n,args))))
+      result=fd_dapply((fdtype)f,n,args);
+    else result=qchoice_dapply(fp,n,args);
   else result=fd_ndapply((fdtype)f,n,args);
   return fd_finish_call(result);
 }
+
+static int contains_qchoicep(int n,fdtype *args)
+{
+  int qchoicep=0;
+  fdtype *scan=args, *limit=args+n;
+  while (scan<limit)
+    if (FD_QCHOICEP(*scan)) return 1;
+    else scan++;
+  return 0;
+}
+
+static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
+{
+  fdtype result, _nargs[8], *nargs;
+  fdtype *read=args, *limit=read+n, *write;
+  if (n<=8) nargs=_nargs;
+  else nargs=u8_alloc_n(n,fdtype);
+  write=nargs;
+  while (read<limit)
+    if (FD_QCHOICEP(*read)) {
+      struct FD_QCHOICE *qc=(struct FD_QCHOICE *) (*read++);
+      *write++=qc->choice;}
+    else *write++=*read++;
+  result=fd_dapply(fp,n,nargs);
+  if (n>8) u8_free(nargs);
+  return result;
+}
+
 static int unparse_function(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_FUNCTION *fn=
