@@ -121,8 +121,7 @@ FDB_SOURCES=\
 	src/fdweb/fdweb.c src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
 	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c \
 	src/fdweb/curl.c src/fdweb/mime.c src/fdweb/exif.c src/fdweb/email.c \
-	src/texttools/texttools.c include/fdb/texttools.h \
-	src/texttools/match.c src/texttools/porter.c \
+	src/texttools/texttools.c src/texttools/match.c src/texttools/porter.c \
 	src/tagger/tagger.c src/tagger/ofsm.c src/tagger/tagxtract.c \
 	include/fdb/tagger.h \
 	src/exe/fdconsole.c \
@@ -234,8 +233,7 @@ depend.in:
 
 TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
-		src/texttools/*.c src/texttools/*.h src/tagger/*.c \
-		include/fdb/*.h 
+		src/texttools/*.c src/tagger/*.c include/fdb/*.h 
 	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
 	      src/texttools/*.c src/texttools/*.h src/tagger/*.c \
