@@ -236,7 +236,7 @@ TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/texttools/*.c src/tagger/*.c include/fdb/*.h 
 	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
-	      src/texttools/*.c src/texttools/*.h src/tagger/*.c \
+	      src/texttools/*.c src/tagger/*.c \
 	      include/fdb/*.h
 
 profile-clean:
@@ -1101,14 +1101,13 @@ src/texttools/texttools.o: ./include/fdb/support.h ./include/fdb/ptr.h
 src/texttools/texttools.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/texttools/texttools.o: ./include/fdb/tables.h ./include/fdb/eval.h
 src/texttools/texttools.o: ./include/fdb/apply.h ./include/fdb/sequences.h
-src/texttools/texttools.o: ./include/fdb/texttools.h
 src/texttools/match.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/texttools/match.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/texttools/match.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
 src/texttools/match.o: ./include/fdb/support.h ./include/fdb/ptr.h
 src/texttools/match.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/texttools/match.o: ./include/fdb/tables.h ./include/fdb/eval.h
-src/texttools/match.o: ./include/fdb/apply.h ./include/fdb/texttools.h
+src/texttools/match.o: ./include/fdb/apply.h
 src/texttools/porter.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/texttools/porter.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/texttools/porter.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1125,7 +1124,7 @@ src/tagger/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/tagger/tagger.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/tagger/tagger.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/tagger/tagger.o: ./include/fdb/eval.h ./include/fdb/apply.h
-src/tagger/tagger.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
+src/tagger/tagger.o: ./include/fdb/sequences.h
 src/tagger/tagger.o: ./include/fdb/tagger.h
 src/tagger/ofsm.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/tagger/ofsm.o: ./include/fdb/defines.h ./include/fdb/config.h
@@ -1152,7 +1151,7 @@ src/tagger/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/tagger/tagxtract.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/indices.h
-src/tagger/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/texttools.h
+src/tagger/tagxtract.o: ./include/fdb/dtypestream.h
 src/tagger/tagxtract.o: ./include/fdb/tagger.h
 src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdconsole.o: ./include/fdb/defines.h ./include/fdb/config.h
