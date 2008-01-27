@@ -36,7 +36,7 @@ static fdtype attribs_symbol, content_symbol, type_symbol;
 
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
 static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol;
-static fdtype noempty_symbol, data_symbol;
+static fdtype noempty_symbol, data_symbol, decode_symbol;
 
 static fdtype nsref2slotid(u8_string s)
 {
@@ -47,6 +47,33 @@ static fdtype nsref2slotid(u8_string s)
     fd_decref(v);
     return fd_intern(start);}
   else return v;
+}
+
+/* Parsing entities */
+
+static int egetc(u8_string *s)
+{
+  if (**s=='\0') return -1;
+  else if (**s<0x80)
+    if (**s=='&')
+      if (strncmp(*s,"&nbsp;",6)==0) {*s=*s+6; return ' ';}
+      else {
+	u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
+	if (code>0) {
+	  *s=end; return code;}
+	else {(*s)++; return '&';}}
+    else {
+      int c=**s; (*s)++; return c;}
+  else return u8_sgetc(s);
+}
+
+static fdtype decode_entities(fdtype input)
+{
+  struct U8_OUTPUT out; u8_string scan=FD_STRDATA(input); int c=egetc(&scan);
+  U8_INIT_OUTPUT(&out,FD_STRLEN(input));
+  while (c>=0) {
+    u8_putc(&out,c); c=egetc(&scan);}
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 
@@ -229,6 +256,15 @@ static int allspacep(u8_string s)
   if (c<0) return 1; else return 0;
 }
 
+static fdtype item2list(fdtype item,int parse_entities)
+{
+  if (parse_entities) {
+    fdtype result=fd_make_list(1,decode_entities(item));
+    fd_decref(item);
+    return result;}
+  else return fd_make_list(1,item);
+}
+
 static void add_content(struct FD_XML *node,fdtype item)
 {
   if ((FD_STRINGP(item)) &&
@@ -237,14 +273,17 @@ static void add_content(struct FD_XML *node,fdtype item)
 	(allspacep(FD_STRDATA(item)))))) {
     fd_decref(item);
     return;}
-  else if (node->tail==NULL) {
-    fdtype entry=fd_make_list(1,item);
-    node->head=entry;
-    node->tail=(struct FD_PAIR *)entry;}
   else {
-    fdtype new_entry=fd_make_list(1,item);
-    node->tail->cdr=new_entry;
-    node->tail=(struct FD_PAIR *)new_entry;}
+    int parse_entities=
+      (((node->bits)&(FD_XML_DECODE_ENTITIES)) &&
+       (strchr(FD_STRDATA(item),'&')!=NULL));
+    fdtype entry=item2list(item,parse_entities);
+    if (node->tail==NULL) {
+      node->head=entry;
+      node->tail=(struct FD_PAIR *)entry;}
+    else {
+      node->tail->cdr=entry;
+      node->tail=(struct FD_PAIR *)entry;}}
 }
 FD_EXPORT void fd_add_content(struct FD_XML *node,fdtype item)
 {
@@ -735,6 +774,8 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
       return FD_SLOPPY_XML;
     else if (FD_EQ(x,data_symbol))
       return FD_DATA_XML;
+    else if (FD_EQ(x,decode_symbol))
+      return FD_XML_DECODE_ENTITIES;
     else if (FD_EQ(x,keepraw_symbol))
       return FD_XML_KEEP_RAW;
     else if (FD_EQ(x,crushspace_symbol))
@@ -831,6 +872,7 @@ FD_EXPORT void fd_init_xmlinput_c()
   attribids=fd_intern("%ATTRIBIDS");
 
   sloppy_symbol=fd_intern("SLOPPY");
+  decode_symbol=fd_intern("DECODE");
   keepraw_symbol=fd_intern("KEEPRAW");
   crushspace_symbol=fd_intern("CRUSHSPACE");
   slotify_symbol=fd_intern("SLOTIFY");

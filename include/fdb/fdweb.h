@@ -26,14 +26,17 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_NOCONTENTS 256
 #define FD_XML_NSFREE 512  /* With respect to John Wayne... */ 
 #define FD_XML_NOEMPTY 1024
+/* Whether to decode entities in content */
+#define FD_XML_DECODE_ENTITIES 2048 
 /* The entries below here are internal state used by the XML parser,
    as opposed to general parsing options */
-#define FD_XML_HASDATA 2048 /* Whether the node has anything special (attributes or content) */
+/* Whether the node has anything special (attributes or content) */
+#define FD_XML_HASDATA 65536
 
 #define FD_XML_INHERIT_BITS                                   \
   ((FD_XML_EMPTY_CLOSE)|(FD_XML_AUTOCLOSE)|(FD_XML_KEEP_RAW)| \
    (FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|  \
-   (FD_XML_NSFREE)|(FD_XML_NOEMPTY))
+   (FD_XML_NSFREE)|(FD_XML_NOEMPTY) | (FD_XML_DECODE_ENTITIES))
 
 #define FD_SLOPPY_XML \
   (FD_XML_AUTOCLOSE|FD_XML_EMPTY_CLOSE)
