@@ -217,7 +217,11 @@ static void dolog
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID); u8_string tmp;
       if (FD_TROUBLEP(val)) {
 	u8_exception ex=u8_erreify();
-	if (ex->u8x_context)
+	if (ex==NULL)
+	  tmp=u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_STRDATA(uri),
+			  exectime,u8_elapsed_time());
+	
+	else if (ex->u8x_context)
 	  tmp=u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
 			  exectime,u8_elapsed_time(),
 			  ex->u8x_cond,ex->u8x_context);
