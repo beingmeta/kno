@@ -155,5 +155,13 @@
 
 (module-export! 'newterm)
 
+(defambda (audit-genls! f genl)
+  (for-choices f
+    (audit+! f @?genls (difference genl (get f @?genls)))
+    (audit-! f @?genls (difference (get f @?genls) genl))
+    (store! f 'sensecat (get genl 'sensecat))
+    (store! f 'type (get genl 'type))
+    (make%id! f)
+    f))
 
-
+(module-export! 'audit-genls!)
