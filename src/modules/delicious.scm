@@ -4,7 +4,7 @@
 
 ;;; Provides access to del.icio.us through both their API and RSS urls
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (use-module '{texttools fdweb meltcache})
 ;(use-module '{gnosys/webapp/userinfo gnosys/urldb gnosys/metakeys/tagmaps})
@@ -72,7 +72,7 @@
 	(let ((result (xmlparse (get result 'content) 'data)))
 	  (get (xmlget result 'rdf) 'item)))))
 
-(set-meltcache-threshold! rssurlentries (* 40 60))
+;;(config! 'meltcache (cons rssurlentries (* 40 60)))
 
 (define (rssgettags url user)
   (let ((entries (meltcache/accumulate delicious-cache rssurlentries url)))
@@ -131,7 +131,7 @@
 	 (result (xgeturl url 'data)))
     (get (get (xmlget result 'rdf) 'item) 'link)))
 
-(set-meltcache-threshold! rssgeturls (* 40 60))
+;;(set-meltcache-threshold! rssgeturls (* 40 60))
 
 (define (apigeturls tags user password)
   (let* ((handle (makeurlfn user password)))
@@ -222,7 +222,7 @@
 		      (printout (if (> i 0) "+") (remove #\Space tag))))))
 	 (result (xgeturl url 'data)))
     (rssbookmark (get (get result 'rdf) 'item))))
-(set-meltcache-threshold! rssgetbookmarks (* 40 60))
+;;(set-meltcache-threshold! rssgetbookmarks (* 40 60))
 
 (define (apigetbookmarks tags user password)
   (let* ((handle (makeurlfn user password)))
