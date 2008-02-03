@@ -16,32 +16,35 @@ FD_EXPORT void fd_init_fdweb(void) FD_LIBINIT_FN;
 
 FD_EXPORT fd_exception fd_XMLParseError;
 
-#define FD_XML_MALLOCD 2
-#define FD_XML_EMPTY_CLOSE 4 /* Handle </> as generic close */
-#define FD_XML_AUTOCLOSE 8 /* automatically close elements */
-#define FD_XML_CLOSE_REPEATS 16
-#define FD_XML_KEEP_RAW 32
-#define FD_XML_CRUSHSPACE 64
-#define FD_XML_SLOTIFY 128
-#define FD_XML_NOCONTENTS 256
-#define FD_XML_NSFREE 512  /* With respect to John Wayne... */ 
-#define FD_XML_NOEMPTY 1024
+#define FD_XML_MALLOCD       2
+#define FD_XML_EMPTY_CLOSE   ((FD_XML_MALLOCD)<<1) /* Handle </> as generic close */
+#define FD_XML_FOLDCASE      ((FD_XML_EMPTY_CLOSE)<<1) /* Use foldcase when */
+#define FD_XML_AUTOCLOSE     ((FD_XML_FOLDCASE)<<1) /* automatically close elements */
+#define FD_XML_BADCLOSE      ((FD_XML_AUTOCLOSE)<<1) /* ignore dangling closes */
+#define FD_XML_CLOSE_REPEATS ((FD_XML_BADCLOSE)<<1)  /* let <p> close <p> */
+#define FD_XML_KEEP_RAW      ((FD_XML_CLOSE_REPEATS)<<1)
+#define FD_XML_CRUSHSPACE    ((FD_XML_KEEP_RAW)<<1)
+#define FD_XML_SLOTIFY       ((FD_XML_CRUSHSPACE)<<1)
+#define FD_XML_NOCONTENTS    ((FD_XML_SLOTIFY)<<1)
+#define FD_XML_NSFREE        ((FD_XML_NOCONTENTS)<<1)  /* With respect to John Wayne... */ 
+#define FD_XML_NOEMPTY       ((FD_XML_NSFREE)<<1)
 /* Whether to decode entities in content */
-#define FD_XML_DECODE_ENTITIES 2048 
+#define FD_XML_DECODE_ENTITIES ((FD_XML_NOEMPTY)<<1)
 /* The entries below here are internal state used by the XML parser,
    as opposed to general parsing options */
-/* Whether the node has anything special (attributes or content) */
-#define FD_XML_HASDATA 65536
+#define FD_XML_HASDATA       ((FD_XML_DECODE_ENTITIES)<<1) /* Whether the node has anything special (attributes or content) */
 
 #define FD_XML_INHERIT_BITS                                   \
   ((FD_XML_EMPTY_CLOSE)|(FD_XML_AUTOCLOSE)|(FD_XML_KEEP_RAW)| \
    (FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|  \
-   (FD_XML_NSFREE)|(FD_XML_NOEMPTY) | (FD_XML_DECODE_ENTITIES))
+   (FD_XML_NSFREE)|(FD_XML_NOEMPTY)|\
+   (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)| \
+   (FD_XML_DECODE_ENTITIES))
 
 #define FD_SLOPPY_XML \
-  (FD_XML_AUTOCLOSE|FD_XML_EMPTY_CLOSE)
+  ((FD_XML_AUTOCLOSE)|(FD_XML_EMPTY_CLOSE)|(FD_XML_FOLDCASE)|(FD_XML_BADCLOSE))
 #define FD_DATA_XML \
-  (FD_XML_CRUSHSPACE|FD_XML_SLOTIFY|FD_XML_NOCONTENTS|FD_XML_NSFREE|FD_XML_NOEMPTY)
+  ((FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|(FD_XML_NSFREE)|(FD_XML_NOEMPTY))
 
 #define FD_XML_DEFAULT_BITS 0
 

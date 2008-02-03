@@ -627,7 +627,10 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       free_node(&newnode,0);
       return retnode;}
   case xmlclose:
-    if (strcmp(node->eltname,elts[0])==0) {
+    if ((((node->bits)&(FD_XML_FOLDCASE)) ?
+	 (strcasecmp(node->eltname,elts[0])) :
+	 (strcmp(node->eltname,elts[0])))
+	==0) {
       struct FD_XML *retnode;
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
       if (node->bits&FD_XML_KEEP_RAW)
@@ -661,9 +664,11 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
 	  if (retnode!=closenode)
 	    free_node(closenode,1);
 	  return retnode;}}
-      fd_seterr(fd_XMLParseError,"inconsistent close tag",
-		u8_mkstring("</%s> closes <%s>",elts[0],node->eltname),
-		FD_VOID);
+      if ((node->bits)&(FD_XML_BADCLOSE))
+	return node;
+      else fd_seterr(fd_XMLParseError,"inconsistent close tag",
+		     u8_mkstring("</%s> closes <%s>",elts[0],node->eltname),
+		     FD_VOID);
       return NULL;}
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
@@ -671,7 +676,10 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       FD_XML *newnode=u8_alloc(struct FD_XML);
       u8_string name=u8_strdup(elts[0]);
       if ((node->bits&FD_XML_CLOSE_REPEATS) &&
-	  ((strcmp(node->eltname,elts[0])==0))) {
+	  (((((node->bits)&(FD_XML_FOLDCASE)) ?
+	     (strcasecmp(node->eltname,elts[0])) :
+	     (strcmp(node->eltname,elts[0])))
+	    ==0))) {
 	FD_XML *popped=popfn(node);
 	if (popped!=node)
 	  free_node(node,1);
