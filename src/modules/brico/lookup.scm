@@ -24,10 +24,12 @@
 (module-export! '{brico/lookup
 		  lookup-word lookup-combo vary-word
 		  word-override? lookup-word-prefetch
-		  lookup-term brico/resolve brico/resolveone})
+		  lookup-term brico/resolve brico/resolveone brico/ref})
 
 (define %nosubst
   '{word-overrides word-overlays morphrules termrules})
+
+(define remote-lookup-term #f)
 
 ;;; LOOKING up words
 
@@ -404,16 +406,19 @@
 			    (cons term (qcx (lookup-word term language tryhard))))))))))
 
 (define (brico/resolve term (language default-language) (tryhard 2))
-  (cdr (lookup-term term language tryhard)))
+  (cdr ((or remote-lookup-term lookup-term) term language tryhard)))
 
 (define (absfreq c) (choice-size (?? @?refterms c)))
 
 (define (brico/resolveone term (language default-language) (tryhard 2))
-  (let ((possible (cdr (lookup-term term language tryhard))))
+  (let ((possible
+	 (cdr ((or remote-lookup-term lookup-term) term language tryhard))))
     (if (fail? possible) {}
 	(try (singleton possible)
+	     ;; This biases towards terms which aren't defined
+	     ;;  in terms of other terms.
 	     (singleton (difference possible (?? @?defterms possible)))
 	     (pick-one (largest possible absfreq))))))
 
-
+(define brico/ref brico/resolveone)
 
