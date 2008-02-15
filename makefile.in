@@ -432,8 +432,11 @@ copy-modules: $(CONFDIR)/scm
 	cp -pf $(BUILD)/src/modules/*.table @standard_module_dir@
 	cp -rf $(BUILD)/src/fdweb/xhtml @module_dir@
 
-setup-rc.d:
-	$(INSTALL) --mode=0555 etc/framerd-rc.d /etc/init.d/framerd
+$(DESTDIR)/etc/init.d/framerd:
+	$(INSTALL) --mode=0555 etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
+setup-rc.d: /etc/init.d/framerd
+enable-rc.d: /etc/init.d/framerd
+	update-rc.d framerd defaults
 setup-osx: @data_dir@
 	etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
