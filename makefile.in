@@ -30,6 +30,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
+WWWUSER		= apache
 
 DTYPE_HEADERS=\
  include/fdb/config.h  \
@@ -448,15 +449,18 @@ etc/mod_fdserv.so: etc/mod_fdserv.c
 mod_fdserv: etc/mod_fdserv.so
 
 install-fdserv: etc/mod_fdserv.so
-	cd etc; ${APXS} -i -c mod_fdserv.c
+	cd etc; ${APXS} -i -a -c mod_fdserv.c
 	if test -d @apache_conf_dir@/mods-available; \
 	   then ${INSTALL} @install_file_opts@ \
-		etc/fdserv.conf etc/fdserv.load \
-		@apache_conf_dir@/mods-available; \
+		etc/fdserv.conf \
+		@apache_conf_dir@/mods_available; \
+	elif test -d @apache_conf_dir@.d; \
+	   then ${INSTALL} @install_file_opts@ \
+		etc/fdserv.conf \
+		@apache_conf_dir@.d; \
 	fi
-
-activate-fdserv: etc/mod_fdserv.so
-	cd etc; ${APXS} -i -a -c mod_fdserv.c
+	$(INSTALL) -o $(WWWUSER) -d $(DESTDIR)/var/run/fdserv
+	$(INSTALL) -o $(WWWUSER) -d $(DESTDIR)/var/log/fdserv
 
 # Tracking revision information
 

@@ -584,7 +584,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
     const char *socket_prefix=
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
-       "/tmp/fdserv::");
+       "/var/run/fdserv/fdserv::");
 
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,r,
@@ -818,7 +818,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
     const char *socket_prefix=
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
-       "/tmp/fdserv::");
+       "/var/run/fdserv/fdserv::");
 
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,
@@ -917,10 +917,13 @@ static int spawn_fdservlet /* 2.0 */
 			    (NULL));
   const char *log_file=get_logfile(r);
   int servlet_wait=dconfig->servlet_wait;
+  uid_t uid; gid_t gid;
+
+  apr_uid_current(&uid,&gid,p);
 
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,s,
-	       "Spawning fdservlet %s @%s for %s",
-	       exename,sockname,r->unparsed_uri);
+	       "Spawning fdservlet %s @%s for %s, uid=%d, gid=%d",
+	       exename,sockname,r->unparsed_uri,uid,gid);
 
   *write_argv++=(char *)exename;
   *write_argv++=(char *)sockname;
@@ -984,18 +987,18 @@ static int spawn_fdservlet /* 2.0 */
 		     attr,p);
   if (rv!=APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, rv, r,
-		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d]",
-		  exename,sockname,r->unparsed_uri,rv,proc.pid);
+		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
+		  exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
     return -1;}
   else if (log_file)
     ap_log_error
       (APLOG_MARK,APLOG_NOTICE,rv,s,
-       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d]",
-       exename,sockname,log_file,r->unparsed_uri,rv,proc.pid);
+       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d]",
+       exename,sockname,log_file,r->unparsed_uri,rv,proc.pid,uid,gid);
   else ap_log_error
       (APLOG_MARK,APLOG_NOTICE,rv,s,
-       "Spawned %s @%s (nologfile) for %s [rv=%d,pid=%d]",
-       exename,sockname,r->unparsed_uri,rv,proc.pid);
+       "Spawned %s @%s (nologfile) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
+       exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
   
   /* Now wait for the socket file to exist */
   {
@@ -1047,7 +1050,13 @@ static int connect_to_servlet(request_rec *r)
   
   servname.sun_family=AF_LOCAL; strcpy(servname.sun_path,sockname);
   if ((connect(sock,(struct sockaddr *)&servname,SUN_LEN(&servname))) < 0) {
-    int rv=spawn_fdservlet(r,r->pool,sockname);
+    int rv;
+    ap_log_rerror
+      (APLOG_MARK,APLOG_CRIT,500,
+       r,"Couldn't open socket %s (errno=%d:%s), spawning",
+       sockname,errno,strerror(errno));
+    errno=0;
+    rv=spawn_fdservlet(r,r->pool,sockname);
     if (rv<0) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't spawn fdservlet @ %s",sockname);
