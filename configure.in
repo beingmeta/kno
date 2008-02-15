@@ -31,6 +31,7 @@ SHARED_LIB_TARGET=shared-libs
 VERSION=3
 I18N=""
 INSTALLI18N=""
+WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 A2EN="none"
@@ -80,6 +81,7 @@ AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
+AC_SUBST(WWWUSER)
 
 AC_CANONICAL_HOST
 AC_PROG_CC
@@ -87,6 +89,11 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs apxs2)
+
+if groups www; then WWWUSER='www'; fi
+if groups httpd; then WWWUSER='httpd'; fi
+if groups www-data; then WWWUSER='www-data'; fi
+if groups apache; then WWWUSER='apache'; fi
 
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`

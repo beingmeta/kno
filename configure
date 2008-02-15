@@ -682,6 +682,7 @@ PROFILING
 MKSTATIC
 I18N
 INSTALLI18N
+WWWUSER
 build
 build_cpu
 build_vendor
@@ -1789,6 +1790,7 @@ SHARED_LIB_TARGET=shared-libs
 VERSION=3
 I18N=""
 INSTALLI18N=""
+WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 A2EN="none"
@@ -1834,6 +1836,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -3127,6 +3130,11 @@ fi
   test -n "$APXS" && break
 done
 
+
+if groups www; then WWWUSER='www'; fi
+if groups httpd; then WWWUSER='httpd'; fi
+if groups www-data; then WWWUSER='www-data'; fi
+if groups apache; then WWWUSER='apache'; fi
 
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
@@ -10441,6 +10449,7 @@ PROFILING!$PROFILING$ac_delim
 MKSTATIC!$MKSTATIC$ac_delim
 I18N!$I18N$ac_delim
 INSTALLI18N!$INSTALLI18N$ac_delim
+WWWUSER!$WWWUSER$ac_delim
 build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
 build_vendor!$build_vendor$ac_delim
@@ -10469,7 +10478,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 94; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 95; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
