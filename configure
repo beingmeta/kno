@@ -9733,7 +9733,7 @@ fi
 if test "${with_admin_group+set}" = set; then
   withval=$with_admin_group;
 else
-  with_admin_group="none"
+  with_admin_group="adm"
 fi
 
 if test $with_admin_group != "none"; then

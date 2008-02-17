@@ -479,7 +479,7 @@ fi
 
 dnl Specifies a framerd group; files written by installation scripts will
 dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(admin_group,--with[out]-admin-group Install files with admin group and group write permissions,,with_admin_group="none")
+AC_ARG_WITH(admin_group,--with[out]-admin-group Install files with admin group and group write permissions,,with_admin_group="adm")
 if test $with_admin_group != "none"; then
   install_dir_opts="-g $with_admin_group $install_dir_opts"
   install_file_opts="-g $with_admin_group $install_file_opts"
