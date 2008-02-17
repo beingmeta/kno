@@ -13,7 +13,7 @@ export FDMANAGER=@prefix@/bin/fdmanager
 export FDSERVER=@prefix@/bin/fdbserver
 export FDSERVER_USER=fdaemon
 export FDSERVER_GROUP=fdaemon
-CTLFILE=@prefix@/share/framerd/servers
+CTLFILE=@config_dir@/servers
 PIDFILE=/var/run/framerd.pid
 STATFILE=/var/run/framerd.status
 

@@ -46,8 +46,19 @@ static char *server_start_message=
 static char *failed_termination_message=
  _("Server %s (pid=%d,nid=%s) ignored %s for %d seconds; trying %s");
 
+#ifndef FD_LOGDIR
+#define FD_LOGDIR "/var/log/framerd"
+#endif
+#ifndef FD_RUNDIR
+#define FD_RUNDIR "/var/run/framerd"
+#endif
+
+static u8_string logdir=FD_LOGDIR;
+static u8_string rundir=FD_RUNDIR;
+
 struct SERVER_ENTRY {
-  char *control_file, *dirname, *basename, *nid, *serverexe;
+  char *control_file, *serverexe;
+  char *dirname, *basename, *statebase, *logbase, *nid;
   long int wait, dependent, sleeping;
   char **argv;
   pid_t pid;};
@@ -152,6 +163,13 @@ static int setup_runas()
 
 static int become_runas()
 {
+
+  if ((runas_gid>0) && (runas_uid>0)) {
+    if (fchown(1,runas_uid,runas_gid)<0)
+      u8_log(LOG_WARN,"server startup","Couldn't set user/group for stdio");
+    if (fchown(2,runas_uid,runas_gid)<0)
+      u8_log(LOG_WARN,"server startup","Couldn't set user/group for stdio");}
+  
   if (setgid(runas_gid)<0) {
     u8_graberr(-1,"server startup",NULL);
     u8_log(LOG_WARN,SecurityAbort,"Couldn't change GID (%d)",runas_gid);
@@ -169,11 +187,12 @@ static int become_runas()
 static char **generate_argv(char *exe,char *control_file,char *string)
 {
   char **argvec=u8_alloc_n(64,char *), **result;
-  int argc=2, max_args=16;
+  int argc=3, max_args=16;
   char *start=skip_whitespace(string), *end=skip_arg(start);
   char *lim=start+strlen(start);
   argvec[0]=u8_strdup(exe);
   argvec[1]=u8_strdup(control_file);
+  argvec[2]=u8_strdup("STATEDIR=/var/run/framerd");
   while (end>start) {
     if (argc+1 >= max_args) {
       argvec=u8_realloc_n(argvec,max_args+16,u8_charstring);
@@ -221,7 +240,12 @@ static char *init_server_entry(struct SERVER_ENTRY *e,char *control_line)
   /* Generate the dirname */
   e->dirname=u8_dirname(e->control_file); 
   /* Generate the  basename */
-  base=e->basename=get_basename(e->control_file); 
+  base=e->basename=get_basename(e->control_file);
+  {
+    u8_string simple_base=u8_basename(base,"*");
+    e->statebase=u8_mkpath(rundir,simple_base);
+    e->logbase=u8_mkpath(logdir,simple_base);
+    u8_free(simple_base);}
   return base;
 }
 
@@ -233,7 +257,7 @@ static void set_stdio(char *base)
   int log_fd, err_fd; mode_t omode=umask(0x0);
   log_fd=open(path_append(base,".log"),
 	      (O_CREAT|O_WRONLY|O_APPEND|O_SYNC),
-	      (S_IWUSR|S_IRUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH));
+	      (S_IWUSR|S_IRUSR|S_IRGRP|S_IROTH));
   if (log_fd < 0)
     syslog(LOG_ERR,_("Can't open %s (errno=%d/%s)"),
 	   path_append(base,".log"),errno,strerror(errno));
@@ -242,7 +266,7 @@ static void set_stdio(char *base)
 		path_append(base,".log"),errno,strerror(errno));
   err_fd=open(path_append(base,".err"),
 	      (O_CREAT|O_WRONLY|O_APPEND|O_SYNC),
-	      (S_IWUSR|S_IRUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH));
+	      (S_IWUSR|S_IRUSR|S_IRGRP|S_IROTH));
   if (err_fd < 0)
     syslog(LOG_ERR,_("Can't open %s (errno=%d/%s)"),
 	   path_append(base,".err"),errno,strerror(errno));
@@ -260,10 +284,10 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
   /* If the entry is invalid, return -1 */
   if (base == NULL) return -1;
   /* Clean up any old state variables */
-  ppid_file=path_append(base,".ppid"); remove(ppid_file);
-  pid_file=path_append(base,".pid"); remove(pid_file);
-  nid_file=path_append(base,".nid"); remove(nid_file);
-  sleep_file=path_append(base,".sleep"); remove(sleep_file);
+  ppid_file=path_append(e->statebase,".ppid"); remove(ppid_file);
+  pid_file=path_append(e->statebase,".pid"); remove(pid_file);
+  nid_file=path_append(e->statebase,".nid"); remove(nid_file);
+  sleep_file=path_append(e->statebase,".sleep"); remove(sleep_file);
   errno=0;
   if (proc=fork()) {
     struct stat sbuf; int i=0, lim=e->wait, ret; e->pid=proc; 
@@ -279,10 +303,10 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
     u8_free(pid_file); u8_free(ppid_file);
     u8_free(nid_file); u8_free(sleep_file);}
   else {
-    FILE *pid_stream=fopen(ppid_file,"w");
-    fprintf(pid_stream,"%d",ppid); fclose(pid_stream);
+    FILE *ppid_stream=fopen(ppid_file,"w");
+    fprintf(ppid_stream,"%d",ppid); fclose(ppid_stream);
     /* Redirect stdout and stderr */
-    set_stdio(base);
+    set_stdio(e->logbase);
     /* Go to the directory the file lives in */
     chdir(e->dirname);
     /* Become the server */
@@ -304,10 +328,10 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
   char *ppid_file, *nid_file, *sleep_file;
   int ppid=getpid();
   /* Clean up any old state variables */
-  pid_file=path_append(base,".pid"); remove(pid_file); 
-  ppid_file=path_append(base,".ppid"); remove(ppid_file); 
-  nid_file=path_append(base,".nid"); remove(nid_file); 
-  sleep_file=path_append(base,".sleep");
+  pid_file=path_append(e->statebase,".pid"); remove(pid_file); 
+  ppid_file=path_append(e->statebase,".ppid"); remove(ppid_file); 
+  nid_file=path_append(e->statebase,".nid"); remove(nid_file); 
+  sleep_file=path_append(e->statebase,".sleep");
   if (u8_file_existsp(sleep_file)) e->sleeping=1;
   else e->sleeping=0;
   errno=0; /* Clear errno, just in case */
@@ -336,7 +360,7 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
       duration="60";
     fprintf(stderr,"duration=%s\n",duration);
     /* Redirect stdout and stderr */
-    set_stdio(base);
+    set_stdio(e->logbase);
     fprintf(stderr,"stdio redirected\n");
     /* Go to the directory the file lives in */
     chdir(e->dirname);

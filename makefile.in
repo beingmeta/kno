@@ -415,11 +415,11 @@ $(BININSTALLDIR):
 
 # Setup targets
 
-confdirs: @data_dir@ @config_dir@ @module_dir@ @safe_module_dir@
+confdirs: @data_dir@ @config_dir@ @local_config@ @shared_config@ @module_dir@ @safe_module_dir@
 
-@data_dir@ @config_dir@ @module_dir@ @standard_module_dir@ @safe_module_dir@: 
+@data_dir@ @config_dir@ @local_config@ @shared_config@ @module_dir@ @standard_module_dir@ @safe_module_dir@: 
 	$(INSTALL) @install_dir_opts@ $@
-	touch @data_dir@/servers
+	$(INSTALL) @install_file_opts@ /dev/null @config_dir@/servers
 link-modules: @module_dir@ @standard_module_dir@ 
 	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	rm -rf  @standard_module_dir@
@@ -434,10 +434,17 @@ copy-modules: $(CONFDIR)/scm
 
 $(DESTDIR)/etc/init.d/framerd:
 	$(INSTALL) --mode=0555 etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
-setup-rc.d: /etc/init.d/framerd
-enable-rc.d: /etc/init.d/framerd
+$(DESTDIR)/var/run/framerd:
+	$(INSTALL) --owner=fdaemon -d $(DESTDIR)/var/run/framerd
+$(DESTDIR)/var/log/framerd:
+	$(INSTALL) --owner=fdaemon -d $(DESTDIR)/var/log/framerd
+setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
+            $(DESTDIR)/var/run/framerd \
+            $(DESTDIR)/var/log/framerd
+enable-rc.d: setup-rc.d
 	update-rc.d framerd defaults
-setup-osx: @data_dir@
+
+setup-osx: @data_dir@ $(DESTDIR)/var/run/framerd $(DESTDIR)/var/log/framerd
 	etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \

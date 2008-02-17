@@ -414,6 +414,10 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_TRUE;}}
 }
 
+/* State dir */
+
+static u8_string state_dir=NULL;
+
 /* The main() event */
 
 static void init_server()
@@ -509,6 +513,9 @@ int main(int argc,char **argv)
   fd_register_config("DEBUGMAXELTS",_("Max number of list/vector/choice elements to display in debug message"),
 		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
+  fd_register_config("STATEDIR",_("Where to write server pid/nid files"),
+		     fd_sconfig_get,fd_sconfig_set,&state_dir);
+
 
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);
@@ -607,10 +614,18 @@ int main(int argc,char **argv)
     {
       u8_string bname=u8_basename(source_file,".fdz");
       u8_string fullname=u8_abspath(bname,NULL);
+      u8_string appid=u8_basename(u8_appid(),"*");
       FILE *f;
       /* Get state files and write info */
-      pid_file=u8_string_append(fullname,".pid",NULL);
-      nid_file=u8_string_append(fullname,".nid",NULL);
+      if ((state_dir) && (appid)) {
+	u8_string pid_name=u8_mkstring("%s.pid",appid);
+	u8_string nid_name=u8_mkstring("%s.nid",appid);
+	pid_file=u8_mkpath(state_dir,pid_name);
+	nid_file=u8_mkpath(state_dir,nid_name);
+	u8_free(pid_name); u8_free(nid_name);}
+      else {	
+	pid_file=u8_string_append(fullname,".pid",NULL);
+	nid_file=u8_string_append(fullname,".nid",NULL);}
       atexit(cleanup_state_files);
       /* Write the PID file */
       f=u8_fopen(pid_file,"w");
@@ -647,7 +662,7 @@ int main(int argc,char **argv)
     source_file=NULL;}
   else {
     fprintf(stderr,
-	    "Usage: fdtypeserver [conf=val]* source_file [conf=val]*\n");
+	    "Usage: fdbserver [conf=val]* source_file [conf=val]*\n");
     return 1;}
   if (fullscheme==0) {
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}

@@ -669,6 +669,8 @@ module_dir
 safe_module_dir
 standard_module_dir
 config_dir
+local_config
+shared_config
 apache_modules_dir
 apache_conf_dir
 DREENTRANT
@@ -1307,6 +1309,8 @@ Optional Packages:
 --with-suffix string
 --with-data-dir location
 --with-config-dir location
+--with-local-config location
+--with-shared-config location
 --with-module-dir location
 --with-safe-module-dir location
 --with-standard-module-dir location
@@ -1323,7 +1327,7 @@ Optional Packages:
 --without-global-ipeval Use global lock and variables for ipeval
 --without-curl Use libcurl in fdweb
 --without-exif Use libexif in fdweb
---without-framerd-group Install files with framerd group and group write permissions
+--without-admin-group Install files with admin group and group write permissions
 --without-u8data Use full Unicode data libraries
 
 Some influential environment variables:
@@ -1836,6 +1840,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
+
 
 
 
@@ -6137,14 +6143,35 @@ data_dir=$with_data_dir
 if test "${with_config_dir+set}" = set; then
   withval=$with_config_dir;
 else
-  with_config_dir=$with_data_dir/config
+  with_config_dir=/etc/framerd
 fi
 
+config_dir=$with_config_dir
+
+
+# Check whether --with-local_config was given.
+if test "${with_local_config+set}" = set; then
+  withval=$with_local_config;
+else
+  with_local_config=$config_dir/config
+fi
+
+local_config=$with_local_config
+
+# Check whether --with-shared_config was given.
+if test "${with_shared_config+set}" = set; then
+  withval=$with_shared_config;
+else
+  with_shared_config=$data_dir/config
+fi
+
+shared_config=$with_shared_config
+
 cat >>confdefs.h <<_ACEOF
-#define FD_CONFIG_FILE_PATH "$with_config_dir/%"
+#define FD_CONFIG_FILE_PATH "$with_local_config/%:$with_shared_config/%"
 _ACEOF
 
-config_dir=$with_config_dir
+
 
 
 # Check whether --with-module_dir was given.
@@ -9702,17 +9729,17 @@ _ACEOF
 fi
 
 
-# Check whether --with-framerd_group was given.
-if test "${with_framerd_group+set}" = set; then
-  withval=$with_framerd_group;
+# Check whether --with-admin_group was given.
+if test "${with_admin_group+set}" = set; then
+  withval=$with_admin_group;
 else
-  with_framerd_group="none"
+  with_admin_group="none"
 fi
 
-if test $with_framerd_group != "none"; then
-  install_dir_opts="-g $with_framerd_group $install_dir_opts"
-  install_file_opts="-g $with_framerd_group $install_file_opts"
-  install_exe_opts="-g $with_framerd_group $install_exe_opts"
+if test $with_admin_group != "none"; then
+  install_dir_opts="-g $with_admin_group $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
 fi
 
 # Check whether --enable-fileconfig was given.
@@ -10436,6 +10463,8 @@ module_dir!$module_dir$ac_delim
 safe_module_dir!$safe_module_dir$ac_delim
 standard_module_dir!$standard_module_dir$ac_delim
 config_dir!$config_dir$ac_delim
+local_config!$local_config$ac_delim
+shared_config!$shared_config$ac_delim
 apache_modules_dir!$apache_modules_dir$ac_delim
 apache_conf_dir!$apache_conf_dir$ac_delim
 DREENTRANT!$DREENTRANT$ac_delim
@@ -10478,7 +10507,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 95; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -10497,7 +10526,7 @@ fi
 
 cat >>$CONFIG_STATUS <<_ACEOF
 cat >"\$tmp/subs-1.sed" <<\CEOF$ac_eof
-/@[a-zA-Z_][a-zA-Z_0-9]*@/!b end
+/@[a-zA-Z_][a-zA-Z_0-9]*@/!b
 _ACEOF
 sed '
 s/[,\\&]/\\&/g; s/@/@|#_!!_#|/g
@@ -10510,8 +10539,6 @@ N; s/^.*\n//; s/[,\\&]/\\&/g; s/@/@|#_!!_#|/g; b n
 ' >>$CONFIG_STATUS <conf$$subs.sed
 rm -f conf$$subs.sed
 cat >>$CONFIG_STATUS <<_ACEOF
-:end
-s/|#_!!_#|//g
 CEOF$ac_eof
 _ACEOF
 
@@ -10759,7 +10786,7 @@ s&@abs_builddir@&$ac_abs_builddir&;t t
 s&@abs_top_builddir@&$ac_abs_top_builddir&;t t
 s&@INSTALL@&$ac_INSTALL&;t t
 $ac_datarootdir_hack
-" $ac_file_inputs | sed -f "$tmp/subs-1.sed" >$tmp/out
+" $ac_file_inputs | sed -f "$tmp/subs-1.sed" | sed 's/|#_!!_#|//g' >$tmp/out
 
 test -z "$ac_datarootdir_hack$ac_datarootdir_seen" &&
   { ac_out=`sed -n '/\${datarootdir}/p' "$tmp/out"`; test -n "$ac_out"; } &&

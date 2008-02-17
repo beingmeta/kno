@@ -67,6 +67,8 @@ AC_SUBST(module_dir)
 AC_SUBST(safe_module_dir)
 AC_SUBST(standard_module_dir)
 AC_SUBST(config_dir)
+AC_SUBST(local_config)
+AC_SUBST(shared_config)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
 
@@ -149,9 +151,16 @@ AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/frame
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
-AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$with_data_dir/config)
-AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_config_dir/%")
+AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=/etc/framerd)
 config_dir=$with_config_dir
+
+AC_ARG_WITH(local_config,--with-local-config location,,with_local_config=$config_dir/config)
+local_config=$with_local_config
+AC_ARG_WITH(shared_config,--with-shared-config location,,with_shared_config=$data_dir/config)
+shared_config=$with_shared_config
+
+AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
+
 
 AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/scheme_modules)
 module_dir=$with_module_dir
@@ -470,11 +479,11 @@ fi
 
 dnl Specifies a framerd group; files written by installation scripts will
 dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(framerd_group,--with[out]-framerd-group Install files with framerd group and group write permissions,,with_framerd_group="none")
-if test $with_framerd_group != "none"; then
-  install_dir_opts="-g $with_framerd_group $install_dir_opts"
-  install_file_opts="-g $with_framerd_group $install_file_opts"
-  install_exe_opts="-g $with_framerd_group $install_exe_opts"
+AC_ARG_WITH(admin_group,--with[out]-admin-group Install files with admin group and group write permissions,,with_admin_group="none")
+if test $with_admin_group != "none"; then
+  install_dir_opts="-g $with_admin_group $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
 fi
 
 dnl Enables the retrieval of config information from the filesystem.

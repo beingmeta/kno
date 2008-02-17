@@ -1057,7 +1057,7 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
 
 /* RUNBASE */
 
-static u8_string runbase_config=NULL, runbase=0;
+static u8_string runbase_config=NULL, runbase=NULL;
 
 FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
 {
