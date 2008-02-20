@@ -22,7 +22,7 @@
 	  (qc "August" "Aug")
 	  (qc "September" "Sept" "Sep")
 	  (qc "Oct" "October")
-	  (qc "Nov" "Novemember")
+	  (qc "Nov" "November")
 	  (qc "Dec" "December")))
 
 (define monthnums
@@ -153,10 +153,11 @@
       (let ((hours (get matches 'hours)))
 	(unless (> (+ 12 hours) 24)
 	  (store! matches 'hours (+ 12 hours)))))
-    (when (and (test matches 'year) (string? (get matches 'year)))
-      (if (= (length (get matches 'year)) 2)
-	  (store! matches 'year (+ 1900 (string->number (get matches 'year))))
-	  (store! matches 'year (string->number (get matches 'year)))	  ))
+    (when (test matches 'year)
+      (do-choices (year (pickstrings (get matches 'year)))
+	(if (= (length year) 2)
+	    (store! matches 'year (+ 1900 (string->number year)))
+	    (store! matches 'year (string->number year)))))
     ;; Handle the case where people swapped the month and date according
     ;;  to US conventions .vs. the rest of the world
     (when (and (test matches 'month) (test matches 'date)
