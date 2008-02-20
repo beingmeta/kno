@@ -572,9 +572,11 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
 {
   fdtype value=FD_EMPTY_CHOICE;
   FD_DOLIST(clause,FD_CDR(expr)) {
+    int ipe_state=fd_ipeval_status();
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (!(FD_EMPTY_CHOICEP(value))) return value;}
+    if (!(FD_EMPTY_CHOICEP(value))) return value;
+    else if (fd_ipeval_status()!=ipe_state) return value;}
   return value;
 }
 
