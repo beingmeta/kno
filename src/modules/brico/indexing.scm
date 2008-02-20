@@ -327,20 +327,20 @@
     (do ((scan next (next-expansion (qc scan) visited)))
 	((fail? scan)))))
 
-(define (indexer-slotid-prefetch)
+(define (indexer-prefetch-slotids!)
   (prefetch-oids! (choice implied-slotids concept-slotids
 			  (get language-map (getkeys language-map))
 			  (get norm-map (getkeys norm-map))
 			  (get index-map (getkeys index-map))
 			  (get gloss-map (getkeys gloss-map)))))
 
-(define (indexer-prefetch oids)
+(define (indexer/prefetch oids)
   (prefetch-oids! oids)
   (prefetch-keys! (cons (choice refterms referenced) oids))
   (let ((kovalues (%get oids implied-slotids)))
     (prefetch-expansions (qc kovalues) genls)))
 
-(define (indexer-lattice-prefetch oids)
+(define (index-lattice/prefetch oids)
   (prefetch-oids! oids)
   (prefetch-expansions
    (qc oids) (qc genls partof memberof ingredientof)))
@@ -363,8 +363,8 @@
    index-words index-relations index-lattice
    index-refterms
    index-concept
-   indexer-prefetch
-   indexer-lattice-prefetch
-   indexer-slotid-prefetch})
+   indexer/prefetch
+   index-lattice/prefetch
+   indexer-prefetch-slotids!})
 
 
