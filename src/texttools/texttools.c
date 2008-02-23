@@ -698,10 +698,10 @@ static void convert_offsets
   (fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
 {
   u8_charoff offval=fd_getint(offset), limval;
-  if (FD_FIXNUMP(limit)) limval=FD_FIX2INT(limit);
-  else limval=FD_STRLEN(string);
-  *off=u8_byteoffset(FD_STRDATA(string),offval,limval);
-  *lim=u8_byteoffset(FD_STRDATA(string),limval,FD_STRLEN(string));
+  if (FD_FIXNUMP(limit)) 
+    *lim=u8_byteoffset(FD_STRDATA(string),FD_FIX2INT(limit),FD_STRLEN(string));
+  else *lim=FD_STRLEN(string);
+  *off=u8_byteoffset(FD_STRDATA(string),offval,*lim);
 }
 
 static fdtype textmatcher(fdtype pattern,fdtype string,
