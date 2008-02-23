@@ -132,9 +132,14 @@ module AP_MODULE_DECLARE_DATA fdserv_module;
 static int can_writep(apr_pool_t *p,server_rec *s,struct stat *finfo)
 {
 #if defined(OS2) || defined(WIN32) || defined(NETWARE)
-    /* OS/2 dosen't have Users and Groups */
+    /* OS/2 doesn't have Users and Groups */
     return 1;
 #endif
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,s,
+     "Checking writability with uid=%d gid=%d",
+     s->server_uid,s->server_gid);
+    if (s->server_uid == 0) return 1;
     if (s->server_uid == finfo->st_uid)
       if (finfo->st_mode & S_IWUSR) return 1;
     if (s->server_gid == finfo->st_gid)
@@ -146,6 +151,10 @@ static int can_writep(apr_pool_t *p,server_rec *s,apr_finfo_t *finfo)
 {
   apr_uid_t uid; apr_gid_t gid;
   apr_uid_current(&uid,&gid,p);
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,s,
+     "Checking writability with uid=%d gid=%d",uid,gid);
+  if (uid==0) return 1;
   if (uid == finfo->user)
     if (finfo->protection & APR_UWRITE) return 1;
   if (uid == finfo->group)
@@ -156,6 +165,9 @@ static int can_writep(apr_pool_t *p,server_rec *s,apr_finfo_t *finfo)
 #else
 static int can_writep(apr_pool_t *p,server_rec *s,struct stat *finfo)
 {
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,s,
+     "Assuming writability without being able to check");
   return 1;
 }
 #endif
@@ -427,14 +439,28 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
-  if (file_writablep(parms->pool,parms->server,arg))
-    if (parms->path) {
-      dconfig->socket_prefix=arg;
-      return NULL;}
-    else {
-      sconfig->socket_prefix=arg;
-      return NULL;}
-  else return "Invalid socket prefix (directory does not exist or is not writable)";
+  const char *fullpath;
+  if (arg[0]=='/') fullpath=arg;
+  else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
+  if (parms->path) 
+    dconfig->socket_prefix=fullpath;
+  else 
+    sconfig->socket_prefix=fullpath;
+  if (parms->path)
+    ap_log_error
+      (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+       "Socket Prefix set to %s for path %s",fullpath,parms->path);
+  else ap_log_error
+	 (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+	  "Socket Prefix set to %s for server %s",
+	  fullpath,parms->server->server_hostname);
+  
+  if (!(file_writablep(parms->pool,parms->server,fullpath)))
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,OK,parms->server,
+       "Socket Prefix %s (%s) is not writable",arg,fullpath);
+
+  return NULL;
 }
 
 static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
@@ -442,14 +468,28 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
-  if (file_writablep(parms->pool,parms->server,arg))
-    if (parms->path) {
-      dconfig->log_prefix=arg;
-      return NULL;}
-    else {
-      sconfig->log_prefix=arg;
-      return NULL;}
-  else return "Invalid log prefix (directory does not exist or is not writable)";
+  const char *fullpath;
+  if (arg[0]=='/') fullpath=arg;
+  else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
+  if (parms->path) 
+    dconfig->log_prefix=fullpath;
+  else 
+    sconfig->log_prefix=fullpath;
+
+  if (parms->path)
+    ap_log_error
+      (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+       "Log Prefix set to %s for path %s",fullpath,parms->path);
+  else ap_log_error
+	 (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+	  "Log Prefix set to %s for server %s",
+	  fullpath,parms->server->server_hostname);
+
+  if (!(file_writablep(parms->pool,parms->server,fullpath)))
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,OK,parms->server,
+       "Log prefix %s (%s) is not writable",arg,fullpath);
+  return NULL;
 }
 
 static const char *socket_file(cmd_parms *parms,void *mconfig,const char *arg)
@@ -462,23 +502,25 @@ static const char *socket_file(cmd_parms *parms,void *mconfig,const char *arg)
   if (parms->path)
     socket_prefix=dconfig->socket_prefix;
   else socket_prefix=sconfig->socket_prefix;
+  if (socket_prefix==NULL) socket_prefix=sconfig->socket_prefix;
   if (socket_prefix==NULL) socket_prefix=smodconfig->socket_prefix;
   if (arg[0]=='/') fullpath=arg;
   else if (socket_prefix)
     fullpath=apr_pstrcat(parms->pool,socket_prefix,arg,NULL);
   else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
-  if (file_writablep(parms->pool,parms->server,fullpath)) {
-    if (parms->path)
-      dconfig->socket_file=fullpath;
-    else sconfig->socket_file=fullpath;
-    return NULL;}
-#if APACHE20
-  return apr_psprintf(parms->pool,"FDServletSocket '%s' is not writable '%s'",
-		      arg,fullpath);
-#else
-  return ap_psprintf(parms->pool,"FDServletSocket '%s' is not writable '%s'",
-		     arg,fullpath);
-#endif
+  if (parms->path)
+    dconfig->socket_file=arg;
+  else sconfig->socket_file=arg;
+  
+  if (!(file_writablep(parms->pool,parms->server,fullpath)))
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,OK,parms->server,
+       "Socket file %s=%s+%s is unwritable",
+       fullpath,socket_prefix,arg);
+  else ap_log_error
+	 (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+	  "Socket file %s=%s+%s",fullpath,socket_prefix,arg);
+  return NULL;
 }
 
 static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
@@ -491,23 +533,24 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   if (parms->path)
     log_prefix=dconfig->log_prefix;
   else log_prefix=sconfig->log_prefix;
+  if (log_prefix==NULL) log_prefix=sconfig->log_prefix;
   if (log_prefix==NULL) log_prefix=smodconfig->log_prefix;
   if (arg[0]=='/') fullpath=arg;
   else if (log_prefix)
     fullpath=apr_pstrcat(parms->pool,log_prefix,arg,NULL);
   else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
-  if (file_writablep(parms->pool,parms->server,fullpath)) {
-    if (parms->path)
-      dconfig->log_file=fullpath;
-    else sconfig->log_file=fullpath;
-    return NULL;}
-#if APACHE20
-  return apr_psprintf(parms->pool,"FDServletLog '%s' is not writable '%s'",
-		      arg,fullpath);
-#else
-  return ap_psprintf(parms->pool,"FDServletLog '%s' is not writable '%s'",
-		     arg,fullpath);
-#endif
+  if (parms->path)
+    dconfig->log_file=arg;
+  else sconfig->log_file=arg;
+  if (!(file_writablep(parms->pool,parms->server,fullpath)))
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,OK,parms->server,
+       "Log file %s=%s+%s is unwritable",
+       fullpath,socket_prefix,arg);
+  else ap_log_error
+	 (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+	  "Log file %s=%s+%s",fullpath,log_prefix,arg);
+  return NULL;
 }
 
 static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
@@ -640,7 +683,7 @@ static const char *get_logfile(request_rec *r) /* 1.3 */
   const char *log_prefix=
     ((dconfig->log_prefix) ? (dconfig->log_prefix) :
      (sconfig->log_prefix) ? (sconfig->log_prefix) :
-     (NULL));
+     "logs/fdserv/");
   
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,r,
@@ -839,6 +882,10 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 	   socket_prefix,socket_file,PATH_MAX);
 	return NULL;}
       strcpy(socketpath,socket_prefix); strcat(socketpath,socket_file);
+      ap_log_rerror
+	(APLOG_MARK,APLOG_INFO,OK,r,
+	 "Composed socket file name %s=%s+%s",
+	 socketpath,socket_prefix,socket_file);
       apr_table_set(socketname_table,spec,socketpath);
       return apr_table_get(socketname_table,spec);}
     else if ((strlen(socket_prefix)+strlen(spec)+1)>PATH_MAX) {
@@ -856,6 +903,9 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 	if ((*read == '/') || (*read == '\\')) {*write++=':'; read++;}
 	else *write++=*read++;
       *write='\0';
+      ap_log_rerror
+	(APLOG_MARK,APLOG_INFO,OK,r,
+	 "Composed socket file %s under %s",buf,socket_prefix);
       apr_table_set(socketname_table,spec,buf);
       /* Setting it in the table will get it strdup'd so
 	 we just store it and return it from the table. */
@@ -874,7 +924,7 @@ static const char *get_logfile(request_rec *r) /* 2.0 */
   const char *log_prefix=
     ((dconfig->log_prefix) ? (dconfig->log_prefix) :
      (sconfig->log_prefix) ? (sconfig->log_prefix) :
-     (NULL));
+     "logs/fdserv/");
   
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,OK,r,
