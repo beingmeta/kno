@@ -2,7 +2,7 @@
 
 (in-module 'xhtml/brico)
 
-(use-module '{fdweb xhtml xhtml/clickit brico})
+(use-module '{fdweb texttools xhtml xhtml/clickit brico})
 
 ;; We use these for languages (at least)
 (define sub* markup*fn)
@@ -21,8 +21,12 @@
 ;; Displaying words with language subscripts
 (module-export! '{showterm wordform output-words just-output-words})
 
+;; Displaying dterms in HTML with markup around the disambiguator
+;;  and subscripts for the fr$ syntax
+(module-export! '{dterm->html langterm->html})
+
 ;; Displaying concepts in various ways
-(module-export! '{showconcept})
+(module-export! '{showslot showconcept conceptsummary})
 
 ;;;; Getting language information
 
@@ -314,6 +318,57 @@
   (output-words c language languages wordlim (qc shown) searchurl)
   (xmlout))
 
+;;; Outputting dterms
+
+(define (langterm->html string (start 0) (end #f))
+  "This outputs a dterm for HTML, primarily converting xx$ language prefixes \
+   into subscripts."
+  (unless end (set! end (length string)))
+  (let ((pos (or (textsearch #((isalpha) (isalpha) "$") string start end)
+		 (position "$" string start end))))
+    (if pos
+	(let ((langid (if (eqv? (elt string pos) #\$) "en"
+			  (subseq string pos (+ pos 2))))
+	      (wordstart (if (eqv? (elt string pos) #\$) (1+ pos)
+			     (+ 3 pos))))
+	  (xmlout (subseq string start pos)
+		  (subseq string wordstart end)
+		  (span ((class "langid")) langid)))
+	(xmlout (subseq string start end)))))
+
+(define (dterm->html string (start 0))
+  "This outputs a dterm for HTML, primarily converting xx$ language prefixes \
+   into subscripts."
+  (let ((disambig-start
+	 (textsearch #{"," ":" #((spaces*) "(")} string start)))
+    (if disambig-start
+	(begin (langterm->html string 0 disambig-start)
+	       (span ((class "disambig"))
+		 (langterm->html string disambig-start)))
+	(if (position #\$ string) (langterm->html string)
+	    (xmlout string)))))
+
+;;; Showing slotvalues in a div
+
+(defambda (showslot concept slot (values) (realvalues))
+  (when (or (bound? values) (test concept slot))
+    (unless (bound? values)
+      (set! values (get concept slot)))
+    (unless (bound? realvalues)
+      (set! realvalues (get concept slot)))
+    (let ((language (get-language))
+	  (label (getid slot (get-language))))
+      (div ((class "field"))
+	(unless (identical? values realvalues)
+	  (anchor* (scripturl "index.fdcgi"
+			      'slotid (try (?? 'closure-of slot) slot)
+			      'of concept)
+	      ((class "showall"))
+	    "more"))
+	(span ((class "slotid")) label)
+	(doseq (value (rsorted values concept-frequency) i)
+	  (if (> i 0) (xmlout " . "))
+	  (showconcept value))))))
 
 ;;; Showing concepts
 
@@ -385,6 +440,5 @@
 	  (P (strong "source ") (get concept 'source)))
       (xmleval xmlbody %env))))
 
-(module-export! 'conceptsummary)
 
 
