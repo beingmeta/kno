@@ -673,6 +673,11 @@ local_config
 shared_config
 apache_modules_dir
 apache_conf_dir
+admin_group
+admininstall
+fdaemon
+fdaemoninstall
+webuser
 DREENTRANT
 SHARED_LIB_TARGET
 SHARED_LIB
@@ -1306,6 +1311,9 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+--with-admin-group Install files with admin group and group write permissions
+--with-fdaemon The identity for FramerD servers to run
+--with-webuser The user for the webserver
 --with-suffix string
 --with-data-dir location
 --with-config-dir location
@@ -1327,7 +1335,6 @@ Optional Packages:
 --without-global-ipeval Use global lock and variables for ipeval
 --without-curl Use libcurl in fdweb
 --without-exif Use libexif in fdweb
---without-admin-group Install files with admin group and group write permissions
 --without-u8data Use full Unicode data libraries
 
 Some influential environment variables:
@@ -1762,6 +1769,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
+
+
+
+
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -1772,6 +1784,8 @@ enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+admininstall=""
+fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
@@ -1786,6 +1800,7 @@ xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="fd_init_fdscheme()"
 suffix=""
+daemon_identity_default="daemon"
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLDFLAGS=
@@ -1840,6 +1855,11 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
+
+
+
+
 
 
 
@@ -3137,10 +3157,84 @@ fi
 done
 
 
-if groups www; then WWWUSER='www'; fi
-if groups httpd; then WWWUSER='httpd'; fi
-if groups www-data; then WWWUSER='www-data'; fi
-if groups apache; then WWWUSER='apache'; fi
+
+{ echo "$as_me:$LINENO: checking for group default_admin_group" >&5
+echo $ECHO_N "checking for group default_admin_group... $ECHO_C" >&6; }
+  found_group="none";
+  for group in framerd adm admin;
+  do if grep ^$group: /etc/group > /dev/null;
+  then
+	found_group=$group;
+	break;
+  fi; done;
+  default_admin_group=$found_group;
+  { echo "$as_me:$LINENO: result: $found_group" >&5
+echo "${ECHO_T}$found_group" >&6; }
+
+{ echo "$as_me:$LINENO: checking for user default_fdaemon" >&5
+echo $ECHO_N "checking for user default_fdaemon... $ECHO_C" >&6; }
+  found_user="none";
+  for user in fdaemon daemon nobody;
+  do if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi; done;
+  default_fdaemon=$found_user;
+  { echo "$as_me:$LINENO: result: $found_user" >&5
+echo "${ECHO_T}$found_user" >&6; }
+
+{ echo "$as_me:$LINENO: checking for user default_webuser" >&5
+echo $ECHO_N "checking for user default_webuser... $ECHO_C" >&6; }
+  found_user="none";
+  for user in www apache httpd www-data;
+  do if grep ^$user: /etc/passwd > /dev/null;
+  then
+	found_user=$user;
+	break;
+  fi; done;
+  default_webuser=$found_user;
+  { echo "$as_me:$LINENO: result: $found_user" >&5
+echo "${ECHO_T}$found_user" >&6; }
+
+
+# Check whether --with-admin_group was given.
+if test "${with_admin_group+set}" = set; then
+  withval=$with_admin_group;
+else
+  with_admin_group=$default_admin_group
+fi
+
+if test $with_admin_group != "none"; then
+  install_dir_opts="-g $with_admin_group $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admin_group=$with_admin_group
+  admininstall=--group=$with_admin_group
+fi
+
+
+# Check whether --with-fdaemon was given.
+if test "${with_fdaemon+set}" = set; then
+  withval=$with_fdaemon;
+else
+  with_fdaemon=$default_fdaemon
+fi
+
+fdaemon=$with_fdaemon
+if test $with_fdaemon != "none"; then
+   fdaemoninstall="--owner=$with_fdaemon"
+fi
+
+
+# Check whether --with-webuser was given.
+if test "${with_webuser+set}" = set; then
+  withval=$with_webuser;
+else
+  with_webuser=$default_webuser
+fi
+
+webuser=$with_webuser
 
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
@@ -9728,20 +9822,6 @@ _ACEOF
 
 fi
 
-
-# Check whether --with-admin_group was given.
-if test "${with_admin_group+set}" = set; then
-  withval=$with_admin_group;
-else
-  with_admin_group="adm"
-fi
-
-if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
-fi
-
 # Check whether --enable-fileconfig was given.
 if test "${enable_fileconfig+set}" = set; then
   enableval=$enable_fileconfig;
@@ -10467,6 +10547,11 @@ local_config!$local_config$ac_delim
 shared_config!$shared_config$ac_delim
 apache_modules_dir!$apache_modules_dir$ac_delim
 apache_conf_dir!$apache_conf_dir$ac_delim
+admin_group!$admin_group$ac_delim
+admininstall!$admininstall$ac_delim
+fdaemon!$fdaemon$ac_delim
+fdaemoninstall!$fdaemoninstall$ac_delim
+webuser!$webuser$ac_delim
 DREENTRANT!$DREENTRANT$ac_delim
 SHARED_LIB_TARGET!$SHARED_LIB_TARGET$ac_delim
 SHARED_LIB!$SHARED_LIB$ac_delim
@@ -10500,11 +10585,6 @@ INSTALL_DATA!$INSTALL_DATA$ac_delim
 RANLIB!$RANLIB$ac_delim
 VALGRIND!$VALGRIND$ac_delim
 APXS!$APXS$ac_delim
-CPP!$CPP$ac_delim
-GREP!$GREP$ac_delim
-EGREP!$EGREP$ac_delim
-LIBOBJS!$LIBOBJS$ac_delim
-LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -10539,6 +10619,54 @@ N; s/^.*\n//; s/[,\\&]/\\&/g; s/@/@|#_!!_#|/g; b n
 ' >>$CONFIG_STATUS <conf$$subs.sed
 rm -f conf$$subs.sed
 cat >>$CONFIG_STATUS <<_ACEOF
+CEOF$ac_eof
+_ACEOF
+
+
+ac_delim='%!_!# '
+for ac_last_try in false false false false false :; do
+  cat >conf$$subs.sed <<_ACEOF
+CPP!$CPP$ac_delim
+GREP!$GREP$ac_delim
+EGREP!$EGREP$ac_delim
+LIBOBJS!$LIBOBJS$ac_delim
+LTLIBOBJS!$LTLIBOBJS$ac_delim
+_ACEOF
+
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 5; then
+    break
+  elif $ac_last_try; then
+    { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
+echo "$as_me: error: could not make $CONFIG_STATUS" >&2;}
+   { (exit 1); exit 1; }; }
+  else
+    ac_delim="$ac_delim!$ac_delim _$ac_delim!! "
+  fi
+done
+
+ac_eof=`sed -n '/^CEOF[0-9]*$/s/CEOF/0/p' conf$$subs.sed`
+if test -n "$ac_eof"; then
+  ac_eof=`echo "$ac_eof" | sort -nru | sed 1q`
+  ac_eof=`expr $ac_eof + 1`
+fi
+
+cat >>$CONFIG_STATUS <<_ACEOF
+cat >"\$tmp/subs-2.sed" <<\CEOF$ac_eof
+/@[a-zA-Z_][a-zA-Z_0-9]*@/!b end
+_ACEOF
+sed '
+s/[,\\&]/\\&/g; s/@/@|#_!!_#|/g
+s/^/s,@/; s/!/@,|#_!!_#|/
+:n
+t n
+s/'"$ac_delim"'$/,g/; t
+s/$/\\/; p
+N; s/^.*\n//; s/[,\\&]/\\&/g; s/@/@|#_!!_#|/g; b n
+' >>$CONFIG_STATUS <conf$$subs.sed
+rm -f conf$$subs.sed
+cat >>$CONFIG_STATUS <<_ACEOF
+:end
+s/|#_!!_#|//g
 CEOF$ac_eof
 _ACEOF
 
@@ -10786,7 +10914,7 @@ s&@abs_builddir@&$ac_abs_builddir&;t t
 s&@abs_top_builddir@&$ac_abs_top_builddir&;t t
 s&@INSTALL@&$ac_INSTALL&;t t
 $ac_datarootdir_hack
-" $ac_file_inputs | sed -f "$tmp/subs-1.sed" | sed 's/|#_!!_#|//g' >$tmp/out
+" $ac_file_inputs | sed -f "$tmp/subs-1.sed" | sed -f "$tmp/subs-2.sed" >$tmp/out
 
 test -z "$ac_datarootdir_hack$ac_datarootdir_seen" &&
   { ac_out=`sed -n '/\${datarootdir}/p' "$tmp/out"`; test -n "$ac_out"; } &&

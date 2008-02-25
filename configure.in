@@ -1,4 +1,29 @@
 AC_INIT(include/fdb/dtype.h)
+
+AC_DEFUN([AC_CHECK_USER],[
+AC_MSG_CHECKING([for user $1])
+  found_user="none";
+  for user in $2;		    
+  do if grep ^$user: /etc/passwd > /dev/null; 
+  then
+	found_user=$user;
+	break;
+  fi; done;
+  $1=$found_user;
+  AC_MSG_RESULT($found_user)])
+
+AC_DEFUN([AC_CHECK_GROUP],[
+AC_MSG_CHECKING([for group $1])
+  found_group="none";
+  for group in $2;
+  do if grep ^$group: /etc/group > /dev/null; 
+  then
+	found_group=$group;
+	break;
+  fi; done;
+  $1=$found_group;
+  AC_MSG_RESULT($found_group)])
+
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -9,6 +34,8 @@ enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+admininstall=""
+fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
@@ -23,6 +50,7 @@ xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="fd_init_fdscheme()"
 suffix=""
+daemon_identity_default="daemon"
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLDFLAGS=
@@ -71,6 +99,11 @@ AC_SUBST(local_config)
 AC_SUBST(shared_config)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
+AC_SUBST(admin_group)
+AC_SUBST(admininstall)
+AC_SUBST(fdaemon)
+AC_SUBST(fdaemoninstall)
+AC_SUBST(webuser)
 
 AC_SUBST(DREENTRANT)
 AC_SUBST(SHARED_LIB_TARGET)
@@ -92,10 +125,32 @@ AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs apxs2)
 
-if groups www; then WWWUSER='www'; fi
-if groups httpd; then WWWUSER='httpd'; fi
-if groups www-data; then WWWUSER='www-data'; fi
-if groups apache; then WWWUSER='apache'; fi
+AC_CHECK_GROUP(default_admin_group,framerd adm admin)
+AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
+AC_CHECK_USER(default_webuser,www apache httpd www-data)
+
+dnl Specifies an admin group; files written by installation scripts will be
+dnl owned by this group and the group will have full rwX access.
+AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
+if test $with_admin_group != "none"; then
+  install_dir_opts="-g $with_admin_group $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admin_group=$with_admin_group
+  admininstall=--group=$with_admin_group
+fi
+
+dnl Specifies a daemon identity user/group for managed FramerD servers
+AC_ARG_WITH(fdaemon,--with-fdaemon The identity for FramerD servers to run,,with_fdaemon=$default_fdaemon)
+fdaemon=$with_fdaemon
+if test $with_fdaemon != "none"; then
+   fdaemoninstall="--owner=$with_fdaemon"
+fi
+
+dnl Specifies the user which the Web server runs as
+dnl This is used to set up the directories used by fdserv
+AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
+webuser=$with_webuser
 
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
@@ -475,15 +530,6 @@ if test $with_exif = "yes"; then
   exifo="src/fdweb/exif.o"
 else
   AC_DEFINE(FD_WITH_EXIF,0)
-fi
-
-dnl Specifies a framerd group; files written by installation scripts will
-dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(admin_group,--with[out]-admin-group Install files with admin group and group write permissions,,with_admin_group="adm")
-if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
 fi
 
 dnl Enables the retrieval of config information from the filesystem.

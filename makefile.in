@@ -30,7 +30,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
-WWWUSER		= @WWWUSER@
+WWWUSER		= @webuser@
 
 DTYPE_HEADERS=\
  include/fdb/config.h  \
@@ -234,10 +234,11 @@ depend.in:
 
 TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
-		src/texttools/*.c src/tagger/*.c include/fdb/*.h 
+		src/texttools/*.c src/tagger/*.c src/cmodules/*.c \
+		include/fdb/*.h 
 	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
-	      src/texttools/*.c src/tagger/*.c \
+	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c \
 	      include/fdb/*.h
 
 profile-clean:
@@ -433,11 +434,13 @@ copy-modules: $(CONFDIR)/scm
 	cp -rf $(BUILD)/src/fdweb/xhtml @module_dir@
 
 $(DESTDIR)/etc/init.d/framerd:
-	$(INSTALL) --mode=0555 etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
+	$(INSTALL) --mode=0555 @admininstall@ \
+		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
 $(DESTDIR)/var/run/framerd:
-	$(INSTALL) --owner=fdaemon -d $(DESTDIR)/var/run/framerd
+	$(INSTALL) @fdaemoninstall@ @admininstall@ \
+		   -d $(DESTDIR)/var/run/framerd
 $(DESTDIR)/var/log/framerd:
-	$(INSTALL) --owner=fdaemon -d $(DESTDIR)/var/log/framerd
+	$(INSTALL) @fdaemoninstall@ -d $(DESTDIR)/var/log/framerd
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)/var/run/framerd \
             $(DESTDIR)/var/log/framerd
