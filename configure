@@ -3187,7 +3187,7 @@ echo "${ECHO_T}$found_user" >&6; }
 { echo "$as_me:$LINENO: checking for user default_webuser" >&5
 echo $ECHO_N "checking for user default_webuser... $ECHO_C" >&6; }
   found_user="none";
-  for user in www apache httpd www-data;
+  for user in www apache httpd www-data _www;
   do if grep ^$user: /etc/passwd > /dev/null;
   then
 	found_user=$user;
