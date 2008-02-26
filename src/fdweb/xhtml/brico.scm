@@ -340,35 +340,13 @@
   "This outputs a dterm for HTML, primarily converting xx$ language prefixes \
    into subscripts."
   (let ((disambig-start
-	 (textsearch #{"," ":" #((spaces*) "(")} string start)))
+	 (textsearch `(CHOICE "," ":" #((spaces*) "(")) string start)))
     (if disambig-start
 	(begin (langterm->html string 0 disambig-start)
 	       (span ((class "disambig"))
 		 (langterm->html string disambig-start)))
 	(if (position #\$ string) (langterm->html string)
 	    (xmlout string)))))
-
-;;; Showing slotvalues in a div
-
-(defambda (showslot concept slot (values) (realvalues))
-  (when (or (bound? values) (test concept slot))
-    (unless (bound? values)
-      (set! values (get concept slot)))
-    (unless (bound? realvalues)
-      (set! realvalues (get concept slot)))
-    (let ((language (get-language))
-	  (label (getid slot (get-language))))
-      (div ((class "field"))
-	(unless (identical? values realvalues)
-	  (anchor* (scripturl "index.fdcgi"
-			      'slotid (try (?? 'closure-of slot) slot)
-			      'of concept)
-	      ((class "showall"))
-	    "more"))
-	(span ((class "slotid")) label)
-	(doseq (value (rsorted values concept-frequency) i)
-	  (if (> i 0) (xmlout " . "))
-	  (showconcept value))))))
 
 ;;; Showing concepts
 
