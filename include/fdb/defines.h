@@ -45,27 +45,40 @@
 #define FD_NO_GC 0
 #endif
 
-/* This determines the level of pointer checking to do.
-   0 = no checking
-   1 = check non-null
-   2 = check integrity of immediates 
-   3 = check integrity of cons pointers
+/* Pointer Checking */
+
+/* There are two global defines which control pointer checking.
+   FD_PTR_DEBUG_LEVEL controls what kind of pointer checking to do,
+    0 = no checking
+    1 = check non-null
+    2 = check integrity of immediates 
+    3 = check integrity of cons pointers
+   FD_PTR_DEBUG_DENSITY controls how detailed the debug checking is,
+    by enabling macros of the form FD_PTRCHECKn and FD_CHECK_PTRn,
+    which would otherwise be noops.
+   System and user C code can call different pointer-checking macros
+    which can be selectively enabled on a per-file basis.
+   In addition, defining FD_PTR_DEBUG_DENSITY to be < 0 causes references
+   to use the variable fd_ptr_debug_density to determine the debugging
+   density.
 */
-#ifndef FD_DEBUG_PTRCHECK
-#define FD_DEBUG_PTR_CHECK 1
+#ifndef FD_PTR_DEBUG_LEVEL
+#define FD_PTR_DEBUG_LEVEL 1
 #endif
 
 /* This determines when to check for pointers (as controlled above)
    There are four basic levels, with zero being no checking
 */
-#ifndef FD_PTR_CHECK_LEVEL
-#define FD_DEBUG_PTR_CHECK 1
+#ifndef FD_PTR_DEBUG_DENSITY
+#define FD_PTR_DEBUG_DENSITY 1
 #endif
 
 /* This is true (1) for executables built in the tests/ subdirectories.
    If true, the executables call the various module init functions 
    (e.g. fd_init_texttools()) directly; when dynamically linked, the
-   loader calls them. */
+   loader calls them.  This is neccessary because static linking (at
+   least on some platforms) doesn't invoke the library initializers
+   at startup.  */
 #ifndef FD_TESTCONFIG
 #define FD_TESTCONFIG 0
 #endif

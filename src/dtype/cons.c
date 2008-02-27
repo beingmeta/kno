@@ -945,7 +945,7 @@ FD_EXPORT int _fd_find_elt(fdtype x,fdtype *v,int n)
   return -1;
 }
 
-int _fd_ptr_check_level=1;
+int fd_ptr_debug_density=1;
 
 FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
 {
