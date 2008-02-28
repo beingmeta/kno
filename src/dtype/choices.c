@@ -379,7 +379,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       ch->normalized=fd_incref(result);
       if (ch->uselock) fd_unlock_struct(ch);
       return result;}
-    else if (1) { /* (ch->size<fd_mergesort_threshold) */
+    else if (ch->size<fd_mergesort_threshold) { /*  (1) */
       /* If the choice is small enough, we can call convert_achoice,
 	 which just appends the choices together and relies on sort
 	 and compression to remove duplicates.  We don't want to do

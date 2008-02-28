@@ -102,7 +102,7 @@
 #define FDB_CHOICES_H_VERSION "$Id$"
 
 #ifndef FD_MERGESORT_THRESHOLD
-#define FD_MERGESORT_THRESHOLD 250000
+#define FD_MERGESORT_THRESHOLD 100000
 #endif
 
 FD_EXPORT int fd_mergesort_threshold;
