@@ -773,13 +773,17 @@ static fdtype fget(fdtype frames,fdtype slotids)
 	FD_DO_CHOICES(slotid,slotids) {
 	  fdtype v=fd_frame_get(frame,slotid);
 	  if (FD_ABORTP(v)) {
-	    fd_decref(results); return v;}
+	    FD_STOP_DO_CHOICES;
+	    fd_decref(results);
+	    return v;}
 	  else {FD_ADD_TO_CHOICE(results,v);}}}
       else {
 	FD_DO_CHOICES(slotid,slotids) {
 	  fdtype v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
 	  if (FD_ABORTP(v)) {
-	    fd_decref(results); return v;}
+	    FD_STOP_DO_CHOICES;
+	    fd_decref(results);
+	    return v;}
 	  else {FD_ADD_TO_CHOICE(results,v);}}}
     return fd_simplify_choice(results);}
 }
