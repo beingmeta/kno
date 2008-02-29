@@ -109,6 +109,15 @@ function fdbNewElt(tagname,namespace)
   else return document.createElement(tagname);
 }
 
+function fdbCheckbox(varname,value)
+{
+  var checkbox=document.createElement('input');
+  checkbox.type='CHECKBOX';
+  checkbox.name=varname;
+  checkbox.value=value;
+  return checkbox;
+}
+
 function fdbXMLtoHTML(node,nsprefix)
 {
   if (node.nodeType!=1)
