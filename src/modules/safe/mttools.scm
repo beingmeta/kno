@@ -449,7 +449,7 @@
 	((= verbosity 2) mt/default-progress)
 	((>= verbosity 3) mt/detailed-progress)))
 
-(define (config-verbosity (value))
+(define (config-verbosity var (value))
   (if (bound? value)
       (if (number? value)
 	  (begin (set! verbosity value) #t)
