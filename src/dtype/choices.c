@@ -379,7 +379,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       ch->normalized=fd_incref(result);
       if (ch->uselock) fd_unlock_struct(ch);
       return result;}
-    else if (ch->size<fd_mergesort_threshold) { /*  (1) */
+    else if (1) { /* (ch->size<fd_mergesort_threshold)  */
       /* If the choice is small enough, we can call convert_achoice,
 	 which just appends the choices together and relies on sort
 	 and compression to remove duplicates.  We don't want to do
@@ -431,7 +431,8 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       /* This does the merging of the sorted choices. */
       result=fd_merge_choices(choices,n_choices);
       /* We free the tmp_choice if we made it. */
-      if (n_vals) u8_free((struct FD_CHOICE *)tmp_choice);
+      if ((n_vals)&&(result!=((fdtype)tmp_choice)))
+	u8_free((struct FD_CHOICE *)tmp_choice);
       if (n_choices>16) u8_free(choices);
       if (ch->uselock) fd_unlock_struct(ch);
       if (free_achoice) {
@@ -597,7 +598,7 @@ fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
     max_space=max_space+FD_XCHOICE_SIZE(choices[i]);
     i++;}
   /* Make a new choice with enough space for everything. */
-   new_choice=fd_alloc_choice(max_space);
+  new_choice=fd_alloc_choice(max_space);
   /* Where we write */
   write=(fdtype *)FD_XCHOICE_DATA(new_choice);
   if (atomicp)
