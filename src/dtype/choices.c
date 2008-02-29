@@ -524,7 +524,8 @@ static int scanner_loop(struct FD_CHOICE_SCANNER *scanners,
     const fdtype top=scanners[0].top, *read, *limit;
     if (FDTYPE_EQUAL(top,last)) scanners[0].ptr++;
     read=scanners[0].ptr; limit=scanners[0].lim;
-    while (read<limit) *write++=fd_incref(*read++);}
+    while (read<limit) {
+      *write=fd_incref(*read); write++; read++;}}
   return write-vals;
 }
 
