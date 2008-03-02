@@ -428,10 +428,11 @@ static fdtype getcontent(fdtype path)
       else if (fileinfo.st_mtime>lmtime->xtime.u8_secs) {
 	fdtype new_content=loadcontent(path);
 	struct U8_XTIME mtime;
-	fdtype content_record=
+	fdtype content_record;
+	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0);
+	content_record=
 	  fd_init_pair(NULL,fd_make_timestamp(&mtime),
 		       fd_incref(new_content));
-	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0);
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
