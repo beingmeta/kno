@@ -22,9 +22,9 @@
 
 ;; Looking up words
 (module-export! '{brico/lookup
-		  lookup-word lookup-combo vary-word
-		  word-override? lookup-word/prefetch
-		  lookup-term brico/resolve brico/resolveone brico/ref})
+		  lookup-word lookup-term lookup-combo vary-word word-override?
+		  lookup-word/prefetch lookup-term/prefetch
+		  brico/resolve brico/resolveone brico/ref})
 
 (define %nosubst
   '{word-overrides word-overlays morphrules termrules})
@@ -75,7 +75,7 @@
 	  ((custom-map-handler rule) word language)
 	  (get (custom-map-handler rule) (cons language word)))))
 
-(define (vary-word word language (tryhard #f))
+(define (vary-word word language (tryhard #f) (juststrings #f))
   "This generates 'normal' variants "
   (choice
    (tryif (somecap? word) (difference (capitalize word) word))
@@ -84,7 +84,9 @@
 			    (choice #f language)))
      (let ((variations (apply-variation rule word language)))
        (choice (difference (pickstrings variations) word)
-	       (reject (pick variations pair?) word))))))
+	       (if juststrings
+		   (difference (car (pick variations pair?)) word)
+		   (reject (pick variations pair?) word)))))))
 
 
 (define (vary-more word)
