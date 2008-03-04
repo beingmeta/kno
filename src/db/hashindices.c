@@ -99,6 +99,14 @@ static char versionid[] =
 #define CHECK_ENDPOS(pos,stream)
 #endif
 
+#ifndef HASHINDEX_PREFETCH_WINDOW
+#ifdef FD_MMAP_PREFETCH_WINDOW
+#define HASHINDEX_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
+#else
+#define HASHINDEX_PREFETCH_WINDOW 0
+#endif
+#endif
+
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
 #define MIDDLIN_MODULUS 573786077 /* 256000001 */
@@ -1017,6 +1025,17 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
       off_t blockpos=schedule[j].ref.off;
       fd_size_t blocksize=schedule[j].ref.size;
       if (schedule[j].bucket!=bucket) {
+#if HASHINDEX_PREFETCH_WINDOW	
+	if (hx->mmap) {
+	  unsigned char *data=hx->mmap;
+	  int k=j+1, newbuck=schedule[j].bucket, n_prefetched=0;
+	  while ((k<n_entries) && (n_prefetched<4))
+	    if (schedule[k].bucket!=newbuck) {
+	      newbuck=schedule[k].bucket;
+	      FD_PREFETCH(&data[schedule[k].ref.off]);
+	      n_prefetched++;}
+	    else k++;}
+#endif
 	if (blocksize<1024)
 	  open_block(&keyblock,hx,blockpos,blocksize,_buf,LOCK_STREAM);
 	else if (buf)

@@ -10,6 +10,14 @@ static char versionid[] =
 
 #define FD_INLINE_DTYPEIO 1
 
+#ifndef OIDPOOL_PREFETCH_WINDOW
+#ifdef FD_MMAP_PREFETCH_WINDOW
+#define OIDPOOL_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
+#else
+#define OIDPOOL_PREFETCH_WINDOW 0
+#endif
+#endif
+
 #include "fdb/dtype.h"
 #include "fdb/fddb.h"
 #include "fdb/dtypestream.h"
@@ -811,8 +819,16 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     qsort(schedule,n,sizeof(struct OIDPOOL_FETCH_SCHEDULE),
 	  compare_offsets);
     i=0; while (i<n) {
-      /* Should we grab the lock for the whole fetch? */
-      fdtype value=read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");
+      fdtype value;
+#if ((OIDPOOL_PREFETCH_WINDOW)>0)
+      if (op->mmap) {
+	unsigned char *data=op->mmap;
+	int j=i, lim=(((i+OIDPOOL_PREFETCH_WINDOW)>n) ? (n) : (i+4));
+	while (j<lim) {
+	  FD_PREFETCH(&(data[schedule[j].location.off]));
+	  j++;}}
+#endif
+      value=read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");
       if (FD_ABORTP(value)) {
 	int j=0; while (j<i) { fd_decref(values[j]); j++;}
 	u8_free(schedule); u8_free(values);
