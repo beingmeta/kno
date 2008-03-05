@@ -27,7 +27,10 @@ fd_exception fd_TooFewArgs=_("too few arguments");
 fd_exception fd_NoDefault=_("no default value for #default argument");
 fd_exception fd_ProfilingDisabled=_("profiling not built");
 
-static fd_exception TooManyCalltrackSensors=_("Too many calltrack sensors");
+static fd_exception NoSuchCalltrackSensor=
+  _("designated calltrack sensor does not exist");
+static fd_exception TooManyCalltrackSensors=
+  _("Too many calltrack sensors");
 
 /* Internal profiling support */
 
@@ -44,7 +47,7 @@ u8_mutex calltrack_sensor_lock;
 static struct FD_CALLTRACK_SENSOR calltrack_sensors[MAX_CALLTRACK_SENSORS];
 static int n_calltrack_sensors=0;
 
-FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id)
+FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int create)
 {
   int i=0; fd_lock_mutex(&calltrack_sensor_lock);
   while (i<n_calltrack_sensors) 
@@ -52,7 +55,10 @@ FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id)
       fd_unlock_mutex(&calltrack_sensor_lock);
       return &(calltrack_sensors[i]);}
     else i++;
-  if (i<MAX_CALLTRACK_SENSORS) {
+  if (create==0) {
+    fd_unlock_mutex(&calltrack_sensor_lock);
+    return NULL;}
+  else if (i<MAX_CALLTRACK_SENSORS) {
     calltrack_sensors[i].name=u8_strdup(id);
     calltrack_sensors[i].enabled=0;
     calltrack_sensors[i].intfcn=NULL;
@@ -237,6 +243,58 @@ static fdtype get_calltrack(fdtype ignored,void *lval)
 #else
     return FD_EMPTY_CHOICE;
 #endif
+}
+
+static fdtype calltrack_sense, calltrack_ignore;
+
+static int config_set_calltrack_sensors(fdtype sym,fdtype value,
+					void MAYBE_UNUSED *data)
+{
+  u8_string sensor_name; fd_calltrack_sensor sensor;
+  if (FD_STRINGP(value)) sensor_name=FD_STRDATA(value);
+  else if (FD_SYMBOLP(value)) sensor_name=FD_SYMBOL_NAME(value);
+  else {
+    fd_seterr(fd_TypeError,"config_set_calltrack_sensor",NULL,value);
+    return -1;}
+  sensor=fd_get_calltrack_sensor(sensor_name,0);
+  if (sensor==NULL) {
+    fd_seterr(NoSuchCalltrackSensor,"config_set_calltrack_sensor",NULL,value);
+    return -1;}
+  if (FD_EQ(sym,calltrack_sense))
+    if (sensor->enabled) return 0;
+    else {sensor->enabled=1; return 1;}
+  else if (FD_EQ(sym,calltrack_ignore)) 
+    if (!(sensor->enabled)) return 0;
+    else {sensor->enabled=0; return 1;}
+  else {
+    fd_seterr(fd_TypeError,"config_set_calltrack_sensor",NULL,value);
+    return -1;}
+}
+static fdtype config_get_calltrack_sensors(fdtype sym,void MAYBE_UNUSED *data)
+{
+  if (sym==calltrack_sense) {
+    fdtype results=FD_EMPTY_CHOICE; int i=0;
+    fd_lock_mutex(&calltrack_sensor_lock);
+    while (i<n_calltrack_sensors) 
+      if (calltrack_sensors[i].enabled) {
+	fdtype sensorname=fd_init_string(NULL,-1,calltrack_sensors[i].name);
+	FD_ADD_TO_CHOICE(results,sensorname);
+	i++;}
+      else i++;
+    fd_unlock_mutex(&calltrack_sensor_lock);
+    return fd_simplify_choice(results);}
+  else if (sym==calltrack_ignore) {
+    fdtype results=FD_EMPTY_CHOICE; int i=0;
+    fd_lock_mutex(&calltrack_sensor_lock);
+    while (i<n_calltrack_sensors) 
+      if (calltrack_sensors[i].enabled) i++;
+      else {
+	fdtype sensorname=fd_init_string(NULL,-1,calltrack_sensors[i].name);
+	FD_ADD_TO_CHOICE(results,sensorname);
+	i++;}
+    fd_unlock_mutex(&calltrack_sensor_lock);
+    return fd_simplify_choice(results);}
+  else return FD_EMPTY_CHOICE;
 }
 
 /* Instrumented apply */
@@ -827,7 +885,7 @@ FD_EXPORT void fd_init_apply_c()
 
   fd_register_source_file(versionid);
   fd_register_source_file(FDB_APPLY_H_VERSION);
-  fd_register_config("CALLTRACK",_("File used for calltrack profiling (non #f enables it)"),
+  fd_register_config("CALLTRACK",_("File used for calltrack profiling (#f disables calltrack)"),
 		     get_calltrack,set_calltrack,NULL);
 
 #if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
@@ -840,6 +898,15 @@ FD_EXPORT void fd_init_apply_c()
 
   fd_unparsers[fd_tail_call_type]=unparse_tail_call;
   fd_recyclers[fd_tail_call_type]=recycle_tail_call;
+
+  calltrack_sense=fd_intern("CALLTRACK/SENSE");
+  calltrack_ignore=fd_intern("CALLTRACK/IGNORE");
+  fd_register_config
+    ("CALLTRACK/SENSE",_("Active calltrack sensors"),
+     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
+  fd_register_config
+    ("CALLTRACK/IGNORE",_("Ignore calltrack sensors"),
+     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
 
 #if (FD_THREADS_ENABLED)
   u8_init_mutex(&calltrack_sensor_lock);

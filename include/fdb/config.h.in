@@ -45,6 +45,24 @@
 /* Define if your <sys/time.h> declares struct tm.  */
 #undef TM_IN_SYS_TIME
 
+/* Define if you have <resource.h> declares struct tm.  */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define if you have <sys/resource.h> declares struct tm.  */
+#undef HAVE_RESOURCE_H
+
+/* Define if you have rusage.ru_inblock.  */
+#undef HAVE_STRUCT_RUSAGE_RU_INBLOCK
+
+/* Define if you have rusage.ru_nvcsw.  */
+#undef HAVE_STRUCT_RUSAGE_RU_NVCSW
+
+/* Define if you have rusage.ru_majflt.  */
+#undef HAVE_STRUCT_RUSAGE_RU_MAJFLT
+
+/* Define if you have rusage.ru_nswap.  */
+#undef HAVE_STRUCT_RUSAGE_RU_NSWAP
+
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN

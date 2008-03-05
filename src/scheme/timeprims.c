@@ -785,6 +785,93 @@ static void init_id_tables()
   month_names[11]="Dec";
 }
 
+/* Calltrack sensors for stime and rtime */
+
+/* stime and rtime calltrack sensors */
+
+#if FD_CALLTRACK_ENABLED
+static double utime_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0.0;
+  else return r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0;
+}
+static double stime_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0.0;
+  else return r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0;
+}
+#if HAVE_STRUCT_RUSAGE_RU_INBLOCK
+static long inblock_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_inblock;
+}
+static long outblock_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_oublock;
+}
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+static long majflt_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_majflt;
+}
+static long nswaps_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_nswap;
+}
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+static long cxtswitch_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_nvcsw+r.ru_nivcsw;
+}
+static long vcxtswitch_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_nvcsw;
+}
+static long ivcxtswitch_sensor()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return 0;
+  else return r.ru_nivcsw;
+}
+#endif
+#endif
+
+/* Initialization */
+
 FD_EXPORT void fd_init_timeprims_c()
 {
   fd_register_source_file(versionid);
@@ -889,4 +976,44 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("MEMUSAGE",memusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYSTIME",systime_prim,0));
+
+  /* Initialize utime and stime sensors */
+#if FD_CALLTRACK_ENABLED
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("UTIME",1);
+    cts->enabled=0; cts->dblfcn=utime_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("STIME",1);
+    cts->enabled=0; cts->dblfcn=stime_sensor;}
+#if HAVE_STRUCT_RUSAGE_RU_INBLOCK
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("INBLOCK",1);
+    cts->enabled=0; cts->intfcn=inblock_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("OUTBLOCK",1);
+    cts->enabled=0; cts->intfcn=outblock_sensor;}
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("MAJFLT",1);
+    cts->enabled=0; cts->intfcn=majflt_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("NSWAPS",1);
+    cts->enabled=0; cts->intfcn=nswaps_sensor;}
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("SWITCHES",1);
+    cts->enabled=0; cts->intfcn=cxtswitch_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("VSWITCHES",1);
+    cts->enabled=0; cts->intfcn=vcxtswitch_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("IVSWITCHES",1);
+    cts->enabled=0; cts->intfcn=ivcxtswitch_sensor;}
+#endif
+#endif
+
 }
+
+

@@ -312,7 +312,7 @@ static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
   return 0;
 }
 
-FD_EXPORT int fd_callcache_load()
+FD_EXPORT long fd_callcache_load()
 {
   int count=0;
   fd_for_hashtable(&fcn_caches,hashtable_cachecount,&count,1);

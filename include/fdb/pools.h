@@ -258,7 +258,7 @@ FD_EXPORT int fd_close_pools(void);
 FD_EXPORT int fd_commit_pools(void);
 FD_EXPORT int fd_commit_pools_noerr(void);
 FD_EXPORT int fd_unlock_pools(int);
-FD_EXPORT int fd_object_cache_load(void);
+FD_EXPORT long fd_object_cache_load(void);
 FD_EXPORT fdtype fd_cached_oids(fd_pool p);
 
 FD_EXPORT int fd_commit_oids(fdtype oids,int unlock);

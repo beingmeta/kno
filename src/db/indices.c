@@ -798,7 +798,7 @@ static int accumulate_cachecount(fd_index ix,void *ptr)
 }
 
 FD_EXPORT
-int fd_index_cache_load()
+long fd_index_cache_load()
 {
   int result=0, retval;
   retval=fd_for_indices(accumulate_cachecount,(void *)&result);
@@ -975,7 +975,7 @@ FD_EXPORT void fd_init_indices_c()
 
 #if FD_CALLTRACK_ENABLED
   {
-    fd_calltrack_sensor cts=fd_get_calltrack_sensor("KEYS");
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("KEYS",1);
     cts->enabled=1; cts->intfcn=fd_index_cache_load;}
 #endif
 }

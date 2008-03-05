@@ -1055,7 +1055,7 @@ static int accumulate_cachecount(fd_pool p,void *ptr)
 }
 
 FD_EXPORT
-int fd_object_cache_load()
+long fd_object_cache_load()
 {
   int result=0, retval;
   retval=fd_for_pools(accumulate_cachecount,(void *)&result);
@@ -1389,7 +1389,7 @@ FD_EXPORT void fd_init_pools_c()
 
 #if FD_CALLTRACK_ENABLED
   {
-    fd_calltrack_sensor cts=fd_get_calltrack_sensor("OIDS");
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("OIDS",1);
     cts->enabled=1; cts->intfcn=fd_object_cache_load;}
 #endif
 

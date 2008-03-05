@@ -197,6 +197,13 @@ AC_CHECK_SIZEOF(void *,4)
 AC_HEADER_STDC
 AC_HEADER_STAT
 
+AC_CHECK_HEADERS(resource.h sys/resource.h)
+
+AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
+	         [#include <sys/resource.h>])
+AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],
+	         [#include <sys/resource.h>])
+
 dnl Various directory/path configuration options
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")

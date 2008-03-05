@@ -133,7 +133,7 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
 
-typedef int (*fd_int_sensor)(void);
+typedef long (*fd_int_sensor)(void);
 typedef double (*fd_dbl_sensor)(void);
 
 typedef struct FD_CALLTRACK_SENSOR {
@@ -141,7 +141,7 @@ typedef struct FD_CALLTRACK_SENSOR {
   fd_int_sensor intfcn; fd_dbl_sensor dblfcn;} FD_CALLTRACK_SENSOR;
 typedef FD_CALLTRACK_SENSOR *fd_calltrack_sensor;
 
-FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id);
+FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int);
 
 FD_EXPORT int fd_start_profiling(u8_string name);
 FD_EXPORT void fd_profile_call(u8_string name);
