@@ -728,6 +728,26 @@ static fdtype memusage_prim()
   return FD_INT2DTYPE(size);
 }
 
+static fdtype usertime_prim()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return FD_ERROR_VALUE;
+  else return fd_init_double
+	 (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+}
+
+static fdtype systime_prim()
+{
+  struct rusage r;
+  memset(&r,0,sizeof(r));
+  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    return FD_ERROR_VALUE;
+  else return fd_init_double
+	 (NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+}
+
 /* Initialization */
 
 static void init_id_tables()
@@ -867,4 +887,6 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("MEMUSAGE",memusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("USERTIME",usertime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SYSTIME",systime_prim,0));
 }

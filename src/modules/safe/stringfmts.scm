@@ -68,7 +68,8 @@
 (define printnum-sep ",")
 
 (define (printnum num (pad #f))
-  (cond ((>= num 1000)
+  (cond ((inexact? num) (number->string num))
+	((>= num 1000)
 	 (printnum (quotient num 1000) (>= num 1000000))
 	 (printout printnum-sep (printnum (remainder num 1000) #t)))
 	((>= num 100) (printout num))
