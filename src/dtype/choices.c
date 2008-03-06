@@ -31,14 +31,14 @@ static void recycle_achoice(struct FD_CONS *c)
 	fdtype v=*read++; fd_decref(v);}
     if (ch->mallocd) u8_free(ch->nch);}
   fd_decref(ch->normalized);
-  if (ch->uselock) fd_destroy_mutex(&(ch->lock));
+  fd_destroy_mutex(&(ch->lock));
   u8_free(ch);
 }
 
 static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
 {
   fd_decref(ch->normalized);
-  if (ch->uselock) fd_destroy_mutex(&(ch->lock));
+  fd_destroy_mutex(&(ch->lock));
   u8_free(ch);
 }
 static int write_achoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
@@ -297,7 +297,7 @@ fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
   ch->n_nested=0; ch->muddled=0; ch->atomicp=1; ch->mallocd=1;
   ch->normalized=FD_VOID;
   ch->uselock=uselock;
-  if (uselock) fd_init_mutex(&(ch->lock));
+  fd_init_mutex(&(ch->lock));
   return FDTYPE_CONS(ch);
 }
 

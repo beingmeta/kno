@@ -132,6 +132,9 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
+#ifndef FD_MAX_CALLTRACK_SENSORS
+#define FD_MAX_CALLTRACK_SENSORS 64
+#endif
 
 typedef long (*fd_int_sensor)(void);
 typedef double (*fd_dbl_sensor)(void);
@@ -140,6 +143,11 @@ typedef struct FD_CALLTRACK_SENSOR {
   u8_string name; int enabled;
   fd_int_sensor intfcn; fd_dbl_sensor dblfcn;} FD_CALLTRACK_SENSOR;
 typedef FD_CALLTRACK_SENSOR *fd_calltrack_sensor;
+
+typedef struct FD_CALLTRACK_DATUM {
+  enum { ct_double, ct_int }  ct_type;
+  union { double dblval; int intval;} ct_value;} FD_CALLTRACK_DATUM;
+typedef struct FD_CALLTRACK_DATUM *fd_calltrack_datum;
 
 FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int);
 

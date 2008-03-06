@@ -995,11 +995,26 @@ FD_EXPORT fdtype fd_hashtable_get
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
-    fdtype v=((FD_ACHOICEP(rv)) ?
-	      (fd_make_simple_choice(rv)) :
-	      (fd_incref(rv)));
-    if (ht->modified>=0) fd_unlock_struct(ht);
-    return v;}
+    if (FD_ACHOICEP(rv)) {
+      struct FD_ACHOICE *ach=FD_XACHOICE(rv);
+      if (ach->size>1) {
+	fdtype v=fd_make_simple_choice(rv);
+	if (ht->modified>=0) fd_unlock_struct(ht);
+	return v;}
+      else if (ach->uselock) {
+	if (ht->modified>=0) fd_unlock_struct(ht);
+	return fd_make_simple_choice(rv);}
+      else {
+	fdtype v=fd_incref(rv);
+	ach->uselock=1;
+	if (ht->modified>=0) fd_unlock_struct(ht);
+	v=fd_make_simple_choice(rv);
+	fd_decref(rv);
+	return v;}}
+    else {
+      fd_incref(rv);
+      if (ht->modified>=0) fd_unlock_struct(ht);
+      return rv;}}
   else {
     if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
     return fd_incref(dflt);}
@@ -1172,8 +1187,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
      because it will be protected by the hashtable's lock. */
   if (FD_ACHOICEP(result->value)) {
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
-    if (ch->uselock) {
-      fd_destroy_mutex(&(ch->lock)); ch->uselock=0;}}
+    if (ch->uselock) ch->uselock=0;}
 #endif
   fd_unlock_struct(ht);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
@@ -1430,8 +1444,7 @@ static int do_hashtable_op
        safely destroy it and set the choice to not use locking, since 
        the value will be protected by the hashtable's lock. */
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
-    if (ch->uselock) {
-      fd_destroy_mutex(&(ch->lock)); ch->uselock=0;}}
+    if (ch->uselock) ch->uselock=0;}
   return added;
 }
 

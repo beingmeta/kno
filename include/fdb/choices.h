@@ -167,12 +167,10 @@ FD_EXPORT fdtype fd_init_choice
 
 typedef struct FD_ACHOICE {
   FD_CONS_HEADER;
-  unsigned int size, muddled;
-  struct FD_CHOICE *nch;
+  unsigned int size, n_nested;
+  unsigned muddled:1, mallocd:1, atomicp:1, uselock:1;
   fdtype *data, *write, *limit;
-  int mallocd, atomicp, n_nested;
-  fdtype normalized;
-  int uselock;
+  fdtype normalized; struct FD_CHOICE *nch; 
 #if U8_THREADS_ENABLED
   u8_mutex lock;
 #endif

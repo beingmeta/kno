@@ -38,15 +38,12 @@ FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
 
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
-#ifndef MAX_CALLTRACK_SENSORS
-#define MAX_CALLTRACK_SENSORS 64
-#endif
 
 #if FD_THREADS_ENABLED
 u8_mutex calltrack_sensor_lock;
 #endif
 
-static struct FD_CALLTRACK_SENSOR calltrack_sensors[MAX_CALLTRACK_SENSORS];
+static struct FD_CALLTRACK_SENSOR calltrack_sensors[FD_MAX_CALLTRACK_SENSORS];
 static int n_calltrack_sensors=0;
 
 FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int create)
@@ -60,7 +57,7 @@ FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int create)
   if (create==0) {
     fd_unlock_mutex(&calltrack_sensor_lock);
     return NULL;}
-  else if (i<MAX_CALLTRACK_SENSORS) {
+  else if (i<FD_MAX_CALLTRACK_SENSORS) {
     calltrack_sensors[i].name=u8_strdup(id);
     calltrack_sensors[i].enabled=0;
     calltrack_sensors[i].intfcn=NULL;
