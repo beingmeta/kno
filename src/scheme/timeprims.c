@@ -870,6 +870,28 @@ static long ivcxtswitch_sensor()
 #endif
 #endif
 
+/* Calltrack interface */
+
+static fdtype calltrack_sensors()
+{
+#if FD_CALLTRACK_ENABLED
+  return fd_calltrack_sensors();
+#else
+  return fd_init_vector(NULL,0,NULL);
+#endif
+}
+
+static fdtype calltrack_sense(fdtype all)
+{
+#if FD_CALLTRACK_ENABLED
+  if (FD_FALSEP(all)) 
+    return fd_calltrack_sense(0);
+  else return fd_calltrack_sense(1);
+#else
+  return fd_init_vector(NULL,0,NULL);
+#endif
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -973,9 +995,12 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SECS->STRING",secs2string,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("MEMUSAGE",memusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("USERTIME",usertime_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("SYSTIME",systime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
 
   /* Initialize utime and stime sensors */
 #if FD_CALLTRACK_ENABLED

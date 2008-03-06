@@ -32,6 +32,8 @@ static fd_exception NoSuchCalltrackSensor=
 static fd_exception TooManyCalltrackSensors=
   _("Too many calltrack sensors");
 
+FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
+
 /* Internal profiling support */
 
 #if FD_CALLTRACK_ENABLED
@@ -71,6 +73,39 @@ FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int create)
     fd_unlock_mutex(&calltrack_sensor_lock);
     return NULL;}
 }
+
+FD_EXPORT fdtype fd_calltrack_sensors()
+{
+  int n=n_calltrack_sensors+1, i=0;
+  fdtype *data=u8_alloc_n(n,fdtype);
+  data[i++]=fd_intern("TIME");
+  while (i<n) {
+    data[i]=fd_intern(calltrack_sensors[i-1].name); i++;}
+  return fd_init_vector(NULL,n,data);
+}
+
+FD_EXPORT fdtype fd_calltrack_sense(int trackall)
+{
+  int n=n_calltrack_sensors+1, i=0;
+  fdtype *data=u8_alloc_n(n,fdtype), *write=data+1;
+  data[i]=fd_init_double(NULL,u8_elapsed_time());
+  while (i<n)
+    if ((trackall==0) &&
+	(calltrack_sensors[i].enabled==0))
+      write[i++]=(FD_FIXNUM_ZERO);
+    else if (calltrack_sensors[i].intfcn) {
+      long lv=calltrack_sensors[i].intfcn();
+      fdtype dv=(fdtype)FD_INT2DTYPE(lv);
+      write[i++]=dv;}
+    else  if (calltrack_sensors[i].dblfcn) {
+      double fv=calltrack_sensors[i].dblfcn();
+      fdtype dv=fd_init_double(NULL,fv);
+      write[i++]=dv;}
+    else write[i++]=(FD_FIXNUM_ZERO);
+  return fd_init_vector(NULL,n,data);
+}
+
+/* Generic calltrack */
 
 #if (FD_USE_TLS)
 static u8_tld_key calltrack_log_key;

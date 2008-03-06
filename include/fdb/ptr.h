@@ -314,6 +314,11 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_FIXNUM_MAGNITUDE(x) (x&FD_FIXNUM_MAGNITUDE_MASK)
 #define FD_FIXNUM_NEGATIVEP(x) (x&FD_FIXNUM_SIGN_BIT)
 
+#define FD_FIXZERO         (FD_SHORT2DTYPE(0))
+#define FD_FIXNUM_ZERO     (FD_SHORT2DTYPE(0))
+#define FD_FIXNUM_ONE      (FD_SHORT2DTYPE(1))
+#define FD_FIXNUM_NEGONE   (FD_SHORT2DTYPE(-1))
+
 /* Constants */
 
 #define FD_CONSTANT(i) ((fdtype)(fd_immediate_ptr_type|(i<<2)))
