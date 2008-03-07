@@ -997,7 +997,7 @@ FD_EXPORT fdtype fd_hashtable_get
     fdtype rv=result->value;
     if (FD_ACHOICEP(rv)) {
       struct FD_ACHOICE *ach=FD_XACHOICE(rv);
-      if (ach->size>1) {
+      if (ach->size<=1) {
 	fdtype v=fd_make_simple_choice(rv);
 	if (ht->modified>=0) fd_unlock_struct(ht);
 	return v;}
@@ -1009,6 +1009,11 @@ FD_EXPORT fdtype fd_hashtable_get
 	ach->uselock=1;
 	if (ht->modified>=0) fd_unlock_struct(ht);
 	v=fd_make_simple_choice(rv);
+	if (ht->modified>=0) {
+	  fd_lock_struct(ht);
+	  ach->uselock=0;
+	  fd_lock_struct(ht);}
+	else ach->uselock=0;
 	fd_decref(rv);
 	return v;}}
     else {
