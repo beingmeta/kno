@@ -419,10 +419,11 @@ $(BININSTALLDIR):
 # Setup targets
 
 confdirs: @data_dir@ @config_dir@ @local_config@ @shared_config@ @module_dir@ @safe_module_dir@
+	$(INSTALL) @install_file_opts@ /dev/null @config_dir@/servers
 
 @data_dir@ @config_dir@ @local_config@ @shared_config@ @module_dir@ @standard_module_dir@ @safe_module_dir@: 
 	$(INSTALL) @install_dir_opts@ $@
-	$(INSTALL) @install_file_opts@ /dev/null @config_dir@/servers
+
 link-modules: @module_dir@ @standard_module_dir@ 
 	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	rm -rf  @standard_module_dir@
