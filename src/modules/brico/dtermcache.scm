@@ -17,6 +17,7 @@
 (module-export!
  '{cached-dterm
    require-dterm request-dterm
+   lazy-dterm
    launch-dtermdaemons})
 
 (define %loglevel %info!)
@@ -48,6 +49,9 @@
 (define (request-dterm concept language)
   (try (get dterm-cache (cons concept language))
        (cache-compute-dterm concept language)))
+
+(define (lazy-dterm concept language)
+  (get dterm-cache (cons concept language)))
 
 (define (cache-dterm! concept language dterm)
   (synchro-lock cache-compute-dterm)
