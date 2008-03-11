@@ -11,7 +11,9 @@
 (define version "$Id$")
 
 (use-module 'reflection)
+(use-module 'logger)
 
+(define %loglevel %warning!)
 (define useopcodes #t)
 (define optdowarn #t)
 
@@ -228,6 +230,7 @@
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
 	 (bound (list (arglist->vars arglist))))
+    (message "Optimizing " proc)
     (threadset! 'codewarnings #{})
     (set-procedure-body!
      proc (map (lambda (b) (dotighten b env bound dolex))
@@ -237,11 +240,14 @@
       (threadset! 'codewarnings #{}))))
 
 (define (optimize-module! module)
+  (message "Optimizing module " module)
   (let ((bindings (module-bindings module))
 	(count 0))
     (do-choices (var bindings)
+      (message "Optimizing binding " var)
       (let ((value (get module var)))
 	(when (compound-procedure? value)
+	  (message "Optimizing " value)
 	  (set! count (1+ count)) (optimize! value))))
     count))
 
@@ -254,7 +260,8 @@
   (dolist (arg args)
     (cond ((compound-procedure? arg) (optimize-procedure! arg))
 	  ((table? arg) (optimize-module! arg))
-	  (else (error '|TypeError| 'optimize* "Invalid tighten argument: " arg)))))
+	  (else (error '|TypeError| 'optimize*
+			 "Invalid optimize argument: " arg)))))
 
 (define optimize!
   (macro expr

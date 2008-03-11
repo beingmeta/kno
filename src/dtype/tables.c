@@ -1012,7 +1012,7 @@ FD_EXPORT fdtype fd_hashtable_get
 	if (ht->modified>=0) {
 	  fd_lock_struct(ht);
 	  ach->uselock=0;
-	  fd_lock_struct(ht);}
+	  fd_unlock_struct(ht);}
 	else ach->uselock=0;
 	fd_decref(rv);
 	return v;}}
