@@ -86,7 +86,7 @@
        (choice (difference (pickstrings variations) word)
 	       (if juststrings
 		   (difference (car (pick variations pair?)) word)
-		   (reject (pick variations pair?) word)))))))
+		   (difference (reject variations pair?) word)))))))
 
 
 (define (vary-more word)
@@ -233,7 +233,8 @@
 	 (vwords (vary-word words baselang))
 	 (vvwords (vary-word vwords baselang))
 	 (all-vary (choice words vwords vvwords))
-	 (vary-words (choice (pickstrings all-vary) (car (pick all-vary pair?))))
+	 (vary-words (choice (pickstrings all-vary)
+			     (car (pick all-vary pair?))))
 	 (vary-constraints (for-choices (entry (pick all-vary pair?))
 			     (cons (second entry) (third entry)))))
     (prefetch-keys! (choice (cons @?en vary-words) vary-constraints))))
