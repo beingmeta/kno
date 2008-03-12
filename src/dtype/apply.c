@@ -85,8 +85,8 @@ FD_EXPORT fdtype fd_calltrack_sense(int trackall)
 {
   int n=n_calltrack_sensors+1, i=0;
   fdtype *data=u8_alloc_n(n,fdtype), *write=data+1;
-  data[i]=fd_init_double(NULL,u8_elapsed_time());
-  while (i<n)
+  data[0]=fd_init_double(NULL,u8_elapsed_time());
+  while (i<n_calltrack_sensors) 
     if ((trackall==0) &&
 	(calltrack_sensors[i].enabled==0))
       write[i++]=(FD_FIXNUM_ZERO);
