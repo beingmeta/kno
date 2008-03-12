@@ -1187,7 +1187,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
     fd_unlock_struct(ht);
     return fd_interr(newv);}
   else {FD_ADD_TO_CHOICE(result->value,newv);}
-#if 1
+#if 0
   /* If the value is an achoice, it doesn't need to be locked
      because it will be protected by the hashtable's lock. */
   if (FD_ACHOICEP(result->value)) {
@@ -1443,6 +1443,7 @@ static int do_hashtable_op
     break;
   }
   ht->modified=1;
+#if 0
   if ((achoicep==0) && (FD_ACHOICEP(result->value))) {
     /* If we didn't have an achoice before and we do now, that means
        a new achoice was created with a mutex and everything.  We can
@@ -1450,6 +1451,7 @@ static int do_hashtable_op
        the value will be protected by the hashtable's lock. */
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
     if (ch->uselock) ch->uselock=0;}
+#endif
   return added;
 }
 
