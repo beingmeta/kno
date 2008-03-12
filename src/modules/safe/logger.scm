@@ -1,6 +1,6 @@
 (in-module 'logger)
 
-(module-export! '{%loglevel logger logdebug loginfo lognotice %debug})
+(module-export! '{getloglevel %loglevel logger logdebug loginfo lognotice %debug})
 (module-export! '{%emergency! %alert! %critical! %error! %warning! %notice! %info! %debug!})
 
 (define %nosubst '%loglevel)
@@ -15,6 +15,30 @@
 (define %debug! 7)
 
 (define %loglevel 4)
+
+(define loglevel-init-map
+  {(DEBUG . 7) (DBG . 7) (INFO . 6)
+   (NOTICE . 5) (NOTE . 5) (NOTIFY . 5)
+   (WARN 4) (WARNING 4)
+   (ERROR 3) (ERR 3)
+   (ERROR 3) (ERR 3)
+   (CRITICAL 2) (CRIT 2)
+   (ALERT 1) (EMERGENCY 0) (EMERG 0)})
+
+(define loglevel-table
+  (let ((table (make-hashtable)))
+    (do-choices (map loglevel-init-map)
+      (add! table
+	    (choice (car map)
+		    (symbol->string (car map))
+		    (downcase (symbol->string (car map)))
+		    (string->symbol (string-append "%" (symbol->string (car map))))
+		    (string->symbol (string-append "%" (symbol->string (car map)) "!")))
+	    (cdr map)))
+    table))
+
+(define (getloglevel arg)
+  (if (number? arg) arg (get loglevel-table arg)))
 
 (define logger
   (macro expr
