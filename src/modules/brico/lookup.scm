@@ -86,11 +86,7 @@
        (choice (difference (pickstrings variations) word)
 	       (if juststrings
 		   (difference (car (pick variations pair?)) word)
-<<<<<<< .mine
 		   (reject (pick variations pair?) car word)))))))
-=======
-		   (difference (reject variations pair?) word)))))))
->>>>>>> .r2386
 
 
 (define (vary-more word)
