@@ -86,7 +86,11 @@
        (choice (difference (pickstrings variations) word)
 	       (if juststrings
 		   (difference (car (pick variations pair?)) word)
+<<<<<<< .mine
+		   (reject (pick variations pair?) car word)))))))
+=======
 		   (difference (reject variations pair?) word)))))))
+>>>>>>> .r2386
 
 
 (define (vary-more word)
@@ -162,8 +166,9 @@
 	(lookup-word variant language tryhard)
 	(if (pair? variant)
 	    (intersection
-	     (lookup-word variant language tryhard)
-	     (second variant) (third variant))))))
+	     (lookup-word (first variant) language tryhard)
+	     (?? (second variant) (third variant)))
+	    (fail)))))
 
 (define (lookup-word-core word language tryhard)
   ;; (message "lookup-word-core " (write word) " " language " " tryhard)
@@ -294,19 +299,19 @@
     (if (empty? sym)
 	(choice
 	 (intersection (lookup-word base language)
-		       (lookup-word (pick cxt string?) language))
+		       (lookup-word (pickstrings cxt) language))
 	 (intersection (lookup-word base language)
 		       (?? (or slotid default-combo-slotids)
-			   (choice (lookup-word (pick cxt string?) language)
-				   (pick cxt oid?)))))
+			   (choice (lookup-word (pickstrings cxt) language)
+				   (pickoids cxt)))))
 	(choice
 	 (intersection (lookup-word base language)
-		       (lookup-word (pick cxt string?) language)
+		       (lookup-word (pickstrings cxt) language)
 		       (?? '{type sensecat} sym))
 	 (intersection (lookup-word base language)
 		       (?? (or slotid default-combo-slotids)
-			   (choice (lookup-word (pick cxt string?) language)
-				   (pick cxt oid?)))
+			   (choice (lookup-word (pickstrings cxt) language)
+				   (pickoids cxt)))
 		       (?? '{type sensecat} sym))))))
 
 ;;; Smart utility lookup function
