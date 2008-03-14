@@ -5,7 +5,11 @@
 
 (use-module 'logger)
 
-(module-export! '{ctt cttsimple cttdatum cttreport cttsummary})
+(module-export!
+ '{ctt
+   get-ctt-state
+   cttsimple cttdatum cttreport
+   cttsummary cttline cttdata})
 
 ;;; Configuration
 
@@ -31,15 +35,18 @@
 
 (define %volatile '{%ctt-loglevel %ctt-sumfreq})
 
+(define skip-zeros #t)
+
 ;;; CTT state info
 
 (define ctt-state (make-hashtable))
 
 (defslambda (get-ctt-state label)
-  (try (get ctt-state label)
-       (let ((state (cons 0 (make-vector 64 0))))
-	 (store! ctt-state label state)
-	 state)))
+  (let ((state-table (try (threadget 'ctt-state) ctt-state)))
+    (try (get state-table label)
+	 (let ((state (cons 0 (make-vector 64 0))))
+	   (store! state-table label state)
+	   state))))
 
 ;;; Datum functions
 
@@ -52,7 +59,7 @@
 (define (cttdatum start (end (ct/sense)) (label #f) (state #f))
   (when label
     (unless state
-      (set! state (try (get ctt-state label) (get-ctt-state label))))
+      (set! state (get-ctt-state label)))
     (cttsumdata state start end))
   (logif+ #t ctt-loglevel
 	  label "[" (car state) "]: "
@@ -82,7 +89,7 @@
 		    (first expr)))
 	  (body-expr (second expr)))
       `(let ((_ctt_start (ct/sense)))
-	 (prog1 ,body-expr (,cttdatum (%watch _ctt_start) (ct/sense) ',name))))))
+	 (prog1 ,body-expr (,cttdatum _ctt_start (ct/sense) ',name))))))
 
 (define cttsimple
   (macro expr
@@ -94,19 +101,44 @@
 
 ;;; Summary functions
 
-(defambda (cttsummary (label #f) (sortfn (lambda (x) (first (cdr (get ctt-state x))))))
-  (doseq (label (rsorted (or label (getkeys ctt-state)) sortfn))
-    (let* ((state (get ctt-state label))
-	   (sensors (ct/sensors))
-	   (n (car state))
-	   (vec (cdr state)))
-      (lineout ";; " label "/sum[" (car state) " calls] "
-	       (dotimes (i (min (length vec) (length sensors)))
-		 (printout (if (> i 0) (if (zero? (remainder i 5)) ";\n;;\t" "; "))
-			   (elt sensors i) "=" (elt vec i))))
-      (lineout ";; " label "/mean[" (car state) " calls] "
-	       (dotimes (i (min (length vec) (length sensors)))
-		 (printout (if (> i 0) (if (zero? (remainder i 5)) ";\n;;\t" "; "))
-			   (elt sensors i)  "=" (/~ (elt vec i) n)))))))
+(defambda (cttsummary (label #f)
+		      (sortfn (lambda (x) (first (cdr (get ctt-state x)))))
+		      (state-table (try (threadget 'ctt-state) ctt-state)))
+  (let ((ctt-state (or state-table ctt-state)))
+    (doseq (label (rsorted (or label (getkeys state-table)) sortfn))
+      (let* ((state (get ctt-state label))
+	     (sensors (ct/sensors))
+	     (n (car state))
+	     (vec (cdr state)))
+	(lineout ";; " label "/sum[" (car state) " calls] "
+		 (dotimes (i (min (length vec) (length sensors)))
+		   (printout (if (> i 0)
+				 (if (zero? (remainder i 5)) ";\n;;\t" "; "))
+			     (elt sensors i) "=" (elt vec i))))
+	(lineout ";; " label "/mean[" (car state) " calls] "
+		 (dotimes (i (min (length vec) (length sensors)))
+		   (printout (if (> i 0)
+				 (if (zero? (remainder i 5)) ";\n;;\t" "; "))
+			     (elt sensors i)  "=" (/~ (elt vec i) n))))))))
 
+(defambda (cttline state)
+  (let* ((sensors (ct/sensors))
+	 (n (car state))
+	 (vec (cdr state))
+	 (first #t))
+    (stringout
+      "[" n "] "
+      (dotimes (i (min (length sensors) (length vec)))
+	(unless (and skip-zeros (zero? (elt vec i)))
+	  (printout (if first (set! first #f) "; ")
+		    (elt sensors i) "=" (elt vec i)))))))
+
+(define (cttdata state)
+  (let* ((sensors (ct/sensors))
+	 (n (car state))
+	 (vec (cdr state))
+	 (f (frame-create #f 'n n)))
+    (dotimes (i (min (length sensors) (length vec)))
+      (store! f (elt sensors i) (elt vec i)))
+    f))
 
