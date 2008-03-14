@@ -287,9 +287,11 @@
   ;;  slots because it is easier to just get @?defterms
   ;;  and @?refterms.
   (when (%test concept defines)
-    (doindex index (%get concept defines) defterms concept))
+    (doindex index (%get concept defines) defterms concept)
+    (doindex index concept defines (%get concept defines)))
   (when (%test concept referenced)
-    (doindex index (%get concept referenced) refterms concept)))
+    (doindex index (%get concept referenced) refterms concept)
+    (doindex index concept referenced (%get concept referenced))))
 
 (define (index-lattice index concept)
   (index-frame* index concept genls* genls specls*)
