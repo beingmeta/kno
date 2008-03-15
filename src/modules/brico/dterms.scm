@@ -1,7 +1,10 @@
 (in-module 'brico/dterms)
 
 (module-export!
- '{find-dterm get-dterm displayterm find-dterm-prefetch! dterm-caches})
+ '{find-dterm
+   get-dterm find-dterm/prefetch!
+   displayterm dterm-caches 
+   find-dterm-prefetch!})
 
 (use-module '{brico brico/lookup morph/en})
 
@@ -27,7 +30,7 @@
 ;;; Finding dterms
 
 (define (termnorm concept language)
-  (if (and (test concept 'type 'verb) (eq? language @?en))
+  (if (and (test concept 'type 'verb) (eq? language english))
       (try (gerund (get-norm concept language)) (get-norm concept language))
       (get-norm concept language)))
 
@@ -43,26 +46,29 @@
 (define (probe-location concept term1 term2 language (isaterm #f))
   (let ((norm (get norm-map language)))
     (if isaterm
-	(try (?? norm term1 @?partof* (?? norm term2) @?implies (?? norm isaterm))
-	     (?? language term1 @?partof* (?? norm term2) @?implies (?? language isaterm))
-	     (?? language term1 @?partof* (?? language term2) @?implies (?? language isaterm)))
-	(try (?? norm term1 @?partof* (?? norm term2))
-	     (?? language term1 @?partof* (?? norm term2))
-	     (?? language term1 @?partof* (?? language term2))))))
+	(try (?? norm term1 partof* (?? norm term2)
+		 implies (?? norm isaterm))
+	     (?? language term1 partof* (?? norm term2)
+		 implies (?? language isaterm))
+	     (?? language term1 partof* (?? language term2)
+		 implies (?? language isaterm)))
+	(try (?? norm term1 partof* (?? norm term2))
+	     (?? language term1 partof* (?? norm term2))
+	     (?? language term1 partof* (?? language term2))))))
 
 (define (find-location-dterm concept language norm)
   (let* ((country (get concept 'country))
 	 (country-norm (get-norm country language))
 	 (region (get concept 'region))
 	 (region-norm (get-norm region language))
-	 (isa (get concept @?implies)))
+	 (isa (get concept implies)))
     (try (try-choices country-norm
 	   (tryif (identical? concept (probe-location concept norm country-norm language))
 		  (stringout norm ", " country-norm)))
 	 (try-choices region-norm
 	   (tryif (identical? concept (probe-location concept norm region-norm language))
 		  (stringout norm ", " region-norm)))
-	 (try-choices (isa (get concept @?implies))
+	 (try-choices (isa (get concept implies))
 	   (try-choices (isaterm (get-norm isa language))
 	     (tryif (identical? concept (probe-location concept norm region-norm language isaterm))
 		    (stringout norm ", " region-norm
@@ -71,11 +77,11 @@
 		(stringout norm "(FIPS-CODE=" (smallest (get concept 'fips-code) length) ")")))))
 
 (define (probeisa concept norm isaterm language normlang)
-  (identical? concept (?? language norm @?implies (?? normlang isaterm))))
+  (identical? concept (?? language norm implies (?? normlang isaterm))))
 
 (define (find-individual-dterm concept language norm)
-  (let* ((isa (get concept @?implies))
-	 (defisa (intersection isa (get concept @?defterms)))
+  (let* ((isa (get concept implies))
+	 (defisa (intersection isa (get concept defterms)))
 	 (otherisa (difference isa defisa))
 	 (normslot (get norm-map language)))
     (try (try-choices defisa
@@ -93,50 +99,65 @@
 	(meanings (lookup-word norm language)))
     (try (tryif (singleton? (?? language norm)) norm)
 	 (try-choices (term (get sensecathints (cons sensecat language)))
-	   (tryif (singleton? (intersection meanings (?? @?genls* (?? normslot term))))
+	   (tryif (singleton? (intersection meanings
+					    (?? genls* (?? normslot term))))
 		  (string-append norm ":" term)))
-	 (try-choices (gn (get-norm (get concept @?genls) language))
-	   (tryif (singleton? (intersection meanings (?? @?genls* (?? language gn))))
+	 (try-choices (gn (get-norm (get concept genls) language))
+	   (tryif (singleton? (intersection meanings
+					    (?? genls* (?? language gn))))
 		  (string-append norm ":"  gn)))
-	 (try-choices (gn (get-norm (?? @?specls* concept) language))
-	   (tryif (singleton? (intersection meanings (?? @?genls* (?? language gn))))
+	 (try-choices (gn (get-norm (?? specls* concept) language))
+	   (tryif (singleton? (intersection meanings
+					    (?? genls* (?? language gn))))
 		  (string-append norm ":"  gn)))
 	 (try-choices (d (difference (get concept language) norm))
 	   (tryif (singleton? (intersection meanings (?? language d)))
 		  (string-append norm "="  d)))
-	 (try-choices (d (difference (get (get concept @?defterms) @?en_norm)
+	 (try-choices (d (difference (get (get concept defterms) normslot)
 				     norm))
-	   (tryif (singleton? (intersection meanings (?? @?defterms (?? normslot d))))
+	   (tryif (singleton? (intersection meanings
+					    (?? defterms (?? normslot d))))
 		  (string-append norm " (*"  d ")")))
 	 (try-choices (n (get-norm concept language))
 	   (tryif (not (equal? n norm))
 		  (find-generic-dterm concept language n)))
 	 (tryif (not (eq? language english))
 		(try-choices (term (get sensecathints (cons sensecat english)))
-		  (tryif (singleton? (intersection meanings (?? @?genls* (?? english term))))
-			 (string-append norm ":en$" term)))
-		(try-choices (gn (get-norm (get concept @?genls) english))
-		  (tryif (singleton? (intersection meanings (?? @?genls* (?? english gn))))
+		  (tryif
+		   (singleton? (intersection meanings
+					     (?? genls* (?? english term))))
+		   (string-append norm ":en$" term)))
+		(try-choices (gn (get-norm (get concept genls) english))
+		  (tryif (singleton?
+			  (intersection meanings (?? genls* (?? english gn))))
 			 (string-append norm ":en$"  gn)))
 		(try-choices (enorm (get-norm concept english))
 		  (tryif (singleton? (?? english enorm))
 			 (string-append "en$"  enorm)))
 		(try-choices (enorm (get-norm concept english))
-		  (try-choices (term (get sensecathints (cons sensecat english)))
-		    (tryif (singleton? (intersection (?? english enorm)
-						     (?? @?genls* (?? english term))))
+		  (try-choices (term (get sensecathints
+					  (cons sensecat english)))
+		    (tryif (singleton?
+			    (intersection (?? english enorm)
+					  (?? genls* (?? english term))))
 			   (string-append "en$" enorm ":" term))))
 		(try-choices (enorm (get-norm concept english))
-		  (try-choices (gn (get-norm (get concept @?genls) english))
-		    (tryif (singleton? (intersection meanings (?? @?genls* (?? english gn))))
+		  (try-choices (gn (get-norm (get concept genls) english))
+		    (tryif (singleton?
+			    (intersection meanings
+					  (?? genls* (?? english gn))))
 			   (string-append "en$" enorm ":"  gn))))
 		(try-choices (enorm (get-norm concept english))
-		  (try-choices (gn (get-norm (get concept @?genls) english))
-		    (tryif (singleton? (intersection meanings (?? @?genls* (?? english gn))))
+		  (try-choices (gn (get-norm (get concept genls) english))
+		    (tryif (singleton?
+			    (intersection meanings
+					  (?? genls* (?? english gn))))
 			   (string-append "en$" enorm ":"  gn))))
 		(try-choices (enorm (get-norm concept english))
-		  (try-choices (gn (get-norm (?? @?specls* concept) english))
-		    (tryif (singleton? (intersection (?? @?en enorm) (?? @?genls* (?? english gn))))
+		  (try-choices (gn (get-norm (?? specls* concept) english))
+		    (tryif (singleton?
+			    (intersection (?? english enorm)
+					  (?? genls* (?? english gn))))
 			   (string-append "en$" enorm ":"  gn))))
 		(try-choices (d (get-norm concept english))
 		  (tryif (singleton? (intersection meanings (?? language d)))
@@ -147,16 +168,21 @@
 
 ;;; Prefetching
 
-(defambda (find-dterm-prefetch! concept (language default-language) (norm))
+(defambda (find-dterm/prefetch! concept (language default-language) (norm))
   (default! norm (get-norm concept language))
   (prefetch-oids! concept)
-  (prefetch-oids! (%get concept '{region country @?partof @?implies}))
+  (prefetch-oids! (%get concept '{region country
+					 @1/2c274{PARTOF}
+					 @1/2c27e{IMPLIES}}))
   (prefetch-keys!
    (cons (choice language (get norm-map language))
 	 (choice (get sensecathints (cons (get concept 'sensecat) language))
 		 norm
-		 (get (%get concept '{region country @?partof @?implies})
-		      @?en_norm)))))
+		 (get (%get concept '{region country
+					     @1/2c274{PARTOF}
+					     @1/2c27e{IMPLIES}})
+		      (get norm-map language))))))
+(define find-dterm-prefetch! find-dterm/prefetch!)
 
 ;;; Getting display terms
 

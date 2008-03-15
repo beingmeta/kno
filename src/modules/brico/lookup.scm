@@ -238,7 +238,8 @@
 			     (car (pick all-vary pair?))))
 	 (vary-constraints (for-choices (entry (pick all-vary pair?))
 			     (cons (second entry) (third entry)))))
-    (prefetch-keys! (choice (cons @?en vary-words) vary-constraints))))
+    (prefetch-keys! (choice (cons english vary-words)
+			    vary-constraints))))
 
 #|
 (define (track-lookup-word word (language default-language) (tryhard 1))
@@ -377,19 +378,19 @@
     (cons word
 	  (try (intersection meanings (lookup-word syn-cxt language))
 	       (tryif (and (exists? partof-cxt) (exists? implies-cxt))
-		      (intersection meanings (?? @?partof* (lookup-word partof-cxt language))
-				    (?? @?implies (lookup-word implies-cxt))))
+		      (intersection meanings (?? partof* (lookup-word partof-cxt language))
+				    (?? implies (lookup-word implies-cxt))))
 	       (tryif (exists? partof-cxt)
-		      (intersection meanings (?? @?partof* (lookup-word partof-cxt language))))
+		      (intersection meanings (?? partof* (lookup-word partof-cxt language))))
 	       (tryif (exists? genls-cxt)
-		      (intersection meanings (?? @?genls* (lookup-word genls-cxt language))))
+		      (intersection meanings (?? genls* (lookup-word genls-cxt language))))
 	       (tryif (exists? defterm-cxt)
-		      (intersection meanings (?? @?defterms (lookup-word defterm-cxt language))))
+		      (intersection meanings (?? defterms (lookup-word defterm-cxt language))))
 	       (tryif (exists? eg-cxt)
 		      (let ((cxt (lookup-word eg-cxt language)))
-			(try (intersection meanings (?? @?specls* cxt))
+			(try (intersection meanings (?? specls* cxt))
 			     (filter-choices (meaning meanings)
-			       (overlaps? cxt (?? @?implies meaning))))))))))
+			       (overlaps? cxt (?? implies meaning))))))))))
 
 (define (lookup-term term (language default-language) (tryhard 1))
   (if (has-prefix term "~")
@@ -425,10 +426,10 @@
      (choice word syn-cxt implies-cxt partof-cxt genls-cxt eg-cxt defterm-cxt)
      language tryhard)
     (prefetch-keys!
-     (choice (cons @?partof* (lookup-word partof-cxt language))
-	     (cons @?genls* (lookup-word genls-cxt language))
-	     (cons @?defterms (lookup-word defterm-cxt language))
-	     (cons @?specls* (lookup-word eg-cxt language))))))
+     (choice (cons partof* (lookup-word partof-cxt language))
+	     (cons genls* (lookup-word genls-cxt language))
+	     (cons defterms (lookup-word defterm-cxt language))
+	     (cons specls* (lookup-word eg-cxt language))))))
 
 (define (lookup-term/prefetch term (language default-language) (tryhard 1))
   (if (has-prefix term "~")
@@ -451,7 +452,7 @@
 (define (brico/resolve term (language default-language) (tryhard 2))
   (cdr ((or remote-lookup-term lookup-term) term language tryhard)))
 
-(define (absfreq c) (choice-size (?? @?refterms c)))
+(define (absfreq c) (choice-size (?? refterms c)))
 
 (define (brico/resolveone term (language default-language) (tryhard 2))
   (let ((possible
@@ -460,7 +461,7 @@
 	(try (singleton possible)
 	     ;; This biases towards terms which aren't defined
 	     ;;  in terms of other terms.
-	     (singleton (difference possible (?? @?defterms possible)))
+	     (singleton (difference possible (?? defterms possible)))
 	     (pick-one (largest possible absfreq))))))
 
 (define brico/ref brico/resolveone)

@@ -194,6 +194,7 @@
   (doindex index frame '%ids)
   (doindex index frame '%mnemonic)
   (doindex index frame '%mnemonics)
+  (doindex index frame '{key through slots inverse @1/2c27a})
   (doindex index frame 'has (getslots frame))
   ;; Special case 'has' indexing
   (when (test frame 'gloss)
@@ -203,7 +204,9 @@
 	     (get gloss-map (car (get frame '%glosses)))))
   (when (test frame '%words)
     (doindex index frame 'has
-	     (get language-map (car (get frame '%words)))))
+	     (choice (get language-map (car (get frame '%words)))
+		     (get frag-map
+			  (get language-map (car (get frame '%words)))))))
   (when (test frame '%norm)
     (doindex index frame 'has
 	     (get norm-map (car (get frame '%norm)))))
@@ -268,10 +271,11 @@
   (do-choices (slotid implied-slotids)
     (index-implied-values index concept slotid (getallvalues concept slotid)))
   (do-choices (slotid concept-slotids)
-    (doindex index concept slotid
-	     (get concept slotid)
-	     (and (oid? slotid)
-		  (try (get slotid 'inverse) #f))))
+    (let ((values (get concept slotid)))
+      (when (exists? values)
+	(doindex index concept slotid values
+		 (and (oid? slotid)
+		      (try (get slotid 'inverse) #f))))))
   (do-choices (slotid misc-slotids)
     (doindex index concept slotid (get concept slotid))))
 
