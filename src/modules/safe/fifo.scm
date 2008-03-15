@@ -9,7 +9,9 @@
 (use-module 'ezrecords)
 
 (module-export!
- '{make-fifo fifo-push fifo-pop fifo-jump fifo-loop fifo-queued close-fifo})
+ '{make-fifo
+   fifo-push fifo-pop fifo-jump fifo-loop fifo-queued close-fifo
+   fifo-load})
 
 ;;;; Implementation
 
@@ -118,5 +120,9 @@
 				    (fifo-end fifo))))
       (condvar-unlock (fifo-condvar fifo)))))
 
-
+(define (fifo-load fifo)
+  (unwind-protect
+      (begin (condvar-lock (fifo-condvar fifo))
+	     (- (fifo-end fifo) (fifo-start fifo)))
+    (condvar-unlock (fifo-condvar fifo))))
 
