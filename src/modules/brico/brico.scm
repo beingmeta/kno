@@ -233,6 +233,7 @@
 (define (get-norm concept (language default-language) (tryhard #t))
   (try (tryif custom-norms
 	      (pick-one (largest (custom-get concept language custom-norms))))
+       (tryif (eq? language english) (first (get concept 'ranked)))
        (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
        (tryif tryhard
@@ -240,7 +241,8 @@
 		   (pick-one (largest (cdr (get concept '%words))))))))
 
 (define (%get-norm concept (language default-language))
-  (try (pick-one (largest (get (get concept '%norm) language)))
+  (try (tryif (eq? language english) (first (get concept 'ranked)))
+       (pick-one (largest (get (get concept '%norm) language)))
        (tryif (eq? language english) (pick-one (largest (get concept 'words))))
        (pick-one (largest (get (get concept '%words) (get language 'key))))
        (pick-one (largest (cdr (get concept '%words))))))
