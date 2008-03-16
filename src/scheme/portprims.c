@@ -1171,6 +1171,28 @@ static fdtype to_base64_prim(fdtype packet)
   else return FD_ERROR_VALUE;
 }
 
+/* Base 16 stuff */
+
+static fdtype from_base16_prim(fdtype string)
+{
+  u8_byte *string_data=FD_STRDATA(string);
+  unsigned int string_len=FD_STRLEN(string), data_len;
+  unsigned char *data=u8_read_base16(string_data,string_len,&data_len);
+  if (data)
+    return fd_init_packet(NULL,data_len,data);
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype to_base16_prim(fdtype packet)
+{
+  u8_byte *packet_data=FD_PACKET_DATA(packet);
+  unsigned int packet_len=FD_PACKET_LENGTH(packet), ascii_len;
+  char *ascii_string=u8_write_base16(packet_data,packet_len);
+  if (ascii_string)
+    return fd_init_string(NULL,packet_len*2,ascii_string);
+  else return FD_ERROR_VALUE;
+}
+
 /* The init function */
 
 FD_EXPORT void fd_init_portfns_c()
@@ -1282,6 +1304,13 @@ FD_EXPORT void fd_init_portfns_c()
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("PACKET->BASE64",to_base64_prim,1,
+			   fd_packet_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
 			   fd_packet_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
