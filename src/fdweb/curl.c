@@ -362,13 +362,38 @@ static fdtype set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_COOKIEFILE,FD_STRDATA(val));
       curl_easy_setopt(ch->handle,CURLOPT_COOKIEJAR,FD_STRDATA(val));}
     else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,header_symbol))
-    if (FD_STRINGP(val)) {
-      struct curl_slist *headers=
-	curl_slist_append(NULL,FD_STRDATA(val));
-      curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,headers);
-      curl_slist_free_all(headers);}
-    else return fd_type_error("string","set_curlopt",val);
+  else if (FD_EQ(opt,header_symbol)) {
+    struct curl_slist *headers=NULL;
+    FD_DO_CHOICES(v,val) 
+      if (FD_STRINGP(v))
+	curl_slist_append(headers,FD_STRDATA(v));
+      else if (FD_PAIRP(v)) {
+	fdtype car=FD_CAR(v), cdr=FD_CDR(v); u8_string hdr=NULL;
+	if ((FD_SYMBOLP(car)) && (FD_STRINGP(cdr))) 
+	  hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(car),FD_STRDATA(cdr));
+	else if ((FD_STRINGP(car)) && (FD_STRINGP(cdr)))
+	  hdr=u8_mkstring("%s: %s",FD_STRDATA(car),FD_STRDATA(cdr));
+	else if (FD_SYMBOLP(car))
+	  hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(car),cdr);
+	else if (FD_STRINGP(car))
+	  hdr=u8_mkstring("%s: %q",FD_STRDATA(car),cdr);
+	else hdr=u8_mkstring("%q: %q",car,cdr);
+	curl_slist_append(headers,hdr);}
+      else if (FD_SLOTMAPP(v)) {
+	fdtype keys=fd_getkeys(v);
+	FD_DO_CHOICES(key,keys)
+	  if (FD_SYMBOLP(key)) {
+	    fdtype kval=fd_get(v,key,FD_EMPTY_CHOICE); u8_string hdr=NULL;
+	    if (FD_STRINGP(kval))
+	      hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(key),FD_STRDATA(kval));
+	    else hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(key),kval);
+	    curl_slist_append(headers,hdr);
+	    fd_decref(kval);}
+	fd_decref(keys);}
+      else {}
+    curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,headers);
+    curl_slist_free_all(headers);
+    return FD_TRUE;}
   else return fd_err(_("Unknown CURL option"),"set_curl_handle",
 		     NULL,opt);
   if (FD_CONSP(val)) {FD_ADD_TO_CHOICE(ch->initdata,fd_incref(val));}
@@ -455,13 +480,13 @@ static fdtype handle_url_args(fdtype arg1,fdtype arg2,fdtype *urlp,struct FD_CUR
       fdtype keys=fd_getkeys(arg2);
       struct FD_CURL_HANDLE *h=fd_open_curl_handle();
       FD_DO_CHOICES(key,keys) {
-	fdtype value=fd_get(arg2,key,FD_VOID);
-	fdtype setval=set_curlopt(h,key,value);
-	fd_decref(value);
+	fdtype values=fd_get(arg2,key,FD_VOID);
+	fdtype setval=set_curlopt(h,key,values);
 	if (FD_ABORTP(setval)) {
 	  fd_decref(keys);
 	  recycle_curl_handle((struct FD_CONS *)h);
-	  return setval;}}
+	  return setval;}
+	fd_decref(values);}
       *urlp=arg1; *hp=h; *freep=1;
       fd_decref(keys);}
     else return fd_type_error("string","urlget",arg1);
