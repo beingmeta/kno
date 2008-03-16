@@ -25,7 +25,7 @@ static char versionid[] =
 
 static fdtype curl_defaults, url_symbol;
 static fdtype content_type_symbol, charset_symbol, type_symbol;
-static fdtype content_length_symbol, etag_symbol;
+static fdtype content_length_symbol, etag_symbol, verbose_symbol;
 static fdtype text_symbol, content_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
@@ -42,6 +42,7 @@ static fd_exception CurlError=_("Internal libcurl error");
 typedef struct FD_CURL_HANDLE {
   FD_CONS_HEADER;
   CURL *handle;
+  struct curl_slist *headers;
   fdtype initdata;} FD_CURL_HANDLE;
 typedef struct FD_CURL_HANDLE *fd_curl_handle;
 
@@ -125,7 +126,8 @@ void handle_content_type(char *value,fdtype table)
   if (slash) *slash='\0';
   endbyte=*end; *end='\0';
   major_type=fd_parse(value);
-  fd_add(table,type_symbol,major_type); *slash='/';
+  fd_add(table,type_symbol,major_type);
+  if (slash) *slash='/';
   full_type=fdtype_string(value);
   fd_add(table,type_symbol,full_type); *end=endbyte;
   fd_decref(major_type); fd_decref(full_type);
@@ -234,18 +236,53 @@ static int _curl_set2dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
     return -1;}
 }
 
-static int _curl_set_header(CURL *h,u8_string field,u8_string value)
+static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
 {
-  u8_string header=u8_mkstring("%s: %s",field,value);
-  struct curl_slist *headers=curl_slist_append(NULL,header);
-  if (curl_easy_setopt(h,CURLOPT_HTTPHEADER,(void *)headers)<0) {
-    /* curl_slist_free_all(headers); */
-    u8_free(header);
-    return -1;}
+  struct curl_slist *cur=ch->headers, *newh;
+  if (arg2==NULL)
+    newh=curl_slist_append(cur,arg1);
   else {
-    /* curl_slist_free_all(headers); */
-    u8_free(header);
-    return 1;}
+    u8_string hdr=u8_mkstring("%s: %s",arg1,arg2);
+    newh=curl_slist_append(cur,hdr);
+    u8_free(hdr);}
+  ch->headers=newh;
+  if (curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh)<0) {
+    return -1;}
+  else return 1;
+}
+
+static int curl_add_headers(fd_curl_handle ch,fdtype val)
+{
+  FD_DO_CHOICES(v,val) 
+    if (FD_STRINGP(v))
+      curl_add_header(ch,FD_STRDATA(v),NULL);
+    else if (FD_PAIRP(v)) {
+      fdtype car=FD_CAR(v), cdr=FD_CDR(v); u8_string hdr=NULL;
+      if ((FD_SYMBOLP(car)) && (FD_STRINGP(cdr))) 
+	hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(car),FD_STRDATA(cdr));
+      else if ((FD_STRINGP(car)) && (FD_STRINGP(cdr)))
+	hdr=u8_mkstring("%s: %s",FD_STRDATA(car),FD_STRDATA(cdr));
+      else if (FD_SYMBOLP(car))
+	hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(car),cdr);
+      else if (FD_STRINGP(car))
+	hdr=u8_mkstring("%s: %q",FD_STRDATA(car),cdr);
+      else hdr=u8_mkstring("%q: %q",car,cdr);
+      curl_add_header(ch,hdr,NULL);
+      u8_free(hdr);}
+    else if (FD_SLOTMAPP(v)) {
+      fdtype keys=fd_getkeys(v);
+      FD_DO_CHOICES(key,keys)
+	if (FD_SYMBOLP(key)) {
+	  fdtype kval=fd_get(v,key,FD_EMPTY_CHOICE); u8_string hdr=NULL;
+	  if (FD_STRINGP(kval))
+	    hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(key),FD_STRDATA(kval));
+	  else hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(key),kval);
+	  curl_add_header(ch,hdr,NULL);
+	  u8_free(hdr);
+	  fd_decref(kval);}
+      fd_decref(keys);}
+    else {}
+  return 1;
 }
 
 FD_EXPORT
@@ -257,7 +294,9 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
 #define curl_set2dtype(hl,o,f,s) \
    if (_curl_set2dtype("fd_open_curl_handle",hl,o,f,s)) return NULL;
   FD_INIT_CONS(h,fd_curl_type);
-  h->handle=curl_easy_init(); h->initdata=FD_EMPTY_CHOICE;
+  h->handle=curl_easy_init();
+  h->headers=NULL;
+  h->initdata=FD_EMPTY_CHOICE;
   if (h->handle==NULL) {
     u8_free(h);
     fd_seterr(CurlError,"fd_open_curl_handle",
@@ -289,15 +328,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
   {
     fdtype http_headers=fd_get(curl_defaults,header_symbol,FD_EMPTY_CHOICE);
-    FD_DO_CHOICES(header,http_headers) {
-      if (FD_STRINGP(header)) {
-	struct curl_slist *headers=
-	  curl_slist_append(NULL,FD_STRDATA(header));
-	if (_curl_set("fd_open_curl_handle",h,CURLOPT_HTTPHEADER,
-		      (void *)headers)) {
-	  curl_slist_free_all(headers);
-	  return NULL;}
-	curl_slist_free_all(headers);}}
+    curl_add_headers(h,http_headers);
     fd_decref(http_headers);}
   return h;
 #undef curl_set
@@ -307,6 +338,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
 static void recycle_curl_handle(struct FD_CONS *c)
 {
   struct FD_CURL_HANDLE *ch=(struct FD_CURL_HANDLE *)c;
+  curl_slist_free_all(ch->headers);
   curl_easy_cleanup(ch->handle);
   fd_decref(ch->initdata);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
@@ -331,6 +363,8 @@ static fdtype set_curlopt
     if (FD_STRINGP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_REFERER,FD_STRDATA(val));
     else return fd_type_error("string","set_curlopt",val);
+  else if (FD_EQ(opt,verbose_symbol))
+    curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,1);
   else if (FD_EQ(opt,useragent_symbol))
     if (FD_STRINGP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_USERAGENT,FD_STRDATA(val));
@@ -362,38 +396,8 @@ static fdtype set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_COOKIEFILE,FD_STRDATA(val));
       curl_easy_setopt(ch->handle,CURLOPT_COOKIEJAR,FD_STRDATA(val));}
     else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,header_symbol)) {
-    struct curl_slist *headers=NULL;
-    FD_DO_CHOICES(v,val) 
-      if (FD_STRINGP(v))
-	curl_slist_append(headers,FD_STRDATA(v));
-      else if (FD_PAIRP(v)) {
-	fdtype car=FD_CAR(v), cdr=FD_CDR(v); u8_string hdr=NULL;
-	if ((FD_SYMBOLP(car)) && (FD_STRINGP(cdr))) 
-	  hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(car),FD_STRDATA(cdr));
-	else if ((FD_STRINGP(car)) && (FD_STRINGP(cdr)))
-	  hdr=u8_mkstring("%s: %s",FD_STRDATA(car),FD_STRDATA(cdr));
-	else if (FD_SYMBOLP(car))
-	  hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(car),cdr);
-	else if (FD_STRINGP(car))
-	  hdr=u8_mkstring("%s: %q",FD_STRDATA(car),cdr);
-	else hdr=u8_mkstring("%q: %q",car,cdr);
-	curl_slist_append(headers,hdr);}
-      else if (FD_SLOTMAPP(v)) {
-	fdtype keys=fd_getkeys(v);
-	FD_DO_CHOICES(key,keys)
-	  if (FD_SYMBOLP(key)) {
-	    fdtype kval=fd_get(v,key,FD_EMPTY_CHOICE); u8_string hdr=NULL;
-	    if (FD_STRINGP(kval))
-	      hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(key),FD_STRDATA(kval));
-	    else hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(key),kval);
-	    curl_slist_append(headers,hdr);
-	    fd_decref(kval);}
-	fd_decref(keys);}
-      else {}
-    curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,headers);
-    curl_slist_free_all(headers);
-    return FD_TRUE;}
+  else if (FD_EQ(opt,header_symbol))
+    curl_add_headers(ch,val);
   else return fd_err(_("Unknown CURL option"),"set_curl_handle",
 		     NULL,opt);
   if (FD_CONSP(val)) {FD_ADD_TO_CHOICE(ch->initdata,fd_incref(val));}
@@ -732,10 +736,10 @@ static fdtype urlput(int n,fdtype *args)
   if (h==NULL) {
     consed_handle=1; h=fd_open_curl_handle();}
   if ((start<n) && (FD_STRINGP(args[start]))) 
-    _curl_set_header(h->handle,"Content-Type",FD_STRDATA(args[start]));
+    curl_add_header(h,"Content-Type",FD_STRDATA(args[start]));
   else if (FD_STRINGP(toput))
-    _curl_set_header(h->handle,"Content-Type","text");
-  else _curl_set_header(h->handle,"Content-Type","application");
+    curl_add_header(h,"Content-Type: text",NULL);
+  else curl_add_header(h,"Content-Type: application",NULL);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
   result=fd_init_slotmap(NULL,0,NULL);
   curl_easy_setopt(h->handle,CURLOPT_URL,url);
@@ -802,7 +806,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
     fd_decref(handle); /* Should be error maybe? */
     consed_handle=1; h=fd_open_curl_handle();}
 
-  _curl_set_header(h->handle,"Content-Type",FD_STRDATA(ctype));
+  curl_add_header(h,"Content-Type",FD_STRDATA(ctype));
 
   U8_INIT_OUTPUT(&out,8192);
 
@@ -906,6 +910,7 @@ FD_EXPORT void fd_init_curl_c()
   content_symbol=fd_intern("%CONTENT");
   header_symbol=fd_intern("HEADER");
   referer_symbol=fd_intern("REFERER");
+  verbose_symbol=fd_intern("VERBOSE");
   useragent_symbol=fd_intern("USERAGENT");
   cookie_symbol=fd_intern("COOKIE");
   cookiejar_symbol=fd_intern("COOKIEJAR");
