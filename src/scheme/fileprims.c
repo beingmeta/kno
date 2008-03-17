@@ -1240,6 +1240,15 @@ static fdtype load_dll(fdtype filename)
   else return FD_VOID;
 }
 
+/* GETENV primitive */
+
+static fdtype getenv_prim(fdtype var)
+{
+  u8_string enval=u8_getenv(FD_STRDATA(var));
+  if (enval==NULL) return FD_FALSE;
+  else return fd_init_string(NULL,-1,enval);
+}
+
 /* The init function */
 
 static int scheme_fileio_initialized=0;
@@ -1363,6 +1372,10 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("GETDIRS",getdirs_prim,1,
 			   fd_string_type,FD_VOID,-1,FD_TRUE));
+
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("GETENV",getenv_prim,1,
+			   fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,fd_make_cprim0("GETCWD",getcwd_prim,0));
   fd_idefn(fileio_module,
