@@ -23,6 +23,7 @@ static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
   u8_connection conn=u8_get_connection(cpool);
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
+  /* u8_log(LOG_DEBUG,"DTEVAL","Using connection %d",conn); */
   if ((fd_dtswrite_dtype(&stream,expr)<0) ||
       (fd_dtsflush(&stream)<0)) {
     if ((conn=u8_reconnect(cpool,conn))<0) {
@@ -33,12 +34,13 @@ static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
     if (((conn=u8_reconnect(cpool,conn))<0) ||
 	(fd_dtswrite_dtype(&stream,expr)<0) ||
 	(fd_dtsflush(&stream)<0)) {
-      u8_discard_connection(cpool,conn);
+      if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
     else result=fd_dtsread_dtype(&stream);
     if (FD_EQ(result,FD_EOD)) {
       u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
+  /* u8_log(LOG_DEBUG,"DTEVAL","Done with %d",conn); */
   u8_return_connection(cpool,conn);
   return result;
 }
