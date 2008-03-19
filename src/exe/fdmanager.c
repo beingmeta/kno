@@ -304,6 +304,10 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
     u8_free(nid_file); u8_free(sleep_file);}
   else {
     FILE *ppid_stream=fopen(ppid_file,"w");
+    if (ppid_stream==NULL) {
+      syslog(LOG_CRIT,"Can't open PPID file %s (%s)",
+	     ppid_file,strerror(errno));
+      exit(1);}
     fprintf(ppid_stream,"%d",ppid); fclose(ppid_stream);
     /* Redirect stdout and stderr */
     set_stdio(e->logbase);
@@ -367,22 +371,34 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
     fprintf(stderr,"directory changed\n");
     /* Write your pid */
     pid_stream=fopen(pid_file,"w");
-    fprintf(pid_stream,"%d",getpid());
-    fclose(pid_stream);
-    fprintf(stderr,"pid written\n");
-    /* Write your ppid */
+    if (pid_stream==NULL) 
+      syslog(LOG_EMERG,"Can't open PID file %s (%s) for %d",
+	     pid_file,strerror(errno),getpid());
+    else {
+      fprintf(pid_stream,"%d",getpid());
+      fclose(pid_stream);
+      fprintf(stderr,"pid written\n");}
     pid_stream=fopen(ppid_file,"w");
-    fprintf(pid_stream,"%d",ppid);
-    fclose(pid_stream);
-    fprintf(stderr,"ppid written\n");
+    /* Write your ppid */
+    if (pid_stream==NULL) 
+      syslog(LOG_EMERG,"Can't open PPID file %s (%s) for %d",
+	     ppid_file,strerror(errno),getpid());
+    else {
+      fprintf(pid_stream,"%d",ppid);
+      fclose(pid_stream);
+      fprintf(stderr,"ppid written\n");}
     /* And go to sleep */
     argv[0]="sleep"; argv[1]=duration; argv[2]=NULL;
     fprintf(stderr,"exec'ing sleep\n");
     execvp("sleep",argv);}
   else {
     FILE *pid_stream=fopen(ppid_file,"w");
-    /* Write your ppid */
-    fprintf(pid_stream,"%d",ppid); fclose(pid_stream);
+    if (pid_stream==NULL)
+      syslog(LOG_EMERG,"Can't open PPID file %s (%s) for %d",
+	     ppid_file,strerror(errno),getpid());
+    else {
+      /* Write your ppid */
+      fprintf(pid_stream,"%d",ppid); fclose(pid_stream);}
     /* Redirect stdout and stderr */
     set_stdio(base);
     /* Go to the directory the file lives in */
@@ -449,14 +465,19 @@ static void setup_signals()
 static void update_status()
 {
   FILE *f=fopen(status_file,"w");
-  int i=0; while (i < n_servers) {
-    char **argv=servers[i].argv;
-    fprintf(f,"%d\t%d\t%s\t%s",i,servers[i].pid,
-	    STRPTR(servers[i].nid),servers[i].control_file);
-    while (*argv) fprintf(f," %s",*(argv++));
-    if (servers[i].sleeping) fprintf(f,"\tsleeping");
-    fprintf(f,"\n"); i++;}
-  fclose(f);
+  if (f==NULL) {
+    syslog(LOG_EMERG,"Can't open status file %s (%s)",
+	   status_file,strerror(errno));
+    return;}
+  else {
+    int i=0; while (i < n_servers) {
+      char **argv=servers[i].argv;
+      fprintf(f,"%d\t%d\t%s\t%s",i,servers[i].pid,
+	      STRPTR(servers[i].nid),servers[i].control_file);
+      while (*argv) fprintf(f," %s",*(argv++));
+      if (servers[i].sleeping) fprintf(f,"\tsleeping");
+      fprintf(f,"\n"); i++;}
+    fclose(f);}
 }
 
 static int update_nids()
