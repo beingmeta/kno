@@ -810,6 +810,7 @@ void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
 FD_EXPORT u8_string fd_errstring(u8_exception ex)
 {
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+  if (ex==NULL) ex=u8_current_exception;
   fd_sum_exception(&out,ex);
   return out.u8_outbuf;
 }
