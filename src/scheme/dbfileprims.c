@@ -262,6 +262,19 @@ static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
   else return FD_INT2DTYPE(bucket);
 }
 
+static fdtype hash_index_slotids(fdtype ix_arg)
+{
+  fd_index ix=fd_lisp2index(ix_arg);
+  if (!(fd_hash_indexp(ix)))
+    return fd_type_error(_("hash index"),"hash_index_slotids",ix_arg);
+  else {
+    struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
+    fdtype *elts=u8_alloc_n(hx->n_slotids,fdtype), *slotids=hx->slotids;
+    int i=0, n=hx->n_slotids;
+    while (i< n) {elts[i]=slotids[i]; i++;}
+    return fd_init_vector(NULL,n,elts);}
+}
+
 /* Hashing functions */
 
 static fdtype lisphashdtype1(fdtype x)
@@ -374,6 +387,8 @@ FD_EXPORT void fd_init_filedb_c()
 					 -1,FD_FALSE));
   fd_idefn(filedb_module,fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
 					 -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(filedb_module,
+	   fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
 
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
