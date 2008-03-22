@@ -130,11 +130,9 @@ static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
   else if (window<=0)
     while (c>0) {
       if (u8_isupper(c)) return FD_TRUE;
-      else return FD_FALSE;
       c=u8_sgetc(&scan);}
   else while ((c>0) && (i<window)) {
       if (u8_isupper(c)) return FD_TRUE;
-      else return FD_FALSE;
       c=u8_sgetc(&scan); i++;}
   return FD_FALSE;
 }
@@ -752,7 +750,7 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim2x
 	   ("SOMECAP?",some_capitalizedp,1,
 	    fd_string_type,FD_VOID,
-	    fd_fixnum_type,FD_INT2DTYPE(5)));
+	    fd_fixnum_type,FD_INT2DTYPE(-1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",downcase1,1));
