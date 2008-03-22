@@ -14,11 +14,11 @@
 (define audit-index #f)
 
 (define (get-index-facts f slotid value (nonlocal #t))
-  (cond ((test slotid 'type 'language)
+  (cond ((and (oid? slotid) (test slotid 'type 'language))
 	 (choice (cons slotid (index-string/keys value))
 		 (cons (get frag-map slotid)
 		       (index-frags/keys value))))
-	((test slotid 'type 'lexslot)
+	((and (oid? slotid) (test slotid 'type 'lexslot))
 	 (cons slotid (index-string/keys value)))
 	((eq? slotid @?genls)
 	 (choice (cons slotid value)
@@ -95,6 +95,8 @@
 	  (if (pair? (car fact))
 	      (drop! index (car fact) (cdr fact))
 	      (when (test index fact f) (drop! index fact f))))))))
+
+(module-export! '{index+! index-})
 
 ;;; Configuring the audit index
 
