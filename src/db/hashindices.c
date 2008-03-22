@@ -1714,7 +1714,8 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	    if (FD_VOIDP(cached))
 	      drops[n_drops++]=FD_CDR(key);
 	    else {
-	      fdtype added=fd_hashtable_get(adds,key_to_drop,FD_EMPTY_CHOICE);
+	      fdtype added=fd_hashtable_get_nolock
+		(adds,key_to_drop,FD_EMPTY_CHOICE);
 	      FD_ADD_TO_CHOICE(cached,added);
 	      s[i].key=key_to_drop;
 	      s[i].values=fd_difference(cached,kvscan->value);
@@ -1739,7 +1740,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 	  if (FD_CDR(key)==drops[j]) {
 	    fdtype cached=drop_values[j];
 	    fdtype added=
-	      fd_hashtable_get(adds,key_to_drop,FD_EMPTY_CHOICE);
+	      fd_hashtable_get_nolock(adds,key_to_drop,FD_EMPTY_CHOICE);
 	    FD_ADD_TO_CHOICE(cached,added);
 	    s[i].key=key_to_drop;
 	    s[i].values=fd_difference(cached,kvscan->value);
