@@ -2,12 +2,132 @@
 
 (in-module 'audit)
 
-(use-module 'brico)
+(use-module '{brico brico/indexing})
 
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
 
 (define version "$Id$")
+
+;;; Index updates
+
+(define audit-index #f)
+
+(define (get-index-facts f slotid value (nonlocal #t))
+  (cond ((test slotid 'type 'language)
+	 (choice (cons slotid (index-string/keys value))
+		 (cons (get frag-map slotid)
+		       (index-frags/keys value))))
+	((test slotid 'type 'lexslot)
+	 (cons slotid (index-string/keys value)))
+	((eq? slotid @?genls)
+	 (choice (cons slotid value)
+		 (cons @?genls* (?? @?specls* value))
+		 (tryif nonlocal
+			(cons (cons @?implies
+				    (choice value (?? @?specls* value)))
+			      (qc (?? @?implies f))))
+		 (cons @?entails value)))
+	((eq? slotid @?specls)
+	 (choice (cons slotid value)
+		 (cons @?specls* (?? @?genls* value))
+		 (cons @?entailedby value)))
+	((eq? slotid @?implies)
+	 (choice (cons slotid value)
+		 (cons slotid (list value))
+		 (cons slotid (?? @?specls* value))
+		 (cons @?entails value)))
+	(else (cons slotid value))))
+
+(define (index+! f slotid value)
+  (when (and audit-index
+	     (exists in-pool? f (get audit-index '%pools))
+	     (test audit-index slotid))
+    (let ((newfacts (get-index-facts f slotid value))
+	  (pools (get audit-index '%pools))
+	  (keybyindex (frame-create #f))
+	  (factsbyindex (frame-create #f)))
+      (do-choices (fact newfacts)
+	(if (pair? (car fact))
+	    (let* ((key (car fact))
+		   (slotid (car key))
+		   (index (get audit-index slotid) ))
+	      (add! keybyindex index key)
+	      (add! factsbyindex index fact))
+	    (let* ((key fact)
+		   (slotid (car key))
+		   (index (get audit-index slotid)))
+	      (add! keybyindex index key)
+	      (add! factsbyindex index fact))))
+      (do-choices (index (getkeys keybyindex))
+	(prefetch-keys! index (get keybyindex index)))
+      (do-choices (index (getkeys factsbyindex))
+	(do-choices (fact (get factsbyindex index))
+	  (if (pair? (car fact))
+	      (add! index (car fact) (cdr fact))
+	      (unless (test index fact f) (add! index fact f))))))))
+
+(define (index-! f slotid value)
+  (when (and audit-index
+	     (exists in-pool? f (get audit-index '%pools))
+	     (test audit-index slotid))
+    (let ((dropfacts (difference (get-index-facts f slotid value #f)
+				 (get-index-facts f slotid (get f slotid))))
+	  (pools (get audit-index '%pools))
+	  (keybyindex (frame-create #f))
+	  (factsbyindex (frame-create #f)))
+      (do-choices (fact dropfacts)
+	(if (pair? (car fact))
+	    (let* ((key (car fact))
+		   (slotid (car key))
+		   (index (get audit-index slotid)))
+	      (add! keybyindex index key)
+	      (add! factsbyindex index fact))
+	    (let* ((key fact)
+		   (slotid (car key))
+		   (index (get audit-index slotid)))
+	      (add! keybyindex index key)
+	      (add! factsbyindex index fact))))
+      (do-choices (index (getkeys keybyindex))
+	(prefetch-keys! index (get keybyindex index)))
+      (do-choices (index (getkeys factsbyindex))
+	(do-choices (fact (get factsbyindex index))
+	  (if (pair? (car fact))
+	      (drop! index (car fact) (cdr fact))
+	      (when (test index fact f) (drop! index fact f))))))))
+
+;;; Configuring the audit index
+
+(define (dbfile->auditindex file)
+  (notify "Generating audit index for " (write file))
+  (let ((v (file->dtype file))
+	(ai (frame-create #f)))
+    (when (and (test v 'pools) (test v 'indices))
+      (notify "Assuming " file " is a USEDB database description")
+      (do-choices (poolspec (get v 'pools))
+	(add! ai '%pools
+	      (if (string? poolspec)
+		  (if (or (position #\@ poolspec) (has-prefix poolspec "/"))
+		      (use-pool poolspec)
+		      (use-pool (get-component poolspec file)))
+		  (tryif (pool? poolspec) poolspec))))
+      (do-choices (ixspec (get v 'indices))
+	(when (and (string? ixspec) (not (position #\@ ixspec)))
+	  (let ((ix (if (has-prefix ixspec "/")
+			(open-index ixspec)
+			(open-index (get-component ixspec file)))))
+	    (add! ai (elts (onerror (hash-index-slotids ix) {})) ix)))))
+    ai))
+
+(define (config-auditindex var (val))
+  (if (bound? val)
+      (if (string? val)
+	  (let ((ai (dbfile->auditindex val)))
+	    (set! audit-index ai)
+	    ai)
+	  (begin (set! audit-index val) val))
+      audit-index))
+(config-def! 'auditindex config-auditindex)
 
 ;;; Auditing
 
@@ -23,7 +143,7 @@
 (config-def! 'auditor auditor-config)
 
 (define audit+!
-  (ambda (frame slotid value)
+  (ambda (frame slotid value (invert #t))
     (if (not auditor) (error NOCONFIG "No auditor configured"))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
@@ -31,9 +151,13 @@
 	(add! frame '%adds
 	      (vector slotid (qc value)
 		      auditor (timestamp)
-		      (config 'sessionid)))))))
+		      (config 'sessionid)))
+	(when audit-index
+	  (index+! frame slotid value)
+	  (when (and invert (oid? value) (test slotid 'inverse))
+	    (index+! value (get slotid 'inverse) frame)))))))
 (define audit-!
-  (ambda (frame slotid value)
+  (ambda (frame slotid value (invert #t))
     (if (not auditor) (error NOCONFIG "No auditor configured"))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
@@ -41,7 +165,11 @@
 	(add! frame '%drops
 	      (vector slotid (qc value)
 		      auditor (timestamp)
-		      (config 'sessionid)))))))
+		      (config 'sessionid)))
+	(when audit-index
+	  (index-! frame slotid value)
+	  (when (and invert (oid? value) (test slotid 'inverse))
+	    (audit-! value (get slotid 'inverse) frame #f)))))))
 
 (define audit!
   (ambda (frame slotid arg3 (arg4))
@@ -74,24 +202,32 @@
        (overlaps? value (second audit))))
 
 (define auto+!
-  (ambda (frame slotid value)
+  (ambda (frame slotid value (invert #t))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(do-choices (value value)
 	  (if (exists check-audit (get frame '%drops) slotid value)
 	      (notify "Deferring assertion due to audit: "
 		      slotid "(" frame ")=" value)
-	      (assert! frame slotid value)))))))
+	      (begin (assert! frame slotid value)
+		     (when audit-index
+		       (index+! frame slotid value)
+		       (when (and invert (oid? value) (test slotid 'inverse))
+			 (index+! value (get slotid 'inverse) frame))))))))))
 
 (define auto-!
-  (ambda (frame slotid value)
+  (ambda (frame slotid value (invert #t))
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(do-choices (value value)
 	  (if (exists check-audit (get frame '%adds) slotid value)
 	      (notify "Deferring retraction due to audit: "
 		      slotid "(" frame ")=" value)
-	      (retract! frame slotid value)))))))
+	      (begin (retract! frame slotid value)
+		     (when audit-index
+		       (index-! frame slotid value)
+		       (when (and invert (oid? value) (test slotid 'inverse))
+			 (index-! value (get slotid 'inverse) frame)))		     )))))))
 
 (define auto!
   (ambda (frame slotid arg3 (arg4))

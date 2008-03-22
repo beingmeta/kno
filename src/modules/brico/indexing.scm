@@ -76,6 +76,18 @@
     (doindex index frame slot (cap-metaphone (choice values normvalues)))
     (when frag (index-frags index frame slot values 1 #f))))
 
+(defambda (index-string/keys value)
+  (let* ((values (stdspace value))
+	 (expvalues (choice values (basestring values)))
+	 (normvalues (capitalize (pick expvalues somecap?))))
+    ;; By default, we index strings under their direct values, under
+    ;;  their values without diacritics, and under versions with normalized
+    ;;  capitalization.  Normalizing capitalization makes all elements of a
+    ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
+    ;;  be lowercased.
+    (choice expvalues normvalues
+	    (cap-metaphone (choice values normvalues)))))
+
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))
 	 (expvalues (choice values (basestring values))))
@@ -138,6 +150,16 @@
 	       (vector->frags (map metaphone1 wordv)))
       (doindex index frame slot
 	       (vector->frags (map metaphone2 wordv))))))
+
+(defambda (index-frags/keys value (window 1) (phonetic #t))
+  (let* ((values (stdstring value))
+	 (compounds (pick values compound?))
+	 (stdcompounds (basestring compounds))
+	 (wordv (words->vector compounds))
+	 (swordv (words->vector stdcompounds)))
+    (choice (vector->frags (choice wordv swordv) window)
+	    (tryif phonetic (vector->frags (map metaphone1 wordv)))
+	    (tryif phonetic (vector->frags (map metaphone2 wordv))))))
 
 ;;; Frame indexing functions
 
@@ -360,6 +382,7 @@
    doindex
    indexer unindex
    index-string index-name index-frags index-frame*
+   index-string/keys index-frags/keys
    index-implied-values})
 
 ;;; These all support indexing BRICO itself
