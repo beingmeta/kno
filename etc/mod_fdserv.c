@@ -546,7 +546,7 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
     ap_log_error
       (APLOG_MARK,APLOG_CRIT,OK,parms->server,
        "Log file %s=%s+%s is unwritable",
-       fullpath,socket_prefix,arg);
+       fullpath,log_prefix,arg);
   else ap_log_error
 	 (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
 	  "Log file %s=%s+%s",fullpath,log_prefix,arg);
