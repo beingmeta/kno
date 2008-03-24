@@ -2,13 +2,15 @@
 
 (in-module 'meltcache)
 
-(use-module '{reflection ezrecords})
+(use-module '{reflection ezrecords logger})
 
 ;;; Meltcaches are caches whose values decay selectively, so that
 ;;;  fast changing values decay more quickly and slower changing values
 ;;;  decay more slowly.
 
 (define version "$Id$")
+
+(define %loglevel 4)
 
 (module-export!
  '{meltcache/get
@@ -52,14 +54,23 @@
 			 (get meltcache-threshold-table procname)
 			 #f))
 	 (cached (try (get cache (cons prockey args)) #f)))
+    (logdebug "Call to " fcn " on args " args ": "
+	      (if cached (if (melted? cached) "cached but melted" "cached and valid")
+		  "not cached"))
     (if (or (not cached) (melted? cached))
 	(onerror (apply fcn args)
 		 (lambda (value)
 		   (let ((entry (error-meltentry (qc value) cached threshold)))
+		     (if (fail? entry)
+			 (logdebug "Not caching error result from " fcn " on args " args)
+			 (logdebug "Caching error result from " fcn " on args " args))
 		     (store! cache (cons prockey args) entry)
 		     (meltentry-value entry)))
 		 (lambda (value)
 		   (let ((entry (new-meltentry (qc value) cached threshold)))
+		     (if (fail? entry)
+			 (logdebug "Not caching routine result from " fcn " on args " args)
+			 (logdebug "Caching routine result from " fcn " on args " args))
 		     (store! cache (cons prockey args) entry)
 		     (meltentry-value entry))))
 	(meltentry-value cached))))
@@ -99,7 +110,8 @@
 ;; If it has changed, we set the expiration date to be half of the previous
 ;; span.
 (define (new-meltentry value previous (threshold #f))
-  (if (meltentry? value) value
+  (if (and (exists? value) (meltentry? value))
+      value
       (if (and (exists? previous) (meltentry? previous))
 	  (let ((thisspan (difftime (now) (meltentry-creation previous)))
 		(lastspan
@@ -118,7 +130,8 @@
 ;;; This is a version which accumulates returned values,
 ;;;  rather than using them directly.
 (define (accumulate-meltentry value previous (threshold #f))
-  (if (meltentry? value) value
+  (if (and (exists? value) (meltentry? value))
+      value
       (if (and (exists? previous) (meltentry? previous))
 	  (let ((thisspan (difftime (now) (meltentry-creation previous)))
 		(lastspan
@@ -225,15 +238,17 @@
 	  ((pair? val)
 	   (if (and (or (symbol? (car val)) (applicable? (car val)))
 		    (fixnum? (cdr val)))
+	       (lognotice "Setting meltcache threshold for " (car val)
+			  " to " val " seconds")
 	       (store! meltcache-threshold-table (car val) (cdr val))
 	       (error 'typeerror 'meltcache-threshold-config
 		      "Not a valid meltcache config" val)))
 	  ((fixnum? val)
+	   (lognotice "Setting default meltcache threshold to " val " seconds")
 	   (set! meltcache-threshold val))
 	  ((or (symbol? val) (applicable? val))
 	   (get meltcache-threshold-table val))
 	  (else (error 'typeerror 'meltcache-threshold-config
 		       "Not a valid meltcache config" val)))))
 (config-def! 'meltcache meltcache-threshold-config)
-
 
