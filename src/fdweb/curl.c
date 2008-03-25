@@ -31,7 +31,7 @@ static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
 static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
 static fdtype maxtime_symbol, timeout_symbol;
-static fdtype eurl_slotid, filetime_slotid;
+static fdtype eurl_slotid, filetime_slotid, response_code_slotid;
 
 static fdtype text_types=FD_EMPTY_CHOICE;
 
@@ -408,7 +408,7 @@ static fdtype set_curlopt
 
 static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
-  INBUF data; CURLcode retval; int consed_handle=0;
+  INBUF data; CURLcode retval; int consed_handle=0, http_response=200;
   fdtype result=fd_init_slotmap(NULL,0,NULL), cval, handle;
   fdtype url=fdtype_string(urltext);
   char errbuf[CURL_ERROR_SIZE];
@@ -459,6 +459,9 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
       fdtype ftime=fd_time2timestamp(filetime);
       fd_add(result,filetime_slotid,ftime);
       fd_decref(ftime);}}
+  retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
+  if (retval==0) 
+    fd_add(result,response_code_slotid,FD_INT2DTYPE(http_response));
   if (consed_handle) {fd_decref((fdtype)h);}
   return result;
 }
@@ -530,7 +533,8 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
 {
   INBUF data; struct FD_CURL_HANDLE *h; CURLcode retval;
   fdtype url, result, cval;
-  int flags, free_handle=0;
+  int flags, free_handle=0, http_response=0;
+  char errbuf[CURL_ERROR_SIZE];
   result=handle_url_args(arg1,arg3,&url,&h,&free_handle);
   if (FD_ABORTP(result)) return result;
   else result=fd_init_slotmap(NULL,0,NULL);
@@ -542,7 +546,17 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
+  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,&errbuf);
   retval=curl_easy_perform(h->handle);
+  if (retval!=CURLE_OK) {
+    fdtype errval=fd_err(CurlError,"urlxml",errbuf,url);
+    fd_decref(result); u8_free(data.bytes);
+    return errval;}
+  retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
+  if (retval!=CURLE_OK) {
+    fdtype errval=fd_err(CurlError,"urlxml",errbuf,url);
+    fd_decref(result); u8_free(data.bytes);
+    return errval;}
   if (data.size<data.limit) data.bytes[data.size]='\0';
   else {
     data.bytes=u8_realloc(data.bytes,data.size+4);
@@ -568,6 +582,10 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
 	U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf=data.bytes;}}
     else {
       U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf=data.bytes;}
+    if (http_response>=300) {
+      fd_seterr("HTTP error response","urlxml",u8_strdup(FD_STRDATA(url)),
+		fd_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
+      return FD_ERROR_VALUE;}
     fd_init_xml_node(&xmlnode,NULL,FD_STRDATA(url)); xmlnode.bits=flags;
     xmlret=fd_walk_xml(&in,fd_default_contentfn,NULL,NULL,NULL,
 		       fd_default_popfn,
@@ -925,6 +943,7 @@ FD_EXPORT void fd_init_curl_c()
   timeout_symbol=fd_intern("TIMEOUT");
   eurl_slotid=fd_intern("EFFECTIVE-URL");
   filetime_slotid=fd_intern("FILETIME");
+  response_code_slotid=fd_intern("RESPONSE");
 
   
   FD_ADD_TO_CHOICE(text_types,text_symbol);
