@@ -524,6 +524,7 @@ static fdtype urlcontent(fdtype arg1,fdtype arg2)
   result=handle_url_args(arg1,arg2,&url,&h,&free_handle);
   if (FD_ABORTP(result)) return result;
   result=fetchurl(h,FD_STRDATA(url));
+  if (FD_ABORTP(result)) return result;
   content=fd_get(result,content_symbol,FD_EMPTY_CHOICE);
   fd_decref(result);
   return content;
