@@ -4,7 +4,6 @@
 ;;;  building on FramerD's built-in compounds.
 (define version "$Id$")
 
-
 (define xref-opcode (make-opcode 0xA2))
 
 (define (make-xref-generator off tag)
@@ -38,14 +37,19 @@
 			(get defspec 'tag))))
 	   (prefix (or (getopt defspec 'prefix) tag))
 	   (ismutable (or (and (pair? defspec) (position 'mutable defspec))
-			  (and (table? defspec) (test defspec 'mutable))))
+			  (testopt defspec 'mutable)))
+	   (isopaque (or (and (pair? defspec) (position 'opaque defspec))
+			 (testopt defspec 'opaque)))
 	   (fields (cddr expr))
 	   (field-names (map (lambda (x) (if (pair? x) (car x) x)) fields))
 	   (cons-method-name (string->symbol (stringout "CONS-" tag)))
 	   (predicate-method-name (string->symbol (stringout tag "?"))))
       `(begin (bind-default! %rewrite {})
 	      (defambda (,cons-method-name ,@fields)
-		(,(if ismutable make-mutable-compound make-compound) ',tag ,@field-names))
+		(,(if ismutable
+		      (if isopaque make-mutable-compound make-mutable-opaque-compound)
+		      (if isopaque make-opaque-compound make-compound))
+		 ',tag ,@field-names))
 	      (define (,predicate-method-name ,tag)
 		(,compound-type? ,tag ',tag))
 	      ,@(map (lambda (field) (make-accessor-def field tag prefix fields))

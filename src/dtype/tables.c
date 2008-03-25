@@ -865,6 +865,14 @@ static unsigned int hash_lisp(fdtype x)
     case fd_vector_type: {
       struct FD_VECTOR *v=FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *);
       return hash_elts(v->data,v->length);}
+    case fd_compound_type: {
+      struct FD_COMPOUND *c=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+      if (c->opaque) {
+	int ctype=FD_PTR_TYPE(x); int ptype=x&3;
+	if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
+	  return hash_mult(x,type_multipliers[ctype]);
+	else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
+      else return hash_mult(hash_lisp(c->tag),hash_elts(&(c->elt0),c->n_elts));}
     case fd_slotmap_type: {
       struct FD_SLOTMAP *sm=FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *);
       fdtype *kv=(fdtype *)sm->keyvals;

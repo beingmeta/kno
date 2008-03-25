@@ -310,6 +310,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
   (((fdtype)((x>=0) ? (((x)*4)|fd_fixnum_type) : \
 	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
 #define FD_USHORT2DTYPE(x) ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
+#define FD_BYTE2DTYPE(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
 #define FD_BYTE2LISP(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
 #define FD_FIXNUM_MAGNITUDE(x) (x&FD_FIXNUM_MAGNITUDE_MASK)
 #define FD_FIXNUM_NEGATIVEP(x) (x&FD_FIXNUM_SIGN_BIT)

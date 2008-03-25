@@ -469,21 +469,21 @@ static fdtype check_compound_type(fdtype tag,int n)
 }
 
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *p,fdtype tag,short mutable,short n,...)
+  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,...)
 {
   va_list args; int i=0; fdtype *write, *limit, initfn=FD_FALSE;
-  if (n<0) {
+  if (FD_EXPECT_FALSE((n<0)||(n>=256))) {
     /* Consume the arguments, just in case the implementation is a
        little flaky. */
     va_start(args,n);
     while (i<n) {va_arg(args,fdtype); i++;}
-    return fd_type_error(_("positive int"),"make_compound",FD_SHORT2DTYPE(n));}
+    return fd_type_error(_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
   else if (p==NULL)
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->lock));
-  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n;
+  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
   if (n>0) {
     write=&(p->elt0); limit=write+n;
     va_start(args,n);
@@ -500,18 +500,18 @@ FD_EXPORT fdtype fd_init_compound
 }
  
 FD_EXPORT fdtype fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,fdtype tag,short mutable,short n,fdtype *elts)
+  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts)
 {
   va_list args; int i=0;
   fdtype *write, *limit, *read=elts, initfn=FD_FALSE;
-  if (n<0) 
-    return fd_type_error(_("positive int"),"make_compound",FD_SHORT2DTYPE(n));
+  if (FD_EXPECT_FALSE((n<0) || (n>=256)))
+    return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",FD_SHORT2DTYPE(n));
   else if (p==NULL)
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->lock));
-  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n;
+  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
   if (n>0) {
     write=&(p->elt0); limit=write+n;
     while (write<limit) {
@@ -540,6 +540,8 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
   struct FD_COMPOUND *yc=FD_GET_CONS(y,fd_compound_type,struct FD_COMPOUND *);
   int cmp;
   if (xc == yc) return 0;
+  else if ((xc->opaque) || (yc->opaque))
+    if (xc>yc) return 1; else return -1;
   else if (cmp=FD_COMPARE(xc->tag,yc->tag,quick)) return cmp;
   else if (xc->n_elts<yc->n_elts) return -1;
   else if (xc->n_elts>yc->n_elts) return 1;
@@ -582,7 +584,7 @@ static fdtype copy_compound(fdtype x,int deep)
   fdtype *data=&(xc->elt0), *write=&(nc->elt0);
   FD_INIT_CONS(nc,fd_compound_type);
   if (xc->mutable) fd_init_mutex(&(nc->lock));
-  nc->mutable=xc->mutable;
+  nc->mutable=xc->mutable; nc->opaque=xc->opaque;
   nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
   if (deep)
     while (i<n) {

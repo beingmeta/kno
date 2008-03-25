@@ -33,7 +33,7 @@ static fdtype compound_tag(fdtype x)
 static fdtype compound_length(fdtype x)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
-  return FD_SHORT2DTYPE(compound->n_elts);
+  return FD_BYTE2DTYPE(compound->n_elts);
 }
 
 static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
@@ -113,7 +113,22 @@ static fdtype make_compound(int n,fdtype *args)
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
   FD_INIT_CONS(compound,fd_compound_type);
-  compound->tag=fd_incref(args[0]); compound->n_elts=n-1; compound->mutable=0;
+  compound->tag=fd_incref(args[0]);
+  compound->n_elts=n-1; compound->mutable=0; compound->opaque=0;
+  while (i<n) {
+    fd_incref(args[i]); *write++=args[i]; i++;}
+  return FDTYPE_CONS(compound);
+}
+
+static fdtype make_opaque_compound(int n,fdtype *args)
+{
+  struct FD_COMPOUND *compound=
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
+  int i=1; fdtype *write=&(compound->elt0);
+  FD_INIT_CONS(compound,fd_compound_type);
+  compound->tag=fd_incref(args[0]);
+  compound->n_elts=n-1; compound->mutable=0;
+  compound->opaque=1;
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return FDTYPE_CONS(compound);
@@ -132,7 +147,22 @@ static fdtype make_mutable_compound(int n,fdtype *args)
   return FDTYPE_CONS(compound);
 }
 
-static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable)
+static fdtype make_opaque_mutable_compound(int n,fdtype *args)
+{
+  struct FD_COMPOUND *compound=
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
+  int i=1; fdtype *write=&(compound->elt0);
+  FD_INIT_CONS(compound,fd_compound_type);
+  compound->tag=fd_incref(args[0]);
+  compound->n_elts=n-1; compound->mutable=1;
+  compound->opaque=1;
+  fd_init_mutex(&(compound->lock));
+  while (i<n) {
+    fd_incref(args[i]); *write++=args[i]; i++;}
+  return FDTYPE_CONS(compound);
+}
+
+static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable,fdtype opaque)
 {
   int i=0, n=FD_VECTOR_LENGTH(vector);
   struct FD_COMPOUND *compound=
@@ -144,6 +174,9 @@ static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable)
   else {
     compound->mutable=1;
     fd_init_mutex(&(compound->lock));}
+  if (FD_FALSEP(opaque)) compound->opaque=0;
+  else {
+    compound->opaque=1;}
   while (i<n) {
     fdtype elt=FD_VECTOR_REF(vector,i);
     fd_incref(elt);
@@ -176,7 +209,11 @@ FD_EXPORT void fd_init_compounds_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("MAKE-MUTABLE-COMPOUND",make_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("VECTOR->COMPOUND",vector2compound,2,
+	   fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-COMPOUND",make_opaque_compound,1)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",make_opaque_mutable_compound,1)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
 			   fd_vector_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_FALSE));
+			   -1,FD_FALSE,-1,FD_FALSE));
 }
