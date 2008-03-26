@@ -193,7 +193,8 @@
 			 " to " entry)
 		 (store! cache entry
 			 (if (cq-meltpoint cq)
-			     (if (meltentry? result) result
+			     (if (and (exists? result) (meltentry? result))
+				 result
 				 (cons-meltentry result (timestamp)
 						 (timestamp+ (cq-meltpoint cq))))
 			     result))
