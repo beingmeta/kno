@@ -2,12 +2,14 @@
 
 (in-module 'audit)
 
-(use-module '{brico brico/indexing})
+(use-module '{brico brico/indexing logger})
 
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
 
 (define version "$Id$")
+
+(define %loglevel %notice!)
 
 ;;; Index updates
 
@@ -209,7 +211,7 @@
       (do-choices (slotid slotid)
 	(do-choices (value value)
 	  (if (exists check-audit (get frame '%drops) slotid value)
-	      (notify "Deferring assertion due to audit: "
+	      (%debug "Deferring assertion due to audit: "
 		      slotid "(" frame ")=" value)
 	      (begin (assert! frame slotid value)
 		     (when audit-index
@@ -223,7 +225,7 @@
       (do-choices (slotid slotid)
 	(do-choices (value value)
 	  (if (exists check-audit (get frame '%adds) slotid value)
-	      (notify "Deferring retraction due to audit: "
+	      (%debug "Deferring retraction due to audit: "
 		      slotid "(" frame ")=" value)
 	      (begin (retract! frame slotid value)
 		     (when audit-index

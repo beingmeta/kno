@@ -1,16 +1,31 @@
 (in-module 'logger)
 
-(module-export! '{getloglevel %loglevel logger logdebug loginfo lognotice %debug})
-(module-export! '{%emergency! %alert! %critical! %error! %warning! %notice! %info! %debug!})
+(module-export!
+ '{logger
+      getloglevel %loglevel
+      logdebug loginfo lognotice %debug})
+(module-export!
+ '{%emergency!
+   %alert!
+   %critical! %danger!
+   %error! %err!
+   %warning! %warn!
+   %notice! %notify!
+   %info!
+   %debug!})
 
 (define %nosubst '%loglevel)
 
 (define %emergency! 0)
 (define %alert! 1)
 (define %critical! 2)
+(define %danger! 2)
 (define %error! 3)
+(define %err! 3)
 (define %warning! 4)
+(define %warn! 4)
 (define %notice! 5)
+(define %notify! 5)
 (define %info! 6)
 (define %debug! 7)
 
