@@ -627,7 +627,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
     const char *socket_prefix=
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
-       "/var/run/fdserv/fdserv::");
+       "/var/run/fdserv/");
 
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,r,
@@ -861,7 +861,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
     const char *socket_prefix=
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
-       "/var/run/fdserv/fdserv::");
+       "/var/run/fdserv/");
 
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,
