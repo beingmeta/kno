@@ -15,7 +15,7 @@
 
 ;;;; Implementation
 
-(defrecord (fifo MUTABLE) condvar queue start end live?)
+(defrecord (fifo MUTABLE OPAQUE) condvar queue start end live?)
 
 (define (make-fifo (size 64))
   (cons-fifo (make-condvar) (make-vector size) 0 0 #t))

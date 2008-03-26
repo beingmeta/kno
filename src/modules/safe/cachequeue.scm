@@ -7,8 +7,8 @@
 
 (use-module '{ezrecords meltcache fifo logger reflection})
 
-;(define %loglevel %warning!)
-(define %loglevel %debug!)
+(define %loglevel %warning!)
+;(define %loglevel %debug!)
 
 (module-export!
  '{cachequeue
@@ -23,7 +23,7 @@
 
 ;;; Making cache qeueues
 
-(defrecord (cachequeue #[PREFIX "CQ"])
+(defrecord (cachequeue #[PREFIX "CQ" OPAQUE #t])
   cache     ; This caches computed values
   method    ; This is the method (procedure) used to compute cache valuesp
   fifo      ; This is the FIFO of compute requests
@@ -34,6 +34,13 @@
   meltpoint ; This is the duration of entries in the the cache, or #f for forever
   props     ; These are miscellaneous properties of the object
   )
+
+#|
+(module-export!
+ '{cq-cache cq-method cq-fifo cq-state
+	    cq-compute cq-consumers
+	    cq-meltpoint cq-props})
+|#
 
 ;; This maps cqs to the threads listening to them
 ;; Warning! This could introduce hard-to-gc circularities
@@ -112,7 +119,8 @@
    or queueing the request."
   (let ((v (get (cq-cache cq) args)))
     (if (fail? v)
-	((cq-compute cq) cq args #f)
+	(begin ((cq-compute cq) cq args #f)
+	       (get (cq-cache cq) args))
 	(if (meltentry? v)
 	    (begin (if (melted? v) ((cq-compute cq) cq args #f))
 		   (meltentry-value v))
@@ -140,7 +148,7 @@
 
 (define (cq/request cq . args)
   "This queues a request for cache queue but doesn't wait around \
-   or consume an y results."
+   or consume any results."
   (unless (test (cq-cache cq) args)
     (cqompute-inner cq args)))
 

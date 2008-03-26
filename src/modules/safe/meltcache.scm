@@ -2,7 +2,7 @@
 
 (in-module 'meltcache)
 
-(use-module '{reflection ezrecords logger})
+(use-module '{reflection ezrecords logger fifo})
 
 ;;; Meltcaches are caches whose values decay selectively, so that
 ;;;  fast changing values decay more quickly and slower changing values
@@ -20,8 +20,8 @@
    melted? meltentry? meltentry/ttl
    cons-meltentry meltentry-value meltvalue})
 
-(define (now) (gmtimestamp))
-(define (now+ delta) (timestamp+ (gmtimestamp) delta))
+(define (now) (gmtimestamp 'seconds))
+(define (now+ delta) (timestamp+ (gmtimestamp 'seconds) delta))
 
 ;;;; Implementation
 
@@ -39,12 +39,16 @@
 ;; Meltcache entries are immutable
 (defrecord meltentry value creation expiration (err #f))
 
+#|
+(module-export! '{meltentry-creation meltentry-expiration meltentry-err})
+|#
+
 (define (roundup x) (inexact->exact (ceiling x)))
 
 (define (melted? entry)
   (time-earlier? (meltentry-expiration entry)))
 (define (meltentry/ttl entry)
-  (difftime (meltentry-expiration entry) (gmtimestamp)))
+  (difftime (meltentry-expiration entry) (gmtimestamp 'seconds)))
 (define (meltvalue v) (if (meltentry? v) (meltentry-value v) v))
 
 (define (meltcache/get cache fcn . args)
@@ -64,14 +68,18 @@
 		     (if (fail? entry)
 			 (logdebug "Not caching error result from " fcn " on args " args)
 			 (logdebug "Caching error result from " fcn " on args " args))
-		     (store! cache (cons prockey args) entry)
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		     (meltentry-value entry)))
 		 (lambda (value)
 		   (let ((entry (new-meltentry (qc value) cached threshold)))
 		     (if (fail? entry)
 			 (logdebug "Not caching routine result from " fcn " on args " args)
 			 (logdebug "Caching routine result from " fcn " on args " args))
-		     (store! cache (cons prockey args) entry)
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		     (meltentry-value entry))))
 	(meltentry-value cached))))
 
@@ -81,16 +89,16 @@
 	 (threshold (try (get meltcache-threshold-table fcn)
 			 (get meltcache-threshold-table procname)
 			 #f))
-	 (cached (try (get cache (cons prockey args)) #f)))
+	 (cached (and cache (try (get cache (cons prockey args)) #f))))
     (if (or (not cached) (melted? cached))
 	(onerror (apply fcn args)
 		 (lambda (value)
 		   (let ((entry (error-meltentry (qc value) cached threshold)))
-		     (store! cache (cons prockey args) entry)
+		     (when cache (store! cache (cons prockey args) entry))
 		     entry))
 		 (lambda (value)
 		   (let ((entry (new-meltentry (qc value) cached threshold)))
-		     (store! cache (cons prockey args) entry)
+		     (when cache (store! cache (cons prockey args) entry))
 		     entry)))
 	cached)))
 
@@ -124,8 +132,11 @@
 		 (now+ (roundup (/ (+ thisspan lastspan) 2))))
 		(cons-meltentry value (now)
 				(now+ (roundup (/ lastspan 4))))))
-	  (cons-meltentry value (now)
-			  (now+ (or threshold meltcache-threshold))))))
+	  (let ((waitfor (if threshold
+			     (if (applicable? threshold) (threshold (qc value))
+				 threshold)
+			     meltcache-threshold)))
+	    (cons-meltentry value (now) (now+ waitfor))))))
 
 ;;; This is a version which accumulates returned values,
 ;;;  rather than using them directly.
@@ -147,8 +158,11 @@
 		(cons-meltentry (choice value (meltentry-value previous))
 				(now)
 				(now+ (roundup (/ lastspan 4))))))
-	  (cons-meltentry value (now)
-			  (now+ (or threshold meltcache-threshold))))))
+	  (let ((waitfor (if threshold
+			     (if (applicable? threshold) (threshold (qc value))
+				 threshold)
+			     meltcache-threshold)))
+	    (cons-meltentry value (now) (now+ waitfor))))))
 
 ;; This is called when calling the inner function returned an error.
 ;;  In this case, we use the last value and set an expiration
@@ -182,12 +196,16 @@
 	(onerror (apply fcn args)
 		 (lambda (value)
 		   (let ((entry (error-meltentry (qc value) cached threshold)))
-		     (store! cache (cons prockey args) entry)
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		     (meltentry-value entry)))
 		 (lambda (value)
 		   (let ((entry (accumulate-meltentry
 				 (qc value) cached threshold)))
-		     (store! cache (cons prockey args) entry)
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		     (meltentry-value entry))))
 	(meltentry-value cached))))
 
@@ -201,10 +219,15 @@
     (onerror (apply fcn args)
 	     (lambda (value)
 	       (let ((entry (error-meltentry (qc value) cached threshold)))
-		 (store! cache (cons prockey args) entry)
+		 (onerror (store! cache (cons prockey args) entry)
+			  (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		 (meltentry-value entry)))
 	     (lambda (value)
 	       (let ((entry (new-meltentry (qc value) cached threshold)))
+		 (onerror (store! cache (cons prockey args) entry)
+			  (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						": " ex)))
 		 (store! cache (cons prockey args) entry)
 		 (meltentry-value entry))))))
 
@@ -220,14 +243,69 @@
 		 (lambda (value)
 		   (let ((entry (meltcache-errentry (qc value) (qc cached)
 						    threshold)))
-		     (store! cache (cons prockey args) entry)
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		     (meltentry-value entry)))
 		 (lambda (value)
 		   (let ((entry (meltcache-accumulate-entry
 				 (qc value) (qc cached) threshold)))
-		     (store! cache (cons prockey args) entry)
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
 		     (meltentry-value entry))))
 	(meltentry-value cached))))
+
+;;; Meltcaches and FIFOs
+
+(define fifo-threads (make-hashtable))
+
+(define (meltcachedaemon fifo i)
+  (let ((e (fifo-pop fifo)))
+    (while (exists? e) (apply meltcache/entry e))))
+
+(define (meltcache-fifo (nthreads 4) (ntasks 64))
+  (let ((fifo (make-fifo ntasks)))
+    (dotimes (i nthreads)
+      (add! fifo-threads fifo (threadcall meltcachedaemon fifo i)))
+    fifo))
+
+(define (mcq/get cache fcn . args)
+  (let* ((procname (procedure-name fcn))
+	 (prockey (if (index? cache) procname fcn))
+	 (threshold (try (get meltcache-threshold-table fcn)
+			 (get meltcache-threshold-table procname)
+			 #f))
+	 (cached (try (get cache (cons prockey args)) #f)))
+    (logdebug "Call to " fcn " on args " args ": "
+	      (if cached (if (melted? cached) "cached but melted" "cached and valid")
+		  "not cached"))
+    (if (not cached)
+	(onerror (apply fcn args)
+		 (lambda (value)
+		   (let ((entry (error-meltentry (qc value) cached threshold)))
+		     (if (fail? entry)
+			 (logdebug "Not caching error result from " fcn " on args " args)
+			 (logdebug "Caching error result from " fcn " on args " args))
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
+		     (meltentry-value entry)))
+		 (lambda (value)
+		   (let ((entry (new-meltentry (qc value) cached threshold)))
+		     (if (fail? entry)
+			 (logdebug "Not caching routine result from " fcn " on args " args)
+			 (logdebug "Caching routine result from " fcn " on args " args))
+		     (onerror (store! cache (cons prockey args) entry)
+			      (lambda (ex) (warning "Can't cache value for " prockey " in " cache
+						    ": " ex)))
+		     (meltentry-value entry))))
+	(if (melted? cached)
+	    (begin (fifo-push fifo (cons* cache fcn args))
+		   (meltentry-value cached))
+	    (meltentry-value cached)))))
+
+(module-export! '{meltcache-fifo mcq/get})
 
 ;;; Configuring meltcaches
 
@@ -235,14 +313,19 @@
   (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) meltcache-threshold)
 	  ((equal? meltcache-threshold val))
+	  ((and (pair? val) (or (symbol? (car val)) (applicable? (car val)))
+		(fixnum? (cdr val)))
+	   (lognotice "Setting meltcache threshold for " (car val)
+		      " to " (cdr val) " seconds")
+	   (store! meltcache-threshold-table (car val) (cdr val)))
+	  ((and (pair? val) (or (symbol? (car val)) (applicable? (car val)))
+		(applicable? (cdr val)))
+	   (lognotice "Setting meltcache threshold function for " (car val)
+		      " to " (cdr  val))
+	   (store! meltcache-threshold-table (car val) (cdr val)))
 	  ((pair? val)
-	   (if (and (or (symbol? (car val)) (applicable? (car val)))
-		    (fixnum? (cdr val)))
-	       (lognotice "Setting meltcache threshold for " (car val)
-			  " to " val " seconds")
-	       (store! meltcache-threshold-table (car val) (cdr val))
-	       (error 'typeerror 'meltcache-threshold-config
-		      "Not a valid meltcache config" val)))
+	   (error 'typeerror 'meltcache-threshold-config
+		  "Not a valid meltcache config" val))
 	  ((fixnum? val)
 	   (lognotice "Setting default meltcache threshold to " val " seconds")
 	   (set! meltcache-threshold val))
