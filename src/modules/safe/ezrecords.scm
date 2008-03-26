@@ -47,7 +47,7 @@
       `(begin (bind-default! %rewrite {})
 	      (defambda (,cons-method-name ,@fields)
 		(,(if ismutable
-		      (if isopaque make-mutable-compound make-mutable-opaque-compound)
+		      (if isopaque make-opaque-mutable-compound make-mutable-compound)
 		      (if isopaque make-opaque-compound make-compound))
 		 ',tag ,@field-names))
 	      (define (,predicate-method-name ,tag)
