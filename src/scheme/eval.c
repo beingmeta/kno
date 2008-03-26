@@ -1066,7 +1066,8 @@ static fdtype dtcall(int n,fdtype *args)
     else request=fd_init_pair(NULL,param,request);
     fd_incref(param); i--;}
   result=fd_dteval(((fd_dtserver)server)->connpool,request);
-  fd_decref(request); fd_decref(server);
+  fd_decref(request);
+  fd_decref(server);
   return result;
 }
 
@@ -1153,6 +1154,7 @@ void fd_init_eval_c()
 
   fd_environment_type=fd_register_cons_type(_("scheme environment"));
   fd_specform_type=fd_register_cons_type(_("scheme special form"));
+  fd_dtserver_type=fd_register_cons_type(_("DType server"));
 
   fd_tablefns[fd_environment_type]=fns;
   fd_copiers[fd_environment_type]=lisp_copy_environment;
