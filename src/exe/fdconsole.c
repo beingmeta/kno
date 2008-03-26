@@ -383,6 +383,7 @@ int main(int argc,char **argv)
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
 	(FD_EQ(expr,that_symbol))) {
       if (!(FD_EQ(expr,that_symbol)))
+	is_histref=1;
 	histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
