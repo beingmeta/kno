@@ -382,8 +382,8 @@ int main(int argc,char **argv)
     /* Clear the buffer (should do more?) */
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
 	(FD_EQ(expr,that_symbol))) {
-      is_histref=1;
-      histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
+      if (!(FD_EQ(expr,that_symbol)))
+	histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
@@ -478,3 +478,4 @@ int main(int argc,char **argv)
   /* fd_recycle_environment(env); */
   return 0;
 }
+
