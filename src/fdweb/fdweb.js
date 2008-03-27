@@ -695,6 +695,19 @@ function _fdb_vistoggle(evt)
     else target=target.parentNode;
 }
 
+/* Expanding windows */
+
+function fdb_expand_container(evt)
+{
+  var target=evt.target;
+  while (target)
+    if (target.hasAttribute('maxheight')) break;
+    else target=target.parentNode;
+  if (target==null) return;
+  if (target.style.maxHeight) target.style.maxHeight=null;
+  else target.style.maxHeight=target.getAttribute('maxheight');
+}
+
 /* collapsars */
 
 /* A collapsar is a 'button' which hides or reveals everything
