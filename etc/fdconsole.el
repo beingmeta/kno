@@ -33,6 +33,7 @@
 (put 'tryseq 'scheme-indent-function 1)
 (put 'while 'scheme-indent-function 1)
 (put 'until 'scheme-indent-function 1)
+(put 'with-lock 'scheme-indent-function 1)
 
 (put 'index-frame 'scheme-indent-function 2)
 
