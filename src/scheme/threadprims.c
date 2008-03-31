@@ -83,15 +83,15 @@ static fdtype make_condvar()
 /* This primitive combine cond_wait and cond_timedwait
    through a second (optional) argument, which is an
    interval in seconds. */
-static fdtype condvar_wait(fdtype x,fdtype timeout)
+static fdtype condvar_wait(fdtype cvar,fdtype timeout)
 {
   struct FD_CONSED_CONDVAR *cv=
-    FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   if (FD_VOIDP(timeout))
     if (fd_condvar_wait(&(cv->cvar),&(cv->lock))==0)
       return FD_TRUE;
     else {
-      return fd_type_error(_("valid condvar"),"condvar_wait",x);}
+      return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
   else {
     struct timespec tm; int retval;
     if ((FD_FIXNUMP(timeout)) && (FD_FIX2INT(timeout)>=0)) {
@@ -100,58 +100,58 @@ static fdtype condvar_wait(fdtype x,fdtype timeout)
 #if 0 /* Define this later.  This allows sub-second waits but
 	 is a little bit tricky. */
     else if (FD_FLONUMP(timeout)) {
-      double flo=FD_FLONUM(x);
+      double flo=FD_FLONUM(cvar);
       if (flo>=0) {
 	int secs=floor(flo)/1000000;
 	int nsecs=(flo-(secs*1000000))*1000.0;
 	tm.tv_sec=secs; tm.tv_nsec=nsecs;}
-      else return fd_type_error(_("time interval"),"condvar_wait",x);}
+      else return fd_type_error(_("time interval"),"condvar_wait",timeout);}
 #endif
-    else return fd_type_error(_("time interval"),"condvar_wait",x);
+    else return fd_type_error(_("time interval"),"condvar_wait",timeout);
     retval=u8_condvar_timedwait(&(cv->cvar),&(cv->lock),&tm);
     if (retval==0)
       return FD_TRUE;
     else if (retval==ETIMEDOUT)
       return FD_FALSE;
-    return fd_type_error(_("valid condvar"),"condvar_wait",x);}
+    return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
 }
 
 /* This primitive combines signals and broadcasts through
    a second (optional) argument which, when true, implies
    a broadcast. */
-static fdtype condvar_signal(fdtype x,fdtype broadcast)
+static fdtype condvar_signal(fdtype cvar,fdtype broadcast)
 {
   struct FD_CONSED_CONDVAR *cv=
-    FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   if (FD_TRUEP(broadcast)) 
     if (u8_condvar_broadcast(&(cv->cvar))==0)
       return FD_TRUE;
-    else return fd_type_error(_("valid condvar"),"condvar_signal",x);
+    else return fd_type_error(_("valid condvar"),"condvar_signal",cvar);
   else if (u8_condvar_signal(&(cv->cvar))==0)
     return FD_TRUE;
-  else return fd_type_error(_("valid condvar"),"condvar_signal",x);
+  else return fd_type_error(_("valid condvar"),"condvar_signal",cvar);
 }
 
-static fdtype condvar_lock(fdtype x)
+static fdtype condvar_lock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
-    FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   fd_lock_struct(cv);
   return FD_TRUE;
 }
 
-static fdtype condvar_unlock(fdtype x)
+static fdtype condvar_unlock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
-    FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   fd_unlock_struct(cv);
   return FD_TRUE;
 }
 
-static int unparse_condvar(u8_output out,fdtype x)
+static int unparse_condvar(u8_output out,fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
-    FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   u8_printf(out,"#<CONDVAR %lx>",cv);
   return 1;
 }
@@ -167,36 +167,67 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
 /* These functions generically access the locks on CONDVARs
    and SPROCs */
 
-static fdtype synchro_lock(fdtype x)
+static fdtype synchro_lock(fdtype lck)
 {
-  if (FD_PTR_TYPEP(x,fd_condvar_type)) {
+  if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
-      FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+      FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
     fd_lock_struct(cv);
     return FD_TRUE;}
-  else if (FD_PTR_TYPEP(x,fd_sproc_type)) {
-    struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
+  else if (FD_PTR_TYPEP(lck,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
       fd_lock_struct(sp);}
-    else return fd_type_error("lockable","synchro_lock",x);
+    else return fd_type_error("lockable","synchro_lock",lck);
     return FD_TRUE;}
-  else return fd_type_error("lockable","synchro_lock",x);
+  else return fd_type_error("lockable","synchro_lock",lck);
 }
 
-static fdtype synchro_unlock(fdtype x)
+static fdtype synchro_unlock(fdtype lck)
 {
-  if (FD_PTR_TYPEP(x,fd_condvar_type)) {
+  if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
-      FD_GET_CONS(x,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+      FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
     fd_unlock_struct(cv);
     return FD_TRUE;}
-  else if (FD_PTR_TYPEP(x,fd_sproc_type)) {
-    struct FD_SPROC *sp=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
+  else if (FD_PTR_TYPEP(lck,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
       fd_unlock_struct(sp);}
-    else return fd_type_error("lockable","synchro_lock",x);
+    else return fd_type_error("lockable","synchro_lock",lck);
     return FD_TRUE;}
-  else return fd_type_error("lockable","synchro_unlock",x);
+  else return fd_type_error("lockable","synchro_unlock",lck);
+}
+
+static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype lock_expr=fd_get_arg(expr,1), lck, value=FD_VOID;
+  if (FD_VOIDP(lock_expr))
+    return fd_err(fd_SyntaxError,"with_lock_handler",NULL,expr);
+  else lck=fd_eval(lock_expr,env);
+  if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
+    struct FD_CONSED_CONDVAR *cv=
+      FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    fd_lock_struct(cv);}
+  else if (FD_PTR_TYPEP(lck,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
+    if (sp->synchronized) {
+      fd_lock_struct(sp);}
+    else return fd_type_error("lockable","synchro_lock",lck);}
+  else return fd_type_error("lockable","synchro_unlock",lck);
+  FD_DOLIST(elt_expr,FD_CDR(FD_CDR(expr))) {
+    fd_decref(value); value=fd_eval(elt_expr,env);}
+  if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
+    struct FD_CONSED_CONDVAR *cv=
+      FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
+    fd_unlock_struct(cv);}
+  else if (FD_PTR_TYPEP(lck,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
+    if (sp->synchronized) {
+      fd_unlock_struct(sp);}
+    else return fd_type_error("lockable","synchro_lock",lck);}
+  else return fd_type_error("lockable","synchro_unlock",lck);
+  return value;
 }
 
 /* Functions */
@@ -374,6 +405,8 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-UNLOCK",condvar_unlock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
+  fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_handler);
+
 
   fd_register_source_file(versionid);
 }
