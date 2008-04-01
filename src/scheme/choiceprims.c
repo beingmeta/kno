@@ -1114,6 +1114,54 @@ static fdtype rsorted_prim(fdtype choices,fdtype keyfn)
   return sorted_primfn(choices,keyfn,1);
 }
 
+/* Sorting vectors */
+/* Technically, this should be in seqprims, but all the helper functions are here */
+
+static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse)
+{
+  if (FD_VECTOR_LENGTH(vec)==0)
+    return fd_init_vector(NULL,0,NULL);
+  else if (FD_VECTOR_LENGTH(vec)==1)
+    return fd_incref(vec);
+  else {
+    int i=0, n=FD_VECTOR_LENGTH(vec), j=0;
+    fdtype *vecdata=u8_alloc_n(n,fdtype);
+    struct FD_SORT_ENTRY *sentries=u8_alloc_n(n,struct FD_SORT_ENTRY);
+    while (i<n) {
+      fdtype elt=FD_VECTOR_REF(vec,i);
+      fdtype value=apply_keyfn(elt,keyfn);
+      if (FD_ABORTP(value)) {
+	int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
+	u8_free(sentries); u8_free(vecdata);
+	return value;}
+      sentries[i].value=elt;
+      sentries[i].key=value;
+      i++;}
+    qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),sort_helper);
+    i=0; j=n-1; if (reverse) while (i < n) {
+      fd_decref(sentries[i].key);
+      vecdata[j]=fd_incref(sentries[i].value);
+      i++; j--;}
+    else while (i < n) {
+      fd_decref(sentries[i].key);
+      vecdata[i]=fd_incref(sentries[i].value);
+      i++;}
+    u8_free(sentries);
+    return fd_init_vector(NULL,n,vecdata);}
+}
+
+static fdtype sortvec_prim(fdtype vec,fdtype keyfn)
+{
+  return sortvec_primfn(vec,keyfn,0);
+}
+
+static fdtype rsortvec_prim(fdtype vec,fdtype keyfn)
+{
+  return sortvec_primfn(vec,keyfn,1);
+}
+
+/* GETRANGE */
+
 static fdtype getrange_prim(fdtype arg1,fdtype endval)
 {
   int start, end; fdtype results=FD_EMPTY_CHOICE;
@@ -1286,6 +1334,16 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2x("SORTVEC",sortvec_prim,1,
+					  fd_vector_type,FD_VOID,
+					  -1,FD_VOID)));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2x("RSORTVEC",rsortvec_prim,1,
+					  fd_vector_type,FD_VOID,
+					  -1,FD_VOID)));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3x("PICK>",pick_gt_prim,1,
