@@ -29,12 +29,13 @@
 	       (cond ((< end (length vec))
 		      (vector-set! vec end item)
 		      (set-fifo-end! fifo (1+ end)))
-		     ((< (- end start) (-1+ (length vec)))
+		     ((<= (- end start) (-1+ (length vec)))
 		      ;; Move the queue to the start of the vector
 		      (dotimes (i (- end start))
 			(vector-set! vec i (elt vec (+ start i))))
-		      (dotimes (i (- (length vec) end))
-			(vector-set! vec (+ end i) #f))
+		      (let ((zerostart (- end start)))
+			(dotimes (i (- (length vec) zerostart))
+			  (vector-set! vec (+ zerostart i) #f)))
 		      (set-fifo-start! fifo 0)
 		      (vector-set! vec (- end start) item)
 		      (set-fifo-end! fifo (1+ (- end start))))
@@ -67,6 +68,10 @@
 		       (vector-set! vec start #f)
 		       ;; Advance the start pointer
 		       (set-fifo-start! fifo (1+ start))
+		       (when (= (fifo-start fifo) (fifo-end fifo))
+			 ;; If we're empty, move the pointers back
+			 (set-fifo-start! fifo 0)
+			 (set-fifo-end! fifo 0))
 		       item)
 		     (fail)))
 	(condvar-unlock (fifo-condvar fifo)))
