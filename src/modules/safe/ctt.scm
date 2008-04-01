@@ -7,8 +7,9 @@
 
 (module-export!
  '{ctt
+   cttbody cttsimple withctt
    get-ctt-state
-   cttsimple cttdatum cttreport
+   cttdatum cttreport
    cttsummary cttline cttdata})
 
 ;;; Configuration
@@ -90,6 +91,20 @@
 	  (body-expr (second expr)))
       `(let ((_ctt_start (ct/sense)))
 	 (prog1 ,body-expr (,cttdatum _ctt_start (ct/sense) ',name))))))
+
+(define cttbody
+  (macro expr
+    (let ((name (first expr))
+	  (body (rest expr)))
+      `(let ((_ctt_start (ct/sense)))
+	 (prog1 (begin ,@body) (,cttdatum _ctt_start (ct/sense) ',name))))))
+
+(define withctt
+  (macro expr
+    (let ((name (second expr))
+	  (body (rest (rest expr))))
+      `(let ((_ctt_start (ct/sense)))
+	 (prog1 (begin ,@body) (,cttdatum _ctt_start (ct/sense) ',name))))))
 
 (define cttsimple
   (macro expr
