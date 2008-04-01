@@ -20,7 +20,8 @@
 (module-export!
  '{cachequeue
    cq/get cq/require cq/status cq/probe cq/info
-   cqstep cqdaemon})
+   cqstep cqdaemon
+   cq/prefetch})
 
 (define (doconsume method result)
   (if (null? method) result
@@ -95,28 +96,38 @@
    cq (if (and (pair? fn) (null? args)) fn (cons fn args))))
 
 (define (cq/probe cq fn . args)
-  (let* ((cache (cq-cache cq))
+  (let* ((call (if (and (pair? fn) (null? args)) fn (cons fn args)))
+	 (cache (cq-cache cq))
 	 (cachekey (if (index? cache)
-		       (cons (procedure-name (car call)) (cdr call))
+		       (cons (procedure-id (car call)) (cdr call))
 		       call))
 	 (cachevalue (get cache cachekey)))
     (meltvalue cachevalue)))
 
 (define (cq/info cq fn . args)
-  (let* ((cache (cq-cache cq))
+  (let* ((call (if (and (pair? fn) (null? args)) fn (cons fn args)))
+	 (cache (cq-cache cq))
 	 (cachekey (if (index? cache)
-		       (cons (procedure-name (car call)) (cdr call))
+		       (cons (procedure-id (car call)) (cdr call))
 		       call)))
     (get cache cachekey)))
+
+(define (cq/prefetch cq fn . args)
+  (when (index? (cq-cache cq))
+    (prefetch-keys!
+     (cq-cache cq)
+     (for-choices (f fn)
+       (apply list (procedure-id f) args)))))
 
 ;;; Making requests
 
 (define (cachequeuepush cq call (statehandler #f))
+  (%debug "Pushing request for " call)
   (with-lock (cq-lock cq)
     (let* ((cache (cq-cache cq))
 	   (pending (cq-pending cq))
 	   (cachekey (if (index? cache)
-			 (cons (procedure-name (car call)) (cdr call))
+			 (cons (procedure-id (car call)) (cdr call))
 			 call))
 	   (cachevalue (get cache cachekey)))
       (if (if (exists? cachevalue)
@@ -132,11 +143,12 @@
 	    cachevalue)))))
 
 (define (cachequeuepreempt cq call)
+  (%debug "Preemptive request for " call)
   (with-lock (cq-lock cq)
     (let* ((cache (cq-cache cq))
 	   (pending (cq-pending cq))
 	   (cachekey (if (index? cache)
-			 (cons (procedure-name (car call)) (cdr call))
+			 (cons (procedure-id (car call)) (cdr call))
 			 call))
 	   (cachevalue (get cache cachekey)))
       (if (if (exists? cachevalue)
@@ -144,19 +156,27 @@
 	      ;; Since we can cache an empty choice, we use test to determine
 	      ;;  whether the empty value is cached
 	      (test cache cachekey))
-	  cachevalue
+	  (begin (%debug "Using cache value for preemptive request " call)
+		 cachevalue)
 	  (let ((state (get pending call)))
-	    (if (pair? state)
+	    (if (and (exists? state) (pair? state))
 		(begin
+		  (%debug "Waiting for active computation to resolve " call)
 		  (while (pair? (get pending call))
 		    (condvar-wait (cq-lock cq)))
+		  (%debug "Call is no longer pending " call)
 		  (try (get pending call) (get cache cachekey)))
 		(begin
-		  (store! pending call (cons (get pending call) (timestamp)))
-		  (fifo-jump (cq-fifo cq) call)
+		  (%debug "Directly executing " call)
+		  (when (exists? state)
+		    (store! pending call (cons (get pending call) (timestamp)))
+		    (fifo-jump (cq-fifo cq) call))
 		  (synchro-unlock (cq-lock cq))
+		  (%debug "Starting execution of " call)
 		  (let ((value (erreify (apply (car call) (cdr call)))))
+		    (%debug "Finished executing " call)
 		    (synchro-lock (cq-lock cq))
+		    (%debug "Caching results of " call)
 		    (if (error? value)
 			(store! pending call value)
 			(begin
@@ -172,33 +192,33 @@
   (let* ((cache (cq-cache cq))
 	 (pending (cq-pending cq))
 	 (cachekey (if (index? cache)
-		       (cons (procedure-name (car call)) (cdr call))
+		       (cons (procedure-id (car call)) (cdr call))
 		       call))
 	 (cachevalue (get cache cachekey)))
     (if (if (exists? cachevalue)
 	    (not (melted-value? cachevalue))
 	    (test cache cachekey))
-	(meltvalue cachevalue)
+	(begin (%debug "Using cached result for " call)
+	       (meltvalue cachevalue))
 	(meltvalue (cachequeuepush cq call)))))
 
 (define (cachequeuerequire cq call)
   (let* ((cache (cq-cache cq))
 	 (pending (cq-pending cq))
 	 (cachekey (if (index? cache)
-		       (cons (procedure-name (car call)) (cdr call))
+		       (cons (procedure-id (car call)) (cdr call))
 		       call))
 	 (cachevalue (get cache cachekey)))
     (if (if (exists? cachevalue)
 	    (not (melted-value? cachevalue))
 	    (test cache cachekey))
 	(meltvalue cachevalue)
-	(meltvalue (cachequepreempt cq call)))))
+	(meltvalue (cachequeuepreempt cq call)))))
 
 (define (cqstatus cq call)
   "Returns the status of a queued computation"
   (let ((cachekey (if (index? (cq-cache cq))
-		      (cons (procedure-name (car call))
-			    (cdr call))
+		      (cons (procedure-id (car call)) (cdr call))
 		      call)))
     (if (test (cq-cache cq) cachekey)
 	(let ((cachev (get (cq-cache cq) cachekey)))
@@ -228,14 +248,14 @@
 (define (cqinfo cq call)
   "Returns the status of a queued computation"
   (let ((cachekey (if (index? (cq-cache cq))
-		      (cons (procedure-name (car call))
-			    (cdr call))
+		      (cons (procedure-id (car call)) (cdr call))
 		      call)))
     (get (cq-cache cq) cachekey)))
 
 ;;; Doing tasks on the queue
 
 (define (cqstep cq call)
+  (%debug "CACHEQUEUE step applying " (car call) " to " (cdr call))
   (store! (cq-pending cq) call
 	  (cons (get (cq-pending cq) call)
 		(timestamp)))
@@ -248,10 +268,11 @@
 				    (cq-meltpoint cq))
 		   (store! cache
 			   (if (index? cache)
-			       (cons (procedure-name (car call)) (cdr call))
+			       (cons (procedure-id (car call)) (cdr call))
 			       call)
 			   value))
 	       (drop! (cq-pending cq) call)))
+    (%debug "CACHEQUEUE step done applying " (car call) " to " (cdr call))
     value))
 
 (define (cqdaemon cq i (max 1))

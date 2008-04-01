@@ -65,18 +65,19 @@
 ;;;  that errors may be transient.
 
 (define (meltupdate entry fcn args (meltpoint default-meltpoint))
-  (let* ((fcnid (or (procedure-name fcn) fcn))
+  (let* ((fcnid (procedure-id fcn))
 	 (newv (onerror (apply fcn args)
 			(lambda (ex) ex)
 			(lambda (v) v)))
-	 (meltpoint (try (get meltpoint-table fcn)
+	 (meltpoint (try (tryif (fail? newv)
+				(try (get meltpoint-table (cons fcn 'fail))
+				     (get meltpoint-table (cons fcnid 'fail))))
+			 (tryif (error? newv)
+				(try (get meltpoint-table (cons fcn 'error))
+				     (get meltpoint-table (cons fcnid 'error))))
+			 (get meltpoint-table fcn)
 			 (get meltpoint-table fcnid)
 			 meltpoint)))
-    (meltentry entry newv meltpoint)))
-
-(define (meltentry entry newv (meltpoint default-meltpoint))
-  (let ((next (if (meltentry? newv) (meltentry-expiration newv)
-		  (now+ (meltentry-delta entry newv meltpoint)))))
     (if (error? newv)
 	(lognotice "Error (retry at " (get next 'iso) ") "
 		   "while updating meltentry applying "
@@ -84,6 +85,18 @@
 	(logdebug "Computed new value (expires at " (get next 'iso) ") "
 		  "for meltentry applying " fcn " to " args
 		  (if trace-values (printout ": " newv))))
+    (meltentry entry newv meltpoint #f)))
+
+(defambda (meltentry entry newv (meltpoint default-meltpoint) (dolog #t))
+  (let ((next (if (meltentry? newv) (meltentry-expiration newv)
+		  (now+ (meltentry-delta entry newv meltpoint)))))
+    (when dolog
+      (if (error? newv)
+	  (lognotice "Error (retry at " (get next 'iso) ") "
+		     "while updating meltentry: " newv)
+	  (logdebug "Computed new value (expires at " (get next 'iso) ") "
+		    "for meltentry"
+		    (if trace-values (printout ": " newv)))))
     ;; If the value is a meltentry, we just use that
     (if (meltentry? newv) newv
 	(cons-meltentry (if (error? newv) {} newv)
@@ -100,9 +113,10 @@
 	((not entry) meltpoint)
 	;; If the value is unchanged, wait a little longer next time
 	((identical? newv (meltentry-value entry))
-	 (+ (randomish meltpoint)
-	    (/~ (+ (now- (meltentry-creation entry))
-		   (meltentry/duration entry)) 2)))
+	 (max meltpoint
+	      (+ (randomish meltpoint)
+		 (/~ (+ (now- (meltentry-creation entry))
+			(meltentry/duration entry)) 2))))
 	;; If the value is an error, wait the default interval.
 	;; If the original value recurs after an error, the error is ignored
 	;;  because the creation timestamp is retained across errors.
@@ -116,7 +130,7 @@
 ;;; Get functions
 
 (define (meltcache/update cache fcn args (meltpoint default-meltpoint))
-  (let* ((procname (procedure-name fcn))
+  (let* ((procname (procedure-id fcn))
 	 (meltkey (cons (if (index? cache) procname fcn) args))
 	 (cached (and cache (try (get cache meltkey) #f))))
     (if (or (not cached) (melted? cached))
@@ -130,7 +144,7 @@
 	cached)))
 
 (define (meltcache/force cache fcn . args)
-  (let* ((procname (procedure-name fcn))
+  (let* ((procname (procedure-id fcn))
 	 (meltkey (cons (if (index? cache) procname fcn) args))
 	 (cached (and cache (try (get cache meltkey) #f)))
 	 (tostore (meltupdate cached fcn args)))
@@ -141,13 +155,19 @@
 			  meltkey " in " cache))))
     (meltentry-value tostore)))
 
-(define (meltcache/store cache newv fcn args (meltpoint default-meltpoint))
-  (let* ((fcnid (or (procedure-name fcn) fcn))
-	 (meltpoint (try (get meltpoint-table fcn)
+(defambda (meltcache/store cache newv fcn args (meltpoint default-meltpoint))
+  (let* ((fcnid (or (procedure-id fcn) fcn))
+	 (meltpoint (try (tryif (fail? newv)
+				(try (get meltpoint-table (cons fcn 'fail))
+				     (get meltpoint-table (cons fcnid 'fail))))
+			 (tryif (error? newv)
+				(try (get meltpoint-table (cons fcn 'error))
+				     (get meltpoint-table (cons fcnid 'error))))
+			 (get meltpoint-table fcn)
 			 (get meltpoint-table fcnid)
 			 meltpoint))
 	 (meltkey (if (index? cache)
-		      (cons (procedure-name fcn) args)
+		      (cons (procedure-id fcn) args)
 		      (cons fcn args)))
 	 (cached (and cache (try (get cache meltkey) #f)))
 	 (tostore (meltentry cached newv meltpoint)))
@@ -165,12 +185,12 @@
   (meltentry-value (meltcache/update cache fcn args)))
 
 (define (meltcache/probe cache fcn . args)
-  (let* ((procname (procedure-name fcn))
+  (let* ((procname (procedure-id fcn))
 	 (prockey (if (index? cache) procname fcn)))
     (meltentry-value (get cache (cons prockey args)))))
 
 (define (meltcache/info cache fcn . args)
-  (let* ((procname (procedure-name fcn))
+  (let* ((procname (procedure-id fcn))
 	 (prockey (if (index? cache) procname fcn)))
     (get cache (cons prockey args))))
 
@@ -180,12 +200,22 @@
   (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) default-meltpoint)
 	  ((equal? default-meltpoint val))
-	  ((and (pair? val) (or (symbol? (car val)) (applicable? (car val)))
+	  ((and (pair? val)
+		(or (symbol? (car val))
+		    (applicable? (car val))
+		    (and (pair? (car val))
+			 (overlaps? (cdr (car val)) '{fail error})
+			 (or (symbol? (car (car val))) (applicable? (car (car val))))))
 		(fixnum? (cdr val)))
 	   (lognotice "Setting meltcache threshold for " (car val)
 		      " to " (cdr val) " seconds")
 	   (store! meltpoint-table (car val) (cdr val)))
-	  ((and (pair? val) (or (symbol? (car val)) (applicable? (car val)))
+	  ((and (pair? val)
+		(or (symbol? (car val))
+		    (applicable? (car val))
+		    (and (pair? (car val))
+			 (overlaps? (cdr (car val)) '{fail error})
+			 (or (symbol? (car (car val))) (applicable? (car (car val))))))
 		(applicable? (cdr val)))
 	   (lognotice "Setting meltcache threshold function for " (car val)
 		      " to " (cdr  val))
