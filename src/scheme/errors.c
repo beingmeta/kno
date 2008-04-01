@@ -116,6 +116,18 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       return handler;}}
 }
 
+static fdtype erreify_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype toeval=fd_get_arg(expr,1);
+  fdtype value=fd_eval(toeval,env);
+  if (FD_THROWP(value))
+    return value;
+  else if (FD_ABORTP(value)) {
+    u8_exception ex=u8_erreify();
+    return fd_init_exception(NULL,ex);}
+  else return value;
+}
+
 static fdtype error_condition(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
@@ -243,6 +255,7 @@ FD_EXPORT void fd_init_errors_c()
   fd_defspecial(fd_scheme_module,"ERROR",return_error);
   fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);
   fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
+  fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-CONDITION",error_condition,1,
