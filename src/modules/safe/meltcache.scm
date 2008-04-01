@@ -10,13 +10,13 @@
 
 (define version "$Id$")
 
-(define %loglevel 4)
-(define trace-values #f)
+(define-init %loglevel 4)
+(define-init trace-values #f)
 
 (module-export!
  '{meltcache/get
    meltcache/update meltcache/force meltcache/info
-   meltcache/getentry meltcache/probe
+   meltcache/getentry meltcache/probe meltcache/store
    melted? meltentry? meltentry/ttl meltentry/age meltentry/duration
    cons-meltentry meltentry meltentry-value meltvalue melted-value?
    meltupdate})
@@ -54,8 +54,8 @@
       #f))
 
 ;; Default threshold in seconds: 15 minutes
-(define default-meltpoint (* 15 60))
-(define meltpoint-table (make-hashtable))
+(define-init default-meltpoint (* 15 60))
+(define-init meltpoint-table (make-hashtable))
 
 ;;;; Updating melt entries
 
@@ -141,11 +141,14 @@
 			  meltkey " in " cache))))
     (meltentry-value tostore)))
 
-(define (meltcache/store cache newv fcn args)
+(define (meltcache/store cache newv fcn args (meltpoint default-meltpoint))
   (let* ((fcnid (or (procedure-name fcn) fcn))
 	 (meltpoint (try (get meltpoint-table fcn)
 			 (get meltpoint-table fcnid)
 			 meltpoint))
+	 (meltkey (if (index? cache)
+		      (cons (procedure-name fcn) args)
+		      (cons fcn args)))
 	 (cached (and cache (try (get cache meltkey) #f)))
 	 (tostore (meltentry cached newv meltpoint)))
     (when cache
