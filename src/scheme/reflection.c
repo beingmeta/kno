@@ -61,6 +61,26 @@ static fdtype fcn_name(fdtype x)
   else return fd_type_error(_("function"),"fcn_name",x);
 }
 
+static fdtype fcn_symbol(fdtype x)
+{
+  if (FD_APPLICABLEP(x)) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    if (f->name)
+      return fd_intern(f->name);
+    else return FD_FALSE;}
+  else return fd_type_error(_("function"),"fcn_symbol",x);
+}
+
+static fdtype fcn_id(fdtype x)
+{
+  if (FD_APPLICABLEP(x)) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    if (f->name)
+      return fd_intern(f->name);
+    else return fd_incref(x);}
+  else return fd_incref(x);
+}
+
 static fdtype fcn_filename(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
@@ -260,6 +280,8 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("FCN-ARITY",fcn_arity,1));
   fd_idefn(module,fd_make_cprim1("FCN-MIN-ARITY",fcn_min_arity,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-NAME",fcn_name,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-SYMBOL",fcn_symbol,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-ID",fcn_id,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ARGS",compound_procedure_args,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BODY",compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
