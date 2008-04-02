@@ -58,6 +58,11 @@
 	   (set! xbrico-pool (name->pool "xbrico.beingmeta.com"))
 	   (set! names-pool (name->pool "namedb.beingmeta.com"))
 	   (set! places-pool (name->pool "placedb.beingmeta.com"))
+	   (when (position #\@ val)
+	     (onerror
+	      (set+! absfreqs
+		     (open-index (string-append "absfreqs@" val)))
+	      (lambda (ex) (fail))))
 	   (if (exists? brico-pool) #t
 	       (begin (set! brico-index {})
 		      #f))))))
