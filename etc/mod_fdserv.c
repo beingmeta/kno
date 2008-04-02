@@ -448,10 +448,10 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
     sconfig->socket_prefix=fullpath;
   if (parms->path)
     ap_log_error
-      (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+      (APLOG_MARK,APLOG_INFO,OK,parms->server,
        "Socket Prefix set to %s for path %s",fullpath,parms->path);
   else ap_log_error
-	 (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+	 (APLOG_MARK,APLOG_INFO,OK,parms->server,
 	  "Socket Prefix set to %s for server %s",
 	  fullpath,parms->server->server_hostname);
   
@@ -478,10 +478,10 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 
   if (parms->path)
     ap_log_error
-      (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+      (APLOG_MARK,APLOG_INFO,OK,parms->server,
        "Log Prefix set to %s for path %s",fullpath,parms->path);
   else ap_log_error
-	 (APLOG_MARK,APLOG_NOTICE,OK,parms->server,
+	 (APLOG_MARK,APLOG_INFO,OK,parms->server,
 	  "Log Prefix set to %s for server %s",
 	  fullpath,parms->server->server_hostname);
 
@@ -759,7 +759,7 @@ static int spawn_fdservlet /* 1.3 */
 	 sockname);
     else {
       ap_log_error
-	(APLOG_MARK,APLOG_NOTICE,s,"Could not remove socket file %s",
+	(APLOG_MARK,APLOG_CRIT,s,"Could not remove socket file %s",
 	 sockname);}}
   
   errno=0;
@@ -804,7 +804,7 @@ static int connect_to_servlet(request_rec *r) /* 1.3 */
       (APLOG_MARK,APLOG_CRIT,r,
        "Couldn't resolve socket name for %s",r->unparsed_uri);
   else ap_log_error
-	 (APLOG_MARK,APLOG_NOTICE,r->server,
+	 (APLOG_MARK,APLOG_INFO,r->server,
 	  "Resolving request for %s through %s",r->unparsed_uri,sockname);
 
   sock=socket(PF_LOCAL,SOCK_STREAM,0);
@@ -971,7 +971,7 @@ static int spawn_fdservlet /* 2.0 */
 
   apr_uid_current(&uid,&gid,p);
 
-  ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,s,
+  ap_log_error(APLOG_MARK,APLOG_INFO,OK,s,
 	       "Spawning fdservlet %s @%s for %s, uid=%d, gid=%d",
 	       exename,sockname,r->unparsed_uri,uid,gid);
 
