@@ -643,6 +643,8 @@ static fdtype ixserver_get(fdtype index,fdtype key)
 {
   if (FD_INDEXP(index))
     return fd_index_get(fd_lisp2index(index),key);
+  else if (FD_TABLEP(index))
+    return fd_get(index,key,FD_EMPTY_CHOICE);
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
@@ -661,6 +663,17 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
       fd_decref(aschoice);
       return fd_init_vector(NULL,n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
+  else if (FD_TABLEP(index))
+    if (FD_VECTORP(keys)) {
+      fd_index ix=fd_lisp2index(index);
+      int i=0, n=FD_VECTOR_LENGTH(keys);
+      fdtype *data=FD_VECTOR_DATA(keys),
+	*results=u8_alloc_n(n,fdtype);
+      while (i<n) {
+	results[i]=fd_get(index,data[i],FD_EMPTY_CHOICE);
+	i++;}
+      return fd_init_vector(NULL,n,results);}
+    else return fd_type_error("vector","ixserver_bulk_get",keys);
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_get_size(fdtype index,fdtype key)
@@ -670,18 +683,35 @@ static fdtype ixserver_get_size(fdtype index,fdtype key)
     int size=FD_CHOICE_SIZE(value);
     fd_decref(value);
     return FD_INT2DTYPE(size);}
+  else if (FD_TABLEP(index)) {
+    fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
+    int size=FD_CHOICE_SIZE(value);
+    fd_decref(value);
+    return FD_INT2DTYPE(size);}
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_keys(fdtype index)
 {
   if (FD_INDEXP(index))
     return fd_index_keys(fd_lisp2index(index));
+  else if (FD_TABLEP(index))
+    return fd_getkeys(index);
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_sizes(fdtype index)
 {
   if (FD_INDEXP(index))
-    return fd_index_keys(fd_lisp2index(index));
+    return fd_index_sizes(fd_lisp2index(index));
+  else if (FD_TABLEP(index)) {
+    fdtype results=FD_EMPTY_CHOICE, keys=fd_getkeys(index);
+    FD_DO_CHOICES(key,keys) {
+      fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
+      fdtype keypair=
+	fd_init_pair(NULL,fd_incref(key),FD_INT2DTYPE(FD_CHOICE_SIZE(value)));
+      FD_ADD_TO_CHOICE(results,keypair);
+      fd_decref(value);}
+    fd_decref(keys);
+    return results;}
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_writablep(fdtype index)
@@ -820,21 +850,21 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim0("ISERVER-WRITABLE?",iserver_writablep,0));
 
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET",ixserver_get,2,
-				 fd_index_type,FD_VOID,-1,FD_VOID));
+				 -1,FD_VOID,-1,FD_VOID));
   fd_defn(module,fd_make_cprim3("IXSERVER-ADD!",ixserver_add,3));
   fd_defn(module,fd_make_cprim3("IXSERVER-DROP!",ixserver_drop,3));
   fd_defn(module,fd_make_cprim2x("IXSERVER-BULK-GET",ixserver_bulk_get,2,
-				 fd_index_type,FD_VOID,
+				 -1,FD_VOID,
 				 fd_vector_type,FD_VOID));
   fd_defn(module,fd_make_cprim2("IXSERVER-BULK-ADD!",ixserver_bulk_add,2));
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET-SIZE",ixserver_get_size,2,
-				 fd_index_type,FD_VOID,-1,FD_VOID));
+				 -1,FD_VOID,-1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-KEYS",ixserver_keys,1,
-				 fd_index_type,FD_VOID));
+				 -1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-SIZES",ixserver_sizes,1,
-				 fd_index_type,FD_VOID));
+				 -1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-WRITABLE?",ixserver_writablep,1,
-				 fd_index_type,FD_VOID));
+				 -1,FD_VOID));
 
   fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim,0));
   fd_defn(module,fd_make_cprim2("LOCK-OID",lock_oid_prim,2));

@@ -172,8 +172,8 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
       if (at-spec>63) return NULL;
       strncpy(buf,spec,at-spec); buf[at-spec]='\0';
       xname=fd_parse(buf);
-      return fd_open_network_index(at+1,xname);}
-    else return fd_open_network_index(spec,FD_VOID);}
+      return fd_open_network_index(spec,at+1,xname);}
+    else return fd_open_network_index(spec,spec,FD_VOID);}
   else if (fd_file_index_opener)
     return fd_file_index_opener(spec);
   else {

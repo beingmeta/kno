@@ -17,5 +17,8 @@ FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr);
 FD_EXPORT fdtype fd_dtapply(struct U8_CONNPOOL *cp,int n,fdtype *args);
 FD_EXPORT fdtype fd_dtcall(struct U8_CONNPOOL *cp,int n,...);
 FD_EXPORT fdtype fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...);
+FD_EXPORT fdtype fd_dtcall_x(struct U8_CONNPOOL *cp,int doeval,int n,...);
+FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...);
+
 
 #endif
