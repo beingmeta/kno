@@ -374,7 +374,7 @@ FD_EXPORT void fd_fast_swapout_all()
 
 /* Swap out to reduce memory footprint */
 
-static long membase=0;
+static size_t membase=0;
 
 #if FD_THREADS_ENABLED
 u8_mutex fd_swapcheck_lock;
@@ -405,7 +405,9 @@ FD_EXPORT int fd_swapcheck()
     fd_clear_callcache(FD_VOID);
     fd_swapout_all();
     membase=u8_memusage();
-    u8_log(LOG_NOTICE,SwapCheck,"Swapped out, new membase=%ld",membase);
+    u8_log(LOG_NOTICE,SwapCheck,
+	   "Swapped out, next swap at=%ld, swap at %d=%d+%d",
+	   membase+memgap,membase,memgap);
     fd_unlock_mutex(&fd_swapcheck_lock);}
   else {
     fd_unlock_mutex(&fd_swapcheck_lock);}
