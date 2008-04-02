@@ -27,6 +27,8 @@
 (define names-pool {})
 (define places-pool {})
 
+(define absfreqs {})
+
 (define bricosource-config
   (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) bricosource)
@@ -60,6 +62,18 @@
 	       (begin (set! brico-index {})
 		      #f))))))
 (config-def! 'bricosource bricosource-config)
+
+(define (config-absfreqs var (val))
+  (cond ((not (bound? val)) absfreqs)
+	((and (string? val)
+	      (or (position #\@ val)
+		  (has-suffix val ".index")))
+	 (set+! absfreqs (open-index val)))
+	((string? val)
+	 (set+! absfreqs (file->dtype val)))
+	((table? val) (set+! absfreqs val))
+	(else (error 'typeerror "Not a table or index" val))))
+(config-def! 'absfreqs config-absfreqs)
 
 ;;; A custom entry is a vector of the form:
 ;;;  #(name lang table)
@@ -402,7 +416,12 @@
     , (try (get-norm (pick-one (get f 'roget-within)) lang)
 	   (get (pick-one (get f 'roget-within)) '%id))))
 
-;;; Getting concept frequency information
+;;;; GETABSFREQ (from tables)
+
+(define (getabsfreq concept)
+  (reduce-choice + absfreqs 0 (lambda (tbl) (get tbl concept))))
+
+;;;; Getting concept frequency information (from DB)
 
 ;; This is a list of functions to get concept/term frequency information.
 ;;  Each item is a sequence whose first element is a name (typically a symbol)
@@ -536,6 +555,7 @@
  '{brico-pool
    brico-index
    xbrico-pool names-pool places-pool
+   absfreqs getabsfreq
    default-language all-languages
    ;; Maps for particular languages
    language-map gloss-map norm-map index-map frag-map
