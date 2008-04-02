@@ -440,10 +440,11 @@ $(DESTDIR)/etc/init.d/framerd:
 	$(INSTALL) --mode=0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
 $(DESTDIR)/var/run/framerd:
-	$(INSTALL) @fdaemoninstall@ @admininstall@ \
+	$(INSTALL) --mode=0775 @fdaemoninstall@ @admininstall@ \
 		   -d $(DESTDIR)/var/run/framerd
 $(DESTDIR)/var/log/framerd:
-	$(INSTALL) @fdaemoninstall@ -d $(DESTDIR)/var/log/framerd
+	$(INSTALL) --mode=0775 @fdaemoninstall@ @admininstall@ \
+		   -d $(DESTDIR)/var/log/framerd
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)/var/run/framerd \
             $(DESTDIR)/var/log/framerd
@@ -476,8 +477,10 @@ install-fdserv: etc/mod_fdserv.so
 		    fdserv.conf \
 		    @apache_conf_dir@.d; \
 	fi
-	$(INSTALL) -o $(WWWUSER) -d $(DESTDIR)/var/run/fdserv
-	$(INSTALL) -o $(WWWUSER) -d $(DESTDIR)/var/log/fdserv
+	$(INSTALL) --mode=0775 -o $(WWWUSER) @admininstall@ \
+		   -d $(DESTDIR)/var/run/fdserv
+	$(INSTALL) --mode=0775 -o $(WWWUSER) @admininstall@ \
+		   -d $(DESTDIR)/var/log/fdserv
 
 # Tracking revision information
 
