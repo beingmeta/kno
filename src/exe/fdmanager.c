@@ -400,7 +400,7 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
       /* Write your ppid */
       fprintf(pid_stream,"%d",ppid); fclose(pid_stream);}
     /* Redirect stdout and stderr */
-    set_stdio(base);
+    set_stdio(e->logbase);
     /* Go to the directory the file lives in */
     chdir(e->dirname);
     /* Become the server */
