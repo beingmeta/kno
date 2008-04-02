@@ -7,7 +7,7 @@
 ;;;  and indices, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
 
-(define version "$Id:$")
+(define version "$Id$")
 
 (module-export! 'usedb)
 
@@ -26,7 +26,12 @@
 	(cond ((not (string? index)))
 	      ((position #\@ index) (use-index index))
 	      ((has-prefix index "/") (use-index index))
-	      (else (use-index (get-component index dbname))))))))
+	      (else (use-index (get-component index dbname)))))
+      (for-choices (config (get dbdata 'configs))
+	(cond ((not (pair? config)))
+	      ((and (pair? (cdr config)) (eq? (cadr config) 'FILE))
+	       (config! (car config) (get-component (third config) dbname)))
+	      (else (config! (car config) (cdr config))))))))
 
 
 
