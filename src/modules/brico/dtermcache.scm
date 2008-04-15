@@ -12,7 +12,7 @@
 ;;; DTERMTHREADS) are reading from this FIFO, computing dterms
 ;;; and storing them back in the cache.
 
-(use-module '{brico brico/dterms fifo logger})
+(use-module '{brico brico/dterms fifo cachequeue logger})
 
 (module-export!
  '{cached-dterm
@@ -24,69 +24,41 @@
 
 ;;;; The dterm cache
 
-(define-init dterm-precache {})
-(define-init dterm-cache (make-hashtable))
-(define-init dterm-fifo (make-fifo))
-(define-init dterm-threads {})
+(define-init dterm-cache #f)
+(define-init dterm-queue #f)
+(define-init dterm-nthreads 4)
 
-(config! 'dtermcaches dterm-cache)
+(defslambda (setup-dtermqueue! value)
+  (set! dterm-cache value)
+  (set! dterm-queue (cachequeue value dterm-nthreads)))
+
+(define (dtermqueue-config var (val))
+  (cond ((not (bound? val)) dterm-cache)
+	((fixnum? val) (set! dterm-nthreads val))
+	((string? val)
+	 (setup-dtermqueue! (open-index val)))
+	((or (index? val) (table? val))
+	 (setup-dtermqueue! val))
+	(else (setup-dtermqueue! val))))
+(config-def! 'dtermqueue dtermqueue-config)
 
 (define (cached-dterm concept (language english))
-  (unless (exists? dterm-threads) (launch-dtermdaemons))
-  (if (singleton? (?? language (get-norm concept language)))
-      (cache-dterm! concept language (get-norm concept language))
-      (or (try (get dterm-cache (cons concept language))
-	       (cache-compute-dterm concept language))
-	  (fail))))
-
-(defslambda (cache-compute-dterm concept language)
-  (unless (exists? dterm-threads) (launch-dtermdaemons))
-  (try (get dterm-cache (cons concept language))
-       (begin (store! dterm-cache (cons concept language) #f)
-	      (fifo-push dterm-fifo (cons concept language))
-	      (fail))))
+  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+  (cq/get dterm-queue get-dterm concept language))
 
 (define (request-dterm concept language)
-  (try (get dterm-cache (cons concept language))
-       (cache-compute-dterm concept language)))
+  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+  (cq/get dterm-queue get-dterm concept language))
 
 (define (lazy-dterm concept language)
-  (get dterm-cache (cons concept language)))
-
-(define (cache-dterm! concept language dterm)
-  (synchro-lock cache-compute-dterm)
-  (store! dterm-cache (cons concept language) dterm)
-  (synchro-unlock cache-compute-dterm)
-  dterm)
+  (get dterm-cache (list get-dterm concept language)))
 
 (define (require-dterm concept (language english))
-  (if (singleton? (?? language (get-norm concept language)))
-      (get-norm concept language)
-      (or (try (get dterm-cache (cons concept language))
-	       (let ((dterm (find-dterm concept language)))
-		 (cache-dterm! concept language dterm)
-		 dterm))
-	  (fail))))
+  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+  (let ((dterm (get-dterm concept language)))
+    (store! dterm-cache (list get-dterm concept language) dterm)
+    dterm))
 
 (define (ignore x) (fail))
 
-(define (dtermdaemon fifo)
-  (let ((entry (fifo-pop fifo)))
-    (while (pair? entry)
-      (unless (string? (get dterm-cache entry))
-	(logdebug "dtermdaemon processing " entry)
-	(onerror (let ((dterm (find-dterm (car entry) (cdr entry))))
-		   (logdebug "dtermdaemon yielded " (write dterm)
-			     " for " entry)
-		   (store! dterm-cache entry dterm))
-		 (lambda (ex)
-		   (logerror "dtermdaemon error processing " entry ": "
-			     ex)
-		   #f)))
-      (set! entry (fifo-pop fifo)))))
 
-(defslambda (launch-dtermdaemons)
-  (unless (exists? dterm-threads)
-    (loginfo "Launching " (config 'DTERMTHREADS 3) " dtermdaemons")
-    (dotimes (i (config 'DTERMTHREADS 3))
-      (set+! dterm-threads (spawn (dtermdaemon dterm-fifo))))))

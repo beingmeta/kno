@@ -9,6 +9,7 @@
 (use-module '{brico brico/lookup morph/en})
 
 (define dterm-caches '())
+(define usedefterms #f)
 
 ;;; Top level functions
 
@@ -37,11 +38,23 @@
 (define (find-dterm concept (language default-language) (norm))
   (default! norm (termnorm concept language))
   (if (singleton? (?? language norm)) norm
-      (if (test concept 'type '{individual name})
-	  (if (test concept 'sensecat 'noun.location)
-	      (find-location-dterm concept language norm)
-	      (find-individual-dterm concept language norm))
-	  (find-generic-dterm concept language norm))))
+      (try
+       (if (test concept 'type '{individual name})
+	   (if (test concept 'sensecat 'noun.location)
+	       (find-location-dterm concept language norm)
+	       (find-individual-dterm concept language norm))
+	   (find-generic-dterm concept language norm))
+       (tryif usedefterms
+	      (try-choices (df (get concept defterms))
+		(tryif (singleton? (?? language norm @?defterms df))
+		       (string-append norm " (*" (get-norm df language) ")"))))
+       (try-choices (alt (difference (get concept language) norm))
+	 (if (search norm alt)
+	     (try
+	      (tryif (singleton? (?? language alt)) alt)
+	      (tryif (singleton? (?? language norm language alt))
+		     (string-append norm ":" alt)))
+	     (string-append norm ":" alt))))))
 
 (define (probe-location concept term1 term2 language (isaterm #f))
   (let ((norm (get norm-map language)))
