@@ -193,8 +193,11 @@
 
 (define (audit-get frame slotid)
   (second (pick (get frame '%adds) first slotid)))
+(define (audit-get-not frame slotid)
+  (second (pick (get frame '%drops) first slotid)))
 
-(module-export! '{audit+! audit-! audit! audit-get})
+
+(module-export! '{audit+! audit-! audit! audit-get audit-get-not})
 
 ;;; AUTO procedures
 
