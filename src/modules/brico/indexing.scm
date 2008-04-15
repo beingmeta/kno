@@ -58,11 +58,6 @@
 (define (stem-compound string)
   (seq->phrase (map porter-stem (words->vector string))))
 
-(define (cap-metaphone string)
-  (if (capitalized? string)
-      (string->packet (capitalize (metaphone string)))
-      (metaphone string #t)))
-
 (defambda (index-string index frame slot (value #f) (frag #f))
   (let* ((values (stdspace (if value value (get frame slot))))
 	 (expvalues (choice values (basestring values)))
@@ -73,7 +68,7 @@
     ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
     ;;  be lowercased.
     (doindex index frame slot (choice expvalues normvalues))
-    (doindex index frame slot (cap-metaphone (choice values normvalues)))
+    (doindex index frame slot (metaphone (choice values normvalues) #t))
     (when frag (index-frags index frame slot values 1 #f))))
 
 (defambda (index-string/keys value)
@@ -86,7 +81,7 @@
     ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
     ;;  be lowercased.
     (choice expvalues normvalues
-	    (cap-metaphone (choice values normvalues)))))
+	    (metaphone (choice values normvalues) #t))))
 
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))
