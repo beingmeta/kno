@@ -159,10 +159,10 @@
 (defambda (lookup-variants variants language tryhard)
   (for-choices (variant variants)
     (if (string? variant)
-	(lookup-word variant language tryhard)
+	(lookup-word variant language #f)
 	(if (pair? variant)
 	    (intersection
-	     (lookup-word (first variant) language tryhard)
+	     (lookup-word (first variant) language #f)
 	     (?? (second variant) (third variant)))
 	    (fail)))))
 
@@ -172,14 +172,14 @@
 	       (tryif word-overlays (overlay-get word language))
 	       (let* ((baselang (getbaselang language))
 		      (variants (vary-word word baselang tryhard)))
-		 (lookup-variants (difference variants word) language tryhard)))
+		 (lookup-variants variants language tryhard)))
        (tryif (and tryhard (not (= tryhard 0)))
 	      (choice
 	       (lookup-subphrase word language tryhard)
 	       (lookup-variants (difference (vary-more word) word) language #f)))
        ;; Find misspellings, etc
        ;; This is really language-specific and the implementation
-       ;;  doesnt currently reflect that.
+       ;;  doesn't currently reflect that.
        (tryif (and (number? tryhard) (> tryhard 1)
 		   (not (uppercase? word))
 		   (> (length word) 4))
@@ -384,6 +384,10 @@
 		      (intersection meanings (?? partof* (lookup-word partof-cxt language))))
 	       (tryif (exists? genls-cxt)
 		      (intersection meanings (?? genls* (lookup-word genls-cxt language))))
+	       (tryif (exists? genls-cxt)
+		      (intersection meanings (?? implies (lookup-word genls-cxt language))))
+	       (tryif (exists? implies-cxt)
+		      (intersection meanings (?? implies (lookup-word implies-cxt language))))
 	       (tryif (exists? defterm-cxt)
 		      (intersection meanings (?? defterms (lookup-word defterm-cxt language))))
 	       (tryif (exists? eg-cxt)
@@ -427,7 +431,9 @@
      language tryhard)
     (prefetch-keys!
      (choice (cons partof* (lookup-word partof-cxt language))
-	     (cons genls* (lookup-word genls-cxt language))
+	     (cons implies (lookup-word implies-cxt language))
+	     (cons (choice genls* implies)
+		   (lookup-word genls-cxt language))
 	     (cons defterms (lookup-word defterm-cxt language))
 	     (cons specls* (lookup-word eg-cxt language))))))
 
