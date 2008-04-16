@@ -255,8 +255,8 @@
        (tryif (eq? language english) (first (get concept 'ranked)))
        (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
-       (tryif tryhard
-	      (try (pick-one (largest (get concept english)))
+       (tryif (and tryhard (not (eq? language english)))
+	      (try (pick-one (largest (get-norm concept english #f)))
 		   (pick-one (largest (cdr (get concept '%words))))))))
 
 (define (%get-norm concept (language default-language))
