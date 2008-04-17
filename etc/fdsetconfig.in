@@ -1,3 +1,3 @@
 #!/bin/sh
 VERSION="$Id$"
-echo $2 > @config_dir@/$1
+echo $2 > @local_config@/$1

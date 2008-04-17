@@ -1,5 +1,5 @@
 #!/bin/sh
 VERSION="$Id$"
-if test -f @config_dir@/$1; then cat @config_dir@/$1; else echo "Config variable" $1 "is not defined"; fi
+if test -f @local_config@/$1; then cat @local_config@/$1; else echo "Config variable" $1 "is not defined"; fi
 
 
