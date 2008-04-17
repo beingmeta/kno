@@ -1518,9 +1518,9 @@ static u8_string markup_printf_handler
 FD_EXPORT void fd_init_xmloutput_c()
 {
   fdtype fdweb_module=
-    fd_new_module("FDWEB",FD_MODULE_DEFAULT);
+    fd_new_module("FDWEB",(0));
   fdtype safe_fdweb_module=
-    fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+    fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fdtype xhtml_module=
     fd_new_module("XHTML",FD_MODULE_SAFE);
 

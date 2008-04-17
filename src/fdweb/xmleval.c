@@ -1104,7 +1104,7 @@ FD_EXPORT void fd_init_xmleval_c()
   xmleval_initialized=1;
   fd_init_fdscheme();
   fdxml_module=fd_make_env(fd_make_hashtable(NULL,17),NULL);
-  module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+  module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fd_idefn(module,fd_make_cprim2("PARSE-FDXML",parsefdxml,1));
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);

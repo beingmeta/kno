@@ -268,7 +268,7 @@ static fdtype exif_get(fdtype x,fdtype prop)
 
 FD_EXPORT void fd_init_exif_c()
 {
-  fdtype fdweb_module=fd_new_module("FDWEB",FD_MODULE_DEFAULT);
+  fdtype fdweb_module=fd_new_module("FDWEB",0);
   struct TAGINFO *scan=taginfo;
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {

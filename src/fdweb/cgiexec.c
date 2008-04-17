@@ -771,7 +771,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   if (cgiexec_initialized) return;
   cgiexec_initialized=1;
   fd_init_fdscheme();
-  module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT));
+  module=fd_new_module("FDWEB",(0));
   xhtmlout_module=fd_new_module("XHTML",FD_MODULE_SAFE);
 
   fd_defspecial(module,"HTTPHEADER",httpheader);

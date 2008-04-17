@@ -256,8 +256,8 @@ static fdtype parse_mime_data(fdtype arg)
 
 void fd_init_mime_c()
 {
-  fdtype module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
-  fdtype unsafe_module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT));
+  fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  fdtype unsafe_module=fd_new_module("FDWEB",(0));
   fd_idefn(module,fd_make_cprim1("PARSE-MIME",parse_mime_data,1));
 
   content_slotid=fd_intern("CONTENT");

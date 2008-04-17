@@ -29,8 +29,8 @@ FD_EXPORT void fd_init_fdweb()
 {
   if (fdweb_init_done) return;
   else {
-    fdtype fdweb_module=fd_new_module("FDWEB",FD_MODULE_DEFAULT);
-    fdtype safe_fdweb_module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+    fdtype fdweb_module=fd_new_module("FDWEB",0);
+    fdtype safe_fdweb_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
     fdtype xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
     fdweb_init_done=1;
     fd_init_xmloutput_c();

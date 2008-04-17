@@ -862,7 +862,7 @@ static fdtype xmlparse(fdtype input,fdtype options)
 
 FD_EXPORT void fd_init_xmlinput_c()
 {
-  fdtype module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
+  fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("XMLPARSE",xmlparse,1)));
 
   attribs_symbol=fd_intern("%ATTRIBS");

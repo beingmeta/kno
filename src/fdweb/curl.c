@@ -906,7 +906,7 @@ FD_EXPORT void fd_init_curl_c()
   curl_initialized=1;
   fd_init_fdscheme();
 
-  module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT));
+  module=fd_new_module("FDWEB",(0));
 
   fd_curl_type=fd_register_cons_type("CURLHANDLE");
   fd_recyclers[fd_curl_type]=recycle_curl_handle;

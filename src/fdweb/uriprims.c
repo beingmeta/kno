@@ -281,7 +281,7 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape)
 
 FD_EXPORT void fd_init_urifns_c()
 {
-  fdtype module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT));
+  fdtype module=fd_new_module("FDWEB",(0));
 
   scheme_symbol=fd_intern("SCHEME");
   userinfo_symbol=fd_intern("USERINFO");
