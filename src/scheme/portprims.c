@@ -905,6 +905,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     int slotmap_size, first_pair=1; 
     fd_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
+    if (slotmap_size==0) fd_unlock_struct(sm);
     if (slotmap_size==0) {
       if (is_initial) {
 	u8_printf(out," #[]"); return 3;}

@@ -358,12 +358,10 @@ static fdtype copy_slotmap(fdtype smap,int deep)
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
   fd_lock_struct(cur);
-  {
+  if (FD_XSLOTMAP_SIZE(cur)) {
     int n=FD_XSLOTMAP_SIZE(cur);
     struct FD_KEYVAL *read=cur->keyvals, *read_limit=read+n;
-    struct FD_KEYVAL *write;
-    if (n) write=u8_alloc_n(n,struct FD_KEYVAL);
-    else write=NULL;
+    struct FD_KEYVAL *write=u8_alloc_n(n,struct FD_KEYVAL);
     FD_INIT_CONS(fresh,fd_slotmap_type);
     fresh->size=n; fresh->keyvals=write;
     while (read<read_limit) {
@@ -377,8 +375,11 @@ static fdtype copy_slotmap(fdtype smap,int deep)
 	  write->value=fd_deep_copy(val);
 	else write->value=fd_incref(val);
       else write->value=val;
-      write++;}
-    fd_unlock_struct(cur);}
+      write++;}}
+  else {
+    FD_INIT_CONS(fresh,fd_slotmap_type);
+    fresh->size=0; fresh->keyvals=NULL;}
+  fd_unlock_struct(cur);
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(fresh->lock));
 #endif
