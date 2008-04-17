@@ -30,12 +30,19 @@ static fdtype mailfrom_symbol, ctype_symbol;
 static u8_string mailhost_dflt=NULL, maildomain_dflt=NULL;
 static u8_string mailfrom_dflt=NULL;
 
+static void get_mailinfo(fdtype headers,u8_string *host,u8_string *domain,u8_string *from)
+{
+  fdtype mailhost_spec=fd_get(headers,mailhost_symbol,FD_VOID);
+  fdtype maildomain_spec=fd_get(headers,maildomain_symbol,FD_VOID);
+  fdtype mailfrom_spec=fd_get(headers,mailfrom_symbol,FD_VOID);
+  if (FD_STRINGP(mailhost_spec)) *host=FD_STRDATA(mailhost_spec);
+  if (FD_STRINGP(maildomain_spec)) *domain=FD_STRDATA(maildomain_spec);
+  if (FD_STRINGP(mailfrom_spec)) *from=FD_STRDATA(mailfrom_spec);
+}
+
 static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,fdtype ctype,fdtype mailinfo)
 {
-  char *mailhost=mailhost_dflt, *maildomain=maildomain_dflt, *mailfrom=mailfrom_dflt;
-  fdtype mailhost_spec=fd_get(mailinfo,mailhost_symbol,FD_VOID);
-  fdtype maildomain_spec=fd_get(mailinfo,maildomain_symbol,FD_VOID);
-  fdtype mailfrom_spec=fd_get(mailinfo,mailfrom_symbol,FD_VOID);
+  u8_byte *mailhost=mailhost_dflt, *maildomain=maildomain_dflt, *mailfrom=mailfrom_dflt;
   fdtype header_keys=fd_getkeys(headers);
   int retval, i=0, n_headers=FD_CHOICE_SIZE(header_keys), n_to_free=0;
   struct U8_MAILHEADER *mh=u8_alloc_n(n_headers,struct U8_MAILHEADER);
@@ -52,9 +59,10 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,fdtype cty
       to_free[n_to_free++]=data;
       mh[i].value=data;}
     i++;}
-  if (FD_STRINGP(mailhost_spec)) mailhost=FD_STRDATA(mailhost_spec);
-  if (FD_STRINGP(maildomain_spec)) maildomain=FD_STRDATA(maildomain_spec);
-  if (FD_STRINGP(mailfrom_spec)) mailfrom=FD_STRDATA(mailfrom_spec);
+  if (FD_VOIDP(mailinfo))
+    get_mailinfo(headers,&mailhost,&maildomain,&mailfrom);
+  else get_mailinfo(mailinfo,&mailhost,&maildomain,&mailfrom);
+  if (mailfrom==NULL) mailfrom="framerd";
   retval=u8_smtp(mailhost,maildomain,mailfrom,FD_STRDATA(dest),
 		 ((FD_STRINGP(ctype))?(FD_STRDATA(ctype)):(NULL)),
 		 n_headers,&mh,FD_STRDATA(content),FD_STRLEN(content));
@@ -67,6 +75,7 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,fdtype cty
 
 static fdtype mailout_handler(fdtype expr,fd_lispenv env)
 {
+  u8_byte *mailhost=mailhost_dflt, *maildomain=maildomain_dflt, *mailfrom=mailfrom_dflt;
   fdtype dest_arg=fd_get_arg(expr,1), headers_arg=fd_get_arg(expr,2), body=fd_get_body(expr,3);
   fdtype dest, headers, header_fields, result;
   int retval, i=0, n_headers, n_to_free=0; 
@@ -74,13 +83,16 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
   struct U8_OUTPUT out;
   u8_string *to_free;
   dest=fd_eval(dest_arg,env); if (FD_ABORTP(dest)) return dest;
-  if (FD_SLOTMAPP(headers_arg)) headers=fd_copy(headers_arg);
+  if (FD_SLOTMAPP(headers_arg)) headers=fd_incref(headers_arg);
   else headers=fd_eval(headers_arg,env);
   if (FD_ABORTP(headers)) {
     fd_decref(dest); return headers;}
+  get_mailinfo(headers,&mailhost,&maildomain,&mailfrom);
+  if (mailfrom==NULL) mailfrom="framerd";
   header_fields=fd_getkeys(headers);
   if (FD_ABORTP(header_fields)) {
-    fd_decref(dest); fd_decref(headers); return header_fields;}
+    fd_decref(dest); fd_decref(headers);
+    return header_fields;}
   n_headers=FD_CHOICE_SIZE(header_fields);
   mh=u8_alloc_n(n_headers,struct U8_MAILHEADER);
   to_free=u8_alloc_n(n_headers,u8_string);
@@ -98,11 +110,13 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
       i++;}}
   U8_INIT_OUTPUT(&out,1024);
   result=fd_printout_to(&out,body,env);
-  retval=u8_smtp(mailhost_dflt,maildomain_dflt,mailfrom_dflt,
+  retval=u8_smtp(mailhost,maildomain,mailfrom,
 		 FD_STRDATA(dest),NULL,n_headers,&mh,
 		 out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
   while (n_to_free>0) {u8_free(to_free[--n_to_free]);}
   u8_free(mh); u8_free(to_free); u8_free(out.u8_outbuf);
+  fd_decref(header_fields); fd_decref(headers);
+  fd_decref(dest);
   if (retval<0) {
     fd_decref(result);
     return FD_ERROR_VALUE;}
@@ -113,8 +127,8 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
 
 void fd_init_email_c()
 {
-  fdtype module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT|FD_MODULE_SAFE));
-  fdtype unsafe_module=fd_new_module("FDWEB",(FD_MODULE_DEFAULT));
+  fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  fdtype unsafe_module=fd_new_module("FDWEB",(0));
 
   fd_idefn(unsafe_module,fd_make_cprim5("SMTP",smtp_function,3));
   fd_defspecial(unsafe_module,"MAILOUT",mailout_handler);
