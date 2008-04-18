@@ -1,3 +1,5 @@
+#include "fdb/dbprims.h"
+
 /* Opcode names */
 
 const u8_string fd_opcode_names[256]={
@@ -717,6 +719,33 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else result=opcode_binary_dispatch(opcode,arg1,arg2);
       fd_decref(arg1); fd_decref(arg2);
       return result;}}
+  else if (opcode==FD_GET_OPCODE)
+    if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
+    else {
+      fdtype slotid_arg=fd_get_arg(expr,2);
+      fdtype slotids=fd_eval(slotid_arg,env), result;
+      if (FD_ABORTP(slotids)) return slotids;
+      else if (FD_VOIDP(slotids))
+	return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
+      result=fd_fget(arg1,slotids);
+      fd_decref(arg1); fd_decref(slotids);
+      return result;}
+  else if (opcode==FD_TEST_OPCODE)
+    if (FD_EMPTY_CHOICEP(arg1)) return FD_FALSE;
+    else {
+      fdtype slotid_arg=fd_get_arg(expr,2);
+      fdtype values_arg=fd_get_arg(expr,3);
+      fdtype slotids=fd_eval(slotid_arg,env), values, result;
+      if (FD_ABORTP(slotids)) return slotids;
+      else if (FD_VOIDP(slotids))
+	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
+      else if (FD_VOIDP(values_arg))
+	values=FD_EMPTY_CHOICE;
+      else values=fd_eval(values_arg,env);
+      if (FD_ABORTP(values)) return values;
+      result=fd_ftest(arg1,slotids,values);
+      fd_decref(arg1); fd_decref(slotids); fd_decref(values);
+      return result;}
   else if (opcode==FD_XREF_OPCODE)
     if (FD_EMPTY_CHOICEP(arg1))
       return FD_EMPTY_CHOICE;

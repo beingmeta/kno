@@ -18,6 +18,7 @@ static char versionid[] =
 #include "fdb/frames.h"
 #include "fdb/methods.h"
 #include "fdb/sequences.h"
+#include "fdb/dbprims.h"
 
 #include "libu8/u8printf.h"
 
@@ -776,46 +777,102 @@ static fdtype cached_keys(fdtype index)
 
 /* Frame get functions */
 
-static fdtype fget(fdtype frames,fdtype slotids)
+FD_EXPORT
+fdtype fd_fget(fdtype frames,fdtype slotids)
 {
-  int all_adjuncts=1;
-  if (FD_CHOICEP(slotids)) {
-    FD_DO_CHOICES(slotid,slotids) {
+  if (!(FD_CHOICEP(frames)))
+    if (!(FD_CHOICEP(slotids)))
+      if (FD_OIDP(frames))
+	return fd_frame_get(frames,slotids);
+      else return fd_get(frames,slotids,FD_EMPTY_CHOICE);
+    else if (FD_OIDP(frames)) {
+      fdtype result=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(slotid,slotids) {
+	fdtype value=fd_frame_get(frames,slotid);
+	if (FD_ABORTP(value)) {
+	  fd_decref(result);
+	  return value;}
+	FD_ADD_TO_CHOICE(result,value);}
+      return result;}
+    else {
+      fdtype result=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(slotid,slotids) {
+	fdtype value=fd_get(frames,slotid,FD_EMPTY_CHOICE);
+	if (FD_ABORTP(value)) {
+	  fd_decref(result);
+	  return value;}
+	FD_ADD_TO_CHOICE(result,value);}
+      return result;}
+  else {
+    int all_adjuncts=1;
+    if (FD_CHOICEP(slotids)) {
+      FD_DO_CHOICES(slotid,slotids) {
+	int adjunctp=0;
+	FD_DO_CHOICES(adjslotid,fd_adjunct_slotids) {
+	  if (FD_EQ(slotid,adjslotid)) {adjunctp=1; break;}}
+	if (adjunctp==0) {all_adjuncts=0; break;}}}
+    else {
       int adjunctp=0;
       FD_DO_CHOICES(adjslotid,fd_adjunct_slotids) {
-	if (FD_EQ(slotid,adjslotid)) {adjunctp=1; break;}}
-      if (adjunctp==0) {all_adjuncts=0; break;}}}
-  else {
-    int adjunctp=0;
-    FD_DO_CHOICES(adjslotid,fd_adjunct_slotids) {
-      if (FD_EQ(slotids,adjslotid)) {adjunctp=1; break;}}
-    if (adjunctp==0) all_adjuncts=0;}
-  if ((fd_prefetch) && (fd_ipeval_status()==0) &&
-      (FD_CHOICEP(frames)) && (all_adjuncts==0))
-    fd_prefetch_oids(frames);
-  {
-    fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(frame,frames)
-      if (FD_OIDP(frame)) {
-	FD_DO_CHOICES(slotid,slotids) {
-	  fdtype v=fd_frame_get(frame,slotid);
-	  if (FD_ABORTP(v)) {
-	    FD_STOP_DO_CHOICES;
-	    fd_decref(results);
-	    return v;}
-	  else {FD_ADD_TO_CHOICE(results,v);}}}
-      else {
-	FD_DO_CHOICES(slotid,slotids) {
-	  fdtype v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
-	  if (FD_ABORTP(v)) {
-	    FD_STOP_DO_CHOICES;
-	    fd_decref(results);
-	    return v;}
-	  else {FD_ADD_TO_CHOICE(results,v);}}}
-    return fd_simplify_choice(results);}
+	if (FD_EQ(slotids,adjslotid)) {adjunctp=1; break;}}
+      if (adjunctp==0) all_adjuncts=0;}
+    if ((fd_prefetch) && (fd_ipeval_status()==0) &&
+	(FD_CHOICEP(frames)) && (all_adjuncts==0))
+      fd_prefetch_oids(frames);
+    {
+      fdtype results=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(frame,frames)
+	if (FD_OIDP(frame)) {
+	  FD_DO_CHOICES(slotid,slotids) {
+	    fdtype v=fd_frame_get(frame,slotid);
+	    if (FD_ABORTP(v)) {
+	      FD_STOP_DO_CHOICES;
+	      fd_decref(results);
+	      return v;}
+	    else {FD_ADD_TO_CHOICE(results,v);}}}
+	else {
+	  FD_DO_CHOICES(slotid,slotids) {
+	    fdtype v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
+	    if (FD_ABORTP(v)) {
+	      FD_STOP_DO_CHOICES;
+	      fd_decref(results);
+	      return v;}
+	    else {FD_ADD_TO_CHOICE(results,v);}}}
+      return fd_simplify_choice(results);}}
 }
 
-static fdtype fassert(fdtype frames,fdtype slotids,fdtype values)
+FD_EXPORT
+fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
+{
+  if ((!(FD_CHOICEP(frames))) && (!(FD_OIDP(frames))))
+    if (FD_CHOICEP(slotids)) {
+      int found=0;
+      FD_DO_CHOICES(slotid,slotids)
+	if (fd_test(frames,slotid,values)) {
+	  found=1; FD_STOP_DO_CHOICES; break;}
+	else {}
+      if (found) return FD_TRUE;
+      else return FD_FALSE;}
+    else if (fd_test(frames,slotids,values))
+      return FD_TRUE;
+    else return FD_FALSE;
+  else {
+    FD_DO_CHOICES(frame,frames) {
+      FD_DO_CHOICES(slotid,slotids) {
+	FD_DO_CHOICES(value,values)
+	  if (FD_OIDP(frame)) {
+	    int result=fd_frame_test(frame,slotid,value);
+	    if (result<0) return FD_ERROR_VALUE;
+	    else if (result) return FD_TRUE;}
+	  else {
+	    int result=fd_test(frame,slotid,value);
+	    if (result<0) return FD_ERROR_VALUE;
+	    else if (result) return FD_TRUE;}}}
+    return FD_FALSE;}
+}
+
+FD_EXPORT
+fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_EMPTY_CHOICEP(values)) return FD_VOID;
   else {
@@ -826,7 +883,8 @@ static fdtype fassert(fdtype frames,fdtype slotids,fdtype values)
 	    return FD_ERROR_VALUE;}}}
     return FD_VOID;}
 }
-static fdtype fretract(fdtype frames,fdtype slotids,fdtype values)
+FD_EXPORT
+fdtype fd_fretract(fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_EMPTY_CHOICEP(values)) return FD_VOID;
   else {
@@ -846,22 +904,6 @@ static fdtype fretract(fdtype frames,fdtype slotids,fdtype values)
     return FD_VOID;}
 }
 
-static fdtype ftest(fdtype frames,fdtype slotids,fdtype values)
-{
-  FD_DO_CHOICES(frame,frames) {
-    FD_DO_CHOICES(slotid,slotids) {
-      FD_DO_CHOICES(value,values)
-	if (FD_OIDP(frame)) {
-	  int result=fd_frame_test(frame,slotid,value);
-	  if (result<0) return FD_ERROR_VALUE;
-	  else if (result) return FD_TRUE;}
-	else {
-	  int result=fd_test(frame,slotid,value);
-	  if (result<0) return FD_ERROR_VALUE;
-	  else if (result) return FD_TRUE;}}}
-  return FD_FALSE;
-}
-
 static fdtype testp(int n,fdtype *args)
 {
   fdtype frames=args[0], slotids=args[1], testfns=args[2];
@@ -870,7 +912,7 @@ static fdtype testp(int n,fdtype *args)
   else {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	fdtype values=fget(frame,slotid);
+	fdtype values=fd_fget(frame,slotid);
 	FD_DO_CHOICES(testfn,testfns)
 	  if (FD_APPLICABLEP(testfn)) {
 	    fdtype test_result=FD_FALSE;
@@ -1795,13 +1837,13 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("MODIFIED?",dbmodifiedp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOCKED?",oidlockedp,1));
 
-  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET",fget,2)));
-  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",ftest,2)));
+  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET",fd_fget,2)));
+  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",fd_ftest,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("TESTP",testp,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("ASSERT!",fassert,3)));
+	   fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_fassert,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("RETRACT!",fretract,2)));
+	   fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_fretract,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("GETSLOTS",fd_getkeys,1)));
   fd_idefn(fd_scheme_module,
