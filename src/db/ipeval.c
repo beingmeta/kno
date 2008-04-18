@@ -70,7 +70,7 @@ static void ipeval_done_msg(u8_condition c,int iteration,double interval)
 
 FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
 {
-  int state, saved_state, ipeval_count=1, retval=0;
+  int state, saved_state, ipeval_count=1, retval=0, gave_up=0;
   /* This will be NULL if a thread cache is already in force. */
   struct FD_THREAD_CACHE *tc=fd_use_threadcache();
   double start, point;
@@ -113,6 +113,9 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
     point=u8_elapsed_time();
     retval=fcn(data);
     state=fd_ipeval_status();}
+  if (gave_up) {
+    fd_set_ipeval_state(0);
+    retval=fcn(data);}
   fd_set_ipeval_state(saved_state);
 #if FD_TRACE_IPEVAL
   if (fd_trace_ipeval) {
@@ -133,7 +136,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
 				     struct FD_IPEVAL_RECORD **history,
 				     int *n_cycles,double *total_time)
 {
-  int state, saved_state, ipeval_count=1, n_records=16, delays, retval=0;
+  int state, saved_state, ipeval_count=1, n_records=16, delays, retval=0, gave_up=0;
   /* This will be NULL if a thread cache is already in force. */
   struct FD_THREAD_CACHE *tc=fd_use_threadcache();
   /* This keeps track of execution. */
@@ -186,6 +189,10 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
     retval=fcn(data);
     exec_time=time_since(point); delays=fd_ipeval_status()-1;
     state=fd_ipeval_status();}
+  if (gave_up) {
+    fd_set_ipeval_state(0);
+    retval=fcn(data);
+    exec_time=time_since(point); delays=0;}
   records[ipeval_count-1].cycle=ipeval_count;
   records[ipeval_count-1].delays=delays;
   records[ipeval_count-1].exec_time=exec_time;
