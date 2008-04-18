@@ -10,6 +10,7 @@
 (define version "$Id$")
 
 (use-module 'reflection)
+(use-module 'stringfmts)
 
 (module-export! '{mt-apply
 		  do-choices-mt
@@ -83,7 +84,7 @@
 	    `(let ((_choice ,choice-generator)
 		   (_blocksize ,blocksize)
 		   (_blockproc (,legacy-blockproc ,blockproc))
-		   (_progressfn ,progressfn)
+		   (_progressfn (,getprogressfn ,progressfn))
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
@@ -159,10 +160,12 @@
 	  (let ((blockproc (get-arg control-spec 3 #f))
 		(blocksize (get-arg control-spec 4 #f))
 		(progressfn (get-arg control-spec 5 (get-default-progressfn))))
+	    (when (number? progressfn)
+	      (set! progressfn (get-default-progressfn progressfn)))
 	    `(let ((_vec ,vec-generator)
 		   (_blocksize ,blocksize)
 		   (_blockproc (,legacy-blockproc ,blockproc))
-		   (_progressfn ,progressfn)
+		   (_progressfn (,getprogressfn ,progressfn))
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
@@ -229,55 +232,6 @@
 
 ;;; Progress reports
 
-(define (get% num den (prec 2))
-  (inexact->string (/ (* num 100.0) den) prec))
-
-(define (interval-string secs (precise #t))
-  (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
-	 (hours (inexact->exact
-		 (floor (/ (- secs (* days 3600 24))
-			   3600))))
-	 (minutes (inexact->exact
-		   (floor (/ (- secs (* days 3600 24) (* hours 3600))
-			     60))))
-	 (secs (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
-    (stringout
-	(cond ((= days 1) "one day, ")
-	      ((> days 0) (printout days " days, ")))
-      (cond ((= hours 1) "one hour, ")
-	    ((> hours 0) (printout hours " hours, ")))
-      (cond ((= minutes 1) "one minute, ")
-	    ((> minutes 0) (printout minutes " minutes, ")))
-      (cond ((= secs 1) "one second")
-	    ((< secs 1) (printout secs " seconds"))
-	    (else (printout (inexact->string secs 2) " seconds"))))))
-
-(define (short-interval-string secs (precise #t))
-  (if (< secs 180)
-      (stringout (cond ((< secs 0) secs)
-		       ((< secs 10) (inexact->string secs 3))
-		       (else (inexact->string secs 2)))
-	" secs")
-      (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
-	     (hours (inexact->exact
-		     (floor (/ (- secs (* days 3600 24))
-			       3600))))
-	     (minutes (inexact->exact
-		       (floor (/ (- secs (* days 3600 24) (* hours 3600))
-				 60))))
-	     (seconds (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
-	(stringout
-	    (cond ((= days 1) "one day, ")
-		  ((> days 0) (printout days " days, ")))
-	  (when (> hours 0) (printout hours ":"))
-	  (printout 
-	    (if (and (> hours 0) (< minutes 10)) "0")
-	    minutes ":")
-	  (printout (if (< seconds 10) "0")
-	    (cond ((> secs 600) (inexact->exact (round seconds)))
-		  ((>= secs 10) (inexact->string seconds 2))
-		  (else seconds)))))))
-
 ;;; The default method for reporting progress emits status reports
 ;;;  after each time consuming chunk, together with an initial and
 ;;;  a final report
@@ -285,9 +239,9 @@
 (define (report-preamble block limit nthreads)
   (if (< block limit)
       (notify (if (config 'appid) (printout (config 'appid) ": "))
-	      "Processing " limit " items in "
+	      "Processing " (printnum limit) " items in "
 	      (1+ (quotient limit block)) " chunks of "
-	      block " items using " nthreads
+	      (printnum block) " items using " nthreads
 	      (if (= nthreads 1) " thread" " threads"))
       (notify (if (config 'appid) (printout (config 'appid) ": "))
 	      "Processing " limit " items in one chunk using "
@@ -297,10 +251,15 @@
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Processed all " limit " elements "
-		 " in " (short-interval-string time)
-		 " with " (get% preptime time) "% ("
-		 (short-interval-string preptime) ") in pre-processing and "
+		 "Processed all " (printnum limit) " elements "
+		 "in " (short-interval-string time) " "
+		 "with " (get% preptime time) "% ("
+		 (short-interval-string preptime) ") in pre-processing, "
+		 (let ((exectime (- time preptime posttime)))
+		   (printout (get% exectime time) "% ("
+			     (short-interval-string exectime)
+			     ") in execution, "))
+		 "and "
 		 (get% posttime time) "% ("
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
@@ -309,7 +268,7 @@
 	     (let ((togo (* time (/ (- limit count) count))))
 	       (notify (if (config 'appid) (printout (config 'appid) ": "))
 		       "Processed " (get% count limit) "%: "
-		       count " of " limit " items in "
+		       (printnum count) " of " (printnum limit) " items in "
 		       (short-interval-string time)
 		       (when (> count 0)
 			 (printout ", ~"
@@ -319,7 +278,7 @@
 	(blockpost
 	 (let ((total (+ blockprep blocktime blockpost)))
 	   (notify (if (config 'appid) (printout (config 'appid) ": "))
-		   "Processed " thisblock " items in "
+		   "Processed " (printnum thisblock) " items in "
 		   (short-interval-string total)
 		   "= " (short-interval-string blockprep)
 		   " (" (get% blockprep total) "%) "
@@ -329,7 +288,8 @@
 		   " (" (get% blockpost total) "%)")))
 	(blocktime
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Finished core processing of " thisblock " items in " (short-interval-string blocktime)
+		 "Finished core processing of " (printnum thisblock)
+		 " items in " (short-interval-string blocktime)
 		 " using " nthreads (if (= nthreads 1) " thread" " threads")))
 	(blockprep)
 	(else)))
@@ -339,10 +299,15 @@
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Processed all " limit " elements "
-		 " in " (short-interval-string time)
-		 " with " (get% preptime time) "% ("
-		 (short-interval-string preptime) ") in pre-processing and "
+		 "Processed all " (printnum limit) " elements "
+		 "in " (short-interval-string time) " "
+		 "with " (get% preptime time) "% ("
+		 (short-interval-string preptime) ") in pre-processing, "
+		 (let ((exectime (- time preptime posttime)))
+		   (printout (get% exectime time) "% ("
+			     (short-interval-string exectime)
+			     ") in execution, "))
+		 "and "
 		 (get% posttime time) "% ("
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
@@ -350,7 +315,7 @@
 	     (report-preamble thisblock limit nthreads)
 	     (notify (if (config 'appid) (printout (config 'appid) ": "))
 		     "Processed " (get% count limit) "%: "
-		     count " of " limit " items in "
+		     (printnum count) " of " (printnum limit) " items in "
 		     (short-interval-string time)
 		     (when (> count 0)
 		       (printout ", ~"
@@ -368,10 +333,15 @@
 	 time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Processed all " limit " elements "
-		 " in " (short-interval-string time)
-		 " with " (get% preptime time) "% ("
-		 (short-interval-string preptime) ") in pre-processing and "
+		 "Processed all " (printnum limit) " elements "
+		 "in " (short-interval-string time) " "
+		 "with " (get% preptime time) "% ("
+		 (short-interval-string preptime) ") in pre-processing, "
+		 (let ((exectime (- time preptime posttime)))
+		   (printout (get% exectime time) "% ("
+			     (short-interval-string exectime)
+			     ") in execution, "))
+		 "and "
 		 (get% posttime time) "% ("
 		 (short-interval-string posttime) ") in post-processing."))
 	((not (or blocktime blockprep blockpost))
@@ -379,7 +349,7 @@
 	     (report-preamble thisblock limit nthreads)
 	     (notify (if (config 'appid) (printout (config 'appid) ": "))
 		     "Processed " (get% count limit) "%: "
-		     count " of " limit " items in "
+		     (printnum count) " of " (printnum limit) " items in "
 		     (short-interval-string time)
 		     (when (> count 0)
 		       (printout ", ~"
@@ -389,11 +359,11 @@
 			 " total)")))))
 	(blockpost
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Finished post processing for " thisblock " items in "
-		 (short-interval-string blockpost))
+		 "Finished post processing for " (printnum thisblock)
+		 " items in " (short-interval-string blockpost))
 	 (let ((total (+ blockprep blocktime blockpost)))
 	   (notify (if (config 'appid) (printout (config 'appid) ": "))
-		   "Processed " thisblock " items in "
+		   "Processed " (printnum thisblock) " items in "
 		   (short-interval-string total)
 		   "= " (short-interval-string blockprep)
 		   " (" (get% blockprep total) "%) "
@@ -403,11 +373,11 @@
 		   " (" (get% blockpost total) "%)")))
 	(blocktime
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Finished execution for " thisblock " items in "
+		 "Finished execution for " (printnum thisblock) " items in "
 		 (short-interval-string blocktime)))
 	(blockprep
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
-		 "Finished preparation for " thisblock " items in "
+		 "Finished preparation for " (printnum thisblock) " items in "
 		 (short-interval-string blockprep)))
 	(else)))
 
@@ -420,17 +390,22 @@
   (lambda (count thisblock limit nthreads
 		 time preptime posttime blockprep blocktime blockpost)
     (cond ((= count limit)
-	   (notify task ": finished all " limit " elements "
-		   " in " (short-interval-string time)
-		   " with " (get% preptime time) "% ("
-		   (short-interval-string preptime) ") in pre-processing and "
+	   (notify task ": finished all " (printnum limit) " elements "
+		   "in " (short-interval-string time) " "
+		   "with " (get% preptime time) "% ("
+		   (short-interval-string preptime) ") in pre-processing, "
+		   (let ((exectime (- time preptime posttime)))
+		     (printout (get% exectime time) "% ("
+			       (short-interval-string exectime)
+			       ") in execution, "))
+		   "and "
 		   (get% posttime time) "% ("
 		   (short-interval-string posttime) ") in post-processing."))
 	  ((not (or blocktime blockprep blockpost))
 	   (unless (= count 0)
 	     (let ((togo (* time (/ (- limit count) count))))
 	       (notify task ": finished " (get% count limit) "% ("
-		       count "/" limit ") in "
+		       (printnum count) "/" (printnum limit) ") in "
 		       (short-interval-string time)
 		       (when (> count 0)
 			 (printout ", ~"
@@ -441,13 +416,19 @@
 
 ;;; Verbosity configuration
 
-(define verbosity 1)
+(define verbosity #f)
 
-(define (get-default-progressfn)
-  (cond ((= verbosity 0) mt/no-progress)
-	((= verbosity 1) mt/sparse-progress)
-	((= verbosity 2) mt/default-progress)
-	((>= verbosity 3) mt/detailed-progress)))
+(define (get-default-progressfn (v verbosity))
+  (cond ((not (number? v)) mt/sparse-progress)
+	((= v 0) mt/no-progress)
+	((= v 1) mt/sparse-progress)
+	((= v 2) mt/default-progress)
+	(else mt/detailed-progress)))
+
+(define (getprogressfn v)
+  (if (number? v)
+      (get-default-progressfn v)
+      v))
 
 (define (config-verbosity var (value))
   (if (bound? value)
