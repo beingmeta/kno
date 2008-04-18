@@ -289,6 +289,8 @@ static fdtype _add_to_choice(fdtype current,fdtype new)
 	return fd_simplify_choice(new);
       else return new;
     else return new;
+  else if (current==new) {
+    fd_decref(new); return current;}
   else if (FD_ACHOICEP(current)) {
     _achoice_add((struct FD_ACHOICE *)current,new);
     return current;}
