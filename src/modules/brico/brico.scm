@@ -250,6 +250,8 @@
 ;;; Getting norms, glosses, etc.
 
 (define (get-norm concept (language default-language) (tryhard #t))
+  "Gets the 'normal' word for a concept in a given language, \
+   going to English or other languages if necessary"
   (try (tryif custom-norms
 	      (pick-one (largest (custom-get concept language custom-norms))))
        (tryif (eq? language english) (first (get concept 'ranked)))
@@ -260,6 +262,8 @@
 		   (pick-one (largest (cdr (get concept '%words))))))))
 
 (define (%get-norm concept (language default-language))
+  "Gets the 'normal' word for a concept in a given language, \
+   skipping custom overrides and not looking in other languages."
   (try (tryif (eq? language english) (first (get concept 'ranked)))
        (pick-one (largest (get (get concept '%norm) language)))
        (tryif (eq? language english) (pick-one (largest (get concept 'words))))
