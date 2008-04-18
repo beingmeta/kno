@@ -66,6 +66,8 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...);
 FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...);
 FD_EXPORT int fd_bg_prefetch(fdtype keys);
 
+FD_EXPORT int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values);
+
 FD_EXPORT 
 int fd_index_frame(fd_index ix,fdtype frame,fdtype slotid,fdtype values);
 

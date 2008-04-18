@@ -55,7 +55,34 @@ static fdtype xfind_frames_lexpr(int n,fdtype *args)
   return fd_finder(args[0],n-1,args+1);
 }
 
-static void hashtable_index_frame(fdtype ix,fdtype frames,fdtype slotids,fdtype values)
+static fdtype prefetch_slotvals(fdtype index,fdtype slotids,fdtype values)
+{
+  fd_index ix=fd_lisp2index(index);
+  if (ix==NULL) return FD_ERROR_VALUE;
+  else fd_find_prefetch(ix,slotids,values);
+  return FD_VOID;
+}
+
+static fdtype find_frames_prefetch(int n,fdtype *args)
+{
+  int i=(n%2);
+  fd_index ix=((n%2) ? (fd_lisp2index(args[0])) : ((fd_index)(fd_background)));
+  if (ix==NULL) return FD_ERROR_VALUE;
+  else while (i<n) {
+    FD_DO_CHOICES(slotid,args[i]) {
+      if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) {}
+      else return fd_type_error("slotid","find_frames_prefetch",slotid);}
+    i=i+2;}
+  i=(n%2); while (i<n) {
+    fdtype slotids=args[i], values=args[i+1];
+    fd_find_prefetch(ix,slotids,values);
+    i=i+2;}
+  return FD_VOID;
+}
+
+static void hashtable_index_frame(fdtype ix,
+				  fdtype frames,fdtype slotids,
+				  fdtype values)
 {
   if (FD_VOIDP(values)) {
     FD_DO_CHOICES(frame,frames) {
@@ -1881,6 +1908,12 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("XFIND-FRAMES",xfind_frames_lexpr,3)));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprim3
+			  ("PREFETCH-SLOTVALS!",prefetch_slotvals,3)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn
+			  ("FIND-FRAMES-PREFETCH!",find_frames_prefetch,2)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprimn("SWAPOUT",swapout_lexpr,0));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("COMMIT",commit_lexpr,0));

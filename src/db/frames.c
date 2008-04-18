@@ -710,6 +710,42 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
 }
 
 
+/* Find prefetching */
+
+/* This prefetches a set of slotvalue keys from an index.
+   The main advantage of this over assembling a set of keys
+   externally is that this doesn't bother sorting the vector
+   of generated keys.  This can save time, especially when the
+   numbers of values is large and values may be strings. */
+
+FD_EXPORT
+int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
+{
+  if ((ix->handler->fetchn)==NULL) {
+    fdtype keys=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(slotid,slotids) {
+      FD_DO_CHOICES(value,values) {
+	fdtype key=fd_init_pair(NULL,slotid,value);
+	FD_ADD_TO_CHOICE(keys,keys);}}
+    fd_index_prefetch(ix,keys);
+    fd_decref(keys);
+    return 1;}
+  else {
+    int max_keys=FD_CHOICE_SIZE(slotids)*FD_CHOICE_SIZE(values);
+    fdtype *keyv=u8_alloc_n(max_keys,fdtype);
+    fdtype *valuev=NULL;
+    int n_keys=0;
+    FD_DO_CHOICES(slotid,slotids) {
+      FD_DO_CHOICES(value,values) {
+	fdtype key=fd_init_pair(NULL,slotid,value);
+	keyv[n_keys++]=key;}}
+    valuev=(ix->handler->fetchn)(ix,n_keys,keyv);
+    fd_hashtable_iter(&(ix->cache),fd_table_add_empty_noref,
+		      n_keys,keyv,valuev);
+    u8_free(keyv); u8_free(valuev);}
+}
+
+
 /* Indexing frames */
 
 FD_EXPORT 
