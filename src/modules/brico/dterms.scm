@@ -37,7 +37,10 @@
 
 (define (find-dterm concept (language default-language) (norm))
   (default! norm (termnorm concept language))
-  (if (singleton? (?? language norm)) norm
+  ;; (singleton? (?? language norm))
+  (if (or (singleton? (?? (get norm-map language) norm))
+	  (singleton? (?? language norm)))
+      norm
       (try
        (if (test concept 'type '{individual name})
 	   (if (test concept 'sensecat 'noun.location)
@@ -126,11 +129,12 @@
 	 (try-choices (d (difference (get concept language) norm))
 	   (tryif (singleton? (intersection meanings (?? language d)))
 		  (string-append norm "="  d)))
-	 (try-choices (d (difference (get (get concept defterms) normslot)
-				     norm))
-	   (tryif (singleton? (intersection meanings
-					    (?? defterms (?? normslot d))))
-		  (string-append norm " (*"  d ")")))
+	 (tryif usedefterms
+		(try-choices (d (difference (get (get concept defterms) normslot)
+					    norm))
+		  (tryif (singleton? (intersection meanings
+						   (?? defterms (?? normslot d))))
+			 (string-append norm " (*"  d ")"))))
 	 (try-choices (n (get-norm concept language))
 	   (tryif (not (equal? n norm))
 		  (find-generic-dterm concept language n)))

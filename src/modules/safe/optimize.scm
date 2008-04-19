@@ -141,8 +141,9 @@
   (def-opcode EQUAL?     0x82 2)
   (def-opcode ELT        0x83 2)
 
-  ;;(def-opcode GET 18 2)
-  ;;(def-opcode TEST 19)
+  ;; (def-opcode GET        0xA0 2)
+  ;; (def-opcode TEST       0xA1 2)
+  ;; (def-opcode TEST       0xA1 3)
   )
 
 ;;; The core loop
