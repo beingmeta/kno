@@ -793,7 +793,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       if (is_initial) {
 	u8_printf(out," #[]"); return col+3;}
       else {u8_printf(out," #[]"); return col+4;}}
-    fd_lock_struct(sm);
+    fd_read_lock_struct(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
@@ -803,7 +803,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return col+1;}
   else {
     int startoff=out->u8_outptr-out->u8_outbuf;
@@ -903,9 +903,9 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_pair=1; 
-    fd_lock_struct(sm);
+    fd_read_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    if (slotmap_size==0) fd_unlock_struct(sm);
+    if (slotmap_size==0) fd_rw_unlock_struct(sm);
     if (slotmap_size==0) {
       if (is_initial) {
 	u8_printf(out," #[]"); return 3;}
@@ -920,7 +920,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return col+1;}
   else {
     int startoff=out->u8_outptr-out->u8_outbuf;
@@ -989,16 +989,16 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(expr);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
-    fd_lock_struct(sm);
+    fd_read_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->key)) {
-	fd_unlock_struct(sm); return 1;}
+	fd_rw_unlock_struct(sm); return 1;}
       else if (embeddedp(focus,scan->value)) {
-	fd_unlock_struct(sm); return 1;}
+	fd_rw_unlock_struct(sm); return 1;}
       else scan++;
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return 0;}
   else return 0;
 }

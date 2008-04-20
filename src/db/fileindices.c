@@ -918,8 +918,8 @@ static int file_index_commit(struct FD_INDEX *ix)
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->n_slots*4, newcount;
-  fd_lock_struct(&(ix->adds));
-  fd_lock_struct(&(ix->edits));
+  fd_write_lock_struct(&(ix->adds));
+  fd_write_lock_struct(&(ix->edits));
   fd_lock_struct(fx);
   fd_dts_start_write(stream);
   /* Get the current offsets from the index */
@@ -980,8 +980,8 @@ static int file_index_commit(struct FD_INDEX *ix)
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
       if (gc_new_offsets) u8_free(new_offsets);
-      fd_unlock_struct((&(ix->adds)));
-      fd_unlock_struct((&(ix->edits)));
+      fd_rw_unlock_struct((&(ix->adds)));
+      fd_rw_unlock_struct((&(ix->edits)));
       fd_unlock_struct(fx);
       return newcount;}
     filepos=fd_endpos(stream);
@@ -1033,9 +1033,9 @@ static int file_index_commit(struct FD_INDEX *ix)
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
     fd_reset_hashtable(&(ix->adds),67,0);
-    fd_unlock_struct(&(ix->adds));
+    fd_rw_unlock_struct(&(ix->adds));
     fd_reset_hashtable(&(ix->edits),67,0);
-    fd_unlock_struct(&(ix->edits));
+    fd_rw_unlock_struct(&(ix->edits));
     return n;}
 }
 

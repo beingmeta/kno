@@ -382,7 +382,7 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v)
 static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
 {
   int dtype_len;
-  fd_lock_struct(v);
+  fd_read_lock_struct(v);
   {
     struct FD_KEYVAL *keyvals=v->keyvals;
     int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
@@ -398,14 +398,14 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
     while (i < kvsize) {
       output_dtype(dtype_len,out,keyvals[i].key);
       output_dtype(dtype_len,out,keyvals[i].value); i++;}}
-  fd_unlock_struct(v);
+  fd_rw_unlock_struct(v);
   return dtype_len;
 }
 
 static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
 {
   int dtype_len;
-  fd_lock_struct(v);
+  fd_read_lock_struct(v);
   {
     fdtype *schema=v->schema, *values=v->values;
     int i=0, schemasize=FD_XSCHEMAP_SIZE(v), len=schemasize*2;
@@ -421,14 +421,14 @@ static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
     while (i < schemasize) {
       output_dtype(dtype_len,out,schema[i]);
       output_dtype(dtype_len,out,values[i]); i++;}}
-  fd_unlock_struct(v);
+  fd_rw_unlock_struct(v);
   return dtype_len;
 }
 
 static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
 {
   int dtype_len;
-  fd_lock_struct(v);
+  fd_read_lock_struct(v);
   {
     int size=v->n_keys;
     struct FD_HASHENTRY **scan=v->slots, **limit=scan+v->n_slots;
@@ -448,14 +448,14 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
 	struct FD_KEYVAL *kscan=&(he->keyval0), *klimit=kscan+he->n_keyvals;
 	while (kscan < klimit) {
 	  if (try_dtype_output(&dtype_len,out,kscan->key)<0) {
-	    fd_unlock_struct(v);
+	    fd_rw_unlock_struct(v);
 	    return -1;}
 	  if (try_dtype_output(&dtype_len,out,kscan->value)<0) {
-	    fd_unlock_struct(v);
+	    fd_rw_unlock_struct(v);
 	    return -1;}
 	  kscan++;}}
       else scan++;}
-  fd_unlock_struct(v);
+  fd_rw_unlock_struct(v);
   return dtype_len;
 }
 

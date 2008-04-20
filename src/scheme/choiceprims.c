@@ -78,6 +78,9 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
+  else if (FD_ABORTP(choices))
+    return choices;
+  else if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
   else if (FD_ABORTP(choices)) return choices;
   else if (FD_VOIDP(count_var)) {
     bindings.size=1;
@@ -90,16 +93,13 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
-  if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
-  else if (FD_ABORTP(choices))
-    return choices;
-  else {
+  {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fd_incref(elt);
       if (envstruct.copy) {
@@ -125,6 +125,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
+    fd_destroy_rwlock(&(bindings.rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return FD_VOID;}
 }
@@ -143,6 +144,9 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
+  else if (FD_ABORTP(choices))
+    return choices;
+  else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
   else if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
@@ -153,16 +157,13 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type); 
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type); 
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
-  if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
-  else if (FD_ABORTP(choices))
-    return choices;
-  else {
+  {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
       if (envstruct.copy) {
@@ -190,6 +191,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
+    fd_destroy_rwlock(&(bindings.rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return fd_simplify_choice(results);}
 }
@@ -208,6 +210,10 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
+  else if (FD_ABORTP(choices))
+    return choices;
+  else if (FD_EMPTY_CHOICEP(choices))
+    return FD_EMPTY_CHOICE;
   else if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
@@ -218,16 +224,13 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type); 
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type); 
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
-  if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
-  else if (FD_ABORTP(choices))
-    return choices;
-  else {
+  {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
       if (envstruct.copy) {
@@ -254,6 +257,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
+    fd_destroy_rwlock(&(bindings.rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return fd_simplify_choice(results);}
 }
@@ -271,7 +275,11 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   fdtype test_expr=fd_get_arg(expr,2), *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTP(choices))
+    return choices;
+  else if (FD_ABORTP(var)) return var;
+  else if (FD_EMPTY_CHOICEP(choices))
+    return FD_EMPTY_CHOICE;
   else if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID;
@@ -283,16 +291,13 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   inner_env=(fdtype)(&envstruct);
-  if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
-  else if (FD_ABORTP(choices))
-    return choices;
-  else {
+  {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
       if (envstruct.copy) {
@@ -321,6 +326,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
       i++;}
     *vloc=FD_VOID;
     fd_decref(choices);
+    fd_destroy_rwlock(&(bindings.rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return fd_simplify_choice(results);}
 }
@@ -367,7 +373,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -437,6 +443,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
 	else u8_free((struct FD_CHOICE *)v);}
       i++;}}
   fd_decref(choices);
+  fd_destroy_rwlock(&(bindings.rwlock));
   if (envstruct.copy) fd_recycle_environment(envstruct.copy);
   return FD_VOID;
 }

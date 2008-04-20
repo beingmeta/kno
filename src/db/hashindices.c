@@ -1163,19 +1163,19 @@ static fdtype *hash_index_fetchn_inner(fd_index ix,int n,fdtype *keys,int stream
   results=fetchn(hx,n,keys,stream_locked);
   if (results) {
     int i=0;
-    if (adds_locked==0) fd_lock_struct(&(hx->adds));
+    if (adds_locked==0) fd_read_lock_struct(&(hx->adds));
     while (i<n) {
       fdtype v=fd_hashtable_get_nolock(&(hx->adds),keys[i],FD_EMPTY_CHOICE);
       if (FD_ABORTP(v)) {
 	int j=0; while (j<n) { fd_decref(results[j]); j++;}
 	u8_free(results);
-	if (adds_locked) fd_unlock_struct(&(hx->adds));
+	if (adds_locked) fd_rw_unlock_struct(&(hx->adds));
 	fd_interr(v);
 	return NULL;}
       else if (FD_EMPTY_CHOICEP(v)) i++;
       else {
 	FD_ADD_TO_CHOICE(results[i],v); i++;}}
-    if (adds_locked==0) fd_unlock_struct(&(hx->adds));}
+    if (adds_locked==0) fd_rw_unlock_struct(&(hx->adds));}
   return results;
 }
 
@@ -1972,8 +1972,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct BUCKET_REF *bucket_locs;
   off_t endpos;
   fd_lock_struct(hx);
-  fd_lock_struct(&(hx->adds));
-  fd_lock_struct(&(hx->edits));
+  fd_write_lock_struct(&(hx->adds));
+  fd_write_lock_struct(&(hx->edits));
   schedule_max=hx->adds.n_keys+hx->edits.n_keys;
   bucket_locs=u8_alloc_n(schedule_max,struct BUCKET_REF);
   {
@@ -2147,9 +2147,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
 
   /* And reset the modifications */
   fd_reset_hashtable(&(ix->adds),67,0);
-  fd_unlock_struct(&(ix->adds));
+  fd_rw_unlock_struct(&(ix->adds));
   fd_reset_hashtable(&(ix->edits),67,0);
-  fd_unlock_struct(&(ix->edits));
+  fd_rw_unlock_struct(&(ix->edits));
   u8_free(bucket_locs);
 
   /* And unlock all the locks. */

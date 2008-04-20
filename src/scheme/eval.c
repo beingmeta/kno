@@ -234,7 +234,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       int envcount=0;
       struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
       int i=0, n_slots; struct FD_HASHENTRY **slots; 
-      fd_lock_struct(ht);
+      fd_read_lock_struct(ht);
       n_slots=ht->n_slots; slots=ht->slots;
       while (i<n_slots)
 	if (slots[i]) {
@@ -244,7 +244,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
 	  while (j<n_keyvals) {
 	    envcount=envcount+count_envrefs(keyvals[j].value,env,depth-1); j++;}}
 	else i++;
-      fd_unlock_struct(ht);
+      fd_rw_unlock_struct(ht);
       return envcount;}
     default:
       if (constype==fd_environment_type) {

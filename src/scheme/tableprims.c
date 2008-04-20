@@ -68,9 +68,9 @@ static fdtype reset_hashtable(fdtype table,fdtype n_slots)
 static fdtype static_hashtable(fdtype table)
 {
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
-  fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   ht->modified=-1;
-  fd_unlock_struct(ht);
+  fd_rw_unlock_struct(ht);
   return fd_incref(table);
 }
 

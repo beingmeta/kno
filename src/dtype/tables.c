@@ -179,20 +179,20 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_mutex(&sm->lock);
+  fd_write_lock(&sm->rwlock);
   size=osize=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_insert(key,&(sm->keyvals),&size);
   if (FD_EXPECT_FALSE(result==NULL)) {
-    fd_unlock_mutex(&sm->lock);
+    fd_rw_unlock(&(sm->rwlock));
     fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
     return -1;}
   fd_decref(result->value); result->value=fd_incref(value);
   FD_XSLOTMAP_MARK_MODIFIED(sm);
   if (osize != size) {
     FD_XSLOTMAP_SET_SIZE(sm,size);
-    fd_unlock_mutex(&sm->lock);
+    fd_rw_unlock(&sm->rwlock);
     return 1;}
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   return 0;
 }
 
@@ -203,20 +203,20 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   if (FD_EMPTY_CHOICEP(value)) return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_mutex(&sm->lock);
+  fd_write_lock(&sm->rwlock);
   size=osize=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_insert(key,&(sm->keyvals),&size);
   if (FD_EXPECT_FALSE(result==NULL)) {
-    fd_unlock_mutex(&sm->lock);
+    fd_rw_unlock(&sm->rwlock);
     fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
     return -1;}
   FD_ADD_TO_CHOICE(result->value,fd_incref(value)); 
   FD_XSLOTMAP_MARK_MODIFIED(sm);
   if (osize != size) {
     FD_XSLOTMAP_SET_SIZE(sm,size);
-    fd_unlock_mutex(&sm->lock);
+    fd_rw_unlock(&sm->rwlock);
     return 1;}
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   return 0;
 }
 
@@ -226,7 +226,7 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_mutex(&sm->lock);
+  fd_write_lock(&sm->rwlock);
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
@@ -241,7 +241,7 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 	FD_XSLOTMAP_SET_SIZE(sm,size-1);}
       else {
 	fd_decref(result->value); result->value=newval;}}}
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   if (result) return 1; else return 0;
 }
 
@@ -249,7 +249,7 @@ FD_EXPORT int fd_slotmap_delete(struct FD_SLOTMAP *sm,fdtype key)
 {
   struct FD_KEYVAL *result; int size;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
-  fd_lock_mutex(&sm->lock);
+  fd_write_lock(&sm->rwlock);
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
@@ -258,7 +258,7 @@ FD_EXPORT int fd_slotmap_delete(struct FD_SLOTMAP *sm,fdtype key)
     memmove(result,result+1,entries_to_move*sizeof(struct FD_KEYVAL));
     FD_XSLOTMAP_MARK_MODIFIED(sm);
     FD_XSLOTMAP_SET_SIZE(sm,size-1);}
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   if (result) return 1; else return 0;
 }
 
@@ -274,20 +274,20 @@ FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
   struct FD_CHOICE *result;
   fdtype *write; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  fd_lock_mutex(&sm->lock);
+  fd_read_lock(&sm->rwlock);
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
   if (size==0) {
-    fd_unlock_mutex(&sm->lock);
+    fd_rw_unlock(&sm->rwlock);
     return FD_EMPTY_CHOICE;}
   else if (size==1) {
     fdtype key=fd_incref(scan->key);
-    fd_unlock_mutex(&sm->lock);
+    fd_rw_unlock(&sm->rwlock);
     return key;}
   /* Otherwise, copy the keys into a choice vector. */
   result=fd_alloc_choice(size);
   write=(fdtype *)FD_XCHOICE_DATA(result);
   while (scan < limit) *write++=(scan++)->key;
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   /* Note that we can assume that the choice is sorted because the keys are. */
   return fd_init_choice(result,size,NULL,FD_CHOICE_ISATOMIC|FD_CHOICE_REALLOC);
 }
@@ -299,7 +299,7 @@ FD_EXPORT fdtype fd_slotmap_max
   struct FD_KEYVAL *scan, *limit; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (FD_EMPTY_CHOICEP(scope)) return result;
-  fd_lock_mutex(&sm->lock);
+  fd_read_lock(&sm->rwlock);
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
   while (scan<limit) {
     if ((FD_VOIDP(scope)) || (fd_overlapp(scan->key,scope))) {
@@ -316,7 +316,7 @@ FD_EXPORT fdtype fd_slotmap_max
 	  else if (cmp==0) {
 	    FD_ADD_TO_CHOICE(result,fd_incref(scan->key));}}}}
     scan++;}
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   if ((maxvalp) && (FD_NUMBERP(maxval))) *maxvalp=fd_incref(maxval);
   return result;
 }
@@ -327,7 +327,7 @@ FD_EXPORT fdtype fd_slotmap_skim(struct FD_SLOTMAP *sm,fdtype maxval,fdtype scop
   struct FD_KEYVAL *scan, *limit; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (FD_EMPTY_CHOICEP(scope)) return result;
-  fd_lock_mutex(&sm->lock);
+  fd_read_lock(&sm->rwlock);
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
   while (scan<limit) {
     if ((FD_VOIDP(scope)) || (fd_overlapp(scan->key,scope)))
@@ -335,7 +335,7 @@ FD_EXPORT fdtype fd_slotmap_skim(struct FD_SLOTMAP *sm,fdtype maxval,fdtype scop
 	int cmp=numcompare(scan->value,maxval);
 	if (cmp>=0) {FD_ADD_TO_CHOICE(result,fd_incref(scan->key));}}
     scan++;}
-  fd_unlock_mutex(&sm->lock);
+  fd_rw_unlock(&sm->rwlock);
   return result;
 }
 
@@ -348,7 +348,7 @@ FD_EXPORT fdtype fd_init_slotmap
   sort_keyvals(data,len);
   ptr->size=len; ptr->keyvals=data;
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&(ptr->lock));
+  fd_init_rwlock(&(ptr->rwlock));
 #endif
   return FDTYPE_CONS(ptr);
 }
@@ -357,7 +357,7 @@ static fdtype copy_slotmap(fdtype smap,int deep)
 {
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
-  fd_lock_struct(cur);
+  fd_read_lock_struct(cur);
   if (FD_XSLOTMAP_SIZE(cur)) {
     int n=FD_XSLOTMAP_SIZE(cur);
     struct FD_KEYVAL *read=cur->keyvals, *read_limit=read+n;
@@ -379,9 +379,9 @@ static fdtype copy_slotmap(fdtype smap,int deep)
   else {
     FD_INIT_CONS(fresh,fd_slotmap_type);
     fresh->size=0; fresh->keyvals=NULL;}
-  fd_unlock_struct(cur);
+  fd_rw_unlock_struct(cur);
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&(fresh->lock));
+  fd_init_rwlock(&(fresh->rwlock));
 #endif
   return FDTYPE_CONS(fresh);
 }
@@ -389,22 +389,22 @@ static fdtype copy_slotmap(fdtype smap,int deep)
 static void recycle_slotmap(struct FD_CONS *c)
 {
   struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c;
-  fd_lock_struct(sm);
+  fd_write_lock_struct(sm);
   {
     int slotmap_size=FD_XSLOTMAP_SIZE(sm);
     const struct FD_KEYVAL *scan=sm->keyvals, *limit=sm->keyvals+slotmap_size;
     while (scan < limit) {
       fd_decref(scan->key); fd_decref(scan->value); scan++;}
     u8_free(sm->keyvals);
-    fd_unlock_struct(sm);
-    fd_destroy_mutex(&(sm->lock));
+    fd_rw_unlock_struct(sm);
+    fd_destroy_rwlock(&(sm->rwlock));
     u8_free(sm);    
   }
 }
 static int unparse_slotmap(u8_output out,fdtype x)
 {
   struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-  fd_lock_struct(sm);
+  fd_read_lock_struct(sm);
   {
     int slotmap_size=FD_XSLOTMAP_SIZE(sm);
     struct FD_KEYVAL *scan=sm->keyvals, *limit=sm->keyvals+slotmap_size;
@@ -418,7 +418,7 @@ static int unparse_slotmap(u8_output out,fdtype x)
       fd_unparse(out,scan->value); scan++;}
     u8_puts(out,"]");
   }
-  fd_unlock_struct(sm);
+  fd_rw_unlock_struct(sm);
   return 1;
 }
 static int compare_slotmaps(fdtype x,fdtype y,int quick)
@@ -426,7 +426,7 @@ static int compare_slotmaps(fdtype x,fdtype y,int quick)
   int result=0;
   struct FD_SLOTMAP *smx=(struct FD_SLOTMAP *)x;
   struct FD_SLOTMAP *smy=(struct FD_SLOTMAP *)y;
-  fd_lock_struct(smx); fd_lock_struct(smy);
+  fd_read_lock_struct(smx); fd_read_lock_struct(smy);
   {
     int xsize=FD_XSLOTMAP_SIZE(smx), ysize=FD_XSLOTMAP_SIZE(smy);
     if (xsize>ysize) result=1;
@@ -443,7 +443,7 @@ static int compare_slotmaps(fdtype x,fdtype y,int quick)
 	if (cmp) {result=cmp; break;}
 	else i++;}}}
   }
-  fd_unlock_struct(smx); fd_unlock_struct(smy);
+  fd_rw_unlock_struct(smx); fd_rw_unlock_struct(smy);
   return result;
 }
 
@@ -462,7 +462,7 @@ FD_EXPORT fdtype fd_make_schemap
     ptr->values=values=u8_alloc_n(size,fdtype);
     while (i<size) values[i++]=FD_VOID;}
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&(ptr->lock));
+  fd_init_rwlock(&(ptr->rwlock));
 #endif
   return FDTYPE_CONS(ptr);
 }
@@ -531,7 +531,7 @@ static fdtype copy_schemap(fdtype schemap,int deep)
   if (ptr->flags&FD_SCHEMAP_STACK_SCHEMA)
     nptr->flags=(ptr->flags-FD_SCHEMAP_STACK_SCHEMA)|FD_SCHEMAP_PRIVATE;
   else nptr->flags=ptr->flags;
-  fd_init_mutex(&(nptr->lock));
+  fd_init_rwlock(&(nptr->rwlock));
   return FDTYPE_CONS(nptr);
 }
 
@@ -552,7 +552,7 @@ FD_EXPORT fdtype fd_init_schemap
   else ptr->flags=ptr->flags|FD_SCHEMAP_PRIVATE;
   u8_free(init);
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&(ptr->lock));
+  fd_init_rwlock(&(ptr->rwlock));
 #endif
   return FDTYPE_CONS(ptr);
 }
@@ -577,17 +577,17 @@ FD_EXPORT int fd_schemap_store
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_struct(sm);
+  fd_write_lock_struct(sm);
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
     fd_decref(sm->values[slotno]);
     sm->values[slotno]=fd_incref(value);
     FD_XSCHEMAP_MARK_MODIFIED(sm);
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return 1;}
   else {
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     fd_seterr(fd_NoSuchKey,"fd_schemap_store",NULL,key);
     return -1;}
 }
@@ -600,16 +600,16 @@ FD_EXPORT int fd_schemap_add
   if (FD_EMPTY_CHOICEP(value)) return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_struct(sm);
+  fd_write_lock_struct(sm);
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
     FD_ADD_TO_CHOICE(sm->values[slotno],fd_incref(value));
     FD_XSCHEMAP_MARK_MODIFIED(sm);
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return 1;}
   else {
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     fd_seterr(fd_NoSuchKey,"fd_schemap_add",NULL,key);}
 }
 	      
@@ -620,7 +620,7 @@ FD_EXPORT int fd_schemap_drop
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_struct(sm);
+  fd_write_lock_struct(sm);
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
@@ -630,10 +630,10 @@ FD_EXPORT int fd_schemap_drop
     else {
       FD_XSCHEMAP_MARK_MODIFIED(sm);
       fd_decref(oldval); sm->values[slotno]=newval;}
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return 1;}
   else {
-    fd_unlock_struct(sm);
+    fd_rw_unlock_struct(sm);
     return 0;}
 }
 
@@ -661,7 +661,7 @@ FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *sm)
 static void recycle_schemap(struct FD_CONS *c)
 {
   struct FD_SCHEMAP *sm=(struct FD_SCHEMAP *)c;
-  fd_lock_struct(sm);
+  fd_write_lock_struct(sm);
   {
     int schemap_size=FD_XSCHEMAP_SIZE(sm);
     fdtype *scan=sm->values, *limit=sm->values+schemap_size;
@@ -669,15 +669,15 @@ static void recycle_schemap(struct FD_CONS *c)
     if (((sm->flags)&(FD_SCHEMAP_PRIVATE))&&(sm->schema))
       u8_free(sm->schema);
     if (sm->values) u8_free(sm->values);
-    fd_unlock_struct(sm);
-    fd_destroy_mutex(&(sm->lock));
+    fd_rw_unlock_struct(sm);
+    fd_destroy_rwlock(&(sm->rwlock));
     u8_free(sm);    
   }
 }
 static int unparse_schemap(u8_output out,fdtype x)
 {
   struct FD_SCHEMAP *sm=FD_XSCHEMAP(x);
-  fd_lock_struct(sm);
+  fd_read_lock_struct(sm);
   {
     int i=0, schemap_size=FD_XSCHEMAP_SIZE(sm);
     fdtype *schema=sm->schema, *values=sm->values;
@@ -691,7 +691,7 @@ static int unparse_schemap(u8_output out,fdtype x)
       fd_unparse(out,values[i]); i++;}
     u8_puts(out,"]");
   }
-  fd_unlock_struct(sm);
+  fd_rw_unlock_struct(sm);
   return 1;
 }
 static int compare_schemaps(fdtype x,fdtype y,int quick)
@@ -699,7 +699,7 @@ static int compare_schemaps(fdtype x,fdtype y,int quick)
   int result=0;
   struct FD_SCHEMAP *smx=(struct FD_SCHEMAP *)x;
   struct FD_SCHEMAP *smy=(struct FD_SCHEMAP *)y;
-  fd_lock_struct(smx); fd_lock_struct(smy);
+  fd_read_lock_struct(smx); fd_read_lock_struct(smy);
   {
     int xsize=FD_XSCHEMAP_SIZE(smx), ysize=FD_XSCHEMAP_SIZE(smy);
     if (xsize>ysize) result=1;
@@ -716,7 +716,7 @@ static int compare_schemaps(fdtype x,fdtype y,int quick)
 	  int cmp=FD_QCOMPARE(xvalues[i],yvalues[i]);
 	  if (cmp) {result=cmp; break;}
 	  else i++;}}}}
-  fd_unlock_struct(smx); fd_unlock_struct(smy);
+  fd_rw_unlock_struct(smx); fd_rw_unlock_struct(smy);
   return result;
 }
  
@@ -997,9 +997,9 @@ FD_EXPORT fdtype fd_hashtable_get
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return fd_incref(dflt);
-  if (ht->modified>=0) fd_lock_struct(ht);
+  if (ht->modified>=0) fd_read_lock_struct(ht);
   if (ht->n_keys == 0) {
-    if (ht->modified>=0) fd_unlock_struct(ht);
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return fd_incref(dflt);}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
@@ -1008,29 +1008,29 @@ FD_EXPORT fdtype fd_hashtable_get
       struct FD_ACHOICE *ach=FD_XACHOICE(rv);
       if (ach->size<=1) {
 	fdtype v=fd_make_simple_choice(rv);
-	if (ht->modified>=0) fd_unlock_struct(ht);
+	if (ht->modified>=0) fd_rw_unlock_struct(ht);
 	return v;}
       else if (ach->uselock) {
-	if (ht->modified>=0) fd_unlock_struct(ht);
+	if (ht->modified>=0) fd_rw_unlock_struct(ht);
 	return fd_make_simple_choice(rv);}
       else {
 	fdtype v=fd_incref(rv);
 	ach->uselock=1;
-	if (ht->modified>=0) fd_unlock_struct(ht);
+	if (ht->modified>=0) fd_rw_unlock_struct(ht);
 	v=fd_make_simple_choice(rv);
 	if (ht->modified>=0) {
-	  fd_lock_struct(ht);
+	  fd_write_lock_struct(ht);
 	  ach->uselock=0;
-	  fd_unlock_struct(ht);}
+	  fd_rw_unlock_struct(ht);}
 	else ach->uselock=0;
 	fd_decref(rv);
 	return v;}}
     else {
       fd_incref(rv);
-      if (ht->modified>=0) fd_unlock_struct(ht);
+      if (ht->modified>=0) fd_rw_unlock_struct(ht);
       return rv;}}
   else {
-    if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return fd_incref(dflt);}
 }
 
@@ -1072,16 +1072,16 @@ FD_EXPORT int fd_hashtable_probe(struct FD_HASHTABLE *ht,fdtype key)
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  if (ht->modified>=0) fd_lock_struct(ht);
+  if (ht->modified>=0) fd_read_lock_struct(ht);
   if (ht->n_keys == 0) {
-      if (ht->modified>=0) fd_unlock_struct(ht);
+      if (ht->modified>=0) fd_rw_unlock_struct(ht);
       return 0;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
-      if (ht->modified>=0) fd_unlock_struct(ht);
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return 1;}
   else {
-      if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_rw_unlock((&(ht->rwlock)));
     return 0;}
 }
 
@@ -1090,9 +1090,9 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  if (ht->modified>=0) fd_lock_struct(ht);
+  if (ht->modified>=0) fd_read_lock_struct(ht);
   if (ht->n_keys == 0) {
-    if (ht->modified>=0) fd_unlock_struct(ht);
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return 0;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
@@ -1108,10 +1108,10 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
-    if (ht->modified>=0) fd_unlock_struct(ht);
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return cmp;}
   else {
-    if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_rw_unlock((&(ht->rwlock)));
     return 0;}
 }
 
@@ -1121,16 +1121,16 @@ FD_EXPORT int fd_hashtable_probe_novoid(struct FD_HASHTABLE *ht,fdtype key)
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  if (ht->modified>=0) fd_lock_struct(ht);
+  if (ht->modified>=0) fd_read_lock_struct(ht);
   if (ht->n_keys == 0) {
-    if (ht->modified>=0) fd_unlock_struct(ht);
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return 0;}
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if ((result) && (!(FD_VOIDP(result->value)))) {
-    if (ht->modified>=0) fd_unlock_struct(ht);
+    if (ht->modified>=0) fd_rw_unlock_struct(ht);
     return 1;}
   else {
-    if (ht->modified>=0) fd_unlock_mutex((&(ht->lock)));
+    if (ht->modified>=0) fd_rw_unlock((&(ht->rwlock)));
     return 0;}
 }
 
@@ -1153,7 +1153,7 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   if (ht->modified<0) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
     return -1;}
-  fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   if (ht->n_slots == 0) setup_hashtable(ht,17);
   n_keys=ht->n_keys;
   result=fd_hashvec_insert
@@ -1161,11 +1161,11 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   if (ht->n_keys>n_keys) added=1; else added=0;
   ht->modified=1; oldv=result->value; newv=fd_incref(value);
   if (FD_ABORTP(newv)) {
-    fd_unlock_struct(ht);
+    fd_rw_unlock_struct(ht);
     return fd_interr(newv);}
   else {
     result->value=newv; fd_decref(oldv);}
-  fd_unlock_struct(ht);
+  fd_rw_unlock_struct(ht);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1185,7 +1185,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
     return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   if (ht->n_slots == 0) setup_hashtable(ht,17);
   n_keys=ht->n_keys;
   result=fd_hashvec_insert
@@ -1193,7 +1193,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   ht->modified=1; if (ht->n_keys>n_keys) added=1; else added=0;
   newv=fd_incref(value);
   if (FD_ABORTP(newv)) {
-    fd_unlock_struct(ht);
+    fd_rw_unlock_struct(ht);
     return fd_interr(newv);}
   else {FD_ADD_TO_CHOICE(result->value,newv);}
 #if 0
@@ -1203,7 +1203,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
     if (ch->uselock) ch->uselock=0;}
 #endif
-  fd_unlock_struct(ht);
+  fd_rw_unlock_struct(ht);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1221,7 +1221,7 @@ FD_EXPORT int fd_hashtable_drop
   if (ht->modified<0) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
     return -1;}
-  fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype newval=
@@ -1229,9 +1229,9 @@ FD_EXPORT int fd_hashtable_drop
     fd_decref(result->value);
     result->value=newval;
     ht->modified=1;
-    fd_unlock_struct(ht);
+    fd_rw_unlock_struct(ht);
     return 1;}
-  fd_unlock_struct(ht);
+  fd_rw_unlock_struct(ht);
   return 0;
 }
 
@@ -1470,9 +1470,9 @@ FD_EXPORT int fd_hashtable_op
   int added;
   if (FD_EMPTY_CHOICEP(key)) return 0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   added=do_hashtable_op(ht,op,key,value);
-  fd_unlock_struct(ht);  
+  fd_rw_unlock_struct(ht);  
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1487,15 +1487,15 @@ FD_EXPORT int fd_hashtable_iter
 {
   int i=0, added=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->modified>=0) fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,keys[i],values[i]);
     else do_hashtable_op(ht,op,keys[i],values[i]);
     i++;}
-  if (ht->modified>=0) fd_unlock_struct(ht);  
-  else if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+  fd_rw_unlock_struct(ht);  
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
@@ -1509,17 +1509,17 @@ FD_EXPORT int fd_hashtable_iterkeys
 {
   int i=0, added=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->modified>=0) fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,keys[i],value);
     else do_hashtable_op(ht,op,keys[i],value);
     if (added<0) {
-      if (ht->modified>=0) fd_unlock_struct(ht);  
+      if (ht->modified>=0) fd_rw_unlock_struct(ht);  
       return added;}
     i++;}
-  if (ht->modified>=0) fd_unlock_struct(ht);  
+  fd_rw_unlock_struct(ht);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1534,15 +1534,15 @@ FD_EXPORT int fd_hashtable_itervals
 {
   int i=0, added=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->modified>=0) fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,key,values[i]);
     else do_hashtable_op(ht,op,key,values[i]);
     i++;}
-  if (ht->modified>=0) fd_unlock_struct(ht);  
-  else if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+  fd_rw_unlock_struct(ht);  
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
@@ -1560,7 +1560,7 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 {
   fdtype result=FD_EMPTY_CHOICE;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
-  if (ptr->modified>=0) fd_lock_mutex(&ptr->lock);
+  if (ptr->modified>=0) fd_read_lock(&ptr->rwlock);
   {
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     while (scan < lim)
@@ -1572,7 +1572,7 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 	  kvscan++;}
 	scan++;}
       else scan++;}
-  if (ptr->modified>=0) fd_unlock_mutex(&ptr->lock);
+  if (ptr->modified>=0) fd_rw_unlock(&ptr->rwlock);
   return fd_simplify_choice(result);
 }
 
@@ -1604,7 +1604,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   struct FD_HASHENTRY **slots; int slots_to_free=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (n_slots<0) n_slots=ht->n_slots;
-  if ((lock) && (ht->modified>=0)) fd_lock_struct(ht);
+  if ((lock) && (ht->modified>=0)) fd_write_lock_struct(ht);
   /* Grab the slots and their length. We'll free them after we've reset
      the table and released its lock. */
   slots=ht->slots; slots_to_free=ht->n_slots;
@@ -1618,7 +1618,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
     ht->slots=slotvec=u8_alloc_n(n_slots,struct FD_HASHENTRY *);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if ((lock) && (ht->modified>=0)) fd_unlock_struct(ht);
+  if ((lock) && (ht->modified>=0)) fd_rw_unlock_struct(ht);
   /* Now, free the old data... */
   if (slots_to_free) {
     free_hashvec(slots,slots_to_free);
@@ -1635,7 +1635,7 @@ FD_EXPORT int fd_fast_reset_hashtable
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (slotsptr==NULL) return fd_reset_hashtable(ht,n_slots,lock);
   if (n_slots<0) n_slots=ht->n_slots;
-  if ((lock) && (ht->modified>=0)) fd_lock_struct(ht);
+  if ((lock) && (ht->modified>=0)) fd_write_lock_struct(ht);
   /* Grab the slots and their length. We'll free them after we've reset
      the table and released its lock. */
   *slotsptr=ht->slots; *slots_to_free=ht->n_slots;
@@ -1649,7 +1649,7 @@ FD_EXPORT int fd_fast_reset_hashtable
     ht->slots=slotvec=u8_alloc_n(n_slots,struct FD_HASHENTRY *);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if ((lock) && (ht->modified>=0)) fd_unlock_struct(ht);
+  if ((lock) && (ht->modified>=0)) fd_rw_unlock_struct(ht);
   return n_slots;
 }
 
@@ -1657,7 +1657,7 @@ FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,fd_ptr_type type)
 {
   int n_conversions=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  fd_lock_mutex(&ptr->lock);
+  fd_write_lock(&ptr->rwlock);
   {
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     while (scan < lim)
@@ -1673,7 +1673,7 @@ FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,fd_ptr_type type)
 	  kvscan++;}
 	scan++;}
       else scan++;}
-  fd_unlock_mutex(&ptr->lock);
+  fd_rw_unlock(&ptr->rwlock);
   return n_conversions;
 }
 
@@ -1686,7 +1686,7 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
     else {
       FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
 #if FD_THREADS_ENABLED
-    fd_init_mutex(&(ptr->lock));
+    fd_init_rwlock(&(ptr->rwlock));
 #endif
     ptr->n_slots=ptr->n_keys=0;  ptr->modified=0;
     ptr->loading=default_hashtable_loading;
@@ -1699,7 +1699,7 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
       FD_INIT_CONS(ptr,fd_hashtable_type);}
     else {FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
 #if FD_THREADS_ENABLED
-    fd_init_mutex(&(ptr->lock));
+    fd_init_rwlock(&(ptr->rwlock));
 #endif
     if (n_slots < 0) n_slots=-n_slots;
     else n_slots=fd_get_hashtable_size(n_slots);
@@ -1729,7 +1729,7 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int n_keyvals,
     struct FD_KEYVAL *hv=fd_hashvec_insert(ki->key,slots,n_slots,&n_keys);
     hv->value=fd_incref(ki->value); i++;}
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&(ptr->lock));
+  fd_init_rwlock(&(ptr->rwlock));
 #endif
   return FDTYPE_CONS(ptr);
 }
@@ -1737,7 +1737,7 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int n_keyvals,
 FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  fd_lock_struct(ptr);
+  fd_write_lock_struct(ptr);
   {
     struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
@@ -1755,7 +1755,7 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
       else scan++;
     u8_free(ptr->slots);
     ptr->n_slots=n_slots; ptr->slots=new_slots;}
-  fd_unlock_struct(ptr);
+  fd_rw_unlock_struct(ptr);
   return n_slots;
 }
 
@@ -1764,14 +1764,14 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
   int n_slots=ptr->n_slots, n_keys=ptr->n_keys;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if ((n_slots == 0) || (n_keys == 0)) return 0;
-  fd_lock_struct(ptr);
+  fd_write_lock_struct(ptr);
   {
     struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     struct FD_HASHENTRY **nscan=new_slots, **nlim=nscan+n_slots;
     int remaining_keys=0;
     if (new_slots==NULL) {
-      fd_unlock_struct(ptr);
+      fd_rw_unlock_struct(ptr);
       return -1;}
     while (nscan<nlim) *nscan++=NULL;
     while (scan < lim)
@@ -1790,7 +1790,7 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
     u8_free(ptr->slots);
     ptr->n_slots=n_slots; ptr->slots=new_slots;
     ptr->n_keys=remaining_keys;}
-  fd_unlock_struct(ptr);
+  fd_rw_unlock_struct(ptr);
   return n_slots;
 }
 
@@ -1803,7 +1803,7 @@ FD_EXPORT int fd_hashtable_stats
   int n_buckets=0, max_bucket=0, n_collisions=0;
   int n_vals=0, max_vals=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  fd_lock_struct(ptr);
+  fd_read_lock_struct(ptr);
   {
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     while (scan < lim)
@@ -1833,7 +1833,7 @@ FD_EXPORT int fd_hashtable_stats
   if (max_bucketp) *max_bucketp=max_bucket;
   if (n_valsp) *n_valsp=n_vals;
   if (max_valsp) *max_valsp=max_vals;
-  fd_unlock_struct(ptr);
+  fd_rw_unlock_struct(ptr);
   return n_keys;
 }
 
@@ -1842,7 +1842,7 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
   struct FD_HASHENTRY **slots, **nslots, **read, **write, **read_limit;
   int n_slots;
   if (nptr==NULL) nptr=u8_alloc(struct FD_HASHTABLE);
-  fd_lock_struct(ptr);
+  fd_read_lock_struct(ptr);
   FD_INIT_CONS(nptr,fd_hashtable_type);
   nptr->n_slots=n_slots=ptr->n_slots;;
   nptr->modified=0;
@@ -1871,9 +1871,9 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 	  else kvwrite->value=fd_copy(val);
 	else kvwrite->value=val;
 	kvwrite++;}}
-  fd_unlock_struct(ptr);
+  fd_rw_unlock_struct(ptr);
 #if FD_THREADS_ENABLED
-  fd_init_mutex(&(nptr->lock));
+  fd_init_rwlock(&(nptr->rwlock));
 #endif
   return FDTYPE_CONS(nptr);
 }
@@ -1897,7 +1897,7 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 {
   struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)c;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_lock_struct(ht);
+  fd_write_lock_struct(ht);
   if (ht->n_slots) {
     struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
     while (scan < lim)
@@ -1912,8 +1912,8 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 	*scan++=NULL;}
       else scan++;
     u8_free(ht->slots);}
-  fd_unlock_struct(ht);
-  fd_destroy_mutex(&(ht->lock));
+  fd_rw_unlock_struct(ht);
+  fd_destroy_rwlock(&(ht->rwlock));
   if (!(FD_STACK_CONSP(ht))) u8_free(ht);
   return 0;
 }
@@ -1926,7 +1926,7 @@ FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
     fd_seterr(fd_TypeError,"hashtable",NULL,(fdtype)ht);
     return NULL;}
   if (ht->n_keys == 0) {*sizep=0; return NULL;}
-  if (lock) fd_lock_struct(ht);
+  if (lock) fd_read_lock_struct(ht);
   if (ht->n_slots) {
     struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
     rscan=results=u8_alloc_n(ht->n_keys,struct FD_KEYVAL);
@@ -1941,7 +1941,7 @@ FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
       else scan++;
     *sizep=ht->n_keys;}
   else {*sizep=0; results=NULL;}
-  if (lock) fd_unlock_struct(ht);
+  if (lock) fd_rw_unlock_struct(ht);
   return results;
 }
 
@@ -1950,7 +1950,7 @@ FD_EXPORT int fd_for_hashtable
 {
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return 0;
-  if (lock) fd_lock_struct(ht);
+  if (lock) fd_read_lock_struct(ht);
   if (ht->n_slots) {
     struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
     while (scan < lim)
@@ -1959,12 +1959,12 @@ FD_EXPORT int fd_for_hashtable
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
 	while (kvscan<kvlimit) {
 	  if (f(kvscan->key,kvscan->value,data)) {
-	    if (lock) fd_unlock_struct(ht);
+	    if (lock) fd_rw_unlock_struct(ht);
 	    return;}
 	  else kvscan++;}
 	scan++;}
       else scan++;}
-  if (lock) fd_unlock_struct(ht);
+  if (lock) fd_rw_unlock_struct(ht);
   return ht->n_slots;
 }
 

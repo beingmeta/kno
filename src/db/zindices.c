@@ -1125,8 +1125,8 @@ static int zindex_commit(struct FD_INDEX *ix)
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   int pos_offset=fx->n_slots*4, newcount;
-  fd_lock_struct(&(ix->adds));
-  fd_lock_struct(&(ix->edits));
+  fd_write_lock_struct(&(ix->adds));
+  fd_write_lock_struct(&(ix->edits));
   fd_lock_struct(fx);
   fd_dts_start_write(stream);
 #if HAVE_MMAP
@@ -1181,8 +1181,8 @@ static int zindex_commit(struct FD_INDEX *ix)
     if (newcount<0) {
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
-      fd_unlock_struct(&(ix->adds));
-      fd_unlock_struct(&(ix->edits));
+      fd_rw_unlock_struct(&(ix->adds));
+      fd_rw_unlock_struct(&(ix->edits));
       fd_unlock_struct(fx);
       return newcount;}
     filepos=fd_endpos(stream);
@@ -1232,9 +1232,9 @@ static int zindex_commit(struct FD_INDEX *ix)
     fsync(stream->fd);
     fd_unlock_struct(fx);
     fd_reset_hashtable(&(ix->adds),67,0);
-    fd_unlock_struct(&(ix->adds));
+    fd_rw_unlock_struct(&(ix->adds));
     fd_reset_hashtable(&(ix->edits),67,0);
-    fd_unlock_struct(&(ix->edits));
+    fd_rw_unlock_struct(&(ix->edits));
     return n;}
 }
 

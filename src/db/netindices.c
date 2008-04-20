@@ -139,8 +139,8 @@ static int netindex_commit(fd_index ix)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   int n_transactions=0;
-  fd_lock_struct(&(nix->adds));
-  fd_lock_struct(&(nix->edits));
+  fd_write_lock_struct(&(nix->adds));
+  fd_write_lock_struct(&(nix->edits));
   if (nix->edits.n_keys) {
     int n_edits;
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->adds),&n_edits,0);
@@ -166,8 +166,8 @@ static int netindex_commit(fd_index ix)
 	else u8_log(LOG_WARN,fd_NoServerMethod,"Server %s doesn't support drops",ix->source);
       else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
       if (FD_ABORTP(result)) {
-	fd_unlock_struct(&(nix->adds));
-	fd_unlock_struct(&(nix->edits));
+	fd_rw_unlock_struct(&(nix->adds));
+	fd_rw_unlock_struct(&(nix->edits));
 	return -1;}
       else fd_decref(result);
       scan++;}
@@ -181,8 +181,8 @@ static int netindex_commit(fd_index ix)
       result=fd_dtcall_nr(nix->connpool,2,iserver_addn,vector);
     else result=fd_dtcall_nrx(nix->connpool,3,3,ixserver_addn,nix->xname,vector);
     if (FD_ABORTP(result)) {
-      fd_unlock_struct(&(nix->adds));
-      fd_unlock_struct(&(nix->edits));
+      fd_rw_unlock_struct(&(nix->adds));
+      fd_rw_unlock_struct(&(nix->edits));
       return -1;}
     else fd_decref(result);
     return n_transactions+1;}
@@ -197,8 +197,8 @@ static int netindex_commit(fd_index ix)
 	result=fd_dtcall_nr(nix->connpool,3,
 			    iserver_add,scan->key,scan->value);
 	if (FD_ABORTP(result)) {
-	  fd_unlock_struct(&(nix->adds));
-	  fd_unlock_struct(&(nix->edits));
+	  fd_rw_unlock_struct(&(nix->adds));
+	  fd_rw_unlock_struct(&(nix->edits));
 	  return -1;}
 	else fd_decref(result);
 	scan++;}
@@ -208,8 +208,8 @@ static int netindex_commit(fd_index ix)
       result=fd_dtcall_nrx(nix->connpool,3,3,
 			   ixserver_add,xname,scan->key,scan->value);
       if (FD_ABORTP(result)) {
-	fd_unlock_struct(&(nix->adds));
-	fd_unlock_struct(&(nix->edits));
+	fd_rw_unlock_struct(&(nix->adds));
+	fd_rw_unlock_struct(&(nix->edits));
 	return -1;}
       else fd_decref(result);
       scan++;}
@@ -218,8 +218,8 @@ static int netindex_commit(fd_index ix)
     u8_free(kvals);
     fd_reset_hashtable(&(nix->adds),67,0);
     fd_reset_hashtable(&(nix->edits),67,0);
-    fd_unlock_struct(&(nix->adds));
-    fd_unlock_struct(&(nix->edits));
+    fd_rw_unlock_struct(&(nix->adds));
+    fd_rw_unlock_struct(&(nix->edits));
     return n_transactions;}
 }
 

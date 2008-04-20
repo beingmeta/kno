@@ -182,7 +182,7 @@ static fd_lispenv init_static_env
   bindings->schema=vars;
   bindings->values=vals;
   bindings->size=n;
-  fd_init_mutex(&(bindings->lock));
+  fd_init_rwlock(&(bindings->rwlock));
   envstruct->bindings=FDTYPE_CONS((bindings));
   envstruct->exports=FD_VOID;
   envstruct->parent=parent;
@@ -394,7 +394,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.schema=fn->schema;
   bindings.size=fn->n_vars;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
@@ -446,7 +446,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     u8_current_exception->u8x_details=u8_strdup(fn->name);
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
-  fd_destroy_mutex(&(bindings.lock));
+  fd_destroy_rwlock(&(bindings.rwlock));
   fd_decref(lexpr_arg);
   if (free_vals) u8_free(vals);
   if (envstruct.copy)
@@ -806,7 +806,7 @@ fdtype fd_xapply_sproc
   bindings.schema=fn->schema;
   bindings.size=fn->n_vars;
   bindings.flags=0;
-  fd_init_mutex(&(bindings.lock));
+  fd_init_rwlock(&(bindings.rwlock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
@@ -856,7 +856,7 @@ fdtype fd_xapply_sproc
   {
     int j=0; while (j<i) {fd_decref(vals[j]); j++;}
     if (vals!=_vals) u8_free(vals);}
-  fd_destroy_mutex(&(bindings.lock));
+  fd_destroy_rwlock(&(bindings.rwlock));
   return result;
 }
 
