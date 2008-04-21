@@ -226,6 +226,23 @@ static fdtype module_exports(fdtype arg)
   else return fd_type_error(_("module"),"module_exports",arg);
 }
 
+static fdtype local_bindings_handler(fdtype expr,fd_lispenv env)
+{
+  if (env->copy)
+    return fd_incref(env->copy->bindings);
+  else {
+    fd_lispenv copied=fd_copy_env(env);
+    fdtype bindings=copied->bindings;
+    fd_incref(bindings);
+    fd_decref((fdtype)copied);
+    return bindings;}
+}
+
+static fdtype thisenv_handler(fdtype expr,fd_lispenv env)
+{
+  return (fdtype) fd_copy_env(env);
+}
+
 /* Finding where a symbol comes from */
 
 static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
@@ -292,6 +309,9 @@ FD_EXPORT void fd_init_reflection_c()
 
   fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
   fd_idefn(module,fd_make_cprim1("MODULE-EXPORTS",module_exports,1));
+
+  fd_defspecial(module,"%ENV",thisenv_handler);
+  fd_defspecial(module,"%BINDINGS",local_bindings_handler);
 
   fd_defspecial(module,"WHEREFROM",wherefrom_handler);
 

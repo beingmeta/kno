@@ -253,6 +253,18 @@
 	  (set! count (1+ count)) (optimize! value))))
     count))
 
+(define (optimize-bindings! bindings)
+  (logdebug "Optimizing bindings " bindings)
+  (let ((count 0))
+    (do-choices (var (getkeys bindings))
+      (logdebug "Optimizing binding " var)
+      (let ((value (get bindings var)))
+	(if (bound? value)
+	    (when (compound-procedure? value)
+	      (set! count (1+ count)) (optimize! value))
+	    (warning var " is unbound"))))
+    count))
+
 (defambda (module-arg? arg)
   (or (fail? arg) (string? arg)
       (and (pair? arg) (eq? (car arg) 'quote))
@@ -267,12 +279,14 @@
 
 (define optimize!
   (macro expr
-    (cons optimize*!
-	  (map (lambda (x)
-		 (if (module-arg? x)
-		     `(get-module ,x)
-		     x))
-	       (cdr expr)))))
+    (if (null? (cdr expr))
+	`(,optimize-bindings! (,%bindings))
+	(cons optimize*!
+	      (map (lambda (x)
+		     (if (module-arg? x)
+			 `(get-module ,x)
+			 x))
+		   (cdr expr))))))
 
 
 ;;;; Special form handlers
