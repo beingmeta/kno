@@ -21,10 +21,11 @@
 ;;; EXPORTS
 
 ;; Looking up words
-(module-export! '{brico/lookup
-		  lookup-word lookup-term lookup-combo vary-word word-override?
+(module-export! '{brico/ref
+		  lookup-word lookup-term parse-term
+		  lookup-combo vary-word word-override?
 		  lookup-word/prefetch lookup-term/prefetch
-		  brico/resolve brico/resolveone brico/ref})
+		  brico/resolve})
 
 (define %nosubst
   '{word-overrides word-overlays morphrules termrules})
@@ -133,11 +134,10 @@
 
 (define tryhard-default 1)
 
-(define (lookup-word word (language default-language)
-		     (tryhard tryhard-default))
+(define (lookup-word word (language default-language) (tryhard tryhard-default))
   "Looks up a word in a language with a given level of effort"
   (if (not tryhard) (set! tryhard 0)
-      (if (eq? tryhard #t) (set! tryhard 1)))
+      (if (not (number? tryhard)) (set! tryhard tryhard-default)))
   (if (not (number? tryhard)) (error "Tryhard argument should be number"))
   ;; Syntactic prefix tricks:
   ;; ~ means try harder, xx$ means try in language xx, $ means try in English
@@ -156,6 +156,23 @@
 			(lookup-word-core word language tryhard)))
 		  (lookup-word-core word language tryhard))))))
 
+(define (lookup-word-core word language tryhard)
+  ;; (message "lookup-word-core " (write word) " " language " " tryhard)
+  (choice (?? language word)
+	  (tryif word-overlays (overlay-get word language))
+	  (tryif (> tryhard 0)
+		 (let* ((baselang (getbaselang language))
+			(variants (vary-word word baselang tryhard)))
+		   (lookup-variants variants language tryhard)))
+	  (tryif (and (> tryhard 1) (not (uppercase? word)) (> (length word) 4))
+		 (choice-max
+		  (?? language (metaphone (choice word (porter-stem word)) word #t))
+		  metaphone-max))
+	  (tryif (> tryhard 1)
+		 (if (capitalized? word)
+		     (?? language (downcase (choice word (basestring word))))
+		     (?? language (capitalize (choice word (basestring word))))))))
+
 (defambda (lookup-variants variants language tryhard)
   (for-choices (variant variants)
     (if (string? variant)
@@ -165,66 +182,6 @@
 	     (lookup-word (first variant) language #f)
 	     (?? (second variant) (third variant)))
 	    (fail)))))
-
-(define (lookup-word-core word language tryhard)
-  ;; (message "lookup-word-core " (write word) " " language " " tryhard)
-  (try (choice (?? language word)
-	       (tryif word-overlays (overlay-get word language))
-	       (let* ((baselang (getbaselang language))
-		      (variants (vary-word word baselang tryhard)))
-		 (lookup-variants variants language tryhard)))
-       (tryif (and tryhard (not (= tryhard 0)))
-	      (choice
-	       (lookup-subphrase word language tryhard)
-	       (lookup-variants (difference (vary-more word) word) language #f)))
-       ;; Find misspellings, etc
-       ;; This is really language-specific and the implementation
-       ;;  doesn't currently reflect that.
-       (tryif (and (number? tryhard) (> tryhard 1)
-		   (not (uppercase? word))
-		   (> (length word) 4))
-	      (choice
-	       (choice-max
-		(?? language
-		    (if (somecap? word)
-			(string->packet (capitalize (metaphone word)))
-			(choice (metaphone word #t)
-				(metaphone (porter-stem word) #t))))
-		metaphone-max)
-	       (tryif (and (number? tryhard) (> tryhard 2))
-		      (if (capitalized? word)
-			  (?? language (downcase word))
-			  (?? language (capitalize word)))
-		      (if (capitalized? word)
-			  (?? language (downcase (basestring word)))
-			  (?? language (capitalize (basestring word)))))))))
-
-(define (lookup-simple-variants word language tryhard)
-  (choice
-   (tryif (uppercase? word)
-	  (?? language (capitalize word)))
-   (tryif (and tryhard (number? tryhard) (> tryhard 1) (lowercase? word))
-	  (?? language (capitalize word)))))
-
-(define (lookup-subphrase word language tryhard)
-  ;; This method identifies compounds by stripping off the initial or
-  ;; final words and seeing if the resulting phrase has an
-  ;; unambiguous meaning.
-  (tryif (and (compound? word) (textsearch '(isupper) word))
-	 (let* ((wordv (words->vector word))
-		(len (length wordv)))
-	   (tryif (or (and (number? tryhard) (> tryhard 3))
-		      (> len 2))
-		  ;; Try trimming the first word from the compound
-		  ;;  if either there are more than 2 words or
-		  ;;  tryhard > 3.
-		  (try (choice
-			(singleton (lookup-word (seq->phrase wordv 1) language #f))
-			(singleton (lookup-word (seq->phrase wordv 0 -1) language #f)))
-		       (tryif (> len 3)
-			      (singleton (lookup-word (seq->phrase wordv 2) language #f)))
-		       (tryif (> len 4)
-			      (singleton (lookup-word (seq->phrase wordv 3) language #f))))))))
 
 ;;; Prefetching
 
@@ -252,7 +209,17 @@
 
 ;;; Fragmentary lookup
 
-(define (score-fragments word language tryhard)
+(defambda (score-fragment! table language frags (weight 1))
+  (let ((results (choice (?? (get frag-map language) frags)
+			 (overlay-get frags language))))
+    (when (exists? results)
+      (hashtable-increment! table
+	  (choice (?? fragslot (list word)) (overlay-get (list word) language))
+	(if (inexact? weight)
+	    (/ weight (ilog (choice-size results)))
+	    weight)))))
+
+(define (score-fragments word language tryhard (weight 1))
   (let* ((table (make-hashtable))
 	 (wordv (words->vector word))
 	 (words (elts wordv))
@@ -263,18 +230,20 @@
 	 (fragslot (get frag-map language)))
     (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
+      (score-fragment! table language word 2.0)
       (let* ((alt (tryif (and (number? tryhard) (> tryhard 2))
 			 (choice (metaphone word #t)
-				 (metaphone (porter-stem word) #t))))
-	     (word+alt (choice word alt)))
+				 (metaphone (porter-stem word) #t)))))
 	(hashtable-increment! table
-	    (choice (?? fragslot (list word+alt))
-		    (overlay-get (list word+alt) language)))))
-    
+	    (choice (?? fragslot (list alt))
+		    (overlay-get (list alot) language))
+	  (/~ 1.0 (ilog (choice-size (?? fragslot (list word))))))))
     (hashtable-increment! table
-	(choice (?? fragslot firstword) (overlay-get firstword language)))
+	(choice (?? fragslot firstword) (overlay-get firstword language))
+      (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
     (hashtable-increment! table
-	(choice (?? fragslot lastword) (overlay-get lastword language)))
+	(choice (?? fragslot lastword) (overlay-get lastword language))
+      (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
     table))
 
 (define (lookup-fragments word (language default-language) (tryhard #f))
@@ -396,22 +365,25 @@
 			     (filter-choices (meaning meanings)
 			       (overlaps? cxt (?? implies meaning))))))))))
 
-(define (lookup-term term (language default-language) (tryhard 1))
+(define (parse-term term (language default-language) (tryhard 1))
+  (if (not tryhard) (set! tryhard 0)
+      (if (not (number? tryhard)) (set! tryhard 1)))
   (if (has-prefix term "~")
       (lookup-term (subseq term 1) language (1+ tryhard))
       (if (has-prefix term "$")
 	  (lookup-term (subseq term 1) english)
 	  (if (exists? (textmatcher #((isalpha) (isalpha) "$") term))
 	      (lookup-term (subseq term 3) (?? 'iso639/1 (subseq term 0 2)) tryhard)
-	      (try (cons term (singleton (lookup-word term language #f)))
+	      (try (cons term (singleton (?? (get norm-map language) term)))
+		   (cons term (singleton (lookup-word term language #f)))
 		   (if (or (position #\, term) (position #\: term)
 			   (position #\= term) (position #\( term))
-		       (try (try-termrules term language tryhard)
-			    (tryif (uppercase? term)
-				   (try-termrules (capitalize term) language tryhard)))
-		       (try (tryif (uppercase? term)
-				   (cons term (qcx (lookup-word (capitalize term) language tryhard))))
-			    (cons term (qcx (lookup-word term language tryhard))))))))))
+		       (try-termrules term language tryhard)
+		       (cons term (qcx (lookup-word (capitalize term) language tryhard)))))))))
+(define (lookup-term term (language default-language) (tryhard 1))
+  (if (not tryhard) (set! tryhard 0)
+      (if (not (number? tryhard)) (set! tryhard 1)))
+  (cdr (parse-term term language tryhard)))
 
 (defambda (try-termrules/prefetch term language tryhard)
   (lookup-word/prefetch term language #f)
@@ -460,7 +432,7 @@
 
 (define (absfreq c) (choice-size (?? refterms c)))
 
-(define (brico/resolveone term (language default-language) (tryhard 2))
+(define (brico/ref term (language default-language) (tryhard 2))
   (let ((possible
 	 (cdr ((or remote-lookup-term lookup-term) term language tryhard))))
     (if (fail? possible) {}
@@ -470,5 +442,4 @@
 	     (singleton (difference possible (?? defterms possible)))
 	     (pick-one (largest possible absfreq))))))
 
-(define brico/ref brico/resolveone)
 
