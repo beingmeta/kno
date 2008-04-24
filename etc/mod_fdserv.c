@@ -596,13 +596,6 @@ static const command_rec fdserv_cmds[] =
 
 #endif
 
-/* Getting log file names */
-
-#if APACHE20
-
-#else
-#endif
-
 /* Launching fdservlet processes */
 
 static int spawn_fdservlet (request_rec *r,apr_pool_t *p,const char *sockname);
@@ -612,6 +605,12 @@ struct FDSERV_INFO {
   char *exename, *filename, *sockname, *logfile;
   char **config_args;
   uid_t uid; gid_t gid;};
+
+static int check_directory(apr_pool_t *p,const char *filename)
+{
+  char *dirname=ap_dirstr_parent(p,filename);
+  return mkdir(dirname);
+}
 
 static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
 {
@@ -637,7 +636,13 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
     if ((socket_file)&&(socket_file[0]=='/')) {
       /* Absolute socket file name, just use it. */
       apr_table_set(socketname_table,spec,socket_file);
-      return socket_file;}
+      if (check_directory(socket_file)<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,r,
+	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
+	   socket_file,socket_prefix);
+	return NULL;}
+      else return socket_file;}
     else if (socket_file) {
       /* Relative socket file name, just append it. */
       char socketpath[PATH_MAX];
@@ -649,7 +654,13 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
 	return NULL;}
       strcpy(socketpath,socket_prefix); strcat(socketpath,socket_file);
       apr_table_set(socketname_table,spec,socketpath);
-      return apr_table_get(socketname_table,spec);}
+      if (check_directory(socketpath)<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,r,
+	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
+	   socketpath,socket_prefix);
+	return NULL;}
+      else return apr_table_get(socketname_table,spec);}
     else if ((strlen(socket_prefix)+strlen(spec)+1)>PATH_MAX) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,r,
@@ -668,7 +679,13 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
       apr_table_set(socketname_table,spec,buf);
       /* Setting it in the table will get it strdup'd so
 	 we just store it and return it from the table. */
-      return (char *) apr_table_get(socketname_table,spec);}}
+      if (check_directory(buf)<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,r,
+	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
+	   buf,socket_prefix);
+	return NULL;}
+      else return (char *) apr_table_get(socketname_table,spec);}}
 }
 
 static const char *get_logfile(request_rec *r) /* 1.3 */
@@ -847,6 +864,12 @@ static int connect_to_servlet(request_rec *r) /* 1.3 */
 #endif
 
 #if APACHE20
+static int check_directory(apr_pool_t *p,const char *filename)
+{
+  char *dirname=ap_make_dirstr_parent(p,filename);
+  return apr_dir_make_recursive(dirname,APR_DIR,p);
+}
+
 static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 {
   const char *cached=apr_table_get(socketname_table,spec);
@@ -871,7 +894,13 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
     if ((socket_file)&&(socket_file[0]=='/')) {
       /* Absolute socket file name, just use it. */
       apr_table_set(socketname_table,spec,socket_file);
-      return socket_file;}
+      if (check_directory(r->pool,socket_file)<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,500,r,
+	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
+	   socket_file,socket_prefix);
+	return NULL;}
+      else return socket_file;}
     else if (socket_file) {
       /* Relative socket file name, just append it. */
       char socketpath[PATH_MAX];
@@ -887,7 +916,13 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 	 "Composed socket file name %s=%s+%s",
 	 socketpath,socket_prefix,socket_file);
       apr_table_set(socketname_table,spec,socketpath);
-      return apr_table_get(socketname_table,spec);}
+      if (check_directory(r->pool,socket_file)<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,500,r,
+	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
+	   socketpath,socket_prefix);
+	return NULL;}
+      else return apr_table_get(socketname_table,spec);}
     else if ((strlen(socket_prefix)+strlen(spec)+1)>PATH_MAX) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,500,r,
@@ -909,7 +944,13 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
       apr_table_set(socketname_table,spec,buf);
       /* Setting it in the table will get it strdup'd so
 	 we just store it and return it from the table. */
-      return (char *) apr_table_get(socketname_table,spec);}}
+      if (check_directory(r->pool,buf)<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,500,r,
+	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
+	   buf,socket_prefix);
+	return NULL;}
+      else return (char *) apr_table_get(socketname_table,spec);}}
 }
 
 static const char *get_logfile(request_rec *r) /* 2.0 */
