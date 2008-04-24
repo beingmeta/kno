@@ -1574,6 +1574,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_store(module,fd_intern("XMLOUT"),xmlout_prim);
     fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
     fd_store(module,fd_intern("XMLBLOCKN"),xmlblockn_prim);
+    fd_store(module,fd_intern("XMLELT"),xmlelt_prim);
     fd_idefn(module,xmlempty_proc);
     fd_idefn(module,xmlify_proc);
     fd_idefn(module,oid2id_proc);
