@@ -20,6 +20,7 @@
 		  mt/fetchoids
 		  mt/lockoids
 		  mt/save/fetch
+		  mt/save/swap/fetch
 		  mt/save/lock/fetch
 		  mt/save/fetchkeys
 		  mt/detailed-progress
@@ -442,6 +443,9 @@
 
 ;;; Utility prefetchers
 
+(define (mt/save/swap/fetch oids done)
+  (when done (commit) (swapout))
+  (unless done (prefetch-oids! oids)))
 (define (mt/save/fetch oids done)
   (when done (commit) (clearcaches))
   (unless done (prefetch-oids! oids)))
