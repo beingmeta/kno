@@ -59,6 +59,8 @@ static u8_string get_diedfile()
   else return fd_runbase_filename(".died");
 }
 
+/* End stuff */
+
 static u8_string pid_file=NULL, died_file=NULL;
 
 static void fdbatch_atexit()
@@ -103,23 +105,30 @@ static void wait_for_the_end(pid_t pid)
     if (died_file) {
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
-	/* Output the current data/time with millisecond precision. */
 	u8_fprintf(f,"Process %s <%d> killed at %*iMSt with signal %d\n",
 		   u8_appid(),pid,WTERMSIG(status));
 	u8_fclose(f);}}}
   exit(0);
 }
 
+static int newlog=0;
+
 int main(int argc,char **argv)
 {
   pid_t pid;
   int pid_fd, log_fd, err_fd, chained=0;
+  int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;
   fd_init_dtypelib();
+  fd_register_config("NEWLOG",
+		     _("Whether to append to log files"),
+		     fd_boolconfig_get,fd_boolconfig_set,
+		     &newlog);
   fd_argv_config(argc,argv); 
   identify_application(argc,argv,"fdbatch");
+  if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
   pid_file=get_pidfile();
   if (u8_file_existsp(pid_file)) {
     FILE *f=u8_fopen(pid_file,"r");
@@ -153,13 +162,13 @@ int main(int argc,char **argv)
   /* If either stdout or stderr are interactive, redirect them to files. */
   if (isatty(1)) {
     log_file=get_logfile();
-    if ((log_fd=u8_open_fd(log_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
+    if ((log_fd=u8_open_fd(log_file,logopen_flags,LOGMODE))<0) {
       u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
       exit(-1);}}
   if (isatty(2)) {
     err_file=get_errfile();
-    if ((err_fd=u8_open_fd(err_file,O_WRONLY|O_APPEND|O_CREAT,LOGMODE))<0) {
+    if ((err_fd=u8_open_fd(err_file,logopen_flags,LOGMODE))<0) {
       u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
       if (log_file) close(log_fd);
