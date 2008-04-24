@@ -1,8 +1,10 @@
 (in-module 'brico/dterms)
 
+;;; FIND-DTERM and friends return false
+
 (module-export!
  '{find-dterm
-   get-dterm find-dterm/prefetch!
+   get-dterm get-dterm/cache find-dterm/prefetch!
    displayterm dterm-caches 
    find-dterm-prefetch!})
 
@@ -27,6 +29,14 @@
 			(get (cdr dtc) concept))
 		 (get dtc (cons language concept))))
 	   (get-dterm concept language (get-norm concept language)))))
+
+(define (get-dterm/cache concept language)
+  (try (tryseq (dtc dterm-caches)
+	 (if (pair? dtc)
+	     (tryif (overlaps? (car dtc) language)
+		    (get (cdr dtc) concept))
+	     (get dtc (cons language concept))))
+       #f))
 
 ;;; Finding dterms
 
@@ -57,7 +67,8 @@
 	      (tryif (singleton? (?? language alt)) alt)
 	      (tryif (singleton? (?? language norm language alt))
 		     (string-append norm ":" alt)))
-	     (string-append norm ":" alt))))))
+	     (string-append norm ":" alt)))
+       #f)))
 
 (define (probe-location concept term1 term2 language (isaterm #f))
   (let ((norm (get norm-map language)))
@@ -113,7 +124,8 @@
   (let ((sensecat (get concept 'sensecat))
 	(normslot (get norm-map language))
 	(meanings (lookup-word norm language)))
-    (try (tryif (singleton? (?? language norm)) norm)
+    (try (tryif (singleton? (?? normslot norm)) norm)
+	 (tryif (singleton? (?? language norm)) norm)
 	 (try-choices (term (get sensecathints (cons sensecat language)))
 	   (tryif (singleton? (intersection meanings
 					    (?? genls* (?? normslot term))))
@@ -135,9 +147,8 @@
 		  (tryif (singleton? (intersection meanings
 						   (?? defterms (?? normslot d))))
 			 (string-append norm " (*"  d ")"))))
-	 (try-choices (n (get-norm concept language))
-	   (tryif (not (equal? n norm))
-		  (find-generic-dterm concept language n)))
+	 (try-choices (n (difference (get-norm concept language) norm))
+	   (find-generic-dterm concept language n))
 	 (tryif (not (eq? language english))
 		(try-choices (term (get sensecathints (cons sensecat english)))
 		  (tryif

@@ -166,7 +166,8 @@
 		   (lookup-variants variants language tryhard)))
 	  (tryif (and (> tryhard 1) (not (uppercase? word)) (> (length word) 4))
 		 (choice-max
-		  (?? language (metaphone (choice word (porter-stem word)) word #t))
+		  (?? language (metaphone (choice word (porter-stem word))
+					  #t))
 		  metaphone-max))
 	  (tryif (> tryhard 1)
 		 (if (capitalized? word)
@@ -209,12 +210,14 @@
 
 ;;; Fragmentary lookup
 
-(defambda (score-fragment! table language frags (weight 1))
-  (let ((results (choice (?? (get frag-map language) frags)
-			 (overlay-get frags language))))
+(define (score-fragment! table language frag (weight 1))
+  (let* ((fragslot (get frag-map language))
+	 (results (choice (?? fragslot frag)
+			  (overlay-get frag language))))
     (when (exists? results)
       (hashtable-increment! table
-	  (choice (?? fragslot (list word)) (overlay-get (list word) language))
+	  (choice (?? fragslot frag)
+		  (overlay-get frag language))
 	(if (inexact? weight)
 	    (/ weight (ilog (choice-size results)))
 	    weight)))))
@@ -230,13 +233,13 @@
 	 (fragslot (get frag-map language)))
     (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
-      (score-fragment! table language word 2.0)
+      (score-fragment! table language (list word) 2.0)
       (let* ((alt (tryif (and (number? tryhard) (> tryhard 2))
 			 (choice (metaphone word #t)
 				 (metaphone (porter-stem word) #t)))))
 	(hashtable-increment! table
 	    (choice (?? fragslot (list alt))
-		    (overlay-get (list alot) language))
+		    (overlay-get (list alt) language))
 	  (/~ 1.0 (ilog (choice-size (?? fragslot (list word))))))))
     (hashtable-increment! table
 	(choice (?? fragslot firstword) (overlay-get firstword language))
@@ -433,8 +436,7 @@
 (define (absfreq c) (choice-size (?? refterms c)))
 
 (define (brico/ref term (language default-language) (tryhard 2))
-  (let ((possible
-	 (cdr ((or remote-lookup-term lookup-term) term language tryhard))))
+  (let ((possible ((or remote-lookup-term lookup-term) term language tryhard)))
     (if (fail? possible) {}
 	(try (singleton possible)
 	     ;; This biases towards terms which aren't defined
