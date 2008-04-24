@@ -39,6 +39,10 @@
 #define FD_GLOBAL_IPEVAL 0
 #endif
 
+#ifndef FD_MMAP_PREFETCH_WINDOW
+#define FD_MMAP_PREFETCH_WINDOW 0
+#endif
+
 /* This is set to make incref/decref into no-ops, which is helpful
    for ablative benchmarking.  */
 #ifndef FD_NO_GC
