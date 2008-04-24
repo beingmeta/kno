@@ -283,7 +283,8 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
     if (FD_CHOICEP(arg1)) return FD_TRUE;
     else return FD_FALSE;
   case FD_SINGLETONP_OPCODE: 
-    if (FD_CHOICEP(arg1)) return FD_FALSE;
+    if (FD_EMPTY_CHOICEP(arg1)) return FD_FALSE;
+    else if (FD_CHOICEP(arg1)) return FD_FALSE;
     else return FD_TRUE;
   case FD_FAILP_OPCODE: 
     if (arg1==FD_EMPTY_CHOICE) return FD_TRUE;
