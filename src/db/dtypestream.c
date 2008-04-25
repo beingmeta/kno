@@ -126,12 +126,11 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
     while ((bufsiz>=1024) && (buf==NULL)) {
       bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
     if (buf==NULL) bufsiz=0;
-    s->mallocd=0; s->fd=sock; s->filepos=-1; s->maxpos=-1; s->id=NULL;
-    FD_INIT_BYTE_INPUT((fd_byte_input)s,buf,bufsiz);
-    s->end=s->start; /* Initialize to not having anything to read */
     /* Initialize the on-demand reader */
+    FD_INIT_BYTE_INPUT(s,buf,bufsiz); s->end=s->ptr; s->bufsiz=bufsiz;
+    s->mallocd=0; s->fd=sock; s->filepos=-1; s->maxpos=-1; s->id=NULL;
     s->fillfn=fill_dtype_stream; s->flushfn=NULL;
-    s->bufsiz=bufsiz; s->flags=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
+    s->flags|=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
     return s;}
 }
 
