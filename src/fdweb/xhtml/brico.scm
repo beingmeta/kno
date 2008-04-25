@@ -217,9 +217,11 @@
 
 (define (wordform word (concept #f) (action #f))
   (if concept
-      (let ((languages (get-languages-for word (qc concept))))
+      (let* ((languages (get-languages-for word (qc concept)))
+	     (langid (try (get (pick-one (pick languages 'iso639/1)) 'iso639/1)
+			  (pick-one (get (pick-one languages) '{iso639/b iso639/t})))))
 	(span ((class "wordform")
-	       (xml:lang (get (pick-one languages) 'iso639/1)))
+	       (xml:lang langid))
 	  (cond ((not action) (showterm word))
 		((string? action)
 		 (anchor (fdscripturl action 'word word 'language languages 'wordsearch "yes")
@@ -257,13 +259,17 @@
 	((= (choice-size languages) 1)
 	 (sub* ((class "langids")
 		(title (get-langname languages)))
-	       (get languages 'iso639/1)))
+	       (try (get languages 'iso639/1)
+		    (get languages 'iso639/b)
+		    (get languages 'iso639/t))))
 	(else
 	 (sub* ((class "langids"))
 	       (doseq (elt (sorted languages 'iso639/1) i)
 		 (if (> i 0) (xmlout ";"))
 		 (span ((title (get-langname elt)))
-		   (get elt 'iso639/1)))))))
+		   (try (get elt 'iso639/1)
+			(get elt 'iso639/b)
+			(get elt 'iso639/t))))))))
 
 ;;; Displaying concepts
 
