@@ -19,7 +19,7 @@
 
 (module-export!
  '{cachequeue
-   cq/get cq/require cq/status cq/probe cq/info
+   cq/get cq/require cq/status cq/probe cq/info cq/meltentry
    cqstep cqdaemon
    cq/prefetch})
 
@@ -103,6 +103,11 @@
 		       call))
 	 (cachevalue (get cache cachekey)))
     (meltvalue cachevalue)))
+
+(define (cq/meltentry cq fn . args)
+  (cachequeuerequest
+   cq (if (and (pair? fn) (null? args)) fn (cons fn args))
+   #f))
 
 (define (cq/info cq fn . args)
   (let* ((call (if (and (pair? fn) (null? args)) fn (cons fn args)))
@@ -188,7 +193,7 @@
 			  (drop! pending call)))
 		    value))))))))
 
-(define (cachequeuerequest cq call)
+(define (cachequeuerequest cq call (melt #t))
   (let* ((cache (cq-cache cq))
 	 (pending (cq-pending cq))
 	 (cachekey (if (index? cache)
@@ -199,8 +204,9 @@
 	    (not (melted-value? cachevalue))
 	    (test cache cachekey))
 	(begin (%debug "Using cached result for " call)
-	       (meltvalue cachevalue))
-	(meltvalue (cachequeuepush cq call)))))
+	       (if melt (meltvalue cachevalue) cachevalue))
+	(if melt (meltvalue (cachequeuepush cq call))
+	    (cachequeuepush cq call)))))
 
 (define (cachequeuerequire cq call)
   (let* ((cache (cq-cache cq))
