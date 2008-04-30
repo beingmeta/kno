@@ -126,11 +126,18 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 FD_EXPORT
 void fd_init_xmldata_c()
 {
+  fdtype safe_module=fd_new_module("FDWEB",(0));
   fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
+
   fd_idefn(module,fd_make_cprim2("XMLATTRIB",xmlattrib,2));
   fd_idefn(module,fd_make_cprim2("XMLGET",xmlget,2));
   fd_idefn(module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
   fd_idefn(module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
+
+  fd_idefn(safe_module,fd_make_cprim2("XMLATTRIB",xmlattrib,2));
+  fd_idefn(safe_module,fd_make_cprim2("XMLGET",xmlget,2));
+  fd_idefn(safe_module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
+  fd_idefn(safe_module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
 
   name_slotid=fd_intern("%NAME");
   content_slotid=fd_intern("%CONTENT");
