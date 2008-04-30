@@ -1,3 +1,4 @@
+AC_PREREQ(2.50)
 AC_INIT(include/fdb/dtype.h)
 
 AC_DEFUN([AC_CHECK_USER],[

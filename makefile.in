@@ -25,7 +25,7 @@ CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
 MACOSX_DEPLOYMENT_TARGET=10.3
-MKSO		= $(CC) $(CFLAGS) $(XCFLAGS) -shared $(LDFLAGS)
+MKSO		= $(CC) $(CFLAGS) $(XCFLAGS) -shared $(LDFLAGS) $(LIBS)
 #MACLIBTOOL	= libtool -dynamic -single_module $(LDFLAGS) $(LIBS)
 MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 		  $(CC) -dynamiclib -single_module \
