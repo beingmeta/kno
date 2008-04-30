@@ -275,9 +275,9 @@
 
 (define (get-sorted-words concept language)
   (try (tryif (eq? language @?english) (get concept 'ranked))
-       (append (choice->vector (get concept (get norm-map language)))
-	       (sorted (get concept language)
-		       (lambda (x) (choice-size (?? language x)))))))
+       (let ((norms (get concept (get norm-map language))))
+	 (append (choice->vector norms)
+		 (sorted (difference (get concept language) norms))))))
 
 (define (output-words c language
 		      (languages #{}) (wordlim #f) (shown #f)

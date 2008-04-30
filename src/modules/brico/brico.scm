@@ -360,6 +360,10 @@
   (brico-prefetch! concepts)
   concepts)
 
+(define (prefetch-slots!)
+  "Prefetches all known slot OIDs.  This is helpful for prefetch testing."
+  (prefetch-oids! (?? 'type '{slot language gloss indices})))
+
 ;;; Display an expansion string for a concept in a language
 
 (define (get-expstring concept (language english) (slotid implies))
@@ -570,7 +574,7 @@
    language-map gloss-map norm-map index-map frag-map
    all-languages all-glosses all-norms
    ;; Prefetchers for OIDs and inverted index slotids
-   brico-prefetch! brico-prefetch})
+   brico-prefetch! brico-prefetch prefetch-slots!})
 
 (module-export!
  '{
