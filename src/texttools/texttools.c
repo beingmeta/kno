@@ -328,39 +328,44 @@ static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
 */
 static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
 {
-  int i=0, n=FD_VECTOR_LENGTH(vec), span=FD_FIX2INT(window);
+  int i=0, n=FD_VECTOR_LENGTH(vec), maxspan=FD_FIX2INT(window);
   fdtype *data=FD_VECTOR_DATA(vec), results=FD_EMPTY_CHOICE;
   int with_affixes=(!(FD_FALSEP(with_affix)));
-  if (span<=0)
+  if (maxspan<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
   if (with_affixes) {
+    int span=maxspan; while (span>0) {
     /* Compute prefix fragments */
-    i=span-1; while ((i>=0) && (i<n)) {
-      fdtype frag=fd_init_pair(NULL,fd_incref(data[i]),FD_EMPTY_LIST);
-      int j=i-1; while (j>=0) {
-	frag=fd_init_pair(NULL,fd_incref(data[j]),frag); j--;}
-      frag=fd_init_pair(NULL,FD_FALSE,frag);
-      FD_ADD_TO_CHOICE(results,frag); i--;}
+      int i=span-1; while ((i>=0) && (i<n)) {
+	fdtype frag=fd_init_pair(NULL,fd_incref(data[i]),FD_EMPTY_LIST);
+	int j=i-1; while (j>=0) {
+	  frag=fd_init_pair(NULL,fd_incref(data[j]),frag); j--;}
+	frag=fd_init_pair(NULL,FD_FALSE,frag);
+	FD_ADD_TO_CHOICE(results,frag); i--;}
+      span--;}
     /* Compute suffix fragments
        We're a little clever here, because we can use the same sublist
        repeatedly.  */
     {
       fdtype frag=fd_init_pair(NULL,FD_FALSE,FD_EMPTY_LIST);
-      int stopat=n-span; if (stopat<0) stopat=0;
+      int stopat=n-maxspan; if (stopat<0) stopat=0;
       i=n-1; while (i>=stopat) {
 	frag=fd_init_pair(NULL,fd_incref(data[i]),frag);
 	FD_ADD_TO_CHOICE(results,fd_incref(frag));
 	i--;}
       fd_decref(frag);}}
-  /* Now compute internal spans */
-  i=0; while (i<n) {
-    fdtype frag=FD_EMPTY_LIST;
-    int j=i+span-1; while ((j<n) && (j>=i)) {
-      frag=fd_init_pair(NULL,fd_incref(data[j]),frag);
-      FD_ADD_TO_CHOICE(results,fd_incref(frag));
-      j--;}
-    fd_decref(frag);
-    i++;}
+  {
+    int span=maxspan; while (span>0) {
+      /* Now compute internal spans */
+      int i=0; while (i<n) {
+	fdtype frag=FD_EMPTY_LIST;
+	int j=i+span-1; while ((j<n) && (j>=i)) {
+	  frag=fd_init_pair(NULL,fd_incref(data[j]),frag);
+	  FD_ADD_TO_CHOICE(results,fd_incref(frag));
+	  j--;}
+	fd_decref(frag);
+	i++;}
+      span--;}}
   return results;
 }
 
