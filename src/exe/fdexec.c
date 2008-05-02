@@ -52,8 +52,13 @@ static void identify_application(int argc,char **argv,char *dflt)
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
     else {
-      char *copy=u8_strdup(argv[i]);
-      char *dot=strchr(copy,'.');
+      char *start=strchr(argv[i],'/'), *copy, *dot;
+      if (start==NULL) start=strchr(argv[i],'\\');
+      if (start==NULL) start=argv[1];
+      if (((*start)=='/') || ((*start)=='\\')) start++;
+      if ((*start=='\0') || (argv[i][0]=='/') || (argv[i][0]=='\\'))
+	start=argv[1];
+      copy=u8_strdup(start); dot=strchr(copy,'.');
       if (dot) *dot='\0';
       u8_identify_application(copy);
       u8_free(copy);
