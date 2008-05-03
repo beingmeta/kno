@@ -203,6 +203,22 @@ span.narrative_hidden {
   color: purple; font-style: italic;
   display: none;}
 
+/* Concepts */
+
+span.concept {
+  border: none 1px;
+  padding-left: 2pt; padding-right: 2pt;
+  white-space: nowrap;}
+span.concept[resolved='yes'] {
+  border: none 1px;
+  padding-left: 2pt; padding-right: 2pt;
+  white-space: nowrap;}
+
+a.concept {
+  text-decoration: none;}
+a.concept:hover {
+  text-decoration: underline;}
+
 /* Wordforms and langids */
 
 span.wordform {

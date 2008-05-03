@@ -2,7 +2,7 @@
 
 (in-module 'xhtml/brico)
 
-(use-module '{fdweb texttools xhtml xhtml/clickit brico})
+(use-module '{fdweb texttools xhtml xhtml/clickit brico brico/dterms})
 
 ;; We use these for languages (at least)
 (define sub* markup*fn)
@@ -19,14 +19,14 @@
 (module-export! '{languagebox languagesbox languagedropbox languagesdropbox})
 
 ;; Displaying words with language subscripts
-(module-export! '{showterm wordform output-words just-output-words})
+(module-export! '{showterm wordform output-words})
 
 ;; Displaying dterms in HTML with markup around the disambiguator
 ;;  and subscripts for the fr$ syntax
 (module-export! '{dterm->html langterm->html})
 
 ;; Displaying concepts in various ways
-(module-export! '{showslot showconcept conceptsummary})
+(module-export! '{showslot showconcept conceptsummary conceptsummary/prefetch!})
 
 ;;;; Getting language information
 
@@ -279,7 +279,7 @@
 	 (append (choice->vector norms)
 		 (sorted (difference (get concept language) norms))))))
 
-(define (output-words c language
+(define (output-words c (language (get-language))
 		      (languages #{}) (wordlim #f) (shown #f)
 		      (searchurl #f))
   "This outputs words to XHTML and returns the words output"
@@ -305,24 +305,7 @@
 		" ")
 	       (set+! shown word)
 	       (set! count (1+ count)))
-	      (else))))
-    (when (fail? shown)
-      (do-choices (word (get c 'names))
-	(cond ((overlaps? word shown))
-	      ((or (not wordlim) (< count wordlim))
-	       (xmlout
-		 (if (> count 0) " . ")
-		 (span ((class "wordform")) (showterm word)) " ")
-	       (set+! shown word)
-	       (set! count (1+ count)))
-	      (else))))
-    (if wordlim shown)))
-
-(define (just-output-words c language
-			   (languages #{}) (wordlim #f) (shown #f)
-			   (searchurl #f))
-  (output-words c language languages wordlim (qc shown) searchurl)
-  (xmlout))
+	      (else))))))
 
 ;;; Outputting dterms
 
@@ -356,6 +339,66 @@
 
 ;;; Showing concepts
 
+(define dterm-fcn get-dterm)
+
+(module-export! '{concept->html concept->anchor})
+
+(define (concept->html tag (var #f) (selected #t))
+  (let* ((oid (if (and (pair? tag) (exists oid? (cdr tag)))
+		  (cdr tag)
+		  (and (oid? tag) tag)))
+	 (language (get-language))
+	 (dterm (tryif oid (dterm-fcn oid language)))
+	 (gloss (tryif oid (pick-one (smallest (get-gloss oid language)
+					       length))))
+	 (text (if (pair? tag) (car tag)
+		   (if (string? tag) tag
+		       (get-norm oid language)))))
+    (span ((class "concept")
+	   (oid (if oid oid))
+	   (gloss (ifexists gloss))
+	   (dterm (ifexists dterm))
+	   (resolved (if oid "yes"))
+	   (title "")
+	   (tag tag)
+	   (text text))
+      (when var
+	(if selected
+	    (input type "CHECKBOX" name var value tag "CHECKED")
+	    (input type "CHECKBOX" name var value tag)))
+      (span ((class "taghead")) text))))
+
+(define (concept->anchor tag (url #f) (var #f) (selected #t))
+  (let* ((oid (if (and (pair? tag) (oid? (cdr tag)))
+		  (cdr tag)
+		  (and (oid? tag) tag)))
+	 (language (get-language))
+	 (dterm (tryif oid (dterm-fcn oid language)))
+	 (gloss (pick-one
+		 (tryif oid (smallest (get-gloss oid language) length))))
+	 (text (if (pair? tag) (car tag)
+		   (if (string? tag) tag
+		       (get-norm oid language)))))
+    (anchor* (or url oid)
+	((class "concept")
+	 (oid (if oid oid))
+	 (dterm (ifexists dterm))
+	 (gloss (ifexists gloss))
+	 (title "")
+	 (text text))
+      (when var
+	(if selected
+	    (input type "CHECKBOX" name var value tag "CHECKED")
+	    (input type "CHECKBOX" name var value tag)))
+      text)))
+
+(define dtermdisplay-config
+  (slambda (var (val))
+    (cond ((not (bound? val)) dterm-fcn)
+	  ((equal? dterm-fcn val))
+	  (else (set! dterm-fcn val)))))
+(config-def! 'dtermdisplay dtermdisplay-config)
+
 (define (showconcept c (language #f) (expansion #f) (wordlim 2))
   (if (fail? c) (xmlout)
     (let ((languages (or language (get-languages 'language)))
@@ -373,56 +416,78 @@
 	  (xmlout expval)))
       (xmlout))))
 
-(define (conceptsummary concept (language #f) %env xmlbody)
-  (let  ((language (or language  (get-language)))
-	 (languages (or language (get-languages)))
-	 (seen (make-hashset))
-	 (j 0))
+(define (conceptsummary concept (language) (languages) (%env) (xmlbody))
+  (default! language (get-language))
+  (default! languages (get-languages))
+  (let  ((seen (make-hashset))
+	 (sensecat (get concept 'sense-category)))
     (div (class "conceptsummary")
-      (P* (class "head")
+      (P* (class "head" title "Examine this concept")
 	  (let ((shown {})
-		(all (get concept (choice language languages 'names))))
+		(all (get concept (choice language languages))))
 	    (anchor concept
-		    (set! shown (output-words concept language languages 5)))
-	    (let ((more (difference all shown)))
-	      (when (exists? more)
-		(xmlout " "
-			(hideshow
-			 (oid2id concept "WDS")
-			 (stringout
-			     "show " (choice-size more) " more")
-			 (stringout "show "(choice-size more) " less"))
-			" ")
-		(span ((id (oid2id concept "WDS")) (style "display: none;"))
-		  (begin
-		    (output-words concept language languages #f (qc shown))
-		    (xmlout))))))
-	  (if (exists? (get concept 'sense-category))
-	      (xmlout " "
-		      (span (class "pos") (get concept 'sense-category)) " ")
-	    (if (exists? (get concept 'part-of-speech))
-		(xmlout " " (span (class "pos") (get concept 'part-of-speech))
-			" "))))
-      (when (test concept isa)
-	(P (strong "isa ")
-	   (do-choices (g (get concept isa) i)
-	     (if (> i 0) (xmlout " . ")) (showconcept g (qc language)))))
-      (when (test concept kindof)
-	(P (strong "kindof ")
-	   (do-choices (g (get concept kindof) i)
-	     (if (> i 0) (xmlout " . ")) (showconcept g (qc language)))))
-      (when (exists? (get concept part-of))
-	(P (strong "partof ")
-	   (do-choices (g (get concept part-of) i)
-	     (if (> i 0) (xmlout " . ")) (showconcept g (qc language)))))
-      (if (exists? (get concept (?? 'type 'gloss 'language language)))
-	  (P* (class "gloss")
-	      (get concept (?? 'type 'gloss 'language language)))
-	  (if (exists? (get concept 'gloss))
-	      (P* (class "gloss") (get concept 'gloss))))
+	      (img src "/graphics/diamond12.png" alt "+")
+	      (output-words concept language (qc languages) 5)))
+	  (if (exists? sensecat)
+	      (xmlout " " (span (class "pos") sensecat) " ")
+	      (if (exists? (get concept 'part-of-speech))
+		  (xmlout " "
+			  (span (class "pos") (get concept 'part-of-speech))
+			  " "))))
+      ;; We do immediate data tests when generating a summary, which
+      ;; means that some inferred values may be missed.  But this
+      ;; makes summary output much faster.
+      (p* (class "fields")
+	(when (%test concept @?implies)
+	  (span ((class "field"))
+	    (span ((class "fieldid")) "implies") " "
+	    (do-choices (g (try (reject (%get concept @?implies) 'gnis)
+				(%get concept @?implies))
+			   i)
+	      (if (> i 0) (xmlout " . ")) (concept->anchor g))))
+	(when (%test concept kindof)
+	  (span ((class "field"))
+	    (span ((class "fieldid")) "genls") " "
+	    (do-choices (g (%get concept kindof) i)
+	      (if (> i 0) (xmlout " . ")) (concept->anchor g))))
+	(when (%test concept partof)
+	  (span ((class "field"))
+	    (span ((class "fieldid")) "partof") " "
+	    (do-choices (g (%get concept partof) i)
+	      (if (> i 0) (xmlout " . ")) (concept->anchor g))))
+	(when (%test concept defterms)
+	  (span ((class "field"))
+	    (span ((class "fieldid")) "defterms") " "
+	    (do-choices (d (%get concept defterms) i)
+	      (if (> i 0) (xmlout " . ")) (concept->anchor d))))
+	(when (%test concept 'country)
+	  (span ((class "field"))
+	    (span ((class "fieldid")) "country") " "
+	    (do-choices (g (%get concept 'country) i)
+	      (if (> i 0) (xmlout " . ")) (concept->anchor g)))))
+      (when (exists? (get-gloss concept language))
+	(P* (class "gloss") (get-single-gloss concept language)))
       (if (exists? (get concept 'source))
 	  (P (strong "source ") (get concept 'source)))
-      (xmleval xmlbody %env))))
+      (if (and (bound? xmlbody) (exists? xmlbody) xmlbody)
+	  (xmleval xmlbody %env)))))
+
+(define conceptsummary/prefetch!
+  (slambda (concepts language)
+    (let ((started (elapsed-time)))
+      ;; We keep these separate because they're usually in the cache,
+      ;;  so there's not bundling advantage.  However, we want to keep them
+      ;;  here so that testing doesn't show them being fetched.
+      (prefetch-oids! prefetch-oids-always)
+      (prefetch-keys! prefetch-keys-always)
+      (prefetch-oids! concepts)
+      (prefetch-oids!
+       (%get concepts '{hypernym @?genls @?partof
+				 @?memberof @?isa @?defterms}))
+      (prefetch-keys! (for-choices (language (get-languages))
+			(cons language (get concepts language))))
+      (xmlout))))
+
 
 
 
