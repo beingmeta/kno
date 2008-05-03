@@ -4,7 +4,7 @@
 
 (module-export!
  '{find-dterm
-   get-dterm get-dterm/cache find-dterm/prefetch!
+   get-dterm get-dterm/cached find-dterm/prefetch!
    displayterm dterm-caches 
    find-dterm-prefetch!})
 
@@ -23,14 +23,17 @@
       (try (cachecall find-dterm concept language norm)
 	   (try-choices (alt (difference (get concept language) norm))
 	     (cachecall find-dterm concept language alt)))
-      (try (tryseq (dtc dterm-caches)
-	     (if (pair? dtc)
-		 (tryif (overlaps? (car dtc) language)
-			(get (cdr dtc) concept))
-		 (get dtc (cons language concept))))
+      (try (cachecall get-cached-dterm concept language)
 	   (get-dterm concept language (get-norm concept language)))))
 
-(define (get-dterm/cache concept language)
+(define (get-cached-dterm concept language)
+  (tryseq (dtc dterm-caches)
+    (if (pair? dtc)
+	(tryif (overlaps? (car dtc) language)
+	       (get (cdr dtc) concept))
+	(get dtc (cons language concept)))))
+
+(define (get-dterm/cached concept language)
   (try (tryseq (dtc dterm-caches)
 	 (if (pair? dtc)
 	     (tryif (overlaps? (car dtc) language)
@@ -120,7 +123,12 @@
 	     (tryif (probeisa concept norm otherisaterm language normslot)
 		    (stringout norm " (" otherisaterm ")")))))))
 
-(define (find-generic-dterm concept language norm)
+(define (langterm term language dlang)
+  (if (eq? language dlang) term
+      (string-append (get dlang 'iso639/1) "$" term)))
+
+(define (find-generic-dterm concept language norm (dlang))
+  (default! dlang language)
   (let ((sensecat (get concept 'sensecat))
 	(normslot (get norm-map language))
 	(meanings (lookup-word norm language)))
@@ -130,69 +138,30 @@
 	   (tryif (singleton? (intersection meanings
 					    (?? genls* (?? normslot term))))
 		  (string-append norm ":" term)))
-	 (try-choices (gn (get-norm (get concept genls) language))
+	 (try-choices (gn (get-norm (get concept genls) dlang))
 	   (tryif (singleton? (intersection meanings
-					    (?? genls* (?? language gn))))
-		  (string-append norm ":"  gn)))
-	 (try-choices (gn (get-norm (?? specls* concept) language))
+					    (?? genls* (?? dlang gn))))
+		  (string-append norm ":"  (langterm gn language dlang))))
+	 (try-choices (gn (get-norm (?? specls* concept) dlang))
 	   (tryif (singleton? (intersection meanings
-					    (?? genls* (?? language gn))))
-		  (string-append norm ":"  gn)))
+					    (?? genls* (?? dlang gn))))
+		  (string-append norm ":"  (langterm gn language dlang))))
+	 (try-choices (pn (get-norm (get concept @?partof) dlang))
+	   (tryif (singleton? (intersection meanings (?? partof (?? dlang pn))))
+		  (string-append norm " ("  (langterm pn language dlang) ")")))
 	 (try-choices (d (difference (get concept language) norm))
 	   (tryif (singleton? (intersection meanings (?? language d)))
-		  (string-append norm "="  d)))
+		  (string-append norm "="  (langterm d language dlang))))
 	 (tryif usedefterms
-		(try-choices (d (difference (get (get concept defterms) normslot)
+		(try-choices (d (difference (get-norm (get concept defterms) dlang)
 					    norm))
 		  (tryif (singleton? (intersection meanings
-						   (?? defterms (?? normslot d))))
-			 (string-append norm " (*"  d ")"))))
+						   (?? defterms (?? dlang d))))
+			 (string-append norm " (*"  (langterm d language dlang) ")"))))
 	 (try-choices (n (difference (get-norm concept language) norm))
 	   (find-generic-dterm concept language n))
-	 (tryif (not (eq? language english))
-		(try-choices (term (get sensecathints (cons sensecat english)))
-		  (tryif
-		   (singleton? (intersection meanings
-					     (?? genls* (?? english term))))
-		   (string-append norm ":en$" term)))
-		(try-choices (gn (get-norm (get concept genls) english))
-		  (tryif (singleton?
-			  (intersection meanings (?? genls* (?? english gn))))
-			 (string-append norm ":en$"  gn)))
-		(try-choices (enorm (get-norm concept english))
-		  (tryif (singleton? (?? english enorm))
-			 (string-append "en$"  enorm)))
-		(try-choices (enorm (get-norm concept english))
-		  (try-choices (term (get sensecathints
-					  (cons sensecat english)))
-		    (tryif (singleton?
-			    (intersection (?? english enorm)
-					  (?? genls* (?? english term))))
-			   (string-append "en$" enorm ":" term))))
-		(try-choices (enorm (get-norm concept english))
-		  (try-choices (gn (get-norm (get concept genls) english))
-		    (tryif (singleton?
-			    (intersection meanings
-					  (?? genls* (?? english gn))))
-			   (string-append "en$" enorm ":"  gn))))
-		(try-choices (enorm (get-norm concept english))
-		  (try-choices (gn (get-norm (get concept genls) english))
-		    (tryif (singleton?
-			    (intersection meanings
-					  (?? genls* (?? english gn))))
-			   (string-append "en$" enorm ":"  gn))))
-		(try-choices (enorm (get-norm concept english))
-		  (try-choices (gn (get-norm (?? specls* concept) english))
-		    (tryif (singleton?
-			    (intersection (?? english enorm)
-					  (?? genls* (?? english gn))))
-			   (string-append "en$" enorm ":"  gn))))
-		(try-choices (d (get-norm concept english))
-		  (tryif (singleton? (intersection meanings (?? language d)))
-			 (string-append norm "=en$"  d)))
-		(try-choices (d (get concept english))
-		  (tryif (singleton? (intersection meanings (?? language d)))
-			 (string-append norm "=en$"  d)))))))
+	 (tryif (and (eq? language dlang) (not (eq? language english)))
+		(find-generic-dterm concept language norm english)))))
 
 ;;; Prefetching
 

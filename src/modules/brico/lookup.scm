@@ -151,10 +151,10 @@
 			   tryhard)
 	      (if word-overrides
 		  ;; Word overrides cut short the lookup process
-		  (let ((override (override-get word language)))
+		  (let ((override (override-get (stdspace word) language)))
 		    (if (exists? override) (or override (fail))
-			(lookup-word-core word language tryhard)))
-		  (lookup-word-core word language tryhard))))))
+			(lookup-word-core (stdspace word) language tryhard)))
+		  (lookup-word-core (stdspace word) language tryhard))))))
 
 (define (lookup-word-core word language tryhard)
   ;; (message "lookup-word-core " (write word) " " language " " tryhard)
@@ -346,7 +346,7 @@
 	 (eg-cxt (get matches 'eg))
 	 (defterm-cxt (get matches 'defterm))
 	 (meanings (lookup-word word language tryhard)))
-    ;; (%watch matches word syn-cxt implies-cxt partof-cxt genls-cxt eg-cxt)
+    ;;(%watch matches word language syn-cxt implies-cxt partof-cxt genls-cxt eg-cxt meanings)
     (cons word
 	  (try (intersection meanings (lookup-word syn-cxt language))
 	       (tryif (and (exists? partof-cxt) (exists? implies-cxt))
