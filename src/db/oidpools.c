@@ -1229,7 +1229,7 @@ static void oidpool_setcache(fd_pool p,int level)
   if (level>2)
     if (fp->mmap) return;
     else {
-      unsigned char *mmapped=NULL; unsigned int mmap_size;
+      unsigned char *mmapped=NULL; size_t mmap_size;
       fd_lock_struct(fp);
       if (fp->mmap) {
 	fd_unlock_struct(fp);
