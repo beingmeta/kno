@@ -19,7 +19,7 @@ div.error span.ex { font-weight: bold;}
 div.error span.cxt { font-weight: normal; }
 div.error span.details { font-weight: normal; font-style: italic; }
 div.error span.irritant {
-  margin-left: 6pt; white-space: nowrap;
+  margin-left: 6px; white-space: nowrap;
   color: red;}
 
 div.backtrace { margin-top: 18px; font-size: 120%;}
@@ -40,15 +40,15 @@ div.backtrace div.bindings {
 div.backtrace div.bindings span.binding {
   font-family: fixed; font-weight: bold; color: red; white-space: nowrap; }
 div.backtrace div.bindings span.head {
-  padding-right: 12pt; color: brown; font-weight: bold;}
+  padding-right: 12px; color: brown; font-weight: bold;}
 
 div.backtrace div.rail {
   background-color: green;}
 div.backtrace div.rail span.name {
-  color: yellow; font-family: sans; font-weight: bold; padding-right: 8pt;}
+  color: yellow; font-family: sans; font-weight: bold; padding-right: 8px;}
 div.backtrace div.rail span.arg {
   color: white; font-family: fixed; font-weight: bold;
-  padding-right: 6pt; padding-left: 6pt;}
+  padding-right: 6px; padding-left: 6px;}
 
 div.backtrace div.last_entry {
   font-size: 160%;}
@@ -61,10 +61,10 @@ table.frame_table th.header {
 table.frame_table th {
   vertical-align: top;
   text-align: right;
-  padding: 2pt;
+  padding: 2px;
   font-family: sans;}
 table.frame_table td {
-  vertical-align: top; text-align: left; padding: 2pt;
+  vertical-align: top; text-align: left; padding: 2px;
   background-color: lightblue; color: black;
   font-family: fixed;}
 table.frame_table td span.value {
@@ -76,10 +76,10 @@ table.table_table th.header {
 table.table_table th {
   vertical-align: top;
   text-align: right;
-  padding: 2pt;
+  padding: 2px;
   font-family: sans;}
 table.table_table td {
-  vertical-align: top; text-align: left; padding: 2pt;
+  vertical-align: top; text-align: left; padding: 2px;
   background-color: yellow; color: black;
   font-family: fixed;}
 table.table_table td span.value {
@@ -101,47 +101,47 @@ span.hideshow span.whenVisible {
 
 span.collapsar {
  white-space: nowrap; cursor: pointer;
- text-decoration: none; font-size: 10pt; font-family: sans-serif;
- color: black; background-color: lightgray; padding: 1pt; margin: 2pt;}
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
+ color: black; background-color: lightgray; padding: 1px; margin: 2px;}
 
 /* Clickit classes */
 
 span.clickit {
  white-space: nowrap;
- text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
  color: black; background-color: silver;
- padding: 1pt;
- border: outset silver 2pt;	
- margin: 2pt;}
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
 a.clickit {
  white-space: nowrap;
- text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
  color: black; background-color: silver;
- padding: 1pt;
- border: outset silver 2pt;	
- margin: 2pt;}
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
 a.clickit:visited {
  white-space: nowrap;
- text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
  color: black; background-color: silver;
- padding: 1pt;
- border: outset silver 2pt;	
- margin: 2pt;}
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
 input[type='SUBMIT'] {
  white-space: nowrap;
- text-decoration: none; font-size: 10pt; font-family: sans-serif;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
  color: black; background-color: silver;
- padding: 1pt;
- border: outset silver 2pt;	
- margin: 2pt;}
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
 
 /* Input help classes */
 
 div.input_help {
- font-style: italic; font-size: 9pt; color: purple;
+ font-style: italic; font-size: 9px; color: purple;
  margin-left: 5%; text-indent: -5%;}
 div.hidden_input_help {
- font-style: italic; font-size: 9pt; color: purple;
+ font-style: italic; font-size: 9px; color: purple;
  margin-left: 5%; text-indent: -5%;
  display: none;}
 div.input_help tt {font-style: normal; font-weight: bold;}
@@ -155,36 +155,39 @@ span.hotcheck { cursor: pointer; white-space: nowrap;}
 
 span.tab {
   font-family: sans,sans-serif;
-  margin-left: 2pt; margin-right: 2pt;
-  border: outset black 2pt;
-  padding: 3pt;}
+  margin-left: 2px; margin-right: 2px;
+  border: outset black 2px;
+  padding: 3px;}
 span.selected_tab {
   font-family: sans,sans-serif;
   font-weight: bold;
-  margin-left: 2pt; margin-right: 2pt;
-  border-top: inset black 2pt;
-  border-right: inset black 2pt;
-  border-left: inset black 2pt;
-  padding: 3pt;}
+  margin-left: 2px; margin-right: 2px;
+  border-top: inset black 2px;
+  border-right: inset black 2px;
+  border-left: inset black 2px;
+  padding: 3px;}
 
 div.tab_content {
- margin-left: 9pt; margin-top: 6pt; margin-right: 9pt;
+ margin-left: 9px; margin-top: 6px; margin-right: 9px;
  text-align: left;
  display: none;}
+div.selected_tab_content {
+ margin-left: 9px; margin-top: 6px; margin-right: 9px;
+ text-align: left;}
 div.tab_content div.narrative {
  color: purple; font-family: sans; font-style: italic;}
 
 div.tab_content p {
- margin: 2pt; padding: 2pt;
+ margin: 2px; padding: 2px;
  margin-left: 15%; text-indent: -5%; margin-right: 10%;}
 
 div.tab_content div.header {
  text-align: left; width: 95%; background-color: lightgray;
- font-size: 15pt; font-family: sans; font-weight: bold; margin-top: 3px;
+ font-size: 15px; font-family: sans; font-weight: bold; margin-top: 3px;
  padding-left: 3%; text-indent: -3%;}
 div.tab_content div.header span.explanation {
  margin-left: 16px; color: purple;
- font-weight: normal; font-style: italic; font-size: 9pt;}
+ font-weight: normal; font-style: italic; font-size: 9px;}
 
 /* Autoprompt classes */
 
@@ -207,11 +210,11 @@ span.narrative_hidden {
 
 span.concept {
   border: none 1px;
-  padding-left: 2pt; padding-right: 2pt;
+  padding-left: 2px; padding-right: 2px;
   white-space: nowrap;}
 span.concept[resolved='yes'] {
   border: none 1px;
-  padding-left: 2pt; padding-right: 2pt;
+  padding-left: 2px; padding-right: 2px;
   white-space: nowrap;}
 
 a.concept {

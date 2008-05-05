@@ -109,12 +109,16 @@ function fdbNewElt(tagname,namespace)
   else return document.createElement(tagname);
 }
 
-function fdbCheckbox(varname,value)
+function fdbCheckbox(varname,value,checked)
 {
   var checkbox=document.createElement('input');
   checkbox.type='CHECKBOX';
   checkbox.name=varname;
   checkbox.value=value;
+  if (checked) {
+    checkbox.checked=true; checkbox.defaultChecked=true;}
+  else {
+    checkbox.checked=false; checkbox.defaultChecked=false;}
   return checkbox;
 }
 
