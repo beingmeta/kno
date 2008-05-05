@@ -874,7 +874,7 @@ function seenote_setup()
 
 /* Font size controls */
 
-function increase_font(evt)
+function _fdb_increase_font(evt)
 {
   var elt=evt.target;
   var parent=elt.parentNode;
@@ -886,7 +886,7 @@ function increase_font(evt)
   else parent.style.fontSize="125%";
 }
 
-function decrease_font(evt)
+function _fdb_decrease_font(evt)
 {
   var elt=evt.target;
   var parent=elt.parentNode;

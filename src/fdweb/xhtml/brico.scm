@@ -25,8 +25,15 @@
 ;;  and subscripts for the fr$ syntax
 (module-export! '{dterm->html langterm->html})
 
+;; Displaying dterms in HTML with markup around the disambiguator
+;;  and subscripts for the fr$ syntax
+(module-export! '{concept->html concept->anchor})
+
+;; SHOWCONCEPT
+;; (module-export! 'showconcept)
+
 ;; Displaying concepts in various ways
-(module-export! '{showslot showconcept conceptsummary conceptsummary/prefetch!})
+(module-export! '{conceptsummary conceptsummary/prefetch!})
 
 ;;;; Getting language information
 
@@ -271,7 +278,7 @@
 			(get elt 'iso639/b)
 			(get elt 'iso639/t))))))))
 
-;;; Displaying concepts
+;;; Displaying words for a concept
 
 (define (get-sorted-words concept language)
   (try (tryif (eq? language @?english) (get concept 'ranked))
@@ -284,14 +291,15 @@
 		      (searchurl #f))
   "This outputs words to XHTML and returns the words output"
   (let ((shown (or shown {}))
+	(monolingual (empty? (difference languages language)))
 	(count 0))
     (doseq (word (get-sorted-words c language))
       (cond ((overlaps? word shown))
 	    ((or (not wordlim) (< count wordlim))
 	     (xmlout
 	       (if (> count 0) " . ")
-	       (wordform word c searchurl)
-	      " ")
+	       (if monolingual (wordform word) (wordform word c searchurl))
+	       " ")
 	     (set+! shown word)
 	     (set! count (1+ count)))
 	    (else)))
@@ -307,7 +315,7 @@
 	       (set! count (1+ count)))
 	      (else))))))
 
-;;; Outputting dterms
+;;; Outputting terms to HTML
 
 (define (langterm->html string (start 0) (end #f))
   "This outputs a dterm for HTML, primarily converting xx$ language prefixes \
@@ -340,8 +348,6 @@
 ;;; Showing concepts
 
 (define dterm-fcn get-dterm)
-
-(module-export! '{concept->html concept->anchor})
 
 (define (concept->html tag (var #f) (selected #t))
   (let* ((oid (if (and (pair? tag) (exists oid? (cdr tag)))
@@ -399,12 +405,15 @@
 	  (else (set! dterm-fcn val)))))
 (config-def! 'dtermdisplay dtermdisplay-config)
 
+;;;; Showing a concept with more context
+
+#|
 (define (showconcept c (language #f) (expansion #f) (wordlim 2))
   (if (fail? c) (xmlout)
     (let ((languages (or language (get-languages 'language)))
 	  (expval (if expansion (get c expansion) (fail))))
       (anchor* c (title (stdspace (get-gloss c (qc languages))) class "concept")
-	       (just-output-words c language (qc languages) wordlim))
+	       (output-words c language (qc languages) wordlim))
       (when (exists? expval)
 	(span (style "cursor: help;"
 		     title
@@ -415,6 +424,9 @@
 	(if (oid? expval) (showconcept expval (qc language))
 	  (xmlout expval)))
       (xmlout))))
+|#
+
+;;; Concept summaries
 
 (define (conceptsummary concept (language) (languages) (%env) (xmlbody))
   (default! language (get-language))
@@ -427,7 +439,7 @@
 		(all (get concept (choice language languages))))
 	    (anchor concept
 	      (img src "/graphics/diamond12.png" alt "+")
-	      (output-words concept language (qc languages) 5)))
+	      (output-words concept language (qc) 5)))
 	  (if (exists? sensecat)
 	      (xmlout " " (span (class "pos") sensecat) " ")
 	      (if (exists? (get concept 'part-of-speech))

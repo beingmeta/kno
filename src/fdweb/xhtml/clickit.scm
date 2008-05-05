@@ -139,11 +139,11 @@
 
 (define (font-sizers)
   (span ((class "font_sizer")
-	 (onclick "decrease_font(event);")
+	 (onclick "_fdb_decrease_font(event);")
 	 (title "click to decrease font size"))
     "-")
   (span ((class "font_sizer")
-	 (onclick "increase_font(event);")
+	 (onclick "_fdb_increase_font(event);")
 	 (title "click to increase font size"))
     "+"))
 
