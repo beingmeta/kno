@@ -921,6 +921,9 @@ static int has_class_attrib(fdtype attribs)
   fdtype scan=attribs;
   while (FD_PAIRP(scan))
     if (FD_EQ(FD_CAR(scan),class_symbol)) return 1;
+    else if ((FD_PAIRP(FD_CAR(scan))) &&
+	     (FD_EQ(FD_CAR(FD_CAR(scan)),class_symbol)))
+      return 1;
     else {
       scan=FD_CDR(scan);
       if (FD_PAIRP(scan)) scan=FD_CDR(scan);}
