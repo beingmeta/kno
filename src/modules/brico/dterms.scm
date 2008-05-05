@@ -51,8 +51,8 @@
 (define (find-dterm concept (language default-language) (norm))
   (default! norm (termnorm concept language))
   ;; (singleton? (?? language norm))
-  (if (or (singleton? (?? (get norm-map language) norm))
-	  (singleton? (?? language norm)))
+  (if (or (identical? concept (?? (get norm-map language) norm))
+	  (identical? concept (?? language norm)))
       norm
       (try
        (if (test concept 'type '{individual name})
@@ -77,11 +77,17 @@
   (let ((norm (get norm-map language)))
     (if isaterm
 	(try (?? norm term1 partof* (?? norm term2)
+		 implies (list (?? norm isaterm)))
+	     (?? norm term1 partof* (?? norm term2)
 		 implies (?? norm isaterm))
+	     (?? language term1 partof* (?? norm term2)
+		 implies (list (?? language isaterm)))
 	     (?? language term1 partof* (?? norm term2)
 		 implies (?? language isaterm))
 	     (?? language term1 partof* (?? language term2)
-		 implies (?? language isaterm)))
+		 implies (?? language isaterm))
+	     (?? language term1 partof* (?? language term2)
+		 implies (list (?? language isaterm))))
 	(try (?? norm term1 partof* (?? norm term2))
 	     (?? language term1 partof* (?? norm term2))
 	     (?? language term1 partof* (?? language term2))))))
@@ -107,7 +113,9 @@
 		(stringout norm "(FIPS-CODE=" (smallest (get concept 'fips-code) length) ")")))))
 
 (define (probeisa concept norm isaterm language normlang)
-  (identical? concept (?? language norm implies (?? normlang isaterm))))
+  (identical? concept
+	      (try (?? language norm implies (list (?? normlang isaterm)))
+		   (?? language norm implies (?? normlang isaterm)))))
 
 (define (find-individual-dterm concept language norm)
   (let* ((isa (get concept implies))
