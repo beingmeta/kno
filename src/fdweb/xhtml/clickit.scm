@@ -1,6 +1,17 @@
+;;; -*- Mode: scheme; Text-encoding: utf-8; -*-
+
 (in-module 'xhtml/clickit)
+
+;;; This provides various XHTML widgets which use stylesheets and
+;;;  javascript provided by fdweb.css and fdweb.js respectively.
+
+(define version "$Id: mttools.scm 2552 2008-04-24 13:19:29Z haase $")
+
 (use-module 'fdweb)
 (use-module 'xhtml)
+
+
+;;;; Action anchors
 
 (define (commandclick command label title)
   (anchor* (stringout "javascript:_fdb_clickit_command(':" command "');")
@@ -52,7 +63,8 @@
    acclick
    scriptclick})
 
-;;; Tab buttons
+
+;;;; Tabs buttons
 
 (define (tabbutton text image content
 		   (selectvar 'livetab) (defaultselect #f)
@@ -84,7 +96,8 @@
 
 (module-export! 'tabbutton)
 
-;;; Hide/show buttons
+
+;;;; Hide/show buttons
 
 (define (hideshow contentid hidetext showtext (var #f) (title #f))
   (span ((class "hideshow")
@@ -98,7 +111,8 @@
 
 (module-export! 'hideshow)
 
-;;; Vistoggle
+
+;;;; Vistoggle
 
 (define vistoggle
   (macro expr
@@ -110,7 +124,8 @@
 
 (module-export! 'vistoggle)
 
-;;; Hot checkboxes
+
+;;;; Hot checkboxes
 
 (define (hotcheck var val (text #f) (title #f))
   (span ((class "hotcheck") (title (if title title))
@@ -122,7 +137,8 @@
 
 (module-export! 'hotcheck)
 
-;;; Text input boxes which contain a prompt when blurred and empty
+
+;;;; Text input boxes which contain a prompt when blurred and empty
 
 (define autoprompt
   (macro expr
@@ -135,7 +151,11 @@
 (module-export! 'autoprompt)
 
 
-;;; Font changing
+
+
+;;;; Font sizers
+
+;;; This provides widgets for increasing and decreasing font size
 
 (define (font-sizers)
   (span ((class "font_sizer")
@@ -151,4 +171,55 @@
 
 (module-export! '{font-sizers fontsizers})
 
+
+
+;;;; Search bars
+
+;;; This provides XHTML generation functions for 'searchbars' that can
+;;;  be used in paging through sets of results.
+
+(define (searchbar baseuri len)
+  (let* ((start (->number (cgiget 'start 0)))
+	 (window (->number (cgiget 'window 10)))
+	 (end (min (+ start window) len)))
+    (div ((class "searchbar"))
+      (if (= start 0)
+	  (span ((class "searchtick")) "<")
+	  (anchor* (stringout baseuri
+		     "&START=" (max 0 (- start window))
+		     "&WINDOW=" window)
+	      ((class "searchtick")) "<"))
+      " "
+      (dotimes (i (inexact->exact (ceiling (/~ len window))))
+	(if (> i 0) (xmlout " . "))
+	(anchor* (stringout baseuri
+		   "&START=" (* i window)
+		   "&WINDOW=" window)
+	    ((class "searchtick"))
+	  (* i window)))
+      " "
+      (if (< (+ start window) len)
+	  (anchor* (stringout baseuri
+		     "&START=" (+ start window)
+		     "&WINDOW=" window)
+	      ((class "searchtick")) ">")
+	  (span ((class "searchtick")) ">")))))
+
+(define (scrolltick baseuri start end len)
+  (unless (>= end len)
+    (when (> (+ start (* (- end start) 2)) len)
+      (set! end len))
+    (anchor* (scripturl+ baseuri 'start start 'window (- end start))
+	((class "scrolltick"))
+      "+" (- end start) ">")))
+
+(define (scrollticks baseuri len . seq)
+  (let* ((start (->number (cgiget 'start 0)))
+	 (window (->number (cgiget 'window 10)))
+	 (end (min (+ start window) len)))
+    (doseq (elt seq)
+      (scrolltick baseuri end (+ end elt) len)
+      (xmlout " "))))
+
+(module-export! '{scrollticks searchbar})
 
