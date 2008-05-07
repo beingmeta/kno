@@ -121,7 +121,7 @@
 		      (choice-size _choice) _nthreads
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart)
-		      (- _core_done _blockstart) #f))
+		      (- _core_done _prep_done) #f))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
@@ -204,7 +204,7 @@
 		      (length _vec) _nthreads
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart)
-		      (- _core_done _blockstart) #f))
+		      (- _core_done _prep_done) #f))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
