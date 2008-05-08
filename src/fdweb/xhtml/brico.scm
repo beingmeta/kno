@@ -495,7 +495,7 @@
       (prefetch-oids! concepts)
       (prefetch-oids!
        (%get concepts '{hypernym @?genls @?partof
-				 @?memberof @?isa @?defterms}))
+				 @?memberof @?implies @?defterms}))
       (prefetch-keys! (for-choices (language (get-languages))
 			(cons language (get concepts language))))
       (xmlout))))
