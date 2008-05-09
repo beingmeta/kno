@@ -183,6 +183,13 @@
 ;;  so we make it the default.
 (define default-language english)
 
+(define always @1/4{ALWAYS})
+(define sometimes @1/5{SOMETIMES})
+(define never @1/6{NEVER})
+(define optional @1/7{OPTIONAL})
+(define %always @1/8{%ALWAYS})
+(define %optional @1/9{%OPTIONAL})
+
 (define genls @1/2c272{GENLS})
 (define genls* @1/2c27b{GENLS*})
 (define kindof @1/2c272{GENLS})
@@ -221,8 +228,8 @@
 (define disjoint @1/2c27d{DISJOINT})
 
 (define brico-slotids
-  (choice genls genls* kindof kindof*
-	  specls specls*
+  (choice always sometimes never optional %always %optional
+	  genls genls* kindof kindof* specls specls*
 	  parts parts* partof partof*
 	  members members* memberof memberof*
 	  ingredients ingredients* ingredientof ingredientof*
@@ -587,6 +594,7 @@
  '{english
    english-gloss english-norm
    spanish french
+   always sometimes never optional %always %optional
    implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*
    genls genls* kindof kindof* specls specls*
