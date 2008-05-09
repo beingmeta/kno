@@ -43,6 +43,10 @@ typedef unsigned long fd_4bytes;
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
+/* Utility functions */
+
+#define FD_INIT_STRUCT(s,sname) memset(s,0,sizeof(sname));
+
 /* Built in stuff */
 
 #include <stdlib.h>

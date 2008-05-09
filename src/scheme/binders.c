@@ -177,6 +177,8 @@ static fd_lispenv init_static_env
 {
   int i=0; while (i < n) {
     vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
+  FD_INIT_STRUCT(bindings,struct FD_SCHEMAP);
+  FD_INIT_STRUCT(envstruct,struct FD_ENVIRONMENT);
   FD_INIT_STACK_CONS(bindings,fd_schemap_type);
   bindings->flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings->schema=vars;

@@ -344,6 +344,7 @@ FD_EXPORT fdtype fd_init_slotmap
    int len,struct FD_KEYVAL *data)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_SLOTMAP);
+  FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
   sort_keyvals(data,len);
   ptr->size=len; ptr->keyvals=data;
@@ -357,6 +358,7 @@ static fdtype copy_slotmap(fdtype smap,int deep)
 {
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
+  FD_INIT_STRUCT(fresh,struct FD_SLOTMAP);
   fd_read_lock_struct(cur);
   if (FD_XSLOTMAP_SIZE(cur)) {
     int n=FD_XSLOTMAP_SIZE(cur);
@@ -455,6 +457,7 @@ FD_EXPORT fdtype fd_make_schemap
 {
   int i=0; 
   if (ptr == NULL) ptr=u8_alloc(struct FD_SCHEMAP);
+  FD_INIT_STRUCT(ptr,struct FD_SCHEMAP);
   FD_INIT_CONS(ptr,fd_schemap_type); ptr->schema=schema;
   ptr->size=size; ptr->flags=flags; ptr->schema=schema;
   if (values) ptr->values=values;
@@ -506,6 +509,7 @@ static fdtype copy_schemap(fdtype schemap,int deep)
   int i=0, size=FD_XSCHEMAP_SIZE(ptr);
   fdtype *ovalues=ptr->values, *values=((size==0) ? (NULL) : (u8_alloc_n(size,fdtype)));
   fdtype *schema=ptr->schema, *nschema;
+  FD_INIT_STRUCT(nptr,struct FD_SCHEMAP);
   FD_INIT_CONS(nptr,fd_schemap_type);
   if (ptr->flags&FD_SCHEMAP_STACK_SCHEMA)
     nptr->schema=nschema=u8_alloc_n(size,fdtype);
@@ -540,6 +544,7 @@ FD_EXPORT fdtype fd_init_schemap
 {
   int i=0; fdtype *news, *newv;
   if (ptr == NULL) ptr=u8_alloc(struct FD_SCHEMAP);
+  FD_INIT_STRUCT(ptr,struct FD_SCHEMAP);
   FD_INIT_CONS(ptr,fd_schemap_type);
   news=u8_alloc_n(size,fdtype);
   ptr->values=newv=u8_alloc_n(size,fdtype);
