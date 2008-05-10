@@ -186,9 +186,13 @@
 (define always @1/4{ALWAYS})
 (define sometimes @1/5{SOMETIMES})
 (define never @1/6{NEVER})
+(define somenot @1/7{SOMENOT})
 (define optional @1/7{OPTIONAL})
 (define %always @1/8{%ALWAYS})
-(define %optional @1/9{%OPTIONAL})
+(define %somenot @1/9{%SOMENOT})
+
+(define optional somenot)
+(define %optional %somenot)
 
 (define genls @1/2c272{GENLS})
 (define genls* @1/2c27b{GENLS*})
@@ -228,7 +232,7 @@
 (define disjoint @1/2c27d{DISJOINT})
 
 (define brico-slotids
-  (choice always sometimes never optional %always %optional
+  (choice always sometimes never somenot %always %somenot
 	  genls genls* kindof kindof* specls specls*
 	  parts parts* partof partof*
 	  members members* memberof memberof*
@@ -594,7 +598,7 @@
  '{english
    english-gloss english-norm
    spanish french
-   always sometimes never optional %always %optional
+   always sometimes never somenot %always  %somenot 
    implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*
    genls genls* kindof kindof* specls specls*
@@ -603,6 +607,7 @@
    ingredients ingredients* ingredientof ingredientof*
    inverse =is= disjoint
    refterms defterms referenced defines
+   optional %optional
    wordnet-source roget-source brico-source})
 
 ;; Getting glosses, norms, etc.
