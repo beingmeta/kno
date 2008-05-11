@@ -63,7 +63,7 @@
        (tryif usedefterms
 	      (try-choices (df (get concept defterms))
 		(tryif (singleton? (?? language norm @?defterms df))
-		       (string-append norm " (*" (get-norm df language) ")"))))
+		       (string-append norm " (:" (get-norm df language) ")"))))
        (try-choices (alt (difference (get concept language) norm))
 	 (if (search norm alt)
 	     (try
@@ -114,8 +114,10 @@
 
 (define (probeisa concept norm isaterm language normlang)
   (identical? concept
-	      (try (?? language norm implies (list (?? normlang isaterm)))
-		   (?? language norm implies (?? normlang isaterm)))))
+	      (try (?? language norm
+		       (choice sometimes always) (list (?? normlang isaterm)))
+		   (?? language norm
+		       (choice sometimes always) (?? normlang isaterm)))))
 
 (define (find-individual-dterm concept language norm)
   (let* ((isa (get concept implies))
@@ -144,15 +146,13 @@
 	 (tryif (singleton? (?? language norm)) norm)
 	 (try-choices (term (get sensecathints (cons sensecat language)))
 	   (tryif (singleton? (intersection meanings
-					    (?? genls* (?? normslot term))))
+					    (?? always (?? normslot term))))
 		  (string-append norm ":" term)))
 	 (try-choices (gn (get-norm (get concept genls) dlang))
-	   (tryif (singleton? (intersection meanings
-					    (?? genls* (?? dlang gn))))
+	   (tryif (singleton? (intersection meanings (?? always (?? dlang gn))))
 		  (string-append norm ":"  (langterm gn language dlang))))
 	 (try-choices (gn (get-norm (?? specls* concept) dlang))
-	   (tryif (singleton? (intersection meanings
-					    (?? genls* (?? dlang gn))))
+	   (tryif (singleton? (intersection meanings (?? always (?? dlang gn))))
 		  (string-append norm ":"  (langterm gn language dlang))))
 	 (try-choices (pn (get-norm (get concept @?partof) dlang))
 	   (tryif (singleton? (intersection meanings (?? partof (?? dlang pn))))
