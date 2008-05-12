@@ -1,4 +1,4 @@
-;;; -*- Mode: scheme; Text-encoding: latin-1; -*-
+;;; -*- Mode: Scheme; Text-encoding: latin-1; -*-
 
 (in-module 'xhtml/brico)
 
@@ -426,52 +426,54 @@
       (xmlout))))
 |#
 
+;;; SHOWFIELD
+
+(defambda (showfield concept slotid (showempty #f) (labelurl #f) (values) (label))
+  (do-choices slotid
+    (default! values (try (pick (get concept slotid) 'type) (get concept slotid)))
+    (default! label (getid slotid (get-language)))
+    (let ((slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
+			     (try (symbol->string (pick (get slotid '%mnemonic) symbol?))))))
+      (when (or showempty (exists? values))
+	(span ((class "field") (slotid (ifexists slotidattr)))
+	  (if labelurl
+	      (anchor* labelurl ((class "label")) label)
+	      (span ((class "label")) label))
+	  " "
+	  (do-choices (f values i)
+	    (xmlout (if (> i 0) " . " " ") (concept->anchor f))))))))
+
+(module-export! 'showfield)
+
 ;;; Concept summaries
 
 (define (conceptsummary concept (language) (languages) (%env) (xmlbody))
   (default! language (get-language))
   (default! languages (get-languages))
-  (let  ((seen (make-hashset))
-	 (sensecat (get concept 'sense-category)))
+  (let  ((sensecat (get concept 'sense-category)))
     (div (class "conceptsummary")
-      (P* (class "head" title "Examine this concept")
-	  (let ((shown {})
-		(all (get concept (choice language languages))))
-	    (anchor concept
-	      (img src "/graphics/diamond12.png" alt "+")
-	      (output-words concept language (qc) 5)))
-	  (if (exists? sensecat)
-	      (xmlout " " (span (class "pos") sensecat) " ")
-	      (if (exists? (get concept 'part-of-speech))
-		  (xmlout " "
-			  (span (class "pos") (get concept 'part-of-speech))
-			  " "))))
+      (p* ((class "head") (title "Examine this concept"))
+	(let ((shown {})
+	      (all (get concept (choice language languages))))
+	  (anchor concept
+	    (img src "/graphics/diamond12.png" alt "+")
+	    (output-words concept language (qc) 5)))
+	(if (exists? sensecat)
+	    (xmlout " " (span (class "pos") sensecat) " ")
+	    (if (exists? (get concept 'part-of-speech))
+		(xmlout " "
+			(span (class "pos") (get concept 'part-of-speech))
+			" "))))
       ;; We do immediate data tests when generating a summary, which
       ;; means that some inferred values may be missed.  But this
       ;; makes summary output much faster.
-      (p* (class "fields")
-	(when (%test concept @?implies)
-	  (span ((class "field"))
-	    (span ((class "fieldid")) "implies") " "
-	    (do-choices (g (try (reject (%get concept @?implies) 'gnis)
-				(%get concept @?implies))
-			   i)
-	      (if (> i 0) (xmlout " . ")) (concept->anchor g))))
-	(when (%test concept kindof)
-	  (span ((class "field"))
-	    (span ((class "fieldid")) "genls") " "
-	    (do-choices (g (%get concept kindof) i)
-	      (if (> i 0) (xmlout " . ")) (concept->anchor g))))
-	(when (%test concept partof)
-	  (span ((class "field"))
-	    (span ((class "fieldid")) "partof") " "
-	    (do-choices (g (%get concept partof) i)
-	      (if (> i 0) (xmlout " . ")) (concept->anchor g))))
-	(when (%test concept defterms)
-	  (span ((class "field"))
-	    (span ((class "fieldid")) "defterms") " "
-	    (do-choices (d (%get concept defterms) i)
-	      (if (> i 0) (xmlout " . ")) (concept->anchor d))))
+      (p* ((class "fields"))
+	(showfield concept always)
+	(showfield concept never) " "
+	(showfield concept sometimes (%get concept (choice sometimes isa))) " "
+	(showfield concept somenot) " "
+	(showfield concept partof) " "
+	(showfield concept defterms) " "
 	(when (%test concept 'country)
 	  (span ((class "field"))
 	    (span ((class "fieldid")) "country") " "
@@ -490,8 +492,6 @@
       ;; We keep these separate because they're usually in the cache,
       ;;  so there's not bundling advantage.  However, we want to keep them
       ;;  here so that testing doesn't show them being fetched.
-      (prefetch-oids! prefetch-oids-always)
-      (prefetch-keys! prefetch-keys-always)
       (prefetch-oids! concepts)
       (prefetch-oids!
        (%get concepts '{hypernym @?genls @?partof

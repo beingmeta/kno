@@ -254,3 +254,11 @@ span.font_sizer {
   text-align: center; cursor: pointer; margin: 2px;
   background: gray; color: white;}
 
+/* Inline Fields */
+
+span.field { font-family: sans,sans-serif; color: purple; }
+span.field span.label { font-weight: bold; }
+span.field[slotid='ALWAYS'] { color: green;}
+span.field[slotid='SOMETIMES'] { color: blue;}
+span.field[slotid='NEVER'] { color: red;}
+span.field[slotid='SOMENOT'] { color: orange;}

@@ -377,7 +377,7 @@
 			     (filter-choices (meaning meanings)
 			       (overlaps? cxt (?? implies meaning))))))))))
 
-(define (parse-term term (language default-language) (tryhard 1))
+(define (parse-term term (language default-language) (tryhard 1) (solenorms #t))
   (if (not tryhard) (set! tryhard 0)
       (if (not (number? tryhard)) (set! tryhard 1)))
   (if (has-prefix term "~")
@@ -387,8 +387,9 @@
 	  (if (exists? (textmatcher #((isalpha) (isalpha) "$") term))
 	      (lookup-term (subseq term 3) (?? 'iso639/1 (subseq term 0 2))
 			   tryhard)
-	      (try (tryif (not (or (position #\, term) (position #\: term)
-				   (position #\= term) (position #\( term)))
+	      (try (tryif (and solenorms
+			       (not (or (position #\, term) (position #\: term)
+				   (position #\= term) (position #\( term))))
 			  (cons term (singleton (?? (get norm-map language) term))))
 		   (cons term (singleton (lookup-word term language #f)))
 		   (if (or (position #\, term) (position #\: term)
@@ -399,10 +400,10 @@
 				  (qcx (lookup-word (capitalize term)
 					       language tryhard))))))))))
 
-(define (lookup-term term (language default-language) (tryhard 1))
+(define (lookup-term term (language default-language) (tryhard 1) (solenorm #t))
   (if (not tryhard) (set! tryhard 0)
       (if (not (number? tryhard)) (set! tryhard 1)))
-  (cdr (parse-term term language tryhard)))
+  (cdr (parse-term term language tryhard solenorm)))
 
 (defambda (try-termrules/prefetch term language tryhard)
   (lookup-word/prefetch term language #f)
