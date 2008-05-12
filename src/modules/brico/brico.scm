@@ -5,7 +5,7 @@
 (define version "$Id$")
 
 (define %nosubst '{bricosource
-		   brico-pool brico-index
+		   brico-pool brico-index brico.db
 		   xbrico-pool names-pool places-pool
 		   freqfns custom-norms custom-glosses
 		   use-wordforms})
@@ -27,6 +27,8 @@
 (define names-pool {})
 (define places-pool {})
 
+(define brico.db #f)
+
 (define absfreqs {})
 
 (define bricosource-config
@@ -42,7 +44,8 @@
 		(or (has-suffix val ".db")
 		    (file-exists? (string-append val ".db"))))
 	   (set! bricosource val)
-	   (set! brico-index (usedb val))
+	   (set! brico.db (usedb val))
+	   (set! brico-index (get brico.db '%indices))
 	   (set! brico-pool (name->pool "brico.framerd.org"))
 	   (set! xbrico-pool (name->pool "xbrico.beingmeta.com"))
 	   (set! names-pool (name->pool "namedb.beingmeta.com"))
@@ -200,7 +203,8 @@
 (define kindof* @1/2c27b{GENLS*})
 (define specls @1/2c273{SPECLS})
 (define specls* @1/2c27c{SPECLS*})
-(define implies @1/2c27e{IMPLIES})
+(define isa @1/2c27e{ISA})
+(define implies @1/2c27e{ISA})
 (define implies* @1/2f201{IMPLIES*})
 (define impliedby @1/2c27f{IMPLIEDBY})
 (define impliedby* @1/44c99{IMPLIEDBY*})
@@ -577,7 +581,7 @@
 
 (module-export!
  '{brico-pool
-   brico-index
+   brico-index brico.db
    xbrico-pool names-pool places-pool
    absfreqs getabsfreq
    default-language all-languages
@@ -599,7 +603,7 @@
    english-gloss english-norm
    spanish french
    always sometimes never somenot %always  %somenot 
-   implies implies* impliedby impliedby*
+   isa implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*
    genls genls* kindof kindof* specls specls*
    parts parts* partof partof*
