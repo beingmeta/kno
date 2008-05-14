@@ -127,7 +127,7 @@
 
 ;;;; Hot checkboxes
 
-(define (hotcheck var val (text #f) (title #f))
+(define (hotcheck/radio var val (text #f) (title #f))
   (span ((class "hotcheck") (title (if title title))
 	 (onclick "_fdb_hotcheck_click(event);")
 	 (style (if (cgitest var val) "font-weight: bold;")))
@@ -135,7 +135,15 @@
 	   ("CHECKED" (cgitest var val)))
     (or text val)))
 
-(module-export! 'hotcheck)
+(define (hotcheck var val (text #f) (title #f))
+  (span ((class "hotcheck") (title (if title title))
+	 (onclick "_fdb_hotcheck_click(event);")
+	 (style (if (cgitest var val) "font-weight: bold;")))
+    (input TYPE "checkbox" NAME (symbol->string var) VALUE val
+	   ("CHECKED" (cgitest var val)))
+    (or text val)))
+
+(module-export! '{hotcheck hotcheck/radio})
 
 
 ;;;; Text input boxes which contain a prompt when blurred and empty

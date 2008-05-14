@@ -197,7 +197,7 @@
     language))
 
 
-(define (display-checkbox var val selected onclick multi)
+(define (display-checkbox var val selected onclick (multi #f))
   (if onclick
       (xmlempty 'input
 		'type (if multi "checkbox" "radio")
