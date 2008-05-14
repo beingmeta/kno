@@ -805,24 +805,35 @@ function _fdb_collapsar_click(evt)
 
 function _fdb_hotcheck_click(evt)
 {
-  var target=evt.target;
-  var elt=fdbFindClass(target,'hotcheck');
+  var target=evt.target, elt=target, need_check=true;
+  while (elt) {
+    fdbMessage('tagname='+elt.tagName);
+    if ((elt.nodeType==1) && (elt.tagName=='INPUT')) {
+      need_check=false; elt=elt.parentNode;}
+    else if (elt.className=='hotcheck')
+      break;
+    else elt=elt.parentNode;}
   var unique_elt=false;
+  fdbMessage('need_check='+need_check);
   if (elt) {
     var i=0, elts=elt.childNodes;
     while (i<elts.length) 
       if ((elts[i].nodeType==1) &&
 	  (elts[i].tagName=='INPUT')) {
 	if (elts[i]==target) {
-	  elts[i].checked=true;
-	  if (elts[i].type=='radio') unique_elt=elts[i];
-	  elt.style.fontWeight='bold';}
+	  if (need_check) elts[i].checked=true;
+	  if (elts[i].checked)
+	    elt.style.fontWeight='bold';
+	  else elt.style.fontWeight='normal';
+	  if (elts[i].type=='radio') unique_elt=elts[i];}
 	else if (elts[i].checked) {
-	  elts[i].checked=false;
+	  if (need_check) elts[i].checked=false;
+	  fdbMessage('checked');
 	  elt.style.fontWeight='normal';}
 	else {
-	  elts[i].checked=true;
+	  if (need_check) elts[i].checked=true;
 	  if (elts[i].type=='radio') unique_elt=elts[i];
+	  fdbMessage('not checked');
 	  elt.style.fontWeight='bold';}
 	break;}
       else i++;}
@@ -836,6 +847,7 @@ function _fdb_hotcheck_click(evt)
 	if (parent) parent.style.fontWeight='normal';
 	i++;}
       else i++;}
+  return true;
 }
 
 /* Seenotes */
