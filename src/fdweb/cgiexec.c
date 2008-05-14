@@ -697,6 +697,20 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
   return value;
 }
 
+static fdtype cgicall(fdtype proc)
+{
+  fdtype cgidata=fd_thread_get(cgidata_symbol), value=FD_VOID;
+  if (FD_PTR_TYPEP(proc,fd_sproc_type)) 
+    value=
+      fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
+		      (fdtype (*)(void *,fdtype))cgigetvar);
+  else if (FD_APPLICABLEP(proc))
+    value=fd_apply(proc,0,NULL);
+  else value=fd_type_error("applicable","cgicall",proc);
+  fd_decref(cgidata);
+  return value;
+}
+
 static fdtype cgiget(fdtype var,fdtype dflt)
 {
   fdtype table=fd_thread_get(cgidata_symbol), val;
@@ -778,6 +792,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim5("SET-COOKIE!",setcookie,2));
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,2));
 
+  fd_idefn(module,fd_make_cprim1("CGICALL",cgicall,1));
   fd_idefn(module,fd_make_cprim2("CGIGET",cgiget,1));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGITEST",cgitest,1)));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGISET!",cgiset,2)));
