@@ -1838,6 +1838,11 @@ static fdtype overlay_drop(fdtype f,fdtype slotid,fdtype v)
   return fd_overlay_drop(f,slotid,v,0);
 }
 
+static fdtype overlay_store(fdtype f,fdtype slotid,fdtype v)
+{
+  return fd_overlay_store(f,slotid,v,0);
+}
+
 static fdtype overlay_index_add(fdtype f,fdtype slotid,fdtype v)
 {
   return fd_overlay_add(f,slotid,v,1);
@@ -1846,6 +1851,11 @@ static fdtype overlay_index_add(fdtype f,fdtype slotid,fdtype v)
 static fdtype overlay_index_drop(fdtype f,fdtype slotid,fdtype v)
 {
   return fd_overlay_drop(f,slotid,v,1);
+}
+
+static fdtype overlay_index_store(fdtype f,fdtype slotid,fdtype v)
+{
+  return fd_overlay_store(f,slotid,v,1);
 }
 
 
@@ -1876,12 +1886,15 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar,1)));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim3("OVERLAY-ADD!",overlay_add,3));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("OVERLAY-DROP!",overlay_drop,3));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("OV/ADD!",overlay_add,3));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("OV/DROP!",overlay_drop,3));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("OV/STORE!",overlay_store,3));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3("OVERLAY-INDEX-ADD!",overlay_index_add,3));
+	   fd_make_cprim3("OV/INDEX-ADD!",overlay_index_add,3));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3("OVERLAY-INDEX-DROP!",overlay_index_drop,3));
+	   fd_make_cprim3("OV/INDEX-DROP!",overlay_index_drop,3));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3("OV/INDEX-STORE!",overlay_index_store,3));
   
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET*",getstar,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));
