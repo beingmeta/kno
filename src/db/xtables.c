@@ -56,14 +56,16 @@ FD_EXPORT int fd_set_adjunct(fd_index ix,fdtype slotid,fd_pool p)
     FD_ADD_TO_CHOICE(fd_adjunct_slotids,slotid);
     fd_adjunct_slotids=fd_simplify_choice(fd_adjunct_slotids);}
   if (p) {
-    struct FD_KEYVAL *entry=fd_sortvec_insert(slotid,&(p->adjuncts),&(p->n_adjuncts));
+    struct FD_KEYVAL *entry=
+      fd_sortvec_insert(slotid,&(p->adjuncts),&(p->n_adjuncts));
     if (entry==NULL) {
       fd_seterr(fd_MallocFailed,"fd_set_adjunct",NULL,FD_VOID);
       return -1;}
     if (ix) entry->value=fd_index2lisp(ix);
     else entry->value=FD_VOID;}
   else {
-    struct FD_KEYVAL *entry=fd_sortvec_insert(slotid,&adjuncts,&n_adjuncts);
+    struct FD_KEYVAL *entry=
+      fd_sortvec_insert(slotid,&adjuncts,&n_adjuncts);
     if (entry==NULL) {
       fd_seterr(fd_MallocFailed,"fd_set_adjunct",NULL,FD_VOID);
       return -1;}
@@ -76,7 +78,9 @@ static fd_index get_adjunct(fdtype slotid,fd_pool p)
 {
   if (p) {
     struct FD_KEYVAL *entry=
-      ((p->n_adjuncts) ? (fd_sortvec_get(slotid,p->adjuncts,p->n_adjuncts)) : (NULL));
+      ((p->n_adjuncts) ?
+       (fd_sortvec_get(slotid,p->adjuncts,p->n_adjuncts)) :
+       (NULL));
     if ((entry==NULL) && (n_adjuncts))
       entry=fd_sortvec_get(slotid,adjuncts,n_adjuncts);
     if (entry)
@@ -84,7 +88,10 @@ static fd_index get_adjunct(fdtype slotid,fd_pool p)
       else return NULL;
     else return NULL;}
   else {
-    struct FD_KEYVAL *entry=((n_adjuncts) ? (fd_sortvec_get(slotid,adjuncts,n_adjuncts)) : (NULL));
+    struct FD_KEYVAL *entry=
+      ((n_adjuncts) ?
+       (fd_sortvec_get(slotid,adjuncts,n_adjuncts)) :
+       (NULL));
     if (entry)
       if (FD_INDEXP(entry->value)) return fd_lisp2index(entry->value);
       else return NULL;
@@ -100,13 +107,18 @@ FD_EXPORT int fd_adjunctp(fdtype slotid,fd_pool p)
 {
   if (p) {
     struct FD_KEYVAL *entry=
-      ((p->n_adjuncts) ? (fd_sortvec_get(slotid,p->adjuncts,p->n_adjuncts)) : (NULL));
+      ((p->n_adjuncts) ?
+       (fd_sortvec_get(slotid,p->adjuncts,p->n_adjuncts)) :
+       (NULL));
     if (((entry==NULL) || (!(FD_INDEXP(entry->value)))) && (n_adjuncts))
       entry=fd_sortvec_get(slotid,adjuncts,n_adjuncts);
     if ((entry) && (FD_INDEXP(entry->value))) return 1;
     else return 0;}
   else {
-    struct FD_KEYVAL *entry=((n_adjuncts) ? (fd_sortvec_get(slotid,adjuncts,n_adjuncts)) : (NULL));
+    struct FD_KEYVAL *entry=
+      ((n_adjuncts) ?
+       (fd_sortvec_get(slotid,adjuncts,n_adjuncts)) :
+       (NULL));
     if (entry)
       if (FD_INDEXP(entry->value)) return 1;
       else return 0;
@@ -115,11 +127,12 @@ FD_EXPORT int fd_adjunctp(fdtype slotid,fd_pool p)
 
 /* Table operations on OIDs */
 
-/* OIDs provide an intermediate data layer.  In general, getting a slotid from an OID gets
-   the OID's value and then gets the slotid from that value (whatever type of object it is).
-   The exception to this case is that certain pools can declare that certain keys (slotids)
-   are stored in external indices.  These indices, called adjunct indices, allow another layer
-   of description. */
+/* OIDs provide an intermediate data layer.  In general, getting a
+   slotid from an OID gets the OID's value and then gets the slotid
+   from that value (whatever type of object it is).  The exception to
+   this case is that certain pools can declare that certain keys
+   (slotids) are stored in external indices.  These indices, called
+   adjunct indices, allow another layer of description. */
 FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
 {
   fd_pool p=fd_oid2pool(f);

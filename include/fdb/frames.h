@@ -57,6 +57,9 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value);
 FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value);
 FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value);
 
+FD_EXPORT fdtype fd_overlay_add(fdtype f,fdtype slotid,fdtype value,int);
+FD_EXPORT fdtype fd_overlay_drop(fdtype f,fdtype slotid,fdtype value,int);
+
 /* Finding frames */
 
 FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotid,fdtype value);
