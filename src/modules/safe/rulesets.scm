@@ -64,7 +64,3 @@
 				   `(,ruleconverter value)
 				   'value)
 			      ,rulevar)))))))
-
-
-
-

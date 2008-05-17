@@ -7,8 +7,7 @@
 (define %nosubst '{bricosource
 		   brico-pool brico-index brico.db
 		   xbrico-pool names-pool places-pool
-		   freqfns custom-norms custom-glosses
-		   use-wordforms})
+		   freqfns use-wordforms})
 
 ;; For index-name, at least
 (use-module '{texttools reflection})
@@ -82,65 +81,6 @@
 	((table? val) (set+! absfreqs val))
 	(else (error 'typeerror "Not a table or index" val))))
 (config-def! 'absfreqs config-absfreqs)
-
-;;; A custom entry is a vector of the form:
-;;;  #(name lang table)
-;;; and rulesets are used to manage the replacement of entries
-;;; with the same name.
-
-(define custom-map-name first)
-(define custom-map-language second)
-(define custom-map-handler third)
-
-(define (custom-get-list key language custom)
-  (tryif (pair? custom)
-	 (let* ((entry (car custom))
-		(handler (custom-map-handler entry)))
-	   (try
-	    (if (custom-map-language entry)
-		(tryif (eq? language (custom-map-language entry))
-		       (if (table? handler) (get handler key)
-			   (tryif (applicable? handler)
-				  (handler key))))
-		(if (table? handler)
-		    (get handler (cons language key))
-		    (tryif (applicable? handler)
-			   (handler key language))))
-	    (custom-get-list key language (cdr custom))))))
-
-(defambda (custom-get key language custom)
-  (if (or (fail? custom) (not custom) (null? custom))
-      (fail)
-      (if (pair? custom)
-	  (custom-get-list key language custom)
-	  (choice (get (custom-map-handler
-			(pick custom custom-map-language language))
-		       key)
-		  (get (custom-map-handler
-			(pick custom custom-map-language #f))
-		       (cons language key))))))
-
-;; This is used by config functions and massages a variety
-;;  of specifications into a custom-map
-(define (conform-maprule value)
-  (if (vector? value) value
-      (let* ((items (if (pair? value) (choice (car value) (cdr value))
-			value))
-	     (name (try (pick items symbol?) #f))
-	     (language (try (pick items oid?) #f))
-	     (map (try (difference items (choice name language)) #f)))
-	(cond ((not (or (table? map) (applicable? map)))
-	       (error 'config "Invalid map: " map))
-	      ((and language (applicable? map)
-		    (not (= (fcn-min-arity map) 1)))
-	       (error 'config "map function requires too many arguments: "
-		      map))
-	      ((and (not language) (applicable? map)
-		    (> (fcn-arity map) 1)
-		    (not (= (fcn-min-arity map) 2)))
-	       (error 'config "map function has wrong number of arguments: "
-		      map))
-	      (else (vector name language map))))))
 
 ;;; Common tables
 
@@ -244,16 +184,6 @@
 	  =is= sameas inverse disjoint 
 	  defterms defines refterms referenced))
 
-;;; Custom data sources
-
-(define custom-norms #f)
-(define custom-glosses #f)
-
-(config-def! 'CUSTOMNORMS
-	     (ruleset-configfn custom-norms conform-maprule))
-(config-def! 'CUSTOMGLOSSES
-	     (ruleset-configfn custom-glosses conform-maprule))
-
 ;;; Getting IDs
 
 (define (getid concept (language default-language))
@@ -267,9 +197,7 @@
 (define (get-norm concept (language default-language) (tryhard #t))
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
-  (try (tryif custom-norms
-	      (pick-one (largest (custom-get concept language custom-norms))))
-       (tryif (eq? language english) (first (get concept 'ranked)))
+  (try (tryif (eq? language english) (first (get concept 'ranked)))
        (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
@@ -286,8 +214,7 @@
        (pick-one (largest (cdr (get concept '%words))))))
 
 (define (get-gloss concept (language default-language))
-  (try (tryif custom-glosses (custom-get concept language custom-glosses))
-       (tryif language (get concept (get gloss-map language)))
+  (try (tryif language (get concept (get gloss-map language)))
        (tryif language (get (get concept '%glosses) language))
        (get concept english-gloss)
        (get concept 'gloss)))
@@ -590,12 +517,6 @@
    all-languages all-glosses all-norms
    ;; Prefetchers for OIDs and inverted index slotids
    brico-prefetch! brico-prefetch prefetch-slots!})
-
-(module-export!
- '{
-   custom-get
-   custom-map-name custom-map-language custom-map-handler
-   conform-maprule})
 
 (module-export!
  ;; OIDs by name

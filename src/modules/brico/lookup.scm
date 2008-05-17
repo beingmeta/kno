@@ -12,7 +12,7 @@
 (use-module 'brico)
 (use-module '{texttools reflection})
 (use-module '{morph morph/en})
-(use-module '{rulesets})
+(use-module '{brico/maprules rulesets})
 
 (define logger %logger)
 
@@ -27,32 +27,9 @@
 		  lookup-word/prefetch lookup-term/prefetch
 		  brico/resolve})
 
-(define %nosubst
-  '{word-overrides word-overlays morphrules termrules})
+(define %nosubst '{morphrules termrules})
 
 (define remote-lookup-term #f)
-
-;;; LOOKING up words
-
-;;; There are two ways of customizing lookup: overrides and overlays.
-;;;   overrides replace normal lookup with specific meanings
-;;;   overlays augment normal lookup with additional meanings
-;;;  An override value of false #f causes lookup to fail (return {}).
-
-(define word-overrides #f)
-(define word-overlays #f)
-
-(define (override-get word language)
-  (custom-get word language word-overrides))
-(define (word-override? word language)
-  (exists? (override-get word language)))
-(define (overlay-get word language)
-  (pickoids (custom-get word language word-overlays)))
-
-(config-def! 'WORDOVERRIDE
-	     (ruleset-configfn word-overrides conform-maprule))
-(config-def! 'WORDOVERLAY
-	     (ruleset-configfn word-overlays conform-maprule))
 
 ;;; Morphing rules
 
@@ -64,7 +41,6 @@
   (if (overlaps? s all-languages) s
       (try (get norm-map s)
 	   (get index-map s))))
-
 
 (define (apply-variation rule word language)
   (if (custom-map-language rule)
@@ -108,11 +84,6 @@
 ;;; This code looks up words in BRICO, potentially applying
 ;;;  some entirely textual cleverness.
 
-;;; It also allows applications to provide OVERRIDES and OVERLAYS
-;;;  for word lookup.  OVERRIDES keep searches from going to the
-;;;  background index; OVERLAYS are just combined with the background
-;;;  index.
-
 ;;; The TRYHARD argument indicates how hard to try when doing a lookup.
 ;;; The values are roughly interpreted as follows:
 ;;;  #f don't try anything but basestring normalization (Malmö ==> Malmo)
@@ -149,17 +120,11 @@
 	      (lookup-word (subseq word 3)
 			   (?? 'iso639/1 (subseq word 0 2))
 			   tryhard)
-	      (if word-overrides
-		  ;; Word overrides cut short the lookup process
-		  (let ((override (override-get (stdspace word) language)))
-		    (if (exists? override) (or override (fail))
-			(lookup-word-core (stdspace word) language tryhard)))
-		  (lookup-word-core (stdspace word) language tryhard))))))
+	      (lookup-word-core (stdspace word) language tryhard)))))
 
 (define (lookup-word-core word language tryhard)
   ;; (message "lookup-word-core " (write word) " " language " " tryhard)
   (choice (?? language word)
-	  (tryif word-overlays (overlay-get word language))
 	  (tryif (> tryhard 0)
 		 (let* ((baselang (getbaselang language))
 			(variants (vary-word word baselang tryhard)))
