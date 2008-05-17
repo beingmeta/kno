@@ -29,3 +29,5 @@ FD_EXPORT fd_bigint fd_ulong_to_bigint(unsigned long x);
 
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
+#define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
+

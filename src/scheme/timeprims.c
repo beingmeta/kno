@@ -682,7 +682,8 @@ fdtype sleep_prim(fdtype arg)
 
 /* RUSAGE */
 
-static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol, utime_symbol, stime_symbol;
+static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
+static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
 
 static fdtype rusage_prim(fdtype field)
 {
@@ -697,16 +698,27 @@ static fdtype rusage_prim(fdtype field)
     fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));
     fd_add(result,resident_symbol,FD_INT2DTYPE(r.ru_maxrss));
     {
-      fdtype tval=fd_init_double(NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+      double elapsed=u8_elapsed_time();
+      fdtype tval=fd_init_double(NULL,elapsed);
+      fd_add(result,clock_symbol,tval);
+      fd_decref(tval);}
+    {
+      fdtype tval=fd_make_double(u8_dbltime(r.ru_utime));
       fd_add(result,utime_symbol,tval);
       fd_decref(tval);}
     {
-      fdtype tval=fd_init_double(NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+      fdtype tval=fd_make_double(u8_dbltime(r.ru_stime));
       fd_add(result,stime_symbol,tval);
       fd_decref(tval);}
     return result;}
   else if (FD_EQ(field,data_symbol))
     return FD_INT2DTYPE(r.ru_idrss);
+  else if (FD_EQ(field,cpusage_symbol)) {
+    double elapsed=u8_elapsed_time();
+    double stime=u8_dbltime(r.ru_stime);
+    double utime=u8_dbltime(r.ru_utime);
+    double cpusage=(stime+utime)*100.0/elapsed;
+    return fd_init_double(NULL,cpusage);}
   else if (FD_EQ(field,stack_symbol))
     return FD_INT2DTYPE(r.ru_isrss);
   else if (FD_EQ(field,shared_symbol))
@@ -714,11 +726,9 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_EQ(field,resident_symbol))
     return FD_INT2DTYPE(r.ru_maxrss);
   else if (FD_EQ(field,utime_symbol))
-    return fd_init_double
-      (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+    return fd_make_double(u8_dbltime(r.ru_utime));
   else if (FD_EQ(field,stime_symbol))
-    return fd_init_double
-      (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+    return fd_make_double(u8_dbltime(r.ru_stime));
   else return FD_EMPTY_CHOICE;
 }
 
@@ -969,6 +979,8 @@ FD_EXPORT void fd_init_timeprims_c()
   resident_symbol=fd_intern("RESIDENT");
   utime_symbol=fd_intern("UTIME");
   stime_symbol=fd_intern("STIME");
+  clock_symbol=fd_intern("CLOCK");
+  cpusage_symbol=fd_intern("CPUSAGE");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP?",timestampp,1));
 
