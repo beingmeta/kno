@@ -177,12 +177,10 @@
 
 (define (score-fragment! table language frag (weight 1))
   (let* ((fragslot (get frag-map language))
-	 (results (choice (?? fragslot frag)
-			  (overlay-get frag language))))
+	 (results (?? fragslot frag)))
     (when (exists? results)
       (hashtable-increment! table
-	  (choice (?? fragslot frag)
-		  (overlay-get frag language))
+	(?? fragslot frag)
 	(if (inexact? weight)
 	    (/ weight (ilog (choice-size results)))
 	    weight)))))
@@ -202,15 +200,13 @@
       (let* ((alt (tryif (and (number? tryhard) (> tryhard 2))
 			 (choice (metaphone word #t)
 				 (metaphone (porter-stem word) #t)))))
-	(hashtable-increment! table
-	    (choice (?? fragslot (list alt))
-		    (overlay-get (list alt) language))
+	(hashtable-increment! table (?? fragslot (list alt))
 	  (/~ 1.0 (ilog (choice-size (?? fragslot (list word))))))))
     (hashtable-increment! table
-	(choice (?? fragslot firstword) (overlay-get firstword language))
+      (?? fragslot firstword)
       (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
     (hashtable-increment! table
-	(choice (?? fragslot lastword) (overlay-get lastword language))
+      (?? fragslot lastword)
       (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
     table))
 
