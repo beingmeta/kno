@@ -859,7 +859,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
     struct FD_SCHEMAP *sm=(fd_schemap)value;
     fdtype *slotids=sm->schema, size=sm->size;
     if ((sm->flags)&(FD_SCHEMAP_TAGGED)) {
-      fdtype pos=slotids[size+1];
+      fdtype pos=slotids[size];
       int intpos=fd_getint(pos);
       if ((intpos<op->n_schemas) &&
 	  (op->schemas[intpos].slotids==slotids))
