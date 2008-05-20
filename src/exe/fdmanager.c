@@ -9,6 +9,7 @@ static char versionid[] =
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8printf.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -69,6 +70,7 @@ static char *fdserver, *status_file, *pid_file;
 
 static fd_exception SecurityAbort=_("Security abort");
 static fd_exception SecurityEvent=_("Security event");
+static fd_exception StartupEvent=_("Startup event");
 
 static uid_t runas_uid=(uid_t)-1;
 static gid_t runas_gid=(gid_t)-1;
@@ -125,6 +127,40 @@ static char *skip_arg(char *string)
     else if (*string == '\\') string=string+2;
     else string++;
   return string;
+}
+
+static int setup_rundir()
+{
+  struct group *gentry=NULL;
+  struct passwd *uentry=NULL; 
+  char *abspath=u8_abspath(rundir,NULL);
+  char *dirpath=u8_localpath(abspath);
+  u8_free(abspath); 
+  if (getenv("FDAEMON_GROUP"))
+    gentry=getgrnam(getenv("FDAEMON_GROUP"));
+  if (gentry==NULL) gentry=getgrnam("fdaemon");
+  if (gentry==NULL) gentry=getgrnam("daemon");
+  if (gentry==NULL) gentry=getgrnam("nogroup");
+  if (getenv("FDAEMON_USER"))
+    uentry=getpwnam(getenv("FDAEMON_USER"));
+  if (uentry==NULL) uentry=getpwnam("fdaemon");
+  if (uentry==NULL) uentry=getpwnam("daemon");
+  if (uentry==NULL) uentry=getpwnam("nobody");
+  if (u8_directoryp(dirpath)) {
+    u8_log(LOG_WARN,StartupEvent,"Using state directory %s",rundir);
+    chmod(dirpath,(S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP));
+    if ((gentry==NULL) || (uentry==NULL)) {
+      u8_log(LOG_WARN,SecurityAbort,
+	     "Couldn't determine user or group for server run dir");}
+    else chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
+  else if ((gentry==NULL) || (uentry==NULL)) {
+    u8_log(LOG_WARN,SecurityAbort,
+	   "Couldn't determine user or group for server run dir, making null");
+    rundir=NULL;}
+  else {
+    u8_log(LOG_WARN,StartupEvent,"Making state directory %s",rundir);
+    mkdir(dirpath,(S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP));
+    chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
 }
 
 static int setup_runas()
@@ -192,7 +228,9 @@ static char **generate_argv(char *exe,char *control_file,char *string)
   char *lim=start+strlen(start);
   argvec[0]=u8_strdup(exe);
   argvec[1]=u8_strdup(control_file);
-  argvec[2]=u8_strdup("STATEDIR=/var/run/framerd");
+  if (rundir) 
+    argvec[2]=u8_mkstring("STATEDIR=%s",rundir);
+  else argvec[2]=u8_strdup("STATEDIR=/tmp");
   while (end>start) {
     if (argc+1 >= max_args) {
       argvec=u8_realloc_n(argvec,max_args+16,u8_charstring);
@@ -569,6 +607,7 @@ int main(int argc,char *argv[])
   if (fdserver==NULL) fdserver=FD_DBSERVER;
   if ((argc < 2) || (argc > 4)) {
     fprintf(stderr,_("Usage: %s\n"),usage); exit(1);}
+  setup_rundir();
   setup_runas();
 #if defined(LOG_PERROR)
   openlog("fdmanager",(LOG_CONS|LOG_PERROR|LOG_PID),LOG_DAEMON);
