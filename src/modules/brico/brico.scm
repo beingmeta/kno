@@ -197,7 +197,8 @@
 (define (get-norm concept (language default-language) (tryhard #t))
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
-  (try (tryif (eq? language english) (first (get concept 'ranked)))
+  (try (ov/get concept (get norm-map language))
+       (tryif (eq? language english) (first (get concept 'ranked)))
        (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
@@ -214,7 +215,8 @@
        (pick-one (largest (cdr (get concept '%words))))))
 
 (define (get-gloss concept (language default-language))
-  (try (tryif language (get concept (get gloss-map language)))
+  (try (ov/get concept (get gloss-map language))
+       (tryif language (get concept (get gloss-map language)))
        (tryif language (get (get concept '%glosses) language))
        (get concept english-gloss)
        (get concept 'gloss)))
@@ -225,9 +227,10 @@
 	s)))
 (define (get-single-gloss concept (language #f))
   (if (or (not language) (eq? language english))
-      (try (pick-one (get concept 'gloss))
+      (try (ov/get concept (get gloss-map language))
+	   (pick-one (get concept 'gloss))
 	   (pick-one (get-gloss concept language)))
-      (pick-one  (get-gloss concept language))))
+      (pick-one (get-gloss concept language))))
 
 ;;; Displaying glosses
 

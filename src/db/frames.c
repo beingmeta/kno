@@ -256,6 +256,19 @@ static fdtype overlay_store
   return FD_VOID;
 }
 
+/* External functions */
+
+FD_EXPORT fdtype fd_overlay_get(fdtype frame,fdtype slotid,int index)
+{
+  if (index)
+    if (FD_EXPECT_FALSE(FD_VOIDP(index_overlay)))
+      return FD_EMPTY_CHOICE;
+    else return overlay_get(index_overlay,FD_EMPTY_CHOICE,slotid,frame);
+  else if (FD_EXPECT_FALSE(FD_VOIDP(slot_overlay)))
+    return FD_EMPTY_CHOICE;
+  else return overlay_get(slot_overlay,FD_EMPTY_CHOICE,slotid,frame);
+}
+
 FD_EXPORT fdtype fd_overlay_add
   (fdtype frame,fdtype slotid,fdtype value,int index)
 {

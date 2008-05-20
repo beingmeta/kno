@@ -1840,6 +1840,11 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
 
 /* Overlays */
 
+static fdtype overlay_get(fdtype f,fdtype slotid)
+{
+  return fd_overlay_get(f,slotid,0);
+}
+
 static fdtype overlay_add(fdtype f,fdtype slotid,fdtype v)
 {
   return fd_overlay_add(f,slotid,v,0);
@@ -1853,6 +1858,11 @@ static fdtype overlay_drop(fdtype f,fdtype slotid,fdtype v)
 static fdtype overlay_store(fdtype f,fdtype slotid,fdtype v)
 {
   return fd_overlay_store(f,slotid,v,0);
+}
+
+static fdtype overlay_index_get(fdtype f,fdtype slotid)
+{
+  return fd_overlay_get(f,slotid,1);
 }
 
 static fdtype overlay_index_add(fdtype f,fdtype slotid,fdtype v)
@@ -1898,9 +1908,12 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar,1)));
 
+  fd_idefn(fd_scheme_module,fd_make_cprim2("OV/GET",overlay_get,2));
   fd_idefn(fd_scheme_module,fd_make_cprim3("OV/ADD!",overlay_add,3));
   fd_idefn(fd_scheme_module,fd_make_cprim3("OV/DROP!",overlay_drop,3));
   fd_idefn(fd_scheme_module,fd_make_cprim3("OV/STORE!",overlay_store,3));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2("OV/INDEX-GET",overlay_index_get,2));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3("OV/INDEX-ADD!",overlay_index_add,3));
   fd_idefn(fd_scheme_module,
