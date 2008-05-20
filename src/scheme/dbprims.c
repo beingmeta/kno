@@ -35,13 +35,17 @@ static fdtype slotidp(fdtype arg)
 static fdtype find_frames_lexpr(int n,fdtype *args)
 {
   if (n%2)
-    return fd_finder(args[0],n-1,args+1);
+    if (FD_FALSEP(args[0]))
+      return fd_bgfinder(n-1,args+1);
+    else return fd_finder(args[0],n-1,args+1);
   else return fd_bgfinder(n,args);
 }
 
+/* This is like find_frames but ignores any slot/value pairs
+   whose values are empty (and thus would rule out any results at all). */
 static fdtype xfind_frames_lexpr(int n,fdtype *args)
 {
-  int i=1; while (i<n)
+  int i=(n%2); while (i<n)
     if (FD_EMPTY_CHOICEP(args[i+1])) {
       fdtype *slotvals=u8_alloc_n((n),fdtype), results;
       int j=0; i=1; while (i<n)
@@ -49,11 +53,19 @@ static fdtype xfind_frames_lexpr(int n,fdtype *args)
 	else {
 	  slotvals[j]=args[i]; j++; i++;
 	  slotvals[j]=args[i]; j++; i++;}
-      results=fd_finder(args[0],j,slotvals);
+      if (n%2)
+	if (FD_FALSEP(args[0]))
+	  results=fd_bgfinder(j,slotvals);
+	else results=fd_finder(args[0],j,slotvals);
+      else results=fd_bgfinder(j,slotvals);
       u8_free(slotvals);
       return results;}
     else i=i+2;
-  return fd_finder(args[0],n-1,args+1);
+  if (n%2)
+    if (FD_FALSEP(args[0]))
+      return fd_bgfinder(n-1,args+1);
+    else return fd_finder(args[0],n-1,args+1);
+  else return fd_bgfinder(n,args);
 }
 
 static fdtype prefetch_slotvals(fdtype index,fdtype slotids,fdtype values)
