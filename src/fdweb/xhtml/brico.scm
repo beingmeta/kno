@@ -390,7 +390,7 @@
 	 (oid (if oid oid))
 	 (dterm (ifexists dterm))
 	 (gloss (ifexists gloss))
-	 (title "")
+	 (title (ifexists gloss))
 	 (text text))
       (when var
 	(if selected
