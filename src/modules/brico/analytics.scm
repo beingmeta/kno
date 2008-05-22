@@ -259,8 +259,26 @@
 	  (getalways (?? somenot q)) ;; 6
 	  ))
 
- 
+;;; Commonly
 
-(module-export! '{getalways getnever getsometimes getsomenot})
-(module-export! '{%getalways %getnever %getsometimes %getsomenot})
+(define (getcommonly p (tryhard #t))
+  (getalways (get p commonly)))
+
+(define (findcommonly p (tryhard #t))
+  (if tryhard
+      (?? commonly p)
+      (?? commonly (list p))))
+
+(define (getrarely p (tryhard #f))
+  (choice (get p rarely)
+	  (tryif tryhard (findalways (get p rarely)))))
+
+(define (findrarely p (tryhard #f))
+  (choice (?? rarely p)
+	  (tryif tryhard (findalways (?? rarely p)))))
+
+(module-export!
+ '{getalways getnever getsometimes getsomenot getcommonly getrarely})
+(module-export!
+ '{%getalways %getnever %getsometimes %getsomenot})
 

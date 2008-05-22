@@ -25,7 +25,7 @@
 		  lookup-word lookup-term parse-term
 		  lookup-combo vary-word word-override?
 		  lookup-word/prefetch lookup-term/prefetch
-		  brico/resolve})
+		  |#@| brico/resolve})
 
 (define %nosubst '{morphrules termrules})
 
@@ -424,3 +424,4 @@
 	     (pick-one (largest possible absfreq))))))
 
 
+(define |#@| brico/ref)

@@ -131,11 +131,25 @@
 (define never @1/6{NEVER})
 (define somenot @1/7{SOMENOT})
 (define optional @1/7{OPTIONAL})
-(define %always @1/8{%ALWAYS})
-(define %somenot @1/9{%SOMENOT})
+(define commonly @1/a{commonly})
+(define rarely @1/b{rarely})
 
+;;; Inverses
+(define /always @1/8{%ALWAYS})
+(define /somenot @1/9{%SOMENOT})
+(define /commonly @1/c{/commonly})
+(define /rarely @1/d{/RARELY})
+
+(define elements @1/e{ELEMENTS})
+(define elementof @1/f{ELEMENTOF})
+
+(define %always /always)
+(define %somenot /somenot)
+
+(define probably commonly)
 (define optional somenot)
-(define %optional %somenot)
+(define /optional /somenot)
+(define %optional /somenot)
 
 (define genls @1/2c272{GENLS})
 (define genls* @1/2c27b{GENLS*})
@@ -176,7 +190,8 @@
 (define disjoint @1/2c27d{DISJOINT})
 
 (define brico-slotids
-  (choice always sometimes never somenot %always %somenot
+  (choice always sometimes never somenot commonly rarely
+	  /always /somenot /commonly /rarely
 	  genls genls* kindof kindof* specls specls*
 	  parts parts* partof partof*
 	  members members* memberof memberof*
@@ -526,7 +541,8 @@
  '{english
    english-gloss english-norm
    spanish french
-   always sometimes never somenot %always  %somenot 
+   always sometimes never somenot commmonly rarely
+   /always /somenot /commonly /rarely
    isa implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*
    genls genls* kindof kindof* specls specls*
@@ -535,7 +551,8 @@
    ingredients ingredients* ingredientof ingredientof*
    inverse =is= disjoint
    refterms defterms referenced defines
-   optional %optional
+   ;; Legacy
+   probably optional %optional /optional  %always  %somenot
    wordnet-source roget-source brico-source})
 
 ;; Getting glosses, norms, etc.
@@ -559,6 +576,8 @@
 (set+! %constants
        '{english-gloss english-norm
 	 english spanish french
+	 always sometimes never somenot commonly rarely
+	 /always /somenot /commonly /rarely
 	 genls genls* kindof kindof*
 	 specls specls*
 	 parts parts* partof partof*
