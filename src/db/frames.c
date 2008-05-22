@@ -765,7 +765,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 	return overlay_test(slot_overlay,0,f,slotid,value);
       else {
 	fd_decref(values);
-	return overlay_test(slot_overlay,0,f,slotid,value);}}
+	return overlay_test(slot_overlay,1,f,slotid,value);}}
     else {
       struct FD_HASHTABLE *cache; int result=0;
       fdtype cachev=fd_hashtable_get(&test_caches,slotid,FD_VOID);
