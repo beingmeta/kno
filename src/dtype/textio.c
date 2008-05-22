@@ -54,6 +54,7 @@ int fd_interpret_pointers=1;
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
 static fdtype quote_symbol, histref_symbol, comment_symbol;
+static fdtype sharpat_symbol, sharpdollar_symbol, sharpamp_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 static int skip_whitespace(u8_input s)
@@ -1037,6 +1038,12 @@ fdtype fd_parser(u8_input in)
       else return FD_PARSE_ERROR;}
     case '#':
       return fd_make_list(2,histref_symbol,fd_parser(in));
+    case '@':
+      return fd_make_list(2,sharpat_symbol,fd_parser(in));
+    case '$':
+      return fd_make_list(2,sharpdollar_symbol,fd_parser(in));
+    case '&':
+      return fd_make_list(2,sharpamp_symbol,fd_parser(in));
     case '\\': return parse_character(in);
     default: u8_ungetc(in,ch);}}
   default: { /* Parse an atom */
@@ -1140,5 +1147,8 @@ FD_EXPORT void fd_init_textio_c()
   unquote_symbol=fd_intern("UNQUOTE");
   unquotestar_symbol=fd_intern("UNQUOTE*");
   histref_symbol=fd_intern("%HISTREF");
+  sharpat_symbol=fd_intern("#@");
+  sharpdollar_symbol=fd_intern("#$");
+  sharpamp_symbol=fd_intern("#&");
   comment_symbol=fd_intern("COMMENT");
 }
