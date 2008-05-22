@@ -24,6 +24,7 @@ static char versionid[] =
 #include <libu8/u8filefns.h>
 #include <libu8/u8netfns.h>
 #include <libu8/u8srvfns.h>
+#include <libu8/u8rusage.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -483,6 +484,7 @@ static int webservefn(u8_client ucl)
   fd_webconn client=(fd_webconn)ucl; int write_headers=1;
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
+  struct rusage start_usage, end_usage;
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
@@ -512,6 +514,7 @@ static int webservefn(u8_client ucl)
     parse_time=u8_elapsed_time();
     if ((reqlog) || (urllog))
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
+  u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_set_default_output(&(client->out));
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
@@ -598,22 +601,27 @@ static int webservefn(u8_client ucl)
     if ((reqlog) || (urllog))
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
   write_time=u8_elapsed_time();
+  u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
-      u8_log(LOG_NOTICE,"DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs.",
-		path,write_time-start_time,
+      u8_log(LOG_NOTICE,"DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%fusec, utime=%fusec.",
+	     path,write_time-start_time,
+	     setup_time-start_time,
+	     parse_time-setup_time,
+	     exec_time-parse_time,
+	     write_time-exec_time,
+	     u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime),
+	     u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime));
+    else u8_log(LOG_NOTICE,"DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%fusec, utime=%fusec.",
+		path,query,
+		write_time-start_time,
 		setup_time-start_time,
 		parse_time-setup_time,
 		exec_time-parse_time,
-		write_time-exec_time);
-    else u8_log(LOG_NOTICE,"DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs",
-		   path,query,
-		   write_time-start_time,
-		   setup_time-start_time,
-		   parse_time-setup_time,
-		   exec_time-parse_time,
-		   write_time-exec_time);
+		write_time-exec_time,
+		u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime),
+		u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime));
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
