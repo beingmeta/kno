@@ -798,6 +798,23 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_TRUE;}}
 }
 
+static fdtype default_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype symbol=fd_get_arg(expr,1);
+  fdtype default_expr=fd_get_arg(expr,2);
+  if (!(FD_SYMBOLP(symbol)))
+    return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
+  else if (FD_VOIDP(default_expr))
+    return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
+  else {
+    fdtype val=fd_symeval(symbol,env);
+    if (FD_VOIDP(val)) 
+      return fd_eval(default_expr,env);
+    else if (val == FD_UNBOUND)
+      return fd_eval(default_expr,env);
+    else return val;}
+}
+
 static fdtype voidp_handler(fdtype expr,fd_lispenv env)
 {
   fdtype result=fd_eval(fd_get_arg(expr,1),env);
@@ -1189,6 +1206,7 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"VOID?",voidp_handler);
   fd_defspecial(fd_scheme_module,"QUOTE",quote_handler);
   fd_defspecial(fd_scheme_module,"%ENV",env_handler);
+  fd_defspecial(fd_scheme_module,"DEFAULT",default_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("%LEXREF",lexref_prim,2,
