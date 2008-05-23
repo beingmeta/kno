@@ -924,6 +924,7 @@ FD_EXPORT
 fd_index fd_make_mem_index()
 {
   struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
+  FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
   fd_init_index((fd_index)mix,&memindex_handler,"ephemeral");
   mix->cache_level=1; mix->read_only=0; mix->flags=FD_INDEX_NOSWAP;
   fd_register_index((fd_index)mix);

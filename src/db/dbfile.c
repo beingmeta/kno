@@ -456,7 +456,8 @@ static fd_index open_memindex(u8_string file,int read_only)
   else {
     fd_decref(lispval);
     return NULL;}
-  u8_free(mix->cid); mix->source=mix->cid=u8_strdup(file);
+  if (mix->cid) u8_free(mix->cid);
+  mix->source=mix->cid=u8_strdup(file);
   mix->commitfn=memindex_commitfn;
   mix->read_only=read_only;
   mix->cache.n_slots=h->n_slots;
@@ -508,9 +509,13 @@ FD_EXPORT int fd_init_dbfile()
   fd_file_pool_opener=open_file_pool;
   fd_file_index_opener=open_file_index;
 
+  fd_register_index_opener(0x42820000,open_memindex,NULL,NULL);
+
   fd_register_index_opener(0x42c20000,open_memindex,NULL,NULL);
   fd_register_index_opener(0x42c20100,open_memindex,NULL,NULL);
   fd_register_index_opener(0x42c20200,open_memindex,NULL,NULL);
+  fd_register_index_opener(0x42c20300,open_memindex,NULL,NULL);
+  fd_register_index_opener(0x42c20400,open_memindex,NULL,NULL);
 
   fd_register_config("ACIDFILES","Maintain acidity of individual file pools and indices",
 		     fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
