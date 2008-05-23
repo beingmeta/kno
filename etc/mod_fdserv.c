@@ -153,7 +153,9 @@ static int can_writep(apr_pool_t *p,server_rec *s,apr_finfo_t *finfo)
   apr_uid_current(&uid,&gid,p);
   ap_log_error
     (APLOG_MARK,APLOG_DEBUG,OK,s,
-     "Checking writability with uid=%d gid=%d",uid,gid);
+     "Checking writability of %s with uid=%d gid=%d",
+     ((finfo->fname) ? (finfo->fname) : (finfo->name)),
+     uid,gid);
   if (uid==0) return 1;
   if (uid == finfo->user)
     if (finfo->protection & APR_UWRITE) return 1;
@@ -712,9 +714,13 @@ static const char *get_logfile(request_rec *r) /* 1.3 */
   if ((log_file)&&(log_file[0]=='/')) {
     /* Absolute log file name, just use it. */
     return log_file;}
+  else if ((log_prefix)&&(log_prefix[0]=='/')) {
+    /* Relative log file name, absolute prefix, just append it. */
+    return apr_pstrcat(r->pool,log_prefix,log_file,NULL);}
   else if (log_prefix) {
     /* Relative log file name, just append it. */
-    return apr_pstrcat(r->pool,log_prefix,log_file,NULL);}
+    return ap_server_root_relative
+      (r->pool,apr_pstrcat(r->pool,log_prefix,log_file,NULL));}
   else return log_file;
 }
 
@@ -953,7 +959,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
       else return (char *) apr_table_get(socketname_table,spec);}}
 }
 
-static const char *get_logfile(request_rec *r) /* 2.0 */
+static const char *get_logfile(request_rec *r,const char *sockname) /* 2.0 */
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
@@ -972,14 +978,30 @@ static const char *get_logfile(request_rec *r) /* 2.0 */
      "spawn get_logfile log_file=%s, log_prefix=%s",
      log_file,log_prefix);
   
-  if (log_file==NULL) return NULL;
+  if (log_file==NULL)
+    if (sockname==NULL) return NULL;
+    else {
+      char *dot=strrchr(sockname,'.'), *slash=strrchr(sockname,'/');
+      char *copy, *buf;
+      if ((dot) && (dot<slash)) dot=NULL;
+      if ((slash==NULL) || (slash[1]=='\0')) slash=(char *)sockname;
+      else slash++;
+      copy=apr_pstrdup(r->pool,slash);
+      if (dot) copy[dot-slash]='\0';
+      buf=apr_pstrcat(r->pool,copy,".log",NULL);
+      log_file=(const char *)buf;}
+  
 
   if ((log_file)&&(log_file[0]=='/')) {
     /* Absolute log file name, just use it. */
     return log_file;}
+  else if ((log_prefix)&&(log_prefix[0]=='/')) {
+    /* Relative log file name, absolute prefix, just append it. */
+    return apr_pstrcat(r->pool,log_prefix,log_file,NULL);}
   else if (log_prefix) {
     /* Relative log file name, just append it. */
-    return apr_pstrcat(r->pool,log_prefix,log_file,NULL);}
+    return ap_server_root_relative
+      (r->pool,apr_pstrcat(r->pool,log_prefix,log_file,NULL));}
   else return log_file;
 }
 
@@ -1006,9 +1028,11 @@ static int spawn_fdservlet /* 2.0 */
 			    (sconfig->config_args) ?
 			    (sconfig->config_args) :
 			    (NULL));
-  const char *log_file=get_logfile(r);
+  const char *log_file=get_logfile(r,NULL);
   int servlet_wait=dconfig->servlet_wait;
   uid_t uid; gid_t gid;
+
+  if (log_file==NULL) log_file=get_logfile(r,sockname);
 
   apr_uid_current(&uid,&gid,p);
 

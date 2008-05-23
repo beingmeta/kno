@@ -724,12 +724,11 @@ int main(int argc,char **argv)
   
   u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
 
-  /* We doe this using the Unix environment (rather than configuration
+  /* We do this using the Unix environment (rather than configuration
       variables) because we want to redirect errors from the configuration
       variables themselves and we want to be able to set this in the
       environment we wrap around calls. */
   if (getenv("LOGFILE")) {
-    /* This doesn't seem to work and I don't know why. */
     char *logfile=u8_strdup(getenv("LOGFILE"));
     int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|O_SYNC,0644);
     if (log_fd<0) {
