@@ -541,7 +541,7 @@
  '{english
    english-gloss english-norm
    spanish french
-   always sometimes never somenot commmonly rarely
+   always sometimes never somenot commonly rarely
    /always /somenot /commonly /rarely
    isa implies implies* impliedby impliedby*
    entails entails* entailedby entailedby*

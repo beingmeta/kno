@@ -192,7 +192,8 @@
   (index-words index concept)
   (index-relations index concept)
   (index-refterms index concept)
-  (index-lattice index concept))
+  (index-lattice index concept)
+  (index-analytics index concept))
 
 (define wordform-slotids '{word of language rank type})
 
@@ -320,6 +321,42 @@
   (index-frame* index concept memberof* memberof members*)
   (index-frame* index concept ingredientof* ingredientof ingredients*))
 
+(define (index-analytics index concept)
+  ;; ALWAYS is transitive
+  (index-frame* index concept always always /always)
+  ;; SOMETIMES is symmetric
+  (index-frame index concept sometimes)
+  (index-frame index (get concept sometimes) sometimes concept)
+  ;; NEVER is symmetric
+  (index-frame index concept never)
+  (index-frame index (get concept never) never concept)
+  (index-frame index concept somenot)
+  (index-frame index (get concept somenot) /somenot concept)
+  (index-frame index concept commonly)
+  (index-frame index concept rarely)
+  ;; index some inferred values, relying on the lattice relations
+  ;; which were indexed above
+  (let ((s (get concept sometimes))
+	(c (get concept commonly))
+	(n (get concept never)))
+    (when (exists? s)
+      (index-frame index concept sometimes (list s))
+      (index-frame index s sometimes (list concept))
+      (index-frame index concept
+	sometimes (find-frames index /always s))
+      (unless (test concept 'type 'individual)
+	(index-frame index (find-frames index /always s)
+	  sometimes concept)))
+    (when (exists? n)
+      (index-frame index concept never (list n))
+      (index-frame index n never (list concept))
+      (index-frame index (find-frames index /always n)
+	never concept))
+    (when (exists? c)
+      ;; This indexes concept as commonly being all of the always of c
+      (index-frame index concept
+	commonly (find-frames index /always c)))))
+
 (define (indexer index concept (slotids) (values))
   (if (bound? slotids)
       (if (bound? values)
@@ -385,6 +422,7 @@
  '{index-brico
    index-core index-brico index-wordform
    index-words index-relations index-lattice
+   index-analytics
    index-refterms
    index-concept
    indexer/prefetch
