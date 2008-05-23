@@ -424,7 +424,7 @@
   `(,(car expr) ,(dotighten (cadr expr) env bound dolex)
     ,(tighten-attribs (third expr) env bound dolex)
     ,@(map (lambda (elt) (dotighten elt env bound dolex))
-	   (cddr (cddr expr)))))
+	   (cdr (cddr expr)))))
 
 ;;; Declare them
 

@@ -12,14 +12,15 @@
   (if (pair? x) (car x) x))
 
 (define (codewalker fcn arg (bound '()) (env `#[]))
-  (cond ((compound-procedure? arg)
+  (cond ((fail? arg))
+	((compound-procedure? arg)
 	 (let* ((args (procedure-args arg))
 		(body (procedure-body arg))
 		(procenv (procedure-env arg))
 		(procbound (append (map arg-symbol args) bound)))
 	   (dolist (arg args)
 	     (when (and (pair? arg) (pair? (cdr arg)))
-	       (codewalker fcn (cadr arg) bound env)))
+	       (codewalker fcn (cadr arg) bound procenv)))
 	   (dolist (elt body)
 	     (codewalk-expr fcn elt procbound procenv))))
 	((environment? arg)
@@ -42,6 +43,7 @@
 	 (fcn #f expr bound env))
 	((pair? expr)
 	 (let ((head-expr (car expr)))
+	   (codewalker fcn head-expr bound env)
 	   (if (special-call? head-expr bound env)
 	       (let ((handler (try (get codewalkers (get env head-expr))
 				   (get codewalkers
@@ -51,13 +53,13 @@
 		 (if (exists? handler)
 		     (handler fcn expr bound env)
 		     (begin (warning "No special form handler for " head-expr)
-			    (dolist (elt expr)
+			    (dolist (elt (cdr expr))
 			      (codewalker fcn elt bound env)))))
 	       (if (and (not (position head-expr bound))
 			(macro? (get env head-expr)))
 		   (codewalk-expr fcn (macroexpand (get env head-expr) expr)
 				  bound env)
-		   (dolist (elt expr) (codewalker fcn elt bound env))))))
+		   (dolist (elt (cdr expr)) (codewalker fcn elt bound env))))))
 	(else)))
 
 ;;; Expr handlers
@@ -116,7 +118,7 @@
   (do ((bindings (cadr expr) (cdr bindings))
        (newbound bound (cons (car (car bindings)) newbound)))
       ((null? bindings)
-       (dolist (elt (cdr (cdr (cdr expr))))
+       (dolist (elt (cddr expr))
 	 (codewalker fcn elt newbound env)))
     (codewalker fcn (cadr (car bindings)) newbound env)))
 
@@ -149,6 +151,24 @@
   (fcn 'set (second expr) bound env)
   (codewalker fcn (third expr) bound env))
 
+;;; Quasiquote
+
+(defambda (codewalk-quasiquote fcn expr bound env)
+  (cond ((ambiguous? expr)
+	 (do-choices (elt expr) (codewalk-quasiquote fcn elt bound env)))
+	((pair? expr)
+	 (if (or (eq? (car expr) 'unquote) (eq? (car expr) 'unquote*))
+	     (codewalker fcn (cadr expr) bound env)
+	     (dolist (elt expr)
+	       (codewalk-quasiquote fcn elt bound env))))
+	((vector? expr)
+	 (doseq (elt expr)
+	   (codewalk-quasiquote fcn elt bound env)))
+	((slotmap? expr)
+	 (do-choices (key (getkeys expr))
+	   (do-choices (v (get expr key))
+	     (codewalk-quasiquote fcn v bound env))))))
+
 ;;; Walking XHTML markup
 
 ;; This doesn't handle mixed alist ((x y)) and plist (x y) attribute lists
@@ -163,11 +183,17 @@
 	   (codewalker fcn (cadr (car attribs)) bound env)
 	   (if (and (pair? (cdr attribs)) (pair? (cadr attribs)))
 	       (codewalker fcn (cadr (cadr attribs)) bound env)))
-	  (else (codewalker fcn (cadr attribs) bound env)))))
+	  ((pair? (cdr attribs))
+	   (codewalker fcn (cadr attribs) bound env))
+	  (else (codewalker fcn (car attribs) bound env)))))
 
 (define (codewalk-markup fcn expr bound env)
   (codewalk-attribs fcn (cadr expr) bound env)
   (dolist (elt (cddr expr)) (codewalker fcn elt bound env)))
+
+(define (codewalk-xmlblock fcn expr bound env)
+  (codewalk-attribs fcn (third expr) bound env)
+  (dolist (elt (cdr (cddr expr))) (codewalker fcn elt bound env)))
 
 (define (codewalk-emptymarkup fcn expr bound env)
   (codewalk-attribs fcn (cdr expr) bound env))
@@ -181,11 +207,13 @@
 
 (add! codewalkers (choice "QUOTE" quote comment 'quote 'comment) codewalk-ignore)
 
+(add! codewalkers quasiquote codewalk-quasiquote)
+
 (add! codewalkers (choice let letq) codewalk-let)
 (add! codewalkers (choice let* letq*) codewalk-let*)
 (add! codewalkers (choice lambda ambda slambda)
       codewalk-lambda)
-(add! codewalkers (choice set! set+!)
+(add! codewalkers (choice set! set+! default!)
       codewalk-set-form)
 
 (add! codewalkers
@@ -199,7 +227,8 @@
 
 (add! codewalkers
       (choice begin prog1 until while ipeval
-	      tipeval try if tryif when unless and or)
+	      tipeval try if tryif when unless and or
+	      default bound? ifexists)
       codewalk-block)
 (add! codewalkers case codewalk-case)
 (add! codewalkers cond codewalk-cond)
@@ -215,7 +244,12 @@
 
 (add! codewalkers unwind-protect codewalk-unwind-protect)
 
-(add! codewalkers {"FILEOUT" "SYSTEM" "markupblock" "ANCHOR"} codewalk-block)
+(add! codewalkers {"FILEOUT" "SYSTEM"} codewalk-block)
+
+;;; XHTML markup
+
+(add! codewalkers {"markup" "markupblock" "ANCHOR" "XMLOUT" "XMLEVAL"} codewalk-block)
 (add! codewalkers {"markup*block" "markup*"} codewalk-markup)
-(add! codewalkers "emptymarkup" codewalk-emptymarkup)
+(add! codewalkers "XMLBLOCK" codewalk-xmlblock)
+(add! codewalkers {"emptymarkup" "XMLELT"} codewalk-emptymarkup)
 (add! codewalkers "ANCHOR*" codewalk-anchor*)
