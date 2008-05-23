@@ -586,6 +586,7 @@ static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
   else if (open_markup(out,NULL,tagname,args,env,1)<0)
     return FD_ERROR_VALUE;
   else {
+    u8_flush(out);
     return FD_VOID;}
 }
 

@@ -37,7 +37,7 @@ fdtype fd_scheme_module, fd_xscheme_module;
 
 fdtype _fd_comment_symbol;
 
-static fdtype quote_symbol, comment_symbol, module_id_symbol;
+static fdtype quote_symbol, comment_symbol, moduleid_symbol;
 
 static fd_exception TestFailed=_("Test failed");
 static fd_exception ExpiredThrow=_("Continuation is no longer valid");
@@ -684,9 +684,9 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   /* Set the module ID*/
   if (FD_ENVIRONMENTP(module)) {
     fd_environment env=(fd_environment)module;
-    fd_add(env->bindings,module_id_symbol,name);}
+    fd_add(env->bindings,moduleid_symbol,name);}
   else if (FD_HASHTABLEP(module))
-    fd_add(module,module_id_symbol,name);
+    fd_add(module,moduleid_symbol,name);
   
   /* Add to the appropriate default environment */
   if (flags&FD_MODULE_DEFAULT) {
@@ -721,7 +721,7 @@ FD_EXPORT fdtype fd_new_module(char *name,int flags)
   if (fdscheme_initialized==0) fd_init_fdscheme();
   module_name=fd_intern(name);
   module=fd_make_hashtable(NULL,0);
-  fd_add(module,module_id_symbol,module_name);
+  fd_add(module,moduleid_symbol,module_name);
   if (flags&FD_MODULE_SAFE) {
     fd_hashtable_op
       (&safe_module_map,fd_table_default,module_name,module);
@@ -925,7 +925,14 @@ static int unparse_environment(u8_output out,fdtype x)
 {
   struct FD_ENVIRONMENT *env=
     FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *);
-  u8_printf(out,"#<ENVIRONMENT %x>",(unsigned long)env);
+  if (FD_HASHTABLEP(env->bindings)) {
+    fdtype ids=fd_get(env->bindings,moduleid_symbol,FD_EMPTY_CHOICE), mid=FD_VOID;
+    FD_DO_CHOICES(id,ids) {
+      if (FD_SYMBOLP(id)) mid=id;}
+    if (FD_SYMBOLP(mid))
+      u8_printf(out,"#<MODULE %q #!%x>",mid,(unsigned long)env);
+    else u8_printf(out,"#<ENVIRONMENT #!%x>",(unsigned long)env);}
+  else u8_printf(out,"#<ENVIRONMENT #!%x>",(unsigned long)env);
   return 1;
 }
 
@@ -1195,7 +1202,7 @@ void fd_init_eval_c()
   quote_symbol=fd_intern("QUOTE");
   _fd_comment_symbol=comment_symbol=fd_intern("COMMENT");
   profile_symbol=fd_intern("%PROFILE");
-  module_id_symbol=fd_intern("%MODULEID");
+  moduleid_symbol=fd_intern("%MODULEID");
 
   fd_make_hashtable(&module_map,67);
   fd_make_hashtable(&safe_module_map,67);
