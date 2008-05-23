@@ -1637,6 +1637,7 @@ FD_EXPORT void fd_init_xmloutput_c()
 
   fd_defspecial(xhtml_module,"TABLE->HTML",table2html_handler);
 
+  fd_defspecial(fdweb_module,"XMLEVAL",xmleval_handler);
   fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_handler);
 
   fd_decref(markup_prim); fd_decref(markupstar_prim);
