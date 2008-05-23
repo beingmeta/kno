@@ -2,7 +2,9 @@
 
 (in-module 'xhtml/brico)
 
-(use-module '{fdweb texttools xhtml xhtml/clickit brico brico/dterms})
+(use-module '{reflection texttools})
+(use-module '{fdweb xhtml xhtml/clickit})
+(use-module '{brico brico/dterms})
 
 ;; We use these for languages (at least)
 (define sub* markup*fn)
@@ -154,10 +156,10 @@
 	      (display-checkbox var language (overlaps? language languages) onchange #t)
 	      (span (class "language") (get-language-name language)))
 	    (xmlout "  ")))
-	(when (true-string? selectbox)
-	  (selection (name var)
-		     (doseq (l (sorted  all-languages get-language-name))
-		       (option l (get-language-name l)))))
+	(when (overlaps? (downcase selectbox) {"yes" "yah" "t" "#t" "1" "y"})
+	  (xmlblock SELECT (name var)
+	    (doseq (l (sorted  all-languages get-language-name))
+	      (xmlblock option ((value l)) (get-language-name l)))))
 	(if action (xmlelt 'input 'type 'submit 'name 'action 'value
 			   action))))
     (xmlout)))
@@ -227,8 +229,7 @@
       (let* ((languages (get-languages-for word (qc concept)))
 	     (langid (try (get (pick-one (pick languages 'iso639/1)) 'iso639/1)
 			  (pick-one (get (pick-one languages) '{iso639/b iso639/t})))))
-	(span ((class "wordform")
-	       (xml:lang langid))
+	(span (class "wordform" xml:lang langid)
 	  (cond ((not action) (showterm word))
 		((string? action)
 		 (anchor (fdscripturl action 'word word 'language languages 'wordsearch "yes")
@@ -349,6 +350,8 @@
 
 (define dterm-fcn get-dterm)
 
+(define title-gloss #t)
+
 (define (concept->html tag (var #f) (selected #t))
   (let* ((oid (if (and (pair? tag) (exists oid? (cdr tag)))
 		  (cdr tag)
@@ -365,7 +368,7 @@
 	   (gloss (ifexists gloss))
 	   (dterm (ifexists dterm))
 	   (resolved (if oid "yes"))
-	   (title "")
+	   (title (if title-gloss (ifexists gloss)))
 	   (tag tag)
 	   (text text))
       (when var
@@ -389,7 +392,7 @@
 	((class "concept")
 	 (oid (if oid oid))
 	 (dterm (ifexists dterm))
-	 (gloss (ifexists gloss))
+	 (gloss (if title-gloss (ifexists gloss)))
 	 (title (ifexists gloss))
 	 (text text))
       (when var
@@ -404,6 +407,13 @@
 	  ((equal? dterm-fcn val))
 	  (else (set! dterm-fcn val)))))
 (config-def! 'dtermdisplay dtermdisplay-config)
+
+(define titlegloss-config
+  (slambda (var (val))
+    (cond ((not (bound? val)) title-gloss)
+	  ((equal? title-gloss val))
+	  (else (set! title-gloss val)))))
+(config-def! 'titlegloss titlegloss-config)
 
 ;;;; Showing a concept with more context
 
