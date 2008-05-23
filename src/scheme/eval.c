@@ -37,7 +37,7 @@ fdtype fd_scheme_module, fd_xscheme_module;
 
 fdtype _fd_comment_symbol;
 
-static fdtype quote_symbol, comment_symbol;
+static fdtype quote_symbol, comment_symbol, module_id_symbol;
 
 static fd_exception TestFailed=_("Test failed");
 static fd_exception ExpiredThrow=_("Continuation is no longer valid");
@@ -680,6 +680,15 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   if (flags&FD_MODULE_SAFE)
     fd_hashtable_store(&safe_module_map,name,module);
   else fd_hashtable_store(&module_map,name,module);
+
+  /* Set the module ID*/
+  if (FD_ENVIRONMENTP(module)) {
+    fd_environment env=(fd_environment)module;
+    fd_add(env->bindings,module_id_symbol,name);}
+  else if (FD_HASHTABLEP(module))
+    fd_add(module,module_id_symbol,name);
+  
+  /* Add to the appropriate default environment */
   if (flags&FD_MODULE_DEFAULT) {
     fd_lispenv scan;
     if (flags&FD_MODULE_SAFE) {
@@ -1185,6 +1194,7 @@ void fd_init_eval_c()
   quote_symbol=fd_intern("QUOTE");
   _fd_comment_symbol=comment_symbol=fd_intern("COMMENT");
   profile_symbol=fd_intern("%PROFILE");
+  module_id_symbol=fd_intern("%MODULEID");
 
   fd_make_hashtable(&module_map,67);
   fd_make_hashtable(&safe_module_map,67);
