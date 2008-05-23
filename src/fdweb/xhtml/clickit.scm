@@ -158,7 +158,8 @@
 
 (module-export! 'autoprompt)
 
-(define (dummyfn) (autoprompt 'name "x" value "z"))
+(define (dummyfn)
+  (autoprompt 'name "x" value (stringout (+ 2 3))))
 
 
 ;;;; Font sizers

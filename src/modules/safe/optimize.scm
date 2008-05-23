@@ -215,7 +215,8 @@
 					(dotighten (qc x) env bound dolex)))
 				  (cdr expr))))
 		      ((special-form? value)
-		       (let ((tightener (get special-form-tighteners value)))
+		       (let ((tightener (try (get special-form-tighteners value)
+					     (get special-form-tighteners (fcn-name value)))))
 			 (if (exists? tightener) (tightener value expr env bound dolex)
 			     expr)))
 		      ((macro? value)
@@ -391,6 +392,40 @@
 	     ,@(map (lambda (uwclause) (dotighten uwclause env bound dolex))
 		    (cddr expr))))
 
+;;; Tightening XHTML expressions
+
+;; This doesn't handle mixed alist ((x y)) and plist (x y) attribute lists
+;;  because they shouldn't work anyway
+(define (tighten-attribs attribs env bound dolex)
+  (cond ((not (pair? attribs)) attribs)
+	((pair? (cdr attribs))
+	 `(,(if (and (pair? (car attribs)) (not (eq? (car (car attribs)) 'quote)))
+		`(,(car (car attribs)) ,(dotighten (cadr (car attribs)) env bound dolex))
+		(car attribs))
+	   ,(if (and (pair? (car attribs)) (not (eq? (car (car attribs)) 'quote)))
+		(if (pair? (cadr attribs))
+		    `(,(car (cadr attribs)) ,(dotighten (cadr (cadr attribs)) env bound dolex))
+		    (dotighten (cadr attribs) env bound dolex))
+		(dotighten (cadr attribs) env bound dolex))
+	   ,@(tighten-attribs (cddr attribs) env bound dolex)))
+	((pair? (car attribs))
+	 `((,(car (car attribs)) ,(dotighten (cadr (car attribs)) env bound dolex))))
+	(else attribs)))
+
+(define (tighten-markup handler expr env bound dolex)
+  `(,(car expr) ,(tighten-attribs (second expr) env bound dolex)
+    ,@(map (lambda (x) (dotighten x env bound dolex))
+	   (cddr expr))))
+
+(define (tighten-emptymarkup fcn expr env bound dolex)
+  `(,(car expr) ,@(tighten-attribs (cdr expr) env bound dolex)))
+
+(define (tighten-anchor* fcn expr env bound dolex)
+  `(,(car expr) ,(dotighten (cadr expr) env bound dolex)
+    ,(tighten-attribs (third expr) env bound dolex)
+    ,@(map (lambda (elt) (dotighten elt env bound dolex))
+	   (cddr (cddr expr)))))
+
 ;;; Declare them
 
 (add! special-form-tighteners (choice let letq) tighten-let)
@@ -424,6 +459,12 @@
       tighten-block)
 
 (add! special-form-tighteners unwind-protect tighten-unwind-protect)
+
+(add! special-form-tighteners {"FILEOUT" "SYSTEM"} tighten-block)
+(add! special-form-tighteners {"markupblock" "ANCHOR"} tighten-block)
+(add! special-form-tighteners {"markup*block" "markup*"} tighten-markup)
+(add! special-form-tighteners "emptymarkup" tighten-emptymarkup)
+(add! special-form-tighteners "ANCHOR*" tighten-anchor*)
 
 (when (bound? fileout)
   (add! special-form-tighteners
