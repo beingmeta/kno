@@ -11,6 +11,7 @@
 #include "fdb/support.h"
 
 #include <libu8/libu8io.h>
+#include <libu8/u8exceptions.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 #include <libu8/u8pathfns.h>
@@ -22,13 +23,14 @@ static MAYBE_UNUSED char versionid[] =
   "$Id$";
 
 u8_condition FileLoad=_("File Load"), FileDone=_("File Done");
+u8_condition LoadEval=_("Load Eval");
 
 fd_exception fd_NotAFilename=_("Not a filename");
 fd_exception fd_FileNotFound=_("File not found");
 
-static int trace_load=0;
+static int trace_load=0, trace_load_eval=0;
 
-static fdtype after_symbol;
+static fdtype after_symbol, traceloadeval_symbol;
 
 /* Getting sources */
 
@@ -104,23 +106,40 @@ FD_EXPORT fdtype fd_load_source
   double start=u8_elapsed_time();
   if (content==NULL) return FD_ERROR_VALUE;
   else outer_sourcebase=bind_sourcebase(sourcebase);
-  if (trace_load) 
-    u8_log(LOG_INFO,FileLoad,"Loading %s (%d bytes)",sourcebase,u8_strlen(content));
+  if ((trace_load) || (trace_load_eval)) 
+    u8_log(LOG_INFO,FileLoad,
+	   "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
   if ((input[0]=='#') && (input[1]=='!')) input=strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     /* This does a read/eval loop. */
     fdtype result=FD_VOID;
     fdtype expr=fd_parse_expr(&stream), last_expr=FD_VOID;
+    double start_time;
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
+      if ((trace_load_eval) ||
+	  (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
+	u8_log(LOG_NOTICE,LoadEval,"From %s, evaluating %q",sourcebase,expr);
+	start_time=u8_elapsed_time();}
+      else start_time=-1.0;
       result=fd_eval(expr,env);
       if (FD_ABORTP(result)) {
+	if ((trace_load_eval) ||
+	    (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE)))
+	  u8_log(LOG_ERR,(u8_condition)u8_current_exception,
+		 "Error in %s while evaluating %q",sourcebase,expr);
 	restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
 	fd_decref(last_expr);
 	return result;}
+      else if ((trace_load_eval) ||
+	       (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
+	if (start_time>0)
+	  u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
+		 u8_elapsed_time()-start_time,expr);}
+      else {}
       fd_decref(last_expr);  last_expr=expr;
       expr=fd_parse_expr(&stream);}
     if (expr==FD_EOF) {
@@ -133,7 +152,7 @@ FD_EXPORT fdtype fd_load_source
     else if (FD_ABORTP(expr)) {
       result=expr; expr=FD_VOID;}
     else fd_decref(last_expr);
-    if (trace_load) 
+    if ((trace_load) || (trace_load_eval))
       u8_log(LOG_INFO,FileDone,"Loaded %s in %f seconds",
 	     sourcebase,u8_elapsed_time()-start);
     restore_sourcebase(outer_sourcebase);
@@ -339,6 +358,7 @@ FD_EXPORT void fd_init_load_c()
 #endif
 
  after_symbol=fd_intern("AFTEREXPR");
+ traceloadeval_symbol=fd_intern("%TRACELOADEVAL");
  
  fd_defspecial(fd_xscheme_module,"LOAD",load_source);
  fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
@@ -355,5 +375,7 @@ FD_EXPORT void fd_init_load_c()
 		    get_config_files,add_config_file,NULL);
  fd_register_config("TRACELOAD","Trace file load starts and ends",
 		    fd_boolconfig_get,fd_boolconfig_set,&trace_load);
+ fd_register_config("TRACELOADEVAL","Trace expressions while loading files",
+		    fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
 }
 
