@@ -203,7 +203,9 @@ static fdtype module_bindings(fdtype arg)
 
 static fdtype modulep(fdtype arg)
 {
-  if ((FD_PTR_TYPEP(arg,fd_environment_type)) || (FD_TABLEP(arg)))
+  if ((FD_PTR_TYPEP(arg,fd_environment_type)) ||
+      (FD_HASHTABLEP(arg)) || (FD_SLOTMAPP(arg)) ||
+      (FD_SCHEMAPP(arg)))
     return FD_TRUE;
   else return FD_TRUE;
 }
