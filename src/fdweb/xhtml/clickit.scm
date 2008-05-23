@@ -51,10 +51,10 @@
 	   label))
 (define (xurlclick url label title)
   (anchor* url
-	   ((class "clickit") (title title) (target "_blank")
-	    (onmouseover "_fdb_clickit_mouseover(event);")
-	    (onmouseout "_fdb_clickit_mouseout(event);"))
-	   label))
+      ((class "clickit") (title title) (target "_blank")
+       (onmouseover "_fdb_clickit_mouseover(event);")
+       (onmouseout "_fdb_clickit_mouseout(event);"))
+    label))
 (module-export!
  '{commandclick
    actionclick
@@ -158,7 +158,7 @@
 
 (module-export! 'autoprompt)
 
-
+(define (dummyfn) (autoprompt 'name "x" 'value "z"))
 
 
 ;;;; Font sizers

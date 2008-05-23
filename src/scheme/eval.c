@@ -721,6 +721,7 @@ FD_EXPORT fdtype fd_new_module(char *name,int flags)
   if (fdscheme_initialized==0) fd_init_fdscheme();
   module_name=fd_intern(name);
   module=fd_make_hashtable(NULL,0);
+  fd_add(module,module_id_symbol,module_name);
   if (flags&FD_MODULE_SAFE) {
     fd_hashtable_op
       (&safe_module_map,fd_table_default,module_name,module);
@@ -1325,6 +1326,10 @@ static void init_core_builtins()
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_history_c();
+  
+  fd_finish_module(fd_scheme_module);
+  fd_finish_module(fd_xscheme_module);
+
   fd_persist_module(fd_scheme_module);
   fd_persist_module(fd_xscheme_module);
 }

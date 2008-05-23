@@ -14,6 +14,10 @@
 static MAYBE_UNUSED char versionid[] = 
   "$Id$";
 
+#define GETSPECFORM(x) \
+  ((FD_PPTRP(x)) ? ((fd_special_form)(fd_pptr_ref(x))) : ((fd_special_form)x))
+
+
 static fdtype macrop(fdtype x)
 {
   if (FD_PRIM_TYPEP(x,fd_macro_type)) return FD_TRUE;
@@ -58,6 +62,11 @@ static fdtype fcn_name(fdtype x)
     if (f->name)
       return fdtype_string(f->name);
     else return FD_FALSE;}
+  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
+    if (sf->name)
+      return fdtype_string(sf->name);
+    else return FD_FALSE;}
   else return fd_type_error(_("function"),"fcn_name",x);
 }
 
@@ -68,6 +77,11 @@ static fdtype fcn_symbol(fdtype x)
     if (f->name)
       return fd_intern(f->name);
     else return FD_FALSE;}
+  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
+    if (sf->name)
+      return fd_intern(sf->name);
+    else return FD_FALSE;}
   else return fd_type_error(_("function"),"fcn_symbol",x);
 }
 
@@ -77,6 +91,11 @@ static fdtype fcn_id(fdtype x)
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     if (f->name)
       return fd_intern(f->name);
+    else return fd_incref(x);}
+  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
+    if (sf->name)
+      return fd_intern(sf->name);
     else return fd_incref(x);}
   else return fd_incref(x);
 }
