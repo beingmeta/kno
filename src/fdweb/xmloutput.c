@@ -239,13 +239,16 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
 	else {
 	  fd_decref(name);
 	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	  return fd_reterr(fd_TypeError,"open_markup",u8_strdup("attribname"),fd_incref(name));}
+	  return fd_reterr(fd_TypeError,"open_markup",
+			   u8_strdup("attribname"),fd_incref(name));}
 	fd_decref(name);}
       else {
 	if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	return fd_reterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));}
-      if ((FD_SYMBOLP(attrib_expr)) || (FD_PAIRP(attrib_expr))) {
-	fdtype val=((env) ? (fd_eval(attrib_expr,env)) : (fd_incref(attrib_expr)));
+	return fd_reterr(fd_SyntaxError,"open_markup",
+			 NULL,fd_incref(attribs));}
+      if (FD_NEED_EVALP(attrib_expr)) {
+	fdtype val=((env) ? (fd_eval(attrib_expr,env)) :
+		    (fd_incref(attrib_expr)));
 	if (FD_VOIDP(val)) {}
 	else if (FD_ABORTP(val)) {
 	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
@@ -421,7 +424,7 @@ static fdtype xmlentry(fdtype expr,fd_lispenv env)
   U8_OUTPUT *out=fd_get_default_output();
   fdtype head=fd_get_arg(expr,1), args=FD_CDR(FD_CDR(expr));
   u8_byte tagbuf[128], *tagname;
-  if (FD_PAIRP(head)) head=fd_eval(head,env);
+  if ((FD_PAIRP(head)))  head=fd_eval(head,env);
   else head=fd_incref(head);
   tagname=get_tagname(head,tagbuf,128);
   if (tagname==NULL) {
@@ -1406,7 +1409,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
     FD_DOLIST(elt,body) {
       fdtype val;
       if (i>0) u8_putc(out,','); i++;
-      if ((FD_PAIRP(elt)) || (FD_SYMBOLP(elt)))
+      if (FD_NEED_EVALP(elt))
 	val=fd_eval(elt,env);
       else val=fd_incref(elt);
       if (FD_VOIDP(val)) {}
@@ -1489,7 +1492,7 @@ static fdtype soapenvelope_handler(fdtype expr,fd_lispenv env)
   fdtype header_arg=fd_get_arg(expr,1);
   fdtype body=fd_get_body(expr,2);
   u8_puts(out,soapenvopen);
-  if ((FD_PAIRP(header_arg)) || (FD_SYMBOLP(header_arg))) {
+  if (FD_NEED_EVALP(header_arg)) {
     fdtype value;
     u8_puts(out,soapheaderopen);
     value=fd_eval(header_arg,env);

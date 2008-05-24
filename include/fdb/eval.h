@@ -31,6 +31,8 @@ FD_EXPORT void fd_init_schemeio(void);
 
 FD_EXPORT u8_context fd_eval_context;
 
+#define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || (FD_PAIRP(x)))
+
 /* Constants */
 
 #define FD_STACK_ARGS 6

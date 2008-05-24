@@ -483,6 +483,12 @@ static fdtype fd_pptr_ref(fdtype ref)
 #define FD_NEXT_OPCODE(op) \
   (FDTYPE_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
 
+/* Lexrefs */
+
+#define FD_LEXREFP(x) (FD_PRIM_TYPEP(x,fd_lexref_type))
+#define FD_LEXREF_UP(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))/32)
+#define FD_LEXREF_ACROSS(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))%32)
+
 /* Numeric macros */
 
 #define FD_NUMBER_TYPEP(x) \

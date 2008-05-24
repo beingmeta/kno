@@ -575,7 +575,7 @@ FD_EXPORT
 fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
 {
   fdtype result=FD_VOID;
-  if ((FD_PAIRP(xml)) || (FD_SYMBOLP(xml))) {
+  if (FD_NEED_EVALP(xml)) {
     fdtype result=fd_eval(xml,env);
     if (FD_VOIDP(result)) {}
     else if ((FD_TABLEP(result)) &&
