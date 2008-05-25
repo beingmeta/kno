@@ -152,6 +152,10 @@
     (do-choices (frame frame)
       (do-choices (slotid slotid)
 	(assert! frame slotid value)
+	(unless (test frame 'sensecat)
+	  (when (overlaps? slotid '{@?always @?genls @?isa hypernym})
+	    (store! frame 'sensecat (get value 'sensecat))
+	    (make%id! frame)))
 	(add! frame '%adds
 	      (vector slotid (qc value)
 		      auditor (timestamp)
@@ -217,6 +221,10 @@
 	      (%debug "Deferring assertion due to audit: "
 		      slotid "(" frame ")=" value)
 	      (begin (assert! frame slotid value)
+		     (unless (test frame 'sensecat)
+		       (when (overlaps? slotid '{@?always @?genls @?isa hypernym})
+			 (store! frame 'sensecat (get value 'sensecat))
+			 (make%id! frame)))
 		     (when audit-index
 		       (index+! frame slotid value)
 		       (when (and invert (oid? value) (test slotid 'inverse))
