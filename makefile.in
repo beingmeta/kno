@@ -436,7 +436,7 @@ copy-modules: $(CONFDIR)/scm
 	cp -pf $(BUILD)/src/modules/*.table @standard_module_dir@
 	cp -rf $(BUILD)/src/fdweb/xhtml @module_dir@
 
-$(DESTDIR)/etc/init.d/framerd:
+$(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d
 	$(INSTALL) --mode=0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
 $(DESTDIR)/var/run/framerd:
