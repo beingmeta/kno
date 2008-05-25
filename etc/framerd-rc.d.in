@@ -11,8 +11,8 @@ VERSION="$Id$"
 
 export FDMANAGER=@prefix@/bin/fdmanager
 export FDSERVER=@prefix@/bin/fdbserver
-export FDSERVER_USER=@fdaemon@
-export FDSERVER_GROUP=@admin_group@
+export FDAEMON_USER=@fdaemon@
+export FDAEMON_GROUP=@admin_group@
 CTLFILE=@config_dir@/servers
 PIDFILE=/var/run/framerd.pid
 STATFILE=/var/run/framerd.status

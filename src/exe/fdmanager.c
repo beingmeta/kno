@@ -152,7 +152,13 @@ static int setup_rundir()
     if ((gentry==NULL) || (uentry==NULL)) {
       u8_log(LOG_WARN,SecurityAbort,
 	     "Couldn't determine user or group for server run dir");}
-    else chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
+    else {
+      u8_log(LOG_WARN,StartupEvent,
+	     "Configuring state directory %s to owner %s (%d), group %s (%d)",
+	     rundir,
+	     uentry->pw_name,uentry->pw_uid,
+	     gentry->gr_name,gentry->gr_gid);
+      chown(dirpath,uentry->pw_uid,gentry->gr_gid);}}
   else if ((gentry==NULL) || (uentry==NULL)) {
     u8_log(LOG_WARN,SecurityAbort,
 	   "Couldn't determine user or group for server run dir, making null");
