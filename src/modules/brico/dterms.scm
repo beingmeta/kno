@@ -70,7 +70,8 @@
 	      (tryif (singleton? (?? language alt)) alt)
 	      (tryif (singleton? (?? language norm language alt))
 		     (string-append norm ":" alt)))
-	     (string-append norm ":" alt)))
+	     (tryif (singleton? (?? language norm language alt))
+		    (string-append norm ":" alt))))
        #f)))
 
 (define (probe-location concept term1 term2 language (isaterm #f))
@@ -157,9 +158,12 @@
 	 (try-choices (pn (get-norm (get concept @?partof) dlang))
 	   (tryif (singleton? (intersection meanings (?? partof (?? dlang pn))))
 		  (string-append norm " ("  (langterm pn language dlang) ")")))
+	 #|
+	 ;; Remove this rule for generating dterms
 	 (try-choices (d (difference (get concept language) norm))
 	   (tryif (singleton? (intersection meanings (?? language d)))
 		  (string-append norm "="  (langterm d language dlang))))
+	 |#
 	 (tryif usedefterms
 		(try-choices (d (difference (get-norm (get concept defterms) dlang)
 					    norm))
