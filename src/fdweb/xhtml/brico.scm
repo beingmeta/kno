@@ -31,9 +31,6 @@
 ;;  and subscripts for the fr$ syntax
 (module-export! '{concept->html concept->anchor})
 
-;; SHOWCONCEPT
-;; (module-export! 'showconcept)
-
 ;; Displaying concepts in various ways
 (module-export! '{conceptsummary conceptsummary/prefetch!})
 
@@ -392,8 +389,8 @@
 	((class "concept")
 	 (oid (if oid oid))
 	 (dterm (ifexists dterm))
-	 (gloss (if title-gloss (ifexists gloss)))
-	 (title (ifexists gloss))
+	 (gloss (ifexists gloss))
+	 (title (if title-gloss (ifexists gloss)))
 	 (text text))
       (when var
 	(if selected
