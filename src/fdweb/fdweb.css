@@ -256,9 +256,18 @@ span.font_sizer {
 
 /* Inline Fields */
 
-span.field { font-family: sans,sans-serif; color: purple; }
-span.field span.label { font-weight: bold; }
+span.field { font-family: sans,sans-serif; }
+span.field span.label { font-weight: bold; color: purple;}
+span.field[slotid] span.label { color: inherit;}
 span.field[slotid='ALWAYS'] { color: green;}
-span.field[slotid='SOMETIMES'] { color: blue;}
+span.field[slotid='ALWAYS'] a.concept { color: green;}
+span.field[slotid='SOMETIMES'] { color: gray;}
+span.field[slotid='SOMETIMES'] a.concept { color: gray;}
 span.field[slotid='NEVER'] { color: red;}
-span.field[slotid='SOMENOT'] { color: orange;}
+span.field[slotid='NEVER'] a.concept { color: red;}
+span.field[slotid='SOMENOT'] { color: yellow;}
+span.field[slotid='SOMENOT'] a.concept { color: yellow;}
+span.field[slotid='MEMBER-OF'] { color: black;}
+span.field[slotid='DEFTERMS'] { color: black;}
+span.field[slotid='PART-OF'] { color: black;}
+
