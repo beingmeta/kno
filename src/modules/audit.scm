@@ -306,13 +306,27 @@
 
 (module-export! 'newterm)
 
-(defambda (audit-genls! f genl)
+(defambda (audit-genls! f genl (name #f))
   (for-choices f
     (audit+! f @?genls (difference genl (get f @?genls)))
     (audit-! f @?genls (difference (get f @?genls) genl))
     (store! f 'sensecat (get genl 'sensecat))
     (store! f 'type (get genl 'type))
+    (drop! f 'type 'individual)
+    (unless name (drop! f 'type 'name))
+    (when (capitalized? (get f @?en)) (low%frame! f))
     (make%id! f)
     f))
 
-(module-export! 'audit-genls!)
+(defambda (audit-isa! f isa)
+  (for-choices f
+    (audit+! f @?isa (difference isa (get f @?isa)))
+    (audit-! f @?isa (difference (get f @?isa) isa))
+    (audit-! f @?genls (get f @?genls))
+    (store! f 'sensecat (get isa 'sensecat))
+    (store! f 'type (get isa 'type))
+    (add! f 'type '{individual name})
+    (make%id! f)
+    f))
+
+(module-export! '{audit-genls! audit-isa!})
