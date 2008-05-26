@@ -247,6 +247,7 @@ FD_EXPORT int fd_make_hash_index
 FD_EXPORT int fd_hash_index_bucket
    (struct FD_HASH_INDEX *hx,fdtype key,int modulate);
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
+FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *ix);
 
 #endif /* #ifndef FDB_DBFILE_H */
 

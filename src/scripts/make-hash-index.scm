@@ -26,7 +26,7 @@
     (message "Creating new hash index for "
 	     (choice-size (getkeys slotfreq)) " slotids with "
 	     (length baseoids) " baseoids")
-    (make-hash-index file (* 2 (length keys))
+    (make-hash-index file (inexact->exact (* (config 'multiplier 1) (length keys)))
 		     (rsorted (getkeys slotfreq) slotfreq)
 		     baseoids #f (config 'DTYPEV2 #f))
     (message "Populating hash index " file " with "

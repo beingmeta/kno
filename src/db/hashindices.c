@@ -67,10 +67,12 @@ static char versionid[] =
 #include "fdb/dtypeio.h"
 #include "fdb/dtypestream.h"
 #include "fdb/dbfile.h"
+#include "fdb/numbers.h"
 
 #include <libu8/u8filefns.h>
 
 #include <errno.h>
+#include <math.h>
 #include <sys/stat.h>
 
 #if (HAVE_MMAP)
@@ -1321,6 +1323,50 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   return sizes;
 }
 
+static void hash_index_getstats(struct FD_HASH_INDEX *hx,int *nf,int *max,int *singles,int *n2sum)
+{
+  fdtype *results=NULL;
+  fd_dtype_stream s=&(hx->stream);
+  int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0, key_count=0, bucket_size=0;
+  FD_CHUNK_REF *buckets; unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
+  fd_lock_struct(hx);
+  fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
+  buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
+  results=u8_alloc_n(total_keys,fdtype);
+  /* If we don't have chunk offsets in memory, we keep the stream locked while we get them. */
+  if (hx->offdata) fd_unlock_struct(hx);
+  while (i<n_buckets) {
+    FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
+    if (ref.size) buckets[n_to_fetch++]=ref;
+    i++;}
+  *nf=n_to_fetch;
+  /* Now we actually unlock it if we kept it locked. */
+  if (hx->offdata==NULL) fd_unlock_struct(hx);
+  qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
+  i=0; while (i<n_to_fetch) {
+    struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
+    if (buckets[i].size<512) 
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,
+		 _keybuf,LOCK_STREAM);
+    else {
+      if (keybuf==NULL) {
+	keybuf_size=buckets[i].size;
+	keybuf=u8_malloc(keybuf_size);}
+      else if (buckets[i].size<keybuf_size) {}
+      else {
+	keybuf_size=buckets[i].size;
+	keybuf=u8_realloc(keybuf,keybuf_size);}
+      open_block(&keyblock,hx,buckets[i].off,buckets[i].size,
+		 keybuf,LOCK_STREAM);}
+    n_keys=fd_read_zint(&keyblock);
+    if (n_keys==1) (*singles)++;
+    if (n_keys>(*max)) *max=n_keys;
+    *n2sum=*n2sum+(n_keys*n_keys);
+    i++;}
+  if (keybuf) u8_free(keybuf);
+  if (buckets) u8_free(buckets);
+}
+
 
 /* Cache setting */
 
@@ -2362,6 +2408,28 @@ static struct FD_INDEX_HANDLER hash_index_handler={
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 {
   return (ix->handler==&hash_index_handler);
+}
+
+FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *hx)
+{
+  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  int n_filled=0, maxk=0, n_singles=0, n2sum=0;
+  fd_add(result,fd_intern("NBUCKETS"),FD_INT2DTYPE(hx->n_buckets));
+  fd_add(result,fd_intern("NKEYS"),FD_INT2DTYPE(hx->n_keys));
+  fd_add(result,fd_intern("NBASEOIDS"),FD_INT2DTYPE(hx->n_baseoids));
+  fd_add(result,fd_intern("NSLOTIDS"),FD_INT2DTYPE(hx->n_slotids));
+  hash_index_getstats(hx,&n_filled,&maxk,&n_singles,&n2sum);
+  fd_add(result,fd_intern("NFILLED"),FD_INT2DTYPE(n_filled));
+  fd_add(result,fd_intern("NSINGLES"),FD_INT2DTYPE(n_singles));
+  fd_add(result,fd_intern("MAXKEYS"),FD_INT2DTYPE(maxk));
+  fd_add(result,fd_intern("N2SUM"),FD_INT2DTYPE(n2sum));
+  {
+    double avg=(hx->n_keys*1.0)/(n_filled*1.0);
+    double sd2=(n2sum*1.0)/(n_filled*n_filled*1.0);
+    fd_add(result,fd_intern("MEAN"),fd_make_double(avg));
+    fd_add(result,fd_intern("SD2"),fd_make_double(sd2));
+  }
+  return result;
 }
 
 FD_EXPORT void fd_init_hashindices_c()
