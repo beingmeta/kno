@@ -413,6 +413,10 @@
 	(else attribs)))
 
 (define (tighten-markup handler expr env bound dolex)
+  `(,(car expr)
+    ,@(map (lambda (x) (dotighten x env bound dolex))
+	   (cdr expr))))
+(define (tighten-markup* handler expr env bound dolex)
   `(,(car expr) ,(tighten-attribs (second expr) env bound dolex)
     ,@(map (lambda (x) (dotighten x env bound dolex))
 	   (cddr expr))))
@@ -461,8 +465,10 @@
 (add! special-form-tighteners unwind-protect tighten-unwind-protect)
 
 (add! special-form-tighteners {"FILEOUT" "SYSTEM"} tighten-block)
-(add! special-form-tighteners {"markupblock" "ANCHOR"} tighten-block)
-(add! special-form-tighteners {"markup*block" "markup*"} tighten-markup)
+;; Don't optimize these because they look at the symbol that is the head
+;; of the expression to get their tag name.
+(add! special-form-tighteners {"markupblock" "ANCHOR"} tighten-markup)
+(add! special-form-tighteners {"markup*block" "markup*"} tighten-markup*)
 (add! special-form-tighteners "emptymarkup" tighten-emptymarkup)
 (add! special-form-tighteners "ANCHOR*" tighten-anchor*)
 
