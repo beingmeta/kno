@@ -850,12 +850,12 @@ static fdtype get_browseinfo(fdtype arg)
 	if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0))
 	  if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
 	    fd_incref(info);
-	    u8_lock_mutex(&browseinfo_lock);
+	    u8_unlock_mutex(&browseinfo_lock);
 	    return info;}
 	  else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
 	    dflt=info;}
       fd_incref(dflt);
-      u8_lock_mutex(&browseinfo_lock);
+      u8_unlock_mutex(&browseinfo_lock);
       if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
       else return dflt;}}
   else {
