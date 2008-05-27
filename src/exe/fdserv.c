@@ -68,7 +68,7 @@ typedef struct FD_WEBCONN {
 typedef struct FD_WEBCONN *fd_webconn;
 
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static fdtype response_symbol, err_symbol, cgidata_symbol;
+static fdtype response_symbol, err_symbol, cgidata_symbol, browseinfo_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static fdtype content_slotid, content_type, tracep_slotid, query_symbol;
 static fd_lispenv server_env;
@@ -547,6 +547,7 @@ static int webservefn(u8_client ucl)
     fd_decref(setup_proc);
     write_headers=0;
     fd_thread_set(cgidata_symbol,cgidata);
+    fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
     if (FD_PAIRP(FD_CAR(proc))) {
       FD_DOLIST(expr,FD_CAR(proc)) {
 	fd_decref(result);
@@ -554,6 +555,7 @@ static int webservefn(u8_client ucl)
 	if (FD_ABORTP(result)) break;}}
     else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
     fd_thread_set(cgidata_symbol,FD_VOID);
+    fd_thread_set(browseinfo_symbol,FD_VOID);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
   fd_set_default_output(NULL);
@@ -678,6 +680,7 @@ static void init_symbols()
   err_symbol=fd_intern("%ERR");
   response_symbol=fd_intern("%RESPONSE");
   cgidata_symbol=fd_intern("CGIDATA");
+  browseinfo_symbol=fd_intern("BROWSEINFO");
 }
 
 /* Utility functions */

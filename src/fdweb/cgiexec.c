@@ -26,7 +26,7 @@ static char versionid[] =
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method, status_field;
-static fdtype get_method, post_method, cgidata_symbol;
+static fdtype get_method, post_method, cgidata_symbol, browseinfo_symbol;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookies_symbol, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
@@ -680,12 +680,14 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 {
   fdtype value;
   fd_thread_set(cgidata_symbol,cgidata);
+  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_PTR_TYPEP(proc,fd_sproc_type))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else value=fd_apply(proc,0,NULL);
   fd_thread_set(cgidata_symbol,FD_VOID);
+  fd_thread_set(browseinfo_symbol,FD_VOID);
   if (log_cgidata) {
     fdtype keys=fd_getkeys(cgidata);
     FD_DO_CHOICES(key,keys) {
@@ -811,6 +813,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   tail_symbol=fd_intern("%TAIL");
   cgidata_symbol=fd_intern("CGIDATA");
+  browseinfo_symbol=fd_intern("BROWSEINFO");
 
   accept_type=fd_intern("HTTP_ACCEPT");
   accept_language=fd_intern("HTTP_ACCEPT_LANGUAGE");

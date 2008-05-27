@@ -19,12 +19,12 @@
   (file->dtype (get-component "sensecathints.table")))
 
 (define (get-dterm concept (language default-language) (norm #f) (tryhard #f))
-  (if norm
+  (if (not norm)
+      (try (cachecall get-cached-dterm concept language)
+	   (get-dterm concept language (get-norm concept language)))
       (try (cachecall find-dterm concept language norm)
 	   (try-choices (alt (difference (get concept language) norm))
-	     (cachecall find-dterm concept language alt)))
-      (try (cachecall get-cached-dterm concept language)
-	   (get-dterm concept language (get-norm concept language)))))
+	     (cachecall find-dterm concept language alt)))))
 
 (define (get-cached-dterm concept language)
   (tryseq (dtc dterm-caches)

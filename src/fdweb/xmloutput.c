@@ -51,7 +51,7 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
 */
 
 static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
-static fdtype href_symbol, class_symbol, raw_name_symbol;
+static fdtype href_symbol, class_symbol, raw_name_symbol, browseinfo_symbol;
 
 /* Utility output functions */
 
@@ -823,41 +823,115 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 
 /* Getting oid display data */
 
-static fdtype default_browse_info=FD_EMPTY_CHOICE;
-static struct FD_HASHTABLE browse_info_table;
+static fdtype global_browseinfo=FD_EMPTY_CHOICE;
+static u8_string default_browse_uri=NULL;
+static u8_string default_browse_class=NULL;
 
-static fdtype get_browse_info(fdtype arg)
+#if FD_THREADS_ENABLED
+static u8_mutex browseinfo_lock;
+#endif
+
+static fdtype get_browseinfo(fdtype arg)
 {
   fd_pool p=fd_oid2pool(arg);
-  if (p==NULL) return FD_VOID;
+  fdtype pool=fd_pool2lisp(p), browseinfo=fd_thread_get(browseinfo_symbol), dflt=FD_VOID;
+  FD_DO_CHOICES(info,browseinfo) {
+    if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0))
+      if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
+	fd_incref(info); fd_decref(browseinfo);
+	return info;}
+      else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
+	dflt=info;
+      else {}
+    else dflt=info;}
+  if (FD_VOIDP(dflt)) {
+    u8_lock_mutex(&browseinfo_lock);
+    {FD_DO_CHOICES(info,global_browseinfo) {
+	if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0))
+	  if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
+	    fd_incref(info);
+	    u8_lock_mutex(&browseinfo_lock);
+	    return info;}
+	  else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
+	    dflt=info;}
+      fd_incref(dflt);
+      u8_lock_mutex(&browseinfo_lock);
+      if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
+      else return dflt;}}
   else {
-    fdtype lp=fd_pool2lisp(p);
-    return fd_hashtable_get(&browse_info_table,lp,default_browse_info);}
+    fd_incref(dflt); fd_decref(browseinfo);
+    return dflt;}
 }
 
-static fdtype set_browse_info
-  (fdtype poolarg,fdtype script,fdtype classname,fdtype displayer)
+static int unpack_browseinfo(fdtype info,u8_string *baseuri,u8_string *classname,fdtype *displayer)
 {
-  fd_pool p=NULL; fdtype entry;
-  if (FD_PTR_TYPEP(poolarg,fd_pool_type)) p=fd_lisp2pool(poolarg);
-  else if (FD_STRINGP(poolarg)) 
-    p=fd_name2pool(FD_STRDATA(poolarg));
-  if (FD_FALSEP(poolarg)) {}
-  else if (p==NULL)
-    return fd_type_error("pool","set_browse_info",poolarg);
-  if (FD_VOIDP(script)) script=fdtype_string("browse.fdcgi");
-  else fd_incref(script);
-  if (FD_VOIDP(classname)) classname=fdtype_string("oid");
-  else fd_incref(classname);
-  if (FD_VOIDP(displayer)) displayer=fd_intern("%ID");
-  else fd_incref(displayer);
-  entry=fd_make_vector(3,fd_incref(script),fd_incref(classname),fd_incref(displayer));
-  if (FD_FALSEP(poolarg)) {
-    fd_decref(default_browse_info);
-    default_browse_info=fd_incref(entry);}
-  else fd_hashtable_store(&browse_info_table,fd_pool2lisp(p),entry);
-  fd_decref(entry);
-  return FD_VOID;
+  if ((FD_EMPTY_CHOICEP(info)) || (FD_VOIDP(info))) {
+    if (*baseuri==NULL)
+      if (default_browse_uri)
+	*baseuri=default_browse_uri;
+      else *baseuri="browse.fdcgi?";
+    if (*classname==NULL)
+      if (default_browse_class)
+	*classname=default_browse_class;
+      else *classname="oid";}
+  else if (FD_STRINGP(info)) {
+    *baseuri=FD_STRDATA(info);
+    if (*classname==NULL)
+      if (default_browse_class)
+	*classname=default_browse_class;
+      else *classname="oid";
+    if (displayer) *displayer=FD_VOID;}
+  else if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>1)) {
+    if (*classname==NULL)
+      *classname=((default_browse_class) ? (default_browse_class) : ((u8_string)"oid"));
+    if (*baseuri==NULL)
+      *baseuri=((default_browse_uri) ? (default_browse_uri) : ((u8_string)"browse.fdcgi?"));
+    switch (FD_VECTOR_LENGTH(info)) {
+    case 2:
+      if (FD_STRINGP(FD_VECTOR_REF(info,1)))
+	*baseuri=FD_STRDATA(FD_VECTOR_REF(info,1));
+      else u8_log(LOG_WARN,fd_TypeError,"Bad browse info %q",info);
+    case 3:
+      if (FD_STRINGP(FD_VECTOR_REF(info,2)))
+	*classname=FD_STRDATA(FD_VECTOR_REF(info,2));
+      else u8_log(LOG_WARN,fd_TypeError,"Bad browse info %q",info);
+    case 4:
+      if (displayer) *displayer=FD_VECTOR_REF(info,3);}}
+  else {
+    u8_log(LOG_WARN,fd_TypeError,"Bad browse info %q",info);
+    *baseuri="browse.fdcgi?";}
+  return 0;
+}
+
+static fdtype browseinfo_config_get(fdtype var,void *ignored)
+{
+  fdtype result;
+  u8_lock_mutex(&browseinfo_lock);
+  result=global_browseinfo; fd_incref(result);
+  u8_unlock_mutex(&browseinfo_lock);
+  return result;
+}
+
+static int browseinfo_config_set(fdtype var,fdtype val,void *ignored)
+{
+  fdtype new_browseinfo=FD_EMPTY_CHOICE, old_browseinfo;
+  u8_lock_mutex(&browseinfo_lock);
+  old_browseinfo=global_browseinfo;
+  if ((FD_STRINGP(val)) || ((FD_VECTORP(val)) && (FD_VECTOR_LENGTH(val)>1))) {
+    fdtype target=FD_VECTOR_REF(val,0);
+    FD_DO_CHOICES(info,old_browseinfo) {
+      if ((FD_VECTORP(info)) && (FD_EQ(target,FD_VECTOR_REF(info,0)))) {}
+      else if ((FD_STRINGP(info)) && (FD_TRUEP(target))) {}
+      else {
+	fd_incref(info); FD_ADD_TO_CHOICE(new_browseinfo,info);}}
+    fd_incref(val); FD_ADD_TO_CHOICE(new_browseinfo,val);
+    global_browseinfo=fd_simplify_choice(new_browseinfo);
+    u8_unlock_mutex(&browseinfo_lock);
+    return 1;}
+  else {
+    u8_unlock_mutex(&browseinfo_lock);
+    fd_seterr(fd_TypeError,"browse info",NULL,val);
+    return -1;}
 }
 
 /* Doing anchor output */
@@ -882,23 +956,12 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
     u8_printf(out,"'>");}
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
-    fdtype browse_info=get_browse_info(target);
-    if ((FD_VECTORP(browse_info)) &&
-	(FD_VECTOR_LENGTH(browse_info)>1) &&
-	(FD_STRINGP(FD_VECTOR_REF(browse_info,0))) &&
-	(FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
-      if (strchr(FD_STRDATA(FD_VECTOR_REF(browse_info,0)),'?'))
-	u8_printf(out,"<a href='%s:@%x/%x' class='%s'>",
-		  FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
-		  FD_OID_HI(addr),FD_OID_LO(addr),
-		  FD_STRDATA(FD_VECTOR_REF(browse_info,1)));
-      else u8_printf(out,"<a href='%s?:@%x/%x' class='%s'>",
-		     FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
-		     FD_OID_HI(addr),FD_OID_LO(addr),
-		     FD_STRDATA(FD_VECTOR_REF(browse_info,1)));
-    else u8_printf(out,"<a href='browse.fdcgi?:@%x/%x' class='oid'>",
-		   FD_OID_HI(addr),(FD_OID_LO(addr)));
-    fd_decref(browse_info);}
+    fdtype browseinfo=get_browseinfo(target);
+    u8_string uri=NULL, class=NULL;
+    unpack_browseinfo(browseinfo,&uri,&class,NULL);
+    u8_printf(out,"<a href='%s:@%x/%x' class='%s'>",
+	      uri,FD_OID_HI(addr),FD_OID_LO(addr),class);
+    fd_decref(browseinfo);}
   else {
     return fd_type_error(_("valid anchor target"),"doanchor",target);}
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
@@ -958,38 +1021,24 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 		    fd_incref(attribs)));}
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
-    fdtype browse_info=get_browse_info(target);
+    fdtype browseinfo=get_browseinfo(target);
+    u8_string uri=NULL, class=NULL;
+    unpack_browseinfo(browseinfo,&uri,&class,NULL);
+    u8_printf(out,"<a href='%s:@%x/%x' class='%s'>",
+	      uri,FD_OID_HI(addr),FD_OID_LO(addr),class);
     if (has_class_attrib(attribs))
       fd_incref(attribs);
-    else if ((FD_VECTORP(browse_info)) &&
-	     (FD_VECTOR_LENGTH(browse_info)>1) &&
-	     (FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
-      attribs=fd_init_pair
-	(NULL,fd_intern("CLASS"),
-	 fd_init_pair(NULL,fd_incref(FD_VECTOR_REF(browse_info,1)),
-		      fd_incref(attribs)));
     else attribs=fd_init_pair
 	   (NULL,fd_intern("CLASS"),
-	    fd_init_pair(NULL,fdtype_string("oid"),fd_incref(attribs)));
+	    fd_init_pair(NULL,fdtype_string(class),fd_incref(attribs)));
     tmpout.u8_outptr=tmpout.u8_outbuf;
-    if ((FD_VECTORP(browse_info)) &&
-	(FD_VECTOR_LENGTH(browse_info)>0) &&
-	(FD_STRINGP(FD_VECTOR_REF(browse_info,0))))
-      if (strchr(FD_STRDATA(FD_VECTOR_REF(browse_info,0)),'?'))
-	u8_printf(&tmpout,"%s:@%x/%x",
-		  FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
-		  FD_OID_HI(addr),(FD_OID_LO(addr)));
-      else u8_printf(&tmpout,"%s?:@%x/%x",
-		     FD_STRDATA(FD_VECTOR_REF(browse_info,0)),
-		     FD_OID_HI(addr),(FD_OID_LO(addr)));
-    else u8_printf(&tmpout,"browse.fdcgi?:@%x/%x",
-		   FD_OID_HI(addr),(FD_OID_LO(addr)));
+    u8_printf(&tmpout,"%s:@%x/%x",uri,FD_OID_HI(addr),(FD_OID_LO(addr)));
     attribs=fd_init_pair
       (NULL,href_symbol,
        fd_init_pair(NULL,
 		    fd_extract_string(NULL,tmpout.u8_outbuf,tmpout.u8_outptr),
 		    attribs));
-    fd_decref(browse_info);}
+    fd_decref(browseinfo);}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);
   xmloidfn=fd_symeval(xmloidfn_symbol,env);
   if (open_markup(out,&tmpout,"a",attribs,env,0)<0) {
@@ -1016,48 +1065,24 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
 {
   FD_OID addr=FD_OID_ADDR(arg);
-  fdtype browse_info=get_browse_info(arg), name;
+  fdtype browseinfo=get_browseinfo(arg), name, displayer=FD_VOID;
+  u8_string uri=NULL, class=NULL;
+  unpack_browseinfo(browseinfo,&uri,&class,&displayer);
   if (out==NULL) out=fd_get_default_output();
-  if ((FD_VECTORP(browse_info)) &&
-      (FD_VECTOR_LENGTH(browse_info)>0) &&
-      (FD_STRINGP(FD_VECTOR_REF(browse_info,0))>0)) {
-    u8_string class_name="oid";
-    u8_string script_name=FD_STRDATA(FD_VECTOR_REF(browse_info,0));
-    fdtype displayer=FD_VOID;
-    if ((FD_VECTOR_LENGTH(browse_info)>1) &&
-	(FD_STRINGP(FD_VECTOR_REF(browse_info,1))))
-      class_name=FD_STRDATA(FD_VECTOR_REF(browse_info,1));
-    if (FD_VECTOR_LENGTH(browse_info)>2)
-      displayer=FD_VECTOR_REF(browse_info,2);
-    if (strchr(script_name,'?'))
-      u8_printf(out,"<a class='%s' href='%s?:@%x/%x'>",
-		class_name,script_name,
-		FD_OID_HI(addr),FD_OID_LO(addr));
-    else u8_printf(out,"<a class='%s' href='%s:@%x/%x'>",
-		   class_name,script_name,
-		   FD_OID_HI(addr),FD_OID_LO(addr));
-    if ((FD_OIDP(displayer)) || (FD_SYMBOLP(displayer)))
-      name=fd_frame_get(arg,displayer);
-    else if (FD_APPLICABLEP(displayer))
-      name=fd_apply(displayer,1,&arg);
-    else name=fd_frame_get(arg,obj_name);
-    if (FD_EMPTY_CHOICEP(name))
-      u8_printf(out,"%q",arg);
-    else if (FD_VOIDP(name)) {}
-    else xmlout_helper(out,NULL,name,FD_VOID,NULL);
-    fd_decref(name);
-    u8_printf(out,"</a>");}
-  else {
-    u8_printf(out,"<a class='oid' href='browse.fdcgi?:@%x/%x'>",
-	      FD_OID_HI(addr),FD_OID_LO(addr));
-    name=fd_frame_get(arg,obj_name);
-    if (FD_ABORTP(name)) 
-      u8_printf(out,"%q",arg);
-    else if (FD_EMPTY_CHOICEP(name))
-      u8_printf(out,"%q",arg);
-    else xmlout_helper(out,NULL,name,FD_VOID,NULL);
-    fd_decref(name);
-    u8_printf(out,"</a>");}
+  u8_printf(out,"<a class='%s' href='%s?:@%x/%x'>",
+	    class,uri,FD_OID_HI(addr),FD_OID_LO(addr));
+  if ((FD_OIDP(displayer)) || (FD_SYMBOLP(displayer)))
+    name=fd_frame_get(arg,displayer);
+  else if (FD_APPLICABLEP(displayer))
+    name=fd_apply(displayer,1,&arg);
+  else name=fd_frame_get(arg,obj_name);
+  if (FD_EMPTY_CHOICEP(name))
+    u8_printf(out,"%q",arg);
+  else if (FD_VOIDP(name)) {}
+  else xmlout_helper(out,NULL,name,FD_VOID,NULL);
+  fd_decref(name);
+  u8_printf(out,"</a>");
+  fd_decref(browseinfo);
 }
 
 static fdtype xmloid(fdtype oid_arg)
@@ -1596,8 +1621,6 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_defspecial(xhtml_module,"ANCHOR",doanchor);
   fd_defspecial(xhtml_module,"ANCHOR*",doanchor_star);
   fd_idefn(xhtml_module,fd_make_cprim1("%XMLOID",xmloid,1));
-  fd_idefn(xhtml_module,
-	   fd_make_cprim4("SET-BROWSE-INFO!",set_browse_info,2));
 
   fd_defspecial(xhtml_module,"XHTML",raw_xhtml_handler);
   fd_idefn(xhtml_module,fd_make_cprim0("NBSP",nbsp_prim,0));
@@ -1653,8 +1676,6 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_handler);
   fd_defspecial(xhtml_module,"JAVASTMT",javastmt_handler);
 
-  fd_make_hashtable(&browse_info_table,17);
-
   xmloidfn_symbol=fd_intern("%XMLOID");
   id_symbol=fd_intern("%ID");
   href_symbol=fd_intern("HREF");
@@ -1662,6 +1683,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   obj_name=fd_intern("OBJ-NAME");
   quote_symbol=fd_intern("QUOTE");
   raw_name_symbol=fd_intern("%%NAME");
+  browseinfo_symbol=fd_intern("BROWSEINFO");
 
   error_stylesheet=u8_strdup("/css/fdweb.css");
   fd_register_config
@@ -1672,6 +1694,23 @@ FD_EXPORT void fd_init_xmloutput_c()
     ("HTMLBACKTRACEINDENT",
      _("How many entries in a web backtrace to indent "),
      fd_intconfig_get,fd_intconfig_set,&backtrace_indent_depth);
+
+  fd_register_config
+    ("BROWSEINFO",
+     _("How to display OIDs for browsing in HTML/XML"),
+     browseinfo_config_get,browseinfo_config_set,NULL);
+  fd_register_config
+    ("BROWSEOIDURI",
+     _("Default anchor URI for OID references"),
+     fd_sconfig_get,fd_sconfig_set,&default_browse_uri);
+  fd_register_config
+    ("BROWSEOIDCLASS",
+     _("Default HTML CSS class for OID references"),
+     fd_sconfig_get,fd_sconfig_set,&default_browse_class);
+
+#if (FD_THREADS_ENABLED)
+  u8_init_mutex(&browseinfo_lock);
+#endif
 
 }
 
