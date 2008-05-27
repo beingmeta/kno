@@ -14,6 +14,7 @@ static char versionid[] =
 #include "fdb/ports.h"
 
 static fd_exception SchemeError=_("Undistinguished Scheme Error");
+static fd_exception NoValueForHandler=_("The handler method doesn't have a return value to handle");
 
 /* Returning errors */
 
@@ -103,6 +104,8 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       return handler;}}
   else if (FD_VOIDP(default_handler))
     return value;
+  else if (FD_VOIDP(value)) 
+    return fd_err(NoValueForHandler,"onerror_handler",NULL,expr);
   else {
     fdtype handler=fd_eval(default_handler,env);
     if (FD_ABORTP(handler)) 
