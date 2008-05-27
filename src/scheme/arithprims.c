@@ -234,42 +234,46 @@ arithdef2("ATAN2",latan2,atan2);
 
 static fdtype min_prim(int n,fdtype *args)
 {
-  fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
-  while (i<n) {
-    int cmp=fd_numcompare(args[i],result);
-    if (FD_FLONUMP(args[i])) inexact=1;
-    if (cmp<0) result=args[i];
-    i++;}
-  if (inexact)
-    if (FD_FLONUMP(result))
-      return fd_incref(result);
-    else {
-      fdtype err=FD_VOID;
-      double asdouble=todouble(result,&err);
-      if (FD_VOIDP(err))
-	return fd_init_double(NULL,asdouble);
-      else return err;}
-  else return fd_incref(result);
+  if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
+  else {
+    fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
+    while (i<n) {
+      int cmp=fd_numcompare(args[i],result);
+      if (FD_FLONUMP(args[i])) inexact=1;
+      if (cmp<0) result=args[i];
+      i++;}
+    if (inexact)
+      if (FD_FLONUMP(result))
+	return fd_incref(result);
+      else {
+	fdtype err=FD_VOID;
+	double asdouble=todouble(result,&err);
+	if (FD_VOIDP(err))
+	  return fd_init_double(NULL,asdouble);
+	else return err;}
+    else return fd_incref(result);}
 }
 
 static fdtype max_prim(int n,fdtype *args)
 {
-  fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
-  while (i<n) {
-    int cmp=fd_numcompare(args[i],result);
-    if (FD_FLONUMP(args[i])) inexact=1;
-    if (cmp>0) result=args[i];
-    i++;}
-  if (inexact)
-    if (FD_FLONUMP(result))
-      return fd_incref(result);
-    else {
-      fdtype err=FD_VOID;
-      double asdouble=todouble(result,&err);
-      if (FD_VOIDP(err))
-	return fd_init_double(NULL,asdouble);
-      else return err;}
-  else return fd_incref(result);
+  if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
+  else {
+    fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
+    while (i<n) {
+      int cmp=fd_numcompare(args[i],result);
+      if (FD_FLONUMP(args[i])) inexact=1;
+      if (cmp>0) result=args[i];
+      i++;}
+    if (inexact)
+      if (FD_FLONUMP(result))
+	return fd_incref(result);
+      else {
+	fdtype err=FD_VOID;
+	double asdouble=todouble(result,&err);
+	if (FD_VOIDP(err))
+	  return fd_init_double(NULL,asdouble);
+	else return err;}
+    else return fd_incref(result);}
 }
 
 static fdtype abs_prim(fdtype x)
