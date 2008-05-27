@@ -880,6 +880,11 @@ FD_EXPORT int fd_thread_set(fdtype var,fdtype val)
   return fd_store(get_threadtable(),var,val);
 }
 
+FD_EXPORT int fd_thread_add(fdtype var,fdtype val)
+{
+  return fd_add(get_threadtable(),var,val);
+}
+
 /* Recording source file information */
 
 static struct FD_SOURCE_FILE_RECORD *source_files=NULL;
