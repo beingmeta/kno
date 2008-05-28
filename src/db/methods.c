@@ -423,6 +423,28 @@ static fdtype inherited_test_method(fdtype root,fdtype slotid,fdtype value)
   else return FD_FALSE;
 }
 
+static fdtype inverse_getbase_method(fdtype root,fdtype slotid)
+{
+  fdtype answer, inv_slots, others, root_as_list;
+  answer=fd_oid_get(root,slotid,FD_EMPTY_CHOICE);
+  if (FD_ABORTP(answer)) return answer;
+  else inv_slots=fd_oid_get(slotid,inverse_slot,FD_EMPTY_CHOICE);
+  if (FD_ABORTP(inv_slots)) {
+    fd_decref(answer);
+    return inv_slots;}
+  else {
+    fdtype root_as_list=fd_init_pair(NULL,root,FD_EMPTY_LIST);
+    others=fd_bgfind(inv_slots,root_as_list,FD_VOID);
+    fd_decref(root_as_list);}
+  if (FD_ABORTP(others)) {
+    fd_decref(inv_slots); fd_decref(answer);
+    return others;}
+  else {
+    FD_ADD_TO_CHOICE(answer,others);
+    fd_decref(inv_slots);
+    return answer;}
+}
+
 static fdtype inverse_get_method(fdtype root,fdtype slotid)
 {
   fdtype answer, inv_slots, others;
@@ -692,9 +714,11 @@ FD_EXPORT void fd_init_methods_c()
   fd_defn(m,fd_make_cprim3("FD:MULTI-DROP",multi_drop_method,3));
   {
     fdtype invget=fd_make_cprim2("FD:INVERSE-GET",inverse_get_method,2);
+    fdtype invgetbase=fd_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,2);
     fdtype invtest=fd_make_cprim3("FD:INVERSE-TEST",inverse_test_method,3);
-    fd_defn(m,invget); fd_defn(m,invtest);
+    fd_defn(m,invget); fd_defn(m,invtest); fd_defn(m,invgetbase);
     fd_store(m,fd_intern("FD:INV-GET"),invget);
+    fd_store(m,fd_intern("FD:INV-GETBASE"),invgetbase);
     fd_store(m,fd_intern("FD:INV-TEST"),invtest);}
 
   fd_defn(m,fd_make_cprim2("FD:ASSOC-GET",assoc_get_method,2));

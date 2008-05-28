@@ -39,8 +39,10 @@
 	      (if (bound? values)
 		  (index-frame index frame slotids values)
 		  (index-frame index frame slotids))))))
-  (if (and (bound? values) inverse)
-      (doindex index values inverse frame)))
+  (when (and (bound? values) inverse)
+    (doindex index values inverse frame)
+    (when (and (oid? inverse) (test inverse 'get-methods 'fd:inv-getbase))
+      (doindex index values inverse (list frame)))))
 
 (defambda (unindex frame slot value (index #f))
   (do-choices (slot slot)
