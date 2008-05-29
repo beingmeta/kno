@@ -13,6 +13,18 @@
 (define (attrib-true? x)
   (and x (overlaps? x {#t "yes" "true" "on" "yeah" "oui" "ja" "si"})))
 
+(define (slotid->xmlval slotid)
+  "Generates an XML value for use with CSS attribute selectors"
+  (cond ((string? slotid) string)
+	((symbol? slotid) (symbol->string slotid))
+	((not (oid? slotid)) (stringout slotid))
+	((not (test slotid '%id)) (stringout (oid->string slotid)))
+	((string? (get slotid '%id)) (get slotid '%id))
+	((symbol? (get slotid '%id)) (symbol->string (get slotid '%id)))
+	(else (oid->string slotid))))
+
+(module-export! '{attrib-true? slotid->xmlval})
+
 ;; Language related exports
 (module-export! '{getlanguages getlanguage get-languages get-language})
 (module-export! '{get-preferred-languages get-preferred-language})
