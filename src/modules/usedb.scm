@@ -11,6 +11,24 @@
 
 (module-export! 'usedb)
 
+(define (use-component usefn name dbname (warn #t))
+  (cond ((not (string? name)))
+	((position #\@ name)
+	 (onerror (usefn name)
+		  (lambda (ex)
+		    (when warn
+		      (warning "Unexpected error accessing " name " from " dbname ": " ex))
+		    #f)
+		  (lambda (v) (fail))))
+	((has-prefix name "/")
+	 (if (file-exists? name)
+	     (usefn name)
+	     (prog1 (fail) (when warn (warning "Can't access file " name " from " dbname)))))
+	(else
+	 (if (file-exists? (get-component name dbname))
+	     (usefn (get-component name dbname))
+	     (prog1 (fail) (when warn (warning "Can't access file " name " from " dbname)))))))
+
 (define (usedb name)
   (let ((dbname (cond ((file-exists? name) name)
 		      ((file-exists? (stringout name ".db"))
@@ -18,17 +36,9 @@
 		      (else (error "No such database " name)))))
     (let ((dbdata (file->dtype dbname)))
       (do-choices (pool (get dbdata 'pools))
-	(add! dbdata '%pools
-	      (cond ((not (string? pool)))
-		    ((position #\@ pool) (use-pool pool))
-		    ((has-prefix pool "/") (use-pool pool))
-		    (else (use-pool (get-component pool dbname))))))
+	(add! dbdata '%pools (use-component use-pool pool dbname)))
       (do-choices (index (get dbdata 'indices))
-	(add! dbdata '%indices
-	      (cond ((not (string? index)))
-		    ((position #\@ index) (use-index index))
-		    ((has-prefix index "/") (use-index index))
-		    (else (use-index (get-component index dbname))))))
+	(add! dbdata '%indices (use-component use-index index dbname)))
       (do-choices (config (get dbdata 'configs))
 	(cond ((not (pair? config)))
 	      ((and (pair? (cdr config)) (eq? (cadr config) 'FILE))
@@ -38,11 +48,7 @@
 	    (rmi (make-hashtable)))
 	(do-choices (slotid (getkeys mi))
 	  (let ((index (get mi slotid)))
-	    (add! rmi slotid
-		  (cond ((not (string? index)))
-			((position #\@ index) (use-index index))
-			((has-prefix index "/") (use-index index))
-			(else (use-index (get-component index dbname)))))))
+	    (add! rmi slotid (use-component open-index index dbname #f))))
 	(add! dbdata '%metaindex rmi))
       dbdata)))
 
