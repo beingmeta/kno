@@ -188,6 +188,8 @@
 (define sameas @1/2d9e9{SAMEAS})
 (define inverse @1/2c27a{INVERSE})
 (define disjoint @1/2c27d{DISJOINT})
+(define relterms @/brico/e{RELTERMS})
+(define /relterms @/brico/f{/RELTERMS})
 
 (define brico-slotids
   (choice always sometimes never somenot commonly rarely
@@ -197,7 +199,8 @@
 	  members members* memberof memberof*
 	  ingredients ingredients* ingredientof ingredientof*
 	  =is= sameas inverse disjoint 
-	  defterms defines refterms referenced))
+	  defterms defines refterms referenced
+	  relterms /relterms))
 
 ;;; Getting IDs
 
@@ -550,7 +553,8 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    inverse =is= disjoint
-   refterms defterms referenced defines
+   refterms defterms referenced defines /defterms /refterms
+   relterms /relterms
    ;; Legacy
    probably optional %optional /optional  %always  %somenot
    wordnet-source roget-source brico-source})

@@ -415,7 +415,8 @@
 (define (absfreq c) (choice-size (?? refterms c)))
 
 (define (brico/ref term (language default-language) (tryhard 2))
-  (let ((possible ((or remote-lookup-term lookup-term) term language tryhard)))
+  (let ((possible (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
+		       ((or remote-lookup-term lookup-term) term language tryhard))))
     (if (fail? possible) {}
 	(try (singleton possible)
 	     ;; This biases towards terms which aren't defined

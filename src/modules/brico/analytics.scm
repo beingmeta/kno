@@ -60,6 +60,15 @@
 ;;;   These also assume the assertion of relations through inverses,
 ;;;   so asserting Q always_inv P is the same as P always Q.
 
+;;; Straight GET just returns relations as asserted;
+;;; GET+ returns some inferred values controlled by the
+;;;  third, TRYHARD, argument.  There are three levels
+;;;  of inference:
+;;;   TRYHARD=1 (#f)  get inferred values but don't bother with expanding ALWAYS
+;;;   TRYHARD=2       get inferred value including those implied by ALWAYS, but
+;;;                     don't do anything too computationally expensive
+;;;   TRYHARD=3 (#t)  get all inferred values
+
 ;;; TRYING HARD
 
 ;;; A few of the inferences are potentially expensive, meaning that they
@@ -99,7 +108,7 @@
 ;;; We can rely on the index to compute some values more quickly and with
 ;;;  less overhead than repeated loads and references.
 
-(define (%getalways p) (?? @?%always p))
+(defambda (%getalways p) (?? @?%always p))
 ;; We rely on never being indexed symmetrically here.
 (define (%getnever p) (?? @?never p))
 ;; We rely on never being indexed symmetrically here.
@@ -107,15 +116,15 @@
 
 ;;; ALWAYS
 
-(define (getalways p) (get* p always))
-;; Usually faster version using the index
-(define (getalways p) (?? @?%always p))
+(define (getalways p (tryhard 2))
+  (if (= tryhard 1) (get p @?always)
+      (?? @?/always p)))
 
 (define (testalways p q) (path? p always q))
 ;; Usually faster version using the index
 (define (testalways p q) (overlaps? q (?? @?%always p)))
 
-(define (findalways q) (?? always q))
+(define (findalways q (tryhard #t)) (?? always q))
 
 ;;; SOMETIMES
 
@@ -141,12 +150,21 @@
 ;;; descendant.  In the methods below, the tryhard argument determines
 ;;; whether the fourth case is considered.
 
-(define (getsometimes p (tryhard #f))
-  (choice (get p sometimes)
-	  (%getalways (get p sometimes))
-	  (tryif tryhard (%getalways (?? @?always p)))))
+(define (getsometimes p (tryhard 2))
+  (choice (get p sometimes) ; case (1)
+	  ;; case (2)+ (3 through get/sometimes symmetry)
+	  (tryif (> tryhard 1)
+		 (choice (%getalways (get p sometimes))
+			 ;; While it would be easy to have sometimes
+			 ;;  include /always (specls), that generates
+			 ;;  a lot of stuff, so we make it a level 1 inference
+			 (?? always (list p)))) 
+	  ;; case (4)
+	  (tryif (> tryhard 2)
+		 (choice (%getalways (?? @?always p))
+			 (?? always (list p))))))
 
-(define (testsometimes p q (tryhard #t))
+(define (testsometimes p q)
   (or (if expanded-index
 	  (or (overlaps? q (?? sometimes p))
 	      (overlaps? p (?? sometimes q)))
@@ -156,12 +174,12 @@
       (exists? (?? @?always p @?always q))))
 
 ;; Get nodes with common children
-(define (findsometimes q (tryhard #f))
+(define (findsometimes q (tryhard 2))
   (choice (?? sometimes q)
-	  (tryif tryhard
+	  (tryif (> tryhard 1) (?? @?always (list q)))
+	  (tryif (> tryhard 2)
 		 (let ((narrower (?? @?always q)))
-		   (choice (tryif (not expanded-index)
-				  (?? sometimes narrower))
+		   (choice (?? sometimes narrower)
 			   (findalways narrower))))))
 
 ;;; NEVER
@@ -184,24 +202,21 @@
 ;;;          a  surgeon is always a doctor
 ;;;          an idiot is never a surgeon
 
-(define (getnever p (tryhard #t))
-  (choice (get p never) ; 1
-	  (get (%getalways p) never) ; 2 (+3)
-	  ;; Unnecessary, given the symmentry of get NEVER
-	  ;; (?? never (%getalways p))  ; 3
-	  (?? always (get p never))  ; 4
-	  ))
-(define (testnever p q (tryhard #t))
+(define (getnever p (tryhard 2))
+  (choice (get p never) ;; case (1)
+	  ;; case (2)+ (3 through get/never symmetry)
+	  (tryif (> tryhard 1) (get (%getalways p) never)) 
+	  ;; case (4)
+	  (tryif (> tryhard 2) (?? always (get p never)))))
+(define (testnever p q)
   (or (test p never q)
       (test (%getalways p) never q)
       (test p never (%getalways q))))
 
-(define (findnever q (tryhard #f))
+(define (findnever q (tryhard 2))
   (choice (?? never q) ; 1
-	  ;; Redundant if index is expanded
-	  (?? always (get q never)) ; 2+3
-	  (?? never (%getalways q)) ; 4
-	  ))
+	  (tryif (> tryhard 1) (?? never (%getalways q))) ; 4
+	  (tryif (> tryhard 2) (?? always (get q never)))))
 
 ;;; SOMENOT
 
@@ -234,16 +249,17 @@
 ;;;       a poet is never passionless
 ;;;       a teacher is sometimes not passionless
 
-(define (getsomenot p (tryhard #f))
-  (choice (get p notnecc) ;; 1
-	  (get (get p sometimes) never) ;; 2+3+7
-	  (?? @?always (get p somenot)) ;; 4
-	  (tryif tryhard
+(define (getsomenot p (tryhard 2))
+  (choice (get p somenot) ;; 1
+	  (tryif (> tryhard 1) (get (get p sometimes) never)) ;; 2+3+7
+	  (tryif (> tryhard 2)
+		 (?? @?always (get p somenot))) ;; 4
+	  (tryif (> tryhard 2)
 		 (choice (get (?? @?always p) never)    ;; 5
 			 (get (?? @?always p) somenot))) ;; 6
 	  ))
 
-(define (testsomenot p q (tryhard #t))
+(define (testsomenot p q)
   (choice (test p somenot q) ;; 1
 	  (test (get p sometimes) never q) ;; 2+3+7
 	  (test p somenot (getalways q)) ;; 4
@@ -251,18 +267,22 @@
 	  (exists? (?? always p somenot q)) ;; 6
 	  ))
 
-(define (findsomenot q (tryhard #t))
-  (choice (?? somenot q) ;; 1
-	  (?? sometimes (?? never q)) ;; 2+3+7
-	  (?? somenot (getalways q)) ;; 4
-	  (getalways (?? never q))    ;; 5
-	  (getalways (?? somenot q)) ;; 6
-	  ))
+(define (findsomenot q (tryhard 2))
+  (if (= tryhard 1)  (?? somenot q)
+      ;; Should some of these be limited to tryhard=3?
+      (choice (?? somenot q) ;; 1
+	      (?? sometimes (?? never q)) ;; 2+3+7
+	      (?? somenot (getalways q)) ;; 4
+	      (getalways (?? never q))    ;; 5
+	      (getalways (?? somenot q)) ;; 6
+	      )))
 
 ;;; Commonly
 
-(define (getcommonly p (tryhard #t))
-  (getalways (get p commonly)))
+(define (getcommonly p (tryhard 2))
+  (if (> tryhard 1)
+      (getalways (get p commonly))
+      (get p commonly)))
 
 (define (findcommonly p (tryhard #t))
   (if tryhard
@@ -271,7 +291,7 @@
 
 (define (getrarely p (tryhard #f))
   (choice (get p rarely)
-	  (tryif tryhard (findalways (get p rarely)))))
+	  (tryif (> tryhard 2) (findalways (get p rarely)))))
 
 (define (findrarely p (tryhard #f))
   (choice (?? rarely p)
@@ -281,4 +301,27 @@
  '{getalways getnever getsometimes getsomenot getcommonly getrarely})
 (module-export!
  '{%getalways %getnever %getsometimes %getsomenot})
+
+
+;;; Get plus
+
+(define (get+ concept slotid (level 2))
+  ;; Convert booleans to numerics
+  (if (eq? level #t) (set! level 3)
+      (if (eq? level #f) (set! level 1)))
+  (if (= level 1)
+      (get concept slotid)
+      (case slotid
+	((@?always) (getalways concept level))
+	((@?never) (getnever concept level))
+	((@?sometimes) (getsometimes concept level))
+	((@?somenot) (getsomenot concept level))
+	((@?commonly) (getcommonly concept level))
+	((@?rarely) (getrarely concept level))
+	(else (get concept (?? @?always slotid))))))
+
+(define (get++ concept slotid)
+  (get+ concept slotid 3))
+
+(module-export! '{get+ get++})
 
