@@ -309,16 +309,18 @@
   ;; Convert booleans to numerics
   (if (eq? level #t) (set! level 3)
       (if (eq? level #f) (set! level 1)))
-  (if (= level 1)
+  (if (or (= level 1) (not (oid? slotid)))
       (get concept slotid)
-      (case slotid
-	((@?always) (getalways concept level))
-	((@?never) (getnever concept level))
-	((@?sometimes) (getsometimes concept level))
-	((@?somenot) (getsomenot concept level))
-	((@?commonly) (getcommonly concept level))
-	((@?rarely) (getrarely concept level))
-	(else (get concept (?? @?always slotid))))))
+      (if (test slotid 'type 'slot)
+	  (case slotid
+	    ((@?always) (getalways concept level))
+	    ((@?never) (getnever concept level))
+	    ((@?sometimes) (getsometimes concept level))
+	    ((@?somenot) (getsomenot concept level))
+	    ((@?commonly) (getcommonly concept level))
+	    ((@?rarely) (getrarely concept level))
+	    (else (get concept slotid)))
+	  (get concept (?? @?always slotid)))))
 
 (define (get++ concept slotid)
   (get+ concept slotid 3))
