@@ -20,7 +20,7 @@
 (module-export!
  '{cachequeue
    cq/get cq/require cq/status cq/probe cq/info cq/meltentry
-   cqstep cqdaemon
+   cachequeue? cqstep cqdaemon
    cq/prefetch})
 
 (define (doconsume method result)
