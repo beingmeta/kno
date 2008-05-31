@@ -131,17 +131,19 @@
   (span ((class "hotcheck") (title (if title title))
 	 (onclick "_fdb_hotcheck_click(event);")
 	 (style (if (cgitest var val) "font-weight: bold;")))
+    (span ((class "left")) (or text value))
     (input TYPE "radio" NAME (symbol->string var) VALUE val
 	   ("CHECKED" (cgitest var val)))
-    (or text val)))
+    (span ((class "right")) (or text value))))
 
 (define (hotcheck var val (text #f) (title #f))
   (span ((class "hotcheck") (title (if title title))
 	 (onclick "_fdb_hotcheck_click(event);")
 	 (style (if (cgitest var val) "font-weight: bold;")))
+    (span ((class "left")) (or text value))
     (input TYPE "checkbox" NAME (symbol->string var) VALUE val
 	   ("CHECKED" (cgitest var val)))
-    (or text val)))
+    (span ((class "right")) (or text value))))
 
 (module-export! '{hotcheck hotcheck/radio})
 

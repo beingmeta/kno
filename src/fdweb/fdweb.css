@@ -151,6 +151,9 @@ div.hidden_input_help tt {font-style: normal; font-weight: bold;}
 
 span.hotcheck { cursor: pointer; white-space: nowrap;}
 
+span.hotcheck span.left { display: none;}
+span.hotcheck span.right { display: inline;}
+
 /* Tabs */
 
 span.tab {
