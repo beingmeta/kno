@@ -775,36 +775,33 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
 }
 
 FD_EXPORT
+void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
+{
+  if ((bg==NULL) || ((bg->u8x_cond) != (ex->u8x_cond)))
+    u8_printf(out,"(%m)",ex->u8x_cond);
+  if ((bg==NULL) || ((bg->u8x_details) != (ex->u8x_details)))
+    u8_printf(out,"%m",ex->u8x_details);
+  if ((bg==NULL) || ((bg->u8x_context) != (ex->u8x_context)))
+    u8_printf(out," (%s)",ex->u8x_context);
+  if (ex->u8x_xdata) {
+    fdtype irritant=fd_exception_xdata(ex);
+    if ((bg==NULL) || (bg->u8x_xdata==NULL))
+      u8_printf(out,"-- %q",irritant);
+    else {
+      fdtype bgirritant=fd_exception_xdata(bg);
+      if (!(FD_EQUAL(irritant,bgirritant)))
+	u8_printf(out,"-- %q",irritant);}}
+}
+
+FD_EXPORT
 void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception root=u8_exception_root(ex);
   int stacklen=u8_exception_stacklen(ex);
 
-  fdtype root_irritant=fd_exception_xdata(ex);
-
-  if ((ex->u8x_cond)==(root->u8x_cond)) {
-    u8_printf(out,"%m",root->u8x_cond);
-    if (stacklen>4) u8_printf(out,"..%d..",stacklen);
-    else {int i=0; while (i<stacklen) {u8_putc(out,'.'); i++;}}}
-  else {
-    u8_printf(out,"%m",ex->u8x_cond);
-    if (stacklen>4) u8_printf(out,"..%d..",stacklen);
-    else {int i=0; while (i<stacklen) {u8_putc(out,'.'); i++;}}
-    u8_printf(out,"%m",root->u8x_cond);}
-  
-  if (((ex->u8x_context)==NULL) && ((root->u8x_context)==NULL)) {}
-  else if (((ex->u8x_context)==(root->u8x_context)) || (ex->u8x_context==NULL))
-    u8_printf(out," @%m",root->u8x_context);
-  else u8_printf(out," @%m/%m",ex->u8x_context,root->u8x_context);
-  
-  if (((ex->u8x_details)==NULL) && ((root->u8x_details)==NULL)) {}
-  else if (((ex->u8x_details)==(root->u8x_details)) || (ex->u8x_details==NULL))
-    u8_printf(out," (%s)",root->u8x_details);
-  else u8_printf(out," (%s/%s)",ex->u8x_details,root->u8x_details);
-
-  if (!(FD_VOIDP(root_irritant)))
-    u8_printf(out," -- %q",root_irritant);
-  
+  sum_exception(out,root,NULL);
+  u8_printf(out," << %d calls << ",stacklen);
+  sum_exception(out,ex,root);
 }
 
 FD_EXPORT u8_string fd_errstring(u8_exception ex)
