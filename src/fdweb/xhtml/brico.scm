@@ -448,19 +448,20 @@
 ;;; SHOWFIELD
 
 (defambda (showfield concept slotid (showempty #f) (labelurl #f) (values) (label))
-  (do-choices slotid
-    (default! values (try (pick (get concept slotid) 'type) (get concept slotid)))
-    (default! label (getid slotid (get-language)))
-    (let ((slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
-			     (try (symbol->string (pick (get slotid '%mnemonic) symbol?))))))
-      (when (or showempty (exists? values))
-	(span ((class "field") (slotid (ifexists slotidattr)))
-	  (if labelurl
-	      (anchor* labelurl ((class "label")) label)
-	      (span ((class "label")) label))
-	  " "
-	  (do-choices (f values i)
-	    (xmlout (if (> i 0) " . " " ") (concept->anchor f))))))))
+  (let ((language (get-language)))
+    (do-choices slotid
+      (default! values (try (pick (get concept slotid) 'type) (get concept slotid)))
+      (default! label (getid slotid (get-language)))
+      (let ((slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
+			       (try (symbol->string (pick (get slotid '%mnemonic) symbol?))))))
+	(when (or showempty (exists? values))
+	  (span ((class "field") (slotid (ifexists slotidattr)) (title (ifexists (get-doc slotid language))))
+	    (if labelurl
+		(anchor* labelurl ((class "label")) label)
+		(span ((class "label")) label))
+	    " "
+	    (do-choices (f values i)
+	      (xmlout (if (> i 0) " . " " ") (concept->anchor f language)))))))))
 
 (module-export! 'showfield)
 

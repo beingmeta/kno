@@ -250,6 +250,14 @@
 	   (pick-one (get-gloss concept language)))
       (pick-one (get-gloss concept language))))
 
+(define (get-doc concept (language default-language))
+  (tryif (oid? concept)
+	 (try (get (get concept '%docs) language)
+	      (get (get concept '%glosses) language)
+	      (get concept '%doc)
+	      (get (get concept '%docs) @?en)
+	      (get concept 'gloss))))
+
 ;;; Displaying glosses
 
 (define (gloss f (slotid english-gloss))
@@ -562,7 +570,7 @@
 ;; Getting glosses, norms, etc.
 (module-export!
  '{getid
-   get-gloss get-norm get-expstring
+   get-gloss get-norm get-expstring get-doc
    get-single-gloss get-short-gloss gloss})
 
 ;; Getting frequency information
