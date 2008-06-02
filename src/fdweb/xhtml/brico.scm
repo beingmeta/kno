@@ -447,23 +447,51 @@
 
 ;;; SHOWFIELD
 
-(defambda (showfield concept slotid (showempty #f) (labelurl #f) (values) (label))
+(defambda (showfield/span concept slotid (values) (opts #[]))
   (let ((language (get-language)))
     (do-choices slotid
-      (default! values (try (pick (get concept slotid) 'type) (get concept slotid)))
-      (default! label (getid slotid (get-language)))
-      (let ((slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
-			       (try (symbol->string (pick (get slotid '%mnemonic) symbol?))))))
-	(when (or showempty (exists? values))
-	  (span ((class "field") (slotid (ifexists slotidattr)) (title (ifexists (get-doc slotid language))))
-	    (if labelurl
-		(anchor* labelurl ((class "label")) label)
-		(span ((class "label")) label))
+      (let ((values (default values (get concept slotid)))
+	    (slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
+			       (try (symbol->string (pick (get slotid '%mnemonic) symbol?)))))
+	    (label (getopt opts 'label (getid slotid language))))
+	(when (or (exists? values) (getopt opts 'showempty #f))
+	  (span ((class "field") (slotid (ifexists slotidattr)))
+	    (if (testopt opts 'url)
+		(anchor* (getopt opts 'url)
+		    ((class "label")
+		     (title (ifexists (get-doc slotid language))))
+		  label)
+		(span ((class "label")
+		       (title (ifexists (get-doc slotid language))))
+		  label))
 	    " "
 	    (do-choices (f values i)
-	      (xmlout (if (> i 0) " . " " ") (concept->anchor f language)))))))))
+	      (xmlout (if (> i 0) " . " " ") (concept->anchor f)))))))))
 
-(module-export! 'showfield)
+(defambda (showfield/div concept slotid (values) (showvalues) (opts #[]))
+  (let ((language (get-language)))
+    (do-choices slotid
+      (let ((values (default values (get concept slotid)))
+	    (showvalues (default showvalues (get concept slotid)))
+	    (slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
+			       (try (symbol->string (pick (get slotid '%mnemonic) symbol?)))))
+	    (label (getopt opts 'label (getid slotid language))))
+	(when (or (exists? values) (getopt opts 'showempty #f))
+	  (div ((class "field") (slotid (ifexists slotidattr)))
+	    (if (testopt opts 'url)
+		(anchor* (getopt opts 'url)
+		    ((class "label")
+		     (title (ifexists (get-doc slotid language))))
+		  label)
+		(span ((class "label")
+		       (title (ifexists (get-doc slotid language))))
+		  label))
+	    " "
+	    (do-choices (f values i)
+	      (xmlout (if (> i 0) " . " " ") (concept->anchor f)))))))))
+
+(module-export! '{showfield/span showfield/div})
+
 
 ;;; Concept summaries
 
@@ -488,12 +516,12 @@
       ;; means that some inferred values may be missed.  But this
       ;; makes summary output much faster.
       (p* ((class "fields"))
-	(showfield concept always)
-	(showfield concept never) " "
-	(showfield concept sometimes (%get concept (choice sometimes isa))) " "
-	(showfield concept somenot) " "
-	(showfield concept partof) " "
-	(showfield concept defterms) " "
+	(showfield/span concept always)
+	(showfield/span concept never) " "
+	(showfield/span concept sometimes (%get concept (choice sometimes isa))) " "
+	(showfield/span concept somenot) " "
+	(showfield/span concept partof) " "
+	(showfield/span concept defterms) " "
 	(when (%test concept 'country)
 	  (span ((class "field"))
 	    (span ((class "fieldid")) "country") " "
