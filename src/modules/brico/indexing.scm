@@ -199,7 +199,7 @@
 (define wordform-slotids '{word of language rank type})
 
 (define (index-core index frame)
-  (doindex index frame '{type sensecat fips-code source})
+  (doindex index frame '{type sensecat fips-code source dsg})
   (when (and (or (%test frame 'words) (%test frame '%words))
 	     (ambiguous? (get frame 'sensecat)))
     (doindex index frame 'sensecat 'ambiguous))
