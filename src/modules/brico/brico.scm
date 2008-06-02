@@ -255,7 +255,7 @@
 	 (try (get (get concept '%docs) language)
 	      (get (get concept '%glosses) language)
 	      (get concept '%doc)
-	      (get (get concept '%docs) @?en)
+	      (get (get concept '%docs) english)
 	      (get concept 'gloss))))
 
 ;;; Displaying glosses
