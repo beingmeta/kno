@@ -158,10 +158,10 @@ static int can_writep(apr_pool_t *p,server_rec *s,apr_finfo_t *finfo)
      uid,gid);
   if (uid==0) return 1;
   if (uid == finfo->user)
-    if (finfo->protection & APR_UWRITE) return 1;
+    if (finfo->protection & APR_FPROT_UWRITE) return 1;
   if (uid == finfo->group)
-    if (finfo->protection & APR_GWRITE) return 1;
-  if (finfo->protection & APR_WWRITE) return 1;
+    if (finfo->protection & APR_FPROT_GWRITE) return 1;
+  if (finfo->protection & APR_FPROT_WWRITE) return 1;
   else return 0;
 }
 #else
@@ -179,14 +179,28 @@ static int can_writep(apr_pool_t *p,server_rec *s,struct stat *finfo)
    (APR_FINFO_USER|APR_FINFO_GROUP|APR_FINFO_PROT|APR_FINFO_TYPE)
 static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
 {
-  apr_finfo_t finfo;
+  apr_finfo_t finfo; int retval;
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,s,"Checking writability of file %s",filename);
   apr_stat(&finfo,filename,FINFO_FLAGS,p);
   if (can_writep(p,s,&finfo)) return 1;
   else {
     char buf[PATH_MAX]; int scan=strlen(filename)-1;
     strcpy(buf,filename); while ((scan>0) && (buf[scan] != '/')) scan--;
     if (scan>0) buf[scan]='\0';
-    apr_stat(&finfo,buf,FINFO_FLAGS,p);
+    memset(&finfo,0,sizeof(apr_finfo_t));
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,s,"Checking writability of directory %s",buf);
+    retval=apr_stat(&finfo,buf,FINFO_FLAGS,p);
+    if (retval)
+      ap_log_error
+	(APLOG_MARK,APLOG_ERR,retval,s,
+	 "Checking writability of directory %s: filetype=%d/%d, prot=%x",
+	 buf,((int)(finfo.filetype)),APR_DIR,finfo.protection);
+    else ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,s,
+       "Checking writability of directory %s: filetype=%d/%d, prot=%d",
+       buf,((int)(finfo.filetype)),APR_DIR,finfo.protection);
     if ((finfo.filetype == APR_DIR) && (can_writep(p,s,&finfo))) return 1;
     return 0;}
 }
