@@ -64,7 +64,7 @@
 	   (find-generic-dterm concept language norm))
        (tryif usedefterms
 	      (try-choices (df (get concept defterms))
-		(tryif (singleton? (?? language norm @?defterms df))
+		(tryif (singleton? (?? language norm defterms df))
 		       (string-append norm " (:" (get-norm df language) ")"))))
        (try-choices (alt (difference (get concept language) norm))
 	 (if (search norm alt)
