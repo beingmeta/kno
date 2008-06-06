@@ -1103,7 +1103,9 @@ static fdtype scripturl(int n,fdtype *args)
     return fd_err(fd_SyntaxError,"scripturl",
 		  strd("odd number of arguments"),FD_VOID);
   else {U8_INIT_OUTPUT(&out,64);}
-  if (n == 2) {
+  if (n==1) {
+    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");}
+  else if (n == 2) {
     fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");
     u8_putc(&out,'?');
     if (FD_STRINGP(args[1]))
