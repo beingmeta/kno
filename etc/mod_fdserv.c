@@ -182,8 +182,12 @@ static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
   apr_finfo_t finfo; int retval;
   ap_log_error
     (APLOG_MARK,APLOG_DEBUG,OK,s,"Checking writability of file %s",filename);
-  apr_stat(&finfo,filename,FINFO_FLAGS,p);
-  if (can_writep(p,s,&finfo)) return 1;
+  retval=apr_stat(&finfo,filename,FINFO_FLAGS,p);
+  if (retval) {
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,retval,s,"stat failed for %s",filename);
+    return retval;}
+  else if (can_writep(p,s,&finfo)) return 1;
   else {
     char buf[PATH_MAX]; int scan=strlen(filename)-1;
     strcpy(buf,filename); while ((scan>0) && (buf[scan] != '/')) scan--;
