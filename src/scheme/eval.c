@@ -878,21 +878,34 @@ static fdtype get_arg_prim(fdtype expr,fdtype elt,fdtype dflt)
 
 static fdtype apply_lexpr(int n,fdtype *args)
 {
-  if (FD_APPLICABLEP(args[0])) {
-    fdtype final_arg=args[n-1], result;
-    int final_length=fd_seq_length(final_arg);
-    int n_args=(n-2)+final_length;
-    fdtype *values=u8_alloc_n(n_args,fdtype);
-    int i=1, j=0, lim=n-1, ctype=FD_PRIM_TYPE(args[0]);
-    /* Copy regular arguments */
-    while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
-    i=0; while (j<n_args) {
-      values[j]=fd_seq_elt(final_arg,i); j++; i++;}
-    result=fd_ndapply(args[0],n_args,values);
-    i=0; while (i<n_args) {fd_decref(values[i]); i++;}
-    u8_free(values);
-    return result;}
-  else return fd_type_error("function","apply_lexpr",args[0]);
+  FD_DO_CHOICES(fn,args[0])
+    if (!(FD_APPLICABLEP(args[0]))) {
+      FD_STOP_DO_CHOICES;
+      return fd_type_error("function","apply_lexpr",args[0]);}
+  {
+    FD_DO_CHOICES(fn,args[0]) {
+      fdtype final_arg=args[n-1], results=FD_EMPTY_CHOICE;
+      int final_length=fd_seq_length(final_arg);
+      int n_args=(n-2)+final_length;
+      fdtype *values=u8_alloc_n(n_args,fdtype);
+      int i=1, j=0, lim=n-1, ctype=FD_PRIM_TYPE(args[0]);
+      /* Copy regular arguments */
+      while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
+      i=0; while (j<n_args) {
+	values[j]=fd_seq_elt(final_arg,i); j++; i++;}
+      FD_DO_CHOICES(fn,args[0]) {
+	fdtype result=fd_apply(fn,n_args,values);
+	if (FD_ABORTP(result)) {
+	  fd_decref(results);
+	  FD_STOP_DO_CHOICES;
+	  i=0; while (i<n_args) {fd_decref(values[i]); i++;}
+	  u8_free(values);
+	  return result;}
+	else {FD_ADD_TO_CHOICE(results,result);}}
+      i=0; while (i<n_args) {fd_decref(values[i]); i++;}
+      u8_free(values);
+      return results;}
+  }
 }
 
 /* Initialization */
@@ -1244,7 +1257,8 @@ static void init_localfns()
 			   -1,FD_VOID,fd_symbol_type,FD_VOID,
 			   -1,FD_VOID));
 
-  fd_idefn(fd_scheme_module,fd_make_cprimn("APPLY",apply_lexpr,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("APPLY",apply_lexpr,1)));
   fd_idefn(fd_xscheme_module,fd_make_cprim7x
 	   ("DTPROC",make_dtproc,2,
 	    fd_symbol_type,FD_VOID,fd_string_type,FD_VOID,

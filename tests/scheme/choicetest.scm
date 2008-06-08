@@ -155,4 +155,9 @@
 (applytest {} choice-max (nrange 1 10) 5)
 (applytest (nrange 1 5) choice-max (nrange 1 5) 5)
 
+;;; ND apply
+
+(defambda (lnd x y) (list (qc x) (qc y)))
+(applytest '({3 4} 5) apply lnd {3 4} (list 5))
+
 (message "CHOICETEST successfuly completed")
