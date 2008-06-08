@@ -4,7 +4,7 @@
 
 (use-module '{reflection texttools})
 (use-module '{fdweb xhtml xhtml/clickit})
-(use-module '{brico brico/dterms})
+(use-module '{brico brico/dterms brico/analytics})
 
 ;; We use these for languages (at least)
 (define sub* markup*fn)
@@ -361,17 +361,18 @@
 
 (define title-gloss #t)
 
-(define (concept->html tag (var #f) (selected #t))
+(define (concept->html tag (language #f) (var #f) (selected))
   (let* ((oid (if (and (pair? tag) (exists oid? (cdr tag)))
 		  (cdr tag)
 		  (and (oid? tag) tag)))
-	 (language (get-language))
+	 (language (or language (get-language)))
 	 (dterm (tryif oid (dterm-fcn oid language)))
 	 (gloss (tryif oid (pick-one (smallest (get-gloss oid language)
 					       length))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
-		       (get-norm oid language)))))
+		       (get-norm oid language))))
+	 (selected (default selected (and var (cgitest var tag)))))
     (span ((class "concept")
 	   (oid (if oid oid))
 	   (gloss (ifexists gloss))
@@ -386,17 +387,18 @@
 	    (input type "CHECKBOX" name var value tag)))
       (span ((class "taghead")) text))))
 
-(define (concept->anchor tag (url #f) (var #f) (selected #t))
+(define (concept->anchor tag (url #f) (language #f) (var #f) (selected))
   (let* ((oid (if (and (pair? tag) (oid? (cdr tag)))
 		  (cdr tag)
 		  (and (oid? tag) tag)))
-	 (language (get-language))
+	 (language (or language (get-language)))
 	 (dterm (tryif oid (dterm-fcn oid language)))
 	 (gloss (pick-one
 		 (tryif oid (smallest (get-gloss oid language) length))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
-		       (get-norm oid language)))))
+		       (get-norm oid language))))
+	 (selected (default selected (and var (cgitest var tag)))))
     (anchor* (or url oid)
 	((class "concept")
 	 (oid (if oid oid))
@@ -445,15 +447,68 @@
       (xmlout))))
 |#
 
+;;; SHOWSLOT
+
+(define (showslot elt concept slotid (opts #[]))
+  (let* ((language (getopt opts 'language (get-language)))
+	 (inferlevel (getopt opts 'infer 1))
+	 (label (getopt opts 'label (getid slotid language)))
+	 (values (getopt opts 'value (get+ concept slotid inferlevel)))
+	 (seen (getopt opts 'seen #f))
+	 (hide (getopt opts 'hide seen))
+	 (topvalues (getopt opts 'topvalues))
+	 (showvalues (if seen
+			 (reject (difference values topvalues) hide)
+			 values))
+	 (anchorify (getopt opts 'anchorify))
+	 (limit (getopt opts 'limit #f))
+	 (sortfn (getopt opts 'sortby getabsfreq))
+	 (showvec (append (rsorted (intersection topvalues values) sortfn)
+			  (if (and limit (> (choice-size showvalues) limit))
+			      (subseq (rsorted showvalues sortfn) 0 limit)
+			      (rsorted showvalues sortfn))))
+	 (browse (getopt opts 'browse))
+	 (nobrowse (getopt opts 'nowbrowse #f)))
+    (when (or (> (length showvec) 0) (getopt opts 'showempty #f))
+      (when seen (hashset-add! seen showvalues))
+      (xmlblock
+	  `(,elt (class ,(getopt opts 'class "slot"))
+		 (slotid ,(slotid->xmlval slotid)))
+	  (when (testopt opts 'browsefirst)
+	    (when (and browse (> (length showvec) 0))
+	      (anchor* (if (string? browse) browse (browse concept slotid))
+		  ((class "browseall"))
+		(getopt opts 'browsetext "browse all"))))
+	(span ((class "label") (title (get-doc slotid language))) label)
+	" "
+	(doseq (v showvec i)
+	  (if (> i 0) (xmlout " " (span ((class "sep")) " . ") " "))
+	  (if nobrowse
+	      (concept->html v language)
+	      (concept->anchor v v language)))
+	" "
+	(unless (testopt opts 'browsefirst)
+	  (when (and browse (> (length showvec) 0))
+	    (anchor* (if (string? browse) browse (browse concept slotid))
+		((class "browseall"))
+	      (getopt opts 'browsetext "browse"))))))))
+
+(define (showslot/span concept slotid (opts #[]))
+  (showslot "span" concept slotid opts))
+(define (showslot/div concept slotid (opts #[]))
+  (showslot "div" concept slotid opts))
+
+(module-export! '{showslot showslot/div showslot/span})
+
 ;;; SHOWFIELD
 
-(defambda (showfield/span concept slotid (values) (opts #[]))
+(defambda (showfield/span concept slotid (opts #[]))
   (let ((language (get-language)))
     (do-choices slotid
-      (let ((values (default values (get concept slotid)))
-	    (slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
-			       (try (symbol->string (pick (get slotid '%mnemonic) symbol?)))))
-	    (label (getopt opts 'label (getid slotid language))))
+      (let* ((values (if (test opts 'values)
+			 (get opts 'values)
+			 (get concept slotid)))
+	     (label (getopt opts 'label (getid slotid language))))
 	(when (or (exists? values) (getopt opts 'showempty #f))
 	  (span ((class "field") (slotid (ifexists slotidattr)))
 	    (if (testopt opts 'url)
@@ -473,8 +528,9 @@
     (do-choices slotid
       (let ((values (default values (get concept slotid)))
 	    (showvalues (default showvalues (get concept slotid)))
-	    (slotidattr (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
-			       (try (symbol->string (pick (get slotid '%mnemonic) symbol?)))))
+	    (slotidattr
+	     (tryif (and (oid? slotid) (exists symbol? (get slotid '%mnemonic)))
+		    (try (symbol->string (pick (get slotid '%mnemonic) symbol?)))))
 	    (label (getopt opts 'label (getid slotid language))))
 	(when (or (exists? values) (getopt opts 'showempty #f))
 	  (div ((class "field") (slotid (ifexists slotidattr)))
@@ -492,13 +548,21 @@
 
 (module-export! '{showfield/span showfield/div})
 
+(define (get-slotidval slotid)
+  (if (oid? slotid)
+      (try (smallest (pick (get slotid) symbol?))
+	   (smallest (pick (get slotid) string?))
+	   (oid->string slotid))
+      slotid))
 
 ;;; Concept summaries
 
 (define (conceptsummary concept (language) (languages) (%env) (xmlbody))
   (default! language (get-language))
   (default! languages (get-languages))
-  (let  ((sensecat (get concept 'sense-category)))
+  (let* ((sensecat (get concept 'sense-category))
+	 (seen (make-hashset))
+	 (opts `#[limit 7 hide ,seen seen ,seen]))
     (div (class "conceptsummary")
       (p* ((class "head") (title "Examine this concept"))
 	(let ((shown {})
@@ -516,12 +580,12 @@
       ;; means that some inferred values may be missed.  But this
       ;; makes summary output much faster.
       (p* ((class "fields"))
-	(showfield/span concept always)
-	(showfield/span concept never) " "
-	(showfield/span concept sometimes (%get concept (choice sometimes isa))) " "
-	(showfield/span concept somenot) " "
-	(showfield/span concept partof) " "
-	(showfield/span concept defterms) " "
+	(showslot/span concept always opts)
+	(showslot/span concept never opts) " "
+	(showslot/span concept sometimes opts) " "
+	(showslot/span concept somenot opts) " "
+	(showslot/span concept partof opts) " "
+	(showslot/span concept defterms opts) " "
 	(when (%test concept 'country)
 	  (span ((class "field"))
 	    (span ((class "fieldid")) "country") " "
