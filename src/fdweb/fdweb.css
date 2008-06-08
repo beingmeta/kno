@@ -274,3 +274,27 @@ span.field[slotid='MEMBER-OF'] { color: black;}
 span.field[slotid='DEFTERMS'] { color: black;}
 span.field[slotid='PART-OF'] { color: black;}
 
+.slot span.label { font-weight: bold; color: purple;}
+.slot[slotid] span.label { color: inherit;}
+.slot[slotid='ALWAYS'] { font-size: 115%; color: green;}
+.slot[slotid='ALWAYS'] a.concept { color: green;}
+.slot[slotid='COMMONLY'] { color: green;}
+.slot[slotid='COMMONLY'] a.concept { color: green;}
+.slot[slotid='SOMETIMES'] { font-size: 90%; color: green;}
+.slot[slotid='SOMETIMES'] a.concept { color: green;}
+.slot[slotid='NEVER'] { font-size: 115%; color: red;}
+.slot[slotid='NEVER'] a.concept { color: red;}
+.slot[slotid='RARELY'] { font-size: 115%; color: red;}
+.slot[slotid='RARELY'] a.concept { color: red;}
+.slot[slotid='SOMENOT'] { font-size: 90%; color: red;}
+.slot[slotid='SOMENOT'] a.concept { color: red;}
+.slot[slotid='MEMBER-OF'] { color: black;}
+.slot[slotid='DEFTERMS'] { color: darkblue;}
+.slot[slotid='DEFTERMS'] a.concept { color: darkblue;}
+.slot[slotid='REFTERMS'] { color: darkblue; font-size: 85%;}
+.slot[slotid='REFTERMS'] a.concept { color: darkblue;}
+.slot[slotid='PART-OF'] { color: black;}
+
+div.slot span.label { font-size: 150%; }
+
+span.slot a.browseall { color: purple; font-size: 75%; }
