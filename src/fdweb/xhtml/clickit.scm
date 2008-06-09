@@ -217,7 +217,7 @@
 	  (span ((class "searchtick")) ">")))))
 
 (define (scrolltick baseuri start end len)
-  (unless (>= end len)
+  (unless (>= start len)
     (when (> (+ start (* (- end start) 2)) len)
       (set! end len))
     (anchor* (scripturl+ baseuri 'start start 'window (- end start))
@@ -227,10 +227,13 @@
 (define (scrollticks baseuri len . seq)
   (let* ((start (->number (cgiget 'start 0)))
 	 (window (->number (cgiget 'window 10)))
-	 (end (min (+ start window) len)))
+	 (end (min (+ start window) len))
+	 (done #f))
     (doseq (elt seq)
-      (scrolltick baseuri end (+ end elt) len)
-      (xmlout " "))))
+      (unless done
+	(scrolltick baseuri end (+ end elt) len)
+	(when (> (+ end elt) len) (set! done #t))
+	(xmlout " ")))))
 
 (module-export! '{scrollticks searchbar})
 
