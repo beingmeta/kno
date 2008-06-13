@@ -361,6 +361,9 @@
 
 (define title-gloss #t)
 
+(define (title-gloss?)
+  (try (threadget 'titlegloss) title-gloss))
+
 (define (concept->html tag (language #f) (var #f) (selected))
   (let* ((oid (if (and (pair? tag) (exists oid? (cdr tag)))
 		  (cdr tag)
@@ -378,7 +381,7 @@
 	   (gloss (ifexists gloss))
 	   (dterm (ifexists dterm))
 	   (resolved (if oid "yes"))
-	   (title (if title-gloss (ifexists gloss)))
+	   (title (if (title-gloss?) (ifexists gloss)))
 	   (tag tag)
 	   (text text))
       (when var
@@ -404,7 +407,7 @@
 	 (oid (if oid oid))
 	 (dterm (ifexists dterm))
 	 (gloss (ifexists gloss))
-	 (title (if title-gloss (ifexists gloss)))
+	 (title (if (title-gloss?) (ifexists gloss)))
 	 (text text))
       (when var
 	(if selected
