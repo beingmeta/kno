@@ -548,7 +548,19 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
     else return fd_type_error(_("fixum"),"getline_prim",eos_arg);
     data=u8_gets_x(NULL,lim,in,eos,&size);
     if (data)
-      return fd_init_string(NULL,size,data);
+      if (strlen(data)<size) {
+	/* Handle embedded NUL */
+	struct U8_OUTPUT out;
+	u8_byte *scan=data, *limit=scan+size;
+	U8_INIT_OUTPUT(&out,size+8);
+	while (scan<limit) {
+	  if (*scan)
+	    u8_putc(&out,u8_sgetc(&scan));
+	  else u8_putc(&out,0);}
+	u8_free(data);
+	return fd_init_string
+	  (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      else return fd_init_string(NULL,size,data);
     else if (size<0)
       return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;}

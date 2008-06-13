@@ -645,6 +645,25 @@ static fdtype packet2string(fdtype packet,fdtype encoding)
     else return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
 }
 
+/* Fixing embedded NULs */
+
+static fdtype fixnuls(fdtype string)
+{
+  struct FD_STRING *ss=FD_GET_CONS(string,fd_string_type,fd_string);
+  if (strlen(ss->bytes)<ss->length) {
+    /* Handle embedded NUL */
+    struct U8_OUTPUT out;
+    u8_byte *scan=ss->bytes, *limit=scan+ss->length;
+    U8_INIT_OUTPUT(&out,ss->length+8);
+    while (scan<limit) {
+      if (*scan)
+	u8_putc(&out,u8_sgetc(&scan));
+      else u8_putc(&out,0);}
+    return fd_init_string
+      (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else return fd_incref(string);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_strings_c()
@@ -830,6 +849,8 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim2x("PACKET->STRING",packet2string,1,
 			   fd_packet_type,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("FIXNULS",fixnuls,1,fd_string_type,FD_VOID));
 
   entity_escape=fd_intern("ENTITIES");
 
