@@ -218,8 +218,8 @@
 
 (define (scrolltick baseuri start end len)
   (unless (>= start len)
-    (when (> (+ start (* (- end start) 2)) len)
-      (set! end len))
+;     (when (> (+ start (* (- end start) 2)) len)
+;       (set! end len))
     (anchor* (scripturl+ baseuri 'start start 'window (- end start))
 	((class "scrolltick"))
       "+" (- end start) ">")))
@@ -232,7 +232,7 @@
     (doseq (elt seq)
       (unless done
 	(scrolltick baseuri end (+ end elt) len)
-	(when (> (+ end elt) len) (set! done #t))
+	(when (>= (+ end elt) len) (set! done #t))
 	(xmlout " ")))))
 
 (module-export! '{scrollticks searchbar})

@@ -174,20 +174,22 @@
     (xmlout)))
 
 (define (languagedropbox
-	 (name "LANGUAGE") (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
+	 (name "LANGUAGE")
+	 (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
   (let* ((var (if (symbol? name) name (intern name)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
 			    (sorted languagesarg))
 		      (get-preferred-languages)))
-	 (language (try (cgiget var) (car languages))))
-    (xmlblock SELECT ((name "LANGUAGE"))
+	 (language (try (cgiget var) (first languages))))
+    (xmlblock SELECT ((name "LANGUAGE") (onchange (if onchange onchange)))
       (do-choices (lang language)
 	(xmlblock OPTION ((value lang)) (get-language-name lang)))
        (doseq (l languages)
-	 (unless (or (eq? l language)
-		     (not (string? (get l '%id))))
-	   (xmlblock OPTION ((value l)) (get-language-name l)))))
+	 (unless (eq? l language)
+	   (xmlblock OPTION ((value l))
+	     (getid l language)
+	     (strong " (" (pick-one (get l 'iso639/1)) ")")))))
     (xmlout)))
 
 (define (languagesdropbox
@@ -198,7 +200,9 @@
 			    (sorted languagesarg))
 		      (get-preferred-languages)))
 	 (language (try (cgiget var) (car languages))))
-    (xmlblock SELECT ((name id) (size 5) "MULTIPLE")
+    (xmlblock SELECT ((name id) (size 5)
+		      (onchange (if onchange onchange))
+		      "MULTIPLE")
       (do-choices (lang language)
 	(xmlblock OPTION ((value lang) "SELECTED")
 	  (get-language-name lang)))
@@ -483,24 +487,20 @@
       (xmlblock
 	  `(,elt (class ,(getopt opts 'class "slot"))
 		 (slotid ,(slotid->xmlval slotid)))
-	  (when (testopt opts 'browsefirst)
-	    (when (and browse (> (length showvec) 0))
+	  (if browse 
 	      (anchor* (if (string? browse) browse (browse concept slotid))
-		  ((class "browseall"))
-		(getopt opts 'browsetext "browse all"))))
-	(span ((class "label") (title (get-doc slotid language))) label)
+		  ((class "label")
+		   (title (string-append "click to browse" ": "
+					 (get-doc slotid language))))
+		label)
+	      (span ((class "label") (title (get-doc slotid language)))
+		label))
 	" "
 	(doseq (v showvec i)
 	  (if (> i 0) (xmlout " " (span ((class "sep")) " . ") " "))
 	  (if nobrowse
 	      (concept->html v language)
-	      (concept->anchor v v language)))
-	" "
-	(unless (testopt opts 'browsefirst)
-	  (when (and browse (> (length showvec) 0))
-	    (anchor* (if (string? browse) browse (browse concept slotid))
-		((class "browseall"))
-	      (getopt opts 'browsetext "browse"))))))))
+	      (concept->anchor v v language)))))))
 
 (define (showslot/span concept slotid (opts #[]))
   (showslot "span" concept slotid opts))
