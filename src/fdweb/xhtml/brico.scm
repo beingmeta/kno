@@ -232,6 +232,8 @@
 		(xmlout "\"" word "\"")))
 	  (xmlout word))
       (xmlout word)))
+(define (showterm word (quoted #f))
+  (xmlout (xhtml "&ldquo;") word (xhtml "&rdquo;")))
 
 (define (wordform word (concept #f) (action #f))
   (if concept
@@ -291,10 +293,13 @@
 ;;; Displaying words for a concept
 
 (define (get-sorted-words concept language)
-  (try (tryif (eq? language @?english) (get concept 'ranked))
-       (let ((norms (get concept (get norm-map language))))
-	 (append (choice->vector norms)
-		 (sorted (difference (get concept language) norms))))))
+  (if (and (eq? language english) (test concept 'ranked))
+      (let ((ranked (get concept 'ranked)))
+	(append ranked
+		(sorted (difference (get concept language) (elts ranked)))))
+      (let ((norms (get concept (get norm-map language))))
+	(append (choice->vector norms)
+		(sorted (difference (get concept language) norms))))))
 
 (define (output-words c (language (get-language))
 		      (languages #{}) (wordlim #f) (shown #f)
@@ -302,8 +307,9 @@
   "This outputs words to XHTML and returns the words output"
   (let ((shown (or shown {}))
 	(monolingual (empty? (difference languages language)))
+	(sorted-words (get-sorted-words c language))
 	(count 0))
-    (doseq (word (get-sorted-words c language))
+    (doseq (word sorted-words)
       (cond ((overlaps? word shown))
 	    ((or (not wordlim) (< count wordlim))
 	     (xmlout
