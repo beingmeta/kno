@@ -333,7 +333,6 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     retval=fd_load_config(pathname);
     fd_config_lock(1);
     if (retval<0) {
-      fd_lock_mutex(&config_file_lock);
       u8_free(pathname); config_stack=on_stack.next;
       fd_unlock_mutex(&config_file_lock);
       return retval;}
