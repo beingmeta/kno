@@ -714,7 +714,7 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_EQ(field,data_symbol))
     return FD_INT2DTYPE(r.ru_idrss);
   else if (FD_EQ(field,cpusage_symbol)) {
-    double elapsed=u8_elapsed_time();
+    double elapsed=u8_elapsed_time()*1000000.0;
     double stime=u8_dbltime(r.ru_stime);
     double utime=u8_dbltime(r.ru_utime);
     double cpusage=(stime+utime)*100.0/elapsed;
@@ -756,6 +756,31 @@ static fdtype systime_prim()
     return FD_ERROR_VALUE;
   else return fd_init_double
 	 (NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+}
+
+static fdtype cpusage_prim(fdtype arg)
+{
+  if (FD_VOIDP(arg))
+    return rusage_prim(cpusage_symbol);
+  else {
+    struct rusage r;
+    memset(&r,0,sizeof(r));
+    if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+      return FD_ERROR_VALUE;
+    else {
+      fdtype prelapsed=fd_get(arg,clock_symbol,FD_VOID);
+      fdtype prestime=fd_get(arg,stime_symbol,FD_VOID);
+      fdtype preutime=fd_get(arg,utime_symbol,FD_VOID);
+      if ((FD_PRIM_TYPEP(prelapsed,fd_double_type)) &&
+	  (FD_PRIM_TYPEP(prestime,fd_double_type)) &&
+	  (FD_PRIM_TYPEP(preutime,fd_double_type))) {
+	double elapsed=
+	  (u8_elapsed_time()-FD_FLONUM(prelapsed))*1000000.0;
+	double stime=(u8_dbltime(r.ru_stime)-FD_FLONUM(prestime));
+	double utime=u8_dbltime(r.ru_utime)-FD_FLONUM(preutime);
+	double cpusage=(stime+utime)*100.0/elapsed;
+	return fd_init_double(NULL,cpusage);}
+      else return fd_type_error(_("rusage"),"getcpusage",arg);}}
 }
 
 /* Initialization */
@@ -1010,6 +1035,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
