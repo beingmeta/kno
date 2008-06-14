@@ -2079,10 +2079,10 @@ fdtype fd_string2number(u8_string string,int base)
     return make_complex(real,imag);}
   else if (strchr(string,'/')) {
     u8_byte *copy=u8_strdup(string);
-    u8_byte *slash=strchr(string,'/');
+    u8_byte *slash=strchr(copy,'/');
     fdtype num, denom;
     *slash='\0';
-    num=fd_string2number(string,base);
+    num=fd_string2number(copy,base);
     if (FD_VOIDP(num)) {u8_free(copy); return FD_VOID;}
     denom=fd_string2number(slash+1,base);
     if (FD_VOIDP(denom)) {
