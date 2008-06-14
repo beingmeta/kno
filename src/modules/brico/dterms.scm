@@ -8,7 +8,7 @@
    displayterm dterm-caches 
    find-dterm-prefetch!})
 
-(use-module '{brico brico/lookup morph/en})
+(use-module '{brico brico/lookup brico/analytics morph/en})
 
 (define dterm-caches '())
 (define usedefterms #f)
@@ -140,42 +140,43 @@
   (if (eq? language dlang) term
       (string-append (get dlang 'iso639/1) "$" term)))
 
-(define (find-generic-dterm concept language norm (dlang))
-  (default! dlang language)
+(define (find-generic-dterm concept lang norm)
   (let ((sensecat (get concept 'sensecat))
-	(normslot (get norm-map language))
-	(meanings (lookup-word norm language)))
+	(normslot (get norm-map lang))
+	(meanings (lookup-word norm lang)))
     (try (tryif (singleton? (?? normslot norm)) norm)
-	 (tryif (singleton? (?? language norm)) norm)
-	 (try-choices (term (get sensecathints (cons sensecat language)))
-	   (tryif (singleton? (intersection meanings
-					    (?? always (?? normslot term))))
+	 (tryif (singleton? (?? lang norm)) norm)
+	 (try-choices (term (get sensecathints (cons sensecat lang)))
+	   (tryif (singleton?
+		   (intersection meanings
+				 (?? always (?? dnormslot term))))
 		  (string-append norm ":" term)))
-	 (try-choices (gn (get-norm (get concept genls) dlang))
-	   (tryif (singleton? (intersection meanings (?? always (?? dlang gn))))
-		  (string-append norm ":"  (langterm gn language dlang))))
-	 (try-choices (gn (get-norm (?? specls* concept) dlang))
-	   (tryif (singleton? (intersection meanings (?? always (?? dlang gn))))
-		  (string-append norm ":"  (langterm gn language dlang))))
-	 (try-choices (pn (get-norm (get concept @?partof) dlang))
-	   (tryif (singleton? (intersection meanings (?? partof (?? dlang pn))))
-		  (string-append norm " ("  (langterm pn language dlang) ")")))
-	 #|
-	 ;; Remove this rule for generating dterms
-	 (try-choices (d (difference (get concept language) norm))
-	   (tryif (singleton? (intersection meanings (?? language d)))
-		  (string-append norm "="  (langterm d language dlang))))
-	 |#
+	 (try-choices (gn (get-norm (get concept always) lang))
+	   (tryif (singleton?
+		   (intersection meanings (?? always (?? lang gn))))
+		  (string-append norm ":"  gn)))
+	 (try-choices (gn (get-norm (get+ concept always) lang))
+	   (tryif (singleton?
+		   (intersection meanings (?? always (?? lang gn))))
+		  (string-append norm ":"  gn)))
+	 (try-choices (pn (get-norm (get concept @?partof) lang))
+	   (tryif (singleton?
+		   (intersection meanings (?? partof (?? lang pn))))
+		  (string-append norm " ("  pn ")")))
 	 (tryif usedefterms
-		(try-choices (d (difference (get-norm (get concept defterms) dlang)
-					    norm))
+		(try-choices
+		    (d (difference (get-norm (get concept defterms) lang)
+				   norm))
 		  (tryif (singleton? (intersection meanings
-						   (?? defterms (?? dlang d))))
-			 (string-append norm " (*"  (langterm d language dlang) ")"))))
-	 (try-choices (n (difference (get-norm concept language) norm))
-	   (find-generic-dterm concept language n))
-	 (tryif (and (eq? language dlang) (not (eq? language english)))
-		(find-generic-dterm concept language norm english)))))
+						   (?? defterms (?? lang d))))
+			 (string-append norm " (*"  d ")"))))
+	 ;; Try other norms
+	 (try-choices (n (difference (get-norm concept lang) norm))
+	   (find-generic-dterm concept lang n))
+	 ;; Try other words
+	 (try-choices (n (difference (get concept lang)
+				     (get-norm concept lang) norm))
+	   (find-generic-dterm concept lang n)))))
 
 ;;; Prefetching
 
