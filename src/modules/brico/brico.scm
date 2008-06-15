@@ -202,13 +202,14 @@
 	  defterms defines refterms referenced
 	  relterms /relterms))
 
-;;; Getting IDs
+;;;; Getting ids from frames
 
 (define (getid concept (language default-language))
-  (try (tryif (eq? language english) (get concept '%id))
-       (get (get concept '%ids) language)
-       (get concept '%id)
-       (oid->string concept)))
+  (if (oid? concept)
+      (try (get (get concept '%ids) language)
+	   (tryif (eq? language @1/2c1c7"English") (get concept '%id))
+	   (oid->string concept))
+      (fail)))
 
 ;;; Getting norms, glosses, etc.
 
@@ -231,6 +232,10 @@
        (tryif (eq? language english) (pick-one (largest (get concept 'words))))
        (pick-one (largest (get (get concept '%words) (get language 'key))))
        (pick-one (largest (cdr (get concept '%words))))))
+
+(define (get-normterm concept (language default-language))
+  (try (get-norm concept language #f)
+       (string-append "en$" (get-norm concept english))))
 
 (define (get-gloss concept (language default-language))
   (try (ov/get concept (get gloss-map language))
@@ -570,7 +575,7 @@
 ;; Getting glosses, norms, etc.
 (module-export!
  '{getid
-   get-gloss get-norm get-expstring get-doc
+   get-gloss get-norm get-normterm get-expstring get-doc
    get-single-gloss get-short-gloss gloss})
 
 ;; Getting frequency information
