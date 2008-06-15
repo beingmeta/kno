@@ -39,8 +39,7 @@
 ;;  and subscripts for the fr$ syntax
 (module-export! '{dterm->html langterm->html})
 
-;; Displaying dterms in HTML with markup around the disambiguator
-;;  and subscripts for the fr$ syntax
+;; Renders concepts to HTML as anchors or spans
 (module-export! '{concept->html concept->anchor})
 
 ;; Displaying concepts in various ways
@@ -98,7 +97,8 @@
 	   (first (get-preferred-languages)))))
 (define getlanguage get-language)
 
-(define (get-language-name language) (get language '%id))
+(define (get-language-name language (inlang (get-language)))
+  (capitalize (getid language inlang)))
 
 ;; This is to be used in browse URI generation
 ;; (define (get-browse-language f)
@@ -126,7 +126,8 @@
 	(span (class "hotcheck")
 	  (display-checkbox var language #t onchange #f)
 	  (span (class "language") (get-language-name language)))
-	(doseq (lang (sorted (difference languages language) 'english-names))
+	(doseq (lang (sorted (difference languages language)
+			     get-language-name))
 	  (span (class "hotcheck")
 	    (display-checkbox var lang #f onchange #f)
 	    (span (class "language") (get-language-name lang)))
@@ -179,7 +180,7 @@
   (let* ((var (if (symbol? name) name (intern name)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
-			    (sorted languagesarg))
+			    (sorted languagesarg get-language-name))
 		      (get-preferred-languages)))
 	 (language (try (cgiget var) (first languages))))
     (xmlblock SELECT ((name "LANGUAGE") (onchange (if onchange onchange)))
@@ -188,7 +189,7 @@
        (doseq (l languages)
 	 (unless (eq? l language)
 	   (xmlblock OPTION ((value l))
-	     (getid l language)
+	     (getid l (get-language))
 	     (strong " (" (pick-one (get l 'iso639/1)) ")")))))
     (xmlout)))
 
@@ -350,7 +351,7 @@
 			     (+ 3 pos))))
 	  (xmlout (subseq string start pos)
 		  (subseq string wordstart end)
-		  (span ((class "langid")) langid)))
+		  (xmlblock SUB ((class "langids")) langid)))
 	(xmlout (subseq string start end)))))
 
 (define (dterm->html string (start 0))
@@ -368,8 +369,16 @@
 ;;; Showing concepts
 
 (define dterm-fcn get-dterm)
+(define concept-label-fcn get-normterm)
 
+;; Whether to use titles as glosses for concept displays
+;; This may be set to false if, for example, richtips are being used
 (define title-gloss #t)
+
+(define (get-label-fcn)
+  (try (threadget 'conceptlabel)
+       (cgiget 'conceptlabel)
+       concept-label-fcn))
 
 (define (title-gloss?)
   (try (threadget 'titlegloss) title-gloss))
@@ -384,21 +393,21 @@
 					       length))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
-		       (get-norm oid language))))
+		       ((get-label-fcn) oid language))))
 	 (selected (default selected (and var (cgitest var tag)))))
     (span ((class "concept")
 	   (oid (if oid oid))
 	   (gloss (ifexists gloss))
 	   (dterm (ifexists dterm))
 	   (resolved (if oid "yes"))
-	   (title (if (title-gloss?) (ifexists gloss)))
+	   (title (if title-gloss (ifexists gloss)))
 	   (tag tag)
 	   (text text))
       (when var
 	(if selected
 	    (input type "CHECKBOX" name var value tag "CHECKED")
 	    (input type "CHECKBOX" name var value tag)))
-      (span ((class "taghead")) text))))
+      (span ((class "taghead")) (dterm->html text)))))
 
 (define (concept->anchor tag (url #f) (language #f) (var #f) (selected))
   (let* ((oid (if (and (pair? tag) (oid? (cdr tag)))
@@ -410,20 +419,20 @@
 		 (tryif oid (smallest (get-gloss oid language) length))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
-		       (get-norm oid language))))
+		       ((get-label-fcn) oid language))))
 	 (selected (default selected (and var (cgitest var tag)))))
     (anchor* (or url oid)
 	((class "concept")
 	 (oid (if oid oid))
 	 (dterm (ifexists dterm))
 	 (gloss (ifexists gloss))
-	 (title (if (title-gloss?) (ifexists gloss)))
+	 (title (if title-gloss (ifexists gloss)))
 	 (text text))
       (when var
 	(if selected
 	    (input type "CHECKBOX" name var value tag "CHECKED")
 	    (input type "CHECKBOX" name var value tag)))
-      text)))
+      (dterm->html text))))
 
 (define dtermdisplay-config
   (slambda (var (val))
@@ -431,6 +440,13 @@
 	  ((equal? dterm-fcn val))
 	  (else (set! dterm-fcn val)))))
 (config-def! 'dtermdisplay dtermdisplay-config)
+
+(define conceptlabel-config
+  (slambda (var (val))
+    (cond ((not (bound? val)) concept-label-fcn)
+	  ((equal? concept-label-fcn val))
+	  (else (set! concept-label-fcn val)))))
+(config-def! 'conceptlabel conceptlabel-config)
 
 (define titlegloss-config
   (slambda (var (val))
