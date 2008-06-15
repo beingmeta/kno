@@ -12,7 +12,7 @@
 ;;; DTERMTHREADS) are reading from this FIFO, computing dterms
 ;;; and storing them back in the cache.
 
-(use-module '{brico brico/dterms fifo cachequeue logger})
+(use-module '{brico brico/dterms brico/xdterms fifo cachequeue logger})
 
 (module-export!
  '{cached-dterm
@@ -44,19 +44,19 @@
 
 (define (cached-dterm concept (language english))
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
-  (cq/get dterm-queue get-dterm concept language))
+  (cq/get dterm-queue get-xdterm concept language))
 
 (define (request-dterm concept language)
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
-  (cq/get dterm-queue get-dterm concept language))
+  (cq/get dterm-queue get-xdterm concept language))
 
 (define (lazy-dterm concept language)
-  (get dterm-cache (list get-dterm concept language)))
+  (get dterm-cache (list get-xdterm concept language)))
 
 (define (require-dterm concept (language english))
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
-  (let ((dterm (get-dterm concept language)))
-    (store! dterm-cache (list get-dterm concept language) dterm)
+  (let ((dterm (get-xdterm concept language)))
+    (store! dterm-cache (list get-xdterm concept language) dterm)
     dterm))
 
 (define (ignore x) (fail))

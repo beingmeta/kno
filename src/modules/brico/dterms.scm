@@ -61,7 +61,9 @@
 	   (if (test concept 'sensecat 'noun.location)
 	       (find-location-dterm concept language norm)
 	       (find-individual-dterm concept language norm))
-	   (find-generic-dterm concept language norm))
+	   (try (find-generic-dterm concept language norm)
+		(try-choices (word (difference (get concept language) norm))
+		  (find-generic-dterm concept language word))))
        (tryif usedefterms
 	      (try-choices (df (get concept defterms))
 		(tryif (singleton? (?? language norm defterms df))
@@ -149,7 +151,7 @@
 	 (try-choices (term (get sensecathints (cons sensecat lang)))
 	   (tryif (singleton?
 		   (intersection meanings
-				 (?? always (?? dnormslot term))))
+				 (?? always (?? normslot term))))
 		  (string-append norm ":" term)))
 	 (try-choices (gn (get-norm (get concept always) lang))
 	   (tryif (singleton?
@@ -169,14 +171,7 @@
 				   norm))
 		  (tryif (singleton? (intersection meanings
 						   (?? defterms (?? lang d))))
-			 (string-append norm " (*"  d ")"))))
-	 ;; Try other norms
-	 (try-choices (n (difference (get-norm concept lang) norm))
-	   (find-generic-dterm concept lang n))
-	 ;; Try other words
-	 (try-choices (n (difference (get concept lang)
-				     (get-norm concept lang) norm))
-	   (find-generic-dterm concept lang n)))))
+			 (string-append norm " (*"  d ")")))))))
 
 ;;; Prefetching
 
