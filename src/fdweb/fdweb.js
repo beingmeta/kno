@@ -1076,3 +1076,8 @@ function _fdb_setup()
   autoprompt_setup();
   seenote_setup();
 }
+
+function fdb_noop()
+{
+  return;
+}

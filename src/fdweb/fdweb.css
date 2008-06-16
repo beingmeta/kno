@@ -230,7 +230,9 @@ a.concept:hover {
 span.wordform {
   white-space: nowrap; color: black;}
 span.wordform sub.langids {
-  color: green; font-family: fixed;}
+  color: purple; font-family: fixed;}
+span.wordform .langid {
+  color: purple; font-family: fixed;}
 span.wordform a {
   color: inherit; text-decoration: none;}
 span.wordform a:hover {
@@ -305,6 +307,8 @@ span.field[slotid='PART-OF'] { color: black;}
 .slot[slotid='REFTERMS'] a.concept { color: darkblue;}
 .slot[slotid='PART-OF'] { color: black;}
 
-div.slot span.label { font-size: 150%; }
+div.slot .label { font-weight: bold; font-size: 150%; padding-right: 12px;}
 
 span.slot a.browseall { color: purple; font-size: 75%; }
+
+img[onclick] { cursor: pointer; }
