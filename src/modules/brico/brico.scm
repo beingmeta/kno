@@ -205,11 +205,31 @@
 ;;;; Getting ids from frames
 
 (define (getid concept (language default-language))
-  (if (oid? concept)
-      (try (get (get concept '%ids) language)
-	   (tryif (eq? language @1/2c1c7"English") (get concept '%id))
-	   (oid->string concept))
-      (fail)))
+  (tryif (oid? concept)
+	 (try (get (get concept '%ids) language)
+	      (get-norm (get concept 'brico) language)
+	      (let ((id (get concept '%id)))
+		(if (string? id) id
+		    (if (symbol? id) (symbol->string id)
+			(oid->string concept)))))))
+
+(define (computeid oid language)
+  (getid oid
+	 (if (oid? language) language
+	     (try (get language-map language) language))))
+
+(define (translator item language)
+  (pick-one
+   (tryif (oid? item)
+	  (if (or (test item 'type 'slot) (test item '%ids))
+	      (cachecall computeid item language)
+	      (tryif (test item '{words %words})
+		     (get-norm item
+			       (if (oid? language) language
+				   (try (get language-map language) language))
+			       #t))))))
+
+(config! 'i18n/translators translator)
 
 ;;; Getting norms, glosses, etc.
 
@@ -241,8 +261,12 @@
   (try (ov/get concept (get gloss-map language))
        (tryif language (get concept (get gloss-map language)))
        (tryif language (get (get concept '%glosses) language))
-       (get concept english-gloss)
-       (get concept 'gloss)))
+       (tryif (test concept '%glosses)
+	      (let ((item (pick-one (get concept '%glosses))))
+		(string-append "(" (getid (car item) language) ") "
+			       (cdr item))))
+       (string-append "(" (getid english language) ") "
+		      (get concept 'gloss))))
 (define (get-short-gloss concept (language #f))
   (let ((s (get-gloss concept language)))
     (if (position #\; s)
