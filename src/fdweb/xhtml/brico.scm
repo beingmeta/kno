@@ -3,7 +3,7 @@
 (in-module 'xhtml/brico)
 
 (use-module '{reflection texttools})
-(use-module '{fdweb xhtml xhtml/clickit})
+(use-module '{fdweb xhtml xhtml/clickit i18n})
 (use-module '{brico brico/dterms brico/analytics})
 
 ;; We use these for languages (at least)
@@ -483,7 +483,7 @@
 (define (showslot elt concept slotid (opts #[]))
   (let* ((language (getopt opts 'language (get-language)))
 	 (inferlevel (getopt opts 'infer 1))
-	 (label (getopt opts 'label (getid slotid language)))
+	 (label (getopt opts 'label (translateoid slotid language)))
 	 (values (getopt opts 'value (get+ concept slotid inferlevel)))
 	 (seen (getopt opts 'seen #f))
 	 (hide (getopt opts 'hide seen))
@@ -500,6 +500,8 @@
 			      (rsorted showvalues sortfn))))
 	 (browse (getopt opts 'browse))
 	 (nobrowse (getopt opts 'nowbrowse #f)))
+    ;; (xmlout slotid (get (within-module 'i18n translations) slotid))
+    ;; (xmlout slotid " " language " " (translateoid slotid language))
     (when (or (> (length showvec) 0) (getopt opts 'showempty #f))
       (when seen (hashset-add! seen showvalues))
       (xmlblock
