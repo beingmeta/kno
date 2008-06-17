@@ -214,7 +214,6 @@
   (doindex index frame '%mnemonic)
   (doindex index frame '%mnemonics)
   (doindex index frame '{key through slots inverse @1/2c27a})
-  (doindex index frame 'has (getslots frame))
   ;; Special case 'has' indexing
   (when (test frame 'gloss)
     (doindex index frame 'has english-gloss))
@@ -243,8 +242,7 @@
       (if (test frame 'source @1/1)
 	  ;; We minimally index the Roget frames, since they tend
 	  ;;  to mostly get in the way and often be archaic
-	  (begin (doindex index frame '{type source})
-		 (doindex index frame 'has (getslots frame)))
+	  (doindex index frame '{type source})
 	  (begin
 	    (index-core index frame)
 	    (when (test frame 'type 'language)
