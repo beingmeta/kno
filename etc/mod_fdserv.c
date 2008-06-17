@@ -629,7 +629,9 @@ struct FDSERV_INFO {
 static int check_directory(apr_pool_t *p,const char *filename)
 {
   char *dirname=ap_dirstr_parent(p,filename);
-  return mkdir(dirname);
+  if (mkdir(dirname)<0)
+    return 1;
+  else return 0;
 }
 
 static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
@@ -656,7 +658,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
     if ((socket_file)&&(socket_file[0]=='/')) {
       /* Absolute socket file name, just use it. */
       apr_table_set(socketname_table,spec,socket_file);
-      if (check_directory(socket_file)<0) {
+      if (check_directory(socket_file)) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,r,
 	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
@@ -674,7 +676,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
 	return NULL;}
       strcpy(socketpath,socket_prefix); strcat(socketpath,socket_file);
       apr_table_set(socketname_table,spec,socketpath);
-      if (check_directory(socketpath)<0) {
+      if (check_directory(socketpath)) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,r,
 	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
