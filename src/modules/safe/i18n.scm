@@ -2,7 +2,8 @@
 
 (use-module '{brico texttools reflection})
 
-(module-export! '{i18n/translate i18n/translator i18n/translateout})
+(module-export!
+ '{i18n/translate i18n/translator i18n/translateout translateoid})
 
 ;;;; Variables and configuration
 
@@ -35,10 +36,13 @@
 	 (in (open-input-file file))
 	 (entry (read in)))
     (until (eof-object? entry)
-      (let ((head (car entry))
-	    (key (cons (car head) (cadr head))))
-	(doseq (xlation (cdr entry))
-	  (add! table key (cons (car xlation) (cdr xlation)))))
+      (let ((key #f))
+	(doseq (xlation entry)
+	  (if key
+	      (add! table key (cons (car xlation) (cadr xlation)))
+	      (set! key (if (pair? xlation)
+			    (cons (car xlation) (cadr xlation))
+			    xlation)))))
       (set! entry (read in)))
     table))
 
@@ -59,10 +63,12 @@
 ;;; Generic translation using tables
 
 (define (translate item from (to (getlanguagefn)) (domain #f))
-  (try (pick-one (get (get translations (if domain
-					    (cons* from domain item)
-					    (cons from item)))
-		      to))
+  (try (tryif (and domain from)
+	      (pick-one (get (get translations (cons* from domain item)) to)))
+       (tryif (and domain (oid? item))
+	      (pick-one (get (get translations (cons domain item)) to)))
+       (tryif from (pick-one (get (get translations (cons from item)) to)))
+       (tryif (oid? item) (pick-one (get (get translations item) to)))
        (tryif (not (or (pair? item) (string? item)))
 	      (for-choices (translator translators)
 		(translator item to)))
@@ -72,6 +78,8 @@
 	      item)))
 
 (define i18n/translate translate)
+(define (translateoid oid (language (getlanguagefn)))
+  (translate oid #f language))
 
 ;;; Generating translators
 
