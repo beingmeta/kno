@@ -281,7 +281,7 @@
 
 (define (getcommonly p (tryhard 2))
   (if (> tryhard 1)
-      (getalways (get p commonly))
+      (choice (get p commonly) (getalways (get p commonly)))
       (get p commonly)))
 
 (define (findcommonly p (tryhard #t))
