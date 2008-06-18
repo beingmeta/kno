@@ -488,7 +488,7 @@
 	 (seen (getopt opts 'seen #f))
 	 (hide (getopt opts 'hide seen))
 	 (topvalues (getopt opts 'topvalues))
-	 (showvalues (if seen
+	 (showvalues (if hide
 			 (reject (difference values topvalues) hide)
 			 values))
 	 (anchorify (getopt opts 'anchorify))

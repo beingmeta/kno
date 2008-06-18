@@ -3,7 +3,8 @@
 (use-module '{brico texttools reflection})
 
 (module-export!
- '{i18n/translate i18n/translator i18n/translateout translateoid})
+ '{i18n/translate i18n/translator i18n/translateout
+		  entranslate translateoid})
 
 ;;;; Variables and configuration
 
@@ -69,6 +70,9 @@
 	      (pick-one (get (get translations (cons domain item))
 			     (if (oid? to) (get to '%mnemonic) to))))
        (tryif from (pick-one (get (get translations (cons from item)) to)))
+       (tryif (and from (oid? to))
+	      (pick-one (get (get translations (cons from item))
+			     (get to '%mnemonic))))
        (tryif (oid? item)
 	      (pick-one (get (get translations item)
 			     (if (oid? to) (get to '%mnemonic) to))))
@@ -81,6 +85,8 @@
 	      item)))
 
 (define i18n/translate translate)
+(define (entranslate item (language (getlanguagefn)))
+  (translate item 'en language))
 (define (translateoid oid (language (getlanguagefn)))
   (translate oid #f language))
 
