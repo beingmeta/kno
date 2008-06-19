@@ -1185,7 +1185,8 @@ FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
 FD_FASTOP int test_and(fdtype candidate,int n,fdtype *args,int noinfer)
 {
   if (n==1)
-    return test_predicate(candidate,args[0],noinfer);
+    if (FD_EMPTY_CHOICEP(args[0])) return 0;
+    else return test_predicate(candidate,args[0],noinfer);
   else if (n%2) {
     int i=1; fdtype field=args[0], value;
     if ((FD_OIDP(field)) || (FD_SYMBOLP(field)))
