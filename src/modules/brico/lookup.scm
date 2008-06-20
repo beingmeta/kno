@@ -210,14 +210,36 @@
       (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
     table))
 
-(define (lookup-fragments word (language default-language) (tryhard #f))
+(define (best-fragments word (language default-language) (tryhard #f))
   (let ((table (score-fragments word language tryhard))
 	(minscore (max 2 (- (length (words->vector word)) 2))))
     (tryif (and (exists? (table-maxval table))
 		(>= (table-maxval table) minscore))
 	   (table-max table))))
 
-(module-export! '{score-fragments lookup-fragments})
+(define (lookup-fragments word (language default-language) (tryhard #f))
+  (let* ((wordvec (words->vector word))
+	 (fragments (vector->frags wordvec)))
+    (?? (get frag-map language) fragments)))
+    
+  (let ((table (score-fragments word language tryhard))
+	(minscore (max 2 (- (length (words->vector word)) 2))))
+    (tryif (and (exists? (table-maxval table))
+		(>= (table-maxval table) minscore))
+	   (table-max table)))))
+
+(define (lookup-word+ word language tryhard)
+  (try (lookup-word word language tryhard)
+       (lookup-fragments word language tryhard)))
+
+(define (lookup-word++ word language tryhard)
+  (choice (lookup-word word language tryhard)
+	  (lookup-fragments word language tryhard)))
+
+(module-export!
+ '{lookup-fragments
+   score-fragments best-fragments
+   lookup-word+ lookup-word++})
 
 ;;; Looking up combos
 
