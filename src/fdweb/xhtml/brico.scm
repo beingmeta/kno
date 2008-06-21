@@ -176,27 +176,38 @@
 
 (define (languagedropbox
 	 (name "LANGUAGE")
-	 (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
+	 (languagesarg #f) (onchange #f) (action #f) (selectbox #t)
+	 (highlight #f))
   (let* ((var (if (symbol? name) name (intern name)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
 			    (sorted languagesarg get-language-name))
-		      (get-preferred-languages)))
+			(get-preferred-languages)))
 	 (language (try (cgiget var) (first languages))))
-    (xmlblock SELECT ((name "LANGUAGE") (onchange (if onchange onchange)))
+    ;; (xmlout "larg=" languagesarg "; languages=" languages "; language=" language)
+    (xmlblock SELECT ((name "LANGUAGE")
+		      (class "langbox")
+		      (onchange (if onchange onchange)))
       (do-choices (lang language)
-	(xmlblock OPTION ((value lang))
+	(xmlblock OPTION
+	    ((value lang) (class (if (overlaps? lang highlight) "highlight")))
 	  (getid lang (get-language))
-	  (strong " (" (pick-one (get lang 'iso639/1)) ")")))
+	  " (" (xmlblock tt () (pick-one (get lang 'iso639/1)))  ")"
+	  (if (overlaps? lang highlight) "* ")))
        (doseq (l languages)
+	 (span () l)
 	 (unless (eq? l language)
-	   (xmlblock OPTION ((value l))
+	   (xmlblock OPTION
+	       ((value l)
+		(class (if (overlaps? l highlight) "highlight")))
 	     (getid l (get-language))
-	     (strong " (" (pick-one (get l 'iso639/1)) ")")))))
+	     " (" (xmlblock tt () (pick-one (get l 'iso639/1)))  ")"
+	     (if (overlaps? l highlight) " *")))))
     (xmlout)))
 
 (define (languagesdropbox
-	 id (languagesarg #f) (onchange #f) (action #f) (selectbox #t))
+	 id (languagesarg #f) (onchange #f) (action #f) (selectbox #t)
+	 (highlight #f))
   (let* ((var (if (symbol? id) id (intern id)))
 	 (languages (if (and (exists? languagesarg) languagesarg)
 			(if (sequence? languagesarg) languagesarg
@@ -204,16 +215,25 @@
 		      (get-preferred-languages)))
 	 (language (try (cgiget var) (car languages))))
     (xmlblock SELECT ((name id) (size 5)
+		      (class "langbox")
 		      (onchange (if onchange onchange))
 		      "MULTIPLE")
       (do-choices (lang language)
-	(xmlblock OPTION ((value lang) "SELECTED")
-	  (get-language-name lang)))
+	(xmlblock OPTION ((value lang)
+			  (class (if (overlaps? lang highlight) "highlight"))
+			  "SELECTED")
+	  (get-language-name lang)
+	  " (" (xmlblock tt () (pick-one (get lang 'iso639/1)))  ")"
+	  (if (overlaps? lang highlight) " *")))
       (doseq (l languages)
 	(unless (eq? l language)
-	  (xmlblock OPTION ((value l)) (get-language-name l)))))
+	  (xmlblock OPTION
+	      ((value l)
+	       (class (if (overlaps? l highlight) "highlight")))
+	    (get-language-name l)
+	    " (" (xmlblock tt () (pick-one (get l 'iso639/1)))  ")"
+	    (if (overlaps? l highlight) " *")))))
     language))
-
 
 (define (display-checkbox var val selected onclick (multi #f))
   (if onclick
@@ -484,7 +504,7 @@
   (let* ((language (getopt opts 'language (get-language)))
 	 (inferlevel (getopt opts 'infer 1))
 	 (label (getopt opts 'label (translateoid slotid language)))
-	 (values (getopt opts 'value (get+ concept slotid inferlevel)))
+	 (values (getopt opts 'value (pickoids (get+ concept slotid inferlevel))))
 	 (seen (getopt opts 'seen #f))
 	 (hide (getopt opts 'hide seen))
 	 (topvalues (getopt opts 'topvalues))

@@ -15,10 +15,11 @@
 (use-module '{brico brico/dterms brico/xdterms fifo cachequeue logger})
 
 (module-export!
- '{cached-dterm
-   require-dterm request-dterm
+ '{
+   cached-dterm require-dterm request-dterm
+   cached-xdterm require-xdterm request-xdterm
    lazy-dterm
-   launch-dtermdaemons})
+   })
 
 (define %loglevel %info!)
 
@@ -44,20 +45,40 @@
 
 (define (cached-dterm concept (language english))
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
-  (cq/get dterm-queue get-xdterm concept language))
+  (cq/get dterm-queue get-dterm concept language))
 
 (define (request-dterm concept language)
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
-  (cq/get dterm-queue get-xdterm concept language))
-
-(define (lazy-dterm concept language)
-  (get dterm-cache (list get-xdterm concept language)))
+  (cq/get dterm-queue get-dterm concept language))
 
 (define (require-dterm concept (language english))
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
   (let ((dterm (get-xdterm concept language)))
+    (store! dterm-cache (list get-dterm concept language) dterm)
+    dterm))
+
+(define (lazy-dterm concept language)
+  (get dterm-cache (list get-dterm concept language)))
+
+(define (cached-xdterm concept (language english))
+  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+  (try (cq/get dterm-queue get-dterm concept language)
+       (cq/get dterm-queue get-xdterm concept language)))
+
+(define (request-xdterm concept language)
+  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+  (cq/get dterm-queue get-xdterm concept language))
+
+(define (require-xdterm concept (language english))
+  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+  (let ((dterm (get-xdterm concept language)))
     (store! dterm-cache (list get-xdterm concept language) dterm)
     dterm))
+
+(define (lazy-dterm concept language)
+  (get dterm-cache (list get-dterm concept language)))
+
+
 
 (define (ignore x) (fail))
 
