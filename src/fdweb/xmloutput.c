@@ -1024,8 +1024,6 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     fdtype browseinfo=get_browseinfo(target);
     u8_string uri=NULL, class=NULL;
     unpack_browseinfo(browseinfo,&uri,&class,NULL);
-    u8_printf(out,"<a href='%s:@%x/%x' class='%s'>",
-	      uri,FD_OID_HI(addr),FD_OID_LO(addr),class);
     if (has_class_attrib(attribs))
       fd_incref(attribs);
     else attribs=fd_init_pair
