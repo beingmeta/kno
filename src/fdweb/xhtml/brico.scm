@@ -599,8 +599,9 @@
 
 (define (get-slotidval slotid)
   (if (oid? slotid)
-      (try (smallest (pick (get slotid) symbol?))
-	   (smallest (pick (get slotid) string?))
+      (try (smallest (pick (get slotid '%id) symbol?))
+	   (smallest (pick (get slotid '%mnemonic) symbol?))
+	   (smallest (pick (get slotid '%mnemonic) string?))
 	   (oid->string slotid))
       slotid))
 
