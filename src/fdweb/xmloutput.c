@@ -1576,7 +1576,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fdtype oid2id_proc=
     fd_make_cprim2x("OID2ID",oid2id,1,fd_oid_type,FD_VOID,-1,FD_VOID);
   fdtype scripturl_proc=
-    fd_make_ndprim(fd_make_cprimn("SCRIPTURL",scripturl,2));
+    fd_make_ndprim(fd_make_cprimn("SCRIPTURL",scripturl,1));
   fdtype scripturlplus_proc=
     fd_make_ndprim(fd_make_cprimn("SCRIPTURL+",scripturlplus,2));
   fdtype fdscripturl_proc=
