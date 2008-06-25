@@ -24,6 +24,7 @@ static char versionid[] =
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
+#include <libu8/u8netfns.h>
 #include <libu8/xfiles.h>
 
 static U8_XINPUT u8stdin;
@@ -175,6 +176,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   fd_decref(filename_val);
   return FD_VOID;
 }
+
 /* Not really I/O but related structurally and logically */
 
 static fdtype simple_system(fdtype expr,fd_lispenv env)
@@ -254,6 +256,18 @@ static fdtype fork_prim(int n,fdtype *args)
 static fdtype fdfork_prim(int n,fdtype *args)
 {
   return exec_helper((FD_IS_SCHEME|FD_DO_FORK),n,args);
+}
+
+/* Opening TCP sockets */
+
+static fdtype open_socket_prim(fdtype spec)
+{
+  u8_connection conn=u8_connect(FD_STRDATA(spec));
+  if (conn<0) return FD_ERROR_VALUE;
+  else {
+    u8_xinput in=u8_open_xinput(conn,NULL);
+    u8_xoutput out=u8_open_xoutput(conn,NULL);
+    return make_port((u8_input)in,(u8_output)out);}
 }
 
 /* More file manipulation */
@@ -1404,6 +1418,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOAD-DLL",load_dll,1));
 
   fd_defspecial(fileio_module,"LOAD-LATEST",load_latest);
+
+  fd_idefn(fd_xscheme_module,fd_make_cprim1x("OPEN-SOCKET",open_socket_prim,1,fd_string_type,FD_VOID));
 
   fd_init_filedb_c();
 

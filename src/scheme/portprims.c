@@ -29,7 +29,12 @@ fd_ptr_type fd_port_type;
 
 static int unparse_port(struct U8_OUTPUT *out,fdtype x)
 {
-  u8_printf(out,"#<Port #!%x>",x);
+  struct FD_PORT *p=FD_GET_CONS(x,fd_port_type,fd_port);
+  if ((p->in) && (p->out))
+    u8_printf(out,"#<I/O Port %d/%d #!%x>",x);
+  else if (p->in)
+    u8_printf(out,"#<Input Port %d/%d #!%x>",x);
+  else u8_printf(out,"#<Output Port %d/%d #!%x>",x);
   return 1;
 }
 
