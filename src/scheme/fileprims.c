@@ -260,13 +260,20 @@ static fdtype fdfork_prim(int n,fdtype *args)
 
 /* Opening TCP sockets */
 
-static fdtype open_socket_prim(fdtype spec)
+static fdtype noblock_symbol, nodelay_symbol;
+
+static fdtype open_socket_prim(fdtype spec,fdtype opts)
 {
+  
   u8_connection conn=u8_connect(FD_STRDATA(spec));
   if (conn<0) return FD_ERROR_VALUE;
   else {
+    fdtype noblock=fd_getopt(opts,noblock_symbol,FD_FALSE);
+    fdtype nodelay=fd_getopt(opts,nodelay_symbol,FD_FALSE);
     u8_xinput in=u8_open_xinput(conn,NULL);
     u8_xoutput out=u8_open_xoutput(conn,NULL);
+    if (!(FD_FALSEP(noblock))) u8_set_blocking(conn,0);
+    if (!(FD_FALSEP(nodelay))) u8_set_nodelay(conn,1);
     return make_port((u8_input)in,(u8_output)out);}
 }
 
@@ -1419,7 +1426,10 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_defspecial(fileio_module,"LOAD-LATEST",load_latest);
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim1x("OPEN-SOCKET",open_socket_prim,1,fd_string_type,FD_VOID));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_cprim2x
+	   ("OPEN-SOCKET",open_socket_prim,1,
+	    fd_string_type,FD_VOID,-1,FD_VOID));
 
   fd_init_filedb_c();
 
@@ -1463,6 +1473,9 @@ FD_EXPORT void fd_init_fileio_c()
   snapshotconfig=fd_intern("%SNAPCONFIG");
   snapshotfile=fd_intern("%SNAPSHOTFILE");  
   configinfo=fd_intern("%CONFIGINFO");  
+
+  noblock_symbol=fd_intern("NOBLOCK");
+  nodelay_symbol=fd_intern("NODELAY");
 
   fd_defspecial(fileio_module,"SNAPSHOT",snapshot_handler);
   fd_defspecial(fileio_module,"SNAPBACK",snapback_handler);

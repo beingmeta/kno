@@ -567,7 +567,9 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
 	  (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else return fd_init_string(NULL,size,data);
     else if (size<0)
-      return FD_ERROR_VALUE;
+      if (errno==EAGAIN)
+	return FD_EOF;
+      else return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;}
   else return fd_type_error(_("input port"),"getline_prim",port);
 }
