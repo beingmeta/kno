@@ -70,6 +70,7 @@
     ;;  be lowercased.
     (doindex index frame slot (choice expvalues normvalues))
     (doindex index frame slot (metaphone (choice values normvalues) #t))
+    (doindex index frame slot (soundex (choice values normvalues) #t))
     (when frag (index-frags index frame slot values 1 #f))))
 
 (defambda (index-string/keys value)
@@ -82,7 +83,8 @@
     ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
     ;;  be lowercased.
     (choice expvalues normvalues
-	    (metaphone (choice values normvalues) #t))))
+	    (metaphone (choice values normvalues) #t)
+	    (soundex (choice values normvalues) #t))))
 
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))
