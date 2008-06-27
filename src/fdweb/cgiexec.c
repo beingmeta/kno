@@ -48,6 +48,16 @@ static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 
 /* Utility functions */
 
+static fdtype get_cgidata()
+{
+  fdtype table=fd_thread_get(cgidata_symbol);
+  if (!(FD_TABLEP(table))) {
+    table=fd_init_slotmap(NULL,0,NULL);
+    fd_thread_set(cgidata_symbol,table);
+    return table;}
+  else return table;
+}
+
 static fdtype try_parse(u8_string buf)
 {
   fdtype val=fd_parse(buf);
@@ -622,7 +632,8 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
     output_headers(out,headers);
     fd_decref(headers);}
   u8_puts(out,"</head>\n");
-  if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>\n");
+  if (FD_FALSEP(body_attribs)) {}
+  else if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>\n");
   else {
     fd_open_markup(out,"body",body_attribs,0);
     u8_puts(out,"\n");}
@@ -633,10 +644,11 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
 static fdtype set_body_attribs(int n,fdtype *args)
 {
   fdtype attribs=FD_EMPTY_LIST; int i=n-1;
-  fdtype table=fd_thread_get(cgidata_symbol);
-  if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL);
-    fd_thread_set(cgidata_symbol,table);}
+  fdtype table=get_cgidata();
+  if (n==1) {
+    fd_store(table,body_attribs_slotid,args[0]);
+    fd_decref(table);
+    return FD_VOID;}
   while (i>=0) {
     attribs=fd_init_pair(NULL,fd_incref(args[i]),attribs); i--;}
   fd_store(table,body_attribs_slotid,attribs);
@@ -686,6 +698,7 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
       fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else value=fd_apply(proc,0,NULL);
+  value=fd_finish_call(value);
   fd_thread_set(cgidata_symbol,FD_VOID);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   if (log_cgidata) {
@@ -715,11 +728,8 @@ static fdtype cgicall(fdtype proc)
 
 static fdtype cgiget(fdtype var,fdtype dflt)
 {
-  fdtype table=fd_thread_get(cgidata_symbol), val;
+  fdtype table=get_cgidata(), val;
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL);
-    fd_thread_set(cgidata_symbol,table);}
   val=fd_get(table,var,FD_VOID); fd_decref(table);
   if (FD_VOIDP(val))
     if (FD_VOIDP(dflt))
@@ -730,10 +740,7 @@ static fdtype cgiget(fdtype var,fdtype dflt)
 
 static fdtype cgitest(fdtype vars,fdtype val)
 {
-  fdtype table=fd_thread_get(cgidata_symbol), result=FD_FALSE;
-  if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL);
-    fd_thread_set(cgidata_symbol,table);}
+  fdtype table=get_cgidata(), result=FD_FALSE;
   if (FD_TABLEP(table)) {
     FD_DO_CHOICES(var,vars) {
       if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
@@ -744,10 +751,7 @@ static fdtype cgitest(fdtype vars,fdtype val)
 
 static fdtype cgiset(fdtype vars,fdtype value)
 {
-  fdtype table=fd_thread_get(cgidata_symbol);
-  if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL);
-    fd_thread_set(cgidata_symbol,table);}
+  fdtype table=get_cgidata();
   {FD_DO_CHOICES(var,vars) {
     if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
     fd_store(table,var,value);}}
@@ -757,11 +761,8 @@ static fdtype cgiset(fdtype vars,fdtype value)
 
 static fdtype cgiadd(fdtype var,fdtype value)
 {
-  fdtype table=fd_thread_get(cgidata_symbol);
+  fdtype table=get_cgidata();
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  if (!(FD_TABLEP(table))) {
-    table=fd_init_slotmap(NULL,0,NULL);
-    fd_thread_set(cgidata_symbol,table);}
   fd_add(table,var,value);
   fd_decref(table);
   return FD_VOID;
@@ -769,7 +770,7 @@ static fdtype cgiadd(fdtype var,fdtype value)
 
 static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype table=fd_thread_get(cgidata_symbol);
+  fdtype table=get_cgidata();
   FD_DOLIST(var,fd_get_body(expr,1)) {
     if (FD_TABLEP(table)) {
       fdtype val=fd_get(table,var,FD_VOID);
