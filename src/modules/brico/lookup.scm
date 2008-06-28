@@ -175,47 +175,41 @@
 
 ;;; Fragmentary lookup
 
-(define (score-fragment! table language frag (weight 1))
+(define (vary-frag fragment)
+  (choice (metaphone fragment #t) (soundex fragment #t)))
+
+(define (score-fragment! table language frag (tryhard 1) (weight 1))
   (let* ((fragslot (get frag-map language))
-	 (results (?? fragslot frag)))
+	 (results (if (or (not tryhard) (= tryhard 1))
+		      (?? fragslot (list frag))
+		      (if (= tryhard 2)
+			  (try (?? fragslot (list frag))
+			       (?? fragslot (list (vary-frag frag))))
+			  (?? fragslot
+			      (list (choice frag (vary-frag frag))))))))
     (when (exists? results)
       (hashtable-increment! table
-	(?? fragslot frag)
+	results
 	(if (inexact? weight)
 	    (/ weight (ilog (choice-size results)))
 	    weight)))))
 
-(define (score-fragments word language tryhard (weight 1))
+(define (score-fragments word language (tryhard 1) (weight 1.0))
   (let* ((table (make-hashtable))
 	 (wordv (words->vector word))
 	 (words (elts wordv))
-	 (altwords (choice (metaphone words #t)
-			   (metaphone (porter-stem words) #t)))
-	 (firstword (list #f (elt wordv 0)))
-	 (lastword (list (elt wordv -1) #f))
 	 (fragslot (get frag-map language)))
-    (prefetch-keys! (list language (choice words altwords)))
     (do-choices (word words)
-      (score-fragment! table language (list word) 2.0)
-      (let* ((alt (tryif (and (number? tryhard) (> tryhard 2))
-			 (choice (metaphone word #t)
-				 (metaphone (porter-stem word) #t)))))
-	(hashtable-increment! table (?? fragslot (list alt))
-	  (/~ 1.0 (ilog (choice-size (?? fragslot (list word))))))))
-    (hashtable-increment! table
-      (?? fragslot firstword)
-      (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
-    (hashtable-increment! table
-      (?? fragslot lastword)
-      (/~ 1.0 (ilog (choice-size (?? fragslot firstword)))))
+      (score-fragment! table language word tryhard weight))
     table))
 
-(define (best-fragments word (language default-language) (tryhard #f))
-  (let ((table (score-fragments word language tryhard))
-	(minscore (max 2 (- (length (words->vector word)) 2))))
-    (tryif (and (exists? (table-maxval table))
-		(>= (table-maxval table) minscore))
-	   (table-max table))))
+(define (best-fragments word (language default-language)
+			(tryhard #f) (minscore #f))
+  (let* ((table (score-fragments word language tryhard))
+	 (maxval (table-maxval table)))
+    (if (and (exists? maxval) minscore)
+	(tryif (>= maxval minscore) (table-max table))
+	(table-max table))))
 
 (define (lookup-fragments word (language default-language) (tryhard #f))
   (let* ((wordvec (words->vector word))
@@ -301,16 +295,30 @@
   (choice #((label word (not> ",")) "," (spaces) (label partof (rest)))
 	  #((label word (not> ",")) "," (spaces)
 	    (label partof (not> "("))
-	    "(" (label implies (not> ")")) ")")
-	  #((label word (not> ":")) ":" (label genls (rest)))
+	    "(" (label paren (not> ")")) ")")
+	  #((label word (not> ":")) ":" (label colon (rest)))
+	  #((label word (not> ":-")) ":-" (label never (rest)))
 	  ;; #((label word (not> "=")) "=" (label synonyms (rest)))
 	  #((label word (not> "(")) "(-" (label never (not> ")"))  ")")
-	  #((label word (not> "(")) "(" (label implies (not> ")"))  ")")
-	  #((label word (not> "(")) "(" (label partof (not> ")")) ")")
+	  #((label word (not> "(")) "(" (label paren (not> ")"))  ")")
 	  #((label word (not> "(")) "(e.g." (spaces) (label eg (not> ")")) ")")
 	  #((label word (not> "(")) "(:" (label defterm (not> ")")) ")")))
 
 (config-def! 'TERMRULES (ruleset-configfn termrules))
+
+(define (lookup-context word language)
+  (try (?? (get norm-map language) word)
+       (?? language word)))
+
+(defambda (resolve-context meanings slotids cxt language)
+  (try (try-choices (g (lookup-context cxt language))
+	 (intersection meanings (?? slotids g defterms g)))
+       (try-choices (g (lookup-word cxt language))
+	 (intersection meanings (?? slotids g defterms g)))
+       (try-choices (g (lookup-word cxt language))
+	 (intersection meanings (?? slotids g)))
+       (try-choices (g (lookup-word cxt language))
+	 (intersection meanings (?? slotids g)))))
 
 (define (try-termrules term language tryhard)
   (let* ((cxthard (and (number? tryhard) (if (<= tryhard 1) #f (-1+ tryhard))))
@@ -318,34 +326,33 @@
 	 (word (get matches 'word))
 	 (norm (get norm-map language))
 	 (syn-cxt (get matches 'synonyms))
-	 (implies-cxt (get matches 'implies))
+	 (paren-cxt (get matches 'paren))
 	 (partof-cxt (get matches 'partof))
-	 (genls-cxt (get matches 'genls))
+	 (colon-cxt (get matches 'colon))
 	 (never-cxt (get matches 'never))
 	 (eg-cxt (get matches 'eg))
 	 (defterm-cxt (get matches 'defterm))
 	 (meanings (lookup-word word language tryhard)))
-    ;;(%watch matches word language syn-cxt implies-cxt partof-cxt genls-cxt eg-cxt meanings)
+    ;;(%watch matches word language syn-cxt paren-cxt partof-cxt colon-cxt eg-cxt meanings)
     (cons word
 	  (try (intersection meanings (lookup-word syn-cxt language))
-	       (tryif (and (exists? partof-cxt) (exists? implies-cxt))
-		      (intersection meanings (?? partof* (lookup-word partof-cxt language))
-				    (?? implies (list (lookup-word implies-cxt))))
-		      (intersection meanings (?? partof* (lookup-word partof-cxt language))
-				    (?? implies (lookup-word implies-cxt))))
+	       (tryif (and (exists? partof-cxt) (exists? paren-cxt))
+		      (resolve-context
+		       (intersection meanings (?? partof* (lookup-context partof-cxt language)))
+		       (choice sometimes defterms) paren-cxt language)
+		      (resolve-context
+		       (intersection meanings (?? partof* (lookup-word partof-cxt language)))
+		       (choice sometimes defterms) paren-cxt language))
 	       (tryif (exists? partof-cxt)
+		      (intersection meanings (?? partof* (lookup-context partof-cxt language)))
 		      (intersection meanings (?? partof* (lookup-word partof-cxt language))))
-	       (tryif (and (exists? genls-cxt) (string? genls-cxt) (> (length genls-cxt) 0))
-		      (if (eqv? (elt genls-cxt 0) #\-)
-			  (intersection meanings (?? never (lookup-word (subseq genls-cxt 1) language)))
-			  (intersection meanings (?? always (lookup-word genls-cxt language)))))
-	       (tryif (exists? implies-cxt)
-		      (try (intersection meanings (?? (choice sometimes always)
-						      (list (lookup-word implies-cxt language))))
-			   (intersection meanings (?? (choice sometimes always)
-						      (lookup-word implies-cxt language)))))
 	       (tryif (exists? never-cxt)
 		      (intersection meanings (?? never (lookup-word never-cxt language))))
+	       (tryif (and (exists? colon-cxt) (string? colon-cxt) (> (length colon-cxt) 0))
+		      (try (resolve-context meanings always colon-cxt language)
+			   (resolve-context meanings sometimes colon-cxt language)))
+	       (tryif (exists? paren-cxt)
+		      (resolve-context meanings (choice sometimes defterms) paren-cxt language))
 	       (tryif (exists? defterm-cxt)
 		      (intersection meanings (?? defterms (lookup-word defterm-cxt language))))
 	       (tryif (exists? eg-cxt)
@@ -426,8 +433,9 @@
 (define (absfreq c) (choice-size (?? refterms c)))
 
 (define (brico/ref term (language default-language) (tryhard 2))
-  (let ((possible (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
-		       ((or remote-lookup-term lookup-term) term language tryhard))))
+  (let ((possible
+	 (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
+	      ((or remote-lookup-term lookup-term) term language tryhard))))
     (if (fail? possible) {}
 	(try (singleton possible)
 	     ;; This biases towards terms which aren't defined
@@ -435,5 +443,24 @@
 	     (singleton (difference possible (?? defterms possible)))
 	     (pick-one (largest possible absfreq))))))
 
-
+;; This is used with the # parser trick so that #@"dog:animal" works
 (define |#@| brico/ref)
+
+;;; Probing dterms
+
+(define (probe-colon-dterm term1 lang1 term2 lang2)
+  (try (resolve-context (lookup-word term1 lang1) always term2 lang2)
+       (resolve-context (lookup-word term1 lang1) sometimes term2 lang2)))
+
+(define (probe-paren-dterm term1 lang1 term2 lang2)
+  (try (resolve-context (lookup-word term1 lang1)
+			(choice sometimes defterms)
+			term2 lang2)
+       (resolve-context (lookup-word term1 lang1)
+			(choice sometimes defterms)
+			term2 lang2)))
+
+(module-export! '{probe-colon-dterm probe-paren-dterm})
+
+
+

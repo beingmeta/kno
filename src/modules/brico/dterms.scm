@@ -53,8 +53,8 @@
 (define (find-dterm concept (language default-language) (norm))
   (default! norm (termnorm concept language))
   ;; (singleton? (?? language norm))
-  (if (or (identical? concept (?? (get norm-map language) norm))
-	  (identical? concept (?? language norm)))
+  (if (or (identical? concept (?? language norm))
+	  (identical? concept (lookup-word norm language)))
       norm
       (try
        (if (test concept 'type '{individual name})
@@ -146,24 +146,22 @@
   (let ((sensecat (get concept 'sensecat))
 	(normslot (get norm-map lang))
 	(meanings (lookup-word norm lang)))
-    (try (tryif (singleton? (?? normslot norm)) norm)
+    (try ;; (tryif (singleton? (?? normslot norm)) norm)
 	 (tryif (singleton? (?? lang norm)) norm)
 	 (try-choices (term (get sensecathints (cons sensecat lang)))
-	   (tryif (singleton?
-		   (intersection meanings
-				 (?? always (?? normslot term))))
+	   (tryif (singleton? (probe-colon-dterm norm lang term lang))
 		  (string-append norm ":" term)))
 	 (try-choices (gn (get-norm (get concept always) lang))
-	   (tryif (singleton?
-		   (intersection meanings (?? always (?? lang gn))))
+	   (tryif (singleton? (probe-colon-dterm norm lang gn lang))
 		  (string-append norm ":"  gn)))
 	 (try-choices (gn (get-norm (get+ concept always) lang))
-	   (tryif (singleton?
-		   (intersection meanings (?? always (?? lang gn))))
+	   (tryif (singleton? (probe-colon-dterm norm lang gn lang))
 		  (string-append norm ":"  gn)))
+	 (try-choices (pn (get-norm (get concept @?sometimes) lang))
+	   (tryif (singleton? (probe-paren-dterm norm lang pn lang))
+		  (string-append norm " ("  pn ")")))
 	 (try-choices (pn (get-norm (get concept @?partof) lang))
-	   (tryif (singleton?
-		   (intersection meanings (?? partof (?? lang pn))))
+	   (tryif (singleton? (probe-paren-dterm norm lang pn lang))
 		  (string-append norm " ("  pn ")")))
 	 (tryif usedefterms
 		(try-choices
@@ -171,7 +169,7 @@
 				   norm))
 		  (tryif (singleton? (intersection meanings
 						   (?? defterms (?? lang d))))
-			 (string-append norm " (*"  d ")")))))))
+			 (string-append norm " (:"  d ")")))))))
 
 ;;; Prefetching
 
