@@ -451,6 +451,8 @@
 	 (gloss (ifexists gloss))
 	 (title (if (not (cgiget 'notitle (not title-gloss)))
 		    (ifexists gloss)))
+	 (target (if (and (cgitest 'browsetarget) (cgiget 'browsetarget))
+		     (cgiget 'browsetarget)))
 	 (text text))
       (when var
 	(if selected
