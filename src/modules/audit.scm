@@ -200,7 +200,6 @@
 (define (audit-get-not frame slotid)
   (second (pick (get frame '%drops) first slotid)))
 
-
 (module-export! '{audit+! audit-! audit! audit-get audit-get-not})
 
 ;;; AUTO procedures

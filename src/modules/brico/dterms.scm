@@ -53,8 +53,7 @@
 (define (find-dterm concept (language default-language) (norm))
   (default! norm (termnorm concept language))
   ;; (singleton? (?? language norm))
-  (if (or (identical? concept (?? language norm))
-	  (identical? concept (lookup-word norm language)))
+  (if (identical? concept (lookup-term norm language))
       norm
       (try
        (if (test concept 'type '{individual name})
