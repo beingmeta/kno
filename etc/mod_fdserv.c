@@ -50,10 +50,10 @@ typedef unsigned int INTPOINTER;
 #include "apr_strings.h"
 #endif
 
-#include "sys/un.h"
-#include "sys/stat.h"
-#include "sys/types.h"
-#include "unistd.h"
+#include <sys/un.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "fdb/config.h"
 
 #ifndef TRACK_EXECUTION_TIMES
@@ -1495,6 +1495,12 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
       ap_log_error
 	(APLOG_MARK,APLOG_CRIT,retval,s,
 	 "mod_fdserv: Problem with creating socket prefix directory %s",dirname);
+    else if ((sconfig->uid>=0) && (sconfig->gid>=0))
+      retval=chown(dirname,sconfig->uid,sconfig->gid);
+    if (retval)
+      ap_log_error
+	(APLOG_MARK,APLOG_CRIT,retval,s,
+	 "mod_fdserv: Problem with setting owner/group on socket prefix directory %s",dirname);
     else ap_log_error
 	   (APLOG_MARK,APLOG_NOTICE,retval,s,
 	    "mod_fdserv: Using socket prefix directory %s",dirname);}
