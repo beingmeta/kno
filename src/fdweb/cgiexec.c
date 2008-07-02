@@ -793,7 +793,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   fd_defspecial(module,"HTTPHEADER",httpheader);
   fd_idefn(module,fd_make_cprim5("SET-COOKIE!",setcookie,2));
-  fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,2));
+  fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
 
   fd_idefn(module,fd_make_cprim1("CGICALL",cgicall,1));
   fd_idefn(module,fd_make_cprim2("CGIGET",cgiget,1));
