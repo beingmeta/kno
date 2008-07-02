@@ -701,7 +701,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
       apr_table_set(socketname_table,spec,buf);
       /* Setting it in the table will get it strdup'd so
 	 we just store it and return it from the table. */
-      if (check_directory(buf)<0) {
+      if (check_directory(buf)) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,r,
 	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
@@ -920,7 +920,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
     if ((socket_file)&&(socket_file[0]=='/')) {
       /* Absolute socket file name, just use it. */
       apr_table_set(socketname_table,spec,socket_file);
-      if (check_directory(r->pool,socket_file)<0) {
+      if (check_directory(r->pool,socket_file)) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,500,r,
 	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
@@ -942,7 +942,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 	 "Composed socket file name %s=%s+%s",
 	 socketpath,socket_prefix,socket_file);
       apr_table_set(socketname_table,spec,socketpath);
-      if (check_directory(r->pool,socket_file)<0) {
+      if (check_directory(r->pool,socket_file)) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,500,r,
 	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
@@ -970,7 +970,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
       apr_table_set(socketname_table,spec,buf);
       /* Setting it in the table will get it strdup'd so
 	 we just store it and return it from the table. */
-      if (check_directory(r->pool,buf)<0) {
+      if (check_directory(r->pool,buf)) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,500,r,
 	   "spawn get_sockname no directory socket_file=%s, socket_prefix=%s",
