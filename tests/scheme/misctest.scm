@@ -282,6 +282,8 @@
          (y `(q ,@x d e f)))
     x))
 
+(applytest '(A B C) splicetest)
+
 ;;; This tests that comments as arguments work
 
 (define errors {})
