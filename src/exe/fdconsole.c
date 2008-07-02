@@ -443,6 +443,8 @@ int main(int argc,char **argv)
 	u8_free(out.u8_outbuf);
 	u8_free_exception(ex,1);}
       else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}
+    else if (stat_line)
+      output_result(out,result,histref,is_histref);
     else stat_line=output_result(out,result,histref,is_histref);
     if (stat_line)
       if (histref<0)
