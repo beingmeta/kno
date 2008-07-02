@@ -85,17 +85,18 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 	      return insertion;}
 	  else if (FD_EMPTY_LISTP(insertion)) {}
 	  else if (FD_PAIRP(insertion)) {
-	    fdtype last=scan=insertion;
+	    fdtype copy=fd_deep_copy(insertion), last=scan=copy;
+	    fd_decref(insertion);
 	    while (FD_PAIRP(scan)) {last=scan; scan=FD_CDR(scan);}
 	    if (!(FD_PAIRP(last))) {
 	      u8_string details_string=u8_mkstring("RESULT=%q",elt);
 	      fdtype err; 
 	      err=fd_err(fd_SyntaxError,
 			 "splicing UNQUOTE for an improper list",
-			 details_string,insertion);
+			 details_string,copy);
 	      fd_decref(head); u8_free(details_string);
 	      return err;}
-	    else {*tail=insertion; tail=&(FD_CDR(last));}}
+	    else {*tail=copy; tail=&(FD_CDR(last));}}
 	  else {
 	    u8_string details_string=u8_mkstring("RESULT=%q",elt);
 	    fdtype err; 

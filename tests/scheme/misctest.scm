@@ -275,6 +275,13 @@
 
 (applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
 
+;;; Quasiquote oddness
+
+(define (splicetest)
+  (let* ((x '(a b c))
+         (y `(q ,@x d e f)))
+    x))
+
 ;;; This tests that comments as arguments work
 
 (define errors {})
