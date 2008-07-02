@@ -53,6 +53,8 @@ static int traceweb=0;
 
 static char *pidfile;
 
+static fd_exception CantWriteSocket=_("Can't write to socket");
+
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
 
@@ -705,6 +707,42 @@ static fdtype get_servlet_status()
 }
 
 
+/* Making sure you can write the socket file */
+
+static int mkdir_recursive(u8_string path,mode_t mode)
+{
+  if (u8_directoryp(path)) return 0;
+  else {
+    u8_string dirname=u8_dirname(path);
+    int retval=mkdir_recursive(dirname,mode);
+    u8_free(dirname);
+    if (retval<0) return -1;
+    retval=mkdir(u8_tolibc(path),mode);
+    if (retval<0) {
+      u8_graberr(retval,"mkdir_recursive",u8_strdup(path));
+      return retval;}
+    return 1;}
+}
+
+#define SOCKDIR_PERMISSIONS \
+  (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH)
+
+static int check_socket_path(char *sockarg)
+{
+  u8_string sockname=u8_fromlibc(sockarg);
+  u8_string sockdir=u8_dirname(sockname);
+  int retval=mkdir_recursive(sockdir,SOCKDIR_PERMISSIONS);
+  if (retval<0) {
+    u8_free(sockname);
+    return retval;}
+  else if (u8_file_writablep(sockname)) {
+    u8_free(sockname);
+    return retval;}
+  else {
+    u8_seterr(fd_CantWrite,"check_socket_path",sockname);
+    return -1;}
+}
+
 /* The main() event */
 
 static void doexit(int sig)
@@ -724,6 +762,11 @@ int main(int argc,char **argv)
   if (argc<2) {
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
+  
+  if ((strchr(argv[1],'@')) == NULL)
+    if (check_socket_path(argv[1])<0) {
+      u8_clear_errors(1);
+      return -1;}
   
   u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
 
