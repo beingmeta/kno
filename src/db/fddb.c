@@ -441,6 +441,8 @@ FD_EXPORT int fd_init_db()
   if (fddb_initialized) return fddb_initialized;
   fddb_initialized=211*fd_init_dtypelib();
 
+  fd_init_dtypelib();
+
   register_header_files();
   fd_register_source_file(versionid);
 
