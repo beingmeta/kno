@@ -23,7 +23,12 @@
 	((symbol? (get slotid '%id)) (symbol->string (get slotid '%id)))
 	(else (oid->string slotid))))
 
-(module-export! '{attrib-true? slotid->xmlval})
+(define goodoids
+  (macro expr
+    "Returns OID values with sensecats, prefetching the oids"
+    `(,pick (,fetchoids (,pickoids ,(cadr expr))) 'sensecat)))
+
+(module-export! '{attrib-true? slotid->xmlval goodoids})
 
 ;; Language related exports
 (module-export! '{getlanguages getlanguage get-languages get-language})
@@ -508,7 +513,8 @@
   (let* ((language (getopt opts 'language (get-language)))
 	 (inferlevel (getopt opts 'infer 1))
 	 (label (getopt opts 'label (translateoid slotid language)))
-	 (values (getopt opts 'value (pickoids (get+ concept slotid inferlevel))))
+	 (values (getopt opts 'value
+			 (goodoids (get+ concept slotid inferlevel))))
 	 (seen (getopt opts 'seen #f))
 	 (hide (getopt opts 'hide seen))
 	 (topvalues (getopt opts 'topvalues))
