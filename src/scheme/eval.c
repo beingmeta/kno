@@ -501,7 +501,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 	  return r;}
 	else {FD_ADD_TO_CHOICE(result,r);}}
       return result;}
-    else return fd_tail_eval(exprs);}
+    else return fd_tail_eval(exprs,env);}
   default:
     if (FD_PRIM_TYPEP(expr,fd_lexref_type))
       return fd_lexref(expr,env);
