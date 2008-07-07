@@ -735,7 +735,9 @@ static int check_socket_path(char *sockarg)
   if (retval<0) {
     u8_free(sockname);
     return retval;}
-  else if (u8_file_writablep(sockname)) {
+  else if ((u8_file_existsp(sockname)) ?
+	   (u8_file_writablep(sockname)) :
+	   (u8_file_writablep(sockdir))) {
     u8_free(sockname);
     return retval;}
   else {
