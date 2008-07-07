@@ -490,6 +490,18 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       return result;}}
   case fd_slotmap_type:
     return fd_deep_copy(expr);
+  case fd_choice_type: case fd_achoice_type: {
+    fdtype exprs=fd_simplify_choice(expr);
+    if (FD_CHOICEP(exprs)) {
+      fdtype result=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(each_expr,expr) {
+	fdtype r=fd_eval(each_expr,env);
+	if (FD_ABORTP(r)) {
+	  fd_decref(result);
+	  return r;}
+	else {FD_ADD_TO_CHOICE(result,r);}}
+      return result;}
+    else return fd_tail_eval(exprs);}
   default:
     if (FD_PRIM_TYPEP(expr,fd_lexref_type))
       return fd_lexref(expr,env);

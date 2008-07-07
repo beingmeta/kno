@@ -104,9 +104,9 @@ is the other number")
 
 (define expr-pat
   (textclosure
-   {(LSYMBOL)
-    #("(" (* {#(expr-pat (isspace+)) expr-pat}) ")")
-    }))
+   '{(LSYMBOL)
+     #("(" (* {#(expr-pat (isspace+)) expr-pat}) ")")
+     }))
 (applytest #t textmatch expr-pat "(foo bar baz)")
 (applytest #f textmatch expr-pat "(foo bar baz")
 (applytest #t textmatch expr-pat "(+ 33 44)")

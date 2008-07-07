@@ -32,13 +32,13 @@
 (define %loglevel 4)
 
 (define loglevel-init-map
-  {(DEBUG . 7) (DBG . 7) (INFO . 6)
-   (NOTICE . 5) (NOTE . 5) (NOTIFY . 5)
-   (WARN 4) (WARNING 4)
-   (ERROR 3) (ERR 3)
-   (ERROR 3) (ERR 3)
-   (CRITICAL 2) (CRIT 2)
-   (ALERT 1) (EMERGENCY 0) (EMERG 0)})
+  '{(DEBUG . 7) (DBG . 7) (INFO . 6)
+    (NOTICE . 5) (NOTE . 5) (NOTIFY . 5)
+    (WARN 4) (WARNING 4)
+    (ERROR 3) (ERR 3)
+    (ERROR 3) (ERR 3)
+    (CRITICAL 2) (CRIT 2)
+    (ALERT 1) (EMERGENCY 0) (EMERG 0)})
 
 (define loglevel-table
   (let ((table (make-hashtable)))
