@@ -865,9 +865,11 @@ fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
 	else {}
       if (found) return FD_TRUE;
       else return FD_FALSE;}
-    else if (fd_test(frames,slotids,values))
-      return FD_TRUE;
-    else return FD_FALSE;
+    else {
+      int testval=fd_test(frames,slotids,values);
+      if (testval<0) return FD_ERROR_VALUE;
+      else if (testval) return FD_TRUE;
+      else return FD_FALSE;}
   else {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {

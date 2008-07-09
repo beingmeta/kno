@@ -2354,9 +2354,9 @@ FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 	      fd_decref(values); return 1;}
 	    else fd_decref(values);}
 	  return 0;}
-      else return fd_err(fd_NoMethod,CantTest,NULL,arg);
-    else return fd_err(NotATable,"fd_test",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_test",NULL,arg);
+      else return fd_reterr(fd_NoMethod,CantTest,NULL,arg);
+    else return fd_reterr(NotATable,"fd_test",NULL,arg);
+  else return fd_reterr(fd_BadPtr,"fd_test",NULL,arg);
 }
 
 FD_EXPORT int fd_getsize(fdtype arg)
