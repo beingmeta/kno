@@ -138,14 +138,14 @@ if test $with_admin_group != "none"; then
   install_file_opts="-g $with_admin_group $install_file_opts"
   install_exe_opts="-g $with_admin_group $install_exe_opts"
   admin_group=$with_admin_group
-  admininstall=--group=$with_admin_group
+  admininstall="-g $with_admin_group"
 fi
 
 dnl Specifies a daemon identity user/group for managed FramerD servers
 AC_ARG_WITH(fdaemon,--with-fdaemon The identity for FramerD servers to run,,with_fdaemon=$default_fdaemon)
 fdaemon=$with_fdaemon
 if test $with_fdaemon != "none"; then
-   fdaemoninstall="--owner=$with_fdaemon"
+   fdaemoninstall="-o $with_fdaemon"
 fi
 
 dnl Specifies the user which the Web server runs as
