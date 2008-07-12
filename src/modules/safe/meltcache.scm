@@ -98,7 +98,7 @@
 		    "for meltentry"
 		    (if trace-values (printout ": " newv)))))
     ;; If the value is a meltentry, we just use that
-    (if (meltentry? newv) newv
+    (if (and (exists? newv) (meltentry? newv)) newv
 	(cons-meltentry (if (error? newv) {} newv)
 			(cond ((not entry) (now))
 			      ((identical? (meltentry-value entry) newv)
