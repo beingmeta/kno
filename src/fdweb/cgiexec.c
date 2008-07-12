@@ -768,6 +768,15 @@ static fdtype cgiadd(fdtype var,fdtype value)
   return FD_VOID;
 }
 
+static fdtype cgidrop(fdtype var,fdtype value)
+{
+  fdtype table=get_cgidata();
+  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
+  fd_drop(table,var,value);
+  fd_decref(table);
+  return FD_VOID;
+}
+
 static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
 {
   fdtype table=get_cgidata();
@@ -800,6 +809,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGITEST",cgitest,1)));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGISET!",cgiset,2)));
   fd_idefn(module,fd_make_cprim2("CGIADD!",cgiadd,2));
+  fd_idefn(module,fd_make_cprim2("CGIDROP!",cgidrop,1));
   fd_defspecial(module,"CGIVAR",cgivar_handler);
   
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);

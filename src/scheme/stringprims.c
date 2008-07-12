@@ -249,13 +249,20 @@ static fdtype downcase1(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
-static fdtype string_stdspace(fdtype string)
+static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
 {
+  int keep_vertical=FD_TRUEP(keep_vertical_arg);
   u8_byte *scan=FD_STRDATA(string); int c, white=1;
   struct U8_OUTPUT out;
   U8_INIT_OUTPUT(&out,64);
   while ((c=u8_sgetc(&scan))>=0) {
-    if (u8_isspace(c))
+    if ((keep_vertical) && ((c=='\n') && (*scan=='\n'))) {
+      u8_putc(&out,c); u8_putc(&out,c); scan++; white=1;}
+    else if ((keep_vertical) &&
+	     ((c==0xB6) || (c==0x0700) ||(c==0x10FB) ||
+	      (c==0x1368) || (c==0x2029))) {
+      u8_putc(&out,c); white=1;}
+    else if (u8_isspace(c))
       if (white) {}
       else {u8_putc(&out,' '); white=1;}
     else {white=0; u8_putc(&out,c);}}
@@ -781,8 +788,8 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim1x("COMPOUND?",string_compoundp,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("STDSPACE",string_stdspace,1,
-			   fd_string_type,FD_VOID));
+	   fd_make_cprim2x("STDSPACE",string_stdspace,1,
+			   fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("STDSTRING",string_stdstring,1,
 			   fd_string_type,FD_VOID));
