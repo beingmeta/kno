@@ -1,4 +1,4 @@
-;;; -*- Mode: fdscript; text-encoding: latin-1 -*-
+;;; -*- Mode: Scheme; text-encoding: latin-1 -*-
 
 (load-component "common.scm")
 
@@ -275,6 +275,23 @@
 
 (applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
 
+;;; This catches "leaks" in optional arguments
+
+;;; In the error case we're testing for, each call to testfn increfs
+;;; constval but fails to decref it.  Eventually this overflows the 
+;;; refcount field in the string struct.
+
+(define constval "const string")
+(define (testfn x (y constval))
+  x)
+(define (testoptfree)
+  (message "Running big TESTOPTFREE test")
+  ;; This is enough to overflow the refcount for 32-bit consdata
+  (dotimes (i 17000000) (testfn "bar"))
+  (message "Finished big TESTOPTFREE test (whew)")
+  #t)
+(applytest #t testoptfree)
+
 ;;; Quasiquote oddness
 
 (define (splicetest)
@@ -318,6 +335,4 @@
 		    " Errors during MISCTSEST")
 	   (error 'tests-failed))
     (message "MISCTEST successfuly completed"))
-
-
 

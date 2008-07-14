@@ -408,17 +408,16 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);
     else {
       /* This code handles argument defaults for sprocs */
-      int i=0;
-      free_vals=1; bindings.values=vals=
-		     u8_alloc_n(fn->n_vars,fdtype); ;
+      int i=0; free_vals=1;
+      bindings.values=vals=u8_alloc_n(fn->n_vars,fdtype);
       {FD_DOLIST(arg,fn->arglist)
-	 if (i<n) {vals[i]=args[i]; i++;}
-	 else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
-	   /* This code handles argument defaults for sprocs */
-	   fdtype default_expr=FD_CADR(arg);
-	   fdtype default_value=fd_eval(default_expr,fn->env);
-	   vals[i]=default_value; i++;}
-	 else vals[i++]=FD_VOID;}
+	  if (i<n) {vals[i]=args[i]; i++;}
+	  else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
+	    /* This code handles argument defaults for sprocs */
+	    fdtype default_expr=FD_CADR(arg);
+	    fdtype default_value=fd_eval(default_expr,fn->env);
+	    vals[i]=default_value; i++;}
+	  else vals[i++]=FD_VOID;}
       assert(i==fn->n_vars);}
   else { /* We have a lexpr */
     int i=0, j=n-1;
@@ -450,7 +449,10 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->synchronized) fd_unlock_struct(fn);
   fd_destroy_rwlock(&(bindings.rwlock));
   fd_decref(lexpr_arg);
-  if (free_vals) u8_free(vals);
+  if (free_vals) {
+    int i=n, lim=fn->n_vars; while (i<lim) {
+      fd_decref(vals[i]); i++;}
+    u8_free(vals);}
   if (envstruct.copy)
     fd_recycle_environment(envstruct.copy);
   return result;
