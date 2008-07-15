@@ -851,6 +851,13 @@ static fdtype get_threadtable()
     u8_tld_set(threadtable_key,(void*)table);
     return table;}
 }
+FD_EXPORT void fd_reset_threadvars()
+{
+  fdtype table=(fdtype)u8_tld_get(threadtable_key);
+  fdtype new_table=fd_init_slotmap(NULL,0,NULL);
+  u8_tld_set(threadtable_key,(void*)new_table);
+  fd_decref(table);
+}
 #elif FD_THREADS_ENABLED
 static fdtype __thread thread_table=FD_VOID;
 static fdtype get_threadtable()
@@ -858,12 +865,24 @@ static fdtype get_threadtable()
   if (FD_TABLEP(thread_table)) return thread_table;
   else return (thread_table=fd_init_slotmap(NULL,0,NULL));
 }
+FD_EXPORT void fd_reset_threadvars()
+{
+  fdtype table=thread_table;
+  thread_table=fd_init_slotmap(NULL,0,NULL);
+  fd_decref(table);
+}
 #else
 static fdtype thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
   else return (thread_table=fd_init_slotmap(NULL,0,NULL));
+}
+FD_EXPORT void fd_reset_threadvars()
+{
+  fdtype table=thread_table;
+  thread_table=fd_init_slotmap(NULL,0,NULL);
+  fd_decref(table);
 }
 #endif
 

@@ -487,6 +487,8 @@ static int webservefn(u8_client ucl)
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
+  /* Do this ASAP to avoid session leakage */
+  fd_reset_threadvars();
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;

@@ -212,12 +212,15 @@ static int dtypeserver(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
   fdtype expr;
+  /* Do this ASAP to avoid session leakage */
+  fd_reset_threadvars();
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
   if (client->stream.id==NULL) {
     if (client->idstring)
       client->stream.id=u8_strdup(client->idstring);
     else client->stream.id=u8_strdup("anonymous");}
+  /* Get the expr */
   expr=fd_dtsread_dtype(&(client->stream));
   if (expr == FD_EOD) {
     u8_client_close(ucl);
