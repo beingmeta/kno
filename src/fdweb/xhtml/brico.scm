@@ -507,37 +507,66 @@
       (xmlout))))
 |#
 
+;;; VALUES selection
+
+(defambda (somevalues values opts)
+  (let* ((seen (getopt opts 'seen #f))
+	 (hide (getopt opts 'hide seen))
+	 (topvalues (getopt opts 'topvalues))
+	 (showvalues (if hide
+			 (reject (difference values topvalues) hide)
+			 values))
+	 (limit (getopt opts 'limit #f))
+	 (sortfn (getopt opts 'sortby getabsfreq))
+	 (sortmax (getopt opts 'sortmax #f)))
+    (append (rsorted (intersection topvalues values) sortfn)
+	    (if (and limit (> (choice-size showvalues) limit))
+		(if (and sortmax (> (choice-size showvalues) sortmax))
+		    (choice->vector (pick-n showvalues limit))
+		    (subseq (rsorted showvalues sortfn) 0 limit))
+		(rsorted showvalues sortfn)))))
+
+(defambda (getsome concept slotid opts)
+  (let* ((inferlevel (getopt opts 'infer 1))
+	 (seen (getopt opts 'seen #f))
+	 (values (getopt opts 'value
+			 (goodoids (get+ concept slotid inferlevel))))
+	 (hide (getopt opts 'hide seen))
+	 (topvalues (getopt opts 'topvalues))
+	 (showvalues (if hide
+			 (reject (difference values topvalues) hide)
+			 values))
+	 (limit (getopt opts 'limit #f))
+	 (sortfn (getopt opts 'sortby getabsfreq))
+	 (sortmax (getopt opts 'sortmax #f)))
+    (append (rsorted (intersection topvalues values) sortfn)
+	    (if (and limit (> (choice-size showvalues) limit))
+		(if (and sortmax (> (choice-size showvalues) sortmax))
+		    (choice->vector (pick-n showvalues limit))
+		    (subseq (rsorted showvalues sortfn) 0 limit))
+		(rsorted showvalues sortfn)))))
+
+(module-export! '{somevalues getsome})
+
 ;;; SHOWSLOT
 
 (define (showslot elt concept slotid (opts #[]))
   (let* ((language (getopt opts 'language (get-language)))
 	 (inferlevel (getopt opts 'infer 1))
 	 (label (getopt opts 'label (translateoid slotid language)))
-	 (values (getopt opts 'value
-			 (goodoids (get+ concept slotid inferlevel))))
 	 (seen (getopt opts 'seen #f))
-	 (hide (getopt opts 'hide seen))
-	 (topvalues (getopt opts 'topvalues))
-	 (showvalues (if hide
-			 (reject (difference values topvalues) hide)
-			 values))
 	 (anchorify (getopt opts 'anchorify))
-	 (limit (getopt opts 'limit #f))
-	 (sortfn (getopt opts 'sortby getabsfreq))
-	 (showvec (append (rsorted (intersection topvalues values) sortfn)
-			  (if (and limit (> (choice-size showvalues) limit))
-			      (subseq (rsorted showvalues sortfn) 0 limit)
-			      (rsorted showvalues sortfn))))
 	 (browse (getopt opts 'browse))
-	 (nobrowse (getopt opts 'nowbrowse #f)))
+	 (nobrowse (getopt opts 'nowbrowse #f))
+	 (showvec (cachecall getsome concept slotid opts)))
     ;; (xmlout slotid (get (within-module 'i18n translations) slotid))
     ;; (xmlout slotid " " language " " (translateoid slotid language))
     (when (or (> (length showvec) 0) (getopt opts 'showempty #f))
-      (when seen (hashset-add! seen showvalues))
+      (when seen (hashset-add! seen (elts showvec)))
       (xmlblock
 	  `(,elt (class ,(getopt opts 'class "slot"))
 		 (slotid ,(slotid->xmlval slotid)))
-	  (if browse 
+	  (if browse
 	      (anchor* (if (string? browse) browse (browse concept slotid))
 		  ((class "label")
 		   (title (string-append "click to browse" ": "
