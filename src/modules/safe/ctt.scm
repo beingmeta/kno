@@ -8,6 +8,7 @@
 (module-export!
  '{ctt
    cttbody cttsimple withctt
+   ctt/call ctt/starting ctt/finished
    get-ctt-state
    cttdatum cttreport
    cttsummary cttline cttdata})
@@ -99,6 +100,13 @@
       `(let ((_ctt_start (ct/sense)))
 	 (prog1 (begin ,@body) (,cttdatum _ctt_start (ct/sense) ',name))))))
 
+(define ctt/call
+  (macro expr
+    (let* ((inner (second expr))
+	   (label (first inner)))
+      `(let ((_ctt_start (,ct/sense)))
+	 (prog1 ,inner (,cttdatum _ctt_start (,ct/sense) ',label))))))
+
 (define withctt
   (macro expr
     (let ((name (second expr))
@@ -113,6 +121,26 @@
 	  (body-expr (second expr)))
       `(let ((_ctt_start (ct/sense)))
 	 (prog1 ,body-expr (,cttreport _ctt_start (ct/sense) ',name))))))
+
+;;; Phase functions
+
+(define (ctt/starting phase . args)
+  (let* ((table (threadget 'ctt/phases))
+	 (phasekey (if (null? args) phase (cons phase args)))
+	 (datum (get table phasekey)))
+    (when (fail? table)
+      (set! table (make-hashtable))
+      (threadset! 'ctt/phases table))
+    (if (fail? datum) (store! table phasekey (ct/sense)))))
+
+(define (ctt/finished phase . args)
+  (let* ((table (threadget 'ctt/phases))
+	 (phasekey (if (null? args) phase (cons phase args)))
+	 (datum (get table phasekey)))
+    (if (exists? datum)
+	(begin (cttdatum datum (ct/sense) phasekey)
+	       (drop! table phasekey))
+	(warning "CTT/STOP of inactive phase " phasekey))))
 
 ;;; Summary functions
 
