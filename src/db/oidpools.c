@@ -44,6 +44,7 @@ static int recover_oidpool(struct FD_OIDPOOL *);
 
 static struct FD_POOL_HANDLER oidpool_handler;
 
+fd_exception fd_InvalidSchemaDef=_("Invalid schema definition data");
 fd_exception fd_InvalidSchemaRef=_("Invalid encoded schema reference");
 fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value data");
 
@@ -483,7 +484,11 @@ static int init_schemas(fd_oidpool op,fdtype schema_vec)
     struct FD_SCHEMA_LOOKUP *schbyval=u8_alloc_n(n,FD_SCHEMA_LOOKUP);
     while (i<n) {
       fdtype slotids=FD_VECTOR_REF(schema_vec,i);
-      int n_slotids=FD_VECTOR_LENGTH(slotids);
+      int n_slotids;
+      if (FD_VECTORP(slotids)) n=FD_VECTOR_LENGTH(slotids);
+      else {
+	u8_free(schemas); u8_free(schbyval);
+	return fd_reterr(fd_InvalidSchemaDef,"oidpool/init_schemas",NULL,schema_vec);}
       if (n_slotids>max_slotids) max_slotids=n_slotids;
       init_schema_entry(&(schemas[i]),i,slotids);
       schbyval[i].id=i; schbyval[i].n_slotids=n_slotids;

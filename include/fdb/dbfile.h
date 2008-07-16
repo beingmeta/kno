@@ -122,6 +122,9 @@ FD_EXPORT int fd_make_oidpool
    unsigned int flags,fdtype schemas_init,fdtype metadata_init,
    time_t ctime,time_t mtime,int cycles);
 
+FD_EXPORT fd_exception fd_InvalidSchemaDef;
+FD_EXPORT fd_exception fd_InvalidSchemaRef;
+FD_EXPORT fd_exception fd_SchemaInconsistency;
 
 /* File indices */
 
