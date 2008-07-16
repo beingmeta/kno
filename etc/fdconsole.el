@@ -65,6 +65,8 @@
 (put 'xmlblock 'scheme-indent-function 2)
 (put 'xmlblockn 'scheme-indent-function 2)
 (put 'xmlelt 'scheme-indent-function 0)
+(put 'scripturl 'scheme-indent-function 1)
+(put 'fdscripturl 'scheme-indent-function 1)
 
 (put 'soapenvelope 'scheme-indent-function 2)
 
