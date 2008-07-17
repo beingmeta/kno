@@ -2721,7 +2721,13 @@ int fd_numcompare(fdtype x,fdtype y)
     fdtype difference=fd_subtract(x,y);
     int sgn=signum(difference);
     fd_decref(difference);
-    return sgn;}
+    if (sgn==0)
+      if ((xt==fd_double_type) || (yt==fd_double_type)) 
+	/* If either argument is inexact (double), don't return =, unless
+	   both are inexact (which is handled above) */
+	if (xt<yt) return -1; else return 1;
+      else return sgn;
+    else return sgn;}
 }
 
 /* Exact/inexact conversion */
