@@ -6,13 +6,23 @@
 
 (define version "$Id$")
 
-(module-export! '{get% interval-string short-interval-string
+(module-export! '{get% show%
+		       interval-string short-interval-string
 		       printnum numstring})
 
 ;; Percentages
 
-(define (get% num den (prec 2))
-  (inexact->string (/ (* num 100.0) den) prec))
+(define (get% num (den #f) (prec 2))
+  (if den
+      (inexact->string (/ (* num 100.0) den) prec)
+      (inexact->string (* num 100.0) prec)))
+
+(define (show% num (den #f) (prec 2))
+  (printout
+    (if den
+	(inexact->string (/ (* num 100.0) den) prec)
+	(inexact->string (* num 100.0) prec))
+    "%"))
 
 ;; Temporal intervals
 
