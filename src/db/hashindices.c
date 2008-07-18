@@ -2354,11 +2354,12 @@ static int recover_hash_index(struct FD_HASH_INDEX *hx)
 static void hash_index_close(fd_index ix)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  unsigned int chunk_ref_size=get_chunk_ref_size(hx);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->cid);
   fd_lock_struct(hx);
-  fd_dtsclose(&(hx->stream),1);
   if (hx->offdata) {
 #if HAVE_MMAP
-    int retval=munmap(hx->offdata-64,(sizeof(FD_CHUNK_REF)*hx->n_buckets)+256);
+    int retval=munmap(hx->offdata-64,(sizeof(unsigned int)*chunk_ref_size*hx->n_buckets)+256);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),"hash_index_close:munmap %s",hx->source);
       errno=0;}
@@ -2367,6 +2368,8 @@ static void hash_index_close(fd_index ix)
 #endif
     hx->offdata=NULL;
     hx->cache_level=-1;}
+  fd_dtsclose(&(hx->stream),1);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->cid);
   fd_unlock_struct(hx);
 }
 
