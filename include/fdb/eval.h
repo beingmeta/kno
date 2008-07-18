@@ -254,6 +254,9 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
   case fd_cons_ptr_type:
     if (FD_PTR_TYPEP(x,fd_pair_type))
       return fd_tail_eval(x,env);
+    else if ((FD_PTR_TYPEP(x,fd_choice_type)) ||
+	     (FD_PTR_TYPEP(x,fd_achoice_type)))
+      return fd_eval(x,env);
     else return fd_incref(x);
   default: /* Never reached */
     return x;
