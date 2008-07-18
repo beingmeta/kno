@@ -196,7 +196,10 @@
 		       (dotighten
 			((%get (get module '%rewrite) head) expr)
 			env bound dolex))
-		      ((or (applicable? value) (opcode? value))
+		      ((or (applicable? value) (opcode? value)
+			   (and (ambiguous? value)
+				(singleton? (applicable? value))
+				(applicable? value)))
 		       (when (and optdowarn (fcn? value))
 			 (when (and (fcn-min-arity value) (< n-exprs (fcn-min-arity value)))
 			   (codewarning (list 'TOOFEWARGS expr value))
@@ -204,16 +207,23 @@
 			 (when (and (fcn-arity value) (> n-exprs (fcn-arity value)))
 			   (codewarning (list 'TOOMANYARGS expr value))
 			   (warning "The call to " expr " provides too many arguments for " value)))
-		       (cons (map-opcode
-			      (cond ((not from) value)
-				    ((test from '%nosubst head) head)
-				    ((test from '%volatile head) `(,%get ,from ',head))
-				    (else value))
-			      n-exprs)
+		       (cons (qc (map-opcode
+				  (cond ((not from) value)
+					((test from '%nosubst head) head)
+					((test from '%volatile head) `(,%get ,from ',head))
+					(else value))
+				  n-exprs))
 			     (map (lambda (x)
 				    (if (empty? x) x
 					(dotighten (qc x) env bound dolex)))
 				  (cdr expr))))
+		      ((ambiguous? value)
+		       ;; Theoretically, we could possibly apply the special form optimizers, but
+		       ;;  it's not worth it.
+		       (when (and (applicable? value)
+				  (not (singleton? (applicable? value))))
+			 (warning "Inconsistent ND call (mixed special/applicable)"))
+		       (cons (qc value) (cdr expr)))
 		      ((special-form? value)
 		       (let ((tightener (try (get special-form-tighteners value)
 					     (get special-form-tighteners (fcn-name value)))))
