@@ -96,11 +96,12 @@ static fdtype chain_prim(int n,fdtype *args)
       u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
       cargv[cargc++]=configs[i++];}
     cargv[cargc++]=NULL;
-    u8_log(LOG_NOTICE,"CHAIN",">> %s%s",u8_fromlibc(file_arg),argstring.u8_outbuf);
-    u8_free(argstring.u8_outbuf);
     fflush(stdout); fflush(stderr);
+    u8_log(LOG_INFO,"CHAIN","Closing pools and indices");
     fd_close_pools();
     fd_close_indices();
+    u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
+    u8_free(argstring.u8_outbuf);
     return execvp(exe_arg,cargv);}
 }
 
