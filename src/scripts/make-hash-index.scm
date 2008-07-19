@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(config! 'cachelevel 2)
+(unless (>= (config 'cachelevel) 2) (config! 'cachelevel 2))
 (use-module 'optimize)
 
 (define (get-baseoids-from-base base capacity)
