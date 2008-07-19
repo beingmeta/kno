@@ -485,7 +485,7 @@ static int init_schemas(fd_oidpool op,fdtype schema_vec)
     while (i<n) {
       fdtype slotids=FD_VECTOR_REF(schema_vec,i);
       int n_slotids;
-      if (FD_VECTORP(slotids)) n=FD_VECTOR_LENGTH(slotids);
+      if (FD_VECTORP(slotids)) n_slotids=FD_VECTOR_LENGTH(slotids);
       else {
 	u8_free(schemas); u8_free(schbyval);
 	return fd_reterr(fd_InvalidSchemaDef,"oidpool/init_schemas",NULL,schema_vec);}
