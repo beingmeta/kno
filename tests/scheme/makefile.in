@@ -173,6 +173,22 @@ memdbtests:
 	@echo "***" Running tests on database layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 
+heaptests:
+	@echo "***" Running alltests with tcmalloc memory debugging
+	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 alltests
+
+heapdtypetests:
+	@echo "***" Running tests on data/eval layers with tcmalloc memory debugging
+	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dtypetests
+
+heaptabletests:
+	@echo "***" Running tests on table/index layers with tcmalloc memory debugging
+	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 tabletests
+
+heapdbtests:
+	@echo "***" Running tests on database layers with tcmalloc memory debugging
+	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+
 randomtests:
 	@echo "***" Running alltests with a really random seed
 	make "TESTCONFIG=RANDOMSEED=TIME" alltests

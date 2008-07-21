@@ -35,6 +35,9 @@ all: $(TESTBIN)
 
 memtests:
 	make "TESTPROG=$(VALGRIND)" mosttests
+# Use tcmalloc heap checking
+heaptests:
+	make "RUNENV=HEAPCHECK=normal" mosttests
 alltests: dtypetests choicetests mergechoicetests \
 		tabletests slotmaptests slotmaptests2
 #		smallbricotests mediumbricotests bigbricotests
