@@ -89,18 +89,21 @@
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
+		   (_startu (rusage))
 		   (_prep_time 0)
 		   (_post_time 0))
 	       (do-subsets (_block _choice _blocksize _blockno)
 		 (let ((_blockstart (elapsed-time))
+		       (_phaseu #f)
 		       (_prep_done #f)
 		       (_core_done #f)
 		       (_post_done #f))
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (choice-size _choice) _nthreads
+		      (choice-size _choice) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time #f #f #f))
+		   (set! _phaseu (rusage))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #f))
 			 ((and (vector? _blockproc) (> (length _blockproc) 0)
@@ -110,18 +113,20 @@
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (choice-size _choice) _nthreads
+		      (choice-size _choice) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart) #f #f))
+		   (set! _phaseu (rusage))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (set! _core_done (elapsed-time))
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (choice-size _choice) _nthreads
+		      (choice-size _choice) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart)
 		      (- _core_done _prep_done) #f))
+		   (set! _phaseu (rusage))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
@@ -131,7 +136,7 @@
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (choice-size _choice) _nthreads
+		      (choice-size _choice) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart) (- _core_done _prep_done)
 		      (- _post_done _core_done)))
@@ -144,7 +149,7 @@
 		      ((elt _blockproc 1) (qc) #t)))
 	       (when _progressfn
 		 (_progressfn
-		  (choice-size _choice) 0 (choice-size _choice) _nthreads
+		  (choice-size _choice) 0 (choice-size _choice) _nthreads _startu #f
 		  (elapsed-time _start) _prep_time _post_time 
 		  #f #f #f))))))))
 
@@ -170,20 +175,23 @@
 		   (_bodyproc (lambda (,arg) ,@(cdr (cdr expr))))
 		   (_nthreads ,n-threads)
 		   (_start (elapsed-time))
+		   (_startu (rusage))
 		   (_prep_time 0)
 		   (_post_time 0))
 	       (dotimes (_blockno (1+ (quotient (length _vec) _blocksize)))
 		 (let ((_block (elts _vec (* _blockno _blocksize)
 				     (min (* (1+ _blockno) _blocksize) (length _vec))))
 		       (_blockstart (elapsed-time))
+		       (_phaseu #f)
 		       (_prep_done #f)
 		       (_core_done #f)
 		       (_post_done #f))
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (length _vec) _nthreads
+		      (length _vec) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time #f #f #f))
+		   (set! _phaseu (rusage))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #f))
 			 ((and (vector? _blockproc) (> (length _blockproc) 0)
@@ -193,18 +201,20 @@
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (length _vec) _nthreads
+		      (length _vec) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart) #f #f))
+		   (set! _phaseu (rusage))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (set! _core_done (elapsed-time))
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (length _vec) _nthreads
+		      (length _vec) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart)
 		      (- _core_done _prep_done) #f))
+		   (set! _phaseu (rusage))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
@@ -214,7 +224,7 @@
 		   (when _progressfn
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
-		      (length _vec) _nthreads
+		      (length _vec) _nthreads  _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart) (- _core_done _prep_done)
 		      (- _post_done _core_done)))
@@ -228,6 +238,7 @@
 	       (when _progressfn
 		 (_progressfn
 		  (length _vec) 0 (length _vec) _nthreads
+		   _startu #f
 		  (elapsed-time _start) _prep_time _post_time 
 		  #f #f #f))))))))
 
@@ -248,7 +259,13 @@
 	      "Processing " limit " items in one chunk using "
 	      nthreads (if (= nthreads 1) " thread" " threads"))))
 
-(define (default-progress-report count thisblock limit nthreads
+(define (showcpusage startu phaseu)
+  (when (and startu phaseu)
+    (printout ", cpusage=" (show% (cpusage phaseu) 100)
+	      "/" (show% (cpusage startu) 100) " (phase/total)")))
+
+(define (default-progress-report
+	  count thisblock limit nthreads startu phaseu
 	  time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
@@ -286,18 +303,21 @@
 		   "+ " (short-interval-string blocktime)
 		   " (" (get% blocktime total) "%) "
 		   "+ " (short-interval-string blockpost)
-		   " (" (get% blockpost total) "%)")))
+		   " (" (get% blockpost total) "%)"
+		   (if (and startu phaseu) (showcpusage startu phaseu)))))
 	(blocktime
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished core processing of " (printnum thisblock)
 		 " items in " (short-interval-string blocktime)
-		 " using " nthreads (if (= nthreads 1) " thread" " threads")))
+		 " using " nthreads (if (= nthreads 1) " thread" " threads")
+		 (if (and startu phaseu) (showcpusage startu phaseu))))
 	(blockprep)
 	(else)))
 (define mt/default-progress default-progress-report)
 
-(define (mt/sparse-progress count thisblock limit nthreads
-	  time preptime posttime blockprep blocktime blockpost)
+(define (mt/sparse-progress
+	 count thisblock limit nthreads startu phaseu
+	 time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Processed all " (printnum limit) " elements "
@@ -330,7 +350,7 @@
 	(else)))
 
 (define (mt/detailed-progress
-	 count thisblock limit nthreads
+	 count thisblock limit nthreads startu phaseu
 	 time preptime posttime blockprep blocktime blockpost)
   (cond ((= count limit)
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
@@ -371,24 +391,29 @@
 		   "+ " (short-interval-string blocktime)
 		   " (" (get% blocktime total) "%) "
 		   "+ " (short-interval-string blockpost)
-		   " (" (get% blockpost total) "%)")))
+		   " (" (get% blockpost total) "%)"
+		   (if (and startu phaseu) (showcpusage startu phaseu)))))
 	(blocktime
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished execution for " (printnum thisblock) " items in "
-		 (short-interval-string blocktime)))
+		 (short-interval-string blocktime)
+		 (if (and startu phaseu) (showcpusage startu phaseu))))
 	(blockprep
 	 (notify (if (config 'appid) (printout (config 'appid) ": "))
 		 "Finished preparation for " (printnum thisblock) " items in "
-		 (short-interval-string blockprep)))
+		 (short-interval-string blockprep)
+		 (if (and startu phaseu) (showcpusage startu phaseu))))
 	(else)))
 
-(define (mt/noprogress count thisblock limit nthreads
-	  time preptime posttime blockprep blocktime blockpost))
-(define (mt/no-progress count thisblock limit nthreads
-	  time preptime posttime blockprep blocktime blockpost))
+(define (mt/noprogress
+	 count thisblock limit nthreads startu phaseu
+	 time preptime posttime blockprep blocktime blockpost))
+(define (mt/no-progress
+	 count thisblock limit nthreads startu phaseu
+	 time preptime posttime blockprep blocktime blockpost))
 
 (define (mt/custom-progress task)
-  (lambda (count thisblock limit nthreads
+  (lambda (count thisblock limit nthreads startu phaseu
 		 time preptime posttime blockprep blocktime blockpost)
     (cond ((= count limit)
 	   (notify task ": finished all " (printnum limit) " elements "
