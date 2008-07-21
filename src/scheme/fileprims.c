@@ -854,7 +854,6 @@ static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime)
     if ((strcmp(filename,scan->filename))==0) {
       if (env!=scan->env) {
 	fd_decref((fdtype)(scan->env)); scan->env=env;}
-      u8_free(filename);
       scan->mtime=mtime;
       fd_unlock_mutex(&load_record_lock);
       return;}
