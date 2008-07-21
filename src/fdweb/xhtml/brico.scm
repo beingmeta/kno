@@ -410,14 +410,22 @@
 (define (title-gloss?)
   (try (threadget 'titlegloss) title-gloss))
 
+(define (trim-gloss string)
+  (if (position #\u00b6 string)
+      (subseq string 0 (position #\u00b6 string))
+      (if (search "\n\n" string)
+	  (subseq string 0 (search "\n\n" string))
+	  string)))
+
 (define (concept->html tag (language #f) (var #f) (selected))
   (let* ((oid (if (and (pair? tag) (exists oid? (cdr tag)))
 		  (cdr tag)
 		  (and (oid? tag) tag)))
 	 (language (or language (get-language)))
 	 (dterm (tryif oid (dterm-fcn oid language)))
-	 (gloss (tryif oid (pick-one (smallest (get-gloss oid language)
-					       length))))
+	 (gloss (tryif oid
+		       (trim-gloss (pick-one (smallest (get-gloss oid language)
+						       length)))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
 		       ((get-label-fcn) oid language))))
@@ -443,8 +451,8 @@
 		  (and (oid? tag) tag)))
 	 (language (or language (get-language)))
 	 (dterm (tryif oid (dterm-fcn oid language)))
-	 (gloss (pick-one
-		 (tryif oid (smallest (get-gloss oid language) length))))
+	 (gloss (trim-gloss (pick-one
+			     (tryif oid (smallest (get-gloss oid language) length)))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
 		       ((get-label-fcn) oid language))))
