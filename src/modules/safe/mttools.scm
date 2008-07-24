@@ -32,9 +32,10 @@
 ;;; Utility functions
 
 (define (legacy-blockproc proc)
-  (if (= (fcn-arity proc) 1)
-      (lambda (args done) (unless done (proc (qc args))))
-      proc))
+  (and proc
+       (if (= (fcn-arity proc) 1)
+	   (lambda (args done) (unless done (proc (qc args))))
+	   proc)))
 
 (define (nrange start end)
   (if (>= start end) (fail)
@@ -110,13 +111,13 @@
 			       (,procedure? (elt _blockproc 0)))
 			  ((elt _blockproc 0) (qc _block))))
 		   (set! _prep_done (elapsed-time))
-		   (when _progressfn
+		   (when (and _progressfn _blockproc)
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
 		      (choice-size _choice) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart) #f #f))
-		   (set! _phaseu (rusage))
+		   (when _blockproc (set! _phaseu (rusage)))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (set! _core_done (elapsed-time))
 		   (when _progressfn
@@ -126,14 +127,14 @@
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart)
 		      (- _core_done _prep_done) #f))
-		   (set! _phaseu (rusage))
+		   (when _blockproc (set! _phaseu (rusage)))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
 			       (,procedure? (elt _blockproc 1)))
 			  ((elt _blockproc 1) (qc _block))))
 		   (set! _post_done (elapsed-time))
-		   (when _progressfn
+		   (when (and _blockproc _progressfn)
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
 		      (choice-size _choice) _nthreads _startu _phaseu
@@ -198,13 +199,13 @@
 			       (,procedure? (elt _blockproc 0)))
 			  ((elt _blockproc 0) (qc _block))))
 		   (set! _prep_done (elapsed-time))
-		   (when _progressfn
+		   (when (and _blockproc _progressfn)
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
 		      (length _vec) _nthreads _startu _phaseu
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart) #f #f))
-		   (set! _phaseu (rusage))
+		   (when _blockproc (set! _phaseu (rusage)))
 		   (,mt-apply _nthreads _bodyproc (qc _block))
 		   (set! _core_done (elapsed-time))
 		   (when _progressfn
@@ -214,14 +215,14 @@
 		      (elapsed-time _start) _prep_time _post_time 
 		      (- _prep_done _blockstart)
 		      (- _core_done _prep_done) #f))
-		   (set! _phaseu (rusage))
+		   (when _blockproc (set! _phaseu (rusage)))
 		   (cond ((not _blockproc))
 			 ((,procedure? _blockproc) (_blockproc (qc _block) #t))
 			 ((and (vector? _blockproc) (> (length _blockproc) 1)
 			       (,procedure? (elt _blockproc 1)))
 			  ((elt _blockproc 1) (qc _block))))
 		   (set! _post_done (elapsed-time))
-		   (when _progressfn
+		   (when (and _blockproc _progressfn)
 		     (_progressfn
 		      (* _blockno _blocksize) (choice-size _block)
 		      (length _vec) _nthreads  _startu _phaseu
