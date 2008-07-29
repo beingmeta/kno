@@ -347,6 +347,10 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
+lib/cmodules/odbc.so.3: src/cmodules/odbc.o
+	$(MKSO) `curl-config --libs` -o $@ $^ -lodbc
+lib/cmodules/odbc.so: lib/cmodules/odbc.so.3
+
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/fdb.mo: etc/intl/%.gmo
