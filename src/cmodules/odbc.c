@@ -170,7 +170,7 @@ static fdtype get_colvalue(SQLHSTMT stmt,int i,int sqltype,int colsize)
   case SQL_CHAR: case SQL_VARCHAR: {
     u8_byte *data=u8_malloc(colsize+1);
     int ret=SQLGetData(stmt,i+1,SQL_C_CHAR,data,colsize+1,NULL);
-    return fd_init_string(NULL,colsize,data);}
+    return fd_init_string(NULL,-1,data);}
   case SQL_INTEGER: case SQL_SMALLINT: {
     long intval;
     int ret=SQLGetData(stmt,i+1,SQL_C_LONG,&intval,0,NULL);
@@ -184,9 +184,20 @@ static fdtype get_colvalue(SQLHSTMT stmt,int i,int sqltype,int colsize)
 }
 
 
+static fdtype intern_upcase(u8_output out,u8_string s)
+{
+  u8_byte *scan=s; int c=u8_sgetc(&s);
+  out->u8_outptr=out->u8_outbuf;
+  while (c>=0) {
+    u8_putc(out,u8_toupper(c));
+    c=u8_sgetc(&s);}
+  return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
+}
+
 static fdtype odbc_exec(fdtype conn,fdtype string)
 {
   fdtype results=FD_VOID; int ret, i; SQLSMALLINT n_cols;
+  struct U8_OUTPUT out;
   struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_odbc_type,struct FD_ODBC *);
   fdtype *colnames; SQLSMALLINT *coltypes; SQLULEN *colsizes;
   SQLHSTMT stmt;
@@ -202,6 +213,7 @@ static fdtype odbc_exec(fdtype conn,fdtype string)
   colnames=u8_alloc_n(n_cols,fdtype);
   coltypes=u8_alloc_n(n_cols,SQLSMALLINT);
   colsizes=u8_alloc_n(n_cols,SQLULEN);
+  U8_INIT_OUTPUT(&out,64);
   i=0; while (i<n_cols) {
     SQLCHAR name[300];
     SQLSMALLINT sqltype;
@@ -211,7 +223,7 @@ static fdtype odbc_exec(fdtype conn,fdtype string)
     ret=SQLDescribeCol(stmt,i+1,
 		       name,sizeof(name),NULL,
 		       &sqltype,&colsize,&sqldigits,&nullok);
-    colnames[i]=fd_intern(name);
+    colnames[i]=intern_upcase(&out,name);
     coltypes[i]=sqltype;
     colsizes[i]=colsize;
     i++;}
@@ -248,6 +260,11 @@ FD_EXPORT void fd_init_odbc()
 
   fd_idefn(module,fd_make_cprim1("ODBCONN?",odbconnp,1));
   fd_idefn(module,fd_make_cprim1("ODBCONNECT",odbconnect,1));
+
+  fd_idefn(module,fd_make_cprim2x
+	   ("ODBCEXEC",odbc_exec,2,
+	    fd_odbc_type,FD_VOID,fd_string_type,FD_VOID));
+  
   fd_idefn(module,fd_make_cprim2x
 	   ("ODBCATTR",odbcattr,2,
 	    fd_odbc_type,FD_VOID,fd_symbol_type,FD_VOID));
