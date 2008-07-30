@@ -34,10 +34,25 @@ static u8_mutex slotcache_lock;
 
 /* Frame overlays */
 
+#if FD_USE__THREAD
+__thread int fd_inhibit_overlay=0;
+FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
+#elif FD_THREADS_ENABLED
+u8_tld_key _fd_inhibit_overlay_key;
+FD_EXPORT void fd_inhibit_overlays(int flag)
+{
+  fd_tld_set(_fd_inhibit_overlay_key,(void *)flag);
+}
+#else
+int fd_inhibit_overlay=0;
+FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
+#endif
+
 static fdtype _overlay_get
   (fdtype overlay,fdtype values,fdtype car,fdtype cdr)
 {
-  if (FD_VOIDP(overlay)) return values;
+  if ((FD_VOIDP(overlay)) || (fd_inhibit_overlay))
+    return values;
   else if (FD_HASHTABLEP(overlay)) {
     fdtype tmp_key;
     struct FD_PAIR p;
@@ -110,6 +125,7 @@ static int _overlay_test
   (fdtype overlay,int dflt,fdtype frame,fdtype slotid,fdtype value)
 {
   if (FD_VOIDP(overlay)) return dflt;
+  else if (fd_inhibit_overlay) return dflt;
   else if (!(FD_OIDP(frame)))  return dflt;
   else if (FD_HASHTABLEP(overlay)) {
     fdtype tmp_key;
@@ -305,8 +321,15 @@ FD_EXPORT fdtype fd_overlay_store
   else return overlay_store(slot_overlay,frame,slotid,value);
 }
 
+FD_EXPORT int fd_overlayp()
+{
+  if ((FD_VOIDP(index_overlay)) && (FD_VOIDP(slot_overlay)))
+    return 0;
+  else return 1;
+}
 
-/* For configuration variables which get/set ints. */
+/* Configuration settings for overlays. */
+
 static fdtype overlay_config_get(fdtype ignored,void *vptr)
 {
   fdtype *hptr=(fdtype *)vptr;

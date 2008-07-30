@@ -1884,6 +1884,24 @@ static fdtype overlay_index_store(fdtype f,fdtype slotid,fdtype v)
 }
 
 
+static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype body=fd_get_body(expr,1), value=FD_VOID;
+  if ((fd_inhibit_overlay) || (!(fd_overlayp()))) {
+    FD_DOLIST(body_elt,body) {
+      fd_decref(value); value=fd_eval(body_elt,env);
+      if (FD_ABORTP(value)) return value;}
+    return value;}
+  fd_inhibit_overlays(1);
+  {FD_DOLIST(body_elt,body) {
+    fd_decref(value); value=fd_eval(body_elt,env);
+    if (FD_ABORTP(value)) {
+      fd_inhibit_overlays(0);
+      return value;}}}
+  fd_inhibit_overlays(0);
+  return value;
+}
+
 /* Initializing */
 
 FD_EXPORT void fd_init_dbfns_c()
@@ -1924,6 +1942,9 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3("OV/INDEX-STORE!",overlay_index_store,3));
   
+  fd_defspecial(fd_scheme_module,"W/O/OVERLAY",wooverlay_handler);
+
+
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET*",getstar,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("INHERIT",inherit_prim,3)));
