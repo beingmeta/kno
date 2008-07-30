@@ -691,6 +691,7 @@ I18N
 INSTALLI18N
 WWWUSER
 CMODULES
+INSTALLCMODULES
 build
 build_cpu
 build_vendor
@@ -1824,6 +1825,7 @@ safe_extra_module_path=""
 module_load_path=""
 safe_module_load_path=""
 CMODULES=""
+INSTALLCMODULES=""
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -1857,6 +1859,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -6997,7 +7000,7 @@ _ACEOF
 if test "${with_dload_path+set}" = set; then
   withval=$with_dload_path;
 else
-  with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
+  with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/fdb/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -9166,7 +9169,6 @@ fi
 
 
 if test $have_sql_h = "yes"; then
-  CMODULES=lib/cmodules/odbc.so $CMODULES
 
 { echo "$as_me:$LINENO: checking for SQLNumResultCols in -liodbc" >&5
 echo $ECHO_N "checking for SQLNumResultCols in -liodbc... $ECHO_C" >&6; }
@@ -9238,6 +9240,8 @@ _ACEOF
 
 fi
 
+  CMODULES=lib/cmodules/odbc.so $CMODULES
+  INSTALLCMODULES=install-odbc $INSTALLCMODULES
 fi
 
 if test $have_sql_h = "yes"; then
@@ -11533,6 +11537,7 @@ I18N!$I18N$ac_delim
 INSTALLI18N!$INSTALLI18N$ac_delim
 WWWUSER!$WWWUSER$ac_delim
 CMODULES!$CMODULES$ac_delim
+INSTALLCMODULES!$INSTALLCMODULES$ac_delim
 build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
 build_vendor!$build_vendor$ac_delim
@@ -11552,7 +11557,6 @@ INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
 INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
 INSTALL_DATA!$INSTALL_DATA$ac_delim
 RANLIB!$RANLIB$ac_delim
-VALGRIND!$VALGRIND$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -11594,6 +11598,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+VALGRIND!$VALGRIND$ac_delim
 APXS!$APXS$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
@@ -11602,7 +11607,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 6; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 7; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

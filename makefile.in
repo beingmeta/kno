@@ -221,6 +221,16 @@ $(LIBINSTALLDIR)/%@suffix@.so: lib/%@suffix@.so.@VERSION@
 $(LIBINSTALLDIR)/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/fdb/%@suffix@.so: \
+    lib/cmodules/%@suffix@.so.@VERSION@ $(LIBINSTALLDIR)/fdb
+	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/fdb
+	ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/fdb/%@suffix@.dylib: \
+    lib/cmodules/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)/fdb
+	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	ln -sf $(shell basename $<) $@
+
+
 $(BININSTALLDIR)/%: exe/%
 
 $(BININSTALLDIR)/%: src/scripts/%.scm
@@ -374,7 +384,7 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 install: confdirs @INSTALLI18N@ \
 	 install-static install-shared install-headers \
-         install-exe install-scripts
+         install-exe install-scripts install-cmodules
 install-static: static-libs
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a \
 		$(LIBINSTALLDIR)/libfddb@suffix@.a \
@@ -421,6 +431,15 @@ $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(BININSTALLDIR)
+$(LIBINSTALLDIR)/fdb:
+	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/fdb
+
+install-cmodules: @INSTALLCMODULES@ $(LIBINSTALLDIR)
+install-odbc: $(LIBINSTALLDIR)/fdb/odbc.so
+install-sqlite: $(LIBINSTALLDIR)/fdb/sqlite.so
+install-dbus: $(LIBINSTALLDIR)/fdb/dbus.so
+install-ldap: $(LIBINSTALLDIR)/fdb/ldap.so
+install-crypto: $(LIBINSTALLDIR)/fdb/crypto.so
 
 # Setup targets
 
@@ -608,6 +627,7 @@ src/db/netindices.o: ./include/fdb/tables.h ./include/fdb/fddb.h
 src/db/netindices.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/db/netindices.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/db/netindices.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/netindices.o: ./include/fdb/dtcall.h
 src/db/compoundindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/db/compoundindices.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/db/compoundindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -636,6 +656,7 @@ src/db/netpools.o: ./include/fdb/tables.h ./include/fdb/fddb.h
 src/db/netpools.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/db/netpools.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/db/netpools.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/db/netpools.o: ./include/fdb/dtcall.h
 src/db/dtproc.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/db/dtproc.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/db/dtproc.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -652,12 +673,8 @@ src/db/dtcall.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/db/dtcall.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
 src/db/dtcall.o: ./include/fdb/support.h ./include/fdb/ptr.h
 src/db/dtcall.o: ./include/fdb/cons.h ./include/fdb/choices.h
-src/db/dtcall.o: ./include/fdb/tables.h ./include/fdb/dtypestream.h
-src/db/dtcall.o: ./include/fdb/dtype.h ./include/fdb/apply.h
-src/db/dtcall.o: ./include/fdb/fddb.h ./include/fdb/dtypestream.h
-src/db/dtcall.o: ./include/fdb/pools.h ./include/fdb/fddb.h
-src/db/dtcall.o: ./include/fdb/indices.h ./include/fdb/frames.h
-src/db/dtcall.o: ./include/fdb/dtcall.h
+src/db/dtcall.o: ./include/fdb/tables.h ./include/fdb/dtcall.h
+src/db/dtcall.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/db/methods.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/db/methods.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/db/methods.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -774,7 +791,7 @@ src/db/hashindices.o: ./include/fdb/tables.h ./include/fdb/dtypeio.h
 src/db/hashindices.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/db/hashindices.o: ./include/fdb/dbfile.h ./include/fdb/fddb.h
 src/db/hashindices.o: ./include/fdb/pools.h ./include/fdb/indices.h
-src/db/hashindices.o: ./include/fdb/dtypestream.h
+src/db/hashindices.o: ./include/fdb/dtypestream.h ./include/fdb/numbers.h
 src/db/zindices.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/db/zindices.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/db/zindices.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -797,7 +814,7 @@ src/scheme/eval.o: ./include/fdb/frames.h ./include/fdb/eval.h
 src/scheme/eval.o: ./include/fdb/apply.h ./include/fdb/dtproc.h
 src/scheme/eval.o: ./include/fdb/numbers.h ./include/fdb/sequences.h
 src/scheme/eval.o: ./include/fdb/ports.h ./include/fdb/dtcall.h
-src/scheme/eval.o: src/scheme/opcodes.c
+src/scheme/eval.o: src/scheme/opcodes.c ./include/fdb/dbprims.h
 src/scheme/binders.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/scheme/binders.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/scheme/binders.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -909,7 +926,7 @@ src/scheme/dbprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/scheme/dbprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/scheme/dbprims.o: ./include/fdb/pools.h ./include/fdb/indices.h
 src/scheme/dbprims.o: ./include/fdb/frames.h ./include/fdb/methods.h
-src/scheme/dbprims.o: ./include/fdb/sequences.h
+src/scheme/dbprims.o: ./include/fdb/sequences.h ./include/fdb/dbprims.h
 src/scheme/tableprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/scheme/tableprims.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/scheme/tableprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -933,6 +950,7 @@ src/scheme/choiceprims.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/scheme/choiceprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/scheme/choiceprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/scheme/choiceprims.o: ./include/fdb/numbers.h ./include/fdb/frames.h
+src/scheme/choiceprims.o: ./include/fdb/sorting.h
 src/scheme/compounds.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/scheme/compounds.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/scheme/compounds.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -952,6 +970,7 @@ src/scheme/seqprims.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/scheme/seqprims.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/scheme/seqprims.o: ./include/fdb/eval.h ./include/fdb/apply.h
 src/scheme/seqprims.o: ./include/fdb/sequences.h ./include/fdb/numbers.h
+src/scheme/seqprims.o: ./include/fdb/sorting.h
 src/scheme/stringprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/scheme/stringprims.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/scheme/stringprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1131,13 +1150,14 @@ src/texttools/texttools.o: ./include/fdb/support.h ./include/fdb/ptr.h
 src/texttools/texttools.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/texttools/texttools.o: ./include/fdb/tables.h ./include/fdb/eval.h
 src/texttools/texttools.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/texttools/texttools.o: ./include/fdb/texttools.h
 src/texttools/match.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/texttools/match.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/texttools/match.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
 src/texttools/match.o: ./include/fdb/support.h ./include/fdb/ptr.h
 src/texttools/match.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/texttools/match.o: ./include/fdb/tables.h ./include/fdb/eval.h
-src/texttools/match.o: ./include/fdb/apply.h
+src/texttools/match.o: ./include/fdb/apply.h ./include/fdb/texttools.h
 src/texttools/porter.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/texttools/porter.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/texttools/porter.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1154,7 +1174,7 @@ src/tagger/tagger.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/tagger/tagger.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/tagger/tagger.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/tagger/tagger.o: ./include/fdb/eval.h ./include/fdb/apply.h
-src/tagger/tagger.o: ./include/fdb/sequences.h
+src/tagger/tagger.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
 src/tagger/tagger.o: ./include/fdb/tagger.h
 src/tagger/ofsm.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/tagger/ofsm.o: ./include/fdb/defines.h ./include/fdb/config.h
@@ -1181,7 +1201,7 @@ src/tagger/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/tagger/tagxtract.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/indices.h
-src/tagger/tagxtract.o: ./include/fdb/dtypestream.h
+src/tagger/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/texttools.h
 src/tagger/tagxtract.o: ./include/fdb/tagger.h
 src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdconsole.o: ./include/fdb/defines.h ./include/fdb/config.h
@@ -1195,6 +1215,7 @@ src/exe/fdconsole.o: ./include/fdb/fddb.h ./include/fdb/indices.h
 src/exe/fdconsole.o: ./include/fdb/frames.h ./include/fdb/eval.h
 src/exe/fdconsole.o: ./include/fdb/apply.h ./include/fdb/history.h
 src/exe/fdconsole.o: ./include/fdb/ports.h ./include/fdb/sequences.h
+src/exe/fdconsole.o: src/exe/revision.h
 src/exe/fdexec.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdexec.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/exe/fdexec.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1231,7 +1252,7 @@ src/exe/fdserv.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/exe/fdserv.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/exe/fdserv.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/exe/fdserv.o: ./include/fdb/fdweb.h ./include/fdb/ports.h
-src/exe/fdserv.o: ./include/fdb/fileprims.h
+src/exe/fdserv.o: ./include/fdb/fileprims.h src/exe/revision.h
 src/exe/fdbserver.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdbserver.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/exe/fdbserver.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1243,4 +1264,4 @@ src/exe/fdbserver.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
 src/exe/fdbserver.o: ./include/fdb/pools.h ./include/fdb/fddb.h
 src/exe/fdbserver.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/exe/fdbserver.o: ./include/fdb/eval.h ./include/fdb/apply.h
-src/exe/fdbserver.o: ./include/fdb/ports.h
+src/exe/fdbserver.o: ./include/fdb/ports.h src/exe/revision.h

@@ -73,6 +73,7 @@ safe_extra_module_path=""
 module_load_path=""
 safe_module_load_path=""
 CMODULES=""
+INSTALLCMODULES=""
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -119,6 +120,7 @@ AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
+AC_SUBST(INSTALLCMODULES)
 
 AC_CANONICAL_HOST
 AC_PROG_CC
@@ -247,7 +249,7 @@ AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_
 AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_path")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_path")
 
-AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
+AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/fdb/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
 AC_DEFINE_UNQUOTED(FD_DEFAULT_DLLOADPATH,"$with_dload_path")
 
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
@@ -343,8 +345,9 @@ fi
 
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test $have_sql_h = "yes"; then
-  CMODULES=lib/cmodules/odbc.so $CMODULES
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
+  CMODULES=lib/cmodules/odbc.so $CMODULES
+  INSTALLCMODULES=install-odbc $INSTALLCMODULES
 fi
 
 if test $have_sql_h = "yes"; then
