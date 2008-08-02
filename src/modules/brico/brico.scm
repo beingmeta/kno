@@ -296,9 +296,14 @@
 
 ;;; Capitalizing word entries
 
+(define (capup string)
+  (if (or (capitalized? string) (uppercase? string)) string
+      (capitalize string)))
+
 (define (cap%wds e (cautious #f))
   (if (pair? e)
-      (if (capitalized? (cdr e)) e
+      (if (or (capitalized? (cdr e)) (uppercase? (cdr e)))
+	  e
 	  (if cautious
 	      (cons (car e) (choice (cdr e) (capitalize (cdr e))))
 	      (cons (car e) (capitalize (cdr e)))))
@@ -316,14 +321,23 @@
     (unless (identical? norm cnorm)
       (store! f '%norm cnorm)
       (set! changed #t))
+    (unless cautious
+      (when (test f 'words)
+	(store! f 'words (capup (get f 'words))))
+      (when (test f 'ranked)
+	(store! f 'ranked (map capup (get f 'ranked)))))
     changed))
+
+
+(define (capdown string)
+  (if (uppercase? string) string (downcase string)))
 
 (define (low%wds e (cautious #f))
   (if (pair? e)
       (if (lowercase? (cdr e)) e
 	  (if cautious
-	      (cons (car e) (choice (cdr e) (downcase (cdr e))))
-	      (cons (car e) (downcase (cdr e)))))
+	      (cons (car e) (choice (cdr e) (capdown (cdr e))))
+	      (cons (car e) (capdown (cdr e)))))
       e))
 
 (define (low%frame! f (cautious #f))
@@ -338,6 +352,11 @@
     (unless (identical? norm cnorm)
       (store! f '%norm cnorm)
       (set! changed #t))
+    (unless cautious
+      (when (test f 'words)
+	(store! f 'words (capdown (get f 'words))))
+      (when (test f 'ranked)
+	(store! f 'ranked (map capdown (get f 'ranked)))))
     changed))
 
 ;;; Generic prefetching
