@@ -65,16 +65,16 @@ static fdtype _overlay_get
       fdtype v=fd_hashtable_get(h,tmp_key,FD_VOID);
       if (FD_PAIRP(v)) {
 	fdtype combined=FD_EMPTY_CHOICE, adds=FD_CAR(v), drops=FD_CDR(v);
+	fd_incref(values); fd_incref(adds); 
 	FD_ADD_TO_CHOICE(combined,values);
 	FD_ADD_TO_CHOICE(combined,adds);
-	fd_incref(values); fd_incref(adds); 
 	if (FD_EMPTY_CHOICEP(drops)) {
 	  fd_decref(v);
-	  return combined;}
+	  return fd_simplify_choice(combined);}
 	else {
 	  fdtype results=fd_difference(combined,drops);
 	  fd_decref(combined); fd_decref(v);
-	  return results;}}
+	  return fd_simplify_choice(results);}}
       else if ((FD_VECTORP(v)) && (FD_VECTOR_LENGTH(v)==1)) {
 	fdtype new_values=FD_VECTOR_REF(v,0);
 	fd_decref(values); fd_incref(new_values); fd_decref(v);
@@ -95,9 +95,9 @@ static fdtype _overlay_get
     if (FD_EMPTY_CHOICEP(mods)) return values;
     else if (FD_PAIRP(mods)) {
       fdtype combined=FD_EMPTY_CHOICE, adds=FD_CAR(mods), drops=FD_CDR(mods);
+      fd_incref(values); fd_incref(adds);
       FD_ADD_TO_CHOICE(combined,values);
       FD_ADD_TO_CHOICE(combined,adds);
-      fd_incref(values); fd_incref(adds);
       if (FD_EMPTY_CHOICEP(drops)) {
 	fd_decref(mods);
 	return fd_simplify_choice(combined);}
