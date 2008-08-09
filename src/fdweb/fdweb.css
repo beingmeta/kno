@@ -281,6 +281,8 @@ span.field[slotid='PART-OF'] { color: black;}
 .slot a.label {
   font-weight: bold;}
 
+span.slot { padding-right: 6px;}
+
 .slot[slotid] span.label { color: inherit;}
 .slot[slotid='ALWAYS'] { color: green;} /* font-size: 115%;  */
 .slot[slotid='ALWAYS'] a.label { color: green;}

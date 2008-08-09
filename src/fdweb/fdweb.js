@@ -505,6 +505,10 @@ function _fdb_tab_click(evt)
 {
   var elt=evt.target;
   if (elt) {
+    while (elt)
+      if (elt.hasAttribute("contentid")) break;
+      else elt=elt.parentNode;
+    if (elt==null) return;
     var select_var=fdbGet(elt,'selectvar');
     var content_id=fdbGet(elt,'contentid');
     var content=fdbByID(content_id);
@@ -512,6 +516,9 @@ function _fdb_tab_click(evt)
     var parent=elt.parentNode;
     var others=parent.childNodes;
     var toggle_on=true;
+    if (content==null) {
+      fdbMessage("No content for "+content_id);
+      return;}
     evt.preventDefault(); evt.cancelBubble=true;
     if (select_elt) select_elt.value=content_id;
     var i=0; while (i<others.length) {
