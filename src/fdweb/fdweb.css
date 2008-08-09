@@ -315,3 +315,6 @@ div.slot .label { font-weight: bold; font-size: 150%; padding-right: 12px;}
 span.slot a.browseall { color: purple; font-size: 75%; }
 
 img[onclick] { cursor: pointer; }
+
+div.flexbox { max-height: 128px;}
+div.flexbox_expanded { max-height: inherit;}

@@ -266,6 +266,54 @@ function fdbFindClass(node,classname)
   else return false;
 }
 
+/* Class manipulation */
+
+function _fdb_get_class_regex(name)
+{
+  return RegExp.compile("\b"+name+"\b");
+}
+
+function fdbHasClass(elt,classname)
+{
+  var classinfo=elt.className;
+  if ((classinfo) &&
+      (classinfo.search(_fdb_get_class_regex(classname))>=0))
+    return true;
+  else return false;
+}
+
+function fdbAddClass(elt,classname)
+{
+  var classinfo=elt.className;
+  if ((classinfo) &&
+      (classinfo.search(_fdb_get_class_regex(classname))>=0))
+    return false;
+  else {
+    if (classinfo) elt.className=classname;
+    else elt.className=classname+" "+classinfo
+	   return true;}
+}
+
+function fdbDropClass(elt,classname)
+{
+  var classinfo=elt.className, classpat=_fdb_get_class_regex(classname);
+  if ((classinfo) && ((classinfo.search(classpat))>=0)) {
+    elt.className=
+      classinfo.replace(classpat,"").replace(whitespacepat," ");
+    return true;}
+  else return false;
+}
+
+function fdbSwapClass(elt,classname,newclass)
+{
+  var classinfo=elt.className, classpat=_fdb_get_class_regex(classname);
+  if ((classinfo) && ((classinfo.search(classpat))>=0)) {
+    elt.className=
+      classinfo.replace(classpat,newclass).replace(whitespacepat," ");
+    return true;}
+  else return false;
+}
+
 /* Generic functions */
 
 var oidvalues=[], slottables=[];
@@ -997,6 +1045,27 @@ function fdbEventString(evt)
     ((evt.altKey)?("alt;"):"")+
     ((evt.shiftKey)?("shift;"):"")+
     ((evt.ctrlKey)?("ctrl;"):"");
+}
+
+/* Flexpand */
+
+function fdb_flexpand_click(event)
+{
+  var target=event.target;
+  while (target)
+    if (target.hasAttribute('FLEXPAND')) break;
+    else if ((target.tagName=='A') ||
+	     (target.tagName=='SELECT') ||
+	     (target.tagName=='INPUT'))
+      return;
+    else target=target.parentNode;
+  if (target) {
+    if (target.getAttribute('FLEXPAND')=="yes") {
+      target.setAttribute("FLEXPAND","no");
+      target.style.maxHeight=null;}
+    else {
+      target.setAttribute("FLEXPAND","yes");
+      target.style.maxHeight='inherit';}}
 }
 
 /* DYTOC (Dynamic table of contents) support */
