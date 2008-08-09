@@ -1063,7 +1063,8 @@ function fdb_flexpand_click(event)
     if (target.hasAttribute('FLEXPAND')) break;
     else if ((target.tagName=='A') ||
 	     (target.tagName=='SELECT') ||
-	     (target.tagName=='INPUT'))
+	     (target.tagName=='INPUT') ||
+	     (target.onclick!=null))
       return;
     else target=target.parentNode;
   if (target) {

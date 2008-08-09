@@ -277,7 +277,7 @@ span.field[slotid='DEFTERMS'] { color: black;}
 span.field[slotid='PART-OF'] { color: black;}
 
 .slot .label {
-  font-size: 115%; font-weight: bold; color: purple;}
+  font-size: 115%; font-weight: bold; color: purple; margin-right: .5em;}
 .slot a.label {
   font-weight: bold;}
 
@@ -318,5 +318,18 @@ span.slot a.browseall { color: purple; font-size: 75%; }
 
 img[onclick] { cursor: pointer; }
 
+/* Flexboxes */
+
 div.flexbox { max-height: 128px;}
 div.flexbox_expanded { max-height: inherit;}
+
+/* CTT display */
+
+div.cttdata { font-size: 10px; font-family: fixed;}
+div.cttdata div.item {
+  margin-left: 32px; text-indent: -32px;}
+div.cttdata div.item span.head {
+  font-weight: bold;}
+
+
+
