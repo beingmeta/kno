@@ -536,9 +536,11 @@
 
 (defambda (getsome concept slotid opts)
   (let* ((inferlevel (getopt opts 'infer 1))
+	 (infermax (getopt opts 'infermax 1))
 	 (seen (getopt opts 'seen #f))
 	 (values (getopt opts 'value
-			 (goodoids (get+ concept slotid inferlevel))))
+			 (goodoids (try (get+ concept slotid inferlevel)
+					(get+ concept slotid infermax)))))
 	 (hide (getopt opts 'hide seen))
 	 (topvalues (getopt opts 'topvalues))
 	 (showvalues (if hide
@@ -560,7 +562,6 @@
 
 (define (showslot elt concept slotid (opts #[]))
   (let* ((language (getopt opts 'language (get-language)))
-	 (inferlevel (getopt opts 'infer 1))
 	 (label (getopt opts 'label (translateoid slotid language)))
 	 (seen (getopt opts 'seen #f))
 	 (anchorify (getopt opts 'anchorify))
@@ -582,12 +583,12 @@
 		label)
 	      (span ((class "label") (title (get-doc slotid language)))
 		label))
-	" "
 	(doseq (v showvec i)
 	  (if (> i 0) (xmlout " " (span ((class "sep")) " . ") " "))
 	  (if nobrowse
 	      (concept->html v language)
-	      (concept->anchor v v language)))))))
+	      (concept->anchor v v language)))))
+    (xmlout " ")))
 
 (define (showslot/span concept slotid (opts #[]))
   (showslot "span" concept slotid opts))
