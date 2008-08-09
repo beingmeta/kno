@@ -346,7 +346,7 @@ fi
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test $have_sql_h = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
-  CMODULES=lib/cmodules/odbc.so $CMODULES
+  CMODULES=lib/cmodules/odbc.$shared_suffix $CMODULES
   INSTALLCMODULES=install-odbc $INSTALLCMODULES
 fi
 

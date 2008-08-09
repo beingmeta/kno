@@ -227,7 +227,7 @@ $(LIBINSTALLDIR)/fdb/%@suffix@.so: \
 	ln -sf $(shell basename $<) $@
 $(LIBINSTALLDIR)/fdb/%@suffix@.dylib: \
     lib/cmodules/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)/fdb
-	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/fdb
 	ln -sf $(shell basename $<) $@
 
 
@@ -362,6 +362,10 @@ lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 lib/cmodules/odbc.so.3: src/cmodules/odbc.o
 	$(MKSO) `curl-config --libs` -o $@ $^
 lib/cmodules/odbc.so: lib/cmodules/odbc.so.3
+lib/cmodules/odbc.@VERSION@.dylib: src/cmodules/odbc.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/odbc.o
+lib/cmodules/odbc.dylib: lib/cmodules/odbc.@VERSION@.dylib
+
 
 # Internationalization stuff
 
@@ -435,11 +439,11 @@ $(LIBINSTALLDIR)/fdb:
 	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/fdb
 
 install-cmodules: @INSTALLCMODULES@ $(LIBINSTALLDIR)
-install-odbc: $(LIBINSTALLDIR)/fdb/odbc.so
-install-sqlite: $(LIBINSTALLDIR)/fdb/sqlite.so
-install-dbus: $(LIBINSTALLDIR)/fdb/dbus.so
-install-ldap: $(LIBINSTALLDIR)/fdb/ldap.so
-install-crypto: $(LIBINSTALLDIR)/fdb/crypto.so
+install-odbc: $(LIBINSTALLDIR)/fdb/odbc.@shared_suffix@
+install-sqlite: $(LIBINSTALLDIR)/fdb/sqlite.@shared_suffix@
+install-dbus: $(LIBINSTALLDIR)/fdb/dbus.@shared_suffix@
+install-ldap: $(LIBINSTALLDIR)/fdb/ldap.@shared_suffix@
+install-crypto: $(LIBINSTALLDIR)/fdb/crypto.@shared_suffix@
 
 # Setup targets
 
