@@ -208,6 +208,7 @@
   (tryif (oid? concept)
 	 (try (get (get concept '%ids) language)
 	      (get-norm (get concept 'brico) language)
+	      (get-norm concept language)
 	      (let ((id (get concept '%id)))
 		(if (string? id) id
 		    (if (symbol? id) (symbol->string id)

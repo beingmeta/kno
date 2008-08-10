@@ -320,7 +320,7 @@
 	    ((@?commonly) (getcommonly concept level))
 	    ((@?rarely) (getrarely concept level))
 	    (else (get concept slotid)))
-	  (get concept (?? @?always slotid)))))
+	  (get concept (choice slotid (?? @?always slotid))))))
 
 (define (get++ concept slotid)
   (get+ concept slotid 3))
