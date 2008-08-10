@@ -195,7 +195,9 @@
 		      (onchange (if onchange onchange)))
       (do-choices (lang language)
 	(xmlblock OPTION
-	    ((value lang) (class (if (overlaps? lang highlight) "highlight")))
+	    ((value lang)
+	     (class (if (overlaps? lang highlight) "highlight"))
+	     (langid (if (overlaps? lang highlight) (get lang 'iso639/1))))
 	  (getid lang (get-language))
 	  " (" (xmlblock tt () (pick-one (get lang 'iso639/1)))  ")"
 	  (if (overlaps? lang highlight) "* ")))
@@ -204,7 +206,8 @@
 	 (unless (eq? l language)
 	   (xmlblock OPTION
 	       ((value l)
-		(class (if (overlaps? l highlight) "highlight")))
+		(class (if (overlaps? l highlight) "highlight"))
+		(langid (if (overlaps? l highlight) (get l 'iso639/1))))
 	     (getid l (get-language))
 	     " (" (xmlblock tt () (pick-one (get l 'iso639/1)))  ")"
 	     (if (overlaps? l highlight) " *")))))
@@ -226,6 +229,7 @@
       (do-choices (lang language)
 	(xmlblock OPTION ((value lang)
 			  (class (if (overlaps? lang highlight) "highlight"))
+			  (langid (if (overlaps? lang highlight) (get lang 'iso639/1)))
 			  "SELECTED")
 	  (get-language-name lang)
 	  " (" (xmlblock tt () (pick-one (get lang 'iso639/1)))  ")"
@@ -234,7 +238,8 @@
 	(unless (eq? l language)
 	  (xmlblock OPTION
 	      ((value l)
-	       (class (if (overlaps? l highlight) "highlight")))
+	       (class (if (overlaps? l highlight) "highlight"))
+	       (langid (if (overlaps? l highlight) (get l 'iso639/1))))
 	    (get-language-name l)
 	    " (" (xmlblock tt () (pick-one (get l 'iso639/1)))  ")"
 	    (if (overlaps? l highlight) " *")))))
