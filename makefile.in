@@ -360,12 +360,18 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
 lib/cmodules/odbc.so.3: src/cmodules/odbc.o
-	$(MKSO) `curl-config --libs` -o $@ $^
+	$(MKSO) -o $@ $^
 lib/cmodules/odbc.so: lib/cmodules/odbc.so.3
 lib/cmodules/odbc.@VERSION@.dylib: src/cmodules/odbc.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/odbc.o
 lib/cmodules/odbc.dylib: lib/cmodules/odbc.@VERSION@.dylib
 
+lib/cmodules/sqlite.so.3: src/cmodules/sqlite.o
+	$(MKSO) -o $@ $^
+lib/cmodules/sqlite.so: lib/cmodules/sqlite.so.3
+lib/cmodules/sqlite.@VERSION@.dylib: src/cmodules/sqlite.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/sqlite.o
+lib/cmodules/sqlite.dylib: lib/cmodules/sqlite.@VERSION@.dylib
 
 # Internationalization stuff
 

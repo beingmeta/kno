@@ -268,17 +268,18 @@
 			       (cdr item))))
        (string-append "(" (getid english language) ") "
 		      (get concept 'gloss))))
-(define (get-short-gloss concept (language #f))
-  (let ((s (get-gloss concept language)))
-    (if (position #\; s)
-	(subseq s 0 (position #\; s))
-	s)))
+
 (define (get-single-gloss concept (language #f))
   (if (or (not language) (eq? language english))
       (try (ov/get concept (get gloss-map language))
 	   (pick-one (get concept 'gloss))
 	   (pick-one (get-gloss concept language)))
       (pick-one (get-gloss concept language))))
+(define (get-short-gloss concept (language #f))
+  (do ((gloss (get-single-gloss concept language))
+       (pbreak 0 (textsearch #{#("\n" (spaces) "\n") "\&para;" ";"} gloss (1+ pbreak))))
+      ((and pbreak (> pbreak 8))
+       (if pbreak (subseq gloss 0 pbreak))) gloss))
 
 (define (get-doc concept (language default-language))
   (tryif (oid? concept)

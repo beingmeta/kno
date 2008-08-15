@@ -343,6 +343,8 @@ if test $libc_dlopen != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
+AC_CHECK_HEADERS(sqlite3.h sql.h)
+
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test $have_sql_h = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
@@ -352,6 +354,14 @@ fi
 
 if test $have_sql_h = "yes"; then
   AC_CHECK_LIB(odbc,SQLNumResultCols)
+fi
+
+AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
+if test $have_sqlite3_h = "yes"; then
+  AC_CHECK_LIB(sqlite3,sqlite3_open)
+  AC_CHECK_FUNCS(sqlite3_open_v2)
+  CMODULES=lib/cmodules/sqlite.$shared_suffix $CMODULES
+  INSTALLCMODULES=install-sqlite $INSTALLCMODULES
 fi
 
 dnl When available, use the thread-optimized tcmalloc functions from
