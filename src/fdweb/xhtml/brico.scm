@@ -428,9 +428,7 @@
 		  (and (oid? tag) tag)))
 	 (language (or language (get-language)))
 	 (dterm (tryif oid (dterm-fcn oid language)))
-	 (gloss (tryif oid
-		       (trim-gloss (pick-one (smallest (get-gloss oid language)
-						       length)))))
+	 (gloss (tryif oid (trim-gloss (get-short-gloss oid language))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
 		       ((get-label-fcn) oid language))))
@@ -456,8 +454,7 @@
 		  (and (oid? tag) tag)))
 	 (language (or language (get-language)))
 	 (dterm (tryif oid (dterm-fcn oid language)))
-	 (gloss (trim-gloss (pick-one
-			     (tryif oid (smallest (get-gloss oid language) length)))))
+	 (gloss (trim-gloss (tryif oid (get-short-gloss oid language))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
 		       ((get-label-fcn) oid language))))
