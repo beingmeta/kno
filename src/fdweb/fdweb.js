@@ -270,14 +270,16 @@ function fdbFindClass(node,classname)
 
 function _fdb_get_class_regex(name)
 {
-  return RegExp.compile("\b"+name+"\b");
+  var rx=new RegExp("\b"+name+"\b");
+  return rx;
 }
 
 function fdbHasClass(elt,classname)
 {
   var classinfo=elt.className;
   if ((classinfo) &&
-      (classinfo.search(_fdb_get_class_regex(classname))>=0))
+      ((classinfo==classname) ||
+       (classinfo.search(_fdb_get_class_regex(classname))>=0)))
     return true;
   else return false;
 }
@@ -545,6 +547,17 @@ function _fdb_tab_click(evt)
   return false;}
 }
 
+function get_selected_tab(parent)
+{
+  var others=parent.childNodes;
+  var i=0; while (i<others.length) {
+    var node=others[i++];
+    if ((node.nodeType==1) &&
+	(fdbHasClass(node,"selected_tab")))
+      return node;}
+  return null;
+}
+
 function _fdb_tab_mouseover(evt)
 {
   var elt=evt.target;
@@ -558,6 +571,38 @@ function _fdb_tab_mouseout(evt)
   var elt=evt.target;
   if (elt) 
     elt.style.textDecoration='none';
+}
+
+var tmp_hide_content=null, tmp_show_content=null;
+
+function _fdb_tab_mouseover_preview(evt)
+{
+  var scan=evt.target;
+  while (scan)
+    if (fdbHasClass(scan,"selected_tab")) return;
+    else if (fdbHasClass(scan,"tab")) break;
+    else scan=scan.parentNode;
+  // fdbMessage("Mouseover found "+scan);
+  if (scan==null) return;
+  var selected_tab=get_selected_tab(scan.parentNode);
+  // fdbMessage("Selected tab is "+selected_tab);
+  if (selected_tab==scan) return;
+  if (selected_tab) {
+    tmp_hide_content=
+      document.getElementById(selected_tab.getAttribute('contentid'));
+    tmp_hide_content.style.display='none';}
+  tmp_show_content=document.getElementById(scan.getAttribute('contentid'));
+  tmp_show_content.style.display='block';
+}
+
+function _fdb_tab_mouseout_preview(evt)
+{
+  if (tmp_show_content) {
+    tmp_show_content.style.display=null;
+    tmp_show_content=null;}
+  if (tmp_hide_content) {
+    tmp_hide_content.style.display=null;
+    tmp_hide_content=null;}
 }
 
 function fdb_tab_select(container_id,content_id)
