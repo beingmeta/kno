@@ -756,7 +756,7 @@ static fdtype textsearch(fdtype pattern,fdtype string,
 }
 
 static fdtype textract(fdtype pattern,fdtype string,
-			fdtype offset,fdtype limit)
+		       fdtype offset,fdtype limit)
 {
   fdtype results=FD_EMPTY_CHOICE;
   int off, lim;
@@ -918,7 +918,7 @@ static fdtype textsubst(fdtype string,
 			 fdtype pattern,fdtype replace,
 			 fdtype offset,fdtype limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   u8_string data=FD_STRDATA(string);
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
@@ -955,8 +955,8 @@ static fdtype textsubst(fdtype string,
 	    else if ((FD_CHOICEP(xtract)) || (FD_ACHOICEP(xtract))) {
 	      fdtype results=FD_EMPTY_CHOICE;
 	      FD_DO_CHOICES(xt,xtract) {
-		u8_charoff newstart=
-		  u8_charoffset(stringdata,(fd_getint(FD_CAR(xt))));
+		u8_byteoff newstart=fd_getint(FD_CAR(xt));
+		/* u8_charoff newstart=u8_charoffset(stringdata,(fd_getint(FD_CAR(xt)))); */
 		if (newstart==lim) {
 		  fdtype stringval;
 		  struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
@@ -969,8 +969,9 @@ static fdtype textsubst(fdtype string,
 		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
 		  FD_ADD_TO_CHOICE(results,stringval);}
 		else {
+		  u8_charoff new_char_off=u8_charoffset(stringdata,newstart);
 		  fdtype remainder=textsubst
-		    (string,pattern,replace,FD_INT2DTYPE(newstart),lisp_lim);
+		    (string,pattern,replace,FD_INT2DTYPE(new_char_off),lisp_lim);
 		  FD_DO_CHOICES(rem,remainder) {
 		    fdtype stringval;
 		    struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
