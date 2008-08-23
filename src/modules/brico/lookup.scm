@@ -313,6 +313,8 @@
 (defambda (resolve-context meanings slotids cxt language)
   (try (try-choices (g (lookup-context cxt language))
 	 (intersection meanings (?? slotids g defterms g)))
+       (try-choices (g (lookup-context cxt language))
+	 (intersection meanings (?? slotids (list g))))
        (try-choices (g (lookup-word cxt language))
 	 (intersection meanings (?? slotids g defterms g)))
        (try-choices (g (lookup-word cxt language))
@@ -349,7 +351,8 @@
 	       (tryif (exists? never-cxt)
 		      (intersection meanings (?? never (lookup-word never-cxt language))))
 	       (tryif (and (exists? colon-cxt) (string? colon-cxt) (> (length colon-cxt) 0))
-		      (try (resolve-context meanings always colon-cxt language)
+		      (try ;; (resolve-context meanings genls colon-cxt language)
+			   (resolve-context meanings always colon-cxt language)
 			   (resolve-context meanings sometimes colon-cxt language)))
 	       (tryif (exists? paren-cxt)
 		      (resolve-context meanings (choice sometimes defterms) paren-cxt language))
@@ -440,7 +443,9 @@
 	(try (singleton possible)
 	     ;; This biases towards terms which aren't defined
 	     ;;  in terms of other terms.
-	     (singleton (difference possible (?? defterms possible)))
+;;; 	     (singleton (difference possible
+;;; 				    (for-choices (p possible)
+;;; 				      (difference (?? defterms p) p))))
 	     (pick-one (largest possible absfreq))))))
 
 ;; This is used with the # parser trick so that #@"dog:animal" works
