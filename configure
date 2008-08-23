@@ -9382,8 +9382,8 @@ _ACEOF
 
 fi
 
-  CMODULES=lib/cmodules/odbc.$shared_suffix $CMODULES
-  INSTALLCMODULES=install-odbc $INSTALLCMODULES
+  CMODULES="lib/cmodules/odbc.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
 fi
 
 if test $have_sql_h = "yes"; then
@@ -9758,8 +9758,8 @@ _ACEOF
 fi
 done
 
-  CMODULES=lib/cmodules/sqlite.$shared_suffix $CMODULES
-  INSTALLCMODULES=install-sqlite $INSTALLCMODULES
+  CMODULES="lib/cmodules/sqlite.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"
 fi
 
 
