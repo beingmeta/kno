@@ -482,8 +482,8 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 {
   fdtype cached;
-  if ((!(FD_VOIDP(ix->has_slotids))) &&
-      (!(atomic_choice_containsp(key,ix->has_slotids))))
+  if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
+      (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
   if (FD_VOIDP(cached))
