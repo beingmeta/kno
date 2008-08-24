@@ -277,9 +277,10 @@
       (pick-one (get-gloss concept language))))
 (define (get-short-gloss concept (language #f))
   (do ((gloss (get-single-gloss concept language))
-       (pbreak 0 (textsearch #{#("\n" (spaces) "\n") "\&para;" ";"} gloss (1+ pbreak))))
-      ((and pbreak (> pbreak 8))
-       (if pbreak (subseq gloss 0 pbreak))) gloss))
+       (pbreak 0 (textsearch #{#("\n" (spaces) "\n") "\&para;" ";"}
+			     gloss (1+ pbreak))))
+      ((if pbreak (> pbreak 8) #t)
+       (if pbreak (subseq gloss 0 pbreak) gloss))))
 
 (define (get-doc concept (language default-language))
   (tryif (oid? concept)
