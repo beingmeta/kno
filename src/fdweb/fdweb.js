@@ -532,10 +532,11 @@ function _fdb_tab_click(evt)
 	var cdoc=fdbByID(cid);
 	node.className='tab';
 	if (cdoc==content)
-	  if ((cdoc.style.display) &&
-	      (cdoc.style.display!='none'))
+	  if (content==tmp_show_content) toggle_on=true;
+	  else if ((cdoc.style.display) &&
+		   (cdoc.style.display!='none'))
 	    toggle_on=false;
-	if (cdoc) cdoc.style.display='none';}}
+	else if (cdoc) cdoc.style.display='none';}}
     if (toggle_on) {
       elt.className='selected_tab';
       elt.style.textDecoration='none';
@@ -544,7 +545,9 @@ function _fdb_tab_click(evt)
       elt.className='tab';
       elt.style.textDecoration='underline';
       content.style.display='none';}
-  return false;}
+    tmp_hide_content=null;
+    tmp_show_content=null;
+    return false;}
 }
 
 function get_selected_tab(parent)
@@ -693,6 +696,21 @@ function autoprompt_cleanup()
 
 /* hide/show toggles */
 
+function _fdb_get_content(content_id,elt)
+{
+  var content=null;
+  if (content_id=='_next') {
+    content=elt.nextSibling;
+    while ((content) && (content.nodeType!=1)) {
+      content=content.nextSibling;}}
+  else if (content_id=='_previous')
+    content=elt.nextSibling;
+  else if (content_id=='_parent')
+    content=elt.parentNode;
+  else content=fdbByID(content_id);
+  return content;
+}
+
 function _fdb_hideshow_toggle(evt)
 {
   var elt=evt.target, content_id=null, content;
@@ -702,33 +720,17 @@ function _fdb_hideshow_toggle(evt)
     if (content_id) break;
     else elt=elt.parentNode;}
   if (!(elt)) return true;
-  if (content_id)
-    if (content_id=='_next')
-      content=elt.nextSibling;
-    else if (content_id=='_previous')
-      content=elt.nextSibling;
-    else if (content_id=='_parent')
-      content=elt.parentNode;
-    else content=fdbByID(content_id);
+  else if (content_id) content=_fdb_get_content(content_id,elt);
   if (!(content)) return true;
   else if (content.style.display=='none')
-    fdbSetHideShow(elt,true);
-  else fdbSetHideShow(elt,false);
+    fdbSetHideShow(elt,content,true);
+  else fdbSetHideShow(elt,content,false);
   evt.preventDefault(); evt.cancelBubble=true;
   return false;
 }
 
-function fdbSetHideShow(elt,visible)
+function fdbSetHideShow(elt,content,visible)
 {
-  var content_id=fdbGet(elt,'content'), content=false;
-  if (!(content_id)) return;
-  else if (content_id=='_next')
-    content=elt.nextSibling;
-  else if (content_id=='_previous')
-    content=elt.nextSibling;
-  else if (content_id=='_parent')
-    content=elt.parentNode;
-  else content=fdbByID(content_id);
   if (!(content)) return;
   if (visible) {
     // Update the display style
@@ -907,14 +909,14 @@ function _fdb_hotcheck_click(evt)
 {
   var target=evt.target, elt=target, need_check=true;
   while (elt) {
-    fdbMessage('tagname='+elt.tagName);
+    // fdbMessage('tagname='+elt.tagName);
     if ((elt.nodeType==1) && (elt.tagName=='INPUT')) {
       need_check=false; elt=elt.parentNode;}
     else if (elt.className=='hotcheck')
       break;
     else elt=elt.parentNode;}
   var unique_elt=false;
-  fdbMessage('need_check='+need_check);
+  // fdbMessage('need_check='+need_check);
   if (elt) {
     var i=0, elts=elt.childNodes;
     while (i<elts.length) 
@@ -928,12 +930,12 @@ function _fdb_hotcheck_click(evt)
 	  if (elts[i].type=='radio') unique_elt=elts[i];}
 	else if (elts[i].checked) {
 	  if (need_check) elts[i].checked=false;
-	  fdbMessage('checked');
+	  // fdbMessage('checked');
 	  elt.style.fontWeight='normal';}
 	else {
 	  if (need_check) elts[i].checked=true;
 	  if (elts[i].type=='radio') unique_elt=elts[i];
-	  fdbMessage('not checked');
+	  // fdbMessage('not checked');
 	  elt.style.fontWeight='bold';}
 	break;}
       else i++;}
