@@ -576,6 +576,21 @@ DEFUN (fd_bigint_to_long_long, (bigint), fd_bigint bigint)
   }
 }
 
+long long
+DEFUN (fd_bigint_to_ulong_long, (bigint), fd_bigint bigint)
+{
+  if (BIGINT_ZERO_P (bigint))
+    return (0);
+  {
+    fast unsigned long long accumulator = 0;
+    fast bigint_digit_type * start = (BIGINT_START_PTR (bigint));
+    fast bigint_digit_type * scan = (start + (BIGINT_LENGTH (bigint)));
+    while (start < scan)
+      accumulator = ((accumulator << BIGINT_DIGIT_LENGTH) + (*--scan));
+    return accumulator;
+  }
+}
+
 unsigned long
 DEFUN (fd_bigint_to_ulong, (bigint), fd_bigint bigint)
 {
