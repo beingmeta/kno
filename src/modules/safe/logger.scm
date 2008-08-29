@@ -3,7 +3,7 @@
 (module-export!
  '{logger
       getloglevel %loglevel
-      logdebug loginfo lognotice %debug})
+      logdebug loginfo lognotice logwarn %debug})
 (module-export!
  '{%emergency!
    %alert!
@@ -60,11 +60,13 @@
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
 (define logdebug
-  (macro expr `(logif+ (>= %loglevel 7) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
 (define loginfo
-  (macro expr `(logif+ (>= %loglevel 6) 6 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%info!) 6 ,@(cdr expr))))
 (define lognotice
-  (macro expr `(logif+ (>= %loglevel 5) 5 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%notice!) 5 ,@(cdr expr))))
+(define logwarn
+  (macro expr `(logif+ (>= %loglevel ,%warn!) 5 ,@(cdr expr))))
 (define %debug
-  (macro expr `(logif+ (>= %loglevel 7) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
 
