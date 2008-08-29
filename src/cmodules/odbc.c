@@ -260,6 +260,7 @@ static fdtype odbcattr(fdtype conn,fdtype attr)
 
 /* Execution */
 
+/* static fdtype stmt_error(SQLHSTMT stmt,SQLHDBC dbc,SQLHENV dbenv,const u8_string cxt,int free_stmt) */
 static fdtype stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
 {
   u8_seterr(ODBCError,cxt,odbc_errstring(stmt,SQL_HANDLE_STMT));
@@ -267,26 +268,58 @@ static fdtype stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
   return FD_ERROR_VALUE;
 }
 
-static fdtype get_colvalue(SQLHSTMT stmt,int i,int sqltype,int colsize)
+static fdtype get_colvalue(SQLHSTMT stmt,int i,int sqltype,int colsize,fdtype typeinfo)
 {
+  fdtype result=FD_VOID;
   switch (sqltype) {
   case SQL_CHAR: case SQL_VARCHAR: {
-    u8_byte *data=u8_malloc(colsize+1);
-    int ret=SQLGetData(stmt,i+1,SQL_C_CHAR,data,colsize+1,NULL);
-    if (SQL_SUCCEEDED(ret)) return fd_init_string(NULL,-1,data);
+    SQLLEN clen; u8_byte *data=u8_malloc(colsize+1);
+    int ret=SQLGetData(stmt,i+1,SQL_C_CHAR,data,colsize+1,&clen);
+    if (SQL_SUCCEEDED(ret)) {
+      if (clen*2<colsize) {
+	result=fdtype_string(data);
+	u8_free(data);}
+      else result=fd_init_string(NULL,-1,data);
+      break;}
+    else return stmt_error(stmt,"get_colvalue",0);}
+  case SQL_BIGINT: {
+    unsigned long long intval=0;
+    int ret=SQLGetData(stmt,i+1,SQL_C_UBIGINT,&intval,0,NULL);
+    if (SQL_SUCCEEDED(ret)) {
+      result=FD_INT2DTYPE(intval); break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   case SQL_INTEGER: case SQL_SMALLINT: {
-    long intval;
+    long intval=0;
     int ret=SQLGetData(stmt,i+1,SQL_C_LONG,&intval,0,NULL);
-    if (SQL_SUCCEEDED(ret)) return FD_INT2DTYPE(intval);
+    if (SQL_SUCCEEDED(ret)) {
+      result=FD_INT2DTYPE(intval); break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   case SQL_FLOAT: case SQL_DOUBLE: {
     double dblval;
     int ret=SQLGetData(stmt,i+1,SQL_C_DOUBLE,&dblval,0,NULL);
-    if (SQL_SUCCEEDED(ret)) return fd_init_double(NULL,dblval);
+    if (SQL_SUCCEEDED(ret)) {
+      result=fd_init_double(NULL,dblval); break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   default:
     return FD_VOID;}
+  if (FD_VOIDP(typeinfo)) return result;
+  else if (FD_OIDP(typeinfo)) {
+    FD_OID base=FD_OID_ADDR(typeinfo);
+    unsigned long long offset=
+      ((FD_FIXNUMP(result)) ? (FD_FIX2INT(result)) :
+       (FD_PTR_TYPEP(result,fd_bigint_type)) ?
+       (fd_bigint_to_ulong_long((fd_bigint)result)) : (-1));
+    if (offset<0) return result;
+    else return fd_make_oid(base+offset);}
+  else if (FD_APPLICABLEP(typeinfo)) {
+    fdtype transformed=fd_apply(typeinfo,1,&result);
+    fd_decref(result);
+    return transformed;}
+  else if (FD_TABLEP(typeinfo)) {
+    fdtype transformed=fd_get(typeinfo,result,FD_EMPTY_CHOICE);
+    fd_decref(result);
+    return transformed;}
+  else return result;
 }
 
 
@@ -300,11 +333,11 @@ static fdtype intern_upcase(u8_output out,u8_string s)
   return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
 }
 
-static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
+static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,fdtype typeinfo)
 {
   struct U8_OUTPUT out;
   fdtype results; int i=0, ret; SQLSMALLINT n_cols;
-  fdtype *colnames; SQLSMALLINT *coltypes; SQLULEN *colsizes;
+  fdtype *colnames, *colinfo; SQLSMALLINT *coltypes; SQLULEN *colsizes;
   ret=SQLNumResultCols(stmt, &n_cols);
   if (!(SQL_SUCCEEDED(ret))) return stmt_error(stmt,cxt,free_stmt);
   if (n_cols==0) {
@@ -312,6 +345,7 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
     return FD_VOID;}
   else results=FD_EMPTY_CHOICE;
   colnames=u8_alloc_n(n_cols,fdtype);
+  colinfo=u8_alloc_n(n_cols,fdtype);
   coltypes=u8_alloc_n(n_cols,SQLSMALLINT);
   colsizes=u8_alloc_n(n_cols,SQLULEN);
   U8_INIT_OUTPUT(&out,64);
@@ -319,15 +353,19 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
     SQLCHAR name[300];
     SQLSMALLINT sqltype;
     SQLULEN colsize;
-    SQLSMALLINT sqldigits;
+    SQLSMALLINT sqldigits, namelen;
     SQLSMALLINT nullok;
     ret=SQLDescribeCol(stmt,i+1,
-		       name,sizeof(name),NULL,
+		       name,sizeof(name),&namelen,
 		       &sqltype,&colsize,&sqldigits,&nullok);
     if (!(SQL_SUCCEEDED(ret))) {
-      u8_free(colnames); u8_free(coltypes); u8_free(colsizes);
+      if (!(FD_VOIDP(typeinfo))) {
+	int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
+      u8_free(colnames); u8_free(colinfo); u8_free(coltypes); u8_free(colsizes);
       return stmt_error(stmt,cxt,free_stmt);}
     colnames[i]=intern_upcase(&out,name);
+    colinfo[i]=((FD_VOIDP(typeinfo)) ? (FD_VOID) :
+		(fd_get(typeinfo,colnames[i],FD_VOID)));
     coltypes[i]=sqltype;
     colsizes[i]=colsize;
     i++;}
@@ -335,9 +373,11 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
     fdtype slotmap;
     struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
     i=0; while (i<n_cols) {
-      fdtype value=get_colvalue(stmt,i,coltypes[i],colsizes[i]);
+      fdtype value=get_colvalue(stmt,i,coltypes[i],colsizes[i],colinfo[i]);
       if (FD_ABORTP(value)) {
-	u8_free(colnames); u8_free(coltypes); u8_free(colsizes);
+	if (!(FD_VOIDP(typeinfo))) {
+	  int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
+	u8_free(colnames); u8_free(colinfo); u8_free(coltypes); u8_free(colsizes);
 	if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
 	fd_decref(results);
 	return FD_ERROR_VALUE;}
@@ -347,10 +387,12 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
     slotmap=fd_init_slotmap(NULL,n_cols,kv);
     FD_ADD_TO_CHOICE(results,slotmap);}
   if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
+  if (!(FD_VOIDP(typeinfo))) {
+    int j=0; while (j<n_cols) {fd_decref(colinfo[j]); j++;}}
   return results;
 }
 
-static fdtype odbc_exec(fdtype conn,fdtype string)
+static fdtype odbc_exec(fdtype conn,fdtype string,fdtype typeinfo)
 {
   fdtype results=FD_VOID; int ret, i; SQLSMALLINT n_cols;
   struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_odbc_type,struct FD_ODBC *);
@@ -362,7 +404,7 @@ static fdtype odbc_exec(fdtype conn,fdtype string)
     return FD_ERROR_VALUE;}
   ret=SQLExecDirect(stmt,FD_STRDATA(string),FD_STRLEN(string));
   if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(stmt,"odbc_exec",1);
+    return get_stmt_results(stmt,"odbc_exec",1,typeinfo);
   else return stmt_error(stmt,"odbc_exec",1);
 }
 
@@ -401,9 +443,9 @@ FD_EXPORT void fd_init_odbc()
   fd_idefn(module,fd_make_cprim1("ODBCONN?",odbconnp,1));
   fd_idefn(module,fd_make_cprim1("ODBCONNECT",odbconnect,1));
 
-  fd_idefn(module,fd_make_cprim2x
+  fd_idefn(module,fd_make_cprim3x
 	   ("ODBCEXEC",odbc_exec,2,
-	    fd_odbc_type,FD_VOID,fd_string_type,FD_VOID));
+	    fd_odbc_type,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID));
   
   fd_idefn(module,fd_make_cprim1("ODBCPROC?",odbcprocp,1));
   fd_idefn(module,fd_make_cprimn("ODBCPROC",odbcproc,2));
