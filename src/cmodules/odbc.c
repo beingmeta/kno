@@ -127,7 +127,7 @@ static fdtype odbconnp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype odbconnect(fdtype spec)
+static fdtype odbcopen(fdtype spec)
 {
   return fd_odbc_connect(spec,-1);
 }
@@ -490,19 +490,19 @@ FD_EXPORT void fd_init_odbc()
   fd_unparsers[fd_odbc_proc_type]=unparse_odbcproc;
   fd_applyfns[fd_odbc_proc_type]=(fd_applyfn)callodbcproc;
 
-  fd_idefn(module,fd_make_cprim1("ODBCONN?",odbconnp,1));
-  fd_idefn(module,fd_make_cprim1("ODBCONNECT",odbconnect,1));
+  fd_idefn(module,fd_make_cprim1("ODB/CONN?",odbconnp,1));
+  fd_idefn(module,fd_make_cprim1("ODBC/OPEN",odbcopen,1));
 
   fd_idefn(module,fd_make_cprim3x
-	   ("ODBCEXEC",odbc_exec,2,
+	   ("ODBC/EXEC",odbc_exec,2,
 	    fd_odbc_type,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID));
   
-  fd_idefn(module,fd_make_cprim1("ODBCPROC?",odbcprocp,1));
-  fd_idefn(module,fd_make_cprimn("ODBCPROC",odbcproc,2));
+  fd_idefn(module,fd_make_cprim1("ODBC/PROC?",odbcprocp,1));
+  fd_idefn(module,fd_make_cprimn("ODBC/PROC",odbcproc,2));
 
 
   fd_idefn(module,fd_make_cprim2x
-	   ("ODBCATTR",odbcattr,2,
+	   ("ODBC/ATTR",odbcattr,2,
 	    fd_odbc_type,FD_VOID,fd_symbol_type,FD_VOID));
 
   justvalue_symbol=fd_intern("JUSTVALUE");
