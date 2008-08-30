@@ -59,8 +59,8 @@ typedef struct FD_ODBC_PROC {
   SQLHENV env;
   SQLHDBC conn;
   SQLHSTMT stmt;
+  short n_params; SQLSMALLINT *sqltypes;
   fdtype typemap, *argspec;
-  SQLSMALLINT *sqltypes;
   u8_string cid, qtext;} FD_ODBC_PROC;
 
 static SQLHWND sqldialog=0;
@@ -212,6 +212,7 @@ static void recycle_odbcproc(struct FD_CONS *c)
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
   fd_decref(dbp->typemap);
   u8_free(dbp->cid); u8_free(dbp->qtext);
+  u8_free(dbp->sqltypes);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
