@@ -234,8 +234,7 @@ static fdtype overlay_drop
     new_entry=fd_init_pair(NULL,fd_difference(adds,value),drops);}
   else if (FD_VECTORP(entry)) {
     fdtype values=FD_VECTOR_REF(entry,0), *elts=u8_alloc_n(1,fdtype);
-    FD_ADD_TO_CHOICE(values,value);
-    elts[0]=fd_make_simple_choice(values);
+    elts[0]=fd_difference(values,value);
     new_entry=fd_init_vector(NULL,1,elts);}
   else {
     fd_seterr(CorruptOverlay,"overlay_add",NULL,entry);
