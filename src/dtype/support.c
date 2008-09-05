@@ -564,7 +564,11 @@ static fd_exception WeirdOption=_("Weird option specification");
 
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
 {
-  if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+  if (FD_VOIDP(opts))
+    return fd_incref(dflt);
+  else if (FD_EMPTY_CHOICEP(opts))
+    return fd_incref(dflt);
+  else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
     FD_DO_CHOICES(opt,opts) {
       fdtype value=fd_getopt(opt,key,FD_VOID);
       if (!(FD_VOIDP(value))) {
@@ -572,8 +576,6 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     return fd_incref(dflt);}
   else if (FD_QCHOICEP(opts)) 
     return fd_getopt(FD_XQCHOICE(opts)->choice,key,dflt);
-  else if (FD_EMPTY_CHOICEP(opts))
-    return fd_incref(dflt);
   else while (!(FD_VOIDP(opts)))
     if (FD_PAIRP(opts)) {
       fdtype car=FD_CAR(opts);
