@@ -80,7 +80,8 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	    src/scheme/tableprims.o src/scheme/choiceprims.o \
 	    src/scheme/seqprims.o src/scheme/stringprims.o \
 	    src/scheme/portprims.o src/scheme/timeprims.o \
-	    src/scheme/arithprims.o src/scheme/side-effects.o
+	    src/scheme/arithprims.o src/scheme/side-effects.o \
+	    src/scheme/extdb.o
 SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o
 FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o src/fdweb/uriprims.o \
@@ -88,6 +89,7 @@ FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/porter.o src/texttools/phonetic.o
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
+CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/crypto.o src/cmodules/ldap.o src/cmodules/dbus.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
 	    exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
@@ -118,7 +120,7 @@ FDB_SOURCES=\
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
 	src/scheme/coreprims.c src/scheme/dbprims.c \
 	src/scheme/tableprims.c src/scheme/choiceprims.c src/scheme/compounds.c \
-	src/scheme/seqprims.c src/scheme/stringprims.c \
+	src/scheme/seqprims.c src/scheme/stringprims.c src/scheme/extdb.c \
 	src/scheme/portprims.c src/scheme/fileprims.c src/scheme/dbfileprims.c \
 	src/scheme/arithprims.c src/scheme/side-effects.c src/scheme/timeprims.c \
 	src/fdweb/fdweb.c src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
@@ -126,6 +128,8 @@ FDB_SOURCES=\
 	src/fdweb/curl.c src/fdweb/mime.c src/fdweb/exif.c src/fdweb/email.c \
 	src/texttools/texttools.c src/texttools/match.c src/texttools/porter.c \
 	src/tagger/tagger.c src/tagger/ofsm.c src/tagger/tagxtract.c \
+	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c \
+	src/cmodules/crypto.c src/cmodules/dbus.c \
 	include/fdb/tagger.h \
 	src/exe/fdconsole.c \
 	src/exe/fdexec.c src/exe/fdbatch.c \
@@ -988,6 +992,17 @@ src/scheme/stringprims.o: ./include/fdb/support.h ./include/fdb/ptr.h
 src/scheme/stringprims.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/scheme/stringprims.o: ./include/fdb/tables.h ./include/fdb/eval.h
 src/scheme/stringprims.o: ./include/fdb/apply.h
+src/scheme/extdb.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/scheme/extdb.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/scheme/extdb.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/scheme/extdb.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/scheme/extdb.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/scheme/extdb.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/scheme/extdb.o: ./include/fdb/apply.h ./include/fdb/fddb.h
+src/scheme/extdb.o: ./include/fdb/dtypestream.h ./include/fdb/dtype.h
+src/scheme/extdb.o: ./include/fdb/pools.h ./include/fdb/fddb.h
+src/scheme/extdb.o: ./include/fdb/indices.h ./include/fdb/frames.h
+src/scheme/extdb.o: ./include/fdb/extdb.h
 src/scheme/portprims.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/scheme/portprims.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/scheme/portprims.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1213,6 +1228,47 @@ src/tagger/tagxtract.o: ./include/fdb/indices.h ./include/fdb/frames.h
 src/tagger/tagxtract.o: ./include/fdb/pools.h ./include/fdb/indices.h
 src/tagger/tagxtract.o: ./include/fdb/dtypestream.h ./include/fdb/texttools.h
 src/tagger/tagxtract.o: ./include/fdb/tagger.h
+src/cmodules/odbc.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/cmodules/odbc.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/cmodules/odbc.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/cmodules/odbc.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/cmodules/odbc.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/cmodules/odbc.o: ./include/fdb/tables.h ./include/fdb/numbers.h
+src/cmodules/odbc.o: ./include/fdb/eval.h ./include/fdb/apply.h
+src/cmodules/odbc.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
+src/cmodules/sqlite.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/cmodules/sqlite.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/cmodules/sqlite.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/cmodules/sqlite.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/cmodules/sqlite.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/cmodules/sqlite.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/cmodules/sqlite.o: ./include/fdb/apply.h ./include/fdb/numbers.h
+src/cmodules/sqlite.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
+src/cmodules/sqlite.o: ./include/fdb/extdbi.h
+src/cmodules/ldap.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/cmodules/ldap.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/cmodules/ldap.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/cmodules/ldap.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/cmodules/ldap.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/cmodules/ldap.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/cmodules/ldap.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/cmodules/ldap.o: ./include/fdb/texttools.h
+src/cmodules/crypto.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/cmodules/crypto.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/cmodules/crypto.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/cmodules/crypto.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/cmodules/crypto.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/cmodules/crypto.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/cmodules/crypto.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/cmodules/crypto.o: ./include/fdb/texttools.h
+src/cmodules/dbus.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/cmodules/dbus.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/cmodules/dbus.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/cmodules/dbus.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/cmodules/dbus.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/cmodules/dbus.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/cmodules/dbus.o: ./include/fdb/apply.h ./include/fdb/sequences.h
+src/cmodules/dbus.o: ./include/fdb/texttools.h
 src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdconsole.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/exe/fdconsole.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h

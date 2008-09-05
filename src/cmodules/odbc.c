@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: texttools.c 2312 2008-02-23 23:49:10Z haase $";
+  "$Id:$";
 
 #define U8_INLINE_IO 1
 
@@ -25,6 +25,24 @@ static char versionid[] =
 #include <sqlext.h>
 
 fd_ptr_type fd_odbc_type;
+typedef struct FD_ODBC {
+  FD_CONS_HEADER;
+  u8_string cid;
+  fdtype colinfo;
+  SQLHENV env;
+  SQLHDBC conn;} FD_ODBC;
+
+fd_ptr_type fd_odbc_proc_type;
+typedef struct FD_ODBC_PROC {
+  FD_FUNCTION_FIELDS;
+  u8_string cid, qtext;
+  short n_params;
+  fdtype colinfo, *paramtypes;
+  SQLSMALLINT *sqltypes;
+  SQLHENV env;
+  SQLHDBC conn;
+  SQLHSTMT stmt;} FD_ODBC_PROC;
+
 FD_EXPORT void fd_init_odbc(void) FD_LIBINIT_FN;
 
 static fd_exception ODBCError=_("ODBC error");
@@ -46,22 +64,6 @@ static u8_string odbc_errstring(SQLHANDLE handle,SQLSMALLINT type)
       (type, handle, ++i, state, &native, text,sizeof(text),&len);}
   return out.u8_outbuf;
 }
-
-typedef struct FD_ODBC {
-  FD_CONS_HEADER;
-  SQLHENV env;
-  SQLHDBC conn;
-  u8_string cid;} FD_ODBC;
-
-fd_ptr_type fd_odbc_proc_type;
-typedef struct FD_ODBC_PROC {
-  FD_FUNCTION_FIELDS;
-  SQLHENV env;
-  SQLHDBC conn;
-  SQLHSTMT stmt;
-  short n_params; SQLSMALLINT *sqltypes;
-  fdtype typemap, *argspec;
-  u8_string cid, qtext;} FD_ODBC_PROC;
 
 static SQLHWND sqldialog=0;
 static int interactive_dflt=0;
@@ -138,7 +140,7 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args);
 
 FD_EXPORT fdtype odbcproc(int n,fdtype *args)
 {
-  fdtype spec=args[0], stmt=args[1], typemap=((n>2) ? (args[2]) : (FD_VOID));
+  fdtype spec=args[0], stmt=args[1], colinfo=((n>2) ? (args[2]) : (FD_VOID));
   struct FD_ODBC_PROC *dbp=u8_alloc(struct FD_ODBC_PROC);
   int ret=-1, howfar=0, running=1; SQLSMALLINT n_params, *sqltypes;
   int interactive=interactive_dflt;
@@ -169,7 +171,7 @@ FD_EXPORT fdtype odbcproc(int n,fdtype *args)
     dbp->name=dbp->qtext=u8_strdup(FD_STRDATA(stmt));
     dbp->filename=dbp->cid;
     dbp->sqltypes=sqltypes=u8_alloc_n(n_params,SQLSMALLINT);
-    dbp->typemap=fd_incref(typemap);
+    dbp->colinfo=fd_incref(colinfo);
     dbp->typeinfo=NULL; dbp->defaults=NULL;
     /* dbp->handler.xcalln=callodbcproc; */
     dbp->handler.xcalln=NULL;
@@ -178,7 +180,7 @@ FD_EXPORT fdtype odbcproc(int n,fdtype *args)
       while (i<n_params)
 	if ((i+3)<n) {specs[i]=fd_incref(args[i+3]); i++;}
 	else {specs[i]=FD_VOID; i++;}
-      dbp->argspec=specs;}
+      dbp->paramtypes=specs;}
     {
       int i=0; while (i<n_params) {
 	SQLDescribeParam((dbp->stmt),i+1,&(sqltypes[i]),NULL,NULL,NULL);
@@ -194,9 +196,9 @@ FD_EXPORT fdtype odbcproc(int n,fdtype *args)
     u8_seterr(ODBCError,"fd_odbcproc",odbc_errstring(dbp->env,SQL_HANDLE_ENV));
   else u8_seterr(ODBCError,"fd_odbcproc",NULL);
   if (howfar>=5) {
-    int j=0; while (j<n_params) {fd_decref(dbp->argspec[j]); j++;}
-    u8_free(dbp->qtext); fd_decref(dbp->typemap);
-    u8_free(dbp->argspec);}
+    int j=0; while (j<n_params) {fd_decref(dbp->paramtypes[j]); j++;}
+    u8_free(dbp->qtext); fd_decref(dbp->colinfo);
+    u8_free(dbp->paramtypes);}
   if (howfar>=4) {
     SQLFreeHandle(SQL_HANDLE_STMT,dbp->stmt);}
   if (howfar>1) {
@@ -210,7 +212,7 @@ static void recycle_odbcproc(struct FD_CONS *c)
   SQLFreeHandle(SQL_HANDLE_STMT,dbp->stmt);
   SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
-  fd_decref(dbp->typemap);
+  fd_decref(dbp->colinfo);
   u8_free(dbp->cid); u8_free(dbp->qtext);
   u8_free(dbp->sqltypes);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
@@ -417,7 +419,7 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,f
   return results;
 }
 
-static fdtype odbc_exec(fdtype conn,fdtype string,fdtype typeinfo)
+static fdtype odbc_exec(fdtype conn,fdtype string,fdtype colinfo)
 {
   fdtype results=FD_VOID; int ret, i; SQLSMALLINT n_cols;
   struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_odbc_type,struct FD_ODBC *);
@@ -428,8 +430,9 @@ static fdtype odbc_exec(fdtype conn,fdtype string,fdtype typeinfo)
     u8_seterr(ODBCError,"odbc_exec",NULL);
     return FD_ERROR_VALUE;}
   ret=SQLExecDirect(stmt,FD_STRDATA(string),FD_STRLEN(string));
+  if (FD_VOIDP(colinfo)) colinfo=dbp->colinfo;
   if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(stmt,"odbc_exec",1,typeinfo);
+    return get_stmt_results(stmt,"odbc_exec",1,colinfo);
   else return stmt_error(stmt,"odbc_exec",1);
 }
 
@@ -439,9 +442,9 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   int i=0, ret=-1;
   while (i<n) {
     fdtype arg=args[i]; int dofree=0;
-    if (!(FD_VOIDP(dbp->argspec[i])))
-      if (FD_APPLICABLEP(dbp->argspec[i])) {
-	arg=fd_apply(dbp->argspec[i],1,&arg);
+    if (!(FD_VOIDP(dbp->paramtypes[i])))
+      if (FD_APPLICABLEP(dbp->paramtypes[i])) {
+	arg=fd_apply(dbp->paramtypes[i],1,&arg);
 	if (FD_ABORTP(arg)) return arg;
 	else dofree=1;}
     if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
@@ -453,9 +456,9 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) {
       SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_CHAR,dbp->sqltypes[i],0,0,FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
     else if (FD_OIDP(arg))
-      if (FD_OIDP(dbp->argspec[i])) {
+      if (FD_OIDP(dbp->paramtypes[i])) {
 	FD_OID addr=FD_OID_ADDR(arg);
-	FD_OID base=FD_OID_ADDR(dbp->argspec[i]);
+	FD_OID base=FD_OID_ADDR(dbp->paramtypes[i]);
 	unsigned long offset=FD_OID_DIFFERENCE(addr,base);
 	SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_ULONG,dbp->sqltypes[i],0,0,&addr,0,NULL);}
       else {
@@ -465,7 +468,7 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     i++;}
   ret=SQLExecute(dbp->stmt);
   if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(dbp->stmt,"odbc_exec",0,dbp->typemap);
+    return get_stmt_results(dbp->stmt,"odbc_exec",0,dbp->colinfo);
   else return stmt_error(dbp->stmt,"odbc_exec",0);
 }
 
