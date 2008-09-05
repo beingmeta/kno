@@ -186,7 +186,7 @@ typedef struct FD_CONS *fd_cons;
 #define FD_INIT_CONS(ptr,type) \
   ((struct FD_CONS *)ptr)->consbits=((type-0x84)|0x80)
 #define FD_INIT_FRESH_CONS(ptr,type) \
-  memset(ptr,sizeof(ptr),0); \
+  memset(ptr,0,sizeof(*(ptr))); \
   ((struct FD_CONS *)ptr)->consbits=((type-0x84)|0x80)
 #define FD_INIT_STACK_CONS(ptr,type) \
   ((struct FD_CONS *)ptr)->consbits=(type-0x84)
