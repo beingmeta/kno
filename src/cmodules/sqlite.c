@@ -34,12 +34,12 @@ typedef struct FD_SQLITE *fd_sqlite;
 typedef struct FD_SQLITE_PROC {
   FD_EXTDB_PROC_FIELDS;
   int *sqltypes;
-  sqlite3 *db; sqlite3_stmt *stmt;} FD_SQLITE_PROC;
+  sqlite3 *sqlitedb; sqlite3_stmt *stmt;} FD_SQLITE_PROC;
 typedef struct FD_SQLITE_PROC *fd_sqlite_proc;
 
 static fd_exception SQLiteError=_("SQLite Error");
 
-static fdtype justvalue_symbol;
+static fdtype merge_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
@@ -50,6 +50,15 @@ static fdtype intern_upcase(u8_output out,u8_string s)
     c=u8_sgetc(&s);}
   return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
 }
+
+static unsigned char *_memdup(unsigned char *data,int len)
+{
+  unsigned char *duplicate=u8_alloc_n(len,unsigned char);
+  memcpy(duplicate,data,len);
+  return duplicate;
+}
+
+/* Opening connections */
 
 static fdtype open_sqlite(fdtype filename,fdtype colinfo)
 {
@@ -65,7 +74,7 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
     FD_INIT_CONS(sqlcons,fd_extdb_type);
     sqlcons->dbhandler=&sqlite_handler; sqlcons->colinfo=colinfo;
     sqlcons->db=db;
-    sqlcons->spec=sqlcons->cid=u8_strdup(FD_STRDATA(filename));
+    sqlcons->spec=sqlcons->info=u8_strdup(FD_STRDATA(filename));
     return FDTYPE_CONS(sqlcons);}
 }
 static fdtype sqlite_open_handler(int n,fdtype *args)
@@ -75,10 +84,10 @@ static fdtype sqlite_open_handler(int n,fdtype *args)
   else return open_sqlite(args[0],FD_VOID);
 }
 
-static void recycle_sqlitedb(struct FD_CONS *c)
+static void recycle_sqlitedb(struct FD_EXTDB *c)
 {
   struct FD_SQLITE *dbp=(struct FD_SQLITE *)c;
-  u8_free(dbp->cid); sqlite3_close(dbp->db);
+  u8_free(dbp->spec); sqlite3_close(dbp->db);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -89,8 +98,12 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   fdtype results=FD_EMPTY_CHOICE;
   fdtype _colnames[16], *colnames;
   fdtype _colmaps[16], *colmaps;
-  int i=0, n_cols=sqlite3_column_count(stmt), retval, oneval=0;
+  fdtype mergefn=fd_getopt(colinfo,merge_symbol,FD_VOID);
+  int i=0, n_cols=sqlite3_column_count(stmt), retval, mergeval=0;
   struct U8_OUTPUT out;
+  if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
+	(FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
+    return fd_type_error("%MERGE","sqlite_values",mergefn);
   if (n_cols==0) {
     int retval=sqlite3_step(stmt);
     if ((retval) && (retval<100))
@@ -102,8 +115,6 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   else {
     colnames=_colnames;
     colmaps=_colmaps;}
-  if ((n_cols==1) && (fd_testopt(colinfo,justvalue_symbol,FD_VOID)))
-    oneval=1;
   U8_INIT_OUTPUT(&out,64);
   while (i<n_cols) {
     fdtype colname;
@@ -160,18 +171,23 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
 	else kv[j].value=value;
       else kv[j].value=value;
       j++;}
-    if (oneval) {
+    if ((n_cols==1) && (FD_TRUEP(mergefn))) {
       slotmap=kv[0].value;
       u8_free(kv);}
-    else slotmap=fd_init_slotmap(NULL,n_cols,kv);
+    else if ((FD_VOIDP(mergefn)) || (FD_FALSEP(mergefn)) || (FD_TRUEP(mergefn)))
+      slotmap=fd_init_slotmap(NULL,n_cols,kv);
+    else {
+      fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
+      slotmap=fd_apply(mergefn,1,&tmp_slotmap);
+      fd_decref(tmp_slotmap);}
     FD_ADD_TO_CHOICE(results,slotmap);}
   u8_free(out.u8_outbuf);
+  fd_decref(mergefn);
   return results;
 }
 
-static fdtype sqliteexec(fdtype db,fdtype string,fdtype colinfo)
+static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
 {
-  struct FD_SQLITE *fds=FD_GET_CONS(db,fd_extdb_type,struct FD_SQLITE *);
   sqlite3 *dbp=fds->db;
   sqlite3_stmt *stmt;
   fdtype results=FD_EMPTY_CHOICE; const char *errmsg="er, err";
@@ -183,81 +199,77 @@ static fdtype sqliteexec(fdtype db,fdtype string,fdtype colinfo)
     fdtype values=sqlite_values(dbp,stmt,colinfo);
     if (FD_ABORTP(values)) {
       errmsg=sqlite3_errmsg(dbp);
-      fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),string);}
+      fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),fd_incref(string));}
     sqlite3_finalize(stmt);
     return values;}
   else {
+    fdtype dbptr=(fdtype)dbp; fd_incref(dbptr);
     errmsg=sqlite3_errmsg(dbp);
-    fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),db);
+    fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),dbptr);
     return FD_ERROR_VALUE;}
+}
+
+static fdtype sqliteexechandler(struct FD_EXTDB *extdb,fdtype string,fdtype colinfo)
+{
+  if (extdb->dbhandler==&sqlite_handler)
+    return sqliteexec((fd_sqlite)extdb,string,colinfo);
+  else return fd_type_error("SQLITE EXTDB","sqliteexechandler",(fdtype)extdb);
 }
 
 /* SQLITE procs */
 
-static fdtype sqlitemakeproc(fdtype filename,fdtype query,fdtype colinfo,int n,fdtype *ptypes)
+static fdtype sqlitemakeproc(struct FD_SQLITE *dbp,u8_string stmt,int stmt_len,fdtype colinfo,int n,fdtype *ptypes)
 {
-  sqlite3 *db=NULL;
+  sqlite3 *db=dbp->db;
   u8_string fname;
-  int flags=0, retval, consed_colinfo=0;
-  if (FD_STRINGP(filename)) fname=FD_STRDATA(filename);
-  else if (FD_PRIM_TYPEP(filename,fd_extdb_type)) {
-    struct FD_EXTDB *extdb=FD_GET_CONS(filename,fd_extdb_type,struct FD_EXTDB *);
-    if ((extdb->dbhandler)==(&sqlite_handler)) {
-      fname=extdb->cid;
-      if (FD_VOIDP(colinfo)) colinfo=extdb->colinfo;
-      else if (FD_VOIDP(extdb->colinfo)) {}
-      else {
-	fd_incref(colinfo); fd_incref(extdb->colinfo);
-	colinfo=fd_init_pair(NULL,colinfo,extdb->colinfo);}}
-    else return fd_type_error("extdb","sqlitemakeproc",filename);}
-  else return fd_type_error("extdb","sqlitemakeproc",filename);
-#if HAVE_SQLITE3_OPEN_V2
-  flags=(SQLITE_OPEN_READWRITE);
-#endif
-  retval=sqlite3_open(fname,&db);
+  int flags=0, consed_colinfo=0, n_params, retval;
+  struct FD_SQLITE_PROC *sqlcons=u8_alloc(struct FD_SQLITE_PROC);
+  FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
+  retval=sqlite3_prepare_v2(db,stmt,stmt_len,&(sqlcons->stmt),NULL);
   if (retval) {
-    u8_string msg=u8_strdup(sqlite3_errmsg(db));
-    fd_seterr(SQLiteError,"open_sqlite",msg,filename);
-    sqlite3_close(db);
+    fdtype dbptr=(fdtype)dbp;
+    const char *errmsg=sqlite3_errmsg(db);
+    fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),fd_incref(dbptr));
     return FD_ERROR_VALUE;}
+  sqlcons->dbhandler=&sqlite_handler;
+  sqlcons->db=(fdtype)dbp; fd_incref(sqlcons->db);
+  sqlcons->sqlitedb=db;
+  sqlcons->filename=sqlcons->spec=u8_strdup(dbp->spec);
+  sqlcons->name=sqlcons->qtext=_memdup(stmt,stmt_len+1); /* include NUL */
+  sqlcons->n_params=n_params=sqlite3_bind_parameter_count(sqlcons->stmt);
+  sqlcons->ndprim=0; sqlcons->xprim=1; sqlcons->arity=-1;
+  sqlcons->min_arity=n_params;
+  sqlcons->handler.xcalln=callsqliteproc;
+  {
+    fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
+    int j=0; while (j<n_params) {
+      if (j<n) paramtypes[j]=fd_incref(ptypes[j]);
+      else paramtypes[j]=FD_VOID;
+      j++;}
+    sqlcons->paramtypes=paramtypes;}
+  if (FD_VOIDP(colinfo))
+    sqlcons->colinfo=fd_incref(dbp->colinfo);
+  else if (FD_VOIDP(dbp->colinfo))
+    sqlcons->colinfo=fd_incref(colinfo);
   else {
-    struct FD_SQLITE_PROC *sqlcons=u8_alloc(struct FD_SQLITE_PROC);
-    int n_params, retval;
-    FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
-    sqlcons->db=db;
-    sqlcons->spec=sqlcons->filename=sqlcons->cid=u8_strdup(fname);
-    sqlcons->name=sqlcons->qtext=u8_strdup(FD_STRDATA(query));
-    retval=sqlite3_prepare_v2(db,FD_STRDATA(query),FD_STRLEN(query),
-			      &(sqlcons->stmt),NULL);
-    sqlcons->n_params=n_params=sqlite3_bind_parameter_count(sqlcons->stmt);
-    sqlcons->ndprim=0; sqlcons->xprim=1; sqlcons->arity=-1;
-    sqlcons->min_arity=n_params;
-    sqlcons->handler.xcalln=callsqliteproc;
-    sqlcons->dbhandler=&sqlite_handler;
-    {
-      fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
-      int j=0; while (j<n_params) {
-	if (j<n) paramtypes[j]=fd_incref(ptypes[j]);
-	else paramtypes[j]=FD_VOID;
-	j++;}
-      sqlcons->paramtypes=paramtypes;}
-    sqlcons->colinfo=colinfo;
-    if (!(consed_colinfo)) fd_incref(colinfo);
-    return FDTYPE_CONS(sqlcons);}
+    fd_incref(colinfo); fd_incref(dbp->colinfo);
+    sqlcons->colinfo=fd_init_pair(NULL,colinfo,dbp->colinfo);}
+  return FDTYPE_CONS(sqlcons);
 }
 
-static fdtype sqliteproc(int n,fdtype *args)
+static fdtype sqlitemakeprochandler
+  (struct FD_EXTDB *extdb,u8_string stmt,int stmt_len,fdtype colinfo,int n,fdtype *ptypes)
 {
-  return sqlitemakeproc(args[0],args[1],((n>2) ? (args[2]) : (FD_VOID)),
-			((n>3) ? (n-3) : (0)),
-			((n>3) ? (args+3) : (NULL)));
+  if (extdb->dbhandler==&sqlite_handler)
+    return sqlitemakeproc((fd_sqlite)extdb,stmt,stmt_len,colinfo,n,ptypes);
+  else return fd_type_error("SQLITE EXTDB","sqlitemakeprochandler",(fdtype)extdb);
 }
 
-static void recycle_sqliteproc(struct FD_CONS *c)
+static void recycle_sqliteproc(struct FD_EXTDB_PROC *c)
 {
   struct FD_SQLITE_PROC *dbp=(struct FD_SQLITE_PROC *)c;
   fd_decref(dbp->colinfo);
-  u8_free(dbp->cid); u8_free(dbp->qtext);
+  u8_free(dbp->spec); u8_free(dbp->qtext);
   {int j=0, lim=dbp->n_params;; while (j<lim) {
     fd_decref(dbp->paramtypes[j]); j++;}}
   u8_free(dbp->sqltypes); u8_free(dbp->paramtypes);
@@ -266,40 +278,43 @@ static void recycle_sqliteproc(struct FD_CONS *c)
 
 static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
-  struct FD_SQLITE_PROC *dbp=(struct FD_SQLITE_PROC *)fn;
+  struct FD_SQLITE_PROC *dbproc=(struct FD_SQLITE_PROC *)fn;
   fdtype values=FD_EMPTY_CHOICE;
   int i=0, ret=-1;
   while (i<n) {
     fdtype arg=args[i]; int dofree=0;
-    if (!(FD_VOIDP(dbp->paramtypes[i])))
-      if (FD_APPLICABLEP(dbp->paramtypes[i])) {
-	arg=fd_apply(dbp->paramtypes[i],1,&arg);
+    if (!(FD_VOIDP(dbproc->paramtypes[i])))
+      if (FD_APPLICABLEP(dbproc->paramtypes[i])) {
+	arg=fd_apply(dbproc->paramtypes[i],1,&arg);
 	if (FD_ABORTP(arg)) return arg;
 	else dofree=1;}
     if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
-      ret=sqlite3_bind_int(dbp->stmt,i+1,intval);}
+      ret=sqlite3_bind_int(dbproc->stmt,i+1,intval);}
     else if (FD_PRIM_TYPEP(arg,fd_double_type)) {
       double floval=FD_FLONUM(arg);
-      ret=sqlite3_bind_double(dbp->stmt,i+1,floval);}
+      ret=sqlite3_bind_double(dbproc->stmt,i+1,floval);}
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) 
-      ret=sqlite3_bind_text(dbp->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
+      ret=sqlite3_bind_text(dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
     else if (FD_OIDP(arg))
-      if (FD_OIDP(dbp->paramtypes[i])) {
+      if (FD_OIDP(dbproc->paramtypes[i])) {
 	FD_OID addr=FD_OID_ADDR(arg);
-	FD_OID base=FD_OID_ADDR(dbp->paramtypes[i]);
+	FD_OID base=FD_OID_ADDR(dbproc->paramtypes[i]);
 	unsigned long offset=FD_OID_DIFFERENCE(addr,base);
-	ret=sqlite3_bind_int(dbp->stmt,i+1,offset);}
+	ret=sqlite3_bind_int(dbproc->stmt,i+1,offset);}
       else {
 	FD_OID addr=FD_OID_ADDR(arg);
-	ret=sqlite3_bind_int64(dbp->stmt,i+1,addr);}
+	ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}
     if (dofree) fd_decref(arg);
-    if (ret) return FD_ERROR_VALUE;
+    if (ret) {
+      const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
+      fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),fd_incref((fdtype)fn));
+      return FD_ERROR_VALUE;}
     i++;}
-  values=sqlite_values(dbp->db,dbp->stmt,dbp->colinfo);
-  sqlite3_reset(dbp->stmt);
+  values=sqlite_values(dbproc->sqlitedb,dbproc->stmt,dbproc->colinfo);
+  sqlite3_reset(dbproc->stmt);
   if (FD_ABORTP(values)) {
-    const char *errmsg=sqlite3_errmsg(dbp->db);
+    const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
     fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),fd_incref((fdtype)fn));}
   return values;
 }
@@ -317,8 +332,8 @@ FD_EXPORT int fd_init_sqlite()
   if (sqlite_init) return 0;
   module=fd_new_module("SQLITE",0);
 
-  sqlite_handler.execute=sqliteexec;
-  sqlite_handler.makeproc=sqlitemakeproc;
+  sqlite_handler.execute=sqliteexechandler;
+  sqlite_handler.makeproc=sqlitemakeprochandler;
   sqlite_handler.recycle_extdb=recycle_sqlitedb;
   sqlite_handler.recycle_extdb_proc=recycle_sqliteproc;
 
@@ -328,16 +343,9 @@ FD_EXPORT int fd_init_sqlite()
 	  fd_make_cprim2x("SQLITE/OPEN",open_sqlite,1,
 			  fd_string_type,FD_VOID,
 			  -1,FD_VOID));
-  fd_defn(module,
-	  fd_make_cprim3x("SQLITE/EXEC",sqliteexec,2,
-			  fd_extdb_type,FD_VOID,
-			  fd_string_type,FD_VOID,
-			  -1,FD_VOID));
-  fd_defn(module,fd_make_cprimn("SQLITE/PROC",sqliteproc,2));
-
   sqlite_init=1;
 
-  justvalue_symbol=fd_intern("JUSTVALUE");
+  merge_symbol=fd_intern("%MERGE");
 
   fd_finish_module(module);
 

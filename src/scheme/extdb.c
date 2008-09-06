@@ -51,26 +51,26 @@ FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h)
 static void recycle_extdb(struct FD_CONS *c)
 {
   struct FD_EXTDB *dbp=(struct FD_EXTDB *)c;
-  dbp->dbhandler->recycle_extdb(c);
+  dbp->dbhandler->recycle_extdb(dbp);
 }
 
 static int unparse_extdb(u8_output out,fdtype x)
 {
   struct FD_EXTDB *dbp=(struct FD_EXTDB *)x;
-  u8_printf(out,"#<%s %s>",dbp->dbhandler->name,dbp->cid);
+  u8_printf(out,"#<EXTDB/%s %s>",dbp->dbhandler->name,dbp->info);
   return 1;
 }
 
 static void recycle_extdb_proc(struct FD_CONS *c)
 {
-  struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)c;
-  dbp->dbhandler->recycle_extdb_proc(c);
+  struct FD_EXTDB_PROC *dbproc=(struct FD_EXTDB_PROC *)c;
+  dbproc->dbhandler->recycle_extdb_proc(dbproc);
 }
 
 static int unparse_extdb_proc(u8_output out,fdtype x)
 {
   struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)x;
-  u8_printf(out,"#<%s %s: %s>",dbp->dbhandler->name,dbp->cid,dbp->qtext);
+  u8_printf(out,"#<DBPROC/%s %s: %s>",dbp->dbhandler->name,dbp->spec,dbp->qtext);
   return 1;
 }
 
@@ -85,7 +85,7 @@ static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
 static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
 {
   struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
-  return extdb->dbhandler->execute(db,query,colinfo);
+  return extdb->dbhandler->execute(extdb,query,colinfo);
 }  
 
 static fdtype extdb_makeproc(int n,fdtype *args)
@@ -95,9 +95,10 @@ static fdtype extdb_makeproc(int n,fdtype *args)
   if (extdb==NULL) return FD_ERROR_VALUE;
   else if (!(FD_STRINGP(query))) 
     return fd_type_error("string","extdb_makeproc",query);
-  else return extdb->dbhandler->makeproc(dbspec,query,colinfo,
-					 ((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));
-}  
+  else return extdb->dbhandler->makeproc
+	 (extdb,FD_STRDATA(query),FD_STRLEN(query),
+	  colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));
+}
 
 int extdb_initialized=0;
 
