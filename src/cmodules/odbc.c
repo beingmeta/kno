@@ -35,6 +35,11 @@ static unsigned char *_memdup(unsigned char *data,int len)
 
 /* Declarations */
 
+/* As I understand it, ODBC connections are threadsafe
+   but statements are no, so we put the lock on statements.
+   This is distinct from SQLITE, where connections aren't threadsafe,
+   so the lock is on connections. */
+
 static struct FD_EXTDB_HANDLER odbc_handler;
 
 typedef struct FD_ODBC {
@@ -45,6 +50,9 @@ typedef struct FD_ODBC *fd_odbc;
 
 typedef struct FD_ODBC_PROC {
   FD_EXTDB_PROC_FIELDS;
+#if FD_THREADS_ENABLED
+  u8_mutex lock;
+#endif
   SQLSMALLINT *sqltypes;
   SQLHSTMT stmt;} FD_ODBC_PROC;
 typedef struct FD_ODBC_PROC *fd_odbc_proc;
@@ -132,7 +140,10 @@ static fdtype odbcopen(fdtype spec,fdtype colinfo)
 
 static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args);
 
-static fdtype odbcmakeproc(struct FD_ODBC *dbp,u8_string stmt,int stmt_len,fdtype colinfo,int n,fdtype *args)
+static fdtype odbcmakeproc
+  (struct FD_ODBC *dbp,
+   u8_string stmt,int stmt_len,
+   fdtype colinfo,int n,fdtype *args)
 {
   int ret=0, have_stmt=0;
   SQLSMALLINT n_params, *sqltypes;
@@ -153,6 +164,7 @@ static fdtype odbcmakeproc(struct FD_ODBC *dbp,u8_string stmt,int stmt_len,fdtyp
       u8_seterr(ODBCError,"odbcmakeproc",odbc_errstring(dbp->conn,SQL_HANDLE_DBC));
       u8_free(dbproc);}
     return FD_ERROR_VALUE;}
+  dbproc->db=(fdtype)dbp; fd_incref(dbproc->db);
   dbproc->dbhandler=&odbc_handler;
   dbproc->ndprim=0; dbproc->xprim=1; dbproc->arity=-1;
   dbproc->min_arity=dbproc->n_params=n_params;
@@ -160,6 +172,10 @@ static fdtype odbcmakeproc(struct FD_ODBC *dbp,u8_string stmt,int stmt_len,fdtyp
   dbproc->filename=dbproc->spec=u8_strdup(dbp->spec);
   dbproc->sqltypes=sqltypes=u8_alloc_n(n_params,SQLSMALLINT);
   dbproc->handler.xcalln=callodbcproc;
+#if FD_THREADS_ENABLED
+  u8_init_mutex(&(dbproc->lock));
+#endif
+
   if (FD_VOIDP(colinfo))
     dbproc->colinfo=fd_incref(dbp->colinfo);
   else if (FD_VOIDP(dbp->colinfo))
@@ -181,7 +197,9 @@ static fdtype odbcmakeproc(struct FD_ODBC *dbp,u8_string stmt,int stmt_len,fdtyp
 }
 
 static fdtype odbcmakeprochandler
-  (struct FD_EXTDB *extdb,u8_string stmt,int stmt_len,fdtype colinfo,int n,fdtype *ptypes)
+  (struct FD_EXTDB *extdb,
+   u8_string stmt,int stmt_len,
+   fdtype colinfo,int n,fdtype *ptypes)
 {
   if (extdb->dbhandler==&odbc_handler)
     return odbcmakeproc((fd_odbc)extdb,stmt,stmt_len,colinfo,n,ptypes);
@@ -240,7 +258,6 @@ static fdtype odbcattr(fdtype conn,fdtype attr)
 
 /* Execution */
 
-/* static fdtype stmt_error(SQLHSTMT stmt,SQLHDBC dbc,SQLHENV dbenv,const u8_string cxt,int free_stmt) */
 static fdtype stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
 {
   u8_seterr(ODBCError,cxt,odbc_errstring(stmt,SQL_HANDLE_STMT));
@@ -248,7 +265,8 @@ static fdtype stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
   return FD_ERROR_VALUE;
 }
 
-static fdtype get_colvalue(SQLHSTMT stmt,int i,int sqltype,int colsize,fdtype typeinfo)
+static fdtype get_colvalue
+  (SQLHSTMT stmt,int i,int sqltype,int colsize,fdtype typeinfo)
 {
   fdtype result=FD_VOID;
   switch (sqltype) {
@@ -314,7 +332,8 @@ static fdtype intern_upcase(u8_output out,u8_string s)
 
 static fdtype merge_symbol;
 
-static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,fdtype typeinfo)
+static fdtype get_stmt_results
+  (SQLHSTMT stmt,const u8_string cxt,int free_stmt,fdtype typeinfo)
 {
   struct U8_OUTPUT out;
   fdtype results; int i=0, ret; SQLSMALLINT n_cols;
@@ -346,7 +365,8 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,f
     if (!(SQL_SUCCEEDED(ret))) {
       if (!(FD_VOIDP(typeinfo))) {
 	int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
-      u8_free(colnames); u8_free(colinfo); u8_free(coltypes); u8_free(colsizes);
+      u8_free(colnames); u8_free(colinfo);
+      u8_free(coltypes); u8_free(colsizes);
       return stmt_error(stmt,cxt,free_stmt);}
     colnames[i]=intern_upcase(&out,name);
     colinfo[i]=((FD_VOIDP(typeinfo)) ? (FD_VOID) :
@@ -360,7 +380,8 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,f
       if (FD_ABORTP(value)) {
 	if (!(FD_VOIDP(typeinfo))) {
 	  int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
-	u8_free(colnames); u8_free(colinfo); u8_free(coltypes); u8_free(colsizes);
+	u8_free(colnames); u8_free(colinfo);
+	u8_free(coltypes); u8_free(colsizes);
 	if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
 	fd_decref(results);
 	return FD_ERROR_VALUE;}
@@ -373,7 +394,8 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,f
 	if (FD_ABORTP(value)) {
 	  if (!(FD_VOIDP(typeinfo))) {
 	    int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
-	  u8_free(colnames); u8_free(colinfo); u8_free(coltypes); u8_free(colsizes);
+	  u8_free(colnames); u8_free(colinfo);
+	  u8_free(coltypes); u8_free(colsizes);
 	  if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
 	  fd_decref(results);
 	  return FD_ERROR_VALUE;}
@@ -398,6 +420,7 @@ static fdtype odbcexec(struct FD_ODBC *dbp,fdtype string,fdtype colinfo)
   fdtype results=FD_VOID; int ret, i; SQLSMALLINT n_cols;
   int stopped=0, howfar=0;
   SQLHSTMT stmt;
+  /* No need for locking here, because we have our own statement */
   ret=SQLAllocHandle(SQL_HANDLE_STMT,dbp->conn,&stmt);
   if (!(SQL_SUCCEEDED(ret))) {
     u8_seterr(ODBCError,"odbcexec",NULL);
@@ -409,7 +432,8 @@ static fdtype odbcexec(struct FD_ODBC *dbp,fdtype string,fdtype colinfo)
   else return stmt_error(stmt,"odbcexec",1);
 }
 
-static fdtype odbcexechandler(struct FD_EXTDB *extdb,fdtype string,fdtype colinfo)
+static fdtype odbcexechandler
+  (struct FD_EXTDB *extdb,fdtype string,fdtype colinfo)
 {
   if (extdb->dbhandler==&odbc_handler)
     return odbcexec((fd_odbc)extdb,string,colinfo);
@@ -420,36 +444,56 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   struct FD_ODBC_PROC *dbp=(struct FD_ODBC_PROC *)fn;
   int i=0, ret=-1;
+  u8_lock_mutex(&(dbp->lock));
   while (i<n) {
     fdtype arg=args[i]; int dofree=0;
     if (!(FD_VOIDP(dbp->paramtypes[i])))
       if (FD_APPLICABLEP(dbp->paramtypes[i])) {
 	arg=fd_apply(dbp->paramtypes[i],1,&arg);
-	if (FD_ABORTP(arg)) return arg;
+	if (FD_ABORTP(arg)) {
+	  u8_unlock_mutex(&(dbp->lock));
+	  return arg;}
 	else dofree=1;}
     if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
-      SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_SLONG,dbp->sqltypes[i],0,0,&intval,0,NULL);}
+      SQLBindParameter(dbp->stmt,i+1,
+		       SQL_PARAM_INPUT,SQL_C_SLONG,
+		       dbp->sqltypes[i],0,0,&intval,0,NULL);}
     else if (FD_PRIM_TYPEP(arg,fd_double_type)) {
       double floval=FD_FLONUM(arg);
-      SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_DOUBLE,dbp->sqltypes[i],0,0,&floval,0,NULL);}
+      SQLBindParameter(dbp->stmt,i+1,
+		       SQL_PARAM_INPUT,SQL_C_DOUBLE,
+		       dbp->sqltypes[i],0,0,&floval,0,NULL);}
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) {
-      SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_CHAR,dbp->sqltypes[i],0,0,FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
+      SQLBindParameter(dbp->stmt,i+1,
+		       SQL_PARAM_INPUT,SQL_C_CHAR,
+		       dbp->sqltypes[i],0,0,
+		       FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
     else if (FD_OIDP(arg))
       if (FD_OIDP(dbp->paramtypes[i])) {
 	FD_OID addr=FD_OID_ADDR(arg);
 	FD_OID base=FD_OID_ADDR(dbp->paramtypes[i]);
 	unsigned long offset=FD_OID_DIFFERENCE(addr,base);
-	SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_ULONG,dbp->sqltypes[i],0,0,&addr,0,NULL);}
+	SQLBindParameter(dbp->stmt,i+1,
+			 SQL_PARAM_INPUT,SQL_C_ULONG,
+			 dbp->sqltypes[i],0,0,&addr,0,NULL);}
       else {
 	FD_OID addr=FD_OID_ADDR(arg);
-	SQLBindParameter(dbp->stmt,i+1,SQL_PARAM_INPUT,SQL_C_UBIGINT,dbp->sqltypes[i],0,0,&addr,0,NULL);}
+	SQLBindParameter(dbp->stmt,i+1,
+			 SQL_PARAM_INPUT,SQL_C_UBIGINT,
+			 dbp->sqltypes[i],0,0,&addr,0,NULL);}
     if (dofree) fd_decref(arg);
     i++;}
   ret=SQLExecute(dbp->stmt);
-  if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(dbp->stmt,"odbcexec",0,dbp->colinfo);
-  else return stmt_error(dbp->stmt,"odbcexec",0);
+  if (SQL_SUCCEEDED(ret)) {
+    fdtype results=get_stmt_results(dbp->stmt,"odbcexec",0,dbp->colinfo);
+    SQLFreeStmt(dbp->stmt,SQL_CLOSE);
+    SQLFreeStmt(dbp->stmt,SQL_RESET_PARAMS);
+    u8_unlock_mutex(&(dbp->lock));
+    return results;}
+  else {
+    u8_unlock_mutex(&(dbp->lock));
+    return stmt_error(dbp->stmt,"odbcexec",0);}
 }
 
 /* Initialization */
