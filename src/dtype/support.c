@@ -636,7 +636,8 @@ static int boolopt(fdtype opts,fdtype key)
 
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
 {
-  if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+  if (FD_VOIDP(opts)) return 0;
+  else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
     FD_DO_CHOICES(opt,opts)
       if (fd_testopt(opt,key,val)) {
 	FD_STOP_DO_CHOICES; return 1;}

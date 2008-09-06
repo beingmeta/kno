@@ -13,7 +13,7 @@ typedef struct FD_EXTDB_HANDLER {
 
 #define FD_EXTDB_FIELDS   \
   FD_CONS_HEADER;         \
-  u8_string cid;          \
+  u8_string spec, cid;    \
   fdtype colinfo;         \
   struct FD_EXTDB_HANDLER *dbhandler;
 
@@ -21,7 +21,7 @@ struct FD_EXTDB {FD_EXTDB_FIELDS;};
 
 #define FD_EXTDB_PROC_FIELDS   \
   FD_FUNCTION_FIELDS;          \
-  u8_string cid, qtext;	       \
+  u8_string spec,cid, qtext;   \
   int n_params;                \
   fdtype colinfo, *paramtypes; \
   struct FD_EXTDB_HANDLER *dbhandler;

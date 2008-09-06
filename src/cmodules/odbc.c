@@ -16,6 +16,8 @@ static char versionid[] =
 #include "fdb/sequences.h"
 #include "fdb/texttools.h"
 
+#include "fdb/extdb.h"
+
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8digestfns.h>
@@ -24,20 +26,15 @@ static char versionid[] =
 #include <sqltypes.h>
 #include <sqlext.h>
 
-fd_ptr_type fd_odbc_type;
+static struct FD_EXTDB_HANDLER odbc_handler;
+
 typedef struct FD_ODBC {
-  FD_CONS_HEADER;
-  u8_string cid;
-  fdtype colinfo;
+  FD_EXTDB_FIELDS;
   SQLHENV env;
   SQLHDBC conn;} FD_ODBC;
 
-fd_ptr_type fd_odbc_proc_type;
 typedef struct FD_ODBC_PROC {
-  FD_FUNCTION_FIELDS;
-  u8_string cid, qtext;
-  short n_params;
-  fdtype colinfo, *paramtypes;
+  FD_EXTDB_PROC_FIELDS;
   SQLSMALLINT *sqltypes;
   SQLHENV env;
   SQLHDBC conn;
@@ -68,21 +65,21 @@ static u8_string odbc_errstring(SQLHANDLE handle,SQLSMALLINT type)
 static SQLHWND sqldialog=0;
 static int interactive_dflt=0;
 
-fd_ptr_type fd_odbc_type;
-
-FD_EXPORT fdtype fd_odbc_connect(fdtype spec,int interactive)
+FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
 {
   struct FD_ODBC *dbp=u8_alloc(struct FD_ODBC);
   int ret=-1, howfar=0;
   if (interactive<0) interactive=interactive_dflt;
-  FD_INIT_FRESH_CONS(dbp,fd_odbc_type);
+  FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
   ret=SQLAllocHandle(SQL_HANDLE_ENV,SQL_NULL_HANDLE,&(dbp->env));
   if (SQL_SUCCEEDED(ret)) {
     howfar++;
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
 		  (void *) SQL_OV_ODBC3, 0);
     ret=SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
+    dbp->spec=u8_strdup(FD_STRDATA(spec));
     dbp->cid=u8_malloc(512); strcpy(dbp->cid,"uninitialized");
+    dbp->dbhandler=&odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
       ret=SQLDriverConnect(dbp->conn,sqldialog,
@@ -92,6 +89,7 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,int interactive)
 			    (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
 			    (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
+	dbp->colinfo=colinfo; fd_incref(colinfo);
 	return FDTYPE_CONS(dbp);}}}
   if (howfar>1)
     u8_seterr(ODBCError,"fd_odbc_connect",
@@ -116,35 +114,39 @@ static void recycle_odbconn(struct FD_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int unparse_odbconn(u8_output out,fdtype x)
+static fdtype odbcopen(fdtype spec,fdtype colinfo)
 {
-  struct FD_ODBC *dbp=FD_GET_CONS(x,fd_odbc_type,struct FD_ODBC *);
-  u8_printf(out,"#<ODBC %s>",dbp->cid);
-  return 1;
-}
-
-static fdtype odbconnp(fdtype arg)
-{
-  if (FD_PRIM_TYPEP(arg,fd_odbc_type)) return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static fdtype odbcopen(fdtype spec)
-{
-  return fd_odbc_connect(spec,-1);
+  return fd_odbc_connect(spec,colinfo,-1);
 }
 
 /* ODBCProcs */
 
 static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args);
 
-FD_EXPORT fdtype odbcproc(int n,fdtype *args)
+FD_EXPORT fdtype odbcmakeproc(fdtype spec,fdtype stmt,fdtype colinfo,int n,fdtype *args)
 {
-  fdtype spec=args[0], stmt=args[1], colinfo=((n>2) ? (args[2]) : (FD_VOID));
   struct FD_ODBC_PROC *dbp=u8_alloc(struct FD_ODBC_PROC);
-  int ret=-1, howfar=0, running=1; SQLSMALLINT n_params, *sqltypes;
-  int interactive=interactive_dflt;
-  FD_INIT_FRESH_CONS(dbp,fd_odbc_proc_type);
+  int ret=-1, howfar=0, running=1, interactive=interactive_dflt;
+  int speclen, consed_colinfo=0;
+  u8_string specstring;
+  SQLSMALLINT n_params, *sqltypes;
+  if (FD_STRINGP(spec)) {
+    specstring=FD_STRDATA(spec);
+    speclen=FD_STRLEN(spec);}
+  else if (FD_PRIM_TYPEP(spec,fd_extdb_type)) {
+    struct FD_EXTDB *extdb=(struct FD_EXTDB *)spec;
+    if ((extdb->dbhandler)==(&odbc_handler)) {
+      specstring=extdb->spec;
+      speclen=strlen(specstring);
+      if (FD_VOIDP(colinfo)) colinfo=extdb->colinfo;
+      else if (FD_VOIDP(extdb->colinfo)) {}
+      else {
+	fd_incref(colinfo); fd_incref(extdb->colinfo);
+	colinfo=fd_init_pair(NULL,colinfo,extdb->colinfo);
+	consed_colinfo=1;}}
+    else return fd_type_error("ODBCDB","odbcmakproc",spec);}
+  else return fd_type_error("ODBCDB","odbcmakproc",spec);
+  FD_INIT_FRESH_CONS(dbp,fd_extdb_proc_type);
   while (running) {
     ret=SQLAllocHandle(SQL_HANDLE_ENV,SQL_NULL_HANDLE,&(dbp->env));
     if (!(SQL_SUCCEEDED(ret))) {running=-1; break;} else howfar++; /* 1 */
@@ -155,7 +157,7 @@ FD_EXPORT fdtype odbcproc(int n,fdtype *args)
     if (!(SQL_SUCCEEDED(ret))) {running=-1; break;} else howfar++; /* 3 */
     dbp->cid=u8_malloc(512); strcpy(dbp->cid,"uninitialized");
     ret=SQLDriverConnect(dbp->conn,sqldialog,
-			 FD_STRDATA(spec),FD_STRLEN(spec),
+			 specstring,speclen,
 			 dbp->cid,512,NULL,
 			 ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
 			  (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
@@ -167,18 +169,20 @@ FD_EXPORT fdtype odbcproc(int n,fdtype *args)
     if (!(SQL_SUCCEEDED(ret))) {running=-1; break;} else howfar++;    
     ret=SQLNumParams(dbp->stmt,&n_params);
     if (!(SQL_SUCCEEDED(ret))) {running=-1; break;} else howfar++; /* 6 */
-    dbp->ndprim=0; dbp->xprim=1; dbp->arity=dbp->min_arity=n_params;
+    dbp->dbhandler=&odbc_handler;
+    dbp->ndprim=0; dbp->xprim=1; dbp->min_arity=dbp->n_params=n_params;
+    dbp->arity=-1;
     dbp->name=dbp->qtext=u8_strdup(FD_STRDATA(stmt));
-    dbp->filename=dbp->cid;
+    dbp->filename=dbp->spec=u8_strdup(specstring);
     dbp->sqltypes=sqltypes=u8_alloc_n(n_params,SQLSMALLINT);
-    dbp->colinfo=fd_incref(colinfo);
+    dbp->colinfo=colinfo;
     dbp->typeinfo=NULL; dbp->defaults=NULL;
-    /* dbp->handler.xcalln=callodbcproc; */
-    dbp->handler.xcalln=NULL;
+    dbp->handler.xcalln=callodbcproc;
+    if (!(consed_colinfo)) fd_incref(colinfo);
     {
       int i=0; fdtype *specs=u8_alloc_n(n_params,fdtype);
       while (i<n_params)
-	if ((i+3)<n) {specs[i]=fd_incref(args[i+3]); i++;}
+	if (i<n) {specs[i]=fd_incref(args[i]); i++;}
 	else {specs[i]=FD_VOID; i++;}
       dbp->paramtypes=specs;}
     {
@@ -213,22 +217,9 @@ static void recycle_odbcproc(struct FD_CONS *c)
   SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
   fd_decref(dbp->colinfo);
-  u8_free(dbp->cid); u8_free(dbp->qtext);
+  u8_free(dbp->spec); u8_free(dbp->cid); u8_free(dbp->qtext);
   u8_free(dbp->sqltypes);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
-}
-
-static int unparse_odbcproc(u8_output out,fdtype x)
-{
-  struct FD_ODBC_PROC *dbp=FD_GET_CONS(x,fd_odbc_proc_type,struct FD_ODBC_PROC *);
-  u8_printf(out,"#<ODBC %s: %s>",dbp->cid,dbp->qtext);
-  return 1;
-}
-
-static fdtype odbcprocp(fdtype arg)
-{
-  if (FD_PRIM_TYPEP(arg,fd_odbc_proc_type)) return FD_TRUE;
-  else return FD_FALSE;
 }
 
 /* Getting attributes from connections */
@@ -258,7 +249,7 @@ static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
 
 static fdtype odbcattr(fdtype conn,fdtype attr)
 {
-  struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_odbc_type,struct FD_ODBC *);
+  struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_extdb_type,struct FD_ODBC *);
   char *attr_name=FD_SYMBOL_NAME(attr);
   if (strcmp(attr_name,"DBMS")==0)
     return odbcstringattr(dbp,SQL_DBMS_NAME);
@@ -335,7 +326,6 @@ static fdtype get_colvalue(SQLHSTMT stmt,int i,int sqltype,int colsize,fdtype ty
   else return result;
 }
 
-
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
   u8_byte *scan=s; int c=u8_sgetc(&s);
@@ -385,7 +375,7 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,f
     colsizes[i]=colsize;
     i++;}
   if ((n_cols==1) && (FD_TABLEP(typeinfo)) &&
-      (fd_test(typeinfo,justvalue_symbol,FD_VOID)))
+      (fd_testopt(typeinfo,justvalue_symbol,FD_VOID)))
     while (SQL_SUCCEEDED(ret=SQLFetch(stmt))) {
       fdtype value=get_colvalue(stmt,0,coltypes[0],colsizes[0],colinfo[0]);
       if (FD_ABORTP(value)) {
@@ -419,21 +409,21 @@ static fdtype get_stmt_results(SQLHSTMT stmt,const u8_string cxt,int free_stmt,f
   return results;
 }
 
-static fdtype odbc_exec(fdtype conn,fdtype string,fdtype colinfo)
+static fdtype odbcexec(fdtype conn,fdtype string,fdtype colinfo)
 {
   fdtype results=FD_VOID; int ret, i; SQLSMALLINT n_cols;
-  struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_odbc_type,struct FD_ODBC *);
+  struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_extdb_type,struct FD_ODBC *);
   int stopped=0, howfar=0;
   SQLHSTMT stmt;
   ret=SQLAllocHandle(SQL_HANDLE_STMT,dbp->conn,&stmt);
   if (!(SQL_SUCCEEDED(ret))) {
-    u8_seterr(ODBCError,"odbc_exec",NULL);
+    u8_seterr(ODBCError,"odbcexec",NULL);
     return FD_ERROR_VALUE;}
   ret=SQLExecDirect(stmt,FD_STRDATA(string),FD_STRLEN(string));
   if (FD_VOIDP(colinfo)) colinfo=dbp->colinfo;
   if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(stmt,"odbc_exec",1,colinfo);
-  else return stmt_error(stmt,"odbc_exec",1);
+    return get_stmt_results(stmt,"odbcexec",1,colinfo);
+  else return stmt_error(stmt,"odbcexec",1);
 }
 
 static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
@@ -468,13 +458,16 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     i++;}
   ret=SQLExecute(dbp->stmt);
   if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(dbp->stmt,"odbc_exec",0,dbp->colinfo);
-  else return stmt_error(dbp->stmt,"odbc_exec",0);
+    return get_stmt_results(dbp->stmt,"odbcexec",0,dbp->colinfo);
+  else return stmt_error(dbp->stmt,"odbcexec",0);
 }
 
 /* Initialization */
 
 static int odbc_initialized=0;
+
+static struct FD_EXTDB_HANDLER odbc_handler=
+  {"odbc",NULL,NULL,NULL,NULL};
 
 FD_EXPORT void fd_init_odbc()
 {
@@ -485,29 +478,20 @@ FD_EXPORT void fd_init_odbc()
 
   module=fd_new_module("ODBC",(0));
 
-  fd_odbc_type=fd_register_cons_type("ODBCONN");
-  fd_recyclers[fd_odbc_type]=recycle_odbconn;
-  fd_unparsers[fd_odbc_type]=unparse_odbconn;
+  odbc_handler.execute=odbcexec;
+  odbc_handler.makeproc=odbcmakeproc;
+  odbc_handler.recycle_extdb=recycle_odbconn;
+  odbc_handler.recycle_extdb_proc=recycle_odbcproc;
 
-  fd_odbc_proc_type=fd_register_cons_type("ODBCPROC");
-  fd_recyclers[fd_odbc_proc_type]=recycle_odbcproc;
-  fd_unparsers[fd_odbc_proc_type]=unparse_odbcproc;
-  fd_applyfns[fd_odbc_proc_type]=(fd_applyfn)callodbcproc;
+  fd_idefn(module,fd_make_cprim2x("ODBC/OPEN",odbcopen,1,
+				  fd_string_type,FD_VOID,
+				  -1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprim1("ODB/CONN?",odbconnp,1));
-  fd_idefn(module,fd_make_cprim1("ODBC/OPEN",odbcopen,1));
-
-  fd_idefn(module,fd_make_cprim3x
-	   ("ODBC/EXEC",odbc_exec,2,
-	    fd_odbc_type,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID));
-  
-  fd_idefn(module,fd_make_cprim1("ODBC/PROC?",odbcprocp,1));
-  fd_idefn(module,fd_make_cprimn("ODBC/PROC",odbcproc,2));
-
-
+#if 0
   fd_idefn(module,fd_make_cprim2x
 	   ("ODBC/ATTR",odbcattr,2,
 	    fd_odbc_type,FD_VOID,fd_symbol_type,FD_VOID));
+#endif
 
   justvalue_symbol=fd_intern("JUSTVALUE");
 

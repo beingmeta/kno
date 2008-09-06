@@ -15,7 +15,7 @@ static char versionid[] =
 #include "fdb/numbers.h"
 #include "fdb/sequences.h"
 #include "fdb/texttools.h"
-#include "fdb/extdbi.h"
+#include "fdb/extdb.h"
 #include <sqlite3.h>
 
 #include <libu8/libu8.h>
@@ -38,6 +38,8 @@ typedef struct FD_SQLITE_PROC {
 typedef struct FD_SQLITE_PROC *fd_sqlite_proc;
 
 static fd_exception SQLiteError=_("SQLite Error");
+
+static fdtype justvalue_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
@@ -62,7 +64,8 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
     struct FD_SQLITE *sqlcons=u8_alloc(struct FD_SQLITE);
     FD_INIT_CONS(sqlcons,fd_extdb_type);
     sqlcons->dbhandler=&sqlite_handler; sqlcons->colinfo=colinfo;
-    sqlcons->db=db; sqlcons->cid=u8_strdup(FD_STRDATA(filename));
+    sqlcons->db=db;
+    sqlcons->spec=sqlcons->cid=u8_strdup(FD_STRDATA(filename));
     return FDTYPE_CONS(sqlcons);}
 }
 static fdtype sqlite_open_handler(int n,fdtype *args)
@@ -86,7 +89,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   fdtype results=FD_EMPTY_CHOICE;
   fdtype _colnames[16], *colnames;
   fdtype _colmaps[16], *colmaps;
-  int i=0, n_cols=sqlite3_column_count(stmt), retval;
+  int i=0, n_cols=sqlite3_column_count(stmt), retval, oneval=0;
   struct U8_OUTPUT out;
   if (n_cols==0) {
     int retval=sqlite3_step(stmt);
@@ -99,6 +102,8 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   else {
     colnames=_colnames;
     colmaps=_colmaps;}
+  if ((n_cols==1) && (fd_testopt(colinfo,justvalue_symbol,FD_VOID)))
+    oneval=1;
   U8_INIT_OUTPUT(&out,64);
   while (i<n_cols) {
     fdtype colname;
@@ -155,7 +160,10 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
 	else kv[j].value=value;
       else kv[j].value=value;
       j++;}
-    slotmap=fd_init_slotmap(NULL,n_cols,kv);
+    if (oneval) {
+      slotmap=kv[0].value;
+      u8_free(kv);}
+    else slotmap=fd_init_slotmap(NULL,n_cols,kv);
     FD_ADD_TO_CHOICE(results,slotmap);}
   u8_free(out.u8_outbuf);
   return results;
@@ -217,7 +225,7 @@ static fdtype sqlitemakeproc(fdtype filename,fdtype query,fdtype colinfo,int n,f
     int n_params, retval;
     FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
     sqlcons->db=db;
-    sqlcons->filename=sqlcons->cid=u8_strdup(fname);
+    sqlcons->spec=sqlcons->filename=sqlcons->cid=u8_strdup(fname);
     sqlcons->name=sqlcons->qtext=u8_strdup(FD_STRDATA(query));
     retval=sqlite3_prepare_v2(db,FD_STRDATA(query),FD_STRLEN(query),
 			      &(sqlcons->stmt),NULL);
@@ -328,6 +336,8 @@ FD_EXPORT int fd_init_sqlite()
   fd_defn(module,fd_make_cprimn("SQLITE/PROC",sqliteproc,2));
 
   sqlite_init=1;
+
+  justvalue_symbol=fd_intern("JUSTVALUE");
 
   fd_finish_module(module);
 
