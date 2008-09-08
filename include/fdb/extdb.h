@@ -16,7 +16,8 @@ typedef struct FD_EXTDB *fd_extdb;
   FD_FUNCTION_FIELDS;               \
   u8_string spec, qtext;            \
   int n_params;                     \
-  fdtype db, colinfo, *paramtypes;  \
+  fdtype db, colinfo;               \
+  fdtype *paramtypes;               \
   struct FD_EXTDB_HANDLER *dbhandler;
 
 typedef struct FD_EXTDB_PROC {FD_EXTDB_PROC_FIELDS;} FD_EXTDB_PROC;

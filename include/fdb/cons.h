@@ -373,7 +373,7 @@ FD_EXPORT int fd_bigint2int(fd_bigint bi);
 FD_EXPORT unsigned int fd_bigint2uint(fd_bigint bi);
 FD_EXPORT long fd_bigint_to_long(fd_bigint bi);
 FD_EXPORT long long fd_bigint_to_long_long(fd_bigint bi);
-FD_EXPORT long long fd_bigint_to_ulong_long(fd_bigint bi);
+FD_EXPORT unsigned long long fd_bigint_to_ulong_long(fd_bigint bi);
 FD_EXPORT fd_bigint fd_long_long_to_bigint(long long);
 FD_EXPORT fd_bigint fd_long_to_bigint(long);
 

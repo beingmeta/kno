@@ -576,7 +576,7 @@ DEFUN (fd_bigint_to_long_long, (bigint), fd_bigint bigint)
   }
 }
 
-long long
+unsigned long long
 DEFUN (fd_bigint_to_ulong_long, (bigint), fd_bigint bigint)
 {
   if (BIGINT_ZERO_P (bigint))
