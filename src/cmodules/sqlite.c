@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
@@ -122,9 +122,12 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     colnames=_colnames;
     colmaps=_colmaps;}
   U8_INIT_OUTPUT(&out,64);
+  /* [TODO] Note that the column name stuff could be cached up front
+     for SQL procedures. */
   while (i<n_cols) {
     fdtype colname;
-    colnames[i]=colname=intern_upcase(&out,(u8_string)sqlite3_column_name(stmt,i));
+    colnames[i]=colname=
+      intern_upcase(&out,(u8_string)sqlite3_column_name(stmt,i));
     colmaps[i]=(fd_getopt(colinfo,colname,FD_VOID));
     i++;}
   while ((retval=sqlite3_step(stmt))==SQLITE_ROW) {

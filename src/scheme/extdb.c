@@ -31,7 +31,7 @@
 */
 
 static char versionid[] =
-  "$Id: fileprims.c 2888 2008-07-21 15:47:41Z haase $";
+  "$Id$";
 
 #define FD_PROVIDE_FASTEVAL 1
 

@@ -1,5 +1,9 @@
 /* C Mode */
 
+#ifndef FDB_EXTDB_H
+#define FDB_EXTDB_H 1
+#define FDB_EXTDB_H_VERSION "$Id:$"
+
 FD_EXPORT fd_ptr_type fd_extdb_type;
 FD_EXPORT fd_ptr_type fd_extdb_proc_type;
 
@@ -33,3 +37,6 @@ typedef struct FD_EXTDB_HANDLER {
 
 
 FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h);
+
+#endif /* ndef FDB_EXTDB_H */
+

@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
@@ -352,6 +352,8 @@ static fdtype get_stmt_results
   colinfo=u8_alloc_n(n_cols,fdtype);
   coltypes=u8_alloc_n(n_cols,SQLSMALLINT);
   colsizes=u8_alloc_n(n_cols,SQLULEN);
+  /* [TODO] Note that all of this can probably be done up front
+     for SQL procs, but we don't do it now. */
   U8_INIT_OUTPUT(&out,64);
   i=0; while (i<n_cols) {
     SQLCHAR name[300];

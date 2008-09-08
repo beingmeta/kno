@@ -1244,6 +1244,7 @@ src/cmodules/odbc.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/cmodules/odbc.o: ./include/fdb/tables.h ./include/fdb/numbers.h
 src/cmodules/odbc.o: ./include/fdb/eval.h ./include/fdb/apply.h
 src/cmodules/odbc.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
+src/cmodules/odbc.o: ./include/fdb/extdb.h
 src/cmodules/sqlite.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/cmodules/sqlite.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/cmodules/sqlite.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1252,7 +1253,7 @@ src/cmodules/sqlite.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/cmodules/sqlite.o: ./include/fdb/tables.h ./include/fdb/eval.h
 src/cmodules/sqlite.o: ./include/fdb/apply.h ./include/fdb/numbers.h
 src/cmodules/sqlite.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
-src/cmodules/sqlite.o: ./include/fdb/extdbi.h
+src/cmodules/sqlite.o: ./include/fdb/extdb.h
 src/cmodules/ldap.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/cmodules/ldap.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/cmodules/ldap.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
@@ -1277,6 +1278,15 @@ src/cmodules/dbus.o: ./include/fdb/cons.h ./include/fdb/choices.h
 src/cmodules/dbus.o: ./include/fdb/tables.h ./include/fdb/eval.h
 src/cmodules/dbus.o: ./include/fdb/apply.h ./include/fdb/sequences.h
 src/cmodules/dbus.o: ./include/fdb/texttools.h
+src/cmodules/mysql.o: ./include/fdb/dtype.h ./include/fdb/common.h
+src/cmodules/mysql.o: ./include/fdb/defines.h ./include/fdb/config.h
+src/cmodules/mysql.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h
+src/cmodules/mysql.o: ./include/fdb/support.h ./include/fdb/ptr.h
+src/cmodules/mysql.o: ./include/fdb/cons.h ./include/fdb/choices.h
+src/cmodules/mysql.o: ./include/fdb/tables.h ./include/fdb/eval.h
+src/cmodules/mysql.o: ./include/fdb/apply.h ./include/fdb/numbers.h
+src/cmodules/mysql.o: ./include/fdb/sequences.h ./include/fdb/texttools.h
+src/cmodules/mysql.o: ./include/fdb/extdb.h
 src/exe/fdconsole.o: ./include/fdb/dtype.h ./include/fdb/common.h
 src/exe/fdconsole.o: ./include/fdb/defines.h ./include/fdb/config.h
 src/exe/fdconsole.o: ./include/fdb/malloc.h ./include/fdb/dtypeio.h

@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id:$";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
