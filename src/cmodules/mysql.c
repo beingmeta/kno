@@ -233,6 +233,105 @@ static fdtype mysqlexechandler
   else return fd_type_error("MYSQL EXTDB","mysqlexechandler",(fdtype)extdb);
 }
 
+/* Binding stuff */
+
+static void bindout_setup(MYSQL_BIND *outval,int *lenptr)
+{
+  switch (outval->field_type) {
+  case MYSQL_TYPE_TINY: case MYSQL_TYPE_SHORT: case MYSQL_TYPE_LONG:
+    outval->field_type=MYSQL_TYPE_LONG;
+    outval->buffer=u8_malloc(sizeof(unsigned long));
+    outval->length=NULL;
+    break;
+  case MYSQL_TYPE_LONGLONG: 
+    outval->field_type=MYSQL_TYPE_LONGLONG;
+    outval->buffer=u8_malloc(sizeof(unsigned long long));
+    outval->length=NULL;
+    break;
+  case MYSQL_TYPE_STRING: case MYSQL_TYPE_VAR_STRING:
+    outval->field_type=MYSQL_TYPE_STRING;
+    outval->buffer=NULL;
+    outval->buffer_length=0;
+    outval->length=lenptr;
+    break;
+  case MYSQL_TYPE_VAR_BLOB: case MYSQL_TYPE_TINY_BLOB:
+  case MYSQL_TYPE_MEDIUM_BLOB: case MYSQL_TYPE_BLOB:
+    outval->field_type=MYSQL_TYPE_BLOB;
+    outval->buffer=NULL;
+    outval->buffer_length=0;
+    outval->length=lenptr;
+    break;
+  default:
+    break;
+  }
+}
+
+static fdtype bindout
+  (MYSQL_STMT stmt,MYSQL_BIND *bindings,int column,int datalen)
+{
+  MYSQL_BIND *outval=&(bindings[column]);
+  switch (outval->buffer_type) {
+  case MYSQL_TYPE_LONG:
+    if (outval->is_unsigned) {
+      unsigned long intval=*((unsigned long *)(outval->buffer));
+      return FD_INT2DTYPE(intval);}
+    else {
+      long intval=*((long *)(outval->buf));
+      return FD_INT2DTYPE(intval);}
+  case MYSQL_TYPE_LONGLONG:
+    if (outval->is_unsigned) {
+      unsigned long long intval=*((unsigned long long *)(outval->buffer));
+      return FD_INT2DTYPE(intval);}
+    else {
+      long intval=*((long long *)(outval->buffer));
+      return FD_INT2DTYPE(intval);}
+  case MYSQL_TYPE_DOUBLE: {
+    double floval=*((double *)(outval->buffer));
+    return fd_make_double(floval);}
+  case MYSQL_TYPE_STRING: case MYSQL_TYPE_BLOB: {
+    fdtype value;
+    outval->buffer=u8_alloc_n(datalen,unsigned char);
+    outval->buffer_length=datalen;
+    mysql_stmt_fetch_column(stmt,outval,column,0);
+    if (outval->is_binary)
+      value=fd_init_packet(NULL,datalen,outval->buffer);
+    else value=fd_init_string(NULL,datalen,outval->buffer);
+    outval->buffer=NULL;
+    outval->buffer_length=0;
+    return value;}
+  default:
+    return FD_FALSE;}
+}
+
+static void bindin(MYSQL_BIND *binding,fdtype value)
+{
+  fd_ptr_type vtype=FD_PTR_TYPE(value);
+  switch (vtype) {
+  case fd_fixnum_type: {
+    int intval=fd_getint(value);
+    binding.field_type=MYSQL_TYPE_LONG;
+    binding.is_unsigned=0;
+    *((long *)(binding.buffer))=intval;
+    return;}
+  case fd_flonum_type: {
+    int floval=FD_FLONUM(value);
+    binding.field_type=MYSQL_TYPE_DOUBLE;
+    *((double *)(binding.buffer))=intval;
+    return;}
+  case fd_string_type: {
+    binding.field_type=MYSQL_TYPE_STRING;
+    binding.buffer=FD_STRDATA(value);
+    binding.buffer_length=FD_STRLEN(value);
+    return;}
+  case fd_packet_type: {
+    binding.field_type=MYSQL_TYPE_BLOB;
+    binding.buffer=FD_PACKET_DATA(value);
+    binding.buffer_length=FD_PACKET_LENGTH(value);
+    return;}
+  default:
+    return;}
+}
+
 /* MYSQL procs */
 
 static fdtype mysqlmakeproc
