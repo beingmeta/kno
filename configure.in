@@ -343,7 +343,15 @@ if test $libc_dlopen != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
-AC_CHECK_HEADERS(sqlite3.h sql.h)
+AC_CHECK_HEADERS(sqlite3.h sql.h mysql/mysql.h)
+
+AC_CHECK_HEADER(mysql/mysql.h,have_mysql_h="yes",have_mysql_h="no")
+
+if test $have_mysql_h = "yes"; then
+  AC_CHECK_LIB(mysqlclient,my_init)
+  CMODULES="lib/cmodules/mysql.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
+fi
 
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test $have_sql_h = "yes"; then

@@ -89,7 +89,7 @@ FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/porter.o src/texttools/phonetic.o
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
-CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/crypto.o src/cmodules/ldap.o src/cmodules/dbus.o
+CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o src/cmodules/crypto.o src/cmodules/ldap.o src/cmodules/dbus.o src/cmodules/mysql.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
 	    exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
@@ -129,7 +129,7 @@ FDB_SOURCES=\
 	src/texttools/texttools.c src/texttools/match.c src/texttools/porter.c \
 	src/tagger/tagger.c src/tagger/ofsm.c src/tagger/tagxtract.c \
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c \
-	src/cmodules/crypto.c src/cmodules/dbus.c \
+	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	include/fdb/tagger.h \
 	src/exe/fdconsole.c \
 	src/exe/fdexec.c src/exe/fdbatch.c \
@@ -363,6 +363,13 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
+lib/cmodules/mysql.so.3: src/cmodules/mysql.o
+	$(MKSO) -o $@ $^
+lib/cmodules/mysql.so: lib/cmodules/mysql.so.3
+lib/cmodules/mysql.@VERSION@.dylib: src/cmodules/mysql.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o
+lib/cmodules/mysql.dylib: lib/cmodules/mysql.@VERSION@.dylib
+
 lib/cmodules/odbc.so.3: src/cmodules/odbc.o
 	$(MKSO) -o $@ $^
 lib/cmodules/odbc.so: lib/cmodules/odbc.so.3
@@ -454,6 +461,7 @@ install-sqlite: $(LIBINSTALLDIR)/fdb/sqlite.@shared_suffix@
 install-dbus: $(LIBINSTALLDIR)/fdb/dbus.@shared_suffix@
 install-ldap: $(LIBINSTALLDIR)/fdb/ldap.@shared_suffix@
 install-crypto: $(LIBINSTALLDIR)/fdb/crypto.@shared_suffix@
+install-mysql: $(LIBINSTALLDIR)/fdb/mysql.@shared_suffix@
 
 # Setup targets
 
