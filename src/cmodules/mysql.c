@@ -39,6 +39,9 @@ union BINDBUF { double fval; void *ptr; long lval; long long llval;};
 
 typedef struct FD_MYSQL_PROC {
   FD_EXTDB_PROC_FIELDS;
+#if FD_THREADS_ENABLED
+  u8_mutex lock;
+#endif
   int n_cols;
   MYSQL *mysqldb; MYSQL_STMT *stmt;
   MYSQL_BIND *inbound, *outbound;
@@ -405,6 +408,8 @@ static fdtype mysqlmakeproc
   dbproc->min_arity=n_params;
   dbproc->handler.xcalln=callmysqlproc;
 
+  u8_init_mutex(&(dbproc->lock));
+
   {
     fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
     int j=0; while (j<n_params) {
@@ -450,9 +455,6 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-/* This is much hairier for MYSQL because you can't have a prepared
-   statement just return a result set to process, so we have to process
-   the statement results as output bindings instead. */
 static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   fdtype results=FD_EMPTY_CHOICE;
@@ -465,6 +467,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   fdtype *ptypes=dbproc->paramtypes;
   fdtype values=FD_EMPTY_CHOICE;
   int i=0, ret=-1;
+  u8_lock_mutex(&(dbproc->lock));
   while (i<n_params) {
     fdtype arg=args[i];
     if (FD_VOIDP(ptypes[i])) argbuf[i]=FD_VOID;
@@ -517,11 +520,14 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   if (retval) {
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
     u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(errmsg));
+    u8_unlock_mutex(&(dbproc->lock));
     return FD_ERROR_VALUE;}    
 
   values=get_stmt_values
     (dbproc->stmt,dbproc->colinfo,
      dbproc->n_cols,dbproc->colnames,dbproc->outbound);
+
+  u8_unlock_mutex(&(dbproc->lock));
 
   i=0; while (i<n_params) {
     fd_decref(argbuf[i]); i++;}
