@@ -5,6 +5,31 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+/* The external DB module provides simple access to external SQL
+   databases.  There are two Scheme types used by this module:
+    EXTDB objects (fd_extdb_type) are basically database connections
+     implemented by CONSes whose header is identical to "struct FD_EXTDB";
+    EXTDB procedures (fd_extdb_proc_type) are applicable objects which
+     correspond to prepared statements for a particular connection.  These
+     procedures have (optional) column info consisting of a slotmap which
+     maps column names into either OIDs or functions.  The functions are
+     used to convert values of said column and the OIDs are used as base values
+     to convert integer values to OIDs.  EXTDB procedures also have
+     "parameter maps" which are used to process application parameters
+     into parameters to be bound to the corresponding statement.
+    
+    Implementing a given database bridge consists of defining functions for:
+     (a) executing a SQL string on the connection;
+     (b) creating an EXTDB proc from the connection;
+     (c) recycling this kind of EXTDB connection
+     (d) recycling this kind of EXTDB procedure
+
+   The actual access is implemented by loadable modules which generally
+    register a handler (though they don't have to) and provides a function
+    for opening an EXTDB connection which can then be used for executing
+    queries and generating EXTDB procedures.
+*/
+
 static char versionid[] =
   "$Id: fileprims.c 2888 2008-07-21 15:47:41Z haase $";
 
@@ -19,6 +44,9 @@ static char versionid[] =
 #include <libu8/u8printf.h>
 
 fd_ptr_type fd_extdb_type, fd_extdb_proc_type;
+
+static fd_exception NoMakeProc=
+  _("No implementation for prepared SQL statements");
 
 static struct FD_EXTDB_HANDLER *extdbhandlers[128];
 int n_extdbs=0;
@@ -95,6 +123,8 @@ static fdtype extdb_makeproc(int n,fdtype *args)
   if (extdb==NULL) return FD_ERROR_VALUE;
   else if (!(FD_STRINGP(query))) 
     return fd_type_error("string","extdb_makeproc",query);
+  else if ((extdb->dbhandler->makeproc)==NULL)
+    return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
   else return extdb->dbhandler->makeproc
 	 (extdb,FD_STRDATA(query),FD_STRLEN(query),
 	  colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));
