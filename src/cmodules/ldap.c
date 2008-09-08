@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: texttools.c 2312 2008-02-23 23:49:10Z haase $";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
