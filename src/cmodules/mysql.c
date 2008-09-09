@@ -19,6 +19,7 @@ static char versionid[] =
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8timefns.h>
 #include <libu8/u8digestfns.h>
 
 #include <mysql/mysql.h>
@@ -100,10 +101,6 @@ static fdtype open_mysql
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     return FD_ERROR_VALUE;}
-  else if (mysql_set_character_set(dbp->db,"utf8")) {
-    const char *errmsg=mysql_error(&(dbp->_db));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
-    return FD_ERROR_VALUE;}
 
   /* If the hostname looks like a filename, we assume it's a Unix domain
      socket. */
@@ -127,6 +124,12 @@ static fdtype open_mysql
     u8_free(dbp);
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     return FD_ERROR_VALUE;} 
+  else if (mysql_set_character_set(dbp->db,"utf8")) {
+    const char *errmsg=mysql_error(&(dbp->_db));
+    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    mysql_close(dbp->db);
+    u8_free(dbp);
+    return FD_ERROR_VALUE;}
 
   /* Initialize the other fields */
   dbp->dbhandler=&mysql_handler;
@@ -192,6 +195,13 @@ static void outbound_setup(MYSQL_BIND *outval)
     outval->buffer_length=0;
     outval->length=u8_alloc(unsigned long);
     break;
+  case MYSQL_TYPE_TIME: case MYSQL_TYPE_TIMESTAMP:
+  case MYSQL_TYPE_DATE: case MYSQL_TYPE_DATETIME:
+    /* outval->buffer_type=outval->buffer_type; */
+    outval->buffer=u8_alloc(MYSQL_TIME);
+    outval->buffer_length=sizeof(MYSQL_TIME);
+    outval->length=NULL;
+    break;
   default:
     outval->buffer=NULL;
     outval->buffer_length=0;
@@ -245,6 +255,22 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,int column)
     outval->buffer=NULL;
     outval->buffer_length=0;
     return value;}
+  case MYSQL_TYPE_DATETIME: case MYSQL_TYPE_DATE:
+  case MYSQL_TYPE_TIMESTAMP: {
+    struct U8_XTIME xt;
+    MYSQL_TIME *mt=(MYSQL_TIME *)outval->buffer;
+    memset(&xt,0,sizeof(xt));
+    xt.u8_tptr.tm_year=mt->year-1900;
+    xt.u8_tptr.tm_mon=mt->month-1;
+    xt.u8_tptr.tm_mday=mt->day;
+    if ((outval->buffer_type)==MYSQL_TYPE_DATE)
+      xt.u8_prec=u8_day;
+    else {
+      xt.u8_prec=u8_second;
+      xt.u8_tptr.tm_hour=mt->hour;
+      xt.u8_tptr.tm_min=mt->minute;
+      xt.u8_tptr.tm_sec=mt->second;}
+    return fd_make_timestamp(&xt);}
   default:
     return FD_FALSE;}
 }
@@ -384,7 +410,7 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
   MYSQL *db=dbp->db;
   MYSQL_STMT *stmt=mysql_stmt_init(db);
   MYSQL_BIND *outbound=NULL; fdtype *colnames=NULL;
-  fdtype colinfo, results;
+  fdtype colinfo=merge_colinfo(dbp,colinfo_arg), results;
   int retval, n_cols;
   if (stmt)
     retval=mysql_stmt_prepare(stmt,FD_STRDATA(string),FD_STRLEN(string));
@@ -393,7 +419,9 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
   if (retval==0) retval=mysql_stmt_execute(stmt);
   if (retval) {}
   else if (n_cols==0) return FD_VOID;
-  else results=get_stmt_values(stmt,colinfo,n_cols,colnames,outbound);
+  else {
+    results=get_stmt_values(stmt,colinfo,n_cols,colnames,outbound);
+    fd_decref(colinfo);}
 
   int i=0; while (i<n_cols) {
     if (outbound[i].buffer) u8_free(outbound[i].buffer); i++;}
@@ -528,6 +556,8 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   MYSQL_BIND *inbound=dbproc->inbound;
   union BINDBUF *bindbuf=dbproc->bindbuf;
 
+  MYSQL_TIME *mstimes[4]; int n_mstimes=0;
+
   /* Argbuf stores objects we consed in the process of
      converting application objects to SQLish values. */
   fdtype _argbuf[4], *argbuf=
@@ -585,6 +615,22 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       inbound[i].buffer=FD_PACKET_DATA(arg);
       inbound[i].buffer_length=FD_PACKET_LENGTH(arg);
       inbound[i].length=NULL;}
+    else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+      struct FD_TIMESTAMP *tm=
+	FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
+      MYSQL_TIME *mt=u8_alloc(MYSQL_TIME);
+      if (n_mstimes<4) mstimes[n_mstimes++]=mt;
+      inbound[i].buffer=mt;
+      inbound[i].buffer_type=
+	((tm->xtime.u8_prec>u8_day) ?
+	 (MYSQL_TYPE_DATETIME) :
+	 (MYSQL_TYPE_DATE));
+      mt->year=tm->xtime.u8_tptr.tm_year+1900;
+      mt->month=tm->xtime.u8_tptr.tm_mon+1;
+      mt->day=tm->xtime.u8_tptr.tm_mday;
+      mt->hour=tm->xtime.u8_tptr.tm_hour;
+      mt->minute=tm->xtime.u8_tptr.tm_min;
+      mt->second=tm->xtime.u8_tptr.tm_sec;}
     /* This catches cases where the conversion process produces an
        error. */
     else if (FD_ABORTP(arg)) {
@@ -615,11 +661,13 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	   string so that we'll free it when we're done. */
 	argbuf[i]=fd_init_string(NULL,stringlen,as_string);}}
     else {
+      int j;
       /* Finally, if we can't convert the value, we error. */
       fd_seterr(MySQL_NoConvert,"callmysqlproc",
 		u8_strdup(dbproc->qtext),fd_incref(arg));
       u8_unlock_mutex(&(dbproc->lock));
-      i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
+      j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
+      j=0; while (j<n_params) {fd_decref(argbuf[j]); j++;}
       if (argbuf!=_argbuf) u8_free(argbuf);
       return FD_ERROR_VALUE;}
     i++;}
@@ -638,13 +686,16 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     return FD_ERROR_VALUE;}    
 
   /* Get any values.  This will handle it's own errors. */
-  values=get_stmt_values
-    (dbproc->stmt,dbproc->colinfo,
-     dbproc->n_cols,dbproc->colnames,dbproc->outbound);
-
+  if (dbproc->n_cols)
+    values=get_stmt_values
+      (dbproc->stmt,dbproc->colinfo,
+       dbproc->n_cols,dbproc->colnames,dbproc->outbound);
+  else values=FD_VOID;
+  
   u8_unlock_mutex(&(dbproc->lock));
 
   /* Clean up */
+  i=0; while (i<n_mstimes) {u8_free(mstimes[i]); i++;}
   i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
   if (argbuf!=_argbuf) u8_free(argbuf);
 
