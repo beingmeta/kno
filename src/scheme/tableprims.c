@@ -35,6 +35,12 @@ static fdtype schemapp(fdtype x)
   else return FD_FALSE;
 }
 
+static fdtype hashtablep(fdtype x)
+{
+  if (FD_HASHTABLEP(x)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 FD_EXPORT fdtype make_hashset(fdtype arg)
 {
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
@@ -743,6 +749,7 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("TABLE?",tablep,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("SLOTMAP?",slotmapp,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("SCHEMAP?",schemapp,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("HASHTABLE?",hashtablep,1));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_cprim1x("MAKE-HASHSET",make_hashset,0,
