@@ -23,6 +23,16 @@ static fdtype tablep(fdtype arg)
   if (FD_TABLEP(arg)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype haskeysp(fdtype arg)
+{
+  if (FD_TABLEP(arg)) {
+    fd_ptr_type argtype=FD_PTR_TYPE(arg);
+    if ((fd_tablefns[argtype])->keys)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
 static fdtype slotmapp(fdtype x)
 {
   if (FD_SLOTMAPP(x)) return FD_TRUE;
@@ -747,6 +757,8 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_register_source_file(versionid);
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("TABLE?",tablep,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("HASKEYS?",haskeysp,1));
+
   fd_idefn(fd_xscheme_module,fd_make_cprim1("SLOTMAP?",slotmapp,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("SCHEMAP?",schemapp,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("HASHTABLE?",hashtablep,1));
