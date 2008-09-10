@@ -470,7 +470,9 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 
 /* Handling arguments to URL primitives */
 
-static fdtype handle_url_args(fdtype arg1,fdtype arg2,fdtype *urlp,struct FD_CURL_HANDLE **hp,int *freep)
+static fdtype handle_url_args
+  (fdtype arg1,fdtype arg2,
+   fdtype *urlp,struct FD_CURL_HANDLE **hp,int *freep)
 {
   if (FD_VOIDP(arg2))
     if (FD_STRINGP(arg1)) {
@@ -661,11 +663,12 @@ static fdtype urlpost(int n,fdtype *args)
       h=FD_GET_CONS(args[0],fd_curl_type,fd_curl_handle);
       start=2; url=FD_STRDATA(args[1]);}
     else return fd_err(fd_TypeError,"CURLPOST",NULL,args[1]);
-  else if (FD_STRINGP(args[1])) {
-    start=1; url=FD_STRDATA(args[1]);}
+  else if (FD_STRINGP(args[0])) {
+    start=1; url=FD_STRDATA(args[0]);}
   else return fd_err(fd_TypeError,"CURLPOST",NULL,args[0]);
   if (((n-start)>1) && ((n-start)%2))
     fd_err(fd_SyntaxError,"CURLPOST",NULL,FD_VOID);
+  else if (h) {}
   else {consed_handle=1; h=fd_open_curl_handle();}
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
   result=fd_init_slotmap(NULL,0,NULL);
@@ -692,18 +695,21 @@ static fdtype urlpost(int n,fdtype *args)
     int i=start;
     struct curl_httppost *post = NULL, *last = NULL;
     while (i<n) {
-      fdtype key=args[i], val=args[i+1]; i=i+2;
-      if (!(FD_SYMBOLP(key)))
+      fdtype key=args[i], val=args[i+1]; 
+      u8_string keyname=((FD_SYMBOLP(key)) ? (FD_SYMBOL_NAME(key)) :
+			 (FD_STRINGP(key)) ? (FD_STRDATA(key)) : (NULL));
+      i=i+2;
+      if (keyname==NULL)
 	return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);
       else if (FD_STRINGP(val))
 	curl_formadd(&post,&last,
-		     CURLFORM_COPYNAME,FD_SYMBOL_NAME(key),
+		     CURLFORM_COPYNAME,keyname,
 		     CURLFORM_PTRCONTENTS,FD_STRDATA(val),
 		     CURLFORM_CONTENTSLENGTH,FD_STRLEN(val),
 		     CURLFORM_END);
       else if (FD_PACKETP(val))
 	curl_formadd(&post,&last,
-		     CURLFORM_COPYNAME,FD_SYMBOL_NAME(key),
+		     CURLFORM_COPYNAME,keyname,
 		     CURLFORM_PTRCONTENTS,FD_PACKET_DATA(val),
 		     CURLFORM_CONTENTSLENGTH,FD_PACKET_LENGTH(val),
 		     CURLFORM_END);
@@ -711,7 +717,7 @@ static fdtype urlpost(int n,fdtype *args)
 	U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
 	fd_unparse(&out,val);
 	curl_formadd(&post,&last,
-		     CURLFORM_COPYNAME,FD_SYMBOL_NAME(key),
+		     CURLFORM_COPYNAME,keyname,
 		     CURLFORM_COPYCONTENTS,out.u8_outbuf,
 		     CURLFORM_CONTENTSLENGTH,out.u8_outptr-out.u8_outbuf,
 		     CURLFORM_END);
