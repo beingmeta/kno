@@ -21,8 +21,6 @@ static char versionid[] =
 #include "fdb/fdweb.h"
 #include "fdb/support.h"
 
-#include "fdb/support.h"
-
 static int fdweb_init_done=0;
 
 FD_EXPORT void fd_init_fdweb()
@@ -41,6 +39,7 @@ FD_EXPORT void fd_init_fdweb()
     fd_init_xmleval_c();
     fd_init_cgiexec_c();
     fd_init_urifns_c();
+    fd_init_json_c();
 #if (FD_WITH_CURL)
     fd_init_curl_c();
 #endif

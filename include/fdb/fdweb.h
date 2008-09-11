@@ -143,5 +143,6 @@ FD_EXPORT void fd_init_cgiexec_c(void);
 FD_EXPORT void fd_init_urifns_c(void);
 FD_EXPORT void fd_init_exif_c(void);
 FD_EXPORT void fd_init_curl_c(void);
+FD_EXPORT void fd_init_json_c(void);
 
 #endif /* FDB_FDWEB_H */
