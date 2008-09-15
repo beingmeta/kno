@@ -11,7 +11,7 @@
 (define M16 (* 16 1024 1024))
 
 (define conversion-base @2/0)
-(define conversion-range (* 4 M32))
+(define conversion-range (* 2 M32))
 (define conversion-target (oid-plus @1/0 M16))
 
 (varconfig! os/base conversion-base)
@@ -41,7 +41,8 @@
 
 (define (os/convert-oid oid)
   (let ((offset (oid-offset oid conversion-base)))
-    (if (and offset (< offset conversion-range))
+    ;; (%watch offset conversion-range)
+    (if (and offset (> offset 0) (< offset conversion-range))
 	(oid-plus conversion-target offset)
 	oid)))
 
