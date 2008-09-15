@@ -48,6 +48,8 @@ fd_exception fd_InvalidSchemaDef=_("Invalid schema definition data");
 fd_exception fd_InvalidSchemaRef=_("Invalid encoded schema reference");
 fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value data");
 
+static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
+
 #define FD_OIDPOOL_LOAD_POS      0x10
 
 #define FD_OIDPOOL_LABEL_POS             0x18
@@ -816,6 +818,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
       schedule[i].value_at=i;
       schedule[i].location=get_chunk_ref(op,off);
       if (schedule[i].location.off<0) {
+	fd_seterr(InvalidOffset,"oidpool_fetchn",p->cid,oid);
 	u8_free(schedule); u8_free(values);
 	return NULL;}
       else i++;}
@@ -837,7 +840,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
       if (FD_ABORTP(value)) {
 	int j=0; while (j<i) { fd_decref(values[j]); j++;}
 	u8_free(schedule); u8_free(values);
-	fd_interr(value);
+	fd_push_error_context("oidpool_fetchn/read",oids[schedule[i].value_at]);
 	return NULL;}
       else values[schedule[i].value_at]=value;
       i++;}
