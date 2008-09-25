@@ -140,7 +140,7 @@ FDB_SOURCES=\
 # Targets
 
 default: all
-all: testbin exe TAGS
+all: testbin exe cmodules TAGS
 rebuild:
 	make clean
 	make default
