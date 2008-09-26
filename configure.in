@@ -74,6 +74,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
+TAGS="TAGS"
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -107,6 +108,7 @@ AC_SUBST(fdaemon)
 AC_SUBST(fdaemoninstall)
 AC_SUBST(webuser)
 
+AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
 AC_SUBST(SHARED_LIB_TARGET)
 AC_SUBST(SHARED_LIB)
@@ -200,6 +202,12 @@ AC_CHECK_SIZEOF(void *,4)
 
 AC_HEADER_STDC
 AC_HEADER_STAT
+
+AC_CHECK_PROGS(etags,etags,"na")
+
+if test $etags = "na"; then
+   TAGS=""
+fi
 
 AC_CHECK_HEADERS(resource.h sys/resource.h)
 

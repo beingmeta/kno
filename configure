@@ -678,6 +678,7 @@ admininstall
 fdaemon
 fdaemoninstall
 webuser
+TAGS
 DREENTRANT
 SHARED_LIB_TARGET
 SHARED_LIB
@@ -716,6 +717,7 @@ APXS
 CPP
 GREP
 EGREP
+etags
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -1826,6 +1828,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
+TAGS="TAGS"
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -1859,6 +1862,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -6212,6 +6216,54 @@ _ACEOF
 
 fi
 
+
+for ac_prog in etags
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_etags+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$etags"; then
+  ac_cv_prog_etags="$etags" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_etags="$ac_prog"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+fi
+fi
+etags=$ac_cv_prog_etags
+if test -n "$etags"; then
+  { echo "$as_me:$LINENO: result: $etags" >&5
+echo "${ECHO_T}$etags" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+  test -n "$etags" && break
+done
+test -n "$etags" || etags=""na""
+
+
+if test $etags = "na"; then
+   TAGS=""
+fi
 
 
 
@@ -12178,6 +12230,7 @@ admininstall!$admininstall$ac_delim
 fdaemon!$fdaemon$ac_delim
 fdaemoninstall!$fdaemoninstall$ac_delim
 webuser!$webuser$ac_delim
+TAGS!$TAGS$ac_delim
 DREENTRANT!$DREENTRANT$ac_delim
 SHARED_LIB_TARGET!$SHARED_LIB_TARGET$ac_delim
 SHARED_LIB!$SHARED_LIB$ac_delim
@@ -12210,7 +12263,6 @@ OBJEXT!$OBJEXT$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
 INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
 INSTALL_DATA!$INSTALL_DATA$ac_delim
-RANLIB!$RANLIB$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -12252,16 +12304,18 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+RANLIB!$RANLIB$ac_delim
 VALGRIND!$VALGRIND$ac_delim
 APXS!$APXS$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
+etags!$etags$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 7; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 9; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
