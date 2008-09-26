@@ -186,8 +186,14 @@ static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
   if (retval) {
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,retval,s,"mod_fdserv: stat failed for %s",filename);
-    return retval;}
-  else if (can_writep(p,s,&finfo)) return 1;
+    filename=ap_make_dirstr_parent(p,filename);
+    retval=apr_stat(&finfo,filename,FINFO_FLAGS,p);
+    if (retval) {
+      ap_log_error
+	(APLOG_MARK,APLOG_CRIT,retval,s,
+	 "mod_fdserv: stat failed for %s",filename);
+      return retval;}}
+  if (can_writep(p,s,&finfo)) return 1;
   else {
     char buf[PATH_MAX]; int scan=strlen(filename)-1;
     strcpy(buf,filename); while ((scan>0) && (buf[scan] != '/')) scan--;
@@ -436,7 +442,6 @@ static const char *servlet_config
     return NULL;}
 }
 
-#if APACHE13
 static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
@@ -452,7 +457,6 @@ static const char *servlet_group(cmd_parms *parms,void *mconfig,const char *arg)
   if ((sconfig->gid=ap_gname2id(arg)) >= 0) return NULL;
   else return "invalid group id";
 }
-#endif
 
 static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 {
@@ -589,12 +593,12 @@ static const command_rec fdserv_cmds[] =
 	       "the executable used to start a servlet"),
   AP_INIT_TAKE2("FDServletConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
-#if APACHE13
+
   AP_INIT_TAKE1("FDServletUser", servlet_user, NULL, RSRC_CONF,
 	       "the user whom the fdservlet will run as"),
   AP_INIT_TAKE1("FDServletGroup", servlet_group, NULL, RSRC_CONF,
 	       "the group whom the fdservlet will run as"),
-#endif
+
   AP_INIT_TAKE1("FDServletPrefix", socket_prefix, NULL, OR_ALL,
 	       "the prefix to be appended to socket names"),
   AP_INIT_TAKE1("FDServletSocket", socket_file, NULL, OR_ALL,

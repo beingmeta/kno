@@ -1,4 +1,6 @@
 <IfModule mod_fdserv.c>
         AddHandler fdservlet .fdcgi .fdxml
 	FDServletExecutable @prefix@/bin/fdserv
+	FDServletUser @webuser@
+	FDServletGroup @admin_group@
 </IfModule>
