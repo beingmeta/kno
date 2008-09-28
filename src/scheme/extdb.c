@@ -92,7 +92,13 @@ static int unparse_extdb(u8_output out,fdtype x)
 static void recycle_extdb_proc(struct FD_CONS *c)
 {
   struct FD_EXTDB_PROC *dbproc=(struct FD_EXTDB_PROC *)c;
-  dbproc->dbhandler->recycle_extdb_proc(dbproc);
+  if (dbproc->dbhandler == NULL)
+    u8_log(LOG_WARN,_("recycle failed"),"Bad extdb proc");
+  else if (dbproc->dbhandler->recycle_extdb_proc)
+    dbproc->dbhandler->recycle_extdb_proc(dbproc);
+  else u8_log(LOG_WARN,_("recycle failed"),
+	      _("No recycle method for %s database procs"),
+	      dbproc->dbhandler->name);
 }
 
 static int unparse_extdb_proc(u8_output out,fdtype x)
@@ -118,16 +124,24 @@ static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
 
 static fdtype extdb_makeproc(int n,fdtype *args)
 {
-  struct FD_EXTDB *extdb=FD_GET_CONS(args[0],fd_extdb_type,struct FD_EXTDB *);
-  fdtype dbspec=args[0], query=args[1], colinfo=((n>2) ? (args[2]) : (FD_VOID));
-  if (extdb==NULL) return FD_ERROR_VALUE;
-  else if (!(FD_STRINGP(query))) 
-    return fd_type_error("string","extdb_makeproc",query);
-  else if ((extdb->dbhandler->makeproc)==NULL)
-    return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
-  else return extdb->dbhandler->makeproc
-	 (extdb,FD_STRDATA(query),FD_STRLEN(query),
-	  colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));
+  if (FD_EXPECT_TRUE
+      ((FD_PRIM_TYPEP(args[0],fd_extdb_type)) && (FD_STRINGP(args[1])))) {
+    struct FD_EXTDB *extdb=FD_GET_CONS(args[0],fd_extdb_type,struct FD_EXTDB *);
+    fdtype dbspec=args[0], query=args[1], colinfo=((n>2) ? (args[2]) : (FD_VOID));
+    if (extdb==NULL) return FD_ERROR_VALUE;
+    else if (!(FD_STRINGP(query))) 
+      return fd_type_error("string","extdb_makeproc",query);
+    else if ((extdb->dbhandler->makeproc)==NULL)
+      return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
+    else return extdb->dbhandler->makeproc
+	   (extdb,FD_STRDATA(query),FD_STRLEN(query),
+	    colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));}
+  else if (!(FD_PRIM_TYPEP(args[0],fd_extdb_type)))
+    return fd_type_error("extdb","extdb_makeproc",args[0]);
+  else if  (!(FD_STRINGP(args[1])))
+    return fd_type_error("string","extdb_makeproc",args[1]);
+  /* Should never be reached  */
+  else return FD_VOID;
 }
 
 int extdb_initialized=0;

@@ -541,9 +541,9 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   u8_free(dbp->paramtypes);
   
   u8_free(dbp->spec); u8_free(dbp->qtext);
-
+  
   u8_destroy_mutex(&(dbp->lock));
-
+  
   fd_decref(dbp->db);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
@@ -721,7 +721,6 @@ FD_EXPORT int fd_init_mysql()
   mysql_handler.makeproc=mysqlmakeprochandler;
   mysql_handler.recycle_extdb=recycle_mysqldb;
   mysql_handler.recycle_extdb_proc=recycle_mysqlproc;
-  mysql_handler.recycle_extdb_proc=NULL;
 
   fd_register_extdb_handler(&mysql_handler);
 
