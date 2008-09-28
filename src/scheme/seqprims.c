@@ -1416,12 +1416,9 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   return results;
 }
 
-/* Sorting functions */
-
 /* Sorting vectors */
-/* Technically, this should be in seqprims, but all the helper functions are here */
 
-static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse)
+static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
 {
   if (FD_VECTOR_LENGTH(vec)==0)
     return fd_init_vector(NULL,0,NULL);
@@ -1441,7 +1438,9 @@ static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse)
       sentries[i].value=elt;
       sentries[i].key=value;
       i++;}
-    qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+    if (lexsort)
+      qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
+    else qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i=0; j=n-1; if (reverse) while (i < n) {
       fd_decref(sentries[i].key);
       vecdata[j]=fd_incref(sentries[i].value);
@@ -1456,12 +1455,17 @@ static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse)
 
 static fdtype sortvec_prim(fdtype vec,fdtype keyfn)
 {
-  return sortvec_primfn(vec,keyfn,0);
+  return sortvec_primfn(vec,keyfn,0,0);
+}
+
+static fdtype lexsortvec_prim(fdtype vec,fdtype keyfn)
+{
+  return sortvec_primfn(vec,keyfn,0,1);
 }
 
 static fdtype rsortvec_prim(fdtype vec,fdtype keyfn)
 {
-  return sortvec_primfn(vec,keyfn,1);
+  return sortvec_primfn(vec,keyfn,1,0);
 }
 
 /* side effecting operations (not threadsafe) */
@@ -1662,6 +1666,11 @@ FD_EXPORT void fd_init_sequences_c()
 			   fd_vector_type,FD_VOID,
 			   -1,FD_VOID));
   
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("LEXSORTVEC",lexsortvec_prim,1,
+			   fd_vector_type,FD_VOID,
+			   -1,FD_VOID));
+
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("RSORTVEC",rsortvec_prim,1,
 			   fd_vector_type,FD_VOID,

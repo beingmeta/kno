@@ -1012,7 +1012,7 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
   else return fd_type_error("integer","topn",count);
 }
 
-static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse)
+static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,int lexsort)
 {
   if (FD_EMPTY_CHOICEP(choices))
     return fd_init_vector(NULL,0,NULL);
@@ -1029,7 +1029,9 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse)
       sentries[i].value=elt;
       sentries[i].key=value;
       i++;}
-    qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+    if (lexsort)
+      qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
+    else qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i=0; j=n-1; if (reverse) while (i < n) {
       fd_decref(sentries[i].key);
       vecdata[j]=fd_incref(sentries[i].value);
@@ -1048,12 +1050,17 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse)
 
 static fdtype sorted_prim(fdtype choices,fdtype keyfn)
 {
-  return sorted_primfn(choices,keyfn,0);
+  return sorted_primfn(choices,keyfn,0,0);
+}
+
+static fdtype lexsorted_prim(fdtype choices,fdtype keyfn)
+{
+  return sorted_primfn(choices,keyfn,0,1);
 }
 
 static fdtype rsorted_prim(fdtype choices,fdtype keyfn)
 {
-  return sorted_primfn(choices,keyfn,1);
+  return sorted_primfn(choices,keyfn,1,0);
 }
 
 /* GETRANGE */
@@ -1227,6 +1234,9 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("SORTED",sorted_prim,1)));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("LEXSORTED",lexsorted_prim,1)));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
