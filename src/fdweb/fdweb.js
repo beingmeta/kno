@@ -530,13 +530,19 @@ function _fdb_tab_click(evt)
 	   (node.className=='selected_tab'))) {
 	var cid=fdbGet(node,'contentid');
 	var cdoc=fdbByID(cid);
+	fdbMessage("Visiting node/"+node.className+
+		   "="+cid+"="+cdoc.style.display);
 	node.className='tab';
 	if (cdoc==content)
 	  if (content==tmp_show_content) toggle_on=true;
 	  else if ((cdoc.style.display) &&
 		   (cdoc.style.display!='none'))
 	    toggle_on=false;
-	else if (cdoc) cdoc.style.display='none';}}
+	  else {}
+	else if (cdoc) {
+	  fdbMessage("Hiding "+cdoc+"="+cid);
+	  cdoc.style.display='none';}}}
+    fdbMessage("toggle_on="+toggle_on);
     if (toggle_on) {
       elt.className='selected_tab';
       elt.style.textDecoration='none';
