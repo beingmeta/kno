@@ -891,10 +891,12 @@ static int unpack_browseinfo(fdtype info,u8_string *baseuri,u8_string *classname
       if (FD_STRINGP(FD_VECTOR_REF(info,1)))
 	*baseuri=FD_STRDATA(FD_VECTOR_REF(info,1));
       else u8_log(LOG_WARN,fd_TypeError,"Bad browse info %q",info);
+      break;
     case 3:
       if (FD_STRINGP(FD_VECTOR_REF(info,2)))
 	*classname=FD_STRDATA(FD_VECTOR_REF(info,2));
       else u8_log(LOG_WARN,fd_TypeError,"Bad browse info %q",info);
+      break;
     case 4:
       if (displayer) *displayer=FD_VECTOR_REF(info,3);}}
   else {
