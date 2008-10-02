@@ -530,8 +530,7 @@ function _fdb_tab_click(evt)
 	   (node.className=='selected_tab'))) {
 	var cid=fdbGet(node,'contentid');
 	var cdoc=fdbByID(cid);
-	fdbMessage("Visiting node/"+node.className+
-		   "="+cid+"="+cdoc.style.display);
+	// fdbMessage("Visiting node/"+node.className+"="+cid+"="+cdoc.style.display);
 	node.className='tab';
 	if (cdoc==content)
 	  if (content==tmp_show_content) toggle_on=true;
@@ -540,9 +539,9 @@ function _fdb_tab_click(evt)
 	    toggle_on=false;
 	  else {}
 	else if (cdoc) {
-	  fdbMessage("Hiding "+cdoc+"="+cid);
+	  // fdbMessage("Hiding "+cdoc+"="+cid);
 	  cdoc.style.display='none';}}}
-    fdbMessage("toggle_on="+toggle_on);
+    // fdbMessage("toggle_on="+toggle_on);
     if (toggle_on) {
       elt.className='selected_tab';
       elt.style.textDecoration='none';
@@ -610,7 +609,7 @@ function _fdb_tab_mouseout_preview(evt)
     tmp_show_content.style.display=null;
     tmp_show_content=null;}
   if (tmp_hide_content) {
-    tmp_hide_content.style.display=null;
+    tmp_hide_content.style.display='block';
     tmp_hide_content=null;}
 }
 
