@@ -641,6 +641,24 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   return 1;
 }
 
+FD_EXPORT
+int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata)
+{
+  fdtype doctype=fd_get(cgidata,doctype_slotid,FD_VOID);
+  fdtype xmlpi=fd_get(cgidata,xmlpi_slotid,FD_VOID);
+  if (FD_STRINGP(xmlpi))
+    u8_putn(out,FD_STRDATA(xmlpi),FD_STRLEN(xmlpi));
+  else u8_puts(out,DEFAULT_XMLPI);
+  u8_putc(out,'\n');
+  if (FD_VOIDP(doctype)) u8_puts(out,DEFAULT_DOCTYPE);
+  else if (FD_STRINGP(doctype))
+    u8_putn(out,FD_STRDATA(doctype),FD_STRLEN(doctype));
+  else return 0;
+  u8_putc(out,'\n');
+  fd_decref(doctype); fd_decref(xmlpi);
+  return 1;
+}
+
 static fdtype set_body_attribs(int n,fdtype *args)
 {
   fdtype attribs=FD_EMPTY_LIST; int i=n-1;

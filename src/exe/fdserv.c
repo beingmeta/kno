@@ -351,6 +351,15 @@ static int update_preloads()
 
 static FD_HASHTABLE pagemap;
 
+static int whitespace_stringp(u8_string s)
+{
+  int c=u8_sgetc(&s);
+  while (c>0)
+    if (u8_isspace(c)) c=u8_sgetc(&s);
+    else return 0;
+  return 1;
+}
+
 static fdtype loadcontent(fdtype path)
 {
   u8_string pathname=FD_STRDATA(path), oldsource;
@@ -360,7 +369,7 @@ static fdtype loadcontent(fdtype path)
     u8_log(LOG_NOTICE,"LOADING","Loading %s",pathname);
   if (content[0]=='<') {
     U8_INPUT in; FD_XML *xml; fd_lispenv env;
-    fdtype lenv, ldata;
+    fdtype lenv, ldata, parsed;
     U8_INIT_STRING_INPUT(&in,strlen(content),content);
     oldsource=fd_bind_sourcebase(pathname);
     xml=fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
@@ -369,8 +378,15 @@ static fdtype loadcontent(fdtype path)
       u8_free(content);
       u8_log(LOG_WARN,Startup,"ERROR","Error parsing %s",pathname);
       return FD_ERROR_VALUE;}
+    parsed=xml->head;
+    while ((FD_PAIRP(parsed)) &&
+	   (FD_STRINGP(FD_CAR(parsed))) &&
+	   (whitespace_stringp(FD_STRDATA(FD_CAR(parsed))))) {
+      struct FD_PAIR *old_parsed=(struct FD_PAIR *)parsed;
+      parsed=FD_CDR(parsed);
+      old_parsed->cdr=FD_EMPTY_LIST;}
     env=(fd_lispenv)xml->data;
-    lenv=(fdtype)env; ldata=xml->head;
+    lenv=(fdtype)env; ldata=parsed;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
@@ -552,6 +568,7 @@ static int webservefn(u8_client ucl)
     write_headers=0;
     fd_thread_set(cgidata_symbol,cgidata);
     fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+    fd_output_xml_preface(&(client->out),cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
       FD_DOLIST(expr,FD_CAR(proc)) {
 	fd_decref(result);
