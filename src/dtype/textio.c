@@ -642,8 +642,7 @@ static fdtype parse_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
   int max=128, len=0, c=u8_getc(in);
-  while ((c>=0) && (c<128) &&
-	 ((isalnum(c)) || (c == '\\') || (c == ' '))) {
+  while ((c>=0) && (c<128) && (c!='"')) {
     if (len>=max) {
       data=u8_realloc(data,max+128);
       max=max+128;}
@@ -652,6 +651,9 @@ static fdtype parse_packet(U8_INPUT *in)
       obuf[0]=c=u8_getc(in);
       if (obuf[0]=='\n') {
 	while (u8_isspace(c)) c=u8_getc(in);
+	continue;}
+      else if (obuf[0]=='\\') {
+	data[len++]='\\';
 	continue;}
       obuf[1]=c=u8_getc(in);
       obuf[2]='\0';
