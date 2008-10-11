@@ -1317,6 +1317,24 @@ static fdtype scripturlplus(int n,fdtype *args)
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
+static fdtype uriencode_prim(fdtype string,fdtype escape)
+{
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+  if (FD_VOIDP(escape))
+    fd_uri_output(&out,FD_STRDATA(string),"?#=&");
+  else fd_uri_output(&out,FD_STRDATA(string),FD_STRDATA(escape));
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
+static fdtype uriout_prim(fdtype string,fdtype escape)
+{
+  u8_output out=fd_get_default_output();
+  if (FD_VOIDP(escape))
+    fd_uri_output(out,FD_STRDATA(string),"?#=&");
+  else fd_uri_output(out,FD_STRDATA(string),FD_STRDATA(escape));
+  return FD_VOID;
+}
+
 /* Outputing tables to XHTML */
 
 static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
@@ -1583,6 +1601,14 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_ndprim(fd_make_cprimn("SCRIPTURL+",scripturlplus,2));
   fdtype fdscripturl_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL",fdscripturl,2));
+  fdtype uriencode_proc=
+    fd_make_ndprim(fd_make_cprim2x("URIENCODE",uriencode_prim,1,
+				   fd_string_type,FD_VOID,
+				   fd_string_type,FD_VOID));
+  fdtype uriout_proc=
+    fd_make_cprim2x
+    ("URIENCODE",uriencode_prim,1,
+     fd_string_type,FD_VOID,fd_string_type,FD_VOID);
 
   u8_printf_handlers['k']=markup_printf_handler;
 
@@ -1598,6 +1624,8 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defn(module,scripturl_proc);
     fd_defn(module,scripturlplus_proc);
     fd_defn(module,fdscripturl_proc);
+    fd_defn(module,uriencode_proc);
+    fd_defn(module,uriout_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
@@ -1615,6 +1643,8 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_idefn(module,scripturl_proc);
     fd_idefn(module,scripturlplus_proc);
     fd_idefn(module,fdscripturl_proc);
+    fd_idefn(module,uriencode_proc);
+    fd_idefn(module,uriout_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
