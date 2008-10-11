@@ -856,7 +856,9 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
 FD_EXPORT
 fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
 {
-  if ((!(FD_CHOICEP(frames))) && (!(FD_OIDP(frames))))
+  if (FD_EMPTY_CHOICEP(frames))
+    return FD_FALSE;
+  else if ((!(FD_CHOICEP(frames))) && (!(FD_OIDP(frames))))
     if (FD_CHOICEP(slotids)) {
       int found=0;
       FD_DO_CHOICES(slotid,slotids)
