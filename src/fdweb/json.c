@@ -144,6 +144,10 @@ static fdtype jsonparseprim(fdtype in)
     struct U8_INPUT inport;
     U8_INIT_STRING_INPUT(&inport,FD_STRLEN(in),FD_STRDATA(in));
     return json_parse(&inport,0);}
+  else if (FD_PACKETP(in)) {
+    struct U8_INPUT inport;
+    U8_INIT_STRING_INPUT(&inport,FD_PACKET_LENGTH(in),FD_PACKET_DATA(in));
+    return json_parse(&inport,0);}
   else return fd_type_error("string or stream","jsonparse",in);
 }
 
