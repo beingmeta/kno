@@ -68,8 +68,9 @@ static fdtype json_vector(U8_INPUT *in,int flags)
   else elts=u8_alloc_n(16,fdtype);
   c=skip_whitespace(in);
   while (c>=0)
-    if (c==']')
-      return fd_init_vector(NULL,n_elts,elts);
+    if (c==']') {
+      u8_getc(in); /* Absorb ] */
+      return fd_init_vector(NULL,n_elts,elts);}
     else if (c==',') {
       c=u8_getc(in); c=skip_whitespace(in);}
     else {
@@ -97,8 +98,9 @@ static fdtype json_table(U8_INPUT *in,int flags)
   else kv=u8_alloc_n(16,struct FD_KEYVAL);
   c=skip_whitespace(in);
   while (c>=0)
-    if (c=='}')
-      return fd_init_slotmap(NULL,n_elts,kv);
+    if (c=='}') {
+      u8_getc(in); /* Absorb ] */
+      return fd_init_slotmap(NULL,n_elts,kv);}
     else if (c==',') {
       c=u8_getc(in); c=skip_whitespace(in);}
     else {
