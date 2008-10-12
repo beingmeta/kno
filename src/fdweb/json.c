@@ -131,6 +131,9 @@ static fdtype json_string(U8_INPUT *in,int flags)
   c=u8_getc(in);
   while (c>=0) {
     if (c=='"') break;
+    else if (c=='\\') {
+      c=u8_getc(in); u8_putc(&out,c); c=u8_getc(in);
+      continue;}
     u8_putc(&out,c);
     c=u8_getc(in);}
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
