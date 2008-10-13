@@ -446,6 +446,11 @@ static int read_escape(u8_input in)
   }
 }
 
+FD_EXPORT int fd_read_escape(u8_input in)
+{
+  return read_escape(in);
+}
+
 /* Atom parsing */
 
 static int n_constants=7;

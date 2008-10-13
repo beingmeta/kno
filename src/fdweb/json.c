@@ -24,6 +24,15 @@ static char versionid[] =
 
 static fd_exception JSON_Error="JSON Parsing Error";
 
+static int readc(U8_INPUT *in)
+{
+  int c=u8_getc(in);
+  if (c=='\\') {
+    u8_ungetc(in,c);
+    return fd_read_escape(in);}
+  else return c;
+}
+
 static int skip_whitespace(U8_INPUT *in)
 {
   int c=u8_getc(in);
@@ -50,10 +59,10 @@ static fdtype json_parse(U8_INPUT *in,int flags)
 static fdtype json_atom(U8_INPUT *in,int flags)
 {
   fdtype result;
-  struct U8_OUTPUT out; u8_byte _buf[256]; int c=u8_getc(in);
+  struct U8_OUTPUT out; u8_byte _buf[256]; int c=readc(in);
   U8_INIT_OUTPUT_BUF(&out,256,_buf);
   while ((u8_isalnum(c)) || (c=='-') || (c=='_') || (c=='+')) {
-    u8_putc(&out,c); c=u8_getc(in);}
+    u8_putc(&out,c); c=readc(in);}
   if (c>=0) u8_ungetc(in,c);
   result=fd_parse(out.u8_outbuf);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
@@ -126,13 +135,14 @@ static fdtype json_table(U8_INPUT *in,int flags)
 
 static fdtype json_string(U8_INPUT *in,int flags)
 {
-  struct U8_OUTPUT out; int c=u8_getc(in);
+  struct U8_OUTPUT out; int c=readc(in); /* Skip '"' */
   U8_INIT_OUTPUT(&out,16);
   c=u8_getc(in);
   while (c>=0) {
     if (c=='"') break;
     else if (c=='\\') {
-      c=u8_getc(in); u8_putc(&out,c); c=u8_getc(in);
+      c=fd_read_escape(in);
+      u8_putc(&out,c); c=u8_getc(in);
       continue;}
     u8_putc(&out,c);
     c=u8_getc(in);}
