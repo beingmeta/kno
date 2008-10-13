@@ -44,6 +44,8 @@ typedef struct FD_MYSQL_PROC {
   int n_cols;
   MYSQL *mysqldb; MYSQL_STMT *stmt;
   MYSQL_BIND *inbound, *outbound;
+  my_bool *isnull;
+
   union BINDBUF *bindbuf;
   fdtype *colnames;} FD_MYSQL_PROC;
 typedef struct FD_MYSQL_PROC *fd_mysql_proc;
@@ -217,9 +219,11 @@ static void outbound_setup(MYSQL_BIND *outval)
      we wait to retrieve.
    One potential optimization would be to go ahead and preallocate buffers
      for those columns when their size is known or constrained.  */
-static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,int column)
+static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
+			   my_bool *isnull,int column)
 {
   MYSQL_BIND *outval=&(bindings[column]);
+  if (isnull[column]) return FD_EMPTY_CHOICE;
   switch (outval->buffer_type) {
   case MYSQL_TYPE_LONG:
     if (outval->is_unsigned) {
@@ -281,7 +285,7 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,int column)
    prepared buffers for outbound variables and known column names. */
 static fdtype get_stmt_values
   (MYSQL_STMT *stmt,fdtype colinfo,int n_cols,
-   fdtype *colnames,MYSQL_BIND *outbound)
+   fdtype *colnames,MYSQL_BIND *outbound,my_bool *isnullbuf)
 {
   fdtype results=FD_EMPTY_CHOICE;
   fdtype mergefn=fd_getopt(colinfo,merge_symbol,FD_VOID);
@@ -295,7 +299,7 @@ static fdtype get_stmt_values
     fdtype result;
     struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
     i=0; while (i<n_cols) {
-      fdtype value=outbound_get(stmt,outbound,i);
+      fdtype value=outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
       if (FD_VOIDP(colmaps[i]))
 	kv[i].value=value;
@@ -356,7 +360,8 @@ static fdtype get_stmt_values
 /* This inits the vectors used when converting results from statement
    execution. */
 static int init_stmt_results
-  (MYSQL_STMT *stmt,MYSQL_BIND **outboundptr,fdtype **colnamesptr)
+  (MYSQL_STMT *stmt,MYSQL_BIND **outboundptr,fdtype **colnamesptr,
+   my_bool **isnullbuf)
 {
   int n_cols=mysql_stmt_field_count(stmt);
   if (n_cols) {
@@ -364,6 +369,7 @@ static int init_stmt_results
     MYSQL_BIND *outbound=u8_alloc_n(n_cols,MYSQL_BIND);
     MYSQL_RES *metadata=mysql_stmt_result_metadata(stmt);
     MYSQL_FIELD *fields=((metadata) ? (mysql_fetch_fields(metadata)) : (NULL));
+    my_bool *nullbuf=u8_alloc_n(n_cols,my_bool);
     struct U8_OUTPUT out; u8_byte namebuf[128];
     int i=0;
     U8_INIT_OUTPUT_BUF(&out,128,namebuf);
@@ -388,9 +394,11 @@ static int init_stmt_results
 	else outbound[i].buffer_type=MYSQL_TYPE_STRING;
       else outbound[i].buffer_type=fields[i].type;
       outbound_setup(&(outbound[i]));
+      outbound[i].is_null=&(nullbuf[i]);
       i++;}
     *colnamesptr=colnames;
     *outboundptr=outbound;
+    *isnullbuf=nullbuf;
     mysql_stmt_bind_result(stmt,outbound);
     mysql_free_result(metadata); /* Hope this frees FIELDS */
     return n_cols;}
@@ -409,18 +417,18 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
 {
   MYSQL *db=dbp->db;
   MYSQL_STMT *stmt=mysql_stmt_init(db);
-  MYSQL_BIND *outbound=NULL; fdtype *colnames=NULL;
+  MYSQL_BIND *outbound=NULL; fdtype *colnames=NULL; my_bool *isnullbuf;
   fdtype colinfo=merge_colinfo(dbp,colinfo_arg), results;
   int retval, n_cols;
   if (stmt)
     retval=mysql_stmt_prepare(stmt,FD_STRDATA(string),FD_STRLEN(string));
   else retval=-1;
-  if (retval==0) n_cols=init_stmt_results(stmt,&outbound,&colnames);
+  if (retval==0) n_cols=init_stmt_results(stmt,&outbound,&colnames,&isnullbuf);
   if (retval==0) retval=mysql_stmt_execute(stmt);
   if (retval) {}
   else if (n_cols==0) return FD_VOID;
   else {
-    results=get_stmt_values(stmt,colinfo,n_cols,colnames,outbound);
+    results=get_stmt_values(stmt,colinfo,n_cols,colnames,outbound,isnullbuf);
     fd_decref(colinfo);}
 
   int i=0; while (i<n_cols) {
@@ -480,12 +488,13 @@ static fdtype mysqlmakeproc
 
   /* Set up the vectors we'll use for statement execution. */
   dbproc->n_cols=n_cols=
-    init_stmt_results(dbproc->stmt,&(dbproc->outbound),&(dbproc->colnames));
+    init_stmt_results(dbproc->stmt,&(dbproc->outbound),&(dbproc->colnames),
+		      &(dbproc->isnull));
   dbproc->n_params=n_params=mysql_stmt_param_count(dbproc->stmt);
   dbproc->inbound=u8_alloc_n(n_params,MYSQL_BIND);
   memset(dbproc->inbound,0,sizeof(MYSQL_BIND)*n_params);
   dbproc->bindbuf=u8_alloc_n(n_params,union BINDBUF);
-
+  
   /* Set up the other fields */
   
   dbproc->dbhandler=&mysql_handler;
@@ -529,6 +538,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   fd_decref(dbp->colinfo);
 
   u8_free(dbp->bindbuf);
+  u8_free(dbp->isnull);
   u8_free(dbp->inbound);
 
   i=0; lim=dbp->n_cols; while (i<lim) {
@@ -707,7 +717,8 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   if (dbproc->n_cols)
     values=get_stmt_values
       (dbproc->stmt,dbproc->colinfo,
-       dbproc->n_cols,dbproc->colnames,dbproc->outbound);
+       dbproc->n_cols,dbproc->colnames,
+       dbproc->outbound,dbproc->isnull);
   else values=FD_VOID;
   
   u8_unlock_mutex(&(dbproc->lock));
