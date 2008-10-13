@@ -583,6 +583,9 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       argbuf[i]=arg=fd_apply(ptypes[i],1,&arg);}
     else argbuf[i]=FD_VOID;
 
+    /* Set this in case it was different for a previous call. */
+    inbound[i].is_null=NULL;
+
     /* Now set up the bindings */
     if (FD_FIXNUMP(arg)) {
       inbound[i].is_unsigned=0;
