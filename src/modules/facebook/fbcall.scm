@@ -32,7 +32,31 @@
 		      (printout key "=" (get table key)))
 	   (stringout apisecretkey)))))
 
+;;; Custom methods
 
+(module-export!
+ '{fb/getuserinfo
+   fb/getmyid fb/getmyfriends fb/getmygroups fb/getmypages})
 
+(define (fb/getmyid)
+  (string->number (fbcall "users.getLoggedInUser")))
 
+(defambda (fb/getuserinfo users (fields "name"))
+  (let ((info (fbcall "users.getInfo" "uids"
+		      (stringout (do-choices (u users i)
+				   (printout (if (> i 0) ",") u)))
+		      "fields"
+		      (stringout (do-choices (field fields i)
+				   (printout (if (> i 0) ",") field))))))
+    (for-choices (friendinfo (elts info))
+      (let ((f (frame-create #f 'fb/uid (get friendinfo "uid"))))
+	(do-choices (field fields)
+	  (add! f (string->lisp field) (get friendinfo field)))
+	f))))
 
+(define (fb/getmyfriends) (fbcall "facebook.friends.get"))
+(define (fb/getmygroups) (fbcall "groups.get"))
+(define (fb/getmypages)
+  (fbcall "pages.getInfo"
+	  "fields"
+	  "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large"))

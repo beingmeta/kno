@@ -631,6 +631,21 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       mt->hour=tm->xtime.u8_tptr.tm_hour;
       mt->minute=tm->xtime.u8_tptr.tm_min;
       mt->second=tm->xtime.u8_tptr.tm_sec;}
+    else if ((FD_TRUEP(arg)) || (FD_FALSEP(arg))) {
+      inbound[i].is_unsigned=0;
+      inbound[i].buffer_type=MYSQL_TYPE_LONG;
+      inbound[i].buffer=&(bindbuf[i].lval);
+      inbound[i].buffer_length=sizeof(int);
+      inbound[i].length=NULL;
+      if (FD_TRUEP(arg)) bindbuf[i].lval=1;
+      else bindbuf[i].lval=0;}
+    else if (FD_EMPTY_CHOICEP(arg)) {
+      my_bool *bp=(my_bool *)&(bindbuf[i].lval);
+      inbound[i].is_null=bp;
+      inbound[i].buffer=NULL;
+      inbound[i].buffer_length=sizeof(int);
+      inbound[i].length=NULL;
+      *bp=1;}
     /* This catches cases where the conversion process produces an
        error. */
     else if (FD_ABORTP(arg)) {
