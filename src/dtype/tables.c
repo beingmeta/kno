@@ -79,7 +79,7 @@ FD_FASTOP void swap_keyvals(struct FD_KEYVAL *a,struct FD_KEYVAL *b)
   struct FD_KEYVAL tmp; tmp=*a; *a=*b; *b=tmp;
 }
 
-static void sort_keyvals(struct FD_KEYVAL *v,int n)
+static void atomic_sort_keyvals(struct FD_KEYVAL *v,int n)
 {
   unsigned i, j, ln, rn;
   while (n > 1) {
@@ -92,8 +92,8 @@ static void sort_keyvals(struct FD_KEYVAL *v,int n)
     ln = j;
     rn = n - ++j;
     if (ln < rn) {
-      sort_keyvals(v, ln); v += j; n = rn;}
-    else {sort_keyvals(v + j, rn); n = ln;}}
+      atomic_sort_keyvals(v, ln); v += j; n = rn;}
+    else {atomic_sort_keyvals(v + j, rn); n = ln;}}
 }
 
 static void cons_sort_keyvals(struct FD_KEYVAL *v,int n)
@@ -103,7 +103,7 @@ static void cons_sort_keyvals(struct FD_KEYVAL *v,int n)
     swap_keyvals(&v[0], &v[n/2]);
     for (i = 0, j = n; ; ) {
       do --j; while (cons_compare(v[j].key,v[0].key)>0);
-      do ++i; while (i < j && ((cons_compare(v[j].key,v[0].key))<0));
+      do ++i; while (i < j && ((cons_compare(v[i].key,v[0].key))<0));
       if (i >= j) break; swap_keyvals(&v[i], &v[j]);}
     swap_keyvals(&v[j], &v[0]);
     ln = j;
@@ -111,6 +111,14 @@ static void cons_sort_keyvals(struct FD_KEYVAL *v,int n)
     if (ln < rn) {
       cons_sort_keyvals(v, ln); v += j; n = rn;}
     else {cons_sort_keyvals(v + j, rn); n = ln;}}
+}
+
+static void sort_keyvals(struct FD_KEYVAL *v,int n)
+{
+  int i=0; while (i<n)
+    if (FD_ATOMICP(v[i].key)) i++;
+    else return cons_sort_keyvals(v,n);
+  return atomic_sort_keyvals(v,n);
 }
 
 FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
