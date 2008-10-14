@@ -301,7 +301,9 @@ static fdtype get_stmt_values
     i=0; while (i<n_cols) {
       fdtype value=outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
-      if (FD_VOIDP(colmaps[i]))
+      if (FD_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
+	kv[i].value=value;
+      else if (FD_VOIDP(colmaps[i]))
 	kv[i].value=value;
       else if (FD_APPLICABLEP(colmaps[i])) {
 	kv[i].value=fd_apply(colmaps[i],1,&value);
