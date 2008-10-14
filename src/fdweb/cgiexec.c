@@ -159,6 +159,10 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
 
 static fdtype post_data_slotid, form_data_string;
 
+/* Setting this to zero might be slightly more secure, and it's the
+   CONFIG option QUERYWITHPOST (boolean) */
+static int parse_query_on_post=1;
+
 static void parse_query_string(fd_slotmap c,char *data,int len);
 
 static void get_form_args(fd_slotmap c)
@@ -171,6 +175,13 @@ static void get_form_args(fd_slotmap c)
     return;}
   else if (fd_test((fdtype)c,request_method,post_method)) {
     fd_handle_compound_mime_field((fdtype)c,cgi_content_type,FD_VOID);
+    if (parse_query_on_post) {
+      /* We do this first, so it won't override any post data
+	 which is supposedly more legitimate. */
+      fdtype qval=fd_slotmap_get(c,query_string,FD_VOID);
+      if (FD_STRINGP(qval))
+	parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
+      fd_decref(qval);}
     if (fd_test((fdtype)c,cgi_content_type,form_data_string)) {
       fdtype postdata=fd_slotmap_get(c,post_data_slotid,FD_VOID);
       fdtype parts=FD_EMPTY_LIST;
@@ -213,10 +224,15 @@ static void get_form_args(fd_slotmap c)
       fd_decref(parts);}
     else {
       fdtype qval=fd_slotmap_get(c,post_data_slotid,FD_VOID);
-      if (FD_STRINGP(qval))
-	parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
-      else if (FD_PACKETP(qval))
-	parse_query_string(c,FD_PACKET_DATA(qval),FD_PACKET_LENGTH(qval));
+      u8_string data; unsigned int len;
+      if (FD_STRINGP(qval)) {
+	data=FD_STRDATA(qval); len=FD_STRING_LENGTH(qval);}
+      else if (FD_PACKETP(qval)) {
+	data=FD_PACKET_DATA(qval); len=FD_PACKET_LENGTH(qval);}
+      else {
+	fd_decref(qval); data=NULL;}
+      if ((data) && (strchr(data,'=')))
+	parse_query_string(c,data,len);
       fd_decref(qval);}}
 }
 
@@ -885,11 +901,16 @@ FD_EXPORT void fd_init_cgiexec_c()
   parts_slotid=fd_intern("PARTS");
 
   fd_register_config
-    ("CGIPREP","Functions to execute between parsing and responding to a CGI request",
+    ("CGIPREP",
+     _("Functions to execute between parsing and responding to a CGI request"),
      fd_lconfig_get,fd_lconfig_set,&cgi_prepfns);
   fd_register_config
-    ("LOGCGI","Whether to log CGI bindings passed to FramerD",
+    ("LOGCGI",_("Whether to log CGI bindings passed to FramerD"),
      fd_boolconfig_get,fd_boolconfig_set,&log_cgidata);
-
+  fd_register_config
+    ("QUERYONPOST",
+     _("Whether to parse REST query args when there is POST data"),
+     fd_boolconfig_get,fd_boolconfig_set,&parse_query_on_post);
+  
   fd_register_source_file(versionid);
 }
