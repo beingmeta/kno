@@ -605,6 +605,8 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
       return result;}}
 }      
 
+/* Miscellanous time utilities */
+
 static fdtype timestring()
 {
   struct U8_XTIME onstack; struct U8_OUTPUT out;
@@ -615,6 +617,33 @@ static fdtype timestring()
 	    onstack.u8_tptr.tm_min,
 	    onstack.u8_tptr.tm_sec);
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
+static fdtype time_prim()
+{
+  time_t now=time(NULL);
+  if (now<0) {
+    u8_graberr(-1,"time_prim",NULL);
+    return FD_ERROR_VALUE;}
+  else return FD_INT2DTYPE(now);
+}
+
+static fdtype millitime_prim()
+{
+  long long now=u8_millitime();
+  if (now<0) {
+    u8_graberr(-1,"millitime_prim",NULL);
+    return FD_ERROR_VALUE;}
+  else return FD_INT2DTYPE(now);
+}
+
+static fdtype microtime_prim()
+{
+  long long now=u8_microtime();
+  if (now<0) {
+    u8_graberr(-1,"microtime_prim",NULL);
+    return FD_ERROR_VALUE;}
+  else return FD_INT2DTYPE(now);
 }
 
 /* Counting seconds */
@@ -834,9 +863,13 @@ static void init_id_tables()
   month_names[11]="Dec";
 }
 
-/* Calltrack sensors for stime and rtime */
+/* CALLTRACK SENSORS */
 
-/* stime and rtime calltrack sensors */
+/* See src/dtype/apply.c for a description of calltrack, which is a
+   profiling utility for higher level programs.
+   These functions allow the tracking of various RUSAGE fields
+   over program execution.
+*/
 
 #if FD_CALLTRACK_ENABLED
 static double utime_sensor()
@@ -919,7 +952,9 @@ static long ivcxtswitch_sensor()
 #endif
 #endif
 
-/* Calltrack interface */
+/* CALLTRACK INTERFACE */
+
+/* This is the Scheme API for accessing CALLTRACK */
 
 static fdtype calltrack_sensors()
 {
@@ -1043,6 +1078,10 @@ FD_EXPORT void fd_init_timeprims_c()
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLEEP",sleep_prim,1));
 #endif
+
+  fd_idefn(fd_scheme_module,fd_make_cprim0("TIME",time_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MILLITIME",millitime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MICROTIME",microtime_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("SECS->STRING",secs2string,1));
 
