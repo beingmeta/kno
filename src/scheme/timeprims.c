@@ -162,6 +162,11 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     u8_now(&(tm->xtime)); *freeit=1;
     u8_xtime_plus(&(tm->xtime),FD_FIX2INT(arg));
     return tm;}
+  else if (FD_VOIDP(arg)) {
+    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP); 
+    memset(tm,0,sizeof(struct FD_TIMESTAMP));
+    u8_now(&(tm->xtime)); *freeit=1;
+    return tm;}
   else {
     fd_set_type_error("timestamp",arg);
     return NULL;}
@@ -201,6 +206,10 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
   if ((t1 == NULL) || (t2 == NULL)) {
     if (free1) u8_free(t1); if (free2) u8_free(t2);
     return FD_ERROR_VALUE;}
+  else if (FD_VOIDP(timestamp2)) {
+    double diff=u8_xtime_diff(&(t2->xtime),&(t1->xtime));
+    if (free1) u8_free(t1); if (free2) u8_free(t2);
+    return fd_init_double(NULL,diff);}
   else {
     double diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
     if (free1) u8_free(t1); if (free2) u8_free(t2);
@@ -648,54 +657,82 @@ static fdtype microtime_prim()
 
 /* Counting seconds */
 
-static fdtype secs2string(fdtype secs)
+static fdtype secs2string(fdtype secs,fdtype inexact_arg)
 {
   struct U8_OUTPUT out;
-  if (FD_FIXNUMP(secs)) {
-    int seconds=FD_FIX2INT(secs);
-    U8_INIT_OUTPUT(&out,64);
-    if (seconds>3600*24) {
-      int days=seconds/(3600*24);
-      if (days==1) u8_puts(&out,"1 day ");
-      else u8_printf(&out,"%d days ",days);
-      seconds=seconds-days*24*3600;}
-    if (seconds>3600) {
-      int hours=seconds/3600;
-      if (hours==1) u8_puts(&out,"1 hour ");
-      else u8_printf(&out,"%d hours ",hours);
-      seconds=seconds-hours*3600;}
-    if (seconds>60) {
-      int minutes=seconds/60;
-      if (minutes==1) u8_puts(&out,"1 minute ");
-      else u8_printf(&out,"%d minutes ",minutes);
-      seconds=seconds-minutes*60;}
-    u8_printf(&out,"%d seconds",seconds);}
-  else if (FD_FLONUMP(secs)) {
-    double seconds=FD_FLONUM(secs);
-    U8_INIT_OUTPUT(&out,64);
-    if (seconds>3600*24) {
-      int days=seconds/(3600*24);
-      if (days==1) u8_puts(&out,"1 day ");
-      else u8_printf(&out,"%d days ",days);
-      seconds=seconds-days*24*3600;}
-    if (seconds>3600) {
-      int hours=seconds/3600;
-      if (hours==1) u8_puts(&out,"1 hour ");
-      else u8_printf(&out,"%d hours ",hours);
-      seconds=seconds-hours*3600;}
-    if (seconds>60) {
-      int minutes=seconds/60;
-      if (minutes==1) u8_puts(&out,"1 minute ");
-      else u8_printf(&out,"%d minutes ",minutes);
-      seconds=seconds-minutes*60;}
-    if (seconds>1)
-      u8_printf(&out,"%g seconds",seconds);
-    else if (seconds>0.001)
-      u8_printf(&out,"%g ms",seconds*1000);
-    else if (seconds>0.000001)
-      u8_printf(&out,"%g us",seconds*1000000);
-    else u8_printf(&out,"%g ns",seconds*1000000);}
+  int inexact=(!(FD_FALSEP(inexact_arg)));
+  double seconds;
+  int weeks, days, hours, minutes, need_comma=0;
+  if (FD_FIXNUMP(secs)) 
+    seconds=(double)FD_FIX2INT(secs);
+  else if (FD_FLONUMP(secs))
+    seconds=FD_FLONUM(secs);
   else return fd_type_error(_("seconds"),"secs2string",secs);
+  U8_INIT_OUTPUT(&out,64);
+  if (seconds<0) {
+    u8_printf(&out,"negative "); seconds=-seconds;}
+  weeks=(int)floor(seconds/(3600*24*7));
+  seconds=seconds-weeks*(3600*24*7);
+  days=(int)floor(seconds/(3600*24));
+  seconds=seconds-days*(3600*24);
+  hours=(int)floor(seconds/(3600));
+  seconds=seconds-hours*(3600);
+  minutes=floor(seconds/60);
+  seconds=seconds-minutes*60;
+
+  if (weeks>1) {
+    u8_printf(&out,_("%d weeks"),weeks);
+    need_comma=1;}
+  else if (weeks==1) {
+    u8_printf(&out,_("one week"));
+    need_comma=1;}
+
+  if (days>1) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("%d days"),days);
+    need_comma=1;}
+  else if (days==1) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("one day"));
+    need_comma=1;}
+
+  if ((inexact) && (weeks>0))
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+
+  if (hours>1) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("%d hours"),hours);
+    need_comma=1;}
+  else if (hours==1) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("one hour"));
+    need_comma=1;}
+
+  if ((inexact) && (days>0))
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+
+  if (minutes>1) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("%d minutes"),minutes);
+    need_comma=1;}
+  else if (minutes==1) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("one minute"));
+    need_comma=1;}
+
+  if ((inexact) && (hours>0))
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+
+  if (seconds==0) {}
+  else if ((inexact) && (FD_FLONUMP(secs)) && (seconds>1)) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
+  else if (FD_FLONUMP(secs)) {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("%f seconds"),seconds);}
+  else {
+    if (need_comma) u8_puts(&out,", ");
+    u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
@@ -1067,7 +1104,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim3("MODTIME",modtime_prim,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIMESTAMP+",timestamp_plus,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("DIFFTIME",timestamp_diff,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("DIFFTIME",timestamp_diff,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("PAST-TIME?",timestamp_earlier,1));
   fd_idefn(fd_scheme_module,
@@ -1083,7 +1120,9 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("MILLITIME",millitime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MICROTIME",microtime_prim,0));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("SECS->STRING",secs2string,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("SECS->STRING",secs2string,1,
+			   -1,FD_VOID,-1,FD_FALSE));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
