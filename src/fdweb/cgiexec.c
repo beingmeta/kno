@@ -114,6 +114,11 @@ static void emit_uri_value(u8_output out,fdtype val)
     u8_free(as_string);}
 }
 
+FD_EXPORT fdtype fd_get_cgidata()
+{
+  return get_cgidata();
+}
+
 FD_EXPORT
 void fd_urify(u8_output out,fdtype val)
 {
@@ -722,19 +727,21 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
   else return val;
 }
 
-FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
+FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata,int threadbind)
 {
   fdtype value;
-  fd_thread_set(cgidata_symbol,cgidata);
-  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+  if (threadbind) {
+    fd_thread_set(cgidata_symbol,cgidata);
+    fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);}
   if (FD_PTR_TYPEP(proc,fd_sproc_type))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else value=fd_apply(proc,0,NULL);
   value=fd_finish_call(value);
-  fd_thread_set(cgidata_symbol,FD_VOID);
-  fd_thread_set(browseinfo_symbol,FD_VOID);
+  if (threadbind) {
+    fd_thread_set(cgidata_symbol,FD_VOID);
+    fd_thread_set(browseinfo_symbol,FD_VOID);}
   if (log_cgidata) {
     fdtype keys=fd_getkeys(cgidata);
     FD_DO_CHOICES(key,keys) {

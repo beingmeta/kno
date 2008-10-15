@@ -52,6 +52,7 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
 
 static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
 static fdtype href_symbol, class_symbol, raw_name_symbol, browseinfo_symbol;
+static fdtype embedded_symbol, estylesheet_symbol;
 
 /* Utility output functions */
 
@@ -796,19 +797,33 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
   u8_exception e=u8_exception_root(ex);
   fdtype irritant=fd_exception_xdata(e);
+  fdtype cgidata=fd_get_cgidata();
+  int isembedded=0, customstylesheet=0;
   s->u8_outptr=s->u8_outbuf;
-  u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
-  u8_printf(s,"<html>\n<head>\n<title>");
-  if (e->u8x_cond)
-    u8_printf(s,"%k",e->u8x_cond);
-  else u8_printf(s,"Unknown Exception");
-  if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
-  if (!(FD_VOIDP(irritant))) u8_printf(s," %lk",irritant);
-  if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
-  u8_printf(s,"</title>\n");
-  u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
-	    error_stylesheet);
-  u8_printf(s,"</head>\n<body id='ERRORPAGE'>\n<div class='server_sorry'>");
+  if (FD_NOVOIDP(cgidata)) {
+    fdtype embeddedp=fd_get(cgidata,embedded_symbol,FD_VOID);
+    fdtype estylesheet=fd_get(cgidata,estylesheet_symbol,FD_VOID);
+    if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded=1;
+    if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
+    if (FD_STRINGP(estylesheet)) {
+      u8_puts(s,FD_STRDATA(estylesheet));
+      customstylesheet=1;}
+    fd_decref(cgidata);}
+  if (isembedded==0) {
+    u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
+    u8_printf(s,"<html>\n<head>\n<title>");
+    if (e->u8x_cond)
+      u8_printf(s,"%k",e->u8x_cond);
+    else u8_printf(s,"Unknown Exception");
+    if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
+    if (!(FD_VOIDP(irritant))) u8_printf(s," %lk",irritant);
+    if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
+    u8_printf(s,"</title>\n");}
+  if (customstylesheet==0)
+    u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
+	      error_stylesheet);
+  if (isembedded==0)
+    u8_printf(s,"</head>\n<body id='ERRORPAGE'>\n<div class='server_sorry'>");
   u8_printf(s,"There was an unexpected error processing your request\n");
   u8_printf(s,"<div class='error'>\n");
   if (e->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->u8x_context);
@@ -1716,6 +1731,8 @@ FD_EXPORT void fd_init_xmloutput_c()
   quote_symbol=fd_intern("QUOTE");
   raw_name_symbol=fd_intern("%%NAME");
   browseinfo_symbol=fd_intern("BROWSEINFO");
+  embedded_symbol=fd_intern("%EMBEDDED");
+  estylesheet_symbol=fd_intern("%ERRORSTYLE");
 
   error_stylesheet=u8_strdup("/css/fdweb.css");
   fd_register_config

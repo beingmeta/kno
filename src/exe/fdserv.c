@@ -536,15 +536,17 @@ static int webservefn(u8_client ucl)
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_set_default_output(&(client->out));
+  fd_thread_set(cgidata_symbol,cgidata);
+  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    result=fd_cgiexec(proc,cgidata);}
+    result=fd_cgiexec(proc,cgidata,0);}
   else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    result=fd_cgiexec(FD_CAR(proc),cgidata);}
+    result=fd_cgiexec(FD_CAR(proc),cgidata,0);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
@@ -566,8 +568,6 @@ static int webservefn(u8_client ucl)
       fd_decref(v);}
     fd_decref(setup_proc);
     write_headers=0;
-    fd_thread_set(cgidata_symbol,cgidata);
-    fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
     fd_output_xml_preface(&(client->out),cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
       FD_DOLIST(expr,FD_CAR(proc)) {
@@ -575,8 +575,6 @@ static int webservefn(u8_client ucl)
 	result=fd_xmleval(&(client->out),expr,runenv);
 	if (FD_ABORTP(result)) break;}}
     else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
-    fd_thread_set(cgidata_symbol,FD_VOID);
-    fd_thread_set(browseinfo_symbol,FD_VOID);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
   fd_set_default_output(NULL);
@@ -623,6 +621,8 @@ static int webservefn(u8_client ucl)
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
+  fd_thread_set(cgidata_symbol,FD_VOID);
+  fd_thread_set(browseinfo_symbol,FD_VOID);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
