@@ -1,0 +1,20 @@
+;;; -*- Mode: Scheme; -*-
+
+;;; This is a simple script which shows you the CGIDATA it receives
+;;; that can be used for various sorts of debugging.
+
+(use-module '{fdweb xhtml})
+
+(define (main)
+  (stylesheet!
+   (config 'errorstylesheet
+	   "http://www.beingmeta.com/ext/fdweb/fdweb.css"))
+  (let ((cgidata (threadget 'cgidata)))
+    (table* ((class "slotmap") (id "CGIDATA"))
+      (do-choices (key (getkeys cgidata))
+	(let ((values (get cgidata key)))
+	  (do-choices (v values i)
+	    (tr (if (= i 0) (th* ((rowspan (choice-size values))) key))
+		(td v))))))))
+
+
