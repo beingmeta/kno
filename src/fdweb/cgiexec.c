@@ -710,10 +710,10 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
     u8_string data=FD_STRDATA(val);
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
-      fdtype parsed=fd_parse(data);
+      fdtype parsed=fd_parse_arg(data);
       fd_decref(val); return parsed;}
     else if (isdigit(data[0])) {
-      fdtype parsed=fd_parse(data);
+      fdtype parsed=fd_parse_arg(data);
       if (FD_NUMBERP(parsed)) {
 	fd_decref(val); return parsed;}
       else {

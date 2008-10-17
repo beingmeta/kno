@@ -1116,10 +1116,15 @@ FD_EXPORT
 fdtype fd_parse_arg(u8_string arg)
 {
   if (*arg=='\0') return fdtype_string(arg);
-  else if ((strchr("@{#(\"",arg[0])) || (isdigit(arg[0])))
-    return fd_parse(arg);
-  else if ((strchr("+-.",arg[0])) && (isdigit(arg[1])))
-    return fd_parse(arg);
+  else if (((strchr("@{#(\"",arg[0])) || (isdigit(arg[0]))) ||
+	   ((strchr("+-.",arg[0])) && (isdigit(arg[1])))) {
+    fdtype result;
+    struct U8_INPUT stream;
+    U8_INIT_STRING_INPUT((&stream),-1,s);
+    result=fd_parser(&stream);
+    if (fd_skip_whitespace(stream)>0)
+      return result;
+    return fdtype_string(arg);}
   else if (*arg == ':') return fd_parse(arg+1);
   else if (*arg == '\\') return fdtype_string(arg+1);
   else return fdtype_string(arg);
