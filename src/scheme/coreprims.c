@@ -444,7 +444,7 @@ static fdtype lisp_string2lisp(fdtype string)
 static fdtype lisp_parse_arg(fdtype string)
 {
   if (FD_STRINGP(string))
-    return fd_parse(FD_STRDATA(string));
+    return fd_parse_arg(FD_STRDATA(string));
   else return fd_incref(string);
 }
 

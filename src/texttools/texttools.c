@@ -655,7 +655,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
     else if (FD_TRUEP(parsefn)) {
       fdtype value;
       strncpy(buf,start,scan-start); buf[scan-start]='\0';
-      value=fd_parse(buf);
+      value=fd_parse_arg(buf);
       if (FD_ABORTP(value)) {
 	int k=0; while (k<field) {fd_decref(fields[k]); k++;}
 	u8_free(fields); u8_free(buf);
@@ -1118,7 +1118,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	  fd_decref(parsed_val);
 	  fd_decref(stringval);}
 	else if (FD_TRUEP(parser)) {
-	  fdtype parsed_val=fd_parse(_out.u8_outbuf);
+	  fdtype parsed_val=fd_parse_arg(_out.u8_outbuf);
 	  fd_add(f,slotid,parsed_val);
 	  fd_decref(parsed_val); u8_free(_out.u8_outbuf);}
 	else {

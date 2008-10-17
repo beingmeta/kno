@@ -1120,11 +1120,12 @@ fdtype fd_parse_arg(u8_string arg)
 	   ((strchr("+-.",arg[0])) && (isdigit(arg[1])))) {
     fdtype result;
     struct U8_INPUT stream;
-    U8_INIT_STRING_INPUT((&stream),-1,s);
+    U8_INIT_STRING_INPUT((&stream),-1,arg);
     result=fd_parser(&stream);
-    if (fd_skip_whitespace(stream)>0)
-      return result;
-    return fdtype_string(arg);}
+    if (fd_skip_whitespace(&stream)>0) {
+      fd_decref(result);
+      return fdtype_string(arg);}
+    else return result;}
   else if (*arg == ':') return fd_parse(arg+1);
   else if (*arg == '\\') return fdtype_string(arg+1);
   else return fdtype_string(arg);
