@@ -2630,7 +2630,11 @@ static fdtype anumber_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype base_arg=fd_get_arg(pat,1);
+  fdtype sep_arg=fd_get_arg(pat,2);
   int base=((FD_FIXNUMP(base_arg)) ? (FD_FIX2INT(base_arg)) : (10));
+  u8_string sepchars=
+    ((FD_VOIDP(sep_arg)) ? ((u8_string)".,") :
+     (FD_STRINGP(sep_arg)) ? (FD_STRDATA(sep_arg)) : ((u8_string)(NULL)));
   u8_byte *scan=string+off, *slim=string+lim, *last=scan;
   u8_unichar prev_char=get_previous_char(string,off), ch=u8_sgetc(&scan);
   if (u8_isdigit(prev_char)) return FD_EMPTY_CHOICE;
@@ -2643,7 +2647,8 @@ static fdtype anumber_match
   else if (base == 2)
     while ((scan<=slim) && ((ch == '0') || (ch == '1'))) {
       last=scan; ch=u8_sgetc(&scan);}
-  else while ((scan<=slim) && (ch<0x80) && (u8_isdigit(ch))) {
+  else while ((scan<=slim) && (ch<0x80) &&
+	      ((u8_isdigit(ch)) || ((sepchars)&&(strchr(sepchars,ch))))) {
     last=scan; ch=u8_sgetc(&scan);}
   if (last > string+off) return FD_INT2DTYPE(last-string);
   else return FD_EMPTY_CHOICE;
