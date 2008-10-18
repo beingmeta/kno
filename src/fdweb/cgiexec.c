@@ -599,7 +599,7 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   if (FD_VOIDP(status)) 
     u8_printf(out,"HTTP/1.1 200 Success\r\n");
   else if (FD_FIXNUMP(status)) 
-    u8_printf(out,"HTTP/1.1 %d Success\r\n",FD_FIX2INT(status));
+    u8_printf(out,"HTTP/1.1 %d Return\r\n",FD_FIX2INT(status));
   else if (FD_STRINGP(status))
     u8_printf(out,"HTTP/1.1 500 %s\r\n",FD_STRDATA(status));
   else if ((FD_PAIRP(status)) &&
@@ -609,9 +609,14 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
 	      FD_FIX2INT(FD_CAR(status)),
 	      FD_STRDATA(FD_CDR(status)));
   else u8_printf(out,"HTTP/1.1 500 Bad STATUS data\r\n");
+#else
+  if (FD_FIXNUMP(status))
+    u8_printf(out,"Status: %d\r\n",FD_FIX2INT(status));
+  else if (FD_STRINGP(status))
+    u8_printf(out,"Status: %s\r\n",FD_STRDATA(status));
 #endif
   if (FD_STRINGP(ctype))
-    u8_printf(out,"%s\r\n",FD_STRDATA(ctype));
+    u8_printf(out,"Content-type: %s\r\n",FD_STRDATA(ctype));
   else u8_printf(out,"%s\r\n",DEFAULT_CONTENT_TYPE);
   {FD_DO_CHOICES(header,headers)
      if (FD_STRINGP(header)) {
@@ -779,6 +784,31 @@ static fdtype cgiget(fdtype var,fdtype dflt)
   else return val;
 }
 
+static fdtype cgival(fdtype var,fdtype dflt)
+{
+  fdtype table=get_cgidata(), val;
+  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
+  val=fd_get(table,var,FD_VOID); fd_decref(table);
+  if (FD_VOIDP(val))
+    if (FD_VOIDP(dflt))
+      return FD_EMPTY_CHOICE;
+    else return fd_incref(dflt);
+  else if (FD_STRINGP(val)) {
+    fdtype parsed=fd_parse_arg(FD_STRDATA(val));
+    fd_decref(val);
+    return parsed;}
+  else if (FD_CHOICEP(val)) {
+    fdtype result=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(v,val)
+      if (FD_STRINGP(v)) {
+	fdtype parsed=fd_parse_arg(FD_STRDATA(v));
+	FD_ADD_TO_CHOICE(result,parsed);}
+      else {fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
+    fd_decref(val);
+    return result;}
+  else return val;
+}
+
 static fdtype cgitest(fdtype vars,fdtype val)
 {
   fdtype table=get_cgidata(), result=FD_FALSE;
@@ -847,6 +877,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   fd_idefn(module,fd_make_cprim1("CGICALL",cgicall,1));
   fd_idefn(module,fd_make_cprim2("CGIGET",cgiget,1));
+  fd_idefn(module,fd_make_cprim2("CGIVAL",cgival,1));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGITEST",cgitest,1)));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGISET!",cgiset,2)));
   fd_idefn(module,fd_make_cprim2("CGIADD!",cgiadd,2));
