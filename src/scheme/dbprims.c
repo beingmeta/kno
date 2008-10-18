@@ -449,6 +449,8 @@ static fdtype commit_lexpr(int n,fdtype *args)
       retval=fd_pool_commit_all(fd_lisp2pool(arg),1);
     else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
       retval=fd_pool_commit_all((fd_pool)arg,1);
+    else if (FD_OIDP(arg)) 
+      retval=fd_commit_oids(arg,1);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
