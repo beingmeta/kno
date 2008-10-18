@@ -2,16 +2,17 @@
 
 (use-module '{fdweb xhtml texttools facebook})
 
-(module-export! '{fbcall fbcalluri})
+(module-export! '{fbcall fbcall/open fbcalluri})
 
-(define (fbcalluri method args)
-  (set! args (cons* "api_key" apikey "call_id" (get (timestamp) 'tick)
-		    "v" "1.0" "method" method
+(define (fbcalluri method args (w/session #t) (w/callid #t))
+  (when w/callid
+    (set! args (cons* "call_id" (get (timestamp) 'tick) args)))
+  (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
-  (if (cgitest 'fb_sig_session_key)
-      (set! args (cons* "session_key" (cgiget 'fb_sig_session_key) args))
-      (if (cgitest 'fbsession)
-	  (set! args (cons* "session_key" (cgiget 'fbsession) args))))
+  (when (and w/session (cgitest 'fb_sig_session_key)
+	     (exists? (cgiget 'fb_sig_session_key))
+	     (string? (cgiget 'fb_sig_session_key)))
+    (set! args (cons* "session_key" (cgiget 'fb_sig_session_key) args)))
   (stringout "http://api.facebook.com/restserver.php?"
     (do ((args args (cddr args)))
 	((null? args) (printout))
@@ -20,7 +21,12 @@
 
 (define (fbcall method . args)
   (jsonparse
-   (get (urlget (fbcalluri method (cons* "format" "json" args)))
+   (get (urlget (fbcalluri method (cons* "format" "JSON" args)))
+	'%content)))
+;; This calls a Facebook method without a session_id or call_id
+(define (fbcall/open method . args)
+  (jsonparse
+   (get (urlget (fbcalluri method (cons* "format" "JSON" args) #f #f))
 	'%content)))
 
 (define (get-signature args)

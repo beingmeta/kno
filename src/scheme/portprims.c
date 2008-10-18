@@ -691,9 +691,7 @@ static fdtype number2locale(fdtype x,fdtype precision)
 
 static fdtype string2number(fdtype x,fdtype base)
 {
-  fdtype num=fd_string2number(FD_STRDATA(x),fd_getint(base));
-  if (FD_VOIDP(num)) return FD_FALSE;
-  else return num;
+  return fd_string2number(FD_STRDATA(x),fd_getint(base));
 }
 
 static fdtype just2number(fdtype x,fdtype base)
@@ -701,7 +699,7 @@ static fdtype just2number(fdtype x,fdtype base)
   if (FD_NUMBERP(x)) return fd_incref(x);
   else if (FD_STRINGP(x)) {
     fdtype num=fd_string2number(FD_STRDATA(x),fd_getint(base));
-    if (FD_VOIDP(num)) return FD_FALSE;
+    if (FD_FALSEP(num)) return FD_FALSE;
     else return num;}
   else return fd_type_error(_("string or number"),"->NUMBER",x);
 }
@@ -1252,10 +1250,10 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("STRING->NUMBER",string2number,1,
 			   fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(10)));
+			   fd_fixnum_type,FD_INT2DTYPE(-1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("->NUMBER",just2number,1,
-			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(10)));
+			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(-1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
 

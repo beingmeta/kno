@@ -2011,6 +2011,7 @@ static fdtype make_rational(fdtype n,fdtype d);
 FD_EXPORT
 fdtype fd_string2number(u8_string string,int base)
 {
+  int len=strlen(string);
   if (string[0]=='#') {
     switch (string[1]) {
     case 'o': case 'O':
@@ -2023,16 +2024,21 @@ fdtype fd_string2number(u8_string string,int base)
       return fd_string2number(string+2,2);
     case 'i': case 'I': {
       fdtype result=fd_string2number(string+2,base);
-      double dbl=todouble(result);
-      fdtype inexresult=fd_init_double(NULL,dbl);
-      fd_decref(result);
-      return inexresult;}
+	if (FD_EXPECT_TRUE(FD_NUMBERP(result))) {
+	  double dbl=todouble(result);
+	  fdtype inexresult=fd_init_double(NULL,dbl);
+	  fd_decref(result);
+	  return inexresult;}
+	else return FD_FALSE;}
     case 'e': case 'E': {
       if (strchr(string,'.')) {
 	fdtype num, den=FD_INT2DTYPE(1);
 	u8_byte *copy=u8_strdup(string+2);
 	u8_byte *dot=strchr(copy,'.'), *scan=dot+1;
 	*dot='\0'; num=fd_string2number(copy,10);
+	if (FD_EXPECT_FALSE(!(FD_NUMBERP(num)))) {
+	  u8_free(copy);
+	  return FD_FALSE;}
 	while (*scan)
 	  if (isdigit(*scan)) {
 	    fdtype numx10=fd_multiply(num,FD_INT2DTYPE(10));
@@ -2056,19 +2062,21 @@ fdtype fd_string2number(u8_string string,int base)
 		fd_decref(den); den=nextden; i++;}}
 	    break;}
 	  else {
-	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",u8_strdup(string));
+	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
+		       u8_strdup(string));
 	    return FD_PARSE_ERROR;}
 	return make_rational(num,den);}
       else return fd_string2number(string+2,base);}
     default:
-      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",u8_strdup(string));
+      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
+		 u8_strdup(string));
       return FD_PARSE_ERROR;}}
   else if ((strchr(string,'i')) || (strchr(string,'I'))) {
     u8_byte *copy=u8_strdup(string);
     u8_byte *iend, *istart; fdtype real, imag;
     iend=strchr(copy,'i');
     if (iend==NULL) iend=strchr(copy,'I');
-    if (iend[1]!='\0') {u8_free(copy); return FD_VOID;}
+    if (iend[1]!='\0') {u8_free(copy); return FD_FALSE;}
     else *iend='\0';
     if ((*copy == '+') || (*copy =='-')) {
       istart=strchr(copy+1,'+');
@@ -2082,14 +2090,17 @@ fdtype fd_string2number(u8_string string,int base)
       if (istart==NULL) istart=strchr(estart+1,'-');}
     if (istart == NULL) {
       imag=fd_string2number(copy,base);
-      if (FD_VOIDP(imag)) {u8_free(copy); return FD_VOID;}
+      if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
+	fd_decref(imag); u8_free(copy); return FD_FALSE;}
       real=FD_INT2DTYPE(0);}
     else {
       imag=fd_string2number(istart,base); *istart='\0';
-      if (FD_VOIDP(imag)) {u8_free(copy); return FD_VOID;}
+      if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
+	fd_decref(imag); u8_free(copy); return FD_FALSE;}
       real=fd_string2number(copy,base);
-      if (FD_VOIDP(real)) {
-	fd_decref(imag); u8_free(copy); return FD_VOID;}}
+      if (FD_EXPECT_FALSE(!(FD_NUMBERP(real)))) {
+	fd_decref(imag); fd_decref(real); u8_free(copy);
+	return FD_FALSE;}}
     u8_free(copy);
     return make_complex(real,imag);}
   else if (strchr(string,'/')) {
@@ -2098,24 +2109,24 @@ fdtype fd_string2number(u8_string string,int base)
     fdtype num, denom;
     *slash='\0';
     num=fd_string2number(copy,base);
-    if (FD_VOIDP(num)) {u8_free(copy); return FD_VOID;}
+    if (FD_FALSEP(num)) {u8_free(copy); return FD_FALSE;}
     denom=fd_string2number(slash+1,base);
-    if (FD_VOIDP(denom)) {
-      fd_decref(num); u8_free(copy); return FD_VOID;}
+    if (FD_FALSEP(denom)) {
+      fd_decref(num); u8_free(copy); return FD_FALSE;}
     u8_free(copy);
     return make_rational(num,denom);}
-  else if (string[0]=='\0') return FD_VOID;
+  else if (string[0]=='\0') return FD_FALSE;
   else if (((string[0]=='+')|| (string[0]=='-') ||
 	    (isdigit(string[0])) ||
 	    ((string[0]=='.') && (isdigit(string[1])))) &&
 	   (strchr(string,'.'))) {
     double flonum; u8_byte *end=NULL;
     flonum=strtod(string,(char **)&end);
-    if (end>string) 
+    if ((end>string) && ((end-string)==len)) 
       return _fd_make_double(flonum);
-    else return FD_VOID;}
-  else if (strchr(string+1,'+')) return FD_VOID;
-  else if (strchr(string+1,'-')) return FD_VOID;
+    else return FD_FALSE;}
+  else if (strchr(string+1,'+')) return FD_FALSE;
+  else if (strchr(string+1,'-')) return FD_FALSE;
   else {
     fdtype result;
     long fixnum, success, nbase=0; u8_byte *start=string, *end=NULL;
@@ -2127,11 +2138,13 @@ fdtype fd_string2number(u8_string string,int base)
     else if (base<0) base=10;
     errno=0;
     fixnum=strtol(start,(char **)&end,base);
-    if ((fixnum) && ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM))) 
+    if (!((end>string) && ((end-string)==len)))
+      return FD_FALSE;
+    else if ((fixnum) && ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM))) 
       return FD_INT2DTYPE(fixnum);
     else if ((fixnum==0) && (end) && (*end=='\0'))
       return FD_INT2DTYPE(0);
-    else if ((errno) && (errno != ERANGE)) return FD_VOID;
+    else if ((errno) && (errno != ERANGE)) return FD_FALSE;
     else errno=0;
     if (!(base)) base=10;
     if (*string =='-')

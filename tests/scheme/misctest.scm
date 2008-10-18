@@ -330,6 +330,13 @@
 (onerror (evaltest #t (test '(a . b) 'a #;"test" 'b))
   (lambda (ex) (message "ERROR!" ex) (set+! errors ex)))
 
+(evaltest #f (number? (string->number "5a")))
+(evaltest #f (number? (parse-arg "5a")))
+(evaltest #f (number? (string->lisp "5a")))
+(evaltest 90 (string->number "0x5a"))
+(evaltest 90 (parse-arg "#x5a"))
+(evaltest 90 (string->lisp "0x5a"))
+
 (if (exists? errors)
     (begin (message (choice-size errors)
 		    " Errors during MISCTSEST")

@@ -516,7 +516,7 @@ fdtype fd_parse_atom(u8_string start,int len)
 	      u8_strdup(start),FD_VOID);
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
-      if (!(FD_VOIDP(result))) return result;}
+      if (!(FD_FALSEP(result))) return result;}
     fd_seterr3(fd_InvalidConstant,"fd_parse_atom",u8_strdup(start));
     return FD_PARSE_ERROR;}
   else {
@@ -524,7 +524,7 @@ fdtype fd_parse_atom(u8_string start,int len)
     if ((isdigit(start[0])) || (start[0]=='+') ||
 	(start[0]=='-') || (start[0]=='.')) {
       result=_fd_parse_number(start,-1);
-      if (!(FD_VOIDP(result))) return result;}
+      if (!(FD_FALSEP(result))) return result;}
     return fd_make_symbol(start,len);}
 }
 
@@ -1116,8 +1116,15 @@ FD_EXPORT
 fdtype fd_parse_arg(u8_string arg)
 {
   if (*arg=='\0') return fdtype_string(arg);
-  else if (((strchr("@{#(\"",arg[0])) || (isdigit(arg[0]))) ||
-	   ((strchr("+-.",arg[0])) && (isdigit(arg[1])))) {
+  else if (*arg == ':') return fd_parse(arg+1);
+  else if (*arg == '\\') return fdtype_string(arg+1);
+  else if ((isdigit(arg[0])) ||
+	   ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
+	   ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
+    fdtype num=fd_string2number(arg,-1);
+    if (FD_NUMBERP(num)) return num;
+    else return fdtype_string(arg);}
+  else if (strchr("@{#(\"",arg[0])) {
     fdtype result;
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
@@ -1126,8 +1133,6 @@ fdtype fd_parse_arg(u8_string arg)
       fd_decref(result);
       return fdtype_string(arg);}
     else return result;}
-  else if (*arg == ':') return fd_parse(arg+1);
-  else if (*arg == '\\') return fdtype_string(arg+1);
   else return fdtype_string(arg);
 }
 
