@@ -34,6 +34,27 @@ static fd_exception TooManyCalltrackSensors=
 
 FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
 
+static int needs_escape(u8_string string)
+{
+  u8_byte *scan=string; int c;
+  while ((c=u8_sgetc(&scan))>0)
+    if (c>=128) return 1;
+    else if (u8_isspace(c)) return 1;
+    else {}
+  return 0;
+}
+
+static void out_escaped(FILE *f,u8_string name)
+{
+  u8_byte *scan=name;
+  while (*scan) {
+    int c=u8_sgetc(&scan);
+    if (c=='"') fprintf(f,"\\\"");
+    else if (c>=128) {
+      fprintf(f,"\\u%04x",c);}
+    else putc(c,f);}
+}
+
 /* Internal profiling support */
 
 #if FD_CALLTRACK_ENABLED
@@ -193,7 +214,11 @@ static void calltrack_call(u8_string name)
   FILE *f=get_calltrack_logfile();
   if (f) {
     double timer=u8_elapsed_time(); int i=0;
-    fprintf(f,"> %s %f",name,timer);
+    if (needs_escape(name)) {
+      fprintf(f,"> \"");
+      out_escaped(f,name);
+      fprintf(f,"\" %f",timer);}
+    else fprintf(f,"> %s %f",name,timer);
     while (i<n_calltrack_sensors) 
       if (calltrack_sensors[i].enabled) 
 	if (calltrack_sensors[i].dblfcn)
@@ -209,7 +234,11 @@ static void calltrack_return(u8_string name)
   FILE *f=get_calltrack_logfile();
   if (f) {
     double timer=u8_elapsed_time(); int i=0;
-    fprintf(f,"< %s %f",name,timer);
+    if (needs_escape(name)) {
+      fprintf(f,"< \"");
+      out_escaped(f,name);
+      fprintf(f,"\" %f",timer);}
+    else fprintf(f,"< %s %f",name,timer);
     while (i<n_calltrack_sensors) 
       if (calltrack_sensors[i].enabled) 
 	if (calltrack_sensors[i].dblfcn)

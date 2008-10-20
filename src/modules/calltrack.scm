@@ -38,7 +38,15 @@
 	    (cons (string->lisp (subseq line pos next))
 		  (line-parser line (1+ next) )))
 	(list (string->lisp (subseq line pos))))))
-(define (parse-line line pos) (->vector (line-parser line pos)))
+
+(define (parse-items in)
+  (let ((v (read in)))
+    (if (eof-object? v) '()
+	(cons v (parse-items in)))))
+(define (parse-line line pos)
+  (let ((in (open-input-string line)))
+    (dotimes (i pos) (getchar in))
+    (->vector (parse-items in))))
 
 (define (line->record line)
   (append (->vector (parse-line line 1)) #(0.0 0 0)))
@@ -136,7 +144,7 @@
 	     (let ((return (parse-line line 1))
 		   (call (car callstack)))
 	       ;; (lineout "return: " return)
-	       (when (not (eq? (first call) (first return)))
+	       (when (not (equal? (first call) (first return)))
 		 (message "Inconsistent call/return:\n\t" call "\n\t" return))
 	       (handle-calltrack-entry
 		call return callcontext cxttable fntable)

@@ -47,7 +47,10 @@
 (define (fb/getmyid)
   (string->number (fbcall "users.getLoggedInUser")))
 
-(defambda (fb/getuserinfo users (fields "name"))
+(define default-fields
+  {"name" "pic" "pic_small" "pic_big" "pic_square" "status" "uid"})
+
+(defambda (fb/getuserinfo users (fields default-fields))
   (let ((info (fbcall "users.getInfo" "uids"
 		      (stringout (do-choices (u users i)
 				   (printout (if (> i 0) ",") u)))
