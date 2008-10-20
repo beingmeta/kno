@@ -1,8 +1,10 @@
 (in-module 'facebook/fbcall)
 
-(use-module '{fdweb xhtml texttools facebook})
+(use-module '{fdweb xhtml texttools facebook logger})
 
 (module-export! '{fbcall fbcall/open fbcalluri})
+
+(define %loglevel %notice!)
 
 (define (fbcalluri method args (w/session #t) (w/callid #t))
   (when w/callid
@@ -20,6 +22,8 @@
     (printout "sig=" (downcase (packet->base16 (get-signature args))))))
 
 (define (fbcall method . args)
+  (%debug "Calling " method " on"
+	  (doseq (arg args) (printout " " (write arg))))
   (jsonparse
    (get (urlget (fbcalluri method (cons* "format" "JSON" args)))
 	'%content)))
@@ -48,7 +52,8 @@
   (string->number (fbcall "users.getLoggedInUser")))
 
 (define default-fields
-  {"name" "pic" "pic_small" "pic_big" "pic_square" "status" "uid"})
+  {"name" "pic" "pic_small" "pic_big" "pic_square" "status" "uid"
+   "has_added_app"})
 
 (defambda (fb/getuserinfo users (fields default-fields))
   (let ((info (fbcall "users.getInfo" "uids"
