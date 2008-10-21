@@ -77,7 +77,7 @@
 
 (define (simpledb-signature ptable)
   (let ((desc (stringout
-		(doseq (key (lexsorted (getkeys ptable)))
+		(doseq (key (lexsorted (getkeys ptable) downcase))
 		  (printout key
 			    (do-choices (v (get ptable key)) (printout v)))))))
     (message "desc=" desc)
@@ -115,6 +115,8 @@
 (define (simpledb . params)
   (let ((uri (apply simpledb->uri params)))
     (urlget uri)))
+
+(comment (simpledb "Action" "CreateDomain" "DomainName" "bricotags"))
 
 (module-export! '{simpledb-signature simpledb->uri simpledb})
 
