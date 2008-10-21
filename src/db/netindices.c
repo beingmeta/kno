@@ -45,12 +45,15 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
 FD_EXPORT fd_index fd_open_network_index
   (u8_string spec,u8_string source,fdtype xname)
 {
-  struct FD_NETWORK_INDEX *ix=u8_alloc(struct FD_NETWORK_INDEX);
+  struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;
+  u8_connpool cp=u8_open_connpool(source,fd_dbconn_reserve_default,
+				  fd_dbconn_cap_default,
+				  fd_dbconn_init_default);
+  if (cp==NULL) return NULL;
+  ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec);
-  ix->connpool=u8_open_connpool(source,fd_dbconn_reserve_default,
-				fd_dbconn_cap_default,
-				fd_dbconn_init_default);
+  ix->connpool=cp;
   ix->xname=xname; ix->xid=xid;
   if (FD_VOIDP(xname))
     writable_response=fd_dtcall(ix->connpool,1,iserver_writable);

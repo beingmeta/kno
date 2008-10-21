@@ -90,7 +90,10 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
   if (FD_VOIDP(client_id)) init_client_id();
   np->cid=cid; np->xid=xid;
   np->connpool=u8_open_connpool(spec,fd_dbconn_reserve_default,fd_dbconn_cap_default,fd_dbconn_init_default);
-  pooldata=fd_dtcall(np->connpool,2,pool_data_symbol,client_id);
+  if (((np)->connpool)==NULL) {
+    u8_free(np); u8_free(cid);
+    return NULL;}
+  else pooldata=fd_dtcall(np->connpool,2,pool_data_symbol,client_id);
   if (FD_ABORTP(pooldata)) {
     u8_free(np); u8_free(cid); u8_free(xid);
     return NULL;}
