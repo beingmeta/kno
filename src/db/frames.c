@@ -188,7 +188,7 @@ static fdtype overlay_add
 		(fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
     new_entry;
   if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
-  else if (FD_VOIDP(entry))
+  else if ((FD_VOIDP(entry)) || (FD_EMPTY_CHOICEP(entry)))
     new_entry=fd_init_pair(NULL,fd_incref(value),FD_EMPTY_CHOICE);
   else if (FD_PAIRP(entry)) {
     fdtype adds=fd_make_simple_choice(FD_CAR(entry)), drops=FD_CDR(entry);
@@ -226,7 +226,7 @@ static fdtype overlay_drop
 		(fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
     new_entry;
   if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
-  else if (FD_VOIDP(entry))
+  else if ((FD_VOIDP(entry)) || (FD_EMPTY_CHOICEP(entry)))
     new_entry=fd_init_pair(NULL,FD_EMPTY_CHOICE,fd_incref(value));
   else if (FD_PAIRP(entry)) {
     fdtype adds=FD_CAR(entry), drops=fd_make_simple_choice(FD_CDR(entry));
