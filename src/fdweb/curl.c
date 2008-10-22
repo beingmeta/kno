@@ -400,6 +400,13 @@ static fdtype set_curlopt
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,header_symbol))
     curl_add_headers(ch,val);
+  else if (FD_EQ(opt,content_type_symbol))
+    if (FD_STRINGP(val)) {
+      u8_string ctype_header=u8_mkstring("Content-type: %s",FD_STRDATA(val));
+      fdtype hval=fd_init_string(NULL,-1,ctype_header);
+      curl_add_headers(ch,hval);
+      fd_decref(hval);}
+    else return fd_type_error(_("string"),"set_curl_handle/content-type",val);
   else return fd_err(_("Unknown CURL option"),"set_curl_handle",
 		     NULL,opt);
   if (FD_CONSP(val)) {FD_ADD_TO_CHOICE(ch->initdata,fd_incref(val));}
