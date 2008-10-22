@@ -1136,6 +1136,31 @@ fdtype fd_parse_arg(u8_string arg)
   else return fdtype_string(arg);
 }
 
+FD_EXPORT
+/* fd_parse_arg:
+     Arguments: a lisp object
+     Returns: a utf-8 string
+
+     Generates a stinr representation from a lisp object, trying
+     to make the representation as natural as possible.
+*/
+u8_string fd_unparse_arg(fdtype arg)
+{
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
+  if (FD_STRINGP(arg)) {
+    u8_string string=FD_STRDATA(arg);
+    if ((strchr("@{#(\"",string[0])) || (isdigit(string[0])))
+      u8_putc(&out,'\\');
+    u8_puts(&out,string);}
+  else if (FD_OIDP(arg)) {
+    FD_OID addr=FD_OID_ADDR(arg);
+    u8_printf(&out,"@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
+  else if (FD_NUMBERP(arg)) fd_unparse(&out,arg);
+  else {
+    u8_putc(&out,':'); fd_unparse(&out,arg);}
+  return out.u8_outbuf;
+}
+
 /* U8_PRINTF extensions */
 
 static u8_string lisp_printf_handler

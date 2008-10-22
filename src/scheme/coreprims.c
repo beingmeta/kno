@@ -448,6 +448,12 @@ static fdtype lisp_parse_arg(fdtype string)
   else return fd_incref(string);
 }
 
+static fdtype lisp_unparse_arg(fdtype obj)
+{
+  u8_string s=fd_unparse_arg(obj);
+  return fd_init_string(NULL,-1,s);
+}
+
 static fdtype lisp_symbol2string(fdtype sym)
 {
   return fdtype_string(FD_SYMBOL_NAME(sym));
@@ -648,6 +654,7 @@ FD_EXPORT void fd_init_corefns_c()
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING->LISP",lisp_string2lisp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PARSE-ARG",lisp_parse_arg,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("UNPARSE-ARG",lisp_unparse_arg,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETSOURCEINFO",lisp_getsourceinfo,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("ALLSYMBOLS",lisp_all_symbols,0));
