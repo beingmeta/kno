@@ -1,5 +1,7 @@
 (in-module '{aws/simpledb})
 
+(define version "$Id$")
+
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{sdb/fromlisp sdb/tolisp})
 (module-export! '{sdb/put sdb/get sdb/add sdb/drop})

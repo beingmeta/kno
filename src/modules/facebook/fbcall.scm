@@ -1,5 +1,7 @@
 (in-module 'facebook/fbcall)
 
+(define version "$Id$")
+
 (use-module '{fdweb xhtml texttools facebook logger})
 
 (module-export! '{fbcall fbcall/open fbcalluri})

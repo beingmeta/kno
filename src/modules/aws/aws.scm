@@ -1,5 +1,7 @@
 (in-module 'aws)
 
+(define version "$Id$")
+
 (module-export! '{awskey secretawskey awsaccount})
 
 ;; Default (non-working) values from the online documentation

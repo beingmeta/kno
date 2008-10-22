@@ -1,5 +1,7 @@
 (in-module 'aws/s3)
 
+(define version "$Id$")
+
 (use-module '{aws fdweb texttools})
 
 (module-export! '{s3/signature s3/op s3/signeduri})

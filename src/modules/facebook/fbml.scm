@@ -1,5 +1,7 @@
 (in-module 'facebook/fbml)
 
+(define version "$Id$")
+
 (use-module '{fdweb xhtml})
 
 (define (fb:name (id #f))

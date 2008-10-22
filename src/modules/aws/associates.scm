@@ -1,5 +1,7 @@
 (in-module 'aws/associates)
 
+(define version "$Id$")
+
 (use-module '{fdweb texttools})
 
 (module-export! '{aauri aaitems})
