@@ -4,9 +4,12 @@
 
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{sdb/fromlisp sdb/tolisp})
-(module-export! '{sdb/put sdb/get sdb/add sdb/drop})
+(module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
+(module-export! '{sdb/get sdb/add sdb/drop})
 
-(use-module '{aws fdweb texttools})
+(use-module '{aws fdweb texttools logger})
+
+(define %loglevel %notice!)
 
 (define (get-ptable params (integrate #f))
   "This returns a parameter table from a list of arguments."
@@ -17,6 +20,8 @@
 	       (frame-create #f))))))
 
 ;;; Simple DB stuff
+
+(define simpledb-base-uri "http://sdb.amazonaws.com/?")
 
 (define sdb-common-params
   '("Version" "2007-11-07" "SignatureVersion" "1"))
@@ -44,7 +49,7 @@
 	(store! ptable (car p) (cadr p))))
     (store! ptable "Timestamp" (get timestamp 'iso))
     (store! ptable "AWSAccessKeyId" awskey)
-    (stringout "http://sdb.amazonaws.com/?"
+    (stringout simpledb-base-uri
       (do-choices (key (getkeys ptable) i)
 	(printout (if (> i 0) "&")
 	  key "=" (uriencode (stringout (get ptable key))))) 
@@ -53,9 +58,11 @@
 
 (define (sdb/op action . params)
   (let ((uri (apply sdb/uri "Action" action params)))
+    (%debug "Fetching " uri)
     (urlget uri)))
 (define (sdb/opxml action . params)
   (let ((uri (apply sdb/uri "Action" action params)))
+    (%debug "Fetching XML for " uri)
     (urlxml uri 'data)))
 
 (comment (sdb/op "CreateDomain" "DomainName" "bricotags"))
@@ -111,7 +118,7 @@
       (store! ptable (stringout "Attribute." i ".Value")
 	      (sdb/fromlisp (cadr kv))))))
 
-(define (sdb/get domain item (key #f))
+(define (sdb/fetch domain item (key #f))
   (let* ((key (and key (unparse-arg key)))
 	 (xml (if key
 		  (sdb/opxml "GetAttributes"
@@ -135,34 +142,90 @@
 		  (sdb/tolisp (get r 'value))))
 	  table))))
 
-(defambda (sdb/add domain item slotids values)
+(defambda (sdb/addvalues domain item slotids values)
+  (when (and (exists? slotids) (exists? values))
+    (do-choices item
+      (let ((ptable `#["DomainName" ,domain
+		       "ItemName" ,(unparse-arg item)])
+	    (count 0))
+	(do-choices (key (unparse-arg slotids))
+	  (do-choices (value (sdb/fromlisp values))
+	    (store! ptable (stringout "Attribute." count ".Name")
+		    key)
+	    (store! ptable (stringout "Attribute." count ".Value")
+		    value)
+	    (set! count (1+ count))))
+	(sdb/op "PutAttributes" ptable)))))
+
+(defambda (sdb/dropvalues domain item slotids values)
+  (when (and (exists? slotids) (exists? values))
+    (do-choices item
+      (let ((ptable `#["DomainName" ,domain
+		       "ItemName" ,(unparse-arg item)])
+	    (count 0))
+	(do-choices (key (unparse-arg slotids))
+	  (do-choices (value (sdb/fromlisp values))
+	    (store! ptable (stringout "Attribute." count ".Name")
+		    key)
+	    (store! ptable (stringout "Attribute." count ".Value")
+		    value)
+	    (set! count (1+ count))))
+	(sdb/op "DeleteAttributes" ptable)))))
+
+;;; Using an item cache
+
+(define sdb-cache (make-hashtable))
+(define default-domain "default")
+
+(define (sdb/cached item (domain default-domain))
+  (try (get sdb-cache item)
+       (onerror
+	(let ((fetched (sdb/fetch domain item)))
+	  (store! sdb-cache item fetched)
+	  fetched)
+	(lambda (ex)
+	  (warning "Error accessing SIMPLEDB for " item ": " ex)
+	  (fail)))))
+
+(defambda (sdb/get item slotid (domain default-domain))
+  "Gets values from an attribute of an item, using/updating a local cache"
+  (get (sdb/cached item domain) slotid))
+
+(defambda (sdb/add item slotid values (domain default-domain))
+  "Adds values to an attribute of an item, updating a local cache"
   (do-choices item
-    (let ((ptable `#["DomainName" ,domain
-		     "ItemName" ,(unparse-arg item)])
-	  (count 0))
-      (do-choices (key (unparse-arg slotids))
-	(do-choices (value (sdb/fromlisp values))
-	  (store! ptable (stringout "Attribute." count ".Name")
-		  key)
-	  (store! ptable (stringout "Attribute." count ".Value")
-		  value)
-	  (set! count (1+ count))))
-      (sdb/op "PutAttributes" ptable))))
+    (let ((cache (sdb/cached item domain)))
+      (do-choices slotid
+	(add! cache slotid (difference values (get cache slotid)))
+	(sdb/addvalues domain item slotid
+		       (difference values (get cache slotid)))))))
 
-(defambda (sdb/drop domain item slotids values)
+(defambda (sdb/drop item slotid values (domain default-domain))
+  "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
-    (let ((ptable `#["DomainName" ,domain
-		     "ItemName" ,(unparse-arg item)])
-	  (count 0))
-      (do-choices (key (unparse-arg slotids))
-	(do-choices (value (sdb/fromlisp values))
-	  (store! ptable (stringout "Attribute." count ".Name")
-		  key)
-	  (store! ptable (stringout "Attribute." count ".Value")
-		  value)
-	  (set! count (1+ count))))
-      (sdb/op "DeleteAttributes" ptable))))
+    (let ((cache (sdb/cached item domain)))
+      (do-choices slotid
+	(drop! cache slotid (intersection (get cache slotid) values))
+	(sdb/dropvalues domain item slotid
+			(intersection (get cache slotid) values))))))
 
+;;;; CONFIG stuff
 
-
+(config-def! 'sdb/domain
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (set! default-domain val)
+		   default-domain)))
+(config-def! 'sdb/baseuri
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (set! simpledb-base-uri val)
+		   simpledb-base-uri)))
+(config-def! 'sdb/cache
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (set! sdb-cache
+			 (if (table? val) val
+			     (if val (make-hashtable) {})))
+		   sdb-cache)))
 
