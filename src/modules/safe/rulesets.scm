@@ -9,9 +9,7 @@
 
 (define version "$Id$")
 
-(module-export! 'ruleset+)
-
-(module-export! 'ruleset-configfn)
+(module-export! '{ruleset+ ruleset-configfn ruleconfig!})
 
 (define (ruleset-replace-list rule name rule-list (fcn first))
   (if (null? rule-list) (fail)
@@ -31,7 +29,9 @@
    and defaults to FIRST."
   (let ((name (fcn rule)))
     (if (and (exists? rules) (singleton? rules)
-	     (or (pair? rules) (null? rules) (not rules)))
+	     (or (and (pair? rules)
+		      (or (pair? (cdr rules)) (null? (cdr rules))))
+		 (null? rules) (not rules)))
 	;; This handles rulesets which are lists
 	(if (or (fail? name) (not name))
 	    (cons rule (or rules '()))
@@ -64,3 +64,9 @@
 				   `(,ruleconverter value)
 				   'value)
 			      ,rulevar)))))))
+(define ruleconfig!
+  (macro expr
+    (let ((confname (cadr expr))
+	  (confbody (cddr expr)))
+      `(config-def! ',confname (ruleset-configfn ,@confbody)))))
+

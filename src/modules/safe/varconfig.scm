@@ -1,5 +1,7 @@
 (in-module 'varconfig)
 
+(define version "$Id: simpledb.scm 3135 2008-10-22 23:17:47Z haase $")
+
 (module-export! '{varconfigfn varconfig!})
 
 (define varconfigfn
@@ -10,7 +12,7 @@
 	  `(let ((_convert ,convertfn))
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! ,varname (_covert val))
+		   (set! ,varname (_convert val))
 		   ,varname)))
 	  `(lambda (var (val))
 	     (if (bound? val)
