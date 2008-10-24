@@ -21,6 +21,10 @@ div.error span.details { font-weight: normal; font-style: italic; }
 div.error span.irritant {
   margin-left: 6px; white-space: nowrap;
   color: red;}
+div.error div.irritant {
+  margin-left: 6px; font-family: fixed; white-space: pre;
+  color: red;}
+
 
 div.backtrace { margin-top: 18px; font-size: 120%;}
 
@@ -137,6 +141,10 @@ input[type='SUBMIT'] {
 
 /* Input help classes */
 
+div.helptext { display: none; }
+
+/* Legacy input help classes */
+
 div.input_help {
  font-style: italic; font-size: 9px; color: purple;
  margin-left: 5%; text-indent: -5%;}
@@ -161,6 +169,29 @@ span.tab {
   margin-left: 2px; margin-right: 2px;
   border: outset black 2px;
   padding: 3px;}
+span.tab[shown] {
+  font-weight: bold;
+  border: inset black 2px;
+  border-bottom: hidden black 2px;}
+div.tabcontent {
+ margin-left: 9px; margin-top: 6px; margin-right: 9px;
+ text-align: left;
+ display: none;}
+div.tabcontent[shown] { display: block; }
+
+div.tabcontent div.narrative {
+ color: purple; font-family: sans; font-style: italic;}
+div.tabcontent p {
+ margin: 2px; padding: 2px;
+ margin-left: 15%; text-indent: -5%; margin-right: 10%;}
+
+
+/* Legacy tab stuff */
+
+div.tab_content {
+ margin-left: 9px; margin-top: 6px; margin-right: 9px;
+ text-align: left;
+ display: none;}
 span.selected_tab {
   font-family: sans,sans-serif;
   font-weight: bold;
@@ -169,11 +200,6 @@ span.selected_tab {
   border-right: inset black 2px;
   border-left: inset black 2px;
   padding: 3px;}
-
-div.tab_content {
- margin-left: 9px; margin-top: 6px; margin-right: 9px;
- text-align: left;
- display: none;}
 div.selected_tab_content {
  margin-left: 9px; margin-top: 6px; margin-right: 9px;
  text-align: left;}
@@ -195,8 +221,8 @@ div.tab_content div.header span.explanation {
 /* Autoprompt classes */
 
 input.autoprompt {
-  font-weight: bold;
-  height: 18px; }
+  font-family: sans,sans-serif;}
+input.autoprompt[isempty] { font-style: italic; }
 input.autoprompt_empty {
   font-family: sans,sans-serif; font-weight: normal; font-style: italic;
   color: gray; height: 18px; }

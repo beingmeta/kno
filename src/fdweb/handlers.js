@@ -69,8 +69,9 @@ function fdb_showhide_onclick(evt)
 function fdb_autoprompt_onfocus(evt)
 {
   var elt=evt.target;
-  if ((elt) && (elt.hasAttribute('isempty')))
+  if ((elt) && (elt.hasAttribute('isempty'))) {
     elt.value='';
+    elt.removeAttribute('isempty');}
   fdb_showhelp_onfocus(evt);
 }
 
@@ -91,10 +92,17 @@ function fdb_autoprompt_setup()
     var elt=elements[i++];
     if ((elt.type=='text') &&
 	((elt.className=='autoprompt') ||
-	 (elt.hasAttribute('prompt'))))
-      if (elt.value=='') {
-	elt.value=fdbGet(elt,'prompt');
-	elt.setAttribute('isempty','yes');}}
+	 (elt.hasAttribute('prompt')))) {
+      var prompt=elt.getAttribute('prompt');
+      if (prompt==null)
+	if (elt.className=='autoprompt')
+	  prompt=elt.title;
+	else continue;
+      // fdbmsg('Considering '+elt+' class='+elt.className+' value='+elt.value);
+      if ((elt.value=='') || (elt.value==prompt)) {
+	// fdbmsg('Marking empty');
+	elt.value=prompt;
+	elt.setAttribute('isempty','yes');}}}
 }
 
 // Removes autoprompt text from empty fields
@@ -135,18 +143,20 @@ function fdb_tab_onclick(evt)
 	var cid=node.getAttribute('contentid');
 	var cdoc=document.getElementById(cid);
 	if (node==elt) {}
-	else if (node.hasAttribute('showtab'))
-	  node.removeAttribute('showtab');
-	if (cdoc==content) {}
-	else if (cdoc) {
-	  // fdbMessage("Hiding "+cdoc+"="+cid);
-	  if (cdoc.hasAttribute('showtab'))
-	    cdoc.removeAttribute('showtab');}}}
-    node.setAttribute('showtab','yes');
-    content.setAttribute('showtab','yes');
+	else if (node.hasAttribute('shown')) {
+	  node.removeAttribute('shown');
+	  if (cdoc) cdoc.removeAttribute('shown');}}}
+    elt.setAttribute('shown','yes');
+    content.setAttribute('shown','yes');
     return false;}
 }
 
+/* Setup */
 
+function fdb_setup()
+{
+  fdbmsg("fdb_setup running")
+  fdb_autoprompt_setup();
+  fdbmsg("fdb_setup run")
 
-
+}
