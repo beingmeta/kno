@@ -749,8 +749,15 @@ static u8_exception output_backtrace_entry(u8_output s,u8_exception ex)
     if (ex->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",ex->u8x_context);
     u8_printf(s," <span class='ex'>%k</span>",ex->u8x_cond);
     if (ex->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",ex->u8x_details);
-    if (!(FD_VOIDP(irritant))) 
-      u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+    if (!(FD_VOIDP(irritant))) {
+      u8_string stringval=fd_dtype2string(irritant);
+      if (strlen(stringval)<40) 
+	u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+      else {
+	u8_printf(s,"<div class='irritant'>\n");
+	fd_pprint(s,irritant,NULL,4,0,80,1);
+	u8_printf(s,"\n</div>\n");}
+      u8_free(stringval);}
     u8_printf(s,"</div>\n");}
   if (ex->u8x_prev==NULL) u8_printf(s,"</div>\n");
   return get_next_frame(ex);
@@ -816,7 +823,15 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
       u8_printf(s,"%k",e->u8x_cond);
     else u8_printf(s,"Unknown Exception");
     if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
-    if (!(FD_VOIDP(irritant))) u8_printf(s," %lk",irritant);
+    if (!(FD_VOIDP(irritant))) {
+      u8_string stringval=fd_dtype2string(irritant);
+      if (strlen(stringval)<40) 
+	u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+      else {
+	u8_printf(s,"<div class='irritant'>\n");
+	fd_pprint(s,irritant,NULL,4,0,80,1);
+	u8_printf(s,"\n</div>\n");}
+      u8_free(stringval);}
     if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
     u8_printf(s,"</title>\n");}
   if (customstylesheet==0)
@@ -829,8 +844,15 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
   if (e->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->u8x_context);
   u8_printf(s," <span class='ex'>%k</span>",e->u8x_cond);
   if (e->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",e->u8x_details);
-  if (!(FD_VOIDP(irritant))) 
-    u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+  if (!(FD_VOIDP(irritant))) {
+    u8_string stringval=fd_dtype2string(irritant);
+    if (strlen(stringval)<40) 
+      u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+    else {
+      u8_printf(s,"<div class='irritant'>\n");
+      fd_pprint(s,irritant,NULL,4,0,80,1);
+      u8_printf(s,"\n</div>\n");}
+    u8_free(stringval);}
   u8_printf(s,"</div></div>\n");
   output_backtrace(s,ex);
   u8_printf(s,"</body>\n</html>\n");  

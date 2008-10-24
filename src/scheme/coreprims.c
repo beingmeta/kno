@@ -133,6 +133,10 @@ static fdtype stringp(fdtype x)
 {
   if (FD_STRINGP(x)) return FD_TRUE; else return FD_FALSE;
 }
+static fdtype packetp(fdtype x)
+{
+  if (FD_PACKETP(x)) return FD_TRUE; else return FD_FALSE;
+}
 static fdtype symbolp(fdtype x)
 {
   if (FD_SYMBOLP(x)) return FD_TRUE; else return FD_FALSE;
@@ -597,6 +601,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("ZERO?",lisp_zerop,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING?",stringp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("PACKET?",packetp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOL?",symbolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PAIR?",pairp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LIST?",listp,1));
