@@ -84,4 +84,5 @@ end
 
 # Init fdb print limits (init done through the config interface)
 set env FD_DISPLAYMAXELTS=17
-set env FD_DISPLAYMAXCHARS=61
+set env FD_DISPLAYMAXCHARS=256
+
