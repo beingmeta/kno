@@ -10,7 +10,7 @@
 (define apikey #f)
 (define apisecretkey #f)
 
-(config-def! 'fb/appinfo
+(config-def! 'fb:appinfo
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (if applock
@@ -23,35 +23,35 @@
 			   (error "Invalid Facebook application info")))
 		   (vector appname appid apikey))))
 
-(config-def! 'fb/applock
+(config-def! 'fb:applock
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (if applock
 		       (error "Facebook appinfo is locked")
 		       (set! applock val))
 		   appname)))
-(config-def! 'fb/appname
+(config-def! 'fb:appname
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (if applock
 		       (error "Facebook appinfo is locked")
 		       (set! appname val))
 		   appname)))
-(config-def! 'fb/appid
+(config-def! 'fb:appid
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (if applock
 		       (error "Facebook appinfo is locked")
 		       (set! appid val))
 		   appid)))
-(config-def! 'fb/key
+(config-def! 'fb:key
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (if applock
 		       (error "Facebook appinfo is locked")
 		       (set! apikey val))
 		   apikey)))
-(config-def! 'fb/secret
+(config-def! 'fb:secret
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (if applock

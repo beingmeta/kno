@@ -16,17 +16,17 @@
   (or (getenv "AWS_ACCOUNT_NUMBER")
       "0PN5J17HBGZHT7JJ3X82"))
 
-(config-def! 'secretawskey
+(config-def! 'aws:secret
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (set! secretawskey val)
 		   secretawskey)))
-(config-def! 'awskey
+(config-def! 'aws:key
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (set! awskey val)
 		   awskey)))
-(config-def! 'awsaccount
+(config-def! 'aws:account
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (set! awsaccount val)

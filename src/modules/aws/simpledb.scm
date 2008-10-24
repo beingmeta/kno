@@ -7,7 +7,7 @@
 (module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
 (module-export! '{sdb/get sdb/add sdb/drop})
 
-(use-module '{aws fdweb texttools logger})
+(use-module '{aws fdweb texttools logger rulesets})
 
 (define %loglevel %notice!)
 
@@ -63,11 +63,23 @@
 (define (sdb/opxml action . params)
   (let ((uri (apply sdb/uri "Action" action params)))
     (%debug "Fetching XML for " uri)
-    (urlxml uri 'data)))
+    (let* ((response (urlget uri))
+	   (content (get response '%content)))
+      (if (test response 'content-type)
+	  (parsexml content 'data)
+	  (if (packet? content)
+	      (error "SimpleDB error was " (packet->string content))
+	      (error "SimpleDB error was " content))))))
 
 (comment (sdb/op "CreateDomain" "DomainName" "bricotags"))
 
 ;;; Converting values
+
+(define tolisp-conversions '())
+(define fromlisp-conversions '())
+
+(ruleconfig! sdb:tolisp tolisp-conversions)
+(ruleconfig! sdb:fromlisp fromlisp-conversions)
 
 (define (sdb/tolisp string)
   (if (has-prefix string "!")
@@ -79,7 +91,9 @@
 	  ((has-prefix string "!b") #t)
 	  ((has-prefix string "!i") (string->number (subseq string 2)))
 	  ((has-prefix string "!I") (- (string->number (subseq string 2))))
-	  (else (string->lisp (subseq string 1)))))
+	  (else (try (tryseq (method tolisp-conversions)
+		       ((cdr method) string))
+		     (string->lisp (subseq string 1))))))
       string))
 
 (define (sdb/fromlisp object (padlen 10))
@@ -98,7 +112,9 @@
 		      irep)))
 	((eq? object #t) "!b")
 	((not object) "!B")
-	(else (stringout "!:" object))))
+	(else (try (tryseq (method fromlisp-conversions)
+		     ((cdr method) object))
+		   (stringout "!:" object)))))
 
 ;;; PUT/GET/ETC
 ;;; We convert items and attributes using FramerD's parse-arg/unparse-arg
@@ -155,6 +171,7 @@
 	    (store! ptable (stringout "Attribute." count ".Value")
 		    value)
 	    (set! count (1+ count))))
+	(%debug "Doing PutAttributes on " ptable)
 	(sdb/op "PutAttributes" ptable)))))
 
 (defambda (sdb/dropvalues domain item slotids values)
@@ -170,6 +187,7 @@
 	    (store! ptable (stringout "Attribute." count ".Value")
 		    value)
 	    (set! count (1+ count))))
+	(%debug "Doing DeleteAttributes on " ptable)
 	(sdb/op "DeleteAttributes" ptable)))))
 
 ;;; Using an item cache
@@ -196,32 +214,32 @@
   (do-choices item
     (let ((cache (sdb/cached item domain)))
       (do-choices slotid
-	(add! cache slotid (difference values (get cache slotid)))
-	(sdb/addvalues domain item slotid
-		       (difference values (get cache slotid)))))))
+	(let ((toadd (difference values (get cache slotid))))
+	  (add! cache slotid toadd)
+	  (sdb/addvalues domain item slotid toadd))))))
 
 (defambda (sdb/drop item slotid values (domain default-domain))
   "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
     (let ((cache (sdb/cached item domain)))
       (do-choices slotid
-	(drop! cache slotid (intersection (get cache slotid) values))
-	(sdb/dropvalues domain item slotid
-			(intersection (get cache slotid) values))))))
+	(let ((todrop (intersection (get cache slotid) values)))
+	  (drop! cache slotid todrop)
+	  (sdb/dropvalues domain item slotid todrop))))))
 
 ;;;; CONFIG stuff
 
-(config-def! 'sdb/domain
+(config-def! 'sdb:domain
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (set! default-domain val)
 		   default-domain)))
-(config-def! 'sdb/baseuri
+(config-def! 'sdb:baseuri
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (set! simpledb-base-uri val)
 		   simpledb-base-uri)))
-(config-def! 'sdb/cache
+(config-def! 'sdb:cache
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (set! sdb-cache
