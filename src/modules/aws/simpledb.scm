@@ -5,7 +5,7 @@
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{sdb/fromlisp sdb/tolisp})
 (module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
-(module-export! '{sdb/get sdb/add sdb/drop})
+(module-export! '{sdb/get sdb/add! sdb/drop!})
 
 (use-module '{aws fdweb texttools logger rulesets})
 
@@ -66,7 +66,7 @@
     (let* ((response (urlget uri))
 	   (content (get response '%content)))
       (if (test response 'content-type)
-	  (parsexml content 'data)
+	  (xmlparse content 'data)
 	  (if (packet? content)
 	      (error "SimpleDB error was " (packet->string content))
 	      (error "SimpleDB error was " content))))))
@@ -81,7 +81,7 @@
 (ruleconfig! sdb:tolisp tolisp-conversions)
 (ruleconfig! sdb:fromlisp fromlisp-conversions)
 
-(define (sdb/tolisp string)
+(define (sdb/tolisp string (attrib #f))
   (if (has-prefix string "!")
       (let ((tcode (and (> (length string) 1) (elt string 1))))
 	(cond
@@ -92,7 +92,7 @@
 	  ((has-prefix string "!i") (string->number (subseq string 2)))
 	  ((has-prefix string "!I") (- (string->number (subseq string 2))))
 	  (else (try (tryseq (method tolisp-conversions)
-		       ((cdr method) string))
+		       ((cdr method) string attrib))
 		     (string->lisp (subseq string 1))))))
       string))
 
@@ -155,7 +155,7 @@
 	  (do-choices (r result)
 	    (add! table
 		  (parse-arg (get r 'name))
-		  (sdb/tolisp (get r 'value))))
+		  (sdb/tolisp (get r 'value) (get r 'name))))
 	  table))))
 
 (defambda (sdb/addvalues domain item slotids values)
@@ -209,16 +209,17 @@
   "Gets values from an attribute of an item, using/updating a local cache"
   (get (sdb/cached item domain) slotid))
 
-(defambda (sdb/add item slotid values (domain default-domain))
+(defambda (sdb/add! item slotid values (domain default-domain))
   "Adds values to an attribute of an item, updating a local cache"
   (do-choices item
     (let ((cache (sdb/cached item domain)))
       (do-choices slotid
 	(let ((toadd (difference values (get cache slotid))))
+	  (message "Adding " toadd " to " (write slotid) " of " item)
 	  (add! cache slotid toadd)
 	  (sdb/addvalues domain item slotid toadd))))))
 
-(defambda (sdb/drop item slotid values (domain default-domain))
+(defambda (sdb/drop! item slotid values (domain default-domain))
   "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
     (let ((cache (sdb/cached item domain)))
