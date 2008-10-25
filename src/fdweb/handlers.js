@@ -37,7 +37,7 @@ function fdb_hidehelp_onblur(evt)
     if (helptext) helptext.style.display='none';}
 }
 
-  /* SHOWHIDE */
+/* SHOWHIDE */
 
 function fdb_showhide_onclick(evt)
 {
@@ -64,6 +64,30 @@ function fdb_showhide_onclick(evt)
     else target=target.parentNode;
 }
 
+/* SETCLEAR */
+
+function fdb_setclear_onclick(evt)
+{
+  var target=evt.target;
+  while (target)
+    if ((target.hasAttribute('SETONCLICK'))) {
+      var toset=target.getAttribute('SETONCLICK');
+      var attrib=target.getAttribute('SETATTRIB');
+      var val=target.getAttribute('ATTRIBVAL');
+      if (val==null) val='set';
+      if ((toset) && (toset!='')) toset=toset.split(',');
+      else return;
+      if (toset) {
+	var i=0; while (i<toset.length) {
+	  var elt=document.getElementById(toset[i++]);
+	  if (elt==null) return;
+	  if (elt.hasAttribute(attrib))
+	    elt.removeAttribute(attrib);
+	  else elt.setAttribute(attrib,val);}}
+      return;}
+    else target=target.parentNode;
+}
+
 /* Autoprompt */
 
 function fdb_autoprompt_onfocus(evt)
@@ -80,7 +104,10 @@ function fdb_autoprompt_onblur(evt)
   var elt=evt.target;
   if (elt.value=='') {
     elt.setAttribute('isempty','yes');
-    elt.value=elt.getAttribute('prompt');}
+    var prompt=elt.getAttribute('prompt');
+    if ((prompt==null) && (elt.className=='autoprompt'))
+      prompt=elt.title;
+    elt.value=prompt;}
   else elt.removeAttribute('isempty');
   fdb_hidehelp_onblur(evt);
 }
