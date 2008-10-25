@@ -111,7 +111,7 @@ function fdb_autoprompt_cleanup()
   var elements=document.getElementsByTagName('INPUT');
   var i=0; if (elements) while (i<elements.length) {
     var elt=elements[i++];
-    if (elt.className=='autoprompt_empty')
+    if (elt.hasAttribute('isempty'))
       elt.value="";}
 }
 
