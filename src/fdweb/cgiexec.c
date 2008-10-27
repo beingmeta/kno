@@ -470,23 +470,23 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
     fdtype var=FD_VECTOR_REF(cookie,0);
     u8_printf(out,"Set-Cookie: ");
     emit_uri_string(out,FD_SYMBOL_NAME(var)); u8_puts(out,"=");
-    emit_uri_value(out,FD_VECTOR_REF(cookie,1)); u8_puts(out,"; ");
+    emit_uri_value(out,FD_VECTOR_REF(cookie,1)); u8_puts(out,";");
     if (len>2) {
       fdtype domain=FD_VECTOR_REF(cookie,2);
       fdtype path=((len>3) ? (FD_VECTOR_REF(cookie,3)) : (FD_VOID));
       fdtype expires=((len>4) ? (FD_VECTOR_REF(cookie,4)) : (FD_VOID));
       if (FD_STRINGP(domain))
-	u8_printf(out,"domain=%s; ",FD_STRDATA(domain));
-      if (FD_STRINGP(path))
-	u8_printf(out,"path=%s; ",FD_STRDATA(path));
+	u8_printf(out," domain=%s;",FD_STRDATA(domain));
       if (FD_STRINGP(expires))
-	u8_printf(out,"expires=%s; ",FD_STRDATA(expires));
+	u8_printf(out," expires=%s;",FD_STRDATA(expires));
       else if (FD_PTR_TYPEP(expires,fd_timestamp_type)) {
 	struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
 	char buf[512];
 	strftime(buf,512,"%A, %d-%b-%Y %T GMT",
 		 &(tstamp->xtime.u8_tptr));
-	u8_printf(out,"expires=%s; ",buf);}}
+	u8_printf(out," expires=%s;",buf);}
+      if (FD_STRINGP(path))
+	u8_printf(out," path=%s",FD_STRDATA(path));}
     u8_printf(out,"\r\n");}
   fd_decref(real_val);
   return 1;
