@@ -2,7 +2,10 @@
 
 (define version "$Id$")
 
+(use-module '{fdweb xhtml})
+
 (module-export! '{appname appid apikey apisecretkey})
+(module-export! '{fb/incanvas? fb/authorize fb/added?})
 
 (define applock #f)
 (define appname #f)
@@ -58,3 +61,12 @@
 		       (error "Facebook appinfo is locked")
 		       (set! apisecretkey val))
 		   apisecretkey)))
+
+;;;; Doing stuff
+
+(define (fb/incanvas?)
+  (and (cgitest 'fb_sig_in_canvas)
+       (cgiget 'fb_sig_in_canvas)
+       (not (cgitest 'fb_sig_in_canvas 0))))
+
+

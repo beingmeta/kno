@@ -178,6 +178,42 @@ function fdb_tab_onclick(evt)
     return false;}
 }
 
+/* Adding search engines */
+
+var browser_coverage="Mozilla/Firefox/Netscape 6";
+
+function addBrowserSearchPlugin(spec,name,cat)
+{
+  if ((typeof window.sidebar == "object") &&
+      (typeof window.sidebar.addSearchEngine == "function")) 
+    window.sidebar.addSearchEngine (spec+'.src',spec+".png",name,cat);
+  else alert(browser_coverage+" is needed to install a search plugin");
+}
+
+/* FLEXPAND click */
+
+/* Enables region which expand and contract on a click. */
+
+function fdb_flexpand_onclick(event)
+{
+  var target=event.target;
+  while (target)
+    if (target.hasAttribute('expanded')) break;
+    else if ((target.tagName=='A') ||
+	     (target.tagName=='SELECT') ||
+	     (target.tagName=='INPUT') ||
+	     (target.onclick!=null))
+      return;
+    else target=target.parentNode;
+  if (target) {
+    if (target.getAttribute('expanded')=="yes") {
+      target.setAttribute("expanded","no");
+      target.style.maxHeight=null;}
+    else {
+      target.setAttribute("expanded","yes");
+      target.style.maxHeight='inherit';}}
+}
+
 /* Setup */
 
 function fdb_setup()

@@ -2067,7 +2067,9 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
       if (clean)
 	while ((scan<limit) && (write<writelim))
 	  if (*scan) {
-	    fdtype v=*scan++; if (!(FD_VOIDP(v))) *write++=v;}
+	    fdtype v=*scan++;
+	    if (FD_CONSP(v)) atomicp=0;
+	    if (!(FD_VOIDP(v))) *write++=v;}
 	  else scan++;
       else while ((scan<limit) && (write<writelim)) {
 	fdtype v=*scan++;
