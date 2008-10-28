@@ -14,7 +14,7 @@ function fdbmsg(string)
 
 function block_eltp(elt)
 {
-  var name=helptext.tagName;
+  var name=elt.tagName;
   return ((name=='DIV') || (name=='P') || (name=='LI') || (name=='UL'));
 }
 
@@ -43,11 +43,15 @@ function fdb_showhide_onclick(evt)
 {
   var target=evt.target;
   while (target)
-    if ((target.hasAttribute('HIDEONCLICK')) || (target.hasAttribute('SHOWONCLICK'))) {
-      var tohide=target.getAttribute('HIDEONCLICK');
-      var toshow=target.getAttribute('SHOWONCLICK');
+    if ((target.hasAttribute('CLICKTOHIDE')) ||
+	(target.hasAttribute('CLICKTOSHOW')) ||
+	(target.hasAttribute('CLICKTOTOGGLE'))) {
+      var tohide=target.getAttribute('CLICKTOHIDE');
+      var toshow=target.getAttribute('CLICKTOSHOW');
+      var toflip=target.getAttribute('CLICKTOTOGGLE');
       if (tohide) tohide=tohide.split(',');
       if (toshow) toshow=toshow.split(',');
+      if (toflip) toflip=toflip.split(',');
       if (tohide) {
 	var i=0; while (i<tohide.length) {
 	  var elt=document.getElementById(tohide[i]); 
@@ -59,6 +63,18 @@ function fdb_showhide_onclick(evt)
 	  if (elt)
 	    if (block_eltp(elt)) elt.style.display='block';
 	    else elt.style.display='block';
+	  i++;}}
+      if (toflip) {
+	var i=0; while (i<toflip.length) {
+	  var elt=document.getElementById(toflip[i]);
+	  if (elt) {
+	    var display=elt.style.display;
+	    if ((display==null) || (display==''))
+	      display=window.getComputedStyle(elt,null).display;
+	    if (display=='none')
+	      if (block_eltp(elt)) elt.style.display='block';
+	      else elt.style.display='inline';
+	    else elt.style.display='none';}
 	  i++;}}
       return;}
     else target=target.parentNode;
