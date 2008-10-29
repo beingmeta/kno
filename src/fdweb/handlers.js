@@ -230,6 +230,39 @@ function fdb_flexpand_onclick(event)
       target.style.maxHeight='inherit';}}
 }
 
+/* Closing the window */
+
+function fdb_close_window(interval)
+{
+  if (interval)
+    window.setTimeout(_fdb_close_window,interval*1000);
+  else window.close();
+}
+
+function _fdb_close_window(event)
+{
+  window.close();
+}
+
+var cheshire_interval=false;
+var cheshire_countdown=false;
+var cheshire_timer=false;
+
+function _fdb_cheshire_handler(event)
+{
+  if ((cheshire_interval) &&
+      (cheshire_countdown) &&
+      (cheshire_coundtown==0))
+    _fdb_close_window();
+  else ((cheshire_interval) &&
+	(cheshire_countdown)) {
+    cheshire_countdown=cheshire_countdown-1;
+    var ratio=cheshire_countdown/cheshire_interval;
+    console.log('opacity='+ratio);
+    body.style.opacity=ratio;}
+  else {}
+}
+
 /* Setup */
 
 function fdb_setup()
