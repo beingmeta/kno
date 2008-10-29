@@ -244,6 +244,7 @@ function _fdb_close_window(event)
   window.close();
 }
 
+var cheshire_elt=null;
 var cheshire_steps=false;
 var cheshire_countdown=false;
 var cheshire_timer=false;
@@ -260,16 +261,22 @@ function _fdb_cheshire_handler(event)
     cheshire_countdown=cheshire_countdown-1;
     var ratio=(cheshire_countdown/cheshire_steps)*0.8;
     // console.log('opacity='+ratio);
-    document.body.style.opacity=ratio;}
+    cheshire_elt.style.opacity=ratio;}
   else {}
 }
 
-function fdb_start_cheshire(interval,steps)
+function fdb_start_cheshire(eltid,interval,steps)
 {
   if (typeof(interval) == 'undefined') interval=30;
   if (typeof(steps) == 'undefined') steps=interval*2;
+  if (typeof(eltid) == 'undefined')
+    cheshire_elt=document.body;
+  else if (typeof(eltid) == 'string')
+    cheshire_elt=document.getElementById(eltid);
+  else cheshire_elt=eltid;
+  if (cheshire_elt==null) cheshire_elt=document.body;
   // console.log('Starting cheshire over '+interval+' for '+steps);
-  document.body.style.opacity=.80;
+  cheshire_elt.style.opacity=.80;
   cheshire_steps=steps;
   cheshire_countdown=steps;
   cheshire_timer=setInterval(_fdb_cheshire_handler,(1000*interval)/steps);
