@@ -244,23 +244,43 @@ function _fdb_close_window(event)
   window.close();
 }
 
-var cheshire_interval=false;
+var cheshire_steps=false;
 var cheshire_countdown=false;
 var cheshire_timer=false;
 
 function _fdb_cheshire_handler(event)
 {
-  if ((cheshire_interval) &&
-      (cheshire_countdown) &&
-      (cheshire_coundtown==0))
-    _fdb_close_window();
-  else ((cheshire_interval) &&
-	(cheshire_countdown)) {
+  if ((cheshire_steps) &&
+      (cheshire_countdown<=0)) {
+    console.log('closing window');
+    clearInterval(cheshire_timer);
+    window.close();}
+  else if ((cheshire_steps) &&
+	   (cheshire_countdown)) {
     cheshire_countdown=cheshire_countdown-1;
-    var ratio=cheshire_countdown/cheshire_interval;
-    console.log('opacity='+ratio);
-    body.style.opacity=ratio;}
+    var ratio=(cheshire_countdown/cheshire_steps)*0.8;
+    // console.log('opacity='+ratio);
+    document.body.style.opacity=ratio;}
   else {}
+}
+
+function fdb_start_cheshire(interval,steps)
+{
+  if (typeof(interval) == 'undefined') interval=30;
+  if (typeof(steps) == 'undefined') steps=interval*2;
+  // console.log('Starting cheshire over '+interval+' for '+steps);
+  document.body.style.opacity=.80;
+  cheshire_steps=steps;
+  cheshire_countdown=steps;
+  cheshire_timer=setInterval(_fdb_cheshire_handler,(1000*interval)/steps);
+}
+
+function fdb_cheshire_onclick(event)
+{
+  document.body.style.opacity='inherit';
+  clearInterval(cheshire_timer);
+  cheshire_steps=false;
+  cheshire_countdown=false;
 }
 
 /* Setup */
