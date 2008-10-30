@@ -12,7 +12,7 @@
 (use-module 'brico)
 (use-module '{texttools reflection})
 (use-module '{morph morph/en})
-(use-module '{brico/maprules rulesets})
+(use-module '{brico/maprules rulesets varconfig})
 
 (define logger %logger)
 
@@ -435,6 +435,9 @@
 
 (define (absfreq c) (choice-size (?? refterms c)))
 
+(define ref-absolute-threshold #f)
+(define ref-relative-threshold #f)
+
 (define (brico/ref term (language default-language) (tryhard 2))
   (let ((possible
 	 (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
@@ -446,7 +449,31 @@
 ;;; 	     (singleton (difference possible
 ;;; 				    (for-choices (p possible)
 ;;; 				      (difference (?? defterms p) p))))
-	     (pick-one (largest possible absfreq))))))
+	     (let ((best (largest possible absfreq)))
+	       (try
+		;; If there aren't any norm competitors, go with the best
+		(tryif (fail? (difference (?? @?en_norm term) best))
+		       best)
+		;; If there's only one meaning above the absolute threshold,
+		;;  use it.
+		(tryif ref-absolute-threshold
+		       (singleton
+			(pick possible absfreq > ref-absolute-threshold)))
+		;; This is complicated but can handle cases where there
+		;;  is substantial ambiguity but there is only one dominant
+		;;  meaning.  Basically, if 
+		(tryif (and tryhard (> tryhard 1) ref-relative-threshold)
+		       (let ((relfreq (make-hashtable))
+			     (sum 0))
+			 (do-choices (m possible)
+			   (let ((score (try (get absfreq m) 2)))
+			     (hashtable-increment! relfreq score)
+			     (set! sum (+ sum score))))
+			 (tryif (> (/~ (get relfreq best) sum)
+				   ref-relative-threshold))))))))))
+
+(varconfig! brico:ref:absthresh ref-absolute-threshold)
+(varconfig! brico:ref:relthresh ref-relative-threshold)
 
 ;; This is used with the # parser trick so that #@"dog:animal" works
 (define |#@| brico/ref)
