@@ -2,6 +2,20 @@
 
 span.nobreak { white-space: nowrap; }
 
+/* New simplified display classes */
+
+.checkspan { white-space: nowrap; cursor: pointer;}
+.checkspan[ischecked] { font-weight: bold; }
+
+/* Autoprompt classes */
+
+input.autoprompt {
+  font-family: sans,sans-serif;}
+input.autoprompt[isempty] { font-style: italic; }
+input.autoprompt_empty {
+  font-family: sans,sans-serif; font-weight: normal; font-style: italic;
+  color: gray; height: 18px; }
+
 /* Error pages */
 
 body#ERRORPAGE {
@@ -89,78 +103,9 @@ table.table_table td {
 table.table_table td span.value {
   white-space: nowrap;}
 
-/* Hide/show classes */
-
-span.hideshow {
-  font-family: fixed; font-size: 80%; 
-  cursor: pointer; color: black;
-  white-space: nowrap;}
-span.hideshow span.whenHidden {
-  color: blue;}
-span.hideshow span.whenVisible {
-  color: blue;
-  display: none;}
-
-/* Collapsar classes */
-
-span.collapsar {
- white-space: nowrap; cursor: pointer;
- text-decoration: none; font-size: 10px; font-family: sans-serif;
- color: black; background-color: lightgray; padding: 1px; margin: 2px;}
-
-/* Clickit classes */
-
-span.clickit {
- white-space: nowrap;
- text-decoration: none; font-size: 10px; font-family: sans-serif;
- color: black; background-color: silver;
- padding: 1px;
- border: outset silver 2px;	
- margin: 2px;}
-a.clickit {
- white-space: nowrap;
- text-decoration: none; font-size: 10px; font-family: sans-serif;
- color: black; background-color: silver;
- padding: 1px;
- border: outset silver 2px;	
- margin: 2px;}
-a.clickit:visited {
- white-space: nowrap;
- text-decoration: none; font-size: 10px; font-family: sans-serif;
- color: black; background-color: silver;
- padding: 1px;
- border: outset silver 2px;	
- margin: 2px;}
-input[type='SUBMIT'] {
- white-space: nowrap;
- text-decoration: none; font-size: 10px; font-family: sans-serif;
- color: black; background-color: silver;
- padding: 1px;
- border: outset silver 2px;	
- margin: 2px;}
-
 /* Input help classes */
 
 div.helptext { display: none; }
-
-/* Legacy input help classes */
-
-div.input_help {
- font-style: italic; font-size: 9px; color: purple;
- margin-left: 5%; text-indent: -5%;}
-div.hidden_input_help {
- font-style: italic; font-size: 9px; color: purple;
- margin-left: 5%; text-indent: -5%;
- display: none;}
-div.input_help tt {font-style: normal; font-weight: bold;}
-div.hidden_input_help tt {font-style: normal; font-weight: bold;}
-
-/* Hotcheckboxes */
-
-span.hotcheck { cursor: pointer; white-space: nowrap;}
-
-span.hotcheck span.left { display: none;}
-span.hotcheck span.right { display: inline;}
 
 /* Tabs */
 
@@ -185,47 +130,6 @@ div.tabcontent p {
  margin: 2px; padding: 2px;
  margin-left: 15%; text-indent: -5%; margin-right: 10%;}
 
-
-/* Legacy tab stuff */
-
-div.tab_content {
- margin-left: 9px; margin-top: 6px; margin-right: 9px;
- text-align: left;
- display: none;}
-span.selected_tab {
-  font-family: sans,sans-serif;
-  font-weight: bold;
-  margin-left: 2px; margin-right: 2px;
-  border-top: inset black 2px;
-  border-right: inset black 2px;
-  border-left: inset black 2px;
-  padding: 3px;}
-div.selected_tab_content {
- margin-left: 9px; margin-top: 6px; margin-right: 9px;
- text-align: left;}
-div.tab_content div.narrative {
- color: purple; font-family: sans; font-style: italic;}
-
-div.tab_content p {
- margin: 2px; padding: 2px;
- margin-left: 15%; text-indent: -5%; margin-right: 10%;}
-
-div.tab_content div.header {
- text-align: left; width: 95%; background-color: lightgray;
- font-size: 15px; font-family: sans; font-weight: bold; margin-top: 3px;
- padding-left: 3%; text-indent: -3%;}
-div.tab_content div.header span.explanation {
- margin-left: 16px; color: purple;
- font-weight: normal; font-style: italic; font-size: 9px;}
-
-/* Autoprompt classes */
-
-input.autoprompt {
-  font-family: sans,sans-serif;}
-input.autoprompt[isempty] { font-style: italic; }
-input.autoprompt_empty {
-  font-family: sans,sans-serif; font-weight: normal; font-style: italic;
-  color: gray; height: 18px; }
 
 /* Narrative classes */
 
@@ -357,5 +261,106 @@ div.cttdata div.item {
 div.cttdata div.item span.head {
   font-weight: bold;}
 
+/* Legacy stuff */
 
+/* Hide/show classes */
+
+span.hideshow {
+  font-family: fixed; font-size: 80%; 
+  cursor: pointer; color: black;
+  white-space: nowrap;}
+span.hideshow span.whenHidden {
+  color: blue;}
+span.hideshow span.whenVisible {
+  color: blue;
+  display: none;}
+
+/* Collapsar classes */
+
+span.collapsar {
+ white-space: nowrap; cursor: pointer;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
+ color: black; background-color: lightgray; padding: 1px; margin: 2px;}
+
+/* Clickit classes */
+
+span.clickit {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
+a.clickit {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
+a.clickit:visited {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
+input[type='SUBMIT'] {
+ white-space: nowrap;
+ text-decoration: none; font-size: 10px; font-family: sans-serif;
+ color: black; background-color: silver;
+ padding: 1px;
+ border: outset silver 2px;	
+ margin: 2px;}
+
+/* Legacy input help classes */
+
+div.input_help {
+ font-style: italic; font-size: 9px; color: purple;
+ margin-left: 5%; text-indent: -5%;}
+div.hidden_input_help {
+ font-style: italic; font-size: 9px; color: purple;
+ margin-left: 5%; text-indent: -5%;
+ display: none;}
+div.input_help tt {font-style: normal; font-weight: bold;}
+div.hidden_input_help tt {font-style: normal; font-weight: bold;}
+
+/* Hotcheckboxes */
+
+span.hotcheck { cursor: pointer; white-space: nowrap;}
+
+span.hotcheck span.left { display: none;}
+span.hotcheck span.right { display: inline;}
+
+/* Legacy tab stuff */
+
+div.tab_content {
+ margin-left: 9px; margin-top: 6px; margin-right: 9px;
+ text-align: left;
+ display: none;}
+span.selected_tab {
+  font-family: sans,sans-serif;
+  font-weight: bold;
+  margin-left: 2px; margin-right: 2px;
+  border-top: inset black 2px;
+  border-right: inset black 2px;
+  border-left: inset black 2px;
+  padding: 3px;}
+div.selected_tab_content {
+ margin-left: 9px; margin-top: 6px; margin-right: 9px;
+ text-align: left;}
+div.tab_content div.narrative {
+ color: purple; font-family: sans; font-style: italic;}
+
+div.tab_content p {
+ margin: 2px; padding: 2px;
+ margin-left: 15%; text-indent: -5%; margin-right: 10%;}
+
+div.tab_content div.header {
+ text-align: left; width: 95%; background-color: lightgray;
+ font-size: 15px; font-family: sans; font-weight: bold; margin-top: 3px;
+ padding-left: 3%; text-indent: -3%;}
+div.tab_content div.header span.explanation {
+ margin-left: 16px; color: purple;
+ font-weight: normal; font-style: italic; font-size: 9px;}
 

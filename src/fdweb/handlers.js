@@ -244,10 +244,67 @@ function _fdb_close_window(event)
   window.close();
 }
 
+/* checkspan handling */
+
+function fdb_checkspan_onclick(event)
+{
+  var target=event.target;
+  while (target)
+    if (target.className=='checkspan') break;
+    else if ((target.tagName=='A') ||
+	     (target.tagName=='INPUT'))
+      return;
+    else target=target.parentNode;
+  if (target) {
+    var children=target.childNodes;
+    var i=0; while (i<children.length) {
+      var child=children[i++];
+      if ((child.nodeType==1) &&
+	  (child.tagName=='INPUT') &&
+	  ((child.type=='radio') ||
+	   (child.type=='checkbox'))) {
+	var checked=child.checked;
+	if (typeof(checked) == null) {
+	  child.checked=false;
+	  target.removeAttribute('ischecked');}
+	else if (checked) {
+	  child.checked=false;
+	  target.removeAttribute('ischecked');}
+	else {
+	  child.checked=true;
+	  target.setAttribute('ischecked','yes');}}}}
+}
+
+function fdb_checkspan_setup(checkspan)
+{
+  if (checkspan==null) {
+    var elements=document.getElementsByClassName('checkspan');
+    var i=0; if (elements) while (i<elements.length) {
+      var checkspan=elements[i++];
+      fdb_checkspan_setup(checkspan);}}
+  else {
+    var children=checkspan.childNodes;
+    var j=0; while (j<children.length) {
+      var child=children[j++];
+      if ((child.nodeType==1) &&
+	  (child.tagName=='INPUT') &&
+	  ((child.type=='radio') ||
+	   (child.type=='checkbox'))) {
+	var checked=child.checked;
+	if (checked == null) {
+	  child.checked=false;
+	  checkspan.removeAttribute('ischecked');}
+	else if (checked) {
+	  checkspan.setAttribute('ischecked','yes');}}}}
+}
+
+/* Cheshire handling */
+
 var cheshire_elt=null;
 var cheshire_steps=false;
 var cheshire_countdown=false;
 var cheshire_timer=false;
+var cheshire_finish=null;
 
 function _fdb_cheshire_handler(event)
 {
@@ -255,7 +312,9 @@ function _fdb_cheshire_handler(event)
       (cheshire_countdown<=0)) {
     console.log('closing window');
     clearInterval(cheshire_timer);
-    window.close();}
+    if (cheshire_finish)
+      cheshire_finish();
+    else window.close();}
   else if ((cheshire_steps) &&
 	   (cheshire_countdown)) {
     cheshire_countdown=cheshire_countdown-1;
@@ -290,12 +349,47 @@ function fdb_cheshire_onclick(event)
   cheshire_countdown=false;
 }
 
-/* Setup */
+/* Text checking */
+
+/* This handles automatic handling of embedded content, for
+ * example tags or other markup. It creates an interval timer
+ * to check for changes in the value of an input field.
+ * eltid is the textfield to monitor
+ * textfn is the function to parse its value
+ * changefn is the function to call on the parse result when it changes
+ * interval is how often to check for changes
+ */
+function fdb_textract(eltid,textfn,changefn,interval)
+{
+  /* Default the value for interval and normalize it to
+     milliseconds if it looks like its actually seconds. */
+  if (typeof(interval) == 'undefined') interval=4000;
+  else if (interval<200) interval=interval*1000;
+  var elt=document.getElementById(eltid);
+  var text=elt.value, parsed=textfn(text);
+  if (parsed) changefn(parsed);
+  // console.log('Init text='+text);
+  // console.log('Init parsed='+parsed);
+  // console.log('Init interval='+interval);
+  var loop_fcn=function(event) {
+    if (elt.value!=text) {
+      var new_parsed=textfn(elt.value);
+      // console.log('New text='+elt.value);
+      //console.log('New parsed='+new_parsed);
+      text=elt.value;
+      if (new_parsed!=parsed) {
+	parsed=new_parsed;
+	changefn(parsed);}}};
+  window.setInterval(loop_fcn,interval);
+}
+
+ /* Setup */
 
 function fdb_setup()
 {
   fdbmsg("fdb_setup running")
   fdb_autoprompt_setup();
+  fdb_checkspan_setup(null);
   fdbmsg("fdb_setup run")
 
 }
