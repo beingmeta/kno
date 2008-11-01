@@ -376,6 +376,7 @@ static fdtype raw_xhtml_handler(fdtype expr,fd_lispenv env)
       return value;}
     else if (FD_STRINGP(value))
       u8_putn(out,FD_STRDATA(value),FD_STRLEN(value));
+    else if ((FD_VOIDP(value)) || (FD_EMPTY_CHOICEP(value))) {}
     else u8_printf(out,"%q",value);
     fd_decref(value);
     body=FD_CDR(body);}
