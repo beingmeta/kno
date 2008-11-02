@@ -70,3 +70,9 @@
        (not (cgitest 'fb_sig_in_canvas 0))))
 
 
+;;;; Authorization stuff
+
+(define-init fb/sessions->users (make-hashtable))
+
+(module-export! 'fb/sessions->users)
+
