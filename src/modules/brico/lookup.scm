@@ -433,7 +433,7 @@
 (define (brico/resolve term (language default-language) (tryhard 2))
   (cdr ((or remote-lookup-term lookup-term) term language tryhard)))
 
-(define (absfreq c) (choice-size (?? refterms c)))
+;;(define (absfreq c) (choice-size (?? refterms c)))
 
 (define ref-absolute-threshold #f)
 (define ref-relative-threshold #f)
@@ -449,7 +449,7 @@
 ;;; 	     (singleton (difference possible
 ;;; 				    (for-choices (p possible)
 ;;; 				      (difference (?? defterms p) p))))
-	     (let ((best (largest possible absfreq)))
+	     (let ((best (largest possible getabsfreq)))
 	       (try
 		;; If there aren't any norm competitors, go with the best
 		(tryif (fail? (difference (?? @?en_norm term) best))
@@ -458,7 +458,7 @@
 		;;  use it.
 		(tryif ref-absolute-threshold
 		       (singleton
-			(pick possible absfreq > ref-absolute-threshold)))
+			(pick possible getabsfreq > ref-absolute-threshold)))
 		;; This is complicated but can handle cases where there
 		;;  is substantial ambiguity but there is only one dominant
 		;;  meaning.  Basically, if 
@@ -466,7 +466,7 @@
 		       (let ((relfreq (make-hashtable))
 			     (sum 0))
 			 (do-choices (m possible)
-			   (let ((score (try (get absfreq m) 2)))
+			   (let ((score (try (getabsfreq m) 2)))
 			     (hashtable-increment! relfreq score)
 			     (set! sum (+ sum score))))
 			 (tryif (> (/~ (get relfreq best) sum)
