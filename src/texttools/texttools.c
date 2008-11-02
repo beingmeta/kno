@@ -617,6 +617,25 @@ static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
     else return fd_incref(string);}
 }
 
+static fdtype string_subst_star(int n,fdtype *args)
+{
+  fdtype base=args[0]; int i=1;
+  if ((n%2)==0)
+    return fd_err(fd_SyntaxError,"string_subst_star",NULL,FD_VOID);
+  else while (i<n) 
+    if (FD_EXPECT_FALSE(!(FD_STRINGP(args[i]))))
+      return fd_type_error(_("string"),"string_subst_star",args[i]);
+    else i++;
+  /* In case we return it. */
+  fd_incref(base); i=1;
+  while (i<n) {
+    fdtype replace=args[i];
+    fdtype with=args[i+1];
+    fdtype result=string_subst_prim(base,replace,with);
+    i=i+2; fd_decref(base); base=result;}
+  return base;
+}
+
 /* Columnizing */
 
 static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
@@ -1677,6 +1696,8 @@ void fd_init_texttools()
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
 
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("TEXTMATCHER",textmatcher,2,
