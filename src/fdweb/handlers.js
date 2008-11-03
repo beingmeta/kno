@@ -1,13 +1,10 @@
 /* Various utility handlers */
 
-var msgalert=false;
-
-function fdbmsg(string)
+function _logger(string)
 {
-  if ((console) && (console.log))
+  if (fdbLog) fdbLog(string);
+  else if ((console) && (console.log))
     console.log(string);
-  else if (msgalert)
-    alert(string);
 }
 
 /* INPUT SHOWHELP */
@@ -141,9 +138,9 @@ function fdb_autoprompt_setup()
 	if (elt.className==='autoprompt')
 	  prompt=elt.title;
 	else continue;
-      // fdbmsg('Considering '+elt+' class='+elt.className+' value='+elt.value);
+      // _logger('Considering '+elt+' class='+elt.className+' value='+elt.value);
       if ((elt.value==='') || (elt.value===prompt)) {
-	// fdbmsg('Marking empty');
+	// _logger('Marking empty');
 	elt.value=prompt;
 	elt.setAttribute('isempty','yes');}}}
 }
@@ -175,7 +172,7 @@ function fdb_tab_onclick(evt)
     var parent=elt.parentNode;
     var sibs=parent.childNodes;
     if (content===null) {
-      fdbmsg("No content for "+content_id);
+      _logger("No content for "+content_id);
       return;}
     // evt.preventDefault(); evt.cancelBubble=true;
     // This lets forms pass tab information along
@@ -259,7 +256,7 @@ function fdb_checkspan_onclick(event)
     else if ((target.tagName==='A') || (target.tagName==='INPUT'))
       return;
     else target=target.parentNode;}
-  if (target) fdbLog('Found checkspan '+target);
+  // if (target) _logger('Found checkspan '+target);
   if (target) {
     var children=target.childNodes;
     var i=0; while (i<children.length) {
@@ -339,7 +336,7 @@ function fdb_start_cheshire(eltid,interval,steps)
     cheshire_elt=document.getElementById(eltid);
   else cheshire_elt=eltid;
   if (cheshire_elt===null) cheshire_elt=document.body;
-  // console.log('Starting cheshire over '+interval+' for '+steps);
+  console.log('Starting cheshire over '+interval+' for '+steps);
   cheshire_elt.style.opacity=.80;
   cheshire_steps=steps;
   cheshire_countdown=steps;
@@ -467,11 +464,11 @@ function fdb_mark_reduced(elt)
 
 function fdb_setup()
 {
-  fdbmsg("fdb_setup running")
+  _logger("fdb_setup running")
   fdb_autoprompt_setup();
   fdb_checkspan_setup(null);
   fdb_adjust_font_sizes();
   fdb_mark_reduced();
-  fdbmsg("fdb_setup run")
+  _logger("fdb_setup run")
 
 }
