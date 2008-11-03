@@ -212,19 +212,24 @@ function addBrowserSearchPlugin(spec,name,cat)
 
 function fdb_flexpand_onclick(event)
 {
-  var target=event.target;
+  var target=event.target; var functional=false;
   while (target)
     if (target.hasAttribute('expanded')) break;
-    else if ((target.tagName==='A') ||
-	     (target.tagName==='SELECT') ||
-	     (target.tagName==='INPUT') ||
-	     (target.onclick!=null))
+    else if (target.tagName==='A')
       return;
+    else if ((target.tagName==='SELECT') ||
+	     (target.tagName==='INPUT') ||
+	     (target.className=='checkspan') ||
+	     (target.onclick!=null)) {
+      functional=true;
+      target=target.parentNode;}
     else target=target.parentNode;
   if (target) {
-    if (target.getAttribute('expanded')==="yes") {
-      target.setAttribute("expanded","no");
-      target.style.maxHeight=null;}
+    if (target.getAttribute('expanded')==="yes")
+      if (functional) {}
+      else {
+	target.setAttribute("expanded","no");
+	target.style.maxHeight=null;}
     else {
       target.setAttribute("expanded","yes");
       target.style.maxHeight='inherit';}}
@@ -251,10 +256,10 @@ function fdb_checkspan_onclick(event)
   var target=event.target;
   while (target) {
     if (target.className==='checkspan') break;
-    else if ((target.tagName==='A') ||
-	     (target.tagName==='INPUT'))
+    else if ((target.tagName==='A') || (target.tagName==='INPUT'))
       return;
     else target=target.parentNode;}
+  if (target) fdbLog('Found checkspan '+target);
   if (target) {
     var children=target.childNodes;
     var i=0; while (i<children.length) {
@@ -343,10 +348,11 @@ function fdb_start_cheshire(eltid,interval,steps)
 
 function fdb_cheshire_onclick(event)
 {
-  document.body.style.opacity='inherit';
-  clearInterval(cheshire_timer);
-  cheshire_steps=false;
-  cheshire_countdown=false;
+  if (cheshire_elt) {
+    cheshire_elt.style.opacity='inherit';
+    clearInterval(cheshire_timer);
+    cheshire_steps=false;
+    cheshire_countdown=false;}
 }
 
 /* Text checking */
@@ -366,6 +372,7 @@ function fdb_textract(eltid,textfn,changefn,interval)
   if (interval==null) interval=4000;
   else if (interval<200) interval=interval*1000;
   var elt=document.getElementById(eltid);
+  if (elt==null) return;
   var text=elt.value, parsed=textfn(text);
   if (parsed) changefn(parsed);
   // console.log('Init text='+text);
@@ -383,13 +390,88 @@ function fdb_textract(eltid,textfn,changefn,interval)
   window.setInterval(loop_fcn,interval);
 }
 
- /* Setup */
+/* Font size adjustment */
+
+function fdb_adjust_font_size(elt)
+{
+  var target_width=elt.getAttribute('targetwidth');
+  var target_height=elt.getAttribute('targetheight');
+  var actual_width=elt.clientWidth;
+  var actual_height=elt.clientHeight;
+  if (((target_width==null) || (actual_width<target_width)) &&
+      ((target_height==null) || (actual_height<target_height)))
+    return;
+  var x_ratio=((target_width==null) ? (1.0) : (target_width/actual_width));
+  var y_ratio=((target_height==null) ? (1.0) : (target_height/actual_height));
+  var do_ratio=((x_ratio<y_ratio) ? (x_ratio) : (y_ratio));
+  elt.style.fontSize=(do_ratio*100.0)+"%";
+  // The code below, if it worked, would shrink and then expand the element
+  // However, it doesn't work because the actual width doesn't get updated
+  // automatically
+  /*
+  var step=(1.0-do_ratio)/5;
+  var new_ratio=do_ratio;
+  elt.style.fontSize=(do_ratio*100.0)+"%";
+  while (((target_width==null) || (actual_width<target_width)) &&
+	 ((target_height==null) || (actual_height<target_height))) {
+    do_ratio=new_ratio;
+    new_ratio=do_ratio+step;
+    elt.style.fontSize=(do_ratio*100.0)+"%";
+    actual_width=elt.clientWidth;
+    actual_height=elt.clientHeight;}
+  */
+}
+
+function fdb_adjust_font_sizes()
+{
+  var elts=document.getElementsByClassName('autosize');
+  if (elts) {
+    var i=0; while (i<elts.length)
+      fdb_adjust_font_size(elts[i++]);}
+}
+
+function fdb_adjust_font_sizes()
+{
+  var elts=document.getElementsByClassName('autosize');
+  if (elts) {
+    var i=0; while (i<elts.length)
+      fdb_adjust_font_size(elts[i++]);}
+}
+
+/* Handling CSS based reduction */
+
+function fdb_mark_reduced(elt)
+{
+  if (elt) {
+    var target_width=elt.getAttribute('targetwidth');
+    var target_height=elt.getAttribute('targetheight');
+    var actual_width=elt.clientWidth;
+    var actual_height=elt.clientHeight;
+    if (((target_width===null) || (actual_width<target_width)) &&
+	((target_height===null) || (actual_height<target_height)))
+      return;
+    else {
+      var classinfo=elt.className;
+      if (classinfo) 
+	if (classinfo.search(/\breduced\b/)>=0) {}
+	else elt.className=classinfo+' reduced';
+      else elt.className='reduced';
+      if (console.log) console.log('Reducing '+elt+' to class '+elt.className);}}
+  else {
+    var elts=document.getElementsByClassName('autoreduce');
+    var i=0; while (i<elts.length) fdb_mark_reduced(elts[i++]);}
+}
+
+
+/* Setup */
 
 function fdb_setup()
 {
   fdbmsg("fdb_setup running")
   fdb_autoprompt_setup();
   fdb_checkspan_setup(null);
+  fdb_adjust_font_sizes();
+  fdb_mark_reduced();
   fdbmsg("fdb_setup run")
 
 }

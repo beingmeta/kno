@@ -7,6 +7,18 @@ function $(eltarg)
   else return eltarg;
 }
 
+function fdbLog(string)
+{
+  if ((console) && (console.log)) console.log(string);
+}
+
+function fdbWarn(string)
+{
+  if ((console) && (console.log))
+    console.log(string);
+  else alert(string);
+}
+
 function fdbAddElements(elt,args,i)
 {
   while (i<args.length) {
