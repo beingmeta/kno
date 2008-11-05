@@ -2762,7 +2762,7 @@ static u8_byteoff hashset_search
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_search",NULL,pat);
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
-    return fd_type_error(_("hashset"),"hashset_match",pat);
+    return fd_type_error(_("hashset"),"hashset_search",pat);
   else {
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
@@ -2772,6 +2772,8 @@ static u8_byteoff hashset_search
     return try;}
 }
   
+/* HASHET-NOT */
+
 static fdtype hashset_not_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -2806,6 +2808,44 @@ static u8_byteoff hashset_not_search
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_not_match(pat,FD_VOID,env,string,try,lim,flags);
+      if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
+      else try=fd_text_search(cpat,env,string,try+1,lim,flags);}
+    return try;}
+}
+
+/* MAXLEN matches */
+
+static fdtype maxlen_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype cpat=fd_get_arg(pat,1);
+  fdtype lim_arg=fd_get_arg(pat,2);
+  if ((FD_VOIDP(lim_arg)) || (FD_VOIDP(cpat)))
+    return fd_err(fd_MatchSyntaxError,"maxlen_match",NULL,pat);
+  else if (!(FD_FIXNUMP(lim_arg)))
+    return fd_type_error(_("fixnum"),"maxlen_match",pat);
+  else {
+    int maxlen=FD_FIX2INT(lim_arg);
+    int maxbytes=u8_byteoffset(string+off,maxlen,lim);
+    int newlim=((maxbytes<0) ? (lim) : (maxbytes));
+    return fd_text_domatch(cpat,next,env,string,off,newlim,flags);}
+}
+
+static u8_byteoff maxlen_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype cpat=fd_get_arg(pat,1);
+  fdtype lim_arg=fd_get_arg(pat,2);
+  if ((FD_VOIDP(lim_arg)) || (FD_VOIDP(cpat)))
+    return fd_err(fd_MatchSyntaxError,"maxlen_search",NULL,pat);
+  else if (!(FD_FIXNUMP(lim_arg)))
+    return fd_type_error(_("fixnum"),"maxlen_search",pat);
+  else {
+    u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
+    while ((try >= 0) && (try < lim)) {
+      fdtype matches=maxlen_match(pat,FD_VOID,env,string,try,lim,flags);
       if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
       else try=fd_text_search(cpat,env,string,try+1,lim,flags);}
     return try;}
@@ -3093,7 +3133,10 @@ void fd_init_match_c()
 
   fd_add_match_operator("REST",match_rest,search_rest,extract_rest);
   fd_add_match_operator("HASHSET",hashset_match,hashset_search,NULL);
-  fd_add_match_operator("HASHSET-NOT",hashset_not_match,hashset_not_search,NULL);
+  fd_add_match_operator
+    ("HASHSET-NOT",hashset_not_match,hashset_not_search,NULL);
+
+  fd_add_match_operator("MAXLEN",maxlen_match,maxlen_search,NULL);
 
   label_symbol=fd_intern("LABEL");
   star_symbol=fd_intern("*");
