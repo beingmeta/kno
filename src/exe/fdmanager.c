@@ -93,7 +93,19 @@ static char *path_append(char *base,char *suffix)
   return result;
 }
 
-int empty_linep(char *s)
+static void do_chown(char *path,uid_t uid,gid_t gid)
+{
+  int retval=chown(path,uid,gid);
+  /* Should handle errors? */
+}
+
+static void do_chdir(char *path)
+{
+  int retval=chdir(path);
+  /* Should handle errors? */
+}
+
+static int empty_linep(char *s)
 {
   while ((*s) && (!(isprint(*s)))) s++;
   if (*s == NUL) return 1; else return 0;
@@ -158,7 +170,7 @@ static int setup_rundir()
 	     rundir,
 	     uentry->pw_name,uentry->pw_uid,
 	     gentry->gr_name,gentry->gr_gid);
-      chown(dirpath,uentry->pw_uid,gentry->gr_gid);}}
+      do_chown(dirpath,uentry->pw_uid,gentry->gr_gid);}}
   else if ((gentry==NULL) || (uentry==NULL)) {
     u8_log(LOG_WARN,SecurityAbort,
 	   "Couldn't determine user or group for server run dir, making null");
@@ -166,7 +178,7 @@ static int setup_rundir()
   else {
     u8_log(LOG_WARN,StartupEvent,"Making state directory %s",rundir);
     mkdir(dirpath,(S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP));
-    chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
+    do_chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
 }
 
 static int setup_runas()
@@ -256,7 +268,7 @@ static char *init_server_entry(struct SERVER_ENTRY *e,char *control_line)
   else e->dependent=0;
   if (strstr(control_line,"wait=")) {
     char *waitv=strstr(control_line,"wait=")+5;
-    sscanf(waitv,"%d ",&(e->wait));
+    sscanf(waitv,"%ld ",&(e->wait));
     control_line=skip_arg(waitv);}
   else e->wait=10;
   if (strstr(control_line,"executable=")) {
@@ -356,7 +368,7 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
     /* Redirect stdout and stderr */
     set_stdio(e->logbase);
     /* Go to the directory the file lives in */
-    chdir(e->dirname);
+    do_chdir(e->dirname);
     /* Become the server */
     u8_message("Forking %s for %s as %d",
 	       ((e->serverexe) ? (e->serverexe) : (fdserver)),
@@ -411,7 +423,7 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
     set_stdio(e->logbase);
     fprintf(stderr,"stdio redirected\n");
     /* Go to the directory the file lives in */
-    chdir(e->dirname);
+    do_chdir(e->dirname);
     fprintf(stderr,"directory changed\n");
     /* Write your pid */
     pid_stream=fopen(pid_file,"w");
@@ -446,7 +458,7 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
     /* Redirect stdout and stderr */
     set_stdio(e->logbase);
     /* Go to the directory the file lives in */
-    chdir(e->dirname);
+    do_chdir(e->dirname);
     /* Become the server */
     become_runas();
     execv(fdserver,e->argv);}

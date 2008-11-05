@@ -176,8 +176,10 @@ int main(int argc,char **argv)
   /* Now, do the fork. */
   if ((chained==0) && (fork())) exit(0);
   else if ((chained==0) && (pid=fork())) {
-    char buf[256];
-    sprintf(buf,"%d",pid); write(pid_fd,buf,strlen(buf)); close(pid_fd);
+    char buf[256]; int retval;
+    sprintf(buf,"%d",pid);
+    retval=write(pid_fd,buf,strlen(buf));
+    close(pid_fd);
     /* The parent process just reports what it did. */
     u8_log(LOG_NOTICE,"Fork started","Launched process pid=%d",pid);
     if (log_file)
