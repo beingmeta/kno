@@ -52,10 +52,10 @@ static fdtype read_dtype_from_file(FILE *f)
 
 static void write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTPUT out;
+  struct FD_BYTE_OUTPUT out; int retval;
   FD_INIT_BYTE_OUTPUT(&out,65536,NULL);
   fd_write_dtype(&out,object);
-  fwrite(out.start,1,out.ptr-out.start,f);
+  retval=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);
 }
 

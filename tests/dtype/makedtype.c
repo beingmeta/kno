@@ -19,10 +19,10 @@ static char versionid[] =
 
 static void write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTPUT out;
+  struct FD_BYTE_OUTPUT out; int n;
   FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
   fd_write_dtype(&out,object);
-  fwrite(out.start,1,out.ptr-out.start,f);
+  n=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);
 }
 

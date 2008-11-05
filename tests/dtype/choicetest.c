@@ -20,7 +20,7 @@ static char versionid[] =
 int main(int argc,char **argv)
 {
   struct FD_BYTE_OUTPUT out; FILE *f=fopen(argv[1],"wb");
-  fdtype value=FD_EMPTY_CHOICE, svalue, tval; int i=2;
+  fdtype value=FD_EMPTY_CHOICE, svalue, tval; int i=2, retval;
   FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
   FD_DO_LIBINIT(fd_init_dtypelib);
   tval=fd_parse(argv[i++]);
@@ -34,7 +34,7 @@ int main(int argc,char **argv)
     u8_fprintf(stdout,"Containment is true\n");
   else u8_fprintf(stdout,"Containment is false\n");
   fd_write_dtype(&out,svalue);
-  fwrite(out.start,1,out.ptr-out.start,f);
+  retval=fwrite(out.start,1,out.ptr-out.start,f);
   fd_decref(value); fd_decref(svalue); u8_free(out.start);
   value=FD_VOID; svalue=FD_VOID;
   exit(0);
