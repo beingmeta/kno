@@ -1137,7 +1137,10 @@ static fdtype pick_nums_prim(fdtype items)
 {
   fdtype results=FD_EMPTY_CHOICE; int no_change=1;
   FD_DO_CHOICES(item,items)
-    if (FD_NUMBERP(item)) {
+    if (FD_FIXNUMP(item)) {
+      FD_ADD_TO_CHOICE(results,item);}
+    else if (FD_NUMBERP(item)) {
+      fd_incref(item);
       FD_ADD_TO_CHOICE(results,item);}
     else no_change=0;
   if (no_change) {
