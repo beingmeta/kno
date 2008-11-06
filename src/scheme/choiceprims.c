@@ -1133,6 +1133,19 @@ static fdtype pick_strings_prim(fdtype items)
   else return results;
 }
 
+static fdtype pick_nums_prim(fdtype items)
+{
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_NUMBERP(item)) {
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
 /* Initialize functions */
 
 FD_EXPORT void fd_init_choicefns_c()
@@ -1248,6 +1261,8 @@ FD_EXPORT void fd_init_choicefns_c()
 					  -1,FD_FALSE)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("PICKOIDS",pick_oids_prim,1)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim1("PICKNUMS",pick_nums_prim,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("PICKSTRINGS",pick_strings_prim,1)));
 
