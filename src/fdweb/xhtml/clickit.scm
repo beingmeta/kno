@@ -237,3 +237,24 @@
 
 (module-export! '{scrollticks searchbar})
 
+;;; Editable
+
+(define (editable var value (helptext #f))
+  (div ((class (stringout "display" (downcase var)))
+	(id (stringout "DISPLAY" (upcase var)))
+	(clicktoshow (stringout "EDIT" (upcase var)))
+	(clicktohide (stringout "DISPLAY" (upcase var)))
+	(onclick "fdb_showhide_onclick(event);")
+	(title "click to edit"))
+    (or value ""))
+  (if helptext
+      (input type "TEXT" name var value (or value "")
+	     id (stringout "EDIT" (upcase var)) style "display: none;"
+	     onfocus "fdb_showhelp_onfocus(event);"
+	     onblur "fdb_hidehelp_onblur(event);"
+	     helptext helptext)
+      (input type "TEXT" name var value (or value "")
+	     id (stringout "EDIT" (upcase var)) style "display: none;")))
+
+(module-export! 'editable)
+
