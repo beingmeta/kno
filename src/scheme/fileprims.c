@@ -387,6 +387,26 @@ static fdtype file_dirname(fdtype arg)
   return fd_init_string(NULL,-1,u8_dirname(FD_STRDATA(arg)));
 }
 
+static fdtype file_abspath(fdtype arg,fdtype wd)
+{
+  u8_string result;
+  if (FD_VOIDP(wd))
+    result=u8_abspath(FD_STRDATA(arg),NULL);
+  else result=u8_abspath(FD_STRDATA(arg),FD_STRDATA(wd));
+  if (result) return fd_init_string(NULL,-1,result);
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype file_realpath(fdtype arg,fdtype wd)
+{
+  u8_string result;
+  if (FD_VOIDP(wd))
+    result=u8_realpath(FD_STRDATA(arg),NULL);
+  else result=u8_realpath(FD_STRDATA(arg),FD_STRDATA(wd));
+  if (result) return fd_init_string(NULL,-1,result);
+  else return FD_ERROR_VALUE;
+}
+
 static fdtype mkpath_prim(fdtype dirname,fdtype name)
 {
   if (FD_SYMBOLP(dirname)) {
@@ -1361,6 +1381,14 @@ FD_EXPORT void fd_init_fileio_c()
 			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("BASENAME",file_basename,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("ABSPATH",file_abspath,1,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("REALPATH",file_realpath,1,
+			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("MKPATH",mkpath_prim,2,
