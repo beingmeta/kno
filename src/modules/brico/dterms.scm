@@ -68,13 +68,15 @@
 		(tryif (singleton? (?? language norm defterms df))
 		       (string-append norm " (:" (get-norm df language) ")"))))
        (try-choices (alt (difference (get concept language) norm))
-	 (if (search norm alt)
-	     (try
-	      (tryif (singleton? (?? language alt)) alt)
-	      (tryif (singleton? (?? language norm language alt))
-		     (string-append norm ":" alt)))
-	     (tryif (singleton? (?? language norm language alt))
-		    (string-append norm ":" alt))))
+	 (tryif (search norm alt)
+		(try
+		 (tryif (singleton? (?? language alt)) alt)
+		 (tryif (singleton? (?? language norm language alt))
+			(string-append norm ":" alt)))))
+       (try-choices (alt (difference (get concept language) norm))
+	 (tryif (not (search norm alt))
+		(tryif (singleton? (?? language norm language alt))
+		       (string-append norm ":" alt))))
        #f)))
 
 (define (probe-location concept term1 term2 language (isaterm #f))

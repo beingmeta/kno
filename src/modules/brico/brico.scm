@@ -419,7 +419,8 @@
 	    ,(cond ((and (test f 'sensecat 'noun.location)
 			 (%test f partof))
 		    'PARTOF)
-		   ((%test f 'hypernym) 'GENLS)
+		   ((%test f 'hypernym)
+		    (if (%test f 'type 'individual) 'ISA 'GENLS))
 		   ((%test f genls) 'GENLS)
 		   ((%test f implies) 'ISA)
 		   ((%test f partof) 'PARTOF)
@@ -433,8 +434,10 @@
 			 (%get f implies)
 			 (%get f partof))))))))
 
-(define (make%id! f (lang default-language))
-  (store! f '%id (make%id f lang)))
+(defambda (make%id! f (lang default-language))
+  (do-choices f
+    (store! f '%id (make%id f lang)))
+  (if (singleton? f) (get f '%id)))
 
 (define (make-wordform-id f)
   `(WORDFORM ,(get f 'word)
