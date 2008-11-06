@@ -46,62 +46,62 @@ function fdbAddAttributes(elt,attribs)
   else return elt;
 }
 
-function fdbNewElement(tag,class)
+function fdbNewElement(tag,classname)
 {
   var elt=document.createElement(tag);
-  elt.className=class;
+  elt.className=classname;
   fdbAddElements(elt,arguments,2);
   return elt;
 }
 
-function fdbNewElementW(tag,class,attribs)
+function fdbNewElementW(tag,classname,attribs)
 {
   var elt=document.createElement(tag);
-  elt.className=class;
+  elt.className=classname;
   fdbAddAttributes(elt,attribs);
   fdbAddElements(elt,arguments,3);
   return elt;
 }
 
-function fdbSpan(class)
+function fdbSpan(classname)
 {
   var elt=document.createElement('span');
-  elt.className=class;
+  elt.className=classname;
   fdbAddElements(elt,arguments,1);
   return elt;
 }
 
-function fdbSpanW(class,attribs)
+function fdbSpanW(classname,attribs)
 {
   var elt=document.createElement('span');
-  elt.className=class;
+  elt.className=classname;
   fdbAddAttributes(elt,attribs);
   fdbAddElements(elt,arguments,2);
   return elt;
 }
 
-function fdbDiv(class)
+function fdbDiv(classname)
 {
   var elt=document.createElement('div');
-  elt.className=class;
+  elt.className=classname;
   fdbAddElements(elt,arguments,1);
   return elt;
 }
 
-function fdbDivW(class,attribs)
+function fdbDivW(classname,attribs)
 {
   var elt=document.createElement('div');
-  elt.className=class;
+  elt.className=classname;
   fdbAddAttributes(elt,attribs);
   fdbAddElements(elt,arguments,2);
   return elt;
 }
 
-function fdbInput(type,name,value,class)
+function fdbInput(type,name,value,classname)
 {
   var elt=document.createElement('input');
   elt.type=type; elt.name=name; elt.value=value;
-  if (class) elt.className=class;
+  if (classname) elt.className=classname;
   return elt;
 }
 

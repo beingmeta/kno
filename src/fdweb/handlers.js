@@ -1,12 +1,3 @@
-/* Various utility handlers */
-
-function _logger(string)
-{
-  if (fdbLog) fdbLog(string);
-  else if ((console) && (console.log))
-    console.log(string);
-}
-
 /* INPUT SHOWHELP */
 
 function block_eltp(elt)
@@ -138,9 +129,9 @@ function fdb_autoprompt_setup()
 	if (elt.className==='autoprompt')
 	  prompt=elt.title;
 	else continue;
-      // _logger('Considering '+elt+' class='+elt.className+' value='+elt.value);
+      // fdbLog('Considering '+elt+' class='+elt.className+' value='+elt.value);
       if ((elt.value==='') || (elt.value===prompt)) {
-	// _logger('Marking empty');
+	// fdbLog('Marking empty');
 	elt.value=prompt;
 	elt.setAttribute('isempty','yes');}}}
 }
@@ -172,7 +163,7 @@ function fdb_tab_onclick(evt)
     var parent=elt.parentNode;
     var sibs=parent.childNodes;
     if (content===null) {
-      _logger("No content for "+content_id);
+      fdbLog("No content for "+content_id);
       return;}
     // evt.preventDefault(); evt.cancelBubble=true;
     // This lets forms pass tab information along
@@ -256,7 +247,7 @@ function fdb_checkspan_onclick(event)
     else if ((target.tagName==='A') || (target.tagName==='INPUT'))
       return;
     else target=target.parentNode;}
-  // if (target) _logger('Found checkspan '+target);
+  // if (target) fdbLog('Found checkspan '+target);
   if (target) {
     var children=target.childNodes;
     var i=0; while (i<children.length) {
@@ -464,11 +455,10 @@ function fdb_mark_reduced(elt)
 
 function fdb_setup()
 {
-  _logger("fdb_setup running")
+  fdbLog("fdb_setup running");
   fdb_autoprompt_setup();
   fdb_checkspan_setup(null);
   fdb_adjust_font_sizes();
   fdb_mark_reduced();
-  _logger("fdb_setup run")
-
+  fdbLog("fdb_setup run");
 }
