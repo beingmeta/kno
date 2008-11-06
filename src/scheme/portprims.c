@@ -447,6 +447,34 @@ static fdtype warning_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+static int get_loglevel(fdtype level_arg)
+{
+  if (FD_FIXNUMP(level_arg)) return FD_FIX2INT(level_arg);
+  else return -1;
+}
+
+static fdtype log_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype level_arg=fd_get_arg(expr,1);
+  fdtype body=fd_get_body(expr,2);
+  int level=get_loglevel(level_arg);
+  U8_OUTPUT *out=u8_open_output_string(1024);
+  U8_OUTPUT *stream=fd_get_default_output();
+  fd_set_default_output(out);
+  while (FD_PAIRP(body)) {
+    fdtype value=fasteval(FD_CAR(body),env);
+    if (printout_helper(out,value)) fd_decref(value);
+    else {
+      fd_set_default_output(stream);
+      u8_close_output(out);
+      return value;}
+    body=FD_CDR(body);}
+  fd_set_default_output(stream);
+  u8_logger(level,NULL,out->u8_outbuf);
+  u8_close_output(out);
+  return FD_VOID;
+}
+
 static fdtype logif_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1), value=FD_FALSE;
@@ -1280,13 +1308,22 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"PRINTOUT",printout_handler);
   fd_defspecial(fd_scheme_module,"LINEOUT",lineout_handler);
   fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_handler);
-  fd_defspecial(fd_scheme_module,"MESSAGE",message_handler);
+
+  /* Logging functions for specific levels */
   fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
   fd_defspecial(fd_scheme_module,"STATUS",status_handler);
   fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
-  fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
-  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
+
+  /* Generic logging function, always outputs */
+  fd_defspecial(fd_scheme_module,"MESSAGE",message_handler);
   fd_defspecial(fd_scheme_module,"%LOGGER",message_handler);
+
+  /* Logging with message level */
+  fd_defspecial(fd_scheme_module,"LOGMSG",log_handler);
+  /* Conditional logging */
+  fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
+  /* Conditional logging with message level */
+  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
