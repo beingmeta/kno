@@ -21,11 +21,12 @@
 ;;; EXPORTS
 
 ;; Looking up words
-(module-export! '{brico/ref
-		  lookup-word lookup-term parse-term
-		  lookup-combo vary-word word-override?
-		  lookup-word/prefetch lookup-term/prefetch
-		  |#@| brico/resolve})
+(module-export!
+ '{brico/ref
+   lookup-word lookup-term parse-term
+   lookup-combo vary-word word-override?
+   lookup-word/prefetch lookup-term/prefetch
+   |#@| brico/resolve brico/ref+})
 
 (define %nosubst '{morphrules termrules})
 
@@ -433,47 +434,58 @@
 (define (brico/resolve term (language default-language) (tryhard 2))
   (cdr ((or remote-lookup-term lookup-term) term language tryhard)))
 
-;;(define (absfreq c) (choice-size (?? refterms c)))
+(define ref-default-opts #[tryhard 2])
 
-(define ref-absolute-threshold #f)
-(define ref-relative-threshold #f)
+(defambda (reduce-possible possible opts (asvec #f))
+  (let* ((topn (getopt opts 'topn #f))
+	 (absthresh (getopt opts 'absthresh))
+	 (maxthresh (getopt opts 'maxthresh))
+	 (sumthresh (getopt opts 'maxthresh))
+	 (freqfn (getopt opts 'freqfn getabsfreq))
+	 (freqs (make-hashtable))
+	 (freqmax 0)
+	 (freqsum 0))
+    (do-choices (p possible)
+      (let ((freq (try (freqfn p) 1)))
+	(store! freqs p freq)
+	(when (> freq freqmax) (set! freqmax freq))
+	(set! freqsum (+ freqsum freq))))
+    (let* ((thresh
+	    (inexact->exact
+	     (largest (choice
+		       (tryif absthresh absthresh)
+		       (tryif maxthresh (* freqmax maxthresh))
+		       (tryif sumthresh (* freqsum sumthresh))))))
+	   (reduced (if (exists? thresh)
+			(pick possible freqs > thresh)
+			possible)))
+      ;; (%watch thresh reduced opts)
+      (if asvec
+	  (subseq (rsorted reduced freqs)
+		  0 (and topn (min topn (choice-size reduced))))
+	  (if (and topn (> (choice-size reduced) topn))
+	      (elts (rsorted reduced freqs) 0 topn)
+	      reduced)))))
 
-(define (brico/ref term (language default-language) (tryhard 2))
-  (let ((possible
-	 (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
-	      ((or remote-lookup-term lookup-term) term language tryhard))))
+(define (brico/ref+ term (language default-language) (opts ref-default-opts))
+  (let* ((tryhard (getopt opts 'tryhard))
+	 (asvec (getopt opts 'asvec #f))
+	 (possible
+	  (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
+	       ((or remote-lookup-term lookup-term) term language tryhard))))
     (if (fail? possible) {}
 	(try (singleton possible)
-	     ;; This biases towards terms which aren't defined
-	     ;;  in terms of other terms.
-;;; 	     (singleton (difference possible
-;;; 				    (for-choices (p possible)
-;;; 				      (difference (?? defterms p) p))))
-	     (let ((best (largest possible getabsfreq)))
-	       (try
-		;; If there aren't any norm competitors, go with the best
-		(tryif (fail? (difference (?? @?en_norm term) best))
-		       best)
-		;; If there's only one meaning above the absolute threshold,
-		;;  use it.
-		(tryif ref-absolute-threshold
-		       (singleton
-			(pick possible getabsfreq > ref-absolute-threshold)))
-		;; This is complicated but can handle cases where there
-		;;  is substantial ambiguity but there is only one dominant
-		;;  meaning.  Basically, if 
-		(tryif (and tryhard (> tryhard 1) ref-relative-threshold)
-		       (let ((relfreq (make-hashtable))
-			     (sum 0))
-			 (do-choices (m possible)
-			   (let ((score (try (getabsfreq m) 2)))
-			     (hashtable-increment! relfreq score)
-			     (set! sum (+ sum score))))
-			 (tryif (> (/~ (get relfreq best) sum)
-				   ref-relative-threshold))))))))))
+	     (reduce-possible possible opts asvec)
+	     possible))))
+(define (brico/ref term (language default-language) (opts ref-default-opts))
+  (let ((norm (?? (get norm-map language) term )))
+    (if (singleton? norm)
+	(if (testopt opts 'asvec #f) (vector norm) norm)
+	(brico/ref+ term language opts))))
 
-(varconfig! brico:ref:absthresh ref-absolute-threshold)
-(varconfig! brico:ref:relthresh ref-relative-threshold)
+(optconfig! brico:ref:absthresh ref-default-opts absthresh)
+(optconfig! brico:ref:maxthresh ref-default-opts maxthresh)
+(optconfig! brico:ref:sumthresh ref-default-opts sumthresh)
 
 ;; This is used with the # parser trick so that #@"dog:animal" works
 (define |#@| brico/ref)
