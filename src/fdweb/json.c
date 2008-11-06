@@ -166,6 +166,8 @@ static fdtype jsonparseprim(fdtype in)
   else return fd_type_error("string or stream","jsonparse",in);
 }
 
+/* JSON output */
+
 /* Module initialization */
 
 FD_EXPORT void fd_init_json_c()

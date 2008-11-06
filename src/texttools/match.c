@@ -2190,7 +2190,7 @@ static fdtype isalpha_plus_match
   fdtype match_points=FD_EMPTY_CHOICE;
   u8_unichar ch=string_ref(string+off);
   if (u8_isalpha(ch)) {
-    while (u8_isalpha(ch)) {
+    while ((u8_isalpha(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
 	match_points=FD_INT2DTYPE(off);
@@ -2227,7 +2227,7 @@ static fdtype ispunct_plus_match
   fdtype match_points=FD_EMPTY_CHOICE;
   u8_unichar ch=string_ref(string+off);
   if (u8_ispunct(ch)) {
-    while (u8_ispunct(ch)) {
+    while ((u8_ispunct(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
 	match_points=FD_INT2DTYPE(off);
@@ -2264,7 +2264,7 @@ static fdtype iscntrl_plus_match
   fdtype match_points=FD_EMPTY_CHOICE;
   u8_unichar ch=string_ref(string+off);
   if (u8_isctrl(ch)) {
-    while (u8_isctrl(ch)) {
+    while ((u8_isctrl(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
 	match_points=FD_INT2DTYPE(off);
@@ -2301,7 +2301,7 @@ static fdtype islower_plus_match
   fdtype match_points=FD_EMPTY_CHOICE;
   u8_unichar ch=string_ref(string+off);
   if (u8_islower(ch)) {
-    while (u8_islower(ch)) {
+    while ((u8_islower(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
 	match_points=FD_INT2DTYPE(off);
@@ -2338,7 +2338,7 @@ static fdtype isupper_plus_match
   fdtype match_points=FD_EMPTY_CHOICE;
   u8_unichar ch=string_ref(string+off);
   if (u8_isupper(ch)) {
-    while (u8_isupper(ch)) {
+    while ((u8_isupper(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
 	match_points=FD_INT2DTYPE(off);
@@ -2828,7 +2828,7 @@ static fdtype maxlen_match
   else {
     int maxlen=FD_FIX2INT(lim_arg);
     int maxbytes=u8_byteoffset(string+off,maxlen,lim);
-    int newlim=((maxbytes<0) ? (lim) : (maxbytes));
+    int newlim=((maxbytes<0) ? (lim) : (off+maxbytes));
     return fd_text_domatch(cpat,next,env,string,off,newlim,flags);}
 }
 
