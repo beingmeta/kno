@@ -35,7 +35,9 @@
 			  (choice->hashset (os/convert (hashset-elts value)))
 			  (let ((newtable (frame-create #f)))
 			    (do-choices (key (getkeys value))
-			      (store! newtable key (os/convert (get value key))))
+			      (store! newtable
+				      (os/convert key)
+				      (os/convert (get value key))))
 			    newtable)))
 		  value)))))
 
