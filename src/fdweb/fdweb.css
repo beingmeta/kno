@@ -10,8 +10,8 @@ span.nobreak { white-space: nowrap; }
 /* Autoprompt classes */
 
 input.autoprompt {
-  font-family: sans,sans-serif;}
-input.autoprompt[isempty] { font-style: italic; }
+  font-family: sans,sans-serif; }
+input.autoprompt[isempty] { font-style: italic; color: gray;}
 input.autoprompt_empty {
   font-family: sans,sans-serif; font-weight: normal; font-style: italic;
   color: gray; height: 18px; }

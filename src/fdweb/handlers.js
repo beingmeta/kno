@@ -9,7 +9,9 @@ function block_eltp(elt)
 function fdb_showhelp_onfocus(evt)
 {
   var target=evt.target;
-  if ((target.tagName === 'INPUT') && (target.hasAttribute('HELPTEXT'))) {
+  if ((target.nodeType==1) &&
+      (target.tagName === 'INPUT') &&
+      (target.hasAttribute('HELPTEXT'))) {
     var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
     if (helptext) {
       if (block_eltp(helptext))
@@ -20,7 +22,9 @@ function fdb_showhelp_onfocus(evt)
 function fdb_hidehelp_onblur(evt)
 {
   var target=evt.target;
-  if ((target.tagName === 'INPUT') && (target.hasAttribute('HELPTEXT'))) {
+  if ((target.nodeType==1) &&
+      (target.tagName === 'INPUT') &&
+      (target.hasAttribute('HELPTEXT'))) {
     var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
     if (helptext) helptext.style.display='none';}
 }
@@ -30,8 +34,10 @@ function fdb_hidehelp_onblur(evt)
 function fdb_showhide_onclick(evt)
 {
   var target=evt.target;
-  while (target)
-    if ((target.hasAttribute('CLICKTOHIDE')) ||
+  // fdbLog('target='+target);
+  while (target.parentNode)
+    if ((target.hasAttribute!=null) &&
+	(target.hasAttribute('CLICKTOHIDE')) ||
 	(target.hasAttribute('CLICKTOSHOW')) ||
 	(target.hasAttribute('CLICKTOTOGGLE'))) {
       var tohide=target.getAttribute('CLICKTOHIDE');
@@ -73,8 +79,9 @@ function fdb_showhide_onclick(evt)
 function fdb_setclear_onclick(evt)
 {
   var target=evt.target;
-  while (target)
-    if ((target.hasAttribute('SETONCLICK'))) {
+  while (target.parentNode)
+    if ((target.hasAttribute!=null) &&
+	(target.hasAttribute('SETONCLICK'))) {
       var toset=target.getAttribute('SETONCLICK');
       var attrib=target.getAttribute('SETATTRIB');
       var val=target.getAttribute('ATTRIBVAL');
@@ -97,7 +104,7 @@ function fdb_setclear_onclick(evt)
 function fdb_autoprompt_onfocus(evt)
 {
   var elt=evt.target;
-  if ((elt) && (elt.hasAttribute('isempty'))) {
+  if ((elt) && (elt.hasAttribute) && (elt.hasAttribute('isempty'))) {
     elt.value='';
     elt.removeAttribute('isempty');}
   fdb_showhelp_onfocus(evt);
@@ -129,9 +136,9 @@ function fdb_autoprompt_setup()
 	if (elt.className==='autoprompt')
 	  prompt=elt.title;
 	else continue;
-      // fdbLog('Considering '+elt+' class='+elt.className+' value='+elt.value);
-      if ((elt.value==='') || (elt.value===prompt)) {
-	// fdbLog('Marking empty');
+      fdbLog('Considering '+elt+' class='+elt.className+' value='+elt.value);
+      if ((elt.value=='') || (elt.value==prompt)) {
+	fdbLog('Marking empty');
 	elt.value=prompt;
 	elt.setAttribute('isempty','yes');}}}
 }
@@ -152,8 +159,8 @@ function fdb_tab_onclick(evt)
 {
   var elt=evt.target;
   if (elt) {
-    while (elt)
-      if (elt.hasAttribute("contentid")) break;
+    while (elt.parentNode)
+      if ((elt.hasAttribute) && (elt.hasAttribute("contentid"))) break;
       else elt=elt.parentNode;
     if (elt===null) return;
     var select_var=elt.getAttribute('selectvar');
@@ -201,8 +208,9 @@ function addBrowserSearchPlugin(spec,name,cat)
 function fdb_flexpand_onclick(event)
 {
   var target=event.target; var functional=false;
-  while (target)
-    if (target.hasAttribute('expanded')) break;
+  while (target.parentNode)
+    if (!(target.hasAttribute!=null)) target=target.parentNode;
+    else if (target.hasAttribute('expanded')) break;
     else if (target.tagName==='A')
       return;
     else if ((target.tagName==='SELECT') ||
@@ -242,8 +250,9 @@ function _fdb_close_window(event)
 function fdb_checkspan_onclick(event)
 {
   var target=event.target;
-  while (target) {
-    if (target.className==='checkspan') break;
+  while (target.parentNode) {
+    if (target.nodeType!=1) target=target.parentNode;
+    else if (target.className==='checkspan') break;
     else if ((target.tagName==='A') || (target.tagName==='INPUT'))
       return;
     else target=target.parentNode;}
@@ -444,7 +453,8 @@ function fdb_mark_reduced(elt)
 	if (classinfo.search(/\breduced\b/)>=0) {}
 	else elt.className=classinfo+' reduced';
       else elt.className='reduced';
-      if (console.log) console.log('Reducing '+elt+' to class '+elt.className);}}
+      // fdbLog('Reducing '+elt+' to class '+elt.className);
+    }}
   else {
     var elts=document.getElementsByClassName('autoreduce');
     var i=0; while (i<elts.length) fdb_mark_reduced(elts[i++]);}
