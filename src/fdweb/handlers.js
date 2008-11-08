@@ -136,9 +136,9 @@ function fdb_autoprompt_setup()
 	if (elt.className==='autoprompt')
 	  prompt=elt.title;
 	else continue;
-      fdbLog('Considering '+elt+' class='+elt.className+' value='+elt.value);
+      // fdbLog('Considering '+elt+' class='+elt.className+' value='+elt.value);
       if ((elt.value=='') || (elt.value==prompt)) {
-	fdbLog('Marking empty');
+	// fdbLog('Marking empty');
 	elt.value=prompt;
 	elt.setAttribute('isempty','yes');}}}
 }
