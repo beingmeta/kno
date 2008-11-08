@@ -126,8 +126,10 @@ static fdtype extdb_makeproc(int n,fdtype *args)
 {
   if (FD_EXPECT_TRUE
       ((FD_PRIM_TYPEP(args[0],fd_extdb_type)) && (FD_STRINGP(args[1])))) {
-    struct FD_EXTDB *extdb=FD_GET_CONS(args[0],fd_extdb_type,struct FD_EXTDB *);
-    fdtype dbspec=args[0], query=args[1], colinfo=((n>2) ? (args[2]) : (FD_VOID));
+    struct FD_EXTDB *extdb=
+      FD_GET_CONS(args[0],fd_extdb_type,struct FD_EXTDB *);
+    fdtype dbspec=args[0], query=args[1];
+    fdtype colinfo=((n>2) ? (args[2]) : (FD_VOID));
     if (extdb==NULL) return FD_ERROR_VALUE;
     else if (!(FD_STRINGP(query))) 
       return fd_type_error("string","extdb_makeproc",query);

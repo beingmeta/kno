@@ -95,6 +95,7 @@ static fdtype open_mysql
   char *host, *username, *passwd, *dbstring, *sockname;
   int portno=0, flags=0;
   struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
+  my_bool reconnect=1;
   /* Initialize the cons (does a memset too) */
   FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
   /* Initialize the MYSQL side of things (after the memset!) */
@@ -126,7 +127,13 @@ static fdtype open_mysql
     u8_free(dbp);
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     return FD_ERROR_VALUE;} 
-  else if (mysql_set_character_set(dbp->db,"utf8")) {
+  if (mysql_set_character_set(dbp->db,"utf8")) {
+    const char *errmsg=mysql_error(&(dbp->_db));
+    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    mysql_close(dbp->db);
+    u8_free(dbp);
+    return FD_ERROR_VALUE;}
+  if (mysql_options(dbp->db,MYSQL_OPT_RECONNECT,&reconnect)) {
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     mysql_close(dbp->db);
