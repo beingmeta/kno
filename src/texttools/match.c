@@ -2435,10 +2435,10 @@ static fdtype iscsym_match
 {
   u8_byteoff i=off; u8_unichar ch=string_ref(string+off);
   if (csymbol_startp(string,off) == 0) return FD_EMPTY_CHOICE;
-  if ((isalpha(ch)) || (ch == '_'))
+  if ((u8_isalpha(ch)) || (ch == '_'))
     while (i < lim) {
       u8_unichar ch=string_ref(string+i);
-      if ((isalnum(ch)) || (ch == '_')) i=forward_char(string,i);
+      if ((u8_isalnum(ch)) || (ch == '_')) i=forward_char(string,i);
       else break;}
   if (i > off) return FD_INT2DTYPE(i);
   else return FD_EMPTY_CHOICE;
@@ -2451,8 +2451,8 @@ static u8_byteoff iscsym_search
   int good_start=csymbol_startp(string,off);
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
-    if ((good_start) && (isalpha(ch))) return prev-string;
-    if (isalnum(ch) || (ch == '_'))
+    if ((good_start) && (u8_isalpha(ch))) return prev-string;
+    if (u8_isalnum(ch) || (ch == '_'))
       good_start=0; else good_start=1;}
   return -1;
 }
@@ -2564,7 +2564,7 @@ static u8_byteoff aword_search
   int good_start=word_startp(string,off);
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
-    if ((good_start) && (isalpha(ch))) return prev-string;
+    if ((good_start) && (u8_isalpha(ch))) return prev-string;
     if (u8_isspace(ch)) good_start=1; else good_start=0;}
   return -1;
 }
@@ -2623,7 +2623,7 @@ static u8_byteoff capword_search
   return -1;
 }
 
-#define isoctdigit(x) ((isdigit(x)) && (x < '8'))
+#define isoctdigit(x) ((x<128) && (isdigit(x)) && (x < '8'))
 
 static fdtype anumber_match
   (fdtype pat,fdtype next,fd_lispenv env,
@@ -2679,8 +2679,9 @@ static u8_byteoff anumber_search
 #define isprinting(x) ((u8_isalnum(x)) || (u8_ispunct(x)))
 
 #define is_not_mailidp(c) \
-   ((!(isprinting(c))) || (u8_isspace(c)) || (c == '<') || \
-       (c == ',') || (c == '(') || (c == '>') || (c == '<'))
+  (((c<128) && (!(isprinting(c)))) || \
+   (u8_isspace(c)) || (c == '<') || \
+   (c == ',') || (c == '(') || (c == '>') || (c == '<'))
 
 static fdtype ismailid_match
   (fdtype pat,fdtype next,fd_lispenv env,
