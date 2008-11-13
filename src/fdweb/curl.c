@@ -417,7 +417,8 @@ static fdtype set_curlopt
 
 static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
-  INBUF data; CURLcode retval; int consed_handle=0, http_response=200;
+  INBUF data; CURLcode retval;
+  int consed_handle=0; long http_response=200;
   fdtype result=fd_init_slotmap(NULL,0,NULL), cval, handle;
   fdtype url=fdtype_string(urltext);
   char errbuf[CURL_ERROR_SIZE];
@@ -427,7 +428,7 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,&errbuf);
+  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
@@ -545,7 +546,7 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
 {
   INBUF data; struct FD_CURL_HANDLE *h; CURLcode retval;
   fdtype url, result, cval;
-  int flags, free_handle=0, http_response=0;
+  int flags, free_handle=0; long http_response=0;
   char errbuf[CURL_ERROR_SIZE];
   result=handle_url_args(arg1,arg3,&url,&h,&free_handle);
   if (FD_ABORTP(result)) return result;
@@ -558,7 +559,7 @@ static fdtype urlxml(fdtype arg1,fdtype arg2,fdtype arg3)
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,&errbuf);
+  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     fdtype errval=fd_err(CurlError,"urlxml",errbuf,url);
@@ -686,12 +687,12 @@ static fdtype urlpost(int n,fdtype *args)
   if ((n-start)==1) {
     if (FD_STRINGP(args[start]))
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
-		       FD_STRDATA(args[start]));
+		       (char *) (FD_STRDATA(args[start])));
     else if (FD_PACKETP(args[start])) {
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,
 		       FD_PACKET_LENGTH(args[start]));
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
-		       FD_PACKET_DATA(args[start]));}
+		       ((char *)(FD_PACKET_DATA(args[start]))));}
     else {
       if (consed_handle) fd_decref((fdtype)h);
       return fd_err(fd_TypeError,"CURLPOST",u8_strdup("postdata"),

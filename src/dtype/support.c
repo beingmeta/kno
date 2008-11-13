@@ -1237,7 +1237,8 @@ void fd_init_support_c()
 #endif
 
 #if 0
-  fd_register_config("GOOGLEPROFILE",_("File to store profile output from Google perftools"),
+  fd_register_config("GOOGLEPROFILE",
+		     _("File to store profile output from Google perftools"),
 		     get_google_profile,set_google_profile,
 		     NULL);
 #endif

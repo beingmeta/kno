@@ -224,7 +224,7 @@ static void calltrack_call(u8_string name)
 	if (calltrack_sensors[i].dblfcn)
 	  fprintf(f," %f",calltrack_sensors[i++].dblfcn());
 	else if (calltrack_sensors[i].intfcn)
-	  fprintf(f," %d",calltrack_sensors[i++].intfcn());
+	  fprintf(f," %ld",calltrack_sensors[i++].intfcn());
 	else fprintf(f," 0");
       else i++;
     fprintf(f,"\n");}
@@ -244,7 +244,7 @@ static void calltrack_return(u8_string name)
 	if (calltrack_sensors[i].dblfcn)
 	  fprintf(f," %f",calltrack_sensors[i++].dblfcn());
 	else if (calltrack_sensors[i].intfcn)
-	  fprintf(f," %d",calltrack_sensors[i++].intfcn());
+	  fprintf(f," %ld",calltrack_sensors[i++].intfcn());
 	else fprintf(f," 0");
       else i++;
     fprintf(f,"\n");}

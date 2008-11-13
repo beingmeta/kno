@@ -318,12 +318,12 @@ int fd_unparse(u8_output out,fdtype x)
       if (data<n_const_names)
 	return u8_puts(out,const_names[data]);
       else {
-	char buf[24]; sprintf(buf,"#!%x",x);
+	char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
 	return u8_puts(out,buf);}
     else if (fd_unparsers[itype])
       return fd_unparsers[itype](out,x);
     else {
-      char buf[24]; sprintf(buf,"#!%x",x);
+      char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
       return u8_puts(out,buf);}}
   case fd_cons_ptr_type: {/* output cons */
     struct FD_CONS *cons=FD_CONS_DATA(x);
@@ -334,9 +334,9 @@ int fd_unparse(u8_output out,fdtype x)
       return fd_unparse_error(out,x,_("no handler"));
     else {
       char buf[128]; int retval;
-      sprintf(buf,"#!%lx",x);
+      sprintf(buf,"#!%lx",(unsigned long)x);
       retval=u8_puts(out,buf);
-      sprintf(buf,"#!%lx (type=%d)",x,ct);
+      sprintf(buf,"#!%lx (type=%d)",(unsigned long)x,ct);
       u8_log(LOG_WARN,fd_CantUnparse,buf);
       return retval;}}
   }
