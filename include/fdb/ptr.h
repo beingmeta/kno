@@ -276,6 +276,19 @@ typedef unsigned long long FD_OID;
 #define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #endif
 
+#if FD_STRUCT_OIDS
+FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
+{
+  FD_OID result; result.hi=hi; result.lo=lo;
+  return result;
+}
+#else
+FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
+{
+  return ((((FD_OID)hi)<<32)|((FD_OID)lo));
+}
+#endif
+
 /* An OID references has 10 bits of base index and 20 bits of offset.
    This is encoded in a DTYPE pointer with the offset in the high 20 bits
    and the base in the lower portion. */

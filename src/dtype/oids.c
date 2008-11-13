@@ -9,6 +9,7 @@ static char versionid[] =
   "$Id$";
 
 #include "fdb/dtype.h"
+#include "fdb/preoids.h"
 
 /* For sprintf */
 #include <stdio.h>
@@ -85,6 +86,22 @@ static u8_string _simple_oid_info(fdtype oid)
   else return "not an oid!";
 }
 
+fdtype fd_preoids=FD_EMPTY_CHOICE;
+
+static void init_oids()
+{
+  int i=0; while (i<N_OID_INITS) {
+    FD_OID base=FD_MAKE_OID(_fd_oid_inits[i].hi,_fd_oid_inits[i].lo);
+    unsigned int cap=_fd_oid_inits[i].cap;
+    int j=0, lim=1+(cap/(FD_OID_BUCKET_SIZE));
+    while (j<lim) {
+      fdtype oid=fd_make_oid(base);
+      FD_ADD_TO_CHOICE(fd_preoids,oid);
+      base=FD_OID_PLUS(base,FD_OID_BUCKET_SIZE);
+      j++;}
+    i++;}
+}
+
 void fd_init_oids_c()
 {
   fd_register_source_file(versionid);
@@ -96,4 +113,6 @@ void fd_init_oids_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(base_oid_lock));
 #endif
+
+  init_oids();
 }
