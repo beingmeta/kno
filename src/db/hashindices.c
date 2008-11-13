@@ -2190,7 +2190,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   update_hash_index_ondisk
     (hx,hx->hxflags,total_keys,changed_buckets,bucket_locs);
   if (fd_acid_files) {
-    off_t end; off_t recovery_pos;
+    int retval=0; off_t end; off_t recovery_pos;
 #if FD_DEBUG_HASHINDICES
     u8_message("Erasing old recovery information");
 #endif
@@ -2198,7 +2198,11 @@ static int hash_index_commit(struct FD_INDEX *ix)
     /* Now erase the recovery information, since we don't need it anymore. */
     end=fd_endpos(stream); fd_movepos(stream,-8);
     recovery_pos=fd_dtsread_8bytes(stream);
-    ftruncate(stream->fd,recovery_pos);}
+    retval=ftruncate(stream->fd,recovery_pos);
+    if (retval<0)
+      u8_log(LOG_ERR,"hash_index_commit",
+	     "Trouble truncating recovery information for %s",
+	     hx->cid);}
 
   /* Remap the file */
   if (hx->mmap) {

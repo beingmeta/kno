@@ -352,14 +352,16 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
        that doesn't require recovery and truncate away the saved
        recovery information. */
     if (fp->offsets) {
-      off_t end=fd_endpos(stream);
+      off_t end=fd_endpos(stream); int retval;
       fd_setpos(stream,0);
       /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
 	 fd_write_file_pool_recovery_data. */
       fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
       fd_dtsflush(stream); fsync(stream->fd);
       fd_movepos(stream,-(4*(fp->capacity+1)));
-      ftruncate(stream->fd,end-(4*(fp->capacity+1)));}
+      retval=ftruncate(stream->fd,end-(4*(fp->capacity+1)));
+      if (retval<0) {
+	retcode=-1; u8_graberr(errno,"file_pool_storen",fp->cid);}}
     else fd_dtsflush(stream);
     /* Update the offsets, if you have any */
     if (fp->offsets==NULL) {}
@@ -406,7 +408,7 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
 {
   /* This reads the offsets vector written at the end of the file
      during commitment. */
-  int i=0, len=fp->capacity, load; off_t new_end;
+  int i=0, len=fp->capacity, load; off_t new_end, retval;
   unsigned int *offsets=u8_malloc(4*len);
   struct FD_DTYPE_STREAM *s=&(fp->stream);
   fd_endpos(s); new_end=fd_movepos(s,-(4+4*len));
@@ -421,9 +423,10 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
   fd_setpos(s,0);
   fd_dtswrite_4bytes(s,FD_FILE_POOL_MAGIC_NUMBER);
   fd_dtsflush(s); fp->load=load;
-  ftruncate(s->fd,new_end);
-  fsync(s->fd);
-  return 0;
+  retval=ftruncate(s->fd,new_end);
+  if (retval<0) return retval;
+  else retval=fsync(s->fd);
+  return retval;
 }
 
 static fdtype file_pool_alloc(fd_pool p,int n)

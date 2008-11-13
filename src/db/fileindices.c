@@ -1016,6 +1016,7 @@ static int file_index_commit(struct FD_INDEX *ix)
     /* Now, start writing the offsets themsleves */
     write_offsets(fx,n,kdata,new_offsets);
     if (fd_acid_files) {
+      int retval=0;
       if (new_offsets) fd_setpos(stream,0);
       if (new_offsets==NULL) {}
       else if (fx->hashv==1)
@@ -1027,7 +1028,11 @@ static int file_index_commit(struct FD_INDEX *ix)
       if (new_offsets) {
 	off_t end=fd_endpos(stream);
 	fd_movepos(stream,-(4*(fx->n_slots)));
-	ftruncate(stream->fd,end-(4*(fx->n_slots)));}}
+	retval=ftruncate(stream->fd,end-(4*(fx->n_slots)));
+	if (retval<0)
+	  u8_log(LOG_ERR,"file_index_commit",
+		 "Trouble truncating recovery information from %s",
+		 fx->cid);}}
     fd_unlock_struct(fx);
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
@@ -1059,7 +1064,7 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
 {
   /* This reads the offsets vector written at the end of the file
      during commitment. */
-  int i=0, len=fx->n_slots; off_t new_end;
+  int i=0, len=fx->n_slots, retval=0; off_t new_end;
   unsigned int *offsets=u8_malloc(4*len), magic_no;
   struct FD_DTYPE_STREAM *s=&(fx->stream);
   fd_endpos(s); new_end=fd_movepos(s,-(4*len));
@@ -1071,9 +1076,10 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
   fd_setpos(s,0); magic_no=fd_dtsread_4bytes(s);
   fd_dtswrite_4bytes(s,(magic_no&(~0x20)));
   fd_dtsflush(s);
-  ftruncate(s->fd,new_end);
-  fsync(s->fd);
-  return 0;
+  retval=ftruncate(s->fd,new_end);
+  if (retval<0) return retval;
+  else retval=fsync(s->fd);
+  return retval;
 }
 
 static void file_index_close(fd_index ix)
