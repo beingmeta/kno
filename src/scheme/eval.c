@@ -1266,6 +1266,8 @@ FD_EXPORT fdtype _fd_dbg(fdtype x)
   return fd_incref(result);
 }
 
+void (*fd_dump_backtrace)(u8_string bt);
+
 static fdtype dbg_prim(fdtype x,fdtype msg)
 {
   if (FD_VOIDP(msg))

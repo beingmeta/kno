@@ -437,9 +437,16 @@ int main(int argc,char **argv)
 	while (root->u8x_prev) root=root->u8x_prev;
 	fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
 	fd_print_exception(&out,root);
-	fd_print_backtrace(&out,ex,80);
+	fd_summarize_backtrace(&out,ex);
+	u8_printf(&out,"\n");
+	if (fd_dump_backtrace==NULL)
+	  fd_print_backtrace(&out,ex,80);
 	fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
 	fputs(out.u8_outbuf,stderr);
+	if (fd_dump_backtrace) {
+	  out.u8_outptr=out.u8_outbuf;
+	  fd_print_backtrace(&out,ex,120);
+	  fd_dump_backtrace(out.u8_outbuf);}
 	u8_free(out.u8_outbuf);
 	u8_free_exception(ex,1);}
       else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}

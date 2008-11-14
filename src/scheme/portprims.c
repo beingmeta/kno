@@ -1127,12 +1127,31 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception scan=ex; u8_condition cond=NULL;
   while (scan) {
+    fdtype irritant=fd_exception_xdata(scan); int show_irritant=1;
+    if (scan!=ex) u8_printf(out," <");
     if (scan->u8x_cond!=cond) {
       cond=scan->u8x_cond; u8_printf(out," (%m)",cond);}
+    if (scan->u8x_context)
+      if (scan->u8x_context==fd_eval_context)
+	if ((FD_PAIRP(irritant)) && (!(FD_PAIRP(FD_CAR(irritant))))) {
+	  u8_printf(out," (%q ...)",FD_CAR(irritant));
+	  show_irritant=0;}
+	else {}
+      else if (scan->u8x_context==fd_apply_context)
+	if ((FD_VECTORP(irritant)) && (FD_VECTOR_LENGTH(irritant)>0)) {
+	  u8_printf(out," %q",FD_VECTOR_REF(irritant,0));
+	  show_irritant=0;}
+	else {}
+      else if ((scan->u8x_context) && (strcmp(scan->u8x_context,":SPROC")==0)) {
+	show_irritant=0;}
+      else if ((scan->u8x_context) && (*(scan->u8x_context)==':')) {
+	u8_printf(out," %s",scan->u8x_context);
+	show_irritant=0;}
+      else u8_printf(out," %s",scan->u8x_context);
     if (scan->u8x_details)
       u8_printf(out," [%s]",scan->u8x_details);
-    else if (scan->u8x_context)
-      u8_printf(out," <%s>",scan->u8x_context);
+    if (show_irritant)
+      u8_printf(out," <%q>",irritant);
     scan=scan->u8x_prev;}
 }
 

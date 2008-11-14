@@ -248,15 +248,18 @@ static void *thread_call(void *data)
     u8_string errstring=fd_errstring(ex);
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,
-	     "Thread evaluating %q encountered an error: %s",
-	     tstruct->evaldata.expr,errstring);
-    else u8_log(LOG_WARN,ThreadReturnError,"Thread apply %q returned %q",
+	     "%q ==> %s",tstruct->evaldata.expr,errstring);
+    else u8_log(LOG_WARN,ThreadReturnError,"%q ==> %s",
 		tstruct->applydata.fn,errstring);
     u8_free(errstring);
     if (fd_threaderror_backtrace) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
-      fd_print_backtrace(&out,ex,120);
+      fd_summarize_backtrace(&out,ex);
       u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
+      if (fd_dump_backtrace) {
+	out.u8_outptr=out.u8_outbuf;
+	fd_print_backtrace(&out,ex,120);
+	fd_dump_backtrace(out.u8_outbuf);}
       u8_free(out.u8_outbuf);}
     if (tstruct->resultptr)
       *(tstruct->resultptr)=fd_init_exception(NULL,ex);

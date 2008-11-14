@@ -27,6 +27,10 @@ static char versionid[] =
 #include <libu8/u8netfns.h>
 #include <libu8/xfiles.h>
 
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
@@ -36,6 +40,7 @@ static fd_exception NoSuchFile=_("file does not exist");
 static fd_exception RemoveFailed=_("File removal failed");
 static fd_exception LinkFailed=_("File link failed");
 
+static u8_condition StackDumpEvent=_("StackDump");
 static u8_condition SnapshotSaved=_("Snapshot Saved");
 static u8_condition SnapshotRestored=_("Snapshot Restored");
 
@@ -988,7 +993,7 @@ static int updatemodules_config_set(fdtype var,fdtype val,void *ignored)
     reload_interval=0.25;
     return 1;}
   else {
-    fd_seterr(fd_TypeError,"updatemodules_config_get",NULL,val);
+    fd_seterr(fd_TypeError,"updatemodules_config_set",NULL,val);
     return -1;}
 }
 
@@ -1289,6 +1294,77 @@ static fdtype getenv_prim(fdtype var)
   else return fd_init_string(NULL,-1,enval);
 }
 
+/* Stackdump configuration */
+
+static u8_string stackdump_filename=NULL;
+static FILE *stackdump_file=NULL;
+
+#if FD_THREADS_ENABLED
+static u8_mutex stackdump_lock;
+#endif
+
+FD_EXPORT void stackdump_dump(u8_string dump)
+{
+  double elapsed; struct U8_XTIME now;
+  struct U8_OUTPUT out;
+  u8_now(&now);
+  u8_lock_mutex(&stackdump_lock);
+  if (stackdump_file==NULL)
+    if (stackdump_filename==NULL) {
+      u8_unlock_mutex(&stackdump_lock);
+      return;}
+    else {
+      stackdump_file=fopen(stackdump_filename,"w");
+      if (stackdump_file==NULL) {
+	u8_log(LOG_CRIT,StackDumpEvent,"Couldn't open stackdump file %s",stackdump_filename);
+	u8_free(stackdump_filename);
+	stackdump_filename=NULL;
+	u8_unlock_mutex(&stackdump_lock);
+	return;}
+      else {
+	u8_log(LOG_NOTIFY,StackDumpEvent,"Opened stackdump file %s",stackdump_filename);}}
+  U8_INIT_OUTPUT(&out,256);
+  u8_printf(&out,"pid=%d elapsed=%f (%*liUGt)",getpid(),u8_elapsed_time());
+  fprintf(stackdump_file,">>>>>> %s\n",out.u8_outbuf);
+  fprintf(stackdump_file,">>>>>> %s\n",u8_sessionid());
+  fprintf(stackdump_file,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  fputs(dump,stackdump_file);
+  fprintf(stackdump_file,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  fflush(stackdump_file);
+  u8_free(out.u8_outbuf);
+  u8_unlock_mutex(&stackdump_lock);
+}
+
+static fdtype stackdump_config_get(fdtype var,void *ignored)
+{
+  if (stackdump_filename)
+    return fdtype_string(stackdump_filename);
+  else return FD_FALSE;
+}
+static int stackdump_config_set(fdtype var,fdtype val,void *ignored)
+{
+  if ((FD_STRINGP(val)) || (FD_FALSEP(val)) || (FD_TRUEP(val))) {
+    u8_string filename=((FD_STRINGP(val)) ? (FD_STRDATA(val)) :
+			(FD_TRUEP(val)) ? ((u8_string)"stackdump.log") : (NULL));
+    if (stackdump_filename==filename) return 0;
+    else if ((stackdump_filename) && (filename) &&
+	     (strcmp(stackdump_filename,filename)==0))
+      return 0;
+    u8_lock_mutex(&stackdump_lock);
+    if (stackdump_file) {
+      fclose(stackdump_file);
+      stackdump_file=NULL;
+      u8_free(stackdump_filename);
+      stackdump_filename=NULL;}
+    if (filename) {
+      stackdump_filename=u8_strdup(filename);
+      fd_dump_backtrace=stackdump_dump;}
+    u8_unlock_mutex(&stackdump_lock);}
+  else {
+    fd_seterr(fd_TypeError,"stackdump_config_set",NULL,val);
+    return -1;}
+}
+
 /* The init function */
 
 static int scheme_fileio_initialized=0;
@@ -1307,6 +1383,7 @@ FD_EXPORT void fd_init_fileio_c()
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&load_record_lock);
+  fd_init_mutex(&stackdump_lock);
 #endif
 
   u8_init_xinput(&u8stdin,0,NULL);
@@ -1506,6 +1583,10 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_defspecial(fileio_module,"SNAPSHOT",snapshot_handler);
   fd_defspecial(fileio_module,"SNAPBACK",snapback_handler);
+
+  fd_register_config
+    ("STACKDUMP","File to store stackdump information on errors",
+     stackdump_config_get,stackdump_config_set,NULL);
 
   fd_finish_module(fileio_module);
 

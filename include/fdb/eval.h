@@ -31,6 +31,8 @@ FD_EXPORT void fd_init_schemeio(void);
 
 FD_EXPORT u8_context fd_eval_context;
 
+FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
+
 #define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || (FD_PAIRP(x)))
 
 /* Constants */

@@ -782,18 +782,18 @@ void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
 {
   if ((bg==NULL) || ((bg->u8x_cond) != (ex->u8x_cond)))
     u8_printf(out,"(%m)",ex->u8x_cond);
-  if ((bg==NULL) || ((bg->u8x_details) != (ex->u8x_details)))
-    u8_printf(out,"%m",ex->u8x_details);
   if ((bg==NULL) || ((bg->u8x_context) != (ex->u8x_context)))
-    u8_printf(out," (%s)",ex->u8x_context);
+    u8_printf(out," <%s>",ex->u8x_context);
+  if ((bg==NULL) || ((bg->u8x_details) != (ex->u8x_details)))
+    u8_printf(out," %m",ex->u8x_details);
   if (ex->u8x_xdata) {
     fdtype irritant=fd_exception_xdata(ex);
     if ((bg==NULL) || (bg->u8x_xdata==NULL))
-      u8_printf(out,"-- %q",irritant);
+      u8_printf(out," -- %q",irritant);
     else {
       fdtype bgirritant=fd_exception_xdata(bg);
       if (!(FD_EQUAL(irritant,bgirritant)))
-	u8_printf(out,"-- %q",irritant);}}
+	u8_printf(out," -- %q",irritant);}}
 }
 
 FD_EXPORT
