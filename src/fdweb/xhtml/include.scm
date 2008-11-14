@@ -7,8 +7,8 @@
 
 (module-export! '{xhtml/include firebuglite})
 
-(define (xhtml/include file (base #f))
-  (xhtml (getcontent (get-component file base) #f #t)))
+(define (xhtml/include file (base #f) (enc #t))
+  (xhtml (getcontent (get-component file base) enc)))
 
 (define (firebuglite)
   (xhtml "<script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>"))

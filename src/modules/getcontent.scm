@@ -20,8 +20,8 @@
 
 (defrecord (loadinfo MUTABLE OPAQUE)
   file modtime
-  (lagtime filecheck-default-lag) (parser identity)
-  (encoding #t) (checktime) (content))
+  (lagtime filecheck-default-lag)
+  (encoding #t) (parser identity) (checktime) (content))
 
 (define loadinfo (make-hashtable))
 
@@ -49,15 +49,15 @@
 	(checktime (loadinfo-checktime info))
 	(content (loadinfo-content info)))
     (store! loadinfo (loadinfo-file info)
-	    (cons-loadinfo file modtime lag parser enc checktime content))))
+	    (cons-loadinfo file modtime lag enc parser checktime content))))
 
 ;;; The main event
 
-(define (getcontent file (parser #f) (enc #f))
-  (try (loadinfo-content (getcontent/info file parser enc))
-       (reload-content file (or parser identity) (or enc #t))))
+(define (getcontent file (enc #t) (parser #f))
+  (try (loadinfo-content (getcontent/info file enc parser))
+       (reload-content file enc (or parser identity))))
 
-(define (getcontent/info file (parser #f) (enc #f))
+(define (getcontent/info file (enc #f) (parser #f))
   (let ((info (get loadinfo file)))
     (if (exists? info)
 	(if (< (difftime (loadinfo-checktime info)) (loadinfo-lagtime info))
@@ -72,7 +72,7 @@
 		  (fail))))
 	(fail))))
 
-(defslambda (reload-content file parser enc)
+(defslambda (reload-content file enc parser)
   (let ((info (get loadinfo file))
 	(mtime (file-modtime file)))
     ;; (%watch "RELOAD-CONTENT test" file info)
@@ -87,8 +87,10 @@
 			     filecheck-default-lag))
 	       (parser (if parser
 			   (if (equal? parser (loadinfo-parser info)) parser
-			       (begin (logwarn "Changing parse function for " file " to " parser
-					       " from " (loadinfo-parser info))
+			       (begin (logwarn
+				       "Changing parse function for " file
+				       " to " parser
+				       " from " (loadinfo-parser info))
 				      parser))
 			   (loadinfo-parser info)))
 	       (enc (if enc
@@ -104,9 +106,11 @@
 	       (result (if (and parser (not (eq? parser identity)))
 			   (parser data)
 			   data))
-	       (newinfo (cons-loadinfo file mtime lagtime parser enc (timestamp) result)))
+	       (newinfo (cons-loadinfo file mtime lagtime
+				       enc parser (timestamp) result)))
 	  (when (exists? info)
-	    (notify "Reloaded content from " (write file) " using " (or (procedure-name parser) parser)))
+	    (notify "Reloaded content from " (write file)
+		    " using " (or (procedure-name parser) parser)))
 	  ;; (%watch "RELOAD-CONTENT newinfo" file newinfo)
 	  (store! loadinfo file newinfo)
 	  result))))
