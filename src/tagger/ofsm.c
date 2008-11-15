@@ -917,7 +917,7 @@ static void identify_compounds(fd_parse_context pc)
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
       else {
 	fdtype entry=fd_init_pair(NULL,fd_make_list(1,lowered),lexdata);
-	if ((start==0) && (!(allcaps)))
+	if (((start==0) || (pc->input[i].cap)) && (!(allcaps)))
 	  bump_weights_for_capitalization(pc,i);
 	FD_ADD_TO_CHOICE(compounds,entry);}
       tmp=probe_compound(pc,i,i+1,pc->n_inputs,1);
