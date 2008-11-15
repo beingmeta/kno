@@ -468,7 +468,7 @@
 	      reduced)))))
 
 (define (brico/ref+ term (language default-language) (opts ref-default-opts))
-  (let* ((tryhard (getopt opts 'tryhard))
+  (let* ((tryhard (getopt opts 'tryhard 2))
 	 (asvec (getopt opts 'asvec #f))
 	 (possible
 	  (try ((or remote-lookup-term lookup-term) term language (1- tryhard))
