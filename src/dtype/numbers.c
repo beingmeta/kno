@@ -2042,7 +2042,8 @@ fdtype fd_string2number(u8_string string,int base)
 	while (*scan)
 	  if (isdigit(*scan)) {
 	    fdtype numx10=fd_multiply(num,FD_INT2DTYPE(10));
-	    int numweight=u8_digit_weight(*scan);
+	    int uchar=*scan;
+	    int numweight=u8_digit_weight(uchar);
 	    fdtype add_digit=FD_INT2DTYPE(numweight);
 	    fdtype nextnum=fd_plus(numx10,add_digit);
 	    fdtype nextden=fd_multiply(den,FD_INT2DTYPE(10));
