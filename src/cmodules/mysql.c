@@ -900,14 +900,14 @@ static struct FD_EXTDB_HANDLER mysql_handler=
 
 static int init_thread_for_mysql()
 {
-  u8_log(LOG_WARN,"MYSQL","Initializing thread for MYSQL");
+  u8_log(LOG_DEBUG,"MYSQL","Initializing thread for MYSQL");
   mysql_thread_init();
   return 1;
 }
 
 static void cleanup_thread_for_mysql()
 {
-  u8_log(LOG_WARN,"MYSQL","Cleaning up thread for MYSQL");
+  u8_log(LOG_DEBUG,"MYSQL","Cleaning up thread for MYSQL");
   mysql_thread_end();
 }
 
