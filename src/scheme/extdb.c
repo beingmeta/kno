@@ -87,7 +87,7 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
       else i++;
     if (i>=db->max_procs) {
       struct FD_EXTDB_PROC **newprocs=
-	u8_realloc(dbprocs,db->max_procs+32);
+	u8_realloc(dbprocs,sizeof(struct FD_EXTDB *)*(db->max_procs+32));
       if (newprocs==NULL) {
 	u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->spec));
 	return -1;}
