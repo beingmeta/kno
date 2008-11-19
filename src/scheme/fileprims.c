@@ -788,8 +788,11 @@ static int load_source_module(fdtype spec,int safe)
       return -1;}
     else {
       fdtype module_key=fdtype_string(module_filename);
+      fdtype abspath_key=
+	fd_init_string(NULL,-1,u8_abspath(module_filename,NULL));
       /* Register the module under its filename too. */
       fd_register_module_x(module_key,load_result,safe);
+      fd_register_module_x(abspath_key,load_result,safe);
       fd_decref(module_key);
       u8_free(module_filename);
       fd_decref(load_result);
