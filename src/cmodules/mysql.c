@@ -898,12 +898,28 @@ static int mysql_initialized=0;
 static struct FD_EXTDB_HANDLER mysql_handler=
   {"mysql",NULL,NULL,NULL,NULL};
 
+static int init_thread_for_mysql()
+{
+  u8_log(LOG_WARN,"MYSQL","Initializing thread for MYSQL");
+  mysql_thread_init();
+  return 1;
+}
+
+static void cleanup_thread_for_mysql()
+{
+  u8_log(LOG_WARN,"MYSQL","Cleaning up thread for MYSQL");
+  mysql_thread_end();
+}
+
 FD_EXPORT int fd_init_mysql()
 {
   fdtype module;
   if (mysql_initialized) return 0;
 
   my_init();
+  u8_register_threadinit(init_thread_for_mysql);
+  u8_register_threadexit(cleanup_thread_for_mysql);
+
   module=fd_new_module("MYSQL",0);
 
 #if FD_THREADS_ENABLED

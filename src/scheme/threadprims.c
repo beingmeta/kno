@@ -236,6 +236,9 @@ static void *thread_call(void *data)
 {
   fdtype result;
   struct FD_THREAD_STRUCT *tstruct=(struct FD_THREAD_STRUCT *)data;
+  /* Run any thread init functions */
+  u8_threadcheck();
+
   if (tstruct->flags&FD_EVAL_THREAD) 
     result=fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
   else 
@@ -243,6 +246,7 @@ static void *thread_call(void *data)
 		     tstruct->applydata.n_args,
 		     tstruct->applydata.args);
   result=fd_finish_call(result);
+  u8_threadexit();
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify(), root=ex;
     u8_string errstring=fd_errstring(ex);
