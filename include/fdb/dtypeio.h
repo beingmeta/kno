@@ -143,12 +143,13 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in);
 #define FD_INIT_BYTE_OUTPUT(bo,sz,mp)  \
   (bo)->ptr=(bo)->start=u8_malloc(sz); \
   (bo)->end=(bo)->start+sz;            \
-  (bo)->flags=FD_BYTEBUF_MALLOCD;
+  (bo)->flags=FD_BYTEBUF_MALLOCD; \
+  (bo)->fillfn=NULL; (bo)->flushfn=NULL;
 
 #define FD_INIT_FIXED_BYTE_OUTPUT(bo,buf,sz)	\
   (bo)->ptr=(bo)->start=buf; \
   (bo)->end=(bo)->start+sz;  \
-  (bo)->flags=0
+  (bo)->flags=0; (bo)->fillfn=NULL; (bo)->flushfn=NULL;
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)		   \
   (bi)->ptr=(bi)->start=b; (bi)->end=b+(sz); (bi)->fillfn=NULL; \
