@@ -270,6 +270,7 @@ static fdtype sqlitemakeproc
   else {
     fd_incref(colinfo); fd_incref(dbp->colinfo);
     sqlcons->colinfo=fd_init_pair(NULL,colinfo,dbp->colinfo);}
+  fd_register_extdb_proc((struct FD_EXTDB_PROC *)sqlcons);
   return FDTYPE_CONS(sqlcons);
 }
 
@@ -286,6 +287,7 @@ static fdtype sqlitemakeprochandler
 static void recycle_sqliteproc(struct FD_EXTDB_PROC *c)
 {
   struct FD_SQLITE_PROC *dbp=(struct FD_SQLITE_PROC *)c;
+  fd_release_extdb_proc((struct FD_EXTDB_PROC *)sqlcons);
   fd_decref(dbp->colinfo); 
   u8_free(dbp->spec); u8_free(dbp->qtext);
   {int j=0, lim=dbp->n_params;; while (j<lim) {

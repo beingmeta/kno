@@ -526,6 +526,7 @@ static fdtype mysqlmakeproc
       else paramtypes[j]=FD_VOID;
       j++;}
     dbproc->paramtypes=paramtypes;}
+  fd_register_extdb_proc((struct FD_EXTDB_PROC *)dbproc);
   return FDTYPE_CONS(dbproc);
 }
 
@@ -543,6 +544,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
 {
   struct FD_MYSQL_PROC *dbp=(struct FD_MYSQL_PROC *)c;
   int i, lim;
+  fd_release_extdb_proc((struct FD_EXTDB_PROC *)dbproc);
   mysql_stmt_close(dbp->stmt);
   fd_decref(dbp->colinfo);
 

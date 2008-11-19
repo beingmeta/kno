@@ -193,6 +193,7 @@ static fdtype odbcmakeproc
     int i=0; while (i<n_params) {
       SQLDescribeParam((dbproc->stmt),i+1,&(sqltypes[i]),NULL,NULL,NULL);
       i++;}}
+  fd_register_extdb_proc((struct FD_EXTDB_PROC *) dbproc);
   return FDTYPE_CONS(dbproc);
 }
 
@@ -209,6 +210,7 @@ static fdtype odbcmakeprochandler
 static void recycle_odbcproc(struct FD_EXTDB_PROC *c)
 {
   struct FD_ODBC_PROC *dbproc=(struct FD_ODBC_PROC *)c;
+  fd_release_extdb_proc((struct FD_EXTDB_PROC *) dbproc);
   SQLFreeHandle(SQL_HANDLE_STMT,dbproc->stmt);
   fd_decref(dbproc->colinfo);
   u8_free(dbproc->spec); u8_free(dbproc->qtext);

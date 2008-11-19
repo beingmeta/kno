@@ -11,6 +11,9 @@ FD_EXPORT fd_ptr_type fd_extdb_proc_type;
   FD_CONS_HEADER;         \
   u8_string spec, info;   \
   fdtype colinfo;         \
+  u8_mutex proclock;      \
+  int n_procs, max_procs; \
+  struct FD_EXTDB_PROC **procs; \
   struct FD_EXTDB_HANDLER *dbhandler;
 
 typedef struct FD_EXTDB {FD_EXTDB_FIELDS;} FD_EXTDB;
@@ -37,6 +40,8 @@ typedef struct FD_EXTDB_HANDLER {
 
 
 FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h);
+FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *p);
+FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *p);
 
 #endif /* ndef FDB_EXTDB_H */
 

@@ -74,6 +74,49 @@ FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h)
     return -1;}
 }
 
+FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
+{
+  struct FD_EXTDB *db=FD_GET_CONS(proc->db,fd_extdb_type,struct FD_EXTDB *);
+  u8_lock_mutex(&(db->proclock)); {
+    int i=0, n=db->n_procs;
+    struct FD_EXTDB_PROC **dbprocs=db->procs;
+    while (i<n)
+      if ((dbprocs[i])==proc) {
+	u8_unlock_mutex(&(db->proclock));
+	return 0;}
+      else i++;
+    if (i>=db->max_procs) {
+      struct FD_EXTDB_PROC **newprocs=
+	u8_realloc(dbprocs,db->max_procs+32);
+      if (newprocs==NULL) {
+	u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->spec));
+	return -1;}
+      else {
+	db->procs=newprocs;
+	db->max_procs=db->max_procs+32;}}
+    dbprocs[i]=proc; db->n_procs++;}
+  u8_unlock_mutex(&(db->proclock));
+  return 1;
+}
+
+FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
+{
+  struct FD_EXTDB *db=FD_GET_CONS(proc->db,fd_extdb_type,struct FD_EXTDB *);
+  u8_lock_mutex(&(db->proclock)); {
+    int i=0, n=db->n_procs;
+    struct FD_EXTDB_PROC **dbprocs=db->procs;
+    while (i<n)
+      if ((dbprocs[i])==proc) {
+	memmove(dbprocs+i+1,dbprocs+i,(n-i)*sizeof(struct FD_EXTDB_PROC *));
+	db->n_procs--;
+	u8_unlock_mutex(&(db->proclock));
+	return 1;}
+      else i++;}
+  u8_unlock_mutex(&(db->proclock));
+  u8_log(LOG_CRIT,"extdb_release_proc","Release of unregistered extdb proc");
+  return 0;
+}
+
 /* EXTDB handlers */
 
 static void recycle_extdb(struct FD_CONS *c)
@@ -94,7 +137,7 @@ static void recycle_extdb_proc(struct FD_CONS *c)
   struct FD_EXTDB_PROC *dbproc=(struct FD_EXTDB_PROC *)c;
   if (dbproc->dbhandler == NULL)
     u8_log(LOG_WARN,_("recycle failed"),"Bad extdb proc");
-  else if (dbproc->dbhandler->recycle_extdb_proc)
+  else if (dbproc->dbhandler->recycle_extdb_proc) 
     dbproc->dbhandler->recycle_extdb_proc(dbproc);
   else u8_log(LOG_WARN,_("recycle failed"),
 	      _("No recycle method for %s database procs"),
