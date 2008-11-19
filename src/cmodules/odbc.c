@@ -96,6 +96,7 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
     ret=SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
     dbp->spec=u8_strdup(FD_STRDATA(spec));
     dbp->info=u8_malloc(512); strcpy(dbp->info,"uninitialized");
+    u8_init_mutex(&(dbp->proclock));
     dbp->dbhandler=&odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
       howfar++;

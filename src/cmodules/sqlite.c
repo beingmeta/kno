@@ -80,6 +80,7 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
     sqlcons->db=db;
     sqlcons->spec=sqlcons->info=u8_strdup(FD_STRDATA(filename));
     u8_init_mutex(&(sqlcons->lock));
+    u8_init_mutex(&(sqlcons->proclock));
     return FDTYPE_CONS(sqlcons);}
 }
 static fdtype sqlite_open_handler(int n,fdtype *args)
@@ -287,7 +288,7 @@ static fdtype sqlitemakeprochandler
 static void recycle_sqliteproc(struct FD_EXTDB_PROC *c)
 {
   struct FD_SQLITE_PROC *dbp=(struct FD_SQLITE_PROC *)c;
-  fd_release_extdb_proc((struct FD_EXTDB_PROC *)sqlcons);
+  fd_release_extdb_proc(c);
   fd_decref(dbp->colinfo); 
   u8_free(dbp->spec); u8_free(dbp->qtext);
   {int j=0, lim=dbp->n_params;; while (j<lim) {

@@ -92,7 +92,7 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
 	u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->spec));
 	return -1;}
       else {
-	db->procs=newprocs;
+	db->procs=dbprocs=newprocs;
 	db->max_procs=db->max_procs+32;}}
     dbprocs[i]=proc; db->n_procs++;}
   u8_unlock_mutex(&(db->proclock));

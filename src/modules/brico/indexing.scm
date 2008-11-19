@@ -60,18 +60,19 @@
   (seq->phrase (map porter-stem (words->vector string))))
 
 (defambda (index-string index frame slot (value #f) (frag #f))
-  (let* ((values (stdspace (if value value (get frame slot))))
-	 (expvalues (choice values (basestring values)))
-	 (normvalues (capitalize (pick expvalues somecap?))))
-    ;; By default, we index strings under their direct values, under
-    ;;  their values without diacritics, and under versions with normalized
-    ;;  capitalization.  Normalizing capitalization makes all elements of a
-    ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
-    ;;  be lowercased.
-    (doindex index frame slot (choice expvalues normvalues))
-    (doindex index frame slot (metaphone (choice values normvalues) #t))
-    (doindex index frame slot (soundex (choice values normvalues) #t))
-    (when frag (index-frags index frame slot values 1 #f))))
+  (do-choices slot
+    (let* ((values (stdspace (if value value (get frame slot))))
+	   (expvalues (choice values (basestring values)))
+	   (normvalues (capitalize (pick expvalues somecap?))))
+      ;; By default, we index strings under their direct values, under
+      ;;  their values without diacritics, and under versions with normalized
+      ;;  capitalization.  Normalizing capitalization makes all elements of a
+      ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
+      ;;  be lowercased.
+      (doindex index frame slot (choice expvalues normvalues))
+      (doindex index frame slot (metaphone (choice values normvalues) #t))
+      (doindex index frame slot (soundex (choice values normvalues) #t))
+      (when frag (index-frags index frame slot values 1 #f)))))
 
 (defambda (index-string/keys value)
   (let* ((values (stdspace value))
