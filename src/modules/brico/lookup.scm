@@ -434,13 +434,13 @@
 (define (brico/resolve term (language default-language) (tryhard 2))
   (cdr ((or remote-lookup-term lookup-term) term language tryhard)))
 
-(define ref-default-opts #[tryhard 2])
+(define ref-default-opts #[tryhard 2 sumthresh 0.03])
 
 (defambda (reduce-possible possible opts (asvec #f))
   (let* ((topn (getopt opts 'topn #f))
 	 (absthresh (getopt opts 'absthresh))
 	 (maxthresh (getopt opts 'maxthresh))
-	 (sumthresh (getopt opts 'maxthresh))
+	 (sumthresh (getopt opts 'sumthresh))
 	 (freqfn (getopt opts 'freqfn getabsfreq))
 	 (freqs (make-hashtable))
 	 (freqmax 0)
