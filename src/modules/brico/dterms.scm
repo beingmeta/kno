@@ -220,8 +220,8 @@
 	    (unless (position index dterm-caches)
 	      (set! dterm-caches (cons index dterm-caches))))
 	  (if (table? value)
-	      (unless (position index dterm-caches)
-		(set! dterm-caches (cons index dterm-caches)))
+	      (unless (position value dterm-caches)
+		(set! dterm-caches (cons value dterm-caches)))
 	      (error "Invalid DTYPE cache value")))
       dterm-caches))
 
