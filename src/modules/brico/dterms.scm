@@ -47,7 +47,7 @@
 (defambda (dtermcache-prefetch! concepts languages)
   (doseq (cache dterm-caches)
     (when (index? cache)
-      (index-prefetch! cache (cons concepts languages)))))
+      (prefetch-keys! cache (cons concepts languages)))))
 
 ;;; Finding dterms
 
