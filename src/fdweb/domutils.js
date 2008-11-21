@@ -19,13 +19,42 @@ function fdbWarn(string)
   else alert(string);
 }
 
-function fdbAddElements(elt,args,i)
+function fdbNeedElt(arg,name)
+{
+  if (typeof arg == 'string') {
+    var elt=document.getElementById(arg);
+    if (elt) return elt;
+    else if (name)
+      fdbWarn("Invalid element ("+elt+") reference: "+arg);
+    else fdbWarn("Invalid element reference: "+arg);
+    return null;}
+  else if (arg) return arg;
+  else {
+    if (name)
+      fdbWarn("Invalid element ("+elt+") reference: "+arg);
+    else fdbWarn("Invalid element reference: "+arg);
+    return null;}
+}
+
+/* Adding elements */
+
+function fdbAddElements(elt,elts,i)
+{
+  while (i<args.length) {
+    var arg=elts[i++];
+    if (typeof arg == 'string')
+      elt.appendChild(document.createTextNode(arg));
+    else elt.appendChild(arg);}
+  return elt;
+}
+
+function fdbInsertElementsBefore(elt,before,args,i)
 {
   while (i<args.length) {
     var arg=args[i++];
     if (typeof arg == 'string')
-      elt.appendChild(document.createTextNode(arg));
-    else elt.appendChild(arg);}
+      elt.insertBefore(before,document.createTextNode(arg));
+    else elt.insertBefore(arg,before);}
   return elt;
 }
 
@@ -44,6 +73,40 @@ function fdbAddAttributes(elt,attribs)
       else elt.setAttribute(key,attribs[key]);}
     return elt;}
   else return elt;
+}
+
+/* Higher level functions, use lexpr/rest/var args */
+
+function fdbAppend(elt_arg)
+{
+  var elt=null;
+  if (typeof elt_arg == 'string')
+    elt=document.getElementById(elt_arg);
+  else if (elt_arg) elt=elt_arg;
+  if (elt) return fdbAddElements(elt,args,1);
+  else fdbWarn("Invalid DOM argument: "+elt_arg);
+}
+
+function fdbInsert(elt_arg,after_arg)
+{
+  var elt=null, after=null;
+  if (typeof elt_arg == 'string')
+    elt=document.getElementById(elt_arg);
+  else if (elt_arg) elt=elt_arg;
+  if (typeof after_arg == 'string') {
+    after=document.getElementById(after_arg);
+    if (after==null) {
+      fdbWarn("Invalid DOM after argument: "+after_arg);
+      return;}}
+  if (elt==null)
+    if (elt.firstChild)
+      return fdbInsertElementsBefore(elt,elt.firstChild,args,2);
+    else return fdbAddElements(elt,args,2);
+  else if (after==elt)
+    return fdbAddElements(elt,args,2);
+  else if (after.nextSibling)
+    return fdbInsertElements(elt,after.nextSibling,args,2);
+  else return fdbAddElements(elt,args,2);
 }
 
 function fdbNewElement(tag,classname)
