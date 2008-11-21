@@ -459,7 +459,6 @@
 	   (reduced (if (exists? thresh)
 			(pick possible freqs > thresh)
 			possible)))
-      ;; (%watch thresh reduced opts)
       (if asvec
 	  (subseq (rsorted reduced freqs)
 		  0 (and topn (min topn (choice-size reduced))))
@@ -467,7 +466,7 @@
 	      (elts (rsorted reduced freqs) 0 topn)
 	      reduced)))))
 
-(define (brico/ref+ term (language default-language) (opts ref-default-opts))
+(defambda (brico/ref+ term (language default-language) (opts ref-default-opts))
   (let* ((tryhard (getopt opts 'tryhard 2))
 	 (asvec (getopt opts 'asvec #f))
 	 (possible
@@ -477,7 +476,7 @@
 	(try (singleton possible)
 	     (reduce-possible possible opts asvec)
 	     possible))))
-(define (brico/ref term (language default-language) (opts ref-default-opts))
+(defambda (brico/ref term (language default-language) (opts ref-default-opts))
   (let ((norm (?? (get norm-map language) term )))
     (if (singleton? norm)
 	(if (testopt opts 'asvec #f) (vector norm) norm)
