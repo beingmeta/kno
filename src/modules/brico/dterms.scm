@@ -4,9 +4,10 @@
 
 (module-export!
  '{find-dterm
-   get-dterm get-dterm/cached find-dterm/prefetch!
-   displayterm dterm-caches 
-   find-dterm-prefetch!})
+   displayterm 
+   get-dterm get-dterm/cached
+   cached-dterm/prefetch! find-dterm/prefetch!
+   dterm-caches})
 
 (use-module '{brico brico/lookup brico/analytics morph/en})
 
@@ -42,6 +43,11 @@
 		    (get (cdr dtc) concept))
 	     (get dtc (cons language concept))))
        #f))
+
+(defambda (dtermcache-prefetch! concepts languages)
+  (doseq (cache dterm-caches)
+    (when (index? cache)
+      (index-prefetch! cache (cons concepts languages)))))
 
 ;;; Finding dterms
 
@@ -193,6 +199,9 @@
 ;;; Getting display terms
 
 (defambda (displayterm concept language concepts (suffix #f))
+  "This gets a term to describe CONCEPT in LANGUAGE which is unique \
+   among CONCEPTS.  If it can't find a unique term or generate a dterm,
+   returns the concepts norm term with SUFFIX appended."
   (try (try-choices (norm (get-norm concept language))
 	 (tryif (singleton? (intersection (lookup-word norm language) concepts))
 		norm))
@@ -206,11 +215,16 @@
 
 (defslambda (dtermcaches-config var (value))
   (if (bound? value)
-      (unless (position value dterm-caches)
-	(set! dterm-caches (cons value dterm-caches)))
+      (if (string? value)
+	  (let ((index (open-index value)))
+	    (unless (position index dterm-caches)
+	      (set! dterm-caches (cons index dterm-caches))))
+	  (if (table? value)
+	      (unless (position index dterm-caches)
+		(set! dterm-caches (cons index dterm-caches)))
+	      (error "Invalid DTYPE cache value")))
       dterm-caches))
 
 (config-def! 'dtermcaches dtermcaches-config)
-
 
 
