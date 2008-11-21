@@ -230,6 +230,18 @@ static fdtype hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
 
 /** Utility functions **/
 
+static u8_byteoff _get_char_start(u8_byte *s,u8_byteoff i)
+{
+  if (s[i]<0x80) return i-1;
+  else if (s[i]>=0xc0) return -1;
+  else {
+    while ((i>=0) && (s[i]<0xc0)) i--;
+    return i;}
+}
+
+#define backward_char(s,i) \
+  ((i==0) ? (i) : ((s[i-1] >= 0x80) ? (_get_char_start(s,i-1)) : (i-1)))
+
 static u8_byteoff _forward_char(u8_byte *s,u8_byteoff i)
 {
   u8_byte *next=u8_substring(s+i,1);
@@ -1798,6 +1810,7 @@ static fdtype extract_canonical
 
 /** EOL and BOL **/
 
+/* Matching/finding beginning of lines */
 static fdtype match_bol
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -1824,6 +1837,8 @@ static u8_byteoff search_bol
       else return -1;}}
 }
 
+/* Matching/finding end of lines */
+
 static fdtype match_eol
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -1848,6 +1863,50 @@ static u8_byteoff search_eol
       if (scan) return ((scan-string));
       else return lim;}}
 }
+
+/* Matching/finding beginning of words */
+
+static fdtype match_bow
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  if (off == 0)
+    return FD_INT2DTYPE(0);
+  else {
+    u8_byteoff prev=backward_char(string,off);
+    u8_byte *ptr=string+prev;
+    int c=u8_sgetc(&ptr);
+    if (u8_isspace(c)) return FD_INT2DTYPE(off);
+    else return FD_EMPTY_CHOICE;}
+}
+
+static u8_byteoff search_bow
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  if (off == 0) return off;
+  else {
+    u8_byte *scan=string+off, *scanlim=string+lim, *last=scan;
+    int c=u8_sgetc(&scan);
+    if (u8_isspace(c))  {
+      while ((c>0) && (scan<scanlim) && (u8_isspace(c))) {
+	last=scan; c=u8_sgetc(&scan);}
+      if (scan<scanlim) return last-string; else return -1;}
+    else {
+      u8_byteoff prev=backward_char(string,off);
+      if (prev<0) return -1; else {
+	scan=string+prev; c=u8_sgetc(&scan);}
+      if (u8_isspace(c)) return off;
+      while ((c>0) && (scan<scanlim) && (!(u8_isspace(c))))
+	c=u8_sgetc(&scan);
+      if (scan>=scanlim) return -1;
+      else while ((c>0) && (scan<scanlim) && (u8_isspace(c))) {
+	  last=scan; c=u8_sgetc(&scan);}
+      if (scan>=scanlim) return -1;
+      else return last-string;}}
+}
+
+/* Matching/finding the end of the string */
 
 static fdtype match_eos
   (fdtype pat,fdtype next,fd_lispenv env,
@@ -3089,6 +3148,7 @@ void fd_init_match_c()
   fd_add_match_operator("BOL",match_bol,search_bol,NULL);
   fd_add_match_operator("EOL",match_eol,search_eol,NULL);
   fd_add_match_operator("EOS",match_eos,search_eos,NULL);
+  fd_add_match_operator("BOW",match_bow,search_bow,NULL);
   fd_add_match_operator("CHAR-RANGE",match_char_range,NULL,NULL);
   fd_add_match_operator("CHAR-NOT",match_char_not,NULL,NULL);
   fd_add_match_operator("CHAR-NOT*",match_char_not_star,NULL,NULL);
