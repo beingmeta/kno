@@ -9,24 +9,32 @@ function block_eltp(elt)
 function fdb_showhelp_onfocus(evt)
 {
   var target=evt.target;
-  if ((target.nodeType==1) &&
-      (target.tagName === 'INPUT') &&
-      (target.hasAttribute('HELPTEXT'))) {
-    var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
-    if (helptext) {
-      if (block_eltp(helptext))
-	helptext.style.display='block';
-      else helptext.style.display='inline';}}
+  while (target)
+    if ((target.nodeType==1) &&
+	((target.tagName === 'INPUT') || (target.tagName === 'TEXTAREA')) &&
+	((target.hasAttribute) ? (target.hasAttribute('HELPTEXT')) :
+	 (target.getAttribute('HELPTEXT')))) {
+      var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
+      if (helptext) {
+	if (block_eltp(helptext))
+	  helptext.style.display='block';
+	else helptext.style.display='inline';}
+      return;}
+    else target=target.parentNode;
 }
 
 function fdb_hidehelp_onblur(evt)
 {
   var target=evt.target;
-  if ((target.nodeType==1) &&
-      (target.tagName === 'INPUT') &&
-      (target.hasAttribute('HELPTEXT'))) {
-    var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
-    if (helptext) helptext.style.display='none';}
+  while (target)
+    if ((target.nodeType==1) &&
+	((target.tagName === 'INPUT') || (target.tagName === 'TEXTAREA')) &&
+	((target.hasAttribute) ? (target.hasAttribute('HELPTEXT')) :
+	 (target.getAttribute('HELPTEXT')))) {
+      var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
+      if (helptext) helptext.style.display='none';
+      return;}
+    else target=target.parentNode;
 }
 
 /* SHOWHIDE */
@@ -36,10 +44,9 @@ function fdb_showhide_onclick(evt)
   var target=evt.target;
   // fdbLog('target='+target);
   while (target.parentNode)
-    if ((target.hasAttribute!=null) &&
-	(target.hasAttribute('CLICKTOHIDE')) ||
-	(target.hasAttribute('CLICKTOSHOW')) ||
-	(target.hasAttribute('CLICKTOTOGGLE'))) {
+    if ((fdbHasAttrib(target,'CLICKTOHIDE')) ||
+	(fdbHasAttrib(target,'CLICKTOSHOW')) ||
+	(fdbHasAttrib(target,'CLICKTOTOGGLE'))) {
       var tohide=target.getAttribute('CLICKTOHIDE');
       var toshow=target.getAttribute('CLICKTOSHOW');
       var toflip=target.getAttribute('CLICKTOTOGGLE');
@@ -68,7 +75,8 @@ function fdb_showhide_onclick(evt)
 	    if (display==='none')
 	      if (block_eltp(elt)) elt.style.display='block';
 	      else elt.style.display='inline';
-	    else elt.style.display='none';}
+	    else elt.style.display='none';
+	    target.setAttribute('displayed',elt.style.display);}
 	  i++;}}
       return;}
     else target=target.parentNode;
@@ -80,8 +88,7 @@ function fdb_setclear_onclick(evt)
 {
   var target=evt.target;
   while (target.parentNode)
-    if ((target.hasAttribute!=null) &&
-	(target.hasAttribute('SETONCLICK'))) {
+    if ((fdbHasAttrib(target,'SETONCLICK'))) {
       var toset=target.getAttribute('SETONCLICK');
       var attrib=target.getAttribute('SETATTRIB');
       var val=target.getAttribute('ATTRIBVAL');
@@ -92,7 +99,7 @@ function fdb_setclear_onclick(evt)
 	var i=0; while (i<toset.length) {
 	  var elt=document.getElementById(toset[i++]);
 	  if (elt===null) return;
-	  if (elt.hasAttribute(attrib))
+	  if (fdbHasAttrib(elt,attrib))
 	    elt.removeAttribute(attrib);
 	  else elt.setAttribute(attrib,val);}}
       return;}
@@ -104,7 +111,7 @@ function fdb_setclear_onclick(evt)
 function fdb_autoprompt_onfocus(evt)
 {
   var elt=evt.target;
-  if ((elt) && (elt.hasAttribute) && (elt.hasAttribute('isempty'))) {
+  if ((elt) && (fdbHasAttrib(elt,'isempty'))) {
     elt.value='';
     elt.removeAttribute('isempty');}
   fdb_showhelp_onfocus(evt);
@@ -130,7 +137,7 @@ function fdb_autoprompt_setup()
     var elt=elements[i++];
     if ((elt.type==='text') &&
 	((elt.className==='autoprompt') ||
-	 (elt.hasAttribute('prompt')))) {
+	 (fdbHasAttrib(elt,'prompt')))) {
       var prompt=elt.getAttribute('prompt');
       if (prompt===null)
 	if (elt.className==='autoprompt')
@@ -149,7 +156,7 @@ function fdb_autoprompt_cleanup()
   var elements=document.getElementsByTagName('INPUT');
   var i=0; if (elements) while (i<elements.length) {
     var elt=elements[i++];
-    if (elt.hasAttribute('isempty'))
+    if (fdbHasAttrib(elt,'isempty'))
       elt.value="";}
 }
 
@@ -160,7 +167,7 @@ function fdb_tab_onclick(evt)
   var elt=evt.target;
   if (elt) {
     while (elt.parentNode)
-      if ((elt.hasAttribute) && (elt.hasAttribute("contentid"))) break;
+      if (fdbHasAttrib(elt,"contentid")) break;
       else elt=elt.parentNode;
     if (elt===null) return;
     var select_var=elt.getAttribute('selectvar');
@@ -181,7 +188,7 @@ function fdb_tab_onclick(evt)
 	var cid=node.getAttribute('contentid');
 	var cdoc=document.getElementById(cid);
 	if (node===elt) {}
-	else if (node.hasAttribute('shown')) {
+	else if (fdbHasAttrib(node,'shown')) {
 	  node.removeAttribute('shown');
 	  if (cdoc) cdoc.removeAttribute('shown');}}}
     elt.setAttribute('shown','yes');
@@ -209,8 +216,7 @@ function fdb_flexpand_onclick(event)
 {
   var target=event.target; var functional=false;
   while (target.parentNode)
-    if (!(target.hasAttribute!=null)) target=target.parentNode;
-    else if (target.hasAttribute('expanded')) break;
+    if (fdbHasAttrib(target,'expanded')) break;
     else if (target.tagName==='A')
       return;
     else if ((target.tagName==='SELECT') ||
@@ -287,7 +293,7 @@ function fdb_checkspan_onclick(event)
 function fdb_checkspan_setup(checkspan)
 {
   if (checkspan===null) {
-    var elements=document.getElementsByClassName('checkspan');
+    var elements=fdbGetElementsByClassName('checkspan');
     var i=0; if (elements) while (i<elements.length) {
       var checkspan=elements[i++];
       fdb_checkspan_setup(checkspan);}}
@@ -353,6 +359,8 @@ function fdb_start_cheshire(eltid,interval,steps)
 function fdb_cheshire_onclick(event)
 {
   if (cheshire_elt) {
+    var msg_elt=document.getElementById('CHESHIREMSG');
+    if (msg_elt) msg_elt.style.display='none';
     cheshire_elt.style.opacity='inherit';
     clearInterval(cheshire_timer);
     cheshire_steps=false;
@@ -428,7 +436,7 @@ function fdb_adjust_font_size(elt)
 
 function fdb_adjust_font_sizes()
 {
-  var elts=document.getElementsByClassName('autosize');
+  var elts=fdbGetElementsByClassName('autosize');
   if (elts) {
     var i=0; while (i<elts.length)
       fdb_adjust_font_size(elts[i++]);}
@@ -436,7 +444,7 @@ function fdb_adjust_font_sizes()
 
 function fdb_adjust_font_sizes()
 {
-  var elts=document.getElementsByClassName('autosize');
+  var elts=fdbGetElementsByClassName('autosize');
   if (elts) {
     var i=0; while (i<elts.length)
       fdb_adjust_font_size(elts[i++]);}
@@ -463,7 +471,7 @@ function fdb_mark_reduced(elt)
       // fdbLog('Reducing '+elt+' to class '+elt.className);
     }}
   else {
-    var elts=document.getElementsByClassName('autoreduce');
+    var elts=fdbGetElementsByClassName('autoreduce');
     var i=0; while (i<elts.length) fdb_mark_reduced(elts[i++]);}
 }
 
