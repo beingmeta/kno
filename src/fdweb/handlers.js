@@ -249,12 +249,13 @@ function _fdb_close_window(event)
 
 function fdb_checkspan_onclick(event)
 {
-  var target=event.target;
+  var target=event.target; var clickinput=null;
   while (target.parentNode) {
     if (target.nodeType!=1) target=target.parentNode;
     else if (target.className==='checkspan') break;
-    else if ((target.tagName==='A') || (target.tagName==='INPUT'))
-      return;
+    else if (target.tagName==='A') return;
+    else if (target.tagName==='INPUT') {
+      clickinput=target; target=target.parentNode;} /* return; */
     else target=target.parentNode;}
   // if (target) fdbLog('Found checkspan '+target);
   if (target) {
@@ -266,7 +267,13 @@ function fdb_checkspan_onclick(event)
 	  ((child.type==='radio') ||
 	   (child.type==='checkbox'))) {
 	var checked=child.checked;
-	if (typeof(checked) === null) {
+	if (child==clickinput)
+	  if (typeof checked == null)
+	    target.removeAttribute('ischecked');
+	  else if (checked)
+	    target.setAttribute('ischecked','yes');
+	  else target.removeAttribute('ischecked');
+	else if (typeof(checked) === null) {
 	  child.checked=false;
 	  target.removeAttribute('ischecked');}
 	else if (checked) {

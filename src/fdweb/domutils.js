@@ -40,7 +40,7 @@ function fdbNeedElt(arg,name)
 
 function fdbAddElements(elt,elts,i)
 {
-  while (i<args.length) {
+  while (i<elts.length) {
     var arg=elts[i++];
     if (typeof arg == 'string')
       elt.appendChild(document.createTextNode(arg));
