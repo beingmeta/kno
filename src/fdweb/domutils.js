@@ -38,28 +38,10 @@ function fdbNeedElt(arg,name)
     return null;}
 }
 
-/* Various search functions */
-
-function fdbGetElementsByClassName(classname,under_arg)
+function fdb_block_eltp(elt)
 {
-  var under;
-  if (typeof under_arg == 'undefined') under=null;
-  else if (typeof under_arg == 'string')
-    under=document.getElementById(under_arg);
-  else under=under_arg;
-  if (document.getElementsByClassName)
-    if (under)
-      under.getElementsByClassName(classname);
-    else document.getElementsByClassName(classname);
-  else if ((under) ? (under.all) : (document.all)) {
-    var nodes=((under) ? (under.all) : (document.all))
-    var results=[];
-    var i=0; while (i<nodes.length) {
-      var node=nodes[i++];
-      if (node.nodeType==1)
-	if (node.className==classname)
-	  results.push(node);}
-    return results;}
+  var name=elt.tagName;
+  return ((name==='DIV') || (name==='P') || (name==='LI') || (name==='UL'));
 }
 
 function fdbHasAttrib(elt,attribname)
@@ -71,6 +53,59 @@ function fdbHasAttrib(elt,attribname)
       return true;
     else return false;
   else return false;
+}
+
+/* Various search functions */
+
+function fdbGetElementsByClassName(classname,under_arg)
+{
+  var under;
+  if (typeof under_arg == 'undefined') under=null;
+  else if (typeof under_arg == 'string')
+    under=document.getElementById(under_arg);
+  else under=under_arg;
+  if ((under) && (under.getElementsByClassName))
+    under.getElementsByClassName(classname);
+  else if (document.getElementsByClassName)
+    return document.getElementsByClassName(classname);
+  else if ((under) ? (under.all) : (document.all)) {
+    var nodes=((under) ? (under.all) : (document.all))
+    var results=[];
+    var i=0; while (i<nodes.length) {
+      var node=nodes[i++];
+      if (node.nodeType==1)
+	if (node.className==classname)
+	  results.push(node);}
+    return results;}
+}
+
+function fdbGetParentByClassName(node,classname)
+{
+  var scan;
+  if (typeof node == "string") scan=document.getElementById(node);
+  else scan=node;
+  while ((scan) && (scan.parentNode))
+    if (scan.className==classname) return scan;
+    else scan=scan.parentNode;
+  if ((scan) && (scan.className==classname)) return scan;
+  else return null;
+}
+
+function fdbGetParentByAttrib(node,attribName,attribValue)
+{
+  var scan;
+  if (typeof node == "string") scan=document.getElementById(node);
+  else node=scan;
+  if (attribValue)
+    while ((scan) && (scan.parentNode))
+      if (scan.getAttribute(attribName)==attribValue)
+	return scan;
+      else parent=scan.parentNode;
+  else while ((scan) && (scan.parentNode))
+    if ((scan.hasAttribute) ? (scan.hasAttribute(attribName)) :
+	(!(!(scan.getAttribute(attribName)))))
+      return scan;
+    else scan=scan.parentNode;
 }
 
 /* Adding/Inserting nodes */
@@ -189,6 +224,21 @@ function fdbReplace(cur_arg,newnode)
     if ((cur.id) && (newnode.id==null))
       newnode.id=cur.id;
     return newnode;}
+  else {
+    fdbWarn("Invalid DOM replace argument: "+cur_arg);
+    return;}
+}
+
+function fdbRemove(cur_arg)
+{
+  var cur=null;
+  if (typeof cur_arg == "string")
+    cur=document.getElementById(cur_arg);
+  else cur=cur_arg;
+  if (cur) {
+    var parent=cur.parentNode;
+    parent.removeChild(cur);
+    return null;}
   else {
     fdbWarn("Invalid DOM replace argument: "+cur_arg);
     return;}

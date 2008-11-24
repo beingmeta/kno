@@ -1,11 +1,5 @@
 /* INPUT SHOWHELP */
 
-function block_eltp(elt)
-{
-  var name=elt.tagName;
-  return ((name==='DIV') || (name==='P') || (name==='LI') || (name==='UL'));
-}
-
 function fdb_showhelp_onfocus(evt)
 {
   var target=evt.target;
@@ -16,7 +10,7 @@ function fdb_showhelp_onfocus(evt)
 	 (target.getAttribute('HELPTEXT')))) {
       var helptext=document.getElementById(target.getAttribute('HELPTEXT'));
       if (helptext) {
-	if (block_eltp(helptext))
+	if (fdb_block_eltp(helptext))
 	  helptext.style.display='block';
 	else helptext.style.display='inline';}
       return;}
@@ -62,7 +56,7 @@ function fdb_showhide_onclick(evt)
 	var i=0; while (i<toshow.length) {
 	  var elt=document.getElementById(toshow[i]); 
 	  if (elt)
-	    if (block_eltp(elt)) elt.style.display='block';
+	    if (fdb_block_eltp(elt)) elt.style.display='block';
 	    else elt.style.display='block';
 	  i++;}}
       if (toflip) {
@@ -73,7 +67,7 @@ function fdb_showhide_onclick(evt)
 	    if ((display===null) || (display===''))
 	      display=window.getComputedStyle(elt,null).display;
 	    if (display==='none')
-	      if (block_eltp(elt)) elt.style.display='block';
+	      if (fdb_block_eltp(elt)) elt.style.display='block';
 	      else elt.style.display='inline';
 	    else elt.style.display='none';
 	    target.setAttribute('displayed',elt.style.display);}
@@ -344,7 +338,7 @@ function fdb_start_cheshire(eltid,interval,steps)
   if (typeof(interval) === 'undefined') interval=30;
   if (typeof(steps) === 'undefined') steps=interval*2;
   if (typeof(eltid) === 'undefined')
-    cheshire_elt=document.body;
+     cheshire_elt=document.body;
   else if (typeof(eltid) === 'string')
     cheshire_elt=document.getElementById(eltid);
   else cheshire_elt=eltid;
@@ -360,7 +354,12 @@ function fdb_cheshire_onclick(event)
 {
   if (cheshire_elt) {
     var msg_elt=document.getElementById('CHESHIREMSG');
+    var alt_msg_elt=document.getElementById('CHESHIREALTMSG');
     if (msg_elt) msg_elt.style.display='none';
+    if (alt_msg_elt)
+      if (fdb_block_eltp(alt_msg_elt))
+	alt_msg_elt.style.display='block';
+      else alt_msg_elt.style.display='inline';
     cheshire_elt.style.opacity='inherit';
     clearInterval(cheshire_timer);
     cheshire_steps=false;
@@ -387,9 +386,9 @@ function fdb_textract(eltid,textfn,changefn,interval)
   if (elt==null) return;
   var text=elt.value, parsed=textfn(text);
   if (parsed) changefn(parsed);
-  // console.log('Init text='+text);
-  // console.log('Init parsed='+parsed);
-  // console.log('Init interval='+interval);
+  console.log('Init text='+text);
+  console.log('Init parsed='+parsed);
+  console.log('Init interval='+interval);
   var loop_fcn=function(event) {
     if (elt.value!=text) {
       var new_parsed=textfn(elt.value);
