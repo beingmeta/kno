@@ -264,6 +264,9 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
     result=sf->eval(xml,env);}
   else result=fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
 			      xmlgetarg);
+
+  result=fd_finish_call(result);
+
   if (FD_ABORTP(result))
     return result;
   else if (FD_VOIDP(bind)) return result;
@@ -511,6 +514,29 @@ static FD_XML *handle_xmleval_pi
 	    fd_make_export_env(env->bindings,xml_env);
 	  set_xml_env(xml,new_xml_env);}
 	i++;}
+      else if ((strncmp(attribs[i],"config=",7))==0) {
+	u8_string arg=get_pi_string(attribs[i]+7);
+	u8_string filename=fd_get_component(arg);
+	int retval=fd_load_config(filename);
+	if (retval<0) {
+	  u8_condition c; u8_context cxt; u8_string details;
+	  fdtype irritant;
+	  if (fd_poperr(&c,&cxt,&details,&irritant))
+	    if ((FD_VOIDP(irritant)) && (details==NULL) && (cxt==NULL))
+	      u8_log(LOG_WARN,"FDXML_CONFIG",
+		     _("In config '%s' %m"),filename,c);
+	    else if ((FD_VOIDP(irritant)) && (details==NULL))
+	      u8_log(LOG_WARN,"FDXML_CONFIG",
+		     _("In config '%s' %m@%s"),filename,c,cxt);
+	    else if (FD_VOIDP(irritant))
+	      u8_log(LOG_WARN,"FDXML_CONFIG",
+		     _("In config '%s' [%m@%s] %s"),filename,c,cxt,details);
+	    else u8_log(LOG_WARN,"FDXML_CONFIG",
+			_("In config '%s' [%m@%s] %s %q"),
+			filename,c,cxt,details,irritant);
+	  else u8_log(LOG_WARN,"FDXML_CONFIG",
+		      _("In config '%s', unknown error"),filename);}
+	i++;}
       else if ((strncmp(attribs[i],"module=",7))==0) {
 	u8_string arg=get_pi_string(attribs[i]+7);
 	fdtype module_name=fd_parse(arg);
@@ -587,6 +613,7 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
       fd_decref(result);}}
   else if (FD_STRINGP(xml))
     u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
+  else if (FD_OIDP(xml)) return xml;
   else if (FD_TABLEP(xml)) {
     fdtype handler=get_xml_handler(xml,env);
     fd_decref(result);

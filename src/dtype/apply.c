@@ -961,6 +961,7 @@ FD_EXPORT void fd_init_apply_c()
 
   fd_unparsers[fd_tail_call_type]=unparse_tail_call;
   fd_recyclers[fd_tail_call_type]=recycle_tail_call;
+  fd_type_names[fd_tail_call_type]="tailcall";
 
   calltrack_sense=fd_intern("CALLTRACK/SENSE");
   calltrack_ignore=fd_intern("CALLTRACK/IGNORE");
