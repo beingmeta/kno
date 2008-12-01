@@ -1,5 +1,11 @@
 (in-module 'xhtml/concept)
 
+;;; This provides for augmented HTML display with clickable items
+;;;  that reveals display/exit options.
+
+(define version "$Id$")
+
+
 (use-module '{fdweb texttools xhtml xhtml/brico})
 (use-module '{brico brico/lookup brico/dterms brico/wikipedia})
 
@@ -34,13 +40,15 @@
 	  (when oid
 	    (anchor* (scripturl "http://www.bricobase.net/index.fdcgi"
 		       'concept oid)
-		((title "info at BRICOBASE"))
+		((title "info at BRICOBASE")
+		 (target "_blank"))
 	      (img src "/graphics/diamond16.png" alt "brico")))
 	  (when (exists? wikiref)
 	    (anchor* (stringout "http://"
 		       (get language 'iso639/1) ".wikipedia.org/wiki/"
 		       (string-subst wikiref " " "_"))
-		((title "info at Wikipedia"))
+		((title "info at Wikipedia")
+		 (target "_blank"))
 	      (img src "/graphics/wikipedia.png" alt "wikipedia")))
 	  (when (test oid 'website)
 	    (let* ((website (pick-one (get oid 'website)))
@@ -60,7 +68,8 @@
 	      (anchor* (scripturl "http://maps.google.com/maps"
 			 "q" (stringout lat ","long)
 			 "z" 8)
-		  ((class "button"))
+		  ((title "see at Google maps")
+		   (target "_blank"))
 		(img src "/graphics/earth24.png"
 		     border 0 alt "map" width 24 height 24)))))))))
 
@@ -70,9 +79,10 @@
 		  (or (and term (brico/ref term))
 		      (singleton
 		       (brico/ref (stdspace (stringout (xmleval xmlbody))))))))
-	 (language (get-language))
-	 (body xmlbody))
-    (output-contextspan body weblink oid language)))
+	 (language (get-language)))
+    (if (exists? oid)
+	(output-contextspan xmlbody weblink oid language)
+	(xmleval xmlbody))))
 
 (module-export! '{concept output-contextspan})
 

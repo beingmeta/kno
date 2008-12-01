@@ -1,5 +1,9 @@
 (in-module 'brico/wikipedia)
 
+;;; This uses tables to get Wikipedia mappings for BRICO concepts
+
+(define version "$Id$")
+
 (define %volatile 'brico/wikiref)
 
 (use-module '{brico fdweb xhtml})
@@ -24,8 +28,11 @@
   (cond ((not (bound? val)) wikisource)
 	((not (string? val))
 	 (error "Invalid WIKISOURCE" val))
+	((equal? val wikisource) #f)
 	((position #\@ val)
-	 (set! brico/wikiref (dtproc val 'getwikiref)))
+	 (set! brico/wikiref (dtproc val 'getwikiref))
+	 (set! wikisource val)
+	 #t)
 	(else
 	 (when (file-exists? (mkpath val "brico2enwiki.table"))
 	   (message "Using enwiki mapping from "
