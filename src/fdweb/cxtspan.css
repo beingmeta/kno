@@ -1,0 +1,13 @@
+span.cxtspan { 
+  white-space: nowrap; cursor: pointer;}
+span.cxtspan span.term { 
+  color: blue; font-weight: bold;}
+span.cxtspan[displayed='inline'] span.term { 
+  color: blue; font-weight: normal;}
+span.cxtspan span.context { 
+  display: none; cursor: none; padding-left: 3px; padding-right: 3px;
+  /* position: absolute; z-index: 200; opacity: .90; */
+  /* background-color: blue; */
+  }
+span.cxtspan span.context img { 
+  float: none; clear: none; border: none;}

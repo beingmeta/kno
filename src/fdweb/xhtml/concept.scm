@@ -5,9 +5,11 @@
 
 (define version "$Id$")
 
-
 (use-module '{fdweb texttools xhtml xhtml/brico})
 (use-module '{brico brico/lookup brico/dterms brico/wikipedia})
+
+(define image-base
+  "http://static.beingmeta.com/graphics/")
 
 (define (uri-kludge s)
   (if (has-prefix s "http") s
@@ -36,27 +38,27 @@
 	(span ((class "context") (id contextid))
 	  (when weblink
 	    (anchor weblink
-	      (img src "/graphics/outlink16x8.png" alt "link")))
+	      (img src (mkpath image-base "outlink16x8.png") alt "link")))
 	  (when oid
 	    (anchor* (scripturl "http://www.bricobase.net/index.fdcgi"
 		       'concept oid)
 		((title "info at BRICOBASE")
 		 (target "_blank"))
-	      (img src "/graphics/diamond16.png" alt "brico")))
+	      (img src (mkpath image-base "diamond16.png") alt "brico")))
 	  (when (exists? wikiref)
 	    (anchor* (stringout "http://"
 		       (get language 'iso639/1) ".wikipedia.org/wiki/"
 		       (string-subst wikiref " " "_"))
 		((title "info at Wikipedia")
 		 (target "_blank"))
-	      (img src "/graphics/wikipedia.png" alt "wikipedia")))
+	      (img src (mkpath image-base "wikipedia.png") alt "wikipedia")))
 	  (when (test oid 'website)
 	    (let* ((website (pick-one (get oid 'website)))
 		   (uri (if (pair? website) (car website) website))
 		   (text (if (pair? website) (cdr website) website)))
 	      (anchor* (uri-kludge uri)
 		  ((class "home_button") (title text))
-		(img SRC "/graphics/Home-Icon16.png" BORDER 0 ALT "Website"))))
+		(img SRC (mkpath image-base "Home-Icon16.png") BORDER 0 ALT "Website"))))
 	  (when (or (test oid 'lat) (test oid 'lat/long))
 	    (let* ((lat/long (pick-one (get oid 'lat/long)))
 		   (lat (try (first lat/long) (get oid 'lat)))
@@ -70,8 +72,7 @@
 			 "z" 8)
 		  ((title "see at Google maps")
 		   (target "_blank"))
-		(img src "/graphics/earth24.png"
-		     border 0 alt "map" width 24 height 24)))))))))
+		(img src (mkpath image-base "earth16.png") alt "map")))))))))
 
 (define (concept (oid #f) (term #f) (weblink #f) (xmlbody #f))
   (let* ((oid (if oid
