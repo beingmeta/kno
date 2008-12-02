@@ -6,7 +6,7 @@
 
 (define %volatile 'brico/wikiref)
 
-(use-module '{brico fdweb xhtml})
+(use-module '{brico fdweb xhtml texttools})
 
 (define wikisource #f)
 (define brico2enwiki {})
