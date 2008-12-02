@@ -150,8 +150,8 @@ typedef enum FD_PTR_TYPE {
 
 #define FD_BUILTIN_CONS_TYPES 23
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
-FD_EXPORT unsigned int fd_max_cons_type;
-FD_EXPORT unsigned int fd_max_immediate_type;
+FD_EXPORT unsigned int fd_next_cons_type;
+FD_EXPORT unsigned int fd_next_immediate_type;
 
 typedef int (*fd_checkfn)(fdtype);
 FD_EXPORT fd_checkfn fd_immediate_checkfns[128];
@@ -573,7 +573,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
   (FD_CONSP(x)) ?                                  \
   (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
    (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
-   (FD_CONS_TYPE((FD_CONS *)x)<=fd_max_cons_type)) : \
+   (FD_CONS_TYPE((FD_CONS *)x)<fd_next_cons_type)) : \
   (fd_check_immediate(x)))
 
 #define FD_CHECK_ATOMIC_PTR(x)                     \

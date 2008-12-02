@@ -56,12 +56,12 @@
 	(cond ((not (or (table? map) (applicable? map)))
 	       (error 'config "Invalid map: " map))
 	      ((and language (applicable? map)
-		    (not (= (fcn-min-arity map) 1)))
+		    (not (= (procedure-min-arity map) 1)))
 	       (error 'config "map function requires too many arguments: "
 		      map))
 	      ((and (not language) (applicable? map)
-		    (> (fcn-arity map) 1)
-		    (not (= (fcn-min-arity map) 2)))
+		    (> (procedure-arity map) 1)
+		    (not (= (procedure-min-arity map) 2)))
 	       (error 'config "map function has wrong number of arguments: "
 		      map))
 	      (else (vector name language map))))))
@@ -115,12 +115,12 @@
 	(cond ((not (or (table? map) (applicable? map)))
 	       (error 'config "Invalid map: " map))
 	      ((and language (applicable? map)
-		    (not (= (fcn-min-arity map) 1)))
+		    (not (= (procedure-min-arity map) 1)))
 	       (error 'config "map function requires too many arguments: "
 		      map))
 	      ((and (not language) (applicable? map)
-		    (> (fcn-arity map) 1)
-		    (not (= (fcn-min-arity map) 2)))
+		    (> (procedure-arity map) 1)
+		    (not (= (procedure-min-arity map) 2)))
 	       (error 'config "map function has wrong number of arguments: "
 		      map))
 	      (else (vector name language map))))))

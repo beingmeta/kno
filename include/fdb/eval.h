@@ -69,7 +69,7 @@ typedef fdtype (*fd_evalfn)(fdtype expr,struct FD_ENVIRONMENT *);
 
 typedef struct FD_SPECIAL_FORM {
   FD_CONS_HEADER;
-  u8_string name;
+  u8_string name, filename;
   fd_evalfn eval;} FD_SPECIAL_FORM;
 typedef struct FD_SPECIAL_FORM *fd_special_form;
 

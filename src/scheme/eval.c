@@ -855,7 +855,7 @@ FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn)
 {
   struct FD_SPECIAL_FORM *f=u8_alloc(struct FD_SPECIAL_FORM);
   FD_INIT_CONS(f,fd_specform_type);
-  f->name=name; f->eval=fn;
+  f->name=name; f->filename=NULL; f->eval=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -1285,6 +1285,7 @@ void fd_init_eval_c()
   fns->get=lispenv_get; fns->store=lispenv_store;
   fns->add=NULL; fns->drop=NULL; fns->test=NULL;
   
+  fd_type_names[fd_opcode_type]=_("opcode");
   fd_unparsers[fd_opcode_type]=unparse_opcode;
   fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
 
@@ -1300,6 +1301,7 @@ void fd_init_eval_c()
   fd_unparsers[fd_environment_type]=unparse_environment;
   fd_unparsers[fd_specform_type]=unparse_specform;
   fd_unparsers[fd_lexref_type]=unparse_lexref;
+  fd_type_names[fd_lexref_type]=_("lexref");
 
   quote_symbol=fd_intern("QUOTE");
   _fd_comment_symbol=comment_symbol=fd_intern("COMMENT");

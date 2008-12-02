@@ -18,8 +18,8 @@
 (applytest #f primitive? 'car)
 (applytest #t primitive? get)
 (applytest #t primitive? applytest)
-(applytest 1 fcn-arity car)
-(applytest 2 fcn-arity cons)
+(applytest 1 procedure-arity car)
+(applytest 2 procedure-arity cons)
 (applytest #t primitive? get)
 
 (define f2 (frame-create #f  'bar 8 'foo 3))

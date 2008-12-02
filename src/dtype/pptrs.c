@@ -69,6 +69,7 @@ static int unparse_pptr(u8_output out,fdtype x)
 
 FD_EXPORT void fd_init_pptrs_c()
 {
+  fd_type_names[fd_pptr_type]=_("persistent pointer");
   fd_unparsers[fd_pptr_type]=unparse_pptr;
 #if FD_THREADS_ENABLED
   fd_init_mutex(&_fd_pptr_lock);

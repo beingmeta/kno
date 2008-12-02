@@ -47,7 +47,7 @@ FD_EXPORT
 int fd_check_immediate(fdtype x)
 {
   int type=FD_IMMEDIATE_TYPE_FIELD(x);
-  if (FD_IMMEDIATE_TYPECODE(type)<fd_max_immediate_type)
+  if (FD_IMMEDIATE_TYPECODE(type)<fd_next_immediate_type)
     if (fd_immediate_checkfns[type])
       return fd_immediate_checkfns[type](x);
     else return 1;
@@ -726,18 +726,18 @@ static void recycle_mystery(struct FD_CONS *c)
 static u8_mutex type_registry_lock;
 #endif
 
-unsigned int fd_max_cons_type=FD_CONS_TYPECODE(FD_BUILTIN_CONS_TYPES);
-unsigned int fd_max_immediate_type=FD_IMMEDIATE_TYPECODE(FD_BUILTIN_IMMEDIATE_TYPES);
+unsigned int fd_next_cons_type=FD_CONS_TYPECODE(FD_BUILTIN_CONS_TYPES);
+unsigned int fd_next_immediate_type=FD_IMMEDIATE_TYPECODE(FD_BUILTIN_IMMEDIATE_TYPES);
 
 FD_EXPORT int fd_register_cons_type(char *name)
 {
   int typecode;
   fd_lock_mutex(&type_registry_lock);
-  if (fd_max_cons_type>=FD_MAX_CONS_TYPE) {
+  if (fd_next_cons_type>=FD_MAX_CONS_TYPE) {
     fd_unlock_mutex(&type_registry_lock);
     return -1;}
-  fd_max_cons_type++;
-  typecode=fd_max_cons_type;
+  typecode=fd_next_cons_type;
+  fd_next_cons_type++;
   fd_type_names[typecode]=name;
   fd_unlock_mutex(&type_registry_lock);
   return typecode;
@@ -747,12 +747,12 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
 {
   int typecode;
   fd_lock_mutex(&type_registry_lock);
-  if (fd_max_immediate_type>=FD_MAX_IMMEDIATE_TYPE) {
+  if (fd_next_immediate_type>=FD_MAX_IMMEDIATE_TYPE) {
     fd_unlock_mutex(&type_registry_lock);
     return -1;}
-  typecode=fd_max_immediate_type;
+  typecode=fd_next_immediate_type;
   fd_immediate_checkfns[typecode-0x04]=fn;
-  fd_max_immediate_type++;
+  fd_next_immediate_type++;
   fd_type_names[typecode]=name;
   fd_unlock_mutex(&type_registry_lock);
   return typecode;

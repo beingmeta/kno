@@ -995,6 +995,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_macro_type=fd_register_cons_type(_("scheme syntactic macro"));
 
   fd_applyfns[fd_sproc_type]=sproc_applier;
+  fd_functionp[fd_sproc_type]=1;
 
   fd_unparsers[fd_sproc_type]=unparse_sproc;
   fd_recyclers[fd_sproc_type]=recycle_sproc;

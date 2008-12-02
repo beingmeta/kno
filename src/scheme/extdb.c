@@ -208,10 +208,11 @@ FD_EXPORT void fd_init_extdbi_c()
   fd_recyclers[fd_extdb_type]=recycle_extdb;
   fd_unparsers[fd_extdb_type]=unparse_extdb;
 
-  fd_extdb_proc_type=fd_register_cons_type("EXTDB");
+  fd_extdb_proc_type=fd_register_cons_type("EXTDBPROC");
   fd_recyclers[fd_extdb_proc_type]=recycle_extdb_proc;
   fd_unparsers[fd_extdb_proc_type]=unparse_extdb_proc;
   fd_applyfns[fd_extdb_proc_type]=(fd_applyfn)callextdbproc;
+  fd_functionp[fd_extdb_proc_type]=1;
 
   fd_idefn(extdb_module,
 	   fd_make_cprim3x("EXTDB/EXEC",extdb_exec,2,

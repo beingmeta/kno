@@ -48,7 +48,8 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
   FD_CONS_HEADER; u8_string name, filename;                             \
-  short ndprim, xprim, arity, min_arity;                                \
+  short ndprim, xprim;                                                  \
+  short arity, min_arity;                                               \
   int *typeinfo; fdtype *defaults;                                      \
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
@@ -61,11 +62,16 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
     void *fnptr;}                                                       \
   handler
 
-
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
 };
 
+/* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
+FD_EXPORT short fd_functionp[];
+
+/* Various primitive defining functions.  Declare an explicit type,
+   like fd_cprim1, as an argument, will generate warnings when
+   the declaration and the implementation don't match.  */
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int mina);
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int mina);
 FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int mina);
@@ -84,8 +90,14 @@ FD_EXPORT fdtype fd_make_cprim5x(u8_string name,fd_cprim5 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim6x(u8_string name,fd_cprim6 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim7x(u8_string name,fd_cprim7 fn,int mina,...);
 
-#define FD_FUNCTIONP(x) (FD_PTR_TYPEP(x,fd_function_type))
-#define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *))
+#define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
+#define FD_XFUNCTION(x) \
+  ((FD_FUNCTIONP(x)) ? \
+   ((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x)))) : \
+   ((struct FD_FUNCTION *)(u8_raise(fd_TypeError,"function",NULL),NULL)))
+
+/* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */
+#define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_function_type))
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 

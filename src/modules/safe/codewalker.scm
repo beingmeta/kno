@@ -47,7 +47,7 @@
 	   (if (special-call? head-expr bound env)
 	       (let ((handler (try (get codewalkers (get env head-expr))
 				   (get codewalkers
-					(fcn-name (get env head-expr)))
+					(procedure-name (get env head-expr)))
 				   (get codewalkers head-expr)
 				   )))
 		 (if (exists? handler)

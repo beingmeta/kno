@@ -102,7 +102,10 @@ FD_EXPORT void fd_init_dtproc_c()
   fd_register_source_file(versionid);
   fd_register_source_file(FDB_DTPROC_H_VERSION);
 
+  fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_applyfns[fd_dtproc_type]=(fd_applyfn)dtapply;
+  fd_functionp[fd_dtproc_type]=1;
+
   fd_unparsers[fd_dtproc_type]=unparse_dtproc;
   fd_recyclers[fd_dtproc_type]=recycle_dtproc;
 }

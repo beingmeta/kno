@@ -18,6 +18,8 @@ static char versionid[] =
 #include <stdarg.h>
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];
+/* This is set if the type is a CONS with a FUNCTION header */ 
+short fd_functionp[FD_TYPE_MAX];
 
 u8_condition fd_apply_context="APPLY";
 
@@ -945,6 +947,7 @@ FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from)
 FD_EXPORT void fd_init_apply_c()
 {
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
+  i=0; while (i < FD_TYPE_MAX) fd_functionp[i++]=0;
 
   fd_register_source_file(versionid);
   fd_register_source_file(FDB_APPLY_H_VERSION);
@@ -956,6 +959,8 @@ FD_EXPORT void fd_init_apply_c()
 #endif
 
   fd_applyfns[fd_function_type]=(fd_applyfn)fd_dapply;
+  fd_functionp[fd_function_type]=1;
+
   fd_unparsers[fd_function_type]=unparse_function;
   fd_recyclers[fd_function_type]=recycle_function;
 

@@ -50,12 +50,11 @@ static fdtype primitivep(fdtype x)
 
 static fdtype procedurep(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) return FD_TRUE;
-  else if (FD_PRIM_TYPEP(x,fd_function_type)) return FD_TRUE;
+  if (FD_FUNCTIONP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype fcn_name(fdtype x)
+static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
@@ -67,10 +66,25 @@ static fdtype fcn_name(fdtype x)
     if (sf->name)
       return fdtype_string(sf->name);
     else return FD_FALSE;}
-  else return fd_type_error(_("function"),"fcn_name",x);
+  else return fd_type_error(_("function"),"procedure_name",x);
 }
 
-static fdtype fcn_symbol(fdtype x)
+static fdtype procedure_filename(fdtype x)
+{
+  if (FD_FUNCTIONP(x)) {
+    struct FD_FUNCTION *f=FD_XFUNCTION(x);
+    if (f->filename)
+      return fdtype_string(f->filename);
+    else return FD_FALSE;}
+  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
+    if (sf->filename)
+      return fdtype_string(sf->filename);
+    else return FD_FALSE;}
+  else return fd_type_error(_("function"),"procedure_filename",x);
+}
+
+static fdtype procedure_symbol(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
@@ -82,10 +96,10 @@ static fdtype fcn_symbol(fdtype x)
     if (sf->name)
       return fd_intern(sf->name);
     else return FD_FALSE;}
-  else return fd_type_error(_("function"),"fcn_symbol",x);
+  else return fd_type_error(_("function"),"procedure_symbol",x);
 }
 
-static fdtype fcn_id(fdtype x)
+static fdtype procedure_id(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
@@ -100,33 +114,23 @@ static fdtype fcn_id(fdtype x)
   else return fd_incref(x);
 }
 
-static fdtype fcn_filename(fdtype x)
-{
-  if (FD_APPLICABLEP(x)) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->filename)
-      return fdtype_string(f->filename);
-    else return FD_FALSE;}
-  else return fd_type_error(_("function"),"fcn_filename",x);
-}
-
-static fdtype fcn_arity(fdtype x)
+static fdtype procedure_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     int arity=f->arity;
     if (arity<0) return FD_FALSE;
     else return FD_INT2DTYPE(arity);}
-  else return fd_type_error(_("procedure"),"fcn_arity",x);
+  else return fd_type_error(_("procedure"),"procedure_arity",x);
 }
 
-static fdtype fcn_min_arity(fdtype x)
+static fdtype procedure_min_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     int arity=f->min_arity;
     return FD_INT2DTYPE(arity);}
-  else return fd_type_error(_("procedure"),"fcn_min_arity",x);
+  else return fd_type_error(_("procedure"),"procedure_min_arity",x);
 }
 
 static fdtype compound_procedure_args(fdtype x)
@@ -307,19 +311,15 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("COMPOUND-PROCEDURE?",compound_procedurep,1));
   fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",special_formp,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
-  /* FCN? is defined separately because it tells whether or not you can apply the
-     FCN-* functions.  Note that this isn't consistent and that PROCEDURE?
-     should probably really be COMPOUND-PROCEDURE? */
-  fd_idefn(module,fd_make_cprim1("FCN?",procedurep,1));
+
   fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));
   fd_idefn(module,fd_make_cprim1("MODULE?",modulep,1));
-  fd_idefn(module,fd_make_cprim1("FCN-NAME",fcn_name,1));
-  fd_idefn(module,fd_make_cprim1("FCN-FILENAME",fcn_filename,1));
-  fd_idefn(module,fd_make_cprim1("FCN-ARITY",fcn_arity,1));
-  fd_idefn(module,fd_make_cprim1("FCN-MIN-ARITY",fcn_min_arity,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-NAME",fcn_name,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-SYMBOL",fcn_symbol,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-ID",fcn_id,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-FILENAME",procedure_filename,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-ARITY",procedure_arity,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-MIN-ARITY",procedure_min_arity,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-SYMBOL",procedure_symbol,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-ID",procedure_id,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ARGS",compound_procedure_args,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BODY",compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
@@ -327,6 +327,14 @@ FD_EXPORT void fd_init_reflection_c()
 	   fd_make_cprim2("SET-PROCEDURE-BODY!",
 			  set_compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
+
+#if 0
+  fd_idefn(module,fd_make_cprim1("FCN?",procedurep,1));
+  fd_idefn(module,fd_make_cprim1("FCN-NAME",procedure_name,1));
+  fd_idefn(module,fd_make_cprim1("FCN-FILENAME",procedure_filename,1));
+  fd_idefn(module,fd_make_cprim1("FCN-ARITY",procedure_arity,1));
+  fd_idefn(module,fd_make_cprim1("FCN-MIN-ARITY",procedure_min_arity,1));
+#endif
 
   fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
   fd_idefn(module,fd_make_cprim1("MODULE-EXPORTS",module_exports,1));
