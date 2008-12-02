@@ -62,8 +62,8 @@ static fdtype eqvp(fdtype x,fdtype y)
   if (x==y) return FD_TRUE;
   else if ((FD_NUMBERP(x)) && (FD_NUMBERP(y)))
     if (fd_numcompare(x,y)==0)
-      return FD_FALSE;
-    else return FD_TRUE;
+      return FD_TRUE;
+    else return FD_FALSE;
   else return FD_FALSE;
 }
 
