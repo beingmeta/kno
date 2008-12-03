@@ -59,14 +59,13 @@
       ;; underlying connection and not Facebook itself.
       (error "Invalid FBCALL results" content)
       (if (or (string? content) (packet? content))
-	  (if (%watch (if (string? content)
-			  (eqv? (elt content 0) #\<)
-			  (eqv? (elt content 0) 60))
-		      content)
+	  (if (if (string? content)
+		  (eqv? (elt content 0) #\<)
+		  (eqv? (elt content 0) 60))
 	      (error "FBCALL/JSON returned XML" content)
 	      (if err
 		  (let ((parsed (jsonparse content)))
-		    (if (and (table? parsed) (test parsed "err_code"))
+		    (if (and (table? parsed) (test parsed "error_code"))
 			(error "FBCALL API Error" parsed)
 			parsed))
 		  (jsonparse content)))
