@@ -468,15 +468,33 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
   else real_val=fd_incref(FD_VECTOR_REF(cookie,1));
   if ((len>2) || (!(FD_EQ(real_val,FD_VECTOR_REF(cookie,1))))) {
     fdtype var=FD_VECTOR_REF(cookie,0);
+    u8_string namestring; u8_byte *scan;
+    int free_namestring=0, c;
     u8_printf(out,"Set-Cookie: ");
-    emit_uri_string(out,FD_SYMBOL_NAME(var)); u8_puts(out,"=");
+    if (FD_SYMBOLP(var)) namestring=FD_SYMBOL_NAME(var);
+    else if (FD_STRINGP(var)) namestring=FD_STRDATA(var);
+    else {
+      namestring=fd_dtype2string(var);
+      free_namestring=1;}
+    scan=namestring; c=u8_sgetc(&scan);
+    if ((c=='$')|| (c>=0x80) || (u8_isspace(c)) || (c==';') || (c==',')) 
+      u8_printf(out,"\\u%04x",c);
+    else u8_putc(out,c);
+    c=u8_sgetc(&scan);
+    while (c>0) {
+      if ((c>=0x80) || (u8_isspace(c)) || (c==';') || (c==',')) 
+	u8_printf(out,"\\u%04x",c);
+      else u8_putc(out,c);
+      c=u8_sgetc(&scan);}
+    u8_puts(out,"=");
+    if (free_namestring) u8_free(namestring);
     emit_uri_value(out,FD_VECTOR_REF(cookie,1)); u8_puts(out,";");
     if (len>2) {
       fdtype domain=FD_VECTOR_REF(cookie,2);
       fdtype path=((len>3) ? (FD_VECTOR_REF(cookie,3)) : (FD_VOID));
       fdtype expires=((len>4) ? (FD_VECTOR_REF(cookie,4)) : (FD_VOID));
       if (FD_STRINGP(domain))
-	u8_printf(out," domain=%s;",FD_STRDATA(domain));
+	u8_printf(out," domain=.%s;",FD_STRDATA(domain));
       if (FD_STRINGP(expires))
 	u8_printf(out," expires=%s;",FD_STRDATA(expires));
       else if (FD_PTR_TYPEP(expires,fd_timestamp_type)) {
@@ -495,14 +513,15 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
 static fdtype setcookie
   (fdtype var,fdtype val,fdtype domain,fdtype path,fdtype expires)
 {
-  if (!(FD_SYMBOLP(var))) return fd_type_error("symbol","setcookie",var);
+  if (!((FD_SYMBOLP(var)) || (FD_STRINGP(var)) || (FD_OIDP(var))))
+    return fd_type_error("symbol","setcookie",var);
   else {
     fdtype cookiedata, cgidata=fd_thread_get(cgidata_symbol);
     if (FD_VOIDP(domain)) domain=FD_FALSE;
     if (FD_VOIDP(path)) path=FD_FALSE;
     if (FD_VOIDP(expires)) expires=FD_FALSE;
     cookiedata=
-      fd_make_vector(5,var,fd_incref(val),
+      fd_make_vector(5,fd_incref(var),fd_incref(val),
 		     fd_incref(domain),fd_incref(path),fd_incref(expires));
     if (FD_VOIDP(cgidata)) {
       u8_output out=fd_get_default_output();
