@@ -64,7 +64,10 @@ static fdtype json_atom(U8_INPUT *in,int flags)
   while ((u8_isalnum(c)) || (c=='-') || (c=='_') || (c=='+') || (c=='.')) {
     u8_putc(&out,c); c=readc(in);}
   if (c>=0) u8_ungetc(in,c);
-  result=fd_parse(out.u8_outbuf);
+  if ((strcmp(out.u8_outbuf,"true")==0)) result=FD_TRUE;
+  else if ((strcmp(out.u8_outbuf,"false")==0)) result=FD_FALSE;
+  else if  ((strcmp(out.u8_outbuf,"null")==0)) result=FD_EMPTY_CHOICE;
+  else result=fd_parse(out.u8_outbuf);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return result;
 }
