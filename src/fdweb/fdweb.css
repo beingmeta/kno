@@ -313,6 +313,18 @@ input[type='SUBMIT'] {
  border: outset silver 2px;	
  margin: 2px;}
 
+/* beingmeta specific display classes */
+
+span.bmm { color: rgb(255,0,0);}
+span.bme { color: rgb(228,100,17);}
+span.bmt { color: green;}
+span.bma { color: rgb(0,0,255);}
+
+a span.bmm { color: rgb(255,0,0);}
+a span.bme { color: rgb(228,100,17);}
+a span.bmt { color: green;}
+a span.bma { color: rgb(0,0,255);}
+
 /* Legacy input help classes */
 
 div.input_help {
