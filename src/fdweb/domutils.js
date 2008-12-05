@@ -55,46 +55,101 @@ function fdbHasAttrib(elt,attribname)
   else return false;
 }
 
-/* Various search functions */
+/* Searching by tag name */
 
-function fdbGetElementsByClassName(classname,under_arg)
+function fdbGetParentByTagName(node,tagname)
 {
-  var under;
-  if (typeof under_arg == 'undefined') under=null;
-  else if (typeof under_arg == 'string')
-    under=document.getElementById(under_arg);
-  else under=under_arg;
-  if ((under) && (under.getElementsByClassName))
-    under.getElementsByClassName(classname);
-  else if (document.getElementsByClassName)
-    return document.getElementsByClassName(classname);
-  else if ((under) ? (under.all) : (document.all)) {
-    var nodes=((under) ? (under.all) : (document.all))
-    var results=[];
-    var i=0; while (i<nodes.length) {
-      var node=nodes[i++];
-      if (node.nodeType==1)
-	if (node.className==classname)
-	  results.push(node);}
-    return results;}
+  var scan;
+  if (typeof node == "string")
+    scan=document.getElementById(node);
+  else scan=node;
+  tagname=tagname.toUpperCase();
+  while ((scan) && (scan.parentNode)) 
+    if (scan.tagName===tagname) return scan;
+    else scan=scan.parentNode;
+  if ((scan) && (scan.tagName===tagname)) return scan;
+  else return null;
 }
+
+function fdbGetChildrenByTagName(under,tagname)
+{
+  if (typeof under == 'string') {
+    under=document.getElementById(under);
+    if (under===null) return new Array();}
+  tagname=tagname.toUpperCase();
+  if (under===null)
+    return _fdbGetChildrenByTagName(document,tagname,new Array())
+  else return _fdbGetChildrenByTagName(under,tagname,new Array())
+}
+function _fdbGetChildrenByTagName(under,tagname,results)
+{
+  if ((under.nodeType===1) && (under.tagName===tagname))
+    results.push(under);
+  var children=under.childNodes;
+  var i=0; while (i<children.length)
+    if (children[i].nodeType==1)
+      _fdbGetChildrenByTagName(children[i++],tagname,results);
+    else i++;
+  return results;
+}
+
+/* Searching by class name */
 
 function fdbGetParentByClassName(node,classname)
 {
   var scan;
-  if (typeof node == "string") scan=document.getElementById(node);
+  if (typeof node === "string") scan=document.getElementById(node);
   else scan=node;
   while ((scan) && (scan.parentNode))
-    if (scan.className==classname) return scan;
+    if (scan.className===classname) return scan;
     else scan=scan.parentNode;
-  if ((scan) && (scan.className==classname)) return scan;
+  if ((scan) && (scan.className===classname)) return scan;
   else return null;
 }
+
+function fdbGetChildrenByClassName(under,classname)
+{
+  if (typeof under == 'string')
+    under=document.getElementById(under);
+  if ((under) && (under.getElementsByClassName))
+    return under.getElementsByClassName(classname);
+  else if ((under===null) && (document.getElementsByClassName))
+    return document.getElementsByClassName(classname);
+  else if (under===null)
+    return _fdbGetChildrenByClassName(document,classname,new Array());
+  else return _fdbGetChildrenByClassName(under,classname,new Array());
+}
+function _fdbGetChildrenByClassName(under,classname)
+{
+  if ((under.nodeType===1) && (under.className===classname))
+    results.push(under);
+  var children=under.childNodes;
+  var i=0; while (i<children.length)
+    if (children[i].nodeType===1)
+      _fdbGetChildrenByTagName(children[i++],tagname,results);
+    else i++;
+  return results;
+}     
+
+/* Kind of legacy */
+
+function fdbGetElementsByClassName(classname,under_arg)
+{
+  var under;
+  if (typeof under_arg === 'undefined') under=null;
+  else if (typeof under_arg === 'string')
+    under=document.getElementById(under_arg);
+  else under=under_arg;
+  if (under===null) return new Array();
+  else return fdbGetChildrenByClassName(under,classname);
+}
+
+/* Searching by attribute */
 
 function fdbGetParentByAttrib(node,attribName,attribValue)
 {
   var scan;
-  if (typeof node == "string") scan=document.getElementById(node);
+  if (typeof node === "string") scan=document.getElementById(node);
   else node=scan;
   if (attribValue)
     while ((scan) && (scan.parentNode))
@@ -106,6 +161,41 @@ function fdbGetParentByAttrib(node,attribName,attribValue)
 	(!(!(scan.getAttribute(attribName)))))
       return scan;
     else scan=scan.parentNode;
+}
+
+function fdbGetChildrenByAttrib(under,attribName,attribValue)
+{
+  if (typeof under === 'string')
+    under=document.getElementById(under);
+  if (attribValue)
+    return _fdbGetChildrenByAttribValue
+      (under,attribName,attribValue,new Array());
+  else return _fdbGetChildrenByAttrib(under,attribName,new Array());
+}
+function _fdbGetChildrenByAttrib(under,attribname,results)
+{
+  if ((under.nodeType==1) &&
+      ((under.hasAttribute) ? (under.hasAttribute(attribname)) :
+       (under.getAttribute(attribname))))
+    results.push(under);
+  var children=under.childNodes;
+  var i=0; while (i<children.length)
+    if (children[i].nodeType==1)
+      _fdbGetChildrenByAttrib(children[i++],attribname,results);
+    else i++;
+  return results;
+}
+function _fdbGetChildrenByAttribValue(under,attribname,attribval,results)
+{
+  if ((under.nodeType==1) &&
+      (under.getAttribute(attribname)==attribval))
+    results.push(under);
+  var children=under.childNodes;
+  var i=0; while (i<children.length)
+    if (children[i].nodeType==1)
+      _fdbGetChildrenByAttrib(children[i++],attribname,attribval,results);
+    else i++;
+  return results;
 }
 
 /* Adding/Inserting nodes */

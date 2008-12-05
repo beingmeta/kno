@@ -115,7 +115,7 @@ span.tab {
   border: outset black 2px;
   padding: 3px;}
 span.tab[shown] {
-  font-weight: bold;
+  /* font-weight: bold; */
   border: inset black 2px;
   border-bottom: hidden black 2px;}
 div.tabcontent {
