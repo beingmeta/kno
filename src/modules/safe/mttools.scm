@@ -33,7 +33,7 @@
 
 (define (legacy-blockproc proc)
   (and proc
-       (if (= (fcn-arity proc) 1)
+       (if (= (procedure-arity proc) 1)
 	   (lambda (args done) (unless done (proc (qc args))))
 	   proc)))
 
