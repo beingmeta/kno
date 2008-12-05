@@ -458,10 +458,13 @@ static fdtype htmlheader(fdtype expr,fd_lispenv env)
 
 static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
 {
-  int len; fdtype real_val;
+  int len; fdtype real_val, name;
   if (!(FD_VECTORP(cookie))) return -1;
   else len=FD_VECTOR_LENGTH(cookie);
-  if ((len<2) || (!(FD_SYMBOLP(FD_VECTOR_REF(cookie,0))))) return -1;
+  if (len<2) return -1;
+  else name=FD_VECTOR_REF(cookie,0);
+  if (!((FD_SYMBOLP(name))||(FD_STRINGP(name))||(FD_OIDP(name))))
+    return -1;
   if (FD_TABLEP(cgidata)) {
     real_val=fd_get(cgidata,FD_VECTOR_REF(cookie,0),FD_VOID);
     if (FD_VOIDP(real_val)) real_val=fd_incref(FD_VECTOR_REF(cookie,1));}
@@ -947,7 +950,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   doctype_slotid=fd_intern("DOCTYPE");
   xmlpi_slotid=fd_intern("XMLPI");
-  body_attribs_slotid=fd_intern("XMLPI");
+  body_attribs_slotid=fd_intern("%BODY");
 
   post_data_slotid=fd_intern("POST_DATA");
   form_data_string=fdtype_string("multipart/form-data");
