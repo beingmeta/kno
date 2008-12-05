@@ -220,25 +220,27 @@
   ;;  3. we have a valid session
   ;;     We just return #t after setting USER
 
-  (if (cgitest 'auth_token)
-      (begin (cgicall handleauthtoken) #f)
-      (let ((session (cgiget 'fb_sig_session_key))
-	    (expires (cgiget 'fb_sig_session_expires)))
-	(if (or (not session) (hashset-get fb/closed-sessions session)
-		(and session expires (> (time) expires)))
-	    (begin (cgicall doauthorize) #f)
-	    (or (cgitest 'user) 
-		(begin (onerror (cgiset! 'user (fb/getuser))
-				(lambda (ex)
-				  (cgicall doauthorize)
-				  #f))))))))
+  (or (%watch (fb/incanvas?)) 
+      (if (cgitest 'auth_token)
+	  (begin (cgicall handleauthtoken) #f)
+	  (let ((session (cgiget 'fb_sig_session_key))
+		(expires (cgiget 'fb_sig_session_expires)))
+	    (if (or (not session) (hashset-get fb/closed-sessions session)
+		    (and session expires (> (time) expires)))
+		(begin (cgicall doauthorize) #f)
+		(or (cgitest 'user) 
+		    (begin (onerror (cgiset! 'user (fb/getuser))
+				    (lambda (ex)
+				      (cgicall doauthorize)
+				      #f)))))))))
 
 (define (fb/logout)
-  (do-choices (key facebook-cookies)
-    (set-cookie! key "expired"
-		 (or apphost (cgiget 'host_name)) "/"
-		 (timeplus (- oneday)))
-    (cgidrop! key)))
+  (unless (fb/incanvas?)
+    (do-choices (key facebook-cookies)
+      (set-cookie! key "expired"
+		   (or apphost (cgiget 'host_name)) "/"
+		   (timeplus (- oneday)))
+      (cgidrop! key))))
 
 (module-export! '{fb/authorize fb/logout fb/sessions->users})
 
