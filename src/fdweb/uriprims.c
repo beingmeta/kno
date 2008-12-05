@@ -206,6 +206,9 @@ static void uri_output(u8_output out,u8_string s,char *escape)
       char buf[8]; sprintf(buf,"%%%02x",*s);
       u8_puts(out,buf); s++;}
     else if (*s==' ') {u8_putc(out,'+'); s++;}
+    else if (isspace(*s)) {
+      char buf[8]; sprintf(buf,"%%%02x",*s);
+      u8_puts(out,buf); s++;}
     else {u8_putc(out,*s); s++;}
 }
 
