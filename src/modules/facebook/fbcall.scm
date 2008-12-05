@@ -13,10 +13,12 @@
 (define (fbcall method . args)
   (%debug "Calling " method " on"
 	  (doseq (arg args) (printout " " (write arg))))
-  (let* ((req (urlget (fbcalluri method (cons* "format" "JSON" args))))
+  (let* ((uri (fbcalluri method (cons* "format" "JSON" args)))
+	 (ign1 (begin (%debug "Request URI is " uri) #t))
+	 (req (urlget uri))
 	 (content (get req '%content))
+	 (ign2 (begin (%debug "Request content is " content) #t))
 	 (result (fbcallparse content)))
-    (%debug "Content for " method " is " (write content))
     (%debug "Results for " method " is " (write result))
     result))
 ;; This returns the direct result of URLGET
@@ -35,7 +37,7 @@
 
 (define (fbcalluri method args (w/session #t) (w/callid #t))
   (when w/callid
-    (set! args (cons* "call_id" (get (timestamp) 'tick) args)))
+    (set! args (cons* "call_id" (time) args)))
   (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
   (when (and w/session (cgitest 'fb_sig_session_key)
@@ -45,8 +47,16 @@
   (stringout "http://api.facebook.com/restserver.php?"
     (do ((args args (cddr args)))
 	((null? args) (printout))
-      (printout (car args) "=" (cadr args) "&"))
+      (if (string? (cadr args))
+	  (printout (car args) "=" (uriencode (cadr args)) "&")
+	  (printout (car args) "="
+		    (uriencode (lisp->string (cadr args))) "&")))
     (printout "sig=" (downcase (packet->base16 (get-signature args))))))
+
+(define (encode-args args)
+  (if (null? args) '()
+      (cons* (car args) (uriencode (cadr args))
+	     (encode-args (cddr args)))))
 
 (define (fbcallparse content (err #t))
   ;; This handles the various kinds of responses the Facebook API may
@@ -90,10 +100,12 @@
   "Calls the Facebook API and ensures that the results are a vector"
   (%debug "Calling " method " on"
 	  (doseq (arg args) (printout " " (write arg))))
-  (let* ((req (urlget (fbcalluri method (cons* "format" "JSON" args))))
+  (let* ((uri (fbcalluri method (cons* "format" "JSON" args)))
+	 (ign1 (begin (%debug "Request URI is " uri) #t))
+	 (req (urlget uri))
 	 (content (get req '%content))
+	 (ign2 (begin (%debug "Request content is " content) #t))
 	 (result (fbcallparse content)))
-    (%debug "Content for " method " is " (write content))
     (%debug "Results for " method " is " (write result))
     (if (vector? result) result
 	(if (and (table? result) (zero? (getkeys result)))
