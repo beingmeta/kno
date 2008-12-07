@@ -1,5 +1,7 @@
 /* Various utilities for manipulating the dom */
 
+var _debug_domedits=false;
+
 function $(eltarg)
 {
   if (typeof eltarg == 'string')
@@ -44,14 +46,19 @@ function fdb_block_eltp(elt)
   return ((name==='DIV') || (name==='P') || (name==='LI') || (name==='UL'));
 }
 
-function fdbHasAttrib(elt,attribname)
+function fdbHasAttrib(elt,attribname,attribval)
 {
-  if (elt.hasAttribute)
-    return elt.hasAttribute(attribname);
-  else if (elt.getAttribute)
-    if (elt.getAttribute(attribname))
-      return true;
+  if (typeof attribval == 'undefined')
+    if (elt.hasAttribute)
+      return elt.hasAttribute(attribname);
+    else if (elt.getAttribute)
+      if (elt.getAttribute(attribname))
+	return true;
+      else return false;
     else return false;
+  else if ((elt.getAttribute) &&
+	   (elt.getAttribute(attribname)==attribval))
+    return true;
   else return false;
 }
 
@@ -229,6 +236,11 @@ function fdbAddAttributes(elt,attribs)
 
 function fdbInsertElementsBefore(elt,before,elts,i)
 {
+  if ((_debug) || (_debug_domedits))
+    fdbLog("Inserting "+elts+" elements "
+	   +"into "+elt
+	   +" before "+before
+	   +" starting with "+elts[0]);
   while (i<elts.length) {
     var arg=elts[i++];
     if (typeof arg == 'string')
@@ -257,7 +269,7 @@ function fdbPrepend(elt_arg)
   else if (elt_arg) elt=elt_arg;
   if (elt)
     if (elt.firstChild)
-      return fdbInsertElementsBefore(elt.firstChild,arguments,1);
+      return fdbInsertElementsBefore(elt,elt.firstChild,arguments,1);
     else return fdbAddElements(elt,arguments,1);
   else fdbWarn("Invalid DOM argument: "+elt_arg);
 }
@@ -305,7 +317,7 @@ function fdbInsertAfter(after_arg)
 function fdbReplace(cur_arg,newnode)
 {
   var cur=null;
-  if (typeof cur_arg == string)
+  if (typeof cur_arg === 'string')
     cur=document.getElementById(cur_arg);
   else cur=cur_arg;
   if (cur) {
