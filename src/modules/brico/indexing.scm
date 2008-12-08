@@ -216,24 +216,7 @@
   (doindex index frame '%ids)
   (doindex index frame '%mnemonic)
   (doindex index frame '%mnemonics)
-  (doindex index frame '{key through slots inverse @1/2c27a})
-  ;; Special case 'has' indexing
-  (when (test frame 'gloss)
-    (doindex index frame 'has english-gloss))
-  (when (test frame '%glosses)
-    (doindex index frame 'has
-	     (get gloss-map (car (get frame '%glosses)))))
-  (when (test frame '%words)
-    (doindex index frame 'has
-	     (choice (get language-map (car (get frame '%words)))
-		     (get frag-map
-			  (get language-map (car (get frame '%words)))))))
-  (when (test frame '%norm)
-    (doindex index frame 'has
-	     (get norm-map (car (get frame '%norm)))))
-  (when (test frame '%indices)
-    (doindex index frame 'has
-	     (get index-map (car (get frame '%indices))))))
+  (doindex index frame '{key through slots inverse @1/2c27a}))
 
 (define (index-wordform index frame)
   (when (test frame 'type 'wordform)
