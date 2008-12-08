@@ -19,6 +19,8 @@ static char versionid[] =
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>
 
+#include <ctype.h>
+
 static fdtype scheme_symbol, hostname_symbol, portno_symbol, userinfo_symbol;
 static fdtype name_symbol, path_symbol, pathstring_symbol;
 static fdtype query_symbol, fragment_symbol;
