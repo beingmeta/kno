@@ -414,15 +414,16 @@ FD_EXPORT fdtype fd_index_keys(fd_index ix)
   if (ix->handler->fetchkeys) {
     int n_fetched=0, n_total; fd_choice result;
     fdtype *fetched=ix->handler->fetchkeys(ix,&n_fetched);
+    fdtype *write_start, *write_at;
     if (n_fetched==0) return fd_hashtable_keys(&(ix->adds));
     n_total=n_fetched+ix->adds.n_keys;
     result=fd_alloc_choice(n_total);
     memcpy(&(result->elt0),fetched,sizeof(fdtype)*n_fetched);
+    write_start=&(result->elt0); write_at=write_start+n_fetched;
     u8_free(fetched);
-    if (ix->adds.n_keys) {
-      fdtype *write_at=&(result->elt0)+n_fetched;
-      fd_for_hashtable(&(ix->adds),add_key_fn,&write_at,1);}
-    return fd_init_choice(result,n_total,NULL,
+    if (ix->adds.n_keys) 
+      fd_for_hashtable(&(ix->adds),add_key_fn,&write_at,1);
+    return fd_init_choice(result,write_at-write_start,NULL,
 			  FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
 }
