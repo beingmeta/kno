@@ -596,46 +596,6 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
   else return fd_incref(string);
 }
 
-/* Simple string subst */
-
-static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
-{
-  if (FD_STRLEN(string)==0) return fd_incref(string);
-  else {
-    u8_string original=FD_STRDATA(string);
-    u8_string search=FD_STRDATA(substring);
-    u8_string replace=FD_STRDATA(with);
-    int searchlen=FD_STRING_LENGTH(substring);
-    u8_string point=strstr(original,search);
-    if (point) {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,2*FD_STRLEN(string));
-      u8_string last=original; while (point) {
-	u8_putn(&out,last,point-last); u8_puts(&out,replace);
-	last=point+searchlen; point=strstr(last,search);}
-      u8_puts(&out,last);
-      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
-    else return fd_incref(string);}
-}
-
-static fdtype string_subst_star(int n,fdtype *args)
-{
-  fdtype base=args[0]; int i=1;
-  if ((n%2)==0)
-    return fd_err(fd_SyntaxError,"string_subst_star",NULL,FD_VOID);
-  else while (i<n) 
-    if (FD_EXPECT_FALSE(!(FD_STRINGP(args[i]))))
-      return fd_type_error(_("string"),"string_subst_star",args[i]);
-    else i++;
-  /* In case we return it. */
-  fd_incref(base); i=1;
-  while (i<n) {
-    fdtype replace=args[i];
-    fdtype with=args[i+1];
-    fdtype result=string_subst_prim(base,replace,with);
-    i=i+2; fd_decref(base); base=result;}
-  return base;
-}
-
 /* Columnizing */
 
 static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
@@ -1691,14 +1651,6 @@ void fd_init_texttools()
 	   fd_make_cprim2x("STRIP-MARKUP",strip_markup,1,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
-  fd_idefn(texttools_module,
-	   fd_make_cprim3x("STRING-SUBST",string_subst_prim,3,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
-  fd_idefn(texttools_module,
-	   fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
-
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("TEXTMATCHER",textmatcher,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID,

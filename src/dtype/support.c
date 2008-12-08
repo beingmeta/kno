@@ -1088,10 +1088,15 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
 {
   if (runbase==NULL)
     if (runbase_config==NULL) {
-      u8_string wd=u8_getcwd(), appid=u8_appid();
-      runbase=u8_mkpath(wd,appid);}
-    else if (u8_directoryp(runbase_config))
-      runbase=u8_mkpath(runbase_config,u8_appid());
+      u8_string wd=u8_getcwd(), appid=u8_string_subst(u8_appid(),"/",":");
+      runbase=u8_mkpath(wd,appid);
+      u8_free(appid);}
+    else if (u8_directoryp(runbase_config)) {
+      /* If the runbase is a directory, create files using the appid. */
+      u8_string appid=u8_string_subst(u8_appid(),"/",":");
+      runbase=u8_mkpath(runbase_config,appid);
+      u8_free(appid);}
+  /* Otherwise, use the configured name as the prefix */
     else runbase=u8_strdup(runbase_config);
   if (suffix==NULL)
     return u8_strdup(runbase);
