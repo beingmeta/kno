@@ -83,9 +83,18 @@ FD_FASTOP void swap(fdtype *a,fdtype *b)
   *b = t;
 }
 
+static int atomic_sortedp(fdtype *v,int n)
+{
+  int i=0, lim=n-1;
+  while (i<lim)
+    if (v[i]<v[i+1]) i++; else return 0;
+  return 1;
+}
+
 static void atomic_sort(fdtype *v,int n)
 {
   unsigned i, j, ln, rn;
+  if (atomic_sortedp(v,n)) return;
   while (n > 1) {
     swap(&v[0], &v[n/2]); 
     for (i = 0, j = n; ; ) {
