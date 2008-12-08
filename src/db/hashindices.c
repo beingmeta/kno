@@ -959,6 +959,7 @@ static int sort_vs_by_refoff(const void *v1,const void *v2)
 static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_locked)
 {
   fdtype *values=u8_alloc_n(n,fdtype);
+  int dolock=((stream_locked) ? (DONT_LOCK_STREAM) : (LOCK_STREAM));
   struct FD_BYTE_OUTPUT out;
   struct KEY_SCHEDULE *schedule=u8_alloc_n(n,struct KEY_SCHEDULE);
   struct VALUE_SCHEDULE *vsched=u8_alloc_n(n,struct VALUE_SCHEDULE);
@@ -993,7 +994,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
     if (hx->offdata) {
       /* Because we have an offsets table, get_chunk_ref won't ever
 	 actually need to lock the stream. */
-      schedule[n_entries].ref=get_chunk_ref(hx,bucket,LOCK_STREAM);
+      schedule[n_entries].ref=get_chunk_ref(hx,bucket,dolock);
       if (schedule[n_entries].ref.size==0) {
 	/* It is empty, so we don't even need to handle this entry. */
 	values[i]=FD_EMPTY_CHOICE;
@@ -1039,16 +1040,16 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
 	    else k++;}
 #endif
 	if (blocksize<1024)
-	  open_block(&keyblock,hx,blockpos,blocksize,_buf,LOCK_STREAM);
+	  open_block(&keyblock,hx,blockpos,blocksize,_buf,dolock);
 	else if (buf)
 	  if (blocksize<bufsiz)
-	    open_block(&keyblock,hx,blockpos,blocksize,buf,LOCK_STREAM);
+	    open_block(&keyblock,hx,blockpos,blocksize,buf,dolock);
 	  else {
 	    buf=u8_realloc(buf,blocksize); bufsiz=blocksize;
-	    open_block(&keyblock,hx,blockpos,blocksize,buf,LOCK_STREAM);}
+	    open_block(&keyblock,hx,blockpos,blocksize,buf,dolock);}
 	else {
 	  buf=u8_malloc(blocksize); bufsiz=blocksize;
-	  open_block(&keyblock,hx,blockpos,blocksize,buf,LOCK_STREAM);}}
+	  open_block(&keyblock,hx,blockpos,blocksize,buf,dolock);}}
       else keyblock.ptr=keyblock.start;
       n_keys=fd_read_zint(&keyblock);
       while (k<n_keys) {
@@ -1112,9 +1113,9 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
 	    vbuf=u8_realloc(vbuf,vsched[i].ref.size);
 	    vbuf_size=vsched[i].ref.size;}
 	  open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,
-		     vbuf,LOCK_STREAM);}
+		     vbuf,dolock);}
 	else open_block(&vblock,hx,vsched[i].ref.off,vsched[i].ref.size,
-			_vbuf,LOCK_STREAM);
+			_vbuf,dolock);
 	n_vals=fd_read_zint(&vblock);
 	while (j<n_vals) {
 	  fdtype v=read_zvalue(hx,&vblock);
