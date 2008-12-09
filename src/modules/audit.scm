@@ -300,10 +300,15 @@
 			  (getopt opts 'language default-language))
 		   gloss))
 	(do ((slotids slotids (cddr slotids)))
-	    ((null? slotids)
-	     (make%id! f)
-	     f)
-	  (assert! f (car slotids) (cadr slotids))))))
+	    ((null? slotids) f)
+	  (assert! f (car slotids) (cadr slotids)))
+	(when (in-pool? f brico-pool)
+	  (add! f 'words (get f @?en))
+	  (store! f 'ranked
+		  (append (vector term)
+			  (rsorted  (get f @?en) length))))
+	(make%id! f)
+	f)))
 
 (module-export! 'newterm)
 
@@ -318,6 +323,8 @@
 	(add! (pick h+ brico-pool) 'hyponym f)))
     (let ((g+ (difference genl (get f @?genls)))
 	  (g- (difference (get f @?genls) genl)))
+      (add! (pick f brico-pool) 'hypernym g+)
+      (drop! (pick f brico-pool) 'hypernym g-)
       (audit+! f @?genls g+)
       (audit-! f @?genls g-)
       (when (exists? (get genl 'sensecat))
