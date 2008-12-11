@@ -347,8 +347,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  fd_decref(elt); fd_decref(seq);
 	  fd_push_error_context(":TRYSEQ",errbind);
-	  return val;}
-	fd_decref(val);}}
+	  return val;}}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}

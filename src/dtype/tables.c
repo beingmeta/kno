@@ -1164,7 +1164,7 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if ((FD_ABORTP(value))) return fd_interr(value);
   if (ht->modified<0) {
-    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
+    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_store",NULL,key);
     return -1;}
   fd_write_lock_struct(ht);
   if (ht->n_slots == 0) setup_hashtable(ht,17);
@@ -1192,7 +1192,7 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   struct FD_KEYVAL *result; int n_keys, added; fdtype newv;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->modified<0) {
-    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
+    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
     return -1;}
   if (FD_EXPECT_FALSE(FD_EMPTY_CHOICEP(value)))
     return 0;
@@ -1342,8 +1342,10 @@ static int do_hashtable_op
   switch (op) {
   case fd_table_replace_novoid:
     if (FD_VOIDP(result->value)) return 0;
-  case fd_table_store: case fd_table_replace:
-    fd_decref(result->value); result->value=fd_incref(value); break;
+  case fd_table_store: case fd_table_replace: {
+    fdtype newv=fd_incref(value);
+    fd_decref(result->value); result->value=newv;
+    break;}
   case fd_table_store_noref:
     fd_decref(result->value); result->value=value; break;
   case fd_table_add: case fd_table_add_empty: case fd_table_add_if_present:
