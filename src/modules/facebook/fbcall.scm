@@ -117,7 +117,7 @@
    fb/getmyid fb/getmyfriends fb/getmygroups fb/getmypages})
 
 (define (fb/getmyid)
-  (string->number (fbcall "users.getLoggedInUser")))
+  (->number (fbcall "users.getLoggedInUser")))
 
 (define default-fields
   {"name" "pic" "pic_small" "pic_big" "pic_square" "status" "uid"
