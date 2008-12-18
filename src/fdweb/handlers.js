@@ -3,6 +3,7 @@
 function fdb_showhelp_onfocus(evt)
 {
   var target=evt.target;
+  fdb_stop_cheshire(evt);
   while (target)
     if ((target.nodeType==1) &&
 	((target.tagName === 'INPUT') || (target.tagName === 'TEXTAREA')) &&
@@ -105,6 +106,7 @@ function fdb_setclear_onclick(evt)
 function fdb_autoprompt_onfocus(evt)
 {
   var elt=evt.target;
+  fdb_stop_cheshire(evt);
   if ((elt) && (fdbHasAttrib(elt,'isempty'))) {
     elt.value='';
     elt.removeAttribute('isempty');}
@@ -354,7 +356,7 @@ function fdb_start_cheshire(eltid,interval,steps)
   cheshire_timer=setInterval(_fdb_cheshire_handler,(1000*interval)/steps);
 }
 
-function fdb_cheshire_onclick(event)
+function fdb_stop_cheshire(event)
 {
   if (cheshire_elt) {
     var msg_elt=document.getElementById('CHESHIREMSG');
@@ -368,6 +370,11 @@ function fdb_cheshire_onclick(event)
     clearInterval(cheshire_timer);
     cheshire_steps=false;
     cheshire_countdown=false;}
+}
+
+function fdb_cheshire_onclick(event)
+{
+  fdb_stop_cheshire(event);
 }
 
 /* Text input */
