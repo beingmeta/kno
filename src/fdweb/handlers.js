@@ -499,6 +499,37 @@ function fdb_mark_reduced(elt)
     var i=0; while (i<elts.length) fdb_mark_reduced(elts[i++]);}
 }
 
+/* Checking control */
+
+/* Some events, like onselect, don't seem to get control key information.
+   This checks control key information and updates the target to reflect it.
+   To cover most of the bases, this should probably be on onkeyup, onkeydown,
+   and a few others.
+*/
+
+function fdb_check_control(evt)
+{
+  var target=evt.target;
+  if (typeof evt.ctrlKey === 'undefined') return;
+  if (evt.ctrlKey) target.setAttribute('controldown','yes');
+  else target.removeAttribute('controldown');
+}
+
+function fdb_check_shift(evt)
+{
+  var target=evt.target;
+  if (typeof evt.shiftKey === 'undefined') return;
+  if (evt.shiftKey) target.setAttribute('shiftdown','yes');
+  else target.removeAttribute('shiftdown');
+}
+
+function fdb_check_alt(evt)
+{
+  var target=evt.target;
+  if (typeof evt.altKey === 'undefined') return;
+  if (evt.altKey) target.setAttribute('altdown','yes');
+  else target.removeAttribute('altdown');
+}
 
 /* Setup */
 

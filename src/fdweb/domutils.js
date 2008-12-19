@@ -416,3 +416,18 @@ function fdbCheckbox(name,value,checked)
   return elt;
 }
 
+/* Dealing with selections */
+
+function fdbGetSelection(elt)
+{
+  if ((elt.tagName==='INPUT') || (elt.tagName==='TEXTAREA')) {
+    // fdbLog('start='+elt.selectionStart+'; end='+elt.selectionEnd+
+    //   '; value='+elt.value);
+    if ((elt.value) && (elt.selectionStart) && (elt.selectionEnd) &&
+	(elt.selectionStart!=elt.selectionEnd)) 
+      return elt.value.slice(elt.selectionStart,elt.selectionEnd);
+    else return null;}
+  else if (window.getSelection)
+    return window.getSelection();
+  else return null;
+}
