@@ -125,6 +125,7 @@
   (def-opcode FIRST      0x4A 1)
   (def-opcode SECOND     0x4B 1)
   (def-opcode THIRD      0x4C 1)
+  (def-opcode ->NUMBER   0x4D 1)
 
   (def-opcode =          0x60 2)
   (def-opcode >          0x61 2)

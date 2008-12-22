@@ -8,7 +8,7 @@
 
 (module-export! '{get% show%
 		       interval-string short-interval-string
-		       printnum numstring})
+		       padnum printnum numstring})
 
 ;; Percentages
 
@@ -23,6 +23,16 @@
 	(inexact->string (/ (* num 100.0) den) prec)
 	(inexact->string (* num 100.0) prec))
     "%"))
+
+;;; Padded numbers
+
+(define (padnum num digits (base 10))
+  (let* ((s (number->string num base))
+	 (len (length s))
+	 (padlen (- digits len)))
+    (if (> padlen 0)
+	(string-append (make-string padlen #\0) s)
+	s)))
 
 ;; Temporal intervals
 

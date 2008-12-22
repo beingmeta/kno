@@ -371,6 +371,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_FIRST_OPCODE      FD_OPCODE(0x4A)
 #define FD_SECOND_OPCODE     FD_OPCODE(0x4B)
 #define FD_THIRD_OPCODE      FD_OPCODE(0x4C)
+#define FD_TONUMBER_OPCODE   FD_OPCODE(0x4D)
 
 #define FD_NUMERIC2_OPCODES   FD_OPCODE(0x60)
 /* Arithmetic primitives with two arguments */

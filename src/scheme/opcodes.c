@@ -19,7 +19,7 @@ const u8_string fd_opcode_names[256]={
   /* 0x40 */
   "minus1","plus1","numberp","zerop",
   "vectorp","pairp","emptylistp","stringp",
-  "oidp","symbolp","first","second","third",NULL,NULL,NULL,
+  "oidp","symbolp","first","second","third","tonumber",NULL,NULL,
   /* 0x50 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -428,6 +428,14 @@ static fdtype opcode_unary_dispatch(fdtype opcode,fdtype arg1)
     return eltn_opcode(arg1,1,"FD_SECOND_OPCODE");
   case FD_THIRD_OPCODE:
     return eltn_opcode(arg1,2,"FD_THIRD_OPCODE");
+  case FD_TONUMBER_OPCODE:
+    if (FD_FIXNUMP(arg1)) return arg1;
+    else if (FD_NUMBERP(arg1)) return fd_incref(arg1);
+    else if (FD_STRINGP(arg1))
+      return fd_string2number(FD_STRDATA(arg1),10);
+    else if (FD_CHARACTERP(arg1))
+      return FD_INT2DTYPE(FD_CHARCODE(arg1));
+    else return fd_type_error(_("number|string"),"opcode ->number",arg1);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }
