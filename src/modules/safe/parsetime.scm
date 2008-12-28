@@ -8,8 +8,14 @@
 (define version "$Id$")
 
 (use-module 'texttools)
+(use-module '{logger varconfig})
+
+(define %loglevel %notice!)
 
 (module-export! '{parsetime parsegmtime timeparser time-patterns time-pattern})
+
+(define us-format-default #f)
+(varconfig! parsetime/usafmt us-format-default)
 
 (define month-names
   (vector (qc "Jan" "January")
@@ -45,9 +51,15 @@
 (define (add2000 string)
   (string-append "20" string))
 
+(define (parseyear string)
+  (if (= (length string) 2)
+      (let ((num (string->number string)))
+	(if (< num 35) (+ num 2000) (+ num 1900)))
+      (string->number string)))
+
 (define generic-patterns
   (choice `#({(bol) (spaces) ">"}
-	     (label year #({"19" "20"} (isdigit) (isdigit))))
+	     (label year #({"19" "20"} (isdigit) (isdigit)) #t))
 	  `#({(bol) (spaces) ">"}
 	     (label DATE #((isdigit) (opt (isdigit)) (opt {"st" "th" "nd"})) #t)
 	     (spaces)
@@ -82,10 +94,10 @@
 		       (opt #(":" (isdigit) (isdigit))))})
 	     {(eol) (spaces) "<"})
 	  `#({(bol) (spaces) ">"}
-	     (label year #("19" (isdigit) (isdigit))) "/"
+	     (label year #("19" (isdigit) (isdigit)) #t) {"/" "-"}
 	     (label year #((isdigit) (isdigit)) ,add1900))
 	  	  `#({(bol) (spaces)}
-	     (label year #("20" (isdigit) (isdigit))) "/"
+	     (label year #("20" (isdigit) (isdigit)) #t) {"/" "-"}
 	     (label year #((isdigit) (isdigit)) ,add2000)))
   )
 
@@ -93,15 +105,15 @@
   (choice generic-patterns
 	  #((label MONTH #((isdigit) (opt (isdigit))) #t) "/"
 	    (label DATE #((isdigit) (opt (isdigit))) #t)
-	    (opt #("/" (label YEAR (isdigit+)))))))
+	    (opt #("/" (label YEAR (isdigit+) ,parseyear))))))
 (define terran-patterns
   (choice generic-patterns
 	  #((label DATE #((isdigit) (opt (isdigit))) #t) "/"
 	    (label MONTH #((isdigit) (opt (isdigit))) #t)
-	    (opt #("/" (label YEAR (isdigit+)))))
+	    (opt #("/" (label YEAR (isdigit+) ,parseyear))))
 	  #((label DATE #((isdigit) (opt (isdigit))) #t) "."
 	    (label MONTH #((isdigit) (opt (isdigit))) #t)
-	    #("." (label YEAR (isdigit+))))))
+	    #("." (label YEAR (isdigit+) ,parseyear)))))
 
 (define time-patterns
   (choice generic-patterns us-patterns terran-patterns))
@@ -124,7 +136,7 @@
   (merge-matches-loop (qc matches)
 		      (->list (sorted (getkeys matches)))))
 
-(define (timeparser string (us #t))
+(define (timeparser string (us us-format-default))
   (text->frames (qc (if us us-patterns terran-patterns))
 		string))
 
@@ -137,15 +149,18 @@
        (tryif (test matches 'year) '(year))))
 
 (defambda (matches->timestamps matches fields base)
+  (%debug "base=" base "; tick=" (get base '%tick) "; fields=" fields)
   (if (null? fields) base
       (if (exists? (get matches (car fields)))
 	  (for-choices (v (get matches (car fields)))
-	    (matches->timestamps
-	     matches (cdr fields)
-	     (modtime (frame-create #f (car fields) v) base #f)))
+	    (let* ((mod (frame-create #f (car fields) v))
+		   (newbase (modtime mod base #f)))
+	      (%debug "mod=" mod "; newbase=" newbase "; newtick="
+		      (get newbase '%tick))
+	      (matches->timestamps matches (cdr fields) newbase)))
 	  (matches->timestamps matches (cdr fields) base))))
 
-(define (parsetime string (base #f) (us #f))
+(define (parsetime string (base #f) (us us-format-default))
   (let ((matches
 	 (text->frames (qc (if us us-patterns terran-patterns))
 		       string)))
@@ -167,9 +182,10 @@
 	(store! matches 'month d) (store! matches 'date m)))
     (let* ((fields (getfields matches))
 	   (base (timestamp (car fields))))
+      (%debug "parsetime matches=" matches ", fields=" fields)
       (matches->timestamps matches fields base))))
 
-(define (parsegmtime string (base #f) (us #f))
+(define (parsegmtime string (base #f) (us us-format-default))
   (parsetime string (or base (gmtimestamp)) us))
 
 
