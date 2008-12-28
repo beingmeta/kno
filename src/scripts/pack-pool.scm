@@ -72,15 +72,19 @@
 			      (append " for " (pool-label old)))
 	   " from " (or (pool-source old) old)
 	   " into " (or (pool-source new) new))
-  (let* ((prefetcher (lambda (oids done)
-		       (when done (commit) (clearcaches))
-		       (unless done
-			 (file-pool-prefetch! old oids)
-			 (lock-oids! oids)
-			 (prefetch-oids! oids)))))
+  (let ((prefetcher (lambda (oids done)
+		      (when done (commit) (clearcaches))
+		      (unless done
+			(file-pool-prefetch! old oids)
+			(lock-oids! oids)
+			(prefetch-oids! oids))))
+	(progress-label 
+	 (if (pool-label old)
+	     (string-append "Copying " (pool-label old))
+	     "Copying OIDs")))
     (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
 		      prefetcher (config 'blocksize 50000)
-		      (mt/custom-progress "Copying OIDs"))
+		      (mt/custom-progress progress-label))
       (set-oid-value! f (get old f)))))
 
 (define (main (from) (to #f))
