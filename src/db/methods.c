@@ -257,32 +257,40 @@ static fdtype inherited_get_method(fdtype root,fdtype slotid)
   return result;
 }
 
-static fdtype multi_get_method(fdtype root,fdtype slotid)
+static fdtype multi_get_method(fdtype root,fdtype mslotid)
 {
-  fdtype slotids=fd_oid_get(slotid,multi_slot,FD_EMPTY_CHOICE);
+  fdtype slotids=fd_oid_get(mslotid,multi_slot,FD_EMPTY_CHOICE);
   if (FD_ABORTP(slotids)) return slotids;
   else {
     fdtype answer=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(slid,slotids) {
-      fdtype v=
-	((slid==slotid)?
-	 (fd_oid_get(root,slid,FD_EMPTY_CHOICE)):
-	 (fd_frame_get(root,slid)));
-      FD_ADD_TO_CHOICE(answer,v);}
+    FD_DO_CHOICES(slotid,slotids)
+      if (FD_PAIRP(slotid)) {
+	fdtype v=fd_oid_get(root,FD_CAR(slotid),FD_EMPTY_CHOICE);
+	FD_ADD_TO_CHOICE(answer,v);}
+      else {
+	fdtype v=
+	  ((slotid==mslotid)?
+	   (fd_oid_get(root,slotid,FD_EMPTY_CHOICE)):
+	   (fd_frame_get(root,slotid)));
+	FD_ADD_TO_CHOICE(answer,v);}
     fd_decref(slotids);
     return answer;}
 }
 
-static fdtype multi_test_method(fdtype root,fdtype slotid,fdtype value)
+static fdtype multi_test_method(fdtype root,fdtype mslotid,fdtype value)
 {
-  fdtype slotids=fd_oid_get(slotid,multi_slot,FD_EMPTY_CHOICE);
+  fdtype slotids=fd_oid_get(mslotid,multi_slot,FD_EMPTY_CHOICE);
   if (FD_ABORTP(slotids)) return slotids;
   else {
     int answer=0;
-    FD_DO_CHOICES(slid,slotids) {
-      if (slid==slotid) {
-	if (fd_oid_test(root,slid,value)) {answer=1; break;}}
-      else if (fd_frame_test(root,slid,value)) {answer=1; break;}}
+    FD_DO_CHOICES(slotid,slotids)
+      if (FD_PAIRP(slotid)) {
+	if (fd_test(root,FD_CAR(slotid),value)) {
+	  answer=1; break;}}
+      else {
+	if (mslotid==slotid) {
+	  if (fd_oid_test(root,slotid,value)) {answer=1; break;}}
+	else if (fd_frame_test(root,slotid,value)) {answer=1; break;}}
     fd_decref(slotids);
     if (answer) return FD_TRUE; else return FD_FALSE;}
 }
