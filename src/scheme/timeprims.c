@@ -38,7 +38,7 @@ static fdtype precision_symbol, tzoff_symbol;
 static fdtype spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
 static fdtype season_symbol, gmt_symbol, timezone_symbol;
 static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
-static fdtype tick_symbol, xtick_symbol;
+static fdtype tick_symbol, xtick_symbol, prim_tick_symbol;
 static fdtype iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
@@ -461,6 +461,9 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
+  else if (FD_EQ(slotid,prim_tick_symbol)) {
+    time_t tick=xt->u8_secs;
+    return FD_INT2DTYPE((long)tick);}
   else if (FD_EQ(slotid,xtick_symbol))
     if (xt->u8_prec>=u8_second) {
       double dsecs=(double)(xt->u8_secs), dnsecs=(double)(xt->u8_nsecs);
@@ -598,6 +601,7 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
   else {
     struct U8_XTIME *xt=
       &((FD_GET_CONS(result,fd_timestamp_type,struct FD_TIMESTAMP *))->xtime);
+    int tzoff=xt->u8_tzoff;
     fdtype keys=fd_getkeys(slotmap); 
     FD_DO_CHOICES(key,keys) {
       fdtype val=fd_get(slotmap,key,FD_VOID);
@@ -606,7 +610,8 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
       else {}}
     if (FD_ABORTP(result)) return result;
     else if (FD_FALSEP(togmt)) {
-      u8_mktime(xt);
+      time_t moment=u8_mktime(xt);
+      u8_init_xtime(xt,moment,xt->u8_prec,xt->u8_nsecs,tzoff);
       return result;}
     else {
       time_t moment=u8_mktime(xt);
@@ -1047,6 +1052,7 @@ FD_EXPORT void fd_init_timeprims_c()
   femtoseconds_symbol=fd_intern("FEMTOSECONDS");
 
   tick_symbol=fd_intern("TICK");
+  prim_tick_symbol=fd_intern("%TICK");
   xtick_symbol=fd_intern("XTICK");
   iso_symbol=fd_intern("ISO");
   isostring_symbol=fd_intern("ISOSTRING");
