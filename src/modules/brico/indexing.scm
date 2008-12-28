@@ -171,7 +171,8 @@
 
 ;; These are slotids whose inverses should also be indexed
 (define concept-slotids
-  {@1/3f65f{ENTAILS}
+  {@1/10{DIFFTERMS}
+   @1/3f65f{ENTAILS}
    @1/2c272{GENLS}
    @1/2c273{SPECLS}
    @1/2c274{PARTOF}
@@ -182,10 +183,7 @@
    @1/2c278{MEMBERS}
    @1/2c27d{DISJOINT}
    @1/2d9e9{=IS=}
-   ;; @1/2ab4d{DEFTERMS}
-   ;; @1/2ab57{REFTERMS}
    })
-;(define asymmetric-slotids {@1/2ab4d{DEFTERMS} @1/2ab57{REFTERMS}})
 
 ;; These are various other slotids which are useful to index
 (define misc-slotids
@@ -284,21 +282,21 @@
 
 (define (index-refterms index concept)
   (doindex index concept refterms (%get concept refterms))
-  (doindex index concept defterms (%get concept defterms))
+  (doindex index concept sumterms (%get concept sumterms))
   ;; This handles the case of explicit inverse pointers.
   ;;  If we want to add a pointer R from X to Y and
   ;;   we can't or don't want to modify X, we store
   ;;   an explicit inverse ((inv R) Y)=X which will be
   ;;   found by the inverse inference methods.
   ;; Otherwise, we don't index the @?defines and @?referenced
-  ;;  slots because it is easier to just get @?defterms
+  ;;  slots because it is easier to just get @?sumterms
   ;;  and @?refterms.
-  (when (%test concept defines)
-    (doindex index (%get concept defines) defterms concept)
-    (doindex index concept defines (%get concept defines)))
-  (when (%test concept referenced)
-    (doindex index (%get concept referenced) refterms concept)
-    (doindex index concept referenced (%get concept referenced))))
+  (when (%test concept /sumterms)
+    (doindex index (%get concept /sumterms) sumterms concept)
+    (doindex index concept /sumterms (%get concept /sumterms)))
+  (when (%test concept /refterms)
+    (doindex index (%get concept references) refterms concept)
+    (doindex index concept references (%get concept references))))
 
 (define (index-lattice index concept)
   (index-frame* index concept genls* genls specls*)
@@ -381,7 +379,7 @@
 
 (define (indexer/prefetch oids)
   (prefetch-oids! oids)
-  (prefetch-keys! (cons (choice refterms referenced) oids))
+  (prefetch-keys! (cons (choice refterms /refterms) oids))
   (let ((kovalues (%get oids implied-slotids)))
     (prefetch-expansions (qc kovalues) genls)))
 

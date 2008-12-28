@@ -303,7 +303,7 @@
 	  #((label word (not> "(")) "(-" (label never (not> ")"))  ")")
 	  #((label word (not> "(")) "(" (label paren (not> ")"))  ")")
 	  #((label word (not> "(")) "(e.g." (spaces) (label eg (not> ")")) ")")
-	  #((label word (not> "(")) "(:" (label defterm (not> ")")) ")")))
+	  #((label word (not> "(")) "(:" (label sumterm (not> ")")) ")")))
 
 (config-def! 'TERMRULES (ruleset-configfn termrules))
 
@@ -313,11 +313,11 @@
 
 (defambda (resolve-context meanings slotids cxt language)
   (try (try-choices (g (lookup-context cxt language))
-	 (intersection meanings (?? slotids g defterms g)))
+	 (intersection meanings (?? slotids g sumterms g)))
        (try-choices (g (lookup-context cxt language))
 	 (intersection meanings (?? slotids (list g))))
        (try-choices (g (lookup-word cxt language))
-	 (intersection meanings (?? slotids g defterms g)))
+	 (intersection meanings (?? slotids g sumterms g)))
        (try-choices (g (lookup-word cxt language))
 	 (intersection meanings (?? slotids g)))
        (try-choices (g (lookup-word cxt language))
@@ -334,7 +334,7 @@
 	 (colon-cxt (get matches 'colon))
 	 (never-cxt (get matches 'never))
 	 (eg-cxt (get matches 'eg))
-	 (defterm-cxt (get matches 'defterm))
+	 (sumterm-cxt (get matches 'sumterm))
 	 (meanings (lookup-word word language tryhard)))
     ;;(%watch matches word language syn-cxt paren-cxt partof-cxt colon-cxt eg-cxt meanings)
     (cons word
@@ -342,10 +342,10 @@
 	       (tryif (and (exists? partof-cxt) (exists? paren-cxt))
 		      (resolve-context
 		       (intersection meanings (?? partof* (lookup-context partof-cxt language)))
-		       (choice sometimes defterms) paren-cxt language)
+		       (choice sometimes sumterms) paren-cxt language)
 		      (resolve-context
 		       (intersection meanings (?? partof* (lookup-word partof-cxt language)))
-		       (choice sometimes defterms) paren-cxt language))
+		       (choice sometimes sumterms) paren-cxt language))
 	       (tryif (exists? partof-cxt)
 		      (intersection meanings (?? partof* (lookup-context partof-cxt language)))
 		      (intersection meanings (?? partof* (lookup-word partof-cxt language))))
@@ -356,9 +356,9 @@
 			   (resolve-context meanings always colon-cxt language)
 			   (resolve-context meanings sometimes colon-cxt language)))
 	       (tryif (exists? paren-cxt)
-		      (resolve-context meanings (choice sometimes defterms) paren-cxt language))
-	       (tryif (exists? defterm-cxt)
-		      (intersection meanings (?? defterms (lookup-word defterm-cxt language))))
+		      (resolve-context meanings (choice sometimes sumterms) paren-cxt language))
+	       (tryif (exists? sumterm-cxt)
+		      (intersection meanings (?? sumterms (lookup-word sumterm-cxt language))))
 	       (tryif (exists? eg-cxt)
 		      (let ((cxt (lookup-word eg-cxt language)))
 			(try (intersection meanings (?? sometimes cxt))
@@ -399,10 +399,10 @@
 	 (partof-cxt (get matches 'partof))
 	 (genls-cxt (get matches 'genls))
 	 (eg-cxt (get matches 'eg))
-	 (defterm-cxt (get matches 'defterm))
+	 (sumterm-cxt (get matches 'sumterm))
 	 (meanings (lookup-word word language tryhard)))
     (lookup-word/prefetch
-     (choice word syn-cxt implies-cxt partof-cxt genls-cxt eg-cxt defterm-cxt)
+     (choice word syn-cxt implies-cxt partof-cxt genls-cxt eg-cxt sumterm-cxt)
      language tryhard)
     (prefetch-keys!
      (choice (cons partof* (lookup-word partof-cxt language))
@@ -410,7 +410,7 @@
 	     (cons implies (list (lookup-word implies-cxt language)))
 	     (cons (choice genls* implies)
 		   (lookup-word genls-cxt language))
-	     (cons defterms (lookup-word defterm-cxt language))
+	     (cons sumterms (lookup-word sumterm-cxt language))
 	     (cons specls* (lookup-word eg-cxt language))))))
 
 (define (lookup-term/prefetch term (language default-language) (tryhard 1))
@@ -497,10 +497,10 @@
 
 (define (probe-paren-dterm term1 lang1 term2 lang2)
   (try (resolve-context (lookup-word term1 lang1)
-			(choice sometimes defterms)
+			(choice sometimes sumterms)
 			term2 lang2)
        (resolve-context (lookup-word term1 lang1)
-			(choice sometimes defterms)
+			(choice sometimes sumterms)
 			term2 lang2)))
 
 (module-export! '{probe-colon-dterm probe-paren-dterm})

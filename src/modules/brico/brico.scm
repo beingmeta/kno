@@ -180,16 +180,21 @@
 (define entails* @1/44c9a{ENTAILS*})
 (define entailedby* @1/44c9b{ENTAILEDBY*})
 
-(define defterms @1/2ab4d{DEFTERMS})
-(define defines @1/2ab55{DEFINES})
+(define sumterms @1/2ab4d{SUMTERMS})
+(define /sumterms @1/2ab55{/SUMTERMS})
 (define refterms @1/2ab57{REFTERMS})
-(define referenced @1/2ab5a{REFERENCED})
+(define /refterms @1/2ab5a{/REFTERMS})
+(define references @1/2ab5a{/REFTERMS})
 (define =is= @1/2d9e9{=IS=})
 (define sameas @1/2d9e9{SAMEAS})
 (define inverse @1/2c27a{INVERSE})
 (define disjoint @1/2c27d{DISJOINT})
 (define relterms @/brico/e{RELTERMS})
 (define /relterms @/brico/f{/RELTERMS})
+(define diffterms @/brico/10{DIFFTERMS})
+(define differentiae diffterms)
+(define /diffterms @/brico/11{/DIFFTERMS})
+(define differentiates /diffterms)
 
 (define brico-slotids
   (choice always sometimes never somenot commonly rarely
@@ -199,7 +204,7 @@
 	  members members* memberof memberof*
 	  ingredients ingredients* ingredientof ingredientof*
 	  =is= sameas inverse disjoint 
-	  defterms defines refterms referenced
+	  refterms /refterms sumterms /sumterms diffterms /diffterms
 	  relterms /relterms))
 
 ;;;; Getting ids from frames
@@ -511,7 +516,7 @@
 (config-def! 'usewordforms usewordforms-config)
 
 (set! freqfns (list (vector 'wordform wordform-concept-frequency)
-		    (vector 'defterms defterms)
+		    (vector 'sumterms sumterms)
 		    (vector 'refterms refterms)))
 
 (defambda (concept-frequency-prefetch concepts language words)
@@ -615,8 +620,9 @@
    members members* memberof memberof*
    ingredients ingredients* ingredientof ingredientof*
    inverse =is= disjoint
-   refterms defterms referenced defines /defterms /refterms
+   refterms sumterms /refterms /sumterms references
    relterms /relterms
+   diffterms /diffterms differentiae differentiates
    ;; Legacy
    probably optional %optional /optional  %always  %somenot
    wordnet-source roget-source brico-source})
@@ -650,6 +656,7 @@
 	 members members* memberof memberof*
 	 ingredients ingredients* ingredientof ingredientof*
 	 isa =is= sameas inverse disjoint implies implies*
-	 defterms defines refterms referenced
+	 diffterms /diffterms differentiae differentates
+	 sumterms refterms /sumterms /refterms references
 	 language-map gloss-map norm-map index-map})
 

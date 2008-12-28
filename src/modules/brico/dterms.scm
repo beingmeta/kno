@@ -12,7 +12,7 @@
 (use-module '{brico brico/lookup brico/analytics morph/en})
 
 (define dterm-caches '())
-(define usedefterms #f)
+(define usesumterms #f)
 
 ;;; Top level functions
 
@@ -69,9 +69,9 @@
 	   (try (find-generic-dterm concept language norm)
 		(try-choices (word (difference (get concept language) norm))
 		  (find-generic-dterm concept language word))))
-       (tryif usedefterms
-	      (try-choices (df (get concept defterms))
-		(tryif (singleton? (?? language norm defterms df))
+       (tryif usesumterms
+	      (try-choices (df (get concept sumterms))
+		(tryif (singleton? (?? language norm sumterms df))
 		       (string-append norm " (:" (get-norm df language) ")"))))
        (try-choices (alt (difference (get concept language) norm))
 	 (tryif (search norm alt)
@@ -133,7 +133,7 @@
 
 (define (find-individual-dterm concept language norm)
   (let* ((isa (get concept implies))
-	 (defisa (intersection isa (get concept defterms)))
+	 (defisa (intersection isa (get concept sumterms)))
 	 (otherisa (difference isa defisa))
 	 (normslot (get norm-map language)))
     (try (try-choices defisa
@@ -170,12 +170,12 @@
 	 (try-choices (pn (get-norm (get concept @?partof) lang))
 	   (tryif (singleton? (probe-paren-dterm norm lang pn lang))
 		  (string-append norm " ("  pn ")")))
-	 (tryif usedefterms
+	 (tryif usesumterms
 		(try-choices
-		    (d (difference (get-norm (get concept defterms) lang)
+		    (d (difference (get-norm (get concept sumterms) lang)
 				   norm))
 		  (tryif (singleton? (intersection meanings
-						   (?? defterms (?? lang d))))
+						   (?? sumterms (?? lang d))))
 			 (string-append norm " (:"  d ")")))))))
 
 ;;; Prefetching
