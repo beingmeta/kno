@@ -403,6 +403,19 @@ install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/fdb.mo \
 		$(LOCALEDIR)/nl/LC_MESSAGES/fdb.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
+# Packaging targets
+
+rpmtar: etc/rpmbuild/libu8-@U8VERSION@.tar.gz
+rpms: etc/rpms.done
+
+etc/libu8-@U8VERSION@.tar.gz:
+	svn export $(LIBU8SVN) etc/libu8-@U8VERSION@
+	tar -czvf $@ -C etc libu8-@U8VERSION@
+	rm -rf etc/libu8-@U8VERSION@
+
+etc/rpms.done: etc/libu8-@U8VERSION@.tar.gz
+	rpmbuild -ta etc/libu8-@U8VERSION@.tar.gz && touch etc/rpms.done
+
 # Installation targets
 
 install: confdirs @INSTALLI18N@ \
