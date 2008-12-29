@@ -9,7 +9,7 @@ URL:            http://www.beingmeta.com/
 Source0:        framerd-3.0.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  openssl-devel doxygen libu8-dev
+BuildRequires:  openssl-devel doxygen libu8-dev libcurl-dev libexif-dev libmysql-client-dev
 Requires:       openssl libu8
 
 %description
@@ -27,14 +27,14 @@ Requires:       %{name} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
-%package        encodings
-Summary:        Extra character set encodings for %{name}
+%package        tagger
+Summary:        Natural language analysis functions for %{name}
 Group:          Development/Libraries
 Requires:       %{name} = %{version}-%{release}
 
-%description    encodings
-The %{name}-encodings package contains data files for handling
-various character encodings, especially for Asian languages.
+%description    tagger
+The %{name}-tagger package contains native code implementation
+of a natural language tagger and analyzer for English
 
 %package        static
 Summary:        Static libraries for %{name}
@@ -45,6 +45,46 @@ Requires:       %{name}-devel = %{version}-%{release}
 The %{name}-static package contains static libraries for
 developing statically linked applications that use %{name}.
 You probably don't need it.
+
+%package        fdserv
+Summary:        Apache module for FramerD based applications
+Group:          Development/Libraries
+Build-Requires: apache-dev
+Requires:       %{name} = %{version}-%{release}
+
+%description    fdserv
+The %{name}-fdserv package implements the Apache mod_fdserv module for
+FramerD based web applications
+
+%package        mysql
+Summary:        Module for using MySQL from FramerD
+Group:          Development/Libraries
+Build-Requires: mysql-dev
+Requires:       mysql %{name} = %{version}-%{release}
+
+%description    mysql
+The %{name}-mysql implements external DB bindings to the MySQL C client
+libraries
+
+%package        sqlite3
+Summary:        Module for using Sqlite3 from FramerD
+Group:          Development/Libraries
+Build-Requires: sqlite3-dev
+Requires:       sqlite3 %{name} = %{version}-%{release}
+
+%description    sqlite3
+The %{name}-sqlite3 implements external DB bindings to the Sqlite3 library
+libraries
+
+%package        odbc
+Summary:        Module for using Odbc from FramerD
+Group:          Development/Libraries
+Build-Requires: unixodbc-dev
+Requires:       unixodbc %{name} = %{version}-%{release}
+
+%description    unixodbc
+The %{name}-odbc implements external DB bindings to the ODBC
+libraries
 
 %prep
 %setup -q
@@ -57,7 +97,8 @@ make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install install-docs DESTDIR=$RPM_BUILD_ROOT
+make install install-scripts DESTDIR=$RPM_BUILD_ROOT
+make copy-modules DESTDIR=$RPM_BUILD_ROOT
 #find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 
@@ -74,53 +115,32 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/*.so.*
-%{_datadir}/libu8/encodings/CP1125
-%{_datadir}/libu8/encodings/CP1251
-%{_datadir}/libu8/encodings/CP1252
-%{_datadir}/libu8/encodings/CP1258
-%{_datadir}/libu8/encodings/GREEK7
-%{_datadir}/libu8/encodings/ISO_6937
-%{_datadir}/libu8/encodings/ISO88591
-%{_datadir}/libu8/encodings/ISO885910
-%{_datadir}/libu8/encodings/ISO885911
-%{_datadir}/libu8/encodings/ISO885913
-%{_datadir}/libu8/encodings/ISO885914
-%{_datadir}/libu8/encodings/ISO885915
-%{_datadir}/libu8/encodings/ISO885916
-%{_datadir}/libu8/encodings/ISO88592
-%{_datadir}/libu8/encodings/ISO88593
-%{_datadir}/libu8/encodings/ISO88594
-%{_datadir}/libu8/encodings/ISO88595
-%{_datadir}/libu8/encodings/ISO88597
-%{_datadir}/libu8/encodings/ISO88598
-%{_datadir}/libu8/encodings/ISO88599
-%{_datadir}/libu8/encodings/KOI8
-%{_datadir}/libu8/encodings/KOI8R
-%{_datadir}/libu8/encodings/MACINTOSH
-
-
-%files encodings
-%defattr(-,root,root,-)
-%doc
-%{_datadir}/libu8/encodings/BIG5
-%{_datadir}/libu8/encodings/EUCJP
-%{_datadir}/libu8/encodings/EUCKR
-%{_datadir}/libu8/encodings/EUCTW
-%{_datadir}/libu8/encodings/GB2312
-%{_datadir}/libu8/encodings/GBK
-%{_datadir}/libu8/encodings/SHIFT_JIS
-%{_datadir}/libu8/encodings/SHIFT_JISX0213
 
 %files devel
 %defattr(-,root,root,-)
 %doc %{_mandir}/man3/*
 %{_includedir}/*
 %{_libdir}/*.so
-
+%{_bindir}/*
 
 %files static
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/*.a
+
+%files mysql
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/fdb/mysql.so*
+
+%files sqlite
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/fdb/sqlite.so*
+
+%files odbc
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/fdb/odbc.so*
 
 %changelog
