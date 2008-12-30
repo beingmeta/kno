@@ -33,6 +33,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 WWWUSER		= @webuser@
+FRAMERDSVN	= https://dev.beingmeta.com/src/fdb/trunk
 
 DTYPE_HEADERS=\
  include/fdb/config.h  \
@@ -405,16 +406,16 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Packaging targets
 
-rpmtar: etc/rpmbuild/libu8-@U8VERSION@.tar.gz
+rpmtar: etc/rpmbuild/framerd-@VERSION@.tar.gz
 rpms: etc/rpms.done
 
-etc/libu8-@U8VERSION@.tar.gz:
-	svn export $(LIBU8SVN) etc/libu8-@U8VERSION@
-	tar -czvf $@ -C etc libu8-@U8VERSION@
-	rm -rf etc/libu8-@U8VERSION@
+etc/framerd-@VERSION@.tar.gz:
+	svn export $(FRAMERDSVN) etc/framerd-@VERSION@
+	tar -czvf $@ -C etc framerd-@VERSION@
+	rm -rf etc/framerd-@VERSION@
 
-etc/rpms.done: etc/libu8-@U8VERSION@.tar.gz
-	rpmbuild -ta etc/libu8-@U8VERSION@.tar.gz && touch etc/rpms.done
+etc/rpms.done: etc/framerd-@VERSION@.tar.gz
+	rpmbuild -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
 
 # Installation targets
 
