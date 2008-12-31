@@ -564,7 +564,7 @@ link-modules: @module_dir@ @standard_module_dir@
 	rm -rf  @standard_module_dir@
 	ln -sf $(BUILD)/src/modules @standard_module_dir@
 	ln -sf $(BUILD)/src/fdweb/xhtml @module_dir@
-copy-modules: $(CONFDIR)/scm
+copy-modules: @module_dir@ @standard_module_dir@ 
 	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	$(INSTALL) @install_dir_opts@ \
            @standard_module_dir@ @module_dir@ @safe_module_dir@
