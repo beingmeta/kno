@@ -413,7 +413,7 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 rpmtar: etc/rpmbuild/framerd-@VERSION@.tar.gz
 rpms: etc/rpms.done
 
-etc/framerd-@VERSION@.tar.gz:
+etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES)
 	svn export $(FRAMERDSVN) etc/framerd-@VERSION@
 	tar -czvf $@ -C etc framerd-@VERSION@
 	rm -rf etc/framerd-@VERSION@
@@ -479,7 +479,7 @@ $(LIBINSTALLDIR):
 $(LIBINSTALLDIR)/fdb:
 	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/fdb
 
-install-cmodules: @INSTALLCMODULES@ $(LIBINSTALLDIR)
+install-cmodules: @INSTALLCMODULES@ $(LIBINSTALLDIR) $(LIBINSTALLDIR)/fdb
 install-odbc: $(LIBINSTALLDIR)/fdb/odbc.@shared_suffix@
 install-sqlite: $(LIBINSTALLDIR)/fdb/sqlite.@shared_suffix@
 install-dbus: $(LIBINSTALLDIR)/fdb/dbus.@shared_suffix@
