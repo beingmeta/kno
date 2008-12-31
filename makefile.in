@@ -97,8 +97,8 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ \
 	    exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
-SCHEME_SCRIPTS=$(BININSTALLDIR)/pack-pool $(BININSTALLDIR)/pack-index \
-               $(BININSTALLDIR)/make-hash-index $(BININSTALLDIR)/make-oidpool
+SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
+               exe/scripts/make-hash-index exe/scripts/make-oidpool
 
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
@@ -192,6 +192,10 @@ exe/fdbserver@suffix@: src/exe/fdbserver.c \
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
 exe/fdmanager@suffix@: src/exe/fdmanager.c lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
+
+exe/scripts/%: src/scripts/%.scm
+	echo "#!"@prefix@/bin/fdexec | cat - $< > $@
+	chmod a+x $@
 
 exe/%@suffix@: src/exe/%.c
 	$(CC) $(EXELDFLAGS) $(CFLAGS) $(LDFLAGS) \
@@ -462,7 +466,9 @@ install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
-install-scheme-scripts: $(SCHEME_SCRIPTS)
+install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
+	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+
 
 $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
