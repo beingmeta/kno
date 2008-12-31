@@ -422,7 +422,7 @@ etc/rpms.done: etc/framerd-@VERSION@.tar.gz
 install: confdirs @INSTALLI18N@ \
 	 install-static install-shared install-headers \
          install-exe install-scripts install-cmodules
-install-static: static-libs
+install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a \
 		$(LIBINSTALLDIR)/libfddb@suffix@.a \
 		$(LIBINSTALLDIR)/libfddbfile@suffix@.a \
@@ -432,7 +432,7 @@ install-static: static-libs
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a \
 		$(LIBINSTALLDIR)/libtagger@suffix@.a
-install-shared: shared-libs 
+install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
 install-so: $(LIBINSTALLDIR)/libfdtype@suffix@.so \
 		$(LIBINSTALLDIR)/libfddb@suffix@.so \
@@ -468,6 +468,8 @@ $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(BININSTALLDIR)
+$(LIBINSTALLDIR):
+	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/fdb:
 	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/fdb
 

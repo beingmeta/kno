@@ -621,7 +621,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
 
 FD_EXPORT void _fd_bad_pointer(fdtype,u8_context);
 
-static fdtype _fd_check_ptr(fdtype x,u8_context cxt) {
+static MAYBE_UNUSED fdtype _fd_check_ptr(fdtype x,u8_context cxt) {
   if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);
   return x;
 }
