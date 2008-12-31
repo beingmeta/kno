@@ -357,14 +357,14 @@ AC_CHECK_HEADER(mysql/mysql.h,have_mysql_h="yes",have_mysql_h="no")
 
 if test $have_mysql_h = "yes"; then
   AC_CHECK_LIB(mysqlclient,my_init)
-  CMODULES="lib/cmodules/mysql.$shared_suffix ${CMODULES}"
+  CMODULES="lib/framerd/mysql.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test $have_sql_h = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
-  CMODULES="lib/cmodules/odbc.$shared_suffix ${CMODULES}"
+  CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
 fi
 
@@ -376,7 +376,7 @@ AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
 if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open)
   AC_CHECK_FUNCS(sqlite3_open_v2)
-  CMODULES="lib/cmodules/sqlite.$shared_suffix ${CMODULES}"
+  CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"
 fi
 
