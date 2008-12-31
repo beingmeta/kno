@@ -568,9 +568,8 @@ copy-modules: @module_dir@ @standard_module_dir@
 	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	$(INSTALL) @install_dir_opts@ \
            @standard_module_dir@ @module_dir@ @safe_module_dir@
-	cp -pf $(BUILD)/src/modules/*.scm @standard_module_dir@
-	cp -pf $(BUILD)/src/modules/*.table @standard_module_dir@
-	cp -rf $(BUILD)/src/fdweb/xhtml @module_dir@
+	cp -prf $(BUILD)/src/modules/* @standard_module_dir@
+	cp -prf $(BUILD)/src/fdweb/xhtml @standard_module_dir@
 
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d
 	$(INSTALL) -m 0555 @admininstall@ \
