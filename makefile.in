@@ -457,7 +457,7 @@ etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
 	rm -rf etc/framerd-@VERSION@
 
 etc/rpms.done: etc/framerd-@VERSION@.tar.gz
-	rpmbuild -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
+	lsb-rpm --nodeps -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
 
 # Installation targets
 
