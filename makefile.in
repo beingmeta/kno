@@ -246,17 +246,11 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@: \
 $(LIBINSTALLDIR)/framerd/%@suffix@.so: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@
 	ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.so: \
-		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@
-	ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.so.@VERSION@: lib/%@suffix@.so.@VERSION@
 	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/%@suffix@.so: \
-		$(LIBINSTALLDIR)/%@suffix@.so.@VERSION@
-	ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%@suffix@.@VERSION@.so: \
 		$(LIBINSTALLDIR)/%@suffix@.so.@VERSION@
 	ln -sf $(shell basename $<) $@
 
@@ -267,18 +261,12 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib: \
 $(LIBINSTALLDIR)/framerd/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib
 	ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/framerd/%@suffix@.dylib.@VERSION@: \
-		$(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib
-	ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib: \
     lib/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)
 	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/%@suffix@.dylib: \
-		$(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib
-	ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%@suffix@.dylib.@VERSION@: \
 		$(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib
 	ln -sf $(shell basename $<) $@
 
@@ -476,6 +464,16 @@ etc/rpms.done: etc/framerd-@VERSION@.tar.gz
 install: confdirs @INSTALLI18N@                        \
 	 install-static install-shared install-headers \
          install-exe install-scripts install-cmodules
+
+$(INCINSTALLDIR):
+	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
+$(BININSTALLDIR):
+	$(INSTALL) @install_dir_opts@ $(BININSTALLDIR)
+$(LIBINSTALLDIR):
+	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+$(LIBINSTALLDIR)/framerd:
+	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
 		$(LIBINSTALLDIR)/libfddb@suffix@.a       \
@@ -488,46 +486,68 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libtagger@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
-install-so: $(LIBINSTALLDIR)/libfdtype@suffix@.so         \
-		$(LIBINSTALLDIR)/libfddb@suffix@.so       \
-		$(LIBINSTALLDIR)/libfdbserv@suffix@.so    \
-		$(LIBINSTALLDIR)/libfddbfile@suffix@.so   \
-		$(LIBINSTALLDIR)/libfdscheme@suffix@.so   \
-		$(LIBINSTALLDIR)/libfdschemeio@suffix@.so \
-		$(LIBINSTALLDIR)/libfdweb@suffix@.so      \
-		$(LIBINSTALLDIR)/libtexttools@suffix@.so  \
-		$(LIBINSTALLDIR)/libtagger@suffix@.so
-install-dylib: $(LIBINSTALLDIR)/libfdtype@suffix@.dylib \
-	$(LIBINSTALLDIR)/libfddb@suffix@.dylib       \
-	$(LIBINSTALLDIR)/libfdbserv@suffix@.dylib    \
-	$(LIBINSTALLDIR)/libfddbfile@suffix@.dylib   \
-	$(LIBINSTALLDIR)/libfdscheme@suffix@.dylib   \
-	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib \
-	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib      \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib  \
-	$(LIBINSTALLDIR)/libtagger@suffix@.dylib
+
+# Versioned shared libraries
+install-sov:                                             \
+    $(LIBINSTALLDIR)/libfdtype@suffix@.so.@VERSION@      \
+    $(LIBINSTALLDIR)/libfddb@suffix@.so.@VERSION@        \
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.so.@VERSION@     \
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.so.@VERSION@    \
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.so.@VERSION@    \
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so.@VERSION@  \
+    $(LIBINSTALLDIR)/libfdweb@suffix@.so.@VERSION@       \
+    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@VERSION@   \
+    $(LIBINSTALLDIR)/libtagger@suffix@.so.@VERSION@  
+# Unversioned libraries, for development
+install-so: install-sov                                  \
+    $(LIBINSTALLDIR)/libfdtype@suffix@.so                \
+    $(LIBINSTALLDIR)/libfddb@suffix@.so                  \
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.so               \
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.so              \
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.so              \
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so            \
+    $(LIBINSTALLDIR)/libfdweb@suffix@.so                 \
+    $(LIBINSTALLDIR)/libtexttools@suffix@.so             \
+    $(LIBINSTALLDIR)/libtagger@suffix@.so
+
+# This should probably be done differently for packaging, but that's 'todo'
+# Versioned shared libraries
+install-dylibv:                                                \
+	$(LIBINSTALLDIR)/libtagger@suffix@.@VERSION@.dylib     \
+	$(LIBINSTALLDIR)/libfdtype@suffix@.@VERSION@.dylib     \
+	$(LIBINSTALLDIR)/libfddb@suffix@.@VERSION@.dylib       \
+	$(LIBINSTALLDIR)/libfdbserv@suffix@.@VERSION@.dylib    \
+	$(LIBINSTALLDIR)/libfddbfile@suffix@.@VERSION@.dylib   \
+	$(LIBINSTALLDIR)/libfdscheme@suffix@.@VERSION@.dylib   \
+	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@VERSION@.dylib \
+	$(LIBINSTALLDIR)/libfdweb@suffix@.@VERSION@.dylib      \
+	$(LIBINSTALLDIR)/libtexttools@suffix@.@VERSION@.dylib  \
+	$(LIBINSTALLDIR)/libtagger@suffix@.@VERSION@.dylib
+# Unversioned libraries, for development
+install-dylib: install-dylibv                                  \
+        $(LIBINSTALLDIR)/libfdtype@suffix@.dylib               \
+	$(LIBINSTALLDIR)/libfddb@suffix@.dylib                 \
+	$(LIBINSTALLDIR)/libfdbserv@suffix@.dylib              \
+	$(LIBINSTALLDIR)/libfddbfile@suffix@.dylib             \
+	$(LIBINSTALLDIR)/libfdscheme@suffix@.dylib             \
+	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib           \
+	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib                \
+	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib            \
+
 install-headers: $(INCINSTALLDIR)
 	$(INSTALL) -p @install_file_opts@              \
 		   $(DTYPE_HEADERS) $(DB_HEADERS)      \
 		   $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
 		$(INCINSTALLDIR)
+
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	$(INSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
-
-
-$(INCINSTALLDIR):
-	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
-$(BININSTALLDIR):
-	$(INSTALL) @install_dir_opts@ $(BININSTALLDIR)
-$(LIBINSTALLDIR):
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-$(LIBINSTALLDIR)/framerd:
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
 
 install-cmodules: @INSTALLCMODULES@
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
