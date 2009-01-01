@@ -7,7 +7,7 @@
 ;;;  and indices, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
 
-(define version "$Id$")
+(define version "$Id: usedb.scm 2694 2008-05-29 12:09:01Z haase $")
 
 (module-export! 'usedb)
 

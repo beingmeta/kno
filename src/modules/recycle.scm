@@ -4,7 +4,7 @@
 
 ;;; Provides for the reuse of OIDs which are indexed as status: deleted.
 
-(define version "$Id:$")
+(define version "$Id: recycle.scm 1631 2007-08-16 14:12:11Z haase $")
 
 (module-export!
  '{recycle-oids! get-recycled-oid update-status-index! newframe})

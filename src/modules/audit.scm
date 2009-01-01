@@ -7,7 +7,7 @@
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
 
-(define version "$Id$")
+(define version "$Id: audit.scm 3340 2008-12-09 02:49:56Z haase $")
 
 (define %loglevel %notice!)
 

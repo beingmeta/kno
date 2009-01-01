@@ -4,7 +4,7 @@
 
 ;;; Provides access to RSS feeds with automatic caching and intervals.
 
-(define version "$Id:$")
+(define version "$Id: rss.scm 1631 2007-08-16 14:12:11Z haase $")
 
 (use-module '{fdweb texttools})
 

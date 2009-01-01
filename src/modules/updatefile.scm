@@ -4,7 +4,7 @@
 
 ;;; This handles automatic updating of files into environments. 
 
-(define version "$Id:$")
+(define version "$Id: updatefile.scm 1631 2007-08-16 14:12:11Z haase $")
 
 (use-module 'fileio)
 

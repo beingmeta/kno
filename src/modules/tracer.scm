@@ -4,7 +4,7 @@
 
 ;;; Simple tracing facility, not really used anymore.
 
-(define version "$Id:$")
+(define version "$Id: tracer.scm 1631 2007-08-16 14:12:11Z haase $")
 
 (define tracelevel #f)
 

@@ -6,7 +6,7 @@
 ;;;  and then executing a thunk and tracking OID/background loads during
 ;;;  its execution.
 
-(define version "$Id$")
+(define version "$Id: trackrefs.scm 2323 2008-02-26 18:03:49Z haase $")
 
 (define lastrefs #f)
 

@@ -10,7 +10,7 @@
 ;;  special form execution (which doesn't bottom out in function application) 
 ;;  is credited towards the function itself.
 
-(define version "$Id$")
+(define version "$Id: calltrack.scm 3123 2008-10-20 13:39:40Z haase $")
 
 (use-module 'texttools)
 

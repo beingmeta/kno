@@ -4,7 +4,7 @@
 
 ;;; Provides access to del.icio.us through both their API and RSS urls
 
-(define version "$Id$")
+(define version "$Id: delicious.scm 2260 2008-01-28 16:52:42Z haase $")
 
 (use-module '{texttools fdweb meltcache})
 ;(use-module '{gnosys/webapp/userinfo gnosys/urldb gnosys/metakeys/tagmaps})

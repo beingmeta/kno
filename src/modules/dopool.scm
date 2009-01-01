@@ -2,7 +2,7 @@
 
 (in-module 'dopool)
 
-(define version "$Id:$")
+(define version "$Id: dopool.scm 1631 2007-08-16 14:12:11Z haase $")
 
 (define dopool
   (macro expr
