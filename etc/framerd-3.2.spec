@@ -118,7 +118,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel
 %defattr(-,root,root,-)
-%doc %{_mandir}/man3/*
 %{_includedir}/*
 %{_libdir}/*.so
 %{_bindir}/*
