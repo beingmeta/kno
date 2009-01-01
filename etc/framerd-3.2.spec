@@ -131,16 +131,16 @@ rm -rf $RPM_BUILD_ROOT
 %files mysql
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/fdb/mysql.so*
+%{_libdir}/framerd/mysql.so*
 
 %files sqlite
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/fdb/sqlite.so*
+%{_libdir}/framerd/sqlite.so*
 
 %files odbc
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/fdb/odbc.so*
+%{_libdir}/framerd/odbc.so*
 
 %changelog
