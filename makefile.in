@@ -438,7 +438,7 @@ lib/framerd/sqlite.so.@VERSION@: src/cmodules/sqlite.o
 lib/framerd/sqlite.so: lib/framerd/sqlite.so.@VERSION@
 lib/framerd/sqlite.@VERSION@.dylib: src/cmodules/sqlite.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/sqlite.o
-lib/framerd/sqlite.dylib: lib/framerd /sqlite.@VERSION@.dylib
+lib/framerd/sqlite.dylib: lib/framerd/sqlite.@VERSION@.dylib
 
 # Internationalization stuff
 
