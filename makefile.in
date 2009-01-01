@@ -551,23 +551,17 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 
 install-cmodules: @INSTALLCMODULES@
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
-	      $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@.@VERSION@ \
-	      $(LIBINSTALLDIR)/framerd/odbc.@VERSION@.@shared_suffix@
+	      $(LIBINSTALLDIR)/framerd/odbc.@vshared_suffix@
 install-sqlite: $(LIBINSTALLDIR)/framerd/sqlite.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/sqlite.@shared_suffix@.@VERSION@ \
-	        $(LIBINSTALLDIR)/framerd/sqlite.@VERSION@.@shared_suffix@
+	        $(LIBINSTALLDIR)/framerd/sqlite.@vshared_suffix@
 install-dbus: $(LIBINSTALLDIR)/framerd/dbus.@shared_suffix@ \
-	      $(LIBINSTALLDIR)/framerd/dbus.@shared_suffix@.@VERSION@ \
-	      $(LIBINSTALLDIR)/framerd/dbus.@VERSION@.@shared_suffix@
+	      $(LIBINSTALLDIR)/framerd/dbus.@vshared_suffix@
 install-ldap: $(LIBINSTALLDIR)/framerd/ldap.@shared_suffix@ \
-	      $(LIBINSTALLDIR)/framerd/ldap.@shared_suffix@.@VERSION@ \
-	      $(LIBINSTALLDIR)/framerd/ldap.@VERSION@.@shared_suffix@
+	      $(LIBINSTALLDIR)/framerd/ldap.@vshared_suffix@
 install-crypto: $(LIBINSTALLDIR)/framerd/crypto.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/crypto.@shared_suffix@.@VERSION@ \
-	        $(LIBINSTALLDIR)/framerd/crypto.@VERSION@.@shared_suffix@
+	        $(LIBINSTALLDIR)/framerd/crypto.@vshared_suffix@
 install-mysql: $(LIBINSTALLDIR)/framerd/mysql.@shared_suffix@ \
-	       $(LIBINSTALLDIR)/framerd/mysql.@shared_suffix@.@VERSION@ \
-	       $(LIBINSTALLDIR)/framerd/mysql.@VERSION@.@shared_suffix@
+	       $(LIBINSTALLDIR)/framerd/mysql.@vshared_suffix@
 
 # Setup targets
 

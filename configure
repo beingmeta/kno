@@ -655,6 +655,7 @@ install_dir_opts
 install_file_opts
 install_exe_opts
 shared_suffix
+vshared_suffix
 dynamic_cflag
 curlconfig
 curlo
@@ -1812,6 +1813,7 @@ TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 VERSION=3.2
+vshared_suffix=so.$VERSION
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -1862,6 +1864,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -3696,6 +3699,7 @@ case $host_os in
    LIBS="$LIBS -lgcc"
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
+   vshared_suffix=$VERSION.dylib
    ifmacosx=""
    ;;
 esac
@@ -12207,6 +12211,7 @@ install_dir_opts!$install_dir_opts$ac_delim
 install_file_opts!$install_file_opts$ac_delim
 install_exe_opts!$install_exe_opts$ac_delim
 shared_suffix!$shared_suffix$ac_delim
+vshared_suffix!$vshared_suffix$ac_delim
 dynamic_cflag!$dynamic_cflag$ac_delim
 curlconfig!$curlconfig$ac_delim
 curlo!$curlo$ac_delim
@@ -12262,7 +12267,6 @@ EXEEXT!$EXEEXT$ac_delim
 OBJEXT!$OBJEXT$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
 INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
-INSTALL_DATA!$INSTALL_DATA$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -12304,6 +12308,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+INSTALL_DATA!$INSTALL_DATA$ac_delim
 RANLIB!$RANLIB$ac_delim
 VALGRIND!$VALGRIND$ac_delim
 APXS!$APXS$ac_delim
@@ -12315,7 +12320,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 9; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 10; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

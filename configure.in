@@ -58,6 +58,7 @@ TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 VERSION=3.2
+vshared_suffix=so.$VERSION
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -84,6 +85,7 @@ AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
 AC_SUBST(shared_suffix)
+AC_SUBST(vshared_suffix)
 AC_SUBST(dynamic_cflag)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
@@ -186,6 +188,7 @@ case $host_os in
    LIBS="$LIBS -lgcc"
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
+   vshared_suffix=$VERSION.dylib
    ifmacosx=""
    ;;
 esac  
