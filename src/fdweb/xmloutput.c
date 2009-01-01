@@ -878,20 +878,20 @@ static fdtype get_browseinfo(fdtype arg)
       if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
 	fd_incref(info); fd_decref(browseinfo);
 	return info;}
-      else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
-	dflt=info;
+      else if (FD_TRUEP(FD_VECTOR_REF(info,0))) {
+	dflt=info;}
       else {}
     else dflt=info;}
   if (FD_VOIDP(dflt)) {
     u8_lock_mutex(&browseinfo_lock);
     {FD_DO_CHOICES(info,global_browseinfo) {
-	if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0))
+	if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0)) {
 	  if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
 	    fd_incref(info);
 	    u8_unlock_mutex(&browseinfo_lock);
 	    return info;}
 	  else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
-	    dflt=info;}
+	    dflt=info;}}
       fd_incref(dflt);
       u8_unlock_mutex(&browseinfo_lock);
       if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
@@ -904,20 +904,20 @@ static fdtype get_browseinfo(fdtype arg)
 static int unpack_browseinfo(fdtype info,u8_string *baseuri,u8_string *classname,fdtype *displayer)
 {
   if ((FD_EMPTY_CHOICEP(info)) || (FD_VOIDP(info))) {
-    if (*baseuri==NULL)
+    if (*baseuri==NULL) {
       if (default_browse_uri)
 	*baseuri=default_browse_uri;
-      else *baseuri="browse.fdcgi?";
-    if (*classname==NULL)
+      else *baseuri="browse.fdcgi?";}
+    if (*classname==NULL) {
+      if (default_browse_class)
+	*classname=default_browse_class;
+      else *classname="oid";}}
+  else if (FD_STRINGP(info)) {
+    *baseuri=FD_STRDATA(info);
+    if (*classname==NULL) {
       if (default_browse_class)
 	*classname=default_browse_class;
       else *classname="oid";}
-  else if (FD_STRINGP(info)) {
-    *baseuri=FD_STRDATA(info);
-    if (*classname==NULL)
-      if (default_browse_class)
-	*classname=default_browse_class;
-      else *classname="oid";
     if (displayer) *displayer=FD_VOID;}
   else if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>1)) {
     if (*classname==NULL)
@@ -1364,15 +1364,6 @@ static fdtype uriencode_prim(fdtype string,fdtype escape)
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
-static fdtype uriout_prim(fdtype string,fdtype escape)
-{
-  u8_output out=fd_get_default_output();
-  if (FD_VOIDP(escape))
-    fd_uri_output(out,FD_STRDATA(string),"?#=&");
-  else fd_uri_output(out,FD_STRDATA(string),FD_STRDATA(escape));
-  return FD_VOID;
-}
-
 /* Outputing tables to XHTML */
 
 static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
@@ -1560,7 +1551,7 @@ static fdtype javastmt_handler(fdtype expr,fd_lispenv env)
 /* Soap envelope generation */
 
 /* This should probably be customizable */
-static u8_string soapenvprefix="SOAP-ENV";
+
 static u8_string soapenvopen=
   "<SOAP-ENV:Envelope xmlns:SE='http://www.w3.org/2003/05/soap-envelope' xmlns:xsd='http://www.w3.org/2001/XMLSchema' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>\n";
 static u8_string soapenvclose="\n</SOAP-ENV:Envelope>";
@@ -1783,6 +1774,8 @@ FD_EXPORT void fd_init_xmloutput_c()
 #if (FD_THREADS_ENABLED)
   u8_init_mutex(&browseinfo_lock);
 #endif
+
+  fd_register_source_file(versionid);
 
 }
 

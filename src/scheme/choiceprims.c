@@ -400,7 +400,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
 	  fdtype v=*read++;
 	  if ((atomicp) && (FD_CONSP(v))) atomicp=0;
 	  *write++=v;}
-	FD_INIT_XCHOICE(subset,write-FD_XCHOICE_DATA(subset),atomicp);
+	{FD_INIT_XCHOICE(subset,write-FD_XCHOICE_DATA(subset),atomicp);}
 	v=(fdtype)subset; free_v=1;}
       else v=choices;
       if (envstruct.copy) {
@@ -994,7 +994,7 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
       struct FD_CHOICE *base=
 	(FD_GET_CONS(normal,fd_choice_type,struct FD_CHOICE *));
       struct FD_CHOICE *result=fd_alloc_choice(howmany);
-      const fdtype *read=FD_XCHOICE_DATA(base)+start, *limit=read+howmany;
+      const fdtype *read=FD_XCHOICE_DATA(base)+start;
       fdtype *write=(fdtype *)FD_XCHOICE_DATA(result);
       if (FD_XCHOICE_ATOMICP(base)) {
 	memcpy(write,read,sizeof(fdtype)*howmany);

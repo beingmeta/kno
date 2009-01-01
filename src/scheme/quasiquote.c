@@ -42,7 +42,7 @@ FD_EXPORT fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level);
 
 static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 {
-  fdtype head=FD_EMPTY_LIST, *tail=&head, scan=obj;
+  fdtype head=FD_EMPTY_LIST, *tail=&head;
   while (FD_PAIRP(obj)) {
     fdtype elt=FD_CAR(obj), new_elt, new_tail;
     struct FD_PAIR *tailcons;
@@ -85,7 +85,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 	      return insertion;}
 	  else if (FD_EMPTY_LISTP(insertion)) {}
 	  else if (FD_PAIRP(insertion)) {
-	    fdtype scan=insertion, last;
+	    fdtype scan=insertion, last=FD_VOID;
 	    while (FD_PAIRP(scan)) {last=scan; scan=FD_CDR(scan);}
 	    if (!(FD_PAIRP(last))) {
 	      u8_string details_string=u8_mkstring("RESULT=%q",elt);
@@ -256,7 +256,7 @@ static fdtype quasiquote_handler(fdtype obj,fd_lispenv env)
   else return fd_err(fd_SyntaxError,"QUASIQUOTE",NULL,obj);
 }
 
-FD_EXPORT int fd_init_quasiquote_c()
+FD_EXPORT void fd_init_quasiquote_c()
 {
   quote_symbol=fd_intern("QUOTE");
   quasiquote=fd_intern("QUASIQUOTE");

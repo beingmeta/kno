@@ -345,7 +345,8 @@ static int choice_test(fdtype arg,fdtype slotid,fdtype value)
 {
   int result=0;
   FD_DO_CHOICES(each,arg) {
-    if (result=fd_test(each,slotid,value)) return result;}
+    if ((result=(fd_test(each,slotid,value))))
+      return result;}
   return 0;
 }
 

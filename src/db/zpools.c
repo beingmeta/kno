@@ -120,20 +120,19 @@ int bm_find_schema_by_vals(fdtype *schema,int n,struct FD_SCHEMA_TABLE *table,in
 
 static fdtype read_metadata(struct FD_DTYPE_STREAM *s)
 {
-  int probe; off_t md_loc;
+  int probe;
   probe=fd_dtsread_4bytes(s);
   if (probe == 0xFFFFFFFF) { /* Version 1 */
-    off_t md_loc; time_t notime=(time_t) -1;
-    fdtype metadata=FD_EMPTY_CHOICE;
+    off_t md_loc;
     /* Write the time information (actually, its absence in this version). */
     md_loc=fd_dtsread_off_t(s);
     if (md_loc) {
       if (fd_setpos(s,md_loc)<0)
 	return fd_err(fd_BadMetaData,"read_metadata","seek failed",
 		      FD_ERROR_VALUE);
-      else return fd_dtsread_dtype(s);}}
+      else return fd_dtsread_dtype(s);}
+    else return FD_EMPTY_CHOICE;}
   else if (probe == 0xFFFFFFFE) { /* Version 2 */
-    fdtype metadata=FD_EMPTY_CHOICE;
     int i=0; off_t md_loc;
     while (i<8) {fd_dtsread_4bytes(s); i++;}
     md_loc=fd_dtsread_off_t(s);
@@ -224,7 +223,7 @@ static unsigned char *do_uncompress
 static unsigned char *do_compress(unsigned char *bytes,int n_bytes,int *zbytes)
 {
   int error; Bytef *zdata;
-  uLongf zlen, zlim, wlen=0;
+  uLongf zlen, zlim;
   zlen=zlim=2*n_bytes; zdata=u8_malloc(zlen);
   while ((error=compress2(zdata,&zlen,bytes,n_bytes,FD_DEFAULT_ZLEVEL)) < Z_OK)
     if (error == Z_MEM_ERROR) {
@@ -268,7 +267,6 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
 /* This reads a non frame value with compression. */
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
-  fdtype result;
   unsigned char *zbytes; int zlen, size;
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
@@ -288,7 +286,6 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 /* This reads a non frame value with compression. */
 static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
-  fdtype result;
   unsigned char *zbytes; int zlen, size;
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
@@ -328,7 +325,7 @@ fdtype read_oid_value
     int schema_index=schema_code-1, i=0;
     int n_values=fd_dtsread_zint(f), n_bytes=fd_dtsread_zint(f), dbytes;
     unsigned char *bytes;
-    fdtype *values, result;
+    fdtype *values;
     if (n_values == schemas[schema_index].size) 
       values=u8_alloc_n(n_values,fdtype);
     else return fd_err(_("Schema inconsistency"),"read_oid_value",
@@ -386,11 +383,12 @@ static fd_pool open_zpool(u8_string fname,int read_only)
 {
   struct FD_ZPOOL *pool=u8_alloc(struct FD_ZPOOL);
   struct FD_DTYPE_STREAM *s=&(pool->stream);
-  FD_OID base; unsigned int hi, lo, magicno, capacity, load;
+  unsigned int hi, lo, magicno, capacity, load;
   off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
+  FD_OID base=FD_NULL_OID_INIT;
   fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE);
   /* See if it ended up read only */
   if ((pool->stream.flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
@@ -664,7 +662,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     if (retval<0)  {
       u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:munmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
-    else {fp->offsets=NULL; fp->offsets_size;}
+    else {fp->offsets=NULL; fp->offsets_size=0;}
     newmmap=
       /* When allocating an offset buffer to read, we only have to make it as
 	 big as the file pools load. */
@@ -739,7 +737,7 @@ static void zpool_setcache(fd_pool p,int level)
     if (fp->offsets) return;
     else {
       fd_dtype_stream s=&(fp->stream);
-      unsigned int load, *offsets, *newmmap;
+      unsigned int *offsets, *newmmap;
       fd_lock_struct(fp);
       if (fp->offsets) {
 	fd_unlock_struct(fp);
@@ -766,7 +764,7 @@ static void zpool_setcache(fd_pool p,int level)
 	fp->offsets=offsets; fp->offsets_size=load;}
 #endif
       fd_unlock_struct(fp);}
-  else if (level < 2)
+  else if (level < 2) {
     if (fp->offsets == NULL) return;
     else {
       int retval;
@@ -781,7 +779,7 @@ static void zpool_setcache(fd_pool p,int level)
 #else
       u8_free(fp->offsets);
 #endif
-      fp->offsets=NULL; fp->offsets_size=0;}
+      fp->offsets=NULL; fp->offsets_size=0;}}
 }
 
 static void reload_file_pool_cache(struct FD_ZPOOL *fp,int lock)
@@ -822,7 +820,6 @@ static void zpool_close(fd_pool p)
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
-    unsigned int *newmmap;
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),"zpool_close:munmap %s",fp->cid);
       errno=0;}

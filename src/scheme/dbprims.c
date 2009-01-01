@@ -980,7 +980,7 @@ static fdtype getpath(int n,fdtype *args)
   fdtype cur=args[0]; int i=1;
   while (i<n) {
     fdtype slotids=args[i];
-    fdtype next=FD_EMPTY_CHOICE, old=FD_VOID;
+    fdtype next=FD_EMPTY_CHOICE;
     if (FD_EMPTY_CHOICEP(cur)) return cur;
     else {
       FD_DO_CHOICES(c,cur) {
@@ -1002,7 +1002,7 @@ static fdtype getpathstar(int n,fdtype *args)
   fdtype cur=args[0], result=fd_incref(cur); int i=1;
   while (i<n) {
     fdtype slotids=args[i];
-    fdtype next=FD_EMPTY_CHOICE, old=FD_VOID;
+    fdtype next=FD_EMPTY_CHOICE;
     if (FD_EMPTY_CHOICEP(cur))
       return result;
     else {
@@ -1014,7 +1014,7 @@ static fdtype getpathstar(int n,fdtype *args)
 	  else {
 	    fdtype v=fd_get(c,sl,FD_EMPTY_CHOICE);
 	    FD_ADD_TO_CHOICE(next,v);}}}}
-    if (i>1) FD_ADD_TO_CHOICE(result,cur);
+    if (i>1) {FD_ADD_TO_CHOICE(result,cur);}
     cur=next;
     i++;}
   FD_ADD_TO_CHOICE(result,cur);
@@ -1088,7 +1088,6 @@ static fdtype indexsizes(fdtype ixarg)
 
 static fdtype indexkeysvec(fdtype ixarg)
 {
-  fdtype *keys; unsigned int n_keys;
   fd_index ix=fd_lisp2index(ixarg);
   if (ix==NULL) return FD_ERROR_VALUE;
   if (ix->handler->fetchkeys) {
@@ -1117,8 +1116,8 @@ FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
   if (FD_CHOICEP(pred)) {
     FD_DO_CHOICES(p,pred) {
       int retval;
-      if (retval=test_relation(f,p,val,noinfer)) {
-	FD_STOP_DO_CHOICES;
+      if ((retval=test_relation(f,p,val,noinfer))) {
+	{FD_STOP_DO_CHOICES;}
 	return retval;}}
     return 0;}
   else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
@@ -1158,8 +1157,8 @@ FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
   if (FD_CHOICEP(test)) {
     int retval=0;
     FD_DO_CHOICES(t,test) {
-      if (retval=test_predicate(candidate,t,noinfer)) {
-	FD_STOP_DO_CHOICES;
+      if ((retval=test_predicate(candidate,t,noinfer))) {
+	{FD_STOP_DO_CHOICES;}
 	return retval;}}
     return retval;}
   else if ((FD_OIDP(candidate)) && ((FD_SYMBOLP(test)) || (FD_OIDP(test))))
@@ -1194,14 +1193,14 @@ FD_FASTOP int test_and(fdtype candidate,int n,fdtype *args,int noinfer)
     if (FD_EMPTY_CHOICEP(args[0])) return 0;
     else return test_predicate(candidate,args[0],noinfer);
   else if (n%2) {
-    int i=1; fdtype field=args[0], value;
+    fdtype field=args[0], value;
     if ((FD_OIDP(field)) || (FD_SYMBOLP(field)))
       value=fd_get(candidate,field,FD_VOID);
     else if (FD_TABLEP(field))
       value=fd_hashtable_get((fd_hashtable)field,candidate,FD_VOID);
     else if (FD_APPLICABLEP(field)) 
       value=fd_apply(field,1,&candidate);
-    else fd_type_error("field","test_and",field);
+    else value=fd_type_error("field","test_and",field);
     if (FD_VOIDP(value)) return 0;
     else if (FD_EMPTY_CHOICEP(value)) return 0;
     else if (FD_CHOICEP(value)) {
@@ -1268,11 +1267,11 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
   else if (FD_EMPTY_CHOICEP(candidates))
     return FD_EMPTY_CHOICE;
   else if (n==1)
-    if (retval=test_predicate(candidates,tests[0],noinfer))
+    if ((retval=(test_predicate(candidates,tests[0],noinfer))))
       if (retval<0) return FD_ERROR_VALUE;
       else return fd_incref(candidates);
     else return FD_EMPTY_CHOICE;
-  else if (retval=test_and(candidates,n,tests,noinfer))
+  else if ((retval=(test_and(candidates,n,tests,noinfer))))
     if (retval<0) return FD_ERROR_VALUE;
     else return fd_incref(candidates);
   else return FD_EMPTY_CHOICE;
@@ -1329,11 +1328,11 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
   else if (FD_EMPTY_CHOICEP(candidates))
     return FD_EMPTY_CHOICE;
   else if (n==1)
-    if (retval=test_predicate(candidates,tests[0],noinfer))
+    if ((retval=(test_predicate(candidates,tests[0],noinfer))))
       if (retval<0) return FD_ERROR_VALUE;
       else return FD_EMPTY_CHOICE;
     else return fd_incref(candidates);
-  else if (retval=test_and(candidates,n,tests,noinfer))
+  else if ((retval=(test_and(candidates,n,tests,noinfer))))
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;
   else return fd_incref(candidates);
@@ -1569,7 +1568,12 @@ static fdtype oid_ptrdata_prim(fdtype oid)
 
 static fdtype make_oid_prim(fdtype high,fdtype low)
 {
-  unsigned int hi, lo; FD_OID addr;
+  unsigned int hi, lo; 
+#if FD_STRUCT_OIDS
+  FD_OID addr; memset(&addr,0,sizeof(FD_OID));
+#else
+  FD_OID addr=0;
+#endif
   FD_SET_OID_HI(addr,0); FD_SET_OID_LO(addr,0);
   if (FD_FIXNUMP(high))
     if ((FD_FIX2INT(high))<0)
@@ -1791,9 +1795,10 @@ static int oidmodifiedp(fd_pool p,fdtype oid)
     else if (FD_SLOTMAPP(v))
       if (FD_SLOTMAP_MODIFIEDP(v)) {}
       else modified=0;
-    else if (FD_SCHEMAPP(v)) 
+    else if (FD_SCHEMAPP(v)) {
       if (FD_SCHEMAP_MODIFIEDP(v)) {}
-      else modified=0;
+      else modified=0;}
+    else {}
     fd_decref(v);
     if (modified) return FD_TRUE;
     else return FD_FALSE;}

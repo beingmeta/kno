@@ -659,7 +659,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
     fdtype body=fd_get_body(expr,2);
     if (!(FD_SYMBOLP(fn_name)))
-      fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
+      return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTP(value)) return value;
@@ -688,7 +688,7 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
     fdtype body=fd_get_body(expr,2);
     if (!(FD_SYMBOLP(fn_name)))
-      fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
+      return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
     else {
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTP(value)) return value;
@@ -717,7 +717,7 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
     fdtype body=fd_get_body(expr,2);
     if (!(FD_SYMBOLP(fn_name)))
-      fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
+      return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
     else {
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTP(value)) return value;

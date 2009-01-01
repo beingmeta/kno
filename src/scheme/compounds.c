@@ -67,11 +67,11 @@ static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
   else if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(eachx,x)
       if (FD_COMPOUNDP(eachx)) {
-	fdtype value=compound_set(eachx,offset,value,tag);
-	if (FD_ABORTP(value)) {
+	fdtype result=compound_set(eachx,offset,value,tag);
+	if (FD_ABORTP(result)) {
 	  FD_STOP_DO_CHOICES;
-	  return value;}
-	else fd_decref(value);}
+	  return result;}
+	else fd_decref(result);}
       else return fd_type_error("compound","compound_set",eachx);
     return FD_VOID;}
   else {
@@ -194,7 +194,7 @@ FD_EXPORT void fd_init_compounds_c()
 	   fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
 			   fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("COMPOUND-LENGTH",compound_tag,1,
+	   fd_make_cprim1x("COMPOUND-LENGTH",compound_length,1,
 			   fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("COMPOUND-REF",compound_ref,2,

@@ -133,7 +133,7 @@ typedef struct FD_CHOICE *fd_choice;
 
 #define FD_INIT_XCHOICE(ch,sz,atomicp) \
   FD_INIT_CONS(ch,fd_choice_type); \
-  ch->size=sz|((atomicp)?(FD_ATOMIC_CHOICE_MASK):(0))
+  ch->size=((sz)|((atomicp)?(FD_ATOMIC_CHOICE_MASK):(0)))
 
 #define fd_alloc_choice(n) \
   (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
@@ -196,7 +196,7 @@ FD_EXPORT fdtype _fd_simplify_choice(fdtype x);
    (FD_ACHOICEP(x)) ? (FD_ACHOICE_SIZE(FD_XACHOICE(x))) : (1))
 
 #if FD_INLINE_CHOICES
-static int fd_choice_size(fdtype x)
+static MAYBE_UNUSED int fd_choice_size(fdtype x)
 {
   if (FD_EMPTY_CHOICEP(x)) return 0;
   else if (!(FD_CONSP(x))) return 1;
@@ -206,12 +206,12 @@ static int fd_choice_size(fdtype x)
     return FD_ACHOICE_SIZE(FD_XACHOICE(x));
   else return 1;
 }
-static fdtype fd_simplify_choice(fdtype x)
+static MAYBE_UNUSED fdtype fd_simplify_choice(fdtype x)
 {
   if (FD_ACHOICEP(x)) return _fd_simplify_choice(x);
   else return x;
 }
-static fdtype fd_make_simple_choice(fdtype x)
+static MAYBE_UNUSED fdtype fd_make_simple_choice(fdtype x)
 {
   if (FD_ACHOICEP(x)) return _fd_make_simple_choice(x);
   else return fd_incref(x);
@@ -301,7 +301,7 @@ static fdtype _add_to_choice(fdtype current,fdtype new)
 #define FD_ADD_TO_CHOICE(x,v) x=_add_to_choice(x,v)
 /* This does a simple binary search of a sorted choice vector made up,
    solely of atoms.  */
-static int atomic_choice_containsp(fdtype x,fdtype ch)
+static MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 {
   if (FD_ATOMICP(ch)) return (x==ch);
   else {

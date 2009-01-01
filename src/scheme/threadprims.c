@@ -248,7 +248,7 @@ static void *thread_call(void *data)
   result=fd_finish_call(result);
   u8_threadexit();
   if (FD_ABORTP(result)) {
-    u8_exception ex=u8_erreify(), root=ex;
+    u8_exception ex=u8_erreify();
     u8_string errstring=fd_errstring(ex);
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,

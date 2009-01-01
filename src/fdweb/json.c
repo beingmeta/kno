@@ -75,11 +75,13 @@ static fdtype json_atom(U8_INPUT *in,int flags)
 static fdtype json_vector(U8_INPUT *in,int flags)
 {
   int n_elts=0, max_elts=16, c, i;
-  fdtype *elts;
+  unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
+  fdtype *elts; 
   if (u8_getc(in)!='[') return FD_ERROR_VALUE;
   else elts=u8_alloc_n(16,fdtype);
   c=skip_whitespace(in);
-  while (c>=0)
+  while (c>=0) {
+    good_pos=in->u8_inptr-in->u8_inbuf;
     if (c==']') {
       u8_getc(in); /* Absorb ] */
       return fd_init_vector(NULL,n_elts,elts);}
@@ -96,20 +98,23 @@ static fdtype json_vector(U8_INPUT *in,int flags)
 	  break;}}
       elts[n_elts++]=elt=json_parse(in,flags);
       if (FD_ABORTP(elt)) break;
-      c=skip_whitespace(in);}
+      c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {fd_decref(elts[i]); i++;}
-  return FD_ERROR_VALUE;
+  return fd_err(JSON_Error,"json_vector",
+		u8_strdup(in->u8_inbuf+good_pos),
+		FD_VOID);
 }
 
 static fdtype json_table(U8_INPUT *in,int flags)
 {
   int n_elts=0, max_elts=16, c, i;
-  u8_condition err=NULL;
-  struct FD_KEYVAL *kv;
+   unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
+   struct FD_KEYVAL *kv;
   if (u8_getc(in)!='{') return FD_ERROR_VALUE;
   else kv=u8_alloc_n(16,struct FD_KEYVAL);
   c=skip_whitespace(in);
-  while (c>=0)
+  while (c>=0) {
+    good_pos=in->u8_inptr-in->u8_inbuf;
     if (c=='}') {
       u8_getc(in); /* Absorb ] */
       return fd_init_slotmap(NULL,n_elts,kv);}
@@ -130,10 +135,12 @@ static fdtype json_table(U8_INPUT *in,int flags)
       else return FD_EOD;
       kv[n_elts].value=json_parse(in,flags);
       if (FD_ABORTP(kv[n_elts].value)) break;
-      n_elts++; c=skip_whitespace(in);}
+      n_elts++; c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {
     fd_decref(kv[i].key); fd_decref(kv[i].value); i++;}
-  return FD_ERROR_VALUE;
+  return fd_err(JSON_Error,"json_table",
+		u8_strdup(in->u8_inbuf+good_pos),
+		FD_VOID);
 }
 
 static fdtype json_string(U8_INPUT *in,int flags)

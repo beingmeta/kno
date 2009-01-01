@@ -282,11 +282,13 @@ FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
   FD_OID result; result.hi=hi; result.lo=lo;
   return result;
 }
+#define FD_NULL_OID_INIT {0,0}
 #else
 FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
 {
   return ((((FD_OID)hi)<<32)|((FD_OID)lo));
 }
+#define FD_NULL_OID_INIT 0
 #endif
 
 /* An OID references has 10 bits of base index and 20 bits of offset.
@@ -418,6 +420,7 @@ FD_EXPORT u8_mutex fd_symbol_lock;
 #define FD_SYMBOL_NAME(x) \
   ((FD_SYMBOLP(x)) ? (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) : \
    ((u8_string )NULL))
+#define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
 FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);
 FD_EXPORT fdtype fd_probe_symbol(u8_string string,int len);

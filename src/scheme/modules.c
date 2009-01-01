@@ -413,7 +413,7 @@ static fdtype bronze_module(fdtype module)
     else return FD_INT2DTYPE(conversions);}
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv env=(fd_lispenv) module;
-    int conversions=0, delta;
+    int conversions=0, delta=0;
     if (FD_HASHTABLEP(env->bindings))
       delta=fd_persist_module(env->bindings);
     if (conversions<0) return FD_ERROR_VALUE;

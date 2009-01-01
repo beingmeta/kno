@@ -56,6 +56,9 @@ FD_EXPORT void fd_init_side_effects_c()
   fd_idefn(module,fd_make_cprim2x("SET-CDR!",set_cdr,2,
 				  fd_pair_type,FD_VOID,
 				  -1,FD_VOID));
+
+  fd_register_source_file(versionid);
+
   fd_finish_module(module);
   fd_persist_module(module);
 }

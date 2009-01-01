@@ -47,7 +47,7 @@ static fdtype better_parse_oid(u8_string start,int len)
 {
   if (start[1]=='?') {
     u8_byte *scan=start+2;
-    fdtype name=fd_parse(scan), found=FD_VOID;
+    fdtype name=fd_parse(scan);
     if (scan-start>len) return FD_VOID;
     else if (fd_background) {
       fdtype key=fd_init_pair(NULL,id_symbol,fd_incref(name));
@@ -62,7 +62,8 @@ static fdtype better_parse_oid(u8_string start,int len)
 	return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}}
     else return fd_err(fd_NoBackground,"better_parse_oid",NULL,name);}
   else {
-    FD_OID base, result; unsigned int delta;
+    FD_OID base=FD_NULL_OID_INIT, result=FD_NULL_OID_INIT;
+    unsigned int delta;
     u8_byte prefix[64], suffix[64], *copy_start, *copy_end;
     copy_start=((start[1]=='/') ? (start+2) : (start+1));
     copy_end=strchr(copy_start,'/');
@@ -130,9 +131,9 @@ static int print_oid_name(u8_output out,fdtype name,int top)
       FD_DO_CHOICES(item,name) {
 	if (i++>0) u8_putc(out,' ');
 	if (print_oid_name(out,item,0)<0) return -1;}}
-    u8_putc(out,'}'); }
+    return u8_putc(out,'}');}
   else if (FD_PAIRP(name)) {
-    int i=0; fdtype scan=name; u8_putc(out,'(');
+    fdtype scan=name; u8_putc(out,'(');
     if (print_oid_name(out,FD_CAR(scan),0)<0) return -1;
     else scan=FD_CDR(scan);
     while (FD_PAIRP(scan)) {
@@ -310,7 +311,7 @@ FD_EXPORT void fd_swapout_all()
   fd_swapout_pools();
 }
 
-/* Fast swap outs.
+/* Fast swap outs. */
 
 /* This swaps stuff out while trying to hold locks for the minimal possible
    time.  It does this by using fd_fast_reset_hashtable() and actually freeing
@@ -370,7 +371,7 @@ FD_EXPORT void fd_fast_swapout_all()
   u8_free(todo.to_free);
 }
 
-/* *
+/* */
 
 /* Swap out to reduce memory footprint */
 
@@ -380,11 +381,13 @@ static size_t membase=0;
 u8_mutex fd_swapcheck_lock;
 #endif
 
+#if 0
 static int cache_load()
 {
   return fd_object_cache_load()+fd_index_cache_load()+
     fd_slot_cache_load()+fd_callcache_load();
 }
+#endif
 
 FD_EXPORT int fd_swapcheck()
 {

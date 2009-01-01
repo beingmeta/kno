@@ -6,7 +6,7 @@
 */
 
 static char versionid[] =
-  "$Id: apply.c 2163 2007-12-08 16:07:24Z haase $";
+  "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/dtcall.h"
@@ -135,7 +135,8 @@ FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
   return result;
 }
 
-FD_EXPORT int fd_init_dtcall_c()
+FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
+  fd_register_source_file(versionid);
 }

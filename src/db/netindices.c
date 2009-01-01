@@ -228,12 +228,10 @@ static int netindex_commit(fd_index ix)
 
 static void netindex_close(fd_index ix)
 {
-  struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
 }
 
 static void netindex_setbuf(fd_index ix,int bufsiz)
 {
-  struct FD_NETWORK_INDEX *ni=(struct FD_NETWORK_INDEX *)ix;
 }
 
 static struct FD_INDEX_HANDLER netindex_handler={

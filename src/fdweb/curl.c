@@ -419,7 +419,7 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
   int consed_handle=0; long http_response=200;
-  fdtype result=fd_init_slotmap(NULL,0,NULL), cval, handle;
+  fdtype result=fd_init_slotmap(NULL,0,NULL), cval;
   fdtype url=fdtype_string(urltext);
   char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
@@ -517,7 +517,6 @@ static fdtype handle_url_args
 
 static fdtype urlget(fdtype arg1,fdtype arg2)
 {
-  INBUF data;
   fdtype url, result;
   struct FD_CURL_HANDLE *h; int free_handle=0;
   result=handle_url_args(arg1,arg2,&url,&h,&free_handle);
@@ -530,7 +529,6 @@ static fdtype urlget(fdtype arg1,fdtype arg2)
 
 static fdtype urlcontent(fdtype arg1,fdtype arg2)
 {
-  INBUF data;
   fdtype url, result, content;
   struct FD_CURL_HANDLE *h; int free_handle=0;
   result=handle_url_args(arg1,arg2,&url,&h,&free_handle);
@@ -820,10 +818,10 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,4);
   struct U8_OUTPUT out;
   INBUF data; OUTBUF rdbuf; CURLcode retval; 
-  int start=1, consed_handle=0;
+  int consed_handle=0;
   u8_string url;
   struct FD_CURL_HANDLE *h=NULL;
-  fdtype result=FD_VOID, toput=FD_VOID, cval;
+  fdtype result=FD_VOID, cval;
 
   /* Check argument types */
   if (FD_STRINGP(url_arg)) url=FD_STRDATA(url_arg);

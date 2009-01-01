@@ -179,14 +179,18 @@ FD_EXPORT u8_string fd_metaphone(u8_string string)
     case 'X':
       if (*capscan) u8_puts(&out,"KS"); else u8_puts(&out,"ks");
       break;
-    default: if (scan==start)
-      if (*capscan) u8_putc(&out,*scan); else u8_putc(&out,u8_tolower(*scan));}
+    default: if (scan==start) {
+	if (*capscan) u8_putc(&out,*scan);
+	else u8_putc(&out,u8_tolower(*scan));}}
     scan++; capscan++;}
   if (start!=buf) u8_free(start);
   if (capstart!=capbuf) u8_free(capstart);
   return out.u8_outbuf;
 }
 
+/* Init (just register) */
 
-
-
+void fd_init_phonetic_c()
+{
+  fd_register_source_file(versionid);
+}

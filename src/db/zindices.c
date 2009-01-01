@@ -39,6 +39,7 @@ static fd_exception BadZKEY=_("Bad ZKEY reference");
 
 #define FD_DEFAULT_ZLEVEL 9
 
+#if 0
 #define get_stream(fp) ((fp->stream.sock>0) ? (&(fp->stream)) : (reopen_stream(fp)));
 
 static fd_dtype_stream reopen_stream(fd_file_pool fp)
@@ -50,9 +51,11 @@ static fd_dtype_stream reopen_stream(fd_file_pool fp)
   fd_unlock_struct(fp);
   return &(fp->stream);
 }
+#endif
 
 /* Reading compressed oid values */
 
+#if 0
 static unsigned char *do_uncompress
   (unsigned char *bytes,int n_bytes,int *dbytes)
 {
@@ -81,7 +84,7 @@ static unsigned char *do_uncompress
 static unsigned char *do_compress(unsigned char *bytes,int n_bytes,int *zbytes)
 {
   int error; Bytef *zdata;
-  uLongf zlen, zlim, wlen=0;
+  uLongf zlen, zlim;
   zlen=zlim=2*n_bytes; zdata=u8_malloc(zlen);
   while ((error=compress2(zdata,&zlen,bytes,n_bytes,FD_DEFAULT_ZLEVEL)) < Z_OK)
     if (error == Z_MEM_ERROR) {
@@ -101,21 +104,7 @@ static unsigned char *do_compress(unsigned char *bytes,int n_bytes,int *zbytes)
   *zbytes=zlen;
   return zdata;
 }
-
-/* This reads a non frame value with compression. */
-static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
-{
-  fdtype result;
-  struct FD_BYTE_INPUT in;
-  int n_bytes=fd_dtsread_zint(s), dbytes;
-  unsigned char *bytes;
-  bytes=u8_malloc(n_bytes); fd_dtsread_bytes(s,bytes,n_bytes);
-  in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
-  in.end=in.start+dbytes; in.fillfn=NULL;
-  result=fd_read_dtype(&in);
-  u8_free(bytes); u8_free(in.start);
-  return result;
-}
+#endif
 
 static int read_baseoid_offset(struct FD_DTYPE_STREAM *s)
 {
@@ -123,7 +112,7 @@ static int read_baseoid_offset(struct FD_DTYPE_STREAM *s)
   if (first_byte < 0xC0) return first_byte&0x3F;
   else {
     int result=(first_byte&0x3F)<<7, probe;
-    while (probe=fd_dtsread_byte(s))
+    while ((probe=(fd_dtsread_byte(s))))
       if (probe&0x80) result=(result|probe)<<7;
       else break;
     return result|probe;}
@@ -142,7 +131,7 @@ static fdtype zread_value
       low=low|fd_dtsread_byte(s);
       FD_SET_OID_LO(addr,low);
       return fd_make_oid(addr);}
-  else fd_err(fd_UnexpectedEOD,"zread_value",NULL,FD_VOID);  
+  else return fd_err(fd_UnexpectedEOD,"zread_value",NULL,FD_VOID);  
 }
 
 static fdtype zread_key
@@ -155,21 +144,6 @@ static fdtype zread_key
 			  zread_value(s,baseoids,n_baseoids));
     else return fd_err(BadZKEY,"zread_key",NULL,FD_INT2DTYPE(code));
   else return zread_value(s,baseoids,n_baseoids);
-}
-
-/* This writes a non frame value with compression. */
-static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
-{
-  fdtype result;
-  unsigned char *zbytes; int zlen, size;
-  struct FD_BYTE_OUTPUT out;
-  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
-  fd_write_dtype(&out,x);
-  zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
-  size=fd_dtswrite_zint(s,zlen); size=size+zlen;
-  fd_dtswrite_bytes(s,zbytes,zlen);
-  u8_free(zbytes); u8_free(out.start);
-  return size;
 }
 
 #define in_baseoid(addr,baseoid) \
@@ -217,7 +191,6 @@ static int zwrite_value
   (struct FD_DTYPE_STREAM *stream,fdtype value,
    FD_OID *baseoids,int n_baseoids)
 {
-  int size=0;
   if (FD_OIDP(value)) {
     int baseoid=get_baseoid_offset(value,baseoids,n_baseoids);
     if (baseoid < 0)
@@ -288,7 +261,7 @@ static fd_index open_zindex(u8_string fname,int read_only)
 {
   struct FD_ZINDEX *index=u8_alloc(struct FD_ZINDEX);
   struct FD_DTYPE_STREAM *s=&(index->stream);
-  unsigned int magicno, n_slots;
+  unsigned int magicno;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&zindex_handler,fname);
@@ -383,7 +356,7 @@ static void zindex_setcache(fd_index ix,int level)
       fx->offsets=offsets; 
 #endif
       fd_unlock_struct(fx);}
-  else if (level < 2)
+  else if (level < 2) {
     if (fx->offsets == NULL) return;
     else {
       int retval;
@@ -397,7 +370,7 @@ static void zindex_setcache(fd_index ix,int level)
       u8_free(fx->offsets);
 #endif
       fx->offsets=NULL;
-      fd_unlock_struct(fx);}
+      fd_unlock_struct(fx);}}
 }
 
 FD_FASTOP unsigned int zindex_hash(struct FD_ZINDEX *fx,fdtype x)
@@ -443,7 +416,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
 	  fd_unlock_mutex(&fx->lock); fd_decref(thiskey);
 	  return FD_EMPTY_CHOICE;}
 	else {
-	  int i=0, n_values, atomicp=1;
+	  int i=0, atomicp=1;
 	  struct FD_CHOICE *result=fd_alloc_choice(n_vals);
 	  fdtype *values=(fdtype *)FD_XCHOICE_DATA(result);
 	  off_t next_pos=val_start;
@@ -576,7 +549,7 @@ static struct FD_KEY_SIZE *zindex_fetchsizes(fd_index ix,int *n)
   sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
   qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
   while (i < n_keys) {
-    fdtype key, pair; int size, vpos;
+    fdtype key; int size, vpos;
     fd_setpos(stream,pos_offset+offsets[i]);
     size=fd_dtsread_zint(&(fx->stream)); vpos=fd_dtsread_zint(&(fx->stream));
     key=zread_key(&(fx->stream),fx->slotids,fx->baseoids,fx->n_baseoids);
@@ -708,7 +681,7 @@ static int run_schedule(struct FD_ZINDEX *fx,int n,
     else {
       struct VALUE_FETCH_SCHEDULE *vs=
 	(struct VALUE_FETCH_SCHEDULE *)(&(schedule[i]));
-      off_t vpos=vs->filepos; fdtype val; int next=1;
+      off_t vpos=vs->filepos; int next=1;
       int index=vs->index;
       fd_setpos(&(fx->stream),vpos);
       while (next==1) {
@@ -726,7 +699,7 @@ static int run_schedule(struct FD_ZINDEX *fx,int n,
 
 static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
 {
-  unsigned int *offsets=fx->offsets, pos_offset=4*fx->n_slots;
+  unsigned int *offsets=fx->offsets;
   union SCHEDULE *schedule=u8_alloc_n(n,union SCHEDULE);
   fdtype *values=u8_alloc_n(n,fdtype);
   int i=0, schedule_size=0, init_schedule_size; while (i < n) {
@@ -896,6 +869,9 @@ static int fetch_keydata(struct FD_ZINDEX *fx,struct KEYDATA *kdata,int n)
   if (offsets == NULL) {
     reserved.slotnos=u8_malloc(SLOTSIZE*64);
     reserved.n_reservations=0; reserved.max_reservations=64;}
+  else {
+    reserved.slotnos=NULL;
+    reserved.n_reservations=0; reserved.max_reservations=0;}
   /* Setup the key data */
   while (i < n) {
     fdtype key=kdata[i].key;
@@ -1048,6 +1024,7 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
       scan++;}
     else scan++;
   if (n_drops) dropvals=fetchn(f,n_drops,dropkeys,0);
+  else dropvals=NULL;
   filepos=fd_endpos(stream);
   scan=f->edits.slots; limit=scan+f->edits.n_slots;
   while (scan < limit)

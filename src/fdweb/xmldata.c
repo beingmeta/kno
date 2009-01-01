@@ -73,8 +73,8 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
     FD_DOLIST(docelt,doc) {
       fdtype contents=xmlcontents(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
-	FD_ADD_TO_CHOICE(results,contents);}
-      return results;}}
+	FD_ADD_TO_CHOICE(results,contents);}}
+    return results;}
   else {
     fdtype value=fd_get(doc,attrib_id,FD_EMPTY_LIST);
     fdtype contents=xmlcontents(value,FD_VOID);

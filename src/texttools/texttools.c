@@ -105,6 +105,7 @@ static fdtype dosegment(u8_string string,fdtype separators)
     *resultp=pair;
     resultp=&(((struct FD_PAIR *)pair)->cdr);
     scan=brk+FD_STRLEN(sepstring);}
+  return result;
 }
 
 static fdtype segment_prim(fdtype inputs,fdtype separators)
@@ -683,7 +684,7 @@ static fdtype return_offsets(u8_string s,fdtype results)
 static void convert_offsets
   (fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
 {
-  u8_charoff offval=fd_getint(offset), limval;
+  u8_charoff offval=fd_getint(offset);
   if (FD_FIXNUMP(limit)) 
     *lim=u8_byteoffset(FD_STRDATA(string),FD_FIX2INT(limit),FD_STRLEN(string));
   else *lim=FD_STRLEN(string);
@@ -1035,7 +1036,7 @@ static fdtype string_contains(fdtype string,fdtype pattern,
 static fdtype string_starts_with(fdtype string,fdtype pattern,
 				 fdtype start_arg,fdtype end_arg)
 {
-  int off, lim, retval;
+  int off, lim;
   convert_offsets(string,start_arg,end_arg,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
@@ -1578,6 +1579,7 @@ void fd_init_texttools()
   texttools_init=1;
   texttools_module=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
   fd_init_match_c();
+  fd_init_phonetic_c();
   fd_idefn(texttools_module,fd_make_cprim1("MD5",md5_prim,1));
   fd_idefn(texttools_module,fd_make_cprim1("SHA1",sha1_prim,1));
   fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA1",hmac_sha1_prim,2));

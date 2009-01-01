@@ -102,8 +102,12 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     else return 19;
   else if (FD_FIXNUMP(x))
     return (FD_FIX2INT(x))%(MAGIC_MODULUS);
-  else if (FD_STRINGP(x))
-    return hash_string_dtype1(x);
+  else if (FD_STRINGP(x)) {
+    u8_byte *scan=FD_STRDATA(x), *lim=scan+FD_STRLEN(x);
+    while (scan<lim)
+      if (*scan>=0x80) return hash_unicode_string_dtype1(x);
+      else scan++;
+    return hash_string_dtype1(x);}
   else if (FD_PACKETP(x))
     return hash_packet(x);
   else if (FD_PAIRP(x))
@@ -200,7 +204,6 @@ unsigned int fd_hash_dtype1(fdtype x)
 
 FD_FASTOP unsigned int hash_symbol_dtype2(fdtype x);
 FD_FASTOP unsigned int hash_pair_dtype2(fdtype x);
-FD_FASTOP unsigned int hash_record_dtype2(fdtype x);
 
 typedef unsigned long long ull;
 
@@ -220,7 +223,7 @@ FD_FASTOP unsigned int hash_combine(unsigned int x,unsigned int y)
 
 FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
 {
-  unsigned int prod=1, asint;
+  unsigned int prod=1, asint=0;
   unsigned char *ptr=start, *limit=ptr+len;
   /* Compute a starting place */
   while (ptr < limit) prod=prod+*ptr++;
@@ -256,7 +259,7 @@ FD_FASTOP unsigned int hash_string_dtype2(fdtype x)
 
 FD_FASTOP unsigned int hash_dtype2(fdtype x)
 {
-  if (FD_IMMEDIATEP(x))
+  if (FD_IMMEDIATEP(x)) {
     if ((FD_EMPTY_LISTP(x)) || (FD_FALSEP(x))) return 37;
     else if (FD_TRUEP(x)) return 17;
     else if (FD_EMPTY_CHOICEP(x)) return 13;
@@ -264,7 +267,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
       return hash_symbol_dtype2(x);
     else if (FD_CHARACTERP(x))
       return (FD_CHARCODE(x))%(MAGIC_MODULUS);
-    else return 19;
+    else return 19;}
   else if (FD_FIXNUMP(x))
     return (FD_FIX2INT(x))%(MAGIC_MODULUS);
   else if (FD_OIDP(x)) {
@@ -278,7 +281,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
     return id%(MAGIC_MODULUS);
 #endif
   }
-  else if (FD_CONSP(x)) {
+  else { /*  if (FD_CONSP(x)) */
     int ctype=FD_PTR_TYPE(x);
     switch (ctype) {
     case fd_string_type:
@@ -395,7 +398,7 @@ static unsigned int hash_pair_dtype3(fdtype x)
 
 FD_FASTOP unsigned int hash_dtype3(fdtype x)
 {
-  if (FD_IMMEDIATEP(x))
+  if (FD_IMMEDIATEP(x)) {
     if ((FD_EMPTY_LISTP(x)) || (FD_FALSEP(x))) return 37;
     else if (FD_TRUEP(x)) return 17;
     else if (FD_EMPTY_CHOICEP(x)) return 13;
@@ -403,7 +406,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
       return hash_symbol_dtype2(x);
     else if (FD_CHARACTERP(x))
       return (FD_CHARCODE(x))%(MAGIC_MODULUS);
-    else return 19;
+    else return 19;}
   else if (FD_FIXNUMP(x))
     return (FD_FIX2INT(x))%(MAGIC_MODULUS);
   else if (FD_OIDP(x)) {
@@ -417,7 +420,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
     return id%(MYSTERIOUS_MODULUS);
 #endif
   }
-  else if (FD_CONSP(x)) {
+  else { /*  if (FD_CONSP(x)) */
     int ctype=FD_PTR_TYPE(x);
     switch (ctype) {
     case fd_string_type:

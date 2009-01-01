@@ -133,7 +133,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
 {
   fdtype metadata=FD_VOID;
   struct U8_XTIME _gentime, _packtime, _modtime; int rev;
-  int capacity, mdversion, mdlen, repack, timehi, timelo;
+  int mdversion, mdlen, timehi, timelo;
   off_t mdpos;
   fd_setpos(ds,mdblockpos);
   mdversion=fd_dtsread_4bytes(ds);
@@ -212,7 +212,7 @@ static void copy_timeinfo(struct U8_XTIME *tp,fdtype md,fdtype slotid)
 static fdtype write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata)
 {
   struct U8_XTIME _gentime, _packtime, _modtime;
-  int rev, capacity, mdpos, mdversion;
+  int rev, mdpos, mdversion;
   copy_timeinfo(&_gentime,metadata,gentime_symbol);
   copy_timeinfo(&_packtime,metadata,packtime_symbol);
   copy_timeinfo(&_modtime,metadata,modtime_symbol);
@@ -246,6 +246,7 @@ fdtype fd_write_pool_metadata(fd_dtype_stream ds,fdtype metadata)
   if (ret<0) return FD_ERROR_VALUE;
   else md_pos=fd_dtsread_4bytes(ds)*4+24;
   write_metadata(ds,md_pos,metadata);
+  return metadata;
 }
 
 FD_EXPORT
@@ -311,7 +312,7 @@ FD_EXPORT
 int fd_make_file_index
   (u8_string filename,unsigned int magicno,int n_slots_arg,fdtype metadata)
 {
-  int i, hi, lo, n_slots;
+  int i, n_slots;
   struct FD_DTYPE_STREAM _stream;
   struct FD_DTYPE_STREAM *stream=
     fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);

@@ -94,6 +94,7 @@ static fdtype oddp(fdtype x)
       if (FD_INT2DTYPE(remainder)) return FD_TRUE; else return FD_FALSE;
     else {
       fd_decref(remainder); return FD_FALSE;}}
+  else return FD_FALSE;
 }
 
 static fdtype evenp(fdtype x)
@@ -108,6 +109,7 @@ static fdtype evenp(fdtype x)
       if (FD_INT2DTYPE(remainder)) return FD_FALSE; else return FD_TRUE;
     else {
       fd_decref(remainder); return FD_FALSE;}}
+  else return FD_FALSE;
 }
 
 static fdtype realp(fdtype x)

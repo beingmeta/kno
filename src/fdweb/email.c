@@ -25,7 +25,7 @@ static char versionid[] =
 /* MAIL output operations */
 
 static fdtype mailhost_symbol, maildomain_symbol;
-static fdtype mailfrom_symbol, ctype_symbol;
+static fdtype mailfrom_symbol;
 
 static u8_string mailhost_dflt=NULL, maildomain_dflt=NULL;
 static u8_string mailfrom_dflt=NULL;
@@ -127,15 +127,17 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
 
 void fd_init_email_c()
 {
-  fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fdtype unsafe_module=fd_new_module("FDWEB",(0));
 
   fd_idefn(unsafe_module,fd_make_cprim5("SMTP",smtp_function,3));
   fd_defspecial(unsafe_module,"MAILOUT",mailout_handler);
 
-  fd_register_config("MAILHOST","SMTP host",fd_sconfig_get,fd_sconfig_set,&mailhost_dflt);
-  fd_register_config("MAILDOMAIN","SMTP host",fd_sconfig_get,fd_sconfig_set,&maildomain_dflt);
-  fd_register_config("MAILFROM","SMTP host",fd_sconfig_get,fd_sconfig_set,&mailfrom_dflt);
+  fd_register_config("MAILHOST",_("SMTP host"),
+		     fd_sconfig_get,fd_sconfig_set,&mailhost_dflt);
+  fd_register_config("MAILDOMAIN",_("SMTP default domain"),
+		     fd_sconfig_get,fd_sconfig_set,&maildomain_dflt);
+  fd_register_config("MAILFROM",_("SMTP default from"),
+		     fd_sconfig_get,fd_sconfig_set,&mailfrom_dflt);
   
   fd_register_source_file(versionid);
 }

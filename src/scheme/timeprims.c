@@ -176,7 +176,7 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
 {
   double delta; int free_old=0;
   struct U8_XTIME tmp, *btime;
-  struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP), *oldtm;
+  struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP), *oldtm=NULL;
   memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   if (FD_VOIDP(arg2)) {
     if ((FD_FIXNUMP(arg1)) || (FD_FLONUMP(arg1)) || (FD_RATIONALP(arg1)))
@@ -552,7 +552,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
       xt->u8_tptr.tm_sec=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
-  else if (FD_EQ(slotid,timezone_symbol))
+  else if (FD_EQ(slotid,timezone_symbol)) {
     if (FD_STRINGP(value)) {
       int tz=u8_parse_tzspec(FD_STRDATA(value),xt->u8_tzoff);
 #if HAVE_TM_GMTOFF
@@ -573,7 +573,8 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
       xt->u8_tzoff=offset;
 #endif
     }
-    else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
+    else return fd_reterr(fd_TypeError,"xtime_set",
+			  u8_strdup(_("seconds")),value);}
   return 0;
 }
 

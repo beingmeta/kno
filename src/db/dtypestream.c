@@ -138,7 +138,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
    (struct FD_DTYPE_STREAM *stream,
     u8_string fname,fd_dtstream_mode mode,int bufsiz)
  {
-  int fd, flags=POSIX_OPEN_FLAGS, lock, reading=0, writing=0;
+  int fd, flags=POSIX_OPEN_FLAGS, lock, writing=0;
   char *localname=u8_localpath(fname);
   switch (mode) {
   case FD_DTSTREAM_READ:
@@ -335,10 +335,10 @@ FD_EXPORT int fd_set_read(fd_dtype_stream s,int read)
     if (read) return 1;
     else {
       /* Lock the file descriptor if we need to. */
-      if ((s->flags)&FD_DTSTREAM_NEEDS_LOCK)
+      if ((s->flags)&FD_DTSTREAM_NEEDS_LOCK) {
 	if (fd_lock_fd(s->fd,1)) {
 	  (s->flags)=(s->flags)|FD_DTSTREAM_LOCKED;}
-	else return 0;
+	else return 0;}
       if (((s->flags)&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
 	/* We reset the virtual filepos to match the real filepos
 	   based on how much we still had to read in the buffer. */
@@ -481,7 +481,7 @@ FD_EXPORT off_t fd_endpos(fd_dtype_stream s)
 FD_EXPORT int _fd_dtsread_byte(fd_dtype_stream s)
 {
   if (((s->flags)&FD_DTSTREAM_READING) == 0)
-    if (fd_set_read(s,1)<0) -1;
+    if (fd_set_read(s,1)<0) return -1;
   if (fd_needs_bytes((fd_byte_input)s,1)) 
     return (*(s->ptr++));
   else return -1;
@@ -671,7 +671,7 @@ FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words)
     return len*4;}
 }
 
-FD_EXPORT int fd_init_dtypestream_c()
+FD_EXPORT void fd_init_dtypestream_c()
 {
   fd_register_source_file(versionid);
 }

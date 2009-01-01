@@ -57,18 +57,65 @@ static fd_exception NoGrammar=_("No grammar identified");
 #define next_input(pc,i) ((pc->input)[i].next)
 #define prev_input(pc,i) ((pc->input)[i].previous)
 
+/* These were once useful? */
+#if 0
 static u8_string utf8_next(u8_string s)
 {
   if (*s < 0x80) return s+1;
   else {
     u8_sgetc(&s); return s;}
 }
-
 static int utf8_point(u8_string s)
 {
   if (*s < 0x80) return *s;
   else return u8_sgetc(&s);
 }
+static int textgetc(u8_string *scanner)
+{
+  int c; while ((c=u8_sgetc(scanner))>=0)
+    if (c=='&')
+      if (strncmp(*scanner,"nbsp;",5)==0) {
+	*scanner=*scanner+5;
+	return ' ';}
+      else {
+	u8_byte *end=NULL;
+	int code=u8_parse_entity(*scanner,&end);
+	if (code<=0)
+	  return '&';
+	else {
+	  *scanner=end;
+	  return code;}}
+    else if (c=='\r') {
+      /* Convert CRLFs */
+      u8_string scan=*scanner;
+      int nextc=u8_sgetc(&scan);
+      if (nextc=='\n') {
+	*scanner=scan;
+	return '\n';}
+      else return '\r';}
+    else if (c==0x2019) /* Convert weird apostrophes */
+      return '\'';
+    else return c;
+}
+/* Takes the word which strings string and checks if it is in
+   the set words. */
+static int check_word(char *string,fd_hashset words)
+{
+  char buf[32]; int i=0; char *scan=string;
+  while ((*scan) && (!(isspace(*scan))) && (i < 32))
+    buf[i++]=tolower(*scan++);
+  if (i < 32) {
+    buf[i]='\0';
+    if (hashset_strget(words,buf,i)) return 1;
+    else return 0;}
+  else return 0;
+}
+static int atspace(u8_string s)
+{
+  int c=u8_sgetc(&s);
+  return u8_isspace(c);
+}
+#endif
 
 #define isquote(c) \
    ((c == '"') || (c == '\'') || (c == '`'))
@@ -100,34 +147,6 @@ static int string_capitalizedp(u8_string s)
   return 0;
 }
 
-static int textgetc(u8_string *scanner)
-{
-  int c; while ((c=u8_sgetc(scanner))>=0)
-    if (c=='&')
-      if (strncmp(*scanner,"nbsp;",5)==0) {
-	*scanner=*scanner+5;
-	return ' ';}
-      else {
-	u8_byte *end=NULL;
-	int code=u8_parse_entity(*scanner,&end);
-	if (code<=0)
-	  return '&';
-	else {
-	  *scanner=end;
-	  return code;}}
-    else if (c=='\r') {
-      /* Convert CRLFs */
-      u8_string scan=*scanner;
-      int nextc=u8_sgetc(&scan);
-      if (nextc=='\n') {
-	*scanner=scan;
-	return '\n';}
-      else return '\r';}
-    else if (c==0x2019) /* Convert weird apostrophes */
-      return '\'';
-    else return c;
-}
-
 
 /* Global declarations */
 
@@ -139,7 +158,7 @@ static u8_mutex parser_stats_lock;
 #endif
 
 static int max_states=0, total_states=0;
-static int max_inputs=0, max_phrases=0;
+static int max_inputs=0;
 static int total_inputs=0, total_sentences=0;
 static double total_parse_time=0.0;
 
@@ -166,7 +185,6 @@ static int quote_mark_tag=-1, noise_tag=-1, prefix_tag=1;
 static u8_string lexdata_source=NULL;
 static struct FD_GRAMMAR *default_grammar=NULL;
 
-static int chopper_initialized=0;
 static u8_mutex default_grammar_lock;
 
 static struct FD_GRAMMAR *get_default_grammar()
@@ -401,9 +419,6 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
 
 /* Preprocessing text */
 
-static char abbrevs[]=
-  "Corp.Calif.Mass.Ariz.Wash.Mich.Kans.Colo.Neva.Penn.Okla.Sept.Gov.Sen.Rep.Dr.Lt.Col.Gen.Mr.Mrs.Miss.Ms.Co.Inc.Ltd.Jan.Feb.Mar.Apr.Jun.Jul.Aug.Sep.Sept.Oct.Nov.Dec.";
-
 #define isnamepart(x) ((isalnum(x) && (isupper(x))) || (x == '&'))
 #define issep(c) (!(isalnum(c)  || \
 		    (c == '-')  || (c == '_') || \
@@ -418,20 +433,6 @@ static int hashset_strget(fd_hashset hs,u8_string data,int i)
   FD_INIT_STACK_CONS(&stringdata,fd_string_type);
   stringdata.bytes=data; stringdata.length=i;
   return fd_hashset_get(hs,(fdtype)(&stringdata));
-}
-
-/* Takes the word which strings string and checks if it is in
-   the set words. */
-static int check_word(char *string,fd_hashset words)
-{
-  char buf[32]; int i=0; char *scan=string;
-  while ((*scan) && (!(isspace(*scan))) && (i < 32))
-    buf[i++]=tolower(*scan++);
-  if (i < 32) {
-    buf[i]='\0';
-    if (hashset_strget(words,buf,i)) return 1;
-    else return 0;}
-  else return 0;
 }
 
 /* possessivep: (static)
@@ -510,6 +511,7 @@ static fdtype lower_compound(fdtype compound)
 	*tail=newpair; tail=&(FD_CDR(newpair));}
       return head;}
     else return fd_incref(compound);}
+  else return fd_incref(compound);
 }
 
 /* lexicon_fetch: (static)
@@ -967,12 +969,6 @@ FD_FASTOP int markup_is_sentence_breakp(u8_string s)
       return tagendp(s+scan->len);
     else scan++;
   return 0;
-}
-
-static int atspace(u8_string s)
-{
-  int c=u8_sgetc(&s);
-  return u8_isspace(c);
 }
 
 static int atupper(u8_string s)
@@ -1535,7 +1531,7 @@ static fdtype possessive_root(fdtype word)
     else return fd_incref(word);}
   else if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
     int i=0, n=FD_VECTOR_LENGTH(word)-1;
-    fdtype last=FD_VECTOR_REF(word,n), *newelts=u8_alloc_n(n,fdtype), new;
+    fdtype *newelts=u8_alloc_n(n,fdtype);
     while (i<n) {
       newelts[i]=fd_incref(FD_VECTOR_REF(word,i)); i++;}
     newelts[i]=possessive_root(FD_VECTOR_REF(word,i));
@@ -1644,7 +1640,6 @@ static u8_string find_end(u8_string start,u8_string lim)
   else while ((c=u8_sgetc(&scan))>0)
 	 if (u8_isspace(c)) {}
 	 else if (c=='<') {
-	   u8_string markup_start=scan;
 	   while (c=='<')
 	     while ((c>0) && (c!='>'))
 	       c=u8_sgetc(&scan);}

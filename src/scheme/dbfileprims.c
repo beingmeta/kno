@@ -77,7 +77,7 @@ static fdtype make_oidpool(int n,fdtype *args)
   FD_OID base; int retval, flags=0, load, cap; u8_string filename, label;
   fdtype fname=args[0], base_arg=args[1], capacity=args[2];
   fdtype label_arg=FD_VOID, flags_arg=FD_VOID, schemas=FD_VOID;
-  fdtype metadata=FD_VOID, load_arg=FD_INT2DTYPE(0), flags_val;
+  fdtype metadata=FD_VOID, load_arg=FD_INT2DTYPE(0);
   if (n>3) load_arg=args[3];
   if (n>4) flags_arg=args[4];
   if (n>5) schemas=args[5];  
@@ -204,10 +204,10 @@ static int get_make_hash_index_flags(fdtype flags_arg)
 static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata,
 			      fdtype flags_arg)
 {
-  int retval, blocksize=-1; fd_index ix;
-  retval=fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
-			    get_make_hash_index_flags(flags_arg),0,
-			    slotids,baseoids,metadata,-1,-1);
+  int retval=
+    fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
+		       get_make_hash_index_flags(flags_arg),0,
+		       slotids,baseoids,metadata,-1,-1);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -233,16 +233,19 @@ static fdtype populate_hash_index
 	free_keyvec=1;}
       else keys_choice=fd_getkeys(from);}
     else keys_choice=fd_getkeys(from);
-    if (!(FD_VOIDP(keys_choice)))
+    if (!(FD_VOIDP(keys_choice))) {
       if (FD_CHOICEP(keys_choice)) {
 	keyvec=FD_CHOICE_DATA(keys_choice);
 	n_keys=FD_CHOICE_SIZE(keys_choice);}
       else {
 	keyvec=&keys; n_keys=1;}}
+    else {keyvec=&keys; n_keys=0;}}
   else {
     keyvec=&keys; n_keys=1;}
-  retval=fd_populate_hash_index
-    ((struct FD_HASH_INDEX *)ix,from,keyvec,n_keys,blocksize);
+  if (n_keys)
+    retval=fd_populate_hash_index
+      ((struct FD_HASH_INDEX *)ix,from,keyvec,n_keys,blocksize);
+  else retval=0;
   if (free_keyvec) {
     int i=0; while (i<n_keys) {
       fd_decref(keyvec[i]); i++;}
@@ -264,7 +267,7 @@ static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
 
 static fdtype hash_index_stats(fdtype ix_arg)
 {
-  fd_index ix=fd_lisp2index(ix_arg); int bucket;
+  fd_index ix=fd_lisp2index(ix_arg);
   if ((ix==NULL) || (!(fd_hash_indexp(ix))))
     return fd_type_error(_("hash index"),"hash_index_stats",ix_arg);
   return fd_hash_index_stats((struct FD_HASH_INDEX *)ix);

@@ -129,7 +129,9 @@ FD_FASTOP unsigned int fd_dtsread_4bytes(fd_dtype_stream s)
     unsigned int bytes=fd_get_4bytes(s->ptr);
     s->ptr=s->ptr+4;
     return bytes;}
-  else fd_whoops(fd_UnexpectedEOD);
+  else {
+    fd_whoops(fd_UnexpectedEOD);
+    return 0;}
 }
 
 FD_FASTOP fd_8bytes fd_dtsread_8bytes(fd_dtype_stream s)
@@ -139,7 +141,9 @@ FD_FASTOP fd_8bytes fd_dtsread_8bytes(fd_dtype_stream s)
     fd_8bytes bytes=fd_get_8bytes(s->ptr);
     s->ptr=s->ptr+8;
     return bytes;}
-  else fd_whoops(fd_UnexpectedEOD);
+  else {
+    fd_whoops(fd_UnexpectedEOD);
+    return 0;}
 }
 
 FD_FASTOP int fd_dtsread_bytes
@@ -184,7 +188,7 @@ FD_FASTOP off_t fd_dtsread_off_t(fd_dtype_stream s)
 FD_FASTOP unsigned int fd_dtsread_zint(fd_dtype_stream s)
 {
   unsigned int result=0, probe;
-  while (probe=fd_dtsread_byte(s))
+  while ((probe=(fd_dtsread_byte(s))))
     if (probe&0x80) result=result<<7|(probe&0x7F);
     else break;
   return result<<7|probe;
@@ -193,7 +197,7 @@ FD_FASTOP unsigned int fd_dtsread_zint(fd_dtype_stream s)
 FD_FASTOP fd_8bytes fd_dtsread_zint8(fd_dtype_stream s)
 {
   fd_8bytes result=0, probe;
-  while (probe=fd_dtsread_byte(s))
+  while ((probe=(fd_dtsread_byte(s))))
     if (probe&0x80) result=result<<7|(probe&0x7F);
     else break;
   return result<<7|probe;
@@ -257,11 +261,11 @@ FD_FASTOP int fd_dtswrite_bytes
     memcpy(s->ptr,bytes,n); s->ptr=s->ptr+n;}
   return n;
 }
-static int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
+static MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
 {
-  if (n < (1<<7)) {
+  if ((n < (1<<7))) {
     return fd_dtswrite_byte(s,n);}    
-  else if (n < (1<<14)) {
+  else if ((n < (1<<14))) {
     if (fd_dtswrite_byte(s,((0x80)|(n>>7)))<0) return -1;
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
     return 2;}
@@ -284,7 +288,7 @@ static int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
     return 5;}
 }
-static int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
+static MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
 {
   if (n < (((fd_8bytes)1)<<7)) {
     return fd_dtswrite_byte(s,n);}    

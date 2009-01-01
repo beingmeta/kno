@@ -967,28 +967,32 @@ static fdtype apply_lexpr(int n,fdtype *args)
       FD_STOP_DO_CHOICES;
       return fd_type_error("function","apply_lexpr",args[0]);}
   {
+    fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(fn,args[0]) {
-      fdtype final_arg=args[n-1], results=FD_EMPTY_CHOICE;
-      int final_length=fd_seq_length(final_arg);
-      int n_args=(n-2)+final_length;
-      fdtype *values=u8_alloc_n(n_args,fdtype);
-      int i=1, j=0, lim=n-1, ctype=FD_PRIM_TYPE(args[0]);
-      /* Copy regular arguments */
-      while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
-      i=0; while (j<n_args) {
-	values[j]=fd_seq_elt(final_arg,i); j++; i++;}
-      FD_DO_CHOICES(fn,args[0]) {
-	fdtype result=fd_apply(fn,n_args,values);
+      FD_DO_CHOICES(final_arg,args[n-1]) {
+	fdtype result=FD_VOID;
+	int final_length=fd_seq_length(final_arg);
+	int n_args=(n-2)+final_length;
+	fdtype *values=u8_alloc_n(n_args,fdtype);
+	int i=1, j=0, lim=n-1;
+	/* Copy regular arguments */
+	while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
+	i=0; while (j<n_args) {
+	  values[j]=fd_seq_elt(final_arg,i); j++; i++;}
+	result=fd_apply(fn,n_args,values);
 	if (FD_ABORTP(result)) {
 	  fd_decref(results);
 	  FD_STOP_DO_CHOICES;
 	  i=0; while (i<n_args) {fd_decref(values[i]); i++;}
 	  u8_free(values);
-	  return result;}
-	else {FD_ADD_TO_CHOICE(results,result);}}
-      i=0; while (i<n_args) {fd_decref(values[i]); i++;}
-      u8_free(values);
-      return results;}
+	  results=result;}
+	else {FD_ADD_TO_CHOICE(results,result);}
+	i=0; while (i<n_args) {fd_decref(values[i]); i++;}
+	u8_free(values);}
+      if (FD_ABORTP(results)) {
+	FD_STOP_DO_CHOICES;
+	return results;}}
+    return results;
   }
 }
 
@@ -1073,7 +1077,7 @@ static fdtype callcc (fdtype proc)
     return retval;}
   else {
     if (FD_CONS_REFCOUNT(f)>1) 
-      u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
+      u8_log(LOG_WARN,LostThrow,"Dangling pointer exists to continuation");
     fd_decref(continuation);
     return value;}
 }

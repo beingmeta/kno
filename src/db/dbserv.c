@@ -20,7 +20,6 @@ static char versionid[] =
 #include <libu8/u8srvfns.h>
 #include <libu8/u8filefns.h>
 
-static int check_pool_validity=0;
 static fd_pool primary_pool=NULL;
 static fd_pool served_pools[FDBSERV_MAX_POOLS];
 static int n_served_pools=0;
@@ -88,7 +87,7 @@ static struct FD_CHANGELOG *get_subindex_changelog(fd_index ix,int make)
 
 static void add_to_changelog(struct FD_CHANGELOG *clog,fdtype keys)
 {
-  int changestamp; struct FD_CHANGELOG_ENTRY *entries; int point;
+  struct FD_CHANGELOG_ENTRY *entries; int point;
   fd_lock_mutex(&changelog_lock);
   entries=clog->entries; point=clog->point;
   if (clog->full) {
@@ -193,13 +192,6 @@ fd_exception CantLockOID=_("Can't lock OID");
 #if FD_THREADS_ENABLED
 static u8_mutex server_locks_lock;
 #endif
-
-static int pool_writablep(fd_pool p)
-{
-  if (read_only) return 0;
-  else if (p->read_only == 0) return 1;
-  else return 0;
-}
 
 static int lock_oid(fdtype oid,fdtype id)
 {
@@ -312,7 +304,6 @@ static void open_server_lock_stream(u8_string file)
 static void update_server_lock_file()
 {
   u8_string temp_file;
-  fd_pair *scan, *limit; int n_locks=0;
   if (locks_filename == NULL) return;
   fd_lock_mutex(&server_locks_lock);
   temp_file=u8_mkstring("%s.bak",locks_filename);
@@ -348,7 +339,6 @@ static int config_set_locksfile(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 
 static fdtype lock_oid_prim(fdtype oid,fdtype id)
 {
-  fdtype result=FD_VOID;
   if (!(FD_OIDP(oid)))
     return fd_type_error(_("oid"),"lock_oid_prim",oid);
   if ((locking == 0) ||  (lock_oid(oid,id))) {
@@ -552,12 +542,12 @@ static fdtype server_fetch_oids(fdtype oidvec)
      be the case because clients see the different pools and sort accordingly.  */
   fd_pool p=NULL;
   int n=FD_VECTOR_LENGTH(oidvec), fetchn=0;
-  fdtype *elts=FD_VECTOR_DATA(oidvec), *results, *fetch;
+  fdtype *elts=FD_VECTOR_DATA(oidvec);
   if (n==0)
     return fd_init_vector(NULL,0,NULL);
   else if (!(FD_OIDP(elts[0])))
     return fd_type_error(_("oid vector"),"server_fetch_oids",oidvec);
-  else if (p=fd_oid2pool(elts[0]))
+  else if ((p=(fd_oid2pool(elts[0]))))
     if (served_poolp(p)) {
       fdtype *results=u8_alloc_n(n,fdtype);
       if (p->handler->fetchn) {
@@ -665,7 +655,6 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
     else return fd_type_error("vector","ixserver_bulk_get",keys);
   else if (FD_TABLEP(index))
     if (FD_VECTORP(keys)) {
-      fd_index ix=fd_lisp2index(index);
       int i=0, n=FD_VECTOR_LENGTH(keys);
       fdtype *data=FD_VECTOR_DATA(keys),
 	*results=u8_alloc_n(n,fdtype);
@@ -731,7 +720,6 @@ static int serve_pool(fdtype var,fdtype val,void *data)
     return 1;}
   else if (FD_POOLP(val)) p=fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
-    u8_string spec=FD_STRDATA(val);
     if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
       p=fd_use_pool(FD_STRDATA(val));}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
@@ -762,7 +750,6 @@ static int serve_primary_pool(fdtype var,fdtype val,void *data)
   fd_pool p;
   if (FD_POOLP(val)) p=fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
-    u8_string spec=FD_STRDATA(val);
     if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
       p=fd_use_pool(FD_STRDATA(val));}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
@@ -835,6 +822,10 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim1("OID-VALUE",server_oid_value,1));
   fd_defn(module,fd_make_cprim1("FETCH-OIDS",server_fetch_oids,1));
   fd_defn(module,fd_make_cprim1("GET-LOAD",server_get_load,0));
+  fd_defn(module,fd_make_cprim0("UPDATE-LOCKS!",update_locks_prim,0));
+  fd_defn(module,fd_make_cprim2("STORE-OID!",store_oid_proc,2));
+  fd_defn(module,fd_make_cprim2("BULK-COMMIT",bulk_commit_cproc,2));
+
 
   fd_defn(module,fd_make_cprim1("ISERVER-GET",iserver_get,1));
   fd_defn(module,fd_make_cprim2("ISERVER-ADD!",iserver_add,2));
@@ -848,6 +839,7 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim0("ISERVER-KEYS",iserver_keys,0));
   fd_defn(module,fd_make_cprim0("ISERVER-SIZES",iserver_sizes,0));
   fd_defn(module,fd_make_cprim0("ISERVER-WRITABLE?",iserver_writablep,0));
+  fd_defn(module,fd_make_cprim2("ISERVER-CHANGES",iserver_changes,2));
 
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET",ixserver_get,2,
 				 -1,FD_VOID,-1,FD_VOID));
@@ -865,6 +857,7 @@ void fd_init_dbserv_c()
 				 -1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-WRITABLE?",ixserver_writablep,1,
 				 -1,FD_VOID));
+  fd_defn(module,fd_make_cprim3("IXSERVER-CHANGES",ixserver_changes,3));
 
   fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim,0));
   fd_defn(module,fd_make_cprim2("LOCK-OID",lock_oid_prim,2));
@@ -901,5 +894,6 @@ void fd_init_dbserv_c()
 
 void fd_init_fddbserv()
 {
+  fd_register_source_file(versionid);
   fd_init_dbserv_c();
 }

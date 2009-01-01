@@ -33,6 +33,7 @@ FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
   fd_reset_hashtable(&(tc->fdtc_bground),0,0);
   fd_reset_hashtable(&(tc->fdtc_keys),0,0);
   u8_free(tc);
+  return 1;
 }
 
 FD_EXPORT int fd_pop_threadcache(struct FD_THREAD_CACHE *tc)

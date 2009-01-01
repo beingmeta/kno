@@ -1,4 +1,4 @@
-static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
+static MAYBE_UNUSED int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
 {
   fdtype val=fasteval(expr,env);
   if (FD_ABORTP(val)) {

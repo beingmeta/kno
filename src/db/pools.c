@@ -42,7 +42,7 @@ static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
 
-static fd_pool pool_serial_table[1024], *extra_pools=NULL;
+static fd_pool pool_serial_table[1024];
 static int pool_serial_count=0;
 
 #if FD_GLOBAL_IPEVAL
@@ -202,11 +202,11 @@ static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     struct FD_POOL **pools=u8_alloc_n(1,fd_pool);
     pools[0]=p; gp->n_subpools=1; gp->subpools=pools;}
   else {
-    int comparison;
+    int comparison=0;
     struct FD_POOL **bottom=gp->subpools;
     struct FD_POOL **top=gp->subpools+(gp->n_subpools)-1;
     struct FD_POOL **read, **new, **write, **ipoint;
-    struct FD_POOL **middle;
+    struct FD_POOL **middle=bottom+(top-bottom)/2;
     /* First find where it goes (or a conflict if there is one) */
     while (top>=bottom) {
       middle=bottom+(top-bottom)/2;
@@ -230,7 +230,7 @@ static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     if (write == ipoint) *write=p;
     /* Finally, update the structures.  Note that we are explicitly
        leaking the old subpools because we're avoiding locking on lookup. */
-    p->serialno=(gp->serialno)<<10+gp->n_subpools;
+    p->serialno=((gp->serialno)<<10)+(gp->n_subpools+1);
     gp->subpools=new; gp->n_subpools++;}
   p->serialno=pool_serial_count++;
   pool_serial_table[p->serialno]=p;
@@ -308,7 +308,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     return -1;}
   else init_cache_level(p);
   if (p->cache_level<1) return 0;
-  if (p->handler->fetchn==NULL)
+  if (p->handler->fetchn==NULL) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oids);
       return 0;}
@@ -319,7 +319,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
         if (FD_ABORTP(v)) {
           FD_STOP_DO_CHOICES; return v;}
         n_fetches++; fd_decref(v);}
-      return n_fetches;}
+      return n_fetches;}}
   if (FD_ACHOICEP(oids)) {
     oids=fd_make_simple_choice(oids); decref_oids=1;}
   if (fd_ipeval_status()) {
@@ -335,7 +335,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     /* fd_decref(oidschoice); */
     return 0;}
   else if (FD_CHOICEP(oids)) {
-    int i=0, n=FD_CHOICE_SIZE(oids), some_locked=0;
+    int n=FD_CHOICE_SIZE(oids), some_locked=0;
     struct FD_HASHTABLE *cache=&(p->cache), *locks=&(p->locks);
     fdtype *values, *oidv=u8_alloc_n(n,fdtype), *write=oidv;
     FD_DO_CHOICES(o,oids)
@@ -460,7 +460,7 @@ FD_EXPORT int fd_lock_oids(fdtype oids)
       fd_pool p=fd_oid2pool(oid);
       if ((p) && (fd_hashtable_probe_novoid(&(p->locks),oid)==0)) {
         i=0; while (i<n_pools) if (pools[i]==p) break; else i++;
-        if (i>=n_pools)
+        if (i>=n_pools) {
           /* Create a pool entry if neccessary */
           if (i<max_pools) {
             pools[i]=p; tolock[i]=FD_EMPTY_CHOICE; n_pools++;}
@@ -475,7 +475,7 @@ FD_EXPORT int fd_lock_oids(fdtype oids)
           else {
             pools=u8_realloc_n(pools,max_pools+32,fd_pool);
             tolock=u8_realloc_n(tolock,max_pools+32,fdtype);
-            max_pools=max_pools+32;}
+            max_pools=max_pools+32;}}
         /* Now, i is bound to the index for the pools and to gets */
         FD_ADD_TO_CHOICE(tolock[i],oid);}}
     else {}}
@@ -502,7 +502,7 @@ FD_EXPORT int fd_unlock_oids(fdtype oids,int commit)
       fd_pool p=fd_oid2pool(oid);
       if ((p) && (fd_hashtable_probe_novoid(&(p->locks),oid))) {
         i=0; while (i<n_pools) if (pools[i]==p) break; else i++;
-        if (i>=n_pools)
+        if (i>=n_pools) {
           /* Create a pool entry if neccessary */
           if (i<max_pools) {
             pools[i]=p; tounlock[i]=FD_EMPTY_CHOICE; n_pools++;}
@@ -517,7 +517,7 @@ FD_EXPORT int fd_unlock_oids(fdtype oids,int commit)
           else {
             pools=u8_realloc_n(pools,max_pools+32,fd_pool);
             tounlock=u8_realloc_n(tounlock,max_pools+32,fdtype);
-            max_pools=max_pools+32;}
+            max_pools=max_pools+32;}}
         /* Now, i is bound to the index for the pools and to gets */
         FD_ADD_TO_CHOICE(tounlock[i],oid);}}
     else {}}
@@ -596,9 +596,9 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
 {
   struct FD_HASHTABLE *locks=&(p->locks);
-  if (commit)
+  if (commit) {
     if (fd_pool_commit(p,oids,0)<0) return -1;
-    else {}
+    else {}}
   if (FD_CHOICEP(oids)) {
     fdtype needy; int retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(FD_CHOICE_SIZE(oids));
@@ -619,8 +619,9 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       if (fd_devoid_hashtable(locks)<0) {
         fd_decref(needy);
         return -1;}
-    fd_decref(needy);
-    return retval;}}
+      fd_decref(needy);
+      return retval;}
+    else return 0;}
   else if (fd_hashtable_probe(locks,oids)) {
     int retval=p->handler->unlock(p,oids);
     if (retval<0) return -1;
@@ -645,7 +646,6 @@ FD_EXPORT int fd_pool_unlock_all(fd_pool p,int commit)
 
 FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
 {
-  struct FD_HASHTABLE *cache=&(p->cache); 
   struct FD_HASHTABLE *locks=&(p->locks); 
   double start_time=u8_elapsed_time();
   init_cache_level(p);
@@ -1075,7 +1075,7 @@ fdtype fd_cached_oids(fd_pool p)
 {
   if (p==NULL) {
     int retval; fdtype result=FD_EMPTY_CHOICE;
-    fd_for_pools(accumulate_cached,(void *)&result);
+    retval=fd_for_pools(accumulate_cached,(void *)&result);
     if (retval<0) {
       fd_decref(result);
       return FD_ERROR_VALUE;}

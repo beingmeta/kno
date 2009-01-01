@@ -44,7 +44,7 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
 static void init_network_pool
   (struct FD_NETWORK_POOL *p,fdtype scan,u8_string spec,u8_string cid)
 {
-  FD_OID addr; unsigned int capacity, load; u8_string label;  
+  FD_OID addr; unsigned int capacity; u8_string label;  
   addr=FD_OID_ADDR(FD_CAR(scan)); scan=FD_CDR(scan);
   capacity=fd_getint(FD_CAR(scan)); scan=FD_CDR(scan);
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,cid);
@@ -83,7 +83,6 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
   u8_string xid=NULL;
   fdtype pooldata=get_pool_data(spec,&xid);
   u8_string cid=u8_canonical_addr(spec);
-  int n_pools=0; 
   if (FD_ABORTP(pooldata)) {
     u8_free(np); u8_free(cid);
     return NULL;}
@@ -142,8 +141,8 @@ static fdtype network_pool_fetch(fd_pool p,fdtype oid)
 static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
-  fdtype vector, request, value, *values;
-  struct FD_VECTOR *v; int i;
+  fdtype vector, value, *values;
+  struct FD_VECTOR *v;
   vector=fd_init_vector(NULL,n,oids); fd_incref(vector);
   value=fd_dtcall(np->connpool,2,fetch_oids_symbol,vector);
   if (FD_VECTORP(value)) {
@@ -209,12 +208,10 @@ static int network_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
 static void network_pool_close(fd_pool p)
 {
-  struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
 }
 
 static void network_pool_setbuf(fd_pool p,int bufsiz)
 {
-  struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
 }
 
 static fdtype network_pool_alloc(fd_pool p,int n)

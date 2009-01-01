@@ -277,7 +277,6 @@ static fdtype pickstrings_opcode(fdtype arg1)
 
 static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
 {
-  int delta=1;
   switch (opcode) {
   case FD_AMBIGP_OPCODE: 
     if (FD_CHOICEP(arg1)) return FD_TRUE;
@@ -558,12 +557,14 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
   }
 }
 
+#if 0
 static fdtype opcode_other_dispatch
   (fdtype opcode,fdtype arg1,fdtype body,fd_lispenv env)
 {
   /* Wait with implementing these */
   return FD_VOID;
 }
+#endif
 
 static int numeric_argp(fdtype x)
 {
@@ -705,7 +706,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return arg1;
   else if (opcode<FD_NARY_OPCODES) /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
     /* Binary calls start by evaluating the second argument */
-    fdtype arg2=fd_eval(FD_CAR(body),env), result;
+    fdtype arg2=fd_eval(FD_CAR(body),env);
     if (FD_ABORTP(arg2)) {
       fd_decref(arg1); return arg2;}
     else if (FD_VOIDP(arg2)) {

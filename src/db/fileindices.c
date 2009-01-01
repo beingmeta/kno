@@ -48,7 +48,7 @@ static fd_index open_file_index(u8_string fname,int read_only)
 {
   struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_DTYPE_STREAM *s=&(index->stream);
-  unsigned int magicno, n_slots;
+  unsigned int magicno;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&file_index_handler,fname);
@@ -118,7 +118,7 @@ static void file_index_setcache(fd_index ix,int level)
       fx->offsets=offsets; 
 #endif
       fd_unlock_struct(fx);}
-  else if (level < 2)
+  else if (level < 2) {
     if (fx->offsets == NULL) return;
     else {
       int retval;
@@ -132,7 +132,7 @@ static void file_index_setcache(fd_index ix,int level)
       u8_free(fx->offsets);
 #endif
       fx->offsets=NULL;
-      fd_unlock_struct(fx);}
+      fd_unlock_struct(fx);}}
 }
 
 FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,fdtype x)
@@ -337,7 +337,7 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
   sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
   qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
   while (i < n_keys) {
-    fdtype key, pair; int size, vpos;
+    fdtype key; int size, vpos;
     fd_setpos(stream,pos_offset+offsets[i]);
     size=fd_dtsread_4bytes(stream);
     vpos=fd_dtsread_4bytes(stream);
@@ -492,7 +492,7 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
 
 static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
 {
-  unsigned int *offsets=fx->offsets, pos_offset=SLOTSIZE*fx->n_slots;
+  unsigned int *offsets=fx->offsets;
   union SCHEDULE *schedule=u8_alloc_n(n,union SCHEDULE);
   fdtype *values=u8_alloc_n(n,fdtype);
   int i=0, schedule_size=0, init_schedule_size; while (i < n) {
@@ -622,7 +622,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
 {
   unsigned int *slotnos=r->slotnos, *lim=r->slotnos+r->n_reservations;
   unsigned int *bottom=slotnos, *top=lim;
-  unsigned int *middle, insertoff, *insertpos;
+  unsigned int *middle=bottom+(top-bottom)/2, insertoff, *insertpos;
   if (r->n_reservations==0) {
     bottom[0]=slotno; r->n_reservations++;
     return 1;}
@@ -662,6 +662,9 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,un
   if (offsets == NULL) {
     reserved.slotnos=u8_malloc(SLOTSIZE*64);
     reserved.n_reservations=0; reserved.max_reservations=64;}
+  else {
+    reserved.slotnos=NULL;
+    reserved.n_reservations=0; reserved.max_reservations=0;}
   /* Setup the key data */
   while (i < n) {
     fdtype key=kdata[i].key;
@@ -841,6 +844,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
       scan++;}
     else scan++;
   if (n_drops) dropvals=fetchn(f,n_drops,dropkeys,0);
+  else dropvals=NULL;
   filepos=fd_endpos(stream);
   scan=f->edits.slots; limit=scan+f->edits.n_slots;
   while (scan < limit)
@@ -941,12 +945,11 @@ static int file_index_commit(struct FD_INDEX *ix)
   {
     off_t filepos;
     int n_adds=ix->adds.n_keys, n_edits=ix->edits.n_keys;
-    int i=0, n=0, n_changes=n_adds+n_edits, add_index, keyret;
+    int i=0, n=0, n_changes=n_adds+n_edits, add_index;
     struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
     unsigned int *value_locs=
       ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
     struct FD_HASHENTRY **scan=ix->adds.slots, **limit=scan+ix->adds.n_slots;
-    fdtype slotids=fx->slotids;
     while (scan < limit)
       if (*scan) {
 	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;

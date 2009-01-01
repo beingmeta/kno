@@ -1313,11 +1313,11 @@ static u8_mutex stackdump_lock;
 
 FD_EXPORT void stackdump_dump(u8_string dump)
 {
-  double elapsed; struct U8_XTIME now;
+  struct U8_XTIME now;
   struct U8_OUTPUT out;
   u8_now(&now);
   u8_lock_mutex(&stackdump_lock);
-  if (stackdump_file==NULL)
+  if (stackdump_file==NULL) {
     if (stackdump_filename==NULL) {
       u8_unlock_mutex(&stackdump_lock);
       return;}
@@ -1330,7 +1330,7 @@ FD_EXPORT void stackdump_dump(u8_string dump)
 	u8_unlock_mutex(&stackdump_lock);
 	return;}
       else {
-	u8_log(LOG_NOTIFY,StackDumpEvent,"Opened stackdump file %s",stackdump_filename);}}
+	u8_log(LOG_NOTIFY,StackDumpEvent,"Opened stackdump file %s",stackdump_filename);}}}
   U8_INIT_OUTPUT(&out,256);
   u8_printf(&out,"pid=%d elapsed=%f (%*liUGt)",getpid(),u8_elapsed_time());
   fprintf(stackdump_file,">>>>>> %s\n",out.u8_outbuf);
@@ -1367,7 +1367,8 @@ static int stackdump_config_set(fdtype var,fdtype val,void *ignored)
     if (filename) {
       stackdump_filename=u8_strdup(filename);
       fd_dump_backtrace=stackdump_dump;}
-    u8_unlock_mutex(&stackdump_lock);}
+    u8_unlock_mutex(&stackdump_lock);
+    return 1;}
   else {
     fd_seterr(fd_TypeError,"stackdump_config_set",NULL,val);
     return -1;}

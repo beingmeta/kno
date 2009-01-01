@@ -184,9 +184,10 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
   fdtype parts=FD_EMPTY_LIST;
   fdtype sepval=fd_get(slotmap,separator_slotid,FD_VOID);
   if (!(FD_STRINGP(sepval))) {
-    fd_decref(charenc); fd_decref(dataenc); 
     return fd_err(NoMultiPartSeparator,"fd_parse_mime",NULL,slotmap);}
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
+  charenc=fd_get(slotmap,charset_slotid,FD_VOID);
+  dataenc=fd_get(slotmap,encoding_slotid,FD_VOID);
   boundary_len=FD_STRLEN(sepval)+2; boundary=u8_malloc(boundary_len+1);
   strcpy(boundary,"--"); strcat(boundary,FD_STRDATA(sepval));
   start=scan; scan=strstr(start,boundary);
@@ -257,7 +258,6 @@ static fdtype parse_mime_data(fdtype arg)
 void fd_init_mime_c()
 {
   fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  fdtype unsafe_module=fd_new_module("FDWEB",(0));
   fd_idefn(module,fd_make_cprim1("PARSE-MIME",parse_mime_data,1));
 
   content_slotid=fd_intern("CONTENT");

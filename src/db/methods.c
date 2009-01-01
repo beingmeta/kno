@@ -52,7 +52,7 @@ static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
 FD_EXPORT int
 fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
 {
-  struct FD_HASHSET ht; fdtype h; int retval=0;
+  struct FD_HASHSET ht; int retval=0;
   ht.consbits=0; fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {FD_DO_CHOICES(root,roots) 
      if ((retval=keep_walking(&ht,root,slotids,walk,data))<=0) {
@@ -163,7 +163,6 @@ fdtype fd_inherit_inferred_values(fdtype root,fdtype slotid,fdtype through)
 static int inherits_inferred_valuesp_fn(fdtype node,void *data)
 {
   struct FD_IVPSTRUCT *ivps=(struct FD_IVPSTRUCT *)data;
-  fdtype values=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(slotid,ivps->slotids) {
     int result=fd_test(node,slotid,ivps->value);
     if (result<0) return -1;
@@ -175,7 +174,6 @@ static int inherits_inferred_valuesp_fn(fdtype node,void *data)
 static int inherits_valuesp_fn(fdtype node,void *data)
 {
   struct FD_IVPSTRUCT *ivps=(struct FD_IVPSTRUCT *)data;
-  fdtype values=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(slotid,ivps->slotids) {
     int testval=
       ((FD_OIDP(node)) ?
@@ -329,14 +327,14 @@ static fdtype multi_drop_method(fdtype root,fdtype slotid,fdtype value)
   else {
     fdtype primary_slot=fd_oid_get(slotid,multi_primary_slot,FD_EMPTY_CHOICE);
     if (FD_ABORTP(primary_slot)) return primary_slot;
-    else if ((FD_SYMBOLP(primary_slot)) || (FD_OIDP(primary_slot)))
+    else if ((FD_SYMBOLP(primary_slot)) || (FD_OIDP(primary_slot))) {
       if (primary_slot==slotid) {
 	if (fd_drop(root,primary_slot,value)<0) {
 	  fd_decref(primary_slot);
 	  return FD_ERROR_VALUE;}}
       else if (fd_frame_drop(root,primary_slot,value)<0) {
 	fd_decref(primary_slot);
-	return FD_ERROR_VALUE;}
+	return FD_ERROR_VALUE;}}
     {FD_DO_CHOICES(subslotid,slotids) {
       int probe=fd_frame_test(root,subslotid,value);
       if (probe<0) return FD_ERROR_VALUE;
@@ -433,7 +431,7 @@ static fdtype inherited_test_method(fdtype root,fdtype slotid,fdtype value)
 
 static fdtype inverse_getbase_method(fdtype root,fdtype slotid)
 {
-  fdtype answer, inv_slots, others, root_as_list;
+  fdtype answer, inv_slots, others;
   answer=fd_oid_get(root,slotid,FD_EMPTY_CHOICE);
   if (FD_ABORTP(answer)) return answer;
   else inv_slots=fd_oid_get(slotid,inverse_slot,FD_EMPTY_CHOICE);
@@ -556,7 +554,7 @@ static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
 
 static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
 {
-  fdtype answers=FD_EMPTY_CHOICE, through, key;
+  fdtype through, key;
   through=fd_frame_get(slotid,through_slot);
   if (FD_ABORTP(through)) return through;
   else key=fd_frame_get(slotid,key_slot);
@@ -571,7 +569,7 @@ static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
 
 static fdtype assoc_drop_method(fdtype f,fdtype slotid,fdtype value)
 {
-  fdtype answers=FD_EMPTY_CHOICE, through, key;
+  fdtype through, key;
   through=fd_frame_get(slotid,through_slot);
   if (FD_ABORTP(through)) return through;
   else key=fd_frame_get(slotid,key_slot);

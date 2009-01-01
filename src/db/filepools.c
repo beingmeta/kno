@@ -52,7 +52,8 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
 {
   struct FD_FILE_POOL *pool=u8_alloc(struct FD_FILE_POOL);
   struct FD_DTYPE_STREAM *s=&(pool->stream);
-  FD_OID base; unsigned int hi, lo, magicno, capacity, load;
+  FD_OID base=FD_NULL_OID_INIT;
+  unsigned int hi, lo, magicno, capacity, load;
   off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
@@ -275,7 +276,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
   /* Make sure that pos_limit fits into an int, in case off_t is an int. */
   off_t endpos, pos_limit=0xFFFFFFFF;
-  int i=0, retcode=n, load, offsets_at_end=0;
+  int i=0, retcode=n, load;
   unsigned int *tmp_offsets=NULL, old_size=0;
   fd_lock_struct(fp); load=fp->load;
   /* Get the endpos after the file pool structure is locked. */
@@ -478,7 +479,7 @@ static void file_pool_setcache(fd_pool p,int level)
     if (fp->offsets) return;
     else {
       fd_dtype_stream s=&(fp->stream);
-      unsigned int load, *offsets, *newmmap;
+      unsigned int *offsets, *newmmap;
       fd_lock_struct(fp);
       if (fp->offsets) {
 	fd_unlock_struct(fp);
@@ -504,7 +505,7 @@ static void file_pool_setcache(fd_pool p,int level)
       fp->offsets=offsets; fp->offsets_size=load;
 #endif
       fd_unlock_struct(fp);}
-  else if (level < 2)
+  else if (level < 2) {
     if (fp->offsets == NULL) return;
     else {
       int retval;
@@ -519,7 +520,7 @@ static void file_pool_setcache(fd_pool p,int level)
 #else
       u8_free(fp->offsets);
 #endif
-      fp->offsets=NULL; fp->offsets_size=0;}
+      fp->offsets=NULL; fp->offsets_size=0;}}
 }
 
 static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
@@ -561,7 +562,6 @@ static void file_pool_close(fd_pool p)
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
     int retval=munmap((fp->offsets)-6,4*fp->offsets_size+24);
-    unsigned int *newmmap;
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->cid);
       errno=0;}

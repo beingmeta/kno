@@ -69,7 +69,7 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
       else if (xtype==fd_string_type) 
 	return (strcoll(FD_STRDATA(sx->key),FD_STRDATA(sy->key)));
       else if (xtype==fd_symbol_type)
-	return (strcoll(FD_SYMBOL_NAME(sx->key),FD_SYMBOL_NAME(sy->key)));
+	return (strcoll(FD_XSYMBOL_NAME(sx->key),FD_XSYMBOL_NAME(sy->key)));
       else return FDTYPE_COMPARE(sx->key,sy->key);
     else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
 	      (xtype==fd_double_type) || (xtype==fd_rational_type) ||

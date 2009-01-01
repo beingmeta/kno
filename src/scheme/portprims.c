@@ -630,7 +630,7 @@ static int find_substring(u8_string string,fdtype strings,int *lenp)
 }
 static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
 {
-  int lim, off=-1, matchlen;
+  int lim, off=-1, matchlen=0;
   U8_INPUT *in=get_input_port(port);
   if (in==NULL)
     return fd_type_error(_("input port"),"record_reader",port);
@@ -645,13 +645,14 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
   while (1) {
     if (FD_VOIDP(ends)) {
       u8_string found=strstr(in->u8_inptr,"\n");
-      if (found) off=found-in->u8_inptr;}
+      if (found) {off=found-in->u8_inptr; matchlen=1;}}
     else off=find_substring(in->u8_inptr,ends,&matchlen);
     if (off>=0) {
       int record_len=off+matchlen;
       u8_byte *buf=u8_malloc(record_len+1);
       int bytes_read=u8_getn(buf,record_len,in);
-      return fd_init_string(NULL,record_len,buf);}
+      /* fd_init_string(NULL,record_len,buf); */
+      return fd_init_string(NULL,bytes_read,buf);}
     else if ((lim) && ((in->u8_inlim-in->u8_inptr)>lim))
       return FD_EOF;
     else if (in->u8_fillfn) {
@@ -1073,7 +1074,6 @@ static void print_backtrace_env(U8_OUTPUT *out,u8_exception ex,int width)
   u8_string head=((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
 		  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
 		  ((u8_string)""));
-  int startoff=out->u8_outptr-out->u8_outbuf, indent, col;
   if (FD_ABORTP(keys)) {
     u8_printf(out,"%s %q\n",head,entry);}
   else {
@@ -1131,7 +1131,7 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
     if (scan!=ex) u8_printf(out," <");
     if (scan->u8x_cond!=cond) {
       cond=scan->u8x_cond; u8_printf(out," (%m)",cond);}
-    if (scan->u8x_context)
+    if (scan->u8x_context) {
       if (scan->u8x_context==fd_eval_context)
 	if ((FD_PAIRP(irritant)) && (!(FD_PAIRP(FD_CAR(irritant))))) {
 	  u8_printf(out," (%q ...)",FD_CAR(irritant));
@@ -1147,7 +1147,7 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
       else if ((scan->u8x_context) && (*(scan->u8x_context)==':')) {
 	u8_printf(out," %s",scan->u8x_context);
 	show_irritant=0;}
-      else u8_printf(out," %s",scan->u8x_context);
+      else u8_printf(out," %s",scan->u8x_context);}
     if (scan->u8x_details)
       u8_printf(out," [%s]",scan->u8x_details);
     if (show_irritant)
@@ -1251,7 +1251,7 @@ static fdtype from_base16_prim(fdtype string)
 static fdtype to_base16_prim(fdtype packet)
 {
   u8_byte *packet_data=FD_PACKET_DATA(packet);
-  unsigned int packet_len=FD_PACKET_LENGTH(packet), ascii_len;
+  unsigned int packet_len=FD_PACKET_LENGTH(packet);
   char *ascii_string=u8_write_base16(packet_data,packet_len);
   if (ascii_string)
     return fd_init_string(NULL,packet_len*2,ascii_string);

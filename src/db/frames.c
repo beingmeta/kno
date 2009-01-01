@@ -130,7 +130,6 @@ static int _overlay_test
   else if (FD_HASHTABLEP(overlay)) {
     fdtype tmp_key;
     struct FD_PAIR p;
-    struct FD_HASHTABLE *h=(fd_hashtable)slot_overlay;
     FD_INIT_STRUCT(&p,struct FD_PAIR);
     FD_INIT_STACK_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
@@ -442,7 +441,7 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
 {
   struct FD_FRAMEOP_STACK *ops=get_opstack();
   if (ops != op) u8_raise("Corrupted ops stack","fd_pop_opstack",NULL);
-  else if (op->dependencies) 
+  else if (op->dependencies) {
     if (normal) u8_free(op->dependencies);
     else {
       struct FD_DEPENDENCY_RECORD *scan=op->dependencies; 
@@ -450,12 +449,13 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
       while (scan<limit) {
 	fd_decref(scan->frame); fd_decref(scan->slotid); fd_decref(scan->value);
 	scan++;}
-      u8_free(op->dependencies);}
+      u8_free(op->dependencies);}}
 #if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
   u8_tld_set(opstack_key,op->next);
 #else
   opstack=op->next;
 #endif
+  return 1;
 }
 
 
@@ -527,14 +527,14 @@ FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
 FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
 {
   fdtype testcache=fd_hashtable_get(&test_caches,slotid,FD_VOID);
-  if (FD_HASHTABLEP(testcache))
+  if (FD_HASHTABLEP(testcache)) {
     if (FD_VOIDP(value))
       fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,FD_VOID);
     else {
       fdtype cache=fd_hashtable_get(FD_XHASHTABLE(testcache),frame,FD_EMPTY_CHOICE);
       if (FD_PAIRP(cache)) {
 	fd_hashset_drop((fd_hashset)FD_CAR(cache),value);
-	fd_hashset_drop((fd_hashset)FD_CDR(cache),value);}}
+	fd_hashset_drop((fd_hashset)FD_CDR(cache),value);}}}
 }
 
 
@@ -617,7 +617,6 @@ static void decache_factoid(fdtype factoid)
   fdtype frame=FD_CAR(factoid);
   fdtype predicate=FD_CDR(factoid);
   if (FD_PAIRP(predicate)) {
-    fdtype slotid=FD_CAR(predicate);
     fdtype value=FD_CDR(predicate);
     fd_clear_slotcache_entry(frame,predicate);
     fd_clear_testcache_entry(frame,predicate,value);}
@@ -791,7 +790,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
     else {
       struct FD_HASHTABLE *cache; int result=0;
       fdtype cachev=fd_hashtable_get(&test_caches,slotid,FD_VOID);
-      fdtype cached, computed=FD_EMPTY_CHOICE, methods, key;
+      fdtype cached, methods;
       if (FD_VOIDP(cachev)) {
 	cache=make_test_cache(slotid); cachev=(fdtype)cache;
 	cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
@@ -1023,14 +1022,14 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
   int n_slotvals=0, max_slotvals=64; va_list args;
   va_start(args,indices); val=va_arg(args,fdtype);
   while (!(FD_VOIDP(val))) {
-    if (n_slotvals>=max_slotvals)
+    if (n_slotvals>=max_slotvals) {
       if (max_slotvals == 64) {
 	fdtype *newsv=u8_alloc_n(128,fdtype); int i=0;
 	while (i<64) {newsv[i]=slotvals[i]; i++;}
 	slotvals=newsv; max_slotvals=128;}
       else {
 	slotvals=u8_realloc(slotvals,sizeof(fdtype)*max_slotvals*2);
-	max_slotvals=max_slotvals*2;}
+	max_slotvals=max_slotvals*2;}}
     slotvals[n_slotvals++]=val; val=va_arg(args,fdtype);}
   if (n_slotvals%2) {
     if (slotvals != _slotvals) u8_free(slotvals);
@@ -1059,7 +1058,7 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
 	fdtype key=fd_init_pair(NULL,slotid,value);
-	FD_ADD_TO_CHOICE(keys,keys);}}
+	FD_ADD_TO_CHOICE(keys,key);}}
     fd_index_prefetch(ix,keys);
     fd_decref(keys);
     return 1;}
@@ -1075,7 +1074,8 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
     valuev=(ix->handler->fetchn)(ix,n_keys,keyv);
     fd_hashtable_iter(&(ix->cache),fd_table_add_empty_noref,
 		      n_keys,keyv,valuev);
-    u8_free(keyv); u8_free(valuev);}
+    u8_free(keyv); u8_free(valuev);
+    return 1;}
 }
 
 
@@ -1163,14 +1163,14 @@ FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...)
   va_start(args,values); val=va_arg(args,fdtype);
   slotvals[n_slotvals++]=slotid; slotvals[n_slotvals++]=values;
   while (!(FD_VOIDP(val))) {
-    if (n_slotvals>=max_slotvals)
+    if (n_slotvals>=max_slotvals) {
       if (max_slotvals == 64) {
 	fdtype *newsv=u8_alloc_n(128,fdtype); int i=0;
 	while (i<64) {newsv[i]=slotvals[i]; i++;}
 	slotvals=newsv; max_slotvals=128;}
       else {
 	slotvals=u8_realloc_n(slotvals,max_slotvals*2,fdtype);
-	max_slotvals=max_slotvals*2;}
+	max_slotvals=max_slotvals*2;}}
     slotvals[n_slotvals++]=val; val=va_arg(args,fdtype);}
   if (n_slotvals%2) {
     if (slotvals != _slotvals) u8_free(slotvals);

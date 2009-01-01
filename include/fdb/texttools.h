@@ -16,6 +16,7 @@
 
 FD_EXPORT void fd_init_texttools(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_match_c(void);
+FD_EXPORT void fd_init_phonetic_c(void);
 
 FD_EXPORT fd_exception fd_BadExtractData;
 

@@ -132,14 +132,14 @@ static fdtype lisptest(fdtype f,fdtype slotid,fdtype val)
     else return FD_FALSE;}
 }
 
-static fdtype lisp_pick_keys(fdtype table,fdtype howmany)
+static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
 {
   if (!(FD_TABLEP(table)))
     return fd_type_error(_("table"),"lisp_pick_key",table);
   else {
     fdtype x=fd_getkeys(table);
     fdtype normal=fd_make_simple_choice(x);
-    int n=FD_CHOICE_SIZE(normal), howmany=FD_FIX2INT(howmany);
+    int n=FD_CHOICE_SIZE(normal), howmany=FD_FIX2INT(howmany_arg);
     if (!(FD_CHOICEP(normal))) return normal;
     if (n<=howmany) return normal;
     else if (howmany==1) {
@@ -859,8 +859,8 @@ FD_EXPORT void fd_init_tablefns_c()
 	   fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
 			   fd_hashtable_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
-			   fd_hashtable_type,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim3x("HASHTABLE-SKIM",hashtable_skim,1,
+			   fd_hashtable_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("HASHTABLE-BUCKETS",hashtable_buckets,1,
 			   fd_hashtable_type,FD_VOID));

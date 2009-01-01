@@ -357,7 +357,7 @@ FD_FASTOP int fd_read_bytes
 FD_FASTOP int fd_read_zint(struct FD_BYTE_INPUT *s)
 {
   unsigned int result=0; int probe;
-  while (probe=fd_read_byte(s))
+  while ((probe=(fd_read_byte(s))))
     if (probe<0) return -1;
     else if (probe&0x80) result=result<<7|(probe&0x7F);
     else break;
@@ -366,7 +366,7 @@ FD_FASTOP int fd_read_zint(struct FD_BYTE_INPUT *s)
 FD_FASTOP fd_8bytes fd_read_zint8(struct FD_BYTE_INPUT *s)
 {
   fd_8bytes result=0; int probe;
-  while (probe=fd_read_byte(s))
+  while ((probe=(fd_read_byte(s))))
     if (probe<0) return -1;
     else if (probe&0x80) result=result<<7|(probe&0x7F);
     else break;

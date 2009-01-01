@@ -167,7 +167,7 @@ FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
 #endif
 
 #if FD_INLINE_TABLES
-static fdtype fd_slotmap_get
+static MAYBE_UNUSED fdtype fd_slotmap_get
   (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt)
 {
   struct FD_KEYVAL *result; int size;
@@ -183,7 +183,7 @@ static fdtype fd_slotmap_get
     if (!(FD_XSLOTMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
     return fd_incref(dflt);}
 }
-static fdtype fd_slotmap_test
+static MAYBE_UNUSED fdtype fd_slotmap_test
   (struct FD_SLOTMAP *sm,fdtype key,fdtype val)
 {
   struct FD_KEYVAL *result; int size;
@@ -273,7 +273,8 @@ FD_EXPORT fdtype *fd_register_schema(int n,fdtype *v);
 FD_EXPORT void fd_sort_schema(int n,fdtype *v);
 
 #if FD_INLINE_TABLES
-static int _fd_get_slotno(fdtype key,fdtype *schema,int size,int flags)
+static MAYBE_UNUSED int _fd_get_slotno
+  (fdtype key,fdtype *schema,int size,int flags)
 {
   if ((flags&FD_SCHEMAP_SORTED) && (size>4)) {
     const fdtype *bottom=schema, *middle=bottom+size/2;
@@ -294,7 +295,7 @@ static int _fd_get_slotno(fdtype key,fdtype *schema,int size,int flags)
       else scan++;
     return -1;}
 }
-static fdtype fd_schemap_get
+static MAYBE_UNUSED fdtype fd_schemap_get
   (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt)
 {
   int size, slotno;
@@ -310,7 +311,8 @@ static fdtype fd_schemap_get
     if (!(FD_XSCHEMAP_READONLYP(sm))) fd_rw_unlock(&(sm->rwlock));
     return fd_incref(dflt);}
 }
-static fdtype fd_schemap_test(struct FD_SCHEMAP *sm,fdtype key,fdtype val)
+static MAYBE_UNUSED fdtype fd_schemap_test
+  (struct FD_SCHEMAP *sm,fdtype key,fdtype val)
 {
   int size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);

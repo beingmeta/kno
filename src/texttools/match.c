@@ -10,6 +10,9 @@
 
 */
 
+static char versionid[] =
+  "$Id$";
+
 /* MATCHER DOCUMENTATION
 
    The FDB text matcher provides a powerful and versatile text
@@ -2436,7 +2439,8 @@ static fdtype compound_word_match
 	ch=u8_sgetc(&scan);
 	if (u8_isalnum(ch)) continue;
 	else return FD_INT2DTYPE(end-string);}
-      else return FD_INT2DTYPE(end-string);}}
+      else return FD_INT2DTYPE(end-string);}
+    return FD_INT2DTYPE(end-string);}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -3106,6 +3110,8 @@ static void recycle_txclosure(FD_CONS *c)
 
 void fd_init_match_c()
 {
+  fd_register_source_file(versionid);
+
   fd_txclosure_type=fd_register_cons_type("txclosure");
   fd_recyclers[fd_txclosure_type]=recycle_txclosure;
   fd_unparsers[fd_txclosure_type]=unparse_txclosure;
