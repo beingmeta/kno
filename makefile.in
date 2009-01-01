@@ -251,7 +251,7 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.so: \
 	ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.so.@VERSION@: lib/%@suffix@.so.@VERSION@
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/%@suffix@.so: \
 		$(LIBINSTALLDIR)/%@suffix@.so.@VERSION@
