@@ -15,11 +15,6 @@ static char versionid[] =
 static int fdtype_initialized=0;
 double fd_load_start=-1.0;
 
-static u8_string session_id;
-#if FD_THREADS_ENABLED
-static u8_mutex session_id_lock;
-#endif
-
 fd_exception fd_NoMethod=_("Method not supported");
 
 /* Initialization procedures */

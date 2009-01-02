@@ -20,7 +20,6 @@ static char versionid[] =
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-static fd_exception ServerUndefined=_("Server unconfigured");
 static fdtype quote_symbol;
 
 FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int arity,int min_arity,int minsock,int maxsock,int initsock)

@@ -872,7 +872,7 @@ static int memindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
   struct FD_KEY_SIZE **key_size_ptr=(struct FD_KEY_SIZE **)ptr;
   (*key_size_ptr)->key=fd_incref(key);
   (*key_size_ptr)->n_values=FD_CHOICE_SIZE(value);
-  *key_size_ptr++;
+  *key_size_ptr=(*key_size_ptr)+1;
   return 0;
 }
 

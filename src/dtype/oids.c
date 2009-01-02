@@ -51,7 +51,6 @@ static int add_base_oid_index(FD_OID base)
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
 {
   FD_OID base=addr; 
-  int boi=0, len=fd_n_base_oids;
   FD_SET_OID_LO(base,((FD_OID_LO(base))&0xFFF00000U));
   if (add) {
     int retval=add_base_oid_index(base);
@@ -63,7 +62,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
 FD_EXPORT fdtype fd_make_oid(FD_OID addr)
 {
   FD_OID base=addr;
-  int boi=0, len=fd_n_base_oids; 
+  int boi=0; 
   unsigned int offset=FD_OID_LO(addr)&0xFFFFFU;
   FD_SET_OID_LO(base,(FD_OID_LO(base)&0xFFF00000U));
   boi=add_base_oid_index(base);

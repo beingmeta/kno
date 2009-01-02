@@ -24,6 +24,7 @@ fdtype fd_adjunct_slotids;
 static int n_adjuncts;
 static struct FD_KEYVAL *adjuncts=NULL;
 
+#if 0
 static fd_index get_adjunct_index(fdtype slotid,fd_pool p)
 {
   struct FD_KEYVAL *adji=fd_sortvec_get(slotid,p->adjuncts,p->n_adjuncts);
@@ -43,6 +44,7 @@ static fd_index get_global_adjunct_index(fdtype slotid)
     else return NULL;
   else return NULL;
 }
+#endif
 
 static int anonymous_oiderr(u8_string op,fdtype f)
 {

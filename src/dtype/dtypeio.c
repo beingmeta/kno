@@ -33,11 +33,6 @@ static fdtype error_symbol;
 static u8_mutex dtype_unpacker_lock;
 #endif
 
-static fdtype _fd_return_errcode(fdtype x)
-{
-  return x;
-}
-
 /* Byte output */
 
 static int grow_byte_buffer(struct FD_BYTE_OUTPUT *b,int delta)
@@ -353,6 +348,8 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 	fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
 	return -1;}}
     }}
+  default:
+    return -1;
   }
 }
 
@@ -563,15 +560,6 @@ static int fd_validate_dtype(struct FD_BYTE_INPUT *in)
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
-static u8_string tostring(fdtype x)
-{
-  if (FD_STRINGP(x))
-    return u8_strdup(FD_STRDATA(x));
-  else if (FD_SYMBOLP(x))
-    return u8_strdup(FD_SYMBOL_NAME(x));
-  else return fd_dtype2string(x);
-}
-
 static fdtype restore_dtype_exception(fdtype content);
 FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
@@ -619,7 +607,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       *i=num; flonum=*f;
       return _fd_make_double(flonum);}
     case dt_oid: {
-      FD_OID addr;
+      FD_OID addr=FD_NULL_OID_INIT;
       FD_SET_OID_HI(addr,fd_read_4bytes(in));
       FD_SET_OID_LO(addr,fd_read_4bytes(in));
       return fd_make_oid(addr);}
@@ -718,7 +706,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
-	  unsigned char buf[64], *data; fdtype result;
+	  unsigned char buf[64], *data; fdtype result=FD_VOID;
 	  if (len >= 64) data=u8_malloc(len+1); else data=buf;
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  switch (code) {
@@ -731,7 +719,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_vector:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
-	int i=0, len=fd_read_4bytes(in);
+	int len=fd_read_4bytes(in);
 	if (FD_EXPECT_FALSE(len == 0))
 	  return fd_init_vector
 	    (u8_alloc(struct FD_VECTOR),0,NULL);
@@ -744,8 +732,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_tiny_choice:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
-	fdtype result;
-	int i=0, len=fd_read_byte(in);
+	int len=fd_read_byte(in);
 	struct FD_CHOICE *ch=fd_alloc_choice(len);
 	fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch), *limit=write+len;
 	while (write<limit) {
@@ -886,13 +873,12 @@ FD_EXPORT int fd_register_packet_unpacker
 
 /* Reading packaged dtypes */
 
-static fdtype make_framerd_type(int code,int len,fdtype *data);
 static fdtype make_character_type(int code,int len,unsigned char *data);
 
 static fdtype read_packaged_dtype
    (int package,struct FD_BYTE_INPUT *in)
 {
-  fdtype result, *vector; unsigned char *packet;
+  fdtype *vector; unsigned char *packet;
   unsigned int code, lenlen, len, vectorp;
   if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
   code=*(in->ptr++); lenlen=((code&0x40) ? 4 : 1); vectorp=(code&0x80);
@@ -982,7 +968,7 @@ FD_EXPORT fdtype fd_make_mystery_packet
 FD_EXPORT fdtype fd_make_mystery_vector
   (int package,int typecode,unsigned int len,fdtype *elts)
 {
-  struct FD_MYSTERY *myst; int i=0;
+  struct FD_MYSTERY *myst;
   int package_offset=package-0x40;
   int code_offset=(typecode&0x3F);
   if ((package_offset<0x40) && (dtype_packages[package_offset]) &&
@@ -1001,7 +987,7 @@ static fdtype restore_dtype_exception(fdtype content)
      and a compound if there are any big surprises */
   fd_exception exname=_("Poorly Restored Error");
   u8_context context=NULL; u8_string details=NULL;
-  fdtype irritant=FD_VOID, exo; int new_format=0;
+  fdtype irritant=FD_VOID; int new_format=0;
   if (FD_TROUBLEP(content)) return content;
   else if (FD_VECTORP(content)) {
     int len=FD_VECTOR_LENGTH(content);

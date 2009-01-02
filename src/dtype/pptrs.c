@@ -74,4 +74,5 @@ FD_EXPORT void fd_init_pptrs_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&_fd_pptr_lock);
 #endif
+  fd_register_source_file(versionid);
 }

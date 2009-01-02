@@ -216,14 +216,13 @@ fdtype fd_init_choice
     else {
       fdtype *write=&(ch->elt0), *writelim=write+n;
       while (write<writelim) *write++=FD_VOID;}}
-  else if ((data) && (data!=FD_XCHOICE_DATA(ch)))
+  else if ((data) && (data!=FD_XCHOICE_DATA(ch))) {
     if (flags&FD_CHOICE_INCREF) {
-      int i=0;
       fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch);
       fdtype *read=(fdtype *)data, *limit=read+n;
       while (read<limit) {
 	fdtype v=fd_incref(*read); read++; *write++=v;}}
-    else memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
+    else memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);}
   /* Copy the data unless its yours. */
   base=FD_XCHOICE_DATA(ch); scan=base; limit=scan+n;
   /* Determine if the choice is atomic. */
@@ -277,12 +276,12 @@ fdtype fd_make_achoice(fdtype x,fdtype y)
     ch->write[0]=nx; ch->write[1]=ny;}
   else {ch->write[0]=ny; ch->write[1]=nx;}
   ch->atomicp=1;
-  if (FD_CONSP(nx))
+  if (FD_CONSP(nx)) {
     if ((FD_CHOICEP(nx)) && (FD_ATOMIC_CHOICEP(nx))) {}
-    else ch->atomicp=0;
-  if (FD_CONSP(ny))
+    else ch->atomicp=0;}
+  if (FD_CONSP(ny)) {
     if ((FD_CHOICEP(ny)) && (FD_ATOMIC_CHOICEP(ny))) {}
-    else ch->atomicp=0;
+    else ch->atomicp=0;}
   ch->write=ch->write+2; 
   ch->uselock=1; fd_init_mutex(&(ch->lock));
   return FDTYPE_CONS(ch);
@@ -365,7 +364,6 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
        can just use the choice you've been depositing values in,
        appropriately initialized, sorted etc.  */
     else if ((free_achoice) && (ch->n_nested==0)) {
-      fdtype result;
       struct FD_CHOICE *nch=ch->nch; int flags=FD_CHOICE_REALLOC, n=ch->size;
       if (ch->atomicp) flags=flags|FD_CHOICE_ISATOMIC;
       else flags=flags|FD_CHOICE_ISCONSES;
@@ -409,7 +407,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
 	 and merge this with all the choice elements.*/
       struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
       const fdtype *scan=ch->data, *lim=ch->write; fdtype result;
-      fdtype *vals, *write, _vals[16];
+      fdtype *write;
       int n_entries=ch->write-ch->data, n_vals=n_entries-ch->n_nested;
       int i=0, n_choices;
       /* Figure out how many choices we need to merge. */
@@ -518,7 +516,6 @@ static int scanner_loop(struct FD_CHOICE_SCANNER *scanners,
 {
   fdtype *write=vals, last=FD_NEVERSEEN;
   while (n_scanners>1) {
-    int need_resort=0; int i=1;
     fdtype top=scanners[0].top;
     if (!(FDTYPE_EQUAL(last,top))) {*write++=fd_incref(top); last=top;}
     scanners[0].ptr++;
@@ -545,7 +542,6 @@ static int atomic_scanner_loop(struct FD_CHOICE_SCANNER *scanners,
 {
   fdtype *write=vals, last=FD_NEVERSEEN;
   while (n_scanners>1) {
-    int need_resort=0; int i=1;
     fdtype top=scanners[0].top;
     if (top!=last) {*write++=top; last=top;}
     scanners[0].ptr++;
@@ -738,7 +734,7 @@ FD_EXPORT
  */
 fdtype fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
 {
-  fdtype *results, *write; int max_results, n, atomicp=1;
+  fdtype *results, *write; int max_results, atomicp=1;
   qsort(choices,n_choices,sizeof(struct FD_CHOICE *),
 	compare_choicep_size);
   max_results=FD_XCHOICE_SIZE(choices[0]);
@@ -897,7 +893,7 @@ fdtype fd_union(fdtype *v,int n)
 {
   if (n == 0) return FD_EMPTY_CHOICE;
   else {
-    fdtype result=FD_EMPTY_CHOICE, sresult; int i=0;
+    fdtype result=FD_EMPTY_CHOICE; int i=0;
     while (i < n) {
       FD_ADD_TO_CHOICE(result,fd_incref(v[i]));
       i++;}

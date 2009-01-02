@@ -57,7 +57,7 @@ static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
 
 static fdtype config_intern(u8_string start)
 {
-  fdtype symbol; U8_OUTPUT nameout; u8_byte buf[64], *scan=start;
+  U8_OUTPUT nameout; u8_byte buf[64], *scan=start;
   U8_INIT_OUTPUT_BUF(&nameout,64,buf);
   while (*scan) {
     int c=u8_sgetc(&scan);
@@ -202,7 +202,7 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
 
 FD_EXPORT int fd_config_default(u8_string var,fdtype val)
 {
-  fdtype symbol=config_intern(var); int retval;
+  fdtype symbol=config_intern(var); int retval=-1;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
@@ -281,9 +281,9 @@ FD_EXPORT int fd_register_config
 FD_EXPORT int fd_config_assignment(u8_string assignment)
 {
   u8_byte *equals;
-  if (equals=strchr(assignment,'=')) {
-    u8_byte _namebuf[64], *namebuf; u8_byte *scan=assignment;
-    int c, namelen=equals-assignment, retval;
+  if ((equals=(strchr(assignment,'=')))) {
+    u8_byte _namebuf[64], *namebuf;
+    int namelen=equals-assignment, retval;
     fdtype value=fd_parse_arg(equals+1);
     if (FD_ABORTP(value))
       return fd_interr(value);
@@ -430,6 +430,7 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
     *ptr=dblval;}
   else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
 			FD_SYMBOL_NAME(var),v);
+  return 1;
 }
 
 /* Boolean configuration handlers */
@@ -458,7 +459,7 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
     *ptr=1; return 1;}
   else if (FD_STRINGP(v)) {
     fd_seterr(fd_TypeError,"fd_boolconfig_set",
-	      u8_strdup(FD_SYMBOL_NAME(var)),fd_incref(v));
+	      u8_strdup(FD_XSYMBOL_NAME(var)),fd_incref(v));
     return -1;}
   else {*ptr=1; return 1;}
 }
@@ -599,7 +600,8 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     else {
       u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
       return fd_incref(dflt);}
-}	
+  return fd_incref(dflt);
+}
 
 static int boolopt(fdtype opts,fdtype key)
 {
@@ -609,9 +611,9 @@ static int boolopt(fdtype opts,fdtype key)
       if (FD_SYMBOLP(car)) {
 	if (FD_EQ(key,car)) return 1;}
       else if (FD_PAIRP(car)) {
-	if (FD_EQ(FD_CAR(car),key))
+	if (FD_EQ(FD_CAR(car),key)) {
 	  if (FD_FALSEP(FD_CDR(car))) return 0;
-	  else return 1;}
+	  else return 1;}}
       else if (FD_TABLEP(car)) {
 	fdtype value=fd_get(car,key,FD_VOID);
 	if (FD_FALSEP(value)) return 0;
@@ -632,6 +634,7 @@ static int boolopt(fdtype opts,fdtype key)
     else {
       u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
       return 0;}
+  return 0;
 }
 
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
@@ -642,7 +645,8 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
       if (fd_testopt(opt,key,val)) {
 	FD_STOP_DO_CHOICES; return 1;}
     return 0;}
-  else if (FD_VOIDP(val)) return boolopt(opts,key);
+  else if (FD_VOIDP(val))
+    return boolopt(opts,key);
   else if (FD_QCHOICEP(opts)) 
     return fd_testopt(FD_XQCHOICE(opts)->choice,key,val);
   else if (FD_EMPTY_CHOICEP(opts))
@@ -654,10 +658,10 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
 	     if ((FD_EQ(key,car)) && (FD_TRUEP(val)))
 	       return 1;}
 	   else if (FD_PAIRP(car)) {
-	     if (FD_EQ(FD_CAR(car),key))
+	     if (FD_EQ(FD_CAR(car),key)) {
 	       if (FD_EQUAL(val,FD_CDR(car)))
 		 return 1;
-	       else return 0;}
+	       else return 0;}}
 	   else if (FD_TABLEP(car)) {
 	     int tv=fd_test(car,key,val);
 	     if (tv) return tv;}
@@ -675,6 +679,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
 	 else {
 	   u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
 	   return 0;}
+  return 0;
 }
 
 
@@ -704,14 +709,14 @@ FD_EXPORT int fd_poperr
        the structure before popping. */
     *details=current->u8x_details;
     current->u8x_details=NULL;}
-  if (irritant)
+  if (irritant) {
     if ((current->u8x_xdata) &&
 	(current->u8x_free_xdata==fd_free_exception_xdata)) {
       /* Likewise for the irritant */
       *irritant=(fdtype)(current->u8x_xdata);
       current->u8x_xdata=NULL;
       current->u8x_free_xdata=NULL;}
-    else *irritant=FD_VOID;
+    else *irritant=FD_VOID;}
   u8_pop_exception();
   return 1;
 }
@@ -1014,7 +1019,6 @@ static fdtype get_google_profile(fdtype var,void *data)
 
 /* Random seed initialization */
 
-static fd_exception ClockFailed="call to clock() failed";
 static fd_exception TimeFailed="call to time() failed";
 
 static unsigned int randomseed=0x327b23c6;
@@ -1027,7 +1031,7 @@ static fdtype config_getrandomseed(fdtype var,void *data)
 
 static int config_setrandomseed(fdtype var,fdtype val,void *data)
 {
-  if (((FD_SYMBOLP(val)) && ((strcmp(FD_SYMBOL_NAME(val),"TIME"))==0)) ||
+  if (((FD_SYMBOLP(val)) && ((strcmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
       ((FD_STRINGP(val)) && ((strcmp(FD_STRDATA(val),"TIME"))==0))) {
     time_t tick=time(NULL);
     if (tick<0) {
@@ -1070,12 +1074,12 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
       return 1;}
     else {
       fd_seterr(fd_TypeError,"config_setloglevel",
-		u8_strdup(FD_SYMBOL_NAME(var)),
+		u8_strdup(FD_XSYMBOL_NAME(var)),
 		fd_incref(val));
       return -1;}}
   else {
     fd_seterr(fd_TypeError,"config_setloglevel",
-	      u8_strdup(FD_SYMBOL_NAME(var)),
+	      u8_strdup(FD_XSYMBOL_NAME(var)),
 	      fd_incref(val));
     return -1;}
 }
@@ -1086,7 +1090,7 @@ static u8_string runbase_config=NULL, runbase=NULL;
 
 FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
 {
-  if (runbase==NULL)
+  if (runbase==NULL) {
     if (runbase_config==NULL) {
       u8_string wd=u8_getcwd(), appid=u8_string_subst(u8_appid(),"/",":");
       runbase=u8_mkpath(wd,appid);
@@ -1097,7 +1101,7 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
       runbase=u8_mkpath(runbase_config,appid);
       u8_free(appid);}
   /* Otherwise, use the configured name as the prefix */
-    else runbase=u8_strdup(runbase_config);
+    else runbase=u8_strdup(runbase_config);}
   if (suffix==NULL)
     return u8_strdup(runbase);
   else return u8_string_append(runbase,suffix,NULL);

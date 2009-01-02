@@ -516,7 +516,7 @@ static fdtype copy_schemap(fdtype schemap,int deep)
   struct FD_SCHEMAP *nptr=u8_alloc(struct FD_SCHEMAP);
   int i=0, size=FD_XSCHEMAP_SIZE(ptr);
   fdtype *ovalues=ptr->values, *values=((size==0) ? (NULL) : (u8_alloc_n(size,fdtype)));
-  fdtype *schema=ptr->schema, *nschema;
+  fdtype *schema=ptr->schema, *nschema=NULL;
   FD_INIT_STRUCT(nptr,struct FD_SCHEMAP);
   FD_INIT_CONS(nptr,fd_schemap_type);
   if (ptr->flags&FD_SCHEMAP_STACK_SCHEMA)
@@ -623,7 +623,8 @@ FD_EXPORT int fd_schemap_add
     return 1;}
   else {
     fd_rw_unlock_struct(sm);
-    fd_seterr(fd_NoSuchKey,"fd_schemap_add",NULL,key);}
+    fd_seterr(fd_NoSuchKey,"fd_schemap_add",NULL,key);
+    return -1;}
 }
 	      
 FD_EXPORT int fd_schemap_drop
@@ -840,7 +841,7 @@ static unsigned int hash_combine(unsigned int x,unsigned int y)
 FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
 {
   unsigned int h=0;
-  unsigned *istart=(unsigned int *)start, asint;
+  unsigned *istart=(unsigned int *)start, asint=0;
   const unsigned int *scan=istart, *limit=istart+len/4;
   unsigned char *tail=start+(len/4)*4;
   while (scan<limit) h=((127*h)+*scan++)%MYSTERIOUS_MODULUS;
@@ -882,7 +883,7 @@ static unsigned int hash_lisp(fdtype x)
     case fd_compound_type: {
       struct FD_COMPOUND *c=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
       if (c->opaque) {
-	int ctype=FD_PTR_TYPE(x); int ptype=x&3;
+	int ctype=FD_PTR_TYPE(x);
 	if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
 	  return hash_mult(x,type_multipliers[ctype]);
 	else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
@@ -909,7 +910,7 @@ static unsigned int hash_lisp(fdtype x)
 	return fd_hashfns[ctype](x,fd_hash_lisp);
       else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}}
   else {
-    int ctype=FD_PTR_TYPE(x); int ptype=x&3;
+    int ctype=FD_PTR_TYPE(x);
     if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
       return hash_mult(x,type_multipliers[ctype]);
     else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
@@ -948,11 +949,13 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_get
   else return fd_sortvec_get(key,&(he->keyval0),he->n_keyvals);
 }
 
-FD_EXPORT struct FD_KEYVAL *fd_hashentry_insert(fdtype key,struct FD_HASHENTRY **hep)
+FD_EXPORT struct FD_KEYVAL *fd_hashentry_insert
+  (fdtype key,struct FD_HASHENTRY **hep)
 {
   struct FD_HASHENTRY *he=*hep; int found=0;
   struct FD_KEYVAL *keyvals=&(he->keyval0); int size=he->n_keyvals;
-  struct FD_KEYVAL *bottom=keyvals, *top=bottom+(size-1), *middle;
+  struct FD_KEYVAL *bottom=keyvals, *top=bottom+(size-1);
+  struct FD_KEYVAL *middle=bottom+(top-bottom)/2;;
   while (top>=bottom) { /* (!(top<bottom)) */
     middle=bottom+(top-bottom)/2;
     if (FDTYPE_EQUAL(key,middle->key)) {found=1; break;}
@@ -1149,7 +1152,7 @@ FD_EXPORT int fd_hashtable_probe_novoid(struct FD_HASHTABLE *ht,fdtype key)
 
 static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
-  struct FD_HASHENTRY **slots; int i=0, guess_slots=0;
+  struct FD_HASHENTRY **slots; int i=0;
   if (n_slots < 0) n_slots=fd_get_hashtable_size(-n_slots);
   ptr->n_slots=n_slots; ptr->n_keys=0; ptr->modified=0;
   ptr->slots=slots=
@@ -1276,7 +1279,7 @@ FD_EXPORT void fd_hash_quality
    unsigned int *nbucketsp,unsigned int *maxbucketp,
    unsigned int *ncollisionsp)
 {
-  int i, mallocd=0, sum=0;
+  int i, mallocd=0;
   int n_buckets=0, n_collisions=0, max_bucket=0;
   if ((buf) && (n_slots<bufsiz))
     memset(buf,0,sizeof(unsigned int)*n_slots);
@@ -1607,6 +1610,7 @@ static int free_hashvec
 	u8_free(*scan);
 	*scan++=NULL;}
       else scan++;}
+  return 0;
 }
 
 FD_EXPORT int fd_free_hashvec(struct FD_HASHENTRY **slots,int slots_to_free)
@@ -1854,8 +1858,8 @@ FD_EXPORT int fd_hashtable_stats
 
 FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 {
-  struct FD_HASHENTRY **slots, **nslots, **read, **write, **read_limit;
-  int n_slots;
+  int n_slots=0;
+  struct FD_HASHENTRY **slots, **read, **write, **read_limit;
   if (nptr==NULL) nptr=u8_alloc(struct FD_HASHTABLE);
   fd_read_lock_struct(ptr);
   FD_INIT_CONS(nptr,fd_hashtable_type);
@@ -1975,7 +1979,7 @@ FD_EXPORT int fd_for_hashtable
 	while (kvscan<kvlimit) {
 	  if (f(kvscan->key,kvscan->value,data)) {
 	    if (lock) fd_rw_unlock_struct(ht);
-	    return;}
+	    return ht->n_slots;}
 	  else kvscan++;}
 	scan++;}
       else scan++;}
@@ -2029,8 +2033,8 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,fdtype key)
   fd_lock_struct(h);
   slots=h->slots;
   probe=hashset_get_slot(key,(const fdtype *)slots,h->n_slots);
-  if (probe>=0)
-    if (slots[probe]) exists=1; else exists=0;
+  if (probe>=0) {
+    if (slots[probe]) exists=1; else exists=0;}
   fd_unlock_struct(h);
   if (probe<0) {
     fd_seterr(HashsetOverflow,"fd_hashset_get",NULL,(fdtype)h);
@@ -2059,7 +2063,8 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 	    if (FD_VOIDP(v))
 	      return FD_EMPTY_CHOICE;
 	    else return v;}
-	else scan++;}
+	else scan++;
+      return FD_VOID;}
     else {
       int n=h->n_keys, atomicp=1; 
       struct FD_CHOICE *new_choice=fd_alloc_choice(n);
@@ -2165,6 +2170,7 @@ FD_EXPORT int fd_hashset_init_add(struct FD_HASHSET *h,fdtype key)
     if (FD_EXPECT_FALSE(hashset_needs_resizep(h)))
       grow_hashset(h);
     return 1;}
+  else return 0;
 }
 
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)
@@ -2200,8 +2206,8 @@ static fdtype hashsetget(fdtype x,fdtype key)
 static int hashsetstore(fdtype x,fdtype key,fdtype val)
 {
   struct FD_HASHSET *h=FD_GET_CONS(x,fd_hashset_type,struct FD_HASHSET *);
-  if (FD_TRUEP(val)) fd_hashset_mod(h,key,1);
-  else if (FD_FALSEP(val)) fd_hashset_mod(h,key,0);
+  if (FD_TRUEP(val)) return fd_hashset_mod(h,key,1);
+  else if (FD_FALSEP(val)) return fd_hashset_mod(h,key,0);
   else {
     fd_seterr(fd_RangeError,_("value is not a boolean"),NULL,val);
     return -1;}

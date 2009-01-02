@@ -22,8 +22,6 @@ int fd_n_symbols=0, fd_max_symbols=0, fd_initial_symbols=1024;
 u8_mutex fd_symbol_lock;
 #endif
 
-static int n_refs=0, n_probes=0;
-
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define MYSTERIOUS_MODULUS 256001281
 
@@ -94,7 +92,7 @@ static void grow_symbol_tables()
 fdtype fd_make_symbol(u8_string bytes,int len)
 {
   struct FD_SYMBOL_ENTRY **entries;
-  int hash, probe, next_probe, size;
+  int hash, probe, size;
   fd_lock_mutex(&fd_symbol_lock);
   if (fd_max_symbols == 0) {
     fd_unlock_mutex(&fd_symbol_lock);
@@ -181,6 +179,7 @@ void fd_init_symbols_c()
 
 #if 0
 FD_EXPORT 
+static int n_refs=0, n_probes=0;
 void fd_list_symbol_table()
 {
   int i=0, size=fd_symbol_table.size;

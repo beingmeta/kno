@@ -274,7 +274,6 @@ void fd_calltrack_return(u8_string name)
 static int set_calltrack(fdtype ignored,fdtype path_arg,void MAYBE_UNUSED *data)
 {
 #if FD_CALLTRACK_ENABLED
-  int retval=-1;
   if (FD_STRINGP(path_arg)) 
     return fd_start_calltrack(FD_STRDATA(path_arg));
   else if (FD_FALSEP(path_arg))
@@ -456,13 +455,13 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype argbuf[8], *args;
-  if (FD_EXPECT_FALSE(f->arity<0))
+  if (FD_EXPECT_FALSE(f->arity<0)) {
     if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
       int ctype=FD_CONS_TYPE(f);
       return fd_applyfns[ctype]((fdtype)f,n,argvec);}
     else if (f->xprim)
       return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
-    else return f->handler.calln(n,argvec);
+    else return f->handler.calln(n,argvec);}
   /* Fill in the rest of the argvec */
   if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
     if (FD_EXPECT_FALSE(n<f->arity)) {
@@ -593,7 +592,6 @@ FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
 
 static int contains_qchoicep(int n,fdtype *args)
 {
-  int qchoicep=0;
   fdtype *scan=args, *limit=args+n;
   while (scan<limit)
     if (FD_QCHOICEP(*scan)) return 1;
@@ -638,6 +636,7 @@ static int unparse_function(struct U8_OUTPUT *out,fdtype x)
     sprintf(buf,_("#<NDPrimitive %s (%s args)>"),name,args);
   else sprintf(buf,_("#<Primitive %s (%s args)>"),name,args);
   u8_puts(out,buf);
+  return 1;
 }
 static void recycle_function(struct FD_CONS *c)
 {
@@ -856,7 +855,6 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     struct FD_TAIL_CALL *tc=
       (struct FD_TAIL_CALL *)u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
     fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
-    int i=0;
     FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
     *write++=fd_incref(fcn);
     while (write<write_limit) {
@@ -903,6 +901,7 @@ static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
   struct FD_TAIL_CALL *fn=
     FD_GET_CONS(x,fd_tail_call_type,struct FD_TAIL_CALL *);
   u8_printf(out,"#<TAILCALL %q on %d args>",fn->head,fn->n_elts);
+  return 1;
 }
 
 static void recycle_tail_call(struct FD_CONS *c)

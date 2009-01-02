@@ -41,7 +41,7 @@
    (unlimited precision integers).  The bigint implementation
    is directly based on the bignums implementation from MIT Scheme. */
 
-static char vcid[] = "$Id$";
+static char versionid[] = "$Id$";
 
 #include "fdb/dtype.h"
 #include "fdb/bigints.h"
@@ -1849,7 +1849,7 @@ static int dtype_bigint(struct FD_BYTE_OUTPUT *out,fdtype x)
     fd_write_4bytes(out,fixed);
     return 5;}
   else {
-    int i=0, n_bytes=fd_bigint_length_in_bytes(bi), dtype_size;
+    int n_bytes=fd_bigint_length_in_bytes(bi), dtype_size;
     unsigned char _bytes[64], *bytes, *scan;
     if (n_bytes>=64) scan=bytes=u8_malloc(n_bytes);
     else scan=bytes=_bytes;
@@ -1933,7 +1933,7 @@ FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum)
 
 static int unparse_double(struct U8_OUTPUT *out,fdtype x)
 {
-  unsigned char buf[256], cmd[32]; int exp; double tmp;
+  unsigned char buf[256]; int exp; double tmp;
   struct FD_DOUBLE *d=FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
   tmp=frexp(d->flonum,&exp);
   if ((exp<-10) || (exp>20))
@@ -2130,11 +2130,11 @@ fdtype fd_string2number(u8_string string,int base)
   else if (strchr(string+1,'-')) return FD_FALSE;
   else {
     fdtype result;
-    long fixnum, success, nbase=0; u8_byte *start=string, *end=NULL;
-    if (string[0]=='0')
+    long fixnum, nbase=0; u8_byte *start=string, *end=NULL;
+    if (string[0]=='0') {
       if (string[1]=='\0') return FD_INT2DTYPE(0);
       else if ((string[1]=='x') || (string[1]=='X')) {
-	start=string+2; nbase=16;}
+	start=string+2; nbase=16;}}
     if ((base<0) && (nbase)) base=nbase;
     else if (base<0) base=10;
     errno=0;
@@ -2194,7 +2194,8 @@ int fd_output_number(u8_output out,fdtype num,int base)
     else {
       fd_bigint bi=fd_long_to_bigint(fixnum);
       output_bigint(out,bi,base);
-      return 1;}}
+      return 1;}
+    return 1;}
   else if (FD_FLONUMP(num)) {
     unsigned char buf[256];
     struct FD_DOUBLE *d=FD_GET_CONS(num,fd_double_type,struct FD_DOUBLE *);
@@ -2257,7 +2258,9 @@ static fd_bigint tobigint(fdtype x)
     return (fd_bigint)x;
   else if (FD_FLONUMP(x))
     return fd_double_to_bigint(FD_FLONUM(x));
-  else u8_raise(_("Internal error"),"tobigint","numeric");
+  else {
+    u8_raise(_("Internal error"),"tobigint","numeric");
+    return NULL;}
 }
 static fdtype simplify_bigint(fd_bigint bi)
 {
@@ -2324,7 +2327,6 @@ static fdtype make_rational(fdtype num,fdtype denom)
     fdtype gcd=int_gcd(num,denom);
     fdtype new_num=fd_quotient(num,gcd);
     fdtype new_denom=fd_quotient(denom,gcd);
-    fdtype new_rat;
     fd_decref(gcd); 
     if (((FD_FIXNUMP(new_denom)) && (FD_FIX2INT(new_denom) == 1)))
       return new_num;
@@ -2855,4 +2857,6 @@ void fd_init_numbers_c()
     (dt_numeric_package,dt_bigint,unpack_bigint);
 
   bigint_magic_modulus=fd_long_to_bigint(256001281);
+
+  fd_register_source_file(versionid);
 }

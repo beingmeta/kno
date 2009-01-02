@@ -227,19 +227,19 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
 	else return car_cmp;}
       case fd_string_type: {
 	int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
-	if (quick)
-	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+	if (quick) {
+	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
 	return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_packet_type: {
 	int xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
-	if (quick)
-	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+	if (quick) {
+	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
 	return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
       case fd_vector_type: {
 	int i=0, xlen=FD_VECTOR_LENGTH(x), ylen=FD_VECTOR_LENGTH(y), lim;
 	fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
-	if (quick)
-	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+	if (quick) {
+	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
 	if (xlen<ylen) lim=xlen; else lim=ylen;
 	while (i < lim) {
 	  int cmp=DOCOMPARE(xdata[i],ydata[i]);
@@ -256,8 +256,8 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
 	else if ((quick) && (xc->size<yc->size)) return -1;
 	else {
 	  int xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
-	  int i=0;
-	  const fdtype *xscan=FD_XCHOICE_DATA(xc), *yscan=FD_XCHOICE_DATA(yc), *xlim=xscan+xlen;
+	  const fdtype *xscan=FD_XCHOICE_DATA(xc);
+	  const fdtype *yscan=FD_XCHOICE_DATA(yc), *xlim=xscan+xlen;
 	  if (ylen<xlen) xlim=xscan+ylen;
 	  while (xscan<xlim) {
 	    int cmp=DOCOMPARE(*xscan,*yscan);
@@ -306,7 +306,7 @@ fdtype fd_deep_copy(fdtype x)
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       return fd_init_packet(NULL,s->length,u8_strndup(s->bytes,s->length));}
     case fd_choice_type: {
-      int i=0, n=FD_CHOICE_SIZE(x);
+      int n=FD_CHOICE_SIZE(x);
       struct FD_CHOICE *copy=fd_alloc_choice(n);
       const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
       fdtype *write=(fdtype *)&(copy->elt0);
@@ -430,7 +430,7 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
 FD_EXPORT fdtype fd_make_vector(int len,...)
 {
   va_list args; int i=0;
-  fdtype *elts=u8_alloc_n(len,fdtype), result=FD_EMPTY_LIST;
+  fdtype *elts=u8_alloc_n(len,fdtype);
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
@@ -455,7 +455,8 @@ FD_EXPORT fdtype fd_init_packet
 
 fdtype fd_compound_descriptor_type;
 
-/* This checks if a given compound is acceptable for a given call to make_compound */
+/* This checks if a given compound is acceptable for a given call to
+   make_compound */
 static fdtype check_compound_type(fdtype tag,int n)
 {
   if (FD_COMPOUND_DESCRIPTORP(tag)) {
@@ -478,9 +479,9 @@ FD_EXPORT fdtype fd_init_compound
     va_start(args,n);
     while (i<n) {va_arg(args,fdtype); i++;}
     return fd_type_error(_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
-  else if (p==NULL)
+  else if (p==NULL) {
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
-    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
+    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->lock));
   p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
@@ -502,13 +503,12 @@ FD_EXPORT fdtype fd_init_compound
 FD_EXPORT fdtype fd_init_compound_from_elts
   (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts)
 {
-  va_list args; int i=0;
   fdtype *write, *limit, *read=elts, initfn=FD_FALSE;
   if (FD_EXPECT_FALSE((n<0) || (n>=256)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",FD_SHORT2DTYPE(n));
-  else if (p==NULL)
+  else if (p==NULL) {
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
-    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
+    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->lock));
   p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
@@ -542,7 +542,7 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
   if (xc == yc) return 0;
   else if ((xc->opaque) || (yc->opaque))
     if (xc>yc) return 1; else return -1;
-  else if (cmp=FD_COMPARE(xc->tag,yc->tag,quick)) return cmp;
+  else if ((cmp=(FD_COMPARE(xc->tag,yc->tag,quick)))) return cmp;
   else if (xc->n_elts<yc->n_elts) return -1;
   else if (xc->n_elts>yc->n_elts) return 1;
   else {
@@ -821,7 +821,7 @@ FD_EXPORT
  */
 fdtype fd_time2timestamp(time_t moment)
 {
-  struct U8_XTIME xt; struct FD_TIMESTAMP *tstamp;
+  struct U8_XTIME xt;
   u8_init_xtime(&xt,moment,u8_second,0,0);
   return fd_make_timestamp(&xt);
 }
@@ -890,7 +890,7 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
     fdtype xval=FD_INT2DTYPE(xtm->xtime.u8_secs);
     size=size+fd_write_dtype(out,xval);}
   else {
-    fdtype vec=fd_init_vector(NULL,4,NULL); int n_bytes;
+    fdtype vec=fd_init_vector(NULL,4,NULL);
     FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.u8_secs));
     FD_VECTOR_SET(vec,1,FD_INT2DTYPE(xtm->xtime.u8_nsecs));
     FD_VECTOR_SET(vec,2,FD_INT2DTYPE((int)xtm->xtime.u8_prec));

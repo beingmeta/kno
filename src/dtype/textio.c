@@ -93,7 +93,6 @@ static u8_string const_names[]={
   "#error","#badptr","#throw","#exception_tag","#unbound","#neverseen",
   "#lockholder","#dflt",NULL};
   
-static int n_character_constants=14;
 static u8_string character_constant_names[]={
   "SPACE","NEWLINE","RETURN",
   "TAB","VTAB","VERTICALTAB",
@@ -146,9 +145,9 @@ static void output_ellipsis(U8_OUTPUT *out,int n,u8_string unit)
   u8_putc(out,0x00b7);
   u8_putc(out,0x00b7);
   u8_putc(out,0x00b7);
-  if (n>=0)
+  if (n>=0) {
     if (unit) u8_printf(out,"%d%s",n,unit);
-    else u8_printf(out,"%d",n);
+    else u8_printf(out,"%d",n);}
   u8_putc(out,0x00b7);
   u8_putc(out,0x00b7);
   u8_putc(out,0x00b7);
@@ -339,6 +338,8 @@ int fd_unparse(u8_output out,fdtype x)
       sprintf(buf,"#!%lx (type=%d)",(unsigned long)x,ct);
       u8_log(LOG_WARN,fd_CantUnparse,buf);
       return retval;}}
+  default:
+    return 1;
   }
 }
 
@@ -420,11 +421,11 @@ static int read_escape(u8_input in)
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",NULL);
       return -1;}}
   case 'u': {
-    char buf[16]; int code=-1;
+    char buf[16];
     buf[0]='\\'; buf[1]='u'; u8_getn(buf+2,4,in);
     return parse_unicode_escape(buf);}
   case 'U': {
-    char buf[16]; int code=-1;
+    char buf[16];
     buf[0]='\\'; buf[1]='U'; u8_getn(buf+2,8,in);
     return parse_unicode_escape(buf);}
   case '0': case '1': case '2': case '3': {
@@ -453,7 +454,6 @@ FD_EXPORT int fd_read_escape(u8_input in)
 
 /* Atom parsing */
 
-static int n_constants=7;
 static u8_string constant_names[]={
   "#T","#F","#TRUE","#FALSE","#VOID","#EOF","#DFLT",
   NULL};
@@ -461,17 +461,6 @@ static fdtype constant_values[]={
   FD_TRUE,FD_FALSE,FD_TRUE,FD_FALSE,FD_VOID,FD_EOF,FD_DEFAULT_VALUE,
   0};
 
-static int skip_atom(u8_input s)
-{
-  int c=u8_getc(s), vbar=0;
-  while ((c>=0) && ((vbar) || (!(atombreakp(c))))) {
-    if (c == '|') if (vbar) vbar=0; else vbar=1;
-    else if (c == '\\') c=u8_getc(s);
-    c=u8_getc(s);}
-  if (c<-1) return c;
-  u8_ungetc(s,c);
-  return c;
-}
 static int copy_atom(u8_input s,u8_output a)
 {
   int c=u8_getc(s), vbar=0;
@@ -493,7 +482,6 @@ static int copy_atom(u8_input s,u8_output a)
 
 fdtype fd_parse_atom(u8_string start,int len)
 {
-  char buf[64]; int i=0;
   /* fprintf(stderr,"fd_parse_atom %d: %s\n",len,start); */
   if (FD_EXPECT_FALSE(len==0)) return FD_EOX;
   else if (start[0]=='#') { /* It's a constant */
@@ -501,7 +489,7 @@ fdtype fd_parse_atom(u8_string start,int len)
       if (strcmp(start,constant_names[i]) == 0)
 	return constant_values[i];
       else i++;
-    if (start[1] == '!')
+    if (start[1] == '!') {
       if (fd_interpret_pointers) {
 	unsigned long pval;
 	if (sscanf(start+2,"%lx",&pval)!=1) 
@@ -513,7 +501,7 @@ fdtype fd_parse_atom(u8_string start,int len)
 	       (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);}
       else return fd_err
 	     (fd_NoPointerExpressions,"fd_parse_atom",
-	      u8_strdup(start),FD_VOID);
+	      u8_strdup(start),FD_VOID);}
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
       if (!(FD_FALSEP(result))) return result;}
@@ -532,7 +520,7 @@ fdtype fd_parse_atom(u8_string start,int len)
 
 static fdtype parse_character(U8_INPUT *in)
 {
-  char buf[128]; u8_byte *scan;
+  char buf[128];
   struct U8_OUTPUT tmpbuf;
   int c, n_chars=0;
   /* First, copy an entire atom. */
@@ -588,7 +576,8 @@ void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len))
 
 static fdtype default_parse_oid(u8_string start,int len)
 {
-  FD_OID oid; unsigned int hi, lo, c=start[len]; int items;
+  FD_OID oid=FD_NULL_OID_INIT;
+  unsigned int hi, lo, c=start[len]; int items;
   start[len]='\0'; items=sscanf(start,"@%x/%x",&hi,&lo); start[len]=c;
   if (items!=2) return FD_PARSE_ERROR;
   FD_SET_OID_HI(oid,hi); FD_SET_OID_LO(oid,lo);
@@ -726,7 +715,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
 static fdtype parse_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch=skip_whitespace(in); fdtype head;
+  int ch=skip_whitespace(in); fdtype head=FD_VOID;
   if (ch<0)
     if (ch==-1) return FD_EOX;
     else return FD_PARSE_ERROR;
@@ -789,7 +778,7 @@ static fdtype parse_list(U8_INPUT *in)
 static fdtype parse_bracket_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch=skip_whitespace(in); fdtype head;
+  int ch=skip_whitespace(in); fdtype head=FD_VOID;
   if (ch<0)
     if (ch==-1) return FD_EOX;
     else return FD_PARSE_ERROR;
@@ -984,9 +973,9 @@ FD_EXPORT
 fdtype fd_parser(u8_input in)
 {
   int inchar=skip_whitespace(in);
-  if (inchar<0)
+  if (inchar<0) {
     if (inchar==-1) return FD_EOX;
-    else return FD_PARSE_ERROR;
+    else return FD_PARSE_ERROR;}
   switch (inchar) {
   case ')': case ']': case '}': {
     u8_getc(in); /* Consume the character */
