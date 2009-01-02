@@ -687,7 +687,7 @@
 	(showslot/span concept sometimes opts) " "
 	(showslot/span concept somenot opts) " "
 	(showslot/span concept partof opts) " "
-	(showslot/span concept defterms opts) " "
+	(showslot/span concept sumterms opts) " "
 	(when (%test concept 'country)
 	  (span ((class "field"))
 	    (span ((class "fieldid")) "country") " "
@@ -709,7 +709,7 @@
       (prefetch-oids! concepts)
       (prefetch-oids!
        (%get concepts '{hypernym @?genls @?partof
-				 @?memberof @?implies @?defterms}))
+				 @?memberof @?implies @?sumterms}))
       (prefetch-keys! (for-choices (language (get-languages))
 			(cons language (get concepts language))))
       (xmlout))))

@@ -985,7 +985,8 @@ static fdtype apply_lexpr(int n,fdtype *args)
 	  FD_STOP_DO_CHOICES;
 	  i=0; while (i<n_args) {fd_decref(values[i]); i++;}
 	  u8_free(values);
-	  results=result;}
+	  results=result;
+	  break;}
 	else {FD_ADD_TO_CHOICE(results,result);}
 	i=0; while (i<n_args) {fd_decref(values[i]); i++;}
 	u8_free(values);}
