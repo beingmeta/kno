@@ -1334,6 +1334,7 @@ Optional Packages:
 --with-boot-config configstring
 --without-i18n built and install message catalogs
 --without-editline Use the editline with fdconsole
+--without-libu8 Use libu8 includes
 --without-tcmalloc Use the Google malloc library
 --with/out-profiling compile to generate profile information
 --with/out-profiler build with optional perftools profiling
@@ -1831,6 +1832,7 @@ safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS"
+default_config_dir="\$PREFIX/etc/framerd"
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -3169,6 +3171,12 @@ fi
   test -n "$APXS" && break
 done
 
+
+if test $prefix = "usr"; then
+   default_config_dir="/etc/framerd";
+else
+   default_config_dir=$prefix/etc/framerd;
+fi
 
 
 { echo "$as_me:$LINENO: checking for group default_admin_group" >&5
@@ -6959,7 +6967,7 @@ data_dir=$with_data_dir
 if test "${with_config_dir+set}" = set; then
   withval=$with_config_dir;
 else
-  with_config_dir=/etc/framerd
+  with_config_dir=$default_config_dir
 fi
 
 config_dir=$with_config_dir
@@ -8922,6 +8930,20 @@ else
 #define FD_WITH_EDITLINE 0
 _ACEOF
 
+fi
+
+
+# Check whether --with-libu8 was given.
+if test "${with_libu8+set}" = set; then
+  withval=$with_libu8;
+else
+  with_libu8=""
+fi
+
+if test $with_libu8 != ""; then
+  CFLAGS="$CFLAGS -I$with_libu8/include"
+  LDFLAGS="$LDFLAGS -L$with_libu8/lib"
+  EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 
 

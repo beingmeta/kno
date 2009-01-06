@@ -76,6 +76,7 @@ safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS"
+default_config_dir="\$PREFIX/etc/framerd"
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -132,6 +133,12 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs apxs2)
+
+if test $prefix = "usr"; then 
+   default_config_dir="/etc/framerd";
+else
+   default_config_dir=$prefix/etc/framerd;
+fi
 
 AC_CHECK_GROUP(default_admin_group,framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
@@ -228,7 +235,7 @@ AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/frame
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
-AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=/etc/framerd)
+AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
 config_dir=$with_config_dir
 
 AC_ARG_WITH(local_config,--with-local-config location,,with_local_config=$config_dir/config)
@@ -347,6 +354,14 @@ if test $with_editline = "yes"; then
   AC_DEFINE(FD_WITH_EDITLINE,1)
 else
   AC_DEFINE(FD_WITH_EDITLINE,0)
+fi
+
+dnl Use the editline library from fdconsole
+AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
+if test $with_libu8 != ""; then
+  CFLAGS="$CFLAGS -I$with_libu8/include"
+  LDFLAGS="$LDFLAGS -L$with_libu8/lib"
+  EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 
 AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
