@@ -14,6 +14,7 @@
 ;;; Index updates
 
 (define audit-index #f)
+(define audit-pool #f)
 
 (define (get-index-facts f slotid value (nonlocal #t))
   (cond ((and (oid? slotid) (test slotid 'type 'language))
@@ -132,6 +133,16 @@
 	  (begin (set! audit-index val) val))
       audit-index))
 (config-def! 'auditindex config-auditindex)
+
+(define (config-auditpool var (val))
+  (if (bound? val)
+      (if (string? val)
+	  (let ((ai (use-pool val)))
+	    (set! audit-index ai)
+	    ai)
+	  (begin (set! audit-pool val) val))
+      audit-index))
+(config-def! 'auditpool config-auditpool)
 
 ;;; Auditing
 
@@ -289,19 +300,24 @@
   (if (and (not gloss) (null? slotids))
       (audit+! genls (getopt opts 'language default-language)
 	       term)
-      (let ((f (frame-create (getopt opts 'pool xbrico-pool)
-		 @?genls genls '%created (cons auditor (timestamp)))))
-	(assert! f (getopt opts 'language default-language) term)
+      (let* ((pool (getopt opts 'pool audit-pool))
+	     (index (getopt opts 'index audit-index))
+	     (language (getopt opts 'language default-language))
+	     (f (frame-create pool '%created (cons auditor (timestamp)))))
+	(audit+! f language term)
+	(audit+! f @?genls genls)
 	(let ((scat (try (difference (get genls 'sensecat) 'NOUN.TOPS)
-			 (pick-one (get (?? @?genls genls) 'sensecat)))))
-	  (store! f 'sensecat scat))
+			 (pick-one (get (?? @?genls genls) 'sensecat))))
+	      (type (get genls 'type)))
+	  (audit+! f 'sensecat scat)
+	  (audit+! f 'type type))
 	(when gloss
 	  (assert! f (get gloss-map
 			  (getopt opts 'language default-language))
 		   gloss))
 	(do ((slotids slotids (cddr slotids)))
 	    ((null? slotids) f)
-	  (assert! f (car slotids) (cadr slotids)))
+	  (audit+! f (car slotids) (cadr slotids)))
 	(when (in-pool? f brico-pool)
 	  (add! f 'words (get f @?en))
 	  (store! f 'ranked
