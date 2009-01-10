@@ -97,8 +97,8 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@      \
 	    exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
-	    exe/fdserv@suffix@ exe/fdbserver@suffix@      \
-	    exe/fdmanager@suffix@
+	    exe/fdserv@suffix@ exe/fdcgiexec@suffix@ \
+	    exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
@@ -144,7 +144,7 @@ FDB_SOURCES=\
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
-	src/exe/fdserv.c src/exe/fdbserver.c
+	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdbserver.c
 
 # Targets
 
@@ -196,6 +196,11 @@ exe/fdserv@suffix@: src/exe/fdserv.c                                        \
 	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                     \
 	lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
+exe/fdcgiexec@suffix@: src/exe/fdcgiexec.c                                  \
+	@xstatic_exe_libs@ lib/libfdweb@suffix@.a lib/libfdscheme@suffix@.a \
+	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                     \
+	lib/libfdtype@suffix@.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS) -lfcgi
 exe/fdbserver@suffix@: src/exe/fdbserver.c                                    \
 	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
 	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                       \

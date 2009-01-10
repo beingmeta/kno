@@ -1,3 +1,4 @@
+set env UNDERGDB=yes
 set env LD_LIBRARY_PATH ../lib:../../lib
 set env DYLD_LIBRARY_PATH ../lib:../../lib
 set print elements 64

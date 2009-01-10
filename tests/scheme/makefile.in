@@ -29,7 +29,7 @@ TESTCONFIG	=
 RUNTEST		= $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
-TESTBIN=fdeval fdconsole fdexec fdbatch fdbserver fdserv # fdsh
+TESTBIN=fdeval fdconsole fdexec fdbatch fdbserver fdserv fdcgiexec # fdsh
 
 all: $(TESTBIN) 
 
@@ -82,6 +82,11 @@ fdserv: fdserv.c $(EXTRA_LIBS) \
 	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
+fdcgiexec: fdcgiexec.c $(EXTRA_LIBS) \
+	../../lib/libfdscheme@suffix@.a \
+	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+	../../lib/libfdtype@suffix@.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio -lfcgi
 
 clean: testclean
 	rm -f $(TESTBIN)

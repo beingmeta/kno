@@ -864,7 +864,7 @@ FD_EXPORT void fd_reset_threadvars()
   fdtype table=(fdtype)u8_tld_get(threadtable_key);
   fdtype new_table=fd_init_slotmap(NULL,0,NULL);
   u8_tld_set(threadtable_key,(void*)new_table);
-  fd_decref(table);
+  if (table) fd_decref(table);
 }
 #elif FD_THREADS_ENABLED
 static fdtype __thread thread_table=FD_VOID;
