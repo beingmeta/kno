@@ -793,7 +793,6 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
       value=read_oid_value_at(op,ref,"oidpool_fetch");
       return value;}}
 }
-
 struct OIDPOOL_FETCH_SCHEDULE {
   unsigned int value_at; FD_CHUNK_REF location;};
 
@@ -818,7 +817,8 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
   else {
     struct OIDPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct OIDPOOL_FETCH_SCHEDULE);
-    int i=0; while (i<n) {
+    int i=0;
+    while (i<n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base);
       schedule[i].value_at=i;
@@ -964,9 +964,10 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_BYTE_OUTPUT tmpout;
   unsigned char *zbuf=u8_malloc(4096);
   unsigned int i=0, zbuf_size=4096;
-  off_t endpos=fd_endpos(stream), recovery_pos;
+  off_t endpos, recovery_pos;
   FD_OID base=op->base;
   FD_INIT_BYTE_OUTPUT(&tmpout,4096,NULL);
+  fd_lock_struct(op); endpos=fd_endpos(stream);
   if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
     tmpout.flags=tmpout.flags|FD_DTYPEV2;
   while (i<n) {
@@ -994,6 +995,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_MAGIC_NUMBER);
   fd_dtsflush(stream); fsync(stream->fd);
+  fd_unlock_struct(op);
   return 0;
 }
 
