@@ -358,7 +358,7 @@ fi
 
 dnl Use the editline library from fdconsole
 AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
-if test $with_libu8 != ""; then
+if test "$with_libu8" != ""; then
   CFLAGS="$CFLAGS -I$with_libu8/include"
   LDFLAGS="$LDFLAGS -L$with_libu8/lib"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
@@ -367,6 +367,17 @@ fi
 AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
 if test $libc_dlopen != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
+fi
+
+AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi)
+if test "x$with_fastcgi" != "no"; then
+  AC_CHECK_HEADERS(fcgiapp.h)
+  if test "x$have_fcgiapp_h" != "xno"; then
+    AC_CHECK_LIB(fcgi,FCGX_Init)
+    AC_DEFINE(FD_WITH_FASTCGI,1)
+  fi
+else
+    AC_DEFINE(FD_WITH_FASTCGI,0)
 fi
 
 AC_CHECK_HEADERS(sqlite3.h sql.h mysql/mysql.h)

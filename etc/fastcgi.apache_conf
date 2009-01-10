@@ -1,0 +1,14 @@
+# This is an example configuration for using FastCGI with the new version of FramerD
+# Unlike mod_fdserv, fastcgi doesn't invoke fdserv by itself.  Instead, the Apache
+# installation will include instances of the 'fdcgiexec' executable, each of which
+# is declared with 'FastCgiServer'.
+FastCgiServer /Library/WebServer/CGI-Executables/fdcgiexec
+
+# Alternatively, you can have an external server set up with an explicit FCGISOCK configuration.
+#FastCgiExternalServer /Library/WebServer/CGI-Executables/fdcgiexec -socket /tmp/fdcgi.sock
+
+# To make it usable, you then define an internal type for .fdcgi or .fdxml files
+# And associate your server (declared above) as the action for that type of file
+AddHandler fdcgi .fdcgi
+Action fdcgi /cgi-bin/fdfastcgi
+
