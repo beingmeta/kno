@@ -5,6 +5,7 @@ MAKEFILE_VERSION="$Id$"
 
 CC	= @CC@
 XCFLAGS=
+EXECFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS)
 CFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ -I./include $(XCFLAGS)
 LDFLAGS = @LDFLAGS@ -L./lib $(EFENCE)
 EXELDFLAGS = @EXELDFLAGS@
@@ -95,8 +96,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o
 
-EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@      \
-	    exe/fdbatch@suffix@ exe/fdexec@suffix@.static \
+EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdserv@suffix@ exe/fdcgiexec@suffix@ \
 	    exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
@@ -146,6 +146,13 @@ FDB_SOURCES=\
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
 	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdbserver.c
 
+STATIC_LIBS=lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
+	     lib/libtagger@suffix@.a                               \
+	     lib/libfdschemeio@suffix@.a lib/libfdscheme@suffix@.a \
+	     lib/libfdbserv@suffix@.a                              \
+	     lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a       \
+	     lib/libfdtype@suffix@.a
+
 # Targets
 
 default: all
@@ -154,12 +161,7 @@ rebuild:
 	make clean
 	make default
 libs: static-libs @SHARED_LIB_TARGET@
-static-libs: lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a     \
-	     lib/libtagger@suffix@.a                               \
-	     lib/libfdschemeio@suffix@.a lib/libfdscheme@suffix@.a \
-	     lib/libfdbserv@suffix@.a                              \
-	     lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a       \
-	     lib/libfdtype@suffix@.a
+static-libs: $(STATIC_LIBS)
 shared-libs: lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libfddb@suffix@.@shared_suffix@        \
         lib/libfddbfile@suffix@.@shared_suffix@    \
@@ -184,13 +186,6 @@ cmodules: @CMODULES@
 
 # Rules
 
-# We selectively link some executables statically to avoid library dependencies
-# with programs which will typicall run as daemons
-exe/fdexec@suffix@.static: src/exe/fdexec.c             \
-	@xstatic_exe_libs@ lib/libfdscheme@suffix@.a    \
-	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a \
-	lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
 exe/fdserv@suffix@: src/exe/fdserv.c                                        \
 	@xstatic_exe_libs@ lib/libfdweb@suffix@.a lib/libfdscheme@suffix@.a \
 	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                     \
@@ -220,6 +215,11 @@ exe/%@suffix@: src/exe/%.c
 		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
 		@xdynamic_scheme_libs@
+
+# We can selectively link some executables statically to avoid 
+# library dependencies with programs which will typicall run as daemons
+static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
+	$(CC) $(EXECFLAGS) -o $@ $^ $(LIBS) -lu8stdio -lu8syslog
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@:                 \
 	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
@@ -316,7 +316,7 @@ clean: tidy
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
 	rm -f src/fdweb/*.o src/texttools/*.o src/tagger/*.o src/exe/*.o
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib lib/*@suffix@.so.* 
-	rm -f exe/fdexec@suffix@ exe/fdexec@suffix@.static exe/fdbatch@suffix@
+	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
 	rm -f exe/fdconsole@suffix@
 	rm -f src/exe/revision.h
