@@ -186,34 +186,18 @@ cmodules: @CMODULES@
 
 # Rules
 
-exe/fdserv@suffix@: src/exe/fdserv.c                                        \
-	@xstatic_exe_libs@ lib/libfdweb@suffix@.a lib/libfdscheme@suffix@.a \
-	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                     \
-	lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
-exe/fdcgiexec@suffix@: src/exe/fdcgiexec.c                                  \
-	@xstatic_exe_libs@ lib/libfdweb@suffix@.a lib/libfdscheme@suffix@.a \
-	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                     \
-	lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS) -lfcgi
-exe/fdbserver@suffix@: src/exe/fdbserver.c                                    \
-	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
-	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                       \
-	lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8stdio $(LIBS)
-exe/fdmanager@suffix@: src/exe/fdmanager.c lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lu8syslog $(LIBS)
-
 exe/scripts/%: src/scripts/%.scm
 	echo "#!"@prefix@/bin/fdexec | cat - $< > $@
 	chmod a+x $@
 
 exe/%@suffix@: src/exe/%.c
-	$(CC) $(EXELDFLAGS) $(CFLAGS) $(LDFLAGS)                   \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
 		$(LIBS) -lu8stdio                                  \
 		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
+		-lfdweb@suffix@ -ltexttools@suffix@                \
+		-lfdbserv@suffix@                                 \
 		@xdynamic_scheme_libs@
 
 # We can selectively link some executables statically to avoid 
