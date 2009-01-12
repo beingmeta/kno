@@ -35,6 +35,10 @@ static char versionid[] =
 
 #include "revision.h"
 
+#ifndef FD_WITH_FASTCGI
+#define FD_WITH_FASTCGI 0
+#endif
+
 #if FD_WITH_FASTCGI
 #include <fcgiapp.h>
 #endif

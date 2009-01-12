@@ -9120,9 +9120,13 @@ fi
 # Check whether --with-fastcgi was given.
 if test "${with_fastcgi+set}" = set; then
   withval=$with_fastcgi;
+else
+  cat >>confdefs.h <<\_ACEOF
+#define WITH_FASTCGI 1
+_ACEOF
+
 fi
 
-if test "x$with_fastcgi" != "no"; then
 
 for ac_header in fcgiapp.h
 do
@@ -9263,7 +9267,6 @@ fi
 
 done
 
-  if test "x$have_fcgiapp_h" != "xno"; then
 
 { echo "$as_me:$LINENO: checking for FCGX_Init in -lfcgi" >&5
 echo $ECHO_N "checking for FCGX_Init in -lfcgi... $ECHO_C" >&6; }
@@ -9335,17 +9338,6 @@ _ACEOF
 
 fi
 
-    cat >>confdefs.h <<\_ACEOF
-#define FD_WITH_FASTCGI 1
-_ACEOF
-
-  fi
-else
-    cat >>confdefs.h <<\_ACEOF
-#define FD_WITH_FASTCGI 0
-_ACEOF
-
-fi
 
 
 

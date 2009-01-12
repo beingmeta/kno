@@ -241,7 +241,13 @@
 /* Whether we've got the v2 open function headers */
 #undef HAVE_SQLITE3_OPEN_V2
 
-/* Whether we've got the v2 open function headers */
-#undef FD_WITH_FASTCGI
+/* Whether we're using fastcgi in fastcgiexec */
+#undef WITH_FASTCGI
+
+/* Whether we have the fastcgi header file */
+#undef HAVE_FCGIAPP_H
+
+/* Whether we have the fcgi lib */
+#undef HAVE_LIBFCGI
 
 #endif

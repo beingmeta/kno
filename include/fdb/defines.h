@@ -203,6 +203,22 @@
 #define FD_WRITE_PREFETCH(x)
 #endif
 
+/* Fastcgi configuration */
+
+#ifndef HAVE_FCGIAPP_H
+#define HAVE_FCGIAPP_H 0
+#endif
+
+#ifndef HAVE_LIBFCGI
+#define HAVE_LIBFCGI 0
+#endif
+
+#if ((WITH_FASTCGI) && (HAVE_FCGIAPP_H) && (HAVE_LIBFCGI))
+#define FD_WITH_FASTCGI 1
+#else
+#define FD_WITH_FASTCGI 0
+#endif
+
 #define _(x) (x)
 
 /* How to implement OIDs */
