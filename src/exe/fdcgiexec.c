@@ -508,6 +508,7 @@ static void copy_envparam(char *name,fdtype target,fdtype slotid)
 
 static fdtype get_envcgidata()
 {
+  int retval=0;
   fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
   char *lenstring=getenv("CONTENT_LENGTH");
   if (lenstring) {
@@ -515,7 +516,7 @@ static fdtype get_envcgidata()
     int len=atoi(lenstring);
     char *ctype=getenv("CONTENT_TYPE");
     char *buf=u8_malloc(len);
-    fgets(buf,len,stdin);
+    if (fgets(buf,len,stdin)==NULL) return FD_ERROR_VALUE;
     packet=fd_init_packet(NULL,len,buf);
     fd_store(slotmap,post_data,packet);}
   copy_envparam("QUERY_STRING",slotmap,query_string);
@@ -746,7 +747,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   return 1;
 }
 
-static int fcgiserveloop(int socket)
+static fd_ptrbits fcgiserveloop(fd_ptrbits socket)
 {
   int retval;
   FCGX_Request req;
@@ -765,7 +766,7 @@ static int fcgiserveloop(int socket)
 
 static void *fcgitop(void *s)
 {
-  return (void *) fcgiserveloop((int)s);
+  return (void *) fcgiserveloop((fd_ptrbits)s);
 }
 
 static void shutdown_server()
@@ -819,7 +820,7 @@ static int start_fcgi_server(char *socketspec)
   each_thread=0; while (each_thread<servlet_threads) {
     pthread_create(&(threads[each_thread]),
 		   pthread_attr_default,
-		   fcgitop,(void *)fcgi_socket);
+		   fcgitop,(void *)((fd_ptrbits)(fcgi_socket)));
     each_thread++;}
   
   u8_log(LOG_DEBUG,Startup,"Threads started");
@@ -886,7 +887,7 @@ static int start_fcgi_server(char *socketspec)
 
 static int simplecgi(fdtype path)
 {
-  int write_headers=1;
+  int write_headers=1, retval;
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
@@ -964,7 +965,7 @@ static int simplecgi(fdtype path)
 		excond,FD_STRDATA(path),excxt,exdetails,irritant);
     fputs("Content-type: text/html; charset='utf-8'\r\n\r\n",stdout);
     fd_xhtmlerrorpage(&out,ex);
-    fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);
+    retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);
     u8_free_exception(ex,1);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
@@ -974,19 +975,19 @@ static int simplecgi(fdtype path)
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
     /* if (tracep) fprintf(stderr,"%s\n",tmp.u8_outbuf); */
-    fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
+    retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
     tmp.u8_outptr=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
       if (write_headers) {
 	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
-	fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);}
+	retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
+	retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);}
       if (write_headers) fputs("</body>\n</html>\n",stdout);}
     else {
       if (FD_STRINGP(content)) {
-	fwrite(FD_STRDATA(content),1,FD_STRLEN(content),stdout);}
+	retval=fwrite(FD_STRDATA(content),1,FD_STRLEN(content),stdout);}
       else if (FD_PACKETP(content))
-	fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),stdout);}
+	retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),stdout);}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);}
   fd_set_default_output(NULL);
   fd_thread_set(cgidata_symbol,FD_VOID);

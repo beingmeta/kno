@@ -7066,7 +7066,7 @@ _ACEOF
 if test "${with_dload_path+set}" = set; then
   withval=$with_dload_path;
 else
-  with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/fdb/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
+  with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
 fi
 
 cat >>confdefs.h <<_ACEOF
