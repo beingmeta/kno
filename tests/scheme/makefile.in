@@ -66,27 +66,6 @@ $(TESTBIN): $(EXTRA_LIBS) \
 	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-fdtypeserver: fdtypeserver.c $(EXTRA_LIBS) \
-	../../lib/libfdscheme@suffix@.a \
-	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
-	../../lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-fdbserver: fdbserver.c $(EXTRA_LIBS) \
-	../../lib/libfdbserv@suffix@.a \
-	../../lib/libfdscheme@suffix@.a \
-	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
-	../../lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-fdserv: fdserv.c $(EXTRA_LIBS) \
-	../../lib/libfdscheme@suffix@.a \
-	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
-	../../lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-fdcgiexec: fdcgiexec.c $(EXTRA_LIBS) \
-	../../lib/libfdscheme@suffix@.a \
-	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
-	../../lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio -lfcgi
 
 clean: testclean
 	rm -f $(TESTBIN)
