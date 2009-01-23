@@ -243,7 +243,8 @@
   "Gets the 'normal' word for a concept in a given language, \
    going to English or other languages if necessary"
   (try (ov/get concept (get norm-map language))
-       (tryif (eq? language english) (first (get concept 'ranked)))
+       (tryif (and (eq? language english) (not (test concept 'ranked #())))
+	      (first (get concept 'ranked)))
        (pick-one (largest (largest (get (get concept '%norm) language) length)))
        (pick-one (largest (get concept language)))
        (tryif (and tryhard (not (eq? language english)))
@@ -253,7 +254,8 @@
 (define (%get-norm concept (language default-language))
   "Gets the 'normal' word for a concept in a given language, \
    skipping custom overrides and not looking in other languages."
-  (try (tryif (eq? language english) (first (get concept 'ranked)))
+  (try (tryif (and (eq? language english) (not (test concept 'ranked #())))
+	      (first (get concept 'ranked)))
        (pick-one (largest (get (get concept '%norm) language)))
        (tryif (eq? language english) (pick-one (largest (get concept 'words))))
        (pick-one (largest (get (get concept '%words) (get language 'key))))
@@ -429,6 +431,8 @@
 		   ((%test f genls) 'GENLS)
 		   ((%test f implies) 'ISA)
 		   ((%test f partof) 'PARTOF)
+		   ((%test f diffterms) 'SUMTERMS)
+		   ((%test f sumterms) 'SUMTERMS)
 		   (else 'TOP))
 	    ,@(map get-norm
 		   (choice->list
@@ -437,11 +441,14 @@
 			 (%get f 'hypernym)
 			 (%get f genls)
 			 (%get f implies)
-			 (%get f partof))))))))
+			 (%get f partof)
+			 (%get f diffterms)
+			 (%get f sumterms))))))))
 
 (defambda (make%id! f (lang default-language))
   (do-choices f
-    (store! f '%id (make%id f lang)))
+    (let ((id (make%id f lang)))
+      (unless (%test f '%id id) (store! f '%id id))))
   (if (singleton? f) (get f '%id)))
 
 (define (make-wordform-id f)

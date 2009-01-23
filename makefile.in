@@ -102,7 +102,8 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
-               exe/scripts/make-oidpool
+               exe/scripts/make-oidpool \
+	       exe/scripts/ovmerge
 
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
@@ -536,7 +537,7 @@ install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
-	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+	$(INSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \

@@ -184,6 +184,7 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 (defun fdconsole-scheme-mode-hook ()
   (interactive)
   (local-set-key "\e\C-m" 'fdconsole-sender)
+  (setq undo-limit 32)
   (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
 (add-hook 'scheme-mode-hook 'fdconsole-scheme-mode-hook)
 
