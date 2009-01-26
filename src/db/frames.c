@@ -63,7 +63,9 @@ static fdtype _overlay_get
     p.car=car; p.cdr=cdr;
     if (fd_hashtable_probe(h,tmp_key)) {
       fdtype v=fd_hashtable_get(h,tmp_key,FD_VOID);
-      if (FD_PAIRP(v)) {
+      if ((FD_VOIDP(v)) || (FD_EMPTY_CHOICEP(v)))
+	return values;
+      else if (FD_PAIRP(v)) {
 	fdtype combined=FD_EMPTY_CHOICE, adds=FD_CAR(v), drops=FD_CDR(v);
 	fd_incref(values); fd_incref(adds); 
 	FD_ADD_TO_CHOICE(combined,values);
@@ -92,7 +94,8 @@ static fdtype _overlay_get
     p.car=car; p.cdr=cdr;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);
-    if (FD_EMPTY_CHOICEP(mods)) return values;
+    if ((FD_VOIDP(mods)) || (FD_EMPTY_CHOICEP(mods)))
+      return values;
     else if (FD_PAIRP(mods)) {
       fdtype combined=FD_EMPTY_CHOICE, adds=FD_CAR(mods), drops=FD_CDR(mods);
       fd_incref(values); fd_incref(adds);
@@ -137,7 +140,7 @@ static int _overlay_test
     if (fd_hashtable_probe((fd_hashtable)slot_overlay,tmp_key)) {
       int retval;
       fdtype v=fd_hashtable_get((fd_hashtable)slot_overlay,tmp_key,FD_VOID);
-      if (FD_VOIDP(v)) return dflt;
+      if ((FD_VOIDP(v)) || (FD_EMPTY_CHOICEP(v))) return dflt;
       else if ((FD_VECTORP(v)) && (FD_VECTOR_LENGTH(v)==1))
 	retval=fd_overlapp(FD_VECTOR_REF(v,0),value);
       else if (!(FD_PAIRP(v))) {
