@@ -59,6 +59,11 @@
 (define (stem-compound string)
   (seq->phrase (map porter-stem (words->vector string))))
 
+(define (dedash string)
+  (tryif (position #\- string)
+	 (choice (string-subst string "-" " " )
+		 (string-subst string "-" ""))))
+
 (defambda (index-string index frame slot (value #f) (frag #f))
   (do-choices slot
     (let* ((values (stdspace (if value value (get frame slot))))
@@ -70,7 +75,9 @@
       ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
       ;;  be lowercased.
       (doindex index frame slot (choice expvalues normvalues))
-      (doindex index frame slot (metaphone (choice values normvalues) #t))
+      (doindex index frame slot (dedash normvalues))
+      (doindex index frame slot
+	       ({metaphone metaphone+} (choice values normvalues) #t))
       (doindex index frame slot (soundex (choice values normvalues) #t))
       (when frag (index-frags index frame slot values 1 #f)))))
 
