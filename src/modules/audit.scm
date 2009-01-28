@@ -279,8 +279,8 @@
 	  (assert! frame (elt (elt audit 2) 0)
 		   (elt (elt audit 2) 1))
 	  (if (eq? (elt audit 0) 'drop)
-	      (assert! frame (elt (elt audit 2) 0)
-		       (elt (elt audit 2) 1)))))))
+	      (retract! frame (elt (elt audit 2) 0)
+			(elt (elt audit 2) 1)))))))
 
 (module-export! 'reaudit)
 
