@@ -58,12 +58,13 @@ FD_EXPORT u8_string fd_soundex(u8_string string)
 
 /* This is a minor tweak on the regular metaphone algorithm because it
    preserves case information. */
-FD_EXPORT u8_string fd_metaphone(u8_string string)
+FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
 {
   struct U8_OUTPUT out;
   char buf[32], *start, *scan;
   char capbuf[32], *capstart, *capscan;
-  u8_byte *s=string; int c=u8_sgetc(&s), lastc=-1, len=strlen(string);
+  u8_byte *s=string;
+  int c=u8_sgetc(&s), lastc=-1, len=strlen(string), lenout=0;
   U8_INIT_OUTPUT(&out,32);
   /* First we write an uppercase ASCII version of the string to a buffer. */
   if (len>=32) {
@@ -93,6 +94,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string)
   else if (strncmp(scan,"WH",2)==0) {
     int cap=*capscan; *capscan++=cap;
     scan++; *scan='W'; }
+  lenout=out.u8_outptr-out.u8_outbuf;
   while (*scan) {
     switch (*scan) {
     case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
@@ -182,6 +184,10 @@ FD_EXPORT u8_string fd_metaphone(u8_string string)
     default: if (scan==start) {
 	if (*capscan) u8_putc(&out,*scan);
 	else u8_putc(&out,u8_tolower(*scan));}}
+    if ((sep) && (lenout) && (lenout==(out.u8_outptr-out.u8_outbuf)) &&
+	(out.u8_outbuf[lenout-1]!='.'))
+      u8_putc(&out,'.');
+    lenout=out.u8_outptr-out.u8_outbuf;
     scan++; capscan++;}
   if (start!=buf) u8_free(start);
   if (capstart!=capbuf) u8_free(capstart);

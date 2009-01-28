@@ -91,7 +91,7 @@ FD_EXPORT fd_ptr_type fd_txclosure_type;
 /* Other texttools stuff */
 
 FD_EXPORT u8_string fd_soundex(u8_string);
-FD_EXPORT u8_string fd_metaphone(u8_string);
+FD_EXPORT u8_string fd_metaphone(u8_string,int);
 FD_EXPORT fdtype fd_md5(fdtype string);
 
 

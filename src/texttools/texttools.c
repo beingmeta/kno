@@ -1497,9 +1497,18 @@ static fdtype soundex_prim(fdtype string,fdtype packetp)
 static fdtype metaphone_prim(fdtype string,fdtype packetp)
 {
   if (FD_FALSEP(packetp))
-    return fd_init_string(NULL,-1,fd_metaphone(FD_STRDATA(string)));
+    return fd_init_string(NULL,-1,fd_metaphone(FD_STRDATA(string),0));
   else {
-    u8_string dblm=fd_metaphone(FD_STRDATA(string));
+    u8_string dblm=fd_metaphone(FD_STRDATA(string),0);
+    return fd_init_packet(NULL,strlen(dblm),dblm);}
+}
+
+static fdtype metaphone_plus_prim(fdtype string,fdtype packetp)
+{
+  if (FD_FALSEP(packetp))
+    return fd_init_string(NULL,-1,fd_metaphone(FD_STRDATA(string),1));
+  else {
+    u8_string dblm=fd_metaphone(FD_STRDATA(string),1);
     return fd_init_packet(NULL,strlen(dblm),dblm);}
 }
 
@@ -1589,6 +1598,10 @@ void fd_init_texttools()
 			   -1,FD_FALSE));
   fd_idefn(texttools_module,
 	   fd_make_cprim2x("METAPHONE",metaphone_prim,1,
+			   fd_string_type,FD_VOID,
+			   -1,FD_FALSE));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("METAPHONE+",metaphone_plus_prim,1,
 			   fd_string_type,FD_VOID,
 			   -1,FD_FALSE));
   
