@@ -356,7 +356,7 @@ FD_EXPORT int fd_set_read(fd_dtype_stream s,int read)
        to flush what is buffered to the output and collapse all
        of the pointers into the start. We also need to update bufsiz
        in case the output buffer grew while we were writing. */
-    fd_dtsflush(s);
+    if (fd_dtsflush(s)<0) return -1;
     /* Now we reset bufsiz in case we grew the buffer */
     s->bufsiz=s->end-s->start;
     /* Finally, we reset the pointers */
@@ -391,7 +391,7 @@ FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos)
   else if (s->filepos<0) {
     /* We're not tracking filepos, so we'll check by hand. */
     off_t maxpos;
-    fd_dtsflush(s);
+    if (fd_dtsflush(s)<0) return -1;
     maxpos=lseek(s->fd,(off_t)0,SEEK_END);
     if (maxpos<0)
       return fd_reterr(fd_BadLSEEK,"fd_setpos",
@@ -438,12 +438,12 @@ FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta)
 		       ((s->id)?(u8_strdup(s->id)):(NULL)),
 		       FD_INT2DTYPE(delta));
     else if ((pos+delta)<0)
-      return fd_reterr(fd_UnderSeek,"fd_setpos",
+      return fd_reterr(fd_UnderSeek,"fd_movepos",
 		       ((s->id)?(u8_strdup(s->id)):(NULL)),
 		       FD_INT2DTYPE(pos));
     else if ((pos+delta)<maxpos)
       return lseek(s->fd,(pos+delta),SEEK_SET);
-    else return fd_reterr(fd_OverSeek,"fd_setpos",
+    else return fd_reterr(fd_OverSeek,"fd_movepos",
 			  ((s->id)?(u8_strdup(s->id)):(NULL)),
 			  FD_INT2DTYPE(pos));}
   else if ((s->filepos+delta)>s->maxpos) {
@@ -459,7 +459,7 @@ FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta)
     /* If we're legal now (someone else wrote to the file),
        go ahead and seek, otherwise return -1. */
     if (pos<=s->maxpos) return (s->filepos=(lseek(s->fd,pos,SEEK_SET)));
-    else return fd_reterr(fd_OverSeek,"fd_setpos",
+    else return fd_reterr(fd_OverSeek,"fd_movepos",
 			  ((s->id)?(u8_strdup(s->id)):(NULL)),
 			  FD_INT2DTYPE(pos));}
   else if ((s->flags)&FD_DTSTREAM_READING) {

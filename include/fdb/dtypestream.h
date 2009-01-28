@@ -208,7 +208,8 @@ FD_FASTOP fd_8bytes fd_dtsread_zint8(fd_dtype_stream s)
 FD_FASTOP int fd_dtswrite_byte(fd_dtype_stream s,int b)
 {
   fd_dts_start_write(s);
-  if (s->ptr>=s->end) fd_dtsflush(s);
+  if (s->ptr>=s->end)
+    if (fd_dtsflush(s)<0) return -1;
   *(s->ptr++)=b;
   return 1;
 }
@@ -216,7 +217,8 @@ FD_FASTOP int fd_dtswrite_byte(fd_dtype_stream s,int b)
 FD_FASTOP int fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
 {
   fd_dts_start_write(s);
-  if (s->ptr+4>=s->end) fd_dtsflush(s);
+  if (s->ptr+4>=s->end)
+    if (fd_dtsflush(s)<0) return -1;
   *(s->ptr++)=w>>24;
   *(s->ptr++)=((w>>16)&0xFF);
   *(s->ptr++)=((w>>8)&0xFF);
@@ -227,7 +229,8 @@ FD_FASTOP int fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
 FD_FASTOP int fd_dtswrite_8bytes(fd_dtype_stream s,unsigned long long w)
 {
   fd_dts_start_write(s);
-  if (s->ptr+8>=s->end) fd_dtsflush(s);
+  if (s->ptr+8>=s->end)
+    if (fd_dtsflush(s)<0) return -1;
   *(s->ptr++)=((w>>56)&0xFF);
   *(s->ptr++)=((w>>48)&0xFF);
   *(s->ptr++)=((w>>40)&0xFF);
@@ -243,7 +246,8 @@ FD_FASTOP int fd_dtswrite_bytes
   (fd_dtype_stream s,unsigned char *bytes,int n)
 {
   fd_dts_start_write(s);
-  if (s->ptr+n>=s->end) fd_dtsflush(s);
+  if (s->ptr+n>=s->end)
+    if (fd_dtsflush(s)<0) return -1;
   if (s->ptr+n>=s->end)
     return _fd_dtswrite_bytes(s,bytes,n);
 #if 0

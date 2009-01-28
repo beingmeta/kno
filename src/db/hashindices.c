@@ -239,9 +239,11 @@ FD_FASTOP fd_byte_input open_block
     FD_INIT_BYTE_INPUT(bi,hx->mmap+off,size);
     return bi;}
   else {
+    int retval=0;
     if (dolock) fd_lock_struct(hx);
-    fd_setpos(&(hx->stream),off);
-    fd_dtsread_bytes(&(hx->stream),buf,size);
+    retval=fd_setpos(&(hx->stream),off);
+    if (retval>=0)
+      retval=fd_dtsread_bytes(&(hx->stream),buf,size);
     if (dolock) fd_unlock_struct(hx);
     FD_INIT_BYTE_INPUT(bi,buf,size);
     return bi;}
@@ -249,8 +251,9 @@ FD_FASTOP fd_byte_input open_block
 
 FD_FASTOP fdtype read_dtype_at_pos(fd_dtype_stream s,off_t off)
 {
-  fd_setpos(s,off);
-  return fd_dtsread_dtype(s);
+  int retval=fd_setpos(s,off);
+  if (retval<0) return FD_ERROR_VALUE;
+  else return fd_dtsread_dtype(s);
 }
 
 /* Opening a hash index */
