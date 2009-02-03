@@ -231,6 +231,14 @@ dnl Various directory/path configuration options
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
 
+dnl Specify an additional library
+AC_ARG_WITH(extlib,
+[  --with-extlib[[=DIR]]       use additional lib dir],[
+  if test "$withval" != "no" -a "$withval" != "yes"; then
+    LDFLAGS="${LDFLAGS} -L$withval"
+  fi
+])
+
 AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/framerd)
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
@@ -356,7 +364,7 @@ else
   AC_DEFINE(FD_WITH_EDITLINE,0)
 fi
 
-dnl Use the editline library from fdconsole
+dnl Use a different directory for libu8
 AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
 if test "$with_libu8" != ""; then
   CFLAGS="$CFLAGS -I$with_libu8/include"

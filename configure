@@ -1322,6 +1322,7 @@ Optional Packages:
 --with-fdaemon The identity for FramerD servers to run
 --with-webuser The user for the webserver
 --with-suffix string
+  --with-extlib[=DIR]       use additional lib dir
 --with-data-dir location
 --with-config-dir location
 --with-local-config location
@@ -6949,6 +6950,17 @@ else
 fi
 
 suffix=$with_suffix
+
+
+# Check whether --with-extlib was given.
+if test "${with_extlib+set}" = set; then
+  withval=$with_extlib;
+  if test "$withval" != "no" -a "$withval" != "yes"; then
+    LDFLAGS="${LDFLAGS} -L$withval"
+  fi
+
+fi
+
 
 
 # Check whether --with-data_dir was given.
