@@ -758,7 +758,9 @@ static fd_ptrbits fcgiserveloop(fd_ptrbits socket)
     return retval;
   else while ((retval=FCGX_Accept_r(&req))==0) {
       fcgiservefn(&req,&out);
-      FCGX_Finish_r(&req);}
+      FCGX_Finish_r(&req);
+      if ((retval=FCGX_InitRequest(&req,socket,0))!=0)
+	break;}
   FCGX_Free(&req,1);
   u8_free(out.u8_outbuf);
   return retval;
