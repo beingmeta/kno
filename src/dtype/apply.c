@@ -577,6 +577,8 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 /* The default apply function */
 
 static int contains_qchoicep(int n,fdtype *args);
+static int contains_choicep(int n,fdtype *args);
+static int contains_empty_choicep(int n,fdtype *args);
 static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args);
 
 FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
@@ -586,7 +588,18 @@ FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
     if (!(FD_EXPECT_FALSE(contains_qchoicep(n,args))))
       result=fd_dapply((fdtype)f,n,args);
     else result=qchoice_dapply(fp,n,args);
-  else result=fd_ndapply((fdtype)f,n,args);
+  else {
+    int i=0;
+    while (i<n)
+      if (args[i]==FD_EMPTY_CHOICE) return FD_EMPTY_CHOICE;
+      else if (FD_ATOMICP(args[i])) i++;
+      else {
+	fd_ptr_type argtype=FD_PTR_TYPE(args[i]);
+	if ((argtype==fd_choice_type) || (argtype==fd_achoice_type) || (argtype==fd_qchoice_type)) {
+	  result=fd_ndapply((fdtype)f,n,args);
+	  return fd_finish_call(result);}
+	else i++;}
+    result=fd_dapply((fdtype)f,n,args);}
   return fd_finish_call(result);
 }
 
