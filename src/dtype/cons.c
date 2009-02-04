@@ -36,7 +36,7 @@ fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
 fd_compare_fn fd_comparators[FD_TYPE_MAX];
 fd_copy_fn fd_copiers[FD_TYPE_MAX];
 fd_hashfn fd_hashfns[FD_TYPE_MAX];
-fd_checkfn fd_immediate_checkfns[128];
+fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
 FD_EXPORT
 /* fd_check_immediate:
@@ -751,7 +751,7 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
     fd_unlock_mutex(&type_registry_lock);
     return -1;}
   typecode=fd_next_immediate_type;
-  fd_immediate_checkfns[typecode-0x04]=fn;
+  fd_immediate_checkfns[typecode]=fn;
   fd_next_immediate_type++;
   fd_type_names[typecode]=name;
   fd_unlock_mutex(&type_registry_lock);
@@ -979,7 +979,7 @@ void fd_init_cons_c()
   i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
-  i=0; while (i<64) fd_immediate_checkfns[i++]=NULL;
+  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) fd_immediate_checkfns[i++]=NULL;
 
   fd_recyclers[fd_error_type]=recycle_exception;
   fd_copiers[fd_error_type]=copy_exception;

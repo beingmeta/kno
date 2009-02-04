@@ -154,7 +154,7 @@ FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
 
 typedef int (*fd_checkfn)(fdtype);
-FD_EXPORT fd_checkfn fd_immediate_checkfns[128];
+FD_EXPORT fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
 FD_EXPORT int fd_register_cons_type(char *name);
 FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
