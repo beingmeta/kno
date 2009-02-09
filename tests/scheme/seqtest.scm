@@ -122,4 +122,22 @@
 (applytest -2.7 reduce min #(-2.7 0.0 0.5 1.8 30.33))
 (applytest 30.33 reduce max #(-2.7 0.0 0.5 1.8 30.33))
 
+;;; Length compare tests
+
+(applytest #t length> "alpha" 3)
+(applytest #f length> "ab" 3)
+(applytest #t length< "ab" 3)
+(applytest #f length< "alpha" 3)
+(applytest #t length= "alpha" 5)
+(applytest #f length= "abc" 5)
+
+(applytest #t length>0 "beta")
+(applytest #t length>0 "a")
+(applytest #f length>0 "")
+
+(applytest #t length>1 "beta")
+(applytest #t length>1 "az")
+(applytest #f length>1 "a")
+(applytest #f length>1 "")
+
 (message "SEQTEST successfuly completed")

@@ -789,6 +789,18 @@ static fdtype has_length_gte_prim(fdtype x,fdtype length_arg)
   else return FD_FALSE;
 }
 
+static fdtype has_length_gt_zero_prim(fdtype x)
+{
+  int seqlen=fd_seq_length(x);
+  if (seqlen>0) return FD_TRUE; else return FD_FALSE;
+}
+
+static fdtype has_length_gt_one_prim(fdtype x)
+{
+  int seqlen=fd_seq_length(x);
+  if (seqlen>1) return FD_TRUE; else return FD_FALSE;
+}
+
 /* Element access */
 
 /* We separate this out to give the compiler the option of not inline coding this guy. */
@@ -1563,16 +1575,23 @@ FD_EXPORT void fd_init_sequences_c()
   fd_defalias(fd_scheme_module,"LENGTH=>","LENGTH>="); 
   fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH<",has_length_lt_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("LENGTH=<",has_length_lte_prim,2));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1("LENGTH>0",has_length_gt_zero_prim,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1("LENGTH>1",has_length_gt_one_prim,1));
   fd_defalias(fd_scheme_module,"LENGTH<=","LENGTH=<");
   fd_idefn(fd_scheme_module,fd_make_cprim2("ELT",seqelt_prim,2));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("SLICE",slice_prim,2,
 			   -1,FD_VOID,-1,FD_VOID,
 			   -1,FD_FALSE));
+  fd_defalias(fd_scheme_module,"SUBSEQ","SLICE");
+  /*
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("SUBSEQ",slice_prim,2,
 			   -1,FD_VOID,-1,FD_VOID,
 			   -1,FD_FALSE));
+  */
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim4x("POSITION",position_prim,2,
 			   -1,FD_VOID,-1,FD_VOID,
