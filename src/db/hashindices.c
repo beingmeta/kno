@@ -95,9 +95,20 @@ static char versionid[] =
 #define DONT_LOCK_STREAM 0
 
 #if FD_DEBUG_HASHINDICES
-#define CHECK_ENDPOS(pos,stream) \
-   if (endpos!=fd_getpos(stream)) u8_log(LOG_WARN,"Mismatch","endpos/getpos mismatch");
+#define CHECK_POS(pos,stream)                                      \
+  if ((pos)!=(fd_getpos(stream)))		                   \
+    u8_log(LOG_CRIT,"FILEPOS error","position mismatch %ld/%ld",   \
+	   pos,fd_getpos(stream));                                 \
+  else {}
+#define CHECK_ENDPOS(pos,stream)                                      \
+  { off_t curpos=fd_getpos(stream), endpos=fd_endpos(stream);         \
+    if (((pos)!=(curpos)) && ((pos)!=(endpos)))		              \
+      u8_log(LOG_CRIT,"ENDPOS error","position mismatch %ld/%ld/%ld", \
+	     pos,curpos,endpos);                                      \
+    else {}                                                           \
+  }
 #else
+#define CHECK_POS(pos,stream)
 #define CHECK_ENDPOS(pos,stream)
 #endif
 
@@ -239,19 +250,22 @@ FD_FASTOP fd_byte_input open_block
     FD_INIT_BYTE_INPUT(bi,hx->mmap+off,size);
     return bi;}
   else {
-    int retval=0;
+    off_t retval=0;
     if (dolock) fd_lock_struct(hx);
     retval=fd_setpos(&(hx->stream),off);
     if (retval>=0)
       retval=fd_dtsread_bytes(&(hx->stream),buf,size);
     if (dolock) fd_unlock_struct(hx);
+    if (retval<0) {
+      u8_log(LOG_CRIT,"Read failed","reading from %s",hx->cid);
+      return NULL;}
     FD_INIT_BYTE_INPUT(bi,buf,size);
     return bi;}
 }
 
 FD_FASTOP fdtype read_dtype_at_pos(fd_dtype_stream s,off_t off)
 {
-  int retval=fd_setpos(s,off);
+  off_t retval=fd_setpos(s,off);
   if (retval<0) return FD_ERROR_VALUE;
   else return fd_dtsread_dtype(s);
 }
@@ -1527,10 +1541,6 @@ static int populate_prefetch
   return k;
 }
 
-#if FD_DEBUG_HASHINDICES
-static int watch_for_bucket=-1;
-#endif
-
 FD_EXPORT int fd_populate_hash_index
   (struct FD_HASH_INDEX *hx,fdtype from,
    const fdtype *keys,int n_keys, int blocksize)
@@ -1588,10 +1598,6 @@ FD_EXPORT int fd_populate_hash_index
     struct FD_BYTE_OUTPUT keyblock; int retval;
     unsigned char buf[4096];
     unsigned int bucket=psched[i].bucket, load=0, j=i;
-#if FD_DEBUG_HASHINDICES
-    if (bucket==watch_for_bucket)
-      u8_log(LOG_WARN,"Event","Hit the bucket %d",watch_for_bucket);
-#endif
     while ((j<n_keys) && (psched[j].bucket==bucket)) j++;
     cycle_buckets++; cycle_keys=cycle_keys+(j-i);
     if ((j-i)>cycle_max) cycle_max=j-i;
@@ -1636,7 +1642,7 @@ FD_EXPORT int fd_populate_hash_index
       if (FD_EMPTY_CHOICEP(values)) {}
       else if (FD_CHOICEP(values)) {
 	int bytes_written=0;
-	CHECK_ENDPOS(endpos,stream);
+	CHECK_POS(endpos,stream);
 	fd_write_zint8(&keyblock,endpos);
 	retval=fd_dtswrite_zint(stream,FD_CHOICE_SIZE(values));
 	if (retval<0) {
@@ -1661,7 +1667,7 @@ FD_EXPORT int fd_populate_hash_index
 	fd_dtswrite_byte(stream,0); bytes_written++;
 	fd_write_zint(&keyblock,bytes_written);
 	endpos=endpos+bytes_written;
-	CHECK_ENDPOS(endpos,stream);}
+	CHECK_POS(endpos,stream);}
       else write_zvalue(hx,&keyblock,values);
       fd_decref(values);
       i++;}
@@ -1678,7 +1684,7 @@ FD_EXPORT int fd_populate_hash_index
       return -1;}
     else bucket_refs[bucket_count].ref.size=retval;
     endpos=endpos+retval;
-    CHECK_ENDPOS(endpos,stream);
+    CHECK_POS(endpos,stream);
     bucket_count++;}
   qsort(bucket_refs,bucket_count,sizeof(struct BUCKET_REF),sort_br_by_bucket);
   /* This would probably be faster if we put it all in a huge vector and wrote it
@@ -1909,6 +1915,8 @@ FD_FASTOP FD_CHUNK_REF write_value_block
   return retval;
 }
 
+/* This adds new entries to a keybucket, writing value blocks to the
+   file where neccessary (more than one value). */
 FD_FASTOP off_t extend_keybucket
   (fd_hash_index hx,struct KEYBUCKET *kb,
    struct COMMIT_SCHEDULE *schedule,int i,int j,
@@ -1983,7 +1991,7 @@ FD_FASTOP off_t extend_keybucket
       ke[n_keys].n_values=n_values=FD_CHOICE_SIZE(schedule[k].values);
       ke[n_keys].dtype_start=newkeys->start+keyoffs[k-i];
       if (n_values==0) ke[n_keys].values=FD_EMPTY_CHOICE;
-      if (n_values==1) ke[n_keys].values=schedule[k].values;
+      else if (n_values==1) ke[n_keys].values=schedule[k].values;
       else {
 	ke[n_keys].values=FD_VOID;
 	ke[n_keys].vref=
@@ -2148,14 +2156,19 @@ static int hash_index_commit(struct FD_INDEX *ix)
       assert(bucket==kb->bucket);
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       cur_keys=kb->n_keys;
+      /* This may write values to disk. */
       endpos=extend_keybucket(hx,kb,schedule,i,j,&newkeys,endpos);
+      CHECK_POS(endpos,&(hx->stream));
       new_keys=new_keys+(kb->n_keys-cur_keys);
       {
 	off_t startpos=endpos;
+	/* This writes the keybucket itself. */
 	endpos=write_keybucket(hx,stream,kb,endpos);
+	CHECK_POS(endpos,&(hx->stream));
 	bucket_locs[bscan].ref.off=startpos;
 	bucket_locs[bscan].ref.size=endpos-startpos;}
       i=j; bscan++;}
+    fd_dtsflush(&(hx->stream));
 #if FD_DEBUG_HASHINDICES
     u8_message("Cleaning up");
 #endif
@@ -2503,10 +2516,7 @@ FD_EXPORT void fd_init_hashindices_c()
 
 /* TODO:
  * make baseoids be megapools, use intrinsic tables
- * implement fetchn
- * implement getkeys
  * add memory prefetch recommendations
- * test mmap cache level 3
  * implement dynamic slotid/baseoid addition
  * implement commit
  * implement ACID
