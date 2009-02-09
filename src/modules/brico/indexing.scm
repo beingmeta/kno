@@ -77,8 +77,9 @@
       (doindex index frame slot (choice expvalues normvalues))
       (doindex index frame slot (dedash normvalues))
       (doindex index frame slot
-	       ({metaphone metaphone+} (choice values normvalues) #t))
-      (doindex index frame slot (soundex (choice values normvalues) #t))
+	       (choice (pick (metaphone (choice values normvalues) #t) length>1)
+		       (pick (metaphone+ (choice values normvalues) #t) length>1)))
+      (doindex index frame slot (pick (soundex (choice values normvalues) #t) length>1))
       (when frag (index-frags index frame slot values 1 #f)))))
 
 (defambda (index-string/keys value)
@@ -91,8 +92,8 @@
     ;;  compound be uppercase and makes oddly capitalized terms (e.g. iTunes)
     ;;  be lowercased.
     (choice expvalues normvalues
-	    (metaphone (choice values normvalues) #t)
-	    (soundex (choice values normvalues) #t))))
+	    (pick (metaphone (choice values normvalues) #t) length>1)
+	    (pick (soundex (choice values normvalues) #t) length>1))))
 
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))
@@ -139,23 +140,31 @@
 (config-def! 'fragwindow fragwindow-config)
 
 (define (metaphone1 w)
-  (tryif (and (not (uppercase? w)) (> (length w) 3))
-	 (metaphone w #t)))
+  (pick (tryif (and (not (uppercase? w)) (> (length w) 3))
+	       (metaphone w #t))
+	length>1))
 (define (metaphone2 w)
-  (tryif (and (not (uppercase? w)) (> (length w) 5))
-	 (metaphone (porter-stem w) #t)))
+  (pick (tryif (and (not (uppercase? w)) (> (length w) 5))
+	       (metaphone (porter-stem w) #t))
+	length>1))
+
+(define (trimwordvec v)
+  (if (or (position "" v)  (position #"" v) (position #{} v))
+      {}
+      v))
 
 (defambda (index-frags index frame slot values window (phonetic #f))
   (let* ((compounds (pick values compound?))
 	 (stdcompounds (basestring compounds))
 	 (wordv (words->vector compounds))
 	 (swordv (words->vector stdcompounds)))
-    (doindex index frame slot (vector->frags (choice wordv swordv) window))
+    (doindex index frame slot
+	     (vector->frags (trimwordvec (choice wordv swordv)) window))
     (when phonetic
       (doindex index frame slot
-	       (vector->frags (map metaphone1 wordv)))
+	       (vector->frags (trimwordvec (map metaphone1 wordv))))
       (doindex index frame slot
-	       (vector->frags (map metaphone2 wordv))))))
+	       (vector->frags (trimwordvec (map metaphone2 wordv)))))))
 
 (defambda (index-frags/keys value (window 1) (phonetic #t))
   (let* ((values (stdstring value))
@@ -163,9 +172,9 @@
 	 (stdcompounds (basestring compounds))
 	 (wordv (words->vector compounds))
 	 (swordv (words->vector stdcompounds)))
-    (choice (vector->frags (choice wordv swordv) window)
-	    (tryif phonetic (vector->frags (map metaphone1 wordv)))
-	    (tryif phonetic (vector->frags (map metaphone2 wordv))))))
+    (choice (vector->frags (trimwordvec (choice wordv swordv)) window)
+	    (tryif phonetic (vector->frags (trimwordvec (map metaphone1 wordv))))
+	    (tryif phonetic (vector->frags (trimwordvec (map metaphone2 wordv)))))))
 
 ;;; Frame indexing functions
 
