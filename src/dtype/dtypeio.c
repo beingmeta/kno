@@ -628,6 +628,10 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    fd_init_pair(u8_alloc(struct FD_PAIR),
 			 car,FD_EMPTY_LIST);
 	  int dtcode=fd_read_byte(in);
+	  if (dtcode<0) {
+	    fd_decref(head); fd_decref(new_pair);
+	    fd_seterr1(fd_UnexpectedEOD);
+	    return FD_EOD;}
 	  *tail=new_pair; tail=&(FD_CDR(new_pair));
 	  if (dtcode != dt_pair) {
 	    fdtype cdr;
