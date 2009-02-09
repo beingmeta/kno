@@ -218,12 +218,18 @@
 				    (if (empty? x) x
 					(dotighten (qc x) env bound dolex)))
 				  (cdr expr))))
+		      ((and (ambiguous? value)
+			    (exists applicable? value)
+			    (not (singleton? (applicable? value))))
+		       ;; Theoretically, we could possibly apply the
+		       ;; special form optimizers, but it's not worth
+		       ;; it.
+		       (warning
+			"Inconsistent ND call (mixed special/applicable)")
+		       (cons (qc value) (cdr expr)))
 		      ((ambiguous? value)
-		       ;; Theoretically, we could possibly apply the special form optimizers, but
-		       ;;  it's not worth it.
-		       (when (and (applicable? value)
-				  (not (singleton? (applicable? value))))
-			 (warning "Inconsistent ND call (mixed special/applicable)"))
+		       ;; This should optimize the arguments in most
+		       ;; cases.  It doesn't right now.
 		       (cons (qc value) (cdr expr)))
 		      ((special-form? value)
 		       (let ((tightener (try (get special-form-tighteners value)
