@@ -431,7 +431,7 @@
 	 (gloss (tryif oid (trim-gloss (get-short-gloss oid language))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
-		       ((get-label-fcn) oid language))))
+		       (pick-one ((get-label-fcn) oid language)))))
 	 (selected (default selected (and var (cgitest var tag)))))
     (span ((class "concept")
 	   (oid (if oid oid))
@@ -457,7 +457,7 @@
 	 (gloss (trim-gloss (tryif oid (get-short-gloss oid language))))
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
-		       ((get-label-fcn) oid language))))
+		       (pick-one ((get-label-fcn) oid language)))))
 	 (selected (default selected (and var (cgitest var tag)))))
     (anchor* (or url oid)
 	((class "concept")
