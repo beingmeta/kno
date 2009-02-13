@@ -818,7 +818,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
      whose slotid isn't in the slotids, the key isn't in the table. */
   if ((!((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS))) && (FD_PAIRP(key))) {
     fdtype slotid=FD_CAR(key);
-    if (((FD_SYMBOLP(slotid)) || (FD_SYMBOLP(slotid))) &&
+    if (((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) &&
 	(get_slotid_index(hx,slotid)<0)) {
 #if FD_DEBUG_HASHINDICES
       u8_message("The slotid %q isn't indexed in %s, returning {}",slotid,hx->cid);
@@ -1006,7 +1006,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
      whose slotid isn't in the slotids, the key isn't in the table. */
     if ((!oddkeys) && (FD_PAIRP(key))) {
       fdtype slotid=FD_CAR(key);
-      if (((FD_SYMBOLP(slotid)) || (FD_SYMBOLP(slotid))) &&
+      if (((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) &&
 	  (get_slotid_index(hx,slotid)<0)) {
 	values[i++]=FD_EMPTY_CHOICE;
 	continue;}}
