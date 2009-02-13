@@ -7,17 +7,21 @@
 (define varconfigfn
   (macro expr
     (let ((varname (cadr expr))
-	  (convertfn (and (> (length expr) 2) (third expr))))
-      (if convertfn
-	  `(let ((_convert ,convertfn))
-	     (lambda (var (val))
-	       (if (bound? val)
-		   (set! ,varname (_convert val))
-		   ,varname)))
-	  `(lambda (var (val))
-	     (if (bound? val)
-		 (set! ,varname val)
-		 ,varname))))))
+	  (convertfn (and (> (length expr) 2) (third expr)))
+	  (combinefn (and (> (length expr) 3) (fourth expr))))
+      `(let ((_convert ,convertfn)
+	     (_combine ,combinefn))
+	 (lambda (var (val))
+	   (if (bound? val)
+	       (set! ,varname
+		     ,(cond ((and convertfn combinefn)
+			     `(_combine (_convert val) ,varname))
+			    (convertfn
+			     `(_convert val))
+			    (combinefn
+			     `(_combine val ,varname))
+			    (else 'val)))
+	       ,varname))))))
 
 (define varconfig!
   (macro expr
