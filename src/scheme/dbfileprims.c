@@ -322,7 +322,7 @@ static int load_index_cache(fd_index ix,void *ignored)
   return 0;
 }
 
-static fdtype load_cache_prim(fdtype arg)
+static fdtype load_caches_prim(fdtype arg)
 {
   if (FD_VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);
@@ -423,7 +423,7 @@ FD_EXPORT void fd_init_filedb_c()
 			   fd_fixnum_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(filedb_module,fd_make_cprim1("LOAD-CACHE",load_cache_prim,0));
+  fd_idefn(filedb_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));
 
   fd_idefn(filedb_module,
 	   fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
