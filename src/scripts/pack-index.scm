@@ -125,13 +125,16 @@
 				   (string-append base ".tmp")))
 		      (string-append base ".tmp")))
 	 (bakfile (or (config 'BAKFILE #f)
-		      (string-append base ".tmp"))))
+		      (string-append base ".bak"))))
     (let* ((old (open-index from))
 	   (keyv (index-keysvec old))
 	   (new (make-new-index tmpfile old keyv)))
       (copy-keys keyv old new))
-    (move-file from bakfile)
-    (move-file tmpfile from)))
+    (onerror (move-file from bakfile)
+	     (lambda (ex) (system "mv " from " " bakfile)))
+    (onerror (move-file tmpfile from)
+	     (lambda (ex) (system "mv " tmpfile " " from)))))
+
 
 
 

@@ -112,8 +112,10 @@
     (let* ((old (open-file-pool from))
 	   (new (make-new-pool tmpfile old)))
       (copy-oids old new))
-    (move-file from bakfile)
-    (move-file tmpfile from)))
+    (onerror (move-file from bakfile)
+	     (lambda (ex) (system "mv " from " " bakfile)))
+    (onerror (move-file tmpfile from)
+	     (lambda (ex) (system "mv " tmpfile " " from)))))
 
 (define (usage)
   (lineout "Usage: pack-pool <from> [to]")
