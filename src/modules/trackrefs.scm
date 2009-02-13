@@ -8,10 +8,16 @@
 
 (define version "$Id: trackrefs.scm 2323 2008-02-26 18:03:49Z haase $")
 
+(use-module 'varconfig)
+
 (define lastrefs #f)
 
 (module-export!
  '{trackrefs test-prefetch getlastrefs})
+
+(define stdprefetch {})
+
+(varconfig! stdprefetch stdprefetch #f choice)
 
 (define (getlastrefs) lastrefs)
 
@@ -43,6 +49,7 @@
 	 (raw-end (elapsed-time)))
     (message "Raw call took " (- raw-end raw-start) " seconds")
     (clearcaches)
+    (do-choices (prefetch stdprefetch) (prefetch))
     (let ((fetch-start (elapsed-time))
 	  (fetch-end #f))
       (apply prefetcher args)
@@ -62,6 +69,8 @@
 	   (message "direct=" (- raw-end raw-start)
 		    " fetch+run=" (+ (- run-end run-start)  (- fetch-end fetch-start)))
 	   #f))))))
+
+
 
 
 

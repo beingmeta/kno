@@ -286,6 +286,55 @@ static fdtype hash_index_slotids(fdtype ix_arg)
     return fd_init_vector(NULL,n,elts);}
 }
 
+/* Cache forcing */
+
+/* This forces the cache into memory for a pool or index.
+   It's relevant when the cache is MMAPd. */
+
+static unsigned int load_cache(unsigned int *cache,int length)
+{
+  unsigned int combo;
+  int i=0; while (i<length) combo=combo^cache[i++];
+  return combo;
+}
+
+static int load_pool_cache(fd_pool p,void *ignored)
+{
+  if ((p->handler==NULL) || (p->handler->name==NULL)) return 0;
+  else if (strcmp(p->handler->name,"file_pool")==0) {
+    struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
+    if (fp->offsets) load_cache(fp->offsets,fp->offsets_size);}
+  else if (strcmp(p->handler->name,"oidpool")==0) {
+    struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
+    if (fp->offsets) load_cache(fp->offsets,fp->offsets_size);}
+  return 0;
+}
+
+static int load_index_cache(fd_index ix,void *ignored)
+{
+  if ((ix->handler==NULL) || (ix->handler->name==NULL)) return 0;
+  else if (strcmp(ix->handler->name,"file_index")==0) {
+    struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
+    if (fx->offsets) load_cache(fx->offsets,fx->n_slots);}
+  else if (strcmp(ix->handler->name,"hash_index")==0) {
+    struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+    if (hx->offdata) load_cache(hx->offdata,hx->n_buckets*2);}
+  return 0;
+}
+
+static fdtype load_cache_prim(fdtype arg)
+{
+  if (FD_VOIDP(arg)) {
+    fd_for_pools(load_pool_cache,NULL);
+    fd_for_indices(load_index_cache,NULL);}
+  else if (FD_PRIM_TYPEP(arg,fd_index_type))
+    load_index_cache(fd_lisp2index(arg),NULL);
+  else if (FD_PRIM_TYPEP(arg,fd_pool_type))
+    load_pool_cache(fd_lisp2pool(arg),NULL);
+  else {}
+  return FD_VOID;
+}
+
 /* Hashing functions */
 
 static fdtype lisphashdtype1(fdtype x)
@@ -373,6 +422,8 @@ FD_EXPORT void fd_init_filedb_c()
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID));
+
+  fd_idefn(filedb_module,fd_make_cprim1("LOAD-CACHE",load_cache_prim,0));
 
   fd_idefn(filedb_module,
 	   fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
