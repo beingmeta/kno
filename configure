@@ -8955,8 +8955,8 @@ else
 fi
 
 if test "$with_libu8" != ""; then
-  CFLAGS="$CFLAGS -I$with_libu8/include"
-  LDFLAGS="$LDFLAGS -L$with_libu8/lib"
+  CFLAGS="-I$with_libu8/include $CFLAGS"
+  LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 

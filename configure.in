@@ -367,8 +367,8 @@ fi
 dnl Use a different directory for libu8
 AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
 if test "$with_libu8" != ""; then
-  CFLAGS="$CFLAGS -I$with_libu8/include"
-  LDFLAGS="$LDFLAGS -L$with_libu8/lib"
+  CFLAGS="-I$with_libu8/include $CFLAGS"
+  LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 
