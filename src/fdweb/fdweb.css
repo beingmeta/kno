@@ -155,6 +155,8 @@ a.concept {
 a.concept:hover {
   text-decoration: underline;}
 
+.concept .disambig { color: red;}
+
 /* Wordforms and langids */
 
 span.wordform {
