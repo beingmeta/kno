@@ -48,8 +48,11 @@
   (cq/get dterm-queue get-dterm concept language))
 
 (define (request-dterm concept language)
-  (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
-  (cq/get dterm-queue get-dterm concept language))
+  (try (or (get-dterm/cached concept language) {})
+       (cachecall/probe find-dterm concept language #f)
+       (begin
+	 (unless dterm-queue (setup-dtermqueue! (make-hashtable)))
+	 (cq/get dterm-queue get-dterm concept language))))
 
 (define (require-dterm concept (language english))
   (unless dterm-queue (setup-dtermqueue! (make-hashtable)))

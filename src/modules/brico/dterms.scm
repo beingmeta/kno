@@ -23,10 +23,12 @@
   (or
    (if (not norm)
        (try (cachecall get-cached-dterm concept language)
-	    (get-dterm concept language (get-norm concept language)))
-       (try (cachecall find-dterm concept language norm)
-	    (try-choices (alt (difference (get concept language) norm))
-	      (cachecall find-dterm concept language alt))))
+	    (get-dterm concept language #t))
+       (if (string? norm)
+	   (try (cachecall find-dterm concept language norm)
+		(try-choices (alt (difference (get concept language) norm))
+		  (cachecall find-dterm concept language alt)))
+	   (get-dterm concept language (get-norm concept language))))
    (fail)))
 
 (define (get-cached-dterm concept language)
