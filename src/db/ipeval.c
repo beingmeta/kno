@@ -341,6 +341,49 @@ FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args)
   return iscached;
 }
 
+FD_EXPORT int fd_xcachecall_probe(struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args)
+{
+  fdtype vec; int iscached=0;
+  struct FD_VECTOR vecstruct;
+  vecstruct.consbits=0;
+  vecstruct.length=n;
+  vecstruct.data=((n==0) ? (NULL) : (args));
+  FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
+  vec=FDTYPE_CONS(&vecstruct);
+  iscached=fd_hashtable_probe(cache,vec);
+  return iscached;
+}
+
+FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args)
+{
+  fdtype vec; fdtype value;
+  struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
+  struct FD_VECTOR vecstruct;
+  vecstruct.consbits=0;
+  vecstruct.length=n;
+  vecstruct.data=((n==0) ? (NULL) : (args));
+  FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
+  vec=FDTYPE_CONS(&vecstruct);
+  value=fd_hashtable_get(cache,vec,FD_VOID);
+  fd_decref((fdtype)cache);
+  if (FD_VOIDP(value)) return FD_EMPTY_CHOICE;
+  else return value;
+}
+
+FD_EXPORT fdtype fd_xcachecall_try(struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args)
+{
+  fdtype vec; fdtype value;
+  struct FD_VECTOR vecstruct;
+  vecstruct.consbits=0;
+  vecstruct.length=n;
+  vecstruct.data=((n==0) ? (NULL) : (args));
+  FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
+  vec=FDTYPE_CONS(&vecstruct);
+  value=fd_hashtable_get(cache,vec,FD_VOID);
+  if (FD_VOIDP(value)) return FD_EMPTY_CHOICE;
+  else return value;
+}
+
 /* Thread cache calls */
 
 #define TCACHECALL_STACK_ELTS 8

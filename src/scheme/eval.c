@@ -1092,6 +1092,24 @@ static fdtype cachecall(int n,fdtype *args)
   else return fd_cachecall(args[0],n-1,args+1);
 }
 
+static fdtype cachecall_probe(int n,fdtype *args)
+{
+  if (FD_HASHTABLEP(args[0]))
+    return fd_xcachecall_try((fd_hashtable)args[0],args[1],n-2,args+2);
+  else return fd_cachecall_try(args[0],n-1,args+1);
+}
+
+static fdtype cachedcallp(int n,fdtype *args)
+{
+  if (FD_HASHTABLEP(args[0]))
+    if (fd_xcachecall_probe((fd_hashtable)args[0],args[1],n-2,args+2))
+      return FD_TRUE;
+    else return FD_FALSE;
+  else if (fd_cachecall_probe(args[0],n-1,args+1))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype clear_callcache(fdtype arg)
 {
   fd_clear_callcache(arg);
@@ -1369,6 +1387,8 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"WITH-THREADCACHE",with_threadcache_handler);
   fd_idefn(fd_scheme_module,fd_make_cprimn("TCACHECALL",tcachecall,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("CACHECALL",cachecall,1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("CACHECALL/PROBE",cachecall_probe,1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("CACHEDCALL?",cachedcallp,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
   fd_defalias(fd_scheme_module,"CACHEPOINT","TCACHECALL");

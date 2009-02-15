@@ -161,12 +161,18 @@ FD_EXPORT u8_mutex fd_ipeval_lock;
 /* Cache calls */
 
 FD_EXPORT long fd_callcache_load(void);
+FD_EXPORT void fd_clear_callcache(fdtype arg);
+
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
 FD_EXPORT fdtype fd_xcachecall
   (struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args);
 
-FD_EXPORT void fd_clear_callcache(fdtype arg);
+FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args);
+FD_EXPORT fdtype fd_xcachecall_try
+  (struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args);
+
 FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args);
+FD_EXPORT int fd_xcachecall_probe(fd_hashtable,fdtype fcn,int n,fdtype *args);
 
 FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 
