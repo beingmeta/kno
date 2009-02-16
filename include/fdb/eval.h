@@ -355,6 +355,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_CHOICE_SIZE_OPCODE FD_OPCODE(0x29)
 #define FD_PICKOIDS_OPCODE    FD_OPCODE(0x2A)
 #define FD_PICKSTRINGS_OPCODE FD_OPCODE(0x2B)
+#define FD_PICKONE_OPCODE     FD_OPCODE(0x2C)
 
 #define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */

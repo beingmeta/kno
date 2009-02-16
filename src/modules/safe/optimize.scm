@@ -110,6 +110,7 @@
   (def-opcode CHOICE-SIZE 0x29 1)
   (def-opcode PICKOIDS    0x2A 1)
   (def-opcode PICKSTRINGS 0x2B 1)
+  (def-opcode PICK-ONE    0x2C 1)
 
   (def-opcode 1-         0x40 1)
   (def-opcode -1+        0x40 1)

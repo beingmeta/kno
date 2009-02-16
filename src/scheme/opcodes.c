@@ -12,7 +12,7 @@ const u8_string fd_opcode_names[256]={
   /* 0x20 */
   "ambigp","singeltonp","failp","existsp",
   "singleton","car","cdr","length","qchoice","choicesize",
-  "pickoids","pickstrings",NULL,NULL,NULL,NULL,
+  "pickoids","pickstrings","pickone",NULL,NULL,NULL,
   /* 0x30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -275,6 +275,18 @@ static fdtype pickstrings_opcode(fdtype arg1)
   else return FD_EMPTY_CHOICE;
 }
 
+static fdtype pickone_opcode(fdtype normal)
+{
+  int n=FD_CHOICE_SIZE(normal);
+  if (n) {
+    fdtype chosen;
+    int i=u8_random(n);
+    const fdtype *data=FD_CHOICE_DATA(normal);
+    chosen=data[i]; fd_incref(chosen);
+    return chosen;}
+  else return FD_EMPTY_CHOICE;
+}
+
 static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
 {
   switch (opcode) {
@@ -365,6 +377,10 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
     return pickoids_opcode(arg1);
   case FD_PICKSTRINGS_OPCODE:
     return pickstrings_opcode(arg1);
+  case FD_PICKONE_OPCODE:
+    if (FD_CHOICEP(arg1))
+      return pickone_opcode(arg1);
+    else return fd_incref(arg1);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }
