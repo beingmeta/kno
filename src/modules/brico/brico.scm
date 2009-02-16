@@ -378,12 +378,18 @@
 (define default-brico-slotids
   (choice genls specls partof))
 
-(defambda (brico-prefetch! concepts (slotids default-brico-slotids))
-  (prefetch-oids! concepts)
-  (prefetch-keys!
-   (cons (choice (get slotids 'inverse)
-		 (get (pick (get slotids 'slots) oid?) 'inverse))
-	 concepts)))
+(defambda (brico-prefetch! concepts (slotids default-brico-slotids) (inparallel #f))
+  (if inparallel
+      (parallel (prefetch-oids! concepts)
+		(prefetch-keys!
+		 (cons (choice (get slotids 'inverse)
+			       (get (pick (get slotids 'slots) oid?) 'inverse))
+		       concepts)))
+      (begin (prefetch-oids! concepts)
+	     (prefetch-keys!
+	      (cons (choice (get slotids 'inverse)
+			    (get (pick (get slotids 'slots) oid?) 'inverse))
+		    concepts)))))
 
 (defambda (brico-prefetch concepts (slotids default-brico-slotids))
   (brico-prefetch! concepts)
