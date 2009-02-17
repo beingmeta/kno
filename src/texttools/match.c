@@ -532,7 +532,8 @@ static fdtype get_longest_extractions(fdtype extractions)
     FD_DO_CHOICES(extraction,extractions) {
       u8_byteoff ival=fd_getint(FD_CAR(extraction));
       if (ival==max) {
-	FD_ADD_TO_CHOICE(largest,fd_incref(extraction));}
+	fd_incref(extraction);
+	FD_ADD_TO_CHOICE(largest,extraction);}
       else if (ival<max) {}
       else {
 	fd_decref(largest); largest=fd_incref(extraction);
@@ -568,7 +569,8 @@ static fdtype textract
 	  FD_STOP_DO_CHOICES;
 	  break;}
 	else if (FD_PAIRP(extraction)) {
-	  FD_ADD_TO_CHOICE(answers,fd_incref(extraction));}
+	  fd_incref(extraction);
+	  FD_ADD_TO_CHOICE(answers,extraction);}
 	else {
 	  fd_decref(answers);
 	  answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
@@ -681,13 +683,14 @@ static fdtype lists_to_vectors(fdtype lists)
 {
   fdtype answer=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(list,lists) {
-    fdtype lsize=FD_CAR(list), scan=FD_CDR(list), vec; int i=0, lim=0;
+    fdtype lsize=FD_CAR(list), scan=FD_CDR(list), vec, elt; int i=0, lim=0;
     while (FD_PAIRP(scan)) {lim++; scan=FD_CDR(scan);}
     vec=fd_make_vector(lim);
     scan=FD_CDR(list); while (i < lim) {
       FD_VECTOR_SET(vec,i,fd_incref(FD_CAR(scan)));
       i++; scan=FD_CDR(scan);}
-    FD_ADD_TO_CHOICE(answer,fd_init_pair(NULL,lsize,vec));}
+    elt=fd_init_pair(NULL,lsize,vec);
+    FD_ADD_TO_CHOICE(answer,elt);}
   return answer;
 }
 
@@ -716,8 +719,10 @@ static fdtype match_repeatedly
 	  if (!((FD_CHOICEP(state)) ? (fd_choice_containsp(n,state)) :
 		(FD_EQ(state,n)))) {
 	    if ((flags&FD_MATCH_BE_GREEDY)==0) { 
-	      FD_ADD_TO_CHOICE(match_points,fd_incref(n));}
-	    FD_ADD_TO_CHOICE(next_state,fd_incref(n));}}
+	      fd_incref(n);
+	      FD_ADD_TO_CHOICE(match_points,n);}
+	    fd_incref(n);
+	    FD_ADD_TO_CHOICE(next_state,n);}}
 	fd_decref(npos);}}
     if (flags&FD_MATCH_BE_GREEDY)
       if (FD_EMPTY_CHOICEP(next_state)) {
@@ -778,7 +783,8 @@ static fdtype extract_repeatedly
 	  fd_decref(remainders);}
 	if ((flags&FD_MATCH_BE_GREEDY)==0) {
 	  fdtype singleton=fd_make_list(1,fd_incref(extraction));
-	  FD_ADD_TO_CHOICE(choices,fd_init_pair(NULL,size,singleton));}}}
+	  fdtype pair=fd_init_pair(NULL,size,singleton);
+	  FD_ADD_TO_CHOICE(choices,pair);}}}
   fd_decref(top);
   return choices;
 }
@@ -1237,7 +1243,8 @@ static fdtype extract_pref
 	fd_decref(answers); answers=fd_incref(extraction);
 	break;}
       else if (FD_PAIRP(extraction)) {
-	FD_ADD_TO_CHOICE(answers,fd_incref(extraction));}
+	fd_incref(extraction);
+	FD_ADD_TO_CHOICE(answers,extraction);}
       else {
 	fd_decref(answers);
 	answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
@@ -1304,7 +1311,8 @@ static fdtype word_match
 	    u8_unichar ch=u8_sgetc(&ptr);
 	    if ((u8_isspace(ch)) || (u8_ispunct(ch))) complete_word=1;}
 	  if (complete_word) {
-	    FD_ADD_TO_CHOICE(final_results,fd_incref(offset));}}
+	    fd_incref(offset);
+	    FD_ADD_TO_CHOICE(final_results,offset);}}
 	else {
 	  FD_STOP_DO_CHOICES;
 	  fd_incref(offset); fd_decref(core_result); 
@@ -1375,7 +1383,8 @@ static fdtype word_extract
     FD_DO_CHOICES(end,ends) {
       fdtype substring=
 	fd_extract_string(NULL,string+off,string+fd_getint(end));
-      FD_ADD_TO_CHOICE(answers,fd_init_pair(NULL,end,substring));}
+      fdtype pair=fd_init_pair(NULL,end,substring);
+      FD_ADD_TO_CHOICE(answers,pair);}
     fd_decref(ends);
     return answers;}
 }
@@ -1415,7 +1424,8 @@ static fdtype chunk_extract
     FD_DO_CHOICES(end,ends) {
       fdtype substring=
 	fd_extract_string(NULL,string+off,string+fd_getint(end));
-      FD_ADD_TO_CHOICE(answers,fd_init_pair(NULL,end,substring));}
+      fdtype pair=fd_init_pair(NULL,end,substring);
+      FD_ADD_TO_CHOICE(answers,pair);}
     fd_decref(ends);
     return answers;}
 }
@@ -1439,7 +1449,8 @@ static fdtype match_choice
   else {
     fdtype choice=FD_EMPTY_CHOICE;
     FD_DOLIST(elt,FD_CDR(pat)) {
-      FD_ADD_TO_CHOICE(choice,fd_incref(elt));}
+      fd_incref(elt);
+      FD_ADD_TO_CHOICE(choice,elt);}
     if (FD_EMPTY_CHOICEP(choice)) return FD_EMPTY_CHOICE;
     else {
       fdtype result=fd_text_matcher(choice,env,string,off,lim,flags);
@@ -1457,7 +1468,8 @@ static u8_byteoff search_choice
   else {
     fdtype choice=FD_EMPTY_CHOICE;
     FD_DOLIST(elt,FD_CDR(pat)) {
-      FD_ADD_TO_CHOICE(choice,fd_incref(elt));}
+      fd_incref(elt);
+      FD_ADD_TO_CHOICE(choice,elt);}
     if (FD_EMPTY_CHOICEP(choice)) return -1;
     else {
       u8_byteoff result=fd_text_search(choice,env,string,off,lim,flags);
@@ -1476,7 +1488,8 @@ static fdtype extract_choice
   else {
     fdtype choice=FD_EMPTY_CHOICE;
     FD_DOLIST(elt,FD_CDR(pat)) {
-      FD_ADD_TO_CHOICE(choice,fd_incref(elt));}
+      fd_incref(elt);
+      FD_ADD_TO_CHOICE(choice,elt);}
     if (FD_EMPTY_CHOICEP(choice)) return FD_EMPTY_CHOICE;
     else {
       fdtype result=textract(choice,next,env,string,off,lim,flags);

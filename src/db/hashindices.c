@@ -1182,6 +1182,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
 #if FD_DEBUG_HASHINDICES
   u8_message("Finished reading %d keys from %s",n,hx->cid);
 #endif
+  u8_free(out.start);
   return values;
 }
 
@@ -1236,6 +1237,9 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   FD_CHUNK_REF *buckets;
   fd_lock_struct(hx);
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
+  if (total_keys==0) {
+    fd_unlock_struct(hx); *n=0;
+    return NULL;}
   buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   results=u8_alloc_n(total_keys,fdtype);
   /* If we don't have chunk offsets in memory, we keep the stream
@@ -1245,7 +1249,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
-  /* Now we actually unlock it if we kept it locked. */
+  /* If we didn't unlock it earlier, do so now. */
   if (hx->offdata==NULL) fd_unlock_struct(hx);
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   i=0; while (i<n_to_fetch) {

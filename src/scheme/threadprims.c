@@ -351,7 +351,8 @@ static fdtype threadjoin_prim(fdtype threads)
     if (retval==0) {
       if ((tstruct->resultptr)==&(tstruct->result))
 	if (!(FD_VOIDP(tstruct->result))) {
-	  FD_ADD_TO_CHOICE(results,fd_incref(tstruct->result));}}
+	  fd_incref(tstruct->result);
+	  FD_ADD_TO_CHOICE(results,tstruct->result);}}
     else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
 		 retval,strerror(retval),thread);}}
   return results;

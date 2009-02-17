@@ -929,7 +929,8 @@ FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid)
       if ((fd_top_pools[i]->cid) &&
           ((strcmp(canonical,fd_top_pools[i]->cid)) == 0)) {
         fdtype poolv=fd_pool2lisp(fd_top_pools[i]); i++;
-        FD_ADD_TO_CHOICE(results,fd_incref(poolv));}
+	fd_incref(poolv);
+        FD_ADD_TO_CHOICE(results,poolv);}
       else i++;
     else {
       struct FD_GLUEPOOL *gp=(struct FD_GLUEPOOL *)fd_top_pools[i++];
@@ -937,7 +938,8 @@ FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid)
       while (j<gp->n_subpools)
         if ((subpools[j]->cid) && (strcmp(canonical,subpools[j]->cid)==0)) {
           fdtype poolv=fd_pool2lisp(subpools[j]); j++;
-          FD_ADD_TO_CHOICE(results,fd_incref(poolv));}
+	  fd_incref(poolv);
+          FD_ADD_TO_CHOICE(results,poolv);}
         else j++;}
   u8_free(canonical);
   return results;
@@ -1066,7 +1068,8 @@ long fd_object_cache_load()
 static int accumulate_cached(fd_pool p,void *ptr)
 {
   fdtype *vals=(fdtype *)ptr;
-  FD_ADD_TO_CHOICE(*vals,fd_hashtable_keys(&(p->cache)));
+  fdtype keys=fd_hashtable_keys(&(p->cache));
+  FD_ADD_TO_CHOICE(*vals,keys);
   return 0;
 }
 

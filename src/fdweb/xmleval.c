@@ -225,11 +225,15 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
 	       (FD_EQ(FD_CAR(value),xmleval2expr_tag))) {
 	    fdtype result=fd_eval(FD_CDR(value),env);
 	    FD_ADD_TO_CHOICE(results,result);}
-	  else FD_ADD_TO_CHOICE(results,fd_incref(value));
+	  else {
+	    fd_incref(value);
+	    FD_ADD_TO_CHOICE(results,value);}
 	else if (FD_TABLEP(value)) {
 	  fdtype result=fd_xmleval(NULL,value,env);
 	  FD_ADD_TO_CHOICE(results,result);}
-	else {FD_ADD_TO_CHOICE(results,fd_incref(value));}
+	else {
+	  fd_incref(value);
+	  FD_ADD_TO_CHOICE(results,value);}
       fd_decref(values);
       return results;}
     else if (FD_PAIRP(values))

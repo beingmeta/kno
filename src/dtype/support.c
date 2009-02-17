@@ -154,7 +154,7 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
     u8_free(filename);
     u8_free(content);
     return result;}
-    else return FD_VOID;
+  else return FD_VOID;
 }
 
 #endif
@@ -306,6 +306,7 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
       char *carg=argv[i++];
       u8_string arg=u8_fromlibc(carg);
       int retval=fd_config_assignment(arg);
+      u8_free(arg);
       if (retval<0) u8_clear_errors(0);
       else n++;}
     else i++;

@@ -218,7 +218,8 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
     fd_rw_unlock(&sm->rwlock);
     fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
     return -1;}
-  FD_ADD_TO_CHOICE(result->value,fd_incref(value)); 
+  fd_incref(value);
+  FD_ADD_TO_CHOICE(result->value,value); 
   FD_XSLOTMAP_MARK_MODIFIED(sm);
   if (osize != size) {
     FD_XSLOTMAP_SET_SIZE(sm,size);
@@ -322,7 +323,8 @@ FD_EXPORT fdtype fd_slotmap_max
 	    result=fd_incref(scan->key);
 	    maxval=fd_incref(scan->value);}
 	  else if (cmp==0) {
-	    FD_ADD_TO_CHOICE(result,fd_incref(scan->key));}}}}
+	    fd_incref(scan->key);
+	    FD_ADD_TO_CHOICE(result,scan->key);}}}}
     scan++;}
   fd_rw_unlock(&sm->rwlock);
   if ((maxvalp) && (FD_NUMBERP(maxval))) *maxvalp=fd_incref(maxval);
@@ -341,7 +343,9 @@ FD_EXPORT fdtype fd_slotmap_skim(struct FD_SLOTMAP *sm,fdtype maxval,fdtype scop
     if ((FD_VOIDP(scope)) || (fd_overlapp(scan->key,scope)))
       if (FD_NUMBERP(scan->value)) {
 	int cmp=numcompare(scan->value,maxval);
-	if (cmp>=0) {FD_ADD_TO_CHOICE(result,fd_incref(scan->key));}}
+	if (cmp>=0) {
+	  fd_incref(scan->key);
+	  FD_ADD_TO_CHOICE(result,scan->key);}}
     scan++;}
   fd_rw_unlock(&sm->rwlock);
   return result;
@@ -617,7 +621,8 @@ FD_EXPORT int fd_schemap_add
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
-    FD_ADD_TO_CHOICE(sm->values[slotno],fd_incref(value));
+    fd_incref(value);
+    FD_ADD_TO_CHOICE(sm->values[slotno],value);
     FD_XSCHEMAP_MARK_MODIFIED(sm);
     fd_rw_unlock_struct(sm);
     return 1;}
@@ -1352,7 +1357,8 @@ static int do_hashtable_op
   case fd_table_store_noref:
     fd_decref(result->value); result->value=value; break;
   case fd_table_add: case fd_table_add_empty: case fd_table_add_if_present:
-    FD_ADD_TO_CHOICE(result->value,fd_incref(value)); break;
+    fd_incref(value);
+    FD_ADD_TO_CHOICE(result->value,value); break;
   case fd_table_add_noref: case fd_table_add_empty_noref:
     FD_ADD_TO_CHOICE(result->value,value); break;
   case fd_table_drop: {
@@ -1586,7 +1592,8 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
 	while (kvscan<kvlimit) {
-	  FD_ADD_TO_CHOICE(result,fd_incref(kvscan->key));
+	  fd_incref(kvscan->key);
+	  FD_ADD_TO_CHOICE(result,kvscan->key);
 	  kvscan++;}
 	scan++;}
       else scan++;}
@@ -2283,7 +2290,8 @@ FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
 	  FD_DO_CHOICES(each,key) {
 	    fdtype values=getfn(arg,each,FD_EMPTY_CHOICE);
 	    fdtype svalues;
-	    FD_ADD_TO_CHOICE(values,fd_incref(value));
+	    fd_incref(value);
+	    FD_ADD_TO_CHOICE(values,value);
 	    svalues=fd_make_simple_choice(values);
 	    storefn(arg,each,svalues);
 	    fd_decref(values); fd_decref(svalues);}
@@ -2426,7 +2434,9 @@ static int hashmaxfn(fdtype key,fdtype value,void *hmaxp)
 	if (cmp>0) {
 	  fd_decref(hashmax->keys); fd_decref(hashmax->max);
 	  hashmax->keys=fd_incref(key); hashmax->max=fd_incref(value);}
-	else if (cmp==0) {FD_ADD_TO_CHOICE(hashmax->keys,fd_incref(key));}}
+	else if (cmp==0) {
+	  fd_incref(key);
+	  FD_ADD_TO_CHOICE(hashmax->keys,key);}}
     else {}
   else {}
   return 0;
@@ -2452,7 +2462,9 @@ static int hashskimfn(fdtype key,fdtype value,void *hmaxp)
   if ((FD_VOIDP(hashmax->scope)) || (fd_choice_containsp(key,hashmax->scope)))
     if (FD_NUMBERP(value)) {
       int cmp=numcompare(value,hashmax->max);
-      if (cmp>=0) {FD_ADD_TO_CHOICE(hashmax->keys,fd_incref(key));}}
+      if (cmp>=0) {
+	fd_incref(key);
+	FD_ADD_TO_CHOICE(hashmax->keys,key);}}
   return 0;
 }
 
@@ -2541,7 +2553,8 @@ FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxvalp)
 	       fd_decref(results); results=fd_incref(key);
 	       fd_decref(maxval); maxval=fd_incref(val);}
 	     else if (cmp==0) {
-	       FD_ADD_TO_CHOICE(results,fd_incref(key));}}}
+	       fd_incref(key);
+	       FD_ADD_TO_CHOICE(results,key);}}}
 	 else {}
 	 fd_decref(val);}}
     fd_decref(keys);

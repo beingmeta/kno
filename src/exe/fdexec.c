@@ -218,6 +218,7 @@ int main(int argc,char **argv)
     fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
     fputs(out.u8_outbuf,stderr);
     u8_free(out.u8_outbuf);
+    u8_free_exception(e,1);
     retval=-1;}
   fd_decref(result);
   /* Hollow out the environment, which should let you reclaim it.
@@ -231,5 +232,6 @@ int main(int argc,char **argv)
   fd_recycle_environment(env);
   i=0; while (i<n_args) {fd_decref(args[i]); i++;}
   u8_free(args);
+  fd_decref(main_proc);
   return retval;
 }

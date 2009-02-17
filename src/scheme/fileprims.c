@@ -799,6 +799,7 @@ static int load_source_module(fdtype spec,int safe)
       fd_register_module_x(module_key,load_result,safe);
       fd_register_module_x(abspath_key,load_result,safe);
       fd_decref(module_key);
+      fd_decref(abspath_key);
       u8_free(module_filename);
       fd_decref(load_result);
       return 1;}}

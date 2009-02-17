@@ -263,7 +263,8 @@ static fdtype pickstrings_opcode(fdtype arg1)
     if (FD_CHOICEP(arg1)) choice=arg1;
     else {choice=fd_make_simple_choice(arg1); free_choice=1;}
     {FD_DO_CHOICES(elt,choice) {
-	if (FD_STRINGP(elt)) {FD_ADD_TO_CHOICE(results,fd_incref(elt));}
+	if (FD_STRINGP(elt)) {
+	  fd_incref(elt); FD_ADD_TO_CHOICE(results,elt);}
 	else if (all_strings) all_strings=0;}}
     if (all_strings) {
       fd_decref(results);

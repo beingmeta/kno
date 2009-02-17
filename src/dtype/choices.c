@@ -895,8 +895,8 @@ fdtype fd_union(fdtype *v,int n)
   else {
     fdtype result=FD_EMPTY_CHOICE; int i=0;
     while (i < n) {
-      FD_ADD_TO_CHOICE(result,fd_incref(v[i]));
-      i++;}
+      fdtype elt=v[i++]; fd_incref(elt);
+      FD_ADD_TO_CHOICE(result,elt);}
     return fd_simplify_choice(result);}
 }
 

@@ -317,8 +317,8 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
 	return val;}
       else if (FD_FALSEP(val)) {}
       else {
-	fd_decref(val);
-	FD_ADD_TO_CHOICE(results,fd_incref(elt));}
+	fd_decref(val); fd_incref(elt);
+	FD_ADD_TO_CHOICE(results,elt);}
       if (envstruct.copy) {
 	fd_recycle_environment(envstruct.copy);
 	envstruct.copy=NULL;}
@@ -499,7 +499,8 @@ static fdtype smallest_handler(fdtype elts,fdtype magnitude)
       int comparison=compare_lisp(score,top_score);
       if (comparison>0) {}
       else if (comparison == 0) {
-	FD_ADD_TO_CHOICE(top,fd_incref(elt));
+	fd_incref(elt);
+	FD_ADD_TO_CHOICE(top,elt);
 	fd_decref(score);}
       else {
 	fd_decref(top);
@@ -525,7 +526,8 @@ static fdtype largest_handler(fdtype elts,fdtype magnitude)
       int comparison=compare_lisp(score,top_score);
       if (comparison<0) {}
       else if (comparison == 0) {
-	FD_ADD_TO_CHOICE(top,fd_incref(elt));
+	fd_incref(elt);
+	FD_ADD_TO_CHOICE(top,elt);
 	fd_decref(score);}
       else {
 	fd_decref(top);
@@ -546,7 +548,8 @@ static fdtype choice_prim(int n,fdtype *args)
 {
   int i=0; fdtype results=FD_EMPTY_CHOICE;
   while (i < n) {
-    FD_ADD_TO_CHOICE(results,fd_incref(args[i])); i++;}
+    fdtype arg=args[i++]; fd_incref(arg);
+    FD_ADD_TO_CHOICE(results,arg);}
   return fd_simplify_choice(results);
 }
 
@@ -554,7 +557,8 @@ static fdtype qchoice_prim(int n,fdtype *args)
 {
   int i=0; fdtype results=FD_EMPTY_CHOICE, presults;
   while (i < n) {
-    FD_ADD_TO_CHOICE(results,fd_incref(args[i])); i++;}
+    fdtype arg=args[i++]; fd_incref(arg);
+    FD_ADD_TO_CHOICE(results,arg);}
   presults=fd_simplify_choice(results);
   if ((FD_CHOICEP(presults)) || (FD_EMPTY_CHOICEP(presults)))
     return fd_init_qchoice(NULL,presults);
@@ -565,7 +569,8 @@ static fdtype qchoicex_prim(int n,fdtype *args)
 {
   int i=0; fdtype results=FD_EMPTY_CHOICE, presults;
   while (i < n) {
-    FD_ADD_TO_CHOICE(results,fd_incref(args[i])); i++;}
+    fdtype arg=args[i++]; fd_incref(arg);
+    FD_ADD_TO_CHOICE(results,arg);}
   presults=fd_simplify_choice(results);
   if (FD_EMPTY_CHOICEP(presults))
     return presults;
@@ -1125,7 +1130,8 @@ static fdtype pick_strings_prim(fdtype items)
   fdtype results=FD_EMPTY_CHOICE; int no_change=1;
   FD_DO_CHOICES(item,items)
     if (FD_STRINGP(item)) {
-      FD_ADD_TO_CHOICE(results,fd_incref(item));}
+      fd_incref(item);
+      FD_ADD_TO_CHOICE(results,item);}
     else no_change=0;
   if (no_change) {
     fd_decref(results);

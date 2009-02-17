@@ -119,12 +119,16 @@ static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
       fdtype changes=FD_EMPTY_CHOICE;
       int i=top, point=clog->point; while (i >= 0) 
 	if (cstamp <= entries[i].moment) {
-	  FD_ADD_TO_CHOICE(changes,fd_incref(entries[i].keys)); i--;}
+	  fdtype key=entries[i--].keys;
+	  fd_incref(key); 
+	  FD_ADD_TO_CHOICE(changes,key);}
 	else break;
       if (cstamp > entries[i].moment) {
 	i=clog->max; while (i >= point)
 	  if (cstamp <= entries[i].moment) {
-	    FD_ADD_TO_CHOICE(changes,fd_incref(entries[i].keys)); i--;}
+	    fdtype key=entries[i--].keys;
+	    fd_incref(key);
+	    FD_ADD_TO_CHOICE(changes,key);}
 	  else break;}
       result=changes;}}
   fd_unlock_mutex(&changelog_lock);
@@ -466,9 +470,9 @@ static fdtype iserver_bulk_add(fdtype vec)
     while (i < limit) {
       if (FD_VOIDP(data[i])) break;
       else {
-	fd_index_add((fd_index)primary_index,data[i],data[i+1]);
-	FD_ADD_TO_CHOICE(keys,fd_incref(data[i]));
-	i=i+2;}}
+	fdtype key=data[i++], value=data[i++];
+	fd_index_add((fd_index)primary_index,key,value);
+	fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(&index_changelog,keys); fd_decref(keys);
     return FD_TRUE;}
   else return FD_VOID;
@@ -485,9 +489,9 @@ static fdtype ixserver_bulk_add(fdtype ixarg,fdtype vec)
     while (i < limit) {
       if (FD_VOIDP(data[i])) break;
       else {
+	fdtype key=data[i++], value=data[i++];
 	fd_index_add(ix,data[i],data[i+1]);
-	FD_ADD_TO_CHOICE(keys,fd_incref(data[i]));
-	i=i+2;}}
+	fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(clog,keys); fd_decref(keys);
     return FD_TRUE;}
   else return FD_VOID;

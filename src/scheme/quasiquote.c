@@ -94,6 +94,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 			 "splicing UNQUOTE for an improper list",
 			 details_string,insertion);
 	      fd_decref(head); u8_free(details_string);
+	      fd_decref(insertion);
 	      return err;}
 	    else {
 	      FD_DOLIST(insert_elt,insertion) {
@@ -106,8 +107,10 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 		       "splicing UNQUOTE for an improper list",
 		       details_string,insertion);
 	    fd_decref(head); u8_free(details_string);
+	    fd_decref(insertion);
 	    return err;}
 	  obj=FD_CDR(obj);
+	  fd_decref(insertion);
 	  continue;}
 	else new_elt=
 	       fd_make_list(2,unquotestar,fd_quasiquote(FD_CADR(elt),env,level-1));

@@ -91,7 +91,8 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
   {FD_DO_CHOICES(node,collection)
      if (fd_hashset_get(&ht,node)) {}
      else {
-       FD_ADD_TO_CHOICE(result,fd_incref(node));}}
+       fd_incref(node);
+       FD_ADD_TO_CHOICE(result,node);}}
   fd_decref(root);
   fd_recycle_hashset(&ht);
   return result;
@@ -510,12 +511,15 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
 	  if (FD_PAIRP(e)) {
 	    fdtype car=FD_CAR(e), cdr=FD_CDR(e);
 	    if (FD_EQ(car,key)) {
-	      FD_ADD_TO_CHOICE(answers,fd_incref(cdr));}
+	      fd_incref(cdr);
+	      FD_ADD_TO_CHOICE(answers,cdr);}
 	    else if ((!ambigkey) && (!(FD_CHOICEP(car)))) {
 	      if (FDTYPE_EQUAL(car,key)) {
-		FD_ADD_TO_CHOICE(answers,fd_incref(cdr));}}
+		fd_incref(cdr);
+		FD_ADD_TO_CHOICE(answers,cdr);}}
 	    else if (fd_overlapp(car,key)) {
-	      FD_ADD_TO_CHOICE(answers,fd_incref(cdr));}
+	      fd_incref(cdr);
+	      FD_ADD_TO_CHOICE(answers,cdr);}
 	    else {}}
 	fd_decref(entries);}}
     fd_decref(through); fd_decref(key);
@@ -590,8 +594,9 @@ static fdtype car_get_method(fdtype f,fdtype slotid)
   else {
     FD_DO_CHOICES(value,values)
       if (FD_PAIRP(value)) {
-	fdtype v=FD_CAR(value);
-	FD_ADD_TO_CHOICE(result,fd_incref(v));}
+	fdtype car=FD_CAR(value);
+	fd_incref(car);
+	FD_ADD_TO_CHOICE(result,car);}
       else {
 	fd_decref(result);
 	return fd_type_error("pair","car_get_method",value);}}
@@ -607,10 +612,12 @@ static fdtype paired_get_method(fdtype f,fdtype slotid)
   else {
     FD_DO_CHOICES(value,values)
       if (FD_PAIRP(value)) {
-	fdtype v=FD_CAR(value);
-	FD_ADD_TO_CHOICE(result,fd_incref(v));}
+	fdtype car=FD_CAR(value);
+	fd_incref(car);
+	FD_ADD_TO_CHOICE(result,car);}
       else {
-	FD_ADD_TO_CHOICE(result,fd_incref(value));}}
+	fd_incref(value);
+	FD_ADD_TO_CHOICE(result,value);}}
   fd_decref(values);
   return result;
 }
@@ -651,10 +658,12 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
 	  if (FD_PAIRP(value)) 
 	    if (FD_EQUAL(FD_CAR(value),v)) {}
 	    else {
-	      FD_ADD_TO_CHOICE(new_values,fd_incref(value));}
+	      fd_incref(value);
+	      FD_ADD_TO_CHOICE(new_values,value);}
 	  else if (FD_EQUAL(value,v)) {}
 	  else {
-	    FD_ADD_TO_CHOICE(new_values,fd_incref(value));}}
+	    fd_incref(value);
+	    FD_ADD_TO_CHOICE(new_values,value);}}
 	if (fd_store(f,slotid,new_values)<0) {
 	  fd_decref(values); fd_decref(new_values);
 	  return FD_ERROR_VALUE;}

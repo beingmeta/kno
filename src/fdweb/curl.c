@@ -186,8 +186,15 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
 
 FD_INLINE_FCN fdtype addtexttype(fdtype type)
 {
-  FD_ADD_TO_CHOICE(text_types,fd_incref(type));
+  fd_incref(type);
+  FD_ADD_TO_CHOICE(text_types,type);
   return FD_VOID;
+}
+
+static void decl_text_type(u8_string string)
+{
+  fdtype stringval=fdtype_string(string);
+  FD_ADD_TO_CHOICE(text_types,stringval);
 }
 
 FD_INLINE_FCN struct FD_CURL_HANDLE *curl_err(u8_string cxt,int code)
@@ -409,7 +416,8 @@ static fdtype set_curlopt
     else return fd_type_error(_("string"),"set_curl_handle/content-type",val);
   else return fd_err(_("Unknown CURL option"),"set_curl_handle",
 		     NULL,opt);
-  if (FD_CONSP(val)) {FD_ADD_TO_CHOICE(ch->initdata,fd_incref(val));}
+  if (FD_CONSP(val)) {
+    fd_incref(val); FD_ADD_TO_CHOICE(ch->initdata,val);}
   return FD_TRUE;
 }
 
@@ -962,10 +970,9 @@ FD_EXPORT void fd_init_curl_c()
 
   
   FD_ADD_TO_CHOICE(text_types,text_symbol);
-  FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/xml"));
-  FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/rss+xml"));
-  FD_ADD_TO_CHOICE(text_types,fd_init_string(NULL,-1,"application/atom+xml"));
-  
+  decl_text_type("application/xml");
+  decl_text_type("application/rss+xml");
+  decl_text_type("application/atom+xml");
 
   curl_defaults=fd_init_slotmap(NULL,0,NULL);
 

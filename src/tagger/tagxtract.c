@@ -141,7 +141,9 @@ static fdtype tag_gather(fdtype tags,fdtype pat)
 	FD_DO_CHOICES(eachpat,pat) {
 	  int len=tagmatch(eachpat,scan);
 	  if (len>max_len) max_len=len;
-	  if (len) {FD_ADD_TO_CHOICE(results,make_compound(scan,len));}}
+	  if (len) {
+	    fdtype compound=make_compound(scan,len);
+	      FD_ADD_TO_CHOICE(results,compound);}}
 	if (max_len==0) scan=FD_CDR(scan);
 	else while (max_len>0) {scan=FD_CDR(scan); max_len--;}}
       return results;}
@@ -323,7 +325,8 @@ static fdtype phrase_modifiers_prim(fdtype term)
   else if (FD_PAIRP(term)) {
     fdtype results=FD_EMPTY_CHOICE, last=FD_CAR(term), scan=FD_CDR(term);
     while (FD_PAIRP(scan)) {
-      FD_ADD_TO_CHOICE(results,fd_incref(last));
+      fd_incref(last);
+      FD_ADD_TO_CHOICE(results,last);
       last=FD_CAR(scan); scan=FD_CDR(scan);}
     return results;}
   else return fd_type_error(_("compound term"),"phrase_modifiers_prim",term);
@@ -350,7 +353,8 @@ static fdtype phrase_compounds_prim(fdtype term)
       fdtype scan=term; while (FD_PAIRP(scan)) {
 	if ((FD_STRINGP(FD_CAR(scan))) &&
 	    (strchr(FD_STRDATA(FD_CAR(scan)),' '))) {
-	  FD_ADD_TO_CHOICE(results,fd_incref(FD_CAR(scan)));}
+	  fdtype car=FD_CAR(scan);
+	  fd_incref(car); FD_ADD_TO_CHOICE(results,car);}
 	scan=FD_CDR(scan);}
       return results;}
     else return phrase_compounds_prim(FD_CAR(term));
@@ -525,9 +529,11 @@ static fdtype get_ixes(u8_string start,u8_string end,int prefix,int suffix)
     if (c==' ') {
       if ((prefix) && (last>start)) {
 	if (last>start) {
-	  FD_ADD_TO_CHOICE(results,fd_extract_string(NULL,start,last));}}
+	  fdtype xstring=fd_extract_string(NULL,start,last);
+	  FD_ADD_TO_CHOICE(results,xstring);}}
       if ((suffix) && (scan<end)) {
-	FD_ADD_TO_CHOICE(results,fd_extract_string(NULL,scan,end));}}
+	fdtype xstring=fd_extract_string(NULL,scan,end);
+	FD_ADD_TO_CHOICE(results,xstring);}}
     last=scan; c=u8_sgetc(&scan);}
   return results;
 }
@@ -554,16 +560,20 @@ static fdtype term_spectrum(fdtype term)
   fdtype spectrum=fd_incref(term);
   if ((FD_STRINGP(term)) && (strchr(FD_STRDATA(term),' '))) {
     u8_string start=FD_STRDATA(term)+(FD_STRLEN(term))-1, scan=start;
+    fdtype spec;
     while (*scan!=' ') scan--; scan++;
-    FD_ADD_TO_CHOICE(spectrum,fdtype_string(scan));}
+    spec=fdtype_string(scan);
+    FD_ADD_TO_CHOICE(spectrum,spec);}
   else if (FD_PAIRP(term)) {
     fdtype base=phrase_base_prim(term);
     FD_ADD_TO_CHOICE(spectrum,base);
     if ((FD_STRINGP(base)) &&
 	(strchr(FD_STRDATA(base),' '))) {
       u8_string start=FD_STRDATA(base)+(FD_STRLEN(base))-1, scan=start;
+      fdtype spec;
       while (*scan!=' ') scan--; scan++;
-      FD_ADD_TO_CHOICE(spectrum,fdtype_string(scan));}}
+      spec=fdtype_string(scan);
+      FD_ADD_TO_CHOICE(spectrum,spec);}}
   return spectrum;
 }
 
@@ -579,9 +589,10 @@ static fdtype getxkeys
       fdtype root=FD_VECTOR_REF(word,2);
       fdtype spectrum=FD_VOID;
       if (fd_overlapp(tag,prefix_tags)) {
+	fdtype pair;
 	if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
-	FD_ADD_TO_CHOICE
-	  (prefixes,fd_init_pair(NULL,FD_INT2DTYPE(wordpos),fd_incref(spectrum)));}
+	pair=fd_init_pair(NULL,FD_INT2DTYPE(wordpos),fd_incref(spectrum));
+	FD_ADD_TO_CHOICE(prefixes,pair);}
       if (fd_overlapp(tag,suffix_tags)) {
 	if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {
 	  FD_DO_CHOICES(head,last_head) {

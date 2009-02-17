@@ -84,7 +84,9 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
   else if (FD_ABORTP(value)) {
     u8_exception ex=u8_erreify();
     fdtype handler=fd_eval(error_handler,env);
-    if (FD_ABORTP(handler)) return handler;
+    if (FD_ABORTP(handler)) {
+      u8_free_exception(ex,1);
+      return handler;}
     else if (FD_APPLICABLEP(handler)) {
       fdtype err_value=fd_init_exception(NULL,ex);
       fdtype err_result=fd_apply(handler,1,&err_value);
@@ -100,6 +102,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
 	fd_decref(value); fd_decref(handler); fd_decref(err_value);
 	return err_result;}}
     else {
+      u8_free_exception(ex,1);
       fd_decref(value);
       return handler;}}
   else if (FD_VOIDP(default_handler))

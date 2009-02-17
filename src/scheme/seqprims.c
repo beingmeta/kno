@@ -1389,19 +1389,22 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
     fdtype *read, *limit;
     read=FD_VECTOR_DATA(x)+start; limit=FD_VECTOR_DATA(x)+end;
     while (read<limit) {
-      fdtype v=*read++; FD_ADD_TO_CHOICE(results,fd_incref(v));}
+      fdtype v=*read++; fd_incref(v);
+      FD_ADD_TO_CHOICE(results,v);}
     return results;}
   case fd_packet_type: {
     unsigned char *read=FD_PACKET_DATA(x), *lim=read+end;
     while (read<lim) {
-      int v=*read++; FD_ADD_TO_CHOICE(results,FD_INT2DTYPE(v));}
+      int v=*read++;
+      FD_ADD_TO_CHOICE(results,FD_INT2DTYPE(v));}
     return results;}
   case fd_pair_type: {
     int j=0; fdtype scan=x, head=FD_EMPTY_LIST;
     while (FD_PAIRP(scan))
       if (j==end) return head;
       else if (j>=start) {
-	FD_ADD_TO_CHOICE(results,fd_incref(FD_CAR(scan)));
+	fdtype car=FD_CAR(scan); fd_incref(car);
+	FD_ADD_TO_CHOICE(results,car);
 	j++; scan=FD_CDR(scan);}
       else {j++; scan=FD_CDR(scan);}
     return results;}

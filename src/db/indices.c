@@ -268,7 +268,8 @@ static void delay_index_fetch(fd_index ix,fdtype keys)
   FD_DO_CHOICES(key,keys) {
     if (fd_hashtable_probe(cache,key)) {}
     else {
-      FD_ADD_TO_CHOICE((*delayp),fd_incref(key));
+      fd_incref(key);
+      FD_ADD_TO_CHOICE((*delayp),key);
       delay_count++;}}
   if (delay_count) fd_ipeval_delay(delay_count);
 }
@@ -805,7 +806,8 @@ long fd_index_cache_load()
 static int accumulate_cached(fd_index ix,void *ptr)
 {
   fdtype *vals=(fdtype *)ptr;
-  FD_ADD_TO_CHOICE(*vals,fd_hashtable_keys(&(ix->cache)));
+  fdtype keys=fd_hashtable_keys(&(ix->cache));
+  FD_ADD_TO_CHOICE(*vals,keys);
   return 0;
 }
 

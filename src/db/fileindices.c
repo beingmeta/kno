@@ -295,8 +295,11 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
   fd_setpos(&(fx->stream),8);
   fd_dtsread_ints(&(fx->stream),fx->n_slots,offsets);
   while (i<n_slots) if (offsets[i]) {n_keys++; i++;} else i++;
+  if (n_keys==0) {
+    fd_unlock_struct(fx); u8_free(offsets);
+    *n=n_keys; return NULL;}
+  else result=u8_alloc_n(n_keys,fdtype);
   qsort(offsets,fx->n_slots,SLOTSIZE,sort_offsets);
-  result=u8_alloc_n(n_keys,fdtype);
   i=0; while (i < n_slots)
     if (offsets[i]) {
       fdtype key;
@@ -877,7 +880,8 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
     else scan++;
   if (n_drops) {
     i=0; while (i<n_drops) {fd_decref(dropvals[i]); i++;}
-    u8_free(dropkeys); u8_free(dropvals);}
+    u8_free(dropvals);}
+  u8_free(dropkeys);
   return n_edits;
 }
 

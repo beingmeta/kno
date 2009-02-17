@@ -759,7 +759,8 @@ static fd_ptrbits fcgiserveloop(fd_ptrbits socket)
   else while ((retval=FCGX_Accept_r(&req))==0) {
       fcgiservefn(&req,&out);
       FCGX_Finish_r(&req);
-      if ((retval=FCGX_InitRequest(&req,socket,0))!=0)
+      out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+      if ((retval=FCGX_InitRequest(&req,socket,0))!=0) 
 	break;}
   FCGX_Free(&req,1);
   u8_free(out.u8_outbuf);

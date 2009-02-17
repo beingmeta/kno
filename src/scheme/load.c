@@ -151,7 +151,7 @@ FD_EXPORT fdtype fd_load_source
       result=fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
       result=expr; expr=FD_VOID;}
-    else fd_decref(last_expr);
+    fd_decref(last_expr);
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_INFO,FileDone,"Loaded %s in %f seconds",
 	     sourcebase,u8_elapsed_time()-start);

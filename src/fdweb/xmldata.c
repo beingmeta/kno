@@ -34,7 +34,8 @@ static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid)
 {
   if (FD_SLOTMAPP(doc))
     if ((fd_test(doc,name_slotid,eltid))) {
-      FD_ADD_TO_CHOICE((*result),fd_incref(doc));}
+      fd_incref(doc);
+      FD_ADD_TO_CHOICE((*result),doc);}
     else {
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_CHOICE);
       xmlget_helper(result,content,eltid);

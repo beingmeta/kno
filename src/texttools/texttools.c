@@ -352,7 +352,8 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
       int stopat=n-maxspan; if (stopat<0) stopat=0;
       i=n-1; while (i>=stopat) {
 	frag=fd_init_pair(NULL,fd_incref(data[i]),frag);
-	FD_ADD_TO_CHOICE(results,fd_incref(frag));
+	fd_incref(frag);
+	FD_ADD_TO_CHOICE(results,frag);
 	i--;}
       fd_decref(frag);}}
   {
@@ -362,7 +363,8 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
 	fdtype frag=FD_EMPTY_LIST;
 	int j=i+span-1; while ((j<n) && (j>=i)) {
 	  frag=fd_init_pair(NULL,fd_incref(data[j]),frag);
-	  FD_ADD_TO_CHOICE(results,fd_incref(frag));
+	  fd_incref(frag);
+	  FD_ADD_TO_CHOICE(results,frag);
 	  j--;}
 	fd_decref(frag);
 	i++;}
@@ -1164,7 +1166,8 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 	FD_DO_CHOICES(extraction,extractions) {
 	  int xlen=fd_getint(FD_CAR(extraction));
 	  if (xlen==max) {
-	    FD_ADD_TO_CHOICE(longest,fd_incref(FD_CDR(extraction)));}
+	    fdtype cdr=FD_CDR(extraction);
+	    fd_incref(cdr); FD_ADD_TO_CHOICE(longest,cdr);}
 	  else if (xlen>max) {
 	    fd_decref(longest); longest=fd_incref(FD_CDR(extraction));
 	    max=xlen;}
@@ -1362,7 +1365,8 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
     else {
       FD_DO_CHOICES(candidate,candidates)
 	if (check_string(candidate,lexicon)) {
-	  FD_ADD_TO_CHOICE(results,fd_incref(candidate));}
+	  fd_incref(candidate);
+	  FD_ADD_TO_CHOICE(results,candidate);}
       fd_decref(candidates);
       if (!(FD_EMPTY_CHOICEP(results))) return results;}}
   else if (FD_EMPTY_LISTP(rule))
