@@ -3,6 +3,7 @@
 # installation will include instances of the 'fdcgiexec' executable, each of which
 # is declared with 'FastCgiServer'.
 FastCgiServer /Library/WebServer/CGI-Executables/fdcgiexec
+FastCgiConfig -appConnTimeout 30 -autoUpdate -idle-timeout 60
 
 # Alternatively, you can have an external server set up with an explicit FCGISOCK configuration.
 #FastCgiExternalServer /Library/WebServer/CGI-Executables/fdcgiexec -socket /tmp/fdcgi.sock

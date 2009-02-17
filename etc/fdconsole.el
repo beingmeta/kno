@@ -1,5 +1,10 @@
 ;; Indentation information
 
+;; We do this because we don't want console windows to have infinite undo
+(make-variable-buffer-local 'undo-limit)
+;; The name of the FramerD scheme module for a particular buffer
+(make-variable-buffer-local 'fdconsole-module)
+
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
@@ -114,9 +119,7 @@
 ;	(if pos
 ;	    (message "Search found module name %s at %d" name pos)
 ;	  (message "Search failed to find module name"))
-	(if pos
-	    (progn (make-variable-buffer-local 'fdconsole-module)
-		   (setq fdconsole-module name)))
+	(if pos (setq fdconsole-module name))
 	name))))
 (defun fdconsole-process () (scheme-proc))
 
