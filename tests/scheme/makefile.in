@@ -21,7 +21,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 #RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
-VALGRIND	= valgrind --tool=memcheck --leak-check=yes --num-callers=9
+VALGRIND	= INVALGRIND=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
 RUNENV		= 
 TESTSIZE	= 64
@@ -157,6 +157,10 @@ memtabletests:
 memdbtests:
 	@echo "***" Running tests on database layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+
+memdbhashtests:
+	@echo "***" Running tests on database layers with memory debugging
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
 
 heaptests:
 	@echo "***" Running alltests with tcmalloc memory debugging

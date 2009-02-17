@@ -290,7 +290,7 @@
   (dotimes (i 17000000) (testfn "bar"))
   (message "Finished big TESTOPTFREE test (whew)")
   #t)
-(applytest #t testoptfree)
+(unless (getenv "INVALGRIND") (applytest #t testoptfree))
 
 ;;; Quasiquote oddness
 
