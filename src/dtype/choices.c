@@ -748,7 +748,7 @@ fdtype fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
 	else break;
       if (i==n_choices) {
 	if (FD_CONSP(item)) {
-	  atomicp=0; *write++=fd_incref(item);}
+	  atomicp=0; fd_incref(item); *write++=item;}
 	else *write++=item;}}}
   if (write==results) {
     u8_free(results);

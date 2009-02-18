@@ -830,7 +830,9 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   hashval=hash_bytes(out.start,dtype_len);
   bucket=hashval%(hx->n_buckets);
   keyblock=get_chunk_ref(hx,bucket,LOCK_STREAM);
-  if (keyblock.size==0) return FD_EMPTY_CHOICE;
+  if (keyblock.size==0) {
+    if ((out.flags)&(FD_BYTEBUF_MALLOCD)) u8_free(out.start);
+    return FD_EMPTY_CHOICE;}
   if (keyblock.size<512)
     open_block(&keystream,hx,keyblock.off,keyblock.size,_inbuf,LOCK_STREAM);
   else {
@@ -845,15 +847,18 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
       n_values=fd_read_zint(&keystream);
       if (n_values==0) {
 	if (inbuf) u8_free(inbuf);
+	if ((out.flags)&(FD_BYTEBUF_MALLOCD)) u8_free(out.start);
 	return FD_EMPTY_CHOICE;}
       else if (n_values==1) {
 	fdtype value=read_zvalue(hx,&keystream);
 	if (inbuf) u8_free(inbuf);
+	if ((out.flags)&(FD_BYTEBUF_MALLOCD)) u8_free(out.start);
 	return value;}
       else {
 	vblock_off=(off_t)fd_read_zint8(&keystream);
 	vblock_size=(size_t)fd_read_zint(&keystream);
 	if (inbuf) u8_free(inbuf);
+	if ((out.flags)&(FD_BYTEBUF_MALLOCD)) u8_free(out.start);
 	return read_zvalues(hx,n_values,vblock_off,vblock_size);}}
     else {
       keystream.ptr=keystream.ptr+key_len;
@@ -870,6 +875,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
 	fd_read_zint(&keystream);}}
     i++;}
   if (inbuf) u8_free(inbuf);
+  if ((out.flags)&(FD_BYTEBUF_MALLOCD)) u8_free(out.start);
   return FD_EMPTY_CHOICE;
 }
 
@@ -1827,9 +1833,10 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
       struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
       struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-	fdtype key=kvscan->key, key_to_drop=FD_CDR(key);
+	fdtype key=kvscan->key;
 	if ((FD_PAIRP(key)) && ((FD_CAR(key))==drop_symbol)) {
-	  if (FD_CDR(key)==drops[j]) {
+	  fdtype key_to_drop=FD_CDR(key);
+	  if ((j<n_drops) && (FD_CDR(key)==drops[j])) {
 	    fdtype cached=drop_values[j];
 	    fdtype added=
 	      fd_hashtable_get_nolock(adds,key_to_drop,FD_EMPTY_CHOICE);
@@ -1964,8 +1971,8 @@ FD_FASTOP off_t extend_keybucket
 	break;}
       else {
 	/* The key is already in there and has values, so we write
-	   a value block with a pointer to the current value block
-	   and update the key entry.  */
+	   a value block with a continuation pointer to the current
+	   value block and update the key entry.  */
 	int n_values=ke[scan].n_values;
 	int n_values_added=FD_CHOICE_SIZE(schedule[k].values);
 	ke[scan].n_values=n_values+n_values_added;
@@ -1987,9 +1994,12 @@ FD_FASTOP off_t extend_keybucket
 	    write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
 			      ke[scan].vref.off,ke[scan].vref.size,
 			      endpos);
+	  /* We void the values field because there's a values block now. */
+	  ke[scan].values=FD_VOID;
 	  endpos=ke[scan].vref.off+ke[scan].vref.size;}
 	scan++;
 	break;}
+    /* This is the case where we are adding a new key to the bucket. */
     if (scan==n_keys) {
       ke[n_keys].dtype_size=keysize;
       ke[n_keys].n_values=n_values=FD_CHOICE_SIZE(schedule[k].values);
@@ -2079,6 +2089,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
       u8_alloc_n(schedule_max,struct KEYBUCKET *);
     struct FD_HASHSET taken;
     struct FD_BYTE_OUTPUT out, newkeys;
+    /* First, we populate the commit schedule.
+       The 'taken' hashset contains keys that are edited.
+       We process all of the edits, getting values if neccessary.
+       Then we process all the adds. */
     fd_init_hashset(&taken,3*(hx->edits.n_keys),FD_STACK_CONS);
 #if FD_DEBUG_HASHINDICES
     u8_message("Adding %d edits to the schedule",hx->edits.n_keys);
@@ -2090,6 +2104,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
+    /* The commit schedule is now filled and we start generating a bucket schedule. */
+    /* We're going to write keys and values, so we create streams to do so. */
     FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
     FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16,NULL);
     if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2)) {
@@ -2099,6 +2115,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDICES
     u8_message("Computing the buckets for %d scheduled keys",schedule_size);
 #endif
+    /* Compute the hashes and the buckets for all of the keys
+       in the commit schedule. */
     i=0; while (i<schedule_size) {
       fdtype key=schedule[i].key; int bucket;
       out.ptr=out.start;
@@ -2120,6 +2138,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       bucket_locs[changed_buckets].max_new=j-i;
       changed_buckets++; i=j;}
+    /* Now we have all the bucket locations, which we'll read in order. */
     /* Read all the buckets in order, reading each keyblock.
        We may be able to combine this with extending the bucket
        below, but that would entail moving the writing of values
@@ -2136,6 +2155,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
 		       bucket_locs[i].ref,bucket_locs[i].max_new);
       if ((keybuckets[i]->n_keys)==0) new_buckets++;
       i++;}
+    /* Now all the keybuckets have been read and buckets have been created
+       for keys that didn't have buckets before. */
 #if FD_DEBUG_HASHINDICES
     u8_message("Created %d new buckets",new_buckets);
 #endif
@@ -2180,13 +2201,13 @@ static int hash_index_commit(struct FD_INDEX *ix)
     bscan=0; while (bscan<changed_buckets) {
       struct KEYBUCKET *kb=keybuckets[bscan++];
       struct KEYENTRY *scan=&(kb->elt0), *limit=scan+kb->n_keys;
-      while (scan<limit) { fd_decref(scan->values); scan++; }
       if (kb->keybuf) u8_free(kb->keybuf);
       u8_free(kb);}
     u8_free(keybuckets);
-    /* Note that the values stored in the schedule were copied
-       into keyentries without being incref'd, so they were freed
-       when we freed the keybuckets. */
+    /* Now we free the values in the schedule.
+       Note that the keys were never incref'd (they're safely in the adds or edits tables),
+       so we don't have to decref them. */
+    { int i=0; while (i<schedule_size) { fdtype v=schedule[i++].values; fd_decref(v);}}
     u8_free(schedule);
     u8_free(out.start);
     u8_free(newkeys.start);

@@ -343,7 +343,8 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       if (fd_setpos(stream,24+4*reloff)<0) {
 	retcode=-1; break;}
       fd_dtswrite_4bytes(stream,changed_offsets[i]);
-      i++;}}
+      i++;}
+    u8_free(changed_offsets);}
   if (retcode>=0) {
     /* Now we update the load and do other cleanup.  */
     fd_setpos(stream,16);

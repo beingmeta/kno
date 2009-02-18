@@ -430,7 +430,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	 /* This code handles argument defaults for sprocs */
 	 fdtype default_expr=FD_CADR(arg);
 	 fdtype default_value=fd_eval(default_expr,fn->env);
-	 vals[i]=default_value; i++;}
+	 vals[i]=default_value; free_vals=1; i++;}
        else {vals[i]=FD_VOID; i++;}}
     while (j >= i) {
       lexpr_arg=fd_init_pair(NULL,fd_incref(args[j]),lexpr_arg);
@@ -452,7 +452,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (free_vals) {
     int i=n, lim=fn->n_vars; while (i<lim) {
       fd_decref(vals[i]); i++;}
-    u8_free(vals);}
+    if (vals!=_vals) u8_free(vals);}
   if (envstruct.copy)
     fd_recycle_environment(envstruct.copy);
   return result;
