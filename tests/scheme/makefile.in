@@ -92,7 +92,6 @@ tabletests:
 	@echo "***" Running scheme tests to exercise the table/index layer
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
 	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
 
 indextests:
 	rm -f edit.dtype
