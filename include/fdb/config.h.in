@@ -79,6 +79,9 @@
 /* The number of bytes in a pointer.  */
 #undef SIZEOF_VOID_P
 
+/* The number of bytes in a time_t value.  */
+#undef SIZEOF_TIME_T
+
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
 

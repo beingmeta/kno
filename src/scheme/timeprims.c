@@ -92,8 +92,12 @@ static fdtype timestamp_prim(fdtype arg)
     u8_local_xtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),u8_second,-1);
     return FDTYPE_CONS(tm);}
   else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
-    int tv=fd_bigint2int((fd_bigint)arg);
-    u8_local_xtime(&(tm->xtime),(time_t)tv,u8_second,-1);
+#if (SIZEOF_TIME_T == 8)
+    time_t tv=(time_t)fd_bigint_to_long_long((fd_bigint)arg);
+#else
+    time_t tv=(time_t)fd_bigint_to_long((fd_bigint)arg);
+#endif
+    u8_local_xtime(&(tm->xtime),tv,u8_second,-1);
     return FDTYPE_CONS(tm);}
   else if (FD_PTR_TYPEP(arg,fd_double_type)) {
     double dv=FD_FLONUM(arg);
@@ -132,8 +136,12 @@ static fdtype gmtimestamp_prim(fdtype arg)
     u8_init_xtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),u8_second,-1,0);
     return FDTYPE_CONS(tm);}
   else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
-    int tv=fd_bigint2int((fd_bigint)arg);
-    u8_init_xtime(&(tm->xtime),(time_t)tv,u8_second,-1,0);
+#if (SIZEOF_TIME_T == 8)
+    time_t tv=(time_t)fd_bigint_to_long_long((fd_bigint)arg);
+#else
+    time_t tv=(time_t)fd_bigint_to_long((fd_bigint)arg);
+#endif
+    u8_init_xtime(&(tm->xtime),tv,u8_second,-1,0);
     return FDTYPE_CONS(tm);}
   else if (FD_PTR_TYPEP(arg,fd_double_type)) {
     double dv=FD_FLONUM(arg);

@@ -135,36 +135,47 @@
 	 (expires (get info "expires"))
 	 (user (get info "uid"))
 	 (added #f)
-	 (extstamp (timestamp (if (string? expires)
-				  (string->lisp expires) expires))))
+	 (extstamp
+	  (gmtimestamp (if (string? expires)
+			   (string->lisp expires) expires))))
     (cgiset! 'fb_sig_session_key session)
+
     ;; Set it for this site
     (set-cookie! 'fb_sig_session_key session
-		 (or apphost (cgiget 'host_name)) "/" extstamp)
+		 (or apphost (cgiget 'http_host)) "/" extstamp)
 	   
     (set! added (fbcall "users.isAppAdded"))
-
-    (%watch session user info added)
 
     (cgiset! 'fb_sig_session_expires expires)
     ;; Set it for this site
     (set-cookie! 'fb_sig_session_expires expires
-		 (or apphost (cgiget 'host_name)) "/" extstamp)
+		 (or apphost (cgiget 'http_host)) "/" extstamp)
 	   
     (cgiset! 'fb_sig_user user)
     ;; Set it for this site
     (set-cookie! 'fb_sig_user user
-		 (or apphost (cgiget 'host_name)) "/" extstamp)
+		 (or apphost (cgiget 'http_host)) "/" extstamp)
 
     (cgiset! fb_sig_added added)
     ;; Set it for this site
     (set-cookie! 'fb_sig_added added
-		 (or apphost (cgiget 'host_name)) "/" extstamp)
+		 (or apphost (cgiget 'http_host)) "/" extstamp)
 
     (cgiset! 'status 303)
 
+    (message "Location: ""http:" "//"
+	     (or apphost (cgiget 'http_host))
+	     (or (cgiget 'script_name) approot)
+	     (or path_info "")
+	     (if (and (cgitest 'query_string)
+		      (not (cgitest 'query_string "")))
+		 "?" "")
+	     (if (cgitest 'query_string)
+		 (textsubst (cgiget 'query_string)
+			    #("auth_token=" (not> {"&" (eol)}))
+			    "")))
     (httpheader "Location: ""http:" "//"
-		(or apphost (cgiget 'host_name))
+		(or apphost (cgiget 'http_host))
 		(or (cgiget 'script_name) approot)
 		(or path_info "")
 		(if (and (cgitest 'query_string)
@@ -186,14 +197,18 @@
 		      (popup #f))
   ;; Reset the cookies (fb/logout) to avoid ambiguous values
   (when fb_sig_session_key (fb/logout))
+  ;; null path info; is this the right thing?
+  (when (equal? path_info "/") (set! path_info #f))
   (cgiset! 'status 303)
+
   (httpheader
    "Location: https://www.facebook.com/login.php?"
    (if popup "popup=yes&" "")
    "v=1.0&" "api_key=" (config 'fb:key) "&"
-   "next=" (uriencode (stringout (or path_info "")
-			(if (cgitest 'query_string) "?")
-			(or (cgiget 'query_string) ""))))
+   "next=" (uriencode
+	    (if (and (cgitest 'query_string) (not (cgitest 'query_string "")))
+		(stringout (or path_info "") "?" query_string)
+		(or path_info ""))))
   (emit-authorize-body)
   #f)
 
@@ -220,7 +235,7 @@
   ;;  3. we have a valid session
   ;;     We just return #t after setting USER
 
-  (or (%watch (fb/incanvas?)) 
+  (or (fb/incanvas?) 
       (if (cgitest 'auth_token)
 	  (begin (cgicall handleauthtoken) #f)
 	  (let ((session (cgiget 'fb_sig_session_key))
@@ -238,7 +253,7 @@
   (unless (fb/incanvas?)
     (do-choices (key facebook-cookies)
       (set-cookie! key "expired"
-		   (or apphost (cgiget 'host_name)) "/"
+		   (or apphost (cgiget 'http_host)) "/"
 		   (timeplus (- oneday)))
       (cgidrop! key))))
 

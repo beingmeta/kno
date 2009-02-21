@@ -2437,6 +2437,21 @@ FD_EXPORT unsigned int fd_bigint2uint(fd_bigint bi)
   else return 0;
 }
 
+FD_EXPORT long long int fd_bigint2int64(fd_bigint bi)
+{
+  if (fd_bigint_fits_in_word_p(bi,64,1)) 
+    return fd_bigint_to_long_long(bi);
+  else return 0;
+}
+
+FD_EXPORT unsigned long long int fd_bigint2uint64(fd_bigint bi)
+{
+  if ((fd_bigint_fits_in_word_p(bi,64,1)) &&
+      (!(BIGINT_NEGATIVE_P(bi))))
+    return fd_bigint_to_long_long(bi);
+  else return 0;
+}
+
 FD_EXPORT
 int fd_numberp(fdtype x)
 {
