@@ -1056,7 +1056,7 @@ static u8_string find_sentence_end(u8_string string)
       return string+1;
     else if ((*string<0x80) && (isspace(*string)))
       in_upper=atupper(++string);
-    else string++;
+    else in_upper=atupper(string++);
   return string;
 }
 
