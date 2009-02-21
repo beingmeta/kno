@@ -14,8 +14,8 @@
 
 (use-module '{ezrecords meltcache fifo logger reflection})
 
-;(define %loglevel %warning!)
-(define %loglevel %debug!)
+(define %loglevel %warning!)
+;(define %loglevel %debug!)
 
 (module-export!
  '{cachequeue
