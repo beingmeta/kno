@@ -138,6 +138,7 @@
 	 (extstamp
 	  (gmtimestamp (if (string? expires)
 			   (string->lisp expires) expires))))
+
     (cgiset! 'fb_sig_session_key session)
 
     ;; Set it for this site

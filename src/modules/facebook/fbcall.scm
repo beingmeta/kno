@@ -4,7 +4,8 @@
 
 (use-module '{fdweb xhtml texttools facebook logger})
 
-(module-export! '{fbcall fbcall/raw fbcall/open fbcall/vec})
+(module-export!
+ '{fbcall fbcall/raw fbcall/open fbcall/vec fbcall/open/vec fbcall/xml})
 
 (define %loglevel %notice!)
 
@@ -32,6 +33,10 @@
   (jsonparse
    (get (urlget (fbcalluri method (cons* "format" "JSON" args) #f #f))
 	'%content)))
+
+(define (fbcall/xml method . args)
+  (get (urlget (fbcalluri method (cons* "format" "XML" args)))
+       '%content))
 
 ;;; Support functions
 
@@ -111,6 +116,21 @@
 	(if (and (table? result) (zero? (getkeys result)))
 	    #()
 	    (vector result)))))
+(define (fbcall/open/vec method . args)
+  "Calls the Facebook API and ensures that the results are a vector"
+  (%debug "Calling " method " on"
+	  (doseq (arg args) (printout " " (write arg))))
+  (let* ((uri (fbcalluri method (cons* "format" "JSON" args) #f #f))
+	 (ign1 (begin (%debug "Request URI is " uri) #t))
+	 (req (urlget uri))
+	 (content (get req '%content))
+	 (ign2 (begin (%debug "Request content is " content) #t))
+	 (result (fbcallparse content)))
+    (%debug "Results for " method " is " (write result))
+    (if (vector? result) result
+	(if (and (table? result) (zero? (getkeys result)))
+	    #()
+	    (vector result)))))
 
 (module-export!
  '{fb/getuserinfo
@@ -138,9 +158,23 @@
 
 (define (fb/getmyfriends) (fbcall/vec "facebook.friends.get"))
 (define (fb/getmygroups) (fbcall/vec "groups.get"))
+
+(define page-fields
+  "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large")
 (define (fb/getmypages)
-  (fbcall/vec "pages.getInfo"
-	      "fields"
-	      "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large"))
+  (fbcall/vec "pages.getInfo" "fields" page-fields))
+
+;; We redefine this while pages.getInfo is broken at Facebook
+
+(define mypages-query-base
+  (append "select " page-fields " from page where page_id IN "
+	  "(select page_id from page_fan where uid="))
+
+(define (fb/getmypages)
+  (fbcall/vec "fql.query"
+	      "query"
+	      (stringout mypages-query-base (fb/getmyid) ")")))
+
+
 
 
