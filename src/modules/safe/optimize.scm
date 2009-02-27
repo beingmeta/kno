@@ -173,7 +173,7 @@
 		       expr))))))
 	((not (pair? expr)) expr)
 	((pair? (car expr))
-	 (map (lambda (x) (dotighten x env bound dolex)) expr))
+	 (tighten-call expr env bound dolex))
 	((and (symbol? (car expr)) (get-lexref (car expr) bound 0))
 	 expr)
 	((and (symbol? (car expr))
@@ -215,10 +215,12 @@
 					((test from '%volatile head) `(,%get ,from ',head))
 					(else value))
 				  n-exprs))
-			     (map (lambda (x)
-				    (if (empty? x) x
-					(dotighten (qc x) env bound dolex)))
-				  (cdr expr))))
+			     (tighten-call (cdr expr) env bound dolex)
+;;; 			     (map (lambda (x)
+;;; 				    (if (empty? x) x
+;;; 					(dotighten (qc x) env bound dolex)))
+;;; 				  (cdr expr))
+			     ))
 		      ((and (ambiguous? value)
 			    (exists applicable? value)
 			    (not (singleton? (applicable? value))))
@@ -246,6 +248,14 @@
 				  " doesn't appear to be a applicable given "
 				  (apply append bound)))
 		       expr))))))
+
+(defambda (tighten-call expr env bound dolex)
+  (if (pair? expr)
+      `(,(if (or (symbol? (car expr)) (pair? (car expr)) (ambiguous? (car expr)))
+	     (dotighten (car expr) env bound dolex)
+	     (car expr))
+	,@(tighten-call (cdr expr) env bound dolex))
+      expr))
 
 (define (optimize-procedure! proc (dolex #t))
   (let* ((env (procedure-env proc))
