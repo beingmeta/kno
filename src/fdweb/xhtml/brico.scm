@@ -448,7 +448,7 @@
 	    (input type "CHECKBOX" name var value tag)))
       (span ((class "taghead")) (dterm->html text)))))
 
-(define (concept->anchor tag (url #f) (language #f) (var #f) (selected))
+(define (concept->anchor tag (url #f) (language #f) (var #f) (selected) (target #t))
   (let* ((oid (if (and (pair? tag) (oid? (cdr tag)))
 		  (cdr tag)
 		  (and (oid? tag) tag)))
@@ -466,8 +466,10 @@
 	 (gloss (ifexists gloss))
 	 (title (if (not (cgiget 'notitle (not title-gloss)))
 		    (ifexists gloss)))
-	 (target (if (and (cgitest 'browsetarget) (cgiget 'browsetarget))
-		     (cgiget 'browsetarget)))
+	 (target (if target
+		     (if (string? target) target
+			 (if (and (cgitest 'browsetarget) (cgiget 'browsetarget))
+			     (cgiget 'browsetarget)))))
 	 (text text))
       (when var
 	(if selected
