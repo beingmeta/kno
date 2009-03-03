@@ -208,7 +208,7 @@
    "v=1.0&" "api_key=" (config 'fb:key) "&"
    "next=" (uriencode
 	    (if (and (cgitest 'query_string) (not (cgitest 'query_string "")))
-		(stringout (or path_info "") "?" query_string)
+		(stringout (or path_info "") "?" (cgiget 'query_string))
 		(or path_info ""))))
   (emit-authorize-body)
   #f)
