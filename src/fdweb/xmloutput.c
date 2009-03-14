@@ -1131,9 +1131,12 @@ static fdtype xmloid(fdtype oid_arg)
 
 /* Scripturl primitive */
 
+static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon);
+
 static fdtype scripturl(int n,fdtype *args)
 {
   struct U8_OUTPUT out; 
+  u8_string baseuri; int baseuri_len;
   if (!(FD_STRINGP(args[0]))) 
     return fd_err(fd_TypeError,"scripturl",
 		  u8_strdup("script name"),args[0]);
@@ -1141,80 +1144,63 @@ static fdtype scripturl(int n,fdtype *args)
     return fd_err(fd_SyntaxError,"scripturl",
 		  strd("odd number of arguments"),FD_VOID);
   else {U8_INIT_OUTPUT(&out,64);}
-  if (n==1) {
-    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");}
-  else if (n == 2) {
-    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");
-    u8_putc(&out,'?');
+  baseuri=FD_STRDATA(args[0]);
+  baseuri_len=FD_STRLEN(args[0]);
+  u8_puts(&out,baseuri);
+  if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
+  else if (baseuri[baseuri_len-1]=='?') {}
+  else if (baseuri[baseuri_len-1]!='&') u8_putc(&out,'&');
+  if (n == 2) {
     if (FD_STRINGP(args[1]))
       fd_uri_output(&out,FD_STRDATA(args[1]),"#&=;");
     else if (FD_OIDP(args[1])) {
       FD_OID addr=FD_OID_ADDR(args[1]);
       u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
-    else {
-      u8_string as_string=fd_dtype2string(args[1]);
-      u8_putc(&out,':');
-      fd_uri_output(&out,as_string,"#&=;");
-      u8_free(as_string);}}
+    else u8_printf(&out,":%q",args[1]);}
   else if (n%2) {
-    int i=1, params=0;
-    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");
-    u8_putc(&out,'?');
-    while (i <n) {
-      if (FD_EMPTY_CHOICEP(args[i+1])) {
-	i=i+2; continue;}
-      if (params>0) u8_putc(&out,'&');
-      params++;
-      if (FD_STRINGP(args[i]))
-	fd_uri_output(&out,FD_STRDATA(args[i]),"?#=&");
-      else if (FD_SYMBOLP(args[i]))
-	fd_uri_output(&out,FD_SYMBOL_NAME(args[i]),"?#=&");
-      else {
-	u8_free(out.u8_outbuf);
-	return fd_err(fd_SyntaxError,"scripturl",
-		      u8_strdup(_("invalid parameter")),
-		      fd_incref(args[i]));}
-      u8_putc(&out,'=');
-      if (FD_STRINGP(args[i+1]))
-	fd_uri_output(&out,FD_STRDATA(args[i+1]),"?#=&");
-      else if (FD_OIDP(args[i+1])) {
-	FD_OID addr=FD_OID_ADDR(args[i+1]);
-	u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
-      else if (FD_CHOICEP(args[i+1])) {
-	u8_string name=((FD_STRINGP(args[i])) ? (FD_STRDATA(args[i])) :
-			(FD_SYMBOLP(args[i])) ? (FD_SYMBOL_NAME(args[i]))
-			: ((u8_string)"NEVER"));
-	int first_one=1;
-	FD_DO_CHOICES(value,args[i+1])
-	  if (FD_STRINGP(value)) {
-	    if (first_one) {
-	      fd_uri_output(&out,FD_STRING_DATA(value),"?#=&");
-	      first_one=0;}
-	    else {
-	      u8_putc(&out,'&');
-	      fd_uri_output(&out,name,"?#=&");
-	      u8_putc(&out,'=');
-	      fd_uri_output(&out,FD_STRING_DATA(value),"?#=&");}}
-	  else {
-	    u8_string as_string=fd_dtype2string(value);
-	    if (first_one) {
-	      fd_uri_output(&out,as_string,"?#=&"); first_one=0;}
-	    else {
-	      u8_putc(&out,'&');
-	      fd_uri_output(&out,name,"?#=&");
-	      u8_putc(&out,'=');
-	      fd_uri_output(&out,as_string,"?#=&");}
-	    u8_free(as_string);}}
-      else {
-	u8_string as_string=fd_dtype2string(args[i+1]);
-	fd_uri_output(&out,as_string,"?#=&");
-	u8_free(as_string);}
+    int i=1;
+    while (i<n) {
+      add_query_param(&out,args[i],args[i+1],1);
       i=i+2;}}
   else return fd_err(fd_SyntaxError,"scripturl",u8_strdup(FD_STRDATA(args[0])),FD_VOID);
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
 static fdtype fdscripturl(int n,fdtype *args)
+{
+  struct U8_OUTPUT out; 
+  u8_string baseuri; int baseuri_len;
+  if (!(FD_STRINGP(args[0]))) 
+    return fd_err(fd_TypeError,"scripturl",
+		  u8_strdup("script name"),args[0]);
+  else if ((n>2) && ((n%2)==0))
+    return fd_err(fd_SyntaxError,"scripturl",
+		  strd("odd number of arguments"),FD_VOID);
+  else {U8_INIT_OUTPUT(&out,64);}
+  baseuri=FD_STRDATA(args[0]);
+  baseuri_len=FD_STRLEN(args[0]);
+  u8_puts(&out,baseuri);
+  if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
+  else if (baseuri[baseuri_len-1]=='?') {}
+  else if (baseuri[baseuri_len-1]!='&') u8_putc(&out,'&');
+  if (n == 2) {
+    if (FD_STRINGP(args[1]))
+      fd_uri_output(&out,FD_STRDATA(args[1]),"#&=;");
+    else if (FD_OIDP(args[1])) {
+      FD_OID addr=FD_OID_ADDR(args[1]);
+      u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
+    else u8_printf(&out,":%q",args[1]);}
+  else if (n%2) {
+    int i=1, params=0;
+    u8_puts(&out,FD_STRDATA(args[0]));
+    while (i<n) {
+      add_query_param(&out,args[i],args[i+1],0);
+      i=i+2;}}
+  else return fd_err(fd_SyntaxError,"scripturl",u8_strdup(FD_STRDATA(args[0])),FD_VOID);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
+static fdtype fdscripturlx(int n,fdtype *args)
 {
   struct U8_OUTPUT out; 
   if (!(FD_STRINGP(args[0]))) 
@@ -1269,90 +1255,38 @@ static fdtype fdscripturl(int n,fdtype *args)
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
-static fdtype scripturlplus(int n,fdtype *args)
+static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 {
-  struct U8_OUTPUT out; 
-  u8_string baseuri; int baseuri_len;
-  if (!(FD_STRINGP(args[0]))) 
-    return fd_err(fd_TypeError,"scripturl",
-		  u8_strdup("script name"),args[0]);
-  else if ((n>2) && ((n%2)==0))
-    return fd_err(fd_SyntaxError,"scripturl",
-		  strd("odd number of arguments"),FD_VOID);
-  else {U8_INIT_OUTPUT(&out,64);}
-  baseuri=FD_STRDATA(args[0]);
-  baseuri_len=FD_STRLEN(args[0]);
-  if (n == 2) {
-    u8_puts(&out,baseuri);
-    if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
-    else if (baseuri[baseuri_len-1]!='&') u8_putc(&out,'&');
-    if (FD_STRINGP(args[1]))
-      fd_uri_output(&out,FD_STRDATA(args[1]),"#&=;");
-    else if (FD_OIDP(args[1])) {
-      FD_OID addr=FD_OID_ADDR(args[1]);
-      u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
-    else {
-      u8_string as_string=fd_dtype2string(args[1]);
-      u8_putc(&out,':');
-      fd_uri_output(&out,as_string,"#&=;");
-      u8_free(as_string);}}
-  else if (n%2) {
-    int i=1, params=0;
-    u8_puts(&out,FD_STRDATA(args[0]));
-    if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
-    else if (baseuri[baseuri_len-1]!='&') u8_putc(&out,'&');
-    while (i <n) {
-      if (FD_EMPTY_CHOICEP(args[i+1])) {
-	i=i+2; continue;}
-      if (params>0) u8_putc(&out,'&');
-      params++;
-      if (FD_STRINGP(args[i]))
-	fd_uri_output(&out,FD_STRDATA(args[i]),"?#=&");
-      else if (FD_SYMBOLP(args[i]))
-	fd_uri_output(&out,FD_SYMBOL_NAME(args[i]),"?#=&");
-      else {
-	u8_free(out.u8_outbuf);
-	return fd_err(fd_SyntaxError,"scripturl",
-		      u8_strdup(_("invalid parameter")),
-		      fd_incref(args[i]));}
-      u8_putc(&out,'=');
-      if (FD_STRINGP(args[i+1]))
-	fd_uri_output(&out,FD_STRDATA(args[i+1]),"?#=&");
-      else if (FD_OIDP(args[i+1])) {
-	FD_OID addr=FD_OID_ADDR(args[i+1]);
-	u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
-      else if (FD_CHOICEP(args[i+1])) {
-	u8_string name=((FD_STRINGP(args[i])) ? (FD_STRDATA(args[i])) :
-			(FD_SYMBOLP(args[i])) ? (FD_SYMBOL_NAME(args[i]))
-			: ((u8_string)"NEVER"));
-	int first_one=1;
-	FD_DO_CHOICES(value,args[i+1])
-	  if (FD_STRINGP(value)) {
-	    if (first_one) {
-	      fd_uri_output(&out,FD_STRING_DATA(value),"?#=&");
-	      first_one=0;}
-	    else {
-	      u8_putc(&out,'&');
-	      fd_uri_output(&out,name,"?#=&");
-	      u8_putc(&out,'=');
-	      fd_uri_output(&out,FD_STRING_DATA(value),"?#=&");}}
-	  else {
-	    u8_string as_string=fd_dtype2string(value);
-	    if (first_one) {
-	      fd_uri_output(&out,as_string,"?#=&"); first_one=0;}
-	    else {
-	      u8_putc(&out,'&');
-	      fd_uri_output(&out,name,"?#=&");
-	      u8_putc(&out,'=');
-	      fd_uri_output(&out,as_string,"?#=&");}
-	    u8_free(as_string);}}
-      else {
-	u8_string as_string=fd_dtype2string(args[i+1]);
-	fd_uri_output(&out,as_string,"?#=&");
-	u8_free(as_string);}
-      i=i+2;}}
-  else return fd_err(fd_SyntaxError,"scripturl",u8_strdup(FD_STRDATA(args[0])),FD_VOID);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  int lastc=-1, free_varname=0, firstval=1;
+  u8_string varname; u8_byte namebuf[256];
+  if (out->u8_outbuf<out->u8_outptr) lastc=out->u8_outptr[-1];
+  if (FD_STRINGP(name)) varname=FD_STRDATA(name);
+  else if (FD_SYMBOLP(name)) varname=FD_SYMBOL_NAME(name);
+  else if (FD_OIDP(name)) {
+    FD_OID addr=FD_OID_ADDR(name);
+    sprintf(namebuf,":@%x/%x",FD_OID_HI(name),FD_OID_LO(name));
+    varname=namebuf;}
+  else {
+    varname=fd_dtype2string(name);
+    free_varname=1;}
+  {FD_DO_CHOICES(val,value) {
+      if (lastc=='?') {}
+      else if (lastc=='&') {}
+      else u8_putc(out,'&');
+      fd_uri_output(out,varname,"?#=&");
+      u8_putc(out,'=');
+      if (FD_STRINGP(val)) {
+	u8_putn(out,FD_STRDATA(val),FD_STRLEN(val));}
+      else if (FD_OIDP(val)) {
+	FD_OID addr=FD_OID_ADDR(val);
+	u8_printf(out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
+      else if (nocolon) {
+	u8_printf(out,"%q",val);}
+      else if (FD_SYMBOLP(val)) {
+	u8_printf(out,":%s",FD_SYMBOL_NAME(val));}
+      else u8_printf(out,":%q",val);}
+    lastc=-1;}
+  if (free_varname) u8_free(varname);
 }
 
 static fdtype uriencode_prim(fdtype string,fdtype escape)
@@ -1626,10 +1560,10 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_cprim2x("OID2ID",oid2id,1,fd_oid_type,FD_VOID,-1,FD_VOID);
   fdtype scripturl_proc=
     fd_make_ndprim(fd_make_cprimn("SCRIPTURL",scripturl,1));
-  fdtype scripturlplus_proc=
-    fd_make_ndprim(fd_make_cprimn("SCRIPTURL+",scripturlplus,2));
   fdtype fdscripturl_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL",fdscripturl,2));
+  fdtype fdscripturlx_proc=
+    fd_make_ndprim(fd_make_cprimn("FDSCRIPTURLX",fdscripturlx,2));
   fdtype uriencode_proc=
     fd_make_ndprim(fd_make_cprim2x("URIENCODE",uriencode_prim,1,
 				   fd_string_type,FD_VOID,
@@ -1651,10 +1585,11 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defn(module,xmlify_proc);
     fd_defn(module,oid2id_proc);
     fd_defn(module,scripturl_proc);
-    fd_defn(module,scripturlplus_proc);
+    fd_defn(module,fdscripturlx_proc);
     fd_defn(module,fdscripturl_proc);
     fd_defn(module,uriencode_proc);
     fd_defn(module,uriout_proc);
+    fd_store(module,fd_intern("SCRIPTURL+"),scripturl_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
@@ -1666,12 +1601,13 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_store(module,fd_intern("XMLBLOCK"),xmlblock_prim);
     fd_store(module,fd_intern("XMLBLOCKN"),xmlblockn_prim);
     fd_store(module,fd_intern("XMLELT"),xmlelt_prim);
+    fd_store(module,fd_intern("SCRIPTURL+"),scripturl_proc);
     fd_idefn(module,xmlempty_proc);
     fd_idefn(module,xmlify_proc);
     fd_idefn(module,oid2id_proc);
     fd_idefn(module,scripturl_proc);
-    fd_idefn(module,scripturlplus_proc);
     fd_idefn(module,fdscripturl_proc);
+    fd_idefn(module,fdscripturlx_proc);
     fd_idefn(module,uriencode_proc);
     fd_idefn(module,uriout_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
@@ -1779,4 +1715,89 @@ FD_EXPORT void fd_init_xmloutput_c()
 
 }
 
+/* Dead code */
 
+/*
+static fdtype scripturl(int n,fdtype *args)
+{
+  struct U8_OUTPUT out; 
+  if (!(FD_STRINGP(args[0]))) 
+    return fd_err(fd_TypeError,"scripturl",
+		  u8_strdup("script name"),args[0]);
+  else if ((n>2) && ((n%2)==0))
+    return fd_err(fd_SyntaxError,"scripturl",
+		  strd("odd number of arguments"),FD_VOID);
+  else {U8_INIT_OUTPUT(&out,64);}
+  if (n==1) {
+    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");}
+  else if (n == 2) {
+    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");
+    u8_putc(&out,'?');
+    if (FD_STRINGP(args[1]))
+      fd_uri_output(&out,FD_STRDATA(args[1]),"#&=;");
+    else if (FD_OIDP(args[1])) {
+      FD_OID addr=FD_OID_ADDR(args[1]);
+      u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
+    else {
+      u8_string as_string=fd_dtype2string(args[1]);
+      u8_putc(&out,':');
+      fd_uri_output(&out,as_string,"#&=;");
+      u8_free(as_string);}}
+  else if (n%2) {
+    int i=1, params=0;
+    fd_uri_output(&out,FD_STRDATA(args[0]),"?#=&");
+    u8_putc(&out,'?');
+    while (i <n) {
+      if (FD_EMPTY_CHOICEP(args[i+1])) {
+	i=i+2; continue;}
+      if (params>0) u8_putc(&out,'&');
+      params++;
+      if (FD_STRINGP(args[i]))
+	fd_uri_output(&out,FD_STRDATA(args[i]),"?#=&");
+      else if (FD_SYMBOLP(args[i]))
+	fd_uri_output(&out,FD_SYMBOL_NAME(args[i]),"?#=&");
+      else {
+	u8_free(out.u8_outbuf);
+	return fd_err(fd_SyntaxError,"scripturl",
+		      u8_strdup(_("invalid parameter")),
+		      fd_incref(args[i]));}
+      u8_putc(&out,'=');
+      if (FD_STRINGP(args[i+1]))
+	fd_uri_output(&out,FD_STRDATA(args[i+1]),"?#=&");
+      else if (FD_OIDP(args[i+1])) {
+	FD_OID addr=FD_OID_ADDR(args[i+1]);
+	u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
+      else if (FD_CHOICEP(args[i+1])) {
+	u8_string name=((FD_STRINGP(args[i])) ? (FD_STRDATA(args[i])) :
+			(FD_SYMBOLP(args[i])) ? (FD_SYMBOL_NAME(args[i]))
+			: ((u8_string)"NEVER"));
+	int first_one=1;
+	FD_DO_CHOICES(value,args[i+1])
+	  if (FD_STRINGP(value)) {
+	    if (first_one) {
+	      fd_uri_output(&out,FD_STRING_DATA(value),"?#=&");
+	      first_one=0;}
+	    else {
+	      u8_putc(&out,'&');
+	      fd_uri_output(&out,name,"?#=&");
+	      u8_putc(&out,'=');
+	      fd_uri_output(&out,FD_STRING_DATA(value),"?#=&");}}
+	  else {
+	    u8_string as_string=fd_dtype2string(value);
+	    if (first_one) {
+	      fd_uri_output(&out,as_string,"?#=&"); first_one=0;}
+	    else {
+	      u8_putc(&out,'&');
+	      fd_uri_output(&out,name,"?#=&");
+	      u8_putc(&out,'=');
+	      fd_uri_output(&out,as_string,"?#=&");}
+	    u8_free(as_string);}}
+      else {
+	u8_string as_string=fd_dtype2string(args[i+1]);
+	fd_uri_output(&out,as_string,"?#=&");
+	u8_free(as_string);}
+      i=i+2;}}
+  else return fd_err(fd_SyntaxError,"scripturl",u8_strdup(FD_STRDATA(args[0])),FD_VOID);
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+*/
