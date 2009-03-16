@@ -633,30 +633,30 @@ FD_EXPORT int fd_ptr_debug_density;
 
 #if (FD_PTR_DEBUG_DENSITY<0)
 /* When the check level is negative, use a runtime variable. */
-#define FD_CHECK_PTR1(x,cxt) ((fd_ptr_debug_density>0) ? (_fd_check_ptr(x,cxt)) : (x))
+#define FD_CHECK_PTR1(x,cxt) ((fd_ptr_debug_density>0) ? (_fd_check_ptr(x,((u8_context)cxt))) : (x))
 #define FD_PTR_CHECK1(x,cxt)						\
-  {if ((fd_ptr_debug_density>0) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,cxt);}
-#define FD_CHECK_PTR2(x,cxt) ((fd_ptr_debug_density>1) ? (_fd_check_ptr(x,cxt)) : (x))
+  {if ((fd_ptr_debug_density>0) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,((u8_context)cxt));}
+#define FD_CHECK_PTR2(x,cxt) ((fd_ptr_debug_density>1) ? (_fd_check_ptr(x,((u8_context)cxt))) : (x))
 #define FD_PTR_CHECK2(x,cxt)						\
-  {if ((fd_ptr_debug_density>1) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,cxt);}
-#define FD_CHECK_PTR3(x,cxt) ((fd_ptr_debug_density>2) ? (_fd_check_ptr(x,cxt)) : (x))
+  {if ((fd_ptr_debug_density>1) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,((u8_context)cxt));}
+#define FD_CHECK_PTR3(x,cxt) ((fd_ptr_debug_density>2) ? (_fd_check_ptr(x,((u8_context)cxt))) : (x))
 #define FD_PTR_CHECK3(x,cxt)						\
-  {if ((fd_ptr_debug_density>2) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,cxt);}
+  {if ((fd_ptr_debug_density>2) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,((u8_context)cxt));}
 #else
 #if (FD_PTR_DEBUG_DENSITY > 0)
-#define FD_CHECK_PTR1(x,cxt) (_fd_check_ptr((x),cxt))
+#define FD_CHECK_PTR1(x,cxt) (_fd_check_ptr((x),((u8_context)cxt)))
 #define FD_PTR_CHECK1(x,cxt)			\
-  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);}
+  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,((u8_context)cxt));}
 #endif
 #if (FD_PTR_DEBUG_DENSITY > 1)
-#define FD_CHECK_PTR2(x,cxt) (_fd_check_ptr((x),cxt))
+#define FD_CHECK_PTR2(x,cxt) (_fd_check_ptr((x),((u8_context)cxt)))
 #define FD_PTR_CHECK2(x,cxt)			\
-  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);}
+  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,((u8_context)cxt));}
 #endif
 #if (FD_PTR_DEBUG_DENSITY > 2)
-#define FD_CHECK_PTR3(x,cxt) (_fd_check_ptr((x),cxt))
+#define FD_CHECK_PTR3(x,cxt) (_fd_check_ptr((x),((u8_context)cxt)))
 #define FD_PTR_CHECK3(x,cxt)			\
-  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);}
+  {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,((u8_context)cxt));}
 #endif
 #endif
 

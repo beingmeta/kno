@@ -319,7 +319,7 @@ static MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 #else
 #define FD_ADD_TO_CHOICE(x,v)                    \
    if (FD_DEBUG_BADPTRP(v))                      \
-    _fd_bad_pointer(v,"FD_ADD_TO_CHOICE");       \
+     _fd_bad_pointer(v,(u8_context)"FD_ADD_TO_CHOICE");	\
    else x=_fd_add_to_choice(x,v)
 #endif
 
