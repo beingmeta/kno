@@ -1,7 +1,11 @@
-PYINC=/usr/include/python2.3/
-PYLIB=/usr/lib/python2.3/
+PYINC=/usr/include/python2.5/
+PYLIB=/usr/lib/python2.5/
 
 framerd.so: framerd.c
-	gcc framerd.c -g -fPIC -I$(PYINC) -L$(PYLIB) -shared -o framerd.so -lfddbfile -lfddb -lfdlisp -lfdbase0 -lu8fns -lu8 -lz
+	gcc framerd.c -g -fPIC -I$(PYINC) -L$(PYLIB) -shared -o framerd.so \
+		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio \
+		-lfdweb -ltexttools -lfdbserv -lfdschemeio \
+		-lu8fns -lu8 -lu8io -lz
+
 
 

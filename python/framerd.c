@@ -30,27 +30,21 @@ static PyObject *FramerDError;
 
 static PyObject *framerd_error;
 
-static PyObject *pass_error(fdtype exo)
+static PyObject *pass_error()
 {
   PyObject *err;
-  fd_exception ex; u8_string details; fdtype irritant;
+  u8_condition ex; u8_context cxt; u8_string details; fdtype irritant;
   U8_OUTPUT out;
-  if (FD_VOIDP(exo))
-    fd_poperr(&ex,&details,&irritant);
-  else {
-    struct FD_EXCEPTION_OBJECT *xo=
-      FD_GET_CONS(exo,fd_exception_type,struct FD_EXCEPTION_OBJECT *);
-    ex=xo->ex; details=xo->details; irritant=xo->irritant;}
+  fd_poperr(&ex,&cxt,&details,&irritant);
   U8_INIT_OUTPUT(&out,64);
-  if (FD_VOIDP(irritant))
-    if (details)
-      u8_printf(&out,"%m: (%m)",ex,details);
-    else u8_printf(&out,"%m",ex);
-  else if (details)
-    u8_printf(&out,"%m: (%m) %q",ex,details,irritant);
-  else u8_printf(&out,"%m: %q",ex,irritant);
-  PyErr_SetString(framerd_error,out.bytes);
-  fd_decref(irritant); fd_free(out.bytes);
+  if (cxt)
+    u8_printf(&out,"%m(%s):",ex,cxt);
+  u8_printf(&out,"%m:",ex);
+  if (details) u8_printf(&out," (%s) ",details);
+  if (!(FD_VOIDP(irritant))) u8_printf(&out,"// %q",irritant);
+  PyErr_SetString(framerd_error,(char *)out.u8_outbuf);
+  u8_free(details); fd_decref(irritant);
+  fd_free(out.u8_outbuf);
   return (PyObject *)NULL;
 }
 
@@ -99,7 +93,7 @@ pylisp_compare(v, w)
 static PyObject *pylisp_str(PyObject *self)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
-  char *exprstring=fdtype2string(pw->lispval); 
+  char *exprstring=(char *)fd_dtype2string(pw->lispval); 
   return PyString_FromFormat("framerd.ref('%s')",exprstring);
 }
 
@@ -144,7 +138,7 @@ pylisp_print(pw, fp, flags)
      FILE *fp;
      int flags;                      /* print self to file */
 {                                   /* or repr or str */
-  char *exprstring=fdtype2string(pw->lispval); 
+  char *exprstring=(char *)fd_dtype2string(pw->lispval); 
   fprintf(fp,"framerd.ref('%s')",exprstring);
   fd_free(exprstring);
   return 0;                       /* return status, not object */
@@ -385,8 +379,8 @@ static PyObject *pylisp_ref(PyObject *self,PyObject *arg)
   if (PyString_Check(arg)) {
     fdtype obj;
     PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) obj=fd_parse(PyString_AS_STRING(u8));
-    else return pass_error(FD_VOID);
+    if (u8) obj=fd_parse((u8_string)(PyString_AS_STRING(u8)));
+    else return pass_error();
     Py_DECREF(u8);
     return lisp2py(obj);}
   else return NULL;
@@ -397,15 +391,15 @@ static PyObject *usepool(PyObject *self,PyObject *arg)
   fd_pool p; char *poolid;
   if (PyString_Check(arg)) {
     PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) p=fd_use_pool(PyString_AS_STRING(u8));
-    else return pass_error(FD_VOID);
+    if (u8) p=fd_use_pool((u8_string)PyString_AS_STRING(u8));
+    else return pass_error();
     Py_DECREF(u8);}
   else return NULL;
   if (p) {
     struct FD_PYTHON_POOL *pw=(struct FD_PYTHON_POOL *)newpool();
     pw->pool=p;
     return (PyObject *) pw;}
-  else return pass_error(FD_VOID);
+  else return pass_error();
 }
 
 static PyObject *openindex(PyObject *self,PyObject *arg)
@@ -413,15 +407,15 @@ static PyObject *openindex(PyObject *self,PyObject *arg)
   fd_index ix; char *indexid;
   if (PyString_Check(arg)) {
     PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) ix=fd_open_index(PyString_AS_STRING(u8));
-    else return pass_error(FD_VOID);
+    if (u8) ix=fd_open_index((u8_string)PyString_AS_STRING(u8));
+    else return pass_error();
     Py_DECREF(u8);}
   else return NULL;
   if (ix) {
     struct FD_PYTHON_INDEX *pw=(struct FD_PYTHON_INDEX *)newindex();
     pw->index=ix;
     return (PyObject *) pw;}
-  else return pass_error(FD_VOID);
+  else return pass_error();
 }
 
 static PyObject *useindex(PyObject *self,PyObject *arg)
@@ -429,15 +423,15 @@ static PyObject *useindex(PyObject *self,PyObject *arg)
   fd_index ix; char *indexid;
   if (PyString_Check(arg)) {
     PyObject *u8=PyString_AsEncodedObject(arg,"utf8","none");
-    if (u8) ix=fd_use_index(PyString_AS_STRING(u8));
-    else return pass_error(FD_VOID);
+    if (u8) ix=fd_use_index((u8_string)PyString_AS_STRING(u8));
+    else return pass_error();
     Py_DECREF(u8);}
   else return NULL;
   if (ix) {
     struct FD_PYTHON_INDEX *pw=(struct FD_PYTHON_INDEX *)newindex();
     pw->index=ix;
     return (PyObject *) pw;}
-  else return pass_error(FD_VOID);
+  else return pass_error();
 }
 
 static PyObject *setcachelevel(PyObject *self,PyObject *arg)
@@ -499,12 +493,12 @@ static struct PyMethodDef framerd_methods[]=
 static fdtype py2lisp(PyObject *o)
 {
   if (PyInt_Check(o))
-    return FDTYPEFIX(PyInt_AS_LONG(o));
+    return FD_INT2DTYPE(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return fd_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    return fdtype_string(PyString_AS_STRING(u8));}
+    return fdtype_string((u8_string)PyString_AS_STRING(u8));}
   else if ((PyObject_TypeCheck(o,&PoolType))) {
     struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
     return fd_pool2lisp(pp->pool);}
@@ -521,12 +515,12 @@ static fdtype py2lisp(PyObject *o)
 static fdtype py2lispx(PyObject *o)
 {
   if (PyInt_Check(o))
-    return FDTYPEFIX(PyInt_AS_LONG(o));
+    return FD_INT2DTYPE(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return fd_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    fdtype v=fd_parse(PyString_AS_STRING(u8));
+    fdtype v=fd_parse((u8_string)PyString_AS_STRING(u8));
     Py_DECREF(u8);
     return v;}
   else if ((PyObject_TypeCheck(o,&PoolType))) {
@@ -545,9 +539,10 @@ static fdtype py2lispx(PyObject *o)
 static PyObject *lisp2py(fdtype o)
 {
   if (FD_FIXNUMP(o))
-    return PyInt_FromLong(FD_FIXLISP(o));
+    return PyInt_FromLong(FD_FIX2INT(o));
   else if (FD_STRINGP(o))
-    return PyString_Decode(FD_STRING_DATA(o),FD_STRING_LENGTH(o),"utf8","none");
+    return PyString_Decode
+      ((char *)FD_STRING_DATA(o),FD_STRING_LENGTH(o),"utf8","none");
   else if (FD_ACHOICEP(o)) {
     pylisp *po=newpychoice();
     po->lispval=fd_simplify_choice(o);
@@ -556,8 +551,8 @@ static PyObject *lisp2py(fdtype o)
     pylisp *po=newpychoice();
     po->lispval=fd_incref(o);
     return (PyObject *)po;}
-  else if (FD_EXCEPTIONP(o)) 
-    return pass_error(o);
+  else if (FD_ABORTP(o)) 
+    return pass_error();
   else {
     pylisp *po=newpylisp();
     po->lispval=fd_incref(o);
