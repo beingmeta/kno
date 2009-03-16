@@ -1264,7 +1264,7 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
   else if (FD_SYMBOLP(name)) varname=FD_SYMBOL_NAME(name);
   else if (FD_OIDP(name)) {
     FD_OID addr=FD_OID_ADDR(name);
-    sprintf(namebuf,":@%x/%x",FD_OID_HI(name),FD_OID_LO(name));
+    sprintf(namebuf,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
     varname=namebuf;}
   else {
     varname=fd_dtype2string(name);
