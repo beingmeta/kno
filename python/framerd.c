@@ -5,6 +5,7 @@
 #include <fdb/fddb.h>
 #include <fdb/pools.h>
 #include <fdb/indices.h>
+#include <fdb/eval.h>
 
 typedef struct FD_PYTHON_WRAPPER {
   PyObject_HEAD /* Header stuff */
@@ -17,6 +18,12 @@ typedef struct FD_PYTHON_POOL {
 typedef struct FD_PYTHON_INDEX {
   PyObject_HEAD /* Header stuff */
   fd_index index;} pyindex;
+
+typedef struct FD_PYTHON_OBJECT {
+  FD_CONS_HEADER; /* Header stuff */
+  PyObject *pyval;} pyobject;
+static fd_ptr_type python_object_type;
+static fd_lispenv default_env;
 
 static fdtype py2lisp(PyObject *o);
 static fdtype py2lispx(PyObject *o);
@@ -44,7 +51,7 @@ static PyObject *pass_error()
   if (!(FD_VOIDP(irritant))) u8_printf(&out,"// %q",irritant);
   PyErr_SetString(framerd_error,(char *)out.u8_outbuf);
   u8_free(details); fd_decref(irritant);
-  fd_free(out.u8_outbuf);
+  u8_free(out.u8_outbuf);
   return (PyObject *)NULL;
 }
 
@@ -56,7 +63,7 @@ static pylisp *             /* on "x = stacktype.Stack()" */
 newpylisp()                 /* instance constructor function */    
 {                                /* these don't get an 'args' input */
   pylisp *self;
-  self = PyObject_NEW(pylisp, &FramerDType);  /* malloc, init, incref */
+  self = PyObject_New(pylisp, &FramerDType);  /* malloc, init, incref */
   if (self == NULL)
     return NULL;            /* raise exception */
   self->lispval=FD_VOID;
@@ -67,7 +74,7 @@ static pylisp *             /* on "x = stacktype.Stack()" */
 newpychoice()                 /* instance constructor function */    
 {                                /* these don't get an 'args' input */
   pylisp *self;
-  self = PyObject_NEW(pylisp, &ChoiceType);  /* malloc, init, incref */
+  self = PyObject_New(pylisp, &ChoiceType);  /* malloc, init, incref */
   if (self == NULL)
     return NULL;            /* raise exception */
   self->lispval=FD_VOID;
@@ -79,7 +86,7 @@ pylisp_dealloc(self)             /* when reference-count reaches zero */
     pylisp *self;
 {                               /* do cleanup activity */
   fd_decref(self->lispval);
-  PyMem_DEL(self);            /* same as 'free(self)' */
+  PyObject_Del(self);            /* same as 'free(self)' */
 }
 
 static int
@@ -90,35 +97,83 @@ pylisp_compare(v, w)
   return (FDTYPE_COMPARE(v->lispval,w->lispval));
 }
 
+static void recycle_python_object(struct FD_CONS *obj)
+{
+  struct FD_PYTHON_OBJECT *po=(struct FD_PYTHON_OBJECT *)obj;
+  Py_DECREF(po->pyval); u8_free(po);
+}
+
+static int unparse_python_object(u8_output out,fdtype obj)
+{
+  struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *)obj;
+  PyObject *as_string=PyObject_Unicode(pyo->pyval);
+  PyObject *u8=PyUnicode_AsEncodedString(as_string,"utf8","none");
+  u8_printf(out,"#<PYTHON %s>",PyString_AS_STRING(u8));
+  Py_DECREF(as_string); Py_DECREF(u8);
+  return 1;
+}
+
+/* Printed representation */
+
+#define PyUTF8String(s,len) PyUnicode_DecodeUTF8((char *)(s),len,"none")
+
 static PyObject *pylisp_str(PyObject *self)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
-  char *exprstring=(char *)fd_dtype2string(pw->lispval); 
-  return PyString_FromFormat("framerd.ref('%s')",exprstring);
+  struct U8_OUTPUT out; u8_byte buf[64];
+  PyObject *pystring; 
+  U8_INIT_OUTPUT_X(&out,32,buf,U8_STREAM_GROWS);
+  u8_printf(&out,"framerd.ref('%q')",pw->lispval);
+  pystring=PyUTF8String(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
+  return pystring;
 }
 
 static PyObject *choice_str(PyObject *self)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
-  if ((FD_CHOICE_SIZE(pw->lispval))>8)
-    return PyString_FromFormat("<%d results>",FD_CHOICE_SIZE(pw->lispval));
-  else return pylisp_str(self);
+  struct U8_OUTPUT out; u8_byte buf[64];
+  PyObject *pystring; int i=0;
+  U8_INIT_OUTPUT_X(&out,32,buf,U8_STREAM_GROWS);
+  u8_puts(&out,"framerd.Choice(");
+  {FD_DO_CHOICES(elt,pw->lispval) {
+      if (i>0) u8_putc(&out,','); i++;
+      if (FD_STRINGP(elt)) {
+	int c=FD_STRDATA(elt)[0];
+	u8_putc(&out,'\'');
+	if (strchr("@(#",c))  u8_putc(&out,'\\');
+	u8_puts(&out,FD_STRDATA(elt));
+	u8_putc(&out,'\'');}
+      else if (FD_SYMBOLP(elt))
+	u8_printf(&out,"':%s'",FD_SYMBOL_NAME(elt));
+      else u8_printf(&out,"'%q'",elt);}}
+  u8_putc(&out,')');
+  pystring=PyUTF8String(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
+  return pystring;
 }
 
 static PyObject *pylisp_get(PyObject *self,PyObject *arg)
 {
   struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
   fdtype frames=py2lisp(self), slotids=py2lispx(arg), value=FD_EMPTY_CHOICE;
-  PyObject *result;
-  FD_DO_CHOICES(frame,frames) {
-    FD_DO_CHOICES(slotid,slotids) {
-      fdtype v;
-      if (FD_OIDP(frame)) v=fd_frame_get(frame,slotid);
-      else v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
-      FD_ADD_TO_CHOICE(value,v);}}
-  result=lisp2py(value);
-  fd_decref(value);
-  return result;
+  if ((FD_CHOICEP(frames)) && (FD_FIXNUMP(slotids))) {
+    PyObject *elt=lisp2py((FD_CHOICE_DATA(frames))[FD_FIX2INT(slotids)]);
+    fd_decref(frames);
+    return elt;}
+  else {
+    PyObject *result;
+    FD_DO_CHOICES(frame,frames) {
+      FD_DO_CHOICES(slotid,slotids) {
+	fdtype v;
+	if (FD_OIDP(frame)) v=fd_frame_get(frame,slotid);
+	else v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
+	FD_ADD_TO_CHOICE(value,v);}}
+    result=lisp2py(value);
+    fd_decref(frames);
+    fd_decref(slotids);
+    fd_decref(value);
+    return result;}
 }
 
 static int pylisp_set(PyObject *self,PyObject *arg,PyObject *val)
@@ -140,7 +195,7 @@ pylisp_print(pw, fp, flags)
 {                                   /* or repr or str */
   char *exprstring=(char *)fd_dtype2string(pw->lispval); 
   fprintf(fp,"framerd.ref('%s')",exprstring);
-  fd_free(exprstring);
+  u8_free(exprstring);
   return 0;                       /* return status, not object */
 }
 
@@ -167,19 +222,26 @@ static PyObject *choice_item(struct FD_PYTHON_WRAPPER *pw,int i)
 }
 
 static PyMappingMethods table_methods = {  /* mapping type supplement */
-        (inquiry)       NULL,         /* mp_length        'len(x)'  */
+        (lenfunc)       NULL,         /* mp_length        'len(x)'  */
         (binaryfunc)    pylisp_get,      /* mp_subscript     'x[k]'    */
         (objobjargproc) pylisp_set,        /* mp_ass_subscript 'x[k] = v'*/
 };
 
 static PySequenceMethods choice_methods = {  /* sequence supplement     */
-      (inquiry)       choice_length,    /* sq_length    "len(x)"   */
-      (binaryfunc)    choice_merge,     /* sq_concat    "x + y"    */
-      (intargfunc)    NULL,             /* sq_repeat    "x * n"    */
-      (intargfunc)    choice_item,      /* sq_item      "x[i], in" */
-      (intintargfunc) NULL,             /* sq_slice     "x[i:j]"   */
-      (intobjargproc)     0,            /* sq_ass_item  "x[i] = v" */
-      (intintobjargproc)  0,            /* sq_ass_slice "x[i:j]=v" */
+  (lenfunc)      choice_length,    /* sq_length    "len(x)"   */
+  (binaryfunc)   choice_merge,     /* sq_concat    "x + y"    */
+  (ssizeargfunc) NULL,             /* sq_repeat    "x * n"    */
+  (ssizeargfunc) choice_item,      /* sq_item      "x[i], in" */
+  (ssizessizeargfunc) NULL,             /* sq_slice     "x[i:j]"   */
+  (ssizeobjargproc) NULL,              /* sq_ass_item  "x[i] = v" */
+  (ssizessizeobjargproc) NULL,              /* sq_ass_slice  "x[i] = v" */
+#if Py_TPFLAGS_HAVE_SEQUENCE_IN
+  (objobjproc)    NULL,              /* sq_contains  "x[i] == v" */
+#endif
+#if Py_TPFLAGS_HAVE_INPLACEOPS
+  (binaryfunc)    NULL,              /* sq_inplace_concat */
+  (ssizeargfunc)  NULL               /* sq_inplace_repeat */
+#endif
 };
 
 static PyTypeObject FramerDType = {      /* main python type-descriptor */
@@ -248,7 +310,7 @@ static pypool *             /* on "x = stacktype.Stack()" */
 newpool()                 /* instance constructor function */    
 {                                /* these don't get an 'args' input */
   struct FD_PYTHON_POOL *self;
-  self = PyObject_NEW(pypool, &PoolType);  /* malloc, init, incref */
+  self = PyObject_New(pypool, &PoolType);  /* malloc, init, incref */
   if (self == NULL)
     return NULL;            /* raise exception */
   self->pool=NULL;
@@ -259,7 +321,7 @@ static void                     /* instance destructor function */
 pool_dealloc(self)             /* when reference-count reaches zero */
     struct FD_PYTHON_POOL *self;
 {                               /* do cleanup activity */
-  PyMem_DEL(self);            /* same as 'free(self)' */
+  PyObject_Del(self);            /* same as 'free(self)' */
 }
 
 static int
@@ -316,7 +378,7 @@ static pyindex *             /* on "x = stacktype.Stack()" */
 newindex()                 /* instance constructor function */    
 {                                /* these don't get an 'args' input */
   struct FD_PYTHON_INDEX *self;
-  self = PyObject_NEW(pyindex, &IndexType);  /* malloc, init, incref */
+  self = PyObject_New(pyindex, &IndexType);  /* malloc, init, incref */
   if (self == NULL)
     return NULL;            /* raise exception */
   self->index=NULL;
@@ -327,7 +389,7 @@ static void                     /* instance destructor function */
 index_dealloc(self)             /* when reference-count reaches zero */
     struct FD_PYTHON_INDEX *self;
 {                               /* do cleanup activity */
-  PyMem_DEL(self);            /* same as 'free(self)' */
+  PyObject_Del(self);            /* same as 'free(self)' */
 }
 
 static int
@@ -464,16 +526,71 @@ static PyObject *lispget(PyObject *self,PyObject *args)
 
 static PyObject *lispfind(PyObject *self,PyObject *args)
 {
+  PyObject *result;
   fd_index ix; char *indexid;
-  if ((PyTuple_Check(args)) && (PyTuple_GET_SIZE(args)==2)) {
-    PyObject *arg0=PyTuple_GET_ITEM(args,0);
-    PyObject *arg1=PyTuple_GET_ITEM(args,1), *result;
-    fdtype slotids=py2lispx(arg0), values=py2lisp(arg1), results=FD_EMPTY_CHOICE;
-    results=fd_bgfind(slotids,values,FD_VOID);
+  if (PyTuple_Check(args)) {
+    int i=0, size=PyTuple_GET_SIZE(args), sv_start=0, sv_size=size;
+    fdtype *slotvals, results, indices=FD_VOID;
+    if (size%2) {
+      PyObject *arg0=PyTuple_GET_ITEM(args,0);
+      indices=py2lispx(arg0);
+      sv_size=size-1; sv_start=1;}
+    slotvals=u8_alloc_n(sv_size,fdtype);
+    i=0; while (i<sv_size) {
+      PyObject *arg0=PyTuple_GET_ITEM(args,sv_start+i);
+      PyObject *arg1=PyTuple_GET_ITEM(args,sv_start+i+1);
+      fdtype slotids=py2lispx(arg0), values=py2lisp(arg1);
+      slotvals[i++]=slotids; slotvals[i++]=values;}
+    if (FD_VOIDP(indices))
+      results=fd_bgfinder(sv_size,slotvals);
+    else results=fd_finder(indices,sv_size,slotvals);
+    i=0; while (i<sv_size) {fdtype v=slotvals[i++]; fd_decref(v);}
+    u8_free(slotvals);
     result=lisp2py(results);
-    fd_decref(values); fd_decref(slotids); fd_decref(results);
+    fd_decref(results);
     return result;}
   else return NULL;
+}
+
+static PyObject *lispcall(PyObject *self,PyObject *args)
+{
+  PyObject *pyresult;
+  if (PyTuple_Check(args)) {
+    int i=0, size=PyTuple_GET_SIZE(args), n_args=size-1;
+    fdtype fn, *argv, result;
+    if (size==0) return NULL;
+    fn=py2lisp(PyTuple_GET_ITEM(args,0));
+    argv=u8_alloc_n(size-1,fdtype);
+    while (i<n_args) {
+      PyObject *arg=PyTuple_GET_ITEM(args,i+1);
+      argv[i]=py2lisp(arg); i++;}
+    result=fd_apply(fn,size-1,argv);
+    pyresult=lisp2py(result);
+    i=0; while (i<n_args) { fdtype v=argv[i++]; fd_decref(v);}
+    u8_free(argv);
+    return pyresult;}
+  else return NULL;
+}
+
+static PyObject *lispeval(PyObject *self,PyObject *pyexpr)
+{
+  fdtype expr=py2lispx(pyexpr), value=fd_eval(expr,default_env);
+  PyObject *pyvalue=lisp2py(value);
+  fd_decref(expr); fd_decref(value);
+  return pyvalue;
+}
+
+static PyObject *lispfn(PyObject *self,PyObject *args)
+{
+  if ((PyTuple_Check(args)) && (PyTuple_GET_SIZE(args)==2)) {
+    fdtype modname=py2lispx(PyTuple_GET_ITEM(args,0));
+    fdtype fname=py2lispx(PyTuple_GET_ITEM(args,1));
+    fdtype module=fd_find_module(modname,0,0);
+    fdtype fn=fd_get(module,fname,FD_VOID);
+    PyObject *result=((FD_VOIDP(fn)) ? (NULL) : (lisp2py(fn)));
+    fd_decref(modname); fd_decref(fname); fd_decref(module); fd_decref(fn);
+    return result;}
+  else return lispeval(self,args);
 }
 
 static struct PyMethodDef framerd_methods[]=
@@ -486,6 +603,9 @@ static struct PyMethodDef framerd_methods[]=
    {"setcachelevel",setcachelevel},
    {"get",lispget},
    {"find",lispfind},
+   {"call",lispcall},
+   {"eval",lispeval},
+   {"method",lispfn},
    {NULL,NULL}};
 
 /* Python/LISP mapping */
@@ -499,6 +619,11 @@ static fdtype py2lisp(PyObject *o)
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
     return fdtype_string((u8_string)PyString_AS_STRING(u8));}
+  else if (PyUnicode_Check(o)) {
+    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
+    fdtype v=fdtype_string((u8_string)PyString_AS_STRING(u8));
+    Py_DECREF(u8);
+    return v;}
   else if ((PyObject_TypeCheck(o,&PoolType))) {
     struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
     return fd_pool2lisp(pp->pool);}
@@ -509,7 +634,11 @@ static fdtype py2lisp(PyObject *o)
 	   (PyObject_TypeCheck(o,&ChoiceType))) {
     pylisp *v=(struct FD_PYTHON_WRAPPER *)o;
     return fd_incref(v->lispval);}
-  else return FD_VOID;
+  else {
+    struct FD_PYTHON_OBJECT *pyo=u8_alloc(struct FD_PYTHON_OBJECT);
+    FD_INIT_CONS(&pyo,python_object_type);
+    pyo->pyval=o; Py_INCREF(o);
+    return (fdtype) pyo;}
 }
 
 static fdtype py2lispx(PyObject *o)
@@ -520,6 +649,11 @@ static fdtype py2lispx(PyObject *o)
     return fd_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
+    fdtype v=fd_parse((u8_string)PyString_AS_STRING(u8));
+    Py_DECREF(u8);
+    return v;}
+  else if (PyUnicode_Check(o)) {
+    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
     fdtype v=fd_parse((u8_string)PyString_AS_STRING(u8));
     Py_DECREF(u8);
     return v;}
@@ -541,8 +675,8 @@ static PyObject *lisp2py(fdtype o)
   if (FD_FIXNUMP(o))
     return PyInt_FromLong(FD_FIX2INT(o));
   else if (FD_STRINGP(o))
-    return PyString_Decode
-      ((char *)FD_STRING_DATA(o),FD_STRING_LENGTH(o),"utf8","none");
+    return PyUnicode_DecodeUTF8
+      ((char *)FD_STRING_DATA(o),FD_STRING_LENGTH(o),"none");
   else if (FD_ACHOICEP(o)) {
     pylisp *po=newpychoice();
     po->lispval=fd_simplify_choice(o);
@@ -559,6 +693,33 @@ static PyObject *lisp2py(fdtype o)
     return (PyObject *)po;}
 }
 
+static void initialize_framerd()
+{
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
+  u8_initialize_u8stdio();
+  u8_init_chardata_c();
+#endif
+  
+  /* Initialize builtin scheme modules.
+     These include all modules specified by (e.g.):
+     configure --enable-fdweb */
+#if ((HAVE_CONSTRUCTOR_ATTRIBUTES) && (!(FD_TESTCONFIG)))
+  FD_INIT_SCHEME_BUILTINS();
+#else
+  /* If we're a "test" executable (FD_TESTCONFIG), we're
+     statically linked, so we need to initialize some modules
+     explicitly (since the "onload" initializers may not be invoked). */
+  fd_init_schemeio();
+  fd_init_texttools();
+  fd_init_tagger();
+  fd_init_fdweb();
+#endif
+  python_object_type=fd_register_cons_type("python");
+  default_env=fd_working_environment();
+  fd_recyclers[python_object_type]=recycle_python_object;
+  fd_unparsers[python_object_type]=unparse_python_object;  
+}
+
 void initframerd(void)
 {
   PyObject *m, *d;
@@ -566,5 +727,6 @@ void initframerd(void)
   framerd_error=PyErr_NewException("framerd.error",NULL,NULL);
   Py_INCREF(framerd_error);
   PyModule_AddObject(m,"error",framerd_error);
+  initialize_framerd();
 }
 
