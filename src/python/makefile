@@ -5,7 +5,10 @@ framerd.so: framerd.c
 	gcc framerd.c -g -fPIC -I$(PYINC) -L$(PYLIB) -shared -o framerd.so \
 		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio \
 		-lfdweb -ltexttools -lfdbserv -lfdschemeio \
-		-lu8fns -lu8 -lu8io -lz
+		-lu8fns -lu8 -lu8io -lz \
+		-Xlinker -export-dynamic -Wl,-O1 -Wl,-Bsymbolic-functions \
+		-lpython2.5
+
 
 
 

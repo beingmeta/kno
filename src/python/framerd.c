@@ -693,8 +693,76 @@ static PyObject *lisp2py(fdtype o)
     return (PyObject *)po;}
 }
 
+/* Primitives for embedded Python */
+
+static fdtype pyerr(u8_context cxt)
+{
+  PyObject *err=PyErr_Occurred();
+  if (err) {
+    PyErr_Clear();
+    return py2lisp(err);}
+  else return fd_err("Mysterious Python error",cxt,NULL,FD_VOID);
+}
+
+static fdtype pyexec(fdtype pystring)
+{
+  int result;
+  PyGILState_STATE gstate;
+  gstate=PyGILState_Ensure();
+  result=PyRun_SimpleString(FD_STRDATA(pystring));
+  PyGILState_Release(gstate);
+  return FD_INT2DTYPE(result);
+}
+
+static fdtype pyapply(fdtype fcn,int n,fdtype *args)
+{
+  if (FD_PRIM_TYPEP(fcn,python_object_type)) {
+    struct FD_PYTHON_OBJECT *pyo=(struct FD_PYTHON_OBJECT *)fcn;
+    if (PyCallable_Check(pyo->pyval)) {
+      fdtype result; PyObject *tuple=PyTuple_New(n), *pyresult;
+      PyGILState_STATE gstate=PyGILState_Ensure();
+      int i=0;
+      while (i<n) {
+	PyObject *elt=lisp2py(args[i]);
+	if (elt) {PyTuple_SetItem(tuple,i,elt);}
+	else {
+	  Py_DECREF(tuple);
+	  PyGILState_Release(gstate);
+	  return pyerr("pyapply");}
+	i++;}
+      pyresult=PyObject_CallObject(pyo->pyval,tuple);
+      Py_DECREF(tuple);
+      result=py2lisp(pyresult);
+      Py_DECREF(pyresult);
+      PyGILState_Release(gstate);
+      return result;}
+    else return fd_type_error("python procedure","pyapply",fcn);}
+  else return fd_type_error("python procedure","pyapply",fcn);
+}
+
+static fdtype pycall(int n,fdtype *args)
+{
+  return pyapply(args[0],n-1,args+1);
+}
+
+static fdtype pyfn(fdtype modname,fdtype fname)
+{
+  PyObject *pmodulename=lisp2py(modname);
+  PyObject *pmodule=PyImport_Import(pmodulename);
+  if (pmodule) {
+    PyObject *pFunc=PyObject_GetAttrString(pmodule,FD_STRDATA(fname));
+    if (pFunc) {
+      fdtype wrapped=py2lisp(pFunc);
+      Py_DECREF(pFunc); Py_DECREF(pmodule);
+      return wrapped;}
+    Py_DECREF(pmodule);
+    return pyerr("pyfn");}
+  else return pyerr("pyfn");
+}
+
 static void initialize_framerd()
 {
+  fdtype pymodule;
 #if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
   u8_init_chardata_c();
@@ -718,6 +786,16 @@ static void initialize_framerd()
   default_env=fd_working_environment();
   fd_recyclers[python_object_type]=recycle_python_object;
   fd_unparsers[python_object_type]=unparse_python_object;  
+  
+  fd_applyfns[python_object_type]=pyapply;
+
+  pymodule=fd_new_module("PYTHON",0);
+  
+  fd_defn(pymodule,fd_make_cprim1x("PYEXEC",pyexec,1,fd_string_type,FD_VOID));
+  fd_defn(pymodule,fd_make_cprimn("PYCALL",pycall,1));
+  fd_defn(pymodule,fd_make_cprim2x("PYMETHOD",pyfn,2,
+				   fd_string_type,FD_VOID,
+				   fd_string_type,FD_VOID));
 }
 
 void initframerd(void)
