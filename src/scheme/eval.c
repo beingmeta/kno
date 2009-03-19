@@ -586,7 +586,7 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
   return results;
 }
 
-static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
+static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID, arglist=FD_CDR(expr);
   struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
@@ -692,6 +692,51 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
       fdtype arg=argv[i++]; fd_decref(arg);}}
   if (free_argv) u8_free(argv);
   return result;
+}
+
+static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
+{
+  fdtype result=FD_VOID, arglist=FD_CDR(expr);
+  struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
+  fdtype _argv[FD_STACK_ARGS], *argv;
+  int i=0, n_args=0, args_need_gc=0, free_argv=0;
+  {FD_DOLIST(elt,arglist) {
+      if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
+	n_args++;}}
+  if (n_args>FD_STACK_ARGS) {
+    /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
+    argv=u8_alloc_n(n_args,fdtype);
+    free_argv=1;}
+  /* Otherwise, just use the stack vector */
+  else argv=_argv;
+  FD_DOLIST(arg,arglist)
+    if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) {
+      fdtype argval=fd_eval(arg,env);
+      if ((FD_ABORTP(argval)) || (FD_EMPTY_CHOICEP(argval)) ||
+	  (FD_VOIDP(argval))) {
+	if (args_need_gc) {
+	  int j=0; while (j<i) {fdtype arg=argv[j++]; fd_decref(arg);}}
+	if (free_argv) u8_free(argv);
+	if (FD_VOIDP(argval)) {
+	  fd_seterr(fd_VoidArgument,"apply_weird_function",NULL,expr);
+	  return FD_ERROR_VALUE;}
+	else return argval;}
+      else {
+	argv[i++]=argval; if (FD_CONSP(argval)) args_need_gc=1;}}
+  result=fd_apply(fn,n_args,argv);
+  if (args_need_gc) {
+    i=0; while (i<n_args) {
+      fdtype argval=argv[i++]; fd_decref(argval);}}
+  if (free_argv) u8_free(argv);
+  return result;
+}
+
+static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
+{
+  fd_ptr_type fntype=FD_PRIM_TYPE(fn);
+  if (fd_functionp[fntype])
+    return apply_normal_function(fn,expr,env);
+  else return apply_weird_function(fn,expr,env);
 }
 
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)

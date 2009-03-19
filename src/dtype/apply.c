@@ -453,73 +453,78 @@ static fdtype dcall7(struct FD_FUNCTION *f,
 
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  fdtype argbuf[8], *args;
-  if (FD_EXPECT_FALSE(f->arity<0)) {
-    if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
-      int ctype=FD_CONS_TYPE(f);
-      return fd_applyfns[ctype]((fdtype)f,n,argvec);}
-    else if (f->xprim)
-      return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
-    else return f->handler.calln(n,argvec);}
-  /* Fill in the rest of the argvec */
-  if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
-    if (FD_EXPECT_FALSE(n<f->arity)) {
-      /* Fill in defaults */
-      int i=0; fdtype *defaults=f->defaults;
-      if (f->arity<=8) args=argbuf;
-      else args=u8_alloc_n((f->arity),fdtype);
-      while (i<n) {
-	args[i]=argvec[i]; i++;}
-      if (defaults)
-	while (i<f->arity) {args[i]=defaults[i]; i++;}
-      else while (i<f->arity) {args[i]=FD_VOID; i++;}}
-    else args=argvec;
-    /* Check typeinfo */
-    if (FD_EXPECT_FALSE((f->typeinfo!=NULL))) {
+  fd_ptr_type ftype=FD_PRIM_TYPE(fp);
+  if (fd_functionp[ftype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
+    fdtype argbuf[8], *args;
+    if (FD_EXPECT_FALSE(f->arity<0)) {
+      if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
+	int ctype=FD_CONS_TYPE(f);
+	return fd_applyfns[ctype]((fdtype)f,n,argvec);}
+      else if (f->xprim)
+	return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
+      else return f->handler.calln(n,argvec);}
+    /* Fill in the rest of the argvec */
+    if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
+      if (FD_EXPECT_FALSE(n<f->arity)) {
+	/* Fill in defaults */
+	int i=0; fdtype *defaults=f->defaults;
+	if (f->arity<=8) args=argbuf;
+	else args=u8_alloc_n((f->arity),fdtype);
+	while (i<n) {
+	  args[i]=argvec[i]; i++;}
+	if (defaults)
+	  while (i<f->arity) {args[i]=defaults[i]; i++;}
+	else while (i<f->arity) {args[i]=FD_VOID; i++;}}
+      else args=argvec;
       /* Check typeinfo */
-      int *typeinfo=f->typeinfo;
-      int i=0;
-      while (i<n)
-	if (typeinfo[i]>=0)
-	  if (FD_PTR_TYPEP(args[i],typeinfo[i])) i++;
-      /* Don't signal errors on unspecified (VOID) args. */
-	  else if (FD_VOIDP(args[i])) i++;
-	  else {
-	    u8_string type_name=
-	      ((typeinfo[i]<256) ? (fd_type_names[typeinfo[i]]) : (NULL));
-	    if (type_name)
-	      return fd_type_error(type_name,f->name,args[i]);
-	    else return fd_type_error(type_name,f->name,args[i]);}
-	else i++;}
-    if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
-      int ctype=FD_CONS_TYPE(f);
-      if ((args==argbuf) || (args==argvec))
-	return fd_applyfns[ctype]((fdtype)f,n,args);
-      else {
-	fdtype retval=fd_applyfns[ctype]((fdtype)f,n,args);
-	u8_free(args);
-	return retval;}}
-    else switch (f->arity) {
-      case 0: return dcall0(f);
-      case 1: return dcall1(f,args[0]);
-      case 2: return dcall2(f,args[0],args[1]);
-      case 3: return dcall3(f,args[0],args[1],args[2]);
-      case 4: return dcall4(f,args[0],args[1],args[2],args[3]);
-      case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);
-      case 6: return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
-      case 7: return dcall7(f,args[0],args[1],args[2],args[3],
-			    args[4],args[5],args[6]);
-      default:
+      if (FD_EXPECT_FALSE((f->typeinfo!=NULL))) {
+	/* Check typeinfo */
+	int *typeinfo=f->typeinfo;
+	int i=0;
+	while (i<n)
+	  if (typeinfo[i]>=0)
+	    if (FD_PTR_TYPEP(args[i],typeinfo[i])) i++;
+	/* Don't signal errors on unspecified (VOID) args. */
+	    else if (FD_VOIDP(args[i])) i++;
+	    else {
+	      u8_string type_name=
+		((typeinfo[i]<256) ? (fd_type_names[typeinfo[i]]) : (NULL));
+	      if (type_name)
+		return fd_type_error(type_name,f->name,args[i]);
+	      else return fd_type_error(type_name,f->name,args[i]);}
+	  else i++;}
+      if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
+	int ctype=FD_CONS_TYPE(f);
 	if ((args==argbuf) || (args==argvec))
-	  return f->handler.calln(n,args);
+	  return fd_applyfns[ctype]((fdtype)f,n,args);
 	else {
-	  fdtype retval=f->handler.calln(n,args);
+	  fdtype retval=fd_applyfns[ctype]((fdtype)f,n,args);
 	  u8_free(args);
-	  return retval;}}}
-  else {
-    fd_exception ex=((n>f->arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-    return fd_err(ex,"fd_dapply",f->name,FDTYPE_CONS(f));}
+	  return retval;}}
+      else switch (f->arity) {
+	case 0: return dcall0(f);
+	case 1: return dcall1(f,args[0]);
+	case 2: return dcall2(f,args[0],args[1]);
+	case 3: return dcall3(f,args[0],args[1],args[2]);
+	case 4: return dcall4(f,args[0],args[1],args[2],args[3]);
+	case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);
+	case 6: return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
+	case 7: return dcall7(f,args[0],args[1],args[2],args[3],
+			      args[4],args[5],args[6]);
+	default:
+	  if ((args==argbuf) || (args==argvec))
+	    return f->handler.calln(n,args);
+	  else {
+	    fdtype retval=f->handler.calln(n,args);
+	    u8_free(args);
+	    return retval;}}}
+    else {
+      fd_exception ex=((n>f->arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+      return fd_err(ex,"fd_dapply",f->name,FDTYPE_CONS(f));}}
+  else if (fd_applyfns[ftype])
+    return fd_applyfns[ftype](fp,n,argvec);
+  else return fd_type_error("applicable","DAPPLY",fp);
 }
 
 /* Calling non-deterministically */
