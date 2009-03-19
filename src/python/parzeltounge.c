@@ -514,10 +514,12 @@ static PyObject *lispget(PyObject *self,PyObject *args)
     PyObject *arg1=PyTuple_GET_ITEM(args,1), *result;
     fdtype frames=py2lispx(arg0), slotids=py2lispx(arg1);
     fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(f,frames) {
-      FD_DO_CHOICES(slotid,slotids) {
-	fdtype v=fd_frame_get(f,slotid);
-	FD_ADD_TO_CHOICE(results,v);}}
+    Py_BEGIN_ALLOW_THREADS {
+      FD_DO_CHOICES(f,frames) {
+	FD_DO_CHOICES(slotid,slotids) {
+	  fdtype v=fd_frame_get(f,slotid);
+	  FD_ADD_TO_CHOICE(results,v);}}}
+    Py_END_ALLOW_THREADS;
     result=lisp2py(results);
     fd_decref(frames); fd_decref(slotids); fd_decref(results);
     return result;}
@@ -541,11 +543,13 @@ static PyObject *lispfind(PyObject *self,PyObject *args)
       PyObject *arg1=PyTuple_GET_ITEM(args,sv_start+i+1);
       fdtype slotids=py2lispx(arg0), values=py2lisp(arg1);
       slotvals[i++]=slotids; slotvals[i++]=values;}
-    if (FD_VOIDP(indices))
-      results=fd_bgfinder(sv_size,slotvals);
-    else results=fd_finder(indices,sv_size,slotvals);
-    i=0; while (i<sv_size) {fdtype v=slotvals[i++]; fd_decref(v);}
-    u8_free(slotvals);
+    Py_BEGIN_ALLOW_THREADS {
+      if (FD_VOIDP(indices))
+	results=fd_bgfinder(sv_size,slotvals);
+      else results=fd_finder(indices,sv_size,slotvals);
+      i=0; while (i<sv_size) {fdtype v=slotvals[i++]; fd_decref(v);}
+      u8_free(slotvals);}
+    Py_END_ALLOW_THREADS;
     result=lisp2py(results);
     fd_decref(results);
     return result;}
@@ -564,7 +568,9 @@ static PyObject *lispcall(PyObject *self,PyObject *args)
     while (i<n_args) {
       PyObject *arg=PyTuple_GET_ITEM(args,i+1);
       argv[i]=py2lisp(arg); i++;}
-    result=fd_apply(fn,size-1,argv);
+    Py_BEGIN_ALLOW_THREADS {
+      result=fd_apply(fn,size-1,argv);}
+    Py_END_ALLOW_THREADS;
     pyresult=lisp2py(result);
     i=0; while (i<n_args) { fdtype v=argv[i++]; fd_decref(v);}
     u8_free(argv);
@@ -574,8 +580,12 @@ static PyObject *lispcall(PyObject *self,PyObject *args)
 
 static PyObject *lispeval(PyObject *self,PyObject *pyexpr)
 {
-  fdtype expr=py2lispx(pyexpr), value=fd_eval(expr,default_env);
-  PyObject *pyvalue=lisp2py(value);
+  fdtype expr=py2lispx(pyexpr), value;
+  PyObject *pyvalue;
+  Py_BEGIN_ALLOW_THREADS {
+    value=fd_eval(expr,default_env);}
+  Py_END_ALLOW_THREADS;
+  pyvalue=lisp2py(value);
   fd_decref(expr); fd_decref(value);
   return pyvalue;
 }
@@ -636,11 +646,13 @@ static fdtype py2lisp(PyObject *o)
     return fd_incref(v->lispval);}
   else {
     struct FD_PYTHON_OBJECT *pyo=u8_alloc(struct FD_PYTHON_OBJECT);
-    FD_INIT_CONS(&pyo,python_object_type);
+    FD_INIT_CONS(pyo,python_object_type);
     pyo->pyval=o; Py_INCREF(o);
     return (fdtype) pyo;}
 }
 
+/* This parses string args and is used for calling functions through
+   Python. */
 static fdtype py2lispx(PyObject *o)
 {
   if (PyInt_Check(o))
@@ -649,7 +661,8 @@ static fdtype py2lispx(PyObject *o)
     return fd_init_double(NULL,PyFloat_AsDouble(o));
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    fdtype v=fd_parse((u8_string)PyString_AS_STRING(u8));
+    u8_string sdata=(u8_string)PyString_AS_STRING(u8);
+    fdtype v=((*sdata==':') ? (fd_parse(sdata+1)) : (fd_parse(sdata)));
     Py_DECREF(u8);
     return v;}
   else if (PyUnicode_Check(o)) {
@@ -760,9 +773,12 @@ static fdtype pyfn(fdtype modname,fdtype fname)
   else return pyerr("pyfn");
 }
 
-static void initialize_framerd()
+static fdtype pymodule=FD_VOID;
+static int python_init_done=0;
+
+static void initframerdmodule()
 {
-  fdtype pymodule;
+  if (!(FD_VOIDP(pymodule))) return;
 #if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
   u8_init_chardata_c();
@@ -782,6 +798,7 @@ static void initialize_framerd()
   fd_init_tagger();
   fd_init_fdweb();
 #endif
+  pymodule=fd_new_module("PARZELTOUNGE",0);
   python_object_type=fd_register_cons_type("python");
   default_env=fd_working_environment();
   fd_recyclers[python_object_type]=recycle_python_object;
@@ -789,22 +806,37 @@ static void initialize_framerd()
   
   fd_applyfns[python_object_type]=pyapply;
 
-  pymodule=fd_new_module("PYTHON",0);
-  
   fd_defn(pymodule,fd_make_cprim1x("PYEXEC",pyexec,1,fd_string_type,FD_VOID));
   fd_defn(pymodule,fd_make_cprimn("PYCALL",pycall,1));
   fd_defn(pymodule,fd_make_cprim2x("PYMETHOD",pyfn,2,
 				   fd_string_type,FD_VOID,
 				   fd_string_type,FD_VOID));
+  fd_finish_module(pymodule);
+
 }
 
-void initframerd(void)
+static void initpythonmodule()
 {
   PyObject *m, *d;
-  m=Py_InitModule("framerd",framerd_methods);
-  framerd_error=PyErr_NewException("framerd.error",NULL,NULL);
+  if (python_init_done) return;
+  m=Py_InitModule("parzeltounge",framerd_methods);
+  framerd_error=PyErr_NewException("parzeltounge.error",NULL,NULL);
   Py_INCREF(framerd_error);
   PyModule_AddObject(m,"error",framerd_error);
-  initialize_framerd();
+  python_init_done=1;
+}
+
+void fd_initialize_parzeltounge(void) FD_LIBINIT_FN;
+
+void fd_initialize_parzeltounge() 
+{
+  if (!(Py_IsInitialized())) Py_Initialize();
+  initframerdmodule();
+  initpythonmodule();
+}
+
+void initparzeltounge(void)
+{
+  fd_initialize_parzeltounge();
 }
 
