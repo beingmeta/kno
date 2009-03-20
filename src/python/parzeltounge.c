@@ -21,7 +21,8 @@ typedef struct FD_PYTHON_INDEX {
 
 typedef struct FD_PYTHON_OBJECT {
   FD_CONS_HEADER; /* Header stuff */
-  PyObject *pyval;} pyobject;
+  PyObject *pyval;} FD_PYTHON_OBJECT;
+typedef struct FD_PYTHON_OBJECT *fd_python_object;
 static fd_ptr_type python_object_type;
 static fd_lispenv default_env;
 
@@ -30,7 +31,11 @@ static fdtype py2lispx(PyObject *o);
 static PyObject *lisp2py(fdtype x);
 
 staticforward PyTypeObject ChoiceType;
+staticforward PyTypeObject OIDType;
 staticforward PyTypeObject FramerDType;
+staticforward PyTypeObject IndexType;
+staticforward PyTypeObject PoolType;
+
 static PyObject *FramerDError;
 
 /* FramerD to Python errors */
@@ -81,6 +86,17 @@ newpychoice()                 /* instance constructor function */
   return self;                /* a new type-instance object */
 }
 
+static pylisp *             /* on "x = stacktype.Stack()" */
+newpyoid()                 /* instance constructor function */    
+{                                /* these don't get an 'args' input */
+  pylisp *self;
+  self = PyObject_New(pylisp, &OIDType);  /* malloc, init, incref */
+  if (self == NULL)
+    return NULL;            /* raise exception */
+  self->lispval=FD_VOID;
+  return self;                /* a new type-instance object */
+}
+
 static void                     /* instance destructor function */
 pylisp_dealloc(self)             /* when reference-count reaches zero */
     pylisp *self;
@@ -113,6 +129,160 @@ static int unparse_python_object(u8_output out,fdtype obj)
   return 1;
 }
 
+/* Python/LISP mapping */
+
+static fdtype py2lisp(PyObject *o)
+{
+  if (PyInt_Check(o))
+    return FD_INT2DTYPE(PyInt_AS_LONG(o));
+  else if (o==Py_None)
+    return FD_VOID;
+  else if (o==Py_False)
+    return FD_FALSE;
+  else if (o==Py_True)
+    return FD_TRUE;
+  else if (PyFloat_Check(o))
+    return fd_init_double(NULL,PyFloat_AsDouble(o));
+  else if (PyString_Check(o)) {
+    PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
+    return fdtype_string((u8_string)PyString_AS_STRING(u8));}
+  else if (PyUnicode_Check(o)) {
+    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
+    fdtype v=fdtype_string((u8_string)PyString_AS_STRING(u8));
+    Py_DECREF(u8);
+    return v;}
+  else if (PyTuple_Check(o)) {
+    int i=0, n=PyTuple_Size(o);
+    fdtype *data=u8_alloc_n(n,fdtype);
+    while (i<n) {
+      PyObject *pelt=PyTuple_GetItem(o,i);
+      fdtype elt=py2lisp(pelt);
+      data[i]=elt;
+      i++;}
+    return fd_init_vector(NULL,n,data);}
+  else if ((PyObject_TypeCheck(o,&PoolType))) {
+    struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
+    return fd_pool2lisp(pp->pool);}
+  else if ((PyObject_TypeCheck(o,&IndexType))) {
+    struct FD_PYTHON_INDEX *pi=(struct FD_PYTHON_INDEX *)o;
+    return fd_index2lisp(pi->index);}
+  else if ((PyObject_TypeCheck(o,&FramerDType)) ||
+	   (PyObject_TypeCheck(o,&ChoiceType)) ||
+	   (PyObject_TypeCheck(o,&OIDType))) {
+    pylisp *v=(struct FD_PYTHON_WRAPPER *)o;
+    return fd_incref(v->lispval);}
+  else {
+    struct FD_PYTHON_OBJECT *pyo=u8_alloc(struct FD_PYTHON_OBJECT);
+    FD_INIT_CONS(pyo,python_object_type);
+    pyo->pyval=o; Py_INCREF(o);
+    return (fdtype) pyo;}
+}
+
+/* This parses string args and is used for calling functions through
+   Python. */
+static fdtype py2lispx(PyObject *o)
+{
+  if (PyInt_Check(o))
+    return FD_INT2DTYPE(PyInt_AS_LONG(o));
+  else if (PyFloat_Check(o))
+    return fd_init_double(NULL,PyFloat_AsDouble(o));
+  else if (o==Py_None)
+    return FD_VOID;
+  else if (o==Py_False)
+    return FD_FALSE;
+  else if (o==Py_True)
+    return FD_TRUE;
+  else if (PyString_Check(o)) {
+    PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
+    u8_string sdata=(u8_string)PyString_AS_STRING(u8);
+    fdtype v=((*sdata==':') ? (fd_parse(sdata+1)) : (fd_parse(sdata)));
+    Py_DECREF(u8);
+    return v;}
+  else if (PyUnicode_Check(o)) {
+    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
+    fdtype v=fd_parse((u8_string)PyString_AS_STRING(u8));
+    Py_DECREF(u8);
+    return v;}
+  else if (PyTuple_Check(o)) {
+    int i=0, n=PyTuple_Size(o);
+    fdtype *data=u8_alloc_n(n,fdtype);
+    while (i<n) {
+      PyObject *pelt=PyTuple_GetItem(o,i);
+      fdtype elt=py2lispx(pelt);
+      data[i]=elt;
+      i++;}
+    return fd_init_vector(NULL,n,data);}
+  else if ((PyObject_TypeCheck(o,&PoolType))) {
+    struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
+    return fd_pool2lisp(pp->pool);}
+  else if ((PyObject_TypeCheck(o,&IndexType))) {
+    struct FD_PYTHON_INDEX *pi=(struct FD_PYTHON_INDEX *)o;
+    return fd_index2lisp(pi->index);}
+  else if ((PyObject_TypeCheck(o,&FramerDType)) ||
+	   (PyObject_TypeCheck(o,&ChoiceType)) ||
+	   (PyObject_TypeCheck(o,&OIDType))) {
+    pylisp *v=(struct FD_PYTHON_WRAPPER *)o;
+    return fd_incref(v->lispval);}
+  else return FD_VOID;
+}
+
+static PyObject *lisp2py(fdtype o)
+{
+  if (FD_FIXNUMP(o))
+    return PyInt_FromLong(FD_FIX2INT(o));
+  else if (FD_IMMEDIATEP(o))
+    if (FD_VOIDP(o)) Py_RETURN_NONE;
+    else if (FD_TRUEP(o)) Py_RETURN_TRUE;
+    else if (FD_FALSEP(o)) Py_RETURN_FALSE;
+    else if (FD_EMPTY_CHOICEP(o)) {
+      pylisp *po=newpychoice();
+      po->lispval=FD_EMPTY_CHOICE;
+      return (PyObject *)po;}
+    else {
+      pylisp *po=newpylisp();
+      po->lispval=fd_incref(o);
+      return (PyObject *)po;}
+  else if (FD_STRINGP(o))
+    return PyUnicode_DecodeUTF8
+      ((char *)FD_STRING_DATA(o),FD_STRING_LENGTH(o),"none");
+  else if (FD_PRIM_TYPEP(o,python_object_type)) {
+    struct FD_PYTHON_OBJECT *fdpo=(fd_python_object)o;
+    PyObject *o=fdpo->pyval;
+    Py_INCREF(o);
+    return o;}
+  else if (FD_ACHOICEP(o)) {
+    pylisp *po=newpychoice();
+    po->lispval=fd_simplify_choice(o);
+    return (PyObject *)po;}
+  else if (FD_CHOICEP(o)) {
+    pylisp *po=newpychoice();
+    po->lispval=fd_incref(o);
+    return (PyObject *)po;}
+  else if (FD_OIDP(o)) {
+    pylisp *po=newpyoid();
+    po->lispval=fd_incref(o);
+    return (PyObject *)po;}
+  else if (FD_VECTORP(o)) {
+    int i=0, n=FD_VECTOR_LENGTH(o);
+    fdtype *data=FD_VECTOR_DATA(o);
+    PyObject *tuple=PyTuple_New(n);
+    if (tuple==NULL) return pass_error();
+    else while (i<n) {
+      PyObject *v=lisp2py(data[i]);
+      if (v==NULL) {
+	Py_DECREF(tuple);
+	return pass_error();}
+      PyTuple_SET_ITEM(tuple,i,v);
+      i++;}
+    return (PyObject *)tuple;}
+  else if (FD_ABORTP(o)) 
+    return pass_error();
+  else {
+    pylisp *po=newpylisp();
+    po->lispval=fd_incref(o);
+    return (PyObject *)po;}
+}
+
 /* Printed representation */
 
 #define PyUTF8String(s,len) PyUnicode_DecodeUTF8((char *)(s),len,"none")
@@ -136,6 +306,30 @@ static PyObject *choice_str(PyObject *self)
   PyObject *pystring; int i=0;
   U8_INIT_OUTPUT_X(&out,32,buf,U8_STREAM_GROWS);
   u8_puts(&out,"framerd.Choice(");
+  {FD_DO_CHOICES(elt,pw->lispval) {
+      if (i>0) u8_putc(&out,','); i++;
+      if (FD_STRINGP(elt)) {
+	int c=FD_STRDATA(elt)[0];
+	u8_putc(&out,'\'');
+	if (strchr("@(#",c))  u8_putc(&out,'\\');
+	u8_puts(&out,FD_STRDATA(elt));
+	u8_putc(&out,'\'');}
+      else if (FD_SYMBOLP(elt))
+	u8_printf(&out,"':%s'",FD_SYMBOL_NAME(elt));
+      else u8_printf(&out,"'%q'",elt);}}
+  u8_putc(&out,')');
+  pystring=PyUTF8String(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
+  return pystring;
+}
+
+static PyObject *oid_str(PyObject *self)
+{
+  struct FD_PYTHON_WRAPPER *pw=(struct FD_PYTHON_WRAPPER *)self;
+  struct U8_OUTPUT out; u8_byte buf[64];
+  PyObject *pystring; int i=0;
+  U8_INIT_OUTPUT_X(&out,32,buf,U8_STREAM_GROWS);
+  u8_puts(&out,"framerd.OID(");
   {FD_DO_CHOICES(elt,pw->lispval) {
       if (i>0) u8_putc(&out,','); i++;
       if (FD_STRINGP(elt)) {
@@ -218,7 +412,12 @@ static PyObject *choice_merge(pw1,pw2)
 
 static PyObject *choice_item(struct FD_PYTHON_WRAPPER *pw,int i)
 {                                   /* or repr or str */
-  return lisp2py((FD_CHOICE_DATA(pw->lispval))[i]);
+  if (i<(FD_CHOICE_SIZE(pw->lispval)))
+    return lisp2py((FD_CHOICE_DATA(pw->lispval))[i]);
+  else {
+    PyErr_Format(PyExc_IndexError,"choice only has %d (<=%d) elements",
+		 FD_CHOICE_SIZE(pw->lispval),i);
+    return NULL;}
 }
 
 static PyMappingMethods table_methods = {  /* mapping type supplement */
@@ -272,6 +471,34 @@ static PyTypeObject FramerDType = {      /* main python type-descriptor */
   
 };  /* plus others: see Include/object.h */
 
+static PyTypeObject OIDType = {      /* main python type-descriptor */
+  /* type header */                    /* shared by all instances */
+  PyObject_HEAD_INIT(&PyType_Type)         
+  0,                               /* ob_size */
+  "framerd",                         /* tp_name */
+  sizeof(struct FD_PYTHON_WRAPPER),/* tp_basicsize */
+  0,                               /* tp_itemsize */
+  
+  /* standard methods */
+  (destructor)  pylisp_dealloc,   /* tp_dealloc  ref-count==0  */
+  (printfunc)   NULL,     /* tp_print    "print x"     */
+  (getattrfunc) NULL,   /* tp_getattr  "x.attr"      */
+  (setattrfunc) NULL,               /* tp_setattr  "x.attr=v"    */
+  (cmpfunc)     pylisp_compare,   /* tp_compare  "x > y"       */
+  (reprfunc)    oid_str,               /* tp_repr     `x`, print x  */
+  
+  /* type categories */
+  0,                             /* tp_as_number   +,-,*,/,%,&,>>,pow...*/
+  0,            /* tp_as_sequence +,[i],[i:j],len, ...*/
+  &table_methods, /* tp_as_mapping  [key], len, ...*/
+  
+  /* more methods */
+  (hashfunc)     0,              /* tp_hash    "dict[x]" */
+  (ternaryfunc)  0,              /* tp_call    "x()"     */
+  (reprfunc)     0,              /* tp_str     "str(x)"  */
+  
+};  /* plus others: see Include/object.h */
+
 static PyTypeObject ChoiceType = {      /* main python type-descriptor */
   /* type header */                    /* shared by all instances */
   PyObject_HEAD_INIT(&PyType_Type)         
@@ -300,7 +527,7 @@ static PyTypeObject ChoiceType = {      /* main python type-descriptor */
   
 };  /* plus others: see Include/object.h */
 
-staticforward PyTypeObject PoolType;
+static PyTypeObject PoolType;
 
 /*****************************************************************************
  * BASIC TYPE-OPERATIONS
@@ -367,8 +594,6 @@ static PyTypeObject PoolType = {      /* main python type-descriptor */
       (reprfunc)     0,              /* tp_str     "str(x)"  */
       
 };  /* plus others: see Include/object.h */
-
-staticforward PyTypeObject IndexType;
 
 /*****************************************************************************
  * BASIC TYPE-OPERATIONS
@@ -617,94 +842,6 @@ static struct PyMethodDef framerd_methods[]=
    {"eval",lispeval},
    {"method",lispfn},
    {NULL,NULL}};
-
-/* Python/LISP mapping */
-
-static fdtype py2lisp(PyObject *o)
-{
-  if (PyInt_Check(o))
-    return FD_INT2DTYPE(PyInt_AS_LONG(o));
-  else if (PyFloat_Check(o))
-    return fd_init_double(NULL,PyFloat_AsDouble(o));
-  else if (PyString_Check(o)) {
-    PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    return fdtype_string((u8_string)PyString_AS_STRING(u8));}
-  else if (PyUnicode_Check(o)) {
-    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
-    fdtype v=fdtype_string((u8_string)PyString_AS_STRING(u8));
-    Py_DECREF(u8);
-    return v;}
-  else if ((PyObject_TypeCheck(o,&PoolType))) {
-    struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
-    return fd_pool2lisp(pp->pool);}
-  else if ((PyObject_TypeCheck(o,&IndexType))) {
-    struct FD_PYTHON_INDEX *pi=(struct FD_PYTHON_INDEX *)o;
-    return fd_index2lisp(pi->index);}
-  else if ((PyObject_TypeCheck(o,&FramerDType)) ||
-	   (PyObject_TypeCheck(o,&ChoiceType))) {
-    pylisp *v=(struct FD_PYTHON_WRAPPER *)o;
-    return fd_incref(v->lispval);}
-  else {
-    struct FD_PYTHON_OBJECT *pyo=u8_alloc(struct FD_PYTHON_OBJECT);
-    FD_INIT_CONS(pyo,python_object_type);
-    pyo->pyval=o; Py_INCREF(o);
-    return (fdtype) pyo;}
-}
-
-/* This parses string args and is used for calling functions through
-   Python. */
-static fdtype py2lispx(PyObject *o)
-{
-  if (PyInt_Check(o))
-    return FD_INT2DTYPE(PyInt_AS_LONG(o));
-  else if (PyFloat_Check(o))
-    return fd_init_double(NULL,PyFloat_AsDouble(o));
-  else if (PyString_Check(o)) {
-    PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
-    u8_string sdata=(u8_string)PyString_AS_STRING(u8);
-    fdtype v=((*sdata==':') ? (fd_parse(sdata+1)) : (fd_parse(sdata)));
-    Py_DECREF(u8);
-    return v;}
-  else if (PyUnicode_Check(o)) {
-    PyObject *u8=PyUnicode_AsEncodedString(o,"utf8","none");
-    fdtype v=fd_parse((u8_string)PyString_AS_STRING(u8));
-    Py_DECREF(u8);
-    return v;}
-  else if ((PyObject_TypeCheck(o,&PoolType))) {
-    struct FD_PYTHON_POOL *pp=(struct FD_PYTHON_POOL *)o;
-    return fd_pool2lisp(pp->pool);}
-  else if ((PyObject_TypeCheck(o,&IndexType))) {
-    struct FD_PYTHON_INDEX *pi=(struct FD_PYTHON_INDEX *)o;
-    return fd_index2lisp(pi->index);}
-  else if ((PyObject_TypeCheck(o,&FramerDType)) ||
-	   (PyObject_TypeCheck(o,&ChoiceType))) {
-    pylisp *v=(struct FD_PYTHON_WRAPPER *)o;
-    return fd_incref(v->lispval);}
-  else return FD_VOID;
-}
-
-static PyObject *lisp2py(fdtype o)
-{
-  if (FD_FIXNUMP(o))
-    return PyInt_FromLong(FD_FIX2INT(o));
-  else if (FD_STRINGP(o))
-    return PyUnicode_DecodeUTF8
-      ((char *)FD_STRING_DATA(o),FD_STRING_LENGTH(o),"none");
-  else if (FD_ACHOICEP(o)) {
-    pylisp *po=newpychoice();
-    po->lispval=fd_simplify_choice(o);
-    return (PyObject *)po;}
-  else if (FD_CHOICEP(o)) {
-    pylisp *po=newpychoice();
-    po->lispval=fd_incref(o);
-    return (PyObject *)po;}
-  else if (FD_ABORTP(o)) 
-    return pass_error();
-  else {
-    pylisp *po=newpylisp();
-    po->lispval=fd_incref(o);
-    return (PyObject *)po;}
-}
 
 /* Primitives for embedded Python */
 
