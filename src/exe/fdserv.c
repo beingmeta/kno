@@ -780,6 +780,10 @@ int main(int argc,char **argv)
   unsigned char data[1024], *input;
   int i=2, n_threads=-1, n_tasks=-1;
   u8_string source_file=NULL;
+
+  /* Set this here, before processing any configs */
+  fddb_loglevel=LOG_INFO;
+  
   if (argc<2) {
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}

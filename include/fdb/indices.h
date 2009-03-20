@@ -13,7 +13,8 @@
 #include "dtypestream.h"
 
 FD_EXPORT fd_exception
-  fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec;
+  fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec,
+  fd_IndexCommitError;
 
 #define FD_INDEX_ADD_CAPABILITY 1
 #define FD_INDEX_DROP_CAPABILITY 2

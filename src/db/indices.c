@@ -25,6 +25,7 @@ fd_exception fd_ReadOnlyIndex=_("read-only index");
 fd_exception fd_NoFileIndices=_("file indices are not supported");
 fd_exception fd_NotAFileIndex=_("not a file index");
 fd_exception fd_BadIndexSpec=_("bad index specification");
+fd_exception fd_IndexCommitError=_("can't save changes to index");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
 fd_index (*fd_file_index_opener)(u8_string)=NULL;
@@ -651,12 +652,16 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 	ix->handler->setcache(ix,fd_default_cache_level);}
     retval=ix->handler->commit(ix);
     if (retval<0)
-      u8_log(LOG_WARN,fd_Commitment,_("Error saving %d keys to %s after %f secs"),
-	      n_keys,ix->cid,u8_elapsed_time()-start_time);
+      u8_log(LOG_CRIT,fd_Commitment,
+	     _("Error saving %d keys to %s after %f secs"),
+	     n_keys,ix->cid,u8_elapsed_time()-start_time);
     else if (retval>0)
-      u8_log(LOG_NOTICE,fd_Commitment,_("Saved %d keys to %s in %f secs"),
+      u8_log(fddb_loglevel,fd_Commitment,
+	     _("Saved %d keys to %s in %f secs"),
 	     retval,ix->cid,u8_elapsed_time()-start_time);
     else {}
+    if (retval<0)
+      u8_seterr(fd_IndexCommitError,"fd_index_commit",u8_strdup(ix->cid));
     return retval;}
   else return 0;
 }
@@ -753,7 +758,7 @@ FD_EXPORT int fd_commit_indices_noerr()
   int i=0; while (i < fd_n_primary_indices) {
     int retval=fd_index_commit(fd_primary_indices[i]);
     if (retval<0) {
-      u8_log(LOG_WARN,"INDEX_COMMIT_FAIL","Error committing %s",
+      u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",
 	      fd_primary_indices[i]->cid);
       fd_clear_errors(1);
       count=-1;}
@@ -762,7 +767,7 @@ FD_EXPORT int fd_commit_indices_noerr()
   i=0; while (i < fd_n_secondary_indices) {
     int retval=fd_index_commit(fd_secondary_indices[i]);
     if (retval<0) {
-      u8_log(LOG_WARN,"INDEX_COMMIT_FAIL","Error committing %s",
+      u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",
 	      fd_secondary_indices[i]->cid);
       fd_clear_errors(1);
       count=-1;}

@@ -439,7 +439,7 @@ FD_EXPORT void fd_init_fddbserv(void);
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_fdscheme();
+  int fd_version;
   unsigned char data[1024], *input;
   double showtime=-1.0;
   int i=1; u8_string source_file=NULL;
@@ -451,6 +451,10 @@ int main(int argc,char **argv)
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env; 
+
+  fddb_loglevel=LOG_INFO;
+
+  fd_version=fd_init_fdscheme();
 
   /* Record the startup time for UPTIME */
   u8_now(&boot_time);

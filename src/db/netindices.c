@@ -158,7 +158,8 @@ static int netindex_commit(fd_index ix)
 	  else result=fd_dtcall_nrx(nix->connpool,3,4,
 				    ixserver_reset,nix->xname,
 				    FD_CDR(key),scan->value);}
-	else u8_log(LOG_WARN,fd_NoServerMethod,"Server %s doesn't support resets",ix->source);
+	else u8_log(LOG_WARN,fd_NoServerMethod,
+		    "Server %s doesn't support resets",ix->source);
       else if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol))) 
 	if (nix->capabilities&FD_ISERVER_DROP) {
 	  n_transactions++;
@@ -166,7 +167,8 @@ static int netindex_commit(fd_index ix)
 	    result=fd_dtcall(nix->connpool,3,iserver_drop,FD_CDR(key),scan->value);
 	  else result=fd_dtcall_x(nix->connpool,3,4,ixserver_drop,nix->xname,
 				  FD_CDR(key),scan->value);}
-	else u8_log(LOG_WARN,fd_NoServerMethod,"Server %s doesn't support drops",ix->source);
+	else u8_log(LOG_WARN,fd_NoServerMethod,
+		    "Server %s doesn't support drops",ix->source);
       else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
       if (FD_ABORTP(result)) {
 	fd_rw_unlock_struct(&(nix->adds));

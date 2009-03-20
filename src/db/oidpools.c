@@ -974,6 +974,10 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     FD_OID addr=FD_OID_ADDR(oids[i]);
     fdtype value=values[i];
     int n_bytes=oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
+    if (n_bytes<0) {
+      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
+      fd_unlock_struct(op);
+      return n_bytes;}
     saveinfo[i].chunk.off=endpos; saveinfo[i].chunk.size=n_bytes;
     saveinfo[i].oidoff=FD_OID_DIFFERENCE(addr,base);
     endpos=endpos+n_bytes; i++;}
@@ -996,7 +1000,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_MAGIC_NUMBER);
   fd_dtsflush(stream); fsync(stream->fd);
   fd_unlock_struct(op);
-  return 0;
+  return n;
 }
 
 static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,

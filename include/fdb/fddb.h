@@ -23,6 +23,7 @@ FD_EXPORT int fd_init_db(void) FD_LIBINIT_FN;
 FD_EXPORT fdtype (*fd_get_oid_name)(fdtype);
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
+FD_EXPORT int fddb_loglevel;
 FD_EXPORT int fd_prefetch;
 FD_EXPORT fd_exception fd_InternalError;
 FD_EXPORT fd_exception fd_BadServerResponse;

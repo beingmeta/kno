@@ -34,6 +34,7 @@ fd_exception fd_NotAPool=_("pool");
 fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
 fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
 fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
+fd_exception fd_PoolCommitError=_("can't save changes to pool");
 
 int fd_n_pools=0;
 
@@ -261,7 +262,8 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 {
   if (pool_conflict_handler) pool_conflict_handler(upstart,holder);
   else 
-    u8_log(LOG_WARN,_("Pool conflict"),"%s (from %s) and existing pool %s (from %s)\n",
+    u8_log(LOG_WARN,_("Pool conflict"),
+	   "%s (from %s) and existing pool %s (from %s)\n",
            upstart->label,upstart->source,holder->label,holder->source);
 }
 
@@ -677,6 +679,8 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       return 1;}
     else n=owrite-oidv;
     retval=p->handler->storen(p,n,oidv,values);
+    if (retval<0)
+      u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->cid));
     /* Free the values pointers, and clear the modified flags */
     {
       fdtype *scan=values;
@@ -694,10 +698,10 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       fd_decref(needy);}
     else u8_free(oidc);
     if (retval<0)
-      u8_log(LOG_WARN,fd_Commitment,
+      u8_log(LOG_CRIT,fd_Commitment,
                 "Error saving %d OIDs from %s in %f secs",n,p->cid,
                 u8_elapsed_time()-start_time);
-    else u8_log(LOG_NOTICE,fd_Commitment,
+    else u8_log(fddb_loglevel,fd_Commitment,
                 "Saved %d OIDs from %s in %f secs",n,p->cid,
                 u8_elapsed_time()-start_time);
     return retval;}
@@ -708,6 +712,8 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     if (FD_VOIDP(value)) return 1;
     oidv[0]=oids; values[0]=value;
     retcode=p->handler->storen(p,1,oidv,values);
+    if (retcode<0)
+      u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->cid));
     fd_decref(value);
     if (retcode<0) {
       u8_log(LOG_WARN,fd_Commitment,
@@ -718,7 +724,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       if (unlock) {
         if (p->handler->unlock(p,oids)) 
           fd_hashtable_op(locks,fd_table_store,oids,FD_VOID);}
-      u8_log(LOG_NOTICE,fd_Commitment,
+      u8_log(fddb_loglevel,fd_Commitment,
              "[%*t] Saved one OID from %s in %f secs",
              p->cid,u8_elapsed_time()-start_time);
       return 1;}
@@ -999,7 +1005,7 @@ static int do_commit(fd_pool p,void *data)
   int retval=fd_pool_unlock_all(p,1);
   if (retval<0)
     if (data) {
-      u8_log(LOG_WARN,"POOL_COMMIT_FAIL","Error when commiting pool %s",p->cid);
+      u8_log(LOG_CRIT,"POOL_COMMIT_FAIL","Error when commiting pool %s",p->cid);
       return 0;}
     else return -1;
   else return 0;

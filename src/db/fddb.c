@@ -33,6 +33,7 @@ fd_exception fd_BadMetaData=_("Error getting metadata");
 
 int fd_default_cache_level=1;
 int fd_oid_display_level=2;
+int fddb_loglevel=LOG_NOTICE;
 int fd_prefetch=FD_PREFETCHING_ENABLED;
 
 int fd_dbconn_reserve_default=FD_DBCONN_RESERVE_DEFAULT;
@@ -478,6 +479,9 @@ FD_EXPORT int fd_init_db()
 		     get_oid_display_level,
 		     set_oid_display_level,
 		     NULL);
+  fd_register_config("FDDBLOGLEVEL",_("Default log level for database messages"),
+		     fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
+
   fd_register_config("PREFETCH",_("Whether to prefetch for large operations"),
 		     get_prefetch,
 		     set_prefetch,
