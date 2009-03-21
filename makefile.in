@@ -39,8 +39,11 @@ FRAMERDSVN	= https://dev.beingmeta.com/src/fdb/trunk
 
 DTYPE_HEADERS=\
  include/fdb/config.h                            \
- include/fdb/common.h include/fdb/defines.h      \
- include/fdb/support.h include/fdb/numbers.h     \
+ include/fdb/common.h                            \
+ include/fdb/defines.h                           \
+ include/fdb/support.h                           \
+ include/fdb/numbers.h                           \
+ include/fdb/bigints.h                           \
  include/fdb/malloc.h include/fdb/dtype.h        \
  include/fdb/ptr.h include/fdb/cons.h            \
  include/fdb/choices.h include/fdb/tables.h      \

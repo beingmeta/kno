@@ -561,6 +561,13 @@ DEFUN (fd_bigint_to_long, (bigint), fd_bigint bigint)
   }
 }
 
+int
+DEFUN (fd_bigint_negativep, (bigint), fd_bigint bigint)
+{
+  if (BIGINT_NEGATIVE_P (bigint)) return (1);
+  else return (0);
+}
+
 long long
 DEFUN (fd_bigint_to_long_long, (bigint), fd_bigint bigint)
 {
@@ -2418,6 +2425,11 @@ static fdtype int_lcm (fdtype x, fdtype y)
 /* Arithmetic operations */
 
 FD_EXPORT int fd_small_bigintp(fd_bigint bi)
+{
+  return (fd_bigint_fits_in_word_p(bi,32,1));
+}
+
+FD_EXPORT int fd_modest_bigintp(fd_bigint bi)
 {
   return (fd_bigint_fits_in_word_p(bi,32,1));
 }

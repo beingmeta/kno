@@ -6,6 +6,8 @@
 #include <fdb/pools.h>
 #include <fdb/indices.h>
 #include <fdb/eval.h>
+#include <fdb/numbers.h>
+#include <fdb/bigints.h>
 
 typedef struct FD_PYTHON_WRAPPER {
   PyObject_HEAD /* Header stuff */
@@ -37,6 +39,24 @@ staticforward PyTypeObject IndexType;
 staticforward PyTypeObject PoolType;
 
 static PyObject *FramerDError;
+
+typedef void (*bigint_consumer)(void *,int);
+typedef unsigned int (*bigint_producer)(void *);
+
+static int negate_bigint(unsigned char *bytes,int len)
+{
+  int i=0, carry=0; while (i<len) {
+    bytes[i]=~(bytes[i]); i++;}
+  if (bytes[0]==255) {bytes[0]=0; carry=1;}
+  else bytes[0]=bytes[0]+1;
+  i=1; if (carry) while (i<len) {
+      int sum=bytes[i]+carry;
+      if (sum==256) {bytes[i]=0; carry=1;}
+      else {bytes[i]=(unsigned char)sum; carry=0;}
+      i++;}
+  bytes[i]=carry;
+  return len+carry;
+}
 
 /* FramerD to Python errors */
 
@@ -131,18 +151,43 @@ static int unparse_python_object(u8_output out,fdtype obj)
 
 /* Python/LISP mapping */
 
+static int read_bigint_byte(unsigned char **data)
+{
+  int val=**data; (*data)++;
+  return val;
+}
 static fdtype py2lisp(PyObject *o)
 {
-  if (PyInt_Check(o))
-    return FD_INT2DTYPE(PyInt_AS_LONG(o));
-  else if (o==Py_None)
+  if (o==Py_None)
     return FD_VOID;
   else if (o==Py_False)
     return FD_FALSE;
   else if (o==Py_True)
     return FD_TRUE;
+  else if (PyInt_Check(o))
+    return FD_INT2DTYPE(PyInt_AS_LONG(o));
   else if (PyFloat_Check(o))
     return fd_init_double(NULL,PyFloat_AsDouble(o));
+  else if (PyLong_Check(o)) {
+    int bitlen=_PyLong_NumBits(o);
+    int bytelen=bitlen/8+1;
+    int sign=_PyLong_Sign(o);
+    if (bitlen<32) {
+      long lval=PyLong_AsLong(o);
+      return FD_INT2DTYPE(lval);}
+    else if (bitlen<64) {
+      long long lval=PyLong_AsLongLong(o);
+      return FD_INT2DTYPE(lval);}
+    else {
+      PyLongObject *plo=(PyLongObject *)o;
+      unsigned char *bytes=u8_malloc(bytelen);
+      int retval=_PyLong_AsByteArray(plo,bytes,bytelen,1,1);
+      fd_bigint bi;
+      if (sign<0) { negate_bigint(bytes,bytelen);}
+      bi=fd_digit_stream_to_bigint
+	(bytelen,(bigint_producer)read_bigint_byte,(void *)bytes,256,(sign<0));
+      u8_free(bytes);
+      return (fdtype) bi;}}
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
     return fdtype_string((u8_string)PyString_AS_STRING(u8));}
@@ -182,16 +227,36 @@ static fdtype py2lisp(PyObject *o)
    Python. */
 static fdtype py2lispx(PyObject *o)
 {
-  if (PyInt_Check(o))
-    return FD_INT2DTYPE(PyInt_AS_LONG(o));
-  else if (PyFloat_Check(o))
-    return fd_init_double(NULL,PyFloat_AsDouble(o));
-  else if (o==Py_None)
+  if (o==Py_None)
     return FD_VOID;
   else if (o==Py_False)
     return FD_FALSE;
   else if (o==Py_True)
     return FD_TRUE;
+  else if (PyInt_Check(o))
+    return FD_INT2DTYPE(PyInt_AS_LONG(o));
+  else if (PyFloat_Check(o))
+    return fd_init_double(NULL,PyFloat_AsDouble(o));
+  else if (PyLong_Check(o)) {
+    int bitlen=_PyLong_NumBits(o);
+    int bytelen=bitlen/8+1;
+    int sign=_PyLong_Sign(o);
+    if (bitlen<32) {
+      long lval=PyLong_AsLong(o);
+      return FD_INT2DTYPE(lval);}
+    else if (bitlen<64) {
+      long long lval=PyLong_AsLongLong(o);
+      return FD_INT2DTYPE(lval);}
+    else {
+      PyLongObject *plo=(PyLongObject *)o;
+      unsigned char *bytes=u8_malloc(bytelen);
+      int retval=_PyLong_AsByteArray(plo,bytes,bytelen,1,1);
+      fd_bigint bi;
+      if (sign<0) { negate_bigint(bytes,bytelen);}
+      bi=fd_digit_stream_to_bigint
+	(bytelen,(bigint_producer)read_bigint_byte,(void *)bytes,256,(sign<0));
+      u8_free(bytes);
+      return (fdtype) bi;}}
   else if (PyString_Check(o)) {
     PyObject *u8=PyString_AsEncodedObject(o,"utf8","none");
     u8_string sdata=(u8_string)PyString_AS_STRING(u8);
@@ -226,10 +291,16 @@ static fdtype py2lispx(PyObject *o)
   else return FD_VOID;
 }
 
+static void output_bigint_byte(unsigned char **scan,int digit)
+{
+  **scan=digit; (*scan)++;
+}
+
 static PyObject *lisp2py(fdtype o)
 {
-  if (FD_FIXNUMP(o))
-    return PyInt_FromLong(FD_FIX2INT(o));
+  if (FD_FIXNUMP(o)) {
+    long lval=FD_FIX2INT(o);
+    return PyInt_FromLong(lval);}
   else if (FD_IMMEDIATEP(o))
     if (FD_VOIDP(o)) Py_RETURN_NONE;
     else if (FD_TRUEP(o)) Py_RETURN_TRUE;
@@ -250,6 +321,30 @@ static PyObject *lisp2py(fdtype o)
     PyObject *o=fdpo->pyval;
     Py_INCREF(o);
     return o;}
+  else if (FD_BIGINTP(o)) {
+    fd_bigint big=(fd_bigint) o;
+    if (fd_small_bigintp(big)) {
+      long lval=fd_bigint_to_long(big);
+      return PyInt_FromLong(lval);}
+    else if (fd_modest_bigintp(big)) {
+      long long llval=fd_bigint_to_long_long(big);
+      return PyLong_FromLongLong(llval);}
+    else {
+      PyObject *pylong;
+      int n_bytes=fd_bigint_length_in_bytes(big);
+      int negativep=fd_bigint_negativep(big);
+      unsigned char _bytes[64], *bytes, *scan;
+      if (n_bytes>=63) scan=bytes=u8_malloc(n_bytes+1);
+      else scan=bytes=_bytes;
+      fd_bigint_to_digit_stream
+	(big,256,output_bigint_byte,(void *)&scan);
+      if (negativep) n_bytes=negate_bigint(bytes,n_bytes);
+      pylong=_PyLong_FromByteArray(bytes,n_bytes,1,1);
+      if (bytes!=_bytes) u8_free(bytes);
+      return pylong;}}
+  else if (FD_FLONUMP(o)) {
+    double dval=FD_FLONUM(o);
+    return PyFloat_FromDouble(o);}
   else if (FD_ACHOICEP(o)) {
     pylisp *po=newpychoice();
     po->lispval=fd_simplify_choice(o);
