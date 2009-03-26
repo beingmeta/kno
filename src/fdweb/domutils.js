@@ -133,7 +133,7 @@ function _fdbGetChildrenByClassName(under,classname)
   var children=under.childNodes;
   var i=0; while (i<children.length)
     if (children[i].nodeType===1)
-      _fdbGetChildrenByTagName(children[i++],tagname,results);
+      _fdbGetChildrenByClassName(children[i++],tagname,results);
     else i++;
   return results;
 }     
@@ -149,6 +149,17 @@ function fdbGetElementsByClassName(classname,under_arg)
   else under=under_arg;
   if (under===null) return new Array();
   else return fdbGetChildrenByClassName(under,classname);
+}
+
+function fdbGetElementsByTagName(tagname,under_arg)
+{
+  var under;
+  if (typeof under_arg === 'undefined') under=null;
+  else if (typeof under_arg === 'string')
+    under=document.getElementById(under_arg);
+  else under=under_arg;
+  if (under===null) return new Array();
+  else return fdbGetChildrenByTagName(under,tagname);
 }
 
 /* Searching by attribute */
