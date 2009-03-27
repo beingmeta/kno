@@ -90,7 +90,7 @@ function fdbGetChildrenByTagName(under,tagname)
 }
 function _fdbGetChildrenByTagName(under,tagname,results)
 {
-  if ((under.nodeType===1) && (under.tagName===tagname))
+  if ((under.nodeType===1) && (under.tagName==tagname))
     results.push(under);
   var children=under.childNodes;
   var i=0; while (i<children.length)
@@ -142,24 +142,24 @@ function _fdbGetChildrenByClassName(under,classname)
 
 function fdbGetElementsByClassName(classname,under_arg)
 {
-  var under;
-  if (typeof under_arg === 'undefined') under=null;
-  else if (typeof under_arg === 'string')
-    under=document.getElementById(under_arg);
-  else under=under_arg;
-  if (under===null) return new Array();
-  else return fdbGetChildrenByClassName(under,classname);
+  if (typeof under_arg === 'undefined')
+    return fdbGetChildrenByClassName(null,classname);
+  else if (typeof under_arg === 'string') {
+    var under=document.getElementById(under_arg);
+    if (under==null) return new Array();
+    else return fdbGetChildrenByClassName(under,classname);}
+  else return fdbGetChildrenByClassName(under_arg,classname);
 }
 
 function fdbGetElementsByTagName(tagname,under_arg)
 {
-  var under;
-  if (typeof under_arg === 'undefined') under=null;
-  else if (typeof under_arg === 'string')
-    under=document.getElementById(under_arg);
-  else under=under_arg;
-  if (under===null) return new Array();
-  else return fdbGetChildrenByTagName(under,tagname);
+  if (typeof under_arg === 'undefined')
+    return fdbGetChildrenByTagName(null,tagname.toUpperCase());
+  else if (typeof under_arg === 'string') {
+    var under=document.getElementById(under_arg);
+    if (under==null) return new Array();
+    else return fdbGetChildrenByTagName(under,tagname.toUpperCase());}
+  else return fdbGetChildrenByTagName(under_arg,tagname);
 }
 
 /* Searching by attribute */

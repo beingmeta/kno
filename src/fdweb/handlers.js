@@ -474,7 +474,7 @@ function fdb_adjust_font_sizes()
       fdb_adjust_font_size(elts[i++]);}
 }
 
-/* Handling CSS based reduction */
+/* Handling CSS based reduction: shrinking font sizes to fit */
 
 function fdb_mark_reduced(elt)
 {
