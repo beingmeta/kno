@@ -378,8 +378,9 @@ function fdbNewElementW(tag,classname,attribs)
 
 function fdbSpan(classname)
 {
+  if (typeof classname == 'undefined') classname=null;
   var elt=document.createElement('span');
-  elt.className=classname;
+  if (classname) elt.className=classname;
   fdbAddElements(elt,arguments,1);
   return elt;
 }
@@ -395,8 +396,9 @@ function fdbSpanW(classname,attribs)
 
 function fdbDiv(classname)
 {
+  if (typeof classname == 'undefined') classname=null;
   var elt=document.createElement('div');
-  elt.className=classname;
+  if (classname) elt.className=classname;
   fdbAddElements(elt,arguments,1);
   return elt;
 }
