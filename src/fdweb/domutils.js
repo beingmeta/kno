@@ -62,6 +62,27 @@ function fdbHasAttrib(elt,attribname,attribval)
   else return false;
 }
 
+function fdbNextElement(node)
+{
+  if (node.nextElementSibling) return node.nextElementSibling;
+  else {
+    var scan=node;
+    while (scan=node.nextSibling)
+      if (scan.nodeType==1) break;
+    return scan;}
+}
+
+function fdbPreviousElement(node)
+{
+  if (node.previousElementSibling)
+    return node.previousElementSibling;
+  else {
+    var scan=node;
+    while (scan=node.previousSibling)
+      if (scan.nodeType==1) break;
+    return scan;}
+}
+
 /* Searching by tag name */
 
 function fdbGetParentByTagName(node,tagname)
@@ -444,3 +465,36 @@ function fdbGetSelection(elt)
     return window.getSelection();
   else return null;
 }
+
+/* Guessing IDs to use from the DOM */
+
+function _fdb_get_node_id(node)
+{
+  if (node===null) return false;
+  else if (node.id) return node.id;
+  else if ((node.tagName=='A') && (node.name))
+    return node.name;
+  else return false;
+}
+
+function fdbGuessAnchor(about)
+{
+  /* This looks around a DOM element to try to find an ID to use as a
+     target for a URI.  It especially catches the case where named
+     anchors are used. */
+  var probe=_fdb_get_node_id(about);
+  if (probe) return probe;
+  else if (probe=_fdb_get_node_id(about.parentNode)) return probe;
+  else if (probe=_fdb_get_node_id(fdbGetNextElement(about))) return probe;
+  else if (probe=_fdb_get_node_id(fdbGetPreviousElement(about))) return probe;
+  else {
+    var embedded_anchors=fdbGetChildrenByTagName('A');
+    if (embedded_anchors==null) return null;
+    var i=0; while (i<embedded_anchors.length) 
+      if (probe=_fdb_get_node_id(embedded_anchors[i])) return probe;
+      else i++;
+    return null;}
+}
+
+
+
