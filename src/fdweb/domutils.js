@@ -1,5 +1,6 @@
 /* Various utilities for manipulating the dom */
 
+var _debug=false;
 var _debug_domedits=false;
 
 function $(eltarg)
@@ -433,6 +434,33 @@ function fdbDivW(classname,attribs)
   return elt;
 }
 
+function fdbImage(url,classname,alt)
+{
+  if (typeof classname == 'undefined') classname=null;
+  var elt=document.createElement('img');
+  if (classname) elt.className=classname;
+  elt.src=url;
+  if (typeof alt == "string") elt.alt=alt;
+  return elt;
+}
+
+function fdbAnchor(url)
+{
+  var elt=document.createElement('a');
+  elt.href=url;
+  fdbAddElements(elt,arguments,1);
+  return elt;
+}
+
+function fdbAnchorW(url,attribs)
+{
+  var elt=document.createElement('a');
+  elt.href=url;
+  fdbAddAttributes(elt,attribs);
+  fdbAddElements(elt,arguments,2);
+  return elt;
+}
+
 function fdbInput(type,name,value,classname)
 {
   var elt=document.createElement('input');
@@ -485,10 +513,10 @@ function fdbGuessAnchor(about)
   var probe=_fdb_get_node_id(about);
   if (probe) return probe;
   else if (probe=_fdb_get_node_id(about.parentNode)) return probe;
-  else if (probe=_fdb_get_node_id(fdbGetNextElement(about))) return probe;
-  else if (probe=_fdb_get_node_id(fdbGetPreviousElement(about))) return probe;
+  else if (probe=_fdb_get_node_id(fdbNextElement(about))) return probe;
+  else if (probe=_fdb_get_node_id(fdbPreviousElement(about))) return probe;
   else {
-    var embedded_anchors=fdbGetChildrenByTagName('A');
+    var embedded_anchors=fdbGetChildrenByTagName(about,'A');
     if (embedded_anchors==null) return null;
     var i=0; while (i<embedded_anchors.length) 
       if (probe=_fdb_get_node_id(embedded_anchors[i])) return probe;
