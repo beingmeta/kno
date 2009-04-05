@@ -13,7 +13,7 @@ function $(eltarg)
 function fdbLog(string)
 {
   if ((typeof console != 'undefined') && (console) && (console.log))
-    console.log(string);
+    console.log.apply(console,arguments);
 }
 
 function fdbWarn(string)
@@ -65,11 +65,14 @@ function fdbHasAttrib(elt,attribname,attribval)
 
 function fdbNextElement(node)
 {
-  if (node.nextElementSibling) return node.nextElementSibling;
+  if (node.nextElementSibling)
+    return node.nextElementSibling;
   else {
     var scan=node;
-    while (scan=node.nextSibling)
-      if (scan.nodeType==1) break;
+    while (scan=scan.nextSibling) {
+      if (typeof scan === "undefined") return null;
+      else if (scan.nodeType==1) break;
+      else {}}
     return scan;}
 }
 
@@ -79,8 +82,10 @@ function fdbPreviousElement(node)
     return node.previousElementSibling;
   else {
     var scan=node;
-    while (scan=node.previousSibling)
-      if (scan.nodeType==1) break;
+    while (scan=scan.previousSibling) 
+      if (typeof scan === "undefined") return null;
+      else if (scan.nodeType==1) break;
+      else {}
     return scan;}
 }
 
@@ -356,8 +361,8 @@ function fdbReplace(cur_arg,newnode)
   if (cur) {
     var parent=cur.parentNode;
     parent.replaceChild(newnode,cur);
-    if ((cur.id) && (newnode.id==null))
-      newnode.id=cur.id;
+    if ((cur.id) && (newnode.id==null)) {
+      newnode.id=cur.id; cur.id=null;}
     return newnode;}
   else {
     fdbWarn("Invalid DOM replace argument: "+cur_arg);
@@ -494,13 +499,39 @@ function fdbGetSelection(elt)
   else return null;
 }
 
+/* Forcing IDs */
+
+var _fdb_idcounter=0, fdb_idbase=false;
+
+function fdbForceId(about)
+{
+  if (about.id) return about.id;
+  else {
+    if (!(fdb_idbase))
+      fdb_idbase="FDBID"+(1000000+(Math.floor((1000000-1)*Math.random())))+"S";
+    var tmpid=fdb_idbase+_fdb_idcounter++;
+    while (document.getElementById(tmpid))
+      tmpid=fdb_idbase+_fdb_idcounter++;
+    about.id=tmpid;
+    return tmpid;}
+}
+
 /* Guessing IDs to use from the DOM */
 
 function _fdb_get_node_id(node)
 {
+  // console.log('Checking '+node+' w/id '+node.id+' w/name '+node.name);
   if (node===null) return false;
   else if (node.id) return node.id;
   else if ((node.tagName=='A') && (node.name))
+    return node.name;
+  else return false;
+}
+
+function _fdb_get_parent_name(node)
+{
+  var parent=node.parentNode;
+  if ((parent) && (parent.tagName==='A') && (node.name))
     return node.name;
   else return false;
 }
@@ -510,19 +541,44 @@ function fdbGuessAnchor(about)
   /* This looks around a DOM element to try to find an ID to use as a
      target for a URI.  It especially catches the case where named
      anchors are used. */
+  // console.log('Guessing anchors for '+about+' '+about.tagName);
   var probe=_fdb_get_node_id(about);
   if (probe) return probe;
-  else if (probe=_fdb_get_node_id(about.parentNode)) return probe;
+  else if (probe=_fdb_get_parent_name(about)) return probe;
   else if (probe=_fdb_get_node_id(fdbNextElement(about))) return probe;
   else if (probe=_fdb_get_node_id(fdbPreviousElement(about))) return probe;
   else {
     var embedded_anchors=fdbGetChildrenByTagName(about,'A');
     if (embedded_anchors==null) return null;
-    var i=0; while (i<embedded_anchors.length) 
+    var i=0;
+    while (i<embedded_anchors.length) 
       if (probe=_fdb_get_node_id(embedded_anchors[i])) return probe;
       else i++;
     return null;}
 }
 
+var _fdb_idcounter=0, fdb_idbase=false;
 
+function fdbGetAnchor(about)
+{
+  /* This does a get anchor and creates an id if neccessary */
+  var probe=fdbGuessAnchor(about);
+  if (probe) return probe;
+  else {
+    if (!(fdb_idbase))
+      fdb_idbase="TMPID"+(1000000+(Math.floor((1000000-1)*Math.random())))+"S";
+    var tmpid=fdb_idbase+_fdb_idcounter++;
+    while (document.getElementById(tmpid))
+      tmpid=fdb_idbase+_fdb_idcounter++;
+    about.id=tmpid;
+    return tmpid;}
+}
+
+function fdbGetAnchor(about)
+{
+  /* This does a get anchor and creates an id if neccessary */
+  var probe=fdbGuessAnchor(about);
+  if (probe) return probe;
+  else return fdbForceId(about);
+}
 
