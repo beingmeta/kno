@@ -1,5 +1,6 @@
 /* Various utilities for manipulating the dom */
 
+var domutils_version="$Id:$";
 var _debug=false;
 var _debug_domedits=false;
 
@@ -526,25 +527,194 @@ function fdbIsVisible(elt,partial)
   var left = elt.offsetLeft;
   var width = elt.offsetWidth;
   var height = elt.offsetHeight;
-
+  var winx=window.pageXOffset;
+  var winy=window.pageYOffset;
+  var winxedge=winx+window.innerWidth;
+  var winyedge=winy+window.innerHeight;
+  
   while(elt.offsetParent) {
     elt = elt.offsetParent;
     top += elt.offsetTop;
     left += elt.offsetLeft;}
 
   if (partial)
+    // There are three cases we check for:
     return (
-	    top < (window.pageYOffset + window.innerHeight) &&
-	    left < (window.pageXOffset + window.innerWidth) &&
-	    (top + height) > window.pageYOffset &&
-	    (left + width) > window.pageXOffset
-	    );
-  else return (
-	       top >= window.pageYOffset &&
+	    // top of element in window
+	    ((top > winy) && (top < winyedge) &&
+	     (left > winx) && (left < winxedge)) ||
+	    // bottom of element in window
+	    ((top+height > winy) && (top+height < winyedge) &&
+	     (left+width > winx) && (left+width < winxedge)) ||
+	    // top above/left of window, bottom below/right of window
+	    (((top < winy) || (left < winx)) &&
+	     ((top+height > winyedge) && (left+width > winxedge))));
+  else return (top >= window.pageYOffset &&
 	       left >= window.pageXOffset &&
 	       (top + height) <= (window.pageYOffset + window.innerHeight) &&
-	       (left + width) <= (window.pageXOffset + window.innerWidth)
-	       );
+	       (left + width) <= (window.pageXOffset + window.innerWidth));
+}
+
+/* Computing "flat width" of a node */
+
+var __fdb_vertical_flat_width=8;
+var __fdb_vertical_tags=["P","DIV","BR","UL","LI","BLOCKQUOTE",
+			 "H1","H2","H3","H4","H5","H6"];
+var __fdb_flat_width_fns={};
+
+function _fdb_compute_flat_width(node,sofar)
+{
+  if (node.nodeType===Node.ELEMENT_NODE) {
+    if (typeof __fdb_flat_width_fns[node.tagName] == "function")
+      sofar=sofar+__fdb_flat_width_fns[node.tagName];
+    else if (__fdb_vertical_tags.indexOf(node.tagName)>=0)
+      sofar=sofar+__fdb_vertical_flat_width;
+    else if (fdbHasAttrib(node,"flatwidth")) {
+      var fw=node.getAttribute("flatwidth");
+      if (typeof fw == "string") {
+	if ((fw.length>0) && (fw[0]=='+'))
+	  sofar=sofar+parseInt(fw.slice(1));
+	else {
+	  var fwnum=parseInt(fw);
+	  if (typeof fwnum==="number") return sofar+fwnum;}}
+      else if (typeof fw == "number") return sofar+fw;}
+    if (node.hasChildNodes()) {
+      var children=node.childNodes;
+      var i=0; while (i<children.length) {
+	var child=children[i++];
+	if (child.nodeType===Node.TEXT_NODE)
+	  sofar=sofar+child.nodeValue.length;
+	else if (child.nodeType===Node.ELEMENT_NODE)
+	  sofar=_fdb_compute_flat_width(child,sofar);
+	else {}}
+      return sofar;}
+    else if (node.offsetWidth)
+      return sofar+Math.ceil(node.offsetWidth/10)+
+	Math.floor(node.offsetHeight/16)*__fdb_vertical_flat_width;
+    else if (node.width)
+      return sofar+Math.ceil(node.width/10)+
+	Math.floor(node.height/16)*__fdb_vertical_flat_width;
+    else return sofar;}
+  else if (node.nodeType===Node.TEXT_NODE)
+    return sofar+node.nodeValue.length;
+  else return sofar;
+}
+
+function fdbFlatWidth(node,sofar)
+{
+  if (typeof sofar === "undefined") sofar=0;
+  return _fdb_compute_flat_width(node,sofar);
+}
+
+/* CLeaning up markup */
+
+
+/* Cleaning up headers for the HUD */
+
+var fdb_cleanup_tags=["A","BR","HR"];
+var fdb_cleanup_classes=[];
+
+function _fdb_cleanup_tags(elt,name)
+{
+  var toremove=fdbGetChildrenByTagName(name);
+  var i=0; while (i<toremove.length) fdbRemove(toremove[i++]);
+}
+
+function _fdb_cleanup_classes(elt,classname)
+{
+  var toremove=fdbGetChildrenByClassName(classname);
+  var i=0; while (i<toremove.length) fdbRemove(toremove[i++]);
+}
+
+function _fdb_cleanup_content(elt)
+{
+  var tagname=elt.tagName, classname=elt.className;
+  if (fdb_cleanup_tags.indexOf(tagname)>=0)
+    return false;
+  else if ((classname) &&
+	   ((fdb_cleanup_classes.indexOf(classname))>=0))
+    return false;
+  else {
+    var i=0; while (i<fdb_cleanup_tags.length)
+	       _fdb_cleanup_tags(elt,fdb_cleanup_tags[i++]);
+    i=0; while (i<fdb_cleanup_classes.length)
+	   _fdb_cleanup_classes(elt,fdb_cleanup_classes[i++]);
+    return elt;}
+}
+
+function fdb_cleanup_content(elt)
+{
+  var contents=new Array();
+  var children=elt.childNodes;
+  var i=0; while (i<children.length) {
+    var child=children[i++];
+    if (child.nodeType===1) {
+      var converted=_fdb_cleanup_content(child.cloneNode(true));
+      if (converted) contents.push(converted);}
+    else contents.push(child.cloneNode(true));}
+  return contents;
+}
+
+/* Getting simple text */
+
+function _fdb_extract_strings(node,strings)
+{
+  if (node.nodeType===Node.TEXT_NODE) {
+    var value=node.nodeValue;
+    if (typeof value === "string") 
+      strings.push(node.nodeValue);}
+  else if (node.nodeType===Node.ELEMENT_NODE)
+    if (fdb_cleanup_tags.indexOf(node.tagName)>=0) {}
+    else if ((node.className) &&
+	     (fdb_cleanup_classes.indexOf(node.className)>=0)) {}
+    else if (node.hasChildNodes()) {
+      var children=node.childNodes;
+      var i=0; while (i<children.length) {
+	var child=children[i++];
+	if (child.nodeType===Node.TEXT_NODE) {
+	  var value=child.nodeValue;
+	  if (typeof value === "string") strings.push(value);}
+	else if (child.nodeType===Node.ELEMENT_NODE)
+	  _fdb_extract_strings(child,strings);
+	else {}}}
+    else  {}
+}
+
+function fdbJustText(node)
+{
+  var strings=new Array();
+  _fdb_extract_strings(node,strings);
+  return strings.join("");
+}
+
+/* Looking up elements, CSS-style, in tables */
+
+function fdbLookupElement(table,elt)
+{
+  var tagname=elt.tagName;
+  var classname=elt.className;
+  var idname=elt.id;
+  var probe;
+  if ((idname) && (classname))
+    probe=table[tagname+"."+classname+"#"+idname];
+  else if (idname)
+    probe=table[tagname+"#"+idname];
+  else if (classname)
+    probe=table[tagname+"."+classname];
+  if ((typeof probe != "undefined") && (probe)) return probe;
+  if ((idname) || (classname))
+    if (idname)
+      probe=table[tagname+"#"+idname];
+    else if (classname)
+      probe=table[tagname+"."+classname];
+  if ((typeof probe != "undefined") && (probe)) return probe;
+  if (idname) probe=table["#"+idname];
+  if ((typeof probe != "undefined") && (probe)) return probe;
+  if (classname) probe=table["."+classname];
+  if ((typeof probe != "undefined") && (probe)) return probe;
+  else probe=table[tagname];
+  if ((typeof probe != "undefined") && (probe)) return probe;
+  else return false;
 }
 
 /* Guessing IDs to use from the DOM */
