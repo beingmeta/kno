@@ -505,7 +505,8 @@ var _fdb_idcounter=0, fdb_idbase=false;
 
 function fdbForceId(about)
 {
-  if (about.id) return about.id;
+  if ((typeof about.id != "undefined") && (about.id))
+    return about.id;
   else {
     if (!(fdb_idbase))
       fdb_idbase="FDBID"+(1000000+(Math.floor((1000000-1)*Math.random())))+"S";
@@ -514,6 +515,36 @@ function fdbForceId(about)
       tmpid=fdb_idbase+_fdb_idcounter++;
     about.id=tmpid;
     return tmpid;}
+}
+
+/* Checking element visibility */
+
+function fdbIsVisible(elt,partial)
+{
+  if (typeof partial === "undefined") partial=false;
+  var top = elt.offsetTop;
+  var left = elt.offsetLeft;
+  var width = elt.offsetWidth;
+  var height = elt.offsetHeight;
+
+  while(elt.offsetParent) {
+    elt = elt.offsetParent;
+    top += elt.offsetTop;
+    left += elt.offsetLeft;}
+
+  if (partial)
+    return (
+	    top < (window.pageYOffset + window.innerHeight) &&
+	    left < (window.pageXOffset + window.innerWidth) &&
+	    (top + height) > window.pageYOffset &&
+	    (left + width) > window.pageXOffset
+	    );
+  else return (
+	       top >= window.pageYOffset &&
+	       left >= window.pageXOffset &&
+	       (top + height) <= (window.pageYOffset + window.innerHeight) &&
+	       (left + width) <= (window.pageXOffset + window.innerWidth)
+	       );
 }
 
 /* Guessing IDs to use from the DOM */
