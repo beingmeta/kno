@@ -722,6 +722,31 @@ static fdtype string_subst_star(int n,fdtype *args)
   return base;
 }
 
+static fdtype trim_spaces(fdtype string)
+{
+  u8_byte *start=FD_STRDATA(string), *end=start+FD_STRLEN(string);
+  u8_byte *trim_start=start, *trim_end=end;
+  u8_byte *scan=trim_start;
+  while (scan<end) {
+    int c=u8_sgetc(&scan);
+    if (u8_isspace(c)) trim_start=scan;
+    else break;}
+  scan=trim_end-1;
+  while (scan>=trim_start) {
+    u8_byte *cstart=scan; int c;
+    while ((cstart>=trim_start) && ((*cstart)>0xA0)) cstart--;
+    if (scan<trim_start) break;
+    scan=cstart;
+    c=u8_sgetc(&scan);
+    if (u8_isspace(c)) {
+      trim_end=cstart;
+      scan=cstart-1;}
+    else break;}
+  if ((trim_start==start) && (trim_end==end))
+    return fd_incref(string);
+  else return fd_extract_string(NULL,trim_start,trim_end);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_strings_c()
@@ -906,6 +931,8 @@ FD_EXPORT void fd_init_strings_c()
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
 
 
 
