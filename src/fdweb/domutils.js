@@ -64,6 +64,67 @@ function fdbHasAttrib(elt,attribname,attribval)
   else return false;
 }
 
+/* Manipluating class names */
+
+var _fdb_whitespace_pat=/\b/;
+
+function _fdb_get_class_regex(name)
+{
+  var rx=new RegExp("\b"+name+"\b");
+  return rx;
+}
+
+function fdbHasClass(elt,classname)
+{
+  var classinfo=elt.className;
+  if ((classinfo) &&
+      ((classinfo==classname) ||
+       (classinfo.search(_fdb_get_class_regex(classname))>=0)))
+    return true;
+  else return false;
+}
+
+function fdbAddClass(elt,classname)
+{
+  var classinfo=elt.className;
+  if ((classinfo===null) || (classinfo=="")) {
+    elt.className=classname;
+    return true;}
+  else if (classinfo===classname)
+    return false;
+  else if (classinfo.search(_fdb_get_class_regex(classname))>=0)
+    return false;
+  else {
+    elt.className=classname+" "+classinfo;
+    return true;}
+}
+
+function fdbDropClass(elt,classname)
+{
+  var classinfo=elt.className, classpat;
+  if ((classinfo===null) || (classinfo=="")) return false;
+  else if (classinfo===classname) {
+    elt.className=null;
+    return true;}
+  else if (classinfo.search(classpat=_fdb_get_class_regex(classname))) {
+    elt.className=
+      classinfo.replace(classpat,"").replace(_fdb_whitespace_pat," ");
+    return true;}
+  else return false;
+}
+
+function fdbSwapClass(elt,classname,newclass)
+{
+  var classinfo=elt.className, classpat=_fdb_get_class_regex(classname);
+  if ((classinfo) && ((classinfo.search(classpat))>=0)) {
+    elt.className=
+      classinfo.replace(classpat,newclass).replace(_fdb_whitespace_pat," ");
+    return true;}
+  else return false;
+}
+
+/* Next and previous elements */
+
 function fdbNextElement(node)
 {
   if (node.nextElementSibling)
@@ -154,7 +215,7 @@ function fdbGetChildrenByClassName(under,classname)
     return _fdbGetChildrenByClassName(document,classname,new Array());
   else return _fdbGetChildrenByClassName(under,classname,new Array());
 }
-function _fdbGetChildrenByClassName(under,classname)
+function _fdbGetChildrenByClassName(under,classname,results)
 {
   if ((under.nodeType===1) && (under.className===classname))
     results.push(under);
@@ -447,6 +508,15 @@ function fdbImage(url,classname,alt)
   if (classname) elt.className=classname;
   elt.src=url;
   if (typeof alt == "string") elt.alt=alt;
+  return elt;
+}
+
+function fdbImageW(url,attribs)
+{
+  if (typeof attribs == 'undefined') attribs=false;
+  var elt=document.createElement('img');
+  elt.src=url;
+  if (attribs) fdbAddAttributes(elt,attribs);
   return elt;
 }
 
