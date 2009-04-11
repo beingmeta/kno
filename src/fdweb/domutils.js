@@ -11,6 +11,18 @@ function $(eltarg)
   else return eltarg;
 }
 
+function fdbResolveHash(eltarg)
+{
+  if (typeof eltarg == 'string') {
+    var elt=document.getElementById(eltarg);
+    if ((typeof elt != "undefined") && (elt)) return elt;
+    else {
+      var elts=document.getElementsByName(eltarg);
+      if ((elts) && (elts.length>0)) return elts[0];
+      else return false;}}
+  else return eltarg;
+}
+
 function fdbLog(string)
 {
   if ((typeof console != 'undefined') && (console) && (console.log))
