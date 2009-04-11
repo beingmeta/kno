@@ -592,7 +592,7 @@ function fdbForceId(about)
     return about.id;
   else {
     if (!(fdb_idbase))
-      fdb_idbase="FDBID"+(1000000+(Math.floor((1000000-1)*Math.random())))+"S";
+      fdb_idbase="TMPID"+(1000000+(Math.floor((1000000-1)*Math.random())))+"S";
     var tmpid=fdb_idbase+_fdb_idcounter++;
     while (document.getElementById(tmpid))
       tmpid=fdb_idbase+_fdb_idcounter++;
