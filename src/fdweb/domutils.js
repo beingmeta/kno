@@ -463,7 +463,8 @@ function fdbRemove(cur_arg)
 function fdbNewElement(tag,classname)
 {
   var elt=document.createElement(tag);
-  elt.className=classname;
+  if (typeof classname === "string")
+    elt.className=classname;
   fdbAddElements(elt,arguments,2);
   return elt;
 }
