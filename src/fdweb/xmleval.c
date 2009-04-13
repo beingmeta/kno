@@ -23,6 +23,8 @@ static char versionid[] =
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
+#include <ctype.h>
+
 fd_lispenv fdxml_module;
 
 static fdtype xmleval_tag, xmleval2expr_tag;
@@ -32,7 +34,7 @@ static fdtype id_symbol, bind_symbol, xml_env_symbol;
 
 static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
 
-static fdtype xattrib_overlay, escape_id;
+static fdtype xattrib_overlay, escape_id, attribids;
 
 void *inherit_node_data(FD_XML *node)
 {
@@ -57,125 +59,179 @@ fdtype fd_xml_get(fdtype xml,fdtype slotid)
   return results;
 }
 
+static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
+{
+  if ((FD_PAIRP(val)) &&
+      ((FD_EQ(FD_CAR(val),xmleval_tag)) ||
+       (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
+    fdtype value=fd_eval(FD_CDR(val),env); u8_string as_string;
+    if (FD_ABORTP(value)) return fd_interr(value);
+    else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
+      as_string=fd_dtype2string(value);
+    else if (FD_STRINGP(value))
+      as_string=u8_strdup(FD_STRDATA(value));
+    else as_string=fd_dtype2string(value);
+    if ((colon>0) || (FD_EQ(FD_CAR(val),xmleval2expr_tag)))
+      u8_putc(out,':');
+    else if (colon<0) {}
+    else if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
+	     ((isdigit(FD_STRDATA(value)[0])==':') ||
+	      (isdigit(FD_STRDATA(value)[0]))))
+      u8_putc(out,'\\');
+    else if ((FD_FIXNUMP(value)) || (FD_FLONUMP(value)) || (FD_STRINGP(value)))
+      /* Don't output a preceding colon if the value would be 'self parsing' */
+      {}
+    else u8_putc(out,':');
+    fd_attrib_entify(out,as_string);
+    fd_decref(value); u8_free(as_string);
+    return 0;}
+  else if (FD_SLOTMAPP(val)) {
+    fdtype value=fd_xmleval(NULL,val,env); u8_string as_string;
+    if (FD_ABORTP(value)) return fd_interr(value);
+    else as_string=fd_dtype2string(value);
+    if (!(FD_STRINGP(value))) u8_putc(out,':');
+    fd_attrib_entify(out,as_string);
+    fd_decref(value); u8_free(as_string);
+    return 0;}
+  else if (FD_STRINGP(val)) {
+    fd_attrib_entify(out,FD_STRDATA(val));
+    return 1;}
+  else {
+    u8_string as_string=fd_dtype2string(val);
+    u8_putc(out,':');
+    fd_attrib_entify(out,as_string);
+    u8_free(as_string);
+    return 1;}
+}
+
+static int output_markup_sym(u8_output out,fdtype sym)
+{
+  if (FD_STRINGP(sym)) return u8_puts(out,FD_STRDATA(sym));
+  else if (FD_SYMBOLP(sym)) {
+    u8_byte *scan=FD_SYMBOL_NAME(sym); 
+    int c=u8_sgetc(&scan);
+    while (c>=0) {
+      int lc=u8_tolower(c);
+      int retcode=u8_putc(out,lc);
+      if (retcode<0) return retcode;
+      else c=u8_sgetc(&scan);}
+    return 1;}
+  else {
+    u8_printf(out,"%q",sym);
+    return 1;}
+}
+
 static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 {
   U8_OUTPUT out; int cache_result=1;
-  fdtype rawname, rawattribs;
   fdtype cached=fd_get(xml,raw_markup,FD_VOID);
   if (!(FD_VOIDP(cached))) return cached;
-  rawname=fd_get(xml,rawname_slotid,FD_VOID);
-  if (FD_ABORTP(rawname)) return rawname;
-  else if (!(FD_STRINGP(rawname))) {
-    fd_decref(rawname);
-    return fd_type_error("XML node","get_markup_string",xml);}
-  else rawattribs=fd_get(xml,raw_attribs,FD_EMPTY_CHOICE);
-  if (FD_ABORTP(rawattribs)) {
-    fd_decref(rawname);
-    return rawattribs;}
   U8_INIT_OUTPUT(&out,32);
-  u8_putn(&out,FD_STRDATA(rawname),FD_STRLEN(rawname));
-  {FD_DO_CHOICES(attrib,rawattribs) {
-    if (FD_STRINGP(attrib))
-      u8_printf(&out," %s",FD_STRDATA(attrib));
-    else {
-      fdtype rawaname=FD_VECTOR_REF(attrib,0);
-      fdtype val=FD_VECTOR_REF(attrib,2);
-      if ((FD_PAIRP(val)) &&
-	  ((FD_EQ(FD_CAR(val),xmleval_tag)) ||
-	   (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
-	fdtype value=fd_eval(FD_CDR(val),env); u8_string as_string;
-	if (FD_ABORTP(value)) {
-	  fd_decref(rawattribs); fd_decref(rawname);
-	  return value;}
-	else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
-	  as_string=fd_dtype2string(value);
-	else if (FD_STRINGP(value))
-	  as_string=u8_strdup(FD_STRDATA(value));
-	else as_string=fd_dtype2string(value);
-	if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
-	  u8_printf(&out," %s=':",FD_STRDATA(rawaname));
-	else if ((FD_STRINGP(value)) ||
-		 (FD_FIXNUMP(value)) ||
-		 (FD_FLONUMP(value)) ||
-		 ((FD_SYMBOLP(value)) &&
-		  /* This is a kludge to deal with the fact that
-		     we sometimes use symbols for ids and names but
-		     we don't want to : escape them. */
-		  ((strcasecmp(FD_STRDATA(rawaname),"name")==0) ||
-		   (strcasecmp(FD_STRDATA(rawaname),"id")==0))))
+  if (fd_test(xml,rawname_slotid,FD_VOID)) {
+    fdtype rawname=fd_get(xml,rawname_slotid,FD_VOID);
+    fdtype rawattribs=fd_get(xml,raw_attribs,FD_EMPTY_CHOICE);
+    if (FD_ABORTP(rawname)) return rawname;
+    else if (FD_ABORTP(rawattribs)) {
+      fd_decref(rawname);
+      return rawattribs;}
+    else if (rawname==pblank_symbol) {
+      fd_decref(rawattribs);
+      return rawname;}
+    else if (!(FD_STRINGP(rawname))) {
+      fd_decref(rawname); u8_free(out.u8_outbuf);
+      return fd_type_error("XML node","get_markup_string",xml);}
+    u8_putn(&out,FD_STRDATA(rawname),FD_STRLEN(rawname));
+    {FD_DO_CHOICES(attrib,rawattribs) {
+	if (FD_STRINGP(attrib))
+	  u8_printf(&out," %s",FD_STRDATA(attrib));
+	else {
+	  fdtype rawaname=FD_VECTOR_REF(attrib,0);
+	  fdtype val=FD_VECTOR_REF(attrib,2);
+	  int retcode;
 	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
-	else u8_printf(&out," %s=':",FD_STRDATA(rawaname));	
-	fd_attrib_entify(&out,as_string); u8_putc(&out,'\'');
-	fd_decref(value); u8_free(as_string); cache_result=0;}
-      else if (FD_SLOTMAPP(val)) {
-	fdtype value=fd_xmleval(NULL,val,env); u8_string as_string;
-	if (FD_ABORTP(value)) {
-	  fd_decref(rawattribs); fd_decref(rawname);
-	  return value;}
-	else as_string=fd_dtype2string(value);
-	if (FD_STRINGP(value))
-	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
-	else u8_printf(&out," %s=':",FD_STRDATA(rawaname));
-	fd_attrib_entify(&out,as_string); u8_putc(&out,'\'');
-	fd_decref(value); u8_free(as_string); cache_result=0;}
-      else if (FD_STRINGP(val))
-	u8_printf(&out," %s='%s'",FD_STRDATA(rawaname),FD_STRDATA(val));
-      else {
-	u8_string as_string=fd_dtype2string(val);
-	u8_printf(&out," %s=':",FD_STRDATA(rawaname));
-	fd_attrib_entify(&out,as_string);
-	u8_putc(&out,'\'');
-	u8_free(as_string);}}}}
-  cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf, out.u8_outbuf);
-  if (cache_result) fd_store(xml,raw_markup,cached);
-  return cached;
+	  retcode=output_attribval(&out,val,env,0);
+	  if (retcode<0) {
+	    fd_decref(rawname); fd_decref(rawattribs);
+	    u8_free(out.u8_outbuf);
+	    return FD_ERROR_VALUE;}
+	  else if (retcode==0) cache_result=0;
+	  else {}
+	  u8_putc(&out,'\'');}}}
+    cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    if (cache_result) fd_store(xml,raw_markup,cached);
+    return cached;}
+  else if (fd_test(xml,elt_name,FD_VOID)) {
+    fdtype name=fd_get(xml,elt_name,FD_VOID);
+    fdtype attribnames=fd_get(xml,attribids,FD_EMPTY_CHOICE);
+    if (name==pblank_symbol) {
+      fd_decref(attribnames);
+      return name;}
+    else output_markup_sym(&out,name);
+    {FD_DO_CHOICES(attribname,attribnames) {
+	fdtype val=fd_get(xml,attribname,FD_VOID); int retcode;
+	if (!(FD_VOIDP(val))) {
+	  u8_putc(&out,' '); output_markup_sym(&out,attribname);
+	  u8_puts(&out,"='");
+	  retcode=output_attribval(&out,val,env,0);
+	  if (retcode<0) {
+	    fd_decref(attribnames); fd_decref(name);
+	    u8_free(out.u8_outbuf);
+	    return FD_ERROR_VALUE;}
+	  else if (retcode==0) cache_result=0;
+	  else {}
+	  u8_putc(&out,'\'');}}}
+    cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    if (cache_result) fd_store(xml,raw_markup,cached);
+    return cached;}
+  else return fd_type_error("XML node","get_markup_string",xml);
 }
 
 FD_EXPORT
 fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 {
-  fdtype content=fd_get(xml,content_slotid,FD_VOID), rawname;
-  if ((FD_EMPTY_CHOICEP(content)) ||
-      (FD_VOIDP(content)) ||
-      (FD_EMPTY_LISTP(content))) {
+  if (FD_STRINGP(xml)) {}
+  else if (FD_PAIRP(xml)) {}
+  else if (FD_TABLEP(xml)) {
     fdtype markup=get_markup_string(xml,env);
-    if (FD_ABORTP(markup)) return markup;
-    u8_printf(out,"<%s/>",FD_STRDATA(markup));
-    fd_decref(markup);
-    return FD_VOID;}
-  rawname=fd_get(xml,rawname_slotid,FD_VOID);
-  if (FD_ABORTP(rawname)) return rawname;
-  else if (rawname==pblank_symbol) {}
-  else if (FD_EXPECT_FALSE(!(FD_STRINGP(rawname)))) {
-    fd_decref(content); fd_decref(rawname);
-    return fd_type_error("XML node","fd_unparse_xml",xml);}
-  else {
-    fdtype markup= get_markup_string(xml,env);
+    fdtype content=fd_get(xml,content_slotid,FD_VOID);
     if (FD_ABORTP(markup)) {
-      fd_decref(content);
-      return markup;}
-    u8_printf(out,"<%s>",FD_STRDATA(markup));
-    fd_decref(markup);}
-  if (FD_PAIRP(content)) {
-    FD_DOLIST(item,content) {
-      fdtype result=FD_VOID;
-      if (FD_STRINGP(item))
-	u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
-      else result=fd_xmleval(out,item,env);
-      if (FD_VOIDP(result)) {}
-      else if (FD_ABORTP(result)) {
-	fd_decref(content);
-	return result;}
-      else if ((FD_TABLEP(result)) &&
-	       (fd_test(result,rawname_slotid,FD_VOID))) {
-	fd_unparse_xml(out,result,env);
-	fd_decref(result);}
-      else fd_dtype2xml(out,result,env);
-      fd_decref(result);}}
-  if (rawname!=pblank_symbol)
-    u8_printf(out,"</%s>",FD_STRDATA(rawname));
-  fd_decref(content); fd_decref(rawname);
-  return FD_VOID;
+      fd_decref(content); return markup;}
+    else if (FD_ABORTP(content)) {
+      fd_decref(markup); return content;}
+    else if ((FD_EMPTY_CHOICEP(content)) ||
+	     (FD_VOIDP(content)) ||
+	     (FD_EMPTY_LISTP(content))) {
+      u8_printf(out,"<%s/>",FD_STRDATA(markup));
+      fd_decref(markup);
+      return FD_VOID;}
+    if (FD_STRINGP(markup))
+      u8_printf(out,"<%s>",FD_STRDATA(markup));
+    if (FD_PAIRP(content)) {
+      FD_DOLIST(item,content) {
+	fdtype result=FD_VOID;
+	if (FD_STRINGP(item))
+	  u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
+	else result=fd_xmleval(out,item,env);
+	if (FD_VOIDP(result)) {}
+	else if (FD_ABORTP(result)) {
+	  fd_decref(content);
+	  return result;}
+	else if ((FD_TABLEP(result)) &&
+		 (fd_test(result,rawname_slotid,FD_VOID))) {
+	  fd_unparse_xml(out,result,env);
+	  fd_decref(result);}
+	else fd_dtype2xml(out,result,env);
+	fd_decref(result);}}
+    if (FD_STRINGP(markup)) {
+      u8_string mstring=FD_STRDATA(markup);
+      u8_string atspace=strchr(mstring,' ');
+      u8_puts(out,"</");
+      if (atspace) u8_putn(out,mstring,atspace-mstring);
+      else u8_puts(out,mstring);
+      u8_putc(out,'>');}
+    fd_decref(markup); fd_decref(content);
+    return FD_VOID;}
+  else return fd_type_error("XML node","get_markup_string",xml);
 }
 
 /* Handling dynamic elements */
@@ -359,8 +415,6 @@ static fdtype parse_attrib_name(u8_string name)
     fd_decref(v); return fd_intern(name);}
   else return v;
 }
-
-static fdtype attribids;
 
 FD_EXPORT
 int fd_xmleval_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
@@ -605,6 +659,15 @@ FD_EXPORT
 fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
 {
   fdtype result=FD_VOID;
+  if ((FD_PAIRP(xml)) &&
+      ((FD_STRINGP(FD_CAR(xml))) || (FD_TABLEP(FD_CAR(xml))))) {
+    fdtype value=FD_VOID;
+    FD_DOLIST(elt,xml) {
+      if (FD_STRINGP(elt)) u8_puts(out,FD_STRDATA(elt));
+      else {
+	fd_decref(value); value=fd_xmleval(out,elt,env);
+	if (FD_ABORTP(value)) return value;}}
+    return value;}
   if (FD_NEED_EVALP(xml)) {
     fdtype result=fd_eval(xml,env);
     if (FD_VOIDP(result)) {}
