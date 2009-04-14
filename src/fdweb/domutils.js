@@ -317,6 +317,114 @@ function _fdbGetChildrenByAttribValue(under,attribname,attribval,results)
   return results;
 }
 
+/* Searching by selector */
+
+function fdbParseSelector(spec)
+{
+  var tagname=null, classname=null, idname=null;
+  var dotpos=spec.indexOf('.'), hashpos=spec.indexOf('#');
+  if ((dotpos<0) && (hashpos<0))
+    tagname=spec.toUpperCase();
+  else if (dotpos>=0) {
+    classname=spec.slice(dotpos+1);
+    if (dotpos>0) tagname=spec.slice(0,dotpos).toUpperCase();}
+  else if (hashpos>=0) {
+    idname=spec.slice(hashpos+1);
+    if (hashpos>0) tagname=spec.slice(0,hashpos).toUpperCase();}
+  else if (dotpos<hashpos) {
+    if (dotpos>0) tagname=spec.slice(0,dotpos);
+    classname=spec.slice(dotpos+1,hashpos);
+    idname=spec[hashpos];}
+  else {
+    if (hashpos>0) tagname=spec.slice(0,hashpos).toUpperCase();
+    classname=spec.slice(dotpos);
+    idname=spec.slice(hashpos+1,dotpos);}
+  if ((tagname==="") || (tagname==="*")) tagname=null;
+  if ((classname==="") || (classname==="*")) tagname=null;
+  if ((idname==="") || (idname==="*")) tagname=null;
+  return new Array(tagname,classname,idname);
+}
+
+function fdbElementMatches(elt,selector)
+{
+  if (selector instanceof Array) {
+    var i=0; while (i<spec.length)
+	       if (fdbElementMatches(elt,selector[i]))
+		 return true;
+	       else i++;
+    return false;}
+  else {
+    var spec=fdbParseSelector(selector);
+    return (((spec[0]===null) || (elt.tagName===spec[0])) &&
+	    ((spec[1]===null) || (elt.className===spec[1])) &&
+	    ((spec[2]===null) || (elt.id===spec[2])));}
+}
+
+function fdbElementMatchesSpec(elt,spec)
+{
+  return (((spec[0]===null) || (elt.tagName===spec[0])) &&
+	  ((spec[1]===null) || (elt.className===spec[1])) &&
+	  ((spec[2]===null) || (elt.id===spec[2])));
+}
+
+function fdbGetParents(elt,selector,results)
+{
+  if (typeof results === "undefined") results=new Array();
+  if (selector instanceof Array) {
+    var i=0; while (i<selector.length) 
+      fdbGetParents(elt,selector[i++],results);
+    return results;}
+  else {
+    var scan=elt;
+    while (scan) {
+      if (results.indexOf(scan)>=0) {}
+      else if (fdbElementMatchesSpec(scan,spec)) 
+	results.push(scan);
+      else {}
+      scan=scan.parentNode;}
+    return results;}
+}
+
+function fdbGetChildren(elt,selector,results)
+{
+  if (typeof results === "undefined") results=new Array();
+  if (selector instanceof Array) {
+    var i=0; while (i<selector.length)
+	       fdbGetChildren(elt,selector[i++],results);
+    return results;}
+  else {
+    var spec=fdbParseSelector(selector);
+    if (spec[2]) {
+      var candidate=document.getElementById(spec[2]);
+      if (candidate)
+	if (fdbElemenMatchesSpec(candidate,spec)) {
+	  var scan=candidate;
+	  while (scan)
+	    if (scan===elt) break;
+	    else scan=scan.parentNode;
+	  if (scan===elt) results.push(candidate);
+	  return results;}
+	else return results;}
+    else if (spec[1]) {
+      var candidates=fdbGetChildrenByClassName(elt,spec[1]);
+      var i=0; while (i<candidates.length) {
+	var candidate=candidates[i++];
+	if (fdbElementMatchesSpec(candidate,spec))
+	  results.push(candidate);}
+      return results;}
+    else if (spec[0]) {
+      var candidates=fdbGetChildrenByTagName(elt,spec[0]);
+      results.concat(candidates);
+      return results;}
+    else return results;}
+}
+
+function $$(selector,cxt) 
+{
+  var elt=((typeof cxt === "undefined") ? (document.body) : (cxt));
+  return fdbGetChildren(cxt,selector,new Array());
+}
+
 /* Adding/Inserting nodes */
 
 function fdbAddElements(elt,elts,i)
