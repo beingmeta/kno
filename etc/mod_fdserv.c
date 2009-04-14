@@ -20,6 +20,7 @@
 #include "http_main.h"
 #include "http_protocol.h"
 #include "http_request.h"
+#include "unixd.h"
 
 #ifndef HEAVY_DEBUGGING
 #define HEAVY_DEBUGGING 0
@@ -882,7 +883,11 @@ static int connect_to_servlet(request_rec *r) /* 1.3 */
 static int check_directory(apr_pool_t *p,const char *filename)
 {
   char *dirname=ap_make_dirstr_parent(p,filename);
-  return apr_dir_make_recursive(dirname,RUN_FDSERV_PERMISSIONS,p);
+  int retval=apr_dir_make_recursive(dirname,RUN_FDSERV_PERMISSIONS,p);
+  if (retval) return retval;
+  else if (chown(dirname,unixd_config.user_id,unixd_config.group_id)<0)
+    return 1;
+  else return 0;
 }
 
 static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
@@ -1030,8 +1035,8 @@ static int spawn_fdservlet /* 2.0 */
 
   if (!(file_writablep(p,s,sockname))) {
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,s,
-		 "mod_fdserv: Can't write socket file '%s' for %s, uid=%d, gid=%d",
-		 exename,sockname,r->unparsed_uri,uid,gid);
+		 "mod_fdserv: Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
+		 sockname,exename,r->unparsed_uri,uid,gid);
     return -1;}
 
   ap_log_error(APLOG_MARK,APLOG_INFO,OK,s,
@@ -1062,6 +1067,8 @@ static int spawn_fdservlet /* 2.0 */
       return -1;}
   else envp=NULL;
   
+  check_directory(p,r->filename);
+
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
       ((rv=apr_procattr_cmdtype_set(attr,APR_PROGRAM)) != APR_SUCCESS) ||
       ((rv=apr_procattr_detach_set(attr,1)) != APR_SUCCESS) ||
@@ -1429,7 +1436,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
       int bytes_read, size=0, limit=16384; char *data=apr_palloc(r->pool,16384);
       while ((bytes_read=ap_get_client_block(r,bigbuf,4096)) > 0) {
 	ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		     "mod_fdserv: Read %d bytes of POST data from client",bytes_read);
+		     "mod_fdserv: Read %d bytes of POST data from client",
+		     bytes_read);
 	ap_reset_timeout(r);
 	if (size+bytes_read > limit) {
 	  char *newbuf=apr_palloc(r->pool,limit*2); memcpy(newbuf,data,size);
@@ -1445,7 +1453,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   /* Write the slotmap into buf, the write the buf to the servlet socket */
   write_table_as_slotmap(r,r->subprocess_env,reqdata,post_size,post_data);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Writing %d bytes of request data to socket",
+	       "mod_fdserv: Writing %ld bytes of request data to socket",
 	       reqdata->ptr-reqdata->buf);
   sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
   
