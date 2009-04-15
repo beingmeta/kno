@@ -1113,7 +1113,7 @@ fdtype fd_parse_arg(u8_string arg)
     fdtype num=fd_string2number(arg,-1);
     if (FD_NUMBERP(num)) return num;
     else return fdtype_string(arg);}
-  else if (strchr("@{#(\"",arg[0])) {
+  else if (strchr("@{#(\"|",arg[0])) {
     fdtype result;
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
@@ -1126,12 +1126,13 @@ fdtype fd_parse_arg(u8_string arg)
 }
 
 FD_EXPORT
-/* fd_parse_arg:
+/* fd_unparse_arg:
      Arguments: a lisp object
      Returns: a utf-8 string
 
-     Generates a stinr representation from a lisp object, trying
-     to make the representation as natural as possible.
+     Generates a string representation from a lisp object, trying
+     to make the representation as natural as possible but allowing
+     it to be reversed by fd_parse_arg
 */
 u8_string fd_unparse_arg(fdtype arg)
 {

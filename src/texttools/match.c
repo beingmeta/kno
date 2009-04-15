@@ -2533,90 +2533,169 @@ static u8_byteoff iscsym_search
   return -1;
 }
 
-#define xmlnmcharp(x) \
-  ((u8_isalnum(x)) || (x == '_') || (x == '-') || (x == '.') || (x == ':'))
+#define isprinting(x) ((u8_isalnum(x)) || (u8_ispunct(x)))
 
-static int xmlname_startp(u8_string string,u8_byteoff off)
+#define is_not_mailidp(c) \
+  (((c<128) && (!(isprinting(c)))) || \
+   (u8_isspace(c)) || (c == '<') || \
+   (c == ',') || (c == '(') || (c == '>') || (c == '<'))
+
+static fdtype ismailid_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_unichar ch=get_previous_char(string,off);
-  if (ch < 0) return 1;
-  else if (u8_isalpha(ch)) return 0;
-  else return 1;
+  u8_byte *s=string+off, *sl=string+lim; u8_byteoff atsign=0;
+  while (s < sl) 
+    if (*s == '@') {atsign=s-string; s++;}
+    else {
+      u8_unichar ch=string_ref(s);
+      if (*s < 0x80) s++;
+      else s=u8_substring(s,1);
+      if (is_not_mailidp(ch)) break;}
+  if ((atsign) && (!(s == string+atsign+1)))
+    if (s == sl) return FD_INT2DTYPE((s-string)-1);
+    else return FD_INT2DTYPE((s-string));
+  else return FD_EMPTY_CHOICE;
 }
+
+#define ismailid(x) ((x<128) && ((isalnum(x)) || (strchr(".-_",x) != NULL)))
+
+static u8_byteoff ismailid_search
+   (fdtype pat,fd_lispenv env,
+    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *start=string+off, *slim=string+lim;
+  u8_byte *atsign=strchr(start,'@');
+  while ((atsign) && (atsign < slim)) {
+    if (atsign == start) start=atsign+1;
+    else if (!(ismailid(atsign[0]))) start=atsign+1;
+    else {
+      u8_byte *s=atsign-1; fdtype match;
+      while (s > start) 
+	if (!(ismailid(*s))) break; else s--;
+      if (s != start) s++;
+      match=ismailid_match(pat,FD_VOID,NULL,string,s-string,lim,flags);
+      if (!(FD_EMPTY_CHOICEP(match))) {
+	fd_decref(match); return s-string;}
+      else start=atsign+1;}
+    atsign=strchr(start,'@');}
+  return -1;
+}
+
+/* XML matching */
+
+#define xmlnmstartcharp(x)                                       \
+  ((x<0x80) ? ((isalpha(x))||(x==':')||(x=='_')) :		 \
+   (((x>=0xc0) && (x<=0x2FF) && (x!=0xD7) && (x!=0xF7)) ||       \
+    ((x>=0x370) && (x<=0x1FFF) && (x!=0x37E)) ||                 \
+    ((x>0x2000) && /* For dump compilers */                      \
+     ((x==0x200C) || (x==0x200D) ||			         \
+      ((x>=0x2070) && (x<=0x218F)) ||                            \
+      ((x>=0x2C00) && (x<=0x2FEF)) ||				 \
+      ((x>=0x3001) && (x<=0xD7FF)) ||                            \
+      ((x>=0xF900) && (x<=0xFDCF)) ||                            \
+      ((x>=0xFDF0) && (x<=0xFDCF)) ||                            \
+      ((x>=0x10000) && (x<=0xEFFFF))))))
+
+#define xmlnmcharp(x)                                            \
+  ((x<0x80) ?                                                    \
+   ((isalpha(x))||(x==':')||(x=='_')||(x=='-')||(x=='.')) :	 \
+   (((x>=0xc0) && (x<=0x2FF) && (x!=0xD7) && (x!=0xF7)) ||       \
+    (x==0xB7) || ((x>=0x0300) && (x<=0x36F)) ||			 \
+    ((x>=0x370) && (x<=0x1FFF) && (x!=0x37E)) ||                 \
+    ((x>0x2000) && /* For dump compilers */                      \
+     ((x==0x200C) || (x==0x200D) || (x==0x203F) || (x==0x2040)|| \
+      ((x>=0x2070) && (x<=0x218F)) ||                            \
+      ((x>=0x2C00) && (x<=0x2FEF)) ||				 \
+      ((x>=0x3001) && (x<=0xD7FF)) ||                            \
+      ((x>=0xF900) && (x<=0xFDCF)) ||                            \
+      ((x>=0xFDF0) && (x<=0xFDCF)) ||                            \
+      ((x>=0x10000) && (x<=0xEFFFF))))))
 
 static fdtype xmlname_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (xmlname_startp(string,off)) {
-    u8_unichar ch=string_ref(string+off);
-    if (!(u8_isalpha(ch))) return FD_EMPTY_CHOICE;
-    else {
-      u8_byte *scan=string+off, *limit=string+lim, *oscan=scan;
-      u8_unichar ch=u8_sgetc(&scan);
-      if (!(u8_isalpha(ch))) return FD_EMPTY_CHOICE;
-      else while (scan < limit)
-	if (xmlnmcharp(ch)) {
-	  oscan=scan; ch=u8_sgetc(&scan);}
-	else break;
-      if (xmlnmcharp(ch)) oscan=scan;
-      return FD_INT2DTYPE(oscan-string);}}
-  else return FD_EMPTY_CHOICE;
+  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  if (!(xmlnmstartcharp(ch))) return FD_EMPTY_CHOICE;
+  else while ((scan<limit) && (xmlnmcharp(ch))) {
+      oscan=scan; ch=u8_sgetc(&scan);}
+  if (xmlnmcharp(ch)) return FD_INT2DTYPE(scan-string);
+  else return FD_INT2DTYPE(oscan-string);
 }
 static u8_byteoff xmlname_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
-  int good_start=xmlname_startp(string,off);
-  while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
-    if ((good_start) && (xmlnmcharp(ch))) return prev-string;
-    if (u8_isalnum(ch))
-      good_start=0; else good_start=1;}
-  return -1;
-}
-
-static int xmlnmtoken_startp(u8_string string,u8_byteoff off)
-{
-  u8_unichar ch=get_previous_char(string,off);
-  if (ch < 0) return 1;
-  else if (xmlnmcharp(ch)) return 0;
-  else return 1;
+  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  while (scan<limit) {
+    if (xmlnmstartcharp(ch)) break;
+    oscan=scan; ch=u8_sgetc(&scan);}
+  if (xmlnmstartcharp(ch)) return oscan-string;
+  else return -1;
 }
 
 static fdtype xmlnmtoken_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (xmlnmtoken_startp(string,off)) {
-    u8_unichar ch=string_ref(string+off);
-    if (!(xmlnmcharp(ch))) return FD_EMPTY_CHOICE;
-    else {
-      u8_byte *scan=string+off, *limit=string+lim, *oscan=scan;
-      u8_unichar ch=u8_sgetc(&scan);
-      if (!(xmlnmcharp(ch))) return FD_EMPTY_CHOICE;
-      else while (scan < limit)
-	if (xmlnmcharp(ch)) {
-	  oscan=scan; ch=u8_sgetc(&scan);}
-	else break;
-      if (xmlnmcharp(ch)) oscan=scan;
-      return FD_INT2DTYPE(oscan-string);}}
-  else return FD_EMPTY_CHOICE;
+  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  if (!(xmlnmcharp(ch))) return FD_EMPTY_CHOICE;
+  else while ((scan<limit) && (xmlnmcharp(ch))) {
+      oscan=scan; ch=u8_sgetc(&scan);}
+  if (xmlnmcharp(ch)) return FD_INT2DTYPE(scan-string);
+  else return FD_INT2DTYPE(oscan-string);
 }
 static u8_byteoff xmlnmtoken_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
-  int good_start=xmlnmtoken_startp(string,off);
-  while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
-    if ((good_start) && (xmlnmcharp(ch))) return prev-string;
-    if (xmlnmcharp(ch))
-      good_start=0; else good_start=1;}
-  return -1;
+  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  while (scan<limit) {
+    if (xmlnmcharp(ch)) break;
+    oscan=scan; ch=u8_sgetc(&scan);}
+  if (xmlnmcharp(ch))
+    if (scan<limit) return FD_INT2DTYPE(scan-string);
+    else if (oscan<limit) return FD_INT2DTYPE(oscan-string);
+    else return FD_EMPTY_CHOICE;
+  else return FD_EMPTY_CHOICE;
 }
+
+#define htmlidcharp(ch) \
+  ((isalnum(ch)) || (ch=='_') || (ch=='.') || (ch==':') || (ch=='-'))
+static fdtype htmlid_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  if ((ch>0x80) || (!(isalpha(ch)))) return FD_EMPTY_CHOICE;
+  else while ((scan<limit) && (ch<0x80) && (htmlidcharp(ch))) {
+      oscan=scan; ch=u8_sgetc(&scan);}
+  if (htmlidcharp(ch)) return FD_INT2DTYPE(scan-string);
+  else return FD_INT2DTYPE(oscan-string);
+}
+static u8_byteoff htmlid_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  while (scan<limit)  {
+    if ((ch<0x80) && (isalpha(ch))) break;
+    oscan=scan; ch=u8_sgetc(&scan);}
+  if ((ch<0x80) && (isalpha(ch)))
+    if (scan<limit) return FD_INT2DTYPE(scan-string);
+    else if (oscan<limit) return FD_INT2DTYPE(oscan-string);
+    else return FD_EMPTY_CHOICE;
+  else return FD_EMPTY_CHOICE;
+}
+
+/* Word matching */
 
 #define apostrophep(x) ((x == '\''))
 
@@ -2749,55 +2828,6 @@ static u8_byteoff anumber_search
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if (check_digit(ch,base)) return prev-string;}
-  return -1;
-}
-
-#define isprinting(x) ((u8_isalnum(x)) || (u8_ispunct(x)))
-
-#define is_not_mailidp(c) \
-  (((c<128) && (!(isprinting(c)))) || \
-   (u8_isspace(c)) || (c == '<') || \
-   (c == ',') || (c == '(') || (c == '>') || (c == '<'))
-
-static fdtype ismailid_match
-  (fdtype pat,fdtype next,fd_lispenv env,
-   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
-{
-  u8_byte *s=string+off, *sl=string+lim; u8_byteoff atsign=0;
-  while (s < sl) 
-    if (*s == '@') {atsign=s-string; s++;}
-    else {
-      u8_unichar ch=string_ref(s);
-      if (*s < 0x80) s++;
-      else s=u8_substring(s,1);
-      if (is_not_mailidp(ch)) break;}
-  if ((atsign) && (!(s == string+atsign+1)))
-    if (s == sl) return FD_INT2DTYPE((s-string)-1);
-    else return FD_INT2DTYPE((s-string));
-  else return FD_EMPTY_CHOICE;
-}
-
-#define ismailid(x) ((x<128) && ((isalnum(x)) || (strchr(".-_",x) != NULL)))
-
-static u8_byteoff ismailid_search
-   (fdtype pat,fd_lispenv env,
-    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
-{
-  u8_byte *start=string+off, *slim=string+lim;
-  u8_byte *atsign=strchr(start,'@');
-  while ((atsign) && (atsign < slim)) {
-    if (atsign == start) start=atsign+1;
-    else if (!(ismailid(atsign[0]))) start=atsign+1;
-    else {
-      u8_byte *s=atsign-1; fdtype match;
-      while (s > start) 
-	if (!(ismailid(*s))) break; else s--;
-      if (s != start) s++;
-      match=ismailid_match(pat,FD_VOID,NULL,string,s-string,lim,flags);
-      if (!(FD_EMPTY_CHOICEP(match))) {
-	fd_decref(match); return s-string;}
-      else start=atsign+1;}
-    atsign=strchr(start,'@');}
   return -1;
 }
 
@@ -3197,6 +3227,7 @@ void fd_init_match_c()
   fd_add_match_operator("CSYMBOL",iscsym_match,iscsym_search,NULL);
   fd_add_match_operator("XMLNAME",xmlname_match,xmlname_search,NULL);
   fd_add_match_operator("XMLNMTOKEN",xmlnmtoken_match,xmlnmtoken_search,NULL);
+  fd_add_match_operator("HTMLID",htmlid_match,htmlid_search,NULL);
   fd_add_match_operator("AWORD",aword_match,aword_search,NULL);
   fd_add_match_operator("LWORD",lword_match,lword_search,NULL);
   fd_add_match_operator("ANUMBER",anumber_match,anumber_search,NULL);

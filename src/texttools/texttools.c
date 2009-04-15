@@ -1100,7 +1100,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	  fd_decref(parsed_val);
 	  fd_decref(stringval);}
 	else if (FD_TRUEP(parser)) {
-	  fdtype parsed_val=fd_parse_arg(_out.u8_outbuf);
+	  fdtype parsed_val=fd_parse(_out.u8_outbuf);
 	  fd_add(f,slotid,parsed_val);
 	  fd_decref(parsed_val); u8_free(_out.u8_outbuf);}
 	else {
