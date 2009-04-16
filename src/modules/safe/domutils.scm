@@ -7,8 +7,9 @@
 (module-export!
  '{
    domutils/textify
-   domutils/set! domutils/append!
+   domutils/set! domutils/add! domutils/append!
    domutils/selector domutils/match domutils/lookup domutils/find
+   domutils/search
    ->selector selector-tag selector-class selector-id})
 
 ;;; Textify
@@ -80,6 +81,44 @@
 	  (add! node '%%attribs
 		(vector aname aname stringval))))))
 
+(define (domutils/add! node attrib val (fdxml #f))
+  (unless (test node (if (symbol? attrib) attrib
+			 (string->lisp attrib))
+		val)
+    (let* ((slotid (if (symbol? attrib) attrib
+		       (string->lisp attrib)))
+	   (aname (if (symbol? attrib) (downcase (symbol->string attrib))
+		      attrib))
+	   (anames (if (symbol? attrib) (varycase attrib) attrib))
+	   (attribs (try (pick (get node '%attribs) first anames)
+			 (pick (get node '%attribs) attrib-basename anames)))
+	   (raw-attribs
+	    (try (pick (get node '%%attribs) first anames)
+		 (pick (get node '%%attribs) attrib-basename anames)))
+	   (stringval (if (and (not fdxml) (string? val)) val
+			  (unparse-arg val))))
+      (when (or (ambiguous? attribs) (ambiguous? raw-attribs))
+	(error "AmbiguousDOMAttribute"
+	       "DOMUTILS/SET of ambiguous attribute " attrib
+	       (choice attribs raw-attribs)))
+      (store! node slotid val)
+      (add! node '%attribids slotid)
+      (if (exists? attribs)
+	  (begin (drop! node '%attribs attribs)
+		 (add! node '%attribs
+		       (cons (car attribs)
+			     (string-append (cdr attribs) ";" stringval))))
+	  (add! node '%attribs (cons aname stringval)))
+      (if (exists? raw-attribs)
+	  (begin
+	    (drop! node '%%attribs raw-attribs)
+	    (add! node '%%attribs
+		  (vector (first raw-attribs) (second raw-attribs)
+			  (string-append (third raw-attribs) ";" stringval))))
+	  (when (test node '%%name) ;; Kept raw XML info
+	    (add! node '%%attribs
+		  (vector aname aname stringval)))))))
+
 (define (domutils/append! node . content)
   (let ((current (try (get node '%content) '())))
     (dolist (elt content)
@@ -144,7 +183,7 @@
 	  (domutils/lookup table (->selector sel) dflt)
 	  (domutils/lookup table (->selector sel)))))
 
-(define (domutils/match sel elt)
+(define (domutils/match elt sel)
   (and (not (string? elt))
        (if (selector? sel)
 	   (and (or (not (selector-tag sel))
@@ -158,7 +197,10 @@
 	       (domutils/match (->selector sel) dflt)
 	       (domutils/match (->selector sel))))))
 
-(define (domutils/find sel under)
+;;; Searching
+
+(define (domutils/find under sel)
+  "Finds all nodes matching SEL under UNDER"
   (if (selector? sel)
       (cond ((string? under) (fail))
 	    ((pair? under)
@@ -169,7 +211,19 @@
 		       (domutils/find sel elt)))))
       (domutils/find (->selector sel) under)))
 
+(define (search-helper under pattern exitor)
+  "Finds all text and nodes containing pattern under UNDER"
+  (for-choices (elt (elts (get under '%content)))
+    (if (string? elt)
+	(if (textsearch pattern elt)
+	    (if exitor (exitor (cons under elt)) (fail))
+	    (fail))
+	(if (table? elt)
+	    (search-helper elt pattern exitor)
+	    (fail)))))
 
-
-
+(define (domutils/search under pattern (all #f))
+  (if all
+      (search-helper under pattern #f)
+      (call/cc (lambda (exitor) (search-helper under pattern exitor)))))
 
