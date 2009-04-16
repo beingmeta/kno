@@ -186,8 +186,12 @@ function fdbGetChildrenByTagName(under,tagname)
     if (under===null) return new Array();}
   tagname=tagname.toUpperCase();
   if (under===null)
-    return _fdbGetChildrenByTagName(document,tagname,new Array())
-  else return _fdbGetChildrenByTagName(under,tagname,new Array())
+    if (document.getElementsByTagName)
+      return document.getElementsByTagName(tagname);
+    else return _fdbGetChildrenByTagName(document,tagname,new Array());
+  else if (under.getElementsByTagName)
+    return under.getElementsByTagName(tagname);
+  else return _fdbGetChildrenByTagName(under,tagname,new Array());
 }
 function _fdbGetChildrenByTagName(under,tagname,results)
 {
@@ -421,7 +425,7 @@ function fdbGetChildren(elt,selector,results)
 
 function $$(selector,cxt) 
 {
-  var elt=((typeof cxt === "undefined") ? (document.body) : (cxt));
+  var elt=((typeof cxt === "undefined") ? (document) : (cxt));
   return fdbGetChildren(cxt,selector,new Array());
 }
 
