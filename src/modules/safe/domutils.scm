@@ -9,7 +9,7 @@
    domutils/textify
    domutils/set! domutils/add! domutils/append!
    domutils/selector domutils/match domutils/lookup domutils/find
-   domutils/search
+   domutils/search domutils/strip!
    ->selector selector-tag selector-class selector-id})
 
 ;;; Textify
@@ -227,3 +227,29 @@
       (search-helper under pattern #f)
       (call/cc (lambda (exitor) (search-helper under pattern exitor)))))
 
+
+;;; Stripping out some elements
+
+(defambda (domutils/strip! under sel)
+  "Removes all nodes matching SEL under UNDER"
+  (if (fail? (reject sel selector?))
+      (cond ((string? under) under)
+	    ((pair? under)
+	     (let ((stripped (strip-helper under sel)))
+	       (dolist (elt stripped)
+		 (unless (or (string? elt) (pair? elt))
+		   (domutils/strip! elt sel)))))
+	    ((table? under)
+	     (let ((stripped (strip-helper (get under '%content) sel)))
+	       (store! under '%content stripped)
+	       (dolist (elt stripped)
+		 (unless (or (string? elt) (pair? elt))
+		   (domutils/strip! elt sel))))))
+      (domutils/strip! (->selector sel) under)))
+
+(defambda (strip-helper list sel)
+  (if (pair? list)
+      (if (domutils/match? (car list) sel)
+	  (strip-helper (cdr list) sel)
+	  (cons (car list) (strip-helper (cdr list) sel)))
+      list))
