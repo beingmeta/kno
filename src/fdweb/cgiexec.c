@@ -170,6 +170,17 @@ static int parse_query_on_post=1;
 
 static void parse_query_string(fd_slotmap c,char *data,int len);
 
+static fdtype intern_compound(u8_string s1,u8_string s2)
+{
+  fdtype result=FD_VOID;
+  struct U8_OUTPUT tmpout; u8_byte tmpbuf[128];
+  U8_INIT_OUTPUT_X(&tmpout,128,tmpbuf,U8_STREAM_GROWS);
+  u8_puts(&tmpout,s1); u8_puts(&tmpout,s2);
+  result=fd_parse(tmpout.u8_outbuf);
+  u8_close_output(&tmpout);
+  return result;
+}
+
 static void get_form_args(fd_slotmap c)
 {
   if (fd_test((fdtype)c,request_method,get_method)) {
@@ -190,6 +201,7 @@ static void get_form_args(fd_slotmap c)
     if (fd_test((fdtype)c,cgi_content_type,form_data_string)) {
       fdtype postdata=fd_slotmap_get(c,post_data_slotid,FD_VOID);
       fdtype parts=FD_EMPTY_LIST;
+      /* Parse the MIME data into parts */
       if (FD_STRINGP(postdata))
 	parts=fd_parse_multipart_mime
 	  ((fdtype)c,FD_STRING_DATA(postdata),
@@ -200,31 +212,38 @@ static void get_form_args(fd_slotmap c)
 	   FD_PACKET_DATA(postdata)+FD_PACKET_LENGTH(postdata));
       fd_add((fdtype)c,parts_slotid,parts);
       fd_decref(postdata);
+      /* Convert the parts */
       {FD_DOLIST(elt,parts) {
 	fdtype namestring=fd_get(elt,name_slotid,FD_VOID);
 	if (FD_STRINGP(namestring)) {
-	  fdtype namesym=fd_parse(FD_STRING_DATA(namestring));
+	  u8_string nstring=FD_STRING_DATA(namestring);
+	  fdtype namesym=fd_parse(nstring);
+	  fdtype _namesym=intern_compound("_",nstring);
 	  fdtype ctype=fd_get(elt,content_type,FD_VOID);
-	  fdtype filename=fd_get(elt,filename_slotid,FD_EMPTY_CHOICE);
-	  if (FD_EMPTY_CHOICEP(filename)) fd_add((fdtype)c,namesym,elt);
-	  else if ((FD_VOIDP(ctype)) || (fd_overlapp(ctype,text_symbol))) {
-	    fdtype content=
-	      fd_get((fdtype)elt,content_slotid,FD_EMPTY_CHOICE);
+	  fdtype content=fd_get((fdtype)elt,content_slotid,FD_EMPTY_CHOICE);
+	  /* Add the part itself in the _name slotid */
+	  fd_add((fdtype)c,_namesym,elt);
+	  /* Add the filename slot if it's an upload */
+	  if (fd_test(elt,filename_slotid,FD_VOID)) {
+	    fdtype filename=fd_get(elt,filename_slotid,FD_EMPTY_CHOICE);
+	    fd_add((fdtype)c,intern_compound(nstring,"_FILENAME"),
+		   filename);
+	    fd_decref(filename);}
+	  if ((FD_VOIDP(ctype)) || (fd_overlapp(ctype,text_symbol))) {
 	    if (FD_STRINGP(content)) {
 	      u8_string chars=FD_STRDATA(content); int len=FD_STRLEN(content);
+	      /* Remove trailing \r\n from the MIME field */
 	      if ((len>1) && (chars[len-1]=='\n')) {
 		fdtype new_content;
 		if (chars[len-2]=='\r')
 		  new_content=fd_extract_string(NULL,chars,chars+len-2);
 		else new_content=fd_extract_string(NULL,chars,chars+len-1);
-		fd_decref(content); content=new_content;}
-	      fd_add((fdtype)c,namesym,content);}
-	    else fd_add((fdtype)c,namesym,content);
-	    fd_decref(content);}
-	  else fd_add((fdtype)c,namesym,elt);
-	  fd_decref(filename);
-	  fd_decref(ctype);
-	  fd_decref(namesym);}
+		fd_add((fdtype)c,namesym,new_content);
+		fd_decref(new_content);}
+	      else fd_add((fdtype)c,namesym,content);}
+	    else fd_add((fdtype)c,namesym,content);}
+	  else fd_add((fdtype)c,namesym,content);
+	  fd_decref(content); fd_decref(ctype);}
 	fd_decref(namestring);}}
       fd_decref(parts);}
     else {
