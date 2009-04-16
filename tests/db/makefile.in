@@ -5,8 +5,8 @@ MAKEFILE_VERSION="$Id$"
 
 CC	= @CC@
 XCFLAGS=
-CFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
-	-I./include -I../../include $(XCFLAGS)
+CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
+	-I../../include $(XCFLAGS)
 LDFLAGS =@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 LIBS=@LIBS@ -lu8stdio -lu8fns -lu8 -lu8io -lz -lm
 

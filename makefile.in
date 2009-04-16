@@ -564,16 +564,16 @@ confdirs: @data_dir@ @config_dir@ \
 	  @module_dir@ @safe_module_dir@
 	if test ! -f @config_dir@/servers; then $(INSTALL) @install_file_opts@ /dev/null @config_dir@/servers; fi
 
-@data_dir@ @config_dir@ @local_config@ @shared_config@ \
+@data_dir@ @data_dir@/etc @config_dir@ @local_config@ @shared_config@ \
   @module_dir@ @standard_module_dir@ @safe_module_dir@: 
 	$(INSTALL) @install_dir_opts@ $@
 
-link-modules: @module_dir@ @standard_module_dir@ 
+link-modules: @module_dir@ @standard_module_dir@ @data_dir@/etc
 	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	rm -rf  @standard_module_dir@
 	ln -sf $(BUILD)/src/modules @standard_module_dir@
 	ln -sf $(BUILD)/src/fdweb/xhtml @module_dir@
-copy-modules: @module_dir@ @standard_module_dir@ 
+copy-modules: @module_dir@ @standard_module_dir@ @data_dir@/etc
 	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	$(INSTALL) @install_dir_opts@ \
            @standard_module_dir@ @module_dir@ @safe_module_dir@
