@@ -382,11 +382,24 @@ function fdb_cheshire_onclick(event)
 function fdb_text_input(evt,handler)
 {
   var ch=evt.charCode, kc=evt.keyCode;
-  if (kc==13) {
+  if (kc===13) {
     var elt=evt.target;
     var val=elt.value;
     elt.value="";
     handler(val);
+    return false;}
+  else return;
+}
+function fdb_inputstack_onkeypress(evt)
+{
+  var ch=evt.charCode, kc=evt.keyCode;
+  if (kc===13) {
+    var elt=evt.target;
+    if (elt.value==="") return;
+    var new_elt=elt.cloneNode(false);
+    new_elt.value="";
+    fdbInsertBefore(elt,new_elt);
+    elt.blur; new_elt.focus();
     return false;}
   else return;
 }

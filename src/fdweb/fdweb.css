@@ -117,7 +117,7 @@ span.tab {
 span.tab[shown] {
   /* font-weight: bold; */
   border: inset black 2px;
-  border-bottom: hidden black 2px;}
+  border-bottom: hidden;}
 div.tabcontent {
  margin-left: 9px; margin-top: 6px; margin-right: 9px;
  text-align: left;
