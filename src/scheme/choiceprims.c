@@ -110,7 +110,11 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOLIST(expr,body) {
 	fdtype val=fasteval(expr,&envstruct);
-	if (FD_ABORTP(val)) {
+	if (FD_THROWP(val)) {
+	  fd_decref(choices);
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  return val;}
+	else if (FD_ABORTP(val)) {
 	  fdtype env;
 	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
 	  else env=retenv1(var,elt);
@@ -173,16 +177,20 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
 	*vloc=elt; fd_incref(elt);
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOLIST(expr,body) {
-	fd_decref(val);
-	val=fasteval(expr,&envstruct);
-	if (FD_ABORTP(val)) {
-	  fdtype env;
-	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
-	  else env=retenv1(var,elt);
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_push_error_context(":TRY-CHOICES",env);
-	  return val;}}}
+	  fd_decref(val);
+	  val=fasteval(expr,&envstruct);
+	  if (FD_THROWP(val)) {
+	    fd_decref(choices);
+	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	    return val;}
+	  else if (FD_ABORTP(val)) {
+	    fdtype env;
+	    if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+	    else env=retenv1(var,elt);
+	    fd_decref(choices);
+	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	    fd_push_error_context(":TRY-CHOICES",env);
+	    return val;}}}
       if (!(FD_EMPTY_CHOICEP(val))) {
 	FD_STOP_DO_CHOICES;
 	fd_decref(choices);
@@ -242,13 +250,19 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       {FD_DOLIST(expr,body) {
 	fd_decref(val);
 	val=fasteval(expr,&envstruct);
-	if (FD_ABORTP(val)) {
+	if (FD_THROWP(val)) {
+	  fd_decref(choices);
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  fd_decref(results);
+	  return val;}
+	else if (FD_ABORTP(val)) {
 	  fdtype env;
 	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
 	  else env=retenv1(var,elt);
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  fd_push_error_context(":FOR-CHOICES",env);
+	  fd_decref(results);
 	  return val;}}}
       FD_ADD_TO_CHOICE(results,val);
       if (envstruct.copy) {
@@ -307,7 +321,12 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
 	*vloc=elt; fd_incref(elt);
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
       val=fasteval(test_expr,&envstruct);
-      if (FD_ABORTP(val)) {
+      if (FD_THROWP(val)) {
+	fd_decref(choices);
+	fd_decref(results);
+	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	return val;}
+      else if (FD_ABORTP(val)) {
 	fdtype env;
 	if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
 	else env=retenv1(var,elt);
@@ -409,7 +428,11 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
       else {*vloc=v; if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOLIST(expr,body) {
 	fdtype val=fasteval(expr,&envstruct);
-	if (FD_ABORTP(val)) {
+	if (FD_THROWP(val)) {
+	  fd_decref(choices);
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  if (free_v) fd_decref(v);}
+	else if (FD_ABORTP(val)) {
 	  fdtype env;
 	  if (iloc) env=retenv2(var,v,count_var,FD_INT2DTYPE(i));
 	  else env=retenv1(var,v);

@@ -204,19 +204,24 @@
   (if (selector? sel)
       (cond ((string? under) (fail))
 	    ((pair? under)
-	     (for-choices (elt (elts under)) (domutils/find sel elt)))
+	     (for-choices (elt (elts under))
+	       (domutils/find sel elt)))
 	    ((table? under)
 	     (choice (tryif (domutils/match sel under) under)
 		     (for-choices (elt (elts (get under '%content)))
 		       (domutils/find sel elt)))))
       (domutils/find (->selector sel) under)))
 
+;;; Text searching
+
 (define (search-helper under pattern exitor)
   "Finds all text and nodes containing pattern under UNDER"
-  (for-choices (elt (elts (get under '%content)))
+  (for-choices (elt (elts (if (pair? under) under
+			      (get under '%content))))
     (if (string? elt)
 	(if (textsearch pattern elt)
-	    (if exitor (exitor (cons under elt)) (fail))
+	    (if exitor (exitor (if (pair? under) elt under))
+		(fail))
 	    (fail))
 	(if (table? elt)
 	    (search-helper elt pattern exitor)
