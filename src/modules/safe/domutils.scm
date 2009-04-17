@@ -193,9 +193,7 @@
 		    (test elt 'class (selector-class sel)))
 		(or (not (selector-id sel))
 		    (test elt 'id (selector-id sel))))
-	   (if (bound? dflt)
-	       (domutils/match (->selector sel) dflt)
-	       (domutils/match (->selector sel))))))
+	   (domutils/match elt (->selector sel)))))
 
 ;;; Searching
 
@@ -207,7 +205,7 @@
 	     (for-choices (elt (elts under))
 	       (domutils/find sel elt)))
 	    ((table? under)
-	     (choice (tryif (domutils/match sel under) under)
+	     (choice (tryif (domutils/match under sel) under)
 		     (for-choices (elt (elts (get under '%content)))
 		       (domutils/find sel elt)))))
       (domutils/find (->selector sel) under)))
@@ -254,7 +252,7 @@
 
 (defambda (strip-helper list sel)
   (if (pair? list)
-      (if (domutils/match? (car list) sel)
+      (if (domutils/match (car list) sel)
 	  (strip-helper (cdr list) sel)
 	  (cons (car list) (strip-helper (cdr list) sel)))
       list))
