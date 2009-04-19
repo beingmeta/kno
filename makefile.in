@@ -609,6 +609,8 @@ etc/mod_fdserv.so: etc/mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
 
+# For OSX, try this
+# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
 install-fdserv: etc/mod_fdserv.so
 	if test -d @apache_conf_dir@/mods-available;   \
 	   then	cd etc; ${APXS} -i -c mod_fdserv.c;    \

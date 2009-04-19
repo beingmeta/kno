@@ -33,6 +33,7 @@ static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
 static fdtype id_symbol, bind_symbol, xml_env_symbol;
 
 static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
+static fdtype pnode_symbol, pbody_symbol;
 
 static fdtype xattrib_overlay, escape_id, attribids;
 
@@ -258,9 +259,9 @@ struct XMLAPPLY { fdtype xml; fd_lispenv env;};
 
 FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
 {
-  if (sym==xmlnode_symbol) return fd_incref(xml);
+  if ((sym==xmlnode_symbol) || (sym==pnode_symbol)) return fd_incref(xml);
   else if (sym==env_symbol) return (fdtype) fd_copy_env(env);
-  else if (sym==xmlbody_symbol) {
+  else if ((sym==xmlbody_symbol) || (sym==pbody_symbol)) {
     fdtype content=fd_get(xml,content_slotid,FD_VOID);
     if (FD_VOIDP(content)) return FD_EMPTY_CHOICE;
     else {
@@ -1251,7 +1252,9 @@ FD_EXPORT void fd_init_xmleval_c()
 
   pblank_symbol=fd_intern("%BLANK");
   xmlnode_symbol=fd_intern("XMLNODE");
+  pnode_symbol=fd_intern("%NODE");
   xmlbody_symbol=fd_intern("XMLBODY");
+  pbody_symbol=fd_intern("%BODY");
   env_symbol=fd_intern("%ENV");
 
   attribids=fd_intern("%ATTRIBIDS");
