@@ -8,12 +8,13 @@
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
-    "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>"
+    "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
     "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>"
-    "\\<while\\>" "\\<until\\>" 
+    "\\<try\\>" "\\<tryif\\>"
+    "\\<while\\>" "\\<until\\>" "\\<onerror>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
     "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"
-    "\\<try-choices>\\" "\\<tryseq>\\"))
+    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\"))
 
 ;;; FRAMERD stuff
 (put 'when 'scheme-indent-function 1)
@@ -99,6 +100,8 @@
 
 (put 'find-frames 'scheme-indent-function 1)
 (put 'frame-create 'scheme-indent-function 1)
+
+(put 'extdb/proc 'scheme-indent-function 1)
 
 ;;;; Evaluating expressions in modules
 
