@@ -21,6 +21,7 @@ static char versionid[] =
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8rusage.h>
+#include <libu8/u8netfns.h>
 
 #include <math.h>
 #include <sys/time.h>
@@ -774,6 +775,24 @@ fdtype sleep_prim(fdtype arg)
 }
 #endif
 
+/* GETENV primitive */
+
+static fdtype getenv_prim(fdtype var)
+{
+  u8_string enval=u8_getenv(FD_STRDATA(var));
+  if (enval==NULL) return FD_FALSE;
+  else return fd_init_string(NULL,-1,enval);
+}
+
+/* Getting the current hostname */
+
+/* There's not a good justification for putting this here other
+   than that it has to do with getting stuff from the environment. */
+static fdtype hostname_prim()
+{
+  return fd_init_string(NULL,-1,u8_gethostname());
+}
+
 /* RUSAGE */
 
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
@@ -1139,6 +1158,11 @@ FD_EXPORT void fd_init_timeprims_c()
 	   fd_make_cprim2x("SECS->STRING",secs2string,1,
 			   -1,FD_VOID,-1,FD_FALSE));
 
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim,0));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("GETENV",getenv_prim,1,
+			   fd_string_type,FD_VOID));
+  
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
