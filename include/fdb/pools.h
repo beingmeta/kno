@@ -323,6 +323,14 @@ typedef struct FD_NETWORK_POOL {
   int bulk_commitp;} FD_NETWORK_POOL;
 typedef struct FD_NETWORK_POOL *fd_network_pool;
 
+/* Generic Pools */
+
+typedef struct FD_GPOOL {
+  FD_POOL_FIELDS;
+  fdtype fetchfn, newfn, loadfn, savefn;
+  struct FD_HASHTABLE basevals;} FD_GPOOL;
+typedef struct FD_GPOOL *fd_gpool;
+
 /* File pool opener */
 
 FD_EXPORT fd_pool (*fd_file_pool_opener)(u8_string);
