@@ -852,7 +852,8 @@ int main(int argc,char **argv)
 
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
 		     traceweb_get,traceweb_set,NULL);
-  fd_register_config("PRELOAD",_("Files to preload into the shared environment"),
+  fd_register_config("PRELOAD",
+		     _("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);
   fd_register_config("BACKLOG",
 		     _("Number of pending connection requests allowed"),
