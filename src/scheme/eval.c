@@ -415,6 +415,10 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   start=u8_elapsed_time();
   if (FD_SYMBOLP(toeval))
     return fd_eval(toeval,env);
+  else if (FD_STRINGP(toeval)) {
+    /* This is probably the 'side effect' form of %WATCH, so
+       we don't bother 'timing' it. */
+    return fd_incref(toeval);}
   else {
     fdtype value=fd_eval(toeval,env);
     double howlong=u8_elapsed_time()-start;
