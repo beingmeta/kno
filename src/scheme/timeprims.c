@@ -328,7 +328,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return fd_make_timestamp(xt);
     else {
       struct U8_XTIME asgmt;
-      u8_init_xtime(&asgmt,xt->u8_secs,xt->u8_prec,xt->u8_nsecs,0);
+      u8_init_xtime(&asgmt,xt->u8_tick,xt->u8_prec,xt->u8_nsecs,0);
       return fd_make_timestamp(&asgmt);}
   else if (FD_EQ(slotid,month_symbol))
     if (xt->u8_prec>=u8_month)
@@ -464,18 +464,18 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     return FD_INT2DTYPE(xt->u8_tzoff);
   else if (FD_EQ(slotid,tick_symbol))
     if (xt->u8_prec>=u8_second) {
-      time_t tick=xt->u8_secs;
+      time_t tick=xt->u8_tick;
       return FD_INT2DTYPE((long)tick);}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,prim_tick_symbol)) {
-    time_t tick=xt->u8_secs;
+    time_t tick=xt->u8_tick;
     return FD_INT2DTYPE((long)tick);}
   else if (FD_EQ(slotid,xtick_symbol))
     if (xt->u8_prec>=u8_second) {
-      double dsecs=(double)(xt->u8_secs), dnsecs=(double)(xt->u8_nsecs);
+      double dsecs=(double)(xt->u8_tick), dnsecs=(double)(xt->u8_nsecs);
       return fd_init_double(NULL,dsecs+(dnsecs/1000000000.0));}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",

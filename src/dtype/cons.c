@@ -810,7 +810,7 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm)
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
   /* Initialize the secs field */
-  tstamp->xtime.u8_secs=u8_mktime(&(tstamp->xtime));
+  tstamp->xtime.u8_tick=u8_mktime(&(tstamp->xtime));
   return FDTYPE_CONS(tstamp);
 }
 
@@ -887,11 +887,11 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   fd_write_byte(out,dt_compound);
   size=size+fd_write_dtype(out,timestamp_symbol);
   if ((xtm->xtime.u8_prec == u8_second) && (xtm->xtime.u8_tzoff==0)) {
-    fdtype xval=FD_INT2DTYPE(xtm->xtime.u8_secs);
+    fdtype xval=FD_INT2DTYPE(xtm->xtime.u8_tick);
     size=size+fd_write_dtype(out,xval);}
   else {
     fdtype vec=fd_init_vector(NULL,4,NULL);
-    FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.u8_secs));
+    FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.u8_tick));
     FD_VECTOR_SET(vec,1,FD_INT2DTYPE(xtm->xtime.u8_nsecs));
     FD_VECTOR_SET(vec,2,FD_INT2DTYPE((int)xtm->xtime.u8_prec));
     FD_VECTOR_SET(vec,3,FD_INT2DTYPE((int)xtm->xtime.u8_tzoff));

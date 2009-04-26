@@ -229,11 +229,11 @@ static fdtype write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata
   fd_dtswrite_4bytes(ds,40);
   fd_dtswrite_4bytes(ds,rev);
   fd_dtswrite_4bytes(ds,0);
-  fd_dtswrite_4bytes(ds,_gentime.u8_secs);
+  fd_dtswrite_4bytes(ds,_gentime.u8_tick);
   fd_dtswrite_4bytes(ds,0);
-  fd_dtswrite_4bytes(ds,_packtime.u8_secs);
+  fd_dtswrite_4bytes(ds,_packtime.u8_tick);
   fd_dtswrite_4bytes(ds,0);
-  fd_dtswrite_4bytes(ds,_modtime.u8_secs);
+  fd_dtswrite_4bytes(ds,_modtime.u8_tick);
   fd_dtswrite_4bytes(ds,mdpos);
   return metadata;
 }
