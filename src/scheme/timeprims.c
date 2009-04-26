@@ -481,6 +481,22 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
+  else if ((FD_EQ(slotid,nanoseconds_symbol)) ||
+	   (FD_EQ(slotid,microseconds_symbol)) ||
+	   (FD_EQ(slotid,milliseconds_symbol)))
+    if (xt->u8_prec>=u8_second) {
+      unsigned int nsecs=xt->u8_nsecs;
+      if (FD_EQ(slotid,nanoseconds_symbol))
+	return FD_INT2DTYPE(nsecs);
+      else {
+	unsigned int reduce=((FD_EQ(slotid,microseconds_symbol)) ? (1000) :(1000000));
+	unsigned int half_reduce=reduce/2;
+	unsigned int retval=((nsecs/reduce)+((nsecs%reduce)>=half_reduce));
+	return FD_INT2DTYPE(retval);}}
+    else if (reterr)
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
+    else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,precision_symbol))
     switch (xt->u8_prec) {
     case u8_year: return year_symbol;

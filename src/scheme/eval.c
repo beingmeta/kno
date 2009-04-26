@@ -387,7 +387,14 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   fdtype toeval=fd_get_arg(expr,1);
   double start; int oneout=0;
   fdtype scan=FD_CDR(expr);
-  if (!(FD_SYMBOLP(toeval))) scan=FD_CDR(scan);
+  u8_string label="%WATCH";
+  if (FD_PAIRP(toeval)) {
+    scan=FD_CDR(scan);
+    if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan)))) {
+      label=FD_STRDATA(FD_CAR(scan)); scan=FD_CDR(scan);}}
+  else if (FD_STRINGP(toeval)) {
+    label=FD_STRDATA(toeval); scan=FD_CDR(scan);}
+  else scan=FD_CDR(scan);
   if (FD_PAIRP(scan)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     while (FD_PAIRP(scan)) {
@@ -403,7 +410,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	else u8_printf(&out,"%q=%q",towatch,value);
 	fd_decref(value); scan=FD_CDR(scan); oneout=1;}}
     if (!(FD_SYMBOLP(toeval))) u8_printf(&out,": %q",toeval);
-    u8_logger(-1,"%WATCH",out.u8_outbuf);
+    u8_logger(-1,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start=u8_elapsed_time();
   if (FD_SYMBOLP(toeval))
@@ -412,12 +419,12 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
     fdtype value=fd_eval(toeval,env);
     double howlong=u8_elapsed_time()-start;
     if (howlong>1.0)
-      u8_log(-1,"%WATCH","<%.3fs> %q => %q",howlong*1000,toeval,value);
+      u8_log(-1,label,"<%.3fs> %q => %q",howlong*1000,toeval,value);
     else if (howlong>0.001)
-      u8_log(-1,"%WATCH","<%.3fms> %q => %q",howlong*1000,toeval,value);
+      u8_log(-1,label,"<%.3fms> %q => %q",howlong*1000,toeval,value);
     else if (remainder(howlong,0.0000001)>=0.001)
-      u8_log(-1,"%WATCH","<%.3fus> %q => %q",howlong*1000000,toeval,value);
-    else u8_log(-1,"%WATCH","<%.1fus> %q => %q",howlong*1000000,
+      u8_log(-1,label,"<%.3fus> %q => %q",howlong*1000000,toeval,value);
+    else u8_log(-1,label,"<%.1fus> %q => %q",howlong*1000000,
 		toeval,value);
     return value;}
 }
