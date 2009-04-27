@@ -23,6 +23,8 @@ static char versionid[] =
 
 #include "fdb/support.h"
 
+#include <ctype.h>
+
 #ifndef BACKTRACE_INDENT_DEPTH
 #define BACKTRACE_INDENT_DEPTH 12
 #endif
@@ -1298,6 +1300,37 @@ static fdtype uriencode_prim(fdtype string,fdtype escape)
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
+static int xdigit_weight(int c)
+{
+  if (isdigit(c)) return c-'0';
+  else if (isupper(c)) return c-'A'+10;
+  else return c-'a'+10;
+}
+
+static fdtype uridecode_prim(fdtype string)
+{
+  struct U8_OUTPUT out; 
+  u8_byte *scan=FD_STRDATA(string), *result=u8_malloc(FD_STRLEN(string));
+  u8_byte *write=result;
+  int c;
+  while ((c=(*(scan++)))>0) {
+    if (c=='%') {
+      char digit1, digit2; unsigned char ec;
+      c=*(scan++);
+      if (!(isxdigit(c)))
+	return fd_err("Invalid encoded URI","decodeuri_prim",NULL,string);
+      digit1=xdigit_weight(c);
+      c=*(scan++);
+      if (!(isxdigit(c)))
+	return fd_err("Invalid encoded URI","decodeuri_prim",NULL,string);
+      else digit2=xdigit_weight(c);
+      ec=(digit1)*16+digit2;
+      *write++=ec;}
+    else if (c=='+') *write++=' ';
+    else *write++=c;}
+  return fd_init_string(NULL,write-result,result);
+}
+
 /* Outputing tables to XHTML */
 
 static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
@@ -1568,6 +1601,9 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_ndprim(fd_make_cprim2x("URIENCODE",uriencode_prim,1,
 				   fd_string_type,FD_VOID,
 				   fd_string_type,FD_VOID));
+  fdtype uridecode_proc=
+    fd_make_cprim1x("URIDECODE",uridecode_prim,1,
+		    fd_string_type,FD_VOID);
   fdtype uriout_proc=
     fd_make_cprim2x
     ("URIENCODE",uriencode_prim,1,
@@ -1588,6 +1624,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defn(module,fdscripturlx_proc);
     fd_defn(module,fdscripturl_proc);
     fd_defn(module,uriencode_proc);
+    fd_defn(module,uridecode_proc);
     fd_defn(module,uriout_proc);
     fd_store(module,fd_intern("SCRIPTURL+"),scripturl_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
@@ -1609,6 +1646,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_idefn(module,fdscripturl_proc);
     fd_idefn(module,fdscripturlx_proc);
     fd_idefn(module,uriencode_proc);
+    fd_idefn(module,uridecode_proc);
     fd_idefn(module,uriout_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);

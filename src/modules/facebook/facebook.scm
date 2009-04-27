@@ -103,19 +103,18 @@
 	   (store! fb/sessions->users session user)
 	   user))))
 
-(define (unpack-fbinfo)
-  (let ((info (cgiget info-cookie)))
-    (and (exists? info) (string? info)
-	 (let* ((break1 (position #\; info))
-		(break2 (and break1 (position #\; info (1+ break1)))))
-	   (and break1 break2
-		(let ((id (string->number (subseq info 0 break1)))
-		      (expires (string->number (subseq info (1+ break1) break2)))
-		      (session (subseq info (1+ break2))))
-		  (cgiset! 'fb_sig_user id)
-		  (cgiset! 'fb_sig_session_expires expires)
-		  (cgiset! 'fb_sig_session_key session)
-		  #t))))))
+(define (fb/useinfo (info (cgiget info-cookie)))
+  (and (exists? info) (string? info)
+       (let* ((break1 (position #\; info))
+	      (break2 (and break1 (position #\; info (1+ break1)))))
+	 (and break1 break2
+	      (let ((id (string->number (subseq info 0 break1)))
+		    (expires (string->number (subseq info (1+ break1) break2)))
+		    (session (subseq info (1+ break2))))
+		(cgiset! 'fb_sig_user id)
+		(cgiset! 'fb_sig_session_expires expires)
+		(cgiset! 'fb_sig_session_key session)
+		#t)))))
 
 (define (save-fbinfo! (cookie #t))
   (let* ((id (cgiget 'fb_sig_user))
@@ -255,7 +254,7 @@
 	 (when next (cgipass! 'next_uri next))
 	 (when dialog (cgipass! 'dialog #t))
 	 (cgicall handleauthtoken))
-	((or (cgitest 'fb_sig_session_key) (unpack-fbinfo))
+	((or (cgitest 'fb_sig_session_key) (fb/useinfo))
 	 ;; (%watch "HAVEKEY" (cgiget 'fb_sig_session_key))
 	 (when next (cgipass! 'next next))
 	 (when dialog (cgipass! 'dialog #t))
@@ -281,5 +280,6 @@
 		   (timeplus (- oneday)))
       (cgidrop! key))))
 
-(module-export! '{fb/authorize fb/logout fb/sessions->users})
+(module-export! '{fb/authorize fb/logout fb/useinfo fb/sessions->users})
+
 
