@@ -176,7 +176,7 @@
 	  (gmtimestamp (if (string? expires)
 			   (string->lisp expires) expires))))
 
-    (%watch "HANDLEAUTHTOKEN" auth_token info session expires user)
+    ;; (%watch "HANDLEAUTHTOKEN" auth_token info session expires user)
 
     (cgiset! 'fb_sig_session_key session)
     (cgiset! 'fb_sig_session_expires expires)
@@ -251,12 +251,12 @@
 
   (cond ((fb/incanvas?) #t) 
 	((cgitest 'auth_token)
-	 (%watch "AUTH_TOKEN" (cgiget 'auth_token))
+	 ;; (%watch "AUTH_TOKEN" (cgiget 'auth_token))
 	 (when next (cgipass! 'next_uri next))
 	 (when dialog (cgipass! 'dialog #t))
 	 (cgicall handleauthtoken))
 	((or (cgitest 'fb_sig_session_key) (unpack-fbinfo))
-	 (%watch "HAVEKEY" (cgiget 'fb_sig_session_key))
+	 ;; (%watch "HAVEKEY" (cgiget 'fb_sig_session_key))
 	 (when next (cgipass! 'next next))
 	 (when dialog (cgipass! 'dialog #t))
 	 (let ((session (cgiget 'fb_sig_session_key))
