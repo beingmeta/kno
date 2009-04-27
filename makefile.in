@@ -302,9 +302,9 @@ tidy: profile-clean
 	rm -f tests/dtype/*~ tests/db/*.o tests/scheme/*.o
 	rm -f config.log
 clean: tidy
-	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o
+	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o src/modules/*.o
 	rm -f src/fdweb/*.o src/texttools/*.o src/tagger/*.o src/exe/*.o
-	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib lib/*@suffix@.so.* 
+	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib lib/*@suffix@.so.* lib/framerd/*
 	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
 	rm -f exe/fdconsole@suffix@

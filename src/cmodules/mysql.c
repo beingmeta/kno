@@ -321,16 +321,16 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
     struct U8_XTIME xt;
     MYSQL_TIME *mt=(MYSQL_TIME *)outval->buffer;
     memset(&xt,0,sizeof(xt));
-    xt.u8_tptr.tm_year=mt->year-1900;
-    xt.u8_tptr.tm_mon=mt->month-1;
-    xt.u8_tptr.tm_mday=mt->day;
+    xt.u8_year=mt->year-1900;
+    xt.u8_mon=mt->month-1;
+    xt.u8_mday=mt->day;
     if ((outval->buffer_type)==MYSQL_TYPE_DATE)
       xt.u8_prec=u8_day;
     else {
       xt.u8_prec=u8_second;
-      xt.u8_tptr.tm_hour=mt->hour;
-      xt.u8_tptr.tm_min=mt->minute;
-      xt.u8_tptr.tm_sec=mt->second;}
+      xt.u8_hour=mt->hour;
+      xt.u8_min=mt->minute;
+      xt.u8_sec=mt->second;}
     return fd_make_timestamp(&xt);}
   default:
     return FD_FALSE;}
@@ -782,12 +782,12 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	((tm->xtime.u8_prec>u8_day) ?
 	 (MYSQL_TYPE_DATETIME) :
 	 (MYSQL_TYPE_DATE));
-      mt->year=tm->xtime.u8_tptr.tm_year+1900;
-      mt->month=tm->xtime.u8_tptr.tm_mon+1;
-      mt->day=tm->xtime.u8_tptr.tm_mday;
-      mt->hour=tm->xtime.u8_tptr.tm_hour;
-      mt->minute=tm->xtime.u8_tptr.tm_min;
-      mt->second=tm->xtime.u8_tptr.tm_sec;}
+      mt->year=tm->xtime.u8_year;
+      mt->month=tm->xtime.u8_mon+1;
+      mt->day=tm->xtime.u8_mday;
+      mt->hour=tm->xtime.u8_hour;
+      mt->minute=tm->xtime.u8_min;
+      mt->second=tm->xtime.u8_sec;}
     else if ((FD_TRUEP(arg)) || (FD_FALSEP(arg))) {
       inbound[i].is_unsigned=0;
       inbound[i].buffer_type=MYSQL_TYPE_LONG;
