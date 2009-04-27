@@ -70,7 +70,7 @@ int fd_finish_module(fdtype module)
 {
   if (FD_TABLEP(module)) {
     struct U8_XTIME xtptr; fdtype timestamp;
-    u8_init_xtime(&xtptr,-1,u8_second,0,0);
+    u8_init_xtime(&xtptr,-1,u8_second,0,0,0);
     timestamp=fd_make_timestamp(&xtptr);
     fd_store(module,loadstamp_symbol,timestamp);
     fd_decref(timestamp);

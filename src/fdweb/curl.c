@@ -171,7 +171,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
 	     (FD_EQ(slotid,last_modified_symbol))) {
       time_t now, moment=curl_getdate(valstart,&now);
       struct U8_XTIME xt;
-      u8_init_xtime(&xt,moment,u8_second,0,0);
+      u8_init_xtime(&xt,moment,u8_second,0,0,0);
       hval=fd_make_timestamp(&xt);}
     else hval=fdtype_string(valstart);
     fd_add(val,slotid,hval);

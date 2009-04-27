@@ -521,9 +521,9 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
 	u8_printf(out," expires=%s;",FD_STRDATA(expires));
       else if (FD_PTR_TYPEP(expires,fd_timestamp_type)) {
 	struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
-	char buf[512];
-	strftime(buf,512,"%A, %d-%b-%Y %T GMT",
-		 &(tstamp->xtime.u8_tptr));
+	char buf[512]; struct tm tptr;
+	u8_xtime_to_tptr(&(tstamp->xtime),&tptr);
+	strftime(buf,512,"%A, %d-%b-%Y %T GMT",&tptr);
 	u8_printf(out," expires=%s;",buf);}
       if (FD_STRINGP(path))
 	u8_printf(out," path=%s",FD_STRDATA(path));}

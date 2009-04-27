@@ -440,7 +440,7 @@ static fdtype runfile_prim(fdtype suffix)
 
 static fdtype make_timestamp(time_t tick)
 {
-  struct U8_XTIME xt; u8_init_xtime(&xt,tick,u8_second,0,0);
+  struct U8_XTIME xt; u8_init_xtime(&xt,tick,u8_second,0,0,0);
   return fd_make_timestamp(&xt);
 }
 
@@ -1035,7 +1035,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 	  struct FD_PAIR *pair=(struct FD_PAIR *)entry;
 	  struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
 	  FD_INIT_CONS(tstamp,fd_timestamp_type);
-	  u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0);
+	  u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
 	  fd_decref(pair->cdr);
 	  pair->cdr=FDTYPE_CONS(tstamp);
 	  result=fd_load_source(FD_STRDATA(FD_CAR(entry)),scan,"auto");
@@ -1063,7 +1063,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 	  struct FD_PAIR *pair=(struct FD_PAIR *)entry;
 	  struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
 	  FD_INIT_CONS(tstamp,fd_timestamp_type);
-	  u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0);
+	  u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
 	  fd_decref(pair->cdr);
 	  pair->cdr=FDTYPE_CONS(tstamp);}}
       else {
@@ -1074,7 +1074,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
       time_t mod_time=u8_file_mtime(abspath);
       struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
       FD_INIT_CONS(tstamp,fd_timestamp_type);
-      u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0);
+      u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
       entry=fd_init_pair(NULL,fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
       if (FD_EMPTY_CHOICEP(sources)) fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
