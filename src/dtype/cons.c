@@ -809,8 +809,6 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm)
   memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
-  /* Initialize the secs field */
-  tstamp->xtime.u8_tick=u8_mktime(&(tstamp->xtime));
   return FDTYPE_CONS(tstamp);
 }
 
