@@ -321,7 +321,7 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
     struct U8_XTIME xt;
     MYSQL_TIME *mt=(MYSQL_TIME *)outval->buffer;
     memset(&xt,0,sizeof(xt));
-    xt.u8_year=mt->year-1900;
+    xt.u8_year=mt->year;
     xt.u8_mon=mt->month-1;
     xt.u8_mday=mt->day;
     if ((outval->buffer_type)==MYSQL_TYPE_DATE)
@@ -331,6 +331,7 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
       xt.u8_hour=mt->hour;
       xt.u8_min=mt->minute;
       xt.u8_sec=mt->second;}
+    u8_mktime(&xt);
     return fd_make_timestamp(&xt);}
   default:
     return FD_FALSE;}
