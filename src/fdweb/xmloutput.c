@@ -874,33 +874,35 @@ static u8_mutex browseinfo_lock;
 static fdtype get_browseinfo(fdtype arg)
 {
   fd_pool p=fd_oid2pool(arg);
-  fdtype pool=fd_pool2lisp(p), browseinfo=fd_thread_get(browseinfo_symbol), dflt=FD_VOID;
-  FD_DO_CHOICES(info,browseinfo) {
-    if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0))
-      if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
-	fd_incref(info); fd_decref(browseinfo);
-	return info;}
-      else if (FD_TRUEP(FD_VECTOR_REF(info,0))) {
-	dflt=info;}
-      else {}
-    else dflt=info;}
-  if (FD_VOIDP(dflt)) {
-    u8_lock_mutex(&browseinfo_lock);
-    {FD_DO_CHOICES(info,global_browseinfo) {
-	if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0)) {
-	  if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
-	    fd_incref(info);
-	    u8_unlock_mutex(&browseinfo_lock);
-	    return info;}
-	  else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
-	    dflt=info;}}
-      fd_incref(dflt);
-      u8_unlock_mutex(&browseinfo_lock);
-      if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
-      else return dflt;}}
+  if (p==NULL) return FD_EMPTY_CHOICE;
   else {
-    fd_incref(dflt); fd_decref(browseinfo);
-    return dflt;}
+    fdtype pool=fd_pool2lisp(p), browseinfo=fd_thread_get(browseinfo_symbol), dflt=FD_VOID;
+    FD_DO_CHOICES(info,browseinfo) {
+      if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0))
+	if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
+	  fd_incref(info); fd_decref(browseinfo);
+	  return info;}
+	else if (FD_TRUEP(FD_VECTOR_REF(info,0))) {
+	  dflt=info;}
+	else {}
+      else dflt=info;}
+    if (FD_VOIDP(dflt)) {
+      u8_lock_mutex(&browseinfo_lock);
+      {FD_DO_CHOICES(info,global_browseinfo) {
+	  if ((FD_VECTORP(info)) && (FD_VECTOR_LENGTH(info)>0)) {
+	    if (FD_EQ(FD_VECTOR_REF(info,0),pool)) {
+	      fd_incref(info);
+	      u8_unlock_mutex(&browseinfo_lock);
+	      return info;}
+	    else if (FD_TRUEP(FD_VECTOR_REF(info,0)))
+	      dflt=info;}}
+	fd_incref(dflt);
+	u8_unlock_mutex(&browseinfo_lock);
+	if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
+	else return dflt;}}
+    else {
+      fd_incref(dflt); fd_decref(browseinfo);
+      return dflt;}}
 }
 
 static int unpack_browseinfo(fdtype info,u8_string *baseuri,u8_string *classname,fdtype *displayer)
