@@ -50,12 +50,11 @@
 	 (session (cgiget sessionvar))
 	 (expires (gmtimestamp (cgiget expiresvar)))
 	 (info (get sessions session)))
-    (%watch "GETINFO" user session expires info (cgiget expiresvar))
+    ;; (%watch "GETINFO" user session expires info (cgiget expiresvar))
     (and (exists? info)
 	 (test info 'user user)
-	 (and (exists? expires)
-	      (%watch (test info 'expires expires)))
-	 (%watch (future-time? expires))
+	 (and (exists? expires) (test info 'expires expires))
+	 (future-time? expires)
 	 ;; Now we're good
 	 (if refresh
 	     (dorefresh user session info (try expires (get info 'expires)))
@@ -118,7 +117,7 @@
     (store! info 'session session)
     (store! info 'expires (timestamp+ now auth-expiration))
     (store! info 'refresh (timestamp+ now auth-refresh))
-    (%watch "AUTHORIZE" user session now oldsession info)
+    ;; (%watch "AUTHORIZE" user session now oldsession info)
     (set-cookies! info)
     info))
 
