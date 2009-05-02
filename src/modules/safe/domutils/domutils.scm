@@ -6,24 +6,33 @@
 
 (module-export!
  '{
-   domutils/textify
-   domutils/set! domutils/add! domutils/append!
-   domutils/selector domutils/match domutils/lookup domutils/find
-   domutils/search domutils/strip!
+   dom/textify
+   dom/set! dom/add! dom/append!
+   dom/selector dom/match dom/lookup dom/find
+   dom/search dom/strip!
    ->selector selector-tag selector-class selector-id})
 
 ;;; Textify
 
-(define (domutils/textify node (embedded #f))
+(define (dom/textify node (embedded #f) (cache #t))
   (if embedded
       (if (string? node) (printout node)
 	  (if (pair? node)
-	      (dolist (elt node) (domutils/textify elt #t))
+	      (dolist (elt node) (dom/textify elt #t cache))
 	      (if (table? node)
-		  (dolist (elt (get node '%content))
-		    (domutils/textify elt #t))
+		  (if (test node '%text)
+		      (printout (get node '%text))
+		      (let ((s (stdspace
+				(stringout
+				  (dolist (elt (get node '%content))
+				    (if (string? elt)
+					(printout elt)
+					(dom/textify elt #t cache)))))))
+			(when cache (store! node '%text s))
+			(printout s)
+			s))
 		  (printout node))))
-      (stringout (domutils/textify node #t))))
+      (stdspace (stringout (dom/textify node #t cache)))))
 
 ;;; DOM editing
 
@@ -48,7 +57,7 @@
   (and (string? s) (position #\: s)
        (subseq s 0 (position #\: s))))
 
-(define (domutils/set! node attrib val (fdxml #f))
+(define (dom/set! node attrib val (fdxml #f))
   (let* ((slotid (if (symbol? attrib) attrib
 		     (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
@@ -63,7 +72,7 @@
 			(unparse-arg val))))
     (when (or (ambiguous? attribs) (ambiguous? raw-attribs))
       (error "AmbiguousDOMAttribute"
-	     "DOMUTILS/SET of ambiguous attribute " attrib
+	     "DOM/SET of ambiguous attribute " attrib
 	     (choice attribs raw-attribs)))
     (store! node slotid val)
     (add! node '%attribids slotid)
@@ -81,7 +90,7 @@
 	  (add! node '%%attribs
 		(vector aname aname stringval))))))
 
-(define (domutils/add! node attrib val (fdxml #f))
+(define (dom/add! node attrib val (fdxml #f))
   (unless (test node (if (symbol? attrib) attrib
 			 (string->lisp attrib))
 		val)
@@ -99,7 +108,7 @@
 			  (unparse-arg val))))
       (when (or (ambiguous? attribs) (ambiguous? raw-attribs))
 	(error "AmbiguousDOMAttribute"
-	       "DOMUTILS/SET of ambiguous attribute " attrib
+	       "DOM/SET of ambiguous attribute " attrib
 	       (choice attribs raw-attribs)))
       (store! node slotid val)
       (add! node '%attribids slotid)
@@ -119,7 +128,7 @@
 	    (add! node '%%attribs
 		  (vector aname aname stringval)))))))
 
-(define (domutils/append! node . content)
+(define (dom/append! node . content)
   (let ((current (try (get node '%content) '())))
     (dolist (elt content)
       (if (pair? elt)
@@ -144,7 +153,7 @@
     #("#" (label idname ,xmlid))
     #((bol) (label tagname ,xmlid #t))})
 
-(define (domutils/selector spec)
+(define (dom/selector spec)
   (if (selector? spec) spec
       (if (string? spec)
 	  (let ((match (text->frames selector-pattern spec)))
@@ -157,9 +166,9 @@
 			     (try (get spec 'class) #f)
 			     (try (get spec 'id) #f))
 	      (fail)))))
-(define ->selector domutils/selector)
+(define ->selector dom/selector)
 
-(define (domutils/lookup table sel (dflt))
+(define (dom/lookup table sel (dflt))
   (if (selector? sel)
       (try (tryif (and (selector-tag sel) (selector-class sel)
 		       (selector-id sel))
@@ -180,10 +189,10 @@
 		  (get table (selector-tag sel)))
 	   (if (bound? dflt) dflt {}))
       (if (bound? dflt)
-	  (domutils/lookup table (->selector sel) dflt)
-	  (domutils/lookup table (->selector sel)))))
+	  (dom/lookup table (->selector sel) dflt)
+	  (dom/lookup table (->selector sel)))))
 
-(define (domutils/match elt sel)
+(define (dom/match elt sel)
   (and (not (string? elt))
        (if (selector? sel)
 	   (and (or (not (selector-tag sel))
@@ -193,22 +202,22 @@
 		    (test elt 'class (selector-class sel)))
 		(or (not (selector-id sel))
 		    (test elt 'id (selector-id sel))))
-	   (domutils/match elt (->selector sel)))))
+	   (dom/match elt (->selector sel)))))
 
 ;;; Searching
 
-(define (domutils/find under sel)
+(define (dom/find under sel)
   "Finds all nodes matching SEL under UNDER"
   (if (selector? sel)
       (cond ((string? under) (fail))
 	    ((pair? under)
 	     (for-choices (elt (elts under))
-	       (domutils/find sel elt)))
+	       (dom/find sel elt)))
 	    ((table? under)
-	     (choice (tryif (domutils/match under sel) under)
+	     (choice (tryif (dom/match under sel) under)
 		     (for-choices (elt (elts (get under '%content)))
-		       (domutils/find sel elt)))))
-      (domutils/find (->selector sel) under)))
+		       (dom/find sel elt)))))
+      (dom/find (->selector sel) under)))
 
 ;;; Text searching
 
@@ -225,7 +234,7 @@
 	    (search-helper elt pattern exitor)
 	    (fail)))))
 
-(define (domutils/search under pattern (all #f))
+(define (dom/search under pattern (all #f))
   (if all
       (search-helper under pattern #f)
       (call/cc (lambda (exitor) (search-helper under pattern exitor)))))
@@ -233,7 +242,7 @@
 
 ;;; Stripping out some elements
 
-(defambda (domutils/strip! under sel)
+(defambda (dom/strip! under sel)
   "Removes all nodes matching SEL under UNDER"
   (if (fail? (reject sel selector?))
       (cond ((string? under) under)
@@ -241,18 +250,19 @@
 	     (let ((stripped (strip-helper under sel)))
 	       (dolist (elt stripped)
 		 (unless (or (string? elt) (pair? elt))
-		   (domutils/strip! elt sel)))))
+		   (dom/strip! elt sel)))))
 	    ((table? under)
 	     (let ((stripped (strip-helper (get under '%content) sel)))
 	       (store! under '%content stripped)
 	       (dolist (elt stripped)
 		 (unless (or (string? elt) (pair? elt))
-		   (domutils/strip! elt sel))))))
-      (domutils/strip! (->selector sel) under)))
+		   (dom/strip! elt sel))))))
+      (dom/strip! (->selector sel) under)))
 
 (defambda (strip-helper list sel)
   (if (pair? list)
-      (if (domutils/match (car list) sel)
+      (if (dom/match (car list) sel)
 	  (strip-helper (cdr list) sel)
 	  (cons (car list) (strip-helper (cdr list) sel)))
       list))
+
