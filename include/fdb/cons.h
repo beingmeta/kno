@@ -273,6 +273,10 @@ typedef struct FD_PAIR *fd_pair;
 #define fd_cdr(x) \
   fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->cdr))
 
+/* These are not threadsafe and they don't worry about GC either */
+#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car=x
+#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr=x
+
 #define FD_DOLIST(x,list) \
   fdtype x, _tmp=list; \
   while ((FD_PAIRP(_tmp)) ? \
