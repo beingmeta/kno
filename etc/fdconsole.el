@@ -1,5 +1,7 @@
 ;; Indentation information
 
+(require 'cmuscheme)
+
 ;; We do this because we don't want console windows to have infinite undo
 (make-variable-buffer-local 'undo-limit)
 ;; The name of the FramerD scheme module for a particular buffer
@@ -159,11 +161,23 @@
   (if mark-active (fdconsole-send-region (region-beginning) (region-end))
     (fdconsole-send-definition)))
 
+(defun split-command-line (string)
+  (let ((where (string-match "[ \t]" string)))
+    (cond ((null where) (list string))
+	  ((not (= where 0))
+	   (cons (substring string 0 where)
+		 (split-command-line (substring string (+ 1 where)
+						(length string)))))
+	  (t (let ((pos (string-match "[^ \t]" string)))
+	       (if (null pos)
+		   nil
+		 (split-command-line (substring string pos
+						(length string)))))))))
+
 ;;; Running an fdconsole
 
 (defvar fdconsole-program "fdconsole")
 
-(autoload 'scheme-args-to-list "cmuscheme")
 (autoload 'comint-check-proc "comint")
 
 (defun fdconsole (cmd)
@@ -177,7 +191,7 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 	     (read-string "Run fdconsole: " fdconsole-program)
 	   fdconsole-program)))
   (if (not (comint-check-proc "*fdconsole*"))
-      (let ((cmdlist (scheme-args-to-list cmd)))
+      (let ((cmdlist (split-command-line cmd)))
 	(set-buffer (apply 'make-comint "fdconsole" (car cmdlist)
 			   nil (cdr cmdlist)))
 	(inferior-scheme-mode)))
