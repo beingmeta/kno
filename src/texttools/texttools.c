@@ -19,6 +19,8 @@ static char versionid[] =
 #include <libu8/u8printf.h>
 #include <libu8/u8digestfns.h>
 
+#include <ctype.h>
+
 fd_exception fd_BadExtractData=_("Bad extract data");
 fd_exception fd_BadMorphRule=_("Bad morphrule");
 
@@ -1489,6 +1491,100 @@ static int doadds(fdtype table,u8_output out,fdtype xtract)
   return 1;
 }
 
+/* Character-based escaped segmentation */
+
+static fdtype findsep_prim(fdtype string,fdtype sep,
+			   fdtype offset,fdtype limit,
+			   fdtype esc)
+{
+  int off, lim;
+  int c=FD_CHARCODE(sep), e=FD_CHARCODE(esc);
+  convert_offsets(string,offset,limit,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"findsep_prim",NULL,FD_VOID);
+  else if (c>=0x80)
+    return fd_type_error("ascii char","findsep_prim",sep);
+  else if (e>=0x80)
+    return fd_type_error("ascii char","findsep_prim",esc);
+  else {
+    u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
+    u8_byte *scan=start, *pos=strchr(scan,c);
+    while ((pos) && (scan<limit)) {
+      if (pos==start)
+	return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));
+      else if (*(pos-1)==e) {
+	pos++; u8_sgetc(&pos); scan=pos; pos=strchr(scan,c);}
+      else return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));}
+    return FD_FALSE;}
+}
+
+static fdtype splitsep_prim(fdtype string,fdtype sep,
+			    fdtype offset,fdtype limit,
+			    fdtype esc)
+{
+  int off, lim;
+  int c=FD_CHARCODE(sep), e=FD_CHARCODE(esc);
+  convert_offsets(string,offset,limit,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"splitsep_prim",NULL,FD_VOID);
+  else if (c>=0x80)
+    return fd_type_error("ascii char","splitsep_prim",sep);
+  else if (e>=0x80)
+    return fd_type_error("ascii char","splitsep_prim",esc);
+  else {
+    fdtype head=FD_VOID, pair=FD_VOID;
+    u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
+    u8_byte *scan=start, *pos=strchr(scan,c);
+    while ((scan) && (scan<limit)) {
+      if ((pos) && (pos>start) && (*(pos-1)==e)) {
+	pos=strchr(pos+1,c);}
+      else  {
+	fdtype seg=fd_extract_string(NULL,scan,pos);
+	fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
+	if (FD_VOIDP(head)) head=pair=elt;
+	else {
+	  FD_RPLACD(pair,elt); pair=elt;}
+	if (pos) {scan=pos+1; pos=strchr(scan,c);}
+	else scan=NULL;}}
+    return head;}
+}
+
+static char *stdlib_escapes="ntrfab\\";
+static char *stdlib_unescaped="\n\t\r\f\a\b\\";
+
+static fdtype unescape_prim(fdtype string,fdtype offset,fdtype limit_arg,
+			    fdtype dostd)
+{
+  int off, lim; 
+  u8_string sdata=FD_STRDATA(string), start, limit, split1;
+  int handle_stdlib=(!(FD_FALSEP(dostd)));
+  convert_offsets(string,offset,limit_arg,&off,&lim);  
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"unescape_prim",NULL,FD_VOID);
+  start=sdata+off; limit=sdata+lim; split1=strchr(start,'\\');
+  if ((split1) && (split1<limit)) {
+    u8_byte *scan=start;
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,FD_STRLEN(string));
+    while (scan) {
+      u8_byte *split=strchr(scan,'\\');
+      if ((!split) || (split>=limit)) {
+	u8_putn(&out,scan,limit-scan); break;}
+      else {
+	int nc;
+	u8_putn(&out,scan,split-scan); scan++;
+	nc=u8_sgetc(&scan);
+	if ((handle_stdlib) && (nc<0x80) && (isalpha(nc))) {
+	  char *cpos=strchr(stdlib_escapes,nc);
+	  if (cpos==NULL) {}
+	  else nc=stdlib_unescaped[cpos-stdlib_escapes];}
+	u8_putc(&out,nc);}}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else if ((off==0) && (lim==FD_STRLEN(string)))
+    return fd_incref(string);
+  else return fd_extract_string(NULL,start,limit);
+}
+
+
 /* Phonetic prims */
 
 static fdtype soundex_prim(fdtype string,fdtype packetp)
@@ -1755,6 +1851,26 @@ void fd_init_texttools()
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID,
 			   -1,FD_TRUE));
+
+  /* Escaped separator parsing */
+  fd_idefn(texttools_module,
+	   fd_make_cprim5x("FINDSEP",findsep_prim,2,
+			   fd_string_type,FD_VOID,
+			   fd_character_type,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,
+			   fd_character_type,FD_CODE2CHAR('\\')));
+  fd_idefn(texttools_module,
+	   fd_make_cprim5x("SPLITSEP",splitsep_prim,2,
+			   fd_string_type,FD_VOID,
+			   fd_character_type,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,
+			   fd_character_type,FD_CODE2CHAR('\\')));
+  fd_idefn(texttools_module,
+	   fd_make_cprim4x("UNESCAPE",unescape_prim,2,
+			   fd_string_type,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,
+			   -1,FD_FALSE));
+
 
   star_symbol=fd_intern("*");
   plus_symbol=fd_intern("+");
