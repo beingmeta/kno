@@ -150,14 +150,18 @@
       (handle-clause clause dterm knowlet))
     dterm))
 
+(define (handle-entry entry knowlet)
+  (if (not (char-punctuation? (first entry)))
+      (handle-subject-entry entry knowlet)
+      (cond ((eq? (first entry) #\*)
+	     (kno/add! (handle-subject-entry (subseq entry 1))
+		       'type 'primary))
+	    (else (error "Invalid knowlet entry" entry)))))
+
 (define (kno/plaintext text (knowlet default-knowlet))
   (map (lambda (x)
 	 (if (char-punctuation? (first x))
 	     x
 	     (handle-subject-entry x knowlet)))
        (escaped-segment text #\;)))
-
-
-
-
 

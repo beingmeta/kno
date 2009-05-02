@@ -23,7 +23,7 @@
 (defrecord knowlet name
   (oid #f)
   (language 'en)
-  (opts #{})
+  (opts (make-hashset))
   ;; Whether to allow non-dterms in references
   (strict #f)
   ;; Maps string dterms to OID dterms
@@ -31,7 +31,9 @@
   ;; Inverted index for dterms in the knowlet
   (index (make-hashtable))
   ;; Terms which are assumed unique by kno/dref
-  (unique (make-hashset)))
+  (unique (make-hashset))
+  ;; Rules for disambiguating words into dterms
+  (drules (make-hashtable)))
 
 ;;; Creating and referencing knowlets
 
@@ -40,7 +42,7 @@
 	 (oid (frame-create pool 'knoname name '%id name))
 	 (language (try (intersection opts langids) knowlet:language))
 	 (strict (overlaps? opts 'strict))
-	 (new (cons-knowlet name oid language (qc opts) strict)))
+	 (new (cons-knowlet name oid language (choice->hashset opts) strict)))
     (index-frame knowlet:index oid 'knoname name)
     (store! knowlets (choice oid name) new)
     new))
@@ -52,7 +54,7 @@
 	 (language (get oid 'language))
 	 (opts (get oid 'opts))
 	 (strict (overlaps? opts 'strict))
-	 (new (cons-knowlet name oid language (qc opts) strict)))
+	 (new (cons-knowlet name oid language (choice->hashset opts) strict)))
     (store! knowlets (choice oid name) new)
     (let ((dterms (find-frames knowlet:index 'knowlet oid)))
       (do-choices (dterm terms)
