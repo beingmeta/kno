@@ -332,13 +332,13 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return fd_make_timestamp(&asgmt);}
   else if (FD_EQ(slotid,month_symbol))
     if (xt->u8_prec>=u8_month)
-      return FD_INT2DTYPE(xt->u8_mon);
+      return FD_BYTE2DTYPE(xt->u8_mon);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,monthid_symbol))
     if (xt->u8_prec>=u8_month)
-      if ((xt->u8_mon>=0) && (xt->u8_mon<12))
+      if (xt->u8_mon<12)
 	return monthids[xt->u8_mon];
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -360,7 +360,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dowid_symbol))
     if (xt->u8_prec>u8_month)
-      if ((xt->u8_wday>=0) && (xt->u8_wday<7))
+      if (xt->u8_wday<7)
 	return dowids[xt->u8_wday];
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
@@ -414,7 +414,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dmy_symbol))
     if (xt->u8_prec>=u8_hour) {
-      if ((xt->u8_mon>=0) && (xt->u8_mon<11)) {
+      if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%d%s%04d",xt->u8_mday,
 		month_names[xt->u8_mon],xt->u8_year);
@@ -429,7 +429,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dm_symbol))
     if (xt->u8_prec>=u8_hour)
-      if ((xt->u8_mon>=0) && (xt->u8_mon<11)) {
+      if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
 	return fd_init_string(NULL,-1,u8_strdup(buf));}
@@ -443,28 +443,28 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,date_symbol))
     if (xt->u8_prec>=u8_day)
-      return FD_INT2DTYPE(xt->u8_mday);
+      return FD_BYTE2DTYPE(xt->u8_mday);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,hours_symbol))
     if (xt->u8_prec>=u8_hour)
-      return FD_INT2DTYPE(xt->u8_hour);
+      return FD_BYTE2DTYPE(xt->u8_hour);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,minutes_symbol))
     if (xt->u8_prec>=u8_minute)
-      return FD_INT2DTYPE(xt->u8_min);
+      return FD_BYTE2DTYPE(xt->u8_min);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,seconds_symbol))
     if (xt->u8_prec>=u8_second)
-      return FD_INT2DTYPE(xt->u8_sec);
+      return FD_BYTE2DTYPE(xt->u8_sec);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
