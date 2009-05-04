@@ -29,8 +29,7 @@
 					(printout elt)
 					(dom/textify elt #t cache)))))))
 			(when cache (store! node '%text s))
-			(printout s)
-			s))
+			(printout s)))
 		  (printout node))))
       (stdspace (stringout (dom/textify node #t cache)))))
 

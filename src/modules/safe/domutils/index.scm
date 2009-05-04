@@ -13,15 +13,20 @@
 (define default-rootfn #f)
 (varconfig! dom:rootfn default-rootfn)
 
+(define refrules {})
+(varconfig! dom:refrules refrules #f choice)
+
 (defambda (dom/index! index xml (settings #[])
 		      (slotids)
 		      (rootfn)
 		      (phrasemap)
 		      (useids)
+		      (rrules)
 		      (textelts))
   (default! slotids (try (get settings 'slotids) default-dom-slots))
   (default! rootfn (try (get settings 'rootfn) default-rootfn))
   (default! phrasemap (try (get settings 'phrasemap) #f))
+  (default! rrules (try (get settings 'refrules) refrules))
   (when (overlaps? slotids 'text)
     (if (fail? (get settings 'textelts))
 	(store! settings 'textelts default-text-elements)
@@ -41,7 +46,7 @@
   (if (pair? xml)
       (dolist (elt xml)
 	(dom/index! index elt settings slotids
-		    rootfn phrasemap useids))
+		    rootfn phrasemap useids rrules textelts))
       (when  (table? xml)
 	(let ((content (get xml '%content))
 	      (indexval (if useids (get xml 'id) xml)))
@@ -51,8 +56,13 @@
 	      (add! index (cons slotid (get xml slotid)) indexval))
 	    (when (overlaps? slotids 'text)
 	      (let* ((text (dom/textify xml))
+		     (allcaps (uppercase? text))
+		     (refs (tryif (not allcaps) (gather rrules text)))
 		     (wordv (words->vector text))
 		     (rootv (and (and rootfn (map rootfn wordv)))))
+		(when (exists? refs)
+		  (store! xml 'refs refs)
+		  (add! index (cons 'refs refs) indexval))
 		(store! xml 'words wordv)
 		(add! index (cons 'words (elts wordv)) indexval)
 		(do-choices (phrase (tryif phrasemap
@@ -61,13 +71,14 @@
 		    (add! index (cons 'words (seq->phrase phrase)) elt)))
 		(when rootv
 		  (store! xml 'roots rootv)
-		  (add! index (cons 'roots (elts wordv)) indexval)
+		  (add! index (cons 'roots (elts rootv)) indexval)
 		  (do-choices (phrase (tryif phrasemap
 					     (get phrasemap (elts rootv))))
 		    (when (search phrase rootv)
-		      (add! index (cons 'words (seq->phrase phrase)) elt)))))))
+		      (add! index (cons 'roots (seq->phrase phrase)) elt)))))))
 	  (when (exists? content)
 	    (dolist (elt content)
 	      (dom/index! index elt settings slotids
-			  rootfn phrasemap useids)))))))
+			  rootfn phrasemap useids rrules textelts)))))))
+
 
