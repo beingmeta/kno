@@ -6,8 +6,10 @@
  '{knowlet
    kno/dterm kno/dref kno/ref
    kno/add! kno/drop! kno/find
-   knowlet-opts knowlet-language knowlet-index knowlet-dterms
-   default-knowlet})
+   knowlet-name knowlet-opts knowlet-language
+   knowlet-oid knowlet-index knowlet-dterms
+   default-knowlet
+   langids})
 
 (define-init knowlets (make-hashtable))
 
