@@ -3,6 +3,12 @@
 (use-module '{texttools fdweb ezrecords varconfig})
 (use-module '{knowlets})
 
+(module-export!
+ '{kno/drule
+   drule-language drule-subject
+   drule-cues drule-context+ drule-context+
+   drule-threshold})
+
 (defrecord DRULE
   subject
   language

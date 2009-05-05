@@ -5,10 +5,10 @@
 (module-export!
  '{knowlet
    kno/dterm kno/dref kno/ref
-   kno/add! kno/drop! kno/find
+   kno/add! kno/drop! kno/replace! kno/find
    knowlet-name knowlet-opts knowlet-language
    knowlet-oid knowlet-index knowlet-dterms
-   default-knowlet
+   default-knowlet knowlets
    langids})
 
 (define-init knowlets (make-hashtable))
@@ -32,6 +32,9 @@
   (dterms (make-hashtable))
   ;; Inverted index for dterms in the knowlet
   (index (make-hashtable))
+  ;; GENLS index (index of the transitive closure of GENLS)
+  ;;  (useful in inference and searching)
+  (genls* (make-hashtable))
   ;; Terms which are assumed unique by kno/dref
   (unique (make-hashset))
   ;; Rules for disambiguating words into dterms
@@ -120,15 +123,112 @@
 	(args (if (even? (length args)) args (cdr args))))
     (apply find-frames (knowlet-index knowlet) args)))
 
+(define infer-onadd (make-hashtable))
+(define infer-ondrop (make-hashtable))
+
 (defambda (kno/add! dterm slotid value)
   (let ((new (difference value (get dterm slotid)))
 	(knowlet (get knowlets (get dterm 'knowlet))))
-    (add! dterm slotid new)
-    (index-frame (knowlet-index knowlet) dterm slotid new)))
+    (when (exists? new)
+      (add! dterm slotid new)
+      (index-frame (knowlet-index knowlet) dterm slotid new)
+      ((get infer-onadd slotid) dterm slotid new))))
 
 (defambda (kno/drop! dterm slotid value)
   (let ((drop (intersection value (get dterm slotid)))
 	(knowlet (get knowlets (get dterm 'knowlet))))
-    (drop! dterm slotid drop)
-    (drop! (knowlet-index knowlet) (cons slotid new) dterm)))
+    (when (exists? drop)
+      (drop! dterm slotid drop)
+      (drop! (knowlet-index knowlet) (cons slotid new) dterm)
+      ((get infer-ondrop slotid) dterm slotid drop))))
+
+(defambda (kno/replace! dterm slotid value (toreplace {}))
+  (for-choices dterm
+    (for-choices slotid
+      (let ((replace (difference (try toreplace (get dterm slotid))
+				 value)))
+	(let ((new (difference value (get dterm slotid)))
+	      (todrop replace)
+	      (knowlet (get knowlets (get dterm 'knowlet))))
+	  (when (exists? todrop)
+	    (drop! dterm slotid todrop)
+	    ((get infer-ondrop slotid) dterm slotid todrop)
+	    (drop! (knowlet-index knowlet) (cons slotid todrop)
+		   todrop))
+	  (when (exists? new)
+	    (add! dterm slotid new)
+	    (index-frame (knowlet-index knowlet) dterm slotid new)
+	    ((get infer-onadd slotid) dterm slotid new)))))))
+
+;;; Special inference methods
+
+(define (add-genl! f s g)
+  (let ((g* (get* g 'genls))
+	(g*cur (get f 'genls*))
+	(knowlet (get knowlets (get f 'knowlet))))
+    (add! f 'genls* g)
+    (add! f 'genls* (difference g* g*cur))
+    (add! (knowlet-genls* knowlet) (difference g* g*cur) f)))
+
+(define (drop-genl! f s g)
+  ;; This is called after the drop happens, so g*cur actually reflects
+  ;;  the update.
+  (let ((g* (get* g 'genls))
+	(g*cur (get f 'genls*))
+	(knowlet (get knowlets (get f 'knowlet)))
+	(g*drop (difference g* g*cur))
+	(g*index (knowlet-genls* knowlet)))
+    (drop! f 'genls* g)
+    (drop! f 'genls* g*drop)
+    (drop! g*index g*drop f)
+    (do-choices (specl (get g*index f))
+      (let* ((g*cur (get* specl 'genls))
+	     (g*drop (difference g*drop g*cur)))
+	(when (exists? g*drop)
+	  (drop! specl 'genls* g*drop)
+	  (drop! g*index g*drop specl))))))
+
+(add! infer-onadd 'genls add-genl!)
+(add! infer-ondrop 'genls drop-genl!)
+
+;;; Specls (just the inverse)
+
+(define (add-specl! f s v)
+  (add! v 'genls f)
+  (add-genl! v 'genls f))
+
+(define (drop-specl! f s g)
+  (drop! v 'genls f)
+  (drop-genl! v 'genls f))
+
+(add! infer-onadd 'specls add-specl!)
+(add! infer-ondrop 'specls drop-specl!)
+
+;;; Symmetric
+
+(define (add-symmetric! frame slotid value (mirror))
+  (default! mirror slotid)
+  (unless (test value mirror frame)
+    (kno/add! value mirror frame)))
+
+(define (drop-symmetric! frame slotid value (mirror))
+  (default! mirror slotid)
+  (when (test value mirror frame)
+    (kno/drop! value mirror frame)))
+
+(add! infer-onadd '{mirror equivalent identical} add-symmetric!)
+(add! infer-ondrop '{mirror equivalent identical} drop-symmetric!)
+
+;;; DRULES
+
+(define (add-drule! frame slotid value)
+  (add! (knowlet-drules (get knowlets (get frame 'knowlet)))
+	(knowlet-cues value)
+	value))
+(define (drop-drule! frame slotid value)
+  (drop! (knowlet-drules (get knowlets (get frame 'knowlet)))
+	 (knowlet-cues value)
+	 value))
+(add! infer-onadd 'drules add-drule!)
+(add! infer-ondrop 'drules drop-drule!)
 

@@ -1,7 +1,7 @@
 (in-module 'knowlets/plaintext)
 
 (use-module '{texttools fdweb ezrecords varconfig})
-(use-module '{knowlets})
+(use-module '{knowlets knowlets/drules})
 
 (module-export! '{kno/read-plaintext kno/write-plaintext})
 
@@ -47,8 +47,30 @@
 		  (cons langid (subseq value 4)))))
       (list subject slotid value)))
 
+(define (plaintext->drule string subject knowlet language)
+  (let* ((dclauses (map trim-spaces (segment-string string #\&)))
+	 (cues {}) (context+ {}) (context- {})
+	 (threshold 1))
+    (doseq (dclause (remove "" dclauses) i)
+      (cond ((eqv? (first dclause) "+")
+	     (set+! cues
+		    (try (get knowlet-dterms (subseq dclause 1))
+			 (subseq dclause 1))))
+	    ((eqv? (first dclause) "-")
+	     (set+! context-
+		    (try (get knowlet-dterms (subseq dclause 1))
+			 (subseq dclause 1))))
+	    ((eqv? (first dclause) "#")
+	     (if (equal? dclause "#*")
+		 (set! threshold #f)
+		 (set! threshold (string->lisp (subseq dclause 1)))))
+	    (else (set+! context+
+			 (try (get knowlet-dterms (subseq dclause 1))
+			      (subseq dclause 1))))))
+    (kno/drule subject language cues context+ context- threshold
+	       knowlet)))
+
 (define (clause->triples op mod value subject knowlet)
-  (%watch "CLAUSE->TRIPLES" op mod value)
   (cond ((or (not op) (eq? op #\\))
 	 (list subject (knowlet-language knowlet) value))
 	((eq? op #\$)
@@ -130,6 +152,19 @@
 	 (handle-lang-term subject
 			   (get #[#f explanation #\* gloss #\~ aside] mod)
 			   (knowlet-language knowlet) value))
+	((eq? op #\%)
+	 (if (eq? mod #\*)
+	     (let ((meta (kno/dterm value knowlet)))
+	       (list subject 'meta meta))
+	     (if (eq? mod #\~)
+		 (list subject 'meta value)
+		 (let ((mirror (kno/dterm value knowlet)))
+		   (list subject 'mirror mirror)))))
+	((eq? op #\+)
+	 (list subject 'drules
+	       (plaintext->drule (string-append "+" value)
+				 subject knowlet
+				 (knowlet-language knowlet))))
 	(else (error "Bad clause" op mod value))))
 
 (define (handle-clause clause subject knowlet)
@@ -172,7 +207,7 @@
   '(("^" genls) ("^*" commonly) ("^~" sometimes)
     ("_" examples) ("_*" typical) ("_~" atypical)
     ("-" never) ("^*" rarely) ("^~" somenot)
-    ("&" assocs) ("&*" defterms) ("&~" refterms)
+    ("&" assocs) ("&*" defs) ("&~" refs)
     ("=" identical) ("=*" equiv) ("=~" sorta)
     ("@" xref) ("@*" xdef) ("@~" xuri) ))
 (define slot-codes
@@ -220,6 +255,32 @@
 				     (else "^"))
 			   (output-value (car value) knowlet)
 			   "(" (output-value (cdr value) knowlet) ")" ))
+		((eq? slotid 'mirror)
+		 (printout "|%" (get value 'dterm)))
+		((eq? slotid 'meta)
+		 (if (oid? value)
+		     (printout "|%*" (get value 'dterm))
+		     (printout "|%~" value)))
+		((eq? slotid 'drules)
+		 (printout "|")
+		 (if (eq? (knowlet-language knowlet)
+			  (drule-language value))
+		     (do-choices (cue (drule-cues value) i)
+		       (printout (if (> i 0) "&") "+"
+				 (if (string? cue) cue (get cue 'dterm))))
+		     (do-choices (cue (drule-cues value) i)
+		       (if (= i 0)
+			   (printout "+$" (knowlet-langauge value) "$")
+			   (printout "&+"))
+		       (printout (if (string? cue) cue (get cue 'dterm)))))
+		 (do-choices (cue (drule-context- value) i)
+		   (printout "&-" (if (string? cue) cue (get cue 'dterm))))
+		 (do-choices (cue (drule-context+ value) i)
+		   (printout "&" (if (string? cue) cue (get cue 'dterm))))
+		 (unless (eq? (drule-threshold value) 1)
+		   (printout "&#" (drule-threshold value)))
+		 (when (not (drule-threshold value))
+		   (printout "&#*" (drule-threshold value))))
 		(else )))))))
 
 (defambda (kno/write-plaintext dterms (kl) (sep ";\n"))
@@ -231,9 +292,4 @@
       (do-choices (dterm dterms i)
 	(if (> i 0) (printout sep))
 	(dterm->plaintext dterm kl))))
-
-
-
-
-
 
