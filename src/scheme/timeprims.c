@@ -810,6 +810,25 @@ static fdtype hostname_prim()
   return fd_init_string(NULL,-1,u8_gethostname());
 }
 
+/* There's not a good justification for putting this here other
+   than that it has to do with getting stuff from the environment. */
+static fdtype hostaddrs_prim(fdtype hostname)
+{
+  int addr_len=-1; unsigned int type;
+  char **addrs=u8_lookup_host(FD_STRDATA(hostname),&addr_len,&type);
+  fdtype results=FD_EMPTY_CHOICE;
+  int i=0; while (addrs[i]) {
+    unsigned char *addr=addrs[i++]; fdtype string;
+    struct U8_OUTPUT out; int j=0; U8_INIT_OUTPUT(&out,16);
+    while (j<addr_len) {
+      u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
+      j++;}
+    string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    FD_ADD_TO_CHOICE(results,string);}
+  u8_free(addrs);
+  return results;
+}
+
 /* RUSAGE */
 
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
@@ -1176,6 +1195,7 @@ FD_EXPORT void fd_init_timeprims_c()
 			   -1,FD_VOID,-1,FD_FALSE));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("GETENV",getenv_prim,1,
 			   fd_string_type,FD_VOID));
