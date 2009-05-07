@@ -5,6 +5,7 @@
 (use-module '{reflection fdweb xhtml texttools domutils varconfig})
 
 (module-export! '{dom/index! dom/textanalyze})
+(module-export! '{apply-refrules})
 
 (define default-dom-slots '{id class name})
 
@@ -94,19 +95,36 @@
 		     (tryif (search phrase rootv)
 			    (cons 'words (seq->phrase phrase))))))))
 
+(defambda (reduce-map map slotids)
+  (for-choices map
+    (let ((f (frame-create #f)))
+      (do-choices (slotid slotids)
+	(add! f slotid (get map slotid)))
+      f)))
+
+(define (apply-refrule rule text)
+  (let* ((pattern (get rule 'pattern))
+	 (transformer (try (get rule 'transformer) #f))
+	 (labels (get rule 'labels))
+	 (matches (gather pattern text)))
+    (cond ((and (fail? labels) transformer) (transformer matches))
+	  ((fail? labels) matches)
+	  ((and (singleton? labels) transformer)
+	   (transformer (get (text->frame pattern matches) labels)))
+	  (transformer
+	   (transformer (reduce-map (text->frame pattern matches) labels)))
+	  ((singleton? labels)
+	   (get (text->frame pattern matches) labels))
+	  (else (reduce-map  (text->frame pattern matches) labels)))))
+
 (defambda (apply-refrules refrules text)
-  (let* ((simple (filter-choices (rule refrules)
-		   (or (not (pair? rule))
-		       (pair? (cdr rule)))))
-	 (complex (difference refrules simple))
-	 (refs (gather simple text)))
-    (do-choices (rule (difference refrules simple))
-      (set+! refs
-	     (if (procedure? (car rule))
-		 ((car rule) (gather (cdr rule) text))
-		 (get (text->frames (cdr rule) text)
-		      (car rule)))))
-    refs))
+  (tryif (exists? refrules)
+	 (let* ((simple (reject refrules slotmap?))
+		(complex (pick refrules slotmap?))
+		(refs (gather simple text)))
+	   (do-choices (rule complex)
+	     (set+! refs (apply-refrule rule text)))
+	   refs)))
 
 (add! default-indexrules *block-text-tags* dom/textanalyze)
 
@@ -126,7 +144,7 @@
 	(hashset-add! xstop-words (capitalize word))))
     `#(,(if xstop-words
 	    `{(hashset-not ,xstop-words (capword)) ,name-prefixes}
-	    name-prefixes)
+	    `{(capword) ,name-prefixes})
        (* #((spaces)
 	    {(capword) ,glue
 	     #((isupper) ".") #((isupper) "." (isupper) ".")}))
@@ -160,8 +178,6 @@
 (config! 'dom:refrules basic-name-pattern)
 (config! 'dom:refrules simple-name-pattern)
 (config! 'dom:refrules compound-name-pattern)
-(config! 'dom:refrules (cons 'name embedded-basic-name))
-(config! 'dom:refrules (cons 'name embedded-simple-name))
-(config! 'dom:refrules (cons 'name embedded-compound-name))
-
-
+(config! 'dom:refrules `#[pattern ,embedded-basic-name labels name])
+(config! 'dom:refrules `#[pattern ,embedded-simple-name labels name])
+(config! 'dom:refrules `#[pattern ,embedded-compound-name labels name])
