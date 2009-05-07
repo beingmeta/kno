@@ -1,6 +1,7 @@
 (in-module 'knowlets)
 
 (use-module '{texttools ezrecords varconfig})
+(use-module 'knowlets/drules)
 
 (module-export!
  '{knowlet
@@ -8,7 +9,9 @@
    kno/add! kno/drop! kno/replace! kno/find
    knowlet-name knowlet-opts knowlet-language
    knowlet-oid knowlet-index knowlet-dterms
+   knowlet-drules
    default-knowlet knowlets
+   knowlet:pool knowlet:index
    langids})
 
 (define-init knowlets (make-hashtable))
@@ -59,18 +62,26 @@
 	 (language (get oid 'language))
 	 (opts (get oid 'opts))
 	 (strict (overlaps? opts 'strict))
-	 (new (cons-knowlet name oid language (choice->hashset opts) strict)))
+	 (new (cons-knowlet name oid language (choice->hashset opts) strict))
+	 (index (knowlet-index new))
+	 (genls*index (knowlet-genls* new))
+	 (drules (knowlet-drules new))
+	 (kdterms (knowlet-dterms new)))
     (store! knowlets (choice oid name) new)
     (let ((dterms (find-frames knowlet:index 'knowlet oid)))
-      (do-choices (dterm terms)
-	(index-frame (knowlet-indices new) dterm
+      (prefetch-oids! dterms)
+      (do-choices (dterm dterms)
+	(index-frame (knowlet-index new) dterm
 	  (difference (getkeys dterm) dont-index))
-	(index-frame (knowlet-indices new) dterm
-	  'genls (get* dterm 'genls))))
+	(add! kdterms (get dterm '{dterms dterm}) dterm)
+	(add! genls*index (get* dterm 'genls) dterm)
+	(do-choices (drule (get dterm 'drules))
+	  (add! drules (drule-cues drule) drule))))
     new))
 
 (define (knowlet name (pool knowlet:pool) (opts #{}))
-  (try (get knowlets name)
+  (try (tryif (knowlet? name) name)
+       (get knowlets name)
        (let ((existing (find-frames knowlet:index 'knoname name)))
 	 (if (exists? existing)
 	     (restore-knowlet existing)
@@ -91,6 +102,7 @@
 	     (knowlet-language knowlet) term
 	     '%id term)))
     (store! (knowlet-dterms knowlet) term f)
+    (index-frame knowlet:index f '{dterm dterms knowlet})
     (index-frame (knowlet-index knowlet) f '{dterm dterms})
     (index-frame (knowlet-index knowlet)
 	f (knowlet-language knowlet))
@@ -127,11 +139,14 @@
 (define infer-ondrop (make-hashtable))
 
 (defambda (kno/add! dterm slotid value)
-  (let ((new (difference value (get dterm slotid)))
-	(knowlet (get knowlets (get dterm 'knowlet))))
+  (let* ((cur (get dterm slotid))
+	 (new (difference value cur))
+	 (knowlet (get knowlets (get dterm 'knowlet))))
     (when (exists? new)
       (add! dterm slotid new)
       (index-frame (knowlet-index knowlet) dterm slotid new)
+      (unless (exists? cur)
+	(index-frame (knowlet-index knowlet) dterm 'has slotid))
       ((get infer-onadd slotid) dterm slotid new))))
 
 (defambda (kno/drop! dterm slotid value)
@@ -223,12 +238,12 @@
 
 (define (add-drule! frame slotid value)
   (add! (knowlet-drules (get knowlets (get frame 'knowlet)))
-	(knowlet-cues value)
+	(drule-cues value)
 	value))
 (define (drop-drule! frame slotid value)
   (drop! (knowlet-drules (get knowlets (get frame 'knowlet)))
-	 (knowlet-cues value)
+	 (drule-cues value)
 	 value))
-(add! infer-onadd 'drules add-drule!)
-(add! infer-ondrop 'drules drop-drule!)
+(store! infer-onadd 'drules add-drule!)
+(store! infer-ondrop 'drules drop-drule!)
 
