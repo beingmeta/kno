@@ -62,13 +62,18 @@
 			  indexslots cacheslots
 			  indexrules useids analyzers)))))))
 
+;;;; Simple text analysis
+
 (define (dom/textanalyze xml settings)
   (let* ((text (dom/textify xml))
 	 (rootfn (try (get settings 'rootfn) default-rootfn))
 	 (refrules (try (get settings 'refrules) default-refrules))
+	 (refstops (get settings 'refstops))
 	 (phrasemap (get settings 'phrasemap))
 	 (allcaps (uppercase? text))
-	 (refs (tryif (not allcaps) (gather refrules text)))
+	 (refs (reject (tryif (not allcaps)
+			      (apply-refrules refrules text))
+		       refstops))
 	 (wordv (words->vector text))
 	 (rootv (and (and rootfn (map rootfn wordv))))
 	 (refwords (elts (words->vector refs)))
@@ -89,4 +94,74 @@
 		     (tryif (search phrase rootv)
 			    (cons 'words (seq->phrase phrase))))))))
 
+(defambda (apply-refrules refrules text)
+  (let* ((simple (filter-choices (rule refrules)
+		   (or (not (pair? rule))
+		       (pair? (cdr rule)))))
+	 (complex (difference refrules simple))
+	 (refs (gather simple text)))
+    (do-choices (rule (difference refrules simple))
+      (set+! refs
+	     (if (procedure? (car rule))
+		 ((car rule) (gather (cdr rule) text))
+		 (get (text->frames (cdr rule) text)
+		      (car rule)))))
+    refs))
+
 (add! default-indexrules *block-text-tags* dom/textanalyze)
+
+;;; Name matchers
+
+(define name-prefixes
+  {"Dr." "Mr." "Mrs." "Ms." "Miss." "Mmme" "Fr." "Rep." "Sen."
+   "Prof." "Gen." "Adm." "Col." "Lt." "Gov." "Maj." "Sgt."})
+
+(define name-glue {"de" "van" "von" "St."})
+(define name-preps {"to" "of" "from"})
+
+(define (make-name-pattern (stop-words #f) (glue #{}))
+  (let ((xstop-words (and stop-words (make-hashset))))
+    (when stop-words
+      (do-choices (word (hashset-elts stop-words))
+	(hashset-add! xstop-words (capitalize word))))
+    `#(,(if xstop-words
+	    `{(hashset-not ,xstop-words (capword)) ,name-prefixes}
+	    name-prefixes)
+       (* #((spaces)
+	    {(capword) ,glue
+	     #((isupper) ".") #((isupper) "." (isupper) ".")}))
+       (spaces) (capword))))
+
+(define basic-name-pattern
+  (make-name-pattern #f (qc)))
+(define simple-name-pattern
+  (make-name-pattern #f (qc name-glue)))
+(define compound-name-pattern
+  (make-name-pattern #f (qc name-preps)))
+
+(define embedded-basic-name
+  `#((islower)  (spaces)
+     (label name ,basic-name-pattern)
+     (spaces*) {(ispunct) (eol) (islower)}))
+(define embedded-simple-name
+  `#((islower)  (spaces)
+     (label name ,simple-name-pattern)
+     (spaces*) {(ispunct) (eol) (islower)}))
+(define embedded-compound-name
+  `#((islower)  (spaces)
+     (label name ,simple-name-pattern)
+     (spaces*) {(ispunct) (eol) (islower)}))
+
+(define solename
+  #((islower)  (spaces)
+    (label solename (capword))
+    (spaces*) {(ispunct) (eol) (islower)}))
+
+(config! 'dom:refrules basic-name-pattern)
+(config! 'dom:refrules simple-name-pattern)
+(config! 'dom:refrules compound-name-pattern)
+(config! 'dom:refrules (cons 'name embedded-basic-name))
+(config! 'dom:refrules (cons 'name embedded-simple-name))
+(config! 'dom:refrules (cons 'name embedded-compound-name))
+
+
