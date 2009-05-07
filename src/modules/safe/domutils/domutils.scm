@@ -10,7 +10,15 @@
    dom/set! dom/add! dom/append!
    dom/selector dom/match dom/lookup dom/find
    dom/search dom/strip!
-   ->selector selector-tag selector-class selector-id})
+   ->selector selector-tag selector-class selector-id
+   *block-text-tags*})
+
+(define *block-text-tags*
+  (string->symbol
+   '{"P"
+     "LI" "DT" "BLOCKQUOTE"
+     "H1" "H2" "H3" "H4" "H5" "H6"
+     "DIV"}))
 
 ;;; Textify
 
@@ -22,14 +30,15 @@
 	      (if (table? node)
 		  (if (test node '%text)
 		      (printout (get node '%text))
-		      (let ((s (stdspace
-				(stringout
-				  (dolist (elt (get node '%content))
-				    (if (string? elt)
-					(printout elt)
-					(dom/textify elt #t cache)))))))
-			(when cache (store! node '%text s))
-			(printout s)))
+		      (when (test node '%content)
+			(let ((s (stdspace
+				  (stringout
+				    (dolist (elt (get node '%content))
+				      (if (string? elt)
+					  (printout elt)
+					  (dom/textify elt #t cache)))))))
+			  (when cache (store! node '%text s))
+			  (printout s))))
 		  (printout node))))
       (stdspace (stringout (dom/textify node #t cache)))))
 
