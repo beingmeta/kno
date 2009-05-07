@@ -1154,7 +1154,8 @@ FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
 
 FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
 {
-  if (FD_CHOICEP(test)) {
+  if (FD_EMPTY_CHOICEP(test)) return 0;
+  else if (FD_CHOICEP(test)) {
     int retval=0;
     FD_DO_CHOICES(t,test) {
       if ((retval=test_predicate(candidate,t,noinfer))) {
