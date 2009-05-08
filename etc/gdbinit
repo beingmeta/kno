@@ -63,7 +63,7 @@ end
 
 set breakpoint pending on
 
-break u8_push_exception
+break u8_new_exception
 break _fd_debug
 break u8_raise
 break abort
