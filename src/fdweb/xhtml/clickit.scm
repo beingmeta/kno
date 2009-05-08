@@ -11,6 +11,22 @@
 (use-module 'xhtml)
 
 
+;;;; Getting the current URL
+
+
+(define (geturl (w/query #f))
+  (stringout (if (= (cgiget 'SERVER_PORT) 443) "https://" "http://")
+	     (cgiget 'SERVER_NAME)
+	     (unless (or (= (cgiget 'SERVER_PORT) 80)
+			 (= (cgiget 'SERVER_PORT) 443))
+	       (printout ":" (cgiget 'SERVER_PORT)))
+	     (if w/query (cgiget 'request_uri)
+		 (subseq (cgiget 'request_uri) 0
+			 (position #\? (cgiget 'request_uri))))))
+
+(module-export! 'geturl)
+
+
 ;;;; Action anchors
 
 (define (commandclick command label title)
@@ -122,14 +138,16 @@
 (module-export! 'vistoggle)
 
 
-;;;; Hot checkboxes
+;;;; Hot checkboxes (deprecated)
 
 (define (hotcheck/radio var val (text #f) (title #f))
   (span ((class "hotcheck") (title (if title title))
 	 (onclick "_fdb_hotcheck_click(event);")
 	 (style (if (cgitest var val) "font-weight: bold;")))
     (span ((class "left")) (or text val))
-    (input TYPE "radio" NAME (symbol->string var) VALUE val
+    (input TYPE "radio"
+	   NAME (if (symbol? var) var (stringout var))
+	   VALUE val
 	   ("CHECKED" (cgitest var val)))
     (span ((class "right")) (or text val))))
 
@@ -138,11 +156,42 @@
 	 (onclick "_fdb_hotcheck_click(event);")
 	 (style (if (cgitest var val) "font-weight: bold;")))
     (span ((class "left")) (or text val))
-    (input TYPE "checkbox" NAME (symbol->string var) VALUE val
+    (input TYPE "checkbox"
+	   NAME (if (symbol? var) var (stringout var))
+	   VALUE val
 	   ("CHECKED" (cgitest var val)))
     (span ((class "right")) (or text val))))
 
 (module-export! '{hotcheck hotcheck/radio})
+
+
+;;;; Checkspans (like hotchecks but with a different name)
+
+(define (checkspan/radio var val (text #f) (title #f) (checked))
+  (default! checked (cgitest var val))
+  (span ((class "checkspan") (title (if title title))
+	 (onclick "_fdb_hotcheck_click(event);")
+	 (ischecked (if checked "yes")))
+    (span ((class "left")) (or text val))
+    (input TYPE "radio"
+	   NAME (if (symbol? var) var (stringout var))
+	   VALUE val
+	   ("CHECKED" checked))
+    (span ((class "right")) (or text val))))
+
+(define (checkspan var val (text #f) (title #f) (checked))
+  (default! checked (cgitest var val))
+  (span ((class "checkspan") (title (if title title))
+	 (onclick "_fdb_hotcheck_click(event);")
+	 (ischecked (if checked "yes")))
+    (span ((class "left")) (or text val))
+    (input TYPE "checkbox"
+	   NAME (if (symbol? var) var (stringout var))
+	   VALUE val
+	   ("CHECKED" checked))
+    (span ((class "right")) (or text val))))
+
+(module-export! '{checkspan checkspan/radio})
 
 
 ;;;; Text input boxes which contain a prompt when blurred and empty

@@ -9,6 +9,8 @@
 (define expiresvar "AUTH/EXPIRES")
 (define loggedin (make-hashtable))
 
+(define trace-auth #f)
+
 (define (prefix-config var (val))
   (cond ((bound? val)
 	 (set! auth-prefix val)
@@ -80,9 +82,11 @@
 	(expires (get info 'expires))
 	(domain (or auth-cookie-domain (cgiget 'HTTP_HOST)))
 	(path auth-cookie-path))
+    (when trace-auth
+      (%watch "SET-COOKIES!" user session expires domain path))
     (when (exists? session)
       (set-cookie! uservar user domain path
-		 (timestamp+ (gmtimestamp 'seconds) user-expiration))
+		   (timestamp+ (gmtimestamp 'seconds) user-expiration))
       (cgiset! uservar user)
       (set-cookie! sessionvar session domain path expires)
       (cgiset! sessionvar user)
@@ -103,7 +107,7 @@
 	   (newsession (getnewsession user)))
       (store! info 'session newsession)
       (store! info 'expires newexpiration)
-      (store! info 'refresh newexpiration)      
+      (store! info 'refresh newrefresh)
       (store! sessions newsession info)
       (store! sessions session #f)
       (set-cookies! info))))
@@ -117,7 +121,9 @@
     (store! info 'session session)
     (store! info 'expires (timestamp+ now auth-expiration))
     (store! info 'refresh (timestamp+ now auth-refresh))
-    ;; (%watch "AUTHORIZE" user session now oldsession info)
+    (when trace-auth
+      (%watch "AUTHORIZE" user session now auth-expiration auth-refresh
+	      oldsession info))
     (set-cookies! info)
     info))
 
