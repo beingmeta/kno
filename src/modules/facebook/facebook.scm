@@ -104,6 +104,7 @@
 	   user))))
 
 (define (fb/useinfo (info (cgiget info-cookie)))
+  ;; (%watch "FB/USEINFO" info)
   (and (exists? info) (string? info)
        (let* ((break1 (position #\; info))
 	      (break2 (and break1 (position #\; info (1+ break1)))))
@@ -111,6 +112,7 @@
 	      (let ((id (string->number (subseq info 0 break1)))
 		    (expires (string->number (subseq info (1+ break1) break2)))
 		    (session (subseq info (1+ break2))))
+		;; (%watch "FB/USEINFO" id expires session)
 		(cgiset! 'fb_sig_user id)
 		(cgiset! 'fb_sig_session_expires expires)
 		(cgiset! 'fb_sig_session_key session)
@@ -122,6 +124,7 @@
 	 (expires (timestamp (cgiget 'fb_sig_session_expires)))
 	 (info (stringout id ";" (get expires 'tick) ";" session))
 	 (domain (or apphost (cgiget 'http_host))))
+    ;; (%watch "SAVE-FBINFO!" id session expires info domain)
     (when cookie (set-cookie! info-cookie info domain "/" expires))
     info))
 
@@ -185,9 +188,6 @@
 
     (cgiset! 'status 303)
     
-    (message (threadget 'cgidata))
-    
-
     (httpheader "Location: "
 		"http://"
 		(cgiget 'HTTP_HOST)
@@ -281,5 +281,7 @@
       (cgidrop! key))))
 
 (module-export! '{fb/authorize fb/logout fb/useinfo fb/sessions->users})
+
+
 
 
