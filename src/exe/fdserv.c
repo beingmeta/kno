@@ -71,8 +71,8 @@ typedef struct FD_WEBCONN *fd_webconn;
 
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
 static fdtype response_symbol, err_symbol, cgidata_symbol, browseinfo_symbol;
-static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
-static fdtype content_slotid, content_type, tracep_slotid, query_symbol;
+static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid, remote_info_symbol;
+static fdtype content_slotid, content_type, tracep_slotid, query_symbol, referer_symbol;
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
 
@@ -520,14 +520,25 @@ static int webservefn(u8_client ucl)
       proc=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);}
   else {
-    fdtype uri;
     setup_time=u8_elapsed_time();
     cgidata=fd_dtsread_dtype(&(client->in)), result;
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {
-      uri=fd_get(cgidata,uri_symbol,FD_VOID);
-      if (FD_STRINGP(uri)) 
+      fdtype referer=fd_get(cgidata,referer_symbol,FD_VOID);
+      fdtype remote=fd_get(cgidata,remote_info_symbol,FD_VOID);
+      fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)) && (FD_STRINGP(remote)))
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s by %s",
+	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote));
+      else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s",
+	       FD_STRDATA(uri),FD_STRDATA(remote));
+      else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s",
+	       FD_STRDATA(uri),FD_STRDATA(referer));
+      else if (FD_STRINGP(uri))
 	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+      fd_decref(referer);
       fd_decref(uri);}
     proc=getcontent(path);
     fd_parse_cgidata(cgidata);
@@ -702,6 +713,8 @@ static void init_symbols()
   response_symbol=fd_intern("%RESPONSE");
   cgidata_symbol=fd_intern("CGIDATA");
   browseinfo_symbol=fd_intern("BROWSEINFO");
+  referer_symbol=fd_intern("HTTP_REFERER");
+  remote_info_symbol=fd_intern("REMOTE_INFO");
 }
 
 /* Utility functions */

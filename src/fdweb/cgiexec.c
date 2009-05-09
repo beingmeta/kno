@@ -31,6 +31,8 @@ static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookies_symbol, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
 static fdtype content_slotid, content_type, cgi_content_type;
+static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
+static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
 static fdtype parts_slotid, name_slotid, filename_slotid;
 
 static int log_cgidata=0;
@@ -384,6 +386,7 @@ static void convert_cookie_arg(fd_slotmap c)
 /* Parsing CGI data */
 
 static fdtype cgi_prepfns=FD_EMPTY_CHOICE;
+static void add_remote_info(fdtype cgidata);
 
 FD_EXPORT int fd_parse_cgidata(fdtype data)
 {
@@ -397,6 +400,7 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
   convert_parse(cgidata,request_method);
   convert_cookie_arg(cgidata);
   get_form_args(cgidata);
+  add_remote_info(data);
   {FD_DO_CHOICES(handler,cgi_prepfns) {
     if (FD_APPLICABLEP(handler)) {
       fdtype value=fd_apply(handler,1,&data);
@@ -404,6 +408,31 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
     else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
   return 1;
 }
+
+static void add_remote_info(fdtype cgidata)
+{
+  /* This combines a bunch of different request properties into a single string */
+  fdtype remote_user=fd_get(cgidata,remote_user_symbol,FD_VOID);
+  fdtype remote_ident=fd_get(cgidata,remote_ident_symbol,FD_VOID);
+  fdtype remote_host=fd_get(cgidata,remote_host_symbol,FD_VOID);
+  fdtype remote_addr=fd_get(cgidata,remote_addr_symbol,FD_VOID);
+  fdtype remote_agent=fd_get(cgidata,remote_agent_symbol,FD_VOID);
+  fdtype remote_info_string=FD_VOID;
+  struct U8_OUTPUT remote_info;
+  U8_INIT_OUTPUT(&remote_info,128);
+  u8_printf(&remote_info,"%s%s%s@%s%s%s<%s",
+	    ((FD_STRINGP(remote_ident)) ? (FD_STRDATA(remote_ident)) : ((u8_string)"")),
+	    ((FD_STRINGP(remote_ident)) ? ((u8_string)"|") : ((u8_string)"")),
+	    ((FD_STRINGP(remote_user)) ? (FD_STRDATA(remote_user)) : ((u8_string)"nobody")),
+	    ((FD_STRINGP(remote_host)) ? (FD_STRDATA(remote_host)) : ((u8_string)"")),
+	    ((FD_STRINGP(remote_host)) ? ((u8_string)"/") : ((u8_string)"")),
+	    ((FD_STRINGP(remote_addr)) ? (FD_STRDATA(remote_addr)) : ((u8_string)"noaddr")),
+	    ((FD_STRINGP(remote_agent)) ? (FD_STRDATA(remote_agent)) : ((u8_string)"noagent")));
+  remote_info_string=fd_init_string(NULL,remote_info.u8_outptr-remote_info.u8_outbuf,remote_info.u8_outbuf);
+  fd_store(cgidata,remote_info_symbol,remote_info_string);
+  fd_decref(remote_info_string);
+}
+
 
 /* Generating headers */
 
@@ -978,6 +1007,13 @@ FD_EXPORT void fd_init_cgiexec_c()
   name_slotid=fd_intern("NAME");
   text_symbol=fd_intern("TEXT");
   parts_slotid=fd_intern("PARTS");
+
+  remote_user_symbol=fd_intern("REMOTE_USER");
+  remote_host_symbol=fd_intern("REMOTE_HOST");
+  remote_addr_symbol=fd_intern("REMOTE_ADDR");
+  remote_ident_symbol=fd_intern("REMOTE_IDENT");
+  remote_agent_symbol=fd_intern("HTTP_USER_AGENT");
+  remote_info_symbol=fd_intern("REMOTE_INFO");
 
   fd_register_config
     ("CGIPREP",
