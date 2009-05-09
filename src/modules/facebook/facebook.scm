@@ -104,7 +104,7 @@
 	   user))))
 
 (define (fb/useinfo (info (cgiget info-cookie)))
-  ;; (%watch "FB/USEINFO" info)
+  ;; (%watch "FB/USEINFO" info info-cookie)
   (and (exists? info) (string? info)
        (let* ((break1 (position #\; info))
 	      (break2 (and break1 (position #\; info (1+ break1)))))
@@ -211,15 +211,16 @@
 		      (fb_sig_user #f)
 		      (pptimestamp #f)
 		      (path_info #f)
-		      (auth_token #f)
-		      (popup #f))
+		      (auth_token #f))
   ;; Reset the cookies (fb/logout) to avoid ambiguous values
   (when fb_sig_session_key (fb/logout))
   (cgiset! 'status 303)
 
+  ;; (%watch "DOAUTHORIZE" (cgiget 'REQUEST_URI))
+
   (httpheader
    "Location: https://www.facebook.com/login.php?"
-   (if popup "popup=yes&" "")
+   (if (cgitest '{popup dialog iframe}) "popup=yes&" "")
    "v=1.0&" "api_key=" (config 'fb:key) "&"
    "next=" (uriencode (cgiget 'REQUEST_URI "")))
   (emit-authorize-body)
@@ -274,14 +275,22 @@
 
 (define (fb/logout)
   (unless (fb/incanvas?)
-    (do-choices (key facebook-cookies)
-      (set-cookie! key "expired"
-		   (or apphost (cgiget 'http_host)) "/"
-		   (timeplus (- oneday)))
-      (cgidrop! key))))
+    (set-cookie! info-cookie "expired"
+		 (or apphost (cgiget 'http_host)) "/"
+		 (timeplus (- oneday)))
+    (cgidrop! info-cookie)))
 
-(module-export! '{fb/authorize fb/logout fb/useinfo fb/sessions->users})
+(define (fb/logouturl (next #f))
+  (if next
+      (scripturl "https://www.facebook.com/logout.php"
+	"app_key" (config 'fb:key)
+	"session_key" (cgiget 'fb_sig_session_key)
+	"next" next)
+      (scripturl "https://www.facebook.com/logout.php"
+	"app_key" (config 'fb:key)
+	"session_key" (cgiget 'fb_sig_session_key))))
 
-
-
+(module-export! '{fb/authorize
+		  fb/logout fb/useinfo fb/sessions->users
+		  fb/logout fb/logouturl})
 
