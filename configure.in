@@ -387,7 +387,9 @@ AC_CHECK_HEADERS(sqlite3.h sql.h mysql/mysql.h)
 AC_CHECK_HEADER(mysql/mysql.h,have_mysql_h="yes",have_mysql_h="no")
 
 if test $have_mysql_h = "yes"; then
-  AC_CHECK_LIB(mysqlclient,my_init)
+  dnl Use a different directory for libu8
+  AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql="mysqlclient_r")
+  AC_CHECK_LIB($with_mysql,my_init)
   CMODULES="lib/framerd/mysql.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
