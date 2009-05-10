@@ -388,12 +388,21 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   double start; int oneout=0;
   fdtype scan=FD_CDR(expr);
   u8_string label="%WATCH";
-  if (FD_PAIRP(toeval)) {
+  int no_caboose=0;
+  if ((FD_PAIRP(toeval))) {
     scan=FD_CDR(scan);
     if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan)))) {
       label=FD_STRDATA(FD_CAR(scan)); scan=FD_CDR(scan);}}
   else if (FD_STRINGP(toeval)) {
     label=FD_STRDATA(toeval); scan=FD_CDR(scan);}
+  else if (FD_SYMBOLP(toeval))
+    /* If the first argument is a symbol, we don't need
+       to be careful about the order of argument evaluation,
+       so we change the label and scan over all the args.
+       Note that this could be a problem if the arguments
+       contain side effects, but that's not a good idea
+       anyway. */
+    label="%TRACE";
   else scan=FD_CDR(scan);
   if (FD_PAIRP(scan)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
@@ -409,7 +418,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	if (oneout) u8_printf(&out,"; %q=%q",towatch,value);
 	else u8_printf(&out,"%q=%q",towatch,value);
 	fd_decref(value); scan=FD_CDR(scan); oneout=1;}}
-    if (!(FD_SYMBOLP(toeval))) u8_printf(&out,": %q",toeval);
+    if (FD_PAIRP(toeval)) u8_printf(&out,": %q",toeval);
     u8_logger(-1,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start=u8_elapsed_time();
