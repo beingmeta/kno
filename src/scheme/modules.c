@@ -15,7 +15,7 @@
 static MAYBE_UNUSED char versionid[] =
   "$Id$";
 
-static fdtype loadstamp_symbol;
+static fdtype loadstamp_symbol, moduleid_symbol;
 
 fd_exception fd_NotAModule=_("Argument is not a module (table)");
 fd_exception fd_NoSuchModule=_("Can't find named module");
@@ -32,16 +32,68 @@ static u8_mutex module_wait_lock;
 static u8_condvar module_wait;
 #endif
 
+/* Design for avoiding the module loading race condition */
+
+/* Have a list of modules being sought; a function fd_need_module
+    locks a mutex and does a fd_get_module.  If it gets non-void,
+    it unlikes its mutext and returns it.  Otherwise, if the module is
+    on the list, it waits on the condvar and tries again (get and
+    then list) it wakes up.  If the module isn't on the list,
+    it puts it on the list, unlocks its mutex and returns
+    FD_VOID, indicating that its caller can try to load it.
+    Finishing a module pops it off of the seeking list.
+    If loading the module fails, it's also popped off of
+    the seeking list.
+  And while we're at it, it looks like finish_module should
+   wake up the loadstamp condvar!
+*/
+
+/* Getting the loadlock for a module */
+
+static fdtype loading_modules=FD_EMPTY_CHOICE;
+
+static fdtype getloadlock(fdtype spec,int safe)
+{
+  fdtype module;
+  u8_lock_mutex(&module_wait_lock);
+  module=fd_get_module(spec,safe);
+  if (!(FD_VOIDP(module))) {
+    u8_unlock_mutex(&module_wait_lock);
+    return module;}
+  if (fd_choice_containsp(spec,loading_modules)) {
+    while (FD_VOIDP(module)) {
+      u8_condvar_wait(&module_wait,&module_wait_lock);
+      module=fd_get_module(spec,safe);}
+    loading_modules=fd_difference(loading_modules,spec);
+    return module;}
+  else {
+    FD_ADD_TO_CHOICE(loading_modules,spec);
+    u8_unlock_mutex(&module_wait_lock);
+    return FD_VOID;}
+}
+
+static void clearloadlock(fdtype spec)
+{
+  u8_lock_mutex(&module_wait_lock);
+  if (fd_choice_containsp(spec,loading_modules))
+    loading_modules=fd_difference(loading_modules,spec);
+  else u8_log(LOG_WARN,"Unsychronized Loading",
+	      "The load lock for %q wasnt't locked",spec);
+  u8_condvar_broadcast(&module_wait);
+  u8_unlock_mutex(&module_wait_lock);
+}
+
 /* Getting modules */
 
 FD_EXPORT
 fdtype fd_find_module(fdtype spec,int safe,int err)
 {
   fdtype module=fd_get_module(spec,safe);
+  if (FD_VOIDP(module)) module=getloadlock(spec,safe);
   if (!(FD_VOIDP(module))) {
     fdtype loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);
     while (FD_VOIDP(loadstamp)) {
-      fd_condvar_wait(&module_wait,&module_wait_lock);
+      u8_condvar_wait(&module_wait,&module_wait_lock);
       loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);}
     if (FD_ABORTP(loadstamp)) return loadstamp;
     else return module;}
@@ -70,10 +122,21 @@ int fd_finish_module(fdtype module)
 {
   if (FD_TABLEP(module)) {
     struct U8_XTIME xtptr; fdtype timestamp;
+    fdtype cur_timestamp=fd_get(module,loadstamp_symbol,FD_VOID);
+    fdtype moduleid=fd_get(module,moduleid_symbol,FD_VOID);
     u8_init_xtime(&xtptr,-1,u8_second,0,0,0);
     timestamp=fd_make_timestamp(&xtptr);
     fd_store(module,loadstamp_symbol,timestamp);
     fd_decref(timestamp);
+    if (FD_VOIDP(moduleid))
+      u8_log(LOG_WARN,_("Anonymous module"),
+	     "The module %q doesn't have an id",module);
+    else if (cur_timestamp) {
+      /* In this case, the module was already finished,
+	 so the loadlock would have been cleared. */
+    }
+    else clearloadlock(moduleid);
+    fd_decref(cur_timestamp);
     return 1;}
   else {
     fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
@@ -92,7 +155,7 @@ int fd_persist_module(fdtype module)
     return conversions;}
   else if (FD_TABLEP(module)) return 0;
   else {
-    fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
+    fd_seterr(fd_NotAModule,"fd_persist_module",NULL,module);
     return -1;}
 }
 
@@ -100,11 +163,11 @@ FD_EXPORT
 void fd_add_module_loader(int (*loader)(fdtype,int))
 {
   struct MODULE_LOADER *consed=u8_alloc(struct MODULE_LOADER);
-  fd_lock_mutex(&module_loaders_lock);
+  u8_lock_mutex(&module_loaders_lock);
   consed->loader=loader;
   consed->next=module_loaders;
   module_loaders=consed;
-  fd_unlock_mutex(&module_loaders_lock);
+  u8_unlock_mutex(&module_loaders_lock);
 }
 
 /* Loading dynamic libraries */
@@ -443,7 +506,8 @@ FD_EXPORT void fd_init_modules_c()
 #endif
 
   fd_add_module_loader(load_dynamic_module);
-  fd_register_config("DLLOADPATH","Add directories for dynamic compiled modules",
+  fd_register_config("DLLOADPATH",
+		     "Add directories for dynamic compiled modules",
 		     fd_lconfig_get,fd_lconfig_push,&dloadpath);
 
   {
@@ -454,7 +518,7 @@ FD_EXPORT void fd_init_modules_c()
     fd_decref(v);}
 
   loadstamp_symbol=fd_intern("%LOADSTAMP");
-  /* loadfile_symbol=fd_intern("%LOADFILE"); */
+  moduleid_symbol=fd_intern("%MODULEID");
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,
