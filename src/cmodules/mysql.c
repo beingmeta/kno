@@ -777,18 +777,24 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       struct FD_TIMESTAMP *tm=
 	FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
       MYSQL_TIME *mt=u8_alloc(MYSQL_TIME);
+      struct U8_XTIME *xt=&(tm->xtime), gmxtime; time_t tick;
       if (n_mstimes<4) mstimes[n_mstimes++]=mt;
+      if ((xt->u8_tzoff)||(xt->u8_dstoff)) {
+	/* If it's not UTC, we need to convert it. */
+	tick=xt->u8_tick;
+	u8_init_xtime(&gmxtime,tick,xt->u8_prec,xt->u8_nsecs,0,0);
+	xt=&gmxtime;}
       inbound[i].buffer=mt;
       inbound[i].buffer_type=
-	((tm->xtime.u8_prec>u8_day) ?
+	((xt->u8_prec>u8_day) ?
 	 (MYSQL_TYPE_DATETIME) :
 	 (MYSQL_TYPE_DATE));
-      mt->year=tm->xtime.u8_year;
-      mt->month=tm->xtime.u8_mon+1;
-      mt->day=tm->xtime.u8_mday;
-      mt->hour=tm->xtime.u8_hour;
-      mt->minute=tm->xtime.u8_min;
-      mt->second=tm->xtime.u8_sec;}
+      mt->year=xt->u8_year;
+      mt->month=xt->u8_mon+1;
+      mt->day=xt->u8_mday;
+      mt->hour=xt->u8_hour;
+      mt->minute=xt->u8_min;
+      mt->second=xt->u8_sec;}
     else if ((FD_TRUEP(arg)) || (FD_FALSEP(arg))) {
       inbound[i].is_unsigned=0;
       inbound[i].buffer_type=MYSQL_TYPE_LONG;
