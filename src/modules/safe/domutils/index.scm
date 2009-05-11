@@ -48,9 +48,17 @@
 	    (add! (get settings 'idmap) (get xml 'id) xml))
 	  (when (exists? indexval)
 	    (do-choices (slotid (difference
-				 (choice indexslots (pick eltinfo symbol?))
+				 (choice indexslots
+					 (pick eltinfo symbol?)
+					 (pick eltinfo pair?))
 				 (tryif useids 'id)))
-	      (add! index (cons slotid (get xml slotid)) indexval))
+	      (if (pair? slotid)
+		  (add! index
+			(cons slotid ((cdr slotid) (get xml (car slotid))))
+			indexval)
+		  (add! index
+			(cons slotid (get xml slotid))
+			indexval)))
 	    (do-choices (analyzer (choice analyzers (pick eltinfo procedure?)))
 	      (do-choices (slot.val (analyzer xml settings))
 		(when (overlaps? (car slot.val) cacheslots)
