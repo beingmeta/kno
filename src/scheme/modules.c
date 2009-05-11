@@ -65,6 +65,7 @@ static fdtype getloadlock(fdtype spec,int safe)
       u8_condvar_wait(&module_wait,&module_wait_lock);
       module=fd_get_module(spec,safe);}
     loading_modules=fd_difference(loading_modules,spec);
+    u8_unlock_mutex(&module_wait_lock);
     return module;}
   else {
     FD_ADD_TO_CHOICE(loading_modules,spec);
@@ -110,6 +111,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 	return module;}
       else if (retval<0) {
 	fd_discard_module(spec,safe);
+	clearloadlock(spec);
 	return FD_ERROR_VALUE;}
       else scan=scan->next;}
     if (err)
