@@ -202,7 +202,8 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
     else if ((FD_EMPTY_CHOICEP(content)) ||
 	     (FD_VOIDP(content)) ||
 	     (FD_EMPTY_LISTP(content))) {
-      u8_printf(out,"<%s/>",FD_STRDATA(markup));
+      if (FD_STRINGP(markup))
+	u8_printf(out,"<%s/>",FD_STRDATA(markup));
       fd_decref(markup);
       return FD_VOID;}
     if (FD_STRINGP(markup))
