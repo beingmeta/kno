@@ -9,7 +9,7 @@
    dom/textify
    dom/set! dom/add! dom/append!
    dom/selector dom/match dom/lookup dom/find
-   dom/search dom/strip!
+   dom/search dom/strip! dom/map
    ->selector selector-tag selector-class selector-id
    *block-text-tags*})
 
@@ -273,4 +273,38 @@
 	  (strip-helper (cdr list) sel)
 	  (cons (car list) (strip-helper (cdr list) sel)))
       list))
+
+;;; Walking the DOM
+
+(define (map0 node fn)
+  (if (pair? node)
+      (dolist (elt node) (map0 elt fn))
+      (begin (fn node)
+	     (dolist (elt (get node '%contents))
+	       (map0 elt fn)))))
+
+(define (map1 node fn arg)
+  (if (pair? node)
+      (dolist (elt node) (map1 elt fn (qc arg)))
+      (begin (fn node)
+	     (dolist (elt (get node '%contents))
+	       (map1 elt fn (qc arg))))))
+
+(define (mapn node fn args)
+  (if (pair? node)
+      (dolist (elt node) (mapn elt fn args))
+      (begin (apply fn node args)
+	     (dolist (elt (get node '%contents))
+	       (mapn elt fn args)))))
+
+(defambda (dom/map node fn (arg) . args)
+  (do-choices node
+    (do-choices fn
+      (if (bound? arg)
+	  (if (null? args) (map1 node fn arg)
+	      (mapn node fn (cons (qc arg) args)))
+	  (map0 node fn)))))
+
+
+
 
