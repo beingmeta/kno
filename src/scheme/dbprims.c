@@ -1139,6 +1139,12 @@ FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
 	fdtype value=fd_apply(pred,1,&f);
 	if (fd_overlapp(value,val)) {
 	  fd_decref(value); return 1;}
+	else if ((FD_HASHTABLEP(val)) &&
+		 (fd_hashtable_probe ((fd_hashtable)val,value))) {
+	  fd_decref(value); return 1;}
+	else if ((FD_HASHSETP(val)) &&
+		 (fd_hashset_get ((fd_hashset)val,value))) {
+	  fd_decref(value); return 1;}
 	else {fd_decref(value); return 0;}}}
     rail[0]=f; rail[1]=val;
     result=fd_apply(pred,2,rail);
