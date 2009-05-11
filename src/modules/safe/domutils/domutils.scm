@@ -19,6 +19,8 @@
      "LI" "DT" "BLOCKQUOTE"
      "H1" "H2" "H3" "H4" "H5" "H6"
      "DIV"}))
+(define *line-break-tags*
+  (choice *block-text-tags* (string->symbol '{"PRE" "BR" "HR"})))
 
 ;;; Textify
 
@@ -28,17 +30,19 @@
 	  (if (pair? node)
 	      (dolist (elt node) (dom/textify elt #t cache))
 	      (if (table? node)
-		  (if (test node '%text)
-		      (printout (get node '%text))
-		      (when (test node '%content)
-			(let ((s (stdspace
-				  (stringout
-				    (dolist (elt (get node '%content))
-				      (if (string? elt)
-					  (printout elt)
-					  (dom/textify elt #t cache)))))))
-			  (when cache (store! node '%text s))
-			  (printout s))))
+		  (printout
+		    (if (overlaps? (get node '%name) *line-break-tags*) "\n")
+		    (if (test node '%text)
+			(get node '%text)
+			(when (test node '%content)
+			  (let ((s (stdspace
+				    (stringout
+				      (dolist (elt (get node '%content))
+					(if (string? elt)
+					    (printout elt)
+					    (dom/textify elt #t cache)))))))
+			    (when cache (store! node '%text s))
+			    (printout s)))))
 		  (printout node))))
       (stdspace (stringout (dom/textify node #t cache)))))
 

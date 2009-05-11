@@ -36,6 +36,7 @@
 (put 'do-seq-mt 'scheme-indent-function 1)
 (put 'do-subsets 'scheme-indent-function 1)
 (put 'for-choices 'scheme-indent-function 1)
+(put 'forseq 'scheme-indent-function 1)
 (put 'filter-choices 'scheme-indent-function 1)
 (put 'try-choices 'scheme-indent-function 1)
 (put 'tryseq 'scheme-indent-function 1)
