@@ -145,20 +145,21 @@ FD_EXPORT fdtype fd_load_source
     if (expr==FD_EOF) {
       fd_decref(last_expr); last_expr=FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
-      fd_decref(result);
+      fd_incref(last_expr); fd_incref(expr); fd_decref(result);
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
 		last_expr);
-      result=fd_incref(expr);}
+      result=expr;}
     else if (FD_ABORTP(expr)) {
-      result=expr; expr=FD_VOID;}
-    fd_decref(last_expr);
+      result=expr; fd_incref(expr); expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_INFO,FileDone,"Loaded %s in %f seconds",
 	     sourcebase,u8_elapsed_time()-start);
     restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);
     u8_free(content);
-    fd_decref(expr);
+    if (last_expr==expr) fd_decref(last_expr);
+    else {
+      fd_decref(expr); fd_decref(last_expr);}
     return result;}
 }
 
