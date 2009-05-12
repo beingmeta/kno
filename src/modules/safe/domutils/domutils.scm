@@ -204,17 +204,22 @@
 	  (dom/lookup table (->selector sel) dflt)
 	  (dom/lookup table (->selector sel)))))
 
-(define (dom/match elt sel)
-  (and (not (string? elt))
-       (if (selector? sel)
-	   (and (or (not (selector-tag sel))
-		    (test elt '%name (selector-tag sel))
-		    (test elt '%%name (selector-tag sel)))
-		(or (not (selector-class sel))
-		    (test elt 'class (selector-class sel)))
-		(or (not (selector-id sel))
-		    (test elt 'id (selector-id sel))))
-	   (dom/match elt (->selector sel)))))
+(defambda (dom/match elt sel)
+  (for-choices elt
+    (if (string? elt) #f
+	(if (exists? (reject sel selector?))
+	    (dom/match elt (->selector sel))
+	    (try
+	     (try-choices sel
+	       (or (and (or (not (selector-tag sel))
+			    (test elt '%name (selector-tag sel))
+			    (test elt '%%name (selector-tag sel)))
+			(or (not (selector-class sel))
+			    (test elt 'class (selector-class sel)))
+			(or (not (selector-id sel))
+			    (test elt 'id (selector-id sel))))
+		   {}))
+	     #f)))))
 
 ;;; Searching
 
@@ -257,26 +262,28 @@
 (defambda (dom/strip! under sel)
   "Removes all nodes matching SEL under UNDER"
   (if (fail? (reject sel selector?))
-      (cond ((string? under) under)
-	    ((pair? under)
-	     (let ((stripped (strip-helper under sel)))
-	       (dolist (elt stripped)
-		 (unless (or (string? elt) (pair? elt))
-		   (dom/strip! elt sel)))))
-	    ((table? under)
-	     (let ((stripped (strip-helper (get under '%content) sel)))
-	       (store! under '%content stripped)
-	       (dolist (elt stripped)
-		 (unless (or (string? elt) (pair? elt))
-		   (dom/strip! elt sel))))))
-      (dom/strip! (->selector sel) under)))
+      (strip-under under sel)
+      (dom/strip! under (->selector sel))))
 
-(defambda (strip-helper list sel)
-  (if (pair? list)
-      (if (dom/match (car list) sel)
-	  (strip-helper (cdr list) sel)
-	  (cons (car list) (strip-helper (cdr list) sel)))
-      list))
+(defambda (strip-under under sel)
+  "Removes all nodes matching SEL under UNDER"
+  (cond ((string? under) under)
+	((pair? under) (strip-helper under sel))
+	((and (table? under) (exists? (get under '%content)))
+	 (let ((stripped (strip-helper (get under '%content) sel)))
+	   (store! under '%content stripped)
+	   under))
+	(else under)))
+
+(defambda (strip-helper content sel)
+  (if (pair? content)
+      (if (or (string? (car content)) (not (slotmap? (car content))))
+	  (cons (car content) (strip-helper (cdr content) sel))
+	  (if (dom/match (car content) sel)
+	      (strip-helper (cdr content) sel)
+	      (cons (strip-under (car content) sel)
+		    (strip-helper (cdr content) sel))))
+      content))
 
 ;;; Walking the DOM
 
