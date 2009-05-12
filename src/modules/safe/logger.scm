@@ -5,14 +5,14 @@
       getloglevel %loglevel
       logdebug loginfo lognotice logwarn %debug})
 (module-export!
- '{%emergency!
-   %alert!
-   %critical! %danger!
-   %error! %err!
-   %warning! %warn!
-   %notice! %notify!
-   %info!
-   %debug!})
+ '{%emergency! %emergency%
+   %alert! %alert%
+   %critical! %danger! %critical% %danger%
+   %error! %err! %error% %err%
+   %warning! %warn! %warning% %warn%
+   %notice! %notify! %note! %notice% %notify% %note%
+   %informration! %info! %informration% %info%
+   %debug! %detail! %debug% %detail%})
 
 (define %nosubst '%loglevel)
 
@@ -28,6 +28,19 @@
 (define %notify! 5)
 (define %info! 6)
 (define %debug! 7)
+
+(define %emergency% 0)
+(define %alert% 1)
+(define %critical% 2)
+(define %danger% 2)
+(define %error% 3)
+(define %err% 3)
+(define %warning% 4)
+(define %warn% 4)
+(define %notice% 5)
+(define %notify% 5)
+(define %info% 6)
+(define %debug% 7)
 
 (define %loglevel 4)
 
