@@ -76,11 +76,9 @@ static fdtype getloadlock(fdtype spec,int safe)
 static void clearloadlock(fdtype spec)
 {
   u8_lock_mutex(&module_wait_lock);
-  if (fd_choice_containsp(spec,loading_modules))
+  if (fd_choice_containsp(spec,loading_modules)) {
     loading_modules=fd_difference(loading_modules,spec);
-  else u8_log(LOG_WARN,"Unsychronized Loading",
-	      "The load lock for %q wasnt't locked",spec);
-  u8_condvar_broadcast(&module_wait);
+    u8_condvar_broadcast(&module_wait);}
   u8_unlock_mutex(&module_wait_lock);
 }
 
@@ -96,6 +94,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
     while (FD_VOIDP(loadstamp)) {
       u8_condvar_wait(&module_wait,&module_wait_lock);
       loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);}
+    clearloadlock(spec);
     if (FD_ABORTP(loadstamp)) return loadstamp;
     else return module;}
   else {
@@ -114,6 +113,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 	clearloadlock(spec);
 	return FD_ERROR_VALUE;}
       else scan=scan->next;}
+    clearloadlock(spec);
     if (err)
       return fd_err(fd_NoSuchModule,"fd_find_module",NULL,spec);
     else return FD_FALSE;}
@@ -133,10 +133,9 @@ int fd_finish_module(fdtype module)
     if (FD_VOIDP(moduleid))
       u8_log(LOG_WARN,_("Anonymous module"),
 	     "The module %q doesn't have an id",module);
-    else if (cur_timestamp) {
-      /* In this case, the module was already finished,
-	 so the loadlock would have been cleared. */
-    }
+    /* In this case, the module was already finished,
+       so the loadlock would have been cleared. */
+    else if (cur_timestamp) {}
     else clearloadlock(moduleid);
     fd_decref(cur_timestamp);
     return 1;}
