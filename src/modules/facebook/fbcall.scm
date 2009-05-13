@@ -160,9 +160,34 @@
 (define (fb/getmygroups) (fbcall/vec "groups.get"))
 
 (define page-fields
-  "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large")
+  "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large,website")
 (define (fb/getmypages)
   (fbcall/vec "pages.getInfo" "fields" page-fields))
+
+;;; Getting info for particular groups or pages
+
+(define all-page-fields
+  "page_id,name,pic_small,pic_square,pic_big,pic,pic_large,type,website,location,hours,band_members,bio,hometown,genre,record_label,influences,founded,company_overview,mission,products,release_date,starring,written_by,directed_by,produced_by,studio,awards,plot_outline,network,season,schedule")
+
+(define (fb/getpageinfo pageid (fields #f))
+  (elts
+   (fbcall/vec "pages.getInfo"
+	       "page_ids" pageid
+	       "fields"
+	       (cond ((not fields) page-fields)
+		     ((string? fields) fields)
+		     ((ambiguous? fields)
+		      (stringout (do-choices (field fields i)
+				   (printout (if (> i 0) ",") field))))
+		     ((sequence? fields)
+		      (stringout (doseq (field fields i)
+				   (printout (if (> i 0) ",") field))))
+		     (else all-page-fields)))))
+
+(define (fb/getgroupinfo gid)
+  (elts (fbcall/vec "groups.get" "gids" gid)))
+
+(module-export! '{fb/getgroupinfo fb/getpageinfo})
 
 ;; We redefine this while pages.getInfo is broken at Facebook
 
