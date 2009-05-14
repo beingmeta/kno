@@ -390,6 +390,13 @@ static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
   else return fd_type_error(_("index"),"add_to_compound_index",lcx);
 }
 
+static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,fdtype load)
+{
+  fd_pool p=fd_make_mempool
+    (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),FD_FIX2INT(load));
+  return fd_pool2lisp(p);
+}
+
 /* Adding adjuncts */
 
 static fdtype adjunct_symbol;
@@ -2051,6 +2058,12 @@ FD_EXPORT void fd_init_dbfns_c()
 			   fd_oid_type,FD_VOID));
 #endif
 
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim4x("MAKE-MEMPOOL",make_mempool,2,
+			   fd_string_type,FD_VOID,
+			   fd_oid_type,FD_VOID,
+			   fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
+			   fd_fixnum_type,(FD_INT2DTYPE(0))));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("??",fd_bgfinder,2)));

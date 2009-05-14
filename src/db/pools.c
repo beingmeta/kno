@@ -35,6 +35,7 @@ fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
 fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
 fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
 fd_exception fd_PoolCommitError=_("can't save changes to pool");
+fd_exception fd_UnregisteredPool=_("internal error with unregistered pool");
 
 int fd_n_pools=0;
 
@@ -828,7 +829,9 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
 
 FD_EXPORT fdtype fd_pool2lisp(fd_pool p)
 {
-  return FDTYPE_IMMEDIATE(fd_pool_type,p->serialno);
+  if (p->serialno<0)
+    return fd_err(fd_UnregisteredPool,"fd_pool2lisp",p->cid,FD_VOID);
+  else return FDTYPE_IMMEDIATE(fd_pool_type,p->serialno);
 }
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 {
@@ -1317,6 +1320,106 @@ static fdtype raw_pool_keys(fdtype arg)
     i++;}
   return results;
 }
+
+/* Mem pools */
+
+static struct FD_POOL_HANDLER mempool_handler;
+
+FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
+				  unsigned int cap,unsigned int load)
+{
+  struct FD_MEMPOOL *mp=u8_alloc(struct FD_MEMPOOL);
+  fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
+  mp->load=load; u8_init_mutex(&(mp->lock)); mp->read_only=0;
+  fd_register_pool((fd_pool)mp);
+  return (fd_pool)mp;
+}
+
+static fdtype mempool_alloc(fd_pool p,int n)
+{
+  struct FD_MEMPOOL *mp=(fd_mempool)p;
+  if ((mp->load+n)>=mp->capacity)
+    return fd_err(fd_ExhaustedPool,"file_pool_alloc",mp->cid,FD_VOID);
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    int i=0; 
+    FD_OID base=FD_OID_PLUS(mp->base,n);
+    u8_lock_mutex(&(mp->lock));
+    while (i<n) {
+      FD_OID each=FD_OID_PLUS(base,i);
+      FD_ADD_TO_CHOICE(results,fd_make_oid(each));
+      i++;}
+    mp->load=mp->load+n; mp->n_locks=mp->n_locks+n;
+    u8_unlock_mutex(&(mp->lock));
+    return fd_simplify_choice(results);}
+}
+
+static fdtype mempool_fetch(fd_pool p,fdtype oid)
+{
+  struct FD_MEMPOOL *mp=(fd_mempool)p;
+  FD_OID addr=FD_OID_ADDR(oid);
+  int off=FD_OID_DIFFERENCE(addr,mp->base);
+  if (off>mp->load)
+    return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->cid,oid);
+  else return FD_EMPTY_CHOICE;
+}
+
+static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
+{
+  struct FD_MEMPOOL *mp=(fd_mempool)p; fdtype *results;
+  int i=0; while (i<n) {
+    FD_OID addr=FD_OID_ADDR(oids[i]);
+    int off=FD_OID_DIFFERENCE(addr,mp->base);
+    if (off>mp->load) {
+      fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->cid),fd_make_oid(addr));
+      return NULL;}
+    else i++;}
+  results=u8_alloc_n(n,fdtype);
+  i=0; while (i<n) results[i++]=FD_EMPTY_CHOICE;
+  return results;
+}
+
+static int mempool_load(fd_pool p)
+{
+  struct FD_MEMPOOL *mp=(fd_mempool)p;
+  return mp->load;
+}
+
+static int mempool_lock(fd_pool p,fdtype oids)
+{
+  struct FD_MEMPOOL *mp=(fd_mempool)p;
+  u8_lock_mutex(&(mp->lock));
+  mp->n_locks=mp->n_locks+FD_CHOICE_SIZE(oids);
+  return 1;
+}
+
+static int mempool_unlock(fd_pool p,fdtype oids)
+{
+  struct FD_MEMPOOL *mp=(fd_mempool)p;
+  u8_lock_mutex(&(mp->lock));
+  mp->n_locks=mp->n_locks-FD_CHOICE_SIZE(oids);
+  return 1;
+}
+
+static int mempool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+{
+  return 1;
+}
+
+static struct FD_POOL_HANDLER mempool_handler={
+  "mempool", 1, sizeof(struct FD_MEMPOOL), 12,
+  NULL, /* close */
+  NULL, /* setcache */
+  NULL, /* setbuf */
+  mempool_alloc, /* alloc */
+  mempool_fetch, /* fetch */
+  mempool_fetchn, /* fetchn */
+  mempool_load, /* getload */
+  mempool_lock, /* lock */
+  mempool_unlock, /* release */
+  mempool_storen, /* storen */
+  NULL, /* metadata */
+  NULL}; /* sync */
 
 /* Initialize */
 

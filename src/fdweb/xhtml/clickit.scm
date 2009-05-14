@@ -167,10 +167,12 @@
 
 ;;;; Checkspans (like hotchecks but with a different name)
 
-(define (checkspan/radio var val (text #f) (title #f) (checked))
+(define (checkspan/radio var val (text #f) (title #f) (checked) (handler #f))
   (default! checked (cgitest var val))
   (span ((class "checkspan") (title (if title title))
-	 (onclick "_fdb_hotcheck_click(event);")
+	 (onclick (if handler
+		      (if (string? handler) handler
+			  "fdjtCheckSpan_onclick(event);")))
 	 (ischecked (if checked "yes")))
     (span ((class "left")) (or text val))
     (input TYPE "radio"
@@ -179,10 +181,12 @@
 	   ("CHECKED" checked))
     (span ((class "right")) (or text val))))
 
-(define (checkspan var val (text #f) (title #f) (checked))
+(define (checkspan var val (text #f) (title #f) (checked) (handler #f))
   (default! checked (cgitest var val))
   (span ((class "checkspan") (title (if title title))
-	 (onclick "_fdb_hotcheck_click(event);")
+	 (onclick (if handler
+		      (if (string? handler) handler
+			  "fdjtCheckSpan_onclick(event);")))
 	 (ischecked (if checked "yes")))
     (span ((class "left")) (or text val))
     (input TYPE "checkbox"

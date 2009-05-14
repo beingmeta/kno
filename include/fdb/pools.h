@@ -331,6 +331,16 @@ typedef struct FD_GPOOL {
   struct FD_HASHTABLE basevals;} FD_GPOOL;
 typedef struct FD_GPOOL *fd_gpool;
 
+/* Memory Pools (only in memory, no fetch/commit) */
+
+typedef struct FD_MEMPOOL {
+  FD_POOL_FIELDS;
+  unsigned int load; u8_mutex lock;} FD_MEMPOOL;
+typedef struct FD_MEMPOOL *fd_mempool;
+
+FD_EXPORT fd_pool fd_make_mempool
+  (u8_string label,FD_OID base,unsigned int cap,unsigned int load);
+
 /* File pool opener */
 
 FD_EXPORT fd_pool (*fd_file_pool_opener)(u8_string);
