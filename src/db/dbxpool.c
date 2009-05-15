@@ -271,7 +271,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     return NULL;}
   schedule=u8_alloc_n(n,struct FETCH_SCHEDULE);
   values=u8_alloc_n(n,fdtype);
-  FD_INIT_BYTE_OUTPUT(&out,4096,NULL);
+  FD_INIT_BYTE_OUTPUT(&out,4096);
   {int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       schedule[i].oid=oids[i]; schedule[i].serial=i;

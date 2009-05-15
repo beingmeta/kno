@@ -53,7 +53,7 @@ static int write_dtype_to_file(fdtype x,char *file)
 {
   FILE *f=fopen(file,"wb"); int retval;
   struct FD_BYTE_OUTPUT out;
-  FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
+  FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,x);
   retval=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);

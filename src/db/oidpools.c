@@ -966,7 +966,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   unsigned int i=0, zbuf_size=4096;
   off_t endpos, recovery_pos;
   FD_OID base=op->base;
-  FD_INIT_BYTE_OUTPUT(&tmpout,4096,NULL);
+  FD_INIT_BYTE_OUTPUT(&tmpout,4096);
   fd_lock_struct(op); endpos=fd_endpos(stream);
   if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
     tmpout.flags=tmpout.flags|FD_DTYPEV2;

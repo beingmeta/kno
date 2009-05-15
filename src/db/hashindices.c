@@ -999,7 +999,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
 #if FD_DEBUG_HASHINDICES
   u8_message("Reading %d keys from %s",n,hx->cid);
 #endif
-  FD_INIT_BYTE_OUTPUT(&out,n*16,NULL);
+  FD_INIT_BYTE_OUTPUT(&out,n*16);
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
     out.flags=out.flags|FD_DTYPEV2;
   /* Fill out a fetch schedule, computing hashes and buckets for each key.
@@ -1562,7 +1562,7 @@ FD_EXPORT int fd_populate_hash_index
   int cycle_buckets=0, cycle_keys=0, cycle_max=0;
   int overall_buckets=0, overall_keys=0, overall_max=0;
   struct POP_SCHEDULE *psched=u8_alloc_n(n_keys,struct POP_SCHEDULE);
-  struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,8192,NULL);
+  struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,8192);
   struct BUCKET_REF *bucket_refs; fd_index ix=NULL;
   fd_dtype_stream stream=&(hx->stream);
   off_t endpos=fd_endpos(stream);
@@ -2106,8 +2106,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
     fd_recycle_hashset(&taken);
     /* The commit schedule is now filled and we start generating a bucket schedule. */
     /* We're going to write keys and values, so we create streams to do so. */
-    FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
-    FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16,NULL);
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
     if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2)) {
       out.flags=out.flags|FD_DTYPEV2;
       newkeys.flags=newkeys.flags|FD_DTYPEV2;}

@@ -23,7 +23,7 @@ static fdtype read_dtype_from_file(FILE *f)
   fdtype object;
   struct FD_BYTE_OUTPUT out; struct FD_BYTE_INPUT in;
   char buf[1024]; int bytes_read=0, delta=0;
-  FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
+  FD_INIT_BYTE_OUTPUT(&out,1024);
   while (delta=fread(buf,1,1024,f)) {
     if (delta<0)
       if (errno==EAGAIN) {}
@@ -38,7 +38,7 @@ static fdtype read_dtype_from_file(FILE *f)
 static void write_dtype_to_file(fdtype object,FILE *f)
 {
   struct FD_BYTE_OUTPUT out; int retval;
-  FD_INIT_BYTE_OUTPUT(&out,1024,NULL);
+  FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
   retval=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);

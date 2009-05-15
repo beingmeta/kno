@@ -140,7 +140,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x);
 FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in);
 
 /* These are for input or output */
-#define FD_INIT_BYTE_OUTPUT(bo,sz,mp)  \
+#define FD_INIT_BYTE_OUTPUT(bo,sz)  \
   (bo)->ptr=(bo)->start=u8_malloc(sz); \
   (bo)->end=(bo)->start+sz;            \
   (bo)->flags=FD_BYTEBUF_MALLOCD; \
