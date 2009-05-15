@@ -854,6 +854,7 @@ int main(int argc,char **argv)
   fd_init_fddbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
+  fd_init_fddbserv();
 #endif
 
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
