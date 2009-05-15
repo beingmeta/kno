@@ -41,6 +41,7 @@ static u8_condition Startup=_("FDSERV Startup");
 FD_EXPORT void fd_init_fdweb(void);
 FD_EXPORT void fd_init_texttools(void);
 FD_EXPORT void fd_init_tagger(void);
+FD_EXPORT void fd_init_fddbserv(void);
 
 /* Logging declarations */
 static u8_mutex log_lock;
@@ -823,6 +824,9 @@ int main(int argc,char **argv)
 
   fd_version=fd_init_fdscheme();
   
+  /* We register this module so that we can have pages that use the functions,
+     for instance with an HTTP PROXY that can be used as a dtype server */
+
   /* Record the startup time for UPTIME */
   u8_now(&boot_time);
 
@@ -847,9 +851,12 @@ int main(int argc,char **argv)
   fd_init_schemeio();
   fd_init_texttools();
   fd_init_tagger();
+  fd_init_fddbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif
+
+  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
 
   fd_init_fdweb();
   fd_init_dbfile(); 
