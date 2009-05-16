@@ -1223,7 +1223,8 @@ static void ap_bputs(char *string,BUFF *b)
 {
   int len=strlen(string);
   if (b->ptr+len+1 >= b->lim) {
-    int old_size=b->lim-b->buf, off=b->ptr-b->buf, new_size=old_size, need_size=off+len+1;
+    int old_size=b->lim-b->buf, off=b->ptr-b->buf;
+    int new_size=old_size, need_size=off+len+1;
     unsigned char *nbuf;
     while (new_size < need_size) new_size=new_size*2;
     nbuf=(unsigned char *)prealloc(b->p,(char *)b->buf,new_size,old_size);
@@ -1233,12 +1234,13 @@ static void ap_bputs(char *string,BUFF *b)
 static void ap_bwrite(BUFF *b,char *string,int len)
 {
   if (b->ptr+len+1 >= b->lim) {
-    int old_size=b->lim-b->buf, off=b->ptr-b->buf, new_size=old_size, need_size=off+len+1;
+    int old_size=b->lim-b->buf, off=b->ptr-b->buf;
+    int new_size=old_size, need_size=off+len+1;
     unsigned char *nbuf;
     while (new_size < need_size) new_size=new_size*2;
     nbuf=(unsigned char *)prealloc(b->p,(char *)b->buf,new_size,old_size);
     b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+new_size;}
-  strncpy((char *)b->ptr,string,len); b->ptr=b->ptr+len;
+  memcpy((char *)b->ptr,string,len); b->ptr=b->ptr+len;
 }
 static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
 {
@@ -1368,7 +1370,7 @@ static int sock_fgets(char *buf,int n_bytes,void *stream)
     if (bytes[0] == '\n') break;}
   *write='\0';
   if (write>=limit) return write-buf;
-  else return  write-buf;
+  else return write-buf;
 }
 
 static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,int sock)
@@ -1387,6 +1389,22 @@ static void copy_script_output(int sock,request_rec *r)
   char buf[4096]; int bytes_read=0;
   while ((bytes_read=read(sock,buf,4096))>0) {
     ap_rwrite(buf,bytes_read,r); ap_rflush(r);}
+}
+
+static log_buf(char *msg,int size,char *data,request_rec *r)
+{
+  char *buf=apr_palloc(r->pool,size*2+1);
+  int i=0, j=0; while (i<size) {
+    int byte=data[i++];
+    char hi=(byte>>4), lo=byte&0x0F;
+    if (hi<10) buf[j++]='0'+hi;
+    else buf[j++]='A'+hi;
+    if (lo<10) buf[j++]='0'+lo;
+    else buf[j++]='A'+lo;}
+  buf[j]='\0';
+  ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+	       "mod_fdserv: (%s) %d bytes of data: %s",
+	       msg,size,buf);
 }
 
 static int fdserv_handler(request_rec *r) /* 2.0 */
@@ -1433,20 +1451,23 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     char bigbuf[4096];
     ap_setup_client_block(r,REQUEST_CHUNKED_ERROR);
     if (ap_should_client_block(r)) {
-      int bytes_read, size=0, limit=16384; char *data=apr_palloc(r->pool,16384);
+      int bytes_read, size=0, limit=16384;
+      char *data=apr_palloc(r->pool,16384);
       while ((bytes_read=ap_get_client_block(r,bigbuf,4096)) > 0) {
 	ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 		     "mod_fdserv: Read %d bytes of POST data from client",
 		     bytes_read);
 	ap_reset_timeout(r);
 	if (size+bytes_read > limit) {
-	  char *newbuf=apr_palloc(r->pool,limit*2); memcpy(newbuf,data,size);
+	  char *newbuf=apr_palloc(r->pool,limit*2);
+	  memcpy(newbuf,data,size);
 	  data=newbuf; limit=limit*2;}
 	memcpy(data+size,bigbuf,bytes_read); size=size+bytes_read;}
       post_data=data; post_size=size;}
     else {post_data=NULL; post_size=0;}}
   else {post_data=NULL; post_size=0;}
   
+
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Composing request data as a slotmap");
 
@@ -1455,6 +1476,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Writing %ld bytes of request data to socket",
 	       reqdata->ptr-reqdata->buf);
+  /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
+
   sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
   
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,

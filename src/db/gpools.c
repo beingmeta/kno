@@ -18,6 +18,22 @@ static char versionid[] =
 
 #include <stdarg.h>
 
+/* 
+   Thoughts on odd pools.
+     The most general kind of pool has applicable lisp object
+      for all the pool handler functions;
+     Another interesting kind of pool is able to be fetched
+      but manages storage in other ways.  This is good for a case
+      where the OIDs represent objects in an external SQL database
+      (like WebEchoes pings).  Note that this kind of pool doesn't
+      really have an alloc function of its own, since creation happens
+      on the server side.
+     Another interesting variant is a memory-only pool, where
+      you can create and modify frames but they are limited to
+      the current memory image.  This is what mempools are.
+
+*/
+
 static struct FD_POOL_HANDLER gpool_handler;
 
 FD_EXPORT
