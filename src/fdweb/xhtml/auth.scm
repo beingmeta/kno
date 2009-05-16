@@ -53,7 +53,7 @@
 	 (expires (gmtimestamp (cgiget expiresvar)))
 	 (info (get sessions session)))
     ;; (%watch "GETINFO" user session expires info (cgiget expiresvar))
-    (and (exists? info)
+    (and (exists? info) info
 	 (test info 'user user)
 	 (and (exists? expires) (test info 'expires expires))
 	 (future-time? expires)

@@ -7,6 +7,8 @@
 (module-export! '{appname appid apikey apisecretkey})
 (module-export! '{fb/incanvas? fb/added? fb/getuser fb/authorize})
 
+(define trace-facebook-auth #f)
+
 (define halfhour (* 60 30))
 (define oneday (* 60 60 24))
 (define fiveminutes (* 60 5))
@@ -112,11 +114,13 @@
 	      (let ((id (string->number (subseq info 0 break1)))
 		    (expires (string->number (subseq info (1+ break1) break2)))
 		    (session (subseq info (1+ break2))))
-		;; (%watch "FB/USEINFO" id expires session)
-		(cgiset! 'fb_sig_user id)
-		(cgiset! 'fb_sig_session_expires expires)
-		(cgiset! 'fb_sig_session_key session)
-		#t)))))
+		(cond ((< (time) expires)
+		       ;; (%watch "FB/USEINFO" id expires session)
+		       (cgiset! 'fb_sig_user id)
+		       (cgiset! 'fb_sig_session_expires expires)
+		       (cgiset! 'fb_sig_session_key session)
+		       #t)
+		      (else #f)))))))
 
 (define (save-fbinfo! (cookie #t))
   (let* ((id (cgiget 'fb_sig_user))
@@ -216,7 +220,8 @@
   (when fb_sig_session_key (fb/logout))
   (cgiset! 'status 303)
 
-  ;; (%watch "DOAUTHORIZE" (cgiget 'REQUEST_URI))
+  (when trace-facebook-auth
+    (%watch "DOAUTHORIZE" (cgiget 'REQUEST_URI)))
 
   (httpheader
    "Location: https://www.facebook.com/login.php?"
@@ -251,12 +256,16 @@
 
   (cond ((fb/incanvas?) #t) 
 	((cgitest 'auth_token)
-	 ;; (%watch "AUTH_TOKEN" (cgiget 'auth_token))
+	 (when trace-facebook-auth
+	   (%watch "AUTH_TOKEN" (cgiget 'auth_token)))
 	 (when next (cgipass! 'next_uri next))
 	 (when dialog (cgipass! 'dialog #t))
 	 (cgicall handleauthtoken))
 	((or (cgitest 'fb_sig_session_key) (fb/useinfo))
-	 ;; (%watch "HAVEKEY" (cgiget 'fb_sig_session_key))
+	 (when trace-facebook-auth
+	   (%watch "HAVEKEY"
+		   (cgiget 'fb_sig_session_key)
+		   (cgiget 'fb_sig_session_expires)))
 	 (when next (cgipass! 'next next))
 	 (when dialog (cgipass! 'dialog #t))
 	 (let ((session (cgiget 'fb_sig_session_key))
