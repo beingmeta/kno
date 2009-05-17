@@ -486,7 +486,11 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_fddbserv();
+
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_fdbserv_module);
+  fd_persist_module(fd_fdbserv_module);
+
   fd_register_config("BACKLOG",
 		     _("Number of pending connection requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_backlog);

@@ -891,8 +891,6 @@ void fd_init_dbserv_c()
 
   primary_index=(fd_compound_index)fd_make_compound_index(0,NULL);
 
-
-
   fd_fdbserv_module=module;
 }
 
@@ -900,4 +898,5 @@ void fd_init_fddbserv()
 {
   fd_register_source_file(versionid);
   fd_init_dbserv_c();
+
 }
