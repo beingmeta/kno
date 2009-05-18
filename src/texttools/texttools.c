@@ -689,8 +689,13 @@ static void convert_offsets
   (fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
 {
   u8_charoff offval=fd_getint(offset);
-  if (FD_FIXNUMP(limit)) 
-    *lim=u8_byteoffset(FD_STRDATA(string),FD_FIX2INT(limit),FD_STRLEN(string));
+  if (FD_FIXNUMP(limit)) {
+    int intlim=FD_FIX2INT(limit), len=FD_STRLEN(string);
+    u8_string data=FD_STRDATA(string);
+    if (intlim<0) {
+      int char_len=u8_strlen(data);
+      *lim=u8_byteoffset(data,char_len+intlim,len);}
+    else *lim=u8_byteoffset(FD_STRDATA(string),intlim,len);}
   else *lim=FD_STRLEN(string);
   *off=u8_byteoffset(FD_STRDATA(string),offval,*lim);
 }
@@ -1201,50 +1206,89 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 
 /* Slicing */
 
-static fdtype textslice(fdtype string,fdtype prefix,fdtype keep_prefixes)
+static fdtype suffix_symbol, prefix_symbol;
+
+static int interpret_keep_arg(fdtype keep_arg)
 {
-  fdtype slices=FD_EMPTY_LIST, *tail=&slices;
-  u8_string data=FD_STRDATA(string);
-  int len=FD_STRLEN(string), start=0, keep=FD_TRUEP(keep_prefixes);
-  int scan=fd_text_search(prefix,NULL,data,start,len,0);
-  /* scan is pointing at a substring matching the prefix,
-     start is where we last added a string, and end is the greedy limit
-     of the matched prefix. */
-  while (scan>=0) {
-    fdtype match_result=
-      fd_text_matcher(prefix,NULL,FD_STRDATA(string),scan,len,0);
-    int end=-1;
-    /* Figure out how long the prefix is, taking the longest result. */
-    {FD_DO_CHOICES(match,match_result) {
-      int point=fd_getint(match); if (point>end) end=point;}}
-    fd_decref(match_result);
-    /* Add the string up to the prefix if non-empty. */
-    if (start<scan) {
-      fdtype substring=fd_extract_string(NULL,data+start,data+scan);
+  if (FD_FALSEP(keep_arg)) return 0;
+  else if (FD_TRUEP(keep_arg)) return 1;
+  else if (FD_FIXNUMP(keep_arg))
+    return FD_FIX2INT(keep_arg);
+  else if (FD_EQ(keep_arg,suffix_symbol))
+    return -1;
+  else if (FD_EQ(keep_arg,prefix_symbol))
+    return 1;
+  else return 0;
+}
+
+static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
+			fdtype offset,fdtype limit)
+{
+  int start, len;
+  convert_offsets(string,offset,limit,&start,&len);
+  if ((start<0) || (len<0))
+    return fd_err(fd_RangeError,"textslice",NULL,FD_VOID);
+  else {
+    /* We accumulate a list CDRwards */
+    fdtype slices=FD_EMPTY_LIST, *tail=&slices;
+    u8_string data=FD_STRDATA(string);
+    /* keep indicates whether matched separators go with the preceding
+       string (keep<0), the succeeding string (keep>0) or is discarded
+       (keep=0). */
+    int keep=interpret_keep_arg(keep_arg), last_start=start;
+    /* scan is pointing at a substring matching the sep,
+       start is where we last added a string, and end is the greedy limit
+       of the matched sep. */
+    int scan=fd_text_search(sep,NULL,data,start,len,0);
+    while ((scan>=0) && (scan<len)) {
+      fdtype match_result=
+	fd_text_matcher(sep,NULL,data,scan,len,0);
+      fdtype substring=FD_VOID, newpair;
+      int end=-1;
+      /* Figure out how long the sep is, taking the longest result. */
+      {FD_DO_CHOICES(match,match_result) {
+	  int point=fd_getint(match); if (point>end) end=point;}}
+      fd_decref(match_result);
+      /* Here's what it should look like: 
+	 [start] ... [scan] ... [end] */
+      /* If you're attaching separator backwards (keep<0),
+	 extract the string from start to end, otherwise,
+	 just attach start to scan. */
+      if (keep<0)
+	if (end>start)
+	  substring=fd_extract_string(NULL,data+start,data+end);
+	else {}
+      else if (scan>start)
+	substring=fd_extract_string(NULL,data+start,data+scan);
+      else {}
+      /* Advance to the next separator.  Use a start from the current
+	 separator if you're attaching separators backward (keep<0), and
+	 a start from just past the separator if you're dropping
+	 separators or attaching them forward (keep>=0). */
+      if (keep>0) start=scan;
+      else start=end;
+      if ((end<0) || (scan==end))
+	/* If the 'separator' is the empty string, start your
+	   search from one character past the current end.  This
+	   keeps match/search weirdness from leading to infinite
+	   loops. */
+	scan=fd_text_search(sep,NULL,data,end+1,len,0);
+      else scan=fd_text_search(sep,NULL,data,end,len,0);
+      /* Push it onto the list. */
+      if (!(FD_VOIDP(substring))) {
+	newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
+	*tail=newpair; tail=&(FD_CDR(newpair));}}
+    /* scan==-2 indicates a real error, not just a failed search. */
+    if (scan==-2) {
+      fd_decref(slices);
+      return FD_ERROR_VALUE;}
+    else if (start<len) {
+      /* If you ran out of separators, just add the tail end to the list. */
+      fdtype substring=fd_extract_string(NULL,data+start,data+len);
       fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
       *tail=newpair; tail=&(FD_CDR(newpair));}
-    /* If we don't seem to have an end or the string is empty, swallow
-       a codepoint and move forward. */
-    if ((end<0) || (end==scan)) {
-      /* You're at the start of an empty but positive match, so just make
-	 the first character into a string and start after that. */
-      u8_string scanner=data+start; int MAYBE_UNUSED c=u8_sgetc(&scanner);
-      fdtype substring=fd_extract_string(NULL,data+start,scanner);
-      fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
-      *tail=newpair; tail=&(FD_CDR(newpair));
-      start=scanner-data;
-      scan=fd_text_search(prefix,NULL,data,start,len,0);}
-    else {
-      if (keep) start=scan; else start=end;
-      scan=fd_text_search(prefix,NULL,data,end,len,0);}}
-  if (scan==-2) {
-    fd_decref(slices);
-    return FD_ERROR_VALUE;}
-  else if (start<len) {
-    fdtype substring=fdtype_string(data+start);
-    fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
-    *tail=newpair; tail=&(FD_CDR(newpair));}
-  return slices;
+    return slices;
+  }
 }
 
 /* Word has-suffix/prefix */
@@ -1840,9 +1884,11 @@ void fd_init_texttools()
   fd_defalias(texttools_module,"GATHER->SEQ","GATHER->LIST");
 
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("TEXTSLICE",textslice,2,
+	   fd_make_cprim5x("TEXTSLICE",textslice,2,
 			   fd_string_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_TRUE));
+			   -1,FD_TRUE,
+			   fd_fixnum_type,FD_INT2DTYPE(0),
+			   fd_fixnum_type,FD_VOID));
 
   fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_handler);
 
@@ -1877,6 +1923,8 @@ void fd_init_texttools()
   label_symbol=fd_intern("LABEL");
   subst_symbol=fd_intern("SUBST");
   opt_symbol=fd_intern("OPT");
+  suffix_symbol=fd_intern("SUFFIX");
+  prefix_symbol=fd_intern("PREFIX");
 
   fd_finish_module(texttools_module);
   fd_persist_module(texttools_module);
