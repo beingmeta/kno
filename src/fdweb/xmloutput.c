@@ -508,10 +508,12 @@ static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
   return FD_VOID;
 }
 
+/* Does a block without wrapping content in newlines */
 static fdtype xmlblock(fdtype expr,fd_lispenv env)
 {
   return doxmlblock(expr,env,0);
 }
+/* Does a block and wraps content in newlines */
 static fdtype xmlblockn(fdtype expr,fd_lispenv env)
 {
   return doxmlblock(expr,env,1);
@@ -1631,6 +1633,9 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_store(module,fd_intern("SCRIPTURL+"),scripturl_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
+    fd_store(module,fd_intern("BLOCKMARKUPFN"),markupblock_prim);
+    fd_store(module,fd_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
+    fd_store(module,fd_intern("EMPTYMARKUPFN"),emptymarkup_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
   }
   
@@ -1652,6 +1657,9 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_idefn(module,uriout_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
+    fd_store(module,fd_intern("BLOCKMARKUPFN"),markupblock_prim);
+    fd_store(module,fd_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
+    fd_store(module,fd_intern("EMPTYMARKUPFN"),emptymarkup_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
   }
   
