@@ -17,8 +17,7 @@
   (string->symbol
    '{"P"
      "LI" "DT" "BLOCKQUOTE"
-     "H1" "H2" "H3" "H4" "H5" "H6"
-     "DIV"}))
+     "H1" "H2" "H3" "H4" "H5" "H6"}))
 (define *line-break-tags*
   (choice *block-text-tags* (string->symbol '{"PRE" "BR" "HR"})))
 
@@ -26,7 +25,7 @@
 
 (define (dom/textify node (embedded #f) (cache #t))
   (if embedded
-      (if (string? node) (printout node)
+      (if (string? node) (printout (decode-entities node))
 	  (if (pair? node)
 	      (dolist (elt node) (dom/textify elt #t cache))
 	      (if (table? node)
@@ -39,7 +38,7 @@
 				    (stringout
 				      (dolist (elt (get node '%content))
 					(if (string? elt)
-					    (printout elt)
+					    (printout (decode-entities elt))
 					    (dom/textify elt #t cache)))))))
 			    (when cache (store! node '%text s))
 			    (printout s)))))
@@ -229,12 +228,13 @@
       (cond ((string? under) (fail))
 	    ((pair? under)
 	     (for-choices (elt (elts under))
-	       (dom/find sel elt)))
+	       (dom/find elt sel)))
 	    ((table? under)
 	     (choice (tryif (dom/match under sel) under)
 		     (for-choices (elt (elts (get under '%content)))
-		       (dom/find sel elt)))))
-      (dom/find (->selector sel) under)))
+		       (dom/find elt sel))))
+	    (else (fail)))
+      (dom/find under (->selector sel))))
 
 ;;; Text searching
 

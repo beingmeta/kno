@@ -14,15 +14,10 @@
 (define (indexrule-config var (val))
   (if (bound? val)
       (if (pair? val)
-	  (add! default-indexrules (car val) (cdr val)))
+	  (add! default-indexrules (car val) (cdr val))
+	  (set+! default-dom-slots val))
       default-indexrules))
 (config-def! 'DOM:INDEXRULES indexrule-config)
-
-(define default-rootfn #f)
-(varconfig! dom:rootfn default-rootfn)
-
-(define default-refrules {})
-(varconfig! dom:refrules default-refrules #f choice)
 
 (define default-analyzers {})
 (varconfig! dom:analyzer default-analyzers #f choice)
@@ -74,29 +69,47 @@
 
 ;;;; Simple text analysis
 
+(define default-refrules {})
+(varconfig! dom:refrules default-refrules #f choice)
+
+(define default-rootfn {})
+(varconfig! dom:rootfn default-rootfn)
+
 (define (dom/textanalyze xml settings)
+  (unless (test settings 'refrules)
+    (if (and (test settings 'stopwords) (get settings 'stopwords))
+	(store! settings 'refules
+		(compute-refrules (get settings 'stopwords)))
+	(store! settings 'refules *basic-refrules*)))
   ;; Get element text and initialize variables
   (let* ((text (dom/textify xml))
 	 (rootfn (try (get settings 'rootfn) default-rootfn))
-	 (refrules (try (get settings 'refrules) default-refrules))
 	 (phrasemap (get settings 'phrasemap))
 	 (stopwords (get settings 'stopwords))
 	 (rootmap (get settings 'rootmap))
+	 (refrules (try (get settings 'refrules)
+			(compute-refrules (try stopwords #f))))
 	 (cache (choice (get settings 'cache)
 			(tryif (test settings 'cache 'textslots)
 			       '{words roots rootv wordv}))))
     ;; Extract features
     (let* ((wordv (words->vector text))
-	   (rootv (tryif (and (exists? phrasemap) (exists? rootfns))
+	   (rootv (tryif (and (exists? phrasemap) phrasemap (exists? rootfn))
 		    (forseq (word wordv)
 		      (if (or (get stopwords word)
 			      (and (capitalized? word)
 				   (get stopwords (downcase word))))
-			  word (try (rootfn word) word)))))
+			  word
+			  (try (rootfn word) word)))))
 	   (refv (getrefs text refrules stopwords))
 	   (allrefs (seq->phrase refv))
 	   (allwords (choice (elts wordv) allrefs))
-	   (allroots (for-choices (word allwords) (try (rootfn word) word)))
+	   (allroots (for-choices (word allwords)
+		       (if (or (get stopwords word)
+			       (and (capitalized? word)
+				    (get stopwords (downcase word))))
+			   (fail)
+			   (try (rootfn word) word))))
 	   (rejects (choice (pick allroots stopwords)
 			    (pick allroots downcase stopwords)))
 	   (refelts (elts refv))
@@ -168,6 +181,17 @@
 (define name-glue {"de" "van" "von" "St."})
 (define name-preps {"to" "of" "from"})
 
+(define solename
+  #((islower)  (spaces)
+    (label solename (capword))
+    (spaces*) {(ispunct) (eol) (islower)}))
+
+(define uncapped-rule
+  #[PATTERN
+    #({(bol) "." "," "\"" "'"} (spaces)
+      (label term (capword) downcase))
+    LABEL NAME])
+
 (define (make-name-pattern (stop-words #f) (glue #{}))
   (let ((xstop-words (and stop-words (make-hashset))))
     (when stop-words
@@ -181,37 +205,28 @@
 	     #((isupper) ".") #((isupper) "." (isupper) ".")}))
        (spaces) (capword))))
 
-(define basic-name-pattern
-  (make-name-pattern #f (qc)))
-(define simple-name-pattern
-  (make-name-pattern #f (qc name-glue)))
-(define compound-name-pattern
-  (make-name-pattern #f (qc name-preps)))
+(define (compute-refrules stop-words)
+  (let* ((basic (choice (make-name-pattern stop-words (qc))
+			(make-name-pattern stop-words (qc name-glue))
+			(make-name-pattern stop-words (qc name-preps))))
+	 (extended
+	  (for-choices (core basic)
+	    (frame-create #f
+	      'pattern
+	       `#((islower)  (spaces)
+		  (label name ,core)
+		  (spaces*) {(ispunct) (eol) (islower)})
+	       'label 'name))))
+    (choice basic extended solename uncapped-rule)))
 
-(define embedded-basic-name
-  `#((islower)  (spaces)
-     (label name ,basic-name-pattern)
-     (spaces*) {(ispunct) (eol) (islower)}))
-(define embedded-simple-name
-  `#((islower)  (spaces)
-     (label name ,simple-name-pattern)
-     (spaces*) {(ispunct) (eol) (islower)}))
-(define embedded-compound-name
-  `#((islower)  (spaces)
-     (label name ,simple-name-pattern)
-     (spaces*) {(ispunct) (eol) (islower)}))
+(define *basic-refrules* (compute-refrules #f))
 
-(define solename
-  #((islower)  (spaces)
-    (label solename (capword))
-    (spaces*) {(ispunct) (eol) (islower)}))
-
-(config! 'dom:refrules basic-name-pattern)
-(config! 'dom:refrules simple-name-pattern)
-(config! 'dom:refrules compound-name-pattern)
-(config! 'dom:refrules `#[pattern ,embedded-basic-name labels name])
-(config! 'dom:refrules `#[pattern ,embedded-simple-name labels name])
-(config! 'dom:refrules `#[pattern ,embedded-compound-name labels name])
+;; (config! 'dom:refrules basic-name-pattern)
+;; (config! 'dom:refrules simple-name-pattern)
+;; (config! 'dom:refrules compound-name-pattern)
+;; (config! 'dom:refrules `#[pattern ,embedded-basic-name labels name])
+;; (config! 'dom:refrules `#[pattern ,embedded-simple-name labels name])
+;; (config! 'dom:refrules `#[pattern ,embedded-compound-name labels name])
 
 ;;; Fixing index case
 
