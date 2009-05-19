@@ -104,6 +104,7 @@ static fdtype lispget(fdtype f,fdtype slotid)
 static fdtype lispadd(fdtype f,fdtype slotid,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(slotid)) return FD_VOID;
   else if (fd_add(f,slotid,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -117,6 +118,7 @@ static fdtype lispdrop(fdtype f,fdtype slotid,fdtype val)
 static fdtype lispstore(fdtype f,fdtype slotid,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(slotid)) return FD_VOID;
   else if (fd_store(f,slotid,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
