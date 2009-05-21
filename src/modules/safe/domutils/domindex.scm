@@ -79,7 +79,7 @@
   (unless (test settings 'refrules)
     (if (and (test settings 'stopwords) (get settings 'stopwords))
 	(store! settings 'refules
-		(compute-refrules (get settings 'stopwords)))
+		(cachecall compute-refrules (get settings 'stopwords)))
 	(store! settings 'refules *basic-refrules*)))
   ;; Get element text and initialize variables
   (let* ((text (dom/textify xml))
@@ -91,7 +91,7 @@
 			(compute-refrules (try stopwords #f))))
 	 (cache (choice (get settings 'cache)
 			(tryif (test settings 'cache 'textslots)
-			       '{words roots rootv wordv}))))
+			  '{words roots rootv wordv}))))
     ;; Extract features
     (let* ((wordv (words->vector text))
 	   (rootv (tryif (and (exists? phrasemap) phrasemap (exists? rootfn))
@@ -122,22 +122,29 @@
       (store! xml (intersection 'refs cache) allrefs)
       (store! xml (intersection 'rootv cache) rootv)
       (store! xml (intersection 'wordv cache) wordv)
+      (when (overlaps? cache #t)
+	(store! xml 'words words)
+	(store! xml 'roots roots)
+	(store! xml 'refs allrefs)
+	(store! xml 'rootv rootv)
+	(store! xml 'wordv wordv))
       ;; Update the rootmap
       (do-choices (word allwords) (add! rootmap word (rootfn word)))
       ;; Generate index features
       (choice (cons 'terms roots)
 	      (cons 'words allwords)
 	      (tryif (exists? rootv)
-		     (for-choices (phrase (get phrasemap roots))
-		       (tryif (search phrase rootv)
-			      (cons 'terms (seq->phrase phrase)))))))))
+		(for-choices (phrase (get phrasemap roots))
+		  (tryif (search phrase rootv)
+		    (cons 'terms (seq->phrase phrase)))))))))
 
 (defambda (getrefs text refrules stopwords)
   (tryif (not (uppercase? text))
     (filter-choices
 	(refv (words->vector (apply-refrules refrules text)))
-      (or (get stopwords (first refv))
-	  (get stopwords (downcase (first refv)))))))
+      (not (or (get stopwords (first refv))
+	       (get stopwords (downcase (first refv))))))))
+(module-export! 'getrefs)
 
 (defambda (reduce-map map slotids)
   (for-choices map
@@ -163,12 +170,12 @@
 
 (defambda (apply-refrules refrules text)
   (tryif (exists? refrules)
-	 (let* ((simple (reject refrules slotmap?))
-		(complex (pick refrules slotmap?))
-		(refs (gather simple text)))
-	   (do-choices (rule complex)
-	     (set+! refs (apply-refrule rule text)))
-	   refs)))
+    (let* ((simple (reject refrules slotmap?))
+	   (complex (pick refrules slotmap?))
+	   (refs (gather simple text)))
+      (do-choices (rule complex)
+	(set+! refs (apply-refrule rule text)))
+      refs)))
 
 (add! default-indexrules *block-text-tags* dom/textanalyze)
 
@@ -182,15 +189,17 @@
 (define name-preps {"to" "of" "from"})
 
 (define solename
-  #((islower)  (spaces)
-    (label solename (capword))
-    (spaces*) {(ispunct) (eol) (islower)}))
+  #[PATTERN
+    #((islower)  (spaces)
+      (label solename (capword))
+      (spaces*) {(ispunct) (eol) (islower)})
+    LABELS SOLENAME])
 
 (define uncapped-rule
   #[PATTERN
     #({(bol) "." "," "\"" "'"} (spaces)
       (label term (capword) downcase))
-    LABEL NAME])
+    LABELS TERM])
 
 (define (make-name-pattern (stop-words #f) (glue #{}))
   (let ((xstop-words (and stop-words (make-hashset))))
@@ -198,7 +207,8 @@
       (do-choices (word (hashset-elts stop-words))
 	(hashset-add! xstop-words (capitalize word))))
     `#(,(if xstop-words
-	    `{(hashset-not ,xstop-words (capword)) ,name-prefixes}
+	    `{(hashset-not ,xstop-words (capword))
+	      ,name-prefixes}
 	    `{(capword) ,name-prefixes})
        (* #((spaces)
 	    {(capword) ,glue
@@ -216,7 +226,7 @@
 	       `#((islower)  (spaces)
 		  (label name ,core)
 		  (spaces*) {(ispunct) (eol) (islower)})
-	       'label 'name))))
+	       'labels 'name))))
     (choice basic extended solename uncapped-rule)))
 
 (define *basic-refrules* (compute-refrules #f))
