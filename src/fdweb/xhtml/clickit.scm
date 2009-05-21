@@ -13,16 +13,19 @@
 
 ;;;; Getting the current URL
 
-
 (define (geturl (w/query #f))
   (stringout (if (= (cgiget 'SERVER_PORT) 443) "https://" "http://")
 	     (cgiget 'SERVER_NAME)
-	     (unless (or (= (cgiget 'SERVER_PORT) 80)
-			 (= (cgiget 'SERVER_PORT) 443))
-	       (printout ":" (cgiget 'SERVER_PORT)))
-	     (if w/query (cgiget 'request_uri)
-		 (subseq (cgiget 'request_uri) 0
-			 (position #\? (cgiget 'request_uri))))))
+	     (when (cgitest 'SERVER_PORT)
+	       (unless (or (= (cgiget 'SERVER_PORT) 80)
+			   (= (cgiget 'SERVER_PORT) 443))
+		 (printout ":" (cgiget 'SERVER_PORT))))
+	     (let ((req (try (cgiget 'request_uri) (cgiget 'path_info))))
+	       ;; If we're under fastcgi rather than mod_fdserv, we don't
+	       ;;  always get a request_uri but may be able to
+	       ;;  use path_info instead
+	       (if w/query req
+		   (subseq req 0 (position #\? req))))))
 
 (module-export! 'geturl)
 
