@@ -1343,8 +1343,8 @@ static fdtype mempool_alloc(fd_pool p,int n)
   else {
     fdtype results=FD_EMPTY_CHOICE;
     int i=0; 
-    FD_OID base=FD_OID_PLUS(mp->base,n);
     u8_lock_mutex(&(mp->lock));
+    FD_OID base=FD_OID_PLUS(mp->base,mp->load);
     while (i<n) {
       FD_OID each=FD_OID_PLUS(base,i);
       FD_ADD_TO_CHOICE(results,fd_make_oid(each));
