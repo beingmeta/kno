@@ -8,7 +8,8 @@
 
 (module-export! '{get% show%
 		       interval-string short-interval-string
-		       padnum printnum numstring})
+		       padnum printnum numstring
+		       $count $num $size})
 
 ;; Percentages
 
@@ -34,6 +35,42 @@
 	(string-append (make-string padlen #\0) s)
 	s)))
 
+;;; Numbers with commas
+
+;; This should default this from the locale
+(define printnum-sep ",")
+
+(define (printnum num (pad #f) (sep printnum-sep))
+  (cond ((inexact? num) (number->string num))
+	((>= num 1000)
+	 (printnum (quotient num 1000) (>= num 1000000) sep)
+	 (printout sep (printnum (remainder num 1000) #t)))
+	((>= num 100) (printout num))
+	((>= num 10) (printout (if pad "0") num))
+	((>= num 0) (printout (if pad "00") num))
+	(else (printout "-" (printnum (- num))))))
+
+(define (numstring n) (stringout (printnum n)))
+
+(define $num printnum)
+
+;;; Plural stuff (automatic stuff is just English)
+
+(define ($count n (singular #f) (plural #f) (spellout #t))
+  (printout
+    (if spellout
+	(if (= n 0) "zero"
+	    (if (= n 1) "one"
+		(printnum n)))
+	n)
+    (when singular
+      (printout " "
+		(if (= n 1) singular
+		    (or plural (string-append singular "s")))))))
+
+(defambda ($size values (word #f) (plural #f))
+  ($count (choice-size values) word plural))
+
 ;; Temporal intervals
 
 (define (interval-string secs (precise #t))
@@ -44,7 +81,7 @@
 	 (minutes (inexact->exact
 		   (floor (/ (- secs (* days 3600 24) (* hours 3600))
 			     60))))
-	 (secs (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
+	 (seconds (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
     (stringout
 	(cond ((= days 1) "one day, ")
 	      ((> days 0) (printout days " days, ")))
@@ -52,16 +89,23 @@
 	    ((> hours 0) (printout hours " hours, ")))
       (cond ((= minutes 1) "one minute, ")
 	    ((> minutes 0) (printout minutes " minutes, ")))
-      (cond ((= secs 1) "one second")
-	    ((< secs 1) (printout secs " seconds"))
-	    (else (printout (inexact->string secs 2) " seconds"))))))
+      (cond ((= seconds 1) "one second")
+	    ((< secs 1) (printout seconds " seconds"))
+	    (precise (printout seconds " seconds"))
+	    ((> secs 1800)
+	     ($count (inexact->exact (round seconds)) " second" " seconds"))
+	    ((> seconds 60)
+	     ($count (inexact->string seconds 2) "second" "seconds"))
+	    (else ($count (inexact->string seconds 2) "second" "seconds"))))))
 
 (define (short-interval-string secs (precise #t))
   (if (< secs 180)
       (stringout (cond ((< secs 0) secs)
+		       ((and (not precise) (> secs 2))
+			(printout (inexact->exact (round secs))))
 		       ((< secs 10) (inexact->string secs 3))
 		       (else (inexact->string secs 2)))
-	" secs")
+		 " secs")
       (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
 	     (hours (inexact->exact
 		     (floor (/ (- secs (* days 3600 24))
@@ -69,33 +113,21 @@
 	     (minutes (inexact->exact
 		       (floor (/ (- secs (* days 3600 24) (* hours 3600))
 				 60))))
-	     (seconds (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
+	     (raw-seconds (- secs (* days 3600 24)
+			     (* hours 3600)
+			     (* minutes 60)))
+	     (seconds (if precise raw-seconds
+			  (inexact->exact (round raw-seconds)))))
 	(stringout
-	    (cond ((= days 1) "one day, ")
-		  ((> days 0) (printout days " days, ")))
+	  (cond ((= days 1) "one day, ")
+		((> days 0) (printout days " days, ")))
 	  (when (> hours 0) (printout hours ":"))
 	  (printout 
 	    (if (and (> hours 0) (< minutes 10)) "0")
 	    minutes ":")
 	  (printout (if (< seconds 10) "0")
-	    (cond ((> secs 600) (inexact->exact (round seconds)))
-		  ((>= secs 10) (inexact->string seconds 2))
-		  (else seconds)))))))
-
-;;; Numbers with commas
-
-;; This should probably get this from the locale somehow
-(define printnum-sep ",")
-
-(define (printnum num (pad #f))
-  (cond ((inexact? num) (number->string num))
-	((>= num 1000)
-	 (printnum (quotient num 1000) (>= num 1000000))
-	 (printout printnum-sep (printnum (remainder num 1000) #t)))
-	((>= num 100) (printout num))
-	((>= num 10) (printout (if pad "0") num))
-	((>= num 0) (printout (if pad "00") num))
-	(else (printout "-" (printnum (- num))))))
-
-(define (numstring n) (stringout (printnum n)))
+		    (cond (precise seconds)
+			  ((> secs 600) (inexact->exact (round seconds)))
+			  ((>= secs 10) (inexact->string seconds 2))
+			  (else seconds)))))))
 
