@@ -5,21 +5,46 @@
 
 (module-export!
  '{knowlet
-   kno/dterm kno/dref kno/ref
+   kno/dterm kno/dref kno/ref knowlet?
    kno/add! kno/drop! kno/replace! kno/find
    knowlet-name knowlet-opts knowlet-language
-   knowlet-oid knowlet-index knowlet-dterms
-   knowlet-drules
+   knowlet-oid knowlet-pool knowlet-index
+   knowlet-alldterms knowlet-dterms knowlet-drules
    default-knowlet knowlets
-   knowlet:pool knowlet:index
+   knowlet:pool knowlet:index knowlet:indices
+   knowlet! ->knowlet iadd!
    langids})
 
 (define-init knowlets (make-hashtable))
 
-(define knowlet:pool #f)
-(varconfig! KNO:POOL knowlet:pool use-pool)
-(define knowlet:index #f)
-(varconfig! KNO:INDEX knowlet:index open-index)
+(define knowlet:pool (make-mempool "knowlets" @2009/0 (* 4 1024 1024)))
+(define (knowlet-pool-config var (val))
+  (if (bound? val)
+      (set! knowlet:pool
+	    (cond ((string? val) (use-pool val))
+		  ((pool? val) val)
+		  ((oid? val)
+		   (try (get-pool val)
+			(make-mempool "knowlets" val (* 1024 1024))))
+		  (else (error "Not a valid knowlet pool"))))
+      knowlet:pool))
+(config-def! 'KNO:POOL knowlet-pool-config)
+
+(define knowlet:index (make-hashtable))
+(define (knowlet-index-config var (val))
+  (if (bound? val)
+      (begin
+	(set! knowlet:index
+	      (cond ((string? val) (open-index val))
+		    ((index? val) val)
+		    (else (make-hashtable))))
+	(set+! knowlet:indices knowlet:index))
+      knowlet:index))
+(config-def! 'KNO:INDEX knowlet-index-config)
+
+(define knowlet:indices knowlet:index)
+(varconfig! KNO:INDICES knowlet:indices open-index choice)
+
 (define knowlet:language 'en)
 (varconfig! KNO:LANG knowlet:language)
 
@@ -29,8 +54,8 @@
   (oid #f)
   (language 'en)
   (opts (make-hashset))
-  ;; Whether to allow non-dterms in references
-  (strict #f)
+  ;; Where dterms within this knowlet are allocated
+  (pool knowlet:pool)
   ;; Maps string dterms to OID dterms
   (dterms (make-hashtable))
   ;; Inverted index for dterms in the knowlet
@@ -38,8 +63,8 @@
   ;; GENLS index (index of the transitive closure of GENLS)
   ;;  (useful in inference and searching)
   (genls* (make-hashtable))
-  ;; Terms which are assumed unique by kno/dref
-  (unique (make-hashset))
+  ;; All dterms in this knowlet (a hashset)
+  (alldterms (make-hashset))
   ;; Rules for disambiguating words into dterms
   (drules (make-hashtable)))
 
@@ -49,8 +74,7 @@
   (let* ((pool (use-pool pool))
 	 (oid (frame-create pool 'knoname name '%id name))
 	 (language (try (intersection opts langids) knowlet:language))
-	 (strict (overlaps? opts 'strict))
-	 (new (cons-knowlet name oid language (choice->hashset opts) strict)))
+	 (new (cons-knowlet name oid language (choice->hashset opts))))
     (index-frame knowlet:index oid 'knoname name)
     (store! knowlets (choice oid name) new)
     new))
@@ -61,15 +85,16 @@
   (let* ((name (get oid 'knoname))
 	 (language (get oid 'language))
 	 (opts (get oid 'opts))
-	 (strict (overlaps? opts 'strict))
-	 (new (cons-knowlet name oid language (choice->hashset opts) strict))
+	 (new (cons-knowlet name oid language (choice->hashset opts)
+			    (try (getpool oid) knowlet:pool)))
 	 (index (knowlet-index new))
 	 (genls*index (knowlet-genls* new))
 	 (drules (knowlet-drules new))
 	 (kdterms (knowlet-dterms new)))
     (store! knowlets (choice oid name) new)
-    (let ((dterms (find-frames knowlet:index 'knowlet oid)))
+    (let ((dterms (find-frames knowlet:indices 'knowlet oid)))
       (prefetch-oids! dterms)
+      (hashset-add! (knowlet-alldterms new) dterms)
       (do-choices (dterm dterms)
 	(index-frame (knowlet-index new) dterm
 	  (difference (getkeys dterm) dont-index))
@@ -82,10 +107,23 @@
 (define (knowlet name (pool knowlet:pool) (opts #{}))
   (try (tryif (knowlet? name) name)
        (get knowlets name)
-       (let ((existing (find-frames knowlet:index 'knoname name)))
+       (let ((existing (find-frames knowlet:indices 'knoname name)))
 	 (if (exists? existing)
 	     (restore-knowlet existing)
 	     (new-knowlet name pool (qc opts))))))
+
+(define (knowlet! . args)
+  (let ((kno (apply knowlet args)))
+    (set! default-knowlet kno)
+    kno))
+
+(define (->knowlet object)
+  (try (tryif (knowlet? object) object)
+       (tryif (and (oid? object) (test object 'knowlet))
+	 (get knowlets (get object 'knowlet)))
+       (get knowlets object)
+       (restore-knowlet
+	(find-frames knowlet:indices 'knoname name))))
 
 ;;; Creating and referencing dterms
 
@@ -102,6 +140,7 @@
 	     (knowlet-language knowlet) term
 	     '%id term)))
     (store! (knowlet-dterms knowlet) term f)
+    (hashset-add! (knowlet-alldterms knowlet) f)
     (index-frame knowlet:index f '{dterm dterms knowlet})
     (index-frame (knowlet-index knowlet) f '{dterm dterms})
     (index-frame (knowlet-index knowlet)
@@ -110,12 +149,6 @@
 
 (define (kno/dref term (knowlet default-knowlet) (create #t))
   (try (get (knowlet-dterms knowlet) term)
-       (if (knowlet-strict knowlet) (fail)
-	   (let* ((lang (knowlet-language knowlet))
-		  (poss (find-frames (knowlet-index knowlet) lang term)))
-	     (tryif (singleton? poss)
-		    (begin (hashset-add! (knowlet-unique knowlet) term)
-			   poss))))
        (tryif create (kno/dterm term knowlet))))
 
 (define (kno/ref term (knowlet default-knowlet) (lang) (tryhard #f))
@@ -125,6 +158,25 @@
 	      (find-frames (knowlet-index knowlet)
 		lang (choice (metaphone term #t)
 			     (string->packet (disemvowel term)))))))
+
+;;; String indexing
+
+(define (dedash string)
+  (tryif (position #\- string)
+	 (choice (string-subst string "-" " " )
+		 (string-subst string "-" ""))))
+
+(define (kno/index-string f slotid (value) (index))
+  (default! value (get f slotid))
+  (default! index (get-index f))
+  (let* ((values (stdspace value))
+	 (expvalues (choice values (basestring values)))
+	 (normvalues (capitalize (pick expvalues somecap?)))
+	 (indexvals (choice expvalues normvalues (dedash normvalues)))
+	 (shortvals (pick (choice values normvalues) length > 1))
+	 (metavals (metaphone shortvals #t)))
+    (add! index (cons slotid indexvals) f)
+    (add! index (cons slotid metavals) f)))
 
 ;;; Find and edit operations on dterms
 
@@ -144,7 +196,9 @@
 	 (knowlet (get knowlets (get dterm 'knowlet))))
     (when (exists? new)
       (add! dterm slotid new)
-      (index-frame (knowlet-index knowlet) dterm slotid new)
+      (if (overlaps? slotid langids)
+	  (kno/index-string dterm slotid new (knowlet-index knowlet))
+	  (index-frame (knowlet-index knowlet) dterm slotid new))
       (unless (exists? cur)
 	(index-frame (knowlet-index knowlet) dterm 'has slotid))
       ((get infer-onadd slotid) dterm slotid new))))
@@ -246,4 +300,34 @@
 	 value))
 (store! infer-onadd 'drules add-drule!)
 (store! infer-ondrop 'drules drop-drule!)
+
+;;; IADD!
+
+(define (get-index f)
+  (try (knowlet-index (get knowlets (get f 'knowlet)))
+       knowlet:index))
+
+(defambda (iadd! f slotid value (index))
+  (if (bound? index)
+      (if (singleton? slotid)
+	  (begin (add! index (cons 'has slotid) (reject f slotid))
+		 (add! f slotid value)
+		 (add! index (cons slotid value) f))
+	  (do-choices slotid
+	    (add! index (cons 'has slotid) (reject f slotid))
+	    (add! f slotid value)
+	    (add! index (cons slotid value) f)))
+      (let ((kindex (get-index f)))
+	(if (singleton? kindex)
+	    (do-choices slotid
+	      (add! kindex (cons 'has slotid) (reject f slotid))
+	      (add! f slotid value)
+	      (add! kindex (cons slotid value) f))
+	    (do-choices f
+	      (let ((kindex (get-index f)))
+		(do-choices slotid
+		  (add! kindex (cons 'has slotid) (reject f slotid))
+		  (add! f slotid value)
+		  (add! index (cons slotid value) f))))))))
+
 

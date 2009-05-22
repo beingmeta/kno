@@ -39,28 +39,39 @@
 	       (run-gauntlet candidate gauntlet threshold
 			     (1+ i) count)))))
 
-(define (kno/apply-drule! drule index (idmap #f) (slotid 'tags))
+(define (kno/apply-drule! drule index (idmap #f)
+			  (tagslot 'tags)
+			  (wordslots '{words terms})
+			  (tagslots))
+  (default! tagslots tagslot)
   (let* ((matches
-	  (find-frames index
-	    '{words roots refs} (drule-cues drule)))
+	  (choice (find-frames index wordslots (pickstrings (drule-cues drule)))
+		  (find-frames index tagslots (pickoids (drule-cues drule)))))
 	 (excluded
 	  (choice (find-frames index
-		    '{words roots refs} (pickstrings (drule-context- drule)))
+		    wordslots (pickstrings (drule-context- drule)))
 		  (find-frames index
-		    'tags (pickoids (drule-context- drule)))))
+		    tagslots (pickoids (drule-context- drule)))))
 	 (surviving (difference matches excluded))
+	 ;; The gauntlet is a vector of all candidates matching
+	 ;;  the positive contexts.  A candidate must be in at least
+	 ;;  N (the threshold) elements of the vector to pass.
 	 (gauntlet (map (lambda (val)
-			  (if (oid? val) (find-frames index 'tags val)
-			      (find-frames index '{words roots refs} val)))
+			  (if (oid? val)
+			      (find-frames index tagslots val)
+			      (find-frames index wordslots val)))
 			(sorted (drule-context+ drule))))
 	 (elected
 	  (if (= (length gauntlet) 0)
 	      surviving
-	      (if (drule-threshold drule)
+	      (if (number? (drule-threshold drule))
 		  (filter-choices (c surviving)
 		    (run-gauntlet c gauntlet (drule-threshold drule)))
-		  (filter-choices (c surviving)
-		    (every? (lambda (x) (overlaps? c x)) gauntlet))))))
+		  (if (drule-threshold drule)
+		      (filter-choices (c surviving)
+			(every? (lambda (x) (overlaps? c x)) gauntlet))
+		      (filter-choices (c surviving)
+			(some? (lambda (x) (overlaps? c x)) gauntlet)))))))
     (add! (if idmap (get idmap elected) elected)
 	  slotid (drule-subject drule))
     (add! index (cons slotid (drule-subject drule))

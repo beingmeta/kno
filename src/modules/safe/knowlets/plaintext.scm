@@ -297,6 +297,9 @@
 		  (else ))))))))
 
 (defambda (kno/write-plaintext dterms (settings #[]) (kl)  (sep))
+  (when (knowlet? dterms)
+    (set! kl dterms)
+    (set! dterms (hashset-elts (knowlet-alldterms kl))))
   (default! sep (try (get settings 'sep) ";\n"))
   (default! kl (knowlet (try (get settings 'knowlet)
 			     (pick-one (get dterms 'knowlet)))))

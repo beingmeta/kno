@@ -111,6 +111,30 @@ static fdtype lispgetif(fdtype table,fdtype key,fdtype dflt)
   else return fd_get(table,key,dflt);
 }
 
+static fdtype lisptryget(fdtype table,fdtype key,fdtype dflt)
+{
+  if ((FD_FALSEP(table)) || (FD_EMPTY_CHOICEP(table)))
+    return fd_incref(key);
+  else if (FD_CHOICEP(table)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(etable,table) {
+      FD_DO_CHOICES(ekey,key) {
+	fdtype v=((FD_VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
+		  (fd_get(etable,ekey,dflt)));      
+	FD_ADD_TO_CHOICE(results,v);}}
+    return results;}
+  else if (FD_CHOICEP(key)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(ekey,key) {
+      fdtype v=((FD_VOIDP(dflt)) ? (fd_get(table,ekey,ekey)) :
+		(fd_get(table,ekey,dflt)));
+      FD_ADD_TO_CHOICE(results,v);}
+    return results;}
+  else if (FD_VOIDP(dflt)) 
+    return fd_get(table,key,key);
+  else return fd_get(table,key,dflt);
+}
+
 static fdtype lispadd(fdtype table,fdtype key,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
@@ -797,6 +821,8 @@ FD_EXPORT void fd_init_tablefns_c()
 	   fd_make_ndprim(fd_make_cprim3("%TEST",lisptest,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("GETIF",lispgetif,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("TRYGET",lisptryget,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("ADD!",lispadd,3)));
   fd_idefn(fd_scheme_module,
