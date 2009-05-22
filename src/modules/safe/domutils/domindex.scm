@@ -25,38 +25,44 @@
 (varconfig! dom:analyzer default-analyzers #f choice)
 
 (defambda (dom/index! index xml (settings #[])
-		      (indexslots) (cacheslots)
-		      (indexrules) (useids)
-		      (analyzers))
+		      (indexslots) (cacheslots) (indexrules)
+		      (analyzers) (useids))
   (default! indexslots (try (get settings 'indexslots) default-dom-slots))
   (default! cacheslots (get settings 'cacheslots))
-  (default! useids (try (get settings 'useids) #t))
   (default! indexrules (try (get settings 'indexrules) default-indexrules))
   (default! analyzers (try (get settings 'analyzers) default-analyzers))
+  (default! useids (try (get settings 'useids) #t))
   (if (pair? xml)
       (dolist (elt xml)
-	(dom/index! index elt settings
+	(dom/index! index elt settings 
 		    indexslots cacheslots
-		    indexrules useids analyzers))
+		    indexrules analyzers useids))
       (when  (table? xml)
-	(let ((content (get xml '%content))
-	      (indexval (if useids (get xml 'id) xml))
-	      (eltinfo (dom/lookup indexrules xml)))
+	(let* ((content (get xml '%content))
+	       (indexval (if useids (get xml 'id) xml))
+	       (eltinfo (dom/lookup indexrules xml))
+	       (slots (intersection
+		       (choice (pick indexslots symbol?)
+			       (car (pick indexslots pair?))
+			       (pick eltinfo symbol?)
+			       (car (pick eltinfo pair?)))
+		       (getkeys xml)))
+	       (rules (pick (choice (pick indexslots pair?)
+				    (pick eltinfo pair?))
+			    slots)))
+	  ;; (%WATCH "DOMINDEX" indexval slots rules)
 	  (when (test settings 'idmap)
 	    (add! (get settings 'idmap) (get xml 'id) xml))
+	  (add! index (cons 'has slots) indexval)
 	  (when (exists? indexval)
-	    (do-choices (slotid (difference
-				 (choice indexslots
-					 (pick eltinfo symbol?)
-					 (pick eltinfo pair?))
-				 (tryif useids 'id)))
-	      (if (pair? slotid)
-		  (add! index
-			(cons slotid ((cdr slotid) (get xml (car slotid))))
-			indexval)
-		  (add! index
-			(cons slotid (get xml slotid))
-			indexval)))
+	    (do-choices (slotid slots)
+	      (add! index
+		    (if (test rules slotid)
+			(cons slotid
+			      ((get rules slotid)
+			       (get xml slotid)))
+			(cons slotid (get xml slotid)))
+		    indexval))
 	    (do-choices (analyzer (choice analyzers (pick eltinfo procedure?)))
 	      (do-choices (slot.val (analyzer xml settings))
 		(when (overlaps? (car slot.val) cacheslots)
@@ -67,7 +73,7 @@
 	    (dolist (elt content)
 	      (dom/index! index elt settings
 			  indexslots cacheslots
-			  indexrules useids analyzers)))))))
+			  indexrules analyzers useids)))))))
 
 ;;;; Simple text analysis
 
@@ -83,8 +89,10 @@
 	(store! settings 'refules
 		(cachecall compute-refrules (get settings 'stopwords)))
 	(store! settings 'refules *basic-refrules*)))
-  ;; Get element text and initialize variables
-  (let* ((text (dom/textify xml))
+  ;; Get element text and initialize variables.  Note that we strip
+  ;;  markup from the text just in case the XML parsing left some
+  ;;  markup in the text comment (for example, comments).
+  (let* ((text (strip-markup (dom/textify xml)))
 	 (rootfn (try (get settings 'rootfn) default-rootfn))
 	 (phrasemap (get settings 'phrasemap))
 	 (stopwords (get settings 'stopwords))
