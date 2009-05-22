@@ -96,39 +96,49 @@ static fdtype hash_lisp_prim(fdtype x)
   return FD_INT2DTYPE(val);
 }
 
-static fdtype lispget(fdtype f,fdtype slotid)
+static fdtype lispget(fdtype table,fdtype key,fdtype dflt)
 {
-  return fd_get(f,slotid,FD_EMPTY_CHOICE);
+  if (FD_VOIDP(dflt))
+    return fd_get(table,key,FD_EMPTY_CHOICE);
+  else return fd_get(table,key,dflt);
 }
 
-static fdtype lispadd(fdtype f,fdtype slotid,fdtype val)
+static fdtype lispgetif(fdtype table,fdtype key,fdtype dflt)
 {
-  if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
-  else if (FD_EMPTY_CHOICEP(slotid)) return FD_VOID;
-  else if (fd_add(f,slotid,val)<0) return FD_ERROR_VALUE;
+  if (FD_FALSEP(table)) return fd_incref(key);
+  else if (FD_VOIDP(dflt)) 
+    return fd_get(table,key,FD_EMPTY_CHOICE);
+  else return fd_get(table,key,dflt);
+}
+
+static fdtype lispadd(fdtype table,fdtype key,fdtype val)
+{
+  if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (fd_add(table,key,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
-static fdtype lispdrop(fdtype f,fdtype slotid,fdtype val)
+static fdtype lispdrop(fdtype table,fdtype key,fdtype val)
 {
-  if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
-  if (FD_EMPTY_CHOICEP(slotid)) return FD_VOID;
-  else if (fd_drop(f,slotid,val)<0) return FD_ERROR_VALUE;
+  if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (fd_drop(table,key,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
-static fdtype lispstore(fdtype f,fdtype slotid,fdtype val)
+static fdtype lispstore(fdtype table,fdtype key,fdtype val)
 {
-  if (FD_EMPTY_CHOICEP(f)) return FD_VOID;
-  else if (FD_EMPTY_CHOICEP(slotid)) return FD_VOID;
-  else if (fd_store(f,slotid,val)<0) return FD_ERROR_VALUE;
+  if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (fd_store(table,key,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
-static fdtype lisptest(fdtype f,fdtype slotid,fdtype val)
+static fdtype lisptest(fdtype table,fdtype key,fdtype val)
 {
-  if (FD_EMPTY_CHOICEP(f)) return FD_FALSE;
-  else if (FD_EMPTY_CHOICEP(slotid)) return FD_FALSE;
+  if (FD_EMPTY_CHOICEP(table)) return FD_FALSE;
+  else if (FD_EMPTY_CHOICEP(key)) return FD_FALSE;
   else if (FD_EMPTY_CHOICEP(val)) return FD_FALSE;
   else {
-    int retval=fd_test(f,slotid,val);
+    int retval=fd_test(table,key,val);
     if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_TRUE;
     else return FD_FALSE;}
@@ -782,9 +792,11 @@ FD_EXPORT void fd_init_tablefns_c()
 			   fd_fixnum_type,FD_INT2DTYPE(-1)));
   /* Note that GET and TEST are actually DB functions which do inference */
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("%GET",lispget,2)));
+	   fd_make_ndprim(fd_make_cprim3("%GET",lispget,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("%TEST",lisptest,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim3("GETIF",lispgetif,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("ADD!",lispadd,3)));
   fd_idefn(fd_scheme_module,
