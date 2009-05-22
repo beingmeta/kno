@@ -5,7 +5,7 @@
 
 (module-export!
  '{knowlet
-   kno/dterm kno/dref kno/ref knowlet?
+   kno/dterm kno/dref kno/ref kno/probe knowlet?
    kno/add! kno/drop! kno/replace! kno/find
    knowlet-name knowlet-opts knowlet-language
    knowlet-oid knowlet-pool knowlet-index
@@ -150,6 +150,9 @@
 (define (kno/dref term (knowlet default-knowlet) (create #t))
   (try (get (knowlet-dterms knowlet) term)
        (tryif create (kno/dterm term knowlet))))
+
+(define (kno/probe term (knowlet default-knowlet))
+  (get (knowlet-dterms knowlet) term))
 
 (define (kno/ref term (knowlet default-knowlet) (lang) (tryhard #f))
   (default! lang (knowlet-language knowlet))

@@ -3,21 +3,28 @@
 (use-module '{texttools fdweb ezrecords varconfig})
 (use-module '{knowlets knowlets/drules})
 
-(module-export! '{kno/read-plaintext kno/write-plaintext})
+(module-export!
+ '{kno/read-plaintext
+   kno/write-plaintext
+   knowlet->file file->knowlet})
 
 (module-export! '{escaped-segment escaped-find})
 
 ;;; Text processing
 
+;;; These were original definitions which are now in C
 (define (escaped-segment string sep)
   (let ((result '()) (start 0) (pos (position sep string)))
     (while pos
-      (unless (and (> pos 0)
-		   (eqv? (elt string (- pos 1)) #\\))
-	(unless (= pos start)
-	  (set! result (cons (subseq string start pos) result)))
-	(set! start (1+ pos))
-	(set! pos (position sep string start))))
+      (if (and (> pos 0) (eqv? (elt string (- pos 1)) #\\)
+	       (or (= pos 1)
+		   (not (eqv? (elt string (- pos 2)) #\\))))
+	  (set! pos (position sep string (1+ pos)))
+	  (begin
+	    (unless (= pos start)
+	      (set! result (cons (subseq string start pos) result)))
+	    (set! start (1+ pos))
+	    (set! pos (position sep string start)))))
     (unless (= start (length string))
       (set! result (cons (subseq string start) result)))
     (reverse result)))
@@ -36,16 +43,22 @@
 (define (unescape-string string)
   (string-subst* string "\\;" ";" "\\|" "|" "\\\\" "\\"))
 
+(define escaped-segment splitsep)
+(define escaped-find findsep)
+(define unescape-string unslashify)
+
 ;;; Handling clauses
 
 (define (handle-lang-term subject slotid lang value)
-  (if (exists? (textmatcher #("$" (isalpha) (isalpha) "$") value))
-      (let ((langid (string->lisp (subseq value 1 3))))
-	(if (eq? langid lang)
-	    (list subject slotid (subseq value 4))
-	    (list subject slotid
-		  (cons langid (subseq value 4)))))
-      (list subject slotid value)))
+  (tryif (and (string? value) (not (equal? value "")))
+    (if (and (eqv? (elt value 0) #\$)
+	     (string-starts-with? value #("$" (isalpha) (isalpha) "$")))
+	(let ((langid (string->lisp (subseq value 1 3))))
+	  (if (eq? langid lang)
+	      (list subject slotid (subseq value 4))
+	      (list subject slotid
+		    (cons langid (subseq value 4)))))
+	(list subject slotid value))))
 
 (define (plaintext->drule string subject knowlet language)
   (let* ((dclauses (map trim-spaces (segment-string string #\&)))
@@ -152,19 +165,17 @@
 	 (handle-lang-term subject
 			   (get #[#f explanation #\* gloss #\~ aside] mod)
 			   (knowlet-language knowlet) value))
-	((eq? op #\%)
-	 (if (eq? mod #\*)
-	     (let ((meta (kno/dterm value knowlet)))
-	       (list subject 'meta meta))
-	     (if (eq? mod #\~)
-		 (list subject 'meta value)
-		 (let ((mirror (kno/dterm value knowlet)))
-		   (list subject 'mirror mirror)))))
 	((eq? op #\+)
 	 (list subject 'drules
 	       (plaintext->drule (string-append "+" value)
 				 subject knowlet
 				 (knowlet-language knowlet))))
+	((eq? op #\%)
+	 (let ((eqpos (position #\= value)))
+	   (if eqpos
+	       (list subject (string->lisp (subseq value 1 eqpos))
+		     (kno/dterm (subseq value (1+ eqpos))))
+	       (list subject 'meta (string->lisp (subseq value 1))))))
 	(else (error "Bad clause" op mod value))))
 
 (define (handle-clause clause subject knowlet)
@@ -182,6 +193,7 @@
 (define (handle-subject-entry entry knowlet)
   (let* ((clauses (remove "" (map trim-spaces (escaped-segment entry #\|))))
 	 (dterm (kno/dterm (first clauses) knowlet)))
+    (message "Handling clauses for " dterm)
     (doseq (clause (cdr clauses))
       (handle-clause clause dterm knowlet))
     dterm))
@@ -245,7 +257,9 @@
 		   (printout "|." (get slotid 'dterm)
 			     "=" (output-value value knowlet)))
 		  ((eq? slotid (knowlet-language knowlet))
-		   (printout "|" value))
+		   (if (char-punctuation? (elt value 0))
+		       (printout "|\\" value)
+		       (printout "|" value)))
 		  ((eq? slotid 'gloss)
 		   (printout "|\"" (output-value value) "\""))
 		  ((overlaps? slotid langids)
@@ -269,11 +283,7 @@
 			     (output-value (car value) knowlet)
 			     "(" (output-value (cdr value) knowlet) ")" ))
 		  ((eq? slotid 'mirror)
-		   (printout "|%" (get value 'dterm)))
-		  ((eq? slotid 'meta)
-		   (if (oid? value)
-		       (printout "|%*" (get value 'dterm))
-		       (printout "|%~" value)))
+		   (printout "|%MIRROR=" (get value 'dterm)))
 		  ((eq? slotid 'drules)
 		   (printout "|")
 		   (if (eq? (knowlet-language knowlet)
@@ -312,4 +322,11 @@
 	(dterm->plaintext dterm kl settings)))
   (lineout))
 
+(define (knowlet->file knowlet (file #f) (settings #[]))
+  (if (and (string? knowlet) (not file))
+      (knowlet->file default-knowlet knowlet settings)
+      (fileout file (kno/write-plaintext knowlet settings))))
+
+(define (file->knowlet file (knowlet default-knowlet))
+  (kno/read-plaintext (filestring file) knowlet))
 

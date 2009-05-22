@@ -195,7 +195,8 @@
 	     (kno/add! kf 'somenot (find-frames index 'oid somenot)))
 	   (when (overlaps? slotids 'refs)
 	     (when (test bf @?refterms)
-	       (kno/add! kf 'refs (brico->kno (get bf @?refterms) knowlet))))
+	       (kno/add! kf 'refs
+			 (find-frames index 'oid (get bf @?refterms)))))
 	   (when (test bf @?sumterms)
 	     (kno/add! kf 'assocs
 		       (find-frames index 'oid (get bf @?sumterms))))
@@ -218,9 +219,10 @@
 	     (kno/add! kf (kno/dterm "assemblage" knowlet)
 		       (find-frames index 'oid (get bf @?partof))))
 	   (do-choices (role (pick (pickoids (getkeys bf)) 'sensecat))
-	     (do-choices (v (pickoids (%get bf role)))
-	       (kno/add! kf (brico->kno role knowlet #t)
-			 (brico->kno v knowlet #t))))
+	     (do-choices (v (find-frames index
+			      'oid (pickoids (%get bf role))))
+	       (kno/add! kf (brico->kno role knowlet)
+			 (find-frames index 'oid v))))
 	   kf))
 	(else (fail))))
 
