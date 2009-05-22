@@ -391,6 +391,7 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
 {
   if (FD_EXPECT_FALSE(!(FD_SEQUENCEP(arg))))
     return fd_type_error("sequence","seq2phrase_prim",arg);
+  else if (FD_STRINGP(arg)) return fd_incref(arg);
   else {
     int dospace=0, start=FD_FIX2INT(start_arg), end, len=fd_seq_length(arg);
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
@@ -1058,6 +1059,34 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
     else {
       fd_decref(match_result);
       return FD_TRUE;}}
+}
+
+static fdtype string_ends_with(fdtype string,fdtype pattern,
+			       fdtype start_arg,fdtype end_arg)
+{
+  int off, lim;
+  convert_offsets(string,start_arg,end_arg,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  else {
+    u8_string data=FD_STRDATA(string);
+    int start=fd_text_search(pattern,NULL,data,off,lim,0);
+    fdtype end=FD_INT2DTYPE(lim);
+    if (start<-1) return FD_ERROR_VALUE;
+    while (start>=0) {
+      fdtype matches=fd_text_matcher(pattern,NULL,data,start,lim,0);
+      if (FD_ABORTP(matches)) return matches;
+      else if (matches==end) return FD_TRUE;
+      else {
+	FD_DO_CHOICES(match,matches)
+	  if (match==end) {
+	    fd_decref(matches);
+	    FD_STOP_DO_CHOICES;
+	    return FD_TRUE;}}
+      fd_decref(matches);
+      start=fd_text_search(pattern,NULL,data,start+1,lim,0);
+      if (start<-1) return FD_ERROR_VALUE;}
+    return FD_FALSE;}
 }
 
 /* text2frame */
@@ -1849,6 +1878,11 @@ void fd_init_texttools()
 	    fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,fd_make_cprim4x
 	   ("STRING-STARTS-WITH?",string_starts_with,2,
+	    fd_string_type,FD_VOID,-1,FD_VOID,
+	    fd_fixnum_type,FD_INT2DTYPE(0),
+	    fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,fd_make_cprim4x
+	   ("STRING-ENDS-WITH?",string_ends_with,2,
 	    fd_string_type,FD_VOID,-1,FD_VOID,
 	    fd_fixnum_type,FD_INT2DTYPE(0),
 	    fd_fixnum_type,FD_VOID));
