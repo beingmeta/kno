@@ -172,7 +172,9 @@
 				  (apply append bound)))
 		       expr))))))
 	((not (pair? expr)) expr)
-	((pair? (car expr))
+	;; This will break when the ambiguous head includes
+	;;  a special form.  Tricky to code cleanly.
+	((or (pair? (car expr)) (ambiguous? (car expr)))
 	 (tighten-call expr env bound dolex))
 	((and (symbol? (car expr)) (get-lexref (car expr) bound 0))
 	 expr)
