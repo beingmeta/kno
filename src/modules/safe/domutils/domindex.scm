@@ -2,7 +2,9 @@
 
 (in-module 'domutils/index)
 
-(use-module '{reflection fdweb xhtml texttools domutils varconfig logger})
+(use-module '{reflection
+	      fdweb xhtml texttools domutils
+	      morph varconfig logger})
 
 (module-export! '{dom/index! dom/adjust-index!})
 (module-export! '{dom/textanalyze apply-refrules})
@@ -93,7 +95,7 @@
 			(tryif (test settings 'cache 'textslots)
 			  '{words roots rootv wordv}))))
     ;; Extract features
-    (let* ((wordv (words->vector text))
+    (let* ((wordv (words->vector text #t))
 	   (rootv (tryif (and (exists? phrasemap) phrasemap (exists? rootfn))
 		    (forseq (word wordv)
 		      (if (or (get stopwords word)
@@ -101,9 +103,9 @@
 				   (get stopwords (downcase word))))
 			  word
 			  (try (rootfn word) word)))))
-	   (refv (getrefs text refrules stopwords))
-	   (allrefs (seq->phrase refv))
-	   (allwords (choice (elts wordv) allrefs))
+	   (allrefs (getrefs text refrules stopwords))
+	   (allwords (choice (reject (elts wordv) string-matches? '(ispunct+))
+			     allrefs))
 	   (allroots (for-choices (word allwords)
 		       (if (or (get stopwords word)
 			       (and (capitalized? word)
@@ -111,18 +113,20 @@
 			   (fail)
 			   (try (rootfn word) word))))
 	   (rejects (choice (pick allroots stopwords)
-			    (pick allroots downcase stopwords)))
-	   (refelts (elts refv))
-	   (refroots (for-choices (word refelts) (try (rootfn word) word)))
-	   (words (difference allwords refelts))
-	   (roots (difference allroots (choice refelts refroots rejects))))
+			    (pick allroots downcase stopwords)
+			    (for-choices (ref allrefs)
+			      (tryif
+				  (string-starts-with? ref #((isalpha+) ". "))
+				({seq->phrase elts} (words->vector ref) 1)))))
+	   (words allwords)
+	   (roots (difference allroots rejects)))
       ;; Cache features as specified
       (store! xml (intersection 'words cache) words)
       (store! xml (intersection 'roots cache) roots)
       (store! xml (intersection 'refs cache) allrefs)
       (store! xml (intersection 'rootv cache) rootv)
       (store! xml (intersection 'wordv cache) wordv)
-      (when (overlaps? cache #t)
+      (when #t ;; (overlaps? cache #t)
 	(store! xml 'words words)
 	(store! xml 'roots roots)
 	(store! xml 'refs allrefs)
@@ -139,12 +143,22 @@
 		    (cons 'terms (seq->phrase phrase)))))))))
 
 (defambda (getrefs text refrules stopwords)
+  "Get references, typically based on capitalization"
   (tryif (not (uppercase? text))
-    (filter-choices
-	(refv (words->vector (apply-refrules refrules text)))
-      (not (or (get stopwords (first refv))
-	       (get stopwords (downcase (first refv))))))))
-(module-export! 'getrefs)
+    (filter-choices (ref (apply-refrules refrules text))
+      (let* ((pos (position #\Space ref))
+	     (hd (and pos (subseq ref 0 pos))))
+	(and pos
+	     (not (get stopwords hd))
+	     (not  (get stopwords (downcase hd))))))))
+
+(defambda (getrefs/in text language)
+  (let* ((langmod (get-langmod language))
+	 (stop-words (get langmod 'stop-words))
+	 (refrules (cachecall compute-refrules stop-words)))
+    (getrefs text refrules stop-words)))
+
+(module-export! '{getrefs getrefs/in})
 
 (defambda (reduce-map map slotids)
   (for-choices map
@@ -196,24 +210,28 @@
     LABELS SOLENAME])
 
 (define uncapped-rule
-  #[PATTERN
-    #({(bol) "." "," "\"" "'"} (spaces)
-      (label term (capword) downcase))
-    LABELS TERM])
+  `#[PATTERN
+     #({(bol) "." "," "\"" "'"} (spaces)
+       (label term (capword) ,downcase))
+     LABELS TERM])
 
 (define (make-name-pattern (stop-words #f) (glue #{}))
   (let ((xstop-words (and stop-words (make-hashset))))
     (when stop-words
       (do-choices (word (hashset-elts stop-words))
 	(hashset-add! xstop-words (capitalize word))))
-    `#(,(if xstop-words
-	    `{(hashset-not ,xstop-words (capword))
-	      ,name-prefixes}
-	    `{(capword) ,name-prefixes})
-       (* #((spaces)
-	    {(capword) ,glue
-	     #((isupper) ".") #((isupper) "." (isupper) ".")}))
-       (spaces) (capword))))
+    `(PREF #(,name-prefixes
+	     (* #((spaces)
+		  {(capword) ,glue
+		   #((isupper) ".") #((isupper) "." (isupper) ".")}))
+	     (spaces) (capword))
+	   #(,(if xstop-words
+		  `(hashset-not ,xstop-words (capword))
+		  '(capword))
+	     (* #((spaces)
+		  {(capword) ,glue
+		   #((isupper) ".") #((isupper) "." (isupper) ".")}))
+	     (spaces) (capword)))))
 
 (define (compute-refrules stop-words)
   (let* ((basic (choice (make-name-pattern stop-words (qc))
@@ -223,7 +241,7 @@
 	  (for-choices (core basic)
 	    (frame-create #f
 	      'pattern
-	       `#((islower)  (spaces)
+	       `#((islower) (spaces)
 		  (label name ,core)
 		  (spaces*) {(ispunct) (eol) (islower)})
 	       'labels 'name))))
