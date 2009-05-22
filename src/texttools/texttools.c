@@ -1625,15 +1625,15 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
 static char *stdlib_escapes="ntrfab\\";
 static char *stdlib_unescaped="\n\t\r\f\a\b\\";
 
-static fdtype unescape_prim(fdtype string,fdtype offset,fdtype limit_arg,
-			    fdtype dostd)
+static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
+			      fdtype dostd)
 {
   int off, lim; 
   u8_string sdata=FD_STRDATA(string), start, limit, split1;
   int handle_stdlib=(!(FD_FALSEP(dostd)));
   convert_offsets(string,offset,limit_arg,&off,&lim);  
   if ((off<0) || (lim<0))
-    return fd_err(fd_RangeError,"unescape_prim",NULL,FD_VOID);
+    return fd_err(fd_RangeError,"unslashify_prim",NULL,FD_VOID);
   start=sdata+off; limit=sdata+lim; split1=strchr(start,'\\');
   if ((split1) && (split1<limit)) {
     u8_byte *scan=start;
@@ -1946,7 +1946,7 @@ void fd_init_texttools()
 			   -1,FD_VOID,-1,FD_VOID,
 			   fd_character_type,FD_CODE2CHAR('\\')));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("UNESCAPE",unescape_prim,2,
+	   fd_make_cprim4x("UNSLASHIFY",unslashify_prim,1,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID,
 			   -1,FD_FALSE));
