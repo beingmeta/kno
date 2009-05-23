@@ -1,12 +1,16 @@
+;;; -*- Mode: Scheme; text-encoding: utf-8; -*-
+
 (in-module 'knowlets)
 
-(use-module '{texttools ezrecords varconfig})
+(use-module '{texttools ezrecords varconfig logger})
 (use-module 'knowlets/drules)
 
 (module-export!
  '{knowlet
    kno/dterm kno/dref kno/ref kno/probe knowlet?
    kno/add! kno/drop! kno/replace! kno/find
+   kno/phrasemap
+   kno/slotid kno/slotids kno/slotnames
    knowlet-name knowlet-opts knowlet-language
    knowlet-oid knowlet-pool knowlet-index
    knowlet-alldterms knowlet-dterms knowlet-drules
@@ -14,6 +18,12 @@
    knowlet:pool knowlet:index knowlet:indices
    knowlet! ->knowlet iadd!
    langids})
+
+(define %loglevel %warn!)
+
+(define kno/logging {})
+
+;;;; Global tables, variables, and structures (with their configs)
 
 (define-init knowlets (make-hashtable))
 
@@ -48,7 +58,42 @@
 (define knowlet:language 'en)
 (varconfig! KNO:LANG knowlet:language)
 
+;;; Various useful global tables
+
 (define langids (file->dtype (get-component "langids.dtype")))
+(define langnames (file->dtype (get-component "langnames.table")))
+(define kno/slotids {})
+(define kno/slotnames (make-hashtable))
+(define slotids-finished #f)
+
+(define knowlet-slots-init
+  '((genls genl broader class category kindof isa ^)
+    (specls specl narrower cases instances examples _)
+    (commonly usually typically ^*)
+    (sometimes possibly ^~)
+    (never not disjoint disjoin -)
+    (rarely unusually atypically -*)
+    (somenot maybenot notrequired mightnotbe -~)
+    (mirror inverse)
+    (hooks hook ~)))
+(define knowlet-slots-initialized #f)
+
+(unless knowlet-slots-initialized
+  ;; Initialize knowlet-slots
+  (dolist (slot-init knowlet-slots-init)
+    (set+! kno/slotids (car slot-init))
+    (add! kno/slotnames (elts slot-init) (car slot-init)))
+  (do-choices (name (getkeys langnames))
+    (set+! kno/slotids (get langnames name))
+    (add! kno/slotnames name (get langnames name)))
+  (set! knowlet-slots-initialized #t))
+
+(define kno/slotid
+  (macro expr
+    `(if (overlaps? ,(get-arg expr 1) kno/slotids) ,(get-arg expr 1)
+	 (tryget kno/slotnames ,(get-arg expr 1)))))
+
+;;; The KNOWLET structure itself
 
 (defrecord knowlet name
   (oid #f)
@@ -63,6 +108,9 @@
   ;; GENLS index (index of the transitive closure of GENLS)
   ;;  (useful in inference and searching)
   (genls* (make-hashtable))
+  ;; Phrasemaps to help in pulling phrases out of documents
+  ;;  This is a hashtable mapping (LANGID . word) to a phrase vector
+  (phrasemaps (make-hashtable))
   ;; All dterms in this knowlet (a hashset)
   (alldterms (make-hashset))
   ;; Rules for disambiguating words into dterms
@@ -169,54 +217,72 @@
 	 (choice (string-subst string "-" " " )
 		 (string-subst string "-" ""))))
 
-(define (kno/index-string f slotid (value) (index))
-  (default! value (get f slotid))
-  (default! index (get-index f))
+(defambda (kno/string-indices value (phonetic #f))
   (let* ((values (stdspace value))
 	 (expvalues (choice values (basestring values)))
 	 (normvalues (capitalize (pick expvalues somecap?)))
 	 (indexvals (choice expvalues normvalues (dedash normvalues)))
-	 (shortvals (pick (choice values normvalues) length > 1))
-	 (metavals (metaphone shortvals #t)))
-    (add! index (cons slotid indexvals) f)
-    (add! index (cons slotid metavals) f)))
+	 (metavals (tryif phonetic
+		     (metaphone (pick (choice values normvalues) length > 2)
+				#t))))
+    (choice indexvals metavals)))
+
+(define (kno/index-string f slotid (value) (knowlet) (index))
+  (default! value (get f slotid))
+  (default! knowlet (get knowlets (get f 'knowlet)))
+  (default! index (knowlet-index knowlet))
+  (add! index (cons slotid (kno/string-indices value))))
 
 ;;; Find and edit operations on dterms
 
 (defambda (kno/find . args)
-  (let ((knowlet (if (even? (length args))
-		     default-knowlet
-		     (car args)))
-	(args (if (even? (length args)) args (cdr args))))
-    (apply find-frames (knowlet-index knowlet) args)))
+  (let* ((n-args (length args))
+	 (knowlet (if (even? n-args) default-knowlet (car args)))
+	 (args (if (even? n-args) args (cdr args))))
+    (if (< n-args 4)
+	(find-frames (knowlet-index knowlet)
+	  (kno/slotid (car args)) (cadr args))
+	(if (< n-args 5)
+	    (find-frames (knowlet-index knowlet)
+	      (kno/slotid (car args)) (cadr args)
+	      (kno/slotid (third args)) (fourth args))
+	    (apply find-frames (knowlet-index knowlet)
+		   (do ((query
+			 '() (cons (cadr args)
+				   (cons (kno/slotid (car args)) query))))
+		       ((null? args) (reverse query))))))))
 
 (define infer-onadd (make-hashtable))
 (define infer-ondrop (make-hashtable))
 
 (defambda (kno/add! dterm slotid value)
-  (let* ((cur (get dterm slotid))
+  (detail%watch "KNO/ADD!" dterm slotid value)
+  (let* ((slotid (kno/slotid slotid))
+	 (cur (get dterm slotid))
 	 (new (difference value cur))
 	 (knowlet (get knowlets (get dterm 'knowlet))))
     (when (exists? new)
       (add! dterm slotid new)
-      (if (overlaps? slotid langids)
-	  (kno/index-string dterm slotid new (knowlet-index knowlet))
-	  (index-frame (knowlet-index knowlet) dterm slotid new))
+      (index-frame (knowlet-index knowlet) dterm slotid new)
       (unless (exists? cur)
 	(index-frame (knowlet-index knowlet) dterm 'has slotid))
-      ((get infer-onadd slotid) dterm slotid new))))
+      ((get infer-onadd slotid) dterm slotid new)
+      (detail%watch "KNO/ADD!" dterm slotid new))))
 
 (defambda (kno/drop! dterm slotid value)
-  (let ((drop (intersection value (get dterm slotid)))
-	(knowlet (get knowlets (get dterm 'knowlet))))
+  (let* ((slotid (kno/slotid slotid))
+	 (drop (intersection value (get dterm slotid)))
+	 (knowlet (get knowlets (get dterm 'knowlet))))
     (when (exists? drop)
       (drop! dterm slotid drop)
       (drop! (knowlet-index knowlet) (cons slotid new) dterm)
+      (if (fail? (get dterm slotid))
+	  (drop! (knowlet-index knowlet) (cons 'has slotid) dterm))
       ((get infer-ondrop slotid) dterm slotid drop))))
 
 (defambda (kno/replace! dterm slotid value (toreplace {}))
   (for-choices dterm
-    (for-choices slotid
+    (for-choices (slotid (kno/slotid slotid))
       (let ((replace (difference (try toreplace (get dterm slotid))
 				 value)))
 	(let ((new (difference value (get dterm slotid)))
@@ -291,6 +357,48 @@
 (add! infer-onadd '{mirror equivalent identical} add-symmetric!)
 (add! infer-ondrop '{mirror equivalent identical} drop-symmetric!)
 
+;;; Natural language terms
+
+(defambda (add-phrase! frame slotid value)
+  (let ((knowlet (get knowlets (get frame 'knowlet))))
+    ;; Index expanded vales (including metaphone hashes)
+    (add! (knowlet-index knowlet)
+	  (cons slotid (kno/string-indices value))
+	  frame)
+    ;; Update the phrasemap
+    (when (compound? value)
+      (let ((wordv (words->vector value))
+	    (phrasemap (try (get (knowlet-phrasemaps knowlet) slotid)
+			    (new-phrasemap knowlet langid))))
+	(add! phrasemap (cons slotid (elts wordv)) wordv)
+	(add! phrasemap (list slotid (first wordv)) wordv)))))
+
+(defambda (drop-phrase! frame slotid value (mirror))
+  (let ((knowlet (get knowlets (get frame 'knowlet)))
+	(excur (kno/string-indices (get frame slotid)))
+	(exdrop (kno/string-indices value))
+	(index (knowlet-index knowlet)))
+    ;; Update the index, noting that some expanded values
+    ;;  may still apply after the drop
+    (drop! (knowlet-index knowlet)
+	   (cons slotid (difference exdrop excur))
+	   frame)))
+
+(store! infer-onadd langids add-phrase!)
+(store! infer-ondrop langids drop-phrase!)
+
+(defslambda (new-phrasemap knowlet langid)
+  (let ((phrasemap (get (knowlet-phrasemaps knowlet) langid)))
+    (when (fail? phrasemap)
+      (set! phrasemap (make-hashtable))
+      (store! (knowlet-phrasemaps knowlet) langid phrasemap))
+    phrasemap))
+
+(define (kno/phrasemap knowlet (langid))
+  (default! langid (knowlet-language knowlet))
+  (try (get (knowlet-phrasemaps knowlet) langid)
+       (new-phrasemap knowlet langid)))
+
 ;;; DRULES
 
 (define (add-drule! frame slotid value)
@@ -332,5 +440,7 @@
 		  (add! kindex (cons 'has slotid) (reject f slotid))
 		  (add! f slotid value)
 		  (add! index (cons slotid value) f))))))))
+
+
 
 
