@@ -61,7 +61,7 @@
 	(list subject slotid value))))
 
 (define (plaintext->drule string subject knowlet language)
-  (let* ((dclauses (map trim-spaces (segment-string string #\&)))
+  (let* ((dclauses (map trim-spaces (escaped-segment string #\&)))
 	 (cues {}) (context+ {}) (context- {})
 	 (threshold 1))
     (doseq (dclause (remove "" dclauses) i)
@@ -138,7 +138,7 @@
 	       (let ((dterm
 		      (if atpos
 			  (kno/dref (subseq value 0 atpos)
-				    (kno/knowlet (subseq value (1+ atpos))))
+				    (knowlet (subseq value (1+ atpos))))
 			  (kno/dref value knowlet))))
 		 (choice
 		  (list subject
@@ -203,7 +203,7 @@
   (if (not (char-punctuation? (first entry)))
       (handle-subject-entry entry knowlet)
       (cond ((eq? (first entry) #\*)
-	     (kno/add! (handle-subject-entry (subseq entry 1))
+	     (kno/add! (handle-subject-entry (subseq entry 1) knowlet)
 		       'type 'primary))
 	    (else (error "Invalid knowlet entry" entry)))))
 
@@ -294,7 +294,7 @@
 				   (if (string? cue) cue (get cue 'dterm))))
 		       (do-choices (cue (drule-cues value) i)
 			 (if (= i 0)
-			     (printout "+$" (knowlet-langauge value) "$")
+			     (printout "+$" (knowlet-language value) "$")
 			     (printout "&+"))
 			 (printout (if (string? cue) cue (get cue 'dterm)))))
 		   (do-choices (cue (drule-context- value) i)

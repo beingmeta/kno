@@ -142,9 +142,9 @@
 	  (let ((dterm (pick-one (get-dterm bf langframe))))
 	    (if (eq? language knolang)
 		(iadd! kf 'dterms dterm index)
-		(iadd! kf 'dterms (cons 'en dterm) index)))
-	  (when (fail? dterm)
-	    (warning "Can't get DTERM for " bf " in " language)))
+		(iadd! kf 'dterms (cons 'en dterm) index))
+	    (when (fail? dterm)
+	      (warning "Can't get DTERM for " bf " in " language))))
 	(iadd! kf 'oid bf)
 	(when (and (eq? language knolang) (not (test kf 'gloss)))
 	  (store! kf 'gloss

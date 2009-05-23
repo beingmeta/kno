@@ -14,9 +14,9 @@
 
 (define (dtermfield dterm rel (edit #f))
   (let ((vals (get dterm rel))
-	(relname (if (symbol? rel) (symbol-name symbol)
+	(relname (if (symbol? rel) (symbol->string rel)
 		     (get rel 'dterm)))
-	(relcode (try (get relcodes rel) #f)))
+	(relcode (try (get kno/relcodes rel) #f)))
     (when (or edit (exists? vals))
       (span ((class (if edit "field editfield" "field")))
 	(span ((class "head")) "// " relname)

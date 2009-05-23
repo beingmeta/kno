@@ -10,13 +10,14 @@
    kno/dterm kno/dref kno/ref kno/probe knowlet?
    kno/add! kno/drop! kno/replace! kno/find
    kno/phrasemap
-   kno/slotid kno/slotids kno/slotnames
+   kno/slotid kno/slotids kno/slotnames kno/relcodes
    knowlet-name knowlet-opts knowlet-language
    knowlet-oid knowlet-pool knowlet-index
    knowlet-alldterms knowlet-dterms knowlet-drules
    default-knowlet knowlets
    knowlet:pool knowlet:index knowlet:indices
    knowlet! ->knowlet iadd!
+   kno/logging
    langids})
 
 (define %loglevel %warn!)
@@ -34,7 +35,7 @@
 	    (cond ((string? val) (use-pool val))
 		  ((pool? val) val)
 		  ((oid? val)
-		   (try (get-pool val)
+		   (try (getpool val)
 			(make-mempool "knowlets" val (* 1024 1024))))
 		  (else (error "Not a valid knowlet pool"))))
       knowlet:pool))
@@ -64,6 +65,7 @@
 (define langnames (file->dtype (get-component "langnames.table")))
 (define kno/slotids {})
 (define kno/slotnames (make-hashtable))
+(define kno/relcodes (make-hashtable))
 (define slotids-finished #f)
 
 (define knowlet-slots-init
@@ -82,7 +84,10 @@
   ;; Initialize knowlet-slots
   (dolist (slot-init knowlet-slots-init)
     (set+! kno/slotids (car slot-init))
-    (add! kno/slotnames (elts slot-init) (car slot-init)))
+    (add! kno/slotnames (elts slot-init) (car slot-init))
+    (let ((relcodes (pick (symbol->string (elts slot-init))
+			  string-starts-with? '(ispunct))))
+      (add! kno/relcodes (car slot-init) relcodes)))
   (do-choices (name (getkeys langnames))
     (set+! kno/slotids (get langnames name))
     (add! kno/slotnames name (get langnames name)))
@@ -171,7 +176,7 @@
 	 (get knowlets (get object 'knowlet)))
        (get knowlets object)
        (restore-knowlet
-	(find-frames knowlet:indices 'knoname name))))
+	(find-frames knowlet:indices 'knoname object))))
 
 ;;; Creating and referencing dterms
 
@@ -231,7 +236,7 @@
   (default! value (get f slotid))
   (default! knowlet (get knowlets (get f 'knowlet)))
   (default! index (knowlet-index knowlet))
-  (add! index (cons slotid (kno/string-indices value))))
+  (add! index (cons slotid (kno/string-indices value)) f))
 
 ;;; Find and edit operations on dterms
 
@@ -275,7 +280,7 @@
 	 (knowlet (get knowlets (get dterm 'knowlet))))
     (when (exists? drop)
       (drop! dterm slotid drop)
-      (drop! (knowlet-index knowlet) (cons slotid new) dterm)
+      (drop! (knowlet-index knowlet) (cons slotid drop) dterm)
       (if (fail? (get dterm slotid))
 	  (drop! (knowlet-index knowlet) (cons 'has slotid) dterm))
       ((get infer-ondrop slotid) dterm slotid drop))))
@@ -311,11 +316,11 @@
 (define (drop-genl! f s g)
   ;; This is called after the drop happens, so g*cur actually reflects
   ;;  the update.
-  (let ((g* (get* g 'genls))
-	(g*cur (get f 'genls*))
-	(knowlet (get knowlets (get f 'knowlet)))
-	(g*drop (difference g* g*cur))
-	(g*index (knowlet-genls* knowlet)))
+  (let* ((g* (get* g 'genls))
+	 (g*cur (get f 'genls*))
+	 (knowlet (get knowlets (get f 'knowlet)))
+	 (g*drop (difference g* g*cur))
+	 (g*index (knowlet-genls* knowlet)))
     (drop! f 'genls* g)
     (drop! f 'genls* g*drop)
     (drop! g*index g*drop f)
@@ -336,8 +341,8 @@
   (add-genl! v 'genls f))
 
 (define (drop-specl! f s g)
-  (drop! v 'genls f)
-  (drop-genl! v 'genls f))
+  (drop! g 'genls f)
+  (drop-genl! g 'genls f))
 
 (add! infer-onadd 'specls add-specl!)
 (add! infer-ondrop 'specls drop-specl!)
@@ -369,7 +374,7 @@
     (when (compound? value)
       (let ((wordv (words->vector value))
 	    (phrasemap (try (get (knowlet-phrasemaps knowlet) slotid)
-			    (new-phrasemap knowlet langid))))
+			    (new-phrasemap knowlet slotid))))
 	(add! phrasemap (cons slotid (elts wordv)) wordv)
 	(add! phrasemap (list slotid (first wordv)) wordv)))))
 
@@ -380,6 +385,8 @@
 	(index (knowlet-index knowlet)))
     ;; Update the index, noting that some expanded values
     ;;  may still apply after the drop
+    ;; Note that we won't bother updating the phrasemap because
+    ;;  it should only be used heuristically
     (drop! (knowlet-index knowlet)
 	   (cons slotid (difference exdrop excur))
 	   frame)))
