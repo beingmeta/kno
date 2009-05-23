@@ -14,6 +14,9 @@
    %informration! %info! %informration% %info%
    %debug! %detail! %debug% %detail%})
 
+(module-export!
+ '{detail%watch debug%watch info%watch notice%watch warn%watch})
+
 (define %nosubst '%loglevel)
 
 (define %emergency! 0)
@@ -28,6 +31,7 @@
 (define %notify! 5)
 (define %info! 6)
 (define %debug! 7)
+(define %detail! 8)
 
 (define %emergency% 0)
 (define %alert% 1)
@@ -41,11 +45,13 @@
 (define %notify% 5)
 (define %info% 6)
 (define %debug% 7)
+(define %detail% 8)
 
 (define %loglevel 4)
 
 (define loglevel-init-map
-  '{(DEBUG . 7) (DBG . 7) (INFO . 6)
+  '{(DETAIL . 8) (DETAILS . 8)
+    (DEBUG . 7) (DBG . 7) (INFO . 6)
     (NOTICE . 5) (NOTE . 5) (NOTIFY . 5)
     (WARN 4) (WARNING 4)
     (ERROR 3) (ERR 3)
@@ -82,4 +88,15 @@
   (macro expr `(logif+ (>= %loglevel ,%warn!) 5 ,@(cdr expr))))
 (define %debug
   (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
+
+(define detail%watch
+  (macro expr `(if (>= %loglevel ,%detail!) (,%watch ,@(cdr expr)))))
+(define debug%watch
+  (macro expr `(if (>= %loglevel ,%debug!) (,%watch ,@(cdr expr)))))
+(define info%watch
+  (macro expr `(if (>= %loglevel ,%info!) (,%watch ,@(cdr expr)))))
+(define notice%watch
+  (macro expr `(if (>= %loglevel ,%notice!) (,%watch ,@(cdr expr)))))
+(define warn%watch
+  (macro expr `(if (>= %loglevel ,%warn!) (,%watch ,@(cdr expr)))))
 
