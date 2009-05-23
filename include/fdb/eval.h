@@ -387,7 +387,8 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_FLODIV_OPCODE     FD_OPCODE(0x68)
 
 #define FD_BINARY_OPCODES    FD_OPCODE(0x80)
-/* Other primitives with two arguments */
+/* Other primitives with two arguments that automatically
+   iterate over the arguments */
 #define FD_EQ_OPCODE         FD_OPCODE(0x80)
 #define FD_EQV_OPCODE        FD_OPCODE(0x81)
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
@@ -398,7 +399,16 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_GET_OPCODE        FD_OPCODE(0xA0)
 #define FD_TEST_OPCODE       FD_OPCODE(0xA1)
 #define FD_XREF_OPCODE       FD_OPCODE(0xA2)
+#define FD_PGET_OPCODE       FD_OPCODE(0xA3)
+#define FD_PTEST_OPCODE      FD_OPCODE(0xA4)
 
+#define FD_SETOPS_OPCODES    FD_OPCODE(0xC0)
+#define FD_IDENTICAL_OPCODE  FD_OPCODE(0xC1)
+#define FD_OVERLAPS_OPCODE   FD_OPCODE(0xC2)
+#define FD_CONTAINSP_OPCODE  FD_OPCODE(0xC3)
+#define FD_UNION_OPCODE      FD_OPCODE(0xC4)
+#define FD_INTERSECT_OPCODE  FD_OPCODE(0xC5)
+#define FD_DIFFERENCE_OPCODE FD_OPCODE(0xC6)
 
 #endif /* FDB_EVAL_H */
 

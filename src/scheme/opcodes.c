@@ -664,13 +664,15 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return fd_err(fd_VoidArgument,"opcode eval",NULL,arg1_expr);
   /* Check the type for numeric arguments here. */
   else if (FD_EXPECT_FALSE
-	   (((opcode>=FD_NUMERIC2_OPCODES) && (opcode<FD_BINARY_OPCODES)) &&
+	   (((opcode>=FD_NUMERIC2_OPCODES) &&
+	     (opcode<FD_BINARY_OPCODES)) &&
 	    (!(numeric_argp(arg1))))) {
     fdtype result=fd_type_error(_("number"),"numeric opcode",arg1);
     fd_decref(arg1);
     return result;}
   else if (FD_EXPECT_FALSE
-	   (((opcode>=FD_NUMERIC2_OPCODES) && (opcode<FD_BINARY_OPCODES)) &&
+	   (((opcode>=FD_NUMERIC2_OPCODES) &&
+	     (opcode<FD_BINARY_OPCODES)) &&
 	    (FD_EMPTY_CHOICEP(arg1))))
     return arg1;
   else if (FD_EMPTY_LISTP(body)) /* Unary call */
@@ -746,7 +748,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else result=opcode_binary_dispatch(opcode,arg1,arg2);
       fd_decref(arg1); fd_decref(arg2);
       return result;}}
-  else if (opcode==FD_GET_OPCODE)
+  else if ((opcode==FD_GET_OPCODE) || (opcode==FD_PGET_OPCODE))
     if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
     else {
       fdtype slotid_arg=fd_get_arg(expr,2);
@@ -754,10 +756,16 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       if (FD_ABORTP(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
-      result=fd_fget(arg1,slotids);
+      if (opcode==FD_GET_OPCODE)
+	result=fd_fget(arg1,slotids);
+      else {
+	fdtype dflt=fd_eval(fd_get_arg(expr,3),env);
+	if (FD_ABORTP(dflt)) result=dflt;
+	else result=fd_get(arg1,slotids,dflt);
+	fd_decref(dflt);}
       fd_decref(arg1); fd_decref(slotids);
       return result;}
-  else if (opcode==FD_TEST_OPCODE)
+  else if ((opcode==FD_TEST_OPCODE) || (opcode==FD_PTEST_OPCODE))
     if (FD_EMPTY_CHOICEP(arg1)) return FD_FALSE;
     else {
       fdtype slotid_arg=fd_get_arg(expr,2);
@@ -770,9 +778,52 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	values=FD_EMPTY_CHOICE;
       else values=fd_eval(values_arg,env);
       if (FD_ABORTP(values)) return values;
-      result=fd_ftest(arg1,slotids,values);
+      if (opcode==FD_TEST_OPCODE)
+	result=fd_ftest(arg1,slotids,values);
+      else if (fd_test(arg1,slotids,values))
+	result=FD_TRUE;
+      else result=FD_FALSE;
       fd_decref(arg1); fd_decref(slotids); fd_decref(values);
       return result;}
+  else if ((opcode>FD_SETOPS_OPCODES) &&
+	   (opcode<=FD_DIFFERENCE_OPCODE)) {
+    fdtype arg2expr=fd_get_arg(expr,2), argv[2];
+    fdtype arg2=fd_eval(arg2expr,env);
+    fdtype result=FD_ERROR_VALUE;
+    argv[0]=arg1; argv[1]=arg2;
+    if (FD_ABORTP(arg2)) result=arg2;
+    else switch (opcode) {
+      case FD_IDENTICAL_OPCODE:
+	if (arg1==arg2) result=FD_TRUE;
+	else if (FD_EQUAL(arg1,arg2)) result=FD_TRUE;
+	else result=FD_FALSE;
+	break;
+      case FD_OVERLAPS_OPCODE:
+	if (arg1==arg2) result=FD_TRUE;
+	else if (fd_overlapp(arg1,arg2)) result=FD_TRUE;
+	else result=FD_FALSE;
+	break;
+      case FD_CONTAINSP_OPCODE:
+	if (fd_containsp(arg1,arg2)) result=FD_TRUE;
+	else result=FD_FALSE;
+	break;
+      case FD_INTERSECT_OPCODE:
+	if ((FD_EMPTY_CHOICEP(arg1)) || (FD_EMPTY_CHOICEP(arg2)))
+	  result=FD_EMPTY_CHOICE;
+	else result=fd_intersection(argv,2);
+	break;
+      case FD_UNION_OPCODE:
+	if (FD_EMPTY_CHOICEP(arg1)) result=fd_incref(arg2);
+	else if (FD_EMPTY_CHOICEP(arg2)) result=fd_incref(arg1);
+	else result=fd_union(argv,2);
+	break;
+      case FD_DIFFERENCE_OPCODE:
+	if ((FD_EMPTY_CHOICEP(arg1)) || (FD_EMPTY_CHOICEP(arg2)))
+	  result=fd_incref(arg1);
+	else result=fd_difference(arg1,arg2);
+	break;}
+    fd_decref(arg1); fd_decref(arg2);
+    return result;}
   else if (opcode==FD_XREF_OPCODE)
     if (FD_EMPTY_CHOICEP(arg1))
       return FD_EMPTY_CHOICE;
