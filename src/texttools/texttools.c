@@ -1644,7 +1644,7 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
 	u8_putn(&out,scan,limit-scan); break;}
       else {
 	int nc;
-	u8_putn(&out,scan,split-scan); scan++;
+	u8_putn(&out,scan,split-scan); scan=split+1;
 	nc=u8_sgetc(&scan);
 	if ((handle_stdlib) && (nc<0x80) && (isalpha(nc))) {
 	  char *cpos=strchr(stdlib_escapes,nc);

@@ -735,8 +735,9 @@ static fdtype trim_spaces(fdtype string)
   while (scan>=trim_start) {
     u8_byte *cstart=scan; int c;
     while ((cstart>=trim_start) &&
+	   ((*cstart)>=0x80) &&
 	   ((*cstart)<0xC0)) cstart--;
-    if (scan<trim_start) break;
+    if (cstart<trim_start) break;
     scan=cstart;
     c=u8_sgetc(&scan);
     if (u8_isspace(c)) {
