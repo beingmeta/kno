@@ -290,7 +290,9 @@
 
 (define (dom/getmeta doc field (dflt))
   (try (get (pick (dom/find (dom/find doc "HEAD") "META")
-		  'name field)
+		  'name (choice field
+				(tryif (symbol? field)
+				  (symbol->string field))))
 	    'content)
        (if (bound? dflt) dflt (fail))))
 
