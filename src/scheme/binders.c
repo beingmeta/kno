@@ -435,6 +435,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     while (j >= i) {
       lexpr_arg=fd_init_pair(NULL,fd_incref(args[j]),lexpr_arg);
       j--;}
+    fd_incref(lexpr_arg);
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_struct(fn);
