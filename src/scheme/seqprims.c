@@ -644,7 +644,7 @@ FD_EXPORT int applytest(fdtype test,fdtype elt)
     return -1;}
 }
 
-FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence)
+FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert)
 {
   if (!(FD_SEQUENCEP(sequence)))
     return fd_type_error("sequence","fd_remove",sequence);
@@ -657,7 +657,8 @@ FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence)
       fdtype elt=fd_seq_elt(sequence,i);
       int compare=applytest(test,elt); i++;
       if (compare<0) {u8_free(results); return -1;}
-      else if (compare) {removals++; fd_decref(elt);}
+      else if ((invert) ? (!(compare)) : (compare)) {
+	removals++; fd_decref(elt);}
       else results[j++]=elt;}
     if (removals) {
       result=fd_makeseq(result_type,j,results);
@@ -669,6 +670,7 @@ FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence)
       u8_free(results);
       return fd_incref(sequence);}}
 }
+
 
 /* Reduction */
 
@@ -1009,12 +1011,26 @@ static fdtype removeif_prim(fdtype test,fdtype sequence)
   else if (FD_CHOICEP(sequence)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(seq,sequence) {
-      fdtype r=fd_removeif(test,seq);
+      fdtype r=fd_removeif(test,seq,0);
       if (FD_ABORTP(r)) {
 	fd_decref(results); return r;}
       FD_ADD_TO_CHOICE(results,r);}
     return results;}
-  else return fd_removeif(test,sequence);
+  else return fd_removeif(test,sequence,0);
+}
+
+static fdtype removeifnot_prim(fdtype test,fdtype sequence)
+{
+  if (FD_EMPTY_CHOICEP(sequence)) return sequence;
+  else if (FD_CHOICEP(sequence)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(seq,sequence) {
+      fdtype r=fd_removeif(test,seq,1);
+      if (FD_ABORTP(r)) {
+	fd_decref(results); return r;}
+      FD_ADD_TO_CHOICE(results,r);}
+    return results;}
+  else return fd_removeif(test,sequence,1);
 }
 
 /* Small element functions */
@@ -1678,7 +1694,11 @@ FD_EXPORT void fd_init_sequences_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("MAP->CHOICE",fd_map2choice,2));
   fd_idefn(fd_scheme_module,fd_make_cprim3("REDUCE",fd_reduce,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("REMOVE",fd_remove,2));
-  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("REMOVEIF",removeif_prim,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("REMOVE-IF",removeif_prim,2)));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2
+			  ("REMOVE-IF-NOT",removeifnot_prim,2)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim4("SOME?",some_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim4("EVERY?",every_prim,2));

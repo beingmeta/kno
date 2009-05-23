@@ -10,6 +10,7 @@
    dom/set! dom/add! dom/append!
    dom/selector dom/match dom/lookup dom/find
    dom/search dom/strip! dom/map
+   dom/getmeta dom/getlinks
    ->selector selector-tag selector-class selector-id
    *block-text-tags*})
 
@@ -284,6 +285,19 @@
 	      (cons (strip-under (car content) sel)
 		    (strip-helper (cdr content) sel))))
       content))
+
+;;; Getting meta fields
+
+(define (dom/getmeta doc field (dflt))
+  (try (get (pick (dom/find (dom/find doc "HEAD") "META")
+		  'name field)
+	    'content)
+       (if (bound? dflt) dflt (fail))))
+
+(define (dom/getlinks doc field (dflt))
+  (let ((links (pick (dom/find (dom/find doc "HEAD") "LINK")
+		     'rel field)))
+    (get links 'href)))
 
 ;;; Walking the DOM
 
