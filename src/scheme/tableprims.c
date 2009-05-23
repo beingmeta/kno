@@ -114,7 +114,9 @@ static fdtype lispgetif(fdtype table,fdtype key,fdtype dflt)
 static fdtype lisptryget(fdtype table,fdtype key,fdtype dflt)
 {
   if ((FD_FALSEP(table)) || (FD_EMPTY_CHOICEP(table)))
-    return fd_incref(key);
+    if (FD_VOIDP(dflt))
+      return fd_incref(key);
+    else return fd_incref(dflt);
   else if (FD_CHOICEP(table)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(etable,table) {
@@ -122,14 +124,22 @@ static fdtype lisptryget(fdtype table,fdtype key,fdtype dflt)
 	fdtype v=((FD_VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
 		  (fd_get(etable,ekey,dflt)));      
 	FD_ADD_TO_CHOICE(results,v);}}
-    return results;}
+    if (FD_EMPTY_CHOICEP(results))
+      if (FD_VOIDP(dflt))
+	return fd_incref(key);
+      else return fd_incref(dflt);
+    else return results;}
   else if (FD_CHOICEP(key)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(ekey,key) {
       fdtype v=((FD_VOIDP(dflt)) ? (fd_get(table,ekey,ekey)) :
 		(fd_get(table,ekey,dflt)));
       FD_ADD_TO_CHOICE(results,v);}
-    return results;}
+    if (FD_EMPTY_CHOICEP(results))
+      if (FD_VOIDP(dflt))
+	return fd_incref(key);
+      else return fd_incref(dflt);
+    else return results;}
   else if (FD_VOIDP(dflt)) 
     return fd_get(table,key,key);
   else return fd_get(table,key,dflt);
