@@ -1116,7 +1116,7 @@ static fdtype suggest_hash_size(fdtype size)
   return FD_INT2DTYPE(suggestion);
 }
 
-/* Other operations */
+/* PICK and REJECT */
 
 FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
 {
@@ -1240,6 +1240,8 @@ FD_FASTOP int test_and(fdtype candidate,int n,fdtype *args,int noinfer)
     return 1;}
 }
   
+/* PICK etc */
+
 static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
 {
   int retval;
@@ -1296,10 +1298,28 @@ static fdtype pick_lexpr(int n,fdtype *args)
   return pick_helper(args[0],n-1,args+1,0);
 }
 
+static fdtype prefer_lexpr(int n,fdtype *args)
+{
+  fdtype results=pick_helper(args[0],n-1,args+1,0);
+  if (FD_EMPTY_CHOICEP(results))
+    return fd_incref(args[0]);
+  else return results;
+}
+
 static fdtype prim_pick_lexpr(int n,fdtype *args)
 {
   return pick_helper(args[0],n-1,args+1,1);
 }
+
+static fdtype prim_prefer_lexpr(int n,fdtype *args)
+{
+  fdtype results=pick_helper(args[0],n-1,args+1,1);
+  if (FD_EMPTY_CHOICEP(results))
+    return fd_incref(args[0]);
+  else return results;
+}
+
+/* REJECT etc */
 
 static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
 {
@@ -1357,9 +1377,25 @@ static fdtype reject_lexpr(int n,fdtype *args)
   return reject_helper(args[0],n-1,args+1,0);
 }
 
+static fdtype prefer_not_lexpr(int n,fdtype *args)
+{
+  fdtype values=reject_helper(args[0],n-1,args+1,0);
+  if (FD_EMPTY_CHOICEP(values))
+    return fd_incref(args[0]);
+  else return values;
+}
+
 static fdtype prim_reject_lexpr(int n,fdtype *args)
 {
   return reject_helper(args[0],n-1,args+1,1);
+}
+
+static fdtype prim_prefer_not_lexpr(int n,fdtype *args)
+{
+  fdtype values=reject_helper(args[0],n-1,args+1,1);
+  if (FD_EMPTY_CHOICEP(values))
+    return fd_incref(args[0]);
+  else return values;
 }
 
 /* Kleene* operations */
@@ -2121,12 +2157,21 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,2)));
   fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("PREFER",prefer_lexpr,2)));
+  fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,2)));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("PREFER-NOT",prefer_not_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,2)));
   fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("%PREFER",prim_prefer_lexpr,2)));
+  fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,2)));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("%PREFER-NOT",
+					 prim_prefer_not_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));

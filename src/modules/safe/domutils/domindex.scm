@@ -232,14 +232,20 @@
 	     (* #((spaces)
 		  {(capword) ,glue
 		   #((isupper) ".") #((isupper) "." (isupper) ".")}))
-	     (spaces) (capword))
+	     (spaces)
+	     ,(if xstop-words
+		  `(hashset-not ,xstop-words (capword))
+		  '(capword)))
 	   #(,(if xstop-words
 		  `(hashset-not ,xstop-words (capword))
 		  '(capword))
 	     (* #((spaces)
 		  {(capword) ,glue
 		   #((isupper) ".") #((isupper) "." (isupper) ".")}))
-	     (spaces) (capword)))))
+	     (spaces)
+	     ,(if xstop-words
+		  `(hashset-not ,xstop-words (capword))
+		  '(capword))))))
 
 (define (compute-refrules stop-words)
   (let* ((basic (choice (make-name-pattern stop-words (qc))
