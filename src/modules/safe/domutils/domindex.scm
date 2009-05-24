@@ -6,7 +6,7 @@
 	      fdweb xhtml texttools domutils
 	      morph varconfig logger})
 
-(module-export! '{dom/index! dom/adjust-index!})
+(module-export! '{dom/index! dom/indexer dom/adjust-index!})
 (module-export! '{dom/textanalyze apply-refrules})
 
 (define %loglevel %debug!)
@@ -24,56 +24,67 @@
 (define default-analyzers {})
 (varconfig! dom:analyzer default-analyzers #f choice)
 
-(defambda (dom/index! index xml (settings #[])
-		      (indexslots) (cacheslots) (indexrules)
-		      (analyzers) (useids))
-  (default! indexslots (try (get settings 'indexslots) default-dom-slots))
-  (default! cacheslots (get settings 'cacheslots))
-  (default! indexrules (try (get settings 'indexrules) default-indexrules))
-  (default! analyzers (try (get settings 'analyzers) default-analyzers))
-  (default! useids (try (get settings 'useids) #t))
+(define (dom/index! index doc (settings #[]))
+  (let ((indexslots (try (get settings 'indexslots) default-dom-slots))
+	(cacheslots (get settings 'cacheslots))
+	(indexrules (try (get settings 'indexrules) default-indexrules))
+	(analyzers (try (get settings 'analyzers) default-analyzers))
+	(useids (try (get settings 'useids) #t)))
+    ;; (%watch "DOM/INDEX!" index settings)
+    ;; (%watch "DOM/INDEX!" indexslots cacheslots indexrules analyzers useids)
+    (dom/indexer index doc
+		 indexslots cacheslots indexrules analyzers useids
+		 settings doc)))
+	
+(defambda (dom/indexer index xml
+		       indexslots cacheslots indexrules
+		       analyzers useids settings doc)
   (if (pair? xml)
       (dolist (elt xml)
-	(dom/index! index elt settings 
-		    indexslots cacheslots
-		    indexrules analyzers useids))
+	(dom/indexer index elt 
+		     indexslots cacheslots
+		     indexrules analyzers useids
+		     settings doc))
       (when  (table? xml)
-	(let* ((content (get xml '%content))
-	       (indexval (if useids (get xml 'id) xml))
-	       (eltinfo (dom/lookup indexrules xml))
-	       (slots (intersection
-		       (choice (pick indexslots symbol?)
-			       (car (pick indexslots pair?))
-			       (pick eltinfo symbol?)
-			       (car (pick eltinfo pair?)))
-		       (getkeys xml)))
-	       (rules (pick (choice (pick indexslots pair?)
-				    (pick eltinfo pair?))
-			    slots)))
-	  ;; (%WATCH "DOMINDEX" indexval slots rules)
-	  (when (test settings 'idmap)
-	    (add! (get settings 'idmap) (get xml 'id) xml))
-	  (add! index (cons 'has slots) indexval)
-	  (when (exists? indexval)
-	    (do-choices (slotid slots)
-	      (add! index
-		    (if (test rules slotid)
-			(cons slotid
-			      ((get rules slotid)
-			       (get xml slotid)))
-			(cons slotid (get xml slotid)))
-		    indexval))
-	    (do-choices (analyzer (choice analyzers (pick eltinfo procedure?)))
-	      (do-choices (slot.val (analyzer xml settings))
-		(when (overlaps? (car slot.val) cacheslots)
-		  (add! xml (car slot.val) (cdr slot.val)))
-		(add! index (cons (car slot.val) (cdr slot.val))
-		      indexval))))
-	  (when (exists? content)
-	    (dolist (elt content)
-	      (dom/index! index elt settings
-			  indexslots cacheslots
-			  indexrules analyzers useids)))))))
+	(unless (test xml 'noindex)
+	  (let* ((content (get xml '%content))
+		 (indexval (if useids (get xml 'id) xml))
+		 (eltinfo (dom/lookup indexrules xml))
+		 (slots (intersection
+			 (choice (pick indexslots symbol?)
+				 (car (pick indexslots pair?))
+				 (pick eltinfo symbol?)
+				 (car (pick eltinfo pair?)))
+			 (getkeys xml)))
+		 (rules (pick (choice (pick indexslots pair?)
+				      (pick eltinfo pair?))
+			      slots)))
+	    ;; (%WATCH "DOMINDEXER" indexval slots rules)
+	    (when (test settings 'nodemap)
+	      (add! (get settings 'nodemap) (get xml 'id) xml))
+	    (add! index (cons 'has slots) indexval)
+	    (when (exists? indexval)
+	      (do-choices (slotid slots)
+		(add! index
+		      (if (test rules slotid)
+			  (cons slotid
+				((get rules slotid)
+				 (get xml slotid)))
+			  (cons slotid (get xml slotid)))
+		      indexval))
+	      (do-choices (analyzer (choice analyzers
+					    (pick eltinfo procedure?)))
+		(do-choices (slot.val (analyzer xml settings))
+		  (when (overlaps? (car slot.val) cacheslots)
+		    (add! xml (car slot.val) (cdr slot.val)))
+		  (add! index (cons (car slot.val) (cdr slot.val))
+			indexval))))
+	    (when (exists? content)
+	      (dolist (elt content)
+		(dom/indexer index elt
+			     indexslots cacheslots
+			     indexrules analyzers useids
+			     settings doc))))))))
 
 ;;;; Simple text analysis
 
@@ -82,6 +93,9 @@
 
 (define default-rootfn {})
 (varconfig! dom:rootfn default-rootfn)
+
+(define default-stoprules {})
+(varconfig! dom:stoprules default-stoprules)
 
 (define (dom/textanalyze xml settings)
   (unless (test settings 'refrules)
@@ -96,6 +110,7 @@
 	 (rootfn (try (get settings 'rootfn) default-rootfn))
 	 (phrasemap (get settings 'phrasemap))
 	 (stopwords (get settings 'stopwords))
+	 (stoprules (get settings 'stoprules))
 	 (rootmap (get settings 'rootmap))
 	 (refrules (try (get settings 'refrules)
 			(compute-refrules (try stopwords #f))))
@@ -112,8 +127,9 @@
 			  word
 			  (try (rootfn word) word)))))
 	   (allrefs (getrefs text refrules stopwords))
-	   (allwords (choice (reject (elts wordv) string-matches? '(ispunct+))
-			     allrefs))
+	   (allwords
+	    (choice (reject (elts wordv) string-matches? '(ispunct+))
+		    allrefs))
 	   (allroots (for-choices (word allwords)
 		       (if (or (get stopwords word)
 			       (and (capitalized? word)
@@ -121,11 +137,19 @@
 			   (fail)
 			   (try (rootfn word) word))))
 	   (rejects (choice (pick allroots stopwords)
+			    (pick allroots string-matches? stoprules)
 			    (pick allroots downcase stopwords)
+			    ;; This makes sure that if we have a name
+			    ;;  Mr. Johnson that Johnson isn't indexed.
+			    ;; It is much more reliable than the more
+			    ;;  general rule of only taking the longest
+			    ;;  name
 			    (for-choices (ref allrefs)
 			      (tryif
-				  (string-starts-with? ref #((isalpha+) ". "))
-				({seq->phrase elts} (words->vector ref) 1)))))
+				  (string-starts-with?
+				   ref #((isalpha+) ". "))
+				({seq->phrase elts}
+				 (words->vector ref) 1)))))
 	   (words allwords)
 	   (roots (difference allroots rejects)))
       ;; Cache features as specified
@@ -277,7 +301,7 @@
    document has been analyzed."
   (when (test doc 'rootmap)
     (let* ((index (get doc 'index))
-	   (idmap (get doc 'idmap))
+	   (nodemap (get doc 'nodemap))
 	   (rootmap (get doc 'rootmap))
 	   (words (get (getkeys index) slotid))
 	   (caps (pick words capitalized?))
@@ -288,7 +312,7 @@
 		(write (downcase dropcap)))
 	(add! rootmap dropcap (downcase dropcap))
 	(let* ((findings (find-frames index slotid dropcap))
-	       (nodes (for-choices (id findings) (try (get idmap id) id))))
+	       (nodes (for-choices (id findings) (try (get nodemap id) id))))
 	  (add! nodes slotid (downcase dropcap))
 	  (drop! nodes slotid dropcap)
 	  (drop! index (cons slotid dropcap) findings)

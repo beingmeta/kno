@@ -2,7 +2,7 @@
 
 (in-module 'domutils)
 
-(use-module '{fdweb xhtml texttools ezrecords})
+(use-module '{fdweb xhtml texttools ezrecords varconfig})
 
 (module-export!
  '{
@@ -19,32 +19,6 @@
    '{"P"
      "LI" "DT" "BLOCKQUOTE"
      "H1" "H2" "H3" "H4" "H5" "H6"}))
-(define *line-break-tags*
-  (choice *block-text-tags* (string->symbol '{"PRE" "BR" "HR"})))
-
-;;; Textify
-
-(define (dom/textify node (embedded #f) (cache #t))
-  (if embedded
-      (if (string? node) (printout (decode-entities node))
-	  (if (pair? node)
-	      (dolist (elt node) (dom/textify elt #t cache))
-	      (if (table? node)
-		  (printout
-		    (if (overlaps? (get node '%name) *line-break-tags*) "\n")
-		    (if (test node '%text)
-			(get node '%text)
-			(when (test node '%content)
-			  (let ((s (stdspace
-				    (stringout
-				      (dolist (elt (get node '%content))
-					(if (string? elt)
-					    (printout (decode-entities elt))
-					    (dom/textify elt #t cache)))))))
-			    (when cache (store! node '%text s))
-			    (printout s)))))
-		  (printout node))))
-      (stdspace (stringout (dom/textify node #t cache)))))
 
 ;;; DOM editing
 
@@ -332,6 +306,33 @@
 	      (mapn node fn (cons (qc arg) args)))
 	  (map0 node fn)))))
 
+;;; Textify
 
+(define *line-break-tags*
+  (choice *block-text-tags* (string->symbol '{"PRE" "BR" "HR"})))
+(define *no-text-tags* {})
+(varconfig! DOM:TEXTFREE *no-text-tags* ->selector choice)
 
-
+(define (dom/textify node (embedded #f) (cache #t))
+  (if embedded
+      (if (string? node) (printout (decode-entities node))
+	  (if (pair? node)
+	      (dolist (elt node) (dom/textify elt #t cache))
+	      (if (table? node)
+		  (unless (or (test node 'textfree)
+			      (dom/match node *no-text-tags*))
+		    (printout
+		      (if (overlaps? (get node '%name) *line-break-tags*) "\n")
+		      (if (test node '%text)
+			  (get node '%text)
+			  (when (test node '%content)
+			    (let ((s (stdspace
+				      (stringout
+					(dolist (elt (get node '%content))
+					  (if (string? elt)
+					      (printout (decode-entities elt))
+					      (dom/textify elt #t cache)))))))
+			      (when cache (store! node '%text s))
+			      (printout s))))))
+		  (printout node))))
+      (stdspace (stringout (dom/textify node #t cache)))))
