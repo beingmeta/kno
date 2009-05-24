@@ -32,17 +32,22 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_DECODE_ENTITIES ((FD_XML_NOEMPTY)<<1)
 /* The entries below here are internal state used by the XML parser,
    as opposed to general parsing options */
-#define FD_XML_HASDATA       ((FD_XML_DECODE_ENTITIES)<<1) /* Whether the node has anything special (attributes or content) */
+/* Whether the node has anything special (attributes or content) */
+#define FD_XML_HASDATA       ((FD_XML_DECODE_ENTITIES)<<1) 
+/* Whether to handle HTML empty elements like HR, BR, META, LINK, etc. */
+#define FD_XML_ISHTML        ((FD_XML_HASDATA)<<1)
 
 #define FD_XML_INHERIT_BITS                                   \
   ((FD_XML_EMPTY_CLOSE)|(FD_XML_AUTOCLOSE)|(FD_XML_KEEP_RAW)| \
    (FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|  \
-   (FD_XML_NSFREE)|(FD_XML_NOEMPTY)|\
+   (FD_XML_NSFREE)|(FD_XML_NOEMPTY)|(FD_XML_ISHTML)| \
    (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)| \
    (FD_XML_DECODE_ENTITIES))
 
 #define FD_SLOPPY_XML \
-  ((FD_XML_AUTOCLOSE)|(FD_XML_EMPTY_CLOSE)|(FD_XML_FOLDCASE)|(FD_XML_BADCLOSE))
+  ((FD_XML_AUTOCLOSE)|(FD_XML_EMPTY_CLOSE)|\
+   (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|\
+   (FD_XML_ISHTML))
 #define FD_DATA_XML \
   ((FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|(FD_XML_NSFREE)|(FD_XML_NOEMPTY))
 
@@ -68,7 +73,7 @@ FD_EXPORT void *fd_walk_markup
 FD_EXPORT void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name);
 FD_EXPORT int fd_parse_element
   (u8_byte **scanner,u8_byte *end,u8_byte **elts,int max_elts);
-FD_EXPORT fd_xmlelt_type fd_get_markup_type(u8_string buf,int len);
+FD_EXPORT fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int ishtml);
 
 FD_EXPORT void fd_default_contentfn(FD_XML *node,u8_string s,int len);
 FD_EXPORT FD_XML *fd_default_popfn(FD_XML *node);
