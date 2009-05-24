@@ -36,7 +36,7 @@ static fdtype attribs_symbol, content_symbol, type_symbol;
 
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
 static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol;
-static fdtype noempty_symbol, data_symbol, decode_symbol;
+static fdtype noempty_symbol, data_symbol, decode_symbol, ishtml_symbol;
 
 static fdtype nsref2slotid(u8_string s)
 {
@@ -348,8 +348,19 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
   return n_elts;
 }
 
+static int _tag_matchp(u8_string buf,u8_string tagname,int len)
+{
+  if (strncasecmp(buf,tagname,len)==0)
+    if ((buf[len]=='\0') || (isspace(buf[len])) || (ispunct(buf[len])))
+      return 1;
+    else return 0;
+  else return 0;
+}
+
+#define tagmatchp(buf,name) (_tag_matchp((buf),(name),(strlen(name))))
+
 FD_EXPORT
-fd_xmlelt_type fd_get_markup_type(u8_string buf,int len)
+fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
 {
   fd_xmlelt_type elt_type;
   u8_byte *start=buf, *end=buf+(len-1);
@@ -362,6 +373,12 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len)
     else if (strncmp(start,"![CDATA[",8)==0) elt_type=xmlcdata;  
     else elt_type=xmldoctype;
   else if (buf[len-1]=='/') {elt_type=xmlempty; buf[len-1]='\0';}
+  else if ((html) &&
+	   ((tagmatchp(buf,"img")) || (tagmatchp(buf,"base")) ||
+	    (tagmatchp(buf,"br")) || (tagmatchp(buf,"hr")) ||
+	    (tagmatchp(buf,"meta")) || (tagmatchp(buf,"link")) ||
+	    (tagmatchp(buf,"input")) || (tagmatchp(buf,"textarea")))) {
+    elt_type=xmlempty; }
   else if (!(isalpha(*start))) return -1;
   else elt_type=xmlopen;
   if ((elt_type==xmlpi) && (buf[len-1]!='?'))
@@ -714,7 +731,8 @@ void *fd_walk_xml(U8_INPUT *in,
       fd_seterr3(fd_XMLParseError,"end of input",u8_strdup(in->u8_inptr));
       u8_free(buf);
       return NULL;}
-    else if ((type=fd_get_markup_type(buf,size)) == xmlpi) {
+    else type=fd_get_markup_type(buf,size,((node->bits)&FD_XML_ISHTML));
+    if (type == xmlpi) {
       FD_XML *result;
       if (pifn) {
 	if ((result=pifn(in,node,buf,size))==NULL)
@@ -792,6 +810,8 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
       return FD_XML_SLOTIFY;
     else if (FD_EQ(x,nocontents_symbol))
       return FD_XML_NOCONTENTS;
+    else if (FD_EQ(x,ishtml_symbol))
+      return FD_XML_ISHTML;
     else if (FD_EQ(x,nsfree_symbol))
       return FD_XML_NSFREE;
     else if (FD_EQ(x,noempty_symbol))
@@ -886,6 +906,7 @@ FD_EXPORT void fd_init_xmlinput_c()
   crushspace_symbol=fd_intern("CRUSHSPACE");
   slotify_symbol=fd_intern("SLOTIFY");
   nocontents_symbol=fd_intern("NOCONTENTS");
+  ishtml_symbol=fd_intern("HTML");
   nsfree_symbol=fd_intern("NSFREE");
   noempty_symbol=fd_intern("NOEMPTY");
   data_symbol=fd_intern("DATA");
