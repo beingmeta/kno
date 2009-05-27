@@ -110,6 +110,8 @@ static void emit_xmlattrib
   (u8_output out,u8_output tmp,u8_string name,fdtype value)
 {
   int c; u8_byte *scan=name;
+  /* Start every attrib with a space, just in case */
+  u8_putc(out,' ');
   while ((c=u8_sgetc(&scan))>0) u8_putc(out,u8_tolower(c));
   u8_puts(out,"='");
   if (FD_STRINGP(value))
@@ -208,8 +210,8 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
     if ((FD_PAIRP(elt)) && (FD_CAR(elt)==quote_symbol) &&
 	(FD_PAIRP(FD_CDR(elt))) && (FD_SYMBOLP(FD_CADR(elt))))
       elt=FD_CADR(elt);
-    u8_putc(out,' ');
     if (FD_STRINGP(elt)) {
+      u8_putc(out,' ');
       attrib_entify(out,FD_STRDATA(elt));
       attribs=FD_CDR(attribs);}
     else if (FD_SYMBOLP(elt))
@@ -220,7 +222,8 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
 	    if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
 	    return fd_interr(val);}
 	  else if (FD_VOIDP(val)) {}
-	  else emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(elt),val);
+	  else {
+	    emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(elt),val);}
 	  fd_decref(val);}
 	else emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(elt),FD_CADR(attribs));
 	attribs=FD_CDR(FD_CDR(attribs));}
