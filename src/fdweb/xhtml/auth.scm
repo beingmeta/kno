@@ -110,7 +110,8 @@
       (store! info 'refresh newrefresh)
       (store! sessions newsession info)
       (store! sessions session #f)
-      (set-cookies! info))))
+      (set-cookies! info)))
+  info)
 
 (define (auth/authorize! user (oldsession #f) (info (frame-create #f)))
   (let ((session (getnewsession user))

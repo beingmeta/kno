@@ -196,7 +196,8 @@
 	  (gmtimestamp (if (string? expires)
 			   (string->lisp expires) expires))))
 
-    ;; (%watch "HANDLEAUTHTOKEN" auth_token info session expires user)
+    (when trace-facebook-auth
+      (%watch "HANDLEAUTHTOKEN" auth_token info session expires user))
 
     (cgiset! 'fb_sig_session_key session)
     (cgiset! 'fb_sig_session_expires expires)
@@ -235,13 +236,14 @@
   (cgiset! 'status 303)
 
   (when trace-facebook-auth
-    (%watch "DOAUTHORIZE" (cgiget 'REQUEST_URI)))
+    (%watch "DOAUTHORIZE" (cgiget 'next) (cgiget 'REQUEST_URI)))
 
   (httpheader
    "Location: https://www.facebook.com/login.php?"
    (if (cgitest '{popup dialog iframe}) "popup=yes&" "")
    "v=1.0&" "api_key=" (config 'fb:key) "&"
-   "next=" (uriencode (strip-callback-prefixes (cgiget 'REQUEST_URI ""))))
+   "next=" (uriencode (try (cgiget 'next)
+			   (cgiget 'REQUEST_URI ""))))
   (emit-authorize-body)
   #f)
 
@@ -257,7 +259,7 @@
 
 ;;;; FB/AUTHORIZE: External entry point
 
-(define (fb/authorize (next #f) (dialog (not (fb/incanvas?))))
+(define (fb/authorize (next #f) (dialog (not (fb/embedded?))))
   ;; There are three cases:
   ;;  1. we have an auth_token after Facebook logs us in
   ;;     In this case, we get a session id and set duplicate cookies
@@ -268,8 +270,7 @@
   ;;  3. we have a valid session
   ;;     We just return #t after setting USER
 
-  (cond ((and (fb/embedded?)
-	      (cgitest 'fb_sig_user))
+  (cond ((and (fb/embedded?) (cgitest 'fb_sig_user))
 	 (when (and (cgitest 'fb_sig_session_key)
 		    (not (cgitest info-cookie)))
 	   (save-fbinfo!))
