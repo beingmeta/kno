@@ -5,7 +5,7 @@
 (use-module '{fdweb xhtml texttools reflection facebook/fbcall varconfig})
 
 (module-export! '{appname appid apikey apisecretkey})
-(module-export! '{fb/incanvas? fb/added? fb/getuser fb/authorize})
+(module-export! '{fb/embedded? fb/incanvas? fb/added? fb/getuser fb/authorize})
 
 (define trace-facebook-auth #f)
 
@@ -24,6 +24,9 @@
     fb_sig_session_expires
     fb_sig_user
     fb_sig_added})
+
+;; These are stripped from request URIs before being passed on
+(define callback-prefixes "/fb/")
 
 (define applock #f)
 (define appname #f)
@@ -93,6 +96,14 @@
        (cgiget 'fb_sig_in_canvas)
        (not (cgitest 'fb_sig_in_canvas 0))))
 
+(define (fb/iniframe?)
+  (and (cgitest 'fb_sig_in_iframe)
+       (cgiget 'fb_sig_in_iframe)
+       (not (cgitest 'fb_sig_in_iframe 0))))
+
+(define (fb/embedded?)
+  (or (fb/iniframe?) (fb/incanvas?)))
+
 (define (fb/added?)
   (and (cgitest 'fb_sig_added)
        (cgiget 'fb_sig_added)
@@ -136,12 +147,15 @@
   (if force (cgiset! var value)
       (unless (cgitest var) (cgiset! var value))))
 
-(define (get-next-uri)
-  (try (cgiget 'next_uri)
-       (stringout (cgiget 'request_uri "/")
-		  (when (and (cgitest 'query_string)
-			     (not (cgitest 'query_string "")))
-		    (printout "?" (cgiget 'query_string))))))
+(define (strip-callback-prefix string)
+  (subseq string (try (largest (textmatcher callback-prefixes string)) 0)))
+
+;; (define (get-next-uri)
+;;   (try (cgiget 'next_uri)
+;;        (stringout (strip-callback-prefix (cgiget 'request_uri "/"))
+;; 		  (when (and (cgitest 'query_string)
+;; 			     (not (cgitest 'query_string "")))
+;; 		    (printout "?" (cgiget 'query_string))))))
 
 ;;; Authorization body
 
@@ -196,7 +210,7 @@
 		"http://"
 		(cgiget 'HTTP_HOST)
 		(let ((stripped
-		       (textsubst (cgiget 'REQUEST_URI)
+		       (textsubst (strip-callback-prefix (cgiget 'REQUEST_URI))
 				  '(SUBST (GREEDY #("auth_token="
 						    (not> {"&" (eol)})
 						    {"&" (eol)}))
@@ -227,7 +241,7 @@
    "Location: https://www.facebook.com/login.php?"
    (if (cgitest '{popup dialog iframe}) "popup=yes&" "")
    "v=1.0&" "api_key=" (config 'fb:key) "&"
-   "next=" (uriencode (cgiget 'REQUEST_URI "")))
+   "next=" (uriencode (strip-callback-prefixes (cgiget 'REQUEST_URI ""))))
   (emit-authorize-body)
   #f)
 
@@ -254,7 +268,12 @@
   ;;  3. we have a valid session
   ;;     We just return #t after setting USER
 
-  (cond ((fb/incanvas?) #t) 
+  (cond ((and (fb/embedded?)
+	      (cgitest 'fb_sig_user))
+	 (when (and (cgitest 'fb_sig_session_key)
+		    (not (cgitest info-cookie)))
+	   (save-fbinfo!))
+	 (cgiget 'fb_sig_user)) 
 	((cgitest 'auth_token)
 	 (when trace-facebook-auth
 	   (%watch "AUTH_TOKEN" (cgiget 'auth_token)))
