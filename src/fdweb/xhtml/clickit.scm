@@ -311,3 +311,39 @@
 
 (module-export! 'editable)
 
+;;; Versions of %WATCH for XHTML
+
+(define (xhtml%watcher tagname)
+  (macro expr
+    (let* ((args (cdr expr))
+	   (head (car args))
+	   (real-args (if (string? head) (cdr args) args)))
+      `(let ((_watchstart #f) (_watchval #f))
+	 (xmlblock `(,tagname (class "framerdwatch"))
+	     (if (string? head) "[%CALL " "[%WATCH ")
+	     (if (string? head)
+		 (span ((class "head")) head)
+		 (span ((class "call")) ',head))
+	   ,@(map (lambda (arg)
+		    `(span ((class "binding"))
+		       " " (span ((class "expr")) ',arg) "="
+		       (span ((class "value")) ,arg)))
+		  real-args)
+	   "]")
+	 (set! _watchstart (elapsed-time))
+	 (set! _watchval ,head)
+	 (unless (string? head)
+	   (xmlblock `(,tagname (class "framerdwatch"))
+	       "[%RETURN "
+	     "(" (- (elapsed-time) _watchstart) " secs)"
+	     (span ((class "call")) ',head)
+	     " ==> "
+	     (span ((class "result")) ',watchval)
+	     "]"))
+	 _watchval))))
+
+(define span%watch (xhtml%watcher "span"))
+(define div%watch (xhtml%watcher "div"))
+(define p%watch (xhtml%watcher "p"))
+
+(module-export! '{span%watch div%watch p%watch})
