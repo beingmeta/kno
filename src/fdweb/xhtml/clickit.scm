@@ -107,7 +107,7 @@
 		    "yes"))
 	 (contentid content))
     (if image
-	(image SRC image ALT text)
+	(img SRC image ALT text)
 	text)))
 
 (module-export! 'tabbutton)
