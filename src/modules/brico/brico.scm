@@ -189,11 +189,11 @@
 (define sameas @1/2d9e9{SAMEAS})
 (define inverse @1/2c27a{INVERSE})
 (define disjoint @1/2c27d{DISJOINT})
-(define relterms @/brico/e{RELTERMS})
-(define /relterms @/brico/f{/RELTERMS})
-(define diffterms @/brico/10{DIFFTERMS})
+(define relterms @1/e{RELTERMS})
+(define /relterms @1/f{/RELTERMS})
+(define diffterms @1/10{DIFFTERMS})
 (define differentiae diffterms)
-(define /diffterms @/brico/11{/DIFFTERMS})
+(define /diffterms @1/11{/DIFFTERMS})
 (define differentiates /diffterms)
 
 (define brico-slotids
