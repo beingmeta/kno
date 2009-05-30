@@ -782,6 +782,17 @@ static fdtype hashsetdrop(fdtype hs,fdtype key)
   else return FD_FALSE;
 }
 
+static fdtype hashsettest(fdtype hs,fdtype key)
+{
+  FD_DO_CHOICES(hset,hs) {
+    if (!(FD_PRIM_TYPEP(hset,fd_hashset_type)))
+      return fd_type_error(_("hashset"),"hashsettest",hset);
+    else if (fd_hashset_get((fd_hashset)hs,key)) {
+      FD_STOP_DO_CHOICES;
+      return FD_TRUE;}}
+  return FD_FALSE;
+}
+
 static fdtype hashsetelts(fdtype hs)
 {
   return fd_hashset_elts((fd_hashset)hs,0);
@@ -923,6 +934,8 @@ FD_EXPORT void fd_init_tablefns_c()
 	   (fd_make_cprim1("CHOICE->HASHSET",choice2hashset,1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHSET?",hashsetp,1));
 
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("HASHSET-TEST",hashsettest,2)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("HASHSET-GET",hashsetget,2,
 			   fd_hashset_type,FD_VOID,
