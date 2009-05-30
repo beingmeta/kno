@@ -1,0 +1,1 @@
+(load-component "textindex.scm")
