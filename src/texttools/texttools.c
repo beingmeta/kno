@@ -1412,22 +1412,42 @@ static fdtype apply_suffixrule
    fdtype lexicon)
 {
   if (FD_STRLEN(string)>128) return FD_EMPTY_CHOICE;
-  else if (FD_STRLEN(replacement)>128)
-    return FD_EMPTY_CHOICE;  
-  else if (has_suffix(string,suffix)) {
-    struct FD_STRING stack_string;
-    U8_OUTPUT out; u8_byte buf[256];
-    int slen=FD_STRLEN(string), sufflen=FD_STRLEN(suffix);
-    int replen=FD_STRLEN(replacement);
-    U8_INIT_OUTPUT_BUF(&out,256,buf);
-    u8_putn(&out,FD_STRDATA(string),(slen-sufflen));
-    u8_putn(&out,FD_STRDATA(replacement),replen);
-    FD_INIT_STACK_CONS(&stack_string,fd_string_type);
-    stack_string.bytes=out.u8_outbuf;
-    stack_string.length=out.u8_outptr-out.u8_outbuf;
-    if (check_string((fdtype)&stack_string,lexicon))
-      return fd_deep_copy((fdtype)&stack_string);
-    else return FD_EMPTY_CHOICE;}
+  else if (has_suffix(string,suffix))
+    if (FD_STRINGP(replacement)) {
+      struct FD_STRING stack_string;
+      U8_OUTPUT out; u8_byte buf[256];
+      int slen=FD_STRLEN(string), sufflen=FD_STRLEN(suffix);
+      int replen=FD_STRLEN(replacement);
+      U8_INIT_OUTPUT_BUF(&out,256,buf);
+      u8_putn(&out,FD_STRDATA(string),(slen-sufflen));
+      u8_putn(&out,FD_STRDATA(replacement),replen);
+      FD_INIT_STACK_CONS(&stack_string,fd_string_type);
+      stack_string.bytes=out.u8_outbuf;
+      stack_string.length=out.u8_outptr-out.u8_outbuf;
+      if (check_string((fdtype)&stack_string,lexicon))
+	return fd_deep_copy((fdtype)&stack_string);
+      else return FD_EMPTY_CHOICE;}
+    else if (FD_APPLICABLEP(replacement)) {
+      fdtype xform=fd_apply(replacement,1,&string);
+      if (FD_ABORTP(xform)) return xform;
+      else if ((FD_STRINGP(xform)) && 
+	       ((FD_TRUEP(lexicon)) || (check_string(xform,lexicon))))
+	return xform;
+      else {fd_decref(xform); return FD_EMPTY_CHOICE;}}
+    else if (FD_VECTORP(replacement)) {
+      fdtype rewrites=textrewrite(replacement,string,FD_INT2DTYPE(0),FD_VOID);
+      if (FD_TRUEP(lexicon)) return rewrites;
+      else if (FD_CHOICEP(rewrites)) {
+	fdtype accepted=FD_EMPTY_CHOICE;
+	FD_DO_CHOICES(rewrite,rewrites) {
+	  if ((FD_STRINGP(rewrite)) && (check_string(rewrite,lexicon))) {
+	    FD_ADD_TO_CHOICE(accepted,rewrite); fd_incref(rewrite);}}
+	fd_decref(rewrites);
+	return accepted;}
+      else if ((FD_STRINGP(rewrites)) && (check_string(rewrites,lexicon)))
+	return rewrites;
+      else { fd_decref(rewrites); return FD_EMPTY_CHOICE;}}
+    else return FD_EMPTY_CHOICE;
   else return FD_EMPTY_CHOICE;
 }
 
@@ -1437,6 +1457,8 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
     fdtype results=FD_EMPTY_CHOICE;
     fdtype candidates=textrewrite(rule,string,FD_INT2DTYPE(0),FD_VOID);
     if (FD_EMPTY_CHOICEP(candidates)) {}
+    else if (FD_TRUEP(lexicon))
+      return candidates;
     else {
       FD_DO_CHOICES(candidate,candidates)
 	if (check_string(candidate,lexicon)) {
@@ -1448,14 +1470,6 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
     if (check_string(string,lexicon))
       return fd_incref(string);
     else return FD_EMPTY_CHOICE;
-#if 0
-  else if ((FD_PAIRP(rule)) && (FD_PAIRP(FD_CDR(rule)))) {
-    FD_DOLIST(subrule,rule) {
-      fdtype result=apply_morphrule(string,subrule,lexicon);
-      if (FD_EMPTY_CHOICEP(result)) {}
-      else return result;}
-    return FD_EMPTY_CHOICE;}
-#endif
   else if (FD_PAIRP(rule)) {
     fdtype suffixes=FD_CAR(rule);
     fdtype replacement=FD_CDR(rule);
@@ -1463,7 +1477,8 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
     FD_DO_CHOICES(suff,suffixes)
       if (FD_STRINGP(suff)) {
 	FD_DO_CHOICES(repl,replacement)
-	  if (FD_STRINGP(repl)) {
+	  if ((FD_STRINGP(repl)) || (FD_VECTORP(repl)) ||
+	      (FD_APPLICABLEP(repl))) {
 	    fdtype result=apply_suffixrule(string,suff,repl,lexicon);
 	    if (FD_ABORTP(result)) {
 	      fd_decref(results); return result;}
@@ -1509,6 +1524,13 @@ static fdtype textclosure_handler(fdtype expr,fd_lispenv env)
     fdtype closure=fd_textclosure(pattern,env);
     fd_decref(pattern);
     return closure;}
+}
+
+static fdtype textclosurep(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_txclosure_type))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 /* textframe procedures
@@ -1562,6 +1584,36 @@ static int doadds(fdtype table,u8_output out,fdtype xtract)
     fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
     return -1;}
   return 1;
+}
+
+/* ISSUFFIX/ISPREFIX */
+
+static fdtype is_prefix_prim(fdtype prefix,fdtype string)
+{
+  int string_len=FD_STRING_LENGTH(string);
+  int prefix_len=FD_STRING_LENGTH(prefix);
+  if (prefix_len>string_len) return FD_FALSE;
+  else {
+    u8_string string_data=FD_STRING_DATA(string);
+    u8_string prefix_data=FD_STRING_DATA(prefix);
+    if (strncmp(string_data,prefix_data,prefix_len) == 0)
+      return FD_TRUE;
+    else return FD_FALSE;}
+}
+
+static fdtype is_suffix_prim(fdtype suffix,fdtype string)
+{
+  int string_len=FD_STRING_LENGTH(string);
+  int suffix_len=FD_STRING_LENGTH(suffix);
+  if (suffix_len>string_len) return FD_FALSE;
+  else {
+    u8_string string_data=FD_STRING_DATA(string);
+    u8_string suffix_data=FD_STRING_DATA(suffix);
+    if (strncmp(string_data+(string_len-suffix_len),
+		suffix_data,
+		suffix_len) == 0)
+      return FD_TRUE;
+    else return FD_FALSE;}
 }
 
 /* Character-based escaped segmentation */
@@ -1925,6 +1977,7 @@ void fd_init_texttools()
 			   fd_fixnum_type,FD_VOID));
 
   fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_handler);
+  fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
 
   fd_idefn(texttools_module,
 	   fd_make_cprim3x("MORPHRULE",morphrule,2,
@@ -1950,6 +2003,15 @@ void fd_init_texttools()
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID,
 			   -1,FD_FALSE));
+
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("IS-PREFIX?",is_prefix_prim,2,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("IS-SUFFIX?",is_suffix_prim,2,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
 
 
   star_symbol=fd_intern("*");
