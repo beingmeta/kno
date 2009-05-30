@@ -43,9 +43,9 @@ static fdtype tick_symbol, xtick_symbol, prim_tick_symbol;
 static fdtype iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
-static fdtype hms_symbol, dmy_symbol, dm_symbol, string_symbol, shortstring_symbol;
-static fdtype timestring_symbol, datestring_symbol, fullstring_symbol;
-static fdtype fullstring_symbol;
+static fdtype hms_symbol, dmy_symbol, dm_symbol, my_symbol;
+static fdtype string_symbol, shortstring_symbol, fullstring_symbol;
+static fdtype timestring_symbol, datestring_symbol;
 
 static enum u8_timestamp_precision get_precision(fdtype sym)
 {
@@ -283,6 +283,7 @@ static fdtype elapsed_time(fdtype arg)
 
 static fdtype dowids[7], monthids[12];
 static u8_string month_names[12];
+static fdtype xtime_keys=FD_EMPTY_CHOICE;
 
 static fdtype use_strftime(char *format,struct U8_XTIME *xt)
 {
@@ -301,7 +302,8 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     if (xt->u8_prec>=u8_year)
       return FD_INT2DTYPE(xt->u8_year);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,fullstring_symbol)) 
     if (xt->u8_prec>=u8_day) 
@@ -309,7 +311,8 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else if (xt->u8_prec==u8_day)
       return use_strftime("%A %d %B %Y %Z",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if ((FD_EQ(slotid,iso_symbol)) ||
 	   (FD_EQ(slotid,isostring_symbol)) ||
@@ -334,29 +337,34 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     if (xt->u8_prec>=u8_month)
       return FD_BYTE2DTYPE(xt->u8_mon);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,monthid_symbol))
     if (xt->u8_prec>=u8_month)
       if (xt->u8_mon<12)
 	return monthids[xt->u8_mon];
       else if (reterr)
-	return fd_err(fd_InvalidTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+	return fd_err(fd_InvalidTimestamp,"xtime_get",
+		      FD_SYMBOL_NAME(slotid),FD_VOID);
       else return FD_EMPTY_CHOICE;
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,shortmonth_symbol))
     if (xt->u8_prec>=u8_month)
       return use_strftime("%b",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,longmonth_symbol))
     if (xt->u8_prec>=u8_month)
       return use_strftime("%B",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dowid_symbol))
     if (xt->u8_prec>u8_month)
@@ -374,46 +382,53 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     if (xt->u8_prec>u8_month)
       return use_strftime("%a",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,longday_symbol))
     if (xt->u8_prec>u8_month)
       return use_strftime("%A",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,hms_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%T",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,timestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%X",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,string_symbol))
     if (xt->u8_prec>=u8_second)
       return use_strftime("%c",xt);
 	else if (reterr)
-	  return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+	  return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+			FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,shortstring_symbol))
     if (xt->u8_prec>=u8_second)
       return use_strftime("%d %b %Y %r",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,datestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%x",xt);
     else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",FD_SYMBOL_NAME(slotid),FD_VOID);
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dmy_symbol))
-    if (xt->u8_prec>=u8_hour) {
+    if (xt->u8_prec>=u8_day) {
       if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%d%s%04d",xt->u8_mday,
@@ -428,10 +443,24 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dm_symbol))
-    if (xt->u8_prec>=u8_hour)
+    if (xt->u8_prec>=u8_day)
       if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
+	return fd_init_string(NULL,-1,u8_strdup(buf));}
+      else if (reterr)
+	return fd_err(fd_InvalidTimestamp,"xtime_get",
+		      FD_SYMBOL_NAME(slotid),FD_VOID);
+      else return FD_EMPTY_CHOICE;
+    else if (reterr)
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+		    FD_SYMBOL_NAME(slotid),FD_VOID);
+    else return FD_EMPTY_CHOICE;
+  else if (FD_EQ(slotid,my_symbol))
+    if (xt->u8_prec>=u8_month)
+      if (xt->u8_mon<12) {
+	char buf[64];
+	sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
 	return fd_init_string(NULL,-1,u8_strdup(buf));}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
@@ -539,7 +568,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
   else if (FD_EQ(slotid,time_of_day_symbol))
     if (xt->u8_prec>=u8_hour) {
       fdtype results=FD_EMPTY_CHOICE;
-      int hr=xt->u8_mon;
+      int hr=xt->u8_hour;
       if ((hr<5) || (hr>20)) {
 	FD_ADD_TO_CHOICE(results,nighttime_symbol);}
       if ((hr>5) && (hr<=12)) {
@@ -614,6 +643,12 @@ static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
     fdtype result=xtime_get(&(tms->xtime),slotid,0);
     if (FD_EMPTY_CHOICEP(result)) return dflt;
     else return result;}
+}
+
+static fdtype timestamp_getkeys(fdtype timestamp)
+{
+  /* This could be clever about precision, but currently it isn't */
+  return fd_incref(xtime_keys);
 }
 
 static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
@@ -1098,61 +1133,100 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_tablefns[fd_timestamp_type]->drop=NULL;
   fd_tablefns[fd_timestamp_type]->store=NULL;
   fd_tablefns[fd_timestamp_type]->test=NULL;
-  fd_tablefns[fd_timestamp_type]->keys=NULL;
+  fd_tablefns[fd_timestamp_type]->keys=timestamp_getkeys;
 
   year_symbol=fd_intern("YEAR");
+  FD_ADD_TO_CHOICE(xtime_keys,year_symbol);
   month_symbol=fd_intern("MONTH");
+  FD_ADD_TO_CHOICE(xtime_keys,month_symbol);
   date_symbol=fd_intern("DATE");
+  FD_ADD_TO_CHOICE(xtime_keys,date_symbol);
   hours_symbol=fd_intern("HOURS");
+  FD_ADD_TO_CHOICE(xtime_keys,hours_symbol);
   minutes_symbol=fd_intern("MINUTES");
+  FD_ADD_TO_CHOICE(xtime_keys,minutes_symbol);
   seconds_symbol=fd_intern("SECONDS");
+  FD_ADD_TO_CHOICE(xtime_keys,seconds_symbol);
   precision_symbol=fd_intern("PRECISION");
+  FD_ADD_TO_CHOICE(xtime_keys,precision_symbol);
   tzoff_symbol=fd_intern("TZOFF");
-
+  FD_ADD_TO_CHOICE(xtime_keys,tzoff_symbol);
+  
   milliseconds_symbol=fd_intern("MILLISECONDS");
+  FD_ADD_TO_CHOICE(xtime_keys,milliseconds_symbol);
   microseconds_symbol=fd_intern("MICROSECONDS");
+  FD_ADD_TO_CHOICE(xtime_keys,microseconds_symbol);
   nanoseconds_symbol=fd_intern("NANOSECONDS");
+  FD_ADD_TO_CHOICE(xtime_keys,nanoseconds_symbol);
   picoseconds_symbol=fd_intern("PICOSECONDS");
+  FD_ADD_TO_CHOICE(xtime_keys,picoseconds_symbol);
   femtoseconds_symbol=fd_intern("FEMTOSECONDS");
-
+  FD_ADD_TO_CHOICE(xtime_keys,femtoseconds_symbol);
+  
   tick_symbol=fd_intern("TICK");
+  FD_ADD_TO_CHOICE(xtime_keys,tick_symbol);
   prim_tick_symbol=fd_intern("%TICK");
+  FD_ADD_TO_CHOICE(xtime_keys,prim_tick_symbol);
   xtick_symbol=fd_intern("XTICK");
+  FD_ADD_TO_CHOICE(xtime_keys,xtick_symbol);
   iso_symbol=fd_intern("ISO");
+  FD_ADD_TO_CHOICE(xtime_keys,iso_symbol);
   isostring_symbol=fd_intern("ISOSTRING");
+  FD_ADD_TO_CHOICE(xtime_keys,isostring_symbol);
   iso8601_symbol=fd_intern("ISO8601");
+  FD_ADD_TO_CHOICE(xtime_keys,iso8601_symbol);
   rfc822_symbol=fd_intern("RFC822");
-
+  FD_ADD_TO_CHOICE(xtime_keys,rfc822_symbol);
+  
   time_of_day_symbol=fd_intern("TIME-OF-DAY");
+  FD_ADD_TO_CHOICE(xtime_keys,time_of_day_symbol);
   morning_symbol=fd_intern("MORNING");
   afternoon_symbol=fd_intern("AFTERNOON");
   evening_symbol=fd_intern("EVENING");
   nighttime_symbol=fd_intern("NIGHTTIME");
 
   season_symbol=fd_intern("SEASON");
+  FD_ADD_TO_CHOICE(xtime_keys,season_symbol);
   spring_symbol=fd_intern("SPRING");
   summer_symbol=fd_intern("SUMMER");
   autumn_symbol=fd_intern("AUTUMN");
   winter_symbol=fd_intern("WINTER");
 
   shortmonth_symbol=fd_intern("MONTH-SHORT");
+  FD_ADD_TO_CHOICE(xtime_keys,shortmonth_symbol);
   longmonth_symbol=fd_intern("MONTH-LONG");
+  FD_ADD_TO_CHOICE(xtime_keys,longmonth_symbol);
   shortday_symbol=fd_intern("WEEKDAY-SHORT");
+  FD_ADD_TO_CHOICE(xtime_keys,shortday_symbol);
   longday_symbol=fd_intern("WEEKDAY-LONG");
+  FD_ADD_TO_CHOICE(xtime_keys,longday_symbol);
   hms_symbol=fd_intern("HMS");
+  FD_ADD_TO_CHOICE(xtime_keys,hms_symbol);
   dmy_symbol=fd_intern("DMY");
+  FD_ADD_TO_CHOICE(xtime_keys,dmy_symbol);
   dm_symbol=fd_intern("DM");
+  FD_ADD_TO_CHOICE(xtime_keys,dm_symbol);
+  my_symbol=fd_intern("MY");
+  FD_ADD_TO_CHOICE(xtime_keys,my_symbol);
   string_symbol=fd_intern("STRING");
+  FD_ADD_TO_CHOICE(xtime_keys,string_symbol);
   shortstring_symbol=fd_intern("SHORTSTRING");
+  FD_ADD_TO_CHOICE(xtime_keys,shortstring_symbol);
   timestring_symbol=fd_intern("TIMESTRING");
+  FD_ADD_TO_CHOICE(xtime_keys,timestring_symbol);
   datestring_symbol=fd_intern("DATESTRING");
+  FD_ADD_TO_CHOICE(xtime_keys,datestring_symbol);
   fullstring_symbol=fd_intern("FULLSTRING");
-
+  FD_ADD_TO_CHOICE(xtime_keys,fullstring_symbol);
+  
   dowid_symbol=fd_intern("DOWID");
+  FD_ADD_TO_CHOICE(xtime_keys,dowid_symbol);
   monthid_symbol=fd_intern("MONTHID");
-
+  FD_ADD_TO_CHOICE(xtime_keys,monthid_symbol);
+  
   timezone_symbol=fd_intern("TIMEZONE");
-
+  FD_ADD_TO_CHOICE(xtime_keys,timezone_symbol);
+  
   gmt_symbol=fd_intern("GMT");
 
   data_symbol=fd_intern("DATA");
