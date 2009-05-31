@@ -248,6 +248,38 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
   }
 }
 
+static int packet_search(fdtype key,fdtype x,int start,int end)
+{
+  int i=0, klen=FD_PACKET_LENGTH(key), len=FD_PACKET_LENGTH(x);
+  unsigned char *kdata=FD_PACKET_DATA(key), first_byte=kdata[0];
+  unsigned char *data=FD_PACKET_DATA(x), *scan, *lim=data+end;
+  if (klen>(end-start)) return -1;
+  scan=data+start;
+  while (scan=memchr(scan,first_byte,lim-scan)) {
+    if (memcmp(scan,kdata,klen)==0) return scan-data;
+    else scan++;}
+  return -1;
+}
+
+static int vector_search(fdtype key,fdtype x,int start,int end)
+{
+  int i=0, klen=FD_VECTOR_LENGTH(key), len=FD_VECTOR_LENGTH(x);
+  fdtype *kdata=FD_VECTOR_DATA(key), first_elt=kdata[0];
+  fdtype *data=FD_VECTOR_DATA(x), *scan, *lim=data+(end-klen)+1;
+  if (klen>(end-start)) return -1;
+  scan=data+start;
+  while (scan<lim) 
+    if ((scan[0]==first_elt) || (FDTYPE_EQUAL(scan[0],first_elt))) {
+      fdtype *kscan=kdata+1, *klim=kdata+klen, *vscan=scan+1;
+      while ((kscan<klim) &&
+	     ((*kscan==*vscan) || (FDTYPE_EQUAL(*kscan,*vscan)))) {
+	kscan++; vscan++;}
+      if (kscan==klim) return scan-data;
+      else scan++;}
+    else scan++;
+  return -1;
+}
+
 FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
 {
   if ((FD_STRINGP(key)) && (FD_STRINGP(x))) {
@@ -269,11 +301,15 @@ FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
     if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->search) &&
 	((fd_seqfns[ctype]->search)!=fd_search))
       return (fd_seqfns[ctype]->search)(key,x,start,end);
+    else if ((FD_PACKETP(x)) && (FD_PACKETP(key))) 
+      return packet_search(key,x,start,end);
+    else if ((FD_VECTORP(x)) && (FD_VECTORP(key))) 
+      return vector_search(key,x,start,end);
     else {
-      int keylen=fd_seq_length(key), pos;
+      int keylen=fd_seq_length(key), pos=start;
       fdtype keystart=fd_seq_elt(key,0);
       if (end<0) end=fd_seq_length(x);
-      while ((pos=fd_position(keystart,x,start,end-keylen))>=0) {
+      while ((pos=fd_position(keystart,x,pos,pos-keylen))>=0) {
 	int i=1, j=pos+1;
 	while (i < keylen) {
 	  fdtype kelt=fd_seq_elt(key,i), velt=fd_seq_elt(x,j);
@@ -282,7 +318,8 @@ FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
 	  else break;}
 	if (i == keylen) {
 	  fd_decref(keystart);
-	  return pos;}}
+	  return pos;}
+	else pos++;}
       fd_decref(keystart);
       return -1;}}
 }
