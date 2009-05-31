@@ -156,6 +156,9 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
     else if (start==end) return -1;
     else while (start<end)
       if (FDTYPE_EQUAL(key,data[start])) return start;
+      else if (FD_CHOICEP(data[start]))
+	if (fd_overlapp(key,data[start])) return start;
+	else start++;
       else start++;
     return -1;}
   case fd_packet_type: {
@@ -178,6 +181,9 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
       if (pos<start) {pos++; scan=FD_CDR(scan);}
       else if ((end>=0) && (pos>=end)) return -1;
       else if (FDTYPE_EQUAL(FD_CAR(scan),key)) return pos;
+      else if (FD_CHOICEP(FD_CAR(scan)))
+	if (fd_overlapp(key,FD_CAR(scan))) return pos;
+	else {pos++; scan=FD_CDR(scan);}
       else {pos++; scan=FD_CDR(scan);}
     if ((pos<start) || ((end>0) && (pos<end))) return -2;
     else return -1;}
@@ -269,10 +275,16 @@ static int vector_search(fdtype key,fdtype x,int start,int end)
   if (klen>(end-start)) return -1;
   scan=data+start;
   while (scan<lim) 
-    if ((scan[0]==first_elt) || (FDTYPE_EQUAL(scan[0],first_elt))) {
+    if ((scan[0]==first_elt) ||
+	(FDTYPE_EQUAL(scan[0],first_elt)) ||
+	((FD_CHOICEP(scan[0])) &&
+	 (fd_overlapp(scan[0],first_elt)))) {
       fdtype *kscan=kdata+1, *klim=kdata+klen, *vscan=scan+1;
       while ((kscan<klim) &&
-	     ((*kscan==*vscan) || (FDTYPE_EQUAL(*kscan,*vscan)))) {
+	     ((*kscan==*vscan) ||
+	      (FDTYPE_EQUAL(*kscan,*vscan)) ||
+	      ((FD_CHOICEP(*vscan)) &&
+	       (fd_overlapp(*kscan,*vscan))))) {
 	kscan++; vscan++;}
       if (kscan==klim) return scan-data;
       else scan++;}
@@ -313,7 +325,8 @@ FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
 	int i=1, j=pos+1;
 	while (i < keylen) {
 	  fdtype kelt=fd_seq_elt(key,i), velt=fd_seq_elt(x,j);
-	  if (FDTYPE_EQUAL(kelt,velt)) {
+	  if ((FDTYPE_EQUAL(kelt,velt)) ||
+	      ((FD_CHOICEP(velt)) && (fd_overlapp(kelt,velt)))) {
 	    fd_decref(kelt); fd_decref(velt); i++; j++;}
 	  else break;}
 	if (i == keylen) {
