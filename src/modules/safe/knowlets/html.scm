@@ -1,5 +1,9 @@
 (in-module 'knowlets/html)
 
+;;; Tools for output of knowlets and dterms in XHTML
+(define id "$Id:$")
+(define revision "$Revision:$")
+
 (use-module '{texttools ezrecords varconfig fdweb xhtml xhtml/clickit})
 
 (use-module 'knowlets)

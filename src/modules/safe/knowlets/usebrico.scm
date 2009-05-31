@@ -1,5 +1,10 @@
 (in-module 'knowlets/usebrico)
 
+;;; Using brico from knowlets, especially for importing information
+(define id "$Id:$")
+(define revision "$Revision:$")
+
+
 (use-module '{texttools knowlets brico})
 (use-module '{brico/lookup brico/dterms brico/analytics})
 

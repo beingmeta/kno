@@ -2,6 +2,12 @@
 
 (in-module 'knowlets)
 
+;;; Core file for the knowlets implementation
+;;; Provides data structures, core tables, and basic
+;;;  KR functions
+(define id "$Id:$")
+(define revision "$Revision:$")
+
 (use-module '{texttools ezrecords varconfig logger})
 (use-module 'knowlets/drules)
 
@@ -375,8 +381,8 @@
       (let ((wordv (words->vector value))
 	    (phrasemap (try (get (knowlet-phrasemaps knowlet) slotid)
 			    (new-phrasemap knowlet slotid))))
-	(add! phrasemap (cons slotid (elts wordv)) wordv)
-	(add! phrasemap (list slotid (first wordv)) wordv)))))
+	(add! phrasemap (elts wordv) wordv)
+	(add! phrasemap (list (first wordv)) wordv)))))
 
 (defambda (drop-phrase! frame slotid value (mirror))
   (let ((knowlet (get knowlets (get frame 'knowlet)))
