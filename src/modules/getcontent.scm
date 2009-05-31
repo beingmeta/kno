@@ -1,11 +1,12 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc. All rights reserved.
 
 (in-module 'getcontent)
 
 ;;; This handles automatic updating of the content of files
 ;;; It is a more flexible version of load-latest
-
-(define version "$Id: updatefile.scm 1631 2007-08-16 14:12:11Z haase $")
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{fileio ezrecords varconfig logger reflection})
 

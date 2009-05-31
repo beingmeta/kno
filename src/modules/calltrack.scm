@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc. All rights reserved
 
 (in-module 'calltrack)
 
@@ -9,8 +10,8 @@
 ;; The CALLTRACK data only covers function applications, so any time spent in
 ;;  special form execution (which doesn't bottom out in function application) 
 ;;  is credited towards the function itself.
-
-(define version "$Id: calltrack.scm 3123 2008-10-20 13:39:40Z haase $")
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module 'texttools)
 

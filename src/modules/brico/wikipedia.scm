@@ -1,8 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'brico/wikipedia)
 
 ;;; This uses tables to get Wikipedia mappings for BRICO concepts
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (define %volatile 'brico/wikiref)
 

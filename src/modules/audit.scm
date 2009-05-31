@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc. All rights reserved
 
 (in-module 'audit)
 
@@ -6,8 +7,8 @@
 
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
-
-(define version "$Id: audit.scm 3340 2008-12-09 02:49:56Z haase $")
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (define %loglevel %notice!)
 

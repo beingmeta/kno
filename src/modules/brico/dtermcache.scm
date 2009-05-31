@@ -1,8 +1,13 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'brico/dtermcache)
 
 ;;; This provides a dterm cache which is automatically filled by
 ;;; background threads.  This keeps threads from blocking on dterm
 ;;; computation, which can take a while for some concepts.
+(define version "$Id:$")
+(define revision "$Revision:$")
 
 ;;; When a dterm is requested, the cache is checked; if there is a
 ;;; value there, it is returned (and a #f is converted to a {}).  If

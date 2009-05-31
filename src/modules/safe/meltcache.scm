@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'meltcache)
 
@@ -7,8 +8,8 @@
 ;;; Meltcaches are caches whose values decay selectively, so that
 ;;;  fast changing values decay more quickly and slower changing values
 ;;;  decay more slowly.
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (define-init %loglevel 4)
 (define-init trace-values #f)

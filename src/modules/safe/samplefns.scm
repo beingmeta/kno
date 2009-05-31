@@ -1,10 +1,11 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'samplefns)
 
 ;;; This provides various sample functions for testing and benchmarking
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (module-export! '{fibr fibi fibflt factr facti slowfib})
 (module-export! '{ack tak takflt})

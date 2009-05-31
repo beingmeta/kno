@@ -1,10 +1,11 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'delicious)
 
 ;;; Provides access to del.icio.us through both their API and RSS urls
-
-(define version "$Id: delicious.scm 2260 2008-01-28 16:52:42Z haase $")
+(define version "$Id$")
+(define revsion "$Revision:$")
 
 (use-module '{texttools fdweb meltcache})
 ;(use-module '{gnosys/webapp/userinfo gnosys/urldb gnosys/metakeys/tagmaps})

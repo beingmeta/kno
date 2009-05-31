@@ -1,11 +1,12 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'parsetime)
 
 ;;; Simple generic time parser making heavy use of TEXTTOOLS
 ;;; pattern matching and extraction.
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module 'texttools)
 (use-module '{logger varconfig})

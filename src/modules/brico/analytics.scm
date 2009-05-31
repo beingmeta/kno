@@ -2,7 +2,8 @@
 
 (in-module 'brico/analytics)
 
-(define version "$Id: analytics.scm 2503 2008-04-15 11:09:49Z haase $")
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{brico texttools})
 

@@ -1,4 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'mergeutils)
+
+;;; Tools for combining tables in different ways
+(define version "$Id:$")
+(define revision "$Revision:$")
 
 (define (diffkeys table1 table2)
   (choice (difference (getkeys table1) (getkeys table2))

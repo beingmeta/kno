@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'usedb)
 
@@ -6,8 +7,8 @@
 ;;;  Currently, it just allows for configurations specifying pools
 ;;;  and indices, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
-
-(define version "$Id: usedb.scm 2694 2008-05-29 12:09:01Z haase $")
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (module-export! 'usedb)
 

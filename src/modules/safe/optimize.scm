@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'optimize)
 
@@ -7,8 +8,8 @@
 ;; avoids many environment lookups.  The trick is to not replace
 ;; anything which will change and so produce an equivalent expression
 ;; or function which just runs faster.
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module 'reflection)
 (use-module 'logger)

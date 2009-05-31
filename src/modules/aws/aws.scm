@@ -1,6 +1,8 @@
 (in-module 'aws)
 
+;;; Core file for accessing Amazon Web Services
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (module-export! '{awskey secretawskey awsaccount})
 

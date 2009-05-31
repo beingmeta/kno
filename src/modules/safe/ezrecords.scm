@@ -1,8 +1,10 @@
-(in-module 'ezrecords)
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 ;;; This provides a dead simple RECORDS implementation 
 ;;;  building on FramerD's built-in compounds.
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (define xref-opcode (make-opcode 0xA2))
 

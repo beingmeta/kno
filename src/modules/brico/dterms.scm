@@ -1,6 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'brico/dterms)
 
-;;; FIND-DTERM and friends return false
+;;; FIND-DTERM and friends try to compute dterms using the ontology
+(define revision "$Id:$")
+(define revision "$Revision:$")
 
 (module-export!
  '{find-dterm

@@ -1,4 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'histogram)
+
+;;; Computes index/table histograms
+(define version "$Id:$")
+(define revision "$Revision:$")
 
 (defambda (index-histogram index (slotids #f) (normalize #f))
   (let* ((values (if slotids

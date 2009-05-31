@@ -1,6 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'facebook/fbcall)
 
+;;; Calling the Facebook API and various standard calls
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{fdweb xhtml texttools facebook logger})
 

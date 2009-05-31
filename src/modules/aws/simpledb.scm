@@ -1,6 +1,8 @@
 (in-module '{aws/simpledb})
 
+;;; Accessing Amazon Simple DB
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{sdb/fromlisp sdb/tolisp})

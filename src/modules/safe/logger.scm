@@ -1,4 +1,12 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'logger)
+
+;;; Provides lightweight logging functions with levels, module-level
+;;; control, etc
+(define version "$Id:$")
+(define revision "$Revision:$")
 
 (module-export!
  '{logger

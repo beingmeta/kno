@@ -1,8 +1,12 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'webapi/facebook)
 
 ;;; This implements simple access to the Facebook API
-
-(define version "$Id: calltrack.scm 1698 2007-08-24 17:54:19Z haase $")
+;;;  Basically replaced by the directory-based facebook module
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{ezrecords fdweb texttools})
 

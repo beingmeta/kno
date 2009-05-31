@@ -1,12 +1,14 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'myweb)
 
 ;;; Access to Yahoo's MYWEB through API and RSS
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{texttools fdweb meltcache})
 
-(define version "$Id: myweb.scm 1631 2007-08-16 14:12:11Z haase $")
 
 (module-export!
  '{myweb/gettags

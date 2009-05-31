@@ -1,10 +1,11 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'stringfmts)
 
 ;;; Generation of strings from various other kinds of values
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (module-export! '{get% show%
 		       interval-string short-interval-string

@@ -1,8 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'lexml)
 
 ;;; Implements handling of custom lexicons in lexml
-
-(define version "$Id: entify.scm 1630 2007-08-16 13:49:35Z haase $")
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{fdweb texttools tagger})
 

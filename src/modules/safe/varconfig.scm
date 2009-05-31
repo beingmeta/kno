@@ -1,6 +1,6 @@
 (in-module 'varconfig)
 
-(define version "$Id: simpledb.scm 3135 2008-10-22 23:17:47Z haase $")
+(define version "$Id$")
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 

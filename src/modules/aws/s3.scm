@@ -1,6 +1,8 @@
 (in-module 'aws/s3)
 
+;;; Accessing files with Amazon S3
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (use-module '{aws fdweb texttools})
 

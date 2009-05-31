@@ -1,8 +1,11 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'dopool)
 
-(define version "$Id: dopool.scm 1631 2007-08-16 14:12:11Z haase $")
+;;; This provides macros for iteration across pools
+(define version "$Id$")
+(define revision "$Revision:$")
 
 (define dopool
   (macro expr

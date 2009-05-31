@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Character-Encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'rulesets)
 
@@ -6,8 +7,8 @@
 ;;; Adding an item to a ruleset either adds the item to the collection
 ;;; or replaces the identically named item on the list (it actually
 ;;; conses a new list, so you have to use the return value).
-
 (define version "$Id$")
+(define revision "$Revision:$")
 
 (module-export! '{ruleset+ ruleset-configfn ruleconfig!})
 
