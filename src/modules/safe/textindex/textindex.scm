@@ -11,30 +11,110 @@
 (use-module '{texttools varconfig logger reflection})
 
 (module-export!
- '{text/keystrings text/settings text/index text/analyze text/reduce})
+ '{text/keystrings
+   text/getroots
+   text/settings text/reduce
+   text/index text/analyze})
 
-;;; Default rules, etc.
+;;;; Simple text analysis
 
-(define module-dir (dirname (get-component "en.settings")))
+(defambda (textanalyze text
+		       stopcache rootcache
+		       wordrules wordfns stopwords stoprules
+		       phrasemap rootstrings
+		       rootset rootmaps rootfns morphrules
+		       refrules
+		       options)
+  (for-choices text
+    ;; Extract features
+    (let* ((wordv (words->vector text #t))
+	   (stopv (forseq (word wordv)
+		    (and (try (get stopcache word) 
+			      (stopcheck word stopcache stopwords stoprules))
+			 word)))
+	   (rootv (forseq (word wordv i)
+		    (if (elt stopv i) word
+			(try (get rootcache word)
+			     (getroot word rootcache
+				      rootstrings rootset
+				      rootmaps rootfns morphrules)))))
+	   (xwords (choice (wordfns rootv text)
+			   (textsubst (gather (qc wordrules) text)
+				      (qc wordrules))))
+	   (words (filter-choices (word xwords)
+		    (not (try (get stopcache word) 
+			      (stopcheck word stopcache stopwords stoprules)))))
+	   (roots (for-choices (word words)
+		    (try (get rootcache word)
+			 (getroot word rootcache
+				  rootstrings rootset
+				  rootmaps rootfns morphrules))))
+	   (refs (getrefs text refrules stopv))
+	   (refroots (for-choices (ref refs)
+		       (getroot ref rootcache
+				rootstrings rootset rootmaps
+				rootfns morphrules)))
+	   (results (choice roots refroots)))
+      ;; (%watch "TEXTANALYZE" text rootv stopv)
+      ;; (%watch "TEXTANALYZE" xwords words roots refs refroots)
+      (doseq (root rootv i)
+	;; (%watch "CHECKROOT" root i (choice-size (get phrasemap root)))
+	(unless (or (elt stopv i) (capitalized? root))
+	  ;; Reject stop words and leave capitals to getrefs
+	  (set+! results root))
+	(do-choices (phrase (get phrasemap root))
+	  ;; (%watch "CHECKPHRASE" phrase root)
+	  (tryif (search phrase rootv)
+	    ;; Since this is operating over the rootv, we don't
+	    ;; need to get the root of the phrase (in English at least)
+	    (set+! results (seq->phrase phrase)))))
+      (choice results
+	      (tryif (overlaps? options 'keepraw)
+		(cons 'raw (qchoice refs xwords (elts wordv))))))))
 
-(define-init default-settings
-  #[stoprules
-    {(isdigit+) (isalpha) #((isalnum) (isalnum)) (ispunct+)}
-    options stem])
+(defambda (stopcheck word cache stopwords stoprules)
+  (let ((result (or (get stopwords word)
+		    (and (capitalized? word)
+			 (get stopwords (downcase word)))
+		    (textmatch (qc stoprules) word))))
+    (store! cache word result)
+    result))
 
-(unless (test default-settings 'stopwords)
-  (store! default-settings 'stopwords
-	  (file->dtype (get-component "en.stops"))))
-(unless (test default-settings 'morphrules)
-  (store! default-settings 'morphrules
-	  (file->dtype (get-component "en.morphrules"))))
-(unless (test default-settings 'rootmaps)
-  (store! default-settings 'rootmaps
-	  (file->dtype (get-component "en.rootmap"))))
+(defambda (getroot word cache
+		   rootstrings rootset rootmaps rootfns morphrules)
+  (let ((result
+	 (choice (pick rootstrings is-prefix? word)
+		 (try (choice (get rootmaps word)
+			      (tryif (hashset-test rootset word) word)
+			      (pick (rootfns word) rootset)
+			      (try-choices (rule morphrules)
+				(morphrule word rule rootset)))
+		      (if (hashset-test rootset word) word
+			  (try (get rootmaps word)
+			       (rootfns word)
+			       (try-choices (rule morphrules)
+				 (morphrule word rule rootset))
+			       word))))))
+    (store! cache word result)
+    result))
 
-(define-init language-settings (make-hashtable))
+(defambda (getrefs text refrules (stopv #[]))
+  "Get references, typically based on capitalization"
+  (for-choices (ref (words->vector
+		     (tryif (not (uppercase? text))
+		       (gather (qc refrules) text))))
+    (seq->phrase
+     (if (position (first ref) stopv)
+	 (if (position (elt ref -1) stopv)
+	     (if (< (length ref) 3) (fail)
+		 (subseq ref 1 -1))
+	     (if (< (length ref) 2) (fail)
+		 (subseq ref 1)))
+	 (if (position (elt ref -1) stopv)
+	     (subseq ref 0 -1)
+	     ref)))))
 
-;;; Top level functions
+;;; Exported functions
 
 (define (text/keystrings text (options default-settings) (settings))
   (set! settings
@@ -42,18 +122,20 @@
 	    (extend-settings settings options)
 	    (text/settings options)))
   (textanalyze text
-	       (qc (get settings 'wordrules))
-	       (qc (get settings 'wordfns))
-	       (qc (get settings 'stopwords))
-	       (qc (get settings 'stoprules))
-	       (qc (get settings 'phrasemap))
-	       (qc (get settings 'rootstrings))
-	       (qc (get settings 'rootset))
-	       (qc (get settings 'rootmaps))
-	       (qc (get settings 'rootfns))
-	       (qc (get settings 'morphrules))
-	       (qc (get settings 'refrules))
-	       (qc (get settings 'options))))
+	       (try (get settings 'stopcache) (make-hashtable))
+	       (try (get settings 'rootcache) (make-hashtable))
+	       (get settings 'wordrules)
+	       (get settings 'wordfns)
+	       (get settings 'stopwords)
+	       (get settings 'stoprules)
+	       (get settings 'phrasemap)
+	       (get settings 'rootstrings)
+	       (get settings 'rootset)
+	       (get settings 'rootmaps)
+	       (get settings 'rootfns)
+	       (get settings 'morphrules)
+	       (get settings 'refrules)
+	       (get settings 'options)))
 
 (define (text/settings options)
   (if (or (string? options) (symbol? options))
@@ -72,6 +154,8 @@
 (defambda (text/analyze passages options)
   (let* ((allkeys {})
 	 (table (make-hashtable))
+	 (stopcache (try (get options 'stopcache) (make-hashtable)))
+	 (rootcache (try (get options 'rootcache) (make-hashtable)))
 	 (textfns (try (get options 'textfns) #f))
 	 (settings (text/settings options))
 	 (wordrules (get settings 'wordrules))
@@ -86,20 +170,18 @@
 	 (morphrules (get settings 'morphrules))
 	 (refrules (get settings 'refrules))
 	 (options (get settings 'options)))
-    (message "Analyzing " (choice-size passages) " passages")
     (do-choices (passage passages)
-      (message "Analyzing " (get passage 'id))
       (do-choices (text (if textfns
 			    (choice ((pick textfns applicable?) passage)
 				    (get passage (pick textfns slotid?)))
 			    passage))
-	(message "Got text for " (get passage 'id) ": " (write text))
-	(let ((keys (textanalyze text wordrules wordfns
+	(let ((keys (textanalyze text
+				 stopcache rootcache
+				 wordrules wordfns
 				 stopwords stoprules
 				 phrasemap rootstrings rootset
 				 rootmaps rootfns morphrules
 				 refrules options)))
-	  (message "Got keys for " (get passage 'id) ": " keys)
 	  (set+! allkeys keys)
 	  (add! table passage keys))))
     (let ((stringset (choice->hashset allkeys)))
@@ -112,74 +194,20 @@
 	  (reject (pick strings capitalized?)
 		  downcase stringset)))
 
-;;;; Simple text analysis
+(define (text/getroots word (settings #[]))
+  (let ((settings (text/settings settings)))
+    (getroot word (get settings 'rootcache)
+	     (get settings 'rootstrings)
+	     (get settings 'rootset)
+	     (get settings 'rootmaps)
+	     (get settings 'rootfns)
+	     (get settings 'morphrules))))
 
-(defambda (textanalyze text
-		       wordrules wordfns stopwords stoprules
-		       phrasemap rootstrings
-		       rootset rootmaps rootfns morphrules
-		       refrules
-		       options)
-  (for-choices text
-    ;; Extract features
-    (let* ((wordv (words->vector text #t))
-	   (stopv (forseq (word wordv)
-		    (and (or (get stopwords word)
-			     (and (capitalized? word)
-				  (get stopwords (downcase word)))
-			     (textmatch (qc stoprules) word))
-			 word)))
-	   (rootv (forseq (word wordv i)
-		    (if (elt stopv i) word
-			(try (tryif (hashset-get rootset word) word)
-			     (get rootmaps word)
-			     (rootfns word)
-			     (try-choices (rule morphrules)
-			       (apply morphrule word rule))
-			     word))))
-	   (results (choice (wordfns rootv text)
-			    (getroot
-			     (textsubst (gather (qc wordrules) text)
-					(qc wordrules))
-			     
-			     (qc rootstrings) (qc rootset) (qc rootmaps)
-			     (qc rootfns) (qc morphrules))
-			    (getroot (getrefs text refrules stopv)
-				     (qc rootstrings) (qc rootset) (qc rootmaps)
-				     (qc rootfns) (qc morphrules)))))
-      ;; (%watch text rootv stopv results stopwords rootmaps)
-      (doseq (root rootv i)
-	(unless (or (elt stopv i) (capitalized? root))
-	  ;; Reject stop words and leave capitals to getrefs
-	  (set+! results root))
-	(do-choices (phrase (get phrasemap root))
-	  (tryif (search phrase rootv)
-	    (set+! results (seq->phrase phrase)))))
-      results)))
+;;; Default rules, etc.
 
-(define (stopword? word stopwords stoprules)
-  (or (get stopwords word)
-      (and (capitalized? word)
-	   (get stopwords (downcase word)))
-      (textmatch (qc stoprules) word)))
+(define module-dir (dirname (get-component "en.settings")))
 
-(define (getroot word rootstrings rootset rootmaps rootfns morphrules)
-  (choice (pick rootstrings is-prefix? word)
-	  (if (hashset-test rootset word) word
-	      (try (get rootmaps word)
-		   (rootfns word)
-		   (try-choices (rule morphrules)
-		     (apply morphrule word rule))
-		   word))))
-
-(defambda (getrefs text refrules (stopv #[]))
-  "Get references, typically based on capitalization"
-  (for-choices (ref (stdspace (tryif (not (uppercase? text))
-				(gather (qc refrules) text))))
-    (choice (tryif (and (position #\Space ref)
-			(position (subseq ref 0 (position #\Space ref)) stopv))
-	      (subseq ref (1+ (position #\Space ref))))
-	    ref)))
+(define-init language-settings (make-hashtable))
 
 ;;; Settings
 
@@ -276,8 +304,8 @@
 			 (get default-settings 'stopwords))
      'stoprules (usefile (string-append base ".stoprules")
 			 (get default-settings 'stoprules))
-     'roots (usefile (string-append base ".roots")
-		     (deep-copy (get default-settings 'roots)))
+     'rootset (usefile (string-append base ".rootset")
+		       (deep-copy (get default-settings 'roots)))
      'rootmaps (usefile (string-append base ".rootmap")
 			(get default-settings 'rootmaps))
      'morphrules (usefile (string-append base ".morphrules")
@@ -304,6 +332,33 @@
     (store! settings 'rootset rootset)
     (store! settings 'phrasemap phrasemap)
     settings))
+
+
+;;; Default rules
+
+(define consrules
+  (for-choices (letter {"p" "t" "b" "m" "r" "d"})
+    `(subst ,(string-append letter letter) ,letter)))
+
+(define default-stoprules
+  '{(isdigit+) (isalpha) #((isalnum) (isalnum)) (ispunct+)})
+
+(define default-morphrules
+  ;; These are the rules for English and should usually be the same
+  ;; as in en.morphrules
+  `(("'s" . "") ("s'" . "s") #((ISUPPER) (REST)) ("ies" . "y")
+    ("ees" . "ee") ("es" . "") ("s" . "") 
+    ("ing" . #((not> #(,(second consrules) "ing"))
+	       (isnotvowel) (subst #((isnotvowel) "ing") "")))
+    ("ing" . #((not> #(,(third consrules) "ing"))
+	       (isnotvowel) (subst "ing" "e") (eos)))
+    ("ed" . #((not> #(,(second consrules) "ed"))
+	      (isnotvowel) (subst #((isnotvowel) "ed") "")))
+    ("ed" . #((not> #(,(third consrules) "ed"))
+	      (isnotvowel) (subst "ed" "e") (eos)))
+    ("ed" . "") ("ed" . "e") 
+    ("ing" . "")
+    ("ly" . #((NOT> "ly") (SUBST "ly" "")))))
 
 ;;; Default ref rules
 
@@ -333,19 +388,6 @@
       (capword))
     (capword)})
 
-(define default-wordrules
-  `{#((SUBST #(,name-prefixes (spaces)) "")
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (opt #({,name-glue ,name-preps} (spaces)))
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    #((SUBST #(,name-prefixes (spaces)) "")
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))})
-
-(store! default-settings 'refrules default-refrules)
-(store! default-settings 'wordrules default-wordrules)
-
 (define solename
   #[PATTERN
     #((islower)  (spaces)
@@ -361,7 +403,28 @@
        (label term (capword) ,downcase))
      LABELS TERM])
 
+(define default-wordrules
+  `{#((SUBST #(,name-prefixes (spaces)) "")
+      (* #({(capword) (+ #((isupper) "."))} (spaces)))
+      (opt #({,name-glue ,name-preps} (spaces)))
+      (* #({(capword) (+ #((isupper) "."))} (spaces)))
+      (capword))
+    #((SUBST #(,name-prefixes (spaces)) "")
+      (* #({(capword) (+ #((isupper) "."))} (spaces)))
+      (capword))
+    #((SUBST #((ispunct) (spaces)) "")
+      (subst (capword) downcase))
+    #((bol) (subst (capword) downcase))})
 
 ;;; Setup
+
+(define-init default-settings
+  `#[stoprules ,default-stoprules
+     stopwords ,(file->dtype (get-component "en.stops"))
+     morphrules ,default-morphrules
+     rootmaps ,(file->dtype (get-component "en.rootmap"))
+     rootset ,(file->dtype (get-component "en.rootset"))
+     wordrules ,default-wordrules
+     refrules ,default-refrules])
 
 (compile-settings default-settings)
