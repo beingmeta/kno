@@ -1,8 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module '{aws/simpledb})
 
 ;;; Accessing Amazon Simple DB
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{sdb/fromlisp sdb/tolisp})

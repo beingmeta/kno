@@ -1,8 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'knowlets/html)
 
 ;;; Tools for output of knowlets and dterms in XHTML
-(define id "$Id:$")
-(define revision "$Revision:$")
+(define id "$Id$")
+(define revision "$Revision$")
 
 (use-module '{texttools ezrecords varconfig fdweb xhtml xhtml/clickit})
 

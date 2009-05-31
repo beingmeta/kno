@@ -3,12 +3,12 @@
 
 (in-module 'audit)
 
-(use-module '{brico brico/indexing logger})
-
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
+
+(use-module '{brico brico/indexing logger})
 
 (define %loglevel %notice!)
 

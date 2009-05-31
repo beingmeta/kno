@@ -1,6 +1,8 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
+(in-module 'cachequeue)
+
 ;;; Cache queues support the queued computation and caching of complex
 ;;; functions.
 ;;;  cq/request requests an up to date value for a given call, its
@@ -9,10 +11,8 @@
 ;;;    and returns any cached value
 ;;;  cq/require gets a value from the cachequeue's cache or, if neccessary,
 ;;;   generates it and stores it in the cache.
-
-
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (use-module '{ezrecords meltcache fifo logger reflection})
 

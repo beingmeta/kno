@@ -1,12 +1,13 @@
-;;; -*- Mode: Scheme; text-encoding: utf-8; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'knowlets)
 
 ;;; Core file for the knowlets implementation
 ;;; Provides data structures, core tables, and basic
 ;;;  KR functions
-(define id "$Id:$")
-(define revision "$Revision:$")
+(define id "$Id$")
+(define revision "$Revision$")
 
 (use-module '{texttools ezrecords varconfig logger})
 (use-module 'knowlets/drules)

@@ -1,8 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'aws/s3)
 
 ;;; Accessing files with Amazon S3
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (use-module '{aws fdweb texttools})
 

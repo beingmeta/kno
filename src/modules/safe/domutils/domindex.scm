@@ -1,10 +1,11 @@
-;;; -*- Mode: Scheme; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'domutils/index)
 
 ;;; Utilites for indexing XML content, especially XHTML
-(define version "$Id:$")
-(define revision "$Revision:$")
+(define version "$Id$")
+(define revision "$Revision$")
 
 (use-module '{reflection
 	      fdweb xhtml texttools domutils

@@ -4,8 +4,7 @@
 (in-module 'brico)
 
 (define version "$Id$")
-(define revision "$Revision:$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (define %nosubst '{bricosource
 		   brico-pool brico-index brico.db

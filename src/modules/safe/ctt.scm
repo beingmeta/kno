@@ -2,10 +2,11 @@
 ;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'ctt)
+
 ;;; This module provides for targeted calltracking (as opposed to the
 ;;; general calltracking provided by the interpreter)
-(define version "$Id:$")
-(define revision "$Revision:$")
+(define version "$Id$")
+(define revision "$Revision$")
 
 (use-module 'logger)
 

@@ -1,8 +1,11 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'aws)
 
 ;;; Core file for accessing Amazon Web Services
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (module-export! '{awskey secretawskey awsaccount})
 

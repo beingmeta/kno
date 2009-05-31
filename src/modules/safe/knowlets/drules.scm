@@ -1,10 +1,13 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
 (in-module 'knowlets/drules)
 
 ;;; Disambiguation rules for knowlets
 ;;;  Designed to work with a full-text inverted index
 ;;;   like those produced by textindex
-(define id "$Id:$")
-(define revision "$Revision:$")
+(define id "$Id$")
+(define revision "$Revision$")
 
 (use-module '{texttools fdweb ezrecords varconfig})
 (use-module '{knowlets})
