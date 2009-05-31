@@ -2,6 +2,10 @@
 
 (in-module 'domutils)
 
+;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
+(define version "$Id:$")
+(define revision "$Revision:$")
+
 (use-module '{fdweb xhtml texttools ezrecords varconfig})
 
 (module-export!
@@ -197,19 +201,23 @@
 
 ;;; Searching
 
-(define (dom/find under sel)
-  "Finds all nodes matching SEL under UNDER"
-  (if (selector? sel)
-      (cond ((string? under) (fail))
-	    ((pair? under)
-	     (for-choices (elt (elts under))
-	       (dom/find elt sel)))
-	    ((table? under)
-	     (choice (tryif (dom/match under sel) under)
-		     (for-choices (elt (elts (get under '%content)))
-		       (dom/find elt sel))))
-	    (else (fail)))
-      (dom/find under (->selector sel))))
+(defambda (dom/find under sel (findall #t))
+  "Finds all nodes matching SEL under UNDER, if FINDALL is true, \
+   look under matching nodes for other matching nodes."
+  (unless (exists? (pickstrings sel)) (set! sel (->selector sel)))
+  (cond ((string? under) (fail))
+	((ambiguous? under)
+	 (for-choices under (dom/find under sel)))
+	((pair? under)
+	 (for-choices (elt (elts under)) (dom/find elt sel findall)))
+	((and (table? under) (dom/match under sel))
+	 (choice under (tryif findall
+			 (for-choices (elt (elts (get under '%content)))
+			   (dom/find elt sel findall)))))
+	((table? under)
+	 (for-choices (elt (elts (get under '%content)))
+	   (dom/find elt sel findall)))
+	(else (fail))))
 
 ;;; Text searching
 
