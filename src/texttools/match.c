@@ -451,11 +451,11 @@ fdtype fd_text_domatch
       else {
 	fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
 	fd_decref(v); return result;}}
-    else return fd_err(fd_UnboundIdentifier,"fd_text_matcher",NULL,pat);
+    else return fd_err(fd_UnboundIdentifier,"fd_text_domatch",NULL,pat);
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return fd_text_matcher(txc->pattern,txc->env,string,off,lim,flags);}
-  else return fd_err(fd_MatchSyntaxError,"fd_text_matcher",NULL,pat);
+  else return fd_err(fd_MatchSyntaxError,"fd_text_domatch",NULL,pat);
 }
 
 FD_EXPORT
@@ -1155,7 +1155,7 @@ static fdtype subst_extract
 	  else {}
 	  if (FD_ABORTP(method)) replacement=method;
 	  else if (!(FD_APPLICABLEP(method))) {
-	    replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,method);
+	    replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,r);
 	    fd_decref(method);}
 	  else {
 	    fdtype size=FD_CAR(extraction);
@@ -1696,7 +1696,7 @@ static fdtype match_longest
 {
   fdtype pat_arg=fd_get_arg(pat,1);
   if (FD_VOIDP(pat_arg))
-    return fd_err(fd_MatchSyntaxError,"match_longeset",NULL,pat);
+    return fd_err(fd_MatchSyntaxError,"match_longest",NULL,pat);
   else {
     fdtype results=fd_text_matcher(pat_arg,env,string,off,lim,flags);
     fdtype longest=get_longest_match(results);
@@ -1718,7 +1718,7 @@ static fdtype extract_longest
 {
   fdtype pat_arg=fd_get_arg(pat,1);
   if (FD_VOIDP(pat_arg))
-    return fd_err(fd_MatchSyntaxError,"match_longeset",NULL,pat);
+    return fd_err(fd_MatchSyntaxError,"extract_longeset",NULL,pat);
   else {
     fdtype results=fd_text_matcher(pat_arg,env,string,off,lim,flags);
     fdtype longest=get_longest_extractions(results);
