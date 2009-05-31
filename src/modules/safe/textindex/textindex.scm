@@ -1,8 +1,14 @@
 (in-module 'textindex)
 
+;;; Module for simple text analysis, including morphrules and
+;;;  reference point extraction
+(define id "$Id:$")
+(define revision "$Revision:$")
+
 (use-module '{texttools varconfig logger reflection})
 
-(module-export! '{text/keystrings text/settings text/reduce})
+(module-export!
+ '{text/keystrings text/settings text/index text/analyze text/reduce})
 
 ;;; Default rules, etc.
 
@@ -25,6 +31,8 @@
 
 (define-init language-settings (make-hashtable))
 
+;;; Top level functions
+
 (define (text/keystrings text (options default-settings) (settings))
   (set! settings
 	(if (bound? settings)
@@ -32,6 +40,7 @@
 	    (text/settings options)))
   (textanalyze text
 	       (qc (get settings 'wordrules))
+	       (qc (get settings 'wordfns))
 	       (qc (get settings 'stopwords))
 	       (qc (get settings 'stoprules))
 	       (qc (get settings 'phrasemap))
@@ -53,6 +62,48 @@
 	       default-settings)
 	   options))))
 
+(define (text/index! index f slotid (value) (options #[]))
+  (unless (or (not (bound? value)) value) (set! value (get f slotid)))
+  (index-frame index f slotid (text/keystrings value options)))
+
+(defambda (text/analyze passages options)
+  (let* ((allkeys {})
+	 (table (make-hashtable))
+	 (textfns (try (get options 'textfns) #f))
+	 (settings (text/settings options))
+	 (wordrules (get settings 'wordrules))
+	 (wordfns (get settings 'wordfns))
+	 (stopwords (get settings 'stopwords))
+	 (stoprules (get settings 'stoprules))
+	 (phrasemap (get settings 'phrasemap))
+	 (rootstrings (get settings 'rootstrings))
+	 (rootset (get settings 'rootset))
+	 (rootmaps (get settings 'rootmaps))
+	 (rootfns (get settings 'rootfns))
+	 (morphrules (get settings 'morphrules))
+	 (refrules (get settings 'refrules))
+	 (options (get settings 'options)))
+    (message "Analyzing " (choice-size passages) " passages")
+    (do-choices (passage passages)
+      (message "Analyzing " (get passage 'id))
+      (do-choices (text (if textfns
+			    (choice ((pick textfns applicable?) passage)
+				    (get passage (pick textfns slotid?)))
+			    passage))
+	(message "Got text for " (get passage 'id) ": " (write text))
+	(let ((keys (textanalyze text wordrules wordfns
+				 stopwords stoprules
+				 phrasemap rootstrings rootset
+				 rootmaps rootfns morphrules
+				 refrules options)))
+	  (message "Got keys for " (get passage 'id) ": " keys)
+	  (set+! allkeys keys)
+	  (add! table passage keys))))
+    (let ((stringset (choice->hashset allkeys)))
+      (do-choices (passage (getkeys table))
+	(store! table passage (text/reduce (get table passage) stringset))))
+    table))
+
 (defambda (text/reduce strings stringset)
   (choice (reject strings capitalized?)
 	  (reject (pick strings capitalized?)
@@ -61,7 +112,7 @@
 ;;;; Simple text analysis
 
 (defambda (textanalyze text
-		       wordrules stopwords stoprules
+		       wordrules wordfns stopwords stoprules
 		       phrasemap rootstrings
 		       rootset rootmaps rootfns morphrules
 		       refrules
@@ -83,8 +134,13 @@
 			     (try-choices (rule morphrules)
 			       (apply morphrule word rule))
 			     word))))
-	   (results (choice (textsubst (gather (qc wordrules) text)
-				       (qc wordrules))
+	   (results (choice (wordfns rootv text)
+			    (getroot
+			     (textsubst (gather (qc wordrules) text)
+					(qc wordrules))
+			     
+			     (qc rootstrings) (qc rootset) (qc rootmaps)
+			     (qc rootfns) (qc morphrules))
 			    (getroot (getrefs text refrules stopv)
 				     (qc rootstrings) (qc rootset) (qc rootmaps)
 				     (qc rootfns) (qc morphrules)))))
@@ -92,12 +148,7 @@
       (doseq (root rootv i)
 	(unless (or (elt stopv i) (capitalized? root))
 	  ;; Reject stop words and leave capitals to getrefs
-	  (set+! results root)
-	  ;; Stem if requested (metaphone here?)
-	  (when (overlaps? options 'stem)
-	    (set+! results
-		   (string-append
-		    "#" (choice (porter-stem root) (elt wordv i))))))
+	  (set+! results root))
 	(do-choices (phrase (get phrasemap root))
 	  (tryif (search phrase rootv)
 	    (set+! results (seq->phrase phrase)))))
@@ -111,7 +162,7 @@
 
 (define (getroot word rootstrings rootset rootmaps rootfns morphrules)
   (choice (pick rootstrings is-prefix? word)
-	  (if (test rootset word) word
+	  (if (hashset-test rootset word) word
 	      (try (get rootmaps word)
 		   (rootfns word)
 		   (try-choices (rule morphrules)
@@ -122,7 +173,8 @@
   "Get references, typically based on capitalization"
   (for-choices (ref (stdspace (tryif (not (uppercase? text))
 				(gather (qc refrules) text))))
-    (choice (tryif (position (subseq ref 0 (position #\Space ref)) stopv)
+    (choice (tryif (and (position #\Space ref)
+			(position (subseq ref 0 (position #\Space ref)) stopv))
 	      (subseq ref (1+ (position #\Space ref))))
 	    ref)))
 
@@ -133,9 +185,14 @@
 (define (extend-settings settings options)
   (let* ((stops (get options 'stops))
 	 (roots (get options 'roots))
+	 (words (get options 'words))
 	 (rootstrings (pickstrings roots)))
     (frame-create #f
       'type 'indexsettings
+      'wordrules (choice (get settings 'wordrules)
+			 (reject words applicable?))
+      'wordfns (choice (get settings 'wordfns)
+		       (pick words applicable?))
       'stopwords
       (let ((stopwords (make-hashset)))
 	(hashset-add!
@@ -234,13 +291,15 @@
 (define (compile-settings settings)
   (let ((rootset (try (get settings 'rootset) (make-hashset)))
 	(rootmaps (get settings 'rootmaps))
-	(phrasemap (get settings 'phrasemap)))
+	(phrasemap (try (get settings 'phrasemap) (make-hashtable))))
     (do-choices (map rootmaps)
       (do-choices (key (getkeys map))
 	(hashset-add! rootset (get map key))))
     (do-choices (phrase (pick (hashset-elts rootset) compound?))
       (let ((phrasev (words->vector phrase)))
 	(add! phrasemap (elts phrasev) phrasev)))
+    (store! settings 'rootset rootset)
+    (store! settings 'phrasemap phrasemap)
     settings))
 
 ;;; Default ref rules
