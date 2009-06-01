@@ -141,22 +141,27 @@ static fdtype decode_entities_prim(fdtype input)
 
 /* Breaking up strings into words */
 
+#define iswordc(c) \
+  ((u8_isalnum(c)) || (!((u8_isspace(c)) || (u8_ispunct(c)))))
+
 static u8_string skip_word(u8_string start)
 {
   if (start==NULL) return NULL;
   else if (*start) {
     u8_string last=start, scan=start; int c=egetc(&scan);
-    if (u8_isalnum(c)) while (c>0)
-      if (u8_isalnum(c)) {last=scan; c=egetc(&scan);}
-      else if (u8_isspace(c)) return last;
-      else {
-	c=egetc(&scan);
-	if (!(u8_isalnum(c))) return last;
-	else last=scan;}
-    else if (u8_ispunct(c)) while (c>0)
-      if (u8_ispunct(c)) {
-	last=scan; c=egetc(&scan);}
-      else return last;
+    if (iswordc(c))
+      while (c>0)
+	if (iswordc(c)) {last=scan; c=egetc(&scan);}
+	else if (u8_isspace(c)) return last;
+	else {
+	  c=egetc(&scan);
+	  if (!(iswordc(c))) return last;
+	  else last=scan;}
+    else if (u8_ispunct(c))
+      while (c>0)
+	if (u8_ispunct(c)) {
+	  last=scan; c=egetc(&scan);}
+	else return last;
     else return last;
     return last;}
   else return NULL;
@@ -1660,17 +1665,19 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
     fdtype head=FD_VOID, pair=FD_VOID;
     u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
     u8_byte *scan=start, *pos=strchr(scan,c);
-    while ((scan) && (scan<limit)) {
-      if ((pos) && (pos>start) && (*(pos-1)==e)) {
-	pos=strchr(pos+1,c);}
-      else  {
-	fdtype seg=fd_extract_string(NULL,scan,pos);
-	fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
-	if (FD_VOIDP(head)) head=pair=elt;
-	else {
-	  FD_RPLACD(pair,elt); pair=elt;}
-	if (pos) {scan=pos+1; pos=strchr(scan,c);}
-	else scan=NULL;}}
+    if (pos)
+      while ((scan) && (scan<limit)) {
+	if ((pos) && (pos>start) && (*(pos-1)==e)) {
+	  pos=strchr(pos+1,c);}
+	else  {
+	  fdtype seg=fd_extract_string(NULL,scan,pos);
+	  fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
+	  if (FD_VOIDP(head)) head=pair=elt;
+	  else {
+	    FD_RPLACD(pair,elt); pair=elt;}
+	  if (pos) {scan=pos+1; pos=strchr(scan,c);}
+	  else scan=NULL;}}
+    else head=fd_init_pair(NULL,fd_incref(string),FD_EMPTY_LIST);
     return head;}
 }
 
