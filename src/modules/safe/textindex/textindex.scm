@@ -49,7 +49,10 @@
 			 (getroot word rootcache
 				  rootstrings rootset
 				  rootmaps rootfns morphrules))))
-	   (refs (getrefs text refrules stopv))
+	   (xrefs (getrefs text refrules stopv))
+	   (refs  (filter-choices (word xrefs)
+		    (not (try (get stopcache word) 
+			      (stopcheck word stopcache stopwords stoprules)))))
 	   (refroots (for-choices (ref refs)
 		       (getroot ref rootcache
 				rootstrings rootset rootmaps
@@ -331,6 +334,7 @@
     (do-choices (map rootmaps)
       (do-choices (key (getkeys map))
 	(hashset-add! rootset (get map key))))
+    (hashset-drop! rootset (hashset-elts (get settings 'stopwords)))
     (store! settings 'rootset rootset)
     (store! settings 'phrasemap phrasemap)
     settings))

@@ -4,8 +4,8 @@
 (in-module 'histogram)
 
 ;;; Computes index/table histograms
-(define version "$Id:$")
-(define revision "$Revision:$")
+(define version "$Id$")
+(define revision "$Revision$")
 
 (defambda (index-histogram index (slotids #f) (normalize #f))
   (let* ((values (if slotids
@@ -14,7 +14,7 @@
 	 (histogram (make-hashtable)))
     (do-choices (value values)
       (hashtable-increment! histogram value
-	  (choice-size (get index (cons 'roots value)))))
+	  (choice-size (get index (cons slotids value)))))
     histogram))
 
 (module-export! '{index-histogram})
