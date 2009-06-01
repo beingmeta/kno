@@ -64,13 +64,15 @@
 	  (set+! results root))
 	(do-choices (phrase (get phrasemap root))
 	  ;; (%watch "CHECKPHRASE" phrase root)
-	  (tryif (search phrase rootv)
+	  (when (search phrase rootv)
 	    ;; Since this is operating over the rootv, we don't
 	    ;; need to get the root of the phrase (in English at least)
 	    (set+! results (seq->phrase phrase)))))
       (choice results
 	      (tryif (overlaps? options 'keepraw)
-		(cons 'raw (qchoice refs xwords (elts wordv))))))))
+		(choice
+		 (cons 'refs (qc refs))
+		 (cons 'words (qchoice xwords (elts wordv)))))))))
 
 (defambda (stopcheck word cache stopwords stoprules)
   (let ((result (or (get stopwords word)
@@ -186,7 +188,10 @@
 	  (add! table passage keys))))
     (let ((stringset (choice->hashset allkeys)))
       (do-choices (passage (getkeys table))
-	(store! table passage (text/reduce (get table passage) stringset))))
+	(store! table passage
+		(choice (pick (get table passage) pair?)
+			(text/reduce (pickstrings (get table passage))
+				     stringset)))))
     table))
 
 (defambda (text/reduce strings stringset)
@@ -326,9 +331,6 @@
     (do-choices (map rootmaps)
       (do-choices (key (getkeys map))
 	(hashset-add! rootset (get map key))))
-    (do-choices (phrase (pick (hashset-elts rootset) compound?))
-      (let ((phrasev (words->vector phrase)))
-	(add! phrasemap (elts phrasev) phrasev)))
     (store! settings 'rootset rootset)
     (store! settings 'phrasemap phrasemap)
     settings))
@@ -346,7 +348,10 @@
 (define default-morphrules
   ;; These are the rules for English and should usually be the same
   ;; as in en.morphrules
-  `(("'s" . "") ("s'" . "s") #((ISUPPER) (REST)) ("ies" . "y")
+  `(("'s" . "") ("s'" . "s") ("\u2019s" . "") ("s\u2019" . "s")
+    ;; This causes proper names to be spared all the other morphizing
+    #((ISUPPER) (REST))
+    ("ies" . "y")
     ("ees" . "ee") ("es" . "") ("s" . "") 
     ("ing" . #((not> #(,(second consrules) "ing"))
 	       (isnotvowel) (subst #((isnotvowel) "ing") "")))

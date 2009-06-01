@@ -324,7 +324,10 @@
 
 (define (dom/textify node (embedded #f) (cache #t))
   (if embedded
-      (if (string? node) (printout (decode-entities node))
+      (if (string? node)
+	  (printout (if (position #\< node)
+			(decode-entities (strip-markup node))
+			(decode-entities node)))
 	  (if (pair? node)
 	      (dolist (elt node) (dom/textify elt #t cache))
 	      (if (table? node)
@@ -335,13 +338,13 @@
 		      (if (test node '%text)
 			  (get node '%text)
 			  (when (test node '%content)
-			    (let ((s (stdspace
-				      (stringout
-					(dolist (elt (get node '%content))
-					  (if (string? elt)
-					      (printout (decode-entities elt))
-					      (dom/textify elt #t cache)))))))
-			      (when cache (store! node '%text s))
-			      (printout s))))))
+			    (dom/textify (get node '%content) #t #f)))))
 		  (printout node))))
-      (stdspace (stringout (dom/textify node #t cache)))))
+      (if (test node '%text)
+	  (get node '%text)
+	  (if cache
+	      (let ((s (stringout (dom/textify node #t #f))))
+		(store! node '%text s)
+		s)
+	      (stringout (dom/textify node #t #f))))))
+
