@@ -94,4 +94,3 @@
 	    (lineout "\n\t'EN " (write (get faux-genls term)) ")")
 	    (lineout ")")))))
     (lineout ";; Output " outcount " entries")))
-

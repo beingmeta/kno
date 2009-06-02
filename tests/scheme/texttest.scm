@@ -75,6 +75,23 @@ is the other number")
 	     "bookcase" "which" "was" "brightly" "colored"
 	     "3345-9877703-33333" "is" "the" "other" "number")
 	   getwords sample-string)
+(applytest '("Bill" "J" "." "Clinton" "met" "with" "Bill" "Gates" "," "III" 
+	     "in" "New" "Orleans" "," "LA" "and" "San" "Diego.")
+	   getwords test-text #t)
+(applytest '("The" "book" "was" "over" "here" "by" "the"
+	     "bookcase" "which" "was" "brightly" "colored" "."
+	     "3345-9877703-33333" "is" "the" "other" "number")
+	   getwords sample-string #t)
+
+(define unicode-boundary-case
+  "mud when dry weighed\nonly 6¾ ounces; I kept it covered")
+
+(applytest '("mud" "when" "dry" "weighed" "only" "6¾" "ounces" "I"
+	     "kept" "it" "covered")
+	   getwords unicode-boundary-case)
+(applytest '("mud" "when" "dry" "weighed" "only" "6¾" "ounces" ";"
+	     "I" "kept" "it" "covered")
+	   getwords unicode-boundary-case #t)
 
 (applytest #t textmatch "goo" "goo")
 (applytest #f textmatch "goo" "good")
