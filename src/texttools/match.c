@@ -2080,6 +2080,8 @@ static fdtype isspace_plus_match
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(last-string));}
       ch=u8_sgetc(&scan);}
   if (last == string) return FD_EMPTY_CHOICE;
+  else if ((flags)&(FD_MATCH_BE_GREEDY))
+    return get_longest_match(match_points);
   else return match_points;
 }
 static u8_byteoff isspace_search
@@ -2159,7 +2161,9 @@ static fdtype isalnum_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff isalnum_search
@@ -2197,7 +2201,9 @@ static fdtype isword_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff isword_search
@@ -2234,7 +2240,9 @@ static fdtype isdigit_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff isdigit_search
@@ -2271,7 +2279,9 @@ static fdtype isalpha_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff isalpha_search
@@ -2308,7 +2318,9 @@ static fdtype ispunct_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff ispunct_search
@@ -2345,7 +2357,9 @@ static fdtype iscntrl_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff iscntrl_search
@@ -2382,7 +2396,9 @@ static fdtype islower_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff islower_search
@@ -2419,7 +2435,9 @@ static fdtype isupper_plus_match
 	match_points=FD_INT2DTYPE(off);
       else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
       ch=string_ref(string+off);}
-    return match_points;}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff isupper_search
@@ -2763,7 +2781,9 @@ static fdtype capword_match
     last=scan; ch=u8_sgetc(&scan);}
   if (last > string+off) {
     FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}
-  return matches;
+  if ((flags)&(FD_MATCH_BE_GREEDY))
+    return get_longest_match(matches);
+  else return matches;
 }
 static u8_byteoff capword_search
   (fdtype pat,fd_lispenv env,
