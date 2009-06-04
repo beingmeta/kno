@@ -33,9 +33,9 @@ static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
 static fdtype id_symbol, bind_symbol, xml_env_symbol;
 
 static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
-static fdtype pnode_symbol, pbody_symbol;
+static fdtype pnode_symbol, pbody_symbol, begin_symbol;
 
-static fdtype xattrib_overlay, escape_id, attribids;
+static fdtype xattrib_overlay, escape_id, attribids, piescape_symbol;
 
 void *inherit_node_data(FD_XML *node)
 {
@@ -547,11 +547,29 @@ static void set_xml_env(FD_XML *xml,fd_lispenv newenv)
   fd_set_value(xml_env_symbol,(fdtype)newenv,(fd_lispenv)(xml->data));
 }
 
+static int test_piescape(FD_XML *xml,u8_string content,int len)
+{
+  if ((strncmp(content,"?fdeval ",7)==0)) return 7;
+  else {
+    fdtype piescape=fd_get((fdtype)(inherit_node_data(xml)),
+			   piescape_symbol,FD_VOID);
+    u8_string piend=strchr(content,' ');
+    int pielen=((piend)?((piend-content)-1):(0));
+    FD_DO_CHOICES(pie,piescape) 
+      if ((FD_STRINGP(pie)) && (FD_STRLEN(pie)==0)) {
+	if (strncmp(content,"? ",2)==0) return 2;
+	else if (strncmp(content,"?(",2)==0) return 1;}
+      else if ((FD_STRINGP(pie)) && (FD_STRLEN(pie)==pielen)) {
+	if (strncmp(content+1,FD_STRDATA(pie),FD_STRLEN(pie))==0) {
+	  FD_STOP_DO_CHOICES;
+	  return 1+FD_STRLEN(pie);}}
+    return 0;}
+}
+
 static FD_XML *handle_xmleval_pi
   (u8_input in,FD_XML *xml,u8_string content,int len)
 {
-  if (strncmp(content,"?fdxml ",6)) return xml;
-  else {
+  if (strncmp(content,"?fdxml ",6)==0) {
     u8_byte *scan=content, *attribs[16];
     int i=0, n_attribs=fd_parse_element(&scan,content+len,attribs,16);
     while (i<n_attribs)
@@ -645,6 +663,17 @@ static FD_XML *handle_xmleval_pi
 	fd_bind_value(escape_id,arg,xml_env);
 	fd_decref(arg);
 	i++;}
+      else if ((strncmp(attribs[i],"piescape=",9))==0) {
+	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+9));
+	fd_lispenv xml_env=(fd_lispenv)(xml->data);
+	fdtype cur=fd_symeval(piescape_symbol,xml_env);
+	if (FD_VOIDP(cur))
+	  fd_bind_value(piescape_symbol,arg,xml_env);
+	else {
+	  FD_ADD_TO_CHOICE(cur,arg);
+	  fd_set_value(piescape_symbol,arg,xml_env);}
+	fd_decref(arg);
+	i++;}
       else if ((strncmp(attribs[i],"xattrib=",8))==0) {
 	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
@@ -652,6 +681,27 @@ static FD_XML *handle_xmleval_pi
 	fd_decref(arg);
 	i++;}
       else i++;
+    return xml;}
+  else {
+    int pioff=((strncmp(content,"?fdeval ",7)==0)?(7):
+	       (test_piescape(xml,content,len)));
+    if (pioff) {
+      struct U8_INPUT in;
+      fdtype insert=fd_init_pair(NULL,begin_symbol,FD_EMPTY_LIST);
+      fdtype *tail=&(FD_CDR(insert)), expr=FD_VOID;
+      U8_INIT_STRING_INPUT(&in,len-pioff-1,content+pioff);
+      expr=fd_parse_expr(&in);
+      while (1) {
+	if (FD_ABORTP(expr)) {
+	  fd_decref(insert);
+	  return NULL;}
+	else if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
+	else {
+	  fdtype new_cons=fd_init_pair(NULL,expr,FD_EMPTY_LIST);
+	  *tail=new_cons; tail=&(FD_CDR(new_cons));}
+	expr=fd_parse_expr(&in);}
+      
+      fd_add_content(xml,insert);}
     return xml;}
 }
 
@@ -663,6 +713,7 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
   fdtype result=FD_VOID;
   if ((FD_PAIRP(xml)) &&
       ((FD_STRINGP(FD_CAR(xml))) || (FD_TABLEP(FD_CAR(xml))))) {
+    /* This is the case where it's a node list */
     fdtype value=FD_VOID;
     FD_DOLIST(elt,xml) {
       if (FD_STRINGP(elt)) u8_puts(out,FD_STRDATA(elt));
@@ -672,12 +723,16 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
     return value;}
   if (FD_NEED_EVALP(xml)) {
     fdtype result=fd_eval(xml,env);
+    /* This is where we have a symbol or list embedded in
+       the document (via escapes, for instance) */
     if (FD_VOIDP(result)) {}
     else if ((FD_TABLEP(result)) &&
 	     (fd_test(result,rawname_slotid,FD_VOID))) {
+      /* If the call returns an XML object, unparse it */
       fd_unparse_xml(out,result,env);
       fd_decref(result);}
     else {
+      /* Otherwise, output it as XML */
       fd_dtype2xml(out,result,env);
       fd_decref(result);}}
   else if (FD_STRINGP(xml))
@@ -1236,6 +1291,7 @@ FD_EXPORT void fd_init_xmleval_c()
   xml_env_symbol=fd_intern("%XMLENV");
   xattrib_overlay=fd_intern("%XATTRIB");
   escape_id=fd_intern("%ESCAPE");
+  piescape_symbol=fd_intern("%PIESCAPE");
 
   iter_var=fd_intern("%ITER");
   value_symbol=fd_intern("VALUE");
@@ -1260,6 +1316,7 @@ FD_EXPORT void fd_init_xmleval_c()
 
   attribids=fd_intern("%ATTRIBIDS");
   
+  begin_symbol=fd_intern("BEGIN");
   quote_symbol=fd_intern("QUOTE");
   xmlarg_symbol=fd_intern("%XMLARG");
   doseq_symbol=fd_intern("DOSEQ");

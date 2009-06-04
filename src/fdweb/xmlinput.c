@@ -258,7 +258,7 @@ static int allspacep(u8_string s)
 
 static fdtype item2list(fdtype item,int parse_entities)
 {
-  if (parse_entities) {
+  if ((FD_STRINGP(item)) && (parse_entities)) {
     fdtype result=fd_make_list(1,decode_entities(item));
     fd_decref(item);
     return result;}
@@ -274,10 +274,13 @@ static void add_content(struct FD_XML *node,fdtype item)
     fd_decref(item);
     return;}
   else {
-    int parse_entities=
-      (((node->bits)&(FD_XML_DECODE_ENTITIES)) &&
-       (strchr(FD_STRDATA(item),'&')!=NULL));
-    fdtype entry=item2list(item,parse_entities);
+    fdtype entry;
+    if (FD_STRINGP(item)) {
+      int parse_entities=
+	(((node->bits)&(FD_XML_DECODE_ENTITIES)) &&
+	 (strchr(FD_STRDATA(item),'&')!=NULL));
+      entry=item2list(item,parse_entities);}
+    else entry=fd_make_list(1,item);
     if (node->tail==NULL) {
       node->head=entry;
       node->tail=(struct FD_PAIR *)entry;}
