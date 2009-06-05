@@ -372,6 +372,7 @@ FD_EXPORT void fd_init_xtables_c()
 
   fd_adjunct_slotids=FD_EMPTY_CHOICE;
 
+  /* Table functions for OIDs */
   fd_tablefns[fd_oid_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_oid_type]->get=fd_oid_get;
   fd_tablefns[fd_oid_type]->add=fd_oid_add;
@@ -381,6 +382,7 @@ FD_EXPORT void fd_init_xtables_c()
   fd_tablefns[fd_oid_type]->keys=fd_oid_keys;
   fd_tablefns[fd_oid_type]->getsize=NULL;
 
+  /* Table functions for CHOICEs */
   fd_tablefns[fd_choice_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_choice_type]->get=choice_get;
   fd_tablefns[fd_choice_type]->add=choice_add;
