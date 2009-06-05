@@ -381,6 +381,7 @@ FD_EXPORT fdtype fd_init_hashtable
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
 				      struct FD_HASHENTRY ***,int *);
+FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr);
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht);
 FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,fd_ptr_type);
 
@@ -463,7 +464,7 @@ FD_EXPORT fdtype fd_hashset_elts(fd_hashset h,int clean);
 FD_EXPORT void fd_init_hashset(fd_hashset h,int n,int stack_cons);
 FD_EXPORT fdtype fd_make_hashset(void);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
-
+FD_EXPORT fdtype fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
 
 
 #endif /* FDB_TABLES_H */
