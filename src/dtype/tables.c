@@ -1790,20 +1790,15 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
    will then reduce the table to remove such entries. */
 FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
 {
+  struct FD_HASHENTRY **scan, **lim;
   int n_slots=ptr->n_slots, n_keys=ptr->n_keys;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if ((n_slots == 0) || (n_keys == 0)) return 0;
   fd_write_lock_struct(ptr);
-  {
-    struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
-    struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
-    struct FD_HASHENTRY **nscan=new_slots, **nlim=nscan+n_slots;
-    int remaining_keys=0;
-    if (new_slots==NULL) {
-      fd_rw_unlock_struct(ptr);
-      return -1;}
-    while (nscan<nlim) *nscan++=NULL;
-    while (scan < lim)
+  while (1) {
+    int n_cleared=0;
+    scan=ptr->slots; lim=scan+ptr->n_slots;
+    while (scan < lim) {
       if (*scan) {
 	struct FD_HASHENTRY *e=*scan++; int n_keyvals=e->n_keyvals;
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
@@ -1812,13 +1807,12 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
 	  if (FD_CONSP(val)) {
 	    struct FD_CONS *cval=(struct FD_CONS *)val;
 	    if (FD_CONS_REFCOUNT(cval)==1) {
-	      kvscan->value=FD_VOID; fd_decref(val);}
-	    else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val))) {
-	      /* ??? In the future, this should probably scan the values
-		 to remove similar cases.  */
-	    }}
+	      n_cleared++; kvscan->value=FD_VOID; fd_decref(val);}}
+	  /* ??? In the future, this should probably scan CHOICES
+	     to remove deadwood as well.  */
 	  kvscan++;}}
       else scan++;}
+    if (n_cleared) n_cleared=0; else break;}
   fd_rw_unlock_struct(ptr);
   return n_slots;
 }
