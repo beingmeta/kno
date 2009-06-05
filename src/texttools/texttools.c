@@ -141,186 +141,126 @@ static fdtype decode_entities_prim(fdtype input)
 
 /* Breaking up strings into words */
 
-#define iswordc(c) \
-  ((u8_isalnum(c)) || (!((u8_isspace(c)) || (u8_ispunct(c)))))
+/* We have three categories: space, punctuation, and everything else (words).
+   All the segmentation functions delete spaces and either delete or retain
+   punctuation. */
 
-static u8_string skip_word(u8_string start)
-{
-  if (start==NULL) return NULL;
-  else if (*start) {
-    u8_string last=start, scan=start; int c=egetc(&scan);
-    if (iswordc(c))
-      while (c>0)
-	if (iswordc(c)) {last=scan; c=egetc(&scan);}
-	else if (u8_isspace(c)) return last;
-	else {
-	  c=egetc(&scan);
-	  if (!(iswordc(c))) return last;
-	  else last=scan;}
-    else if (u8_ispunct(c))
-      while (c>0)
-	if (u8_ispunct(c)) {
-	  last=scan; c=egetc(&scan);}
-	else return last;
-    else return last;
-    return last;}
-  else return NULL;
-}
+#define spacecharp(c) ((c>0) && ((c<0x80) ? (isspace(c)) : (u8_isspace(c))))
+#define punctcharp(c) ((c>0) && ((c<0x80) ? (ispunct(c)) : (u8_ispunct(c))))
+#define wordcharp(c) ((c>0) && ((c<0x80) ? (!((ispunct(c))||(isspace(c)))) : (!((u8_ispunct(c))||(u8_isspace(c))))))
 
-static u8_string skip_notword(u8_string start)
+static u8_string skip_spaces(u8_string start)
 {
-  if (start==NULL) return NULL;
+  if (start==NULL) return start;
   else if (*start) {
-    u8_string last=start, scan=start; int c=egetc(&scan);
-    while (c>=0)
-      if (u8_isalnum(c)) return last;
-      else {
-	if (c=='<') while ((c>=0) && (c!='>')) c=egetc(&scan);
-	last=scan; c=egetc(&scan);}
+    u8_byte *last=start, *scan=start; int c=egetc(&scan);
+    while (spacecharp(c)) {
+      last=scan; c=egetc(&scan);}
     return last;}
   else return NULL;
 }
 
 static u8_string skip_punct(u8_string start)
 {
-  if (start==NULL) return NULL;
-  else if (*start=='<') {
-    u8_string scan=start; int c=egetc(&scan);
-    while ((c>0) && (c != '>')) c=egetc(&scan);
-    return scan;}
+  if (start==NULL) return start;
   else if (*start) {
-    u8_string last=start, scan=start; int c=egetc(&scan);
-    while (c>0)
-      if (c=='<') return last;
-      else if (!(u8_ispunct(c))) return last;
-      else {last=scan; c=egetc(&scan);}
-    if (c<=0) return NULL;
-    else return last;}
+    u8_byte *last=start, *scan=start; int c=egetc(&scan);
+    while (punctcharp(c)) {
+      last=scan; c=egetc(&scan);}
+    return last;}
   else return NULL;
 }
 
-static fdtype getwords(u8_string string)
+/* This is a little messier, because we want words to be allowd to include single
+   embedded punctuation characters. */
+static u8_string skip_word(u8_string start)
+{
+  if (start==NULL) return start;
+  else if (*start) {
+    u8_byte *last=start, *scan=start; int c=egetc(&scan);
+    while (c>0) {
+      if (spacecharp(c)) break;
+      else if (punctcharp(c)) {
+	int nc=egetc(&scan); 
+	if (!(wordcharp(nc))) return last;}
+      else {}
+      last=scan; c=egetc(&scan);}
+    return last;}
+  else return NULL;
+}
+
+typedef enum FD_TEXTSPAN_TYPE { spacespan, punctspan, wordspan, nullspan } textspantype;
+
+static u8_string skip_span(u8_string start,enum FD_TEXTSPAN_TYPE *type)
+{
+  u8_string scan=start; int c=egetc(&scan);
+  if ((c<0)||(c==0)) {
+    *type=nullspan; return NULL;}
+  else if (spacecharp(c)) {
+    *type=spacespan; return skip_spaces(start);}
+  else if (punctcharp(c)) {
+    *type=punctspan; return skip_punct(start);}
+  else {
+    *type=wordspan; return skip_word(start);}
+}
+
+static fdtype words2list(u8_string string,int keep_punct)
 {
   fdtype result=FD_EMPTY_LIST, *lastp=&result;
-  u8_string start=skip_notword(string);
-  while (start) {
-    fdtype newcons;
-    u8_string end=skip_word(start);
-    if ((end) && (start<end))
-      newcons=fd_init_pair
-	(NULL,fd_extract_string(NULL,start,end),FD_EMPTY_LIST);
-    else if (*start=='\0') return result;
-    else newcons=fd_init_pair(NULL,fdtype_string(start),FD_EMPTY_LIST);
-    *lastp=newcons; lastp=&(FD_CDR(newcons));
-    start=skip_notword(end);}
+  textspantype spantype;
+  u8_string start=string, last=start, scan=skip_span(last,&spantype);
+  while (1) 
+    if (spantype==spacespan) {
+      if (scan==NULL) break;
+      last=scan; scan=skip_span(last,&spantype);}
+    else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
+      fdtype newcons;
+      fdtype extraction=((scan) ? (fd_extract_string(NULL,last,scan)) : (fdtype_string(last)));
+      newcons=fd_init_pair(NULL,extraction,FD_EMPTY_LIST);
+      *lastp=newcons; lastp=&(FD_CDR(newcons));
+      if (scan==NULL) break;
+      last=scan; scan=skip_span(last,&spantype);}
+    else {
+      if (scan==NULL) break;
+      last=scan; scan=skip_span(last,&spantype);}
   return result;
 }
 
-static fdtype getwordsv(u8_string string)
+static fdtype words2vector(u8_string string,int keep_punct)
 {
   int n=0, max=8;
   fdtype *wordsv=u8_alloc_n(max,fdtype);
-  u8_string start=skip_notword(string);
-  while (start) {
-    u8_string end=skip_word(start);
-    if (n>=max) {
-      wordsv=u8_realloc_n(wordsv,max*2,fdtype);
-      max=max*2;}
-    if ((end) && (start<end))
-      wordsv[n++]=fd_extract_string(NULL,start,end);
-    else if (*start=='\0') break;
-    else wordsv[n++]=fdtype_string(start);
-    start=skip_notword(end);}
-  return fd_init_vector(NULL,n,wordsv);
-}
-
-static fdtype getwordspunct(u8_string string)
-{
-  fdtype result=FD_EMPTY_LIST, *lastp=&result;
-  u8_string start=skip_whitespace(string);
-  while (start) {
-    fdtype newcons; u8_string scan=start, end;
-    int c=egetc(&scan);
-    if (u8_ispunct(c)) end=skip_punct(start);
-    else end=skip_word(start);
-    if ((end) && (start<end))
-      newcons=fd_init_pair
-	(NULL,fd_extract_string(NULL,start,end),FD_EMPTY_LIST);
-    else if (*start=='\0') return result;
-    else newcons=fd_init_pair(NULL,fdtype_string(start),FD_EMPTY_LIST);
-    *lastp=newcons; lastp=&(FD_CDR(newcons));
-    start=skip_whitespace(end);}
-  return result;
-}
-
-static fdtype getwordspunctv(u8_string string)
-{
-  int n=0, max=8;
-  fdtype *wordsv=u8_alloc_n(max,fdtype);
-  u8_string start=skip_whitespace(string);
-  while (start) {
-    u8_string scan=start, end;
-    int c=egetc(&scan);
-    if (c<0) break;
-    else if (n>=max) {
-      wordsv=u8_realloc_n(wordsv,max*2,fdtype);
-      max=max*2;}
-    if (u8_ispunct(c)) end=skip_punct(start);
-    else end=skip_word(start);
-    if ((end) && (start<end))
-      wordsv[n++]=fd_extract_string(NULL,start,end);
-    else if (*start=='\0') break;
-    else wordsv[n++]=fdtype_string(start);
-    start=skip_whitespace(end);}
+  textspantype spantype;
+  u8_string start=string, last=start, scan=skip_span(last,&spantype);
+  while (1)  
+    if (spantype==spacespan) {
+      if (scan==NULL) break;
+      last=scan; scan=skip_span(last,&spantype);}
+    else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
+      fdtype extraction=fd_extract_string(NULL,last,scan);
+      if (n>=max) {
+	int newmax=((n>=1024) ? (n+1024) : (n*2));
+	wordsv=u8_realloc_n(wordsv,newmax,fdtype);
+	max=newmax;}
+      wordsv[n++]=((scan) ? (fd_extract_string(NULL,last,scan)) : (fdtype_string(last)));
+      if (scan==NULL) break;
+      last=scan; scan=skip_span(last,&spantype);}
+    else {
+      if (scan==NULL) break;
+      last=scan; scan=skip_span(last,&spantype);}
   return fd_init_vector(NULL,n,wordsv);
 }
 
 static fdtype getwords_prim(fdtype arg,fdtype punctflag)
 {
   int keep_punct=((!(FD_VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
-  if (FD_EMPTY_CHOICEP(arg)) return FD_EMPTY_CHOICE;
-  else if (FD_CHOICEP(arg)) {
-    fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(input,arg)
-      if (FD_STRINGP(input)) {
-	fdtype result=((keep_punct) ? (getwordspunct(FD_STRDATA(input))) :
-		       (getwords(FD_STRDATA(input))));
-	if (FD_ABORTP(result)) {
-	  fd_decref(results); return result;}
-	FD_ADD_TO_CHOICE(results,result);}
-      else {
-	fd_decref(results);
-	return fd_type_error(_("string"),"getwords_prim",arg);}
-    return results;}
-  else if (FD_STRINGP(arg))
-    if (keep_punct)
-      return getwordspunct(FD_STRDATA(arg));
-    else return getwords(FD_STRDATA(arg));
-  else return fd_type_error(_("string"),"getwords_prim",arg);
+  return words2list(FD_STRDATA(arg),keep_punct);
 }
 
 static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
 {
   int keep_punct=((!(FD_VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
-  if (FD_EMPTY_CHOICEP(arg)) return FD_EMPTY_CHOICE;
-  else if (FD_CHOICEP(arg)) {
-    fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(input,arg)
-      if (FD_STRINGP(input)) {
-	fdtype result=((keep_punct) ? (getwordspunctv(FD_STRDATA(input))) :
-			(getwordsv(FD_STRDATA(input))));
-	if (FD_ABORTP(result)) {
-	  fd_decref(results); return result;}
-	FD_ADD_TO_CHOICE(results,result);}
-      else {
-	fd_decref(results);
-	return fd_type_error(_("string"),"getwordsv_prim",arg);}
-    return results;}
-  else if (FD_STRINGP(arg))
-    if (keep_punct)
-      return getwordspunctv(FD_STRDATA(arg));
-    else return getwordsv(FD_STRDATA(arg));
-  else return fd_type_error(_("string"),"getwordsv_prim",arg);
+  return words2vector(FD_STRDATA(arg),keep_punct);
 }
 
 /* Making fragments from word vectors */
@@ -1847,10 +1787,8 @@ void fd_init_texttools()
 	   fd_make_cprim1x("DEPUNCT",depunct,1,fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
-  fd_idefn(texttools_module,
-	   fd_make_ndprim(fd_make_cprim2("GETWORDS",getwords_prim,1)));
-  fd_idefn(texttools_module,
-	   fd_make_ndprim(fd_make_cprim2("WORDS->VECTOR",getwordsv_prim,1)));
+  fd_idefn(texttools_module,fd_make_cprim2("GETWORDS",getwords_prim,1));
+  fd_idefn(texttools_module,fd_make_cprim2("WORDS->VECTOR",getwordsv_prim,1));
   fd_idefn(texttools_module,fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
   fd_idefn(texttools_module,fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
 					    -1,FD_VOID,

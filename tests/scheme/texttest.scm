@@ -76,7 +76,7 @@ is the other number")
 	     "3345-9877703-33333" "is" "the" "other" "number")
 	   getwords sample-string)
 (applytest '("Bill" "J" "." "Clinton" "met" "with" "Bill" "Gates" "," "III" 
-	     "in" "New" "Orleans" "," "LA" "and" "San" "Diego.")
+	     "in" "New" "Orleans" "," "LA" "and" "San" "Diego" ".")
 	   getwords test-text #t)
 (applytest '("The" "book" "was" "over" "here" "by" "the"
 	     "bookcase" "which" "was" "brightly" "colored" "."
