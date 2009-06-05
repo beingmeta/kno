@@ -117,7 +117,7 @@ FD_EXPORT fd_exception
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPool, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
-  fd_PoolCommitError;
+  fd_PoolCommitError, fd_UnresolvedPool;
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
@@ -136,7 +136,7 @@ typedef struct FD_POOL *fd_pool;
 FD_EXPORT struct FD_POOL *fd_top_pools[];
 
 FD_EXPORT int fd_n_pools;
-
+FD_EXPORT fd_pool fd_default_pool;
 FD_EXPORT int fd_register_pool(fd_pool p);
 
 FD_EXPORT fdtype fd_all_pools(void);
@@ -155,6 +155,7 @@ struct FD_POOL_HANDLER {
   int (*lock)(fd_pool p,fdtype oids);
   int (*unlock)(fd_pool p,fdtype oids);
   int (*storen)(fd_pool p,int n,fdtype *oids,fdtype *vals);
+  int (*swapout)(fd_pool p,fdtype oids);
   fdtype (*metadata)(fd_pool p,fdtype);
   int (*sync)(fd_pool p);};
 
@@ -191,6 +192,9 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp);
 FD_EXPORT fd_pool fd_open_pool(u8_string spec);
 FD_EXPORT fd_pool fd_use_pool(u8_string spec);
 FD_EXPORT fd_pool fd_name2pool(u8_string spec);
+
+FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr);
+FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr);
 
 /* GLUEPOOLS */
 
@@ -340,6 +344,8 @@ typedef struct FD_MEMPOOL *fd_mempool;
 
 FD_EXPORT fd_pool fd_make_mempool
   (u8_string label,FD_OID base,unsigned int cap,unsigned int load);
+/* Removes deadwood */
+FD_EXPORT int fd_clean_mempool(fd_pool p);
 
 /* File pool opener */
 

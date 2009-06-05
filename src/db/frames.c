@@ -930,6 +930,44 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 }
 
 
+/* Creating frames */
+
+FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy)
+{
+  fd_pool p; fdtype oid;
+  /* #f no pool, just create a slotmap
+     #t use the default pool
+     pool (use the pool!) */
+  if (FD_FALSEP(pool_spec))
+    return fd_init_slotmap(NULL,0,NULL);
+  else if ((FD_TRUEP(pool_spec)) || (FD_VOIDP(pool_spec)))
+    if (fd_default_pool) p=fd_default_pool;
+    else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,FD_VOID);
+  else if ((p=fd_lisp2pool(pool_spec))==NULL)
+    return fd_err(fd_UnresolvedPool,"frame_create_lexpr",NULL,pool_spec);
+  /* At this point, we have p!=NULL and we get an OID */
+  oid=fd_pool_alloc(p,1);
+  if (FD_ABORTP(oid)) return oid;
+  /* Now we figure out what to store in the OID */
+  if (FD_VOIDP(initval)) initval=fd_init_slotmap(NULL,0,NULL);
+  else if ((FD_OIDP(initval)) && (deepcopy)) {
+    /* Avoid aliasing */
+    fdtype oidval=fd_oid_value(initval);
+    if (FD_ABORTP(oidval)) return oidval;
+    initval=fd_deep_copy(oidval);
+    fd_decref(oidval);}
+  else if (deepcopy)
+    initval=fd_deep_copy(initval);
+  else fd_incref(initval);
+  /* Now we actually set the OID */
+  if ((fd_set_oid_value(oid,initval))<0) {
+    fd_decref(initval); return FD_ERROR_VALUE;}
+  else {
+    fd_decref(initval);
+    return oid;}
+}
+
+
 /* Searching */
 
 static fdtype make_features(fdtype slotids,fdtype values)
@@ -1244,4 +1282,5 @@ FD_EXPORT void fd_init_frames_c()
   u8_new_threadkey(&opstack_key,NULL);
 #endif
 #endif
+
 }

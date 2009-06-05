@@ -595,18 +595,19 @@ static fdtype file_pool_metadata(fd_pool p,fdtype md)
 
 static struct FD_POOL_HANDLER file_pool_handler={
   "file_pool", 1, sizeof(struct FD_FILE_POOL), 12,
-   file_pool_close, /* close */
-   file_pool_setcache, /* setcache */
-   file_pool_setbuf, /* setbuf */
-   file_pool_alloc, /* alloc */
-   file_pool_fetch, /* fetch */
-   file_pool_fetchn, /* fetchn */
-   file_pool_load, /* getload */
-   file_pool_lock, /* lock */
-   file_pool_unlock, /* release */
-   file_pool_storen, /* storen */
-   file_pool_metadata, /* metadata */
-   NULL}; /* sync */
+  file_pool_close, /* close */
+  file_pool_setcache, /* setcache */
+  file_pool_setbuf, /* setbuf */
+  file_pool_alloc, /* alloc */
+  file_pool_fetch, /* fetch */
+  file_pool_fetchn, /* fetchn */
+  file_pool_load, /* getload */
+  file_pool_lock, /* lock */
+  file_pool_unlock, /* release */
+  file_pool_storen, /* storen */
+  NULL, /* swapout */
+  file_pool_metadata, /* metadata */
+  NULL}; /* sync */
 
 /* Module (file) Initialization */
 

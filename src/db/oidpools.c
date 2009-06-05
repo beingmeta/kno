@@ -1414,18 +1414,19 @@ static fdtype oidpool_metadata(fd_pool p,fdtype md)
 
 static struct FD_POOL_HANDLER oidpool_handler={
   "oidpool", 1, sizeof(struct FD_OIDPOOL), 12,
-   oidpool_close, /* close */
-   oidpool_setcache, /* setcache */
-   oidpool_setbuf, /* setbuf */
-   oidpool_alloc, /* alloc */
-   oidpool_fetch, /* fetch */
-   oidpool_fetchn, /* fetchn */
-   oidpool_load, /* getload */
-   oidpool_lock, /* lock */
-   oidpool_unlock, /* release */
-   oidpool_storen, /* storen */
-   oidpool_metadata, /* metadata */
-   NULL}; /* sync */
+  oidpool_close, /* close */
+  oidpool_setcache, /* setcache */
+  oidpool_setbuf, /* setbuf */
+  oidpool_alloc, /* alloc */
+  oidpool_fetch, /* fetch */
+  oidpool_fetchn, /* fetchn */
+  oidpool_load, /* getload */
+  oidpool_lock, /* lock */
+  oidpool_unlock, /* release */
+  oidpool_storen, /* storen */
+  NULL, /* swapout */
+  oidpool_metadata, /* metadata */
+  NULL}; /* sync */
 
 
 FD_EXPORT void fd_init_oidpools_c()

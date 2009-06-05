@@ -76,6 +76,10 @@ FD_EXPORT u8_tld_key _fd_inhibit_overlay_key;
 FD_EXPORT int fd_inhibit_overlay;
 #endif
 
+/* Making frames */
+
+FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy);
+
 /* Finding frames */
 
 FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotid,fdtype value);

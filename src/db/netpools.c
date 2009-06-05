@@ -228,18 +228,19 @@ static fdtype network_pool_alloc(fd_pool p,int n)
 
 static struct FD_POOL_HANDLER netpool_handler={
   "netpool", 1, sizeof(struct FD_NETWORK_POOL), 12,
-   network_pool_close, /* close */
-   NULL, /* setcache */
-   network_pool_setbuf, /* setbuf */
-   network_pool_alloc, /* alloc */
-   network_pool_fetch, /* fetch */
-   network_pool_fetchn, /* fetchn */
-   network_pool_load, /* getload */
-   network_pool_lock, /* lock */
-   network_pool_unlock, /* release */
-   network_pool_storen, /* storen */
-   NULL, /* metadata */
-   NULL}; /* sync */
+  network_pool_close, /* close */
+  NULL, /* setcache */
+  network_pool_setbuf, /* setbuf */
+  network_pool_alloc, /* alloc */
+  network_pool_fetch, /* fetch */
+  network_pool_fetchn, /* fetchn */
+  network_pool_load, /* getload */
+  network_pool_lock, /* lock */
+  network_pool_unlock, /* release */
+  network_pool_storen, /* storen */
+  NULL, /* swapout */
+  NULL, /* metadata */
+  NULL}; /* sync */
 
 static void init_client_id()
 {

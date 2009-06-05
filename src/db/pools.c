@@ -36,10 +36,12 @@ fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
 fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
 fd_exception fd_PoolCommitError=_("can't save changes to pool");
 fd_exception fd_UnregisteredPool=_("internal error with unregistered pool");
+fd_exception fd_UnresolvedPool=_("Cannot resolve pool specification");
 
 int fd_n_pools=0;
-
+fd_pool fd_default_pool=NULL;
 struct FD_POOL *fd_top_pools[1024];
+
 static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
@@ -548,6 +550,7 @@ FD_EXPORT int fd_swapout_oid(fdtype oid)
   fd_pool p=fd_oid2pool(oid);
   if (p==NULL)
     return fd_reterr(fd_AnonymousOID,"SET-OID_VALUE!",NULL,oid);
+  else if (p->handler->swapout) return p->handler->swapout(p,oid);
   else if (fd_hashtable_probe_novoid(&(p->locks),oid)) return 0;
   else if (!(fd_hashtable_probe_novoid(&(p->cache),oid))) return 0;
   else {
@@ -757,6 +760,7 @@ FD_EXPORT void fd_pool_close(fd_pool p)
 
 FD_EXPORT void fd_pool_swapout(fd_pool p)
 {
+  if (p->handler->swapout) p->handler->swapout(p,FD_VOID);
   if (p) fd_reset_hashtable(&(p->cache),67,1);
   if (p) fd_devoid_hashtable(&(p->locks));
 }
@@ -1117,14 +1121,19 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 
 static struct FD_POOL_HANDLER gluepool_handler={
   "gluepool", 1, sizeof(struct FD_GLUEPOOL), 11,
-  NULL, /* getmetadata */
-  NULL, /* fetch */
-  NULL, /* store */
+  NULL, /* close */
+  NULL, /* setcache */
+  NULL, /* setbuf */
   NULL, /* alloc */
+  NULL, /* fetch */
   NULL, /* fetchn */
-  NULL, /* storen */
+  NULL, /* getload */
   NULL, /* lock */
-  NULL /* release */
+  NULL, /* release */
+  NULL, /* storen */
+  NULL, /* swapout */
+  NULL, /* metadata */
+  NULL /* sync */
 };
 
 fd_pool (*fd_file_pool_opener)(u8_string spec);
@@ -1406,6 +1415,25 @@ static int mempool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   return 1;
 }
 
+static int mempool_swapout(fd_pool p,fdtype oids)
+{
+  /* This doesn't normaly swap out, which is the point, since the only state is in the
+     mempool. */
+  if (FD_VOIDP(oids)) return 0;
+  else {
+    int count=0;
+    FD_DO_CHOICES(oid,oids) 
+      if (FD_OIDP(oid)) {
+	if (fd_hashtable_probe_novoid(&(p->locks),oid)) {
+	  fd_hashtable_store(&(p->locks),oid,FD_VOID);
+	  count++;}
+	else if (!(fd_hashtable_probe_novoid(&(p->cache),oid))) {
+	  fd_hashtable_store(&(p->cache),oid,FD_VOID);
+	  count++;}
+	else {}}
+    return count;}
+}
+
 static struct FD_POOL_HANDLER mempool_handler={
   "mempool", 1, sizeof(struct FD_MEMPOOL), 12,
   NULL, /* close */
@@ -1418,8 +1446,22 @@ static struct FD_POOL_HANDLER mempool_handler={
   mempool_lock, /* lock */
   mempool_unlock, /* release */
   mempool_storen, /* storen */
+  mempool_swapout, /* swapout */
   NULL, /* metadata */
   NULL}; /* sync */
+
+FD_EXPORT int fd_clean_mempool(fd_pool p)
+{
+  if (p->handler!=&mempool_handler) 
+    return fd_reterr(fd_TypeError,"fd_clean_mempool",_("mempool"),fd_pool2lisp(p));
+  else {
+    fd_remove_deadwood(&(p->locks));
+    fd_devoid_hashtable(&(p->locks));
+    fd_remove_deadwood(&(p->cache));
+    fd_devoid_hashtable(&(p->cache));
+    return p->cache.n_keys+p->locks.n_keys;}
+}
+
 
 /* Initialize */
 
@@ -1469,6 +1511,31 @@ static u8_string _more_oid_info(fdtype oid)
   else return "not an oid!";
 }
 
+
+/* Config functions */
+
+FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr)
+{
+  fd_pool *pptr=(fd_pool *)vptr;
+  if (*pptr==NULL)
+    return fd_err(_("Config mis-config"),"pool_config_get",NULL,var);
+  else {
+    if (*pptr)
+      return fd_pool2lisp(*pptr);
+    else return FD_EMPTY_CHOICE;}
+}
+FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
+{
+  fd_pool *pptr=(fd_pool *)vptr;
+  if (FD_POOLP(v)) *pptr=fd_lisp2pool(v);
+  else if (FD_STRINGP(v)) {
+    fd_pool p=fd_use_pool(FD_STRDATA(v));
+    if (p) *pptr=p; else return -1;}
+  else return fd_type_error(_("pool spec"),"pool_config_set",v);
+}
+
+/* Initialization */
+
 FD_EXPORT void fd_init_pools_c()
 {
   int i=0; while (i < 1024) fd_top_pools[i++]=NULL;
@@ -1493,6 +1560,9 @@ FD_EXPORT void fd_init_pools_c()
   fd_register_config("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
                      config_get_anonymousok,
                      config_set_anonymousok,NULL);
+  fd_register_config("DEFAULTPOOL",_("Default location for new OID allocation"),
+		     fd_poolconfig_get,fd_poolconfig_set,
+		     &fd_default_pool);
   
   fd_tablefns[fd_raw_pool_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_raw_pool_type]->get=(fd_table_get_fn)raw_pool_get;

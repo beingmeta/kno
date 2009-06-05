@@ -159,18 +159,19 @@ static fdtype gpool_alloc(fd_pool p,int n)
 
 static struct FD_POOL_HANDLER gpool_handler={
   "gpool", 1, sizeof(struct FD_GPOOL), 12,
-   NULL, /* close */
-   NULL, /* setcache */
-   NULL, /* setbuf */
-   gpool_alloc, /* alloc */
-   gpool_fetch, /* fetch */
-   gpool_fetchn, /* fetchn */
-   gpool_load, /* getload */
-   gpool_lock, /* lock */
-   gpool_unlock, /* release */
-   gpool_storen, /* storen */
-   NULL, /* metadata */
-   NULL}; /* sync */
+  NULL, /* close */
+  NULL, /* setcache */
+  NULL, /* setbuf */
+  gpool_alloc, /* alloc */
+  gpool_fetch, /* fetch */
+  gpool_fetchn, /* fetchn */
+  gpool_load, /* getload */
+  gpool_lock, /* lock */
+  gpool_unlock, /* release */
+  gpool_storen, /* storen */
+  NULL, /* swapout */
+  NULL, /* metadata */
+  NULL}; /* sync */
 
 FD_EXPORT void fd_init_gpools_c()
 {

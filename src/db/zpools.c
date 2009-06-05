@@ -862,6 +862,7 @@ static struct FD_POOL_HANDLER zpool_handler={
    zpool_lock, /* lock */
    zpool_unlock, /* release */
    zpool_storen, /* storen */
+   NULL, /* swapout */
    zpool_metadata, /* metdata */
    NULL}; /* sync */
 

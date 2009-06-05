@@ -339,6 +339,7 @@ static struct FD_POOL_HANDLER dbxpool_handler={
    dbx_pool_lock, /* lock */
    dbx_pool_unlock, /* release */
    dbx_pool_storen, /* storen */
+   NULL, /* swapout */
    NULL, /* metadata */
    NULL}; /* sync */
 

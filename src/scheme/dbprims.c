@@ -397,6 +397,13 @@ static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,fdtype load)
   return fd_pool2lisp(p);
 }
 
+static fdtype clean_mempool(fdtype pool_arg)
+{
+  int retval=fd_clean_mempool(fd_lisp2pool(pool_arg));
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_INT2DTYPE(retval);
+}
+
 /* Adding adjuncts */
 
 static fdtype adjunct_symbol;
@@ -1459,8 +1466,6 @@ static fdtype getbasis(fdtype frames,fdtype lattice)
 
 /* Frame creation */
 
-static fd_pool fd_default_pool=NULL;
-
 static fdtype allocate_oids(fdtype pool,fdtype howmany)
 {
   fd_pool p=arg2pool(pool);
@@ -1475,57 +1480,21 @@ static fdtype allocate_oids(fdtype pool,fdtype howmany)
 
 static fdtype frame_create_lexpr(int n,fdtype *args)
 {
-  if ((n%2==0) &&
-      (!((FD_OIDP(args[0])) || (FD_SYMBOLP(args[0])))) &&
-      (!((FD_SCHEMAPP(args[0])) || (FD_SLOTMAPP(args[0])))))
-    return fd_err(fd_SyntaxError,"FRAME-CREATE",NULL,FD_VOID);
-  else if ((n==1) && (fd_default_pool==NULL))
-    return fd_deep_copy(args[0]);
-  else if ((n==2) && (FD_FALSEP(args[0])) && (fd_default_pool==NULL))
-    return fd_deep_copy(args[1]);
-  else if ((FD_FALSEP(args[0])) || (((n%2)==0)&&(fd_default_pool==NULL))) {
-    fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
-    int i=1; while (i<n) {
+  fd_pool p; fdtype result; int i=(n%2);
+  if (n==1) return fd_new_frame(args[0],FD_VOID,0);
+  else if (n==2) return fd_new_frame(args[0],args[1],1);
+  else if (n%2) result=fd_new_frame(args[0],FD_VOID,0);
+  else result=fd_new_frame(FD_TRUE,FD_VOID,0);
+  if (FD_OIDP(result))
+    while (i<n) {
       FD_DO_CHOICES(slotid,args[i])
-	fd_add(slotmap,slotid,args[i+1]);
+	fd_frame_add(result,slotid,args[i+1]);
       i=i+2;}
-    return slotmap;}
-  else {
-    fd_pool p; fdtype oid, oidval; int argstart=1;
-    /* Figure out the pool */
-    if ((n%2)==0) {argstart=0; p=fd_default_pool;}
-    else if (FD_TRUEP(args[0]))
-      if (fd_default_pool) p=fd_default_pool;
-      else return fd_err
-	     (_("No default pool"),"frame_create_lexpr",NULL,FD_VOID);
-    else p=arg2pool(args[0]);
-    /* Get the OID o slotmap as appropriate. */
-    if (p==NULL) 
-      oid=fd_init_slotmap(NULL,0,NULL);
-    else oid=fd_pool_alloc(p,1);
-    if (FD_ABORTP(oid)) return oid;
-    else if (!((FD_OIDP(oid)) || (FD_SLOTMAPP(oid))))
-      return fd_type_error(_("oid"),"frame_create_lexpr",oid);
-    /* Set the value */
-    if (n==2)
-      /* Either directly, when you've just got one argument */
-      if ((FD_OIDP(oid)) && (fd_set_oid_value(oid,args[1])<0))
-	return FD_ERROR_VALUE;
-      else return oid;
-    else {
-      /* Or indirectly, when you create a slotmap */
-      int i=1;
-      if (FD_OIDP(oid)) {
-	fdtype oidvalue=fd_init_slotmap(NULL,0,NULL);
-	if (fd_set_oid_value(oid,oidvalue)<0) {
-	  fd_decref(oidvalue);
-	  return FD_ERROR_VALUE;}
-	fd_decref(oidvalue);}
-      while (i<n) {
-	FD_DO_CHOICES(slotid,args[i])
-	  fd_frame_add(oid,slotid,args[i+1]);
-	i=i+2;}
-      return oid;}}
+  else while (i<n) {
+      FD_DO_CHOICES(slotid,args[i])
+	fd_add(result,slotid,args[i+1]);
+      i=i+2;}
+  return result;
 }
 
 static fdtype seq2frame_prim
@@ -2012,28 +1981,6 @@ static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
-/* Config functions */
-
-static fdtype pool_config_get(fdtype var,void *vptr)
-{
-  fd_pool *pptr=(fd_pool *)vptr;
-  if (*pptr==NULL)
-    return fd_err(_("Config mis-config"),"pool_config_get",NULL,var);
-  else {
-    if (*pptr)
-      return fd_pool2lisp(*pptr);
-    else return FD_EMPTY_CHOICE;}
-}
-static int pool_config_set(fdtype ignored,fdtype v,void *vptr)
-{
-  fd_pool *pptr=(fd_pool *)vptr;
-  if (FD_POOLP(v)) *pptr=fd_lisp2pool(v);
-  else if (FD_STRINGP(v)) {
-    fd_pool p=fd_use_pool(FD_STRDATA(v));
-    if (p) *pptr=p; else return -1;}
-  else return fd_type_error(_("pool spec"),"pool_config_set",v);
-}
-
 /* Initializing */
 
 FD_EXPORT void fd_init_dbfns_c()
@@ -2175,6 +2122,7 @@ FD_EXPORT void fd_init_dbfns_c()
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
 			   fd_fixnum_type,(FD_INT2DTYPE(0))));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("??",fd_bgfinder,2)));
@@ -2260,10 +2208,6 @@ FD_EXPORT void fd_init_dbfns_c()
   pools_symbol=fd_intern("POOLS");
   indices_symbol=fd_intern("INDICES");
   drop_symbol=fd_intern("DROP");
-
-  fd_register_config("DEFAULT_POOL",_("Default location for new frame construction"),
-		     pool_config_get,pool_config_set,
-		     &fd_default_pool);
 
 }
 
