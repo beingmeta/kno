@@ -1028,6 +1028,31 @@ static fdtype getpathstar(int n,fdtype *args)
   return fd_simplify_choice(result);
 }
 
+/* Cache gets */
+
+static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype table_arg=fd_get_arg(expr,1), key_arg=fd_get_arg(expr,2), default_expr=fd_get_arg(expr,3);
+  if (FD_EXPECT_FALSE((FD_VOIDP(table_arg)) || (FD_VOIDP(key_arg)) || (FD_VOIDP(default_expr))))
+    return fd_err(fd_SyntaxError,"cacheget_handler",NULL,expr);
+  else {
+    fdtype table=fd_eval(table_arg,env), key, value;
+    if (FD_ABORTP(table)) return table;
+    else if (FD_TABLEP(table)) key=fd_eval(key_arg,env);
+    else return fd_type_error(_("table"),"cachget_handler",table);
+    if (FD_ABORTP(key)) {
+      fd_decref(table); return key;}
+    else value=fd_get(table,key,FD_VOID);
+    if (FD_VOIDP(value)) {
+      fdtype dflt=fd_eval(default_expr,env);
+      if (FD_ABORTP(dflt)) {
+	fd_decref(table); fd_decref(key);
+	return dflt;}
+      fd_store(table,key,dflt);
+      return dflt;}
+    else return value;}
+}
+
 /* Index operations */
 
 static fdtype indexget(fdtype ixarg,fdtype key)
@@ -2035,6 +2060,8 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprimn("GETPATH",getpath,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar,1)));
+
+  fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_handler);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("OV/GET",overlay_get,2));
   fd_idefn(fd_scheme_module,fd_make_cprim3("OV/ADD!",overlay_add,3));

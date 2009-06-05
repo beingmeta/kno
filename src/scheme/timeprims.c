@@ -499,7 +499,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 		    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,tzoff_symbol))
-    return FD_INT2DTYPE(xt->u8_tzoff);
+    return FD_SHORT2DTYPE(xt->u8_tzoff);
   else if (FD_EQ(slotid,tick_symbol))
     if (xt->u8_prec>=u8_second) {
       time_t tick=xt->u8_tick;
