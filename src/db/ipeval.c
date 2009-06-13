@@ -37,11 +37,11 @@ int fd_ipeval_state;
 static u8_condition ipeval_fetch="FETCH",
   ipeval_exec="EXEC", ipeval_done="IPEDONE";
 
-FD_EXPORT int _fd_ipeval_delay(int n)
+FD_EXPORT fd_wideint _fd_ipeval_delay(int n)
 {
   return fd_ipeval_delay(n);
 }
-FD_EXPORT int _fd_ipeval_status()
+FD_EXPORT fd_wideint _fd_ipeval_status()
 {
   return fd_ipeval_status();
 }
@@ -49,7 +49,7 @@ FD_EXPORT int _fd_ipeval_failp()
 {
   return (fd_ipeval_status()>1);
 }
-FD_EXPORT void _fd_set_ipeval_state(int s)
+FD_EXPORT void _fd_set_ipeval_state(fd_wideint s)
 {
   fd_set_ipeval_state(s);
 }

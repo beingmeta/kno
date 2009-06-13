@@ -41,7 +41,8 @@ FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
 u8_tld_key _fd_inhibit_overlay_key;
 FD_EXPORT void fd_inhibit_overlays(int flag)
 {
-  fd_tld_set(_fd_inhibit_overlay_key,(void *)flag);
+  fd_wideint iflag=flag;
+  fd_tld_set(_fd_inhibit_overlay_key,(void *)iflag);
 }
 #else
 int fd_inhibit_overlay=0;

@@ -77,6 +77,7 @@ CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS"
 default_config_dir="\$PREFIX/etc/framerd"
+default_arch=""
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -196,9 +197,17 @@ case $host_os in
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
+   default_arch="x86_64"
    ifmacosx=""
    ;;
 esac  
+
+dnl For specifying an arch flag, especially under OS X
+AC_ARG_WITH(arch,--with[out]-arch build with particular --arch arg,,with_arch=$default_arch)
+
+if test ! -z "$with_arch"; then
+   LDFLAGS="-arch $with_arch $LDFLAGS"
+fi			     
 
 AC_DEFINE(FD_WORDS_ARE_ALIGNED,1)
 AC_TYPE_UID_T
