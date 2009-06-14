@@ -681,6 +681,7 @@ fdaemoninstall
 webuser
 rundir
 logdir
+archflags
 TAGS
 DREENTRANT
 SHARED_LIB_TARGET
@@ -1325,7 +1326,7 @@ Optional Packages:
 --with-webuser The user for the webserver
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
---without-arch build with particular --arch arg
+--without-arch build with particular --arch flags
 --with-suffix string
   --with-extlib[=DIR]       use additional lib dir
 --with-data-dir location
@@ -1842,9 +1843,9 @@ CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS"
 default_config_dir="\$PREFIX/etc/framerd"
-default_arch=""
 rundir="/var/run"
 logdir="/var/log"
+archflags=""
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -1878,6 +1879,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -3749,7 +3751,6 @@ case $host_os in
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
-   default_arch="x86_64"
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a"
    ifmacosx=""
    ;;
@@ -3760,13 +3761,18 @@ esac
 if test "${with_arch+set}" = set; then
   withval=$with_arch;
 else
-  with_arch=$default_arch
+  with_arch=""
 fi
 
-
-if test ! -z "$with_arch"; then
-   CFLAGS="-arch $with_arch $CFLAGS"
-   LDFLAGS="-arch $with_arch $LDFLAGS"
+if test -z $with_arch; then
+  archflags=""
+elif test $with_arch = "all"; then
+  archflags="-arch i386 -arch x86_64 -arch ppc -arch ppc64";
+elif test $with_arch = "all86"; then
+  archflags="-arch i386 -arch x86_64";
+elif test $with_arch = "allppc"; then
+  archflags="-arch ppc -arch ppc64";
+else archflags=$with_arch
 fi
 
 cat >>confdefs.h <<\_ACEOF
@@ -12974,6 +12980,7 @@ fdaemoninstall!$fdaemoninstall$ac_delim
 webuser!$webuser$ac_delim
 rundir!$rundir$ac_delim
 logdir!$logdir$ac_delim
+archflags!$archflags$ac_delim
 TAGS!$TAGS$ac_delim
 DREENTRANT!$DREENTRANT$ac_delim
 SHARED_LIB_TARGET!$SHARED_LIB_TARGET$ac_delim
@@ -13003,7 +13010,6 @@ LDFLAGS!$LDFLAGS$ac_delim
 CPPFLAGS!$CPPFLAGS$ac_delim
 ac_ct_CC!$ac_ct_CC$ac_delim
 EXEEXT!$EXEEXT$ac_delim
-OBJEXT!$OBJEXT$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -13045,6 +13051,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+OBJEXT!$OBJEXT$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
 INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
 INSTALL_DATA!$INSTALL_DATA$ac_delim
@@ -13059,7 +13066,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 12; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 13; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

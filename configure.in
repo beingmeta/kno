@@ -77,9 +77,9 @@ CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS"
 default_config_dir="\$PREFIX/etc/framerd"
-default_arch=""
 rundir="/var/run"
 logdir="/var/log"
+archflags=""
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -115,6 +115,7 @@ AC_SUBST(fdaemoninstall)
 AC_SUBST(webuser)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
+AC_SUBST(archflags)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -216,19 +217,23 @@ case $host_os in
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
-   default_arch="x86_64"
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a"
    ifmacosx=""
    ;;
 esac  
 
-dnl For specifying an arch flag, especially under OS X
-AC_ARG_WITH(arch,--with[out]-arch build with particular --arch arg,,with_arch=$default_arch)
-
-if test ! -z "$with_arch"; then
-   CFLAGS="-arch $with_arch $CFLAGS"
-   LDFLAGS="-arch $with_arch $LDFLAGS"
-fi			     
+dnl For specifying default -arch flags for OSX
+AC_ARG_WITH(arch,--with[out]-arch build with particular --arch flags,,with_arch="")
+if test -z $with_arch; then
+  archflags=""
+elif test $with_arch = "all"; then
+  archflags="-arch i386 -arch x86_64 -arch ppc -arch ppc64";
+elif test $with_arch = "all86"; then
+  archflags="-arch i386 -arch x86_64";
+elif test $with_arch = "allppc"; then
+  archflags="-arch ppc -arch ppc64";
+else archflags=$with_arch
+fi
 
 AC_DEFINE(FD_WORDS_ARE_ALIGNED,1)
 AC_TYPE_UID_T
