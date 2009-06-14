@@ -13,7 +13,7 @@
 
 */
 
-static char versionid[] = "$Id: $";
+static char versionid[] = "$Id$";
 static char revisioninfo[] = "$Revision: 3991$";
 
 #include "httpd.h"
