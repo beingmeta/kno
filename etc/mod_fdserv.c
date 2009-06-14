@@ -1,7 +1,7 @@
 /* C Mode */
 
 /* mod_fdserv.c
-   Copyright (C) 2002-2005 beingmeta, inc.  All Rights Reserved
+   Copyright (C) 2002-2009 beingmeta, inc.  All Rights Reserved
    This is a Apache module supporting persistent FramerD servers
 
    For Apache 1.3:
@@ -12,6 +12,11 @@
      Install with: apxs2 -i mod_fdserv.so
 
 */
+
+static char versionid[] =
+  "$Id:$";
+static char revisioninfo[] =
+  "$Revision:$";
 
 #include "httpd.h"
 #include "http_config.h"
@@ -1204,9 +1209,10 @@ static int connect_to_servlet(request_rec *r)
 
 /* Writing DTYpes to BUFFs */
 
-/* In Apache 2.0, BUFFs seem to be replaced by buckets in brigades, but that seems
-    a little overhead heavy for the output buffers used here, which are just used to write
-    slotmaps to servlets.  So a simple reimplementation happens. here.  */
+/* In Apache 2.0, BUFFs seem to be replaced by buckets in brigades,
+    but that seems a little overhead heavy for the output buffers used
+    here, which are just used to write slotmaps to servlets.  So a
+    simple reimplementation happens. here.  */
 #if (!(APACHE13))
 typedef struct BUFF {
   apr_pool_t *p; unsigned char *buf, *ptr, *lim;} BUFF;
@@ -1504,16 +1510,23 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 }
 #endif
 
+int revision=-1;
+char *version_num="1.5";
+char version_info[256];
+
+static void init_version_info()
+{
+  sscanf(revisioninfo,"%d",&revision);
+  sprintf(version_info,"mod_fdserv/%s(%d)",version_num,revision);
+}
+
 #if APACHE13
 static void init_module(server_rec *s,apr_pool_t *p)
 {
+  init_version_info();
   socketname_table=apr_table_make(p,64);
-#if APACHE13
-  ap_add_version_component("mod_fdserv/1.0");
-#elif APACHE20
-  ap_add_version_component(p,"mod_fdserv/1.0");
-#endif
-  ap_log_error(APLOG_HEAD,s,"FDSERV Module init done");
+  ap_add_version_component(version_info);
+  ap_log_error(APLOG_HEAD,s,"FDSERV Module 1.3 init done: %s",version_info);
 }
 #else
 static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
@@ -1540,12 +1553,9 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
 	   (APLOG_MARK,APLOG_NOTICE,retval,s,
 	    "mod_fdserv: Using socket prefix directory %s",dirname);}
   socketname_table=apr_table_make(p,64);
-#if APACHE13
-  ap_add_version_component("mod_fdserv/1.0");
-#elif APACHE20
-  ap_add_version_component(p,"mod_fdserv/1.0");
-#endif
-  ap_log_error(APLOG_HEAD,s,"FDSERV Module init done");
+  init_version_info();
+  ap_add_version_component(p,version_info);
+  ap_log_error(APLOG_HEAD,s,"FDSERV Module 2.x init done: %s",version_info);
   return OK;
 }
 #endif
