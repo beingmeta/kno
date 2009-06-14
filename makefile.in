@@ -302,12 +302,15 @@ tidy: profile-clean
 	rm -f tests/dtype/*~ tests/db/*.o tests/scheme/*.o
 	rm -f config.log
 clean: tidy
-	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o src/modules/*.o
-	rm -f src/fdweb/*.o src/texttools/*.o src/tagger/*.o src/exe/*.o
-	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib lib/*@suffix@.so.* lib/framerd/*
+	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o 
+	rm -f src/cmodules/*.o src/texttools/*.o src/tagger/*.o exe/*.o
+	rm -rf etc/*.o etc/.libs
+	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
+	rm -f lib/*@suffix@.so.* lib/framerd/*
 	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
-	rm -f exe/fdconsole@suffix@
+	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
+	rm -f exe/fdmanager@suffix@
 	rm -f src/exe/revision.h
 	rm -f TAGS
 	cd tests/dtype; make clean
@@ -527,6 +530,7 @@ install-dylib: install-dylibv                                  \
 	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib           \
 	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib                \
 	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib            \
+	$(LIBINSTALLDIR)/libtagger@suffix@.dylib
 
 install-headers: $(INCINSTALLDIR)
 	$(INSTALL) -p @install_file_opts@              \
@@ -622,11 +626,16 @@ install-fdserv: etc/mod_fdserv.so
 		${INSTALL} @install_file_opts@         \
 		    fdserv.conf                        \
 		    @apache_conf_dir@.d;               \
+	elif test -d @apache_conf_dir@/other;          \
+	   then	cd etc; ${APXS} -i -c mod_fdserv.c;    \
+		${INSTALL} @install_file_opts@         \
+		    fdserv.conf fdserv.load            \
+		    @apache_conf_dir@/other;           \
 	fi
 	$(INSTALL) -m 0775 -o $(WWWUSER) @admininstall@ \
-		   -d $(DESTDIR)/var/run/fdserv
+		   -d $(DESTDIR)@rundir@/fdserv
 	$(INSTALL) -m 0775 -o $(WWWUSER) @admininstall@ \
-		   -d $(DESTDIR)/var/log/fdserv
+		   -d $(DESTDIR)@logdir@/fdserv
 
 # Tracking revision information
 

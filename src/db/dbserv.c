@@ -894,7 +894,7 @@ void fd_init_dbserv_c()
   fd_fdbserv_module=module;
 }
 
-void fd_init_fddbserv()
+FD_EXPORT void fd_init_fddbserv()
 {
   fd_register_source_file(versionid);
   fd_init_dbserv_c();

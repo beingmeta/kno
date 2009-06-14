@@ -78,6 +78,8 @@ INSTALLCMODULES=""
 TAGS="TAGS"
 default_config_dir="\$PREFIX/etc/framerd"
 default_arch=""
+rundir="/var/run"
+logdir="/var/log"
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/fdb/config.h)
@@ -111,6 +113,8 @@ AC_SUBST(admininstall)
 AC_SUBST(fdaemon)
 AC_SUBST(fdaemoninstall)
 AC_SUBST(webuser)
+AC_SUBST(rundir)
+AC_SUBST(logdir)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -175,6 +179,21 @@ else
   echo "Warning: No apache development environment, can't build mod_fdserv"
 fi
 
+dnl Specifies where server state files should live
+AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="/var/run")
+rundir=$with_rundir
+
+dnl Specifies where log files should live
+AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_rundir="/var/log")
+logdir=$with_logdir
+
+if test ! -z $APXS; then
+  apache_conf_dir=`$APXS -q SYSCONFDIR`
+  apache_modules_dir=`$APXS -q LIBEXECDIR`
+else
+  echo "Warning: No apache development environment, can't build mod_fdserv"
+fi
+
 AC_AIX
 
 if test $doi18n = "yes"; then
@@ -198,6 +217,7 @@ case $host_os in
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
    default_arch="x86_64"
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a"
    ifmacosx=""
    ;;
 esac  
@@ -206,6 +226,7 @@ dnl For specifying an arch flag, especially under OS X
 AC_ARG_WITH(arch,--with[out]-arch build with particular --arch arg,,with_arch=$default_arch)
 
 if test ! -z "$with_arch"; then
+   CFLAGS="-arch $with_arch $CFLAGS"
    LDFLAGS="-arch $with_arch $LDFLAGS"
 fi			     
 
