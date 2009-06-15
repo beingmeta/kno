@@ -435,7 +435,7 @@ static void init_server()
   fd_unlock_mutex(&init_server_lock);
 }
 
-FD_EXPORT void fd_init_fddbserv(void);
+FD_EXPORT int fd_init_fddbserv(void);
 
 int main(int argc,char **argv)
 {

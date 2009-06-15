@@ -19,7 +19,7 @@ FD_EXPORT fd_exception fd_BadMetaData;
 FD_EXPORT fd_exception fd_ConnectionFailed;
 
 FD_EXPORT int fd_init_db(void) FD_LIBINIT_FN;
-FD_EXPORT void fd_init_fddbserv(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_fddbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT fdtype (*fd_get_oid_name)(fdtype);
 FD_EXPORT int fd_default_cache_level;

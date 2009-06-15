@@ -894,8 +894,13 @@ void fd_init_dbserv_c()
   fd_fdbserv_module=module;
 }
 
-FD_EXPORT void fd_init_fddbserv()
+static int fddbserv_initialized=0;
+
+FD_EXPORT int fd_init_fddbserv()
 {
+  if (fddbserv_initialized) return fddbserv_initialized;
+  fddbserv_initialized=211*fd_init_db();
+
   fd_register_source_file(versionid);
   fd_init_dbserv_c();
 

@@ -41,7 +41,7 @@ static u8_condition Startup=_("FDSERV Startup");
 FD_EXPORT void fd_init_fdweb(void);
 FD_EXPORT void fd_init_texttools(void);
 FD_EXPORT void fd_init_tagger(void);
-FD_EXPORT void fd_init_fddbserv(void);
+FD_EXPORT int fd_init_fddbserv(void);
 
 /* Logging declarations */
 static u8_mutex log_lock;

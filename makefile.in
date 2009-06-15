@@ -270,6 +270,13 @@ $(BININSTALLDIR)/%: exe/%
 $(BININSTALLDIR)/%: src/scripts/%.scm
 	etc/install-script $<
 
+# Custom rules for building fdmanager which doesn't actually use the
+# FramerD libraries
+exe/fdmanager@suffix@: src/exe/fdmanager.c
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
+		-o $@ $<                                           \
+		$(LIBS) -lu8stdio
+
 # Making dependency information
 
 depend:
