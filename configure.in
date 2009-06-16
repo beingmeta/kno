@@ -185,7 +185,7 @@ AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,wi
 rundir=$with_rundir
 
 dnl Specifies where log files should live
-AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_rundir="/var/log")
+AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="/var/log")
 logdir=$with_logdir
 
 if test ! -z $APXS; then
