@@ -1787,13 +1787,19 @@ void fd_init_texttools()
 	   fd_make_cprim1x("DEPUNCT",depunct,1,fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
-  fd_idefn(texttools_module,fd_make_cprim2("GETWORDS",getwords_prim,1));
-  fd_idefn(texttools_module,fd_make_cprim2("WORDS->VECTOR",getwordsv_prim,1));
-  fd_idefn(texttools_module,fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
-  fd_idefn(texttools_module,fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
-					    -1,FD_VOID,
-					    fd_fixnum_type,FD_INT2DTYPE(0),
-					    fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("GETWORDS",getwords_prim,1,
+			   fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("WORDS->VECTOR",getwordsv_prim,1,
+			   fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
+  fd_idefn(texttools_module,
+	   fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
+			   -1,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(0),
+			   fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim3x("VECTOR->FRAGS",vector2frags_prim,1,
 			   fd_vector_type,FD_VOID,
