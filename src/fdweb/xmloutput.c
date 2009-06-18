@@ -54,7 +54,7 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
 
 static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
 static fdtype href_symbol, class_symbol, raw_name_symbol, browseinfo_symbol;
-static fdtype embedded_symbol, estylesheet_symbol;
+static fdtype embedded_symbol, estylesheet_symbol, xmltag_symbol;
 
 /* Utility output functions */
 
@@ -319,10 +319,12 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
   else if ((FD_APPLICABLEP(xmloidfn)) && (FD_OIDP(x))) {
     fdtype result=fd_apply(xmloidfn,1,&x);
     fd_decref(result);}
-  else if (FD_OIDP(x)) 
-    fd_xmloid(out,x);
+  else if (FD_OIDP(x))
+    if (fd_oid_test(x,xmltag_symbol,FD_VOID))
+      fd_xmleval(out,x,env);
+    else fd_xmloid(out,x);
   else if ((FD_SLOTMAPP(x)) &&
-	   (fd_test(x,raw_name_symbol,FD_VOID)))
+	   (fd_oid_test(x,xmltag_symbol,FD_VOID)))
     fd_xmleval(out,x,env);
   else {
     U8_OUTPUT _out; u8_byte buf[128];
@@ -1730,7 +1732,8 @@ FD_EXPORT void fd_init_xmloutput_c()
   class_symbol=fd_intern("CLASS");
   obj_name=fd_intern("OBJ-NAME");
   quote_symbol=fd_intern("QUOTE");
-  raw_name_symbol=fd_intern("%%NAME");
+  xmltag_symbol=fd_intern("%XMLTAG");
+  raw_name_symbol=fd_intern("%%XMLTAG");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   embedded_symbol=fd_intern("%EMBEDDED");
   estylesheet_symbol=fd_intern("%ERRORSTYLE");

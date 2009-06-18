@@ -140,6 +140,6 @@ void fd_init_xmldata_c()
   fd_idefn(safe_module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
   fd_idefn(safe_module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
 
-  name_slotid=fd_intern("%NAME");
+  name_slotid=fd_intern("%XMLTAG");
   content_slotid=fd_intern("%CONTENT");
 }

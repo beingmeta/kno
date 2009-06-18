@@ -894,11 +894,11 @@ FD_EXPORT void fd_init_xmlinput_c()
   type_symbol=fd_intern("%TYPE");
 
   namespace_symbol=fd_intern("%NAMESPACE");
-  name_symbol=fd_intern("%NAME");
+  name_symbol=fd_intern("%XMLTAG");
   qname_symbol=fd_intern("%QNAME");
   xmlns_symbol=fd_intern("%XMLNS");
 
-  raw_name_symbol=fd_intern("%%NAME");
+  raw_name_symbol=fd_intern("%%XMLTAG");
   raw_attribs_symbol=fd_intern("%%ATTRIBS");
 
   attribids=fd_intern("%ATTRIBIDS");
