@@ -39,7 +39,8 @@ static struct FD_POOL_HANDLER gpool_handler;
 FD_EXPORT
 fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
 		      fdtype fetchfn,fdtype loadfn,
-		      fdtype allocfn,fdtype savefn)
+		      fdtype allocfn,fdtype savefn,
+		      fdtype lockfn,fdtype state)
 {
   struct FD_GPOOL *gp=u8_alloc(struct FD_GPOOL);
   fdtype loadval=fd_apply(loadfn,0,NULL); unsigned int load;
@@ -50,10 +51,11 @@ fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
   gp->load=load;
   fd_incref(fetchfn); fd_incref(loadfn);
   fd_incref(allocfn); fd_incref(savefn);
+  fd_incref(lockfn); fd_incref(state);
   gp->fetchfn=fetchfn; gp->loadfn=loadfn;
   gp->allocfn=allocfn;  gp->savefn=savefn;
+  gp->lockfn=lockfn; gp->state=state;
   return gp;
-
 }
 		      
 static int gpool_load(fd_pool p)

@@ -319,6 +319,13 @@ FD_FASTOP fdtype fd_oid_value(fdtype oid)
 
 FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
 
+/* Generic Pools */
+
+typedef struct FD_GPOOL {
+  FD_POOL_FIELDS;
+  fdtype fetchfn, newfn, loadfn, savefn;} FD_GPOOL;
+typedef struct FD_GPOOL *fd_gpool;
+
 /* Network Pools */
 
 typedef struct FD_NETWORK_POOL {
@@ -327,13 +334,20 @@ typedef struct FD_NETWORK_POOL {
   int bulk_commitp;} FD_NETWORK_POOL;
 typedef struct FD_NETWORK_POOL *fd_network_pool;
 
-/* Generic Pools */
+/* External Pools */
 
-typedef struct FD_GPOOL {
+typedef struct FD_EXTPOOL {
   FD_POOL_FIELDS;
-  fdtype fetchfn, newfn, loadfn, savefn;
-  struct FD_HASHTABLE basevals;} FD_GPOOL;
-typedef struct FD_GPOOL *fd_gpool;
+  fdtype fetchfn, savefn, lockfn, state;} FD_EXTPOOL;
+typedef struct FD_EXTPOOL *fd_extpool;
+
+FD_EXPORT
+fd_pool fd_make_extpool
+  (u8_string label,
+   FD_OID base,int cap,
+   fdtype fetchfn,fdtype savefn,
+   fdtype lockfn,fdtype state);
+FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value);
 
 /* Memory Pools (only in memory, no fetch/commit) */
 

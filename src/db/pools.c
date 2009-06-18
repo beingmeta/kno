@@ -1422,19 +1422,7 @@ static int mempool_swapout(fd_pool p,fdtype oids)
 {
   /* This doesn't normaly swap out, which is the point, since the only state is in the
      mempool. */
-  if (FD_VOIDP(oids)) return 0;
-  else {
-    int count=0;
-    FD_DO_CHOICES(oid,oids) 
-      if (FD_OIDP(oid)) {
-	if (fd_hashtable_probe_novoid(&(p->locks),oid)) {
-	  fd_hashtable_store(&(p->locks),oid,FD_VOID);
-	  count++;}
-	else if (!(fd_hashtable_probe_novoid(&(p->cache),oid))) {
-	  fd_hashtable_store(&(p->cache),oid,FD_VOID);
-	  count++;}
-	else {}}
-    return count;}
+  return 0;
 }
 
 static struct FD_POOL_HANDLER mempool_handler={
@@ -1466,7 +1454,73 @@ FD_EXPORT int fd_clean_mempool(fd_pool p)
 }
 
 
-/* Initialize */
+/* Fetch pools */
+
+/* Fetch pools are pools which keep their data externally and take care
+   of their own data management.  They basically have a fetch function and
+   a load function but may be extended to be clever about saving in some way. */
+
+static struct FD_POOL_HANDLER extpool_handler;
+
+FD_EXPORT
+fd_pool fd_make_extpool(u8_string label,
+			FD_OID base,int cap,
+			fdtype fetchfn,fdtype savefn,
+			fdtype lockfn,fdtype state)
+{
+  struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
+  fd_init_pool((fd_pool)xp,base,cap,&extpool_handler,label,label);
+  if (!(FD_VOIDP(savefn))) xp->read_only=0;
+  fd_register_pool((fd_pool)xp);
+  fd_incref(fetchfn); fd_incref(savefn);
+  fd_incref(lockfn); fd_incref(state);
+  xp->fetchfn=fetchfn; xp->savefn=savefn;
+  xp->lockfn=lockfn; xp->state=state;
+  return (fd_pool)xp;
+}
+
+static fdtype extpool_fetch(fd_pool p,fdtype oid)
+{
+  struct FD_EXTPOOL *xp=(fd_extpool)p;
+  fdtype state=xp->state, value;
+  if (FD_VOIDP(state))
+    value=fd_apply(xp->fetchfn,1,&oid);
+  else {
+    fdtype args[2]; args[0]=oid; args[1]=state;
+    value=fd_apply(xp->fetchfn,2,args);}
+  if (FD_ABORTP(value)) return value;
+  else if (FD_EMPTY_CHOICEP(value))
+    return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->cid,oid);
+  else return value;
+}
+
+FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value)
+{
+  if (p->handler==&extpool_handler)
+    return fd_hashtable_store(&(p->cache),oid,value);
+  else return fd_reterr
+	 (fd_TypeError,"fd_extpool_cache_value",
+	  u8_strdup("extpool"),fd_pool2lisp(p));
+}
+
+static struct FD_POOL_HANDLER extpool_handler={
+  "mempool", 1, sizeof(struct FD_EXTPOOL), 12,
+  NULL, /* close */
+  NULL, /* setcache */
+  NULL, /* setbuf */
+  NULL, /* alloc */
+  extpool_fetch, /* fetch */
+  NULL, /* fetchn */
+  NULL, /* getload */
+  NULL, /* lock */
+  NULL, /* release */
+  NULL, /* storen */
+  NULL, /* swapout */
+  NULL, /* metadata */
+  NULL}; /* sync */
+
+
+/* Initialization */
 
 fd_ptr_type fd_pool_type, fd_raw_pool_type;
 

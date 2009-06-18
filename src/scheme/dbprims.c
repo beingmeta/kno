@@ -404,6 +404,24 @@ static fdtype clean_mempool(fdtype pool_arg)
   else return FD_INT2DTYPE(retval);
 }
 
+static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
+			   fdtype fetchfn,fdtype savefn,fdtype lockfn,
+			   fdtype state)
+{
+  fd_pool p=fd_make_extpool
+    (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),
+     fetchfn,savefn,lockfn,state);
+  return fd_pool2lisp(p);
+}
+
+static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  if (fd_extpool_cache_value(p,oid,value)<0)
+    return FD_ERROR_VALUE;
+  else return FD_VOID;
+}
+
 /* Adding adjuncts */
 
 static fdtype adjunct_symbol;
@@ -2123,6 +2141,18 @@ FD_EXPORT void fd_init_dbfns_c()
 			   fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
 			   fd_fixnum_type,(FD_INT2DTYPE(0))));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim7x("MAKE-EXTPOOL",make_extpool,4,
+			   fd_string_type,FD_VOID,
+			   fd_oid_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
+			   fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
+			   -1,FD_VOID));
+
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("??",fd_bgfinder,2)));
