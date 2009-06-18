@@ -654,6 +654,9 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
 {
   struct FD_HASHTABLE *locks=&(p->locks); 
   double start_time=u8_elapsed_time();
+  if (p->handler->storen==NULL) {
+    if ((unlock) && (p->handler->unlock))
+      p->handler->unlock(p,oids);}
   init_cache_level(p);
   if (FD_CHOICEP(oids)) {
     int n_oids=FD_CHOICE_SIZE(oids), retval, n;
@@ -1445,7 +1448,7 @@ static struct FD_POOL_HANDLER mempool_handler={
   mempool_load, /* getload */
   mempool_lock, /* lock */
   mempool_unlock, /* release */
-  mempool_storen, /* storen */
+  NULL, /* storen */
   mempool_swapout, /* swapout */
   NULL, /* metadata */
   NULL}; /* sync */
