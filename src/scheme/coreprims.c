@@ -161,6 +161,16 @@ static fdtype numberp(fdtype x)
   if (FD_NUMBERP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype immediatep(fdtype x)
+{
+  if (FD_IMMEDIATEP(x)) return FD_TRUE; else return FD_FALSE;
+}
+
+static fdtype consedp(fdtype x)
+{
+  if (FD_CONSP(x)) return FD_TRUE; else return FD_FALSE;
+}
+
 static fdtype characterp(fdtype x)
 {
   if (FD_CHARACTERP(x)) return FD_TRUE; else return FD_FALSE;
@@ -613,6 +623,8 @@ FD_EXPORT void fd_init_corefns_c()
   fd_defalias(fd_scheme_module,"CHAR?","CHARACTER?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("BOOLEAN?",booleanp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NUMBER?",numberp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("IMMEDIATE?",immediatep,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CONSED?",consedp,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
