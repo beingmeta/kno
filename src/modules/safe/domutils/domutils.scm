@@ -12,6 +12,7 @@
 (module-export!
  '{
    dom/textify
+   dom/oidify dom/oidmap dom/nodeid
    dom/set! dom/add! dom/append!
    dom/selector dom/match dom/lookup dom/find
    dom/search dom/strip! dom/map
@@ -77,7 +78,7 @@
 	  (add! node '%%attribs
 		(vector (first raw-attribs) (second raw-attribs)
 			stringval)))
-	(when (test node '%%name) ;; Kept raw XML info
+	(when (test node '%%xmltag) ;; Kept raw XML info
 	  (add! node '%%attribs
 		(vector aname aname stringval))))))
 
@@ -115,7 +116,8 @@
 	    (add! node '%%attribs
 		  (vector (first raw-attribs) (second raw-attribs)
 			  (string-append (third raw-attribs) ";" stringval))))
-	  (when (test node '%%name) ;; Kept raw XML info
+	  (when (test node '%%xmltag)
+	    ;; Kept raw XML info, so use it
 	    (add! node '%%attribs
 		  (vector aname aname stringval)))))))
 
@@ -125,7 +127,7 @@
       (if (pair? elt)
 	  (set! current (append current elt))
 	  (if (and (string? elt) (has-prefix elt "<"))
-	      (if (test node '%%name)
+	      (if (test node '%%xmltag)
 		  (xmlparse elt 'keepraw)
 		  (xmlparse elt))
 	      (set! current (append current (list elt))))))
@@ -153,7 +155,7 @@
 			   (try (get match 'idname) #f)))
 	  (if (table? spec)
 	      ;; Assume this is an XML node
-	      (cons-selector (try (get spec '%name) #f)
+	      (cons-selector (try (get spec '%xmltag) #f)
 			     (try (get spec 'class) #f)
 			     (try (get spec 'id) #f))
 	      (fail)))))
@@ -191,8 +193,8 @@
 	    (try
 	     (try-choices sel
 	       (or (and (or (not (selector-tag sel))
-			    (test elt '%name (selector-tag sel))
-			    (test elt '%%name (selector-tag sel)))
+			    (test elt '%xmltag (selector-tag sel))
+			    (test elt '%%xmltag (selector-tag sel)))
 			(or (not (selector-class sel))
 			    (test elt 'class (selector-class sel)))
 			(or (not (selector-id sel))
@@ -261,7 +263,8 @@
 
 (defambda (strip-helper content sel)
   (if (pair? content)
-      (if (or (string? (car content)) (not (slotmap? (car content))))
+      (if (or (string? (car content))
+	      (not (slotmap? (car content))))
 	  (cons (car content) (strip-helper (cdr content) sel))
 	  (if (dom/match (car content) sel)
 	      (strip-helper (cdr content) sel)
@@ -334,7 +337,8 @@
 		  (unless (or (test node 'textfree)
 			      (dom/match node *no-text-tags*))
 		    (printout
-		      (if (overlaps? (get node '%name) *line-break-tags*) "\n")
+		      (if (overlaps? (get node '%xmltag) *line-break-tags*)
+			  "\n")
 		      (if (test node '%text)
 			  (get node '%text)
 			  (when (test node '%content)
@@ -348,3 +352,61 @@
 		s)
 	      (stringout (dom/textify node #t #f))))))
 
+;;; OIDify
+
+(define dompool #f)
+
+(define (dom/oidify node (pool dompool))
+  (if (not pool) node
+      (if (or (oid? node) (immediate? node) (number? node) (string? node))
+	  node
+	  (if (slotmap? node)
+	      (try (get node '%oid)
+		   (let ((oid (frame-create pool))
+			 (slotids (getkeys node)))
+		     (do-choices (slotid slotids)
+		       (store! oid slotid (dom/oidify (%get node slotid) pool)))
+		     (store! oid '%oid oid)
+		     (unless (test oid '%id)
+		       (store! oid '%id (dom/nodeid oid)))
+		     oid))
+	      (if (pair? node)
+		  (cons (qc (dom/oidify (car node) pool))
+			(qc (dom/oidify (cdr node) pool)))
+		  (if (vector? node)
+		      (forseq (elt node) (dom/oidify elt pool))
+		      node))))))
+
+;; This returns a hashtable containing the OID value mappings for an
+;;  OIDified DOM tree.  As a bit of a kludge, as long as this is
+;;  around, cleaning the OID map won't do anything.
+(define (dom/oidmap node (table (make-hashtable)))
+  (if (oid? node)
+      (if (test table node) table
+	  (begin (store! table node (oid-value node))
+		 (dom/oidmap (oid-value node) table)))
+      (if (or (immediate? node) (number? node) (string? node))
+	  table
+	  (if (slotmap? node)
+	      (let ((slotids (getkeys node)))
+		(do-choices (slotid (getkeys node))
+		  (set! table (dom/oidmap (%get node slotid) table)))
+		table)
+	      (if (pair? node)
+		  (dom/oidify (cdr node) (dom/oidmap (car node) table))
+		  (begin
+		    (when (vector? node)
+		      (doseq (elt node) (set! table (dom/oidmap elt table))))
+		    table))))))
+
+(define (dom/nodeid oid)
+  (stringout
+    (try (get oid '%%xmltag) (get oid '%xmltag))
+    (when (test oid 'class)
+      (printout "." (string-subst (get oid 'class) " " ".")))
+    (when (test oid 'id) (printout "#" (get oid 'id)))
+    (when (test oid 'name) (printout "[NAME=" (get oid 'name) "]"))
+    (do-choices (attrib (difference (get oid '%attribids) '{name class id}))
+      (printout "[" attrib "]"))))
+
+(varconfig! DOMPOOL dompool use-pool)

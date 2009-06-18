@@ -5,9 +5,9 @@
 
 ;;; Provides access to RSS feeds with automatic caching and intervals.
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
-(use-module '{fdweb texttools varconfig})
+(use-module '{fdweb texttools varconfig parsetime})
 
 (define rss-cache (make-hashtable))
 (define rss-caches (make-hashtable))
@@ -24,8 +24,24 @@
 (define try-unique-ids '{guid})
 (varconfig! rss:uniqueid try-unique-ids #t choice)
 
-(define (rssget uri (analyzer default-analyzer) (uniqueid #f)
-		(frequency default-update-frequency))
+(define (normalize-entry entry feeduri)
+  (store! entry 'uri (get entry '{uri link}))
+  (store! entry 'date
+	  (try (parsetime (get entry '{updated pubdate}))
+	       (gmtimestamp 'seconds)))
+  (store! entry 'uniqueid
+	  (try (pickstrings (get entry '{guid id}))
+	       (vector feeduri (try (get (get entry 'date) 'iso) #f)
+		       (get entry 'uri))))
+  ;; (store! entry 'keywords)
+  (store! entry 'description
+	  (strip-markup (decode-entities (get entry '{summary description}))))
+  (store! entry 'title
+	  (strip-markup (decode-entities (get entry 'title))))
+  (store! entry 'uri (get entry '{link about}))
+  entry)
+
+(define (rssget uri (frequency default-update-frequency))
   (let* ((parsed (parseuri uri))
 	 (normalized (unparseuri parsed))
 	 (cache (try (get rss-caches normalized)
@@ -35,22 +51,12 @@
       (if (or (fail? expiration) (past-time? expiration))
 	  (let* ((fetched (urlget normalized))
 		 (parsed (xmlparse (get fetched '%content) (qc xmloptions)))
-		 (items (if analyzer (analyzer parsed)
-			    (xmlget parsed 'item)))
-		 (uniqueid (or uniqueid
-			       (try
-				(filter-choices (id try-unique-ids)
-				  (test items id))
-				#f))))
+		 (items (normalize-entry (xmlget parsed '{item entry})
+					 uri)))
 	    (store! cache (cons 'expires normalized)
 		    (timestamp+ frequency))
-	    (store! cache normalized
-		    (choice items
-			    (if uniqueid
-				(reject(get cache normalized) 
-				       uniqueid (get items uniqueid))
-				(get cache normalized))))
-	    (get cache normalized))
+	    (store! cache normalized items)
+	    items)
 	  (get cache normalized)))))
 
 (module-export! 'rssget)

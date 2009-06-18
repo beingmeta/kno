@@ -33,24 +33,25 @@
 	(cacheslots (get settings 'cacheslots))
 	(indexrules (try (get settings 'indexrules) default-indexrules))
 	(analyzers (try (get settings 'analyzers) default-analyzers))
-	(useids (try (get settings 'useids) #t)))
+	(idmap (try (get settings 'idmap) #f)))
     (dom/indexer index doc
-		 indexslots cacheslots indexrules analyzers useids
+		 indexslots cacheslots indexrules analyzers idmap
 		 settings doc)))
 	
 (defambda (dom/indexer index xml
 		       indexslots cacheslots indexrules
-		       analyzers useids settings doc)
+		       analyzers idmap settings doc)
   (if (pair? xml)
       (dolist (elt xml)
 	(dom/indexer index elt 
 		     indexslots cacheslots
-		     indexrules analyzers useids
+		     indexrules analyzers idmap
 		     settings doc))
       (when  (table? xml)
 	(unless (test xml 'noindex)
 	  (let* ((content (get xml '%content))
-		 (indexval (if useids (get xml 'id) xml))
+		 (indexval (try (get xml '%oid)
+				(if idmap (get xml 'id) xml)))
 		 (eltinfo (dom/lookup indexrules xml))
 		 (slots (intersection
 			 (choice (pick indexslots symbol?)
@@ -62,8 +63,7 @@
 				      (pick eltinfo pair?))
 			      slots)))
 	    ;; (%WATCH "DOMINDEXER" indexval slots rules)
-	    (when (test settings 'nodemap)
-	      (add! (get settings 'nodemap) (get xml 'id) xml))
+	    (when idmap (add! idmap (get xml 'id) xml))
 	    (add! index (cons 'has slots) indexval)
 	    (when (exists? indexval)
 	      (do-choices (slotid slots)
@@ -85,7 +85,9 @@
 	      (dolist (elt content)
 		(dom/indexer index elt
 			     indexslots cacheslots
-			     indexrules analyzers useids
+			     indexrules analyzers idmap
 			     settings doc))))))))
+
+
 
 

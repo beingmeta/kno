@@ -21,7 +21,7 @@
    knowlet-name knowlet-opts knowlet-language
    knowlet-oid knowlet-pool knowlet-index
    knowlet-alldterms knowlet-dterms knowlet-drules
-   default-knowlet knowlets
+   default-knowlet knowlets kno/set-dterm!
    knowlet:pool knowlet:index knowlet:indices
    knowlet! ->knowlet iadd!
    kno/logging
@@ -221,6 +221,15 @@
 	      (find-frames (knowlet-index knowlet)
 		lang (choice (metaphone term #t)
 			     (string->packet (disemvowel term)))))))
+
+(define (kno/set-dterm! dtf dterm (keepold #t))
+  (let ((knowlet (->knowlet (get dtf 'knowlet))))
+    (if keepold
+	(add! dtf 'dterms (get dtf 'dterm))
+	(drop! (knowlet-dterms knowlet) (get dtf 'dterm) dtf))
+    (store! dtf 'dterm dterm)
+    (add! dtf 'dterms dterm)
+    (add! (knowlet-dterms knowlet) dterm dtf)))
 
 ;;; String indexing
 

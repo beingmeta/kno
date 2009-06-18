@@ -13,6 +13,7 @@
 (module-export!
  '{kno/read-plaintext
    kno/write-plaintext
+   kno/plaintext
    knowlet->file file->knowlet})
 
 (module-export! '{escaped-segment escaped-find})
@@ -220,6 +221,9 @@
 	     x
 	     (handle-subject-entry x knowlet)))
        (remove "" (map trim-spaces (escaped-segment text #\;)))))
+(define (kno/plaintext text (knowlet default-knowlet))
+  "Parses a single plaintext subject entry and returns the subject"
+  (handle-subject-entry (trim-spaces text) knowlet))
 
 ;;; Generating the plaintext representation
 
@@ -265,9 +269,10 @@
 		   (printout "|." (get slotid 'dterm)
 			     "=" (output-value value knowlet)))
 		  ((eq? slotid (knowlet-language knowlet))
-		   (if (char-punctuation? (elt value 0))
-		       (printout "|\\" value)
-		       (printout "|" value)))
+		   (when (string? value)
+		     (if (char-punctuation? (elt value 0))
+			 (printout "|\\" value)
+			 (printout "|" value))))
 		  ((eq? slotid 'gloss)
 		   (printout "|\"" (output-value value) "\""))
 		  ((overlaps? slotid langids)
@@ -312,6 +317,14 @@
 		     (printout "&#" (drule-threshold value)))
 		   (when (not (drule-threshold value))
 		     (printout "&#*" (drule-threshold value))))
+		  ((eq? slotid 'oid)
+		   (if (test value 'sensecat)
+		       (printout
+			 "|=@" (number->string (oid-hi value) 16) "/"
+			 (number->string (oid-lo value) 16))
+		       (if (test value 'dterm)
+			   ;; Need to add relative knowlets
+			   (printout "|=" (get value 'dterm)))))
 		  (else ))))))))
 
 (defambda (kno/write-plaintext dterms (settings #[]) (kl)  (sep))

@@ -54,9 +54,10 @@
 		    (not (try (get stopcache word) 
 			      (stopcheck word stopcache stopwords stoprules)))))
 	   (refroots (for-choices (ref refs)
-		       (getroot ref rootcache
-				rootstrings rootset rootmaps
-				rootfns morphrules)))
+		       (try (getroot ref rootcache
+				     rootstrings rootset rootmaps
+				     rootfns morphrules)
+			    ref)))
 	   (results (choice roots refroots)))
       ;; (%watch "TEXTANALYZE" text rootv stopv)
       ;; (%watch "TEXTANALYZE" xwords words roots refs refroots)
@@ -90,16 +91,11 @@
   (let ((result
 	 (choice (pick rootstrings is-prefix? word)
 		 (try (choice (get rootmaps word)
-			      (tryif (hashset-test rootset word) word)
-			      (pick (rootfns word) rootset)
-			      (try-choices (rule morphrules)
-				(morphrule word rule rootset)))
-		      (if (hashset-test rootset word) word
-			  (try (get rootmaps word)
-			       (rootfns word)
-			       (try-choices (rule morphrules)
-				 (morphrule word rule rootset))
-			       word))))))
+			      (tryif (hashset-test rootset word)
+				word))
+		      (try (pick (rootfns word) rootset)
+			   (try-choices (rule morphrules)
+			     (morphrule word rule rootset)))))))
     (store! cache word result)
     result))
 
@@ -126,6 +122,7 @@
 	(if (bound? settings)
 	    (extend-settings settings options)
 	    (text/settings options)))
+  ;; (%watch "TEXTANALYZE" settings)
   (textanalyze text
 	       (try (get settings 'stopcache) (make-hashtable))
 	       (try (get settings 'rootcache) (make-hashtable))
@@ -154,7 +151,10 @@
 
 (define (text/index! index f slotid (value) (options #[]))
   (unless (or (not (bound? value)) value) (set! value (get f slotid)))
-  (index-frame index f slotid (text/keystrings value options)))
+  (let ((ks (text/keystrings value options)))
+    (when (exists? ks)
+      (index-frame index f slotid ks)
+      (index-frame index f 'has slotid))))
 
 (defambda (text/analyze passages options)
   (let* ((allkeys {})
@@ -198,9 +198,10 @@
     table))
 
 (defambda (text/reduce strings stringset)
-  (choice (reject strings capitalized?)
-	  (reject (pick strings capitalized?)
-		  downcase stringset)))
+  (let* ((caps (pick strings capitalized?))
+	 (goodcaps (reject caps downcase stringset)))
+    (choice (difference strings caps) goodcaps
+	    (downcase (difference caps goodcaps)))))
 
 (define (text/getroots word (settings #[]))
   (let ((settings (text/settings settings)))
@@ -366,8 +367,7 @@
     ("ed" . #((not> #(,(third consrules) "ed"))
 	      (isnotvowel) (subst "ed" "e") (eos)))
     ("ed" . "") ("ed" . "e") 
-    ("ing" . "")
-    ("ly" . #((NOT> "ly") (SUBST "ly" "")))))
+    ("ing" . "")))
 
 ;;; Default ref rules
 
@@ -421,7 +421,7 @@
     #((SUBST #(,name-prefixes (spaces)) "")
       (* #({(capword) (+ #((isupper) "."))} (spaces)))
       (capword))
-    #((SUBST #((ispunct) (spaces)) "")
+    #((SUBST #((ispunct) (spaces*)) "")
       (subst (capword) downcase))
     #((bol) (subst (capword) downcase))})
 

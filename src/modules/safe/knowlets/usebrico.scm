@@ -156,16 +156,17 @@
 	(iadd! kf 'oid bf)
 	(when (and (eq? language knolang) (not (test kf 'gloss)))
 	  (store! kf 'gloss
-		  (try
-		   (tryif (eq? language 'en) (get bf 'gloss))
-		   (get-gloss bf langframe))))
+		  (stdspace
+		   (try
+		    (tryif (eq? language 'en) (get bf 'gloss))
+		    (get-gloss bf langframe)))))
 	(iadd! kf language (get bf langframe))
 	(when (overlaps? opts 'glosses)
 	  (add! kf 'glosses
-		(cons language (get-gloss bf langframe))))
+		(cons language (stdspace (get-gloss bf langframe)))))
 	kf))))
 
-(define (kno/copy-brico-links! (kf #f) (bf #f) (slotids usebrico-defaults))
+(define (kno/copy-brico-links! (bf #f) (kf #f) (slotids usebrico-defaults))
   (cond ((knowlet? kf)
 	 (do-choices (kf (find-frames (knowlet-index kf) 'has 'oid))
 	   (kno/copy-brico-links! kf (get kf 'oid) (qc slotids))))
