@@ -32,7 +32,7 @@ static fdtype xmlattrib(fdtype doc,fdtype attrib_id)
 
 static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid)
 {
-  if (FD_SLOTMAPP(doc))
+  if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc)))
     if ((fd_test(doc,name_slotid,eltid))) {
       fd_incref(doc);
       FD_ADD_TO_CHOICE((*result),doc);}
@@ -66,7 +66,7 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
   else if (FD_VOIDP(attrib_id)) 
     if (FD_EMPTY_LISTP(doc)) return doc;
     else if ((FD_PAIRP(doc)) || (FD_STRINGP(doc))) return fd_incref(doc);
-    else if (FD_SLOTMAPP(doc)) 
+    else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) 
       return fd_get(doc,content_slotid,FD_EMPTY_LIST);
     else return fd_type_error("XML node","xmlcontents",doc);
   else if (FD_PAIRP(doc)) {
@@ -100,11 +100,11 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
       {FD_DOLIST(docelt,doc)
 	 if (FD_STRINGP(docelt))
 	   u8_putn(&out,FD_STRDATA(docelt),FD_STRLEN(docelt));
-	 else if (FD_SLOTMAPP(docelt))
+	 else if ((FD_OIDP(docelt)) || (FD_SLOTMAPP(docelt)))
 	   fd_unparse_xml(&out,docelt,NULL);
 	 else fd_unparse(&out,docelt);}
       return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
-    else if (FD_SLOTMAPP(doc)) {
+    else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) {
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_LIST);
       fdtype as_string=xmlcontent(content,FD_VOID);
       fd_decref(content);
