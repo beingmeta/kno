@@ -5,7 +5,7 @@
 
 ;;; Calling the Facebook API and various standard calls
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (use-module '{fdweb xhtml texttools facebook logger})
 

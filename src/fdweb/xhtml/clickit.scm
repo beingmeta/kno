@@ -5,7 +5,7 @@
 ;;; This provides various XHTML widgets which use stylesheets and
 ;;;  javascript provided by fdweb.css and fdweb.js respectively.
 
-(define version "$Id: mttools.scm 2552 2008-04-24 13:19:29Z haase $")
+(define version "$Id$")
 
 (use-module 'fdweb)
 (use-module 'xhtml)

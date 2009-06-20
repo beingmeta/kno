@@ -5,7 +5,7 @@
 
 ;;; Basic access to facebook, including authorization
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (use-module '{fdweb xhtml texttools reflection facebook/fbcall varconfig})
 
