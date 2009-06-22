@@ -122,9 +122,11 @@
 	  (set! dterm (make-union-dterm possible language knowlet dterms))
 	  (set+! newterms dterm))
 	(cond ((hashtable? saveto)
-	       (add! saveto (if idmap (get idmap elected) elected)
+	       (add! saveto
+		     (if idmap (get idmap elected) elected)
 		     elected))
-	      (else (add! (if idmap (get idmap elected) elected)
+	      (else (add! (choice (pickoids elected)
+				  (if idmap (get idmap elected) elected))
 			  saveto dterm)
 		    (add! index (cons saveto dterm) elected)
 		    (add! index (cons 'has saveto) elected)))))
