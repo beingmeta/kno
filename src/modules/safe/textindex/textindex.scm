@@ -423,7 +423,9 @@
       (capword))
     #((SUBST #((ispunct) (spaces*)) "")
       (subst (capword) downcase))
-    #((bol) (subst (capword) downcase))})
+    #((bol) (subst (capword) downcase))
+    #((isalpha+) (subst "-" ""))
+    #((subst "-" "") (isalpha+))})
 
 ;;; Setup
 
