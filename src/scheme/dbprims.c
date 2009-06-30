@@ -426,19 +426,22 @@ static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
 
 static fdtype adjunct_symbol;
 
-static fdtype use_adjunct(fdtype index_arg,fdtype slotid,fdtype pool_arg)
+static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
 {
-  fd_index ix=fd_lisp2index(index_arg);
-  if (ix==NULL) return FD_ERROR_VALUE;
-  if (FD_VOIDP(slotid)) slotid=fd_index_get(ix,adjunct_symbol);
+  if (FD_STRINGP(adjunct)) {
+    fd_index ix=fd_open_index(FD_STRDATA(adjunct));
+    if (ix) adjunct=fd_index2lisp(ix);
+    else return fd_type_error("adjunct spec","use_adjunct",adjunct);}
+  if ((FD_VOIDP(slotid)) && (FD_TABLEP(adjunct)))
+    slotid=fd_get(adjunct,adjunct_symbol,FD_VOID);
   if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
     if (FD_VOIDP(pool_arg))
-      if (fd_set_adjunct(ix,slotid,NULL)<0) return FD_ERROR_VALUE;
+      if (fd_set_adjunct(NULL,slotid,adjunct)<0) return FD_ERROR_VALUE;
       else return FD_VOID;
     else {
       fd_pool p=fd_lisp2pool(pool_arg);
       if (p==NULL) return FD_ERROR_VALUE;
-      else if (fd_set_adjunct(ix,slotid,p)<0) return FD_ERROR_VALUE;
+      else if (fd_set_adjunct(p,slotid,adjunct)<0) return FD_ERROR_VALUE;
       else return FD_VOID;}
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }

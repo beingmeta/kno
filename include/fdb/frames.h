@@ -11,9 +11,9 @@
 
 /* Adjuncts: these are indices which function as slotids. */
 
-FD_EXPORT int fd_set_adjunct(fd_index ix,fdtype slotid,fd_pool p);
-FD_EXPORT fd_index fd_get_adjunct(fdtype slotid,fd_pool p);
-FD_EXPORT int fd_adjunctp(fdtype slotid,fd_pool p);
+FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype table);
+FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
+FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid);
 
 FD_EXPORT fdtype fd_adjunct_slotids;
 

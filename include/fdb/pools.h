@@ -121,13 +121,18 @@ FD_EXPORT fd_exception
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
+typedef struct FD_ADJUNCT {
+  struct FD_POOL *pool; fdtype slotid; fdtype table;} FD_ADJUNCT;
+typedef struct FD_ADJUNCT *fd_adjunct;
+
 #define FD_POOL_FIELDS \
   FD_CONS_HEADER;                                          \
   FD_OID base;                                             \
   unsigned int capacity, read_only;                        \
   int serialno; int cache_level, flags;                    \
   u8_string label, source, cid, xid, prefix;		   \
-  int n_adjuncts; struct FD_KEYVAL *adjuncts;              \
+  int n_adjuncts, max_adjuncts;                            \
+  struct FD_ADJUNCT *adjuncts;				   \
   struct FD_POOL_HANDLER *handler;                         \
   struct FD_HASHTABLE cache, locks; int n_locks
 
