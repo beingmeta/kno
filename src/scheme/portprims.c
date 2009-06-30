@@ -185,10 +185,11 @@ static fdtype write_bytes(fdtype object,fdtype stream)
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   int bytes;
   if (FD_STRINGP(object)) {
-    fd_dtswrite_bytes(ds,FD_STRDATA(object),FD_STRLEN(object));
+    fd_dtswrite_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
     return FD_STRLEN(object);}
   else if (FD_PACKETP(object)) {
-    fd_dtswrite_bytes(ds,FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
+    fd_dtswrite_bytes
+      (ds->dt_stream,FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
     return FD_PACKET_LENGTH(object);}
   else {
     int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
