@@ -1,8 +1,8 @@
-/* C Mode */
+/* -*- Mode: C; character-encoding: utf-8; -*- */
 
 /* sqlite.c
-   This implements FramerD bindings to odbc.
-   Copyright (C) 2007-2008 beingmeta, inc.
+   This implements FramerD bindings to sqlite3.
+   Copyright (C) 2007-2009 beingmeta, inc.
 */
 
 static char versionid[] =

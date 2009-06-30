@@ -1,8 +1,8 @@
-/* C Mode */
+/* -*- Mode: C; character-encoding: utf-8; -*- */
 
 /* mysql.c
-   This implements FramerD bindings to odbc.
-   Copyright (C) 2007-2008 beingmeta, inc.
+   This implements FramerD bindings to mysql.
+   Copyright (C) 2007-2009 beingmeta, inc.
 */
 
 static char versionid[] =
