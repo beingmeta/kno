@@ -5,8 +5,10 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
+/* #include "fdb/dtype.h" */
 
+#include <libu8/libu8.h>
+#include <libu8/libu8io.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
@@ -68,9 +70,9 @@ static struct SERVER_ENTRY *servers;
 static int n_servers=0, max_servers, terminating=0;
 static char *fdserver, *status_file, *pid_file;
 
-static fd_exception SecurityAbort=_("Security abort");
-static fd_exception SecurityEvent=_("Security event");
-static fd_exception StartupEvent=_("Startup event");
+static u8_condition SecurityAbort=_("Security abort");
+static u8_condition SecurityEvent=_("Security event");
+static u8_condition StartupEvent=_("Startup event");
 
 static uid_t runas_uid=(uid_t)-1;
 static gid_t runas_gid=(gid_t)-1;
