@@ -784,7 +784,9 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
     else return head;}
 }
 
-/* Text rewrite/subst */
+/* Text rewriting and substitution
+   Rewriting rewrites a string which matches a pattern, substitution rewrites all the
+    substrings matching a pattern. */
 
 static fdtype star_symbol, plus_symbol, label_symbol, subst_symbol, opt_symbol;
 static int dorewrite(u8_output out,fdtype xtract)
