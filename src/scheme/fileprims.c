@@ -130,6 +130,46 @@ static fdtype extend_dtype_file(fdtype fname)
     return FD_ERROR_VALUE;}
 }
 
+static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
+{
+  int len=0; unsigned char *bytes; int free_bytes=0;
+  if (FD_STRINGP(object)) {
+    bytes=FD_STRDATA(object); len=FD_STRLEN(object);}
+  else if (FD_PACKETP(object)) {
+    bytes=FD_PACKET_DATA(object); len=FD_PACKET_LENGTH(object);}
+  else if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
+    struct FD_BYTE_OUTPUT out;
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,object);
+    bytes=out.start; len=out.ptr-out.start;
+    free_bytes=1;}
+  else {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+    fd_unparse(&out,object);
+    bytes=out.u8_outbuf; len=out.u8_outptr-out.u8_outbuf;
+    free_bytes=1;}
+  if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
+    FILE *f=u8_fopen(FD_STRDATA(filename),"w");
+    fwrite(bytes,1,len,f);
+    fclose(f);}
+  else if ((FD_TRUEP(enc)) || (FD_STRINGP(enc))) {
+    struct U8_TEXT_ENCODING *encoding=
+      ((FD_STRINGP(enc)) ? (u8_get_encoding(FD_STRDATA(enc))) :
+       (u8_get_default_encoding()));
+    if (encoding==NULL) {
+      if (free_bytes) u8_free(bytes);
+      return fd_type_error("encoding","writefile_prim",enc);}
+    else {
+      U8_XOUTPUT *out=u8_open_output_file(FD_STRDATA(filename),encoding,-1,-1);
+      u8_putn((u8_output)out,bytes,len);
+      u8_close((u8_stream)out);}}
+  else {
+    if (free_bytes) u8_free(bytes);
+    return fd_type_error("encoding","writefile_prim",enc);}
+  if (free_bytes) u8_free(bytes);
+  return FD_INT2DTYPE(len);
+}
+
 /* FILEOUT */
 
 static int printout_helper(U8_OUTPUT *out,fdtype x)
@@ -1405,7 +1445,6 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,fd_make_cprim3x("SETBUF",setbufprim,2,
 					 -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
   
-
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_file,1,
 			   fd_string_type,FD_VOID));
@@ -1413,6 +1452,10 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
 			   fd_string_type,FD_VOID));
 
+  fd_idefn(fileio_module,
+	   fd_make_cprim3x("WRITE-FILE",writefile_prim,2,
+			   fd_string_type,FD_VOID,-1,FD_VOID,
+			   -1,FD_VOID));
 
   fd_defspecial(fileio_module,"FILEOUT",simple_fileout);
 

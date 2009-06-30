@@ -179,6 +179,23 @@ static fdtype write_dtype(fdtype object,fdtype stream)
   else return FD_INT2DTYPE(bytes);
 }
 
+static fdtype write_bytes(fdtype object,fdtype stream)
+{
+  struct FD_DTSTREAM *ds=
+    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+  int bytes;
+  if (FD_STRINGP(object)) {
+    fd_dtswrite_bytes(ds,FD_STRDATA(object),FD_STRLEN(object));
+    return FD_STRLEN(object);}
+  else if (FD_PACKETP(object)) {
+    fd_dtswrite_bytes(ds,FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
+    return FD_PACKET_LENGTH(object);}
+  else {
+    int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
+    if (bytes<0) return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(bytes);}
+}
+
 static fdtype packet2dtype(fdtype packet)
 {
   fdtype object;
@@ -1378,6 +1395,11 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
 			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
+			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,
