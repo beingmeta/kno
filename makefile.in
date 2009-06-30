@@ -99,7 +99,8 @@ TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
 CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
-	     src/cmodules/dbus.o src/cmodules/mysql.o
+	     src/cmodules/dbus.o src/cmodules/mysql.o \
+	     src/cmodules/qrcode.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdserv@suffix@ exe/fdcgiexec@suffix@ \
@@ -148,6 +149,7 @@ FDB_SOURCES=\
 	include/fdb/tagger.h                                           \
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
+	src/cmodules/qrcode.c                                        \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
 	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdbserver.c
@@ -433,6 +435,13 @@ lib/framerd/sqlite.@VERSION@.dylib: src/cmodules/sqlite.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/sqlite.o
 lib/framerd/sqlite.dylib: lib/framerd/sqlite.@VERSION@.dylib
 
+lib/framerd/qrcode.so.@VERSION@: src/cmodules/qrcode.o
+	$(MKSO) -o $@ $^
+lib/framerd/qrcode.so: lib/framerd/qrcode.so.@VERSION@
+lib/framerd/qrcode.@VERSION@.dylib: src/cmodules/qrcode.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/qrcode.o
+lib/framerd/qrcode.dylib: lib/framerd/qrcode.@VERSION@.dylib
+
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/fdb.mo: etc/intl/%.gmo
@@ -568,6 +577,8 @@ install-crypto: $(LIBINSTALLDIR)/framerd/crypto.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/crypto.@vshared_suffix@
 install-mysql: $(LIBINSTALLDIR)/framerd/mysql.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/mysql.@vshared_suffix@
+install-qrcode: $(LIBINSTALLDIR)/framerd/qrcode.@shared_suffix@ \
+	       $(LIBINSTALLDIR)/framerd/qrcode.@vshared_suffix@
 
 # Setup targets
 
