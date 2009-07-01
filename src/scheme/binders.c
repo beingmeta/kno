@@ -631,6 +631,12 @@ static fdtype sambda_handler(fdtype expr,fd_lispenv env)
   return make_sproc(NULL,arglist,body,env,1,1);
 }
 
+static fdtype thunk_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype body=fd_get_body(expr,1);
+  return make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0);
+}
+
 /* DEFINE */
 
 static fdtype define_handler(fdtype expr,fd_lispenv env)
@@ -1014,6 +1020,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);
   fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_handler);
   fd_defspecial(fd_scheme_module,"SAMBDA",sambda_handler);
+  fd_defspecial(fd_scheme_module,"THUNK",thunk_handler);
   fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
   fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_handler);
   fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_handler);
