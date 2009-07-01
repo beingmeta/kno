@@ -324,7 +324,7 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
       fd_xmleval(out,x,env);
     else fd_xmloid(out,x);
   else if ((FD_SLOTMAPP(x)) &&
-	   (fd_oid_test(x,xmltag_symbol,FD_VOID)))
+	   (fd_slotmap_test((fd_slotmap)x,xmltag_symbol,FD_VOID)))
     fd_xmleval(out,x,env);
   else {
     U8_OUTPUT _out; u8_byte buf[128];
