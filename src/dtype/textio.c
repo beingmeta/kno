@@ -1032,6 +1032,7 @@ fdtype fd_parser(u8_input in)
       int c=u8_getc(in);
       if (c=='(') return parse_record(in);
       else return FD_PARSE_ERROR;}
+    case '\\': return parse_character(in);
     case '#':
       return fd_make_list(2,histref_symbol,fd_parser(in));
     case '@':
@@ -1040,8 +1041,13 @@ fdtype fd_parser(u8_input in)
       return fd_make_list(2,sharpdollar_symbol,fd_parser(in));
     case '&':
       return fd_make_list(2,sharpamp_symbol,fd_parser(in));
-    case '\\': return parse_character(in);
-    default: u8_ungetc(in,ch);}}
+    default:
+      if (u8_ispunct(ch)) {
+	u8_byte buf[16]; struct U8_OUTPUT out;
+	U8_INIT_OUTPUT_X(&out,16,buf,0);
+	u8_putc(&out,'#'); u8_putc(&out,ch);
+	return fd_make_list(2,fd_intern(buf),fd_parser(in));}
+      else u8_ungetc(in,ch);}}
   default: { /* Parse an atom */
     struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
     U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
