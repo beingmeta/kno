@@ -107,7 +107,9 @@
        (not (cgitest 'fb_sig_in_iframe 0))))
 
 (define (fb/embedded?)
-  (or (fb/iniframe?) (fb/incanvas?)))
+  (or (cgitest 'fb/embedded)
+      (fb/iniframe?)
+      (fb/incanvas?)))
 
 (define (fb/added?)
   (and (cgitest 'fb_sig_added)
