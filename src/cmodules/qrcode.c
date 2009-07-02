@@ -24,13 +24,14 @@ static char versionid[] =
 #include <libu8/u8printf.h>
 #include <libu8/u8digestfns.h>
 
+static fdtype dotsize_symbol, margin_symbol, version_symbol, robustness_symbol;
+static fdtype l_sym, m_sym, q_sym, h_sym;
+
 #if FD_THREADS_ENABLED
 static u8_mutex qrencode_lock;
 #endif
 
 FD_EXPORT int fd_init_qrcode(void) FD_LIBINIT_FN;
-
-static fdtype l_sym, m_sym, q_sym, h_sym;
 
 static int geteclevel(fdtype level_arg)
 {
@@ -47,7 +48,7 @@ static int geteclevel(fdtype level_arg)
     else if (FD_EQ(level_arg,q_sym)) return QR_ECLEVEL_Q;
     else if (FD_EQ(level_arg,h_sym)) return QR_ECLEVEL_H;
     else return -1;
-  else return -1;
+  else return QR_ECLEVEL_Q;
 }
 
 static void packet_write_data(png_structp pngptr,png_bytep data,png_size_t len)
@@ -62,35 +63,37 @@ static void packet_flush_data(png_structp pngptr)
 {
 }
 
-static void errfn(char *string)
-{
-  u8_log(LOG_ERR,"LIBPNG","%s",string);
-}
-static void warnfn(char *string)
-{
-  u8_log(LOG_WARN,"LIBPNG","%s",string);
-}
+int default_dotsize=3;
+int default_margin=3;
 
-int dotsize=3;
-int imgmargin=3;
-
-static fdtype write_png_packet(QRcode *qrcode)
+static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
 {
   png_infop info_ptr;
   png_structp png_ptr=png_create_write_struct
     (PNG_LIBPNG_VER_STRING,(png_voidp)NULL,NULL,NULL);
+  fdtype dotsize_arg=fd_getopt(opts,dotsize_symbol,FD_INT2DTYPE(default_dotsize));
+  fdtype margin_arg=fd_getopt(opts,margin_symbol,FD_INT2DTYPE(default_margin));
+  int dotsize, margin;
+  /* Check for errors */
   if (png_ptr==NULL)
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);
-  info_ptr = png_create_info_struct(png_ptr);
+  else info_ptr = png_create_info_struct(png_ptr);
   if (info_ptr==NULL)
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);
-  else if (setjmp(png_jmpbuf(png_ptr))) {
+  if ((FD_FIXNUMP(dotsize_arg)) && ((FD_FIXNUMP(dotsize_arg))>0))
+    dotsize=FD_FIX2INT(dotsize_arg);
+  else return fd_type_error("positive fixnum","write_png_packet",dotsize_arg);
+  if ((FD_FIXNUMP(margin_arg)) && ((FD_FIXNUMP(margin_arg))>=0))
+    margin=FD_FIX2INT(margin_arg);
+  else return fd_type_error("positive fixnum","write_png_packet",margin_arg);
+  /* Start building the PNG, using setjmp */
+  if (setjmp(png_jmpbuf(png_ptr))) {
     png_destroy_write_struct(&png_ptr, &info_ptr);
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);}
   else {
     struct FD_BYTE_OUTPUT buf;
     int qrwidth=qrcode->width, qrheight=qrwidth;
-    int fullwidth=(qrwidth+(imgmargin*2))*dotsize;
+    int fullwidth=(qrwidth+(margin*2))*dotsize;
     int rowlen=(fullwidth+7)/8;
     unsigned char *row=u8_malloc(rowlen);
     FD_INIT_BYTE_OUTPUT(&buf,2048);
@@ -105,17 +108,17 @@ static fdtype write_png_packet(QRcode *qrcode)
 
     /* Write top margin */
     memset(row,0xFF,rowlen);
-    {int i=0; while (i<(imgmargin*dotsize)) {
+    {int i=0; while (i<(margin*dotsize)) {
 	png_write_row(png_ptr,row); i++;}}
 
     /* Write the content */
     {int vscan=0;
       unsigned char *read=qrcode->data, *readlim=read+qrwidth*qrwidth;
-      char *write=row+((imgmargin*dotsize)/8); /* margin offset */
-      int bitoff=7-((imgmargin*dotsize)%8);
+      char *write=row+((margin*dotsize)/8); /* margin offset */
+      int bitoff=7-((margin*dotsize)%8);
       while (vscan<qrheight) {
-	char *write=row+((imgmargin*dotsize)/8); /* margin offset */
-	int bitoff=7-((imgmargin*dotsize)%8), dotscan=0;
+	char *write=row+((margin*dotsize)/8); /* margin offset */
+	int bitoff=7-((margin*dotsize)%8), dotscan=0;
 	int hscan=0;
 	memset(row,0xFF,(fullwidth+7)/8);
 	while (hscan<qrwidth) {
@@ -131,7 +134,7 @@ static fdtype write_png_packet(QRcode *qrcode)
 	
     /* Write bottom margin */
     memset(row,0xFF,rowlen);
-    {int i=0; while (i<(imgmargin*dotsize)) {
+    {int i=0; while (i<(margin*dotsize)) {
 	png_write_row(png_ptr,row); i++;}}
     
     png_write_end(png_ptr, NULL);
@@ -142,17 +145,19 @@ static fdtype write_png_packet(QRcode *qrcode)
     return fd_init_packet(NULL,buf.ptr-buf.start,buf.start);}
 }
 
-static fdtype qrencode_prim(fdtype string,fdtype level_arg,fdtype version)
+static fdtype qrencode_prim(fdtype string,fdtype opts)
 {
+  fdtype level_arg=fd_getopt(opts,robustness_symbol,FD_FALSE);
+  fdtype version_arg=fd_getopt(opts,version_symbol,FD_INT2DTYPE(0));
   QRecLevel eclevel=geteclevel(level_arg);
   {
     fdtype result;
     QRcode *qrcode=
       ((fd_lock_mutex(&qrencode_lock)),
        QRcode_encodeString8bit
-       (FD_STRDATA(string),FD_FIX2INT(version),eclevel));
+       (FD_STRDATA(string),FD_FIX2INT(version_arg),eclevel));
     u8_unlock_mutex(&qrencode_lock);
-    result=write_png_packet(qrcode);
+    result=write_png_packet(qrcode,opts);
     QRcode_free(qrcode);
     return result;
   }
@@ -171,13 +176,15 @@ FD_EXPORT int fd_init_qrcode()
   m_sym=fd_intern("M");
   q_sym=fd_intern("Q");
   h_sym=fd_intern("H");
+  dotsize_symbol=fd_intern("DOTSIZE");
+  margin_symbol=fd_intern("MARGIN");
+  version_symbol=fd_intern("VERSION");
+  robustness_symbol=fd_intern("ROBUSTNESS");
 
 
   fd_defn(module,
-	  fd_make_cprim3x("QRENCODE",qrencode_prim,1,
-			  fd_string_type,FD_VOID,
-			  -1,FD_INT2DTYPE(0),
-			  fd_fixnum_type,FD_INT2DTYPE(0)));
+	  fd_make_cprim2x("QRENCODE",qrencode_prim,1,
+			  fd_string_type,FD_VOID,-1,FD_VOID));
   qrencode_init=1;
 
   fd_finish_module(module);
