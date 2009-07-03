@@ -138,18 +138,21 @@ static fdtype open_mysql
   db=mysql_real_connect
     (dbp->db,host,username,passwd,dbstring,portno,sockname,flags);
   u8_unlock_mutex(&mysql_connect_lock);
+
   if (db==NULL) {
     const char *errmsg=mysql_error(&(dbp->_db));
     mysql_close(dbp->db);
     u8_free(dbp);
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     return FD_ERROR_VALUE;} 
+
   if (mysql_set_character_set(dbp->db,"utf8")) {
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     mysql_close(dbp->db);
     u8_free(dbp);
     return FD_ERROR_VALUE;}
+
   if (mysql_options(dbp->db,MYSQL_OPT_RECONNECT,&reconnect)) {
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
