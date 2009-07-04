@@ -724,12 +724,14 @@ static fdtype microtime_prim()
 
 /* Counting seconds */
 
-static fdtype secs2string(fdtype secs,fdtype inexact_arg)
+static fdtype secs2string(fdtype secs,fdtype prec_arg)
 {
   struct U8_OUTPUT out;
-  int inexact=(!(FD_FALSEP(inexact_arg)));
+  int precision=((FD_FIXNUMP(prec_arg)) ? (FD_FIX2INT(prec_arg)) :
+		 (FD_FALSEP(prec_arg)) ? (-1) : (0));
+  int elts=0;
   double seconds;
-  int weeks, days, hours, minutes, need_comma=0;
+  int years, months, weeks, days, hours, minutes, need_comma=0;
   if (FD_FIXNUMP(secs)) 
     seconds=(double)FD_FIX2INT(secs);
   else if (FD_FLONUMP(secs))
@@ -738,68 +740,93 @@ static fdtype secs2string(fdtype secs,fdtype inexact_arg)
   U8_INIT_OUTPUT(&out,64);
   if (seconds<0) {
     u8_printf(&out,"negative "); seconds=-seconds;}
-  weeks=(int)floor(seconds/(3600*24*7));
-  seconds=seconds-weeks*(3600*24*7);
-  days=(int)floor(seconds/(3600*24));
+  years=(int)floor(seconds/(365*24*3600));
+  seconds=seconds-years*(365*24*3600);
+  months=(int)floor(seconds/(30*24*3600));
+  seconds=seconds-months*(30*24*3600);
+  weeks=(int)floor(seconds/(7*24*3600));
+  seconds=seconds-weeks*(7*24*3600);
+  days=(int)floor(seconds/(24*3600));
   seconds=seconds-days*(3600*24);
   hours=(int)floor(seconds/(3600));
   seconds=seconds-hours*(3600);
   minutes=floor(seconds/60);
   seconds=seconds-minutes*60;
 
-  if (weeks>1) {
-    u8_printf(&out,_("%d weeks"),weeks);
-    need_comma=1;}
-  else if (weeks==1) {
-    u8_printf(&out,_("one week"));
-    need_comma=1;}
+  if ((precision>0) && (elts>=precision)) {}
+  else if (years>0) {
+    if (elts>0) u8_puts(&out,", ");
+    if (years>1) {
+      u8_printf(&out,_("%d years"),years);}
+    else if (years==1) {
+      u8_printf(&out,_("one year"));}
+    else {}
+    elts++;}
 
-  if (days>1) {
-    if (need_comma) u8_puts(&out,", ");
-    u8_printf(&out,_("%d days"),days);
-    need_comma=1;}
-  else if (days==1) {
-    if (need_comma) u8_puts(&out,", ");
-    u8_printf(&out,_("one day"));
-    need_comma=1;}
+  if ((precision>0) && (elts>=precision)) {}
+  else if (months>0) {
+    if (elts>0) u8_puts(&out,", ");
+    if (months>1) {
+      u8_printf(&out,_("%d months"),months);}
+    else if (months==1) {
+      u8_printf(&out,_("one month"));}
+    else {}
+    elts++;}
 
-  if ((inexact) && (weeks>0))
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  if ((precision>0) && (elts>=precision)) {}
+  else if (weeks>0) {
+    if (elts>0) u8_puts(&out,", ");
+    if (weeks>1) 
+      u8_printf(&out,_("%d weeks"),weeks);
+    else if (weeks==1) 
+      u8_printf(&out,_("one week"));
+    else {}
+    elts++;}
 
-  if (hours>1) {
-    if (need_comma) u8_puts(&out,", ");
-    u8_printf(&out,_("%d hours"),hours);
-    need_comma=1;}
-  else if (hours==1) {
-    if (need_comma) u8_puts(&out,", ");
-    u8_printf(&out,_("one hour"));
-    need_comma=1;}
+  if ((precision>0) && (elts>=precision)) {}
+  else if (days>0) {
+    if (elts>0) u8_puts(&out,", ");
+    if (days>1) 
+      u8_printf(&out,_("%d days"),days);
+    else if (days==1) 
+      u8_printf(&out,_("one day"));
+    else {}
+    elts++;}
 
-  if ((inexact) && (days>0))
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  if ((precision>0) && (elts>=precision)) {}
+  else if (hours>0) {
+    if (elts>0) u8_puts(&out,", ");
+    if (hours>1) 
+      u8_printf(&out,_("%d hours"),hours);
+    else if (hours==1) 
+      u8_printf(&out,_("one hour"));
+    else {}
+    elts++;}
 
-  if (minutes>1) {
-    if (need_comma) u8_puts(&out,", ");
-    u8_printf(&out,_("%d minutes"),minutes);
-    need_comma=1;}
-  else if (minutes==1) {
-    if (need_comma) u8_puts(&out,", ");
-    u8_printf(&out,_("one minute"));
-    need_comma=1;}
+  if ((precision>0) && (elts>=precision)) {}
+  else if (minutes>0) {
+    if (elts>0) u8_puts(&out,", ");
+    if (minutes>1) 
+      u8_printf(&out,_("%d minutes"),minutes);
+    else if (minutes==1) 
+      u8_printf(&out,_("one minute"));
+    else {}
+    elts++;}
 
-  if ((inexact) && (hours>0))
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-
-  if (seconds==0) {}
-  else if ((inexact) && (FD_FLONUMP(secs)) && (seconds>1)) {
-    if (need_comma) u8_puts(&out,", ");
+  if ((precision>0) && (elts>=precision)) {}
+  else if (seconds==0) {}
+  else if ((precision==0) && (elts>0) &&
+	   (FD_FLONUMP(secs)) && (seconds>1)) {
+    /* This is the case where we round the seconds */
+    if (elts>0) u8_puts(&out,", ");
     u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
   else if (FD_FLONUMP(secs)) {
-    if (need_comma) u8_puts(&out,", ");
+    if (elts>0) u8_puts(&out,", ");
     u8_printf(&out,_("%f seconds"),seconds);}
   else {
-    if (need_comma) u8_puts(&out,", ");
+    if (elts>0) u8_puts(&out,", ");
     u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
+
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
 }
 
