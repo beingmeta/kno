@@ -2258,6 +2258,84 @@ static u8_byteoff isdigit_search
   return -1;
 }
 
+static fdtype isxdigit_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isxdigit(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype isxdigit_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isxdigit(ch)) {
+    while (u8_isxdigit(ch)) {
+      off=forward_char(string,off);
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+      ch=string_ref(string+off);}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
+  else return FD_EMPTY_CHOICE;
+}
+static u8_byteoff isxdigit_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (u8_isxdigit(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
+static fdtype isodigit_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isodigit(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype isodigit_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isodigit(ch)) {
+    while (u8_isodigit(ch)) {
+      off=forward_char(string,off);
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+      ch=string_ref(string+off);}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
+  else return FD_EMPTY_CHOICE;
+}
+static u8_byteoff isodigit_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (u8_isodigit(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
 static fdtype isalpha_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -3235,6 +3313,10 @@ void fd_init_match_c()
   fd_add_match_operator("ISALPHA+",isalpha_plus_match,isalpha_search,NULL);
   fd_add_match_operator("ISDIGIT",isdigit_match,isdigit_search,NULL);
   fd_add_match_operator("ISDIGIT+",isdigit_plus_match,isdigit_search,NULL);
+  fd_add_match_operator("ISXDIGIT",isxdigit_match,isxdigit_search,NULL);
+  fd_add_match_operator("ISXDIGIT+",isxdigit_plus_match,isxdigit_search,NULL);
+  fd_add_match_operator("ISODIGIT",isodigit_match,isodigit_search,NULL);
+  fd_add_match_operator("ISDIGIT+",isodigit_plus_match,isodigit_search,NULL);
   fd_add_match_operator("ISPUNCT",ispunct_match,ispunct_search,NULL);
   fd_add_match_operator("ISPUNCT+",ispunct_plus_match,ispunct_search,NULL);
   fd_add_match_operator("ISCNTRL",iscntrl_match,iscntrl_search,NULL);
