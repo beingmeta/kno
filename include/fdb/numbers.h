@@ -35,7 +35,9 @@ FD_EXPORT fd_bigint fd_ulong_long_to_bigint(unsigned long long x);
 FD_EXPORT long fd_bigint_to_long(fd_bigint);
 FD_EXPORT unsigned long fd_bigint_to_ulong(fd_bigint);
 FD_EXPORT long long fd_bigint_to_long_long(fd_bigint);
+FD_EXPORT long long fd_bigint2int64(fd_bigint);
 FD_EXPORT unsigned long long fd_bigint_to_ulong_long(fd_bigint);
+FD_EXPORT unsigned long long fd_bigint2uint64(fd_bigint);
 FD_EXPORT int fd_bigint_negativep(fd_bigint);
 
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);

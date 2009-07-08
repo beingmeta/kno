@@ -19,6 +19,7 @@ static char versionid[] =
 #include "fdb/methods.h"
 #include "fdb/sequences.h"
 #include "fdb/dbprims.h"
+#include "fdb/numbers.h"
 
 #include "libu8/u8printf.h"
 
@@ -1659,32 +1660,59 @@ static fdtype oid_ptrdata_prim(fdtype oid)
 
 static fdtype make_oid_prim(fdtype high,fdtype low)
 {
-  unsigned int hi, lo; 
+  if (FD_VOIDP(low)) {
+    FD_OID oid;
+    unsigned long long addr;
+    if (FD_FIXNUMP(high))
+      addr=FD_FIX2INT(high);
+    else if (FD_BIGINTP(high))
+      addr=fd_bigint2uint64((fd_bigint)high);
+    else return fd_type_error("integer","make_oid_prim",high);
 #if FD_STRUCT_OIDS
-  FD_OID addr; memset(&addr,0,sizeof(FD_OID));
+    memset(&oid,0,sizeof(FD_OID));
+    oid.hi=(addr>>32)&0xFFFFFFFF;
+    oid.log=(addr)&0xFFFFFFFF;
 #else
-  FD_OID addr=0;
+    oid=addr;
 #endif
-  FD_SET_OID_HI(addr,0); FD_SET_OID_LO(addr,0);
-  if (FD_FIXNUMP(high))
-    if ((FD_FIX2INT(high))<0)
-      return fd_type_error("uint32","make_oid_prim",high);
-    else hi=FD_FIX2INT(high);
-  else if (FD_BIGINTP(high)) {
-    hi=fd_bigint2uint((struct FD_BIGINT *)high);
-    if (hi==0) return fd_type_error("uint32","make_oid_prim",high);}
-  else return fd_type_error("uint32","make_oid_prim",high);
-  if (FD_FIXNUMP(low))
-    if ((FD_FIX2INT(low))<0)
-      return fd_type_error("uint32","make_oid_prim",low);
-    else lo=FD_FIX2INT(low);
-  else if (FD_BIGINTP(low)) {
-    lo=fd_bigint2uint((struct FD_BIGINT *)low);
-    if (lo==0) return fd_type_error("uint32","make_oid_prim",low);}
-  else return fd_type_error("uint32","make_oid_prim",low);
-  FD_SET_OID_HI(addr,hi);
-  FD_SET_OID_LO(addr,lo);
-  return fd_make_oid(addr);
+    return fd_make_oid(addr);}
+  else if (FD_OIDP(high)) {
+    FD_OID base=FD_OID_ADDR(high), oid; unsigned int off;
+    if (FD_FIXNUMP(low))
+      off=FD_FIX2INT(low);
+    else if (FD_BIGINTP(low)) {
+      if ((off=fd_bigint2uint((struct FD_BIGINT *)low))==0)
+	return fd_type_error("uint32","make_oid_prim",low);}
+    else return fd_type_error("uint32","make_oid_prim",low);
+    oid=FD_OID_PLUS(base,off);
+    return fd_make_oid(oid);}
+  else {
+    unsigned int hi, lo; 
+#if FD_STRUCT_OIDS
+    FD_OID addr; memset(&addr,0,sizeof(FD_OID));
+#else
+    FD_OID addr=0;
+#endif
+    FD_SET_OID_HI(addr,0); FD_SET_OID_LO(addr,0);
+    if (FD_FIXNUMP(high))
+      if ((FD_FIX2INT(high))<0)
+	return fd_type_error("uint32","make_oid_prim",high);
+      else hi=FD_FIX2INT(high);
+    else if (FD_BIGINTP(high)) {
+      hi=fd_bigint2uint((struct FD_BIGINT *)high);
+      if (hi==0) return fd_type_error("uint32","make_oid_prim",high);}
+    else return fd_type_error("uint32","make_oid_prim",high);
+    if (FD_FIXNUMP(low))
+      if ((FD_FIX2INT(low))<0)
+	return fd_type_error("uint32","make_oid_prim",low);
+      else lo=FD_FIX2INT(low);
+    else if (FD_BIGINTP(low)) {
+      lo=fd_bigint2uint((struct FD_BIGINT *)low);
+      if (lo==0) return fd_type_error("uint32","make_oid_prim",low);}
+    else return fd_type_error("uint32","make_oid_prim",low);
+    FD_SET_OID_HI(addr,hi);
+    FD_SET_OID_LO(addr,lo);
+    return fd_make_oid(addr);}
 }
 
 static fdtype oid2string_prim(fdtype oid)
@@ -1692,6 +1720,19 @@ static fdtype oid2string_prim(fdtype oid)
   FD_OID addr=FD_OID_ADDR(oid);
   u8_string s=u8_mkstring("@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
   return fd_init_string(NULL,-1,s);
+}
+
+static fdtype oidaddr_prim(fdtype oid)
+{
+  FD_OID oidaddr=FD_OID_ADDR(oid);
+  if (FD_OID_HI(oidaddr)) {
+#if FD_STRUCT_OIDS
+    unsigned long long addr=((oid.hi)<<32)|(oid.lo);
+#else
+    unsigned long long addr=oidaddr;
+#endif
+    return FD_INT2DTYPE(FD_OID_LO(addr));}
+  else return FD_INT2DTYPE(FD_OID_LO(oid));
 }
 
 /* sumframe function */
@@ -2127,9 +2168,12 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim2x("OID-OFFSET",oid_offset_prim,1,
 			   fd_oid_type,FD_VOID,
 			   -1,FD_VOID));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("MAKE-OID",make_oid_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("MAKE-OID",make_oid_prim,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("OID->STRING",oid2string_prim,1,
+			   fd_oid_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("OID-ADDR",oidaddr_prim,1,
 			   fd_oid_type,FD_VOID));
 #ifdef FD_OID_BASE_ID
   fd_idefn(fd_scheme_module,
