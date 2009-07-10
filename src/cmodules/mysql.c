@@ -67,7 +67,7 @@ static int reinit_mysqlproc(FD_MYSQL *db,struct FD_MYSQL_PROC *dbproc);
 
 static fd_exception MySQL_Error=_("MySQL Error");
 static fd_exception MySQL_NoConvert=_("Can't convert value to SQL");
-static fdtype merge_symbol;
+static fdtype merge_symbol, noempty_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
@@ -350,6 +350,7 @@ static fdtype get_stmt_values
 {
   fdtype results=FD_EMPTY_CHOICE;
   fdtype mergefn=fd_getopt(colinfo,merge_symbol,FD_VOID);
+  int noempty=fd_testopt(colinfo,noempty_symbol,FD_VOID);
   fdtype _colmaps[16], *colmaps=
     ((n_cols>16) ? (u8_alloc_n(n_cols,fdtype)) : (_colmaps));
   int i=0, retval=mysql_stmt_fetch(stmt);
@@ -363,7 +364,8 @@ static fdtype get_stmt_values
       fdtype value=outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
       if (FD_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
-	kv[i].value=value;
+	if (noempty) continue;
+	else kv[i].value=value;
       else if (FD_VOIDP(colmaps[i]))
 	kv[i].value=value;
       else if (FD_APPLICABLEP(colmaps[i])) {
@@ -378,7 +380,8 @@ static fdtype get_stmt_values
 	  unsigned int offset=fd_getint(value);
 	  if (offset<0) kv[i].value=value;
 	  else {
-	    kv[i].value=fd_make_oid(base+offset);
+	    FD_OID baseplus=FD_OID_PLUS(base,offset);
+	    kv[i].value=fd_make_oid(baseplus);
 	    fd_decref(value);}}
       else if (colmaps[i]==FD_TRUE)
 	if (FD_STRINGP(value)) {
@@ -955,6 +958,7 @@ FD_EXPORT int fd_init_mysql()
   mysql_initialized=1;
 
   merge_symbol=fd_intern("%MERGE");
+  noempty_symbol=fd_intern("%NOEMPTY");
 
   fd_finish_module(module);
 
