@@ -755,12 +755,20 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       inbound[i].buffer_length=sizeof(int);
       inbound[i].length=NULL;
       bindbuf[i].lval=fd_getint(arg);}
+    else if (FD_OIDP(arg)) {
+      FD_OID addr=FD_OID_ADDR(arg);
+      inbound[i].is_unsigned=1;
+      inbound[i].buffer_type=MYSQL_TYPE_LONGLONG;
+      inbound[i].buffer=&(bindbuf[i].llval);
+      inbound[i].buffer_length=sizeof(unsigned long long);
+      inbound[i].length=NULL;
+      bindbuf[i].llval=addr;}
     else if (FD_BIGINTP(arg)) {
       long long lv=fd_bigint_to_long_long((fd_bigint)arg);
       inbound[i].is_unsigned=0;
       inbound[i].buffer_type=MYSQL_TYPE_LONGLONG;
       inbound[i].buffer=&(bindbuf[i].llval);
-      inbound[i].buffer_length=sizeof(int);
+      inbound[i].buffer_length=sizeof(long long);
       inbound[i].length=NULL;
       bindbuf[i].llval=lv;}
     else if (FD_FLONUMP(arg)) {

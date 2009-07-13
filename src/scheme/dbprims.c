@@ -1726,6 +1726,7 @@ static fdtype oid2string_prim(fdtype oid,fdtype name)
 	   (FD_PAIRP(name)) || (FD_VECTORP(name)))
     u8_printf(&out,"@%x/%x%q",FD_OID_HI(addr),FD_OID_LO(addr),name);
   else u8_printf(&out,"@%x/%x{%q}",FD_OID_HI(addr),FD_OID_LO(addr),name);
+  
   return fd_stream2string(&out);
 }
 
