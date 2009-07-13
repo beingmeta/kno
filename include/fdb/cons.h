@@ -232,6 +232,10 @@ FD_EXPORT fdtype fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string);
 FD_EXPORT fdtype fdtype_string(u8_string string);
 
+#define fd_stream2string(stream) \
+  fd_init_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),\
+                 ((stream)->u8_outbuf))
+
 #define FD_PACKETP(x) (FD_PTR_TYPE(x) == fd_packet_type)
 #define FD_PACKET_LENGTH(x) \
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length)

@@ -1715,11 +1715,17 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
     return fd_make_oid(addr);}
 }
 
-static fdtype oid2string_prim(fdtype oid)
+static fdtype oid2string_prim(fdtype oid,fdtype name)
 {
   FD_OID addr=FD_OID_ADDR(oid);
-  u8_string s=u8_mkstring("@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
-  return fd_init_string(NULL,-1,s);
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
+
+  if (FD_VOIDP(name)) {}
+  else if ((FD_STRINGP(name)) || (FD_CHOICEP(name)) ||
+	   (FD_PAIRP(name)) || (FD_VECTORP(name)))
+    u8_printf(&out,"@%x/%x%q",FD_OID_HI(addr),FD_OID_LO(addr),name);
+  else u8_printf(&out,"@%x/%x{%q}",FD_OID_HI(addr),FD_OID_LO(addr),name);
+  return fd_stream2string(&out);
 }
 
 static fdtype oidaddr_prim(fdtype oid)
@@ -2170,8 +2176,8 @@ FD_EXPORT void fd_init_dbfns_c()
 			   -1,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim2("MAKE-OID",make_oid_prim,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("OID->STRING",oid2string_prim,1,
-			   fd_oid_type,FD_VOID));
+	   fd_make_cprim2x("OID->STRING",oid2string_prim,1,
+			   fd_oid_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("OID-ADDR",oidaddr_prim,1,
 			   fd_oid_type,FD_VOID));
