@@ -3316,7 +3316,7 @@ void fd_init_match_c()
   fd_add_match_operator("ISXDIGIT",isxdigit_match,isxdigit_search,NULL);
   fd_add_match_operator("ISXDIGIT+",isxdigit_plus_match,isxdigit_search,NULL);
   fd_add_match_operator("ISODIGIT",isodigit_match,isodigit_search,NULL);
-  fd_add_match_operator("ISDIGIT+",isodigit_plus_match,isodigit_search,NULL);
+  fd_add_match_operator("ISODIGIT+",isodigit_plus_match,isodigit_search,NULL);
   fd_add_match_operator("ISPUNCT",ispunct_match,ispunct_search,NULL);
   fd_add_match_operator("ISPUNCT+",ispunct_plus_match,ispunct_search,NULL);
   fd_add_match_operator("ISCNTRL",iscntrl_match,iscntrl_search,NULL);
