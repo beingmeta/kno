@@ -466,5 +466,4 @@ FD_EXPORT fdtype fd_make_hashset(void);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 FD_EXPORT fdtype fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
 
-
 #endif /* FDB_TABLES_H */

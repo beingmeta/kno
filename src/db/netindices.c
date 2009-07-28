@@ -146,7 +146,7 @@ static int netindex_commit(fd_index ix)
   fd_write_lock_struct(&(nix->edits));
   if (nix->edits.n_keys) {
     int n_edits;
-    struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->adds),&n_edits,0);
+    struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->edits),&n_edits,0);
     struct FD_KEYVAL *scan=kvals, *limit=kvals+n_edits;
     while (scan<limit) {
       fdtype key=scan->key, result=FD_VOID;

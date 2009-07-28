@@ -138,6 +138,18 @@ typedef struct FD_MEM_INDEX *fd_mem_index;
 
 FD_EXPORT fd_index fd_make_mem_index(void);
 
+/* EXTernal indices */
+
+typedef struct FD_EXTINDEX {
+  FD_INDEX_FIELDS;
+  fdtype fetchfn, commitfn, state;} FD_EXTINDEX;
+typedef struct FD_EXTINDEX *fd_extindex;
+
+FD_EXPORT fd_index fd_make_extindex
+  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state);
+
+FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
+
 /* Compound indices */
 
 typedef struct FD_COMPOUND_INDEX {

@@ -423,6 +423,25 @@ static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
   else return FD_VOID;
 }
 
+/* External indices */
+
+static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
+			    fdtype state)
+{
+  fd_index ix=fd_make_extindex(FD_STRDATA(label),fetchfn,commitfn,state);
+  return fd_index2lisp(ix);
+}
+
+static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
+{
+  fd_index ix=fd_lisp2index(index);
+  if (ix->handler==&fd_extindex_handler)
+    if (fd_hashtable_add(&(ix->cache),key,values)<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;
+  else return fd_type_error("extindex","extindex_setcache",index);
+}
+
 /* Adding adjuncts */
 
 static fdtype adjunct_symbol;
@@ -2206,6 +2225,15 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
 			   fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
+			   -1,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim4x("MAKE-EXTINDEX",make_extindex,2,
+			   fd_string_type,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
+			   fd_index_type,FD_VOID,-1,FD_VOID,
 			   -1,FD_VOID));
 
 

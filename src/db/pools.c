@@ -1489,9 +1489,73 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
     fdtype args[2]; args[0]=oid; args[1]=state;
     value=fd_apply(xp->fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
-  else if (FD_EMPTY_CHOICEP(value))
+  else if ((FD_EMPTY_CHOICEP(value))||(FD_VOIDP(value)))
     return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->cid,oid);
   else return value;
+}
+
+/* This assumes that the FETCH function handles a vector intelligently,
+   and just calls it on the vector of OIDs and extracts the data from
+   the returned vector.  */
+static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
+{
+  struct FD_EXTPOOL *xp=(fd_extpool)p;
+  struct FD_VECTOR vstruct; fdtype vecarg;
+  fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
+  FD_INIT_STACK_CONS(&vstruct,fd_vector_type);
+  vstruct.length=n; vstruct.data=oids;
+  vecarg=FDTYPE_CONS(&vstruct);
+  if (FD_VOIDP(state))
+    value=fd_apply(xp->fetchfn,1,&vecarg);
+  else {
+    fdtype args[2]; args[0]=vecarg; args[1]=state;
+    value=fd_apply(xp->fetchfn,2,args);}
+  if (FD_ABORTP(value)) return NULL;
+  else if (FD_VECTORP(value)) {
+    struct FD_VECTOR *vecval=(fd_vector)value;
+    fdtype *values=vecval->data;
+    vecval->length=0; vecval->data=NULL;
+    fd_decref(value);
+    return values;}
+  else {
+    fdtype *values=u8_alloc_n(n,fdtype);
+    if (FD_VOIDP(state)) {
+      int i=0; while (i<n) {
+	fdtype oid=oids[i];
+	fdtype value=fd_apply(fetchfn,1,&oid);
+	if (FD_ABORTP(value)) {
+	  int j=0; while (j<i) {fd_decref(values[j]); j++;}
+	  u8_free(values);
+	  return NULL;}
+	else values[i++]=value;}
+      return values;}
+    else {
+      fdtype args[2]; int i=0; args[1]=state;
+      i=0; while (i<n) {
+	fdtype oid=oids[i], value;
+	args[0]=oid; value=fd_apply(fetchfn,2,args);
+	if (FD_ABORTP(value)) {
+	  int j=0; while (j<i) {fd_decref(values[j]); j++;}
+	  u8_free(values);
+	  return NULL;}
+	else values[i++]=value;}
+      return values;}}
+}
+
+static int extpool_lock(fd_pool p,fdtype oids)
+{
+  struct FD_EXTPOOL *xp=(fd_extpool)p;
+  FD_DO_CHOICES(oid,oids) {
+    fd_hashtable_store(&(p->locks),oids,FD_LOCKHOLDER);}
+  return 0;
+}
+
+static int extpool_unlock(fd_pool p,fdtype oids)
+{
+  struct FD_EXTPOOL *xp=(fd_extpool)p;
+  FD_DO_CHOICES(oid,oids) {
+    fd_hashtable_store(&(p->locks),oids,FD_VOID);}
+  return 0;
 }
 
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value)
@@ -1510,10 +1574,10 @@ static struct FD_POOL_HANDLER extpool_handler={
   NULL, /* setbuf */
   NULL, /* alloc */
   extpool_fetch, /* fetch */
-  NULL, /* fetchn */
+  extpool_fetchn, /* fetchn */
   NULL, /* getload */
-  NULL, /* lock */
-  NULL, /* release */
+  extpool_lock, /* lock */
+  extpool_unlock, /* release */
   NULL, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */

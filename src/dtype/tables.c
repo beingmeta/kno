@@ -2002,7 +2002,8 @@ FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
 	while (kvscan<kvlimit) {
 	  rscan->key=fd_incref(kvscan->key);
 	  rscan->value=fd_incref(kvscan->value);
-	  kvscan++; scan++;}}
+	  rscan++; kvscan++;}
+	scan++;}
       else scan++;
     *sizep=ht->n_keys;}
   else {*sizep=0; results=NULL;}
