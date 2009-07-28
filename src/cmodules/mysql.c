@@ -287,10 +287,10 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
   switch (outval->buffer_type) {
   case MYSQL_TYPE_LONG:
     if (outval->is_unsigned) {
-      unsigned long intval=*((unsigned long *)(outval->buffer));
+      unsigned int intval=*((unsigned int *)(outval->buffer));
       return FD_INT2DTYPE(intval);}
     else {
-      long intval=*((long *)(outval->buffer));
+      int intval=*((int *)(outval->buffer));
       return FD_INT2DTYPE(intval);}
   case MYSQL_TYPE_LONGLONG:
     if (outval->is_unsigned) {
