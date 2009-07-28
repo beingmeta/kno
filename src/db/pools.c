@@ -1117,7 +1117,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->n_locks=0;
   p->handler=h;
   p->source=u8_strdup(source); p->cid=u8_strdup(cid); p->xid=NULL;
-  p->label=NULL; p->prefix=NULL;
+  p->label=NULL; p->prefix=NULL; p->oidnamefn=FD_VOID;
 }
 
 /* GLUEPOOL handler (empty) */

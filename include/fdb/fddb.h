@@ -21,7 +21,6 @@ FD_EXPORT fd_exception fd_ConnectionFailed;
 FD_EXPORT int fd_init_db(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_init_fddbserv(void) FD_LIBINIT_FN;
 
-FD_EXPORT fdtype (*fd_get_oid_name)(fdtype);
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
 FD_EXPORT int fddb_loglevel;
@@ -226,6 +225,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache(void);
 #include "indices.h"
 #include "frames.h"
 
+FD_EXPORT fdtype (*fd_get_oid_name)(fd_pool,fdtype);
 
 #endif
 

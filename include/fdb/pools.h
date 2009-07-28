@@ -134,6 +134,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   int n_adjuncts, max_adjuncts;                            \
   struct FD_ADJUNCT *adjuncts;				   \
   struct FD_POOL_HANDLER *handler;                         \
+  fdtype oidnamefn;                                        \
   struct FD_HASHTABLE cache, locks; int n_locks
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;

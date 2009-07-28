@@ -10,6 +10,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/fddb.h"
+#include "fdb/apply.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -90,21 +91,29 @@ static fdtype better_parse_oid(u8_string start,int len)
 
 static fdtype oid_name_slotids=FD_EMPTY_LIST;
 
-static fdtype default_get_oid_name(fdtype oid)
+static fdtype default_get_oid_name(fd_pool p,fdtype oid)
 {
-  fdtype ov=fd_oid_value(oid);
-  if ((!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
-    FD_DOLIST(slotid,oid_name_slotids) {
-      fdtype probe=fd_frame_get(oid,slotid);
+  if (FD_APPLICABLEP(p->oidnamefn)) {}
+  else {
+    fdtype ov=fd_oid_value(oid);
+    if (((FD_OIDP(p->oidnamefn)) || (FD_SYMBOLP(p->oidnamefn))) &&
+	(!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
+      fdtype probe=fd_frame_get(oid,p->oidnamefn);
       if (FD_EMPTY_CHOICEP(probe)) {}
       else if (FD_ABORTP(probe)) {fd_decref(probe);}
       else {fd_decref(ov); return probe;}}
-    fd_decref(ov);
-    return FD_VOID;}
-  else {fd_decref(ov); return FD_VOID;}
+    if ((!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
+      FD_DOLIST(slotid,oid_name_slotids) {
+	fdtype probe=fd_frame_get(oid,slotid);
+	if (FD_EMPTY_CHOICEP(probe)) {}
+	else if (FD_ABORTP(probe)) {fd_decref(probe);}
+	else {fd_decref(ov); return probe;}}
+      fd_decref(ov);
+      return FD_VOID;}
+    else {fd_decref(ov); return FD_VOID;}}
 }
 
-fdtype (*fd_get_oid_name)(fdtype oid)=default_get_oid_name;
+fdtype (*fd_get_oid_name)(fd_pool p,fdtype oid)=default_get_oid_name;
 
 static int print_oid_name(u8_output out,fdtype name,int top)
 {
@@ -186,7 +195,7 @@ static int better_unparse_oid(u8_output out,fdtype x)
 	     (!(fd_hashtable_probe_novoid(&(p->locks),x))))
       return 1;
     else {
-      fdtype name=fd_get_oid_name(x);
+      fdtype name=fd_get_oid_name(p,x);
       int retval=print_oid_name(out,name,1);
       fd_decref(name);
       return retval;}}
