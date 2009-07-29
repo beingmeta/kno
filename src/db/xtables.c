@@ -80,9 +80,9 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
       struct FD_ADJUNCT *newadj=
 	u8_realloc(adjuncts,sizeof(struct FD_ADJUNCT)*new_max);
       if (p) {
-	p->adjuncts=newadj; p->max_adjuncts=new_max;}
+	adjuncts=p->adjuncts=newadj; p->max_adjuncts=new_max;}
       else {
-	global_adjuncts=newadj; max_global_adjuncts=new_max;}}
+	adjuncts=global_adjuncts=newadj; max_global_adjuncts=new_max;}}
     adjuncts[n].pool=p; adjuncts[n].slotid=slotid;
     adjuncts[n].table=adjtable; fd_incref(adjtable);
     adj=&(adjuncts[n]);
