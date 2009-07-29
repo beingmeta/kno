@@ -360,36 +360,38 @@ static fdtype get_stmt_values
   while ((retval==0) || (retval==MYSQL_DATA_TRUNCATED)) {
     fdtype result;
     struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
+    int n_slots=0;
     i=0; while (i<n_cols) {
       fdtype value=outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
       if (FD_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
-	if (noempty) continue;
-	else kv[i].value=value;
+	if (noempty) {i++; continue;}
+	else kv[n_slots].value=value;
       else if (FD_VOIDP(colmaps[i]))
-	kv[i].value=value;
+	kv[n_slots].value=value;
       else if (FD_APPLICABLEP(colmaps[i])) {
-	kv[i].value=fd_apply(colmaps[i],1,&value);
+	kv[n_slots].value=fd_apply(colmaps[i],1,&value);
 	fd_decref(value);}
       else if (FD_OIDP(colmaps[i]))
 	if (FD_STRINGP(value)) {
-	  kv[i].value=fd_parse(FD_STRDATA(value));
+	  kv[n_slots].value=fd_parse(FD_STRDATA(value));
 	  fd_decref(value);}
 	else {
 	  FD_OID base=FD_OID_ADDR(colmaps[i]);
 	  unsigned int offset=fd_getint(value);
-	  if (offset<0) kv[i].value=value;
+	  if (offset<0) kv[n_slots].value=value;
 	  else {
 	    FD_OID baseplus=FD_OID_PLUS(base,offset);
-	    kv[i].value=fd_make_oid(baseplus);
+	    kv[n_slots].value=fd_make_oid(baseplus);
 	    fd_decref(value);}}
       else if (colmaps[i]==FD_TRUE)
 	if (FD_STRINGP(value)) {
-	  kv[i].value=fd_parse(FD_STRDATA(value));
+	  kv[n_slots].value=fd_parse(FD_STRDATA(value));
 	  fd_decref(value);}
-	else kv[i].value=value;
-      else kv[i].value=value;
-      kv[i].key=colnames[i];
+	else kv[n_slots].value=value;
+      else kv[n_slots].value=value;
+      kv[n_slots].key=colnames[i];
+      n_slots++;
       i++;}
     /* How to merge values.  Currently, if MERGEFN is #t
        and there's only one column, we just use that directly.
@@ -403,7 +405,7 @@ static fdtype get_stmt_values
     else if ((FD_VOIDP(mergefn)) ||
 	     (FD_FALSEP(mergefn)) ||
 	     (FD_TRUEP(mergefn)))
-      result=fd_init_slotmap(NULL,n_cols,kv);
+      result=fd_init_slotmap(NULL,n_slots,kv);
     else {
       fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
       result=fd_apply(mergefn,1,&tmp_slotmap);
