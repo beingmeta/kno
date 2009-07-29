@@ -148,7 +148,7 @@
 
 (define default-fields
   {"name" "pic" "pic_small" "pic_big" "pic_square" "status" "uid"
-   "has_added_app"})
+   "has_added_app" "profile_url" "about_me"})
 
 (defambda (fb/getuserinfo users (fields default-fields))
   (let ((info (fbcall/vec "users.getInfo" "uids"
@@ -167,7 +167,7 @@
 (define (fb/getmygroups) (fbcall/vec "groups.get"))
 
 (define page-fields
-  "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large,website")
+  "page_id,name,website,genre,pic,pic_small,pic_big,pic_square,pic_large,website,bio,band_members,company_overview,plot_outline")
 (define (fb/getmypages)
   (fbcall/vec "pages.getInfo" "fields" page-fields))
 
