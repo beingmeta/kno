@@ -103,15 +103,15 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
 {
   struct FD_EXTDB *db=FD_GET_CONS(proc->db,fd_extdb_type,struct FD_EXTDB *);
   u8_lock_mutex(&(db->proclock)); {
-    int i=0, n=db->n_procs;
+    int n=db->n_procs, i=n;
     struct FD_EXTDB_PROC **dbprocs=db->procs;
-    while (i<n)
+    while (i>0)
       if ((dbprocs[i])==proc) {
-	memmove(dbprocs+i,dbprocs+i+1,(n-i-1)*sizeof(struct FD_EXTDB_PROC *));
+	memmove(dbprocs+i,dbprocs+i+1,(n-i)*sizeof(struct FD_EXTDB_PROC *));
 	db->n_procs--;
 	u8_unlock_mutex(&(db->proclock));
 	return 1;}
-      else i++;}
+      else i--;}
   u8_unlock_mutex(&(db->proclock));
   u8_log(LOG_CRIT,"extdb_release_proc","Release of unregistered extdb proc");
   return 0;

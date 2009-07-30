@@ -234,6 +234,9 @@ typedef struct FD_QCHOICE *fd_qchoice;
 FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
 
 #define FD_QCHOICEP(x) (FD_PTR_TYPEP(x,fd_qchoice_type))
+#define FD_EMPTY_QCHOICEP(x) \
+  ((FD_PTR_TYPEP(x,fd_qchoice_type)) && \
+   (((FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))->choice)==FD_EMPTY_CHOICE))
 #define FD_XQCHOICE(x) (FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))
 #define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->choice))
 
