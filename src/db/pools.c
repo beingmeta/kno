@@ -1371,7 +1371,7 @@ static fdtype mempool_fetch(fd_pool p,fdtype oid)
   struct FD_MEMPOOL *mp=(fd_mempool)p;
   FD_OID addr=FD_OID_ADDR(oid);
   int off=FD_OID_DIFFERENCE(addr,mp->base);
-  if (off>mp->load)
+  if ((off>mp->load) && (!((p->flags)&FD_OIDHOLES_OKAY)))
     return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->cid,oid);
   else return FD_EMPTY_CHOICE;
 }
@@ -1382,7 +1382,7 @@ static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
   int i=0; while (i<n) {
     FD_OID addr=FD_OID_ADDR(oids[i]);
     int off=FD_OID_DIFFERENCE(addr,mp->base);
-    if (off>mp->load) {
+    if ((off>mp->load) && (!((p->flags)&FD_OIDHOLES_OKAY))) {
       fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->cid),fd_make_oid(addr));
       return NULL;}
     else i++;}
@@ -1476,8 +1476,11 @@ fd_pool fd_make_extpool(u8_string label,
   fd_incref(lockfn); fd_incref(state);
   xp->fetchfn=fetchfn; xp->savefn=savefn;
   xp->lockfn=lockfn; xp->state=state;
+  xp->flags=xp->flags|FD_OIDHOLES_OKAY;
   return (fd_pool)xp;
 }
+
+static int extpool_err_on_fail=0;
 
 static fdtype extpool_fetch(fd_pool p,fdtype oid)
 {
@@ -1490,7 +1493,9 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
     value=fd_apply(xp->fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
   else if ((FD_EMPTY_CHOICEP(value))||(FD_VOIDP(value)))
-    return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->cid,oid);
+    if ((p->flags)&FD_OIDHOLES_OKAY)
+      return FD_EMPTY_CHOICE;
+    else return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->cid,oid);
   else return value;
 }
 
