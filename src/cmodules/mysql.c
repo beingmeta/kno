@@ -421,7 +421,10 @@ static fdtype get_stmt_values
        that value.  With no MERGEFN we just make a slotmap.
        It might be cool to do a schemap rather than a slotmap
        at some point. */
-    if ((n_cols==1) && (FD_TRUEP(mergefn))) {
+    if (n_slots==0) {
+      result=FD_EMPTY_CHOICE;
+      u8_free(kv);}
+    else if ((n_cols==1) && (FD_TRUEP(mergefn))) {
       result=kv[0].value;
       u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) ||
@@ -454,7 +457,7 @@ static int init_stmt_results
    my_bool **isnullbuf)
 {
   int n_cols=mysql_stmt_field_count(stmt);
-  if (n_cols) {
+  if (n_cols>0) {
     fdtype *colnames=u8_alloc_n(n_cols,fdtype);
     MYSQL_BIND *outbound=u8_alloc_n(n_cols,MYSQL_BIND);
     MYSQL_RES *metadata=mysql_stmt_result_metadata(stmt);
@@ -468,7 +471,7 @@ static int init_stmt_results
       u8_free(colnames); u8_free(outbound);
       if (metadata) mysql_free_result(metadata);
       u8_seterr(MySQL_Error,"get_stmt_values",u8_strdup(errmsg));
-      return FD_ERROR_VALUE;}
+      return -1;}
     memset(outbound,0,sizeof(MYSQL_BIND)*n_cols);
     while (i<n_cols) {
       colnames[i]=intern_upcase(&out,fields[i].name);
