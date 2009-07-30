@@ -107,9 +107,9 @@ static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
     char *newptr;
     int need_space=dbuf->size+size*n, new_limit=dbuf->limit;
     while (new_limit<need_space) {
-      if (dbuf->limit >= 65536)
-	new_limit=dbuf->limit+65536;
-      else new_limit=dbuf->limit*2;}
+      if (new_limit >= 65536)
+	new_limit=new_limit+65536;
+      else new_limit=new_limit*2;}
     newptr=u8_realloc(dbuf->bytes,new_limit);
     dbuf->bytes=newptr; dbuf->limit=new_limit;}
   memcpy(dbuf->bytes+dbuf->size,data,size*n);
