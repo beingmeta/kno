@@ -261,7 +261,9 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
 	  return fd_interr(val);}
 	else if (FD_STRINGP(attrib_name))
 	  if (FD_FALSEP(val)) {}
-	  else attrib_entify(out,FD_STRDATA(attrib_name));
+	  else {
+	    u8_putc(&out,' ');
+	    attrib_entify(out,FD_STRDATA(attrib_name));}
 	else emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(attrib_name),val);
 	fd_decref(val);}
       else if (FD_FALSEP(attrib_expr)) {}
