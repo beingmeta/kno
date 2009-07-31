@@ -447,10 +447,10 @@ static fdtype extindex_decache(fdtype index,fdtype key)
   fd_index ix=fd_lisp2index(index);
   if (ix->handler==&fd_extindex_handler)
     if (FD_VOIDP(key))
-      if (fd_reset_hashtable(&(ix->cache),ix->cache->n_slots)<0)
+      if (fd_reset_hashtable(&(ix->cache),ix->cache.n_slots,1)<0)
 	return FD_ERROR_VALUE;
       else return FD_VOID;
-    else if (fd_hashtable_drop(&(ix->cache),key)<0)
+    else if (fd_hashtable_store(&(ix->cache),key,FD_VOID)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("extindex","extindex_decache",index);
