@@ -439,7 +439,21 @@ static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
     if (fd_hashtable_add(&(ix->cache),key,values)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
-  else return fd_type_error("extindex","extindex_setcache",index);
+  else return fd_type_error("extindex","extindex_cacheadd",index);
+}
+
+static fdtype extindex_decache(fdtype index,fdtype key)
+{
+  fd_index ix=fd_lisp2index(index);
+  if (ix->handler==&fd_extindex_handler)
+    if (FD_VOIDP(key))
+      if (fd_reset_hashtable(&(ix->cache),ix->cache->n_slots)<0)
+	return FD_ERROR_VALUE;
+      else return FD_VOID;
+    else if (fd_hashtable_drop(&(ix->cache),key)<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;
+  else return fd_type_error("extindex","extindex_decache",index);
 }
 
 /* Adding adjuncts */
@@ -2231,6 +2245,10 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim4x("MAKE-EXTINDEX",make_extindex,2,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
+			   fd_index_type,FD_VOID,-1,FD_VOID));
+
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
 			   fd_index_type,FD_VOID,-1,FD_VOID,
