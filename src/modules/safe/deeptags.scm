@@ -21,7 +21,7 @@
 	      (fail))
 	  (if (tag? tag) (tag-oid tag) (fail)))))
 (define (tag->term tag)
-  (if (oid? tag) (get-dterm tag (get-language))
+  (if (oid? tag) (get-dterm tag default-language)
       (if (tag? tag) (tag-term tag)
 	  (if (string? tag)
 	      (if (and (string? tag) (has-prefix tag "@")
@@ -31,7 +31,7 @@
 	      (fail)))))
 
 (define (->tag tag (tagslot 'term))
-  (if (oid? tag) (cons-tag (get-dterm tag (get-language)) tag)
+  (if (oid? tag) (cons-tag (get-dterm tag default-language) tag)
       (if (tag? tag) tag
 	  (if (string? tag)
 	      (if (empty-string? tag) (fail)
@@ -71,9 +71,21 @@
 		    term))))))
 
 (define tagpat
-  `#((opt (label oid #("@" (isxdigit+) "/" (isxdigit+)) #t))
-     (label term (rest) #t)))
+  `(GREEDY #((opt (label oid #("@" (isxdigit+) "/" (isxdigit+)) #t))
+	     (label term (rest) #t))))
 
 (define (string->tag string (user (getuser)))
   (let* ((match (text->frame tagpat string)))
     (cons-tag (get match 'term) (get match 'oid))))
+
+(defambda (reduce-tags tags)
+  "Removes OID tags whose term is not included and terms which have redundant
+   entries with OIDs"
+  (let* ((oided (pick tags tag-oid))
+	 (unoided (difference tags oided))
+	 (oidterms (tag-term oided))
+	 (rawterms (tag-term unoided)))
+    (choice (reject unoided tag-term oidterms)
+	    (pick oided tag-term rawterms))))
+
+(module-export! 'reduce-tags)
