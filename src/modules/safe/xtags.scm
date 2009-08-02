@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
 ;;; Copyright (C) 2006-2009 beingmeta, inc.  All rights reserved.
 
-(in-module 'deeptags)
+(in-module 'xtags)
 
 (define version "$Id: pings.scm 4101 2009-07-02 21:08:28Z bemeta $")
 (define revision "$Revision: 4101 $")
@@ -21,7 +21,7 @@
 	      (fail))
 	  (if (tag? tag) (tag-oid tag) (fail)))))
 (define (tag->term tag)
-  (if (oid? tag) (get-dterm tag default-language)
+  (if (oid? tag) (oid->dterm tag)
       (if (tag? tag) (tag-term tag)
 	  (if (string? tag)
 	      (if (and (string? tag) (has-prefix tag "@")
@@ -31,7 +31,7 @@
 	      (fail)))))
 
 (define (->tag tag (tagslot 'term))
-  (if (oid? tag) (cons-tag (get-dterm tag default-language) tag)
+  (if (oid? tag) (cons-tag (oid->dterm tag) tag)
       (if (tag? tag) tag
 	  (if (string? tag)
 	      (if (empty-string? tag) (fail)
@@ -49,6 +49,26 @@
 		      (cons-tag (get tag '{term tag}) (get tag 'oid))
 		      {}))))))
 
+(define (get-language-info)
+  (try (cgiget 'language)
+       (threadget 'language)
+       default-language))
+
+(define (oid->dterm oid (language (get-language-info)))
+  (if (test oid 'knowlet)
+      (let* ((knowlet (try (knowlet (get oid 'knowlet))
+			   (get oid 'knowlet)))
+	     (try (get oid 'term) (get oid 'dterm)
+		  (pick-one (get oid (tryif (knowlet? knowlet)
+				       (knowlet-language knowlet))))
+		  (pick-one (get oid (get language 'language)))))
+	(if (oid? knowlet)
+	    (stringout (string-subst (get oid 'term) "@" "\\@")
+		       (oid->string knowlet))
+	    (stringout (string-subst (get oid 'term) "@" "\\@")
+		       "@" (knowlet-name knowlet))))
+      (get-dterm oid language)))
+
 (module-export!
  '{tag?
    cons-tag tag-oid tag-term
@@ -60,9 +80,7 @@
 ;;  with the string 'term' and the OID 'hi/lo'.
 (define (tag->string tag (user (getuser)))
   (if (string? tag) tag
-      (if (oid? tag)
-	  (stringout (string-subst (get-dterm oid @?en) "@" "\\@")
-		     "@" brico)
+      (if (oid? tag) (oid->dterm tag)
 	  (if (tag? tag)
 	      (let ((term (tag-term tag))
 		    (oid (tag-oid tag)))

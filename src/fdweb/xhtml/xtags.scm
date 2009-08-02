@@ -1,9 +1,9 @@
 ;;; -*- Mode: Scheme; Text-encoding: latin-1; -*-
 
-(in-module 'xhtml/deeptags)
+(in-module 'xhtml/xtags)
 
 (use-module '{reflection texttools})
-(use-module '{brico brico/dterms deeptags})
+(use-module '{brico brico/dterms xtags})
 (use-module '{fdweb xhtml xhtml/clickit xhtml/brico i18n})
 
 (define checked-oid-icon
