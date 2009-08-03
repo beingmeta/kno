@@ -1084,20 +1084,22 @@ static fdtype label_extract
   else {
     fdtype extractions=textract(spat,next,env,string,off,lim,flags);
     fdtype answers=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(extraction,extractions) {
-      fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);    
-      fdtype xtract, addval;
-      if (FD_VOIDP(parser))
-	xtract=fd_make_list(3,FD_CAR(pat),sym,fd_incref(data));
-      else if ((env) && ((FD_SYMBOLP(parser)) || (FD_PAIRP(parser)))) {
-	fdtype parser_val=fd_eval(parser,env);
-	xtract=fd_make_list(4,FD_CAR(pat),sym,fd_incref(data),parser_val);}
-      else xtract=
-	     fd_make_list(4,FD_CAR(pat),sym,fd_incref(data),fd_incref(parser));
-      addval=fd_init_pair(NULL,size,xtract);
-      FD_ADD_TO_CHOICE(answers,addval);}
-    fd_decref(extractions);
-    return answers;}
+    if (FD_ABORTP(extractions)) return extractions;
+    else {
+      FD_DO_CHOICES(extraction,extractions) {
+	fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);    
+	fdtype xtract, addval;
+	if (FD_VOIDP(parser))
+	  xtract=fd_make_list(3,FD_CAR(pat),sym,fd_incref(data));
+	else if ((env) && ((FD_SYMBOLP(parser)) || (FD_PAIRP(parser)))) {
+	  fdtype parser_val=fd_eval(parser,env);
+	  xtract=fd_make_list(4,FD_CAR(pat),sym,fd_incref(data),parser_val);}
+	else xtract=
+	       fd_make_list(4,FD_CAR(pat),sym,fd_incref(data),fd_incref(parser));
+	addval=fd_init_pair(NULL,size,xtract);
+	FD_ADD_TO_CHOICE(answers,addval);}
+      fd_decref(extractions);
+      return answers;}}
 }
 
 static fdtype subst_match 
@@ -1141,46 +1143,48 @@ static fdtype subst_extract
   else {
     fdtype extractions=textract(spat,next,env,string,off,lim,flags);
     fdtype answers=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(extraction,extractions) {
-      fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
-      FD_DO_CHOICES(r,repl) {
-	fdtype replacement;
-	if (FD_STRINGP(r)) replacement=fd_incref(r);
-	else {
-	  fdtype method=FD_VOID;
-	  if (FD_APPLICABLEP(r)) method=fd_incref(r);
-	  else if (FD_SYMBOLP(r)) {
-	    if (env) method=fd_symeval(r,env);
-	    else method=fd_get(fd_scheme_module,r,FD_VOID);}
-	  else {}
-	  if (FD_ABORTP(method)) replacement=method;
-	  else if (!(FD_APPLICABLEP(method))) {
-	    replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,r);
-	    fd_decref(method);}
+    if (FD_ABORTP(extractions)) return extractions;
+    else {
+      FD_DO_CHOICES(extraction,extractions) {
+	fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
+	FD_DO_CHOICES(r,repl) {
+	  fdtype replacement;
+	  if (FD_STRINGP(r)) replacement=fd_incref(r);
 	  else {
-	    fdtype size=FD_CAR(extraction);
-	    fdtype tmpstring=
-	      fd_extract_string(NULL,string+off,string+fd_getint(size));
-	    fdtype args[16];
-	    int n=fillargs(args,1,16,FD_CDR(FD_CDR(FD_CDR(pat))));
-	    if (n<0)
-	      replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
+	    fdtype method=FD_VOID;
+	    if (FD_APPLICABLEP(r)) method=fd_incref(r);
+	    else if (FD_SYMBOLP(r)) {
+	      if (env) method=fd_symeval(r,env);
+	      else method=fd_get(fd_scheme_module,r,FD_VOID);}
+	    else {}
+	    if (FD_ABORTP(method)) replacement=method;
+	    else if (!(FD_APPLICABLEP(method))) {
+	      replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,r);
+	      fd_decref(method);}
 	    else {
-	      args[0]=tmpstring;
-	      replacement=fd_apply(method,n,args);}
-	    fd_decref(tmpstring);}
-	  fd_decref(method);}
-	if (FD_ABORTP(replacement)) {
-	  fd_decref(answers); fd_decref(extractions);
-	  return replacement;}
-	else {
-	  FD_DO_CHOICES(rep,replacement) {
-	    fdtype lst=fd_init_pair
-	      (NULL,size,fd_make_list(3,FD_CAR(pat),fd_incref(data),fd_incref(rep)));
-	     FD_ADD_TO_CHOICE(answers,lst);}}
-	fd_decref(replacement);}}
-    fd_decref(extractions);
-    return answers;}
+	      fdtype size=FD_CAR(extraction);
+	      fdtype tmpstring=
+		fd_extract_string(NULL,string+off,string+fd_getint(size));
+	      fdtype args[16];
+	      int n=fillargs(args,1,16,FD_CDR(FD_CDR(FD_CDR(pat))));
+	      if (n<0)
+		replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
+	      else {
+		args[0]=tmpstring;
+		replacement=fd_apply(method,n,args);}
+	      fd_decref(tmpstring);}
+	    fd_decref(method);}
+	  if (FD_ABORTP(replacement)) {
+	    fd_decref(answers); fd_decref(extractions);
+	    return replacement;}
+	  else {
+	    FD_DO_CHOICES(rep,replacement) {
+	      fdtype lst=fd_init_pair
+		(NULL,size,fd_make_list(3,FD_CAR(pat),fd_incref(data),fd_incref(rep)));
+	      FD_ADD_TO_CHOICE(answers,lst);}}
+	  fd_decref(replacement);}}
+      fd_decref(extractions);
+      return answers;}}
 }
 
 /* Match preferred */
@@ -1238,20 +1242,22 @@ static fdtype extract_pref
   fdtype answers=FD_EMPTY_CHOICE;
   FD_DOLIST(epat,FD_CDR(pat)) {
     fdtype extractions=textract(epat,next,env,string,off,lim,flags);
-    FD_DO_CHOICES(extraction,extractions)
-      if (FD_ABORTP(extraction)) {
-	fd_decref(answers); answers=fd_incref(extraction);
-	break;}
-      else if (FD_PAIRP(extraction)) {
-	fd_incref(extraction);
-	FD_ADD_TO_CHOICE(answers,extraction);}
-      else {
-	fd_decref(answers);
-	answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
-	break;}
-    if (FD_ABORTP(answers)) {
-      fd_decref(extractions);
-      return answers;}
+    if (FD_ABORTP(extractions)) return extractions;
+    else {
+      FD_DO_CHOICES(extraction,extractions)
+	if (FD_ABORTP(extraction)) {
+	  fd_decref(answers); answers=fd_incref(extraction);
+	  break;}
+	else if (FD_PAIRP(extraction)) {
+	  fd_incref(extraction);
+	  FD_ADD_TO_CHOICE(answers,extraction);}
+	else {
+	  fd_decref(answers);
+	  answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
+	  break;}
+      if (FD_ABORTP(answers)) {
+	fd_decref(extractions);
+	return answers;}}
     fd_decref(extractions);}
   if ((flags&FD_MATCH_BE_GREEDY) &&
       ((FD_CHOICEP(answers)) || (FD_ACHOICEP(answers)))) {
@@ -1721,9 +1727,11 @@ static fdtype extract_longest
     return fd_err(fd_MatchSyntaxError,"extract_longeset",NULL,pat);
   else {
     fdtype results=fd_text_matcher(pat_arg,env,string,off,lim,flags);
-    fdtype longest=get_longest_extractions(results);
-    fd_decref(results);
-    return longest;}
+    if (FD_ABORTP(results)) return results;
+    else {
+      fdtype longest=get_longest_extractions(results);
+      fd_decref(results);
+      return longest;}}
 }
 
 /* Space collapsing matching */
