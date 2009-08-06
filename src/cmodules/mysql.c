@@ -761,6 +761,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   /* Initialize the input parameters from the arguments. */
   while (i<n_params) {
     fdtype arg=args[i];
+
     /* Use the ptypes to map application arguments into SQL. */
     if (FD_VOIDP(ptypes[i])) argbuf[i]=FD_VOID;
     else if ((FD_OIDP(arg)) && (FD_OIDP(ptypes[i]))) {
@@ -770,6 +771,10 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       argbuf[i]=arg=FD_INT2DTYPE(offset);}
     else if (FD_APPLICABLEP(ptypes[i])) {
       argbuf[i]=arg=fd_apply(ptypes[i],1,&arg);}
+    else if (FD_TRUEP(ptypes[i])) {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
+      fd_unparse(&out,arg);
+      argbuf[i]=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
     else argbuf[i]=FD_VOID;
 
     /* Set this in case it was different for a previous call. */
