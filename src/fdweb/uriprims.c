@@ -279,6 +279,28 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
   else return fd_type_error(_("table"),"unparseuri",uri);
 }
 
+static fdtype urihost_prim(fdtype uri_arg)
+{
+  u8_string uri=FD_STRDATA(uri_arg);
+  u8_byte *host_start=strstr(uri,"//");
+  if (!(host_start)) return FD_EMPTY_CHOICE;
+  else {
+    u8_byte *host_end=strstr(host_start+2,"/");
+    u8_byte *port_end=strstr(host_start+2,":");
+    u8_byte *end=(((port_end) && (host_end) && (port_end<host_end)) ?
+		  (port_end):(host_end));
+    if (end) return fd_extract_string(NULL,host_start+2,host_end);
+    else return FD_EMPTY_CHOICE;}
+}
+
+static fdtype urifrag_prim(fdtype uri_arg)
+{
+  u8_string uri=FD_STRDATA(uri_arg);
+  u8_byte *hash=strchr(uri,'#');
+  if (hash) return fd_extract_string(NULL,hash+1,NULL);
+  else return FD_EMPTY_CHOICE;
+}
+
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape)
 {
   uri_output(out,uri,escape);
@@ -303,6 +325,10 @@ FD_EXPORT void fd_init_urifns_c()
 				  -1,FD_VOID));
   fd_idefn(module,fd_make_cprim2("MERGEURIS",mergeuris,2));
   fd_idefn(module,fd_make_cprim2("UNPARSEURI",unparseuri,1));
+
+  fd_idefn(module,fd_make_cprim1("URIHOST",urihost_prim,1));
+  fd_idefn(module,fd_make_cprim1("URIFRAG",urifrag_prim,1));
+
 
   fd_register_source_file(versionid);
 }
