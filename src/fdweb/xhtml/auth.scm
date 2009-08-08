@@ -80,7 +80,9 @@
   (let ((user (get info 'user))
 	(session (get info 'session))
 	(expires (get info 'expires))
-	(domain (or auth-cookie-domain (cgiget 'HTTP_HOST)))
+	(domain (or (cgiget 'AUTH_HOST #f)
+		    auth-cookie-domain
+		    (cgiget 'HTTP_HOST)))
 	(path auth-cookie-path))
     (when trace-auth
       (%watch "SET-COOKIES!" user session expires domain path))
