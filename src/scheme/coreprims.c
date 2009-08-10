@@ -151,6 +151,16 @@ static fdtype listp(fdtype x)
   else if (FD_PAIRP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
+static fdtype proper_listp(fdtype x)
+{
+  if (FD_EMPTY_LISTP(x)) return FD_TRUE;
+  else if (FD_PAIRP(x)) {
+    fdtype scan=x;
+    while (FD_PAIRP(scan)) scan=FD_CDR(scan);
+    if (FD_EMPTY_LISTP(scan)) return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
 static fdtype vectorp(fdtype x)
 {
   if (FD_VECTORP(x)) return FD_TRUE; else return FD_FALSE;
@@ -615,6 +625,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOL?",symbolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PAIR?",pairp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LIST?",listp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("PROPER-LIST?",proper_listp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("VECTOR?",vectorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));

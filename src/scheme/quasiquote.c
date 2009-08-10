@@ -61,9 +61,12 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 	      return head;}}
 	  else {
 	    fdtype splice_at_end=fd_quasiquote(FD_CADR(obj),env,level-1);
-	    fdtype with_unquote=fd_init_pair(NULL,unquote,splice_at_end);
-	    *tail=with_unquote;
-	    return head;}
+	    if (FD_ABORTP(splice_at_end)) {
+	      fd_decref(head); return splice_at_end;}
+	    else {
+	      fdtype with_unquote=fd_init_pair(NULL,unquote,splice_at_end);
+	      *tail=with_unquote;
+	      return head;}}
 	else {
 	  fd_decref(head);
 	  return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,obj);}}
@@ -72,11 +75,16 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
       if (FD_BAD_UNQUOTEP(elt)) {
 	fd_decref(head);
 	return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,elt);}
-      else if (FD_EQ(FD_CAR(elt),unquote))
+      else if (FD_EQ(FD_CAR(elt),unquote)) {
 	if (level==1) 
 	  new_elt=fd_eval(FD_CADR(elt),env);
-	else new_elt=
-	       fd_make_list(2,unquote,fd_quasiquote(FD_CADR(elt),env,level-1));
+	else {
+	  fdtype embed=fd_quasiquote(FD_CADR(elt),env,level-1);
+	  if (FD_ABORTP(embed)) new_elt=embed;
+	  else new_elt=fd_make_list(2,unquote,embed);}
+	if (FD_ABORTP(new_elt)) {
+	  fd_decref(head);
+	  return new_elt;}}
       else if (FD_EQ(FD_CAR(elt),unquotestar))
 	if (level==1) {
 	  fdtype insertion=fd_eval(FD_CADR(elt),env);
@@ -112,8 +120,10 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 	  obj=FD_CDR(obj);
 	  fd_decref(insertion);
 	  continue;}
-	else new_elt=
-	       fd_make_list(2,unquotestar,fd_quasiquote(FD_CADR(elt),env,level-1));
+	else {
+	  fdtype embed=fd_quasiquote(FD_CADR(elt),env,level-1);
+	  if (FD_ABORTP(embed)) new_elt=embed;
+	  else new_elt=fd_make_list(2,unquotestar,embed);}
       else new_elt=fd_quasiquote(elt,env,level);
     else new_elt=fd_quasiquote(elt,env,level);
     if (FD_ABORTP(new_elt)) {
@@ -122,8 +132,11 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
     tailcons=FD_STRIP_CONS(new_tail,fd_pair_type,struct FD_PAIR *);
     *tail=new_tail; tail=&(tailcons->cdr);
     obj=FD_CDR(obj);}
-  if (!(FD_EMPTY_LISTP(obj)))
-    *tail=fd_quasiquote(obj,env,level);
+  if (!(FD_EMPTY_LISTP(obj))) {
+    fdtype final=fd_quasiquote(obj,env,level);
+    if (FD_ABORTP(final)) {
+      fd_decref(head); return final;}
+    else *tail=final;}
   return head;
 }
 
@@ -218,6 +231,9 @@ static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
   fdtype result=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(elt,obj) {
     fdtype transformed=fd_quasiquote(elt,env,level);
+    if (FD_ABORTP(transformed)) {
+      FD_STOP_DO_CHOICES; fd_decref(result);
+      return transformed;}
     FD_ADD_TO_CHOICE(result,transformed);}
   return result;
 }
@@ -225,17 +241,23 @@ static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
 FD_EXPORT 
 fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
 {
-  if (FD_PAIRP(obj))
+  if (FD_ABORTP(obj)) return obj;
+  else if (FD_PAIRP(obj))
     if (FD_BAD_UNQUOTEP(obj)) 
       return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),quasiquote))
-      if (FD_PAIRP(FD_CDR(obj)))
-	return fd_make_list(2,quasiquote,fd_quasiquote(FD_CADR(obj),env,level+1));
+      if (FD_PAIRP(FD_CDR(obj))) {
+	fdtype embed=fd_quasiquote(FD_CADR(obj),env,level+1);
+	if (FD_ABORTP(embed)) return embed;
+	else return fd_make_list(2,quasiquote,embed);}
       else return fd_err(fd_SyntaxError,"malformed QUASIQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),unquote))
       if (level==1)
 	return fd_eval(FD_CAR(FD_CDR(obj)),env);
-      else return fd_make_list(2,unquote,fd_quasiquote(FD_CADR(obj),env,level-1));
+      else {
+	fdtype embed=fd_quasiquote(FD_CADR(obj),env,level-1);
+	if (FD_ABORTP(embed)) return embed;
+	else return fd_make_list(2,unquote,embed);}
     else if (FD_EQ(FD_CAR(obj),unquotestar))
       return fd_err(fd_SyntaxError,"UNQUOTE* (,@) in wrong context",
 		    NULL,obj);
