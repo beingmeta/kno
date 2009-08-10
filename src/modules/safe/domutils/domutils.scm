@@ -15,6 +15,7 @@
    dom/oidify dom/oidmap dom/nodeid
    dom/set! dom/add! dom/append!
    dom/selector dom/match dom/lookup dom/find
+   dom/getrules dom/add-rule!
    dom/search dom/strip! dom/map
    dom/getmeta dom/getlinks
    ->selector selector-tag selector-class selector-id
@@ -137,14 +138,29 @@
 
 ;;; Currently, we're ignoring attribs (just like the Javascript version)
 
-(defrecord selector tag (class #f) (id #f) (attribs (frame-create #f)))
+(defrecord selector tag (class #f) (id #f) (attribs {}))
 
 (define xmlid #((isalpha) (opt (isalnum+)) (* #("_" (opt (isalnum+))))))
 
 (define selector-pattern
   `{#("." (label classname ,xmlid))
     #("#" (label idname ,xmlid))
-    #((bol) (label tagname ,xmlid #t))})
+    #((bol) (label tagname ,xmlid #t))
+    (GREEDY
+     #("[" (label name ,xmlid #t)
+       (opt
+	#((label cmp {"=" "=~"})
+	  (label value (not> "]"))))
+       "]"))})
+(module-export! 'selector-pattern)
+
+(define (combine-attribs attrib)
+  (cons (get attrib 'name)
+	(if (test attrib 'cmp)
+	    (if (test attrib 'cmp "=~")
+		`(IS (PHRASE ,(get attrib 'value)))
+		(get attrib 'value))
+	    '())))
 
 (define (dom/selector spec)
   (if (selector? spec) spec
@@ -152,7 +168,8 @@
 	  (let ((match (text->frames selector-pattern spec)))
 	    (cons-selector (try (get match 'tagname) #f)
 			   (try (get match 'classname) #f)
-			   (try (get match 'idname) #f)))
+			   (try (get match 'idname) #f)
+			   (combine-attribs (pick match 'name))))
 	  (if (table? spec)
 	      ;; Assume this is an XML node
 	      (cons-selector (try (get spec '%xmltag) #f)
@@ -185,6 +202,38 @@
 	  (dom/lookup table (->selector sel) dflt)
 	  (dom/lookup table (->selector sel)))))
 
+(defambda (filter-dom-matches elt matches)
+  (for-choices (match matches)
+    (if (and (pair? match) (selector? (car match)))
+	(tryif (dom/match elt (car match)) (cdr match))
+	match)))
+
+(define (dom/getrules table elt (dflt))
+  (let ((tag (get elt '%xmltag))
+	(class (elts (segment (get elt 'class))))
+	(id (get elt 'id)))
+    (try (filter-dom-matches elt (get table (string-append (symbol->string tag) "." class "#" id)))
+	 (filter-dom-matches elt (get table (string-append (symbol->string tag) "#" id)))
+	 (filter-dom-matches elt (get table (string-append "#" id)))
+	 (filter-dom-matches elt (get table (string-append (symbol->string tag) "." class)))
+	 (filter-dom-matches elt (get table (string-append "." class)))
+	 (filter-dom-matches elt (get table tag))
+	 (tryif (bound? dflt) dflt))))
+
+(define (dom/add-rule! table selector value)
+  (let* ((selector (->selector selector))
+	 (tag (or (selector-tag selector) {}))
+	 (class (or (selector-class selector) {}))
+	 (id (or (selector-id selector) {})))
+    (add! table (try (string-append (symbol->string tag) "." class "#" id)
+		     (string-append "." class "#" id)
+		     (string-append (symbol->string tag) "#" id)
+		     (string-append (symbol->string tag) "." class)
+		     (string-append "#" id)
+		     (string-append "." class)
+		     tag)
+	  (cons selector value))))
+
 (defambda (dom/match elt sel)
   (for-choices elt
     (if (string? elt) #f
@@ -198,7 +247,13 @@
 			(or (not (selector-class sel))
 			    (test elt 'class (selector-class sel)))
 			(or (not (selector-id sel))
-			    (test elt 'id (selector-id sel))))
+			    (test elt 'id (selector-id sel)))
+			(not (try (try-choices (attrib (selector-attribs sel))
+				    (if (string? (cdr attrib))
+					(tryif (not (test elt (car attrib) (cdr attrib))) #t)
+					(tryif (not (textsearch (cdr attrib) (get elt (car attrib))))
+					  #t)))
+				  #f)))
 		   {}))
 	     #f)))))
 
