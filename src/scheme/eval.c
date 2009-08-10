@@ -312,7 +312,7 @@ static fdtype getopt_prim(fdtype opts,fdtype keys,fdtype dflt)
       fdtype v=fd_getopt(opts,key,FD_VOID);
       if (!(FD_VOIDP(v))) FD_ADD_TO_CHOICE(results,v);}}
   if (FD_EMPTY_CHOICEP(results))
-    return dflt;
+    return fd_incref(dflt);
   else return results;
 }
 static fdtype testopt_prim(fdtype opts,fdtype key,fdtype val)
