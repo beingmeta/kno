@@ -304,9 +304,16 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i)
   return fd_get_body(expr,i);
 }
 
-static fdtype getopt_prim(fdtype opts,fdtype key,fdtype dflt)
+static fdtype getopt_prim(fdtype opts,fdtype keys,fdtype dflt)
 {
-  return fd_getopt(opts,key,dflt);
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(opt,opts) {
+    FD_DO_CHOICES(key,keys) {
+      fdtype v=fd_getopt(opts,key,FD_VOID);
+      if (!(FD_VOIDP(v))) FD_ADD_TO_CHOICE(results,v);}}
+  if (FD_EMPTY_CHOICEP(results))
+    return dflt;
+  else return results;
 }
 static fdtype testopt_prim(fdtype opts,fdtype key,fdtype val)
 {
@@ -1424,9 +1431,9 @@ static void init_localfns()
 					    fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("GETOPT",getopt_prim,2,
-			   -1,FD_VOID,fd_symbol_type,FD_VOID,
-			   -1,FD_FALSE));
+	   fd_make_ndprim(fd_make_cprim3x("GETOPT",getopt_prim,2,
+					  -1,FD_VOID,fd_symbol_type,FD_VOID,
+					  -1,FD_FALSE)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("TESTOPT",testopt_prim,2,
 			   -1,FD_VOID,fd_symbol_type,FD_VOID,
