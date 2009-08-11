@@ -388,7 +388,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
-  int free_vals=0;
+  int free_env=0;
   fdtype _vals[6], *vals=_vals, lexpr_arg=FD_EMPTY_LIST, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
@@ -408,10 +408,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);
     else {
       /* This code handles argument defaults for sprocs */
-      int i=0; free_vals=1;
+      int i=0; free_env=1;
       bindings.values=vals=u8_alloc_n(fn->n_vars,fdtype);
       {FD_DOLIST(arg,fn->arglist)
-	  if (i<n) {vals[i]=args[i]; i++;}
+	  if (i<n) {
+	    fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
 	  else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	    /* This code handles argument defaults for sprocs */
 	    fdtype default_expr=FD_CADR(arg);
@@ -420,17 +421,17 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	  else vals[i++]=FD_VOID;}
       assert(i==fn->n_vars);}
   else { /* We have a lexpr */
-    int i=0, j=n-1;
-    if (fn->n_vars>6) {
-      vals=u8_alloc_n(fn->n_vars,fdtype); free_vals=1;}
+    int i=0, j=n-1; free_env=1;
+    if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
     bindings.values=vals;
     {FD_DOLIST(arg,fn->arglist)
-       if (i<n) {vals[i]=args[i]; i++;}
+       if (i<n) {
+	 fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
        else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	 /* This code handles argument defaults for sprocs */
 	 fdtype default_expr=FD_CADR(arg);
 	 fdtype default_value=fd_eval(default_expr,fn->env);
-	 vals[i]=default_value; free_vals=1; i++;}
+	 vals[i]=default_value; i++;}
        else {vals[i]=FD_VOID; i++;}}
     while (j >= i) {
       lexpr_arg=fd_init_pair(NULL,fd_incref(args[j]),lexpr_arg);
@@ -450,12 +451,8 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->synchronized) fd_unlock_struct(fn);
   fd_destroy_rwlock(&(bindings.rwlock));
   fd_decref(lexpr_arg);
-  if (free_vals) {
-    int i=n, lim=fn->n_vars; while (i<lim) {
-      fd_decref(vals[i]); i++;}
-    if (vals!=_vals) u8_free(vals);}
-  if (envstruct.copy)
-    fd_recycle_environment(envstruct.copy);
+  if (free_env) {
+    free_environment(&envstruct);}
   return result;
 }
 
