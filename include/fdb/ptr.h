@@ -175,7 +175,7 @@ typedef unsigned int fd_consbits;
 typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
-#define FD_CONS_DATA(x) ((struct FD_CONS *)(x))
+#define FD_CONS_DATA(x) ((fd_cons)(x))
 
 /* Most of the stuff for dealing with conses is in cons.h.  The
     attribute common to all conses, is that its first field is

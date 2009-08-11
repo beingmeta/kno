@@ -61,7 +61,7 @@ FD_EXPORT
     Arguments: a pointer to an FD_CONS struct
     Returns: void
  Recycles a cons cell */
-void fd_recycle_cons(struct FD_CONS *c)
+void fd_recycle_cons(fd_cons c)
 {
   int ctype=FD_CONS_TYPE(c);
   int mallocd=(FD_MALLOCD_CONSP(c));
@@ -330,7 +330,7 @@ FD_EXPORT
 fdtype fd_copy(fdtype x)
 {
   if (!(FD_CONSP(x))) return x;
-  else if (FD_MALLOCD_CONSP(((struct FD_CONS *)x)))
+  else if (FD_MALLOCD_CONSP(((fd_cons)x)))
     return fd_incref(x);
   else return fd_deep_copy(x);
 }
@@ -927,11 +927,11 @@ static fdtype timestamp_restore(fdtype tag,fdtype x)
 
 /* Utility functions (for debugging) */
 
-FD_EXPORT struct FD_CONS *fd_cons_data(fdtype x)
+FD_EXPORT fd_cons fd_cons_data(fdtype x)
 {
   unsigned long as_int=(x&(~0x3));
   void *as_addr=(void *) as_int;
-  return (struct FD_CONS *) as_addr;
+  return (fd_cons) as_addr;
 }
 
 FD_EXPORT struct FD_PAIR *fd_pair_data(fdtype x)

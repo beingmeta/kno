@@ -391,6 +391,13 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   int free_env=0;
   fdtype _vals[6], *vals=_vals, lexpr_arg=FD_EMPTY_LIST, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
+  /* We're optimizing to avoid GC (and thread contention) for the
+     simple case where the arguments exactly match the argument list.
+     Essentially, we use the args vector as the values vector of
+     the SCHEMAP used for binding.  The problem is when the arguments
+     don't match the number of arguments (lexprs or optionals).  In this
+     case we set free_env=1 and just use a regular environment where
+     all the values are incref'd.  */
   FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   bindings.schema=fn->schema;
@@ -409,7 +416,8 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     else {
       /* This code handles argument defaults for sprocs */
       int i=0; free_env=1;
-      bindings.values=vals=u8_alloc_n(fn->n_vars,fdtype);
+      if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
+      bindings.values=vals;
       {FD_DOLIST(arg,fn->arglist)
 	  if (i<n) {
 	    fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
@@ -452,7 +460,10 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   fd_destroy_rwlock(&(bindings.rwlock));
   fd_decref(lexpr_arg);
   if (free_env) {
-    free_environment(&envstruct);}
+    free_environment(&envstruct);
+    if (vals!=_vals) u8_free(vals);}
+  else if (envstruct.copy)
+    fd_recycle_environment(envstruct.copy);
   return result;
 }
 
