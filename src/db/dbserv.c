@@ -837,8 +837,6 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim1("ISERVER-BULK-ADD!",iserver_bulk_add,1));
   fd_defn(module,fd_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
 				 fd_vector_type,FD_VOID));
-  fd_defn(module,fd_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
-				 fd_vector_type,FD_VOID));
   fd_defn(module,fd_make_cprim1("ISERVER-GET-SIZE",iserver_get_size,1));
   fd_defn(module,fd_make_cprim0("ISERVER-KEYS",iserver_keys,0));
   fd_defn(module,fd_make_cprim0("ISERVER-SIZES",iserver_sizes,0));
