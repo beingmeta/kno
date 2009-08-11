@@ -275,6 +275,15 @@
 
 (applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
 
+;;; This finds an anti-leak in optional arguments
+;;; With this bug, the passed in argument Y to break-defaults
+;;; is GC'd one time too many.
+
+(define external-state (vector 3))
+(define (break-defaults x (y) (z (vector))) (set! y 5) 3)
+(break-defaults 8 external-state)
+(evaltest 3 (elt external-state 0))
+
 ;;; This catches "leaks" in optional arguments
 
 ;;; In the error case we're testing for, each call to testfn increfs
