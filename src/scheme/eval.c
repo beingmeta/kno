@@ -309,10 +309,10 @@ static fdtype getopt_prim(fdtype opts,fdtype keys,fdtype dflt)
   fdtype results=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(opt,opts) {
     FD_DO_CHOICES(key,keys) {
-      fdtype v=fd_getopt(opts,key,FD_VOID);
-      if (!(FD_VOIDP(v))) FD_ADD_TO_CHOICE(results,v);}}
-  if (FD_EMPTY_CHOICEP(results))
-    return fd_incref(dflt);
+      fdtype v=fd_getopt(opt,key,FD_VOID);
+      if (!(FD_VOIDP(v))) {FD_ADD_TO_CHOICE(results,v);}}}
+  if (FD_EMPTY_CHOICEP(results)) {
+    fd_incref(dflt); return dflt;}
   else return results;
 }
 static fdtype testopt_prim(fdtype opts,fdtype key,fdtype val)
