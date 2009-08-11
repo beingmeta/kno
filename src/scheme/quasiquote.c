@@ -106,8 +106,9 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 	      return err;}
 	    else {
 	      FD_DOLIST(insert_elt,insertion) {
-		fdtype new_pair=fd_init_pair(NULL,fd_incref(insert_elt),FD_EMPTY_LIST);
-		*tail=new_pair; tail=&(FD_CDR(new_pair));}}}
+		fdtype new_pair=fd_init_pair(NULL,insert_elt,FD_EMPTY_LIST);
+		*tail=new_pair; tail=&(FD_CDR(new_pair));
+		fd_incref(insert_elt);}}}
 	  else {
 	    u8_string details_string=u8_mkstring("RESULT=%q",elt);
 	    fdtype err; 
@@ -172,13 +173,13 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 	  newlen=newlen+addlen;
 	  if (FD_PAIRP(insertion)) {
 	    fdtype scan=insertion; while (FD_PAIRP(scan)) {
-	      fdtype ielt=FD_CAR(scan); newelts[j++]=fd_incref(ielt);
-	      scan=FD_CDR(scan);}
+	      fdtype ielt=FD_CAR(scan); newelts[j++]=ielt;
+	      fd_incref(ielt); scan=FD_CDR(scan);}
 	    i++;}
 	  else if (FD_VECTORP(insertion)) {
 	    int k=0; while (k<addlen) {
 	      fdtype ielt=FD_VECTOR_REF(insertion,k);
-	      newelts[j++]=fd_incref(ielt); k++;}
+	      newelts[j++]=ielt; fd_incref(ielt); k++;}
 	    i++;}
 	  else {
 	    fd_decref(insertion);
