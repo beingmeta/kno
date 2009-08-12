@@ -1611,6 +1611,8 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
       while ((scan) && (scan<limit)) {
 	if ((pos) && (pos>start) && (*(pos-1)==e)) {
 	  pos=strchr(pos+1,c);}
+	else if (pos==scan) {
+	  scan=pos+1; pos=strchr(scan,c);}
 	else  {
 	  fdtype seg=fd_extract_string(NULL,scan,pos);
 	  fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
