@@ -54,6 +54,8 @@
 	    (add! node 'terms terms))
 	  (when index
 	    (index-frame index node 'terms terms)
+	    (when (exists? terms) (index-frame index node 'has 'terms))
+	    (index-frame index node 'has fields)
 	    (do-choices (field fields)
 	      (index-frame index node field (get pairs field))))
 	  (do-choices (field (if (eq? cacheslots #t) fields
