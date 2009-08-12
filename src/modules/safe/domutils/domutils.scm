@@ -12,12 +12,14 @@
 (module-export!
  '{
    dom/textify
+   dom/textual?
    dom/oidify dom/oidmap dom/nodeid
    dom/set! dom/add! dom/append!
    dom/selector dom/match dom/lookup dom/find
    dom/getrules dom/add-rule!
    dom/search dom/strip! dom/map
    dom/getmeta dom/getlinks
+   dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
    *block-text-tags*})
 
@@ -26,6 +28,11 @@
    '{"P"
      "LI" "DT" "BLOCKQUOTE"
      "H1" "H2" "H3" "H4" "H5" "H6"}))
+
+;;; Random utilities
+
+(define (dom/split-space string) (elts (segment string " ")))
+(define (dom/split-semi string) (elts (segment string ";")))
 
 ;;; DOM editing
 
@@ -329,13 +336,15 @@
 
 ;;; Getting meta fields
 
-(define (dom/getmeta doc field (dflt))
-  (try (get (pick (dom/find (dom/find doc "HEAD") "META")
-		  'name (choice field
-				(tryif (symbol? field)
-				  (symbol->string field))))
-	    'content)
-       (if (bound? dflt) dflt (fail))))
+(define (dom/getmeta doc field (xform) (dflt))
+  (let ((elts (pick (dom/find (dom/find doc "HEAD") "META")
+		    'name (choice field
+				  (tryif (symbol? field)
+				    (symbol->string field))))))
+    (try (if (and (bound? xform) xform)
+	     (xform (get elts 'content))
+	     (get elts 'content))
+	 (if (bound? dflt) dflt (fail)))))
 
 (define (dom/getlinks doc field (dflt))
   (let ((links (pick (dom/find (dom/find doc "HEAD") "LINK")
@@ -406,6 +415,12 @@
 		(store! node '%text s)
 		s)
 	      (stringout (dom/textify node #t #f))))))
+
+(define (dom/textual? node)
+  (and (test node '%content)
+       (exists? (difference (textsubst (pickstrings (get node '%content))
+				       '#{(isspace) (ispunct)} "")
+			    ""))))
 
 ;;; OIDify
 

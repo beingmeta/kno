@@ -11,7 +11,7 @@
 	      fdweb xhtml texttools domutils
 	      morph varconfig logger})
 
-(module-export! '{dom/index! dom/indexer dom/split-space dom/split-semi})
+(module-export! '{dom/index! dom/indexer})
 
 (define %loglevel %notice!)
 (define default-dom-slots '{id class name})
@@ -28,8 +28,6 @@
 (define default-analyzers {})
 (varconfig! dom:analyzer default-analyzers #f choice)
 
-(define (dom/split-space string) (elts (segment string " ")))
-(define (dom/split-semi string) (elts (segment string ";")))
 (config! 'dom:indexrules (cons 'class dom/split-space))
 
 (define (dom/index! index doc (settings #[]))
@@ -91,6 +89,8 @@
 			     indexslots cacheslots
 			     indexrules analyzers idmap
 			     settings doc))))))))
+
+
 
 
 

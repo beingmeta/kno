@@ -1,0 +1,2 @@
+(load-component "domanalyze.scm")
+
