@@ -6,6 +6,8 @@
 (use-module '{brico brico/dterms xtags})
 (use-module '{fdweb xhtml xhtml/clickit xhtml/brico i18n})
 
+(define small-oid-icon
+  "http://static.beingmeta.com/graphics/diamond12.png")
 (define checked-oid-icon
   "http://static.beingmeta.com/graphics/diamond16.png")
 (define unchecked-oid-icon
@@ -22,7 +24,7 @@
     (doseq (string (append (lexsorted (intersection terms checked))
 			   (lexsorted (difference terms checked)))
 		   i)
-      (when (> i 0) (xmlout " "))
+      (when (> i 0) (xmlout " \&middot; "))
       (span ((class (if var "tagspan checkspan" "tagspan")))
 	(when var
 	  (input TYPE "CHECKBOX"
@@ -44,7 +46,7 @@
 			 ("CHECKED" ischecked))
 		  (img SRC checked-oid-icon ALT "+" class "checked")
 		  (img SRC unchecked-oid-icon ALT "o" class "unchecked")))
-	      (img SRC checked-oid-icon ALT "+"
+	      (img SRC small-oid-icon ALT "+"
 		   TITLE (get-single-gloss oid default-language))))))))
 
 (define (deeptag/span term oidlist)

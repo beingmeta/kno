@@ -96,6 +96,8 @@
       (cgiset! expiresvar user))
     (when (or (fail? session) (not session))
       (let ((thepast (timestamp+ (gmtimestamp 'seconds) (* 48 -3600))))
+	(set-cookie! uservar "expired" domain path thepast)
+        (cgidrop! uservar)
 	(set-cookie! sessionvar "expired" domain path thepast)
 	(cgidrop! sessionvar)
 	(set-cookie! expiresvar "expired" domain path thepast)
