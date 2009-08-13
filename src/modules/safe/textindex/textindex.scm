@@ -51,7 +51,7 @@
 				  rootmaps rootfns morphrules))))
 	   (xrefs (getrefs text refrules stopv))
 	   (refs  (filter-choices (word xrefs)
-		    (not (try (get stopcache word) 
+		    (not (try (get stopcache word)
 			      (stopcheck word stopcache stopwords stoprules)))))
 	   (refroots (for-choices (ref refs)
 		       (try (getroot ref rootcache
@@ -60,7 +60,7 @@
 			    ref)))
 	   (results (choice roots refroots)))
       ;; (%watch "TEXTANALYZE" text rootv stopv)
-      ;; (%watch "TEXTANALYZE" xwords words roots refs refroots)
+      ;; (%watch "TEXTANALYZE" xwords words roots xrefs refs refroots)
       (doseq (root rootv i)
 	;; (%watch "CHECKROOT" root i (choice-size (get phrasemap root)))
 	(unless (or (elt stopv i) (capitalized? root))
