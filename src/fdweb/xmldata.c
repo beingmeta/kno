@@ -83,6 +83,22 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
     return contents;}
 }
 
+/* This returns the content field as parsed. */
+static fdtype xmlemptyp(fdtype elt,fdtype attribid)
+{
+  if (FD_VOIDP(attribid)) attribid=content_slotid;
+  if (!(fd_test(elt,attribid,FD_VOID)))
+    return FD_TRUE;
+  else {
+    fdtype content=fd_get(elt,attribid,FD_EMPTY_LIST);
+    if ((FD_EMPTY_LISTP(content)) ||
+	(FD_EMPTY_CHOICEP(content)))
+      return FD_TRUE;
+    else {
+      fd_decref(content);
+      return FD_FALSE;}}
+}
+
 /* This returns the content field as a string. */
 static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 {
@@ -134,11 +150,13 @@ void fd_init_xmldata_c()
   fd_idefn(module,fd_make_cprim2("XMLGET",xmlget,2));
   fd_idefn(module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
   fd_idefn(module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
+  fd_idefn(module,fd_make_cprim2("XMLEMPTY?",xmlemptyp,1));
 
   fd_idefn(safe_module,fd_make_cprim2("XMLATTRIB",xmlattrib,2));
   fd_idefn(safe_module,fd_make_cprim2("XMLGET",xmlget,2));
   fd_idefn(safe_module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
   fd_idefn(safe_module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
+  fd_idefn(safe_module,fd_make_cprim2("XMLEMPTY?",xmlemptyp,1));
 
   name_slotid=fd_intern("%XMLTAG");
   content_slotid=fd_intern("%CONTENT");

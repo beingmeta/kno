@@ -700,7 +700,6 @@ static FD_XML *handle_xmleval_pi
 	  fdtype new_cons=fd_init_pair(NULL,expr,FD_EMPTY_LIST);
 	  *tail=new_cons; tail=&(FD_CDR(new_cons));}
 	expr=fd_parse_expr(&in);}
-      
       fd_add_content(xml,insert);}
     return xml;}
 }
@@ -754,6 +753,36 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
     fd_decref(handler);
     return result;}
   return result;
+}
+
+/* Breaking up FDXML evaluation */
+
+FD_EXPORT
+fdtype fd_open_xml(fdtype xml,fd_lispenv env)
+{
+  if (FD_TABLEP(xml)) {
+    u8_output out=fd_get_default_output();
+    fdtype markup=get_markup_string(xml,env);
+    if (FD_STRINGP(markup)) u8_printf(out,"<%s>",FD_STRDATA(markup));
+    return markup;}
+  else return FD_VOID;
+}
+
+FD_EXPORT
+fdtype fd_close_xml(fdtype xml)
+{
+  fdtype name=FD_VOID;
+  u8_output out=fd_get_default_output();
+  if (fd_test(xml,rawname_slotid,FD_VOID)) 
+    name=fd_get(xml,rawname_slotid,FD_VOID);
+  else if (fd_test(xml,elt_name,FD_VOID)) 
+    name=fd_get(xml,elt_name,FD_VOID);
+  else {}
+  if ((FD_SYMBOLP(name))||(FD_STRINGP(name))) {
+    u8_puts(out,"</");
+    output_markup_sym(out,name);
+    u8_putc(out,'>');}
+  return name;
 }
 
 /* Reading for evaluation */

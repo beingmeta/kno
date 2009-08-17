@@ -1441,6 +1441,27 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     return v;}
 }
 
+static fdtype xmlopen_handler(fdtype expr,fd_lispenv env)
+{
+  if (!(FD_PAIRP(FD_CDR(expr))))
+    return fd_err(fd_SyntaxError,"xmleval_handler",NULL,FD_VOID);
+  else {
+    fdtype node=fd_eval(FD_CADR(expr),env);
+    if (FD_ABORTP(node)) return node;
+    else if (FD_TABLEP(node)) {
+      fdtype result=fd_open_xml(node,env);
+      fd_decref(node);
+      return result;}
+    else return FD_VOID;}
+}
+
+static fdtype xmlclose_prim(fdtype arg)
+{
+  if (!(FD_TABLEP(arg)))
+    return fd_type_error("XML node","xmlclose_prim",arg);
+  else return fd_close_xml(arg);
+}
+
 /* Javascript output */
 
 /* This generates a javascript function call, transforming the
@@ -1712,11 +1733,18 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(xhtml_module,fd_intern("INPUT"),emptymarkup_prim);
   fd_store(xhtml_module,fd_intern("BR"),emptymarkup_prim);
   fd_store(xhtml_module,fd_intern("HR"),emptymarkup_prim);
-
+  
   fd_defspecial(xhtml_module,"TABLE->HTML",table2html_handler);
 
   fd_defspecial(fdweb_module,"XMLEVAL",xmleval_handler);
   fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_handler);
+  fd_defspecial(fdweb_module,"XMLOPEN",xmlopen_handler);
+  fd_defspecial(safe_fdweb_module,"XMLOPEN",xmlopen_handler);
+  {
+    fdtype xmlcloseprim=
+      fd_make_cprim1("XMLCLOSE",xmlclose_prim,1);
+    fd_defn(fdweb_module,xmlcloseprim);
+    fd_idefn(safe_fdweb_module,xmlcloseprim);}
 
   fd_decref(markup_prim); fd_decref(markupstar_prim);
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);

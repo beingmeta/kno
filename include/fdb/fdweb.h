@@ -107,6 +107,8 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x);
 FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lispenv env);
 FD_EXPORT void fd_xmloid(u8_output out,fdtype oid_arg);
 FD_EXPORT fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env);
+FD_EXPORT fdtype fd_open_xml(fdtype xml,fd_lispenv env);
+FD_EXPORT fdtype fd_close_xml(fdtype xml);
 FD_EXPORT fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env);
 FD_EXPORT struct FD_XML *fd_read_fdxml(u8_input in,int bits);
 
