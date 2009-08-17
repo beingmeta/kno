@@ -97,9 +97,11 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
   else if (FD_STRINGP(val)) {
     fd_attrib_entify(out,FD_STRDATA(val));
     return 1;}
+  else if (FD_OIDP(val)) {}
   else {
     u8_string as_string=fd_dtype2string(val);
-    u8_putc(out,':');
+    if (!((FD_FIXNUMP(val)) || (FD_FLONUMP(val)) || (FD_BIGINTP(val))))
+      u8_putc(out,':');
     fd_attrib_entify(out,as_string);
     u8_free(as_string);
     return 1;}
