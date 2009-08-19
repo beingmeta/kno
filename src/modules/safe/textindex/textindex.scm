@@ -95,7 +95,11 @@
 				word))
 		      (try (pick (rootfns word) rootset)
 			   (try-choices (rule morphrules)
-			     (morphrule word rule rootset)))))))
+			     (morphrule word rule rootset)))
+		      (tryif (and (capitalized? word) (not (uppercase? word)))
+			(try (pick (rootfns (downcase word)) rootset)
+			     (try-choices (rule morphrules)
+			       (morphrule (downcase word) rule rootset))))))))
     (store! cache word result)
     result))
 
