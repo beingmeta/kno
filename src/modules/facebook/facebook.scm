@@ -154,9 +154,6 @@
   (if force (cgiset! var value)
       (unless (cgitest var) (cgiset! var value))))
 
-(define (strip-callback-prefix string)
-  (subseq string (try (largest (textmatcher callback-prefixes string)) 0)))
-
 ;; (define (get-next-uri)
 ;;   (try (cgiget 'next_uri)
 ;;        (stringout (strip-callback-prefix (cgiget 'request_uri "/"))
@@ -218,17 +215,23 @@
 		"http://"
 		(cgiget 'HTTP_HOST)
 		(let ((stripped
-		       (textsubst (strip-callback-prefix (cgiget 'REQUEST_URI))
+		       (textsubst (cgiget 'REQUEST_URI)
 				  '(SUBST (GREEDY #("auth_token="
 						    (not> {"&" (eol)})
 						    {"&" (eol)}))
 					  ""))))
 		  (stringout (unless (has-prefix stripped "/") "/")
-			     (if (has-suffix stripped "?")
-				 (subseq stripped 0 -1)
-				 stripped))))
-
-    user))
+			     (if (and (cgitest 'next) (cgiget 'next))
+				 (printout
+				   stripped
+				   (unless (search stripped "?") "?")
+				   (unless (has-prefix stripped "&") "&")
+				   "NEXT=" (uriencode (cgiget 'next)))
+				 (if (has-suffix stripped "?")
+				     (subseq stripped 0 -1)
+				     stripped)))))
+    user
+    #f))
 
 (define (doauthorize  (fb_sig_session_key #f)
 		      (fb_sig_session_expires #f)
@@ -284,8 +287,8 @@
 	 (cgiget 'fb_sig_user)) 
 	((cgitest 'auth_token)
 	 (when trace-facebook-auth
-	   (%watch "AUTH_TOKEN" (cgiget 'auth_token)))
-	 (when next (cgipass! 'next_uri next))
+	   (%watch "AUTH_TOKEN" (cgiget 'auth_token) next))
+	 (when next (cgipass! 'next next))
 	 (when dialog (cgipass! 'dialog #t))
 	 (cgicall handleauthtoken))
 	((or (cgitest 'fb_sig_session_key) (fb/useinfo))
