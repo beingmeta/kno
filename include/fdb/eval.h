@@ -111,6 +111,9 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 FD_EXPORT fdtype fd_find_module(fdtype,int,int);
 FD_EXPORT fdtype fd_new_module(char *name,int flags);
 
+FD_EXPORT fdtype fd_use_module(fd_lispenv env,fdtype module);
+
+
 FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int));
 
 /* SPROCs */

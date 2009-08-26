@@ -469,6 +469,27 @@ static fdtype get_module(fdtype modname)
   return module;
 }
 
+FD_EXPORT
+fdtype fd_use_module(fd_lispenv env,fdtype module)
+{
+  if (FD_SYMBOLP(module)) module=get_module(module);
+  else fd_incref(module);
+  if (FD_HASHTABLEP(module)) {
+    fd_lispenv oldparent=env->parent;
+    env->parent=fd_make_export_env(module,env->parent);
+    fd_decref((fdtype)(oldparent));}
+  else if (FD_ENVIRONMENTP(module)) {
+    fd_lispenv oldparent=env->parent;
+    fd_lispenv expenv=
+      FD_GET_CONS(module,fd_environment_type,fd_environment);
+    fdtype expval=(fdtype)get_exports(expenv);
+    env->parent=fd_make_export_env(expval,env->parent);
+    fd_decref((fdtype)(oldparent));}
+  else return fd_type_error("module","fd_use_module",module);
+  fd_decref(module);
+  return FD_VOID;
+}
+
 static fdtype bronze_module(fdtype module)
 {
   if (FD_HASHTABLEP(module)) {
