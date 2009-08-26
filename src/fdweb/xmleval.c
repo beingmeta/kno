@@ -326,8 +326,11 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
     struct FD_SPECIAL_FORM *sf=
       FD_GET_CONS(fn,fd_specform_type,fd_special_form);
     result=sf->eval(xml,env);}
-  else result=fd_xapply_sproc(FD_GET_CONS(fn,fd_sproc_type,fd_sproc),&cxt,
-			      xmlgetarg);
+  else if (FD_PRIM_TYPEP(fn,fd_sproc_type))
+    result=fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);
+  else {
+    fd_decref(bind);
+    return fd_type_error("function","xmlapply",fn);}
 
   result=fd_finish_call(result);
 
