@@ -729,10 +729,9 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
     fd_decref(headers);}
   u8_puts(out,"</head>\n");
   if (FD_FALSEP(body_attribs)) {}
-  else if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>\n");
+  else if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>");
   else {
-    fd_open_markup(out,"body",body_attribs,0);
-    u8_puts(out,"\n");}
+    fd_open_markup(out,"body",body_attribs,0);}
   fd_decref(doctype); fd_decref(xmlpi); fd_decref(body_attribs);
   return 1;
 }
@@ -953,27 +952,31 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   fdtype old_table=fd_thread_get(cgidata_symbol);
   fdtype new_table=fd_eval(fd_get_arg(expr,1),env);
   U8_OUTPUT *oldout=fd_get_default_output();
-  U8_OUTPUT _newout, *newout=&_newout;
+  U8_OUTPUT _out, *out=&_out;
   fdtype body=fd_get_body(expr,1);
   fdtype result=FD_VOID;
   if (FD_ABORTP(new_table)) return new_table;
   if (!(FD_TABLEP(new_table))) {
     fd_decref(new_table); new_table=fd_init_slotmap(NULL,0,NULL);}
-  U8_INIT_OUTPUT(&_newout,1024);
-  fd_set_default_output(newout);
+  U8_INIT_OUTPUT(&_out,1024);
+  fd_set_default_output(out);
   fd_thread_set(cgidata_symbol,new_table);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) {
-	u8_free(_newout.u8_outbuf);
+	u8_free(_out.u8_outbuf);
 	return result;}
       fd_decref(result);
       result=fd_eval(ex,env);}}
   fd_set_default_output(oldout);
+  fd_output_xhtml_preface(oldout,new_table);
+  u8_putn(oldout,_out.u8_outbuf,(_out.u8_outptr-_out.u8_outbuf));
+  u8_printf(oldout,"\n</body>\n</html>\n");
   fd_thread_set(cgidata_symbol,old_table);
   fd_decref(new_table);
   fd_decref(result);
-  return fd_init_string
-    (NULL,_newout.u8_outptr-_newout.u8_outbuf,_newout.u8_outbuf);
+  u8_free(_out.u8_outbuf);
+  u8_flush(oldout);
+  return FD_VOID;
 }
 
 static int cgiexec_initialized=0;
