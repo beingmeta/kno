@@ -1448,7 +1448,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 	       (FD_TABLEP(xmlenvarg)))) {
       fd_decref(xmlarg); fd_decref(envarg);
       return fd_type_error("environment","xmleval_handler",xmlenvarg);}
-    else if ((FD_VOIDP(xmlenvarg)) && (FD_VOIDP(xmlenvarg))) {}
+    else if ((FD_VOIDP(envarg)) && (FD_VOIDP(xmlenvarg))) {}
     else {
       if (FD_ENVIRONMENTP(envarg)) 
 	target_env=(fd_lispenv)envarg;
