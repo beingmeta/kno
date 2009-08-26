@@ -53,7 +53,7 @@ static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 static fdtype get_cgidata()
 {
   fdtype table=fd_thread_get(cgidata_symbol);
-  if (!(FD_TABLEP(table))) {
+  if ((!table) || (!(FD_TABLEP(table)))) {
     table=fd_init_slotmap(NULL,0,NULL);
     fd_thread_set(cgidata_symbol,table);
     return table;}
@@ -930,6 +930,52 @@ static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+static fdtype withreq_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype old_table=fd_thread_get(cgidata_symbol);
+  fdtype new_table=fd_eval(fd_get_arg(expr,1),env);
+  fdtype body=fd_get_body(expr,1);
+  fdtype result=FD_VOID;
+  if (!(FD_TABLEP(new_table))) {
+    fd_decref(new_table); new_table=fd_init_slotmap(NULL,0,NULL);}
+  fd_thread_set(cgidata_symbol,new_table);
+  {FD_DOLIST(ex,body) {
+      if (FD_ABORTP(result)) return result;
+      fd_decref(result);
+      result=fd_eval(ex,env);}}
+  fd_thread_set(cgidata_symbol,old_table);
+  fd_decref(new_table);
+  return result;
+}
+
+static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype old_table=fd_thread_get(cgidata_symbol);
+  fdtype new_table=fd_eval(fd_get_arg(expr,1),env);
+  U8_OUTPUT *oldout=fd_get_default_output();
+  U8_OUTPUT _newout, *newout=&_newout;
+  fdtype body=fd_get_body(expr,1);
+  fdtype result=FD_VOID;
+  if (FD_ABORTP(new_table)) return new_table;
+  if (!(FD_TABLEP(new_table))) {
+    fd_decref(new_table); new_table=fd_init_slotmap(NULL,0,NULL);}
+  U8_INIT_OUTPUT(&_newout,1024);
+  fd_set_default_output(newout);
+  fd_thread_set(cgidata_symbol,new_table);
+  {FD_DOLIST(ex,body) {
+      if (FD_ABORTP(result)) {
+	u8_free(_newout.u8_outbuf);
+	return result;}
+      fd_decref(result);
+      result=fd_eval(ex,env);}}
+  fd_set_default_output(oldout);
+  fd_thread_set(cgidata_symbol,old_table);
+  fd_decref(new_table);
+  fd_decref(result);
+  return fd_init_string
+    (NULL,_newout.u8_outptr-_newout.u8_outbuf,_newout.u8_outbuf);
+}
+
 static int cgiexec_initialized=0;
 
 FD_EXPORT void fd_init_cgiexec_c()
@@ -954,6 +1000,11 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim2("CGIDROP!",cgidrop,1));
   fd_defspecial(module,"CGIVAR",cgivar_handler);
   
+  fd_defspecial(module,"WITHREQ",withreq_handler);
+  fd_defspecial(module,"WITHREQOUT",withreqout_handler);
+  fd_defalias(module,"WITHCGI","WITHREQ");
+  fd_defalias(module,"WITHCGIOUT","WITHREQOUT");
+
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
   fd_defspecial(xhtmlout_module,"TITLE!",title_handler);
   fd_idefn(xhtmlout_module,
