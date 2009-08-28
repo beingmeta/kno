@@ -415,7 +415,7 @@
 		  (printout node))))
       (if (test node '%text)
 	  (get node '%text)
-	  (if cache
+	  (if (and cache (not (pair? node)) (not (string? node)))
 	      (let ((s (stringout (dom/textify node #t #f))))
 		(store! node '%text s)
 		s)
