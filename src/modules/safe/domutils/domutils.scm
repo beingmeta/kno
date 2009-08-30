@@ -217,10 +217,9 @@
 
 (define (dom/getrules table elt (dflt))
   (if (pair? table)
-      (dom/getrules (car table) elt
-		    (if (bound? dflt)
-			(dom/getrules (cdr table) elt dflt)
-			(dom/getrules (cdr table) elt)))
+      (try (dom/getrules (car table) elt)
+	   (dom/getrules (cdr table) elt)
+	   (tryif (bound? dflt) dflt))
       (let ((tag (get elt '%xmltag))
 	    (class (elts (segment (get elt 'class))))
 	    (id (get elt 'id)))
