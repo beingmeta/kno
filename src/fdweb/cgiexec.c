@@ -33,7 +33,7 @@ static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
 static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
-static fdtype parts_slotid, name_slotid, filename_slotid;
+static fdtype parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
 
 static int log_cgidata=0;
 
@@ -979,6 +979,34 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+/* URI mapping */
+
+FD_EXPORT
+fdtype fd_mapurl(fdtype uri)
+{
+  fdtype cgidata=get_cgidata();
+  if (fd_test(cgidata,mapurlfn_symbol,FD_VOID)) {
+    fdtype mapfn=fd_get(cgidata,mapurlfn_symbol,FD_VOID);
+    fd_decref(cgidata);
+    if (FD_APPLICABLEP(mapfn))
+      return fd_apply(mapfn,1,&uri);
+    else return FD_EMPTY_CHOICE;}
+  else {
+    fd_decref(cgidata);
+    return FD_EMPTY_CHOICE;}
+}
+
+static fdtype mapurl(fdtype uri)
+{
+  fdtype result=fd_mapurl(uri);
+  if (FD_ABORTP(result)) return result;
+  else if (FD_STRINGP(result)) return result;
+  else {
+    fd_decref(result); return fd_incref(uri);}
+}
+
+/* Initialization */
+
 static int cgiexec_initialized=0;
 
 FD_EXPORT void fd_init_cgiexec_c()
@@ -1001,6 +1029,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGISET!",cgiset,2)));
   fd_idefn(module,fd_make_cprim2("CGIADD!",cgiadd,2));
   fd_idefn(module,fd_make_cprim2("CGIDROP!",cgidrop,1));
+  fd_idefn(module,fd_make_cprim1x("MAPURL",mapurl,1,fd_string_type,FD_VOID));
   fd_defspecial(module,"CGIVAR",cgivar_handler);
   
   fd_defspecial(module,"WITHREQ",withreq_handler);
@@ -1021,6 +1050,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   tail_symbol=fd_intern("%TAIL");
   cgidata_symbol=fd_intern("CGIDATA");
   browseinfo_symbol=fd_intern("BROWSEINFO");
+  mapurlfn_symbol=fd_intern("MAPURLFN");
 
   accept_type=fd_intern("HTTP_ACCEPT");
   accept_language=fd_intern("HTTP_ACCEPT_LANGUAGE");

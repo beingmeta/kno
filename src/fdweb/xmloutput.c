@@ -607,6 +607,20 @@ static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
+static fdtype emptyurimarkup_handler(fdtype expr,fd_lispenv env)
+{
+  U8_OUTPUT *out=fd_get_default_output();
+  fdtype head=FD_CAR(expr), args=FD_CDR(expr);
+  u8_byte tagbuf[128], *tagname=get_tagname(head,tagbuf,128);
+  if (tagname==NULL)
+    return fd_err(fd_SyntaxError,"emptymarkup_handler",NULL,expr);
+  else if (open_markup(out,NULL,tagname,args,env,1)<0)
+    return FD_ERROR_VALUE;
+  else {
+    u8_flush(out);
+    return FD_VOID;}
+}
+
 /* XHTML error report */
 
 #define DEFAULT_DOCTYPE \
@@ -1001,8 +1015,13 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
   else if (FD_EMPTY_LISTP(body))
     return fd_err(fd_SyntaxError,"doanchor",NULL,FD_VOID);
   if (FD_STRINGP(target)) {
+    fdtype mapped=fd_mapurl(target);
+    if (FD_ABORTP(mapped)) return mapped;
     u8_printf(out,"<a href='");
-    attrib_entify(out,FD_STRDATA(target));
+    if (FD_STRINGP(mapped)) {
+      attrib_entify(out,FD_STRDATA(mapped));
+      fd_decref(mapped);}
+    else attrib_entify(out,FD_STRDATA(target));
     u8_puts(out,"'>");}
   else if (FD_SYMBOLP(target)) {
     u8_printf(out,"<a href='#");
@@ -1062,9 +1081,14 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"doanchor",NULL,FD_VOID);
   else if (FD_EMPTY_LISTP(body))
     return fd_err(fd_SyntaxError,"doanchor",NULL,FD_VOID);
-  if (FD_STRINGP(target)) 
-    attribs=fd_init_pair
-      (NULL,href_symbol,fd_init_pair(NULL,fd_incref(target),fd_incref(attribs)));
+  if (FD_STRINGP(target)) {
+    fdtype mapped=fd_mapurl(target);
+    if (FD_ABORTP(mapped)) return mapped;
+    if (FD_STRINGP(mapped))
+      attribs=fd_init_pair
+	(NULL,href_symbol,fd_init_pair(NULL,mapped,fd_incref(attribs)));
+    else attribs=fd_init_pair
+	   (NULL,href_symbol,fd_init_pair(NULL,fd_incref(target),fd_incref(attribs)));}
   else if (FD_SYMBOLP(target)) {
     tmpout.u8_outptr=tmpout.u8_outbuf;
     u8_printf(out,"#%s",FD_SYMBOL_NAME(target));

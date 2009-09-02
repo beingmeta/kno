@@ -118,6 +118,7 @@ FD_EXPORT int fd_parse_cgidata(fdtype data);
 FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata,int threadbind);
 FD_EXPORT fdtype fd_get_cgidata(void);
 FD_EXPORT void fd_urify(u8_output out,fdtype val);
+FD_EXPORT fdtype fd_mapurl(fdtype uri);
 
 /* XML output stuff */
 
