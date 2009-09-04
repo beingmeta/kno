@@ -181,6 +181,18 @@
 (define-init fb/sessions->users (make-hashtable))
 (define-init fb/closed-sessions (make-hashset))
 
+(define (strip-request uri)
+  (textsubst (textsubst uri
+			'#{(SUBST (GREEDY #("auth_token="
+					    (not> {"&" (eol)})
+					    {"&" (eol)}))
+				  "")
+			   (SUBST (GREEDY #("next="
+					    (not> {"&" (eol)})
+					    {"&" (eol)}))
+				  "")})
+	     #("?" (eol)) ""))
+
 (define (handleauthtoken (fb_sig_session_key #f)
 			 (fb_sig_session_expires #f)
 			 (fb_sig_in_canvas #f)
@@ -214,24 +226,19 @@
     (httpheader "Location: "
 		"http://"
 		(cgiget 'HTTP_HOST)
-		(let ((stripped
-		       (textsubst (cgiget 'REQUEST_URI)
-				  '(SUBST (GREEDY #("auth_token="
-						    (not> {"&" (eol)})
-						    {"&" (eol)}))
-					  ""))))
+		(let ((stripped (strip-request (cgiget 'REQUEST_URI))))
 		  (stringout (unless (has-prefix stripped "/") "/")
 			     (if (and (cgitest 'next) (cgiget 'next))
 				 (printout
 				   stripped
-				   (unless (search stripped "?") "?")
-				   (unless (has-prefix stripped "&") "&")
-				   "NEXT=" (uriencode (cgiget 'next)))
+				   (if (search stripped "?")
+				       (if (has-suffix stripped "&") "" "&")
+				       "?")
+				   "next=" (uriencode (cgiget 'next)))
 				 (if (has-suffix stripped "?")
 				     (subseq stripped 0 -1)
 				     stripped)))))
-    user
-    #f))
+    user))
 
 (define (doauthorize  (fb_sig_session_key #f)
 		      (fb_sig_session_expires #f)
