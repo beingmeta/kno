@@ -1362,9 +1362,21 @@ static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,int sock)
 
 static void copy_script_output(int sock,request_rec *r)
 {
-  char buf[4096]; int bytes_read=0;
-  while ((bytes_read=read(sock,buf,4096))>0) {
-    ap_rwrite(buf,bytes_read,r); ap_rflush(r);}
+  char buf[4096]; ssize_t bytes_read=0;
+  while (1) {
+    ssize_t delta=read(sock,buf,4096);
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,r->server,
+       "mod_fdserv: Read %d bytes of %d (so far)",delta,bytes_read);
+    if (delta>0) {
+      bytes_read=bytes_read+delta;
+      ap_rwrite(buf,delta,r); ap_rflush(r);}
+    else if (delta==0) break;
+    else if (errno==EAGAIN) continue;
+    else break;}
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,r->server,
+     "mod_fdserv: Finished reading %d bytes",bytes_read);
 }
 
 static log_buf(char *msg,int size,char *data,request_rec *r)
