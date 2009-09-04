@@ -52,7 +52,6 @@
 	 (session (cgiget sessionvar))
 	 (expires (gmtimestamp (cgiget expiresvar)))
 	 (info (get sessions session)))
-    ;; (%watch "GETINFO" user session expires info (cgiget expiresvar))
     (and (exists? info) info
 	 (test info 'user user)
 	 (and (exists? expires) (test info 'expires expires))
@@ -93,7 +92,7 @@
       (set-cookie! sessionvar session domain path expires)
       (cgiset! sessionvar session)
       (set-cookie! expiresvar (get expires 'iso) domain path expires)
-      (cgiset! expiresvar user))
+      (cgiset! expiresvar expires))
     (when (or (fail? session) (not session))
       (let ((thepast (timestamp+ (gmtimestamp 'seconds) (* 48 -3600))))
 	(set-cookie! uservar "expired" domain path thepast)
@@ -135,9 +134,9 @@
 (define (auth/deauthorize! session)
   (let ((info (get sessions session)))
     (when trace-auth (%watch "DEAUTHORIZE" session info))
-    (drop! info '{session expires refresh})
+    (when info (drop! info '{session expires refresh}))
     (store! sessions session #f)
-    (set-cookies! (qc info))
+    (set-cookies! (qc))
     info))
 
 (module-export! '{auth/getinfo auth/authorize! auth/deauthorize!})
