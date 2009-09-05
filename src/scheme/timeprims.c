@@ -119,6 +119,17 @@ static fdtype gmtimestamp_prim(fdtype arg)
   if (FD_VOIDP(arg)) {
     u8_init_xtime(&(tm->xtime),-1,u8_femtosecond,0,0,0);
     return FDTYPE_CONS(tm);}
+  else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *ftm=FD_GET_CONS(arg,fd_timestamp_type,fd_timestamp);
+    if (ftm->xtime.u8_tzoff==0) {
+      u8_free(tm); return fd_incref(arg);}
+    else {
+      time_t tick=ftm->xtime.u8_tick;
+      if (ftm->xtime.u8_prec>u8_second)
+	u8_init_xtime(&(tm->xtime),tick,ftm->xtime.u8_prec,
+		      ftm->xtime.u8_nsecs,0,0);
+      else u8_init_xtime(&(tm->xtime),tick,ftm->xtime.u8_prec,0,0,0);
+      return FDTYPE_CONS(tm);}}
   else if (FD_STRINGP(arg)) {
     u8_string sdata=FD_STRDATA(arg); int c=*sdata; time_t moment;
     if (u8_isdigit(c))
