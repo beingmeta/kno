@@ -10,9 +10,18 @@
 (use-module '{fdweb xhtml texttools facebook logger})
 
 (module-export!
- '{fbcall fbcall/raw fbcall/open fbcall/vec fbcall/open/vec fbcall/xml})
+ '{fbcall
+   fbcalluri fbcalluri*
+   fbcall/raw fbcall/open fbcall/vec fbcall/open/vec fbcall/xml
+   fb/false? fb/true?})
 
 (define %loglevel %notice!)
+
+(define (fb/false? arg)
+  (or (not arg)
+      (zero? arg)
+      (and (string? arg) (or (equal? arg "0") (equal? arg "false")))))
+(define (fb/true? arg) (not (fb/false? arg)))
 
 ;;; Main functions
 
@@ -64,6 +73,7 @@
 	  (printout (car args) "="
 		    (uriencode (lisp->string (cadr args))) "&")))
     (printout "sig=" (downcase (packet->base16 (get-signature args))))))
+(define (fbcalluri* method . args) (fbcalluri method args))
 
 (define (encode-args args)
   (if (null? args) '()
@@ -206,7 +216,4 @@
   (fbcall/vec "fql.query"
 	      "query"
 	      (stringout mypages-query-base (fb/getmyid) ")")))
-
-
-
 

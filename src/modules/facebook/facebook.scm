@@ -192,6 +192,18 @@
 					    {"&" (eol)}))
 				  "")})
 	     #("?" (eol)) ""))
+(define (strip/fb string)
+  (if (has-prefix string "/fb")
+      (subseq string 3)
+      string))
+
+(define (forwarduri string (http #f))
+  (if (or (not http) (has-prefix string "http"))
+      (uriencode (strip/fb string))
+      (uriencode
+       (stringout"http://" (cgiget 'HTTP_HOST)
+		 (if (has-prefix string "/") "" "/")
+		 string))))
 
 (define (handleauthtoken (fb_sig_session_key #f)
 			 (fb_sig_session_expires #f)
@@ -253,14 +265,21 @@
   (cgiset! 'status 303)
 
   (when trace-facebook-auth
-    (%watch "DOAUTHORIZE" (cgiget 'next) (cgiget 'REQUEST_URI)))
+    (%watch "DOAUTHORIZE" (cgiget 'next) (cgiget 'REQUEST_URI)
+	    auth_token path_info))
 
   (httpheader
    "Location: https://www.facebook.com/login.php?"
    (if (cgitest '{popup dialog iframe}) "popup=yes&" "")
    "v=1.0&" "api_key=" (config 'fb:key) "&"
-   "next=" (uriencode (try (cgiget 'next)
-			   (cgiget 'REQUEST_URI ""))))
+   "req_perms="
+   (stringout
+     (do-choices (perm (config 'fb:perms) i)
+       (when (> i 0) (printout ","))
+       (printout perm)))
+   "&"
+   "next="
+   (forwarduri (try (cgiget 'next) (cgiget 'REQUEST_URI "")) #t))
   (emit-authorize-body)
   #f)
 
@@ -286,6 +305,11 @@
   ;;     to the Facebook login page
   ;;  3. we have a valid session
   ;;     We just return #t after setting USER
+
+  (when trace-facebook-auth
+    (%watch "FB/AUTHORIZE"
+	    next (cgiget 'REQUEST_URI)
+	    (cgiget 'auth_token) (cgiget 'path_info)))
 
   (cond ((and (fb/embedded?) (cgitest 'fb_sig_user))
 	 (when (and (cgitest 'fb_sig_session_key)
