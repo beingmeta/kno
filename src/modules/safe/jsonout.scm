@@ -10,7 +10,7 @@
 	      (jsonout value))
 	    (if (ambiguous? value) (printout "]"))))
 (define (jsonvec vector)
-  (printout "[" (dotimes (elt vector i)
+  (printout "[" (doseq (elt vector i)
 		  (if (> i 0) (printout ", "))
 		  (jsonout elt)) "]"))
 
