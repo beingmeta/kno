@@ -283,9 +283,9 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
     fd_decref(vals[0]);
     results[i]=val;
     i++;}
-  fd_decref(seq);
   fd_destroy_rwlock(&(bindings.rwlock));
   result=fd_makeseq(FD_PTR_TYPE(seq),lim,results);
+  fd_decref(seq);
   i=0; while (i<lim) {fdtype v=results[i++]; fd_decref(v);}
   return result;
 }
