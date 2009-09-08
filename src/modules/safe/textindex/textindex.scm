@@ -10,6 +10,12 @@
 
 (use-module '{texttools varconfig logger reflection})
 
+;;; Some terminology
+;;;  In the code below,
+;;;   SETTINGS are the tables, rules, etc. used for text analysis
+;;;   OPTIONS are the arguments to the text analysis which are used
+;;;    to generate the settings
+
 (module-export!
  '{text/keystrings
    text/getroots
@@ -25,6 +31,9 @@
 		       rootset rootmaps rootfns morphrules
 		       refrules
 		       options)
+  ;; It's probably fastest to use this as a straight recursive procedure
+  ;;  and keep state on the stack
+  ;; (%watch "TEXTANALYZE" text options)
   (for-choices text
     ;; Extract features
     (let* ((wordv (words->vector text #t))
@@ -121,7 +130,7 @@
 
 ;;; Exported functions
 
-(define (text/keystrings text (options default-settings) (settings))
+(define (text/keystrings text (options #[]) (settings))
   (set! settings
 	(if (bound? settings)
 	    (extend-settings settings options)
@@ -148,8 +157,8 @@
       (get-language-settings options)
       (if (test options 'type 'indexsettings) options
 	  (extend-settings
-	   (if (test options 'language)
-	       (get-language-settings (get options 'language))
+	   (if (testopt options 'language)
+	       (get-language-settings (getopt options 'language))
 	       default-settings)
 	   options))))
 
@@ -161,11 +170,12 @@
       (index-frame index f 'has slotid))))
 
 (defambda (text/analyze passages options)
+  (%watch "TEXT/ANALYZE" options)
   (let* ((allkeys {})
 	 (table (make-hashtable))
 	 (stopcache (try (get options 'stopcache) (make-hashtable)))
 	 (rootcache (try (get options 'rootcache) (make-hashtable)))
-	 (textfns (try (get options 'textfns) #f))
+	 (textfns (getopt options 'textfns #f))
 	 (settings (text/settings options))
 	 (wordrules (get settings 'wordrules))
 	 (wordfns (get settings 'wordfns))
@@ -179,6 +189,7 @@
 	 (morphrules (get settings 'morphrules))
 	 (refrules (get settings 'refrules))
 	 (options (get settings 'options)))
+    (%watch "TEXT/ANALYZE" options)
     (do-choices (passage passages)
       (do-choices (text (if textfns
 			    (choice ((pick textfns applicable?) passage)
@@ -227,9 +238,9 @@
 (define (car-length pair) (length (car pair)))
 
 (define (extend-settings settings options)
-  (let* ((stops (get options 'stops))
-	 (roots (get options 'roots))
-	 (words (get options 'words))
+  (let* ((stops (getopt options 'stops {}))
+	 (roots (getopt options 'roots {}))
+	 (words (getopt options 'words {}))
 	 (rootstrings (pickstrings roots)))
     (frame-create #f
       'type 'indexsettings
@@ -237,6 +248,7 @@
 			 (reject words applicable?))
       'wordfns (choice (get settings 'wordfns)
 		       (pick words applicable?))
+      'options (getopt options 'textopts {})
       'stopwords
       (let ((stopwords (make-hashset)))
 	(hashset-add!
@@ -276,19 +288,21 @@
 			(tryif (exists? string-suffix-rules)
 			  (->list (rsorted string-suffix-rules car-length))))))
       'phrasemap
-      (choice (get options 'phrasemaps)
+      (choice (getopt options 'phrasemaps {})
 	      (get settings 'phrasemap)
-	      (tryif (exists? (get options 'phrases))
+	      (tryif (exists? (getopt options 'phrases {}))
 		(let ((phrasemap (make-hashtable))
-		      (phrases (choice (get options 'phrases)
+		      (phrases (choice (getopt options 'phrases {})
 				       (pick rootstrings compound?))))
 		  (do-choices (phrasev (words->vector phrases))
 		    (add! phrasemap (elts phrasev) phrasev))
 		  phrasemap)))
-      'options (try (get options 'textopts) (get settings 'options))
-      'wordrules (choice (get options 'wordrules) (get settings 'wordrules))
+      'options (try (getopt options 'textopts {}) (get settings 'options))
+      'wordrules (choice (getopt options 'wordrules {})
+			 (get settings 'wordrules))
       'refrules
-      (choice (get options 'refrules) (get settings 'refrules)))))
+      (choice (getopt options 'refrules {})
+	      (get settings 'refrules)))))
 
 ;;; Dealing with language settings
 

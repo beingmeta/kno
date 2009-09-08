@@ -30,8 +30,7 @@
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
 	 (options
-	  `#[textopts
-	     ,(get options 'textopts)
+	  `#[textopts ,(getopt options 'textopts)
 	     phrases ,phrases
 	     phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
 	     roots ,(choice roots (get options 'roots))
@@ -40,7 +39,8 @@
 	     textfns ,dom/textify
 	     stops ,(choice stops (get options 'stops))
 	     stopcache ,stopcache
-	     rootcache ,rootcache ]))
+	     rootcache ,rootcache]))
+    (%watch options)
     (let* ((cacheslots (getopt options 'cacheslots #t))
 	   (textnodes (if (bound? nodes) nodes (dom/find doc indexelts)))
 	   (keystrings (text/analyze textnodes options)))
@@ -48,7 +48,7 @@
 	(let* ((keys (get keystrings node))
 	       (terms (pickstrings keys))
 	       (pairs (pick keys pair?))
-	       (fields (if (getopt options 'keepraw) (car pairs)
+	       (fields (if (test options 'textopts 'keepraw) (car pairs)
 			   (difference (car pairs) 'words))))
 	  (when (or (eq? cacheslots #t) (overlaps? 'terms cacheslots))
 	    (add! node 'terms terms))
