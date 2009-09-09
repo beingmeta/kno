@@ -120,6 +120,8 @@ define check_heap
 end
 
 # Init fdb print limits (init done through the config interface)
-set env FD_DISPLAYMAXELTS=17
-set env FD_DISPLAYMAXCHARS=256
+set env FD_DISPLAYMAXELTS=36
+set env FD_DISPLAYMAXCHARS=1024
 
+# Init some tracing configurations
+set env FD_TRACEWEB=yes
