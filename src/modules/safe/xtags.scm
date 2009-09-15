@@ -78,7 +78,7 @@
 ;; We use the 'name' syntax of OIDs to have string representations which
 ;;  embed term information.  In particular @hi/lo"term" describes a tag
 ;;  with the string 'term' and the OID 'hi/lo'.
-(define (tag->string tag (user (getuser)))
+(define (tag->string tag)
   (if (string? tag) tag
       (if (oid? tag) (oid->dterm tag)
 	  (if (tag? tag)
@@ -92,7 +92,7 @@
   `(GREEDY #((opt (label oid #("@" (isxdigit+) "/" (isxdigit+)) #t))
 	     (label term (rest) #t))))
 
-(define (string->tag string (user (getuser)))
+(define (string->tag string)
   (let* ((match (text->frame tagpat string)))
     (cons-tag (get match 'term) (get match 'oid))))
 

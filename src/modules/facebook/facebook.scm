@@ -124,7 +124,7 @@
 	   user))))
 
 (define (fb/useinfo (info (cgiget info-cookie)))
-  (%watch "FB/USEINFO" info info-cookie)
+  ;; (%watch "FB/USEINFO" info info-cookie)
   (and (exists? info) (string? info)
        (let* ((break1 (position #\; info))
 	      (break2 (and break1 (position #\; info (1+ break1)))))
@@ -143,14 +143,14 @@
 (define (save-fbinfo! (cookie #t))
   (let* ((id (cgiget 'fb_sig_user))
 	 (session (cgiget 'fb_sig_session_key))
-	 (exptick (cgiget 'fb_sig_session_expires))
+	 (exptick (try (cgiget 'fb_sig_session_expires)
+		       (cgiget 'fb_sig_expires)))
 	 (expires (and (number? exptick) (> exptick 0)
 		       (timestamp exptick)))
 	 (info (stringout id ";" (if expires (get expires 'tick) 0)
 			  ";" session))
 	 (domain (or apphost (cgiget 'http_host))))
-    (%watch "SAVE-FBINFO!" id session expires info domain
-	    (cgiget 'fb_sig_session_expires))
+    ;; (%watch "SAVE-FBINFO!" id session expires info domain)
     (when cookie (set-cookie! info-cookie info domain "/" expires))
     info))
 

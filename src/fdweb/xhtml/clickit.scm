@@ -29,6 +29,19 @@
 
 (module-export! 'geturl)
 
+;;;; SITEURL
+
+(define (siteurl app . args)
+  (if (null? args)
+      (mkpath (try (cgiget 'appbase #{}) (dirname (geturl)))
+	      app)
+      (apply scripturl
+	     (mkpath (try (cgiget 'appbase #{}) (dirname (geturl)))
+		     app)
+	     args)))
+
+(module-export! 'siteurl)
+
 
 ;;;; Action anchors
 
