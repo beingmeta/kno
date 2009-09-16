@@ -14,6 +14,8 @@
 
 (define trace-facebook-auth #f)
 
+(varconfig! fb:auth:trace trace-facebook-auth)
+
 (define halfhour (* 60 30))
 (define oneday (* 60 60 24))
 (define fiveminutes (* 60 5))

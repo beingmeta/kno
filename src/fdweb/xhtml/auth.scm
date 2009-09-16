@@ -11,6 +11,8 @@
 
 (define trace-auth #f)
 
+(varconfig! auth:trace trace-auth)
+
 (define (prefix-config var (val))
   (cond ((bound? val)
 	 (set! auth-prefix val)
