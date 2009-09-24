@@ -393,8 +393,12 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
       output_byte(out,dt_slotmap);
       output_4bytes(out,len);}
     while (i < kvsize) {
-      output_dtype(dtype_len,out,keyvals[i].key);
-      output_dtype(dtype_len,out,keyvals[i].value); i++;}}
+      if ((try_dtype_output(&len,out,keyvals[i].key)>=0) &&
+	  (try_dtype_output(&len,out,keyvals[i].value)>=0))
+	i++;
+      else {
+	fd_rw_unlock_struct(v);
+	return -1;}}}
   fd_rw_unlock_struct(v);
   return dtype_len;
 }
@@ -416,8 +420,12 @@ static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
       output_byte(out,dt_slotmap);
       output_4bytes(out,len);}
     while (i < schemasize) {
-      output_dtype(dtype_len,out,schema[i]);
-      output_dtype(dtype_len,out,values[i]); i++;}}
+      if ((try_dtype_output(&len,out,schema[i])>=0) &&
+	  (try_dtype_output(&len,out,values[i])>=0))
+	i++;
+      else {
+	fd_rw_unlock_struct(v);
+	return -1;}}}
   fd_rw_unlock_struct(v);
   return dtype_len;
 }
