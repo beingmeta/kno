@@ -170,7 +170,7 @@
       (index-frame index f 'has slotid))))
 
 (defambda (text/analyze passages options)
-  (%watch "TEXT/ANALYZE" options)
+  ;; (%watch "TEXT/ANALYZE" options)
   (let* ((allkeys {})
 	 (table (make-hashtable))
 	 (stopcache (try (get options 'stopcache) (make-hashtable)))
@@ -189,7 +189,7 @@
 	 (morphrules (get settings 'morphrules))
 	 (refrules (get settings 'refrules))
 	 (options (get settings 'options)))
-    (%watch "TEXT/ANALYZE" options)
+    ;; (%watch "TEXT/ANALYZE" options)
     (do-choices (passage passages)
       (do-choices (text (if textfns
 			    (choice ((pick textfns applicable?) passage)

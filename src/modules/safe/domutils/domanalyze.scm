@@ -3,7 +3,9 @@
 
 (in-module 'domutils/analyze)
 
-(use-module '{tagger texttools textindex domutils domutils/index knowlets})
+(use-module '{tagger texttools textindex domutils domutils/index knowlets logger})
+
+(define %loglevel %notice!) ;; %debug!
 
 (module-export! 'dom/analyze)
 
@@ -30,26 +32,32 @@
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
 	 (options
-	  `#[textopts ,(getopt options 'textopts)
-	     phrases ,phrases
-	     phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
-	     roots ,(choice roots (get options 'roots))
-	     refrules ,(get options 'refrules)
-	     words ,(choice words (get options 'words))
-	     textfns ,dom/textify
-	     stops ,(choice stops (get options 'stops))
-	     stopcache ,stopcache
-	     rootcache ,rootcache]))
-    (%watch options)
-    (let* ((cacheslots (getopt options 'cacheslots #t))
+	  `#[textopts
+	     ,(choice (getopt options 'textopts)
+		      (tryif (overlaps? (getopt options 'cacheslots) '{words refs}) 'keepraw))
+	    cacheslots ,(getopt options 'cacheslots)
+	    phrases ,phrases
+	    phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
+	    roots ,(choice roots (get options 'roots))
+	    refrules ,(get options 'refrules)
+	    words ,(choice words (get options 'words))
+	    textfns ,dom/textify
+	    stops ,(choice stops (get options 'stops))
+	    stopcache ,stopcache
+	    rootcache ,rootcache]))
+    (debug%watch "DOM/ANALYZE" options)
+    (let* ((cacheslots (choice (getopt options 'cacheslots #t)
+			       (tryif (testopt options 'textopts 'keepraw) 'words)
+			       'terms))
 	   (textnodes (if (bound? nodes) nodes (dom/find doc indexelts)))
 	   (keystrings (text/analyze textnodes options)))
       (do-choices (node (pickoids textnodes))
 	(let* ((keys (get keystrings node))
 	       (terms (pickstrings keys))
 	       (pairs (pick keys pair?))
-	       (fields (if (test options 'textopts 'keepraw) (car pairs)
-			   (difference (car pairs) 'words))))
+	       (fields  (if (or (overlaps? cacheslots #t)  (overlaps? cacheslots 'all))
+			    (car pairs)
+			    (intersection (car pairs) cacheslots))))
 	  (when (or (eq? cacheslots #t) (overlaps? 'terms cacheslots))
 	    (add! node 'terms terms))
 	  (when index
@@ -58,10 +66,12 @@
 	    (index-frame index node 'has fields)
 	    (do-choices (field fields)
 	      (index-frame index node field (get pairs field))))
-	  (do-choices (field (if (eq? cacheslots #t) fields
-				 (intersection field cacheslots)))
+	  (index-frame index node 'has fields)
+	  (do-choices (field fields)
 	    (add! node field (get pairs field)))))
       keystrings)))
+
+
 
 
 
