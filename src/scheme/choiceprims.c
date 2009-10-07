@@ -868,6 +868,8 @@ static fdtype get_part(fdtype x,fdtype part)
     return fd_get(part,x,FD_EMPTY_CHOICE);
   else if (FD_OIDP(x))
     return fd_frame_get(x,part);
+  else if (FD_TABLEP(x))
+    return fd_get(x,part,FD_EMPTY_CHOICE);
   else return FD_EMPTY_CHOICE;
 }
 
