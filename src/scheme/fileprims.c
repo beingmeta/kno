@@ -39,6 +39,7 @@ static fd_exception fd_ReloadError=_("Module reload error");
 static fd_exception NoSuchFile=_("file does not exist");
 static fd_exception RemoveFailed=_("File removal failed");
 static fd_exception LinkFailed=_("File link failed");
+static fd_exception OpenFailed=_("File open failed");
 
 static u8_condition StackDumpEvent=_("StackDump");
 static u8_condition SnapshotSaved=_("Snapshot Saved");
@@ -150,6 +151,9 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     free_bytes=1;}
   if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
     FILE *f=u8_fopen(FD_STRDATA(filename),"w");
+    if (f==NULL) {
+      if (free_bytes) u8_free(bytes);
+      return fd_reterr(OpenFailed,"writefile_prim",NULL,filename);}
     fwrite(bytes,1,len,f);
     fclose(f);}
   else if ((FD_TRUEP(enc)) || (FD_STRINGP(enc))) {
@@ -161,6 +165,9 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
       return fd_type_error("encoding","writefile_prim",enc);}
     else {
       U8_XOUTPUT *out=u8_open_output_file(FD_STRDATA(filename),encoding,-1,-1);
+      if (out==NULL) {
+	if (free_bytes) u8_free(bytes);
+	return fd_reterr(OpenFailed,"writefile_prim",NULL,filename);}
       u8_putn((u8_output)out,bytes,len);
       u8_close((u8_stream)out);}}
   else {
