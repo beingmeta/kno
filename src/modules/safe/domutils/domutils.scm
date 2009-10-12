@@ -32,7 +32,8 @@
 ;;; Random utilities
 
 (define (dom/split-space string) (elts (segment string " ")))
-(define (dom/split-semi string) (difference (stdspace (elts (segment string ";"))) ""))
+(define (dom/split-semi string)
+  (difference (stdspace (elts (segment string ";"))) ""))
 
 ;;; DOM editing
 

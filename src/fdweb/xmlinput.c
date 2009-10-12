@@ -490,11 +490,12 @@ static u8_string deentify(u8_string arg)
   U8_INIT_OUTPUT(&out,strlen(arg));
   while (c>0)
     if (c=='&') {
-      u8_byte *end; int code=u8_parse_entity(scan,&end);
+      u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
       if (code<=0) {
 	u8_putc(&out,c); c=u8_sgetc(&scan);}
       else {
-	u8_putc(&out,code); scan=end;}}
+	u8_putc(&out,code); scan=end;}
+      c=u8_sgetc(&scan);}
     else {u8_putc(&out,c); c=u8_sgetc(&scan);}
   return out.u8_outbuf;
 }
