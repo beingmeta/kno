@@ -585,7 +585,10 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
 	if (FD_EQ(key,car)) return FD_TRUE;}
       else if (FD_PAIRP(car)) {
 	if (FD_EQ(FD_CAR(car),key))
-	  return fd_incref(FD_CDR(car));}
+	  return fd_incref(FD_CDR(car));
+	else {
+	  fdtype value=fd_getopt(car,key,FD_VOID);
+	  if (!(FD_VOIDP(value))) return value;}}
       else if (FD_TABLEP(car)) {
 	fdtype value=fd_get(car,key,FD_VOID);
 	if (!(FD_VOIDP(value))) return value;}
