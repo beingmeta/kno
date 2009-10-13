@@ -419,6 +419,18 @@ static fdtype isalpha_percentage(fdtype string)
     return FD_INT2DTYPE((alpha*100)/(alpha+non_alpha));}
 }
 
+static fdtype isalphalen(fdtype string)
+{
+  u8_string scan=FD_STRDATA(string);
+  if (*scan=='\0') return FD_INT2DTYPE(0);
+  else {
+    int non_alpha=0, alpha=0, c;
+    while ((c=egetc(&scan))>0)
+      if (u8_isalpha(c)) alpha++;
+      else non_alpha++;
+    return FD_INT2DTYPE(alpha);}
+}
+
 static fdtype count_words(fdtype string)
 {
   u8_string scan=FD_STRDATA(string);
@@ -1834,6 +1846,9 @@ void fd_init_texttools()
 			   fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("ISALPHA%",isalpha_percentage,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim1x("ISALPHALEN",isalphalen,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("MARKUP%",ismarkup_percentage,1,

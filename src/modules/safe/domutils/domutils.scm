@@ -421,11 +421,13 @@
 		s)
 	      (stringout (dom/textify node #t #f))))))
 
-(define (dom/textual? node)
+(define (dom/textual? node (lim 1))
   (and (test node '%content)
-       (exists? (difference (textsubst (pickstrings (get node '%content))
-				       '#{(isspace) (ispunct)} "")
-			    ""))))
+       (do ((content (get node '%content) (cdr content))
+	    (len 0 (+ (if (string? (car content)) (isalphalen (car content)) 0)
+		      len)))
+	   ((or (null? content) (> len lim))
+	    (> len lim)))))
 
 ;;; OIDify
 
