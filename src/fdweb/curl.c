@@ -437,6 +437,69 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
   curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
+  curl_easy_setopt(h->handle,CURLOPT_NOBODY,0);
+  retval=curl_easy_perform(h->handle);
+  if (retval!=CURLE_OK) {
+    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
+    fd_decref(result); u8_free(data.bytes);
+    return errval;}
+  if (data.size<data.limit) data.bytes[data.size]='\0';
+  else {
+    data.bytes=u8_realloc(data.bytes,data.size+4);
+    data.bytes[data.size]='\0';}
+  if (data.size<=0) {
+    if (data.size==0)
+      cval=fd_init_packet(NULL,data.size,data.bytes);
+    else cval=FD_EMPTY_CHOICE;}
+  else if (fd_test(result,type_symbol,text_types)) {
+    fdtype chset=fd_get(result,charset_symbol,FD_VOID);
+    if (FD_STRINGP(chset)) {
+      U8_OUTPUT out;
+      u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
+      if (enc) {
+	unsigned char *scan=data.bytes;
+	U8_INIT_OUTPUT(&out,data.size);
+	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
+	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
+    else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
+    u8_free(data.bytes);}
+  else cval=fd_init_packet(NULL,data.size,data.bytes);
+  fd_add(result,content_symbol,cval);
+  {
+    char *urlbuf; long filetime;
+    CURLcode rv=curl_easy_getinfo(h->handle,CURLINFO_EFFECTIVE_URL,&urlbuf);
+    if (rv==CURLE_OK) {
+      fdtype eurl=fdtype_string(urlbuf);
+      fd_add(result,eurl_slotid,eurl);
+      fd_decref(eurl);}
+    rv=curl_easy_getinfo(h->handle,CURLINFO_FILETIME,&filetime);
+    if ((rv==CURLE_OK) && (filetime>=0)) {
+      fdtype ftime=fd_time2timestamp(filetime);
+      fd_add(result,filetime_slotid,ftime);
+      fd_decref(ftime);}}
+  retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
+  if (retval==0) 
+    fd_add(result,response_code_slotid,FD_INT2DTYPE(http_response));
+  if (consed_handle) {fd_decref((fdtype)h);}
+  return result;
+}
+
+static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
+{
+  INBUF data; CURLcode retval;
+  int consed_handle=0; long http_response=200;
+  fdtype result=fd_init_slotmap(NULL,0,NULL), cval;
+  fdtype url=fdtype_string(urltext);
+  char errbuf[CURL_ERROR_SIZE];
+  fd_add(result,url_symbol,url); fd_decref(url);
+  data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
+  if (h==NULL) {h=fd_open_curl_handle(); consed_handle=1;}
+  curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
+  curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
+  curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
+  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
+  curl_easy_setopt(h->handle,CURLOPT_NOBODY,1);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
@@ -530,6 +593,18 @@ static fdtype urlget(fdtype arg1,fdtype arg2)
   result=handle_url_args(arg1,arg2,&url,&h,&free_handle);
   if (FD_ABORTP(result)) return result;
   result=fetchurl(h,FD_STRDATA(url));
+  if (free_handle) {
+    recycle_curl_handle((struct FD_CONS *)h);}
+  return result;
+}
+
+static fdtype urlhead(fdtype arg1,fdtype arg2)
+{
+  fdtype url, result;
+  struct FD_CURL_HANDLE *h; int free_handle=0;
+  result=handle_url_args(arg1,arg2,&url,&h,&free_handle);
+  if (FD_ABORTP(result)) return result;
+  result=fetchurlhead(h,FD_STRDATA(url));
   if (free_handle) {
     recycle_curl_handle((struct FD_CONS *)h);}
   return result;
@@ -979,6 +1054,7 @@ FD_EXPORT void fd_init_curl_c()
   fd_defspecial(module,"URLPOSTOUT",urlpostdata_handler);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
+  fd_idefn(module,fd_make_cprim2("URLHEAD",urlhead,1));
   fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));
   fd_idefn(module,fd_make_cprimn("URLPUT",urlput,2));
   fd_idefn(module,fd_make_cprim2("URLCONTENT",urlcontent,1));
