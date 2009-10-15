@@ -4,8 +4,8 @@
 (in-module 'domutils/localize)
 
 ;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
-(define version "$Id: domutils.scm 4444 2009-10-13 02:18:26Z haase $")
-(define revision "$Revision: 4444 $")
+(define version "$Id$")
+(define revision "$Revision$")
 
 (use-module '{fdweb texttools domutils logger})
 
