@@ -485,6 +485,7 @@
   (stringout
     (try (get oid '%%xmltag) (get oid '%xmltag))
     (when (test oid 'class)
+      ;; (->string (get oid 'class))
       (printout "." (string-subst (get oid 'class) " " ".")))
     (when (test oid 'id) (printout "#" (get oid 'id)))
     (when (test oid 'name) (printout "[NAME=" (get oid 'name) "]"))

@@ -523,7 +523,7 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   xml->bits=xml->bits|FD_XML_HASDATA;
   if (val) {
     fdtype slotid=nsref2slotid(attrib_name);
-    fdtype slotval=((quote>0) ? (fd_lispify(val)) : (fd_parse(val)));
+    fdtype slotval=((quote>0) ? (fd_lispify(val)) : (fd_parse_arg(val)));
     fdtype qid=make_qid(attrib_name,namespace);
     fdtype qentry=fd_init_pair(NULL,qid,fd_incref(slotval));
     fd_add(xml->attribs,slotid,slotval);
