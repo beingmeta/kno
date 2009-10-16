@@ -21,8 +21,8 @@
 
 (define (localref ref urlmap base target read)
   (try (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
-       (tryif (position "#" ref)
-	 (let ((hashpos (position "#" ref)))
+       (tryif (position #\# ref)
+	 (let ((hashpos (position #\# ref)))
 	   (string-append (localref (subseq ref 0 hashpos) urlmap base target read)
 			  (subseq ref hashpos))))
        (get urlmap ref)
