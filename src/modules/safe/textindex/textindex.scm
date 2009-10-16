@@ -191,10 +191,12 @@
 	 (options (get settings 'options)))
     ;; (%watch "TEXT/ANALYZE" options)
     (do-choices (passage passages)
+      ;; (%watch "TEXT/ANALYZE" passage)
       (do-choices (text (if textfns
 			    (choice ((pick textfns applicable?) passage)
 				    (get passage (pick textfns slotid?)))
 			    passage))
+	;; (%watch "TEXT/ANALYZE" passage text)
 	(let ((keys (textanalyze text
 				 stopcache rootcache
 				 wordrules wordfns
