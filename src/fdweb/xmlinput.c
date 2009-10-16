@@ -35,7 +35,7 @@ static fdtype namespace_symbol, name_symbol, qname_symbol, xmlns_symbol;
 static fdtype attribs_symbol, content_symbol, type_symbol;
 
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
-static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol;
+static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol, autoclose_symbol;
 static fdtype noempty_symbol, data_symbol, decode_symbol, ishtml_symbol;
 
 static fdtype nsref2slotid(u8_string s)
@@ -74,6 +74,19 @@ static fdtype decode_entities(fdtype input)
   while (c>=0) {
     u8_putc(&out,c); c=egetc(&scan);}
   return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
+static u8_string block_elts[]=
+  {"p","ul","ol","dl","h1","h2","h3","h4","h5","h6","pre","table","div","blockquote",
+   "noframes","noscript","menu","isindex",NULL};
+
+static int block_elementp(u8_string name)
+{
+  u8_string *scan=block_elts;
+  while (scan)
+    if (strcasecmp(name,*scan)==0) return 1;
+    else scan++;
+  return 0;
 }
 
 
@@ -131,6 +144,8 @@ static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
   else node->bits=FD_XML_DEFAULT_BITS;
   node->namespace=NULL; node->nsmap=NULL;
   node->size=0; node->limit=0; node->data=NULL;
+  if (((node->bits)&(FD_XML_ISHTML)) && (strcasecmp(name,"P")==0))
+    node->bits=node->bits|FD_XML_INPARA;
 }
 
 static void init_node_attribs(struct FD_XML *node)
@@ -311,7 +326,7 @@ static void set_elt_name(FD_XML *xml,u8_string name)
 
 FD_EXPORT
 int fd_parse_element(u8_byte **scanner,u8_byte *end,
-		     u8_byte **elts,int max_elts)
+		     u8_byte **elts,int max_elts,int sloppy)
 {
   int n_elts=0;
   u8_byte *scan=*scanner, *elt_start=scan;
@@ -331,6 +346,11 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	if (end[-1]=='\\') end=strchr(end+1,'\'');
 	else break;
       if (end) scan=end+1;
+      else if (sloppy) {
+	u8_byte *lookahead=scan;
+	int c=u8_sgetc(&lookahead);
+	while ((c>0)&&(!(u8_isspace(c)))) {
+	  scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
 		   u8_strdup(*scanner));
@@ -341,6 +361,11 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	if (end[-1]=='\\') end=strchr(end+1,'"');
 	else break;
       if (end) scan=end+1;
+      else if (sloppy) {
+	u8_byte *lookahead=scan;
+	int c=u8_sgetc(&lookahead);
+	while ((c>0)&&(!(u8_isspace(c)))) {
+	  scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
 		   u8_strdup(*scanner));
@@ -705,6 +730,12 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
 	if (popped!=node)
 	  free_node(node,1);
 	node=popped;}
+      else if (((node->bits)&(FD_XML_INPARA))&&
+	       (block_elementp(node->eltname))) {
+	while ((node) && ((node->bits)&(FD_XML_INPARA))) {
+	  FD_XML *popped=popfn(node);
+	  if (popped!=node) free_node(node,1);
+	  node=popped;}}
       init_node(newnode,node,name);
       process_attribs(attribfn,newnode,elts+1,n_elts-1);
       init_node_attribs(newnode);
@@ -779,7 +810,7 @@ void *fd_walk_xml(U8_INPUT *in,
     else {
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
       int n_elts, c;
-      n_elts=fd_parse_element(&scan,buf+size,elts,32);
+      n_elts=fd_parse_element(&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
 	fd_seterr3(fd_XMLParseError,"xmlstep",u8_strdup(scan));
 	u8_free(buf);
@@ -787,6 +818,9 @@ void *fd_walk_xml(U8_INPUT *in,
       node=xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);
       if (node) c=node->eltname[0];}
     if (node==NULL) break;}
+  while ((node)&&((node->bits)&(FD_XML_AUTOCLOSE))) {
+    struct FD_XML *next=popfn(node);
+    if (next) node=next; else break;}
   u8_free(buf);
   return node;
 }
@@ -818,6 +852,8 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
       return FD_XML_ISHTML;
     else if (FD_EQ(x,nsfree_symbol))
       return FD_XML_NSFREE;
+    else if (FD_EQ(x,autoclose_symbol))
+      return FD_XML_AUTOCLOSE;
     else if (FD_EQ(x,noempty_symbol))
       return FD_XML_NOEMPTY;
     else {
@@ -912,6 +948,7 @@ FD_EXPORT void fd_init_xmlinput_c()
   nocontents_symbol=fd_intern("NOCONTENTS");
   ishtml_symbol=fd_intern("HTML");
   nsfree_symbol=fd_intern("NSFREE");
+  autoclose_symbol=fd_intern("AUTOCLOSE");
   noempty_symbol=fd_intern("NOEMPTY");
   data_symbol=fd_intern("DATA");
 

@@ -21,7 +21,8 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_FOLDCASE      ((FD_XML_EMPTY_CLOSE)<<1) /* Use foldcase when */
 #define FD_XML_AUTOCLOSE     ((FD_XML_FOLDCASE)<<1) /* automatically close elements */
 #define FD_XML_BADCLOSE      ((FD_XML_AUTOCLOSE)<<1) /* ignore dangling closes */
-#define FD_XML_CLOSE_REPEATS ((FD_XML_BADCLOSE)<<1)  /* let <p> close <p> */
+#define FD_XML_BADATTRIB     ((FD_XML_BADCLOSE)<<1) /* handle bad attribs */
+#define FD_XML_CLOSE_REPEATS ((FD_XML_BADATTRIB)<<1)  /* let <p> close <p> */
 #define FD_XML_KEEP_RAW      ((FD_XML_CLOSE_REPEATS)<<1)
 #define FD_XML_CRUSHSPACE    ((FD_XML_KEEP_RAW)<<1)
 #define FD_XML_SLOTIFY       ((FD_XML_CRUSHSPACE)<<1)
@@ -36,18 +37,20 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_HASDATA       ((FD_XML_DECODE_ENTITIES)<<1) 
 /* Whether to handle HTML empty elements like HR, BR, META, LINK, etc. */
 #define FD_XML_ISHTML        ((FD_XML_HASDATA)<<1)
+/* Whether we're in an HTML paragraph */
+#define FD_XML_INPARA        ((FD_XML_ISHTML)<<1)
 
 #define FD_XML_INHERIT_BITS                                   \
   ((FD_XML_EMPTY_CLOSE)|(FD_XML_AUTOCLOSE)|(FD_XML_KEEP_RAW)| \
    (FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|  \
-   (FD_XML_NSFREE)|(FD_XML_NOEMPTY)|(FD_XML_ISHTML)| \
-   (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)| \
-   (FD_XML_DECODE_ENTITIES))
+   (FD_XML_NSFREE)|(FD_XML_NOEMPTY)|(FD_XML_ISHTML)|(FD_XML_INPARA)| \
+   (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|(FD_XML_CLOSE_REPEATS)| \
+   (FD_XML_DECODE_ENTITIES)|(FD_XML_BADATTRIB))
 
 #define FD_SLOPPY_XML \
   ((FD_XML_AUTOCLOSE)|(FD_XML_EMPTY_CLOSE)|\
-   (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|\
-   (FD_XML_ISHTML))
+   (FD_XML_CLOSE_REPEATS)|(FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|	\
+   (FD_XML_ISHTML)|(FD_XML_BADATTRIB))
 #define FD_DATA_XML \
   ((FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|(FD_XML_NSFREE)|(FD_XML_NOEMPTY))
 
@@ -72,7 +75,7 @@ FD_EXPORT void *fd_walk_markup
    void *data);
 FD_EXPORT void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name);
 FD_EXPORT int fd_parse_element
-  (u8_byte **scanner,u8_byte *end,u8_byte **elts,int max_elts);
+  (u8_byte **scanner,u8_byte *end,u8_byte **elts,int max_elts,int sloppy);
 FD_EXPORT fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int ishtml);
 
 FD_EXPORT void fd_default_contentfn(FD_XML *node,u8_string s,int len);
