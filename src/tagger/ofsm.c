@@ -996,7 +996,8 @@ static u8_string find_sentence_end(u8_string string)
       int c=u8_sgetc(&string);
       while ((c>0) && (c!='>')) c=u8_sgetc(&string);
       start=string;}
-  else string++;
+  /* Advance a character, use u8_sgetc to handle UTF-8 correctly. */
+  else u8_sgetc(&string);
   /* Go till you get to a possible terminator */
   while (*string)
     if (*string=='<')
@@ -1015,7 +1016,7 @@ static u8_string find_sentence_end(u8_string string)
 	  return string;
 	else if (markup_is_sentence_breakp(string+2))
 	  return string;
-	else while ((*string) && (*string != '>')) string++;
+	else while ((*string) && (*string != '>')) u8_sgetc(&string);
       else if (((string[1]=='P') || (string[1]=='p')) && (tagendp(string+2)))
 	return string;
       else if (((string[1]=='H') || (string[1]=='h')) &&
@@ -1040,7 +1041,7 @@ static u8_string find_sentence_end(u8_string string)
 	  else string=script_end+9;}}
       else if (markup_is_sentence_breakp(string+1))
 	return string;
-      else while ((*string) && (*string != '>')) string++;
+      else while ((*string) && (*string != '>')) u8_sgetc(&string);
     else if (*string=='\n') {
       u8_string scan=string+1;
       while ((*scan==' ') || (*scan == '\t')) scan++;
@@ -1056,7 +1057,9 @@ static u8_string find_sentence_end(u8_string string)
       return string+1;
     else if ((*string<0x80) && (isspace(*string)))
       in_upper=atupper(++string);
-    else in_upper=atupper(string++);
+    else {
+      int c=u8_sgetc(&string);
+      in_upper=u8_isupper(c);}
   return string;
 }
 
