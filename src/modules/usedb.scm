@@ -8,7 +8,7 @@
 ;;;  and indices, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (module-export! 'usedb)
 
@@ -34,24 +34,38 @@
   (let ((dbname (cond ((file-exists? name) name)
 		      ((file-exists? (stringout name ".db"))
 		       (stringout name ".db"))
+		      ((or (file-exists? (stringout name ".pool"))
+			   (file-exists? (stringout name ".index")))
+		       (kludgedb name))
 		      (else (error "No such database " name)))))
-    (let ((dbdata (file->dtype dbname)))
-      (do-choices (pool (get dbdata 'pools))
-	(add! dbdata '%pools (use-component use-pool pool dbname)))
-      (do-choices (index (get dbdata 'indices))
-	(add! dbdata '%indices (use-component use-index index dbname)))
-      (do-choices (config (get dbdata 'configs))
-	(cond ((not (pair? config)))
-	      ((and (pair? (cdr config)) (eq? (cadr config) 'FILE))
-	       (config! (car config) (get-component (third config) dbname)))
-	      (else (config! (car config) (cdr config)))))
-      (let ((mi (get dbdata 'metaindex))
-	    (rmi (make-hashtable)))
-	(do-choices (slotid (getkeys mi))
-	  (let ((index (get mi slotid)))
-	    (add! rmi slotid (use-component open-index index dbname #f))))
-	(add! dbdata '%metaindex rmi))
-      dbdata)))
+    (when dbname
+      (if (string? dbname)
+	  (let ((dbdata (file->dtype dbname)))
+	    (do-choices (pool (get dbdata 'pools))
+	      (add! dbdata '%pools (use-component use-pool pool dbname)))
+	    (do-choices (index (get dbdata 'indices))
+	      (add! dbdata '%indices (use-component use-index index dbname)))
+	    (do-choices (config (get dbdata 'configs))
+	      (cond ((not (pair? config)))
+		    ((and (pair? (cdr config)) (eq? (cadr config) 'FILE))
+		     (config! (car config) (get-component (third config) dbname)))
+		    (else (config! (car config) (cdr config)))))
+	    (let ((mi (get dbdata 'metaindex))
+		  (rmi (make-hashtable)))
+	      (do-choices (slotid (getkeys mi))
+		(let ((index (get mi slotid)))
+		  (add! rmi slotid (use-component open-index index dbname #f))))
+	      (add! dbdata '%metaindex rmi))
+	    dbdata)
+	  dbname))))
+
+
+(define (kludgedb name)
+  (use-pool (stringout name ".pool"))
+  (use-index (stringout name ".index"))
+  `#[POOLS ,(use-pool (stringout name ".pool")) INDICES ,(open-index (stringout name ".index"))])
+
+  
 
 
 
