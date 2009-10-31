@@ -2,7 +2,7 @@
 
 /* crypto.c
    This implements FramerD cryptographic function bindings.
-   Copyright (C) 2007-2008 beingmeta, inc.
+   Copyright (C) 2007-2009 beingmeta, inc.
 */
 
 static char versionid[] =

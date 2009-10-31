@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2007 beingmeta, inc.
+/* Copyright (C) 2004-2009 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -216,7 +216,8 @@ static fdtype populate_hash_index
   (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
   fd_index ix=fd_lisp2index(ix_arg); int blocksize=-1, retval;
-  const fdtype *keyvec; unsigned int n_keys, free_keyvec=0;
+  const fdtype *keyvec; fdtype *consed_keyvec=NULL;
+  unsigned int n_keys; fdtype keys_choice=FD_VOID;
   if (!(fd_hash_indexp(ix)))
     return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
   if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
@@ -225,12 +226,11 @@ static fdtype populate_hash_index
   else if (FD_VECTORP(keys)) {
     keyvec=FD_VECTOR_DATA(keys); n_keys=FD_VECTOR_LENGTH(keys);}
   else if (FD_VOIDP(keys)) {
-    fdtype keys_choice=FD_VOID;
     if (FD_INDEXP(from)) {
       fd_index ix=fd_lisp2index(from);
       if (ix->handler->fetchkeys!=NULL) {
-	keyvec=ix->handler->fetchkeys(ix,&n_keys);
-	free_keyvec=1;}
+	consed_keyvec=ix->handler->fetchkeys(ix,&n_keys);
+	keyvec=consed_keyvec;}
       else keys_choice=fd_getkeys(from);}
     else keys_choice=fd_getkeys(from);
     if (!(FD_VOIDP(keys_choice))) {
@@ -246,10 +246,11 @@ static fdtype populate_hash_index
     retval=fd_populate_hash_index
       ((struct FD_HASH_INDEX *)ix,from,keyvec,n_keys,blocksize);
   else retval=0;
-  if (free_keyvec) {
+  fd_decref(keys_choice);
+  if (consed_keyvec) {
     int i=0; while (i<n_keys) {
       fd_decref(keyvec[i]); i++;}
-    u8_free((fdtype *)keyvec);}
+    if (consed_keyvec) u8_free(consed_keyvec);}
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(retval);
 }

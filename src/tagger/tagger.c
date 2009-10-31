@@ -1,7 +1,7 @@
 /* -*- Mode: C; -*- */
 
 /* tagger.c
-   Copyright (C) 2005-2007 beingmeta, inc.
+   Copyright (C) 2005-2009 beingmeta, inc.
    This is the initialization file for the tagger module.
 */
 

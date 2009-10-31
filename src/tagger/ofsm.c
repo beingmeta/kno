@@ -1,7 +1,7 @@
 /* -*- Mode: C; -*- */
 
 /* ofsm.c
-   Copyright (C) 2001-2007 beingmeta, inc.
+   Copyright (C) 2001-2009 beingmeta, inc.
    This is the main OFSM (optimizing finite state machine) engine.
 */
 
