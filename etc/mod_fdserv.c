@@ -1367,7 +1367,7 @@ static void copy_script_output(int sock,request_rec *r)
     ssize_t delta=read(sock,buf,4096);
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-       "mod_fdserv: Read %d bytes of %d (so far)",delta,bytes_read);
+       "mod_fdserv: Read %ld bytes of %ld (so far)",delta,bytes_read);
     if (delta>0) {
       bytes_read=bytes_read+delta;
       ap_rwrite(buf,delta,r); ap_rflush(r);}
@@ -1376,7 +1376,7 @@ static void copy_script_output(int sock,request_rec *r)
     else break;}
   ap_log_error
     (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-     "mod_fdserv: Finished reading %d bytes",bytes_read);
+     "mod_fdserv: Finished reading %ld bytes",bytes_read);
 }
 
 static log_buf(char *msg,int size,char *data,request_rec *r)
