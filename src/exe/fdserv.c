@@ -608,7 +608,8 @@ static int webservefn(u8_client ucl)
     if ((reqlog) || (urllog))
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);
     u8_writeall(client->socket,client->out.u8_outbuf,
-		client->out.u8_outptr-client->out.u8_outbuf);}
+		client->out.u8_outptr-client->out.u8_outbuf);
+    u8_client_close(ucl);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
@@ -630,6 +631,7 @@ static int webservefn(u8_client ucl)
     else {
       output_content(client,content);
       client->out.u8_outptr=client->out.u8_outbuf;}
+    u8_client_close(ucl);
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
@@ -663,9 +665,10 @@ static int webservefn(u8_client ucl)
     if (reqlog) fd_dtsflush(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(query);}
+  else 
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
-  u8_client_close(ucl);
+  /* u8_client_close(ucl); */
   fd_swapcheck();
   return 1;
 }
