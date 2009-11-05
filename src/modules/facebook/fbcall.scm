@@ -61,7 +61,7 @@
     (set! args (cons* "call_id" (time) args)))
   (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
-  (%watch "FBCALLURI" method w/session (cgiget 'fb_sig_session_key))
+  ;; (%watch "FBCALLURI" method w/session (cgiget 'fb_sig_session_key))
   (when (and w/session (cgitest 'fb_sig_session_key)
 	     (exists? (cgiget 'fb_sig_session_key))
 	     (string? (cgiget 'fb_sig_session_key)))
