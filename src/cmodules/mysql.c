@@ -25,6 +25,8 @@ static char versionid[] =
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
 
+extern my_bool my_init(void);
+
 u8_condition ServerReset=_("MYSQL server reset");
 
 #define dupstring(x) ((x==NULL) ? (x) : ((char *)u8_strdup(x)))
