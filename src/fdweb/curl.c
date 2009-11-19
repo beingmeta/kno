@@ -464,6 +464,8 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
       else if (strstr(data.bytes,"\r\n"))
 	cval=fd_init_string(NULL,-1,u8_convert_crlfs(data.bytes));
       else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
+    else if (strstr(data.bytes,"\r\n"))
+      cval=fd_init_string(NULL,-1,u8_convert_crlfs(data.bytes));
     else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
     u8_free(data.bytes);}
   else cval=fd_init_packet(NULL,data.size,data.bytes);
