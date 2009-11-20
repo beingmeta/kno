@@ -15,9 +15,9 @@
    dom/textual?
    dom/oidify dom/oidmap dom/nodeid
    dom/set! dom/add! dom/append!
-   dom/selector dom/match dom/lookup dom/find
+   dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
-   dom/search dom/strip! dom/map
+   dom/search dom/strip! dom/map dom/combine!
    dom/getmeta dom/getlinks
    dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
@@ -133,13 +133,14 @@
 (define (dom/append! node . content)
   (let ((current (try (get node '%content) '())))
     (dolist (elt content)
-      (if (pair? elt)
-	  (set! current (append current elt))
-	  (if (and (string? elt) (has-prefix elt "<"))
-	      (if (test node '%%xmltag)
-		  (xmlparse elt 'keepraw)
-		  (xmlparse elt))
-	      (set! current (append current (list elt))))))
+      (set! current
+	    (append current
+		    (if (pair? elt) elt
+			(if (and (string? elt) (has-prefix elt "<"))
+			    (if (test node '%%xmltag)
+				(xmlparse elt 'keepraw)
+				(xmlparse elt))
+			    (list elt))))))
     (store! node '%content current)))
 
 ;;; Selector functions
@@ -289,6 +290,32 @@
 	   (dom/find elt sel findall)))
 	(else (fail))))
 
+(defambda (dom/find->list under sel (findall #t))
+  "Finds all nodes matching SEL under UNDER, if FINDALL is true, \
+   look under matching nodes for other matching nodes."
+  (unless (exists? (pickstrings sel)) (set! sel (->selector sel)))
+  (cond ((string? under) '())
+	((ambiguous? under)
+	 (let ((nodes '()))
+	   (do-choices under
+	     (set! nodes (append nodes (dom/find->list under sel))))
+	   nodes))
+	((pair? under)
+	 (let ((nodes '()))
+	   (dolist (under under)
+	     (set! nodes (append nodes (dom/find->list under sel))))
+	   nodes))
+	((and (table? under) (dom/match under sel))
+	 (list under))
+	((and (table? under) (test under '%content)
+	      (exists? (get under '%content))
+	      (pair? (get under '%content)))
+	 (let ((nodes '()))
+	   (dolist (under  (get under '%content))
+	     (set! nodes (append nodes (dom/find->list under sel))))
+	   nodes))
+	(else '())))
+
 ;;; Text searching
 
 (define (search-helper under pattern exitor)
@@ -386,6 +413,12 @@
 	  (if (null? args) (map1 node fn arg)
 	      (mapn node fn (cons (qc arg) args)))
 	  (map0 node fn)))))
+
+;;; Combining
+
+(define (dom/combine! target elements (extract "BODY"))
+  (dolist (elt elements)
+    (dom/append! target (dom/find->list elt extract))))
 
 ;;; Textify
 
