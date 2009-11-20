@@ -139,6 +139,7 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs apxs2)
+AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","lsb-rpm","na")
 
 if test $prefix = "usr"; then 
    default_config_dir="/etc/framerd";
