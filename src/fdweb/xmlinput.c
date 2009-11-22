@@ -519,8 +519,8 @@ static u8_string deentify(u8_string arg)
       if (code<=0) {
 	u8_putc(&out,c); c=u8_sgetc(&scan);}
       else {
-	u8_putc(&out,code); scan=end;}
-      c=u8_sgetc(&scan);}
+	u8_putc(&out,code); scan=end;
+	c=u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c=u8_sgetc(&scan);}
   return out.u8_outbuf;
 }
