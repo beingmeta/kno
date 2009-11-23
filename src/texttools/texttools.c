@@ -897,10 +897,18 @@ static fdtype textsubst(fdtype string,
 	    fdtype lisp_lim=FD_INT2DTYPE(u8_charoffset(stringdata,lim));
 	    fdtype replace_pat, xtract;
 	    if (FD_VOIDP(replace)) replace_pat=pattern; else replace_pat=replace;
-	    xtract=fd_text_extract(replace_pat,NULL,stringdata,start,end,0);
+	    xtract=fd_text_extract(replace_pat,NULL,stringdata,start,lim,0);
 	    if (FD_ABORTP(xtract)) {
 	      u8_free(out.u8_outbuf);
 	      return xtract;}
+	    else if (FD_EMPTY_CHOICEP(xtract)) {
+	      /* This is the incorrect case where the matcher works but extraction does not.
+		 We simply */
+	      u8_byte buf[256]; int showlen=(((end-start)<256)?(end-start):(255));
+	      strncpy(buf,data+start,showlen); buf[showlen]='\0';
+	      u8_log(LOG_WARN,fd_BadExtractData,"Pattern %q matched '%s' but couldn't extract",
+		     pattern,buf);
+	      u8_putn(&out,data+start,end-start);}
 	    else if ((FD_CHOICEP(xtract)) || (FD_ACHOICEP(xtract))) {
 	      fdtype results=FD_EMPTY_CHOICE;
 	      FD_DO_CHOICES(xt,xtract) {
