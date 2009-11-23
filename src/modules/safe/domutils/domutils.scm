@@ -14,7 +14,7 @@
    dom/textify
    dom/textual?
    dom/oidify dom/oidmap dom/nodeid
-   dom/set! dom/add! dom/append!
+   dom/set! dom/add! dom/drop! dom/append!
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/strip! dom/map dom/combine!
@@ -129,6 +129,16 @@
 	    ;; Kept raw XML info, so use it
 	    (add! node '%%attribs
 		  (vector aname aname stringval)))))))
+
+(define (dom/drop! node elt)
+  (when (test node '%content)
+    (let* ((content (get node '%content))
+	   (newcontent (remove elt content)))
+      (cond ((eq? content newcontent)
+	     (some? (lambda (x) (dom/drop! x elt))
+		    content))
+	    (else (store! node '%content newcontent)
+		  #t)))))
 
 (define (dom/append! node . content)
   (let ((current (try (get node '%content) '())))
