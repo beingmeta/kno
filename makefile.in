@@ -22,7 +22,7 @@ INCINSTALLDIR	= $(DESTDIR)@prefix@/include/fdb
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
-CONFDIR		= @data_dir@
+CONFDIR		= $(DESTDIR)@data_dir@
 APXS		= @APXS@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
@@ -582,13 +582,14 @@ install-qrcode: $(LIBINSTALLDIR)/framerd/qrcode.@shared_suffix@ \
 
 # Setup targets
 
-confdirs: @data_dir@ @config_dir@ \
-	  @local_config@ @shared_config@ \
-	  @module_dir@ @safe_module_dir@
-	if test ! -f @config_dir@/servers; then $(INSTALL) @install_file_opts@ /dev/null @config_dir@/servers; fi
+confdirs: $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
+	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
+	  $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@
+	if test ! -f @config_dir@/servers; then $(INSTALL) @install_file_opts@ /dev/null $(DESTDIR)@config_dir@/servers; fi
 
-@data_dir@ @data_dir@/etc @config_dir@ @local_config@ @shared_config@ \
-  @module_dir@ @standard_module_dir@ @safe_module_dir@: 
+$(DESTDIR)@data_dir@ $(DESTDIR)@data_dir@/etc $(DESTDIR)@config_dir@ \
+  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
+  $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@: 
 	$(INSTALL) @install_dir_opts@ $@
 
 link-modules: @module_dir@ @standard_module_dir@ @data_dir@/etc
