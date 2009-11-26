@@ -35,6 +35,7 @@ enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+wwwinstall=""
 admininstall=""
 fdaemoninstall=""
 libc_pthreads="no"
@@ -108,6 +109,7 @@ AC_SUBST(local_config)
 AC_SUBST(shared_config)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
+AC_SUBST(wwwinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(fdaemon)
@@ -173,6 +175,9 @@ dnl Specifies the user which the Web server runs as
 dnl This is used to set up the directories used by fdserv
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
 webuser=$with_webuser
+if test $webuser != "none"; then
+   wwwinstall="-o $webuser"
+fi
 
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`

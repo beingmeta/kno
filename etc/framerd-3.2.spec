@@ -13,10 +13,7 @@ BuildRequires:  libu8-devel curl-devel libexif-devel mysql-devel
 Requires:       libu8 libcurl libexif
 
 %description
-libu8 provides portable functions for manipulating unicode as well as
-wrappers/implementations for various system-level functions such as
-filesystem access, time primitives, mime handling, signature
-functions, etc.
+FramerD is a distributed knowledge base and application environment.
 
 %package        devel
 Summary:        Development files for %{name}
@@ -91,7 +88,7 @@ libraries
 
 
 %build
-%configure --prefix=/usr
+%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none
 make %{?_smp_mflags}
 
 
@@ -112,6 +109,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %files
+%attr(-,root,adm) /etc/init.d/framerd
+%attr(-,fdaemon,adm) /var/run/framerd
+%attr(-,fdaemon,adm) /var/log/framerd
+%attr(-,root,adm) /var/run/fdserv
+%attr(-,root,adm) /var/log/fdserv
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/*.so.*

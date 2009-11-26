@@ -35,7 +35,6 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
-WWWUSER		= @webuser@
 FRAMERDSVN	= https://dev.beingmeta.com/src/fdb/trunk
 
 DTYPE_HEADERS=\
@@ -656,9 +655,9 @@ install-fdserv: etc/mod_fdserv.so
 		    fdserv.conf fdserv.load            \
 		    @apache_conf_dir@/other;           \
 	fi
-	$(INSTALL) -m 0775 -o $(WWWUSER) @admininstall@ \
+	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		   -d $(DESTDIR)@rundir@/fdserv
-	$(INSTALL) -m 0775 -o $(WWWUSER) @admininstall@ \
+	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		   -d $(DESTDIR)@logdir@/fdserv
 
 # Tracking revision information
