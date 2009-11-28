@@ -735,6 +735,9 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
       /* If the call returns an XML object, unparse it */
       fd_unparse_xml(out,result,env);
       fd_decref(result);}
+    else if (FD_ABORTP(result)) {
+      fd_clear_errors(1);
+      return FD_VOID;}
     else {
       /* Otherwise, output it as XML */
       fd_dtype2xml(out,result,env);
