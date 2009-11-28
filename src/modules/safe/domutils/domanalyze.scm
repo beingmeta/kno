@@ -24,8 +24,8 @@
   (let* ((roots (choice (get doc 'indexroots) (getopt options 'indexroots {})))
 	 (words (choice roots (try (get doc 'indexwords) (getopt options 'indexwords {}))))
 	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
-	 (indexelts (->selector
-		     (choice (getopt options 'indexelts {}) (get doc 'indexelts))))
+	 (textelts (->selector
+		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
 	 (phrases (pick words compound?))
 	 (knowlet (get (choice options doc) 'knowlet))
 	 (phrasemaps (kno/phrasemap knowlet (try (get options 'language) 'en)))
@@ -35,21 +35,21 @@
 	  `#[textopts
 	     ,(choice (getopt options 'textopts)
 		      (tryif (overlaps? (getopt options 'cacheslots) '{words refs}) 'keepraw))
-	    cacheslots ,(getopt options 'cacheslots)
-	    phrases ,phrases
-	    phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
-	    roots ,(choice roots (get options 'roots))
-	    refrules ,(get options 'refrules)
-	    words ,(choice words (get options 'words))
-	    textfns ,dom/textify
-	    stops ,(choice stops (get options 'stops))
-	    stopcache ,stopcache
-	    rootcache ,rootcache]))
+	     cacheslots ,(getopt options 'cacheslots)
+	     phrases ,phrases
+	     phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
+	     roots ,(choice roots (get options 'roots))
+	     refrules ,(get options 'refrules)
+	     words ,(choice words (get options 'words))
+	     textfns ,dom/textify
+	     stops ,(choice stops (get options 'stops))
+	     stopcache ,stopcache
+	     rootcache ,rootcache]))
     (debug%watch "DOM/ANALYZE" options)
     (let* ((cacheslots (choice (getopt options 'cacheslots #t)
 			       (tryif  (testopt options 'textopts 'keepraw) 'words)
 			       'terms))
-	   (textnodes (if (bound? nodes) nodes (dom/find doc indexelts)))
+	   (textnodes (if (bound? nodes) nodes (dom/find doc textelts)))
 	   (keystrings (text/analyze textnodes options)))
       (do-choices (node (pickoids textnodes))
 	(debug%watch "DOM/ANALYZE" node)
@@ -71,6 +71,10 @@
 	  (do-choices (field fields)
 	    (add! node field (get pairs field)))))
       keystrings)))
+
+
+
+
 
 
 

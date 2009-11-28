@@ -99,12 +99,12 @@
 		   rootstrings rootset rootmaps rootfns morphrules)
   (let ((result
 	 (choice (pick rootstrings is-prefix? word)
-		 (try (choice (get rootmaps word)
-			      (tryif (hashset-test rootset word)
-				word))
-		      (try (pick (rootfns word) rootset)
-			   (try-choices (rule morphrules)
-			     (morphrule word rule rootset)))
+		 (try (get rootmaps word)
+		      (choice 
+		       (tryif (hashset-test rootset word) word)
+		       (try (pick (rootfns word) rootset)
+			    (try-choices (rule morphrules)
+			      (morphrule word rule rootset))))
 		      (tryif (and (capitalized? word) (not (uppercase? word)))
 			(try (pick (rootfns (downcase word)) rootset)
 			     (try-choices (rule morphrules)
