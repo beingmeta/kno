@@ -595,17 +595,22 @@ $(DESTDIR)@data_dir@ $(DESTDIR)@data_dir@/etc $(DESTDIR)@config_dir@ \
   $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@: 
 	$(INSTALL) @install_dir_opts@ $@
 
-link-modules: @module_dir@ @standard_module_dir@ @data_dir@/etc
+link-modules: $(DESTDIR)@module_dir@ \
+              $(DESTDIR)@standard_module_dir@ \
+              $(DESTDIR)@data_dir@/etc
 	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
-	rm -rf  @standard_module_dir@
-	ln -sf $(BUILD)/src/modules @standard_module_dir@
-	ln -sf $(BUILD)/src/fdweb/xhtml @module_dir@
-copy-modules: @module_dir@ @standard_module_dir@ @data_dir@/etc
+	rm -rf  $(DESTDIR)@standard_module_dir@
+	ln -sf $(BUILD)/src/modules $(DESTDIR)@standard_module_dir@
+	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@module_dir@
+copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
+              $(DESTDIR)@data_dir@/etc
 	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	$(INSTALL) @install_dir_opts@ \
-           @standard_module_dir@ @module_dir@ @safe_module_dir@
-	cp -prf $(BUILD)/src/modules/* @standard_module_dir@
-	cp -prf $(BUILD)/src/fdweb/xhtml @standard_module_dir@
+           $(DESTDIR)@standard_module_dir@ \
+	   $(DESTDIR)@module_dir@ \
+	   $(DESTDIR)@safe_module_dir@
+	cp -prf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
+	cp -prf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@standard_module_dir@
 
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d
 	$(INSTALL) -m 0555 @admininstall@ \
