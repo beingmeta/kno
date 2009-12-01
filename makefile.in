@@ -612,9 +612,11 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	cp -prf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
 	cp -prf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@standard_module_dir@
 
-$(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d
+$(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
 	$(INSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
+$(DESTDIR)/etc/init.d:
+	$(INSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/var/run/framerd:
 	$(INSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
 		   -d $(DESTDIR)/var/run/framerd
