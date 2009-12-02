@@ -73,15 +73,15 @@ Requires:       sqlite %{name} = %{version}-%{release}
 The %{name}-sqlite package implements external DB bindings to the Sqlite3 library
 libraries
 
-%package        odbc
-Summary:        Module for using Odbc from FramerD
-Group:          Development/Libraries
-BuildRequires:  unixODBC-devel
-Requires:       unixODBC %{name} = %{version}-%{release}
+# %package        odbc
+# Summary:        Module for using Odbc from FramerD
+# Group:          Development/Libraries
+# BuildRequires:  unixODBC-devel
+# Requires:       unixODBC %{name} = %{version}-%{release}
 
-%description    odbc
-The %{name}-odbc package implements external DB bindings to the ODBC
-libraries
+# %description    odbc
+# The %{name}-odbc package implements external DB bindings to the ODBC
+# libraries
 
 %prep
 %setup -q
@@ -90,11 +90,12 @@ libraries
 %build
 %configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none
 make %{?_smp_mflags}
+make mod_fdserv
 
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT
+make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT install-fdserv
 make copy-modules DESTDIR=$RPM_BUILD_ROOT
 #find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
@@ -139,9 +140,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 %{_libdir}/framerd/sqlite.so*
 
-%files odbc
-%defattr(-,root,root,-)
-%doc
-%{_libdir}/framerd/odbc.so*
+# %files odbc
+# %defattr(-,root,root,-)
+# %doc
+# %{_libdir}/framerd/odbc.so*
 
 %changelog
