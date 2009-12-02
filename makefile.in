@@ -23,7 +23,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 CONFDIR		= $(DESTDIR)@data_dir@
-APXS		= @APXS@
+APXS		= @APXS@ -S LIBEXECDIR=@apache_modules_dir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
