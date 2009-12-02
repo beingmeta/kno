@@ -590,7 +590,7 @@ install-qrcode: $(LIBINSTALLDIR)/framerd/qrcode.@shared_suffix@ \
 confdirs: $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@
-	if test ! -f @config_dir@/servers; then $(INSTALL) @install_file_opts@ /dev/null $(DESTDIR)@config_dir@/servers; fi
+	if test ! -f $(DESTDIR)@config_dir@/servers; then $(INSTALL) @install_file_opts@ /dev/null $(DESTDIR)@config_dir@/servers; fi
 
 $(DESTDIR)@data_dir@ $(DESTDIR)@data_dir@/etc $(DESTDIR)@config_dir@ \
   $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
