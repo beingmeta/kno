@@ -58,7 +58,6 @@ typedef unsigned int INTPOINTER;
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "fdb/config.h"
 
 #ifndef TRACK_EXECUTION_TIMES
 #if HAVE_FTIME
