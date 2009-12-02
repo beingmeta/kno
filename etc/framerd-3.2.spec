@@ -137,12 +137,12 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/*.so.*
+%{_bindir}/*
 
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/*
 %{_libdir}/*.so
-%{_bindir}/*
 
 %files static
 %defattr(-,root,root,-)
