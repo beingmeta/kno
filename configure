@@ -3332,6 +3332,7 @@ if test ! -z $APXS; then
   if test -d $apache_conf_dir/mods_available; then
     apache_modinfo_dir=$apache_conf_dir/mods_available;
   else apache_modinfo_dir=$apache_conf_dir;
+  fi;
 else
   echo "Warning: No apache development environment, can't build mod_fdserv"
 fi
