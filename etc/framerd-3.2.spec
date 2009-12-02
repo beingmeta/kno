@@ -10,7 +10,7 @@ Source0:        framerd-3.2.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel libexif-devel mysql-devel
-Requires:       libu8 libcurl libexif
+Requires:       libu8 curl libexif
 
 %description
 FramerD is a distributed knowledge base and application environment.
