@@ -158,7 +158,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) %{_var}/log/fdserv
 %{_sysconfdir}/apache2/fdserv.conf
 %{_sysconfdir}/apache2/fdserv.load
-%{_libdir}/http/modules/mod_fdserv.*
+%{_libdir}/httpd/modules/mod_fdserv.*
 
 # %files odbc
 # %defattr(-,root,root,-)
