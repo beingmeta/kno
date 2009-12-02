@@ -650,7 +650,7 @@ mod_fdserv: etc/mod_fdserv.so
 install-fdserv: etc/mod_fdserv.so
 	${INSTALL} @install_file_opts@                 \
 		    fdserv.conf fdserv.load            \
-		    @apache_modinfo_dir@;              \
+		    @apache_modinfo@;              \
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		   -d $(DESTDIR)@rundir@/fdserv        \
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \

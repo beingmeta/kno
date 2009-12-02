@@ -65,7 +65,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
-apache_install_dir="/etc/apache2"
+apache_modinfo="/etc/apache2"
 A2EN="none"
 standard_module_path=""
 safe_module_path=""
@@ -110,7 +110,7 @@ AC_SUBST(local_config)
 AC_SUBST(shared_config)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
-AC_SUBST(apache_install_dir)
+AC_SUBST(apache_modinfo)
 AC_SUBST(wwwinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
