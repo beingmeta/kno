@@ -65,6 +65,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
+apache_install_dir="/etc/apache2"
 A2EN="none"
 standard_module_path=""
 safe_module_path=""
@@ -109,6 +110,7 @@ AC_SUBST(local_config)
 AC_SUBST(shared_config)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
+AC_SUBST(apache_install_dir)
 AC_SUBST(wwwinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
@@ -182,6 +184,9 @@ fi
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
   apache_modules_dir=`$APXS -q LIBEXECDIR`
+  if test -d $apache_conf_dir/mods_available; then
+    apache_modinfo_dir=$apache_conf_dir/mods_available;
+  else apache_modinfo_dir=$apache_conf_dir;
 else
   echo "Warning: No apache development environment, can't build mod_fdserv"
 fi

@@ -36,6 +36,8 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 FRAMERDSVN	= https://dev.beingmeta.com/src/fdb/trunk
+APACHECONF	= `$(APXS) -q SYSCONFDIR`
+APACHEDIR	= `dirname $(APACHECONF)`
 
 DTYPE_HEADERS=\
  include/fdb/config.h                            \
@@ -646,26 +648,15 @@ mod_fdserv: etc/mod_fdserv.so
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
 install-fdserv: etc/mod_fdserv.so
-	if test -d @apache_conf_dir@/mods-available;   \
-	   then	cd etc; ${APXS} -i -c mod_fdserv.c;    \
-		${INSTALL} @install_file_opts@         \
+	${INSTALL} @install_file_opts@                 \
 		    fdserv.conf fdserv.load            \
-		    @apache_conf_dir@/mods-available;  \
-	elif test -d @apache_conf_dir@.d;              \
-	   then cd etc; ${APXS} -i -a -c mod_fdserv.c; \
-		${INSTALL} @install_file_opts@         \
-		    fdserv.conf                        \
-		    @apache_conf_dir@.d;               \
-	elif test -d @apache_conf_dir@/other;          \
-	   then	cd etc; ${APXS} -i -c mod_fdserv.c;    \
-		${INSTALL} @install_file_opts@         \
-		    fdserv.conf fdserv.load            \
-		    @apache_conf_dir@/other;           \
-	fi
+		    @apache_modinfo_dir@;              \
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		   -d $(DESTDIR)@rundir@/fdserv
+		   -d $(DESTDIR)@rundir@/fdserv        \
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		   -d $(DESTDIR)@logdir@/fdserv
+		   -d $(DESTDIR)@logdir@/fdserv        \
+	${APXS} -i -a -c mod_fdserv.c;
+
 
 # Tracking revision information
 

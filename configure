@@ -674,6 +674,7 @@ local_config
 shared_config
 apache_modules_dir
 apache_conf_dir
+apache_install_dir
 wwwinstall
 admin_group
 admininstall
@@ -1833,6 +1834,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
+apache_install_dir="/etc/apache2"
 A2EN="none"
 standard_module_path=""
 safe_module_path=""
@@ -1882,6 +1884,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/fdb/config.h"
+
 
 
 
@@ -3326,6 +3329,9 @@ fi
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
   apache_modules_dir=`$APXS -q LIBEXECDIR`
+  if test -d $apache_conf_dir/mods_available; then
+    apache_modinfo_dir=$apache_conf_dir/mods_available;
+  else apache_modinfo_dir=$apache_conf_dir;
 else
   echo "Warning: No apache development environment, can't build mod_fdserv"
 fi
@@ -13569,6 +13575,7 @@ local_config!$local_config$ac_delim
 shared_config!$shared_config$ac_delim
 apache_modules_dir!$apache_modules_dir$ac_delim
 apache_conf_dir!$apache_conf_dir$ac_delim
+apache_install_dir!$apache_install_dir$ac_delim
 wwwinstall!$wwwinstall$ac_delim
 admin_group!$admin_group$ac_delim
 admininstall!$admininstall$ac_delim
@@ -13605,7 +13612,6 @@ CC!$CC$ac_delim
 CFLAGS!$CFLAGS$ac_delim
 LDFLAGS!$LDFLAGS$ac_delim
 CPPFLAGS!$CPPFLAGS$ac_delim
-ac_ct_CC!$ac_ct_CC$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -13647,6 +13653,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+ac_ct_CC!$ac_ct_CC$ac_delim
 EXEEXT!$EXEEXT$ac_delim
 OBJEXT!$OBJEXT$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
@@ -13664,7 +13671,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 15; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 16; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
