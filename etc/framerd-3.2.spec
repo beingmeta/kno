@@ -114,16 +114,16 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) /var/run/framerd
 %attr(-,fdaemon,adm) /var/log/framerd
 %attr(-,fdaemon,adm) %{_datadir}/framerd/*
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/aws/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/brico/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/facebook/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/xhtml/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/tests/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/safe/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/safe/domutils/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/safe/knowlets/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/standard_modules/safe/textindex/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/facebook/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/xhtml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/tests/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/*.scm
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/*.so.*
@@ -152,8 +152,8 @@ rm -rf $RPM_BUILD_ROOT
 %files fdserv
 %defattr(-,root,root,-)
 %doc
-%attr(-,root,adm) %{_sysconfdir}/run/fdserv
-%attr(-,root,adm) /var/log/fdserv
+%attr(-,root,adm) %{_var}/run/fdserv
+%attr(-,root,adm) %{_var}/log/fdserv
 %{_sysconfdir}/apache2/fdserv.conf
 %{_sysconfdir}/apache2/fdserv.load
 %{_libdir}/http/modules/mod_fdserv.so
