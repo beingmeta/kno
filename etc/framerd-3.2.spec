@@ -119,8 +119,15 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.table
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.dtype
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/knowlets/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/knowlets/*.table
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/knowlets/*.dtype
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/textindex/en.*
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/facebook/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/xhtml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/webapi/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/tests/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
