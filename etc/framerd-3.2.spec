@@ -113,6 +113,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) /etc/init.d/framerd
 %attr(-,fdaemon,adm) /var/run/framerd
 %attr(-,fdaemon,adm) /var/log/framerd
+%attr(-,fdaemon,adm) %{_prefix}/etc/framerd/servers
 %attr(-,fdaemon,adm) %{_datadir}/framerd/config
 %attr(-,fdaemon,adm) %{_datadir}/framerd/etc/fdconsole.el
 %attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules
@@ -125,6 +126,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/xhtml/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/webapi/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/tests/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/misc/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.scm
