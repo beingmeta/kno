@@ -113,7 +113,11 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) /etc/init.d/framerd
 %attr(-,fdaemon,adm) /var/run/framerd
 %attr(-,fdaemon,adm) /var/log/framerd
-%attr(-,fdaemon,adm) %{_datadir}/framerd/*
+%attr(-,fdaemon,adm) %{_datadir}/framerd/config
+%attr(-,fdaemon,adm) %{_datadir}/framerd/etc
+%attr(-,fdaemon,adm) %{_datadir}/framerd/etc/fdconsole.el
+%attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules
+%attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules/safe
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
