@@ -114,10 +114,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) /var/run/framerd
 %attr(-,fdaemon,adm) /var/log/framerd
 %attr(-,fdaemon,adm) %{_datadir}/framerd/config
-%attr(-,fdaemon,adm) %{_datadir}/framerd/etc
 %attr(-,fdaemon,adm) %{_datadir}/framerd/etc/fdconsole.el
 %attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules
-%attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules/safe
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
@@ -160,7 +158,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) %{_var}/log/fdserv
 %{_sysconfdir}/apache2/fdserv.conf
 %{_sysconfdir}/apache2/fdserv.load
-%{_libdir}/http/modules/mod_fdserv.so
+%{_libdir}/http/modules/mod_fdserv.*
 
 # %files odbc
 # %defattr(-,root,root,-)
