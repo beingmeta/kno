@@ -214,14 +214,8 @@ exe/%@suffix@: src/exe/%.c
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
 	$(CC) $(EXECFLAGS) -o $@ $^ $(LIBS) -lu8stdio -lu8syslog
 
-exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@:                 \
-	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
-	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                       \
-	lib/libfdtype@suffix@.a
-exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@:               \
-	@xstatic_exe_libs@ lib/libfdbserv@suffix@.a lib/libfdscheme@suffix@.a \
-	lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a                       \
-	lib/libfdtype@suffix@.a
+exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: libs
+exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: libs
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -388,7 +382,7 @@ lib/libfdschemeio.dylib: lib/libfdschemeio@suffix@.@VERSION@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so.@VERSION@: $(FDWEB_OBJS)
-	$(MKSO) @curlconfig@ -o $@ $^ 
+	$(MKSO) @curlconfig@ -Wl,-soname=$(@F) -o $@ $^ 
 lib/libfdweb@suffix@.so: lib/libfdweb@suffix@.so.@VERSION@
 lib/libfdweb@suffix@.@VERSION@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib     \
@@ -400,7 +394,6 @@ lib/libfdweb@suffix@.dylib: lib/libfdweb@suffix@.@VERSION@.dylib
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
 lib/libtexttools@suffix@.so.@VERSION@: $(TEXTTOOLS_OBJS)
-	$(MKSO) @curlconfig@ -o $@ $^ 
 lib/libtexttools@suffix@.so: lib/libtexttools@suffix@.so.@VERSION@
 lib/libtexttools@suffix@.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
