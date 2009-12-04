@@ -27,7 +27,7 @@
 	   content-sig "\n"
 	   content-ctype "\n"
 	   date "\n" (canonical-headers headers) "/" bucket path)))
-    (message "Description=" (write description))
+    ;; (message "Description=" (write description))
     (hmac-sha1 secretawskey description)))
 
 (define (canonicalize-header x)
