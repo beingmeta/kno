@@ -492,7 +492,7 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
-  int consed_handle=0; long http_response=200;
+  int consed_handle=0; long http_response=0;
   fdtype result=fd_init_slotmap(NULL,0,NULL), cval;
   fdtype url=fdtype_string(urltext);
   char errbuf[CURL_ERROR_SIZE];
@@ -509,6 +509,9 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
     fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
+  retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
+  if (retval==0) 
+    fd_add(result,response_code_slotid,FD_INT2DTYPE(http_response));
   if (data.size<data.limit) data.bytes[data.size]='\0';
   else {
     data.bytes=u8_realloc(data.bytes,data.size+4);
