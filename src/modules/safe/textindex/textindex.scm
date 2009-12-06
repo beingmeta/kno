@@ -396,8 +396,8 @@
     ("ed"
      . #((NOT> #({"b" "d" "m" "p" "r" "t"} "ed")) (ISNOTVOWEL) (SUBST "ed" "e")
 	 (EOS)))
-    ("ed" . "")
     ("ed" . "e")
+    ("ed" . "")
     ("ing" . "")
     ("ly" . #((NOT> "ly") (SUBST "ly" "")))))
 
