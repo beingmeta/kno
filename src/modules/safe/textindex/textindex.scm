@@ -373,21 +373,33 @@
 (define default-morphrules
   ;; These are the rules for English and should usually be the same
   ;; as in en.morphrules
-  `(("'s" . "") ("s'" . "s") ("\u2019s" . "") ("s\u2019" . "s")
-    ;; This causes proper names to be spared all the other morphizing
+  `(("'s" . "")
+    ("s'" . "s")
+    ("’s" . "")
+    ("s’" . "s")
     #((ISUPPER) (REST))
     ("ies" . "y")
-    ("ees" . "ee") ("es" . "") ("s" . "") 
-    ("ing" . #((not> #(,(second consrules) "ing"))
-	       (isnotvowel) (subst #((isnotvowel) "ing") "")))
-    ("ing" . #((not> #(,(third consrules) "ing"))
-	       (isnotvowel) (subst "ing" "e") (eos)))
-    ("ed" . #((not> #(,(second consrules) "ed"))
-	      (isnotvowel) (subst #((isnotvowel) "ed") "")))
-    ("ed" . #((not> #(,(third consrules) "ed"))
-	      (isnotvowel) (subst "ed" "e") (eos)))
-    ("ed" . "") ("ed" . "e") 
-    ("ing" . "")))
+    ("ees" . "ee")
+    ,@(map (lambda (x) (cons (string-append x "es") x))
+	   '("ss" "x" "z" "sh" "ge" "ch"))
+    ("s" . "")
+    ("ing"
+     . #((NOT> #({"bb" "dd" "mm" "pp" "rr" "tt"} "ing")) (ISNOTVOWEL)
+	 (SUBST #((ISNOTVOWEL) "ing") "")))
+    ("ing"
+     . #((NOT> #({"b" "d" "m" "p" "r" "t"} "ing")) (ISNOTVOWEL) (SUBST "ing" "e")
+	 (EOS)))
+    ;; ##20=
+    ("ed"
+     . #((NOT> #({"bb" "dd" "mm" "pp" "rr" "tt"} "ed")) (ISNOTVOWEL)
+	 (SUBST #((ISNOTVOWEL) "ed") "")))
+    ("ed"
+     . #((NOT> #({"b" "d" "m" "p" "r" "t"} "ed")) (ISNOTVOWEL) (SUBST "ed" "e")
+	 (EOS)))
+    ("ed" . "")
+    ("ed" . "e")
+    ("ing" . "")
+    ("ly" . #((NOT> "ly") (SUBST "ly" "")))))
 
 ;;; Default ref rules
 
