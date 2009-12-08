@@ -134,10 +134,10 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.dtype
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/en.*
-%defattr(-,root,root,-)
-%doc
 %{_libdir}/*.so.*
 %{_bindir}/*
+%defattr(-,root,root,-)
+%doc
 
 %files devel
 %defattr(-,root,root,-)
