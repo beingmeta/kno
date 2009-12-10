@@ -95,7 +95,9 @@ make mod_fdserv
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT install-fdserv
+make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT
+make install-fdserv
+cp etc/fdserv.conf $RPM_BUILD_ROOT/etc/httpd/conf.d
 make copy-modules DESTDIR=$RPM_BUILD_ROOT
 #find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
@@ -164,8 +166,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 %attr(-,root,adm) %{_var}/run/fdserv
 %attr(-,root,adm) %{_var}/log/fdserv
-%{_sysconfdir}/apache2/fdserv.conf
-%{_sysconfdir}/apache2/fdserv.load
+%{_sysconfdir}/httpd/conf.d/fdserv.conf
+%{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*
 
 # %files odbc
