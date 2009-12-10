@@ -96,8 +96,7 @@ make mod_fdserv
 %install
 rm -rf $RPM_BUILD_ROOT
 make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT
-make install-fdserv
-cp etc/fdserv.conf $RPM_BUILD_ROOT/etc/httpd/conf.d
+make install-fdserv DESTDIR=$RPM_BUILD_ROOT
 make copy-modules DESTDIR=$RPM_BUILD_ROOT
 #find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
