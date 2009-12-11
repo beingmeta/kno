@@ -3874,10 +3874,10 @@ if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
   apache_modules_dir=`$APXS -q LIBEXECDIR`
   if test -d $apache_conf_dir/mods_available; then
-    apache_modinfo_dir=$apache_conf_dir/mods_available;
+    apache_modinfo=$apache_conf_dir/mods_available;
   elif test -d $apache_conf_dir/conf.d; then
-    apache_modinfo_dir=$apache_conf_dir/conf.d;
-  else apache_modinfo_dir=$apache_conf_dir;
+    apache_modinfo=$apache_conf_dir/conf.d;
+  else apache_modinfo=$apache_conf_dir;
   fi;
 else
   echo "Warning: No apache development environment, can't build mod_fdserv"
