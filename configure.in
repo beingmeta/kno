@@ -5,11 +5,13 @@ AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
   found_user="none";
   for user in $2;		    
-  do if grep ^$user: /etc/passwd > /dev/null; 
+  do
+  if grep ^$user: /etc/passwd > /dev/null; 
   then
 	found_user=$user;
 	break;
-  fi; done;
+  fi;
+  done;
   $1=$found_user;
   AC_MSG_RESULT($found_user)])
 
@@ -153,6 +155,7 @@ fi
 
 AC_CHECK_GROUP(default_admin_group,framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
+AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
 dnl Specifies an admin group; files written by installation scripts will be
