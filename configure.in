@@ -186,8 +186,8 @@ if test ! -z $APXS; then
   apache_modules_dir=`$APXS -q LIBEXECDIR`
   if test -d $apache_conf_dir/mods_available; then
     apache_modinfo=$apache_conf_dir/mods_available;
-  elif test -d $apache_conf_dir/conf.d; then
-    apache_modinfo=$apache_conf_dir/conf.d;
+  elif test -d $(apache_conf_dir).d; then
+    apache_modinfo=$(apache_conf_dir).d;
   else apache_modinfo=$apache_conf_dir;
   fi;
 else
