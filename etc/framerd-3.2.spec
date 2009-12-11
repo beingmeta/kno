@@ -93,9 +93,11 @@ make %{?_smp_mflags}
 make mod_fdserv
 
 
+%pre
+useradd fdaemon
+
 %install
 rm -rf $RPM_BUILD_ROOT
-useradd fdaemon
 make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT
 make install-fdserv DESTDIR=$RPM_BUILD_ROOT
 make copy-modules DESTDIR=$RPM_BUILD_ROOT
