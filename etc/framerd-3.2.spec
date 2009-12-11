@@ -165,8 +165,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 %attr(-,root,adm) %{_var}/run/fdserv
 %attr(-,root,adm) %{_var}/log/fdserv
-%{_sysconfdir}/apache2/conf.d/fdserv.conf
-%{_sysconfdir}/apache2/conf.d/fdserv.load
+%{_sysconfdir}/httpd/conf.d/fdserv.conf
+%{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*
 
 # %files odbc
