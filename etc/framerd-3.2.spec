@@ -88,7 +88,7 @@ libraries
 
 
 %build
-%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none
+%configure --prefix=/usr
 make %{?_smp_mflags}
 make mod_fdserv
 
