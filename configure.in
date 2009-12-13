@@ -181,7 +181,7 @@ if test $with_fdaemon != "none"; then
    fdaemoninstall="-o $with_fdaemon"
    fdaemon=$with_fdaemon
 else
-   fdaemoninstall="-o $with_fdaemon"
+   fdaemoninstall=""
    fdaemon=$default_fdaemon
 fi
 
