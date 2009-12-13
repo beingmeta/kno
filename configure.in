@@ -167,21 +167,33 @@ if test $with_admin_group != "none"; then
   install_exe_opts="-g $with_admin_group $install_exe_opts"
   admin_group=$with_admin_group
   admininstall="-g $with_admin_group"
+else
+  install_dir_opts="$install_dir_opts"
+  install_file_opts="$install_file_opts"
+  install_exe_opts="$install_exe_opts"
+  admin_group=$default_admin_group
+  admininstall=""
 fi
 
 dnl Specifies a daemon identity user/group for managed FramerD servers
 AC_ARG_WITH(fdaemon,--with-fdaemon The identity for FramerD servers to run,,with_fdaemon=$default_fdaemon)
-fdaemon=$with_fdaemon
 if test $with_fdaemon != "none"; then
    fdaemoninstall="-o $with_fdaemon"
+   fdaemon=$with_fdaemon
+else
+   fdaemoninstall="-o $with_fdaemon"
+   fdaemon=$default_fdaemon
 fi
 
 dnl Specifies the user which the Web server runs as
 dnl This is used to set up the directories used by fdserv
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
-webuser=$with_webuser
 if test $webuser != "none"; then
    wwwinstall="-o $webuser"
+   webuser=$with_webuser
+else
+   wwwinstall=""
+   webuser=$default_webuser
 fi
 
 if test ! -z $APXS; then
