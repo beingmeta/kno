@@ -94,7 +94,7 @@ make mod_fdserv
 
 
 %pre
-useradd fdaemon
+if grep -q ^fdaemon /etc/passwd; then echo "User fdaemon already exists"; else useradd fdaemon fi;
 
 %install
 rm -rf $RPM_BUILD_ROOT
