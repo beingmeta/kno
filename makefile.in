@@ -413,7 +413,7 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
 lib/framerd/mysql.so.@VERSION@: src/cmodules/mysql.o
-	$(MKSO) -o $@ $^
+	$(MKSO) -o $@ $^ `mysql_config --libs_r`
 lib/framerd/mysql.so: lib/framerd/mysql.so.@VERSION@
 lib/framerd/mysql.@VERSION@.dylib: src/cmodules/mysql.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o
