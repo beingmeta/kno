@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.2
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -166,8 +166,8 @@ rm -rf $RPM_BUILD_ROOT
 %files fdserv
 %defattr(-,root,root,-)
 %doc
-%attr(-,root,adm) %{_var}/run/fdserv
-%attr(-,root,adm) %{_var}/log/fdserv
+%attr(-,apache,adm) %{_var}/run/fdserv
+%attr(-,apache,adm) %{_var}/log/fdserv
 %{_sysconfdir}/httpd/conf.d/fdserv.conf
 %{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*

@@ -206,7 +206,7 @@ exe/%@suffix@: src/exe/%.c
 		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
 		-lfdweb@suffix@ -ltexttools@suffix@                \
-		-lfdbserv@suffix@                                 \
+		-ltagger@suffix@ -lfdbserv@suffix@                 \
 		@xdynamic_scheme_libs@
 
 # We can selectively link some executables statically to avoid 
