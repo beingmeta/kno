@@ -403,7 +403,6 @@ lib/libtexttools.dylib: lib/libtexttools@suffix@.@VERSION@.dylib
 
 lib/libtagger@suffix@.a: $(TAGGER_OBJS)
 lib/libtagger@suffix@.so.@VERSION@: $(TAGGER_OBJS)
-	$(MKSO) @curlconfig@ -o $@ $^
 lib/libtagger@suffix@.so: lib/libtagger@suffix@.so.@VERSION@
 lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 	lib/libtexttools@suffix@.@VERSION@.dylib \
@@ -460,6 +459,9 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 # Packaging targets
 
 rpmtar: etc/framerd-@VERSION@.tar.gz
+cleanrpms: 
+	rm etc/rpms.done
+	make rpms
 rpms: etc/rpms.done
 
 etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
