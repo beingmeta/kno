@@ -457,13 +457,16 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
   if (fd_functionp[ftype]) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
     fdtype argbuf[8], *args;
-    if (FD_EXPECT_FALSE(f->arity<0)) {
-      if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
-	int ctype=FD_CONS_TYPE(f);
-	return fd_applyfns[ctype]((fdtype)f,n,argvec);}
-      else if (f->xprim)
-	return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
-      else return f->handler.calln(n,argvec);}
+    if (FD_EXPECT_FALSE(f->arity<0))
+      if (n<(f->min_arity)) 
+	return fd_err(fd_TooFewArgs,"fd_dapply",f->name,FDTYPE_CONS(f));
+      else {
+	if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
+	  int ctype=FD_CONS_TYPE(f);
+	  return fd_applyfns[ctype]((fdtype)f,n,argvec);}
+	else if (f->xprim)
+	  return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
+	else return f->handler.calln(n,argvec);}
     /* Fill in the rest of the argvec */
     if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
       if (FD_EXPECT_FALSE(n<f->arity)) {
