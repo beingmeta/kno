@@ -103,9 +103,9 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
 {
   struct FD_EXTDB *db=FD_GET_CONS(proc->db,fd_extdb_type,struct FD_EXTDB *);
   u8_lock_mutex(&(db->proclock)); {
-    int n=db->n_procs, i=n;
+    int n=db->n_procs, i=n-1;
     struct FD_EXTDB_PROC **dbprocs=db->procs;
-    while (i>0)
+    while (i>=0)
       if ((dbprocs[i])==proc) {
 	memmove(dbprocs+i,dbprocs+i+1,(n-i)*sizeof(struct FD_EXTDB_PROC *));
 	db->n_procs--;
