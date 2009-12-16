@@ -31,7 +31,17 @@ Requires:       %{name} = %{version}-%{release}
 
 %description    tagger
 The %{name}-tagger package contains native code implementation
-of a natural language tagger and analyzer for English
+of a natural language tagger and analyzer for English.
+
+# %package        fcgi
+# Summary:        FASTCGI executable for %{name}
+# Group:          Development/Libraries
+# Requires:       %{name} = %{version}-%{release} libfcgi
+# 
+# %description    fcgi
+# The %{name}-fcgi provides the fdfastcgi executable which allows persistent
+# web service processes communicating via the FastCGI protocol.  This is an
+# alternative to the %{name}-fdserv package.
 
 %package        static
 Summary:        Static libraries for %{name}
@@ -138,20 +148,53 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.dtype
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/en.*
-%{_libdir}/*.so.*
-%{_bindir}/*
+%{_libdir}/libfdtype.so.*
+%{_libdir}/libfddb.so.*
+%{_libdir}/libfddbfile.so.*
+%{_libdir}/libfdbserv.so.*
+%{_libdir}/libfdscheme.so.*
+%{_libdir}/libfdschemeio.so.*
+%{_libdir}/libfdweb.so.*
+%{_libdir}/libtexttools.so.*
+%{_bindir}/fdexec
+%{_bindir}/fdconsole
+%{_bindir}/fdbatch
+%{_bindir}/fdserv
+%{_bindir}/fdbserver
+%{_bindir}/fdmanager
+%{_bindir}/fdsetconfig
+%{_bindir}/fdgetconfig
+%{_bindir}/pack-pool
+%{_bindir}/pack-index
+%{_bindir}/make-hash-index
+%{_bindir}/make-oidpool
+%{_bindir}/ovmerge
 %defattr(-,root,root,-)
 %doc
 
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/*
-%{_libdir}/*.so
+%{_libdir}/libfdtype.so
+%{_libdir}/libfddb.so
+%{_libdir}/libfddbfile.so
+%{_libdir}/libfdbserv.so
+%{_libdir}/libfdscheme.so
+%{_libdir}/libfdschemeio.so
+%{_libdir}/libfdweb.so
+%{_libdir}/libtexttools.so
 
 %files static
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/*.a
+%{_libdir}/libfdtype.a
+%{_libdir}/libfddb.a
+%{_libdir}/libfddbfile.a
+%{_libdir}/libfdbserv.a
+%{_libdir}/libfdscheme.a
+%{_libdir}/libfdschemeio.a
+%{_libdir}/libfdweb.a
+%{_libdir}/libtexttools.a
 
 %files mysql
 %defattr(-,root,root,-)
@@ -171,6 +214,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/httpd/conf.d/fdserv.conf
 %{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*
+
+%files tagger
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/libtexttools.so.*
+%{_libdir}/libtexttools.so
+%{_libdir}/libtexttools.a
 
 # %files odbc
 # %defattr(-,root,root,-)
