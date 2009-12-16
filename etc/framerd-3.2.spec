@@ -98,7 +98,7 @@ libraries
 
 
 %build
-%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none
+%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi
 make %{?_smp_mflags}
 make mod_fdserv
 
@@ -218,9 +218,9 @@ rm -rf $RPM_BUILD_ROOT
 %files tagger
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/libtexttools.so.*
-%{_libdir}/libtexttools.so
-%{_libdir}/libtexttools.a
+%{_libdir}/libtagger.so.*
+%{_libdir}/libtagger.so
+%{_libdir}/libtagger.a
 
 # %files odbc
 # %defattr(-,root,root,-)
