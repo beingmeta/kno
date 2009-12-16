@@ -104,8 +104,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 	     src/cmodules/qrcode.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
-	    exe/fdserv@suffix@ exe/fdcgiexec@suffix@ \
-	    exe/fdbserver@suffix@ exe/fdmanager@suffix@
+	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
@@ -563,6 +562,10 @@ install-shell-scripts:
 	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	$(INSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
+
+install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
+$(BININSTALLDIR)/fdcgiexec@suffix@:
+	$(INSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
