@@ -44,8 +44,12 @@
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
 
-(define (exto/defget pool slotid db query (sqlmap default-sqlmap))
-  (let* ((getter (extdb/proc db query (qc sqlmap) (pool-base pool)))
+(defambda (exto/defget pool slotid db query (sqlmap default-sqlmap) (normalize #f))
+  (let* ((getter/sql (extdb/proc db query (qc sqlmap) (pool-base pool)))
+	 (getter (cond ((not normalize) getter/sql)
+		       ((applicable? normalize) (lambda (x) (normalize (getter/sql x))))
+		       ((slotid? normalize) (lambda (x) (get (getter/sql x) normalize)))
+		       ((table? normalize)  (lambda (x) (get normalize (getter/sql x))))))
 	 (index (make-extindex (stringout slotid) getter)))
     (use-adjunct index slotid pool)))
 
