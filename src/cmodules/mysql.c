@@ -816,12 +816,18 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       inbound[i].buffer_type=MYSQL_TYPE_STRING;
       inbound[i].buffer=FD_STRDATA(arg);
       inbound[i].buffer_length=FD_STRLEN(arg);
-      inbound[i].length=NULL;}
+      inbound[i].length=&(inbound[i].buffer_length);}
+    else if (FD_SYMBOLP(arg)) {
+      u8_string pname=FD_SYMBOL_NAME(arg);
+      inbound[i].buffer_type=MYSQL_TYPE_STRING;
+      inbound[i].buffer=pname;
+      inbound[i].buffer_length=strlen(pname);
+      inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PACKETP(arg)) {
       inbound[i].buffer_type=MYSQL_TYPE_BLOB;
       inbound[i].buffer=FD_PACKET_DATA(arg);
       inbound[i].buffer_length=FD_PACKET_LENGTH(arg);
-      inbound[i].length=NULL;}
+      inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
       struct FD_TIMESTAMP *tm=
 	FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
