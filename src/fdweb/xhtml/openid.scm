@@ -113,13 +113,14 @@
   (cgiset! 'status 303)
   (httpheader "Location: " uri))
 
-(define (openidauth (openid.mode #f) (openid.endpoint #f)
-		    (openid.identifier #f) (openid.identity #f))
+(define (openid/auth (openid.mode #f) (openid.endpoint #f)
+		     (openid.identifier #f) (openid.identity #f))
   (cond ((equal? openid.mode "id_res")
-	 (or (cgicall validate) (error "OpenID validation failed")))
+	 (and (cgicall validate)
+	      (or openid.identifer openid.claimed_identifer)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
 	 (doredirect (openid-redirect (or openid.identifier openid.endpoint))))
 	(else #f)))
 
-(module-export! '{get-openid-server openid-url openidauth openid/optinfo})
+(module-export! '{get-openid-server openid-url openid/auth openid/optinfo})

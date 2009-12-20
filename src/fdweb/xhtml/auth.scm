@@ -141,5 +141,7 @@
     (set-cookies! (qc))
     info))
 
-(module-export! '{auth/getinfo auth/authorize! auth/deauthorize!})
+(define (auth/getuser) (cgiget uservar))
+
+(module-export! '{auth/getinfo auth/authorize! auth/deauthorize! auth/getuser})
 
