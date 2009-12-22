@@ -4,13 +4,15 @@
 
 (define openid-servers (make-hashtable))
 (define-init openid/optinfo (make-hashtable))
+(define-init default-opts #[])
 
 (define reqopts ;; requestopts
-  #["openid.sreg.optional" "nickname,email,fullname,country,postcode"
-    "openid.ns.ui" "http://openid.net/extensions/ui/1.0"
-    "openid.ui.icon" "true"
+  #["openid.ns.ui" "http://openid.net/extensions/ui/1.0"
+    "openid.ns.sreg" "http://openid.net/extensions/sreg/1.1"
     "openid.ns.ax" "http://openid.net/srv/ax/1.0"
+    "openid.ui.icon" "true"
     "openid.ax.mode" "fetch_request"
+    "openid.sreg.optional" "nickname,email,fullname,country,postcode"
     "openid.ax.type.email" "http://axschema.org/contact/email"
     "openid.ax.type.language" "http://axschema.org/pref/language"
     "openid.ax.type.firstname" "http://axschema.org/namePerson/first"
@@ -67,14 +69,15 @@
   (let ((parsed (parseuri uri)))
     (stringout (get parsed 'scheme) "://" (get parsed 'hostname) "/")))
 
-(define (guess-callback) (cgiget 'script_uri))
+(define (guess-callback) (cgiget 'callback (cgiget 'script_uri)))
 
 (define (openid-redirect url (opts #f))
-  (let* ((server (get-openid-server url))
+  (let* ((server (if (pair? url) url (get-openid-server url)))
 	 (opts (or opts (try (get openid/optinfo url)
 			     (get openid/optinfo server)
 			     default-opts)))
-	 (callback (getopt opts 'callback (or callback (guess-callback))))
+	 (callback (getopt opts 'callback
+			   (or callback (guess-callback))))
 	 (realm (getopt opts 'realm (or realm (guess-realm callback)))))
     (scripturl+ (car server)
       (try (getopt opts 'reqopts {}) reqopts)
@@ -113,14 +116,33 @@
   (cgiset! 'status 303)
   (httpheader "Location: " uri))
 
-(define (openid/auth (openid.mode #f) (openid.endpoint #f)
-		     (openid.identifier #f) (openid.identity #f))
+(define (openid/auth (openid.endpoint #f) (openid.mode #f) 
+		     (openid.identifier #f) (openid.claimed_identifier #f)
+		     (openid.identity #f))
   (cond ((equal? openid.mode "id_res")
-	 (and (cgicall validate)
-	      (or openid.identifer openid.claimed_identifer)))
+	 (and (cgicall validate) (openid-return)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
 	 (doredirect (openid-redirect (or openid.identifier openid.endpoint))))
 	(else #f)))
 
-(module-export! '{get-openid-server openid-url openid/auth openid/optinfo})
+(define (openid-return)
+  (let ((signed (segment (cgiget 'openid.signed) ","))
+	(result (frame-create #f)))
+    (dolist (key signed)
+      (let* ((osym (string->symbol (append "OPENID." (upcase key))))
+	     (sym  (string->symbol (upcase key)))
+	     (ssym (tryif (rposition #\. key)
+		     (string->symbol (upcase (subseq key (1+ (rposition #\. key)))))))
+	     (v (or (cgiget osym) {})))
+	(when (exists? v)
+	  (store! result osym v)
+	  (store! result sym v)
+	  (add! result ssym v))))
+    (cgiset! 'results result)
+    result))
+
+(define (openid/login site (opts default-opts))
+  (doredirect (openid-redirect (cons site #f))))
+
+(module-export! '{get-openid-server openid-url openid/auth openid/optinfo openid/login})
