@@ -160,6 +160,15 @@ STATIC_LIBS=lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
 	     lib/libfdbserv@suffix@.a                              \
 	     lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a       \
 	     lib/libfdtype@suffix@.a
+SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
+	lib/libfddb@suffix@.@shared_suffix@        \
+        lib/libfddbfile@suffix@.@shared_suffix@    \
+	lib/libfdbserv@suffix@.@shared_suffix@     \
+	lib/libfdscheme@suffix@.@shared_suffix@    \
+	lib/libfdschemeio@suffix@.@shared_suffix@  \
+	lib/libfdweb@suffix@.@shared_suffix@       \
+	lib/libtexttools@suffix@.@shared_suffix@   \
+	lib/libtagger@suffix@.@shared_suffix@
 
 # Targets
 
@@ -170,15 +179,7 @@ rebuild:
 	make default
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
-shared-libs: lib/libfdtype@suffix@.@shared_suffix@ \
-	lib/libfddb@suffix@.@shared_suffix@        \
-        lib/libfddbfile@suffix@.@shared_suffix@    \
-	lib/libfdbserv@suffix@.@shared_suffix@     \
-	lib/libfdscheme@suffix@.@shared_suffix@    \
-	lib/libfdschemeio@suffix@.@shared_suffix@  \
-	lib/libfdweb@suffix@.@shared_suffix@       \
-	lib/libtexttools@suffix@.@shared_suffix@   \
-	lib/libtagger@suffix@.@shared_suffix@
+shared-libs: $(SHARED_LIBS)
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
 dtypetestbin: libs  src/exe/revision.h
 	cd tests/dtype; make
@@ -213,8 +214,10 @@ exe/%@suffix@: src/exe/%.c
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
 	$(CC) $(EXECFLAGS) -o $@ $^ $(LIBS) -lu8stdio -lu8syslog
 
-exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: libs
-exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: libs
+exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
+	$(STATIC_LIBS) $(SHARED_LIBS)
+exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
+	$(STATIC_LIBS) $(SHARED_LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -410,11 +413,13 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
+src/cmodules/mysql.o: src/cmodules/mysql.c
+	$(CC) $(CFLAGS) @MYSQL_CFLAGS@ -o $@ $^
 lib/framerd/mysql.so.@VERSION@: src/cmodules/mysql.o
-	$(MKSO) -o $@ $^ `mysql_config --libs_r`
+	$(MKSO) -o $@ $^  @MYSQL_LDFLAGS@
 lib/framerd/mysql.so: lib/framerd/mysql.so.@VERSION@
 lib/framerd/mysql.@VERSION@.dylib: src/cmodules/mysql.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 lib/framerd/mysql.dylib: lib/framerd/mysql.@VERSION@.dylib
 
 lib/framerd/odbc.so.@VERSION@: src/cmodules/odbc.o

@@ -544,6 +544,7 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
       fdtype domain=FD_VECTOR_REF(cookie,2);
       fdtype path=((len>3) ? (FD_VECTOR_REF(cookie,3)) : (FD_VOID));
       fdtype expires=((len>4) ? (FD_VECTOR_REF(cookie,4)) : (FD_VOID));
+      fdtype secure=((len>5) ? (FD_VECTOR_REF(cookie,5)) : (FD_VOID));
       if (FD_STRINGP(domain))
 	u8_printf(out," domain=.%s;",FD_STRDATA(domain));
       if (FD_STRINGP(expires))
@@ -555,14 +556,18 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
 	strftime(buf,512,"%A, %d-%b-%Y %T GMT",&tptr);
 	u8_printf(out," expires=%s;",buf);}
       if (FD_STRINGP(path))
-	u8_printf(out," path=%s",FD_STRDATA(path));}
+	u8_printf(out," path=%s",FD_STRDATA(path));
+      if (!((FD_VOIDP(secure))||(FD_FALSEP(secure))))
+	u8_printf(out," secure");}
     u8_printf(out,"\r\n");}
   fd_decref(real_val);
   return 1;
 }
 
 static fdtype setcookie
-  (fdtype var,fdtype val,fdtype domain,fdtype path,fdtype expires)
+  (fdtype var,fdtype val,
+   fdtype domain,fdtype path,
+   fdtype expires,fdtype secure)
 {
   if (!((FD_SYMBOLP(var)) || (FD_STRINGP(var)) || (FD_OIDP(var))))
     return fd_type_error("symbol","setcookie",var);
@@ -573,7 +578,8 @@ static fdtype setcookie
     if (FD_VOIDP(expires)) expires=FD_FALSE;
     cookiedata=
       fd_make_vector(5,fd_incref(var),fd_incref(val),
-		     fd_incref(domain),fd_incref(path),fd_incref(expires));
+		     fd_incref(domain),fd_incref(path),
+		     fd_incref(expires),fd_incref(secure));
     if (FD_VOIDP(cgidata)) {
       u8_output out=fd_get_default_output();
       handle_cookie(out,FD_VOID,cookiedata);
@@ -1019,7 +1025,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   xhtmlout_module=fd_new_module("XHTML",FD_MODULE_SAFE);
 
   fd_defspecial(module,"HTTPHEADER",httpheader);
-  fd_idefn(module,fd_make_cprim5("SET-COOKIE!",setcookie,2));
+  fd_idefn(module,fd_make_cprim6("SET-COOKIE!",setcookie,2));
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
 
   fd_idefn(module,fd_make_cprim1("CGICALL",cgicall,1));
