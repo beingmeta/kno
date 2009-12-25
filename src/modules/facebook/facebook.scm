@@ -289,6 +289,13 @@
   (emit-authorize-body)
   #f)
 
+(define (fbvalidate)
+  (tryif (cgitest 'auth_token)
+    (let ((user (cgicall handleauthtoken)))
+      (and (exists? user) user `#[fbtype "user" fbid ,user]))))
+
+(config! 'auth:validate (cons 'FACEBOOK fbvalidate))
+
 ; (define (doaddapp (path_info #f) (query_string #f) (popup #f))
 ;   (cgiset! 'status 303)
 ;   (httpheader

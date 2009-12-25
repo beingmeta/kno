@@ -1,147 +1,259 @@
 (in-module 'xhtml/auth)
 
 (use-module '{fdweb texttools})
-(use-module '{varconfig})
+(use-module '{varconfig rulesets})
 
-(define auth-prefix "AUTH/")
-(define uservar "AUTH/USER")
-(define sessionvar "AUTH/SESSION")
-(define expiresvar "AUTH/EXPIRES")
-(define loggedin (make-hashtable))
+(module-export! '{auth/getinfo
+		  auth/getuser
+		  auth/authorize!
+		  auth/deauthorize!
+		  auth/validate})
 
-(define trace-auth #f)
+;; The cookie/CGI var used to store the session ID
+(define authid 'AUTH)
+;; The key to use in signing session ids
+(define signature #f)
+;; The key to use when encrypting session ids
+(define encrypt #f)
+(varconfig! auth:id authid)
+(varconfig! auth:signature signature)
+(varconfig! auth:encrypt encrypt)
 
-(varconfig! auth:trace trace-auth)
-
-(define (prefix-config var (val))
-  (cond ((bound? val)
-	 (set! auth-prefix val)
-	 (set! uservar (string->symbol (stringout val "USER")))
-	 (set! sessionvar (string->symbol (stringout val "SESSION")))
-	 (set! expiresvar (string->symbol (stringout val "EXPIRES")))
-	 #t)
-	(else auth-prefix)))
-(config-def! 'auth:prefix prefix-config)
-
-(define user-expiration (* 3600 24 365))
-(define auth-expiration 7200)
+;; Various expiration intervals
+(define auth-timeout 3600)
 (define auth-refresh 600)
-(varconfig! auth:userexpires user-expiration)
-(varconfig! auth:expiration auth-expiration)
+(varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
 
+;; Session functions
+(define sessionfn #f)
+(varconfig! auth:sessionfn sessionfn)
+
+;; Cookie parameters
 (define auth-cookie-domain #f)
 (define auth-cookie-path "/")
+(define auth-secure #f)
 (varconfig! auth:domain auth-cookie-domain)
 (varconfig! auth:sitepath auth-cookie-path)
+(varconfig! auth:secure auth-secure)
 
-(define-init sessions (make-hashtable))
+;;; Here's the authorization model:
+;;;  There's one cookie/cgi variable (the AUTHID) indicating authorization
+;;;  Parsed authorization consists of a vector with four elements:
+;;;    the AUTHID
+;;;    the USER
+;;;    a SESSID
+;;;    an expiration timestamp
+;;;    a refresh timestamp
 
-(define (sessions-config var (val))
-  (cond ((not (bound? val)) sessions)
-	((or (hashtable? val) (index? val))
-	 (set! sessions val)
-	 #t)
-	((string? val)
-	 (set! sessions (open-index val))
-	 #t)))
-(config-def! 'auth:sessions sessions-config)
+;;; When the AUTHID is a string (how it comes from the web), it is
+;;; unpacked into a parsed authorization.  This authorization process
+;;; optionally decrypts and checks a signature before using it.  The parsed
+;;; form is then cached
+;;; An authorization is valid until its authorization timestamp
+;;;  is passed and the authorization functions automatically extend
+;;;  authorizations older than the refresh timestamp, so an authorization
+;;;  will only be invalidated if there are no transactions between the
+;;;  refresh 
 
 ;;; Top level functions
 
-(define (auth/getinfo (refresh #t))
-  (let* ((user (cgiget uservar))
-	 (session (cgiget sessionvar))
-	 (expires (gmtimestamp (cgiget expiresvar)))
-	 (info (get sessions session)))
-    (and (exists? info) info
-	 (test info 'user user)
-	 (and (exists? expires) (test info 'expires expires))
-	 (future-time? expires)
-	 ;; Now we're good
-	 (if refresh
-	     (dorefresh user session info (try expires (get info 'expires)))
-	     info))))
+(define (auth/getinfo (authid authid) (authinfo))
+  (default! authinfo (cgiget authid))
+  (cond ((not authinfo) (fail))
+	;; If the info is a string, we haven't verified it yet
+	;; This is where the real validation happens
+	((string? authinfo)
+	 (auth/getinfo authid (checkinfo authinfo authid)))
+	;; Check if the info is a valid vector
+	((not (and (vector? authinfo)
+		   (= (length authinfo) 5)
+		   (eq? authid (elt authinfo 0))
+		   (timestamp? (elt authinfo 3))
+		   (timestamp? (elt authinfo 4))))
+	 (error "Bad authorization info" authinfo authid))
+	(else authinfo)))
 
-;; It would be very cool to have the session ID be an encrypted
-;;  string that includes the user and expiration time (at least)
-;;  and a nonce.  This might avoid having to have a persistent
-;;  sessions table.
-(define (getnewsession user)
-  (number->string
-   (let ((now (gmtimestamp 'seconds)))
-     (* (+ (get now 'tick)
-	   (get now 'nanoseconds)
-	   (random 8000000)
-	   1000000)
-	(1+ (random 20))))
-   16))
+(define (auth/getuser (authid authid))
+  (elt (auth/getinfo authid (cgiget authid)) 2))
 
-(define (set-cookies! info)
-  (let ((user (get info 'user))
-	(session (get info 'session))
-	(expires (get info 'expires))
-	(domain (or (cgiget 'AUTH_HOST #f)
-		    auth-cookie-domain
-		    (cgiget 'HTTP_HOST)))
-	(path auth-cookie-path))
-    (when trace-auth
-      (%watch "SET-COOKIES!" user session expires domain path))
-    (when (and (exists? session) session)
-      (set-cookie! uservar user domain path
-		   (timestamp+ (gmtimestamp 'seconds) user-expiration))
-      (cgiset! uservar user)
-      (set-cookie! sessionvar session domain path expires)
-      (cgiset! sessionvar session)
-      (set-cookie! expiresvar (get expires 'iso) domain path expires)
-      (cgiset! expiresvar expires))
-    (when (or (fail? session) (not session))
-      (let ((thepast (timestamp+ (gmtimestamp 'seconds) (* 48 -3600))))
-	(set-cookie! uservar "expired" domain path thepast)
-        (cgidrop! uservar)
-	(set-cookie! sessionvar "expired" domain path thepast)
-	(cgidrop! sessionvar)
-	(set-cookie! expiresvar "expired" domain path thepast)
-	(cgidrop! expiresvar)))))
+;;; Unpacks an authstring into a parsed representation
+;;;  and updates it if neccesary
+(define (checkinfo authstring authid)
+  (let* ((sigsplit (position #\| authstring))
+	 (payload (if sigsplit
+		      (base64->packet (subseq authstring 0 sigsplit))
+		      (base64->packet authstring)))
+	 (packet (if encrypt (decrypt payload encrypt) payload))
+	 (sigstring (and sigsplit (subseq sigsplit (1+ sigsplit))))
+	 (sigok (or (and (not signature) (not sigstring))
+		    (and sigstring signature
+			 (equal? (base64->packet sigstring)
+				 (hmac-sha1 payload signature)))))
+	 (parsed (packet->dtype packet)))
+    (cond ((not sigok)
+	   (bad-signature! parsed authstring authid))
+	  ((not (and (vector? parsed) (= (length parsed) 4)
+		     (eq? (elt parsed 0) authid)
+		     (timestmap? (elt parsed 2))
+		     (timestmap? (elt parsed 3))))
+	   (bad-authinfo! parsed authstring authid))
+	  (else
+	   (vector-set! parsed 3 (timestamp (elt parsed 3)))
+	   (vector-set! parsed 4 (timestamp (elt parsed 4)))
+	   (if (timestamp-later? (elt parsed 4))
+	       (auth-expired! parsed)
+	       (if (timestamp-later? (elt parsed 3))
+		   (update-authinfo! parsed)
+		   parsed))))))
 
-(define (dorefresh user session info expires)
-  (when (or (not (test info 'refresh))
-	    (time-later? (gmtimestamp) (get info 'refresh)))
-    (let* ((newexpiration (timestamp+ (gmtimestamp 'seconds) auth-expiration))
-	   (newrefresh (timestamp+ (gmtimestamp 'seconds) auth-refresh))
-	   (newsession (getnewsession user)))
-      (store! info 'session newsession)
-      (store! info 'expires newexpiration)
-      (store! info 'refresh newrefresh)
-      (store! sessions newsession info)
-      (store! sessions session #f)
-      (set-cookies! info)))
-  info)
+(define (update-authinfo! authinfo)
+  (let* ((authid (elt authinfo 0))
+	 (user (elt authinfo 1))
+	 (cursession (elt authinfo 2))
+	 (session (if sessionfn
+		      (sessionfn user cursession #t)
+		      user))
+	 (expires (elt authinfo 3)))
+    (and session
+	 (let* ((now (gmtimestamp 'seconds))
+		(authvec (vector authid user session
+				 (get
+				  (if sessionfn (timestamp+ now auth-timeout)
+				      expires)
+				  'tick)
+				 (get (timestamp+ now auth-refresh) 'tick)))
+		(authdata (if encrypt
+			      (encrypt (dtype->packet authvec) encrypt)
+			      (dtype->packet authvec)))
+		(sig (and signature (hmac-sha1 authdata signature)))
+		(authstring
+		 (if sig (stringout (packet->base64 authdata) "|"
+				    (packet->base64 sig))
+		     (packet->base64 authdata))))
+	   (cgiset! authid authvec)
+	   (set-cookie! authid authstring
+			auth-cookie-domain auth-cookie-path
+			(elt authvec 3)
+			auth-secure)
+	   authvec))))
 
-(define (auth/authorize! user (oldsession #f) (info (frame-create #f)))
-  (let ((session (getnewsession user))
-	(now (gmtimestamp 'seconds)))
-    (if oldsession (store! sessions oldsession #f))
-    (store! sessions session info)
-    (store! info 'user user)
-    (store! info 'session session)
-    (store! info 'expires (timestamp+ now auth-expiration))
-    (store! info 'refresh (timestamp+ now auth-refresh))
-    (when trace-auth
-      (%watch "AUTHORIZE" user session now auth-expiration auth-refresh
-	      oldsession info))
-    (set-cookies! info)
-    info))
+;;;; Error procedures
 
-(define (auth/deauthorize! session)
-  (let ((info (get sessions session)))
-    (when trace-auth (%watch "DEAUTHORIZE" session info))
-    (when info (drop! info '{session expires refresh}))
-    (store! sessions session #f)
-    (set-cookies! (qc))
-    info))
+(define (bad-signature! info authstring authid)
+  (log%warn "Bad signature for " info " from " authid "=" authstring)
+  (clear-cookie! authid)
+  #f)
+(define (no-signature! authstring authid)
+  (log%warn "No signature in " authid "=" authstring)
+  (clear-cookie! authid)
+  #f)
+(define (bad-authinfo! info authstring authid)
+  (log%warn "Malformed authinfo " info " from " authid "=" authstring)
+  (clear-cookie! authid)
+  #f)
+(define (auth-expired! info authstring authid)
+  (log%info "Expired authinfo " info " from " authid "=" authstring)
+  (clear-cookie! authid)
+  #f)
 
-(define (auth/getuser) (cgiget uservar))
+;;;; Authorize/deauthorize API
 
-(module-export! '{auth/getinfo auth/authorize! auth/deauthorize! auth/getuser})
+(define (auth/authorize! user (authid authid))
+  (let ((now (gmtimestamp 'seconds)))
+    (update-authinfo! (vector authid user #f
+			      (timestamp+ now auth-timeout)
+			      (timestamp+ now auth-refresh)))))
+
+(define (auth/deauthorize! (authid authid))
+  (let ((info (cgiget authid #f)))
+    (when info
+      (when sessionfn (sessionfn (elt info 1) (elt info 2) #f))
+      (cgidrop! (first info))
+      (set-cookie! authid "expired"
+		   auth-cookie-domain auth-cookie-path
+		   (timestamp+ (- (* 24 7 3600)))
+		   auth-secure))
+    #f))
+
+;;; Simple sessions
+
+;;; These just use a random number as a sessionid and keeps a table
+;;;  of the valid session for each user.
+
+(define sessions-file #f)
+(define sessions #f)
+
+(define (auth/ezsession user session valid)
+  (if valid
+      (if session
+	  (and (test sessions user session) session)
+	  (let ((session (random 6000000)))
+	    (store! sessions user session)
+	    (when session-file (save-ezsessions))
+	    session))
+      (drop! sessions user)))
+
+(defslambda (save-ezsessions)
+  (when session-file (dtype->file sessions session-file)))
+
+(config-def! 'auth:ezsessions
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (cond ((string? val)
+			  (set! sessions
+				(if (file-exists? val)
+				    (file->dtype val)
+				    (make-hashtable)))
+			  (set! sessions-file val)
+			  (set! sessionfn auth/ezsession))
+			 ((not val)
+			  (set! sessions #f)
+			  (set! sessions-file #f)
+			  (set! sessionfn #f))
+			 (else
+			  (set! sessions val)
+			  (set! sessionfn auth/ezsession)))
+		   sessions)))
+
+;;; Validation
+
+;; These are methods which handle respones from various authorization
+;;  sites (OpenID, Facebook, etc)
+;; When a validator (a thunk) returns non-empty/non-false, it
+;;  is taken to indicate that the user has been authorized.
+(define validators '())
+;; This takes the results of validation and makes a user
+;;  who can then be authorized
+(define getuser #f)
+(varconfig! auth:getuser getuser)
+
+(define (auth/validate (authid authid))
+  (or (auth/getinfo authid)
+      (do ((scan validators (cdr scan))
+	   (user #f))
+	  ((or user (null? scan))
+	   (when user
+	     (if getuser
+		 (auth/authorize! (getuser user) authid)
+		 (auth/authorize! user authid)))
+	   user)
+	(set! user (try (if (pair? (car scan))
+			    ((cdr (car scan)))
+			    ((car scan)))
+			#f)))))
+
+(ruleconfig! auth:validate validators)
+
+;;; Logging in
+
+(define (auth/login uri (authid authid))
+  (or (auth/getinfo authid)
+      (let ((valid (auth/valiate authid)))
+	(cond ((and valid (cgitest 'next))
+	       (cgiset! 'status 303)
+	       (httpheader "Location: " (cgiget 'next))
+	       #f)
+	      (else valid)))))
+
 

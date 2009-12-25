@@ -142,7 +142,17 @@
     (cgiset! 'results result)
     result))
 
+(define (openidauthvalidate)
+  (tryif (cgitest 'openid.mode "id_res")
+    (and (cgicall! validate) (openid-return))))
+
+(config! 'auth:validate (cons 'openid openidauthvalidate))
+
 (define (openid/login site (opts default-opts))
   (doredirect (openid-redirect (cons site #f))))
 
-(module-export! '{get-openid-server openid-url openid/auth openid/optinfo openid/login})
+(module-export!
+ '{get-openid-server
+   openid-url
+   openid/auth openid/optinfo
+   openid/login})
