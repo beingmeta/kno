@@ -506,6 +506,8 @@ static int webservefn(u8_client ucl)
   struct rusage start_usage, end_usage;
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
+  /* Clear outstanding errors from the last session */
+  fd_clear_errors(1);
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
@@ -637,6 +639,7 @@ static int webservefn(u8_client ucl)
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
   fd_thread_set(cgidata_symbol,FD_VOID);
   fd_thread_set(browseinfo_symbol,FD_VOID);
+  fd_clear_errors(1);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
