@@ -1,7 +1,7 @@
 (in-module 'xhtml/auth)
 
 (use-module '{fdweb texttools})
-(use-module '{varconfig rulesets})
+(use-module '{varconfig logger rulesets})
 
 (module-export! '{auth/getinfo
 		  auth/getuser
@@ -59,8 +59,9 @@
 ;;; Top level functions
 
 (define (auth/getinfo (authid authid) (authinfo))
-  (default! authinfo (cgiget authid))
-  (cond ((not authinfo) (fail))
+  (default! authinfo (cgiget authid #f))
+  (debug%watch "AUTH/GETINFO" authid authinfo)
+  (cond ((not authinfo) #f)
 	;; If the info is a string, we haven't verified it yet
 	;; This is where the real validation happens
 	((string? authinfo)
@@ -69,9 +70,10 @@
 	((not (and (vector? authinfo)
 		   (= (length authinfo) 5)
 		   (eq? authid (elt authinfo 0))
-		   (timestamp? (elt authinfo 3))
-		   (timestamp? (elt authinfo 4))))
-	 (error "Bad authorization info" authinfo authid))
+		   (integer? (elt authinfo 3))
+		   (integer? (elt authinfo 4))))
+	 (error "Bad authorization info" authinfo authid)
+	 #f)
 	(else authinfo)))
 
 (define (auth/getuser (authid authid))
@@ -90,22 +92,23 @@
 		    (and sigstring signature
 			 (equal? (base64->packet sigstring)
 				 (hmac-sha1 payload signature)))))
-	 (parsed (packet->dtype packet)))
+	 (parsed (packet->dtype packet))
+	 (now (time)))
+    (debug%watch "CHECKINFO" authid authstring sigok parsed (time))
     (cond ((not sigok)
 	   (bad-signature! parsed authstring authid))
-	  ((not (and (vector? parsed) (= (length parsed) 4)
+	  ((not (and (vector? parsed) (= (length parsed) 5)
 		     (eq? (elt parsed 0) authid)
-		     (timestmap? (elt parsed 2))
-		     (timestmap? (elt parsed 3))))
+		     (integer? (elt parsed 3))
+		     (integer? (elt parsed 4))))
 	   (bad-authinfo! parsed authstring authid))
 	  (else
-	   (vector-set! parsed 3 (timestamp (elt parsed 3)))
-	   (vector-set! parsed 4 (timestamp (elt parsed 4)))
-	   (if (timestamp-later? (elt parsed 4))
-	       (auth-expired! parsed)
-	       (if (timestamp-later? (elt parsed 3))
+	   (if (> now (elt parsed 4))
+	       (auth-expired! parsed authstring authid)
+	       (if (> now (elt parsed 3))
 		   (update-authinfo! parsed)
-		   parsed))))))
+		   (begin (cgiset! authid parsed)
+			  parsed)))))))
 
 (define (update-authinfo! authinfo)
   (let* ((authid (elt authinfo 0))
@@ -116,13 +119,11 @@
 		      user))
 	 (expires (elt authinfo 3)))
     (and session
-	 (let* ((now (gmtimestamp 'seconds))
+	 (let* ((now (time))
 		(authvec (vector authid user session
-				 (get
-				  (if sessionfn (timestamp+ now auth-timeout)
-				      expires)
-				  'tick)
-				 (get (timestamp+ now auth-refresh) 'tick)))
+				 (if sessionfn (+ now auth-timeout)
+				     expires)
+				 (+ now auth-refresh)))
 		(authdata (if encrypt
 			      (encrypt (dtype->packet authvec) encrypt)
 			      (dtype->packet authvec)))
@@ -133,46 +134,55 @@
 		     (packet->base64 authdata))))
 	   (cgiset! authid authvec)
 	   (set-cookie! authid authstring
-			auth-cookie-domain auth-cookie-path
-			(elt authvec 3)
+			auth-cookie-domain auth-cookie-path #f
 			auth-secure)
 	   authvec))))
 
 ;;;; Error procedures
 
 (define (bad-signature! info authstring authid)
-  (log%warn "Bad signature for " info " from " authid "=" authstring)
+  (logwarn "Bad signature for " info " from " authid "=" authstring)
   (clear-cookie! authid)
   #f)
 (define (no-signature! authstring authid)
-  (log%warn "No signature in " authid "=" authstring)
+  (logwarn "No signature in " authid "=" authstring)
   (clear-cookie! authid)
   #f)
 (define (bad-authinfo! info authstring authid)
-  (log%warn "Malformed authinfo " info " from " authid "=" authstring)
+  (logwarn "Malformed authinfo " info " from " authid "=" authstring)
   (clear-cookie! authid)
   #f)
 (define (auth-expired! info authstring authid)
-  (log%info "Expired authinfo " info " from " authid "=" authstring)
+  (loginfo "Expired authinfo " info " from " authid "=" authstring)
   (clear-cookie! authid)
   #f)
+
+(define (clear-cookie! id)
+  (set-cookie! id "expired"
+	       auth-cookie-domain auth-cookie-path
+	       (timestamp+ (* 3600 -24))))
 
 ;;;; Authorize/deauthorize API
 
 (define (auth/authorize! user (authid authid))
-  (let ((now (gmtimestamp 'seconds)))
+  (let ((now (time)))
     (update-authinfo! (vector authid user #f
-			      (timestamp+ now auth-timeout)
-			      (timestamp+ now auth-refresh)))))
+			      (+ now auth-timeout)
+			      (+ now auth-refresh)))))
 
 (define (auth/deauthorize! (authid authid))
-  (let ((info (cgiget authid #f)))
-    (when info
+  (let ((info (if (vector? authid) authid (cgiget authid))))
+    (when (vector? info)
       (when sessionfn (sessionfn (elt info 1) (elt info 2) #f))
       (cgidrop! (first info))
+      (set-cookie! (first info) "expired"
+		   auth-cookie-domain auth-cookie-path
+		   (timestamp+ (* 3600 -24))
+		   auth-secure))
+    (when (string? info)
       (set-cookie! authid "expired"
 		   auth-cookie-domain auth-cookie-path
-		   (timestamp+ (- (* 24 7 3600)))
+		   (timestamp+ (* 3600 -24))
 		   auth-secure))
     #f))
 
@@ -229,6 +239,7 @@
 (varconfig! auth:getuser getuser)
 
 (define (auth/validate (authid authid))
+  (debug%watch "AUTH/VALIDATE" authid validators)
   (or (auth/getinfo authid)
       (do ((scan validators (cdr scan))
 	   (user #f))
@@ -241,7 +252,8 @@
 	(set! user (try (if (pair? (car scan))
 			    ((cdr (car scan)))
 			    ((car scan)))
-			#f)))))
+			#f))
+	(message "Validating " (car scan) " yielded " user))))
 
 (ruleconfig! auth:validate validators)
 

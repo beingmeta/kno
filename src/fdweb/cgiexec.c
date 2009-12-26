@@ -28,7 +28,7 @@ static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method, status_field;
 static fdtype get_method, post_method, cgidata_symbol, browseinfo_symbol;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
-static fdtype http_headers, html_headers, cookies_symbol, text_symbol;
+static fdtype http_headers, html_headers, cookies_symbol, incookies_symbol, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
 static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
@@ -50,7 +50,7 @@ static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 
 /* Utility functions */
 
-static fdtype get_cgidata()
+static fdtype get_reqdata()
 {
   fdtype table=fd_thread_get(cgidata_symbol);
   if ((!table) || (!(FD_TABLEP(table)))) {
@@ -118,7 +118,7 @@ static void emit_uri_value(u8_output out,fdtype val)
 
 FD_EXPORT fdtype fd_get_cgidata()
 {
-  return get_cgidata();
+  return get_reqdata();
 }
 
 FD_EXPORT
@@ -379,6 +379,8 @@ static void convert_cookie_arg(fd_slotmap c)
 	fd_decref(cookiedata);}
       fd_decref(value); value=FD_VOID; slotid=FD_VOID;
       write=buf; isascii=1; scan++;}
+    fd_slotmap_store(c,incookies_symbol,qval);
+    fd_slotmap_store(c,cookies_symbol,FD_EMPTY_CHOICE);
     fd_decref(qval);
     u8_free(buf);}
 }
@@ -539,26 +541,26 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
       c=u8_sgetc(&scan);}
     u8_puts(out,"=");
     if (free_namestring) u8_free(namestring);
-    emit_uri_value(out,FD_VECTOR_REF(cookie,1)); u8_puts(out,";");
+    emit_uri_value(out,FD_VECTOR_REF(cookie,1));
     if (len>2) {
       fdtype domain=FD_VECTOR_REF(cookie,2);
       fdtype path=((len>3) ? (FD_VECTOR_REF(cookie,3)) : (FD_VOID));
       fdtype expires=((len>4) ? (FD_VECTOR_REF(cookie,4)) : (FD_VOID));
       fdtype secure=((len>5) ? (FD_VECTOR_REF(cookie,5)) : (FD_VOID));
       if (FD_STRINGP(domain))
-	u8_printf(out," domain=.%s;",FD_STRDATA(domain));
+	u8_printf(out,"; domain=.%s",FD_STRDATA(domain));
+      if (FD_STRINGP(path))
+	u8_printf(out,"; path=%s",FD_STRDATA(path));
       if (FD_STRINGP(expires))
-	u8_printf(out," expires=%s;",FD_STRDATA(expires));
+	u8_printf(out,"; expires=%s",FD_STRDATA(expires));
       else if (FD_PTR_TYPEP(expires,fd_timestamp_type)) {
 	struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
 	char buf[512]; struct tm tptr;
 	u8_xtime_to_tptr(&(tstamp->xtime),&tptr);
 	strftime(buf,512,"%A, %d-%b-%Y %T GMT",&tptr);
-	u8_printf(out," expires=%s;",buf);}
-      if (FD_STRINGP(path))
-	u8_printf(out," path=%s",FD_STRDATA(path));
+	u8_printf(out,"; expires=%s",buf);}
       if (!((FD_VOIDP(secure))||(FD_FALSEP(secure))))
-	u8_printf(out," secure");}
+	u8_printf(out,"; secure");}
     u8_printf(out,"\r\n");}
   fd_decref(real_val);
   return 1;
@@ -763,7 +765,7 @@ int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata)
 static fdtype set_body_attribs(int n,fdtype *args)
 {
   fdtype attribs=FD_EMPTY_LIST; int i=n-1;
-  fdtype table=get_cgidata();
+  fdtype table=get_reqdata();
   if (n==1) {
     fd_store(table,body_attribs_slotid,args[0]);
     fd_decref(table);
@@ -782,10 +784,14 @@ static fdtype tail_symbol, cgidata_symbol;
 
 static fdtype cgigetvar(fdtype cgidata,fdtype var)
 {
-  fdtype val=fd_get(cgidata,var,FD_VOID);
+  int noparse=
+    ((FD_SYMBOLP(var))&&((FD_SYMBOL_NAME(var))[0]=='%'));
+  fdtype name=((noparse)?(fd_intern(FD_SYMBOL_NAME(var)+1)):(var));
+  fdtype val=fd_get(cgidata,name,FD_VOID);
   if (FD_VOIDP(val))
     if (FD_EQ(var,tail_symbol)) return fd_incref(cgidata);
     else return val;
+  else if ((noparse)&&(FD_STRINGP(val))) return val;
   else if (FD_STRINGP(val)) {
     u8_string data=FD_STRDATA(val);
     if (*data=='\0') return val;
@@ -849,7 +855,7 @@ static fdtype cgicall(fdtype proc)
 
 static fdtype cgiget(fdtype var,fdtype dflt)
 {
-  fdtype table=get_cgidata(), val;
+  fdtype table=get_reqdata(), val;
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
   val=fd_get(table,var,FD_VOID); fd_decref(table);
   if (FD_VOIDP(val))
@@ -861,7 +867,7 @@ static fdtype cgiget(fdtype var,fdtype dflt)
 
 static fdtype cgival(fdtype var,fdtype dflt)
 {
-  fdtype table=get_cgidata(), val;
+  fdtype table=get_reqdata(), val;
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
   val=fd_get(table,var,FD_VOID); fd_decref(table);
   if (FD_VOIDP(val))
@@ -886,7 +892,7 @@ static fdtype cgival(fdtype var,fdtype dflt)
 
 static fdtype cgitest(fdtype vars,fdtype val)
 {
-  fdtype table=get_cgidata(), result=FD_FALSE;
+  fdtype table=get_reqdata(), result=FD_FALSE;
   if (FD_TABLEP(table)) {
     FD_DO_CHOICES(var,vars) {
       if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
@@ -897,7 +903,7 @@ static fdtype cgitest(fdtype vars,fdtype val)
 
 static fdtype cgiset(fdtype vars,fdtype value)
 {
-  fdtype table=get_cgidata();
+  fdtype table=get_reqdata();
   {FD_DO_CHOICES(var,vars) {
     if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
     fd_store(table,var,value);}}
@@ -907,7 +913,7 @@ static fdtype cgiset(fdtype vars,fdtype value)
 
 static fdtype cgiadd(fdtype var,fdtype value)
 {
-  fdtype table=get_cgidata();
+  fdtype table=get_reqdata();
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
   fd_add(table,var,value);
   fd_decref(table);
@@ -916,7 +922,7 @@ static fdtype cgiadd(fdtype var,fdtype value)
 
 static fdtype cgidrop(fdtype var,fdtype value)
 {
-  fdtype table=get_cgidata();
+  fdtype table=get_reqdata();
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
   fd_drop(table,var,value);
   fd_decref(table);
@@ -925,7 +931,7 @@ static fdtype cgidrop(fdtype var,fdtype value)
 
 static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype table=get_cgidata();
+  fdtype table=get_reqdata();
   FD_DOLIST(var,fd_get_body(expr,1)) {
     if (FD_TABLEP(table)) {
       fdtype val=fd_get(table,var,FD_VOID);
@@ -990,7 +996,7 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
 FD_EXPORT
 fdtype fd_mapurl(fdtype uri)
 {
-  fdtype cgidata=get_cgidata();
+  fdtype cgidata=get_reqdata();
   if (fd_test(cgidata,mapurlfn_symbol,FD_VOID)) {
     fdtype mapfn=fd_get(cgidata,mapurlfn_symbol,FD_VOID);
     fd_decref(cgidata);
@@ -1040,6 +1046,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   
   fd_defspecial(module,"WITHREQ",withreq_handler);
   fd_defspecial(module,"WITHREQOUT",withreqout_handler);
+  fd_idefn(module,fd_make_cprim0("GETREQDATA",get_reqdata,0));
   fd_defalias(module,"WITHCGI","WITHREQ");
   fd_defalias(module,"WITHCGIOUT","WITHREQOUT");
 
@@ -1066,6 +1073,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   
   http_cookie=fd_intern("HTTP_COOKIE");
   cookies_symbol=fd_intern("COOKIES");
+  incookies_symbol=fd_intern("COOKIES%IN");
 
   server_port=fd_intern("SERVER_PORT");
   remote_port=fd_intern("REMOTE_PORT");
