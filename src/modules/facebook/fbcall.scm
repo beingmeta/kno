@@ -17,6 +17,9 @@
 
 (define %loglevel %notice!)
 
+(define (getsecret sessionid)
+  (get (get fb/sessions sessionid) "secret"))
+
 (define (fb/false? arg)
   (or (not arg)
       (zero? arg)
@@ -54,7 +57,7 @@
 
 ;;; Support functions
 
-(define (fbcalluri method args (w/session #t) (w/callid #t))
+(define (fbcalluri method args (w/session #t) (w/callid #t) (sessionkey (cgiget 'fb_sig_session_key)))
   (when (and w/session (not (cgitest 'fb_sig_session_key)) (cgitest 'fbinfo))
     (fb/useinfo))
   (when w/callid
@@ -62,10 +65,8 @@
   (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
   ;; (%watch "FBCALLURI" method w/session (cgiget 'fb_sig_session_key))
-  (when (and w/session (cgitest 'fb_sig_session_key)
-	     (exists? (cgiget 'fb_sig_session_key))
-	     (string? (cgiget 'fb_sig_session_key)))
-    (set! args (cons* "session_key" (cgiget 'fb_sig_session_key) args)))
+  (when (and w/session sessionkey (string? sessionkey))
+    (set! args (cons* "session_key" sessionkey args)))
   (stringout "http://api.facebook.com/restserver.php?"
     (do ((args args (cddr args)))
 	((null? args) (printout))
@@ -73,7 +74,12 @@
 	  (printout (car args) "=" (uriencode (cadr args)) "&")
 	  (printout (car args) "="
 		    (uriencode (lisp->string (cadr args))) "&")))
-    (printout "sig=" (downcase (packet->base16 (get-signature args))))))
+    (printout "sig="
+	      (downcase (packet->base16
+			 (get-signature args
+					(if w/session
+					    (try (getsecret sessionkey) "toomanysecrets")
+					    apisecretkey)))))))
 (define (fbcalluri* method . args) (fbcalluri method args))
 
 (define (encode-args args)
@@ -104,7 +110,7 @@
 		  (jsonparse content)))
 	  (error "Invalid FBCALL result content" content))))
 
-(define (get-signature args)
+(define (get-signature args (secretkey apisecretkey))
   (let ((table (frame-create #f)))
     (do ((scan args (cddr scan)))
 	((null? scan))

@@ -10,6 +10,7 @@
 (use-module '{fdweb xhtml texttools reflection facebook/fbcall varconfig})
 
 (module-export! '{appname appid apikey apisecretkey})
+(module-export! '{fb/session! fb/sessions})
 (module-export! '{fb/embedded? fb/incanvas? fb/added? fb/getuser fb/authorize})
 
 (define trace-facebook-auth #f)
@@ -96,6 +97,26 @@
 (varconfig! fb:approot approot)
 (varconfig! fb:infocookie info-cookie)
 
+;;; Facebook info
+
+(define fb/sessions (make-hashtable))
+(define (fb/session! info (user #f))
+  (cond ((not info)
+	 (drop! fb/sessions (get (get fb/sessions user) "session_key"))
+	 (drop! fb/sessions user))
+	(else (store! fb/sessions (get info "session_key") info)
+	      (when user (store! fb/sessions user info))
+	      (cgiset! 'fb_sig_session_key (get info "session_key"))
+	      (cgiset! 'fb_sig_session_user (get info "uid")))))
+
+(define facebook-info (make-hashtable))
+
+(define (fb/useinfo (info (get facebook-info (auth/getuser))))
+  (cgiset! 'fbuid (get info "uid"))
+  (cgiset! 'fbsession (get info "session_key"))
+  (cgiset! 'fbexpires (timestamp (get info "expires")))
+  (cgiset! 'fbsecret (timestamp (get info "secret"))))
+
 ;;;; Doing stuff
 
 (define (fb/incanvas?)
@@ -151,9 +172,12 @@
 		       (timestamp exptick)))
 	 (info (stringout id ";" (if expires (get expires 'tick) 0)
 			  ";" session))
+	 (curinfo (cgiget info-cookie))
 	 (domain (or apphost (cgiget 'http_host))))
     ;; (%watch "SAVE-FBINFO!" id session expires info domain)
-    (when cookie (set-cookie! info-cookie info domain "/" expires))
+    (when cookie
+      (unless (equal? curinfo info)
+	(set-cookie! info-cookie info domain "/" expires)))
     info))
 
 (define (cgipass! var value (force #t))
@@ -289,12 +313,19 @@
   (emit-authorize-body)
   #f)
 
-(define (fbvalidate)
-  (tryif (cgitest 'auth_token)
-    (let ((user (cgicall handleauthtoken)))
-      (and (exists? user) user `#[fbtype "user" fbid ,user]))))
-
-(config! 'auth:validate (cons 'FACEBOOK fbvalidate))
+(define (fbvalidate (fb_sig_user #f)
+		    (fb_sig_session_key #f) (fb_sig_session_expires #f)
+		    (auth_token #f))
+  (when trace-facebook-auth
+    (%watch "fbvalidate"
+	    fb_sig_user fb_sig_session_key fb_sig_session_expires
+	    auth_token))
+  (if (and fb_sig_user fb_sig_session_key fb_sig_session_expires
+	   (> fb_sig_session_expires (time)))
+      `#[fbtype "user" fbid ,fb_sig_user]
+      (tryif auth_token
+	(let ((user (cgicall handleauthtoken)))
+	  (and (exists? user) user `#[fbtype "user" fbid ,user])))))
 
 ; (define (doaddapp (path_info #f) (query_string #f) (popup #f))
 ;   (cgiset! 'status 303)
@@ -356,6 +387,54 @@
 				     #f)))))))
 	(else (cgicall doauthorize) #f)))
 
+(define (fb/login (next #f) (dialog (not (fb/embedded?))))
+  ;; There are three cases:
+  ;;  1. we have an auth_token after Facebook logs us in
+  ;;     In this case, we get a session id and set duplicate cookies
+  ;;     for the current site.
+  ;;  2. we don't have a session or we have an expired session
+  ;;     In this case, we clear whatever state we have and redirect
+  ;;     to the Facebook login page
+  ;;  3. we have a valid session
+  ;;     We just return #t after setting USER
+
+  (when trace-facebook-auth
+    (%watch "FB/LOGIN"
+	    next (cgiget 'REQUEST_URI)
+	    (cgiget 'auth_token) (cgiget 'path_info)))
+
+  (cond ((and (fb/embedded?) (cgitest 'fb_sig_user))
+	 (when (and (cgitest 'fb_sig_session_key)
+		    (not (cgitest info-cookie)))
+	   (save-fbinfo!))
+	 (cgiget 'fb_sig_user)) 
+	((cgitest 'auth_token)
+	 (when trace-facebook-auth
+	   (%watch "AUTH_TOKEN" (cgiget 'auth_token) next))
+	 (when next (cgipass! 'next next))
+	 (when dialog (cgipass! 'dialog #t))
+	 (cgicall handleauthtoken))
+	((or (cgitest 'fb_sig_session_key) (fb/useinfo))
+	 (when trace-facebook-auth
+	   (%watch "HAVEKEY"
+		   (cgiget 'fb_sig_session_key)
+		   (cgiget 'fb_sig_session_expires)))
+	 (when next (cgipass! 'next next))
+	 (when dialog (cgipass! 'dialog #t))
+	 (let ((session (cgiget 'fb_sig_session_key))
+	       (expires (cgiget 'fb_sig_session_expires)))
+	   (if (or (not session) (hashset-get fb/closed-sessions session)
+		   (and session expires (> (time) expires)))
+	       (begin (cgicall doauthorize) #f)
+	       (if (cgitest 'fb/user)
+		   (cgiget 'fb/user)
+		   (begin (onerror (begin (cgiset! 'fb/user (fb/getuser))
+					  (fb/getuser))
+				   (lambda (ex)
+				     (cgicall doauthorize)
+				     #f)))))))
+	(else (cgicall doauthorize) #f)))
+
 (define (fb/logout)
   (unless (fb/incanvas?)
     (set-cookie! info-cookie "expired"
@@ -377,3 +456,68 @@
 		  fb/logout fb/useinfo fb/sessions->users
 		  fb/logout fb/logouturl})
 
+
+;;; Interface to authorization
+
+(define (fb/validate (fb_sig_session_key #f)
+		     (fb_sig_session_expires #f)
+		     (fb_sig_in_canvas #f)
+		     (fb_sig_user #f)
+		     (auth_token #f)
+		     (fbinfo #f))
+  (when trace-facebook-auth
+    (%watch "FB/VALIDATE" fb_sig_user fb_sig_session_key
+	    fb_sig_session_expires fbinfo))
+  (cond ((and fb_sig_user fb_sig_session_key fb_sig_session_expires
+	      (> (time) fb_sig_session_expires))
+	 (fb/save-info!)
+	 fb_sig_user)
+	(auth_token
+	 (let* ((info (fbcall/open "auth.getSession" "auth_token" auth_token))
+		(session (get info "session_key"))
+		(expires (get info "expires"))
+		(user (get info "uid"))
+		(added #f)
+		(domain (or apphost (cgiget 'http_host)))
+		(extstamp
+		 (gmtimestamp (if (string? expires)
+				  (string->lisp expires) expires))))
+	   (when trace-facebook-auth
+	     (%watch "AUTHTOKEN" auth_token info session expires user))
+	   (cgiset! 'fb_sig_session_key session)
+	   (cgiset! 'fb_sig_session_expires expires)
+	   (cgiset! 'fb_sig_user user)
+	   (save-fbinfo!)
+	   user))
+	(else #f)))
+
+(define (validatemethod)
+  (fb/useinfo)
+  (let ((user (cgicall fb/validate)))
+    (%watch (and user `#[fbtype "user" fbid ,user]))))
+
+(config! 'auth:validate (cons 'FACEBOOK validatemethod))
+
+(define (guess-callback request_uri http_host)
+  (stringout "http://" http_host request_uri))
+
+(define (fb/login (callback (cgicall guess-callback)))
+  (fb/useinfo)
+  (or (cgicall fb/validate)
+      (gologin callback)))
+
+(define (gologin callback)
+  (when trace-facebook-auth (%watch "GOLOGIN" callback))
+  (cgiset! 'status 303)
+  (httpheader
+   "Location: https://www.facebook.com/login.php?"
+   (if (cgitest '{popup dialog iframe}) "popup=yes&" "")
+   "v=1.0&" "api_key=" (config 'fb:key) "&"
+   "req_perms="
+   (stringout
+     (do-choices (perm (config 'fb:perms) i)
+       (when (> i 0) (printout ","))
+       (printout perm)))
+   "&" "next=" callback))
+
+(module-export! '{fb/validate fb/login})
