@@ -67,6 +67,7 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
        (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
     fdtype value=fd_eval(FD_CDR(val),env); u8_string as_string;
     if (FD_ABORTP(value)) return fd_interr(value);
+    else if (FD_VOIDP(value)) return 0;
     else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
       as_string=fd_dtype2string(value);
     else if (FD_STRINGP(value))

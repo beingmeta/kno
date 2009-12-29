@@ -101,7 +101,7 @@ static void emit_uri_string(u8_output out,u8_string string)
 {
   char *scan=string;
   while (*scan) {
-    if (*scan=='+') u8_putc(out,' ');
+    if (*scan==' ') u8_putc(out,'+');
     else if (isalnum(*scan)) u8_putc(out,*scan);
     else u8_printf(out,"%%%02x",*scan);
     scan++;}
@@ -354,7 +354,10 @@ static void convert_cookie_arg(fd_slotmap c)
 	fd_decref(value); value=FD_VOID; slotid=FD_VOID;
 	write=buf; isascii=1; scan++;}
       else if (*scan == '%') 
-	if (scan+3>=end) end=scan;
+	if (scan+3>end) {
+	  u8_log(LOG_WARN,_("malformed cookie"),"cookie ends early: \"%s\"",
+		 FD_STRDATA(qval));
+	  end=scan;}
 	else {
 	  char buf[4]; int c; scan++;
 	  buf[0]=*scan++; buf[1]=*scan++; buf[2]='\0';
