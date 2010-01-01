@@ -3,7 +3,7 @@
 (define version "$Id$")
 (define revision "$Revision$")
 
-(use-module '{extdb varconfig})
+(use-module '{extdb varconfig reflection})
 
 (define default-sqlmap #[])
 (varconfig! extdb:sqlmap default-sqlmap)
