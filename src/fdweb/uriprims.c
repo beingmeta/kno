@@ -204,11 +204,8 @@ static fdtype mergeuris(fdtype uri,fdtype base)
 static void uri_output(u8_output out,u8_string s,char *escape)
 {
   while (*s)
-    if ((*s>=0x80) || (*s=='+') || (*s=='%') || (strchr(escape,*s))) {
-      char buf[8]; sprintf(buf,"%%%02x",*s);
-      u8_puts(out,buf); s++;}
-    else if (*s==' ') {u8_putc(out,'+'); s++;}
-    else if (isspace(*s)) {
+    if (*s==' ') {u8_putc(out,'+'); s++;}
+    else if ((*s>=0x80) || (isspace(*s)) || (*s=='+') || (*s=='%') || (strchr(escape,*s))) {
       char buf[8]; sprintf(buf,"%%%02x",*s);
       u8_puts(out,buf); s++;}
     else {u8_putc(out,*s); s++;}
