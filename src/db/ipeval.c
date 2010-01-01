@@ -303,7 +303,7 @@ FD_EXPORT void fd_clear_callcache(fdtype arg)
       fdtype key=fd_init_vector(NULL,n_args,datavec);
       while (i<n_args) {
 	datavec[i]=fd_incref(FD_VECTOR_REF(arg,i+1)); i++;}
-      fd_hashtable_drop((fd_hashtable)table,key,FD_VOID);
+      fd_hashtable_store((fd_hashtable)table,key,FD_VOID);
       fd_decref(key);}}
   else if (fd_hashtable_probe(&fcn_caches,arg))
     fd_hashtable_store(&fcn_caches,arg,FD_VOID);
