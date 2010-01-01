@@ -200,6 +200,36 @@ static void emit_xmlcontent(u8_output out,u8_string content)
   entify(out,content);
 }
 
+static int output_markup_attrib
+  (u8_output out,u8_output tmp,
+   fdtype name_expr,fdtype value_expr,
+   fd_lispenv env)
+{
+  u8_string attrib_name; fdtype attrib_val;
+  fdtype free_name=FD_VOID, free_value=FD_VOID;
+  if (FD_SYMBOLP(name_expr)) attrib_name=FD_SYMBOL_NAME(name_expr);
+  else if (FD_STRINGP(name_expr)) attrib_name=FD_STRDATA(name_expr);
+  else if ((env) && (FD_PAIRP(name_expr))) {
+    free_name=fd_eval(name_expr,env);
+    if (FD_SYMBOLP(free_name)) attrib_name=FD_SYMBOL_NAME(free_name);
+    else if (FD_STRINGP(free_name)) attrib_name=FD_STRDATA(free_name);
+    else attrib_name=NULL;}
+  else attrib_name=NULL;
+  if (attrib_name)
+    if ((env)&&((FD_SYMBOLP(value_expr))||(FD_PAIRP(value_expr)))) {
+      free_value=fd_eval(value_expr,env);
+      attrib_val=free_value;}
+    else attrib_val=value_expr;
+  if (attrib_name)
+    if (FD_VOIDP(value_expr)) {
+      u8_putc(out,' '); attrib_entify(out,attrib_name);}
+    else if (FD_VOIDP(attrib_val)) {
+      fd_decref(free_name); fd_decref(free_value);
+      return 0;}
+    else emit_xmlattrib(out,tmp,attrib_name,attrib_val);
+  return 1;
+}
+
 static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
 		       fdtype attribs,fd_lispenv env,int empty)
 {
@@ -215,67 +245,29 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
       u8_putc(out,' ');
       attrib_entify(out,FD_STRDATA(elt));
       attribs=FD_CDR(attribs);}
-    else if (FD_SYMBOLP(elt))
-      if (FD_PAIRP(FD_CDR(attribs))) {
-	if (env) {
-	  fdtype val=fd_eval((FD_CADR(attribs)),env);
-	  if (FD_ABORTP(val)) {
-	    if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	    return fd_interr(val);}
-	  else if (FD_VOIDP(val)) {}
-	  else {
-	    emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(elt),val);}
-	  fd_decref(val);}
-	else emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(elt),FD_CADR(attribs));
-	attribs=FD_CDR(FD_CDR(attribs));}
+    else if ((FD_SYMBOLP(elt))&&(FD_PAIRP(FD_CDR(attribs))))
+      if (output_markup_attrib(out,tmp,elt,FD_CADR(attribs),env)>=0)
+	attribs=FD_CDR(FD_CDR(attribs));
       else {
 	if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	return fd_reterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));}
-    else if ((FD_PAIRP(elt)) && (FD_PAIRP(FD_CDR(elt)))) {
-      fdtype attrib_name=FD_CAR(elt);
-      fdtype attrib_expr=FD_CAR(FD_CDR(elt));
-      if ((FD_SYMBOLP(attrib_name)) || (FD_STRINGP(attrib_name))) {}
-      else if (FD_PAIRP(attrib_name)) {
-	fdtype name=fd_eval(attrib_name,env);
-	if (FD_ABORTP(name)) {
-	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	  return fd_interr(name);}
-	else if (FD_SYMBOLP(name)) attrib_name=name;
-	else if (FD_STRINGP(name))
-	  attrib_name=fd_intern(FD_STRDATA(attrib_name));
-	else {
-	  fd_decref(name);
-	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	  return fd_reterr(fd_TypeError,"open_markup",
-			   u8_strdup("attribname"),fd_incref(name));}
-	fd_decref(name);}
+	return -1;}
+    else if (FD_SYMBOLP(elt)) {
+      if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
+      fd_seterr(fd_SyntaxError,"open_markup",
+		u8_mkstring(_("missing alternating attrib value for %s"),FD_SYMBOL_NAME(elt)),
+		fd_incref(attribs));
+      return -1;}
+    else if ((FD_PAIRP(elt))) {
+      fdtype val_expr=((FD_PAIRP(FD_CDR(elt)))?(FD_CADR(elt)):(FD_VOID));
+      if (output_markup_attrib(out,tmp,FD_CAR(elt),val_expr,env)>=0)
+	attribs=FD_CDR(attribs);
       else {
 	if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	return fd_reterr(fd_SyntaxError,"open_markup",
-			 NULL,fd_incref(attribs));}
-      if (FD_NEED_EVALP(attrib_expr)) {
-	fdtype val=((env) ? (fd_eval(attrib_expr,env)) :
-		    (fd_incref(attrib_expr)));
-	if (FD_VOIDP(val)) {}
-	else if (FD_ABORTP(val)) {
-	  if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-	  return fd_interr(val);}
-	else if (FD_STRINGP(attrib_name))
-	  if (FD_FALSEP(val)) {}
-	  else {
-	    u8_putc(out,' ');
-	    attrib_entify(out,FD_STRDATA(attrib_name));}
-	else emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(attrib_name),val);
-	fd_decref(val);}
-      else if (FD_FALSEP(attrib_expr)) {}
-      else if (FD_SYMBOLP(attrib_name))
-	emit_xmlattrib(out,tmp,FD_SYMBOL_NAME(attrib_name),attrib_expr);
-      else if (FD_STRINGP(attrib_name))
-	emit_xmlattrib(out,tmp,FD_STRING_DATA(attrib_name),attrib_expr);
-      attribs=FD_CDR(attribs);}
-    else {
-	fd_seterr(fd_SyntaxError,"open_markup",NULL,fd_incref(attribs));
 	return -1;}}
+    else {
+      if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
+      fd_seterr(fd_SyntaxError,"open_markup",fd_dtype2string(elt),fd_incref(attribs));
+      return -1;}}
   if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
   return 1;
 }
@@ -1262,17 +1254,20 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
       else u8_putc(out,'&');
       fd_uri_output(out,varname,"?#=&+");
       u8_putc(out,'=');
-      if (FD_STRINGP(val)) {
-	u8_putn(out,FD_STRDATA(val),FD_STRLEN(val));}
+      if (FD_STRINGP(val)) 
+	fd_uri_output(out,FD_STRDATA(val),"?#=&+");
       else if (FD_OIDP(val)) {
 	FD_OID addr=FD_OID_ADDR(val);
 	u8_printf(out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
-      else if (nocolon) {
-	u8_printf(out,"%q",val);}
-      else if (FD_SYMBOLP(val)) {
-	u8_printf(out,":%s",FD_SYMBOL_NAME(val));}
-      else u8_printf(out,":%q",val);}
-    lastc=-1;}
+      else {
+	if (!(nocolon)) u8_putc(out,':');
+	if (FD_SYMBOLP(val))
+	  fd_uri_output(out,FD_SYMBOL_NAME(val),"?#=&+");
+	else {
+	  u8_string as_string=fd_dtype2string(val);
+	  fd_uri_output(out,as_string,"?#=&+");
+	  u8_free(as_string);}}
+      lastc=-1;}}
   if (free_varname) u8_free(varname);
 }
 
