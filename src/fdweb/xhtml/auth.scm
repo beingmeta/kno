@@ -3,7 +3,7 @@
 (use-module '{fdweb texttools})
 (use-module '{varconfig logger rulesets ezrecords})
 
-(define %loglevel %notify!)
+(define %loglevel %notice!)
 
 (module-export! '{auth/getinfo
 		  auth/getuser
@@ -108,6 +108,9 @@
 	 (payload (and sigsplit (base64->packet (subseq authstring 0 sigsplit))))
 	 (sig (and sigsplit (base64->packet (subseq authstring (1+ sigsplit)))))
 	 (unpacked (and payload (packet->dtype payload))))
+    (debug%watch "STRING->AUTH"
+		 sigsplit payload unpacked
+		 sig (hmac-sha1 payload signature))
     (unless (equal? sig (hmac-sha1 payload signature))
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
 	       "\n\tfor " (subseq authstring 0 sigsplit)
@@ -115,7 +118,7 @@
 	       "\n\texpecting " sig
 	       "\n\tgetting " (hmac-sha1 payload signature)))
     (and sig unpacked (equal? sig (hmac-sha1 payload signature))
-	 (eq? (elt unpacked 0) authid)
+	 (equal? (elt unpacked 0) authid)
 	 (cons-authinfo (elt unpacked 0) (elt unpacked 1) (elt unpacked 2)))))
 
 (define (unpack-authinfo authstring (checksig #f))
@@ -134,12 +137,14 @@
 ;;; Core functions
 
 (define (auth/identify! identity (duration auth-expiration))
-  (let ((auth (cons-authinfo authid identity (+ (time) duration))))
+  (let* ((auth (cons-authinfo authid identity (+ (time) duration)))
+	 (authstring (auth->string auth)))
     (cgiset! authid auth)
-    (set-cookie! authid (auth->string auth)
+    (set-cookie! authid authstring
 		 auth-cookie-domain auth-cookie-path
 		 (if auth-cookie-expires (timestamp+ auth-cookie-expires) #f)
 		 auth-secure)
+    (info%watch "AUTH/IDENTIFY!" identity auth authstring)
     identity))
 
 (define (auth/ok? auth)
@@ -173,7 +178,7 @@
 	;; If the info is a string, we haven't verified it yet
 	;; This is where the real validation happens
 	((not authinfo)
-	 (error "Invalid authorization info" authinfo authid)
+	 (error "No authorization info" authinfo authid)
 	 (fail))
 	((string? authinfo)
 	 (auth/getinfo authid (string->auth authinfo authid)))
