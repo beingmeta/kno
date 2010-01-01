@@ -327,6 +327,7 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 	u8_free(pathname);
 	return 0;}
       else scan=scan->next;
+    memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
     on_stack.source=pathname;
     on_stack.next=config_stack;
     config_stack=&on_stack;
@@ -341,6 +342,7 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     newrec->source=pathname;
     newrec->next=config_records;
     config_records=newrec;
+    config_stack=on_stack.next;
     fd_unlock_mutex(&config_file_lock);
     return retval;}
   else return -1;
