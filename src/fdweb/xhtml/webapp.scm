@@ -4,20 +4,26 @@
 
 (define version "$Id$")
 
-(use-module '{fdweb xhtml texttols xhtml/auth xhtml/openid})
+(use-module '{fdweb xhtml texttols xhtml/auth xhtml/openid varconfig rulesets})
 
 (define apphost "www.example.com")
 (define approot "/smartapp")
 (define appid "WEBAPP")
 (define userelpaths #t)
+(varconfig! app:hostname apphost)
+(varconfig! app:root approotd)
+(varconfig! app:id appid)
 
 (define secure-site #f)
 (define secure-roots {})
 (define insecure-roots {})
+(varconfig! app:secure secure-site)
+(ruleconfig! app:https secure-roots)
+(ruleconfig! app:justhttp insecure-roots)
 
 ;;;; SITEURL
 
-(define (sitepath app (userel userelpaths))
+(define (app/sitepath app (userel userelpaths))
   (let* ((hostname (cgiget 'server_name))
 	 (cursecure (cgitest 'server_port 443))
 	 (curpath  (cgiget 'request_uri))
@@ -33,11 +39,11 @@
 	    (subseq basepath (length curdir))
 	    basepath))))
 
-(define (siteurl app . args)
+(define (app/siteurl app . args)
   (if (null? args)
-      (sitepath app)
-      (apply scripturl (sitepath app) args)))
+      (app/sitepath app)
+      (apply scripturl (app/sitepath app) args)))
 
-(module-export! '{siteurl sitepath})
+(module-export! '{app/siteurl app/sitepath})
 
 
