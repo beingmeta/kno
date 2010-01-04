@@ -19,7 +19,7 @@ static char versionid[] =
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
-#include <libu8/u8digestfns.h>
+#include <libu8/u8crypto.h>
 
 #include <sqlite3.h>
 
