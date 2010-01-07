@@ -4,10 +4,22 @@
 
 (define version "$Id$")
 
-(use-module '{fdweb xhtml texttols xhtml/auth xhtml/openid varconfig rulesets})
+(use-module '{fdweb xhtml texttools})
+(use-module '{varconfig rulesets logger})
+(use-module '{xhtml/auth xhtml/openid})
+
+(define %loglevel %debug!)
+
+(module-export!
+ '{app/url
+   app/setup
+   app/sitepath
+   app/set-cookie! app/clear-cookie!
+   app/redirect
+   app/needlogin})
 
 (define apphost "www.example.com")
-(define approot "/smartapp")
+(define approot "/")
 (define appid "WEBAPP")
 (define userelpaths #t)
 (varconfig! app:hostname apphost)
@@ -21,9 +33,14 @@
 (ruleconfig! app:https secure-roots)
 (ruleconfig! app:justhttp insecure-roots)
 
+(define loginform #f)
+(define loginproc #f)
+(varconfig! app:asklogin loginform)
+(varconfig! app:dologin loginproc)
+
 ;;;; SITEURL
 
-(define (app/sitepath app (userel userelpaths))
+(define (app/sitepath (app "") (userel userelpaths))
   (let* ((hostname (cgiget 'server_name))
 	 (cursecure (cgitest 'server_port 443))
 	 (curpath  (cgiget 'request_uri))
@@ -39,11 +56,105 @@
 	    (subseq basepath (length curdir))
 	    basepath))))
 
-(define (app/siteurl app . args)
+(define (app/url (app "") . args)
   (if (null? args)
-      (app/sitepath app)
+      (if app (app/sitepath app) (geturl))
       (apply scripturl (app/sitepath app) args)))
 
-(module-export! '{app/siteurl app/sitepath})
+;;; Parsing hierarchical app paths major/minor
+
+(define apprule
+  '(GREEDY #("/" (label major (isalnum+))
+	     {(eos) #("/" (eos))
+	      #("/" (label minor (isalnum+))
+		{(eos) #("/" (eos))
+		 (label rest #("/" (rest)))})})))
+
+(define appminor-defaults #[])
+(config-def! 'app:minor
+	     (lambda (var (val))
+	       (cond ((not (bound? val)) appminor-defaults)
+		     ((pair? val)
+		      (add! appminor-defaults (car val) (cdr val)))
+		     ((and (string? val) (position #\/ val))
+		      (let ((split (position #\/ val)))
+			(add! appminor-defaults
+			      (subseq val 0 split)
+			      (subseq val (1+ split)))))
+		     (else (error "Bad appminor config " val)))))
+
+(define (app/setup (appmajor #f) (appminor #f) (path_info #f)
+		   (forceapp #f) (request_uri #f))
+  (debug%watch "app/setup" appmajor appminor path_info forceapp)
+  (when (ambiguous? (cgiget 'appmajor)) (cgidrop! appmajor))
+  (when (ambiguous? (cgiget 'appminor)) (cgidrop! appminor))
+  (let* ((parsed (text->frame apprule (or forceapp path_info {})))
+	 (newmajor (try (get parsed 'major)
+			(cgiget 'appmajor)
+			"about")))
+    (debug%watch "app/setup" appmajor newmajor parsed path_info)
+    (set! appmajor (get parsed 'major))
+    (cgiset! 'appmajor appmajor)
+    (set-cookie! 'appmajor appmajor "sbooks.net" "/")
+    ;; The minor app can be either explicitly expressed or determined
+    ;;  based on a cookie and default tables
+    (let ((newminor (try (get parsed 'minor)
+			 (cgiget (string->lisp (stringout appmajor ".minor")))
+			 (get default-appminor appmajor)
+			 #f)))
+      (debug%watch "app/setup" appminor newminor)
+      (set! appminor newminor)
+      (cgiset! 'appminor newminor)
+      (if newminor
+	  (app/set-cookie! (stringout appmajor ".minor") appminor)
+	  (app/clear-cookie! (stringout appmajor ".minor"))))
+    ;; The apprest arg is assigned here.  We don't want it to default from
+    ;;  cookies or tables
+    (if (and (test parsed 'rest)
+	     (not (empty-string? (get parsed 'rest))))
+	(cgiset! 'apprest (get parsed 'rest))
+	(cgidrop! 'apprest (get parsed 'rest))))
+  (unless (or path_info forceapp) (cgidrop! 'apprest))
+  (when request_uri
+    (cond ((has-prefix request_uri "/fb/") (cgiset! 'appbase "/fb"))
+	  ((has-prefix request_uri "/app/") (cgiset! 'appbase "/app"))
+	  (else (cgiset! 'appbase "/app")))))
+
+;;; App cookies
+
+(define (app/set-cookie! var val)
+  (set-cookie! var val apphost approot))
+(define (app/clear-cookie! var)
+  (set-cookie! var "expired" apphost approot (timestamp+ (* -17 24 3600))))
+
+;; Doing redirection
+
+(define (app/redirect uri)
+  (debug%watch "app/redirect" uri)
+  (cgiset! 'status 303)
+  (httpheader "Location: " uri))
+
+(define (loginheader message)
+  (app/set-cookie! 'nextstop (cgiget 'request_uri))
+  (when message
+    (if (string? message)
+	(div ((class "loginmsg"))
+	  (xmleval message))
+	(div ((class "loginmsg"))
+	  "You need to log in to see this"))))
+
+(define (app/needlogin (message #t))
+  (cond ((exists? (auth/getinfo)) #f)
+	((and loginproc (cgicall loginproc)) #f)
+	(else
+	 (loginheader message)
+	 (cond ((and (string? loginform) (not (position #\< loginform)))
+		(app/redirect loginform))
+	       ((applicable? loginform) (cgicall loginform))
+	       ((string? loginform) (xhtml loginform))
+	       ((table? loginform) (xmleval loginform))
+	       (else (div ((class "loginmsg"))
+		       "The login form doesn't seem to be configured!  Sorry!")
+		     #t)))))
 
 
