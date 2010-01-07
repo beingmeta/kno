@@ -75,12 +75,12 @@
 	     (lambda (var (val))
 	       (cond ((not (bound? val)) appminor-defaults)
 		     ((pair? val)
-		      (add! appminor-defaults (car val) (cdr val)))
+		      (store! appminor-defaults (car val) (cdr val)))
 		     ((and (string? val) (position #\/ val))
 		      (let ((split (position #\/ val)))
-			(add! appminor-defaults
-			      (subseq val 0 split)
-			      (subseq val (1+ split)))))
+			(store! appminor-defaults
+				(subseq val 0 split)
+				(subseq val (1+ split)))))
 		     (else (error "Bad appminor config " val)))))
 
 (define (app/setup (appmajor #f) (appminor #f) (path_info #f)
@@ -100,7 +100,7 @@
     ;;  based on a cookie and default tables
     (let ((newminor (try (get parsed 'minor)
 			 (cgiget (string->lisp (stringout appmajor ".minor")))
-			 (get default-appminor appmajor)
+			 (get appminor-defaults appmajor)
 			 #f)))
       (debug%watch "app/setup" appminor newminor)
       (set! appminor newminor)
