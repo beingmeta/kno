@@ -85,6 +85,7 @@ rundir="/var/run"
 logdir="/var/log"
 archflags=""
 with_mysql_default="yes"
+with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 
@@ -518,8 +519,17 @@ if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
 fi
 
+dnl Check for cryptic in in libu8
+AC_CHECK_LIB(u8,u8_cryptic)
+AC_CHECK_FUNCS(u8_cryptic,with_crypto_default="yes")
+AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$with_crypto_default)
+if test $with_crypto = "yes"; then
+  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+fi
+
 AC_CHECK_FUNCS(dlopen,libc_dlopen="yes")
-if test $libc_dlopen != "yes"; then
+if test x$libc_dlopen != "xyes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 

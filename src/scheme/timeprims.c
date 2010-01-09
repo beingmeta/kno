@@ -8,7 +8,7 @@
 static char versionid[] =
   "$Id$";
 
-#define FD_PROVIDE_FASTEVAL 1
+/* #define FD_PROVIDE_FASTEVAL 1 */
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"

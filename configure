@@ -737,6 +737,7 @@ with_libu8
 with_fastcgi
 with_mysql
 with_tcmalloc
+with_crypto
 enable_largefiles
 with_profiling
 with_profiler
@@ -1414,6 +1415,7 @@ Optional Packages:
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
 --without-tcmalloc Use the Google malloc library
+--without-crypto Compile the crypto module
 --with/out-profiling compile to generate profile information
 --with/out-profiler build with optional perftools profiling
 --without-tls Force use of threadlocal storage
@@ -2562,6 +2564,7 @@ rundir="/var/run"
 logdir="/var/log"
 archflags=""
 with_mysql_default="yes"
+with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 
@@ -6439,6 +6442,75 @@ fi
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for u8_cryptic in -lu8" >&5
+$as_echo_n "checking for u8_cryptic in -lu8... " >&6; }
+if test "${ac_cv_lib_u8_u8_cryptic+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lu8  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char u8_cryptic ();
+int
+main ()
+{
+return u8_cryptic ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_u8_u8_cryptic=yes
+else
+  ac_cv_lib_u8_u8_cryptic=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_u8_u8_cryptic" >&5
+$as_echo "$ac_cv_lib_u8_u8_cryptic" >&6; }
+if test "x$ac_cv_lib_u8_u8_cryptic" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBU8 1
+_ACEOF
+
+  LIBS="-lu8 $LIBS"
+
+fi
+
+for ac_func in u8_cryptic
+do :
+  ac_fn_c_check_func "$LINENO" "u8_cryptic" "ac_cv_func_u8_cryptic"
+if test "x$ac_cv_func_u8_cryptic" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_U8_CRYPTIC 1
+_ACEOF
+ with_crypto_default="yes"
+fi
+done
+
+
+# Check whether --with-crypto was given.
+if test "${with_crypto+set}" = set; then :
+  withval=$with_crypto;
+else
+  with_crypto=$with_crypto_default
+fi
+
+if test $with_crypto = "yes"; then
+  CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+fi
+
 for ac_func in dlopen
 do :
   ac_fn_c_check_func "$LINENO" "dlopen" "ac_cv_func_dlopen"
@@ -6450,7 +6522,7 @@ _ACEOF
 fi
 done
 
-if test $libc_dlopen != "yes"; then
+if test x$libc_dlopen != "xyes"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for dlopen in -ldl" >&5
 $as_echo_n "checking for dlopen in -ldl... " >&6; }
 if test "${ac_cv_lib_dl_dlopen+set}" = set; then :

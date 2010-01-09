@@ -422,6 +422,15 @@ lib/framerd/mysql.@VERSION@.dylib: src/cmodules/mysql.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 lib/framerd/mysql.dylib: lib/framerd/mysql.@VERSION@.dylib
 
+src/cmodules/crypto.o: src/cmodules/crypto.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+lib/framerd/crypto.so.@VERSION@: src/cmodules/crypto.o
+	$(MKSO) -o $@ $<
+lib/framerd/crypto.so: lib/framerd/crypto.so.@VERSION@
+lib/framerd/crypto.@VERSION@.dylib: src/cmodules/crypto.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
+lib/framerd/crypto.dylib: lib/framerd/crypto.@VERSION@.dylib
+
 lib/framerd/odbc.so.@VERSION@: src/cmodules/odbc.o
 	$(MKSO) -o $@ $<
 lib/framerd/odbc.so: lib/framerd/odbc.so.@VERSION@
