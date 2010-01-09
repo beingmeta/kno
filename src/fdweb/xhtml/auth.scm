@@ -137,15 +137,16 @@
 ;;; Core functions
 
 (define (auth/identify! identity (duration auth-expiration))
-  (let* ((auth (cons-authinfo authid identity (+ (time) duration)))
-	 (authstring (auth->string auth)))
-    (cgiset! authid auth)
-    (set-cookie! authid authstring
-		 auth-cookie-domain auth-cookie-path
-		 (if auth-cookie-expires (timestamp+ auth-cookie-expires) #f)
-		 auth-secure)
-    (info%watch "AUTH/IDENTIFY!" identity auth authstring)
-    identity))
+  (and identity
+       (let* ((auth (cons-authinfo authid identity (+ (time) duration)))
+	      (authstring (auth->string auth)))
+	 (cgiset! authid auth)
+	 (set-cookie! authid authstring
+		      auth-cookie-domain auth-cookie-path
+		      (if auth-cookie-expires (timestamp+ auth-cookie-expires) #f)
+		      auth-secure)
+	 (info%watch "AUTH/IDENTIFY!" identity auth authstring)
+	 identity)))
 
 (define (auth/ok? auth)
   (and auth (> (authinfo-expires auth) (time))
