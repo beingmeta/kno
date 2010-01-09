@@ -4,7 +4,7 @@
 
 (define version "$Id$")
 
-(use-module '{fdweb xhtml texttools})
+(use-module '{fdweb xhtml texttools reflection})
 (use-module '{varconfig rulesets logger})
 (use-module '{xhtml/auth xhtml/openid})
 
@@ -18,23 +18,23 @@
    app/redirect
    app/needlogin})
 
-(define apphost "www.example.com")
-(define approot "/")
-(define appid "WEBAPP")
-(define userelpaths #t)
+(define-init apphost "www.example.com")
+(define-init approot "/")
+(define-init appid "WEBAPP")
+(define-init userelpaths #t)
 (varconfig! app:hostname apphost)
-(varconfig! app:root approotd)
+(varconfig! app:root approot)
 (varconfig! app:id appid)
 
-(define secure-site #f)
-(define secure-roots {})
-(define insecure-roots {})
+(define-init secure-site #f)
+(define-init secure-roots {})
+(define-init insecure-roots {})
 (varconfig! app:secure secure-site)
 (ruleconfig! app:https secure-roots)
 (ruleconfig! app:justhttp insecure-roots)
 
-(define loginform #f)
-(define loginproc #f)
+(define-init loginform #f)
+(define-init loginproc #f)
 (varconfig! app:asklogin loginform)
 (varconfig! app:dologin loginproc)
 
@@ -46,9 +46,9 @@
 	 (curpath  (cgiget 'request_uri))
 	 (curdir  (dirname curpath))
 	 (basepath (mkpath (cgiget 'appbase approot) app))
-	 (secure (or (not (textsearch (qc insecure-roots) basepath))
-		     (textsearch (qc secure-roots) basepath)
-		     secure-site)))
+	 (secure (if secure-site
+		     (not (textsearch (qc insecure-roots) basepath))
+		     (textsearch (qc secure-roots) basepath))))
     (if (or (not userel) (not (eq? secure cursecure))
 	    (not (eq? hostname apphost)))
 	(stringout (if secure "https:" "http:") "//"  apphost basepath)
@@ -66,7 +66,8 @@
 (define apprule
   '(GREEDY #("/" (label major (isalnum+))
 	     {(eos) #("/" (eos))
-	      #("/" (label minor (isalnum+))
+	      #("/"
+		(label minor (+ {(isalnum) "."}))
 		{(eos) #("/" (eos))
 		 (label rest #("/" (rest)))})})))
 
@@ -129,9 +130,9 @@
 
 ;; Doing redirection
 
-(define (app/redirect uri)
+(define (app/redirect uri (status 303))
   (debug%watch "app/redirect" uri)
-  (cgiset! 'status 303)
+  (cgiset! 'status status)
   (httpheader "Location: " uri))
 
 (define (loginheader message)
