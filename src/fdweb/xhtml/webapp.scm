@@ -102,6 +102,7 @@
     (let ((newminor (try (get parsed 'minor)
 			 (cgiget (string->lisp (stringout appmajor ".minor")))
 			 (get appminor-defaults appmajor)
+			 (cgiget 'appminor)
 			 #f)))
       (debug%watch "app/setup" appminor newminor)
       (set! appminor newminor)
