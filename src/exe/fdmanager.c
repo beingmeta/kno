@@ -1,5 +1,10 @@
 /* C Mode */
 
+/* Copyright (C) 2004-2010 beingmeta, inc.
+   This file is part of beingmeta's FDB platform and is copyright 
+   and a valuable trade secret of beingmeta, inc.
+*/
+
 /* fdmananger: a program for running a set of inferior fdservers */
     
 static char versionid[] =

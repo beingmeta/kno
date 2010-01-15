@@ -7,7 +7,7 @@
 */
 
 static char versionid[] =
-  "$Id: sqlite.c 3265 2008-11-19 17:13:31Z haase $";
+  "$Id$";
 
 #define U8_INLINE_IO 1
 
