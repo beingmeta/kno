@@ -1,6 +1,6 @@
 /* -*- Mode: C; -*- */
 
-/* Copyright (C) 2004-2009 beingmeta, inc.
+/* Copyright (C) 2004-2010 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -967,7 +967,7 @@ int main(int argc,char **argv)
 	 "FramerD (r%s) fdserv servlet running, %d/%d pools/indices",
 	 SVN_REVISION,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2009, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2010, all rights reserved");
   u8_server_loop(&fdwebserver);
 
   if (pidfile) {
