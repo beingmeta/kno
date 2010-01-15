@@ -1,7 +1,7 @@
 /* -*- Mode: C; -*- */
 
 /* tagxtract.c
-   Copyright (C) 2005-2009 beingmeta, inc.
+   Copyright (C) 2005-2010 beingmeta, inc.
    This file implements primitives for pulling patterns out of tagged parses
 */
 

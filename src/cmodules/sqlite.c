@@ -2,7 +2,7 @@
 
 /* sqlite.c
    This implements FramerD bindings to sqlite3.
-   Copyright (C) 2007-2009 beingmeta, inc.
+   Copyright (C) 2007-2010 beingmeta, inc.
 */
 
 static char versionid[] =
