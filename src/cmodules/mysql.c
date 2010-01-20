@@ -433,6 +433,8 @@ static fdtype get_stmt_values
 	     (FD_FALSEP(mergefn)) ||
 	     (FD_TRUEP(mergefn)))
       result=fd_init_slotmap(NULL,n_slots,kv);
+    else if (!(FD_APPLICABLEP(mergefn))) {
+      result=fd_type_error("applicable","mysql/get_stmt_values",mergefn);}
     else {
       fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
       result=fd_apply(mergefn,1,&tmp_slotmap);
