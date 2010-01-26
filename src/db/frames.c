@@ -196,7 +196,7 @@ static fdtype overlay_add
   else if (FD_PAIRP(entry)) {
     fdtype adds=fd_make_simple_choice(FD_CAR(entry)), drops=FD_CDR(entry);
     fd_incref(value); FD_ADD_TO_CHOICE(adds,value);
-    new_entry=fd_init_pair(NULL,adds,fd_incref(drops));}
+    new_entry=fd_init_pair(NULL,adds,fd_difference(drops,value));}
   else if (FD_VECTORP(entry)) {
     fdtype values=FD_VECTOR_REF(entry,0), *elts=u8_alloc_n(1,fdtype);
     FD_ADD_TO_CHOICE(values,value);
