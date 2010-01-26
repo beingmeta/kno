@@ -8,7 +8,7 @@
 (use-module '{varconfig rulesets logger})
 (use-module '{xhtml/auth xhtml/openid})
 
-(define %loglevel %debug!)
+(define %loglevel %notice!)
 
 (module-export!
  '{app/url
@@ -125,9 +125,9 @@
 ;;; App cookies
 
 (define (app/set-cookie! var val)
-  (set-cookie! var val apphost approot))
+  (set-cookie! var val apphost (or approot "/")))
 (define (app/clear-cookie! var)
-  (set-cookie! var "expired" apphost approot (timestamp+ (* -17 24 3600))))
+  (set-cookie! var "expired" apphost (or approot "/") (timestamp+ (* -17 24 3600))))
 
 ;; Doing redirection
 
