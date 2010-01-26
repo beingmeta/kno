@@ -60,8 +60,7 @@
 (define (fbcalluri method args (w/session #t) (w/callid #t) (sessionkey (cgiget 'fb_sig_session_key)))
   (when (and w/session (not (cgitest 'fb_sig_session_key)) (cgitest 'fbinfo))
     (fb/useinfo))
-  (when w/callid
-    (set! args (cons* "call_id" (time) args)))
+  (when w/callid (set! args (cons* "call_id" (time) args)))
   (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
   ;; (%watch "FBCALLURI" method w/session (cgiget 'fb_sig_session_key))
@@ -78,7 +77,9 @@
 	      (downcase (packet->base16
 			 (get-signature args
 					(if w/session
-					    (try (getsecret sessionkey) "toomanysecrets")
+					    (try (cgiget 'fbsecret)
+						 (getsecret sessionkey)
+						 "toomanysecrets")
 					    apisecretkey)))))))
 (define (fbcalluri* method . args) (fbcalluri method args))
 
