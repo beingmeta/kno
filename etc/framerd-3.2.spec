@@ -73,6 +73,10 @@ Requires:      mysql %{name} = %{version}-%{release}
 The %{name}-mysql package implements external DB bindings to the MySQL C client
 libraries
 
+%description    mysql
+The %{name}-mysql package implements external DB bindings to the MySQL C client
+libraries
+
 %package        sqlite
 Summary:        Module for using Sqlite3 from FramerD
 Group:          Development/Libraries
@@ -156,6 +160,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdschemeio.so.*
 %{_libdir}/libfdweb.so.*
 %{_libdir}/libtexttools.so.*
+%{_libdir}/framerd/crypto.so*
 %{_bindir}/fdexec
 %{_bindir}/fdconsole
 %{_bindir}/fdbatch
@@ -183,6 +188,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdschemeio.so
 %{_libdir}/libfdweb.so
 %{_libdir}/libtexttools.so
+%{_libdir}/framerd/crypto.so
 
 %files static
 %defattr(-,root,root,-)
