@@ -9695,10 +9695,11 @@ fi
 
 fi
 
+with_fastcgi="yes";
 
 # Check whether --with-fastcgi was given.
 if test "${with_fastcgi+set}" = set; then
-  withval=$with_fastcgi;
+  withval=$with_fastcgi; with_fastcgi=no
 else
   cat >>confdefs.h <<\_ACEOF
 #define WITH_FASTCGI 1
@@ -9706,6 +9707,7 @@ _ACEOF
 
 fi
 
+if test "x$with_fastcgi" != "xno"; then
 
 for ac_header in fcgiapp.h
 do
@@ -9917,6 +9919,7 @@ _ACEOF
 
 fi
 
+fi
 
 
 

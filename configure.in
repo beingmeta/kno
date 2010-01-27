@@ -450,9 +450,12 @@ if test $libc_dlopen != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
-AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi,,[AC_DEFINE(WITH_FASTCGI,1)])
-AC_CHECK_HEADERS(fcgiapp.h)
-AC_CHECK_LIB(fcgi,FCGX_Init)
+with_fastcgi="yes";
+AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
+if test "x$with_fastcgi" != "xno"; then
+  AC_CHECK_HEADERS(fcgiapp.h)
+  AC_CHECK_LIB(fcgi,FCGX_Init)
+fi
 
 AC_CHECK_HEADERS(sqlite3.h sql.h)
 
