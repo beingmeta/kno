@@ -194,7 +194,7 @@ fi
 dnl Specifies the user which the Web server runs as
 dnl This is used to set up the directories used by fdserv
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
-if test x$webuser != "xnone"; then
+if test x$with_webuser != "xnone"; then
    webuser=$with_webuser
    wwwinstall="-o $webuser"
 else
