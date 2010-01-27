@@ -216,7 +216,7 @@ static int output_markup_attrib
     else attrib_name=NULL;}
   else attrib_name=NULL;
   if (attrib_name)
-    if ((env)&&((FD_SYMBOLP(value_expr))||(FD_PAIRP(value_expr)))) {
+    if ((env)&&(FD_NEED_EVALP(value_expr))) {
       free_value=fd_eval(value_expr,env);
       attrib_val=free_value;}
     else attrib_val=value_expr;
