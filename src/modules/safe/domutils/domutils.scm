@@ -21,13 +21,17 @@
    dom/getmeta dom/getlinks
    dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
-   *block-text-tags*})
+   *block-text-tags* dom/block?
+   dom->id id->dom})
 
 (define *block-text-tags*
   (string->symbol
    '{"P"
      "LI" "DT" "BLOCKQUOTE"
      "H1" "H2" "H3" "H4" "H5" "H6"}))
+
+(define (dom/block? node)
+  (overlaps? (get node '%xmltag) *block-text-tags*))
 
 ;;; Random utilities
 
@@ -537,3 +541,14 @@
       (printout "[" attrib "]"))))
 
 (varconfig! DOMPOOL dompool use-pool)
+
+;;;; DOM IDs
+
+(define (dom->id elt)
+  (if (or (oid? elt) (string? elt)) elt
+      (try (get elt 'oid) (get elt 'id))))
+(define (id->dom id index)
+  (if (oid? id) id (find-frames index 'id id)))
+
+
+
