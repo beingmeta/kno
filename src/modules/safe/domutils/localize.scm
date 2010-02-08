@@ -52,18 +52,27 @@
 (define (dom/localize! dom base write (read) (amalgamate #f))
   (default! read write)
   (let ((urlmap (make-hashtable))
-	(amalgamate (or amalgamate {})))
+	(amalgamate (or amalgamate {}))
+	(files {}))
     (do-choices (node (dom/find dom "img"))
-      (dom/set! node 'src (localref (get node 'src) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'src) urlmap base write read (qc amalgamate))))
+	(dom/set! node 'src ref)
+	(set+! files ref)))
     (do-choices (node (dom/find dom "link"))
-      (dom/set! node 'href
-		(localref (get node 'href) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'href) urlmap base write read (qc amalgamate))))
+	(dom/set! node 'href ref)
+	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "script") 'src))
-      (dom/set! node 'src
-		(localref (get node 'src) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'src) urlmap base write read (qc amalgamate))))
+	(dom/set! node 'src ref)
+	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "a") 'href))
-      (dom/set! node 'href
-		(localref (get node 'href) urlmap base write read (qc amalgamate))))))
+      (let ((ref (localref (get node 'href) urlmap base write read (qc amalgamate))))
+	(dom/set! node 'href ref)
+	(set+! files ref)))
+    (store! dom 'manifest files)))
+
+
 
 
 
