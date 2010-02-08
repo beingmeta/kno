@@ -70,7 +70,14 @@
       (let ((ref (localref (get node 'href) urlmap base write read (qc amalgamate))))
 	(dom/set! node 'href ref)
 	(set+! files ref)))
-    (store! dom 'manifest files)))
+    (store! dom 'manifest files)
+    (let ((head (dom/find dom "head")))
+      (dom/append! head
+		   `#[%XMLTAG META %ATTRIBIDS '{NAME CONTENT}
+		      NAME "MANIFEST"
+		      CONTENT ,(stringout (do-choices (file files i)
+					    (printout (if (> i 0) ";") file)))]))))
+
 
 
 

@@ -95,7 +95,7 @@
 	  (add! node '%%attribs
 		(vector aname aname stringval))))))
 
-(define (dom/add! node attrib val (fdxml #f))
+(define (dom/add! node attrib val (sepchar ";") (fdxml #f))
   (unless (test node (if (symbol? attrib) attrib
 			 (string->lisp attrib))
 		val)
@@ -121,14 +121,14 @@
 	  (begin (drop! node '%attribs attribs)
 		 (add! node '%attribs
 		       (cons (car attribs)
-			     (string-append (cdr attribs) ";" stringval))))
+			     (string-append (cdr attribs) sepchar stringval))))
 	  (add! node '%attribs (cons aname stringval)))
       (if (exists? raw-attribs)
 	  (begin
 	    (drop! node '%%attribs raw-attribs)
 	    (add! node '%%attribs
 		  (vector (first raw-attribs) (second raw-attribs)
-			  (string-append (third raw-attribs) ";" stringval))))
+			  (string-append (third raw-attribs) sepchar stringval))))
 	  (when (test node '%%xmltag)
 	    ;; Kept raw XML info, so use it
 	    (add! node '%%attribs
