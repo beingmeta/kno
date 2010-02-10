@@ -43,6 +43,7 @@ typedef struct FD_MYSQL {
   FD_EXTDB_FIELDS;
   char *hostname, *username, *passwd;
   char *dbstring, *sockname;
+  double startup;
 #if FD_THREADS_ENABLED
   u8_mutex lock;
 #endif
@@ -181,6 +182,7 @@ static fdtype open_mysql
     u8_mkstring("%s;client %s",
 		mysql_get_host_info(db),
 		mysql_get_client_info());
+  dbp->startup=u8_elapsed_time();
 
   u8_init_mutex(&dbp->proclock);
   u8_init_mutex(&dbp->lock);
@@ -190,25 +192,31 @@ static fdtype open_mysql
 
 static int reopen_mysql(struct FD_MYSQL *c)
 {
+  double now=u8_elapsed_time();
   MYSQL *db;
+  u8_lock_mutex(&mysql_connect_lock);
+  if (now<c->startup) {
+    u8_lock_mutex(&mysql_connect_lock);
+    return 0;}
   u8_log(LOG_WARN,"reopen_mysql",
 	 "Reopening MYSQL connection to '%s' (%s)",
 	 c->spec,c->info);
   mysql_close(c->db);
-  u8_lock_mutex(&mysql_connect_lock);
   db=mysql_real_connect
     (c->db,c->hostname,c->username,c->passwd,
      c->dbstring,c->portno,c->sockname,c->flags);
-  u8_unlock_mutex(&mysql_connect_lock);
   if (db==NULL) {
     const char *errmsg=mysql_error(db);
     u8_seterr(MySQL_Error,"reopen_mysql",u8_strdup(errmsg));
+    u8_unlock_mutex(&mysql_connect_lock);
     return -1;}
   u8_lock_mutex(&(c->proclock)); {
     int i=0, n=c->n_procs;
     struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)c->procs;
     while (i<n) reinit_mysqlproc(c,procs[i++]);
+    c->startup=u8_elapsed_time();
     u8_unlock_mutex(&(c->proclock)); 
+    u8_unlock_mutex(&mysql_connect_lock);
     return 1;}
 }
 
