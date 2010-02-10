@@ -1408,15 +1408,16 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     else if (FD_ABORTP(xmlenvarg)) {
       fd_decref(xmlarg);  fd_decref(envarg);
       return xmlenvarg;}
-    if (!((FD_VOIDP(envarg)) || (FD_ENVIRONMENTP(envarg)) ||
-	  (FD_TABLEP(envarg)))) {
+    if (!((FD_VOIDP(envarg)) || (FD_FALSEP(envarg)) ||
+	  (FD_ENVIRONMENTP(envarg)) || (FD_TABLEP(envarg)))) {
       fd_decref(xmlarg); fd_decref(envarg);
       return fd_type_error("environment","xmleval_handler",envarg);}
-    else if (!((FD_VOIDP(xmlenvarg)) || (FD_ENVIRONMENTP(xmlenvarg)) ||
-	       (FD_TABLEP(xmlenvarg)))) {
+    else if (!((FD_VOIDP(xmlenvarg)) || (FD_FALSEP(xmlenvarg)) ||
+	       (FD_ENVIRONMENTP(xmlenvarg)) || (FD_TABLEP(xmlenvarg)))) {
       fd_decref(xmlarg); fd_decref(envarg);
       return fd_type_error("environment","xmleval_handler",xmlenvarg);}
-    else if ((FD_VOIDP(envarg)) && (FD_VOIDP(xmlenvarg))) {}
+    else if (((FD_VOIDP(envarg))||(FD_FALSEP(envarg))) &&
+	     ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg)))) {}
     else {
       if (FD_ENVIRONMENTP(envarg)) 
 	target_env=(fd_lispenv)envarg;
@@ -1431,11 +1432,15 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 	      if (free_target) fd_recycle_environment(target_env);
 	      return v;}
 	    else fd_decref(v);}}}
+      else if (FD_VOIDP(envarg)) {}
+      else if (FD_FALSEP(envarg)) {
+	free_target=1;
+	target_env=fd_working_environment();}
       else {
 	fd_decref(xmlarg); fd_decref(xmlenvarg);
 	return fd_type_error("environment","xmleval_handler",envarg);}
       /* Now, merge in the XML environment */
-      if (FD_VOIDP(xmlenvarg)) {}
+      if ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg))) {}
       else if (FD_ENVIRONMENTP(xmlenvarg)) 
 	fd_bind_value(xml_env_symbol,xmlenvarg,target_env);
       else if (FD_TABLEP(xmlenvarg)) {
