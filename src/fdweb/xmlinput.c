@@ -83,7 +83,7 @@ static u8_string block_elts[]=
 static int block_elementp(u8_string name)
 {
   u8_string *scan=block_elts;
-  while (scan)
+  while (*scan)
     if (strcasecmp(name,*scan)==0) return 1;
     else scan++;
   return 0;
@@ -733,7 +733,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
 	  free_node(node,1);
 	node=popped;}
       else if (((node->bits)&(FD_XML_INPARA))&&
-	       (block_elementp(node->eltname))) {
+	       (block_elementp(elts[0]))) {
 	while ((node) && ((node->bits)&(FD_XML_INPARA))) {
 	  FD_XML *popped=popfn(node);
 	  if (popped!=node) free_node(node,1);
