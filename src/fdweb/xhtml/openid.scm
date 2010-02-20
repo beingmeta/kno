@@ -1,6 +1,8 @@
 (in-module 'xhtml/openid)
 
-(use-module '{texttools fdweb domutils varconfig})
+(use-module '{texttools fdweb domutils varconfig logger})
+
+(define %loglevel %debug!)
 
 (define openid-servers (make-hashtable))
 (define-init openid/optinfo (make-hashtable))
@@ -119,11 +121,13 @@
 (define (openid/auth (openid.endpoint #f) (openid.mode #f) 
 		     (openid.identifier #f) (openid.claimed_identifier #f)
 		     (openid.identity #f))
+  (debug%watch "OPENID/AUTH" openid.endpoint openid.mode)
   (cond ((equal? openid.mode "id_res")
 	 (and (cgicall validate) (openid-return)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
-	 (doredirect (openid-redirect (or openid.identifier openid.endpoint))))
+	 (doredirect (debug%watch (openid-redirect (or openid.identifier openid.endpoint))))
+	 #f)
 	(else #f)))
 
 (define (openid-return)

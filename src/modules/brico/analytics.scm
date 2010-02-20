@@ -110,21 +110,21 @@
 ;;; We can rely on the index to compute some values more quickly and with
 ;;;  less overhead than repeated loads and references.
 
-(defambda (%getalways p) (?? @?%always p))
+(defambda (%getalways p) (?? @1/8{%always} p))
 ;; We rely on never being indexed symmetrically here.
-(define (%getnever p) (?? @?never p))
+(define (%getnever p) (?? @1/6{never} p))
 ;; We rely on never being indexed symmetrically here.
-(define (%getsometimes p) (?? @?sometimes p))
+(define (%getsometimes p) (?? @1/5{sometimes} p))
 
 ;;; ALWAYS
 
 (define (getalways p (tryhard 2))
-  (if (= tryhard 1) (get p @?always)
-      (?? @?/always p)))
+  (if (= tryhard 1) (get p @1/4{always})
+      (?? @1/8{/always} p)))
 
 (define (testalways p q) (path? p always q))
 ;; Usually faster version using the index
-(define (testalways p q) (overlaps? q (?? @?%always p)))
+(define (testalways p q) (overlaps? q (?? @1/8{/always} p)))
 
 (define (findalways q (tryhard #t)) (?? always q))
 
@@ -163,7 +163,7 @@
 			 (?? always (list p)))) 
 	  ;; case (4)
 	  (tryif (> tryhard 2)
-		 (choice (%getalways (?? @?always p))
+		 (choice (%getalways (?? @1/4{always} p))
 			 (?? always (list p))))))
 
 (define (testsometimes p q)
@@ -173,14 +173,14 @@
 	  (or (test p sometimes q)
 	      (test (%getalways p) sometimes q)
 	      (test p sometimes (%getalways q))))
-      (exists? (?? @?always p @?always q))))
+      (exists? (?? @1/4{always} p @1/4{always} q))))
 
 ;; Get nodes with common children
 (define (findsometimes q (tryhard 2))
   (choice (?? sometimes q)
-	  (tryif (> tryhard 1) (?? @?always (list q)))
+	  (tryif (> tryhard 1) (?? @1/4{always} (list q)))
 	  (tryif (> tryhard 2)
-		 (let ((narrower (?? @?always q)))
+		 (let ((narrower (?? @1/4{always} q)))
 		   (choice (?? sometimes narrower)
 			   (findalways narrower))))))
 
@@ -255,10 +255,10 @@
   (choice (get p somenot) ;; 1
 	  (tryif (> tryhard 1) (get (get p sometimes) never)) ;; 2+3+7
 	  (tryif (> tryhard 2)
-		 (?? @?always (get p somenot))) ;; 4
+		 (?? @1/4{always} (get p somenot))) ;; 4
 	  (tryif (> tryhard 2)
-		 (choice (get (?? @?always p) never)    ;; 5
-			 (get (?? @?always p) somenot))) ;; 6
+		 (choice (get (?? @1/4{always} p) never)    ;; 5
+			 (get (?? @1/4{always} p) somenot))) ;; 6
 	  ))
 
 (define (testsomenot p q)
@@ -315,14 +315,14 @@
       (get concept slotid)
       (if (test slotid 'type 'slot)
 	  (case slotid
-	    ((@?always) (getalways concept level))
-	    ((@?never) (getnever concept level))
-	    ((@?sometimes) (getsometimes concept level))
-	    ((@?somenot) (getsomenot concept level))
-	    ((@?commonly) (getcommonly concept level))
-	    ((@?rarely) (getrarely concept level))
+	    ((@1/4{always}) (getalways concept level))
+	    ((@1/6{never}) (getnever concept level))
+	    ((@1/5{sometimes}) (getsometimes concept level))
+	    ((@1/7{somenot}) (getsomenot concept level))
+	    ((@1/a{commonly}) (getcommonly concept level))
+	    ((@1/b{rarely}) (getrarely concept level))
 	    (else (get concept slotid)))
-	  (get concept (choice slotid (?? @?always slotid))))))
+	  (get concept (choice slotid (?? @1/4{always} slotid))))))
 
 (define (get++ concept slotid)
   (get+ concept slotid 3))

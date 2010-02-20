@@ -298,7 +298,7 @@
 ;;; Displaying language information for wordforms
 
 (define (get-languages-for word concepts)
-  (choice (if (test concepts 'words word) @?english {})
+  (choice (if (test concepts 'words word) @1/2c1c7"English" {})
 	  (get language-map
 	       (for-choices (translation (get concepts '%words))
 		 (if (if (string? (cdr translation))
@@ -710,11 +710,15 @@
       ;;  here so that testing doesn't show them being fetched.
       (prefetch-oids! concepts)
       (prefetch-oids!
-       (%get concepts '{hypernym @?genls @?partof
-				 @?memberof @?implies @?sumterms}))
+       (%get concepts
+	     '{HYPERNYM
+	       @1/2ab4d{SUMTERMS} @1/2c272{GENLS} @1/2c274{PART-OF}
+	       @1/2c279{MEMBER-OF} @1/2c27e{ISA}}))
       (prefetch-keys! (for-choices (language (get-languages))
 			(cons language (get concepts language))))
       (xmlout))))
+
+
 
 
 

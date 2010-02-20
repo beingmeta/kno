@@ -4,8 +4,8 @@
 (in-module 'brico/dterms)
 
 ;;; FIND-DTERM and friends try to compute dterms using the ontology
-(define revision "$Id:$")
-(define revision "$Revision:$")
+(define revision "$Id$")
+(define revision "$Revision$")
 
 (module-export!
  '{find-dterm
@@ -171,10 +171,10 @@
 	 (try-choices (gn (get-norm (get+ concept always) lang))
 	   (tryif (singleton? (probe-colon-dterm norm lang gn lang))
 		  (string-append norm ":"  gn)))
-	 (try-choices (pn (get-norm (get concept @?sometimes) lang))
+	 (try-choices (pn (get-norm (get concept @1/5{sometimes}) lang))
 	   (tryif (singleton? (probe-paren-dterm norm lang pn lang))
 		  (string-append norm " ("  pn ")")))
-	 (try-choices (pn (get-norm (get concept @?partof) lang))
+	 (try-choices (pn (get-norm (get concept @1/2c274{PART-OF}) lang))
 	   (tryif (singleton? (probe-paren-dterm norm lang pn lang))
 		  (string-append norm " ("  pn ")")))
 	 (tryif usesumterms
