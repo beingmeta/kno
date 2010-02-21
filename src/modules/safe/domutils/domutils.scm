@@ -95,13 +95,13 @@
 	  (add! node '%%attribs
 		(vector aname aname stringval))))))
 
-(define (dom/add! node attrib val (sepchar ";") (fdxml #f))
-  (unless (test node (if (symbol? attrib) attrib
-			 (string->lisp attrib))
-		val)
-    (let* ((slotid (if (symbol? attrib) attrib
-		       (string->lisp attrib)))
-	   (aname (if (symbol? attrib) (downcase (symbol->string attrib))
+(define (dom/add! node attrib val (sepchar ";") (fdxml #f) (slotid))
+  (default! slotid (if (symbol? attrib) attrib (string->lisp attrib)))
+  (unless (or (test node slotid val)
+	      (and (test node slotid) (string? (get node slotid))
+		   (textsearch `#({(bol) ,sepchar} ,val {(eol) ,sepchar})
+			       (get node slotid))))
+    (let* ((aname (if (symbol? attrib) (downcase (symbol->string attrib))
 		      attrib))
 	   (anames (if (symbol? attrib) (varycase attrib) attrib))
 	   (attribs (try (pick (get node '%attribs) first anames)
@@ -109,13 +109,17 @@
 	   (raw-attribs
 	    (try (pick (get node '%%attribs) first anames)
 		 (pick (get node '%%attribs) attrib-basename anames)))
-	   (stringval (if (and (not fdxml) (string? val)) val
-			  (unparse-arg val))))
+	   (curval (get node slotid))
+	   (stringval (string-subst (if (and (not fdxml) (string? val)) val
+					(unparse-arg val))
+				    sepchar (string-append "\\" sepchar))))
       (when (or (ambiguous? attribs) (ambiguous? raw-attribs))
 	(error "AmbiguousDOMAttribute"
 	       "DOM/SET of ambiguous attribute " attrib
 	       (choice attribs raw-attribs)))
-      (store! node slotid val)
+      (when (and (singelton? curval) (string? curval) (findsep curval sepchar))
+	(store! node slotid (elts (splitsep curval sepchar))))
+      (add! node slotid val)
       (add! node '%attribids slotid)
       (if (exists? attribs)
 	  (begin (drop! node '%attribs attribs)
@@ -130,7 +134,8 @@
 		  (vector (first raw-attribs) (second raw-attribs)
 			  (string-append (third raw-attribs) sepchar stringval))))
 	  (when (test node '%%xmltag)
-	    ;; Kept raw XML info, so use it
+	    ;; Kept raw XML info, but didn't have any raw attribs, so
+	    ;; add it explicitly
 	    (add! node '%%attribs
 		  (vector aname aname stringval)))))))
 
