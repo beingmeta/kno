@@ -5,7 +5,8 @@
 
 (use-module '{tagger texttools textindex domutils domutils/index knowlets logger})
 
-(define %loglevel %notice!) ;; %debug!
+;;(define %loglevel %debug!)
+(define %loglevel %notice!)
 
 (module-export! 'dom/analyze)
 
@@ -52,13 +53,13 @@
 	   (textnodes (if (bound? nodes) nodes (dom/find doc textelts)))
 	   (keystrings (text/analyze textnodes options)))
       (do-choices (node (pickoids textnodes))
-	(debug%watch "DOM/ANALYZE" node)
 	(let* ((keys (get keystrings node))
 	       (terms (pickstrings keys))
 	       (pairs (pick keys pair?))
 	       (fields  (if (or (overlaps? cacheslots #t)  (overlaps? cacheslots 'all))
 			    (car pairs)
 			    (intersection (car pairs) cacheslots))))
+	  (debug%watch "DOM/ANALYZE" node terms pairs)
 	  (when (or (eq? cacheslots #t) (overlaps? 'terms cacheslots))
 	    (add! node 'terms terms))
 	  (when index
