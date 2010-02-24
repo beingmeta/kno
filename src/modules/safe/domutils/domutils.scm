@@ -249,7 +249,7 @@
 	     (filter-dom-matches elt (get table (string-append "#" id)))
 	     (filter-dom-matches elt (get table (string-append (symbol->string tag) "." class)))
 	     (filter-dom-matches elt (get table (string-append "." class)))
-	     (filter-dom-matches elt (get table tag))
+	     (filter-dom-matches elt (get table (symbol->string tag)))
 	     (tryif (bound? dflt) dflt)))))
 
 (define (dom/add-rule! table selector value)
