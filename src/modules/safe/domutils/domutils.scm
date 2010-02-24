@@ -474,13 +474,17 @@
 		s)
 	      (stringout (dom/textify node #t #f skip))))))
 
-(define (dom/textual? node (lim 1))
+(define (dom/textual? node (lim #f))
   (and (test node '%content)
-       (do ((content (get node '%content) (cdr content))
-	    (len 0 (+ (if (string? (car content)) (isalphalen (car content)) 0)
-		      len)))
-	   ((or (null? content) (> len lim))
-	    (> len lim)))))
+       (if lim
+	   (do ((content (get node '%content) (cdr content))
+		(len 0 (+ (if (string? (car content))
+			      (isalphalen (car content)) 0)
+			  len)))
+	       ((or (null? content) (> len lim))
+		(> len lim)))
+	   (some? (lambda (x) (and (string? x) (not (empty-string? x))))
+		  (get node '%content)))))
 
 ;;; OIDify
 
