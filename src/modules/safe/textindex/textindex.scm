@@ -188,6 +188,7 @@
 	 (wordfns (get settings 'wordfns))
 	 (stopwords (get settings 'stopwords))
 	 (stoprules (get settings 'stoprules))
+	 (xrules (get settings 'xrules))
 	 (phrasemap (get settings 'phrasemap))
 	 (rootstrings (get settings 'rootstrings))
 	 (rootset (get settings 'rootset))
@@ -207,7 +208,7 @@
 	(let ((keys (textanalyze text
 				 stopcache rootcache
 				 wordrules wordfns
-				 stopwords stoprules
+				 stopwords stoprules xrules
 				 phrasemap rootstrings rootset
 				 rootmaps rootfns morphrules
 				 refrules options)))
