@@ -74,6 +74,7 @@ FD_EXPORT void *fd_walk_markup
    void *(*markupfn)(void *,u8_string),
    void *data);
 FD_EXPORT void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name);
+FD_EXPORT void fd_init_xml_attribs(FD_XML *node);
 FD_EXPORT int fd_parse_element
   (u8_byte **scanner,u8_byte *end,u8_byte **elts,int max_elts,int sloppy);
 FD_EXPORT fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int ishtml);

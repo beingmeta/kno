@@ -161,6 +161,13 @@ void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name)
   init_node(node,parent,name);
 }
 
+FD_EXPORT void fd_init_xml_attribs(struct FD_XML *node)
+{
+  if (FD_EMPTY_CHOICEP(node->attribs))
+    node->attribs=fd_init_slotmap(NULL,0,NULL);
+  set_elt_name(node,node->eltname);
+}
+
 static void free_nsinfo(FD_XML *node)
 {
   if (node->nsmap) {

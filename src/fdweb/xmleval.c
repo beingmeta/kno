@@ -505,22 +505,26 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 FD_EXPORT
 FD_XML *fd_xmleval_popfn(FD_XML *node)
 {
-  fdtype cutaway=fd_get((fdtype)(inherit_node_data(node)),
-			xattrib_overlay,xattrib_slotid);
-  fdtype xid=fd_get(node->attribs,cutaway,FD_VOID);
   /* Get your content */
-  if (FD_PAIRP(node->head)) 
-    fd_add(node->attribs,content_slotid,node->head);
-  /* Check if you go on the parent's attribs or in its body. */
-  if (FD_VOIDP(xid)) {
-    fd_add_content(node->parent,node->attribs);
-    node->attribs=FD_EMPTY_CHOICE;}
-  else if (FD_STRINGP(xid)) {
-    fdtype slotid=fd_parse(FD_STRING_DATA(xid));
-    fd_add(node->parent->attribs,slotid,node->attribs);
-    fd_decref(xid);}
-  else fd_add(node->parent->attribs,xid,node->attribs);
-  return node->parent;
+  if (FD_PAIRP(node->head)) {
+    if (FD_EMPTY_CHOICEP(node->attribs)) fd_init_xml_attribs(node);
+    fd_add(node->attribs,content_slotid,node->head);}
+  if (node->parent==NULL) return NULL;
+  else {
+    fdtype cutaway=fd_get((fdtype)(inherit_node_data(node)),
+			  xattrib_overlay,xattrib_slotid);
+    fdtype xid=fd_get(node->attribs,cutaway,FD_VOID);
+    
+    /* Check if you go on the parent's attribs or in its body. */
+    if (FD_VOIDP(xid)) {
+      fd_add_content(node->parent,node->attribs);
+      node->attribs=FD_EMPTY_CHOICE;}
+    else if (FD_STRINGP(xid)) {
+      fdtype slotid=fd_parse(FD_STRING_DATA(xid));
+      fd_add(node->parent->attribs,slotid,node->attribs);
+      fd_decref(xid);}
+    else fd_add(node->parent->attribs,xid,node->attribs);
+    return node->parent;}
 }
 
 /* Handling the FDXML PI */
