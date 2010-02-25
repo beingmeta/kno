@@ -3,7 +3,8 @@
 
 (in-module 'domutils/analyze)
 
-(use-module '{tagger texttools textindex domutils domutils/index knowlets logger})
+(use-module '{tagger texttools textindex domutils domutils/index
+		     knowlets logger})
 
 ;;(define %loglevel %debug!)
 (define %loglevel %notice!)
@@ -22,9 +23,9 @@
 
 (defambda (dom/analyze doc (options #[]) (nodes) (index))
   (default! index (choice (get doc 'index) (getopt options 'index {})))
-  (let* ((roots (choice (get doc 'indexroots) (getopt options 'indexroots {})))
-	 (words (choice roots (try (get doc 'indexwords) (getopt options 'indexwords {}))))
-	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
+  (let* ((roots (getopt options 'indexroots {}))
+	 (words (choice roots (getopt options 'indexwords {})))
+	 (stops (getopt options 'stopwords {}))
 	 (textelts (->selector
 		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
 	 (phrases (pick words compound?))
@@ -35,7 +36,8 @@
 	 (options
 	  `#[textopts
 	     ,(choice (getopt options 'textopts)
-		      (tryif (overlaps? (getopt options 'cacheslots) '{words refs}) 'keepraw))
+		      (tryif (overlaps? (getopt options 'cacheslots)
+					'{words refs}) 'keepraw))
 	     cacheslots ,(getopt options 'cacheslots)
 	     phrases ,phrases
 	     phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
@@ -48,7 +50,8 @@
 	     rootcache ,rootcache]))
     (debug%watch "DOM/ANALYZE" options)
     (let* ((cacheslots (choice (getopt options 'cacheslots #t)
-			       (tryif  (testopt options 'textopts 'keepraw) 'words)
+			       (tryif (testopt options 'textopts 'keepraw)
+				 'words)
 			       'terms))
 	   (textnodes (if (bound? nodes) nodes (dom/find doc textelts)))
 	   (keystrings (text/analyze textnodes options)))
@@ -56,7 +59,8 @@
 	(let* ((keys (get keystrings node))
 	       (terms (pickstrings keys))
 	       (pairs (pick keys pair?))
-	       (fields  (if (or (overlaps? cacheslots #t)  (overlaps? cacheslots 'all))
+	       (fields  (if (or (overlaps? cacheslots #t)
+				(overlaps? cacheslots 'all))
 			    (car pairs)
 			    (intersection (car pairs) cacheslots))))
 	  (debug%watch "DOM/ANALYZE" node terms pairs)
@@ -72,6 +76,8 @@
 	  (do-choices (field fields)
 	    (add! node field (get pairs field)))))
       keystrings)))
+
+
 
 
 

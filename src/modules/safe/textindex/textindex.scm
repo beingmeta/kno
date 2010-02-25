@@ -26,7 +26,7 @@
 
 (defambda (textanalyze text
 		       stopcache rootcache
-		       wordrules wordfns stopwords stoprules
+		       wordrules wordfns stopwords stoprules xrules
 		       phrasemap rootstrings
 		       rootset rootmaps rootfns morphrules
 		       refrules
@@ -47,12 +47,15 @@
 			     (getroot word rootcache
 				      rootstrings rootset
 				      rootmaps rootfns morphrules)))))
+	   (xtracts (text->frames xrules text))
 	   (xwords (choice (wordfns rootv text)
+			   (get xtracts 'word)
 			   (textsubst (gather (qc wordrules) text)
 				      (qc wordrules))))
 	   (words (filter-choices (word xwords)
 		    (not (try (get stopcache word) 
-			      (stopcheck word stopcache stopwords stoprules)))))
+			      (stopcheck word stopcache stopwords
+					 stoprules)))))
 	   (roots (for-choices (word words)
 		    (try (get rootcache word)
 			 (getroot word rootcache
@@ -61,31 +64,34 @@
 	   (xrefs (getrefs text refrules stopv))
 	   (refs  (filter-choices (word xrefs)
 		    (not (try (get stopcache word)
-			      (stopcheck word stopcache stopwords stoprules)))))
-	   (refroots (for-choices (ref refs)
-		       (try (getroot ref rootcache
-				     rootstrings rootset rootmaps
-				     rootfns morphrules)
-			    ref)))
+			      (stopcheck word stopcache stopwords
+					 stoprules)))))
+	   (refroots  (for-choices (ref refs)
+			(try (getroot ref rootcache
+				      rootstrings rootset rootmaps
+				      rootfns morphrules)
+			     ref)))
 	   (results (choice roots refroots)))
       ;; (%watch "TEXTANALYZE" text rootv stopv)
       ;; (%watch "TEXTANALYZE" xwords words roots xrefs refs refroots)
       (doseq (root rootv i)
 	;; (%watch "CHECKROOT" root i (choice-size (get phrasemap root)))
-	(unless (or (elt stopv i) (capitalized? root))
-	  ;; Reject stop words and leave capitals to getrefs
-	  (set+! results root))
+	(unless  (elt stopv i)
+	  ;; Reject stop words and don't root capitalized words
+	  (if (capitalized? root)
+	      (set+! results (elt wordv i))
+	      (set+! results root)))
 	(do-choices (phrase (get phrasemap root))
 	  ;; (%watch "CHECKPHRASE" phrase root)
 	  (when (search phrase rootv)
 	    ;; Since this is operating over the rootv, we don't
 	    ;; need to get the root of the phrase (in English at least)
 	    (set+! results (seq->phrase phrase)))))
-      (choice results
-	      (tryif (overlaps? options 'keepraw)
-		(choice
-		 (cons 'refs (qc refs))
-		 (cons 'words (qchoice xwords (elts wordv)))))))))
+    (choice results
+	    (tryif (overlaps? options 'keepraw)
+	      (choice
+	       (cons 'refs (qc refs))
+	       (cons 'words (qchoice xwords (elts wordv)))))))))
 
 (defambda (stopcheck word cache stopwords stoprules)
   (let ((result (or (get stopwords word)
@@ -143,6 +149,7 @@
 	       (get settings 'wordfns)
 	       (get settings 'stopwords)
 	       (get settings 'stoprules)
+	       (get settings 'xrules)
 	       (get settings 'phrasemap)
 	       (get settings 'rootstrings)
 	       (get settings 'rootset)
@@ -426,8 +433,7 @@
       (capword))
     #((capword) (spaces)
       (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    (capword)})
+      (capword))})
 
 (define solename
   #[PATTERN
