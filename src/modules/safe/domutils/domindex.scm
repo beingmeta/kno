@@ -55,12 +55,14 @@
 		 (indexval (try (get xml '%oid)
 				(if idmap (get xml 'id) xml)))
 		 (eltinfo (dom/lookup indexrules xml))
-		 (slots (intersection
-			 (choice (pick indexslots symbol?)
-				 (car (pick indexslots pair?))
-				 (pick eltinfo symbol?)
-				 (car (pick eltinfo pair?)))
-			 (getkeys xml)))
+		 (slots (choice
+			 (intersection
+			  (choice (pick indexslots symbol?)
+				  (car (pick indexslots pair?))
+				  (pick eltinfo symbol?)
+				  (car (pick eltinfo pair?)))
+			  (getkeys xml))
+			 (get xml '%attribids)))
 		 (rules (pick (choice (pick indexslots pair?)
 				      (pick eltinfo pair?))
 			      slots)))
@@ -68,6 +70,7 @@
 	    (when idmap (add! idmap (get xml 'id) xml))
 	    (add! index (cons 'has slots) indexval)
 	    (when (exists? indexval)
+	      (add! index (cons '%doc doc) indexval)
 	      (do-choices (slotid slots)
 		(add! index
 		      (if (test rules slotid)
@@ -89,6 +92,8 @@
 			     indexslots cacheslots
 			     indexrules analyzers idmap
 			     settings doc))))))))
+
+
 
 
 

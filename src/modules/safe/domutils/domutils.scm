@@ -117,7 +117,7 @@
 	(error "AmbiguousDOMAttribute"
 	       "DOM/SET of ambiguous attribute " attrib
 	       (choice attribs raw-attribs)))
-      (when (and (singelton? curval) (string? curval) (findsep curval sepchar))
+      (when (and (singleton? curval) (string? curval) (findsep curval sepchar))
 	(store! node slotid (elts (splitsep curval sepchar))))
       (add! node slotid val)
       (add! node '%attribids slotid)
@@ -289,15 +289,45 @@
 		   {}))
 	     #f)))))
 
+;;; Finding using the index
+
+(defambda (dom-index-find index sel)
+  (cond ((and (selector-tag sel) (selector-class sel) (selector-id sel))
+	 (find-frames index
+	   '%xmltag (selector-tag sel)
+	   'class (selector-class sel)
+	   'id (selector-id sel)))
+	((and (selector-tag sel) (selector-class sel))
+	 (find-frames index
+	   '%xmltag (selector-tag sel)
+	   'class (selector-class sel)))
+	((and (selector-tag sel) (selector-id sel))
+	 (find-frames index
+	   '%xmltag (selector-tag sel)
+	   'id (selector-id sel)))
+	((and (selector-class sel) (selector-id sel))
+	 (find-frames index
+	   'class (selector-class sel)
+	   'id (selector-id sel)))
+	((selector-id sel) (find-frames index 'id (selector-id sel)))
+	((selector-class sel)
+	 (find-frames index 'class (selector-class sel)))
+	((selector-tag sel)
+	 (find-frames index '%xmltag (selector-tag sel)))
+	(else (fail))))
+
 ;;; Searching
 
 (defambda (dom/find under sel (findall #t))
   "Finds all nodes matching SEL under UNDER, if FINDALL is true, \
    look under matching nodes for other matching nodes."
-  (unless (exists? (pickstrings sel)) (set! sel (->selector sel)))
+  (when (exists? (pickstrings sel)) (set! sel (->selector sel)))
   (cond ((string? under) (fail))
 	((ambiguous? under)
 	 (for-choices under (dom/find under sel)))
+	((exists? (try (get under 'index) (get (get under '%doc) 'index)))
+	 (let ((index (try (get under 'index) (get (get under '%doc) 'index))))
+	   (for-choices index (for-choices sel (dom-index-find index sel)))))
 	((pair? under)
 	 (for-choices (elt (elts under)) (dom/find elt sel findall)))
 	((and (table? under) (dom/match under sel))
@@ -490,7 +520,7 @@
 
 (define dompool #f)
 
-(define (dom/oidify node (pool dompool))
+(define (dom/oidify node (pool dompool) (doc #f))
   (if (not pool) node
       (if (or (oid? node) (immediate? node) (number? node) (string? node))
 	  node
@@ -500,9 +530,11 @@
 			 (slotids (getkeys node)))
 		     (store! oid '%oid oid)
 		     (store! node '%oid oid)
+		     (when doc (store! oid '%doc doc))
 		     (when (test node '%content)
 		       (store! oid '%content
-			       (forseq (elt (get node '%content)) (dom/oidify elt pool))))
+			       (forseq (elt (get node '%content))
+				 (dom/oidify elt pool (or doc oid)))))
 		     (do-choices (slotid (difference slotids '%content))
 		       (store! oid slotid (%get node slotid)))
 		     (unless (test oid '%id) (store! oid '%id (dom/nodeid oid)))
