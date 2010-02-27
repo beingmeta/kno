@@ -1,6 +1,6 @@
 (in-module 'xhtml/openid)
 
-(use-module '{texttools fdweb domutils varconfig logger})
+(use-module '{texttools fdweb xhtml xhtml/clickit domutils varconfig logger})
 
 (define %loglevel %debug!)
 
@@ -71,7 +71,7 @@
   (let ((parsed (parseuri uri)))
     (stringout (get parsed 'scheme) "://" (get parsed 'hostname) "/")))
 
-(define (guess-callback) (cgiget 'callback (cgiget 'script_uri)))
+(define (guess-callback) (cgiget 'callback (geturl)))
 
 (define (openid-redirect url (opts #f))
   (let* ((server (if (pair? url) url (get-openid-server url)))
