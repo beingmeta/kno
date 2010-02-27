@@ -1176,6 +1176,18 @@ static fdtype caar(fdtype x)
     return fd_incref(FD_CAR(FD_CAR(x)));
   else return fd_err(fd_RangeError,"CAAR",NULL,x);
 }
+static fdtype caddr(fdtype x)
+{
+  if ((FD_PAIRP(FD_CDR(x)))&&(FD_PAIRP(FD_CDR(FD_CDR(x)))))
+    return fd_incref(FD_CAR(FD_CDR(FD_CDR(x))));
+  else return fd_err(fd_RangeError,"CADR",NULL,x);
+}
+static fdtype cdddr(fdtype x)
+{
+  if ((FD_PAIRP(FD_CDR(x)))&&(FD_PAIRP(FD_CDR(FD_CDR(x)))))
+    return fd_incref(FD_CDR(FD_CDR(FD_CDR(x))));
+  else return fd_err(fd_RangeError,"CADR",NULL,x);
+}
 
 static fdtype cons_star(int n,fdtype *args)
 {
@@ -1549,6 +1561,20 @@ static fdtype rsortvec_prim(fdtype vec,fdtype keyfn)
   return sortvec_primfn(vec,keyfn,1,0);
 }
 
+/* RECONS reconstitutes CONSes, returning the original if
+   nothing has changed. This is handy for some recursive list
+   functions. */
+
+static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
+{
+  if ((FD_EQ(car,FD_CAR(orig)))&&(FD_EQ(cdr,FD_CDR(orig))))
+    return fd_incref(orig);
+  else {
+    fdtype cons=fd_init_pair(NULL,car,cdr);
+    fd_incref(car); fd_incref(cdr);
+    return cons;}
+}
+
 /* side effecting operations (not threadsafe) */
 
 static fdtype set_car(fdtype pair,fdtype val)
@@ -1711,6 +1737,11 @@ FD_EXPORT void fd_init_sequences_c()
 	   fd_make_cprim1x("CAAR",caar,1,fd_pair_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("CDAR",cdar,1,fd_pair_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("CADDR",caddr,1,fd_pair_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("CDDDR",cdddr,1,fd_pair_type,FD_VOID));
+
 
   /* Assoc functions */
   fd_idefn(fd_scheme_module,fd_make_cprim2("ASSQ",assq_prim,2));
@@ -1767,6 +1798,11 @@ FD_EXPORT void fd_init_sequences_c()
 	   fd_make_cprim2x("RSORTVEC",rsortvec_prim,1,
 			   fd_vector_type,FD_VOID,
 			   -1,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("RECONS",recons_prim,3,
+			   -1,FD_VOID,-1,FD_VOID,
+			   fd_pair_type,FD_VOID));
 
   /* Note that these are not threadsafe */
   fd_idefn(fd_scheme_module,
