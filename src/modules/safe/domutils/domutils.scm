@@ -117,8 +117,9 @@
 	(error "AmbiguousDOMAttribute"
 	       "DOM/SET of ambiguous attribute " attrib
 	       (choice attribs raw-attribs)))
-      (when (and (singleton? curval) (string? curval) (findsep curval sepchar))
-	(store! node slotid (elts (splitsep curval sepchar))))
+      (when (and (singleton? curval) (string? curval)
+		 (findsep curval (elt sepchar 0)))
+	(store! node slotid (elts (splitsep curval (elt sepchar 0)))))
       (add! node slotid val)
       (add! node '%attribids slotid)
       (if (exists? attribs)
@@ -520,32 +521,41 @@
 
 (define dompool #f)
 
-(define (dom/oidify node (pool dompool) (doc #f))
+(define (dom/oidify node (pool dompool) (doc #f) (parent #f) (mapfn #f))
+  (if (eq? pool #t) (set! pool dompool))
   (if (not pool) node
       (if (or (oid? node) (immediate? node) (number? node) (string? node))
 	  node
 	  (if (slotmap? node)
 	      (try (get node '%oid)
-		   (let ((oid (frame-create pool))
-			 (slotids (getkeys node)))
+		   (let* ((node (if mapfn (mapfn node) node))
+			  (oid (frame-create pool))
+			  (slotids (getkeys node)))
+		     (when parent (store! oid '%parent parent))
 		     (store! oid '%oid oid)
 		     (store! node '%oid oid)
 		     (when doc (store! oid '%doc doc))
 		     (when (test node '%content)
 		       (store! oid '%content
-			       (forseq (elt (get node '%content))
-				 (dom/oidify elt pool (or doc oid)))))
+			       (forseq (elt (if mapfn
+						(mapfn (get node '%content))
+						(get node '%content)))
+				 (dom/oidify elt pool (or doc oid) oid mapfn))))
 		     (do-choices (slotid (difference slotids '%content))
 		       (store! oid slotid (%get node slotid)))
 		     (unless (test oid '%id) (store! oid '%id (dom/nodeid oid)))
 		     oid))
 	      (if (pair? node)
 		  (if (proper-list? node)
-		      (forseq (elt node) (dom/oidify elt pool))
-		      (cons (qc (dom/oidify (car node) pool))
-			    (qc (dom/oidify (cdr node) pool))))
+		      (forseq (elt (if mapfn
+				       (mapfn (get node '%content))
+				       (get node '%content)))
+			(dom/oidify elt pool doc parent mapfn))
+		      (cons (qc (dom/oidify (car node) pool doc parent mapfn))
+			    (qc (dom/oidify (cdr node) pool doc parent mapfn))))
 		  (if (vector? node)
-		      (forseq (elt node) (dom/oidify elt pool))
+		      (forseq (elt node)
+			(dom/oidify elt pool doc parent mapfn))
 		      node))))))
 
 ;; This returns a hashtable containing the OID value mappings for an
