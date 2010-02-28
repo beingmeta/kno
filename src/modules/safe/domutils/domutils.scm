@@ -521,15 +521,14 @@
 
 (define dompool #f)
 
-(define (dom/oidify node (pool dompool) (doc #f) (parent #f) (mapfn #f))
+(define (dom/oidify node (pool dompool) (doc #f) (parent #f))
   (if (eq? pool #t) (set! pool dompool))
   (if (not pool) node
       (if (or (oid? node) (immediate? node) (number? node) (string? node))
 	  node
 	  (if (slotmap? node)
 	      (try (get node '%oid)
-		   (let* ((node (if mapfn (mapfn node) node))
-			  (oid (frame-create pool))
+		   (let* ((oid (frame-create pool))
 			  (slotids (getkeys node)))
 		     (when parent (store! oid '%parent parent))
 		     (store! oid '%oid oid)
@@ -537,25 +536,20 @@
 		     (when doc (store! oid '%doc doc))
 		     (when (test node '%content)
 		       (store! oid '%content
-			       (forseq (elt (if mapfn
-						(mapfn (get node '%content))
-						(get node '%content)))
-				 (dom/oidify elt pool (or doc oid) oid mapfn))))
+			       (forseq (elt (get node '%content))
+				 (dom/oidify elt pool (or doc oid) oid))))
 		     (do-choices (slotid (difference slotids '%content))
 		       (store! oid slotid (%get node slotid)))
 		     (unless (test oid '%id) (store! oid '%id (dom/nodeid oid)))
 		     oid))
 	      (if (pair? node)
 		  (if (proper-list? node)
-		      (forseq (elt (if mapfn
-				       (mapfn (get node '%content))
-				       (get node '%content)))
-			(dom/oidify elt pool doc parent mapfn))
-		      (cons (qc (dom/oidify (car node) pool doc parent mapfn))
-			    (qc (dom/oidify (cdr node) pool doc parent mapfn))))
+		      (forseq (elt (get node '%content))
+			(dom/oidify elt pool doc parent))
+		      (cons (qc (dom/oidify (car node) pool doc parent))
+			    (qc (dom/oidify (cdr node) pool doc parent))))
 		  (if (vector? node)
-		      (forseq (elt node)
-			(dom/oidify elt pool doc parent mapfn))
+		      (forseq (elt node) (dom/oidify elt pool doc parent))
 		      node))))))
 
 ;; This returns a hashtable containing the OID value mappings for an
