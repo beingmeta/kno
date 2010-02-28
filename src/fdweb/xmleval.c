@@ -27,6 +27,8 @@ static char versionid[] =
 
 fd_lispenv fdxml_module;
 
+int fd_cache_markup=1;
+
 static fdtype xmleval_tag, xmleval2expr_tag;
 static fdtype rawname_slotid, raw_attribs, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
@@ -127,9 +129,11 @@ static int output_markup_sym(u8_output out,fdtype sym)
 
 static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 {
-  U8_OUTPUT out; int cache_result=1;
-  fdtype cached=fd_get(xml,raw_markup,FD_VOID);
-  if (!(FD_VOIDP(cached))) return cached;
+  U8_OUTPUT out; int cache_result=fd_cache_markup;
+  fdtype cached;
+  if (fd_cache_markup) {
+    cached=fd_get(xml,raw_markup,FD_VOID);
+    if (!(FD_VOIDP(cached))) return cached;}
   U8_INIT_OUTPUT(&out,32);
   if (fd_test(xml,rawname_slotid,FD_VOID)) {
     fdtype rawname=fd_get(xml,rawname_slotid,FD_VOID);
@@ -1371,6 +1375,10 @@ FD_EXPORT void fd_init_xmleval_c()
   xmlarg_symbol=fd_intern("%XMLARG");
   doseq_symbol=fd_intern("DOSEQ");
   fdxml_define_body=fd_make_list(2,fd_intern("XMLEVAL"),xmlarg_symbol);
+
+  fd_register_config
+    ("CACHEMARKUP",_("Whether to cache markup generated from unparsing XML"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_cache_markup);
 
   fd_register_source_file(versionid);
 }
