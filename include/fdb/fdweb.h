@@ -134,6 +134,8 @@ FD_EXPORT int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata);
 FD_EXPORT int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata);
 FD_EXPORT void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata);
 
+FD_EXPORT int fd_cache_markup;
+
 /* URI parsing stuff */
 
 FD_EXPORT fdtype fd_parse_uri(u8_string uri,fdtype base);
