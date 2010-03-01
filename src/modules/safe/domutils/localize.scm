@@ -12,6 +12,7 @@
 (define %loglevel %notice!)
 
 (module-export! '{dom/localize!})
+(module-export! '{dom/getmanifest dom/textmanifest dom/datamanifest})
 
 (define (chkdir filename)
   (if (file-directory? (dirname filename))
@@ -71,15 +72,38 @@
 	(dom/set! node 'href ref)
 	(set+! files ref)))
     (store! dom 'manifest files)
-    (store! dom 'resources write)
-    (let ((head (dom/find dom "head")))
-      (dom/append! head
-		   `#[%XMLTAG META %ATTRIBIDS '{NAME CONTENT}
-		      NAME "MANIFEST"
-		      CONTENT ,(stringout (do-choices (file files i)
-					    (printout (if (> i 0) ";") file)))])
-      (dom/append! head
-		   `#[%XMLTAG META %ATTRIBIDS '{NAME CONTENT}
-		      NAME "RESOURCES" CONTENT ,write]))))
+    (store! dom 'resources write)))
 
+;;;; Manifests
 
+(define (dom/getmanifest doc)
+  (choice (for-choices (link (dom/find doc "LINK"))
+	    (tryif (or (test link 'rel "css") (test link 'rel "knowlet"))
+	      (get link 'href)))
+	  (get (dom/find doc "SCRIPT") 'src)
+	  (get (dom/find doc "IMG") 'src)))
+
+(defambda (dom/textmanifest node (staticrefs {}) (dynamicrefs {}))
+  "Generates a text manifest for a document, with additional static or dynamic refs"
+  (let* ((urls (dom/getmanifest node))
+	 (static (reject urls string-contains? "?"))
+	 (dynamic (pick urls string-contains? "?"))
+	 (given (choice staticrefs dynamicrefs)))
+    (stringout "CACHE MANIFEST\n"
+	       (do-choices (url (choice staticrefs (difference static given)))
+		 (lineout url))
+	       (when (or (exists? dynamic) (exists? dynamicrefs))
+		 (lineout "NETWORK:")
+		 (do-choices (url (choice dynamicrefs (difference dynamic given)))
+		   (lineout url))))))
+
+(defambda (dom/datamanifest node (staticrefs {}) (dynamicrefs {}))
+  "Generates a data: URI containing a manifest.  Unfortunately, this \
+   doesn't seem to work in the browsers I've tested, for all it's \
+   cleverness."
+  (let* ((manifest (dom/textmanifest node staticrefs dynamicrefs))
+	 (packet (string->packet manifest))
+	 (base64 (packet->base64 packet)))
+    (string-append
+     "data:text/cache-manifest;charset=\"utf-8\";base64,"
+     base64)))
