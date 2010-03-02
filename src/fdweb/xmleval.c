@@ -140,10 +140,10 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
     fdtype rawattribs=fd_get(xml,raw_attribs,FD_EMPTY_CHOICE);
     if (FD_ABORTP(rawname)) return rawname;
     else if (FD_ABORTP(rawattribs)) {
-      fd_decref(rawname);
+      fd_decref(rawname); u8_free(out.u8_outbuf);
       return rawattribs;}
     else if (rawname==pblank_symbol) {
-      fd_decref(rawattribs);
+      fd_decref(rawattribs); u8_free(out.u8_outbuf);
       return rawname;}
     else if (!(FD_STRINGP(rawname))) {
       fd_decref(rawname); u8_free(out.u8_outbuf);
@@ -157,7 +157,6 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  fdtype val=FD_VECTOR_REF(attrib,2);
 	  int retcode;
 	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
-	  retcode=output_attribval(&out,val,env,0);
 	  if (retcode<0) {
 	    fd_decref(rawname); fd_decref(rawattribs);
 	    u8_free(out.u8_outbuf);
@@ -165,14 +164,37 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  else if (retcode==0) cache_result=0;
 	  else {}
 	  u8_putc(&out,'\'');}}}
-    cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-    if (cache_result) fd_store(xml,raw_markup,cached);
-    return cached;}
+    fd_decref(rawname); fd_decref(rawattribs);}
+  else if ((fd_test(xml,elt_name,FD_VOID))&&
+	   (fd_test(xml,attribs_slotid,FD_VOID))) {
+    fdtype name=fd_get(xml,elt_name,FD_VOID);
+    fdtype attribs=fd_get(xml,attribs_slotid,FD_EMPTY_CHOICE);
+    if (name==pblank_symbol) {
+      fd_decref(attribs); u8_free(out.u8_outbuf);
+      return name;}
+    else output_markup_sym(&out,name);
+    {FD_DO_CHOICES(attrib,attribs) {
+	u8_string name=NULL; u8_string value;
+	if (FD_PAIRP(attrib)) {
+	  name=FD_STRDATA(FD_CAR(attrib));
+	  value=FD_STRDATA(FD_CDR(attrib));}
+	else if (FD_VECTORP(attrib)) {
+	  name=FD_STRDATA(FD_VECTOR_REF(attrib,0));
+	  value=FD_STRDATA(FD_VECTOR_REF(attrib,2));}
+	else {}
+	if (name) {
+	  u8_string qbrace=strchr(name,'}');
+	  if (qbrace)
+	    u8_printf(&out," %s='",qbrace+1);
+	  else u8_printf(&out," %s='",name);
+	  fd_attrib_entify(&out,value);
+	  u8_putc(&out,'\'');}}}
+    fd_decref(attribs); fd_decref(name);}
   else if (fd_test(xml,elt_name,FD_VOID)) {
     fdtype name=fd_get(xml,elt_name,FD_VOID);
     fdtype attribnames=fd_get(xml,attribids,FD_EMPTY_CHOICE);
     if (name==pblank_symbol) {
-      fd_decref(attribnames);
+      fd_decref(attribnames); u8_free(out.u8_outbuf);
       return name;}
     else output_markup_sym(&out,name);
     {FD_DO_CHOICES(attribname,attribnames) {
@@ -187,11 +209,11 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	    return FD_ERROR_VALUE;}
 	  else if (retcode==0) cache_result=0;
 	  else {}
-	  u8_putc(&out,'\'');}}}
-    cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-    if (cache_result) fd_store(xml,raw_markup,cached);
-    return cached;}
+	  u8_putc(&out,'\'');}}}}
   else return fd_type_error("XML node","get_markup_string",xml);
+  cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  if (cache_result) fd_store(xml,raw_markup,cached);
+  return cached;
 }
 
 FD_EXPORT

@@ -599,6 +599,7 @@ static fdtype has_suffix(fdtype string,fdtype suffix)
       return FD_TRUE;
     else return FD_FALSE;}
 }
+static fdtype is_suffix(fdtype suffix,fdtype string) { return has_suffix(string,suffix); }
 
 static fdtype has_prefix(fdtype string,fdtype prefix)
 {
@@ -612,6 +613,7 @@ static fdtype has_prefix(fdtype string,fdtype prefix)
       return FD_TRUE;
     else return FD_FALSE;}
 }
+static fdtype is_prefix(fdtype prefix,fdtype string) { return has_prefix(string,prefix); }
 
 /* Conversion */
 
@@ -917,7 +919,15 @@ FD_EXPORT void fd_init_strings_c()
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("IS-PREFIX",is_prefix,2,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("HAS-SUFFIX",has_suffix,2,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("IS-SUFFIX",is_suffix,2,
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
 
