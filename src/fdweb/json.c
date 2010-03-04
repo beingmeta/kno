@@ -49,7 +49,7 @@ static fdtype json_atom(U8_INPUT *in,int flags);
 
 static fdtype json_parse(U8_INPUT *in,int flags)
 {
-  int c=skip_whitespace(in);
+  int c=skip_whitespace(in); fdtype v;
   if (c=='[') return json_vector(in,flags);
   else if (c=='{') return json_table(in,flags);
   else if (c=='"') return json_string(in,flags);
@@ -123,7 +123,7 @@ static fdtype json_table(U8_INPUT *in,int flags)
     else {
       if (n_elts==max_elts)  {
 	int new_max=max_elts*2;
-	struct FD_KEYVAL *newelts=u8_realloc(kv,sizeof(fdtype)*new_max);
+	struct FD_KEYVAL *newelts=u8_realloc(kv,sizeof(struct FD_KEYVAL)*new_max);
 	if (newelts) {kv=newelts; max_elts=new_max;}
 	else {
 	  u8_seterr(fd_MallocFailed,"json_table",NULL);

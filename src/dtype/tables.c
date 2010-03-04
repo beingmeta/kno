@@ -295,7 +295,9 @@ FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
   /* Otherwise, copy the keys into a choice vector. */
   result=fd_alloc_choice(size);
   write=(fdtype *)FD_XCHOICE_DATA(result);
-  while (scan < limit) *write++=(scan++)->key;
+  while (scan < limit) {
+    fdtype key=(scan++)->key; fd_incref(key);
+    *write++=key;}
   fd_rw_unlock(&sm->rwlock);
   /* Note that we can assume that the choice is sorted because the keys are. */
   return fd_init_choice(result,size,NULL,FD_CHOICE_ISATOMIC|FD_CHOICE_REALLOC);
