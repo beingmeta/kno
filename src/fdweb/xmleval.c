@@ -174,20 +174,28 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       return name;}
     else output_markup_sym(&out,name);
     {FD_DO_CHOICES(attrib,attribs) {
-	u8_string name=NULL; u8_string value;
+	u8_string name=NULL; fdtype value;
 	if (FD_PAIRP(attrib)) {
 	  name=FD_STRDATA(FD_CAR(attrib));
-	  value=FD_STRDATA(FD_CDR(attrib));}
+	  value=FD_CDR(attrib);}
 	else if (FD_VECTORP(attrib)) {
 	  name=FD_STRDATA(FD_VECTOR_REF(attrib,0));
-	  value=FD_STRDATA(FD_VECTOR_REF(attrib,2));}
+	  value=FD_VECTOR_REF(attrib,2);}
 	else {}
 	if (name) {
 	  u8_string qbrace=strchr(name,'}');
 	  if (qbrace)
 	    u8_printf(&out," %s='",qbrace+1);
 	  else u8_printf(&out," %s='",name);
-	  fd_attrib_entify(&out,value);
+	  if (FD_STRINGP(value))
+	    fd_attrib_entify(&out,FD_STRDATA(value));
+	  else if (FD_FIXNUMP(value))
+	    u8_printf(&out,"%d",FD_FIX2INT(value));
+	  else {
+	    struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
+	    fd_unparse(&subout,value);
+	    u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
+	    u8_free(subout.u8_outbuf);}
 	  u8_putc(&out,'\'');}}}
     fd_decref(attribs); fd_decref(name);}
   else if (fd_test(xml,elt_name,FD_VOID)) {
