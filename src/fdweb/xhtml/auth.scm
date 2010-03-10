@@ -69,10 +69,14 @@
 (varconfig! auth:refresh auth-refresh)
 
 ;; Cookie parameters
-(define auth-cookie-expires #f) ;; if #f, use a session cookie
+
+;; The max duration of cookies, if #f, use session cookies, if #t, use
+;; the authentication expiration
+(define auth-cookie-expires #t)
 (define auth-cookie-domain #f)
 (define auth-cookie-path "/")
 (define auth-secure #f)
+(varconfig! auth:cookie auth-cookie-expires)
 (varconfig! auth:domain auth-cookie-domain)
 (varconfig! auth:sitepath auth-cookie-path)
 (varconfig! auth:secure auth-secure)
@@ -143,7 +147,11 @@
 	 (cgiset! authid auth)
 	 (set-cookie! authid authstring
 		      auth-cookie-domain auth-cookie-path
-		      (if auth-cookie-expires (timestamp+ auth-cookie-expires) #f)
+		      (if auth-cookie-expires
+			  (if (number? auth-cookie-expires)
+			      (timestamp+ (min duration auth-cookie-expires))
+			      (timestamp+ duration))
+			  #f)
 		      auth-secure)
 	 (info%watch "AUTH/IDENTIFY!" identity auth authstring)
 	 identity)))
@@ -162,7 +170,11 @@
 	(cgiset! authid auth)
 	(set-cookie! authid (auth->string auth)
 		     auth-cookie-domain auth-cookie-path
-		     (if auth-cookie-expires (timestamp+ auth-cookie-expires) #f)
+		     (if auth-cookie-expires
+			 (if (number? auth-cookie-expires)
+			     (timestamp+ (min duration auth-cookie-expires))
+			     (timestamp+ duration))
+			 #f)
 		     auth-secure)
 	(blacklist! (auth->string auth))
 	auth)
