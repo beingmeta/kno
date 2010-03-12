@@ -13,7 +13,7 @@
 (module-export!
  '{kno/read-plaintext
    kno/write-plaintext
-   kno/plaintext
+   kno/plaintext kno/plaintext/escape
    knowlet->file file->knowlet})
 
 (module-export! '{escaped-segment escaped-find})
@@ -242,6 +242,11 @@
 
 (define (escape-string string)
   (string-subst (string-subst (stdspace string) ";" "\\;") "|" "\\|"))
+(define (kno/plaintext/escape string (clause #f))
+  (if (and clause (char-punctuation? (first string)))
+      (stringout  "\\" (subseq string 0 1)
+		  (escape-string (subseq string 1)))
+      (escape-string string)))
 
 (define (output-value value (knowlet default-knowlet))
   (if (oid? value)

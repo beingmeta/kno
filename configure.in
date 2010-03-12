@@ -515,6 +515,19 @@ if (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
   INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
+AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
+if (test "x$have_regex_h" = "xyes"); then
+  AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
+fi
+if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xno"); then
+  AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
+fi
+if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
+  CMODULES="lib/framerd/regex.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
+fi
+
+
 dnl When available, use the thread-optimized tcmalloc functions from
 dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
