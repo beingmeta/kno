@@ -21,3 +21,11 @@ static char versionid[] =
 #include <sys/types.h>
 #include <zip.h>
 
+typedef struct FD_ZIPFILE {
+  FD_CONS_HEADER;
+  u8_string src; int flags;
+  u8_mutex lock; int active;
+  struct zip *zip;} FD_ZIPFILE;
+typedef struct FD_ZIPFILE *fd_zipfile;
+
+
