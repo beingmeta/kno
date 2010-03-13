@@ -6455,6 +6455,107 @@ if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
   INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
 fi
 
+ac_fn_c_check_header_mongrel "$LINENO" "zip.h" "ac_cv_header_zip_h" "$ac_includes_default"
+if test "x$ac_cv_header_zip_h" = x""yes; then :
+  have_zip_h="yes"
+else
+  have_zip_h="no"
+fi
+
+
+if (test "x$have_zip_h" = "xyes"); then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
+$as_echo_n "checking for zip_add in -lzip... " >&6; }
+if test "${ac_cv_lib_zip_zip_add+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzip  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char zip_add ();
+int
+main ()
+{
+return zip_add ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zip_zip_add=yes
+else
+  ac_cv_lib_zip_zip_add=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
+$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
+if test "x$ac_cv_lib_zip_zip_add" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZIP 1
+_ACEOF
+
+  LIBS="-lzip $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
+$as_echo_n "checking for zip_add in -lzip... " >&6; }
+if test "${ac_cv_lib_zip_zip_add+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzip  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char zip_add ();
+int
+main ()
+{
+return zip_add ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zip_zip_add=yes
+else
+  ac_cv_lib_zip_zip_add=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
+$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
+if test "x$ac_cv_lib_zip_zip_add" = x""yes; then :
+  have_libzip="yes"
+else
+  have_libzip="no"
+fi
+
+fi
+if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
+  CMODULES="lib/framerd/zippity.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-zippity ${INSTALLCMODULES}"
+fi
 
 
 # Check whether --with-tcmalloc was given.

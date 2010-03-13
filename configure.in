@@ -527,6 +527,15 @@ if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
   INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
 fi
 
+AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
+if (test "x$have_zip_h" = "xyes"); then
+  AC_CHECK_LIB(zip,zip_add)
+  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
+fi
+if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
+  CMODULES="lib/framerd/zippity.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-zippity ${INSTALLCMODULES}"
+fi
 
 dnl When available, use the thread-optimized tcmalloc functions from
 dnl   Google perftools

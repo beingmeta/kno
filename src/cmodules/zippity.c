@@ -251,51 +251,78 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype stringp)
     return ziperr("zipget_prim/fopen",zf,filename);}
 }
 
+static fdtype zipgetfiles_prim(fdtype zipfile)
+{
+  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  u8_lock_mutex(&(zf->lock));
+  if (zf->closed) {
+    fdtype errval=zipreopen(zf,1);
+    if (FD_ABORTP(errval)) {
+      u8_unlock_mutex(&(zf->lock));
+      return errval;}}
+  {
+    fdtype files=FD_EMPTY_CHOICE;
+    int numfiles=zip_get_num_files(zf->zip);
+    int i=0; while (i<numfiles) {
+      u8_string name=(u8_string)zip_get_name(zf->zip,i,0);
+      if (!(name)) i++;
+      else {
+	fdtype lname=fdtype_string(name);
+	FD_ADD_TO_CHOICE(files,lname);
+	i++;}}
+    u8_unlock_mutex(&(zf->lock));
+    return files;}
+}
+
 /* Initialization */
 
-FD_EXPORT int fd_init_zip(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_zippity(void) FD_LIBINIT_FN;
 
-static int zip_init=0;
+static int zippity_init=0;
 
-FD_EXPORT int fd_init_zip()
+FD_EXPORT int fd_init_zippity()
 {
-  fdtype zip_module;
-  if (zip_init) return;
+  fdtype zippity_module;
+  if (zippity_init) return;
   fd_register_source_file(versionid);
-  zip_init=1;
-  zip_module=fd_new_module("ZIP",(FD_MODULE_SAFE));
+  zippity_init=1;
+  zippity_module=fd_new_module("ZIPPITY",(FD_MODULE_SAFE));
   
   fd_zipfile_type=fd_register_cons_type("ZIPFILE");
   
   fd_unparsers[fd_zipfile_type]=unparse_zipfile;
   fd_recyclers[fd_zipfile_type]=recycle_zipfile;
 
-  fd_idefn(zip_module,
+  fd_idefn(zippity_module,
 	   fd_make_cprim2x("ZIP/OPEN",zipopen_prim,1,
 			   fd_string_type,FD_VOID,-1,FD_FALSE));
-  fd_idefn(zip_module,
+  fd_idefn(zippity_module,
 	   fd_make_cprim1x("ZIP/MAKE",zipmake_prim,1,fd_string_type,FD_VOID));
 
-  fd_idefn(zip_module,
+  fd_idefn(zippity_module,
 	   fd_make_cprim1x
 	   ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
 
-  fd_idefn(zip_module,
+  fd_idefn(zippity_module,
 	   fd_make_cprim3x("ZIP/ADD!",zipadd_prim,3,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
 
-  fd_idefn(zip_module,
+  fd_idefn(zippity_module,
 	   fd_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID));
-  fd_idefn(zip_module,
+  fd_idefn(zippity_module,
 	   fd_make_cprim3x("ZIP/GET",zipget_prim,2,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
 
-  fd_finish_module(zip_module);
-  fd_persist_module(zip_module);
+  fd_idefn(zippity_module,
+	   fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
+			   fd_zipfile_type,FD_VOID));
+
+  fd_finish_module(zippity_module);
+  fd_persist_module(zippity_module);
 }
