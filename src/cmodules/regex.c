@@ -89,14 +89,14 @@ static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
   int retval, eflags=0, len=FD_STRLEN(string);
   u8_string s=FD_STRDATA(string);
   retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,0);
-  u8_lock_mutex(&(rx->lock));
+  u8_lock_mutex(&(ptr->lock));
   if (retval==REG_NOMATCH) return FD_FALSE;
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->compiled),buf,512);
-    u8_unlock_mutex(&(rx->lock));
+    u8_unlock_mutex(&(ptr->lock));
     return fd_err(fd_RegexError,"regex_search",u8_strdup(buf),FD_VOID);}
-  else u8_unlock_mutex(&(rx->lock));
+  else u8_unlock_mutex(&(ptr->lock));
   if (results[0].rm_so<0) return FD_FALSE;
   else switch (op) {
     case rx_search: return getcharoff(s,results[0].rm_so);;
