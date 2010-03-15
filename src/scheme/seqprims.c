@@ -1509,6 +1509,51 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   return results;
 }
 
+/* Matching vectors */
+
+static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
+{
+  int start=FD_FIX2INT(startarg);
+  if ((FD_VECTORP(prefix))&&(FD_VECTORP(seq))) {
+    int plen=FD_VECTOR_LENGTH(prefix);
+    int seqlen=FD_VECTOR_LENGTH(seq);
+    if ((start+plen)<=seqlen) {
+      int j=0; int i=start;
+      while (j<plen)
+	if (FD_EQUAL(FD_VECTOR_REF(prefix,j),FD_VECTOR_REF(seq,i))) {
+	  j++; i++;}
+	else return FD_FALSE;
+      return FD_TRUE;}
+    else return FD_FALSE;}
+  else if ((FD_STRINGP(prefix))&&(FD_STRINGP(seq))) {
+    int plen=FD_STRLEN(prefix);
+    int seqlen=FD_STRLEN(seq);
+    int off=u8_byteoffset(FD_STRDATA(seq),start,seqlen);
+    if ((off+plen)<=seqlen)
+      if (strncmp(FD_STRDATA(prefix),FD_STRDATA(seq)+off,plen)==0)
+	return FD_TRUE;
+      else return FD_FALSE;
+    else return FD_FALSE;}
+  else if (!(FD_SEQUENCEP(prefix)))
+    return fd_type_error("sequence","seqmatch_prim",prefix);
+  else if (!(FD_SEQUENCEP(seq)))
+    return fd_type_error("sequence","seqmatch_prim",seq);
+  else {
+    int plen=fd_seq_length(prefix);
+    int seqlen=fd_seq_length(seq);
+    if ((start+plen)<=seqlen) {
+      int j=0; int i=start;
+      while (j<plen) {
+	fdtype pelt=fd_seq_elt(prefix,j);
+	fdtype velt=fd_seq_elt(prefix,i);
+	int cmp=FD_EQUAL(pelt,velt);
+	fd_decref(pelt); fd_decref(velt);
+	if (cmp) {j++; i++;}
+	else return FD_FALSE;
+	return FD_TRUE;}}
+    else return FD_FALSE;}
+}
+
 /* Sorting vectors */
 
 static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
@@ -1708,7 +1753,11 @@ FD_EXPORT void fd_init_sequences_c()
 			   -1,FD_INT2DTYPE(0),
 			   -1,FD_FALSE));  
   fd_idefn(fd_scheme_module,fd_make_cprim1("REVERSE",fd_reverse,1));  
-  fd_idefn(fd_scheme_module,fd_make_cprimn("APPEND",fd_append,0));  
+  fd_idefn(fd_scheme_module,fd_make_cprimn("APPEND",fd_append,0));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("MATCH?",seqmatch_prim,2,
+			   -1,FD_VOID,-1,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(0)));
 
   /* Initial sequence functions */
   fd_idefn(fd_scheme_module,fd_make_cprim1("FIRST",first,1));
