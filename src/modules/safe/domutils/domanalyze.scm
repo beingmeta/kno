@@ -23,40 +23,41 @@
 
 (defambda (dom/analyze doc (options #[]) (nodes) (index))
   (default! index (choice (get doc 'index) (getopt options 'index {})))
-  (let* ((roots (getopt options 'indexroots {}))
-	 (words (choice roots (getopt options 'indexwords {})))
-	 (stops (getopt options 'stopwords {}))
+  (let* ((words (choice (get doc 'indexroots)
+			(getopt options 'indexwords {})))
+	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
 	 (textelts (->selector
 		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
-	 (phrases (pick words compound?))
 	 (knowlet (get (choice options doc) 'knowlet))
 	 (phrasemaps (kno/phrasemap knowlet (try (get options 'language) 'en)))
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
+	 (justwords (pickstrings words))
+	 (wordtables (pick (reject words string?) {hashtable? hashset?}))
 	 (options
-	  `#[textopts
-	     ,(choice (getopt options 'textopts)
-		      (tryif (overlaps? (getopt options 'cacheslots)
-					'{words refs}) 'keepraw))
-	     cacheslots ,(getopt options 'cacheslots)
-	     phrases ,phrases
-	     phrasemap ,(choice (get options 'phrasemaps) phrasemaps)
-	     roots ,(choice roots (get options 'roots))
-	     refrules ,(get options 'refrules)
-	     words ,(choice words (get options 'words))
+	  (cons
+	  `#[rootset
+	     ,(if (exists? words)
+		  (choice (choice->hashset justwords) wordtables)
+		  {})
+	     phrasemap
+	     ,(choice phrasemaps
+		      (text/phrasemap (pick justwords compound?)
+				      wordtables))
 	     textfns ,dom/textify
-	     stops ,(choice stops (get options 'stops))
+	     stops ,stops
 	     stopcache ,stopcache
-	     rootcache ,rootcache]))
+	     rootcache ,rootcache]
+	  options)))
     (debug%watch "DOM/ANALYZE" options)
     (let* ((cacheslots (choice (getopt options 'cacheslots #t)
 			       (tryif (testopt options 'textopts 'keepraw)
 				 'words)
 			       'terms))
 	   (textnodes (if (bound? nodes) nodes (dom/find doc textelts)))
-	   (keystrings (text/analyze textnodes options)))
+	   (analysis (text/analyze textnodes options)))
       (do-choices (node (pickoids textnodes))
-	(let* ((keys (get keystrings node))
+	(let* ((keys (get analysis node))
 	       (terms (pickstrings keys))
 	       (pairs (pick keys pair?))
 	       (fields  (if (or (overlaps? cacheslots #t)
@@ -75,7 +76,11 @@
 	  (index-frame index node 'has fields)
 	  (do-choices (field fields)
 	    (add! node field (get pairs field)))))
-      keystrings)))
+      (store! doc 'analysis analysis)
+      analysis)))
+
+
+
 
 
 

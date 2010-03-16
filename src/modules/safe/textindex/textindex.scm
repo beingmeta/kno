@@ -20,78 +20,56 @@
  '{text/keystrings
    text/getroots
    text/settings text/reduce
+   text/phrasemap
    text/index text/analyze})
+
+(define %loglevel %notify!)
+;;(define %loglevel %debug!)
 
 ;;;; Simple text analysis
 
 (defambda (textanalyze text
-		       stopcache rootcache
-		       wordrules wordfns stopwords stoprules xrules
-		       phrasemap rootstrings
-		       rootset rootmaps rootfns morphrules
-		       refrules
+		       wordrule
+		       stopcache stopwords stoprules
+		       rootcache rootset rootmaps rootfns morphrules
+		       phrasemap nameinfo srules xrules xfns
 		       options)
   ;; It's probably fastest to use this as a straight recursive procedure
   ;;  and keep state on the stack
-  ;; (%watch "TEXTANALYZE" text options)
   (for-choices text
     ;; Extract features
-    (let* ((wordv (words->vector text #t))
+    (let* ((wordv (->vector (gather->list wordrule text)))
 	   (stopv (forseq (word wordv)
 		    (and (try (get stopcache word) 
 			      (stopcheck word stopcache stopwords stoprules))
 			 word)))
 	   (rootv (forseq (word wordv i)
 		    (if (elt stopv i) word
-			(try (get rootcache word)
-			     (getroot word rootcache
-				      rootstrings rootset
-				      rootmaps rootfns morphrules)))))
-	   (xtracts (text->frames xrules text))
-	   (xwords (choice (wordfns rootv text)
-			   (get xtracts 'word)
-			   (textsubst (gather (qc wordrules) text)
-				      (qc wordrules))))
-	   (words (filter-choices (word xwords)
-		    (not (try (get stopcache word) 
-			      (stopcheck word stopcache stopwords
-					 stoprules)))))
-	   (roots (for-choices (word words)
-		    (try (get rootcache word)
-			 (getroot word rootcache
-				  rootstrings rootset
-				  rootmaps rootfns morphrules))))
-	   (xrefs (getrefs text refrules stopv))
-	   (refs  (filter-choices (word xrefs)
-		    (not (try (get stopcache word)
-			      (stopcheck word stopcache stopwords
-					 stoprules)))))
-	   (refroots  (for-choices (ref refs)
-			(try (getroot ref rootcache
-				      rootstrings rootset rootmaps
-				      rootfns morphrules)
-			     ref)))
-	   (results (choice roots refroots)))
-      ;; (%watch "TEXTANALYZE" text rootv stopv)
-      ;; (%watch "TEXTANALYZE" xwords words roots xrefs refs refroots)
-      (doseq (root rootv i)
-	;; (%watch "CHECKROOT" root i (choice-size (get phrasemap root)))
-	(unless  (elt stopv i)
-	  ;; Reject stop words and don't root capitalized words
-	  (if (capitalized? root)
-	      (set+! results (elt wordv i))
-	      (set+! results root)))
-	(do-choices (phrase (get phrasemap root))
-	  ;; (%watch "CHECKPHRASE" phrase root)
-	  (when (search phrase rootv)
-	    ;; Since this is operating over the rootv, we don't
-	    ;; need to get the root of the phrase (in English at least)
-	    (set+! results (seq->phrase phrase)))))
-    (choice results
-	    (tryif (overlaps? options 'keepraw)
-	      (choice
-	       (cons 'refs (qc refs))
-	       (cons 'words (qchoice xwords (elts wordv)))))))))
+			(or
+			 (try (get rootcache word)
+			      (getroot word rootcache
+				       rootset rootmaps rootfns morphrules))
+			 {}))))
+	   (xwords
+	    ;; Special case extraction
+	    (choice (for-choices (xtract (text->frames xrules text))
+		      (for-choices (label (getkeys xtract))
+			(cons label (get xtract label))))
+		    (textsubst (gather (qc srules) text) (qc srules))))
+	   (phrases (getphrases wordv rootv phrasemap))
+	   (stopwords (difference (elts stopv) #f))
+	   (names (difference
+		   (getnames wordv stopv nameinfo (getopt options 'trackposs))
+		   stopwords)))
+      (debug%watch "TEXTANALYZE" text wordv stopv rootv)
+      (debug%watch "TEXTANALYZE" xwords phrases names)
+      (choice (difference (elts rootv) stopwords)
+	      xwords phrases names
+	      (cons 'names (pickstrings names))
+	      (for-choices (xfn xfns)
+		(xfn text wordv stopv rootv options))
+	      (tryif (overlaps? options 'keepraw)
+		(cons 'words (elts wordv)))))))
 
 (defambda (stopcheck word cache stopwords stoprules)
   (let ((result (or (get stopwords word)
@@ -101,73 +79,122 @@
     (store! cache word result)
     result))
 
-(defambda (getroot word cache
-		   rootstrings rootset rootmaps rootfns morphrules)
+(defambda (getroot word cache rootset rootmaps rootfns morphrules)
   (let ((result
-	 (choice (pick rootstrings is-prefix? word)
-		 (try (get rootmaps word)
-		      (choice 
-		       (tryif (hashset-test rootset word) word)
-		       (try (pick (rootfns word) rootset)
-			    (try-choices (rule morphrules)
-			      (morphrule word rule rootset))))
-		      (tryif (and (capitalized? word) (not (uppercase? word)))
-			(try (pick (rootfns (downcase word)) rootset)
-			     (try-choices (rule morphrules)
-			       (morphrule (downcase word) rule rootset))))))))
-    (store! cache word result)
+	 (try (get rootmaps word)
+	      (choice 
+	       (tryif (hashset-test rootset word) word)
+	       (try (pick (rootfns word) rootset)
+		    (try-choices (rule morphrules)
+		      (morphrule word rule rootset))))
+	      (tryif (and (capitalized? word) (not (uppercase? word)))
+		(try (pick (rootfns (downcase word)) rootset)
+		     (try-choices (rule morphrules)
+		       (morphrule (downcase word) rule rootset)))))))
+    (store! cache word (try result #f))
     result))
 
-(defambda (getrefs text refrules (stopv #[]))
-  "Get references, typically based on capitalization"
-  (for-choices (ref (words->vector
-		     (tryif (not (uppercase? text))
-		       (gather (qc refrules) text))))
-    (seq->phrase
-     (if (position (first ref) stopv)
-	 (if (position (elt ref -1) stopv)
-	     (if (< (length ref) 3) (fail)
-		 (subseq ref 1 -1))
-	     (if (< (length ref) 2) (fail)
-		 (subseq ref 1)))
-	 (if (position (elt ref -1) stopv)
-	     (subseq ref 0 -1)
-	     ref)))))
+;;; Standard extraction functions
+
+(defambda (getphrases wordv rootv phrasemap)
+  (let ((phrases {}))
+    (dotimes (i (length wordv))
+      (do-choices (phrase (get phrasemap (elt wordv i)))
+	(when (match? phrase wordv i)
+	  (set+! phrases (seq->phrase phrase))))
+      (do-choices (phrase (get phrasemap (elt rootv i)))
+	(unless (equal? (elt rootv i) (elt wordv i))
+	  (when (match? phrase rootv i)
+	    (set+! phrases (seq->phrase phrase))))))
+    phrases))
+
+(defambda (getnames wordv stopv nameinfo (trackposs #f))
+  (let* ((names {}) (i 0)
+	 (len (length wordv)) (margin (1- len))
+	 (nameglue (get nameinfo 'glue))
+	 (sbreak #t) (namestart #f) (possnamestart #f))
+    (while (< i len)
+      (cond ((textmatch #({"!" "." "?"} (ispunct+)) (elt wordv i))
+	     ;; End of sentence
+	     (when possnamestart
+	       (set+! names
+		      (if trackposs
+			  (cons 'possname
+				(seq->phrase wordv possnamestart i))
+			  (seq->phrase wordv possnamestart i))))
+	     (when namestart
+	       (set+! names (seq->phrase wordv namestart i)))
+	     (set! namestart #f)
+	     (set! possnamestart #f)
+	     (set! sbreak #t))
+	    ((capitalized? (elt wordv i))
+	     ;; Start or continue a name
+	     (unless namestart
+	       (if sbreak
+		   (unless (elt stopv i) (set! possnamestart i))
+		   (set! namestart i)))
+	     (set! sbreak #f))
+	    ((overlaps? (elt wordv i) nameglue)
+	     ;; Possibly continue a name, saving the subname before
+	     ;;  and after the glue word
+	     (when possnamestart
+	       (set+! names
+		      (if trackposs
+			  (cons 'possname (seq->phrase wordv possnamestart i))
+			  (seq->phrase wordv possnamestart i))))
+	     (when namestart
+	       (set+! names (seq->phrase wordv namestart i)))
+	     (if (and (< i margin) (capitalized? (elt wordv (1+ i))))
+		 (set! namestart #f) (set! possnamestart #f)
+		 (set! namestart (1+ i))))
+	    ;; Numbers and digits don't close the sentence break
+	    ((and sbreak (textmatch '(+ {(isdigit) (ispunct)}) (elt wordv i))))
+	    ;; End of name
+	    (else
+	     (when possnamestart
+	       (set+! names
+		      (if trackposs
+			  (cons 'possname (seq->phrase wordv possnamestart i))
+			  (seq->phrase wordv possnamestart i))))
+	     (when namestart
+	       (set+! names (seq->phrase wordv namestart i)))
+	     (set! namestart #f)
+	     (set! possnamestart #f)
+	     (set! sbreak #f)))
+      (set! i (1+ i)))
+    names))
 
 ;;; Exported functions
 
-(define (text/keystrings text (options #[]) (settings))
-  (set! settings
-	(if (bound? settings)
-	    (extend-settings settings options)
-	    (text/settings options)))
+(define (text/keystrings text (options #[]))
   ;; (%watch "TEXTANALYZE" settings)
-  (textanalyze text
-	       (try (get settings 'stopcache) (make-hashtable))
-	       (try (get settings 'rootcache) (make-hashtable))
-	       (get settings 'wordrules)
-	       (get settings 'wordfns)
-	       (get settings 'stopwords)
-	       (get settings 'stoprules)
-	       (get settings 'xrules)
-	       (get settings 'phrasemap)
-	       (get settings 'rootstrings)
-	       (get settings 'rootset)
-	       (get settings 'rootmaps)
-	       (get settings 'rootfns)
-	       (get settings 'morphrules)
-	       (get settings 'refrules)
-	       (get settings 'options)))
-
-(define (text/settings options)
-  (if (or (string? options) (symbol? options))
-      (get-language-settings options)
-      (if (test options 'type 'indexsettings) options
-	  (extend-settings
-	   (if (testopt options 'language)
-	       (get-language-settings (getopt options 'language))
-	       default-settings)
-	   options))))
+  (textanalyze text (try (getopt options 'wordrule
+				 (get text-settings 'default-word-rule)))
+	       (try (getopt options 'stopcache {}) (make-hashtable))
+	       (choice (getopt options 'stopwords {})
+		       (get text-settings 'stopwords))
+	       (choice (getopt options 'stoprules {})
+		       (get text-settings 'stoprules))
+	       (try (getopt options 'rootcache {}) (make-hashtable))
+	       (choice (getopt options 'rootset {})
+		       (get text-settings 'rootset))
+	       (choice (getopt options 'rootmaps {})
+		       (get text-settings 'rootmap))
+	       (choice (getopt options 'rootfns {})
+		       (get text-settings 'rootfns))
+	       (choice (getopt options 'morphrules {})
+		       (get text-settings 'morphrules))
+	       (choice (getopt options 'phrasemap {})
+		       (get text-settings 'phrasemap))
+	       (choice (getopt options 'nameinfo {})
+		       (get text-settings 'nameinfo))
+	       (choice (getopt options 'substrules {})
+		       (get text-settings 'substrules))
+	       (choice (getopt options 'xrules {})
+		       (get text-settings 'xrules))
+	       (choice (getopt options 'xfns {})
+		       (get text-settings 'xfns))
+	       options))
 
 (define (text/index! index f slotid (value) (options #[]))
   (unless (or (not (bound? value)) value) (set! value (get f slotid)))
@@ -178,25 +205,41 @@
 
 (defambda (text/analyze passages options)
   ;; (%watch "TEXT/ANALYZE" options)
-  (let* ((allkeys {})
+  (let* ((allkeys (make-hashset))
+	 (text/settings
+	  (try (getopt options 'text/settings {})
+	       (text/settings (getopt options 'language))
+	       (text/settings (getopt options 'lang))
+	       text-settings))
+	 (options (cons #[trackposs #t] options))
+	 (localopts (car options))
 	 (table (make-hashtable))
-	 (stopcache (try (get options 'stopcache) (make-hashtable)))
-	 (rootcache (try (get options 'rootcache) (make-hashtable)))
-	 (textfns (getopt options 'textfns #f))
-	 (settings (text/settings options))
-	 (wordrules (get settings 'wordrules))
-	 (wordfns (get settings 'wordfns))
-	 (stopwords (get settings 'stopwords))
-	 (stoprules (get settings 'stoprules))
-	 (xrules (get settings 'xrules))
-	 (phrasemap (get settings 'phrasemap))
-	 (rootstrings (get settings 'rootstrings))
-	 (rootset (get settings 'rootset))
-	 (rootmaps (get settings 'rootmaps))
-	 (rootfns (get settings 'rootfns))
-	 (morphrules (get settings 'morphrules))
-	 (refrules (get settings 'refrules))
-	 (options (get settings 'options)))
+	 (wordrule (getopt options 'wordrule (get text/settings 'wordrule)))
+	 (stopcache (try (getopt options 'stopcache) (make-hashtable)))
+	 (stopwords (choice (getopt options 'stopwords {})
+			    (get text/settings 'stopwords)))
+	 (stoprules (choice (getopt options 'stoprules {})
+			    (get text/settings 'stoprules)))
+	 (rootcache (try (getopt options 'rootcache) (make-hashtable)))
+	 (rootset (choice (getopt options 'rootset {})
+			  (get text/settings 'rootset)))
+	 (rootmaps (choice (getopt options 'rootmaps {})
+			   (get text/settings 'rootmap)))
+	 (rootfns (choice (getopt options 'rootfns {})
+			  (get text/settings 'rootfns)))
+	 (morphrules (choice (getopt options 'morphrules {})
+			     (get text/settings 'morphrules)))
+	 (phrasemap (choice (getopt options 'phrasemap {})
+			    (get text/settings 'phrasemap)))
+	 (nameinfo (choice (getopt options 'nameinfo {})
+			   (get text/settings 'nameinfo)))
+	 (srules (choice (getopt options 'substrules {})
+			 (get text/settings 'substrules)))
+	 (xrules (choice (getopt options 'xrules {})
+			 (get text/settings 'xrules)))
+	 (xfns (choice (getopt options 'xfns {})
+		       (get text/settings 'xfns)))
+	 (textfns (getopt options 'textfns)))
     ;; (%watch "TEXT/ANALYZE" options)
     (do-choices (passage passages)
       ;; (%watch "TEXT/ANALYZE" passage)
@@ -205,176 +248,47 @@
 				    (get passage (pick textfns slotid?)))
 			    passage))
 	;; (%watch "TEXT/ANALYZE" passage text)
-	(let ((keys (textanalyze text
-				 stopcache rootcache
-				 wordrules wordfns
-				 stopwords stoprules xrules
-				 phrasemap rootstrings rootset
-				 rootmaps rootfns morphrules
-				 refrules options)))
-	  (set+! allkeys keys)
+	(let ((keys (textanalyze text wordrule
+				 stopcache stopwords stoprules
+				 rootcache rootset rootmaps rootfns morphrules
+				 phrasemap nameinfo srules xrules xfns
+				 options)))
+	  (hashset-add! allkeys (pickstrings keys))
 	  (add! table passage keys))))
-    (let ((stringset (choice->hashset allkeys)))
-      (do-choices (passage (getkeys table))
-	(store! table passage
-		(choice (pick (get table passage) pair?)
-			(text/reduce (pickstrings (get table passage))
-				     stringset)))))
+    (do-choices (passage (getkeys table))
+      (store! table passage
+	      (for-choices (key (get table passage))
+		(if (and (pair? key) (eq? (car key) 'possname))
+		    (if (hashset-get allkeys (cdr key))
+			(choice (cdr key) (cons 'names (cdr key)))
+			(fail))
+		    key))))
     table))
 
-(defambda (text/reduce strings stringset)
-  (let* ((caps (pick strings capitalized?))
-	 (goodcaps (reject caps downcase stringset)))
-    (choice (difference strings caps) goodcaps
-	    (downcase (difference caps goodcaps)))))
+(define (text/settings language)
+  "This SHOULD get the settings for a particular language"
+  text-settings)
 
-(define (text/getroots word (settings #[]))
-  (let ((settings (text/settings settings)))
-    (getroot word (get settings 'rootcache)
-	     (get settings 'rootstrings)
-	     (get settings 'rootset)
-	     (get settings 'rootmaps)
-	     (get settings 'rootfns)
-	     (get settings 'morphrules))))
+(define (text/getroots word (options #[]))
+  (getroot word
+	   (try (getopt options 'rootcache) (make-hashtable))
+	   (choice (getopt options 'rootset {})
+		   (get text-settings 'rootset))
+	   (choice (getopt options 'rootmaps {})
+		   (get text-settings 'rootmap))
+	   (choice (getopt options 'rootfns {})
+		   (get text-settings 'rootfns))
 
-;;; Default rules, etc.
-
-(define module-dir (dirname (get-component "en.settings")))
-
-(define-init language-settings (make-hashtable))
-
-;;; Settings
-
-(define (car-length pair) (length (car pair)))
-
-(define (extend-settings settings options)
-  (let* ((stops (getopt options 'stops {}))
-	 (roots (getopt options 'roots {}))
-	 (words (getopt options 'words {}))
-	 (rootstrings (pickstrings roots)))
-    (frame-create #f
-      'type 'indexsettings
-      'wordrules (choice (get settings 'wordrules)
-			 (reject words applicable?))
-      'wordfns (choice (get settings 'wordfns)
-		       (pick words applicable?))
-      'options (getopt options 'textopts {})
-      'stopwords
-      (if (exists? stops)
-	  (let ((stopwords (make-hashset)))
-	    (hashset-add!
-	     stopwords (hashset-elts (get settings 'stopwords)))
-	    (hashset-add! stopwords (pickstrings stops))
-	    (do-choices (hs (pick stops hashset?))
-	      (hashset-add! stopwords (hashset-elts hs)))
-	    stopwords)
-	  (get settings 'stopwords))
-      'stoprules
-      (choice (pick stops {vector? pair? applicable?})
-	      (get settings 'stoprules))
-      'rootfns (choice (get settings 'rootfns)
-		       (pick roots applicable?))
-      'rootmaps (choice (get settings 'rootmaps)
-			(choice (pick roots hashtable?) (pick roots index?)))
-      'rootstrings (choice (get settings 'rootstrings) rootstrings)
-      'rootset
-      (if (or (exists? rootstrings) (exists? roots)
-	      (exists? (get settings 'rootmaps)))
-	  (let ((rootset (make-hashset)))
-	    (hashset-add! rootset rootstrings)
-	    (hashset-add! rootset (hashset-elts (get settings 'rootset)))
-	    (do-choices (hs (pick roots hashset?))
-	      (hashset-add! rootset (hashset-elts hs)))
-	    (do-choices (map (get settings 'rootmaps))
-	      (do-choices (key (getkeys map))
-		(hashset-add! rootset (get map key))))
-	    rootset)
-	  (get settings 'rootset))
-      'morphrules
-      (choice (get settings 'morphrules)
-	      (list (pick roots vector?))
-	      (list (pick roots textclosure?))
-	      (let* ((newrules (pick roots pair?))
-		     (well-formed (pick newrules cdr pair?))
-		     (suffix-rules (difference newrules well-formed))
-		     (string-suffix-rules (pick suffix-rules car string?)))
-		(choice well-formed
-			(difference suffix-rules string-suffix-rules)
-			(tryif (exists? string-suffix-rules)
-			  (->list (rsorted string-suffix-rules car-length))))))
-      'phrasemap
-      (choice (getopt options 'phrasemaps {})
-	      (get settings 'phrasemap)
-	      (tryif (exists? (getopt options 'phrases {}))
-		(let ((phrasemap (make-hashtable))
-		      (phrases (choice (getopt options 'phrases {})
-				       (pick rootstrings compound?))))
-		  (do-choices (phrasev (words->vector phrases))
-		    (add! phrasemap (elts phrasev) phrasev))
-		  phrasemap)))
-      'options (try (getopt options 'textopts {}) (get settings 'options))
-      'wordrules (choice (getopt options 'wordrules {})
-			 (get settings 'wordrules))
-      'refrules
-      (choice (getopt options 'refrules {})
-	      (get settings 'refrules)))))
-
-;;; Dealing with language settings
-
-(define (get-language-settings language)
-  (try (get language-settings language)
-       (let ((langname (if (symbol? language)
-			   (downcase (symbol->string language))
-			   (if (string? language)
-			       (downcase language)
-			       (fail)))))
-	 (try (get language-settings langname)
-	      (let ((settings (load-settings (mkpath module-dir langname))))
-		(store! language-settings language settings)
-		(store! language-settings langname settings)
-		settings)))))
-
-(defambda (usefile filename default)
-  (if (file-exists? filename)
-      (file->dtype filename)
-      default))
-
-(define (load-settings base)
-  (compile-settings
-   (frame-create #f
-     'stopwords (usefile (string-append base ".stops")
-			 (get default-settings 'stopwords))
-     'stoprules (usefile (string-append base ".stoprules")
-			 (get default-settings 'stoprules))
-     'rootset (usefile (string-append base ".rootset")
-		       (deep-copy (get default-settings 'roots)))
-     'rootmaps (usefile (string-append base ".rootmap")
-			(get default-settings 'rootmaps))
-     'morphrules (usefile (string-append base ".morphrules")
-			  (get default-settings 'morphrules))
-     'refrules (usefile (string-append base ".refs")
-			(get default-settings 'refrules))
-     'wordrules (usefile (string-append base ".wordrules")
-			 (get default-settings 'wordrules))
-     'rootstrings (usefile (string-append base ".rootstrings")
-			   (get default-settings 'rootstrings))
-     'phrasemap (usefile (string-append base ".phrasemap")
-			 (deep-copy (get default-settings 'phrasemap))))))
-
-(define (compile-settings settings)
-  (let ((rootset (try (get settings 'rootset) (make-hashset)))
-	(rootmaps (get settings 'rootmaps))
-	(phrasemap (try (get settings 'phrasemap) (make-hashtable))))
-    (do-choices (map rootmaps)
-      (do-choices (key (getkeys map))
-	(hashset-add! rootset (get map key))))
-    (hashset-drop! rootset (hashset-elts (get settings 'stopwords)))
-    (store! settings 'rootset rootset)
-    (store! settings 'phrasemap phrasemap)
-    settings))
-
+	   (choice (getopt options 'morphrules {})
+		   (get text-settings 'morphrules))))
 
 ;;; Default rules
+
+(define default-word-rule
+  '(GREEDY {(isalnum+)
+	    #((isalpha+) "'" (isalpha+))
+	    #((isalnum) (+ #("." (isalnum+))) (opt "."))
+	    (ispunct+)}))
 
 (define consrules
   (for-choices (letter {"p" "t" "b" "m" "r" "d"})
@@ -409,77 +323,53 @@
     ("ed"
      . #((NOT> #({"b" "d" "m" "p" "r" "t"} "ed")) (ISNOTVOWEL) (SUBST "ed" "e")
 	 (EOS)))
-    ("ed" . "e")
     ("ed" . "")
     ("ing" . "")
     ("ly" . #((NOT> "ly") (SUBST "ly" "")))))
 
 ;;; Default ref rules
 
-(define name-prefixes
+(define default-name-prefixes
   {"Dr." "Mr." "Mrs." "Ms." "Miss." "Mmme" "Fr." "Rep." "Sen."
    "Prof." "Gen." "Adm." "Col." "Lt." "Gov." "Maj." "Sgt."})
 
-(define name-glue {"de" "van" "von" "St."})
-(define name-preps {"to" "of" "from"})
-
-(define default-refrules
-  `{#(,name-prefixes (spaces)
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (opt #({,name-glue ,name-preps} (spaces)))
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    #(,name-prefixes (spaces)
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    #((capword) (spaces)
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (opt #({,name-glue ,name-preps} (spaces)))
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    #((capword) (spaces)
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))})
-
-(define solename
-  #[PATTERN
-    #((islower)  (spaces)
-      (label solename (capword))
-      (spaces*) {(ispunct) (eol) (islower)})
-    LABELS SOLENAME])
-
-;;; This pulls out initial words in their uncapitalized form,
-;;;  just in case.
-(define uncapped-rule
-  `#[PATTERN
-     #({(bol) "." "," "\"" "'"} (spaces)
-       (label term (capword) ,downcase))
-     LABELS TERM])
-
-(define default-wordrules
-  `{#((SUBST #(,name-prefixes (spaces)) "")
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (opt #({,name-glue ,name-preps} (spaces)))
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    #((SUBST #(,name-prefixes (spaces)) "")
-      (* #({(capword) (+ #((isupper) "."))} (spaces)))
-      (capword))
-    #((SUBST #((ispunct) (spaces*)) "")
-      (subst (capword) downcase))
-    #((bol) (subst (capword) downcase))
-    #((isalpha+) (subst "-" ""))
-    #((subst "-" "") (isalpha+))})
+(define default-name-glue {"de" "van" "von" "St." "to" "of" "from"})
 
 ;;; Setup
 
-(define-init default-settings
-  `#[stoprules ,default-stoprules
+(defambda (text/phrasemap . inputs)
+  (let ((phrases (make-hashset))
+	(phrasemap (make-hashtable)))
+    (dolist (input inputs)
+      (do-choices input
+	(cond ((string? input)
+	       (when (compound? input) (hashset-add! phrases input)))
+	      ((hashset? input)
+	       (hashset-add! phrases
+			     (pick (pickstrings (hashset-elts input))
+				   compound?)))
+	      ((hashtable? input)
+	       (let ((keys (getkeys input)))
+		 (hashset-add! phrases (pick (pickstrings keys) compound?))
+		 (do-choices (key keys)
+		   (hashset-add! phrases
+				 (pick (pickstrings (get input key))
+				       compound?)))))
+	      (else))))
+    (do-choices (phrase (hashset-elts phrases))
+      (let ((vec (words->vector phrase)))
+	(unless (= (length vec) 1)
+	  (add! phrasemap (first vec) vec))))
+    phrasemap))
+
+(define-init text-settings
+  `#[wordrule ,default-word-rule
+     stoprules ,default-stoprules
      stopwords ,(file->dtype (get-component "en.stops"))
      morphrules ,default-morphrules
      rootmaps ,(file->dtype (get-component "en.rootmap"))
      rootset ,(file->dtype (get-component "en.rootset"))
-     wordrules ,default-wordrules
-     refrules ,default-refrules])
-
-(compile-settings default-settings)
+     phrasemap ,(text/phrasemap
+		 (file->dtype (get-component "en.rootmap"))
+		 (file->dtype (get-component "en.rootset")))
+     nameinfo #[nameglue ,default-name-glue]])
