@@ -18,7 +18,7 @@
    app/redirect
    app/needlogin})
 
-(define-init apphost "www.example.com")
+(define-init apphost #f)
 (define-init approot "/")
 (define-init appid "WEBAPP")
 (define-init userelpaths #t)
@@ -96,7 +96,7 @@
     (debug%watch "app/setup" appmajor newmajor parsed path_info)
     (set! appmajor (get parsed 'major))
     (cgiset! 'appmajor appmajor)
-    (set-cookie! 'appmajor appmajor "sbooks.net" "/")
+    (set-cookie! 'appmajor appmajor apphost "/")
     ;; The minor app can be either explicitly expressed or determined
     ;;  based on a cookie and default tables
     (let ((newminor (try (get parsed 'minor)
@@ -124,10 +124,11 @@
 
 ;;; App cookies
 
-(define (app/set-cookie! var val)
-  (set-cookie! var val apphost (or approot "/")))
-(define (app/clear-cookie! var)
-  (set-cookie! var "expired" apphost (or approot "/") (timestamp+ (* -17 24 3600))))
+(define (app/set-cookie! var val (domain apphost) (root approot))
+  (set-cookie! var val (or domain apphost) (or root "/")))
+(define (app/clear-cookie! var (domain apphost) (root approot))
+  (set-cookie! var "expired" (or domain apphost) (or root approot)
+	       (timestamp+ (* -17 24 3600))))
 
 ;; Doing redirection
 
