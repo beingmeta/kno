@@ -400,6 +400,21 @@ fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lispenv env)
   return FD_VOID;
 }
 
+static fdtype substringout(fdtype arg,fdtype start,fdtype end)
+{
+  u8_output output=fd_get_default_output();
+  u8_string string=FD_STRDATA(arg); unsigned int len=FD_STRLEN(arg);
+  if (FD_VOIDP(start)) u8_putn(output,string,len);
+  else if (FD_VOIDP(end)) {
+    unsigned int byte_start=u8_byteoffset(string,FD_FIX2INT(start),len);
+    u8_putn(output,string+byte_start,len-byte_start);}
+  else {
+    unsigned int byte_start=u8_byteoffset(string,FD_FIX2INT(start),len);
+    unsigned int byte_end=u8_byteoffset(string,FD_FIX2INT(end),len);  
+    u8_putn(output,string+byte_start,byte_end-byte_start);}
+  return FD_VOID;
+}
+
 static fdtype printout_handler(fdtype expr,fd_lispenv env)
 {
   return fd_printout(fd_get_body(expr,1),env);
@@ -1374,7 +1389,12 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"PRINTOUT",printout_handler);
   fd_defspecial(fd_scheme_module,"LINEOUT",lineout_handler);
   fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_handler);
-
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
+			   fd_string_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID));
+  
   /* Logging functions for specific levels */
   fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
   fd_defspecial(fd_scheme_module,"STATUS",status_handler);
