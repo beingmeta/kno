@@ -7,14 +7,23 @@
 (define version "$Id$")
 (define revision "$Revision$")
 
-(use-module '{aws fdweb texttools})
+(use-module '{aws fdweb texttools ezrecords})
 
-(module-export! '{s3/signature s3/op s3/signeduri s3/expected})
+(module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
+(module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
 (define teststring
   "GET\n\n\nTue, 27 Mar 2007 19:36:42 +0000\n/johnsmith/photos/puppy.jpg")
+
+;;; Representing S3 locations
+
+(defrecord s3loc bucket path)
+
+(module-export! '{s3loc? s3loc-path s3loc-bucket})
+
+;;; Computing S3 signatures
 
 (define (s3/signature op bucket path (date (gmtimestamp)) (headers '())
 		     (content-sig "") (content-ctype ""))
@@ -80,6 +89,11 @@
 		    (urlput url content ctype urlparams)
 		    (urlget url urlparams content)))))))
 
+(define (s3/uri bucket path)
+  (stringout "http://" bucket ".s3.amazonaws.com"
+	     (unless (has-prefix path "/") "/")
+	     path))
+
 (define (s3/signeduri bucket path expires (op "GET") (headers '()))
   (let* ((expires (if (number? expires) expires (get expires 'tick)))
 	 (sig (s3/signature "GET" bucket path expires headers)))
@@ -93,6 +107,52 @@
   (->string (map (lambda (x) (integer->char (string->number x 16)))
 		 (segment (car (get (xmlget (xmlparse (get response '%content)) 'stringtosignbytes)
 				    '%content))))))
+
+;;; Functions over S3 locations, mapping URLs to S3 and back
+
+(define s3urlrules
+  '(("http://store.sbooks.net/" "storage.sbooks.net")
+    ("http://offline.store.sbooks.net/" "storage.sbooks.net")
+    ("http://library.sbooks.net/" "library.sbooks.net")
+    ("http://public.sbooks.net/" "public.sbooks.net")))
+
+(define (s3/getloc url)
+  (tryseq (rule s3urlrules)
+    (tryif (string-starts-with? url (car rule))
+      (cons-s3loc (cadr rule)
+		  (if (string? (car rule))
+		      (subseq url (length (car rule)))
+		      (textsubst url (car rule)))))))
+
+(define (s3loc/uri s3loc)
+  (stringout "http://"
+	     (s3loc-bucket s3loc) ".s3.amazonaws.com"
+	     (unless (has-prefix (s3loc-path s3loc) "/") "/")
+	     (s3loc-path s3loc)))
+
+(define s3diskrules '())
+
+(define (s3loc/filename loc)
+  (tryseq (rule s3diskrules)
+    (tryif (equal? (s3loc-bucket loc) (car rule))
+      (if (applicable? (cadr rule))
+	  ((cdr rule) loc)
+	  (if (string? (cdr rule))
+	      (string-append (cadr rule)
+			     (if (has-suffix (cadr rule) "/") "" "/")
+			     (s3loc-path loc))
+	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
+		(textsubst (s3loc-path loc) (cadr rule))))))))
+
+(define (s3loc/content loc (text #t))
+  (try (if text (filestring (s3loc/filename loc))
+	   (filedata (s3loc/filename loc)))
+       (get (s3/op "GET" (s3loc-bucket loc)
+		   (string-append "/" (s3loc-path loc))
+		   "")
+	    '%content)))
+
+;;; Some test code
 
 (comment
  (s3/op "GET" "data.beingmeta.com" "/brico/brico.db" "")
