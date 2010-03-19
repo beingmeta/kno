@@ -20,20 +20,25 @@
       (begin (system "mkdir -p " (dirname filename))
 	     filename)))
 
-(define (localref ref urlmap base target read amalgamate)
+(define absurlstart
+  (choice #((isalpha) (isalpha) (isalpha+) ":") "/"))
+
+(define (localref ref urlmap base target read amalgamate localhosts)
   (try (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
        (tryif (exists has-prefix ref amalgamate)
 	 (textsubst ref `(GREEDY ,amalgamate) ""))
        (tryif (position #\# ref)
 	 (let ((hashpos (position #\# ref)))
-	   (string-append (localref (subseq ref 0 hashpos) urlmap base target read (qc amalgamate))
+	   (string-append (localref (subseq ref 0 hashpos)
+				    urlmap base target read
+				    (qc amalgamate) (qc localhosts))
 			  (subseq ref hashpos))))
        (get urlmap ref)
-       (if (string-starts-with? ref #((isalpha) (isalpha) (isalpha+) ":"))
+       (if (exists string-starts-with? ref localhosts)
 	   ref
-	   (let ((absref (if (string-starts-with? ref #((isalpha) (isalpha) (isalpha+) ":"))
-			     ref
-			     (mkpath (dirname base) ref)))
+	   (let ((absref
+		  (if (string-starts-with? ref absurlstart) ref
+		      (mkpath (dirname base) ref)))
 		 (saveto (if (has-suffix target "/") target
 			     (string-append target "/"))))
 	     ;; (%watch ref base target saveto read)
@@ -45,30 +50,40 @@
 		    ;; This has fragments and queries stripped (uribase)
 		    ;; and additionally has the 'directory' part of the URI
 		    ;; removed so that it's a local file name
-		    (loginfo "Downloaded " (write outfile) " from " (write absref) " ref to " lref)
+		    (loginfo "Downloaded " (write outfile)
+			     " from " (write absref) " ref "
+			     "to " lref)
 		    (write-file outfile content)
 		    (store! urlmap absref lref)
 		    lref))))))
 
-(define (dom/localize! dom base write (read) (amalgamate #f))
+(define (dom/localize! dom base write (read) (amalgamate #f) (localhosts #f))
   (default! read write)
   (let ((urlmap (make-hashtable))
 	(amalgamate (or amalgamate {}))
+	(lcoalhosts (or localhosts {}))
 	(files {}))
     (do-choices (node (dom/find dom "img"))
-      (let ((ref (localref (get node 'src) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'src)
+			   urlmap base write read
+			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (do-choices (node (dom/find dom "link"))
-      (let ((ref (localref (get node 'href) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'href)
+			   urlmap base write read
+			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'href ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "script") 'src))
-      (let ((ref (localref (get node 'src) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'src)
+			   urlmap base write read
+			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "a") 'href))
-      (let ((ref (localref (get node 'href) urlmap base write read (qc amalgamate))))
+      (let ((ref (localref (get node 'href) urlmap base write read
+			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'href ref)
 	(set+! files ref)))
     (store! dom 'manifest files)
