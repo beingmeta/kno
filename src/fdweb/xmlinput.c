@@ -49,6 +49,24 @@ static fdtype nsref2slotid(u8_string s)
   else return v;
 }
 
+struct CLOSERULES {u8_string outer, inner;};
+static struct CLOSERULES html_autoclose[]=
+  {{"P","P"},{"LI","LI"},
+   {"TD","TD"},{"TH","TH"},{"TH","TD"},{"TD","TH"},
+   {"TD","TR"},{"TH","TR"},
+   {"DT","DT"},{"DD","DT"},{"DT","DD"},
+   {NULL,NULL}};
+
+static int check_pair(u8_string inner,u8_string outer,struct CLOSERULES *rules)
+{
+  while (rules->inner)
+    if ((strcasecmp(inner,rules->inner)==0)&&
+	(strcasecmp(outer,rules->outer)==0))
+      return 1;
+    else rules++;
+  return 0;
+}
+
 /* Parsing entities */
 
 static int egetc(u8_string *s)
@@ -730,11 +748,8 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
     else {
       FD_XML *newnode=u8_alloc(struct FD_XML);
       u8_string name=u8_strdup(elts[0]);
-      if ((node->bits&FD_XML_CLOSE_REPEATS) &&
-	  (((((node->bits)&(FD_XML_FOLDCASE)) ?
-	     (strcasecmp(node->eltname,elts[0])) :
-	     (strcmp(node->eltname,elts[0])))
-	    ==0))) {
+      if ((node->bits&FD_XML_ISHTML) &&
+	  (check_pair(node->eltname,elts[0],html_autoclose))) {
 	FD_XML *popped=popfn(node);
 	if (popped!=node)
 	  free_node(node,1);
