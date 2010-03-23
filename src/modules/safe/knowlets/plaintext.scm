@@ -14,6 +14,7 @@
  '{kno/read-plaintext
    kno/write-plaintext
    kno/plaintext kno/plaintext/escape
+   knowlet->string
    knowlet->file file->knowlet})
 
 (module-export! '{escaped-segment escaped-find})
@@ -352,6 +353,11 @@
   (if (and (string? knowlet) (not file))
       (knowlet->file default-knowlet knowlet settings)
       (fileout file (kno/write-plaintext knowlet settings))))
+
+(define (knowlet->string knowlet (settings #[]))
+  (if (and (string? knowlet) (not file))
+      (knowlet->file default-knowlet knowlet settings)
+      (stringout (kno/write-plaintext knowlet settings))))
 
 (define (file->knowlet file (knowlet default-knowlet))
   (kno/read-plaintext (filestring file) knowlet))

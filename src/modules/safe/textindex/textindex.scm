@@ -55,7 +55,8 @@
 	    (choice (for-choices (xtract (text->frames xrules text))
 		      (for-choices (label (getkeys xtract))
 			(cons label (get xtract label))))
-		    (textsubst (gather (qc srules) text) (qc srules))))
+		    (for-choices (srule srules)
+		      (textsubst (gather srule text) srule))))
 	   (phrases (getphrases wordv rootv phrasemap))
 	   (stopwords (difference (elts stopv) #f))
 	   (names (difference
@@ -278,7 +279,6 @@
 		   (get text-settings 'rootmap))
 	   (choice (getopt options 'rootfns {})
 		   (get text-settings 'rootfns))
-
 	   (choice (getopt options 'morphrules {})
 		   (get text-settings 'morphrules))))
 
