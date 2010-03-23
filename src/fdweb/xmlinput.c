@@ -57,7 +57,7 @@ static struct CLOSERULES html_autoclose[]=
    {"DT","DT"},{"DD","DT"},{"DT","DD"},
    {NULL,NULL}};
 
-static int check_pair(u8_string inner,u8_string outer,struct CLOSERULES *rules)
+static int check_pair(u8_string outer,u8_string inner,struct CLOSERULES *rules)
 {
   while (rules->inner)
     if ((strcasecmp(inner,rules->inner)==0)&&
