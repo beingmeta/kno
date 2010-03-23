@@ -7,7 +7,7 @@
 (define version "$Id$")
 (define revision "$Revision$")
 
-(use-module '{aws fdweb texttools ezrecords})
+(use-module '{aws fdweb texttools ezrecords rulesets})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
@@ -110,11 +110,17 @@
 
 ;;; Functions over S3 locations, mapping URLs to S3 and back
 
-(define s3urlrules
-  '(("http://store.sbooks.net/" "storage.sbooks.net")
-    ("http://offline.store.sbooks.net/" "storage.sbooks.net")
-    ("http://library.sbooks.net/" "library.sbooks.net")
-    ("http://public.sbooks.net/" "public.sbooks.net")))
+;;; Rules for converting URLs into S3 locations
+(define s3urlrules '())
+(ruleconfig! AWS:S3URLMAP s3urlrules)
+;;; Each rule is of the form (<pat> <bucket>) where
+;;;   <bucket> is an S3 bucket <pat> is either a string
+;;;   or a texttools pattern/subst rule
+;;; If <pat> is a string, the rule applies to all URLs beinging
+;;;   with that string and the S3 path is the reset of the string
+;;;   after the prfix.
+;;; These rules can be configured with the AWS:S3URLMAP config variable
+
 
 (define (s3/getloc url)
   (tryseq (rule s3urlrules)
@@ -130,14 +136,21 @@
 	     (unless (has-prefix (s3loc-path s3loc) "/") "/")
 	     (s3loc-path s3loc)))
 
+;; Rules for mapping S3 locations into the local file system
 (define s3diskrules '())
+(ruleconfig! AWS:S3DISKMAP s3diskrules)
+;; Each rule has the form (<bucket> <pat>)
+;;  <pat> can be:
+;;    a string to append to the S3 path to get a local file path
+;;    a function to call on the S3LOC to get a local file path
+;;    a text subst pattern which is called to generate a local file path
 
 (define (s3loc/filename loc)
   (tryseq (rule s3diskrules)
     (tryif (equal? (s3loc-bucket loc) (car rule))
       (if (applicable? (cadr rule))
 	  ((cdr rule) loc)
-	  (if (string? (cdr rule))
+	  (if (string? (cadr rule))
 	      (string-append (cadr rule)
 			     (if (has-suffix (cadr rule) "/") "" "/")
 			     (s3loc-path loc))
