@@ -101,6 +101,12 @@ static fdtype zipreopen(struct FD_ZIPFILE *zf,int locked)
       return FD_TRUE;}}
 }
 
+static fdtype iszipfile_prim(fdtype arg)
+{
+  if (FD_PTR_TYPEP(arg,fd_zipfile_type)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* Creating/opening zip files */
 
 static fdtype zipopen(u8_string path,int zflags)
@@ -276,53 +282,56 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
 
 /* Initialization */
 
-FD_EXPORT int fd_init_zippity(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_ziptools(void) FD_LIBINIT_FN;
 
-static int zippity_init=0;
+static int ziptools_init=0;
 
-FD_EXPORT int fd_init_zippity()
+FD_EXPORT int fd_init_ziptools()
 {
-  fdtype zippity_module;
-  if (zippity_init) return;
+  fdtype ziptools_module;
+  if (ziptools_init) return;
   fd_register_source_file(versionid);
-  zippity_init=1;
-  zippity_module=fd_new_module("ZIPPITY",(FD_MODULE_SAFE));
+  ziptools_init=1;
+  ziptools_module=fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));
   
   fd_zipfile_type=fd_register_cons_type("ZIPFILE");
   
   fd_unparsers[fd_zipfile_type]=unparse_zipfile;
   fd_recyclers[fd_zipfile_type]=recycle_zipfile;
 
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
+	   fd_make_cprim1("ZIPFILE?",iszipfile_prim,1));
+
+  fd_idefn(ziptools_module,
 	   fd_make_cprim2x("ZIP/OPEN",zipopen_prim,1,
 			   fd_string_type,FD_VOID,-1,FD_FALSE));
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
 	   fd_make_cprim1x("ZIP/MAKE",zipmake_prim,1,fd_string_type,FD_VOID));
 
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
 	   fd_make_cprim1x
 	   ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
 
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
 	   fd_make_cprim3x("ZIP/ADD!",zipadd_prim,3,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
 
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
 	   fd_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID));
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
 	   fd_make_cprim3x("ZIP/GET",zipget_prim,2,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
 
-  fd_idefn(zippity_module,
+  fd_idefn(ziptools_module,
 	   fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
 			   fd_zipfile_type,FD_VOID));
 
-  fd_finish_module(zippity_module);
-  fd_persist_module(zippity_module);
+  fd_finish_module(ziptools_module);
+  fd_persist_module(ziptools_module);
 }

@@ -164,6 +164,17 @@ AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
+AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
+if test $with_optinclude != "none"; then
+  CPPFLAGS="$CPPFLAGS -I$with_optinclude"
+  CFLAGS="$CFLAGS -I$with_optinclude"
+fi
+
+AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
+if test $with_optlib != "none"; then
+  LDFLAGS="$LDFLAGS -L$with_optlib"
+fi
+
 dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
@@ -533,8 +544,8 @@ if (test "x$have_zip_h" = "xyes"); then
   AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
 fi
 if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
-  CMODULES="lib/framerd/zippity.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-zippity ${INSTALLCMODULES}"
+  CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
 fi
 
 dnl When available, use the thread-optimized tcmalloc functions from

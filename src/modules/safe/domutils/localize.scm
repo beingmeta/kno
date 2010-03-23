@@ -9,6 +9,12 @@
 
 (use-module '{fdweb texttools domutils logger})
 
+(define havezip #f)
+
+(when (get-module 'ziptools)
+  (use-module 'ziptools)
+  (set! havezip #t))
+
 (define %loglevel %notice!)
 
 (module-export! '{dom/localize!})
@@ -23,45 +29,72 @@
 (define absurlstart
   (choice #((isalpha) (isalpha) (isalpha+) ":") "/"))
 
-(define (localref ref urlmap base target read amalgamate localhosts)
-  (try (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
+;; Converts a URL into a local reference, copying its data if needed
+;; BASE is the URL of the target document (making the reference)
+;; TARGET is the where downloaded data should be stored locally
+;; READ is subdir of base where things should be stored
+(define (localref ref urlmap base saveto read amalgamate localhosts)
+  (try ;; relative references are untouched
+       (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
+       ;; if we're gluing a bunch of files together (amalgamating them),
+       ;;  the ref will just be move to the current file
        (tryif (exists has-prefix ref amalgamate)
 	 (textsubst ref `(GREEDY ,amalgamate) ""))
+       ;; If it's got a fragment identifer, make a localref without the
+       ;;  fragment and put the fragment back.  We don't bother checking
+       ;;; fragment ID uniqueness
        (tryif (position #\# ref)
 	 (let ((hashpos (position #\# ref)))
 	   (string-append (localref (subseq ref 0 hashpos)
-				    urlmap base target read
+				    urlmap base saveto read
 				    (qc amalgamate) (qc localhosts))
 			  (subseq ref hashpos))))
+       ;; Check the cache
        (get urlmap ref)
-       (if (exists string-starts-with? ref localhosts)
-	   ref
-	   (let ((absref
-		  (if (string-starts-with? ref absurlstart) ref
-		      (mkpath (dirname base) ref)))
-		 (saveto (if (has-suffix target "/") target
-			     (string-append target "/"))))
-	     ;; (%watch ref base target saveto read)
-	     (try (get urlmap absref)
-		  (let* ((name (basename (uribase ref)))
-			 (content (urlcontent absref))
-			 (outfile (chkdir (append saveto ref)))
-			 (lref (mkpath read ref)))
-		    ;; This has fragments and queries stripped (uribase)
-		    ;; and additionally has the 'directory' part of the URI
-		    ;; removed so that it's a local file name
-		    (loginfo "Downloaded " (write outfile)
-			     " from " (write absref) " ref "
-			     "to " lref)
-		    (write-file outfile content)
-		    (store! urlmap absref lref)
-		    lref))))))
+       ;; don't bother localizing these references
+       (tryif (exists string-starts-with? ref localhosts) ref)
+       ;; No easy outs, fetch the content and store it
+       (let ((absref
+	      (if (string-starts-with? ref absurlstart) ref
+		  (mkpath (dirname base) ref))))
+	 ;; (%watch ref base target saveto read)
+	 (try (get urlmap absref)
+	      (let* ((name (basename (uribase ref)))
+		     (content (urlcontent absref))
+		     (lref (mkpath read name)))
+		;; This has fragments and queries stripped (uribase)
+		;; and additionally has the 'directory' part of the URI
+		;; removed so that it's a local file name
+		(loginfo "Downloaded " (write absref) " for " lref)
+		(save-content saveto lref content)
+		(store! urlmap absref lref)
+		lref)))))
 
-(define (dom/localize! dom base write (read) (amalgamate #f) (localhosts #f))
+;; This will avoid optimization warnings if we don't have ziptools
+(define save-content
+  (if havezip
+      (lambda (saveto lref content)
+	(cond ((string? saveto)
+	       (write-file (mkpath saveto lref) content))
+	      ((zipfile? saveto)
+	       (zip/add! saveto lref content))
+	      ((and (pair? saveto)
+		    (zipfile? (car saveto))
+		    (string? (cdr saveto)))
+	       (zip/add! saveto (mkpath (cdr saveto) lref) content))
+	      (else (error "Bad SAVE-CONTENT call"))))
+      (lambda (saveto lref content)
+	(cond ((string? saveto)
+	       (write-file (mkpath saveto lref) content))
+	      (else (error "Bad SAVE-CONTENT call"))))))
+
+(define (dom/localize! dom base write
+		       (read) (amalgamate #f) (localhosts #f)
+		       (doanchors #f))
   (default! read write)
-  (let ((urlmap (make-hashtable))
+  (let ((urlmap (try (get dom 'urlmap)  (make-hashtable)))
 	(amalgamate (or amalgamate {}))
-	(lcoalhosts (or localhosts {}))
+	(localhosts (or localhosts {}))
 	(files {}))
     (do-choices (node (dom/find dom "img"))
       (let ((ref (localref (get node 'src)
@@ -69,7 +102,7 @@
 			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
-    (do-choices (node (dom/find dom "link"))
+    (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
       (let ((ref (localref (get node 'href)
 			   urlmap base write read
 			   (qc amalgamate) (qc localhosts))))
@@ -81,11 +114,12 @@
 			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
-    (do-choices (node (pick (dom/find dom "a") 'href))
-      (let ((ref (localref (get node 'href) urlmap base write read
-			   (qc amalgamate) (qc localhosts))))
-	(dom/set! node 'href ref)
-	(set+! files ref)))
+    (when doanchors
+      (do-choices (node (pick (dom/find dom "a") 'href))
+	(let ((ref (localref (get node 'href) urlmap base write read
+			     (qc amalgamate) (qc localhosts))))
+	  (dom/set! node 'href ref)
+	  (set+! files ref))))
     (store! dom 'manifest files)
     (store! dom 'resources write)))
 

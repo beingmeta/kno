@@ -140,11 +140,11 @@
 		  (vector aname aname stringval)))))))
 
 (define (dom/drop! node elt)
-  (when (test node '%content)
+  (when (and (table? node) (test node '%content))
     (let* ((content (get node '%content))
 	   (newcontent (remove elt content)))
       (cond ((eq? content newcontent)
-	     (some? (lambda (x) (dom/drop! x elt))
+	     (some? (lambda (x) (and (table? x) (dom/drop! x elt)))
 		    content))
 	    (else (store! node '%content newcontent)
 		  #t)))))
