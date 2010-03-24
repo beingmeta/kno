@@ -483,6 +483,13 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
 	 (_("pathname or path CONFIG"),"mkpath_prim",dirname);
 }
 
+static fdtype mktemp_prim(fdtype template)
+{
+  u8_string buf=u8_strdup(FD_STRDATA(template));
+  mktemp(buf);
+  return fd_init_string(NULL,-1,buf);
+}
+
 static fdtype runfile_prim(fdtype suffix)
 {
   return fd_init_string(NULL,-1,fd_runbase_filename(FD_STRDATA(suffix)));
@@ -1527,6 +1534,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("MKPATH",mkpath_prim,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("MKTEMP",mktemp_prim,1,fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("RUNFILE",runfile_prim,1,fd_string_type,FD_VOID));
 
