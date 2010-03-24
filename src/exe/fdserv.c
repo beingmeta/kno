@@ -73,7 +73,8 @@ typedef struct FD_WEBCONN *fd_webconn;
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
 static fdtype response_symbol, err_symbol, cgidata_symbol, browseinfo_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid, remote_info_symbol;
-static fdtype content_slotid, content_type, tracep_slotid, query_symbol, referer_symbol;
+static fdtype content_slotid, content_type, retfile_slotid;
+static fdtype tracep_slotid, query_symbol, referer_symbol;
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
 
@@ -616,21 +617,36 @@ static int webservefn(u8_client ucl)
     U8_OUTPUT tmp; int retval, tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
+    fdtype retfile=((FD_VOIDP(content))?
+		    (fd_get(cgidata,retfile_slotid,FD_VOID)):
+		    (FD_VOID));
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
     /* if (tracep) fprintf(stderr,"%s\n",tmp.u8_outbuf); */
     u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
     tmp.u8_outptr=tmp.u8_outbuf;
-    if (FD_VOIDP(content)) {
+    if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
+      /* Normal case, when the output is just sent to the client */
       if (write_headers) {
-	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
+		write_headers=fd_output_xhtml_preface(&tmp,cgidata);
 	u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
       retval=u8_writeall(client->socket,client->out.u8_outbuf,
 			 client->out.u8_outptr-client->out.u8_outbuf);
       if (write_headers)
 	write_string(client->socket,"</body>\n</html>\n");}
-    else {
+    else if (FD_STRINGP(retfile)) {
+      /* This needs more error checking, signallin */
+      u8_string filename=FD_STRDATA(retfile);
+      FILE *f=u8_fopen(filename,"rb");
+      if (f) {
+	int bytes_read=0; unsigned char buf[32768];
+	while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
+	  int retval=u8_writeall(client->socket,buf,bytes_read);
+	  if (retval<0) break;}
+	fclose(f);}}
+      else {
+      /* Where the servlet has specified some particular content */
       output_content(client,content);
       client->out.u8_outptr=client->out.u8_outbuf;}
     u8_client_close(ucl);
@@ -668,7 +684,7 @@ static int webservefn(u8_client ucl)
     if (reqlog) fd_dtsflush(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(query);}
-  else 
+  else {}
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
   /* u8_client_close(ucl); */
@@ -713,6 +729,7 @@ static void init_symbols()
   xmlpi_slotid=fd_intern("XMLPI");
   content_type=fd_intern("CONTENT-TYPE");
   content_slotid=fd_intern("CONTENT");
+  retfile_slotid=fd_intern("RETFILE");
   html_headers=fd_intern("HTML-HEADERS");
   http_headers=fd_intern("HTTP-HEADERS");
   tracep_slotid=fd_intern("TRACEP");
