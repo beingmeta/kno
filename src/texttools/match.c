@@ -216,7 +216,7 @@ fd_exception fd_TXInvalidPattern=_("Not a valid TX text pattern");
 
 fd_ptr_type fd_txclosure_type;
 
-static fdtype label_symbol, star_symbol, plus_symbol, opt_symbol;
+static fdtype subst_symbol, label_symbol, star_symbol, plus_symbol, opt_symbol;
 
 #define string_ref(s) ((*(s) < 0x80) ? (*(s)) : (u8_string_ref(s)))
 
@@ -396,7 +396,7 @@ fdtype fd_text_domatch
 	      u8_byteoff val=FD_FIX2INT(a);
 	      if (val>max) max=val;}
 	    else {
-	      fdtype err=fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,a);
+	      fdtype err=fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,a);
 	      fd_decref(answer); answer=err;
 	      FD_STOP_DO_CHOICES;
 	      break;}
@@ -405,7 +405,7 @@ fdtype fd_text_domatch
 	  else fd_decref(answer);}
 	else {
 	  fd_decref(answer); FD_STOP_DO_CHOICES;
-	  return fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,each);}}
+	  return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,each);}}
       if (max<0) return FD_EMPTY_CHOICE; else return FD_INT2DTYPE(max);}
     else {
       fdtype answers=FD_EMPTY_CHOICE;
@@ -437,7 +437,7 @@ fdtype fd_text_domatch
       if (FD_EQ(scan->symbol,head)) break; else scan++; 
     if (scan < limit)
       result=scan->matcher(pat,next,env,string,off,lim,flags);
-    else return fd_err(fd_MatchSyntaxError,"fd_text_matcher",
+    else return fd_err(fd_MatchSyntaxError,"fd_text_domatch",
 		       _("unknown match operator"),pat);
     if ((FD_CHOICEP(result)) && (flags&(FD_MATCH_BE_GREEDY)))
       return get_longest_match(result);
@@ -446,7 +446,7 @@ fdtype fd_text_domatch
     if (env) {
       fdtype v=fd_symeval(pat,env);
       if (FD_VOIDP(v))
-	return fd_err(fd_UnboundIdentifier,"fd_text_matcher",
+	return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
 		      _("unknown match symbol"),pat);
       else {
 	fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
@@ -1122,69 +1122,77 @@ static u8_byteoff subst_search
   else return fd_text_search(spat,env,string,off,lim,flags);
 }
 
-static u8_byteoff fillargs(fdtype *vec,int i,int n,fdtype lst)
-{
-  if (FD_EMPTY_LISTP(lst)) return i;
-  else if (!(FD_PAIRP(lst))) return -1;
-  else if (i>=n) return -1;
-  else {
-    vec[i]=FD_CAR(lst);
-    return fillargs(vec,i+1,n,FD_CDR(lst));}
-}
-
+static fdtype expand_subst_args(fdtype args,fd_lispenv env);
 static fdtype subst_extract
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype spat=fd_get_arg(pat,1);
-  fdtype repl=fd_get_arg(pat,2);
-  if ((FD_VOIDP(spat)) || (FD_VOIDP(repl)))
+  if (FD_VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
   else {
-    fdtype extractions=textract(spat,next,env,string,off,lim,flags);
-    fdtype answers=FD_EMPTY_CHOICE;
-    if (FD_ABORTP(extractions)) return extractions;
+    fdtype matches=fd_text_domatch(spat,next,env,string,off,lim,flags);
+    if (FD_ABORTP(matches)) return matches;
     else {
-      FD_DO_CHOICES(extraction,extractions) {
-	fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
-	FD_DO_CHOICES(r,repl) {
-	  fdtype replacement;
-	  if (FD_STRINGP(r)) replacement=fd_incref(r);
-	  else {
-	    fdtype method=FD_VOID;
-	    if (FD_APPLICABLEP(r)) method=fd_incref(r);
-	    else if (FD_SYMBOLP(r)) {
-	      if (env) method=fd_symeval(r,env);
-	      else method=fd_get(fd_scheme_module,r,FD_VOID);}
-	    else {}
-	    if (FD_ABORTP(method)) replacement=method;
-	    else if (!(FD_APPLICABLEP(method))) {
-	      replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,r);
-	      fd_decref(method);}
-	    else {
-	      fdtype size=FD_CAR(extraction);
-	      fdtype tmpstring=
-		fd_extract_string(NULL,string+off,string+fd_getint(size));
-	      fdtype args[16];
-	      int n=fillargs(args,1,16,FD_CDR(FD_CDR(FD_CDR(pat))));
-	      if (n<0)
-		replacement=fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
-	      else {
-		args[0]=tmpstring;
-		replacement=fd_apply(method,n,args);}
-	      fd_decref(tmpstring);}
-	    fd_decref(method);}
-	  if (FD_ABORTP(replacement)) {
-	    fd_decref(answers); fd_decref(extractions);
-	    return replacement;}
-	  else {
-	    FD_DO_CHOICES(rep,replacement) {
-	      fdtype lst=fd_init_pair
-		(NULL,size,fd_make_list(3,FD_CAR(pat),fd_incref(data),fd_incref(rep)));
-	      FD_ADD_TO_CHOICE(answers,lst);}}
-	  fd_decref(replacement);}}
-      fd_decref(extractions);
+      fdtype answers=FD_EMPTY_CHOICE;
+      fdtype args=FD_CDR(FD_CDR(pat));
+      fdtype expanded=expand_subst_args(args,env);
+      int expandedp=((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))||	  (!(FD_EQUAL(args,expanded))));
+      FD_DO_CHOICES(match,matches) {
+	int matchlen=fd_getint(match);
+	fdtype matched=fd_extract_string(NULL,string+off,string+matchlen);
+	if ((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))) {
+	  FD_DO_CHOICES(subst_arg,expanded) {
+	    fdtype new_args=fd_init_pair(NULL,fd_incref(matched),
+					 fd_incref(subst_arg));
+	    fdtype new_subst=fd_init_pair(NULL,subst_symbol,new_args);
+	    fdtype answer=fd_init_pair(NULL,match,new_subst);
+	    FD_ADD_TO_CHOICE(answers,answer);}
+	  fd_decref(expanded);
+	  fd_decref(matched);}
+	else {
+	  fdtype new_args=fd_init_pair(NULL,matched,expanded);
+	  fdtype new_subst=fd_init_pair(NULL,subst_symbol,new_args);
+	  fdtype answer=fd_init_pair(NULL,match,new_subst);
+	  FD_ADD_TO_CHOICE(answers,answer);}}
+      fd_decref(matches);
       return answers;}}
+}
+
+static fdtype expand_subst_args(fdtype args,fd_lispenv env)
+{
+  if (FD_SYMBOLP(args))
+    if (env) return fd_symeval(args,env);
+    else return args;
+  else if (!(FD_CONSP(args))) return args;
+  else if (FD_PAIRP(args)) {
+    fdtype carchoices=expand_subst_args(FD_CAR(args),env);
+    fdtype cdrchoices=expand_subst_args(FD_CDR(args),env);
+    /* Avoid the multiplication of conses by reusing ARGS if it
+       hasn't exploded or changed. */
+    if ((FD_CHOICEP(carchoices))||(FD_ACHOICEP(carchoices))||
+	(FD_CHOICEP(cdrchoices))||(FD_ACHOICEP(cdrchoices))) {
+      fdtype conses=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(car,carchoices) {
+	FD_DO_CHOICES(cdr,cdrchoices) {
+	  fdtype cons=fd_init_pair(NULL,car,cdr);
+	  fd_incref(car); fd_incref(cdr);
+	  FD_ADD_TO_CHOICE(conses,cons);}}
+      fd_decref(carchoices);
+      fd_decref(cdrchoices);
+      return conses;}
+    else if ((FD_EQUAL(carchoices,FD_CAR(args)))&&
+	     (FD_EQUAL(cdrchoices,FD_CDR(args)))) {
+      fd_decref(carchoices); fd_decref(cdrchoices);
+      return fd_incref(args);}
+    else return fd_init_pair(NULL,carchoices,cdrchoices);}
+  else if (FD_CHOICEP(args)) {
+    fdtype changed=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(elt,args) {
+      fdtype cv=expand_subst_args(elt,env);
+      FD_ADD_TO_CHOICE(changed,cv);}
+    return changed;}
+  else return fd_incref(args);
 }
 
 /* Match preferred */
@@ -2227,6 +2235,8 @@ static u8_byteoff isword_search
   return -1;
 }
 
+/* Digit matching */
+
 static fdtype isdigit_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -2422,6 +2432,46 @@ static u8_byteoff ispunct_search
   return -1;
 }
 
+
+static fdtype isprint_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isprint(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype isprint_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isprint(ch)) {
+    while (u8_isprint(ch)) {
+      off=forward_char(string,off);
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+      ch=string_ref(string+off);}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
+  else return FD_EMPTY_CHOICE;
+}
+static u8_byteoff isprint_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (u8_isprint(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
 static fdtype iscntrl_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -2460,6 +2510,8 @@ static u8_byteoff iscntrl_search
     else s=u8_substring(s,1);}
   return -1;
 }
+
+/* ISLOWER methods */
 
 static fdtype islower_match
   (fdtype pat,fdtype next,fd_lispenv env,
@@ -2500,6 +2552,51 @@ static u8_byteoff islower_search
   return -1;
 }
 
+/* ISNOTLOWER methods */
+
+#define isnotlower(c) ((u8_isprint(c))&&(!(u8_islower(c))))
+
+static fdtype isnotlower_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (isnotlower(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype isnotlower_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_unichar ch=string_ref(string+off);
+  if (isnotlower(ch)) {
+    while ((isnotlower(ch)) && (off<lim)) {
+      off=forward_char(string,off);
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+      ch=string_ref(string+off);}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
+  else return FD_EMPTY_CHOICE;
+}
+static u8_byteoff isnotlower_search
+   (fdtype pat,fd_lispenv env,
+    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (isnotlower(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
+/* ISUPPER methods */
+
 static fdtype isupper_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
@@ -2538,6 +2635,51 @@ static u8_byteoff isupper_search
     else s=u8_substring(s,1);}
   return -1;
 }
+
+/* ISNOTUPPER methods */
+
+#define isnotupper(c) ((u8_isprint(c))&&(!(u8_isupper(c))))
+
+static fdtype isnotupper_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (isnotupper(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype isnotupper_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_unichar ch=string_ref(string+off);
+  if (isnotupper(ch)) {
+    while ((isnotupper(ch)) && (off<lim)) {
+      off=forward_char(string,off);
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+      ch=string_ref(string+off);}
+    if ((flags)&(FD_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return match_points;}
+  else return FD_EMPTY_CHOICE;
+}
+static u8_byteoff isnotupper_search
+   (fdtype pat,fd_lispenv env,
+    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (isnotupper(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
+/* Matching compound words */
 
 static fdtype compound_word_match
   (fdtype pat,fdtype next,fd_lispenv env,
@@ -3321,6 +3463,8 @@ void fd_init_match_c()
   fd_add_match_operator("ISALPHA+",isalpha_plus_match,isalpha_search,NULL);
   fd_add_match_operator("ISDIGIT",isdigit_match,isdigit_search,NULL);
   fd_add_match_operator("ISDIGIT+",isdigit_plus_match,isdigit_search,NULL);
+  fd_add_match_operator("ISPRINT",isprint_match,isprint_search,NULL);
+  fd_add_match_operator("ISPRINT+",isprint_plus_match,isprint_search,NULL);
   fd_add_match_operator("ISXDIGIT",isxdigit_match,isxdigit_search,NULL);
   fd_add_match_operator("ISXDIGIT+",isxdigit_plus_match,isxdigit_search,NULL);
   fd_add_match_operator("ISODIGIT",isodigit_match,isodigit_search,NULL);
@@ -3333,6 +3477,12 @@ void fd_init_match_c()
   fd_add_match_operator("ISUPPER+",isupper_plus_match,isupper_search,NULL);
   fd_add_match_operator("ISLOWER",islower_match,islower_search,NULL);
   fd_add_match_operator("ISLOWER+",islower_plus_match,islower_search,NULL);
+  fd_add_match_operator("ISNOTUPPER",isnotupper_match,isnotupper_search,NULL);
+  fd_add_match_operator("ISNOTUPPER+",
+			isnotupper_plus_match,isnotupper_search,NULL);
+  fd_add_match_operator("ISNOTLOWER",isnotlower_match,isnotlower_search,NULL);
+  fd_add_match_operator("ISNOTLOWER+",
+			isnotlower_plus_match,isnotlower_search,NULL);
   fd_add_match_operator("LSYMBOL",islsym_match,islsym_search,NULL);
   fd_add_match_operator("CSYMBOL",iscsym_match,iscsym_search,NULL);
   fd_add_match_operator("XMLNAME",xmlname_match,xmlname_search,NULL);
@@ -3360,6 +3510,7 @@ void fd_init_match_c()
   fd_add_match_operator("MAXLEN",maxlen_match,maxlen_search,NULL);
 
   label_symbol=fd_intern("LABEL");
+  subst_symbol=fd_intern("SUBST");
   star_symbol=fd_intern("*");
   plus_symbol=fd_intern("+");
   opt_symbol=fd_intern("OPT");

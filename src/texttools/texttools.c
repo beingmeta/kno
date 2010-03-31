@@ -801,6 +801,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
     substrings matching a pattern. */
 
 static fdtype star_symbol, plus_symbol, label_symbol, subst_symbol, opt_symbol;
+static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args);
 static int dorewrite(u8_output out,fdtype xtract)
 {
   if (FD_STRINGP(xtract))
@@ -820,12 +821,35 @@ static int dorewrite(u8_output out,fdtype xtract)
 	FD_DOLIST(elt,elts) {
 	  int retval=dorewrite(out,elt);
 	  if (retval<0) return retval;}}}
-    else if ((sym==label_symbol) || (sym==subst_symbol)) {
+    else if (sym==label_symbol) {
       fdtype content=fd_get_arg(xtract,2);
       if (FD_VOIDP(content)) {
 	fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
 	return -1;}
       else if (dorewrite(out,content)<0) return -1;}
+    else if (sym==subst_symbol) {
+      fdtype args=FD_CDR(FD_CDR(xtract)), content, head, params;
+      if (FD_EMPTY_LISTP(args)) return 1;
+      content=FD_CAR(FD_CDR(xtract)); head=FD_CAR(args); params=FD_CDR(args);
+      if ((FD_STRINGP(head))&&(FD_EMPTY_LISTP(params)))
+	u8_putn(out,FD_STRDATA(head),FD_STRLEN(head));
+      else if (FD_APPLICABLEP(head)) {
+	fdtype xformed=rewrite_apply(head,content,params);
+	u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
+	fd_decref(xformed);
+	return 1;}
+      else {
+	FD_DOLIST(elt,args)
+	  if (FD_STRINGP(elt))
+	    u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));
+	  else if (FD_TRUEP(elt))
+	    u8_putn(out,FD_STRDATA(content),FD_STRLEN(content));
+	  else if (FD_APPLICABLEP(elt)) {
+	    fdtype xformed=rewrite_apply(elt,content,FD_EMPTY_LIST);
+	    u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
+	    fd_decref(xformed);}
+	  else {}
+	return 1;}}
     else {
       fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
       return -1;}}
@@ -833,6 +857,19 @@ static int dorewrite(u8_output out,fdtype xtract)
     fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
     return -1;}
   return 1;
+}
+
+static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args)
+{
+  if (FD_EMPTY_LISTP(args))
+    return fd_apply(fcn,1,&content);
+  else {
+    fdtype argvec[16]; int i=1;
+    FD_DOLIST(arg,args) {
+      if (i>=16) return fd_err(fd_TooManyArgs,"rewrite_apply",NULL,fcn);
+      else argvec[i++]=arg;}
+    argvec[0]=content;
+    return fd_apply(fcn,i,argvec);}
 }
 
 static fdtype textrewrite(fdtype pattern,fdtype string,
@@ -864,8 +901,8 @@ static fdtype textrewrite(fdtype pattern,fdtype string,
 }
 
 static fdtype textsubst(fdtype string,
-			 fdtype pattern,fdtype replace,
-			 fdtype offset,fdtype limit)
+			fdtype pattern,fdtype replace,
+			fdtype offset,fdtype limit)
 {
   u8_byteoff off, lim;
   u8_string data=FD_STRDATA(string);
@@ -887,7 +924,8 @@ static fdtype textsubst(fdtype string,
 	fd_decref(match_result);
 	if (end<0) {
 	  u8_puts(&out,data+last);
-	  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+	  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,
+				out.u8_outbuf);}
 	else if (end>start) {
 	  u8_putn(&out,data+last,start-last);
 	  if (FD_STRINGP(replace))
@@ -896,24 +934,26 @@ static fdtype textsubst(fdtype string,
 	    u8_string stringdata=FD_STRDATA(string);
 	    fdtype lisp_lim=FD_INT2DTYPE(u8_charoffset(stringdata,lim));
 	    fdtype replace_pat, xtract;
-	    if (FD_VOIDP(replace)) replace_pat=pattern; else replace_pat=replace;
+	    if (FD_VOIDP(replace)) replace_pat=pattern;
+	    else replace_pat=replace;
 	    xtract=fd_text_extract(replace_pat,NULL,stringdata,start,lim,0);
 	    if (FD_ABORTP(xtract)) {
 	      u8_free(out.u8_outbuf);
 	      return xtract;}
 	    else if (FD_EMPTY_CHOICEP(xtract)) {
-	      /* This is the incorrect case where the matcher works but extraction does not.
-		 We simply */
-	      u8_byte buf[256]; int showlen=(((end-start)<256)?(end-start):(255));
+	      /* This is the incorrect case where the matcher works
+		 but extraction does not.  We simply report an error. */
+	      u8_byte buf[256];
+	      int showlen=(((end-start)<256)?(end-start):(255));
 	      strncpy(buf,data+start,showlen); buf[showlen]='\0';
-	      u8_log(LOG_WARN,fd_BadExtractData,"Pattern %q matched '%s' but couldn't extract",
+	      u8_log(LOG_WARN,fd_BadExtractData,
+		     "Pattern %q matched '%s' but couldn't extract",
 		     pattern,buf);
 	      u8_putn(&out,data+start,end-start);}
 	    else if ((FD_CHOICEP(xtract)) || (FD_ACHOICEP(xtract))) {
 	      fdtype results=FD_EMPTY_CHOICE;
 	      FD_DO_CHOICES(xt,xtract) {
 		u8_byteoff newstart=fd_getint(FD_CAR(xt));
-		/* u8_charoff newstart=u8_charoffset(stringdata,(fd_getint(FD_CAR(xt)))); */
 		if (newstart==lim) {
 		  fdtype stringval;
 		  struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
@@ -928,7 +968,8 @@ static fdtype textsubst(fdtype string,
 		else {
 		  u8_charoff new_char_off=u8_charoffset(stringdata,newstart);
 		  fdtype remainder=textsubst
-		    (string,pattern,replace,FD_INT2DTYPE(new_char_off),lisp_lim);
+		    (string,pattern,replace,
+		     FD_INT2DTYPE(new_char_off),lisp_lim);
 		  FD_DO_CHOICES(rem,remainder) {
 		    fdtype stringval;
 		    struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
@@ -1132,7 +1173,7 @@ static fdtype text2frame(fdtype pattern,fdtype string,
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
-    return fd_err(fd_RangeError,"textsubst",NULL,FD_VOID);
+    return fd_err(fd_RangeError,"text2frame",NULL,FD_VOID);
   else {
     fdtype extract_results=
       fd_text_extract(pattern,NULL,FD_STRDATA(string),off,lim,0);
@@ -1155,7 +1196,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
-    return fd_err(fd_RangeError,"textsubst",NULL,FD_VOID);
+    return fd_err(fd_RangeError,"text2frames",NULL,FD_VOID);
   else {
     fdtype results=FD_EMPTY_CHOICE;
     u8_string data=FD_STRDATA(string);
@@ -1202,7 +1243,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 
 /* Slicing */
 
-static fdtype suffix_symbol, prefix_symbol;
+static fdtype suffix_symbol, prefix_symbol, sep_symbol;
 
 static int interpret_keep_arg(fdtype keep_arg)
 {
@@ -1211,9 +1252,11 @@ static int interpret_keep_arg(fdtype keep_arg)
   else if (FD_FIXNUMP(keep_arg))
     return FD_FIX2INT(keep_arg);
   else if (FD_EQ(keep_arg,suffix_symbol))
-    return -1;
-  else if (FD_EQ(keep_arg,prefix_symbol))
     return 1;
+  else if (FD_EQ(keep_arg,prefix_symbol))
+    return -1;
+  else if (FD_EQ(keep_arg,sep_symbol))
+    return 2;
   else return 0;
 }
 
@@ -1239,30 +1282,33 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
     while ((scan>=0) && (scan<len)) {
       fdtype match_result=
 	fd_text_matcher(sep,NULL,data,scan,len,0);
-      fdtype substring=FD_VOID, newpair;
+      fdtype sepstring=FD_VOID, substring=FD_VOID, newpair;
       int end=-1;
       /* Figure out how long the sep is, taking the longest result. */
       {FD_DO_CHOICES(match,match_result) {
 	  int point=fd_getint(match); if (point>end) end=point;}}
       fd_decref(match_result);
       /* Here's what it should look like: 
-	 [start] ... [scan] ... [end] */
-      /* If you're attaching separator backwards (keep<0),
+	 [start] ... [scan] ... [end]
+	 where [start] was the beginning of the current scan,
+	 [scan] is where the separator starts and [end] is where the
+	 separator ends */
+      /* If you're attaching separator as prefixes (keep<0),
 	 extract the string from start to end, otherwise,
 	 just attach start to scan. */
-      if (keep<0)
-	if (end>start)
-	  substring=fd_extract_string(NULL,data+start,data+end);
-	else {}
-      else if (scan>start)
-	substring=fd_extract_string(NULL,data+start,data+scan);
+      if (end>start)
+	if (keep<=0)
+	  substring=fd_extract_string(NULL,data+start,data+scan);
+	else if (keep==2) {
+	  sepstring=fd_extract_string(NULL,data+scan,data+end);
+	  substring=fd_extract_string(NULL,data+start,data+scan);}
+	else substring=fd_extract_string(NULL,data+start,data+end);
       else {}
       /* Advance to the next separator.  Use a start from the current
-	 separator if you're attaching separators backward (keep<0), and
+	 separator if you're attaching separators as suffixes (keep<0), and
 	 a start from just past the separator if you're dropping
 	 separators or attaching them forward (keep>=0). */
-      if (keep>0) start=scan;
-      else start=end;
+      if (keep<0) start=scan; else start=end;
       if ((end<0) || (scan==end))
 	/* If the 'separator' is the empty string, start your
 	   search from one character past the current end.  This
@@ -1273,6 +1319,10 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
       /* Push it onto the list. */
       if (!(FD_VOIDP(substring))) {
 	newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
+	*tail=newpair; tail=&(FD_CDR(newpair));}
+      /* Push the separator if you're keeping it */
+      if (!(FD_VOIDP(sepstring))) {
+	newpair=fd_init_pair(NULL,sepstring,FD_EMPTY_LIST);
 	*tail=newpair; tail=&(FD_CDR(newpair));}}
     /* scan==-2 indicates a real error, not just a failed search. */
     if (scan==-2) {
@@ -1999,6 +2049,7 @@ void fd_init_texttools()
   opt_symbol=fd_intern("OPT");
   suffix_symbol=fd_intern("SUFFIX");
   prefix_symbol=fd_intern("PREFIX");
+  sep_symbol=fd_intern("SEP");
 
   fd_finish_module(texttools_module);
   fd_persist_module(texttools_module);
