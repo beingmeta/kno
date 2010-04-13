@@ -13,6 +13,7 @@ static char versionid[] =
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
 #include "fdb/sequences.h"
+#include "fdb/ports.h"
 #include "fdb/texttools.h"
 
 #include <libu8/libu8.h>
@@ -50,6 +51,31 @@ static u8_byteoff _forward_char(u8_byte *s,u8_byteoff i)
 
 #define forward_char(s,i) \
   ((s[i] == 0) ? (i) : (s[i] >= 0x80) ? (_forward_char(s,i)) : (i+1))
+
+static u8_input get_input_port(fdtype portarg)
+{
+  if (FD_VOIDP(portarg))
+    return NULL; /* get_default_output(); */
+  else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
+    struct FD_PORT *p=
+      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    return p->in;}
+  else return NULL;
+}
+
+/* This is for greedy matching */
+static int getlongmatch(fdtype matches)
+{
+  if (FD_EMPTY_CHOICEP(matches)) return -1;
+  else if ((FD_CHOICEP(matches)) || (FD_ACHOICEP(matches))) {
+    u8_byteoff max=-1;
+    FD_DO_CHOICES(match,matches) {
+      u8_byteoff ival=fd_getint(match);
+      if (ival>max) max=ival;}
+    if (max<0) return FD_EMPTY_CHOICE;
+    else return max;}
+  else return fd_getint(matches);
+}
 
 /* Segmenting */
 
@@ -1633,6 +1659,43 @@ static fdtype is_suffix_prim(fdtype suffix,fdtype string)
     else return FD_FALSE;}
 }
 
+/* Reading matches (streaming GATHER) */
+
+static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
+{
+  int lim;
+  U8_INPUT *in=get_input_port(port);
+  if (in==NULL)
+    return fd_type_error(_("input port"),"record_reader",port);
+  if (FD_VOIDP(limit_arg)) lim=0;
+  else if (FD_FIXNUMP(limit_arg)) lim=FD_FIX2INT(limit_arg);
+  else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
+  int buflen=in->u8_inlim-in->u8_inptr, eof=0;
+  int start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
+  fdtype ends=((start>=0)?(fd_text_matcher(pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):(FD_EMPTY_CHOICE));
+  int end=getlongmatch(ends);
+  fd_decref(ends);
+  if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
+    fdtype result=fd_extract_string(NULL,in->u8_inptr+start,in->u8_inptr+end);
+    in->u8_inptr=in->u8_inptr+end;
+    return result;}
+  else if (in->u8_fillfn) 
+    while (!(((start>=0)&&(end>start)&&((end<buflen)||(eof))))) {
+      int delta=in->u8_fillfn(in);
+      if (delta==0) eof=1;
+      buflen=in->u8_inlim-in->u8_inptr;
+      if (start<0) start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
+      if (start<0) continue;
+      ends=((start>=0)?(fd_text_matcher(pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):(FD_EMPTY_CHOICE));
+      end=getlongmatch(ends);
+      fd_decref(ends);}
+  if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
+    fdtype result=fd_extract_string(NULL,in->u8_inptr+start,in->u8_inptr+end);
+    in->u8_inptr=in->u8_inptr+end;
+    return result;}
+  else return FD_EOF;
+}
+
 /* Character-based escaped segmentation */
 
 static fdtype findsep_prim(fdtype string,fdtype sep,
@@ -2006,6 +2069,13 @@ void fd_init_texttools()
 
   fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_handler);
   fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
+
+  fd_idefn(texttools_module,
+	   fd_make_cprim3x("READ-MATCH",read_match,2,
+			   fd_port_type,FD_VOID,
+			   -1,FD_VOID,
+			   -1,FD_VOID));
+
 
   fd_idefn(texttools_module,
 	   fd_make_cprim3x("MORPHRULE",morphrule,2,
