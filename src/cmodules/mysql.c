@@ -1000,7 +1000,7 @@ FD_EXPORT int fd_init_mysql()
   fdtype module;
   if (mysql_initialized) return 0;
 
-  my_init();
+  /* my_init(); */
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
 

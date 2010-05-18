@@ -25,6 +25,7 @@ static char versionid[] =
 #include <libu8/u8netfns.h>
 #include <libu8/u8srvfns.h>
 #include <libu8/u8rusage.h>
+#include <libu8/u8stdio.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,6 +48,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 static u8_mutex log_lock;
 static u8_string urllogname=NULL;
 static FILE *urllog=NULL;
+static FILE *statlog=NULL;
 static u8_string reqlogname=NULL;
 static fd_dtype_stream reqlog=NULL;
 static int reqloglevel=0;
@@ -63,6 +65,8 @@ static struct U8_XTIME boot_time;
 #define FD_ALLREQS 2 /* records all requests */
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
+static int load_report_freq=1000;
+static time_t last_load_report=-1;
 
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
@@ -142,6 +146,130 @@ static fdtype urllog_get(fdtype var,void *data)
   if (urllog)
     return fdtype_string(urllogname);
   else return FD_FALSE;
+}
+
+/* STATLOG config */
+
+/* The urllog is a plain text (UTF-8) file which contains all of the
+   URLs passed to the servlet.  This can be used for generating new load tests
+   or for general debugging. */
+
+static u8_string statlogfile;
+static long long last_status=0;
+static long status_interval=-1;
+
+static int statlog_set(fdtype var,fdtype val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    u8_string filename=FD_STRDATA(val);
+    fd_lock_mutex(&log_lock);
+    if (statlog) {
+      fclose(statlog); statlog=NULL;
+      u8_free(statlogfile); statlogfile=NULL;}
+    statlogfile=u8_abspath(FD_STRDATA(val),NULL);
+    statlog=u8_fopen_locked(statlogfile,"a");
+    if (statlog) {
+      u8_string tmp;
+      tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
+      fputs(tmp,statlog);
+      fd_unlock_mutex(&log_lock);
+      u8_free(tmp);
+      return 1;}
+    else {
+      u8_log(LOG_WARN,"no file","Couldn't open %s",statlogfile);
+      fd_unlock_mutex(&log_lock);
+      u8_free(statlogfile); statlogfile=NULL;
+      return 0;}}
+  else if (FD_FALSEP(val)) {
+    fd_lock_mutex(&log_lock);
+    if (statlog) {fclose(statlog); statlog=NULL;}
+    fd_unlock_mutex(&log_lock);
+    return 0;}
+  else return fd_reterr
+	 (fd_TypeError,"config_set_statlog",u8_strdup(_("string")),val);
+}
+
+static fdtype statlog_get(fdtype var,void *data)
+{
+  if (statlog)
+    return fdtype_string(statlogfile);
+  else return FD_FALSE;
+}
+
+static int statinterval_set(fdtype var,fdtype val,void *data)
+{
+  if (FD_FIXNUMP(val)) {
+    int intval=FD_FIX2INT(val);
+    if (intval>=0)  status_interval=intval*1000;
+    else {
+      return fd_reterr
+	(fd_TypeError,"config_set_statinterval",
+	 u8_strdup(_("fixnum")),val);}}
+  else return fd_reterr
+	 (fd_TypeError,"config_set_statinterval",
+	  u8_strdup(_("fixnum")),val);
+}
+
+static fdtype statinterval_get(fdtype var,void *data)
+{
+  if (status_interval<0) return FD_FALSE;
+  else return FD_FIX2INT(status_interval);
+}
+
+static void report_status()
+{
+  u8_lock_mutex(&(fdwebserver.lock));
+  long long now=u8_microtime();
+  long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
+  long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
+  int i=0, lim=fdwebserver.socket_lim;
+  struct U8_CLIENT **socketmap=fdwebserver.socketmap;
+  last_status=now;
+  while (i<lim) {
+    u8_client cl=socketmap[i++];
+    if (!(cl)) continue;
+    if (cl->queued>=0) {
+      long long queuestart=cl->queued;
+      long long interval=now-queuestart;
+      wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
+      if (interval>wmax) wmax=interval;}
+    if (cl->started>=0) {
+      long long runstart=cl->started;
+      long long interval=now-runstart;
+      rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
+      if (interval>rmax) rmax=interval;}}
+  if (statlog)
+    u8_fprintf(statlog,
+	       "[%f] %d/%d/%d busy clients; avg(wait)=%f; avg(run)=%f\n",
+	       u8_elapsed_time(),
+	       fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
+	       ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
+	       ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)));
+  else u8_log(LOG_INFO,"fdserv",
+	       "[%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
+	      u8_elapsed_time(),
+	      fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
+	      ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
+	      ((fdwebserver.runcount)?
+	       (((double)fdwebserver.runsum)/(((double)fdwebserver.runcount))):
+	       (-1)));
+  if (statlog)
+    u8_fprintf
+      (statlog,"[%f] wait (n=%d) min=%f max=%f avg=%f\n",
+       u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
+  else u8_log(LOG_INFO,"fdserv","[%f] wait (n=%d) min=%f max=%f avg=%f",
+	      u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
+  if (rcount)
+    if (statlog)
+      u8_fprintf
+	(statlog,
+	 "[%f] run (n=%d) min=%f max=%f avg=%f\n",
+	 u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
+    else u8_log(LOG_INFO,"fdserv",
+		"[%f] run (n=%d) min=%f max=%f avg=%f",
+		u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
+  u8_unlock_mutex(&(fdwebserver.lock));
+  if (statlog) fflush(statlog);
 }
 
 /* REQLOG config */
@@ -505,6 +633,8 @@ static int webservefn(u8_client ucl)
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
+  if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
+    report_status();
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
   /* Clear outstanding errors from the last session */
@@ -914,6 +1044,12 @@ int main(int argc,char **argv)
 		     reqlog_get,reqlog_set,NULL);
   fd_register_config("REQLOGLEVEL",_("Level of transaction logging"),
 		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
+  fd_register_config("STATLOG",_("File for recording status reports"),
+		     statlog_get,statlog_set,&reqloglevel);
+  fd_register_config
+    ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
+     statinterval_get,statinterval_set,NULL);
+
 #if FD_THREADS_ENABLED
   fd_init_mutex(&log_lock);
 #endif
