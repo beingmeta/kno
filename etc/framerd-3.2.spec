@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.2
-Release:        3%{?dist}
+Release:        17%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -161,6 +161,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdweb.so.*
 %{_libdir}/libtexttools.so.*
 %{_libdir}/framerd/crypto.so*
+%{_libdir}/framerd/regex.so*
 %{_bindir}/fdexec
 %{_bindir}/fdconsole
 %{_bindir}/fdbatch
@@ -189,6 +190,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdweb.so
 %{_libdir}/libtexttools.so
 %{_libdir}/framerd/crypto.so
+%{_libdir}/framerd/regex.so
 
 %files static
 %defattr(-,root,root,-)
