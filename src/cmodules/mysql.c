@@ -339,7 +339,8 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
        the TEXT/BLOCK columns are not retrieved, though their sizes
        are.  We then use mysql_stmt_fetch_column to get the particular
        value once we have consed a buffer to use. */
-    fdtype value; int binary=((outval->buffer_type)==MYSQL_TYPE_BLOB);
+    fdtype value;
+    int binary=((outval->buffer_type)==MYSQL_TYPE_BLOB);
     int datalen=(*(outval->length)), buflen=datalen+((binary) ? (0) : (1));
     outval->buffer=u8_alloc_n(buflen,unsigned char);
     outval->buffer_length=buflen;
@@ -421,6 +422,16 @@ static fdtype get_stmt_values
 	  kv[n_slots].value=fd_parse(FD_STRDATA(value));
 	  fd_decref(value);}
 	else kv[n_slots].value=value;
+      else if (FD_PRIM_TYPEP(colmaps[i],fd_uuid_type))
+	if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
+	  struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+	  unsigned char *data=
+	    ((FD_PACKETP(value))?(FD_PACKET_DATA(value)):(FD_STRDATA(value)));
+	  FD_INIT_CONS(uuid,fd_uuid_type);
+	  memcpy(uuid->uuid,data,16);
+	  fd_decref(value);
+	  kv[n_slots].value=FDTYPE_CONS(uuid);}
+	else kv[n_slots].value=value;
       else kv[n_slots].value=value;
       kv[n_slots].key=colnames[i];
       n_slots++;
@@ -496,6 +507,10 @@ static int init_stmt_results
       if (fields[i].type==MYSQL_TYPE_BLOB)
 	if ((fields[i].flags)&(BINARY_FLAG))
 	  outbound[i].buffer_type=fields[i].type;
+	else outbound[i].buffer_type=MYSQL_TYPE_STRING;
+      else if (fields[i].type==MYSQL_TYPE_STRING)
+	if (fields[i].charsetnr==63)
+	  outbound[i].buffer_type=MYSQL_TYPE_BLOB;
 	else outbound[i].buffer_type=MYSQL_TYPE_STRING;
       else outbound[i].buffer_type=fields[i].type;
       outbound_setup(&(outbound[i]));
@@ -838,6 +853,12 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       inbound[i].buffer=FD_PACKET_DATA(arg);
       inbound[i].buffer_length=FD_PACKET_LENGTH(arg);
       inbound[i].length=&(inbound[i].buffer_length);}
+    else if (FD_PRIM_TYPEP(arg,fd_uuid_type)) {
+      struct FD_UUID *uuid=FD_GET_CONS(arg,fd_uuid_type,struct FD_UUID *);
+      inbound[i].buffer_type=MYSQL_TYPE_STRING;
+      inbound[i].buffer=&(uuid->uuid);
+      inbound[i].buffer_length=16;
+      inbound[i].length=NULL;}
     else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
       struct FD_TIMESTAMP *tm=
 	FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);

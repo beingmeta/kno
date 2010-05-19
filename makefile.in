@@ -348,10 +348,6 @@ distclean: clean
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f include/fdb/config.h
 
-debug:
-	make clean
-	make XCFLAGS='-O0'
-
 lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.so.@VERSION@: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.so: lib/libfdtype.so.@VERSION@
