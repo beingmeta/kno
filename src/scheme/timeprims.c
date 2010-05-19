@@ -1155,6 +1155,47 @@ static fdtype calltrack_sense(fdtype all)
 #endif
 }
 
+/* UUID functions */
+
+static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
+{
+  struct U8_XTIME *xt;
+  if ((FD_VOIDP(tptr))&&(FD_VOIDP(nodeid)))
+    return fd_fresh_uuid(NULL);
+  if (FD_VOIDP(tptr)) xt=NULL;
+  else if (FD_PRIM_TYPEP(tptr,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *tstamp=     
+      FD_GET_CONS(tptr,fd_timestamp_type,struct FD_TIMESTAMP *);
+    xt=&(tstamp->xtime);}
+  else xt=NULL;
+  if (FD_FIXNUMP(nodeid))
+    return fd_cons_uuid(NULL,xt,((long long)(FD_FIX2INT(nodeid))),-1);
+  else if (FD_BIGINTP(nodeid))
+    return fd_cons_uuid(NULL,xt,(fd_bigint2int64((fd_bigint)nodeid)),-1);
+  else return fd_type_error("node id","getuuid_prim",nodeid);
+}
+
+static fdtype uuidtime_prim(fdtype uuid_arg)
+{
+  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
+  FD_INIT_CONS(tstamp,fd_timestamp_type);
+  if (u8_uuid_xtime(uuid->uuid,&(tstamp->xtime)))
+    return FDTYPE_CONS(tstamp);
+  else {
+    u8_free(tstamp);
+    return fd_type_error("time-based UUID","uuidtime_prim",uuid_arg);}
+}
+
+static fdtype uuidnode_prim(fdtype uuid_arg)
+{
+  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  long long id= u8_uuid_nodeid(uuid->uuid);
+  if (id<0)
+    return fd_type_error("time-based UUID","uuidnode_prim",uuid_arg);
+  else return FD_INT2DTYPE(id);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -1301,6 +1342,11 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("TIME",time_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MILLITIME",millitime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MICROTIME",microtime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("GETUUID",getuuid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID-TIME",uuidtime_prim,1,
+					    fd_uuid_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID-NODE",uuidnode_prim,1,
+					    fd_uuid_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("SECS->STRING",secs2string,1,

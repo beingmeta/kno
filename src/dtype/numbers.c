@@ -546,6 +546,36 @@ DEFUN (fd_ulong_to_bigint, (n), unsigned long n)
   }
 }
 
+fd_bigint
+DEFUN (fd_ulong_long_to_bigint, (n), unsigned long long n)
+{
+  int negative_p=0;
+  bigint_digit_type result_digits [BIGINT_DIGITS_FOR_LONG_LONG];
+  fast bigint_digit_type * end_digits = result_digits;
+  /* Special cases win when these small constants are cached. */
+  if (n == 0) return (BIGINT_ZERO ());
+  if (n == 1) return (BIGINT_ONE (0));
+  if (n == -1) return (BIGINT_ONE (1));
+  {
+    fast unsigned long long accumulator = n;
+    do
+      {
+	(*end_digits++) = (accumulator & BIGINT_DIGIT_MASK);
+	accumulator >>= BIGINT_DIGIT_LENGTH;
+      }
+    while (accumulator != 0);
+  }
+  {
+    fd_bigint result =
+      (bigint_allocate ((end_digits - result_digits), negative_p));
+    fast bigint_digit_type * scan_digits = result_digits;
+    fast bigint_digit_type * scan_result = (BIGINT_START_PTR (result));
+    while (scan_digits < end_digits)
+      (*scan_result++) = (*scan_digits++);
+    return (result);
+  }
+}
+
 long
 DEFUN (fd_bigint_to_long, (bigint), fd_bigint bigint)
 {
@@ -2431,7 +2461,7 @@ FD_EXPORT int fd_small_bigintp(fd_bigint bi)
 
 FD_EXPORT int fd_modest_bigintp(fd_bigint bi)
 {
-  return (fd_bigint_fits_in_word_p(bi,32,1));
+  return (fd_bigint_fits_in_word_p(bi,64,1));
 }
 
 FD_EXPORT int fd_bigint2int(fd_bigint bi)
@@ -2462,6 +2492,16 @@ FD_EXPORT unsigned long long int fd_bigint2uint64(fd_bigint bi)
       (!(BIGINT_NEGATIVE_P(bi))))
     return fd_bigint_to_long_long(bi);
   else return 0;
+}
+
+FD_EXPORT int fd_bigint_fits(fd_bigint bi,int width,int twos_complement)
+{
+  return fd_bigint_fits_in_word_p(bi,width,twos_complement);
+}
+
+FD_EXPORT unsigned long fd_bigint_bytes(fd_bigint bi)
+{
+  return fd_bigint_length_in_bytes(bi);
 }
 
 FD_EXPORT

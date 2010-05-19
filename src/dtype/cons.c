@@ -955,6 +955,40 @@ FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
 }
 
 
+/* UUID Types */
+
+FD_EXPORT fdtype fd_cons_uuid
+   (struct FD_UUID *ptr,
+    struct U8_XTIME *xtime,long long nodeid,short clockid)
+{
+  if (ptr == NULL) ptr=u8_alloc(struct FD_UUID);
+  FD_INIT_CONS(ptr,fd_uuid_type);
+  u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->uuid));
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr)
+{
+  if (ptr == NULL) ptr=u8_alloc(struct FD_UUID);
+  FD_INIT_CONS(ptr,fd_uuid_type);
+  u8_getuuid((u8_uuid)&(ptr->uuid));
+  return FDTYPE_CONS(ptr);
+}
+
+static void recycle_uuid(struct FD_CONS *c)
+{
+  u8_free(c);
+}
+
+static int unparse_uuid(u8_output out,fdtype x)
+{
+  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  char buf[37]; u8_uuidstring((u8_uuid)&(uuid->uuid),buf);
+  u8_printf(out,"#U%s",buf);
+  return 1;
+}
+
+
 /* Initialization */
 
 void fd_init_cons_c()
@@ -1016,6 +1050,9 @@ void fd_init_cons_c()
   fd_copiers[fd_timestamp_type]=copy_timestamp;
   fd_comparators[fd_timestamp_type]=compare_timestamps;
   fd_recyclers[fd_timestamp_type]=recycle_timestamp;
+
+  fd_unparsers[fd_uuid_type]=unparse_uuid;
+  fd_recyclers[fd_uuid_type]=recycle_uuid;
 
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,

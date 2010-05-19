@@ -368,6 +368,18 @@ FD_EXPORT fdtype fd_compound_descriptor_type;
 #define FD_COMPOUND_TYPE_DUMPFN 7
 #define FD_COMPOUND_TYPE_RESTOREFN 8
 
+/* UUID */
+
+typedef struct FD_UUID {
+  FD_CONS_HEADER;
+  unsigned char uuid[16];} FD_UUID;
+typedef struct FD_UUID *fd_uuid;
+
+FD_EXPORT fdtype fd_cons_uuid
+   (struct FD_UUID *ptr,
+    struct U8_XTIME *xtime,long long nodeid,short clockid);
+FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr);
+
 /* BIG INTs */
 
 #define FD_BIGINTP(x) (FD_PTR_TYPEP(x,fd_bigint_type))

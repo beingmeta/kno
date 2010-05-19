@@ -175,9 +175,23 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
 
 default: all
 all: testbin exe cmodules @TAGS@
+debug:
+	make XCFLAGS="-O0" all
 rebuild:
 	make clean
 	make default
+fresh:
+	make clean; make default
+dbg:
+	make clean; make XCFLAGS="-O0" default
+# Makes everything and then sudoes install.  Keeps build files non-root
+suinstall:
+	make all
+	sudo make install
+dbginstall:
+	make XCFLAGS="-O0" all
+	sudo make install
+
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)

@@ -484,6 +484,14 @@ fdtype fd_parse_atom(u8_string start,int len)
 {
   /* fprintf(stderr,"fd_parse_atom %d: %s\n",len,start); */
   if (FD_EXPECT_FALSE(len==0)) return FD_EOX;
+  else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
+    struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+    FD_INIT_CONS(uuid,fd_uuid_type);
+    if (u8_parseuuid(start+2,(u8_uuid)&(uuid->uuid)))
+      return FDTYPE_CONS(uuid);
+    else {
+      fd_seterr3("Invalid UUID","fd_parse_atom",u8_strdup(start));
+      return FD_PARSE_ERROR;}}
   else if (start[0]=='#') { /* It's a constant */
     int i=0; while (constant_names[i])
       if (strcmp(start,constant_names[i]) == 0)

@@ -40,6 +40,9 @@ FD_EXPORT unsigned long long fd_bigint_to_ulong_long(fd_bigint);
 FD_EXPORT unsigned long long fd_bigint2uint64(fd_bigint);
 FD_EXPORT int fd_bigint_negativep(fd_bigint);
 
+FD_EXPORT int fd_bigint_fits(fd_bigint bi,int width,int twoc);
+FD_EXPORT unsigned long fd_bigint_bytes(fd_bigint bi);
+
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))

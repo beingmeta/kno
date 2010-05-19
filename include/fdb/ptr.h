@@ -144,11 +144,12 @@ typedef enum FD_PTR_TYPE {
   fd_double_type=FD_CONS_TYPECODE(19),
   fd_timestamp_type=FD_CONS_TYPECODE(20),
   fd_dtproc_type=FD_CONS_TYPECODE(21),
-  fd_tail_call_type=FD_CONS_TYPECODE(22)
+  fd_tail_call_type=FD_CONS_TYPECODE(22),
+  fd_uuid_type=FD_CONS_TYPECODE(23)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 23
+#define FD_BUILTIN_CONS_TYPES 24
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
