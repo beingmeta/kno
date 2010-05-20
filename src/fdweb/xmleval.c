@@ -157,6 +157,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  fdtype val=FD_VECTOR_REF(attrib,2);
 	  int retcode;
 	  u8_printf(&out," %s='",FD_STRDATA(rawaname));
+	  retcode=output_attribval(&out,val,env,0);
 	  if (retcode<0) {
 	    fd_decref(rawname); fd_decref(rawattribs);
 	    u8_free(out.u8_outbuf);
