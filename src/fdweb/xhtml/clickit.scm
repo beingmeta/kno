@@ -286,7 +286,7 @@
   (unless (>= start len)
 ;     (when (> (+ start (* (- end start) 2)) len)
 ;       (set! end len))
-    (anchor* (scripturl+ baseuri 'start start 'window (- end start))
+    (anchor* (scripturl baseuri 'start start 'window (- end start))
 	((class "scrolltick"))
       "+" (- end start) ">")))
 
