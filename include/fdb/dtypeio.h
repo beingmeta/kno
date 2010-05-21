@@ -91,7 +91,7 @@ FD_FASTOP unsigned long long fd_flip_word8(unsigned long long _w)
 	  ((_w&(0xFF0000)) << 24) |
 	  ((_w&(0xFF000000)) << 8) |
 	  ((_w>>56) & 0xFF) |
-	  ((_w>>48) & 0xFF00) |
+	  ((_w>>40) & 0xFF00) |
 	  ((_w>>24) & 0xFF0000) |
 	  ((_w>>8) & 0xFF000000));}
 

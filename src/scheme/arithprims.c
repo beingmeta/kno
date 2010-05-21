@@ -457,7 +457,7 @@ static fdtype ilog_prim(fdtype n,fdtype base_arg)
   return FD_INT2DTYPE(count);
 }
 
-/* Integer hashing */
+/* Integer hashing etc. */
 
 static fdtype knuth_hash(fdtype arg)
 {
@@ -514,6 +514,33 @@ static fdtype wang_hash64(fdtype arg)
       return FD_INT2DTYPE(num);
     else return (fdtype) fd_ulong_long_to_bigint(num);}
   else return fd_type_error("uint64","wang_hash64",arg);
+}
+
+static fdtype flip32(fdtype arg)
+{
+  if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
+      ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
+       (fd_bigint_fits(((fd_bigint)arg),32,0)))) {
+    unsigned int word=fd_getint(arg);
+    unsigned int flipped=fd_flip_word(word);
+    return FD_INT2DTYPE(flipped);}
+  else return fd_type_error("uint32","flip32",arg);
+}
+
+fd_bigint fd_ulong_long_to_bigint(unsigned long long);
+
+static fdtype flip64(fdtype arg)
+{
+  if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
+      ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
+       (fd_bigint_fits(((fd_bigint)arg),64,0)))) {
+    unsigned long long int word=
+      ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
+       (fd_bigint_to_ulong_long((fd_bigint)arg)));
+    unsigned long long int flipped=fd_flip_word8(word);
+    if (flipped<FD_MAX_FIXNUM) return FD_INT2DTYPE(flipped);
+    else return (fdtype) fd_ulong_long_to_bigint(flipped);}
+  else return fd_type_error("uint64","flip64",arg);
 }
 
 /* Initialization */
@@ -587,5 +614,7 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("KNUTH-HASH",knuth_hash,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("WANG-HASH32",wang_hash32,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("WANG-HASH64",wang_hash64,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP32",flip32,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP64",flip64,1));
 }
 
