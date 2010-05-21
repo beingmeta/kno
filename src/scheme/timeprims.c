@@ -1159,20 +1159,23 @@ static fdtype calltrack_sense(fdtype all)
 
 static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
 {
-  struct U8_XTIME *xt;
+  struct U8_XTIME *xt=NULL;
+  long long id=-1;
+  if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_timestamp_type))) {
+    fdtype tmp=tptr; tptr=nodeid; nodeid=tmp;}
   if ((FD_VOIDP(tptr))&&(FD_VOIDP(nodeid)))
     return fd_fresh_uuid(NULL);
-  if (FD_VOIDP(tptr)) xt=NULL;
-  else if (FD_PRIM_TYPEP(tptr,fd_timestamp_type)) {
-    struct FD_TIMESTAMP *tstamp=     
+  if (FD_PRIM_TYPEP(tptr,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *tstamp=
       FD_GET_CONS(tptr,fd_timestamp_type,struct FD_TIMESTAMP *);
     xt=&(tstamp->xtime);}
-  else xt=NULL;
   if (FD_FIXNUMP(nodeid))
-    return fd_cons_uuid(NULL,xt,((long long)(FD_FIX2INT(nodeid))),-1);
+    id=((long long)(FD_FIX2INT(nodeid)));
   else if (FD_BIGINTP(nodeid))
-    return fd_cons_uuid(NULL,xt,(fd_bigint2int64((fd_bigint)nodeid)),-1);
+    id=fd_bigint2int64((fd_bigint)nodeid);
+  else if (FD_VOIDP(nodeid)) id=-1;
   else return fd_type_error("node id","getuuid_prim",nodeid);
+  return fd_cons_uuid(NULL,xt,id,-1);
 }
 
 static fdtype uuidtime_prim(fdtype uuid_arg)

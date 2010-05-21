@@ -1045,7 +1045,7 @@ int main(int argc,char **argv)
   fd_register_config("REQLOGLEVEL",_("Level of transaction logging"),
 		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
   fd_register_config("STATLOG",_("File for recording status reports"),
-		     statlog_get,statlog_set,&reqloglevel);
+		     statlog_get,statlog_set,NULL);
   fd_register_config
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
