@@ -465,10 +465,10 @@ static fdtype knuth_hash(fdtype arg)
     long long int num=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_long_long((fd_bigint)arg)));
-    if ((num<0)||(num>=0x100000000))
+    if ((num<0)||(num>=0x100000000ll))
       return fd_type_error("uint32","knuth_hash",arg);
     else {
-      unsigned long long int hash=(num*2654435761)%0x100000000;
+      unsigned long long int hash=(num*2654435761ll)%0x100000000ll;
       return FD_INT2DTYPE(hash);}}
   else return fd_type_error("uint32","knuth_hash",arg);
 }
@@ -480,10 +480,10 @@ static fdtype wang_hash32(fdtype arg)
   if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits(((fd_bigint)arg),32,0)))) {
-    unsigned int num=
+    unsigned long long num=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
-    int constval=0x27d4eb2d; // a prime or an odd constant
+    unsigned long long constval=0x27d4eb2dll; // a prime or an odd constant
     num = (num ^ 61) ^ (num >> 16);
     num = num + (num << 3);
     num = num ^ (num >> 4);
@@ -510,7 +510,7 @@ static fdtype wang_hash64(fdtype arg)
     num = (num + (num << 2)) + (num << 4); // num * 21
     num = num ^ (num >> 28);
     num = num + (num << 31);
-    if (num<0x8000000000000000)
+    if (num<0x8000000000000000ll)
       return FD_INT2DTYPE(num);
     else return (fdtype) fd_ulong_long_to_bigint(num);}
   else return fd_type_error("uint64","wang_hash64",arg);
