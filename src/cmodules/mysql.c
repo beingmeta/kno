@@ -427,8 +427,10 @@ static fdtype get_stmt_values
 	  struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
 	  unsigned char *data=
 	    ((FD_PACKETP(value))?(FD_PACKET_DATA(value)):(FD_STRDATA(value)));
+	  unsigned char *uuidbytes;
 	  FD_INIT_CONS(uuid,fd_uuid_type);
-	  memcpy(uuid->uuid,data,16);
+	  uuidbytes=uuid->uuid;
+	  memcpy(uuidbytes,data,16);
 	  fd_decref(value);
 	  kv[n_slots].value=FDTYPE_CONS(uuid);}
 	else kv[n_slots].value=value;
@@ -855,7 +857,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PRIM_TYPEP(arg,fd_uuid_type)) {
       struct FD_UUID *uuid=FD_GET_CONS(arg,fd_uuid_type,struct FD_UUID *);
-      inbound[i].buffer_type=MYSQL_TYPE_STRING;
+      inbound[i].buffer_type=MYSQL_TYPE_BLOB;
       inbound[i].buffer=&(uuid->uuid);
       inbound[i].buffer_length=16;
       inbound[i].length=NULL;}

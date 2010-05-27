@@ -64,7 +64,7 @@
 
 ;; Various expiration intervals
 (define auth-expiration (* 3600 24 17))
-(define auth-refresh #f)
+(define auth-refresh (* 3600 24))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
 
