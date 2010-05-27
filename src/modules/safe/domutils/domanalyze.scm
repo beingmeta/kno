@@ -12,7 +12,7 @@
 (module-export! 'dom/analyze)
 
 ;;; Module for analyzing text in a DOM
-(define id "$Id: domtext.scm 4048 2009-06-20 15:18:16Z bemeta $")
+(define id "$Id$")
 (define revision "$Revision: 4048 $")
 
 (define (get-table doc slotid)

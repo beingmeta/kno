@@ -23,6 +23,7 @@ static char versionid[] =
 #include <libu8/u8rusage.h>
 #include <libu8/u8netfns.h>
 
+#include <ctype.h>
 #include <math.h>
 #include <sys/time.h>
 
@@ -1161,7 +1162,31 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
 {
   struct U8_XTIME *xt=NULL;
   long long id=-1;
-  if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_timestamp_type))) {
+  if ((FD_VOIDP(tptr))&&(FD_STRINGP(nodeid))) {
+    /* Assume it's a UUID string, so parse it. */
+      struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+      u8_string start=FD_STRDATA(nodeid);
+      FD_INIT_CONS(uuid,fd_uuid_type);
+      if ((start[0]==':')&&(start[1]=='#')&&
+	  (start[2]=='U')&&(isxdigit(start[3])))
+	start=start+3;
+      else if ((start[0]=='#')&&(start[1]=='U')&&(isxdigit(start[2])))
+	start=start+2;
+      else if ((start[0]=='U')&&(isxdigit(start[1])))
+	start=start+1;
+      else if (isxdigit(start[0])) {}
+      else return fd_type_error("UUID string","getuuid_prim",nodeid);
+      u8_parseuuid(start,(u8_uuid)&(uuid->uuid));
+      return FDTYPE_CONS(uuid);}
+  else if ((FD_VOIDP(tptr))&&(FD_PACKETP(nodeid)))
+    if (FD_PACKET_LENGTH(nodeid)==16) {
+      struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+      unsigned char *data=FD_PACKET_DATA(nodeid);
+      FD_INIT_CONS(uuid,fd_uuid_type);
+      memcpy(&(uuid->uuid),data,16);
+      return FDTYPE_CONS(uuid);}
+    else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
+  else if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_timestamp_type))) {
     fdtype tmp=tptr; tptr=nodeid; nodeid=tmp;}
   if ((FD_VOIDP(tptr))&&(FD_VOIDP(nodeid)))
     return fd_fresh_uuid(NULL);

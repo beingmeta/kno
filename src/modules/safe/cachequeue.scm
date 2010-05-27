@@ -12,7 +12,7 @@
 ;;;  cq/require gets a value from the cachequeue's cache or, if neccessary,
 ;;;   generates it and stores it in the cache.
 (define version "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4048 $")
 
 (use-module '{ezrecords meltcache fifo logger reflection})
 

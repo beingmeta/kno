@@ -1,13 +1,13 @@
-;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;; -*- Mode: Scheme; character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
 (in-module 'i18n)
 
 ;;; Provides various kinds of internationalization support
-(define version "$Id:$")
-(define revision "$Revision:$")
+(define version "$Id$")
+(define revision "$Revision$")
 
-(use-module '{brico texttools reflection})
+(use-module '{texttools reflection})
 
 (module-export!
  '{i18n/translate i18n/translator i18n/translateout

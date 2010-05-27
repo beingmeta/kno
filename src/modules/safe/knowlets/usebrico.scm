@@ -5,7 +5,7 @@
 
 ;;; Using brico from knowlets, especially for importing information
 (define id "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4048 $")
 
 
 (use-module '{texttools knowlets brico})

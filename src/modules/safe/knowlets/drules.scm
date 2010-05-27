@@ -7,7 +7,7 @@
 ;;;  Designed to work with a full-text inverted index
 ;;;   like those produced by textindex
 (define id "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4054 $")
 
 (use-module '{texttools fdweb ezrecords varconfig})
 (use-module '{knowlets})

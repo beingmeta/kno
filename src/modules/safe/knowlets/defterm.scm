@@ -6,7 +6,7 @@
 ;;; Scheme level knowlet definition, also provides for
 ;;;  automatic imports from BRICO
 (define id "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4048 $")
 
 (use-module 'texttools)
 (use-module '{knowlets knowlets/usebrico})

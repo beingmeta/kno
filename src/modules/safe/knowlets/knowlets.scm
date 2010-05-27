@@ -7,7 +7,7 @@
 ;;; Provides data structures, core tables, and basic
 ;;;  KR functions
 (define id "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4048 $")
 
 (use-module '{texttools ezrecords varconfig logger})
 (use-module 'knowlets/drules)

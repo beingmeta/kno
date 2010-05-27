@@ -5,7 +5,7 @@
 
 ;;; Tools for output of knowlets and dterms in XHTML
 (define id "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4048 $")
 
 (use-module '{texttools ezrecords varconfig fdweb xhtml xhtml/clickit})
 

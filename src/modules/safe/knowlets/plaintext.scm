@@ -5,7 +5,7 @@
 
 ;;; Parser for the plaintext knowlet encoding
 (define id "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 5078 $")
 
 (use-module '{texttools fdweb ezrecords varconfig})
 (use-module '{knowlets knowlets/drules})

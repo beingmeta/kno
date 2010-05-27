@@ -5,7 +5,7 @@
 
 ;;; Utilites for indexing XML content, especially XHTML
 (define version "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 4957 $")
 
 (use-module '{reflection
 	      fdweb xhtml texttools domutils

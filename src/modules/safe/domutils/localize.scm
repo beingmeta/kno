@@ -5,7 +5,7 @@
 
 ;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
 (define version "$Id$")
-(define revision "$Revision$")
+(define revision "$Revision: 5083 $")
 
 (use-module '{fdweb texttools domutils logger})
 

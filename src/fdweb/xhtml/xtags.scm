@@ -3,8 +3,8 @@
 (in-module 'xhtml/xtags)
 
 (use-module '{reflection texttools})
-(use-module '{brico brico/dterms xtags})
-(use-module '{fdweb xhtml xhtml/clickit xhtml/brico i18n})
+(use-module '{xtags}) ;; brico brico/dterms
+(use-module '{fdweb xhtml xhtml/clickit i18n xhtml/brico})
 
 (define small-oid-icon
   "http://static.beingmeta.com/graphics/diamond12.png")
