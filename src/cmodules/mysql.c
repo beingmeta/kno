@@ -315,6 +315,7 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
 			   my_bool *isnull,int column)
 {
   MYSQL_BIND *outval=&(bindings[column]);
+  mysql_stmt_fetch_column(stmt,outval,column,0);
   if (isnull[column]) return FD_EMPTY_CHOICE;
   switch (outval->buffer_type) {
   case MYSQL_TYPE_LONG:
@@ -344,7 +345,6 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
     int datalen=(*(outval->length)), buflen=datalen+((binary) ? (0) : (1));
     outval->buffer=u8_alloc_n(buflen,unsigned char);
     outval->buffer_length=buflen;
-    mysql_stmt_fetch_column(stmt,outval,column,0);
     if (!(binary)) ((unsigned char *)outval->buffer)[datalen]='\0';
     if (binary)
       value=fd_init_packet(NULL,datalen,outval->buffer);
@@ -490,6 +490,8 @@ static int init_stmt_results
     my_bool *nullbuf=u8_alloc_n(n_cols,my_bool);
     struct U8_OUTPUT out; u8_byte namebuf[128];
     int i=0;
+    memset(outbound,0,n_cols*sizeof(MYSQL_BIND));
+    memset(nullbuf,0,n_cols*sizeof(my_bool));
     U8_INIT_OUTPUT_BUF(&out,128,namebuf);
     if (fields==NULL) {
       const char *errmsg=mysql_stmt_error(stmt);
@@ -857,7 +859,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PRIM_TYPEP(arg,fd_uuid_type)) {
       struct FD_UUID *uuid=FD_GET_CONS(arg,fd_uuid_type,struct FD_UUID *);
-      inbound[i].buffer_type=MYSQL_TYPE_BLOB;
+      inbound[i].buffer_type=MYSQL_TYPE_STRING;
       inbound[i].buffer=&(uuid->uuid);
       inbound[i].buffer_length=16;
       inbound[i].length=NULL;}
