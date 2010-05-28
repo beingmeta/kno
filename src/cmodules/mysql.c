@@ -315,7 +315,6 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
 			   my_bool *isnull,int column)
 {
   MYSQL_BIND *outval=&(bindings[column]);
-  mysql_stmt_fetch_column(stmt,outval,column,0);
   if (isnull[column]) return FD_EMPTY_CHOICE;
   switch (outval->buffer_type) {
   case MYSQL_TYPE_LONG:
@@ -345,6 +344,7 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
     int datalen=(*(outval->length)), buflen=datalen+((binary) ? (0) : (1));
     outval->buffer=u8_alloc_n(buflen,unsigned char);
     outval->buffer_length=buflen;
+    mysql_stmt_fetch_column(stmt,outval,column,0);
     if (!(binary)) ((unsigned char *)outval->buffer)[datalen]='\0';
     if (binary)
       value=fd_init_packet(NULL,datalen,outval->buffer);
@@ -499,7 +499,6 @@ static int init_stmt_results
       if (metadata) mysql_free_result(metadata);
       u8_seterr(MySQL_Error,"get_stmt_values",u8_strdup(errmsg));
       return -1;}
-    memset(outbound,0,sizeof(MYSQL_BIND)*n_cols);
     while (i<n_cols) {
       colnames[i]=intern_upcase(&out,fields[i].name);
       /* Synchronize the signed and unsigned fields to get error handling. */

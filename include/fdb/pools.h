@@ -112,6 +112,8 @@
 #include "defines.h"
 #include "fddb.h"
 
+#define FD_POOL_BATCHABLE 2
+
 FD_EXPORT fd_exception
   fd_CantLockOID, fd_InvalidPoolPtr, 
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,

@@ -290,7 +290,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       delay_index_fetch(ix,keys);
       return 0;}
     else return ix->handler->prefetch(ix,keys);
-  else if (ix->handler->fetchn==NULL) {
+  else if ((ix->handler->fetchn==NULL)||(!((ix->flags)&(FD_INDEX_BATCHABLE)))) {
     if (fd_ipeval_status()) {
       delay_index_fetch(ix,keys);
       return 0;}
@@ -685,7 +685,8 @@ FD_EXPORT void fd_index_close(fd_index ix)
 FD_EXPORT void fd_init_index
   (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source)
 {
-  ix->serialno=-1; ix->cache_level=-1; ix->read_only=1; ix->flags=0;
+  ix->serialno=-1; ix->cache_level=-1; ix->read_only=1;
+  ix->flags=((h->fetchn)?(FD_INDEX_BATCHABLE):(0));
   fd_make_hashtable(&(ix->cache),0);
   fd_make_hashtable(&(ix->adds),0);
   fd_make_hashtable(&(ix->edits),0); 
@@ -972,6 +973,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   struct FD_EXTINDEX *xp=(fd_extindex)p;
   struct FD_VECTOR vstruct; fdtype vecarg;
   fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
+  if (!((p->flags)&(FD_INDEX_BATCHABLE))) return NULL;
   FD_INIT_STACK_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=keys;
   vecarg=FDTYPE_CONS(&vstruct);
@@ -1087,7 +1089,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   extindex_fetch, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */
-  extindex_fetchn, /* fetchn */
+  NULL, /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL /* sync */

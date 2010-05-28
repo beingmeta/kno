@@ -80,23 +80,6 @@ static void close_consoles()
     console_env=NULL;}
 }
 
-#if 0
-static fdtype direct_console_read()
-{
-  int c=skip_whitespace((u8_input)in);
-  if (c<0) return FD_EOF;
-  else if (c=='=') {
-    fdtype sym=fd_parse_expr(in);
-    if (FD_SYMBOLP(sym)) {
-      fd_bind_value(sym,lastval,env);
-      u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
-    else u8_printf(out,_(";; Bad assignment expression\n"));
-    return FD_VOID;}
-  else return fd_parse_expr(in);
-
-}
-#endif
-
 /* Returns 1 if x is worth adding to the history. */
 static int historicp(fdtype x)
 {
@@ -233,6 +216,11 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
       u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",end_with,histref,max_elts,n_elts);}
     else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
   return 0;
+}
+
+static fdtype top_parse(u8_input in)
+{
+  return fd_parser(in);
 }
 
 int main(int argc,char **argv)
@@ -376,7 +364,7 @@ int main(int argc,char **argv)
       u8_flush(out);
       fd_decref(sym); continue;}
     else u8_ungetc(((u8_input)in),c);
-    expr=fd_parser((u8_input)in);
+    expr=top_parse(in);
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
       fd_decref(result); break;}
     /* Clear the buffer (should do more?) */

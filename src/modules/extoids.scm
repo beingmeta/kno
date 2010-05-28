@@ -53,7 +53,7 @@
 		      (if (vector? key)
 			  (getter/sql (elts key))
 			  (getter/sql key))))
-	 (getter (cond ((not normalize) getter/sql)
+	 (getter (cond ((not normalize) rawgetter)
 		       ((applicable? normalize)
 			(lambda (x) (normalize (rawgetter x))))
 		       ((slotid? normalize)

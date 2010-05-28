@@ -313,7 +313,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     return -1;}
   else init_cache_level(p);
   if (p->cache_level<1) return 0;
-  if (p->handler->fetchn==NULL) {
+  if ((p->handler->fetchn==NULL)||(!(p->flags&(FD_POOL_BATCHABLE)))) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oids);
       return 0;}
@@ -1110,7 +1110,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 {
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->base=base; p->capacity=capacity;
-  p->serialno=-1; p->cache_level=-1; p->read_only=1; p->flags=0;
+  p->serialno=-1; p->cache_level=-1; p->read_only=1;
+  p->flags=((h->fetchn)?(FD_POOL_BATCHABLE):(0));
   fd_make_hashtable(&(p->cache),64);
   fd_make_hashtable(&(p->locks),0); 
   p->max_adjuncts=0; p->n_adjuncts=0; p->adjuncts=NULL;
@@ -1507,6 +1508,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_EXTPOOL *xp=(fd_extpool)p;
   struct FD_VECTOR vstruct; fdtype vecarg;
   fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
+  if (xp->flags&(FD_POOL_BATCHABLE)) return NULL;
   FD_INIT_STACK_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=oids;
   vecarg=FDTYPE_CONS(&vstruct);
@@ -1579,7 +1581,7 @@ static struct FD_POOL_HANDLER extpool_handler={
   NULL, /* setbuf */
   NULL, /* alloc */
   extpool_fetch, /* fetch */
-  extpool_fetchn, /* fetchn */
+  NULL, /* fetchn */
   NULL, /* getload */
   extpool_lock, /* lock */
   extpool_unlock, /* release */
