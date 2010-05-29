@@ -988,6 +988,15 @@ static int unparse_uuid(u8_output out,fdtype x)
   return 1;
 }
 
+static fdtype copy_uuid(fdtype x,int deep)
+{
+  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *nuuid=u8_alloc(struct FD_UUID);
+  FD_INIT_CONS(nuuid,fd_uuid_type);
+  memcpy(nuuid->uuid,uuid->uuid,16);
+  return FDTYPE_CONS(nuuid);
+}
+
 
 /* Initialization */
 
@@ -1053,6 +1062,7 @@ void fd_init_cons_c()
 
   fd_unparsers[fd_uuid_type]=unparse_uuid;
   fd_recyclers[fd_uuid_type]=recycle_uuid;
+  fd_copiers[fd_uuid_type]=copy_uuid;
 
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,
