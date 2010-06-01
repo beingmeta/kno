@@ -54,6 +54,8 @@ static void out_escaped(FILE *f,u8_string name)
     if (c=='"') fprintf(f,"\\\"");
     else if (c>=128) {
       fprintf(f,"\\u%04x",c);}
+    else if (c=='\n') fputs("\\n",f);
+    else if (c=='\r') fputs("\\r",f);
     else putc(c,f);}
 }
 
