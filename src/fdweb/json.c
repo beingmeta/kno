@@ -19,10 +19,11 @@ static char versionid[] =
 #include <libu8/xfiles.h>
 
 #include <ctype.h>
-#define FD_JSON_ANYKEY 2
-#define FD_JSON_IDKEY 4
-#define FD_JSON_INTERNKEY 8
+#define FD_JSON_ANYKEY 2 /* Allow compound table keys */
+#define FD_JSON_IDKEY 4 /* Allow raw identifiers as table keys */
+#define FD_JSON_SYMBOLIZE 8 /* Convert table keys to symbols (and vice versa) */
 #define FD_JSON_COLONIZE 16
+#define FD_JSON_DEFAULTS (FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE)
 
 static fd_exception JSON_Error="JSON Parsing Error";
 
@@ -128,7 +129,7 @@ static fdtype json_key(U8_INPUT *in,int flags)
 {
   int c=skip_whitespace(in);
   if (c=='"')
-    if (flags&FD_JSON_INTERNKEY) 
+    if (flags&FD_JSON_SYMBOLIZE) 
       return json_intern(in,flags);
     else return json_string(in,flags);
   else if (((c=='{')||(c=='['))&&(!(flags&FD_JSON_ANYKEY))) {
@@ -247,7 +248,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg)
 
 /* JSON output */
 
-static void json_unparse(u8_output out,fdtype x,fdtype oidfn,fdtype slotfn,fdtype miscfn,int colonize);
+static void json_unparse(u8_output out,fdtype x,int flags,fdtype oidfn,fdtype slotfn,fdtype miscfn);
 
 static void json_escape(u8_output out,u8_string s)
 {
@@ -261,34 +262,58 @@ static void json_escape(u8_output out,u8_string s)
   if (scan>start) u8_putn(out,start,scan-start);
 }
 
-static int json_slotval(u8_output out,fdtype key,fdtype value,fdtype slotfn,fdtype oidfn,fdtype miscfn,int colonize)
+static void json_lower(u8_output out,u8_string s)
+{
+  u8_byte *scan=s;
+  int c=u8_sgetc(&scan);
+  while (c>=0) {
+    int lc=u8_tolower(c);
+    if (lc>=128) u8_putc(out,lc);
+    else switch (lc) {
+      case '\n': u8_puts(out,"\\n"); break;
+      case '\r': u8_puts(out,"\\r"); break;
+      case '\t': u8_puts(out,"\\t"); break;
+      case '\\': u8_puts(out,"\\\\"); break;
+      case '"': u8_puts(out,"\\\""); break;
+      default: u8_putc(out,lc);}
+    c=u8_sgetc(&scan);}
+}
+
+static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
   if (FD_VOIDP(value)) return 0;
   else {
     fdtype slotname=((FD_VOIDP(slotfn))?(FD_VOID):(fd_apply(slotname,1,&key)));
     if (FD_VOIDP(slotname))
-      json_unparse(out,key,oidfn,slotfn,miscfn,colonize);
+      if ((FD_SYMBOLP(key))&&(flags&FD_JSON_SYMBOLIZE)) {
+	u8_string pname=FD_SYMBOL_NAME(key);
+	if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');
+	json_lower(out,pname);
+	if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');}
+      else json_unparse(out,key,flags,oidfn,slotfn,miscfn);
     else if (FD_STRINGP(slotname)) {
       u8_putc(out,'"');
       json_escape(out,FD_STRDATA(slotname)); fd_decref(slotname);
       u8_putc(out,'"');}
+    else if (FD_SYMBOLP(slotname)) {
+      json_escape(out,FD_SYMBOL_NAME(slotname));}
     else return 0;
     u8_puts(out,": ");
-    json_unparse(out,value,oidfn,slotfn,miscfn,colonize);
+    json_unparse(out,value,flags,oidfn,slotfn,miscfn);
     return 1;}
 }
 
-static void json_unparse(u8_output out,fdtype x,fdtype slotfn,fdtype oidfn,fdtype miscfn,int colonize)
+static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
   if (FD_FIXNUMP(x)) u8_printf(out,"%d",FD_FIX2INT(x));
   else if (FD_OIDP(x)) {
     fdtype oidval=((FD_VOIDP(oidfn))?(FD_VOID):(fd_dapply(oidfn,1,&x)));
     if (FD_VOIDP(oidval)) {
       FD_OID addr=FD_OID_ADDR(x);
-      if (colonize)
+      if (flags)
 	u8_printf(out,"\":@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
       else u8_printf(out,"\"@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));}
-    else json_unparse(out,oidval,slotfn,oidfn,miscfn,colonize);
+    else json_unparse(out,oidval,flags,slotfn,oidfn,miscfn);
     fd_decref(oidval);}
   else if ((FD_SYMBOLP(x))&&(FD_VOIDP(miscfn))) {
     u8_string pname=FD_SYMBOL_NAME(x);
@@ -298,7 +323,7 @@ static void json_unparse(u8_output out,fdtype x,fdtype slotfn,fdtype oidfn,fdtyp
   else if (FD_STRINGP(x)) {
     u8_string pstring=FD_STRDATA(x);
     u8_puts(out,"\"");
-    if ((colonize)&&(pstring[0]==':')) u8_putc(out,'\\');
+    if ((flags)&&(pstring[0]==':')) u8_putc(out,'\\');
     json_escape(out,pstring);
     u8_puts(out,"\"");}
   else if ((FD_BIGINTP(x))||(FD_FLONUMP(x)))
@@ -307,13 +332,13 @@ static void json_unparse(u8_output out,fdtype x,fdtype slotfn,fdtype oidfn,fdtyp
     int i=0; int lim=FD_VECTOR_LENGTH(x);
     while (i<lim) {
       if (i>0) u8_putc(out,','); else u8_putc(out,'[');
-      json_unparse(out,FD_VECTOR_REF(x,i),slotfn,oidfn,miscfn,colonize);
+      json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
       i++;}}
   else if ((FD_CHOICEP(x))||(FD_ACHOICEP(x))) {
     int elt_count=0; FD_DO_CHOICES(e,x) {
       if (elt_count>0) u8_putc(out,',');
       else u8_puts(out,"[");
-      json_unparse(out,e,slotfn,oidfn,miscfn,colonize);
+      json_unparse(out,e,flags,slotfn,oidfn,miscfn);
       elt_count++;}
     u8_puts(out,"]");}
   else if (FD_TABLEP(x)) {
@@ -323,7 +348,7 @@ static void json_unparse(u8_output out,fdtype x,fdtype slotfn,fdtype oidfn,fdtyp
       if (!(FD_VOIDP(value))) {
 	if (elt_count>0) u8_putc(out,',');
 	else u8_puts(out,"{");
-	if (json_slotval(out,key,value,slotfn,oidfn,miscfn,colonize)) elt_count++;
+	if (json_slotval(out,key,value,flags,slotfn,oidfn,miscfn)) elt_count++;
 	fd_decref(value);}}
     u8_puts(out,"}");}
   else if (FD_EMPTY_CHOICEP(x)) u8_puts(out,"[]");
@@ -336,23 +361,36 @@ static void json_unparse(u8_output out,fdtype x,fdtype slotfn,fdtype oidfn,fdtyp
     if (FD_VOIDP(tval)) fd_unparse(&tmpout,x);
     else fd_unparse(&tmpout,tval);
     fd_decref(tval);
-    if (colonize) u8_puts(out,"\":"); else u8_putc(out,'"');
+    if (flags) u8_puts(out,"\":"); else u8_putc(out,'"');
     json_escape(out,tmpout.u8_outbuf);
     u8_close_output(&tmpout);}
 }
 
-static fdtype jsonoutput(fdtype x,fdtype colonize,fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static fdtype jsonoutput(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
   u8_output out=fd_get_default_output();
-  json_unparse(out,x,slotfn,oidfn,miscfn,(!(FD_FALSEP(colonize))));
+  int flags=
+    ((FD_FALSEP(flags_arg))?(0):
+     (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
+     (FD_FIXNUMP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
+  if ((flags<0)||(flags>=32))
+    return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
+  json_unparse(out,x,flags,slotfn,oidfn,miscfn);
+  if (out==fd_default_output) u8_flush(out);
   return FD_VOID;
 }
 
-static fdtype jsonstring(fdtype x,fdtype colonize,fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
   struct U8_OUTPUT tmpout; 
+  int flags=
+    ((FD_FALSEP(flags_arg))?(0):
+     (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
+     (FD_FIXNUMP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
+  if ((flags<0)||(flags>=32))
+    return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   U8_INIT_OUTPUT(&tmpout,128);
-  json_unparse(&tmpout,x,slotfn,oidfn,miscfn,(!(FD_FALSEP(colonize))));
+  json_unparse(&tmpout,x,flags,slotfn,oidfn,miscfn);
   return fd_init_string(NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
 }
 
@@ -364,20 +402,20 @@ FD_EXPORT void fd_init_json_c()
   fdtype unsafe_module=fd_new_module("FDWEB",0);
 
   fd_idefn(module,fd_make_cprim2x
-	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_COLONIZE)));
+	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS)));
   fd_idefn(unsafe_module,fd_make_cprim2x
-	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_COLONIZE)));
+	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS)));
   fd_idefn(module,fd_make_cprim5x("->JSON",jsonstring,1,
 				  -1,FD_VOID,-1,FD_TRUE,
 				  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("->JSON",jsonstring,1,
-					 -1,FD_VOID,-1,FD_TRUE,
+					 -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
 					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-				  -1,FD_VOID,-1,FD_TRUE,
+				  -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
 				  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-					 -1,FD_VOID,-1,FD_TRUE,
+					 -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
 					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
   fd_register_source_file(versionid);
