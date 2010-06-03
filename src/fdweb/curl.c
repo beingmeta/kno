@@ -30,7 +30,7 @@ static fdtype text_symbol, content_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
 static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
-static fdtype maxtime_symbol, timeout_symbol;
+static fdtype maxtime_symbol, timeout_symbol, method_symbol;
 static fdtype eurl_slotid, filetime_slotid, response_code_slotid;
 
 static fdtype text_types=FD_EMPTY_CHOICE;
@@ -372,6 +372,10 @@ static fdtype set_curlopt
     if (FD_STRINGP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_REFERER,FD_STRDATA(val));
     else return fd_type_error("string","set_curlopt",val);
+  else if (FD_EQ(opt,method_symbol))
+    if (FD_SYMBOLP(val)) 
+      curl_easy_setopt(ch->handle,CURLOPT_CUSTOMREQUEST,FD_SYMBOL_NAME(val));
+    else return fd_type_error("symbol/method","set_curlopt",val);
   else if (FD_EQ(opt,verbose_symbol))
     curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,1);
   else if (FD_EQ(opt,useragent_symbol))
@@ -1018,6 +1022,7 @@ FD_EXPORT void fd_init_curl_c()
   content_symbol=fd_intern("%CONTENT");
   header_symbol=fd_intern("HEADER");
   referer_symbol=fd_intern("REFERER");
+  method_symbol=fd_intern("METHOD");
   verbose_symbol=fd_intern("VERBOSE");
   useragent_symbol=fd_intern("USERAGENT");
   cookie_symbol=fd_intern("COOKIE");
