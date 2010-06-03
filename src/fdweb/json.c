@@ -255,7 +255,8 @@ static void json_escape(u8_output out,u8_string s)
   while (c=(*scan))
     if ((c<128)&&((c=='"')||(c=='\\')||(iscntrl(c)))) {
       if (scan>start) u8_putn(out,start,scan-start);
-      u8_putc(out,'\\'); u8_putc(out,*scan); scan++;}
+      u8_putc(out,'\\'); u8_putc(out,*scan); scan++;
+      start=scan;}
     else scan++;
   if (scan>start) u8_putn(out,start,scan-start);
 }
