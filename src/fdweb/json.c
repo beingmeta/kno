@@ -23,6 +23,8 @@ static char versionid[] =
 #define FD_JSON_IDKEY 4 /* Allow raw identifiers as table keys */
 #define FD_JSON_SYMBOLIZE 8 /* Convert table keys to symbols (and vice versa) */
 #define FD_JSON_COLONIZE 16
+#define FD_JSON_TICKS    32 /* Show time as unix time */
+#define FD_JSON_TICKLETS 96 /* Show time as nanosecond-precision unix time */
 #define FD_JSON_DEFAULTS (FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE)
 
 static fd_exception JSON_Error="JSON Parsing Error";
@@ -83,8 +85,9 @@ static fdtype json_string(U8_INPUT *in,int flags)
   c=u8_getc(in);
   if ((c=='\\')&&(flags&FD_JSON_COLONIZE)) {
     c=u8_getc(in);
-    if ((c=='\\')||(c==':')) init_escape=1;
-    else u8_putc(&out,'\\');}
+    if (c==':') init_escape=1;
+    u8_putc(&out,c);
+    c=u8_getc(in);}
   while (c>=0) {
     if (c=='"') break;
     else if (c=='\\') {
@@ -256,8 +259,15 @@ static void json_escape(u8_output out,u8_string s)
   while (c=(*scan))
     if ((c<128)&&((c=='"')||(c=='\\')||(iscntrl(c)))) {
       if (scan>start) u8_putn(out,start,scan-start);
-      u8_putc(out,'\\'); u8_putc(out,*scan); scan++;
-      start=scan;}
+      u8_putc(out,'\\');
+      switch (c) {
+      case '\n': u8_putc(out,'n'); break;
+      case '\b': u8_putc(out,'b'); break;
+      case '\f': u8_putc(out,'f'); break;
+      case '\r': u8_putc(out,'r'); break;
+      case '\t': u8_putc(out,'t'); break;
+      default: u8_putc(out,c); break;}
+      scan++; start=scan;}
     else scan++;
   if (scan>start) u8_putn(out,start,scan-start);
 }
@@ -333,14 +343,27 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     while (i<lim) {
       if (i>0) u8_putc(out,','); else u8_putc(out,'[');
       json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
-      i++;}}
+      i++;}
+    u8_putc(out,']');}
   else if ((FD_CHOICEP(x))||(FD_ACHOICEP(x))) {
     int elt_count=0; FD_DO_CHOICES(e,x) {
       if (elt_count>0) u8_putc(out,',');
       else u8_puts(out,"[");
       json_unparse(out,e,flags,slotfn,oidfn,miscfn);
       elt_count++;}
-    u8_puts(out,"]");}
+    u8_putc(out,']');}
+  else if (FD_PRIM_TYPEP(x,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *tm=
+      FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
+    if (flags&FD_JSON_COLONIZE) 
+      u8_printf(out,"\":#T%iSXGt\"",&(tm->xtime));
+    else if (flags&FD_JSON_TICKLETS) {
+      double dtick=((unsigned long long)tm->xtime.u8_tick)+
+	(tm->xtime.u8_nsecs)*0.000000001;
+      u8_printf(out,"%f",dtick);}
+    else if (flags&FD_JSON_TICKS)
+      u8_printf(out,"%lld",(unsigned long long)tm->xtime.u8_tick);
+    else u8_printf(out,"\"%iSXGt\"",&(tm->xtime));}
   else if (FD_TABLEP(x)) {
     fdtype keys=fd_getkeys(x);
     int elt_count=0; FD_DO_CHOICES(key,keys) {

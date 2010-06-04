@@ -492,6 +492,13 @@ fdtype fd_parse_atom(u8_string start,int len)
     else {
       fd_seterr3("Invalid UUID","fd_parse_atom",u8_strdup(start));
       return FD_PARSE_ERROR;}}
+  else if ((start[0]=='#')&&(start[1]=='T')&&(isdigit(start[2]))) {
+    struct U8_XTIME xt;
+    int retval=u8_iso8601_to_xtime(start+2,&xt);
+    if (retval<0) {
+      fd_seterr("Invalid timestamp","fd_parse_atom",u8_strdup(start),FD_VOID);
+      return FD_PARSE_ERROR;}
+    else return fd_make_timestamp(&xt);}
   else if (start[0]=='#') { /* It's a constant */
     int i=0; while (constant_names[i])
       if (strcmp(start,constant_names[i]) == 0)
