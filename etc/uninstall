@@ -1,0 +1,8 @@
+#!/bin/bash
+DIR=$1
+SUFFIX=$2
+shift; shift;
+for file in $*;
+ do rm -f $DIR/`basename $file`$SUFFIX;
+    echo "Removing " $DIR/`basename $file`$SUFFIX;
+done

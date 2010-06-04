@@ -295,6 +295,39 @@ exe/fdmanager@suffix@: src/exe/fdmanager.c
 		-o $@ $<                                           \
 		$(LIBS) -lu8stdio
 
+# Uninstall
+
+LIBBASE=libfdtype libfddb libfddbfile libfdbserv \
+	libfdscheme libfdschemeio libfdweb libtexttools libtagger
+
+uninstall-core:
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@VERSION@.dylib" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.dylib" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@VERSION@.so" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.so" $(LIBBASE)
+	rm -rf $(LIBINSTALLDIR)/framerd
+uninstall-all: uninstall-core
+	rm -rf $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
+		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
+		$(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@
+uninstall: uninstall-core
+	@if (test -d $(DESTDIR)@data_dir@); then \
+	  echo $(DESTDIR)@data_dir@ "still exists"; fi
+	@if (test -d $(DESTDIR)@config_dir@); then \
+	  echo $(DESTDIR)@config_dir@ "still exists"; fi
+	@if (test -d $(DESTDIR)@local_config@); then \
+	  echo $(DESTDIR)@local_config@ "still exists"; fi
+	@if (test -d $(DESTDIR)@shared_config@); then \
+	  echo $(DESTDIR)@shared_config@ "still exists"; fi
+	@if (test -d $(DESTDIR)@module_dir@); then \
+	  echo $(DESTDIR)@module_dir@ "still exists"; fi
+	@if (test -d $(DESTDIR)@safe_module_dir@); then \
+	  echo $(DESTDIR)@safe_module_dir@ "still exists"; fi
+
 # Making dependency information
 
 depend:
