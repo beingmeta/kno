@@ -842,9 +842,10 @@ int fd_clear_errors(int report)
 {
   u8_exception ex=u8_erreify(), scan=ex; int n_errs=0;
   while (scan) {
-    u8_string sum=fd_errstring(scan);
-    u8_logger(LOG_ERR,scan->u8x_cond,sum);
-    u8_free(sum);
+    if (report) {
+      u8_string sum=fd_errstring(scan);
+      u8_logger(LOG_ERR,scan->u8x_cond,sum);
+      u8_free(sum);}
     scan=scan->u8x_prev;
     n_errs++;}
   return n_errs;
