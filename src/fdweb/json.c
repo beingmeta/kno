@@ -19,13 +19,16 @@ static char versionid[] =
 #include <libu8/xfiles.h>
 
 #include <ctype.h>
-#define FD_JSON_ANYKEY 2 /* Allow compound table keys */
-#define FD_JSON_IDKEY 4 /* Allow raw identifiers as table keys */
-#define FD_JSON_SYMBOLIZE 8 /* Convert table keys to symbols (and vice versa) */
+#define FD_JSON_ANYKEY    2  /* Allow compound table keys */
+#define FD_JSON_IDKEY     4  /* Allow raw identifiers as table keys */
+#define FD_JSON_SYMBOLIZE 8  /* Convert table keys to symbols (and vice versa) */
 #define FD_JSON_COLONIZE 16
-#define FD_JSON_TICKS    32 /* Show time as unix time */
-#define FD_JSON_TICKLETS 96 /* Show time as nanosecond-precision unix time */
+#define FD_JSON_TICKS    32  /* Show time as unix time */
+#define FD_JSON_TICKLETS 96  /* Show time as nanosecond-precision unix time */
+#define FD_JSON_WARNINGS 128 /* Show time as nanosecond-precision unix time */
 #define FD_JSON_DEFAULTS (FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE)
+
+#define FD_JSON_MAXFLAGS 256
 
 static fd_exception JSON_Error="JSON Parsing Error";
 
@@ -61,6 +64,13 @@ static fdtype json_parse(U8_INPUT *in,int flags)
   else return json_atom(in,0);
 }
 
+static fdtype parse_error(u8_output out,fdtype result,int report)
+{
+  fd_clear_errors(report);
+  fd_decref(result);
+  return fd_init_string(NULL,out->u8_outptr-out->u8_outbuf,out->u8_outbuf);
+}
+
 static fdtype json_atom(U8_INPUT *in,int flags)
 {
   fdtype result;
@@ -73,6 +83,7 @@ static fdtype json_atom(U8_INPUT *in,int flags)
   else if ((strcmp(out.u8_outbuf,"false")==0)) result=FD_FALSE;
   else if  ((strcmp(out.u8_outbuf,"null")==0)) result=FD_EMPTY_CHOICE;
   else result=fd_parse(out.u8_outbuf);
+  if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return result;
 }
@@ -100,6 +111,7 @@ static fdtype json_string(U8_INPUT *in,int flags)
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
   else if ((flags&FD_JSON_COLONIZE)&&(out.u8_outbuf[0]==':')) {
     fdtype result=fd_parse(out.u8_outbuf+1);
+    if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
     u8_free(out.u8_outbuf);
     return result;}
   else return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
@@ -120,10 +132,12 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     c=u8_getc(in);}
   if (out.u8_outbuf[0]==':') {
     fdtype result=fd_parse(out.u8_outbuf+1);
+    if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
     u8_free(out.u8_outbuf);
     return result;}
   else {
     fdtype result=fd_parse(out.u8_outbuf);
+    if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
     u8_free(out.u8_outbuf);
     return result;}
 }
@@ -357,6 +371,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
       FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
     if (flags&FD_JSON_COLONIZE) 
       u8_printf(out,"\":#T%iSXGt\"",&(tm->xtime));
+    else if (tm->xtime.u8_tick<0)  u8_puts(out,"-1"); /* Invalid time */
     else if (flags&FD_JSON_TICKLETS) {
       double dtick=((unsigned long long)tm->xtime.u8_tick)+
 	(tm->xtime.u8_nsecs)*0.000000001;
@@ -396,7 +411,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fd
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
      (FD_FIXNUMP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
-  if ((flags<0)||(flags>=32))
+  if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
   if (out==fd_default_output) u8_flush(out);
@@ -410,7 +425,7 @@ static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fd
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
      (FD_FIXNUMP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
-  if ((flags<0)||(flags>=32))
+  if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   U8_INIT_OUTPUT(&tmpout,128);
   json_unparse(&tmpout,x,flags,slotfn,oidfn,miscfn);
