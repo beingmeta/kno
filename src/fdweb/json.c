@@ -354,10 +354,11 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     fd_unparse(out,x);
   else if (FD_VECTORP(x)) {
     int i=0; int lim=FD_VECTOR_LENGTH(x);
-    while (i<lim) {
-      if (i>0) u8_putc(out,','); else u8_putc(out,'[');
-      json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
-      i++;}
+    if (lim==0) u8_putc(out,'[');
+    else while (i<lim) {
+	if (i>0) u8_putc(out,','); else u8_putc(out,'[');
+	json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
+	i++;}
     u8_putc(out,']');}
   else if ((FD_CHOICEP(x))||(FD_ACHOICEP(x))) {
     int elt_count=0; FD_DO_CHOICES(e,x) {
