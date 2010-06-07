@@ -404,6 +404,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     fd_decref(tval);
     if (flags) u8_puts(out,"\":"); else u8_putc(out,'"');
     json_escape(out,tmpout.u8_outbuf);
+    u8_putc(out,'"');
     u8_close_output(&tmpout);}
 }
 
