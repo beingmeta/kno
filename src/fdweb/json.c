@@ -25,7 +25,7 @@ static char versionid[] =
 #define FD_JSON_COLONIZE 16
 #define FD_JSON_TICKS    32  /* Show time as unix time */
 #define FD_JSON_TICKLETS 64  /* Show time as nanosecond-precision unix time */
-#define FD_JSON_WARNINGS 128 /* Show time as nanosecond-precision unix time */
+#define FD_JSON_WARNINGS 128 /* Emit conversion warnings, etc */
 #define FD_JSON_DEFAULTS (FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE)
 
 #define FD_JSON_MAXFLAGS 256
@@ -49,26 +49,70 @@ static int skip_whitespace(U8_INPUT *in)
   return c;
 }
 
-static fdtype json_parse(U8_INPUT *in,int flags);
-static fdtype json_vector(U8_INPUT *in,int flags);
-static fdtype json_table(U8_INPUT *in,int flags);
-static fdtype json_string(U8_INPUT *in,int flags);
-static fdtype json_atom(U8_INPUT *in,int flags);
-
-static fdtype json_parse(U8_INPUT *in,int flags)
-{
-  int c=skip_whitespace(in); fdtype v;
-  if (c=='[') return json_vector(in,flags);
-  else if (c=='{') return json_table(in,flags);
-  else if (c=='"') return json_string(in,flags);
-  else return json_atom(in,0);
-}
 
 static fdtype parse_error(u8_output out,fdtype result,int report)
 {
   fd_clear_errors(report);
   fd_decref(result);
   return fd_init_string(NULL,out->u8_outptr-out->u8_outbuf,out->u8_outbuf);
+}
+
+static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
+{
+  if (FD_ABORTP(val)) return val;
+  else if (FD_ABORTP(fn)) return val;
+  else if (FD_VECTORP(fn)) {
+    fdtype eltfn=FD_VECTOR_REF(fn,0);
+    if (FD_VECTORP(val)) {
+      fdtype results=FD_EMPTY_CHOICE;
+      fdtype *elts=FD_VECTOR_DATA(val);
+      int i=0, lim=FD_VECTOR_LENGTH(val);
+      while (i<lim) {
+	fdtype cval=convert_value(eltfn,elts[i],0,warn);
+	if (FD_ABORTP(cval)) {
+	  fd_clear_errors(warn); fd_incref(elts[i]);
+	  FD_ADD_TO_CHOICE(results,elts[i]);}
+	else if (FD_VOIDP(cval)) {
+	  FD_ADD_TO_CHOICE(results,elts[i]);
+	  fd_incref(elts[i]);}
+	else {
+	  FD_ADD_TO_CHOICE(results,cval);}
+	i++;}
+      fd_decref(val);
+      return results;}
+    else return convert_value(eltfn,val,1,warn);}
+  else if (FD_APPLICABLEP(fn)) {
+    fdtype converted=fd_apply(fn,1,&val);
+    if (FD_VOIDP(converted)) return val;
+    else if (FD_ABORTP(converted)) {
+      fd_clear_errors(warn);
+      return val;}
+    else {
+      fd_decref(val);
+      return converted;}}
+  else if ((FD_TRUEP(fn))&&(FD_STRINGP(val))) {
+    fdtype parsed=fd_parse(FD_STRDATA(val));
+    if (FD_ABORTP(parsed)) {
+      fd_clear_errors(warn);
+      return val;}
+    else {
+      fd_decref(val); return parsed;}}
+  else return val;
+}
+
+static fdtype json_parse(U8_INPUT *in,int flags,fdtype fieldmap);
+static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap);
+static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap);
+static fdtype json_string(U8_INPUT *in,int flags);
+static fdtype json_atom(U8_INPUT *in,int flags);
+
+static fdtype json_parse(U8_INPUT *in,int flags,fdtype fieldmap)
+{
+  int c=skip_whitespace(in); fdtype v;
+  if (c=='[') return json_vector(in,flags,fieldmap);
+  else if (c=='{') return json_table(in,flags,fieldmap);
+  else if (c=='"') return json_string(in,flags);
+  else return json_atom(in,0);
 }
 
 static fdtype json_atom(U8_INPUT *in,int flags)
@@ -169,7 +213,7 @@ static fdtype json_key(U8_INPUT *in,int flags)
       return FD_PARSE_ERROR;}}
 }
 
-static fdtype json_vector(U8_INPUT *in,int flags)
+static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int n_elts=0, max_elts=16, c, i;
   unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
@@ -193,7 +237,7 @@ static fdtype json_vector(U8_INPUT *in,int flags)
 	else {
 	  u8_seterr(fd_MallocFailed,"json_vector",NULL);
 	  break;}}
-      elts[n_elts++]=elt=json_parse(in,flags);
+      elts[n_elts++]=elt=json_parse(in,flags,fieldmap);
       if (FD_ABORTP(elt)) break;
       c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {fd_decref(elts[i]); i++;}
@@ -202,7 +246,7 @@ static fdtype json_vector(U8_INPUT *in,int flags)
 		FD_VOID);
 }
 
-static fdtype json_table(U8_INPUT *in,int flags)
+static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int n_elts=0, max_elts=16, c, i;
    unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
@@ -220,7 +264,8 @@ static fdtype json_table(U8_INPUT *in,int flags)
     else {
       if (n_elts==max_elts)  {
 	int new_max=max_elts*2;
-	struct FD_KEYVAL *newelts=u8_realloc(kv,sizeof(struct FD_KEYVAL)*new_max);
+	struct FD_KEYVAL *newelts=
+	  u8_realloc(kv,sizeof(struct FD_KEYVAL)*new_max);
 	if (newelts) {kv=newelts; max_elts=new_max;}
 	else {
 	  u8_seterr(fd_MallocFailed,"json_table",NULL);
@@ -230,7 +275,15 @@ static fdtype json_table(U8_INPUT *in,int flags)
       c=skip_whitespace(in);
       if (c==':') c=u8_getc(in);
       else return FD_EOD;
-      kv[n_elts].value=json_parse(in,flags);
+      if ((FD_VOIDP(fieldmap))||(FD_CONSP(kv[n_elts].key)))
+	kv[n_elts].value=json_parse(in,flags,fieldmap);
+      else {
+	fdtype handler=fd_get(fieldmap,kv[n_elts].key,FD_VOID);
+	if (FD_VOIDP(handler))
+	  kv[n_elts].value=json_parse(in,flags,fieldmap);
+	else
+	  kv[n_elts].value=convert_value(handler,json_parse(in,flags,fieldmap),
+					 1,(flags&FD_JSON_WARNINGS));}
       if (FD_ABORTP(kv[n_elts].value)) break;
       n_elts++; c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {
@@ -240,7 +293,7 @@ static fdtype json_table(U8_INPUT *in,int flags)
 		FD_VOID);
 }
 
-static fdtype jsonparseprim(fdtype in,fdtype flags_arg)
+static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
 {
   int flags=0;
   if (FD_FALSEP(flags_arg)) {}
@@ -251,15 +304,15 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg)
   if (FD_PRIM_TYPEP(in,fd_port_type)) {
     struct FD_PORT *p=FD_GET_CONS(in,fd_port_type,struct FD_PORT *);
     U8_INPUT *in=p->in;
-    return json_parse(in,flags);}
+    return json_parse(in,flags,fieldmap);}
   else if (FD_STRINGP(in)) {
     struct U8_INPUT inport;
     U8_INIT_STRING_INPUT(&inport,FD_STRLEN(in),FD_STRDATA(in));
-    return json_parse(&inport,flags);}
+    return json_parse(&inport,flags,fieldmap);}
   else if (FD_PACKETP(in)) {
     struct U8_INPUT inport;
     U8_INIT_STRING_INPUT(&inport,FD_PACKET_LENGTH(in),FD_PACKET_DATA(in));
-    return json_parse(&inport,flags);}
+    return json_parse(&inport,flags,fieldmap);}
   else return fd_type_error("string or stream","jsonparse",in);
 }
 
@@ -444,10 +497,10 @@ FD_EXPORT void fd_init_json_c()
   fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fdtype unsafe_module=fd_new_module("FDWEB",0);
 
-  fd_idefn(module,fd_make_cprim2x
-	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS)));
-  fd_idefn(unsafe_module,fd_make_cprim2x
-	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS)));
+  fd_idefn(module,fd_make_cprim3x
+	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
+  fd_idefn(unsafe_module,fd_make_cprim3x
+	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
   fd_idefn(module,fd_make_cprim5x("->JSON",jsonstring,1,
 				  -1,FD_VOID,-1,FD_TRUE,
 				  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
