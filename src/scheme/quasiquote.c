@@ -215,7 +215,7 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
   while (i < len) {
     fdtype slotid=keyvals[i].key;
     fdtype value=keyvals[i].value;
-    if (FD_PAIRP(value)) {
+    if ((FD_PAIRP(value))||(FD_VECTORP(value))||(FD_SLOTMAPP(value))) {
       fdtype qval=fd_quasiquote(value,env,level);
       if (FD_ABORTP(qval)) {
 	fd_decref(result); return qval;}
