@@ -186,13 +186,21 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     return result;}
 }
 
-static fdtype json_key(U8_INPUT *in,int flags)
+static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int c=skip_whitespace(in);
   if (c=='"')
     if (flags&FD_JSON_SYMBOLIZE) 
       return json_intern(in,flags);
-    else return json_string(in,flags);
+    else if (FD_VOIDP(fieldmap))
+      return json_string(in,flags);
+    else {
+      fdtype stringkey=json_string(in,flags);
+      fdtype mapped=fd_get(fieldmap,stringkey,FD_VOID);
+      if (FD_VOIDP(mapped)) return stringkey;
+      else {
+	fd_decref(stringkey);
+	return mapped;}}
   else if (((c=='{')||(c=='['))&&(!(flags&FD_JSON_ANYKEY))) {
     fd_seterr("Invalid JSON key","json_key",NULL,FD_VOID);
     return FD_PARSE_ERROR;}
@@ -270,7 +278,7 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
 	else {
 	  u8_seterr(fd_MallocFailed,"json_table",NULL);
 	  break;}}
-      kv[n_elts].key=json_key(in,flags);
+      kv[n_elts].key=json_key(in,flags,fieldmap);
       if (FD_ABORTP(kv[n_elts].key)) break;
       c=skip_whitespace(in);
       if (c==':') c=u8_getc(in);
