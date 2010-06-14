@@ -1682,7 +1682,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   else if (in->u8_fillfn) 
     while (!(((start>=0)&&(end>start)&&((end<buflen)||(eof))))) {
       int delta=in->u8_fillfn(in);
-      if (delta==0) eof=1;
+      if (delta==0) {eof=1; break;}
       buflen=in->u8_inlim-in->u8_inptr;
       if (start<0) start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
       if (start<0) continue;
