@@ -3,7 +3,7 @@
 (use-module '{fdweb texttools})
 (use-module '{varconfig logger rulesets ezrecords})
 
-(define %loglevel %notice!)
+(define %loglevel %debug!)
 
 (module-export! '{auth/getinfo
 		  auth/getuser

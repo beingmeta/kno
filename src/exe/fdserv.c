@@ -238,13 +238,14 @@ static void report_status()
       long long interval=now-runstart;
       rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
       if (interval>rmax) rmax=interval;}}
-  if (statlog)
+  if (statlog) {
     u8_fprintf(statlog,
 	       "[%f] %d/%d/%d busy clients; avg(wait)=%f(%d); avg(run)=%f(%d)\n",
 	       u8_elapsed_time(),
 	       fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
 	       ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),fdwebserver.waitcount,
 	       ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),fdwebserver.runcount);
+    fflush(statlog);}
   else u8_log(LOG_INFO,"fdserv",
 	       "[%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
 	      u8_elapsed_time(),
