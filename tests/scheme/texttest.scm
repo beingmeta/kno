@@ -235,12 +235,16 @@ is the other number")
 	     (LABEL SUFFIX ""))
 	   textract url-pattern "http://www.framerd.org/docs/")
 
-;;; Text rewrite and substitiont tests
+;;; Text rewrite and substition tests
 
 (applytest "X" textrewrite '(subst (isdigit) "X") "1")
 (applytest "X" textrewrite '(subst (isdigit+) "X") "1")
-(applytest {} textrewrite '(subst (isalpha) "X") "1")
 (applytest {} textrewrite '(subst (isdigit) "X") "123")
+(applytest "abXXcdefXghiXjXkls t u"
+	   textsubst "ab12cdef3ghi4j5kls t u"
+	   '(isdigit) "X")
+
+(applytest {} textrewrite '(subst (isalpha) "X") "1")
 (applytest "XXX" textrewrite '(* (subst (isdigit) "X")) "123")
 (applytest "XXX-YYYY" textrewrite
 	   #((* (subst (isdigit) "X")) "-" (* (subst (isdigit) "Y")))
@@ -248,9 +252,6 @@ is the other number")
 (applytest {} textrewrite
 	   #((* (subst (isdigit) "X")) "-" (* (subst (isdigit) "Y")))
 	   "123")
-(applytest "abXXcdefXghiXjXkls t u"
-	   textsubst "ab12cdef3ghi4j5kls t u"
-	   '(isdigit) "X")
 
 (applytest "X" textsubst "1" '(subst (isdigit+) "X"))
 (applytest "XXXX" textsubst "1234" '(subst (isdigit) "X"))
@@ -313,7 +314,7 @@ is the other number")
 
 ; (testing 'rfc822-tx '(get msg 'content) msg-body)
 
-(define header-pat '(* {(char-not "\n") #("\n" (isspace))}))
+(define header-pat '(* {(char-not "\n") #("\n" (hspace))}))
 (applytest {"Date: Sun, 22 Apr 90 15:10:14 EDT"
 	    "Received: by media-lab (5.57/4.8)  id AA10965; Sun, 22 Apr 90 15:10:16 EDT"
 	    "From: alanr"
@@ -376,6 +377,3 @@ is the other number")
 (define expr-pat #f)
 
 (message "TEXTTEST successfuly completed")
-
-
-

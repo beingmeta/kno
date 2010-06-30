@@ -1137,7 +1137,9 @@ static fdtype subst_extract
       fdtype answers=FD_EMPTY_CHOICE;
       fdtype args=FD_CDR(FD_CDR(pat));
       fdtype expanded=expand_subst_args(args,env);
-      int expandedp=((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))||	  (!(FD_EQUAL(args,expanded))));
+      int expandedp=
+	((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))||
+	 (!(FD_EQUAL(args,expanded))));
       FD_DO_CHOICES(match,matches) {
 	int matchlen=fd_getint(match);
 	fdtype matched=fd_extract_string(NULL,string+off,string+matchlen);
@@ -1148,13 +1150,14 @@ static fdtype subst_extract
 	    fdtype new_subst=fd_init_pair(NULL,subst_symbol,new_args);
 	    fdtype answer=fd_init_pair(NULL,match,new_subst);
 	    FD_ADD_TO_CHOICE(answers,answer);}
-	  fd_decref(expanded);
 	  fd_decref(matched);}
 	else {
 	  fdtype new_args=fd_init_pair(NULL,matched,expanded);
 	  fdtype new_subst=fd_init_pair(NULL,subst_symbol,new_args);
 	  fdtype answer=fd_init_pair(NULL,match,new_subst);
+	  fd_incref(expanded);
 	  FD_ADD_TO_CHOICE(answers,answer);}}
+      fd_decref(expanded);
       fd_decref(matches);
       return answers;}}
 }
@@ -2155,6 +2158,94 @@ static u8_byteoff spaces_star_search
   if (off > lim) return -1;
   else return off;
 }
+
+/* Horizontal space matching */
+
+static fdtype ishspace_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (u8_ishspace(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype ishspace_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  u8_unichar ch=u8_sgetc(&scan);
+  while (u8_ishspace(ch)) 
+    if (scan > limit) break;
+    else {
+      last=scan;
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(last-string);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(last-string));}
+      ch=u8_sgetc(&scan);}
+  if (last == string) return FD_EMPTY_CHOICE;
+  else if ((flags)&(FD_MATCH_BE_GREEDY))
+    return get_longest_match(match_points);
+  else return match_points;
+}
+static u8_byteoff ishspace_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (u8_ishspace(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
+/* Vertical space matching */
+
+static fdtype isvspace_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch=string_ref(string+off);
+  if (u8_isvspace(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_EMPTY_CHOICE;
+}
+static fdtype isvspace_plus_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype match_points=FD_EMPTY_CHOICE;
+  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  u8_unichar ch=u8_sgetc(&scan);
+  while (u8_isvspace(ch)) 
+    if (scan > limit) break;
+    else {
+      last=scan;
+      if (flags&FD_MATCH_BE_GREEDY)
+	match_points=FD_INT2DTYPE(last-string);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(last-string));}
+      ch=u8_sgetc(&scan);}
+  if (last == string) return FD_EMPTY_CHOICE;
+  else if ((flags)&(FD_MATCH_BE_GREEDY))
+    return get_longest_match(match_points);
+  else return match_points;
+}
+static u8_byteoff isvspace_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byte *s=string+off, *sl=string+lim;
+  while (s < sl) {
+    u8_unichar ch=string_ref(s);
+    if (u8_isvspace(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s=u8_substring(s,1);}
+  return -1;
+}
+
+/* Other matchers */
 
 static fdtype isalnum_match
   (fdtype pat,fdtype next,fd_lispenv env,
@@ -3455,6 +3546,10 @@ void fd_init_match_c()
   fd_add_match_operator("ISSPACE+",isspace_plus_match,isspace_search,NULL);
   fd_add_match_operator("SPACES",spaces_match,spaces_search,NULL);
   fd_add_match_operator("SPACES*",spaces_star_match,spaces_star_search,NULL);
+  fd_add_match_operator("HSPACE",ishspace_match,ishspace_search,NULL);
+  fd_add_match_operator("HSPACE+",ishspace_plus_match,ishspace_search,NULL);
+  fd_add_match_operator("VSPACE",isvspace_match,isvspace_search,NULL);
+  fd_add_match_operator("VSPACE+",isvspace_plus_match,isvspace_search,NULL);
   fd_add_match_operator("ISALNUM",isalnum_match,isalnum_search,NULL);
   fd_add_match_operator("ISALNUM+",isalnum_plus_match,isalnum_search,NULL);
   fd_add_match_operator("ISWORD",isword_match,isword_search,NULL);

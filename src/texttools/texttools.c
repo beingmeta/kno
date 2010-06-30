@@ -22,6 +22,8 @@ static char versionid[] =
 
 #include <ctype.h>
 
+static fdtype texttools_module;
+
 fd_exception fd_BadExtractData=_("Bad extract data");
 fd_exception fd_BadMorphRule=_("Bad morphrule");
 
@@ -855,14 +857,24 @@ static int dorewrite(u8_output out,fdtype xtract)
       else if (dorewrite(out,content)<0) return -1;}
     else if (sym==subst_symbol) {
       fdtype args=FD_CDR(FD_CDR(xtract)), content, head, params;
+      int free_head=0;
       if (FD_EMPTY_LISTP(args)) return 1;
       content=FD_CAR(FD_CDR(xtract)); head=FD_CAR(args); params=FD_CDR(args);
-      if ((FD_STRINGP(head))&&(FD_EMPTY_LISTP(params)))
+      if (FD_SYMBOLP(head)) {
+	fdtype probe=fd_get(texttools_module,head,FD_VOID);
+	if (FD_VOIDP(probe)) probe=fd_get(fd_scheme_module,head,FD_VOID);
+	if (FD_VOIDP(probe)) {
+	  fd_seterr(_("Unknown subst function"),"dorewrite",NULL,head);
+	  return -1;}
+	head=probe; free_head=1;}
+      if ((FD_STRINGP(head))&&(FD_EMPTY_LISTP(params))) {
 	u8_putn(out,FD_STRDATA(head),FD_STRLEN(head));
+	if (free_head) fd_decref(head);}
       else if (FD_APPLICABLEP(head)) {
 	fdtype xformed=rewrite_apply(head,content,params);
 	u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
 	fd_decref(xformed);
+	if (free_head) fd_decref(head);
 	return 1;}
       else {
 	FD_DOLIST(elt,args)
@@ -875,6 +887,7 @@ static int dorewrite(u8_output out,fdtype xtract)
 	    u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
 	    fd_decref(xformed);}
 	  else {}
+	if (free_head) fd_decref(head);
 	return 1;}}
     else {
       fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
@@ -1891,7 +1904,6 @@ static int texttools_init=0;
 
 void fd_init_texttools()
 {
-  fdtype texttools_module;
   if (texttools_init) return;
   fd_register_source_file(versionid);
   texttools_init=1;
