@@ -264,10 +264,13 @@
 	(message "Checking consistency of reloaded table...")
  	(unless (check-table table atomicp)
  	  (message "Reloaded table is inconsistent")
+	  (clearcaches)
  	  (exit 1))
+	(clearcaches)
 	(message "Reloaded table is consistent."))
       (if size
-	  (edit-tests filename size)
+	  (begin (edit-tests filename size)
+		 (clearcaches))
 	  (let* ((table (table-from filename))
 		 (atomicp (has-suffix filename ".slotmap"))
 		 (objectcount (count-objects table)))
@@ -277,10 +280,5 @@
 		(message "Table is consistent")
 		(begin (message "Table is inconsistent")
 		       (exit 1)))
-	    (message "Restored table is consistent")))))
-
-
-
-
-
-
+	    (message "Restored table is consistent")
+	    (clearcaches)))))
