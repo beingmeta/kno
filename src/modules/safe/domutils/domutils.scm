@@ -14,7 +14,7 @@
    dom/textify
    dom/textual?
    dom/oidify dom/oidmap dom/nodeid
-   dom/set! dom/add! dom/drop! dom/append!
+   dom/set! dom/add! dom/drop! dom/append! dom/prepend!
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/strip! dom/map dom/combine!
@@ -160,6 +160,19 @@
 				(xmlparse elt 'keepraw)
 				(xmlparse elt))
 			    (list elt))))))
+    (store! node '%content current)))
+
+(define (dom/prepend! node . content)
+  (let ((current (try (get node '%content) '())))
+    (dolist (elt content)
+      (set! current
+	    (append (if (pair? elt) elt
+			(if (and (string? elt) (has-prefix elt "<"))
+			    (if (test node '%%xmltag)
+				(xmlparse elt 'keepraw)
+				(xmlparse elt))
+			    (list elt)))
+		    current)))
     (store! node '%content current)))
 
 ;;; Selector functions
