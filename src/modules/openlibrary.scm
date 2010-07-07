@@ -4,7 +4,7 @@
 
 ;;; Provides access to the Open Library API
 
-(use-module '{fdweb texttools ezrecords})
+(use-module '{fdweb texttools ezrecords parsetime})
 
 (module-export!
  '{olib
@@ -24,34 +24,39 @@
 	   new))))
 
 (define (olib/ref key)
-  (try (get olib-refs key) (newolibref key)))
+  (if (olib? key) key
+      (try (get olib-refs key) (newolibref key))))
 
 (define (olib/import data)
   (cond ((string? data) data)
 	((vector? data) (map olib/import data))
 	((and (table? data)
 	      (= (table-size data) 1)
-	      (test data "key"))
-	 (olib/ref (get data "key")))
-	((and (table? data) (test data "type" "/type/datetime"))
-	 (parsetime (get data "value")))
-	((and (table? data) (test data "type" "/type/text"))
-	 (get data "value"))
+	      (test data 'key))
+	 (olib/ref (get data 'key)))
+	((and (table? data)
+	      (= (table-size data) 2)
+	      (test data 'type "/type/text")
+	      (test data 'value))
+	 (get data 'value))
+	((and (table? data) (test data 'type "/type/datetime"))
+	 (parsetime (get data 'value)))
+	((and (table? data) (test data 'type "/type/text"))
+	 (get data 'type))
 	((table? data)
 	 (let ((new (frame-create #f)))
 	   (do-choices (key (getkeys data))
-	     (let ((slotid (intern (upcase key)))
+	     (let ((slotid (if (string? key) (intern (upcase key)) key))
 		   (value (get data key)))
-	       (cond ((equal? key "type") (store! new 'type (olib/ref value)))
+	       (cond ((equal? key 'type) (store! new 'type (olib/ref (olib/import value))))
 		     ((string? value) (store! new slotid value))
 		     ((vector? value)
 		      (let ((converted (map olib/import value)))
 			(store! new (intern (stringout "%" slotid))
 				converted)
 			(add! new slotid (elts converted))))
-		     ((and (table? value) (test value "key"))
-		      (olib/ref key))
-		     (else (store! new slotid value)))))
+		     (else
+		      (store! new key (olib/import value))))))
 	   new))
 	(else data)))
 
@@ -77,7 +82,9 @@
 ;;;; The query interfaces
 
 (define (olib/query . args)
-  (let* ((args (map (lambda (x) (if (olib? x) (olib-key x) x))
+  (let* ((args (map (lambda (x) (if (olib? x) (olib-key x)
+				    (if (symbol? x) (downcase (symbol->string x))
+					x)))
 		    args))
 	 (uri (apply scripturl
 		     "http://openlibrary.org/query.json"
@@ -85,7 +92,7 @@
 	 (req (urlget uri)))
     (tryif (test req 'response 200)
       (let ((result (olib/parse (get req '%content))))
-	(if (vector? result) (elts result) result)))))
+	(if (vector? result) (olib/import (elts result)) (olib/import result))))))
 
 (define (olib/bibref type (val #f))
   (let* ((bibkey (if val (stringout type ":" val) type))
