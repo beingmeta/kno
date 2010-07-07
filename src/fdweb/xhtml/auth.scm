@@ -184,17 +184,23 @@
 
 ;;; Checking authorization
 
-(define (auth/getinfo (authid authid) (authinfo))
+(define (auth/getinfo (authid authid) (signal #f) (authinfo))
   (default! authinfo (cgiget authid))
-  (debug%watch "AUTH/GETINFO" authid authinfo (cgiget authid))
+  (debug%watch "AUTH/GETINFO" authid authinfo signal (cgiget authid))
   (cond ((fail? authinfo) (fail))
+	((not authinfo)
+	 (when signal (error "No authorization info" authinfo authid))
+	 (fail))
 	;; If the info is a string, we haven't verified it yet
 	;; This is where the real validation happens
-	((not authinfo)
-	 (error "No authorization info" authinfo authid)
-	 (fail))
 	((string? authinfo)
-	 (auth/getinfo authid (string->auth authinfo authid)))
+	 (let ((info (string->auth authinfo authid)))
+	   (if info (auth/getinfo authid signal info)
+	       (begin
+		 (cgidrop! authid)
+		 (expire-cookie! authid)
+		 (when signal (error "No authorization info" authinfo authid))
+		 (fail)))))
 	;; Check if the info is a valid vector
 	((not (authinfo? authinfo))
 	 (error "Invalid authorization info" authinfo authid)
