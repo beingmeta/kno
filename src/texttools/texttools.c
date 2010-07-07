@@ -1041,6 +1041,46 @@ static fdtype textsubst(fdtype string,
     else return fd_extract_string(NULL,data+off,data+lim);}
 }
 
+/* Gathering and rewriting together */
+
+static fdtype gathersubst(fdtype pattern,fdtype string,
+			  fdtype offset,fdtype limit)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  u8_string data=FD_STRDATA(string);
+  int off, lim;
+  convert_offsets(string,offset,limit,&off,&lim);
+  if ((off<0) || (lim<0))
+    return fd_err(fd_RangeError,"textgather",NULL,FD_VOID);
+  else {
+    int start=fd_text_search(pattern,NULL,data,off,lim,0);
+    while (start>=0) {
+      fdtype result, extract_result=
+	fd_text_extract(pattern,NULL,FD_STRDATA(string),start,lim,0);
+      int end=-1; fdtype longest=FD_VOID;
+      {FD_DO_CHOICES(extraction,extract_result) {
+	  int point=fd_getint(FD_CAR(extraction));
+	  if (point>end) {end=point; longest=FD_CDR(extraction);}}}
+      fd_incref(longest);
+      fd_decref(extract_result);
+      if (end<0) return results;
+      else if (end>start) {
+	struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,24);
+	dorewrite(&tmpout,longest);
+	result=fd_init_string(NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
+	FD_ADD_TO_CHOICE(results,result);
+	fd_decref(longest);
+	start=fd_text_search(pattern,NULL,data,end,lim,0);}
+      else if (end==lim)
+	return results;
+      else start=fd_text_search
+	     (pattern,NULL,data,forward_char(data,end),lim,0);}
+    if (start==-2) {
+      fd_decref(results);
+      return FD_ERROR_VALUE;}
+    else return results;}
+}
+
 /* Handy filtering functions */
 
 static fdtype textfilter(fdtype strings,fdtype pattern)
@@ -2061,6 +2101,11 @@ void fd_init_texttools()
 			   fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("GATHER",textgather,2,
+			   -1,FD_VOID,fd_string_type,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(0),
+			   fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim4x("GATHERSUBST",gathersubst,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID,
 			   fd_fixnum_type,FD_INT2DTYPE(0),
 			   fd_fixnum_type,FD_VOID));
