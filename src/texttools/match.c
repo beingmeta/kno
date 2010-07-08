@@ -3188,17 +3188,29 @@ static fdtype hashset_match
 {
   fdtype hs=fd_get_arg(pat,1);
   fdtype cpat=fd_get_arg(pat,2);
+  fdtype xform=fd_get_arg(pat,3);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_match",NULL,pat);
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
-  else {
+  else if (FD_VOIDP(xform)) {
     fd_hashset h=to_hashset(hs);
     fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {
 	FD_ADD_TO_CHOICE(results,possibility);}
+    return get_longest_match(results);}
+  else {
+    fd_hashset h=to_hashset(hs);
+    fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    fdtype results=FD_EMPTY_CHOICE;
+    {FD_DO_CHOICES(possibility,iresults) {
+	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
+	fdtype xformed=fd_apply(xform,1,&origin);
+	if (fd_hashset_get(h,xformed)) {
+	  FD_ADD_TO_CHOICE(results,possibility);}
+	fd_decref(xformed); fd_decref(origin);}}
     return get_longest_match(results);}
 }
 
@@ -3229,17 +3241,29 @@ static fdtype hashset_not_match
 {
   fdtype hs=fd_get_arg(pat,1);
   fdtype cpat=fd_get_arg(pat,2);
+  fdtype xform=fd_get_arg(pat,3);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_match",NULL,pat);
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_match",pat);
-  else {
+  else if (FD_VOIDP(xform)) {
     fd_hashset h=to_hashset(hs);
     fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {}
       else {FD_ADD_TO_CHOICE(results,possibility);}
+    return get_longest_match(results);}
+  else  {
+    fd_hashset h=to_hashset(hs);
+    fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    fdtype results=FD_EMPTY_CHOICE;
+    {FD_DO_CHOICES(possibility,iresults) {
+	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
+	fdtype xformed=fd_apply(xform,1,&origin);
+	if (fd_hashset_get(h,xformed)) {
+	  FD_ADD_TO_CHOICE(results,possibility);}
+	fd_decref(xformed); fd_decref(origin);}}
     return get_longest_match(results);}
 }
 
