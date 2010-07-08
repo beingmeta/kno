@@ -3083,6 +3083,7 @@ static fdtype lword_match
   u8_byte *scan=string+off, *slim=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan), lastch=-1;
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
+  if (!(u8_islower(ch))) return FD_EMPTY_CHOICE;
   while ((scan<=slim) && ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)))) {
     u8_unichar nextch; u8_byte *prev=scan; nextch=u8_sgetc(&scan);
     if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
