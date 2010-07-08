@@ -3034,18 +3034,33 @@ static u8_byteoff htmlid_search
 
 /* Word matching */
 
-#define apostrophep(x) ((x == '\''))
+#define apostrophep(x) ((x == '\'')||(x==0x2019))
+#define dashp(x) ((x == '-')||(x == '_')||(x==0xAD)||(x==0x2010)||(x==0x2011)||(x=='/')||(x==0x2044))
 
 static fdtype aword_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *slim=string+lim, *last=scan;
-  u8_unichar ch=u8_sgetc(&scan);
+  u8_byte *scan=string+off, *slim=string+lim, *last=scan, *dot=NULL;
+  u8_unichar ch=u8_sgetc(&scan), lastch;
+  int allupper=u8_isupper(ch);
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
-  while ((scan<=slim) && ((u8_isalpha(ch)) || (apostrophep(ch)))) {
-    last=scan; ch=u8_sgetc(&scan);}
-  if (last > string+off) return FD_INT2DTYPE(last-string);
+  while ((scan<=slim) &&
+	 ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)) ||
+	  ((allupper)&&(ch=='.')))) {
+    u8_byte *prev=scan; u8_unichar nextch=u8_sgetc(&scan);
+    if (u8_islower(nextch)) allupper=0;
+    else if ((allupper)&&(nextch=='.')&&(!(dot))) dot=prev;
+    if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
+      if ((ch=='.')||(apostrophep(ch))) last=prev;
+      break;}
+    else {ch=nextch; last=prev;}}
+  if (last > string+off)
+    if (lastch=='.')
+      if ((allupper)&&(dot)&&(dot!=last))
+	return FD_INT2DTYPE(last-string);
+      else return FD_INT2DTYPE((last-1)-string);
+    else return FD_INT2DTYPE(last-string);
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff aword_search
@@ -3066,10 +3081,14 @@ static fdtype lword_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byte *scan=string+off, *slim=string+lim, *last=scan;
-  u8_unichar ch=u8_sgetc(&scan);
+  u8_unichar ch=u8_sgetc(&scan), lastch=-1;
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
-  while ((scan<=slim) && ((u8_islower(ch)) || (apostrophep(ch)))) {
-    last=scan; ch=u8_sgetc(&scan);}
+  while ((scan<=slim) && ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)))) {
+    u8_unichar nextch; u8_byte *prev=scan; nextch=u8_sgetc(&scan);
+    if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
+      if (apostrophep(ch)) last=prev;
+      break;}
+    else {ch=nextch; last=prev;}}
   if (last > string+off) return FD_INT2DTYPE(last-string);
   else return FD_EMPTY_CHOICE;
 }
@@ -3091,22 +3110,34 @@ static fdtype capword_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype matches=FD_EMPTY_CHOICE;
-  u8_byte *scan=string+off, *last=scan; u8_byte *dot=NULL;
+  u8_byte *scan=string+off, *last=scan, *slim=string+lim;
+  u8_byte *dot=NULL;
   u8_unichar ch=u8_sgetc(&scan), lastch=-1;
+  int greedy=((flags)&(FD_MATCH_BE_GREEDY)), allupper=1;
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
   if (!(u8_isupper(ch))) return matches;
-  while ((u8_isalpha(ch)) || (apostrophep(ch)) || (ch == '-') || (ch== '.') || (ch== '/')) {
-    if ((ch == '-')||(ch == '/')) {FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}
-    else if ((ch=='.')&&(!(dot))) dot=last;
-    last=scan; lastch=ch; ch=u8_sgetc(&scan);}
+  while ((scan<=slim) &&
+	 ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)) ||
+	  ((allupper)&&(ch=='.')))) {
+    u8_byte *prev=scan; u8_unichar nextch=u8_sgetc(&scan); 
+    /* Handle embedded dots */
+    if (u8_islower(nextch)) allupper=0;
+    else if ((allupper)&&(nextch=='.')&&(!(dot))) dot=prev;
+    if ((!(greedy))&&(dashp(ch))) {
+      FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(prev-string));}
+    if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
+      if ((ch=='.')||(apostrophep(ch))) last=prev;
+      break;}
+    else {lastch=ch; ch=nextch; last=prev;}}
   if (last > string+off) {
-    if ((lastch=='-')||(lastch=='/')||((lastch=='.')&&((dot==(last-1))))) {
+    if ((lastch=='.')&&(!((dot)&&(allupper)&&(dot==last)))) {
       FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE((last-1)-string));}
-    else {FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}}
-  if ((flags)&(FD_MATCH_BE_GREEDY))
-    return get_longest_match(matches);
+    else {
+      FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}}
+  if (greedy) return get_longest_match(matches);
   else return matches;
 }
+
 static u8_byteoff capword_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
