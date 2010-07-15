@@ -946,8 +946,9 @@ int main(int argc,char **argv)
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
   unsigned char data[1024], *input;
-  int i=2, n_threads=-1, n_tasks=-1;
+  int i=1, n_threads=-1, n_tasks=-1;
   u8_string source_file=NULL;
+  u8_string socket_path=NULL;
 
   /* Set this here, before processing any configs */
   fddb_loglevel=LOG_INFO;
@@ -956,10 +957,17 @@ int main(int argc,char **argv)
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
   
-  if ((strchr(argv[1],'@')) == NULL)
-    if (check_socket_path(argv[1])<0) {
-      u8_clear_errors(1);
-      return -1;}
+  while (i<argc)
+    if (strchr(argv[i],'=')) i++;
+    else if (socket_path) i++;
+    else socket_path=argv[i++];
+  i=1;
+  if (!(socket_path)) {
+    fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
+    exit(2);}
+  else if (check_socket_path(socket_path)<0) {
+    u8_clear_errors(1);
+    return -1;}
   
   u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
 
@@ -1055,14 +1063,14 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  u8_log(LOG_NOTICE,"LAUNCH","fdserv %s",argv[1]);
+  u8_log(LOG_NOTICE,"LAUNCH","fdserv %s",socket_path);
 
   while (i<argc)
     if (strchr(argv[i],'=')) {
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
-  if (u8_file_existsp(argv[1])) remove(argv[1]);
+  if (u8_file_existsp(socket_path)) remove(socket_path);
   
   update_preloads();
 
@@ -1107,15 +1115,15 @@ int main(int argc,char **argv)
  sigsetmask(0);
 #endif
 
-  if (u8_add_server(&fdwebserver,argv[1],-1)<0) {
+  if (u8_add_server(&fdwebserver,socket_path,-1)<0) {
     fd_recycle_hashtable(&pagemap);
     fd_clear_errors(1);
     return -1;}
-  chmod(argv[1],0777);
+  chmod(socket_path,0777);
 
-  write_pid_file(argv[1]);
+  write_pid_file(socket_path);
 
-  portfile=u8_strdup(argv[1]);
+  portfile=u8_strdup(socket_path);
 
   u8_log(LOG_INFO,NULL,
 	 "FramerD (r%s) fdserv servlet running, %d/%d pools/indices",

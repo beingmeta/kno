@@ -812,7 +812,16 @@ fdtype fd_open_xml(fdtype xml,fd_lispenv env)
     u8_output out=fd_get_default_output();
     fdtype markup=get_markup_string(xml,env);
     if (FD_STRINGP(markup)) u8_printf(out,"<%s>",FD_STRDATA(markup));
-    return markup;}
+    fd_decref(markup);
+    return FD_VOID;}
+  else return FD_VOID;
+}
+
+FD_EXPORT
+fdtype fd_xml_opener(fdtype xml,fd_lispenv env)
+{
+  if (FD_TABLEP(xml)) 
+    return get_markup_string(xml,env);
   else return FD_VOID;
 }
 
