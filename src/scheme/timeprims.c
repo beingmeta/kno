@@ -1227,7 +1227,7 @@ static fdtype uuidnode_prim(fdtype uuid_arg)
 static fdtype uuidstring_prim(fdtype uuid_arg)
 {
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
-  return fd_init_string(NULL,37,u8_uuidstring(uuid->uuid,NULL));
+  return fd_init_string(NULL,36,u8_uuidstring(uuid->uuid,NULL));
 }
 
 /* Initialization */
