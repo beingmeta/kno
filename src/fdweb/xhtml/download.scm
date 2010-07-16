@@ -4,14 +4,14 @@
 
 (module-export! 'xhtml/download)
 
-(define boundary "<frontier">)
+(define boundary "<frontier>")
 
 (define (xhtml/download . specs)
   (when (> (length specs) 2)
     (begin
-      (cgiset! 'content-type "multipart/mixed; boundary=\"" frontier "\"")
+      (cgiset! 'content-type
+	       (stringout "multipart/mixed; boundary=" boundary))
       (httpheader "Mime-Version: 1.0")
-      (output-download (car specs) )
       (xhtml "\nThis response contains " (/ (length specs) 2) " files\n")
       (do ((scan specs
 		 (if (and (not (string? (car scan)))
@@ -19,8 +19,8 @@
 		     (cdr scan)
 		     (cddr scan))))
 	  ((null? scan)
-	   (xhtml "\r\n--<frontier>--\r\n"))
-	(xhtml "\r\n--<frontier>\r\n")
+	   (xhtml "\r\n--" boundary "--\r\n"))
+	(xhtml "\r\n--" boundary "\r\n")
 	(if (and (not (string? (car scan))) (test (car scan) 'content))
 	    (write-attachment (car scan) (get (car scan) 'content))
 	    (write-attachment (car scan) (cadr scan))))))
