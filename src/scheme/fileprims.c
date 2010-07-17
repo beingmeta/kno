@@ -47,11 +47,11 @@ static u8_condition SnapshotRestored=_("Snapshot Restored");
 
 /* Making ports */
 
-static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out)
+static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port=u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
-  port->in=in; port->out=out;
+  port->in=in; port->out=out; port->id=id;
   return FDTYPE_CONS(port);
 }
 
@@ -81,7 +81,7 @@ static fdtype open_output_file(fdtype fname,fdtype encid)
   f=(u8_output)u8_open_output_file(filename,enc,0,0);
   if (f==NULL)
     return fd_err(fd_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
-  else return make_port(NULL,(u8_output)f);
+  else return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
 static fdtype open_input_file(fdtype fname,fdtype encid)
@@ -97,7 +97,7 @@ static fdtype open_input_file(fdtype fname,fdtype encid)
   f=(u8_input)u8_open_input_file(filename,enc,0,0);
   if (f==NULL)
     return fd_err(fd_CantOpenFile,"OPEN-INPUT-FILE",NULL,fname);
-  else return make_port((u8_input)f,NULL);
+  else return make_port((u8_input)f,NULL,u8_strdup(filename));
 }
 
 static fdtype open_dtype_file(fdtype fname)
@@ -326,7 +326,7 @@ static fdtype open_socket_prim(fdtype spec,fdtype opts)
     u8_xoutput out=u8_open_xoutput(conn,NULL);
     if (!(FD_FALSEP(noblock))) u8_set_blocking(conn,0);
     if (!(FD_FALSEP(nodelay))) u8_set_nodelay(conn,1);
-    return make_port((u8_input)in,(u8_output)out);}
+    return make_port((u8_input)in,(u8_output)out,u8_strdup(FD_STRDATA(spec)));}
 }
 
 /* More file manipulation */

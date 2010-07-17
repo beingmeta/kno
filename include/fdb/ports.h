@@ -16,7 +16,7 @@ FD_EXPORT fd_ptr_type fd_port_type;
 
 typedef struct FD_PORT {
   FD_CONS_HEADER;
-  u8_input in; u8_output out;} FD_PORT;
+  u8_string id; u8_input in; u8_output out;} FD_PORT;
 typedef struct FD_PORT *fd_port;
 
 typedef struct FD_DTSTREAM {

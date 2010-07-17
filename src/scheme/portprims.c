@@ -30,11 +30,17 @@ fd_ptr_type fd_port_type;
 static int unparse_port(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_PORT *p=FD_GET_CONS(x,fd_port_type,fd_port);
-  if ((p->in) && (p->out))
-    u8_printf(out,"#<I/O Port %d/%d #!%x>",x);
+  if ((p->in) && (p->out) && (p->id))
+    u8_printf(out,"#<I/O Port (%s) #!%x>",p->id,x);
+  else if ((p->in) && (p->out))
+    u8_printf(out,"#<I/O Port #!%x>",x);
+  else if ((p->in)&&(p->id))
+    u8_printf(out,"#<Input Port (%s) #!%x>",p->id,x);
   else if (p->in)
-    u8_printf(out,"#<Input Port %d/%d #!%x>",x);
-  else u8_printf(out,"#<Output Port %d/%d #!%x>",x);
+    u8_printf(out,"#<Input Port #!%x>",x);
+  else if (p->id)
+    u8_printf(out,"#<Output Port (%s) #!%x>",p->id,x);
+  else u8_printf(out,"#<Output Port #!%x>",x);
   return 1;
 }
 
@@ -45,7 +51,8 @@ static void recycle_port(struct FD_CONS *c)
     u8_close_input(p->in);}
   if (p->out) {
     u8_close_output(p->out);}
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
+  if (p->id) u8_free(p->id);
+ if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Getting default output */
@@ -107,11 +114,11 @@ FD_INLINE_FCN u8_output get_default_output_port()
 
 /* Making ports */
 
-static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out)
+static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port=u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
-  port->in=in; port->out=out;
+  port->in=in; port->out=out; port->id=id;
   return FDTYPE_CONS(port);
 }
 
@@ -285,7 +292,7 @@ static fdtype open_output_string()
 {
   U8_OUTPUT *out=u8_alloc(struct U8_OUTPUT);
   U8_INIT_OUTPUT(out,256);
-  return make_port(NULL,out);
+  return make_port(NULL,out,u8_strdup("output string"));
 }
 
 static fdtype open_input_string(fdtype arg)
@@ -294,8 +301,17 @@ static fdtype open_input_string(fdtype arg)
     U8_INPUT *in=u8_alloc(struct U8_INPUT);
     U8_INIT_STRING_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(FD_STRDATA(arg)));
     in->u8_streaminfo=in->u8_streaminfo|U8_STREAM_OWNS_BUF;
-    return make_port(in,NULL);}
+    return make_port(in,NULL,u8_strdup("input string"));}
   else return fd_type_error(_("string"),"open_input_string",arg);
+}
+
+static fdtype portid(fdtype port_arg)
+{
+  if (FD_PTR_TYPEP(port_arg,fd_port_type)) {
+    struct FD_PORT *port=(struct FD_PORT *)port_arg;
+    if (port->id) return fdtype_string(port->id);
+    else return FD_FALSE;}
+  else return fd_type_error(_("port"),"portid",port_arg);
 }
 
 static fdtype portdata(fdtype port_arg)
@@ -1365,6 +1381,8 @@ FD_EXPORT void fd_init_portfns_c()
 			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(-1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("PORTID",portid,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim0("OPEN-OUTPUT-STRING",open_output_string,0));
