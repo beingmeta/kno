@@ -77,7 +77,7 @@ typedef struct FD_WEBCONN *fd_webconn;
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
 static fdtype response_symbol, err_symbol, cgidata_symbol, browseinfo_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid, remote_info_symbol;
-static fdtype content_slotid, content_type, retfile_slotid;
+static fdtype content_slotid, content_type, retfile_slotid, cleanup_slotid;
 static fdtype tracep_slotid, query_symbol, referer_symbol;
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
@@ -784,6 +784,11 @@ static int webservefn(u8_client ucl)
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
+  if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
+    fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
+    FD_DO_CHOICES(cl,cleanup) {
+      fdtype retval=fd_apply(cleanup,0,NULL);
+      fd_decref(retval);}}
   fd_thread_set(cgidata_symbol,FD_VOID);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   fd_clear_errors(1);
@@ -861,6 +866,7 @@ static void init_symbols()
   content_type=fd_intern("CONTENT-TYPE");
   content_slotid=fd_intern("CONTENT");
   retfile_slotid=fd_intern("RETFILE");
+  cleanup_slotid=fd_intern("CLEANUP");
   html_headers=fd_intern("HTML-HEADERS");
   http_headers=fd_intern("HTTP-HEADERS");
   tracep_slotid=fd_intern("TRACEP");
