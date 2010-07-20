@@ -879,6 +879,20 @@ fdtype fd_xapply_sproc
   return result;
 }
 
+static fdtype tablegetval(void *obj,fdtype var)
+{
+  fdtype tbl=(fdtype)obj;
+  return fd_get(tbl,var,FD_VOID);
+}
+
+static fdtype xapply_prim(fdtype proc,fdtype obj)
+{
+  struct FD_SPROC *sproc=FD_GET_CONS(proc,fd_sproc_type,struct FD_SPROC *);
+  if (!(FD_TABLEP(obj)))
+    return fd_type_error("table","xapply_prim",obj);
+  return fd_xapply_sproc(sproc,(void *)obj,tablegetval);
+}
+
 /* IPEVAL binding */
 
 struct IPEVAL_BINDSTRUCT {
@@ -1044,4 +1058,7 @@ FD_EXPORT void fd_init_binders_c()
 
   fd_defspecial(fd_scheme_module,"LETQ",letq_handler);
   fd_defspecial(fd_scheme_module,"LETQ*",letqstar_handler);
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+	   ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));
 }
