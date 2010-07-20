@@ -1366,7 +1366,8 @@ static void copy_script_output(int sock,request_rec *r)
     ssize_t delta=read(sock,buf,4096);
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-       "mod_fdserv: Read %ld bytes of %ld (so far)",delta,bytes_read);
+       "mod_fdserv: Read %lld bytes of %lld (so far)",
+       (long long int)delta,(long long int)bytes_read);
     if (delta>0) {
       bytes_read=bytes_read+delta;
       ap_rwrite(buf,delta,r); ap_rflush(r);}
@@ -1375,7 +1376,7 @@ static void copy_script_output(int sock,request_rec *r)
     else break;}
   ap_log_error
     (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-     "mod_fdserv: Finished reading %ld bytes",bytes_read);
+     "mod_fdserv: Finished reading %lld bytes",(long long int)bytes_read);
 }
 
 static log_buf(char *msg,int size,char *data,request_rec *r)
@@ -1404,7 +1405,9 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 #endif
   if(strcmp(r->handler, FDSERV_MAGIC_TYPE) && strcmp(r->handler, "fdservlet"))
     return DECLINED;
-  else if (!((r->method_number == M_GET) || (r->method_number == M_POST)))
+  else if (!((r->method_number == M_GET) ||
+	     (r->method_number == M_POST) ||
+	     (r->method_number == M_OPTIONS)))
     return DECLINED;
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
 		"Entered fdserv_handler for %s from %s",
@@ -1453,7 +1456,6 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
       post_data=data; post_size=size;}
     else {post_data=NULL; post_size=0;}}
   else {post_data=NULL; post_size=0;}
-  
 
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Composing request data as a slotmap");
@@ -1461,8 +1463,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   /* Write the slotmap into buf, the write the buf to the servlet socket */
   write_table_as_slotmap(r,r->subprocess_env,reqdata,post_size,post_data);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Writing %ld bytes of request data to socket",
-	       reqdata->ptr-reqdata->buf);
+	       "mod_fdserv: Writing %lld bytes of request data to socket",
+	       (long long int)(reqdata->ptr-reqdata->buf));
   /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
 
   sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
