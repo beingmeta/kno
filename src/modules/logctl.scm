@@ -4,8 +4,8 @@
 (in-module 'logctl)
 
 ;;; Provides module-level logging control together with the LOGGER file
-(define version "$Id:$")
-(define revision "$Revision:$")
+(define version "$Id$")
+(define revision "$Revision$")
 
 (use-module 'logger)
 
