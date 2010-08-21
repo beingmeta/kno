@@ -155,8 +155,26 @@
 (define (openid/login site (opts default-opts))
   (doredirect (openid-redirect (cons site #f))))
 
+;;; Lists of providers
+
+(define openid/providers/path
+  ;; These have OpenID URLs of the form http://host/username
+  {"openid.aol.com" "www.flickr.com" "www.myspace.com"})
+(define openid/providers/domain
+  ;; These have OpenID URLs of the form http://username.host/
+  {"blogspot.com" "livejournal.com" "wordpress.com" "myopenid.com" "myid.net"
+   "pip.verisignlabs.com"})
+(define openid/providers
+  (choice openid/providers/path openid/providers/domain))
+
+;;; Exports
+
 (module-export!
  '{get-openid-server
    openid-url
    openid/auth openid/optinfo
-   openid/login})
+   openid/login
+   openid/providers
+   openid/providers/path openid/providers/domain})
+
+
