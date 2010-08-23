@@ -102,42 +102,51 @@
 (defrecord authinfo realm identity expires)
 
 (define (auth->string auth)
-  (let* ((vec (vector (authinfo-realm auth) (authinfo-identity auth)
-		      (authinfo-expires auth)))
-	 (packet (dtype->packet vec))
-	 (sig (hmac-sha1 packet signature)))
-    (stringout (packet->base64 packet) "|" (packet->base64 sig))))
+  (let* ((info (stringout (authinfo-realm auth)
+			  ";" (unparse-arg (authinfo-identity auth))
+			  ";" (authinfo-expires auth)))
+	 (sig (hmac-sha1 info signature))
+	 (result (stringout info ";" (packet->base64 sig))))
+    (debug%watch "AUTH->STRING" auth info sig result)
+    result))
 
 (define (string->auth authstring (authid authid))
-  (let* ((sigsplit (position #\| authstring))
-	 (payload (and sigsplit (base64->packet (subseq authstring 0 sigsplit))))
-	 (sig (and sigsplit (base64->packet (subseq authstring (1+ sigsplit)))))
-	 (unpacked (and payload (packet->dtype payload))))
-    (debug%watch "STRING->AUTH"
-		 sigsplit payload unpacked
-		 sig (hmac-sha1 payload signature))
+  (let* ((segs (segment authstring ";"))
+	 (info (vector (string->lisp (first segs)) (parse-arg (second segs))
+		       (parse-arg (third segs))
+		       (base64->packet (fourth segs))))
+	 (payload (stringout (first info) ";" (unparse-arg (second info)) ";"
+			     (third info)))
+	 (sig (fourth info)))
+    (debug%watch "STRING->AUTH" authstring
+		 info payload sig (hmac-sha1 payload signature))
     (unless (equal? sig (hmac-sha1 payload signature))
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
-	       "\n\tfor " (subseq authstring 0 sigsplit)
+	       "\n\tfor " payload
 	       "\n\tbased on " signature
 	       "\n\texpecting " sig
 	       "\n\tgetting " (hmac-sha1 payload signature)))
-    (and sig unpacked (equal? sig (hmac-sha1 payload signature))
-	 (equal? (elt unpacked 0) authid)
-	 (cons-authinfo (elt unpacked 0) (elt unpacked 1) (elt unpacked 2)))))
+    (and sig info payload (equal? sig (hmac-sha1 payload signature))
+	 (equal? (elt info 0) authid)
+	 (cons-authinfo (elt info 0) (elt info 1) (elt info 2)))))
 
 (define (unpack-authinfo authstring (checksig #f))
-  (let* ((sigsplit (position #\| authstring))
-	 (payload (and sigsplit (base64->packet (subseq authstring 0 sigsplit))))
-	 (sig (and sigsplit (base64->packet (subseq authstring (1+ sigsplit)))))
-	 (unpacked (and payload (packet->dtype payload))))
+  (let* ((segs (segment authstring ";"))
+	 (info (vector (string->lisp (first segs)) (parse-arg (second segs))
+		       (parse-arg (third segs))
+		       (base64->packet (fourth segs))))
+	 (payload (stringout (first info) ";" (unparse-arg (second info)) ";"
+			     (third info)))
+	 (sig (fourth info)))
+    (debug%watch "UNPACK-AUTHINFO" authstring
+		 info payload sig (hmac-sha1 payload signature))
     (unless (equal? sig (hmac-sha1 payload signature))
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
-	       "\n\tfor " (subseq authstring 0 sigsplit)
+	       "\n\tfor " payload
 	       "\n\tbased on " signature
 	       "\n\texpecting " sig
 	       "\n\tgetting " (hmac-sha1 payload signature)))
-    unpacked))
+    info))
 
 ;;; Core functions
 
@@ -217,8 +226,11 @@
 	    (if (inexact? auth-refresh)
 		(* auth-expires auth-refresh)
 		auth-refresh))
+	 (logdebug "Refreshing authinfo " authinfo)
 	 (auth/refresh! authinfo))
-	(else authinfo)))
+	(else 
+	 (logdebug "Valid authinfo " authinfo)
+	 authinfo)))
 
 ;;; Top level functions
 
