@@ -86,7 +86,8 @@
 		    (oid (tag-oid tag)))
 		(if (exists? oid)
 		    (oid->string oid term)
-		    term))))))
+		    term))
+	      tag))))
 
 (define tagpat
   `(GREEDY #((opt (label oid #("@" (isxdigit+) "/" (isxdigit+)) #t))
