@@ -102,7 +102,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
 	     src/cmodules/qrcode.o src/cmodules/regex.o \
-	     src/cmodules/ziptools.o
+	     src/cmodules/ziptools.o src/cmodules/tidy.o 
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
@@ -150,7 +150,8 @@ FDB_SOURCES=\
 	include/fdb/tagger.h                                           \
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
-	src/cmodules/qrcode.c src/cmodules/regex.c src/cmodules/ziptools.c  \
+	src/cmodules/qrcode.c src/cmodules/regex.c                     \
+	src/cmodules/ziptools.c src/cmodules/tidy.c                   \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
 	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdbserver.c
@@ -500,6 +501,13 @@ lib/framerd/qrcode.@VERSION@.dylib: src/cmodules/qrcode.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/qrcode.o
 lib/framerd/qrcode.dylib: lib/framerd/qrcode.@VERSION@.dylib
 
+lib/framerd/tidy.so.@VERSION@: src/cmodules/tidy.o
+	$(MKSO) -o $@ $^
+lib/framerd/tidy.so: lib/framerd/tidy.so.@VERSION@
+lib/framerd/tidy.@VERSION@.dylib: src/cmodules/tidy.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/tidy.o
+lib/framerd/tidy.dylib: lib/framerd/tidy.@VERSION@.dylib
+
 lib/framerd/regex.so.@VERSION@: src/cmodules/regex.o
 	$(MKSO) -o $@ $^
 lib/framerd/regex.so: lib/framerd/regex.so.@VERSION@
@@ -662,6 +670,8 @@ install-regex: $(LIBINSTALLDIR)/framerd/regex.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/regex.@vshared_suffix@
 install-ziptools: $(LIBINSTALLDIR)/framerd/ziptools.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/ziptools.@vshared_suffix@
+install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
+	         $(LIBINSTALLDIR)/framerd/tidy.@vshared_suffix@
 
 # Setup targets
 
