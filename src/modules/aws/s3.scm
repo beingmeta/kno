@@ -7,21 +7,40 @@
 (define version "$Id$")
 (define revision "$Revision$")
 
-(use-module '{aws fdweb texttools ezrecords rulesets})
+(use-module '{aws fdweb texttools ezrecords rulesets logger})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
+
+(define %loglevel %info)
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
 (define teststring
   "GET\n\n\nTue, 27 Mar 2007 19:36:42 +0000\n/johnsmith/photos/puppy.jpg")
 
+(define suffix-map
+  (let ((table (make-hashtable)))
+    (do-choices (map '{("jpg" "image/jpeg") ("jpeg" "image/jpeg")
+		       ("png" "image/png") ("gif" "image/gif")
+		       ("css" "text/css") ("js" "text/javascript")
+		       ("html" "text/html") ("htm" "text/html")})
+      (add! table (car map) (cadr map)))
+    table))
+
+(define (getmimetype path)
+  (let* ((lastdot (rposition #\. path))
+	 (suffix (and lastdot (subseq path (1+ lastdot)))))
+    (and suffix (get suffix-map (downcase suffix)))))
+
 ;;; Representing S3 locations
 
 (defrecord s3loc bucket path)
 
-(module-export! '{s3loc? s3loc-path s3loc-bucket})
+(define (s3/mkpath loc path)
+  (cons-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
+
+(module-export! '{s3loc? s3loc-path s3loc-bucket cons-s3loc s3/mkpath})
 
 ;;; Computing S3 signatures
 
@@ -66,7 +85,8 @@
   (let* ((date (gmtimestamp))
 	 (cresource (string-append "/" bucket path))
 	 (contentMD5 (and content (packet->base64 (md5 content))))
-	 (sig (s3/signature op bucket path date  headers (or contentMD5 "") (or ctype "")))
+	 (sig (s3/signature op bucket path date  headers
+			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
 	 (url (string-append "http://" bucket ".s3.amazonaws.com" path))
 	 ;; Hide the except field going to S3
@@ -79,6 +99,7 @@
     (add! urlparams 'header (string-append "Content-MD5: " contentMD5))
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
+    (debug%watch url ctype urlparams (length content))
     (if (equal? op "GET")
 	(urlget url urlparams)
 	(if (equal? op "HEAD")
@@ -105,12 +126,22 @@
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
-		 (segment (car (get (xmlget (xmlparse (get response '%content)) 'stringtosignbytes)
+		 (segment (car (get (xmlget (xmlparse (get response '%content))
+					    'stringtosignbytes)
 				    '%content))))))
+
+(define (s3/write! loc content (ctype))
+  (default! ctype (getmimetype (s3loc-path loc)))
+  (debug%watch
+   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype) ;; '(("x-amx-acl" . "public-read"))
+   loc ctype))
+
+(module-export! 's3/write!)
 
 ;;; Functions over S3 locations, mapping URLs to S3 and back
 
 ;;; Rules for converting URLs into S3 locations
+
 (define s3urlrules '())
 (ruleconfig! AWS:S3URLMAP s3urlrules)
 ;;; Each rule is of the form (<pat> <bucket>) where
@@ -120,7 +151,6 @@
 ;;;   with that string and the S3 path is the reset of the string
 ;;;   after the prfix.
 ;;; These rules can be configured with the AWS:S3URLMAP config variable
-
 
 (define (s3/getloc url)
   (tryseq (rule s3urlrules)
