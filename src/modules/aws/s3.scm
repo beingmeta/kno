@@ -12,7 +12,7 @@
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
 
-(define %loglevel %info)
+(define %loglevel %info!)
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
@@ -24,7 +24,7 @@
     (do-choices (map '{("jpg" "image/jpeg") ("jpeg" "image/jpeg")
 		       ("png" "image/png") ("gif" "image/gif")
 		       ("css" "text/css") ("js" "text/javascript")
-		       ("html" "text/html") ("htm" "text/html")})
+		       ("html" "text/html") ("htm" "text/html") ("xhtml" "text/html")})
       (add! table (car map) (cadr map)))
     table))
 
