@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2010 beingmeta, inc.  All rights reserved.
 
 (in-module 'domutils/localize)
 
@@ -7,13 +7,16 @@
 (define version "$Id$")
 (define revision "$Revision: 5083 $")
 
-(use-module '{fdweb texttools domutils logger})
+(use-module '{fdweb texttools domutils aws/s3 logger})
 
 (define havezip #f)
 
-(when (get-module 'ziptools)
-  (use-module 'ziptools)
-  (set! havezip #t))
+(cond ((get-module 'ziptools)
+       (use-module 'ziptools)
+       (set! havezip #t))
+      (else 
+       (define (zipfile? x) #f)
+       (define (zip/add! . args) #f)))
 
 (define %loglevel %notice!)
 
@@ -70,23 +73,23 @@
 		(store! urlmap absref lref)
 		lref)))))
 
-;; This will avoid optimization warnings if we don't have ziptools
-(define save-content
-  (if havezip
-      (lambda (saveto lref content)
-	(cond ((string? saveto)
-	       (write-file (mkpath saveto lref) content))
-	      ((zipfile? saveto)
-	       (zip/add! saveto lref content))
-	      ((and (pair? saveto)
-		    (zipfile? (car saveto))
-		    (string? (cdr saveto)))
-	       (zip/add! saveto (mkpath (cdr saveto) lref) content))
-	      (else (error "Bad SAVE-CONTENT call"))))
-      (lambda (saveto lref content)
-	(cond ((string? saveto)
-	       (write-file (mkpath saveto lref) content))
-	      (else (error "Bad SAVE-CONTENT call"))))))
+(define (save-content saveto lref content)
+  (cond ((string? saveto)
+	 (write-file (mkpath saveto lref) content))
+	((s3loc? saveto)
+	 (s3/write! (s3/mkpath saveto lref) content))
+	((and (pair? saveto)
+	      (s3loc? (car saveto))
+	      (string? (cdr saveto)))
+	 (s3/write! (s3/mkpath (car saveto) (mkpath (cdr saveto) lref))
+		    content))
+	((and havezip (zipfile? saveto))
+	 (zip/add! saveto lref content))
+	((and havezip (pair? saveto)
+	      (zipfile? (car saveto))
+	      (string? (cdr saveto)))
+	 (zip/add! saveto (mkpath (cdr saveto) lref) content))
+	(else (error "Bad SAVE-CONTENT call"))))
 
 (define (dom/localize! dom base write
 		       (read) (amalgamate #f) (localhosts #f)
