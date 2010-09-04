@@ -3,8 +3,7 @@
 
 (in-module 'domutils/analyze)
 
-(use-module '{tagger texttools textindex domutils domutils/index
-		     knowlets logger})
+(use-module '{tagger texttools textindex domutils domutils/index logger})
 
 ;;(define %loglevel %debug!)
 (define %loglevel %notice!)
@@ -28,8 +27,7 @@
 	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
 	 (textelts (->selector
 		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
-	 (knowlet (get (choice options doc) 'knowlet))
-	 (phrasemaps (kno/phrasemap knowlet (try (get options 'language) 'en)))
+	 (phrasemaps (kno/phrasemap knodule (try (get options 'language) 'en)))
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
 	 (justwords (pickstrings words))
@@ -41,7 +39,7 @@
 		  (choice (choice->hashset justwords) wordtables)
 		  {})
 	     phrasemap
-	     ,(choice phrasemaps
+	     ,(choice (getopt options phrasemap)
 		      (text/phrasemap (pick justwords compound?)
 				      wordtables))
 	     textfns ,dom/textify
@@ -78,6 +76,8 @@
 	    (add! node field (get pairs field)))))
       (store! doc 'analysis analysis)
       analysis)))
+
+
 
 
 

@@ -9,7 +9,15 @@
 (use-module '{texttools reflection})
 (use-module '{varconfig ezrecords})
 (use-module '{brico brico/lookup brico/dterms})
-(use-module '{knowlets})
+
+(define have-knodules #f)
+
+(cond ((get-module 'knodules)
+       (use-module 'knodules)
+       (set! have-knodules #t))
+      (else (define (knodule . x))
+	    (define (knodule-language . x))
+	    (define (knodule-name . x))))
 
 (defrecord tag term (oid {}))
 
@@ -55,18 +63,18 @@
        default-language))
 
 (define (oid->dterm oid (language (get-language-info)))
-  (if (test oid 'knowlet)
-      (let* ((knowlet (try (knowlet (get oid 'knowlet))
-			   (get oid 'knowlet)))
+  (if (and (test oid 'knodule) have-knodules)
+      (let* ((knodule (try (knodule (get oid 'knodule))
+			   (get oid 'knodule)))
 	     (try (get oid 'term) (get oid 'dterm)
-		  (pick-one (get oid (tryif (knowlet? knowlet)
-				       (knowlet-language knowlet))))
+		  (pick-one (get oid (tryif (knodule? knodule)
+				       (knodule-language knodule))))
 		  (pick-one (get oid (get language 'language)))))
-	(if (oid? knowlet)
+	(if (oid? knodule)
 	    (stringout (string-subst (get oid 'term) "@" "\\@")
-		       (oid->string knowlet))
+		       (oid->string knodule))
 	    (stringout (string-subst (get oid 'term) "@" "\\@")
-		       "@" (knowlet-name knowlet))))
+		       "@" (knodule-name knodule))))
       (get-dterm oid language)))
 
 (module-export!
