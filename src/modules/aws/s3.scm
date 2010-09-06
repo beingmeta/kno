@@ -24,7 +24,8 @@
     (do-choices (map '{("jpg" "image/jpeg") ("jpeg" "image/jpeg")
 		       ("png" "image/png") ("gif" "image/gif")
 		       ("css" "text/css") ("js" "text/javascript")
-		       ("html" "text/html") ("htm" "text/html") ("xhtml" "text/html")})
+		       ("html" "text/html") ("htm" "text/html") ("xhtml" "text/html")
+		       ("manifest" "text/manifest")})
       (add! table (car map) (cadr map)))
     table))
 
