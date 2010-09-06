@@ -359,8 +359,8 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
     scan++; elt_start=scan;}
   while (scan<end)
     if (isspace(*scan)) {
-      *scan++='\0';
-      elts[n_elts++]=elt_start;
+      if (scan>elt_start) {
+	*scan++='\0'; elts[n_elts++]=elt_start; elt_start=scan;}
       while ((scan<end) && (isspace(*scan))) scan++;
       if (n_elts>=max_elts) {
 	*scanner=scan; return n_elts;}
@@ -397,7 +397,8 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	return -1;}}
     else if (*scan=='\0') scan++;
     else u8_sgetc(&scan);
-  elts[n_elts++]=elt_start;
+  if (scan>elt_start) {
+    *scan='\0'; elts[n_elts++]=elt_start;}
   return n_elts;
 }
 
@@ -425,7 +426,7 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
     if (strncmp(start,"!--",3)==0) elt_type=xmlcomment;
     else if (strncmp(start,"![CDATA[",8)==0) elt_type=xmlcdata;  
     else elt_type=xmldoctype;
-  else if (buf[len-1]=='/') {elt_type=xmlempty; buf[len-1]='\0';}
+  else if (buf[len-1]=='/') elt_type=xmlempty;
   else if ((html) &&
 	   ((tagmatchp(buf,"img")) || (tagmatchp(buf,"base")) ||
 	    (tagmatchp(buf,"br")) || (tagmatchp(buf,"hr")) ||
@@ -834,7 +835,10 @@ void *fd_walk_xml(U8_INPUT *in,
     else {
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
       int n_elts, c;
-      n_elts=fd_parse_element(&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
+      if ((type == xmlempty)&&(buf[size-1]=='/')) {
+	buf[size-1]='\0'; size--;}
+      n_elts=fd_parse_element
+	(&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
 	fd_seterr3(fd_XMLParseError,"xmlstep",u8_strdup(scan));
 	u8_free(buf);
