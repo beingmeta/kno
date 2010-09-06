@@ -152,27 +152,29 @@
 (define (dom/append! node . content)
   (let ((current (try (get node '%content) '())))
     (dolist (elt content)
-      (set! current
-	    (append current
-		    (if (pair? elt) elt
-			(if (and (string? elt) (has-prefix elt "<"))
-			    (if (test node '%%xmltag)
-				(xmlparse elt 'keepraw)
-				(xmlparse elt))
-			    (list elt))))))
+      (when (exists? elt)
+	(set! current
+	      (append current
+		      (if (pair? elt) elt
+			  (if (and (string? elt) (has-prefix elt "<"))
+			      (if (test node '%%xmltag)
+				  (xmlparse elt 'keepraw)
+				  (xmlparse elt))
+			      (list elt)))))))
     (store! node '%content current)))
 
 (define (dom/prepend! node . content)
   (let ((current (try (get node '%content) '())))
     (dolist (elt content)
-      (set! current
-	    (append (if (pair? elt) elt
-			(if (and (string? elt) (has-prefix elt "<"))
-			    (if (test node '%%xmltag)
-				(xmlparse elt 'keepraw)
-				(xmlparse elt))
-			    (list elt)))
-		    current)))
+      (when (exists? elt)
+	(set! current
+	      (append (if (pair? elt) elt
+			  (if (and (string? elt) (has-prefix elt "<"))
+			      (if (test node '%%xmltag)
+				  (xmlparse elt 'keepraw)
+				  (xmlparse elt))
+			      (list elt)))
+		      current))))
     (store! node '%content current)))
 
 ;;; Selector functions
