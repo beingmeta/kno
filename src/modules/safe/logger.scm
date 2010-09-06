@@ -98,13 +98,13 @@
   (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
 
 (define detail%watch
-  (macro expr `(if (>= %loglevel ,%detail!) (,%watch ,@(cdr expr)))))
+  (macro expr `(if (>= %loglevel ,%detail!) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define debug%watch
-  (macro expr `(if (>= %loglevel ,%debug!) (,%watch ,@(cdr expr)))))
+  (macro expr `(if (>= %loglevel ,%debug!) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define info%watch
-  (macro expr `(if (>= %loglevel ,%info!) (,%watch ,@(cdr expr)))))
+  (macro expr `(if (>= %loglevel ,%info!) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define notice%watch
-  (macro expr `(if (>= %loglevel ,%notice!) (,%watch ,@(cdr expr)))))
+  (macro expr `(if (>= %loglevel ,%notice!) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define warn%watch
-  (macro expr `(if (>= %loglevel ,%warn!) (,%watch ,@(cdr expr)))))
+  (macro expr `(if (>= %loglevel ,%warn!) (,%watch ,@(cdr expr)) ,(cadr expr))))
 
