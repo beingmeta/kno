@@ -437,7 +437,9 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
 	double dtick=((unsigned long long)tm->xtime.u8_tick)+
 	  (tm->xtime.u8_nsecs)*0.000000001;
 	u8_printf(out,"%f",dtick);}
-      else u8_printf(out,"%lld",(unsigned long long)tm->xtime.u8_tick);
+      else {
+	unsigned long long llval=(unsigned long long)(tm->xtime.u8_tick);
+	u8_printf(out,"%llu",llval);}
     else if (flags&FD_JSON_COLONIZE) 
       u8_printf(out,"\":#T%iSXGt\"",&(tm->xtime));
     else if (tm->xtime.u8_tick<0)  u8_puts(out,"\"invalid time\""); /* Invalid time */
