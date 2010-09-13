@@ -1230,6 +1230,13 @@ static fdtype uuidstring_prim(fdtype uuid_arg)
   return fd_init_string(NULL,36,u8_uuidstring(uuid->uuid,NULL));
 }
 
+static fdtype uuidpacket_prim(fdtype uuid_arg)
+{
+  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  unsigned char *bytes=u8_malloc(16); memcpy(bytes,uuid->uuid,16);
+  return fd_init_packet(NULL,16,bytes);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -1382,6 +1389,8 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID-NODE",uuidnode_prim,1,
 					    fd_uuid_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID->STRING",uuidstring_prim,1,
+					    fd_uuid_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID->PACKET",uuidpacket_prim,1,
 					    fd_uuid_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
