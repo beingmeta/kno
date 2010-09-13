@@ -74,6 +74,7 @@
 		lref)))))
 
 (define (save-content saveto lref content)
+  (lognotice "Saving content for " (write lref) " to " saveto)
   (cond ((string? saveto)
 	 (write-file (mkpath saveto lref) content))
 	((s3loc? saveto)
