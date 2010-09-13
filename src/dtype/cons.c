@@ -983,7 +983,7 @@ static void recycle_uuid(struct FD_CONS *c)
 static int unparse_uuid(u8_output out,fdtype x)
 {
   struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
-  char buf[37]; u8_uuidstring((u8_uuid)&(uuid->uuid),buf);
+  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->uuid)),buf);
   u8_printf(out,"#U%s",buf);
   return 1;
 }
