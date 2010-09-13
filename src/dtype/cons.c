@@ -997,6 +997,13 @@ static fdtype copy_uuid(fdtype x,int deep)
   return FDTYPE_CONS(nuuid);
 }
 
+static int compare_uuids(fdtype x,fdtype y,int quick)
+{
+  struct FD_UUID *xuuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *yuuid=FD_GET_CONS(y,fd_uuid_type,struct FD_UUID *);
+  return memcmp(xuuid->uuid,yuuid->uuid,16);
+}
+
 
 /* Initialization */
 
@@ -1062,6 +1069,7 @@ void fd_init_cons_c()
 
   fd_unparsers[fd_uuid_type]=unparse_uuid;
   fd_recyclers[fd_uuid_type]=recycle_uuid;
+  fd_comparators[fd_uuid_type]=compare_uuids;
   fd_copiers[fd_uuid_type]=copy_uuid;
 
   fd_compound_descriptor_type=
