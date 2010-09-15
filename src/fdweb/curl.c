@@ -425,6 +425,23 @@ static fdtype set_curlopt
   return FD_TRUE;
 }
 
+/* Fix URL */
+
+static const char *digits="0123456789ABCDEF";
+
+static fdtype fixurl(u8_string url)
+{
+  u8_byte *scan=url; int c;
+  struct U8_OUTPUT out; char buf[8];
+  U8_INIT_OUTPUT(&out,256); buf[0]='%'; buf[3]='\0';
+  scan=url; while (c=(*scan++)) {
+    if ((c>=0x80)||(iscntrl(c))||(isspace(c))) {
+      buf[1]=digits[c/16]; buf[2]=digits[c%16];
+      u8_puts(&out,buf);}
+    else u8_putc(&out,c);}
+  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
 /* The core get function */
 
 static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *data);
@@ -434,7 +451,7 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   INBUF data; CURLcode retval;
   int consed_handle=0; long http_response=200;
   fdtype result=fd_init_slotmap(NULL,0,NULL);
-  fdtype url=fdtype_string(urltext);
+  fdtype url=fixurl(urltext);
   char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
@@ -459,7 +476,7 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
   INBUF data; CURLcode retval;
   int consed_handle=0;
   fdtype result=fd_init_slotmap(NULL,0,NULL);
-  fdtype url=fdtype_string(urltext);
+  fdtype url=fixurl(urltext);
   char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
