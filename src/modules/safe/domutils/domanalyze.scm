@@ -27,7 +27,6 @@
 	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
 	 (textelts (->selector
 		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
-	 (phrasemaps (kno/phrasemap knodule (try (get options 'language) 'en)))
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
 	 (justwords (pickstrings words))
