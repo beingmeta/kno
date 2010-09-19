@@ -1772,7 +1772,7 @@ static fdtype oidaddr_prim(fdtype oid)
 #else
     unsigned long long addr=oidaddr;
 #endif
-    return FD_INT2DTYPE(FD_OID_LO(addr));}
+    return FD_INT2DTYPE(addr);}
   else return FD_INT2DTYPE(FD_OID_LO(oid));
 }
 
