@@ -368,7 +368,7 @@ static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype s
 {
   if (FD_VOIDP(value)) return 0;
   else {
-    fdtype slotname=((FD_VOIDP(slotfn))?(FD_VOID):(fd_apply(slotname,1,&key)));
+    fdtype slotname=((FD_VOIDP(slotfn))?(FD_VOID):(fd_apply(slotfn,1,&key)));
     if (FD_VOIDP(slotname))
       if ((FD_SYMBOLP(key))&&(flags&FD_JSON_SYMBOLIZE)) {
 	u8_string pname=FD_SYMBOL_NAME(key);

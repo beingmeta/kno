@@ -738,7 +738,6 @@ static fdtype curlopen(int n,fdtype *args)
 
 static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
 {
-  
   fdtype conn;
   INBUF data; OUTBUF rdbuf; CURLcode retval; 
   fdtype result=FD_VOID, cval, urlval=FD_VOID;
@@ -777,26 +776,10 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    result=fd_err(CurlError,"urlput",errbuf,url);
-    cval=FD_VOID;}
-  else if (fd_test(result,type_symbol,text_symbol)) {
-    fdtype chset=fd_get(result,charset_symbol,FD_VOID);
-    if (FD_STRINGP(chset)) {
-      U8_OUTPUT out;
-      u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
-      if (data.size==0)
-	cval=fd_init_string(NULL,0,NULL);
-      else if (enc) {
-	unsigned char *scan=data.bytes;
-	U8_INIT_OUTPUT(&out,data.size);
-	u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
-      else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));}
-    else cval=fd_init_string(NULL,-1,u8_valid_copy(data.bytes));
-    u8_free(data.bytes);}
-  else cval=fd_init_packet(NULL,data.size,data.bytes);
-  fd_add(result,content_symbol,cval);
-  fd_decref(cval);
+    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
+    fd_decref(result); u8_free(data.bytes);
+    return errval;}
+  else handlefetchresult(h,result,&data);
   fd_decref(conn);
   return result;
 }
