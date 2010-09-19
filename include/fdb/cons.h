@@ -311,6 +311,8 @@ typedef struct FD_VECTOR *fd_vector;
   ((FD_VECTOR_BITS(x))&0x80000000)
 #define FD_VECTOR_DATA(x) \
   ((FD_STRIP_CONS(x,fd_vector_type,struct FD_VECTOR *))->data)
+#define FD_VECTOR_ELTS(x) \
+  ((FD_STRIP_CONS(x,fd_vector_type,struct FD_VECTOR *))->data)
 #define FD_VECTOR_REF(x,i) \
   ((FD_STRIP_CONS(x,fd_vector_type,struct FD_VECTOR *))->data[i])
 #define FD_VECTOR_SET(x,i,v) \

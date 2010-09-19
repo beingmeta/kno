@@ -1509,6 +1509,17 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   return results;
 }
 
+static fdtype vec2elts_prim(fdtype x)
+{
+  if (FD_VECTORP(x)) {
+    fdtype result=FD_EMPTY_CHOICE;
+    int i=0; int len=FD_VECTOR_LENGTH(x); fdtype *elts=FD_VECTOR_ELTS(x);
+    while (i<len) {
+      fdtype e=elts[i++]; fd_incref(e); FD_ADD_TO_CHOICE(result,e);}
+    return result;}
+  else return fd_incref(x);
+}
+
 /* Matching vectors */
 
 static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
@@ -1833,6 +1844,8 @@ FD_EXPORT void fd_init_sequences_c()
   fd_idefn(fd_scheme_module,fd_make_cprim4("SOME?",some_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim4("EVERY?",every_prim,2));
 
+  fd_idefn(fd_scheme_module,fd_make_cprim1("VECTOR->ELTS",vec2elts_prim,1));
+  
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("SORTVEC",sortvec_prim,1,
 			   fd_vector_type,FD_VOID,
