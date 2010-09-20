@@ -10,7 +10,7 @@
 (use-module '{fdweb texttools reflection varconfig logger})
 (use-module '{xhtml xhtml/auth facebook/fbcall})
 
-(module-export! '{appname appid apikey apisecretkey})
+(module-export! '{appname appid apikey apisecretkey fb/authorized})
 (module-export! '{fb/session! fb/sessions fb/auth fb/connected?})
 (module-export! '{fb/embedded? fb/incanvas? fb/added?})
 
@@ -156,3 +156,41 @@
        (cgiget 'fb_sig_added)
        (not (cgitest 'fb_sig_added 0))))
 
+;;;; New login stuff
+
+(define (atoken x)
+  (try (get (text->frames #("access_token=" (label at (not> "&")) {(eos) "&"}) x) 'at)
+       x))
+
+(define (fb/authorized code reuri)
+  (debug%watch "FB/AUTHORIZED" code)
+  (let* ((appkey (config 'fb:key))
+	 (appsecret (config 'fb:secret))
+	 (reqaccess (scripturl "https://graph.facebook.com/oauth/access_token"
+		      "client_id" appkey "redirect_uri" reuri
+		      "client_secret" appsecret "code" code))
+	 (accessreq (urlget reqaccess))
+	 (access (atoken (get (urlget reqaccess) '%content)))
+	 (reqinfo (scripturl "https://graph.facebook.com/me"
+		    "access_token" access
+		    "fields" "id,name,picture,about,bio,website"))
+	 (info (jsonparse (urlcontent reqinfo)))
+	 (reqfriends (scripturl "https://graph.facebook.com/me/friends"
+		       "access_token" access
+		       "fields" "picture,name"))
+	 (reqgroups
+	  (scripturl "https://graph.facebook.com/me/groups"
+	    "access_token" access "fields" "picture,description"))
+	 (reqpages (scripturl "https://graph.facebook.com/me/likes"
+		     "access_token" access
+		     "fields" "picture,description")))
+    (debug%watch "FB/AUTHORIZED" info access)
+    (add! info 'friends
+	  (elts (get (jsonparse (urlcontent reqfriends))
+		     'data)))
+    (add! info 'groups
+	  (elts (get (jsonparse (urlcontent reqgroups)) 'data)))
+    (add! info 'pages
+	  (elts (get (jsonparse (urlcontent reqpages)) 'data)))
+    (cgiset! 'fb/access access)
+    info))
