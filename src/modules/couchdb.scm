@@ -42,9 +42,11 @@
 
 (define (couchdb/req db path (options #f) . args)
   (let* ((path (mkpath (couchdb-url db) path))
-	 (call (if (null? args) path (apply scripturl path args))))
-    (jsonparse (get (urlget call  options) '%content)
-	       40 (couchdb-map db))))
+	 (call (if (null? args) path (apply scripturl path args)))
+	 (resp (urlget call  options)))
+    (tryif (and (test resp 'response) (>= (get resp 'response) 200)
+		(< (get resp 'response) 300))
+      (jsonparse (get resp '%content) 40 (couchdb-map db)))))
 
 (define (couchdb/get db id (options #f))
   (couchdb/req db (if (oid? id)
@@ -65,6 +67,13 @@
 	  (httpcode (get r 'response)))
     (and (exists? httpcode) (>= httpcode 200) (< httpcode 300))))
 
+(define (couchdb/mutate! db id mutate)
+  (let ((success #f) (cur (couchdb/get db id)))
+    (until success
+      (mutate cur)
+      (set! success (couchdb/save! db cur))
+      (unless success (set! cur (couchdb/get db id))))))
+  
 (define (couchdb/delete! db id (rev #f))
   (let ((rev (or rev (get (couchdb/get db id) '_rev))))
     (couchdb/req db (scripturl (if (oid? id)
@@ -75,31 +84,56 @@
 		 "rev" rev)))
 
 (define (couchdb/store! db id slotid value)
-  (let ((success #f))
+  (let ((success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
     (until success
-      (let ((cur (couchdb/get db id)))
-	(if (identical? (get cur slotid) value)
-	    (set! success #t)
-	    (begin (store! cur slotid value)
-		   (set! success (couchdb/save! cur))))))))
+      (if (identical? (get cur slotid) value)
+	  (set! success #t)
+	  (begin (store! cur slotid value)
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id))))))))
+(define (couchdb/push! db id slotid value)
+  (let ((success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
+    (until success
+      (if (and (test cur slotid) (vector? (get cur slotid))
+	       (position value (get cur slotid)))
+	  (set! success #t)
+	  (begin (store! cur slotid
+			 (if (test cur slotid)
+			     (if (vector? (get cur slotid))
+				 (append (vector value) (get cur slotid))
+				 (vector value (get cur slotid)))
+			     (vector value)))
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id))))))))
 (define (couchdb/add! db id slotid value)
-  (let ((success #f))
+  (let ((success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
     (until success
-      (let ((cur (couchdb/get db id)))
-	(if (test cur slotid value)
-	    (set! success #t)
-	    (begin (add! cur slotid value)
-		   (set! success (couchdb/save! cur))))))))
+      (if (test cur slotid value)
+	  (set! success #t)
+	  (begin (add! cur slotid value)
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id))))))))
 (define (couchdb/drop! db id slotid value)
-  (let ((success #f))
+  (let ((success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
     (until success
-      (let ((cur (couchdb/get db id)))
-	(if (test cur slotid value)
-	    (begin (add! cur slotid value)
-		   (set! success (couchdb/save! cur)))
-	    (set! success #t))))))
-  
-(module-export! '{couchdb/req couchdb/get couchdb/save! couchdb/store! couchdb/add! couchdb/delete! couchdb/drop!})
+      (if (test cur slotid value)
+	  (begin (drop! cur slotid value)
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id))))
+	  (set! success #t)))))
+
+(module-export!
+ '{couchdb/req
+   couchdb/get couchdb/save! couchdb/mutate! couchdb/delete!
+   couchdb/store! couchdb/add! couchdb/drop!})
 
 ;;; Getting views
 
