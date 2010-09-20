@@ -904,7 +904,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     else if (FD_ABORTP(arg)) {
       int j=0;
       u8_lock_mutex(&(dbproc->lock));
-      while (j<n_params) {fd_decref(argbuf[j]); j++;}
+      while (j<i) {fd_decref(argbuf[j]); j++;}
       if (argbuf!=_argbuf) u8_free(argbuf);
       return FD_ERROR_VALUE;}
     else if (FD_TRUEP(ptypes[i])) {
@@ -912,10 +912,11 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	 and catch it if you have an error. */
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
       if (fd_unparse(&out,arg)<0) {
+	int j=0;
 	fd_seterr(MySQL_NoConvert,"callmysqlproc",
 		  u8_strdup(dbproc->qtext),fd_incref(arg));
 	u8_lock_mutex(&(dbproc->lock));
-	i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
+	while (j<i) {fd_decref(argbuf[i]); i++;}
 	if (argbuf!=_argbuf) u8_free(argbuf);
 	return FD_ERROR_VALUE;}
       else {
@@ -935,7 +936,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 		u8_strdup(dbproc->qtext),fd_incref(arg));
       u8_unlock_mutex(&(dbproc->lock));
       j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
-      j=0; while (j<n_params) {fd_decref(argbuf[j]); j++;}
+      j=0; while (j<i) {fd_decref(argbuf[j]); j++;}
       if (argbuf!=_argbuf) u8_free(argbuf);
       return FD_ERROR_VALUE;}
     i++;}
