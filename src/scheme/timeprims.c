@@ -1158,6 +1158,12 @@ static fdtype calltrack_sense(fdtype all)
 
 /* UUID functions */
 
+static fdtype uuidp_prim(fdtype x)
+{
+  if (FD_PRIM_TYPEP(x,fd_uuid_type)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
 {
   struct U8_XTIME *xt=NULL;
@@ -1383,6 +1389,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("TIME",time_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MILLITIME",millitime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MICROTIME",microtime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("UUID?",uuidp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("GETUUID",getuuid_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID-TIME",uuidtime_prim,1,
 					    fd_uuid_type,FD_VOID));
