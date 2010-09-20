@@ -448,7 +448,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
     char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->uuid)),buf);
     if ((flags)&(FD_JSON_COLONIZE))
-      u8_printf(out,":#U%s",buf);
+      u8_printf(out,"\":#U%s\"",buf);
     else u8_printf(out,"\"%s\"",buf);}
   else if (FD_TABLEP(x)) {
     fdtype keys=fd_getkeys(x);
