@@ -11,7 +11,8 @@
 
 (module-export! '{checkgloss newgloss getgloss glossdb/moveid})
 
-(define %loglevel %notice!)
+(define-init %loglevel %notice!)
+;;(define %loglevel %debug!)
 
 (defrecord couchdb url (map #[]) (views (make-hashtable)))
 (defrecord couchview db design view path)
@@ -65,7 +66,9 @@
 				(stringout ":" id)))))
 	  (r (urlput (mkpath (couchdb-url db) idstring) (->json value)))
 	  (httpcode (get r 'response)))
-    (and (exists? httpcode) (>= httpcode 200) (< httpcode 300))))
+    (or (and (exists? httpcode) (>= httpcode 200) (< httpcode 300))
+	(begin (notice%watch "COUCHDB/SAVE! failed" r db value (->json value))
+	       #f))))
 
 (define (couchdb/mutate! db id mutate)
   (let ((success #f) (cur (couchdb/get db id)))
@@ -133,7 +136,7 @@
 (module-export!
  '{couchdb/req
    couchdb/get couchdb/save! couchdb/mutate! couchdb/delete!
-   couchdb/store! couchdb/add! couchdb/drop!})
+   couchdb/store! couchdb/add! couchdb/drop! couchdb/push!})
 
 ;;; Getting views
 
