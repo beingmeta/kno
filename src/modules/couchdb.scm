@@ -45,6 +45,8 @@
   (let* ((path (mkpath (couchdb-url db) path))
 	 (call (if (null? args) path (apply scripturl path args)))
 	 (resp (urlget call  options)))
+    (debug%watch path call options)
+    (debug%watch resp)
     (tryif (and (test resp 'response) (>= (get resp 'response) 200)
 		(< (get resp 'response) 300))
       (jsonparse (get resp '%content) 56 (couchdb-map db)))))
