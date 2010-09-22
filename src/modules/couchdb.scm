@@ -47,7 +47,7 @@
 	 (resp (urlget call  options)))
     (tryif (and (test resp 'response) (>= (get resp 'response) 200)
 		(< (get resp 'response) 300))
-      (jsonparse (get resp '%content) 40 (couchdb-map db)))))
+      (jsonparse (get resp '%content) 56 (couchdb-map db)))))
 
 (define (couchdb/get db id (options #f))
   (couchdb/req db (if (oid? id)
