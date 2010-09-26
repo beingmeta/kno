@@ -240,14 +240,14 @@ static void report_status()
       if (interval>rmax) rmax=interval;}}
   if (statlog) {
     u8_fprintf(statlog,
-	       "[%f] %d/%d/%d busy clients; avg(wait)=%f(%d); avg(run)=%f(%d)\n",
+	       "[%*t][%f] %d/%d/%d busy clients; avg(wait)=%f(%d); avg(run)=%f(%d)\n",
 	       u8_elapsed_time(),
 	       fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
 	       ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),fdwebserver.waitcount,
 	       ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),fdwebserver.runcount);
     fflush(statlog);}
   else u8_log(LOG_INFO,"fdserv",
-	       "[%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
+	       "[%*t][%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
 	      u8_elapsed_time(),
 	      fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
 	      ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
@@ -256,18 +256,18 @@ static void report_status()
 	       (-1)));
   if (statlog)
     u8_fprintf
-      (statlog,"[%f] wait (n=%d) min=%f max=%f avg=%f\n",
+      (statlog,"[%*t][%f] wait (n=%d) min=%f max=%f avg=%f\n",
        u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
-  else u8_log(LOG_INFO,"fdserv","[%f] wait (n=%d) min=%f max=%f avg=%f",
+  else u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%d) min=%f max=%f avg=%f",
 	      u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
   if (rcount)
     if (statlog)
       u8_fprintf
 	(statlog,
-	 "[%f] run (n=%d) min=%f max=%f avg=%f\n",
+	 "[%*t][%f] run (n=%d) min=%f max=%f avg=%f\n",
 	 u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
     else u8_log(LOG_INFO,"fdserv",
-		"[%f] run (n=%d) min=%f max=%f avg=%f",
+		"[%*t][%f] run (n=%d) min=%f max=%f avg=%f",
 		u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
   u8_unlock_mutex(&(fdwebserver.lock));
   if (statlog) fflush(statlog);
