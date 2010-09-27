@@ -32,7 +32,7 @@ int fd_cache_markup=1;
 static fdtype xmleval_tag, xmleval2expr_tag;
 static fdtype rawname_slotid, raw_attribs, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid, attribs_slotid;
-static fdtype id_symbol, bind_symbol, xml_env_symbol;
+static fdtype id_symbol, bind_symbol, xml_env_symbol, xmlns_symbol;
 
 static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
 static fdtype pnode_symbol, pbody_symbol, begin_symbol;
@@ -130,7 +130,7 @@ static int output_markup_sym(u8_output out,fdtype sym)
 static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 {
   U8_OUTPUT out; int cache_result=fd_cache_markup;
-  fdtype cached;
+  fdtype cached; fdtype xmlns=fd_get(xml,xmlns_symbol,FD_VOID);
   if (fd_cache_markup) {
     cached=fd_get(xml,raw_markup,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
@@ -149,6 +149,15 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       fd_decref(rawname); u8_free(out.u8_outbuf);
       return fd_type_error("XML node","get_markup_string",xml);}
     u8_putn(&out,FD_STRDATA(rawname),FD_STRLEN(rawname));
+    if (!(FD_VOIDP(xmlns))) {
+      FD_DO_CHOICES(nspec,xmlns) {
+	if (FD_STRINGP(nspec)) {
+	  u8_printf(&out," xmlns=\"%s\"",FD_STRDATA(nspec));}
+	else if ((FD_PAIRP(nspec))&&
+		 (FD_STRINGP(FD_CAR(nspec)))&&
+		 (FD_STRINGP(FD_CDR(nspec)))) {
+	  u8_printf(&out," xmlns:%s=\"%s\"",FD_STRDATA(FD_CAR(nspec)),FD_STRDATA(FD_CDR(nspec)));}
+	else {}}}
     {FD_DO_CHOICES(attrib,rawattribs) {
 	if (FD_STRINGP(attrib))
 	  u8_printf(&out," %s",FD_STRDATA(attrib));
@@ -174,6 +183,15 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       fd_decref(attribs); u8_free(out.u8_outbuf);
       return name;}
     else output_markup_sym(&out,name);
+    if (!(FD_VOIDP(xmlns))) {
+      FD_DO_CHOICES(nspec,xmlns) {
+	if (FD_STRINGP(nspec)) {
+	  u8_printf(&out," xmlns=\"%s\"",FD_STRDATA(nspec));}
+	else if ((FD_PAIRP(nspec))&&
+		 (FD_STRINGP(FD_CAR(nspec)))&&
+		 (FD_STRINGP(FD_CDR(nspec)))) {
+	  u8_printf(&out," xmlns:%s=\"%s\"",FD_STRDATA(FD_CAR(nspec)),FD_STRDATA(FD_CDR(nspec)));}
+	else {}}}
     {FD_DO_CHOICES(attrib,attribs) {
 	u8_string name=NULL; fdtype value;
 	if (FD_PAIRP(attrib)) {
@@ -1386,6 +1404,7 @@ FD_EXPORT void fd_init_xmleval_c()
   xattrib_overlay=fd_intern("%XATTRIB");
   escape_id=fd_intern("%ESCAPE");
   piescape_symbol=fd_intern("%PIESCAPE");
+  xmlns_symbol=fd_intern("%XMLNS");
 
   iter_var=fd_intern("%ITER");
   value_symbol=fd_intern("VALUE");
