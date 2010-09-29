@@ -258,6 +258,7 @@ static fdtype exit_prim(fdtype arg)
 
 #define FD_IS_SCHEME 1
 #define FD_DO_FORK 2
+#define FD_DO_WAIT 4
 
 static fdtype exec_helper(int flags,int n,fdtype *args)
 {
@@ -280,6 +281,12 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
       if ((pid=(fork()))) {
 	i=0; while (i<argc) if (argv[i]) u8_free(argv[i++]); else i++;
 	u8_free(argv);
+#if HAVE_WAITPID
+	if (flags&FD_DO_WAIT) {
+	  unsigned int retval=-1;
+	  waitpid(pid,&retval,0);
+	  return FD_INT2DTYPE(retval);}
+#endif
 	return FD_INT2DTYPE(pid);}
       else if (flags&FD_IS_SCHEME)
 	execvp(FD_EXEC,argv);
@@ -303,6 +310,16 @@ static fdtype fdexec_prim(int n,fdtype *args)
 static fdtype fork_prim(int n,fdtype *args)
 {
   return exec_helper(FD_DO_FORK,n,args);
+}
+
+static fdtype forkwait_prim(int n,fdtype *args)
+{
+  return exec_helper((FD_DO_FORK|FD_DO_WAIT),n,args);
+}
+
+static fdtype fdforkwait_prim(int n,fdtype *args)
+{
+  return exec_helper((FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),n,args);
 }
 
 static fdtype fdfork_prim(int n,fdtype *args)
@@ -466,7 +483,9 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
 
 static fdtype mkpath_prim(fdtype dirname,fdtype name)
 {
-  if (FD_SYMBOLP(dirname)) {
+  if ((FD_STRINGP(name))&&((FD_STRDATA(name))[0]=='/'))
+    return fd_incref(name);
+  else if (FD_SYMBOLP(dirname)) {
     fdtype config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
     if (FD_STRINGP(config_val)) {
       u8_string path=u8_mkpath(FD_STRDATA(config_val),FD_STRDATA(name));
@@ -1481,6 +1500,10 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,fd_make_cprimn("FORK",fork_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
+#if HAVE_WAITPID
+  fd_idefn(fileio_module,fd_make_cprimn("FORKWAIT",forkwait_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FDFORKWAIT",fdforkwait_prim,1));
+#endif
 
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("REMOVE-FILE",remove_file_prim,1,

@@ -259,4 +259,10 @@
 /* Whether we have the tidy.h header file */
 #undef HAVE_TIDY_TIDY_H
 
+/* Whether we have the tidy.h header file */
+#undef HAVE_WAITPID
+
+/* Whether we have the tidy.h header file */
+#undef HAVE_WAIT4
+
 #endif

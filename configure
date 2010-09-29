@@ -5573,6 +5573,28 @@ _ACEOF
 fi
 done
 
+for ac_func in waitpid
+do :
+  ac_fn_c_check_func "$LINENO" "waitpid" "ac_cv_func_waitpid"
+if test "x$ac_cv_func_waitpid" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_WAITPID 1
+_ACEOF
+
+fi
+done
+
+for ac_func in wait4
+do :
+  ac_fn_c_check_func "$LINENO" "wait4" "ac_cv_func_wait4"
+if test "x$ac_cv_func_wait4" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_WAIT4 1
+_ACEOF
+
+fi
+done
+
 
 # Check whether --enable-shared was given.
 if test "${enable_shared+set}" = set; then :
