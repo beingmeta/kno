@@ -367,6 +367,15 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
   return value;
 }
 
+/* These are for wrapping around Scheme code to see in C profilers */
+static fdtype eval1(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+static fdtype eval2(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+static fdtype eval3(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+static fdtype eval4(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+static fdtype eval5(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+static fdtype eval6(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+static fdtype eval7(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+
 /* Trace functions */
 
 static fdtype timed_eval(fdtype expr,fd_lispenv env)
@@ -1474,6 +1483,13 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"%TIMEVAL",timed_evalx);
   fd_defspecial(fd_scheme_module,"%WATCH",watched_eval);
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
+  fd_defspecial(fd_scheme_module,"EVAL1",eval1);
+  fd_defspecial(fd_scheme_module,"EVAL2",eval2);
+  fd_defspecial(fd_scheme_module,"EVAL3",eval3);
+  fd_defspecial(fd_scheme_module,"EVAL4",eval4);
+  fd_defspecial(fd_scheme_module,"EVAL5",eval5);
+  fd_defspecial(fd_scheme_module,"EVAL6",eval6);
+  fd_defspecial(fd_scheme_module,"EVAL7",eval7);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
