@@ -917,6 +917,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 		  u8_strdup(dbproc->qtext),fd_incref(arg));
 	u8_lock_mutex(&(dbproc->lock));
 	while (j<i) {fd_decref(argbuf[i]); i++;}
+	j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
 	if (argbuf!=_argbuf) u8_free(argbuf);
 	return FD_ERROR_VALUE;}
       else {
@@ -972,6 +973,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
     u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(errmsg));
     i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
+    i=0; while (i<n_mstimes) {u8_free(mstimes[i]); i++;}
     if (argbuf!=_argbuf) u8_free(argbuf);
     u8_unlock_mutex(&(dbproc->fdbptr->lock));
     u8_unlock_mutex(&(dbproc->lock));
