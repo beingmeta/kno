@@ -256,18 +256,18 @@ static void report_status()
 	       (-1)));
   if (statlog)
     u8_fprintf
-      (statlog,"[%*t][%f] wait (n=%d) min=%f max=%f avg=%f\n",
+      (statlog,"[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f\n",
        u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
-  else u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%d) min=%f max=%f avg=%f",
+  else u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f",
 	      u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
   if (rcount)
     if (statlog)
       u8_fprintf
 	(statlog,
-	 "[%*t][%f] run (n=%d) min=%f max=%f avg=%f\n",
+	 "[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f\n",
 	 u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
     else u8_log(LOG_INFO,"fdserv",
-		"[%*t][%f] run (n=%d) min=%f max=%f avg=%f",
+		"[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f",
 		u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
   u8_unlock_mutex(&(fdwebserver.lock));
   if (statlog) fflush(statlog);
