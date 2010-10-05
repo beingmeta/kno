@@ -376,6 +376,7 @@ clean: tidy
 	cd tests/dtype; make clean
 	cd tests/db; make clean
 	cd tests/scheme; make clean
+	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/dtype/makefile tests/db/makefile tests/scheme/makefile
