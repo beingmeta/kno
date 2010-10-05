@@ -226,7 +226,9 @@ static int output_markup_attrib
     else if (FD_VOIDP(attrib_val)) {
       fd_decref(free_name); fd_decref(free_value);
       return 0;}
-    else emit_xmlattrib(out,tmp,attrib_name,attrib_val);
+    else {
+      emit_xmlattrib(out,tmp,attrib_name,attrib_val);
+      fd_decref(free_value);}
   return 1;
 }
 
