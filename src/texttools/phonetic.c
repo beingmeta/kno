@@ -76,7 +76,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   /* If the string is capitalized, we insert an asterisk,
      which is a modification on the standard metaphone algorithm. */
   /* if (u8_isupper(c)) u8_putc(&out,'*'); */
-  while (c>0)  {
+  while (c>=0)  {
     int gc;
     if (u8_isspace(c)) gc=' ';
     else gc=u8_toupper(u8_base_char(c));
