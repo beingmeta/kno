@@ -1192,6 +1192,8 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
       memcpy(&(uuid->uuid),data,16);
       return FDTYPE_CONS(uuid);}
     else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
+  else if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_uuid_type)))
+    return fd_incref(nodeid);
   else if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_timestamp_type))) {
     fdtype tmp=tptr; tptr=nodeid; nodeid=tmp;}
   if ((FD_VOIDP(tptr))&&(FD_VOIDP(nodeid)))

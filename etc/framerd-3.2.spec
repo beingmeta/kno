@@ -112,11 +112,12 @@ if grep -q ^fdaemon /etc/passwd; then echo "User fdaemon already exists"; else u
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install install-scripts setup-rc.d DESTDIR=$RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+make setup-rc.d DESTDIR=$RPM_BUILD_ROOT
+make install-scripts DESTDIR=$RPM_BUILD_ROOT
 make install-fdserv DESTDIR=$RPM_BUILD_ROOT
 make copy-modules DESTDIR=$RPM_BUILD_ROOT
 #find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
-
 
 %clean
 rm -rf $RPM_BUILD_ROOT
