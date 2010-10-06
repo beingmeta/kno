@@ -27,6 +27,8 @@
 	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
 	 (textelts (->selector
 		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
+	 (nontextelts (->selector
+		       (choice (getopt options 'nontextelts {}) (get doc 'nontextelts))))
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
 	 (justwords (pickstrings words))
@@ -51,7 +53,9 @@
 			       (tryif (testopt options 'textopts 'keepraw)
 				 'words)
 			       'terms))
-	   (textnodes (if (bound? nodes) nodes (dom/find doc textelts)))
+	   (textnodes (if (bound? nodes) nodes
+			  (difference (dom/find doc textelts)
+				      (dom/find doc nontextelts))))
 	   (analysis (text/analyze textnodes options)))
       (do-choices (node (pickoids textnodes))
 	(let* ((keys (get analysis node))
@@ -75,25 +79,3 @@
 	    (add! node field (get pairs field)))))
       (store! doc 'analysis analysis)
       analysis)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
