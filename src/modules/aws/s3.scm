@@ -7,12 +7,15 @@
 (define version "$Id$")
 (define revision "$Revision$")
 
-(use-module '{aws fdweb texttools ezrecords rulesets logger})
+(use-module '{aws fdweb texttools ezrecords rulesets logger varconfig})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
 
 (define %loglevel %info!)
+
+(define s3root "s3.amazonaws.com")
+(varconfig! s3root s3root)
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
@@ -55,9 +58,10 @@
 	   op "\n"
 	   content-sig "\n"
 	   content-ctype "\n"
-	   date "\n" (canonical-headers headers) "/" bucket path)))
-    ;; (message "Description=" (write description))
-    (hmac-sha1 secretawskey description)))
+	   date "\n" (canonical-headers headers)
+	   (if (empty-string? bucket) "" "/") bucket path)))
+    (debug%watch (hmac-sha1 secretawskey description)
+		 description secretawskey)))
 
 (define (canonicalize-header x)
   (if (pair? x)
@@ -90,15 +94,16 @@
 	 (sig (s3/signature op bucket path date  headers
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
-	 (url (string-append "http://" bucket ".s3.amazonaws.com" path))
+	 (url (string-append "http://" bucket (if (empty-string? bucket) "" ".")
+			     s3root path))
 	 ;; Hide the except field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
-    ;; (message "sig=" sig)
-    ;; (message "authorization: " authorization)
-    (when (and content (overlaps? op {"GET" "HEAD"}))
+    (debug%watch sig authorization)
+    (when (and content (overlaps? op {"GET" "HEAD" "PUT"}))
       (add! urlparams 'content-type ctype))
     (add! urlparams 'header (string-append "Date: " (get date 'rfc822)))
-    (add! urlparams 'header (string-append "Content-MD5: " contentMD5))
+    (when contentMD5
+      (add! urlparams 'header (string-append "Content-MD5: " contentMD5)))
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
     (debug%watch url ctype urlparams (length content))
@@ -107,13 +112,13 @@
 	(if (equal? op "HEAD")
 	    (urlhead url urlparams)
 	    (if (equal? op "POST")
-		(urlpost url urlparams content)
+		(urlpost url urlparams (or content ""))
 		(if (equal? op "PUT")
-		    (urlput url content ctype urlparams)
-		    (urlget url urlparams content)))))))
+		    (urlput url (or content "") ctype urlparams)
+		    (urlget url urlparams (or content ""))))))))
 
 (define (s3/uri bucket path)
-  (stringout "http://" bucket ".s3.amazonaws.com"
+  (stringout "http://" bucket (if (empty-string? bucket) "" ".") s3root
 	     (unless (has-prefix path "/") "/")
 	     path))
 
@@ -121,7 +126,7 @@
   (let* ((expires (if (number? expires) expires (get expires 'tick)))
 	 (sig (s3/signature "GET" bucket path expires headers)))
     (string-append
-     "http://" bucket ".s3.amazonaws.com" path "?"
+     "http://" bucket (if (empty-string? bucket) "" ".") s3root path "?"
      "AWSAccessKeyId=" awskey "&"
      "Expires=" (number->string expires) "&"
      "Signature=" (packet->base64 sig))))
@@ -164,7 +169,7 @@
 
 (define (s3loc/uri s3loc)
   (stringout "http://"
-	     (s3loc-bucket s3loc) ".s3.amazonaws.com"
+	     (s3loc-bucket s3loc) (if (empty-string? (s3loc-bucket s3loc)) "" ".") s3root
 	     (unless (has-prefix (s3loc-path s3loc) "/") "/")
 	     (s3loc-path s3loc)))
 
