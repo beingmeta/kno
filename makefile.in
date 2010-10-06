@@ -23,7 +23,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 CONFDIR		= $(DESTDIR)@data_dir@
-APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)/@apache_modules_dir@
+APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
@@ -703,24 +703,24 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	cp -prf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
 	cp -prf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@standard_module_dir@
 
-$(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
+$(DESTDIR)etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
 	$(INSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
-$(DESTDIR)/etc/init.d:
+$(DESTDIR)etc/init.d:
 	$(INSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
-$(DESTDIR)/var/run/framerd:
+$(DESTDIR)var/run/framerd:
 	$(INSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
 		   -d $(DESTDIR)/var/run/framerd
-$(DESTDIR)/var/log/framerd:
+$(DESTDIR)var/log/framerd:
 	$(INSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
-		   -d $(DESTDIR)/var/log/framerd
-setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
-            $(DESTDIR)/var/run/framerd \
-            $(DESTDIR)/var/log/framerd
+		   -d $(DESTDIR)var/log/framerd
+setup-rc.d: $(DESTDIR)etc/init.d/framerd \
+            $(DESTDIR)var/run/framerd \
+            $(DESTDIR)var/log/framerd
 enable-rc.d: setup-rc.d
 	update-rc.d framerd defaults
 
-setup-osx: @data_dir@ $(DESTDIR)/var/run/framerd $(DESTDIR)/var/log/framerd
+setup-osx: @data_dir@ $(DESTDIR)var/run/framerd $(DESTDIR)var/log/framerd
 	etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
@@ -737,16 +737,16 @@ mod_fdserv: etc/mod_fdserv.so
 
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
-install-fdserv: etc/mod_fdserv.so $(DESTDIR)/@apache_modinfo@ $(DESTDIR)/@apache_modules_dir@
-	cd etc; ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)/@apache_modinfo@;
+install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ $(DESTDIR)@apache_modules_dir@
+	cd etc; ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)@apache_modinfo@;
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@rundir@/fdserv;
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@logdir@/fdserv;
 	cd etc; if test -f mod_fdserv.so; then ${APXS} -i mod_fdserv.so; else ${APXS} -i mod_fdserv.la; fi
 
-$(DESTDIR)/@apache_modules_dir@:
-	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d  $(DESTDIR)/@apache_modules_dir@
-$(DESTDIR)/@apache_modinfo@:
-	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)/@apache_modinfo@
+$(DESTDIR)@apache_modules_dir@:
+	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d  $(DESTDIR)@apache_modules_dir@
+$(DESTDIR)@apache_modinfo@:
+	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@apache_modinfo@
 
 # Tracking revision information
 
