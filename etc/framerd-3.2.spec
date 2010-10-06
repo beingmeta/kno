@@ -101,7 +101,7 @@ libraries
 Summary:        FramerD module for tidying HTML code
 Group:          Development/Libraries
 BuildRequires:  libtidy-dev
-Requires:       unixODBC %{name} = %{version}-%{release}
+Requires:       libtidy %{name} = %{version}-%{release}
 
 %description    tidy
 The %{name}-tidy package implements external bindings to libtidy
