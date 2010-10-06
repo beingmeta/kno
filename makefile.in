@@ -738,7 +738,7 @@ mod_fdserv: etc/mod_fdserv.so
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
 install-fdserv: etc/mod_fdserv.so $(DESTDIR)/@apache_modinfo@ $(DESTDIR)/@apache_modules_dir@
-	cd etc; ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)@apache_modinfo@;
+	cd etc; ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)/@apache_modinfo@;
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@rundir@/fdserv;
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@logdir@/fdserv;
 	cd etc; if test -f mod_fdserv.so; then ${APXS} -i mod_fdserv.so; else ${APXS} -i mod_fdserv.la; fi
