@@ -248,9 +248,19 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtagger.so
 %{_libdir}/libtagger.a
 
-# %files odbc
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/odbc.so*
+%files odbc
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/odbc.so*
+
+%files tidy
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/tidy.so*
+
+%files ziptools
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/ziptools.so*
 
 %changelog
