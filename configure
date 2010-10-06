@@ -717,6 +717,8 @@ with_optlib
 with_admin_group
 with_fdaemon
 with_webuser
+with_apacheinfo
+with_apachelib
 with_rundir
 with_logdir
 with_arch
@@ -1400,6 +1402,8 @@ Optional Packages:
 --with-admin-group Install files with admin group and group write permissions
 --with-fdaemon The identity for FramerD servers to run
 --with-webuser The user for the webserver
+--with-apacheinfo where Apache module info lives
+--with-apachelib where Apache extensions live
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --without-arch build with particular --arch flags
@@ -3982,6 +3986,25 @@ if test ! -z $APXS; then
 else
   echo "Warning: No apache development environment, can't build mod_fdserv"
 fi
+
+
+# Check whether --with-apacheinfo was given.
+if test "${with_apacheinfo+set}" = set; then :
+  withval=$with_apacheinfo;
+else
+  with_apacheinfo=$apache_modinfo
+fi
+
+
+# Check whether --with-apachelib was given.
+if test "${with_apachelib+set}" = set; then :
+  withval=$with_apachelib;
+else
+  with_apachelib=$apache_modules_dir
+fi
+
+apache_modinfo=$with_apacheinfo
+apache_modules_dir=$with_apachelib
 
 
 # Check whether --with-rundir was given.

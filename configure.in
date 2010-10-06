@@ -228,6 +228,12 @@ else
   echo "Warning: No apache development environment, can't build mod_fdserv"
 fi
 
+dnl Allow overrides of APXS apacheinfo
+AC_ARG_WITH(apacheinfo,--with-apacheinfo where Apache module info lives,,with_apacheinfo=$apache_modinfo)
+AC_ARG_WITH(apachelib,--with-apachelib where Apache extensions live,,with_apachelib=$apache_modules_dir)
+apache_modinfo=$with_apacheinfo
+apache_modules_dir=$with_apachelib
+
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="/var/run")
 rundir=$with_rundir
