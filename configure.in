@@ -303,7 +303,7 @@ if test $etags = "na"; then
    TAGS=""
 fi
 
-AC_CHECK_HEADERS(resource.h sys/resource.h)
+AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h)
 
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
 	         [#include <sys/resource.h>])

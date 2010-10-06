@@ -31,6 +31,14 @@ static char versionid[] =
 #include <unistd.h>
 #endif
 
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#if HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
 static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
