@@ -87,15 +87,33 @@ Requires:       sqlite %{name} = %{version}-%{release}
 The %{name}-sqlite package implements external DB bindings to the Sqlite3 library
 libraries
 
-# %package        odbc
-# Summary:        Module for using Odbc from FramerD
-# Group:          Development/Libraries
-# BuildRequires:  unixODBC-devel
-# Requires:       unixODBC %{name} = %{version}-%{release}
+%package        odbc
+Summary:        Module for using Odbc from FramerD
+Group:          Development/Libraries
+BuildRequires:  unixODBC-devel
+Requires:       unixODBC %{name} = %{version}-%{release}
 
-# %description    odbc
-# The %{name}-odbc package implements external DB bindings to the ODBC
-# libraries
+%description    odbc
+The %{name}-odbc package implements external DB bindings to the ODBC
+libraries
+
+%package        tidy
+Summary:        FramerD module for tidying HTML code
+Group:          Development/Libraries
+BuildRequires:  libtidy-dev
+Requires:       unixODBC %{name} = %{version}-%{release}
+
+%description    tidy
+The %{name}-tidy package implements external bindings to libtidy
+
+%package        ziptools
+Summary:        FramerD module for working with zipfiles
+Group:          Development/Libraries
+BuildRequires:  libzip-dev
+Requires:       libzip %{name} = %{version}-%{release}
+
+%description    ziptools
+The %{name}-ziptools package implements external bindings for libzip
 
 %prep
 %setup -q
