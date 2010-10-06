@@ -3996,12 +3996,14 @@ else
 fi
 
 
+
 # Check whether --with-apachelib was given.
 if test "${with_apachelib+set}" = set; then :
   withval=$with_apachelib;
 else
   with_apachelib=$apache_modules_dir
 fi
+
 
 apache_modinfo=$with_apacheinfo
 apache_modules_dir=$with_apachelib
