@@ -244,13 +244,6 @@ dnl Specifies where log files should live
 AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="/var/log")
 logdir=$with_logdir
 
-if test ! -z $APXS; then
-  apache_conf_dir=`$APXS -q SYSCONFDIR`
-  apache_modules_dir=`$APXS -q LIBEXECDIR`
-else
-  echo "Warning: No apache development environment, can't build mod_fdserv"
-fi
-
 AC_AIX
 
 if test $doi18n = "yes"; then

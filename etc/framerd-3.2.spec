@@ -106,7 +106,6 @@ libraries
 make %{?_smp_mflags}
 make mod_fdserv
 
-
 %pre
 if grep -q ^fdaemon /etc/passwd; then echo "User fdaemon already exists"; else useradd fdaemon; fi
 

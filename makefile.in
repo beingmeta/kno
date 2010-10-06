@@ -36,8 +36,6 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 FRAMERDSVN	= https://dev.beingmeta.com/src/fdb/trunk
-APACHECONF	= `$(APXS) -q SYSCONFDIR`
-APACHEDIR	= `dirname $(APACHECONF)`
 
 DTYPE_HEADERS=\
  include/fdb/config.h                            \

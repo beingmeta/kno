@@ -4005,6 +4005,9 @@ else
 fi
 
 
+echo "wai=" $with_apacheinfo
+echo "wal=" $with_apachelib
+
 apache_modinfo=$with_apacheinfo
 apache_modules_dir=$with_apachelib
 
@@ -4027,13 +4030,6 @@ else
 fi
 
 logdir=$with_logdir
-
-if test ! -z $APXS; then
-  apache_conf_dir=`$APXS -q SYSCONFDIR`
-  apache_modules_dir=`$APXS -q LIBEXECDIR`
-else
-  echo "Warning: No apache development environment, can't build mod_fdserv"
-fi
 
 
 ac_ext=c
