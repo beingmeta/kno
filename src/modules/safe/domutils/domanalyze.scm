@@ -1,5 +1,7 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2010 beingmeta, inc.  All rights reserved.
+
+;;; Natural language analysis (with textindex) of DOM nodes
 
 (in-module 'domutils/analyze)
 
@@ -25,10 +27,12 @@
   (let* ((words (choice (get doc 'indexroots)
 			(getopt options 'indexwords {})))
 	 (stops (choice (get doc 'stopwords) (getopt options 'stopwords {})))
-	 (textelts (->selector
-		    (choice (getopt options 'textelts {}) (get doc 'textelts))))
+	 (textelts
+	  (->selector
+	   (choice (getopt options 'textelts {}) (get doc 'textelts))))
 	 (nontextelts (->selector
-		       (choice (getopt options 'nontextelts {}) (get doc 'nontextelts))))
+		       (choice (getopt options 'nontextelts {})
+			       (get doc 'nontextelts))))
 	 (stopcache (get-table doc 'stopcache))
 	 (rootcache (get-table doc 'rootcache))
 	 (justwords (pickstrings words))
@@ -40,7 +44,7 @@
 		  (choice (choice->hashset justwords) wordtables)
 		  {})
 	     phrasemap
-	     ,(choice (getopt options phrasemap)
+	     ,(choice (getopt options 'phrasemap {})
 		      (text/phrasemap (pick justwords compound?)
 				      wordtables))
 	     textfns ,dom/textify
@@ -48,16 +52,17 @@
 	     stopcache ,stopcache
 	     rootcache ,rootcache]
 	  options)))
+    (default! nodes
+      (difference (try (dom/find doc textelts)
+		       (pick (find-frames index 'has 'id) dom/textual?))
+		  (dom/find doc nontextelts)))
     (debug%watch "DOM/ANALYZE" options)
     (let* ((cacheslots (choice (getopt options 'cacheslots #t)
 			       (tryif (testopt options 'textopts 'keepraw)
 				 'words)
 			       'terms))
-	   (textnodes (if (bound? nodes) nodes
-			  (difference (dom/find doc textelts)
-				      (dom/find doc nontextelts))))
-	   (analysis (text/analyze textnodes options)))
-      (do-choices (node (pickoids textnodes))
+	   (analysis (text/analyze nodes options)))
+      (do-choices (node (pickoids nodes))
 	(let* ((keys (get analysis node))
 	       (terms (pickstrings keys))
 	       (pairs (pick keys pair?))
@@ -75,7 +80,12 @@
 	    (do-choices (field fields)
 	      (index-frame index node field (get pairs field))))
 	  (index-frame index node 'has fields)
-	  (do-choices (field fields)
-	    (add! node field (get pairs field)))))
+	  (unless (overlaps? cacheslots #f)
+	    (do-choices (field fields)
+	      (add! node field (get pairs field))))))
       (store! doc 'analysis analysis)
       analysis)))
+
+
+
+

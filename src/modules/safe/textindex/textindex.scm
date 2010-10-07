@@ -241,14 +241,14 @@
 	 (xfns (choice (getopt options 'xfns {})
 		       (get text/settings 'xfns)))
 	 (textfns (getopt options 'textfns)))
-    ;; (%watch "TEXT/ANALYZE" options)
+    (debug%watch "TEXT/ANALYZE" options)
     (do-choices (passage passages)
       ;; (%watch "TEXT/ANALYZE" passage)
       (do-choices (text (if textfns
 			    (choice ((pick textfns applicable?) passage)
 				    (get passage (pick textfns slotid?)))
 			    passage))
-	;; (%watch "TEXT/ANALYZE" passage text)
+	(debug%watch "TEXT/ANALYZE" passage text)
 	(let ((keys (textanalyze text wordrule
 				 stopcache stopwords stoprules
 				 rootcache rootset rootmaps rootfns morphrules
