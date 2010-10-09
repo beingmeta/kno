@@ -1596,6 +1596,7 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 	struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
 	while (kvscan<kvlimit) {
+	  if (FD_VOIDP(kvscan->value)) {kvscan++;continue;}
 	  fd_incref(kvscan->key);
 	  FD_ADD_TO_CHOICE(result,kvscan->key);
 	  kvscan++;}
