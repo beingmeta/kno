@@ -99,7 +99,7 @@
 	 ;; Hide the except field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
     (debug%watch sig authorization)
-    (when (and content (overlaps? op {"GET" "HEAD" "PUT"}))
+    (when (and content (overlaps? op {"GET" "HEAD"}))
       (add! urlparams 'content-type ctype))
     (add! urlparams 'header (string-append "Date: " (get date 'rfc822)))
     (when contentMD5
