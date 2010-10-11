@@ -52,21 +52,46 @@
       (jsonparse (get resp '%content) 56 (couchdb-map db)))))
 
 (define (couchdb/get db id (options #f))
-  (couchdb/req db (if (oid? id)
-		      (stringout "@" (number->string (oid-addr id) 16))
-		      (if (uuid? id) (uuid->string id)
-			  (if (string? id) id
-			      (stringout ":" id))))
-	       options))
+  (if (couchdb? db)
+      (couchdb/req db (if (oid? id)
+			  (stringout "@" (number->string (oid-addr id) 16))
+			  (if (uuid? id) (uuid->string id)
+			      (if (string? id) id
+				  (stringout ":" id))))
+		   options)
+      (if (couchview? db)
+	  (let ((response
+		 (couchdb/req
+		  (couchview-db db)
+		  (scripturl (couchview-path db) "key" (->json id))
+		  options))
+		(results {}))
+	    (doseq (row (get response 'rows))
+	      (set+! results (get row 'value)))
+	    results)
+	  (error "Invalid arg" db))))
 
-(define (couchdb/save! db value (id))
+(define (convert-field field)
+  (if (symbol? field) (downcase (symbol->string field))
+      (if (string? field) field
+	  (unparse-arg field))))
+
+(define (convert-value value)
+  (if (timestamp? value) (get value 'tick)
+      (if (oid? value) (oid->string value)
+	  (if (string? value) value
+	      (unparse-arg value)))))
+
+(define (couchdb/save! db value (id) (flags 56))
   (default! id (get value '_id))
+  (when (not id) (set! id (get value '_id)))
   (let*  ((idstring (if (oid? id)
 			(stringout "@" (number->string (oid-addr id) 16))
 			(if (uuid? id) (uuid->string id)
 			    (if (string? id) id
 				(stringout ":" id)))))
-	  (r (urlput (mkpath (couchdb-url db) idstring) (->json value)))
+	  (json (->json value flags))
+	  (r (urlput (mkpath (couchdb-url db) idstring) json))
 	  (httpcode (get r 'response)))
     (or (and (exists? httpcode) (>= httpcode 200) (< httpcode 300))
 	(begin (notice%watch "COUCHDB/SAVE! failed" r db value (->json value))
@@ -176,6 +201,8 @@
 		      (couchdb/req
 		       (couchview-db view)
 		       (scripturl (couchview-path view)
+			 "key" (tryif (test opts 'key)
+				 (->json (get opts 'key)))
 			 "startkey" (tryif (test opts 'start)
 				      (->json (get opts 'start)))
 			 "endkey" (tryif (test opts 'end)
