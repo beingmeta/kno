@@ -56,14 +56,16 @@
       (couchdb/req db (if (oid? id)
 			  (stringout "@" (number->string (oid-addr id) 16))
 			  (if (uuid? id) (uuid->string id)
-			      (if (string? id) id
-				  (stringout ":" id))))
+			      (if (string? id) (uriencode id)
+				  (stringout
+				    ":" (uriencode (lisp->string id))))))
 		   options)
       (if (couchview? db)
 	  (let ((response
 		 (couchdb/req
 		  (couchview-db db)
-		  (scripturl (couchview-path db) "key" (->json id))
+		  (scripturl (couchview-path db)
+		    "key" (->json id))
 		  options))
 		(results {}))
 	    (doseq (row (get response 'rows))
@@ -88,8 +90,9 @@
   (let*  ((idstring (if (oid? id)
 			(stringout "@" (number->string (oid-addr id) 16))
 			(if (uuid? id) (uuid->string id)
-			    (if (string? id) id
-				(stringout ":" id)))))
+			    (if (string? id) (uriencode id)
+				(stringout
+				  ":" (uriencode (lisp->string id)))))))
 	  (json (->json value flags))
 	  (r (urlput (mkpath (couchdb-url db) idstring) json))
 	  (httpcode (get r 'response)))
@@ -106,10 +109,12 @@
   
 (define (couchdb/delete! db id (rev #f))
   (let ((rev (or rev (get (couchdb/get db id) '_rev))))
-    (couchdb/req db (scripturl (if (oid? id)
-				   (stringout "@" (number->string (oid-addr id) 16))
-				   (if (string? id) id
-				       (stringout ":" id))))
+    (couchdb/req db (if (oid? id)
+			(stringout "@" (number->string (oid-addr id) 16))
+			(if (uuid? id) (uuid->string id)
+			    (if (string? id) (uriencode id)
+				(stringout
+				  ":" (uriencode (lisp->string id))))))
 		 #[METHOD DELETE]
 		 "rev" rev)))
 
@@ -188,7 +193,8 @@
 		       (couchview-db view)
 		       (scripturl (couchview-path view)
 			 "startkey" (get opts 'start)
-			 "endkey" (get opts 'end)))
+			 "endkey" (get opts 'end)
+			 "group" "true"))
 		      (couchdb/req (couchview-db view) (couchview-path view))))
 	(table (or table
 		   (and opts (getopt opts 'output))
@@ -206,7 +212,8 @@
 			 "startkey" (tryif (test opts 'start)
 				      (->json (get opts 'start)))
 			 "endkey" (tryif (test opts 'end)
-				    (->json (get opts 'end)))))
+				    (->json (get opts 'end)))
+			 "group" "true"))
 		      (couchdb/req (couchview-db view) (couchview-path view))))
 	(results {}))
     (doseq (row (get response 'rows)) (set+! results (get row 'value)))
