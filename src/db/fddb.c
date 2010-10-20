@@ -63,7 +63,8 @@ static fdtype better_parse_oid(u8_string start,int len)
 	fd_decref(item);
 	return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}}
     else return fd_err(fd_NoBackground,"better_parse_oid",NULL,name);}
-  else {
+  else if (((strchr(start,'/')))&&
+	   (((u8_string)strchr(start,'/'))<(start+len))) {
     FD_OID base=FD_NULL_OID_INIT, result=FD_NULL_OID_INIT;
     unsigned int delta;
     u8_byte prefix[64], suffix[64], *copy_start, *copy_end;
@@ -87,6 +88,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     if (sscanf(suffix,"%x",&delta)<1)  return FD_PARSE_ERROR;
     result=FD_OID_PLUS(base,delta);
     return fd_make_oid(result);}
+  else return fd_parse_oid_addr(start,len);
 }
 
 static fdtype oid_name_slotids=FD_EMPTY_LIST;

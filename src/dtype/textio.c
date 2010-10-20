@@ -589,14 +589,32 @@ void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len))
   oid_parser=parsefn;
 }
 
+typedef unsigned long long ull;
+
 static fdtype default_parse_oid(u8_string start,int len)
 {
   FD_OID oid=FD_NULL_OID_INIT;
-  unsigned int hi, lo, c=start[len]; int items;
-  start[len]='\0'; items=sscanf(start,"@%x/%x",&hi,&lo); start[len]=c;
-  if (items!=2) return FD_PARSE_ERROR;
+  unsigned int hi, lo, c=start[len];
+  int items;
+  start[len]='\0';
+  if ((strchr(start,'/'))<0) {
+    int items=sscanf(start,"@%x/%x",&hi,&lo);
+    if (items!=2) {
+      start[len]=c; return FD_PARSE_ERROR;}}
+  else {
+    unsigned long long addr;
+    int items=sscanf(start,"@%llx",&addr);
+    if (items!=1) {
+      start[len]=c; return FD_PARSE_ERROR;}
+    hi=((addr>>32)&((ull)0xFFFFFFFF));
+    lo=(addr&((ull)0xFFFFFFFF));}
   FD_SET_OID_HI(oid,hi); FD_SET_OID_LO(oid,lo);
   return fd_make_oid(oid);
+}
+
+FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len)
+{
+  return default_parse_oid(string,len);
 }
 
 /* This is the function called from the main parser loop. */

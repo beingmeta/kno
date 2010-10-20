@@ -47,6 +47,7 @@ FD_EXPORT int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details);
 FD_EXPORT int (*fd_dtype_error)(struct FD_BYTE_OUTPUT *,fdtype x,u8_string details);
 FD_EXPORT void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len));
 typedef int (*fd_hashfn)(fdtype x,unsigned int (*hf)(fdtype));
+FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
 
 #endif /* ndef FDB_DTYPE_H */
