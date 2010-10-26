@@ -86,7 +86,7 @@
 	  ((null? scan) (printout))
 	(printout (second (car scan)) ":" (third (car scan)) "\n")))))
 
-(define (s3/op op bucket path (content #f) (ctype "text") (headers '()))
+(define (s3op op bucket path (content #f) (ctype "text") (headers '()))
   (let* ((date (gmtimestamp))
 	 (path (string-subst (uriencode path) "%2f" "/"))
 	 (cresource (string-append "/" bucket path))
@@ -98,7 +98,7 @@
 			     s3root path))
 	 ;; Hide the except field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
-    (debug%watch sig authorization)
+    (debug%watch url sig authorization)
     (when (and content (overlaps? op {"GET" "HEAD"}))
       (add! urlparams 'content-type ctype))
     (add! urlparams 'header (string-append "Date: " (get date 'rfc822)))
@@ -116,6 +116,15 @@
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
 		    (urlget url urlparams (or content ""))))))))
+(define (s3/op op bucket path (content #f) (ctype "text") (headers '()))
+  (let* ((result (s3op op bucket path content ctype headers))
+	 (status (get result 'status)))
+    (if (>= 299 status 200) result
+	(begin (log%warn "Bad result " status " (" (get result 'header)
+			 ") for" (get result 'effective-url)
+			 "\n#|" (get result '%content) "|#\n"
+			 result)
+	       result))))
 
 (define (s3/uri bucket path)
   (stringout "http://" bucket (if (empty-string? bucket) "" ".") s3root
