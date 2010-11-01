@@ -132,11 +132,12 @@
 	     path))
 
 (define (s3/signeduri bucket path expires (op "GET") (headers '()))
+  (unless (has-prefix path "/") (set! path (string-append "/" path)))
   (let* ((expires (if (number? expires) expires (get expires 'tick)))
 	 (sig (s3/signature "GET" bucket path expires headers)))
     (string-append
-     "http://" bucket (if (empty-string? bucket) "" ".") s3root path "?"
-     "AWSAccessKeyId=" awskey "&"
+     "http://" bucket (if (empty-string? bucket) "" ".") s3root path
+     "?" "AWSAccessKeyId=" awskey "&"
      "Expires=" (number->string expires) "&"
      "Signature=" (packet->base64 sig))))
 
