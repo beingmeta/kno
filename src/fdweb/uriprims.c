@@ -324,6 +324,27 @@ static fdtype uribase_prim(fdtype uri_arg)
   else return fd_incref(uri_arg);
 }
 
+static fdtype uripath_prim(fdtype uri_arg)
+{
+  u8_string uri=FD_STRDATA(uri_arg);
+  u8_byte *hash=strchr(uri,'#');
+  u8_byte *qmark=strchr(uri,'?');
+  u8_byte *pathstart=strchr(uri,'/');
+  while ((pathstart)&&(pathstart[1]=='/'))
+    pathstart=strchr(pathstart+2,'/');
+  if (!(pathstart)) pathstart=uri;
+  if ((hash) && (qmark))
+    if (hash<qmark)
+      return fd_extract_string(NULL,pathstart,hash);
+    else return fd_extract_string(NULL,pathstart,qmark);
+  else if (hash)
+    return fd_extract_string(NULL,pathstart,hash);
+  else if (qmark)
+    return fd_extract_string(NULL,pathstart,hash);
+  else if (pathstart==uri) return fd_incref(uri_arg);
+  else return fd_extract_string(NULL,pathstart,uri+FD_STRLEN(uri_arg));
+}
+
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape)
 {
   uri_output(out,uri,escape);
@@ -356,6 +377,8 @@ FD_EXPORT void fd_init_urifns_c()
   fd_idefn(module,fd_make_cprim1x("URIQUERY",uriquery_prim,1,
 				  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIBASE",uribase_prim,1,
+				  fd_string_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("URIPATH",uripath_prim,1,
 				  fd_string_type,FD_VOID));
 
 
