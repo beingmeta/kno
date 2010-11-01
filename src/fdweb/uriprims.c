@@ -333,6 +333,7 @@ static fdtype uripath_prim(fdtype uri_arg)
   while ((pathstart)&&(pathstart[1]=='/'))
     pathstart=strchr(pathstart+2,'/');
   if (!(pathstart)) pathstart=uri;
+  else pathstart++;
   if ((hash) && (qmark))
     if (hash<qmark)
       return fd_extract_string(NULL,pathstart,hash);
