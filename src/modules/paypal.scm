@@ -32,6 +32,8 @@
     (input TYPE "HIDDEN" NAME "return" VALUE (getopt options 'return)))
   (when (getopt options 'item_name)
     (input TYPE "HIDDEN" NAME "item_name" VALUE (getopt options 'item_name)))
+  (when (getopt options 'notify_url)
+    (input TYPE "HIDDEN" NAME "notify_url" VALUE (getopt options 'notify_url)))
   (when (getopt options 'cancel)
     (input TYPE "HIDDEN" NAME "cancel_return" VALUE (getopt options 'cancel))))
 
