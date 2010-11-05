@@ -14,14 +14,19 @@
 (define-init %loglevel %notice!)
 ;;(define %loglevel %debug!)
 
+(define-init couchdbs (make-hashtable))
+
 (defrecord couchdb url (map #[]) (views (make-hashtable)))
 (defrecord couchview db design view path)
 
-(define-init couchdbs (make-hashtable))
-
 (define (couchdb url)
   (try (get couchdbs url) (new-couchdb url)))
-(module-export! '{couchdb couchdb? couchdb-url couchdb-map})
+(define (couchdef! def db)
+  (store! couchdbs def
+	  (if (string? db) (couchdb db)
+	      (if (couchdb? db) db
+		  (error "Not a valid DB" db)))))
+(module-export! '{couchdb couchdb? couchdb-url couchdb-map couchdb-views couchdef!})
 
 (defslambda (new-couchdb url)
   (try (get couchdbs url)
@@ -169,6 +174,78 @@
  '{couchdb/req
    couchdb/get couchdb/save! couchdb/mutate! couchdb/delete!
    couchdb/store! couchdb/add! couchdb/drop! couchdb/push!})
+
+;;; CDB (storing OIDs in COUCHDB)
+
+(define (cdb/get id (options #f) (db) (pool))
+  (default! pool (getpool id))
+  (default! db (get couchdbs pool))
+  (let ((value (couchdb/req db
+			    (if (oid? id)
+				(stringout "@" (number->string (oid-addr id) 16))
+				(if (uuid? id) (uuid->string id)
+				    (if (string? id) (uriencode id)
+					(stringout
+					  ":" (uriencode (lisp->string id))))))
+			    options)))
+    (extpool-cache! pool id value)
+    value))
+
+(define (cdb/mutate! id mutate (db))
+  (default! db (get couchdbs (getpool id)))
+  (let ((success #f) (cur (couchdb/get db id)))
+    (until success
+      (mutate cur)
+      (set! success (couchdb/save! db cur))
+      (unless success (set! cur (couchdb/get db id)))))
+  (swapout id))
+
+(define (cdb/store! id slotid value (db))
+  (default! db (get couchdbs (getpool id)))
+  (set! db (get couchdbs (getpool id)))
+  (let ((noedit #f)
+	(success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
+    (until success
+      (if (identical? (get cur slotid) value)
+	  (begin (set! success #t) (set! noedit #t))
+	  (begin (store! cur slotid value)
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id))))))
+    (unless noedit (swapout id))))
+
+(define (cdb/add! id slotid value (db))
+  (default! db (get couchdbs (getpool id)))
+  (let ((noedit #f)
+	(success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
+    (until success
+      (if (test cur slotid value)
+	  (begin (set! success #t) (set! noedit #t))
+	  (begin (if (vector? (get cur slotid))
+		     (store! cur slotid (choice value (elts (get cur slotid))))
+		     (add! cur slotid value))
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id)))))
+      (unless noedit (swapout id)))))
+
+(define (cdb/drop! id slotid value (db))
+  (default! db (get couchdbs (getpool id)))
+  (let ((noedit #f)
+	(success #f)
+	(id (if (slotmap? id) (get id '_id) id))
+	(cur (if (slotmap? id) id (couchdb/get db id))))
+    (until success
+      (if (test cur slotid value)
+	  (begin (drop! cur slotid value)
+		 (set! success (couchdb/save! db cur))
+		 (unless success (set! cur (couchdb/get db id))))
+	  (begin (set! success #t) (set! noedit #t)))
+      (unless noedit (swapout id)))))
+
+(module-export! '{cdb/get cdb/mutate! cdb/store! cdb/add! cdb/drop!})
 
 ;;; Getting views
 
