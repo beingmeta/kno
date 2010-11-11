@@ -1,6 +1,6 @@
 (in-module 'xhtml/beingmeta)
 
-(use-module '{fdweb xhtml})
+(use-module '{fdweb xhtml varconfig})
 
 ;;; Various beingmeta related logotypes, etc.
 
@@ -17,3 +17,8 @@
 			(span ((class "bma")) "a"))))))
 
 (module-export! 'bm/logotype)
+
+(define bmstatic "http://static.beingmeta.com/")
+(varconfig! bmstatic bmstatic)
+(module-export! 'bmstatic)
+

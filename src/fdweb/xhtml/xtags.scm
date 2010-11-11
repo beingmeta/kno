@@ -4,14 +4,14 @@
 
 (use-module '{reflection texttools})
 (use-module '{xtags}) ;; brico brico/dterms
-(use-module '{fdweb xhtml xhtml/clickit i18n xhtml/brico})
+(use-module '{fdweb xhtml xhtml/clickit i18n xhtml/brico xhtml/beingmeta})
 
 (define small-oid-icon
-  "http://static.beingmeta.com/graphics/diamond12.png")
+  (stringout bmstatic "graphics/diamond12.png"))
 (define checked-oid-icon
-  "http://static.beingmeta.com/graphics/diamond16.png")
+  (stringout bmstatic "graphics/diamond16.png"))
 (define unchecked-oid-icon
-  "http://static.beingmeta.com/graphics/diamondhole16.png")
+  (stringout bmstatic "graphics/diamondhole16.png"))
 
 (defambda (output-tags tags (var #f) (checked #f))
   (let ((tags (->tag tags))
