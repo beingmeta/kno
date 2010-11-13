@@ -1,0 +1,13 @@
+Document: framerd
+Title: Debian Framerd Documentation
+Author: Kenneth Haase <kh@beingmeta.com>
+Abstract: This provides general documentation for using the
+ FramerD library and tools
+Section: base
+
+Format: HTML
+Index: /usr/share/doc/framerd/index.html
+Files: /usr/share/doc/framerd/*.html
+Files: /usr/share/doc/framerd/*.png
+
+  

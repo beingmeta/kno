@@ -1,0 +1,4 @@
+# We include symlinks, together with header files, to allow users to compile
+# modules extending FramerD/FDScript without having to download and install
+# another package.
+framerd: non-dev-pkg-with-shlib-symlink

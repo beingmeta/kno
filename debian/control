@@ -1,0 +1,24 @@
+Source: framerd
+Section: misc
+Priority: optional
+Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
+Build-Depends: debhelper (>> 4.0.0), libncurses5-dev | libncurses-dev,
+ libreadline4-dev | libreadline-dev, libexif-dev, libmysqlclient-dev, libsqlite3-dev, libtidy-dev, libzip-dev, unixodbc-dev
+Standards-Version: 3.5.6
+
+Package: framerd
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Scalable knowledge base development and application platform
+ FramerD provides a robust and scalable object database especially
+ designed and optimized for pointer-intensive semi-structured data with
+ complex or evolving data models.  FramerD includes full support for
+ Unicode in both data and programs together with powerful tools for
+ text processing and linguistic analysis.
+ FramerD natively supports reading and and generation of XML, HTML, and
+ MIME data.  Web services support has long included built-in support
+ for processing CGI requests both directly and with fastcgi.  With
+ version 2.4, FramerD comes with mod_fdserv, a lightweight extension to
+ the Apache webserver for transparently managing persistent
+ multi-threaded servlets responding to CGI requests.
+
