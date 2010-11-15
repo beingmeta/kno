@@ -167,6 +167,7 @@ static fdtype empty_stringp(fdtype string)
   else {
     u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
     int c=u8_sgetc(&scan);
+    if (!(u8_isspace(c))) return FD_FALSE;
     while ((c>=0) && (scan<lim))
       if (u8_isspace(c)) c=u8_sgetc(&scan);
       else return FD_FALSE;
