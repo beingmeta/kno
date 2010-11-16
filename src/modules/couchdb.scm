@@ -50,8 +50,8 @@
   (let* ((path (mkpath (couchdb-url db) path))
 	 (call (if (null? args) path (apply scripturl path args)))
 	 (resp (urlget call  options)))
-    (debug%watch path call options)
-    (debug%watch resp)
+    (debug%watch "COUCHDB/REQ" path call options)
+    (debug%watch "COUCHDB/REQ" resp)
     (tryif (and (test resp 'response) (>= (get resp 'response) 200)
 		(< (get resp 'response) 300))
       (jsonparse (get resp '%content) 56 (couchdb-map db)))))
@@ -89,18 +89,25 @@
 	  (if (string? value) value
 	      (unparse-arg value)))))
 
-(define (couchdb/save! db value (id) (flags 56))
-  (default! id (get value '_id))
-  (when (not id) (set! id (get value '_id)))
-  (let*  ((idstring (if (oid? id)
-			(stringout "@" (number->string (oid-addr id) 16))
-			(if (uuid? id) (uuid->string id)
-			    (if (string? id) (uriencode id)
-				(stringout
-				  ":" (uriencode (lisp->string id)))))))
+(define (->idstring id)
+  (if (string? id) (uriencode id)
+      (if (oid? id) (stringout "@" (number->string (oid-addr id) 16))
+	  (if (uuid? id) (uuid->string id)
+	      (error "Bad id value")))))
+
+(define (couchdb/save! db value (id #f) (flags 56))
+  (let*  ((idstring (if (not id)
+			(->idstring (try (get value '_id) (getuuid)))
+			(if (oid? id)
+			    (stringout "@" (number->string (oid-addr id) 16))
+			    (if (uuid? id) (uuid->string id)
+				(if (string? id) (uriencode id)
+				    (stringout
+				      ":" (uriencode (lisp->string id))))))))
 	  (json (->json value flags))
 	  (r (urlput (mkpath (couchdb-url db) idstring) json))
 	  (httpcode (get r 'response)))
+    (debug%watch "COUCHDB/SAVE!" r value)
     (or (and (exists? httpcode) (>= httpcode 200) (< httpcode 300))
 	(begin (notice%watch "COUCHDB/SAVE! failed" r db value (->json value))
 	       #f))))
@@ -188,6 +195,7 @@
 					(stringout
 					  ":" (uriencode (lisp->string id))))))
 			    options)))
+    (debug%watch "CDB/GET" id value)
     (extpool-cache! pool id value)
     value))
 
