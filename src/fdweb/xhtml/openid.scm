@@ -55,11 +55,13 @@
 	 (xml (xmlparse (get req '%content) 'sloppy))
 	 (links (dom/find xml "link")))
     (try (cons (try-choices (link links)
-		 (tryif (textsearch '{(WORD "openid.server") (WORD "openid2.provider")}
+		 (tryif (textsearch '{(WORD "openid.server")
+				      (WORD "openid2.provider")}
 				    (get link 'rel))
 		   (get link 'href)))
 	       (try (try-choices (link links)
-		      (tryif (textsearch '{(WORD "openid.delegate") (WORD "openid2.local_id")}
+		      (tryif (textsearch '{(WORD "openid.delegate")
+					   (WORD "openid2.local_id")}
 					 (get link 'rel))
 			(get link 'href)))
 		    #f))
@@ -126,7 +128,9 @@
 	 (and (cgicall validate) (openid-return)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
-	 (doredirect (debug%watch (openid-redirect (or openid.identifier openid.endpoint))))
+	 (doredirect
+	  (debug%watch
+	   (openid-redirect (or openid.identifier openid.endpoint))))
 	 #f)
 	(else #f)))
 
@@ -137,7 +141,8 @@
       (let* ((osym (string->symbol (append "OPENID." (upcase key))))
 	     (sym  (string->symbol (upcase key)))
 	     (ssym (tryif (rposition #\. key)
-		     (string->symbol (upcase (subseq key (1+ (rposition #\. key)))))))
+		     (string->symbol
+		      (upcase (subseq key (1+ (rposition #\. key)))))))
 	     (v (or (cgiget osym) {})))
 	(when (exists? v)
 	  (store! result osym v)

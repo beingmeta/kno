@@ -177,14 +177,14 @@
 	 (info (jsonparse (urlcontent reqinfo)))
 	 (reqfriends (scripturl "https://graph.facebook.com/me/friends"
 		       "access_token" access
-		       "fields" "picture,name"))
+		       "fields" "name"))
 	 (reqgroups
 	  (scripturl "https://graph.facebook.com/me/groups"
-	    "access_token" access "fields" "picture,description"))
+	    "access_token" access "fields" "name,description"))
 	 (reqpages (scripturl "https://graph.facebook.com/me/likes"
 		     "access_token" access
-		     "fields" "picture,description")))
-    (debug%watch "FB/AUTHORIZED" info access)
+		     "fields" "name,description")))
+    (debug%watch "FB/AUTHORIZED" info access accessreq)
     (add! info 'friends
 	  (elts (get (jsonparse (urlcontent reqfriends))
 		     'data)))
