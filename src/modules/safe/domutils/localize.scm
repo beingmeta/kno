@@ -65,13 +65,22 @@
 	      (let* ((name (basename (uribase ref)))
 		     (content (urlcontent absref))
 		     (lref (mkpath read name)))
+		;; This should be code to change lref in the event of conflicts
+		(when (test urlmap lref))
 		;; This has fragments and queries stripped (uribase)
 		;; and additionally has the 'directory' part of the URI
 		;; removed so that it's a local file name
 		(loginfo "Downloaded " (write absref) " for " lref)
+		;; Save the content
 		(save-content saveto lref content)
+		;; Save the mapping in both directions (we assume that
+		;;  lrefs and absrefs are disjoint, so we can use the
+		;;  same table)
 		(store! urlmap absref lref)
+		(store! urlmap lref absref)
 		lref)))))
+
+(define firstdir #((bol) (isalnum+) "/"))
 
 (define (save-content saveto lref content)
   (lognotice "Saving content for " (write lref) " to " saveto)
@@ -88,8 +97,12 @@
 	 (zip/add! saveto lref content))
 	((and havezip (pair? saveto)
 	      (zipfile? (car saveto))
+	      (equal? (cdr saveto) ".."))
+	 (zip/add! (car saveto) (textsubst lref firstdir "") content))
+	((and havezip (pair? saveto)
+	      (zipfile? (car saveto))
 	      (string? (cdr saveto)))
-	 (zip/add! saveto (mkpath (cdr saveto) lref) content))
+	 (zip/add! (car saveto) (mkpath (cdr saveto) lref) content))
 	(else (error "Bad SAVE-CONTENT call"))))
 
 (define (dom/localize! dom base write

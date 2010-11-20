@@ -101,12 +101,13 @@
     (debug%watch url sig authorization)
     (when (and content (overlaps? op {"GET" "HEAD"}))
       (add! urlparams 'content-type ctype))
+    (when (equal? op "DELETE") (store! urlparams 'method 'DELETE))
     (add! urlparams 'header (string-append "Date: " (get date 'rfc822)))
     (when contentMD5
       (add! urlparams 'header (string-append "Content-MD5: " contentMD5)))
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
-    (debug%watch url ctype urlparams (length content))
+    (debug%watch url ctype urlparams (and (sequence? content) (length content)))
     (if (equal? op "GET")
 	(urlget url urlparams)
 	(if (equal? op "HEAD")
@@ -115,7 +116,7 @@
 		(urlpost url urlparams (or content ""))
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
-		    (urlget url urlparams (or content ""))))))))
+		    (urlget url urlparams)))))))
 (define (s3/op op bucket path (content #f) (ctype "text") (headers '()))
   (let* ((result (s3op op bucket path content ctype headers))
 	 (status (get result 'status)))
@@ -153,7 +154,11 @@
    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype) ;; '(("x-amx-acl" . "public-read"))
    loc ctype))
 
-(module-export! 's3/write!)
+(define (s3/delete! loc)
+  ;; '(("x-amx-acl" . "public-read"))
+  (debug%watch (s3/op "DELETE" (s3loc-bucket loc) (s3loc-path loc) #f "") loc))
+
+(module-export! '{s3/write! s3/delete!})
 
 ;;; Functions over S3 locations, mapping URLs to S3 and back
 
