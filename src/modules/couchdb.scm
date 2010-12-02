@@ -17,7 +17,7 @@
 (define-init couchdbs (make-hashtable))
 
 (defrecord couchdb url (map #[]) (views (make-hashtable)))
-(defrecord couchview db design view path)
+(defrecord couchview db design view path (options {}))
 
 (define (couchdb url)
   (try (get couchdbs url) (new-couchdb url)))
@@ -27,6 +27,7 @@
 	      (if (couchdb? db) db
 		  (error "Not a valid DB" db)))))
 (module-export! '{couchdb couchdb? couchdb-url couchdb-map couchdb-views couchdef!})
+(module-export! '{couchview-db couchview-options})
 
 (defslambda (new-couchdb url)
   (try (get couchdbs url)
@@ -56,7 +57,7 @@
 		(< (get resp 'response) 300))
       (jsonparse (get resp '%content) 56 (couchdb-map db)))))
 
-(define (couchdb/get db id (options #f))
+(define (couchdb/get db id (opts #f))
   (if (couchdb? db)
       (couchdb/req db (if (oid? id)
 			  (stringout "@" (number->string (oid-addr id) 16))
@@ -64,17 +65,36 @@
 			      (if (string? id) (uriencode id)
 				  (stringout
 				    ":" (uriencode (lisp->string id))))))
-		   options)
+		   opts)
       (if (couchview? db)
-	  (let ((response
-		 (couchdb/req
-		  (couchview-db db)
-		  (scripturl (couchview-path db)
-		    "key" (->json id))
-		  options))
-		(results {}))
+	  (let* ((options (or opts {}))
+		 (viewopts (couchview-options db))
+		 (include_docs
+		  (if (test options 'include_docs) (get options 'include_docs)
+		      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+		 (response
+		  (couchdb/req
+		   (couchview-db db)
+		   (scripturl (couchview-path db)
+		     "key" (->json id)
+		     "group"
+		     (if (test options 'group)
+			 (tryif (get options 'group) "true")
+			 (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
+		     "group_level"
+		     (try (get options 'group_level) (get viewopts 'group_level))
+		     "include_docs" (tryif include_docs "true")
+		     "descending"
+		     (if (test options 'descending)
+			 (tryif (get options 'descending) "true")
+			 (tryif (and (test viewopts 'descending)
+				     (get viewopts 'descending))
+			   "true"))
+		     "skip" (get options 'skip) "limit" (get options 'limit))
+		   opts))
+		 (results {}))
 	    (doseq (row (get response 'rows))
-	      (set+! results (get row 'value)))
+	      (set+! results (if include_docs (get row 'doc) (get row 'value))))
 	    results)
 	  (error "Invalid arg" db))))
 
@@ -257,54 +277,104 @@
 
 ;;; Getting views
 
-(define (couchdb/view db design view)
+(define (couchdb/view db design view (opts #[]))
   (if (string? db)
       (couchdb/view (couchdb db) design view)
       (try (get (couchdb-views db) (cons design view))
-	   (new-view db design view))))
+	   (new-view db design view opts))))
     
-(defslambda (new-view db design view)
+(defslambda (new-view db design view opts)
   (try (get (couchdb-views db) (cons design view))
        (let ((new (cons-couchview
 		   db design view
-		   (stringout "_design/" design "/_view/" view))))
+		   (stringout "_design/" design "/_view/" view)
+		   opts)))
 	 (store! (couchdb-views db) (cons design view) new)
 	 new)))
 (module-export! 'couchdb/view)
 
 (define (couchdb/table view (opts #f) (table #f))
-  (let ((response (if opts
-		      (couchdb/req
-		       (couchview-db view)
-		       (scripturl (couchview-path view)
-			 "key" (tryif (test opts 'key)
-				 (->json (get opts 'key)))
-			 "startkey" (tryif (test opts 'start)
-				      (->json (get opts 'start)))
-			 "endkey" (tryif (test opts 'end)
-				    (->json (get opts 'end)))
-			 "group" (tryif (test opts 'group) "true")))
-		      (couchdb/req (couchview-db view) (couchview-path view))))
-	(table (or table
-		   (and opts (getopt opts 'output))
-		   (make-hashtable))))
+  (let* ((options (or opts {}))
+	 (viewopts (couchview-options view))
+	 (include_docs
+	  (if (test options 'include_docs) (get options 'include_docs)
+	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (response
+	  (couchdb/req
+	   (couchview-db view)
+	   (scripturl (couchview-path view)
+	     "key" (->json (get options 'key))
+	     "startkey" (->json (get options 'start))
+	     "endkey" (->json (get options 'end))
+	     "group" (if (test options 'group)
+			 (tryif (get options 'group) "true")
+			 (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
+	     "group_level" (try (get options 'group_level) (get viewopts 'group_level))
+	     "include_docs" (tryif include_docs "true")
+	     "descending" (if (test options 'descending)
+			      (tryif (get options 'descending) "true")
+			      (tryif (and (test viewopts 'descending)
+					  (get viewopts 'descending))
+				"true"))
+	     "skip" (get options 'skip) "limit" (get options 'limit))))
+	 (table (or table
+		    (and opts (getopt opts 'output))
+		    (make-hashtable))))
     (doseq (row (get response 'rows))
-      (add! table (get row 'key) (get row 'value)))
+      (add! table (get row 'key) (if include_docs (get row 'doc) (get row 'value))))
     table))
 (define (couchdb/list view (opts #f))
-  (let ((response (if opts
-		      (couchdb/req
-		       (couchview-db view)
-		       (scripturl (couchview-path view)
-			 "key" (tryif (test opts 'key)
-				 (->json (get opts 'key)))
-			 "startkey" (tryif (test opts 'start)
-				      (->json (get opts 'start)))
-			 "endkey" (tryif (test opts 'end)
-				    (->json (get opts 'end)))
-			 "group" (tryif (test opts 'group) "true")))
-		      (couchdb/req (couchview-db view) (couchview-path view))))
-	(results {}))
-    (doseq (row (get response 'rows)) (set+! results (get row 'value)))
+  (let* ((options (or opts {}))
+	 (viewopts (couchview-options view))
+	 (include_docs
+	  (if (test options 'include_docs) (get options 'include_docs)
+	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (response
+	  (couchdb/req
+	   (couchview-db view)
+	   (scripturl (couchview-path view)
+	     "key" (->json (get options 'key))
+	     "startkey" (->json (get options 'start))
+	     "endkey" (->json (get options 'end))
+	     "group" (if (test options 'group)
+			 (tryif (get options 'group) "true")
+			 (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
+	     "group_level" (try (get options 'group_level) (get viewopts 'group_level))
+	     "include_docs" (tryif include_docs "true")
+	     "descending" (if (test options 'descending)
+			      (tryif (get options 'descending) "true")
+			      (tryif (and (test viewopts 'descending)
+					  (get viewopts 'descending))
+				"true"))
+	     "skip" (get options 'skip) "limit" (get options 'limit))))
+	 (results {}))
+    (doseq (row (get response 'rows))
+      (set+! results (if include_docs (get row 'doc) (get row 'value))))
     results))
-(module-export! '{couchdb/table couchdb/list})
+(define (couchdb/range view start end (opts #f))
+  (let* ((options (or opts {}))
+	 (viewopts (couchview-options view))
+	 (include_docs
+	  (if (test options 'include_docs) (get options 'include_docs)
+	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (response
+	  (couchdb/req
+	   (couchview-db view)
+	   (scripturl (couchview-path view)
+	     "startkey" (->json start) "endkey" (->json end)
+	     "group" (if (test options 'group)
+			 (tryif (get options 'group) "true")
+			 (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
+	     "group_level" (try (get options 'group_level) (get viewopts 'group_level))
+	     "include_docs" (tryif include_docs "true")
+	     "descending" (if (test options 'descending)
+			      (tryif (get options 'descending) "true")
+			      (tryif (and (test viewopts 'descending)
+					  (get viewopts 'descending))
+				"true"))
+	     "skip" (get options 'skip) "limit" (get options 'limit))))
+	 (results {}))
+    (doseq (row (get response 'rows))
+      (set+! results (if include_docs (get row 'doc) (get row 'value))))
+    results))
+(module-export! '{couchdb/table couchdb/list couchdb/range})
