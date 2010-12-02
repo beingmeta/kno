@@ -484,7 +484,7 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
   if (FD_VOIDP(cached))
-    if (fd_ipeval_status(1)) {
+    if (fd_ipeval_status()) {
       delay_index_fetch(ix,key);
       return FD_EMPTY_CHOICE;}
     else return fd_index_fetch(ix,key);
