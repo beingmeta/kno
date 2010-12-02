@@ -9,8 +9,7 @@
 (define live #f)
 (define business "anonymous@company.com")
 (define default-options #[])
-(define default-button
-  "<input type='image' name='submit' border='0' src='https://www.paypal.com/en_US/i/btn/btn_buynow_LG.gif' alt='PayPal - The safer, easier way to pay online'/>")
+(define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_LG.gif")
 
 (varconfig! pp:live live)
 (varconfig! pp:business business)
@@ -37,6 +36,12 @@
   (when (getopt options 'cancel)
     (input TYPE "HIDDEN" NAME "cancel_return" VALUE (getopt options 'cancel))))
 
+(define (buttonout text)
+  (if (has-prefix text "https://www.paypal.com/")
+      (input TYPE "IMAGE" name "submit" border 0
+	     src text alt "Use PayPal")
+      (xhtml text)))
+
 (define paypal/form
   (macro expr
     `(let* ((pp:options ,(second expr))
@@ -44,11 +49,12 @@
 	    (pp:buttonopt (getopt pp:options 'button (config 'pp:button)))
 	    (pp:button (lambda ()
 			 (set! pp:needbutton #f)
-			 (cond ((string? pp:buttonopt) (xhtml pp:buttonopt))
+			 (cond ((string? pp:buttonopt)
+				(,buttonout pp:buttonopt))
 			       ((applicable? pp:buttonopt) (pp:buttonopt))
 			       ((and (table? pp:buttonopt) (test pp:buttonopt '%xmltag))
 				(xmleval pp:buttonopt))
-			       (else (xhtml ,default-button))))))
+			       (else (,buttonout ,default-button))))))
        (,xmlblock "FORM"
 	   ((action (getopt pp:options 'action
 			    (if (getopt pp:options 'live (config 'pp:live))
