@@ -680,7 +680,7 @@ int main(int argc,char **argv)
   if (n_ports>0) {
     u8_log(LOG_INFO,NULL,
 	   "FramerD (r%s) fdbserver running, %d/%d pools/indices",
-	   SVN_REVISION,fd_n_pools,
+	   FDB_SVNREV,fd_n_pools,
 	   fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
       ("beingmeta FramerD, (C) beingmeta 2004-2010, all rights reserved");

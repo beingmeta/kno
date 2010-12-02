@@ -549,8 +549,8 @@ rpms: etc/rpms.done
 etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
 			      configure.in makefile.in makefile
 	svn export $(FRAMERDSVN) etc/framerd-@VERSION@
-	echo "#define SVN_REVISION \""`svnversion .`"\"" \
-		> etc/framerd-@VERSION@/etc/revision.h; fi
+	echo "#define FDB_SVNREV \""`svnversion .`"\"" \
+		> etc/framerd-@VERSION@/etc/revision.h;
 	tar -czvf $@ -C etc framerd-@VERSION@
 	rm -rf etc/framerd-@VERSION@
 
@@ -753,7 +753,7 @@ $(DESTDIR)@apache_modinfo@:
 src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
 	if test -f etc/revision.h; \
 	then cp etc/revision.h src/exe/revision.h; \
-	else echo "#define SVN_REVISION \""`svnversion .`"\"" \
+	else echo "#define FDB_SVNREV \""`svnversion .`"\"" \
 		> src/exe/revision.h; fi
 $(EXECUTABLES): src/exe/revision.h
 

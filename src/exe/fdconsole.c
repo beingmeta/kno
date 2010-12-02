@@ -339,7 +339,7 @@ int main(int argc,char **argv)
   startup_time=u8_elapsed_time()-fd_load_start;
   if (!(quiet_console))  {
     u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
-	       SVN_REVISION,startup_time,fd_n_pools,
+	       FDB_SVNREV,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
       ("beingmeta FramerD, (C) beingmeta 2004-2010, all rights reserved");}

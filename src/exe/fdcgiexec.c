@@ -872,7 +872,7 @@ static int start_fcgi_server(char *socketspec)
 
  u8_log(LOG_NOTICE,NULL,
 	"FramerD (r%s) fdcgiexec servlet running, %d/%d pools/indices",
-	SVN_REVISION,fd_n_pools,
+	FDB_SVNREV,fd_n_pools,
 	fd_n_primary_indices+fd_n_secondary_indices);
  u8_message("beingmeta FramerD, (C) beingmeta 2004-2010, all rights reserved");
  each_thread=0; while (each_thread<servlet_threads) {
