@@ -174,9 +174,10 @@
 (define (auth/refresh! info (authid) (duration auth-expiration))
   (default! authid (authinfo-realm info))
   (info%watch "AUTH/REFRESH!" info authid duration)
-  (if (auth/ok? info authid)
-      (let ((identity (authinfo-identity info))
-	    (auth (cons-authinfo (authinfo-realm info) identity (+ (time) duration))))
+  (if (auth/ok? info)
+      (let* ((identity (authinfo-identity info))
+	     (auth (cons-authinfo (authinfo-realm info) identity
+				  (+ (time) duration))))
 	(cgiset! authid auth)
 	(set-cookie! authid (auth->string auth)
 		     auth-cookie-domain auth-cookie-path
