@@ -221,7 +221,7 @@
 
 (define (cdb/mutate! id mutate (db))
   (default! db (get couchdbs (getpool id)))
-  (let ((success #f) (cur (couchdb/get db id)))
+  (let ((success #f) (cur (try (couchdb/get db id) (frame-create #f))))
     (until success
       (mutate cur)
       (set! success (couchdb/save! db cur))
