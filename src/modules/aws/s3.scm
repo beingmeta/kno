@@ -17,6 +17,9 @@
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
 
+(define s3scheme "http://")
+(varconfig! s3scheme s3scheme)
+
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
 (define teststring
@@ -94,7 +97,7 @@
 	 (sig (s3/signature op bucket path date  headers
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
-	 (url (string-append "http://" bucket (if (empty-string? bucket) "" ".")
+	 (url (string-append s3scheme bucket (if (empty-string? bucket) "" ".")
 			     s3root path))
 	 ;; Hide the except field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
@@ -128,7 +131,7 @@
 	       result))))
 
 (define (s3/uri bucket path)
-  (stringout "http://" bucket (if (empty-string? bucket) "" ".") s3root
+  (stringout s3scheme bucket (if (empty-string? bucket) "" ".") s3root
 	     (unless (has-prefix path "/") "/")
 	     path))
 
@@ -137,7 +140,7 @@
   (let* ((expires (if (number? expires) expires (get expires 'tick)))
 	 (sig (s3/signature "GET" bucket path expires headers)))
     (string-append
-     "http://" bucket (if (empty-string? bucket) "" ".") s3root path
+     s3scheme bucket (if (empty-string? bucket) "" ".") s3root path
      "?" "AWSAccessKeyId=" awskey "&"
      "Expires=" (number->string expires) "&"
      "Signature=" (packet->base64 sig))))
@@ -183,7 +186,7 @@
 		      (textsubst url (car rule)))))))
 
 (define (s3loc/uri s3loc)
-  (stringout "http://"
+  (stringout s3scheme
 	     (s3loc-bucket s3loc) (if (empty-string? (s3loc-bucket s3loc)) "" ".") s3root
 	     (unless (has-prefix (s3loc-path s3loc) "/") "/")
 	     (s3loc-path s3loc)))
