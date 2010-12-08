@@ -231,6 +231,10 @@ static void get_form_args(fd_slotmap c)
 	    fd_add((fdtype)c,intern_compound(nstring,"_FILENAME"),
 		   filename);
 	    fd_decref(filename);}
+	  if (fd_test(elt,content_type,FD_VOID)) {
+	    fdtype ctype=fd_get(elt,content_type,FD_EMPTY_CHOICE);
+	    fd_add((fdtype)c,intern_compound(nstring,"_TYPE"),ctype);
+	    fd_decref(ctype);}
 	  if ((FD_VOIDP(ctype)) || (fd_overlapp(ctype,text_symbol))) {
 	    if (FD_STRINGP(content)) {
 	      u8_string chars=FD_STRDATA(content); int len=FD_STRLEN(content);
