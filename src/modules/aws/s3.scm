@@ -39,6 +39,8 @@
   (let* ((lastdot (rposition #\. path))
 	 (suffix (and lastdot (subseq path (1+ lastdot)))))
     (and suffix (get suffix-map (downcase suffix)))))
+(define s3/guessmimetype getmimetype)
+(module-export! 's3/guessmimetype)
 
 ;;; Representing S3 locations
 
