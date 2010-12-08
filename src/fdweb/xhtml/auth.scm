@@ -20,6 +20,10 @@
 (define authid 'AUTH)
 (varconfig! auth:id authid)
 
+;; The CGI state var used to store the current user
+(define userid 'AUTHUSER)
+(varconfig! auth:user userid)
+
 ;; How long a key to use when signing 
 (define %siglen 32)
 ;; The key to use in signing session ids
@@ -236,7 +240,9 @@
 ;;; Top level functions
 
 (define (auth/getuser (authid authid))
-  (try (authinfo-identity (auth/getinfo authid)) #f))
+  (try (cgiget userid)
+       (authinfo-identity (auth/getinfo authid))
+       #f))
 
 ;;;; Authorize/deauthorize API
 
