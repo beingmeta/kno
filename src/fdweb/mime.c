@@ -174,6 +174,15 @@ static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataen
   else return convert_data(start,end,dataenc,FD_VOIDP(majtype));
 }
 
+static char *find_boundary(char *boundary,char *scan,size_t len)
+{
+  char first=boundary[0], *next; size_t blen=strlen(boundary);
+  while (next=memchr(scan,first,len-blen)) 
+    if (memcmp(next,boundary,blen)==0) return next;
+    else {len=len-((next+1)-scan); scan=(next+1);}
+  return NULL;
+}
+
 FD_EXPORT
 fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
 {
@@ -190,7 +199,7 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
   dataenc=fd_get(slotmap,encoding_slotid,FD_VOID);
   boundary_len=FD_STRLEN(sepval)+2; boundary=u8_malloc(boundary_len+1);
   strcpy(boundary,"--"); strcat(boundary,FD_STRDATA(sepval));
-  start=scan; scan=strstr(start,boundary);
+  start=scan; scan=find_boundary(boundary,start,end-start);
   if (scan==NULL) {
     fd_store(slotmap,preamble_slotid,
 	     convert_content(start,scan,majtype,dataenc,charenc));
@@ -202,11 +211,11 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
 	       convert_content(scan,end,majtype,dataenc,charenc));
     start=scan+boundary_len;
     while (start<end) {
-      fdtype new_pair;
-      if (strncmp(start,"--",2)==0) break;
+      fdtype new_pair; 
+     if (strncmp(start,"--",2)==0) break;
       else if (start[0]=='\n') start++;
       else if ((start[0]=='\r') && (start[1]=='\n')) start=start+2;
-      scan=strstr(start,boundary);
+      scan=find_boundary(boundary,start,end-start);
       if (scan)
 	new_pair=fd_init_pair(NULL,fd_parse_mime(start,scan),FD_EMPTY_LIST);
       else new_pair=
