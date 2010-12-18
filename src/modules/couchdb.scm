@@ -16,7 +16,7 @@
 
 (define-init couchdbs (make-hashtable))
 
-(defrecord couchdb url (map #[]) (views (make-hashtable)))
+(defrecord couchdb url (map #[]) (curlopts #[]) (conns {}) (views (make-hashtable)))
 (defrecord couchview db design view path (options {}))
 
 (define (couchdb url)
@@ -47,10 +47,22 @@
       (store! map (car scan) (cadr scan)))))
 (module-export! 'couchdb/add-map!)
 
+(define (couchdb/set-curlopts! db . args)
+  (let* ((db (if (string? db) (couchdb db) db))
+	 (map (couchdb-curlopts db)))
+    (when (odd? (length args))
+      (do-choices (key (getkeys (car args)))
+	(store! map key (get (car args) key)))
+      (set! args (cdr args)))
+    (do ((scan args (cddr scan)))
+	((null? scan))
+      (store! map (car scan) (cadr scan)))))
+(module-export! 'couchdb/set-curlopts!)
+
 (define (couchdb/req db path (options #f) . args)
   (let* ((path (mkpath (couchdb-url db) path))
 	 (call (if (null? args) path (apply scripturl path args)))
-	 (resp (urlget call  options)))
+	 (resp (urlget call (or options (couchdb-curlopts db)))))
     (debug%watch "COUCHDB/REQ" path call options)
     (debug%watch "COUCHDB/REQ" resp)
     (tryif (and (test resp 'response) (>= (get resp 'response) 200)
@@ -115,7 +127,7 @@
 	  (if (uuid? id) (uuid->string id)
 	      (error "Bad id value")))))
 
-(define (couchdb/save! db value (id #f) (flags 56))
+(define (couchdb/save! db value (id #f) (flags 56) (options #f))
   (let*  ((idstring (if (not id)
 			(->idstring (try (get value '_id) (getuuid)))
 			(if (oid? id)
@@ -125,7 +137,8 @@
 				    (stringout
 				      ":" (uriencode (lisp->string id))))))))
 	  (json (->json value flags))
-	  (r (urlput (mkpath (couchdb-url db) idstring) json))
+	  (r (urlput (mkpath (couchdb-url db) idstring) json
+		     (or options (couchdb-curlopts db))))
 	  (httpcode (get r 'response)))
     (debug%watch "COUCHDB/SAVE!" r value)
     (or (and (exists? httpcode) (>= httpcode 200) (< httpcode 300))
