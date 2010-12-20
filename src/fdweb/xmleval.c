@@ -74,6 +74,8 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
       as_string=fd_dtype2string(value);
     else if (FD_STRINGP(value))
       as_string=u8_strdup(FD_STRDATA(value));
+    else if (FD_EMPTY_CHOICEP(value))
+      as_string=u8_strdup("");
     else as_string=fd_dtype2string(value);
     if ((colon>0) || (FD_EQ(FD_CAR(val),xmleval2expr_tag)))
       u8_putc(out,':');
