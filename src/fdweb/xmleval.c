@@ -67,8 +67,14 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
   if ((FD_PAIRP(val)) &&
       ((FD_EQ(FD_CAR(val),xmleval_tag)) ||
        (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
-    fdtype value=fd_eval(FD_CDR(val),env); u8_string as_string;
+    fdtype expr=FD_CDR(val); fdtype value;
+    u8_string as_string;
+    if (FD_SYMBOLP(expr))
+      value=fd_symeval(expr,env);
+    else value=fd_eval(expr,env);
     if (FD_ABORTP(value)) return fd_interr(value);
+    else if ((FD_VOIDP(value))&&(FD_SYMBOLP(expr)))
+      as_string=u8_strdup("");
     else if (FD_VOIDP(value)) return 0;
     else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
       as_string=fd_dtype2string(value);
@@ -878,32 +884,6 @@ struct FD_XML *fd_read_fdxml(u8_input in,int bits)
   else return retval;
 }
 
-static fdtype parsefdxml(fdtype input,fdtype sloppy)
-{
-  int flags=FD_XML_KEEP_RAW;
-  struct FD_XML *retval;
-  struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR_VALUE;
-  if (FD_PTR_TYPEP(input,fd_port_type)) {
-    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
-    in=p->in;}
-  else if (FD_STRINGP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
-    in=&_in;}
-  else if (FD_PACKETP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
-    in=&_in;}
-  else return fd_type_error(_("string or port"),"xmlparse",input);
-  if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
-    flags=flags|FD_SLOPPY_XML;
-  retval=fd_read_fdxml(in,flags);
-  if (retval) {
-    fdtype result=fd_incref(retval->head);
-    /* free_node(&object,0); */
-    return result;}
-  else return FD_ERROR_VALUE;
-}
-
 /* FDXML special forms */
 
 static fdtype test_symbol, predicate_symbol, else_symbol, value_symbol;
@@ -1366,7 +1346,6 @@ FD_EXPORT void fd_init_xmleval_c()
   fd_init_fdscheme();
   fdxml_module=fd_make_env(fd_make_hashtable(NULL,17),NULL);
   module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  fd_idefn(module,fd_make_cprim2("PARSE-FDXML",parsefdxml,1));
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);

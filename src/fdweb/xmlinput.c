@@ -946,13 +946,45 @@ static fdtype xmlparse(fdtype input,fdtype options)
   else return xmlparse_core(input,fd_xmlparseoptions(options));
 }
 
+/* Parsing FDXML */
+
+static fdtype fdxmlparse(fdtype input,fdtype sloppy)
+{
+  int flags=FD_XML_KEEP_RAW;
+  struct FD_XML *retval;
+  struct U8_INPUT *in, _in;
+  if (flags<0) return FD_ERROR_VALUE;
+  if (FD_PTR_TYPEP(input,fd_port_type)) {
+    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
+    in=p->in;}
+  else if (FD_STRINGP(input)) {
+    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+    in=&_in;}
+  else if (FD_PACKETP(input)) {
+    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    in=&_in;}
+  else return fd_type_error(_("string or port"),"xmlparse",input);
+  if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
+    flags=flags|FD_SLOPPY_XML;
+  retval=fd_read_fdxml(in,flags);
+  if (retval) {
+    fdtype result=fd_incref(retval->head);
+    /* free_node(&object,0); */
+    return result;}
+  else return FD_ERROR_VALUE;
+}
+
 /* Initialization functions */
 
 FD_EXPORT void fd_init_xmlinput_c()
 {
+  fdtype full_module=fd_new_module("FDWEB",0);
+  fdtype safe_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fdtype xmlparse_prim=fd_make_ndprim(fd_make_cprim2("XMLPARSE",xmlparse,1));
-  fd_defn(fd_new_module("FDWEB",0),xmlparse_prim);
-  fd_idefn(fd_new_module("FDWEB",(FD_MODULE_SAFE)),xmlparse_prim);
+  fdtype fdxmlparse_prim=
+    fd_make_ndprim(fd_make_cprim2("FDXML/PARSE",fdxmlparse,1));
+  fd_defn(full_module,xmlparse_prim); fd_idefn(safe_module,xmlparse_prim);
+  fd_defn(full_module,fdxmlparse_prim); fd_idefn(safe_module,fdxmlparse_prim);
 
   attribs_symbol=fd_intern("%ATTRIBS");
   content_symbol=fd_intern("%CONTENT");
