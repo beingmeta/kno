@@ -77,17 +77,13 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
     else if (FD_EMPTY_CHOICEP(value))
       as_string=u8_strdup("");
     else as_string=fd_dtype2string(value);
-    if ((colon>0) || (FD_EQ(FD_CAR(val),xmleval2expr_tag)))
-      u8_putc(out,':');
-    else if (colon<0) {}
-    else if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
-	     ((isdigit(FD_STRDATA(value)[0])==':') ||
-	      (isdigit(FD_STRDATA(value)[0]))))
-      u8_putc(out,'\\');
-    else if ((FD_FIXNUMP(value)) || (FD_FLONUMP(value)) || (FD_STRINGP(value)))
-      /* Don't output a preceding colon if the value would be 'self parsing' */
-      {}
-    else u8_putc(out,':');
+    if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
+      if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
+	  ((isdigit(FD_STRDATA(value)[0]))||(FD_STRDATA(value)[0]==':')))
+	u8_putc(out,'\\');
+    /* Don't output a preceding colon if the value would be 'self parsing' */
+      else if ((FD_FIXNUMP(value)) || (FD_FLONUMP(value)) || (FD_STRINGP(value))) {}
+      else u8_putc(out,':');
     fd_attrib_entify(out,as_string);
     fd_decref(value); u8_free(as_string);
     return 0;}
@@ -635,8 +631,9 @@ static FD_XML *handle_xmleval_pi
   (u8_input in,FD_XML *xml,u8_string content,int len)
 {
   if (strncmp(content,"?fdxml ",6)==0) {
-    u8_byte *scan=content, *attribs[16];
-    int i=0, n_attribs=fd_parse_element(&scan,content+len,attribs,16,0);
+    u8_string copy=u8_strdup(content);
+    u8_byte *scan=copy, *attribs[16];
+    int i=0, n_attribs=fd_parse_element(&scan,copy+len,attribs,16,0);
     while (i<n_attribs)
       if ((strncmp(attribs[i],"load=",5))==0) {
 	u8_string arg=get_pi_string(attribs[i]+5);
@@ -716,11 +713,9 @@ static FD_XML *handle_xmleval_pi
 	if ((FD_ENVIRONMENTP(module)) &&
 	    (FD_TABLEP(((fd_environment)module)->exports))) {
 	  fdtype exports=((fd_environment)module)->exports;
-	  fd_lispenv new_scheme_env=fd_make_export_env(exports,scheme_env);
-	  xml->data=new_scheme_env;}
+	  scheme_env->parent=fd_make_export_env(exports,scheme_env->parent);}
 	else if (FD_TABLEP(module)) {
-	  fd_lispenv new_scheme_env=fd_make_export_env(module,scheme_env);
-	  xml->data=new_scheme_env;}
+	  scheme_env->parent=fd_make_export_env(module,scheme_env->parent);}
 	i++;}
       else if ((strncmp(attribs[i],"escape=",7))==0) {
 	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
@@ -746,9 +741,10 @@ static FD_XML *handle_xmleval_pi
 	fd_decref(arg);
 	i++;}
       else i++;
+    u8_free(copy);
     return xml;}
   else {
-    int pioff=((strncmp(content,"?fdeval ",7)==0)?(7):
+    int pioff=((strncmp(content,"?eval ",7)==0)?(7):
 	       (test_piescape(xml,content,len)));
     if (pioff) {
       struct U8_INPUT in;
