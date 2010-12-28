@@ -19,8 +19,15 @@
 (defrecord couchdb url (map #[]) (curlopts #[]) (conns {}) (views (make-hashtable)))
 (defrecord couchview db design view path (options {}))
 
-(define (couchdb url)
-  (try (get couchdbs url) (new-couchdb url)))
+(define (couchdb url (map #f))
+  (if map
+      (let ((probe (get couchdbs url)))
+	(if  (exists? probe)
+	     (if (eq? map (couchdb-map probe)) probe
+		 (begin (couchdb/add-map! probe map)
+			probe))
+	     (new-couchdb url map)))
+      (try (get couchdbs url) (new-couchdb url))))
 (define (couchdef! def db)
   (store! couchdbs def
 	  (if (string? db) (couchdb db)
@@ -29,9 +36,14 @@
 (module-export! '{couchdb couchdb? couchdb-url couchdb-map couchdb-views couchdef!})
 (module-export! '{couchview-db couchview-options})
 
-(defslambda (new-couchdb url)
-  (try (get couchdbs url)
-       (let ((new (cons-couchdb url #[])))
+(defslambda (new-couchdb url (map #f))
+  (if (exists? (get couchdbs url)) ;; Cover race condition 
+      (if (not map) (get couchdbs url)
+	  (let ((probe (get couchdbs url)))
+	    (unless (eq? map (couchdb-map probe))
+	      (couchdb/add-map! probe map))
+	    probe))
+       (let ((new (cons-couchdb url (or map #[]))))
 	 (store! couchdbs url new)
 	 new)))
 
