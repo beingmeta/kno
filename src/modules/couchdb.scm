@@ -6,44 +6,57 @@
 (define version "$Id: glosses.scm 5530 2010-09-13 16:53:19Z haase $")
 (define revision "$Revision: 5530 $")
 
-(use-module '{fdweb ezrecords extoids})
+(use-module '{fdweb ezrecords extoids jsonout})
 (use-module '{texttools logger})
-
-(module-export! '{checkgloss newgloss getgloss glossdb/moveid})
 
 (define-init %loglevel %notice!)
 ;;(define %loglevel %debug!)
+;;(set! %loglevel  %debug!)
 
 (define-init couchdbs (make-hashtable))
 
-(defrecord couchdb url (map #[]) (curlopts #[]) (conns {}) (views (make-hashtable)))
+(defrecord couchdb url (map #[]) (cache #f)
+  (views (make-hashtable))
+  (curlopts #[]) 
+  (conns {}))
 (defrecord couchview db design view path (options {}))
 
-(define (couchdb url (map #f))
+(define (couchdb url (map #f) (cache #f))
   (if map
       (let ((probe (get couchdbs url)))
+	(when (and cache (exists? probe)
+		   (not (eq? (couchdb-cache probe) cache)))
+	  (logwarn "Too late to define cache for " probe))
 	(if  (exists? probe)
 	     (if (eq? map (couchdb-map probe)) probe
 		 (begin (couchdb/add-map! probe map)
 			probe))
-	     (new-couchdb url map)))
-      (try (get couchdbs url) (new-couchdb url))))
+	     (new-couchdb url map cache)))
+      (try (get couchdbs url) (new-couchdb url #f cache))))
 (define (couchdef! def db)
   (store! couchdbs def
 	  (if (string? db) (couchdb db)
 	      (if (couchdb? db) db
 		  (error "Not a valid DB" db)))))
-(module-export! '{couchdb couchdb? couchdb-url couchdb-map couchdb-views couchdef!})
+(module-export!
+ '{couchdb
+   couchdb? couchdb-url couchdb-map couchdb-cache
+   couchdb-views couchdef!})
 (module-export! '{couchview-db couchview-options})
 
-(defslambda (new-couchdb url (map #f))
+(defslambda (new-couchdb url (map #f) (cache #f))
   (if (exists? (get couchdbs url)) ;; Cover race condition 
       (if (not map) (get couchdbs url)
 	  (let ((probe (get couchdbs url)))
 	    (unless (eq? map (couchdb-map probe))
 	      (couchdb/add-map! probe map))
+	    (when (and cache (not (eq? (couchdb-cache probe) cache)))
+	      (logwarn "Too late to define cache for " probe))
 	    probe))
-       (let ((new (cons-couchdb url (or map #[]))))
+       (let ((new (cons-couchdb url (or map #[])
+				(and cache
+				     (if (hashtable? cache) cache
+					 (make-hashtable))))))
 	 (store! couchdbs url new)
 	 new)))
 
@@ -81,46 +94,144 @@
 		(< (get resp 'response) 300))
       (jsonparse (get resp '%content) 56 (couchdb-map db)))))
 
+(define (docget db id opts)
+  (couchdb/req db (if (oid? id)
+		      (stringout "@" (number->string (oid-addr id) 16))
+		      (if (uuid? id) (uuid->string id)
+			  (if (string? id) (uriencode id)
+			      (stringout
+				":" (uriencode (lisp->string id))))))
+	       opts))
+(define (viewget db id opts)
+  (let* ((options (or opts {}))
+	 (viewopts (couchview-options db))
+	 (include_docs
+	  (if (test options 'include_docs) (get options 'include_docs)
+	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (response
+	  (couchdb/req
+	   (couchview-db db)
+	   (scripturl (couchview-path db)
+	     "key" (->json id)
+	     "group"
+	     (if (test options 'group)
+		 (tryif (get options 'group) "true")
+		 (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
+	     "group_level"
+	     (try (get options 'group_level) (get viewopts 'group_level))
+	     "include_docs" (tryif include_docs "true")
+	     "descending"
+	     (if (test options 'descending)
+		 (tryif (get options 'descending) "true")
+		 (tryif (and (test viewopts 'descending)
+			     (get viewopts 'descending))
+		   "true"))
+	     "skip" (get options 'skip) "limit" (get options 'limit))
+	   opts))
+	 (results {}))
+    (doseq (row (get response 'rows))
+      (set+! results
+	     (couchoid (if include_docs
+			   (get row 'doc)
+			   (get row 'value)))))
+    results))
+
 (define (couchdb/get db id (opts #f))
   (if (couchdb? db)
-      (couchdb/req db (if (oid? id)
-			  (stringout "@" (number->string (oid-addr id) 16))
-			  (if (uuid? id) (uuid->string id)
-			      (if (string? id) (uriencode id)
-				  (stringout
-				    ":" (uriencode (lisp->string id))))))
-		   opts)
+      (if (couchdb-cache db)
+	  (or (try (get (couchdb-cache db) id)
+		   (let ((value (docget db id opts)))
+		     (store! (couchdb-cache db) id (try value #f))
+		     value))
+	      {})
+	  (docget db id opts))
       (if (couchview? db)
-	  (let* ((options (or opts {}))
-		 (viewopts (couchview-options db))
-		 (include_docs
-		  (if (test options 'include_docs) (get options 'include_docs)
-		      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
-		 (response
-		  (couchdb/req
-		   (couchview-db db)
-		   (scripturl (couchview-path db)
-		     "key" (->json id)
-		     "group"
-		     (if (test options 'group)
-			 (tryif (get options 'group) "true")
-			 (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
-		     "group_level"
-		     (try (get options 'group_level) (get viewopts 'group_level))
-		     "include_docs" (tryif include_docs "true")
-		     "descending"
-		     (if (test options 'descending)
-			 (tryif (get options 'descending) "true")
-			 (tryif (and (test viewopts 'descending)
-				     (get viewopts 'descending))
-			   "true"))
-		     "skip" (get options 'skip) "limit" (get options 'limit))
-		   opts))
-		 (results {}))
-	    (doseq (row (get response 'rows))
-	      (set+! results (couchoid (if include_docs (get row 'doc) (get row 'value)))))
-	    results)
+	  (viewget db id opts)
 	  (error "Invalid arg" db))))
+
+(defambda (couchdb/getn db ids (opts #f) (tbl #f))
+  (if (couchdb? db)
+      (docgetn db (qc ids) opts tbl)
+      (if (couchview? db)
+	  (viewgetn db (qc ids) opts tbl)
+	  (error "Not a couch DB" db))))
+
+(define (docgetn db ids opts tbl)
+  (let* ((url (scripturl (mkpath (couchdb-url db) "_all_docs")
+		"include_docs=true"))
+	 (data (stringout "{\"keys\": ["
+			  (do-choices (id ids i)
+			    (if (> i 0) (printout ", "))
+			    (if (oid? id)
+				(printout
+				  "\"@" (number->string (oid-addr id) 16)
+				  "\"")
+				(jsonout id)))
+			  "]}"))
+	 (response (urlpost url data))
+	 (body (jsonparse (get response '%content) 56 (couchdb-map db)))
+	 (results (if tbl
+		      (if (hashtable? tbl) tbl (make-hashtable))
+		      {})))
+    (if tbl
+	(doseq (row (get body 'rows))
+	  (store! results (get row 'id) (get row 'doc)))
+	(doseq (row (get body 'rows))
+	  (set+! results (get row 'doc))))
+    results))
+
+(define (viewgetn view ids opts tbl)
+  (let* ((db (couchview-db view))
+	 (options (or opts {}))
+	 (viewopts (couchview-options view))
+	 (include_docs
+	  (if (test options 'include_docs) (get options 'include_docs)
+	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (url (scripturl (mkpath (couchdb-url db) (couchview-path view))
+		"include_docs" (tryif include_docs "true")
+		"group"
+		(if (test options 'group)
+		    (tryif (get options 'group) "true")
+		    (tryif (and (test viewopts 'group) (get viewopts 'group)) "true"))
+		"group_level"
+		(try (get options 'group_level) (get viewopts 'group_level))
+		"include_docs" (tryif include_docs "true")
+		"descending"
+		(if (test options 'descending)
+		    (tryif (get options 'descending) "true")
+		    (tryif (and (test viewopts 'descending)
+				(get viewopts 'descending))
+		      "true"))
+		"skip" (get options 'skip) "limit" (get options 'limit)))
+	 (data (stringout "{\"keys\": ["
+			  (do-choices (id ids i)
+			    (if (> i 0) (printout ", "))
+			    (if (oid? id)
+				(printout
+				  "\"@" (number->string (oid-addr id) 16)
+				  "\"")
+				(jsonout id)))
+			  "]}"))
+	 (response (urlpost url data))
+	 (body (jsonparse (get response '%content) 56 (couchdb-map db)))
+	 (results (if tbl
+		      (if (hashtable? tbl) tbl (make-hashtable))
+		      {})))
+    (if tbl
+	(doseq (row (get body 'rows))
+	  (add! results (get row 'key)
+		(if include_docs (get row 'doc)
+		    (get row 'value))))
+	(doseq (row (get body 'rows))
+	  (set+! results
+		 (if include_docs (get row 'doc)
+		     (get row 'value)))))
+    results))
+
+(defambda (couchdb/prefetch! db ids (opts #f))
+  (when (couchdb-cache db)
+    (couchdb/getn db (reject ids (couchdb-cache db))
+		  opts (couchdb-cache db))))
 
 (define (convert-field field)
   (if (symbol? field) (downcase (symbol->string field))
@@ -224,7 +335,8 @@
 
 (module-export!
  '{couchdb/req
-   couchdb/get couchdb/save! couchdb/mutate! couchdb/delete!
+   couchdb/get couchdb/getn couchdb/prefetch!
+   couchdb/save! couchdb/mutate! couchdb/delete!
    couchdb/store! couchdb/add! couchdb/drop! couchdb/push!})
 
 ;;; CDB (storing OIDs in COUCHDB)
