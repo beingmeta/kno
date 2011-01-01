@@ -586,7 +586,7 @@ static fdtype setcookie
     if (FD_VOIDP(path)) path=FD_FALSE;
     if (FD_VOIDP(expires)) expires=FD_FALSE;
     cookiedata=
-      fd_make_vector(5,fd_incref(var),fd_incref(val),
+      fd_make_vector(6,fd_incref(var),fd_incref(val),
 		     fd_incref(domain),fd_incref(path),
 		     fd_incref(expires),fd_incref(secure));
     if (FD_VOIDP(cgidata)) {
