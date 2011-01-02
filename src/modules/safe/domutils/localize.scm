@@ -7,16 +7,7 @@
 (define version "$Id$")
 (define revision "$Revision: 5083 $")
 
-(use-module '{fdweb texttools domutils aws/s3 logger})
-
-(define havezip #f)
-
-(cond ((get-module 'ziptools)
-       (use-module 'ziptools)
-       (set! havezip #t))
-      (else 
-       (define (zipfile? x) #f)
-       (define (zip/add! . args) #f)))
+(use-module '{fdweb texttools domutils aws/s3 savecontent logger})
 
 (define %loglevel %notice!)
 
@@ -33,14 +24,19 @@
   (choice #((isalpha) (isalpha) (isalpha+) ":") "/"))
 
 ;; Converts a URL into a local reference, copying its data if needed
-;; BASE is the URL of the target document (making the reference)
-;; TARGET is the where downloaded data should be stored locally
-;; READ is subdir of base where things should be stored
+;; REF is the local references (from the document)
+;; URLMAP is a table of REFs which have already been localized
+;; BASE is the URL of the input document which is used to actually fetch things
+;; SAVETO is the where downloaded data should be stored locally
+;; READ is the relative path to use for local references
+;; AMALGAMATE is a list of URLs which are being amalgamated into the output file
+;; LOCALHOSTS is a bunch of prefixes for things to not bother converting
 (define (localref ref urlmap base saveto read amalgamate localhosts)
   (try ;; relative references are untouched
        (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
        ;; if we're gluing a bunch of files together (amalgamating them),
-       ;;  the ref will just be move to the current file
+       ;;  the ref will just be moved to the current file by stripping
+       ;;  off the URL part
        (tryif (exists has-prefix ref amalgamate)
 	 (textsubst ref `(GREEDY ,amalgamate) ""))
        ;; If it's got a fragment identifer, make a localref without the
@@ -72,7 +68,7 @@
 		;; removed so that it's a local file name
 		(loginfo "Downloaded " (write absref) " for " lref)
 		;; Save the content
-		(save-content saveto lref content)
+		(savecontent saveto lref content)
 		;; Save the mapping in both directions (we assume that
 		;;  lrefs and absrefs are disjoint, so we can use the
 		;;  same table)
@@ -80,65 +76,37 @@
 		(store! urlmap lref absref)
 		lref)))))
 
-(define firstdir #((bol) (isalnum+) "/"))
-
-(define (save-content saveto lref content)
-  (lognotice "Saving content for " (write lref) " to " saveto)
-  (cond ((string? saveto)
-	 (write-file (mkpath saveto lref) content))
-	((s3loc? saveto)
-	 (s3/write! (s3/mkpath saveto lref) content))
-	((and (pair? saveto)
-	      (s3loc? (car saveto))
-	      (string? (cdr saveto)))
-	 (s3/write! (s3/mkpath (car saveto) (mkpath (cdr saveto) lref))
-		    content))
-	((and havezip (zipfile? saveto))
-	 (zip/add! saveto lref content))
-	((and havezip (pair? saveto)
-	      (zipfile? (car saveto))
-	      (equal? (cdr saveto) ".."))
-	 (zip/add! (car saveto) (textsubst lref firstdir "") content))
-	((and havezip (pair? saveto)
-	      (zipfile? (car saveto))
-	      (string? (cdr saveto)))
-	 (zip/add! (car saveto) (mkpath (cdr saveto) lref) content))
-	(else (error "Bad SAVE-CONTENT call"))))
-
-(define (dom/localize! dom base write
-		       (read) (amalgamate #f) (localhosts #f)
+(define (dom/localize! dom base saveto read
+		       (amalgamate #f) (localhosts #f)
 		       (doanchors #f))
-  (default! read write)
   (let ((urlmap (try (get dom 'urlmap)  (make-hashtable)))
 	(amalgamate (or amalgamate {}))
 	(localhosts (or localhosts {}))
 	(files {}))
     (do-choices (node (dom/find dom "img"))
       (let ((ref (localref (get node 'src)
-			   urlmap base write read
+			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
       (let ((ref (localref (get node 'href)
-			   urlmap base write read
+			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'href ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "script") 'src))
       (let ((ref (localref (get node 'src)
-			   urlmap base write read
+			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (when doanchors
       (do-choices (node (pick (dom/find dom "a") 'href))
-	(let ((ref (localref (get node 'href) urlmap base write read
+	(let ((ref (localref (get node 'href) urlmap base (qc saveto) read
 			     (qc amalgamate) (qc localhosts))))
 	  (dom/set! node 'href ref)
-	  (set+! files ref))))
-    (store! dom 'manifest files)
-    (store! dom 'resources write)))
+	  (set+! files ref))))))
 
 ;;;; Manifests
 
