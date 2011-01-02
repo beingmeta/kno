@@ -30,6 +30,16 @@ fd_exception fd_XMLParseError=_("XML parsing error");
 
 #define hasprefix(px,str) ((strncmp(px,str,strlen(px))==0))
 
+static u8_string xmlsnip(u8_string s)
+{
+  struct U8_OUTPUT out; 
+  U8_INIT_OUTPUT(&out,80);
+  int c=u8_sgetc(&s);
+  while ((c>0)&&((out.u8_outlim-out.u8_outptr)<8)) {
+    u8_putc(&out,c);}
+  return out.u8_outptr;
+}
+
 static fdtype raw_attribs_symbol, raw_name_symbol;
 static fdtype namespace_symbol, name_symbol, qname_symbol, xmlns_symbol;
 static fdtype attribs_symbol, content_symbol, type_symbol;
@@ -378,7 +388,7 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	  scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
-		   u8_strdup(*scanner));
+		   xmlsnip(*scanner));
 	return -1;}}
     else if (*scan=='"') {
       u8_byte *end=strchr(scan+1,'"');
@@ -393,7 +403,7 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	  scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
-		   u8_strdup(*scanner));
+		   xmlsnip(*scanner));
 	return -1;}}
     else if (*scan=='\0') scan++;
     else u8_sgetc(&scan);
@@ -788,7 +798,7 @@ void *fd_walk_xml(U8_INPUT *in,
       break;}
     else if (contentfn) contentfn(node,buf,size);
     if (readbuf(in,&buf,&bufsize,&size,">")==NULL) {
-      fd_seterr3(fd_XMLParseError,"end of input",u8_strdup(in->u8_inptr));
+      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_inptr));
       u8_free(buf);
       return NULL;}
     else type=fd_get_markup_type(buf,size,((node->bits)&FD_XML_ISHTML));
@@ -840,7 +850,7 @@ void *fd_walk_xml(U8_INPUT *in,
       n_elts=fd_parse_element
 	(&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
-	fd_seterr3(fd_XMLParseError,"xmlstep",u8_strdup(scan));
+	fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));
 	u8_free(buf);
 	return NULL;}
       node=xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);
@@ -910,6 +920,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
 {
   struct FD_XML object, *retval;
   struct U8_INPUT *in, _in;
+  unsigned int errpos;
   if (flags<0) return FD_ERROR_VALUE;
   if (FD_PTR_TYPEP(input,fd_port_type)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
@@ -929,7 +940,9 @@ static fdtype xmlparse_core(fdtype input,int flags)
     fdtype result=fd_incref(object.head);
     free_node(&object,0);
     return result;}
-  else return FD_ERROR_VALUE;
+  errpos=_in.u8_inptr-_in.u8_inbuf;
+  fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT2DTYPE(errpos));
+  return FD_ERROR_VALUE;
 }
 
 static fdtype xmlparse(fdtype input,fdtype options)
