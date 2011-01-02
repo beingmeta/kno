@@ -1179,9 +1179,7 @@ static u8_exception print_backtrace_entry(U8_OUTPUT *out,u8_exception ex,int wid
     u8_printf(out,";;*CALL %q",FD_VECTOR_REF(entry,0));
     while (i < lim) {
       fdtype arg=FD_VECTOR_REF(entry,i); i++;
-      if (FD_STRINGP(arg))
-	u8_printf(out," \"%s\"",FD_STRDATA(arg));
-      else if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
+      if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
 	u8_printf(out," '%q",arg);
       else u8_printf(out," %q",arg);}
     u8_printf(out,"\n");}
