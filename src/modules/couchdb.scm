@@ -136,9 +136,9 @@
 			   (get row 'value)))))
     results))
 
-(define (couchdb/get db id (opts #f))
+(define (couchdb/get db id (opts #f) (usecache #t))
   (if (couchdb? db)
-      (if (couchdb-cache db)
+      (if (and usecache (couchdb-cache db))
 	  (or (try (get (couchdb-cache db) id)
 		   (let ((value (docget db id opts)))
 		     (store! (couchdb-cache db) id (try value #f))
@@ -269,11 +269,11 @@
 	       #f))))
 
 (define (couchdb/mutate! db id mutate)
-  (let ((success #f) (cur (couchdb/get db id)))
+  (let ((success #f) (cur (couchdb/get db id #f #f)))
     (until success
       (mutate cur)
       (set! success (couchdb/save! db cur))
-      (unless success (set! cur (couchdb/get db id))))))
+      (unless success (set! cur (couchdb/get db id #f #f))))))
   
 (define (couchdb/delete! db id (rev #f))
   (let ((rev (or rev (get (couchdb/get db id) '_rev))))
@@ -358,11 +358,11 @@
 
 (define (cdb/mutate! id mutate (db))
   (default! db (get couchdbs (getpool id)))
-  (let ((success #f) (cur (try (couchdb/get db id) (frame-create #f))))
+  (let ((success #f) (cur (try (couchdb/get db id #f #f) (frame-create #f))))
     (until success
       (mutate cur)
       (set! success (couchdb/save! db cur))
-      (unless success (set! cur (couchdb/get db id)))))
+      (unless success (set! cur (couchdb/get db id #f #f)))))
   (swapout id))
 
 (define (cdb/store! id slotid value (db))
