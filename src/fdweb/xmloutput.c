@@ -108,12 +108,14 @@ void fd_attrib_entify(u8_output out,u8_string value)
 }
 
 static void emit_xmlattrib
-  (u8_output out,u8_output tmp,u8_string name,fdtype value)
+  (u8_output out,u8_output tmp,u8_string name,fdtype value,int lower)
 {
   int c; u8_byte *scan=name;
   /* Start every attrib with a space, just in case */
   u8_putc(out,' ');
-  while ((c=u8_sgetc(&scan))>0) u8_putc(out,u8_tolower(c));
+  if (lower) {
+    while ((c=u8_sgetc(&scan))>0) u8_putc(out,u8_tolower(c));}
+  else u8_puts(out,name);
   u8_puts(out,"='");
   if (FD_STRINGP(value))
     attrib_entify(out,FD_STRDATA(value));
@@ -227,7 +229,7 @@ static int output_markup_attrib
       fd_decref(free_name); fd_decref(free_value);
       return 0;}
     else {
-      emit_xmlattrib(out,tmp,attrib_name,attrib_val);
+      emit_xmlattrib(out,tmp,attrib_name,attrib_val,FD_SYMBOLP(name_expr));
       fd_decref(free_value);}
   return 1;
 }
@@ -417,7 +419,7 @@ static fdtype xmlemptyelt(int n,fdtype *args)
       if (i+1<n) {
 	fdtype val=args[i+1];
 	if (!(FD_EMPTY_CHOICEP(val)))
-	  emit_xmlattrib(out,NULL,FD_SYMBOL_NAME(elt),val);
+	  emit_xmlattrib(out,NULL,FD_SYMBOL_NAME(elt),val,1);
 	i=i+2;}
       else return fd_err(fd_SyntaxError,"xmlemptyelt",_("odd number of arguments"),elt);
     else return fd_err(fd_SyntaxError,"xmlemptyelt",_("invalid XML attribute name"),elt);}
