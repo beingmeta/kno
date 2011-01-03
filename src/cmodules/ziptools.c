@@ -33,6 +33,9 @@ typedef struct FD_ZIPFILE {
   struct zip *zip;} FD_ZIPFILE;
 typedef struct FD_ZIPFILE *fd_zipfile;
 
+/* This is for adding uncompressed entries */
+static struct zip_source *zip_source_raw(struct zip *archive,unsigned char *buf,size_t len,int freep);
+
 /* Error messages */
 
 static fdtype znumerr(u8_context cxt,int zerrno,u8_string path)
@@ -163,14 +166,15 @@ static fdtype zipadd
 	      (zip_replace(zf->zip,index,zsource)));
   if (retval<0)
     return ziperr("zipadd",zf,(fdtype)zf);
-  else if (index<0) return FD_TRUE;
+  if (index<0) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value)
+static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,fdtype raw)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   unsigned char *data=NULL; size_t datalen=0;
+  int nocompress=FD_TRUEP(raw);
   struct zip_source *zsource;
   if (FD_STRINGP(value)) {
     data=u8_strdup(FD_STRDATA(value));
@@ -186,7 +190,9 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value)
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->lock));
       return errval;}}
-  zsource=zip_source_buffer(zf->zip,data,datalen,1);
+  if (nocompress)
+    zsource=zip_source_raw(zf->zip,data,datalen,1);
+  else zsource=zip_source_buffer(zf->zip,data,datalen,1);
   if (zsource) {
     fdtype v=zipadd(zf,FD_STRDATA(filename),zsource);
     u8_unlock_mutex(&(zf->lock));
@@ -280,6 +286,50 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
     return files;}
 }
 
+/* Storing uncompressed information in the zip file */
+
+struct fd_rawzipsource { unsigned char *buf; size_t off, len; int freep;};
+
+static ssize_t zipraw_callback(void *state,void * data,size_t data_len,enum zip_source_cmd cmd)
+{
+  struct fd_rawzipsource *raw=(struct fd_rawzipsource *)state;
+  unsigned char *buf=(unsigned char *)data;
+  switch (cmd) {
+  case ZIP_SOURCE_OPEN: return 0;
+  case ZIP_SOURCE_READ: {
+    size_t len=raw->len, off=raw->off;
+    if ((len-off)<data_len) {
+      memcpy(raw->buf+off,buf,len-off);
+      raw->off=off+len;
+      return len-off;}
+    else {
+      memcpy(raw->buf+off,buf,data_len);
+      raw->off=raw->off+data_len;
+      return len;}}
+  case ZIP_SOURCE_STAT: {
+    struct zip_stat *stat=(struct zip_stat *)data;
+    stat->size=stat->comp_size=raw->len;
+    stat->comp_method=ZIP_CM_STORE; stat->crc=0;
+    return sizeof(struct zip_stat);}
+  case ZIP_SOURCE_CLOSE: return 0;
+  case ZIP_SOURCE_FREE: {
+    if (raw->freep) free(raw->buf);
+    free(raw);
+    return 0;}
+  case ZIP_SOURCE_ERROR: {
+    int *errinfo=(int *)data;
+    errinfo[0]=ZIP_ER_OK; errinfo[1]=0;
+    return sizeof(int)*2;}}
+}
+
+static struct zip_source *zip_source_raw(struct zip *archive,unsigned char *buf,size_t len,int freep)
+{
+  struct fd_rawzipsource *raw=u8_malloc(sizeof(struct fd_rawzipsource));
+  raw->buf=buf; raw->off=0; raw->len=len; raw->freep=freep;
+  return zip_source_function(archive,zipraw_callback,(void *)raw);
+}
+    
+
 /* Initialization */
 
 FD_EXPORT int fd_init_ziptools(void) FD_LIBINIT_FN;
@@ -313,10 +363,11 @@ FD_EXPORT int fd_init_ziptools()
 	   ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim3x("ZIP/ADD!",zipadd_prim,3,
+	   fd_make_cprim4x("ZIP/ADD!",zipadd_prim,3,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+			   -1,FD_VOID,
+			   -1,FD_FALSE));
 
   fd_idefn(ziptools_module,
 	   fd_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
