@@ -190,7 +190,8 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,fdtype raw
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->lock));
       return errval;}}
-  if (nocompress)
+  /* Doesn't work yet */
+  if (0) /* (nocompress) */
     zsource=zip_source_raw(zf->zip,data,datalen,1);
   else zsource=zip_source_buffer(zf->zip,data,datalen,1);
   if (zsource) {
