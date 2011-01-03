@@ -29,6 +29,8 @@
 	((has-suffix name ".manifest") "text/cache-manifest")
 	((has-suffix name ".css") "text/css")
 	((has-suffix name ".js") "text/javascript")
+	((has-suffix name ".mobi") "application/x-mobipocket-ebook")
+	((has-suffix name ".epub") "application/epub+zip")
 	((or (has-suffix name ".gif")  (has-suffix name ".GIF")) "image/gif")
 	((or (has-suffix name ".png")  (has-suffix name ".PNG")) "image/png")
 	((or (has-suffix name ".jpg")  (has-suffix name ".JPG")
