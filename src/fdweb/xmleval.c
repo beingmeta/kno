@@ -228,7 +228,25 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       fd_decref(attribnames); u8_free(out.u8_outbuf);
       return name;}
     else output_markup_sym(&out,name);
-    {FD_DO_CHOICES(attribname,attribnames) {
+    if (FD_VECTORP(attribnames)) {
+      int i=0; int lim=FD_VECTOR_LENGTH(attribnames);
+      fdtype *attribdata=FD_VECTOR_DATA(attribnames);
+      while (i<lim) {
+	fdtype attribname=attribdata[i++];
+	fdtype val=fd_get(xml,attribname,FD_VOID); int retcode;
+	if (!(FD_VOIDP(val))) {
+	  u8_putc(&out,' '); output_markup_sym(&out,attribname);
+	  u8_puts(&out,"='");
+	  retcode=output_attribval(&out,val,env,0);
+	  if (retcode<0) {
+	    fd_decref(attribnames); fd_decref(name);
+	    u8_free(out.u8_outbuf);
+	    return FD_ERROR_VALUE;}
+	  else if (retcode==0) cache_result=0;
+	  else {}
+	  u8_putc(&out,'\'');}}}
+    else {
+      FD_DO_CHOICES(attribname,attribnames) {
 	fdtype val=fd_get(xml,attribname,FD_VOID); int retcode;
 	if (!(FD_VOIDP(val))) {
 	  u8_putc(&out,' '); output_markup_sym(&out,attribname);
@@ -1014,6 +1032,16 @@ static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
   fdtype attribs=fd_get(expr,attribids,FD_VOID), table=fd_init_slotmap(NULL,0,NULL);
   fd_lispenv inner_env=fd_make_env(table,env);
+  /* Handle case of vector attribids */
+  if (FD_VECTORP(attribs)) {
+    fdtype idchoice=FD_EMPTY_CHOICE;
+    int i=0; int lim=FD_VECTOR_LENGTH(attribs);
+    fdtype *data=FD_VECTOR_DATA(attribs);
+    while (i<lim) {
+      fdtype v=data[i++]; fd_incref(v);
+      FD_ADD_TO_CHOICE(idchoice,v);}
+    fd_decref(attribs); attribs=idchoice;}
+  
   {FD_DO_CHOICES(attrib,attribs) {
     fdtype val=fdxml_get(expr,attrib,env);
     fd_bind_value(attrib,val,inner_env);
@@ -1311,12 +1339,22 @@ static fdtype fdxml_define(fdtype expr,fd_lispenv env)
     fdtype body=FD_EMPTY_LIST;
     fdtype sproc=FD_VOID;
 
+    /* Handle case of vector attribids */
+    if (FD_VECTORP(attribs)) {
+      fdtype idchoice=FD_EMPTY_CHOICE;
+      int i=0; int lim=FD_VECTOR_LENGTH(attribs);
+      fdtype *data=FD_VECTOR_DATA(attribs);
+      while (i<lim) {
+	fdtype v=data[i++]; fd_incref(v);
+	FD_ADD_TO_CHOICE(idchoice,v);}
+      fd_decref(attribs); attribs=idchoice;}
+
     /* Construct the arglist */
     {FD_DO_CHOICES(slotid,attribs)
-      if (slotid!=id_symbol) {
-	fdtype v=fd_get(expr,slotid,FD_FALSE);
-	fdtype pair=fd_init_pair(NULL,fd_make_list(2,slotid,v),arglist);
-	arglist=pair;}}
+	if (slotid!=id_symbol) {
+	  fdtype v=fd_get(expr,slotid,FD_FALSE);
+	  fdtype pair=fd_init_pair(NULL,fd_make_list(2,slotid,v),arglist);
+	  arglist=pair;}}
 
     /* Construct the body */
     body=fd_make_list(2,quote_symbol,fd_incref(content));
@@ -1329,8 +1367,8 @@ static fdtype fdxml_define(fdtype expr,fd_lispenv env)
 			arglist,body,env,1,0);
 
     fd_bind_value(to_bind,sproc,(fd_lispenv)xml_env);
-    fd_decref(sproc); fd_decref(body); fd_decref(arglist);
-
+    fd_decref(sproc); fd_decref(body); fd_decref(arglist); fd_decref(attribs);
+    
     return FD_VOID;}
 }
 
