@@ -79,6 +79,10 @@
 (define (dom/localize! dom base saveto read
 		       (amalgamate #f) (localhosts #f)
 		       (doanchors #f))
+  (lognotice "Localizing references from " (write base)
+	     " to " (write read) ", copying content to " 
+	     (if (singleton? saveto) (write saveto)
+		 (do-choices saveto (printout "\n\t" (write saveto)))))
   (let ((urlmap (try (get dom 'urlmap)  (make-hashtable)))
 	(amalgamate (or amalgamate {}))
 	(localhosts (or localhosts {}))

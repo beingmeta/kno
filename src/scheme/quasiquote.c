@@ -213,9 +213,16 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
   fdtype result=fd_init_slotmap(NULL,0,NULL);
   struct FD_SLOTMAP *new_slotmap=FD_XSLOTMAP(result);
   while (i < len) {
+    int free_slotid=0;
     fdtype slotid=keyvals[i].key;
     fdtype value=keyvals[i].value;
-    if ((FD_PAIRP(value))||(FD_VECTORP(value))||(FD_SLOTMAPP(value))) {
+    if (FD_PAIRP(slotid)) {
+      slotid=fd_quasiquote(slotid,env,level); free_slotid=1;}
+    if ((FD_EMPTY_CHOICEP(slotid))||(FD_VOIDP(slotid))) {
+      if (free_slotid) fd_decref(slotid);
+      i++; continue;}
+    if ((FD_PAIRP(value))||(FD_VECTORP(value))||(FD_SLOTMAPP(value))||
+	(FD_CHOICEP(value))||(FD_ACHOICEP(value))) {
       fdtype qval=fd_quasiquote(value,env,level);
       if (FD_ABORTP(qval)) {
 	fd_decref(result); return qval;}
