@@ -1416,6 +1416,7 @@ static void hash_index_setcache(fd_index ix,int level)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   unsigned int chunk_ref_size=get_chunk_ref_size(hx);
+  ssize_t mmap_size;
 #if (HAVE_MMAP)
   if (level > 2) {
     if (hx->mmap) return;
@@ -1423,9 +1424,14 @@ static void hash_index_setcache(fd_index ix,int level)
     if (hx->mmap) {
       fd_unlock_struct(hx);
       return;}
-    hx->mmap_size=u8_file_size(hx->cid);
-    hx->mmap=
-      mmap(NULL,hx->mmap_size,PROT_READ,MMAP_FLAGS,hx->stream.fd,0);
+    mmap_size=u8_file_size(hx->cid);
+    if (mmap_size>=0) {
+      hx->mmap_size=(size_t)mmap_size;
+      hx->mmap=
+	mmap(NULL,hx->mmap_size,PROT_READ,MMAP_FLAGS,hx->stream.fd,0);}
+    else {
+      u8_log(LOG_WARN,"FailedMMAPSize","Couldn't get mmap size for hash index %s",hx->cid);
+      hx->mmap_size=0; hx->mmap=NULL;}
     if (hx->mmap==NULL) {
       u8_log(LOG_WARN,u8_strerror(errno),
 	     "hash_index_setcache:mmap %s",hx->source);

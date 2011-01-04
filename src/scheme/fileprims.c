@@ -161,7 +161,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     FILE *f=u8_fopen(FD_STRDATA(filename),"w");
     if (f==NULL) {
       if (free_bytes) u8_free(bytes);
-      return fd_reterr(OpenFailed,"writefile_prim",NULL,filename);}
+      return fd_err(OpenFailed,"writefile_prim",NULL,filename);}
     fwrite(bytes,1,len,f);
     fclose(f);}
   else if ((FD_TRUEP(enc)) || (FD_STRINGP(enc))) {
@@ -553,14 +553,14 @@ static fdtype file_ctime(fdtype filename)
 
 static fdtype file_mode(fdtype filename)
 {
-  mode_t mode=u8_file_mode(FD_STRDATA(filename));
+  int mode=u8_file_mode(FD_STRDATA(filename));
   if (mode<0) return FD_ERROR_VALUE;
   else return FD_INT2DTYPE(mode);
 }
 
 static fdtype file_size(fdtype filename)
 {
-  off_t size=u8_file_size(FD_STRDATA(filename));
+  ssize_t size=u8_file_size(FD_STRDATA(filename));
   if (size<0) return FD_ERROR_VALUE;
   else if (size<FD_MAX_FIXNUM)
     return FD_INT2DTYPE(size);
