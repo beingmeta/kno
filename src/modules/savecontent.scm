@@ -78,5 +78,5 @@
 	((zipfile? root) (cons zipfile path))
 	((and (pair? root) (zipfile? (car root)) (string? (cdr root)))
 	 (cons (car root) (mkpath (cdr root) path)))
-	((string? root) (mkpath root path))
+	((string? root) (checkpath (mkpath root path)))
 	(else (error "Weird docbase root" root " for " path))))
