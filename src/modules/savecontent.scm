@@ -50,7 +50,7 @@
 (define (savecontent saveto name content (ctype))
   (default! ctype (guess-ctype name))
   (lognotice "Saving " (if ctype (printout ctype " "))
-	     "content for " (write name) " to " saveto)
+	     "content for " (write name) " into " saveto)
   (cond ((string? saveto)
 	 (write-file (checkpath (mkpath saveto name)) content))
 	((s3loc? saveto)
