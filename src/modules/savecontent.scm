@@ -5,8 +5,8 @@
 
 ;;; This handles automatic updating of the content of files
 ;;; It is a more flexible version of load-latest
-(define version "$Id: getcontent.scm 4048 2009-06-20 15:18:16Z bemeta $")
-(define revision "$Revision: 4048 $")
+(define version "$Id$")
+(define revision "$Revision$")
 
 (define havezip #f)
 
@@ -49,7 +49,8 @@
 
 (define (savecontent saveto name content (ctype))
   (default! ctype (guess-ctype name))
-  (lognotice "Saving " (or ctype "some") " content for " (write name) " to " saveto)
+  (lognotice "Saving " (if ctype (printout ctype " "))
+	     "content for " (write name) " to " saveto)
   (cond ((string? saveto)
 	 (write-file (checkpath (mkpath saveto name)) content))
 	((s3loc? saveto)
