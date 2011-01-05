@@ -99,7 +99,12 @@
   (set-cookie! cookievar "expired"
 	       auth-cookie-domain auth-cookie-path
 	       (timestamp+ (- (* 7 24 3600)))
-	       auth-secure))
+	       auth-secure)
+  (when auth-secure
+    (set-cookie! (stringout cookievar "EXPIRES") "expired"
+		 auth-cookie-domain auth-cookie-path
+		 (timestamp+ (- (* 7 24 3600)))
+		 #f)))
 
 ;;; AUTHINFO
 
@@ -167,6 +172,16 @@
 			      (timestamp+ duration))
 			  #f)
 		      auth-secure)
+	 (when auth-secure
+	   (set-cookie! (stringout authid "EXPIRES")
+			(get (timestamp+ duration) 'tick)
+			auth-cookie-domain auth-cookie-path
+			(if auth-cookie-expires
+			    (if (number? auth-cookie-expires)
+				(timestamp+ (min duration auth-cookie-expires))
+				(timestamp+ duration))
+			    #f)
+			#f))
 	 (info%watch "AUTH/IDENTIFY!" identity auth authstring)
 	 identity)))
 
