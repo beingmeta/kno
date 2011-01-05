@@ -162,7 +162,7 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
     u8_string chunk=scan;
     while ((scan < limit) &&
 	   (*scan != '"') && (*scan != '\\') &&
-	   (!(iscntrl(*scan)))) {
+	   (!((*scan<0x80)&&(iscntrl(*scan))))) {
       scan++; n_chars++;
       if ((fd_unparse_maxchars>0) && (n_chars>=fd_unparse_maxchars)) {
 	u8_putn(out,chunk,scan-chunk); u8_putc(out,' ');
