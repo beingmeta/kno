@@ -59,16 +59,17 @@
 	 ;; (%watch ref base target saveto read)
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
-		     (content (urlcontent absref))
 		     (lref (mkpath read name)))
-		;; This should be code to change lref in the event of conflicts
 		(when (test urlmap lref))
-		;; This has fragments and queries stripped (uribase)
-		;; and additionally has the 'directory' part of the URI
-		;; removed so that it's a local file name
-		(loginfo "Downloaded " (write absref) " for " lref)
-		;; Save the content
-		(savecontent saveto lref content)
+		(unless (and (string? saveto) (file-exists? (mkpath saveto lref)))
+		  (let ((content (urlcontent absref)))
+		    ;; This should be code to change lref in the event of conflicts
+		    ;; This has fragments and queries stripped (uribase)
+		    ;; and additionally has the 'directory' part of the URI
+		    ;; removed so that it's a local file name
+		    (loginfo "Downloaded " (write absref) " for " lref)
+		    ;; Save the content
+		    (savecontent saveto lref content)))
 		;; Save the mapping in both directions (we assume that
 		;;  lrefs and absrefs are disjoint, so we can use the
 		;;  same table)
