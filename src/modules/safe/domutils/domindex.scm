@@ -36,16 +36,16 @@
 	(indexrules (try (get settings 'indexrules) default-indexrules))
 	(analyzers (try (get settings 'analyzers) default-analyzers))
 	(idmap (try (get settings 'idmap) #f)))
-    (dom/indexer index doc
+    (dom/indexer index doc {} {}
 		 indexslots cacheslots indexrules analyzers idmap
 		 settings doc)))
 	
-(defambda (dom/indexer index xml
+(defambda (dom/indexer index xml parent parents
 		       indexslots cacheslots indexrules
 		       analyzers idmap settings doc)
   (if (pair? xml)
       (dolist (elt xml)
-	(dom/indexer index elt 
+	(dom/indexer index elt parent parents
 		     indexslots cacheslots
 		     indexrules analyzers idmap
 		     settings doc))
@@ -69,6 +69,8 @@
 	    ;; (%WATCH "DOMINDEXER" indexval slots rules)
 	    (when idmap (add! idmap (get xml 'id) xml))
 	    (add! index (cons 'has slots) indexval)
+	    (add! index (cons 'parent parent) indexval)
+	    (add! index (cons 'parents parents) indexval)
 	    (when (exists? indexval)
 	      (add! index (cons '%doc doc) indexval)
 	      (do-choices (slotid slots)
@@ -89,6 +91,9 @@
 	    (when (exists? content)
 	      (dolist (elt content)
 		(dom/indexer index elt
+			     (if (oid? xml) xml (get xml 'id))
+			     (choice (if (oid? xml) xml (get xml 'id))
+				     parents)
 			     indexslots cacheslots
 			     indexrules analyzers idmap
 			     settings doc))))))))

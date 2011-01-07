@@ -208,11 +208,14 @@
 (define (dom/selector spec)
   (if (selector? spec) spec
       (if (string? spec)
-	  (let ((match (text->frames selector-pattern spec)))
-	    (cons-selector (try (get match 'tagname) #f)
-			   (try (get match 'classname) #f)
-			   (try (get match 'idname) #f)
-			   (combine-attribs (pick match 'name))))
+	  (for-choices (spec (if (position #\, spec)
+				 (elts (segment spec ","))
+				 spec))
+	    (let ((match (text->frames selector-pattern spec)))
+	      (cons-selector (try (get match 'tagname) #f)
+			     (try (get match 'classname) #f)
+			     (try (get match 'idname) #f)
+			     (combine-attribs (pick match 'name)))))
 	  (if (table? spec)
 	      ;; Assume this is an XML node
 	      (cons-selector (try (get spec '%xmltag) #f)
@@ -312,8 +315,13 @@
 
 ;;; Finding using the index
 
-(defambda (dom-index-find index sel)
-  (cond ((and (selector-tag sel) (selector-class sel) (selector-id sel))
+(defambda (dom-index-find index sel (under #f))
+  (cond (under
+	 (for-choices under
+	   (intersection (dom-index-find index sel)
+			 (find-frames index 'parents under))))
+	((ambiguous? sel) (for-choices sel (dom-index-find index sel)))
+	((and (selector-tag sel) (selector-class sel) (selector-id sel))
 	 (find-frames index
 	   '%xmltag (selector-tag sel)
 	   'class (selector-class sel)
@@ -346,9 +354,11 @@
   (cond ((string? under) (fail))
 	((ambiguous? under)
 	 (for-choices under (dom/find under sel)))
-	((exists? (try (get under 'index) (get (get under '%doc) 'index)))
+	((exists?  (get under 'index))
+	 (for-choices (index (get under 'index)) (dom-index-find index sel)))
+	((exists? (get (get under '%doc) 'index))
 	 (let ((index (try (get under 'index) (get (get under '%doc) 'index))))
-	   (for-choices index (for-choices sel (dom-index-find index sel)))))
+	   (for-choices index (dom-index-find index sel under))))
 	((pair? under)
 	 (for-choices (elt (elts under)) (dom/find elt sel findall)))
 	((and (table? under) (dom/match under sel))
