@@ -61,7 +61,8 @@
 	      (let* ((name (basename (uribase ref)))
 		     (lref (mkpath read name)))
 		(when (test urlmap lref))
-		(unless (and (string? saveto) (file-exists? (mkpath saveto lref)))
+		(unless (and (string? saveto)
+			     (file-exists? (mkpath saveto name)))
 		  (let ((content (urlcontent absref)))
 		    ;; This should be code to change lref in the event of conflicts
 		    ;; This has fragments and queries stripped (uribase)
@@ -69,7 +70,7 @@
 		    ;; removed so that it's a local file name
 		    (loginfo "Downloaded " (write absref) " for " lref)
 		    ;; Save the content
-		    (savecontent saveto lref content)))
+		    (savecontent saveto name content)))
 		;; Save the mapping in both directions (we assume that
 		;;  lrefs and absrefs are disjoint, so we can use the
 		;;  same table)

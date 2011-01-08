@@ -1000,7 +1000,8 @@ static u8_byteoff search_and
   while (result>=0) {
     fdtype match_result=match_and(pat,FD_VOID,env,string,result,lim,flags);
     if (FD_EMPTY_CHOICEP(match_result))
-      result=fd_text_search(pat,env,string,result+1,lim,flags);
+      result=fd_text_search(pat,env,string,
+			    forward_char(string,result),lim,flags);
     else {fd_decref(match_result); return result;}}
   return result;
 }
@@ -3262,7 +3263,8 @@ static u8_byteoff hashset_search
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_match(pat,FD_VOID,env,string,try,lim,flags);
       if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
-      else try=fd_text_search(cpat,env,string,try+1,lim,flags);}
+      else try=fd_text_search(cpat,env,string,
+			      forward_char(string,try),lim,flags);}
     return try;}
 }
   
@@ -3315,7 +3317,9 @@ static u8_byteoff hashset_not_search
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_not_match(pat,FD_VOID,env,string,try,lim,flags);
       if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
-      else try=fd_text_search(cpat,env,string,try+1,lim,flags);}
+      else try=
+	     fd_text_search(cpat,env,string,
+			    forward_char(string,try),lim,flags);}
     return try;}
 }
 
@@ -3353,7 +3357,9 @@ static u8_byteoff maxlen_search
     while ((try >= 0) && (try < lim)) {
       fdtype matches=maxlen_match(pat,FD_VOID,env,string,try,lim,flags);
       if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
-      else try=fd_text_search(cpat,env,string,try+1,lim,flags);}
+      else try=fd_text_search(cpat,env,string,
+			      forward_char(string,try),
+			      lim,flags);}
     return try;}
 }
 
