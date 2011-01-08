@@ -12,12 +12,12 @@
 (module-export!
  '{
    dom/textify
-   dom/textual?
+   dom/textual? dom/structural?
    dom/oidify dom/oidmap dom/nodeid
-   dom/set! dom/add! dom/drop! dom/append! dom/prepend!
+   dom/set! dom/add! dom/drop! dom/append! dom/prepend! dom/remove!
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
-   dom/search dom/strip! dom/map dom/combine!
+   dom/search dom/search/first dom/strip! dom/map dom/combine!
    dom/getmeta dom/getlinks
    dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
@@ -139,7 +139,18 @@
 	    (add! node '%%attribs
 		  (vector aname aname stringval)))))))
 
+;;; This should really be attribute dropping
 (define (dom/drop! node elt)
+  (when (and (table? node) (test node '%content))
+    (let* ((content (get node '%content))
+	   (newcontent (remove elt content)))
+      (cond ((eq? content newcontent)
+	     (some? (lambda (x) (and (table? x) (dom/drop! x elt)))
+		    content))
+	    (else (store! node '%content newcontent)
+		  #t)))))
+
+(define (dom/remove! node elt)
   (when (and (table? node) (test node '%content))
     (let* ((content (get node '%content))
 	   (newcontent (remove elt content)))
@@ -398,23 +409,37 @@
 
 ;;; Text searching
 
-(define (search-helper under pattern exitor)
+(define (search-helper under path pattern foreach)
   "Finds all text and nodes containing pattern under UNDER"
   (for-choices (elt (elts (if (pair? under) under
 			      (get under '%content))))
     (if (string? elt)
 	(if (textsearch pattern elt)
-	    (if exitor (exitor (if (pair? under) elt under))
-		(fail))
+	    (if foreach
+		(if (foreach elt under path)
+		    (if (pair? under) (cons elt path)
+			(cons* elt under path))
+		    {})
+		(if (pair? under) (cons elt path)
+		    (cons* elt under path)))
 	    (fail))
 	(if (table? elt)
-	    (search-helper elt pattern exitor)
+	    (search-helper elt (cons under path) pattern foreach)
 	    (fail)))))
 
-(define (dom/search under pattern (all #f))
-  (if all
-      (search-helper under pattern #f)
-      (call/cc (lambda (exitor) (search-helper under pattern exitor)))))
+(define (dom/search under pattern (foreach #f))
+  (search-helper under '() pattern #f))
+
+(define (dom/search/first under pattern (test #f) (return 'node))
+  (unless (overlaps? return '{string node path}) (error "Invalid return specifier"))
+  (call/cc (lambda (exitor)
+	     (search-helper under pattern '()
+			    (lambda (string node path)
+			      (if (and test (not (test string node path))) #f
+				  (if (eq? return 'node) (exitor node)
+				      (if (eq? return 'string) (exitor string)
+					  (if (eq? return 'path) (exitor (cons node path))
+					      (exitor (cons* string node path)))))))))))
 
 
 ;;; Stripping out some elements
@@ -546,6 +571,16 @@
 		(> len lim)))
 	   (some? (lambda (x) (and (string? x) (not (empty-string? x))))
 		  (get node '%content)))))
+
+(define inline-tags '{a em strong i b span cite})
+
+(define (dom/structural? node)
+  "Returns true if a node only contains other blocks"
+  (and (test node '%content)
+       (some? (lambda (x) (if (string? x) (not (empty-string? x))
+			      (or (not (test x '%xmltag inline-tags))
+				  (dom/textual? x))))
+	      (get node '%content))))
 
 ;;; OIDify
 
