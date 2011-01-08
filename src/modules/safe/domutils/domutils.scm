@@ -577,10 +577,10 @@
 (define (dom/structural? node)
   "Returns true if a node only contains other blocks"
   (and (test node '%content)
-       (some? (lambda (x) (if (string? x) (not (empty-string? x))
-			      (or (not (test x '%xmltag inline-tags))
-				  (dom/textual? x))))
-	      (get node '%content))))
+       (every? (lambda (x) (if (string? x) (empty-string? x)
+			       (not (and (test x '%xmltag inline-tags)
+					 (dom/textual? x)))))
+	       (get node '%content))))
 
 ;;; OIDify
 
