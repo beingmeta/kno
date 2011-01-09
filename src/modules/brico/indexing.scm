@@ -5,7 +5,7 @@
 
 ;;; Functions for generating BRICO indices
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (use-module '{brico texttools})
 
@@ -69,7 +69,7 @@
 
 (defambda (index-string index frame slot (value #f) (frag #f))
   (do-choices slot
-    (let* ((values (stdspace (if value value (get frame slot))))
+    (let* ((values (stdspace (pickstrings (if value value (get frame slot)))))
 	   (expvalues (choice values (basestring values)))
 	   (normvalues (capitalize (pick expvalues somecap?))))
       ;; By default, we index strings under their direct values, under
