@@ -307,7 +307,11 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
   int i=0, n=FD_VECTOR_LENGTH(vec), maxspan=FD_FIX2INT(window);
   fdtype *data=FD_VECTOR_DATA(vec), results=FD_EMPTY_CHOICE;
   int with_affixes=(!(FD_FALSEP(with_affix)));
-  if (maxspan<=0)
+  if (n==0) return results;
+  else if (n==1) {
+    fdtype elt=FD_VECTOR_REF(vec,0); fd_incref(elt);
+    return fd_init_pair(NULL,elt,FD_EMPTY_LIST);}
+  else if (maxspan<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
   if (with_affixes) {
     int span=maxspan; while (span>0) {
