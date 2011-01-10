@@ -124,11 +124,14 @@
 
 ;;; App cookies
 
-(define (app/set-cookie! var val (domain apphost) (root approot))
-  (set-cookie! var val (or domain apphost) (or root "/")))
-(define (app/clear-cookie! var (domain apphost) (root approot))
+(define (app/set-cookie! var val (domain apphost) (root approot) (expires #f) (secure #f))
+  (set-cookie! var val (or domain apphost) (or root "/")
+	       (and expires (if (number? expires) (timestamp+ expires) expires))
+	       secure))
+(define (app/clear-cookie! var (domain apphost) (root approot) (secure #f))
   (set-cookie! var "expired" (or domain apphost) (or root approot)
-	       (timestamp+ (* -17 24 3600))))
+	       (timestamp+ (* -17 24 3600))
+	       secure))
 
 ;; Doing redirection
 
