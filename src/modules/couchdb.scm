@@ -273,7 +273,8 @@
     (until success
       (mutate cur)
       (set! success (couchdb/save! db cur))
-      (unless success (set! cur (couchdb/get db id #f #f))))))
+      (unless success (set! cur (couchdb/get db id #f #f))))
+    (when (couchdb-cache db) (drop! (couchdb-cache db) id))))
   
 (define (couchdb/delete! db id (rev #f))
   (let ((rev (or rev (get (couchdb/get db id) '_rev))))
