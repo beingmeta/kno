@@ -577,7 +577,7 @@ static fdtype urlget(fdtype url,fdtype curl)
   fdtype result, conn=curl_arg(curl,"urlget");
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
-    return fd_type_error("CURLCONN","urlpostdata_handler",conn);
+    return fd_type_error("CURLCONN","urlget",conn);
   result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   return result;
@@ -588,18 +588,68 @@ static fdtype urlhead(fdtype url,fdtype curl)
   fdtype result, conn=curl_arg(curl,"urlhead");
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
-    return fd_type_error("CURLCONN","urlpostdata_handler",conn);
+    return fd_type_error("CURLCONN","urlhead",conn);
   result=fetchurlhead((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   return result;
 }
+
+static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
+{
+  fdtype conn;
+  INBUF data; OUTBUF rdbuf; CURLcode retval; 
+  fdtype result=FD_VOID, cval, urlval=FD_VOID;
+  char errbuf[CURL_ERROR_SIZE];
+  struct FD_CURL_HANDLE *h=NULL;
+  if (!((FD_STRINGP(content))||(FD_PACKETP(content)))) 
+    return fd_type_error("string or packet","urlput",content);
+  else conn=curl_arg(curl,"urlput");
+  if (FD_ABORTP(conn)) return conn;
+  else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) {
+    return fd_type_error("CURLCONN","urlput",conn);}
+  else h=(fd_curl_handle)conn;
+  if (FD_STRINGP(ctype))
+    curl_add_header(h,"Content-Type",FD_STRDATA(ctype));
+  else if ((FD_TABLEP(curl)) && (fd_test(curl,content_type_symbol,FD_VOID))) {}
+  else if (FD_STRINGP(content))
+    curl_add_header(h,"Content-Type: text",NULL);
+  else curl_add_header(h,"Content-Type: application",NULL);
+  data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
+  result=fd_init_slotmap(NULL,0,NULL);
+  curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
+  curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
+  curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
+  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
+  curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
+  if (FD_STRINGP(content)) {
+    rdbuf.scan=FD_STRDATA(content);
+    rdbuf.end=FD_STRDATA(content)+FD_STRLEN(content);
+    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,FD_STRLEN(content));}
+  else if (FD_PACKETP(content)) {
+    rdbuf.scan=FD_PACKET_DATA(content);
+    rdbuf.end=FD_PACKET_DATA(content)+FD_PACKET_LENGTH(content);
+    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,FD_STRLEN(content));}
+  else {}
+  curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
+  curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
+  retval=curl_easy_perform(h->handle);
+  if (retval!=CURLE_OK) {
+    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
+    fd_decref(result); u8_free(data.bytes);
+    return errval;}
+  else handlefetchresult(h,result,&data);
+  fd_decref(conn);
+  return result;
+}
+
+/* Getting content */
 
 static fdtype urlcontent(fdtype url,fdtype curl)
 {
   fdtype result, conn=curl_arg(curl,"urlcontent"), content;
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
-    return fd_type_error("CURLCONN","urlpostdata_handler",conn);
+    return fd_type_error("CURLCONN","urlcontent",conn);
   result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   if (FD_ABORTP(result)) return result;
@@ -617,7 +667,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   char errbuf[CURL_ERROR_SIZE];
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
-    return fd_type_error("CURLCONN","urlpostdata_handler",conn);
+    return fd_type_error("CURLCONN","urlxml",conn);
   else {
     h=(fd_curl_handle)conn;
     result=fd_init_slotmap(NULL,0,NULL);}
@@ -704,6 +754,8 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   return cval;
 }
 
+/* Opening URLs with options */
+
 static fdtype curlsetopt(fdtype handle,fdtype opt,fdtype value)
 {
   if (FD_FALSEP(handle)) {
@@ -736,53 +788,7 @@ static fdtype curlopen(int n,fdtype *args)
     return (fdtype) ch;}
 }
 
-static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
-{
-  fdtype conn;
-  INBUF data; OUTBUF rdbuf; CURLcode retval; 
-  fdtype result=FD_VOID, cval, urlval=FD_VOID;
-  char errbuf[CURL_ERROR_SIZE];
-  struct FD_CURL_HANDLE *h=NULL;
-  if (!((FD_STRINGP(content))||(FD_PACKETP(content)))) 
-    return fd_type_error("string or packet","urlput",content);
-  else conn=curl_arg(curl,"urlput");
-  if (FD_ABORTP(conn)) return conn;
-  else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) {
-    return fd_type_error("CURLCONN","urlpostdata_handler",conn);}
-  else h=(fd_curl_handle)conn;
-  if (FD_STRINGP(ctype))
-    curl_add_header(h,"Content-Type",FD_STRDATA(ctype));
-  else if ((FD_TABLEP(curl)) && (fd_test(curl,content_type_symbol,FD_VOID))) {}
-  else if (FD_STRINGP(content))
-    curl_add_header(h,"Content-Type: text",NULL);
-  else curl_add_header(h,"Content-Type: application",NULL);
-  data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  result=fd_init_slotmap(NULL,0,NULL);
-  curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
-  curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
-  curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
-  curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
-  if (FD_STRINGP(content)) {
-    rdbuf.scan=FD_STRDATA(content);
-    rdbuf.end=FD_STRDATA(content)+FD_STRLEN(content);
-    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,FD_STRLEN(content));}
-  else if (FD_PACKETP(content)) {
-    rdbuf.scan=FD_PACKET_DATA(content);
-    rdbuf.end=FD_PACKET_DATA(content)+FD_PACKET_LENGTH(content);
-    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,FD_STRLEN(content));}
-  else {}
-  curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
-  curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
-  retval=curl_easy_perform(h->handle);
-  if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
-    fd_decref(result); u8_free(data.bytes);
-    return errval;}
-  else handlefetchresult(h,result,&data);
-  fd_decref(conn);
-  return result;
-}
+/* Posting */
 
 static fdtype urlpost(int n,fdtype *args)
 {
@@ -794,7 +800,7 @@ static fdtype urlpost(int n,fdtype *args)
   if (n<2) return fd_err(fd_TooFewArgs,"URLPOST",NULL,FD_VOID);
   else if (FD_STRINGP(args[0]))
     url=FD_STRDATA(args[0]);
-  else return fd_type_error("url","URLPOST",args[0]);
+  else return fd_type_error("url","urlpost",args[0]);
   if ((FD_PRIM_TYPEP(args[1],fd_curl_type))||(FD_TABLEP(args[1]))) {
     conn=curl_arg(args[1],"urlpost"); start=2;}
   else {
