@@ -13,6 +13,7 @@
    olib/get})
 
 (define %loglevel %notify!)
+;;(define %loglevel %debug!)
 
 (defrecord olib key)
 
@@ -39,7 +40,7 @@
 (define text-type (choice "/type/text" (olib/ref "/type/text")))
 (define author-role (choice "/type/author_role" (olib/ref "/type/author_role")))
 
-(define (olib/import data)
+(define (olib/import data (cache #f))
   (cond ((string? data) data)
 	((vector? data) (map olib/import data))
 	((and (table? data)
@@ -64,8 +65,10 @@
 		     (else
 		      (store! new key (olib/import value))))
 	       (when (equal? key 'authors)
-		 (store! new 'author (choice (get (get new 'authors) 'author)
-					     (reject (get new 'authors) 'author))))))
+		 (store! new 'author
+			 (choice (get (get new 'authors) 'author)
+				 (reject (get new 'authors) 'author))))))
+	   (when cache (extindex-cacheadd! olib (get new 'key) new))
 	   new))
 	(else data)))
 
@@ -90,18 +93,39 @@
 
 ;;;; The query interfaces
 
-(define (olib/query . args)
-  (let* ((args (map (lambda (x) (if (olib? x) (olib-key x)
-				    (if (symbol? x) (downcase (symbol->string x))
-					x)))
-		    args))
-	 (uri (apply scripturl
-		     "http://openlibrary.org/query.json"
-		     args))
-	 (req (debug%watch (urlget uri) uri)))
-    (tryif (test req 'response 200)
-      (let ((result (olib/parse (get req '%content))))
-	(if (vector? result) (olib/import (elts result)) (olib/import result))))))
+(define (olib-query args (cache #f))
+  (let* ((query (frame-create #f))
+	 (results {}))
+    (do ((scan args (cddr scan)))
+	((null? scan))
+      (set! query (convert-query (car scan) (cadr scan) query)))
+    (do-choices query
+      (let* ((url (if cache
+		      (scripturl "http://openlibrary.org/query.json"
+			"query" (->json query) "*" "")
+		      (scripturl "http://openlibrary.org/query.json"
+			"query" (->json query))))
+	     (req (debug%watch (urlget url) query)))
+	(if (test req 'response 200)
+	    (set+! results
+		   (let ((result (olib/parse (get req '%content))))
+		     (if (vector? result)
+			 (olib/import (elts result) cache)
+			 (olib/import result cache)))))))
+    results))
+
+(define (convert-query slot value query)
+  (if (eq? slot 'authors)
+      (store! query 'authors `#[author #[key ,(olib-key value)]])
+      (if (olib? value)
+	  (store! query slot (olib-key value))
+	  (store! query slot value)))
+  query)
+
+(define (olib/query . args) (olib-query args))
+(define (olib/query+ . args) (olib-query args #t))
+      
+;;; Getting REFS from bibliographic information
 
 (define (olib/bibref type (val #f))
   (let* ((bibkey (if val (stringout type ":" val) type))
