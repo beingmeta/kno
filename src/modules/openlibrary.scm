@@ -4,13 +4,15 @@
 
 ;;; Provides access to the Open Library API
 
-(use-module '{fdweb texttools ezrecords parsetime})
+(use-module '{fdweb texttools ezrecords parsetime logger})
 
 (module-export!
  '{olib
-   olib/ref olib/import olib/fetch olib/parse
-   olib/query olib/bibref
+   olib/ref olib/import olib/fetch olib/parse olib-key
+   olib/query olib/bibref olib/id olib/image
    olib/get})
+
+(define %loglevel %notify!)
 
 (defrecord olib key)
 
@@ -25,7 +27,17 @@
 
 (define (olib/ref key)
   (if (olib? key) key
-      (try (get olib-refs key) (newolibref key))))
+      (if (string? key)
+	  (try (get olib-refs key) (newolibref key))
+	  (if (and (table? key) (test key 'key))
+	      (olib/ref (get key 'key))
+	      (fail)))))
+
+(define (olib/id ref)
+  (subseq (olib-key ref) (1+ (position #\/  (olib-key ref) 1))))
+
+(define text-type (choice "/type/text" (olib/ref "/type/text")))
+(define author-role (choice "/type/author_role" (olib/ref "/type/author_role")))
 
 (define (olib/import data)
   (cond ((string? data) data)
@@ -34,15 +46,9 @@
 	      (= (table-size data) 1)
 	      (test data 'key))
 	 (olib/ref (get data 'key)))
-	((and (table? data)
-	      (= (table-size data) 2)
-	      (test data 'type "/type/text")
-	      (test data 'value))
-	 (get data 'value))
 	((and (table? data) (test data 'type "/type/datetime"))
 	 (parsetime (get data 'value)))
-	((and (table? data) (test data 'type "/type/text"))
-	 (get data 'type))
+	((and (table? data) (test data 'type text-type)) (get data 'value))
 	((table? data)
 	 (let ((new (frame-create #f)))
 	   (do-choices (key (getkeys data))
@@ -56,7 +62,10 @@
 				converted)
 			(add! new slotid (elts converted))))
 		     (else
-		      (store! new key (olib/import value))))))
+		      (store! new key (olib/import value))))
+	       (when (equal? key 'authors)
+		 (store! new 'author (choice (get (get new 'authors) 'author)
+					     (reject (get new 'authors) 'author))))))
 	   new))
 	(else data)))
 
@@ -89,7 +98,7 @@
 	 (uri (apply scripturl
 		     "http://openlibrary.org/query.json"
 		     args))
-	 (req (urlget uri)))
+	 (req (debug%watch (urlget uri) uri)))
     (tryif (test req 'response 200)
       (let ((result (olib/parse (get req '%content))))
 	(if (vector? result) (olib/import (elts result)) (olib/import result))))))
@@ -106,6 +115,15 @@
 	(tryif parsed
 	  (olib/ref (get (get (get parsed bibkey) "details") "key")))))))
 
+
+;;; Getting covers
+
+(define (olib/image ref (size "S"))
+  (string-append "http://covers.openlibrary.org/"
+		 (if (has-prefix (olib-key ref) "/authors/") "a" "b")
+		 "/olid/" (olib/id ref) "-" size ".jpg"))
+
+
 ;;; The olib itself
 
 (define olib (make-extindex "openlibrary" olib/fetch))
