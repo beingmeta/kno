@@ -89,11 +89,11 @@
       (olib/import (jsonparse (subseq string (search "callback(" string))))
       (olib/import (jsonparse string))))
 
-(define (olib/get ref slotid) (get (get olib ref) slotid))
+(define (olib/get ref slotid) (get (or (get olib ref) {}) slotid))
 
 ;;;; The query interfaces
 
-(define (olib-query args (cache #f))
+(define (olib-query args (cache #f) (opts #[]))
   (let* ((query (frame-create #f))
 	 (results {}))
     (do ((scan args (cddr scan)))
@@ -102,9 +102,12 @@
     (do-choices query
       (let* ((url (if cache
 		      (scripturl "http://openlibrary.org/query.json"
-			"query" (->json query) "*" "")
+			"query" (->json query) "*" ""
+			"offset" (getopt opts 'offset)
+			"limit" (getopt opts 'limit 1000))
 		      (scripturl "http://openlibrary.org/query.json"
-			"query" (->json query))))
+			"query" (->json query)
+			"limit" (getopt opts 'limit 1000))))
 	     (req (debug%watch (urlget url) query)))
 	(if (test req 'response 200)
 	    (set+! results
@@ -122,8 +125,12 @@
 	  (store! query slot value)))
   query)
 
-(define (olib/query . args) (olib-query args))
-(define (olib/query+ . args) (olib-query args #t))
+(define (olib/query . args)
+  (if (even? (length args)) (olib-query args)
+      (olib-query (cons 'type args))))
+(define (olib/query+ . args)
+  (if (even? (length args)) (olib-query args #t)
+      (olib-query (cons 'type args) #t)))
       
 ;;; Getting REFS from bibliographic information
 
@@ -143,9 +150,10 @@
 ;;; Getting covers
 
 (define (olib/image ref (size "S"))
-  (string-append "http://covers.openlibrary.org/"
-		 (if (has-prefix (olib-key ref) "/authors/") "a" "b")
-		 "/olid/" (olib/id ref) "-" size ".jpg"))
+  (for-choices (id  (olib/get ref '{covers photos}))
+    (stringout "http://covers.openlibrary.org/"
+	       (if (has-prefix (olib-key ref) "/authors/") "a" "b")
+	       "/id/" id "-" size ".jpg")))
 
 
 ;;; The olib itself
