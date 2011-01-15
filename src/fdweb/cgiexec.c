@@ -28,7 +28,8 @@ static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method, status_field;
 static fdtype get_method, post_method, cgidata_symbol, browseinfo_symbol;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
-static fdtype http_headers, html_headers, cookies_symbol, incookies_symbol, text_symbol;
+static fdtype http_headers, html_headers;
+static fdtype cookies_symbol, incookies_symbol, bad_cookie, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
 static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
@@ -266,7 +267,6 @@ static void get_form_args(fd_slotmap c)
       fd_decref(qval);}}
 }
 
-
 static void parse_query_string(fd_slotmap c,char *data,int len)
 {
   fdtype slotid=FD_VOID, value=FD_VOID;
@@ -275,7 +275,11 @@ static void parse_query_string(fd_slotmap c,char *data,int len)
   char *buf=u8_malloc(len+1), *write=buf;
   while (scan<end)
     if ((FD_VOIDP(slotid)) && (*scan=='=')) {
-      *write++='\0'; slotid=buf2slotid(buf,isascii);
+      *write++='\0';
+      /* Don't store vars beginning with HTTP, to avoid
+	 spoofing of real HTTP variables. */
+      if (strncmp(buf,"HTTP",4)==0) slotid=FD_VOID;
+      else slotid=buf2slotid(buf,isascii);
       write=buf; isascii=1; scan++;}
     else if (*scan=='&') {
       *write++='\0';
@@ -333,16 +337,21 @@ static void convert_cookie_arg(fd_slotmap c)
   else {
     fdtype slotid=FD_VOID, value=FD_VOID;
     int len=FD_STRLEN(qval); int isascii=1;
-    u8_byte *scan=FD_STRDATA(qval), *end=scan+len;
+    u8_byte *scan=FD_STRDATA(qval), *end=scan+len, *start=scan;
     char *buf=u8_malloc(len), *write=buf;
     while (scan<end)
       if ((FD_VOIDP(slotid)) && (*scan=='=')) {
+	/* These are cookies which may overlap HTTP state information */
 	*write++='\0';
-	if (isascii) slotid=fd_parse(buf);
+	if (strncmp(buf,"HTTP",4)==0) slotid=bad_cookie;
+	else if (isascii) slotid=fd_parse(buf);
 	else {
 	  u8_string s=u8_valid_copy(buf);
 	  slotid=fd_parse(s); u8_free(s);}
-	write=buf; isascii=1; scan++;}
+	if (slotid==bad_cookie)
+	  write[-1]='=';
+	else {write=buf; isascii=1;}
+	scan++;}
       else if (*scan==';') {
 	*write++='\0';
 	if (FD_VOIDP(slotid)) value=buf2string(buf,isascii);
@@ -1081,6 +1090,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   http_cookie=fd_intern("HTTP_COOKIE");
   cookies_symbol=fd_intern("COOKIES");
   incookies_symbol=fd_intern("COOKIES%IN");
+  bad_cookie=fd_intern("BADCOOKIES");
 
   server_port=fd_intern("SERVER_PORT");
   remote_port=fd_intern("REMOTE_PORT");
