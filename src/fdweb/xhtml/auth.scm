@@ -28,6 +28,10 @@
 (define %siglen 32)
 ;; The key to use in signing session ids
 (define signature (random-signature))
+;; This is used to encrypt session ids sent insecurely
+(define secret #f)
+;; This is where the credentials (signature and secret) are stored
+;;  in the file system (if anywhere)
 (define signature-file #f)
 
 (define (signature-config var (val))
@@ -53,18 +57,52 @@
 	      ((has-prefix val "{base64}")
 	       (set! signature (base64->packet (subseq val 8))))
 	      (else (error "Can't interpret signature value" val)))
-	(when signature-file (write-file val signature)))))
+	(when signature-file
+	  (dtype->file val (vector signature secret))))))
 (config-def! 'auth:signature signature-config)
+
+(define (secret-config var (val))
+  (if (not (bound? val)) secret
+      (begin
+	(cond ((not val)
+	       (set! secret-file #f)
+	       (set! secret (random-secret)))
+	      ((packet? val)
+	       (set! secret val))
+	      ((number? val)
+	       (if (and (integer? val) (> 4096 val 16))
+		   (set! secret (random-secret val))
+		   (error "Invalid secret length" val)))
+	      ((not (string? val))
+	       (error "Invalid secret key" val))
+	      ((has-prefix val "0x")
+	       (set! secret (base16->packet (subseq val 2))))
+	      ((has-prefix val "0z")
+	       (set! secret (base64->packet (subseq val 2))))
+	      ((has-prefix val "{base16}")
+	       (set! secret (base16->packet (subseq val 8))))
+	      ((has-prefix val "{base64}")
+	       (set! secret (base64->packet (subseq val 8))))
+	      (else (error "Can't interpret secret value" val)))
+	(when signature-file
+	  (dtype->file val (vector signature secret))))))
+(config-def! 'auth:secret secret-config)
 
 (define (signature-file-config var (val))
   (cond ((not (bound? val)) signature-file)
 	((not val) (set! signature-file #f))
-	((not (string? val)) (error "Invalid signature file" val))
+	((not (string? val)) (error "Invalid signature filename" val))
 	((file-exists? val)
 	 (set! signature-file val)
-	 (set! signature (filedata val)))
+	 (let ((content (file->dtype val)))
+	   (if (vector? content)
+	       (if (= (length content) 2)
+		   (begin (set! signature (first content))
+			  (set! secret (second content)))
+		   (error "Invalid signature file content in " (write val)))
+	       (set! signature (filedata val)))))
 	(else (set! signature-file val)
-	      (write-file val signature))))
+	      (dtype->file (vector signature secret) val))))
 (config-def! 'auth:sigfile signature-file-config)
 
 ;; Various expiration intervals
@@ -95,16 +133,57 @@
 
 ;;; Cookie functions
 
+;; How cookies are used:
+;; If *auth-secure* is false and *secret* is false,
+;;   we send a single signed authentication over both HTTP and HTTPS
+;; if *auth-secure* is false but we have a (non-false) *secret*,
+;;   we send a single signed and encrypted authentication
+;;     over both HTTP and HTTPS
+;; if *auth-secure* is true and *secret* is false,
+;;   we send a single signed authentication over HTTPS
+;; if *auth-secure* is true and we have a *secret*, we send two cookies:
+;;    _var_ is a signed authentication in plaintext over HTTPS
+;;    _var-_ is a signed and encrypted authentication
+
 (define (expire-cookie! cookievar)
   (set-cookie! cookievar "expired"
 	       auth-cookie-domain auth-cookie-path
 	       (timestamp+ (- (* 7 24 3600)))
-	       auth-secure)
-  (when auth-secure
-    (set-cookie! (stringout cookievar "EXPIRES") "expired"
+	       #f)
+  (set-cookie! cookievar "expired"
+	       auth-cookie-domain auth-cookie-path
+	       (timestamp+ (- (* 7 24 3600)))
+	       #t)
+  (set-cookie! (stringout cookievar "-") "expired"
+	       auth-cookie-domain auth-cookie-path
+	       (timestamp+ (- (* 7 24 3600)))
+	       #f))
+
+(define (set-cookies! var authstring expires)
+  (if auth-secure
+      (set-cookie! var authstring
+		   auth-cookie-domain auth-cookie-path
+		   expires
+		   #t)
+      (set-cookie! var (if secret (encrypt authstring secret) authstring)
+		   auth-cookie-domain auth-cookie-path
+		   expires
+		   #t))
+  (when (and auth-secure secret)
+    (set-cookie! (if auth-secure (stringout var "-") var)
+		 (encrypt authstring secret)
 		 auth-cookie-domain auth-cookie-path
-		 (timestamp+ (- (* 7 24 3600)))
+		 expires
 		 #f)))
+
+(define (getauthinfo var (https #f))
+  (cond ((and auth-secure (cgiget 'https #f))
+	 (ciget var))
+	((and auth-secure secret)
+	 (decrypt (cgiget (stringout var "-")) secret))
+	(auth-secure #f)
+	(secret (decrypt (cgiget var) secret))
+	(else (cgiget var))))
 
 ;;; AUTHINFO
 
@@ -162,27 +241,15 @@
 (define (auth/identify! identity (duration auth-expiration))
   (and identity
        (let* ((auth (cons-authinfo authid identity (+ (time) duration)))
-	      (authstring (auth->string auth)))
-	 (cgiset! authid auth)
-	 (set-cookie! authid authstring
-		      auth-cookie-domain auth-cookie-path
-		      (if auth-cookie-expires
-			  (if (number? auth-cookie-expires)
-			      (timestamp+ (min duration auth-cookie-expires))
-			      (timestamp+ duration))
-			  #f)
-		      auth-secure)
-	 (when auth-secure
-	   (set-cookie! (stringout authid "EXPIRES")
-			(get (timestamp+ duration) 'tick)
-			auth-cookie-domain auth-cookie-path
-			(if auth-cookie-expires
-			    (if (number? auth-cookie-expires)
-				(timestamp+ (min duration auth-cookie-expires))
-				(timestamp+ duration))
-			    #f)
-			#f))
+	      (authstring (auth->string auth))
+	      (expires (if auth-cookie-expires
+			   (if (number? auth-cookie-expires)
+			       (timestamp+ (min duration auth-cookie-expires))
+			       (timestamp+ duration))
+			   #f)))
 	 (info%watch "AUTH/IDENTIFY!" identity auth authstring)
+	 (cgiset! authid auth)
+	 (set-cookies! authid authstring expires)
 	 identity)))
 
 (define (auth/ok? auth)
@@ -215,8 +282,13 @@
 ;;; Checking authorization
 
 (define (auth/getinfo (authid authid) (signal #f) (authinfo))
-  (default! authinfo (cgiget authid))
-  (debug%watch "AUTH/GETINFO" authid authinfo signal (cgiget authid))
+  (default! authinfo (getauthinfo authid))
+  (debug%watch "AUTH/GETINFO"
+	       authid authinfo signal
+	       "cgiauthid" (cgiget authid)
+	       "secure" auth-secure
+	       "https" (cgiget 'https #f)
+	       "secret" (not (not secret)))
   (cond ((fail? authinfo) (fail))
 	((not authinfo)
 	 (when signal (error "No authorization info" authinfo authid))
