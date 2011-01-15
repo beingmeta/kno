@@ -9,7 +9,8 @@
 (module-export!
  '{olib
    olib/ref olib/import olib/fetch olib/parse olib-key
-   olib/query olib/bibref olib/id olib/image
+   olib/query olib/bibref olib/id
+   olib/image olib/refurl
    olib/get})
 
 (define %loglevel %notify!)
@@ -29,7 +30,10 @@
 (define (olib/ref key)
   (if (olib? key) key
       (if (string? key)
-	  (try (get olib-refs key) (newolibref key))
+	  (try (get olib-refs key)
+	       (if (has-prefix key "http://openlibrary.org/")
+		   (olib/ref (subseq key 22))
+		   (newolibref key)))
 	  (if (and (table? key) (test key 'key))
 	      (olib/ref (get key 'key))
 	      (fail)))))
@@ -154,6 +158,9 @@
     (stringout "http://covers.openlibrary.org/"
 	       (if (has-prefix (olib-key ref) "/authors/") "a" "b")
 	       "/id/" id "-" size ".jpg")))
+
+(define (olib/refurl ref)
+  (stringout "http://openlibrary.org" (olib-key ref)))
 
 
 ;;; The olib itself
