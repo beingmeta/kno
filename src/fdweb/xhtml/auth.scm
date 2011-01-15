@@ -1,7 +1,7 @@
 (in-module 'xhtml/auth)
 
 (use-module '{fdweb texttools})
-(use-module '{varconfig logger rulesets ezrecords})
+(use-module '{varconfig logger rulesets crypto ezrecords})
 
 ;;(define %loglevel %debug!)
 (define %loglevel %notify!)
@@ -165,22 +165,24 @@
 		   auth-cookie-domain auth-cookie-path
 		   expires
 		   #t)
-      (set-cookie! var (if secret (encrypt authstring secret) authstring)
+      (set-cookie! var (if secret
+			   (packet->base64 (encrypt authstring secret))
+			   authstring)
 		   auth-cookie-domain auth-cookie-path
 		   expires
-		   #t))
+		   #f))
   (when (and auth-secure secret)
     (set-cookie! (if auth-secure (stringout var "-") var)
-		 (encrypt authstring secret)
+		 (packet->base64 (encrypt authstring secret))
 		 auth-cookie-domain auth-cookie-path
 		 expires
 		 #f)))
 
 (define (getauthinfo var (https #f))
-  (cond ((and auth-secure (cgiget 'https #f))
-	 (ciget var))
+  (cond ((and auth-secure (cgiget 'https #f)) (cgiget var))
 	((and auth-secure secret)
-	 (decrypt (cgiget (stringout var "-")) secret))
+	 (packet->string
+	  (decrypt (base64->packet (cgiget (stringout var "-"))) secret)))
 	(auth-secure #f)
 	(secret (decrypt (cgiget var) secret))
 	(else (cgiget var))))
