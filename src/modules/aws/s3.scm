@@ -46,10 +46,34 @@
 
 (defrecord s3loc bucket path)
 
+(define (->s3loc input)
+  (if (s3loc? input) input
+      (if (string? input)
+	  (if (has-prefix input "s3:")
+	      (->s3loc (subseq input 3))
+	      (let ((colon (position #\: input))
+		    (slash (position #\/ input)))
+		(if (and colon slash)
+		    (if (< colon slash)
+			(cons-s3loc (subseq input 0 colon)
+				    (subseq input (1+ colon)))
+			(cons-s3loc (subseq input 0 slash)
+				    (subseq input (1+ slash))))
+		    (if slash
+			(cons-s3loc (subseq input 0 slash)
+				    (subseq input (1+ slash)))
+			(if colon
+			    (cons-s3loc (subseq input 0 colon)
+					(subseq input (1+ colon)))
+			    (cons-s3loc input ""))))))
+	  (error "Can't convert to s3loc" input))))
+
 (define (s3/mkpath loc path)
+  (when (string? loc) (set! loc (->s3loc loc)))
   (cons-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
 
-(module-export! '{s3loc? s3loc-path s3loc-bucket cons-s3loc s3/mkpath})
+(module-export!
+ '{s3loc? s3loc-path s3loc-bucket cons-s3loc ->s3loc s3/mkpath})
 
 ;;; Computing S3 signatures
 
@@ -91,16 +115,19 @@
 	  ((null? scan) (printout))
 	(printout (second (car scan)) ":" (third (car scan)) "\n")))))
 
-(define (s3op op bucket path (content #f) (ctype "text") (headers '()))
+(define (s3op op bucket path (content #f) (ctype "text") (headers '()) args)
   (let* ((date (gmtimestamp))
+	 ;; Encode everything, then restore delimiters
 	 (path (string-subst (uriencode path) "%2f" "/"))
 	 (cresource (string-append "/" bucket path))
 	 (contentMD5 (and content (packet->base64 (md5 content))))
 	 (sig (s3/signature op bucket path date  headers
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
-	 (url (string-append s3scheme bucket (if (empty-string? bucket) "" ".")
-			     s3root path))
+	 (baseurl
+	  (string-append s3scheme bucket (if (empty-string? bucket) "" ".")
+			 s3root path))
+	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
 	 ;; Hide the except field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
     (debug%watch url sig authorization)
@@ -122,8 +149,8 @@
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
 		    (urlget url urlparams)))))))
-(define (s3/op op bucket path (content #f) (ctype "text") (headers '()))
-  (let* ((result (s3op op bucket path content ctype headers))
+(define (s3/op op bucket path (content #f) (ctype "text") (headers '()) . args)
+  (let* ((result (s3op op bucket path content ctype headers args))
 	 (status (get result 'status)))
     (if (>= 299 status 200) result
 	(begin (log%warn "Bad result " status " (" (get result 'header)
@@ -154,12 +181,14 @@
 				    '%content))))))
 
 (define (s3/write! loc content (ctype))
+  (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype (getmimetype (s3loc-path loc)))
   (debug%watch
    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype) ;; '(("x-amx-acl" . "public-read"))
    loc ctype))
 
 (define (s3/delete! loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
   (debug%watch (s3/op "DELETE" (s3loc-bucket loc) (s3loc-path loc) #f "") loc))
 
@@ -189,7 +218,8 @@
 
 (define (s3loc/uri s3loc)
   (stringout s3scheme
-	     (s3loc-bucket s3loc) (if (empty-string? (s3loc-bucket s3loc)) "" ".") s3root
+	     (s3loc-bucket s3loc)
+	     (if (empty-string? (s3loc-bucket s3loc)) "" ".") s3root
 	     (unless (has-prefix (s3loc-path s3loc) "/") "/")
 	     (s3loc-path s3loc)))
 
@@ -215,12 +245,25 @@
 		(textsubst (s3loc-path loc) (cadr rule))))))))
 
 (define (s3loc/content loc (text #t))
+  (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
        (get (s3/op "GET" (s3loc-bucket loc)
 		   (string-append "/" (s3loc-path loc))
 		   "")
 	    '%content)))
+
+;;; Working with S3 'dirs'
+
+(define (s3/list loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" "" "text" '()
+		     "delimiter" "/" "prefix" (s3loc-path loc)))
+	 (content (xmlparse (get req '%content))))
+    (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
+					   'prefix)))
+      (cons-s3loc (s3loc-bucket loc) path))))
+(module-export! 's3/list)
 
 ;;; Some test code
 
