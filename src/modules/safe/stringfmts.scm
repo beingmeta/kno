@@ -5,10 +5,11 @@
 
 ;;; Generation of strings from various other kinds of values
 (define version "$Id$")
-(define revision "$Revision:$")
+(define revision "$Revision$")
 
 (module-export! '{get% show%
 		       interval-string short-interval-string
+		       minimal-interval-string
 		       padnum printnum numstring
 		       $count $num $size})
 
@@ -131,4 +132,20 @@
 			  ((> secs 600) (inexact->exact (round seconds)))
 			  ((>= secs 10) (inexact->string seconds 2))
 			  (else seconds)))))))
+
+(define (minimal-interval-string secs (precise #t))
+  (cond ((< secs 180)
+	 (stringout secs " seconds"))
+	((< secs 3600)
+	 (stringout (round (/ secs 60)) " minutes"))
+	((< secs (* 24 3600))
+	 (stringout (round (/ secs 3600)) " hours"))
+	((< secs (* 14 24 3600))
+	 (stringout (round (/ secs (* 24 3600))) " days"))
+	((< secs (* 60 24 3600))
+	 (stringout (round (/ secs (* 7 24 3600))) " weeks"))
+	((< secs (* 720 24 3600))
+	 (stringout (round (/ secs (* 30 24 3600))) " months"))
+	(else
+	 (stringout (round (/ secs (* 365 24 3600))) " years"))))
 
