@@ -71,8 +71,9 @@
 		      (store! new key (olib/import value))))
 	       (when (equal? key 'authors)
 		 (store! new 'author
-			 (choice (get (get new 'authors) 'author)
-				 (reject (get new 'authors) 'author))))))
+			 (choice (get (pick (get new 'authors) table?) 'author)
+				 (reject (pick (get new 'authors) table?) 'author)
+				 (reject (get new 'authors) table?))))))
 	   (when cache (extindex-cacheadd! olib (get new 'key) new))
 	   new))
 	(else data)))
