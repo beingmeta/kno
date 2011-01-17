@@ -9,8 +9,9 @@
 (module-export!
  '{olib
    olib/ref olib/import olib/fetch olib/parse olib-key
-   olib/query olib/bibref olib/id
+   olib/query olib/q olib/bibref olib/id
    olib/image olib/refurl
+   olib/getauthor
    olib/get})
 
 (define %loglevel %notify!)
@@ -132,9 +133,13 @@
 (define (olib/query . args)
   (if (even? (length args)) (olib-query args)
       (olib-query (cons 'type args))))
-(define (olib/query+ . args)
-  (if (even? (length args)) (olib-query args #t)
-      (olib-query (cons 'type args) #t)))
+
+(define-init olib-cache (make-hashtable))
+
+(define (olib/q . args)
+  (if (even? (length args))
+      (cachecall olib-cache olib-query args #t)
+      (cachecall olib-cache olib-query (cons 'type args) #t)))
       
 ;;; Getting REFS from bibliographic information
 
@@ -161,6 +166,12 @@
 
 (define (olib/refurl ref)
   (stringout "http://openlibrary.org" (olib-key ref)))
+
+
+;;; Convenience functions
+
+(define (olib/getauthor name)
+  (olib/q "/type/author" '{name alternate_names} name))
 
 
 ;;; The olib itself
