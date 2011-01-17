@@ -178,7 +178,7 @@
 		 expires
 		 #f)))
 
-(define (getauthinfo var (https #f))
+(define (getauthinfo var)
   (cond ((and auth-secure (cgiget 'https #f)) (cgiget var))
 	((and auth-secure secret)
 	 (packet->string
@@ -283,7 +283,8 @@
 
 ;;; Checking authorization
 
-(define (auth/getinfo (authid authid) (signal #f) (authinfo))
+(define (auth/getinfo (authid authid) (signal #f) (authinfo)
+		      (https #f) (secret secret) (auth-secure auth-secure))
   (default! authinfo (getauthinfo authid))
   (debug%watch "AUTH/GETINFO"
 	       authid authinfo signal
