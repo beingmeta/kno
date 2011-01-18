@@ -150,15 +150,17 @@
 	    (else (store! node '%content newcontent)
 		  #t)))))
 
-(define (dom/remove! node elt)
-  (when (and (table? node) (test node '%content))
-    (let* ((content (get node '%content))
-	   (newcontent (remove elt content)))
-      (cond ((eq? content newcontent)
-	     (some? (lambda (x) (and (table? x) (dom/drop! x elt)))
-		    content))
-	    (else (store! node '%content newcontent)
-		  #t)))))
+(define (dom/remove! node elt (recur #t))
+  (and (table? node) (test node '%content)
+       (let* ((content (get node '%content))
+	      (newcontent (remove elt content)))
+	 (cond ((equal? content newcontent)
+		(if recur
+		    (some? (lambda (x) (and (table? x) (dom/remove! x elt)))
+			   content)
+		    #f))
+	       (else (store! node '%content newcontent)
+		     #t)))))
 
 (define (dom/append! node . content)
   (let ((current (try (get node '%content) '())))
@@ -474,19 +476,40 @@
 ;;; Getting meta fields
 
 (define (dom/getmeta doc field (xform) (dflt))
-  (let ((elts (pick (dom/find (dom/find doc "HEAD") "META")
-		    'name (choice field
-				  (tryif (symbol? field)
-				    (symbol->string field))))))
+  (let* ((head (dom/find doc "HEAD"))
+	 (meta (dom/find head "META"))
+	 (stringname (and (symbol? field)
+			  (downcase (symbol->string field))))
+	 (elts (if stringname
+		   (filter-choices meta
+		     (let ((name (get meta 'name)))
+		       (if (symbol? name) (eq? field name)
+			   (equal? (downcase name) stringname))))
+		   (pick meta 'name field))))
     (try (if (and (bound? xform) xform)
 	     (xform (get elts 'content))
 	     (get elts 'content))
 	 (if (bound? dflt) dflt (fail)))))
 
 (define (dom/getlinks doc field (dflt))
-  (let ((links (pick (dom/find (dom/find doc "HEAD") "LINK")
-		     'rel field)))
-    (get links 'href)))
+  (let* ((head (dom/find doc "HEAD"))
+	 (links (dom/find head "LINK"))
+	 (stringname (and (symbol? field)
+			  (downcase (symbol->string field))))
+	 (elts (if stringname
+		   (filter-choices (link links)
+		     (let ((name (get link 'name)))
+		       (if (symbol? name) (eq? field name)
+			   (equal? (downcase name) stringname))))
+		   (pick links 'name field))))
+    (get elts 'href)))
+
+(define (lowername x (name))
+  (default! name (get x 'name))
+  (if (fail? name) {}
+      (if (symbol? name) (downcase (symbol->string name))
+	  (if (string? name) (downcase name)
+	      (downcase (stringout name))))))
 
 ;;; Walking the DOM
 
