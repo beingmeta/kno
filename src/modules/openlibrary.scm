@@ -160,12 +160,14 @@
 ;;; Getting covers
 
 (define (olib/image ref (size "S"))
+  (if (string? ref) (set! ref (olib/ref ref)))
   (for-choices (id  (olib/get ref '{covers photos}))
     (stringout "http://covers.openlibrary.org/"
 	       (if (has-prefix (olib-key ref) "/authors/") "a" "b")
 	       "/id/" id "-" size ".jpg")))
 
 (define (olib/refurl ref)
+  (if (string? ref) (set! ref (olib/ref ref)))
   (stringout "http://openlibrary.org" (olib-key ref)))
 
 
