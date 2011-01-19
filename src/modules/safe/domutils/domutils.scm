@@ -478,13 +478,10 @@
 (define (dom/getmeta doc field (xform) (dflt))
   (let* ((head (dom/find doc "HEAD"))
 	 (meta (dom/find head "META"))
-	 (stringname (and (symbol? field)
-			  (downcase (symbol->string field))))
+	 (stringname
+	  (and (symbol? field) (downcase (symbol->string field))))
 	 (elts (if stringname
-		   (filter-choices meta
-		     (let ((name (get meta 'name)))
-		       (if (symbol? name) (eq? field name)
-			   (equal? (downcase name) stringname))))
+		   (pick meta lowername stringname)
 		   (pick meta 'name field))))
     (try (if (and (bound? xform) xform)
 	     (if (applicable? xform)
