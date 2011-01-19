@@ -510,12 +510,28 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
 	 (_("pathname or path CONFIG"),"mkpath_prim",dirname);
 }
 
+static u8_string tmpdir_template=NULL;
+
+static fdtype tempdir_prim(fdtype template)
+{
+  u8_string tempstring=
+    ((FD_STRINGP(template))?(FD_STRDATA(template)):
+     (tmpdir_template)?(u8_strdup(tmpdir_template)):
+     (u8_mkstring("%s/fdtempXXXXXXXXXXX",
+		  (getenv("TMPDIR"))||(getenv("TMP_DIR"))||"/tmp")));
+  u8_string buf=u8_strdup(tempstring);
+  mkdtemp(buf);
+  return fd_init_string(NULL,-1,buf);
+}
+
+#if 0
 static fdtype mktemp_prim(fdtype template)
 {
   u8_string buf=u8_strdup(FD_STRDATA(template));
   mktemp(buf);
   return fd_init_string(NULL,-1,buf);
 }
+#endif
 
 static fdtype runfile_prim(fdtype suffix)
 {
@@ -1565,8 +1581,12 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("MKPATH",mkpath_prim,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID));
+#if 0
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("MKTEMP",mktemp_prim,1,fd_string_type,FD_VOID));
+#endif
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("TEMPDIR",tempdir_prim,1,fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("RUNFILE",runfile_prim,1,fd_string_type,FD_VOID));
 
