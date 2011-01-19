@@ -1229,7 +1229,7 @@ FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
     if ((FD_PRIM_TYPEP(pred,fd_sproc_type)) ||
 	(FD_PRIM_TYPEP(pred,fd_function_type))) {
       fd_function fcn=FD_DTYPE2FCN(pred);
-      if (fcn->arity==1) {
+      if (fcn->min_arity==1) {
 	fdtype value=fd_apply(pred,1,&f);
 	if (fd_overlapp(value,val)) {
 	  fd_decref(value); return 1;}
@@ -1248,7 +1248,7 @@ FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
       return 0;
     else {
       fd_decref(result);
-      return 1;}}
+      return 0;}}
   else return fd_type_error(_("test relation"),"test_relation",pred);
 }
 
