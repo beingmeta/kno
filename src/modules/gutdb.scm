@@ -4,7 +4,8 @@
 
 (use-module '{texttools fdweb logger domutils domutils/index})
 
-(define %loglevel %debug!)
+;;(define %loglevel %debug!)
+(define %loglevel %notify!)
 
 (module-export! '{gutdb gutdb/rdf})
 
@@ -65,7 +66,7 @@
 	      (store! sum slotid (difference ({xmlcontent getresource} (xmlget ref slotid)) ""))))
 	  (store! info (cdr field) sum))))
     info))
-(module-export! 'handle-rdf)
+
 
 
 
