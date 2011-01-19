@@ -7,7 +7,7 @@
 (define version "$Id$")
 (define revision "$Revision: 5083 $")
 
-(use-module '{fdweb xhtml texttools ezrecords varconfig})
+(use-module '{fdweb xhtml texttools reflection ezrecords varconfig})
 
 (module-export!
  '{
@@ -487,7 +487,10 @@
 			   (equal? (downcase name) stringname))))
 		   (pick meta 'name field))))
     (try (if (and (bound? xform) xform)
-	     (xform (get elts 'content))
+	     (if (applicable? xform)
+		 (xform (get elts 'content))
+		 (if (eq? xform #t) (parse-arg (get elts 'content))
+		     (textsubst (get elts 'content) (qc xform))))
 	     (get elts 'content))
 	 (if (bound? dflt) dflt (fail)))))
 
