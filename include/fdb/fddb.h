@@ -228,5 +228,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache(void);
 
 FD_EXPORT fdtype (*fd_get_oid_name)(fd_pool,fdtype);
 
+FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumulate);
+
 #endif
 

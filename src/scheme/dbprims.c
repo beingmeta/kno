@@ -1044,49 +1044,15 @@ static fdtype testp(int n,fdtype *args)
     return FD_FALSE;}
 }
 
-static fdtype getpath(int n,fdtype *args)
+static fdtype getpath_prim(int n,fdtype *args)
 {
-  fdtype cur=args[0]; int i=1;
-  while (i<n) {
-    fdtype slotids=args[i];
-    fdtype next=FD_EMPTY_CHOICE;
-    if (FD_EMPTY_CHOICEP(cur)) return cur;
-    else {
-      FD_DO_CHOICES(c,cur) {
-	FD_DO_CHOICES(sl,slotids) {
-	  if (FD_OIDP(c)) {
-	    fdtype v=fd_frame_get(c,sl);
-	    FD_ADD_TO_CHOICE(next,v);}
-	  else {
-	    fdtype v=fd_get(c,sl,FD_EMPTY_CHOICE);
-	    FD_ADD_TO_CHOICE(next,v);}}}}
-    if (i>1) fd_decref(cur); cur=next;
-    i++;}
-  if (i==1) return fd_incref(cur);
-  else return fd_simplify_choice(cur);
+  fdtype result=fd_getpath(args[0],n-1,args+1,1,0);
+  return fd_simplify_choice(result);
 }
 
-static fdtype getpathstar(int n,fdtype *args)
+static fdtype getpathstar_prim(int n,fdtype *args)
 {
-  fdtype cur=args[0], result=fd_incref(cur); int i=1;
-  while (i<n) {
-    fdtype slotids=args[i];
-    fdtype next=FD_EMPTY_CHOICE;
-    if (FD_EMPTY_CHOICEP(cur))
-      return result;
-    else {
-      FD_DO_CHOICES(c,cur) {
-	FD_DO_CHOICES(sl,slotids) {
-	  if (FD_OIDP(c)) {
-	    fdtype v=fd_frame_get(c,sl);
-	    FD_ADD_TO_CHOICE(next,v);}
-	  else {
-	    fdtype v=fd_get(c,sl,FD_EMPTY_CHOICE);
-	    FD_ADD_TO_CHOICE(next,v);}}}}
-    if (i>1) {FD_ADD_TO_CHOICE(result,cur);}
-    cur=next;
-    i++;}
-  FD_ADD_TO_CHOICE(result,cur);
+  fdtype result=fd_getpath(args[0],n-1,args+1,1,0);
   return fd_simplify_choice(result);
 }
 
@@ -1205,17 +1171,19 @@ static fdtype suggest_hash_size(fdtype size)
 
 /* PICK and REJECT */
 
-FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
+FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel);
+
+FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalevel)
 {
   if (FD_CHOICEP(pred)) {
     FD_DO_CHOICES(p,pred) {
       int retval;
-      if ((retval=test_relation(f,p,val,noinfer))) {
+      if ((retval=test_selector_relation(f,p,val,datalevel))) {
 	{FD_STOP_DO_CHOICES;}
 	return retval;}}
     return 0;}
   else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
-    if (noinfer)
+    if (datalevel)
       return fd_test(f,pred,val);
     else return fd_frame_test(f,pred,val);
   else if ((FD_TABLEP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
@@ -1230,40 +1198,52 @@ FD_FASTOP int test_relation(fdtype f,fdtype pred,fdtype val,int noinfer)
 	(FD_PRIM_TYPEP(pred,fd_function_type))) {
       fd_function fcn=FD_DTYPE2FCN(pred);
       if (fcn->min_arity==1) {
-	fdtype value=fd_apply(pred,1,&f);
-	if (fd_overlapp(value,val)) {
-	  fd_decref(value); return 1;}
-	else if ((FD_HASHTABLEP(val)) &&
-		 (fd_hashtable_probe ((fd_hashtable)val,value))) {
-	  fd_decref(value); return 1;}
-	else if ((FD_HASHSETP(val)) &&
-		 (fd_hashset_get ((fd_hashset)val,value))) {
-	  fd_decref(value); return 1;}
-	else {fd_decref(value); return 0;}}}
-    rail[0]=f; rail[1]=val;
-    result=fd_apply(pred,2,rail);
+	fdtype value=fd_apply(pred,1,&f); int retval=-1;
+	if (FD_EMPTY_CHOICEP(value)) return 0;
+	else if (fd_overlapp(value,val)) retval=1;
+	else if (datalevel) retval=0;
+	else if ((FD_HASHTABLEP(val))||(FD_HASHSETP(val))||(FD_APPLICABLEP(val))||
+		 ((FD_PAIRP(val))&&(FD_APPLICABLEP(FD_CAR(val)))))
+	  retval=test_selector_predicate(value,val,datalevel);
+	else retval=0;
+	fd_decref(value);
+	return retval;}
+      else if (fcn->min_arity==2) {
+	  rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
+      else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);}
+    else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);
     if (FD_ABORTP(result))
       return fd_interr(result);
     else if ((FD_FALSEP(result)) || (FD_EMPTY_CHOICEP(result)))
       return 0;
     else {
       fd_decref(result);
-      return 0;}}
-  else return fd_type_error(_("test relation"),"test_relation",pred);
+      return 1;}}
+  else if (FD_VECTORP(pred)) {
+    int len=FD_VECTOR_LENGTH(pred), retval;
+    fdtype *data=FD_VECTOR_DATA(pred), scan;
+    if (len==0) return 0;
+    else if (len==1) return test_selector_relation(f,data[0],val,datalevel);
+    else scan=fd_getpath(f,len-1,data,datalevel,0);
+    retval=test_selector_relation(scan,data[len-1],val,datalevel);
+    fd_decref(scan);
+    return retval;}
+  else return fd_type_error(_("test relation"),"test_selector_relation",pred);
 }
 
-FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
+FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel)
 {
-  if (FD_EMPTY_CHOICEP(test)) return 0;
+  if (FD_EMPTY_CHOICEP(candidate)) return 0;
+  else if (FD_EMPTY_CHOICEP(test)) return 0;
   else if (FD_CHOICEP(test)) {
     int retval=0;
     FD_DO_CHOICES(t,test) {
-      if ((retval=test_predicate(candidate,t,noinfer))) {
+      if ((retval=test_selector_predicate(candidate,t,datalevel))) {
 	{FD_STOP_DO_CHOICES;}
 	return retval;}}
     return retval;}
   else if ((FD_OIDP(candidate)) && ((FD_SYMBOLP(test)) || (FD_OIDP(test))))
-    if (noinfer)
+    if (datalevel)
       return fd_test(candidate,test,FD_VOID);
     else return fd_frame_test(candidate,test,FD_VOID);
   else if (FD_PTR_TYPEP(test,fd_hashset_type)) 
@@ -1277,6 +1257,22 @@ FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
     if (FD_ABORTP(v)) return fd_interr(v);
     else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v))) return 0;
     else {fd_decref(v); return 1;}}
+  else if ((FD_PAIRP(test))&&(FD_APPLICABLEP(FD_CAR(test)))) {
+    fdtype fcn=FD_CAR(test), newval=FD_FALSE;
+    fdtype args=FD_CDR(test), argv[7]; int j=1;
+    argv[0]=candidate;
+    if (FD_PAIRP(args))
+      while (FD_PAIRP(args)) {
+	argv[j++]=FD_CAR(args); args=FD_CDR(args);}
+    else argv[j++]=args;
+    if (j>7) newval=fd_err(fd_RangeError,"test_selector_relation","too many elements in test condition",FD_VOID);
+    else newval=fd_apply(j,fcn,argv);
+    if (FD_ABORTP(newval)) return newval;
+    else if ((FD_FALSEP(newval))||(FD_EMPTY_CHOICEP(newval)))
+      return 0;
+    else {
+      fd_decref(newval);
+      return 1;}}
   else if (FD_POOLP(test))
     if (FD_OIDP(candidate)) {
       fd_pool p=fd_lisp2pool(test);
@@ -1285,42 +1281,26 @@ FD_FASTOP int test_predicate(fdtype candidate,fdtype test,int noinfer)
     else return 0;
   else if (FD_TABLEP(test))
     return fd_test(test,candidate,FD_VOID);
-  else return fd_type_error(_("test object"),"test_predicate",test);
+  else return fd_type_error(_("test object"),"test_selector_predicate",test);
 }
 
-FD_FASTOP int test_and(fdtype candidate,int n,fdtype *args,int noinfer)
+FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,int datalevel)
 {
   if (n==1)
     if (FD_EMPTY_CHOICEP(args[0])) return 0;
-    else return test_predicate(candidate,args[0],noinfer);
+    else return test_selector_predicate(candidate,args[0],datalevel);
+  else if (n==3) {
+    fdtype scan=fd_getpath(candidate,1,args,datalevel,0);
+    int retval=test_selector_relation(scan,args[1],args[2],datalevel);
+    fd_decref(scan);
+    return retval;}
   else if (n%2) {
-    fdtype field=args[0], value;
-    if ((FD_OIDP(field)) || (FD_SYMBOLP(field)))
-      value=fd_get(candidate,field,FD_VOID);
-    else if (FD_TABLEP(field))
-      value=fd_hashtable_get((fd_hashtable)field,candidate,FD_VOID);
-    else if (FD_APPLICABLEP(field)) 
-      value=fd_apply(field,1,&candidate);
-    else value=fd_type_error("field","test_and",field);
-    if (FD_VOIDP(value)) return 0;
-    else if (FD_EMPTY_CHOICEP(value)) return 0;
-    else if (FD_CHOICEP(value)) {
-      FD_DO_CHOICES(v,value) {
-	int testval=test_and(v,n-1,args+1,noinfer);
-	if (testval) {
-	  FD_STOP_DO_CHOICES;
-	  fd_decref(value);
-	  return testval;}}
-      fd_decref(value);
-      return 0;}
-    else {
-      int testval=test_and(value,n-1,args+1,noinfer);
-      fd_decref(value);
-      return testval;}}
+    fd_seterr(fd_TooManyArgs,"test_selector_clauses","odd number of args/clauses in db pick/reject",FD_VOID);
+    return -1;}
   else {
     int i=0; while (i<n) {
       fdtype slotids=args[i], values=args[i+1];
-      int retval=test_relation(candidate,slotids,values,noinfer);
+      int retval=test_selector_relation(candidate,slotids,values,datalevel);
       if (retval<0) return retval;
       else if (retval) i=i+2;
       else return 0;}
@@ -1329,7 +1309,7 @@ FD_FASTOP int test_and(fdtype candidate,int n,fdtype *args,int noinfer)
   
 /* PICK etc */
 
-static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
+static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
 {
   int retval;
   if (FD_CHOICEP(candidates)) {
@@ -1341,7 +1321,7 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     int n_results=0, atomic_results=1;
     while (read<limit) {
       fdtype candidate=*read++;
-      int retval=test_and(candidate,n,tests,noinfer);
+      int retval=test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
 	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
 	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
@@ -1370,11 +1350,11 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
   else if (FD_EMPTY_CHOICEP(candidates))
     return FD_EMPTY_CHOICE;
   else if (n==1)
-    if ((retval=(test_predicate(candidates,tests[0],noinfer))))
+    if ((retval=(test_selector_predicate(candidates,tests[0],datalevel))))
       if (retval<0) return FD_ERROR_VALUE;
       else return fd_incref(candidates);
     else return FD_EMPTY_CHOICE;
-  else if ((retval=(test_and(candidates,n,tests,noinfer))))
+  else if ((retval=(test_selector_clauses(candidates,n,tests,datalevel))))
     if (retval<0) return FD_ERROR_VALUE;
     else return fd_incref(candidates);
   else return FD_EMPTY_CHOICE;
@@ -1382,33 +1362,46 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
   
 static fdtype pick_lexpr(int n,fdtype *args)
 {
-  return pick_helper(args[0],n-1,args+1,0);
+  if ((n<=4)||(n%2))
+    return pick_helper(args[0],n-1,args+1,0);
+  else return fd_err
+	 (fd_TooManyArgs,"pick_lexpr",
+	  "PICK requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prefer_lexpr(int n,fdtype *args)
 {
-  fdtype results=pick_helper(args[0],n-1,args+1,0);
-  if (FD_EMPTY_CHOICEP(results))
-    return fd_incref(args[0]);
-  else return results;
+  if ((n<=4)||(n%2)) {
+    fdtype results=pick_helper(args[0],n-1,args+1,0);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else return fd_err(fd_TooManyArgs,"prefer_lexpr",
+		     "PICK PREFER two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_pick_lexpr(int n,fdtype *args)
 {
-  return pick_helper(args[0],n-1,args+1,1);
+  if ((n<=4)||(n%2))
+    return pick_helper(args[0],n-1,args+1,1);
+  else return fd_err(fd_TooManyArgs,"prim_pick_lexpr",
+		     "%PICK requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_prefer_lexpr(int n,fdtype *args)
 {
-  fdtype results=pick_helper(args[0],n-1,args+1,1);
-  if (FD_EMPTY_CHOICEP(results))
-    return fd_incref(args[0]);
-  else return results;
+  if ((n<=4)||(n%2)) {
+    fdtype results=pick_helper(args[0],n-1,args+1,1);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else return fd_err(fd_TooManyArgs,"prim_prefer_lexpr",
+		     "%PICK requires two or 2n+1 arguments",FD_VOID);
 }
 
 /* REJECT etc */
 
-static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
+static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
 {
   int retval;
   if (FD_CHOICEP(candidates)) {
@@ -1420,7 +1413,7 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
     int n_results=0, atomic_results=1;
     while (read<limit) {
       fdtype candidate=*read++;
-      int retval=test_and(candidate,n,tests,noinfer);
+      int retval=test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
 	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
 	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
@@ -1449,11 +1442,11 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
   else if (FD_EMPTY_CHOICEP(candidates))
     return FD_EMPTY_CHOICE;
   else if (n==1)
-    if ((retval=(test_predicate(candidates,tests[0],noinfer))))
+    if ((retval=(test_selector_predicate(candidates,tests[0],datalevel))))
       if (retval<0) return FD_ERROR_VALUE;
       else return FD_EMPTY_CHOICE;
     else return fd_incref(candidates);
-  else if ((retval=(test_and(candidates,n,tests,noinfer))))
+  else if ((retval=(test_selector_clauses(candidates,n,tests,datalevel))))
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;
   else return fd_incref(candidates);
@@ -1461,28 +1454,40 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int noinfer)
 
 static fdtype reject_lexpr(int n,fdtype *args)
 {
-  return reject_helper(args[0],n-1,args+1,0);
+  if ((n<=4)||(n%2)) 
+    return reject_helper(args[0],n-1,args+1,0);
+  else return fd_err(fd_TooManyArgs,"reject_lexpr",
+		     "REJECT requires two or 2n+1 arguments",FD_VOID);
 }
 
-static fdtype prefer_not_lexpr(int n,fdtype *args)
+static fdtype avoid_lexpr(int n,fdtype *args)
 {
-  fdtype values=reject_helper(args[0],n-1,args+1,0);
-  if (FD_EMPTY_CHOICEP(values))
-    return fd_incref(args[0]);
-  else return values;
+  if ((n<=4)||(n%2)) {
+    fdtype values=reject_helper(args[0],n-1,args+1,0);
+    if (FD_EMPTY_CHOICEP(values))
+      return fd_incref(args[0]);
+    else return values;}
+  else return fd_err(fd_TooManyArgs,"avoid_lexpr",
+		     "AVOID requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_reject_lexpr(int n,fdtype *args)
 {
-  return reject_helper(args[0],n-1,args+1,1);
+  if ((n<=4)||(n%2)) 
+    return reject_helper(args[0],n-1,args+1,1);
+  else return fd_err(fd_TooManyArgs,"prim_reject_lexpr",
+		     "%REJECT requires two or 2n+1 arguments",FD_VOID);
 }
 
-static fdtype prim_prefer_not_lexpr(int n,fdtype *args)
+static fdtype prim_avoid_lexpr(int n,fdtype *args)
 {
-  fdtype values=reject_helper(args[0],n-1,args+1,1);
-  if (FD_EMPTY_CHOICEP(values))
-    return fd_incref(args[0]);
-  else return values;
+  if ((n<=4)||(n%2)) {
+    fdtype values=reject_helper(args[0],n-1,args+1,1);
+    if (FD_EMPTY_CHOICEP(values))
+      return fd_incref(args[0]);
+    else return values;}
+  else return fd_err(fd_TooManyArgs,"prim_avoid_lexpr",
+		     "%AVOID requires two or 2n+1 arguments",FD_VOID);
 }
 
 /* Kleene* operations */
@@ -2107,9 +2112,9 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("SUMFRAME",sumframe_prim,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("GETPATH",getpath,1)));
+	   fd_make_ndprim(fd_make_cprimn("GETPATH",getpath_prim,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar,1)));
+	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar_prim,1)));
 
   fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_handler);
 
@@ -2315,7 +2320,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("PREFER-NOT",prefer_not_lexpr,2)));
+	   fd_make_ndprim(fd_make_cprimn("AVOID",avoid_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,2)));
@@ -2324,8 +2329,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%PREFER-NOT",
-					 prim_prefer_not_lexpr,2)));
+	   fd_make_ndprim(fd_make_cprimn("%AVOID",prim_avoid_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));

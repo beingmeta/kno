@@ -452,7 +452,7 @@
 	 (stringname
 	  (and (symbol? field) (downcase (symbol->string field))))
 	 (elts (if stringname
-		   (pick meta lowername stringname)
+		   (pick meta lname stringname)
 		   (pick meta 'name field))))
     (try (if (and (bound? xform) xform)
 	     (if (applicable? xform)
@@ -468,11 +468,11 @@
 	 (stringname (and (symbol? field)
 			  (downcase (symbol->string field))))
 	 (elts (if stringname
-		   (pick links lowername stringname)
+		   (pick links lname stringname)
 		   (pick links 'name field))))
     (get elts 'href)))
 
-(define (lowername x (name))
+(define (lname x (name))
   (default! name (try (get x 'rel) (get x 'name)))
   (if (fail? name) {}
       (if (symbol? name) (downcase (symbol->string name))

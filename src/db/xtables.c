@@ -378,6 +378,53 @@ static fdtype choice_keys(fdtype arg)
 }
 
 
+/* Getting paths */
+
+/* Get Path functions */
+
+FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumulate)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  fdtype scan=start; int i=0;
+  if (n==0) return fd_incref(start);
+  while (i<n) {
+    fdtype pred=path[i], newscan=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(s,scan) {
+      fdtype newval;
+      if ((FD_OIDP(pred))||(FD_SYMBOLP(pred)))
+	if (infer) newval=fd_frame_get(s,pred);
+	else newval=fd_get(scan,pred,FD_EMPTY_CHOICE);
+      else if (FD_TABLEP(pred))
+	newval=fd_get(pred,s,FD_EMPTY_CHOICE);
+      else if (FD_HASHSETP(pred))
+	if (fd_hashset_get((fd_hashset)pred,s)) newval=s;
+	else newval=FD_EMPTY_CHOICE;
+      else if (FD_APPLICABLEP(pred))
+	newval=fd_apply(pred,1,&s);
+      else if ((FD_PAIRP(pred))&&(FD_APPLICABLEP(FD_CAR(pred)))) {
+	fdtype fcn=FD_CAR(pred);
+	fdtype args=FD_CDR(pred), argv[7]; int j=1;
+	argv[0]=s;
+	if (FD_PAIRP(args))
+	  while (FD_PAIRP(args)) {
+	    argv[j++]=FD_CAR(args); args=FD_CDR(args);}
+	else argv[j++]=args;
+	if (j>7) newval=fd_err(fd_RangeError,"fd_getpath","too many elements in compound path",FD_VOID);
+	else newval=fd_apply(j,fcn,argv);}
+      else newval=fd_err(fd_TypeError,"fd_getpath","invalid path element",FD_VOID);
+      if (FD_ABORTP(newval)) {
+	fd_decref(scan); fd_decref(newscan);
+	return newval;}
+      else {FD_ADD_TO_CHOICE(newscan,newval);}}
+    if (i>0) {
+      if (accumulate) {FD_ADD_TO_CHOICE(results,scan);}
+      else {fd_decref(scan);}}
+    scan=newscan; i++;}
+  if (accumulate) {FD_ADD_TO_CHOICE(results,scan);}
+  if (accumulate) return results;
+  else return scan;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_xtables_c()
