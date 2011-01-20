@@ -1471,6 +1471,24 @@ static fdtype has_word_prefix(fdtype string,fdtype prefix,fdtype strictarg)
     else return FD_FALSE;}
 }
 
+static fdtype firstword_prim(fdtype string,fdtype sep)
+{
+  u8_string string_data=FD_STRDATA(string);
+  if (FD_STRINGP(sep)) {
+    u8_string end=strstr(string_data,FD_STRDATA(sep));
+    if (end) return fd_extract_string(NULL,string_data,end);
+    else return fd_incref(string);}
+  else if ((FD_VOIDP(sep))||(FD_FALSEP(sep))||(FD_TRUEP(sep)))  {
+    u8_byte *scan=(u8_byte *)string_data, *last=scan;
+    int c=u8_sgetc(&scan); while ((c>0)&&(!(u8_isspace(c)))) {
+      last=scan; c=u8_sgetc(&scan);}
+    return fd_extract_string(NULL,string_data,last);}
+  else {
+    int search=fd_text_search(sep,NULL,string_data,0,FD_STRLEN(string),0);
+    if (search<0) return fd_incref(string);
+    else return fd_extract_string(NULL,string_data,string_data+search);}
+}
+
 /* Morphrule */
 
 static int has_suffix(fdtype string,fdtype suffix)
@@ -2022,6 +2040,10 @@ void fd_init_texttools()
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("FIRSTWORD",firstword_prim,1,
+			   fd_string_type,FD_VOID,
+			   -1,FD_TRUE));
 
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("ISSPACE%",isspace_percentage,1,
