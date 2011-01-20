@@ -86,7 +86,6 @@ FD_EXPORT FD_XML *fd_xml_push
    int (*attribfn)(FD_XML *,u8_string,u8_string,int),
    u8_string *elts,int n_elts);
 FD_EXPORT int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote);
-FD_EXPORT int fd_strict_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote);
 
 FD_EXPORT void fd_add_content(struct FD_XML *node,fdtype item);
 

@@ -14,7 +14,8 @@
    dom/textify
    dom/textual? dom/structural?
    dom/oidify dom/oidmap dom/nodeid
-   dom/set! dom/add! dom/drop! dom/append! dom/prepend! dom/remove!
+   dom/get dom/set! dom/add! dom/drop!
+   dom/append! dom/prepend! dom/remove!
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/combine!
@@ -48,107 +49,77 @@
 (define (varycase s)
   (if (symbol? s)
       (choice (symbol->string s) (downcase (symbol->string s)))))
+(define (lowername x) (downcase (first x)))
+(define (lowerqname x) (downcase (second x)))
+
 (define (attrib-basename s)
   (if (or (pair? s) (and (vector? s) (> (length s) 0)))
       (if (string? (first s))
-	  (if (position #\} (first s))
-	      (subseq (first s) (1+ (position #\} (first s))))
-	      (if (position #\: (first s))
-		  (subseq (first s) (1+ (position #\: (first s))))
+	  (if (position #\: (first s))
+	      (subseq (first s) (1+ (position #\: (first s))))
+	      (if (position #\} (first s))
+		  (subseq (first s) (1+ (position #\} (first s))))
 		  (first s)))
 	  s)))
 (define (attrib-namespace s)
   (and (string? s) (position #\: s)
        (subseq s 0 (position #\: s))))
+(define (attrib-name s)
+  (and (string? s) (position #\: s)
+       (subseq s (1+ (position #\: s)))))
 
 (define (dom/set! node attrib val (fdxml #f))
-  (let* ((slotid (if (symbol? attrib) attrib
-		     (string->lisp attrib)))
+  (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
 		    attrib))
-	 (anames (if (symbol? attrib) (varycase attrib) attrib))
-	 (attribs (try (pick (get node '%attribs) first anames)
-		       (pick (get node '%attribs) attrib-basename anames)))
-	 (raw-attribs
-	  (try (pick (get node '%%attribs) first anames)
-	       (pick (get node '%%attribs) attrib-basename anames)))
+	 (allattribs (get node '%attribs))
+	 (attribs (try (pick allattribs first aname)
+		       (pick allattribs second aname)
+		       (pick allattribs lowername aname)))
 	 (stringval (if (and (not fdxml) (string? val)) val
 			(unparse-arg val))))
-    (when (or (ambiguous? attribs) (ambiguous? raw-attribs))
+    (when (ambiguous? attribs)
       (error "AmbiguousDOMAttribute"
 	     "DOM/SET of ambiguous attribute " attrib
-	     (choice attribs raw-attribs)))
+	     attribs))
     (store! node slotid val)
     (add! node '%attribids slotid)
     (if (exists? attribs)
 	(begin (drop! node '%attribs attribs)
-	       (add! node '%attribs (cons (car attribs) stringval)))
-	(add! node '%attribs (cons aname stringval)))
-    (if (exists? raw-attribs)
-	(begin
-	  (drop! node '%%attribs raw-attribs)
-	  (add! node '%%attribs
-		(vector (first raw-attribs) (second raw-attribs)
-			stringval)))
-	(when (test node '%%xmltag) ;; Kept raw XML info
-	  (add! node '%%attribs
-		(vector aname aname stringval))))))
+	       (add! node '%attribs
+		     (vector (elt attribs 0) (elt attribs 1) stringval))
+	       (store! node (parse-arg aname) val)
+	       (store! node (parse-arg (attrib-name s)) val)
+	       (add! node '%attribs
+		     (vector (elt attribs 0) (elt attribs 1) stringval)))
+	(add! node '%attribs (vector aname #f stringval)))))
 
-(define (dom/add! node attrib val (sepchar ";") (fdxml #f) (slotid))
-  (default! slotid (if (symbol? attrib) attrib (string->lisp attrib)))
-  (unless (or (test node slotid val)
-	      (and (test node slotid) (string? (get node slotid))
-		   (textsearch `#({(bol) ,sepchar} ,val {(eol) ,sepchar})
-			       (get node slotid))))
-    (let* ((aname (if (symbol? attrib) (downcase (symbol->string attrib))
-		      attrib))
-	   (anames (if (symbol? attrib) (varycase attrib) attrib))
-	   (attribs (try (pick (get node '%attribs) first anames)
-			 (pick (get node '%attribs) attrib-basename anames)))
-	   (raw-attribs
-	    (try (pick (get node '%%attribs) first anames)
-		 (pick (get node '%%attribs) attrib-basename anames)))
-	   (curval (get node slotid))
-	   (stringval (string-subst (if (and (not fdxml) (string? val)) val
-					(unparse-arg val))
-				    sepchar (string-append "\\" sepchar))))
-      (when (or (ambiguous? attribs) (ambiguous? raw-attribs))
-	(error "AmbiguousDOMAttribute"
-	       "DOM/SET of ambiguous attribute " attrib
-	       (choice attribs raw-attribs)))
-      (when (and (singleton? curval) (string? curval)
-		 (findsep curval (elt sepchar 0)))
-	(store! node slotid (elts (splitsep curval (elt sepchar 0)))))
-      (add! node slotid val)
-      (add! node '%attribids slotid)
-      (if (exists? attribs)
-	  (begin (drop! node '%attribs attribs)
-		 (add! node '%attribs
-		       (cons (car attribs)
-			     (string-append (cdr attribs) sepchar stringval))))
-	  (add! node '%attribs (cons aname stringval)))
-      (if (exists? raw-attribs)
-	  (begin
-	    (drop! node '%%attribs raw-attribs)
-	    (add! node '%%attribs
-		  (vector (first raw-attribs) (second raw-attribs)
-			  (string-append (third raw-attribs) sepchar stringval))))
-	  (when (test node '%%xmltag)
-	    ;; Kept raw XML info, but didn't have any raw attribs, so
-	    ;; add it explicitly
-	    (add! node '%%attribs
-		  (vector aname aname stringval)))))))
+(define (dom/drop! node attrib)
+  (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
+	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
+		    attrib))
+	 (anames (if (symbol? attrib) (varycase attrib) attrib))
+	 (attribs (try (pick (get node '%attribs) first anames)
+		       (pick (get node '%attribs) attrib-basename anames))))
+    (when (ambiguous? attribs)
+      (error "AmbiguousDOMAttribute"
+	     "DOM/SET of ambiguous attribute " attrib
+	     attribs))
+    (drop! node slotid)
+    (drop! node '%attribids slotid)
+    (when (exists? attribs) (drop! node '%attribs attribs))))
 
-;;; This should really be attribute dropping
-(define (dom/drop! node elt)
-  (when (and (table? node) (test node '%content))
-    (let* ((content (get node '%content))
-	   (newcontent (remove elt content)))
-      (cond ((eq? content newcontent)
-	     (some? (lambda (x) (and (table? x) (dom/drop! x elt)))
-		    content))
-	    (else (store! node '%content newcontent)
-		  #t)))))
+(define (dom/get node attrib)
+  (if (symbol? attrib) (get node attrib)
+      (third (pick (get node '%attribs) {first second} attrib))))
+
+(define (dom/add! node attrib value (sep ";"))
+  (let ((current (dom/get node attrib)))
+    (if (fail? current)
+	(dom/set! node attrib value)
+	(let ((values (segment current sep)))
+	  (unless (position value values)
+	    (dom/set! node attrib (string-append value sep current)))))))
 
 (define (dom/remove! node elt (recur #t))
   (and (table? node) (test node '%content)
@@ -497,15 +468,12 @@
 	 (stringname (and (symbol? field)
 			  (downcase (symbol->string field))))
 	 (elts (if stringname
-		   (filter-choices (link links)
-		     (let ((name (get link 'name)))
-		       (if (symbol? name) (eq? field name)
-			   (equal? (downcase name) stringname))))
+		   (pick links lowername stringname)
 		   (pick links 'name field))))
     (get elts 'href)))
 
 (define (lowername x (name))
-  (default! name (get x 'name))
+  (default! name (try (get x 'rel) (get x 'name)))
   (if (fail? name) {}
       (if (symbol? name) (downcase (symbol->string name))
 	  (if (string? name) (downcase name)
