@@ -80,12 +80,14 @@
 
 (define (olib/fetch ref)
   (if (string? ref)
-      (let ((r (urlget (stringout "http://openlibrary.org/"
-				  (if (has-prefix ref "/")
-				      (subseq ref 1) ref)
-				  ".json"))))
-	(and (test r 'response 200)
-	     (olib/import (jsonparse (get r '%content)))))
+      (let* ((url (stringout
+		    "http://openlibrary.org/"
+		    (if (has-prefix ref "/") (subseq ref 1) ref)
+		    ".json"))
+	     (r (urlget url)))
+	(if (test r 'response 200)
+	    (olib/import (jsonparse (get r '%content)))
+	    (error "Bad server response to " (write url) "\n\t" r)))
       (if (olib? ref)
 	  (olib/fetch (olib-key ref))
 	  (error "Invalid OLIB (Open Library) value"))))
@@ -106,7 +108,7 @@
 	((null? scan))
       (set! query (convert-query (car scan) (cadr scan) query)))
     (do-choices query
-      (let* ((url (if cache
+      (let* ((url (if (getopt opts 'offset #f)
 		      (scripturl "http://openlibrary.org/query.json"
 			"query" (->json query) "*" ""
 			"offset" (getopt opts 'offset)
@@ -120,7 +122,8 @@
 		   (let ((result (olib/parse (get req '%content))))
 		     (if (vector? result)
 			 (olib/import (elts result) cache)
-			 (olib/import result cache)))))))
+			 (olib/import result cache))))
+	    (error "Bad server response to " (write url) ":\n\t" req))))
     results))
 
 (define (convert-query slot value query)
@@ -135,7 +138,7 @@
   (if (even? (length args)) (olib-query args)
       (olib-query (cons 'type args))))
 
-(define-init olib-cache (make-hashtable))
+(define olib-cache (make-hashtable))
 
 (define (olib/q . args)
   (if (even? (length args))
@@ -149,12 +152,13 @@
 	 (uri (stringout "http://openlibrary.org/api/books?bibkeys="
 			 bibkey "&details=true&callback=callback"))
 	 (req (urlget uri)))
-    (tryif (test req 'response 200)
-      (let* ((content (get req '%content))
-	     (cbstart (search "callback(" content))
-	     (parsed (and cbstart (jsonparse (subseq content (+ cbstart 9))))))
-	(tryif parsed
-	  (olib/ref (get (get (get parsed bibkey) "details") "key")))))))
+    (if (test req 'response 200)
+	(let* ((content (get req '%content))
+	       (cbstart (search "callback(" content))
+	       (parsed (and cbstart (jsonparse (subseq content (+ cbstart 9))))))
+	  (tryif parsed
+	    (olib/ref (get (get (get parsed bibkey) "details") "key"))))
+	(error "Bad server response to " (write uri) ":\n\t" req))))
 
 
 ;;; Getting covers
