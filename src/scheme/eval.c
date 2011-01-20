@@ -304,6 +304,31 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i)
   return fd_get_body(expr,i);
 }
 
+static fdtype getopt_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype opts=fd_eval(fd_get_arg(expr,1),env);
+  if (FD_ABORTP(opts)) return opts;
+  else {
+    fdtype keys=fd_eval(fd_get_arg(expr,2),env);
+    if (FD_ABORTP(keys)) {
+      fd_decref(opts); return keys;}
+    else {
+      fdtype results=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(opt,opts) {
+	FD_DO_CHOICES(key,keys) {
+	  fdtype v=fd_getopt(opt,key,FD_VOID);
+	  if (FD_ABORTP(v)) {
+	    fd_decref(results); results=v;
+	    FD_STOP_DO_CHOICES;}
+	  else if (!(FD_VOIDP(v))) {FD_ADD_TO_CHOICE(results,v);}}
+	if (FD_ABORTP(results)) {FD_STOP_DO_CHOICES;}}
+      if (FD_ABORTP(results)) return results;
+      else if (FD_EMPTY_CHOICEP(results)) {
+	fdtype dflt_expr=fd_get_arg(expr,3);
+	if (FD_VOIDP(dflt_expr)) return FD_FALSE;
+	else return fd_eval(dflt_expr,env);}
+      else return results;}}
+}
 static fdtype getopt_prim(fdtype opts,fdtype keys,fdtype dflt)
 {
   fdtype results=FD_EMPTY_CHOICE;
@@ -1444,8 +1469,9 @@ static void init_localfns()
 					    fd_fixnum_type,FD_VOID,
 					    fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
+  fd_defspecial(fd_scheme_module,"GETOPT",getopt_handler);
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3x("GETOPT",getopt_prim,2,
+	   fd_make_ndprim(fd_make_cprim3x("%GETOPT",getopt_prim,2,
 					  -1,FD_VOID,fd_symbol_type,FD_VOID,
 					  -1,FD_FALSE)));
   fd_idefn(fd_scheme_module,
