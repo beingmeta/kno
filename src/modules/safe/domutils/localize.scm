@@ -63,7 +63,11 @@
 		(when (test urlmap lref))
 		(unless (and (string? saveto)
 			     (file-exists? (mkpath saveto name)))
-		  (let ((content (urlcontent absref)))
+		  (let* ((response (urlget absref))
+			 (content (and (test response 'response 200)
+				       (get response '%content))))
+		    (unless content
+		      (error "Couldn't fetch content from " (write absref) " got " response))
 		    ;; This should be code to change lref in the event of conflicts
 		    ;; This has fragments and queries stripped (uribase)
 		    ;; and additionally has the 'directory' part of the URI
