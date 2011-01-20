@@ -8,7 +8,7 @@
    Minor changes to algorithm are commented.
 
    Copyright (C) 1998, 1999 Massachusetts Institute of Technology
-   Copyright (C) 2000-2010 beingmeta, inc.
+   Copyright (C) 2000-2011 beingmeta, inc.
 
     Use, modification, and redistribution of this program is permitted
     under the terms of either (at the developer's discretion) the GNU
