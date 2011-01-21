@@ -520,8 +520,11 @@ static fdtype tempdir_prim(fdtype template)
      (u8_mkstring("%s/fdtempXXXXXXXXXXX",
 		  (getenv("TMPDIR"))||(getenv("TMP_DIR"))||"/tmp")));
   u8_string buf=u8_strdup(tempstring);
-  mkdtemp(buf);
-  return fd_init_string(NULL,-1,buf);
+  u8_string tempname=mkdtemp(buf);
+  if (tempname) return fd_init_string(NULL,-1,tempname);
+  else {
+    u8_condition cond=u8_strerror(errno); errno=0;
+    return fd_err(cond,"tempdir_prim",NULL,template);}
 }
 
 #if 0
