@@ -62,17 +62,18 @@
 		     (lref (mkpath read name)))
 		(when (test urlmap lref))
 		(unless (and (string? saveto)
-			     (%watch (file-exists? (mkpath saveto name))
-			       (mkpath saveto name) saveto name))
+			     (file-exists? (mkpath saveto name)))
 		  (let* ((response (urlget absref))
 			 (content (and (test response 'response 200)
 				       (get response '%content))))
 		    (unless content
-		      (error "Couldn't fetch content from " (write absref) " got " response))
-		    ;; This should be code to change lref in the event of conflicts
-		    ;; This has fragments and queries stripped (uribase)
-		    ;; and additionally has the 'directory' part of the URI
-		    ;; removed so that it's a local file name
+		      (error "Couldn't fetch content from " (write absref)
+			     " got " response))
+		    ;; This should be coded to change lref in the
+		    ;; event of conflicts This has fragments and
+		    ;; queries stripped (uribase) and additionally has
+		    ;; the 'directory' part of the URI removed so that
+		    ;; it's a local file name
 		    (loginfo "Downloaded " (write absref) " for " lref)
 		    ;; Save the content
 		    (savecontent saveto name content)))
