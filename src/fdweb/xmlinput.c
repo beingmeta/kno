@@ -461,8 +461,11 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
     u8_string item=items[i++]; int quote=-1;
     u8_byte *equals=strchr(item,'=');
     if (equals) {
-      u8_byte *valstart=equals+1, *valend;
+      u8_byte *valstart=equals+1, *valend, *scan=valstart; int c;
       *equals='\0'; 
+      c=u8_sgetc(&scan);
+      while ((c>=0)&&(u8_isspace(c))) {
+	valstart=scan; c=u8_sgetc(&scan);}
       if (*valstart=='"') {
 	valend=strchr(valstart+1,'"'); quote='"';
 	if (valend) {valstart++; *valend='\0';}}
