@@ -481,7 +481,8 @@ FD_EXPORT int fd_xmleval_attribfn
       fd_make_vector(3,fdtype_string(name),
 		     fd_make_qid(attrib_name,namespace),
 		     fd_incref(slotval));}
-  else attrib_entry=fd_make_vector(2,fdtype_string(name),fd_incref(slotval));
+  else attrib_entry=
+	 fd_make_vector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
   fd_add(xml->attribs,attribs_slotid,attrib_entry);
   fd_decref(attrib_entry); fd_decref(slotval);
