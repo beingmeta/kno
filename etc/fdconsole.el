@@ -18,6 +18,53 @@
     "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"
     "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\"))
 
+;; This gets #[ and #( to do block indents
+(defun scheme-indent-function (indent-point state)
+  (let ((normal-indent (current-column)))
+    (goto-char (1+ (elt state 1)))
+    (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
+    (if (and (elt state 2)
+	     (or (not (looking-at "\\sw\\|\\s_"))
+		 (save-excursion
+		   (goto-char (- (elt state 1) 1))
+		   (or (looking-at "#(") (looking-at "#\\["))))
+             ;; (not (looking-at "\\sw\\|\\s_"))
+	     )
+        ;; car of form doesn't seem to be a symbol
+        (progn
+          (if (not (> (save-excursion (forward-line 1) (point))
+                      calculate-lisp-indent-last-sexp))
+              (progn (goto-char calculate-lisp-indent-last-sexp)
+                     (beginning-of-line)
+                     (parse-partial-sexp (point)
+					 calculate-lisp-indent-last-sexp 0 t)))
+          ;; Indent under the list or under the first sexp on the same
+          ;; line as calculate-lisp-indent-last-sexp.  Note that first
+          ;; thing on that line has to be complete sexp since we are
+          ;; inside the innermost containing sexp.
+          (backward-prefix-chars)
+          (current-column))
+      (let ((function (buffer-substring (point)
+					(progn (forward-sexp 1) (point))))
+	    method)
+	(setq method (or (get (intern-soft function) 'scheme-indent-function)
+			 (get (intern-soft function) 'scheme-indent-hook)))
+	(cond ((or (eq method 'defun)
+		   (and (null method)
+			(> (length function) 3)
+			(string-match "\\`def" function)))
+	       (lisp-indent-defform state indent-point))
+	      ((integerp method)
+	       (lisp-indent-specform method state
+				     indent-point normal-indent))
+	      (method
+		(funcall method state indent-point normal-indent)))))))
+
+(defun block-indenter (state indent-point normal)
+  (save-excursion
+    (goto-char (elt state 1))
+    (+ (current-column) 2)))
+
 ;;; FRAMERD stuff
 (put 'when 'scheme-indent-function 1)
 (put 'unless 'scheme-indent-function 1)
@@ -26,6 +73,8 @@
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
+
+(put 'begin 'scheme-indent-function 'block-indenter)
 
 (put 'dolist 'scheme-indent-function 1)
 (put 'do-pool 'scheme-indent-function 1)
@@ -60,33 +109,35 @@
 (put 'on-errors 'scheme-indent-function 1)
 
 (put 'printout-to 'scheme-indent-function 1)
-(put 'printout 'scheme-indent-function 0)
-(put 'lineout 'scheme-indent-function 0)
+(put 'printout 'scheme-indent-function 'block-indenter)
+(put 'lineout 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
-(put 'stringout 'scheme-indent-function 0)
+(put 'stringout 'scheme-indent-function 'indent-straight-block)
 (put 'logif 'scheme-indent-function 1)
 (put 'logger 'scheme-indent-function 1)
 
 (put 'with-output 'scheme-indent-function 1)
-(put 'with-output-to-string 'scheme-indent-function 0)
+(put 'with-output-to-string 'scheme-indent-function 'block-indenter)
 
 ;;; XML/HTML generation
-(put 'xmlout 'scheme-indent-function 0)
-(put 'xmlblock 'scheme-indent-function 2)
-(put 'xmlblockn 'scheme-indent-function 2)
-(put 'xmlelt 'scheme-indent-function 0)
-(put 'scripturl 'scheme-indent-function 1)
-(put 'fdscripturl 'scheme-indent-function 1)
+(put 'xmlout 'scheme-indent-function 'block-indenter)
+(put 'xmlblock 'scheme-indent-function 3)
+(put 'xmlblockn 'scheme-indent-function 3)
+(put 'xmlelt 'scheme-indent-function 'block-indenter)
+(put 'scripturl 'scheme-indent-function 2)
+(put 'fdscripturl 'scheme-indent-function 2)
 
 (put 'soapenvelope 'scheme-indent-function 2)
 
-(put 'xhtml 'scheme-indent-function 0)
+(put 'xhtml 'scheme-indent-function 'block-indenter)
 (put 'span 'scheme-indent-function 1)
 (put 'div 'scheme-indent-function 1)
 (put 'table* 'scheme-indent-function 1)
-(put 'p 'scheme-indent-function 0)
-(put 'h1 'scheme-indent-function 0)
-(put 'h2 'scheme-indent-function 0)
+(put 'p 'scheme-indent-function 'block-indenter)
+(put 'h1 'scheme-indent-function 'block-indenter)
+(put 'h2 'scheme-indent-function 'block-indenter)
+(put 'h3 'scheme-indent-function 'block-indenter)
+(put 'h4 'scheme-indent-function 'block-indenter)
 (put 'anchor 'scheme-indent-function 1)
 (put 'anchor* 'scheme-indent-function 2)
 (put 'p* 'scheme-indent-function 1)
@@ -104,6 +155,12 @@
 
 (put 'find-frames 'scheme-indent-function 1)
 (put 'frame-create 'scheme-indent-function 1)
+
+(put '%watch 'scheme-indent-function 1)
+(put 'debug%watch 'scheme-indent-function 1)
+(put 'info%watch 'scheme-indent-function 1)
+(put 'notice%watch 'scheme-indent-function 1)
+(put 'saveoutput 'scheme-indent-function 1)
 
 (put 'extdb/proc 'scheme-indent-function 1)
 
