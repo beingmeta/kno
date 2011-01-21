@@ -367,10 +367,14 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 {
   int n_elts=0;
   u8_byte *scan=*scanner, *elt_start=scan;
-  if ((*scan=='/') || (*scan=='?')) {
+  /* Accumulate elements into _elts_ */
+  if ((*scan=='/') || (*scan=='?') || (*scan=='!')) {
+    /* Skip post < character */
     scan++; elt_start=scan;}
   while (scan<end)
+    /* Scan to set scan at the end */
     if (isspace(*scan)) {
+      /* Spaces outside of quotes or not after = are always breaks */
       if (scan>elt_start) {
 	*scan++='\0'; elts[n_elts++]=elt_start; elt_start=scan;}
       while ((scan<end) && (isspace(*scan))) scan++;
@@ -378,35 +382,56 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	*scanner=scan; return n_elts;}
       else elt_start=scan;}
     else if (*scan=='\'') {
-      u8_byte *end=strchr(scan+1,'\'');
-      while (end)
-	if (end[-1]=='\\') end=strchr(end+1,'\'');
+      /* Scan a single quoted value, waiting for an unprotected
+	 single quote */
+      u8_byte *aend=strchr(scan+1,'\'');
+      /* Scan, ignoring escaped single quotes */
+      while ((aend)&&(aend<end))
+	if (aend[-1]=='\\') end=strchr(aend+1,'\'');
 	else break;
-      if (end) scan=end+1;
+      if ((aend)&&(aend<end)) scan=end+1; /* got one */
       else if (sloppy) {
+	/* Not closed, but sloppy is okay, so we just go up to the
+	   first space after the opening quote.  We could be more
+	   clever (looking for xxx=, for exampe) but let's not.  */
 	u8_byte *lookahead=scan;
 	int c=u8_sgetc(&lookahead);
-	while ((c>0)&&(!(u8_isspace(c)))) {
+	while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
 	  scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
 		   xmlsnip(*scanner));
 	return -1;}}
     else if (*scan=='"') {
-      u8_byte *end=strchr(scan+1,'"');
-      while (end)
-	if (end[-1]=='\\') end=strchr(end+1,'"');
+      /* This is the exact same logic as above, but scanning for
+	 a double quote rather than a single quote. */
+      u8_byte *aend=strchr(scan+1,'"');
+      /* Scan, ignoring escaped single quotes */
+      while ((aend)&&(aend<end))
+	if (aend[-1]=='\\') end=strchr(aend+1,'"');
 	else break;
-      if (end) scan=end+1;
+      if ((aend)&&(aend<end)) scan=end+1; /* got one */
       else if (sloppy) {
+	/* Not closed, but sloppy is okay, so we just go up to the
+	   first space after the opening quote.  We could be more
+	   clever (looking for xxx=, for exampe) but let's not.  */
 	u8_byte *lookahead=scan;
 	int c=u8_sgetc(&lookahead);
-	while ((c>0)&&(!(u8_isspace(c)))) {
+	while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
 	  scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
 		   xmlsnip(*scanner));
 	return -1;}}
+    else if (*scan=='=') {
+      /* Skip whitespace after an = sign */
+      u8_byte *start=++scan; u8_byte *next=start;
+      int c=u8_sgetc(&next);
+      while ((c>0)&&(u8_isspace(c))&&(scan<end)) {
+	scan=next; c=u8_sgetc(&next);}
+      /* If you ran over (no value for =), just take the
+	 string up to the = */
+      if (scan>=end) scan=start;}
     else if (*scan=='\0') scan++;
     else u8_sgetc(&scan);
   if (scan>elt_start) {
@@ -461,17 +486,21 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
     u8_string item=items[i++]; int quote=-1;
     u8_byte *equals=strchr(item,'=');
     if (equals) {
-      u8_byte *valstart=equals+1, *valend, *scan=valstart; int c;
-      *equals='\0'; 
+      u8_byte *valstart=equals+1, *scan=valstart; int c;
+      u8_byte *valend=valstart+strlen(valstart)-1;
+      *equals='\0'; /* We're going to parse this */
       c=u8_sgetc(&scan);
-      while ((c>=0)&&(u8_isspace(c))) {
+      /* Skip whitespace */
+      while ((c>=0)&&((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) {
 	valstart=scan; c=u8_sgetc(&scan);}
+      /* We don't have to worry about where the item ends
+	 (that was handled by parse_element) but we do need to
+	 strip off any quotes. */
       if (*valstart=='"') {
-	valend=strchr(valstart+1,'"'); quote='"';
-	if (valend) {valstart++; *valend='\0';}}
+	valstart++; quote='"'; if (*valend=='"') *valend='\0';}
       else if (*valstart=='\'') {
-	valend=strchr(valstart+1,'\''); quote='\'';
-	if (valend) {valstart++; *valend='\0';}}
+	valstart++; quote='\''; if (*valend=='\'') *valend='\0';}
+      else {}
       if (process_nsattrib(xml,item,valstart)) {}
       else if ((attribfn) && (attribfn(xml,item,valstart,quote))) {}
       else fd_default_attribfn(xml,item,valstart,quote);}
@@ -579,13 +608,23 @@ static fdtype fd_lispify(u8_string arg)
   else return fdtype_string(arg);
 }
 
+static fdtype parse_attribname(u8_string string)
+{
+  fdtype parsed=fd_parse(string);
+  if ((FD_SYMBOLP(parsed))||(FD_OIDP(parsed))) return parsed;
+  else {
+    u8_log(LOG_WARNING,"BadAttribName",
+	   "Trouble parsing attribute name %s",string);
+    return fdtype_string(string);}
+}
+
 static fdtype attribids;
 
 FD_EXPORT
 int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
 {
   u8_string namespace, attrib_name=ns_get(xml,name,&namespace);
-  fdtype slotid=fd_parse(name);
+  fdtype slotid=parse_attribname(name);
   fdtype slotval=((val)?
 		  ((quote>0) ? (fd_lispify(val)) :
 		   (val[0]=='#') ? (fdtype_string(val)) :
@@ -597,11 +636,12 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   fd_add(xml->attribs,slotid,slotval);
   if (namespace) {
     fdtype qid=make_qid(attrib_name,namespace);
-    fd_add(xml->attribs,fd_parse(attrib_name),slotval);
+    fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       fd_make_vector(3,fdtype_string(name),make_qid(attrib_name,namespace),
 		     fd_incref(slotval));}
-  else attrib_entry=fd_make_vector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
+  else attrib_entry=
+	 fd_make_vector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
   fd_add(xml->attribs,attribs_symbol,attrib_entry);
   fd_decref(attrib_entry); fd_decref(slotval);

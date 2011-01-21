@@ -453,18 +453,22 @@ static fdtype xmlevalify(u8_string string)
   else return fdtype_string(string);
 }
 
-static fdtype parse_attrib_name(u8_string name)
+static fdtype parse_attribname(u8_string string)
 {
-  fdtype v=fd_parse(name);
-  if (FD_ABORTP(v)) {
-    fd_decref(v); return fd_intern(name);}
-  else return v;
+  fdtype parsed=fd_parse(string);
+  if ((FD_SYMBOLP(parsed))||(FD_OIDP(parsed))) return parsed;
+  else {
+    u8_log(LOG_WARNING,"BadAttribName",
+	   "Trouble parsing attribute name %s",string);
+    fd_decref(parsed);
+    return fd_intern(string);}
 }
 
-FD_EXPORT int fd_xmleval_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
+FD_EXPORT int fd_xmleval_attribfn
+   (FD_XML *xml,u8_string name,u8_string val,int quote)
 {
   u8_string namespace, attrib_name=fd_xmlns_lookup(xml,name,&namespace);
-  fdtype slotid=fd_parse(name);
+  fdtype slotid=parse_attribname(name);
   fdtype slotval=((quote>0) ? (xmlevalify(val)) : (fd_parse(val)));
   fdtype attrib_entry=FD_VOID;
   if (FD_EMPTY_CHOICEP(xml->attribs)) fd_init_xml_attribs(xml);
@@ -472,9 +476,10 @@ FD_EXPORT int fd_xmleval_attribfn(FD_XML *xml,u8_string name,u8_string val,int q
   fd_add(xml->attribs,slotid,slotval);
   if (namespace) {
     fdtype qid=fd_make_qid(attrib_name,namespace);
-    fd_add(xml->attribs,fd_parse(attrib_name),slotval);
+    fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      fd_make_vector(3,fdtype_string(name),fd_make_qid(attrib_name,namespace),
+      fd_make_vector(3,fdtype_string(name),
+		     fd_make_qid(attrib_name,namespace),
 		     fd_incref(slotval));}
   else attrib_entry=fd_make_vector(2,fdtype_string(name),fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
