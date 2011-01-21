@@ -8,7 +8,7 @@
 
 (module-export!
  '{olib
-   olib/ref olib/import olib/fetch olib/parse olib-key
+   olib/ref olib/import olib/fetch olib/parse olib? olib-key
    olib/query olib/q olib/bibref olib/id
    olib/image olib/refurl
    olib/getauthor
