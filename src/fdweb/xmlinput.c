@@ -387,9 +387,9 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
       u8_byte *aend=strchr(scan+1,'\'');
       /* Scan, ignoring escaped single quotes */
       while ((aend)&&(aend<end))
-	if (aend[-1]=='\\') end=strchr(aend+1,'\'');
+	if (aend[-1]=='\\') aend=strchr(aend+1,'\'');
 	else break;
-      if ((aend)&&(aend<end)) scan=end+1; /* got one */
+      if ((aend)&&(aend<end)) scan=aend+1; /* got one */
       else if (sloppy) {
 	/* Not closed, but sloppy is okay, so we just go up to the
 	   first space after the opening quote.  We could be more
@@ -410,7 +410,7 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
       while ((aend)&&(aend<end))
 	if (aend[-1]=='\\') end=strchr(aend+1,'"');
 	else break;
-      if ((aend)&&(aend<end)) scan=end+1; /* got one */
+      if ((aend)&&(aend<end)) scan=aend+1; /* got one */
       else if (sloppy) {
 	/* Not closed, but sloppy is okay, so we just go up to the
 	   first space after the opening quote.  We could be more
