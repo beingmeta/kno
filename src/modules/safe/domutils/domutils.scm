@@ -89,7 +89,7 @@
 	       (add! node '%attribs
 		     (vector (elt attribs 0) (elt attribs 1) stringval))
 	       (store! node (parse-arg aname) val)
-	       (store! node (parse-arg (attrib-name s)) val)
+	       (store! node (parse-arg (attrib-name aname)) val)
 	       (add! node '%attribs
 		     (vector (elt attribs 0) (elt attribs 1) stringval)))
 	(add! node '%attribs (vector aname #f stringval)))))
