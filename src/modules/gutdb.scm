@@ -7,6 +7,8 @@
 ;;(define %loglevel %debug!)
 (define %loglevel %notify!)
 
+(define gutcache (make-hashtable))
+
 (module-export! '{gutdb gutdb/rdf})
 
 (define (gutdb/rdf id)
@@ -25,10 +27,11 @@
       (debug%watch "GUTDB/RDF fetched" url))
     (and response (xmlparse (get response '%content)))))
 
-(define (gutdb arg)
+(define (gutdb-inner arg)
   (if (or (string? arg) (number? arg))
       (handle-rdf (gutdb/rdf arg))
       (and (table? arg) (handle-rdf arg))))
+(define (gutdb arg) (cachecall gutcache gutdb-inner arg))
 
 (define (nodetext n) (decode-entities (xmlcontent n)))
 (define (subjtext n (slotid #f))
@@ -39,6 +42,10 @@
       (if (textsearch #((spaces) "--" (spaces)) text)
 	  (textslice text #((spaces) "--" (spaces)) #f)
 	  text))))
+(define (subjsplit text)
+  (if (textsearch #((spaces) "--" (spaces)) text)
+      (textslice text #((spaces) "--" (spaces)) #f)
+      text))
 (define (rightstext n)
   (if (string? n) (decode-entities n)
       (if (test n 'resource) (get n 'resource)
@@ -46,7 +53,10 @@
 (define (getvals x slot)
   (choice (reject (get x slot) 'bag)
 	  (get (get (get x slot) 'bag) 'li)))
-(define (getresource x) (get x 'resource))
+(define (getresource x) (get x '{resource rdf:resource}))
+(define (get-member-of x)
+  (get (xmlget x 'memberof) 'rdf:resource))
+
 (define (handle-rdf rdf)
   (let ((info (frame-create #f))
 	(index (make-hashtable)))
@@ -58,14 +68,23 @@
 			 (ctb . contributor)})
       (let* ((value (xmlget rdf (car field)))
 	     (about (get value 'resource))
-	     (ref (find-frames index 'about about))
+	     (ref (find-frames index '{about rdf:about} about))
 	     (sum (frame-create #f)))
 	(when (exists? value)
 	  (do-choices (slotid '{name webpage alias birthdate deathdate})
 	    (when (exists? (xmlget ref slotid))
 	      (store! sum slotid (difference ({xmlcontent getresource} (xmlget ref slotid)) ""))))
-	  (store! info (cdr field) sum))))
+	  (store! info (cdr field) sum)))
+      (do-choices (subject (xmlget rdf 'subject))
+	(let ((type (get-member-of subject))
+	      (values (xmlcontent (xmlget subject 'value))))
+	  (cond ((equal? type "http://purl.org/dc/terms/LCSH")
+		 (store! info 'lcsh (subjsplit values)))
+		((equal? type "http://purl.org/dc/terms/LCC")
+		 (store! info 'lcc values))))))
+    (add! info 'files (get (xmlget rdf 'file) 'about))
     info))
+
 
 
 
