@@ -149,7 +149,7 @@
 
 (define (dom/prepend! node . content)
   (let ((current (try (get node '%content) '())))
-    (dolist (elt content)
+    (dolist (elt (reverse content))
       (when (exists? elt)
 	(set! current
 	      (append (if (pair? elt) elt
