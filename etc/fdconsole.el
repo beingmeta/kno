@@ -26,8 +26,11 @@
     (if (and (elt state 2)
 	     (or (not (looking-at "\\sw\\|\\s_"))
 		 (save-excursion
+		   (goto-char (elt state 1))
+		   (looking-at "{"))
+		 (save-excursion
 		   (goto-char (- (elt state 1) 1))
-		   (or (looking-at "#(") (looking-at "#\\["))))
+		   (or (looking-at "#(") (looking-at "#\\[") (looking-at "#{"))))
              ;; (not (looking-at "\\sw\\|\\s_"))
 	     )
         ;; car of form doesn't seem to be a symbol
