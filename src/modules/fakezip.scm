@@ -31,36 +31,39 @@
       (system (config 'RM "rm -rf") " " (fakezip-tmpdir fz))
       (message "Leaving temporary dir " (fakezip-tmpdir fz))))
 
-(define (fz/add! fz path content (compress #t))
+(define (fz/add! fz path content (compress #t) (extra #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
 	(curdir (getcwd))
-	(args (list path)))
+	(args (list path))
+	(moreopts '()))
+    (unless extra (set! moreopts (cons "-X" moreopts)))
     (checkdir! (dirname fspath))
     (fileout fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
-	       (forkwait (config 'zipbin "/usr/bin/zip")
-			 (fakezip-tmpzip fz)
-			 (if compress "-9" "-0")
-			 path))
+	       (apply forkwait
+		      (config 'zipbin "/usr/bin/zip")
+		      (fakezip-tmpzip fz)
+		      (if compress "-9" "-0")
+		      (append moreopts (list path))))
       (setcwd curdir))))
 
-(define (fz/update! fz path content (compress #t))
+(define (fz/update! fz path content (compress #t) (extra #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
 	(curdir (getcwd))
-	(args (list path)))
+	(args (list path))
+	(moreopts '()))
+    (unless extra (set! moreopts (cons "-X" moreopts)))
     (checkpath! fspath)
     (fileout fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
-	       (forkwait (config 'zipbin "/usr/bin/zip")
-			 (fakezip-tmpzip fz)
-			 "-u"
-			 (if compress "-9" "-0")
-			 path))
+	       (apply forkwait
+		      (config 'zipbin "/usr/bin/zip")
+		      (fakezip-tmpzip fz)
+		      "-u"
+		      (if compress "-9" "-0")
+		      (append moreopts (list path))))
       (chdir curdir))))
-
-
-
 
 
