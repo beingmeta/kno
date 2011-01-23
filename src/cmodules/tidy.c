@@ -10,6 +10,7 @@ static char versionid[] =
 
 #include "fdb/dtype.h"
 #include "fdb/eval.h"
+#include "libu8/u8logging.h"
 
 #if HAVE_TIDY_H
 #include <tidy.h>
@@ -43,7 +44,7 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
   if (rc<0) {
     tidyRelease(tdoc);
     return fd_err(fd_TidyError,"tidy_prim/init",NULL,FD_VOID);}
-  if (FD_VOIDP(opts)) {
+  if ((FD_VOIDP(opts))||(FD_FALSEP(opts))) {
     if (rc>=0) rc=tidyOptSetValue(tdoc,TidyCharEncoding,"utf8");
     if (rc>=0) rc=tidyOptSetInt(tdoc,TidyDoctypeMode,TidyDoctypeOmit);
     if (rc>=0) rc=tidyOptSetBool(tdoc,TidyShowWarnings,no);
@@ -61,25 +62,27 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
     if (rc>=0) rc=tidyOptSetBool(tdoc,TidyNCR,yes);}
   else {}
   if (rc<0) result=fd_err(fd_TidyError,"tidy_prim/setopts",errbuf.bp,FD_VOID);
-  rc=tidyParseString(tdoc,FD_STRDATA(string));
-  if ((FD_VOIDP(result))&&(rc<0))
-    result=fd_err(fd_TidyError,"tidy_prim/parse",errbuf.bp,FD_VOID);
-  if (rc>=0) rc=tidyCleanAndRepair(tdoc);
-  if ((FD_VOIDP(result))&&(rc<0))
-    result=fd_err(fd_TidyError,"tidy_prim/clean",errbuf.bp,FD_VOID);
-  if (FD_APPLICABLEP(diag)) {
-    if (rc>=0) rc=tidyRunDiagnostics(tdoc);
-    if ((FD_VOIDP(result))&&(rc<0))
-      result=fd_err(fd_TidyError,"tidy_prim/diag",errbuf.bp,FD_VOID);
-    if (rc>=0) rc=((tidyOptSetBool(tdoc,TidyForceOutput,yes))?(rc):(-1));
-    if ((FD_VOIDP(result))&&(rc<0))
-      result=fd_err(fd_TidyError,"tidy_prim/forceout",errbuf.bp,FD_VOID);}
-  if (rc>=0) rc=tidySaveBuffer(tdoc,&outbuf);
-  if ((FD_VOIDP(result))&&(rc<0))
-    result=fd_err(fd_TidyError,"tidy_prim/save",errbuf.bp,FD_VOID);
-  else if (FD_VOIDP(result))
-    result=fdtype_string(outbuf.bp);
-  else {}
+  else {
+    rc=tidyParseString(tdoc,FD_STRDATA(string));
+    if (rc<0)
+      result=fd_err(fd_TidyError,"tidy_prim/parse",errbuf.bp,FD_VOID);
+    else rc=tidyCleanAndRepair(tdoc);
+    if (!(FD_VOIDP(result))) {}
+    else if (rc<0)
+      result=fd_err(fd_TidyError,"tidy_prim/clean",errbuf.bp,FD_VOID);
+    else rc=((tidyOptSetBool(tdoc,TidyForceOutput,yes))?(rc):(-1));
+    if (!(FD_VOIDP(result))) {}
+    else if (rc<0)
+      result=fd_err(fd_TidyError,"tidy_prim/forceout",errbuf.bp,FD_VOID);
+    else rc=tidySaveBuffer(tdoc,&outbuf);
+    if (!(FD_VOIDP(result))) {}
+    else if (rc<0)
+      result=fd_err(fd_TidyError,"tidy_prim/save",errbuf.bp,FD_VOID);
+    else result=fdtype_string(outbuf.bp);
+    if ((!((FD_VOIDP(diag))||(FD_FALSEP(diag))))&&((rc>0)||(rc<0))) {
+      int drc=tidyRunDiagnostics(tdoc);
+      if (drc>=0) u8_log(LOG_WARNING,"TIDY",errbuf.bp);
+      else u8_log(LOG_CRIT,"TIDY/diagfail",errbuf.bp);}}
   tidyBufFree(&outbuf);
   tidyBufFree(&errbuf);
   tidyRelease(tdoc);
