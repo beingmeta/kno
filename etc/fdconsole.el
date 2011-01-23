@@ -115,7 +115,7 @@
 (put 'printout 'scheme-indent-function 'block-indenter)
 (put 'lineout 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
-(put 'stringout 'scheme-indent-function 'indent-straight-block)
+(put 'stringout 'scheme-indent-function 'block-indenter)
 (put 'logif 'scheme-indent-function 1)
 (put 'logger 'scheme-indent-function 1)
 
@@ -124,8 +124,8 @@
 
 ;;; XML/HTML generation
 (put 'xmlout 'scheme-indent-function 'block-indenter)
-(put 'xmlblock 'scheme-indent-function 3)
-(put 'xmlblockn 'scheme-indent-function 3)
+(put 'xmlblock 'scheme-indent-function 2)
+(put 'xmlblockn 'scheme-indent-function 2)
 (put 'xmlelt 'scheme-indent-function 'block-indenter)
 (put 'scripturl 'scheme-indent-function 2)
 (put 'fdscripturl 'scheme-indent-function 2)
