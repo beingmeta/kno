@@ -9,7 +9,7 @@
 (module-export!
  '{olib
    olib/ref olib/import olib/fetch olib/parse olib? olib-key
-   olib/query olib/q olib/bibref olib/id
+   olib/query olib/q olib/q+ olib/bibref olib/id
    olib/image olib/refurl
    olib/getauthor
    olib/get})
@@ -108,14 +108,10 @@
 	((null? scan))
       (set! query (convert-query (car scan) (cadr scan) query)))
     (do-choices query
-      (let* ((url (if (getopt opts 'offset #f)
-		      (scripturl "http://openlibrary.org/query.json"
-			"query" (->json query) "*" ""
-			"offset" (getopt opts 'offset)
-			"limit" (getopt opts 'limit 1000))
-		      (scripturl "http://openlibrary.org/query.json"
-			"query" (->json query)
-			"limit" (getopt opts 'limit 1000))))
+      (let* ((url (scripturl "http://openlibrary.org/query.json"
+		      "query" (->json query)
+		      "offset" (getopt opts 'offset 0)
+		      "limit" (getopt opts 'limit 1000)))
 	     (req (debug%watch (urlget url) query)))
 	(if (test req 'response 200)
 	    (set+! results
@@ -144,6 +140,11 @@
   (if (even? (length args))
       (cachecall olib-cache olib-query args #t)
       (cachecall olib-cache olib-query (cons 'type args) #t)))
+
+(define (olib/q+ opts . args)
+  (if (even? (length args))
+      (cachecall olib-cache olib-query args #t opts)
+      (cachecall olib-cache olib-query (cons 'type args) #t opts)))
       
 ;;; Getting REFS from bibliographic information
 
