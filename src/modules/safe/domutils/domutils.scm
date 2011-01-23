@@ -638,8 +638,13 @@
       (printout "." (string-subst (get oid 'class) " " ".")))
     (when (test oid 'id) (printout "#" (get oid 'id)))
     (when (test oid 'name) (printout "[NAME=" (get oid 'name) "]"))
-    (do-choices (attrib (difference (get oid '%attribids) '{name class id}))
-      (printout "[" attrib "]"))))
+    (if (and (singleton? (get oid '%attribids))
+	     (vector? (get oid '%attribids)))
+	(doseq (attrib (get oid '%attribids))
+	  (unless (overlaps? attrib '{name class id})
+	    (printout "[" attrib "]")))
+	(do-choices (attrib (difference (get oid '%attribids) '{name class id}))
+	  (printout "[" attrib "]")))))
 
 (varconfig! DOMPOOL dompool use-pool)
 
