@@ -204,19 +204,28 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       fdtype attribid=data[i++];
       fdtype value=fd_get(xml,attribid,FD_VOID);
       if (!((FD_VOIDP(value))||(FD_EMPTY_CHOICEP(value)))) {
-	if (FD_SYMBOLP(attribid))
-	  u8_printf(&out," %s=",FD_SYMBOL_NAME(attribid));
-	else if (FD_STRINGP(attribid))
-	  u8_printf(&out," %s=",FD_STRDATA(attribid));
-	else u8_puts(&out," error=");
+	u8_putc(&out,' ');
+	output_markup_sym(&out,attribid);
+	u8_putc(&out,'=');
 	if (FD_STRINGP(value))
-	  fd_attrib_entify(&out,FD_STRDATA(value));
+	  if (strchr(FD_STRDATA(value),'"')) {
+	    u8_putc(&out,'\'');
+	    fd_attrib_entify(&out,FD_STRDATA(value));
+	    u8_putc(&out,'\'');}
+	  else {
+	    u8_putc(&out,'"');
+	    fd_attrib_entify(&out,FD_STRDATA(value));
+	    u8_putc(&out,'"');}
 	else if (FD_FIXNUMP(value))
-	  u8_printf(&out,"%d",FD_FIX2INT(value));
+	  u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
 	else {
+	  int dquote=1;
 	  struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
 	  fd_unparse(&subout,value);
+	  if (strchr(subout.u8_outbuf,'"')) dquote=0;
+	  if (dquote) u8_putc(&out,'"'); else u8_putc(&out,'\'');
 	  u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
+	  if (dquote) u8_putc(&out,'"'); else u8_putc(&out,'\'');
 	  u8_free(subout.u8_outbuf);}
 	fd_decref(value);}}
     fd_decref(to_free);
