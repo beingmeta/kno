@@ -81,8 +81,8 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
     else result=fdtype_string(outbuf.bp);
     if ((!((FD_VOIDP(diag))||(FD_FALSEP(diag))))&&((rc>0)||(rc<0))) {
       int drc=tidyRunDiagnostics(tdoc);
-      if (drc>=0) u8_log(LOG_WARNING,"TIDY",errbuf.bp);
-      else u8_log(LOG_CRIT,"TIDY/diagfail",errbuf.bp);}}
+      if (drc>=0) u8_log(LOG_WARNING,"TIDY","%s",errbuf.bp);
+      else u8_log(LOG_CRIT,"TIDY/diagfail","%s",errbuf.bp);}}
   tidyBufFree(&outbuf);
   tidyBufFree(&errbuf);
   tidyRelease(tdoc);
