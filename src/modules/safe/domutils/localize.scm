@@ -98,7 +98,7 @@
       (let ((ref (localref (get node 'src)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
-	(message "Localized " (get node 'src) " to " ref " for " node)
+	(logdebug "Localized " (write (get node 'src)) " to " (write ref) " for " node)
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
