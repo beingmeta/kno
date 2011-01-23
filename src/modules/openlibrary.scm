@@ -10,7 +10,7 @@
  '{olib
    olib/ref olib/import olib/fetch olib/parse olib? olib-key
    olib/query olib/q olib/q+ olib/bibref olib/id
-   olib/image olib/refurl
+   olib/image olib/imageurl olib/refurl
    olib/getauthor
    olib/get})
 
@@ -170,6 +170,10 @@
     (stringout "http://covers.openlibrary.org/"
 	       (if (has-prefix (olib-key ref) "/authors/") "a" "b")
 	       "/id/" id "-" size ".jpg")))
+
+(define (olib/imageurl kind id size)
+  (stringout "http://covers.openlibrary.org/"
+    kind "/id/" id "-" size ".jpg"))
 
 (define (olib/refurl ref)
   (if (string? ref) (set! ref (olib/ref ref)))
