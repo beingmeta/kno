@@ -60,7 +60,6 @@
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
 		     (lref (mkpath read name)))
-		(when (test urlmap lref))
 		(unless (and (string? saveto)
 			     (file-exists? (mkpath saveto name)))
 		  (let* ((response (urlget absref))
@@ -95,10 +94,11 @@
 	(amalgamate (or amalgamate {}))
 	(localhosts (or localhosts {}))
 	(files {}))
-    (do-choices (node (dom/find dom "img"))
+    (dolist (node (dom/find->list dom "img"))
       (let ((ref (localref (get node 'src)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
+	(message "Localized " (get node 'src) " to " ref " for " node)
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
@@ -114,11 +114,12 @@
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (when doanchors
-      (do-choices (node (pick (dom/find dom "a") 'href))
-	(let ((ref (localref (get node 'href) urlmap base (qc saveto) read
-			     (qc amalgamate) (qc localhosts))))
-	  (dom/set! node 'href ref)
-	  (set+! files ref))))))
+      (dolist (node (dom/find->list dom "a"))
+	(when (test node 'href)
+	  (let ((ref (localref (get node 'href) urlmap base (qc saveto) read
+			       (qc amalgamate) (qc localhosts))))
+	    (dom/set! node 'href ref)
+	    (set+! files ref)))))))
 
 ;;;; Manifests
 
