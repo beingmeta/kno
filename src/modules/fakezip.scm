@@ -20,14 +20,16 @@
 
 (define (fz/open filename)
   (let* ((abs (abspath filename))
-	 (tmpdir (tempdir (string-append (dirname abs) "tmpzipXXXXXXXX")))
-	 (tmpzip (mkpath tmpdir (basename filename))))
+	 (tmpdir (tempdir (mkpath (dirname abs) "tmpzipXXXXXXXX")))
+	 (tmpzip (basename filename)))
     (cons-fakezip (abspath filename) tmpdir tmpzip)))
 
-(define (fz/close fz)
+(define (fz/close fz (cleanup #t))
   (write-file (fakezip-filename fz)
-	      (filedata (fakezip-tmpzip fz)))
-  (system (config 'RM "rm -rf") " " (fakezip-tmpdir fz)))
+	      (filedata (mkpath (fakezip-tmpdir fz) (fakezip-tmpzip fz))))
+  (if cleanup
+      (system (config 'RM "rm -rf") " " (fakezip-tmpdir fz))
+      (message "Leaving temporary dir " (fakezip-tmpdir fz))))
 
 (define (fz/add! fz path content (compress #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
