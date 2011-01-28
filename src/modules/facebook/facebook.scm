@@ -174,7 +174,7 @@
 	 (reqinfo (scripturl "https://graph.facebook.com/me"
 		    "access_token" access
 		    "fields" "id,name,picture,about,bio,website"))
-	 (info (jsonparse (urlcontent reqinfo)))
+	 (info (jsonparse (urlcontent reqinfo) 24 #[id #t]))
 	 (reqfriends (scripturl "https://graph.facebook.com/me/friends"
 		       "access_token" access
 		       "fields" "name"))
@@ -185,12 +185,17 @@
 		     "access_token" access
 		     "fields" "name,description")))
     (debug%watch "FB/AUTHORIZED" info access accessreq)
+    (store! info 'type 'user)
     (add! info 'friends
-	  (elts (get (jsonparse (urlcontent reqfriends))
+	  (elts (get (jsonparse (urlcontent reqfriends) 24 #[id #t])
 		     'data)))
+    (add! (get info 'friends) 'type 'user)
     (add! info 'groups
-	  (elts (get (jsonparse (urlcontent reqgroups)) 'data)))
+	  (elts (get (jsonparse (urlcontent reqgroups) 24 #[id #t])
+		     'data)))
+    (add! (get info 'groups) 'type 'group)
     (add! info 'pages
-	  (elts (get (jsonparse (urlcontent reqpages)) 'data)))
+	  (elts (get (jsonparse (urlcontent reqpages) 24 #[id #t]) 'data)))
+    (add! (get info 'pages) 'type 'page)
     (cgiset! 'fb/access access)
     info))
