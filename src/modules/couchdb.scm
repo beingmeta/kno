@@ -455,6 +455,7 @@
 	 (include_docs
 	  (if (test options 'include_docs) (get options 'include_docs)
 	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (raw (or (test options 'raw) (test viewopts 'raw)))
 	 (response
 	  (couchdb/req
 	   (couchview-db view)
@@ -479,7 +480,10 @@
 		    (and opts (getopt opts 'output))
 		    (make-hashtable))))
     (doseq (row (get response 'rows))
-      (add! table (get row 'key) (couchoid (if include_docs (get row 'doc) (get row 'value)))))
+      (add! table (get row 'key)
+	    (if raw
+		(if include_docs (get row 'doc) (get row 'value))
+		(couchoid (if include_docs (get row 'doc) (get row 'value))))))
     table))
 (define (couchdb/list view (opts #f))
   (let* ((options (or opts {}))
@@ -487,6 +491,7 @@
 	 (include_docs
 	  (if (test options 'include_docs) (get options 'include_docs)
 	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (raw (or (test options 'raw) (test viewopts 'raw)))
 	 (response
 	  (couchdb/req
 	   (couchview-db view)
@@ -507,7 +512,9 @@
 	     "skip" (get options 'skip) "limit" (get options 'limit))))
 	 (results {}))
     (doseq (row (get response 'rows))
-      (set+! results (couchoid (if include_docs (get row 'doc) (get row 'value)))))
+      (set+! results (if raw
+			 (if include_docs (get row 'doc) (get row 'value))
+			 (couchoid (if include_docs (get row 'doc) (get row 'value))))))
     results))
 (define (couchdb/range view start end (opts #f))
   (let* ((options (or opts {}))
@@ -515,6 +522,7 @@
 	 (include_docs
 	  (if (test options 'include_docs) (get options 'include_docs)
 	      (and (test viewopts 'include_docs) (get viewopts 'include_docs))))
+	 (raw (or (test options 'raw) (test viewopts 'raw)))
 	 (response
 	  (couchdb/req
 	   (couchview-db view)
@@ -533,6 +541,9 @@
 	     "skip" (get options 'skip) "limit" (get options 'limit))))
 	 (results {}))
     (doseq (row (get response 'rows))
-      (set+! results (couchoid (if include_docs (get row 'doc) (get row 'value)))))
+      (set+! results
+	     (if raw
+		 (if include_docs (get row 'doc) (get row 'value))
+		 (couchoid (if include_docs (get row 'doc) (get row 'value))))))
     results))
 (module-export! '{couchdb/table couchdb/list couchdb/range})
