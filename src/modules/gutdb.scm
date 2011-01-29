@@ -84,8 +84,3 @@
 		 (store! info 'lcc values))))))
     (add! info 'files (get (xmlget rdf 'file) 'about))
     info))
-
-
-
-
-
