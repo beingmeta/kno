@@ -556,11 +556,16 @@
        (if lim
 	   (do ((content (get node '%content) (cdr content))
 		(len 0 (+ (if (string? (car content))
-			      (isalphalen (car content)) 0)
+			      (if (has-prefix (car content) "<!--")
+				  0 (isalphalen (car content)))
+			      0)
 			  len)))
 	       ((or (null? content) (> len lim))
 		(> len lim)))
-	   (some? (lambda (x) (and (string? x) (not (empty-string? x))))
+	   (some? (lambda (x)
+		    (and (string? x)
+			 (not (empty-string? x))
+			 (not (has-prefix x "<!--"))))
 		  (get node '%content)))))
 
 (define inline-tags '{a em strong i b span cite})
