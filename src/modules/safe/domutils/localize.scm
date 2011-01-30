@@ -55,8 +55,8 @@
        ;; No easy outs, fetch the content and store it
        (let ((absref
 	      (if (string-starts-with? ref absurlstart) ref
-		  (mkpath (dirname base) ref))))
-	 ;; (%watch ref base target saveto read)
+		  (mkuripath (dirname base) ref))))
+	 ;; (debug%watch "LOCALIZE" ref base absref saveto read)
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
 		     (lref (mkpath read name)))
