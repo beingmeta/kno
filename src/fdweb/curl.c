@@ -35,6 +35,8 @@ static fdtype eurl_slotid, filetime_slotid, response_code_slotid;
 
 static fdtype text_types=FD_EMPTY_CHOICE;
 
+static int debugging_curl=0;
+
 static fd_exception NonTextualContent=
   _("can't parse non-textual content as XML");
 static fd_exception CurlError=_("Internal libcurl error");
@@ -311,6 +313,9 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     fd_seterr(CurlError,"fd_open_curl_handle",
 	      strdup("curl_easy_init failed"),FD_VOID);
     return NULL;}
+  if (debugging_curl) {
+    unsigned long long ptrval=(unsigned long long) h->handle;
+    u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);}
   curl_set(h,CURLOPT_NOPROGRESS,1);
   curl_set(h,CURLOPT_FILETIME,(long)1);
   curl_set(h,CURLOPT_NOSIGNAL,1);
@@ -347,6 +352,9 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
 static void recycle_curl_handle(struct FD_CONS *c)
 {
   struct FD_CURL_HANDLE *ch=(struct FD_CURL_HANDLE *)c;
+  if (debugging_curl) {
+    unsigned long long ptrval=(unsigned long long) ch->handle;
+    u8_log(LOG_DEBUG,"CURL","Freeing CURL handle %llx",ptrval);}
   curl_slist_free_all(ch->headers);
   curl_easy_cleanup(ch->handle);
   fd_decref(ch->initdata);
@@ -1066,6 +1074,11 @@ FD_EXPORT void fd_init_curl_c()
   fd_idefn(module,fd_make_cprim3("CURLSETOPT!",curlsetopt,2));
   fd_idefn(module,fd_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
   fd_idefn(module,fd_make_cprim1("CURL-HANDLE?",curlhandlep,1));
+
+  fd_register_config
+    ("DEBUGCURL",_("Whether to debug low level CURL interaction"),
+     fd_boolconfig_get,fd_boolconfig_set,&debugging_curl);
+
 
   fd_register_sourcefn(url_sourcefn);
 
