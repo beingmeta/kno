@@ -491,23 +491,31 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
 
 static fdtype mkpath_prim(fdtype dirname,fdtype name)
 {
-  if ((FD_STRINGP(name))&&((FD_STRDATA(name))[0]=='/'))
-    return fd_incref(name);
+  fdtype config_val=FD_VOID; u8_string dir=NULL, namestring=NULL;
+  char buf[128]; int dirlen=-1, need_slash=0;
+  if (!(FD_STRINGP(name)))
+    return fd_type_error(_("string"),"mkuripath_prim",name);
+  else namestring=FD_STRDATA(name);
+  if (*namestring=='/') return fd_incref(name);
+  else if (FD_STRINGP(dirname)) {
+    dir=FD_STRDATA(dirname);
+    dirlen=FD_STRLEN(dirname);}
   else if (FD_SYMBOLP(dirname)) {
-    fdtype config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
+    config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
     if (FD_STRINGP(config_val)) {
-      u8_string path=u8_mkpath(FD_STRDATA(config_val),FD_STRDATA(name));
-      fd_decref(config_val);
-      return fd_init_string(NULL,-1,path);}
+      dir=FD_STRDATA(config_val);
+      dirlen=FD_STRLEN(config_val);}
     else {
       fd_decref(config_val); 
-      return fd_type_error
-	(_("pathname or path CONFIG"),"mkpath_prim",dirname);}}
-  else if (FD_STRINGP(dirname))
-    return fd_init_string
-      (NULL,-1,u8_mkpath(FD_STRDATA(dirname),FD_STRDATA(name)));
+      return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}
   else return fd_type_error
-	 (_("pathname or path CONFIG"),"mkpath_prim",dirname);
+	 (_("string or string CONFIG var"),"mkuripath_prim",dirname);
+  if (FD_VOIDP(config_val))
+    return fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+  else {
+    fdtype result=fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    fd_decref(config_val);
+    return result;}
 }
 
 static u8_string tmpdir_template=NULL;

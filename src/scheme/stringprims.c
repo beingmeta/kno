@@ -188,7 +188,14 @@ static fdtype downcase(fdtype string)
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
     return FD_CODE2CHAR(u8_tolower(c));}
-  else return fd_type_error(_("string or character"),"downcase",string);
+  else if (FD_SYMBOLP(string)) {
+    u8_byte *scan=FD_SYMBOL_NAME(string); int c;
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,64);
+    while ((c=u8_sgetc(&scan))>=0) {
+      int lc=u8_tolower(c); u8_putc(&out,lc);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else return fd_type_error(_("string, symbol, or character"),"downcase",string);
     
 }
 static fdtype char_downcase(fdtype ch)
@@ -209,6 +216,13 @@ static fdtype upcase(fdtype string)
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
     return FD_CODE2CHAR(u8_toupper(c));}
+  else if (FD_SYMBOLP(string)) {
+    u8_byte *scan=FD_SYMBOL_NAME(string); int c;
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,64);
+    while ((c=u8_sgetc(&scan))>=0) {
+      int lc=u8_toupper(c); u8_putc(&out,lc);}
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else return fd_type_error(_("string or character"),"upcase",string);
 }
 static fdtype char_upcase(fdtype ch)

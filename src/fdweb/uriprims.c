@@ -18,6 +18,7 @@ static char versionid[] =
 
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8pathfns.h>
 
 #include <ctype.h>
 
@@ -351,6 +352,51 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape)
   uri_output(out,uri,escape);
 }
 
+/* Making URI paths */
+
+static fdtype mkuripath_prim(fdtype dirname,fdtype name)
+{
+  fdtype config_val=FD_VOID; u8_string dir=NULL, namestring=NULL;
+  char buf[128]; int dirlen=-1, need_slash=0;
+  if (!(FD_STRINGP(name)))
+    return fd_type_error(_("string"),"mkuripath_prim",name);
+  else namestring=FD_STRDATA(name);
+  if (FD_STRINGP(dirname)) {
+    dir=FD_STRDATA(dirname);
+    dirlen=FD_STRLEN(dirname);}
+  else if (FD_SYMBOLP(dirname)) {
+    config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
+    if (FD_STRINGP(config_val)) {
+      dir=FD_STRDATA(config_val);
+      dirlen=FD_STRLEN(config_val);}
+    else {
+      fd_decref(config_val); 
+      return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}
+  else return fd_type_error
+	 (_("string or string CONFIG var"),"mkuripath_prim",dirname);
+  if (*namestring=='/') {
+    int host_len;
+    u8_byte *host_start=strchr(dir,'/');
+    u8_byte *host_end=((host_start==NULL)?(host_start):
+		       ((u8_byte*)strchr(host_start+2,'/')));
+    /* Check that the URL host isn't insanely long. */
+    if ((host_end-dir)>127) host_end=NULL;
+    else host_len=host_end-dir;
+    if (!(host_end)) {
+      fd_decref(config_val);
+      return fd_type_error(_("URI or URI CONFIG var"),"mkuripath_prim",dirname);}
+    else {
+      memcpy(buf,dir,host_len); buf[host_len]='\0'; dir=buf;}}
+  if (FD_VOIDP(config_val))
+    return fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+  else {
+    fdtype result=fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    fd_decref(config_val);
+    return result;}
+}
+
+/* Module init */
+
 FD_EXPORT void fd_init_urifns_c()
 {
   fdtype module=fd_new_module("FDWEB",(0));
@@ -382,6 +428,8 @@ FD_EXPORT void fd_init_urifns_c()
   fd_idefn(module,fd_make_cprim1x("URIPATH",uripath_prim,1,
 				  fd_string_type,FD_VOID));
 
+  fd_idefn(module,fd_make_cprim2x("MKURIPATH",mkuripath_prim,2,
+				  -1,FD_VOID,fd_string_type,FD_VOID));
 
   fd_register_source_file(versionid);
 }
