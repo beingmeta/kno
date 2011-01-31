@@ -9,6 +9,7 @@
 (varconfig! extdb:sqlmap default-sqlmap)
 
 (module-export! '{xo/store! xo/add! xo/drop!})
+(module-export! '{xo/defstore! xo/defadd! xo/defdrop! xo/defget!})
 (module-export! '{xo/defstore xo/defadd xo/defdrop xo/defget})
 
 (define store-procs (make-hashtable))
@@ -18,7 +19,8 @@
 (define (xo/store! oid slotid value)
   ((try (get store-procs (cons (getpool oid) slotid))
 	(get store-procs slotid))
-   value oid)
+   (if (fail? value) (qc) value)
+   oid)
   (store! (oid-value oid) slotid value))
 (define (xo/add! oid slotid value)
   ((try (get add-procs (cons (getpool oid) slotid))
@@ -35,14 +37,20 @@
   (store! store-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
+(define (xo/defstore! slotid method (pool #f))
+  (store! store-procs (if pool (cons pool slotid) slotid) method))
 (define (xo/defadd pool slotid db query (valtype #f))
   (store! add-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
+(define (xo/defadd! slotid method (pool #f))
+  (store! add-procs (if pool (cons pool slotid) slotid) method))
 (define (xo/defdrop pool slotid db query (valtype #f))
   (store! drop-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
+(define (xo/defdrop! slotid method (pool #f))
+  (store! drop-procs (if pool (cons pool slotid) slotid) method))
 
 (defambda (xo/defget pool slotid db query
 		     (sqlmap default-sqlmap)
