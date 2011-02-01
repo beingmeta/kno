@@ -27,6 +27,7 @@ static char versionid[] =
 
 extern my_bool my_init(void);
 
+static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
 
 #define dupstring(x) ((x==NULL) ? (x) : ((char *)u8_strdup(x)))
@@ -434,6 +435,12 @@ static fdtype get_stmt_values
 	  fd_decref(value);
 	  kv[n_slots].value=FDTYPE_CONS(uuid);}
 	else kv[n_slots].value=value;
+      else if (FD_EQ(colmaps[i],boolean_symbol)) {
+	if (FD_FIXNUMP(value)) {
+	  int ival=FD_FIX2INT(value);
+	  if (ival) kv[n_slots].value=FD_TRUE;
+	  else kv[n_slots].value=FD_FALSE;}
+	else {kv[n_slots].value=value;}}
       else kv[n_slots].value=value;
       kv[n_slots].key=colnames[i];
       n_slots++;
@@ -613,13 +620,13 @@ static fdtype mysqlmakeproc
   else {
     const char *errmsg=mysql_error(db);
     u8_free(dbproc);
-    u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(errmsg));
+    u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
     return FD_ERROR_VALUE;}
 
   if (retval) {
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
     u8_free(dbproc);
-    u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(errmsg));
+    u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
     return FD_ERROR_VALUE;}
 
   dbproc->colinfo=merge_colinfo(dbp,colinfo);
@@ -1055,10 +1062,13 @@ FD_EXPORT int fd_init_mysql()
 			  -1,FD_VOID));
   mysql_initialized=1;
 
+  boolean_symbol=fd_intern("BOOLEAN");
   merge_symbol=fd_intern("%MERGE");
   noempty_symbol=fd_intern("%NOEMPTY");
 
   fd_finish_module(module);
+
+  
 
   fd_register_source_file(versionid);
 
