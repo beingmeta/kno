@@ -12,43 +12,101 @@
 (module-export! '{xo/defstore! xo/defadd! xo/defdrop! xo/defget!})
 (module-export! '{xo/defstore xo/defadd xo/defdrop xo/defget})
 
-(define store-procs (make-hashtable))
-(define add-procs (make-hashtable))
-(define drop-procs (make-hashtable))
+(define-init store-procs (make-hashtable))
+(define-init add-procs (make-hashtable))
+(define-init drop-procs (make-hashtable))
 
-(define (xo/store! oid slotid value)
-  ((try (get store-procs (cons (getpool oid) slotid))
-	(get store-procs slotid))
-   (if (fail? value) (qc) value)
-   oid)
+(defambda (xo/store! oid slotid value)
+  (do-choices oid
+    (do-choices slotid
+      (let ((method
+	     (try (get store-procs (cons (getpool oid) slotid))
+		  (get store-procs slotid))))
+	(if (exists? method)
+	    (method (if (fail? value) (qc) value) oid)
+	    (store-with-edits oid slotid value)))))
   (store! (oid-value oid) slotid value))
-(define (xo/add! oid slotid value)
-  ((try (get add-procs (cons (getpool oid) slotid))
-	(get add-procs slotid))
-   value oid)
+(defambda (xo/add! oid slotid value)
+  (do-choices oid
+    (do-choices slotid
+      (let ((method
+	     (try (get add-procs (cons (getpool oid) slotid))
+		  (get add-procs slotid))))
+	(if (exists? method)
+	    (method (if (fail? value) (qc) value) oid)
+	    (add-with-store oid slotid value)))))
   (add! (oid-value oid) slotid value))
-(define (xo/drop! oid slotid value)
-  ((try (get drop-procs (cons (getpool oid) slotid))
-	(get drop-procs slotid))
-   value oid)
+(defambda (xo/drop! oid slotid value)
+  (do-choices oid
+    (do-choices slotid
+      (let ((method
+	     (try (get drop-procs (cons (getpool oid) slotid))
+		  (get drop-procs slotid))))
+	(if (exists? method)
+	    (method (if (fail? value) (qc) value) oid)
+	    (drop-with-store oid slotid value)))))
   (drop! (oid-value oid) slotid value))
+
+(defambda (store-with-edits oid slotid values)
+  (let* ((current (get oid slotid))
+	 (add (difference values current))
+	 (drop (difference values current))
+	 (add-method
+	  (try (get add-procs (cons (getpool oid) slotid))
+	       (get add-procs slotid)))
+	 (drop-method
+	  (try (get drop-procs (cons (getpool oid) slotid))
+	       (get drop-procs slotid))))
+    (if (and (or (fail? drop) (exists? drop-method))
+	     (or (fail? add) (exists? add-method)))
+	(begin (when (exists? add) (add-method values oid))
+	  (when (exists? drop) (drop-method values oid)))
+	(error "Can't store value on " slotid " of " oid))))
+
+(defambda (drop-with-store oid slotid values)
+  (let ((current (get oid slotid))
+	(method
+	 (try (get store-procs (cons (getpool oid) slotid))
+	      (get store-procs slotid))))
+    (if (exists? method)
+	(when (exists? (intersection current values))
+	  (method (qc (difference current values)) oid))
+	(error "Can't drop values from " slotid " of " oid))))
+
+(defambda (add-with-store oid slotid values)
+  (let ((current (get oid slotid))
+	(method
+	 (try (get store-procs (cons (getpool oid) slotid))
+	      (get store-procs slotid))))
+    (if (exists? method)
+	(when (exists? (difference values current))
+	  (method (qc (choice values current)) oid))
+	(error "Can't add values to " slotid " of " oid))))
+
+;;; Defining methods
 
 (define (xo/defstore pool slotid db query (valtype #f))
   (store! store-procs
 	  (if pool (cons pool slotid) slotid)
-	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
+	  (extdb/proc db query
+		      (qc default-sqlmap)
+		      valtype (pool-base pool))))
 (define (xo/defstore! slotid method (pool #f))
   (store! store-procs (if pool (cons pool slotid) slotid) method))
 (define (xo/defadd pool slotid db query (valtype #f))
   (store! add-procs
 	  (if pool (cons pool slotid) slotid)
-	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
+	  (extdb/proc db query
+		      (qc default-sqlmap)
+		      valtype (pool-base pool))))
 (define (xo/defadd! slotid method (pool #f))
   (store! add-procs (if pool (cons pool slotid) slotid) method))
 (define (xo/defdrop pool slotid db query (valtype #f))
   (store! drop-procs
 	  (if pool (cons pool slotid) slotid)
-	  (extdb/proc db query (qc default-sqlmap) valtype (pool-base pool))))
+	  (extdb/proc db query
+		      (qc default-sqlmap)
+		      valtype (pool-base pool))))
 (define (xo/defdrop! slotid method (pool #f))
   (store! drop-procs (if pool (cons pool slotid) slotid) method))
 
@@ -71,5 +129,7 @@
 		       (else rawgetter)))
 	 (index (make-extindex (stringout slotid) getter)))
     (use-adjunct index slotid pool)))
+
+
 
 
