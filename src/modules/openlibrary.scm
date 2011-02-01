@@ -9,7 +9,7 @@
 (module-export!
  '{olib
    olib/ref olib/import olib/fetch olib/parse olib? olib-key
-   olib/query olib/q olib/q+ olib/bibref olib/id
+   olib/query olib/q olib/q+ olib/bibref olib/id olib/key
    olib/image olib/imageurl olib/refurl
    olib/getauthor
    olib/get})
@@ -41,6 +41,10 @@
 
 (define (olib/id ref)
   (subseq (olib-key ref) (1+ (position #\/  (olib-key ref) 1))))
+(define (olib/key ref)
+  (if (olib? ref) (olib-key ref)
+      (if (string? ref) ref
+	  (error "Not an Open Library reference"))))
 
 (define text-type (choice "/type/text" (olib/ref "/type/text")))
 (define author-role (choice "/type/author_role" (olib/ref "/type/author_role")))
