@@ -73,7 +73,7 @@
 			    (if (getopt pp:options 'live (config 'pp:live))
 				"https://www.paypal.com/cgi-bin/webscr"
 				"https://www.sandbox.paypal.com/cgi-bin/webscr")))
-	    (target (getopt pp:options 'target {}))
+	    (target (ifexists (getopt pp:options 'target {})))
 	    (method "POST"))
 	 (,paypal/fields pp:options)
 	 ,@(cddr expr)
