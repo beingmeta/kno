@@ -27,6 +27,9 @@ static char versionid[] =
 
 extern my_bool my_init(void);
 
+static fdtype sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
+static fdtype sslciphers_symbol, port_symbol;
+
 static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
 
@@ -112,7 +115,7 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 static fdtype open_mysql
   (fdtype hostname,fdtype dbname,fdtype colinfo,
    fdtype user,fdtype password,
-   fdtype port,fdtype options)
+   fdtype options)
 {
   MYSQL *db;
   char *host, *username, *passwd, *dbstring, *sockname;
@@ -138,8 +141,36 @@ static fdtype open_mysql
   dbstring=((FD_VOIDP(dbname)) ? (NULL) : (FD_STRDATA(dbname)));
   username=((FD_VOIDP(user)) ? (NULL) : (FD_STRDATA(user)));
   passwd=((FD_VOIDP(password)) ? (NULL) : (FD_STRDATA(password)));
-  portno=((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
   flags=0;
+
+  if (!(FD_VOIDP(options))) {
+    fdtype port=fd_getopt(options,port_symbol,FD_VOID);
+    fdtype sslca=fd_getopt(options,sslca_symbol,FD_VOID);
+    fdtype sslcert=fd_getopt(options,sslcert_symbol,FD_VOID);
+    fdtype sslkey=fd_getopt(options,sslkey_symbol,FD_VOID);
+    fdtype sslcadir=fd_getopt(options,sslcadir_symbol,FD_VOID);
+    fdtype sslciphers=fd_getopt(options,sslciphers_symbol,FD_VOID);
+    portno=((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
+    if (!((FD_VOIDP(sslca))&&(FD_VOIDP(sslcert))&&
+	  (FD_VOIDP(sslkey))&&(FD_VOIDP(sslcadir))&&
+	  (FD_VOIDP(sslciphers)))) {
+      if (!((FD_VOIDP(sslca))||(FD_STRINGP(sslca))))
+	return fd_type_error("SSLCA","open_mysql",sslca);
+      else if (!((FD_VOIDP(sslcert))||(FD_STRINGP(sslcert))))
+	return fd_type_error("SSLCERT","open_mysql",sslcert);
+      else if (!((FD_VOIDP(sslkey))||(FD_STRINGP(sslkey))))
+	return fd_type_error("SSLKEY","open_mysql",sslkey);
+      else if (!((FD_VOIDP(sslcadir))||(FD_STRINGP(sslcadir))))
+	return fd_type_error("SSLCADIR","open_mysql",sslcadir);
+      else if (!((FD_VOIDP(sslciphers))||(FD_STRINGP(sslciphers))))
+	return fd_type_error("SSLCIPHERS","open_mysql",sslciphers);
+      else mysql_ssl_set
+	     (dbp->db,
+	      ((FD_VOIDP(sslkey))?(NULL):(FD_STRDATA(sslkey))),
+	      ((FD_VOIDP(sslcert))?(NULL):(FD_STRDATA(sslcert))),
+	      ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
+	      ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
+	      ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
 
   /* Try to connect */
   u8_lock_mutex(&mysql_connect_lock);
@@ -1052,19 +1083,25 @@ FD_EXPORT int fd_init_mysql()
   fd_register_extdb_handler(&mysql_handler);
 
   fd_defn(module,
-	  fd_make_cprim7x("MYSQL/OPEN",open_mysql,1,
+	  fd_make_cprim6x("MYSQL/OPEN",open_mysql,1,
 			  fd_string_type,FD_VOID,
 			  fd_string_type,FD_VOID,
 			  -1,FD_VOID,
 			  fd_string_type,FD_VOID,
 			  fd_string_type,FD_VOID,
-			  fd_fixnum_type,FD_VOID,
 			  -1,FD_VOID));
   mysql_initialized=1;
 
   boolean_symbol=fd_intern("BOOLEAN");
   merge_symbol=fd_intern("%MERGE");
   noempty_symbol=fd_intern("%NOEMPTY");
+
+  port_symbol=fd_intern("PORT");
+  sslca_symbol=fd_intern("SSLCA");
+  sslcert_symbol=fd_intern("SSLCERT");
+  sslkey_symbol=fd_intern("SSLKEY");
+  sslcadir_symbol=fd_intern("SSLCADIR");
+  sslciphers_symbol=fd_intern("SSLCIPHERS");
 
   fd_finish_module(module);
 
