@@ -296,8 +296,11 @@ static fdtype urihost_prim(fdtype uri_arg)
 static fdtype urifrag_prim(fdtype uri_arg)
 {
   u8_string uri=FD_STRDATA(uri_arg);
+  u8_byte *qmark=strchr(uri,'?');
   u8_byte *hash=strchr(uri,'#');
-  if (hash) return fd_extract_string(NULL,hash+1,NULL);
+  if ((hash)&&(qmark)&&(hash<qmark))
+    return fd_extract_string(NULL,hash+1,qmark);
+  else if (hash) return fd_extract_string(NULL,hash+1,NULL);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -305,7 +308,10 @@ static fdtype uriquery_prim(fdtype uri_arg)
 {
   u8_string uri=FD_STRDATA(uri_arg);
   u8_byte *qmark=strchr(uri,'?');
-  if (qmark) return fd_extract_string(NULL,qmark+1,NULL);
+  u8_byte *hash=strchr(uri,'#');
+  if ((hash)&&(qmark)&&(qmark<hash))
+    return fd_extract_string(NULL,qmark+1,hash);
+  else if (qmark) return fd_extract_string(NULL,qmark+1,NULL);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -316,8 +322,8 @@ static fdtype uribase_prim(fdtype uri_arg)
   u8_byte *qmark=strchr(uri,'?');
   if ((hash) && (qmark))
     if (hash<qmark)
-      return fd_extract_string(NULL,uri,hash);
-    else return fd_extract_string(NULL,uri,qmark);
+      return fd_extract_string(NULL,uri,qmark);
+    else return fd_extract_string(NULL,uri,hash);
   else if (hash)
     return fd_extract_string(NULL,uri,hash);
   else if (qmark)
