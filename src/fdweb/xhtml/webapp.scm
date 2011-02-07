@@ -137,6 +137,7 @@
 
 (define (app/redirect uri (status 303))
   (debug%watch "app/redirect" uri)
+  (cgiset! 'doctype #f)
   (cgiset! 'status status)
   (httpheader "Location: " uri))
 
