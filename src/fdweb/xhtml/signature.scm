@@ -27,12 +27,15 @@
 
 (define (sig/make key . args)
   (let ((text (apply makesigtext args)))
-    (hmac-sha1 text key)))
+    (debug%watch (hmac-sha1 text key) text key)))
 (define (sig/check sig key . args)
   (let ((text (apply makesigtext args)))
-    (debug%watch "CHECKSIG/FAILED"
-		 sig key text (hmac-sha1 text key))
+    (debug%watch "CHECKSIG" sig key text (hmac-sha1 text key))
+    (when (string? sig) (set! sig (base64->packet sig)))
     (or (equal? sig (hmac-sha1 text key))
 	(begin (warn%watch "CHECKSIG/FAILED"
 			   sig key text (hmac-sha1 text key))))))
+
+
+
 
