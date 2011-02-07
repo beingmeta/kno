@@ -15,6 +15,7 @@
 (define-init store-procs (make-hashtable))
 (define-init add-procs (make-hashtable))
 (define-init drop-procs (make-hashtable))
+(define-init get-indices (make-hashtable))
 
 (defambda (xo/store! oid slotid value)
   (do-choices oid
@@ -22,6 +23,8 @@
       (let ((method
 	     (try (get store-procs (cons (getpool oid) slotid))
 		  (get store-procs slotid))))
+	(extindex-decache! (get get-indices (cons (getpool oid) slotid))
+			   oid)
 	(if (exists? method)
 	    (method (if (fail? value) (qc) value) oid)
 	    (store-with-edits oid slotid value)))))
@@ -29,6 +32,8 @@
 (defambda (xo/add! oid slotid value)
   (do-choices oid
     (do-choices slotid
+      (extindex-decache! (get get-indices (cons (getpool oid) slotid))
+			 oid)
       (let ((method
 	     (try (get add-procs (cons (getpool oid) slotid))
 		  (get add-procs slotid))))
@@ -39,6 +44,8 @@
 (defambda (xo/drop! oid slotid value)
   (do-choices oid
     (do-choices slotid
+      (extindex-decache! (get get-indices (cons (getpool oid) slotid))
+			 oid)
       (let ((method
 	     (try (get drop-procs (cons (getpool oid) slotid))
 		  (get drop-procs slotid))))
@@ -130,6 +137,7 @@
 			(lambda (x) (get normalize (rawgetter x))))
 		       (else rawgetter)))
 	 (index (make-extindex (stringout slotid) getter)))
+    (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
 
 
