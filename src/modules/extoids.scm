@@ -110,6 +110,8 @@
 (define (xo/defdrop! slotid method (pool #f))
   (store! drop-procs (if pool (cons pool slotid) slotid) method))
 
+;;; Getting slots
+
 (defambda (xo/defget pool slotid db query
 		     (sqlmap default-sqlmap)
 		     (normalize #f))
