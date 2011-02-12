@@ -61,7 +61,7 @@ static fdtype config_intern(u8_string start)
   U8_INIT_OUTPUT_BUF(&nameout,64,buf);
   while (*scan) {
     int c=u8_sgetc(&scan);
-    if (c == '/') u8_putc(&nameout,c);
+    if ((c == '/')||(c==':')) u8_putc(&nameout,c);
     else if (u8_ispunct(c)) {}
     else if (u8_isupper(c)) u8_putc(&nameout,c);
     else u8_putc(&nameout,u8_toupper(c));}
