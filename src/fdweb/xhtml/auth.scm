@@ -113,12 +113,14 @@
 
 ;; Cookie parameters
 
-;; The max duration of cookies, if #f, use session cookies, if #t, use
+;; The max duration of cookies: if #f, use session cookies, if #t, use
 ;; the authentication expiration
+(define auth-sticky-var 'AUTH:STICKY)
 (define auth-cookie-expires #t)
 (define auth-cookie-domain #f)
 (define auth-cookie-path "/")
 (define auth-secure #f)
+(varconfig! auth:cookie auth-sticky-var)
 (varconfig! auth:cookie auth-cookie-expires)
 (varconfig! auth:domain auth-cookie-domain)
 (varconfig! auth:sitepath auth-cookie-path)
@@ -244,11 +246,12 @@
   (and identity
        (let* ((auth (cons-authinfo authid identity (+ (time) duration)))
 	      (authstring (auth->string auth))
-	      (expires (if auth-cookie-expires
-			   (if (number? auth-cookie-expires)
-			       (timestamp+ (min duration auth-cookie-expires))
-			       (timestamp+ duration))
-			   #f)))
+	      (expires (and (or (not auth-sticky-var) (cgiget 'auth-sticky-var #f))
+			    (if auth-cookie-expires
+				(if (number? auth-cookie-expires)
+				    (timestamp+ (min duration auth-cookie-expires))
+				    (timestamp+ duration))
+				#f))))
 	 (info%watch "AUTH/IDENTIFY!" identity auth authstring)
 	 (cgiset! authid auth)
 	 (set-cookies! authid authstring expires)
