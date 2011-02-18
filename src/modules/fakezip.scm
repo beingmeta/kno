@@ -13,10 +13,18 @@
 
 (defrecord fakezip filename tmpdir tmpzip)
 
+(define (mkdir path)
+  (if (>= (system "mkdir " path) 0) path
+      (begin (sleep 10)
+	(if (>= (system "mkdir " path) 0) path
+	    (error "MKDIR failed")))))
+
 (define (checkdir! path)
-  (or (file-directory? path)
-      (and (checkdir! (dirname path))
-	   (begin (system "mkdir " path) path))))
+  (and (not (empty-string? path))
+       (not (equal? path "/"))
+       (not (and (file-exists? path) (not (file-directory? path))))
+       (or (file-directory? path)
+	   (and (checkdir! (dirname path)) (mkdir path)))))
 
 (define (fz/open filename)
   (let* ((abs (abspath filename))
