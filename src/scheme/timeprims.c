@@ -891,7 +891,9 @@ static fdtype hostaddrs_prim(fdtype hostname)
   int addr_len=-1; unsigned int type;
   char **addrs=u8_lookup_host(FD_STRDATA(hostname),&addr_len,&type);
   fdtype results=FD_EMPTY_CHOICE;
-  int i=0; while (addrs[i]) {
+  int i=0;
+  if (addrs==NULL) return results;
+  else while (addrs[i]) {
     unsigned char *addr=addrs[i++]; fdtype string;
     struct U8_OUTPUT out; int j=0; U8_INIT_OUTPUT(&out,16);
     while (j<addr_len) {
