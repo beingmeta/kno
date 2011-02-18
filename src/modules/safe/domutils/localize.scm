@@ -20,8 +20,7 @@
       (begin (system "mkdir -p " (dirname filename))
 	     filename)))
 
-(define absurlstart
-  (choice #((isalpha) (isalpha) (isalpha+) ":") "/"))
+(define absurlstart #((isalpha) (isalpha) (isalpha+) ":")) ;; (choice  "/")
 
 ;; Converts a URL into a local reference, copying its data if needed
 ;; REF is the local references (from the document)
@@ -41,7 +40,8 @@
 	 (textsubst ref `(GREEDY ,amalgamate) ""))
        ;; If it's got a fragment identifer, make a localref without the
        ;;  fragment and put the fragment back.  We don't bother checking
-       ;;; fragment ID uniqueness
+       ;;; fragment ID uniqueness, though we probably should (it would
+       ;;; be pretty hard to fix automatically)
        (tryif (position #\# ref)
 	 (let ((hashpos (position #\# ref)))
 	   (string-append (localref (subseq ref 0 hashpos)
@@ -55,7 +55,9 @@
        ;; No easy outs, fetch the content and store it
        (let ((absref
 	      (if (string-starts-with? ref absurlstart) ref
-		  (mkuripath (dirname base) ref))))
+		  (if (has-prefix ref "./")
+		      (mkuripath (dirname base) (subseq ref 2))
+		      (mkuripath (dirname base) ref)))))
 	 ;; (debug%watch "LOCALIZE" ref base absref saveto read)
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
@@ -66,16 +68,17 @@
 			 (content (and (test response 'response 200)
 				       (get response '%content))))
 		    (unless content
-		      (error "Couldn't fetch content from " (write absref)
-			     " got " response))
-		    ;; This should be coded to change lref in the
-		    ;; event of conflicts This has fragments and
-		    ;; queries stripped (uribase) and additionally has
-		    ;; the 'directory' part of the URI removed so that
-		    ;; it's a local file name
-		    (loginfo "Downloaded " (write absref) " for " lref)
-		    ;; Save the content
-		    (savecontent saveto name content)))
+		      (logwarn "Couldn't fetch content from " absref)
+		      (set! lref absref))
+		    (when content
+		      ;; This should be coded to change lref in the
+		      ;; event of conflicts This has fragments and
+		      ;; queries stripped (uribase) and additionally has
+		      ;; the 'directory' part of the URI removed so that
+		      ;; it's a local file name
+		      (loginfo "Downloaded " (write absref) " for " lref)
+		      ;; Save the content
+		      (savecontent saveto name content))))
 		;; Save the mapping in both directions (we assume that
 		;;  lrefs and absrefs are disjoint, so we can use the
 		;;  same table)
@@ -98,7 +101,8 @@
       (let ((ref (localref (get node 'src)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
-	(logdebug "Localized " (write (get node 'src)) " to " (write ref) " for " node)
+	(logdebug "Localized " (write (get node 'src))
+		  " to " (write ref) " for " node)
 	(dom/set! node 'src ref)
 	(set+! files ref)))
     (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
@@ -113,13 +117,18 @@
 			   (qc amalgamate) (qc localhosts))))
 	(dom/set! node 'src ref)
 	(set+! files ref)))
-    (when doanchors
-      (dolist (node (dom/find->list dom "a"))
-	(when (test node 'href)
-	  (let ((ref (localref (get node 'href) urlmap base (qc saveto) read
-			       (qc amalgamate) (qc localhosts))))
-	    (dom/set! node 'href ref)
-	    (set+! files ref)))))))
+    (dolist (node (dom/find->list dom "a"))
+      (let* ((href (try (get node 'href) #f))
+	     (ref (and
+		   href
+		   (not (string-starts-with?
+			 href #((isalpha) (isalpha) (isalpha+) ":")))
+		   (or (not doanchors) (textsearch doanchors href))
+		   (localref href urlmap base (qc saveto) read
+			     (qc amalgamate) (qc localhosts)))))
+	(when href
+	  (dom/set! node 'href ref)
+	  (set+! files ref))))))
 
 ;;;; Manifests
 
