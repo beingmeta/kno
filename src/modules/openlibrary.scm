@@ -125,6 +125,29 @@
 			 (olib/import result cache))))
 	    (error "Bad server response to " (write url) ":\n\t" req))))
     results))
+(define (olib-query args (cache #f) (opts #[]))
+  (let* ((query (frame-create #f))
+	 (results {}))
+    (do ((scan args (cddr scan)))
+	((null? scan))
+      (set! query (convert-query (car scan) (cadr scan) query)))
+    (store! query 'offset (getopt opts 'offset 0))
+    (store! query 'limit (getopt opts 'limit 1000))
+    (do-choices query
+      (let* ((url (scripturl "http://openlibrary.org/query.json"
+		      ;; These need to be passed in the query object
+		      ;; "offset" (getopt opts 'offset 0)
+		      ;; "limit" (getopt opts 'limit 1000)
+		      "query" (->json query)))
+	     (req (debug%watch (urlget url) query)))
+	(if (test req 'response 200)
+	    (set+! results
+		   (let ((result (olib/parse (get req '%content))))
+		     (if (vector? result)
+			 (olib/import (elts result) cache)
+			 (olib/import result cache))))
+	    (error "Bad server response to " (write url) ":\n\t" req))))
+    results))
 
 (define (convert-query slot value query)
   (if (eq? slot 'authors)
