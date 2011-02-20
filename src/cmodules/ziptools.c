@@ -306,7 +306,7 @@ static ssize_t zipraw_callback(void *state,void * data,size_t data_len,enum zip_
     else {
       memcpy(raw->buf+off,buf,data_len);
       raw->off=raw->off+data_len;
-      return len;}}
+      return data_len;}}
   case ZIP_SOURCE_STAT: {
     struct zip_stat *stat=(struct zip_stat *)data;
     stat->size=stat->comp_size=raw->len;
