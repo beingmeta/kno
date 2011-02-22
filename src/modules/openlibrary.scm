@@ -34,7 +34,8 @@
 	  (try (get olib-refs key)
 	       (if (has-prefix key "http://openlibrary.org/")
 		   (olib/ref (subseq key 22))
-		   (newolibref key)))
+		   (if (has-prefix key "DUP") (fail)
+		       (newolibref key))))
 	  (if (and (table? key) (test key 'key))
 	      (olib/ref (get key 'key))
 	      (fail)))))
@@ -98,12 +99,19 @@
 
 (define (olib/parse string)
   (if (search "callback(" string)
-      (olib/import (jsonparse (subseq string (search "callback(" string))))
+      (olib/import (jsonparse (subseq string (search "callback(" string) -1)))
       (olib/import (jsonparse string))))
 
 (define (olib/get ref slotid) (get (or (get olib ref) {}) slotid))
 
 ;;;; The query interfaces
+
+(define (nodups v)
+  (if (or (and (string? v) (has-prefix v "DUP/"))
+	  (and (table? v) (test v 'key)
+	       (has-prefix (get v 'key) "DUP/")))
+      (fail)
+      v))
 
 (define (olib-query args (cache #f) (opts #[]))
   (let* ((query (frame-create #f))
@@ -121,8 +129,8 @@
 	    (set+! results
 		   (let ((result (olib/parse (get req '%content))))
 		     (if (vector? result)
-			 (olib/import (elts result) cache)
-			 (olib/import result cache))))
+			 (olib/import (nodups (elts result)) cache)
+			 (olib/import (nodups result) cache))))
 	    (error "Bad server response to " (write url) ":\n\t" req))))
     results))
 (define (olib-query args (cache #f) (opts #[]))
@@ -144,8 +152,8 @@
 	    (set+! results
 		   (let ((result (olib/parse (get req '%content))))
 		     (if (vector? result)
-			 (olib/import (elts result) cache)
-			 (olib/import result cache))))
+			 (olib/import (nodups (elts result)) cache)
+			 (olib/import (nodups result) cache))))
 	    (error "Bad server response to " (write url) ":\n\t" req))))
     results))
 
