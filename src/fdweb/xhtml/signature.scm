@@ -5,8 +5,8 @@
 
 (module-export! '{sig/make sig/check})
 
-(define %loglevel %debug!)
-;;(define %loglevel %notify!)
+;;(define %loglevel %debug!)
+(define %loglevel %notify!)
 
 (define (makesigtext op . args)
   (let ((table (if (odd? (length args)) (deep-copy (car args)) #[]))
