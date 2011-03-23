@@ -1,3 +1,5 @@
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+
 (in-module 'xhtml/auth)
 
 (use-module '{fdweb texttools})
@@ -11,10 +13,20 @@
 		  auth/identify!
 		  auth/deauthorize!})
 
+;;;; Utility functions
+
 (define (random-signature (length %siglen))
   (let ((bytes '()))
     (dotimes (i %siglen) (set! bytes (cons (random 256) bytes)))
     (->packet bytes)))
+
+(define (random-integer (length 8))
+  (let ((sum 0))
+    (dotimes (i length)
+      (set! sum (+ (* 256 sum) (random 256))))
+    sum))
+
+;;;; Constant and configurable variables
 
 ;; The cookie/CGI var used to store the session ID
 (define authid 'AUTH)
@@ -105,14 +117,38 @@
 	      (dtype->file (vector signature secret) val))))
 (config-def! 'auth:sigfile signature-file-config)
 
-;; Various expiration intervals
-(define auth-expiration (* 3600 24 17))
-(define auth-refresh (* 3600 24))
+;;; Expiration intervals
+
+(define auth-expiration #f)
+(define auth-refresh (* 60 15))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
 
-;; Cookie parameters
+;;; Checking tokens
 
+(define tokentable (make-hashtable))
+(varconfig! auth:tokens tokentable)
+(define (table-checktoken identity token (op))
+  (if (bound? op)
+      (if op
+	  (add! tokentable identity token)
+	  (drop! tokentable identity token))
+      (test tokentable identity token)))
+
+(define checktoken table-checktoken)
+(varconfig! auth:checktoken checktoken)
+
+;;; The blacklist
+
+(define blacklist (make-hashset))
+
+(define (blacklisted? string)
+  (or (not string) (hashset-get blacklist string)))
+(defslambda (blacklist! string) (hashset-add! blacklist string))
+
+;;;; Cookie functions
+
+;;; Cookie parameters
 ;; The max duration of cookies: if #f, use session cookies, if #t, use
 ;; the authentication expiration
 (define auth-sticky-var 'AUTH:STICKY)
@@ -125,15 +161,6 @@
 (varconfig! auth:domain auth-cookie-domain)
 (varconfig! auth:sitepath auth-cookie-path)
 (varconfig! auth:secure auth-secure)
-
-;; The blacklist
-(define blacklist (make-hashset))
-
-(define (blacklisted? string)
-  (or (not string) (hashset-get blacklist string)))
-(defslambda (blacklist! string) (hashset-add! blacklist string))
-
-;;; Cookie functions
 
 ;; How cookies are used:
 ;; If *auth-secure* is false and *secret* is false,
@@ -191,45 +218,49 @@
 
 ;;; AUTHINFO
 
-(defrecord authinfo realm identity expires)
+(defrecord authinfo
+  realm identity (token (random-integer))
+  (issued (time)) (expires (+ (time) auth-expiration)))
 
 (define (auth->string auth)
   (let* ((info (stringout (authinfo-realm auth)
-			  ";" (unparse-arg (authinfo-identity auth))
-			  ";" (authinfo-expires auth)))
+		 ";" (unparse-arg (authinfo-identity auth))
+		 ";" (authinfo-issued auth)
+		 ";" (authinfo-token auth)
+		 (if expires ";")
+		 (if expires expires)))
 	 (sig (hmac-sha1 info signature))
 	 (result (stringout info ";" (packet->base64 sig))))
     (debug%watch "AUTH->STRING" auth info sig result)
     result))
 
 (define (string->auth authstring (authid authid))
-  (let* ((segs (segment authstring ";"))
-	 (info (vector (string->lisp (first segs)) (parse-arg (second segs))
-		       (parse-arg (third segs))
-		       (base64->packet (fourth segs))))
-	 (payload (stringout (first info) ";" (unparse-arg (second info)) ";"
-			     (third info)))
-	 (sig (fourth info)))
-    (debug%watch "STRING->AUTH" authstring
-		 info payload sig (hmac-sha1 payload signature))
+  (let* ((split (rposition #\; authstring))
+	 (payload (and split (subseq authstring 0 split)))
+	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
+	 (info (and split (map parse-arg (segment payload ";")))))
+    (debug%watch "STRING->AUTH" 
+      info payload sig (hmac-sha1 payload signature)
+      authstring)
     (unless (equal? sig (hmac-sha1 payload signature))
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
 	       "\n\tfor " payload
 	       "\n\tbased on " signature
 	       "\n\texpecting " sig
 	       "\n\tgetting " (hmac-sha1 payload signature)))
-    (and sig info payload (equal? sig (hmac-sha1 payload signature))
-	 (equal? (elt info 0) authid)
-	 (cons-authinfo (elt info 0) (elt info 1) (elt info 2)))))
+    (and sig payload info
+	 (equal? (car info) authid)
+	 (equal? sig (hmac-sha1 payload signature))
+	 (apply cons-authinfo info))))
 
-(define (unpack-authinfo authstring (checksig #f))
-  (let* ((segs (segment authstring ";"))
-	 (info (vector (string->lisp (first segs)) (parse-arg (second segs))
-		       (parse-arg (third segs))
-		       (base64->packet (fourth segs))))
-	 (payload (stringout (first info) ";" (unparse-arg (second info)) ";"
-			     (third info)))
-	 (sig (fourth info)))
+(define (unpack-authinfo authstring)
+  (let* ((split (rposition #\; authstring))
+	 (payload (and split (subseq authstring 0 split)))
+	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
+	 (info (and split (map parse-arg (segment payload ";")))))
+    (debug%watch "STRING->AUTH" 
+      info payload sig (hmac-sha1 payload signature)
+      authstring)
     (debug%watch "UNPACK-AUTHINFO" authstring
 		 info payload sig (hmac-sha1 payload signature))
     (unless (equal? sig (hmac-sha1 payload signature))
@@ -238,51 +269,48 @@
 	       "\n\tbased on " signature
 	       "\n\texpecting " sig
 	       "\n\tgetting " (hmac-sha1 payload signature)))
-    info))
+    (and sig payload info (equal? sig (hmac-sha1 payload signature))
+	 (->vector info))))
 
-;;; Core functions
+;;;; Core functions
 
-(define (auth/identify! identity (duration auth-expiration))
+(define (auth/identify! identity)
   (and identity
-       (let* ((auth (cons-authinfo authid identity (+ (time) duration)))
+       (let* ((auth (cons-authinfo authid identity))
 	      (authstring (auth->string auth))
-	      (expires (and (or (not auth-sticky-var) (cgiget 'auth-sticky-var #f))
-			    (if auth-cookie-expires
-				(if (number? auth-cookie-expires)
-				    (timestamp+ (min duration auth-cookie-expires))
-				    (timestamp+ duration))
-				#f))))
-	 (info%watch "AUTH/IDENTIFY!" identity auth authstring)
+	      (token (authinfo-token auth))
+	      (cookie-expires
+	       (and (or (not auth-sticky-var) (cgiget 'auth-sticky-var #f))
+		    (authinfo-expires auth))))
+	 (info%watch "AUTH/IDENTIFY!" authid identity token auth authstring)
+	 (when checktoken (checktoken identity token #t))
 	 (cgiset! authid auth)
-	 (set-cookies! authid authstring expires)
+	 (set-cookies! authid authstring cookie-expires)
 	 identity)))
 
 (define (auth/ok? auth)
   (and auth (> (authinfo-expires auth) (time))
-       (not (blacklisted? (auth->string auth)))
-       auth))
+       (if (> (time) (+ (authinfo-issued auth) auth-refresh))
+	   (newauth auth)
+	   auth)))
 
-(define (auth/refresh! info (authid) (duration auth-expiration))
-  (default! authid (authinfo-realm info))
-  (info%watch "AUTH/REFRESH!" info authid duration)
-  (if (auth/ok? info)
-      (let* ((identity (authinfo-identity info))
-	     (auth (cons-authinfo (authinfo-realm info) identity
-				  (+ (time) duration))))
-	(cgiset! authid auth)
-	(set-cookie! authid (auth->string auth)
-		     auth-cookie-domain auth-cookie-path
-		     (if auth-cookie-expires
-			 (if (number? auth-cookie-expires)
-			     (timestamp+ (min duration auth-cookie-expires))
-			     (timestamp+ duration))
-			 #f)
-		     auth-secure)
-	(blacklist! (auth->string auth))
-	auth)
-      (begin (cgidrop! authid)
-	     (expire-cookie! authid)
-	     (error "Can't refresh an invalid authorization" info))))
+(define (newauth auth)
+  (and (or (not checktoken) (checktoken (authinfo-identity auth) (authinfo-token auth)))
+       (let ((realm (authinfo-realm auth))
+	     (identity (authinfo-identity auth))
+	     (oldtoken (authinfo-token auth))
+	     (new (cons-auth realm identity (random-integer)
+			     (time) (authinfo-expires auth))))
+	 (when checktoken
+	   (checktoken identity oldtoken #f)
+	   (checktoken identity (authinfo-token new) #t))
+	 (set-cookie! realm (auth->string new)
+		      auth-cookie-domain auth-cookie-path
+		      (if (or (not auth-sticky-var) (cgiget 'auth-sticky-var #f))
+			  (auth-expires new)
+			  #f)
+		      auth-secure)
+	 new)))
 
 ;;; Checking authorization
 
@@ -291,44 +319,34 @@
   (default! authinfo (getauthinfo authid))
   (debug%watch "AUTH/GETINFO"
 	       authid authinfo signal
-	       "cgiauthid" (cgiget authid)
-	       "secure" auth-secure
-	       "https" (cgiget 'https #f)
-	       "secret" (not (not secret)))
+	        (cgiget authid)
+	        auth-secure
+	        (cgiget 'https #f)
+	        (not (not secret)))
   (cond ((fail? authinfo) (fail))
-	((not authinfo)
-	 (when signal (error "No authorization info" authinfo authid))
-	 (fail))
-	;; If the info is a string, we haven't verified it yet
-	;; This is where the real validation happens
+	((not authinfo) (authfail  "No authorization info" authid authinfo))
+	;; If the info is a string, convert it and authorize that
+	;; (conversion might fail if the info is invalid)
 	((string? authinfo)
 	 (let ((info (string->auth authinfo authid)))
-	   (if info (auth/getinfo authid signal info)
-	       (begin
-		 (cgidrop! authid)
-		 (expire-cookie! authid)
-		 (when signal (error "No authorization info" authinfo authid))
-		 (fail)))))
-	;; Check if the info is a valid vector
-	((not (authinfo? authinfo))
-	 (error "Invalid authorization info" authinfo authid)
-	 (expire-cookie! authid)
-	 (cgidrop! authid)
-	 (fail))
-	((not (auth/ok? authinfo))
-	 (logwarn "Expired authorization " authinfo authid)
-	 (expire-cookie! authid)
-	 (cgidrop! authid)
-	 (fail))
-	((< (- (authinfo-expires authinfo) (time))
-	    (if (inexact? auth-refresh)
-		(* auth-expires auth-refresh)
-		auth-refresh))
-	 (logdebug "Refreshing authinfo " authinfo)
-	 (auth/refresh! authinfo))
-	(else 
-	 (logdebug "Valid authinfo " authinfo)
-	 authinfo)))
+	   (if info
+	       (auth/getinfo authid signal info https secret auth-secure)
+	       (authfail "Invalid authorization" authid info signal))))
+	;; Check if the info is a valid object
+	((not (authinfo? authinfo)) 
+	 (authfail "Invalid authorization object" authid authinfo signal))
+	((> (time) (authinfo-expires authinfo))
+	 (authfail "Authorization expired" authid authinfo signal))
+	(else (or (auth/ok? authinfo)
+		  (authfail "Authorization error" authid authinfo signal)))))
+
+(define (authfail reason authid info signal)
+  (expire-cookie! authid)
+  (cgidrop! authid)
+  (if signal
+      (error reason authid info)
+      (logwarn reason authid info))
+  (fail))
 
 ;;; Top level functions
 
@@ -345,17 +363,9 @@
 	 (set! info authid)
 	 (set! authid (authinfo-realm info)))
 	(else (default! info (cgiget authid))))
-  (cond ((string? info)
-	 ;; Unpack the string to check its expiration
-	 (let ((parsed (unpack-authinfo info)))
-	   ;; If it hasn't expired, blacklist it
-	   (unless (> (time) (elt parsed 2)) (blacklist! info))))
-	((not (authinfo? info))
-	 (logwarn "Can't deauthorize invalid info" info))
-	;; Don't bother
-	((auth/expired? info))
-	(else
-	 (let ((string (auth->string info)))
-	   (unless (hashset-get blacklist string)
-	     (blacklist! string)))))
+  (when (string? info) (set! info (string->auth info)))
+  (when info
+    (when checktoken (checktoken (authinfo-identity info) (authinfo-token info) #f)))
   (expire-cookie! authid))
+
+
