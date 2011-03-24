@@ -11,6 +11,7 @@
 (module-export! '{auth/getinfo
 		  auth/getuser
 		  auth/identify!
+		  auth/maketoken
 		  auth/deauthorize!})
 
 ;;;; Utility functions
@@ -20,11 +21,12 @@
     (dotimes (i %siglen) (set! bytes (cons (random 256) bytes)))
     (->packet bytes)))
 
-(define (random-integer (length 8))
-  (let ((sum 0))
+(define (auth/maketoken (length 8) (mult (microtime)))
+  (let ((sum 0) (modulus 1))
     (dotimes (i length)
-      (set! sum (+ (* 256 sum) (random 256))))
-    sum))
+      (set! sum (+ (* 256 sum) (random 256)))
+      (set! modulus (* modulus 256)))
+    (remainder (* sum mult) modulus)))
 
 ;;;; Constant and configurable variables
 
@@ -221,7 +223,7 @@
 ;;; AUTHINFO
 
 (defrecord authinfo
-  realm identity (token (random-integer))
+  realm identity (token (auth/maketoken))
   (issued (time))
   (expires (and auth-expiration (+ (time) auth-expiration))))
 
@@ -302,7 +304,7 @@
        (let ((realm (authinfo-realm auth))
 	     (identity (authinfo-identity auth))
 	     (oldtoken (authinfo-token auth))
-	     (new (cons-auth realm identity (random-integer)
+	     (new (cons-auth realm identity (auth/maketoken)
 			     (time) (authinfo-expires auth))))
 	 (when checktoken
 	   (checktoken identity oldtoken #f)
