@@ -5,8 +5,8 @@
 (use-module '{fdweb texttools})
 (use-module '{varconfig logger rulesets crypto ezrecords})
 
-;;(define %loglevel %debug!)
 (define %loglevel %notify!)
+;;(define %loglevel %debug!)
 
 (module-export! '{auth/getinfo
 		  auth/getuser
@@ -174,7 +174,8 @@
 ;;    _var_ is a signed authentication in plaintext over HTTPS
 ;;    _var-_ is a signed and encrypted authentication
 
-(define (expire-cookie! cookievar)
+(define (expire-cookie! cookievar (cxt #f))
+  (debug%watch "EXPIRE-COOKIE!" cookievar cxt)
   (set-cookie! cookievar "expired"
 	       auth-cookie-domain auth-cookie-path
 	       (timestamp+ (- (* 7 24 3600)))
@@ -189,6 +190,7 @@
 	       #f))
 
 (define (set-cookies! var authstring expires)
+  (debug%watch "SET-COOKIES!" var authstring expires)
   (if auth-secure
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
@@ -220,10 +222,12 @@
 
 (defrecord authinfo
   realm identity (token (random-integer))
-  (issued (time)) (expires (+ (time) auth-expiration)))
+  (issued (time))
+  (expires (and auth-expiration (+ (time) auth-expiration))))
 
 (define (auth->string auth)
-  (let* ((info (stringout (authinfo-realm auth)
+  (let* ((expires (authinfo-expires auth))
+	 (info (stringout (authinfo-realm auth)
 		 ";" (unparse-arg (authinfo-identity auth))
 		 ";" (authinfo-issued auth)
 		 ";" (authinfo-token auth)
@@ -238,7 +242,7 @@
   (let* ((split (rposition #\; authstring))
 	 (payload (and split (subseq authstring 0 split)))
 	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
-	 (info (and split (map parse-arg (segment payload ";")))))
+	 (info (and split (map string->lisp (segment payload ";")))))
     (debug%watch "STRING->AUTH" 
       info payload sig (hmac-sha1 payload signature)
       authstring)
@@ -257,10 +261,7 @@
   (let* ((split (rposition #\; authstring))
 	 (payload (and split (subseq authstring 0 split)))
 	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
-	 (info (and split (map parse-arg (segment payload ";")))))
-    (debug%watch "STRING->AUTH" 
-      info payload sig (hmac-sha1 payload signature)
-      authstring)
+	 (info (and split (map string->lisp (segment payload ";")))))
     (debug%watch "UNPACK-AUTHINFO" authstring
 		 info payload sig (hmac-sha1 payload signature))
     (unless (equal? sig (hmac-sha1 payload signature))
@@ -289,7 +290,9 @@
 	 identity)))
 
 (define (auth/ok? auth)
-  (and auth (> (authinfo-expires auth) (time))
+  (and auth
+       (or (not (authinfo-expires auth))
+	   (> (authinfo-expires auth) (time)))
        (if (> (time) (+ (authinfo-issued auth) auth-refresh))
 	   (newauth auth)
 	   auth)))
@@ -335,13 +338,14 @@
 	;; Check if the info is a valid object
 	((not (authinfo? authinfo)) 
 	 (authfail "Invalid authorization object" authid authinfo signal))
-	((> (time) (authinfo-expires authinfo))
+	((and (authinfo-expires authinfo) (> (time) (authinfo-expires authinfo)))
 	 (authfail "Authorization expired" authid authinfo signal))
 	(else (or (auth/ok? authinfo)
 		  (authfail "Authorization error" authid authinfo signal)))))
 
 (define (authfail reason authid info signal)
-  (expire-cookie! authid)
+  (debug%watch "AUTHFAIL" reason authid info)
+  (expire-cookie! authid "AUTHFAIL")
   (cgidrop! authid)
   (if signal
       (error reason authid info)
@@ -366,6 +370,6 @@
   (when (string? info) (set! info (string->auth info)))
   (when info
     (when checktoken (checktoken (authinfo-identity info) (authinfo-token info) #f)))
-  (expire-cookie! authid))
+  (expire-cookie! authid "AUTH/DEAUTHORIZE!"))
 
 
