@@ -839,8 +839,12 @@ static int close_webclient(u8_client ucl)
 
 static char *portfile=NULL;
 
-static void shutdown_fdwebserver()
+static void shutdown_fdwebserver(u8_condition reason)
 {
+  if (reason) 
+    u8_log(LOG_WARN,reason,
+	   "Unexpected shutdown, removing socket %s and pidfile %s",
+	   portfile,pidfile);
   u8_server_shutdown(&fdwebserver);
   if (portfile)
     if (remove(portfile)>=0) {
@@ -852,7 +856,25 @@ static void shutdown_fdwebserver()
 
 static void signal_shutdown(int sig)
 {
-  shutdown_fdwebserver();
+#ifdef SIGHUP
+  if (sig==SIGHUP) {
+    shutdown_fdwebserver("SIGHUP"); return;}
+#endif
+#ifdef SIGHUP
+  if (sig==SIGQUIT) {
+    shutdown_fdwebserver("SIGQUIT"); return;}
+#endif
+#ifdef SIGHUP
+  if (sig==SIGTERM) {
+    shutdown_fdwebserver("SIGTERM"); return;}
+#endif
+  shutdown_fdwebserver("SIGTERM");
+  return;  
+}
+
+static void normal_shutdown()
+{
+  shutdown_fdwebserver(NULL);
 }
 
 static void init_symbols()
@@ -1078,7 +1100,10 @@ int main(int argc,char **argv)
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
-  if (u8_file_existsp(socket_path)) remove(socket_path);
+  if (u8_file_existsp(socket_path)) {
+    u8_log(LOG_WARN,"FDSERV/startup",
+	   "Removing leftover socket file %s",socket_path);
+    remove(socket_path);}
   
   update_preloads();
 
@@ -1087,7 +1112,7 @@ int main(int argc,char **argv)
 		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
   fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
-  atexit(shutdown_fdwebserver);
+  atexit(normal_shutdown);
 
 #ifdef SIGHUP
   signal(SIGHUP,signal_shutdown);
