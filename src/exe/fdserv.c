@@ -67,6 +67,9 @@ static struct U8_XTIME boot_time;
 #define FD_ALLREQS 2 /* records all requests */
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
+/* This is how old a socket file needs to be to be deleted as 'leftover' */
+#define FD_LEFTOVER_SOCKET_AGE 30
+
 static int load_report_freq=1000;
 static time_t last_load_report=-1;
 
@@ -1101,9 +1104,14 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
   if (u8_file_existsp(socket_path)) {
-    u8_log(LOG_WARN,"FDSERV/startup",
-	   "Removing leftover socket file %s",socket_path);
-    remove(socket_path);}
+    if (((time(NULL))-(u8_file_mtime(socket_path)))<FD_LEFTOVER_SOCKET_AGE) {
+      u8_log(LOG_CRIT,"FDSERV/SOCKETRACE",
+	     "Aborting due to recent socket file %s",socket_path);
+      return -1;}
+    else {
+      u8_log(LOG_WARN,"FDSERV/SOCKETZAP",
+	     "Removing leftover socket file %s",socket_path);
+      remove(socket_path);}}
   
   update_preloads();
 
