@@ -1102,15 +1102,16 @@ static int spawn_fdservlet /* 2.0 */
     sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
       if (sleep_count>servlet_wait) {
 	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
-		      "Failed to spawn socket file %s (%d:%s)",
-		      sockname,errno,strerror(errno));
+		      "Failed to spawn socket file %s (i=%d/wait=%d) (%d:%s)",
+		      sockname,sleep_count,servlet_wait,
+		      errno,strerror(errno));
 	errno=0;
 	return -1;}
       if (sleep_count==4) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_NOTICE,rv,r,
-	   "Still waiting for %s to exist (errno=%d:%s)",
-	   sockname,errno,strerror(errno));
+	   "Still waiting for %s to exist (i=%d/wait=%d) (errno=%d:%s)",
+	   sockname,sleep_count,servlet_wait,errno,strerror(errno));
 	errno=0; sleep(2);}
       else sleep(1);
       sleep_count++;}}
