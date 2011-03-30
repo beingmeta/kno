@@ -68,7 +68,7 @@ static struct U8_XTIME boot_time;
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
 /* This is how old a socket file needs to be to be deleted as 'leftover' */
-#define FD_LEFTOVER_SOCKET_AGE 30
+#define FD_LEFTOVER_AGE 30
 
 static int load_report_freq=1000;
 static time_t last_load_report=-1;
@@ -387,23 +387,41 @@ static void dolog
 
 /* Writing the PID file */
 
-static void write_pid_file(char *sockname)
+static int check_pid_file(char *sockname)
 {
-  FILE *f;
+  int fd;
   int len=strlen(sockname);
-  char *dot=strchr(sockname,'.');
+  char *dot=strchr(sockname,'.'), buf[128];
   pidfile=u8_malloc(len+8);
   if (dot) {
     strncpy(pidfile,sockname,dot-sockname);
     pidfile[dot-sockname]='\0';}
   else strcpy(pidfile,sockname);
   strcat(pidfile,".pid");
-  f=fopen(pidfile,"w");
-  if (f==NULL)
-    u8_log(LOG_WARN,Startup,"Couldn't write file","Couldn't write PID file %s",pidfile);
-  else {
-    fprintf(f,"%d",getpid());
-    fclose(f);}
+  fd=open(pidfile,O_WRONLY|O_CREAT|O_EXCL,644);
+  if (fd<0) {
+    struct stat fileinfo;
+    int rv=stat(pidfile,&fileinfo);
+    if (rv<0) {
+      u8_log(LOG_CRIT,"Can't write file",
+	     "Couldn't write file","Couldn't write PID file %s",pidfile);
+      return 0;}
+    else if (((time(NULL))-(fileinfo.st_mtime))<FD_LEFTOVER_AGE) {
+      u8_log(LOG_CRIT,"Race Condition",
+	     "Current pidfile (%s) too young to replace",
+	     pidfile);
+      return 0;}
+    else {
+      remove(pidfile);
+      fd=open(pidfile,O_WRONLY|O_CREAT|O_EXCL,644);
+      if (fd<0) {
+	u8_log(LOG_CRIT,"Couldn't write file",
+	       "Couldn't write PID file %s",pidfile);
+	return 0;}}}
+  sprintf(buf,"%d",getpid());
+  u8_writeall(fd,buf,strlen(buf));
+  close(fd);
+  return 1;
 }
 
 /* Preloads */
@@ -1017,6 +1035,8 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
+  if (!(check_pid_file(socket_path))) return -1;
+  
   fd_version=fd_init_fdscheme();
   
   /* We register this module so that we can have pages that use the functions,
@@ -1103,15 +1123,6 @@ int main(int argc,char **argv)
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
-  if (u8_file_existsp(socket_path)) {
-    if (((time(NULL))-(u8_file_mtime(socket_path)))<FD_LEFTOVER_SOCKET_AGE) {
-      u8_log(LOG_CRIT,"FDSERV/SOCKETRACE",
-	     "Aborting due to recent socket file %s",socket_path);
-      return -1;}
-    else {
-      u8_log(LOG_WARN,"FDSERV/SOCKETZAP",
-	     "Removing leftover socket file %s",socket_path);
-      remove(socket_path);}}
   
   update_preloads();
 
@@ -1156,13 +1167,22 @@ int main(int argc,char **argv)
  sigsetmask(0);
 #endif
 
-  if (u8_add_server(&fdwebserver,socket_path,-1)<0) {
+  /* We check this now, to kludge around some race conditions */
+  if (u8_file_existsp(socket_path)) {
+    if (((time(NULL))-(u8_file_mtime(socket_path)))<FD_LEFTOVER_AGE) {
+      u8_log(LOG_CRIT,"FDSERV/SOCKETRACE",
+	     "Aborting due to recent socket file %s",socket_path);
+      return -1;}
+    else {
+      u8_log(LOG_WARN,"FDSERV/SOCKETZAP",
+	     "Removing leftover socket file %s",socket_path);
+      remove(socket_path);}}
+
+ if (u8_add_server(&fdwebserver,socket_path,-1)<0) {
     fd_recycle_hashtable(&pagemap);
     fd_clear_errors(1);
     return -1;}
   chmod(socket_path,0777);
-
-  write_pid_file(socket_path);
 
   portfile=u8_strdup(socket_path);
 
