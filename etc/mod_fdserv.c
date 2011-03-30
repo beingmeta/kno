@@ -260,7 +260,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->socket_file=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
-  config->servlet_wait=DEFAULT_SERVLET_WAIT;
+  config->servlet_wait=-1;
   config->uid=-1; config->gid=-1;
   return (void *) config;
 }
@@ -274,6 +274,10 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
 
   if (child->uid <= 0) config->uid=parent->uid; else config->uid=child->uid;
   if (child->gid <= 0) config->gid=parent->gid; else config->gid=child->gid;
+
+  if (child->servlet_wait <= 0)
+    config->servlet_wait=parent->servlet_wait;
+  else config->servlet_wait=child->servlet_wait;
 
   if (child->server_executable)
     config->server_executable=apr_pstrdup(p,child->server_executable);
@@ -332,7 +336,7 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->socket_file=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
-  config->servlet_wait=DEFAULT_SERVLET_WAIT;
+  config->servlet_wait=-1;
   return (void *) config;
 }
 
@@ -344,6 +348,10 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   struct FDSERV_DIR_CONFIG *child=new;
 
   config->log_file=NULL; config->socket_file=NULL;
+
+  if (child->servlet_wait <= 0)
+    config->servlet_wait=parent->servlet_wait;
+  else config->servlet_wait=child->servlet_wait;
 
   if (child->server_executable)
     config->server_executable=apr_pstrdup(p,child->server_executable);
@@ -753,6 +761,7 @@ static int spawn_fdservlet /* 1.3 */
   server_rec *s=r->server;
   struct stat stat_data;
   int servlet_wait=dconfig->servlet_wait;
+  if (servlet_wait<0) servlet_wait=DEFAULT_SERVLET_WAIT;
   info.exename=(char *)
     ((dconfig->server_executable) ? (dconfig->server_executable) :
      (sconfig->server_executable) ? (sconfig->server_executable) :
@@ -991,6 +1000,8 @@ static int spawn_fdservlet /* 2.0 */
   const char *log_file=get_log_file(r,NULL);
   int servlet_wait=dconfig->servlet_wait;
   uid_t uid; gid_t gid;
+
+  if (servlet_wait<0) servlet_wait=DEFAULT_SERVLET_WAIT;
 
   if (log_file==NULL) log_file=get_log_file(r,sockname);
 
