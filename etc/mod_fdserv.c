@@ -971,7 +971,7 @@ static int spawn_fdservlet /* 2.0 */
   apr_proc_t proc; apr_procattr_t *attr;
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
-  struct stat stat_data; int rv, n_configs=0;
+  struct stat stat_data; int rv, n_configs=0, retval=0;
 
   server_rec *s=r->server;
   struct FDSERV_SERVER_CONFIG *sconfig=
@@ -1049,17 +1049,6 @@ static int spawn_fdservlet /* 2.0 */
 	 (APLOG_MARK, APLOG_DEBUG, rv, r,
 	  "Successfully set child process attributes: %s", r->filename);
   
-  if (stat(sockname,&stat_data) == 0) {
-    if (remove(sockname) == 0)
-      ap_log_error
-	(APLOG_MARK,APLOG_NOTICE,OK,s,
-	 "mod_fdserv: Removed leftover socket file %s",sockname);
-    else {
-      ap_log_error
-	(APLOG_MARK,APLOG_CRIT,500,s,
-	 "mod_fdserv: Could not remove socket file %s",sockname);
-      return -1;}}
-  
 #if HEAVY_DEBUGGING
   {
     const char **scanner=argv; while (scanner<write_argv) {
@@ -1073,6 +1062,18 @@ static int spawn_fdservlet /* 2.0 */
       scanner++;}}
 #endif
 
+  if ((stat(sockname,&stat_data) == 0)&&
+      (((time(NULL))-stat_data.st_mtime)>15)) {
+    if (remove(sockname) == 0)
+      ap_log_error
+	(APLOG_MARK,APLOG_NOTICE,OK,s,
+	 "mod_fdserv: Removed leftover socket file %s",sockname);
+    else {
+      ap_log_error
+	(APLOG_MARK,APLOG_CRIT,500,s,
+	 "mod_fdserv: Could not remove socket file %s",sockname);
+      return -1;}}
+  
   errno=0;
   rv=apr_proc_create(&proc,exename,(const char **)argv,envp,
 		     attr,p);
@@ -1080,7 +1081,9 @@ static int spawn_fdservlet /* 2.0 */
     ap_log_rerror(APLOG_MARK,APLOG_CRIT, rv, r,
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
 		  exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
-    return -1;}
+    /* We don't exit right away because there might be a race condition
+       so another process is creating the socket.  So we still wait. */
+    retval=-1;}
   else if (log_file)
     ap_log_error
       (APLOG_MARK,APLOG_NOTICE,rv,s,
@@ -1096,7 +1099,7 @@ static int spawn_fdservlet /* 2.0 */
   /* Now wait for the socket file to exist */
   {
     int sleep_count=1;
-    sleep(1); while (stat(sockname,&stat_data) < 0) {
+    sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
       if (sleep_count>servlet_wait) {
 	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
 		      "Failed to spawn socket file %s (%d:%s)",
@@ -1112,7 +1115,8 @@ static int spawn_fdservlet /* 2.0 */
       else sleep(1);
       sleep_count++;}}
 
-  return 0;
+  if (rv>=0) return 0;
+  else return retval;
 }
 
 static int connect_to_servlet(request_rec *r)
