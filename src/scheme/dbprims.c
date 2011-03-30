@@ -428,7 +428,11 @@ static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
 static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
 			    fdtype state,fdtype usecache)
 {
-  fd_index ix=fd_make_extindex(FD_STRDATA(label),fetchfn,commitfn,state);
+  fd_index ix=fd_make_extindex
+    (FD_STRDATA(label),
+     ((FD_FALSEP(fetchfn))?(FD_VOID):(fetchfn)),
+     ((FD_FALSEP(commitfn))?(FD_VOID):(commitfn)),
+     ((FD_FALSEP(state))?(FD_VOID):(state)));
   if (FD_FALSEP(usecache)) ix->cache_level=0;
   return fd_index2lisp(ix);
 }

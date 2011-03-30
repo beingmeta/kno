@@ -121,7 +121,8 @@
 
 (defambda (xo/defget pool slotid db query
 		     (sqlmap default-sqlmap)
-		     (normalize #f))
+		     (normalize #f)
+		     (cache #t))
   (let* ((getter/sql (extdb/proc db query (cons #[%merge #t] sqlmap)
 				 (pool-base pool)))
 	 (rawgetter (lambda (key)
@@ -136,7 +137,7 @@
 		       ((table? normalize)
 			(lambda (x) (get normalize (rawgetter x))))
 		       (else rawgetter)))
-	 (index (make-extindex (stringout slotid) getter)))
+	 (index (make-extindex (stringout slotid) getter #f #f cache)))
     (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
 
