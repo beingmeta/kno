@@ -1,0 +1,362 @@
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
+(in-module 'knodules/plaintext)
+
+;;; Parser for the plaintext knodule encoding
+(define id "$Id$")
+(define revision "$Revision: 5078 $")
+
+(use-module '{texttools fdweb ezrecords varconfig})
+(use-module '{knodules knodules/drules})
+
+(module-export!
+ '{kno/read-plaintext
+   kno/write-plaintext
+   kno/plaintext kno/plaintext/escape
+   knodule->string
+   knodule->file file->knodule})
+
+(module-export! '{escaped-segment escaped-find})
+
+;;; Text processing
+
+;;; These were original definitions which are now in C
+(define (escaped-segment string sep)
+  (let ((result '()) (start 0) (pos (position sep string)))
+    (while pos
+      (if (and (> pos 0) (eqv? (elt string (- pos 1)) #\\)
+	       (or (= pos 1)
+		   (not (eqv? (elt string (- pos 2)) #\\))))
+	  (set! pos (position sep string (1+ pos)))
+	  (begin
+	    (unless (= pos start)
+	      (set! result (cons (subseq string start pos) result)))
+	    (set! start (1+ pos))
+	    (set! pos (position sep string start)))))
+    (unless (= start (length string))
+      (set! result (cons (subseq string start) result)))
+    (reverse result)))
+
+(define (escaped-find string sep)
+  (let ((found #f) (start 0) (pos (position sep string)))
+    (while (and pos (not found))
+      (if (and (> pos 0)
+	       (eqv? (elt string (- pos 1)) #\\)
+	       (or (= pos 1)
+		   (eqv? (elt string (- pos 2)) #\\)))
+	  (set! pos (position sep string (1+ pos)))
+	  (set! found #t)))
+    pos))
+
+(define (unescape-string string)
+  (string-subst* string "\\;" ";" "\\|" "|" "\\\\" "\\"))
+
+(define escaped-segment splitsep)
+(define escaped-find findsep)
+(define unescape-string unslashify)
+
+;;; Handling clauses
+
+(define (handle-lang-term subject slotid lang value)
+  (tryif (and (string? value) (not (equal? value "")))
+    (if (and (eqv? (elt value 0) #\$)
+	     (string-starts-with? value #("$" (isalpha) (isalpha) "$")))
+	(let ((langid (string->lisp (subseq value 1 3))))
+	  (if (eq? langid lang)
+	      (list subject slotid (subseq value 4))
+	      (list subject slotid
+		    (cons langid (subseq value 4)))))
+	(list subject slotid value))))
+
+(define (plaintext->drule string subject knodule language)
+  (let* ((dclauses (map trim-spaces (escaped-segment string #\&)))
+	 (cues {}) (context+ {}) (context- {})
+	 (threshold 1))
+    (doseq (dclause (remove "" dclauses) i)
+      (cond ((eqv? (first dclause) "+")
+	     (set+! cues
+		    (try (get knodule-dterms (subseq dclause 1))
+			 (subseq dclause 1))))
+	    ((eqv? (first dclause) "-")
+	     (set+! context-
+		    (try (get knodule-dterms (subseq dclause 1))
+			 (subseq dclause 1))))
+	    ((eqv? (first dclause) "#")
+	     (if (equal? dclause "#*")
+		 (set! threshold #f)
+		 (set! threshold (string->lisp (subseq dclause 1)))))
+	    (else (set+! context+
+			 (try (get knodule-dterms (subseq dclause 1))
+			      (subseq dclause 1))))))
+    (kno/drule subject language cues context+ context- threshold
+	       knodule)))
+
+(define (clause->triples op mod value subject knodule)
+  (cond ((or (not op) (eq? op #\\))
+	 (list subject (knodule-language knodule) value))
+	((eq? op #\$)
+	 (let ((lang (knodule-language knodule))
+	       (langid (string->lisp (subseq value 0 2))))
+	   (if (eq? langid lang)
+	       (list subject lang value)
+	       (list subject langid (subseq value 3)))))
+	((eq? op #\^)
+	 (let* ((open (escaped-find value #\())
+		(close (and open (escaped-find value #\) open)))
+		(context
+		 (and open close
+		      (kno/dref (subseq value (1+ open) close)
+				knodule)))
+		(value (if (and open close) (subseq value 0 open)
+			   value))
+		(genl (kno/dref value knodule)))
+	   (choice
+	    (list subject
+		  (try (get #[#f genls #\* commonly #\~ sometimes] mod)
+		       'genls)
+		  genl)
+	    (tryif context (list subject 'roles (cons genl context)))
+	    (tryif context (list context genl subject)))))
+	((eq? op #\_)
+	 (let ((object (kno/dref value knodule)))
+	   (choice (list subject 'specls object)
+		   (list object 'genls subject)
+		   (list object
+			 (get #[#\* typical #\~ atypical] mod)
+			 subject))))
+	((eq? op #\-)
+	 (let ((object (kno/dref value knodule)))
+	   (choice (list subject 'never object)
+		   (list object 'never subject)
+		   (list object
+			 (get #[#\* rarely #\~ somenot] mod)
+			 subject))))
+	((eq? op #\.)
+	 (let ((eqpos (position #\= value)))
+	   (if eqpos
+	       (let ((role (kno/dref (subseq value 0 eqpos) knodule))
+		     (filler (kno/dref (subseq value (1+ eqpos)) knodule)))
+		 (choice (list subject role filler)
+			 (list filler (get role 'mirror) subject)))
+	       (error "Bad dot clause" clause))))
+	((eq? op #\=)
+	 (let ((atpos (position #\@ value)))
+	   (if (and atpos (zero? atpos))
+	       (list subject 'oid (string->lisp value))
+	       (let ((dterm
+		      (if atpos
+			  (kno/dref (subseq value 0 atpos)
+				    (knodule (subseq value (1+ atpos))))
+			  (kno/dref value knodule))))
+		 (choice
+		  (list subject
+			(get #[#\* equiv #f identical #\~ somenot] mod)
+			dterm)
+		  (tryif (eq? mod #\*) (list dterm 'equiv subject)))))))
+	((eq? op #\&)
+	 (list subject
+	       (get #[#f assocs #\* defs #\~ refs] mod)
+	       (kno/dref value knodule)))
+	((eq? op #\@)
+	 (handle-lang-term subject
+			   (get #[#f xref #\* xdef #\~ xuri] mod)
+			   (knodule-language knodule) value))
+	((eq? op #\*)
+	 (handle-lang-term subject 'norms (knodule-language knodule)
+			   value))
+	((eq? op #\~)
+	 (handle-lang-term subject 'hooks (knodule-language knodule)
+			   value))
+	((eq? op #\")
+	 (when (has-suffix value "\"")
+	   (set! value (subseq value 0 -1)))
+	 (handle-lang-term subject
+			   (get #[#f explanation #\* gloss #\~ aside] mod)
+			   (knodule-language knodule) value))
+	((eq? op #\+)
+	 (list subject 'drules
+	       (plaintext->drule (string-append "+" value)
+				 subject knodule
+				 (knodule-language knodule))))
+	((eq? op #\%)
+	 (let ((eqpos (position #\= value)))
+	   (if eqpos
+	       (list subject (string->lisp (subseq value 1 eqpos))
+		     (kno/dterm (subseq value (1+ eqpos))))
+	       (list subject 'meta (string->lisp (subseq value 1))))))
+	(else (error "Bad clause" op mod value))))
+
+(define (handle-clause clause subject knodule)
+  (let* ((op (and (char-punctuation? (first clause))
+		  (first clause)))
+	 (modifier (and op (> (length clause) 1)
+			(overlaps? (second clause) {#\* #\~})
+			(second clause)))
+	 (rest (unescape-string
+		(if op (subseq clause (if modifier 2 1)) clause)))
+	 (triples (clause->triples op modifier rest subject knodule)))
+    (do-choices (triple triples) (apply kno/add! triple))
+    subject))
+
+(define (handle-subject-entry entry knodule)
+  (let* ((clauses (remove "" (map trim-spaces (escaped-segment entry #\|))))
+	 (dterm (kno/dterm (first clauses) knodule)))
+    (when (overlaps? kno/logging '{defterm defs})
+      (%watch "PLAINTEXT" dterm (length clauses)))
+    (doseq (clause (cdr clauses))
+      (handle-clause clause dterm knodule))
+    dterm))
+
+(define (handle-entry entry knodule)
+  (if (not (char-punctuation? (first entry)))
+      (handle-subject-entry entry knodule)
+      (cond ((eq? (first entry) #\*)
+	     (kno/add! (handle-subject-entry (subseq entry 1) knodule)
+		       'type 'primary))
+	    (else (error "Invalid knodule entry" entry)))))
+
+(define (kno/read-plaintext text (knodule default-knodule))
+  (map (lambda (x)
+	 (if (char-punctuation? (first x))
+	     x
+	     (handle-subject-entry x knodule)))
+       (remove "" (map trim-spaces (escaped-segment text #\;)))))
+(define (kno/plaintext text (knodule default-knodule))
+  "Parses a single plaintext subject entry and returns the subject"
+  (handle-subject-entry (trim-spaces text) knodule))
+
+;;; Generating the plaintext representation
+
+(define slot-codes-init
+  '(("^" genls) ("^*" commonly) ("^~" sometimes)
+    ("_" examples) ("_*" typical) ("_~" atypical)
+    ("-" never) ("^*" rarely) ("^~" somenot)
+    ("&" assocs) ("&*" defs) ("&~" refs)
+    ("=" identical) ("=*" equiv) ("=~" sorta)
+    ("@" xref) ("@*" xdef) ("@~" xuri)))
+(define slot-codes
+  (let ((table (make-hashtable)))
+    (dolist (sci slot-codes-init)
+      (add! table (second sci) (first sci)))
+    table))
+
+(define (escape-string string)
+  (string-subst (string-subst (stdspace string) ";" "\\;") "|" "\\|"))
+(define (kno/plaintext/escape string (clause #f))
+  (if (and clause (char-punctuation? (first string)))
+      (stringout  "\\" (subseq string 0 1)
+		  (escape-string (subseq string 1)))
+      (escape-string string)))
+
+(define (output-value value (knodule default-knodule))
+  (if (oid? value)
+      (if (test value 'knodule (knodule-oid knodule))
+	  (printout (escape-string (get value 'dterm)))
+	  (printout (escape-string (get value 'dterm))
+		    "@" (escape-string (knodule-name knodule))))
+      (if (and (pair? value) (overlaps? (car value) langids))
+	  (printout "$" (car value) "$" (escape-string (cdr value)))
+	  (printout (escape-string value)))))
+
+(define (dterm->plaintext dterm (knodule default-knodule) (settings #[]))
+  (let ((languages (choice (knodule-language knodule) 'en
+			   (get settings 'languages)
+			   (tryif (test settings 'languages 'all)
+				  langids))))
+    (printout
+      (get dterm 'dterm)
+      (do-choices (slotid (difference (getkeys dterm) (get settings 'exclude)))
+	(do-choices (value (get dterm slotid))
+	  (let ((code (get slot-codes slotid)))
+	    (cond ((exists? code)
+		   (printout "|" code (output-value value knodule)))
+		  ((oid? slotid)
+		   (printout "|." (get slotid 'dterm)
+			     "=" (output-value value knodule)))
+		  ((eq? slotid (knodule-language knodule))
+		   (when (string? value)
+		     (if (char-punctuation? (elt value 0))
+			 (printout "|\\" value)
+			 (printout "|" value))))
+		  ((eq? slotid 'gloss)
+		   (printout "|\"" (output-value value) "\""))
+		  ((overlaps? slotid langids)
+		   (if (overlaps? slotid languages)
+		       (printout "|$" slotid "$" value)))
+		  ((eq? slotid 'norms)
+		   (if (string? value)
+		       (printout "|*" value)
+		       (if (overlaps? (car value) languages)
+			   (printout "|*$" (car value) "$" (cdr value)))))
+		  ((eq? slotid 'hooks)
+		   (if (string? value)
+		       (printout "|~" value)
+		       (if (overlaps? (car value) languages)
+			   (printout "|~$" (car value) "$" (cdr value)))))
+		  ((eq? slotid 'roles)
+		   (printout "|" (cond ((test dterm 'genls (car value)) "^")
+				       ((test dterm 'always (car value)) "*")
+				       ((test dterm 'sometimes (car value)) "~")
+				       (else "^"))
+			     (output-value (car value) knodule)
+			     "(" (output-value (cdr value) knodule) ")" ))
+		  ((eq? slotid 'mirror)
+		   (printout "|%MIRROR=" (get value 'dterm)))
+		  ((eq? slotid 'drules)
+		   (printout "|")
+		   (if (eq? (knodule-language knodule)
+			    (drule-language value))
+		       (do-choices (cue (drule-cues value) i)
+			 (printout (if (> i 0) "&") "+"
+				   (if (string? cue) cue (get cue 'dterm))))
+		       (do-choices (cue (drule-cues value) i)
+			 (if (= i 0)
+			     (printout "+$" (knodule-language value) "$")
+			     (printout "&+"))
+			 (printout (if (string? cue) cue (get cue 'dterm)))))
+		   (do-choices (cue (drule-context- value) i)
+		     (printout "&-" (if (string? cue) cue (get cue 'dterm))))
+		   (do-choices (cue (drule-context+ value) i)
+		     (printout "&" (if (string? cue) cue (get cue 'dterm))))
+		   (unless (eq? (drule-threshold value) 1)
+		     (printout "&#" (drule-threshold value)))
+		   (when (not (drule-threshold value))
+		     (printout "&#*" (drule-threshold value))))
+		  ((eq? slotid 'oid)
+		   (if (test value 'sensecat)
+		       (printout
+			 "|=@" (number->string (oid-hi value) 16) "/"
+			 (number->string (oid-lo value) 16))
+		       (if (test value 'dterm)
+			   ;; Need to add relative knodules
+			   (printout "|=" (get value 'dterm)))))
+		  (else ))))))))
+
+(defambda (kno/write-plaintext dterms (settings #[]) (kl)  (sep))
+  (when (knodule? dterms)
+    (set! kl dterms)
+    (set! dterms (hashset-elts (knodule-alldterms kl))))
+  (default! sep (try (get settings 'sep) ";\n"))
+  (default! kl (knodule (try (get settings 'knodule)
+			     (pick-one (get dterms 'knodule)))))
+  (if (sequence? dterms)
+      (doseq (dterm dterms i)
+	(if (> i 0) (printout sep))
+	(dterm->plaintext dterm kl settings))
+      (do-choices (dterm dterms i)
+	(if (> i 0) (printout sep))
+	(dterm->plaintext dterm kl settings)))
+  (lineout))
+
+(define (knodule->file knodule (file #f) (settings #[]))
+  (if (and (string? knodule) (not file))
+      (knodule->file default-knodule knodule settings)
+      (fileout file (kno/write-plaintext knodule settings))))
+
+(define (knodule->string knodule (settings #[]))
+  (stringout (kno/write-plaintext knodule settings)))
+
+(define (file->knodule file (knodule default-knodule))
+  (kno/read-plaintext (filestring file) knodule))
+
