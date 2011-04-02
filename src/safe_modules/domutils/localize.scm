@@ -134,7 +134,9 @@
 
 (define (dom/getmanifest doc)
   (choice (for-choices (link (dom/find doc "LINK"))
-	    (tryif (or (test link 'rel "css") (test link 'rel "knowlet"))
+	    (tryif (or (test link 'rel "stylesheet")
+		       (test link 'rel "knowlet")
+		       (test link 'rel "knodule"))
 	      (get link 'href)))
 	  (get (dom/find doc "SCRIPT") 'src)
 	  (get (dom/find doc "IMG") 'src)))
