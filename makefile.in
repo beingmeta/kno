@@ -183,6 +183,7 @@ fresh:
 	make clean; make default
 dbg:
 	make clean; make XCFLAGS="-O0" default
+
 # Makes everything and then sudoes install.  Keeps build files non-root
 suinstall:
 	make all
@@ -190,6 +191,11 @@ suinstall:
 dbginstall:
 	make XCFLAGS="-O0" all
 	sudo make install
+
+lib:
+	if test ! -d lib; then mkdir lib; fi
+lib/framerd: lib
+	if test ! -d lib/framerd; then mkdir lib/framerd; fi
 
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
@@ -205,7 +211,7 @@ exe: $(EXECUTABLES)
 
 etc/usememory: etc/usememory.c
 
-cmodules: @CMODULES@
+cmodules: lib/framerd @CMODULES@
 
 # Rules
 
@@ -237,14 +243,19 @@ exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 lib/%@suffix@.a:
+	make lib
 	$(MKSTATIC) $@ $^
 lib/%@suffix@.so.@VERSION@:
+	make lib
 	$(MKSO) -Wl,-soname=$(@F) -o $@ $^
 lib/%@suffix@.so: lib/%.so.@VERSION@
+	make lib
 	ln -sf $(<F) $@
 lib/%@suffix@.@VERSION@.dylib:
+	make lib
 	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
 lib/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
+	make lib
 	ln -sf $(<F) $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
