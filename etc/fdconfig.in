@@ -1,0 +1,26 @@
+#!/bin/sh
+VERSION="$Id$"
+case $1 in
+  config)
+	echo "@local_config@";;
+    cflags)
+	echo "@CFLAGS@";;
+    include)
+	echo "@prefix@/include/fdb";;
+    lib)
+	echo "@libdir@";;
+    bin)
+	echo "@exec_prefix@/bin";;
+    modules)
+	echo "@module_dir@";;
+    safe)
+	echo "@safe_module_dir@";;
+    cmodules)
+	echo "@libdir@/framerd";;
+    etc)
+	echo "@data_dir@/etc";;
+    data)
+	echo "@data_dir@";;
+    else)
+	echo "don't recognize config setting $1";;
+esac
