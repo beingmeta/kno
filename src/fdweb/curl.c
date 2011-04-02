@@ -314,7 +314,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
 	      strdup("curl_easy_init failed"),FD_VOID);
     return NULL;}
   if (debugging_curl) {
-    unsigned long long ptrval=(unsigned long long) h->handle;
+    FD_INTPTR ptrval=(FD_INTPTR) h->handle;
     u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);}
   curl_set(h,CURLOPT_NOPROGRESS,1);
   curl_set(h,CURLOPT_FILETIME,(long)1);
@@ -353,7 +353,7 @@ static void recycle_curl_handle(struct FD_CONS *c)
 {
   struct FD_CURL_HANDLE *ch=(struct FD_CURL_HANDLE *)c;
   if (debugging_curl) {
-    unsigned long long ptrval=(unsigned long long) ch->handle;
+    FD_INTPTR ptrval=(FD_INTPTR) ch->handle;
     u8_log(LOG_DEBUG,"CURL","Freeing CURL handle %llx",ptrval);}
   curl_slist_free_all(ch->headers);
   curl_easy_cleanup(ch->handle);
