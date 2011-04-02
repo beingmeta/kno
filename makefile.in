@@ -557,13 +557,17 @@ cleanrpms:
 	make rpms
 rpms: etc/rpms.done
 
-etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
-			      configure.in makefile.in makefile
-	svn export $(FRAMERDSVN) etc/framerd-@VERSION@
+etc/framerd-@VERSION@: $(FDB_SOURCES) $(FDB_HEADERS) \
+		      configure.in makefile.in makefile
+	git archive --prefix=framerd-@VERSION@/ \
+	            -o etc/framerd-@VERSION@.tar HEAD
+	cd etc; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
 	echo "#define FDB_SVNREV \""`svnversion .`"\"" \
 		> etc/framerd-@VERSION@/etc/revision.h;
+etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
+		      		configure.in makefile.in makefile
+	make etc/framerd-@VERSION@
 	tar -czvf $@ -C etc framerd-@VERSION@
-	rm -rf etc/framerd-@VERSION@
 
 etc/rpms.done: etc/framerd-@VERSION@.tar.gz
 	@buildrpm@ --nodeps -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
