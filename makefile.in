@@ -753,7 +753,7 @@ $(DESTDIR)@apache_modinfo@:
 src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
 	if test -f etc/revision.h; \
 	then cp etc/revision.h src/exe/revision.h; \
-	else echo "#define FDB_SVNREV \""`svnversion .`"\"" \
+	else echo "#define FDB_SVNREV \""`git describe`"\"" \
 		> src/exe/revision.h; fi
 $(EXECUTABLES): src/exe/revision.h
 
