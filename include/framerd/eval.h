@@ -9,8 +9,8 @@
 #define FDB_EVAL_H 1
 #define FDB_EVAL_H_VERSION "$Id$"
 
-#include "fdb/dtype.h"
-#include "fdb/apply.h"
+#include "framerd/dtype.h"
+#include "framerd/apply.h"
 #include <assert.h>
 
 FD_EXPORT fd_exception fd_UnboundIdentifier, fd_BindError;

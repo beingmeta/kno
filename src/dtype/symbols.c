@@ -8,7 +8,7 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 
 typedef struct FD_SYMBOL_ENTRY {
   struct FD_STRING name; int serial;} FD_SYMBOL_ENTRY;

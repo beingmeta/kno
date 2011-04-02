@@ -8,9 +8,9 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
-#include "fdb/history.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/history.h"
 
 static fdtype history_symbol;
 

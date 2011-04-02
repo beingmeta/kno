@@ -11,15 +11,15 @@ static char versionid[] =
 #define U8_INLINE_IO 1
 #define FD_PROVIDE_FASTEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
-#include "fdb/pools.h"
-#include "fdb/frames.h"
-#include "fdb/tables.h"
-#include "fdb/eval.h"
-#include "fdb/ports.h"
-#include "fdb/fdweb.h"
-#include "fdb/support.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/frames.h"
+#include "framerd/tables.h"
+#include "framerd/eval.h"
+#include "framerd/ports.h"
+#include "framerd/fdweb.h"
+#include "framerd/support.h"
 
 static int fdweb_init_done=0;
 

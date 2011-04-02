@@ -8,9 +8,9 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
-#include "fdb/sequences.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/sequences.h"
 
 /* This file implements structural side effects, which are kept in a different module
    to discourage casual usage.  Note that they are not neccessarily threadsafe. */

@@ -8,10 +8,10 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/support.h"
-#include "fdb/eval.h"
-#include "fdb/ports.h"
+#include "framerd/dtype.h"
+#include "framerd/support.h"
+#include "framerd/eval.h"
+#include "framerd/ports.h"
 
 static fdtype compoundp(fdtype x,fdtype tag)
 {

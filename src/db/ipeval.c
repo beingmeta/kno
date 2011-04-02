@@ -10,12 +10,12 @@ static char versionid[] =
 
 #define FD_INLINE_IPEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/tables.h"
-#include "fdb/apply.h"
-#include "fdb/fddb.h"
-#include "fdb/pools.h"
-#include "fdb/indices.h"
+#include "framerd/dtype.h"
+#include "framerd/tables.h"
+#include "framerd/apply.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>

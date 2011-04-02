@@ -10,8 +10,8 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
 #include "eval_internals.h"
 
 static fdtype else_symbol;

@@ -1,7 +1,7 @@
 /* C Mode */
 
 /* mod_fdserv.c
-   Copyright (C) 2002-2009 beingmeta, inc.  All Rights Reserved
+   Copyright (C) 2002-2011 beingmeta, inc.  All Rights Reserved
    This is a Apache module supporting persistent FramerD servers
 
    For Apache 1.3:

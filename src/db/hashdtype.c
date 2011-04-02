@@ -10,8 +10,8 @@ static char versionid[] =
 
 #define U8_INLINE_IO 1
 
-#include "fdb/dtype.h"
-#include "fdb/dbfile.h"
+#include "framerd/dtype.h"
+#include "framerd/dbfile.h"
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */

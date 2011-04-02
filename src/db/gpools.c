@@ -10,8 +10,8 @@ static char versionid[] =
 
 #define FD_INLINE_DTYPEIO 1
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>

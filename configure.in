@@ -1,5 +1,5 @@
 AC_PREREQ(2.50)
-AC_INIT(include/fdb/dtype.h)
+AC_INIT(include/framerd/dtype.h)
 
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
@@ -90,7 +90,7 @@ MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 
 AC_CONFIG_AUX_DIR(etc)
-AC_CONFIG_HEADER(include/fdb/config.h)
+AC_CONFIG_HEADER(include/framerd/config.h)
 AC_PREFIX_DEFAULT(/usr/local)
 
 AC_SUBST(install_dir_opts)
@@ -823,7 +823,7 @@ AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
 AC_OUTPUT(makefile 
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
-	  etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d
+	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/install-script)

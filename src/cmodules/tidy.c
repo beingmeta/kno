@@ -8,8 +8,8 @@
 static char versionid[] =
   "$Id: crypto.c 4774 2010-01-15 14:43:07Z haase $";
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
 #include "libu8/u8logging.h"
 
 #if HAVE_TIDY_H

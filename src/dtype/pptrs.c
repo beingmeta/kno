@@ -17,7 +17,7 @@ static char versionid[] =
 
 #define FD_INLINE_PPTRS 1
 
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 
 #include <libu8/u8printf.h>
 

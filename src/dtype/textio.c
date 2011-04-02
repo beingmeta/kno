@@ -11,7 +11,7 @@ static char versionid[] =
   "$Id$";
 
 #define U8_INLINE_IO 1
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8streamio.h>

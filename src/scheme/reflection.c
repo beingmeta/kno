@@ -8,8 +8,8 @@
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_PPTRS 1
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
 
 static MAYBE_UNUSED char versionid[] = 
   "$Id$";

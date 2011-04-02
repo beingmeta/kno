@@ -8,9 +8,9 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/dtcall.h"
-#include "fdb/dtypestream.h"
+#include "framerd/dtype.h"
+#include "framerd/dtcall.h"
+#include "framerd/dtypestream.h"
 
 #include <libu8/u8netfns.h>
 

@@ -8,11 +8,11 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/tables.h"
-#include "fdb/fddb.h"
-#include "fdb/apply.h"
-#include "fdb/methods.h"
+#include "framerd/dtype.h"
+#include "framerd/tables.h"
+#include "framerd/fddb.h"
+#include "framerd/apply.h"
+#include "framerd/methods.h"
 
 static fdtype frame_symbol, slot_symbol, value_symbol;
 static fdtype through_slot, derive_slot, inverse_slot;

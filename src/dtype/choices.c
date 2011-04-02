@@ -9,7 +9,7 @@ static char versionid[] =
   "$Id$";
 
 #define FD_INLINE_CHOICES 1
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 
 #define MYSTERIOUS_MODULUS 256001281
 #define MYSTERIOUS_MULTIPLIER 2654435769U 

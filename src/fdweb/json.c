@@ -10,11 +10,11 @@ static char versionid[] =
 
 #define U8_INLINE_IO 1
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
-#include "fdb/tables.h"
-#include "fdb/ports.h"
-#include "fdb/fdweb.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/tables.h"
+#include "framerd/ports.h"
+#include "framerd/fdweb.h"
 
 #include <libu8/xfiles.h>
 

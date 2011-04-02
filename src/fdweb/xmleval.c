@@ -10,14 +10,14 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
-#include "fdb/eval.h"
-#include "fdb/apply.h"
-#include "fdb/ports.h"
-#include "fdb/fdweb.h"
-#include "fdb/sequences.h"
-#include "fdb/fileprims.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
+#include "framerd/eval.h"
+#include "framerd/apply.h"
+#include "framerd/ports.h"
+#include "framerd/fdweb.h"
+#include "framerd/sequences.h"
+#include "framerd/fileprims.h"
 
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>

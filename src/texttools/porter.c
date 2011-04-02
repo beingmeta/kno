@@ -18,7 +18,7 @@
     This program has been ported to beingmeta's FDB library.
 */
 
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 
 #include <libu8/u8stringfns.h>
 

@@ -10,9 +10,9 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
-#include "fdb/numbers.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/numbers.h"
 
 #define NUMBERP(x) \
   ((FD_FIXNUMP(x)) || (FD_FLONUMP(x)) || (FD_BIGINTP(x)) || \

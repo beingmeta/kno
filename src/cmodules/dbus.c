@@ -10,10 +10,10 @@ static char versionid[] =
 
 #define U8_INLINE_IO 1
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
-#include "fdb/sequences.h"
-#include "fdb/texttools.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/sequences.h"
+#include "framerd/texttools.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>

@@ -5,8 +5,8 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>

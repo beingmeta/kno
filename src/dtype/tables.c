@@ -11,9 +11,9 @@ static char versionid[] =
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 
-#include "fdb/dtype.h"
-#include "fdb/tables.h"
-#include "fdb/numbers.h"
+#include "framerd/dtype.h"
+#include "framerd/tables.h"
+#include "framerd/numbers.h"
 
 #include <libu8/u8printf.h>
 

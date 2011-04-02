@@ -10,9 +10,9 @@ static char versionid[] =
 
 #define FD_INLINE_DTYPEIO 1
 
-#include "fdb/dtype.h"
-#include "fdb/dbfile.h"
-#include "fdb/dbxfile.h"
+#include "framerd/dtype.h"
+#include "framerd/dbfile.h"
+#include "framerd/dbxfile.h"
 
 static struct FD_POOL_HANDLER dbxpool_handler;
 

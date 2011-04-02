@@ -9,7 +9,7 @@ static char versionid[] = "$Id$";
 
 #define FD_DEBUG_PTRCHECK 2
 
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>

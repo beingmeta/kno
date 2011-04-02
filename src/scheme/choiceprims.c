@@ -10,12 +10,12 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/eval.h"
-#include "fdb/fddb.h"
-#include "fdb/numbers.h"
-#include "fdb/frames.h"
-#include "fdb/sorting.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/fddb.h"
+#include "framerd/numbers.h"
+#include "framerd/frames.h"
+#include "framerd/sorting.h"
 
 /* Choice iteration */
 

@@ -8,8 +8,8 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/dbfile.h"
+#include "framerd/dtype.h"
+#include "framerd/dbfile.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>

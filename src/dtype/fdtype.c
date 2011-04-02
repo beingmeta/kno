@@ -8,7 +8,7 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
+#include "framerd/dtype.h"
 #include <stdarg.h>
 #include <time.h>
 

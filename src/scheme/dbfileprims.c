@@ -10,11 +10,11 @@ static char versionid[] =
 
 #define FD_PROVIDE_FASTEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
-#include "fdb/eval.h"
-#include "fdb/dbfile.h"
-#include "fdb/sequences.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
+#include "framerd/eval.h"
+#include "framerd/dbfile.h"
+#include "framerd/sequences.h"
 
 static fdtype baseoids_symbol, slotids_symbol;
 

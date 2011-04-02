@@ -8,8 +8,8 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/preoids.h"
+#include "framerd/dtype.h"
+#include "framerd/preoids.h"
 
 /* For sprintf */
 #include <stdio.h>

@@ -18,10 +18,10 @@ static char versionid[] =
 #endif
 #endif
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
-#include "fdb/dtypestream.h"
-#include "fdb/dbfile.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
+#include "framerd/dtypestream.h"
+#include "framerd/dbfile.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>

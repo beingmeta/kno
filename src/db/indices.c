@@ -12,9 +12,9 @@ static char versionid[] =
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_IPEVAL 1
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
-#include "fdb/apply.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
+#include "framerd/apply.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>

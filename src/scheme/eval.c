@@ -12,15 +12,15 @@ static char versionid[] =
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_PPTRS 1
 
-#include "fdb/dtype.h"
-#include "fdb/support.h"
-#include "fdb/fddb.h"
-#include "fdb/eval.h"
-#include "fdb/dtproc.h"
-#include "fdb/numbers.h"
-#include "fdb/sequences.h"
-#include "fdb/ports.h"
-#include "fdb/dtcall.h"
+#include "framerd/dtype.h"
+#include "framerd/support.h"
+#include "framerd/fddb.h"
+#include "framerd/eval.h"
+#include "framerd/dtproc.h"
+#include "framerd/numbers.h"
+#include "framerd/sequences.h"
+#include "framerd/ports.h"
+#include "framerd/dtcall.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>

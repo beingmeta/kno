@@ -8,12 +8,12 @@
 static char versionid[] =
   "$Id$";
 
-#include "fdb/dtype.h"
-#include "fdb/fddb.h"
-#include "fdb/eval.h"
-#include "fdb/sequences.h"
-#include "fdb/texttools.h"
-#include "fdb/tagger.h"
+#include "framerd/dtype.h"
+#include "framerd/fddb.h"
+#include "framerd/eval.h"
+#include "framerd/sequences.h"
+#include "framerd/texttools.h"
+#include "framerd/tagger.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
