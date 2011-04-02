@@ -478,7 +478,8 @@ FD_EXPORT int fd_xmleval_attribfn
 {
   u8_string namespace, attrib_name=fd_xmlns_lookup(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
-  fdtype slotval=((quote>0) ? (xmlevalify(val)) : (fd_parse(val)));
+  fdtype slotval=((val)?((quote>0) ? (xmlevalify(val)) : (fd_parse(val))):
+		  (slotid));
   fdtype attrib_entry=FD_VOID;
   if (FD_EMPTY_CHOICEP(xml->attribs)) fd_init_xml_attribs(xml);
   xml->bits=xml->bits|FD_XML_HASDATA;
