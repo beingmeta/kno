@@ -109,6 +109,10 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-oidpool \
 	       exe/scripts/ovmerge
 
+CONFDIRS=$(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
+              $(DESTDIR)@safe_module_dir@ $(DESTDIR)@standard_module_dir@/safe \
+		$(CONFDIR) $(CONFDIR)/etc
+
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
 
@@ -690,20 +694,14 @@ install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
 
 # Setup targets
 
-confdirs: $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
-	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-	  $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@
-	if test ! -f $(DESTDIR)@config_dir@/servers; then $(INSTALL) @install_file_opts@ /dev/null $(DESTDIR)@config_dir@/servers; fi
+confdirs: 
+	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
+	if test ! -f $(DESTDIR)@config_dir@/servers; then
+		$(INSTALL) @install_file_opts@ /dev/null \
+			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@data_dir@ $(DESTDIR)@data_dir@/etc $(DESTDIR)@config_dir@ \
-  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-  $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@: 
-	$(INSTALL) @install_dir_opts@ $@
-
-link-modules: $(DESTDIR)@module_dir@ \
-              $(DESTDIR)@standard_module_dir@ \
-              $(DESTDIR)@safe_module_dir@ \
-              $(DESTDIR)@data_dir@/etc
+link-modules:
+	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
 	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	ln -sf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
 	ln -sf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
@@ -711,6 +709,7 @@ link-modules: $(DESTDIR)@module_dir@ \
 	ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@data_dir@/etc
+	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
 	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
 	$(INSTALL) @install_dir_opts@ \
            $(DESTDIR)@standard_module_dir@ \

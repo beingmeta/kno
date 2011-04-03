@@ -338,18 +338,15 @@ shared_config=$with_shared_config
 
 AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
 
-
 AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/scheme_modules)
 module_dir=$with_module_dir
 
-AC_ARG_WITH(safe_module_dir,--with-safe-module-dir location,,with_safe_module_dir=$module_dir/safe)
-safe_module_dir=$with_safe_module_dir
-standard_safe_module_path=$safe_module_dir/standard/%/module.scm:$safe_module_dir/standard/%.scm
-
 AC_ARG_WITH(standard_module_dir,--with-standard-module-dir location,,with_standard_module_dir=$with_data_dir/standard_modules)
-standard_module_path=$with_standard_module_dir/%/module.scm:$with_standard_module_dir/%.scm
-standard_safe_module_path=$with_standard_module_dir/safe/%/module.scm:$with_standard_module_dir/safe/%.scm
 standard_module_dir=$with_standard_module_dir
+safe_module_dir=$standard_module_dir/safe
+
+standard_module_path=$standard_module_dir/%/module.scm:$with_standard_module_dir/%.scm
+standard_safe_module_path=$with_standard_module_dir/safe/%/module.scm:$with_standard_module_dir/safe/%.scm
 
 default_module_path=$module_dir/%/module.scm:$module_dir/%.scm:$standard_module_path
 default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%.scm:$standard_safe_module_path
