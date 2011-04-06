@@ -202,7 +202,6 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
 {
   fdtype filename_arg=fd_get_arg(expr,1);
   fdtype filename_val=fd_eval(filename_arg,env);
-  fdtype body=fd_get_body(expr,2);
   U8_OUTPUT *f, *oldf; int doclose;
   if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PTR_TYPEP(filename_val,fd_port_type)) {
@@ -222,14 +221,13 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
     return fd_type_error(_("string"),"simple_fileout",filename_val);}
   oldf=fd_get_default_output();
   fd_set_default_output(f);
-  while (FD_PAIRP(body)) {
-    fdtype value=fasteval(FD_CAR(body),env);
-    if (printout_helper(f,value)) fd_decref(value);
-    else {
-      fd_set_default_output(oldf);
-      fd_decref(filename_val);
-      return value;}
-    body=FD_CDR(body);}
+  {FD_DOBODY(ex,expr,2)  {
+      fdtype value=fasteval(ex,env);
+      if (printout_helper(f,value)) fd_decref(value);
+      else {
+	fd_set_default_output(oldf);
+	fd_decref(filename_val);
+	return value;}}}
   if (oldf) fd_set_default_output(oldf);
   if (doclose) u8_close_output(f);
   else u8_flush(f);
@@ -242,17 +240,15 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
 static fdtype simple_system(fdtype expr,fd_lispenv env)
 {
   struct U8_OUTPUT out; int result;
-  fdtype body=fd_get_body(expr,1);
   U8_INIT_OUTPUT(&out,256);
-  while (FD_PAIRP(body)) {
-    fdtype value=fasteval(FD_CAR(body),env);
-    body=FD_CDR(body);
-    if (FD_ABORTP(value)) return value;
-    else if (FD_VOIDP(value)) continue;
-    else if (FD_STRINGP(value))
-      u8_printf(&out,"%s",FD_STRDATA(value));
-    else u8_printf(&out,"%q",value);
-    fd_decref(value);}
+  {FD_DOBODY(subexpr,expr,1) {
+      fdtype value=fasteval(subexpr,env);
+      if (FD_ABORTP(value)) return value;
+      else if (FD_VOIDP(value)) continue;
+      else if (FD_STRINGP(value))
+	u8_printf(&out,"%s",FD_STRDATA(value));
+      else u8_printf(&out,"%q",value);
+      fd_decref(value);}}
   result=system(out.u8_outbuf); u8_free(out.u8_outbuf);
   return FD_INT2DTYPE(result);
 }

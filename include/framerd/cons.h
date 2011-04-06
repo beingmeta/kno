@@ -323,6 +323,21 @@ FD_EXPORT fdtype fd_make_vector(int len,...);
 
 #define FD_XVECTOR(x) (FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *))
 
+/* Rails */
+
+typedef struct FD_RAIL {
+  FD_CONS_HEADER;
+  int length;
+  fdtype elt0;} FD_RAIL;
+typedef struct FD_RAIL *fd_rail;
+
+#define FD_RAILP(x) (FD_PTR_TYPEP(x,fd_rail_type))
+#define FD_RAIL_LENGTH(x) (((fd_rail)(x))->length)
+#define FD_RAIL_REF(x,i) ((&(((fd_rail)x)->elt0))[i])
+#define FD_RAIL_DATA(x) (&(((fd_rail)x)->elt0))
+
+FD_EXPORT fdtype fd_init_rail(struct FD_RAIL *ptr,int len,fdtype *data);
+
 /* Compounds */
 
 typedef struct FD_COMPOUND {

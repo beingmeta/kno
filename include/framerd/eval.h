@@ -33,7 +33,8 @@ FD_EXPORT u8_context fd_eval_context;
 
 FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
-#define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || (FD_PAIRP(x)))
+#define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
+			  (FD_PAIRP(x)) || (FD_RAILP(x)))
 
 /* Constants */
 
@@ -270,8 +271,10 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
 
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
+  if (FD_RAILP(expr)) return FD_RAIL_REF(expr,i);
   while (FD_PAIRP(expr))
-    if ((FD_PAIRP(FD_CAR(expr))) && (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+    if ((FD_PAIRP(FD_CAR(expr))) &&
+	(FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
       expr=FD_CDR(expr);
     else if (i == 0) return FD_CAR(expr);
     else {expr=FD_CDR(expr); i--;}
@@ -279,9 +282,13 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 }
 FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
+  if (FD_RAILP(expr)) {
+    struct FD_RAIL *rail=(FD_GET_CONS(expr,fd_rail_type,struct FD_RAIL *));
+    return fd_init_rail(NULL,(rail->length)-i,(&(rail->elt0))+i);}
   while (FD_PAIRP(expr))
     if (i == 0) break;
-    else if ((FD_PAIRP(FD_CAR(expr))) && (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+    else if ((FD_PAIRP(FD_CAR(expr))) &&
+	     (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
       expr=FD_CDR(expr);
     else {expr=FD_CDR(expr); i--;}
   return expr;
@@ -294,6 +301,21 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 #define fd_get_arg(x,i) _fd_get_arg(x,i)
 #define fd_get_body(x,i) _fd_get_body(x,i)
 #endif
+
+/* Body iteration */
+
+#define FD_DOBODY(x,list,start)			\
+  fdtype x, _tmp=list, *raildata;               \
+  int ispair=0, off=start, lim;		        \
+  if (FD_PAIRP(_tmp)) {                         \
+    ispair=1; _tmp=fd_get_body(_tmp,off);}      \
+  else if (FD_RAILP(_tmp)) {                    \
+     ispair=0; lim=FD_RAIL_LENGTH(_tmp);        \
+     raildata=FD_RAIL_DATA(_tmp);}              \
+   while ((ispair)?                             \
+          ((FD_PAIRP(_tmp)) ?                   \
+	   (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0): \
+	  ((off<lim)?(x=raildata[off++],1):0))
 
 /* Simple continuations */
 

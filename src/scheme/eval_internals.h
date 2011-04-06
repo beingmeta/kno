@@ -39,10 +39,11 @@ FD_INLINE_FCN fdtype return_error_env(fdtype error,u8_context cxt,fd_lispenv env
   return error;
 }
 
-FD_FASTOP fdtype eval_body(u8_context cxt,fdtype body,fd_lispenv inner_env)
+FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
+			   fd_lispenv inner_env)
 {
   fdtype result=FD_VOID;
-  FD_DOLIST(bodyexpr,body) {
+  FD_DOBODY(bodyexpr,expr,offset) {
     if (FD_PRIM_TYPEP(result,fd_tail_call_type))
       result=_fd_finish_call(result);
     if (FD_ABORTP(result))

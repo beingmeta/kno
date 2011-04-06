@@ -212,7 +212,6 @@ static fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
 static fdtype let_handler(fdtype expr,fd_lispenv env)
 {
   fdtype bindexprs=fd_get_arg(expr,1), result=FD_VOID;
-  fdtype body=fd_get_body(expr,2);
   int n;
   if (FD_VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET",NULL,expr);
@@ -231,7 +230,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
-    {FD_DOLIST(bindexpr,bindexprs) {
+    {FD_DOBODY(bindexpr,bindexprs,0) {
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,env);
@@ -240,7 +239,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
 	return value;}
       else {
 	vars[i]=var; vals[i]=value; i++;}}}
-    result=eval_body(":LET",body,inner_env);
+    result=eval_body(":LET",expr,2,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -248,7 +247,6 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
 static fdtype letstar_handler(fdtype expr,fd_lispenv env)
 {
   fdtype bindexprs=fd_get_arg(expr,1), result=FD_VOID;
-  fdtype body=fd_get_body(expr,2);
   int n;
   if (FD_VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET*",NULL,expr);
@@ -267,10 +265,10 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
-    {FD_DOLIST(bindexpr,bindexprs) {
+    {FD_DOBODY(bindexpr,bindexprs,0) {
       fdtype var=fd_get_arg(bindexpr,0);
       vars[j]=var; vals[j]=FD_UNBOUND; j++;}}
-    {FD_DOLIST(bindexpr,bindexprs) {
+    {FD_DOBODY(bindexpr,bindexprs,0) {
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,inner_env);
@@ -282,7 +280,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       else {
 	vars[i]=var; vals[i]=value;}
       i++;}}
-    result=eval_body(":LET*",body,inner_env);
+    result=eval_body(":LET*",expr,2,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -294,7 +292,6 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
   fdtype bindexprs=fd_get_arg(expr,1);
   fdtype exitexprs=fd_get_arg(expr,2);
   fdtype testexpr=fd_get_arg(exitexprs,0), testval=FD_VOID;
-  fdtype body=fd_get_body(expr,3);
   if (FD_VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"DO",NULL,expr);
   else if (FD_VOIDP(exitexprs))
@@ -317,7 +314,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals; updaters=_updaters; tmp=_tmp;}
     /* Do the initial bindings */
-    {FD_DOLIST(bindexpr,bindexprs) {
+    {FD_DOBODY(bindexpr,bindexprs,0) {
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype value_expr=fd_get_arg(bindexpr,1);
       fdtype update_expr=fd_get_arg(bindexpr,2);
@@ -339,7 +336,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
     while (FD_FALSEP(testval)) {
       int i=0;
       /* Execute the body */
-      FD_DOLIST(bodyexpr,body) {
+      FD_DOBODY(bodyexpr,expr,3) {
 	fdtype result=fasteval(bodyexpr,inner_env);
 	if (FD_ABORTP(result)) {
 	  if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -377,7 +374,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
     result=testval;
     if (FD_PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
-      result=eval_body(":DO",FD_CDR(exitexprs),inner_env);}
+      result=eval_body(":DO",exitexprs,1,inner_env);}
     /* Free the environment. */
     free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -448,7 +445,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_struct(fn);
-  result=eval_body(":SPROC",fn->body,&envstruct);
+  result=eval_body(":SPROC",fn->body,0,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if ((FD_ABORTP(result)) && (fn->filename)) 
@@ -865,7 +862,7 @@ fdtype fd_xapply_sproc
   assert(i==fn->n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_struct(fn);
-  result=eval_body(":XPROC",fn->body,&envstruct);
+  result=eval_body(":XPROC",fn->body,0,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if ((FD_ABORTP(result)) && (fn->filename)) 
@@ -952,7 +949,6 @@ static int ipeval_letstar_binding
 static fdtype letq_handler(fdtype expr,fd_lispenv env)
 {
   fdtype bindexprs=fd_get_arg(expr,1), result=FD_VOID;
-  fdtype body=fd_get_body(expr,2);
   int n;
   if (FD_VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET",NULL,expr);
@@ -969,7 +965,7 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
     if (ipeval_let_binding(n,vals,bindexprs,env)<0) {
       fdtype errobj=FD_ERROR_VALUE;
       return return_error_env(errobj,":LETQ",env);}
-    {FD_DOLIST(bodyexpr,body) {
+    {FD_DOBODY(bodyexpr,expr,2) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTP(result))
@@ -981,7 +977,6 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
 static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
 {
   fdtype bindexprs=fd_get_arg(expr,1), result=FD_VOID;
-  fdtype body=fd_get_body(expr,2);
   int n;
   if (FD_VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET*",NULL,expr);
@@ -998,7 +993,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
     if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) {
       fdtype errobj=FD_ERROR_VALUE;
       return return_error_env(errobj,":LETQ*",inner_env);}
-    {FD_DOLIST(bodyexpr,body) {
+    {FD_DOBODY(bodyexpr,expr,2) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTP(result)) {

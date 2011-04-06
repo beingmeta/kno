@@ -948,7 +948,7 @@ static fdtype cgidrop(fdtype var,fdtype value)
 static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
 {
   fdtype table=get_reqdata();
-  FD_DOLIST(var,fd_get_body(expr,1)) {
+  FD_DOBODY(var,expr,1) {
     if (FD_TABLEP(table)) {
       fdtype val=fd_get(table,var,FD_VOID);
       fd_bind_value(var,val,env);}

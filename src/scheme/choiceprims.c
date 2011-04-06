@@ -74,7 +74,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
 {
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
-  fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
+  fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -108,7 +108,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
       else {
 	*vloc=elt;
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
-      {FD_DOLIST(expr,body) {
+      {FD_DOBODY(expr,expr,2) {
 	fdtype val=fasteval(expr,&envstruct);
 	if (FD_THROWP(val)) {
 	  fd_decref(choices);
@@ -144,7 +144,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   fdtype results=FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
-  fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
+  fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -176,9 +176,9 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
       else {
 	*vloc=elt; fd_incref(elt);
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
-      {FD_DOLIST(expr,body) {
+      {FD_DOBODY(subexpr,expr,2) {
 	  fd_decref(val);
-	  val=fasteval(expr,&envstruct);
+	  val=fasteval(subexpr,&envstruct);
 	  if (FD_THROWP(val)) {
 	    fd_decref(choices);
 	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
@@ -214,7 +214,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   fdtype results=FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
-  fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
+  fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -247,9 +247,9 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       else {
 	*vloc=elt; fd_incref(elt);
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
-      {FD_DOLIST(expr,body) {
+      {FD_DOBODY(subexpr,expr,2) {
 	fd_decref(val);
-	val=fasteval(expr,&envstruct);
+	val=fasteval(subexpr,&envstruct);
 	if (FD_THROWP(val)) {
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
@@ -362,7 +362,6 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   fdtype vars[2], vals[2], inner_env;
   fdtype control_spec=fd_get_arg(expr,1);
-  fdtype body=fd_get_body(expr,2);
   fdtype bsize; int blocksize;
   if (!((FD_PAIRP(control_spec)) &&
 	(FD_SYMBOLP(FD_CAR(control_spec))) &&
@@ -426,8 +425,8 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
 	fd_set_value(var,v,envstruct.copy);
 	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
       else {*vloc=v; if (iloc) *iloc=FD_INT2DTYPE(i);}
-      {FD_DOLIST(expr,body) {
-	fdtype val=fasteval(expr,&envstruct);
+      {FD_DOBODY(subexpr,expr,2) {
+	fdtype val=fasteval(subexpr,&envstruct);
 	if (FD_THROWP(val)) {
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);

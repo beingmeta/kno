@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2011 beingmeta, inc.  All rights reserved.
 
 (in-module 'optimize)
 
@@ -8,8 +8,6 @@
 ;; avoids many environment lookups.  The trick is to not replace
 ;; anything which will change and so produce an equivalent expression
 ;; or function which just runs faster.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'reflection)
 (use-module 'logger)
@@ -151,9 +149,9 @@
 
 ;;; The core loop
 
-(defambda (dotighten expr env bound dolex)
+(defambda (dotighten expr env bound dolex dorail)
   (cond ((ambiguous? expr)
-	 (for-choices (each expr) (dotighten each env bound dolex)))
+	 (for-choices (each expr) (dotighten each env bound dolex dorail)))
 	((symbol? expr)
 	 (let ((lexref (get-lexref expr bound 0)))
 	   (if lexref (if dolex lexref expr)
@@ -169,21 +167,25 @@
 		     (begin
 		       (when optdowarn
 			 (codewarning (cons* 'UNBOUND expr bound))
-			 (warning "The symbol " expr " appears to be unbound given bindings "
+			 (warning "The symbol " expr
+				  " appears to be unbound given bindings "
 				  (apply append bound)))
 		       expr))))))
 	((not (pair? expr)) expr)
 	;; This will break when the ambiguous head includes
 	;;  a special form.  Tricky to code cleanly.
+	;;  (and probably should be an error)
 	((or (pair? (car expr)) (ambiguous? (car expr)))
-	 (tighten-call expr env bound dolex))
+	 (tighten-call expr env bound dolex dorail))
+	;; Don't optimize calls to local variable references for the
+	;;  same reason
 	((and (symbol? (car expr)) (get-lexref (car expr) bound 0))
 	 expr)
-	((and (symbol? (car expr))
-	      (not (symbol-bound? (car expr) env)))
+	((and (symbol? (car expr)) (not (symbol-bound? (car expr) env)))
 	 (when optdowarn
 	   (codewarning (cons* 'UNBOUND expr bound))
-	   (warning "The symbol " (car expr) " in " expr " appears to be unbound given bindings "
+	   (warning "The symbol " (car expr) " in " expr
+		    " appears to be unbound given bindings "
 		    (apply append bound)))
 	 expr)
 	(else (let* ((head (car expr))
@@ -200,28 +202,33 @@
 			    (%test (get module '%rewrite) head))
 		       (dotighten
 			((%get (get module '%rewrite) head) expr)
-			env bound dolex))
+			env bound dolex dorail))
 		      ((or (applicable? value) (opcode? value)
 			   (and (ambiguous? value)
 				(singleton? (applicable? value))
 				(applicable? value)))
 		       (when (and optdowarn (procedure? value))
-			 (when (and (procedure-min-arity value) (< n-exprs (procedure-min-arity value)))
+			 (when (and (procedure-min-arity value)
+				    (< n-exprs (procedure-min-arity value)))
 			   (codewarning (list 'TOOFEWARGS expr value))
-			   (warning "The call to " expr " provides too few arguments for " value))
-			 (when (and (procedure-arity value) (> n-exprs (procedure-arity value)))
+			   (warning "The call to " expr
+				    " provides too few arguments for " value))
+			 (when (and (procedure-arity value)
+				    (> n-exprs (procedure-arity value)))
 			   (codewarning (list 'TOOMANYARGS expr value))
-			   (warning "The call to " expr " provides too many arguments for " value)))
+			   (warning "The call to " expr
+				    " provides too many arguments for " value)))
 		       (cons (qc (map-opcode
 				  (cond ((not from) value)
 					((test from '%nosubst head) head)
-					((test from '%volatile head) `(,%get ,from ',head))
+					((test from '%volatile head)
+					 `(,%get ,from ',head))
 					(else value))
 				  n-exprs))
-			     (tighten-call (cdr expr) env bound dolex)
+			     (tighten-call (cdr expr) env bound dolex dorail)
 ;;; 			     (map (lambda (x)
 ;;; 				    (if (empty? x) x
-;;; 					(dotighten (qc x) env bound dolex)))
+;;; 					(dotighten (qc x) env bound dolex dorail)))
 ;;; 				  (cdr expr))
 			     ))
 		      ((and (ambiguous? value)
@@ -238,29 +245,43 @@
 		       ;; cases.  It doesn't right now.
 		       (cons (qc value) (cdr expr)))
 		      ((special-form? value)
-		       (let ((tightener (try (get special-form-tighteners value)
-					     (get special-form-tighteners (procedure-name value)))))
-			 (if (exists? tightener) (tightener value expr env bound dolex)
+		       (let ((tightener
+			      (try (get special-form-tighteners value)
+				   (get special-form-tighteners
+					(procedure-name value)))))
+			 (if (exists? tightener)
+			     (tightener value expr env bound dolex dorail)
 			     expr)))
 		      ((macro? value)
-		       (dotighten (macroexpand value expr) env bound dolex))
+		       (dotighten (macroexpand value expr) env
+				  bound dolex dorail))
 		      (else
 		       (when optdowarn
 			 (codewarning (cons* 'NOTFCN expr value))
-			 (warning "The value of " head  " for " expr ", " value ","
+			 (warning "The value of " head  " for "
+				  expr ", " value ","
 				  " doesn't appear to be a applicable given "
 				  (apply append bound)))
 		       expr))))))
 
-(defambda (tighten-call expr env bound dolex)
+(define (ident x) x)
+(define (->rail x) (apply make-rail x))
+
+(defambda (tighten-call expr env bound dolex dorail)
   (if (pair? expr)
-      `(,(if (or (symbol? (car expr)) (pair? (car expr)) (ambiguous? (car expr)))
-	     (dotighten (car expr) env bound dolex)
-	     (car expr))
-	,@(tighten-call (cdr expr) env bound dolex))
+      ((if dorail ->rail ident)
+       (if (or (symbol? (car expr)) (pair? (car expr))
+	       (ambiguous? (car expr)))
+	   `(,(dotighten (car expr) env bound dolex dorail)
+	     ,@(tighten-args (cdr expr) env bound dolex dorail))
+	   (tighten-args expr env bound dolex dorail)))
+      expr))
+(defambda (tighten-args expr env bound dolex dorail)
+  (if (pair? expr)
+      (forseq (arg expr) (dotighten (car expr) env bound dolex dorail))
       expr))
 
-(define (optimize-procedure! proc (dolex #t))
+(define (optimize-procedure! proc (dolex #t) (dorail #t))
   (let* ((env (procedure-env proc))
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
@@ -268,7 +289,7 @@
     (logdebug "Optimizing " proc)
     (threadset! 'codewarnings #{})
     (set-procedure-body!
-     proc (map (lambda (b) (dotighten b env bound dolex))
+     proc (map (lambda (b) (dotighten b env bound dolex dorail))
 	       body))
     (when (exists? (threadget 'codewarnings))
       (warning "Errors optimizing " proc)
@@ -323,142 +344,162 @@
 
 ;;;; Special form handlers
 
-(define (tighten-block handler expr env bound dolex)
+(define (tighten-block handler expr env bound dolex dorail)
   (cons (map-opcode handler (length (cdr expr)))
-	(map (lambda (x) (dotighten x env bound dolex))
+	(map (lambda (x) (dotighten x env bound dolex dorail))
 	     (cdr expr))))
 
-(define (tighten-let handler expr env bound dolex)
+(define (tighten-let handler expr env bound dolex dorail)
   (let ((bindexprs (cadr expr)) (body (cddr expr)))
-    `(,handler ,(map (lambda (x) `(,(car x) ,(dotighten (cadr x) env bound dolex)))
+    `(,handler ,(map (lambda (x)
+		       `(,(car x) ,(dotighten (cadr x) env bound dolex dorail)))
 		     bindexprs)
 	       ,@(let ((bound (cons (map car bindexprs) bound)))
-		   (map (lambda (b) (dotighten b env bound dolex))
+		   (map (lambda (b) (dotighten b env bound dolex dorail))
 			body)))))
-(define (tighten-doexpression handler expr env bound dolex)
+(define (tighten-doexpression handler expr env bound dolex dorail)
   (let ((bindspec (cadr expr)) (body (cddr expr)))
-    `(,handler (,(car bindspec) ,(dotighten (cadr bindspec) env bound dolex)
+    `(,handler (,(car bindspec)
+		,(dotighten (cadr bindspec) env bound dolex dorail)
 		,@(cddr bindspec))
-	       ,@(let ((bound (if (= (length bindspec) 3)
-				  (cons (list (first bindspec) (third bindspec)) bound)
-				  (cons (list (first bindspec)) bound))))
-		   (map (lambda (b) (dotighten b env bound dolex))
+	       ,@(let ((bound
+			(if (= (length bindspec) 3)
+			    (cons (list (first bindspec) (third bindspec))
+				  bound)
+			    (cons (list (first bindspec)) bound))))
+		   (map (lambda (b) (dotighten b env bound dolex dorail))
 			body)))))
-(define (tighten-do2expression handler expr env bound dolex)
+(define (tighten-do2expression handler expr env bound dolex dorail)
   (let ((bindspec (cadr expr)) (body (cddr expr)))
     `(,handler ,(cond ((pair? bindspec)
-		       `(,(car bindspec) ,(dotighten (cadr bindspec) env bound dolex)
+		       `(,(car bindspec)
+			 ,(dotighten (cadr bindspec) env bound dolex dorail)
 			 ,@(cddr bindspec)))
 		      ((symbol? bindspec)
-		       `(,bindspec ,(dotighten bindspec env bound dolex)))
+		       `(,bindspec
+			 ,(dotighten bindspec env bound dolex dorail)))
 		      (else (error 'syntax "Bad do-* expression")))
-	       ,@(let ((bound (if (symbol? bindspec)
-				  (cons (list bindspec) bound)
-				  (if (= (length bindspec) 3)
-				      (cons (list (first bindspec) (third bindspec)) bound)
-				      (cons (list (first bindspec)) bound)))))
-		   (map (lambda (b) (dotighten b env bound dolex))
+	       ,@(let ((bound
+			(if (symbol? bindspec)
+			    (cons (list bindspec) bound)
+			    (if (= (length bindspec) 3)
+				(cons (list (first bindspec)
+					    (third bindspec)) bound)
+				(cons (list (first bindspec)) bound)))))
+		   (map (lambda (b) (dotighten b env bound dolex dorail))
 			body)))))
 
-(define (tighten-dosubsets handler expr env bound dolex)
+(define (tighten-dosubsets handler expr env bound dolex dorail)
   (let ((bindspec (cadr expr)) (body (cddr expr)))
-    `(,handler (,(car bindspec) ,(dotighten (cadr bindspec) env bound dolex)
+    `(,handler (,(car bindspec)
+		,(dotighten (cadr bindspec) env bound dolex dorail)
 		,@(cddr bindspec))
 	       ,@(let ((bound (if (= (length bindspec) 4)
 				  (cons (list (first bindspec) (fourth bindspec)) bound)
 				  (cons (list (first bindspec)) bound))))
-		   (map (lambda (b) (dotighten b env bound dolex))
+		   (map (lambda (b) (dotighten b env bound dolex dorail))
 			body)))))
 
-(define (tighten-let*-bindings bindings env bound dolex)
+(define (tighten-let*-bindings bindings env bound dolex dorail)
   (if (null? bindings) '()
       `((,(car (car bindings))
-	 ,(dotighten (cadr (car bindings)) env bound dolex))
+	 ,(dotighten (cadr (car bindings)) env bound dolex dorail))
 	,@(tighten-let*-bindings
 	   (cdr bindings) env
 	   (cons (append (car bound) (list (car (car bindings))))
 		 (cdr bound))
-	   dolex))))
+	   dolex dorail))))
 
-(define (tighten-let* handler expr env bound dolex)
+(define (tighten-let* handler expr env bound dolex dorail)
   (let ((bindspec (cadr expr)) (body (cddr expr)))
     `(,handler
-      ,(tighten-let*-bindings (cadr expr) env (cons '() bound) dolex)
+      ,(tighten-let*-bindings (cadr expr) env (cons '() bound) dolex dorail)
       ,@(let ((bound (cons (map car bindspec) bound)))
-	  (map (lambda (b) (dotighten b env bound dolex))
+	  (map (lambda (b) (dotighten b env bound dolex dorail))
 	       body)))))
-(define (tighten-set-form handler expr env bound dolex)
-  `(,handler ,(cadr expr) ,(dotighten (third expr) env bound dolex)))
+(define (tighten-set-form handler expr env bound dolex dorail)
+  `(,handler ,(cadr expr) ,(dotighten (third expr) env bound dolex dorail)))
 
-(define (tighten-lambda handler expr env bound dolex)
+(define (tighten-lambda handler expr env bound dolex dorail)
   `(,handler ,(cadr expr)
 	     ,@(let ((bound (cons (arglist->vars (cadr expr)) bound)))
-		 (map (lambda (b) (dotighten b env bound dolex))
+		 (map (lambda (b) (dotighten b env bound dolex dorail))
 		      (cddr expr)))))
 
-(define (tighten-cond handler expr env bound dolex)
+(define (tighten-cond handler expr env bound dolex dorail)
   (cons handler (map (lambda (clause)
 		       (cond ((eq? (car clause) 'else)
-			      `(ELSE ,@(map (lambda (x) (dotighten x env bound dolex))
-					    (cdr clause))))
+			      `(ELSE
+				,@(map (lambda (x)
+					 (dotighten x env bound dolex dorail))
+				       (cdr clause))))
 			     ((and (pair? (cdr clause)) (eq? (cadr clause) '=>))
-			      `(,(dotighten (car clause) env bound dolex)
+			      `(,(dotighten (car clause) env bound dolex dorail)
 				=>
-				,@(map (lambda (x) (dotighten x env bound dolex))
+				,@(map (lambda (x)
+					 (dotighten x env bound dolex dorail))
 				       (cddr clause))))
-			     (else (map (lambda (x) (dotighten x env bound dolex))
+			     (else (map (lambda (x)
+					  (dotighten x env bound dolex dorail))
 					clause))))
 		     (cdr expr))))
 
-(define (tighten-case handler expr env bound dolex)
-  `(,handler ,(dotighten (cadr expr) env bound dolex)
+(define (tighten-case handler expr env bound dolex dorail)
+  `(,handler ,(dotighten (cadr expr) env bound dolex dorail)
 	     ,@(map (lambda (clause)
 		      (cons (car clause)
-			    (map (lambda (x) (dotighten x env bound dolex))
+			    (map (lambda (x)
+				   (dotighten x env bound dolex dorail))
 				 (cdr clause))))
 		    (cddr expr))))
 
-(define (tighten-unwind-protect handler expr env bound dolex)
+(define (tighten-unwind-protect handler expr env bound dolex dorail)
   `(,handler ,(dotighten (cadr expr) env bound dolex)
-	     ,@(map (lambda (uwclause) (dotighten uwclause env bound dolex))
+	     ,@(map (lambda (uwclause)
+		      (dotighten uwclause env bound dolex dorail))
 		    (cddr expr))))
 
 ;;; Tightening XHTML expressions
 
 ;; This doesn't handle mixed alist ((x y)) and plist (x y) attribute lists
 ;;  because they shouldn't work anyway
-(define (tighten-attribs attribs env bound dolex)
+(define (tighten-attribs attribs env bound dolex dorail)
   (cond ((not (pair? attribs)) attribs)
 	((pair? (cdr attribs))
-	 `(,(if (and (pair? (car attribs)) (not (eq? (car (car attribs)) 'quote)))
-		`(,(car (car attribs)) ,(dotighten (cadr (car attribs)) env bound dolex))
+	 `(,(if (and (pair? (car attribs))
+		     (not (eq? (car (car attribs)) 'quote)))
+		`(,(car (car attribs))
+		  ,(dotighten (cadr (car attribs)) env bound dolex dorail))
 		(car attribs))
-	   ,(if (and (pair? (car attribs)) (not (eq? (car (car attribs)) 'quote)))
+	   ,(if (and (pair? (car attribs))
+		     (not (eq? (car (car attribs)) 'quote)))
 		(if (pair? (cadr attribs))
-		    `(,(car (cadr attribs)) ,(dotighten (cadr (cadr attribs)) env bound dolex))
-		    (dotighten (cadr attribs) env bound dolex))
-		(dotighten (cadr attribs) env bound dolex))
-	   ,@(tighten-attribs (cddr attribs) env bound dolex)))
+		    `(,(car (cadr attribs))
+		      ,(dotighten (cadr (cadr attribs)) env bound dolex dorail))
+		    (dotighten (cadr attribs) env bound dolex dorail))
+		(dotighten (cadr attribs) env bound dolex dorail))
+	   ,@(tighten-attribs (cddr attribs) env bound dolex dorail)))
 	((pair? (car attribs))
-	 `((,(car (car attribs)) ,(dotighten (cadr (car attribs)) env bound dolex))))
+	 `((,(car (car attribs))
+	    ,(dotighten (cadr (car attribs)) env bound dolex dorail))))
 	(else attribs)))
 
-(define (tighten-markup handler expr env bound dolex)
+(define (tighten-markup handler expr env bound dolex dorail)
   `(,(car expr)
-    ,@(map (lambda (x) (dotighten x env bound dolex))
+    ,@(map (lambda (x) (dotighten x env bound dolex dorail))
 	   (cdr expr))))
-(define (tighten-markup* handler expr env bound dolex)
-  `(,(car expr) ,(tighten-attribs (second expr) env bound dolex)
-    ,@(map (lambda (x) (dotighten x env bound dolex))
+(define (tighten-markup* handler expr env bound dolex dorail)
+  `(,(car expr) ,(tighten-attribs (second expr) env bound dolex dorail)
+    ,@(map (lambda (x) (dotighten x env bound dolex dorail))
 	   (cddr expr))))
 
-(define (tighten-emptymarkup fcn expr env bound dolex)
-  `(,(car expr) ,@(tighten-attribs (cdr expr) env bound dolex)))
+(define (tighten-emptymarkup fcn expr env bound dolex dorail)
+  `(,(car expr) ,@(tighten-attribs (cdr expr) env bound dolex dorail)))
 
-(define (tighten-anchor* fcn expr env bound dolex)
-  `(,(car expr) ,(dotighten (cadr expr) env bound dolex)
-    ,(tighten-attribs (third expr) env bound dolex)
-    ,@(map (lambda (elt) (dotighten elt env bound dolex))
+(define (tighten-anchor* fcn expr env bound dolex dorail)
+  `(,(car expr) ,(dotighten (cadr expr) env bound dolex dorail)
+    ,(tighten-attribs (third expr) env bound dolex dorail)
+    ,@(map (lambda (elt) (dotighten elt env bound dolex dorail))
 	   (cdr (cddr expr)))))
 
 ;;; Declare them

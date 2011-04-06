@@ -2078,14 +2078,14 @@ static fdtype overlay_index_store(fdtype f,fdtype slotid,fdtype v)
 
 static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype body=fd_get_body(expr,1), value=FD_VOID;
+  fdtype value=FD_VOID;
   if ((fd_inhibit_overlay) || (!(fd_overlayp()))) {
-    FD_DOLIST(body_elt,body) {
+    FD_DOBODY(body_elt,expr,1) {
       fd_decref(value); value=fd_eval(body_elt,env);
       if (FD_ABORTP(value)) return value;}
     return value;}
   fd_inhibit_overlays(1);
-  {FD_DOLIST(body_elt,body) {
+  {FD_DOBODY(body_elt,expr,1) {
     fd_decref(value); value=fd_eval(body_elt,env);
     if (FD_ABORTP(value)) {
       fd_inhibit_overlays(0);

@@ -1631,6 +1631,13 @@ static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
     return cons;}
 }
 
+/* Rails */
+
+static fdtype make_rail(int n,fdtype *elts)
+{
+  return fd_init_rail(NULL,n,elts);
+}
+
 /* side effecting operations (not threadsafe) */
 
 static fdtype set_car(fdtype pair,fdtype val)
@@ -1817,6 +1824,7 @@ FD_EXPORT void fd_init_sequences_c()
   /* Standard lexprs */
   fd_idefn(fd_scheme_module,fd_make_cprimn("LIST",list,0));
   fd_idefn(fd_scheme_module,fd_make_cprimn("VECTOR",vector,0));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("MAKE-RAIL",make_rail,0));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("MAKE-VECTOR",make_vector,1,

@@ -437,6 +437,21 @@ FD_EXPORT fdtype fd_make_vector(int len,...)
   return fd_init_vector(NULL,len,elts);
 }
 
+/* Rails */
+
+FD_EXPORT fdtype fd_init_rail(struct FD_RAIL *ptr,int len,fdtype *data)
+{
+  fdtype *read=data, *limit=read+len, *write;
+  if (ptr == NULL) ptr=u8_alloc(struct FD_RAIL)+((sizeof(fdtype))*(len-1));
+  write=&(ptr->elt0);
+  FD_INIT_CONS(ptr,fd_rail_type);
+  ptr->length=len;
+  while (read<limit) {
+    fdtype v=*read++; fd_incref(v);
+    *write++=v;}
+  return FDTYPE_CONS(ptr);
+}
+
 /* Packets */
 
 FD_EXPORT fdtype fd_init_packet

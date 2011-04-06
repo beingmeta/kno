@@ -44,16 +44,16 @@ static fdtype iterenv2
 static fdtype while_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1);
-  fdtype body=fd_get_body(expr,2), result=FD_VOID;
+  fdtype result=FD_VOID;
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHILE",NULL,expr);
   else while ((FD_VOIDP(result)) &&
 	      (testeval(test_expr,env,&result))) {
-    FD_DOLIST(iter_expr,body) {
-      fdtype val=fasteval(iter_expr,env);
-      if (FD_ABORTP(val))
-	return val;
-      fd_decref(val);}}
+      FD_DOBODY(iter_expr,expr,2) {
+	fdtype val=fasteval(iter_expr,env);
+	if (FD_ABORTP(val))
+	  return val;
+	fd_decref(val);}}
   if (FD_ABORTP(result))
     return result;
   else return FD_VOID;
@@ -62,15 +62,15 @@ static fdtype while_handler(fdtype expr,fd_lispenv env)
 static fdtype until_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1);
-  fdtype body=fd_get_body(expr,2), result=FD_VOID;
+  fdtype result=FD_VOID;
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"UNTIL",NULL,expr);
   else while ((FD_VOIDP(result)) &&
 	      (!(testeval(test_expr,env,&result)))) {
-    FD_DOLIST(iter_expr,body) {
-      fdtype val=fasteval(iter_expr,env);
-      if (FD_ABORTP(val)) return val;
-      else fd_decref(val);}}
+      FD_DOBODY(iter_expr,expr,2) {
+	fdtype val=fasteval(iter_expr,env);
+	if (FD_ABORTP(val)) return val;
+	else fd_decref(val);}}
   if (FD_ABORTP(result))
     return result;
   else return FD_VOID;
@@ -109,7 +109,6 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
 {
   int i=0, limit;
   fdtype limit_val, var=parse_control_spec(expr,&limit_val,NULL,env);
-  fdtype body=fd_get_body(expr,2);
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
@@ -131,18 +130,18 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
     if (envstruct.copy) 
       fd_set_value(var,FD_INT2DTYPE(i),envstruct.copy);
     else vals[0]=FD_INT2DTYPE(i);
-    {FD_DOLIST(expr,body) {
-      fdtype val=fasteval(expr,&envstruct);
-      if (FD_THROWP(val)) {
-	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	fd_destroy_rwlock(&(bindings.rwlock));
-	return val;}
-      else if (FD_ABORTP(val)) {
-	fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
-	fd_destroy_rwlock(&(bindings.rwlock));
-	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	return val;}
-      fd_decref(val);}}
+    {FD_DOBODY(subexpr,expr,2) {
+	fdtype val=fasteval(subexpr,&envstruct);
+	if (FD_THROWP(val)) {
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  fd_destroy_rwlock(&(bindings.rwlock));
+	  return val;}
+	else if (FD_ABORTP(val)) {
+	  fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+	  fd_destroy_rwlock(&(bindings.rwlock));
+	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+	  return val;}
+	fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
@@ -159,7 +158,6 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype body=fd_get_body(expr,2);
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
@@ -193,8 +191,8 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT2DTYPE(i);}
-    {FD_DOLIST(expr,body) {
-      fdtype val=fasteval(expr,&envstruct);
+    {FD_DOBODY(subexpr,expr,1) {
+      fdtype val=fasteval(subexpr,&envstruct);
       if (FD_THROWP(val)) {
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	fd_destroy_rwlock(&(bindings.rwlock));
@@ -227,7 +225,6 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim;
   fdtype seq, count_var=FD_VOID, *iterval=NULL, *results, result;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype body=fd_get_body(expr,2);
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
@@ -260,9 +257,9 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT2DTYPE(i);}
-    {FD_DOLIST(expr,body) {
+    {FD_DOBODY(subexpr,expr,2) {
 	fd_decref(val);
-	val=fasteval(expr,&envstruct);
+	val=fasteval(subexpr,&envstruct);
 	if (FD_THROWP(val)) {
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  fd_destroy_rwlock(&(bindings.rwlock));
@@ -297,7 +294,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype body=fd_get_body(expr,2), val=FD_EMPTY_CHOICE;
+  fdtype val=FD_EMPTY_CHOICE;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
@@ -331,9 +328,9 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT2DTYPE(i);}
-    {FD_DOLIST(expr,body) {
+    {FD_DOBODY(subexpr,expr,2) {
 	fd_decref(val);
-	val=fasteval(expr,&envstruct);
+	val=fasteval(subexpr,&envstruct);
 	if (FD_THROWP(val)) {
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	  fd_destroy_rwlock(&(bindings.rwlock));
@@ -365,7 +362,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
 {
   fdtype list, count_var, var=
     parse_control_spec(expr,&list,&count_var,env);
-  fdtype body=fd_get_body(expr,2), *vloc=NULL, *iloc=NULL;
+  fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2], inner_env;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -396,8 +393,8 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
       if (iloc)
 	fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
     else {*vloc=elt; fd_incref(elt); if (iloc) *iloc=FD_INT2DTYPE(i);}
-    {FD_DOLIST(expr,body) {
-      fdtype val=fasteval(expr,&envstruct);
+    {FD_DOBODY(subexpr,expr,2) {
+      fdtype val=fasteval(subexpr,&envstruct);
       if (FD_THROWP(val)) {
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	fd_destroy_rwlock(&(bindings.rwlock));
@@ -428,19 +425,17 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
 
 static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 {
-  fdtype exprs=fd_get_body(begin_expr,1);
-  return eval_exprs(exprs,env);
+  return eval_body("BEGIN",begin_expr,1,env);
 }
 
 static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)
 {
   fdtype results=fd_eval(fd_get_arg(prog1_expr,1),env);
-  fdtype exprs=fd_get_body(prog1_expr,2);
   if (FD_ABORTP(results))
     return results;
   else {
-    FD_DOLIST(expr,exprs) {
-      fdtype tmp=fd_eval(expr,env);
+    FD_DOBODY(subexpr,prog1_expr,2) {
+      fdtype tmp=fd_eval(subexpr,env);
       if (FD_ABORTP(tmp)) {
 	fd_decref(results);
 	return tmp;}

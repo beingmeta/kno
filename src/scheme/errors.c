@@ -240,9 +240,9 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
 
 static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
 {
-  fdtype heart=fd_get_arg(uwp,1), unwind=fd_get_body(uwp,2);
+  fdtype heart=fd_get_arg(uwp,1);
   fdtype result=fd_eval(heart,env);
-  {FD_DOLIST(expr,unwind) {
+  {FD_DOBODY(expr,uwp,2) {
       fdtype uw_result=fd_eval(expr,env);
       if (FD_ABORTP(uw_result))
 	if (FD_ABORTP(result)) {

@@ -272,8 +272,8 @@ static fdtype safe_within_module(fdtype expr,fd_lispenv env)
     fd_decref((fdtype)consed_env);
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   else if (switch_module(consed_env,module_name,1)) {
-    fdtype result=FD_VOID, body=fd_get_body(expr,2);
-    FD_DOLIST(elt,body) {
+    fdtype result=FD_VOID;
+    FD_DOBODY(elt,expr,2) {
       fd_decref(result); result=fd_eval(elt,consed_env);}
     fd_decref((fdtype)consed_env);
     return result;}
@@ -288,8 +288,8 @@ static fdtype within_module(fdtype expr,fd_lispenv env)
     fd_decref((fdtype)consed_env);
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   else if (switch_module(consed_env,module_name,0)) {
-    fdtype result=FD_VOID, body=fd_get_body(expr,2);
-    FD_DOLIST(elt,body) {
+    fdtype result=FD_VOID;
+    FD_DOBODY(elt,expr,2) {
       fd_decref(result); result=fd_eval(elt,consed_env);}
     fd_decref((fdtype)consed_env);
     return result;}
@@ -330,8 +330,8 @@ static fdtype accessing_module(fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   hybrid=make_hybrid_env(env,module_name,0);
   if (hybrid) {
-    fdtype result=FD_VOID, body=fd_get_body(expr,2);
-    FD_DOLIST(elt,body) {
+    fdtype result=FD_VOID;
+    FD_DOBODY(elt,expr,2) {
       fd_decref(result); result=fd_eval(elt,hybrid);}
     fd_decref(module_name);
     fd_decref((fdtype)hybrid);
@@ -349,8 +349,8 @@ static fdtype safe_accessing_module(fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   hybrid=make_hybrid_env(env,module_name,1);
   if (hybrid) {
-    fdtype result=FD_VOID, body=fd_get_body(expr,2);
-    FD_DOLIST(elt,body) {
+    fdtype result=FD_VOID;
+    FD_DOBODY(elt,expr,2) {
       fd_decref(result); result=fd_eval(elt,hybrid);}
     fd_decref(module_name);
     fd_decref((fdtype)hybrid);

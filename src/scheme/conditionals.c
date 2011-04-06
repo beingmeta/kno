@@ -73,8 +73,8 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
   else if (FD_FALSEP(test_result))
     return FD_EMPTY_CHOICE; 
   else {
-    fdtype consequents=fd_get_body(expr,2), value=FD_VOID;
-    FD_DOLIST(clause,consequents) {
+    fdtype value=FD_VOID;
+    FD_DOBODY(clause,expr,2) {
       fd_decref(value); value=fd_eval(clause,env);
       if (!(FD_EMPTY_CHOICEP(value)))
 	return value;}
@@ -119,7 +119,7 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
 	else return fd_err(fd_SyntaxError,"cond_handler","apply syntax",expr);
       else {
 	fd_decref(test_val);
-	return eval_body("COND",FD_CDR(clause),env);}}}
+	return eval_body("COND",clause,1,env);}}}
   return FD_VOID;
 }
 
@@ -137,7 +137,7 @@ static fdtype case_handler(fdtype expr,fd_lispenv env)
 	  fdtype keys=FD_CAR(clause);
 	  FD_DOLIST(key,keys)
 	    if (FD_EQ(keyval,key))
-	      return eval_body("CASE",FD_CDR(clause),env);}
+	      return eval_body("CASE",clause,1,env);}
 	else if (FD_EQ(FD_CAR(clause),else_symbol)) {
 	  fd_decref(keyval);
 	  return fd_eval_exprs(FD_CDR(clause),env);}

@@ -266,6 +266,20 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,")");
 }
 
+static int unparse_rail(U8_OUTPUT *out,fdtype x)
+{
+  struct FD_RAIL *v=(struct FD_RAIL *) x;
+  int i=0, len=v->length;
+  u8_puts(out,"#R(");
+  while (i < len) {
+    if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
+      u8_puts(out," "); output_ellipsis(out,len-i,"elts");
+      return u8_puts(out,")");}
+    if (i>0) u8_puts(out," "); fd_unparse(out,FD_RAIL_REF(v,i));
+    i++;}
+  return u8_puts(out,")");
+}
+
 static int unparse_choice(U8_OUTPUT *out,fdtype x)
 {
   struct FD_CHOICE *v=(struct FD_CHOICE *) x;
@@ -1211,6 +1225,7 @@ FD_EXPORT void fd_init_textio_c()
   fd_unparsers[fd_string_type]=unparse_string;
   fd_unparsers[fd_packet_type]=unparse_packet;
   fd_unparsers[fd_vector_type]=unparse_vector;
+  fd_unparsers[fd_rail_type]=unparse_rail;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
 
