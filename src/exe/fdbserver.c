@@ -679,7 +679,7 @@ int main(int argc,char **argv)
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
   if (n_ports>0) {
     u8_log(LOG_INFO,NULL,
-	   "FramerD (r%s) fdbserver running, %d/%d pools/indices",
+	   "FramerD (%s) fdbserver running, %d/%d pools/indices",
 	   FDB_SVNREV,fd_n_pools,
 	   fd_n_primary_indices+fd_n_secondary_indices);
     u8_message

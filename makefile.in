@@ -696,7 +696,7 @@ install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
 
 confdirs: 
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
-	if test ! -f $(DESTDIR)@config_dir@/servers; then
+	if test ! -f $(DESTDIR)@config_dir@/servers; then \
 		$(INSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 

@@ -338,7 +338,7 @@ int main(int argc,char **argv)
   fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   startup_time=u8_elapsed_time()-fd_load_start;
   if (!(quiet_console))  {
-    u8_message("FramerD (r%s) booted in %f seconds, %d/%d pools/indices",
+    u8_message("FramerD (%s) booted in %f seconds, %d/%d pools/indices",
 	       FDB_SVNREV,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
