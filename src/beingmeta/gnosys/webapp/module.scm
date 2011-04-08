@@ -1,1 +1,0 @@
-(load-component "webapp.scm")
