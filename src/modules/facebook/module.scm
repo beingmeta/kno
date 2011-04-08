@@ -1,1 +1,1 @@
-(load-component "facebook.scm")
+facebook.scm
