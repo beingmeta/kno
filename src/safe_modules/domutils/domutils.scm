@@ -9,8 +9,6 @@
 
 (use-module '{fdweb xhtml texttools reflection ezrecords varconfig})
 
-(lineout "reloading")
-
 (module-export!
  '{
    dom/textify
