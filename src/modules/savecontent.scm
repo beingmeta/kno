@@ -17,11 +17,11 @@
        (define (zipfile? x) #f)
        (define (zip/add! . args) #f)))
 
-(use-module '{fileio aws/s3 varconfig logger reflection})
+(use-module '{fileio aws/s3 varconfig logger fdweb reflection})
 
 (define %loglevel %info!)
 
-(module-export! '{savecontent saveoutput save/path})
+(module-export! '{savecontent saveoutput save/path save/fetch})
 
 (define (guess-ctype name)
   (cond ((or (has-suffix name ".html")  (has-suffix name ".htm") (has-suffix name ".xhtml"))
@@ -76,8 +76,21 @@
 
 (define (save/path root path)
   (cond ((s3loc? root) (s3/mkpath root path))
-	((zipfile? root) (cons zipfile path))
+	((zipfile? root) (cons root path))
 	((and (pair? root) (zipfile? (car root)) (string? (cdr root)))
 	 (cons (car root) (mkpath (cdr root) path)))
 	((string? root) (checkpath (mkpath root path)))
 	(else (error "Weird docbase root" root " for " path))))
+
+(define (save/fetch ref)
+  (cond ((s3loc? ref) (s3/get ref))
+	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
+	 (zip/get (car ref) (cdr ref)))
+	((pair? ref) (save/fetch (save/path (car ref) (cdr ref))))
+	((and (string? ref)
+	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
+	 (urlcontent ref))
+	((string? ref) (filestring ref))
+	(else (error "Weird docbase ref" ref))))
+
+
