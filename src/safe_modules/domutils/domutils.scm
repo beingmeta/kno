@@ -601,8 +601,10 @@
 				 (dom/oidify elt pool (or doc oid) oid))))
 		     (do-choices (slotid (difference slotids '%content))
 		       (store! oid slotid (%get node slotid)))
-		     (unless (test oid '%id) (store! oid '%id (dom/nodeid oid)))
-		     (store! oid '%children (pickoids (elts (get oid '%content))))
+		     (unless (test oid '%id)
+		       (store! oid '%id (dom/nodeid oid)))
+		     (store! oid '%children
+			     (pickoids (elts (get oid '%content))))
 		     oid))
 	      (if (pair? node)
 		  (if (proper-list? node)
