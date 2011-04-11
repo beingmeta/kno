@@ -85,12 +85,21 @@
 (define (save/fetch ref)
   (cond ((s3loc? ref) (s3/get ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
-	 (zip/get (car ref) (cdr ref)))
+	 (zip/get (car ref)
+		  (if (has-prefix (cdr ref) "/")
+		      (subseq (cdr ref) 1)
+		      (cdr ref))))
 	((pair? ref) (save/fetch (save/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
 	 (urlcontent ref))
 	((string? ref) (filestring ref))
 	(else (error "Weird docbase ref" ref))))
+
+
+
+
+
+
 
 
