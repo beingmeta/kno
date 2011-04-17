@@ -178,11 +178,14 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  fd_attrib_entify(&out,FD_STRDATA(value));
 	else if (FD_FIXNUMP(value))
 	  u8_printf(&out,"%d",FD_FIX2INT(value));
+	else output_attribval(&out,value,env,1);
+	/*
 	else {
 	  struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
 	  fd_unparse(&subout,value);
 	  u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
 	  u8_free(subout.u8_outbuf);}
+	*/
 	u8_putc(&out,'\'');}}
     fd_decref(attribs);}
   else if (fd_test(xml,attribids_slotid,FD_VOID)) {
@@ -218,6 +221,8 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	    u8_putc(&out,'"');}
 	else if (FD_FIXNUMP(value))
 	  u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
+	else output_attribval(&out,value,env,1);
+	/*
 	else {
 	  int dquote=1;
 	  struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
@@ -227,6 +232,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
 	  if (dquote) u8_putc(&out,'"'); else u8_putc(&out,'\'');
 	  u8_free(subout.u8_outbuf);}
+	*/
 	fd_decref(value);}}
     fd_decref(to_free);
     fd_decref(attribids);}
