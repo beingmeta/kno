@@ -87,7 +87,16 @@
   (if (string? ref)
       (let* ((url (stringout
 		    "http://openlibrary.org/"
-		    (if (has-prefix ref "/") (subseq ref 1) ref)
+		    (if (has-prefix ref "/") (subseq ref 1)
+			(if (not (position #\/ ref))
+			    (stringout
+			      (if (has-suffix ref "M") "books/"
+				  (if (has-suffix ref "A")
+				      "authors/"
+				      (if (has-suffix ref "W")
+					  "works/"
+					  "")))
+			      ref)))
 		    ".json"))
 	     (r (urlget url)))
 	(if (test r 'response 200)
