@@ -267,6 +267,7 @@ static fdtype exit_prim(fdtype arg)
 #define FD_IS_SCHEME 1
 #define FD_DO_FORK 2
 #define FD_DO_WAIT 4
+#define FD_DO_LOOKUP 8
 
 static fdtype exec_helper(int flags,int n,fdtype *args)
 {
@@ -298,9 +299,13 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
 	return FD_INT2DTYPE(pid);}
       else if (flags&FD_IS_SCHEME)
 	execvp(FD_EXEC,argv);
+      else if (flags&FD_DO_LOOKUP)
+	execvp(filename,argv);
       else execvp(filename,argv);
     else if (flags&FD_IS_SCHEME)
       execvp(FD_EXEC,argv);
+    else if (flags&FD_DO_LOOKUP)
+      execvp(filename,argv);
     else execvp(filename,argv);
     return FD_ERROR_VALUE;}
 }
@@ -308,6 +313,11 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
 static fdtype exec_prim(int n,fdtype *args)
 {
   return exec_helper(0,n,args);
+}
+
+static fdtype execlookup_prim(int n,fdtype *args)
+{
+  return exec_helper(FD_DO_LOOKUP,n,args);
 }
 
 static fdtype fdexec_prim(int n,fdtype *args)
@@ -320,9 +330,19 @@ static fdtype fork_prim(int n,fdtype *args)
   return exec_helper(FD_DO_FORK,n,args);
 }
 
+static fdtype forklookup_prim(int n,fdtype *args)
+{
+  return exec_helper(FD_DO_FORK|FD_DO_LOOKUP,n,args);
+}
+
 static fdtype forkwait_prim(int n,fdtype *args)
 {
   return exec_helper((FD_DO_FORK|FD_DO_WAIT),n,args);
+}
+
+static fdtype forklookupwait_prim(int n,fdtype *args)
+{
+  return exec_helper((FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
 }
 
 static fdtype fdforkwait_prim(int n,fdtype *args)
@@ -1530,13 +1550,15 @@ FD_EXPORT void fd_init_fileio_c()
   fd_defspecial(fileio_module,"SYSTEM",simple_system);
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
-
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("EXECLOOKUP",execlookup_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FORK",fork_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUP",forklookup_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
 #if HAVE_WAITPID
   fd_idefn(fileio_module,fd_make_cprimn("FORKWAIT",forkwait_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUPWAIT",forklookupwait_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORKWAIT",fdforkwait_prim,1));
 #endif
 
