@@ -895,12 +895,10 @@ static unsigned int hash_lisp(fdtype x)
 	  return hash_mult(x,type_multipliers[ctype]);
 	else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
       else return hash_mult(hash_lisp(c->tag),hash_elts(&(c->elt0),c->n_elts));}
-      /*
     case fd_slotmap_type: {
       struct FD_SLOTMAP *sm=FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *);
       fdtype *kv=(fdtype *)sm->keyvals;
       return hash_elts(kv,sm->size*2);}
-      */
     case fd_choice_type: {
       struct FD_CHOICE *ch=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
       int size=FD_XCHOICE_SIZE(ch);
