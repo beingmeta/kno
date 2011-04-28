@@ -188,8 +188,8 @@ int main(int argc,char **argv)
       source_file=u8_fromlibc(argv[i++]);
       u8_default_appid(source_file);}
   if (source_file) {
-    fdtype interp=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
-    fdtype src=fd_init_string(NULL,-1,u8_realpath(source_file,NULL));
+    fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
+    fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
     result=fd_load_source(source_file,env,NULL);
     fd_config_set("INTERPRETER",interp);
     fd_config_set("SOURCE",src);

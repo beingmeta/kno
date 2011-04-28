@@ -1078,7 +1078,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   int i, slen, ends_in_s=0;
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
-  fdtype ls=fd_init_string(NULL,-1,s), value=get_lexinfo(pc,ls);
+  fdtype ls=fd_lispstring(s), value=get_lexinfo(pc,ls);
   if ((word_limit > 0) && (((int)pc->n_inputs) >= word_limit))
     return fd_reterr(TooManyWords,"add_input",NULL,FD_VOID);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
@@ -1198,7 +1198,7 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word)
 static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
 {
   u8_string s=strdup(spelling); int i;
-  fdtype ls=fd_init_string(NULL,-1,s), value;
+  fdtype ls=fd_lispstring(s), value;
   value=get_lexinfo(pc,ls);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
   if (FD_EMPTY_CHOICEP(value))
@@ -1608,14 +1608,14 @@ static fdtype word2string(fdtype word)
 	  u8_printf(&out," %q",elts[i]);
 	else u8_printf(&out,"%q",elts[i]);
 	i++;}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else if (FD_PAIRP(word)) {
     struct U8_OUTPUT out; int i=0; U8_INIT_OUTPUT(&out,32);
     {FD_DOLIST(elt,word) {
       u8_string s=FD_STRDATA(elt); int firstc=u8_sgetc(&s);
       if ((i>0) && (u8_isalnum(firstc))) u8_putc(&out,' ');
       u8_puts(&out,FD_STRDATA(elt)); i++;}}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_incref(word);
 }
 

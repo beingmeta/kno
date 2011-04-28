@@ -73,7 +73,7 @@ static fdtype buf2lisp(char *buf,int isascii)
 {
   if (buf[0]!=':')
     if (isascii) return fdtype_string(buf);
-    else return fd_init_string(NULL,-1,u8_valid_copy(buf));
+    else return fd_lispstring(u8_valid_copy(buf));
   else if (isascii) return try_parse(buf+1);
   else {
     u8_string s=u8_valid_copy(buf+1);
@@ -95,7 +95,7 @@ static fdtype buf2slotid(char *buf,int isascii)
 static fdtype buf2string(char *buf,int isascii)
 {
   if (isascii) return fdtype_string(buf);
-  else return fd_init_string(NULL,-1,u8_valid_copy(buf));
+  else return fd_lispstring(u8_valid_copy(buf));
 }
 
 static void emit_uri_string(u8_output out,u8_string string)

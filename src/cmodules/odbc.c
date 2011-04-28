@@ -280,7 +280,7 @@ static fdtype get_colvalue
       if (clen*2<colsize) {
 	result=fdtype_string(data);
 	u8_free(data);}
-      else result=fd_init_string(NULL,-1,data);
+      else result=fd_lispstring(data);
       break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   case SQL_BIGINT: {

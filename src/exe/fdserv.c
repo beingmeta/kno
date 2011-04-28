@@ -307,7 +307,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
     if (fd_init_dtype_file_stream(reqlog,filename,FD_DTSTREAM_WRITE,16384)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
-      fdtype logstart_entry=fd_init_string(NULL,-1,logstart);
+      fdtype logstart_entry=fd_lispstring(logstart);
       fd_endpos(reqlog);
       reqlogname=u8_strdup(filename);
       fd_dtswrite_dtype(reqlog,logstart_entry);
@@ -941,7 +941,7 @@ static fdtype get_uptime()
 static fdtype get_servlet_status()
 {
   u8_string status=u8_server_status(&fdwebserver,NULL,0);
-  return fd_init_string(NULL,-1,status);
+  return fd_lispstring(status);
 }
 
 

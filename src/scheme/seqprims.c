@@ -408,7 +408,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
 	u8_free(out.u8_outbuf);
 	return fd_type_error(_("character"),"fd_makeseq",v[i]);}
       i++;}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   case fd_packet_type: {
     fdtype result=FD_VOID;
     unsigned char *bytes=u8_malloc(n); int i=0;
@@ -1409,7 +1409,7 @@ static fdtype x2string(fdtype seq)
 	u8_free(data);
 	return fd_type_error(_("character"),"seq2string",bad);}}
     u8_free(data);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_type_error(_("sequence"),"x2string",seq);
 }
 

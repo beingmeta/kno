@@ -163,7 +163,7 @@ static fdtype decode_entities_prim(fdtype input)
     U8_INIT_OUTPUT(&out,FD_STRLEN(input));
     while (c>=0) {
       u8_putc(&out,c); c=egetc(&scan);}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_incref(input);
 }
 
@@ -362,7 +362,7 @@ static fdtype list2phrase_prim(fdtype arg)
     if (dospace) {u8_putc(&out,' ');} else dospace=1;
     if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
     else u8_printf(&out,"%q",word);}}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype seq2phrase_ndhelper
@@ -398,14 +398,14 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
       if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
       else u8_printf(&out,"%q",word);
       fd_decref(word); start++;}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
 }
 
 static fdtype seq2phrase_ndhelper
   (u8_string base,fdtype seq,int start,int end,int dospace)
 {
   if (start==end)
-    return fd_init_string(NULL,-1,u8_strdup(base));
+    return fd_lispstring(u8_strdup(base));
   else {
     fdtype elt=fd_seq_elt(seq,start), results=FD_EMPTY_CHOICE;
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
@@ -512,7 +512,7 @@ FD_EXPORT u8_byte *fd_stem_english_word(u8_byte *original);
 static fdtype stem_prim(fdtype arg)
 {
   u8_byte *stemmed=fd_stem_english_word(FD_STRDATA(arg));
-  return fd_init_string(NULL,-1,stemmed);
+  return fd_lispstring(stemmed);
 }
 
 /* Disemvoweling */
@@ -551,7 +551,7 @@ static fdtype disemvowel(fdtype string,fdtype vowels)
       if (strstr(vowelset,buf)==NULL)
 	u8_putc(&out,c);}
     c=u8_getc(&in);}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 /* Depuncting strings (removing punctuation and whitespace) */
@@ -566,7 +566,7 @@ static fdtype depunct(fdtype string)
     if (!((u8_isspace(c)) || (u8_ispunct(c))))
       u8_putc(&out,c);
     c=u8_getc(&in);}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 /* Skipping markup */
@@ -592,7 +592,7 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
 	    if (insert_space) u8_putc(&out,' ');}
 	else u8_putc(&out,c);
       u8_putn(&out,start,last-start);
-      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      return fd_stream2string(&out);}
   else return fd_incref(string);
 }
 
@@ -942,7 +942,7 @@ static fdtype textrewrite(fdtype pattern,fdtype string,
 	  if (dorewrite(&out,FD_CDR(extraction))<0) {
 	    fd_decref(subst_results); fd_decref(extract_results);
 	    u8_free(out.u8_outbuf); return FD_ERROR_VALUE;}
-	  stringval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+	  stringval=fd_stream2string(&out);
 	  FD_ADD_TO_CHOICE(subst_results,stringval);}
       fd_decref(extract_results);
       return subst_results;}}
@@ -972,8 +972,7 @@ static fdtype textsubst(fdtype string,
 	fd_decref(match_result);
 	if (end<0) {
 	  u8_puts(&out,data+last);
-	  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,
-				out.u8_outbuf);}
+	  return fd_stream2string(&out);}
 	else if (end>start) {
 	  u8_putn(&out,data+last,start-last);
 	  if (FD_STRINGP(replace))
@@ -1010,8 +1009,7 @@ static fdtype textsubst(fdtype string,
 		    u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
 		    fd_decref(results); results=FD_ERROR_VALUE;
 		    FD_STOP_DO_CHOICES; break;}
-		  stringval=fd_init_string
-		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
+		  stringval=fd_stream2string(&tmpout);
 		  FD_ADD_TO_CHOICE(results,stringval);}
 		else {
 		  u8_charoff new_char_off=u8_charoffset(stringdata,newstart);
@@ -1027,8 +1025,7 @@ static fdtype textsubst(fdtype string,
 		      fd_decref(results); results=FD_ERROR_VALUE;
 		      FD_STOP_DO_CHOICES; break;}
 		    u8_puts(&tmpout,FD_STRDATA(rem));
-		    stringval=fd_init_string
-		      (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
+		    stringval=fd_stream2string(&tmpout);
 		    FD_ADD_TO_CHOICE(results,stringval);}
 		  fd_decref(remainder);}}
 	      u8_free(out.u8_outbuf);
@@ -1044,7 +1041,7 @@ static fdtype textsubst(fdtype string,
 	else start=fd_text_search
 	       (pattern,NULL,data,forward_char(data,end),lim,0);}
       u8_puts(&out,data+last);
-      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      return fd_stream2string(&out);}
     else if (start==-2) 
       return FD_ERROR_VALUE;
     else return fd_extract_string(NULL,data+off,data+lim);}
@@ -1076,7 +1073,7 @@ static fdtype gathersubst(fdtype pattern,fdtype string,
       else if (end>start) {
 	struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,24);
 	dorewrite(&tmpout,longest);
-	result=fd_init_string(NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
+	result=fd_stream2string(&tmpout);
 	FD_ADD_TO_CHOICE(results,result);
 	fd_decref(longest);
 	start=fd_text_search(pattern,NULL,data,end,lim,0);}
@@ -1222,11 +1219,11 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	retval=framify(f,&_out,content);
 	if (out) u8_putn(out,_out.u8_outbuf,_out.u8_outptr-_out.u8_outbuf);
 	if (FD_VOIDP(parser)) {
-	  fdtype stringval=fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+	  fdtype stringval=fd_stream2string(&_out);
 	  fd_add(f,slotid,stringval);
 	  fd_decref(stringval);}
 	else if (FD_APPLICABLEP(parser)) {
-	  fdtype stringval=fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+	  fdtype stringval=fd_stream2string(&_out);
 	  fdtype parsed_val=fd_finish_call(fd_dapply(parser,1,&stringval));
 	  fd_add(f,slotid,parsed_val);
 	  fd_decref(parsed_val);
@@ -1236,7 +1233,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	  fd_add(f,slotid,parsed_val);
 	  fd_decref(parsed_val); u8_free(_out.u8_outbuf);}
 	else {
-	  fdtype stringval=fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+	  fdtype stringval=fd_stream2string(&_out);
 	  fd_add(f,slotid,stringval);
 	  fd_decref(stringval);}
 	return 1;}}
@@ -1867,7 +1864,7 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
 	  if (cpos==NULL) {}
 	  else nc=stdlib_unescaped[cpos-stdlib_escapes];}
 	u8_putc(&out,nc);}}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else if ((off==0) && (lim==FD_STRLEN(string)))
     return fd_incref(string);
   else return fd_extract_string(NULL,start,limit);
@@ -1879,14 +1876,14 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
 static fdtype soundex_prim(fdtype string,fdtype packetp)
 {
   if (FD_FALSEP(packetp))
-    return fd_init_string(NULL,-1,fd_soundex(FD_STRDATA(string)));
+    return fd_lispstring(fd_soundex(FD_STRDATA(string)));
   else return fd_init_packet(NULL,4,fd_soundex(FD_STRDATA(string)));
 }
 
 static fdtype metaphone_prim(fdtype string,fdtype packetp)
 {
   if (FD_FALSEP(packetp))
-    return fd_init_string(NULL,-1,fd_metaphone(FD_STRDATA(string),0));
+    return fd_lispstring(fd_metaphone(FD_STRDATA(string),0));
   else {
     u8_string dblm=fd_metaphone(FD_STRDATA(string),0);
     return fd_init_packet(NULL,strlen(dblm),dblm);}
@@ -1895,7 +1892,7 @@ static fdtype metaphone_prim(fdtype string,fdtype packetp)
 static fdtype metaphone_plus_prim(fdtype string,fdtype packetp)
 {
   if (FD_FALSEP(packetp))
-    return fd_init_string(NULL,-1,fd_metaphone(FD_STRDATA(string),1));
+    return fd_lispstring(fd_metaphone(FD_STRDATA(string),1));
   else {
     u8_string dblm=fd_metaphone(FD_STRDATA(string),1);
     return fd_init_packet(NULL,strlen(dblm),dblm);}

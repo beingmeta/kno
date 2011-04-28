@@ -99,7 +99,7 @@ static fdtype make_compound(fdtype tags,int len)
 	else output_term(&out,root,0);
 	tags=FD_CDR(tags); i++;}
       else return fd_err(fd_RangeError,"make_compound",NULL,tags);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
 }
 
 static fdtype find_phrase(fdtype tags,fdtype pat,int *locp,int *lenp)
@@ -254,7 +254,7 @@ static fdtype compound2string(fdtype word)
       while (FD_PAIRP(scan)) {
 	insert_space=output_term(&out,FD_CAR(scan),insert_space);
 	scan=FD_CDR(scan);}
-      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      return fd_stream2string(&out);}
     else return fd_incref(FD_CAR(word));
   else return FD_EMPTY_CHOICE;
 }

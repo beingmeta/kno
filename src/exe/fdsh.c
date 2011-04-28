@@ -221,7 +221,7 @@ int main(int argc,char **argv)
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   {
-    fdtype interpval=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
+    fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
   quiet_config=fd_config_get("QUIET");
   fd_histinit(0);

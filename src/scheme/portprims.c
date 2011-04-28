@@ -671,8 +671,7 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
 	    u8_putc(&out,u8_sgetc(&scan));
 	  else u8_putc(&out,0);}
 	u8_free(data);
-	return fd_init_string
-	  (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+	return fd_stream2string(&out);}
       else return fd_init_string(NULL,size,data);
     else if (size<0)
       if (errno==EAGAIN)
@@ -755,7 +754,7 @@ static fdtype lisp2string(fdtype x)
 {
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   fd_unparse(&out,x);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype inexact2string(fdtype x,fdtype precision)
@@ -776,7 +775,7 @@ static fdtype number2string(fdtype x,fdtype base)
   if (FD_NUMBERP(x)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_output_number(&out,x,fd_getint(base));
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_err(fd_TypeError,"number2string",NULL,x);
 }
 

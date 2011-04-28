@@ -422,7 +422,7 @@ static fdtype set_curlopt
   else if (FD_EQ(opt,content_type_symbol))
     if (FD_STRINGP(val)) {
       u8_string ctype_header=u8_mkstring("Content-type: %s",FD_STRDATA(val));
-      fdtype hval=fd_init_string(NULL,-1,ctype_header);
+      fdtype hval=fd_lispstring(ctype_header);
       curl_add_headers(ch,hval);
       fd_decref(hval);}
     else return fd_type_error(_("string"),"set_curl_handle/content-type",val);
@@ -447,7 +447,7 @@ static fdtype fixurl(u8_string url)
       buf[1]=digits[c/16]; buf[2]=digits[c%16];
       u8_puts(&out,buf);}
     else u8_putc(&out,c);}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 /* The core get function */
@@ -529,11 +529,11 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
 	u8_convert(enc,1,&out,&scan,data->bytes+data->size);
 	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
       else if (strstr(data->bytes,"\r\n"))
-	cval=fd_init_string(NULL,-1,u8_convert_crlfs(data->bytes));
-      else cval=fd_init_string(NULL,-1,u8_valid_copy(data->bytes));}
+	cval=fd_lispstring(u8_convert_crlfs(data->bytes));
+      else cval=fd_lispstring(u8_valid_copy(data->bytes));}
     else if (strstr(data->bytes,"\r\n"))
-      cval=fd_init_string(NULL,-1,u8_convert_crlfs(data->bytes));
-    else cval=fd_init_string(NULL,-1,u8_valid_copy(data->bytes));
+      cval=fd_lispstring(u8_convert_crlfs(data->bytes));
+    else cval=fd_lispstring(u8_valid_copy(data->bytes));
     u8_free(data->bytes);}
   else {
     cval=fd_make_packet(NULL,data->size,data->bytes);

@@ -61,7 +61,7 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t'))) vstart=line_end+1;
       else {
 	fdtype slotval=
-	  fd_init_string(NULL,-1,u8_mime_convert
+	  fd_lispstring(u8_mime_convert
 			 (hstream.u8_outbuf,hstream.u8_outptr));
 	fd_add(s,slotid,slotval); fd_decref(slotval); hstart=line_end+1;
 	break;}}
@@ -169,7 +169,7 @@ static fdtype convert_text
   else encoding=NULL;
   scan=data; data_end=data+len;
   u8_convert(encoding,1,&out,&scan,data_end);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataenc,fdtype charenc)

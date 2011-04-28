@@ -725,13 +725,13 @@ static FD_XML *handle_xmleval_pi
 	  scheme_env->parent=fd_make_export_env(module,scheme_env->parent);}
 	i++;}
       else if ((strncmp(attribs[i],"escape=",7))==0) {
-	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
+	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+7));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fd_bind_value(escape_id,arg,xml_env);
 	fd_decref(arg);
 	i++;}
       else if ((strncmp(attribs[i],"piescape=",9))==0) {
-	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+9));
+	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+9));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fdtype cur=fd_symeval(piescape_symbol,xml_env);
 	if (FD_VOIDP(cur))
@@ -742,7 +742,7 @@ static FD_XML *handle_xmleval_pi
 	fd_decref(arg);
 	i++;}
       else if ((strncmp(attribs[i],"xattrib=",8))==0) {
-	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
+	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+7));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fd_bind_value(xattrib_overlay,arg,xml_env);
 	fd_decref(arg);

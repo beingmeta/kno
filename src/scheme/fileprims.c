@@ -425,12 +425,12 @@ static fdtype filestring_prim(fdtype filename,fdtype enc)
   if (FD_VOIDP(enc)) {
     u8_string data=u8_filestring(FD_STRDATA(filename),"UTF-8");
     if (data)
-      return fd_init_string(NULL,-1,data);
+      return fd_lispstring(data);
     else return FD_ERROR_VALUE;}
   else if (FD_STRINGP(enc)) {
     u8_string data=u8_filestring(FD_STRDATA(filename),FD_STRDATA(enc));
     if (data)
-      return fd_init_string(NULL,-1,data);
+      return fd_lispstring(data);
     else return FD_ERROR_VALUE;}
   else return fd_err(fd_UnknownEncoding,"FILESTRING",NULL,enc);
 }
@@ -477,16 +477,15 @@ static fdtype file_directoryp(fdtype arg)
 static fdtype file_basename(fdtype arg,fdtype suffix)
 {
   if ((FD_VOIDP(suffix)) || (FD_FALSEP(suffix)))
-    return fd_init_string(NULL,-1,u8_basename(FD_STRDATA(arg),NULL));
+    return fd_lispstring(u8_basename(FD_STRDATA(arg),NULL));
   else if (FD_STRINGP(suffix))
-    return fd_init_string
-      (NULL,-1,u8_basename(FD_STRDATA(arg),FD_STRDATA(suffix)));
-  else return fd_init_string(NULL,-1,u8_basename(FD_STRDATA(arg),"*"));
+    return fd_lispstring(u8_basename(FD_STRDATA(arg),FD_STRDATA(suffix)));
+  else return fd_lispstring(u8_basename(FD_STRDATA(arg),"*"));
 }
 
 static fdtype file_dirname(fdtype arg)
 {
-  return fd_init_string(NULL,-1,u8_dirname(FD_STRDATA(arg)));
+  return fd_lispstring(u8_dirname(FD_STRDATA(arg)));
 }
 
 static fdtype file_abspath(fdtype arg,fdtype wd)
@@ -495,7 +494,7 @@ static fdtype file_abspath(fdtype arg,fdtype wd)
   if (FD_VOIDP(wd))
     result=u8_abspath(FD_STRDATA(arg),NULL);
   else result=u8_abspath(FD_STRDATA(arg),FD_STRDATA(wd));
-  if (result) return fd_init_string(NULL,-1,result);
+  if (result) return fd_lispstring(result);
   else return FD_ERROR_VALUE;
 }
 
@@ -505,7 +504,7 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
   if (FD_VOIDP(wd))
     result=u8_realpath(FD_STRDATA(arg),NULL);
   else result=u8_realpath(FD_STRDATA(arg),FD_STRDATA(wd));
-  if (result) return fd_init_string(NULL,-1,result);
+  if (result) return fd_lispstring(result);
   else return FD_ERROR_VALUE;
 }
 
@@ -531,9 +530,9 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
   else return fd_type_error
 	 (_("string or string CONFIG var"),"mkuripath_prim",dirname);
   if (FD_VOIDP(config_val))
-    return fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    return fd_lispstring(u8_mkpath(dir,namestring));
   else {
-    fdtype result=fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    fdtype result=fd_lispstring(u8_mkpath(dir,namestring));
     fd_decref(config_val);
     return result;}
 }
@@ -549,7 +548,7 @@ static fdtype tempdir_prim(fdtype template)
 		  (getenv("TMPDIR"))||(getenv("TMP_DIR"))||"/tmp")));
   u8_string buf=u8_strdup(tempstring);
   u8_string tempname=mkdtemp(buf);
-  if (tempname) return fd_init_string(NULL,-1,tempname);
+  if (tempname) return fd_lispstring(tempname);
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"tempdir_prim",NULL,template);}
@@ -560,13 +559,13 @@ static fdtype mktemp_prim(fdtype template)
 {
   u8_string buf=u8_strdup(FD_STRDATA(template));
   mktemp(buf);
-  return fd_init_string(NULL,-1,buf);
+  return fd_lispstring(buf);
 }
 #endif
 
 static fdtype runfile_prim(fdtype suffix)
 {
-  return fd_init_string(NULL,-1,fd_runbase_filename(FD_STRDATA(suffix)));
+  return fd_lispstring(fd_runbase_filename(FD_STRDATA(suffix)));
 }
 
 /* File time info */
@@ -617,7 +616,7 @@ static fdtype file_size(fdtype filename)
 static fdtype file_owner(fdtype filename)
 {
   u8_string name=u8_file_owner(FD_STRDATA(filename));
-  if (name) return fd_init_string(NULL,-1,name);
+  if (name) return fd_lispstring(name);
   else return FD_ERROR_VALUE;
 }
 
@@ -626,7 +625,7 @@ static fdtype file_owner(fdtype filename)
 static fdtype getcwd_prim()
 {
   u8_string wd=u8_getcwd();
-  if (wd) return fd_init_string(NULL,-1,wd);
+  if (wd) return fd_lispstring(wd);
   else return FD_ERROR_VALUE;
 }
 
@@ -646,7 +645,7 @@ static fdtype getfiles_prim(fdtype dirname,fdtype fullpath)
     u8_getfiles(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
   if (contents==NULL) return FD_ERROR_VALUE;
   else while (*scan) {
-    fdtype string=fd_init_string(NULL,-1,*scan);
+    fdtype string=fd_lispstring(*scan);
     FD_ADD_TO_CHOICE(results,string);
     scan++;}
   u8_free(contents);
@@ -660,7 +659,7 @@ static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
     u8_getdirs(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
   if (contents==NULL) return FD_ERROR_VALUE;
   else while (*scan) {
-    fdtype string=fd_init_string(NULL,-1,*scan);
+    fdtype string=fd_lispstring(*scan);
     FD_ADD_TO_CHOICE(results,string);
     scan++;}
   u8_free(contents);
@@ -927,7 +926,7 @@ static int load_source_module(fdtype spec,int safe)
     else {
       fdtype module_key=fdtype_string(module_filename);
       fdtype abspath_key=
-	fd_init_string(NULL,-1,u8_abspath(module_filename,NULL));
+	fd_lispstring(u8_abspath(module_filename,NULL));
       /* Register the module under its filename too. */
       fd_register_module_x(module_key,load_result,safe);
       fd_register_module_x(abspath_key,load_result,safe);
@@ -1707,13 +1706,13 @@ FD_EXPORT void fd_init_fileio_c()
 
   {
     u8_string path=u8_getenv("FD_LOADPATH");
-    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+    fdtype v=((path) ? (fd_lispstring(path)) :
 	      (fdtype_string(FD_DEFAULT_LOADPATH)));
     fd_config_set("LOADPATH",v);
     fd_decref(v);}
   {
     u8_string path=u8_getenv("FD_SAFE_LOADPATH");
-    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+    fdtype v=((path) ? (fd_lispstring(path)) :
 	      (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
     fd_config_set("SAFELOADPATH",v);
     fd_decref(v);}

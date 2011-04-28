@@ -122,7 +122,7 @@ static fdtype decode_entities(fdtype input)
   U8_INIT_OUTPUT(&out,FD_STRLEN(input));
   while (c>=0) {
     u8_putc(&out,c); c=egetc(&scan);}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static u8_string block_elts[]=
@@ -241,7 +241,7 @@ static fdtype make_qid(u8_string eltname,u8_string namespace)
   if (namespace) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
     u8_printf(&out,"{%s}%s",namespace,eltname);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fdtype_string(eltname);
 }
 

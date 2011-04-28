@@ -1080,8 +1080,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     u8_printf(out,"#%s",FD_SYMBOL_NAME(target));
     attribs=fd_init_pair
       (NULL,href_symbol,
-       fd_init_pair(NULL,fd_init_string
-		    (NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf),
+       fd_init_pair(NULL,fd_stream2string(&tmpout),
 		    fd_incref(attribs)));}
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
@@ -1170,7 +1169,7 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
       FD_OID addr=FD_OID_ADDR(args[0]);
       u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
     else u8_printf(&out,":%q",args[0]);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   if (!((FD_VOIDP(params))||(FD_EMPTY_CHOICEP(params)))) {
     FD_DO_CHOICES(table,params)
       if (FD_TABLEP(table)) {
@@ -1183,7 +1182,7 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
   while (i<n) {
     add_query_param(&out,args[i],args[i+1],nocolon);
     i=i+2;}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype scripturl(int n,fdtype *args)
@@ -1281,7 +1280,7 @@ static fdtype uriencode_prim(fdtype string,fdtype escape)
   if (FD_VOIDP(escape))
     fd_uri_output(&out,FD_STRDATA(string),NULL);
   else fd_uri_output(&out,FD_STRDATA(string),FD_STRDATA(escape));
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static int xdigit_weight(int c)
@@ -1552,7 +1551,7 @@ static fdtype javascript_handler(fdtype expr,fd_lispenv env)
   fdtype retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
   retval=output_javascript(&out,FD_CDR(expr),env);
   if (FD_VOIDP(retval))
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    return fd_stream2string(&out);
   else {
     u8_free(out.u8_outbuf); return retval;}
 }
@@ -1563,7 +1562,7 @@ static fdtype javastmt_handler(fdtype expr,fd_lispenv env)
   retval=output_javascript(&out,FD_CDR(expr),env);
   if (FD_VOIDP(retval)) {
     u8_putc(&out,';');
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else {
     u8_free(out.u8_outbuf); return retval;}
 }
