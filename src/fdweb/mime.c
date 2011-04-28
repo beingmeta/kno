@@ -135,12 +135,18 @@ static fdtype convert_data(char *start,char *end,fdtype dataenc,int could_be_str
   if ((could_be_string) && (!(FD_STRINGP(dataenc))) && (len<50000)) {
     /* If it might be a string, check if it's ASCII without NULs.
        If so, return a string, otherwise return a packet. */
-    int i=0; while (i<len)
-      if (data[i]<=0)
-	return fd_init_packet(NULL,len,data);
-      else i++;
-    return fd_init_string(NULL,len,data);}
-  else return fd_init_packet(NULL,len,data);
+    fdtype result=FD_VOID;
+    int i=0; while (i<len) {
+      if (data[i]<=0) {
+	result=fd_make_packet(NULL,len,data); break;}
+      else i++;}
+    if (FD_VOIDP(result)) fd_make_string(NULL,len,data);
+    u8_free(data);
+    return result;}
+  else {
+    fdtype result=fd_make_packet(NULL,len,data);
+    u8_free(data);
+    return result;}
 }
 
 static fdtype convert_text

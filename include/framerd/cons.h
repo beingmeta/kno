@@ -208,43 +208,57 @@ struct FD_WRAPPER {
 
 typedef struct FD_STRING {
   FD_CONS_HEADER;
-  unsigned int length;
+  unsigned int freedata:1;
+  unsigned int length:31;
   u8_string bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
 
+#define FD_UNISTRING        ((struct FD_STRING *)0x1)
+
 #define FD_STRINGP(x) (FD_PTR_TYPEP(x,fd_string_type))
 #define FD_STRLEN(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length)
+  ((unsigned int)\
+   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length))
 #define FD_STRDATA(x) \
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes)
-#define FD_STRING_LENGTH(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length)
-#define FD_STRING_DATA(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes)
+#define FD_STRING_LENGTH(x) (FD_STRLEN(x))
+#define FD_STRING_DATA(x) (FD_STRDATA(x))
 
 #define FD_XSTRING(x) (FD_GET_CONS(x,fd_string_type,struct FD_STRING *))
-#define fd_strlen(x) ((FD_GET_CONS(x,fd_string_type,struct FD_STRING *))->length)
-#define fd_strdata(x) ((FD_GET_CONS(x,fd_string_type,struct FD_STRING *))->bytes)
+#define fd_strlen(x) \
+  ((unsigned int)\
+   ((FD_GET_CONS(x,fd_string_type,struct FD_STRING *))->length))
+#define fd_strdata(x) (FD_STRDATA(x))
 
 FD_EXPORT fdtype fd_extract_string
   (struct FD_STRING *ptr,u8_byte *start,u8_byte *end);
 FD_EXPORT fdtype fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string);
+FD_EXPORT fdtype fd_make_string
+  (struct FD_STRING *ptr,int slen,u8_string string);
+FD_EXPORT fdtype fd_conv_string
+  (struct FD_STRING *ptr,int slen,u8_string string);
 FD_EXPORT fdtype fdtype_string(u8_string string);
 
 #define fd_stream2string(stream) \
-  fd_init_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),\
-                 ((stream)->u8_outbuf))
+  ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
+   (fd_conv_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
+		   ((stream)->u8_outbuf))):                             \
+   (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
+		   ((stream)->u8_outbuf))))
 
 #define FD_PACKETP(x) (FD_PTR_TYPE(x) == fd_packet_type)
 #define FD_PACKET_LENGTH(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length)
+  ((unsigned int)\
+   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length))
 #define FD_PACKET_DATA(x) \
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes)
 #define FD_PACKET_REF(x,i) \
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes[i])
 
 FD_EXPORT fdtype fd_init_packet
+  (struct FD_STRING *ptr,int len,unsigned char *data);
+FD_EXPORT fdtype fd_make_packet
   (struct FD_STRING *ptr,int len,unsigned char *data);
 
 #define FD_XPACKET(x) (FD_GET_CONS(x,fd_packet_type,struct FD_STRING *))
@@ -297,9 +311,12 @@ FD_EXPORT fdtype fd_pmake_list(int len,...);
 
 typedef struct FD_VECTOR {
   FD_CONS_HEADER;
-  unsigned int length;
+  unsigned int freedata:1;
+  unsigned int length:31;
   fdtype *data;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
+
+#define FD_UNIVEC        ((struct FD_VECTOR *)0x1)
 
 #define FD_VECTOR_LENGTH_MASK 0x7FFFFFFF
 #define FD_VECTORP(x) (FD_PTR_TYPEP(x,fd_vector_type))

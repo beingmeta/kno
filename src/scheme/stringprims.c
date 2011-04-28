@@ -566,15 +566,15 @@ static fdtype string_trigrams(fdtype string)
     while ((c=get_stdchar(&in))>=0) {
       c1=c2; c2=c3; c3=c; out.u8_outptr=out.u8_outbuf;
       u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-      trigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
+      trigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       FD_ADD_TO_CHOICE(trigrams,trigram);}
     c1=c2; c2=c3; c3=' '; out.u8_outptr=out.u8_outbuf;
     u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-    trigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
+    trigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(trigrams,trigram);
     c1=c2; c2=c3; c3=' '; out.u8_outptr=out.u8_outbuf;
     u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-    trigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
+    trigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(trigrams,trigram);
     return trigrams;}
   else return fd_type_error(_("string"),"string_trigrams",string);
@@ -591,11 +591,11 @@ static fdtype string_bigrams(fdtype string)
     while ((c=get_stdchar(&in))>=0) {
       c1=c2; c2=c; out.u8_outptr=out.u8_outbuf;
       u8_putc(&out,c1); u8_putc(&out,c2);
-      bigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
+      bigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
       FD_ADD_TO_CHOICE(bigrams,bigram);}
     c1=c2; c2=' '; out.u8_outptr=out.u8_outbuf;
     u8_putc(&out,c1); u8_putc(&out,c2);
-    bigram=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,u8_strdup(out.u8_outbuf));
+    bigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(bigrams,bigram);
     return bigrams;}
   else return fd_type_error(_("string"),"string_bigrams",string);
@@ -643,9 +643,7 @@ static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
   struct U8_TEXT_ENCODING *enc;
   if (FD_VOIDP(encoding)) {
     int n_bytes=FD_STRLEN(string);
-    u8_byte *data=u8_malloc(n_bytes);
-    strncpy(data,FD_STRDATA(string),n_bytes);
-    return fd_init_packet(NULL,n_bytes,data);}
+    return fd_make_packet(NULL,n_bytes,FD_STRDATA(string));}
   else if (FD_STRINGP(encoding))
     enc=u8_get_encoding(FD_STRDATA(encoding));
   else if (FD_SYMBOLP(encoding))
@@ -657,8 +655,10 @@ static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
   else if ((FD_FALSEP(escape)) || (FD_VOIDP(escape)))
     data=u8_localize(enc,&scan,limit,0,0,NULL,&n_bytes);
   else data=u8_localize(enc,&scan,limit,'\\',0,NULL,&n_bytes);
-  if (data)
-    return fd_init_packet(NULL,n_bytes,data);
+  if (data) {
+    fdtype result=fd_make_packet(NULL,n_bytes,data);
+    u8_free(data);
+    return result;}
   else return FD_ERROR_VALUE;
 }
 

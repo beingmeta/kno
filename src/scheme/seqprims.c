@@ -102,11 +102,10 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
       fdtype v=*read++; *write++=fd_incref(v);}
     return fd_init_vector(NULL,end-start,elts);}
   case fd_packet_type: {
-    unsigned char *data=u8_malloc(end-start);
+    unsigned char *data=FD_PACKET_DATA(x);
     if (end<0) end=FD_PACKET_LENGTH(x);
     else if (end>FD_PACKET_LENGTH(x)) return FD_VOID;
-    memcpy(data,FD_PACKET_DATA(x)+start,end-start);
-    return fd_init_packet(NULL,end-start,data);}
+    return fd_make_packet(NULL,end-start,data+start);}
   case fd_pair_type: {
     int j=0; fdtype scan=x, head=FD_EMPTY_LIST, *tail=&head;
     while (FD_PAIRP(scan))
@@ -411,6 +410,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
       i++;}
     return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   case fd_packet_type: {
+    fdtype result=FD_VOID;
     unsigned char *bytes=u8_malloc(n); int i=0;
     while (i < n) {
       if (FD_FIXNUMP(v[i])) bytes[i]=FD_FIX2INT(v[i]);
@@ -418,7 +418,9 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
 	u8_free(bytes);
 	return fd_type_error(_("byte"),"fd_makeseq",v[i]);}
       i++;}
-    return fd_init_packet(NULL,n,bytes);}
+    result=fd_make_packet(NULL,n,bytes);
+    u8_free(bytes);
+    return result;}
   case fd_vector_type: {
     fdtype *elts=u8_alloc_n(n,fdtype); int i=0;
     while (i < n) {
@@ -1355,6 +1357,7 @@ static fdtype seq2packet(fdtype seq)
     return fd_init_packet(NULL,0,NULL);
   else if (FD_SEQUENCEP(seq)) {
     int i=0, n;
+    fdtype result=FD_VOID;
     fdtype *data=fd_elts(seq,&n);
     unsigned char *bytes=u8_malloc(n);
     while (i<n) {
@@ -1366,7 +1369,8 @@ static fdtype seq2packet(fdtype seq)
 	u8_free(data);
 	return fd_type_error(_("byte"),"seq2packet",bad);}}
     u8_free(data);
-    return fd_init_packet(NULL,n,bytes);}
+    result=fd_make_packet(NULL,n,bytes);
+    u8_free(bytes);}
   else return fd_type_error(_("sequence"),"seq2packet",seq);
 }
   

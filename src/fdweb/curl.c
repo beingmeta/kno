@@ -535,7 +535,9 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
       cval=fd_init_string(NULL,-1,u8_convert_crlfs(data->bytes));
     else cval=fd_init_string(NULL,-1,u8_valid_copy(data->bytes));
     u8_free(data->bytes);}
-  else cval=fd_init_packet(NULL,data->size,data->bytes);
+  else {
+    cval=fd_make_packet(NULL,data->size,data->bytes);
+    u8_free(data->bytes);}
   fd_add(result,content_symbol,cval);
   {
     char *urlbuf; long filetime;
@@ -630,13 +632,15 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
   if (FD_STRINGP(content)) {
+    int length=FD_STRLEN(content);
     rdbuf.scan=FD_STRDATA(content);
-    rdbuf.end=FD_STRDATA(content)+FD_STRLEN(content);
-    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,FD_STRLEN(content));}
+    rdbuf.end=FD_STRDATA(content)+length;
+    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else if (FD_PACKETP(content)) {
+    int length=FD_PACKET_LENGTH(content);
     rdbuf.scan=FD_PACKET_DATA(content);
-    rdbuf.end=FD_PACKET_DATA(content)+FD_PACKET_LENGTH(content);
-    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,FD_STRLEN(content));}
+    rdbuf.end=FD_PACKET_DATA(content)+length;
+    curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else {}
   curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
   curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
@@ -754,10 +758,11 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
       return FD_ERROR_VALUE;}}
   else {
     fdtype err;
-    cval=fd_init_packet(NULL,data.size,data.bytes);
+    cval=fd_make_packet(NULL,data.size,data.bytes);
     fd_add(result,content_symbol,cval); fd_decref(cval);
     err=fd_err(NonTextualContent,"urlxml",FD_STRDATA(url),result);
     fd_decref(result);
+    u8_free(data.bytes);
     return err;}
   return cval;
 }
@@ -824,13 +829,13 @@ static fdtype urlpost(int n,fdtype *args)
   curl_easy_setopt(h->handle,CURLOPT_POST,1);
   if ((n-start)==1) {
     if (FD_STRINGP(args[start])) {
-      curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,
-		       FD_STRLEN(args[start]));
+      int length=FD_STRLEN(args[start]);
+      curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
 		       (char *) (FD_STRDATA(args[start])));}
     else if (FD_PACKETP(args[start])) {
-      curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,
-		       FD_PACKET_LENGTH(args[start]));
+      int length=FD_PACKET_LENGTH(args[start]);
+      curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
 		       ((char *)(FD_PACKET_DATA(args[start]))));}
     else if (FD_TABLEP(args[start])) {
@@ -847,12 +852,12 @@ static fdtype urlpost(int n,fdtype *args)
 	  curl_formfree(post);
 	  fd_decref(conn);
 	  return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
-	else if (FD_STRINGP(val))
+	else if (FD_STRINGP(val)) {
 	  curl_formadd(&post,&last,
 		       CURLFORM_COPYNAME,keyname,
 		       CURLFORM_PTRCONTENTS,FD_STRDATA(val),
 		       CURLFORM_CONTENTSLENGTH,FD_STRLEN(val),
-		       CURLFORM_END);
+		       CURLFORM_END);}
 	else if (FD_PACKETP(val))
 	  curl_formadd(&post,&last,
 		       CURLFORM_COPYNAME,keyname,

@@ -1201,7 +1201,7 @@ FD_EXPORT fd_pool fd_open_pool(u8_string spec)
 
 FD_EXPORT fd_pool fd_name2pool(u8_string spec)
 {
-  fdtype label_string=fd_init_string(NULL,-1,u8_strdup(spec));
+  fdtype label_string=fd_make_string(NULL,-1,spec);
   fdtype poolv=fd_hashtable_get(&poolid_table,label_string,FD_VOID);
   fd_decref(label_string);
   if (FD_VOIDP(poolv)) return NULL;

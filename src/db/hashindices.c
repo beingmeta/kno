@@ -672,19 +672,17 @@ static fdtype fast_read_dtype(fd_byte_input in)
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  unsigned char *data=u8_malloc(len+1);
-	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  return fd_init_string(u8_alloc(struct FD_STRING),
-				len,data);}}
+	  fdtype result=fd_make_string(NULL,len,in->ptr);
+	  in->ptr=in->ptr+len;}}
   case dt_tiny_string:
     if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
     else {
       int len=fd_get_byte(in->ptr+1); in->ptr=in->ptr+2;
       if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
       else {
-	unsigned char *data=u8_malloc(len+1);
-	memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	return fd_init_string(u8_alloc(struct FD_STRING),
-			      len,data);}}
+	fdtype result=fd_make_string(NULL,len,in->ptr);
+	in->ptr=in->ptr+len;
+	return result;}}
     case dt_symbol:
       if (nobytes(in,5)) return fd_return_errcode(FD_EOD);
       else {

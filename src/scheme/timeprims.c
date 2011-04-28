@@ -445,7 +445,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 	char buf[64];
 	sprintf(buf,"%d%s%04d",xt->u8_mday,
 		month_names[xt->u8_mon],xt->u8_year);
-	return fd_init_string(NULL,-1,u8_strdup(buf));}
+	return fd_make_string(NULL,-1,buf);}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
 		      FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -459,7 +459,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
-	return fd_init_string(NULL,-1,u8_strdup(buf));}
+	return fd_make_string(NULL,-1,buf);}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
 		      FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -473,7 +473,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
-	return fd_init_string(NULL,-1,u8_strdup(buf));}
+	return fd_make_string(NULL,-1,buf);}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
 		      FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -1243,8 +1243,7 @@ static fdtype uuidstring_prim(fdtype uuid_arg)
 static fdtype uuidpacket_prim(fdtype uuid_arg)
 {
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
-  unsigned char *bytes=u8_malloc(16); memcpy(bytes,uuid->uuid,16);
-  return fd_init_packet(NULL,16,bytes);
+  return fd_make_packet(NULL,16,uuid->uuid);
 }
 
 /* Initialization */

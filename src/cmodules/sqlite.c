@@ -153,9 +153,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       case SQLITE_BLOB: {
 	int n_bytes=sqlite3_column_bytes(stmt,j);
 	const unsigned char *blob=sqlite3_column_blob(stmt,j);
-	unsigned char *bytes=u8_alloc_n(n_bytes,unsigned char);
-	memcpy(bytes,blob,n_bytes);
-	value=fd_init_packet(NULL,n_bytes,bytes); break;}
+	value=fd_make_packet(NULL,n_bytes,(unsigned char *)blob); break;}
       case SQLITE_NULL: default:
 	value=FD_EMPTY_CHOICE; break;}
       if (FD_VOIDP(colmaps[j]))

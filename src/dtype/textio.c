@@ -645,24 +645,27 @@ static fdtype parse_oid(U8_INPUT *in)
 
 static fdtype parse_string(U8_INPUT *in)
 {
-    struct U8_OUTPUT out; int c=u8_getc(in);
-    U8_INIT_OUTPUT(&out,16);
-    while ((c=u8_getc(in))>=0)
-      if (c == '"') break;
-      else if (c == '\\') {
-	int nextc=u8_getc(in);
-	if (nextc=='\n') {
-	  while (u8_isspace(nextc)) nextc=u8_getc(in);
-	  u8_putc(&out,nextc);
-	  continue;}
-	else u8_ungetc(in,nextc);
-	c=read_escape(in);
-	if (c<0) {
-	  u8_free(out.u8_outbuf);
-	  return FD_PARSE_ERROR;}
-	u8_putc(&out,c);}
-      else u8_putc(&out,c);
-    return fd_init_string(NULL,u8_outlen(&out),u8_outstring(&out));
+  fdtype result=FD_VOID; u8_byte buf[256];
+  struct U8_OUTPUT out; int c=u8_getc(in);
+  U8_INIT_OUTPUT_X(&out,256,buf,U8_STREAM_GROWS);
+  while ((c=u8_getc(in))>=0)
+    if (c == '"') break;
+    else if (c == '\\') {
+      int nextc=u8_getc(in);
+      if (nextc=='\n') {
+	while (u8_isspace(nextc)) nextc=u8_getc(in);
+	u8_putc(&out,nextc);
+	continue;}
+      else u8_ungetc(in,nextc);
+      c=read_escape(in);
+      if (c<0) {
+	u8_free(out.u8_outbuf);
+	return FD_PARSE_ERROR;}
+      u8_putc(&out,c);}
+    else u8_putc(&out,c);
+  result=fd_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
+  u8_close_output(&out);
+  return result;
 }
 
 static fdtype parse_packet(U8_INPUT *in)
