@@ -360,7 +360,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	  u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		  FD_STRDATA(qval));
 	else {
-	  fdtype cookiedata=fd_make_vector(2,slotid,fd_incref(value));
+	  fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
 	  fd_slotmap_add(c,slotid,value);
 	  setcookiedata((fdtype)c,cookiedata);
 	  fd_decref(cookiedata);}
@@ -389,7 +389,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		FD_STRDATA(qval));
       else {
-	fdtype cookiedata=fd_make_vector(2,slotid,fd_incref(value));
+	fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
 	fd_slotmap_add(c,slotid,value);
 	setcookiedata((fdtype)c,cookiedata);
 	fd_decref(cookiedata);}
@@ -595,9 +595,9 @@ static fdtype setcookie
     if (FD_VOIDP(path)) path=FD_FALSE;
     if (FD_VOIDP(expires)) expires=FD_FALSE;
     cookiedata=
-      fd_make_vector(6,fd_incref(var),fd_incref(val),
-		     fd_incref(domain),fd_incref(path),
-		     fd_incref(expires),fd_incref(secure));
+      fd_make_nvector(6,fd_incref(var),fd_incref(val),
+		      fd_incref(domain),fd_incref(path),
+		      fd_incref(expires),fd_incref(secure));
     if (FD_VOIDP(cgidata)) {
       u8_output out=fd_get_default_output();
       handle_cookie(out,FD_VOID,cookiedata);

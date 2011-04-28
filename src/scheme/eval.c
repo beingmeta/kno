@@ -420,7 +420,7 @@ static fdtype timed_evalx(fdtype expr,fd_lispenv env)
   double start=u8_elapsed_time();
   fdtype value=fd_eval(toeval,env);
   double finish=u8_elapsed_time();
-  return fd_make_vector(2,value,fd_init_double(NULL,finish-start));
+  return fd_make_nvector(2,value,fd_init_double(NULL,finish-start));
 }
 
 static fdtype watched_eval(fdtype expr,fd_lispenv env)

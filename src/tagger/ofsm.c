@@ -1622,12 +1622,12 @@ static fdtype word2string(fdtype word)
 static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fdtype source,int start,int end)
 {
   if ((FD_VOIDP(source)) && (start<0))
-    return fd_make_vector(4,word,fd_incref(tag),root,
-			  FD_USHORT2DTYPE(distance));
-  else return fd_make_vector(7,word,fd_incref(tag),root,
-			     FD_USHORT2DTYPE(distance),
-			     ((FD_VOIDP(source)) ? (FD_FALSE) : (source)),
-			     FD_INT2DTYPE(start),FD_INT2DTYPE(end));
+    return fd_make_nvector(4,word,fd_incref(tag),root,
+			   FD_USHORT2DTYPE(distance));
+  else return fd_make_nvector(7,word,fd_incref(tag),root,
+			      FD_USHORT2DTYPE(distance),
+			      ((FD_VOIDP(source)) ? (FD_FALSE) : (source)),
+			      FD_INT2DTYPE(start),FD_INT2DTYPE(end));
 }
 
 static u8_string find_end(u8_string start,u8_string lim)
@@ -2024,7 +2024,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
   if (FD_ABORTP(retval)) {
     fd_free_parse_context(&parse_context);
     return retval;}
-  else result=fd_make_vector
+  else result=fd_make_nvector
 	 (5,FD_INT2DTYPE(parse_context.n_calls),
 	  FD_INT2DTYPE(parse_context.n_inputs),
 	  FD_INT2DTYPE(parse_context.n_states),
@@ -2254,11 +2254,11 @@ void fd_trace_tagger()
 
 static fdtype lisp_get_stats()
 {
-  return fd_make_vector(4,
-			FD_INT2DTYPE(total_states),
-			FD_INT2DTYPE(total_inputs),
-			FD_INT2DTYPE(total_sentences),
-			fd_init_double(NULL,total_parse_time));
+  return fd_make_nvector(4,
+			 FD_INT2DTYPE(total_states),
+			 FD_INT2DTYPE(total_inputs),
+			 FD_INT2DTYPE(total_sentences),
+			 fd_init_double(NULL,total_parse_time));
 }
 
 static fdtype lisp_report_stats()

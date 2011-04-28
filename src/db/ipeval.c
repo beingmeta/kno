@@ -235,6 +235,7 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
   struct FD_VECTOR vecstruct;
   vecstruct.consbits=0;
   vecstruct.length=n;
+  vecstruct.freedata=0;
   vecstruct.data=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
@@ -266,6 +267,7 @@ FD_EXPORT fdtype fd_xcachecall
   struct FD_VECTOR vecstruct;
   vecstruct.consbits=0;
   vecstruct.length=n;
+  vecstruct.freedata=0;
   vecstruct.data=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
@@ -333,6 +335,7 @@ FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args)
   struct FD_VECTOR vecstruct;
   vecstruct.consbits=0;
   vecstruct.length=n;
+  vecstruct.freedata=0;
   vecstruct.data=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
@@ -347,6 +350,7 @@ FD_EXPORT int fd_xcachecall_probe(struct FD_HASHTABLE *cache,fdtype fcn,int n,fd
   struct FD_VECTOR vecstruct;
   vecstruct.consbits=0;
   vecstruct.length=n;
+  vecstruct.freedata=0;
   vecstruct.data=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
@@ -361,6 +365,7 @@ FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args)
   struct FD_VECTOR vecstruct;
   vecstruct.consbits=0;
   vecstruct.length=n;
+  vecstruct.freedata=0;
   vecstruct.data=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
@@ -376,6 +381,7 @@ FD_EXPORT fdtype fd_xcachecall_try(struct FD_HASHTABLE *cache,fdtype fcn,int n,f
   struct FD_VECTOR vecstruct;
   vecstruct.consbits=0;
   vecstruct.length=n;
+  vecstruct.freedata=0;
   vecstruct.data=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
@@ -396,6 +402,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     fdtype _elts[TCACHECALL_STACK_ELTS], *elts=NULL, vec, cached;
     /* Initialize the stack vector */
     vecstruct.consbits=0;
+    vecstruct.freedata=0;
     vecstruct.length=n+1;
     FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
     /* Allocate an elements vector if neccessary */

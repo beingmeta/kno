@@ -685,7 +685,7 @@ static fdtype lists_to_vectors(fdtype lists)
   FD_DO_CHOICES(list,lists) {
     fdtype lsize=FD_CAR(list), scan=FD_CDR(list), vec, elt; int i=0, lim=0;
     while (FD_PAIRP(scan)) {lim++; scan=FD_CDR(scan);}
-    vec=fd_make_vector(lim);
+    vec=fd_make_nvector(lim);
     scan=FD_CDR(list); while (i < lim) {
       FD_VECTOR_SET(vec,i,fd_incref(FD_CAR(scan)));
       i++; scan=FD_CDR(scan);}

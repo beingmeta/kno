@@ -266,6 +266,20 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,")");
 }
 
+static int unparse_rail(U8_OUTPUT *out,fdtype x)
+{
+  struct FD_VECTOR *v=(struct FD_VECTOR *) x;
+  int i=0, len=v->length;
+  u8_puts(out,"#~(");
+  while (i < len) {
+    if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
+      u8_puts(out," "); output_ellipsis(out,len-i,"elts");
+      return u8_puts(out,")");}
+    if (i>0) u8_puts(out," "); fd_unparse(out,v->data[i]);
+    i++;}
+  return u8_puts(out,")");
+}
+
 static int unparse_choice(U8_OUTPUT *out,fdtype x)
 {
   struct FD_CHOICE *v=(struct FD_CHOICE *) x;
@@ -883,6 +897,15 @@ static fdtype parse_vector(U8_INPUT *in)
   else return FD_PARSE_ERROR;
 }
 
+static fdtype parse_rail(U8_INPUT *in)
+{
+  int n_elts=-2;
+  fdtype *elts=parse_vec(in,')',&n_elts);
+  if (n_elts>=0) 
+    return fd_init_rail(u8_alloc(struct FD_VECTOR),n_elts,elts);
+  else return FD_PARSE_ERROR;
+}
+
 static fdtype parse_slotmap(U8_INPUT *in)
 {
   int n_elts=-2;
@@ -1054,6 +1077,10 @@ fdtype fd_parser(u8_input in)
     int ch=u8_getc(in); ch=u8_getc(in);
     switch (ch) {
     case '(': return parse_vector(in);
+    case '~': {
+      ch=u8_getc(in);
+      if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      return parse_rail(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '"': return parse_packet(in);
@@ -1214,6 +1241,7 @@ FD_EXPORT void fd_init_textio_c()
   fd_unparsers[fd_string_type]=unparse_string;
   fd_unparsers[fd_packet_type]=unparse_packet;
   fd_unparsers[fd_vector_type]=unparse_vector;
+  fd_unparsers[fd_rail_type]=unparse_rail;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
 

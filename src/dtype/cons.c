@@ -107,7 +107,7 @@ void fd_recycle_cons(fd_cons c)
     if ((s->bytes)&&(s->freedata)) u8_free(s->bytes);
     if (mallocd) u8_free(s);
     break;}
-  case fd_vector_type: {
+  case fd_vector_type: case fd_rail_type: {
     struct FD_VECTOR *v=(struct FD_VECTOR *)c;
     int len=v->length; fdtype *scan=v->data, *limit=scan+len;
     if (scan) {
@@ -235,7 +235,7 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
 	if (quick) {
 	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
 	return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
-      case fd_vector_type: {
+      case fd_vector_type: case fd_rail_type: {
 	int i=0, xlen=FD_VECTOR_LENGTH(x), ylen=FD_VECTOR_LENGTH(y), lim;
 	fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
 	if (quick) {
@@ -292,13 +292,15 @@ fdtype fd_deep_copy(fdtype x)
     case fd_pair_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,ctype,struct FD_PAIR *);
       return fd_init_pair(NULL,fd_deep_copy(p->car),fd_deep_copy(p->cdr));}
-    case fd_vector_type: {
+    case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
       fdtype *olddata=v->data;
       fdtype *newdata=u8_alloc_n((v->length),fdtype);
       int i=0, len=v->length; while (i<len) {
 	newdata[i]=fd_deep_copy(olddata[i]); i++;}
-      return fd_init_vector(NULL,v->length,newdata);}
+      if (ctype==fd_vector_type)
+	return fd_init_vector(NULL,v->length,newdata);
+      else return fd_init_rail(NULL,v->length,newdata);}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       return fd_make_string(NULL,s->length,s->bytes);}
@@ -471,23 +473,62 @@ FD_EXPORT fdtype fd_make_list(int len,...)
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
-  if (ptr == NULL) ptr=u8_alloc(struct FD_VECTOR);
+  fdtype *elts; int freedata=1;
+  if ((ptr == NULL)&&(data==NULL)) {
+    int i=0;
+    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    /* This might be weird on non byte-addressed architectures */ 
+    elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    while (i < len) elts[i++]=FD_VOID;
+    freedata=0;}
+  else if (ptr==NULL) {
+    ptr=u8_alloc(struct FD_VECTOR);
+    elts=data;}
+  else elts=data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  if ((data == NULL) && (len)) {
-    int i=0; data=u8_alloc_n(len,fdtype);
-    while (i < len) data[i++]=FD_VOID;}
-  ptr->length=len; ptr->data=data;
+  ptr->length=len; ptr->data=elts; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
-FD_EXPORT fdtype fd_make_vector(int len,...)
+FD_EXPORT fdtype fd_make_nvector(int len,...)
 {
   va_list args; int i=0;
-  fdtype *elts=u8_alloc_n(len,fdtype);
+  fdtype result, *elts;
+  va_start(args,len);
+  result=fd_init_vector(NULL,len,NULL);
+  elts=FD_VECTOR_ELTS(result);
+  while (i<len) elts[i++]=va_arg(args,fdtype);
+  va_end(args);
+  return result;
+}
+
+/* Rails */
+
+FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
+{
+  fdtype *elts; int i=0, freedata=1;
+  if ((ptr == NULL)&&(data==NULL)) {
+    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    elts=((fdtype *)ptr)+sizeof(struct FD_VECTOR);
+    freedata=0;}
+  else {
+    ptr=u8_alloc(struct FD_VECTOR);
+    elts=data;}
+  FD_INIT_CONS(ptr,fd_rail_type);
+  while (i < len) elts[i++]=FD_VOID;
+  ptr->length=len; ptr->data=data; ptr->freedata=freedata;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT fdtype fd_make_nrail(int len,...)
+{
+  va_list args; int i=0;
+  fdtype result=fd_init_rail(NULL,len,NULL);
+  fdtype *elts=FD_RAIL_ELTS(result);
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
-  return fd_init_vector(NULL,len,elts);
+  return result;
 }
 
 /* Packets */
@@ -1148,9 +1189,9 @@ void fd_init_cons_c()
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,
 		     fd_intern("COMPOUNDTYPE"),FD_INT2DTYPE(9),
-		     fd_make_vector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
-				    fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
-				    fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
+		     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
+				     fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
+				     fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
 		     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
 		     FD_FALSE,FD_FALSE);
   ((struct FD_COMPOUND *)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;

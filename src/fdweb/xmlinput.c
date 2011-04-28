@@ -641,10 +641,10 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
     fdtype qid=make_qid(attrib_name,namespace);
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      fd_make_vector(3,fdtype_string(name),make_qid(attrib_name,namespace),
-		     fd_incref(slotval));}
+      fd_make_nvector(3,fdtype_string(name),make_qid(attrib_name,namespace),
+		      fd_incref(slotval));}
   else attrib_entry=
-	 fd_make_vector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
+	 fd_make_nvector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
   fd_add(xml->attribs,attribs_symbol,attrib_entry);
   fd_decref(attrib_entry); fd_decref(slotval);

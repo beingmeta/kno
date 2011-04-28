@@ -38,7 +38,7 @@ int main(int argc,char **argv)
     fd_init_compound(NULL,
 		     fd_probe_symbol("QUOTE",5),0,1,
 		     fd_make_pair(FD_INT2DTYPE(5),FD_TRUE));
-  fdtype vec=fd_make_vector(3,fix1,dbl1,string1);
+  fdtype vec=fd_make_nvector(3,fix1,dbl1,string1);
   fdtype lst=fd_make_list(4,vec,string2,dbl2,compound);
   u8_string as_string=fd_dtype2string(lst);
   fdtype tmp=fd_parse(as_string);

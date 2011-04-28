@@ -670,7 +670,7 @@ static fdtype getxlinks
       fdtype root=FD_VECTOR_REF(term,2);
       if (fd_overlapp(tag,prefix_tags)) {
 	fdtype prefix_entry=
-	  fd_make_vector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));
+	  fd_make_nvector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));
 	FD_ADD_TO_CHOICE(prefixes,prefix_entry);}
       if (fd_overlapp(tag,suffix_tags)) {
 	if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {

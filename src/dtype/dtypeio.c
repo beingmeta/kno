@@ -731,8 +731,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       else {
 	int len=fd_read_4bytes(in);
 	if (FD_EXPECT_FALSE(len == 0))
-	  return fd_init_vector
-	    (u8_alloc(struct FD_VECTOR),0,NULL);
+	  return fd_init_vector(NULL,0,NULL);
 	else {
 	  fdtype why_not=FD_EOD, *data=read_dtypes(len,in,&why_not);
 	  if (FD_EXPECT_TRUE((data!=NULL)))

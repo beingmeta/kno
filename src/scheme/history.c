@@ -188,9 +188,9 @@ FD_EXPORT void fd_histinit(int size)
       fd_decref(configval);
       size=128;}}
   if (FD_VOIDP(history)) {
-    history=fd_make_vector(3,FD_INT2DTYPE(0),
-			   fd_init_vector(NULL,size,NULL),
-			   fd_make_hashtable(NULL,17));
+    history=fd_make_nvector(3,FD_INT2DTYPE(0),
+			    fd_init_vector(NULL,size,NULL),
+			    fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}
   else {
     fdtype newvec=fd_init_vector(NULL,size,NULL);
