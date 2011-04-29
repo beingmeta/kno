@@ -294,13 +294,15 @@ fdtype fd_deep_copy(fdtype x)
       return fd_init_pair(NULL,fd_deep_copy(p->car),fd_deep_copy(p->cdr));}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
+      int i=0, len=v->length;
+      fdtype result=((ctype==fd_vector_type)?
+		     (fd_init_vector(NULL,len,NULL)):
+		     (fd_init_rail(NULL,len,NULL)));
       fdtype *olddata=v->data;
-      fdtype *newdata=u8_alloc_n((v->length),fdtype);
-      int i=0, len=v->length; while (i<len) {
+      fdtype *newdata=FD_VECTOR_ELTS(result);
+      while (i<len) {
 	newdata[i]=fd_deep_copy(olddata[i]); i++;}
-      if (ctype==fd_vector_type)
-	return fd_init_vector(NULL,v->length,newdata);
-      else return fd_init_rail(NULL,v->length,newdata);}
+      return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       return fd_make_string(NULL,s->length,s->bytes);}

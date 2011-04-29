@@ -573,11 +573,12 @@ FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
 static fdtype read_packaged_dtype(int,struct FD_BYTE_INPUT *);
 
-static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,fdtype *why_not)
+static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,
+			   fdtype *why_not,fdtype *into)
 {
   if (n==0) return NULL;
   else {
-    fdtype *vec=u8_alloc_n(n,fdtype);
+    fdtype *vec=((into)?(into):(u8_alloc_n(n,fdtype)));
     int i=0; while (i < n) {
       fdtype v=fd_read_dtype(in);
       if (FD_COOLP(v)) vec[i++]=v;
@@ -733,10 +734,11 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	if (FD_EXPECT_FALSE(len == 0))
 	  return fd_init_vector(NULL,0,NULL);
 	else {
-	  fdtype why_not=FD_EOD, *data=read_dtypes(len,in,&why_not);
+	  fdtype why_not=FD_EOD, result=fd_init_vector(NULL,len,NULL);
+	  fdtype *elts=FD_VECTOR_ELTS(result);
+	  fdtype *data=read_dtypes(len,in,&why_not,elts);
 	  if (FD_EXPECT_TRUE((data!=NULL)))
-	    return fd_init_vector(u8_alloc(struct FD_VECTOR),
-				  len,data);
+	    return result;
 	  else return fd_return_errcode(why_not);}}
     case dt_tiny_choice:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
@@ -896,7 +898,7 @@ static fdtype read_packaged_dtype
   else len=fd_read_byte(in);
   if (vectorp) {
     fdtype why_not;
-    vector=read_dtypes(len,in,&why_not);
+    vector=read_dtypes(len,in,&why_not,NULL);
     if ((len>0) && (vector==NULL)) return fd_return_errcode(why_not);}
   else if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
   else {
