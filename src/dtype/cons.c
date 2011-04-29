@@ -294,13 +294,13 @@ fdtype fd_deep_copy(fdtype x)
       return fd_init_pair(NULL,fd_deep_copy(p->car),fd_deep_copy(p->cdr));}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
-      fdtype *olddata=v->data;
-      fdtype *newdata=u8_alloc_n((v->length),fdtype);
-      int i=0, len=v->length; while (i<len) {
-	newdata[i]=fd_deep_copy(olddata[i]); i++;}
-      if (ctype==fd_vector_type)
-	return fd_init_vector(NULL,v->length,newdata);
-      else return fd_init_rail(NULL,v->length,newdata);}
+      fdtype *olddata=v->data; int i=0, len=v->length;
+      fdtype result=((ctype==fd_vector_type)?
+		     (fd_init_vector(NULL,len,NULL)):
+		     (fd_init_rail(NULL,len,NULL)));
+      fdtype *newdata=FD_VECTOR_ELTS(result);
+      while (i<len) {newdata[i]=fd_deep_copy(olddata[i]); i++;}
+      return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       return fd_make_string(NULL,s->length,s->bytes);}
@@ -502,6 +502,17 @@ FD_EXPORT fdtype fd_make_nvector(int len,...)
   return result;
 }
 
+FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
+{
+  int i=0;
+  struct FD_VECTOR *ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+  FD_INIT_CONS(ptr,fd_vector_type);
+  ptr->length=len; ptr->data=elts; ptr->freedata=0;
+  while (i < len) {elts[i]=data[i]; i++;}
+  return FDTYPE_CONS(ptr);
+}
+
 /* Rails */
 
 FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
@@ -529,6 +540,17 @@ FD_EXPORT fdtype fd_make_nrail(int len,...)
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
   return result;
+}
+
+FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
+{
+  int i=0;
+  struct FD_VECTOR *ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+  FD_INIT_CONS(ptr,fd_rail_type);
+  ptr->length=len; ptr->data=elts; ptr->freedata=0;
+  while (i < len) {elts[i]=data[i]; i++;}
+  return FDTYPE_CONS(ptr);
 }
 
 /* Packets */

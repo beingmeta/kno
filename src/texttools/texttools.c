@@ -256,8 +256,8 @@ static fdtype words2list(u8_string string,int keep_punct)
 
 static fdtype words2vector(u8_string string,int keep_punct)
 {
-  int n=0, max=8;
-  fdtype *wordsv=u8_alloc_n(max,fdtype);
+  int n=0, max=16; fdtype _buf[16];
+  fdtype *wordsv=_buf, result=FD_VOID;
   textspantype spantype;
   u8_string start=string, last=start, scan=skip_span(last,&spantype);
   while (1)  
@@ -267,16 +267,23 @@ static fdtype words2vector(u8_string string,int keep_punct)
     else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
       fdtype extraction=fd_extract_string(NULL,last,scan);
       if (n>=max) {
-	int newmax=((n>=1024) ? (n+1024) : (n*2));
-	wordsv=u8_realloc_n(wordsv,newmax,fdtype);
-	max=newmax;}
+	if (wordsv==_buf) {
+	  fdtype *newv=u8_alloc_n(max*2,fdtype);
+	  memcpy(newv,wordsv,sizeof(fdtype)*n);
+	  wordsv=newv; max=max*2;}
+	else {
+	  int newmax=((n>=1024) ? (n+1024) : (n*2));
+	  wordsv=u8_realloc_n(wordsv,newmax,fdtype);
+	  max=newmax;}}
       wordsv[n++]=((scan) ? (fd_extract_string(NULL,last,scan)) : (fdtype_string(last)));
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
     else {
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
-  return fd_init_vector(NULL,n,wordsv);
+  result=fd_make_vector(n,wordsv);
+  if (wordsv!=_buf) u8_free(wordsv);
+  return result;
 }
 
 static fdtype getwords_prim(fdtype arg,fdtype punctflag)

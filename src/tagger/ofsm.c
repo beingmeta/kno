@@ -478,7 +478,8 @@ static fdtype lower_compound(fdtype compound)
 	       compound);
 	return fd_incref(compound);}
     if (needs_lower) {
-      fdtype *newelts=u8_alloc_n(n,fdtype);
+      fdtype result=fd_init_vector(NULL,n,NULL);
+      fdtype *newelts=FD_VECTOR_ELTS(result);
       i=0; while (i<n) {
 	fdtype elt=elts[i], new_elt;
 	if (FD_STRINGP(elt)) {
@@ -488,7 +489,7 @@ static fdtype lower_compound(fdtype compound)
 	  else new_elt=fd_incref(elt);}
 	else new_elt=fd_incref(elt);
 	i++;}
-      return fd_init_vector(NULL,n,newelts);}
+      return result;}
     else return fd_incref(compound);}
   else if (FD_PAIRP(compound)) {
     int needs_lower=0;
@@ -1534,11 +1535,12 @@ static fdtype possessive_root(fdtype word)
     else return fd_incref(word);}
   else if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
     int i=0, n=FD_VECTOR_LENGTH(word)-1;
-    fdtype *newelts=u8_alloc_n(n,fdtype);
+    fdtype result=fd_init_vector(NULL,n,NULL);
+    fdtype *newelts=FD_VECTOR_ELTS(result);
     while (i<n) {
       newelts[i]=fd_incref(FD_VECTOR_REF(word,i)); i++;}
     newelts[i]=possessive_root(FD_VECTOR_REF(word,i));
-    return fd_init_vector(NULL,n,newelts);}
+    return result;}
   else if (FD_PAIRP(word))
     if (FD_PAIRP(FD_CDR(word)))
       return fd_init_pair(NULL,fd_incref(FD_CAR(word)),

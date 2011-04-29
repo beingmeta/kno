@@ -333,6 +333,7 @@ typedef struct FD_VECTOR *fd_vector;
   ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->data[i]=(v))
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data);
+FD_EXPORT fdtype fd_make_vector(int len,fdtype *elts);
 FD_EXPORT fdtype fd_make_nvector(int len,...);
 
 #define FD_XVECTOR(x) (FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *))
@@ -352,6 +353,7 @@ FD_EXPORT fdtype fd_make_nvector(int len,...);
   ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->data[i]=(v))
 
 FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data);
+FD_EXPORT fdtype fd_make_rail(int len,fdtype *elts);
 FD_EXPORT fdtype fd_make_nrail(int len,...);
 
 #define FD_XRAIL(x) (FD_GET_CONS(x,fd_rail_type,struct FD_VECTOR *))

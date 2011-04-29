@@ -4,6 +4,7 @@
    Regular expression primitives
    Originally implemented by Ken Haase in the Machine Understanding Group
      at the MIT Media Laboratory.
+   Extended exentsively by Ken Haase at beingmeta, inc.
 
    Copyright (C) 1999 Massachusetts Institute of Technology
    Copyright (C) 1999-2011 beingmeta,inc 
@@ -685,7 +686,7 @@ static fdtype lists_to_vectors(fdtype lists)
   FD_DO_CHOICES(list,lists) {
     fdtype lsize=FD_CAR(list), scan=FD_CDR(list), vec, elt; int i=0, lim=0;
     while (FD_PAIRP(scan)) {lim++; scan=FD_CDR(scan);}
-    vec=fd_make_nvector(lim);
+    vec=fd_init_vector(NULL,lim,NULL);
     scan=FD_CDR(list); while (i < lim) {
       FD_VECTOR_SET(vec,i,fd_incref(FD_CAR(scan)));
       i++; scan=FD_CDR(scan);}
