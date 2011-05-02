@@ -42,6 +42,7 @@ fd_exception fd_NoPointerExpressions=_("no pointer expressions allowed");
 fd_exception fd_BadPointerRef=_("bad pointer reference");
 fd_exception fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
 fd_exception fd_ParseError=_("LISP expression parse error");
+fd_exception fd_ParseArgError=_("External LISP argument parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 fd_exception fd_CantParseRecord=_("Can't parse record object");
 fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
@@ -1174,7 +1175,15 @@ FD_EXPORT
 fdtype fd_parse_arg(u8_string arg)
 {
   if (*arg=='\0') return fdtype_string(arg);
-  else if (*arg == ':') return fd_parse(arg+1);
+  else if (*arg == ':')
+    if (arg[1]=='\0') return fdtype_string(arg);
+    else {
+      fdtype val=fd_parse(arg+1);
+      if (FD_ABORTP(val)) {
+	u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
+	fd_clear_errors(1);
+	return fdtype_string(arg);}
+      else return val;}
   else if (*arg == '\\') return fdtype_string(arg+1);
   else if ((isdigit(arg[0])) ||
 	   ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||

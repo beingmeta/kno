@@ -63,7 +63,7 @@ static fdtype get_reqdata()
 
 static fdtype try_parse(u8_string buf)
 {
-  fdtype val=fd_parse(buf);
+  fdtype val=fd_parse((buf[0]==':')?(buf+1):(buf));
   if (FD_ABORTP(val)) {
     fd_decref(val); return fdtype_string(buf);}
   else return val;
@@ -74,9 +74,9 @@ static fdtype buf2lisp(char *buf,int isascii)
   if (buf[0]!=':')
     if (isascii) return fdtype_string(buf);
     else return fd_lispstring(u8_valid_copy(buf));
-  else if (isascii) return try_parse(buf+1);
+  else if (isascii) return try_parse(buf);
   else {
-    u8_string s=u8_valid_copy(buf+1);
+    u8_string s=u8_valid_copy(buf);
     fdtype value=try_parse(s);
     u8_free(s);
     return value;}
@@ -820,7 +820,16 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
 	fd_decref(val); return parsed;}
       else {
 	fd_decref(parsed); return val;}}
-    else if (*data == ':') return fd_parse(data+1);
+    else if (*data == ':') 
+      if (data[1]=='\0')
+	return fdtype_string(data);
+      else {
+	fdtype arg=fd_parse(data+1);
+	if (FD_ABORTP(arg)) {
+	  u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
+	  fd_clear_errors(1);
+	  return fdtype_string(data);}
+	else return arg;}
     else if (*data == '\\') {
       fdtype shorter=fdtype_string(data+1);
       fd_decref(val);
