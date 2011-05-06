@@ -1393,7 +1393,8 @@ static fdtype seq2packet(fdtype seq)
 	return fd_type_error(_("byte"),"seq2packet",bad);}}
     u8_free(data);
     result=fd_make_packet(NULL,n,bytes);
-    u8_free(bytes);}
+    u8_free(bytes);
+    return result;}
   else return fd_type_error(_("sequence"),"seq2packet",seq);
 }
   
