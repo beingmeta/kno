@@ -14,25 +14,30 @@
 		  (if (> i 0) (printout ", "))
 		  (jsonout elt)) "]"))
 
-(defambda (jsonfield field value (prefix #f) (initial #f))
+(defambda (jsonfield field value (valuefn #f) (prefix #f))
   (unless (fail? value)
-    (printout (unless initial ",") (if prefix prefix)
-	      (if (symbol? field)
-		  (write (downcase (symbol->string field)))
-		  (write field))
-	      ": "
-	      (if (ambiguous? value) (printout "["))
-	      (do-choices (value value i)
-		(when (> i 0) (printout ","))
-		(jsonout value))
-	      (if (ambiguous? value) (printout "]")))))
-(define (jsontable table)
+    (printout
+      (if prefix prefix)
+      (if (symbol? field)
+	  (write (downcase (symbol->string field)))
+	  (if (string? field) (write field)
+	      (write (unparse-arg field))))
+      ": "
+      (if (ambiguous? value) (printout "["))
+      (do-choices (value value i)
+	(when (> i 0) (printout ","))
+	(if valuefn
+	    (jsonout (valuefn value))
+	    (jsonout value)))
+      (if (ambiguous? value) (printout "]")))))
+(define (jsontable table (valuefn #f))
   (printout "{"
 	    (let ((initial #t))
 	      (do-choices (key (getkeys table) i)
 		(let ((v (get table key)))
 		  (when (exists? v)
-		    (jsonfield key v " " initial)
+		    (unless initial (xmlout ", "))
+		    (jsonfield key v valuefn)
 		    (set! initial #f)))))
 	    
 	    "}"))
