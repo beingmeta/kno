@@ -68,12 +68,27 @@ static void attrib_entify(u8_output out,u8_string value)
 {
   u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
-    if (c=='\'') u8_puts(out,"&#39;");
-    else if (c=='<') u8_puts(out,"&#60;");
-    else if (c=='&') u8_puts(out,"&#38;");
-    else if (c=='>') u8_puts(out,"&#62;");
-    else u8_putc(out,c);
-} 
+    if (strchr("'<>&\"!@$%()-+{}[]",c)) 
+      switch(c) {
+      case '\'': u8_puts(out,"&#39;"); break;
+      case '<': u8_puts(out,"&#60;"); break;
+      case '>': u8_puts(out,"&#62;"); break;
+      case '&': u8_puts(out,"&#38;"); break;
+      case '(': u8_puts(out,"&#40;"); break;
+      case ')': u8_puts(out,"&#41;"); break;
+      case '[': u8_puts(out,"&#91;"); break;
+      case ']': u8_puts(out,"&#93;"); break;
+      case '{': u8_puts(out,"&#123;"); break;
+      case '}': u8_puts(out,"&#125;"); break;
+      case '-': u8_puts(out,"&#45;"); break;
+      case '+': u8_puts(out,"&#43;"); break;
+      case '@': u8_puts(out,"&#64;"); break;
+      case '!': u8_puts(out,"&#33;"); break;
+      case '$': u8_puts(out,"&#36;"); break;
+      case '%': u8_puts(out,"&#37;"); break;}
+	/* u8_printf(out,"&#%d;",c); */
+      else u8_putc(out,c);
+}
 
 FD_INLINE_FCN void entify(u8_output out,u8_string value)
 {
