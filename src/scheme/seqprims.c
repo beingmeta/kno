@@ -409,6 +409,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
   switch (ctype) {
   case fd_string_type: {
     struct U8_OUTPUT out; int i=0;
+    if (n==0) return fd_make_string(NULL,0,"");
     U8_INIT_OUTPUT(&out,n*2);
     while (i < n) {
       if (FD_CHARACTERP(v[i])) u8_putc(&out,FD_CHAR2CODE(v[i]));
