@@ -161,6 +161,32 @@
 		      current))))
     (store! node '%content current)))
 
+;;; Textmap functions
+
+(define (dom/reverse-text! node)
+  (if (string? node)
+      (reverse (decode-entities node))
+      (if (test node '%content)
+	  (begin (store! node '%content
+			 (forseq (elt  (get node '%content))
+			   (if (string? elt) (reverse elt)
+			       (dom/reverse-text! elt))))
+	    node)
+	  node)))
+
+(define (dom/transform-text! node fn)
+  (if (string? node)
+      (fn (decode-entities node))
+      (if (test node '%content)
+	  (begin (store! node '%content
+			 (forseq (elt (get node '%content))
+			   (if (string? elt) (fn elt)
+			       (dom/transform-text! elt fn))))
+	    node)
+	  node)))
+
+(module-export! '{dom/reverse-text! dom/transform-text!})
+
 ;;; Selector functions
 
 ;;; Currently, we're ignoring attribs (just like the Javascript version)
