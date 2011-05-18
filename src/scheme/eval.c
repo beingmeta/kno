@@ -1523,7 +1523,8 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,1)));
-  fd_idefn(fd_scheme_module,fd_make_cprimn("VOID",void_prim,0));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
