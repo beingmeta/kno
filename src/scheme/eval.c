@@ -1406,7 +1406,7 @@ static fdtype dbg_prim(fdtype x,fdtype msg)
   return _fd_dbg(x);
 }
 
-static fdtype void_prim()
+static fdtype void_prim(int n,fdtype *args)
 {
   return FD_VOID;
 }
@@ -1523,7 +1523,7 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,1)));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("VOID",void_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("VOID",void_prim,0));
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
