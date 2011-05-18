@@ -36,7 +36,7 @@
 	      (do-choices (key (getkeys table) i)
 		(let ((v (get table key)))
 		  (when (exists? v)
-		    (unless initial (xmlout ", "))
+		    (unless initial (printout ", "))
 		    (jsonfield key v valuefn)
 		    (set! initial #f)))))
 	    
