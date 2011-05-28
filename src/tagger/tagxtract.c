@@ -99,7 +99,7 @@ static fdtype make_compound(fdtype tags,int len)
 	else output_term(&out,root,0);
 	tags=FD_CDR(tags); i++;}
       else return fd_err(fd_RangeError,"make_compound",NULL,tags);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
 }
 
 static fdtype find_phrase(fdtype tags,fdtype pat,int *locp,int *lenp)
@@ -254,7 +254,7 @@ static fdtype compound2string(fdtype word)
       while (FD_PAIRP(scan)) {
 	insert_space=output_term(&out,FD_CAR(scan),insert_space);
 	scan=FD_CDR(scan);}
-      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      return fd_stream2string(&out);}
     else return fd_incref(FD_CAR(word));
   else return FD_EMPTY_CHOICE;
 }
@@ -670,7 +670,7 @@ static fdtype getxlinks
       fdtype root=FD_VECTOR_REF(term,2);
       if (fd_overlapp(tag,prefix_tags)) {
 	fdtype prefix_entry=
-	  fd_make_vector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));
+	  fd_make_nvector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));
 	FD_ADD_TO_CHOICE(prefixes,prefix_entry);}
       if (fd_overlapp(tag,suffix_tags)) {
 	if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {

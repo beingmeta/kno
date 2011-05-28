@@ -63,7 +63,7 @@ static fdtype get_reqdata()
 
 static fdtype try_parse(u8_string buf)
 {
-  fdtype val=fd_parse(buf);
+  fdtype val=fd_parse((buf[0]==':')?(buf+1):(buf));
   if (FD_ABORTP(val)) {
     fd_decref(val); return fdtype_string(buf);}
   else return val;
@@ -73,10 +73,10 @@ static fdtype buf2lisp(char *buf,int isascii)
 {
   if (buf[0]!=':')
     if (isascii) return fdtype_string(buf);
-    else return fd_init_string(NULL,-1,u8_valid_copy(buf));
-  else if (isascii) return try_parse(buf+1);
+    else return fd_lispstring(u8_valid_copy(buf));
+  else if (isascii) return try_parse(buf);
   else {
-    u8_string s=u8_valid_copy(buf+1);
+    u8_string s=u8_valid_copy(buf);
     fdtype value=try_parse(s);
     u8_free(s);
     return value;}
@@ -95,7 +95,7 @@ static fdtype buf2slotid(char *buf,int isascii)
 static fdtype buf2string(char *buf,int isascii)
 {
   if (isascii) return fdtype_string(buf);
-  else return fd_init_string(NULL,-1,u8_valid_copy(buf));
+  else return fd_lispstring(u8_valid_copy(buf));
 }
 
 static void emit_uri_string(u8_output out,u8_string string)
@@ -360,7 +360,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	  u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		  FD_STRDATA(qval));
 	else {
-	  fdtype cookiedata=fd_make_vector(2,slotid,fd_incref(value));
+	  fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
 	  fd_slotmap_add(c,slotid,value);
 	  setcookiedata((fdtype)c,cookiedata);
 	  fd_decref(cookiedata);}
@@ -389,7 +389,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		FD_STRDATA(qval));
       else {
-	fdtype cookiedata=fd_make_vector(2,slotid,fd_incref(value));
+	fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
 	fd_slotmap_add(c,slotid,value);
 	setcookiedata((fdtype)c,cookiedata);
 	fd_decref(cookiedata);}
@@ -595,9 +595,9 @@ static fdtype setcookie
     if (FD_VOIDP(path)) path=FD_FALSE;
     if (FD_VOIDP(expires)) expires=FD_FALSE;
     cookiedata=
-      fd_make_vector(6,fd_incref(var),fd_incref(val),
-		     fd_incref(domain),fd_incref(path),
-		     fd_incref(expires),fd_incref(secure));
+      fd_make_nvector(6,fd_incref(var),fd_incref(val),
+		      fd_incref(domain),fd_incref(path),
+		      fd_incref(expires),fd_incref(secure));
     if (FD_VOIDP(cgidata)) {
       u8_output out=fd_get_default_output();
       handle_cookie(out,FD_VOID,cookiedata);
@@ -820,7 +820,16 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
 	fd_decref(val); return parsed;}
       else {
 	fd_decref(parsed); return val;}}
-    else if (*data == ':') return fd_parse(data+1);
+    else if (*data == ':') 
+      if (data[1]=='\0')
+	return fdtype_string(data);
+      else {
+	fdtype arg=fd_parse(data+1);
+	if (FD_ABORTP(arg)) {
+	  u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
+	  fd_clear_errors(1);
+	  return fdtype_string(data);}
+	else return arg;}
     else if (*data == '\\') {
       fdtype shorter=fdtype_string(data+1);
       fd_decref(val);

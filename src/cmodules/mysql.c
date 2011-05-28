@@ -379,8 +379,9 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
     mysql_stmt_fetch_column(stmt,outval,column,0);
     if (!(binary)) ((unsigned char *)outval->buffer)[datalen]='\0';
     if (binary)
-      value=fd_init_packet(NULL,datalen,outval->buffer);
-    else value=fd_init_string(NULL,datalen,outval->buffer);
+      value=fd_make_packet(NULL,datalen,outval->buffer);
+    else value=fd_make_string(NULL,datalen,outval->buffer);
+    u8_free(outval->buffer);
     outval->buffer=NULL;
     outval->buffer_length=0;
     return value;}

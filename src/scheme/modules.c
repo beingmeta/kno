@@ -534,7 +534,7 @@ FD_EXPORT void fd_init_modules_c()
 
   {
     u8_string path=u8_getenv("FD_DLLOADPATH");
-    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+    fdtype v=((path) ? (fd_lispstring(path)) :
 	      (fdtype_string(FD_DEFAULT_DLLOADPATH)));
     fd_config_set("DLLOADPATH",v);
     fd_decref(v);}

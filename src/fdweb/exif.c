@@ -26,7 +26,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
     else if (memcmp(exentry->data,"ASCII\0\0\0",8)==0)
       return fdtype_string(exentry->data+8);
     else if (memcmp(exentry->data,"\0\0\0\0\0\0\0\0",8)==0)
-      return fd_init_packet(NULL,exentry->size-8,exentry->data+8);
+      return fd_make_packet(NULL,exentry->size-8,exentry->data+8);
     else return fdtype_string(exentry->data);
   case EXIF_FORMAT_BYTE: case EXIF_FORMAT_SBYTE: {
     int n=exentry->components, i=0;

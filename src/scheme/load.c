@@ -279,10 +279,10 @@ static fdtype lisp_get_component(fdtype string,fdtype base)
 {
   if (FD_VOIDP(base)) {
     u8_string fullpath=get_component(FD_STRDATA(string));
-    return fd_init_string(NULL,strlen(fullpath),fullpath);}
+    return fd_lispstring(fullpath);}
   else {
     u8_string thepath=u8_realpath(FD_STRDATA(string),FD_STRDATA(base));
-    return fd_init_string(NULL,strlen(thepath),thepath);}
+    return fd_lispstring(thepath);}
 }
 
 static fdtype lisp_load_config(fdtype string)

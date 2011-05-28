@@ -263,6 +263,7 @@ static fdtype exit_prim(fdtype arg)
 #define FD_IS_SCHEME 1
 #define FD_DO_FORK 2
 #define FD_DO_WAIT 4
+#define FD_DO_LOOKUP 8
 
 static fdtype exec_helper(int flags,int n,fdtype *args)
 {
@@ -294,9 +295,13 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
 	return FD_INT2DTYPE(pid);}
       else if (flags&FD_IS_SCHEME)
 	execvp(FD_EXEC,argv);
+      else if (flags&FD_DO_LOOKUP)
+	execvp(filename,argv);
       else execvp(filename,argv);
     else if (flags&FD_IS_SCHEME)
       execvp(FD_EXEC,argv);
+    else if (flags&FD_DO_LOOKUP)
+      execvp(filename,argv);
     else execvp(filename,argv);
     return FD_ERROR_VALUE;}
 }
@@ -304,6 +309,11 @@ static fdtype exec_helper(int flags,int n,fdtype *args)
 static fdtype exec_prim(int n,fdtype *args)
 {
   return exec_helper(0,n,args);
+}
+
+static fdtype execlookup_prim(int n,fdtype *args)
+{
+  return exec_helper(FD_DO_LOOKUP,n,args);
 }
 
 static fdtype fdexec_prim(int n,fdtype *args)
@@ -316,9 +326,19 @@ static fdtype fork_prim(int n,fdtype *args)
   return exec_helper(FD_DO_FORK,n,args);
 }
 
+static fdtype forklookup_prim(int n,fdtype *args)
+{
+  return exec_helper(FD_DO_FORK|FD_DO_LOOKUP,n,args);
+}
+
 static fdtype forkwait_prim(int n,fdtype *args)
 {
   return exec_helper((FD_DO_FORK|FD_DO_WAIT),n,args);
+}
+
+static fdtype forklookupwait_prim(int n,fdtype *args)
+{
+  return exec_helper((FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
 }
 
 static fdtype fdforkwait_prim(int n,fdtype *args)
@@ -401,12 +421,12 @@ static fdtype filestring_prim(fdtype filename,fdtype enc)
   if (FD_VOIDP(enc)) {
     u8_string data=u8_filestring(FD_STRDATA(filename),"UTF-8");
     if (data)
-      return fd_init_string(NULL,-1,data);
+      return fd_lispstring(data);
     else return FD_ERROR_VALUE;}
   else if (FD_STRINGP(enc)) {
     u8_string data=u8_filestring(FD_STRDATA(filename),FD_STRDATA(enc));
     if (data)
-      return fd_init_string(NULL,-1,data);
+      return fd_lispstring(data);
     else return FD_ERROR_VALUE;}
   else return fd_err(fd_UnknownEncoding,"FILESTRING",NULL,enc);
 }
@@ -453,16 +473,15 @@ static fdtype file_directoryp(fdtype arg)
 static fdtype file_basename(fdtype arg,fdtype suffix)
 {
   if ((FD_VOIDP(suffix)) || (FD_FALSEP(suffix)))
-    return fd_init_string(NULL,-1,u8_basename(FD_STRDATA(arg),NULL));
+    return fd_lispstring(u8_basename(FD_STRDATA(arg),NULL));
   else if (FD_STRINGP(suffix))
-    return fd_init_string
-      (NULL,-1,u8_basename(FD_STRDATA(arg),FD_STRDATA(suffix)));
-  else return fd_init_string(NULL,-1,u8_basename(FD_STRDATA(arg),"*"));
+    return fd_lispstring(u8_basename(FD_STRDATA(arg),FD_STRDATA(suffix)));
+  else return fd_lispstring(u8_basename(FD_STRDATA(arg),"*"));
 }
 
 static fdtype file_dirname(fdtype arg)
 {
-  return fd_init_string(NULL,-1,u8_dirname(FD_STRDATA(arg)));
+  return fd_lispstring(u8_dirname(FD_STRDATA(arg)));
 }
 
 static fdtype file_abspath(fdtype arg,fdtype wd)
@@ -471,7 +490,7 @@ static fdtype file_abspath(fdtype arg,fdtype wd)
   if (FD_VOIDP(wd))
     result=u8_abspath(FD_STRDATA(arg),NULL);
   else result=u8_abspath(FD_STRDATA(arg),FD_STRDATA(wd));
-  if (result) return fd_init_string(NULL,-1,result);
+  if (result) return fd_lispstring(result);
   else return FD_ERROR_VALUE;
 }
 
@@ -481,7 +500,7 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
   if (FD_VOIDP(wd))
     result=u8_realpath(FD_STRDATA(arg),NULL);
   else result=u8_realpath(FD_STRDATA(arg),FD_STRDATA(wd));
-  if (result) return fd_init_string(NULL,-1,result);
+  if (result) return fd_lispstring(result);
   else return FD_ERROR_VALUE;
 }
 
@@ -507,9 +526,9 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
   else return fd_type_error
 	 (_("string or string CONFIG var"),"mkuripath_prim",dirname);
   if (FD_VOIDP(config_val))
-    return fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    return fd_lispstring(u8_mkpath(dir,namestring));
   else {
-    fdtype result=fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    fdtype result=fd_lispstring(u8_mkpath(dir,namestring));
     fd_decref(config_val);
     return result;}
 }
@@ -525,7 +544,7 @@ static fdtype tempdir_prim(fdtype template)
 		  (getenv("TMPDIR"))||(getenv("TMP_DIR"))||"/tmp")));
   u8_string buf=u8_strdup(tempstring);
   u8_string tempname=mkdtemp(buf);
-  if (tempname) return fd_init_string(NULL,-1,tempname);
+  if (tempname) return fd_lispstring(tempname);
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"tempdir_prim",NULL,template);}
@@ -536,13 +555,13 @@ static fdtype mktemp_prim(fdtype template)
 {
   u8_string buf=u8_strdup(FD_STRDATA(template));
   mktemp(buf);
-  return fd_init_string(NULL,-1,buf);
+  return fd_lispstring(buf);
 }
 #endif
 
 static fdtype runfile_prim(fdtype suffix)
 {
-  return fd_init_string(NULL,-1,fd_runbase_filename(FD_STRDATA(suffix)));
+  return fd_lispstring(fd_runbase_filename(FD_STRDATA(suffix)));
 }
 
 /* File time info */
@@ -593,7 +612,7 @@ static fdtype file_size(fdtype filename)
 static fdtype file_owner(fdtype filename)
 {
   u8_string name=u8_file_owner(FD_STRDATA(filename));
-  if (name) return fd_init_string(NULL,-1,name);
+  if (name) return fd_lispstring(name);
   else return FD_ERROR_VALUE;
 }
 
@@ -602,7 +621,7 @@ static fdtype file_owner(fdtype filename)
 static fdtype getcwd_prim()
 {
   u8_string wd=u8_getcwd();
-  if (wd) return fd_init_string(NULL,-1,wd);
+  if (wd) return fd_lispstring(wd);
   else return FD_ERROR_VALUE;
 }
 
@@ -622,7 +641,7 @@ static fdtype getfiles_prim(fdtype dirname,fdtype fullpath)
     u8_getfiles(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
   if (contents==NULL) return FD_ERROR_VALUE;
   else while (*scan) {
-    fdtype string=fd_init_string(NULL,-1,*scan);
+    fdtype string=fd_lispstring(*scan);
     FD_ADD_TO_CHOICE(results,string);
     scan++;}
   u8_free(contents);
@@ -636,7 +655,7 @@ static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
     u8_getdirs(FD_STRDATA(dirname),(!(FD_FALSEP(fullpath)))), *scan=contents;
   if (contents==NULL) return FD_ERROR_VALUE;
   else while (*scan) {
-    fdtype string=fd_init_string(NULL,-1,*scan);
+    fdtype string=fd_lispstring(*scan);
     FD_ADD_TO_CHOICE(results,string);
     scan++;}
   u8_free(contents);
@@ -903,7 +922,7 @@ static int load_source_module(fdtype spec,int safe)
     else {
       fdtype module_key=fdtype_string(module_filename);
       fdtype abspath_key=
-	fd_init_string(NULL,-1,u8_abspath(module_filename,NULL));
+	fd_lispstring(u8_abspath(module_filename,NULL));
       /* Register the module under its filename too. */
       fd_register_module_x(module_key,load_result,safe);
       fd_register_module_x(abspath_key,load_result,safe);
@@ -1526,13 +1545,15 @@ FD_EXPORT void fd_init_fileio_c()
   fd_defspecial(fileio_module,"SYSTEM",simple_system);
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
-
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("EXECLOOKUP",execlookup_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FORK",fork_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUP",forklookup_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
 #if HAVE_WAITPID
   fd_idefn(fileio_module,fd_make_cprimn("FORKWAIT",forkwait_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUPWAIT",forklookupwait_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORKWAIT",fdforkwait_prim,1));
 #endif
 
@@ -1681,13 +1702,13 @@ FD_EXPORT void fd_init_fileio_c()
 
   {
     u8_string path=u8_getenv("FD_LOADPATH");
-    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+    fdtype v=((path) ? (fd_lispstring(path)) :
 	      (fdtype_string(FD_DEFAULT_LOADPATH)));
     fd_config_set("LOADPATH",v);
     fd_decref(v);}
   {
     u8_string path=u8_getenv("FD_SAFE_LOADPATH");
-    fdtype v=((path) ? (fd_init_string(NULL,-1,path)) :
+    fdtype v=((path) ? (fd_lispstring(path)) :
 	      (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
     fd_config_set("SAFELOADPATH",v);
     fd_decref(v);}

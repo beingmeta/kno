@@ -1804,7 +1804,7 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
     if (FD_OIDP(frame)) {
       FD_OID addr=FD_OID_ADDR(frame);
       u8_string s=u8_mkstring("@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
-      fdtype idstring=fd_init_string(NULL,-1,s);
+      fdtype idstring=fd_lispstring(s);
       if (fd_add(slotmap,id_symbol,idstring)<0) {
 	fd_decref(results); fd_decref(idstring);
 	return FD_ERROR_VALUE;}

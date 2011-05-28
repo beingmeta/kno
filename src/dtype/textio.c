@@ -42,6 +42,7 @@ fd_exception fd_NoPointerExpressions=_("no pointer expressions allowed");
 fd_exception fd_BadPointerRef=_("bad pointer reference");
 fd_exception fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
 fd_exception fd_ParseError=_("LISP expression parse error");
+fd_exception fd_ParseArgError=_("External LISP argument parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 fd_exception fd_CantParseRecord=_("Can't parse record object");
 fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
@@ -268,14 +269,15 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
 
 static int unparse_rail(U8_OUTPUT *out,fdtype x)
 {
-  struct FD_RAIL *v=(struct FD_RAIL *) x;
-  int i=0, len=v->length;
-  u8_puts(out,"#R(");
+  struct FD_VECTOR *v=(struct FD_VECTOR *) x;
+  int i=0, len=v->length; fdtype *data=v->data;
+  u8_puts(out,"#~(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
       u8_puts(out," "); output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
-    if (i>0) u8_puts(out," "); fd_unparse(out,FD_RAIL_REF(v,i));
+    if (i>0) u8_puts(out," ");
+    fd_unparse(out,data[i]);
     i++;}
   return u8_puts(out,")");
 }
@@ -659,24 +661,27 @@ static fdtype parse_oid(U8_INPUT *in)
 
 static fdtype parse_string(U8_INPUT *in)
 {
-    struct U8_OUTPUT out; int c=u8_getc(in);
-    U8_INIT_OUTPUT(&out,16);
-    while ((c=u8_getc(in))>=0)
-      if (c == '"') break;
-      else if (c == '\\') {
-	int nextc=u8_getc(in);
-	if (nextc=='\n') {
-	  while (u8_isspace(nextc)) nextc=u8_getc(in);
-	  u8_putc(&out,nextc);
-	  continue;}
-	else u8_ungetc(in,nextc);
-	c=read_escape(in);
-	if (c<0) {
-	  u8_free(out.u8_outbuf);
-	  return FD_PARSE_ERROR;}
-	u8_putc(&out,c);}
-      else u8_putc(&out,c);
-    return fd_init_string(NULL,u8_outlen(&out),u8_outstring(&out));
+  fdtype result=FD_VOID; u8_byte buf[256];
+  struct U8_OUTPUT out; int c=u8_getc(in);
+  U8_INIT_OUTPUT_X(&out,256,buf,U8_STREAM_GROWS);
+  while ((c=u8_getc(in))>=0)
+    if (c == '"') break;
+    else if (c == '\\') {
+      int nextc=u8_getc(in);
+      if (nextc=='\n') {
+	while (u8_isspace(nextc)) nextc=u8_getc(in);
+	u8_putc(&out,nextc);
+	continue;}
+      else u8_ungetc(in,nextc);
+      c=read_escape(in);
+      if (c<0) {
+	u8_free(out.u8_outbuf);
+	return FD_PARSE_ERROR;}
+      u8_putc(&out,c);}
+    else u8_putc(&out,c);
+  result=fd_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
+  u8_close_output(&out);
+  return result;
 }
 
 static fdtype parse_packet(U8_INPUT *in)
@@ -894,6 +899,15 @@ static fdtype parse_vector(U8_INPUT *in)
   else return FD_PARSE_ERROR;
 }
 
+static fdtype parse_rail(U8_INPUT *in)
+{
+  int n_elts=-2;
+  fdtype *elts=parse_vec(in,')',&n_elts);
+  if (n_elts>=0) 
+    return fd_init_rail(u8_alloc(struct FD_VECTOR),n_elts,elts);
+  else return FD_PARSE_ERROR;
+}
+
 static fdtype parse_slotmap(U8_INPUT *in)
 {
   int n_elts=-2;
@@ -1065,6 +1079,10 @@ fdtype fd_parser(u8_input in)
     int ch=u8_getc(in); ch=u8_getc(in);
     switch (ch) {
     case '(': return parse_vector(in);
+    case '~': {
+      ch=u8_getc(in);
+      if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      return parse_rail(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '"': return parse_packet(in);
@@ -1158,7 +1176,15 @@ FD_EXPORT
 fdtype fd_parse_arg(u8_string arg)
 {
   if (*arg=='\0') return fdtype_string(arg);
-  else if (*arg == ':') return fd_parse(arg+1);
+  else if (*arg == ':')
+    if (arg[1]=='\0') return fdtype_string(arg);
+    else {
+      fdtype val=fd_parse(arg+1);
+      if (FD_ABORTP(val)) {
+	u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
+	fd_clear_errors(1);
+	return fdtype_string(arg);}
+      else return val;}
   else if (*arg == '\\') return fdtype_string(arg+1);
   else if ((isdigit(arg[0])) ||
 	   ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||

@@ -161,6 +161,32 @@
 		      current))))
     (store! node '%content current)))
 
+;;; Textmap functions
+
+(define (dom/reverse-text! node)
+  (if (string? node)
+      (reverse (decode-entities node))
+      (if (test node '%content)
+	  (begin (store! node '%content
+			 (forseq (elt  (get node '%content))
+			   (if (string? elt) (reverse elt)
+			       (dom/reverse-text! elt))))
+	    node)
+	  node)))
+
+(define (dom/transform-text! node fn)
+  (if (string? node)
+      (fn (decode-entities node))
+      (if (test node '%content)
+	  (begin (store! node '%content
+			 (forseq (elt (get node '%content))
+			   (if (string? elt) (fn elt)
+			       (dom/transform-text! elt fn))))
+	    node)
+	  node)))
+
+(module-export! '{dom/reverse-text! dom/transform-text!})
+
 ;;; Selector functions
 
 ;;; Currently, we're ignoring attribs (just like the Javascript version)
@@ -590,7 +616,8 @@
 	  (if (slotmap? node)
 	      (try (get node '%oid)
 		   (let* ((oid (frame-create pool))
-			  (slotids (getkeys node)))
+			  (slotids (getkeys node))
+			  (cur #f) (prev #f))
 		     (when parent (store! oid '%parent parent))
 		     (store! oid '%oid oid)
 		     (store! node '%oid oid)
@@ -598,11 +625,17 @@
 		     (when (test node '%content)
 		       (store! oid '%content
 			       (forseq (elt (get node '%content))
-				 (dom/oidify elt pool (or doc oid) oid))))
+				 (set! cur (dom/oidify elt pool (or doc oid) oid))
+				 (when (oid? cur)
+				   (when prev (store! prev 'next cur) (store! cur 'prev prev))
+				   (set! prev cur))
+				 cur)))
 		     (do-choices (slotid (difference slotids '%content))
 		       (store! oid slotid (%get node slotid)))
-		     (unless (test oid '%id) (store! oid '%id (dom/nodeid oid)))
-		     (store! oid '%children (pickoids (elts (get oid '%content))))
+		     (unless (test oid '%id)
+		       (store! oid '%id (dom/nodeid oid)))
+		     (store! oid '%children
+			     (pickoids (elts (get oid '%content))))
 		     oid))
 	      (if (pair? node)
 		  (if (proper-list? node)

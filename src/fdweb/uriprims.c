@@ -275,7 +275,7 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
     fd_decref(userinfo); fd_decref(hostname); fd_decref(port);
     fd_decref(pathstring);  fd_decref(path); fd_decref(name);
     fd_decref(fragment); fd_decref(query);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_type_error(_("table"),"unparseuri",uri);
 }
 
@@ -394,9 +394,9 @@ static fdtype mkuripath_prim(fdtype dirname,fdtype name)
     else {
       memcpy(buf,dir,host_len); buf[host_len]='\0'; dir=buf;}}
   if (FD_VOIDP(config_val))
-    return fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    return fd_lispstring(u8_mkpath(dir,namestring));
   else {
-    fdtype result=fd_init_string(NULL,-1,u8_mkpath(dir,namestring));
+    fdtype result=fd_lispstring(u8_mkpath(dir,namestring));
     fd_decref(config_val);
     return result;}
 }

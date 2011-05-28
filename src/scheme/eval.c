@@ -420,7 +420,7 @@ static fdtype timed_evalx(fdtype expr,fd_lispenv env)
   double start=u8_elapsed_time();
   fdtype value=fd_eval(toeval,env);
   double finish=u8_elapsed_time();
-  return fd_make_vector(2,value,fd_init_double(NULL,finish-start));
+  return fd_make_nvector(2,value,fd_init_double(NULL,finish-start));
 }
 
 static fdtype watched_eval(fdtype expr,fd_lispenv env)
@@ -1406,7 +1406,7 @@ static fdtype dbg_prim(fdtype x,fdtype msg)
   return _fd_dbg(x);
 }
 
-static fdtype void_prim()
+static fdtype void_prim(int n,fdtype *args)
 {
   return FD_VOID;
 }
@@ -1523,7 +1523,8 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,1)));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("VOID",void_prim,0));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));

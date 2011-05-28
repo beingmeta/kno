@@ -1201,7 +1201,7 @@ FD_EXPORT fd_pool fd_open_pool(u8_string spec)
 
 FD_EXPORT fd_pool fd_name2pool(u8_string spec)
 {
-  fdtype label_string=fd_init_string(NULL,-1,u8_strdup(spec));
+  fdtype label_string=fd_make_string(NULL,-1,spec);
   fdtype poolv=fd_hashtable_get(&poolid_table,label_string,FD_VOID);
   fd_decref(label_string);
   if (FD_VOIDP(poolv)) return NULL;
@@ -1511,6 +1511,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   if (xp->flags&(FD_POOL_BATCHABLE)) return NULL;
   FD_INIT_STACK_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=oids;
+  vstruct.freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
   if (FD_VOIDP(state))
     value=fd_apply(xp->fetchfn,1,&vecarg);

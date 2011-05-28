@@ -152,13 +152,13 @@ static fdtype json_string(U8_INPUT *in,int flags)
     u8_putc(&out,c);
     c=u8_getc(in);}
   if (init_escape)
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    return fd_stream2string(&out);
   else if ((flags&FD_JSON_COLONIZE)&&(out.u8_outbuf[0]==':')) {
     fdtype result=fd_parse(out.u8_outbuf+1);
     if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
     u8_free(out.u8_outbuf);
     return result;}
-  else return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  else return fd_stream2string(&out);
 }
 
 static fdtype json_intern(U8_INPUT *in,int flags)
@@ -504,7 +504,7 @@ static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fd
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   U8_INIT_OUTPUT(&tmpout,128);
   json_unparse(&tmpout,x,flags,slotfn,oidfn,miscfn);
-  return fd_init_string(NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
+  return fd_stream2string(&tmpout);
 }
 
 /* Module initialization */

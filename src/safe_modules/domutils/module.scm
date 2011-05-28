@@ -1,1 +1,1 @@
-(load-component "domutils.scm")
+domutils.scm

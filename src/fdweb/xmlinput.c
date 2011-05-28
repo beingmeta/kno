@@ -40,6 +40,27 @@ static u8_string xmlsnip(u8_string s)
   return out.u8_outptr;
 }
 
+static u8_string deentify(u8_string arg,u8_string lim)
+{
+  U8_OUTPUT out; u8_byte *scan=arg; int c=u8_sgetc(&scan);
+  U8_INIT_OUTPUT(&out,strlen(arg));
+  while ((c>0)&&((lim==NULL)||(scan<=lim)))
+    if (c=='&') {
+      u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
+      if (code<=0) {
+	u8_putc(&out,c); c=u8_sgetc(&scan);}
+      else {
+	u8_putc(&out,code); scan=end;
+	c=u8_sgetc(&scan);}}
+    else {u8_putc(&out,c); c=u8_sgetc(&scan);}
+  return out.u8_outbuf;
+}
+
+FD_EXPORT u8_string fd_deentify(u8_string arg,u8_string lim)
+{
+  return deentify(arg,lim);
+}
+
 static fdtype raw_name_symbol;
 static fdtype namespace_symbol, name_symbol, qname_symbol, xmlns_symbol;
 static fdtype attribs_symbol, content_symbol, type_symbol;
@@ -101,7 +122,7 @@ static fdtype decode_entities(fdtype input)
   U8_INIT_OUTPUT(&out,FD_STRLEN(input));
   while (c>=0) {
     u8_putc(&out,c); c=egetc(&scan);}
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static u8_string block_elts[]=
@@ -220,7 +241,7 @@ static fdtype make_qid(u8_string eltname,u8_string namespace)
   if (namespace) {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
     u8_printf(&out,"{%s}%s",namespace,eltname);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fdtype_string(eltname);
 }
 
@@ -488,6 +509,7 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
     if (equals) {
       u8_byte *valstart=equals+1, *scan=valstart; int c;
       u8_byte *valend=valstart+strlen(valstart)-1;
+      u8_string val=NULL;
       *equals='\0'; /* We're going to parse this */
       c=u8_sgetc(&scan);
       /* Skip whitespace */
@@ -501,9 +523,13 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
       else if (*valstart=='\'') {
 	valstart++; quote='\''; if (*valend=='\'') *valend='\0';}
       else {}
-      if (process_nsattrib(xml,item,valstart)) {}
-      else if ((attribfn) && (attribfn(xml,item,valstart,quote))) {}
-      else fd_default_attribfn(xml,item,valstart,quote);}
+      if (strchr(valstart,'&'))
+	val=deentify(valstart,NULL);
+      else val=valstart;
+      if (process_nsattrib(xml,item,val)) {}
+      else if ((attribfn) && (attribfn(xml,item,val,quote))) {}
+      else fd_default_attribfn(xml,item,val,quote);
+      if (val!=valstart) u8_free(val);}
     else if ((attribfn) && (attribfn(xml,item,NULL,-1))) {}
     else fd_default_attribfn(xml,item,NULL,-1);}
 }
@@ -579,32 +605,9 @@ FD_XML *fd_xml_push
   return newnode;
 }
 
-static u8_string deentify(u8_string arg)
-{
-  U8_OUTPUT out; u8_byte *scan=arg; int c=u8_sgetc(&scan);
-  U8_INIT_OUTPUT(&out,strlen(arg));
-  while (c>0)
-    if (c=='&') {
-      u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
-      if (code<=0) {
-	u8_putc(&out,c); c=u8_sgetc(&scan);}
-      else {
-	u8_putc(&out,code); scan=end;
-	c=u8_sgetc(&scan);}}
-    else {u8_putc(&out,c); c=u8_sgetc(&scan);}
-  return out.u8_outbuf;
-}
-
 static fdtype fd_lispify(u8_string arg)
 {
-  if (strchr(arg,'&')) {
-    u8_string decoded=deentify(arg);
-    if (*decoded==':') {
-      fdtype result=fd_parse(decoded);
-      u8_free(decoded);
-      return result;}
-    else return fd_init_string(NULL,-1,decoded);}
-  else if (*arg==':') return fd_parse(arg+1);
+  if (*arg==':') return fd_parse(arg+1);
   else return fdtype_string(arg);
 }
 
@@ -638,10 +641,10 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
     fdtype qid=make_qid(attrib_name,namespace);
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      fd_make_vector(3,fdtype_string(name),make_qid(attrib_name,namespace),
-		     fd_incref(slotval));}
+      fd_make_nvector(3,fdtype_string(name),make_qid(attrib_name,namespace),
+		      fd_incref(slotval));}
   else attrib_entry=
-	 fd_make_vector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
+	 fd_make_nvector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
   fd_add(xml->attribs,attribs_symbol,attrib_entry);
   fd_decref(attrib_entry); fd_decref(slotval);

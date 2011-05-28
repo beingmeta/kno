@@ -61,7 +61,7 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t'))) vstart=line_end+1;
       else {
 	fdtype slotval=
-	  fd_init_string(NULL,-1,u8_mime_convert
+	  fd_lispstring(u8_mime_convert
 			 (hstream.u8_outbuf,hstream.u8_outptr));
 	fd_add(s,slotid,slotval); fd_decref(slotval); hstart=line_end+1;
 	break;}}
@@ -135,12 +135,18 @@ static fdtype convert_data(char *start,char *end,fdtype dataenc,int could_be_str
   if ((could_be_string) && (!(FD_STRINGP(dataenc))) && (len<50000)) {
     /* If it might be a string, check if it's ASCII without NULs.
        If so, return a string, otherwise return a packet. */
-    int i=0; while (i<len)
-      if (data[i]<=0)
-	return fd_init_packet(NULL,len,data);
-      else i++;
-    return fd_init_string(NULL,len,data);}
-  else return fd_init_packet(NULL,len,data);
+    fdtype result=FD_VOID;
+    int i=0; while (i<len) {
+      if (data[i]<=0) {
+	result=fd_make_packet(NULL,len,data); break;}
+      else i++;}
+    if (FD_VOIDP(result)) fd_make_string(NULL,len,data);
+    u8_free(data);
+    return result;}
+  else {
+    fdtype result=fd_make_packet(NULL,len,data);
+    u8_free(data);
+    return result;}
 }
 
 static fdtype convert_text
@@ -163,7 +169,7 @@ static fdtype convert_text
   else encoding=NULL;
   scan=data; data_end=data+len;
   u8_convert(encoding,1,&out,&scan,data_end);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataenc,fdtype charenc)

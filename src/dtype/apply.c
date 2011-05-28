@@ -341,7 +341,7 @@ static fdtype config_get_calltrack_sensors(fdtype sym,void MAYBE_UNUSED *data)
     fd_lock_mutex(&calltrack_sensor_lock);
     while (i<n_calltrack_sensors) 
       if (calltrack_sensors[i].enabled) {
-	fdtype sensorname=fd_init_string(NULL,-1,calltrack_sensors[i].name);
+	fdtype sensorname=fd_make_string(NULL,-1,calltrack_sensors[i].name);
 	FD_ADD_TO_CHOICE(results,sensorname);
 	i++;}
       else i++;
@@ -353,7 +353,7 @@ static fdtype config_get_calltrack_sensors(fdtype sym,void MAYBE_UNUSED *data)
     while (i<n_calltrack_sensors) 
       if (calltrack_sensors[i].enabled) i++;
       else {
-	fdtype sensorname=fd_init_string(NULL,-1,calltrack_sensors[i].name);
+	fdtype sensorname=fd_make_string(NULL,-1,calltrack_sensors[i].name);
 	FD_ADD_TO_CHOICE(results,sensorname);
 	i++;}
     fd_unlock_mutex(&calltrack_sensor_lock);

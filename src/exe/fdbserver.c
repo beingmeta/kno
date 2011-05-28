@@ -401,7 +401,7 @@ static fdtype get_uptime()
 static fdtype get_server_status()
 {
   u8_string status=u8_server_status(&dtype_server,NULL,0);
-  return fd_init_string(NULL,-1,status);
+  return fd_lispstring(status);
 }
 
 static fdtype boundp_handler(fdtype expr,fd_lispenv env)
@@ -580,8 +580,8 @@ int main(int argc,char **argv)
     /* Store server initialization information in the configuration
        environment. */
     {
-      fdtype interp=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
-      fdtype src=fd_init_string(NULL,-1,u8_realpath(source_file,NULL));
+      fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
+      fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
       fd_config_set("INTERPRETER",interp);
       fd_config_set("SOURCE",src);
       fd_decref(interp); fd_decref(src);}

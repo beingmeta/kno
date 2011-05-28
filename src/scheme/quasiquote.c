@@ -143,6 +143,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 
 static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 {
+  fdtype result=FD_VOID;
   int i=0, j=0, len=FD_VECTOR_LENGTH(obj), newlen=len;
   if (len==0) return fd_incref(obj);
   else {
@@ -203,7 +204,9 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 	  return new_elt;}
 	newelts[j]=new_elt;
 	i++; j++;}}
-    return fd_init_vector(NULL,j,newelts);}
+    result=fd_make_vector(j,newelts);
+    u8_free(newelts);
+    return result;}
 }
 
 static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)

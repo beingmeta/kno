@@ -332,12 +332,12 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_iso8601(&out,xt);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else if (FD_EQ(slotid,rfc822_symbol)) {
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_rfc822(&out,xt);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else if (FD_EQ(slotid,gmt_symbol))
     if (xt->u8_tzoff==0) 
       return fd_make_timestamp(xt);
@@ -445,7 +445,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 	char buf[64];
 	sprintf(buf,"%d%s%04d",xt->u8_mday,
 		month_names[xt->u8_mon],xt->u8_year);
-	return fd_init_string(NULL,-1,u8_strdup(buf));}
+	return fd_make_string(NULL,-1,buf);}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
 		      FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -459,7 +459,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
-	return fd_init_string(NULL,-1,u8_strdup(buf));}
+	return fd_make_string(NULL,-1,buf);}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
 		      FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -473,7 +473,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       if (xt->u8_mon<12) {
 	char buf[64];
 	sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
-	return fd_init_string(NULL,-1,u8_strdup(buf));}
+	return fd_make_string(NULL,-1,buf);}
       else if (reterr)
 	return fd_err(fd_InvalidTimestamp,"xtime_get",
 		      FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -704,7 +704,7 @@ static fdtype timestring()
 	    onstack.u8_hour,
 	    onstack.u8_min,
 	    onstack.u8_sec);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype time_prim()
@@ -839,7 +839,7 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
     if (elts>0) u8_puts(&out,", ");
     u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
 
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 /* Sleeping */
@@ -872,7 +872,7 @@ static fdtype getenv_prim(fdtype var)
 {
   u8_string enval=u8_getenv(FD_STRDATA(var));
   if (enval==NULL) return FD_FALSE;
-  else return fd_init_string(NULL,-1,enval);
+  else return fd_lispstring(enval);
 }
 
 /* Getting the current hostname */
@@ -881,7 +881,7 @@ static fdtype getenv_prim(fdtype var)
    than that it has to do with getting stuff from the environment. */
 static fdtype hostname_prim()
 {
-  return fd_init_string(NULL,-1,u8_gethostname());
+  return fd_lispstring(u8_gethostname());
 }
 
 /* There's not a good justification for putting this here other
@@ -1243,8 +1243,7 @@ static fdtype uuidstring_prim(fdtype uuid_arg)
 static fdtype uuidpacket_prim(fdtype uuid_arg)
 {
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
-  unsigned char *bytes=u8_malloc(16); memcpy(bytes,uuid->uuid,16);
-  return fd_init_packet(NULL,16,bytes);
+  return fd_make_packet(NULL,16,uuid->uuid);
 }
 
 /* Initialization */

@@ -1,1 +1,1 @@
-(load-component "aws.scm")
+aws.scm

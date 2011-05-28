@@ -331,7 +331,7 @@ int main(int argc,char **argv)
   /* This is argv[0], the name of the executable by which we
      entered fdconsole. */
   {
-    fdtype interpval=fd_init_string(NULL,-1,u8_fromlibc(argv[0]));
+    fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
 
   /* Announce preamble, suppressed by quiet_config */

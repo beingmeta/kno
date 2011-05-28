@@ -178,11 +178,9 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  fd_attrib_entify(&out,FD_STRDATA(value));
 	else if (FD_FIXNUMP(value))
 	  u8_printf(&out,"%d",FD_FIX2INT(value));
-	else {
-	  struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
-	  fd_unparse(&subout,value);
-	  u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
-	  u8_free(subout.u8_outbuf);}
+	else if (cache_result)
+	  cache_result=output_attribval(&out,value,env,1);
+	else output_attribval(&out,value,env,1);
 	u8_putc(&out,'\'');}}
     fd_decref(attribs);}
   else if (fd_test(xml,attribids_slotid,FD_VOID)) {
@@ -218,6 +216,10 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	    u8_putc(&out,'"');}
 	else if (FD_FIXNUMP(value))
 	  u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
+	else if (cache_result)
+	  cache_result=output_attribval(&out,value,env,1);
+	else output_attribval(&out,value,env,1);
+	/*
 	else {
 	  int dquote=1;
 	  struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
@@ -227,6 +229,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
 	  if (dquote) u8_putc(&out,'"'); else u8_putc(&out,'\'');
 	  u8_free(subout.u8_outbuf);}
+	*/
 	fd_decref(value);}}
     fd_decref(to_free);
     fd_decref(attribids);}
@@ -462,6 +465,13 @@ static fdtype xmlevalify(u8_string string)
   else return fdtype_string(string);
 }
 
+static fdtype xmldtypify(u8_string string)
+{
+  if (string[0]==':') return fd_parse(string+1);
+  else if (string[0]=='\\') return fdtype_string(string+1);
+  else return fdtype_string(string);
+}
+
 static fdtype parse_attribname(u8_string string)
 {
   fdtype parsed=fd_parse(string);
@@ -478,9 +488,13 @@ FD_EXPORT int fd_xmleval_attribfn
 {
   u8_string namespace, attrib_name=fd_xmlns_lookup(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
-  fdtype slotval=((val)?((quote>0) ? (xmlevalify(val)) : (fd_parse(val))):
+  fdtype slotval=((val)?((quote>0) ? (xmlevalify(val)) : (xmldtypify(val))):
 		  (slotid));
   fdtype attrib_entry=FD_VOID;
+  if ((FD_ABORTP(slotval))||(FD_VOIDP(slotval))||
+      (FD_EOFP(slotval))||(FD_EODP(slotval))||
+      (FD_EOXP(slotval)))
+    slotval=fdtype_string(val);
   if (FD_EMPTY_CHOICEP(xml->attribs)) fd_init_xml_attribs(xml);
   xml->bits=xml->bits|FD_XML_HASDATA;
   fd_add(xml->attribs,slotid,slotval);
@@ -488,11 +502,11 @@ FD_EXPORT int fd_xmleval_attribfn
     fdtype qid=fd_make_qid(attrib_name,namespace);
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
-      fd_make_vector(3,fdtype_string(name),
-		     fd_make_qid(attrib_name,namespace),
-		     fd_incref(slotval));}
+      fd_make_nvector(3,fdtype_string(name),
+		      fd_make_qid(attrib_name,namespace),
+		      fd_incref(slotval));}
   else attrib_entry=
-	 fd_make_vector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
+	 fd_make_nvector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
   fd_add(xml->attribs,attribs_slotid,attrib_entry);
   fd_decref(attrib_entry); fd_decref(slotval);
@@ -711,13 +725,13 @@ static FD_XML *handle_xmleval_pi
 	  scheme_env->parent=fd_make_export_env(module,scheme_env->parent);}
 	i++;}
       else if ((strncmp(attribs[i],"escape=",7))==0) {
-	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
+	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+7));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fd_bind_value(escape_id,arg,xml_env);
 	fd_decref(arg);
 	i++;}
       else if ((strncmp(attribs[i],"piescape=",9))==0) {
-	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+9));
+	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+9));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fdtype cur=fd_symeval(piescape_symbol,xml_env);
 	if (FD_VOIDP(cur))
@@ -728,7 +742,7 @@ static FD_XML *handle_xmleval_pi
 	fd_decref(arg);
 	i++;}
       else if ((strncmp(attribs[i],"xattrib=",8))==0) {
-	fdtype arg=fd_init_string(NULL,-1,get_pi_string(attribs[i]+7));
+	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+7));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
 	fd_bind_value(xattrib_overlay,arg,xml_env);
 	fd_decref(arg);
@@ -739,11 +753,16 @@ static FD_XML *handle_xmleval_pi
   else {
     int pioff=((strncmp(content,"?eval ",7)==0)?(7):
 	       (test_piescape(xml,content,len)));
+    u8_string xcontent=NULL;
+    if ((pioff)&&(strchr(content,'&'))) {
+      xcontent=fd_deentify(content,NULL);
+      len=u8_strlen(xcontent);}
+    else xcontent=content;
     if (pioff) {
       struct U8_INPUT in;
       fdtype insert=fd_init_pair(NULL,begin_symbol,FD_EMPTY_LIST);
       fdtype *tail=&(FD_CDR(insert)), expr=FD_VOID;
-      U8_INIT_STRING_INPUT(&in,len-pioff-1,content+pioff);
+      U8_INIT_STRING_INPUT(&in,len-pioff-1,xcontent+pioff);
       expr=fd_parse_expr(&in);
       while (1) {
 	if (FD_ABORTP(expr)) {
@@ -755,6 +774,7 @@ static FD_XML *handle_xmleval_pi
 	  *tail=new_cons; tail=&(FD_CDR(new_cons));}
 	expr=fd_parse_expr(&in);}
       fd_add_content(xml,insert);}
+    if ((xcontent)&&(xcontent!=content)) u8_free(xcontent);
     return xml;}
 }
 

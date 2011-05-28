@@ -573,11 +573,12 @@ FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
 static fdtype read_packaged_dtype(int,struct FD_BYTE_INPUT *);
 
-static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,fdtype *why_not)
+static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,
+			   fdtype *why_not,fdtype *into)
 {
   if (n==0) return NULL;
   else {
-    fdtype *vec=u8_alloc_n(n,fdtype);
+    fdtype *vec=((into)?(into):(u8_alloc_n(n,fdtype)));
     int i=0; while (i < n) {
       fdtype v=fd_read_dtype(in);
       if (FD_COOLP(v)) vec[i++]=v;
@@ -684,15 +685,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
-	  unsigned char *data=u8_malloc(len+1);
-	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
+	  fdtype result=FD_VOID;
 	  switch (code) {
 	  case dt_string:
-	    return fd_init_string(u8_alloc(struct FD_STRING),
-				  len,data);
+	    result=fd_make_string(NULL,len,in->ptr); break;
 	  case dt_packet:
-	    return fd_init_packet(u8_alloc(struct FD_STRING),
-				  len,data);}}}
+	    result=fd_make_packet(NULL,len,in->ptr); break;}
+	  in->ptr=in->ptr+len;
+	  return result;}}
     case dt_tiny_symbol:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
@@ -708,10 +708,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
-	  u8_byte *data=u8_malloc(len+1);
-	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  return fd_init_string(u8_alloc(struct FD_STRING),
-				len,data);}}
+	  fdtype result= fd_make_string(NULL,len,in->ptr);
+	  in->ptr=in->ptr+len;
+	  return result;}}
     case dt_symbol: case dt_zstring:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
@@ -723,9 +722,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
 	  switch (code) {
 	  case dt_symbol:
-	    result=fd_make_symbol(data,len);
+	    result=fd_make_symbol(data,len); break;
 	  case dt_zstring:
-	    result=fd_make_symbol(data,len);}
+	    result=fd_make_symbol(data,len); break;}
 	  if (data != buf) u8_free(data);
 	  return result;}}
     case dt_vector:
@@ -733,13 +732,13 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       else {
 	int len=fd_read_4bytes(in);
 	if (FD_EXPECT_FALSE(len == 0))
-	  return fd_init_vector
-	    (u8_alloc(struct FD_VECTOR),0,NULL);
+	  return fd_init_vector(NULL,0,NULL);
 	else {
-	  fdtype why_not=FD_EOD, *data=read_dtypes(len,in,&why_not);
+	  fdtype why_not=FD_EOD, result=fd_init_vector(NULL,len,NULL);
+	  fdtype *elts=FD_VECTOR_ELTS(result);
+	  fdtype *data=read_dtypes(len,in,&why_not,elts);
 	  if (FD_EXPECT_TRUE((data!=NULL)))
-	    return fd_init_vector(u8_alloc(struct FD_VECTOR),
-				  len,data);
+	    return result;
 	  else return fd_return_errcode(why_not);}}
     case dt_tiny_choice:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
@@ -899,7 +898,7 @@ static fdtype read_packaged_dtype
   else len=fd_read_byte(in);
   if (vectorp) {
     fdtype why_not;
-    vector=read_dtypes(len,in,&why_not);
+    vector=read_dtypes(len,in,&why_not,NULL);
     if ((len>0) && (vector==NULL)) return fd_return_errcode(why_not);}
   else if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
   else {
@@ -936,15 +935,17 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
     u8_free(bytes);
     return FD_CODE2CHAR(c);}
   case dt_unicode_short_string: case dt_unicode_string: {
-    struct U8_OUTPUT os; unsigned char *scan, *limit;
-    U8_INIT_OUTPUT(&os,len);
+    u8_byte buf[256];
+    struct U8_OUTPUT os; unsigned char *scan, *limit; fdtype result;
+    U8_INIT_OUTPUT_X(&os,256,buf,U8_STREAM_GROWS);
     scan=bytes; limit=bytes+len;
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
       u8_putc(&os,c);}
     u8_free(bytes);
-    return fd_init_string(u8_alloc(struct FD_STRING),
-			  os.u8_outptr-os.u8_outbuf,os.u8_outbuf);}
+    result=fd_make_string(NULL,os.u8_outptr-os.u8_outbuf,os.u8_outbuf);
+    u8_close_output(&os);
+    return result;}
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
     fdtype sym;
     struct U8_OUTPUT os; unsigned char *scan, *limit;

@@ -490,12 +490,12 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
   i=0; while (i<n_cycles) {
     struct FD_IPEVAL_RECORD *record=&(records[i]);
     vec[i++]=
-      fd_make_vector(3,FD_INT2DTYPE(record->delays),
-		     fd_init_double(NULL,record->exec_time),
-		     fd_init_double(NULL,record->fetch_time));}
-  return fd_make_vector(3,tmp.value,
-			fd_init_double(NULL,total_time),
-			fd_init_vector(NULL,n_cycles,vec));
+      fd_make_nvector(3,FD_INT2DTYPE(record->delays),
+		      fd_init_double(NULL,record->exec_time),
+		      fd_init_double(NULL,record->fetch_time));}
+  return fd_make_nvector(3,tmp.value,
+			 fd_init_double(NULL,total_time),
+			 fd_init_vector(NULL,n_cycles,vec));
 }
 
 /* Initialize functions */

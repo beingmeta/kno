@@ -475,7 +475,7 @@ static fdtype lisp_parse_arg(fdtype string)
 static fdtype lisp_unparse_arg(fdtype obj)
 {
   u8_string s=fd_unparse_arg(obj);
-  return fd_init_string(NULL,-1,s);
+  return fd_lispstring(s);
 }
 
 static fdtype lisp_symbol2string(fdtype sym)

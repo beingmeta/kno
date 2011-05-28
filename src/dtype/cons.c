@@ -104,15 +104,15 @@ void fd_recycle_cons(fd_cons c)
     break;}
   case fd_string_type: case fd_packet_type: {
     struct FD_STRING *s=(struct FD_STRING *)c;
-    if (s->bytes) u8_free(s->bytes);
+    if ((s->bytes)&&(s->freedata)) u8_free(s->bytes);
     if (mallocd) u8_free(s);
     break;}
-  case fd_vector_type: {
+  case fd_vector_type: case fd_rail_type: {
     struct FD_VECTOR *v=(struct FD_VECTOR *)c;
     int len=v->length; fdtype *scan=v->data, *limit=scan+len;
     if (scan) {
       while (scan<limit) {fd_decref(*scan); scan++;}
-      u8_free(v->data);}
+      if (v->freedata) u8_free(v->data);}
     if (mallocd) u8_free(v);
     break;}
   case fd_choice_type: {
@@ -235,7 +235,7 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
 	if (quick) {
 	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
 	return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
-      case fd_vector_type: {
+      case fd_vector_type: case fd_rail_type: {
 	int i=0, xlen=FD_VECTOR_LENGTH(x), ylen=FD_VECTOR_LENGTH(y), lim;
 	fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
 	if (quick) {
@@ -292,19 +292,21 @@ fdtype fd_deep_copy(fdtype x)
     case fd_pair_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,ctype,struct FD_PAIR *);
       return fd_init_pair(NULL,fd_deep_copy(p->car),fd_deep_copy(p->cdr));}
-    case fd_vector_type: {
+    case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
-      fdtype *olddata=v->data;
-      fdtype *newdata=u8_alloc_n((v->length),fdtype);
-      int i=0, len=v->length; while (i<len) {
-	newdata[i]=fd_deep_copy(olddata[i]); i++;}
-      return fd_init_vector(NULL,v->length,newdata);}
+      fdtype *olddata=v->data; int i=0, len=v->length;
+      fdtype result=((ctype==fd_vector_type)?
+		     (fd_init_vector(NULL,len,NULL)):
+		     (fd_init_rail(NULL,len,NULL)));
+      fdtype *newdata=FD_VECTOR_ELTS(result);
+      while (i<len) {newdata[i]=fd_deep_copy(olddata[i]); i++;}
+      return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
-      return fd_init_string(NULL,s->length,u8_strndup(s->bytes,s->length));}
+      return fd_make_string(NULL,s->length,s->bytes);}
     case fd_packet_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
-      return fd_init_packet(NULL,s->length,u8_strndup(s->bytes,s->length));}
+      return fd_make_packet(NULL,s->length,s->bytes);}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
       struct FD_CHOICE *copy=fd_alloc_choice(n);
@@ -344,8 +346,7 @@ FD_EXPORT
   This returns a lisp string object from a character string.
   If the structure pointer is NULL, one is mallocd.
   If the length is negative, it is computed. */ 
-fdtype fd_init_string
-  (struct FD_STRING *ptr,int slen,u8_string string)
+fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
 {
   int len=((slen<0) ? (strlen(string)) : (slen));
   if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
@@ -364,14 +365,68 @@ FD_EXPORT
   If the structure pointer is NULL, one is mallocd.
   This copies the region between the pointers into a string and initializes
    a lisp string based on the region. */ 
-fdtype fd_extract_string
-  (struct FD_STRING *ptr,u8_byte *start,u8_byte *end)
+fdtype fd_extract_string(struct FD_STRING *ptr,u8_byte *start,u8_byte *end)
 {
-  int len=((end==NULL) ? (strlen(start)) : (end-start));
-  if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
+  int length=((end==NULL) ? (strlen(start)) : (end-start));
+  u8_byte *bytes=NULL; int freedata=1;
+  if (ptr == NULL) {
+    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    memcpy(bytes,start,length); bytes[length]='\0';
+    freedata=0;}
+  else bytes=u8_strndup(start,length+1);
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->length=len; ptr->bytes=u8_strndup(start,len+1);
-  ptr->bytes[len]='\0';
+  ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT
+/* fd_make_string:
+    Arguments: A pointer to an FD_STRING struct, a length, and a pointer to a byte vector
+    Returns: a lisp string
+  This returns a lisp string object from a string, copying the string
+  If the structure pointer is NULL, the lisp string is uniconsed, so that
+    the string data is contiguous with the struct. */ 
+fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
+{
+  int length=((len>=0)?(len):(strlen(string)));
+  u8_byte *bytes=NULL; int freedata=1;
+  if (ptr == NULL) {
+    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    memcpy(bytes,string,length); bytes[length]='\0';
+    freedata=0;}
+  else {
+    bytes=u8_malloc(length+1);
+    memcpy(bytes,string,length); bytes[length]='\0';}
+  FD_INIT_CONS(ptr,fd_string_type);
+  ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT
+/* fd_conv_string:
+    Arguments: A pointer to an FD_STRING struct, a length, and a pointer to a byte vector
+    Returns: a lisp string
+  This returns a lisp string object from a string, copying and freeing the string
+  If the structure pointer is NULL, the lisp string is uniconsed, so that
+    the string data is contiguous with the struct. */ 
+fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
+{
+  int length=((len>0)?(len):(strlen(string)));
+  u8_byte *bytes=NULL; int freedata=1;
+  if (ptr == NULL) {
+    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    memcpy(bytes,string,length); bytes[length]='\0';
+    freedata=0;}
+  else {
+    bytes=u8_malloc(length+1);
+    memcpy(bytes,string,length); bytes[length]='\0';}
+  FD_INIT_CONS(ptr,fd_string_type);
+  ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+  /* Free the string */
+  u8_free(string);
   return FDTYPE_CONS(ptr);
 }
 
@@ -382,7 +437,7 @@ FD_EXPORT
   */ 
 fdtype fdtype_string(u8_string string)
 {
-  return fd_init_string(NULL,-1,u8_strdup(string));
+  return fd_make_string(NULL,-1,string);
 }
 
 
@@ -418,23 +473,84 @@ FD_EXPORT fdtype fd_make_list(int len,...)
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
-  if (ptr == NULL) ptr=u8_alloc(struct FD_VECTOR);
+  fdtype *elts; int freedata=1;
+  if ((ptr == NULL)&&(data==NULL)) {
+    int i=0;
+    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    /* This might be weird on non byte-addressed architectures */ 
+    elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    while (i < len) elts[i++]=FD_VOID;
+    freedata=0;}
+  else if (ptr==NULL) {
+    ptr=u8_alloc(struct FD_VECTOR);
+    elts=data;}
+  else elts=data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  if ((data == NULL) && (len)) {
-    int i=0; data=u8_alloc_n(len,fdtype);
-    while (i < len) data[i++]=FD_VOID;}
-  ptr->length=len; ptr->data=data;
+  ptr->length=len; ptr->data=elts; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
-FD_EXPORT fdtype fd_make_vector(int len,...)
+FD_EXPORT fdtype fd_make_nvector(int len,...)
 {
   va_list args; int i=0;
-  fdtype *elts=u8_alloc_n(len,fdtype);
+  fdtype result, *elts;
+  va_start(args,len);
+  result=fd_init_vector(NULL,len,NULL);
+  elts=FD_VECTOR_ELTS(result);
+  while (i<len) elts[i++]=va_arg(args,fdtype);
+  va_end(args);
+  return result;
+}
+
+FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
+{
+  int i=0;
+  struct FD_VECTOR *ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+  FD_INIT_CONS(ptr,fd_vector_type);
+  ptr->length=len; ptr->data=elts; ptr->freedata=0;
+  while (i < len) {elts[i]=data[i]; i++;}
+  return FDTYPE_CONS(ptr);
+}
+
+/* Rails */
+
+FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
+{
+  fdtype *elts; int i=0, freedata=1;
+  if ((ptr == NULL)&&(data==NULL)) {
+    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    elts=((fdtype *)ptr)+sizeof(struct FD_VECTOR);
+    freedata=0;}
+  else {
+    ptr=u8_alloc(struct FD_VECTOR);
+    elts=data;}
+  FD_INIT_CONS(ptr,fd_rail_type);
+  while (i < len) elts[i++]=FD_VOID;
+  ptr->length=len; ptr->data=data; ptr->freedata=freedata;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT fdtype fd_make_nrail(int len,...)
+{
+  va_list args; int i=0;
+  fdtype result=fd_init_rail(NULL,len,NULL);
+  fdtype *elts=FD_RAIL_ELTS(result);
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
-  return fd_init_vector(NULL,len,elts);
+  return result;
+}
+
+FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
+{
+  int i=0;
+  struct FD_VECTOR *ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+  FD_INIT_CONS(ptr,fd_rail_type);
+  ptr->length=len; ptr->data=elts; ptr->freedata=0;
+  while (i < len) {elts[i]=data[i]; i++;}
+  return FDTYPE_CONS(ptr);
 }
 
 /* Rails */
@@ -457,12 +573,32 @@ FD_EXPORT fdtype fd_init_rail(struct FD_RAIL *ptr,int len,fdtype *data)
 FD_EXPORT fdtype fd_init_packet
   (struct FD_STRING *ptr,int len,unsigned char *data)
 {
+  if ((ptr==NULL)&&(data==NULL))
+    return fd_make_packet(ptr,len,data);
   if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
     int i=0; data=u8_malloc(len);
     while (i < len) data[i++]=0;}
   ptr->length=len; ptr->bytes=data;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT fdtype fd_make_packet
+  (struct FD_STRING *ptr,int len,unsigned char *data)
+{
+  u8_byte *bytes=NULL; int freedata=1;
+  if (ptr == NULL) {
+    ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
+    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    if (data) memcpy(bytes,data,len);
+    else memset(bytes,0,len);
+    freedata=0;}
+  else if (data==NULL) {
+    bytes=u8_malloc(len); memset(bytes,0,len);}
+  else bytes=data;
+  FD_INIT_CONS(ptr,fd_packet_type);
+  ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -1090,9 +1226,9 @@ void fd_init_cons_c()
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,
 		     fd_intern("COMPOUNDTYPE"),FD_INT2DTYPE(9),
-		     fd_make_vector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
-				    fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
-				    fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
+		     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
+				     fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
+				     fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
 		     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
 		     FD_FALSE,FD_FALSE);
   ((struct FD_COMPOUND *)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;

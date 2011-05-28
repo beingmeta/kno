@@ -622,13 +622,15 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
 
 static fdtype stringout_handler(fdtype expr,fd_lispenv env)
 {
-  struct U8_OUTPUT out; fdtype result;
-  U8_INIT_OUTPUT(&out,256);
+  struct U8_OUTPUT out; fdtype result; u8_byte buf[256];
+  U8_INIT_OUTPUT_X(&out,256,buf,U8_STREAM_GROWS);
   result=fd_printout_to(&out,fd_get_body(expr,1),env);
-  if (FD_ABORTP(result)) {
-    u8_close_output(&out); return result;}
-  else return fd_init_string
-	 (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  if (!(FD_ABORTP(result))) {
+    fd_decref(result);
+    result=fd_make_string
+      (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  u8_close_output(&out);
+  return result;
 }
 
 /* Input operations! */
@@ -669,8 +671,7 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
 	    u8_putc(&out,u8_sgetc(&scan));
 	  else u8_putc(&out,0);}
 	u8_free(data);
-	return fd_init_string
-	  (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+	return fd_stream2string(&out);}
       else return fd_init_string(NULL,size,data);
     else if (size<0)
       if (errno==EAGAIN)
@@ -729,7 +730,6 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
       int record_len=off+matchlen;
       u8_byte *buf=u8_malloc(record_len+1);
       int bytes_read=u8_getn(buf,record_len,in);
-      /* fd_init_string(NULL,record_len,buf); */
       return fd_init_string(NULL,bytes_read,buf);}
     else if ((lim) && ((in->u8_inlim-in->u8_inptr)>lim))
       return FD_EOF;
@@ -754,7 +754,7 @@ static fdtype lisp2string(fdtype x)
 {
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   fd_unparse(&out,x);
-  return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype inexact2string(fdtype x,fdtype precision)
@@ -775,7 +775,7 @@ static fdtype number2string(fdtype x,fdtype base)
   if (FD_NUMBERP(x)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_output_number(&out,x,fd_getint(base));
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_err(fd_TypeError,"number2string",NULL,x);
 }
 

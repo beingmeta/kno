@@ -543,6 +543,64 @@ static fdtype flip64(fdtype arg)
   else return fd_type_error("uint64","flip64",arg);
 }
 
+/* City hashing */
+
+static fdtype cityhash64(fdtype arg,fdtype asint)
+{
+  u8_int8 hash;
+  u8_byte *data; size_t datalen;
+  if (FD_STRINGP(arg)) {
+    data=FD_STRDATA(arg); datalen=FD_STRLEN(arg);}
+  else if (FD_PACKETP(arg)) {
+    data=FD_PACKET_DATA(arg); datalen=FD_PACKET_LENGTH(arg);}
+  else return fd_type_error("packet/string","cityhash64",arg);
+  hash=u8_cityhash64(data,datalen);
+  if (FD_TRUEP(asint))
+    return FD_INT2DTYPE(hash);
+  else {
+    unsigned char bytes[8];
+    bytes[0]=((hash>>56)&0xFF);
+    bytes[1]=((hash>>48)&0xFF);
+    bytes[2]=((hash>>40)&0xFF);
+    bytes[3]=((hash>>32)&0xFF);
+    bytes[4]=((hash>>24)&0xFF);
+    bytes[5]=((hash>>16)&0xFF);
+    bytes[6]=((hash>>8)&0xFF);
+    bytes[7]=((hash)&0xFF);
+    return fd_make_packet(NULL,8,bytes);}
+}
+
+static fdtype cityhash128(fdtype arg)
+{
+  unsigned char bytes[16];
+  u8_int16 hash; u8_int8 hi; u8_int8 lo;
+  u8_byte *data; size_t datalen;
+  if (FD_STRINGP(arg)) {
+    data=FD_STRDATA(arg); datalen=FD_STRLEN(arg);}
+  else if (FD_PACKETP(arg)) {
+    data=FD_PACKET_DATA(arg); datalen=FD_PACKET_LENGTH(arg);}
+  else return fd_type_error("packet/string","cityhash64",arg);
+  hash=u8_cityhash128(data,datalen);
+  hi=hash.first; lo=hash.second;
+  bytes[0]=((hi>>56)&0xFF);
+  bytes[1]=((hi>>48)&0xFF);
+  bytes[2]=((hi>>40)&0xFF);
+  bytes[3]=((hi>>32)&0xFF);
+  bytes[4]=((hi>>24)&0xFF);
+  bytes[5]=((hi>>16)&0xFF);
+  bytes[6]=((hi>>8)&0xFF);
+  bytes[7]=((hi)&0xFF);
+  bytes[8]=((lo>>56)&0xFF);
+  bytes[9]=((lo>>48)&0xFF);
+  bytes[10]=((lo>>40)&0xFF);
+  bytes[11]=((lo>>32)&0xFF);
+  bytes[12]=((lo>>24)&0xFF);
+  bytes[13]=((lo>>16)&0xFF);
+  bytes[14]=((lo>>8)&0xFF);
+  bytes[15]=((lo)&0xFF);
+  return fd_make_packet(NULL,16,bytes);
+}
+
 /* Initialization */
 
 #undef arithdef
@@ -616,5 +674,9 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("WANG-HASH64",wang_hash64,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP32",flip32,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP64",flip64,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x("CITYHASH64",cityhash64,1,
+					    -1,FD_VOID,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
 }
+
 

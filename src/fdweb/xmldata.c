@@ -119,7 +119,7 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 	 else if ((FD_OIDP(docelt)) || (FD_SLOTMAPP(docelt)))
 	   fd_unparse_xml(&out,docelt,NULL);
 	 else fd_unparse(&out,docelt);}
-      return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      return fd_stream2string(&out);}
     else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) {
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_LIST);
       fdtype as_string=xmlcontent(content,FD_VOID);

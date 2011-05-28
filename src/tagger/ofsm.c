@@ -478,7 +478,8 @@ static fdtype lower_compound(fdtype compound)
 	       compound);
 	return fd_incref(compound);}
     if (needs_lower) {
-      fdtype *newelts=u8_alloc_n(n,fdtype);
+      fdtype result=fd_init_vector(NULL,n,NULL);
+      fdtype *newelts=FD_VECTOR_ELTS(result);
       i=0; while (i<n) {
 	fdtype elt=elts[i], new_elt;
 	if (FD_STRINGP(elt)) {
@@ -488,7 +489,7 @@ static fdtype lower_compound(fdtype compound)
 	  else new_elt=fd_incref(elt);}
 	else new_elt=fd_incref(elt);
 	i++;}
-      return fd_init_vector(NULL,n,newelts);}
+      return result;}
     else return fd_incref(compound);}
   else if (FD_PAIRP(compound)) {
     int needs_lower=0;
@@ -1078,7 +1079,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
   int i, slen, ends_in_s=0;
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
-  fdtype ls=fd_init_string(NULL,-1,s), value=get_lexinfo(pc,ls);
+  fdtype ls=fd_lispstring(s), value=get_lexinfo(pc,ls);
   if ((word_limit > 0) && (((int)pc->n_inputs) >= word_limit))
     return fd_reterr(TooManyWords,"add_input",NULL,FD_VOID);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
@@ -1198,7 +1199,7 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word)
 static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
 {
   u8_string s=strdup(spelling); int i;
-  fdtype ls=fd_init_string(NULL,-1,s), value;
+  fdtype ls=fd_lispstring(s), value;
   value=get_lexinfo(pc,ls);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
   if (FD_EMPTY_CHOICEP(value))
@@ -1534,11 +1535,12 @@ static fdtype possessive_root(fdtype word)
     else return fd_incref(word);}
   else if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
     int i=0, n=FD_VECTOR_LENGTH(word)-1;
-    fdtype *newelts=u8_alloc_n(n,fdtype);
+    fdtype result=fd_init_vector(NULL,n,NULL);
+    fdtype *newelts=FD_VECTOR_ELTS(result);
     while (i<n) {
       newelts[i]=fd_incref(FD_VECTOR_REF(word,i)); i++;}
     newelts[i]=possessive_root(FD_VECTOR_REF(word,i));
-    return fd_init_vector(NULL,n,newelts);}
+    return result;}
   else if (FD_PAIRP(word))
     if (FD_PAIRP(FD_CDR(word)))
       return fd_init_pair(NULL,fd_incref(FD_CAR(word)),
@@ -1608,26 +1610,26 @@ static fdtype word2string(fdtype word)
 	  u8_printf(&out," %q",elts[i]);
 	else u8_printf(&out,"%q",elts[i]);
 	i++;}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else if (FD_PAIRP(word)) {
     struct U8_OUTPUT out; int i=0; U8_INIT_OUTPUT(&out,32);
     {FD_DOLIST(elt,word) {
       u8_string s=FD_STRDATA(elt); int firstc=u8_sgetc(&s);
       if ((i>0) && (u8_isalnum(firstc))) u8_putc(&out,' ');
       u8_puts(&out,FD_STRDATA(elt)); i++;}}
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_stream2string(&out);}
   else return fd_incref(word);
 }
 
 static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fdtype source,int start,int end)
 {
   if ((FD_VOIDP(source)) && (start<0))
-    return fd_make_vector(4,word,fd_incref(tag),root,
-			  FD_USHORT2DTYPE(distance));
-  else return fd_make_vector(7,word,fd_incref(tag),root,
-			     FD_USHORT2DTYPE(distance),
-			     ((FD_VOIDP(source)) ? (FD_FALSE) : (source)),
-			     FD_INT2DTYPE(start),FD_INT2DTYPE(end));
+    return fd_make_nvector(4,word,fd_incref(tag),root,
+			   FD_USHORT2DTYPE(distance));
+  else return fd_make_nvector(7,word,fd_incref(tag),root,
+			      FD_USHORT2DTYPE(distance),
+			      ((FD_VOIDP(source)) ? (FD_FALSE) : (source)),
+			      FD_INT2DTYPE(start),FD_INT2DTYPE(end));
 }
 
 static u8_string find_end(u8_string start,u8_string lim)
@@ -2024,7 +2026,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
   if (FD_ABORTP(retval)) {
     fd_free_parse_context(&parse_context);
     return retval;}
-  else result=fd_make_vector
+  else result=fd_make_nvector
 	 (5,FD_INT2DTYPE(parse_context.n_calls),
 	  FD_INT2DTYPE(parse_context.n_inputs),
 	  FD_INT2DTYPE(parse_context.n_states),
@@ -2254,11 +2256,11 @@ void fd_trace_tagger()
 
 static fdtype lisp_get_stats()
 {
-  return fd_make_vector(4,
-			FD_INT2DTYPE(total_states),
-			FD_INT2DTYPE(total_inputs),
-			FD_INT2DTYPE(total_sentences),
-			fd_init_double(NULL,total_parse_time));
+  return fd_make_nvector(4,
+			 FD_INT2DTYPE(total_states),
+			 FD_INT2DTYPE(total_inputs),
+			 FD_INT2DTYPE(total_sentences),
+			 fd_init_double(NULL,total_parse_time));
 }
 
 static fdtype lisp_report_stats()
