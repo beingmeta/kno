@@ -234,6 +234,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     else return x;
   case fd_cons_ptr_type:
     if ((FD_PTR_TYPEP(x,fd_pair_type)) ||
+	(FD_PTR_TYPEP(x,fd_rail_type)) ||
 	(FD_PTR_TYPEP(x,fd_choice_type)) ||
 	(FD_PTR_TYPEP(x,fd_achoice_type)))
       return fd_eval(x,env);
@@ -258,7 +259,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
       else return val;}
     else return x;
   case fd_cons_ptr_type:
-    if (FD_PTR_TYPEP(x,fd_pair_type))
+    if ((FD_PTR_TYPEP(x,fd_pair_type))||(FD_PTR_TYPEP(x,fd_rail_type)))
       return fd_tail_eval(x,env);
     else if ((FD_PTR_TYPEP(x,fd_choice_type)) ||
 	     (FD_PTR_TYPEP(x,fd_achoice_type)))

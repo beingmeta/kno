@@ -415,7 +415,8 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       int i=0; free_env=1;
       if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
       bindings.values=vals;
-      {FD_DOLIST(arg,fn->arglist)
+      if (FD_PAIRP(fn->arglist)) {
+	FD_DOLIST(arg,fn->arglist)
 	  if (i<n) {
 	    fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
 	  else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
@@ -424,6 +425,17 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	    fdtype default_value=fd_eval(default_expr,fn->env);
 	    vals[i]=default_value; i++;}
 	  else vals[i++]=FD_VOID;}
+      else if (FD_RAILP(fn->arglist)) {
+	struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
+	int len=v->length; fdtype *dflts=v->data;
+	if (i<n) {
+	  fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
+	else if (i>=len) vals[i++]=FD_VOID;
+	else {
+	  fdtype default_expr=dflts[i];
+	  fdtype default_value=fd_eval(default_expr,fn->env);
+	  vals[i]=default_value; i++;}}
+      else {}
       assert(i==fn->n_vars);}
   else { /* We have a lexpr */
     int i=0, j=n-1; free_env=1;

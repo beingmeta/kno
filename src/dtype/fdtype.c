@@ -66,7 +66,10 @@ static void init_type_names()
   fd_type_names[fd_error_type]=_("error");
   fd_type_names[fd_complex_type]=_("complex");
   fd_type_names[fd_rational_type]=_("rational");
-  fd_type_names[fd_timestamp_type]=_("timestamp");
+  fd_type_names[fd_dtproc_type]=_("dtproc");
+  fd_type_names[fd_tail_call_type]=_("tailcall");
+  fd_type_names[fd_uuid_type]=_("UUID");
+  fd_type_names[fd_rail_type]=_("rail");
 }
 
 static int fdtype_version=101;

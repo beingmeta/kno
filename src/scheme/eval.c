@@ -359,6 +359,8 @@ static fdtype quote_handler(fdtype obj,fd_lispenv env)
   if ((FD_PAIRP(obj)) && (FD_PAIRP(FD_CDR(obj))) &&
       ((FD_CDR(FD_CDR(obj)))==FD_EMPTY_LIST))
     return fd_incref(FD_CAR(FD_CDR(obj)));
+  else if ((FD_RAILP(obj)) && (FD_RAIL_LENGTH(obj)==2))
+    return fd_incref(FD_RAIL_REF(obj,1));
   else return fd_err(fd_SyntaxError,"QUOTE",NULL,obj);
 }
 
@@ -500,12 +502,16 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     if (FD_EXPECT_FALSE(FD_VOIDP(val)))
       return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,expr);
     else return val;}
-  case fd_pair_type: {
-    fdtype head=FD_CAR(expr);
+  case fd_pair_type: case fd_rail_type: {
+    fdtype head=((FD_PAIRP(expr))?(FD_CAR(expr)):(FD_RAIL_REF(expr,0)));
     if (FD_OPCODEP(head))
       return opcode_dispatch(head,expr,env);
     else if (head == quote_symbol)
-      return fd_car(FD_CDR(expr));
+      if (FD_PAIRP(expr))
+	return fd_car(FD_CDR(expr));
+      else {
+	fdtype v=FD_RAIL_REF(expr,0); fd_incref(v);
+	return v;}
     else if (head == comment_symbol)
       return FD_VOID;
     else {
@@ -618,20 +624,21 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
   int n_args=0, i=0, gc_args=0;
   fdtype _argv[FD_STACK_ARGS], *argv, arglist=FD_CDR(expr), results=FD_EMPTY_CHOICE;
   {FD_DOLIST(elt,arglist)
-    if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
-      n_args++;}
+      if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
+	n_args++;}
   if (n_args<FD_STACK_ARGS) argv=_argv;
   else argv=u8_alloc_n(n_args,fdtype);
   {FD_DOLIST(arg,arglist) {
       fdtype argval;
-      if (FD_EXPECT_FALSE((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) continue;
+      if (FD_EXPECT_FALSE
+	  ((FD_PAIRP(arg)) &&(FD_EQ(FD_CAR(arg),comment_symbol)))) continue;
       else argval=fasteval(arg,env);
       if (FD_ABORTP(argval)) {
-	  int j=0; while (j<i) {fd_decref(argv[j]); j++;}
-	  if (argv!=_argv) u8_free(argv);
-	  return argval;}
-	argv[i++]=argval;
-	if (FD_CONSP(argval)) gc_args=1;}}
+	int j=0; while (j<i) {fd_decref(argv[j]); j++;}
+	if (argv!=_argv) u8_free(argv);
+	return argval;}
+      argv[i++]=argval;
+      if (FD_CONSP(argval)) gc_args=1;}}
   {FD_DO_CHOICES(fn,fns) {
       fdtype result=fd_apply(fn,n_args,argv);
       if (FD_ABORTP(result)) {
@@ -649,7 +656,7 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
 
 static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
-  fdtype result=FD_VOID, arglist=FD_CDR(expr);
+  fdtype result=FD_VOID;
   struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
   fdtype _argv[FD_STACK_ARGS], *argv;
   int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
@@ -657,11 +664,11 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   int max_arity=fcn->arity, min_arity=fcn->min_arity;
   int n_params=max_arity, argv_length=max_arity;
   /* First, count the arguments */
-  FD_DOLIST(elt,arglist) {
-    if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
-      n_args++;}
-  /* If the max_arity is less than zero, it's a lexpr, so the
-     number of args is the number of args. */
+  {FD_DOBODY(arg,expr,1) {
+      if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
+	n_args++;}}
+    /* If the max_arity is less than zero, it's a lexpr, so the
+       number of args is the number of args. */
   if (max_arity<0) argv_length=n_args;
   /* Check if there are too many arguments. */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
@@ -675,7 +682,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   /* Otherwise, just use the stack vector */
   else argv=_argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
-  {FD_DOLIST(elt,arglist) {
+  {FD_DOBODY(elt,expr,1) {
     fdtype argval;
     if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol)))
       continue;
@@ -757,11 +764,11 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 
 static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
-  fdtype result=FD_VOID, arglist=FD_CDR(expr);
+  fdtype result=FD_VOID;
   struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
   fdtype _argv[FD_STACK_ARGS], *argv;
   int i=0, n_args=0, args_need_gc=0, free_argv=0;
-  {FD_DOLIST(elt,arglist) {
+  {FD_DOBODY(elt,expr,1) {
       if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
 	n_args++;}}
   if (n_args>FD_STACK_ARGS) {
@@ -770,7 +777,7 @@ static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
     free_argv=1;}
   /* Otherwise, just use the stack vector */
   else argv=_argv;
-  FD_DOLIST(arg,arglist)
+  FD_DOBODY(arg,expr,1)
     if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) {
       fdtype argval=fd_eval(arg,env);
       if ((FD_ABORTP(argval)) || (FD_EMPTY_CHOICEP(argval)) ||
@@ -803,13 +810,26 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
 {
   fdtype value=FD_VOID;
-  while (FD_PAIRP(exprs)) {
-    fd_decref(value);
-    value=fd_eval(FD_CAR(exprs),env);
-    if (FD_ABORTP(value)) return value;
-    exprs=FD_CDR(exprs);}
-  return value;
+  if (FD_PAIRP(exprs)) {
+    fdtype next=FD_CDR(exprs), val;
+    while (FD_PAIRP(exprs))
+      if (FD_EMPTY_LISTP(next))
+	return fd_eval(FD_CAR(exprs),env);
+      else {
+	val=fd_eval(FD_CAR(exprs),env); fd_decref(val);
+	val=FD_VOID; exprs=next;
+	if (FD_PAIRP(exprs)) next=FD_CDR(exprs);}
+    return FD_VOID;}
+  else if (FD_RAILP(exprs)) {
+    struct FD_VECTOR *v=FD_GET_CONS(exprs,fd_rail_type,fd_vector);
+    int len=v->length-1; fdtype *elts=v->data, val=FD_VOID;
+    int i=0; while (i<len) {
+      val=fd_eval(elts[i++],env); fd_decref(val); val=FD_VOID;}
+    if (i>=0) return fd_eval(elts[i],env);
+    else return val;}
+  else return FD_VOID;
 }
+
 /* Module system */
 
 static struct FD_HASHTABLE module_map, safe_module_map;

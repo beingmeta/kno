@@ -26,12 +26,12 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
   test_result=fd_eval(test_expr,env);
   if (FD_ABORTP(test_result)) return test_result;
   else if (FD_FALSEP(test_result))
-    if (FD_PAIRP(else_expr))
+    if ((FD_PAIRP(else_expr))||(FD_RAILP(else_expr)))
       return fd_tail_eval(else_expr,env);
     else return fasteval(else_expr,env);
   else {
     fd_decref(test_result);
-    if (FD_PAIRP(consequent_expr))
+    if ((FD_PAIRP(consequent_expr))||(FD_RAILP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
     else return fasteval(consequent_expr,env);}
 }
@@ -45,19 +45,13 @@ static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
   test_result=fd_eval(test_expr,env);
   if (FD_ABORTP(test_result)) return test_result;
   else if (FD_FALSEP(test_result)) {
-    fdtype alt=FD_CDR(FD_CDR(expr));
-    while (FD_PAIRP(alt)) {
-      if (FD_PAIRP(FD_CDR(alt))) {
-	fdtype alt_expr=FD_CAR(alt); alt=FD_CDR(alt);
-	fdtype result=fd_eval(alt_expr,env);
-	fd_decref(result);}
-      else if (FD_PAIRP(FD_CAR(alt)))
-	return fd_tail_eval(FD_CAR(alt),env);
-      else return fasteval(FD_CAR(alt),env);}
-    return FD_VOID;}
+    fdtype val=FD_VOID;
+    FD_DOBODY(alt,expr,3) {
+      fd_decref(val); val=fd_eval(alt,env);}
+    return val;}
   else {
     fd_decref(test_result);
-    if (FD_PAIRP(consequent_expr))
+    if ((FD_PAIRP(consequent_expr))||(FD_RAILP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
     else return fasteval(consequent_expr,env);}
 }
