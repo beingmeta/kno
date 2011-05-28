@@ -108,8 +108,8 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
       else {
 	*vloc=elt;
 	if (iloc) *iloc=FD_INT2DTYPE(i);}
-      {FD_DOBODY(expr,expr,2) {
-	fdtype val=fasteval(expr,&envstruct);
+      {FD_DOBODY(step,expr,2) {
+	fdtype val=fasteval(step,&envstruct);
 	if (FD_THROWP(val)) {
 	  fd_decref(choices);
 	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);

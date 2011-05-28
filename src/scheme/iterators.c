@@ -191,7 +191,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT2DTYPE(i);}
-    {FD_DOBODY(subexpr,expr,1) {
+    {FD_DOBODY(subexpr,expr,2) {
       fdtype val=fasteval(subexpr,&envstruct);
       if (FD_THROWP(val)) {
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);

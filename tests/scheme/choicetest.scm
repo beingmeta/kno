@@ -75,11 +75,11 @@
   (set+! state-set-var each))
 
 ;;; Test homogenous/heterogenous merges
-(define homogeous-choices
+(define homogenous-choices
   #({1 2 3} {"one" "two" "three"} {une deux trois}))
 (define hresult {})
 (evaltest #t
-	  (begin (set! hresult (elt homogeous-choices (choice 0 1 2)))
+	  (begin (set! hresult (elt homogenous-choices (choice 0 1 2)))
 		 (stringout hresult)
 		 #t))
 

@@ -283,8 +283,9 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
   if (FD_RAILP(expr)) {
-    struct FD_RAIL *rail=(FD_GET_CONS(expr,fd_rail_type,struct FD_RAIL *));
-    return fd_init_rail(NULL,(rail->length)-i,(&(rail->elt0))+i);}
+    struct FD_VECTOR *rail=(FD_GET_CONS(expr,fd_rail_type,struct FD_VECTOR *));
+    fdtype *data=rail->data; int len=rail->length;
+    return fd_make_rail(len-i,data+i);}
   while (FD_PAIRP(expr))
     if (i == 0) break;
     else if ((FD_PAIRP(FD_CAR(expr))) &&
