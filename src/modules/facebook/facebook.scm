@@ -167,23 +167,23 @@
   (let* ((appkey (config 'fb:key))
 	 (appsecret (config 'fb:secret))
 	 (reqaccess (scripturl "https://graph.facebook.com/oauth/access_token"
-		      "client_id" appkey "redirect_uri" reuri
-		      "client_secret" appsecret "code" code))
+			"client_id" appkey "redirect_uri" reuri
+			"client_secret" appsecret "code" code))
 	 (accessreq (urlget reqaccess))
 	 (access (atoken (get (urlget reqaccess) '%content)))
 	 (reqinfo (scripturl "https://graph.facebook.com/me"
-		    "access_token" access
-		    "fields" "id,name,picture,about,bio,website"))
+		      "access_token" access
+		      "fields" "id,name,picture,about,bio,website"))
 	 (info (jsonparse (urlcontent reqinfo) 24 #[id #t]))
 	 (reqfriends (scripturl "https://graph.facebook.com/me/friends"
-		       "access_token" access
-		       "fields" "name"))
+			 "access_token" access
+			 "fields" "name"))
 	 (reqgroups
 	  (scripturl "https://graph.facebook.com/me/groups"
-	    "access_token" access "fields" "name,description"))
+	      "access_token" access "fields" "name,description"))
 	 (reqpages (scripturl "https://graph.facebook.com/me/likes"
-		     "access_token" access
-		     "fields" "name,description")))
+		       "access_token" access
+		       "fields" "name,description")))
     (debug%watch "FB/AUTHORIZED" info access accessreq)
     (store! info 'type 'user)
     (add! info 'friends
