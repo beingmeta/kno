@@ -1016,6 +1016,15 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+/* Parsing query strings */
+
+static fdtype cgiparse(fdtype qstring)
+{
+  fdtype smap=fd_init_slotmap(NULL,0,NULL);
+  parse_query_string((fd_slotmap)smap,FD_STRDATA(qstring),FD_STRLEN(qstring));
+  return smap;
+}
+
 /* URI mapping */
 
 FD_EXPORT
@@ -1068,6 +1077,9 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim2("CGIDROP!",cgidrop,1));
   fd_idefn(module,fd_make_cprim1x("MAPURL",mapurl,1,fd_string_type,FD_VOID));
   fd_defspecial(module,"CGIVAR",cgivar_handler);
+  
+  fd_idefn(module,fd_make_cprim1x
+	   ("CGIPARSE",cgiparse,1,fd_string_type,FD_VOID));
   
   fd_defspecial(module,"WITHREQ",withreq_handler);
   fd_defspecial(module,"WITHREQOUT",withreqout_handler);
