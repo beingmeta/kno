@@ -37,7 +37,7 @@ FD_EXPORT void fd_pprint_focus
 
 #include <libu8/xfiles.h>
 
-FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape);
+FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape,int);
 
 #define strd u8_strdup
 
@@ -1179,7 +1179,7 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
   if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
   if (n == 1) {
     if (FD_STRINGP(args[0]))
-      fd_uri_output(&out,FD_STRDATA(args[0]),NULL);
+      fd_uri_output(&out,FD_STRDATA(args[0]),NULL,0);
     else if (FD_OIDP(args[0])) {
       FD_OID addr=FD_OID_ADDR(args[0]);
       u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
@@ -1270,31 +1270,32 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
       if (lastc=='?') {}
       else if (lastc=='&') {}
       else u8_putc(out,'&');
-      fd_uri_output(out,varname,NULL);
+      fd_uri_output(out,varname,NULL,0);
       u8_putc(out,'=');
       if (FD_STRINGP(val)) 
-	fd_uri_output(out,FD_STRDATA(val),NULL);
+	fd_uri_output(out,FD_STRDATA(val),NULL,0);
       else if (FD_OIDP(val)) {
 	FD_OID addr=FD_OID_ADDR(val);
 	u8_printf(out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
       else {
 	if (!(nocolon)) u8_putc(out,':');
 	if (FD_SYMBOLP(val))
-	  fd_uri_output(out,FD_SYMBOL_NAME(val),NULL);
+	  fd_uri_output(out,FD_SYMBOL_NAME(val),NULL,0);
 	else {
 	  u8_string as_string=fd_dtype2string(val);
-	  fd_uri_output(out,as_string,NULL);
+	  fd_uri_output(out,as_string,NULL,0);
 	  u8_free(as_string);}}
       lastc=-1;}}
   if (free_varname) u8_free(varname);
 }
 
-static fdtype uriencode_prim(fdtype string,fdtype escape)
+static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
 {
+  int upper=(!(FD_FALSEP(uparg)));
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   if (FD_VOIDP(escape))
-    fd_uri_output(&out,FD_STRDATA(string),NULL);
-  else fd_uri_output(&out,FD_STRDATA(string),FD_STRDATA(escape));
+    fd_uri_output(&out,FD_STRDATA(string),NULL,uparg);
+  else fd_uri_output(&out,FD_STRDATA(string),FD_STRDATA(escape),uparg);
   return fd_stream2string(&out);
 }
 
@@ -1667,16 +1668,18 @@ FD_EXPORT void fd_init_xmloutput_c()
   fdtype fdscripturlplus_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL+",fdscripturlplus,2));
   fdtype uriencode_proc=
-    fd_make_ndprim(fd_make_cprim2x("URIENCODE",uriencode_prim,1,
+    fd_make_ndprim(fd_make_cprim3x("URIENCODE",uriencode_prim,1,
 				   fd_string_type,FD_VOID,
-				   fd_string_type,FD_VOID));
+				   fd_string_type,FD_VOID,
+				   -1,FD_VOID));
   fdtype uridecode_proc=
     fd_make_cprim1x("URIDECODE",uridecode_prim,1,
 		    fd_string_type,FD_VOID);
   fdtype uriout_proc=
-    fd_make_cprim2x
+    fd_make_cprim3x
     ("URIENCODE",uriencode_prim,1,
-     fd_string_type,FD_VOID,fd_string_type,FD_VOID);
+     fd_string_type,FD_VOID,fd_string_type,FD_VOID,
+     -1,FD_VOID);
 
   u8_printf_handlers['k']=markup_printf_handler;
 
