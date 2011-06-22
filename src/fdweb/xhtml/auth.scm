@@ -300,7 +300,8 @@
 	   auth)))
 
 (define (newauth auth)
-  (and (or (not checktoken) (checktoken (authinfo-identity auth) (authinfo-token auth)))
+  (and (or (not checktoken)
+	   (checktoken (authinfo-identity auth) (authinfo-token auth)))
        (let ((realm (authinfo-realm auth))
 	     (identity (authinfo-identity auth))
 	     (oldtoken (authinfo-token auth))
@@ -311,7 +312,8 @@
 	   (checktoken identity (authinfo-token new) #t))
 	 (set-cookie! realm (auth->string new)
 		      auth-cookie-domain auth-cookie-path
-		      (if (or (not auth-sticky-var) (cgiget 'auth-sticky-var #f))
+		      (if (or (not auth-sticky-var)
+			      (cgiget 'auth-sticky-var #f))
 			  (auth-expires new)
 			  #f)
 		      auth-secure)
