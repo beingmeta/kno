@@ -264,9 +264,10 @@ static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
 
 static int curl_add_headers(fd_curl_handle ch,fdtype val)
 {
+  int retval=0;
   FD_DO_CHOICES(v,val) 
     if (FD_STRINGP(v))
-      curl_add_header(ch,FD_STRDATA(v),NULL);
+      retval=curl_add_header(ch,FD_STRDATA(v),NULL);
     else if (FD_PAIRP(v)) {
       fdtype car=FD_CAR(v), cdr=FD_CDR(v); u8_string hdr=NULL;
       if ((FD_SYMBOLP(car)) && (FD_STRINGP(cdr))) 
@@ -278,22 +279,22 @@ static int curl_add_headers(fd_curl_handle ch,fdtype val)
       else if (FD_STRINGP(car))
 	hdr=u8_mkstring("%s: %q",FD_STRDATA(car),cdr);
       else hdr=u8_mkstring("%q: %q",car,cdr);
-      curl_add_header(ch,hdr,NULL);
+      retval=curl_add_header(ch,hdr,NULL);
       u8_free(hdr);}
     else if (FD_SLOTMAPP(v)) {
       fdtype keys=fd_getkeys(v);
       FD_DO_CHOICES(key,keys)
-	if (FD_SYMBOLP(key)) {
+	if ((retval>=0)&&(FD_SYMBOLP(key))) {
 	  fdtype kval=fd_get(v,key,FD_EMPTY_CHOICE); u8_string hdr=NULL;
 	  if (FD_STRINGP(kval))
 	    hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(key),FD_STRDATA(kval));
 	  else hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(key),kval);
-	  curl_add_header(ch,hdr,NULL);
+	  retval=curl_add_header(ch,hdr,NULL);
 	  u8_free(hdr);
 	  fd_decref(kval);}
       fd_decref(keys);}
     else {}
-  return 1;
+  return retval;
 }
 
 FD_EXPORT
@@ -872,8 +873,10 @@ static fdtype urlpost(int n,fdtype *args)
 		       CURLFORM_COPYCONTENTS,out.u8_outbuf,
 		       CURLFORM_CONTENTSLENGTH,out.u8_outptr-out.u8_outbuf,
 		       CURLFORM_END);
-	  u8_free(out.u8_outbuf);}}
-      curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);}
+	  u8_free(out.u8_outbuf);}
+	fd_decref(val);}
+      curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
+      fd_decref(keys);}
     else {
       fd_decref(conn);
       return fd_err(fd_TypeError,"CURLPOST",u8_strdup("postdata"),
@@ -1064,6 +1067,7 @@ FD_EXPORT void fd_init_curl_c()
   decl_text_type("application/xml");
   decl_text_type("application/rss+xml");
   decl_text_type("application/atom+xml");
+  decl_text_type("application/json");
 
   curl_defaults=fd_init_slotmap(NULL,0,NULL);
 
