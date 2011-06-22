@@ -21,6 +21,12 @@
       AUTHORIZE "https://api.twitter.com/oauth/authorize"
       VERIFY "https://api.twitter.com/oauth/access_token"
       KEY TWITTER_KEY SECRET TWITTER_SECRET
+      VERSION "1.0" ]
+    LINKEDIN
+    #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
+      AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
+      VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
+      KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
       VERSION "1.0" ]])
 
 (define default-callback "https://auth.sbooks.net/_appinfo")
