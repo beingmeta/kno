@@ -707,7 +707,7 @@ link-modules:
 	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@module_dir@
 	ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
-              $(DESTDIR)@data_dir@/etc
+              $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
 	cp -pf $(BUILD)/etc/*.el @config_dir@
 	$(INSTALL) @install_dir_opts@ \
