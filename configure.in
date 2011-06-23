@@ -494,11 +494,15 @@ if test x$with_mysql != "xno"; then
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
+AC_ARG_WITH(odbc,--with[out]-odbc Build odbc libraries,,with_odbc="yes")
+
+if test "x$with_odbc" == "xyes"; then
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test $have_sql_h = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
   CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
+fi
 fi
 
 if test $have_sql_h = "yes"; then
@@ -538,6 +542,9 @@ if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
   INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
 fi
 
+AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools="yes")
+
+if test "x$with_ziptools" == "xyes"; then
 AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
 if (test "x$have_zip_h" = "xyes"); then
   AC_CHECK_LIB(zip,zip_add)
@@ -547,7 +554,11 @@ if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
   CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
 fi
+fi
 
+AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
+
+if test "x$with_tidy" == "xyes"; then
 AC_CHECK_HEADER(tidy.h,have_tidy_h="yes",have_tidy_h="no")
 if (test "x$have_tidy_h" = "xyes"); then
   AC_DEFINE(HAVE_TIDY_H,1)
@@ -565,6 +576,7 @@ fi
 if (test "x$have_libtidy" = "xyes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
+fi
 fi
 
 dnl When available, use the thread-optimized tcmalloc functions from

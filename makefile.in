@@ -576,9 +576,10 @@ etc/rpms.done: etc/framerd-@VERSION@.tar.gz
 
 # Installation targets
 
-install: confdirs @INSTALLI18N@                        \
+install: install-core install-cmodules
+install-core: confdirs @INSTALLI18N@                   \
 	 install-static install-shared install-headers \
-         install-exe install-scripts install-cmodules
+         install-exe install-scripts 
 
 $(INCINSTALLDIR):
 	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
