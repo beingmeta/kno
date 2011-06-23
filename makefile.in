@@ -110,7 +110,7 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 
 CONFDIRS=$(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@standard_module_dir@/safe \
-		 @config_dir@ @config_dir@/config
+		 $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config
 
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
