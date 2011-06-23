@@ -704,7 +704,7 @@ link-modules:
 	ln -sf $(BUILD)/etc/*.el @config_dir@
 	ln -sf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
 	ln -sf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
-	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@module_dir@
+	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
@@ -715,7 +715,8 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
 	   $(DESTDIR)@safe_module_dir@
 	cp -prf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
-	cp -prf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@module_dir@
+	cp -prf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
+	cp -prf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	cp -prf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
 $(DESTDIR)/etc/init.d:
