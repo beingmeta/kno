@@ -709,7 +709,7 @@ link-modules:
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
-	cp -pf $(BUILD)/etc/*.el @data_dir@
+	cp -pf $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
 	$(INSTALL) @install_dir_opts@ \
            $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
