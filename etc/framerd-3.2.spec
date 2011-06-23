@@ -165,9 +165,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.table
-%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knowlets/*.dtype
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.table
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.dtype
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/en.*
 %{_libdir}/libfdtype.so.*
@@ -248,19 +248,19 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtagger.so
 %{_libdir}/libtagger.a
 
-# %files odbc
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/odbc.so*
-# 
-# %files tidy
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/tidy.so*
-# 
-# %files ziptools
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/ziptools.so*
+%files odbc
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/odbc.so*
+ 
+%files tidy
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/tidy.so*
+ 
+%files ziptools
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/ziptools.so*
 
 %changelog
