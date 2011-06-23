@@ -1,12 +1,12 @@
 Name:           framerd
-Version:        3.2
-Release:        18%{?dist}
+Version:        3.3
+Release:        2%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
 License:        GNU GPL
 URL:            http://www.beingmeta.com/
-Source0:        framerd-3.2.tar.gz
+Source0:        framerd-3.3.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel libexif-devel mysql-devel
