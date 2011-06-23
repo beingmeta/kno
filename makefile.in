@@ -22,7 +22,6 @@ INCINSTALLDIR	= $(DESTDIR)@prefix@/include/framerd
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
-CONFDIR		= $(DESTDIR)@data_dir@
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
@@ -111,7 +110,7 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 
 CONFDIRS=$(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@standard_module_dir@/safe \
-		$(CONFDIR) $(CONFDIR)/etc
+		 @config_dir@ @config_dir@/config
 
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
@@ -702,7 +701,7 @@ confdirs:
 
 link-modules:
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
-	ln -sf $(BUILD)/etc/*.el $(CONFDIR)/etc
+	ln -sf $(BUILD)/etc/*.el @config_dir@
 	ln -sf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
 	ln -sf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
 	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@module_dir@
@@ -710,7 +709,7 @@ link-modules:
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@data_dir@/etc
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
-	cp -pf $(BUILD)/etc/*.el $(CONFDIR)/etc
+	cp -pf $(BUILD)/etc/*.el @config_dir@
 	$(INSTALL) @install_dir_opts@ \
            $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
