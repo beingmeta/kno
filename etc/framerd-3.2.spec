@@ -188,6 +188,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/fdmanager
 %{_bindir}/fdsetconfig
 %{_bindir}/fdgetconfig
+%{_bindir}/fdconfig
 %{_bindir}/pack-pool
 %{_bindir}/pack-index
 %{_bindir}/make-hash-index
