@@ -701,7 +701,7 @@ confdirs:
 
 link-modules:
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
-	ln -sf $(BUILD)/etc/*.el @config_dir@
+	ln -sf $(BUILD)/etc/*.el @data_dir@
 	ln -sf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
 	ln -sf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
 	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
@@ -709,7 +709,7 @@ link-modules:
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
-	cp -pf $(BUILD)/etc/*.el @config_dir@
+	cp -pf $(BUILD)/etc/*.el @data_dir@
 	$(INSTALL) @install_dir_opts@ \
            $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
