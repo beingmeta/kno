@@ -218,19 +218,15 @@
 			   (codewarning (list 'TOOMANYARGS expr value))
 			   (warning "The call to " expr
 				    " provides too many arguments for " value)))
-		       (cons (qc (map-opcode
-				  (cond ((not from) value)
-					((test from '%nosubst head) head)
-					((test from '%volatile head)
-					 `(,%get ,from ',head))
-					(else value))
-				  n-exprs))
-			     (tighten-call (cdr expr) env bound dolex dorail)
-;;; 			     (map (lambda (x)
-;;; 				    (if (empty? x) x
-;;; 					(dotighten (qc x) env bound dolex dorail)))
-;;; 				  (cdr expr))
-			     ))
+		       (callcons (qc (map-opcode
+				      (cond ((not from) value)
+					    ((test from '%nosubst head) head)
+					    ((test from '%volatile head)
+					     `(,%get ,from ',head))
+					    (else value))
+				      n-exprs))
+				 (tighten-call (cdr expr) env bound dolex dorail)
+				 dorail))
 		      ((and (ambiguous? value)
 			    (exists applicable? value)
 			    (not (singleton? (applicable? value))))
@@ -264,6 +260,11 @@
 				  (apply append bound)))
 		       expr))))))
 
+(define (callcons head tail dorail)
+  (if dorail
+      (->rail (cons head (->list tail)))
+      (cons head tail)))
+
 (define (ident x) x)
 (define (->rail x) (apply make-rail x))
 
@@ -278,10 +279,10 @@
       expr))
 (defambda (tighten-args expr env bound dolex dorail)
   (if (pair? expr)
-      (forseq (arg expr) (dotighten (car expr) env bound dolex dorail))
+      (forseq (arg expr) (dotighten arg env bound dolex dorail))
       expr))
 
-(define (optimize-procedure! proc (dolex #t) (dorail #t))
+(define (optimize-procedure! proc (dolex #t) (dorail #f))
   (let* ((env (procedure-env proc))
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
@@ -454,7 +455,7 @@
 		    (cddr expr))))
 
 (define (tighten-unwind-protect handler expr env bound dolex dorail)
-  `(,handler ,(dotighten (cadr expr) env bound dolex)
+  `(,handler ,(dotighten (cadr expr) env bound dolex dorail)
 	     ,@(map (lambda (uwclause)
 		      (dotighten uwclause env bound dolex dorail))
 		    (cddr expr))))
