@@ -545,7 +545,8 @@ FD_EXPORT fdtype fd_make_nrail(int len,...)
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 {
   int i=0;
-  struct FD_VECTOR *ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  struct FD_VECTOR *ptr=u8_malloc
+    (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
   ptr->length=len; ptr->data=elts; ptr->freedata=0;
