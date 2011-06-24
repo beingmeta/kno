@@ -1354,13 +1354,13 @@ static fdtype seq2vector(fdtype seq)
 static fdtype seq2rail(fdtype seq)
 {
   if (FD_EMPTY_LISTP(seq))
-    return fd_init_vector(NULL,0,NULL);
+    return fd_make_rail(0,NULL);
   else if (FD_SEQUENCEP(seq)) {
     int n; fdtype *data=fd_elts(seq,&n);
     fdtype result=fd_make_rail(n,data);
     u8_free(data);
     return result;}
-  else return fd_type_error(_("sequence"),"seq2vector",seq);
+  else return fd_type_error(_("sequence"),"seq2rail",seq);
 }
 
 static fdtype seq2list(fdtype seq)
@@ -1665,7 +1665,9 @@ static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
 
 static fdtype make_rail(int n,fdtype *elts)
 {
-  return fd_init_rail(NULL,n,elts);
+  int i=0; while (i<n) {
+    fdtype v=elts[i++]; fd_incref(v);}
+  return fd_make_rail(n,elts);
 }
 
 /* side effecting operations (not threadsafe) */
