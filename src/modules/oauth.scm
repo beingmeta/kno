@@ -3,11 +3,15 @@
 
 (in-module 'oauth)
 
-(use-module '{fdweb ezrecords extoids jsonout})
-(use-module '{texttools logger})
+(use-module '{fdweb ezrecords extoids jsonout varconfig})
+(use-module '{texttools logger fdweb/auth})
+
+(define getuser #f)
+(varconfig! oauth:getuser getuser)
 
 (module-export!
- '{oauth/request oauth/authurl oauth/verify
+ '{oauth
+   oauth/request oauth/authurl oauth/verify
    oauth/call oauth/get oauth/post oauth/put
    oauth/signature})
 
@@ -21,13 +25,15 @@
       AUTHORIZE "https://api.twitter.com/oauth/authorize"
       VERIFY "https://api.twitter.com/oauth/access_token"
       KEY TWITTER_KEY SECRET TWITTER_SECRET
-      VERSION "1.0" ]
+      VERSION "1.0"
+      REALM TWITTER]
     LINKEDIN
     #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
       AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
       VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
       KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
-      VERSION "1.0" ]])
+      VERSION "1.0"
+      REALM LINKEDIN]])
 
 (define default-callback "https://auth.sbooks.net/_appinfo")
 
@@ -246,8 +252,21 @@
 
 ;;; For cgicall
 
+(define oauth-pending (make-hashtable))
 (define oauth-info (make-hashtable))
 
-(define (oauth (oauth_provider #f) (oauth_token #f) (oauth_verifier #f))
-  (cond (oauth_verifier
-	 )))
+(define (oauth (oauth_realm #f) (oauth_token #f) (oauth_verifier #f))
+  (if oauth_verifier
+      (let* ((state (get oauth-pending oauth_token))
+	     (verified (oauth/verify state oauth_verifier)))
+	(drop! oauth-pending oauth_token)
+	(store! oauth-info oauth_token (cons verified (cdr state)))
+	(auth/identify! (getuser (cons verified (cdr state)))))
+      (and oauth_realm
+	   (let* ((state (oauth/request oauth_realm))
+		  (url (oauth/authurl state)))
+	     (store! oauth-pending state)
+	     (cgiset! 'status 300)
+	     (httpheader "Location: " (uriencode url))
+	     #t))))
+
