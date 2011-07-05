@@ -4,7 +4,7 @@
 (in-module 'oauth)
 
 (use-module '{fdweb ezrecords extoids jsonout varconfig})
-(use-module '{texttools logger fdweb/auth})
+(use-module '{texttools logger xhtml/auth})
 
 (define getuser #f)
 (varconfig! oauth:getuser getuser)
