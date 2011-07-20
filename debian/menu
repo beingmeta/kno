@@ -1,4 +1,2 @@
-?package(framerd):needs=text section=Apps/Databases\
-  title="framerd" command="/usr/bin/fdscript"
 ?package(framerd):needs=text section=Apps/Shells\
-  title="framerd" command="/usr/bin/fdscript"
+  title="framerd" command="/usr/bin/fdconsole"
