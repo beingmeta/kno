@@ -1,5 +1,5 @@
 # -*- Mode: Makefile; -*-
-# Copyright (C) 2004-2008 beingmeta, inc.
+# Copyright (C) 2004-2011 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation, FDB.
 MAKEFILE_VERSION="$Id$"
 
@@ -228,7 +228,7 @@ exe/%@suffix@: src/exe/%.c
 		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
 		-lfdweb@suffix@ -ltexttools@suffix@                \
-		-ltagger@suffix@ -lfdbserv@suffix@                 \
+		-lfdbserv@suffix@                 \
 		@xdynamic_scheme_libs@
 
 # We can selectively link some executables statically to avoid 
