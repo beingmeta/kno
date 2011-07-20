@@ -1,4 +1,4 @@
-#!/usr/bin/fdscript
+#!/usr/bin/env fdexec
 ;;; -*- Mode: fdscript; -*-
 
 ;;; Copyright (C) 2002, beingmeta, inc.

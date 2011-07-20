@@ -1,4 +1,4 @@
-#!/usr/bin/fdscript
+#!/usr/bin/env fdexec
 ;;; -*- Mode: fdscript; -*-
 
 ;; Usage: extend-background freqdata background [concept-index] indices...
