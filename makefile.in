@@ -555,7 +555,9 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 rpmtar: etc/framerd-@VERSION@.tar.gz
 cleanrpms: 
-	rm etc/rpms.done
+	rm -rf etc/rpms.done etc/framerd-@VERSION@.tar.gz etc/framerd-@VERSION@
+freshrpms: 
+	rm -rf etc/rpms.done etc/framerd-@VERSION@.tar.gz etc/framerd-@VERSION@
 	make rpms
 rpms: etc/rpms.done
 
