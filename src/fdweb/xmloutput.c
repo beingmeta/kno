@@ -71,6 +71,7 @@ static void attrib_entify(u8_output out,u8_string value)
     if (strchr("'<>&\"!@$%()-+{}[]",c)) 
       switch(c) {
       case '\'': u8_puts(out,"&#39;"); break;
+      case '\"': u8_puts(out,"&#34;"); break;
       case '<': u8_puts(out,"&#60;"); break;
       case '>': u8_puts(out,"&#62;"); break;
       case '&': u8_puts(out,"&#38;"); break;
