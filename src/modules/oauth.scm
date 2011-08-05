@@ -35,7 +35,14 @@
        VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
        KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
        VERSION "1.0"
-       REALM LINKEDIN]])
+       REALM LINKEDIN]
+     GOOGLE
+     #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
+       AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
+       VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
+       KEY GOOGLE_KEY SECRET GOOGLE_SECRET
+       VERSION "1.0"
+       REALM GOOGLE]])
 
 (define default-callback "https://auth.sbooks.net/_appinfo")
 
