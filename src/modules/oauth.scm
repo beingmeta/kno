@@ -6,34 +6,43 @@
 (use-module '{fdweb ezrecords extoids jsonout varconfig})
 (use-module '{texttools logger xhtml/auth})
 
-(define getuser #f)
+(define-init getuser #f)
 (varconfig! oauth:getuser getuser)
 
 (module-export!
  '{oauth
    oauth/request oauth/authurl oauth/verify
-   oauth/call oauth/get oauth/post oauth/put
+   oauth/call oauth/call* oauth/get oauth/post oauth/put
    oauth/signature})
 
 (define-init %loglevel %notice!)
 ;;(define %loglevel %debug!)
 ;;(set! %loglevel  %debug!)
 
+;;; Server info
+
 (define oauth-servers
-  #[TWITTER
-    #[REQUEST "https://api.twitter.com/oauth/request_token"
-      AUTHORIZE "https://api.twitter.com/oauth/authorize"
-      VERIFY "https://api.twitter.com/oauth/access_token"
-      KEY TWITTER_KEY SECRET TWITTER_SECRET
-      VERSION "1.0"
-      REALM TWITTER]
-    LINKEDIN
-    #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
-      AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
-      VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
-      KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
-      VERSION "1.0"
-      REALM LINKEDIN]])
+  `#[TWITTER
+     #[REQUEST "https://api.twitter.com/oauth/request_token"
+       AUTHORIZE "https://api.twitter.com/oauth/authorize"
+       VERIFY "https://api.twitter.com/oauth/access_token"
+       KEY TWITTER_KEY SECRET TWITTER_SECRET
+       VERSION "1.0"
+       REALM TWITTER]
+     LINKEDIN
+     #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
+       AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
+       VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
+       KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
+       VERSION "1.0"
+       REALM LINKEDIN]
+     GOOGLE
+     #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
+       AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
+       VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
+       KEY GOOGLE_KEY SECRET GOOGLE_SECRET
+       VERSION "1.0"
+       REALM GOOGLE]])
 
 (define default-callback "https://auth.sbooks.net/_appinfo")
 
@@ -57,14 +66,22 @@
     (let ((keys {}) (scan params)
 	  (ptable (make-hashtable)))
       (until (null? scan)
-	(if (table? (car scan))
-	    (do-choices (key (difference (getckeys (car scan))
-					 keys))
-	      (set+! keys key)
-	      (store! ptable key (uriencode (get (car scan) key))))
-	    (begin (set+! keys (car scan))
-	      (store! ptable (car scan) (cadr scan))
-	      (set! scan (cdr scan))))
+	(if (null? (car scan))
+	    (begin)
+	    (if (and (pair? (car scan)) (pair? (cdr (car scan))))
+		(let ((args (car scan)))
+		  (until (null? args)
+		    (unless (overlaps? (car args) keys)
+		      (set+! keys (car args))
+		      (store! ptable (car args) (uriencode (cadr args))))
+		    (set! args (cddr args))))
+		(if (table? (car scan))
+		    (do-choices (key (difference (getkeys (car scan)) keys))
+		      (set+! keys key)
+		      (store! ptable key (uriencode (get (car scan) key))))
+		    (begin (set+! keys (car scan))
+		      (store! ptable (car scan) (cadr scan))
+		      (set! scan (cdr scan))))))
 	(set! scan (cdr scan)))
       (doseq (key (lexsorted keys) i)
 	(if (> i 0)  (printout "%26"))
@@ -75,7 +92,10 @@
 		  (uriencode (stringout v))))))))))
 
 (define (oauth/request spec (ckey) (csecret))
-  (if (symbol? spec) (set! spec (get oauth-servers spec)))
+  (if (and (pair? spec) (symbol? (cdr spec)))
+      (set-cdr! spec (get oauth-servers (cdr spec)))
+      (if (symbol? spec) (set! spec (get oauth-servers spec))))
+  (debug%watch "OAUTH/REQUEST" spec)
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
@@ -86,7 +106,9 @@
     (error "OAUTH/REQUEST: No consumer key/secret: " spec))
   (let* ((nonce (uuid->string (getuuid)))
 	 (endpoint (getopt spec 'request))
-	 (callback (uriencode (getopt spec 'callback default-callback)))
+	 (callback (uriencode (getopt spec 'callback
+				      (cgiget 'oauth_callback
+					      default-callback))))
 	 (now (time))
 	 (sigstring
 	  (oauth/signature
@@ -108,8 +130,9 @@
 	    "oauth_signature=\"" (uriencode (packet->base64 sig)) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (urlget endpoint (curlopen 'header auth-header 'method 'POST))))
-    (and (test req 'response 200)
-	 (cons (cgiparse (get req '%content)) spec))))
+    (if (test req 'response 200)
+	(debug%watch (cons (cgiparse (get req '%content)) spec) "OATH/REQUEST")
+	(error "Can't get request token" req))))
 
 (define (oauth/authurl spec)
   (unless (and (getopt spec 'authorize) (getopt spec 'oauth_token))
@@ -125,6 +148,7 @@
     (error "OAUTH/VERIFY: Invalid OAUTH spec: " spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
+  (debug%watch "OAUTH/VERIFY" verifier spec)
   (unless (and ckey csecret)
     (error "OAUTH/VERIFY: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
@@ -169,9 +193,10 @@
 
 ;;; Actually calling the API
 
-(define (oauth/call spec method endpoint args (ckey) (csecret))
+(define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
+  (debug%watch "OAUTH/CALL" method endpoint args)
   (unless (and ckey csecret)
     (error "OAUTH/CALL: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
@@ -219,8 +244,12 @@
 					 'header auth-header
 					 'method method)
 			       (args->post args))))))
-    (debug%watch sigstring auth-header now nonce)
-    req))
+    (debug%watch sigstring auth-header now nonce req)
+    (if (test req 'response 200)
+	(cons (jsonparse (get req '%content)) (cdr spec))
+	req)))
+(define (oauth/call* spec method endpoint . args)
+  (oauth/call spec method endpoint args))
 
 (define (args->post args)
   (stringout (do-choices (key (getckeys args) i)
@@ -252,8 +281,8 @@
 
 ;;; For cgicall
 
-(define oauth-pending (make-hashtable))
-(define oauth-info (make-hashtable))
+(define-init oauth-pending (make-hashtable))
+(define-init oauth-info (make-hashtable))
 
 (define (oauth (oauth_realm #f) (oauth_token #f) (oauth_verifier #f))
   (if oauth_verifier
@@ -261,12 +290,14 @@
 	     (verified (oauth/verify state oauth_verifier)))
 	(drop! oauth-pending oauth_token)
 	(store! oauth-info oauth_token (cons verified (cdr state)))
-	(auth/identify! (getuser (cons verified (cdr state)))))
+	(let ((user (getuser (cons verified (cdr state)))))
+	  (debug%watch "OAUTH/complete" user verified state)
+	  user))
       (and oauth_realm
 	   (let* ((state (oauth/request oauth_realm))
 		  (url (oauth/authurl state)))
-	     (store! oauth-pending state)
+	     (store! oauth-pending (getopt state 'oauth_token) state)
 	     (cgiset! 'status 300)
-	     (httpheader "Location: " (uriencode url))
-	     #t))))
+	     (httpheader "Location: " url)
+	     #f))))
 
