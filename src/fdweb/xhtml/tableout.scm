@@ -9,7 +9,10 @@
     (table* ((class "fdjtdata"))
       (do-choices (key keys)
 	(let ((values (get arg key)))
-	  (cond ((empty? values)
+	  (cond ((not (bound? values))
+		 (unless skipempty
+		   (tr (th key) (td* ((class "empty")) "Oddly deleted value"))))
+		((empty? values)
 		 (unless skipempty
 		   (tr (th key) (td* ((class "empty")) "No values"))))
 		((singleton? values)
@@ -20,4 +23,5 @@
 				  key)
 				(td value))
 			    (tr (td value)))))))))))
+
 
