@@ -9,6 +9,8 @@
 
 (module-export! '{awskey secretawskey awsaccount})
 
+(module-export! '{aws/datesig aws/datesig/head})
+
 ;; Default (non-working) values from the online documentation
 ;;  Helpful for testing requests
 (define secretawskey
@@ -36,4 +38,17 @@
 	       (if (bound? val)
 		   (set! awsaccount val)
 		   awsaccount)))
+
+(define (aws/datesig (date (timestamp)) (spec #{}))
+  (unless date (set! date (timestamp)))
+  (default! method (try (get spec 'method) "HmacSHA1"))
+  ((if (test spec 'algorithm "HmacSHA256") hmac-sha256 hmac-sha1)
+   (try (get spec 'secret) secretawskey)
+   (get (timestamp date) 'rfc822)))
+
+(define (aws/datesig/head (date (timestamp)) (spec #{}))
+  (stringout "X-Amzn-Authorization: AWS3-HTTPS"
+    " AWSAccessKeyId=" (try (get spec 'accesskey) awskey)
+    " Algorithm=" (try (get spec 'algorithm) "HmacSHA1")
+    " Signature=" (packet->base64 (aws/datesig date spec))))
 
