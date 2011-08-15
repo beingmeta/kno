@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2011 beingmeta, inc.  All rights reserved.
 
 (in-module 'aws/s3)
 
@@ -17,7 +17,7 @@
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
 
-(define s3scheme "http://")
+(define s3scheme "https://")
 (varconfig! s3scheme s3scheme)
 
 ;;; This is used by the S3 API sample code and we can use it to
