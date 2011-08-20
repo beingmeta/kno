@@ -722,6 +722,7 @@ ac_user_opts='
 enable_option_checking
 with_optinclude
 with_optlib
+with_optdir
 with_admin_group
 with_fdaemon
 with_webuser
@@ -1410,6 +1411,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
 --with-optinclude Use optional include directory
 --with-optlib Use optional library directory
+--with-optdir Use optional header/lib
 --with-admin-group Install files with admin group and group write permissions
 --with-fdaemon The identity for FramerD servers to run
 --with-webuser The user for the webserver
@@ -3746,6 +3748,37 @@ if test $with_optlib != "none"; then
 fi
 
 
+# Check whether --with-optdir was given.
+if test "${with_optdir+set}" = set; then :
+  withval=$with_optdir;
+else
+  with_optdir="/opt/local"
+fi
+
+if test -d $with_optdir/include; then
+  CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
+  CFLAGS="$CFLAGS -I$with_optdir/include"
+fi
+if test -d $with_optdir/lib; then
+  LDFLAGS="$LDFLAGS -L$with_optdir/lib"
+fi
+if test -d $with_optdir/bin; then
+  PATH="$PATH:$with_optdir/bin"
+fi
+
+
+# Check whether --with-optlib was given.
+if test "${with_optlib+set}" = set; then :
+  withval=$with_optlib;
+else
+  with_optlib="none"
+fi
+
+if test $with_optlib != "none"; then
+  LDFLAGS="$LDFLAGS -L$with_optlib"
+fi
+
+
 # Check whether --with-admin_group was given.
 if test "${with_admin_group+set}" = set; then :
   withval=$with_admin_group;
@@ -5938,6 +5971,7 @@ if test x$with_mysql = "xauto"; then
 elif test x$with_mysql = "xyes"; then
   MYSQL_CFLAGS="\`mysql_config --cflags\`"
   MYSQL_LDFLAGS="\`mysql_config --libs_r\`"
+  EXELDFLAGS="$LDFLAGS \`mysql_config --libs_r\`"
 elif test x$with_mysql != "xno"; then
   MYSQL_CFLAGS="-I$with_mysql/include"
   MYSQL_LDFLAGS="-I$with_mysql/lib"
