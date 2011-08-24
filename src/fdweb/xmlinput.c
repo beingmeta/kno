@@ -68,6 +68,7 @@ static fdtype attribs_symbol, content_symbol, type_symbol;
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
 static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol, autoclose_symbol;
 static fdtype noempty_symbol, data_symbol, decode_symbol, ishtml_symbol;
+static fdtype comment_symbol, cdata_symbol;
 
 static fdtype nsref2slotid(u8_string s)
 {
@@ -539,7 +540,21 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
 FD_EXPORT
 void fd_default_contentfn(FD_XML *node,u8_string s,int len)
 {
-  add_content(node,fdtype_string(s));
+  if (strncmp(s,"<!--",4)==0) {
+    fdtype cnode=fd_init_slotmap(NULL,0,NULL);
+    fd_store(cnode,name_symbol,comment_symbol);
+    fd_store(cnode,content_symbol,
+	     fd_init_pair(NULL,fd_extract_string(NULL,s+4,s+(len-3)),
+			  FD_EMPTY_LIST));
+    add_content(node,cnode);}
+  else if (strncmp(s,"<![CDATA[",9)==0) {
+    fdtype cnode=fd_init_slotmap(NULL,0,NULL);
+    fd_store(cnode,name_symbol,cdata_symbol);
+    fd_store(cnode,content_symbol,
+	     fd_init_pair(NULL,fd_extract_string(NULL,s+9,s+(len-3)),
+			  FD_EMPTY_LIST));
+    add_content(node,cnode);}
+  else add_content(node,fdtype_string(s));
 }
 
 FD_EXPORT
@@ -805,28 +820,41 @@ void *fd_walk_xml(U8_INPUT *in,
 	contentfn(node,reconstituted,size+2);
 	u8_free(reconstituted);}}
     else if (type == xmlcomment) {
-      u8_byte *remainder=NULL, *combined; int more_data=0;
+      u8_byte *remainder=NULL, *combined;
+      int combined_len, more_data=0;
       if (strcmp((buf+size-2),"--")) 
+	/* If the markup end isn't --, we still need to find the
+	   content end (plus more content) */
 	remainder=u8_gets_x(NULL,0,in,"-->",&more_data);
       if (more_data)
-	combined=u8_string_append("<",buf,">",remainder,"-->",NULL);
-      else combined=u8_string_append("<",buf,">",NULL);
+	combined_len=size+more_data+4;
+      else combined_len=size+2;
+      combined=u8_malloc(combined_len+1);
+      strncpy(combined,"<",1);
+      strncpy(combined+1,buf,size);
+      if (more_data) {
+	strncpy(combined+1+size,remainder,more_data);
+	strncpy(combined+1+size+more_data,"-->",4);}
+      else strncpy(combined+1+size,">",2);
       if (contentfn)
-	if (more_data)
-	  contentfn(node,combined,size+more_data+5);
-	else contentfn(node,combined,size+2);
-      else {}
+	contentfn(node,combined,combined_len);
       u8_free(combined);
       if (more_data) u8_free(remainder);}
     else if (type == xmlcdata) {
-      u8_byte *remainder=NULL, *combined; int more_data=0;
+      u8_byte *remainder=NULL, *combined;
+      int more_data=0, combined_len;
       if (strcmp((buf+size-2),"]]")) 
 	remainder=u8_gets_x(NULL,0,in,"]]>",&more_data);
-      if (more_data)
-	combined=
-	  u8_string_append("<",buf,">",remainder,"]]>",NULL);
-      else combined=u8_string_append("<",buf,">",NULL);
-      if (contentfn) contentfn(node,combined,size+more_data+5);
+      if (more_data) combined_len=size+more_data+4;
+      else combined_len=size+2;
+      combined=u8_malloc(combined_len+1);
+      strncpy(combined,"<",1);
+      strncpy(combined+1,buf,size);
+      if (more_data) {
+	strncpy(combined+1+size,remainder,more_data);
+	strncpy(combined+1+size+more_data,"]]>",4);}
+      else strncpy(combined+1+size,">",2);
+      if (contentfn) contentfn(node,combined,combined_len);
       u8_free(combined); if (more_data) u8_free(remainder);}
     else if (type == xmldoctype)
       if (strchr(buf,'<')) {}
@@ -999,6 +1027,8 @@ FD_EXPORT void fd_init_xmlinput_c()
   xmlns_symbol=fd_intern("%XMLNS");
 
   raw_name_symbol=fd_intern("%RAWTAG");
+  comment_symbol=fd_intern("%COMMENT");
+  cdata_symbol=fd_intern("%CDATA");
   
   attribids=fd_intern("%ATTRIBIDS");
 

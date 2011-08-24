@@ -36,6 +36,7 @@ static fdtype id_symbol, bind_symbol, xml_env_symbol, xmlns_symbol;
 
 static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
 static fdtype pnode_symbol, pbody_symbol, begin_symbol;
+static fdtype comment_symbol, cdata_symbol;
 
 static fdtype xattrib_overlay, escape_id, attribids, piescape_symbol;
 
@@ -244,47 +245,64 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 {
   if (FD_STRINGP(xml)) {}
   else if (FD_PAIRP(xml)) {}
-  else if (FD_TABLEP(xml)) {
-    fdtype markup=get_markup_string(xml,env);
-    fdtype content=fd_get(xml,content_slotid,FD_VOID);
-    if (FD_ABORTP(markup)) {
-      fd_decref(content); return markup;}
-    else if (FD_ABORTP(content)) {
-      fd_decref(markup); return content;}
-    else if ((FD_EMPTY_CHOICEP(content)) ||
-	     (FD_VOIDP(content)) ||
-	     (FD_EMPTY_LISTP(content))) {
-      if (FD_STRINGP(markup))
-	u8_printf(out,"<%s/>",FD_STRDATA(markup));
-      fd_decref(markup);
+  else if (FD_TABLEP(xml))
+    if (fd_test(xml,elt_name,comment_symbol)) {
+      fdtype content=fd_get(xml,content_slotid,FD_VOID);
+      if (!(FD_PAIRP(content))) return FD_FALSE;
+      u8_puts(out,"<!--");
+      FD_DOLIST(elt,content) {
+	if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
+      u8_puts(out,"-->");
       return FD_VOID;}
-    if (FD_STRINGP(markup))
-      u8_printf(out,"<%s>",FD_STRDATA(markup));
-    if (FD_PAIRP(content)) {
-      FD_DOLIST(item,content) {
-	fdtype result=FD_VOID;
-	if (FD_STRINGP(item))
-	  u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
-	else result=fd_xmleval(out,item,env);
-	if (FD_VOIDP(result)) {}
-	else if (FD_ABORTP(result)) {
-	  fd_decref(content);
-	  return result;}
-	else if ((FD_TABLEP(result)) &&
-		 (fd_test(result,raw_name_slotid,FD_VOID))) {
-	  fd_unparse_xml(out,result,env);
-	  fd_decref(result);}
-	else fd_dtype2xml(out,result,env);
-	fd_decref(result);}}
-    if (FD_STRINGP(markup)) {
-      u8_string mstring=FD_STRDATA(markup);
-      u8_string atspace=strchr(mstring,' ');
-      u8_puts(out,"</");
-      if (atspace) u8_putn(out,mstring,atspace-mstring);
-      else u8_puts(out,mstring);
-      u8_putc(out,'>');}
-    fd_decref(markup); fd_decref(content);
-    return FD_VOID;}
+    else if (fd_test(xml,elt_name,cdata_symbol)) {
+      fdtype content=fd_get(xml,content_slotid,FD_VOID);
+      if (!(FD_PAIRP(content))) return FD_FALSE;
+      u8_puts(out,"<![CDATA[");
+      FD_DOLIST(elt,content) {
+	if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
+      u8_puts(out,"]]>");
+      return FD_VOID;}
+    else {
+      fdtype markup=get_markup_string(xml,env);
+      fdtype content=fd_get(xml,content_slotid,FD_VOID);
+      if (FD_ABORTP(markup)) {
+	fd_decref(content); return markup;}
+      else if (FD_ABORTP(content)) {
+	fd_decref(markup); return content;}
+      else if ((FD_EMPTY_CHOICEP(content)) ||
+	       (FD_VOIDP(content)) ||
+	       (FD_EMPTY_LISTP(content))) {
+	if (FD_STRINGP(markup))
+	  u8_printf(out,"<%s/>",FD_STRDATA(markup));
+	fd_decref(markup);
+	return FD_VOID;}
+      if (FD_STRINGP(markup))
+	u8_printf(out,"<%s>",FD_STRDATA(markup));
+      if (FD_PAIRP(content)) {
+	FD_DOLIST(item,content) {
+	  fdtype result=FD_VOID;
+	  if (FD_STRINGP(item))
+	    u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
+	  else result=fd_xmleval(out,item,env);
+	  if (FD_VOIDP(result)) {}
+	  else if (FD_ABORTP(result)) {
+	    fd_decref(content);
+	    return result;}
+	  else if ((FD_TABLEP(result)) &&
+		   (fd_test(result,raw_name_slotid,FD_VOID))) {
+	    fd_unparse_xml(out,result,env);
+	    fd_decref(result);}
+	  else fd_dtype2xml(out,result,env);
+	  fd_decref(result);}}
+      if (FD_STRINGP(markup)) {
+	u8_string mstring=FD_STRDATA(markup);
+	u8_string atspace=strchr(mstring,' ');
+	u8_puts(out,"</");
+	if (atspace) u8_putn(out,mstring,atspace-mstring);
+	else u8_puts(out,mstring);
+	u8_putc(out,'>');}
+      fd_decref(markup); fd_decref(content);
+      return FD_VOID;}
   else return fd_type_error("XML node","get_markup_string",xml);
 }
 
@@ -1395,6 +1413,8 @@ FD_EXPORT void fd_init_xmleval_c()
   qname_slotid=fd_intern("%QNAME");
   attribs_slotid=fd_intern("%ATTRIBS");
   attribids_slotid=fd_intern("%ATTRIBIDS");
+  comment_symbol=fd_intern("%COMMENT");
+  cdata_symbol=fd_intern("%CDATA");
 
   xattrib_slotid=fd_intern("XATTRIB");
   id_symbol=fd_intern("ID");
