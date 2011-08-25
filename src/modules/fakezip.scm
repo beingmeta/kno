@@ -46,7 +46,7 @@
 	(moreopts '()))
     (unless extra (set! moreopts (cons "-X" moreopts)))
     (checkdir! (dirname fspath))
-    (fileout fspath content)
+    (write-file fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
 	       (apply forkwait
@@ -63,7 +63,7 @@
 	(moreopts '()))
     (unless extra (set! moreopts (cons "-X" moreopts)))
     (checkpath! fspath)
-    (fileout fspath content)
+    (write-file fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
 	       (apply forkwait
