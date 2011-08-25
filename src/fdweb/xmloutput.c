@@ -68,7 +68,9 @@ static void attrib_entify(u8_output out,u8_string value)
 {
   u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
-    if (strchr("'<>&\"!@$%()+{}[]",c)) 
+    if (strchr("'<>&\"!@$%(){}[]",c)) 
+      /* For now, we're not escaping +/-, even though some sources suggest
+	 it would be a good idea. */
       switch(c) {
       case '\'': u8_puts(out,"&#39;"); break;
       case '\"': u8_puts(out,"&#34;"); break;
@@ -81,6 +83,7 @@ static void attrib_entify(u8_output out,u8_string value)
       case ']': u8_puts(out,"&#93;"); break;
       case '{': u8_puts(out,"&#123;"); break;
       case '}': u8_puts(out,"&#125;"); break;
+      case '-': u8_puts(out,"&#45;"); break;
       case '+': u8_puts(out,"&#43;"); break;
       case '@': u8_puts(out,"&#64;"); break;
       case '!': u8_puts(out,"&#33;"); break;
