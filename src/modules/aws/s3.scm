@@ -118,7 +118,7 @@
 (define (s3op op bucket path (content #f) (ctype "text") (headers '()) args)
   (let* ((date (gmtimestamp))
 	 ;; Encode everything, then restore delimiters
-	 (path (string-subst (uriencode path) "%2f" "/"))
+	 (path (string-subst (uriencode path) "%2F" "/"))
 	 (cresource (string-append "/" bucket path))
 	 (contentMD5 (and content (packet->base64 (md5 content))))
 	 (sig (s3/signature op bucket path date  headers
