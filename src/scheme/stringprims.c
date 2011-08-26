@@ -662,6 +662,22 @@ static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
   else return FD_ERROR_VALUE;
 }
 
+static fdtype x2secret_prim(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_secret_type))
+    return fd_incref(arg);
+  else if (FD_PRIM_TYPEP(arg,fd_packet_type)) {
+    fdtype result=fd_make_packet
+      (NULL,FD_PACKET_LENGTH(arg),FD_PACKET_DATA(arg));
+    FD_SET_CONS_TYPE(result,fd_secret_type);
+    return result;}
+  else if (FD_STRINGP(arg)) {
+    fdtype result=fd_make_packet(NULL,FD_STRLEN(arg),FD_STRDATA(arg));
+    FD_SET_CONS_TYPE(result,fd_secret_type);
+    return result;}
+  else return fd_type_error("string/packet","x2secret_prim",arg);
+}
+
 static fdtype packet2string(fdtype packet,fdtype encoding)
 {
   if (FD_PACKET_LENGTH(packet)==0)
@@ -766,6 +782,64 @@ static fdtype trim_spaces(fdtype string)
   if ((trim_start==start) && (trim_end==end))
     return fd_incref(string);
   else return fd_extract_string(NULL,trim_start,trim_end);
+}
+
+/* Glomming */
+
+static fdtype glom_lexpr(int n,fdtype *args)
+{
+  unsigned char *result_data, *write;
+  int i=0; int sumlen=0; fd_ptr_type result_type=FD_PTR_TYPE(args[0]);
+  unsigned char **strings, *stringsbuf[16];
+  int *lengths, lengthsbuf[16];
+  unsigned char *consed, consedbuf[16];
+  if (n>16) {
+    strings=u8_malloc(sizeof(unsigned char *)*n);
+    lengths=u8_malloc(sizeof(int)*n);
+    consed=u8_malloc(sizeof(unsigned char)*n);}
+  else {
+    strings=stringsbuf;
+    lengths=lengthsbuf;
+    consed=consedbuf;}
+  while (i<n)
+    if (FD_STRINGP(args[i])) {
+      sumlen=sumlen+FD_STRLEN(args[i]);
+      strings[i]=FD_STRDATA(args[i]);
+      lengths[i]=FD_STRLEN(args[i]);
+      consed[i++]=0;}
+    else if (FD_PACKETP(args[i])) {
+      sumlen=sumlen+FD_PACKET_LENGTH(args[i]);
+      strings[i]=FD_PACKET_DATA(args[i]);
+      lengths[i]=FD_PACKET_LENGTH(args[i]);
+      if (FD_PRIM_TYPEP(args[i],fd_secret_type))
+	result_type=fd_secret_type;
+      else if (result_type!=fd_secret_type)
+	result_type=fd_packet_type;
+      consed[i++]=0;}
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+      fd_unparse(&out,args[i]);
+      sumlen=sumlen+out.u8_outptr-out.u8_outbuf;
+      strings[i]=out.u8_outbuf;
+      lengths[i]=out.u8_outptr-out.u8_outbuf;
+      consed[i++]=1;}
+  write=result_data=u8_malloc(sumlen);
+  i=0; while (i<n) {
+    memcpy(write,strings[i],lengths[i]);
+    write=write+lengths[i];
+    i++;}
+  i=0; while (i<n) {
+    if (consed[i]) u8_free(strings[i]); i++;}
+  if (n>16) {
+    u8_free(strings); u8_free(lengths); u8_free(consed);}
+  if (result_type==fd_string_type)
+    return fd_init_string(NULL,sumlen,result_data);
+  else if (result_type==fd_packet_type)
+    return fd_init_packet(NULL,sumlen,result_data);
+  else {
+    fdtype result=fd_init_packet(NULL,sumlen,result_data);
+    FD_SET_CONS_TYPE(result,fd_secret_type);
+    return result;}
 }
 
 /* Initialization */
@@ -963,8 +1037,8 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
-
-
+  
+  fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("STRING->PACKET",string2packet,1,
@@ -975,6 +1049,7 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim2x("PACKET->STRING",packet2string,1,
 			   fd_packet_type,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("->SECRET",x2secret_prim,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("FIXNULS",fixnuls,1,fd_string_type,FD_VOID));
 
