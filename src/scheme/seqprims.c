@@ -428,6 +428,9 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
     unsigned char *bytes=u8_malloc(n); int i=0;
     while (i < n) {
       if (FD_FIXNUMP(v[i])) bytes[i]=FD_FIX2INT(v[i]);
+      else if (FD_CHARACTERP(v[i])) {
+	unsigned int code=FD_CHAR2CODE(v[i]);
+	bytes[i]=code&0xFF;}
       else {
 	u8_free(bytes);
 	return fd_type_error(_("byte"),"fd_makeseq",v[i]);}
@@ -491,6 +494,16 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     while (i < n) {
       fdtype seq=sequences[i];
       if ((FD_EMPTY_LISTP(seq)) && (result_type==fd_pair_type)) {}
+      else if (FD_PTR_TYPE(seq) == result_type) {}
+      else if ((result_type==fd_secret_type)&&
+	       ((FD_PTR_TYPE(seq)==fd_packet_type)||
+		(FD_PTR_TYPE(seq)==fd_string_type))) {}
+      else if ((result_type==fd_packet_type)&&(FD_PTR_TYPE(seq)==fd_secret_type))
+	result_type=fd_secret_type;
+      else if ((result_type==fd_string_type)&&(FD_PTR_TYPE(seq)==fd_secret_type))
+	result_type=fd_secret_type;
+      else if ((result_type==fd_string_type)&&(FD_PTR_TYPE(seq)==fd_packet_type))
+	result_type=fd_packet_type;
       else if (FD_PTR_TYPE(seq) != result_type) result_type=fd_vector_type;
       elts[i]=fd_elts(seq,&(lengths[i]));
       total_length=total_length+lengths[i];

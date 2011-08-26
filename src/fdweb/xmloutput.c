@@ -137,6 +137,8 @@ static void emit_xmlattrib
   u8_puts(out,"='");
   if (FD_STRINGP(value))
     attrib_entify(out,FD_STRDATA(value));
+  else if (FD_PACKETP(value))
+    attrib_entify(out,FD_PACKET_DATA(value));
   else if (FD_SYMBOLP(value)) {
     u8_putc(out,':');
     attrib_entify(out,FD_SYMBOL_NAME(value));}
@@ -1277,6 +1279,8 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
       u8_putc(out,'=');
       if (FD_STRINGP(val)) 
 	fd_uri_output(out,FD_STRDATA(val),NULL,0);
+      else if (FD_PACKETP(val)) 
+	fd_uri_output(out,FD_PACKET_DATA(val),NULL,0);
       else if (FD_OIDP(val)) {
 	FD_OID addr=FD_OID_ADDR(val);
 	u8_printf(out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
@@ -1294,12 +1298,30 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 
 static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
 {
+  u8_string input; int free_input=0;
   int upper=(!(FD_FALSEP(uparg)));
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+  if (FD_STRINGP(string)) input=FD_STRDATA(string);
+  else if (FD_PACKETP(string)) {
+    int len=FD_PACKET_LENGTH(string);
+    input=u8_malloc(len+1);
+    memcpy(input,FD_PACKET_DATA(string),len);
+    input[len]='\0';
+    free_input=1;}
+  else {
+    input=fd_dtype2string(string);
+    free_input=1;}
   if (FD_VOIDP(escape))
-    fd_uri_output(&out,FD_STRDATA(string),NULL,uparg);
-  else fd_uri_output(&out,FD_STRDATA(string),FD_STRDATA(escape),uparg);
-  return fd_stream2string(&out);
+    fd_uri_output(&out,input,NULL,uparg);
+  else fd_uri_output(&out,input,FD_STRDATA(escape),uparg);
+  if (free_input) u8_free(input);
+  if (FD_STRINGP(string)) return fd_stream2string(&out);
+  else if (FD_PRIM_TYPEP(string,fd_packet_type))
+    return fd_init_packet(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  else {
+    fdtype result=fd_init_packet(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    FD_SET_CONS_TYPE(result,fd_secret_type);
+    return result;}
 }
 
 static int xdigit_weight(int c)
@@ -1672,8 +1694,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL+",fdscripturlplus,2));
   fdtype uriencode_proc=
     fd_make_ndprim(fd_make_cprim3x("URIENCODE",uriencode_prim,1,
-				   fd_string_type,FD_VOID,
-				   fd_string_type,FD_VOID,
+				   -1,FD_VOID,fd_string_type,FD_VOID,
 				   -1,FD_VOID));
   fdtype uridecode_proc=
     fd_make_cprim1x("URIDECODE",uridecode_prim,1,
@@ -1681,8 +1702,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fdtype uriout_proc=
     fd_make_cprim3x
     ("URIENCODE",uriencode_prim,1,
-     fd_string_type,FD_VOID,fd_string_type,FD_VOID,
-     -1,FD_VOID);
+     -1,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID);
 
   u8_printf_handlers['k']=markup_printf_handler;
 
