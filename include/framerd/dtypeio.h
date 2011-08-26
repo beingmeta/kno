@@ -52,7 +52,8 @@ enum dt_character_subcodes
      { dt_ascii_char=0x00, dt_unicode_char=0x01,
        dt_unicode_string=0x42, dt_unicode_short_string=0x02,
        dt_unicode_symbol=0x43, dt_unicode_short_symbol=0x03,
-       dt_unicode_zstring=0x44, dt_unicode_short_zstring=0x04};
+       dt_unicode_zstring=0x44, dt_unicode_short_zstring=0x04,
+       dt_secret_packet=0x45, dt_short_secret_packet=0x05};
 enum dt_framerd_subtypes
   { dt_choice=0xC0, dt_small_choice=0x80, 
     dt_slotmap=0xC1, dt_small_slotmap=0x81,

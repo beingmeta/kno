@@ -48,6 +48,7 @@ static void init_type_names()
   fd_type_names[fd_symbol_type]=_("symbol");
   fd_type_names[fd_string_type]=_("string");
   fd_type_names[fd_packet_type]=_("packet");
+  fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_bigint_type]=_("bigint");
   fd_type_names[fd_pair_type]=_("pair");
   fd_type_names[fd_compound_type]=_("compound");

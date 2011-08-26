@@ -877,7 +877,7 @@ static unsigned int hash_lisp(fdtype x)
     case fd_string_type: {
       struct FD_STRING *s=FD_GET_CONS(x,fd_string_type,struct FD_STRING *);
       return mult_hash_string(s->bytes,s->length);}
-    case fd_packet_type: {
+    case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=FD_GET_CONS(x,fd_packet_type,struct FD_STRING *);
       return mult_hash_string(s->bytes,s->length);}
     case fd_pair_type: {

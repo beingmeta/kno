@@ -37,7 +37,7 @@ FD_EXPORT int fd_seq_length(fdtype x)
     return FD_VECTOR_LENGTH(x);
   case fd_rail_type:
     return FD_RAIL_LENGTH(x);
-  case fd_packet_type:
+  case fd_packet_type: case fd_secret_type:
     return FD_PACKET_LENGTH(x);
   case fd_pair_type: {
     int i=0; fdtype scan=x;
@@ -63,7 +63,7 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
   case fd_rail_type:
     if (i>=FD_RAIL_LENGTH(x)) return FD_RANGE_ERROR;
     else return fd_incref(FD_RAIL_REF(x,i));
-  case fd_packet_type:
+  case fd_packet_type: case fd_secret_type:
     if (i>=FD_PACKET_LENGTH(x)) return FD_RANGE_ERROR;
     else {
       int val=FD_PACKET_DATA(x)[i];
@@ -110,10 +110,14 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     else result=fd_init_rail(NULL,end-start,elts);
     u8_free(elts);
     return result;}
-  case fd_packet_type: {
+  case fd_packet_type: case fd_secret_type: {
     unsigned char *data=FD_PACKET_DATA(x);
     if (end<0) end=FD_PACKET_LENGTH(x);
     else if (end>FD_PACKET_LENGTH(x)) return FD_VOID;
+    else if (ctype==fd_secret_type) {
+      fdtype packet=fd_make_packet(NULL,end-start,data+start);
+      FD_SET_CONS_TYPE(packet,ctype);
+      return packet;}
     return fd_make_packet(NULL,end-start,data+start);}
   case fd_pair_type: {
     int j=0; fdtype scan=x, head=FD_EMPTY_LIST, *tail=&head;
@@ -169,7 +173,7 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
 	else start++;
       else start++;
     return -1;}
-  case fd_packet_type: {
+  case fd_packet_type: case fd_secret_type: {
     unsigned char *data=FD_PACKET_DATA(x);
     int len=FD_PACKET_LENGTH(x), keyval;
     if (end<0) end=len;
@@ -242,7 +246,7 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
     else while (start<end--)
       if (FDTYPE_EQUAL(key,data[end])) return end;
     return -1;}
-  case fd_packet_type: {
+  case fd_packet_type: case fd_secret_type: {
     unsigned char *data=FD_PACKET_DATA(x);
     int len=FD_PACKET_LENGTH(x), keyval;
     if (end<0) end=len;
@@ -362,7 +366,7 @@ fdtype *fd_elts(fdtype seq,int *n)
     fdtype *vec=u8_alloc_n(len,fdtype);
     *n=len;
     switch (ctype) {
-    case fd_packet_type: {
+    case fd_packet_type: case fd_secret_type: {
       unsigned char *packet=FD_PACKET_DATA(seq);
       int i=0; while (i < len) {
 	int byte=packet[i];
@@ -419,7 +423,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
 	return fd_type_error(_("character"),"fd_makeseq",v[i]);}
       i++;}
     return fd_stream2string(&out);}
-  case fd_packet_type: {
+  case fd_packet_type: case fd_secret_type: {
     fdtype result=FD_VOID;
     unsigned char *bytes=u8_malloc(n); int i=0;
     while (i < n) {
@@ -429,6 +433,8 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
 	return fd_type_error(_("byte"),"fd_makeseq",v[i]);}
       i++;}
     result=fd_make_packet(NULL,n,bytes);
+    if (ctype==fd_secret_type) {
+      FD_SET_CONS_TYPE(result,fd_secret_type);}
     u8_free(bytes);
     return result;}
   case fd_vector_type: {
@@ -550,7 +556,8 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
     if (result_type == fd_string_type) {
       if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
 	result_type=fd_vector_type;}
-    else if (result_type == fd_packet_type) {
+    else if ((result_type == fd_packet_type)||
+	     (result_type == fd_secret_type)) {
       if (FD_FIXNUMP(new_elt)) {
 	int intval=FD_FIX2INT(new_elt);
 	if ((intval<0) || (intval>=0x100))
@@ -607,7 +614,8 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
     if (result_type == fd_string_type) {
       if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
 	result_type=fd_vector_type;}
-    else if (result_type == fd_packet_type) {
+    else if ((result_type == fd_packet_type)||
+	     (result_type == fd_secret_type)) {
       if (FD_FIXNUMP(new_elt)) {
 	int intval=FD_FIX2INT(new_elt);
 	if ((intval<0) || (intval>=0x100))
@@ -640,7 +648,8 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
       if (result_type == fd_string_type) {
 	if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
 	  result_type=fd_vector_type;}
-      else if (result_type == fd_packet_type) {
+      else if ((result_type == fd_packet_type)||
+	       (result_type == fd_secret_type)) {
 	if (FD_FIXNUMP(new_elt)) {
 	  int intval=FD_FIX2INT(new_elt);
 	  if ((intval<0) || (intval>=0x100))
@@ -1455,7 +1464,7 @@ FD_EXPORT fdtype fd_seq_elts(fdtype x)
 	fdtype elt=fd_incref(FD_VECTOR_REF(x,i));
 	FD_ADD_TO_CHOICE(result,elt); i++;}
       return result;
-    case fd_packet_type:
+    case fd_packet_type: case fd_secret_type:
       len=FD_PACKET_LENGTH(x); while (i < len) {
 	fdtype elt=FD_BYTE2LISP(FD_PACKET_REF(x,i));
 	FD_ADD_TO_CHOICE(result,elt); i++;}
@@ -1499,7 +1508,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
 	fdtype v=*read++; fd_incref(v);
 	FD_ADD_TO_CHOICE(results,v);}
       return results;}
-    case fd_packet_type: {
+    case fd_packet_type: case fd_secret_type: {
       unsigned char *read=FD_PACKET_DATA(x), *lim=read+end;
       while (read<lim) {
 	int v=*read++;
@@ -1710,6 +1719,8 @@ static fdtype seqstring(int n,fdtype *elts) {
   return fd_makeseq(fd_string_type,n,elts);}
 static fdtype seqpacket(int n,fdtype *elts) {
   return fd_makeseq(fd_packet_type,n,elts);}
+static fdtype seqsecret(int n,fdtype *elts) {
+  return fd_makeseq(fd_secret_type,n,elts);}
 static fdtype seqvector(int n,fdtype *elts) {
   return fd_makeseq(fd_vector_type,n,elts);}
 static fdtype seqrail(int n,fdtype *elts) {
@@ -1762,6 +1773,7 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_pair_type]=&pair_seqfns;
   fd_seqfns[fd_string_type]=&string_seqfns;
   fd_seqfns[fd_packet_type]=&packet_seqfns;
+  fd_seqfns[fd_secret_type]=&packet_seqfns;
   fd_seqfns[fd_vector_type]=&vector_seqfns;
   fd_seqfns[fd_rail_type]=&rail_seqfns;
   

@@ -15,6 +15,7 @@ static char versionid[] =
 
 #include <libu8/u8printf.h>
 #include <libu8/u8streamio.h>
+#include <libu8/u8crypto.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -209,6 +210,20 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
     else {
       buf[0]=byte; buf[1]='\0';
       u8_puts(out,buf);}}
+  /* We don't check for an error value until we get here, which means that
+     many of the calls above might have failed, however this shouldn't
+     be a functional problem. */
+  return u8_puts(out,"\"");
+}
+
+static int unparse_secret(U8_OUTPUT *out,fdtype x)
+{
+  struct FD_STRING *s=(struct FD_STRING *)x;
+  unsigned char *bytes=s->bytes; int i=0, len=s->length;
+  unsigned char hashbuf[16], *hash;
+  u8_printf(out,"#*\"%d:",len);
+  hash=u8_md5(bytes,len,hashbuf);
+  while (i<16) {u8_printf(out,"%02x",hash[i]); i++;}
   /* We don't check for an error value until we get here, which means that
      many of the calls above might have failed, however this shouldn't
      be a functional problem. */
@@ -1085,6 +1100,12 @@ fdtype fd_parser(u8_input in)
       return parse_rail(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
+    case '*': {
+      int nextc=u8_getc(in); fdtype result;
+      if (nextc!='"') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      result=parse_packet(in);
+      FD_SET_CONS_TYPE(result,fd_secret_type);
+      return result;}
     case '"': return parse_packet(in);
     case '<':
       return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
@@ -1250,6 +1271,7 @@ FD_EXPORT void fd_init_textio_c()
   fd_unparsers[fd_compound_type]=unparse_compound;
   fd_unparsers[fd_string_type]=unparse_string;
   fd_unparsers[fd_packet_type]=unparse_packet;
+  fd_unparsers[fd_secret_type]=unparse_secret;
   fd_unparsers[fd_vector_type]=unparse_vector;
   fd_unparsers[fd_rail_type]=unparse_rail;
   fd_unparsers[fd_pair_type]=unparse_pair;

@@ -153,7 +153,12 @@ int fdtype_equal(fdtype x,fdtype y)
     if (convert_y) fd_decref(cy);
     return result;}
   else if (!(FD_PTR_TYPEP(y,FD_PTR_TYPE(x))))
-    return 0;
+    if ((FD_PACKETP(x))&&(FD_PACKETP(y)))
+      if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
+      else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
+	return 1;
+      else return 0;
+    else return 0;
   else if (FD_PAIRP(x))
     if (FDTYPE_EQUAL(FD_CAR(x),FD_CAR(y)))
       return (FDTYPE_EQUAL(FD_CDR(x),FD_CDR(y)));
@@ -230,7 +235,7 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
 	if (quick) {
 	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
 	return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
-      case fd_packet_type: {
+      case fd_packet_type: case fd_secret_type: {
 	int xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
 	if (quick) {
 	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
@@ -304,9 +309,12 @@ fdtype fd_deep_copy(fdtype x)
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       return fd_make_string(NULL,s->length,s->bytes);}
-    case fd_packet_type: {
+    case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
-      return fd_make_packet(NULL,s->length,s->bytes);}
+      if (ctype==fd_secret_type) {
+	fdtype result=fd_make_packet(NULL,s->length,s->bytes);
+	FD_SET_CONS_TYPE(result,fd_secret_type);}
+      else return fd_make_packet(NULL,s->length,s->bytes);}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
       struct FD_CHOICE *copy=fd_alloc_choice(n);

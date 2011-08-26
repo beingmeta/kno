@@ -254,6 +254,21 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       output_4bytes(out,s->length);
       output_bytes(out,s->bytes,s->length);
       return 5+s->length;}
+    case fd_secret_type: {
+      struct FD_STRING *s=(struct FD_STRING *) cons;
+      unsigned char *data=s->bytes;
+      unsigned int len=s->length, sz=0;
+      output_byte(out,dt_character_package);
+      if (len<256) {
+	output_byte(out,dt_short_secret_packet);
+	output_byte(out,len);
+	sz=3;}
+      else {
+	output_byte(out,dt_secret_packet);
+	output_4bytes(out,len);
+	sz=6;}
+      output_bytes(out,data,len);
+      return sz+len;}
     case fd_pair_type: {
       unsigned int len=1;
       struct FD_PAIR *p=(struct FD_PAIR *) cons; 
@@ -945,6 +960,10 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
     u8_free(bytes);
     result=fd_make_string(NULL,os.u8_outptr-os.u8_outbuf,os.u8_outbuf);
     u8_close_output(&os);
+    return result;}
+  case dt_secret_packet: case dt_short_secret_packet: {
+    fdtype result=fd_make_packet(NULL,len,bytes);
+    FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
     fdtype sym;

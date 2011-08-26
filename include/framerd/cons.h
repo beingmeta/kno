@@ -251,7 +251,8 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 /* Packets */
 /* Packets are blocks of binary data. */
 
-#define FD_PACKETP(x) (FD_PTR_TYPE(x) == fd_packet_type)
+#define FD_PACKETP(x) \
+  ((FD_PTR_TYPE(x) == fd_packet_type)||(FD_PTR_TYPE(x) == fd_secret_type))
 #define FD_PACKET_LENGTH(x) \
   ((unsigned int)\
    ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length))

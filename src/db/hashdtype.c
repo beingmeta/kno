@@ -286,7 +286,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
     switch (ctype) {
     case fd_string_type:
       return hash_string_dtype2(x);
-    case fd_packet_type:
+    case fd_packet_type: case fd_secret_type:
       return hash_packet(x);
     case fd_pair_type:
       return hash_pair_dtype2(x);
@@ -425,7 +425,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
     switch (ctype) {
     case fd_string_type:
       return hash_string_dtype2(x);
-    case fd_packet_type:
+    case fd_packet_type: case fd_secret_type:
       return hash_packet(x);
     case fd_pair_type:
       return hash_pair_dtype3(x);
