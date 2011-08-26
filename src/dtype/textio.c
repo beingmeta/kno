@@ -198,6 +198,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   struct FD_STRING *s=(struct FD_STRING *)x;
   unsigned char *bytes=s->bytes; int i=0, len=s->length;
   u8_puts(out,"#\"");
+  if (bytes[0]=='!') {u8_puts(out,"\\!"); i++;}
   while (i < len) {
     int byte=bytes[i++]; char buf[16]; 
     if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
@@ -703,7 +704,20 @@ static fdtype parse_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
   int max=128, len=0, c=u8_getc(in);
-  while ((c>=0) && (c<128) && (c!='"')) {
+  if (c=='!') {
+    int byte; char pairbuf[3]; c=u8_getc(in);
+    while ((c>=0) && (c<128) && (isxdigit(c)) && (c!='"')) {
+      pairbuf[0]=c; c=u8_getc(in);
+      if ((c>=0) && (c<128) && (isxdigit(c)) && (c!='"')) {
+	pairbuf[1]=c; pairbuf[2]='\0';}
+      else break;
+      byte=strtol(pairbuf,NULL,16);
+      if (len>=max) {
+	data=u8_realloc(data,max+128);
+	max=max+128;}
+      data[len]=byte; len++;
+      c=u8_getc(in);}}
+  else while ((c>=0) && (c<128) && (c!='"')) {
     if (len>=max) {
       data=u8_realloc(data,max+128);
       max=max+128;}
@@ -716,6 +730,15 @@ static fdtype parse_packet(U8_INPUT *in)
       else if (obuf[0]=='\\') {
 	data[len++]='\\';
 	continue;}
+      else if (c=='n') {
+	data[len++]='\n';
+	continue;}
+      else if (c=='t') {
+	data[len++]='\t';
+	continue;}
+      else if (c=='#') {
+	data[len++]='#';
+	continue;}
       obuf[1]=c=u8_getc(in);
       obuf[2]='\0';
       if (c<0) return FD_EOX;
@@ -725,9 +748,10 @@ static fdtype parse_packet(U8_INPUT *in)
       else break;}
     else data[len++]=c;
     c=u8_getc(in);}
-  if (c<0) return FD_EOX;
-  else if (c=='"')
+  if (c=='"')
     return fd_init_packet(NULL,len,data);
+  u8_free(data);
+  if (c<0) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
 
