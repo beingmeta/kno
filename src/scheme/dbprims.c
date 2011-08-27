@@ -395,7 +395,8 @@ static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,fdtype load)
 {
   fd_pool p=fd_make_mempool
     (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),FD_FIX2INT(load));
-  return fd_pool2lisp(p);
+  if (p==NULL) return FD_ERROR_VALUE;
+  else return fd_pool2lisp(p);
 }
 
 static fdtype clean_mempool(fdtype pool_arg)

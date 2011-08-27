@@ -92,7 +92,7 @@ static void (*pool_conflict_handler)(fd_pool upstart,fd_pool holder)=NULL;
 
 static void pool_conflict(fd_pool upstart,fd_pool holder);
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base);
-static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
+static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
 
 FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only);
 
@@ -162,12 +162,16 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   else if (fd_top_pools[baseindex] == NULL) {
     struct FD_GLUEPOOL *gluepool=make_gluepool(fd_base_oids[baseindex]);
     fd_top_pools[baseindex]=(struct FD_POOL *)gluepool;
-    add_to_gluepool(gluepool,p);}
+    if (add_to_gluepool(gluepool,p)<0) {
+      fd_unlock_mutex(&pool_registry_lock);
+      return -1;}}
   else if (fd_top_pools[baseindex]->capacity) {
     pool_conflict(p,fd_top_pools[baseindex]);
     fd_unlock_mutex(&pool_registry_lock);
     return -1;}
-  else add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[baseindex],p);
+  else if (add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[baseindex],p)<0) {
+    fd_unlock_mutex(&pool_registry_lock);
+    return -1;}
   fd_unlock_mutex(&pool_registry_lock);
   if (p->label) {
     u8_byte *dot=strchr(p->label,'.');
@@ -200,11 +204,12 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   return pool;
 }
 
-static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
+static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
 {
   if (gp->n_subpools == 0) {
     struct FD_POOL **pools=u8_alloc_n(1,fd_pool);
-    pools[0]=p; gp->n_subpools=1; gp->subpools=pools;}
+    pools[0]=p; gp->n_subpools=1; gp->subpools=pools;
+    return 1;}
   else {
     int comparison=0;
     struct FD_POOL **bottom=gp->subpools;
@@ -219,7 +224,7 @@ static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
       else if (bottom==top) break;
       else if (comparison<0) top=middle-1; else bottom=middle+1;}
     /* If there is a conflict, we report it and quit */
-    if (comparison==0) {pool_conflict(p,*middle); return;}
+    if (comparison==0) {pool_conflict(p,*middle); return -1;}
     /* Now we make a new vector to copy into */
     write=new=u8_alloc_n((gp->n_subpools+1),struct FD_POOL *);
     /* Figure out where we should put the new pool */
@@ -238,6 +243,7 @@ static void add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     gp->subpools=new; gp->n_subpools++;}
   p->serialno=pool_serial_count++;
   pool_serial_table[p->serialno]=p;
+  return 1;
 }
 
 /* Finding the subpool */
@@ -264,10 +270,11 @@ FD_EXPORT fd_pool fd_find_subpool(struct FD_GLUEPOOL *gp,fdtype oid)
 static void pool_conflict(fd_pool upstart,fd_pool holder)
 {
   if (pool_conflict_handler) pool_conflict_handler(upstart,holder);
-  else 
+  else {
     u8_log(LOG_WARN,_("Pool conflict"),
 	   "%s (from %s) and existing pool %s (from %s)\n",
            upstart->label,upstart->source,holder->label,holder->source);
+    u8_seterr(_("Pool confict"),NULL,NULL);}
 }
 
 /* Fetching OID values */
@@ -1114,6 +1121,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->flags=((h->fetchn)?(FD_POOL_BATCHABLE):(0));
   fd_make_hashtable(&(p->cache),64);
   fd_make_hashtable(&(p->locks),0); 
+  FD_INIT_STACK_CONS(&(p->cache),fd_hashtable_type);
+  FD_INIT_STACK_CONS(&(p->locks),fd_hashtable_type);
   p->max_adjuncts=0; p->n_adjuncts=0; p->adjuncts=NULL;
   p->n_locks=0;
   p->handler=h;
@@ -1344,8 +1353,14 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
   struct FD_MEMPOOL *mp=u8_alloc(struct FD_MEMPOOL);
   fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
   mp->load=load; u8_init_mutex(&(mp->lock)); mp->read_only=0;
-  fd_register_pool((fd_pool)mp);
-  return (fd_pool)mp;
+  if (fd_register_pool((fd_pool)mp)<0) {
+    u8_destroy_mutex(&(mp->lock));
+    u8_free(mp->source); u8_free(mp->cid);
+    fd_recycle_hashtable(&(mp->cache));
+    fd_recycle_hashtable(&(mp->locks));
+    u8_free(mp);
+    return NULL;}
+  else return (fd_pool)mp;
 }
 
 static fdtype mempool_alloc(fd_pool p,int n)
