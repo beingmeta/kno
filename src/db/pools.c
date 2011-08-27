@@ -1352,6 +1352,7 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
 {
   struct FD_MEMPOOL *mp=u8_alloc(struct FD_MEMPOOL);
   fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
+  mp->label=u8_strdup(label);
   mp->load=load; u8_init_mutex(&(mp->lock)); mp->read_only=0;
   if (fd_register_pool((fd_pool)mp)<0) {
     u8_destroy_mutex(&(mp->lock));
