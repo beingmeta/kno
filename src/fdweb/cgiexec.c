@@ -496,6 +496,24 @@ static fdtype httpheader(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 	  
+static fdtype addhttpheader(fdtype header)
+{
+  fdtype cgidata=fd_thread_get(cgidata_symbol);
+  if (FD_TABLEP(cgidata)) {
+    fd_add(cgidata,http_headers,header);
+    fd_decref(header);}
+  else {
+    U8_OUTPUT *port=fd_get_default_output();
+    u8_printf(port,"http>> ");
+    if (FD_STRINGP(header)) u8_puts(port,FD_STRDATA(header));
+    else if (FD_PACKETP(header))
+      u8_putn(port,FD_PACKET_DATA(header),FD_PACKET_LENGTH(header));
+    else u8_printf(port,"<<bad header>>");
+    u8_printf(port,"\n");}
+  fd_decref(cgidata);
+  return FD_VOID;
+}
+
 static fdtype htmlheader(fdtype expr,fd_lispenv env)
 {
   U8_OUTPUT out; fdtype result;
@@ -713,9 +731,13 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
     u8_printf(out,"Content-type: %s\r\n",FD_STRDATA(ctype));
   else u8_printf(out,"%s\r\n",DEFAULT_CONTENT_TYPE);
   {FD_DO_CHOICES(header,headers)
-     if (FD_STRINGP(header)) {
-       u8_putn(out,FD_STRDATA(header),FD_STRLEN(header));
-       u8_putn(out,"\r\n",2);}}
+      if (FD_STRINGP(header)) {
+	u8_putn(out,FD_STRDATA(header),FD_STRLEN(header));
+	u8_putn(out,"\r\n",2);}
+      else if (FD_PACKETP(header)) {
+	/* This handles both packets and secrets */
+	u8_putn(out,FD_PACKET_DATA(header),FD_PACKET_LENGTH(header));
+	u8_putn(out,"\r\n",2);}}
   {FD_DO_CHOICES(cookie,cookies)
      if (handle_cookie(out,cgidata,cookie)<0)
        u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
@@ -1065,6 +1087,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   xhtmlout_module=fd_new_module("XHTML",FD_MODULE_SAFE);
 
   fd_defspecial(module,"HTTPHEADER",httpheader);
+  fd_idefn(module,fd_make_cprim1("HTTPHEADER!",addhttpheader,1));
   fd_idefn(module,fd_make_cprim6("SET-COOKIE!",setcookie,2));
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
 
