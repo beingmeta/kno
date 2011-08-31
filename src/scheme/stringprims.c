@@ -821,7 +821,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
       fd_unparse(&out,args[i]);
-      sumlen=sumlen+out.u8_outptr-out.u8_outbuf;
+      sumlen=sumlen+(out.u8_outptr-out.u8_outbuf);
       strings[i]=out.u8_outbuf;
       lengths[i]=out.u8_outptr-out.u8_outbuf;
       consed[i++]=1;}
