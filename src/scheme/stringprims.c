@@ -816,6 +816,8 @@ static fdtype glom_lexpr(int n,fdtype *args)
       else if (result_type!=fd_secret_type)
 	result_type=fd_packet_type;
       consed[i++]=0;}
+    else if ((FD_FALSEP(args[i]))||(FD_EMPTY_CHOICEP(args[i]))||(FD_VOIDP(args[i]))) {
+      strings[i]=NULL; lengths[i]=0; consed[i++]=0;}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
       fd_unparse(&out,args[i]);
@@ -825,6 +827,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
       consed[i++]=1;}
   write=result_data=u8_malloc(sumlen);
   i=0; while (i<n) {
+    if (!(strings[i])) {i++; continue;}
     memcpy(write,strings[i],lengths[i]);
     write=write+lengths[i];
     i++;}
