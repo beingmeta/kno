@@ -86,12 +86,13 @@
     (add! node '%attribids slotid)
     (if (exists? attribs)
 	(begin (drop! node '%attribs attribs)
-	       (add! node '%attribs
-		     (vector (elt attribs 0) (elt attribs 1) stringval))
-	       (store! node (parse-arg aname) val)
-	       (store! node (parse-arg (attrib-name aname)) val)
-	       (add! node '%attribs
-		     (vector (elt attribs 0) (elt attribs 1) stringval)))
+	  (add! node '%attribs
+		(vector (elt attribs 0) (elt attribs 1) stringval))
+	  (store! node (parse-arg aname) val)
+	  (when (attrib-name aname)
+	    (store! node (parse-arg (attrib-name aname)) val))
+	  (add! node '%attribs
+		(vector (elt attribs 0) (elt attribs 1) stringval)))
 	(add! node '%attribs (vector aname #f stringval)))))
 
 (define (dom/drop! node attrib)
