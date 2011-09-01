@@ -789,7 +789,7 @@ static fdtype trim_spaces(fdtype string)
 static fdtype glom_lexpr(int n,fdtype *args)
 {
   unsigned char *result_data, *write;
-  int i=0; int sumlen=0; fd_ptr_type result_type=FD_PTR_TYPE(args[0]);
+  int i=0; int sumlen=0; fd_ptr_type result_type=0;
   unsigned char **strings, *stringsbuf[16];
   int *lengths, lengthsbuf[16];
   unsigned char *consed, consedbuf[16];
@@ -801,11 +801,15 @@ static fdtype glom_lexpr(int n,fdtype *args)
     strings=stringsbuf;
     lengths=lengthsbuf;
     consed=consedbuf;}
+  memset(strings,0,sizeof(unsigned char *)*n);
+  memset(lengths,0,sizeof(int)*n);
+  memset(consed,0,sizeof(unsigned char)*n);
   while (i<n)
     if (FD_STRINGP(args[i])) {
       sumlen=sumlen+FD_STRLEN(args[i]);
       strings[i]=FD_STRDATA(args[i]);
       lengths[i]=FD_STRLEN(args[i]);
+      if (result_type==0) result_type=fd_string_type;
       consed[i++]=0;}
     else if (FD_PACKETP(args[i])) {
       sumlen=sumlen+FD_PACKET_LENGTH(args[i]);
@@ -816,21 +820,25 @@ static fdtype glom_lexpr(int n,fdtype *args)
       else if (result_type!=fd_secret_type)
 	result_type=fd_packet_type;
       consed[i++]=0;}
-    else if ((FD_FALSEP(args[i]))||(FD_EMPTY_CHOICEP(args[i]))||(FD_VOIDP(args[i]))) {
+    else if ((FD_FALSEP(args[i]))||(FD_EMPTY_CHOICEP(args[i]))||
+	     (FD_VOIDP(args[i]))) {
+      if (result_type==0) result_type=fd_string_type;
       strings[i]=NULL; lengths[i]=0; consed[i++]=0;}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+      if (result_type==0) result_type=fd_string_type;
       fd_unparse(&out,args[i]);
       sumlen=sumlen+(out.u8_outptr-out.u8_outbuf);
       strings[i]=out.u8_outbuf;
       lengths[i]=out.u8_outptr-out.u8_outbuf;
       consed[i++]=1;}
-  write=result_data=u8_malloc(sumlen);
+  write=result_data=u8_malloc(sumlen+1);
   i=0; while (i<n) {
     if (!(strings[i])) {i++; continue;}
     memcpy(write,strings[i],lengths[i]);
     write=write+lengths[i];
     i++;}
+  *write='\0';
   i=0; while (i<n) {
     if (consed[i]) u8_free(strings[i]); i++;}
   if (n>16) {
