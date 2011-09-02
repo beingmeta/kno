@@ -59,8 +59,7 @@
   (default! val (getopt spec 'secret))
   (if (symbol? val) (getcsecret spec (config val))
       (if (string? val) val
-	  (if (packet? val)
-	      (packet->string val)
+	  (if (packet? val) val
 	      (error "Can't determine consumer secret: " spec)))))
 
 (define (oauth/signature method uri . params)
@@ -129,7 +128,7 @@
 	   "oauth_version" (getopt spec 'version "1.0")))
 	 (sig (hmac-sha1 (stringout (uriencode csecret) "&") sigstring))
 	 (auth-header
-	  (stringout "Authorization: OAuth "
+	  (glom "Authorization: OAuth "
 	    "oauth_nonce=\"" nonce "\", "
 	    "oauth_callback=\"" callback "\", "
 	    "oauth_signature_method=\""  "HMAC-SHA1" "\", "
@@ -185,7 +184,7 @@
 			   (uriencode (getopt spec 'oauth_token_secret)))
 			 sigstring))
 	 (auth-header
-	  (stringout "Authorization: OAuth "
+	  (glom "Authorization: OAuth "
 	    "oauth_nonce=\"" nonce "\", "
 	    "oauth_token=\"" (getopt spec 'oauth_token) "\", "
 	    "oauth_verifier=\"" verifier "\", "
@@ -232,7 +231,7 @@
 			   (uriencode (getopt spec 'oauth_token_secret)))
 			 sigstring))
 	 (auth-header
-	  (stringout "Authorization: OAuth "
+	  (glom "Authorization: OAuth "
 	    "realm=\"" endpoint "\", "
 	    "oauth_nonce=\"" nonce "\", "
 	    "oauth_signature_method=\"" "HMAC-SHA1" "\", "
