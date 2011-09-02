@@ -358,7 +358,7 @@ static fdtype uripath_prim(fdtype uri_arg)
   else if (hash)
     return fd_extract_string(NULL,pathstart,hash);
   else if (qmark)
-    return fd_extract_string(NULL,pathstart,hash);
+    return fd_extract_string(NULL,pathstart,qmark);
   else if (pathstart==uri) return fd_incref(uri_arg);
   else return fd_extract_string(NULL,pathstart,uri+FD_STRLEN(uri_arg));
 }
