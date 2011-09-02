@@ -153,12 +153,10 @@
 ;;; Cookie parameters
 ;; The max duration of cookies: if #f, use session cookies, if #t, use
 ;; the authentication expiration
-(define auth-sticky-var 'AUTH:STICKY)
 (define auth-cookie-expires #t)
 (define auth-cookie-domain #f)
 (define auth-cookie-path "/")
 (define auth-secure #f)
-(varconfig! auth:cookie auth-sticky-var)
 (varconfig! auth:cookie auth-cookie-expires)
 (varconfig! auth:domain auth-cookie-domain)
 (varconfig! auth:sitepath auth-cookie-path)
@@ -191,24 +189,36 @@
 	       (timestamp+ (- (* 7 24 3600)))
 	       #f))
 
-(define (set-cookies! var authstring expires)
-  (debug%watch "SET-COOKIES!" var authstring expires)
+(define (set-cookies! auth (var authid) (uservar userid)
+		      (authstring) (identity))
+  (default! authstring (auth->string auth))
+  (default! identity (authinfo-identity auth))
+  (debug%watch "SET-COOKIES!" var authstring identity)
   (if auth-secure
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
-		   expires
 		   #t)
       (set-cookie! var (if secret
 			   (packet->base64 (encrypt authstring secret))
 			   authstring)
 		   auth-cookie-domain auth-cookie-path
-		   expires
+		   (and (authinfo-sticky? auth) (authinfo-expires auth))
 		   #f))
+  ;; When you have a secret but are in secure mode, store an encrypted version
+  ;;  of your authorization in a variant
   (when (and auth-secure secret)
     (set-cookie! (if auth-secure (stringout var "-") var)
 		 (packet->base64 (encrypt authstring secret))
 		 auth-cookie-domain auth-cookie-path
-		 expires
+		 (and (authinfo-sticky? auth) (authinfo-expires auth))
+		 #f))
+  ;; When you can encrypt it, store the identity as a cookie
+  ;;  Note that this should never be used to confirm identity
+  (when secret
+    (set-cookie! (glom "." uservar)
+		 (packet->base64 (encrypt (unparse-arg identity) secret))
+		 auth-cookie-domain auth-cookie-path
+		 (timestamp+ (* 3600 24 42))
 		 #f)))
 
 (define (getauthinfo var)
@@ -225,7 +235,8 @@
 (defrecord authinfo
   realm identity (token (auth/maketoken))
   (issued (time))
-  (expires (and auth-expiration (+ (time) auth-expiration))))
+  (expires (and auth-expiration (+ (time) auth-expiration)))
+  (sticky? #f))
 
 (define (auth->string auth)
   (let* ((expires (authinfo-expires auth))
@@ -234,7 +245,8 @@
 		 ";" (authinfo-issued auth)
 		 ";" (authinfo-token auth)
 		 (if expires ";")
-		 (if expires expires)))
+		 (if expires expires)
+		 (if (authinfo-sticky? auth) ";STICKY")))
 	 (sig (hmac-sha1 info signature))
 	 (result (stringout info ";" (packet->base64 sig))))
     (debug%watch "AUTH->STRING" auth info sig result)
@@ -277,18 +289,18 @@
 
 ;;;; Core functions
 
-(define (auth/identify! identity)
+(define (auth/identify! identity (sticky #f))
   (and identity
-       (let* ((auth (cons-authinfo authid identity))
-	      (authstring (auth->string auth))
-	      (token (authinfo-token auth))
-	      (cookie-expires
-	       (and (or (not auth-sticky-var) (cgiget 'auth-sticky-var #f))
-		    (authinfo-expires auth))))
-	 (info%watch "AUTH/IDENTIFY!" authid identity token auth authstring)
+       (let* ((auth (cons-authinfo authid identity (auth/maketoken) (time)
+				   (and auth-expiration
+					(+ (time) auth-expiration))
+				   sticky))
+	      (token (authinfo-token auth)))
+	 (info%watch "AUTH/IDENTIFY!" authid identity token auth
+		     (auth->string auth))
 	 (when checktoken (checktoken identity token #t))
 	 (cgiset! authid auth)
-	 (set-cookies! authid authstring cookie-expires)
+	 (set-cookies! auth)
 	 identity)))
 
 (define (auth/ok? auth)
@@ -296,27 +308,31 @@
        (or (not (authinfo-expires auth))
 	   (> (authinfo-expires auth) (time)))
        (if (> (time) (+ (authinfo-issued auth) auth-refresh))
-	   (newauth auth)
+	   (freshauth auth)
 	   auth)))
 
-(define (newauth auth)
+(define (freshauth auth)
   (and (or (not checktoken)
 	   (checktoken (authinfo-identity auth) (authinfo-token auth)))
        (let ((realm (authinfo-realm auth))
 	     (identity (authinfo-identity auth))
 	     (oldtoken (authinfo-token auth))
 	     (new (cons-auth realm identity (auth/maketoken)
-			     (time) (authinfo-expires auth))))
+			     (time) (authinfo-expires auth)
+			     (authinfo-sticky? auth))))
 	 (when checktoken
 	   (checktoken identity oldtoken #f)
 	   (checktoken identity (authinfo-token new) #t))
-	 (set-cookie! realm (auth->string new)
+	 (set-cookies! new)
+	 #|
+	 (set-cookie! realm 
 		      auth-cookie-domain auth-cookie-path
 		      (if (or (not auth-sticky-var)
 			      (cgiget 'auth-sticky-var #f))
 			  (auth-expires new)
 			  #f)
 		      auth-secure)
+	 |#
 	 new)))
 
 ;;; Checking authorization
