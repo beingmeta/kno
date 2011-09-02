@@ -337,7 +337,7 @@ static fdtype uribase_prim(fdtype uri_arg)
   else if (hash)
     return fd_extract_string(NULL,uri,hash);
   else if (qmark)
-    return fd_extract_string(NULL,uri,hash);
+    return fd_extract_string(NULL,uri,qmark);
   else return fd_incref(uri_arg);
 }
 
