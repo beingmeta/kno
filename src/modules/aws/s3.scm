@@ -159,12 +159,14 @@
 			 result)
 	       result))))
 
-(define (s3/uri bucket path)
-  (stringout s3scheme bucket (if (empty-string? bucket) "" ".") s3root
+(define (s3/uri bucket path (scheme s3scheme))
+  (stringout scheme bucket (if (empty-string? bucket) "" ".") s3root
 	     (unless (has-prefix path "/") "/")
 	     path))
 
-(define (s3/signeduri bucket path expires (scheme s3scheme) (op "GET") (headers '()))
+(define (s3/signeduri bucket path  (scheme s3scheme)
+		      (expires (* 17 3600))
+		      (op "GET") (headers '()))
   (unless (has-prefix path "/") (set! path (string-append "/" path)))
   (let* ((expires (if (number? expires) expires (get expires 'tick)))
 	 (sig (s3/signature "GET" bucket path expires headers)))
