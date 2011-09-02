@@ -159,10 +159,15 @@ static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
 
 /* EXTDB primitives */
 
+static int exec_enabled=0;
+
 static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
 {
   struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
-  return extdb->dbhandler->execute(extdb,query,colinfo);
+  if (exec_enabled)
+    return extdb->dbhandler->execute(extdb,query,colinfo);
+  else return fd_err(_("Direct SQL execution disabled"),"extdb_exec",
+		     FD_STRDATA(query),db);
 }  
 
 static fdtype extdb_makeproc(int n,fdtype *args)
@@ -221,6 +226,10 @@ FD_EXPORT void fd_init_extdbi_c()
 			   -1,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC",extdb_makeproc,2));
 
+  fd_register_config("SQLEXEC",
+		     _("whether direct execution of SQL strings is allowed"),
+                     fd_boolconfig_get,fd_boolconfig_set,NULL);
+  
   fd_finish_module(extdb_module);
   fd_persist_module(extdb_module);
 
