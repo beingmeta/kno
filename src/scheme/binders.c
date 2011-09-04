@@ -44,7 +44,7 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
   else if (!(FD_SYMBOLP(var)))
     return fd_err(fd_NotAnIdentifier,"SET!",NULL,expr);
   else if (FD_VOIDP(val_expr))
-    return fd_err(fd_TooFewExpressions,"SET!",NULL,expr);
+    return fd_err(fd_TooFewExpressions,"SET!",FD_SYMBOL_NAME(var),expr);
   value=fasteval(val_expr,env);
   if (FD_ABORTP(value)) return value;
   else if ((retval=(fd_set_value(var,value,env)))) {
@@ -55,7 +55,7 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
     fd_decref(value);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
-  else return fd_err(fd_BindError,"SET!",NULL,var);
+  else return fd_err(fd_BindError,"SET!",FD_SYMBOL_NAME(var),var);
 }
 
 static fdtype set_plus_handler(fdtype expr,fd_lispenv env)
@@ -72,7 +72,7 @@ static fdtype set_plus_handler(fdtype expr,fd_lispenv env)
     return value;
   else if (fd_add_value(var,value,env)) {}
   else if (fd_bind_value(var,value,env)) {}
-  else return fd_err(fd_BindError,"SET+!",NULL,var);
+  else return fd_err(fd_BindError,"SET+!",FD_SYMBOL_NAME(var),var);
   fd_decref(value);
   return FD_VOID;
 }
@@ -153,7 +153,7 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
     else return FD_VOID;}
   else {
     fd_unlock_mutex(&sset_lock);
-    return fd_err(fd_BindError,"SSET!",NULL,var);}
+    return fd_err(fd_BindError,"SSET!",FD_SYMBOL_NAME(var),var);}
 }
 
 /* Environment utilities */
@@ -678,7 +678,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
 	return FD_VOID;}
       else {
 	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE",NULL,var);}}}
+	return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(var),var);}}}
   else if (FD_PAIRP(var)) {
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
     fdtype body=fd_get_body(expr,2);
@@ -697,7 +697,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
 	return FD_VOID;}
       else {
 	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE",NULL,var);}}}
+	return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(fn_name),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
@@ -726,7 +726,8 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
 	return FD_VOID;}
       else {
 	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE-SYNCHRONIZED",NULL,var);}}}
+	return fd_err(fd_BindError,"DEFINE-SYNCHRONIZED",
+		      FD_SYMBOL_NAME(var),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
@@ -736,7 +737,7 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-AMB",NULL,expr);
   else if (FD_SYMBOLP(var))
-    return fd_err(fd_BadDefineForm,"DEFINE-AMB",NULL,expr);
+    return fd_err(fd_BadDefineForm,"DEFINE-AMB",FD_SYMBOL_NAME(var),expr);
   else if (FD_PAIRP(var)) {
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
     fdtype body=fd_get_body(expr,2);
@@ -755,7 +756,7 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
 	return FD_VOID;}
       else {
 	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE-AMB",NULL,var);}}}
+	return fd_err(fd_BindError,"DEFINE-AMB",FD_SYMBOL_NAME(fn_name),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,var);
 }
 
@@ -773,14 +774,15 @@ static fdtype define_local_handler(fdtype expr,fd_lispenv env)
     fdtype inherited=fd_symeval(var,env->parent);
     if (FD_ABORTP(inherited)) return inherited;
     else if (FD_VOIDP(inherited))
-      return fd_err(fd_UnboundIdentifier,"DEFINE-LOCAL",NULL,var);
+      return fd_err(fd_UnboundIdentifier,"DEFINE-LOCAL",
+		    FD_SYMBOL_NAME(var),var);
     else if (fd_bind_value(var,inherited,env)) {
       fd_decref(inherited);
       return FD_VOID;}
     else {
       fd_decref(inherited);
-      return fd_err(fd_BindError,"DEFINE",NULL,var);}}
-  else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
+      return fd_err(fd_BindError,"DEFINE-LOCAL",FD_SYMBOL_NAME(var),var);}}
+  else return fd_err(fd_NotAnIdentifier,"DEFINE-LOCAL",NULL,var);
 }
 
 /* DEFINE-INIT */
@@ -806,8 +808,8 @@ static fdtype define_init_handler(fdtype expr,fd_lispenv env)
       if (fd_bind_value(var,init_value,env)) {
 	fd_decref(init_value);
 	return FD_VOID;}
-      else return fd_err(fd_BindError,"DEFINE",NULL,var);}}
-  else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
+      else return fd_err(fd_BindError,"DEFINE-INIT",FD_SYMBOL_NAME(var),var);}}
+  else return fd_err(fd_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
 
 /* Extended apply */

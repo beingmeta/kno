@@ -229,7 +229,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-	return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,x);
+	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(val),x);
       else return val;}
     else return x;
   case fd_cons_ptr_type:
@@ -255,7 +255,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-	return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,x);
+	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
   case fd_cons_ptr_type:
