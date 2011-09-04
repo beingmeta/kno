@@ -164,17 +164,20 @@
 	     (unless (has-prefix path "/") "/")
 	     path))
 
-(define (s3/signeduri bucket path  (scheme s3scheme)
+(define (s3/signeduri bucket path (scheme s3scheme)
 		      (expires (* 17 3600))
 		      (op "GET") (headers '()))
   (unless (has-prefix path "/") (set! path (string-append "/" path)))
-  (let* ((expires (if (number? expires) expires (get expires 'tick)))
-	 (sig (s3/signature "GET" bucket path expires headers)))
+  (let* ((exptick (if (number? expires)
+		      (if (> expires (time)) expires
+			  (+ (time) expires))
+		      (get expires 'tick)))
+	 (sig (s3/signature "GET" bucket path exptick headers)))
     (string-append
      scheme bucket (if (empty-string? bucket) "" ".") s3root path
      "?" "AWSAccessKeyId=" awskey "&"
-     "Expires=" (number->string expires) "&"
-     "Signature=" (packet->base64 sig))))
+     "Expires=" (number->string exptick) "&"
+     "Signature=" (uriencode (packet->base64 sig)))))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
