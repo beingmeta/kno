@@ -31,6 +31,8 @@ typedef fdtype (*fd_cprim4)(fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_cprim5)(fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_cprim6)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_cprim7)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_cprim8)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_cprim9)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_cprimn)(int n,fdtype *);
 
 typedef fdtype (*fd_xprim0)(fd_function);
@@ -44,6 +46,10 @@ typedef fdtype (*fd_xprim6)(fd_function,fdtype,fdtype,
 			    fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim7)(fd_function,fdtype,fdtype,
 			    fdtype,fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_xprim8)(fd_function,fdtype,fdtype,
+			    fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
+typedef fdtype (*fd_xprim9)(fd_function,fdtype,fdtype,
+			    fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
@@ -54,11 +60,12 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
-    fd_cprim6 call6; fd_cprim7 call7;                                   \
-    fd_cprimn calln;	                                                \
+    fd_cprim6 call6; fd_cprim7 call7; fd_cprim8 call8;			\
+    fd_cprim9 call9; fd_cprimn calln;	                                \
     fd_xprim0 xcall0; fd_xprim1 xcall1; fd_xprim2 xcall2;               \
     fd_xprim3 xcall3; fd_xprim4 xcall4; fd_xprim5 xcall5;               \
-    fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprimn xcalln;		\
+    fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;               \
+    fd_xprim9 xcall9; fd_xprimn xcalln;					\
     void *fnptr;}                                                       \
   handler
 
@@ -81,6 +88,8 @@ FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int mina);
 FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int mina);
 FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int mina);
 FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int mina);
+FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int mina);
+FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int mina);
 FD_EXPORT fdtype fd_make_cprim0x(u8_string name,fd_cprim0 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim1x(u8_string name,fd_cprim1 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim2x(u8_string name,fd_cprim2 fn,int mina,...);
@@ -89,6 +98,8 @@ FD_EXPORT fdtype fd_make_cprim4x(u8_string name,fd_cprim4 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim5x(u8_string name,fd_cprim5 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim6x(u8_string name,fd_cprim6 fn,int mina,...);
 FD_EXPORT fdtype fd_make_cprim7x(u8_string name,fd_cprim7 fn,int mina,...);
+FD_EXPORT fdtype fd_make_cprim8x(u8_string name,fd_cprim8 fn,int mina,...);
+FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
 
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x) \

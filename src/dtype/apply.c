@@ -451,6 +451,25 @@ static fdtype dcall7(struct FD_FUNCTION *f,
   else return f->handler.call7(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
 }
 
+static fdtype dcall8(struct FD_FUNCTION *f,
+		     fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
+		     fdtype arg5,fdtype arg6,fdtype arg7,fdtype arg8)
+{
+  if (FD_EXPECT_FALSE(f->xprim))
+    return f->handler.xcall8(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+  else return f->handler.call8(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+}
+
+static fdtype dcall9(struct FD_FUNCTION *f,
+		     fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
+		     fdtype arg5,fdtype arg6,fdtype arg7,fdtype arg8,
+		     fdtype arg9)
+{
+  if (FD_EXPECT_FALSE(f->xprim))
+    return f->handler.xcall9(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
+  else return f->handler.call9(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
+}
+
 /* Generic calling function */
 
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
@@ -761,6 +780,26 @@ FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity)
   return FDTYPE_CONS(f);
 }
 
+FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity)
+{
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
+  FD_INIT_CONS(f,fd_function_type);
+  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->min_arity=min_arity; f->arity=8; f->typeinfo=NULL; f->defaults=NULL;
+  f->handler.call8=fn;
+  return FDTYPE_CONS(f);
+}
+
+FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
+{
+  struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
+  FD_INIT_CONS(f,fd_function_type);
+  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->min_arity=min_arity; f->arity=9; f->typeinfo=NULL; f->defaults=NULL;
+  f->handler.call9=fn;
+  return FDTYPE_CONS(f);
+}
+
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 {
   struct FD_FUNCTION *f=FD_XFUNCTION(prim);
@@ -859,6 +898,30 @@ FD_EXPORT fdtype fd_make_cprim7x
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim7(name,fn,min_arity);
+  va_start(args,min_arity);
+  init_fn_info(f,args);
+  va_end(args);
+  return FDTYPE_CONS(f);
+}
+
+FD_EXPORT fdtype fd_make_cprim8x
+   (u8_string name,fd_cprim8 fn,int min_arity,...)
+{
+  va_list args;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim8(name,fn,min_arity);
+  va_start(args,min_arity);
+  init_fn_info(f,args);
+  va_end(args);
+  return FDTYPE_CONS(f);
+}
+
+FD_EXPORT fdtype fd_make_cprim9x
+   (u8_string name,fd_cprim9 fn,int min_arity,...)
+{
+  va_list args;
+  struct FD_FUNCTION *f=
+    (struct FD_FUNCTION *)fd_make_cprim9(name,fn,min_arity);
   va_start(args,min_arity);
   init_fn_info(f,args);
   va_end(args);
