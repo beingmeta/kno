@@ -408,11 +408,12 @@ static fdtype clean_mempool(fdtype pool_arg)
 
 static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
 			   fdtype fetchfn,fdtype savefn,fdtype lockfn,
-			   fdtype state)
+			   fdtype state,fdtype cache)
 {
   fd_pool p=fd_make_extpool
     (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),
      fetchfn,savefn,lockfn,state);
+  if (FD_FALSEP(cache)) fd_pool_setcache(p,0);
   return fd_pool2lisp(p);
 }
 
@@ -434,7 +435,7 @@ static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
      ((FD_FALSEP(fetchfn))?(FD_VOID):(fetchfn)),
      ((FD_FALSEP(commitfn))?(FD_VOID):(commitfn)),
      ((FD_FALSEP(state))?(FD_VOID):(state)));
-  if (FD_FALSEP(usecache)) ix->cache_level=0;
+  if (FD_FALSEP(usecache)) fd_index_setcache(ix,0);
   return fd_index2lisp(ix);
 }
 
@@ -2242,11 +2243,12 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim7x("MAKE-EXTPOOL",make_extpool,4,
+	   fd_make_cprim8x("MAKE-EXTPOOL",make_extpool,5,
 			   fd_string_type,FD_VOID,
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+			   -1,FD_TRUE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
 			   fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
