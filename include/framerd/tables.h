@@ -81,6 +81,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_XSLOTMAP(x) \
   (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
 #define FD_XSLOTMAP_SIZE(sm) (sm->size)
+#define FD_XSLOTMAP_SPACE(sm) (sm->space)
 #define FD_XSLOTMAP_USELOCKP(sm) (sm->uselock)
 #define FD_XSLOTMAP_MODIFIEDP(sm) (sm->modified)
 #define FD_XSLOTMAP_READONLYP(sm) (sm->readonly)
@@ -88,6 +89,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->modified=1
 #define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->modified=0
 #define FD_XSLOTMAP_SET_SIZE(sm,sz) (sm)->size=sz
+#define FD_XSLOTMAP_SET_SPACE(sm,sz) (sm)->space=sz
 #define FD_SLOTMAP_SIZE(x) (FD_XSLOTMAP_SIZE(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_MODIFIEDP(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_READONLYP(x) (FD_XSLOTMAP_READONLYP(FD_XSLOTMAP(x)))
@@ -114,11 +116,13 @@ FD_EXPORT int fd_slotmap_delete
   (struct FD_SLOTMAP *sm,fdtype key);
 FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm);
 
+FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
+
 FD_EXPORT fdtype fd_slotmap_max
   (struct FD_SLOTMAP *sm,fdtype scope,fdtype *maxvalp);
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (fdtype key,struct FD_KEYVAL **kvp,int *sizep);
+  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep);
 
 #if FD_INLINE_TABLES
 static struct FD_KEYVAL *fd_sortvec_get

@@ -951,10 +951,13 @@ static fdtype parse_slotmap(U8_INPUT *in)
 {
   int n_elts=-2;
   fdtype *elts=parse_vec(in,']',&n_elts);
-  if (n_elts>=0) 
-    return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),n_elts/2,
-			   (struct FD_KEYVAL *)elts);
-  else return FD_PARSE_ERROR;
+  if (FD_EXPECT_FALSE(n_elts<0)) return FD_PARSE_ERROR;
+  else if (n_elts>7)
+    return fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
+  else {
+    fdtype result=fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
+    u8_free(elts);
+    return result;}
 }
 
 static fdtype parse_choice(U8_INPUT *in)

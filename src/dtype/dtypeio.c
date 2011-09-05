@@ -794,8 +794,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  else return result;}
       case dt_slotmap: case dt_small_slotmap:
 	if (len==0) 
-	  return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),
-				 0,NULL);
+	  return fd_init_slotmap(NULL,0,NULL);
 	else {
 	  int n_slots=len/2;
 	  struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
@@ -804,8 +803,11 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    write->key=fd_read_dtype(in);
 	    write->value=fd_read_dtype(in);
 	    write++;}
-	  return fd_init_slotmap(u8_alloc(struct FD_SLOTMAP),
-				 n_slots,keyvals);}
+	  if (n_slots<7) {
+	    fdtype result=fd_make_slotmap(n_slots,n_slots,keyvals);
+	    u8_free(keyvals);
+	    return result;}
+	  else return fd_init_slotmap(NULL,n_slots,keyvals);}
       case dt_hashtable: case dt_small_hashtable:
 	if (len==0) 
 	  return fd_init_hashtable(u8_alloc(struct FD_HASHTABLE),

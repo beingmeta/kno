@@ -128,9 +128,10 @@ FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
 }
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (fdtype key,struct FD_KEYVAL **kvp,int *sizep)
+  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep)
 {
-  struct FD_KEYVAL *keyvals=*kvp; int size=*sizep, found=0;
+  struct FD_KEYVAL *keyvals=*kvp;
+  int size=*sizep, space=((spacep)?(0):(*spacep)), found=0;
   struct FD_KEYVAL *bottom=keyvals, *top=bottom+size-1;
   struct FD_KEYVAL *limit=bottom+size, *middle=bottom+size/2;
   if (keyvals == NULL) {
@@ -139,6 +140,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     keyvals->key=fd_incref(key);
     keyvals->value=FD_EMPTY_CHOICE;
     if (sizep) *sizep=1;
+    if (spacep) *spacep=1;
     return keyvals;}
   if (FD_ATOMICP(key))
     while (top>=bottom) {
@@ -157,12 +159,17 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     else if (comparison<0) top=middle-1;
     else bottom=middle+1;}
   if (found) return middle;
+  else if (size+1<space) {
+    struct FD_KEYVAL *insert_point=kvp[size+1];
+    *sizep=size+1; sort_keyvals(keyvals,size+1);
+    return insert_point;}
   else {
     int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
     struct FD_KEYVAL *insert_point;
     struct FD_KEYVAL *new_keyvals=u8_realloc_n(keyvals,size+1,struct FD_KEYVAL);
     if (new_keyvals==NULL) return NULL;
-    *kvp=new_keyvals; *sizep=size+1; insert_point=new_keyvals+ipos;
+    *kvp=new_keyvals; *sizep=size+1; *spacep=size+1;
+    insert_point=new_keyvals+ipos;
     memmove(insert_point+1,insert_point,
 	    sizeof(struct FD_KEYVAL)*(size-ipos));
     insert_point->key=fd_incref(key);
@@ -183,19 +190,22 @@ FD_EXPORT fdtype _fd_slotmap_test(struct FD_SLOTMAP *sm,fdtype key,fdtype val)
 
 FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int osize, size, unlock=0;
+  struct FD_KEYVAL *result;
+  int osize, size, ospace, space, unlock=0;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
   if (sm->uselock) { fd_write_lock(&sm->rwlock); unlock=1;}
   size=osize=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_insert(key,&(sm->keyvals),&size);
+  space=ospace=FD_XSLOTMAP_SPACE(sm);
+  result=fd_sortvec_insert(key,&(sm->keyvals),&size,&space);
   if (FD_EXPECT_FALSE(result==NULL)) {
     if (unlock) fd_rw_unlock(&(sm->rwlock));
     fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
     return -1;}
   fd_decref(result->value); result->value=fd_incref(value);
   FD_XSLOTMAP_MARK_MODIFIED(sm);
+  if (ospace != space) { FD_XSLOTMAP_SET_SPACE(sm,space); }
   if (osize != size) {
     FD_XSLOTMAP_SET_SIZE(sm,size);
     if (unlock) fd_rw_unlock(&sm->rwlock);
@@ -206,14 +216,16 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 
 FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int size, osize, unlock=0;
+  struct FD_KEYVAL *result;
+  int osize, size, ospace, space, unlock=0;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if (FD_EMPTY_CHOICEP(value)) return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
   if (sm->uselock) { fd_write_lock(&sm->rwlock); unlock=1;}
   size=osize=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_insert(key,&(sm->keyvals),&size);
+  space=ospace=FD_XSLOTMAP_SPACE(sm);
+  result=fd_sortvec_insert(key,&(sm->keyvals),&size,&space);
   if (FD_EXPECT_FALSE(result==NULL)) {
     if (unlock) fd_rw_unlock(&sm->rwlock);
     fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
@@ -221,6 +233,7 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   fd_incref(value);
   FD_ADD_TO_CHOICE(result->value,value); 
   FD_XSLOTMAP_MARK_MODIFIED(sm);
+  if (ospace != space) { FD_XSLOTMAP_SET_SPACE(sm,space); }
   if (osize != size) {
     FD_XSLOTMAP_SET_SIZE(sm,size);
     if (unlock) fd_rw_unlock(&sm->rwlock);
@@ -372,6 +385,34 @@ FD_EXPORT fdtype fd_init_slotmap
   else {
     ptr->space=ptr->size=len;
     ptr->keyvals=data;}
+  ptr->modified=ptr->readonly=0;
+  ptr->uselock=1;
+  ptr->freedata=1;
+#if FD_THREADS_ENABLED
+  fd_init_rwlock(&(ptr->rwlock));
+#endif
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
+{
+  struct FD_SLOTMAP *ptr=
+    u8_malloc((sizeof(struct FD_SLOTMAP))+
+	      (space*(sizeof(struct FD_KEYVAL))));
+  struct FD_KEYVAL *kv=
+    ((struct FD_KEYVAL *)(((unsigned char *)ptr)+sizeof(struct FD_SLOTMAP)));
+  int i=0;
+  FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
+  FD_INIT_CONS(ptr,fd_slotmap_type);
+  ptr->space=space; ptr->size=len; 
+  while (i<len) {
+    kv[i].key=data[i].key; kv[i].value=data[i].value; i++;}
+  while (i<space) {kv[i].key=FD_VOID; kv[i].value=FD_VOID; i++;}
+  ptr->keyvals=kv;
+  sort_keyvals(kv,len);
+  ptr->modified=ptr->readonly=0;
+  ptr->uselock=1;
+  ptr->freedata=0;
 #if FD_THREADS_ENABLED
   fd_init_rwlock(&(ptr->rwlock));
 #endif
@@ -383,13 +424,15 @@ static fdtype copy_slotmap(fdtype smap,int deep)
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
   FD_INIT_STRUCT(fresh,struct FD_SLOTMAP);
+  FD_INIT_CONS(fresh,fd_slotmap_type);
   fd_read_lock_struct(cur);
+  fresh->modified=fresh->readonly=0;
+  fresh->uselock=1; fresh->freedata=1;
   if (FD_XSLOTMAP_SIZE(cur)) {
     int n=FD_XSLOTMAP_SIZE(cur);
     struct FD_KEYVAL *read=cur->keyvals, *read_limit=read+n;
     struct FD_KEYVAL *write=u8_alloc_n(n,struct FD_KEYVAL);
-    FD_INIT_CONS(fresh,fd_slotmap_type);
-    fresh->size=n; fresh->keyvals=write;
+    fresh->space=fresh->size=n; fresh->keyvals=write;
     while (read<read_limit) {
       fdtype key=read->key, val=read->value; read++;
       if (FD_CONSP(key)) write->key=fd_copy(key);
@@ -403,8 +446,7 @@ static fdtype copy_slotmap(fdtype smap,int deep)
       else write->value=val;
       write++;}}
   else {
-    FD_INIT_CONS(fresh,fd_slotmap_type);
-    fresh->size=0; fresh->keyvals=NULL;}
+    fresh->space=fresh->size=0; fresh->keyvals=NULL;}
   fd_rw_unlock_struct(cur);
 #if FD_THREADS_ENABLED
   fd_init_rwlock(&(fresh->rwlock));
@@ -421,7 +463,7 @@ static void recycle_slotmap(struct FD_CONS *c)
     const struct FD_KEYVAL *scan=sm->keyvals, *limit=sm->keyvals+slotmap_size;
     while (scan < limit) {
       fd_decref(scan->key); fd_decref(scan->value); scan++;}
-    u8_free(sm->keyvals);
+    if (sm->freedata) u8_free(sm->keyvals);
     fd_rw_unlock_struct(sm);
     fd_destroy_rwlock(&(sm->rwlock));
     u8_free(sm);    
