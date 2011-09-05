@@ -148,26 +148,26 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
       else return fd_incref(dflt);}
     else return fd_err(fd_AnonymousOID,NULL,NULL,f);
   else {
-    fd_adjunct adj=get_adjunct(p,slotid); fdtype smap;
+    fd_adjunct adj=get_adjunct(p,slotid); fdtype smap; int free_smap=0;
     if (adj)
       return adjunct_fetch(adj,f,dflt);
-    else smap=fd_fetch_oid(p,f);
+    else {smap=fd_fetch_oid(p,f); free_smap=1;}
     if (FD_ABORTP(smap))
       return smap;
     else if (FD_SLOTMAPP(smap)) {
       fdtype value=fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
-      fd_decref(smap);
+      if (free_smap) fd_decref(smap);
       return value;}
     else if (FD_SCHEMAPP(smap)) {
       fdtype value=fd_schemap_get((fd_schemap)smap,slotid,dflt);
-      fd_decref(smap);
+      if (free_smap) fd_decref(smap);
       return value;}
     else if (FD_TABLEP(smap)) {
       fdtype value=fd_get(smap,slotid,dflt);
-      fd_decref(smap);
+      if (free_smap) fd_decref(smap);
       return value;}
     else {
-      fd_decref(smap);
+      if (free_smap) fd_decref(smap);
       return fd_incref(dflt);}}
 }
 
