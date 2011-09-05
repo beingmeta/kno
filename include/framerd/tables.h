@@ -66,32 +66,32 @@ struct FD_KEYVAL {
 typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
 
 typedef struct FD_SLOTMAP {
-  FD_CONS_HEADER; unsigned int size;
+  FD_CONS_HEADER;
+  unsigned int size:12;
+  unsigned int space:12;
+  unsigned int readonly:1;
+  unsigned int modified:1;
+  unsigned int uselock:1;
+  unsigned int freedata:1;
   struct FD_KEYVAL *keyvals;
   U8_RWLOCK_DECL(rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
 
-#define FD_SLOTMAP_SIZE_MASK     0x3FFFFFFF
-#define FD_SLOTMAP_MODIFIED_MASK 0x80000000
-#define FD_SLOTMAP_READONLY_MASK 0x40000000
-#define FD_SLOTMAP_BITFIELD_MASK 0xC0000000
 #define FD_SLOTMAPP(x) (FD_PTR_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
   (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
-#define FD_XSLOTMAP_SIZE(sm) ((sm->size)&(FD_SLOTMAP_SIZE_MASK))
-#define FD_XSLOTMAP_MODIFIEDP(sm) ((sm->size)&(FD_SLOTMAP_MODIFIED_MASK))
-#define FD_XSLOTMAP_READONLYP(sm) ((sm->size)&(FD_SLOTMAP_READONLY_MASK))
-#define FD_XSLOTMAP_SET_READONLY(sm) \
-  sm->size=sm->size|FD_SLOTMAP_READONLY_MASK
-#define FD_XSLOTMAP_MARK_MODIFIED(sm) \
-  sm->size=sm->size|FD_SLOTMAP_MODIFIED_MASK
-#define FD_XSLOTMAP_CLEAR_MODIFIED(sm) \
-  sm->size=sm->size&(~FD_SLOTMAP_MODIFIED_MASK)
-#define FD_XSLOTMAP_SET_SIZE(sm,sz) \
-  sm->size=((sm->size)&(FD_SLOTMAP_BITFIELD_MASK))|(sz)
+#define FD_XSLOTMAP_SIZE(sm) (sm->size)
+#define FD_XSLOTMAP_USELOCKP(sm) (sm->uselock)
+#define FD_XSLOTMAP_MODIFIEDP(sm) (sm->modified)
+#define FD_XSLOTMAP_READONLYP(sm) (sm->readonly)
+#define FD_XSLOTMAP_SET_READONLY(sm) (sm)->readonly=1
+#define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->modified=1
+#define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->modified=0
+#define FD_XSLOTMAP_SET_SIZE(sm,sz) (sm)->size=sz
 #define FD_SLOTMAP_SIZE(x) (FD_XSLOTMAP_SIZE(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_MODIFIEDP(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_READONLYP(x) (FD_XSLOTMAP_READONLYP(FD_XSLOTMAP(x)))
+#define FD_SLOTMAP_USELOCKP(x) (FD_XSLOTMAP_USELOCKP(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_SET_READONLY(x) \
   FD_XSLOTMAP_SET_READONLY(FD_XSLOTMAP(x))
 #define FD_SLOTMAP_MARK_MODIFIED(x) \
@@ -354,7 +354,8 @@ typedef struct FD_HASHENTRY *fd_hashentry;
 
 typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;
-  unsigned int n_slots, n_keys, loading; int modified;
+  unsigned int n_slots, n_keys, loading;
+  unsigned int readonly:1, modified:1, uselock:1;
   struct FD_HASHENTRY **slots;
   U8_RWLOCK_DECL(rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;

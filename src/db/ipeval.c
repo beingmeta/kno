@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #define FD_INLINE_IPEVAL 1
 
 #include "framerd/dtype.h"
@@ -447,7 +444,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
 
 FD_EXPORT void fd_init_ipeval_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(__FILE__);
   fd_register_config("TRACEIPEVAL",_("Trace ipeval execution"),
 		     fd_boolconfig_get,fd_boolconfig_set,&fd_trace_ipeval);
 #if FD_GLOBAL_IPEVAL
