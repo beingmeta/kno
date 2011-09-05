@@ -423,6 +423,17 @@ static fdtype copy_slotmap(fdtype smap,int deep)
 {
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
+  if (!(cur->freedata)) {
+    struct FD_KEYVAL *kvals=cur->keyvals;
+    int i=0, len=cur->size;
+    fdtype copy;
+    while (i<len) {
+      fd_incref(kvals[i].key); fd_incref(kvals[i].value); i++;}
+    copy=fd_make_slotmap(cur->space,cur->size,cur->keyvals);
+    if (FD_ABORTP(copy)) {
+      i=0; while (i<len) {
+	fd_decref(kvals[i].key); fd_decref(kvals[i].value); i++;}}
+    return copy;}
   FD_INIT_STRUCT(fresh,struct FD_SLOTMAP);
   FD_INIT_CONS(fresh,fd_slotmap_type);
   fd_read_lock_struct(cur);
