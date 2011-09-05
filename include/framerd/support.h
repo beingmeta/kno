@@ -76,7 +76,7 @@ FD_EXPORT void fd_sum_exception(U8_OUTPUT *out,u8_exception e);
 FD_EXPORT u8_string fd_errstring(u8_exception e);
 FD_EXPORT fdtype fd_exception_xdata(u8_exception e);
 
-FD_EXPORT void fd_seterr
+FD_EXPORT U8_NOINLINE void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 
 #define fd_seterr3(c,cxt,details) \
@@ -110,6 +110,15 @@ FD_EXPORT fdtype fd_thread_get(fdtype var);
 FD_EXPORT void fd_reset_threadvars(void);
 FD_EXPORT int fd_thread_set(fdtype var,fdtype val);
 FD_EXPORT int fd_thread_add(fdtype var,fdtype val);
+
+/* Request state */
+
+FD_EXPORT fdtype fd_req(fdtype var);
+FD_EXPORT int fd_req_store(fdtype var,fdtype val);
+FD_EXPORT int fd_req_test(fdtype var,fdtype val);
+FD_EXPORT int fd_req_add(fdtype var,fdtype val);
+FD_EXPORT int fd_req_drop(fdtype var,fdtype val);
+FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
 
 /* Runbase */
 

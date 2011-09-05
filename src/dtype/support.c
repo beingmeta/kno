@@ -914,6 +914,90 @@ FD_EXPORT int fd_thread_add(fdtype var,fdtype val)
   return fd_add(get_threadtable(),var,val);
 }
 
+/* Request objects */
+
+#if FD_USE_TLS
+static u8_tld_key reqinfo_key;
+static fdtype get_reqinfo()
+{
+  fdtype table=(fdtype)u8_tld_get(reqinfo_key);
+  if (table) return table;
+  else return FD_EMPTY_CHOICE;
+}
+static void set_reqinfo(fdtype table)
+{
+  u8_tld_set(reqinfo_key,(void *)table);
+}
+#else
+#if FD_THREADS_ENABLED
+static fdtype __thread reqinfo=FD_VOID;
+#else 
+static fdtype thread_table=FD_VOID;
+#endif
+static fdtype get_reqinfo()
+{
+  if (FD_TABLEP(reqinfo)) return reqinfo;
+  else return FD_EMPTY_CHOICE;
+}
+static void set_reqinfo(fdtype table)
+{
+  thread_table=table;
+}
+#endif
+
+FD_EXPORT fdtype fd_req_get(fdtype var)
+{
+  return fd_get(get_reqinfo(),var,FD_VOID);
+}
+
+FD_EXPORT int fd_req_store(fdtype var,fdtype val)
+{
+  return fd_store(get_reqinfo(),var,val);
+}
+
+FD_EXPORT int fd_req_test(fdtype var,fdtype val)
+{
+  return fd_store(get_reqinfo(),var,val);
+}
+
+FD_EXPORT int fd_req_add(fdtype var,fdtype val)
+{
+  return fd_add(get_reqinfo(),var,val);
+}
+
+FD_EXPORT int fd_req_drop(fdtype var,fdtype val)
+{
+  return fd_drop(get_reqinfo(),var,val);
+}
+
+FD_EXPORT void fd_use_reqinfo(fdtype reqinfo)
+{
+  fdtype curinfo=get_reqinfo();
+  if (reqinfo==curinfo) return;
+  if (FD_SLOTMAPP(curinfo)) {
+    fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
+    sm->uselock=1;
+    u8_rw_unlock(&(sm->rwlock));}
+  else if (FD_HASHTABLEP(curinfo)) {
+    fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
+    ht->uselock=1;
+    u8_rw_unlock(&(ht->rwlock));}
+  if (FD_TRUEP(reqinfo)) 
+    reqinfo=fd_init_slotmap(NULL,0,NULL);
+  if (FD_TABLEP(reqinfo)) {
+    fd_incref(reqinfo);
+    if (FD_SLOTMAPP(reqinfo)) {
+      fd_slotmap sm=FD_GET_CONS(reqinfo,fd_slotmap_type,fd_slotmap);
+      u8_write_lock(&(sm->rwlock));
+      sm->uselock=0;}
+    else if (FD_HASHTABLEP(reqinfo)) {
+      fd_hashtable ht=FD_GET_CONS(reqinfo,fd_hashtable_type,fd_hashtable);
+      u8_write_lock(&(ht->rwlock));
+      ht->uselock=0;}}
+  set_reqinfo(reqinfo);
+  if (FD_TABLEP(curinfo)) fd_decref(curinfo);
+}
+
 /* Recording source file information */
 
 static struct FD_SOURCE_FILE_RECORD *source_files=NULL;
