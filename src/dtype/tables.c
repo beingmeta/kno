@@ -1143,7 +1143,7 @@ FD_EXPORT fdtype fd_hashtable_get_noref
 {
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
-  if (ht->n_keys == 0) return fd_incref(dflt);
+  if (ht->n_keys == 0) return dflt;
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
