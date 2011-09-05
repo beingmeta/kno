@@ -132,7 +132,7 @@ FD_EXPORT fdtype fd_load_source
 	restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
-	fd_decref(last_expr);
+	fd_decref(last_expr); last_expr=FD_VOID;
 	return result;}
       else if ((trace_load_eval) ||
 	       (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
@@ -157,9 +157,11 @@ FD_EXPORT fdtype fd_load_source
     restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);
     u8_free(content);
-    if (last_expr==expr) fd_decref(last_expr);
+    if (last_expr==expr) {
+      fd_decref(last_expr); last_expr=FD_VOID;}
     else {
-      fd_decref(expr); fd_decref(last_expr);}
+      fd_decref(expr); fd_decref(last_expr);
+      expr=FD_VOID; last_expr=FD_VOID;}
     return result;}
 }
 

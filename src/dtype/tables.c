@@ -136,6 +136,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
   struct FD_KEYVAL *limit=bottom+size, *middle=bottom+size/2;
   if (keyvals == NULL) {
     *kvp=keyvals=u8_alloc(struct FD_KEYVAL);
+    memset(keyvals,0,sizeof(struct FD_KEYVAL));
     if (keyvals==NULL) return NULL;
     keyvals->key=fd_incref(key);
     keyvals->value=FD_EMPTY_CHOICE;
@@ -422,7 +423,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
 static fdtype copy_slotmap(fdtype smap,int deep)
 {
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
-  struct FD_SLOTMAP *fresh=u8_alloc(struct FD_SLOTMAP);
+  struct FD_SLOTMAP *fresh;
   if (!(cur->freedata)) {
     struct FD_KEYVAL *kvals=cur->keyvals;
     int i=0, len=cur->size;
@@ -434,6 +435,7 @@ static fdtype copy_slotmap(fdtype smap,int deep)
       i=0; while (i<len) {
 	fd_decref(kvals[i].key); fd_decref(kvals[i].value); i++;}}
     return copy;}
+  else fresh=u8_alloc(struct FD_SLOTMAP);
   FD_INIT_STRUCT(fresh,struct FD_SLOTMAP);
   FD_INIT_CONS(fresh,fd_slotmap_type);
   fd_read_lock_struct(cur);
@@ -444,6 +446,7 @@ static fdtype copy_slotmap(fdtype smap,int deep)
     struct FD_KEYVAL *read=cur->keyvals, *read_limit=read+n;
     struct FD_KEYVAL *write=u8_alloc_n(n,struct FD_KEYVAL);
     fresh->space=fresh->size=n; fresh->keyvals=write;
+    memset(write,0,n*sizeof(struct FD_KEYVAL));
     while (read<read_limit) {
       fdtype key=read->key, val=read->value; read++;
       if (FD_CONSP(key)) write->key=fd_copy(key);
@@ -1040,8 +1043,12 @@ FD_EXPORT struct FD_KEYVAL *fd_hashentry_insert
       /* We don't need to use size+1 here because FD_HASHENTRY includes
 	 one value. */
       u8_realloc(he,
-		  sizeof(struct FD_HASHENTRY)+
-		  (size)*sizeof(struct FD_KEYVAL));
+		 sizeof(struct FD_HASHENTRY)+
+		 (size)*sizeof(struct FD_KEYVAL));
+    memset((((unsigned char *)new_hashentry)+
+	    (sizeof(struct FD_HASHENTRY))+
+	    ((size-1)*sizeof(struct FD_KEYVAL))),
+	   0,sizeof(struct FD_KEYVAL));
     *hep=new_hashentry; new_hashentry->n_keyvals++;
     insert_point=&(new_hashentry->keyval0)+ipos;
     memmove(insert_point+1,insert_point,
@@ -1058,6 +1065,7 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
   struct FD_HASHENTRY *he=slots[offset]; 
   if (he == NULL) {
     he=u8_alloc(struct FD_HASHENTRY);
+    FD_INIT_STRUCT(he,struct FD_HASHENTRY);
     he->n_keyvals=1; he->keyval0.key=fd_incref(key);
     he->keyval0.value=FD_EMPTY_CHOICE;
     slots[offset]=he; if (n_keys) (*n_keys)++;

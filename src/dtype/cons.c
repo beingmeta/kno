@@ -357,7 +357,10 @@ FD_EXPORT
 fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
 {
   int len=((slen<0) ? (strlen(string)) : (slen));
-  if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
+  if (ptr == NULL) {
+    ptr=u8_alloc(struct FD_STRING);
+    FD_INIT_STRUCT(ptr,struct FD_STRING);
+    ptr->freedata=1;}
   FD_INIT_CONS(ptr,fd_string_type);
   if ((len==0) && (string==NULL)) {
     string=u8_malloc(1); *string='\0';}
@@ -569,7 +572,9 @@ FD_EXPORT fdtype fd_init_packet
 {
   if ((ptr==NULL)&&(data==NULL))
     return fd_make_packet(ptr,len,data);
-  if (ptr == NULL) ptr=u8_alloc(struct FD_STRING);
+  if (ptr == NULL) {
+    ptr=u8_alloc(struct FD_STRING);
+    ptr->freedata=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
     int i=0; data=u8_malloc(len);
