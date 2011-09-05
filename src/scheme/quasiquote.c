@@ -213,7 +213,7 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
 {
   int i=0, len=FD_SLOTMAP_SIZE(obj);
   struct FD_KEYVAL *keyvals=FD_XSLOTMAP(obj)->keyvals;
-  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  fdtype result=fd_empty_slotmap();
   struct FD_SLOTMAP *new_slotmap=FD_XSLOTMAP(result);
   while (i < len) {
     int free_slotid=0;

@@ -116,6 +116,9 @@ FD_EXPORT int fd_slotmap_delete
   (struct FD_SLOTMAP *sm,fdtype key);
 FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm);
 
+#define fd_empty_slotmap() (fd_init_slotmap(NULL,0,NULL))
+
+
 FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
 
 FD_EXPORT fdtype fd_slotmap_max

@@ -2512,7 +2512,7 @@ FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 
 FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *hx)
 {
-  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  fdtype result=fd_empty_slotmap();
   int n_filled=0, maxk=0, n_singles=0, n2sum=0;
   fd_add(result,fd_intern("NBUCKETS"),FD_INT2DTYPE(hx->n_buckets));
   fd_add(result,fd_intern("NKEYS"),FD_INT2DTYPE(hx->n_keys));

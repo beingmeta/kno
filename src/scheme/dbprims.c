@@ -1575,7 +1575,7 @@ static fdtype seq2frame_prim
     fdtype frame;
     int i=0, slen=fd_seq_length(schema), vlen=fd_seq_length(values);
     if (FD_FALSEP(poolspec))
-      frame=fd_init_slotmap(NULL,0,NULL);
+      frame=fd_empty_slotmap();
     else if (FD_OIDP(poolspec)) frame=poolspec;
     else {
       fdtype oid, slotmap;
@@ -1584,7 +1584,7 @@ static fdtype seq2frame_prim
 	return fd_type_error(_("pool spec"),"seq2frame_prim",poolspec);
       oid=fd_pool_alloc(p,1);
       if (FD_ABORTP(oid)) return oid;
-      slotmap=fd_init_slotmap(NULL,0,NULL);
+      slotmap=fd_empty_slotmap();
       if (fd_set_oid_value(oid,slotmap)<0) {
 	fd_decref(slotmap);
 	return FD_ERROR_VALUE;}
@@ -1794,7 +1794,7 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
 {
   fdtype results=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(frame,frames) {
-    fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
+    fdtype slotmap=fd_empty_slotmap();
     FD_DO_CHOICES(slotid,slotids) {
       fdtype value=fd_get(frame,slotid,FD_EMPTY_CHOICE);
       if (FD_ABORTP(value)) {

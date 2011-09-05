@@ -1274,7 +1274,7 @@ static fdtype text2frame(fdtype pattern,fdtype string,
       fdtype frame_results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(extraction,extract_results)
 	if (fd_getint(FD_CAR(extraction))==lim) {
-	  fdtype frame=fd_init_slotmap(NULL,0,NULL);
+	  fdtype frame=fd_empty_slotmap();
 	  if (framify(frame,NULL,FD_CDR(extraction))<0) {
 	    fd_decref(frame_results); fd_decref(extract_results);
 	    return FD_ERROR_VALUE;}
@@ -1316,7 +1316,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 	 since search stopped at start, but we don't have a match? */
       {
 	FD_DO_CHOICES(extraction,longest) {
-	  fdtype f=fd_init_slotmap(NULL,0,NULL);
+	  fdtype f=fd_empty_slotmap();
 	  framify(f,NULL,extraction);
 	  FD_ADD_TO_CHOICE(results,f);}}
       fd_decref(longest);

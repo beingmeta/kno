@@ -55,7 +55,7 @@ int main(int argc,char **argv)
   FD_DO_LIBINIT(fd_init_dtypelib);
   if (f) {
     smap=read_dtype_from_file(f); fclose(f);}
-  else smap=fd_init_slotmap(NULL,0,NULL);
+  else smap=fd_empty_slotmap();
   if (argc == 2) {
     fdtype keys=fd_slotmap_keys(SLOTMAP(smap));
     FD_DO_CHOICES(key,keys) {

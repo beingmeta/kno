@@ -917,7 +917,7 @@ static fdtype rusage_prim(fdtype field)
   if (u8_getrusage(RUSAGE_SELF,&r)<0) 
     return FD_ERROR_VALUE;
   else if (FD_VOIDP(field)) {
-    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    fdtype result=fd_empty_slotmap();
     fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));
     fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
     fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));

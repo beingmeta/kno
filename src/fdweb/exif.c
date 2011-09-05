@@ -243,7 +243,7 @@ static fdtype exif_get(fdtype x,fdtype prop)
     u8_free(data);}
   else return fd_type_error(_("filename or packet"),"exif_get",x);
   if (FD_VOIDP(prop)) {
-    fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
+    fdtype slotmap=fd_empty_slotmap();
     struct TAGINFO *scan=taginfo;
     
     while (scan->tagname) {

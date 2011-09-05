@@ -143,7 +143,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
     if (mdpos) {
       fd_setpos(ds,mdpos);
       metadata=fd_dtsread_dtype(ds);}
-    else metadata=fd_init_slotmap(NULL,0,NULL);
+    else metadata=fd_empty_slotmap();
     fd_store(metadata,rev_symbol,FD_INT2DTYPE(rev));
     return metadata;}
   else if (mdversion!=0xFFFFFFFE)
@@ -169,7 +169,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
   if (mdpos) {
     fd_setpos(ds,mdpos);
     metadata=fd_dtsread_dtype(ds);}
-  else metadata=fd_init_slotmap(NULL,0,NULL);
+  else metadata=fd_empty_slotmap();
   fd_store(metadata,rev_symbol,FD_INT2DTYPE(rev));
   fd_store(metadata,gentime_symbol,fd_make_timestamp(&_gentime));
   fd_store(metadata,packtime_symbol,fd_make_timestamp(&_packtime));
@@ -295,7 +295,7 @@ int fd_make_file_pool
   fd_dtswrite_4bytes(stream,40);
   i=0; while (i<8) {fd_dtswrite_4bytes(stream,0); i++;}
   if (FD_VOIDP(metadata))
-    metadata=fd_init_slotmap(NULL,0,NULL);
+    metadata=fd_empty_slotmap();
   fd_write_pool_metadata(stream,metadata);
   fd_dtsclose(stream,1);
   fd_decref(metadata);
@@ -333,7 +333,7 @@ int fd_make_file_index
   fd_dtswrite_4bytes(stream,40);
   i=0; while (i<8) {fd_dtswrite_4bytes(stream,0); i++;}
   if (FD_VOIDP(metadata))
-    metadata=fd_init_slotmap(NULL,0,NULL);
+    metadata=fd_empty_slotmap();
   fd_write_index_metadata(stream,metadata);
   fd_decref(metadata);
   fd_dtsclose(stream,1);

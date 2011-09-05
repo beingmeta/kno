@@ -161,7 +161,7 @@ static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
   if ((valstart=(strchr(copy,':')))) {
     *valstart++='\0'; while (isspace(*valstart)) valstart++;
     if (!(FD_TABLEP(val)))
-      *valptr=val=fd_init_slotmap(NULL,0,NULL);
+      *valptr=val=fd_empty_slotmap();
     slotid=fd_parse(copy);
     if (FD_EQ(slotid,content_type_symbol)) {
       handle_content_type(valstart,val);
@@ -459,7 +459,7 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
   int consed_handle=0; long http_response=200;
-  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  fdtype result=fd_empty_slotmap();
   fdtype url=fixurl(urltext);
   char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
@@ -484,7 +484,7 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
   int consed_handle=0;
-  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  fdtype result=fd_empty_slotmap();
   fdtype url=fixurl(urltext);
   char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
@@ -626,7 +626,7 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
     curl_add_header(h,"Content-Type: text",NULL);
   else curl_add_header(h,"Content-Type: application",NULL);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  result=fd_init_slotmap(NULL,0,NULL);
+  result=fd_empty_slotmap();
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -683,7 +683,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
     return fd_type_error("CURLCONN","urlxml",conn);
   else {
     h=(fd_curl_handle)conn;
-    result=fd_init_slotmap(NULL,0,NULL);}
+    result=fd_empty_slotmap();}
   flags=fd_xmlparseoptions(xmlopt);
   /* Check that the XML options are okay */
   if (flags<0) {
@@ -823,7 +823,7 @@ static fdtype urlpost(int n,fdtype *args)
     return fd_type_error("CURLCONN","urlpost",conn);}
   else h=(fd_curl_handle)conn;
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
-  result=fd_init_slotmap(NULL,0,NULL);
+  result=fd_empty_slotmap();
   curl_easy_setopt(h->handle,CURLOPT_URL,url);
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
@@ -973,7 +973,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
   curl_easy_setopt(h->handle,CURLOPT_POST,1);
-  result=fd_init_slotmap(NULL,0,NULL);
+  result=fd_empty_slotmap();
 
   retval=curl_easy_perform(h->handle);
 
@@ -1069,7 +1069,7 @@ FD_EXPORT void fd_init_curl_c()
   decl_text_type("application/atom+xml");
   decl_text_type("application/json");
 
-  curl_defaults=fd_init_slotmap(NULL,0,NULL);
+  curl_defaults=fd_empty_slotmap();
 
   fd_defspecial(module,"URLPOSTOUT",urlpostdata_handler);
 

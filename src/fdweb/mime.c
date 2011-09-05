@@ -247,7 +247,7 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
 FD_EXPORT
 fdtype fd_parse_mime(char *start,char *end)
 {
-  fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
+  fdtype slotmap=fd_empty_slotmap();
   char *scan=parse_headers(slotmap,start,end);
   fdtype majtype=fd_handle_compound_mime_field(slotmap,content_type_slotid,FD_VOID);
   fdtype charenc, dataenc;

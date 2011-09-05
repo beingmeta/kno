@@ -1259,7 +1259,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
     return FD_VOID;}
   else {
     struct FD_DTYPE_STREAM *out; int bytes;
-    fdtype slotmap=(fdtype)fd_init_slotmap(NULL,0,NULL);
+    fdtype slotmap=(fdtype)fd_empty_slotmap();
     if (FD_VOIDP(vars)) vars=FD_EMPTY_CHOICE;
     if (FD_VOIDP(configvars)) configvars=FD_EMPTY_CHOICE;
     {FD_DO_CHOICES(sym,vars)

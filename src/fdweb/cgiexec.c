@@ -55,7 +55,7 @@ static fdtype get_reqdata()
 {
   fdtype table=fd_thread_get(cgidata_symbol);
   if ((!table) || (!(FD_TABLEP(table)))) {
-    table=fd_init_slotmap(NULL,0,NULL);
+    table=fd_empty_slotmap();
     fd_thread_set(cgidata_symbol,table);
     return table;}
   else return table;
@@ -995,7 +995,7 @@ static fdtype withreq_handler(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,1);
   fdtype result=FD_VOID;
   if (!(FD_TABLEP(new_table))) {
-    fd_decref(new_table); new_table=fd_init_slotmap(NULL,0,NULL);}
+    fd_decref(new_table); new_table=fd_empty_slotmap();}
   fd_thread_set(cgidata_symbol,new_table);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) return result;
@@ -1016,7 +1016,7 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   fdtype result=FD_VOID;
   if (FD_ABORTP(new_table)) return new_table;
   if (!(FD_TABLEP(new_table))) {
-    fd_decref(new_table); new_table=fd_init_slotmap(NULL,0,NULL);}
+    fd_decref(new_table); new_table=fd_empty_slotmap();}
   U8_INIT_OUTPUT(&_out,1024);
   fd_set_default_output(out);
   fd_thread_set(cgidata_symbol,new_table);
@@ -1042,7 +1042,7 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
 
 static fdtype cgiparse(fdtype qstring)
 {
-  fdtype smap=fd_init_slotmap(NULL,0,NULL);
+  fdtype smap=fd_empty_slotmap();
   parse_query_string((fd_slotmap)smap,FD_STRDATA(qstring),FD_STRLEN(qstring));
   return smap;
 }

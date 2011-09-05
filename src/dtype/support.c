@@ -860,14 +860,14 @@ static fdtype get_threadtable()
   fdtype table=(fdtype)u8_tld_get(threadtable_key);
   if (table) return table;
   else {
-    table=fd_init_slotmap(NULL,0,NULL);
+    table=fd_empty_slotmap();
     u8_tld_set(threadtable_key,(void*)table);
     return table;}
 }
 FD_EXPORT void fd_reset_threadvars()
 {
   fdtype table=(fdtype)u8_tld_get(threadtable_key);
-  fdtype new_table=fd_init_slotmap(NULL,0,NULL);
+  fdtype new_table=fd_empty_slotmap();
   u8_tld_set(threadtable_key,(void*)new_table);
   if (table) fd_decref(table);
 }
@@ -876,12 +876,12 @@ static fdtype __thread thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
-  else return (thread_table=fd_init_slotmap(NULL,0,NULL));
+  else return (thread_table=fd_empty_slotmap());
 }
 FD_EXPORT void fd_reset_threadvars()
 {
   fdtype table=thread_table;
-  thread_table=fd_init_slotmap(NULL,0,NULL);
+  thread_table=fd_empty_slotmap();
   fd_decref(table);
 }
 #else
@@ -889,12 +889,12 @@ static fdtype thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
-  else return (thread_table=fd_init_slotmap(NULL,0,NULL));
+  else return (thread_table=fd_empty_slotmap());
 }
 FD_EXPORT void fd_reset_threadvars()
 {
   fdtype table=thread_table;
-  thread_table=fd_init_slotmap(NULL,0,NULL);
+  thread_table=fd_empty_slotmap();
   fd_decref(table);
 }
 #endif
@@ -983,7 +983,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype reqinfo)
     ht->uselock=1;
     u8_rw_unlock(&(ht->rwlock));}
   if (FD_TRUEP(reqinfo)) 
-    reqinfo=fd_init_slotmap(NULL,0,NULL);
+    reqinfo=fd_empty_slotmap();
   if (FD_TABLEP(reqinfo)) {
     fd_incref(reqinfo);
     if (FD_SLOTMAPP(reqinfo)) {

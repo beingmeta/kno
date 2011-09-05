@@ -509,7 +509,7 @@ static void copy_envparam(char *name,fdtype target,fdtype slotid)
 static fdtype get_envcgidata()
 {
   int retval=0;
-  fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
+  fdtype slotmap=fd_empty_slotmap();
   char *lenstring=getenv("CONTENT_LENGTH");
   if (lenstring) {
     fdtype packet=FD_VOID;
@@ -570,7 +570,7 @@ static void output_content(FCGX_Request *req,fdtype content)
 
 static fdtype get_fcgidata(FCGX_Request *req)
 {
-  fdtype slotmap=fd_init_slotmap(NULL,0,NULL);
+  fdtype slotmap=fd_empty_slotmap();
   char *lenstring=FCGX_GetParam("CONTENT_LENGTH",req->envp);
   if (lenstring) {
     fdtype packet=FD_VOID;

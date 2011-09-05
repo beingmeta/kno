@@ -1043,7 +1043,7 @@ static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
 {
   u8_output out=fd_get_default_output();
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
-  fdtype attribs=fd_get(expr,attribids,FD_VOID), table=fd_init_slotmap(NULL,0,NULL);
+  fdtype attribs=fd_get(expr,attribids,FD_VOID), table=fd_empty_slotmap();
   fd_lispenv inner_env=fd_make_env(table,env);
   /* Handle case of vector attribids */
   if (FD_VECTORP(attribs)) {

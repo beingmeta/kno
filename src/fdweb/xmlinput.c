@@ -201,7 +201,7 @@ static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
 static void init_node_attribs(struct FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->attribs))
-    node->attribs=fd_init_slotmap(NULL,0,NULL);
+    node->attribs=fd_empty_slotmap();
   set_elt_name(node,node->eltname);
 }
 
@@ -214,7 +214,7 @@ void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name)
 FD_EXPORT void fd_init_xml_attribs(struct FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->attribs))
-    node->attribs=fd_init_slotmap(NULL,0,NULL);
+    node->attribs=fd_empty_slotmap();
   set_elt_name(node,node->eltname);
 }
 
@@ -541,14 +541,14 @@ FD_EXPORT
 void fd_default_contentfn(FD_XML *node,u8_string s,int len)
 {
   if (strncmp(s,"<!--",4)==0) {
-    fdtype cnode=fd_init_slotmap(NULL,0,NULL);
+    fdtype cnode=fd_empty_slotmap();
     fd_store(cnode,name_symbol,comment_symbol);
     fd_store(cnode,content_symbol,
 	     fd_init_pair(NULL,fd_extract_string(NULL,s+4,s+(len-3)),
 			  FD_EMPTY_LIST));
     add_content(node,cnode);}
   else if (strncmp(s,"<![CDATA[",9)==0) {
-    fdtype cnode=fd_init_slotmap(NULL,0,NULL);
+    fdtype cnode=fd_empty_slotmap();
     fd_store(cnode,name_symbol,cdata_symbol);
     fd_store(cnode,content_symbol,
 	     fd_init_pair(NULL,fd_extract_string(NULL,s+9,s+(len-3)),

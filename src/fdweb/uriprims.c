@@ -140,7 +140,7 @@ static int guess_portno(char *string,int n)
 FD_EXPORT
 fdtype fd_parse_uri(u8_string uri,fdtype base)
 {
-  fdtype f=fd_init_slotmap(NULL,0,NULL);
+  fdtype f=fd_empty_slotmap();
   u8_string start=uri, colon, slash, path_end;
   int default_portno=80;
   colon=strchr(start,':'); slash=strchr(uri,'/');
