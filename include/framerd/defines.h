@@ -149,6 +149,14 @@
 #define FD_INLINE_TABLES 0
 #endif
 
+#ifndef FD_USE_THREADCACHE
+#define FD_USE_THEADCACHE 1
+#endif
+
+#ifndef FD_WRITETHROUGH_THREADCACHE
+#define FD_WRITETHROUGH_THEADCACHE 0
+#endif
+
 #ifndef FD_TYPE_MAX
 #define FD_TYPE_MAX 256
 #endif

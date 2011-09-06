@@ -479,16 +479,20 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 {
   fdtype cached;
+  FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
+  if ((fdtc)&&(fdtc->indices.n_keys)) {
+    FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
+    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+    cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
+    if (!(FD_VOIDP(cached))) return cached;}
   if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
       (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
-  if (FD_VOIDP(cached))
-    if (fd_ipeval_status()) {
-      delay_index_fetch(ix,key);
-      return FD_EMPTY_CHOICE;}
-    else return fd_index_fetch(ix,key);
-  else return cached;
+  if (FD_VOIDP(cached)) cached=fd_index_fetch(ix,key);
+  if (fdtc) {
+    fd_hashtable_store(&(fdtc->indices),(fdtype)&tempkey,cached);}
+  return cached;
 }
 static fdtype table_indexget(fdtype ixarg,fdtype key,fdtype dflt)
 {
@@ -514,6 +518,7 @@ static void extend_slotids(fd_index ix,const fdtype *keys,int n)
 
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
+  FDTC *fdtc=fd_threadcache;
   if (ix->read_only) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->cid),FD_VOID);
     return -1;}
@@ -522,11 +527,28 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
   else if (FD_CHOICEP(key)) {
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key);
+#if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
+    if ((fdtc)&&(fdtc->indices.n_keys)) {
+      FD_DO_CHOICES(k,key) {
+	struct FD_PAIR tempkey;
+	FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
+	tempkey.car=fd_index2lisp(ix); tempkey.cdr=k;
+	if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
+	  fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}}
+#endif
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
     if (!(FD_VOIDP(ix->has_slotids))) extend_slotids(ix,keys,n);
     if (ix->cache_level>0)
       fd_hashtable_iterkeys(&(ix->cache),fd_table_add_if_present,n,keys,value);}
   else {
+#if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
+    if ((fdtc)&&(fdtc->indices.n_keys)) {
+      struct FD_PAIR tempkey;
+      FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
+      tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+      if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
+	fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}
+#endif
     fd_hashtable_add(&(ix->adds),key,value);
     if (ix->cache_level>0)
       fd_hashtable_op(&(ix->cache),fd_table_add_if_present,key,value);}

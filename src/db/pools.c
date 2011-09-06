@@ -813,8 +813,20 @@ FD_EXPORT fdtype _fd_oid_value(fdtype oid)
 {
   if (FD_EMPTY_CHOICEP(oid)) return oid;
   else if (FD_OIDP(oid)) {
-    fd_pool p=fd_oid2pool(oid);
-    return _fd_fetch_oid(p,oid);}
+    FDTC *fdtc=fd_threadcache; 
+    if (fdtc) {
+      fdtype value=((fdtc->oids.n_keys)?
+		    (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
+		    (FD_VOID));
+      if (!(FD_VOIDP(value))) return value;}
+    if (fdtc) {
+      fd_pool p=fd_oid2pool(oid);
+      fdtype value=fd_fetch_oid(p,oid);
+      fd_hashtable_store(&(fdtc->oids),oid,value);
+      return value;}
+    else {
+      fd_pool p=fd_oid2pool(oid);
+      return fd_fetch_oid(p,oid);}}
   else return fd_type_error(_("OID"),"_fd_oid_value",oid);
 }
 

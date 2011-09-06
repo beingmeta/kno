@@ -194,12 +194,13 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 #endif
 
 typedef struct FD_THREAD_CACHE {
-  struct FD_HASHTABLE fdtc_calls;
-  struct FD_HASHTABLE fdtc_oids;
-  struct FD_HASHTABLE fdtc_bground;
-  struct FD_HASHTABLE fdtc_keys;
+  struct FD_HASHTABLE oids;
+  struct FD_HASHTABLE indices;
+  struct FD_HASHTABLE bground;
+  struct FD_HASHTABLE calls;
   struct FD_THREAD_CACHE *fdtc_prev;} FD_THREAD_CACHE;
 typedef struct FD_THREAD_CACHE *fd_thread_cache;
+typedef struct FD_THREAD_CACHE FDTC;
 
 #if (FD_USE_TLS)
 FD_EXPORT u8_tld_key fd_threadcache_key;

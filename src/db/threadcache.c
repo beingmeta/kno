@@ -28,10 +28,10 @@ struct FD_THREAD_CACHE *fd_threadcache=NULL;
 FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
 {
   /* These may do customized things for some of the tables. */
-  fd_reset_hashtable(&(tc->fdtc_calls),0,0);
-  fd_reset_hashtable(&(tc->fdtc_oids),0,0);
-  fd_reset_hashtable(&(tc->fdtc_bground),0,0);
-  fd_reset_hashtable(&(tc->fdtc_keys),0,0);
+  fd_reset_hashtable(&(tc->calls),0,0);
+  fd_reset_hashtable(&(tc->oids),0,0);
+  fd_reset_hashtable(&(tc->indices),0,0);
+  fd_reset_hashtable(&(tc->bground),0,0);
   u8_free(tc);
   return 1;
 }
@@ -56,10 +56,10 @@ FD_EXPORT int fd_pop_threadcache(struct FD_THREAD_CACHE *tc)
 FD_EXPORT fd_thread_cache fd_cons_thread_cache(int ccsize,int ocsize,int bcsize,int kcsize)
 {
   struct FD_THREAD_CACHE *tc=u8_alloc(struct FD_THREAD_CACHE);
-  fd_make_hashtable(&(tc->fdtc_calls),ccsize);
-  fd_make_hashtable(&(tc->fdtc_oids),ocsize);
-  fd_make_hashtable(&(tc->fdtc_bground),bcsize);
-  fd_make_hashtable(&(tc->fdtc_keys),kcsize);
+  fd_make_hashtable(&(tc->calls),ccsize);
+  fd_make_hashtable(&(tc->oids),ocsize);
+  fd_make_hashtable(&(tc->bground),bcsize);
+  fd_make_hashtable(&(tc->indices),kcsize);
   tc->fdtc_prev=NULL;
   return tc;
 }

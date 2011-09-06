@@ -411,7 +411,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     vecstruct.data=elts;
     vec=FDTYPE_CONS(&vecstruct);
     /* Look it up in the cache. */
-    cached=fd_hashtable_get_nolock(&(tc->fdtc_calls),vec,FD_VOID);
+    cached=fd_hashtable_get_nolock(&(tc->calls),vec,FD_VOID);
     if (!(FD_VOIDP(cached))) {
       if (elts!=_elts) u8_free(elts);
       return cached;}
@@ -431,7 +431,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
 	  int i=0, nelts=n+1;
 	  while (i<nelts) {fd_incref(elts[i]); i++;}
 	  vec=fd_init_vector(NULL,nelts,elts);}
-	fd_hashtable_store(&(tc->fdtc_calls),vec,result);
+	fd_hashtable_store(&(tc->calls),vec,result);
 	fd_decref(vec);
 	return result;}
       else return result;}}
