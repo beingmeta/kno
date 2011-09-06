@@ -128,7 +128,7 @@ FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
 }
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep)
+  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata)
 {
   struct FD_KEYVAL *keyvals=*kvp;
   int size=*sizep, space=((spacep)?(0):(*spacep)), found=0;
@@ -167,7 +167,10 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
   else {
     int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
     struct FD_KEYVAL *insert_point;
-    struct FD_KEYVAL *new_keyvals=u8_realloc_n(keyvals,size+1,struct FD_KEYVAL);
+    struct FD_KEYVAL *new_keyvals=
+      ((freedata)?(u8_realloc_n(keyvals,size+1,struct FD_KEYVAL)):
+       (u8_extalloc(keyvals,((size+1)*sizeof(struct FD_KEYVAL)),
+		    (size*sizeof(struct FD_KEYVAL)))));
     if (new_keyvals==NULL) return NULL;
     *kvp=new_keyvals; *sizep=size+1; *spacep=size+1;
     insert_point=new_keyvals+ipos;
@@ -191,7 +194,7 @@ FD_EXPORT fdtype _fd_slotmap_test(struct FD_SLOTMAP *sm,fdtype key,fdtype val)
 
 FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result;
+  struct FD_KEYVAL *result, *okeyvals;
   int osize, size, ospace, space, unlock=0;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if ((FD_ABORTP(value)))
@@ -199,11 +202,13 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   if (sm->uselock) { fd_write_lock(&sm->rwlock); unlock=1;}
   size=osize=FD_XSLOTMAP_SIZE(sm);
   space=ospace=FD_XSLOTMAP_SPACE(sm);
-  result=fd_sortvec_insert(key,&(sm->keyvals),&size,&space);
+  okeyvals=sm->keyvals;
+  result=fd_sortvec_insert(key,&(sm->keyvals),&size,&space,sm->freedata);
   if (FD_EXPECT_FALSE(result==NULL)) {
     if (unlock) fd_rw_unlock(&(sm->rwlock));
     fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
     return -1;}
+  if (sm->keyvals!=okeyvals) sm->freedata=1;
   fd_decref(result->value); result->value=fd_incref(value);
   FD_XSLOTMAP_MARK_MODIFIED(sm);
   if (ospace != space) { FD_XSLOTMAP_SET_SPACE(sm,space); }
@@ -217,7 +222,7 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 
 FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result;
+  struct FD_KEYVAL *result, *okeyvals;
   int osize, size, ospace, space, unlock=0;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if (FD_EMPTY_CHOICEP(value)) return 0;
@@ -226,11 +231,13 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   if (sm->uselock) { fd_write_lock(&sm->rwlock); unlock=1;}
   size=osize=FD_XSLOTMAP_SIZE(sm);
   space=ospace=FD_XSLOTMAP_SPACE(sm);
-  result=fd_sortvec_insert(key,&(sm->keyvals),&size,&space);
+  okeyvals=sm->keyvals;
+  result=fd_sortvec_insert(key,&(sm->keyvals),&size,&space,sm->freedata);
   if (FD_EXPECT_FALSE(result==NULL)) {
     if (unlock) fd_rw_unlock(&sm->rwlock);
     fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
     return -1;}
+  if (sm->keyvals!=okeyvals) sm->freedata=1;
   fd_incref(value);
   FD_ADD_TO_CHOICE(result->value,value); 
   FD_XSLOTMAP_MARK_MODIFIED(sm);

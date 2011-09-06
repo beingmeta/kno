@@ -125,7 +125,7 @@ FD_EXPORT fdtype fd_slotmap_max
   (struct FD_SLOTMAP *sm,fdtype scope,fdtype *maxvalp);
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep);
+  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata);
 
 #if FD_INLINE_TABLES
 static struct FD_KEYVAL *fd_sortvec_get
