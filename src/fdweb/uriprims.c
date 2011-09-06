@@ -202,15 +202,17 @@ static fdtype mergeuris(fdtype uri,fdtype base)
     else return copy;}
 }
 
-static void uri_output(u8_output out,u8_string s,char *escape,int cap)
+static void uri_output(u8_output out,u8_string s,int len,int upper,
+		       char *escape)
 {
-  while (*s)
+  u8_string lim=((len<0)?(NULL):(s+len));
+  while ((lim)?(s<lim):(*s))
     if ((*s>=0x80)||(isspace(*s))||(*s=='+')||(*s=='%')||
 	((escape==NULL)?
 	 (!((isalnum(*s))||(*s=='-')||(*s=='_')||(*s=='.')||(*s=='~'))):
 	 ((strchr(escape,*s))!=NULL))) {
       char buf[8];
-      if (cap) sprintf(buf,"%%%02X",*s);
+      if (upper) sprintf(buf,"%%%02X",*s);
       else sprintf(buf,"%%%02x",*s);
       u8_puts(out,buf); s++;}
     else {u8_putc(out,*s); s++;}
@@ -260,7 +262,7 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
       FD_DOLIST(elt,path) {
 	if (FD_STRINGP(elt)) {
 	  if (escapes)
-	    uri_output(&out,FD_STRDATA(elt),escapes,upper);
+	    uri_output(&out,FD_STRDATA(elt),FD_STRLEN(elt),upper,escapes);
 	  else u8_puts(&out,FD_STRDATA(elt));
 	  u8_putc(&out,'/');}}}
     else if (FD_STRINGP(pathstring))
@@ -268,18 +270,18 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
     else {}
     if (FD_STRINGP(name))
       if (escapes)
-	uri_output(&out,FD_STRDATA(name),escapes,upper);
+	uri_output(&out,FD_STRDATA(name),FD_STRLEN(name),upper,escapes);
       else u8_puts(&out,FD_STRDATA(name));
     else {}
     if (FD_STRINGP(query)) {
       u8_putc(&out,'?');
       if (escapes)
-	uri_output(&out,FD_STRDATA(query),escapes,upper);
+	uri_output(&out,FD_STRDATA(query),FD_STRLEN(query),upper,escapes);
       else u8_puts(&out,FD_STRDATA(query));}
     if (FD_STRINGP(fragment)) {
       u8_putc(&out,'#');
       if (escapes)
-	uri_output(&out,FD_STRDATA(fragment),escapes,upper);
+	uri_output(&out,FD_STRDATA(fragment),FD_STRLEN(fragment),upper,escapes);
       else u8_puts(&out,FD_STRDATA(fragment));}
     fd_decref(scheme);
     fd_decref(userinfo); fd_decref(hostname); fd_decref(port);
@@ -363,9 +365,10 @@ static fdtype uripath_prim(fdtype uri_arg)
   else return fd_extract_string(NULL,pathstart,uri+FD_STRLEN(uri_arg));
 }
 
-FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape,int upper)
+FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,
+			     char *escape)
 {
-  uri_output(out,uri,escape,upper);
+  uri_output(out,uri,len,upper,escape);
 }
 
 /* Making URI paths */

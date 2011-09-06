@@ -37,7 +37,7 @@ FD_EXPORT void fd_pprint_focus
 
 #include <libu8/xfiles.h>
 
-FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,char *escape,int);
+FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int,int,char *);
 
 #define strd u8_strdup
 
@@ -1181,7 +1181,7 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
   if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
   if (n == 1) {
     if (FD_STRINGP(args[0]))
-      fd_uri_output(&out,FD_STRDATA(args[0]),NULL,0);
+      fd_uri_output(&out,FD_STRDATA(args[0]),FD_STRLEN(args[0]),0,NULL);
     else if (FD_OIDP(args[0])) {
       FD_OID addr=FD_OID_ADDR(args[0]);
       u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
@@ -1272,22 +1272,22 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
       if (lastc=='?') {}
       else if (lastc=='&') {}
       else u8_putc(out,'&');
-      fd_uri_output(out,varname,NULL,0);
+      fd_uri_output(out,varname,-1,0,NULL);
       u8_putc(out,'=');
       if (FD_STRINGP(val)) 
-	fd_uri_output(out,FD_STRDATA(val),NULL,0);
+	fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
       else if (FD_PACKETP(val)) 
-	fd_uri_output(out,FD_PACKET_DATA(val),NULL,0);
+	fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
       else if (FD_OIDP(val)) {
 	FD_OID addr=FD_OID_ADDR(val);
 	u8_printf(out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
       else {
 	if (!(nocolon)) u8_putc(out,':');
 	if (FD_SYMBOLP(val))
-	  fd_uri_output(out,FD_SYMBOL_NAME(val),NULL,0);
+	  fd_uri_output(out,FD_SYMBOL_NAME(val),-1,0,NULL);
 	else {
 	  u8_string as_string=fd_dtype2string(val);
-	  fd_uri_output(out,as_string,NULL,0);
+	  fd_uri_output(out,as_string,-1,0,NULL);
 	  u8_free(as_string);}}
       lastc=-1;}}
   if (free_varname) u8_free(varname);
@@ -1309,8 +1309,8 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
     input=fd_dtype2string(string);
     free_input=1;}
   if (FD_VOIDP(escape))
-    fd_uri_output(&out,input,NULL,uparg);
-  else fd_uri_output(&out,input,FD_STRDATA(escape),uparg);
+    fd_uri_output(&out,input,-1,uparg,NULL);
+  else fd_uri_output(&out,input,-1,uparg,FD_STRDATA(escape));
   if (free_input) u8_free(input);
   if (FD_STRINGP(string)) return fd_stream2string(&out);
   else if (FD_PRIM_TYPEP(string,fd_packet_type))
