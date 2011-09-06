@@ -536,6 +536,10 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 	case 6: return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
 	case 7: return dcall7(f,args[0],args[1],args[2],args[3],
 			      args[4],args[5],args[6]);
+	case 8: return dcall8(f,args[0],args[1],args[2],args[3],
+			      args[4],args[5],args[6],args[7]);
+	case 9: return dcall9(f,args[0],args[1],args[2],args[3],
+			      args[4],args[5],args[6],args[7],args[8]);
 	default:
 	  if ((args==argbuf) || (args==argvec))
 	    return f->handler.calln(n,args);
