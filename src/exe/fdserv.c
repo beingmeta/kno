@@ -80,7 +80,7 @@ typedef struct FD_WEBCONN {
 typedef struct FD_WEBCONN *fd_webconn;
 
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static fdtype response_symbol, err_symbol, cgidata_symbol, browseinfo_symbol;
+static fdtype response_symbol, err_symbol, browseinfo_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid, remote_info_symbol;
 static fdtype content_slotid, content_type, retfile_slotid, cleanup_slotid;
 static fdtype tracep_slotid, query_symbol, referer_symbol;
@@ -705,7 +705,7 @@ static int webservefn(u8_client ucl)
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_set_default_output(&(client->out));
-  fd_thread_set(cgidata_symbol,cgidata);
+  fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
@@ -812,7 +812,7 @@ static int webservefn(u8_client ucl)
     FD_DO_CHOICES(cl,cleanup) {
       fdtype retval=fd_apply(cleanup,0,NULL);
       fd_decref(retval);}}
-  fd_thread_set(cgidata_symbol,FD_VOID);
+  fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   fd_clear_errors(1);
   write_time=u8_elapsed_time();
@@ -917,7 +917,6 @@ static void init_symbols()
   tracep_slotid=fd_intern("TRACEP");
   err_symbol=fd_intern("%ERR");
   response_symbol=fd_intern("%RESPONSE");
-  cgidata_symbol=fd_intern("CGIDATA");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   referer_symbol=fd_intern("HTTP_REFERER");
   remote_info_symbol=fd_intern("REMOTE_INFO");

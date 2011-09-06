@@ -113,11 +113,16 @@ FD_EXPORT int fd_thread_add(fdtype var,fdtype val);
 
 /* Request state */
 
+typedef fdtype (*fd_reqfn)(fdtype);
+
 FD_EXPORT fdtype fd_req(fdtype var);
+FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt);
 FD_EXPORT int fd_req_store(fdtype var,fdtype val);
 FD_EXPORT int fd_req_test(fdtype var,fdtype val);
 FD_EXPORT int fd_req_add(fdtype var,fdtype val);
 FD_EXPORT int fd_req_drop(fdtype var,fdtype val);
+FD_EXPORT fdtype fd_req_call(fd_reqfn reqfn);
+FD_EXPORT int fd_req_push(fdtype var,fdtype val);
 FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
 
 /* Runbase */

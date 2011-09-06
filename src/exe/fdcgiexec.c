@@ -70,7 +70,7 @@ static struct U8_XTIME boot_time;
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static fdtype response_symbol, err_symbol, cgidata_symbol, browseinfo_symbol;
+static fdtype response_symbol, err_symbol, browseinfo_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static fdtype content_slotid, content_type, tracep_slotid, query_string;
 static fdtype query_string, script_name, path_info;
@@ -630,7 +630,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_set_default_output(out);
-  fd_thread_set(cgidata_symbol,cgidata);
+  fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
@@ -711,7 +711,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,out->u8_outbuf,u8_elapsed_time()-start_time);}
-  fd_thread_set(cgidata_symbol,FD_VOID);
+  fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
@@ -915,7 +915,7 @@ static int simplecgi(fdtype path)
     if ((reqlog) || (urllog))
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
-  fd_thread_set(cgidata_symbol,cgidata);
+  fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   fd_set_default_output(&out);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
@@ -995,7 +995,7 @@ static int simplecgi(fdtype path)
 	retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),stdout);}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);}
   fd_set_default_output(NULL);
-  fd_thread_set(cgidata_symbol,FD_VOID);
+  fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
@@ -1067,7 +1067,6 @@ static void init_symbols()
   tracep_slotid=fd_intern("TRACEP");
   err_symbol=fd_intern("%ERR");
   response_symbol=fd_intern("%RESPONSE");
-  cgidata_symbol=fd_intern("CGIDATA");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   post_data=fd_intern("POST_DATA");
 }

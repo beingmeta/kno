@@ -847,18 +847,15 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
   u8_exception e=u8_exception_root(ex);
   fdtype irritant=fd_exception_xdata(e);
-  fdtype cgidata=fd_get_cgidata();
   int isembedded=0, customstylesheet=0;
   s->u8_outptr=s->u8_outbuf;
-  if (FD_NOVOIDP(cgidata)) {
-    fdtype embeddedp=fd_get(cgidata,embedded_symbol,FD_VOID);
-    fdtype estylesheet=fd_get(cgidata,estylesheet_symbol,FD_VOID);
-    if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded=1;
-    if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
-    if (FD_STRINGP(estylesheet)) {
-      u8_puts(s,FD_STRDATA(estylesheet));
-      customstylesheet=1;}
-    fd_decref(cgidata);}
+  fdtype embeddedp=fd_req_get(embedded_symbol,FD_VOID);
+  fdtype estylesheet=fd_req_get(estylesheet_symbol,FD_VOID);
+  if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded=1;
+  if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
+  if (FD_STRINGP(estylesheet)) {
+    u8_puts(s,FD_STRDATA(estylesheet));
+    customstylesheet=1;}
   if (isembedded==0) {
     u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
     u8_printf(s,"<html>\n<head>\n<title>");

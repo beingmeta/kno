@@ -1,6 +1,6 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004-2011 beingmeta, inc.
-# This file is a part of beingmeta's FramerD implementation, FDB.
+# This file is a part of beingmeta's FramerD implementation
 MAKEFILE_VERSION="$Id$"
 
 CC	= @CC@

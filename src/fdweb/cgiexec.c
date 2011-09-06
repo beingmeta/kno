@@ -26,7 +26,7 @@ static char versionid[] =
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method, status_field;
-static fdtype get_method, post_method, cgidata_symbol, browseinfo_symbol;
+static fdtype get_method, post_method, browseinfo_symbol;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers;
 static fdtype cookies_symbol, incookies_symbol, bad_cookie, text_symbol;
@@ -50,16 +50,6 @@ static u8_condition CGIDataInconsistency="Inconsistent CGI data";
   "<?xml version='1.0' charset='utf-8' ?>"
 
 /* Utility functions */
-
-static fdtype get_reqdata()
-{
-  fdtype table=fd_thread_get(cgidata_symbol);
-  if ((!table) || (!(FD_TABLEP(table)))) {
-    table=fd_empty_slotmap();
-    fd_thread_set(cgidata_symbol,table);
-    return table;}
-  else return table;
-}
 
 static fdtype try_parse(u8_string buf)
 {
@@ -115,11 +105,6 @@ static void emit_uri_value(u8_output out,fdtype val)
     u8_string as_string=fd_dtype2string(val);
     u8_puts(out,"%3a"); emit_uri_string(out,as_string);
     u8_free(as_string);}
-}
-
-FD_EXPORT fdtype fd_get_cgidata()
-{
-  return get_reqdata();
 }
 
 FD_EXPORT
@@ -319,15 +304,20 @@ static void parse_query_string(fd_slotmap c,char *data,int len)
 
 /* Converting cookie args */
 
-static void setcookiedata(fdtype cgidata,fdtype cookiedata)
+static void setcookiedata(fdtype cookiedata,fdtype cgidata)
 {
-  fdtype cookies=fd_get(cgidata,cookies_symbol,FD_EMPTY_CHOICE);
+  fdtype cookies=
+    ((FD_TABLEP(cgidata))?
+     (fd_get(cgidata,cookies_symbol,FD_EMPTY_CHOICE)):
+     (fd_req_get(cookies_symbol,FD_EMPTY_CHOICE)));
   fdtype cookievar=FD_VECTOR_REF(cookiedata,0);
-  FD_DO_CHOICES(cookie,cookies)
+  FD_DO_CHOICES(cookie,cookies) {
     if (FD_EQ(FD_VECTOR_REF(cookie,0),cookievar))
-      fd_drop(cgidata,cookies_symbol,cookie);
+      if (FD_TABLEP(cgidata))
+	fd_drop(cgidata,cookies_symbol,cookie);
+      else fd_req_drop(cookies_symbol,cookie);}
   fd_decref(cookies);
-  fd_add(cgidata,cookies_symbol,cookiedata);
+  fd_req_add(cookies_symbol,cookiedata);
 }
 
 static void convert_cookie_arg(fd_slotmap c)
@@ -362,7 +352,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	else {
 	  fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
 	  fd_slotmap_add(c,slotid,value);
-	  setcookiedata((fdtype)c,cookiedata);
+	  setcookiedata(cookiedata,(fdtype)c);
 	  fd_decref(cookiedata);}
 	fd_decref(value); value=FD_VOID; slotid=FD_VOID;
 	write=buf; isascii=1; scan++;}
@@ -391,7 +381,7 @@ static void convert_cookie_arg(fd_slotmap c)
       else {
 	fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
 	fd_slotmap_add(c,slotid,value);
-	setcookiedata((fdtype)c,cookiedata);
+	setcookiedata(cookiedata,(fdtype)c);
 	fd_decref(cookiedata);}
       fd_decref(value); value=FD_VOID; slotid=FD_VOID;
       write=buf; isascii=1; scan++;}
@@ -483,34 +473,16 @@ static fdtype httpheader(fdtype expr,fd_lispenv env)
     u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype cgidata=fd_thread_get(cgidata_symbol);
-    if (FD_TABLEP(cgidata)) {
-      fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-      fd_add(cgidata,http_headers,header);
-      fd_decref(header);}
-    else {
-      U8_OUTPUT *port=fd_get_default_output();
-      u8_printf(port,"http>> %s\n",out.u8_outbuf);
-      u8_free(out.u8_outbuf);}
-    fd_decref(cgidata);
+    fdtype header=
+      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    fd_req_add(http_headers,header);
+    fd_decref(header);
     return FD_VOID;}
 }
 	  
 static fdtype addhttpheader(fdtype header)
 {
-  fdtype cgidata=fd_thread_get(cgidata_symbol);
-  if (FD_TABLEP(cgidata)) {
-    fd_add(cgidata,http_headers,header);
-    fd_decref(header);}
-  else {
-    U8_OUTPUT *port=fd_get_default_output();
-    u8_printf(port,"http>> ");
-    if (FD_STRINGP(header)) u8_puts(port,FD_STRDATA(header));
-    else if (FD_PACKETP(header))
-      u8_putn(port,FD_PACKET_DATA(header),FD_PACKET_LENGTH(header));
-    else u8_printf(port,"<<bad header>>");
-    u8_printf(port,"\n");}
-  fd_decref(cgidata);
+  fd_req_add(http_headers,header);
   return FD_VOID;
 }
 
@@ -522,21 +494,10 @@ static fdtype htmlheader(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
     return result;}
-  else {
-    fdtype cgidata=fd_thread_get(cgidata_symbol);
-    if (FD_TABLEP(cgidata)) {
-      fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-      fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-      fdtype new=fd_init_pair(NULL,header,current);
-      fd_store(cgidata,html_headers,new);
-      fd_decref(new);}
-    else {
-      U8_OUTPUT *port=fd_get_default_output();
-      u8_printf(port,"http>> %s\n",out.u8_outbuf);
-      u8_free(out.u8_outbuf);}
-    fd_decref(cgidata);
-    return FD_VOID;}
-}      
+  else fd_req_push
+	 (html_headers,
+	  fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
+}
 
 /* Handling cookies */
 
@@ -608,7 +569,7 @@ static fdtype setcookie
   if (!((FD_SYMBOLP(var)) || (FD_STRINGP(var)) || (FD_OIDP(var))))
     return fd_type_error("symbol","setcookie",var);
   else {
-    fdtype cookiedata, cgidata=fd_thread_get(cgidata_symbol);
+    fdtype cookiedata;
     if (FD_VOIDP(domain)) domain=FD_FALSE;
     if (FD_VOIDP(path)) path=FD_FALSE;
     if (FD_VOIDP(expires)) expires=FD_FALSE;
@@ -616,13 +577,8 @@ static fdtype setcookie
       fd_make_nvector(6,fd_incref(var),fd_incref(val),
 		      fd_incref(domain),fd_incref(path),
 		      fd_incref(expires),fd_incref(secure));
-    if (FD_VOIDP(cgidata)) {
-      u8_output out=fd_get_default_output();
-      handle_cookie(out,FD_VOID,cookiedata);
-      fd_decref(cookiedata);
-      return FD_VOID;}
-    setcookiedata(cgidata,cookiedata);
-    fd_decref(cookiedata); fd_decref(cgidata);
+    setcookiedata(cookiedata,FD_VOID);
+    fd_decref(cookiedata);
     return FD_VOID;}
 }
 
@@ -630,46 +586,26 @@ static fdtype setcookie
 
 static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
 {
-  fdtype cgidata=fd_thread_get(cgidata_symbol);
-  U8_OUTPUT out, *port;
-  if (FD_VOIDP(cgidata))
-    port=fd_get_default_output();
-  else {U8_INIT_OUTPUT(&out,64); port=&out;}
+  U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   if (FD_VOIDP(type))
-    u8_printf(port,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
+    u8_printf(&out,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
 	      FD_STRDATA(stylesheet));
-  else u8_printf(port,"<link rel='stylesheet' type='%s' href='%s'/>\n",
+  else u8_printf(&out,"<link rel='stylesheet' type='%s' href='%s'/>\n",
 		 FD_STRDATA(type),FD_STRDATA(stylesheet));
-  if (FD_VOIDP(cgidata)) u8_flush(port);
-  else {
-    fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-    fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-    fdtype new=fd_init_pair(NULL,header,current);
-    fd_store(cgidata,html_headers,new);
-    fd_decref(cgidata);
-    fd_decref(new);}
+  fd_req_push(html_headers,
+	      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
   return FD_VOID;
 }
 
 static fdtype add_javascript(fdtype url)
 {
-  fdtype cgidata=fd_thread_get(cgidata_symbol);
-  U8_OUTPUT out, *port; 
-  if (FD_VOIDP(cgidata))
-    port=fd_get_default_output();
-  else {U8_INIT_OUTPUT(&out,64); port=&out;}
-  u8_printf(port,"<script language='javascript' src='%s'>\n",
+  U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+  u8_printf(&out,"<script language='javascript' src='%s'>\n",
 	    FD_STRDATA(url));
-  u8_printf(port,"  <!-- empty content for some browsers -->\n");
-  u8_printf(port,"</script>\n");
-  if (FD_VOIDP(cgidata)) u8_flush(port);
-  else {
-    fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-    fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-    fdtype new=fd_init_pair(NULL,header,current);
-    fd_store(cgidata,html_headers,new);
-    fd_decref(new);}
-  fd_decref(cgidata);
+  u8_printf(&out,"  <!-- empty content for some browsers -->\n");
+  u8_printf(&out,"</script>\n");
+  fd_req_push(html_headers,
+	      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
   return FD_VOID;
 }
 
@@ -684,21 +620,10 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype cgidata=fd_thread_get(cgidata_symbol);
-    if (FD_TABLEP(cgidata)) {
-      fdtype header=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-      fdtype current=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
-      fdtype new=fd_init_pair(NULL,header,current);
-      fd_store(cgidata,html_headers,new);
-      fd_decref(new);}
-    else {
-      U8_OUTPUT *port=fd_get_default_output();
-      u8_printf(port,"http>> %s\n",out.u8_outbuf);
-      u8_free(out.u8_outbuf);}
-    fd_decref(cgidata);
-    fd_decref(result);
+    fd_req_push(html_headers,
+		fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
     return FD_VOID;}
-}      
+}
 
 /* Generating the XML */
 void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
@@ -803,32 +728,25 @@ int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata)
 static fdtype set_body_attribs(int n,fdtype *args)
 {
   fdtype attribs=FD_EMPTY_LIST; int i=n-1;
-  fdtype table=get_reqdata();
-  if (n==1) {
-    fd_store(table,body_attribs_slotid,args[0]);
-    fd_decref(table);
-    return FD_VOID;}
   while (i>=0) {
-    attribs=fd_init_pair(NULL,fd_incref(args[i]),attribs); i--;}
-  fd_store(table,body_attribs_slotid,attribs);
-  fd_decref(table);
-  fd_decref(attribs);
+    fd_incref(args[i]);
+    fd_req_push(body_attribs_slotid,args[i]);
+    i++;}
   return FD_VOID;
 }
 
 /* CGI Exec */
 
-static fdtype tail_symbol, cgidata_symbol;
+static fdtype tail_symbol;
 
 static fdtype cgigetvar(fdtype cgidata,fdtype var)
 {
   int noparse=
     ((FD_SYMBOLP(var))&&((FD_SYMBOL_NAME(var))[0]=='%'));
   fdtype name=((noparse)?(fd_intern(FD_SYMBOL_NAME(var)+1)):(var));
-  fdtype val=fd_get(cgidata,name,FD_VOID);
-  if (FD_VOIDP(val))
-    if (FD_EQ(var,tail_symbol)) return fd_incref(cgidata);
-    else return val;
+  fdtype val=((FD_VOIDP(cgidata))?(fd_req_get(name,FD_VOID)):
+	      (fd_get(cgidata,name,FD_VOID)));
+  if (FD_VOIDP(val)) return val;
   else if ((noparse)&&(FD_STRINGP(val))) return val;
   else if (FD_STRINGP(val)) {
     u8_string data=FD_STRDATA(val);
@@ -860,63 +778,57 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
   else return val;
 }
 
+static fdtype reqdatalogfn(fdtype cgidata)
+{
+  fdtype keys=fd_getkeys(cgidata);
+  FD_DO_CHOICES(key,keys) {
+    fdtype value=fd_get(cgidata,key,FD_VOID);
+    if (!(FD_VOIDP(value)))
+      u8_log(LOG_DEBUG,CGIData,"%q = %q",key,value);
+    fd_decref(value);}
+  fd_decref(keys);
+  return FD_VOID;
+}
+
+
 FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata,int threadbind)
 {
   fdtype value;
-  if (threadbind) {
-    fd_thread_set(cgidata_symbol,cgidata);
-    fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);}
+  if (threadbind) fd_use_reqinfo(cgidata);
   if (FD_PTR_TYPEP(proc,fd_sproc_type))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else value=fd_apply(proc,0,NULL);
   value=fd_finish_call(value);
-  if (threadbind) {
-    fd_thread_set(cgidata_symbol,FD_VOID);
-    fd_thread_set(browseinfo_symbol,FD_VOID);}
-  if (log_cgidata) {
-    fdtype keys=fd_getkeys(cgidata);
-    FD_DO_CHOICES(key,keys) {
-      fdtype value=fd_get(cgidata,key,FD_VOID);
-      if (!(FD_VOIDP(value)))
-	u8_log(LOG_DEBUG,CGIData,"%q = %q",key,value);
-      fd_decref(value);}
-    fd_decref(keys);}
+  if (threadbind) fd_use_reqinfo(FD_VOID);
+  if (log_cgidata) fd_req_call(reqdatalogfn);
   return value;
 }
 
-static fdtype cgicall(fdtype proc)
+static fdtype reqcall_prim(fdtype proc)
 {
-  fdtype cgidata=fd_thread_get(cgidata_symbol), value=FD_VOID;
+  fdtype value=FD_VOID;
   if (FD_PTR_TYPEP(proc,fd_sproc_type)) 
     value=
-      fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
+      fd_xapply_sproc((fd_sproc)proc,(void *)FD_VOID,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else if (FD_APPLICABLEP(proc))
     value=fd_apply(proc,0,NULL);
   else value=fd_type_error("applicable","cgicall",proc);
-  fd_decref(cgidata);
   return value;
 }
 
-static fdtype cgiget(fdtype var,fdtype dflt)
+static fdtype reqget_prim(fdtype var,fdtype dflt)
 {
-  fdtype table=get_reqdata(), val;
-  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  val=fd_get(table,var,FD_VOID); fd_decref(table);
-  if (FD_VOIDP(val))
-    if (FD_VOIDP(dflt))
-      return FD_EMPTY_CHOICE;
-    else return fd_incref(dflt);
-  else return val;
+  return fd_req_get(var,dflt);
 }
 
-static fdtype cgival(fdtype var,fdtype dflt)
+static fdtype reqval_prim(fdtype var,fdtype dflt)
 {
-  fdtype table=get_reqdata(), val;
+  fdtype val;
   if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  val=fd_get(table,var,FD_VOID); fd_decref(table);
+  val=fd_req_get(var,FD_VOID);
   if (FD_VOIDP(val))
     if (FD_VOIDP(dflt))
       return FD_EMPTY_CHOICE;
@@ -937,45 +849,55 @@ static fdtype cgival(fdtype var,fdtype dflt)
   else return val;
 }
 
-static fdtype cgitest(fdtype vars,fdtype val)
+static fdtype reqtest_prim(fdtype vars,fdtype val)
 {
-  fdtype table=get_reqdata(), result=FD_FALSE;
-  if (FD_TABLEP(table)) {
-    FD_DO_CHOICES(var,vars) {
-      if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-      if (fd_test(table,var,val)) result=FD_TRUE;}}
-  fd_decref(table);
-  return result;
+  FD_DO_CHOICES(var,vars) {
+    if (fd_req_test(vars,val)) {
+      FD_STOP_DO_CHOICES;
+      return FD_TRUE;}}
+  return FD_FALSE;
 }
 
-static fdtype cgiset(fdtype vars,fdtype value)
+static fdtype reqset_prim(fdtype vars,fdtype value)
 {
-  fdtype table=get_reqdata();
   {FD_DO_CHOICES(var,vars) {
-    if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-    fd_store(table,var,value);}}
-  fd_decref(table);
+      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+      fd_req_store(name,value);}}
   return FD_VOID;
 }
 
-static fdtype cgiadd(fdtype var,fdtype value)
+static fdtype reqadd_prim(fdtype vars,fdtype value)
 {
-  fdtype table=get_reqdata();
-  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  fd_add(table,var,value);
-  fd_decref(table);
+  {FD_DO_CHOICES(var,vars) {
+      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+      fd_req_add(name,value);}}
   return FD_VOID;
 }
 
-static fdtype cgidrop(fdtype var,fdtype value)
+static fdtype reqdrop_prim(fdtype vars,fdtype value)
 {
-  fdtype table=get_reqdata();
-  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  fd_drop(table,var,value);
-  fd_decref(table);
+  {FD_DO_CHOICES(var,vars) {
+      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+      fd_req_drop(name,value);}}
   return FD_VOID;
 }
 
+static fdtype reqpush_prim(fdtype vars,fdtype values)
+{
+  {FD_DO_CHOICES(var,vars) {
+      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+      FD_DO_CHOICES(value,values) {
+	/* fd_req_push is weird because it doesn't incref its arg */
+	fd_incref(value); fd_req_push(name,value);}}}
+  return FD_VOID;
+}
+
+fdtype reqdata_prim()
+{
+  return fd_req_call(fd_deep_copy);
+}
+
+/*
 static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
 {
   fdtype table=get_reqdata();
@@ -987,39 +909,30 @@ static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
   fd_decref(table);
   return FD_VOID;
 }
+*/
 
 static fdtype withreq_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype old_table=fd_thread_get(cgidata_symbol);
-  fdtype new_table=fd_eval(fd_get_arg(expr,1),env);
-  fdtype body=fd_get_body(expr,1);
-  fdtype result=FD_VOID;
-  if (!(FD_TABLEP(new_table))) {
-    fd_decref(new_table); new_table=fd_empty_slotmap();}
-  fd_thread_set(cgidata_symbol,new_table);
+  fdtype body=fd_get_body(expr,1), result=FD_VOID;
+  fd_use_reqinfo(FD_TRUE);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) return result;
       fd_decref(result);
       result=fd_eval(ex,env);}}
-  fd_thread_set(cgidata_symbol,old_table);
-  fd_decref(new_table);
+  fd_use_reqinfo(FD_EMPTY_CHOICE);
   return result;
 }
 
 static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype old_table=fd_thread_get(cgidata_symbol);
-  fdtype new_table=fd_eval(fd_get_arg(expr,1),env);
   U8_OUTPUT *oldout=fd_get_default_output();
   U8_OUTPUT _out, *out=&_out;
   fdtype body=fd_get_body(expr,1);
+  fdtype reqinfo=fd_empty_slotmap();
   fdtype result=FD_VOID;
-  if (FD_ABORTP(new_table)) return new_table;
-  if (!(FD_TABLEP(new_table))) {
-    fd_decref(new_table); new_table=fd_empty_slotmap();}
+  fd_use_reqinfo(reqinfo);
   U8_INIT_OUTPUT(&_out,1024);
   fd_set_default_output(out);
-  fd_thread_set(cgidata_symbol,new_table);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) {
 	u8_free(_out.u8_outbuf);
@@ -1027,11 +940,9 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
       fd_decref(result);
       result=fd_eval(ex,env);}}
   fd_set_default_output(oldout);
-  fd_output_xhtml_preface(oldout,new_table);
+  fd_output_xhtml_preface(oldout,reqinfo);
   u8_putn(oldout,_out.u8_outbuf,(_out.u8_outptr-_out.u8_outbuf));
   u8_printf(oldout,"\n</body>\n</html>\n");
-  fd_thread_set(cgidata_symbol,old_table);
-  fd_decref(new_table);
   fd_decref(result);
   u8_free(_out.u8_outbuf);
   u8_flush(oldout);
@@ -1052,15 +963,13 @@ static fdtype cgiparse(fdtype qstring)
 FD_EXPORT
 fdtype fd_mapurl(fdtype uri)
 {
-  fdtype cgidata=get_reqdata();
-  if (fd_test(cgidata,mapurlfn_symbol,FD_VOID)) {
-    fdtype mapfn=fd_get(cgidata,mapurlfn_symbol,FD_VOID);
-    fd_decref(cgidata);
-    if (FD_APPLICABLEP(mapfn))
-      return fd_apply(mapfn,1,&uri);
-    else return FD_EMPTY_CHOICE;}
+  fdtype mapfn=fd_req(mapurlfn_symbol);
+  if (FD_APPLICABLEP(mapfn)) {
+    fdtype result=fd_apply(mapfn,1,&uri);
+    fd_decref(mapfn);
+    return result;}
   else {
-    fd_decref(cgidata);
+    fd_decref(mapfn);
     return FD_EMPTY_CHOICE;}
 }
 
@@ -1091,22 +1000,34 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim6("SET-COOKIE!",setcookie,2));
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
 
-  fd_idefn(module,fd_make_cprim1("CGICALL",cgicall,1));
-  fd_idefn(module,fd_make_cprim2("CGIGET",cgiget,1));
-  fd_idefn(module,fd_make_cprim2("CGIVAL",cgival,1));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGITEST",cgitest,1)));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("CGISET!",cgiset,2)));
-  fd_idefn(module,fd_make_cprim2("CGIADD!",cgiadd,2));
-  fd_idefn(module,fd_make_cprim2("CGIDROP!",cgidrop,1));
+  fd_idefn(module,fd_make_cprim1("REQ/CALL",reqcall_prim,1));
+  fd_idefn(module,fd_make_cprim2("REQ/GET",reqget_prim,1));
+  fd_idefn(module,fd_make_cprim2("REQ/VAL",reqval_prim,1));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/TEST",reqtest_prim,1)));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/SET!",reqset_prim,2)));
+  fd_idefn(module,fd_make_cprim2("REQ/ADD!",reqadd_prim,2));
+  fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
+
+  fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim,0));
+
+  fd_defalias(module,"CGICALL","REQ/CALL");
+  fd_defalias(module,"CGIGET","REQ/GET");
+  fd_defalias(module,"CGIVAL","REQ/VAL");
+  fd_defalias(module,"CGITEST","REQ/TEST");
+  fd_defalias(module,"CGISET!","REQ/SET!");
+  fd_defalias(module,"CGIADD!","REQ/ADD!");
+  fd_defalias(module,"CGIADD!","REQ/DROP!");
+
   fd_idefn(module,fd_make_cprim1x("MAPURL",mapurl,1,fd_string_type,FD_VOID));
-  fd_defspecial(module,"CGIVAR",cgivar_handler);
+
+  /* fd_defspecial(module,"CGIVAR",cgivar_handler); */
   
   fd_idefn(module,fd_make_cprim1x
 	   ("CGIPARSE",cgiparse,1,fd_string_type,FD_VOID));
   
   fd_defspecial(module,"WITHREQ",withreq_handler);
   fd_defspecial(module,"WITHREQOUT",withreqout_handler);
-  fd_idefn(module,fd_make_cprim0("GETREQDATA",get_reqdata,0));
+  /* fd_idefn(module,fd_make_cprim0("GETREQDATA",get_reqdata,0));*/
   fd_defalias(module,"WITHCGI","WITHREQ");
   fd_defalias(module,"WITHCGIOUT","WITHREQOUT");
 
@@ -1121,7 +1042,6 @@ FD_EXPORT void fd_init_cgiexec_c()
 			   fd_string_type,FD_VOID));
 
   tail_symbol=fd_intern("%TAIL");
-  cgidata_symbol=fd_intern("CGIDATA");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   mapurlfn_symbol=fd_intern("MAPURLFN");
 

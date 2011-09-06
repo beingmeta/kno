@@ -918,11 +918,19 @@ FD_EXPORT int fd_thread_add(fdtype var,fdtype val)
 
 #if FD_USE_TLS
 static u8_tld_key reqinfo_key;
-static fdtype get_reqinfo()
+static fdtype try_reqinfo()
 {
   fdtype table=(fdtype)u8_tld_get(reqinfo_key);
   if (table) return table;
   else return FD_EMPTY_CHOICE;
+}
+static fdtype get_reqinfo()
+{
+  fdtype table=(fdtype)u8_tld_get(reqinfo_key);
+  if (FD_TABLEP(table)) return table;
+  table=fd_empty_slotmap();
+  u8_tld_set(reqinfo_key,(void *)table);
+  return table;
 }
 static void set_reqinfo(fdtype table)
 {
@@ -932,12 +940,18 @@ static void set_reqinfo(fdtype table)
 #if FD_THREADS_ENABLED
 static fdtype __thread reqinfo=FD_VOID;
 #else 
-static fdtype thread_table=FD_VOID;
+static fdtype reqinfo=FD_VOID;
 #endif
-static fdtype get_reqinfo()
+static fdtype try_reqinfo()
 {
   if (FD_TABLEP(reqinfo)) return reqinfo;
   else return FD_EMPTY_CHOICE;
+}
+static fdtype get_reqinfo()
+{
+  if (FD_TABLEP(reqinfo)) return reqinfo;
+  reqinfo=fd_empty_slotmap();
+  return reqinfo;
 }
 static void set_reqinfo(fdtype table)
 {
@@ -945,19 +959,25 @@ static void set_reqinfo(fdtype table)
 }
 #endif
 
-FD_EXPORT fdtype fd_req_get(fdtype var)
+FD_EXPORT fdtype fd_req(fdtype var)
 {
-  return fd_get(get_reqinfo(),var,FD_VOID);
+  return fd_get(try_reqinfo(),var,FD_VOID);
+}
+
+FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt)
+{
+  return fd_get(try_reqinfo(),var,dflt);
 }
 
 FD_EXPORT int fd_req_store(fdtype var,fdtype val)
 {
-  return fd_store(get_reqinfo(),var,val);
+  fdtype info=get_reqinfo();
+  return fd_store(info,var,val);
 }
 
 FD_EXPORT int fd_req_test(fdtype var,fdtype val)
 {
-  return fd_store(get_reqinfo(),var,val);
+  return fd_test(try_reqinfo(),var,val);
 }
 
 FD_EXPORT int fd_req_add(fdtype var,fdtype val)
@@ -967,13 +987,28 @@ FD_EXPORT int fd_req_add(fdtype var,fdtype val)
 
 FD_EXPORT int fd_req_drop(fdtype var,fdtype val)
 {
-  return fd_drop(get_reqinfo(),var,val);
+  return fd_drop(try_reqinfo(),var,val);
+}
+
+FD_EXPORT int fd_req_push(fdtype var,fdtype val)
+{
+  fdtype info=get_reqinfo(), cur=fd_get(info,var,FD_EMPTY_LIST);
+  fd_store(info,var,fd_init_pair(NULL,val,cur));
+  fd_incref(val);
+  return 1;
+}
+
+FD_EXPORT fdtype fd_req_call(fd_reqfn reqfn)
+{
+  fdtype info=get_reqinfo();
+  return reqfn(info);
 }
 
 FD_EXPORT void fd_use_reqinfo(fdtype reqinfo)
 {
-  fdtype curinfo=get_reqinfo();
+  fdtype curinfo=try_reqinfo();
   if (reqinfo==curinfo) return;
+  if ((FD_TRUEP(reqinfo))&&(FD_TABLEP(curinfo))) return;
   if (FD_SLOTMAPP(curinfo)) {
     fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
     sm->uselock=1;
@@ -982,8 +1017,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype reqinfo)
     fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
     ht->uselock=1;
     u8_rw_unlock(&(ht->rwlock));}
-  if (FD_TRUEP(reqinfo)) 
-    reqinfo=fd_empty_slotmap();
+  if (FD_TRUEP(reqinfo)) reqinfo=fd_empty_slotmap();
   if (FD_TABLEP(reqinfo)) {
     fd_incref(reqinfo);
     if (FD_SLOTMAPP(reqinfo)) {
@@ -1240,6 +1274,7 @@ void fd_init_support_c()
 
 #if FD_USE_TLS
   u8_new_threadkey(&threadtable_key,NULL);
+  u8_new_threadkey(&reqinfo_key,NULL);
 #endif
   configuration_table=fd_make_hashtable(NULL,16);
 
