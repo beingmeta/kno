@@ -15,6 +15,7 @@
 (module-export! '{fb/embedded? fb/incanvas? fb/added?})
 
 (define %loglevel %notice!)
+;;(define %loglevel %debug!)
 
 (define applock #f)
 (define appname #f)
@@ -169,12 +170,13 @@
 	 (reqaccess (scripturl "https://graph.facebook.com/oauth/access_token"
 			"client_id" appkey "redirect_uri" reuri
 			"client_secret" appsecret "code" code))
-	 (accessreq (urlget reqaccess))
-	 (access (atoken (get (urlget reqaccess) '%content)))
+	 (accessreq (debug%watch (urlget reqaccess) reqaccess))
+	 (access (atoken (get accessreq '%content)))
 	 (reqinfo (scripturl "https://graph.facebook.com/me"
 		      "access_token" access
 		      "fields" "id,name,picture,about,bio,website"))
-	 (info (jsonparse (urlcontent reqinfo) 24 #[id #t]))
+	 (info (jsonparse (get (debug%watch (urlget reqinfo) reqinfo) '%content)
+			  24 #[id #t]))
 	 (reqfriends (scripturl "https://graph.facebook.com/me/friends"
 			 "access_token" access
 			 "fields" "name"))
@@ -199,3 +201,4 @@
     (add! (get info 'pages) 'type 'page)
     (cgiset! 'fb/access access)
     info))
+
