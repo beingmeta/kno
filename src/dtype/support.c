@@ -927,7 +927,7 @@ static fdtype try_reqinfo()
 static fdtype get_reqinfo()
 {
   fdtype table=(fdtype)u8_tld_get(reqinfo_key);
-  if (FD_TABLEP(table)) return table;
+  if ((table)&&(FD_TABLEP(table))) return table;
   table=fd_empty_slotmap();
   u8_tld_set(reqinfo_key,(void *)table);
   return table;
@@ -944,12 +944,12 @@ static fdtype reqinfo=FD_VOID;
 #endif
 static fdtype try_reqinfo()
 {
-  if (FD_TABLEP(reqinfo)) return reqinfo;
+  if ((reqinfo)&&(FD_TABLEP(reqinfo))) return reqinfo;
   else return FD_EMPTY_CHOICE;
 }
 static fdtype get_reqinfo()
 {
-  if (FD_TABLEP(reqinfo)) return reqinfo;
+  if ((reqinfo)&&(FD_TABLEP(reqinfo))) return reqinfo;
   reqinfo=fd_empty_slotmap();
   return reqinfo;
 }
@@ -966,7 +966,9 @@ FD_EXPORT fdtype fd_req(fdtype var)
 
 FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt)
 {
-  return fd_get(try_reqinfo(),var,dflt);
+  fdtype info=try_reqinfo();
+  if (FD_TABLEP(info)) return fd_get(try_reqinfo(),var,dflt);
+  else return fd_incref(dflt);
 }
 
 FD_EXPORT int fd_req_store(fdtype var,fdtype val)

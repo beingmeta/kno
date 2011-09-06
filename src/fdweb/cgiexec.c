@@ -731,7 +731,7 @@ static fdtype set_body_attribs(int n,fdtype *args)
   while (i>=0) {
     fd_incref(args[i]);
     fd_req_push(body_attribs_slotid,args[i]);
-    i++;}
+    i--;}
   return FD_VOID;
 }
 
@@ -744,8 +744,8 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
   int noparse=
     ((FD_SYMBOLP(var))&&((FD_SYMBOL_NAME(var))[0]=='%'));
   fdtype name=((noparse)?(fd_intern(FD_SYMBOL_NAME(var)+1)):(var));
-  fdtype val=((FD_VOIDP(cgidata))?(fd_req_get(name,FD_VOID)):
-	      (fd_get(cgidata,name,FD_VOID)));
+  fdtype val=((FD_TABLEP(cgidata))?(fd_get(cgidata,name,FD_VOID)):
+	      (fd_req_get(name,FD_VOID)));
   if (FD_VOIDP(val)) return val;
   else if ((noparse)&&(FD_STRINGP(val))) return val;
   else if (FD_STRINGP(val)) {
@@ -821,7 +821,12 @@ static fdtype reqcall_prim(fdtype proc)
 
 static fdtype reqget_prim(fdtype var,fdtype dflt)
 {
-  return fd_req_get(var,dflt);
+  fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+  fdtype val=fd_req_get(name,FD_VOID);
+  if (FD_VOIDP(val))
+    if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
+    else return fd_incref(dflt);
+  else return val;
 }
 
 static fdtype reqval_prim(fdtype var,fdtype dflt)
