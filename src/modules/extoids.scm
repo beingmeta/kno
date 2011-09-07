@@ -12,6 +12,9 @@
 (module-export! '{xo/defstore! xo/defadd! xo/defdrop! xo/defget!})
 (module-export! '{xo/defstore xo/defadd xo/defdrop xo/defget})
 
+(define-init usecache #t)
+(varconfig! extoids:cache usecache)
+
 (define-init store-procs (make-hashtable))
 (define-init add-procs (make-hashtable))
 (define-init drop-procs (make-hashtable))
@@ -122,7 +125,7 @@
 (defambda (xo/defget pool slotid db query
 		     (sqlmap default-sqlmap)
 		     (normalize #f)
-		     (cache #t))
+		     (cache usecache))
   (let* ((getter/sql (extdb/proc db query (cons #[%merge #t] sqlmap)
 				 (pool-base pool)))
 	 (rawgetter (lambda (key)
@@ -140,7 +143,5 @@
 	 (index (make-extindex (stringout slotid) getter #f #f cache)))
     (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
-
-
 
 
