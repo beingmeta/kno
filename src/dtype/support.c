@@ -1026,7 +1026,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
       fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
       u8_write_lock(&(sm->rwlock));
       sm->uselock=0;}
-    else if (FD_HASHTABLEP(reqinfo)) {
+    else if (FD_HASHTABLEP(newinfo)) {
       fd_hashtable ht=FD_GET_CONS(newinfo,fd_hashtable_type,fd_hashtable);
       u8_write_lock(&(ht->rwlock));
       ht->uselock=0;}}
