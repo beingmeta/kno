@@ -671,7 +671,6 @@ static fdtype fast_read_dtype(fd_byte_input in)
 	int len=fd_get_4bytes(in->ptr+1); in->ptr=in->ptr+5;
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
-	  unsigned char *data=u8_malloc(len+1);
 	  fdtype result=fd_make_string(NULL,len,in->ptr);
 	  in->ptr=in->ptr+len;}}
   case dt_tiny_string:

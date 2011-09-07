@@ -112,9 +112,8 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
 
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 {
-  if (p->handler->setcache) {
-    p->handler->setcache(p,level);
-    p->cache_level=level;}
+  if (p->handler->setcache) p->handler->setcache(p,level);
+  p->cache_level=level;
   p->flags=p->flags|FD_EXPLICIT_SETCACHE;
 }
 
@@ -801,7 +800,9 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
         fd_hashtable_store(&(p->locks),oid,value);
         return value;}
       else return value;}
-  value=fd_hashtable_get(&(p->cache),oid,FD_VOID);
+  if (p->cache_level)
+    value=fd_hashtable_get(&(p->cache),oid,FD_VOID);
+  else value=FD_VOID;
   if (FD_VOIDP(value))
     if (fd_ipeval_delay(1)) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
@@ -809,25 +810,26 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
     else return fd_pool_fetch(p,oid);
   else return value;
 }
+
 FD_EXPORT fdtype _fd_oid_value(fdtype oid)
 {
   if (FD_EMPTY_CHOICEP(oid)) return oid;
   else if (FD_OIDP(oid)) {
+#if FD_USE_THREADCACHE
     FDTC *fdtc=fd_threadcache; 
     if (fdtc) {
       fdtype value=((fdtc->oids.n_keys)?
 		    (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
 		    (FD_VOID));
       if (!(FD_VOIDP(value))) return value;}
-    if (fdtc) {
-      fd_pool p=fd_oid2pool(oid);
-      fdtype value=fd_fetch_oid(p,oid);
-      fd_hashtable_store(&(fdtc->oids),oid,value);
-      return value;}
-    else {
-      fd_pool p=fd_oid2pool(oid);
-      return fd_fetch_oid(p,oid);}}
-  else return fd_type_error(_("OID"),"_fd_oid_value",oid);
+#endif
+    fd_pool p=fd_oid2pool(oid);
+    fdtype value=fd_fetch_oid(p,oid);
+#if FD_USE_THREADCACHE
+    fd_hashtable_store(&(fdtc->oids),oid,value);
+#endif
+    return value;}
+  else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
 
 FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)

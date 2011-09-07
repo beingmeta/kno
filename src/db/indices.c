@@ -90,8 +90,7 @@ static u8_mutex indices_lock;
 
 FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
-  if (ix->handler->setcache)
-    ix->handler->setcache(ix,level);
+  if (ix->handler->setcache) ix->handler->setcache(ix,level);
   ix->cache_level=level;
   ix->flags=ix->flags|FD_EXPLICIT_SETCACHE;
 }
@@ -480,18 +479,23 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 {
   fdtype cached;
   FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
+#if FD_USE_THREACACHE
   if ((fdtc)&&(fdtc->indices.n_keys)) {
     FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
     tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
-  if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
+#endif
+  if (ix->cache_level==0) cached=FD_VOID;
+  else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
       (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
   if (FD_VOIDP(cached)) cached=fd_index_fetch(ix,key);
+#if FD_USE_THREACACHE
   if (fdtc) {
     fd_hashtable_store(&(fdtc->indices),(fdtype)&tempkey,cached);}
+#endif
   return cached;
 }
 static fdtype table_indexget(fdtype ixarg,fdtype key,fdtype dflt)

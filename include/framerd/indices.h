@@ -178,7 +178,8 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
 #endif
-  if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
+  if (ix->cache_level==0) cached=FD_VOID;
+  else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
       (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
