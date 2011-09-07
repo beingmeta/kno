@@ -16,7 +16,7 @@
    oauth/signature})
 
 (define-init %loglevel %notice!)
-;;(define %loglevel %debug!)
+(define %loglevel %debug!)
 ;;(set! %loglevel  %debug!)
 
 ;;; Server info
@@ -33,7 +33,7 @@
      LINKEDIN
      #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
        AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
-       AUTHENTICATE "https://api.linkedin.com/uas/oauth/authenticate"
+       AUTHENTICATE "https://api.linkedin.com/uas/oauth/authorize"
        VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
        KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
        VERSION "1.0"
@@ -52,8 +52,7 @@
   (default! val (getopt spec 'key))
   (if (symbol? val) (getckey spec (config val))
       (if (string? val) val
-	  (if (packet? val)
-	      (packet->string val)
+	  (if (packet? val) val
 	      (error "Can't determine consumer key: " spec)))))
 (define (getcsecret spec (val))
   (default! val (getopt spec 'secret))
@@ -63,40 +62,40 @@
 	      (error "Can't determine consumer secret: " spec)))))
 
 (define (oauth/signature method uri . params)
-  (stringout method "&" (uriencode uri) "&"
-    (let ((keys {}) (scan params)
-	  (ptable (make-hashtable)))
-      (until (null? scan)
-	(if (null? (car scan))
-	    (begin)
-	    (if (and (pair? (car scan)) (pair? (cdr (car scan))))
-		(let ((args (car scan)))
-		  (until (null? args)
-		    (unless (overlaps? (car args) keys)
-		      (set+! keys (car args))
-		      (if (string? (cadr args))
-			  (store! ptable (car args) (uriencode (cadr args)))
-			  (store! ptable (car args)
-				  (uriencode (stringout (cadr args))))))
-		    (set! args (cddr args))))
-		(if (table? (car scan))
-		    (do-choices (key (difference (getkeys (car scan)) keys))
-		      (set+! keys key)
-		      (if (string? (get (car scan) key))
-			  (store! ptable key (uriencode (get (car scan) key)))
-			  (store! ptable key
-				  (uriencode (stringout (get (car scan) key))))))
-		    (begin (set+! keys (car scan))
-		      (store! ptable (car scan) (cadr scan))
-		      (set! scan (cdr scan))))))
-	(set! scan (cdr scan)))
-      (doseq (key (lexsorted keys) i)
-	(if (> i 0)  (printout "%26"))
-	(let ((v (get ptable key)))
-	  (when (exists? v)
-	    (printout (uriencode key) "%3D"
-	      (if (string? v) (uriencode v)
-		  (uriencode (stringout v))))))))))
+  (debug%watch method uri params)
+  (let ((keys {}) (scan params) (args '())
+	(ptable (make-hashtable)))
+    (until (null? scan)
+      (if (null? (car scan))
+	  (begin)
+	  (if (and (pair? (car scan)) (pair? (cdr (car scan))))
+	      (let ((args (car scan)))
+		(until (null? args)
+		  (unless (overlaps? (car args) keys)
+		    (set+! keys (car args))
+		    (if (string? (cadr args))
+			(store! ptable (car args) (uriencode (cadr args)))
+			(store! ptable (car args)
+				(uriencode (stringout (cadr args))))))
+		  (set! args (cddr args))))
+	      (if (table? (car scan))
+		  (do-choices (key (difference (getkeys (car scan)) keys))
+		    (set+! keys key)
+		    (if (string? (get (car scan) key))
+			(store! ptable key (uriencode (get (car scan) key)))
+			(store! ptable key
+				(uriencode (stringout (get (car scan) key))))))
+		  (begin (set+! keys (car scan))
+		    (if (string? (cadr scan))
+			(store! ptable (car scan) (uriencode (cadr scan)))
+			(store! ptable (car scan) (uriencode (stringout (cadr scan)))))
+		    (set! scan (cdr scan))))))
+      (set! scan (cdr scan)))
+    (doseq (key (lexsorted keys) i)
+      (let ((v (get ptable key)))
+	(when (exists? v)
+	  (set! args (cons* v "%3D" (uriencode key) "%26" args)))))
+    (apply glom method "&" (uriencode uri) "&" (cdr (reverse args)))))
 
 (define (oauth/request spec (ckey) (csecret))
   (if (and (pair? spec) (symbol? (cdr spec)))
@@ -111,12 +110,12 @@
   (default! csecret (getcsecret spec))
   (unless (and ckey csecret)
     (error "OAUTH/REQUEST: No consumer key/secret: " spec))
-  (let* ((nonce (uuid->string (getuuid)))
+  (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	 (endpoint (getopt spec 'request))
 	 (callback (uriencode (getopt spec 'callback
 				      (cgiget 'oauth_callback
 					      default-callback))))
-	 (now (time))
+	 (now (getopt spec 'time (time)))
 	 (sigstring
 	  (oauth/signature
 	   (getopt spec 'method "POST") endpoint
@@ -126,7 +125,7 @@
 	   "oauth_signature_method" "HMAC-SHA1"
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")))
-	 (sig (hmac-sha1 (stringout (uriencode csecret) "&") sigstring))
+	 (sig (hmac-sha1 (glom csecret "&") sigstring))
 	 (auth-header
 	  (glom "Authorization: OAuth "
 	    "oauth_nonce=\"" nonce "\", "
@@ -137,6 +136,7 @@
 	    "oauth_signature=\"" (uriencode (packet->base64 sig)) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (urlget endpoint (curlopen 'header auth-header 'method 'POST))))
+    (debug%watch sigstring sig auth-header)
     (if (test req 'response 200)
 	(debug%watch (cons (cgiparse (get req '%content)) spec) "OATH/REQUEST")
 	(error "Can't get request token" req))))
