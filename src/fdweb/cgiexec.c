@@ -317,7 +317,9 @@ static void setcookiedata(fdtype cookiedata,fdtype cgidata)
 	fd_drop(cgidata,cookies_symbol,cookie);
       else fd_req_drop(cookies_symbol,cookie);}
   fd_decref(cookies);
-  fd_req_add(cookies_symbol,cookiedata);
+  if ((cgidata)&&(FD_TABLEP(cgidata)))
+    fd_add(cgidata,cookies_symbol,cookiedata);
+  else fd_req_add(cookies_symbol,cookiedata);
 }
 
 static void convert_cookie_arg(fd_slotmap c)
