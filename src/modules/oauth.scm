@@ -126,6 +126,7 @@
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")))
 	 (sig (hmac-sha1 (glom csecret "&") sigstring))
+	 (sig64 (packet->base64 sig))
 	 (auth-header
 	  (glom "Authorization: OAuth "
 	    "oauth_nonce=\"" nonce "\", "
@@ -133,10 +134,10 @@
 	    "oauth_signature_method=\""  "HMAC-SHA1" "\", "
 	    "oauth_timestamp=\"" now "\", "
 	    "oauth_consumer_key=\"" ckey "\", "
-	    "oauth_signature=\"" (uriencode (packet->base64 sig)) "\", "
+	    "oauth_signature=\"" (uriencode sig64) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (urlget endpoint (curlopen 'header auth-header 'method 'POST))))
-    (debug%watch sigstring sig auth-header)
+    (debug%watch sigstring sig sig64 auth-header)
     (if (test req 'response 200)
 	(debug%watch (cons (cgiparse (get req '%content)) spec) "OATH/REQUEST")
 	(error "Can't get request token" req))))
@@ -179,10 +180,9 @@
 	   "oauth_signature_method" "HMAC-SHA1"
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")))
-	 (sig (hmac-sha1 (stringout
-			   (uriencode csecret) "&"
-			   (uriencode (getopt spec 'oauth_token_secret)))
+	 (sig (hmac-sha1 (glom csecret "&" (getopt spec 'oauth_token_secret))
 			 sigstring))
+	 (sig64 (packet->base64 sig))
 	 (auth-header
 	  (glom "Authorization: OAuth "
 	    "oauth_nonce=\"" nonce "\", "
@@ -191,9 +191,10 @@
 	    "oauth_signature_method=\"" "HMAC-SHA1" "\", "
 	    "oauth_timestamp=\"" now "\", "
 	    "oauth_consumer_key=\"" ckey "\", "
-	    "oauth_signature=\"" (uriencode (packet->base64 sig)) "\", "
+	    "oauth_signature=\"" (uriencode sig64) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (urlget endpoint (curlopen 'header auth-header 'method 'POST))))
+    (debug%watch sigstring sig sig64 auth-header)
     (if (test req 'response 200)
 	(cons (cgiparse (get req '%content)) (cdr spec))
 	req)))
@@ -226,10 +227,9 @@
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")
 	   args))
-	 (sig (hmac-sha1 (stringout 
-			   (uriencode csecret) "&"
-			   (uriencode (getopt spec 'oauth_token_secret)))
+	 (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_token_secret))
 			 sigstring))
+	 (sig64 (packet->base64 sig))
 	 (auth-header
 	  (glom "Authorization: OAuth "
 	    "realm=\"" endpoint "\", "
@@ -239,7 +239,7 @@
 	    "oauth_consumer_key=\"" ckey "\", "
 	    "oauth_token=\"" (getopt spec 'oauth_token) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\", "
-	    "oauth_signature=\"" (uriencode (packet->base64 sig)) "\""))
+	    "oauth_signature=\"" (uriencode sig64) "\""))
 	 (req (if (eq? method 'GET)
 		  (urlget (scripturl+ endpoint args)
 			  (curlopen 'header "Expect: "
@@ -253,7 +253,7 @@
 			       (args->post args))))))
     (debug%watch sigstring auth-header now nonce req)
     (if (test req 'response 200)
-	(cons (jsonparse (get req '%content)) (cdr spec))
+	(cons (getreqdata req) (cdr spec))
 	req)))
 (define (oauth/call* spec method endpoint . args)
   (oauth/call spec method endpoint args))
