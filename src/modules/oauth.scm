@@ -197,7 +197,9 @@
     (debug%watch sigstring sig sig64 auth-header)
     (if (test req 'response 200)
 	(cons (cgiparse (get req '%content)) (cdr spec))
-	req)))
+	(if (getopt spec 'noverify)
+	    ((getopt spec 'noverify) spec verifier req)
+	    (error "OAUTH/VERIFY failed" req)))))
 
 ;;; Actually calling the API
 
