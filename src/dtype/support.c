@@ -188,8 +188,8 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
     if (FD_EQ(scan->var,symbol)) {
       fd_lock_mutex(&config_lock);
       scan->flags=scan->flags|FD_CONFIG_HANDLER_INVOKED;
-      retval=scan->config_set_method(symbol,val,scan->data);
       fd_unlock_mutex(&config_lock);
+      retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
   if (scan==NULL) return config_set(var,val);
@@ -210,8 +210,8 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
       if ((scan->flags)&(FD_CONFIG_HANDLER_INVOKED)) {
 	fd_unlock_mutex(&config_lock); break;}
       scan->flags=scan->flags|FD_CONFIG_HANDLER_INVOKED;
-      retval=scan->config_set_method(symbol,val,scan->data);
       fd_unlock_mutex(&config_lock);
+      retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
   if (scan==NULL) return config_set(var,val);
