@@ -162,7 +162,10 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
   if (found) return middle;
   else if (size+1<space) {
     struct FD_KEYVAL *insert_point=kvp[size+1];
-    *sizep=size+1; sort_keyvals(keyvals,size+1);
+    *sizep=size+1;
+    insert_point->key=fd_incref(key);
+    insert_point->value=FD_EMPTY_CHOICE;
+    sort_keyvals(keyvals,size+1);
     return insert_point;}
   else {
     int mpos=(middle-keyvals), dir=(bottom>middle), ipos=mpos+dir;
