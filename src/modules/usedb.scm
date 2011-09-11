@@ -16,19 +16,24 @@
   (cond ((not (string? name)))
 	((position #\@ name)
 	 (onerror (usefn name)
-		  (lambda (ex)
-		    (when warn
-		      (warning "Unexpected error accessing " name " from " dbname ": " ex))
-		    #f)
-		  (lambda (v) (fail))))
+	   (lambda (ex)
+	     (when warn
+	       (warning "Unexpected error accessing " name " from " dbname ": "
+			ex))
+	     #f)
+	   (lambda (v) (fail))))
 	((has-prefix name "/")
 	 (if (file-exists? name)
 	     (usefn name)
-	     (prog1 (fail) (when warn (warning "Can't access file " name " from " dbname)))))
+	     (prog1 (fail)
+	       (when warn
+		 (warning "Can't access file " name " from " dbname)))))
 	(else
 	 (if (file-exists? (get-component name dbname))
 	     (usefn (get-component name dbname))
-	     (prog1 (fail) (when warn (warning "Can't access file " name " from " dbname)))))))
+	     (prog1 (fail)
+	       (when warn
+		 (warning "Can't access file " name " from " dbname)))))))
 
 (define (usedb name)
   (let ((dbname (cond ((file-exists? name) name)
@@ -63,7 +68,8 @@
 (define (kludgedb name)
   (use-pool (stringout name ".pool"))
   (use-index (stringout name ".index"))
-  `#[POOLS ,(use-pool (stringout name ".pool")) INDICES ,(open-index (stringout name ".index"))])
+  `#[POOLS ,(use-pool (stringout name ".pool"))
+     INDICES ,(open-index (stringout name ".index"))])
 
   
 
