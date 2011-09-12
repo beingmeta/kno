@@ -51,6 +51,7 @@ static fdtype configuration_table;
 
 #if FD_THREADS_ENABLED
 static u8_mutex config_lookup_lock;
+static u8_mutex config_register_lock;
 #endif
 
 static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
@@ -161,10 +162,6 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
 
 /* API functions */
 
-#if FD_THREADS_ENABLED
-static u8_mutex config_lock;
-#endif
-
 FD_EXPORT fdtype fd_config_get(u8_string var)
 {
   fdtype symbol=config_intern(var);
@@ -172,9 +169,7 @@ FD_EXPORT fdtype fd_config_get(u8_string var)
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       fdtype val;
-      fd_lock_mutex(&config_lock);
       val=scan->config_get_method(symbol,scan->data);
-      fd_unlock_mutex(&config_lock);
       return val;}
     else scan=scan->next;
   return config_get(var);
@@ -186,9 +181,7 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
-      fd_lock_mutex(&config_lock);
-      scan->flags=scan->flags|FD_CONFIG_HANDLER_INVOKED;
-      fd_unlock_mutex(&config_lock);
+      scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
       retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
@@ -206,11 +199,8 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
-      fd_lock_mutex(&config_lock);
-      if ((scan->flags)&(FD_CONFIG_HANDLER_INVOKED)) {
-	fd_unlock_mutex(&config_lock); break;}
-      scan->flags=scan->flags|FD_CONFIG_HANDLER_INVOKED;
-      fd_unlock_mutex(&config_lock);
+      if ((scan->flags)&(FD_CONFIG_ALREADY_MODIFIED)) break;
+      scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
       retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
@@ -230,12 +220,6 @@ FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val)
   return retval;
 }
 
-FD_EXPORT void fd_config_lock(int lock)
-{
-  if (lock) fd_lock_mutex(&config_lock);
-  else fd_unlock_mutex(&config_lock);
-}
-
 /* Registering new configuration values */
 
 FD_EXPORT int fd_register_config
@@ -245,7 +229,9 @@ FD_EXPORT int fd_register_config
    void *data)
 {
   fdtype symbol=config_intern(var), current; int retval=0;
-  struct FD_CONFIG_HANDLER *scan=config_handlers;
+  struct FD_CONFIG_HANDLER *scan;
+  fd_lock_mutex(&config_register_lock);
+  scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       if (doc) {
@@ -253,12 +239,17 @@ FD_EXPORT int fd_register_config
 	   Possibly not the right thing. */
 	if (scan->doc) u8_free(scan->doc);
 	scan->doc=u8_strdup(doc);}
+      /* Get the 'current' value which  */
+      if (scan->config_get_method)
+	current=(scan->config_get_method)(symbol,(void *)scan->data);
+      else current=config_get(var);
       scan->config_get_method=getfn;
       scan->config_set_method=setfn;
       scan->data=data;
       break;}
     else scan=scan->next;
   if (scan==NULL) {
+    current=config_get(var);
     scan=u8_alloc(struct FD_CONFIG_HANDLER);
     scan->var=symbol;
     if (doc) scan->doc=u8_strdup(doc); else scan->doc=NULL;
@@ -268,7 +259,7 @@ FD_EXPORT int fd_register_config
     scan->data=data;
     scan->next=config_handlers;
     config_handlers=scan;}
-  current=config_get(var);
+  fd_unlock_mutex(&config_register_lock);
   if (!(FD_VOIDP(current)))
     retval=setfn(symbol,current,data);
   fd_decref(current);
@@ -1282,7 +1273,7 @@ void fd_init_support_c()
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&config_lookup_lock);
-  fd_init_mutex(&config_lock);
+  fd_init_mutex(&config_register_lock);
 #endif
 
   fd_register_config_lookup(getenv_config_lookup,NULL);

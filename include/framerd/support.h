@@ -11,7 +11,7 @@
 
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
 
-#define FD_CONFIG_HANDLER_INVOKED 1
+#define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {
   fdtype var; void *data; int flags; u8_string doc;

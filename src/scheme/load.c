@@ -323,19 +323,19 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
     u8_string pathname=u8_abspath(FD_STRDATA(val),NULL);
     fd_lock_mutex(&config_file_lock);
-    scan=config_stack; while (scan)
+    scan=config_stack; while (scan) {
       if (strcmp(scan->source,pathname)==0) {
 	fd_unlock_mutex(&config_file_lock);
 	u8_free(pathname);
 	return 0;}
-      else scan=scan->next;
+      else scan=scan->next;}
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
     on_stack.source=pathname;
     on_stack.next=config_stack;
     config_stack=&on_stack;
-    fd_config_lock(0);
+    /* fd_config_lock(0); */
     retval=fd_load_config(pathname);
-    fd_config_lock(1);
+    /* fd_config_lock(1); */
     if (retval<0) {
       u8_free(pathname); config_stack=on_stack.next;
       fd_unlock_mutex(&config_file_lock);
