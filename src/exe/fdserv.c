@@ -657,9 +657,9 @@ static int webservefn(u8_client ucl)
 {
   fdtype proc=FD_VOID, result=FD_VOID, cgidata=FD_VOID, path=FD_VOID;
   fd_webconn client=(fd_webconn)ucl; int write_headers=1;
-  double start_time=u8_elapsed_time();
-  double setup_time, parse_time, exec_time, write_time;
+  double start_time, setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
+  double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
   int forcelog=0;
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
@@ -667,6 +667,11 @@ static int webservefn(u8_client ucl)
   fd_reset_threadvars();
   /* Clear outstanding errors from the last session */
   fd_clear_errors(1);
+  /* Begin with the new request */
+  start_time=u8_elapsed_time();
+  getloadavg(start_load,3);
+  u8_getrusage(RUSAGE_SELF,&start_usage);
+  /* Start doing your stuff */
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
@@ -690,14 +695,17 @@ static int webservefn(u8_client ucl)
       fdtype remote=fd_get(cgidata,remote_info_symbol,FD_VOID);
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)) && (FD_STRINGP(remote)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s by %s",
-	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote));
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
+	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
+	       start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s",
-	       FD_STRDATA(uri),FD_STRDATA(remote));
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s, load=%f/%f/%f",
+	       FD_STRDATA(uri),FD_STRDATA(remote),
+	       start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s",
-	       FD_STRDATA(uri),FD_STRDATA(referer));
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s, load=%f/%f/%f",
+	       FD_STRDATA(uri),FD_STRDATA(referer),
+	       start_load[0],start_load[1],start_load[2]);
       else if (FD_STRINGP(uri))
 	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
       fd_decref(referer);
@@ -707,7 +715,6 @@ static int webservefn(u8_client ucl)
     parse_time=u8_elapsed_time();
     if ((reqlog) || (urllog))
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
-  u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_set_default_output(&(client->out));
   fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
@@ -821,21 +828,23 @@ static int webservefn(u8_client ucl)
   fd_thread_set(browseinfo_symbol,FD_VOID);
   fd_clear_errors(1);
   write_time=u8_elapsed_time();
+  getloadavg(end_load,3);
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if ((forcelog)||(traceweb>0)||((overtime>0)&&((write_time-start_time)>overtime))) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE",
-	     "Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
+	     "Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
 	     path,write_time-start_time,
 	     setup_time-start_time,
 	     parse_time-setup_time,
 	     exec_time-parse_time,
 	     write_time-exec_time,
 	     (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
+	     end_load[0],end_load[1],end_load[2]);
     else u8_log(LOG_NOTICE,"DONE",
-		"Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
+		"Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
 		path,query,
 		write_time-start_time,
 		setup_time-start_time,
@@ -843,7 +852,8 @@ static int webservefn(u8_client ucl)
 		exec_time-parse_time,
 		write_time-exec_time,
 		(u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
+		end_load[0],end_load[1],end_load[2]);
     if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
       u8_string cond=(((overtime>0)&&((write_time-start_time)>overtime))?
 		      "OVERTIME":"FORCELOG");
