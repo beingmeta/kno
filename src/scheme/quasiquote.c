@@ -109,6 +109,13 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
 		fdtype new_pair=fd_init_pair(NULL,insert_elt,FD_EMPTY_LIST);
 		*tail=new_pair; tail=&(FD_CDR(new_pair));
 		fd_incref(insert_elt);}}}
+	  else if (FD_VECTORP(insertion)) {
+	    int i=0, lim=FD_VECTOR_LENGTH(insertion);
+	    while (i<lim) {
+	      fdtype insert_elt=FD_VECTOR_REF(insertion,i);
+	      fdtype new_pair=fd_init_pair(NULL,insert_elt,FD_EMPTY_LIST);
+	      *tail=new_pair; tail=&(FD_CDR(new_pair));
+	      fd_incref(insert_elt); i++;}}
 	  else {
 	    u8_string details_string=u8_mkstring("RESULT=%q",elt);
 	    fdtype err; 
@@ -159,7 +166,8 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 	    int k=0; while (k<j) {fd_decref(newelts[k]); k++;}
 	    u8_free(newelts);
 	    return insertion;}
-	  if (FD_PAIRP(insertion)) {
+	  if (FD_EMPTY_LISTP(insertion)) {}
+	  else if (FD_PAIRP(insertion)) {
 	    fdtype scan=insertion; while (FD_PAIRP(scan)) {
 	      scan=FD_CDR(scan); addlen++;}
 	    if (!(FD_EMPTY_LISTP(scan)))
@@ -170,6 +178,8 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 	  else return fd_err(fd_SyntaxError,
 			     "splicing UNQUOTE for an improper list",
 			     NULL,insertion);
+	  if (addlen==0) {
+	    i++; fd_decref(insertion); continue;}
 	  newelts=u8_realloc_n(newelts,newlen+addlen,fdtype);
 	  newlen=newlen+addlen;
 	  if (FD_PAIRP(insertion)) {
