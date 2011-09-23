@@ -905,10 +905,36 @@ static fdtype hostaddrs_prim(fdtype hostname)
   return results;
 }
 
+/* LOAD AVERAGE */
+
+static fdtype loadavg_prim()
+{
+  double loadavg;
+  int nsamples=getloadavg(&loadavg,1);
+  if (nsamples==1) return fd_make_double(loadavg);
+  else return FD_FALSE;
+}
+
+static fdtype loadavgs_prim()
+{
+  double loadavg[3]; int nsamples=getloadavg(loadavg,3);
+  if (nsamples==1)
+    return fd_make_nvector(1,fd_make_double(loadavg[0]));
+  else if (nsamples==2)
+    return fd_make_nvector
+      (2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));    
+  else if (nsamples==3)
+    return fd_make_nvector
+      (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
+       fd_make_double(loadavg[2]));
+  else return FD_FALSE;
+}
+
 /* RUSAGE */
 
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
+static fdtype load_symbol, loadavg_symbol;
 
 static fdtype rusage_prim(fdtype field)
 {
@@ -922,6 +948,20 @@ static fdtype rusage_prim(fdtype field)
     fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
     fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));
     fd_add(result,resident_symbol,FD_INT2DTYPE(r.ru_maxrss));
+    {
+      double loadavg[3]; int nsamples=getloadavg(loadavg,3); 
+      if (nsamples>0) {
+	fdtype lval=fd_make_double(loadavg[0]), lvec=FD_VOID; 
+	fd_store(result,load_symbol,lval);
+	if (nsamples==1) 
+	  lvec=fd_make_nvector(1,fd_make_double(loadavg[0]));
+	else if (nsamples==2)
+	  lvec=fd_make_nvector(2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));    
+	else lvec=fd_make_nvector
+	       (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
+		fd_make_double(loadavg[2]));
+	if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
+	fd_decref(lval); fd_decref(lvec);}}
     {
       double elapsed=u8_elapsed_time();
       fdtype tval=fd_init_double(NULL,elapsed);
@@ -954,6 +994,21 @@ static fdtype rusage_prim(fdtype field)
     return fd_make_double(u8_dbltime(r.ru_utime));
   else if (FD_EQ(field,stime_symbol))
     return fd_make_double(u8_dbltime(r.ru_stime));
+  else if (FD_EQ(field,load_symbol)) {
+    double loadavg; int nsamples=getloadavg(&loadavg,1); 
+    if (nsamples>0) return fd_make_double(loadavg);
+    else return FD_EMPTY_CHOICE;}
+  else if (FD_EQ(field,loadavg_symbol)) {
+    double loadavg[3]; int nsamples=getloadavg(loadavg,3); 
+    if (nsamples>0) {
+      if (nsamples==1) 
+	return fd_make_nvector(1,fd_make_double(loadavg[0]));
+      else if (nsamples==2)
+	return fd_make_nvector(2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));    
+      else return fd_make_nvector
+	     (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
+	      fd_make_double(loadavg[2]));}
+    else return FD_EMPTY_CHOICE;}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -1367,6 +1422,9 @@ FD_EXPORT void fd_init_timeprims_c()
   clock_symbol=fd_intern("CLOCK");
   cpusage_symbol=fd_intern("CPUSAGE");
 
+  load_symbol=fd_intern("LOAD");
+  loadavg_symbol=fd_intern("LOADAVG");
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP?",timestampp,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("GMTIMESTAMP",gmtimestamp_prim,0));
@@ -1418,6 +1476,9 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
+  
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
