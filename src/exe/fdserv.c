@@ -54,7 +54,10 @@ static FILE *statlog=NULL;
 static u8_string reqlogname=NULL;
 static fd_dtype_stream reqlog=NULL;
 static int reqloglevel=0;
+/* Whether (and how much) to trace all web transactions */
 static int traceweb=0;
+/* Trace web transactions that take over *overtime* seconds */
+static double overtime=0;
 
 static char *pidfile;
 
@@ -83,7 +86,7 @@ static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
 static fdtype response_symbol, err_symbol, browseinfo_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid, remote_info_symbol;
 static fdtype content_slotid, content_type, retfile_slotid, cleanup_slotid;
-static fdtype tracep_slotid, query_symbol, referer_symbol;
+static fdtype tracep_slotid, query_symbol, referer_symbol, forcelog_symbol;
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
 
@@ -657,6 +660,7 @@ static int webservefn(u8_client ucl)
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
+  int forcelog=0;
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
   /* Do this ASAP to avoid session leakage */
@@ -812,15 +816,17 @@ static int webservefn(u8_client ucl)
     FD_DO_CHOICES(cl,cleanup) {
       fdtype retval=fd_apply(cleanup,0,NULL);
       fd_decref(retval);}}
+  forcelog=fd_req_test(forcelog_symbol,FD_VOID);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   fd_clear_errors(1);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
-  if (traceweb>0) {
+  if ((forcelog)||(traceweb>0)||((overtime>0)&&((write_time-start_time)>overtime))) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
-      u8_log(LOG_NOTICE,"DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
+      u8_log(LOG_NOTICE,"DONE",
+	     "Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
 	     path,write_time-start_time,
 	     setup_time-start_time,
 	     parse_time-setup_time,
@@ -828,7 +834,8 @@ static int webservefn(u8_client ucl)
 	     write_time-exec_time,
 	     (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
 	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
-    else u8_log(LOG_NOTICE,"DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
+    else u8_log(LOG_NOTICE,"DONE",
+		"Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
 		path,query,
 		write_time-start_time,
 		setup_time-start_time,
@@ -837,6 +844,14 @@ static int webservefn(u8_client ucl)
 		write_time-exec_time,
 		(u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
 		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+    if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
+      u8_string cond=(((overtime>0)&&((write_time-start_time)>overtime))?
+		      "OVERTIME":"FORCELOG");
+      u8_string before=u8_rusage_string(&start_usage);
+      u8_string after=u8_rusage_string(&end_usage);
+      u8_log(LOG_NOTICE,"OVERTIME","before: %s",before);
+      u8_log(LOG_NOTICE,"OVERTIME"," after: %s",after);
+      u8_free(before); u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
@@ -919,6 +934,7 @@ static void init_symbols()
   browseinfo_symbol=fd_intern("BROWSEINFO");
   referer_symbol=fd_intern("HTTP_REFERER");
   remote_info_symbol=fd_intern("REMOTE_INFO");
+  forcelog_symbol=fd_intern("FORCELOG");
 }
 
 /* Utility functions */
@@ -1088,6 +1104,8 @@ int main(int argc,char **argv)
 
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
 		     fd_boolconfig_get,fd_boolconfig_set,&traceweb);
+  fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
+		     fd_dblconfig_get,fd_dblconfig_set,&traceweb);
   fd_register_config("PRELOAD",
 		     _("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);
