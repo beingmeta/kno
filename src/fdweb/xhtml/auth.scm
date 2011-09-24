@@ -140,14 +140,6 @@
 (define checktoken table-checktoken)
 (varconfig! auth:checktoken checktoken)
 
-;;; The blacklist
-
-(define blacklist (make-hashset))
-
-(define (blacklisted? string)
-  (or (not string) (hashset-get blacklist string)))
-(defslambda (blacklist! string) (hashset-add! blacklist string))
-
 ;;;; Cookie functions
 
 ;;; Cookie parameters
@@ -197,6 +189,7 @@
   (if auth-secure
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
+		   (and (authinfo-sticky? auth) (authinfo-expires auth))
 		   #t)
       (set-cookie! var (if secret
 			   (packet->base64 (encrypt authstring secret))
@@ -242,10 +235,9 @@
   (let* ((expires (authinfo-expires auth))
 	 (info (stringout (authinfo-realm auth)
 		 ";" (unparse-arg (authinfo-identity auth))
-		 ";" (authinfo-issued auth)
 		 ";" (authinfo-token auth)
-		 (if expires ";")
-		 (if expires expires)
+		 ";" (authinfo-issued auth)
+		 ";" expires
 		 (if (authinfo-sticky? auth) ";STICKY")))
 	 (sig (hmac-sha1 info signature))
 	 (result (stringout info ";" (packet->base64 sig))))
@@ -296,8 +288,8 @@
 					(+ (time) auth-expiration))
 				   sticky))
 	      (token (authinfo-token auth)))
-	 (info%watch "AUTH/IDENTIFY!" authid identity token auth
-		     (auth->string auth))
+	 (info%watch "AUTH/IDENTIFY!"
+	   authid identity token auth (auth->string auth) sticky)
 	 (when checktoken (checktoken identity token #t))
 	 (cgiset! authid auth)
 	 (set-cookies! auth)
@@ -324,15 +316,6 @@
 	   (checktoken identity oldtoken #f)
 	   (checktoken identity (authinfo-token new) #t))
 	 (set-cookies! new)
-	 #|
-	 (set-cookie! realm 
-		      auth-cookie-domain auth-cookie-path
-		      (if (or (not auth-sticky-var)
-			      (cgiget 'auth-sticky-var #f))
-			  (auth-expires new)
-			  #f)
-		      auth-secure)
-	 |#
 	 new)))
 
 ;;; Checking authorization

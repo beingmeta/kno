@@ -261,8 +261,10 @@ static void parse_query_string(fd_slotmap c,char *data,int len)
   while (scan<end)
     if ((FD_VOIDP(slotid)) && (*scan=='=')) {
       *write++='\0';
-      /* Don't store vars beginning with HTTP, to avoid
-	 spoofing of real HTTP variables. */
+      /* Don't store vars beginning with _ or HTTP, to avoid spoofing
+	 of real HTTP variables or other variables that might be used
+	 internally. */
+      if (buf[0]=='_') slotid=FD_VOID;
       if (strncmp(buf,"HTTP",4)==0) slotid=FD_VOID;
       else slotid=buf2slotid(buf,isascii);
       write=buf; isascii=1; scan++;}
