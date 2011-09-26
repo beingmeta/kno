@@ -1994,8 +1994,8 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
   if (nptr==NULL) nptr=u8_alloc(struct FD_HASHTABLE);
   if (ptr->uselock) { fd_read_lock_struct(ptr); unlock=1;}
   FD_INIT_CONS(nptr,fd_hashtable_type);
+  nptr->modified=0; nptr->readonly=0; nptr->uselock=1;
   nptr->n_slots=n_slots=ptr->n_slots;;
-  nptr->modified=0;
   nptr->n_keys=ptr->n_keys;
   read=slots=ptr->slots;
   read_limit=read+n_slots;
