@@ -194,7 +194,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
     else if (FD_CHOICEP(attribids)) {
       n=FD_CHOICE_SIZE(attribids);
       data=(fdtype *)FD_CHOICE_DATA(attribids);}
-    else if (FD_QCHOICEP(attribids)) {
+    else if (FD_ACHOICEP(attribids)) {
       to_free=fd_make_simple_choice(attribids);
       data=(fdtype *)FD_CHOICE_DATA(to_free);
       n=FD_CHOICE_SIZE(to_free);}
