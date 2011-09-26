@@ -577,6 +577,18 @@ static fdtype setcookie
     if (FD_VOIDP(domain)) domain=FD_FALSE;
     if (FD_VOIDP(path)) path=FD_FALSE;
     if (FD_VOIDP(expires)) expires=FD_FALSE;
+    if ((FD_FALSEP(expires))||
+	(FD_STRINGP(expires))||
+	(FD_PRIM_TYPEP(expires,fd_timestamp_type)))
+      fd_incref(expires);
+    else if ((FD_FIXNUMP(expires))||(FD_BIGINTP(expires))) {
+      long long ival=((FD_FIXNUMP(expires))?(FD_FIX2INT(expires)):
+		      (fd_bigint_to_long_long((fd_bigint)expires)));
+      time_t expval;
+      if ((ival<0)||(ival<(24*3600*365*20))) expval=(time(NULL))+ival;
+      else expval=(time_t)ival;
+      expires=fd_time2timestamp(expval);}
+    else return fd_type_error("timestamp","setcookie",expires);
     cookiedata=
       fd_make_nvector(6,fd_incref(var),fd_incref(val),
 		      fd_incref(domain),fd_incref(path),
