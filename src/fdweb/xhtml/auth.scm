@@ -6,7 +6,7 @@
 (use-module '{varconfig logger rulesets crypto ezrecords})
 
 (define %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define %loglevel %debug!)
 
 (module-export! '{auth/getinfo
 		  auth/getuser
@@ -79,7 +79,6 @@
   (if (not (bound? val)) secret
       (begin
 	(cond ((not val)
-	       (set! secret-file #f)
 	       (set! secret (random-secret)))
 	      ((packet? val)
 	       (set! secret val))
@@ -121,7 +120,7 @@
 
 ;;; Expiration intervals
 
-(define auth-expiration #f)
+(define auth-expiration (* 3600 24 14))
 (define auth-refresh (* 60 15))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
@@ -186,17 +185,21 @@
   (default! authstring (auth->string auth))
   (default! identity (authinfo-identity auth))
   (debug%watch "SET-COOKIES!" var authstring identity)
-  (if auth-secure
-      (set-cookie! var authstring
-		   auth-cookie-domain auth-cookie-path
-		   (and (authinfo-sticky? auth) (authinfo-expires auth))
-		   #t)
-      (set-cookie! var (if secret
-			   (packet->base64 (encrypt authstring secret))
-			   authstring)
-		   auth-cookie-domain auth-cookie-path
-		   (and (authinfo-sticky? auth) (authinfo-expires auth))
-		   #f))
+  (debug%watch
+      (if auth-secure
+	  (set-cookie! var authstring
+		       auth-cookie-domain auth-cookie-path
+		       (and (authinfo-sticky? auth) (authinfo-expires auth))
+		       #t)
+	  (set-cookie! var (if secret
+			       (packet->base64 (encrypt authstring secret))
+			       authstring)
+		       auth-cookie-domain auth-cookie-path
+		       (and (authinfo-sticky? auth) (authinfo-expires auth))
+		       #f))
+    var authstring
+    auth-cookie-domain auth-cookie-path
+    (and (authinfo-sticky? auth) (authinfo-expires auth)))
   ;; When you have a secret but are in secure mode, store an encrypted version
   ;;  of your authorization in a variant
   (when (and auth-secure secret)
@@ -283,13 +286,14 @@
 
 (define (auth/identify! identity (sticky #f))
   (and identity
-       (let* ((auth (cons-authinfo authid identity (auth/maketoken) (time)
+       (let* ((auth (cons-authinfo authid identity
+				   (auth/maketoken) (time)
 				   (and auth-expiration
 					(+ (time) auth-expiration))
 				   sticky))
 	      (token (authinfo-token auth)))
-	 (info%watch "AUTH/IDENTIFY!"
-	   authid identity token auth (auth->string auth) sticky)
+	 (debug%watch "AUTH/IDENTIFY!" authid identity token auth sticky
+	   (auth->string auth))
 	 (when checktoken (checktoken identity token #t))
 	 (cgiset! authid auth)
 	 (set-cookies! auth)
