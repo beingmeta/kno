@@ -6,7 +6,7 @@
 (use-module '{varconfig logger rulesets crypto ezrecords})
 
 (define %loglevel %notify!)
-(define %loglevel %debug!)
+;;(define %loglevel %debug!)
 
 (module-export! '{auth/getinfo
 		  auth/getuser
@@ -16,10 +16,7 @@
 
 ;;;; Utility functions
 
-(define (random-signature (length %siglen))
-  (let ((bytes '()))
-    (dotimes (i %siglen) (set! bytes (cons (random 256) bytes)))
-    (->packet bytes)))
+(define (random-signature (length %siglen)) (random-packet length))
 
 (define (auth/maketoken (length 8) (mult (microtime)))
   (let ((sum 0) (modulus 1))
@@ -78,13 +75,12 @@
 (define (secret-config var (val))
   (if (not (bound? val)) secret
       (begin
-	(cond ((not val)
-	       (set! secret (random-secret)))
+	(cond ((not val) (set! secret (random-packet 32)))
 	      ((packet? val)
 	       (set! secret val))
 	      ((number? val)
 	       (if (and (integer? val) (> 4096 val 16))
-		   (set! secret (random-secret val))
+		   (set! secret (random-packet val))
 		   (error "Invalid secret length" val)))
 	      ((not (string? val))
 	       (error "Invalid secret key" val))
@@ -148,10 +144,15 @@
 (define auth-cookie-domain #f)
 (define auth-cookie-path "/")
 (define auth-secure #f)
+;; Whether to have expiration apply to the cookie or just the
+;; authentication token
+(define auth-sticky #f)
+
 (varconfig! auth:cookie auth-cookie-expires)
 (varconfig! auth:domain auth-cookie-domain)
 (varconfig! auth:sitepath auth-cookie-path)
 (varconfig! auth:secure auth-secure)
+(varconfig! auth:sticky auth-sticky)
 
 ;; How cookies are used:
 ;; If *auth-secure* is false and *secret* is false,
@@ -184,22 +185,21 @@
 		      (authstring) (identity))
   (default! authstring (auth->string auth))
   (default! identity (authinfo-identity auth))
-  (debug%watch "SET-COOKIES!" var authstring identity)
-  (debug%watch
-      (if auth-secure
-	  (set-cookie! var authstring
-		       auth-cookie-domain auth-cookie-path
-		       (and (authinfo-sticky? auth) (authinfo-expires auth))
-		       #t)
-	  (set-cookie! var (if secret
-			       (packet->base64 (encrypt authstring secret))
-			       authstring)
-		       auth-cookie-domain auth-cookie-path
-		       (and (authinfo-sticky? auth) (authinfo-expires auth))
-		       #f))
-    var authstring
-    auth-cookie-domain auth-cookie-path
-    (and (authinfo-sticky? auth) (authinfo-expires auth)))
+  (debug%watch "SET-COOKIES!" var authstring identity
+	       auth-cookie-domain auth-cookie-path)
+  (if auth-secure
+      (set-cookie! var authstring
+		   auth-cookie-domain auth-cookie-path
+		   (debug%watch
+		       (and (authinfo-sticky? auth) (authinfo-expires auth)))
+		   #t)
+      (set-cookie! var (if secret
+			   (packet->base64 (encrypt authstring secret))
+			   authstring)
+		   auth-cookie-domain auth-cookie-path
+		   (debug%watch
+		       (and (authinfo-sticky? auth) (authinfo-expires auth)))
+		   #f))
   ;; When you have a secret but are in secure mode, store an encrypted version
   ;;  of your authorization in a variant
   (when (and auth-secure secret)
@@ -284,12 +284,17 @@
 
 ;;;; Core functions
 
-(define (auth/identify! identity (sticky #f))
+(define (auth/identify! identity (sticky auth-sticky)
+			(expires auth-expiration))
   (and identity
        (let* ((auth (cons-authinfo authid identity
 				   (auth/maketoken) (time)
-				   (and auth-expiration
-					(+ (time) auth-expiration))
+				   (if expires
+				       (if (> expires (time)) expires
+					   (+ (time) expires))
+				       (if auth-expiration
+					   (+ (time) auth-expiration)
+					   (+ (time) 3600)))
 				   sticky))
 	      (token (authinfo-token auth)))
 	 (debug%watch "AUTH/IDENTIFY!" authid identity token auth sticky
@@ -313,9 +318,9 @@
        (let ((realm (authinfo-realm auth))
 	     (identity (authinfo-identity auth))
 	     (oldtoken (authinfo-token auth))
-	     (new (cons-auth realm identity (auth/maketoken)
-			     (time) (authinfo-expires auth)
-			     (authinfo-sticky? auth))))
+	     (new (cons-authinfo realm identity (auth/maketoken)
+				 (time) (authinfo-expires auth)
+				 (authinfo-sticky? auth))))
 	 (when checktoken
 	   (checktoken identity oldtoken #f)
 	   (checktoken identity (authinfo-token new) #t))
@@ -353,7 +358,7 @@
 (define (authfail reason authid info signal)
   (debug%watch "AUTHFAIL" reason authid info)
   (expire-cookie! authid "AUTHFAIL")
-  (cgidrop! authid)
+  (req/drop! authid)
   (if signal
       (error reason authid info)
       (logwarn reason authid info))
