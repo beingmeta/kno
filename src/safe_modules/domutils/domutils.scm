@@ -27,8 +27,7 @@
 
 (define *block-text-tags*
   (string->symbol
-   '{"P"
-     "LI" "DT" "BLOCKQUOTE"
+   '{"P" "LI" "DT" "BLOCKQUOTE"
      "H1" "H2" "H3" "H4" "H5" "H6"}))
 
 (define (dom/block? node)

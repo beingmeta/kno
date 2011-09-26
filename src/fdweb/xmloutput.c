@@ -134,7 +134,7 @@ static void emit_xmlattrib
   if (lower) {
     while ((c=u8_sgetc(&scan))>0) u8_putc(out,u8_tolower(c));}
   else u8_puts(out,name);
-  u8_puts(out,"='");
+  u8_puts(out,"=\"");
   if (FD_STRINGP(value))
     attrib_entify(out,FD_STRDATA(value));
   else if (FD_PACKETP(value))
@@ -165,7 +165,7 @@ static void emit_xmlattrib
     u8_puts(out,":");
     attrib_entify(out,tmp.u8_outbuf);
     if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);}
-  u8_puts(out,"'");
+  u8_puts(out,"\"");
 }
 
 static fdtype xmlify(fdtype value)

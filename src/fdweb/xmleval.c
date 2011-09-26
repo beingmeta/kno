@@ -174,7 +174,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       u8_string name=FD_STRDATA(FD_VECTOR_REF(attrib,0));
       fdtype value=FD_VECTOR_REF(attrib,2);
       if (name) {
-	u8_printf(&out," %s='",name);
+	u8_printf(&out," %s=\"",name);
 	if (FD_STRINGP(value))
 	  fd_attrib_entify(&out,FD_STRDATA(value));
 	else if (FD_FIXNUMP(value))
@@ -182,7 +182,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	else if (cache_result)
 	  cache_result=output_attribval(&out,value,env,1);
 	else output_attribval(&out,value,env,1);
-	u8_putc(&out,'\'');}}
+	u8_putc(&out,'"');}}
     fd_decref(attribs);}
   else if (fd_test(xml,attribids_slotid,FD_VOID)) {
     fdtype attribids=fd_get(xml,attribids_slotid,FD_EMPTY_CHOICE);
