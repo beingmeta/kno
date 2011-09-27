@@ -527,7 +527,7 @@
 			  (downcase (symbol->string field))))
 	 (elts (if stringname
 		   (pick links lname stringname)
-		   (pick links 'name field))))
+		   (pick links 'rel field))))
     (get elts 'href)))
 
 (define (lname x (name))
