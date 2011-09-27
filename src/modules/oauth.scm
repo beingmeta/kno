@@ -52,6 +52,7 @@
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
        VERIFY "https://accounts.google.com/o/oauth2/token"
        KEY GPLUS:KEY SECRET GPLUS:SECRET
+       SCOPE "https://www.googleapis.com/auth/plus.me"
        VERSION "2.0"
        REALM GPLUS]])
 
@@ -161,7 +162,8 @@
 	  "redirect_uri"
 	  (string-subst (getopt spec 'callback (req/get 'oauth_callback default-callback))
 			"%REALM%" (stringout (getopt spec 'realm "")))
-	  "scope" (or scope (getopt spec 'scope))
+	  "scope" (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
+			       (printout (if (> i 0) " ") scope)))
 	  "response_type" "code")))
 
 (define (oauth/verify spec (verifier) (ckey) (csecret))
