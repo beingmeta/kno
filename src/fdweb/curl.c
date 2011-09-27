@@ -633,12 +633,12 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
   if (FD_STRINGP(content)) {
-    int length=FD_STRLEN(content);
+    size_t length=FD_STRLEN(content);
     rdbuf.scan=FD_STRDATA(content);
     rdbuf.end=FD_STRDATA(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else if (FD_PACKETP(content)) {
-    int length=FD_PACKET_LENGTH(content);
+    size_t length=FD_PACKET_LENGTH(content);
     rdbuf.scan=FD_PACKET_DATA(content);
     rdbuf.end=FD_PACKET_DATA(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
@@ -830,12 +830,12 @@ static fdtype urlpost(int n,fdtype *args)
   curl_easy_setopt(h->handle,CURLOPT_POST,1);
   if ((n-start)==1) {
     if (FD_STRINGP(args[start])) {
-      int length=FD_STRLEN(args[start]);
+      size_t length=FD_STRLEN(args[start]);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
 		       (char *) (FD_STRDATA(args[start])));}
     else if (FD_PACKETP(args[start])) {
-      int length=FD_PACKET_LENGTH(args[start]);
+      size_t length=FD_PACKET_LENGTH(args[start]);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,length);
       curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,
 		       ((char *)(FD_PACKET_DATA(args[start]))));}
@@ -844,37 +844,51 @@ static fdtype urlpost(int n,fdtype *args)
       int i=start;
       fdtype postdata=args[start];
       fdtype keys=fd_getkeys(postdata);
+      struct U8_OUTPUT nameout; u8_byte _buf[128]; int initnameout=1;
       struct curl_httppost *last = NULL;
       FD_DO_CHOICES(key,keys) {
 	fdtype val=fd_get(postdata,key,FD_VOID);
-	u8_string keyname=((FD_SYMBOLP(key)) ? (FD_SYMBOL_NAME(key)) :
-			   (FD_STRINGP(key)) ? (FD_STRDATA(key)) : (NULL));
+	u8_string keyname=NULL; size_t keylen; int nametype=CURLFORM_PTRNAME;
+	if (FD_SYMBOLP(key)) {
+	  keyname=FD_SYMBOL_NAME(key); keylen=strlen(keyname);}
+	else if (FD_STRINGP(key)) {
+	  keyname=FD_STRDATA(key); keylen=FD_STRLEN(key);}
+	else {
+	  if (initnameout) {
+	    U8_INIT_OUTPUT_BUF(&nameout,128,_buf); initnameout=0;}
+	  else nameout.u8_outptr=nameout.u8_outbuf;
+	  fd_unparse(&nameout,key);
+	  keyname=nameout.u8_outbuf;
+	  keylen=(nameout.u8_outptr-nameout.u8_outbuf)+1;
+	  nametype=CURLFORM_COPYNAME;}
 	if (keyname==NULL) {
-	  curl_formfree(post);
-	  fd_decref(conn);
+	  curl_formfree(post); fd_decref(conn);
+	  if (!(initnameout)) u8_close_output(&nameout);
 	  return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
 	else if (FD_STRINGP(val)) {
 	  curl_formadd(&post,&last,
-		       CURLFORM_COPYNAME,keyname,
+		       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
 		       CURLFORM_PTRCONTENTS,FD_STRDATA(val),
-		       CURLFORM_CONTENTSLENGTH,FD_STRLEN(val),
+		       CURLFORM_CONTENTSLENGTH,((size_t)FD_STRLEN(val)),
 		       CURLFORM_END);}
 	else if (FD_PACKETP(val))
 	  curl_formadd(&post,&last,
-		       CURLFORM_COPYNAME,keyname,
+		       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
 		       CURLFORM_PTRCONTENTS,FD_PACKET_DATA(val),
-		       CURLFORM_CONTENTSLENGTH,FD_PACKET_LENGTH(val),
+		       CURLFORM_CONTENTSLENGTH,((size_t)FD_PACKET_LENGTH(val)),
 		       CURLFORM_END);
 	else {
 	  U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
 	  fd_unparse(&out,val);
 	  curl_formadd(&post,&last,
-		       CURLFORM_COPYNAME,keyname,
+		       nametype,keyname,CURLFORM_NAMELENGTH,keylen,
 		       CURLFORM_COPYCONTENTS,out.u8_outbuf,
-		       CURLFORM_CONTENTSLENGTH,out.u8_outptr-out.u8_outbuf,
+		       CURLFORM_CONTENTSLENGTH,
+		       ((size_t)(out.u8_outptr-out.u8_outbuf)),
 		       CURLFORM_END);
 	  u8_free(out.u8_outbuf);}
 	fd_decref(val);}
+      if (!(initnameout)) u8_close_output(&nameout);
       curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
       fd_decref(keys);}
     else {
@@ -887,36 +901,51 @@ static fdtype urlpost(int n,fdtype *args)
     /* Construct form data */
     int i=start;
     struct curl_httppost *post = NULL, *last = NULL;
+    struct U8_OUTPUT nameout; u8_byte _buf[128]; int initnameout=1;
     while (i<n) {
       fdtype key=args[i], val=args[i+1]; 
-      u8_string keyname=((FD_SYMBOLP(key)) ? (FD_SYMBOL_NAME(key)) :
-			 (FD_STRINGP(key)) ? (FD_STRDATA(key)) : (NULL));
+      u8_string keyname=NULL; size_t keylen; int nametype=CURLFORM_PTRNAME;
+      if (FD_SYMBOLP(key)) {
+	keyname=FD_SYMBOL_NAME(key); keylen=strlen(keyname);}
+      else if (FD_STRINGP(key)) {
+	keyname=FD_STRDATA(key); keylen=FD_STRLEN(key);}
+      else {
+	if (initnameout) {
+	  U8_INIT_OUTPUT_BUF(&nameout,128,_buf);
+	  initnameout=0;}
+	else nameout.u8_outptr=nameout.u8_outbuf;
+	fd_unparse(&nameout,key);
+	keyname=nameout.u8_outbuf;
+	keylen=nameout.u8_outptr-nameout.u8_outbuf;
+	nametype=CURLFORM_COPYNAME;}
       i=i+2;
       if (keyname==NULL) {
-	curl_formfree(post);
-	fd_decref(conn);
+	if (!(initnameout)) u8_close_output(&nameout);
+	curl_formfree(post); fd_decref(conn);
 	return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
       else if (FD_STRINGP(val))
 	curl_formadd(&post,&last,
-		     CURLFORM_COPYNAME,keyname,
+		     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
 		     CURLFORM_PTRCONTENTS,FD_STRDATA(val),
-		     CURLFORM_CONTENTSLENGTH,FD_STRLEN(val),
+		     CURLFORM_CONTENTSLENGTH,((size_t)FD_STRLEN(val)),
 		     CURLFORM_END);
       else if (FD_PACKETP(val))
 	curl_formadd(&post,&last,
-		     CURLFORM_COPYNAME,keyname,
+		     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
 		     CURLFORM_PTRCONTENTS,FD_PACKET_DATA(val),
-		     CURLFORM_CONTENTSLENGTH,FD_PACKET_LENGTH(val),
+		     CURLFORM_CONTENTSLENGTH,((size_t)FD_PACKET_LENGTH(val)),
 		     CURLFORM_END);
       else {
 	U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
 	fd_unparse(&out,val);
 	curl_formadd(&post,&last,
-		     CURLFORM_COPYNAME,keyname,
+		     nametype,keyname,CURLFORM_NAMELENGTH,keylen,
 		     CURLFORM_COPYCONTENTS,out.u8_outbuf,
-		     CURLFORM_CONTENTSLENGTH,out.u8_outptr-out.u8_outbuf,
+		     CURLFORM_CONTENTSLENGTH,
+		     ((size_t)(out.u8_outptr-out.u8_outbuf)),
 		     CURLFORM_END);
 	u8_free(out.u8_outbuf);}}
+    if (!(initnameout)) u8_close_output(&nameout);
     curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
     retval=curl_easy_perform(h->handle);
     curl_formfree(post);}
