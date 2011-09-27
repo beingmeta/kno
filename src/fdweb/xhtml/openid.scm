@@ -116,8 +116,9 @@
 	   result))))
 
 (define (doredirect uri)
-  ;; (%watch "REDIRECT" uri)
-  (cgiset! 'status 303)
+  (debug%watch "REDIRECT" uri)
+  (req/set! 'doctype #f)
+  (req/set! 'status 303)
   (httpheader "Location: " uri))
 
 (define (openid/auth (openid.endpoint #f) (openid.mode #f) 
@@ -128,9 +129,7 @@
 	 (and (cgicall validate) (openid-return)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
-	 (doredirect
-	  (debug%watch
-	   (openid-redirect (or openid.identifier openid.endpoint))))
+	 (doredirect (openid-redirect (or openid.identifier openid.endpoint)))
 	 #f)
 	(else #f)))
 
