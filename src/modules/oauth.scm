@@ -9,6 +9,9 @@
 (define-init getuser #f)
 (varconfig! oauth:getuser getuser)
 
+(define-init default-callback "https://auth.sbooks.net/_appinfo")
+(varconfig! oauth:callback default-callback)
+
 (module-export!
  '{oauth
    oauth/request oauth/authurl oauth/verify
@@ -44,9 +47,13 @@
        VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
        KEY GOOGLE_KEY SECRET GOOGLE_SECRET
        VERSION "1.0"
-       REALM GOOGLE]])
-
-(define default-callback "https://auth.sbooks.net/_appinfo")
+       REALM GOOGLE]
+     GPLUS
+     #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
+       VERIFY "https://accounts.google.com/o/oauth2/token"
+       KEY GPLUS:KEY SECRET GPLUS:SECRET
+       VERSION "2.0"
+       REALM GPLUS]])
 
 (define (getckey spec (val))
   (default! val (getopt spec 'key))
@@ -113,8 +120,8 @@
   (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	 (endpoint (getopt spec 'request))
 	 (callback (uriencode (getopt spec 'callback
-				      (cgiget 'oauth_callback
-					      default-callback))))
+				      (req/get 'oauth_callback
+					       default-callback))))
 	 (now (getopt spec 'time (time)))
 	 (sigstring
 	  (oauth/signature
@@ -142,21 +149,36 @@
 	(debug%watch (cons (cgiparse (get req '%content)) spec) "OATH/REQUEST")
 	(error "Can't get request token" req))))
 
-(define (oauth/authurl spec)
-  (unless (and (getopt spec 'authorize) (getopt spec 'oauth_token))
+(define (oauth/authurl spec (scope #f))
+  (when (symbol? spec) (set! spec (get oauth-servers spec)))
+  (unless (and (getopt spec 'authorize)
+	       (or (getopt spec 'oauth_token) (getckey spec)))
     (error "OAUTH/AUTHURL: Invalid OAUTH spec: " spec))
-  (scripturl (getopt spec 'authorize)
-      "oauth_token" (getopt spec 'oauth_token)))
+  (if (testopt spec 'version "1.0")
+      (scripturl (getopt spec 'authorize) "oauth_token" (getopt spec 'oauth_token))
+      (scripturl (getopt spec 'authorize)
+	  "client_id" (getckey spec)
+	  "redirect_uri"
+	  (string-subst (getopt spec 'callback (req/get 'oauth_callback default-callback))
+			"%REALM%" (stringout (getopt spec 'realm "")))
+	  "scope" (or scope (getopt spec 'scope))
+	  "response_type" "code")))
 
 (define (oauth/verify spec (verifier) (ckey) (csecret))
-  (default! verifier (getopt spec 'oauth_verifier (cgiget 'oauth_verifier)))
+  (if (symbol? spec) (set! spec (get oauth-servers spec)))
+  (default! verifier (getopt spec 'oauth_verifier (req/get 'oauth_verifier)))
+  (if (testopt spec 'version "1.0")
+      (verify1.0 spec verifier)
+      (verify2.0 spec verifier)))
+
+(define (verify1.0 spec (verifier) (ckey) (csecret))
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
     (error "OAUTH/VERIFY: Invalid OAUTH spec: " spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
-  (debug%watch "OAUTH/VERIFY" verifier spec)
+  (debug%watch "OAUTH/VERIFY/1.0" verifier spec)
   (unless (and ckey csecret)
     (error "OAUTH/VERIFY: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
@@ -197,6 +219,24 @@
     (debug%watch sigstring sig sig64 auth-header)
     (if (test req 'response 200)
 	(cons (cgiparse (get req '%content)) (cdr spec))
+	(if (getopt spec 'noverify)
+	    ((getopt spec 'noverify) spec verifier req)
+	    (error "OAUTH/VERIFY failed" req)))))
+
+(define (verify2.0 spec (code) (ckey) (csecret))
+  (default! code (getopt spec 'code (req/get 'code)))
+  (default! ckey (getckey spec))
+  (default! csecret (getcsecret spec))
+  (debug%watch "OAUTH/VERIFY/2.0" code spec)
+  (unless (and ckey csecret)
+    (error "OAUTH/VERIFY: No consumer key/secret: " spec))
+  (unless code (error "OAUTH/VERIFY: No OAUTH code: " spec))
+  (let* ((callback (getopt spec 'callback (req/get 'oauth_callback default-callback)))
+	 (req (urlpost (getopt spec 'verify) 
+		       "code" code "client_id" ckey "client_secret" csecret
+		       "redirect_uri" callback "grant_type" "authorization_code")))
+    (if (test req 'response 200)
+	(cons (jsonparse (get req '%content)) spec)
 	(if (getopt spec 'noverify)
 	    ((getopt spec 'noverify) spec verifier req)
 	    (error "OAUTH/VERIFY failed" req)))))
@@ -293,7 +333,7 @@
 (define-init oauth-pending (make-hashtable))
 (define-init oauth-info (make-hashtable))
 
-(define (oauth (oauth_realm #f) (oauth_token #f) (oauth_verifier #f))
+(define (oauth (code #f) (oauth_realm #f) (oauth_token #f) (oauth_verifier #f))
   (if oauth_verifier
       (let* ((state (get oauth-pending oauth_token))
 	     (verified (oauth/verify state oauth_verifier)))
@@ -302,11 +342,17 @@
 	(let ((user (getuser (cons verified (cdr state)))))
 	  (debug%watch "OAUTH/complete" user verified state)
 	  user))
-      (and oauth_realm
-	   (let* ((state (oauth/request oauth_realm))
-		  (url (oauth/authurl state)))
-	     (store! oauth-pending (getopt state 'oauth_token) state)
-	     (cgiset! 'status 300)
-	     (httpheader "Location: " url)
-	     #f))))
+      (if code
+	  (let* ((state (get oath-servers oauth_realm))
+		 (verified (oauth/verify state code)))
+	    (let ((user (getuser (cons verified (cdr state)))))
+	      (debug%watch "OAUTH/complete" user verified state)
+	      user))
+	  (and oauth_realm
+	       (let* ((state (oauth/request oauth_realm))
+		      (url (oauth/authurl state)))
+		 (store! oauth-pending (getopt state 'oauth_token) state)
+		 (cgiset! 'status 300)
+		 (httpheader "Location: " url)
+		 #f)))))
 
