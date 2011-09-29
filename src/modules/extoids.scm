@@ -8,7 +8,7 @@
 (define default-sqlmap #[])
 (varconfig! extdb:sqlmap default-sqlmap)
 
-(module-export! '{xo/store! xo/add! xo/drop!})
+(module-export! '{xo/store! xo/add! xo/drop! xo/decache!})
 (module-export! '{xo/defstore! xo/defadd! xo/defdrop! xo/defget!})
 (module-export! '{xo/defstore xo/defadd xo/defdrop xo/defget})
 
@@ -19,6 +19,12 @@
 (define-init add-procs (make-hashtable))
 (define-init drop-procs (make-hashtable))
 (define-init get-indices (make-hashtable))
+
+(define (xo/decache! oid (slotid #f))
+  (if slotid
+      (extindex-decache! (get get-indices (cons (getpool oid) slotid))
+			 oid)
+      (swapout oid)))
 
 (defambda (xo/store! oid slotid value)
   (do-choices oid
