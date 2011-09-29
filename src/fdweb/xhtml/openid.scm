@@ -119,7 +119,8 @@
   (debug%watch "REDIRECT" uri)
   (req/set! 'doctype #f)
   (req/set! 'status 303)
-  (httpheader "Location: " uri))
+  (httpheader "Location: " uri)
+  (h1 "Redirecting to " (anchor uri uri)))
 
 (define (openid/auth (openid.endpoint #f) (openid.mode #f) 
 		     (openid.identifier #f) (openid.claimed_identifier #f)
@@ -129,7 +130,10 @@
 	 (and (cgicall validate) (openid-return)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
-	 (doredirect (openid-redirect (or openid.identifier openid.endpoint)))
+	 (doredirect
+	  (debug%watch
+	      (openid-redirect (or openid.identifier openid.endpoint))
+	    openid.identifier openid.endpoint))
 	 #f)
 	(else #f)))
 
@@ -157,7 +161,8 @@
 (config! 'auth:validate (cons 'openid openidauthvalidate))
 
 (define (openid/login site (opts default-opts))
-  (doredirect (openid-redirect (cons site #f))))
+  (doredirect (openid-redirect (cons site #f)))
+  (fail))
 
 ;;; Lists of providers
 
@@ -171,12 +176,19 @@
 (define openid/providers
   (choice openid/providers/path openid/providers/domain))
 
+(define (openid/authurl provider username)
+  (if (overlaps? provider openid/providers/path)
+      (stringout "http://" provider "/" username)
+      (if (overlaps? provider openid/providers/domain)
+	  (stringout "http://" username "." provider "/")
+	  (fail))))
+
 ;;; Exports
 
 (module-export!
  '{get-openid-server
    openid-url
-   openid/auth openid/optinfo
+   openid/authurl openid/auth openid/optinfo
    openid/login
    openid/providers
    openid/providers/path openid/providers/domain})
