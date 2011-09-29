@@ -334,8 +334,8 @@ static fdtype uribase_prim(fdtype uri_arg)
   u8_byte *qmark=strchr(uri,'?');
   if ((hash) && (qmark))
     if (hash<qmark)
-      return fd_extract_string(NULL,uri,qmark);
-    else return fd_extract_string(NULL,uri,hash);
+      return fd_extract_string(NULL,uri,hash);
+    else return fd_extract_string(NULL,uri,qmark);
   else if (hash)
     return fd_extract_string(NULL,uri,hash);
   else if (qmark)
