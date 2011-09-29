@@ -973,12 +973,16 @@ static fdtype get_servlet_status()
 
 static int mkdir_recursive(u8_string path,mode_t mode)
 {
+
   if (u8_directoryp(path)) return 0;
   else {
+    int retval;
     u8_string dirname=u8_dirname(path);
-    int retval=mkdir_recursive(dirname,mode);
-    u8_free(dirname);
-    if (retval<0) return -1;
+    if (strchr(dirname,'/')) {
+      retval=mkdir_recursive(dirname,mode);
+      u8_free(dirname);
+      if (retval<0) return -1;}
+    else u8_free(dirname);
     retval=mkdir(u8_tolibc(path),mode);
     if (retval<0) {
       u8_graberr(retval,"mkdir_recursive",u8_strdup(path));
