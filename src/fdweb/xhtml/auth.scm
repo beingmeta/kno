@@ -5,7 +5,7 @@
 (use-module '{fdweb texttools})
 (use-module '{varconfig logger rulesets crypto ezrecords})
 
-(define %loglevel %notify!)
+(define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
 
 (module-export! '{auth/getinfo
@@ -315,12 +315,12 @@
 (define (freshauth auth)
   (and (or (not checktoken)
 	   (checktoken (authinfo-identity auth) (authinfo-token auth)))
-       (let ((realm (authinfo-realm auth))
-	     (identity (authinfo-identity auth))
-	     (oldtoken (authinfo-token auth))
-	     (new (cons-authinfo realm identity (auth/maketoken)
-				 (time) (authinfo-expires auth)
-				 (authinfo-sticky? auth))))
+       (let* ((realm (authinfo-realm auth))
+	      (identity (authinfo-identity auth))
+	      (oldtoken (authinfo-token auth))
+	      (new (cons-authinfo realm identity (auth/maketoken)
+				  (time) (authinfo-expires auth)
+				  (authinfo-sticky? auth))))
 	 (when checktoken
 	   (checktoken identity oldtoken #f)
 	   (checktoken identity (authinfo-token new) #t))
