@@ -132,6 +132,8 @@
 	  (drop! tokentable identity token))
       (test tokentable identity token)))
 
+;; This is the default function for checking tokens
+;;  It takes an identity and a token value and an #t/#f op
 (define checktoken table-checktoken)
 (varconfig! auth:checktoken checktoken)
 
@@ -313,7 +315,7 @@
 	   auth)))
 
 (define (freshauth auth)
-  (and (or (not checktoken)
+  (and (or (not checktoken) ;; Valid token?
 	   (checktoken (authinfo-identity auth) (authinfo-token auth)))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
@@ -322,6 +324,7 @@
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
 	 (when checktoken
+	   ;; Invalidate the old token, validate the new
 	   (checktoken identity oldtoken #f)
 	   (checktoken identity (authinfo-token new) #t))
 	 (set-cookies! new)
@@ -381,7 +384,8 @@
 	(else (default! info (cgiget authid))))
   (when (string? info) (set! info (string->auth info)))
   (when info
-    (when checktoken (checktoken (authinfo-identity info) (authinfo-token info) #f)))
+    (when checktoken
+      (checktoken (authinfo-identity info) (authinfo-token info) #f)))
   (expire-cookie! authid "AUTH/DEAUTHORIZE!"))
 
 
