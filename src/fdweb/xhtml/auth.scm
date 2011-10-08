@@ -18,7 +18,7 @@
 
 (define (random-signature (length %siglen)) (random-packet length))
 
-(define (auth/maketoken (length 8) (mult (microtime)))
+(define (auth/maketoken (length 7) (mult (microtime)))
   (let ((sum 0) (modulus 1))
     (dotimes (i length)
       (set! sum (+ (* 256 sum) (random 256)))
@@ -202,6 +202,10 @@
 		   (debug%watch
 		       (and (authinfo-sticky? auth) (authinfo-expires auth)))
 		   #f))
+  (req/set! var
+	    (if auth-secure authstring
+		(if secret (packet->base64 (encrypt authstring secret))
+		    authstring)))
   ;; When you have a secret but are in secure mode, store an encrypted version
   ;;  of your authorization in a variant
   (when (and auth-secure secret)
@@ -209,7 +213,9 @@
 		 (packet->base64 (encrypt authstring secret))
 		 auth-cookie-domain auth-cookie-path
 		 (and (authinfo-sticky? auth) (authinfo-expires auth))
-		 #f))
+		 #f)
+    (req/set! (if auth-secure (stringout var "-") var)
+	      (packet->base64 (encrypt authstring secret))))
   ;; When you can encrypt it, store the identity as a cookie
   ;;  Note that this should never be used to confirm identity
   (when secret
