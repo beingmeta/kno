@@ -488,18 +488,23 @@ static fdtype lisp_string2symbol(fdtype s)
   return fd_intern(FD_STRING_DATA(s));
 }
 
-static fdtype config_get(fdtype var,fdtype dflt)
+static fdtype config_get(fdtype vars,fdtype dflt)
 {
-  fdtype value;
-  if (FD_STRINGP(var))
-    value=fd_config_get(FD_STRDATA(var));
-  else if (FD_SYMBOLP(var))
-    value=fd_config_get(FD_SYMBOL_NAME(var));
-  else return fd_type_error(_("string or symbol"),"config_get",var);
-  if (FD_VOIDP(value))
-    if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
-    else return fd_incref(dflt);
-  else return value;
+  fdtype result=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(var,vars) {
+    fdtype value;
+    if (FD_STRINGP(var))
+      value=fd_config_get(FD_STRDATA(var));
+    else if (FD_SYMBOLP(var))
+      value=fd_config_get(FD_SYMBOL_NAME(var));
+    else {
+      fd_decref(result);
+      return fd_type_error(_("string or symbol"),"config_get",var);}
+    if (FD_VOIDP(value)) {}
+    else FD_ADD_TO_CHOICE(result,value);}
+  if (FD_EMPTY_CHOICEP(result))
+    return fd_incref(dflt);
+  else return result;
 }
 
 static fdtype config_set(fdtype var,fdtype val)
@@ -660,7 +665,8 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SQRT",sqrt_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ROUND",round_prim,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim2("CONFIG",config_get,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2("CONFIG",config_get,1)));
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim2("CONFIG!",config_set,2)));
   fd_idefn(fd_scheme_module,
