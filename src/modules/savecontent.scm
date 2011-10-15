@@ -24,7 +24,9 @@
 (module-export! '{savecontent saveoutput save/path save/fetch})
 
 (define (guess-ctype name)
-  (cond ((or (has-suffix name ".html")  (has-suffix name ".htm") (has-suffix name ".xhtml"))
+  (cond ((or (has-suffix name ".html")
+	     (has-suffix name ".htm")
+	     (has-suffix name ".xhtml"))
 	 "text/html")
 	((has-suffix name ".manifest") "text/cache-manifest")
 	((has-suffix name ".css") "text/css")
