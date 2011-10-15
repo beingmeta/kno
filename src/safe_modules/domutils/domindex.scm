@@ -26,9 +26,12 @@
 (config-def! 'DOM:INDEXRULES indexrule-config)
 
 (define default-analyzers {})
-(varconfig! dom:analyzer default-analyzers #f choice)
+(varconfig! dom:analyzers default-analyzers #f choice)
 
 (config! 'dom:indexrules (cons 'class dom/split-space))
+(config! 'dom:analyzers
+	 (lambda (x settings)
+	   (cons 'classname (dom/split-space (get x 'class)))))
 
 (define (dom/index! index doc (settings #[]))
   (let ((indexslots (try (get settings 'indexslots) default-dom-slots))
@@ -63,10 +66,12 @@
 				  (car (pick eltinfo pair?)))
 			  (getkeys xml))
 			 (get xml '%attribids)))
-		 (rules (pick (choice (pick indexslots pair?)
-				      (pick eltinfo pair?))
-			      slots)))
-	    ;; (%WATCH "DOMINDEXER" indexval slots rules)
+		 (rules (choice
+			 (pick (choice (pick indexslots pair?)
+				       (pick eltinfo pair?))
+			       slots)
+			 (pick indexrules hashtable?))))
+	    ;;(%WATCH "DOMINDEXER" indexval indexslots eltinfo slots rules)
 	    (when idmap (add! idmap (get xml 'id) xml))
 	    (add! index (cons 'has slots) indexval)
 	    (add! index (cons 'parent parent) indexval)
@@ -81,8 +86,8 @@
 				 (get xml slotid)))
 			  (cons slotid (get xml slotid)))
 		      indexval))
-	      (do-choices (analyzer (choice analyzers
-					    (pick eltinfo procedure?)))
+	      (do-choices (analyzer (choice (pick eltinfo procedure?)
+					    analyzers))
 		(do-choices (slot.val (analyzer xml settings))
 		  (when (overlaps? (car slot.val) cacheslots)
 		    (add! xml (car slot.val) (cdr slot.val)))
