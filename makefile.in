@@ -11,7 +11,9 @@ CFLAGS=-I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
        -I./include $(XCFLAGS)  $(ARCHFLAGS)
 LDFLAGS = @LDFLAGS@ -L./lib $(EFENCE)
 EXELDFLAGS = @EXELDFLAGS@
-LIBS=@LIBS@ -lm -lz -lu8
+BASELIBS=@LIBS@ -lm -lz
+BMLIBS=-lu8io -lu8data -lu8
+LIBS=${BMLIBS} ${BASELIBS}
 
 DESTDIR		=
 prefix		= @prefix@
@@ -224,17 +226,17 @@ exe/scripts/%: src/scripts/%.scm
 exe/%@suffix@: src/exe/%.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
-		$(LIBS) -lu8stdio                                  \
-		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
-		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
+		-lfdbserv@suffix@                 	 	   \
 		-lfdweb@suffix@ -ltexttools@suffix@                \
-		-lfdbserv@suffix@                 \
-		@xdynamic_scheme_libs@
+		@xdynamic_scheme_libs@                             \
+		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
+		-lfddbfile@suffix@ -lfddb@suffix@ -lfdtype@suffix@ \
+	        -lu8stdio $(LIBS)
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
-	$(CC) $(EXECFLAGS) -o $@ $^ $(LIBS) -lu8stdio -lu8syslog
+	$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -249,7 +251,7 @@ lib/%@suffix@.a:
 	$(MKSTATIC) $@ $^
 lib/%@suffix@.so.@VERSION@:
 	make lib
-	$(MKSO) -Wl,-soname=$(@F) -o $@ $^
+	$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS)
 lib/%@suffix@.so: lib/%.so.@VERSION@
 	make lib
 	ln -sf $(<F) $@

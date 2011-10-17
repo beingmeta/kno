@@ -8,7 +8,9 @@ XCFLAGS=
 CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
 	-I../../include $(XCFLAGS)
 LDFLAGS =@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
-LIBS=@LIBS@ -lu8stdio -lu8 -lz -lm
+BASELIBS=@LIBS@ -lm -lz
+BMLIBS=-lu8stdio -lu8io -lu8data -lu8
+LIBS=${BMLIBS} ${BASELIBS}
 
 DESTDIR		=
 prefix		= @prefix@

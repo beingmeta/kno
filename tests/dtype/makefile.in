@@ -8,7 +8,7 @@ XCFLAGS=
 CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
 	-I../../include $(XCFLAGS)
 LDFLAGS=@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib 
-LIBS=@LIBS@ -lu8stdio -lu8 -lz -lm
+LIBS=-lu8stdio -lu8data -lu8io -lu8 @LIBS@ -lz -lm
 
 DESTDIR		=
 prefix		= @prefix@
@@ -251,7 +251,7 @@ $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 # This is for making shared test programs, when there are associated problems
 %.shared: %.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
-		../../src/db/dtypestream.o $(LIBS) -lfdtype 
+		../../src/db/dtypestream.o $(LIBS) -lfdtype $(LIBS)
 
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
