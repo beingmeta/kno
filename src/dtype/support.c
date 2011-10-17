@@ -12,6 +12,8 @@ static char versionid[] =
 #include "framerd/numbers.h"
 
 #include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8printf.h>
 
 #if 0
 typedef int bool;
@@ -1261,7 +1263,7 @@ void fd_init_support_c()
 {
   fd_register_source_file(versionid);
 
-  u8_register_textdomain("eframerd");
+  u8_register_textdomain("FramerD");
 
   /* atexit(report_errors_atexit); */
 
