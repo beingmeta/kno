@@ -11,9 +11,7 @@ CFLAGS=-I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
        -I./include $(XCFLAGS)  $(ARCHFLAGS)
 LDFLAGS = @LDFLAGS@ -L./lib $(EFENCE)
 EXELDFLAGS = @EXELDFLAGS@
-BASELIBS=@LIBS@ -lm -lz
-BMLIBS=-lu8io -lu8data -lu8
-LIBS=${BMLIBS} ${BASELIBS}
+LIBS=@LIBS@
 
 DESTDIR		=
 prefix		= @prefix@
