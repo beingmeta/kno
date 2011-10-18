@@ -1,5 +1,6 @@
 AC_PREREQ(2.50)
 AC_INIT(include/framerd/dtype.h)
+m4_include([etc/ax_pthread.m4])
 
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
@@ -396,16 +397,9 @@ AC_CHECK_FUNCS(waitpid)
 AC_CHECK_FUNCS(wait4)
 AC_CHECK_FUNCS(gettext)
 
-AC_CHECK_FUNCS(pthread_create,libc_pthreads="yes")
-if test $libc_pthreads != "yes"; then
-   AC_CHECK_HEADERS(pthread.h)
-   AC_CHECK_LIB(pthread,pthread_create)
-   AC_CHECK_LIB(c_r,pthread_create)
-   AC_CHECK_LIB(pthreads,pthread_create)
-else
-   AC_CHECK_HEADERS(pthread.h)
-   threads_default="yes";
-fi
+AX_PTHREAD()
+AC_CHECK_HEADERS(pthread.h)
+AC_CHECK_FUNCS(pthread_create)
 
 # This gets it in the library list
 AC_CHECK_LIB(m,floor)
