@@ -104,6 +104,10 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
+STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
+	static/fdbatch@suffix@ \
+	static/fdserv@suffix@ static/fdbserver@suffix@ \
+	static/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
@@ -212,6 +216,7 @@ dbtestbin: libs  src/exe/revision.h
 schemetestbin: libs  src/exe/revision.h
 	cd tests/scheme; make
 exe: $(EXECUTABLES)
+static-exe: $(STATIC_EXECUTABLES)
 
 etc/usememory: etc/usememory.c
 
