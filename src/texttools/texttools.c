@@ -1975,6 +1975,7 @@ static int texttools_init=0;
 
 void fd_init_texttools()
 {
+  int fdscheme_version=fd_init_fdscheme();
   if (texttools_init) return;
   fd_register_source_file(versionid);
   texttools_init=1;

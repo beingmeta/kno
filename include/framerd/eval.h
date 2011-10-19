@@ -26,7 +26,8 @@ FD_EXPORT fd_ptr_type fd_sproc_type, fd_macro_type;
 
 FD_EXPORT fdtype _fd_comment_symbol;
 
-FD_EXPORT int fd_init_fdscheme(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_load_fdscheme(void) FD_LIBINIT0_FN;
+FD_EXPORT int fd_init_fdscheme(void);
 FD_EXPORT void fd_init_schemeio(void);
 
 FD_EXPORT u8_context fd_eval_context;

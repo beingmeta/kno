@@ -232,7 +232,7 @@ exe/%@suffix@: src/exe/%.c
 		-lfdbserv@suffix@                 	 	   \
 		-lfdweb@suffix@ -ltexttools@suffix@                \
 		@xdynamic_scheme_libs@                             \
-		-lfdscheme@suffix@ -lfdschemeio@suffix@            \
+		-lfdscheme@suffix@                                 \
 		-lfddbfile@suffix@ -lfddb@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 

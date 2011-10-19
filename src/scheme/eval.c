@@ -29,7 +29,7 @@ static char versionid[] =
 #include <pthread.h>
 #include <errno.h>
 
-static int fdscheme_initialized=0;
+static volatile int fdscheme_initialized=0;
 
 int fd_optimize_tail_calls=1;
 
@@ -1614,21 +1614,27 @@ static void init_core_builtins()
   fd_persist_module(fd_xscheme_module);
 }
 
+FD_EXPORT int fd_load_fdscheme()
+{
+  return fd_init_fdscheme();
+}
+
 FD_EXPORT int fd_init_fdscheme()
 {
   if (fdscheme_initialized) return fdscheme_initialized;
-  fdscheme_initialized=401*fd_init_db()*u8_initialize();
-
-  fd_init_eval_c();
-
-  default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
-  safe_default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
-
-  fd_register_source_file(FDB_EVAL_H_VERSION);
-  fd_register_source_file(versionid);
-
-  init_scheme_module();
-  init_core_builtins();
-
-  return fdscheme_initialized;
+  else {
+    fdscheme_initialized=401*fd_init_db()*u8_initialize();
+    
+    fd_init_eval_c();
+    
+    default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
+    safe_default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
+    
+    fd_register_source_file(FDB_EVAL_H_VERSION);
+    fd_register_source_file(versionid);
+    
+    init_scheme_module();
+    init_core_builtins();
+    
+    return fdscheme_initialized;}
 }
