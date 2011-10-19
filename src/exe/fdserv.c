@@ -646,6 +646,7 @@ static void output_content(fd_webconn ucl,fdtype content)
 
 static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
+  /* We could do access control here. */
   fd_webconn consed=u8_alloc(FD_WEBCONN);
   consed->socket=sock; consed->flags=0;
   fd_init_dtype_stream(&(consed->in),sock,4096);
@@ -872,7 +873,8 @@ static int webservefn(u8_client ucl)
   fd_decref(proc); fd_decref(result); fd_decref(path);
   /* u8_client_close(ucl); */
   fd_swapcheck();
-  return 1;
+  /* Task is done */
+  return 0;
 }
 
 static int close_webclient(u8_client ucl)

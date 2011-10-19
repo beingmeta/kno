@@ -231,7 +231,7 @@ static int dtypeserver(u8_client ucl)
 	   client->idstring,client->n_trans);
     fd_clear_errors(1);
     u8_client_close(ucl);
-    return 0;}
+    return -1;}
   else {
     fdtype value;
     int tracethis=((logtrans) &&
@@ -299,7 +299,7 @@ static int dtypeserver(u8_client ucl)
 	     client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
     fd_decref(expr); fd_decref(value);
     fd_swapcheck();
-    return 1;}
+    return 0;}
 }
 
 static int close_fdclient(u8_client ucl)
