@@ -194,6 +194,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 #endif
 
 typedef struct FD_THREAD_CACHE {
+  int fdtc_inuse; u8_string fdtc_id;
   struct FD_HASHTABLE oids;
   struct FD_HASHTABLE indices;
   struct FD_HASHTABLE bground;
@@ -219,6 +220,7 @@ FD_EXPORT fd_thread_cache
   fd_cons_thread_cache(int ccsize,int ocsize,int bcsize,int kcsize);
 
 FD_EXPORT fd_thread_cache fd_push_threadcache(fd_thread_cache);
+FD_EXPORT fd_thread_cache fd_set_threadcache(fd_thread_cache);
 FD_EXPORT fd_thread_cache fd_use_threadcache(void);
 
 /* Include other stuff */
