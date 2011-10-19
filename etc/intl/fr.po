@@ -7,551 +7,2240 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-05 15:43-0500\n"
+"POT-Creation-Date: 2011-10-19 09:51-0400\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+#: src/dtype/cons.c:22
+msgid "malloc/realloc failed"
+msgstr ""
+
 # gnumeric
-#: src/lisp/cons.c:14
+#: src/dtype/cons.c:23
 msgid "Type error"
 msgstr "Erreur de type"
 
 # bfd
-#: src/lisp/cons.c:14
+#: src/dtype/cons.c:23
 msgid "Range error"
 msgstr "hors limite"
 
-#: src/lisp/cons.c:15
+#: src/dtype/cons.c:24
+msgid "bad dtype pointer"
+msgstr ""
+
+#: src/dtype/cons.c:25
+msgid "Freeing already freed CONS"
+msgstr ""
+
+#: src/dtype/cons.c:26
+msgid "Using freed CONS"
+msgstr ""
+
+#: src/dtype/cons.c:27
+msgid "Freeing non-heap cons"
+msgstr ""
+
+#: src/dtype/cons.c:617
 #, fuzzy
-msgid "internal error: bad pointer"
-msgstr "Erreur interne avec une fichiers d'index"
+msgid "Bad compound"
+msgstr "object composée"
 
-# gnumeric
-#: src/lisp/cons.c:492 src/lisp/cons.c:496 src/lisp/cons.c:510
-#: src/lisp/cons.c:514 src/lisp/cons.c:528 src/lisp/cons.c:532
-#: src/lisp/cons.c:546 src/lisp/cons.c:550 src/lisp/cons.c:564
-#: src/lisp/cons.c:568 src/lisp/cons.c:581 src/lisp/cons.c:585
-#, fuzzy
-msgid "number"
-msgstr "nombre"
+#: src/dtype/cons.c:631 src/dtype/cons.c:658
+msgid "positive byte"
+msgstr ""
 
-#: src/lisp/cons.c:646
-#, c-format
-msgid "%m expected"
-msgstr "attendait %m"
-
-#: src/lisp/cons.c:687
+#: src/dtype/cons.c:856
 #, c-format
 msgid "#<MysteryVector 0x%x/0x%x %d elements>"
 msgstr "#<Objet Composée Mystérieux 0x%x/0x%x %d  éléments>"
 
-#: src/lisp/cons.c:689
+#: src/dtype/cons.c:858
 #, c-format
 msgid "#<MysteryPacket 0x%x/0x%x %d bytes>"
 msgstr "#<Paquet Mystérieux 0x%x/0x%x %d bytes>"
 
-#: src/lisp/tables.c:17
+#: src/dtype/tables.c:23
 msgid "No such key"
 msgstr "clé introuvable"
 
-#: src/lisp/tables.c:18
+#: src/dtype/tables.c:24
+#, fuzzy
+msgid "Read-Only hashtable"
+msgstr "table de hachage"
+
+#: src/dtype/tables.c:25
 msgid "Hashset Overflow"
 msgstr "débordement de table de hachage"
 
-#: src/lisp/tables.c:19
+#: src/dtype/tables.c:26
 msgid "Not a table"
 msgstr "pas un table"
 
-#: src/lisp/tables.c:20
+#: src/dtype/tables.c:27
 msgid "Table doesn't support get"
 msgstr "«get» opération pas supporté"
 
-#: src/lisp/tables.c:21
+#: src/dtype/tables.c:28
 msgid "Table doesn't support set"
 msgstr "«set» opération pas supporté"
 
-#: src/lisp/tables.c:22
+#: src/dtype/tables.c:29
 msgid "Table doesn't support add"
 msgstr "«add» opération pas supporté"
 
-#: src/lisp/tables.c:23
+#: src/dtype/tables.c:30
 msgid "Table doesn't support drop"
 msgstr "«drop» opération pas supporté"
 
-#: src/lisp/tables.c:24
+#: src/dtype/tables.c:31
 msgid "Table doesn't support test"
 msgstr "«test» opération pas supporté"
 
-#: src/lisp/tables.c:25
+#: src/dtype/tables.c:32
 msgid "Table doesn't support getkeys"
 msgstr "«getkeys» opération pas supporté"
 
-#: src/lisp/tables.c:45
+#: src/dtype/tables.c:33
+#, fuzzy
+msgid "Invalid hashtable method"
+msgstr "constante invalide"
+
+#: src/dtype/tables.c:66
 #, c-format
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/lisp/tables.c:1016 src/lisp/fdlisp.c:77
-msgid "hashtable"
-msgstr "table de hachage"
-
-#: src/lisp/tables.c:1633
+#: src/dtype/tables.c:2374
 msgid "value is not a boolean"
 msgstr "n'est pas une boolean"
 
-#: src/lisp/dtypeio.c:21
+#: src/dtype/pptrs.c:26
+#, fuzzy
+msgid "Invalid persistent pointer reference"
+msgstr "référencé constante invalide"
+
+#: src/dtype/pptrs.c:27
+msgid "No more valid persistent pointers"
+msgstr ""
+
+#: src/dtype/pptrs.c:72
+msgid "persistent pointer"
+msgstr ""
+
+#: src/dtype/dtypeio.c:24
 msgid "Unexpected end of data"
 msgstr "Fin prématurée des données"
 
-#: src/lisp/dtypeio.c:22
+#: src/dtype/dtypeio.c:25
 msgid "Malformed DTYPE representation"
 msgstr "représentation «DTYPE» mal formulée"
 
-#: src/lisp/dtypeio.c:179
+#: src/dtype/dtypeio.c:26
+msgid "Inconsistent DTYPE size"
+msgstr ""
+
+#: src/dtype/dtypeio.c:28
+msgid "Inconsistent read/unread byte"
+msgstr ""
+
+#: src/dtype/dtypeio.c:222
 msgid "Invalid constant"
 msgstr "constante invalide"
 
-#: src/lisp/textio.c:27
+#: src/dtype/dtypeio.c:232 src/dtype/dtypeio.c:363
+#, fuzzy
+msgid "Can't write DTYPE"
+msgstr "Ne peut écrire des données"
+
+#: src/dtype/dtypeio.c:1022
+msgid "Poorly Restored Error"
+msgstr ""
+
+#: src/dtype/textio.c:36
 msgid "Can't open file"
 msgstr "ne peut ouvrir le fichier"
 
-#: src/lisp/textio.c:28
+#: src/dtype/textio.c:37
+#, fuzzy
+msgid "Can't find file"
+msgstr "ne peut ouvrir le fichier"
+
+#: src/dtype/textio.c:38
 msgid "Invalid escape sequence"
 msgstr "séquence d'échappement invalide"
 
-#: src/lisp/textio.c:29
+#: src/dtype/textio.c:39
 msgid "Invalid constant reference"
 msgstr "référencé constante invalide"
 
-#: src/lisp/textio.c:30
+#: src/dtype/textio.c:40
 msgid "Invalid character constant"
 msgstr "caractère pas valide"
 
-#: src/lisp/textio.c:31
+#: src/dtype/textio.c:41
 msgid "Bad atomic expression"
 msgstr "Expression atomique mal formulée"
 
-#: src/lisp/textio.c:32
+#: src/dtype/textio.c:42
 msgid "no pointer expressions allowed"
 msgstr "Expression pointeur ne sont pas permis"
 
-#: src/lisp/textio.c:33
+#: src/dtype/textio.c:43
 msgid "bad pointer reference"
 msgstr "référencé pointeur invalide"
 
+#: src/dtype/textio.c:44
+msgid "Unexpected EOF in LISP expression"
+msgstr ""
+
 # aptitude
-#: src/lisp/textio.c:34
+#: src/dtype/textio.c:45
 #, fuzzy
 msgid "LISP expression parse error"
 msgstr "erreur d'analyse syntaxique"
 
 # aptitude
-#: src/lisp/textio.c:35
+#: src/dtype/textio.c:46
+#, fuzzy
+msgid "External LISP argument parse error"
+msgstr "erreur d'analyse syntaxique"
+
+# aptitude
+#: src/dtype/textio.c:47
 #, fuzzy
 msgid "LISP expression unparse error"
 msgstr "ne peut écrire objet à une chaîne"
 
-#: src/lisp/textio.c:36
+#: src/dtype/textio.c:48
 msgid "Can't parse record object"
 msgstr "erreur d'analyse syntaxique: objet composée mal formulée"
 
-#: src/lisp/textio.c:260
+#: src/dtype/textio.c:49
+msgid "Expression open/close mismatch"
+msgstr ""
+
+#: src/dtype/textio.c:365
 msgid "no handler"
 msgstr "opération pas supporté"
 
-#: src/lisp/fdlisp.c:22
+#: src/dtype/fdtype.c:18
 msgid "Method not supported"
 msgstr "opération pas supporté"
 
-#: src/lisp/fdlisp.c:62
+#: src/dtype/fdtype.c:42 src/db/dbserv.c:347
 msgid "oid"
 msgstr "oid"
 
-#: src/lisp/fdlisp.c:63 src/scheme/iterators.c:101 src/scheme/dbfns.c:507
-#: src/scheme/sequences.c:440 src/scheme/sequences.c:455
-#: src/scheme/sequences.c:472
+#: src/dtype/fdtype.c:43 src/dtype/support.c:404 src/scheme/eval.c:1085
+#: src/scheme/dbprims.c:1545 src/scheme/portprims.c:718
+#: src/scheme/choiceprims.c:1103 src/scheme/choiceprims.c:1107
+#: src/scheme/choiceprims.c:1108 src/scheme/seqprims.c:805
+#: src/scheme/seqprims.c:827 src/scheme/dbfileprims.c:92
+#: src/scheme/dbfileprims.c:101 src/scheme/dbfileprims.c:105
+#: src/texttools/texttools.c:1756 src/texttools/match.c:3338
+#: src/texttools/match.c:3355 src/exe/fdserv.c:215 src/exe/fdserv.c:218
 msgid "fixnum"
 msgstr "fixnum"
 
 # gas
-#: src/lisp/fdlisp.c:64
+#: src/dtype/fdtype.c:44
+#, fuzzy
+msgid "cons"
+msgstr "constante"
+
+#: src/dtype/fdtype.c:45
+msgid "immediate"
+msgstr ""
+
+# gas
+#: src/dtype/fdtype.c:46
 msgid "constant"
 msgstr "constante"
 
-#: src/lisp/fdlisp.c:65 src/scheme/sequences.c:281 src/scheme/sequences.c:622
-#: src/scheme/sequences.c:631
+#: src/dtype/fdtype.c:47 src/scheme/seqprims.c:423 src/scheme/seqprims.c:1448
+#: src/scheme/seqprims.c:1457
 msgid "character"
 msgstr "caractère"
 
 # bfd
-#: src/lisp/fdlisp.c:66 src/scheme/modules.c:143
+#: src/dtype/fdtype.c:48 src/scheme/eval.c:1055 src/scheme/modules.c:392
+#: src/scheme/reflection.c:296
 msgid "symbol"
 msgstr "symbole"
 
 # bfd
-#: src/lisp/fdlisp.c:67 src/scheme/load.c:162 src/scheme/load.c:174
-#: src/scheme/portfns.c:164 src/scheme/portfns.c:266 src/scheme/portfns.c:325
+#: src/dtype/fdtype.c:49 src/dtype/support.c:388 src/dtype/support.c:1241
+#: src/scheme/dbprims.c:185 src/scheme/dbprims.c:213
+#: src/scheme/portprims.c:305 src/scheme/portprims.c:658
+#: src/scheme/portprims.c:723 src/scheme/stringprims.c:580
+#: src/scheme/stringprims.c:601 src/scheme/stringprims.c:748
+#: src/scheme/fileprims.c:221 src/scheme/fileprims.c:512
+#: src/scheme/fileprims.c:690 src/scheme/fileprims.c:710
+#: src/scheme/fileprims.c:728 src/scheme/fileprims.c:745
+#: src/scheme/dbfileprims.c:98 src/fdweb/xmloutput.c:1412
+#: src/fdweb/uriprims.c:381 src/fdweb/mime.c:105 src/fdweb/curl.c:429
+#: src/texttools/texttools.c:129 src/texttools/texttools.c:156
+#: src/texttools/texttools.c:424 src/tagger/ofsm.c:221 src/exe/fdserv.c:149
+#: src/exe/fdserv.c:197 src/exe/fdserv.c:331 src/exe/fdcgiexec.c:140
+#: src/exe/fdcgiexec.c:197
 msgid "string"
 msgstr "chaîne"
 
 # gnupg
-#: src/lisp/fdlisp.c:68
+#: src/dtype/fdtype.c:50
 msgid "packet"
 msgstr "paquet"
 
+#: src/dtype/fdtype.c:51
+msgid "secret"
+msgstr ""
+
 # coreutiles
-#: src/lisp/fdlisp.c:69
+#: src/dtype/fdtype.c:52
 msgid "bigint"
 msgstr "nombre entier grande"
 
 # coreutils
-#: src/lisp/fdlisp.c:70
+#: src/dtype/fdtype.c:53 src/scheme/eval.c:1086 src/tagger/tagxtract.c:150
 msgid "pair"
 msgstr "paire"
 
-#: src/lisp/fdlisp.c:71
+#: src/dtype/fdtype.c:54
 msgid "compound"
 msgstr "object composée"
 
-#: src/lisp/fdlisp.c:72
+#: src/dtype/fdtype.c:55
 msgid "choice"
 msgstr "choix"
 
-#: src/lisp/fdlisp.c:73
+#: src/dtype/fdtype.c:56
 msgid "achoice"
 msgstr "choix mutable"
 
 # vector
-#: src/lisp/fdlisp.c:74
+#: src/dtype/fdtype.c:57 src/scheme/dbfileprims.c:124
 msgid "vector"
 msgstr "vecteur"
 
-#: src/lisp/fdlisp.c:75
+#: src/dtype/fdtype.c:58 src/scheme/dbfileprims.c:31
+#: src/scheme/dbfileprims.c:49
 msgid "slotmap"
 msgstr "slotmap"
 
-#: src/lisp/fdlisp.c:76
+#: src/dtype/fdtype.c:59
 msgid "schemap"
 msgstr "schemap"
 
-#: src/lisp/fdlisp.c:78
+#: src/dtype/fdtype.c:60 src/tagger/ofsm.c:1949 src/tagger/ofsm.c:2007
+msgid "hashtable"
+msgstr "table de hachage"
+
+#: src/dtype/fdtype.c:61
 msgid "flonum"
 msgstr "nombre en virgule flottante"
 
-#: src/lisp/fdlisp.c:79
+#: src/dtype/fdtype.c:62
 msgid "wrapper"
 msgstr "envelope"
 
-#: src/lisp/fdlisp.c:80
+#: src/dtype/fdtype.c:63
 msgid "mystery"
 msgstr "objet mystérieux"
 
-#: src/lisp/support.c:13
+#: src/dtype/fdtype.c:64
+#, fuzzy
+msgid "quoted choice"
+msgstr "choix"
+
+#: src/dtype/fdtype.c:65 src/scheme/tableprims.c:789
+#: src/texttools/match.c:3230 src/texttools/match.c:3261
+#: src/texttools/match.c:3284 src/texttools/match.c:3315
+#, fuzzy
+msgid "hashset"
+msgstr "table de hachage"
+
+#: src/dtype/fdtype.c:66 src/scheme/reflection.c:69 src/scheme/reflection.c:84
+#: src/scheme/reflection.c:99 src/scheme/choiceprims.c:735
+#: src/scheme/choiceprims.c:792 src/scheme/choiceprims.c:914
+#: src/scheme/choiceprims.c:967 src/scheme/seqprims.c:1030
+#: src/scheme/seqprims.c:1064
+msgid "function"
+msgstr ""
+
+# gnumeric
+#: src/dtype/fdtype.c:67
+#, fuzzy
+msgid "error"
+msgstr "Erreur de type"
+
+#: src/dtype/fdtype.c:68
+msgid "complex"
+msgstr ""
+
+#: src/dtype/fdtype.c:69
+msgid "rational"
+msgstr ""
+
+#: src/dtype/fdtype.c:70 src/db/dtproc.c:104
+msgid "dtproc"
+msgstr ""
+
+#: src/dtype/fdtype.c:71
+msgid "tailcall"
+msgstr ""
+
+#: src/dtype/fdtype.c:72
+msgid "UUID"
+msgstr ""
+
+#: src/dtype/fdtype.c:73
+msgid "rail"
+msgstr ""
+
+#: src/dtype/support.c:41
+msgid "SetRLimit"
+msgstr ""
+
+#: src/dtype/support.c:43
 msgid "Unknown error condition"
 msgstr "erreur inconnu"
 
-#: src/lisp/support.c:14
+#: src/dtype/support.c:44
 #, fuzzy
-msgid "Configuration syntax error"
+msgid "Configuration error"
 msgstr "erreur d'analyse syntaxique d'expression configuration"
 
-#: src/db/fddb.c:17
-msgid "FramerD Database internal error"
-msgstr "Erreur interne: FramerD base de données"
-
-#: src/db/fddb.c:18
-msgid "Ambiguous object name"
-msgstr "Le nom d'objet est ambiguë"
-
-#: src/db/fddb.c:19
-msgid "Unknown object name"
-msgstr "L'objet nommé est inconnu"
-
-#: src/db/fddb.c:20
-msgid "bad server response"
-msgstr "Réponse mal formulée d'un serveur"
-
-#: src/db/fddb.c:21
-msgid "No default background indices"
-msgstr "il n'y a pas d'indices par défaut"
-
-#: src/db/fddb.c:47
-msgid "object name lookup"
-msgstr "trouver objet de nom"
-
-#: src/db/dtypestream.c:17
-#, fuzzy
-msgid "Can't read data"
-msgstr "Ne peut lire des données"
-
-#: src/db/dtypestream.c:18
-#, fuzzy
-msgid "Can't write data"
-msgstr "Ne peut écrire des données"
-
-#: src/db/indices.c:19
-msgid "file indices are not supported"
-msgstr "fichiers d'index pas supporté"
-
-#: src/db/indices.c:20
-#, fuzzy
-msgid "not a file index"
-msgstr "pas une fichiers d'index"
-
-#: src/db/indices.c:110
-#, fuzzy
-msgid "not an index"
-msgstr "pas une fichiers d'index"
-
-#: src/db/indices.c:540
-#, c-format
-msgid "#<INDEX 0x%lx \"%s\">"
+#: src/dtype/support.c:45
+msgid "Memory apparently exhausted"
 msgstr ""
 
-#: src/db/pools.c:19
-msgid "Can't lock OID"
-msgstr "ne peut verrouiller OID"
+#: src/dtype/support.c:46
+msgid "Unhandled exception at exit"
+msgstr ""
 
-# gcc-3.4
-#: src/db/pools.c:20
-msgid "Invalid pool PTR"
-msgstr "Erreur interne: référence à lot invalide"
+#: src/dtype/support.c:539
+msgid "RLIMIT too high"
+msgstr ""
 
-#: src/db/pools.c:21
+#: src/dtype/support.c:558
+msgid "Weird option specification"
+msgstr ""
+
+#: src/dtype/support.c:589 src/dtype/support.c:598 src/dtype/support.c:620
+#: src/dtype/support.c:632 src/dtype/support.c:666 src/dtype/support.c:677
+msgid "Couldn't handle %q"
+msgstr ""
+
+#: src/dtype/support.c:759 src/dtype/support.c:766 src/scheme/eval.c:842
+#: src/scheme/eval.c:865
+#, c-format
+msgid "object is not a %m"
+msgstr ""
+
+#: src/dtype/support.c:1286
+msgid "application ID used in messages and SESSIONID"
+msgstr ""
+
+#: src/dtype/support.c:1289
 #, fuzzy
-msgid "not a file pool"
-msgstr "pas une fichiers d'index"
+msgid "unique session identifier"
+msgstr "pas une identificateur"
 
-#: src/db/pools.c:22
-msgid "file pools are not supported"
-msgstr "fichiers d'index pas supporté"
+#: src/dtype/support.c:1292
+msgid "warn on bad UTF-8 sequences"
+msgstr ""
 
-#: src/db/pools.c:23
-msgid "no pool covers this OID"
-msgstr "Il n'y a pas une lot pour cette OID"
+#: src/dtype/support.c:1295
+msgid "random seed used for stochastic operations"
+msgstr ""
 
-#: src/db/pools.c:24 src/scheme/dbfns.c:238 src/scheme/dbfns.c:245
-#: src/scheme/dbfns.c:256 src/scheme/dbfns.c:264 src/scheme/dbfns.c:272
-#: src/scheme/dbfns.c:287 src/scheme/dbfns.c:300 src/scheme/dbfns.c:501
-#: src/scheme/dbfns.c:526
-msgid "pool"
-msgstr "lot"
+#: src/dtype/support.c:1299
+msgid "Threshold at which to use an external hashset for merging"
+msgstr ""
 
-#: src/db/pools.c:25
+#: src/dtype/support.c:1304
+msgid "Required priority for messages to be displayed"
+msgstr ""
+
+#: src/dtype/support.c:1308
+msgid "Whether to show the date in log messages"
+msgstr ""
+
+#: src/dtype/support.c:1312
+msgid "Whether to show PID/appid info in messages"
+msgstr ""
+
+#: src/dtype/support.c:1316
+msgid "Whether to show elapsed time in messages"
+msgstr ""
+
+#: src/dtype/support.c:1321
 #, fuzzy
-msgid "file pool label is not a string"
-msgstr "étiquette pour la lot n'est pas une chaîne"
+msgid "Max number of chars to show in strings"
+msgstr "trop peu de arguments à «find-frames»"
 
-# gcc-3.4
-#: src/db/pools.c:224
-msgid "Pool conflict"
-msgstr "conflit entre lots"
+#: src/dtype/support.c:1326
+msgid "Max number of elements to show in vectors/lists/choices, etc"
+msgstr ""
 
-#: src/db/pools.c:488
-msgid "Corrupted pool table"
-msgstr "table de lots corrompu"
+#: src/dtype/support.c:1330
+msgid "Path prefix for program state files"
+msgstr ""
 
-#: src/db/pools.c:518
-msgid "OID"
-msgstr "OID"
+#: src/dtype/support.c:1335
+msgid "Max CPU execution time limit"
+msgstr ""
 
-#: src/db/pools.c:553
-#, fuzzy
-msgid "not a pool"
-msgstr "pas une fichiers d'index"
+#: src/dtype/support.c:1340
+msgid "Max resident set (RSS) size"
+msgstr ""
 
-#: src/db/apply.c:17
+#: src/dtype/support.c:1345
+msgid "Max core dump size"
+msgstr ""
+
+#: src/dtype/support.c:1350
+msgid "Max number of subprocesses"
+msgstr ""
+
+#: src/dtype/support.c:1355
+msgid "Max number of open file descriptors"
+msgstr ""
+
+#: src/dtype/support.c:1360
+msgid "Max stack depth"
+msgstr ""
+
+#: src/dtype/support.c:1369
+msgid "File to store profile output from Google perftools"
+msgstr ""
+
+#: src/dtype/support.c:1376
+msgid "Directory for looking up config entries"
+msgstr ""
+
+#: src/dtype/apply.c:26
 msgid "calling a non function"
 msgstr "pas une fonction"
 
 # coreutils
-#: src/db/apply.c:18
+#: src/dtype/apply.c:27
 msgid "too many arguments"
 msgstr "trop de arguments"
 
-#: src/db/apply.c:19
+#: src/dtype/apply.c:28
 msgid "too few arguments"
 msgstr "trop peu de arguments"
 
-#: src/db/apply.c:158
+#: src/dtype/apply.c:29
+msgid "no default value for #default argument"
+msgstr ""
+
+#: src/dtype/apply.c:30
+msgid "profiling not built"
+msgstr ""
+
+#: src/dtype/apply.c:33
+msgid "designated calltrack sensor does not exist"
+msgstr ""
+
+#: src/dtype/apply.c:35
+msgid "Too many calltrack sensors"
+msgstr ""
+
+#: src/dtype/apply.c:287
+#, fuzzy
+msgid "not a pathname"
+msgstr "pas un nom de fichier valide"
+
+#: src/dtype/apply.c:671
 #, c-format
-msgid "#<Primitive %s (%d args)>"
+msgid "%s:%s"
+msgstr ""
+
+#: src/dtype/apply.c:672
+#, c-format
+msgid "%s"
+msgstr ""
+
+#: src/dtype/apply.c:682
+#, fuzzy, c-format
+msgid "#<NDPrimitive %s (%s args)>"
 msgstr "#<Primitif %s (%d args)>"
 
-#: src/db/apply.c:159
-#, c-format
-msgid "#<Primitive %s>"
-msgstr "#<Primitif %s>"
+#: src/dtype/apply.c:683
+#, fuzzy, c-format
+msgid "#<Primitive %s (%s args)>"
+msgstr "#<Primitif %s (%d args)>"
 
-#: src/db/frames.c:21
+#: src/dtype/apply.c:1010
+msgid "Definition Failed"
+msgstr ""
+
+#: src/dtype/apply.c:1043
+msgid "File used for calltrack profiling (#f disables calltrack)"
+msgstr ""
+
+#: src/dtype/apply.c:1063
+msgid "Active calltrack sensors"
+msgstr ""
+
+#: src/dtype/apply.c:1066
+msgid "Ignore calltrack sensors"
+msgstr ""
+
+#: src/db/fddb.c:23
+msgid "FramerD Database internal error"
+msgstr "Erreur interne: FramerD base de données"
+
+#: src/db/fddb.c:24
+msgid "Ambiguous object name"
+msgstr "Le nom d'objet est ambiguë"
+
+#: src/db/fddb.c:25
+msgid "Unknown object name"
+msgstr "L'objet nommé est inconnu"
+
+#: src/db/fddb.c:26
+msgid "bad server response"
+msgstr "Réponse mal formulée d'un serveur"
+
+#: src/db/fddb.c:27
+msgid "No default background indices"
+msgstr "il n'y a pas d'indices par défaut"
+
+#: src/db/fddb.c:28
+msgid "Reference to unallocated OID"
+msgstr ""
+
+#: src/db/fddb.c:29
+msgid "Connection to server failed"
+msgstr ""
+
+#: src/db/fddb.c:30
+msgid "COMMIT"
+msgstr ""
+
+#: src/db/fddb.c:31
+msgid "Resetting server connection"
+msgstr ""
+
+#: src/db/fddb.c:32
+msgid "SwapCheck"
+msgstr ""
+
+#: src/db/fddb.c:33
+msgid "Error getting metadata"
+msgstr ""
+
+#: src/db/fddb.c:254 src/db/pools.c:1693 src/scheme/dbprims.c:578
+#: src/scheme/dbprims.c:589 src/scheme/dbprims.c:597 src/scheme/dbprims.c:605
+#: src/scheme/dbprims.c:650 src/scheme/dbprims.c:663 src/scheme/dbprims.c:675
+#: src/scheme/dbprims.c:711 src/scheme/dbprims.c:724 src/scheme/dbprims.c:1540
+#: src/scheme/dbprims.c:1584
+#, fuzzy
+msgid "pool spec"
+msgstr "lot"
+
+#: src/db/fddb.c:485
+msgid "Sets a level of time/memory tradeoff [0-3], default 1"
+msgstr ""
+
+#: src/db/fddb.c:489
+msgid "Default oid display level [0-3]"
+msgstr ""
+
+#: src/db/fddb.c:493
+msgid "Default log level for database messages"
+msgstr ""
+
+#: src/db/fddb.c:496
+msgid "Whether to prefetch for large operations"
+msgstr ""
+
+#: src/db/fddb.c:500
+msgid "pools used for OID resolution"
+msgstr ""
+
+#: src/db/fddb.c:502
+msgid "indices opened"
+msgstr ""
+
+#: src/db/fddb.c:504
+msgid "indices in the default search background"
+msgstr ""
+
+#: src/db/fddb.c:507
+msgid "Number of connections (default) to keep for each DB server"
+msgstr ""
+
+#: src/db/fddb.c:509
+msgid "Max number of connections (default) for each DB server"
+msgstr ""
+
+#: src/db/fddb.c:511
+msgid "Number of connections (default) to initially create for each DB server"
+msgstr ""
+
+#: src/db/dtypestream.c:36
+msgid "Read-only stream"
+msgstr ""
+
+#: src/db/dtypestream.c:37
+#, fuzzy
+msgid "Can't read data"
+msgstr "Ne peut lire des données"
+
+#: src/db/dtypestream.c:38
+#, fuzzy
+msgid "Can't write data"
+msgstr "Ne peut écrire des données"
+
+#: src/db/dtypestream.c:39
+#, fuzzy
+msgid "Bad seek argument"
+msgstr "trop peu de arguments"
+
+#: src/db/dtypestream.c:40
+msgid "Can't seek on stream"
+msgstr ""
+
+#: src/db/dtypestream.c:41
+msgid "lseek() failed"
+msgstr ""
+
+#: src/db/dtypestream.c:42
+msgid "Seeking past end of file"
+msgstr ""
+
+#: src/db/dtypestream.c:43
+msgid "Seeking before the beginning of the file"
+msgstr ""
+
+#: src/db/dbserv.c:29
+msgid "private OID"
+msgstr ""
+
+#: src/db/dbserv.c:193
+msgid "The OID is not locked"
+msgstr ""
+
+#: src/db/dbserv.c:194 src/db/pools.c:27
+msgid "Can't lock OID"
+msgstr "ne peut verrouiller OID"
+
+#: src/db/dbserv.c:335
+msgid "Locks file already set"
+msgstr ""
+
+#: src/db/dbserv.c:523
+#, fuzzy
+msgid "No primary pool"
+msgstr "pas une fichiers d'index"
+
+#: src/db/dbserv.c:528
+msgid "No method for load"
+msgstr ""
+
+# vector
+#: src/db/dbserv.c:553
+#, fuzzy
+msgid "oid vector"
+msgstr "vecteur"
+
+#: src/db/dbserv.c:733
+msgid "too many pools to serve"
+msgstr ""
+
+#: src/db/dbserv.c:786
+#, fuzzy
+msgid "No background"
+msgstr "il n'y a pas d'indices par défaut"
+
+#: src/db/indices.c:23
+msgid "ephemeral index"
+msgstr ""
+
+#: src/db/indices.c:24
+msgid "read-only index"
+msgstr ""
+
+#: src/db/indices.c:25
+msgid "file indices are not supported"
+msgstr "fichiers d'index pas supporté"
+
+#: src/db/indices.c:26
+#, fuzzy
+msgid "not a file index"
+msgstr "pas une fichiers d'index"
+
+#: src/db/indices.c:27
+msgid "bad index specification"
+msgstr ""
+
+#: src/db/indices.c:28
+msgid "can't save changes to index"
+msgstr ""
+
+#: src/db/indices.c:141
+#, fuzzy
+msgid "not an index"
+msgstr "pas une fichiers d'index"
+
+#: src/db/indices.c:665 src/db/frames.c:1010 src/scheme/dbprims.c:391
+#: src/scheme/dbprims.c:842 src/scheme/dbprims.c:865
+msgid "index"
+msgstr "index"
+
+#: src/db/indices.c:682
+#, c-format
+msgid "Error saving %d keys to %s after %f secs"
+msgstr ""
+
+#: src/db/indices.c:686
+#, c-format
+msgid "Saved %d keys to %s in %f secs"
+msgstr ""
+
+#: src/db/indices.c:733
+#, c-format
+msgid "#<INDEX %s 0x%lx \"%s|%s\">"
+msgstr ""
+
+#: src/db/indices.c:735
+#, c-format
+msgid "#<INDEX %s 0x%lx \"%s\">"
+msgstr ""
+
+#: src/db/indices.c:1070 src/db/indices.c:1071 src/db/netindices.c:172
+msgid "Bad edit key in index"
+msgstr ""
+
+#: src/db/netindices.c:33
+#, fuzzy
+msgid "Server doesn't support method"
+msgstr "«get» opération pas supporté"
+
+#: src/db/pools.c:26
+#, fuzzy
+msgid "Unknown pool"
+msgstr "L'encodage est inconnu"
+
+#: src/db/pools.c:28
+msgid "pool is read-only"
+msgstr ""
+
+# gcc-3.4
+#: src/db/pools.c:29
+msgid "Invalid pool PTR"
+msgstr "Erreur interne: référence à lot invalide"
+
+#: src/db/pools.c:30
+#, fuzzy
+msgid "not a file pool"
+msgstr "pas une fichiers d'index"
+
+#: src/db/pools.c:31
+msgid "file pools are not supported"
+msgstr "fichiers d'index pas supporté"
+
+#: src/db/pools.c:32
+msgid "no pool covers this OID"
+msgstr "Il n'y a pas une lot pour cette OID"
+
+#: src/db/pools.c:33 src/scheme/dbprims.c:855
+msgid "pool"
+msgstr "lot"
+
+#: src/db/pools.c:34
+#, fuzzy
+msgid "file pool label is not a string"
+msgstr "étiquette pour la lot n'est pas une chaîne"
+
+#: src/db/pools.c:35
+msgid "pool has no more OIDs"
+msgstr ""
+
+#: src/db/pools.c:36
+msgid "pool overlaps 0x100000 boundary"
+msgstr ""
+
+#: src/db/pools.c:37
+msgid "can't save changes to pool"
+msgstr ""
+
+#: src/db/pools.c:38
+#, fuzzy
+msgid "internal error with unregistered pool"
+msgstr "Erreur interne avec une fichiers d'index"
+
+#: src/db/pools.c:39
+msgid "Cannot resolve pool specification"
+msgstr ""
+
+# gcc-3.4
+#: src/db/pools.c:273
+msgid "Pool conflict"
+msgstr "conflit entre lots"
+
+# gcc-3.4
+#: src/db/pools.c:276
+#, fuzzy
+msgid "Pool confict"
+msgstr "conflit entre lots"
+
+#: src/db/pools.c:787 include/framerd/pools.h:288
+msgid "Corrupted pool table"
+msgstr "table de lots corrompu"
+
+#: src/db/pools.c:832 src/scheme/dbfileprims.c:88 include/framerd/pools.h:334
+msgid "OID"
+msgstr "OID"
+
+#: src/db/pools.c:878
+#, fuzzy
+msgid "not a pool"
+msgstr "pas une fichiers d'index"
+
+#: src/db/pools.c:1057
+msgid "Too many pools for commit"
+msgstr ""
+
+#: src/db/pools.c:1059
+#, fuzzy
+msgid "No pool for OID"
+msgstr "Il n'y a pas une lot pour cette OID"
+
+#: src/db/pools.c:1478
+#, fuzzy
+msgid "mempool"
+msgstr "lot"
+
+#: src/db/pools.c:1680
+msgid "Config mis-config"
+msgstr ""
+
+#: src/db/pools.c:1719
+msgid "whether value of anonymous OIDs are {} or signal an error"
+msgstr ""
+
+#: src/db/pools.c:1722
+msgid "Default location for new OID allocation"
+msgstr ""
+
+#: src/db/ipeval.c:448
+msgid "Trace ipeval execution"
+msgstr ""
+
+#: src/db/threadcache.c:17
+msgid "Attempt to free foreign threadcache"
+msgstr ""
+
+#: src/db/threadcache.c:19
+msgid "Attempt to free in-use threadcache"
+msgstr ""
+
+#: src/db/threadcache.c:21
+msgid "Attempt to push in-use threadcache"
+msgstr ""
+
+#: src/db/threadcache.c:23
+msgid "Attempt to set in-use threadcache"
+msgstr ""
+
+#: src/db/frames.c:22
 msgid "Odd number of args to find frames"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/db/filepools.c:34 src/db/zpools.c:38
-msgid "File contains metadata from the future"
-msgstr "fichier a apparaît de le futur"
+#: src/db/frames.c:23
+#, fuzzy
+msgid "Corrupt overlay table"
+msgstr "table de lots corrompu"
+
+#: src/db/frames.c:946
+#, fuzzy
+msgid "No default pool"
+msgstr "pas une fichiers d'index"
+
+#: src/db/frames.c:1271
+#, fuzzy
+msgid "Slot overlay table"
+msgstr "pas un table"
+
+#: src/db/frames.c:1275
+msgid "Index overlay table"
+msgstr ""
+
+#: src/db/filepools.c:38
+msgid "MMAP Error"
+msgstr ""
+
+#: src/db/filepools.c:39
+msgid "MUNMAP Error"
+msgstr ""
+
+#: src/db/filepools.c:40
+#, fuzzy
+msgid "Corrupted file pool"
+msgstr "table de lots corrompu"
+
+#: src/db/filepools.c:41
+msgid "File pool overflowed file size"
+msgstr ""
+
+#: src/db/filepools.c:42
+msgid "RECOVERY"
+msgstr ""
 
 # gcc-3.4
-#: src/db/zpools.c:289
+#: src/db/zpools.c:331
 msgid "Schema inconsistency"
 msgstr "Erreur interne: schema inconsistent"
 
-#: src/db/fileindices.c:31
+#: src/db/oidpools.c:47
+msgid "Invalid schema definition data"
+msgstr ""
+
+#: src/db/oidpools.c:48
+#, fuzzy
+msgid "Invalid encoded schema reference"
+msgstr "référencé constante invalide"
+
+#: src/db/oidpools.c:49
+msgid "Inconsistent schema reference and value data"
+msgstr ""
+
+#: src/db/oidpools.c:51
+msgid "Invalid offset in OIDPOOL"
+msgstr ""
+
+#: src/db/oidpools.c:262 src/db/oidpools.c:296
+msgid "ZLIB ran out of memory"
+msgstr ""
+
+#: src/db/oidpools.c:270
+msgid "OIDPOOL uncompress ran out of memory"
+msgstr ""
+
+# aptitude
+#: src/db/oidpools.c:273
+#, fuzzy
+msgid "ZLIB uncompress data error"
+msgstr "erreur d'analyse syntaxique"
+
+#: src/db/oidpools.c:275 src/db/oidpools.c:309
+msgid "Bad ZLIB return code"
+msgstr ""
+
+#: src/db/oidpools.c:304
+msgid "OIDPOOL compress ran out of memory"
+msgstr ""
+
+# aptitude
+#: src/db/oidpools.c:307
+#, fuzzy
+msgid "ZLIB compress data error"
+msgstr "erreur d'analyse syntaxique"
+
+#: src/db/oidpools.c:758
+msgid "Bad compress level"
+msgstr ""
+
+#: src/db/oidpools.c:949
+msgid "Out of luck"
+msgstr ""
+
+#: src/db/fileindices.c:39
 msgid "file index hash overflow"
 msgstr "débordement de une fichiers d'index"
 
-#: src/db/fileindices.c:32
+#: src/db/fileindices.c:40
 msgid "Internal error with index file"
 msgstr "Erreur interne avec une fichiers d'index"
 
-#: src/scheme/eval.c:21
+#: src/db/fileindices.c:150 src/db/zindices.c:386
+#, fuzzy
+msgid "Bad hash version"
+msgstr "Expression atomique mal formulée"
+
+#: src/db/fileindices.c:219 src/db/zindices.c:428
+#, fuzzy
+msgid "inconsistent file index"
+msgstr "pas une fichiers d'index"
+
+#: src/db/hashindices.c:137
+msgid "Corrupted hash_index file"
+msgstr ""
+
+#: src/db/hashindices.c:138
+#, fuzzy
+msgid "hash_index has unknown hash function"
+msgstr "pas une fonction"
+
+#: src/db/zindices.c:20
+#, fuzzy
+msgid "Bad ZKEY reference"
+msgstr "référencé pointeur invalide"
+
+#: src/scheme/eval.c:42
+msgid "Test failed"
+msgstr ""
+
+#: src/scheme/eval.c:43
+msgid "Continuation is no longer valid"
+msgstr ""
+
+#: src/scheme/eval.c:44
+msgid "Continuation used twice"
+msgstr ""
+
+#: src/scheme/eval.c:45
+msgid "Lost invoked continuation"
+msgstr ""
+
+#: src/scheme/eval.c:48
 msgid "SCHEME expression syntax error"
 msgstr "Expression exécutable mal formulée"
 
+#: src/scheme/eval.c:49
+#, fuzzy
+msgid "invalid macro transformer"
+msgstr "«cond» expression mal formulée"
+
 # binutils
-#: src/scheme/eval.c:22
+#: src/scheme/eval.c:50
 msgid "the variable is unbound"
 msgstr "variable non définie"
 
-#: src/scheme/eval.c:23
+#: src/scheme/eval.c:51
+msgid "VOID result passed as argument"
+msgstr ""
+
+#: src/scheme/eval.c:52
 msgid "not an identifier"
 msgstr "pas une identificateur"
 
 # aptitude
-#: src/scheme/eval.c:24
+#: src/scheme/eval.c:53
 #, fuzzy
 msgid "too few subexpressions"
 msgstr "trop peu de expressions"
 
-#: src/scheme/eval.c:140
-msgid ""
-";; Took %f seconds to evaluate %q\n"
-";;   yielding %q\n"
+#: src/scheme/eval.c:54
+msgid "can't add binding to environment"
 msgstr ""
-";; %f secondes pour l'exécution de %q\n"
-";;   à %q\n"
 
-#: src/scheme/binders.c:15
+#: src/scheme/eval.c:55
+msgid "Read only environment"
+msgstr ""
+
+#: src/scheme/eval.c:543 src/scheme/reflection.c:185
+msgid "macro expansion"
+msgstr ""
+
+#: src/scheme/eval.c:1066 src/scheme/reflection.c:281
+msgid "environment"
+msgstr ""
+
+#: src/scheme/eval.c:1290
+msgid "Server unconfigured"
+msgstr ""
+
+#: src/scheme/eval.c:1333 src/scheme/eval.c:1343
+msgid "server"
+msgstr ""
+
+#: src/scheme/eval.c:1442
+msgid "opcode"
+msgstr ""
+
+#: src/scheme/eval.c:1446
+msgid "scheme environment"
+msgstr ""
+
+#: src/scheme/eval.c:1447
+msgid "scheme special form"
+msgstr ""
+
+# gnumeric
+#: src/scheme/eval.c:1448
+#, fuzzy
+msgid "DType server"
+msgstr "Erreur de type"
+
+#: src/scheme/eval.c:1458
+msgid "lexref"
+msgstr ""
+
+#: src/scheme/binders.c:20
+#, fuzzy
+msgid "Malformed argument list"
+msgstr "trop peu de arguments"
+
+#: src/scheme/binders.c:21
 msgid "Can't bind variable"
 msgstr "ne peut lier identificateur"
 
-#: src/scheme/binders.c:16
+#: src/scheme/binders.c:22
 msgid "Bad binding expression"
 msgstr "expression de liaison mal formulée"
 
-#: src/scheme/conditionals.c:55
+#: src/scheme/binders.c:23
+msgid "Bad procedure defining form"
+msgstr ""
+
+#: src/scheme/binders.c:1033
+msgid "scheme syntactic macro"
+msgstr ""
+
+#: src/scheme/errors.c:16
+msgid "Undistinguished Scheme Error"
+msgstr ""
+
+#: src/scheme/errors.c:17
+msgid "The handler method doesn't have a return value to handle"
+msgstr ""
+
+# bfd
+#: src/scheme/errors.c:201
+#, fuzzy
+msgid "Unwind error"
+msgstr "hors limite"
+
+#: src/scheme/conditionals.c:90
 msgid "invalid cond clause"
 msgstr "«cond» expression mal formulée"
 
-#: src/scheme/iterators.c:67 src/scheme/iterators.c:70
-#: src/scheme/choicefns.c:33 src/scheme/choicefns.c:36
+#: src/scheme/iterators.c:96 src/scheme/iterators.c:99
+#: src/scheme/choiceprims.c:43 src/scheme/choiceprims.c:46
 msgid "identifier is not a symbol"
 msgstr "identificateur n'est pas une symbole"
 
-#: src/scheme/iterators.c:182
-msgid "list"
-msgstr "liste"
+#: src/scheme/threadprims.c:32
+msgid "Thread returned with error"
+msgstr ""
 
-#: src/scheme/modules.c:19
+#: src/scheme/threadprims.c:33
+msgid "ThreadBacktrace"
+msgstr ""
+
+#: src/scheme/threadprims.c:94 src/scheme/threadprims.c:116
+#: src/scheme/threadprims.c:129 src/scheme/threadprims.c:132
+#, fuzzy
+msgid "valid condvar"
+msgstr "constante invalide"
+
+#: src/scheme/threadprims.c:108 src/scheme/threadprims.c:110
+#: src/scheme/timeprims.c:865
+msgid "time interval"
+msgstr ""
+
+#: src/scheme/threadprims.c:347 src/scheme/threadprims.c:395
+msgid "thread"
+msgstr ""
+
+#: src/scheme/threadprims.c:399
+msgid "condvar"
+msgstr ""
+
+#: src/scheme/modules.c:20
+msgid "Argument is not a module (table)"
+msgstr ""
+
+#: src/scheme/modules.c:21
 msgid "Can't find named module"
 msgstr "ne peut repérer le module"
 
-#: src/scheme/load.c:19
+#: src/scheme/modules.c:22
+msgid "Loading failed to resolve module"
+msgstr ""
+
+#: src/scheme/modules.c:23
+#, fuzzy
+msgid "Can't switch to opaque module"
+msgstr "ne peut repérer le module"
+
+#: src/scheme/modules.c:103
+msgid "module name"
+msgstr ""
+
+#: src/scheme/modules.c:134
+msgid "Anonymous module"
+msgstr ""
+
+#: src/scheme/load.c:25
+#, fuzzy
+msgid "File Load"
+msgstr "fichier non repéré"
+
+#: src/scheme/load.c:25
+#, fuzzy
+msgid "File Done"
+msgstr "fichier non repéré"
+
+#: src/scheme/load.c:26
+msgid "Load Eval"
+msgstr ""
+
+#: src/scheme/load.c:28
 msgid "Not a filename"
 msgstr "pas un nom de fichier valide"
 
-#: src/scheme/load.c:20
+#: src/scheme/load.c:29
 msgid "File not found"
 msgstr "fichier non repéré"
 
-#: src/scheme/corefns.c:341 src/scheme/corefns.c:355
+#: src/scheme/reflection.c:124 src/scheme/reflection.c:133
+msgid "procedure"
+msgstr ""
+
+#: src/scheme/reflection.c:199 src/scheme/coreprims.c:502
+#: src/scheme/coreprims.c:517 src/scheme/coreprims.c:529
 msgid "string or symbol"
 msgstr "chaîne ou symbole"
 
-#: src/scheme/dbfns.c:120
-msgid "index"
+#: src/scheme/reflection.c:219 src/scheme/reflection.c:224
+#: src/scheme/reflection.c:246 src/scheme/reflection.c:251
+msgid "module"
+msgstr ""
+
+#: src/scheme/compounds.c:94
+msgid "Immutable record"
+msgstr ""
+
+#: src/scheme/coreprims.c:388 src/scheme/arithprims.c:351
+#: src/scheme/arithprims.c:368 src/scheme/arithprims.c:385
+#: src/scheme/arithprims.c:413
+msgid "scalar"
+msgstr ""
+
+#: src/scheme/dbprims.c:251
+#, fuzzy
+msgid "index spec"
 msgstr "index"
 
-#: src/scheme/dbfns.c:193 src/scheme/dbfns.c:210
+#: src/scheme/dbprims.c:487
+#, fuzzy
+msgid "slotid"
+msgstr "slotmap"
+
+#: src/scheme/dbprims.c:507 src/scheme/dbprims.c:530 src/scheme/dbprims.c:754
 #, fuzzy
 msgid "pool or index"
 msgstr "une lot ou index"
 
-#: src/scheme/sequences.c:290 src/scheme/sequences.c:604
-msgid "byte"
-msgstr "octet"
+#: src/scheme/dbprims.c:614 src/scheme/dbprims.c:617 src/scheme/dbprims.c:622
+#: src/scheme/dbprims.c:627
+msgid "pool offset"
+msgstr ""
 
-#: src/scheme/sequences.c:341 src/scheme/sequences.c:404
-#: src/scheme/sequences.c:419 src/scheme/sequences.c:428
-#: src/scheme/sequences.c:443 src/scheme/sequences.c:460
-#: src/scheme/sequences.c:480
+#: src/scheme/dbprims.c:1049
+msgid "value test"
+msgstr ""
+
+#: src/scheme/dbprims.c:1077 src/scheme/tableprims.c:184
+#: src/scheme/tableprims.c:682 src/scheme/tableprims.c:699
+#: src/scheme/tableprims.c:714 src/fdweb/xmloutput.c:1427
+#: src/fdweb/uriprims.c:195 src/fdweb/uriprims.c:197 src/fdweb/uriprims.c:291
+#, fuzzy
+msgid "table"
+msgstr "table de hachage"
+
+#: src/scheme/dbprims.c:1238
+msgid "test relation"
+msgstr ""
+
+#: src/scheme/dbprims.c:1291
+msgid "test object"
+msgstr ""
+
+#: src/scheme/dbprims.c:1571 src/scheme/dbprims.c:1573
+#: src/scheme/seqprims.c:91 src/scheme/seqprims.c:154
+#: src/scheme/seqprims.c:513 src/scheme/seqprims.c:795
+#: src/scheme/seqprims.c:803 src/scheme/seqprims.c:809
+#: src/scheme/seqprims.c:824 src/scheme/seqprims.c:922
+#: src/scheme/seqprims.c:953 src/scheme/seqprims.c:969
+#: src/scheme/seqprims.c:985 src/scheme/seqprims.c:1001
+#: src/scheme/seqprims.c:1020 src/scheme/seqprims.c:1373
+#: src/scheme/seqprims.c:1385 src/scheme/seqprims.c:1397
+#: src/scheme/seqprims.c:1421 src/scheme/seqprims.c:1460
+#: src/scheme/seqprims.c:1558
 msgid "sequence"
 msgstr "séquence"
 
-#: src/scheme/portfns.c:27
+#: src/scheme/dbprims.c:1688
+msgid "offset base"
+msgstr ""
+
+#: src/scheme/portprims.c:24
 #, fuzzy
 msgid "Unknown encoding"
 msgstr "L'encodage est inconnu"
 
 # discover
-#: src/scheme/portfns.c:174
+#: src/scheme/portprims.c:314 src/scheme/portprims.c:325
+#: src/scheme/fileprims.c:809 src/scheme/fileprims.c:834
+#: src/scheme/fileprims.c:858 src/scheme/fileprims.c:882
 msgid "port"
 msgstr "port"
 
-#: src/scheme/portfns.c:257
+#: src/scheme/portprims.c:337 src/scheme/portprims.c:349
+#: src/scheme/portprims.c:364 src/scheme/portprims.c:374
+#: src/scheme/fileprims.c:212
 msgid "output port"
 msgstr "port à la sortie"
 
-#: src/scheme/portfns.c:322
+#: src/scheme/portprims.c:561 src/scheme/portprims.c:590
+msgid "LOGIF condition expression cannot be a string"
+msgstr ""
+
+#: src/scheme/portprims.c:600 src/scheme/portprims.c:603
+msgid "LOGIF+ loglevel invalid"
+msgstr ""
+
+#: src/scheme/portprims.c:646 src/scheme/portprims.c:655
+#: src/scheme/portprims.c:681 src/scheme/portprims.c:691
+#: src/scheme/portprims.c:715 src/texttools/texttools.c:1753
 msgid "input port"
 msgstr "port à l'entrée"
 
-#: src/scheme/portfns.c:328
+#: src/scheme/portprims.c:661
 #, fuzzy
 msgid "fixum"
 msgstr "fixnum"
 
-#: src/exe/fdconsole.c:73
-msgid ";; %q:\t\t%d values\n"
+#: src/scheme/portprims.c:811
+#, fuzzy
+msgid "string or number"
+msgstr "chaîne ou symbole"
+
+#: src/scheme/choiceprims.c:915
+msgid "part"
 msgstr ""
 
-#: src/exe/fdconsole.c:74
-msgid ";; %q:\t\t%q\n"
+#: src/scheme/choiceprims.c:926
+msgid "map function"
 msgstr ""
 
-#: src/exe/fdconsole.c:80 src/exe/fdconsole.c:116
-msgid "Eval: "
-msgstr "Éval: "
+#: src/scheme/seqprims.c:27
+msgid "Mismatch of sequence lengths"
+msgstr ""
 
-#: src/exe/fdconsole.c:89 src/exe/fdconsole.c:97
-#, c-format
-msgid ";; (ERROR) %m (%m)\n"
-msgstr ";; (Erreur) %m (%m)\n"
+#: src/scheme/seqprims.c:28
+msgid "No sequence elements to reduce"
+msgstr ""
 
-#: src/exe/fdconsole.c:90 src/exe/fdconsole.c:98
-#, c-format
-msgid ";; (ERROR) %m\n"
-msgstr ";; (Erreur) %m\n"
+#: src/scheme/seqprims.c:436 src/scheme/seqprims.c:1416
+msgid "byte"
+msgstr "octet"
 
-#: src/exe/fdconsole.c:106
-#, c-format
-msgid "{ ;; %d values\n"
-msgstr "{ ;; %d résultats\n"
+#: src/scheme/seqprims.c:461
+#, fuzzy
+msgid "sequence type"
+msgstr "séquence"
 
-#: src/exe/fdconsole.c:109
-#, c-format
-msgid "} ;; %d values\n"
-msgstr "} ;; %d résultats\n"
+#: src/scheme/seqprims.c:728
+msgid "test"
+msgstr ""
 
-#: src/exe/fdconsole.c:112
+#: src/scheme/seqprims.c:1361
+msgid "positive"
+msgstr ""
+
+#: src/scheme/stringprims.c:201
+msgid "string, symbol, or character"
+msgstr ""
+
+#: src/scheme/stringprims.c:229 src/scheme/stringprims.c:250
+#: src/scheme/stringprims.c:264 src/scheme/stringprims.c:278
+#, fuzzy
+msgid "string or character"
+msgstr "caractère"
+
+#: src/scheme/stringprims.c:651 src/scheme/stringprims.c:696
+#, fuzzy
+msgid "text encoding"
+msgstr "L'encodage est inconnu"
+
+#: src/scheme/fileprims.c:46
+msgid "Module reload error"
+msgstr ""
+
+#: src/scheme/fileprims.c:47
+#, fuzzy
+msgid "file does not exist"
+msgstr "«test» opération pas supporté"
+
+#: src/scheme/fileprims.c:48
+msgid "File removal failed"
+msgstr ""
+
+#: src/scheme/fileprims.c:49
+#, fuzzy
+msgid "File link failed"
+msgstr "fichier non repéré"
+
+#: src/scheme/fileprims.c:50
+#, fuzzy
+msgid "File open failed"
+msgstr "ne peut ouvrir le fichier"
+
+#: src/scheme/fileprims.c:52
+msgid "StackDump"
+msgstr ""
+
+#: src/scheme/fileprims.c:53
+msgid "Snapshot Saved"
+msgstr ""
+
+#: src/scheme/fileprims.c:54
+msgid "Snapshot Restored"
+msgstr ""
+
+#: src/scheme/fileprims.c:525 src/fdweb/uriprims.c:393
+msgid "string CONFIG var"
+msgstr ""
+
+#: src/scheme/fileprims.c:527 src/fdweb/uriprims.c:395
+msgid "string or string CONFIG var"
+msgstr ""
+
+#: src/scheme/fileprims.c:877 src/scheme/fileprims.c:898
+msgid "offset"
+msgstr ""
+
+#: src/scheme/fileprims.c:1085
 #, c-format
-msgid ";; Evaluation took %f seconds\n"
-msgstr ";; Temps d'exécution: %f secondes\n"
+msgid "The file %s has never been loaded"
+msgstr ""
+
+#: src/scheme/fileprims.c:1107
+msgid "Module does not exist"
+msgstr ""
+
+#: src/scheme/fileprims.c:1243
+msgid "SNAPSHOT"
+msgstr ""
+
+#: src/scheme/dbfileprims.c:118
+msgid "Misaligned pool"
+msgstr ""
+
+#: src/scheme/dbfileprims.c:222 src/scheme/dbfileprims.c:262
+#: src/scheme/dbfileprims.c:273 src/scheme/dbfileprims.c:281
+#, fuzzy
+msgid "hash index"
+msgstr "index"
+
+#: src/scheme/timeprims.c:30
+msgid "Timestamp too imprecise"
+msgstr ""
+
+#: src/scheme/timeprims.c:31
+#, fuzzy
+msgid "Invalid timestamp object"
+msgstr "séquence d'échappement invalide"
+
+#: src/scheme/timeprims.c:32
+#, fuzzy
+msgid "OS doesn't support operation"
+msgstr "«get» opération pas supporté"
+
+#: src/scheme/timeprims.c:33
+msgid "internal strftime error"
+msgstr ""
+
+#: src/scheme/timeprims.c:607
+msgid "year"
+msgstr ""
+
+#: src/scheme/timeprims.c:612
+msgid "month"
+msgstr ""
+
+#: src/scheme/timeprims.c:617
+msgid "date"
+msgstr ""
+
+#: src/scheme/timeprims.c:622
+msgid "hours"
+msgstr ""
+
+#: src/scheme/timeprims.c:627
+msgid "minutes"
+msgstr ""
+
+#: src/scheme/timeprims.c:632 src/scheme/timeprims.c:644
+#: src/scheme/timeprims.c:751
+msgid "seconds"
+msgstr ""
+
+#: src/scheme/timeprims.c:772
+#, c-format
+msgid "%d years"
+msgstr ""
+
+#: src/scheme/timeprims.c:774
+msgid "one year"
+msgstr ""
+
+#: src/scheme/timeprims.c:782
+#, c-format
+msgid "%d months"
+msgstr ""
+
+#: src/scheme/timeprims.c:784
+msgid "one month"
+msgstr ""
+
+#: src/scheme/timeprims.c:792
+#, c-format
+msgid "%d weeks"
+msgstr ""
+
+#: src/scheme/timeprims.c:794
+msgid "one week"
+msgstr ""
+
+#: src/scheme/timeprims.c:802
+#, c-format
+msgid "%d days"
+msgstr ""
+
+#: src/scheme/timeprims.c:804
+msgid "one day"
+msgstr ""
+
+#: src/scheme/timeprims.c:812
+#, c-format
+msgid "%d hours"
+msgstr ""
+
+#: src/scheme/timeprims.c:814
+msgid "one hour"
+msgstr ""
+
+#: src/scheme/timeprims.c:822
+#, c-format
+msgid "%d minutes"
+msgstr ""
+
+#: src/scheme/timeprims.c:824
+msgid "one minute"
+msgstr ""
+
+#: src/scheme/timeprims.c:834 src/scheme/timeprims.c:840
+#, c-format
+msgid "%d seconds"
+msgstr ""
+
+#: src/scheme/timeprims.c:837
+#, c-format
+msgid "%f seconds"
+msgstr ""
+
+#: src/scheme/timeprims.c:862
+msgid "fixnum time interval"
+msgstr ""
+
+#: src/scheme/timeprims.c:1063
+msgid "rusage"
+msgstr ""
+
+#: src/scheme/extdb.c:49
+msgid "No implementation for prepared SQL statements"
+msgstr ""
+
+#: src/scheme/extdb.c:73
+msgid "Too many extdb handlers"
+msgstr ""
+
+#: src/scheme/extdb.c:139 src/scheme/extdb.c:142
+msgid "recycle failed"
+msgstr ""
+
+#: src/scheme/extdb.c:143
+#, c-format
+msgid "No recycle method for %s database procs"
+msgstr ""
+
+#: src/scheme/extdb.c:169
+msgid "Direct SQL execution disabled"
+msgstr ""
+
+#: src/scheme/extdb.c:230
+msgid "whether direct execution of SQL strings is allowed"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:281
+#, c-format
+msgid "missing alternating attrib value for %s"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:432
+msgid "invalid XML element name"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:444
+#, fuzzy
+msgid "odd number of arguments"
+msgstr "trop peu de arguments à «find-frames»"
+
+#: src/fdweb/xmloutput.c:445
+msgid "invalid XML attribute name"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:1047 src/fdweb/xmloutput.c:1120
+#, fuzzy
+msgid "valid anchor target"
+msgstr "constante invalide"
+
+#: src/fdweb/xmloutput.c:1537
+msgid "javascript function name"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:1839
+msgid "Default style sheet for web errors"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:1844
+msgid "How many entries in a web backtrace to indent "
+msgstr ""
+
+#: src/fdweb/xmloutput.c:1849
+msgid "How to display OIDs for browsing in HTML/XML"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:1853
+msgid "Default anchor URI for OID references"
+msgstr ""
+
+#: src/fdweb/xmloutput.c:1857
+msgid "Default HTML CSS class for OID references"
+msgstr ""
+
+# bfd
+#: src/fdweb/xmlinput.c:29
+#, fuzzy
+msgid "XML parsing error"
+msgstr "hors limite"
+
+#: src/fdweb/xmlinput.c:916 src/fdweb/xmlinput.c:933
+msgid "xmlparse option"
+msgstr ""
+
+#: src/fdweb/xmlinput.c:952 src/fdweb/xmlinput.c:997
+#, fuzzy
+msgid "string or port"
+msgstr "chaîne ou symbole"
+
+#: src/fdweb/xmleval.c:691
+#, c-format
+msgid "In config '%s' %m"
+msgstr ""
+
+#: src/fdweb/xmleval.c:694
+#, c-format
+msgid "In config '%s' %m@%s"
+msgstr ""
+
+#: src/fdweb/xmleval.c:697
+#, c-format
+msgid "In config '%s' [%m@%s] %s"
+msgstr ""
+
+#: src/fdweb/xmleval.c:699
+msgid "In config '%s' [%m@%s] %s %q"
+msgstr ""
+
+#: src/fdweb/xmleval.c:702
+#, c-format
+msgid "In config '%s', unknown error"
+msgstr ""
+
+#: src/fdweb/xmleval.c:1084
+msgid "Missing XML attribute"
+msgstr ""
+
+#: src/fdweb/xmleval.c:1109
+msgid "no LOOP arg"
+msgstr ""
+
+#: src/fdweb/xmleval.c:1469
+msgid "Whether to cache markup generated from unparsing XML"
+msgstr ""
+
+#: src/fdweb/cgiexec.c:354 src/fdweb/cgiexec.c:365 src/fdweb/cgiexec.c:383
+msgid "malformed cookie"
+msgstr ""
+
+#: src/fdweb/cgiexec.c:1120
+msgid "Functions to execute between parsing and responding to a CGI request"
+msgstr ""
+
+#: src/fdweb/cgiexec.c:1123
+msgid "Whether to log CGI bindings passed to FramerD"
+msgstr ""
+
+#: src/fdweb/cgiexec.c:1127
+msgid "Whether to parse REST query args when there is POST data"
+msgstr ""
+
+#: src/fdweb/uriprims.c:406
+msgid "URI or URI CONFIG var"
+msgstr ""
+
+#: src/fdweb/mime.c:25
+msgid "Multipart MIME document has no separator"
+msgstr ""
+
+#: src/fdweb/mime.c:278
+msgid "mime data"
+msgstr ""
+
+#: src/fdweb/email.c:135
+msgid "SMTP host"
+msgstr ""
+
+#: src/fdweb/email.c:137
+msgid "SMTP default domain"
+msgstr ""
+
+#: src/fdweb/email.c:139
+msgid "SMTP default from"
+msgstr ""
+
+#: src/fdweb/curl.c:41
+msgid "can't parse non-textual content as XML"
+msgstr ""
+
+#: src/fdweb/curl.c:42
+msgid "Internal libcurl error"
+msgstr ""
+
+#: src/fdweb/curl.c:430
+#, fuzzy
+msgid "Unknown CURL option"
+msgstr "erreur inconnu"
+
+#: src/fdweb/curl.c:1117
+msgid "Whether to debug low level CURL interaction"
+msgstr ""
+
+#: src/fdweb/exif.c:244
+msgid "filename or packet"
+msgstr ""
+
+#: src/fdweb/exif.c:261
+msgid "exif tag"
+msgstr ""
+
+#: src/texttools/texttools.c:27
+msgid "Bad extract data"
+msgstr ""
+
+#: src/texttools/texttools.c:28
+msgid "Bad morphrule"
+msgstr ""
+
+# gnumeric
+#: src/texttools/texttools.c:322
+#, fuzzy
+msgid "natural number"
+msgstr "nombre"
+
+#: src/texttools/texttools.c:616
+msgid "column width"
+msgstr ""
+
+#: src/texttools/texttools.c:666
+#, fuzzy
+msgid "column parse function"
+msgstr "pas une fonction"
+
+#: src/texttools/texttools.c:883
+#, fuzzy
+msgid "Unknown subst function"
+msgstr "L'encodage est inconnu"
+
+#: src/texttools/texttools.c:1624
+msgid "morphrule"
+msgstr ""
+
+#: src/texttools/match.c:214
+msgid "Internal match error"
+msgstr ""
+
+#: src/texttools/match.c:215
+#, fuzzy
+msgid "match syntax error"
+msgstr "erreur d'analyse syntaxique d'expression configuration"
+
+#: src/texttools/match.c:216
+msgid "Not a valid TX text pattern"
+msgstr ""
+
+#: src/texttools/match.c:442
+msgid "unknown match operator"
+msgstr ""
+
+#: src/texttools/match.c:451
+msgid "unknown match symbol"
+msgstr ""
+
+# coreutils
+#: src/tagger/ofsm.c:41
+#, fuzzy
+msgid "Too many words"
+msgstr "trop de arguments"
+
+#: src/tagger/ofsm.c:42
+msgid "Parser failed"
+msgstr ""
+
+# aptitude
+#: src/tagger/ofsm.c:43
+#, fuzzy
+msgid "Internal parse error"
+msgstr "erreur d'analyse syntaxique"
+
+#: src/tagger/ofsm.c:44
+msgid "LEXDATA has already been configured"
+msgstr ""
+
+#: src/tagger/ofsm.c:45
+#, fuzzy
+msgid "No grammar identified"
+msgstr "pas une identificateur"
+
+#: src/tagger/ofsm.c:1931 src/tagger/ofsm.c:1937 src/tagger/ofsm.c:1939
+#: src/tagger/ofsm.c:1989 src/tagger/ofsm.c:1995 src/tagger/ofsm.c:1997
+msgid "text input"
+msgstr ""
+
+#: src/tagger/tagxtract.c:185 src/tagger/tagxtract.c:212
+msgid "parse"
+msgstr ""
+
+#: src/tagger/tagxtract.c:266 src/tagger/tagxtract.c:280
+#: src/tagger/tagxtract.c:297 src/tagger/tagxtract.c:317
+#: src/tagger/tagxtract.c:339 src/tagger/tagxtract.c:404
+#: src/tagger/tagxtract.c:428 src/tagger/tagxtract.c:460
+#: src/tagger/tagxtract.c:494 src/tagger/tagxtract.c:619
+#: src/tagger/tagxtract.c:695
+msgid "tagged word"
+msgstr ""
+
+#: src/tagger/tagxtract.c:273 src/tagger/tagxtract.c:290
+#: src/tagger/tagxtract.c:310 src/tagger/tagxtract.c:332
+#: src/tagger/tagxtract.c:361 src/tagger/tagxtract.c:419
+#, fuzzy
+msgid "compound term"
+msgstr "object composée"
+
+# gnumeric
+#: src/cmodules/odbc.c:62
+#, fuzzy
+msgid "ODBC error"
+msgstr "Erreur de type"
+
+#: src/cmodules/sqlite.c:44
+msgid "SQLite Error"
+msgstr ""
+
+#: src/cmodules/mysql.c:34
+#, fuzzy
+msgid "MYSQL server reset"
+msgstr "Réponse mal formulée d'un serveur"
+
+#: src/cmodules/mysql.c:79
+msgid "MySQL Error"
+msgstr ""
+
+#: src/cmodules/mysql.c:80
+msgid "Can't convert value to SQL"
+msgstr ""
+
+# aptitude
+#: src/cmodules/regex.c:24
+#, fuzzy
+msgid "Regular expression error"
+msgstr "erreur d'analyse syntaxique"
+
+# gnumeric
+#: src/cmodules/ziptools.c:25
+#, fuzzy
+msgid "Zip file error"
+msgstr "Erreur de type"
+
+# gnumeric
+#: src/cmodules/tidy.c:29
+#, fuzzy
+msgid "Tidy Error"
+msgstr "Erreur de type"
+
+#: src/exe/fdconsole.c:97
+#, c-format
+msgid ";; Done in %f seconds, with %d/%d object/index loads\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:99
+#, c-format
+msgid ";; ##%d computed in %f seconds, %d/%d object/index loads\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:190
+#, c-format
+msgid "%s ;; ##%d= (%d/%d items)"
+msgstr ""
+
+#: src/exe/fdconsole.c:192
+#, c-format
+msgid "%s ;; ##%d= (%d items)"
+msgstr ""
+
+#: src/exe/fdconsole.c:269
+msgid "Threshold for displaying execution time"
+msgstr ""
+
+#: src/exe/fdconsole.c:273 src/exe/fdbserver.c:521
+msgid "Max number of string characters to display in debug message"
+msgstr ""
+
+#: src/exe/fdconsole.c:277
+msgid "Max number of sequence/choice elements to display in debug message"
+msgstr ""
+
+#: src/exe/fdconsole.c:281
+msgid "Whether to be minimalist in console interaction"
+msgstr ""
+
+#: src/exe/fdconsole.c:285
+msgid "Number of characters available for pretty-printing console output"
+msgstr ""
+
+#: src/exe/fdconsole.c:289
+msgid "Number of elements to initially show in displaying results"
+msgstr ""
+
+#: src/exe/fdconsole.c:361
+#, c-format
+msgid ";; Assigned %s\n"
+msgstr ""
+
+#: src/exe/fdconsole.c:362
+#, fuzzy
+msgid ";; Bad assignment expression\n"
+msgstr "expression de liaison mal formulée"
+
+#: src/exe/fdexec.c:47
+msgid "FILEWAIT"
+msgstr ""
+
+#: src/exe/fdexec.c:74
+msgid "Too many configs to CHAIN"
+msgstr ""
+
+#: src/exe/fdexec.c:124
+msgid "Max number of chars in strings output with error reports"
+msgstr ""
+
+#: src/exe/fdexec.c:128
+msgid ""
+"Max number of elements in vectors/choices/lists output with error reports"
+msgstr ""
+
+#: src/exe/fdexec.c:132
+msgid "File to wait to exist before starting"
+msgstr ""
+
+#: src/exe/fdbatch.c:126
+msgid "Whether to append to log files"
+msgstr ""
+
+#: src/exe/fdserv.c:42
+msgid "FDSERV Startup"
+msgstr ""
+
+#: src/exe/fdserv.c:64 src/exe/fdcgiexec.c:63
+#, fuzzy
+msgid "Can't write to socket"
+msgstr "Ne peut écrire des données"
+
+#: src/exe/fdserv.c:1121 src/exe/fdcgiexec.c:1202
+msgid "Trace all web transactions"
+msgstr ""
+
+#: src/exe/fdserv.c:1123
+msgid "Trace web transactions over N seconds"
+msgstr ""
+
+#: src/exe/fdserv.c:1126 src/exe/fdcgiexec.c:1204
+msgid "Files to preload into the shared environment"
+msgstr ""
+
+#: src/exe/fdserv.c:1129 src/exe/fdcgiexec.c:1207 src/exe/fdbserver.c:495
+msgid "Number of pending connection requests allowed"
+msgstr ""
+
+#: src/exe/fdserv.c:1131 src/exe/fdbserver.c:497
+msgid "Max number of requests to keep queued"
+msgstr ""
+
+#: src/exe/fdserv.c:1133 src/exe/fdcgiexec.c:1209 src/exe/fdbserver.c:499
+msgid "Number of threads in the thread pool"
+msgstr ""
+
+#: src/exe/fdserv.c:1135 src/exe/fdcgiexec.c:1211
+msgid "Where to write URLs where were requested"
+msgstr ""
+
+#: src/exe/fdserv.c:1137 src/exe/fdcgiexec.c:1213
+msgid "Where to write request objects"
+msgstr ""
+
+#: src/exe/fdserv.c:1139 src/exe/fdcgiexec.c:1215
+msgid "Level of transaction logging"
+msgstr ""
+
+#: src/exe/fdserv.c:1141
+msgid "File for recording status reports"
+msgstr ""
+
+#: src/exe/fdserv.c:1144
+msgid "Milliseconds (roughly) between status reports"
+msgstr ""
+
+#: src/exe/fdcgiexec.c:46
+msgid "FDCGIEXEC/Startup"
+msgstr ""
+
+#: src/exe/fdcgiexec.c:1217
+msgid "The socket file used by this server for use with external versions"
+msgstr ""
+
+#: src/exe/fdbserver.c:44
+msgid "Bad port spec"
+msgstr ""
+
+#: src/exe/fdbserver.c:45
+msgid "Bad client request"
+msgstr ""
+
+#: src/exe/fdbserver.c:46
+msgid "NoServers"
+msgstr ""
+
+#: src/exe/fdbserver.c:47
+msgid "ServerStart"
+msgstr ""
+
+#: src/exe/fdbserver.c:48
+msgid "ServerShutdown"
+msgstr ""
+
+#: src/exe/fdbserver.c:50
+msgid "Incoming"
+msgstr ""
+
+#: src/exe/fdbserver.c:50
+msgid "Outgoing"
+msgstr ""
+
+#: src/exe/fdbserver.c:501
+msgid "port or port@host to listen on"
+msgstr ""
+
+#: src/exe/fdbserver.c:503
+msgid "modules to provide in the server environment"
+msgstr ""
+
+#: src/exe/fdbserver.c:505
+msgid "whether to provide full scheme interpretation to client"
+msgstr ""
+
+#: src/exe/fdbserver.c:507
+msgid "Whether to log each request and response"
+msgstr ""
+
+#: src/exe/fdbserver.c:509
+msgid "Whether to log each transaction"
+msgstr ""
+
+#: src/exe/fdbserver.c:511
+msgid "Whether to log errors returned by the server to clients"
+msgstr ""
+
+#: src/exe/fdbserver.c:513
+msgid "Whether to include a detailed backtrace when logging errors"
+msgstr ""
+
+#: src/exe/fdbserver.c:515
+msgid "Whether to have libu8 log each connection"
+msgstr ""
+
+#: src/exe/fdbserver.c:518
+msgid "Whether to have libu8 log each transaction"
+msgstr ""
+
+#: src/exe/fdbserver.c:524
+msgid "Max number of list/vector/choice elements to display in debug message"
+msgstr ""
+
+#: src/exe/fdbserver.c:527
+msgid "Where to write server pid/nid files"
+msgstr ""
+
+#, fuzzy
+#~ msgid "internal error: bad pointer"
+#~ msgstr "Erreur interne avec une fichiers d'index"
+
+#~ msgid "%m expected"
+#~ msgstr "attendait %m"
+
+#~ msgid "object name lookup"
+#~ msgstr "trouver objet de nom"
+
+#~ msgid "#<Primitive %s>"
+#~ msgstr "#<Primitif %s>"
+
+#~ msgid "File contains metadata from the future"
+#~ msgstr "fichier a apparaît de le futur"
+
+#~ msgid ""
+#~ ";; Took %f seconds to evaluate %q\n"
+#~ ";;   yielding %q\n"
+#~ msgstr ""
+#~ ";; %f secondes pour l'exécution de %q\n"
+#~ ";;   à %q\n"
+
+#~ msgid "list"
+#~ msgstr "liste"
+
+#~ msgid "Eval: "
+#~ msgstr "Éval: "
+
+#~ msgid ";; (ERROR) %m (%m)\n"
+#~ msgstr ";; (Erreur) %m (%m)\n"
+
+#~ msgid ";; (ERROR) %m\n"
+#~ msgstr ";; (Erreur) %m\n"
+
+#~ msgid "{ ;; %d values\n"
+#~ msgstr "{ ;; %d résultats\n"
+
+#~ msgid "} ;; %d values\n"
+#~ msgstr "} ;; %d résultats\n"
+
+#~ msgid ";; Evaluation took %f seconds\n"
+#~ msgstr ";; Temps d'exécution: %f secondes\n"
 
 #~ msgid "compound_index"
 #~ msgstr "index composée"
