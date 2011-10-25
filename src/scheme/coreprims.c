@@ -503,7 +503,9 @@ static fdtype config_get(fdtype vars,fdtype dflt)
     if (FD_VOIDP(value)) {}
     else FD_ADD_TO_CHOICE(result,value);}
   if (FD_EMPTY_CHOICEP(result))
-    return fd_incref(dflt);
+    if (FD_VOIDP(dflt))
+      return FD_FALSE;
+    else return fd_incref(dflt);
   else return result;
 }
 
