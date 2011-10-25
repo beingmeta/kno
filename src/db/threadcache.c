@@ -33,14 +33,13 @@ struct FD_THREAD_CACHE *fd_threadcache=NULL;
 
 FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
 {
+  FD_INTPTR ptrval=(FD_INTPTR) tc;
   if (tc->fdtc_inuse) {
     if (tc->fdtc_id)
       u8_log(LOG_WARN,FreeingInUseThreadCache,
-	     "Freeing in-use threadcache: %llx (%s)",
-	     ((unsigned long long)tc),tc->fdtc_id);
+	     "Freeing in-use threadcache: %llx (%s)",ptrval,tc->fdtc_id);
     else u8_log(LOG_WARN,FreeingInUseThreadCache,
-		"Freeing in-use threadcache: %lx",
-		((unsigned long long)tc));}
+		"Freeing in-use threadcache: %llx",ptrval);}
   /* These may do customized things for some of the tables. */
   fd_reset_hashtable(&(tc->calls),0,0);
   fd_reset_hashtable(&(tc->oids),0,0);
@@ -91,14 +90,13 @@ FD_EXPORT fd_thread_cache fd_new_thread_cache()
 
 FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
 {
+  FD_INTPTR ptrval=(FD_INTPTR) tc;
   if ((tc)&&(tc->fdtc_inuse))
     if (tc->fdtc_id)
       u8_log(LOG_WARN,PushingInUseThreadCache,
-	     "Pushing in-use threadcache: %llx (%s)",
-	     ((unsigned long long)tc),tc->fdtc_id);
+	     "Pushing in-use threadcache: %llx (%s)",ptrval,tc->fdtc_id);
     else u8_log(LOG_WARN,PushingInUseThreadCache,
-		"Pushing in-use threadcache: %lx",
-		((unsigned long long)tc));
+		"Pushing in-use threadcache: %llx",ptrval);
   if (tc==NULL) tc=fd_new_thread_cache();
   tc->fdtc_prev=fd_threadcache;
 #if FD_USE_TLS
@@ -112,14 +110,13 @@ FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
 
 FD_EXPORT fd_thread_cache fd_set_threadcache(struct FD_THREAD_CACHE *tc)
 {
+  FD_INTPTR ptrval=(FD_INTPTR) tc;
   if ((tc)&&(tc->fdtc_inuse))
     if (tc->fdtc_id)
       u8_log(LOG_WARN,SettingInUseThreadCache,
-	     "Setting in-use threadcache: %llx (%s)",
-	     ((unsigned long long)tc),tc->fdtc_id);
+	     "Setting in-use threadcache: %llx (%s)",ptrval,tc->fdtc_id);
     else u8_log(LOG_WARN,SettingInUseThreadCache,
-		"Setting in-use threadcache: %lx",
-		((unsigned long long)tc));
+		"Setting in-use threadcache: %llx",ptrval);
   if (tc==NULL) tc=fd_new_thread_cache();
   if (fd_threadcache) {
     struct FD_THREAD_CACHE *oldtc=fd_threadcache;
