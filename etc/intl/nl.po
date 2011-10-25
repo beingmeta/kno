@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-10-19 09:51-0400\n"
+"POT-Creation-Date: 2011-10-25 18:27+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
-"Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: nl\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/dtype/cons.c:22
@@ -1221,7 +1221,7 @@ msgid "procedure"
 msgstr ""
 
 #: src/scheme/reflection.c:199 src/scheme/coreprims.c:502
-#: src/scheme/coreprims.c:517 src/scheme/coreprims.c:529
+#: src/scheme/coreprims.c:519 src/scheme/coreprims.c:531
 msgid "string or symbol"
 msgstr ""
 
