@@ -22,6 +22,11 @@
 
 (define absurlstart #((isalpha) (isalpha) (isalpha+) ":")) ;; (choice  "/")
 
+(define (addversion string num)
+  (if (textsearch #("." (isalpha+) (eos)) string)
+      (textsubst string `#((SUBST "." ,(glom "-" num ".")) (isalpha+) (eos)))
+      (glom string "-" num)))
+
 ;; Converts a URL into a local reference, copying its data if needed
 ;; REF is the local references (from the document)
 ;; URLMAP is a table of REFs which have already been localized
@@ -58,10 +63,19 @@
 		  (if (has-prefix ref "./")
 		      (mkuripath (dirname base) (subseq ref 2))
 		      (mkuripath (dirname base) ref)))))
-	 ;; (debug%watch "LOCALIZE" ref base absref saveto read)
+	 (debug%watch "LOCALIZE" ref base absref saveto read)
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
 		     (lref (mkpath read name)))
+		(when (exists? (get urlmap name))
+		  (let ((count 1))
+		    (until (fail? (get urlmap (addversion name count)))
+		      (set! count (1+ count)))
+		    (set! name (addversion name count))
+		    (set! lref (mkpath read name))))
+		(debug%watch "LOCALIZED"
+		  absref name lref (exists? (get urlmap name)))
+		(store! urlmap name absref)
 		(unless (and (string? saveto)
 			     (file-exists? (mkpath saveto name)))
 		  (let* ((response (urlget absref))
@@ -76,7 +90,9 @@
 		      ;; queries stripped (uribase) and additionally has
 		      ;; the 'directory' part of the URI removed so that
 		      ;; it's a local file name
-		      (loginfo "Downloaded " (write absref) " for " lref)
+		      (loginfo "Downloaded " (write absref)
+			       " for " lref
+			       " from " ref)
 		      ;; Save the content
 		      (savecontent saveto name content))))
 		;; Save the mapping in both directions (we assume that
@@ -87,14 +103,14 @@
 		lref)))))
 
 (define (dom/localize! dom base saveto read
+		       (urlmap (make-hashtable))
 		       (amalgamate #f) (localhosts #f)
 		       (doanchors #f))
   (lognotice "Localizing references from " (write base)
 	     " to " (write read) ", copying content to " 
 	     (if (singleton? saveto) (write saveto)
 		 (do-choices saveto (printout "\n\t" (write saveto)))))
-  (let ((urlmap (try (get dom 'urlmap)  (make-hashtable)))
-	(amalgamate (or amalgamate {}))
+  (let ((amalgamate (or amalgamate {}))
 	(localhosts (or localhosts {}))
 	(files {}))
     (dolist (node (dom/find->list dom "img"))
@@ -103,30 +119,32 @@
 			   (qc amalgamate) (qc localhosts))))
 	(logdebug "Localized " (write (get node 'src))
 		  " to " (write ref) " for " node)
-	(dom/set! node 'src ref)
-	(set+! files ref)))
+	(when (and (exists? ref) ref)
+	  (dom/set! node 'src ref)
+	  (set+! files ref))))
     (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
       (let ((ref (localref (get node 'href)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
-	(dom/set! node 'href ref)
-	(set+! files ref)))
+	(when (and (exists? ref) ref)
+	  (dom/set! node 'href ref)
+	  (set+! files ref))))
     (do-choices (node (pick (dom/find dom "script") 'src))
       (let ((ref (localref (get node 'src)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
-	(dom/set! node 'src ref)
-	(set+! files ref)))
+	(when (and (exists? ref) ref)
+	  (dom/set! node 'src ref)
+	  (set+! files ref))))
     (dolist (node (dom/find->list dom "a"))
       (let* ((href (try (get node 'href) #f))
-	     (ref (and
-		   href
-		   (not (string-starts-with?
-			 href #((isalpha) (isalpha) (isalpha+) ":")))
-		   (or (not doanchors) (textsearch doanchors href))
-		   (localref href urlmap base (qc saveto) read
-			     (qc amalgamate) (qc localhosts)))))
-	(when href
+	     (ref (and href
+		       (not (string-starts-with?
+			     href #((isalpha) (isalpha) (isalpha+) ":")))
+		       (or (not doanchors) (textsearch doanchors href))
+		       (localref href urlmap base (qc saveto) read
+				 (qc amalgamate) (qc localhosts)))))
+	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))))
 
