@@ -17,7 +17,8 @@
 		  (jsonout elt #f))
     "]"))
 
-(defambda (jsonfield field value (valuefn #f) (prefix #f) (context #f))
+(defambda (jsonfield field value (valuefn #f) (prefix #f) (context #f)
+		     (vecval #f))
   (unless (fail? value)
     (printout
       (if prefix prefix)
@@ -26,13 +27,13 @@
 	  (if (string? field) (write field)
 	      (write (unparse-arg field))))
       ": "
-      (if (ambiguous? value) (printout "["))
+      (if (or vecval (ambiguous? value)) (printout "["))
       (do-choices (value value i)
 	(when (> i 0) (printout ","))
 	(if valuefn
 	    (jsonout (valuefn value context) #f)
 	    (jsonout value #f)))
-      (if (ambiguous? value) (printout "]")))))
+      (if (or vecval (ambiguous? value)) (printout "]")))))
 (define (jsontable table (valuefn #f) (context #f))
   (printout "{"
 	    (let ((initial #t))
