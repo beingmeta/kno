@@ -898,7 +898,7 @@ static fdtype urlpost(int n,fdtype *args)
     retval=curl_easy_perform(h->handle);
     if (post) curl_formfree(post);}
   else {
-    /* Construct form data */
+    /* Construct form data from args */
     int i=start;
     struct curl_httppost *post = NULL, *last = NULL;
     struct U8_OUTPUT nameout; u8_byte _buf[128]; int initnameout=1;
