@@ -524,14 +524,14 @@ AC_ARG_WITH(odbc,--with[out]-odbc Build odbc libraries,,with_odbc="yes")
 
 if test "x$with_odbc" == "xyes"; then
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
-if test $have_sql_h = "yes"; then
+if test "x$have_sql_h" = "xyes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
   CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
 fi
 fi
 
-if test $have_sql_h = "yes"; then
+if test "x$have_sql_h" = "xyes"; then
   AC_CHECK_LIB(odbc,SQLNumResultCols)
 fi
 

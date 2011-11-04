@@ -541,19 +541,19 @@ lib/framerd/ziptools.dylib: lib/framerd/ziptools.@VERSION@.dylib
 
 # Internationalization stuff
 
-$(LOCALEDIR)/%/LC_MESSAGES/fdb.mo: etc/intl/%.gmo
+$(LOCALEDIR)/%/LC_MESSAGES/%.mo: etc/intl/%.gmo
 	install $^ $@
 
-etc/intl/fdb.pot: $(FDB_SOURCES) $(FDB_HEADERS)
-	xgettext -dfdb -oetc/intl/fdb.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
-etc/intl/%.po: etc/intl/fdb.pot
+etc/intl/framerd.pot: $(FDB_SOURCES) $(FDB_HEADERS)
+	xgettext -dfdb -oetc/intl/framerd.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
+etc/intl/%.po: etc/intl/framerd.pot
 	msgmerge -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
 	msgfmt $^ -o $@ 
 
-install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/fdb.mo   \
-		$(LOCALEDIR)/es/LC_MESSAGES/fdb.mo \
-		$(LOCALEDIR)/nl/LC_MESSAGES/fdb.mo
+install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/framerd.mo   \
+		$(LOCALEDIR)/es/LC_MESSAGES/framerd.mo \
+		$(LOCALEDIR)/nl/LC_MESSAGES/framerd.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Packaging targets
