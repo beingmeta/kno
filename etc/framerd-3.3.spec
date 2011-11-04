@@ -171,6 +171,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.dtype
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/textindex/en.*
+%attr(-,fdaemon,adm) %{_datadir}/locale/es/LC_MESSAGES/framerd.so
+%attr(-,fdaemon,adm) %{_datadir}/locale/fr/LC_MESSAGES/framerd.so
+%attr(-,fdaemon,adm) %{_datadir}/locale/nl/LC_MESSAGES/framerd.so
 %{_libdir}/libfdtype.so.*
 %{_libdir}/libfddb.so.*
 %{_libdir}/libfddbfile.so.*
