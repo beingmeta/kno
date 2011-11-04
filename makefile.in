@@ -541,7 +541,7 @@ lib/framerd/ziptools.dylib: lib/framerd/ziptools.@VERSION@.dylib
 
 # Internationalization stuff
 
-$(LOCALEDIR)/%/LC_MESSAGES/%.mo: etc/intl/%.gmo
+$(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	install $^ $@
 
 etc/intl/framerd.pot: $(FDB_SOURCES) $(FDB_HEADERS)
