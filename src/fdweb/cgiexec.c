@@ -743,12 +743,16 @@ int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata)
 
 static fdtype set_body_attribs(int n,fdtype *args)
 {
-  fdtype attribs=FD_EMPTY_LIST; int i=n-1;
-  while (i>=0) {
-    fd_incref(args[i]);
-    fd_req_push(body_attribs_slotid,args[i]);
-    i--;}
-  return FD_VOID;
+  if ((n==1)&&(args[0]==FD_FALSE)) {
+    fd_req_store(body_attribs_slotid,FD_FALSE);
+    return FD_VOID;}
+  else {
+    fdtype attribs=FD_EMPTY_LIST; int i=n-1;
+    while (i>=0) {
+      fd_incref(args[i]);
+      fd_req_push(body_attribs_slotid,args[i]);
+      i--;}
+    return FD_VOID;}
 }
 
 /* CGI Exec */

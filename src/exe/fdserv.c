@@ -795,7 +795,7 @@ static int webservefn(u8_client ucl)
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
       /* Normal case, when the output is just sent to the client */
       if (write_headers) {
-		write_headers=fd_output_xhtml_preface(&tmp,cgidata);
+	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
 	u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
       retval=u8_writeall(client->socket,client->out.u8_outbuf,
 			 client->out.u8_outptr-client->out.u8_outbuf);
