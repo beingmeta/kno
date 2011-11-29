@@ -12,7 +12,8 @@
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
 
-(define %loglevel %info!)
+(define-init %loglevel %info!)
+;;(define %loglevel %debug!)
 
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
@@ -58,10 +59,10 @@
 			(cons-s3loc (subseq input 0 colon)
 				    (subseq input (1+ colon)))
 			(cons-s3loc (subseq input 0 slash)
-				    (subseq input (1+ slash))))
+				    (subseq input slash)))
 		    (if slash
 			(cons-s3loc (subseq input 0 slash)
-				    (subseq input (1+ slash)))
+				    (subseq input slash))
 			(if colon
 			    (cons-s3loc (subseq input 0 colon)
 					(subseq input (1+ colon)))
@@ -222,11 +223,10 @@
 		      (textsubst url (car rule)))))))
 
 (define (s3loc/uri s3loc)
-  (stringout s3scheme
-	     (s3loc-bucket s3loc)
-	     (if (empty-string? (s3loc-bucket s3loc)) "" ".") s3root
-	     (unless (has-prefix (s3loc-path s3loc) "/") "/")
-	     (s3loc-path s3loc)))
+  (stringout s3scheme s3root "/"
+    (s3loc-bucket s3loc)
+    (unless (has-prefix (s3loc-path s3loc) "/") "/")
+    (s3loc-path s3loc)))
 
 ;; Rules for mapping S3 locations into the local file system
 (define s3diskrules '())
