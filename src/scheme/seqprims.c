@@ -104,10 +104,10 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     write=elts=u8_alloc_n((end-start),fdtype);
     read=FD_VECTOR_DATA(x)+start; limit=FD_VECTOR_DATA(x)+end;
     while (read<limit) {
-      fdtype v=*read++; *write++=fd_incref(v);}
+      fdtype v=*read++; fd_incref(v); *write++=v;}
     if (ctype==fd_vector_type)
-      result=fd_init_vector(NULL,end-start,elts);
-    else result=fd_init_rail(NULL,end-start,elts);
+      result=fd_make_vector(end-start,elts);
+    else result=fd_make_rail(end-start,elts);
     u8_free(elts);
     return result;}
   case fd_packet_type: case fd_secret_type: {
@@ -1530,7 +1530,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
     case fd_pair_type: {
       int j=0; fdtype scan=x, head=FD_EMPTY_LIST;
       while (FD_PAIRP(scan))
-	if (j==end) return head;
+	if (j==end) return results;
 	else if (j>=start) {
 	  fdtype car=FD_CAR(scan); fd_incref(car);
 	  FD_ADD_TO_CHOICE(results,car);

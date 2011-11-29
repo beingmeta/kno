@@ -1091,9 +1091,9 @@ static int extindex_commit(fd_index ix)
     fdtype dvec=fd_init_vector(NULL,n_drops,drops);
     fdtype svec=fd_init_vector(NULL,n_stores,stores);
     fdtype argv[4], result=FD_VOID;
-    argv[0]=fd_init_vector(NULL,n_adds,adds);
-    argv[1]=fd_init_vector(NULL,n_drops,drops);
-    argv[2]=fd_init_vector(NULL,n_stores,stores);
+    argv[0]=avec;
+    argv[1]=dvec;
+    argv[2]=svec;
     argv[3]=exi->state;
     result=fd_apply(exi->commitfn,((FD_VOIDP(exi->state))?(3):(4)),argv);
     fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
