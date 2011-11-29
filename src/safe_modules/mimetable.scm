@@ -3,7 +3,9 @@
 
 (in-module 'mimetable)
 
-(module-export! '*mimetable*)
+(use-module 'texttools)
+
+(module-export! '{*mimetable* getsuffix path->ctype})
 
 (define *mimetable*
   (let ((table (make-hashtable)))
@@ -20,3 +22,9 @@
       (store! table (string-append "." (elts (cdr map))) (car map))
       (store! table (car map) (elts (cdr map))))
     table))
+
+(define (path->ctype path)
+  (get *mimetable* (gather #("." (isalnum+) (eos)) path)))
+
+(define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
+
