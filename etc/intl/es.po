@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-10-25 18:27+0000\n"
+"POT-Creation-Date: 2011-11-29 12:31+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -1678,15 +1678,15 @@ msgstr ""
 msgid "malformed cookie"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1120
+#: src/fdweb/cgiexec.c:1125
 msgid "Functions to execute between parsing and responding to a CGI request"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1123
+#: src/fdweb/cgiexec.c:1128
 msgid "Whether to log CGI bindings passed to FramerD"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1127
+#: src/fdweb/cgiexec.c:1132
 msgid "Whether to parse REST query args when there is POST data"
 msgstr ""
 
