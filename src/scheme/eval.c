@@ -981,7 +981,7 @@ FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn)
 {
   struct FD_SPECIAL_FORM *f=u8_alloc(struct FD_SPECIAL_FORM);
   FD_INIT_CONS(f,fd_specform_type);
-  f->name=name; f->filename=NULL; f->eval=fn;
+  f->name=u8_strdup(name); f->filename=NULL; f->eval=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -989,7 +989,7 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn)
 {
   struct FD_SPECIAL_FORM *f=u8_alloc(struct FD_SPECIAL_FORM);
   FD_INIT_CONS(f,fd_specform_type);
-  f->name=name; f->eval=fn;
+  f->name=u8_strdup(name); f->eval=fn; f->filename=NULL;
   fd_store(mod,fd_intern(name),FDTYPE_CONS(f));
   fd_decref(FDTYPE_CONS(f));
 }
