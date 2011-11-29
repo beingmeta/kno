@@ -501,6 +501,7 @@ static fdtype htmlheader(fdtype expr,fd_lispenv env)
   else fd_req_push
 	 (html_headers,
 	  fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
+  return FD_VOID;
 }
 
 /* Handling cookies */
