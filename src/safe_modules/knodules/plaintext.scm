@@ -189,6 +189,7 @@
 
 (define (handle-clause clause subject knodule)
   (let* ((op (and (char-punctuation? (first clause))
+		  (overlaps? (first clause) {#\^ #\= #\_ #\& #\@})
 		  (first clause)))
 	 (modifier (and op (> (length clause) 1)
 			(overlaps? (second clause) {#\* #\~})
