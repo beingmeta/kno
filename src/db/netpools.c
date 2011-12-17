@@ -141,17 +141,12 @@ static fdtype network_pool_fetch(fd_pool p,fdtype oid)
 static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
-  fdtype vector, value, *values;
-  struct FD_VECTOR *v;
-  vector=fd_init_vector(NULL,n,oids); fd_incref(vector);
-  value=fd_dtcall(np->connpool,2,fetch_oids_symbol,vector);
+  fdtype oidvec=fd_make_vector(n,oids);
+  fdtype value=fd_dtcall(np->connpool,2,fetch_oids_symbol,oidvec);
+  fd_decref(oidvec);
   if (FD_VECTORP(value)) {
-    v=FD_GET_CONS(value,fd_vector_type,struct FD_VECTOR *);
-    values=v->data;
-    /* Note that calling fd_free directly (rather than fd_decref)
-       doesn't free the internal data of the vector, which is just
-       what we want.in this case. */
-    u8_free((struct FD_VECTOR *)vector); u8_free(v);
+    fdtype *values=u8_alloc_n(n,fdtype);
+    memcpy(FD_VECTOR_ELTS(value),values,sizeof(fdtype)*n);
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
