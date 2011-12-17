@@ -97,7 +97,7 @@ static int netindex_fetchsize(fd_index ix,fdtype key)
 static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
-  fdtype vector, result, *results; struct FD_VECTOR *vp;
+  fdtype vector, result;
   vector=fd_init_vector(NULL,n,keys);
   if (FD_VOIDP(nix->xname))
     result=fd_dtcall(nix->connpool,2,iserver_fetchn,vector);
@@ -105,8 +105,8 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
 			  ixserver_fetchn,nix->xname,vector);
   if (FD_ABORTP(result)) return NULL;
   else if (FD_VECTORP(result)) {
-    vp=FD_XVECTOR(result); results=vp->data; u8_free(vp);
-    vp=FD_XVECTOR(vector); u8_free(vp);
+    fdtype *results=u8_alloc_n(n,fdtype);
+    memcpy(results,FD_VECTOR_ELTS(result),sizeof(fdtype)*n);
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netindex_fetchn",
