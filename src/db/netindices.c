@@ -105,7 +105,7 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
 			  ixserver_fetchn,nix->xname,vector);
   if (FD_ABORTP(result)) return NULL;
   else if (FD_VECTORP(result)) {
-    vp=FD_XVECTOR(result); results=vp->data;  u8_free(vp);
+    vp=FD_XVECTOR(result); results=vp->data; u8_free(vp);
     vp=FD_XVECTOR(vector); u8_free(vp);
     return results;}
   else {

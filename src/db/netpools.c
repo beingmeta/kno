@@ -146,7 +146,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
   fd_decref(oidvec);
   if (FD_VECTORP(value)) {
     fdtype *values=u8_alloc_n(n,fdtype);
-    memcpy(FD_VECTOR_ELTS(value),values,sizeof(fdtype)*n);
+    memcpy(values,FD_VECTOR_ELTS(value),sizeof(fdtype)*n);
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
