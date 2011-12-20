@@ -1739,8 +1739,9 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   return n_slots;
 }
 
-/* This resets a hashtable and passes out the internal data to be freed separately.  The idea
-   is to hold onto the hashtable's lock for as little time as possible. */
+/* This resets a hashtable and passes out the internal data to be
+   freed separately.  The idea is to hold onto the hashtable's lock
+   for as little time as possible. */
 FD_EXPORT int fd_fast_reset_hashtable
   (struct FD_HASHTABLE *ht,int n_slots,int lock,
    struct FD_HASHENTRY ***slotsptr,int *slots_to_free)

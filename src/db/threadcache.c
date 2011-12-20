@@ -41,10 +41,10 @@ FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
     else u8_log(LOG_WARN,FreeingInUseThreadCache,
 		"Freeing in-use threadcache: %llx",ptrval);}
   /* These may do customized things for some of the tables. */
-  fd_reset_hashtable(&(tc->calls),0,0);
-  fd_reset_hashtable(&(tc->oids),0,0);
-  fd_reset_hashtable(&(tc->indices),0,0);
-  fd_reset_hashtable(&(tc->bground),0,0);
+  fd_recycle_hashtable(&(tc->calls));
+  fd_recycle_hashtable(&(tc->oids));
+  fd_recycle_hashtable(&(tc->indices));
+  fd_recycle_hashtable(&(tc->bground));
   tc->fdtc_inuse=0;
   u8_free(tc);
   return 1;
