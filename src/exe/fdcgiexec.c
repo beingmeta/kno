@@ -636,11 +636,11 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    result=fd_cgiexec(proc,cgidata,0);}
+    result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    result=fd_cgiexec(FD_CAR(proc),cgidata,0);}
+    result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
@@ -922,11 +922,11 @@ static int simplecgi(fdtype path)
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    result=fd_cgiexec(proc,cgidata,0);}
+    result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    result=fd_cgiexec(FD_CAR(proc),cgidata,0);}
+    result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?

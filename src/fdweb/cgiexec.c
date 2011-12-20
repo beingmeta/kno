@@ -812,17 +812,15 @@ static fdtype reqdatalogfn(fdtype cgidata)
 }
 
 
-FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata,int threadbind)
+FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 {
   fdtype value;
-  if (threadbind) fd_use_reqinfo(cgidata);
   if (FD_PTR_TYPEP(proc,fd_sproc_type))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 		      (fdtype (*)(void *,fdtype))cgigetvar);
   else value=fd_apply(proc,0,NULL);
   value=fd_finish_call(value);
-  if (threadbind) fd_use_reqinfo(FD_VOID);
   if (log_cgidata) fd_req_call(reqdatalogfn);
   return value;
 }

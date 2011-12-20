@@ -9,7 +9,7 @@
 
 (use-module '{fdweb texttools domutils aws/s3 savecontent logger})
 
-(define %loglevel %notice!)
+(define-init %loglevel %notice!)
 
 (module-export! '{dom/localize!})
 (module-export! '{dom/getmanifest dom/textmanifest dom/datamanifest})

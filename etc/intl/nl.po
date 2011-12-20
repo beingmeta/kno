@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-12-05 20:28-0500\n"
+"POT-Creation-Date: 2011-12-20 12:17-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -112,7 +112,7 @@ msgstr ""
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/dtype/tables.c:2374
+#: src/dtype/tables.c:2372
 msgid "value is not a boolean"
 msgstr ""
 
@@ -152,7 +152,7 @@ msgstr ""
 msgid "Can't write DTYPE"
 msgstr ""
 
-#: src/dtype/dtypeio.c:1022
+#: src/dtype/dtypeio.c:1020
 msgid "Poorly Restored Error"
 msgstr ""
 
@@ -608,7 +608,7 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/db/fddb.c:254 src/db/pools.c:1693 src/scheme/dbprims.c:578
+#: src/db/fddb.c:254 src/db/pools.c:1698 src/scheme/dbprims.c:578
 #: src/scheme/dbprims.c:589 src/scheme/dbprims.c:597 src/scheme/dbprims.c:605
 #: src/scheme/dbprims.c:650 src/scheme/dbprims.c:663 src/scheme/dbprims.c:675
 #: src/scheme/dbprims.c:711 src/scheme/dbprims.c:724 src/scheme/dbprims.c:1540
@@ -752,32 +752,32 @@ msgstr ""
 msgid "not an index"
 msgstr ""
 
-#: src/db/indices.c:665 src/db/frames.c:1010 src/scheme/dbprims.c:391
+#: src/db/indices.c:666 src/db/frames.c:1010 src/scheme/dbprims.c:391
 #: src/scheme/dbprims.c:842 src/scheme/dbprims.c:865
 msgid "index"
 msgstr ""
 
-#: src/db/indices.c:682
+#: src/db/indices.c:683
 #, c-format
 msgid "Error saving %d keys to %s after %f secs"
 msgstr ""
 
-#: src/db/indices.c:686
+#: src/db/indices.c:687
 #, c-format
 msgid "Saved %d keys to %s in %f secs"
 msgstr ""
 
-#: src/db/indices.c:733
+#: src/db/indices.c:737
 #, c-format
 msgid "#<INDEX %s 0x%lx \"%s|%s\">"
 msgstr ""
 
-#: src/db/indices.c:735
+#: src/db/indices.c:739
 #, c-format
 msgid "#<INDEX %s 0x%lx \"%s\">"
 msgstr ""
 
-#: src/db/indices.c:1070 src/db/indices.c:1071 src/db/netindices.c:172
+#: src/db/indices.c:1077 src/db/indices.c:1078 src/db/netindices.c:172
 msgid "Bad edit key in index"
 msgstr ""
 
@@ -837,47 +837,47 @@ msgstr ""
 msgid "Cannot resolve pool specification"
 msgstr ""
 
-#: src/db/pools.c:273
+#: src/db/pools.c:275
 msgid "Pool conflict"
 msgstr ""
 
-#: src/db/pools.c:276
+#: src/db/pools.c:278
 msgid "Pool confict"
 msgstr ""
 
-#: src/db/pools.c:787 include/framerd/pools.h:288
+#: src/db/pools.c:789 include/framerd/pools.h:288
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/db/pools.c:832 src/scheme/dbfileprims.c:88 include/framerd/pools.h:334
+#: src/db/pools.c:834 src/scheme/dbfileprims.c:88 include/framerd/pools.h:334
 msgid "OID"
 msgstr ""
 
-#: src/db/pools.c:878
+#: src/db/pools.c:880
 msgid "not a pool"
 msgstr ""
 
-#: src/db/pools.c:1057
+#: src/db/pools.c:1059
 msgid "Too many pools for commit"
 msgstr ""
 
-#: src/db/pools.c:1059
+#: src/db/pools.c:1061
 msgid "No pool for OID"
 msgstr ""
 
-#: src/db/pools.c:1478
+#: src/db/pools.c:1480
 msgid "mempool"
 msgstr ""
 
-#: src/db/pools.c:1680
+#: src/db/pools.c:1685
 msgid "Config mis-config"
 msgstr ""
 
-#: src/db/pools.c:1719
+#: src/db/pools.c:1726
 msgid "whether value of anonymous OIDs are {} or signal an error"
 msgstr ""
 
-#: src/db/pools.c:1722
+#: src/db/pools.c:1729
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -913,11 +913,11 @@ msgstr ""
 msgid "No default pool"
 msgstr ""
 
-#: src/db/frames.c:1271
+#: src/db/frames.c:1274
 msgid "Slot overlay table"
 msgstr ""
 
-#: src/db/frames.c:1275
+#: src/db/frames.c:1278
 msgid "Index overlay table"
 msgstr ""
 
