@@ -1158,6 +1158,7 @@ int main(int argc,char **argv)
   
   update_preloads();
 
+  FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
   fd_make_hashtable(&pagemap,0);
   u8_server_init(&fdwebserver,
 		 max_backlog,servlet_ntasks,servlet_threads,

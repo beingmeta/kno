@@ -82,18 +82,18 @@ static fdtype gpool_fetch(fd_pool p,fdtype oid)
 static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
 {
   struct FD_GPOOL *np=(struct FD_GPOOL *)p;
-  fdtype vector, value, *values;
-  struct FD_VECTOR *v;
-  vector=fd_init_vector(NULL,n,oids); fd_incref(vector);
-  value=fd_dtcall(np->connpool,2,fetch_oids_symbol,vector);
+  fdtype vector=fd_init_vector(NULL,n,oids);
+  fdtype value=fd_dtcall(np->connpool,2,fetch_oids_symbol,vector);
+  fd_decref(vector);
   if (FD_VECTORP(value)) {
-    v=FD_GET_CONS(value,fd_vector_type,struct FD_VECTOR *);
-    values=v->data;
-    /* Note that calling fd_free directly (rather than fd_decref)
-       doesn't free the internal data of the vector, which is just
-       what we want.in this case. */
-    u8_free((struct FD_VECTOR *)vector); u8_free(v);
-    return values;}
+    struct FD_VECTOR *vstruct=(struct FD_VECTOR)value;
+    fdtype *results=u8_alloc_n(n,fdtype);
+    memcpy(results,vstruct->data,sizeof(fdtype)*n);
+    /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
+       of values. */
+    if (vstruct->freedata) u8_free(vstruct->data);
+    u8_free((struct FD_CONS *)value);
+    return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
 	      u8_strdup(np->cid),fd_incref(value));

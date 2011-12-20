@@ -270,6 +270,7 @@ FD_EXPORT void fd_init_exif_c()
 {
   fdtype fdweb_module=fd_new_module("FDWEB",0);
   struct TAGINFO *scan=taginfo;
+  FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {
     fdtype symbol=fd_intern(scan->tagname);

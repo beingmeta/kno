@@ -1237,6 +1237,7 @@ int main(int argc,char **argv)
 
   u8_log(LOG_DEBUG,Startup,"Initializing pagemaps");
 
+  FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
   fd_make_hashtable(&pagemap,0);
 
 #if FD_WITH_FASTCGI

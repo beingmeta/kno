@@ -718,6 +718,7 @@ FD_EXPORT void fd_init_methods_c()
 
   init_symbols();
 
+  FD_INIT_STATIC_CONS(&method_table,fd_hashtable_type);
   fd_make_hashtable(&method_table,67);
   m=fd_method_table=((fdtype)(&method_table));
 

@@ -1462,7 +1462,10 @@ void fd_init_eval_c()
   profile_symbol=fd_intern("%PROFILE");
   moduleid_symbol=fd_intern("%MODULEID");
 
+  FD_INIT_STATIC_CONS(&module_map,fd_hashtable_type);
   fd_make_hashtable(&module_map,67);
+
+  FD_INIT_STATIC_CONS(&safe_module_map,fd_hashtable_type);
   fd_make_hashtable(&safe_module_map,67);
 }
 

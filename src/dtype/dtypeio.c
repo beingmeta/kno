@@ -810,8 +810,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	  else return fd_init_slotmap(NULL,n_slots,keyvals);}
       case dt_hashtable: case dt_small_hashtable:
 	if (len==0) 
-	  return fd_init_hashtable(u8_alloc(struct FD_HASHTABLE),
-				 0,NULL);
+	  return fd_init_hashtable(NULL,0,NULL);
 	else {
 	  fdtype result; int n_slots=len/2, n_read=0;
 	  struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
@@ -825,8 +824,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	      fd_decref(write->key);}
 	    else write++;}
 	  limit=write;
-	  result=fd_init_hashtable(u8_alloc(struct FD_HASHTABLE),
-				   limit-keyvals,keyvals);
+	  result=fd_init_hashtable(NULL,limit-keyvals,keyvals);
 	  while (scan<limit) {
 	    fd_decref(scan->key); fd_decref(scan->value); scan++;}
 	  u8_free(keyvals);

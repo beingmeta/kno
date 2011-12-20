@@ -454,6 +454,7 @@ FD_EXPORT void fd_init_ipeval_c()
   u8_new_threadkey(&fd_ipeval_state_key,NULL);
 #endif
 
+  FD_INIT_STATIC_CONS(&fcn_caches,fd_hashtable_type);
   fd_make_hashtable(&fcn_caches,128);
 
 }

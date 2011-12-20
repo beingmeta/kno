@@ -73,10 +73,19 @@ FD_EXPORT fd_thread_cache fd_cons_thread_cache
 {
   struct FD_THREAD_CACHE *tc=u8_alloc(struct FD_THREAD_CACHE);
   tc->fdtc_inuse=0; tc->fdtc_id=NULL;
+
+  FD_INIT_STATIC_CONS(&(tc->calls),fd_hashtable_type);
   fd_make_hashtable(&(tc->calls),ccsize);
+
+  FD_INIT_STATIC_CONS(&(tc->oids),fd_hashtable_type);
   fd_make_hashtable(&(tc->oids),ocsize);
+
+  FD_INIT_STATIC_CONS(&(tc->bground),fd_hashtable_type);
   fd_make_hashtable(&(tc->bground),bcsize);
+
+  FD_INIT_STATIC_CONS(&(tc->indices),fd_hashtable_type);
   fd_make_hashtable(&(tc->indices),kcsize);
+  
   tc->fdtc_prev=NULL;
   return tc;
 }

@@ -458,6 +458,7 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
       struct FD_HASHTABLE added_sizes;
       fd_choice result; int i=0, n_total; fdtype *write;
       /* Get the sizes for added keys. */
+      FD_INIT_STATIC_CONS(&added_sizes,fd_hashtable_type);
       fd_make_hashtable(&added_sizes,ix->adds.n_slots);
       fd_for_hashtable(&(ix->adds),copy_value_sizes,&added_sizes,1);
       n_total=n_fetched+ix->adds.n_keys;
@@ -713,6 +714,9 @@ FD_EXPORT void fd_init_index
 {
   ix->serialno=-1; ix->cache_level=-1; ix->read_only=1;
   ix->flags=((h->fetchn)?(FD_INDEX_BATCHABLE):(0));
+  FD_INIT_STATIC_CONS(&(ix->cache),fd_hashtable_type);
+  FD_INIT_STATIC_CONS(&(ix->adds),fd_hashtable_type);
+  FD_INIT_STATIC_CONS(&(ix->edits),fd_hashtable_type);
   fd_make_hashtable(&(ix->cache),0);
   fd_make_hashtable(&(ix->adds),0);
   fd_make_hashtable(&(ix->edits),0); 
@@ -1010,11 +1014,14 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
     value=fd_apply(xp->fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
   else if (FD_VECTORP(value)) {
-    struct FD_VECTOR *vecval=(fd_vector)value;
-    fdtype *values=vecval->data;
-    vecval->length=0; vecval->data=NULL;
-    fd_decref(value);
-    return values;}
+    struct FD_VECTOR *vstruct=(struct FD_VECTOR *)value;
+    fdtype *results=u8_alloc_n(n,fdtype);
+    memcpy(results,vstruct->data,sizeof(fdtype)*n);
+    /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
+       of values. */
+    if (vstruct->freedata) u8_free(vstruct->data);
+    u8_free((struct FD_CONS *)value);
+    return results;}
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
     if (FD_VOIDP(state)) {

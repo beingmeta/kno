@@ -1795,9 +1795,7 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   if (n_slots == 0) {
     if (ptr == NULL) {
       ptr=u8_alloc(struct FD_HASHTABLE);
-      FD_INIT_CONS(ptr,fd_hashtable_type);}
-    else {
-      FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
+      FD_INIT_FRESH_CONS(ptr,fd_hashtable_type);}
 #if FD_THREADS_ENABLED
     fd_init_rwlock(&(ptr->rwlock));
 #endif
@@ -1810,8 +1808,7 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
     int i=0; struct FD_HASHENTRY **slots;
     if (ptr == NULL) {
       ptr=u8_alloc(struct FD_HASHTABLE);
-      FD_INIT_CONS(ptr,fd_hashtable_type);}
-    else {FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
+      FD_INIT_FRESH_CONS(ptr,fd_hashtable_type);}
 #if FD_THREADS_ENABLED
     fd_init_rwlock(&(ptr->rwlock));
 #endif
@@ -1831,8 +1828,9 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int n_keyvals,
 {
   int i=0, n_slots=fd_get_hashtable_size(n_keyvals*2), n_keys=0;
   struct FD_HASHENTRY **slots;
-  if (ptr == NULL) ptr=u8_alloc(struct FD_HASHTABLE);
-  FD_INIT_CONS(ptr,fd_hashtable_type);
+  if (ptr == NULL) {
+    ptr=u8_alloc(struct FD_HASHTABLE);
+    FD_INIT_FRESH_CONS(ptr,fd_hashtable_type);}
   ptr->n_slots=n_slots; ptr->n_keys=n_keyvals;
   ptr->loading=default_hashtable_loading; 
   ptr->modified=0; ptr->readonly=0; ptr->uselock=1;

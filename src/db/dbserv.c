@@ -812,6 +812,8 @@ void fd_init_dbserv_c()
 
   init_timestamp=(int)time(NULL);
 
+  FD_INIT_STATIC_CONS(&server_locks,fd_hashtable_type);
+  FD_INIT_STATIC_CONS(&server_locks_inv,fd_hashtable_type);
   fd_init_hashtable(&server_locks,0,NULL);
   fd_init_hashtable(&server_locks_inv,0,NULL);
 

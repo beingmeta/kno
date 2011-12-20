@@ -1263,9 +1263,12 @@ FD_EXPORT void fd_init_frames_c()
   add_effects=fd_intern("ADD-EFFECTS");
   drop_effects=fd_intern("DROP-EFFECTS");
 
+  FD_INIT_STATIC_CONS(&slot_caches,fd_hashtable_type);
+  FD_INIT_STATIC_CONS(&test_caches,fd_hashtable_type);
   fd_make_hashtable(&slot_caches,17);
   fd_make_hashtable(&test_caches,17);
 
+  FD_INIT_STATIC_CONS(&implications,fd_hashtable_type);
   fd_make_hashtable(&implications,17);
 
   fd_register_config("SLOTOVERLAY",_("Slot overlay table"),

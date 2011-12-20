@@ -198,6 +198,8 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   pool->label="gluepool"; pool->source=NULL;
   pool->n_subpools=0; pool->subpools=NULL;
   pool->handler=&gluepool_handler;
+  FD_INIT_STATIC_CONS(&(pool->cache),fd_hashtable_type);
+  FD_INIT_STATIC_CONS(&(pool->locks),fd_hashtable_type);
   fd_make_hashtable(&(pool->cache),64);
   fd_make_hashtable(&(pool->locks),64);
   return pool;
@@ -1133,10 +1135,10 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->base=base; p->capacity=capacity;
   p->serialno=-1; p->cache_level=-1; p->read_only=1;
   p->flags=((h->fetchn)?(FD_POOL_BATCHABLE):(0));
+  FD_INIT_STATIC_CONS(&(p->cache),fd_hashtable_type);
+  FD_INIT_STATIC_CONS(&(p->locks),fd_hashtable_type);
   fd_make_hashtable(&(p->cache),64);
   fd_make_hashtable(&(p->locks),0); 
-  FD_INIT_STACK_CONS(&(p->cache),fd_hashtable_type);
-  FD_INIT_STACK_CONS(&(p->locks),fd_hashtable_type);
   p->max_adjuncts=0; p->n_adjuncts=0; p->adjuncts=NULL;
   p->n_locks=0;
   p->handler=h;
@@ -1550,11 +1552,14 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
     value=fd_apply(xp->fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
   else if (FD_VECTORP(value)) {
-    struct FD_VECTOR *vecval=(fd_vector)value;
-    fdtype *values=vecval->data;
-    vecval->length=0; vecval->data=NULL;
-    fd_decref(value);
-    return values;}
+    struct FD_VECTOR *vstruct=(struct FD_VECTOR *)value;
+    fdtype *results=u8_alloc_n(n,fdtype);
+    memcpy(results,vstruct->data,sizeof(fdtype)*n);
+    /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
+       of values. */
+    if (vstruct->freedata) u8_free(vstruct->data);
+    u8_free((struct FD_CONS *)value);
+    return results;}
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
     if (FD_VOIDP(state)) {
@@ -1710,7 +1715,9 @@ FD_EXPORT void fd_init_pools_c()
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"));
     e->parser=pool_parsefn;}
 
+  FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
   fd_make_hashtable(&poolid_table,32);
+
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
   u8_new_threadkey(&fd_pool_delays_key,NULL);
 #endif
