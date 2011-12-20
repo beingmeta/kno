@@ -1260,6 +1260,19 @@ static fdtype with_threadcache_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
+static fdtype using_threadcache_handler(fdtype expr,fd_lispenv env)
+{
+  struct FD_THREAD_CACHE *tc=fd_use_threadcache();
+  fdtype value=FD_VOID;
+  FD_DOLIST(each,FD_CDR(expr)) {
+    fd_decref(value); value=FD_VOID; value=fd_eval(each,env);
+    if (FD_ABORTP(value)) {
+      if (tc) fd_pop_threadcache(tc);
+      return value;}}
+  if (tc) fd_pop_threadcache(tc);
+  return value;
+}
+
 
 /* Making DTPROCs */
 
@@ -1519,7 +1532,11 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
 
+  /* This pushes a new threadcache */
   fd_defspecial(fd_scheme_module,"WITH-THREADCACHE",with_threadcache_handler);
+  /* This ensures that there's an active threadcache, pushing a new one if
+     needed or using the current one if it exists. */
+  fd_defspecial(fd_scheme_module,"USING-THREADCACHE",using_threadcache_handler);
   fd_idefn(fd_scheme_module,fd_make_cprimn("TCACHECALL",tcachecall,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("CACHECALL",cachecall,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("CACHECALL/PROBE",cachecall_probe,1));
