@@ -184,13 +184,13 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 #define FD_THREAD_CALLCACHE_SIZE 128
 #endif
 #ifndef FD_THREAD_OIDCACHE_SIZE
-#define FD_THREAD_OIDCACHE_SIZE 0
+#define FD_THREAD_OIDCACHE_SIZE 128
 #endif
 #ifndef FD_THREAD_BGCACHE_SIZE
-#define FD_THREAD_BGCACHE_SIZE 0
+#define FD_THREAD_BGCACHE_SIZE 128
 #endif
 #ifndef FD_THREAD_KEYCACHE_SIZE
-#define FD_THREAD_KEYCACHE_SIZE 0
+#define FD_THREAD_KEYCACHE_SIZE 128
 #endif
 
 typedef struct FD_THREAD_CACHE {
