@@ -58,6 +58,8 @@ static fd_dtype_stream reqlog=NULL;
 static int reqloglevel=0;
 static int traceweb=0;
 
+static int use_threadcache=0;
+
 static char *pidfile;
 
 static fd_exception CantWriteSocket=_("Can't write to socket");
@@ -70,7 +72,8 @@ static struct U8_XTIME boot_time;
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
 static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static fdtype response_symbol, err_symbol, browseinfo_symbol;
+static fdtype response_symbol, err_symbol;
+static fdtype browseinfo_symbol, threadcache_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static fdtype content_slotid, content_type, tracep_slotid, query_string;
 static fdtype query_string, script_name, path_info;
@@ -542,6 +545,15 @@ static fdtype get_envcgidata()
   return slotmap;
 }
 
+static struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
+{
+  fdtype tcval=fd_symeval(threadcache_symbol,env);
+  if (FD_FALSEP(tcval)) return NULL;
+  else if ((FD_VOIDP(tcval))&&(!(use_threadcache)))
+    return NULL;
+  else return fd_use_threadcache();
+}
+
 /* Fast CGI */
 
 static char *socketspec=NULL;
@@ -609,6 +621,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   int write_headers=1;
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
+  struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
   fdtype proc=reqsetup(), result=FD_VOID, cgidata=FD_VOID, path=FD_VOID;
   if (FD_ABORTP(proc)) {
@@ -634,12 +647,16 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+    threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+    threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
@@ -648,6 +665,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
+    threadcache=checkthreadcache(base);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with template",path);
     setup_proc=fd_symeval(setup_symbol,base);
@@ -711,6 +729,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,out->u8_outbuf,u8_elapsed_time()-start_time);}
+  if (threadcache) fd_pop_threadcache(threadcache);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   write_time=u8_elapsed_time();
@@ -895,6 +914,7 @@ static int simplecgi(fdtype path)
   int write_headers=1, retval;
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
+  struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
   fdtype proc=reqsetup(), result=FD_VOID, cgidata=FD_VOID;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
@@ -920,12 +940,16 @@ static int simplecgi(fdtype path)
   fd_set_default_output(&out);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+    threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+    threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
@@ -934,6 +958,7 @@ static int simplecgi(fdtype path)
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
+    threadcache=checkthreadcache(base);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with template",path);
     setup_proc=fd_symeval(setup_symbol,base);
@@ -1068,6 +1093,7 @@ static void init_symbols()
   err_symbol=fd_intern("%ERR");
   response_symbol=fd_intern("%RESPONSE");
   browseinfo_symbol=fd_intern("BROWSEINFO");
+  threadcache_symbol=fd_intern("%THREADCACHE");
   post_data=fd_intern("POST_DATA");
 }
 
@@ -1216,6 +1242,9 @@ int main(int argc,char **argv)
 		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
   fd_register_config("CGISOCK",_("The socket file used by this server for use with external versions"),
 		     fd_sconfig_get,fd_sconfig_set,&socketspec);
+  fd_register_config("THREADCACHE",_("Use per-request thread cache"),
+		     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
+
 #if FD_THREADS_ENABLED
   fd_init_mutex(&log_lock);
 #endif
