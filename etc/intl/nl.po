@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-12-20 12:17-0500\n"
+"POT-Creation-Date: 2012-01-01 11:11-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -112,7 +112,7 @@ msgstr ""
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/dtype/tables.c:2372
+#: src/dtype/tables.c:2373
 msgid "value is not a boolean"
 msgstr ""
 
@@ -231,7 +231,7 @@ msgstr ""
 #: src/scheme/seqprims.c:827 src/scheme/dbfileprims.c:92
 #: src/scheme/dbfileprims.c:101 src/scheme/dbfileprims.c:105
 #: src/texttools/texttools.c:1756 src/texttools/match.c:3338
-#: src/texttools/match.c:3355 src/exe/fdserv.c:215 src/exe/fdserv.c:218
+#: src/texttools/match.c:3355 src/exe/fdserv.c:219 src/exe/fdserv.c:222
 msgid "fixnum"
 msgstr ""
 
@@ -266,11 +266,11 @@ msgstr ""
 #: src/scheme/fileprims.c:690 src/scheme/fileprims.c:710
 #: src/scheme/fileprims.c:728 src/scheme/fileprims.c:745
 #: src/scheme/dbfileprims.c:98 src/fdweb/xmloutput.c:1412
-#: src/fdweb/uriprims.c:381 src/fdweb/mime.c:105 src/fdweb/curl.c:429
+#: src/fdweb/uriprims.c:381 src/fdweb/mime.c:105 src/fdweb/curl.c:431
 #: src/texttools/texttools.c:129 src/texttools/texttools.c:156
-#: src/texttools/texttools.c:424 src/tagger/ofsm.c:221 src/exe/fdserv.c:149
-#: src/exe/fdserv.c:197 src/exe/fdserv.c:331 src/exe/fdcgiexec.c:140
-#: src/exe/fdcgiexec.c:197
+#: src/texttools/texttools.c:424 src/tagger/ofsm.c:221 src/exe/fdserv.c:153
+#: src/exe/fdserv.c:201 src/exe/fdserv.c:335 src/exe/fdcgiexec.c:143
+#: src/exe/fdcgiexec.c:200
 msgid "string"
 msgstr ""
 
@@ -1077,31 +1077,31 @@ msgstr ""
 msgid "environment"
 msgstr ""
 
-#: src/scheme/eval.c:1290
+#: src/scheme/eval.c:1303
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/scheme/eval.c:1333 src/scheme/eval.c:1343
+#: src/scheme/eval.c:1346 src/scheme/eval.c:1356
 msgid "server"
 msgstr ""
 
-#: src/scheme/eval.c:1442
+#: src/scheme/eval.c:1455
 msgid "opcode"
 msgstr ""
 
-#: src/scheme/eval.c:1446
+#: src/scheme/eval.c:1459
 msgid "scheme environment"
 msgstr ""
 
-#: src/scheme/eval.c:1447
+#: src/scheme/eval.c:1460
 msgid "scheme special form"
 msgstr ""
 
-#: src/scheme/eval.c:1448
+#: src/scheme/eval.c:1461
 msgid "DType server"
 msgstr ""
 
-#: src/scheme/eval.c:1458
+#: src/scheme/eval.c:1471
 msgid "lexref"
 msgstr ""
 
@@ -1678,15 +1678,15 @@ msgstr ""
 msgid "malformed cookie"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1125
+#: src/fdweb/cgiexec.c:1123
 msgid "Functions to execute between parsing and responding to a CGI request"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1128
+#: src/fdweb/cgiexec.c:1126
 msgid "Whether to log CGI bindings passed to FramerD"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1132
+#: src/fdweb/cgiexec.c:1130
 msgid "Whether to parse REST query args when there is POST data"
 msgstr ""
 
@@ -1722,11 +1722,11 @@ msgstr ""
 msgid "Internal libcurl error"
 msgstr ""
 
-#: src/fdweb/curl.c:430
+#: src/fdweb/curl.c:432
 msgid "Unknown CURL option"
 msgstr ""
 
-#: src/fdweb/curl.c:1117
+#: src/fdweb/curl.c:1119
 msgid "Whether to debug low level CURL interaction"
 msgstr ""
 
@@ -1944,59 +1944,63 @@ msgstr ""
 msgid "FDSERV Startup"
 msgstr ""
 
-#: src/exe/fdserv.c:64 src/exe/fdcgiexec.c:63
+#: src/exe/fdserv.c:66 src/exe/fdcgiexec.c:65
 msgid "Can't write to socket"
 msgstr ""
 
-#: src/exe/fdserv.c:1121 src/exe/fdcgiexec.c:1202
+#: src/exe/fdserv.c:1144 src/exe/fdcgiexec.c:1228
 msgid "Trace all web transactions"
 msgstr ""
 
-#: src/exe/fdserv.c:1123
+#: src/exe/fdserv.c:1146
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdserv.c:1126 src/exe/fdcgiexec.c:1204
+#: src/exe/fdserv.c:1149 src/exe/fdcgiexec.c:1230
 msgid "Files to preload into the shared environment"
 msgstr ""
 
-#: src/exe/fdserv.c:1129 src/exe/fdcgiexec.c:1207 src/exe/fdbserver.c:495
+#: src/exe/fdserv.c:1152 src/exe/fdcgiexec.c:1233 src/exe/fdbserver.c:495
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdserv.c:1131 src/exe/fdbserver.c:497
+#: src/exe/fdserv.c:1154 src/exe/fdbserver.c:497
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdserv.c:1133 src/exe/fdcgiexec.c:1209 src/exe/fdbserver.c:499
+#: src/exe/fdserv.c:1156 src/exe/fdcgiexec.c:1235 src/exe/fdbserver.c:499
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdserv.c:1135 src/exe/fdcgiexec.c:1211
+#: src/exe/fdserv.c:1158 src/exe/fdcgiexec.c:1237
 msgid "Where to write URLs where were requested"
 msgstr ""
 
-#: src/exe/fdserv.c:1137 src/exe/fdcgiexec.c:1213
+#: src/exe/fdserv.c:1160 src/exe/fdcgiexec.c:1239
 msgid "Where to write request objects"
 msgstr ""
 
-#: src/exe/fdserv.c:1139 src/exe/fdcgiexec.c:1215
+#: src/exe/fdserv.c:1162 src/exe/fdcgiexec.c:1241
 msgid "Level of transaction logging"
 msgstr ""
 
-#: src/exe/fdserv.c:1141
+#: src/exe/fdserv.c:1164
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdserv.c:1144
+#: src/exe/fdserv.c:1167
 msgid "Milliseconds (roughly) between status reports"
+msgstr ""
+
+#: src/exe/fdserv.c:1170 src/exe/fdcgiexec.c:1245
+msgid "Use per-request thread cache"
 msgstr ""
 
 #: src/exe/fdcgiexec.c:46
 msgid "FDCGIEXEC/Startup"
 msgstr ""
 
-#: src/exe/fdcgiexec.c:1217
+#: src/exe/fdcgiexec.c:1243
 msgid "The socket file used by this server for use with external versions"
 msgstr ""
 

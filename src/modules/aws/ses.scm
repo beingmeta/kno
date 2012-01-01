@@ -7,7 +7,7 @@
 
 (use-module '{aws fdweb texttools logger rulesets})
 
-(define %loglevel %debug!)
+(define %loglevel %notify!)
 
 (define ses-endpoint "https://email.us-east-1.amazonaws.com/")
 
