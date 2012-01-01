@@ -385,8 +385,10 @@ static fdtype set_curlopt
     if (FD_SYMBOLP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_CUSTOMREQUEST,FD_SYMBOL_NAME(val));
     else return fd_type_error("symbol/method","set_curlopt",val);
-  else if (FD_EQ(opt,verbose_symbol))
-    curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,1);
+  else if (FD_EQ(opt,verbose_symbol)) {
+    if ((FD_FALSEP(val))||(FD_EMPTY_CHOICEP(val)))
+      curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,0);
+    else curl_easy_setopt(ch->handle,CURLOPT_VERBOSE,1);}
   else if (FD_EQ(opt,useragent_symbol))
     if (FD_STRINGP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_USERAGENT,FD_STRDATA(val));
