@@ -544,7 +544,7 @@ lib/framerd/ziptools.dylib: lib/framerd/ziptools.@VERSION@.dylib
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	install -D $^ $@
 
-etc/intl/framerd.pot: $(FDB_SOURCES) $(FDB_HEADERS)
+etc/intl/framerd.pot:
 	xgettext -dfdb -oetc/intl/framerd.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	msgmerge -U $@ $<
