@@ -12,12 +12,12 @@
 (define (ses/call args (opts #[]))
   (let* ((date (gmtimestamp 'seconds))
 	 (secret (getopt opts 'aws:secret (config 'AWS:SECRET)))
-	 (sig (hmac-sha1 secret (get date 'rfc822)))
+	 (sig (hmac-sha256 secret (get date 'rfc822)))
 	 (authstring
 	  (stringout "AWS3-HTTPS AWSAccessKeyId="
 	    (getopt opts 'aws:key (config 'AWS:KEY)) ", "
-	    "Signature=" (uriencode (packet->base64 sig)) ", "
-	    "Algorithm=HmacSHA1"))
+	    "Signature=" (uriencode (packet->base64 sig)) "=, "
+	    "Algorithm=HmacSHA256"))
 	 (handle (curlopen 'header (cons "Date" (get date 'rfc822))
 			   'header (cons "X-Amzn-Authorization" authstring)
 			   'verbose #t)))
