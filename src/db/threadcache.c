@@ -64,7 +64,8 @@ FD_EXPORT int fd_pop_threadcache(struct FD_THREAD_CACHE *tc)
 #else
     fd_threadcache=prev;
 #endif
-    fd_free_thread_cache(tc);
+    tc->fdtc_inuse--;
+    if (tc->fdtc_inuse<=0) fd_free_thread_cache(tc);
     return 1;}
 }
 
@@ -107,13 +108,14 @@ FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
     else u8_log(LOG_WARN,PushingInUseThreadCache,
 		"Pushing in-use threadcache: %llx",ptrval);
   if (tc==NULL) tc=fd_new_thread_cache();
+  if (tc==fd_threadcache) return tc;
   tc->fdtc_prev=fd_threadcache;
 #if FD_USE_TLS
   fd_tld_set(fd_threadcache_key,tc);
 #else
   fd_threadcache=tc;
 #endif
-  tc->fdtc_inuse=1;
+  tc->fdtc_inuse++;
   return tc;
 }
 
@@ -129,8 +131,9 @@ FD_EXPORT fd_thread_cache fd_set_threadcache(struct FD_THREAD_CACHE *tc)
   if (tc==NULL) tc=fd_new_thread_cache();
   if (fd_threadcache) {
     struct FD_THREAD_CACHE *oldtc=fd_threadcache;
-    oldtc->fdtc_inuse=0;}
-  tc->fdtc_inuse=1;
+    oldtc->fdtc_inuse--;
+    if (oldtc->fdtc_inuse<=0) fd_free_thread_cache(oldtc);}
+  tc->fdtc_inuse++;
 #if FD_USE_TLS
   fd_tld_set(fd_threadcache_key,tc);
 #else
@@ -144,7 +147,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache()
   if (fd_threadcache) return NULL;
   else {
     struct FD_THREAD_CACHE *tc=fd_new_thread_cache();
-    tc->fdtc_prev=NULL; tc->fdtc_inuse;
+    tc->fdtc_prev=NULL; tc->fdtc_inuse++;
 #if FD_USE_TLS
     fd_tld_set(fd_threadcache_key,tc);
 #else
