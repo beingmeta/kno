@@ -281,9 +281,13 @@ FD_EXPORT void fd_delay_index_fetch(fd_index ix,fdtype keys)
 
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 {
-  fdtype *keyvec=NULL, *values=NULL; int free_keys=0, n_fetched=0;
+  FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
+  fdtype *keyvec=NULL, *values=NULL;
+  fdtype lix=FDTYPE_IMMEDIATE(fd_index_type,ix->serialno);
+  int free_keys=0, n_fetched=0, cachelevel=0;
   if (ix == NULL) return -1;
   else init_cache_level(ix);
+  cachelevel=ix->cache_level;
   if (ix->handler->prefetch != NULL)
     if (fd_ipeval_status()) {
       delay_index_fetch(ix,keys);
@@ -299,10 +303,10 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  fdtype v=fd_index_fetch(ix,key);
 	  if (FD_ABORTP(v)) return fd_interr(v);
 	  n_fetched++;
-	  fd_hashtable_store(&(ix->cache),key,v);
+	  if (cachelevel>0) fd_hashtable_store(&(ix->cache),key,v);
+	  if (fdtc) fd_hashtable_store(&(fdtc->indices),fd_make_pair(lix,key),v);
 	  fd_decref(v);}
       return n_fetched;}}
-  if (ix->cache_level==0) return 0;
   if (FD_ACHOICEP(keys)) {keys=fd_make_simple_choice(keys); free_keys=1;}
   if (fd_ipeval_status()) delay_index_fetch(ix,keys);
   else if (!(FD_CHOICEP(keys))) {
@@ -310,7 +314,8 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       fdtype v=fd_index_fetch(ix,keys);
       if (FD_ABORTP(v)) return fd_interr(v);
       n_fetched=1;
-      fd_hashtable_store(&(ix->cache),keys,v);
+      if (cachelevel>0) fd_hashtable_store(&(ix->cache),keys,v);
+      if (fdtc) fd_hashtable_store(&(fdtc->indices),fd_make_pair(lix,keys),v);
       fd_decref(v);}}
   else {
     fdtype *write=NULL, singlekey=FD_VOID;
@@ -343,7 +348,9 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       if (FD_VOIDP(singlekey)) {}
       else {
 	fdtype v=fd_index_fetch(ix,singlekey); n_fetched=1;
-	fd_hashtable_store(&(ix->cache),singlekey,v);
+	if (cachelevel>0) fd_hashtable_store(&(ix->cache),singlekey,v);
+	if (fdtc) fd_hashtable_store
+		    (&(fdtc->indices),fd_make_pair(lix,singlekey),v);
 	fd_decref(v);}
     else if (write==keyvec) n_fetched=0;
     else {
@@ -360,20 +367,29 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	    fd_hashtable_get(&(ix->edits),drop_key,FD_EMPTY_CHOICE);
 	  if (FD_EMPTY_CHOICEP(drops))
 	    if (FD_EMPTY_CHOICEP(adds)) {
-	      fd_hashtable_store(cache,keyvec[i],values[i]);
+	      if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],values[i]);
+	      if (fdtc) fd_hashtable_store
+			  (&(fdtc->indices),fd_make_pair(lix,keyvec[i]),
+			   values[i]);
 	      fd_decref(values[i]);}
 	    else {
 	      fdtype simple;
 	      FD_ADD_TO_CHOICE(values[i],adds);
 	      simple=fd_simplify_choice(values[i]);
-	      fd_hashtable_store(cache,keyvec[i],simple);
+	      if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],simple);
+	      if (fdtc) fd_hashtable_store
+			  (&(fdtc->indices),fd_make_pair(lix,keyvec[i]),
+			   simple);
 	      fd_decref(simple);}
 	  else {
 	    fdtype oldv=values[i], newv;
 	    FD_ADD_TO_CHOICE(oldv,adds);
 	    newv=fd_difference(oldv,drops);
 	    newv=fd_simplify_choice(newv);
-	    fd_hashtable_store(cache,keyvec[i],newv);
+	    if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],newv);
+	    if (fdtc) fd_hashtable_store
+			(&(fdtc->indices),fd_make_pair(lix,keyvec[i]),
+			 newv);
 	    fd_decref(oldv); fd_decref(newv);}
 	  fd_decref(drops); i++;}
       else if (ix->adds.n_keys)  /* When there are just adds */
@@ -381,17 +397,29 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 	  fdtype key=keyvec[i];
 	  fdtype adds=fd_hashtable_get(&(ix->adds),key,FD_EMPTY_CHOICE);
 	  if (FD_EMPTY_CHOICEP(adds)) {
-	    fd_hashtable_store(cache,keyvec[i],values[i]);
+	    if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],values[i]);
+	    if (fdtc) fd_hashtable_store
+			(&(fdtc->indices),fd_make_pair(lix,keyvec[i]),
+			 values[i]);
 	    fd_decref(values[i]);}
 	  else {
 	    FD_ADD_TO_CHOICE(values[i],adds);
 	    values[i]=fd_simplify_choice(values[i]);
-	    fd_hashtable_store(cache,keyvec[i],values[i]);
+	    if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],values[i]);
+	    if (fdtc) fd_hashtable_store
+			(&(fdtc->indices),fd_make_pair(lix,keyvec[i]),
+			 values[i]);
 	    fd_decref(values[i]);}
 	  i++;}
       else {
 	/* When we're just storing. */
-	fd_hashtable_iter(cache,fd_table_store_noref,n,keyvec,values);
+	if (fdtc) {
+	  int k=0; while (k<n) {
+	    fd_hashtable_store(&(fdtc->indices),fd_make_pair(lix,keyvec[k]),
+			       values[k]);
+	    k++;}}
+	if (cachelevel>0)
+	  fd_hashtable_iter(cache,fd_table_store_noref,n,keyvec,values);
 	/* This is no longer needed with fd_table_store_noref */
 	/* while (i < n) {fd_decref(values[i]); i++;} */
       }}}
@@ -1122,7 +1150,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   extindex_fetch, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */
-  NULL, /* fetchn */
+  extindex_fetchn, /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL /* sync */
