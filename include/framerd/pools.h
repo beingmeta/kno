@@ -291,11 +291,18 @@ FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
 }
 FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
 {
+  FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
   fdtype value;
+  if (p==NULL) p=fd_oid2pool(oid);
   if (p==NULL)
     if (fd_ignore_anonymous_oids) return FD_EMPTY_CHOICE;
     else return fd_err(fd_AnonymousOID,NULL,NULL,oid);
-  else if (p->n_locks)
+  if (fdtc) {
+    fdtype value=((fdtc->oids.n_keys)?
+		  (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
+		  (FD_VOID));
+    if (!(FD_VOIDP(value))) return value;}
+  if (p->n_locks)
     if (fd_hashtable_probe_novoid(&(p->locks),oid)) {
       value=fd_hashtable_get(&(p->locks),oid,FD_VOID);
       if (value == FD_LOCKHOLDER) {
@@ -310,27 +317,15 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
     if (fd_ipeval_delay(1)) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
       return FD_EMPTY_CHOICE;}
-    else return fd_pool_fetch(p,oid);
-  else return value;
+    else value=fd_pool_fetch(p,oid);
+  if (FD_ABORTP(value)) return value;
+  if (fdtc) fd_hashtable_store(&(fdtc->oids),oid,value);
+  return value;
 }
 FD_FASTOP fdtype fd_oid_value(fdtype oid)
 {
   if (FD_EMPTY_CHOICEP(oid)) return oid;
-  else if (FD_OIDP(oid)) {
-#if FD_USE_THREADCACHE
-    FDTC *fdtc=fd_threadcache; 
-    if (fdtc) {
-      fdtype value=((fdtc->oids.n_keys)?
-		    (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
-		    (FD_VOID));
-      if (!(FD_VOIDP(value))) return value;}
-#endif
-    fd_pool p=fd_oid2pool(oid);
-    fdtype value=fd_fetch_oid(p,oid);
-#if FD_USE_THREADCACHE
-    fd_hashtable_store(&(fdtc->oids),oid,value);
-#endif
-    return value;}
+  else if (FD_OIDP(oid)) return fd_fetch_oid(NULL,oid);
   else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
 #else

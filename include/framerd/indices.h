@@ -170,7 +170,7 @@ FD_EXPORT struct FD_COMPOUND_INDEX *fd_background;
 FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
 {
   fdtype cached;
-#if FD_USE_THREACACHE
+#if FD_USE_THREADCACHE
   FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
   if ((fdtc)&&(fdtc->indices.n_keys)) {
     FD_INIT_STACK_CONS(&tempkey,fd_pair_type);

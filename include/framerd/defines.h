@@ -150,7 +150,7 @@
 #endif
 
 #ifndef FD_USE_THREADCACHE
-#define FD_USE_THEADCACHE 1
+#define FD_USE_THREADCACHE 1
 #endif
 
 #ifndef FD_WRITETHROUGH_THREADCACHE

@@ -792,7 +792,14 @@ FD_EXPORT fd_pool _fd_oid2pool(fdtype oid)
 }
 FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
 {
+  FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
   fdtype value;
+  if (fdtc) {
+    fdtype value=((fdtc->oids.n_keys)?
+		  (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
+		  (FD_VOID));
+    if (!(FD_VOIDP(value))) return value;}
+  if (p==NULL) p=fd_oid2pool(oid);
   if (p==NULL) return fd_anonymous_oid("fd_fetch_oid",oid);
   else if (p->n_locks)
     if (fd_hashtable_probe_novoid(&(p->locks),oid)) {
@@ -809,28 +816,16 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
     if (fd_ipeval_delay(1)) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
       return FD_EMPTY_CHOICE;}
-    else return fd_pool_fetch(p,oid);
-  else return value;
+    else value=fd_pool_fetch(p,oid);
+  if (FD_ABORTP(value)) return value;
+  if (fdtc) fd_hashtable_store(&(fdtc->oids),oid,value);
+  return value;
 }
 
 FD_EXPORT fdtype _fd_oid_value(fdtype oid)
 {
   if (FD_EMPTY_CHOICEP(oid)) return oid;
-  else if (FD_OIDP(oid)) {
-#if FD_USE_THREADCACHE
-    FDTC *fdtc=fd_threadcache; 
-    if (fdtc) {
-      fdtype value=((fdtc->oids.n_keys)?
-		    (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
-		    (FD_VOID));
-      if (!(FD_VOIDP(value))) return value;}
-#endif
-    fd_pool p=fd_oid2pool(oid);
-    fdtype value=fd_fetch_oid(p,oid);
-#if FD_USE_THREADCACHE
-    fd_hashtable_store(&(fdtc->oids),oid,value);
-#endif
-    return value;}
+  else if (FD_OIDP(oid)) return fd_fetch_oid(NULL,oid);
   else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
 
@@ -841,14 +836,14 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
     int retval=fd_pool_lock(p,oid);
     if (retval<0) return FD_ERROR_VALUE;
     else if (retval) {
-      fdtype v=fd_pool_fetch(p,oid);
+      fdtype v=fd_fetch_oid(p,oid);
       if (FD_ABORTP(v)) return v;
       fd_hashtable_store(&(p->locks),oid,v);
       return v;}
     else return fd_err(fd_CantLockOID,"fd_locked_oid_value",
                        u8_strdup(p->source),oid);}
   else if (smap==FD_LOCKHOLDER) {
-    fdtype v=fd_pool_fetch(p,oid);
+    fdtype v=fd_fetch_oid(p,oid);
     if (FD_ABORTP(v)) return v;
     fd_hashtable_store(&(p->locks),oid,v);
     return v;}
