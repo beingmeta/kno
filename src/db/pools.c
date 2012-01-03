@@ -1545,7 +1545,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   vstruct.length=n; vstruct.data=oids;
   vstruct.freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
-  if (FD_VOIDP(state))
+  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
     value=fd_apply(xp->fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
@@ -1617,7 +1617,7 @@ static struct FD_POOL_HANDLER extpool_handler={
   NULL, /* setbuf */
   NULL, /* alloc */
   extpool_fetch, /* fetch */
-  NULL, /* fetchn */
+  extpool_fetchn, /* fetchn */
   NULL, /* getload */
   extpool_lock, /* lock */
   extpool_unlock, /* release */
