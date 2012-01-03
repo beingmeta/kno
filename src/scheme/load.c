@@ -125,10 +125,8 @@ FD_EXPORT fdtype fd_load_source
       else start_time=-1.0;
       result=fd_eval(expr,env);
       if (FD_ABORTP(result)) {
-	if ((trace_load_eval) ||
-	    (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE)))
-	  u8_log(LOG_ERR,(u8_condition)u8_current_exception,
-		 "Error in %s while evaluating %q",sourcebase,expr);
+	u8_log(LOG_ERR,(u8_condition)u8_current_exception,
+	       "Error in %s while evaluating %q",sourcebase,expr);
 	restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
