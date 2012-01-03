@@ -481,7 +481,7 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
   fdtype cached;
   FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
 #if FD_USE_THREACACHE
-  if ((fdtc)&&(fdtc->indices.n_keys)) {
+  if (fdtc) {
     FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
     tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
@@ -533,7 +533,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key);
 #if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
-    if ((fdtc)&&(fdtc->indices.n_keys)) {
+    if (fdtc) {
       FD_DO_CHOICES(k,key) {
 	struct FD_PAIR tempkey;
 	FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
@@ -547,7 +547,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
       fd_hashtable_iterkeys(&(ix->cache),fd_table_add_if_present,n,keys,value);}
   else {
 #if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
-    if ((fdtc)&&(fdtc->indices.n_keys)) {
+    if (fdtc) {
       struct FD_PAIR tempkey;
       FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
       tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
@@ -987,7 +987,7 @@ static fdtype extindex_fetch(fd_index p,fdtype oid)
 {
   struct FD_EXTINDEX *xp=(fd_extindex)p;
   fdtype state=xp->state, value;
-  if (FD_VOIDP(state))
+  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
     value=fd_apply(xp->fetchfn,1,&oid);
   else {
     fdtype args[2]; args[0]=oid; args[1]=state;
@@ -1007,7 +1007,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   FD_INIT_STACK_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=keys; vstruct.freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
-  if (FD_VOIDP(state))
+  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
     value=fd_apply(xp->fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;

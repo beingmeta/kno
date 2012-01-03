@@ -172,7 +172,7 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
   fdtype cached;
 #if FD_USE_THREADCACHE
   FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
-  if ((fdtc)&&(fdtc->indices.n_keys)) {
+  if (fdtc) {
     FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
     tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
