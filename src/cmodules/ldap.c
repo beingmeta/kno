@@ -2,7 +2,7 @@
 
 /* ldap.c
    This implements FramerD bindings to ldap.
-   Copyright (C) 2007-2011 beingmeta, inc.
+   Copyright (C) 2007-2012 beingmeta, inc.
 */
 
 static char versionid[] =

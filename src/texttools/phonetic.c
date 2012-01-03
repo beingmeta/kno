@@ -1,7 +1,7 @@
 /* C Mode */
 
 /* phonetic.c
-   Copyright (C) 2006-2011 beingmeta, inc.
+   Copyright (C) 2006-2012 beingmeta, inc.
 
    This file implements various phonetic and quasi-phonetic hashing
    algorithms for spelling correction etc.
