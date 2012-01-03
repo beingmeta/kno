@@ -1182,8 +1182,8 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
   
-  update_preloads();
-
+  if (update_preloads()<0) fd_clear_errors(1);
+  
   FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
   fd_make_hashtable(&pagemap,0);
   u8_server_init(&fdwebserver,
