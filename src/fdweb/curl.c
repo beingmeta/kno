@@ -57,38 +57,6 @@ typedef struct INBUF {
 typedef struct OUTBUF {
   unsigned char *scan, *end;} OUTBUF;
 
-#if 0 /* No longer used? */
-#if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
-static u8_tld_key curl_threadkey;
-static FD_CURL_HANDLE *get_curl_handle()
-{
-  fd_curl_handle result=u8_tld_get(curl_threadkey);
-  if (result) return result;
-  else {
-    FD_CURL_HANDLE *curler=fd_open_curl_handle();
-    if (curler) u8_tld_set(curl_threadkey,curler);
-    return curler;}
-}
-static void free_threadlocal_curl(void *v)
-{
-  fdtype lv=(fdtype)v;
-  fd_decref(lv);
-}
-#elif FD_USE__THREAD
-static __thread struct FD_CURL_HANDLE *curl_handle;
-#define get_curl_handle() \
-  ((curl_handle==NULL) ? \
-   (curl_handle=fd_open_curl_handle()) : \
-   (curl_handle))
-#else
-static CURL *curl_handle;
-#define get_curl_handle() \
-  ((curl_handle==NULL) ? \
-   (curl_handle=fd_open_curl_handle()) : \
-   (curl_handle))
-#endif
-#endif
-
 static size_t copy_upload_data(void *ptr,size_t size,size_t nmemb,void *stream)
 {
   OUTBUF *rbuf=(OUTBUF *)stream;
@@ -1080,10 +1048,6 @@ FD_EXPORT void fd_init_curl_c()
   
   curl_global_init(CURL_GLOBAL_ALL|CURL_GLOBAL_SSL);
   atexit(curl_global_cleanup);
-  
-#if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
-  u8_new_threadkey(&curl_threadkey,free_threadlocal_curl);
-#endif
   
   url_symbol=fd_intern("URL");
   content_type_symbol=fd_intern("CONTENT-TYPE");
