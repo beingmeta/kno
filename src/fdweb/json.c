@@ -279,7 +279,7 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
 	else {
 	  u8_seterr(fd_MallocFailed,"json_table",NULL);
 	  break;}}
-      kv[n_elts].key=json_key(in,vflags,fieldmap);
+      kv[n_elts].key=json_key(in,flags,fieldmap);
       if (FD_ABORTP(kv[n_elts].key)) break;
       c=skip_whitespace(in);
       if (c==':') c=u8_getc(in);
