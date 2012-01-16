@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/dtypestream.h"
 

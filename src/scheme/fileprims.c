@@ -507,19 +507,14 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
 static fdtype mkpath_prim(fdtype dirname,fdtype name)
 {
   fdtype config_val=FD_VOID; u8_string dir=NULL, namestring=NULL;
-  char buf[128]; int dirlen=-1, need_slash=0;
   if (!(FD_STRINGP(name)))
     return fd_type_error(_("string"),"mkuripath_prim",name);
   else namestring=FD_STRDATA(name);
   if (*namestring=='/') return fd_incref(name);
-  else if (FD_STRINGP(dirname)) {
-    dir=FD_STRDATA(dirname);
-    dirlen=FD_STRLEN(dirname);}
+  else if (FD_STRINGP(dirname)) dir=FD_STRDATA(dirname);
   else if (FD_SYMBOLP(dirname)) {
     config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
-    if (FD_STRINGP(config_val)) {
-      dir=FD_STRDATA(config_val);
-      dirlen=FD_STRLEN(config_val);}
+    if (FD_STRINGP(config_val)) dir=FD_STRDATA(config_val);
     else {
       fd_decref(config_val); 
       return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}
@@ -1056,9 +1051,8 @@ FD_EXPORT int fd_update_file_modules(int force)
 
 FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
 {
-  struct FD_LOAD_RECORD *scan; double reload_time;
+  struct FD_LOAD_RECORD *scan;
   fd_lock_mutex(&load_record_lock);
-  reload_time=u8_elapsed_time();
   scan=load_records;
   while (scan)
     if (strcmp(scan->filename,module_filename)==0) {
@@ -1082,7 +1076,8 @@ FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
   fd_unlock_mutex(&load_record_lock);
   /* Maybe, this should load it. */
   fd_seterr(fd_ReloadError,"fd_update_file_module",
-	    u8_mkstring(_("The file %s has never been loaded"),module_filename),
+	    u8_mkstring(_("The file %s has never been loaded"),
+			module_filename),
 	    FD_VOID);
   return 0;
 }

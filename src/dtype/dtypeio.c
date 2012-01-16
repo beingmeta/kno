@@ -571,7 +571,7 @@ static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
       else return -1;}}
 }
  
-static int fd_validate_dtype(struct FD_BYTE_INPUT *in)
+FD_EXPORT int fd_validate_dtype(struct FD_BYTE_INPUT *in)
 {
   return validate_dtype(0,in->ptr,in->end);
 }
@@ -904,7 +904,7 @@ static fdtype make_character_type(int code,int len,unsigned char *data);
 static fdtype read_packaged_dtype
    (int package,struct FD_BYTE_INPUT *in)
 {
-  fdtype *vector; unsigned char *packet;
+  fdtype *vector=NULL; unsigned char *packet=NULL;
   unsigned int code, lenlen, len, vectorp;
   if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
   code=*(in->ptr++); lenlen=((code&0x40) ? 4 : 1); vectorp=(code&0x80);

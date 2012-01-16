@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 #include "framerd/tables.h"
@@ -124,7 +121,6 @@ static fdtype config_get_ports(fdtype var,void MAYBE_UNUSED *data)
 
 static fdtype config_get_dtype_server_flag(fdtype var,void *data)
 {
-  fdtype result;
   fd_ptrbits bigmask=(fd_ptrbits)data;
   unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF), flags;
   fd_lock_mutex(&init_server_lock);
@@ -307,6 +303,7 @@ static int close_fdclient(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtsclose(&(client->stream),2);
   fd_decref((fdtype)((fd_client)ucl)->env);
+  return 1;
 }
 
 /* Module configuration */
@@ -440,8 +437,6 @@ FD_EXPORT int fd_init_fddbserv(void);
 int main(int argc,char **argv)
 {
   int fd_version;
-  unsigned char data[1024], *input;
-  double showtime=-1.0;
   int i=1; u8_string source_file=NULL;
   /* This is the base of the environment used to be passed to the server.
      It is augmented by the fdbserv module, all of the modules declared by
@@ -456,6 +451,10 @@ int main(int argc,char **argv)
 
   fd_version=fd_init_fdscheme();
 
+  if (fd_version<0) {
+    fprintf(stderr,"Can't initialize FramerD libraries\n");
+    return -1;}
+  
   /* Record the startup time for UPTIME */
   u8_now(&boot_time);
 

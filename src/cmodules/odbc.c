@@ -235,9 +235,10 @@ static fdtype odbcstringattr(struct FD_ODBC *dbp,int attrid)
   return FD_ERROR_VALUE;
 }
 
+#if 0
 static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
 {
-  int len=-1, ret, attrval=0;
+  int ret, attrval=0;
   ret=SQLGetInfo(dbp->conn,attrid,(SQLPOINTER)&attrval,0,NULL);
   if (SQL_SUCCEEDED(ret))
     return FD_INT2DTYPE(attrval);
@@ -258,6 +259,7 @@ static fdtype odbcattr(fdtype conn,fdtype attr)
     return odbcstringattr(dbp,SQL_MAX_CONCURRENT_ACTIVITIES);
   else return FD_FALSE;
 }
+#endif
 
 /* Execution */
 
@@ -325,7 +327,7 @@ static fdtype get_colvalue
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
-  u8_byte *scan=s; int c=u8_sgetc(&s);
+  int c=u8_sgetc(&s);
   out->u8_outptr=out->u8_outbuf;
   while (c>=0) {
     u8_putc(out,u8_toupper(c));
@@ -422,8 +424,7 @@ static fdtype get_stmt_results
 
 static fdtype odbcexec(struct FD_ODBC *dbp,fdtype string,fdtype colinfo)
 {
-  fdtype results=FD_VOID; int ret, i; SQLSMALLINT n_cols;
-  int stopped=0, howfar=0;
+  int ret;
   SQLHSTMT stmt;
   /* No need for locking here, because we have our own statement */
   ret=SQLAllocHandle(SQL_HANDLE_STMT,dbp->conn,&stmt);
@@ -474,19 +475,19 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 		       SQL_PARAM_INPUT,SQL_C_CHAR,
 		       dbp->sqltypes[i],0,0,
 		       FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
-    else if (FD_OIDP(arg))
+    else if (FD_OIDP(arg)) {
       if (FD_OIDP(dbp->paramtypes[i])) {
 	FD_OID addr=FD_OID_ADDR(arg);
 	FD_OID base=FD_OID_ADDR(dbp->paramtypes[i]);
 	unsigned long offset=FD_OID_DIFFERENCE(addr,base);
 	SQLBindParameter(dbp->stmt,i+1,
 			 SQL_PARAM_INPUT,SQL_C_ULONG,
-			 dbp->sqltypes[i],0,0,&addr,0,NULL);}
+			 dbp->sqltypes[i],0,0,&offset,0,NULL);}
       else {
 	FD_OID addr=FD_OID_ADDR(arg);
 	SQLBindParameter(dbp->stmt,i+1,
 			 SQL_PARAM_INPUT,SQL_C_UBIGINT,
-			 dbp->sqltypes[i],0,0,&addr,0,NULL);}
+			 dbp->sqltypes[i],0,0,&addr,0,NULL);}}
     if (dofree) fd_decref(arg);
     i++;}
   ret=SQLExecute(dbp->stmt);

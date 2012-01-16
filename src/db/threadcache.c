@@ -101,12 +101,12 @@ FD_EXPORT fd_thread_cache fd_new_thread_cache()
 FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
 {
   FD_INTPTR ptrval=(FD_INTPTR) tc;
-  if ((tc)&&(tc->fdtc_inuse))
+  if ((tc)&&(tc->fdtc_inuse)) {
     if (tc->fdtc_id)
       u8_log(LOG_WARN,PushingInUseThreadCache,
 	     "Pushing in-use threadcache: %llx (%s)",ptrval,tc->fdtc_id);
     else u8_log(LOG_WARN,PushingInUseThreadCache,
-		"Pushing in-use threadcache: %llx",ptrval);
+		"Pushing in-use threadcache: %llx",ptrval);}
   if (tc==NULL) tc=fd_new_thread_cache();
   if (tc==fd_threadcache) return tc;
   tc->fdtc_prev=fd_threadcache;
@@ -122,12 +122,12 @@ FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
 FD_EXPORT fd_thread_cache fd_set_threadcache(struct FD_THREAD_CACHE *tc)
 {
   FD_INTPTR ptrval=(FD_INTPTR) tc;
-  if ((tc)&&(tc->fdtc_inuse))
+  if ((tc)&&(tc->fdtc_inuse)) {
     if (tc->fdtc_id)
       u8_log(LOG_WARN,SettingInUseThreadCache,
 	     "Setting in-use threadcache: %llx (%s)",ptrval,tc->fdtc_id);
     else u8_log(LOG_WARN,SettingInUseThreadCache,
-		"Setting in-use threadcache: %llx",ptrval);
+		"Setting in-use threadcache: %llx",ptrval);}
   if (tc==NULL) tc=fd_new_thread_cache();
   if (fd_threadcache) {
     struct FD_THREAD_CACHE *oldtc=fd_threadcache;

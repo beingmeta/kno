@@ -109,7 +109,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
 {
   int i=0, limit;
   fdtype limit_val, var=parse_control_spec(expr,&limit_val,NULL,env);
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -124,7 +124,6 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct); 
   vars[0]=var; vals[0]=FD_INT2DTYPE(0);
   while (i < limit) {
     if (envstruct.copy) 
@@ -158,7 +157,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -177,7 +176,6 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct); 
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
@@ -225,7 +223,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim;
   fdtype seq, count_var=FD_VOID, *iterval=NULL, *results, result;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -243,7 +241,6 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct); 
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
@@ -363,7 +360,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   fdtype list, count_var, var=
     parse_control_spec(expr,&list,&count_var,env);
   fdtype *vloc=NULL, *iloc=NULL;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (FD_EMPTY_LISTP(list)) return FD_VOID;
@@ -386,7 +383,6 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   {int i=0; FD_DOLIST(elt,list) {
     if (envstruct.copy) {
       fd_set_value(var,elt,envstruct.copy);

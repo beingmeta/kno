@@ -7,9 +7,6 @@
 
 /* fdmananger: a program for running a set of inferior fdservers */
     
-static char versionid[] =
-  "$Id$";
-
 /* #include "framerd/dtype.h" */
 
 #include <libu8/libu8.h>
@@ -103,13 +100,17 @@ static char *path_append(char *base,char *suffix)
 static void do_chown(char *path,uid_t uid,gid_t gid)
 {
   int retval=chown(path,uid,gid);
-  /* Should handle errors? */
+  if (retval<0) {
+    u8_log(LOG_ERR,"CHOWN","error on chown");
+    exit(1);}
 }
 
 static void do_chdir(char *path)
 {
   int retval=chdir(path);
-  /* Should handle errors? */
+  if (retval<0) {
+    u8_log(LOG_ERR,"CHDIR","error on chdir");
+    exit(1);}
 }
 
 static int empty_linep(char *s)
@@ -120,7 +121,7 @@ static int empty_linep(char *s)
 
 static char *read_file(char *path)
 {
-  FILE *f=fopen(path,"r"); char buf[256], *scan, *result; int len;
+  FILE *f=fopen(path,"r"); char buf[256], *result;
   /* fprintf(stderr,"Opened path %s: 0x%lx\n",path,f); */
   result=fgets(buf,256,f); fclose(f);
   if (result) {
@@ -186,7 +187,7 @@ static int setup_rundir()
     u8_log(LOG_WARN,StartupEvent,"Making state directory %s",rundir);
     mkdir(dirpath,(S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP));
     do_chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
-}
+  return 1;}
 
 static int setup_runas()
 {
@@ -220,6 +221,7 @@ static int setup_runas()
     else {
       u8_log(LOG_WARN,SecurityAbort,"Couldn't find non-root UID to use");
       exit(1);}}
+  return 1;
 }
 
 static int become_runas()
@@ -240,6 +242,7 @@ static int become_runas()
       u8_graberr(-1,"server startup",NULL);
       u8_log(LOG_WARN,SecurityAbort,"Couldn't change UID to %d",runas_uid);
       exit(1);}
+  return 1;
 }
 
 
@@ -247,10 +250,9 @@ static int become_runas()
 
 static char **generate_argv(char *exe,char *control_file,char *string)
 {
-  char **argvec=u8_alloc_n(64,char *), **result;
+  char **argvec=u8_alloc_n(64,char *);
   int argc=3, max_args=16;
   char *start=skip_whitespace(string), *end=skip_arg(start);
-  char *lim=start+strlen(start);
   argvec[0]=u8_strdup(exe);
   argvec[1]=u8_strdup(control_file);
   if (rundir) 
@@ -269,7 +271,7 @@ static char **generate_argv(char *exe,char *control_file,char *string)
 
 static char *init_server_entry(struct SERVER_ENTRY *e,char *control_line)
 {
-  char *scan, *base, *pid_file, *nid_file, wait=10;
+  char *scan, *base;
   if (strncmp(control_line,"dependent ",10) == 0) {
     e->dependent=1; control_line=control_line+10;}
   else e->dependent=0;
@@ -352,8 +354,8 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
   nid_file=path_append(e->statebase,".nid"); remove(nid_file);
   sleep_file=path_append(e->statebase,".sleep"); remove(sleep_file);
   errno=0;
-  if (proc=fork()) {
-    struct stat sbuf; int i=0, lim=e->wait, ret; e->pid=proc; 
+  if ((proc=fork())) {
+    int i=0, lim=e->wait; e->pid=proc; 
     /* Wait for the nid file to be created */
     while ((i<lim) && (!(u8_file_existsp(nid_file)))) {sleep(1); i++;}
     if (!(u8_file_existsp(nid_file))) {
@@ -391,7 +393,7 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
 pid_t restart_fdserver(struct SERVER_ENTRY *e)
 {
   pid_t proc;
-  char *base=e->basename, *pid_file;
+  char *pid_file;
   char *ppid_file, *nid_file, *sleep_file;
   int ppid=getpid();
   /* Clean up any old state variables */
@@ -402,8 +404,8 @@ pid_t restart_fdserver(struct SERVER_ENTRY *e)
   if (u8_file_existsp(sleep_file)) e->sleeping=1;
   else e->sleeping=0;
   errno=0; /* Clear errno, just in case */
-  if (proc=fork()) {
-    int i=0, lim=e->wait, ret; e->pid=proc; 
+  if ((proc=fork())) {
+    int i=0, lim=e->wait; e->pid=proc; 
     if (e->sleeping == 0) /* Wait for the nid file to be created */
       while ((i<lim) && (!(u8_file_existsp(nid_file)))) {sleep(1); i++;}
     else syslog(LOG_CRIT,"Server %s is sleeping",e->control_file);
@@ -490,7 +492,7 @@ static void terminate_children(int signo)
   terminating=1;
   syslog(LOG_CRIT,"Terminating all children because of signal %d",signo);
   while (i < n_servers) {
-    int status, count=0, lim=10, give_up=0;
+    int status, count=0, lim=10;
     if ((kill(servers[i].pid,SIGTERM) < 0) && (errno == ESRCH))
       errno=0;
     else while ((count<lim) && (waitpid(servers[i].pid,&status,WNOHANG) < 0)) {
@@ -571,6 +573,7 @@ static void timer_proc(int signo)
   alarm(60);
 }
 
+#if 0
 static int dont_be_root()
 {
   uid_t uid=getuid();
@@ -622,12 +625,13 @@ static int dont_be_root()
     u8_log(LOG_WARN,SecurityEvent,"Running as user %s (%d) and group %s (%d)",
 	    uentry->pw_name,uentry->pw_uid,gentry->gr_name,gentry->gr_gid);}
 }
+#endif
 
 int main(int argc,char *argv[])
 {
   FILE *control_file;
   char control_line[512];
-  int i=0, status, pid, n_started=0;
+  int status, pid, n_started=0;
   fdserver=getenv("FDSERVER");
   if (fdserver==NULL) fdserver=FD_DBSERVER;
   if ((argc < 2) || (argc > 4)) {

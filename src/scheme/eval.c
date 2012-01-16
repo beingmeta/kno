@@ -431,7 +431,6 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   double start; int oneout=0;
   fdtype scan=FD_CDR(expr);
   u8_string label="%WATCH";
-  int no_caboose=0;
   if ((FD_PAIRP(toeval))) {
     scan=FD_CDR(scan);
     if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan)))) {
@@ -765,7 +764,6 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID;
-  struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
   fdtype _argv[FD_STACK_ARGS], *argv;
   int i=0, n_args=0, args_need_gc=0, free_argv=0;
   {FD_DOBODY(elt,expr,1) {
@@ -809,7 +807,6 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
 {
-  fdtype value=FD_VOID;
   if (FD_PAIRP(exprs)) {
     fdtype next=FD_CDR(exprs), val;
     while (FD_PAIRP(exprs))

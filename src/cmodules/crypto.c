@@ -72,10 +72,11 @@ static fdtype encrypt_dtype_prim(fdtype data,fdtype key,fdtype cipher)
 
 static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher)
 {
-  unsigned char *payload; size_t payload_len; int free_payload=0;
+  unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
   u8_string ciphername;
-  if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
+  if (!(FD_PACKETP(key)))
+    return fd_type_error("packet/secret","doencrypt",key);
   if (FD_SYMBOLP(cipher)) ciphername=FD_SYMBOL_NAME(cipher);
   else if (FD_STRINGP(cipher)) ciphername=FD_STRDATA(cipher);
   else if (FD_VOIDP(cipher)) ciphername=NULL;
@@ -91,7 +92,7 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher)
 
 static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher)
 {
-  unsigned char *payload; size_t payload_len; int free_payload=0;
+  unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
@@ -110,7 +111,7 @@ static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher)
 
 static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher)
 {
-  unsigned char *payload; size_t payload_len; int free_payload=0;
+  unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
@@ -140,7 +141,7 @@ FD_EXPORT fdtype random_packet_prim(fdtype arg)
 FD_EXPORT int fd_init_crypto()
 {
   fdtype crypto_module;
-  if (crypto_init) return;
+  if (crypto_init) return 0;
   fd_register_source_file(versionid);
   crypto_init=1;
   crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));

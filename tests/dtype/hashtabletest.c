@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
@@ -22,9 +19,9 @@ static fdtype read_dtype_from_file(FILE *f)
 {
   fdtype object;
   struct FD_BYTE_OUTPUT out; struct FD_BYTE_INPUT in;
-  char buf[1024]; int bytes_read=0, delta=0;
+  char buf[1024]; int delta=0;
   FD_INIT_BYTE_OUTPUT(&out,1024);
-  while (delta=fread(buf,1,1024,f)) {
+  while ((delta=fread(buf,1,1024,f))) {
     if (delta<0)
       if (errno==EAGAIN) {}
       else u8_raise("Read error","u8recode",NULL);
@@ -35,13 +32,14 @@ static fdtype read_dtype_from_file(FILE *f)
   return object;
 }
 
-static void write_dtype_to_file(fdtype object,FILE *f)
+static int write_dtype_to_file(fdtype object,FILE *f)
 {
   struct FD_BYTE_OUTPUT out; int retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
   retval=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);
+  return retval;
 }
 
 
@@ -52,7 +50,7 @@ static void write_dtype_to_file(fdtype object,FILE *f)
 
 int main(int argc,char **argv)
 {
-  struct FD_BYTE_OUTPUT out; FILE *f=fopen(argv[1],"rb");
+  FILE *f=fopen(argv[1],"rb");
   fdtype ht, slotid, value;
   FD_DO_LIBINIT(fd_init_dtypelib);
   if (f) {

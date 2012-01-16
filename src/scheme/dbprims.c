@@ -1547,7 +1547,7 @@ static fdtype allocate_oids(fdtype pool,fdtype howmany)
 
 static fdtype frame_create_lexpr(int n,fdtype *args)
 {
-  fd_pool p; fdtype result; int i=(n%2);
+  fdtype result; int i=(n%2);
   if (n==1) return fd_new_frame(args[0],FD_VOID,0);
   else if (n==2) return fd_new_frame(args[0],args[1],1);
   else if (n%2) result=fd_new_frame(args[0],FD_VOID,0);
@@ -1720,7 +1720,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
 #else
     oid=addr;
 #endif
-    return fd_make_oid(addr);}
+    return fd_make_oid(oid);}
   else if (FD_OIDP(high)) {
     FD_OID base=FD_OID_ADDR(high), oid; unsigned int off;
     if (FD_FIXNUMP(low))

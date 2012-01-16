@@ -5,8 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] = "$Id$";
-
 #define FD_DEBUG_PTRCHECK 2
 
 #include "framerd/dtype.h"
@@ -59,11 +57,12 @@ static int write_dtype_to_file(fdtype x,char *file)
   retval=fwrite(out.start,out.ptr-out.start,1,f);
   u8_free(out.start);
   fclose(f);
+  return retval;
 }
 
 int main(int argc,char **argv)
 {
-  FILE *f;
+  FILE *f=NULL;
   char *output_file=NULL;
   fdtype combined_inputs=FD_EMPTY_CHOICE, scombined_inputs;
   fdtype *inputv;

@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
@@ -17,13 +14,14 @@ static char versionid[] =
 #include <stdlib.h>
 #include <stdio.h>
 
-static void write_dtype_to_file(fdtype object,FILE *f)
+static int write_dtype_to_file(fdtype object,FILE *f)
 {
   struct FD_BYTE_OUTPUT out; int n;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
   n=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);
+  return n;
 }
 
 char *read_text_file(char *filename)

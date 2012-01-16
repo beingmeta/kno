@@ -31,7 +31,7 @@ FD_EXPORT void fd_init_fdweb()
     fdtype fdweb_module=fd_new_module("FDWEB",0);
     fdtype safe_fdweb_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
     fdtype xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
-    fdweb_init_done=1;
+    fdweb_init_done=fdscheme_version;
     fd_init_xmloutput_c();
     fd_init_xmldata_c();
     fd_init_xmlinput_c();

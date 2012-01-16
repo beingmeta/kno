@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dbfile.h"
@@ -28,6 +25,9 @@ int main(int argc,char **argv)
   int fd_version=fd_init_dbfile(), i=0;
   struct FD_DTYPE_STREAM ds;
   fdtype expr=FD_EMPTY_LIST, result;
+  if (fd_version<0) {
+    u8_fprintf(stderr,"Couldn't initialize FramerD\n");
+    exit(1);}
   socket=u8_connect(argv[1]);
   if (socket<0) {
     u8_fprintf(stderr,"Couldn't open socket to %s\n",argv[1]);

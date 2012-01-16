@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
@@ -57,12 +54,13 @@ static int write_dtype_to_file(fdtype x,char *file)
   retval=fwrite(out.start,out.ptr-out.start,1,f);
   u8_free(out.start);
   fclose(f);
+  return retval;
 }
 
 int main(int argc,char **argv)
 {
   FILE *f; int i=1, k=0; double starttime, inputtime, donetime;
-  char *output_arg, *input_arg, *remove_arg;
+  char *output_arg=NULL, *input_arg=NULL, *remove_arg=NULL;
   FD_DO_LIBINIT(fd_init_dtypelib);
   starttime=get_elapsed();
   while (i<argc)

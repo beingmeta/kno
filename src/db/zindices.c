@@ -468,9 +468,10 @@ static int zindex_fetchsize(fd_index ix,fdtype key)
     unsigned int keypos=
       ((offsets) ? (offget(offsets,probe)) : (get_offset(fx,probe)));
     while (keypos) {
-      fdtype thiskey; unsigned int n_vals; off_t val_start;
+      fdtype thiskey; unsigned int n_vals; /* off_t val_start; */
       fd_setpos(stream,keypos+(fx->n_slots)*4);
-      n_vals=fd_dtsread_4bytes(stream); val_start=fd_dtsread_4bytes(stream);
+      n_vals=fd_dtsread_4bytes(stream);
+      /* val_start=*/ fd_dtsread_4bytes(stream);
       thiskey=zread_key(stream,fx->slotids,fx->baseoids,fx->n_baseoids);
       if (FDTYPE_EQUAL(key,thiskey)) {
 	fd_unlock_struct(fx);
@@ -511,7 +512,7 @@ static fdtype *zindex_fetchkeys(fd_index ix,int *n)
   i=0; while (i < n_slots)
     if (offsets[i]) {
       fdtype key;
-      fd_setpos(stream,4*n_slots+offsets[i]);
+      fd_setpos(stream,pos_offset+offsets[i]);
       fd_dtsread_zint(&(fx->stream)); fd_dtsread_zint(&(fx->stream));
       key=zread_key(&(fx->stream),fx->slotids,fx->baseoids,fx->n_baseoids);
       result[j++]=key;
@@ -549,9 +550,10 @@ static struct FD_KEY_SIZE *zindex_fetchsizes(fd_index ix,int *n)
   sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
   qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
   while (i < n_keys) {
-    fdtype key; int size, vpos;
+    fdtype key; int size;
     fd_setpos(stream,pos_offset+offsets[i]);
-    size=fd_dtsread_zint(&(fx->stream)); vpos=fd_dtsread_zint(&(fx->stream));
+    size=fd_dtsread_zint(&(fx->stream));
+    /* vpos=*/ fd_dtsread_zint(&(fx->stream));
     key=zread_key(&(fx->stream),fx->slotids,fx->baseoids,fx->n_baseoids);
     sizes[i].key=key; sizes[i].n_values=size;
     i++;}
@@ -827,7 +829,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
 {
   unsigned int *slotnos=r->slotnos, *lim=r->slotnos+r->n_reservations;
   unsigned int *bottom=slotnos, *top=lim;
-  unsigned int *middle, insertoff, *insertpos;
+  unsigned int *middle=bottom+((top-bottom)/2) , insertoff, *insertpos;
   if (r->n_reservations==0) {
     bottom[0]=slotno; r->n_reservations++;
     return 1;}

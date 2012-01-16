@@ -627,9 +627,8 @@ static fdtype default_parse_oid(u8_string start,int len)
 {
   FD_OID oid=FD_NULL_OID_INIT;
   unsigned int hi, lo, c=start[len];
-  int items;
   start[len]='\0';
-  if ((strchr(start,'/'))<0) {
+  if ((strchr(start,'/'))>0) {
     int items=sscanf(start,"@%x/%x",&hi,&lo);
     if (items!=2) {
       start[len]=c; return FD_PARSE_ERROR;}}

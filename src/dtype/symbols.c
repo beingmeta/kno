@@ -28,7 +28,7 @@ u8_mutex fd_symbol_lock;
 FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
 {
   unsigned int h=0;
-  unsigned *istart=(unsigned int *)start, asint;
+  unsigned *istart=(unsigned int *)start, asint=0;
   const unsigned int *scan=istart, *limit=istart+len/4;
   unsigned char *tail=start+(len/4)*4;
   while (scan<limit) h=((127*h)+*scan++)%MYSTERIOUS_MODULUS;
@@ -117,9 +117,9 @@ fdtype fd_make_symbol(u8_string bytes,int len)
       fd_unlock_mutex(&fd_symbol_lock);
       return fd_make_symbol(bytes,len);}
     else {
-      int id=fd_n_symbols++; fdtype symbol;
+      int id=fd_n_symbols++;
       entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
-      symbol=entries[probe]->serial=id;
+      entries[probe]->serial=id;
       fd_init_string(&(entries[probe]->name),len,u8_strdup(bytes));
       fd_symbol_names[id]=FDTYPE_CONS(&(entries[probe]->name));
       fd_unlock_mutex(&fd_symbol_lock);

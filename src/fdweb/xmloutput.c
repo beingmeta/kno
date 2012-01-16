@@ -237,12 +237,12 @@ static int output_markup_attrib
     else if (FD_STRINGP(free_name)) attrib_name=FD_STRDATA(free_name);
     else attrib_name=NULL;}
   else attrib_name=NULL;
-  if (attrib_name)
+  if (attrib_name) {
     if ((env)&&(FD_NEED_EVALP(value_expr))) {
       free_value=fd_eval(value_expr,env);
       attrib_val=free_value;}
-    else attrib_val=value_expr;
-  if (attrib_name)
+    else attrib_val=value_expr;}
+  if (attrib_name) {
     if (FD_VOIDP(value_expr)) {
       u8_putc(out,' '); attrib_entify(out,attrib_name);}
     else if (FD_VOIDP(attrib_val)) {
@@ -250,7 +250,7 @@ static int output_markup_attrib
       return 0;}
     else {
       emit_xmlattrib(out,tmp,attrib_name,attrib_val,FD_SYMBOLP(name_expr));
-      fd_decref(free_value);}
+      fd_decref(free_value);}}
   return 1;
 }
 
@@ -505,7 +505,8 @@ static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
     return fd_err(fd_SyntaxError,"xmlblock",NULL,expr);}
   out=fd_get_default_output();
   U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
-  if (open_markup(out,&tmpout,tagname,attribs,env,0)<0) {
+  if (open_markup(out,&tmpout,tagname,attribs,
+		  ((eval_attribs)?(env):(NULL)),0)<0) {
     fd_decref(xmloidfn);
     return FD_ERROR_VALUE;}
   if (newline) u8_putc(out,'\n');
@@ -610,20 +611,6 @@ static fdtype markupstar_handler(fdtype expr,fd_lispenv env)
 }
 
 static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
-{
-  U8_OUTPUT *out=fd_get_default_output();
-  fdtype head=FD_CAR(expr), args=FD_CDR(expr);
-  u8_byte tagbuf[128], *tagname=get_tagname(head,tagbuf,128);
-  if (tagname==NULL)
-    return fd_err(fd_SyntaxError,"emptymarkup_handler",NULL,expr);
-  else if (open_markup(out,NULL,tagname,args,env,1)<0)
-    return FD_ERROR_VALUE;
-  else {
-    u8_flush(out);
-    return FD_VOID;}
-}
-
-static fdtype emptyurimarkup_handler(fdtype expr,fd_lispenv env)
 {
   U8_OUTPUT *out=fd_get_default_output();
   fdtype head=FD_CAR(expr), args=FD_CDR(expr);
@@ -1204,8 +1191,6 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
 
 static fdtype scripturl(int n,fdtype *args)
 {
-  struct U8_OUTPUT out; 
-  u8_string baseuri; int baseuri_len;
   if (!(FD_STRINGP(args[0]))) 
     return fd_err(fd_TypeError,"scripturl",
 		  u8_strdup("script name"),args[0]);
@@ -1217,8 +1202,6 @@ static fdtype scripturl(int n,fdtype *args)
 
 static fdtype fdscripturl(int n,fdtype *args)
 {
-  struct U8_OUTPUT out; 
-  u8_string baseuri; int baseuri_len;
   if (!(FD_STRINGP(args[0]))) 
     return fd_err(fd_TypeError,"fdscripturl",
 		  u8_strdup("script name"),args[0]);
@@ -1230,8 +1213,6 @@ static fdtype fdscripturl(int n,fdtype *args)
 
 static fdtype scripturlplus(int n,fdtype *args)
 {
-  struct U8_OUTPUT out; 
-  u8_string baseuri; int baseuri_len;
   if (!(FD_STRINGP(args[0]))) 
     return fd_err(fd_TypeError,"scripturlplus",
 		  u8_strdup("script name"),args[0]);
@@ -1243,8 +1224,6 @@ static fdtype scripturlplus(int n,fdtype *args)
 
 static fdtype fdscripturlplus(int n,fdtype *args)
 {
-  struct U8_OUTPUT out; 
-  u8_string baseuri; int baseuri_len;
   if (!(FD_STRINGP(args[0]))) 
     return fd_err(fd_TypeError,"fdscripturlplus",
 		  u8_strdup("script name"),args[0]);
@@ -1256,7 +1235,7 @@ static fdtype fdscripturlplus(int n,fdtype *args)
 
 static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 {
-  int lastc=-1, free_varname=0, firstval=1;
+  int lastc=-1, free_varname=0;
   u8_string varname; u8_byte namebuf[256];
   if (out->u8_outbuf<out->u8_outptr) lastc=out->u8_outptr[-1];
   if (FD_STRINGP(name)) varname=FD_STRDATA(name);
@@ -1309,8 +1288,8 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
     input=fd_dtype2string(string);
     free_input=1;}
   if (FD_VOIDP(escape))
-    fd_uri_output(&out,input,-1,uparg,NULL);
-  else fd_uri_output(&out,input,-1,uparg,FD_STRDATA(escape));
+    fd_uri_output(&out,input,-1,upper,NULL);
+  else fd_uri_output(&out,input,-1,upper,FD_STRDATA(escape));
   if (free_input) u8_free(input);
   if (FD_STRINGP(string)) return fd_stream2string(&out);
   else if (FD_PRIM_TYPEP(string,fd_packet_type))
@@ -1330,7 +1309,6 @@ static int xdigit_weight(int c)
 
 static fdtype uridecode_prim(fdtype string)
 {
-  struct U8_OUTPUT out; 
   u8_byte *scan=FD_STRDATA(string), *result=u8_malloc(FD_STRLEN(string));
   u8_byte *write=result;
   int c;

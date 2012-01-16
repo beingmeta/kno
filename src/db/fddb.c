@@ -95,7 +95,7 @@ static fdtype oid_name_slotids=FD_EMPTY_LIST;
 
 static fdtype default_get_oid_name(fd_pool p,fdtype oid)
 {
-  if (FD_APPLICABLEP(p->oidnamefn)) {}
+  if (FD_APPLICABLEP(p->oidnamefn)) return FD_VOID;
   else {
     fdtype ov=fd_oid_value(oid);
     if (((FD_OIDP(p->oidnamefn)) || (FD_SYMBOLP(p->oidnamefn))) &&

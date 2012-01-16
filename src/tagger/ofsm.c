@@ -59,6 +59,13 @@ static fd_exception NoGrammar=_("No grammar identified");
 
 /* These were once useful? */
 #if 0
+static int hashset_strget(fd_hashset hs,u8_string data,int i)
+{
+  struct FD_STRING stringdata;
+  FD_INIT_STACK_CONS(&stringdata,fd_string_type);
+  stringdata.bytes=data; stringdata.length=i;
+  return fd_hashset_get(hs,(fdtype)(&stringdata));
+}
 static u8_string utf8_next(u8_string s)
 {
   if (*s < 0x80) return s+1;
@@ -427,14 +434,6 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
                     (c == '$')  || (c == ':') || \
                     (c == '&')  || (c == '%')))
 
-static int hashset_strget(fd_hashset hs,u8_string data,int i)
-{
-  struct FD_STRING stringdata;
-  FD_INIT_STACK_CONS(&stringdata,fd_string_type);
-  stringdata.bytes=data; stringdata.length=i;
-  return fd_hashset_get(hs,(fdtype)(&stringdata));
-}
-
 /* possessivep: (static)
     Arguments: a character string
     Returns: 1 or 0 if string looks like a possessive
@@ -481,13 +480,14 @@ static fdtype lower_compound(fdtype compound)
       fdtype result=fd_init_vector(NULL,n,NULL);
       fdtype *newelts=FD_VECTOR_ELTS(result);
       i=0; while (i<n) {
-	fdtype elt=elts[i], new_elt;
+	fdtype elt=elts[i], new_elt=FD_VOID;
 	if (FD_STRINGP(elt)) {
 	  u8_string sdata=FD_STRDATA(elt);
 	  int c=u8_sgetc(&sdata);
 	  if (u8_isupper(c)) new_elt=lower_string(sdata);
 	  else new_elt=fd_incref(elt);}
 	else new_elt=fd_incref(elt);
+	newelts[i]=new_elt;
 	i++;}
       return result;}
     else return fd_incref(compound);}
@@ -986,7 +986,7 @@ static int atalnum(u8_string s)
 
 static u8_string find_sentence_end(u8_string string)
 {
-  u8_string start=string; int in_upper=atupper(string);
+  int in_upper=atupper(string);
   if (string == NULL) return NULL;
   else if (*string == '\0') return NULL;
   else if (*string == '<')
@@ -994,9 +994,9 @@ static u8_string find_sentence_end(u8_string string)
       u8_string next=strstr(string,"-->");
       if (next) string=next+3; else return NULL;}
     else {
+      /* Skip initial markup */
       int c=u8_sgetc(&string);
-      while ((c>0) && (c!='>')) c=u8_sgetc(&string);
-      start=string;}
+      while ((c>0) && (c!='>')) c=u8_sgetc(&string);}
   /* Advance a character, use u8_sgetc to handle UTF-8 correctly. */
   else u8_sgetc(&string);
   /* Go till you get to a possible terminator */
@@ -1940,7 +1940,8 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar); 
   /* Now we set the custom table if provided */
-  if ((FD_FALSEP(custom)) || (FD_VOIDP(custom)) || (FD_EMPTY_CHOICEP(custom))) {}
+  if ((FD_FALSEP(custom)) || (FD_VOIDP(custom)) ||
+      (FD_EMPTY_CHOICEP(custom))) {}
   else if (FD_HASHTABLEP(custom)) {
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
@@ -1970,7 +1971,9 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
 	  if (FD_ABORTP(retval)) break;}}
       if (FD_ABORTP(retval)) break;}}
   fd_free_parse_context(&parse_context);
-  if (FD_ABORTP(retval)) return retval;
+  if (FD_ABORTP(retval)) {
+    fd_seterr(ParseFailed,"",NULL,FD_VOID);
+    return retval;}
   else return result;
 }
 
@@ -1998,7 +2001,8 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar); 
   /* Now we set the custom table if provided */
-  if ((FD_FALSEP(custom)) || (FD_VOIDP(custom)) || (FD_EMPTY_CHOICEP(custom))) {}
+  if ((FD_FALSEP(custom))||(FD_VOIDP(custom))||
+      (FD_EMPTY_CHOICEP(custom))) {}
   else if (FD_HASHTABLEP(custom)) {
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
@@ -2009,22 +2013,27 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
   if (!(FD_VOIDP(flags)))
     parse_context.flags=interpret_parse_flags(flags);
   if (FD_STRINGP(input))
-    retval=fd_analyze_text(&parse_context,FD_STRDATA(input),tag_text_helper,&result);
+    retval=fd_analyze_text
+      (&parse_context,FD_STRDATA(input),tag_text_helper,&result);
   else if (FD_PAIRP(input)) {
     FD_DOLIST(elt,input) {
-      retval=fd_analyze_text(&parse_context,FD_STRDATA(elt),tag_text_helper,&result);
+      retval=fd_analyze_text
+	(&parse_context,FD_STRDATA(elt),tag_text_helper,&result);
       if (FD_ABORTP(retval)) break;}}
   else if (FD_CHOICEP(input)) {
     FD_DO_CHOICES(each,input) {
       if (FD_STRINGP(each))
-	retval=fd_analyze_text(&parse_context,FD_STRDATA(each),tag_text_helper,&result);
+	retval=fd_analyze_text
+	  (&parse_context,FD_STRDATA(each),tag_text_helper,&result);
       else if (FD_PAIRP(each)) {
 	FD_DOLIST(elt,each) {
-	  retval=fd_analyze_text(&parse_context,FD_STRDATA(elt),tag_text_helper,&result);
+	  retval=fd_analyze_text
+	    (&parse_context,FD_STRDATA(elt),tag_text_helper,&result);
 	  if (FD_ABORTP(retval)) break;}}
       if (FD_ABORTP(retval)) break;}}
   if (FD_ABORTP(retval)) {
     fd_free_parse_context(&parse_context);
+    fd_seterr(ParseFailed,"",NULL,FD_VOID);
     return retval;}
   else result=fd_make_nvector
 	 (5,FD_INT2DTYPE(parse_context.n_calls),
@@ -2170,6 +2179,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
     g->grammar=fd_index_get(g->lexicon,grammar_symbol);
     init_ofsm_data(g,g->grammar);
     arc_names=g->arc_names;}
+  else arc_names=g->arc_names=fd_index_get(g->lexicon,fd_intern("%ARCS"));
   names=fd_index_get(g->lexicon,names_symbol);
   nouns=fd_index_get(g->lexicon,nouns_symbol);
   verbs=fd_index_get(g->lexicon,verbs_symbol);
@@ -2179,7 +2189,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   {
     int len=g->n_arcs;
     unsigned char *taginfo=u8_alloc_n(len,unsigned char);
-    fdtype *data=FD_VECTOR_DATA(g->arc_names);
+    fdtype *data=FD_VECTOR_DATA(arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],names)) taginfo[i++]=1; else taginfo[i++]=0;
     g->name_tags=taginfo;
@@ -2187,7 +2197,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   {
     int len=g->n_arcs;
     unsigned char *taginfo=u8_alloc_n(len,unsigned char);
-    fdtype *data=FD_VECTOR_DATA(g->arc_names);
+    fdtype *data=FD_VECTOR_DATA(arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],nouns)) taginfo[i++]=1; else taginfo[i++]=0;
     g->noun_tags=taginfo;
@@ -2195,7 +2205,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   {
     int len=g->n_arcs;
     unsigned char *taginfo=u8_alloc_n(len,unsigned char);
-    fdtype *data=FD_VECTOR_DATA(g->arc_names);
+    fdtype *data=FD_VECTOR_DATA(arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],heads)) taginfo[i++]=1; else taginfo[i++]=0;
     g->head_tags=taginfo;
@@ -2203,7 +2213,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   {
     int len=g->n_arcs;
     unsigned char *taginfo=u8_alloc_n(len,unsigned char);
-    fdtype *data=FD_VECTOR_DATA(g->arc_names);
+    fdtype *data=FD_VECTOR_DATA(arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],mods)) taginfo[i++]=1; else taginfo[i++]=0;
     g->mod_tags=taginfo;
@@ -2211,7 +2221,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
   {
     int len=g->n_arcs;
     unsigned char *taginfo=u8_alloc_n(len,unsigned char);
-    fdtype *data=FD_VECTOR_DATA(g->arc_names);
+    fdtype *data=FD_VECTOR_DATA(arc_names);
     int i=0; while (i<len) 
       if (fd_overlapp(data[i],verbs)) taginfo[i++]=1; else taginfo[i++]=0;
     g->verb_tags=taginfo;

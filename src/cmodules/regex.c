@@ -86,7 +86,7 @@ static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
 {
   struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
   regmatch_t results[1];
-  int retval, eflags=0, len=FD_STRLEN(string);
+  int retval, len=FD_STRLEN(string);
   u8_string s=FD_STRDATA(string);
   retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,0);
   u8_lock_mutex(&(ptr->lock));
@@ -149,7 +149,7 @@ static int regex_init=0;
 FD_EXPORT int fd_init_regex()
 {
   fdtype regex_module;
-  if (regex_init) return;
+  if (regex_init) return 0;
   fd_register_source_file(versionid);
   regex_init=1;
   regex_module=fd_new_module("REGEX",(FD_MODULE_SAFE));

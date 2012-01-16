@@ -101,6 +101,7 @@ static int use_u8_message(u8_output f)
     fd_set_default_output(NULL);
   if (f->u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(f->u8_outbuf);
   if (f->u8_streaminfo&U8_STREAM_MALLOCD) u8_free(f);
+  return 1;
 }
 
 FD_INLINE_FCN u8_output get_default_output_port()
@@ -190,7 +191,6 @@ static fdtype write_bytes(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
-  int bytes;
   if (FD_STRINGP(object)) {
     fd_dtswrite_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
     return FD_STRLEN(object);}

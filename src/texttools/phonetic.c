@@ -98,7 +98,8 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   while (*scan) {
     switch (*scan) {
     case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
-      u8_putc(&out,((*capscan) ? (*scan) : (u8_tolower(*scan)))); break;
+      u8_putc(&out,((*capscan) ? (*scan) :
+		    (u8_tolower(((int)(*scan)))))); break;
     case 'Q': if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k'); break;
     case 'V': if (*capscan) u8_putc(&out,'F'); else u8_putc(&out,'f'); break;
     case 'Z': if (*capscan) u8_putc(&out,'S'); else u8_putc(&out,'s'); break;
@@ -175,7 +176,8 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
       break;
     case 'W': case 'Y':
       if (strchr(VOWELS,scan[1]))
-	if (*capscan) u8_putc(&out,*scan); else u8_putc(&out,u8_tolower(*scan));
+	if (*capscan) u8_putc(&out,*scan);
+	else u8_putc(&out,u8_tolower(((int)*scan)));
       else {}
       break;
     case 'X':
@@ -183,7 +185,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
       break;
     default: if (scan==start) {
 	if (*capscan) u8_putc(&out,*scan);
-	else u8_putc(&out,u8_tolower(*scan));}}
+	else u8_putc(&out,u8_tolower(((int)*scan)));}}
     if ((sep) && (lenout) && (lenout==(out.u8_outptr-out.u8_outbuf)) &&
 	(out.u8_outbuf[lenout-1]!='.'))
       u8_putc(&out,'.');

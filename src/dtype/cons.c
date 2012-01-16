@@ -605,6 +605,7 @@ FD_EXPORT fdtype fd_make_packet
 
 fdtype fd_compound_descriptor_type;
 
+#if 0
 /* This checks if a given compound is acceptable for a given call to
    make_compound */
 static fdtype check_compound_type(fdtype tag,int n)
@@ -618,6 +619,7 @@ static fdtype check_compound_type(fdtype tag,int n)
     else return fields[FD_COMPOUND_TYPE_INITFN];}
   else return FD_FALSE;
 }
+#endif
 
 FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,...)
@@ -628,7 +630,8 @@ FD_EXPORT fdtype fd_init_compound
        little flaky. */
     va_start(args,n);
     while (i<n) {va_arg(args,fdtype); i++;}
-    return fd_type_error(_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
+    return fd_type_error
+      (_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
   else if (p==NULL) {
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}

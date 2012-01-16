@@ -69,6 +69,7 @@ static void fdbatch_atexit()
     u8_removefile(pid_file);
 }
 
+#if 0
 static void signal_shutdown(int sig)
 {
   if ((pid_file) && (u8_file_existsp(pid_file)))
@@ -82,6 +83,7 @@ static void signal_shutdown(int sig)
       u8_fclose(f);}}
     
 }
+#endif
 
 static u8_condition job_stopped="Job stopped";
 static u8_condition job_exited="Job exited";
@@ -89,7 +91,7 @@ static u8_condition job_terminated="Job terminated";
 
 static void wait_for_the_end(pid_t pid)
 {
-  int status=0; char buf[1024];
+  int status=0;
   waitpid(pid,&status,0);
   while (WIFSTOPPED(status)) {
     u8_log(LOG_CRIT,job_stopped,"%s <%d> has been stopped with the signal %d",
@@ -99,7 +101,8 @@ static void wait_for_the_end(pid_t pid)
     u8_log(LOG_CRIT,job_exited,"%s <%d> exited with return value %d",
 	   u8_appid(),pid,WSTOPSIG(status));
   else {
-    char buf[1024];
+    u8_log(LOG_CRIT,job_terminated,"%s <%d> killed with return value %d",
+	   u8_appid(),pid,WSTOPSIG(status));
     if ((pid_file) && (u8_file_existsp(pid_file)))
       u8_removefile(pid_file);
     if (died_file) {
@@ -116,7 +119,7 @@ static int newlog=0;
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd, err_fd, chained=0;
+  int pid_fd, log_fd=-1, err_fd, chained=0;
   int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
@@ -171,7 +174,7 @@ int main(int argc,char **argv)
     if ((err_fd=u8_open_fd(err_file,logopen_flags,LOGMODE))<0) {
       u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
-      if (log_file) close(log_fd);
+      if ((log_file)&&(log_fd>=0)) close(log_fd);
       exit(-1);}}
   /* Now, do the fork. */
   if ((chained==0) && (fork())) exit(0);
@@ -179,6 +182,9 @@ int main(int argc,char **argv)
     char buf[256]; int retval;
     sprintf(buf,"%d",pid);
     retval=write(pid_fd,buf,strlen(buf));
+    if (retval<=0) {
+      u8_log(LOG_ERROR,"Aborted","Can't write pid %d to %s",pid_file);
+      exit(1);}
     close(pid_fd);
     /* The parent process just reports what it did. */
     u8_log(LOG_NOTICE,"Fork started","Launched process pid=%d",pid);
@@ -219,5 +225,6 @@ int main(int argc,char **argv)
 	u8_fclose(f);}
       died_file=NULL;}
     return retval;}
+  return 0;
 }
 

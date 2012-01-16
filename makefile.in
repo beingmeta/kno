@@ -182,6 +182,8 @@ default: all
 all: testbin exe cmodules @TAGS@
 debug:
 	make XCFLAGS="-O0" all
+nitpick:
+	make XCFLAGS="-Wall" all
 rebuild:
 	make clean
 	make default

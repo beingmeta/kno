@@ -653,7 +653,6 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   xml->bits=xml->bits|FD_XML_HASDATA;
   fd_add(xml->attribs,slotid,slotval);
   if (namespace) {
-    fdtype qid=make_qid(attrib_name,namespace);
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       fd_make_nvector(3,fdtype_string(name),make_qid(attrib_name,namespace),
@@ -862,7 +861,7 @@ void *fd_walk_xml(U8_INPUT *in,
       else {}
     else {
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
-      int n_elts, c;
+      int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
 	buf[size-1]='\0'; size--;}
       n_elts=fd_parse_element
@@ -871,8 +870,7 @@ void *fd_walk_xml(U8_INPUT *in,
 	fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));
 	u8_free(buf);
 	return NULL;}
-      node=xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);
-      if (node) c=node->eltname[0];}
+      node=xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);}
     if (node==NULL) break;}
   while ((node)&&((node->bits)&(FD_XML_AUTOCLOSE))) {
     struct FD_XML *next=popfn(node);

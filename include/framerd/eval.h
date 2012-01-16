@@ -308,8 +308,8 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 /* Body iteration */
 
 #define FD_DOBODY(x,list,start)			\
-  fdtype x, _tmp=list, *raildata;               \
-  int ispair=0, off=start, lim;		        \
+  fdtype x, _tmp=list, *raildata=NULL;          \
+  int ispair=0, off=start, lim=0;	        \
   if (FD_PAIRP(_tmp)) {                         \
     ispair=1; _tmp=fd_get_body(_tmp,off);}      \
   else if (FD_RAILP(_tmp)) {                    \

@@ -138,7 +138,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
    (struct FD_DTYPE_STREAM *stream,
     u8_string fname,fd_dtstream_mode mode,int bufsiz)
  {
-  int fd, flags=POSIX_OPEN_FLAGS, lock, writing=0;
+  int fd, flags=POSIX_OPEN_FLAGS, lock=0, writing=0;
   char *localname=u8_localpath(fname);
   switch (mode) {
   case FD_DTSTREAM_READ:
@@ -158,7 +158,8 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
   if (fd>0) {
     fd_init_dtype_stream(stream,fd,bufsiz);
     stream->mallocd=1; stream->id=u8_strdup(fname);
-    stream->flags=stream->flags|FD_DTSTREAM_CANSEEK|FD_DTSTREAM_NEEDS_LOCK;
+    stream->flags=stream->flags|FD_DTSTREAM_CANSEEK;
+    if (lock) stream->flags=stream->flags|FD_DTSTREAM_NEEDS_LOCK;
     if (writing == 0) stream->flags=stream->flags|FD_DTSTREAM_READ_ONLY;
     stream->maxpos=lseek(fd,0,SEEK_END);
     stream->filepos=lseek(fd,0,SEEK_SET); 

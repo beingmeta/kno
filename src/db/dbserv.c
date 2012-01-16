@@ -490,7 +490,7 @@ static fdtype ixserver_bulk_add(fdtype ixarg,fdtype vec)
       if (FD_VOIDP(data[i])) break;
       else {
 	fdtype key=data[i++], value=data[i++];
-	fd_index_add(ix,data[i],data[i+1]);
+	fd_index_add(ix,key,value);
 	fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(clog,keys); fd_decref(keys);
     return FD_TRUE;}
@@ -904,4 +904,5 @@ FD_EXPORT int fd_init_fddbserv()
   fd_register_source_file(versionid);
   fd_init_dbserv_c();
 
+  return 1;
 }

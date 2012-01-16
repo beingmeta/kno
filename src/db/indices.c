@@ -506,15 +506,13 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
 
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 {
-  fdtype cached;
-  FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
-#if FD_USE_THREACACHE
+  fdtype cached; struct FD_PAIR tempkey;
+  FDTC *fdtc=fd_threadcache;
   if (fdtc) {
     FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
     tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
-#endif
   if (ix->cache_level==0) cached=FD_VOID;
   else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->has_slotids))) &&
       (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))
@@ -560,28 +558,24 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
   else if (FD_CHOICEP(key)) {
     const fdtype *keys=FD_CHOICE_DATA(key);
     unsigned int n=FD_CHOICE_SIZE(key);
-#if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
-    if (fdtc) {
+    if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)) {
       FD_DO_CHOICES(k,key) {
 	struct FD_PAIR tempkey;
 	FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
 	tempkey.car=fd_index2lisp(ix); tempkey.cdr=k;
 	if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
 	  fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}}
-#endif
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
     if (!(FD_VOIDP(ix->has_slotids))) extend_slotids(ix,keys,n);
     if (ix->cache_level>0)
       fd_hashtable_iterkeys(&(ix->cache),fd_table_add_if_present,n,keys,value);}
   else {
-#if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
-    if (fdtc) {
+    if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)) {
       struct FD_PAIR tempkey;
       FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
       tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
       if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
 	fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}
-#endif
     fd_hashtable_add(&(ix->adds),key,value);
     if (ix->cache_level>0)
       fd_hashtable_op(&(ix->cache),fd_table_add_if_present,key,value);}
@@ -1094,7 +1088,7 @@ static int extindex_commit(fd_index ix)
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(exi->edits),&n_edits,0);
     struct FD_KEYVAL *scan=kvals, *limit=kvals+n_edits;
     while (scan<limit) {
-      fdtype key=scan->key, result=FD_VOID;
+      fdtype key=scan->key;
       if (FD_PAIRP(key)) {
 	fdtype kind=FD_CAR(key), realkey=FD_CDR(key), value=scan->value;
 	fdtype assoc=fd_init_pair(NULL,realkey,value);

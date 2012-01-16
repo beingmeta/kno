@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dbfile.h"
@@ -51,6 +48,7 @@ static void print_table(fdtype frames,fdtype slotids)
 int main(int argc,char **argv)
 {
   int fd_version=fd_init_dbfile();
+  if (fd_version<0) exit(1);
   fd_config_set("OIDDISPLAY",FD_INT2DTYPE(3));
   if (argc==2) {
     fdtype frames=fd_qparse(argv[1]);
@@ -95,4 +93,5 @@ int main(int argc,char **argv)
   fd_clear_slotcaches();
   fd_clear_callcache(FD_VOID);
 #endif
+  return 0;
 }

@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/numbers.h"
@@ -59,11 +56,12 @@ static int traceweb=0;
 /* Trace web transactions that take over *overtime* seconds */
 static double overtime=0;
 
+/* Whether to obey the TRACEP cgi variable */
+static int cgitrace=0;
+
 static int use_threadcache=0;
 
 static char *pidfile;
-
-static fd_exception CantWriteSocket=_("Can't write to socket");
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -74,9 +72,6 @@ static struct U8_XTIME boot_time;
 
 /* This is how old a socket file needs to be to be deleted as 'leftover' */
 #define FD_LEFTOVER_AGE 30
-
-static int load_report_freq=1000;
-static time_t last_load_report=-1;
 
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
@@ -101,22 +96,6 @@ static int servlet_ntasks=64, servlet_threads=8;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
-
-/* TRACEWEB config  */
-
-static fdtype traceweb_get(fdtype var,void MAYBE_UNUSED *data)
-{
-  if (traceweb) return FD_INT2DTYPE(traceweb); else return FD_FALSE;
-}
-static int traceweb_set(fdtype var,fdtype val,void MAYBE_UNUSED *data)
-{
-  if (FD_FIXNUMP(val))
-    traceweb=FD_FIX2INT(val);
-  else if (FD_TRUEP(val))
-    traceweb=1;
-  else traceweb=0;
-  return 1;
-}
 
 /* URLLOG config */
 
@@ -178,7 +157,7 @@ static int statlog_set(fdtype var,fdtype val,void *data)
     if (statlog) {
       fclose(statlog); statlog=NULL;
       u8_free(statlogfile); statlogfile=NULL;}
-    statlogfile=u8_abspath(FD_STRDATA(val),NULL);
+    statlogfile=u8_abspath(filename,NULL);
     statlog=u8_fopen_locked(statlogfile,"a");
     if (statlog) {
       u8_string tmp;
@@ -220,6 +199,7 @@ static int statinterval_set(fdtype var,fdtype val,void *data)
   else return fd_reterr
 	 (fd_TypeError,"config_set_statinterval",
 	  u8_strdup(_("fixnum")),val);
+  return 1;
 }
 
 static fdtype statinterval_get(fdtype var,void *data)
@@ -272,7 +252,7 @@ static void report_status()
        u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
   else u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f",
 	      u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
-  if (rcount)
+  if (rcount) {
     if (statlog)
       u8_fprintf
 	(statlog,
@@ -280,7 +260,7 @@ static void report_status()
 	 u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
     else u8_log(LOG_INFO,"fdserv",
 		"[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f",
-		u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
+		u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);}
   u8_unlock_mutex(&(fdwebserver.lock));
   if (statlog) fflush(statlog);
 }
@@ -675,7 +655,7 @@ static int webservefn(u8_client ucl)
   struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
-  int forcelog=0;
+  int forcelog=0, retval=0;
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
   /* Do this ASAP to avoid session leakage */
@@ -749,7 +729,7 @@ static int webservefn(u8_client ucl)
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
+    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
@@ -801,7 +781,7 @@ static int webservefn(u8_client ucl)
 		client->out.u8_outptr-client->out.u8_outbuf);
     u8_client_close(ucl);}
   else {
-    U8_OUTPUT tmp; int retval, tracep;
+    U8_OUTPUT tmp; int tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     fdtype retfile=((FD_VOIDP(content))?
@@ -810,7 +790,7 @@ static int webservefn(u8_client ucl)
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
-    /* if (tracep) fprintf(stderr,"%s\n",tmp.u8_outbuf); */
+    if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
     u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
     tmp.u8_outptr=tmp.u8_outbuf;
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
@@ -829,7 +809,7 @@ static int webservefn(u8_client ucl)
       if (f) {
 	int bytes_read=0; unsigned char buf[32768];
 	while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
-	  int retval=u8_writeall(client->socket,buf,bytes_read);
+	  retval=u8_writeall(client->socket,buf,bytes_read);
 	  if (retval<0) break;}
 	fclose(f);}}
       else {
@@ -838,8 +818,11 @@ static int webservefn(u8_client ucl)
       client->out.u8_outptr=client->out.u8_outbuf;}
     u8_client_close(ucl);
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
+    if (retval<0)
+      u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
     if ((reqlog) || (urllog))
-      dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);}
+      dolog(cgidata,result,client->out.u8_outbuf,
+	    u8_elapsed_time()-start_time);}
   if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
     fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(cl,cleanup) {
@@ -853,7 +836,8 @@ static int webservefn(u8_client ucl)
   write_time=u8_elapsed_time();
   getloadavg(end_load,3);
   u8_getrusage(RUSAGE_SELF,&end_usage);
-  if ((forcelog)||(traceweb>0)||((overtime>0)&&((write_time-start_time)>overtime))) {
+if ((forcelog)||(traceweb>0)||
+    ((overtime>0)&&((write_time-start_time)>overtime))) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE",
@@ -882,8 +866,8 @@ static int webservefn(u8_client ucl)
 		      "OVERTIME":"FORCELOG");
       u8_string before=u8_rusage_string(&start_usage);
       u8_string after=u8_rusage_string(&end_usage);
-      u8_log(LOG_NOTICE,"OVERTIME","before: %s",before);
-      u8_log(LOG_NOTICE,"OVERTIME"," after: %s",after);
+      u8_log(LOG_NOTICE,cond,"before: %s",before);
+      u8_log(LOG_NOTICE,cond," after: %s",after);
       u8_free(before); u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
@@ -904,6 +888,7 @@ static int close_webclient(u8_client ucl)
   fd_webconn client=(fd_webconn)ucl;
   fd_dtsclose(&(client->in),2);
   u8_close((u8_stream)&(client->out));
+  return 1;
 }
 
 static char *portfile=NULL;
@@ -1038,21 +1023,18 @@ static int check_socket_path(char *sockarg)
 
 /* The main() event */
 
-static void doexit(int sig)
-{
-  exit(0);
-}
-
 FD_EXPORT void fd_init_dbfile(void); 
 
 int main(int argc,char **argv)
 {
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
-  unsigned char data[1024], *input;
-  int i=1, n_threads=-1, n_tasks=-1;
-  u8_string source_file=NULL;
+  int i=1;
   u8_string socket_path=NULL;
+
+  if (u8_version<0) {
+    u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
+    exit(1);}
 
   /* Set this here, before processing any configs */
   fddb_loglevel=LOG_INFO;
@@ -1092,6 +1074,10 @@ int main(int argc,char **argv)
   
   fd_version=fd_init_fdscheme();
   
+  if (fd_version<0) {
+    u8_log(LOG_WARN,Startup,"Couldn't initialize FramerD");
+    exit(1);}
+
   /* We register this module so that we can have pages that use the functions,
      for instance with an HTTP PROXY that can be used as a dtype server */
 

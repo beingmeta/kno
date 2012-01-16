@@ -376,18 +376,14 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,
 static fdtype mkuripath_prim(fdtype dirname,fdtype name)
 {
   fdtype config_val=FD_VOID; u8_string dir=NULL, namestring=NULL;
-  char buf[128]; int dirlen=-1, need_slash=0;
+  char buf[128];
   if (!(FD_STRINGP(name)))
     return fd_type_error(_("string"),"mkuripath_prim",name);
   else namestring=FD_STRDATA(name);
-  if (FD_STRINGP(dirname)) {
-    dir=FD_STRDATA(dirname);
-    dirlen=FD_STRLEN(dirname);}
+  if (FD_STRINGP(dirname)) dir=FD_STRDATA(dirname);
   else if (FD_SYMBOLP(dirname)) {
     config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
-    if (FD_STRINGP(config_val)) {
-      dir=FD_STRDATA(config_val);
-      dirlen=FD_STRLEN(config_val);}
+    if (FD_STRINGP(config_val)) dir=FD_STRDATA(config_val);
     else {
       fd_decref(config_val); 
       return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}

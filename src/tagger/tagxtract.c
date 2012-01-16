@@ -215,16 +215,6 @@ static fdtype getphrase_prim(fdtype args,fdtype patterns)
 
 /* Compound functions */
 
-static int capitalizedp(fdtype x)
-{
-  if (FD_STRINGP(x)) {
-    u8_string s=FD_STRDATA(x); int c=u8_sgetc(&s);
-    return u8_isupper(c);}
-  else if (FD_PAIRP(x))
-    return capitalizedp(FD_CAR(x));
-  else return 0;
-}
-
 static int output_term(u8_output out,fdtype term,int insert_space)
 {
   if (FD_STRINGP(term)) {

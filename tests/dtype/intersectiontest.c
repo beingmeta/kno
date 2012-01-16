@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
@@ -58,13 +55,14 @@ static int write_dtype_to_file(fdtype x,char *file)
   retval=fwrite(out.start,1,out.ptr-out.start,f);
   u8_free(out.start);
   fclose(f);
+  return retval;
 }
 
 #define free_var(var) fd_decref(var); var=FD_VOID
 
 int main(int argc,char **argv)
 {
-  FILE *f;
+  FILE *f=NULL;
   int i=2, j=0, write_binary=0;
   fdtype *args=u8_alloc_n(argc-2,fdtype), common;
   double starttime, inputtime, donetime;
@@ -74,13 +72,13 @@ int main(int argc,char **argv)
     if (strchr(argv[i],'=')) 
       fd_config_assignment(argv[i++]);
     else {
-    fdtype item=read_choice(argv[i]);
-    if (FD_ABORTP(item)) {
-      if (!(FD_THROWP(item)))
-	u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
-      return -1;}
-    u8_fprintf(stderr,"Read %d items from %s\n",FD_CHOICE_SIZE(item),argv[i]);
-    args[j++]=item; i++;}
+      fdtype item=read_choice(argv[i]);
+      if (FD_ABORTP(item)) {
+	if (!(FD_THROWP(item)))
+	  u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+	return -1;}
+      u8_fprintf(stderr,"Read %d items from %s\n",FD_CHOICE_SIZE(item),argv[i]);
+      args[j++]=item; i++;}
   inputtime=get_elapsed();
   common=fd_intersection(args,j);
   donetime=get_elapsed();

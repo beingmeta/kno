@@ -84,13 +84,15 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
     else if (FD_EMPTY_CHOICEP(value))
       as_string=u8_strdup("");
     else as_string=fd_dtype2string(value);
-    if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
+    if (FD_EQ(FD_CAR(val),xmleval2expr_tag)) {
       if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
 	  ((isdigit(FD_STRDATA(value)[0]))||(FD_STRDATA(value)[0]==':')))
 	u8_putc(out,'\\');
     /* Don't output a preceding colon if the value would be 'self parsing' */
-      else if ((FD_FIXNUMP(value)) || (FD_FLONUMP(value)) || (FD_STRINGP(value))) {}
-      else u8_putc(out,':');
+      else if ((FD_FIXNUMP(value)) ||
+	       (FD_FLONUMP(value)) ||
+	       (FD_STRINGP(value))) {}
+      else u8_putc(out,':');}
     fd_attrib_entify(out,as_string);
     fd_decref(value); u8_free(as_string);
     return 0;}
@@ -105,7 +107,7 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
   else if (FD_STRINGP(val)) {
     fd_attrib_entify(out,FD_STRDATA(val));
     return 1;}
-  else if (FD_OIDP(val)) {}
+  else if (FD_OIDP(val)) { return 1;}
   else {
     u8_string as_string=fd_dtype2string(val);
     if (!((FD_FIXNUMP(val)) || (FD_FLONUMP(val)) || (FD_BIGINTP(val))))
@@ -303,6 +305,7 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
       fd_decref(markup); fd_decref(content);
       return FD_VOID;}
   else return fd_type_error("XML node","get_markup_string",xml);
+  return FD_VOID;
 }
 
 /* Handling dynamic elements */
@@ -516,7 +519,6 @@ FD_EXPORT int fd_xmleval_attribfn
   xml->bits=xml->bits|FD_XML_HASDATA;
   fd_add(xml->attribs,slotid,slotval);
   if (namespace) {
-    fdtype qid=fd_make_qid(attrib_name,namespace);
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       fd_make_nvector(3,fdtype_string(name),
@@ -721,11 +723,9 @@ static FD_XML *handle_xmleval_pi
 	u8_string arg=get_pi_string(attribs[i]+12);
 	u8_string filename=fd_get_component(arg);
 	fd_lispenv env=(fd_lispenv)(xml->data);
-	fd_lispenv xml_env;
 	if (fd_load_latest(filename,env,NULL)<0) {
 	  u8_free(arg); u8_free(filename);
 	  return NULL;}
-	else xml_env=get_xml_env(xml);
 	u8_free(arg); u8_free(filename);
 	i++;}
       else if ((strncmp(attribs[i],"scheme_module=",14))==0) {
@@ -1017,7 +1017,7 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
   fdtype body=fd_get(expr,content_slotid,FD_VOID);
   int len=0, n=0, i=0;
   fdtype _v[16], *v, result=FD_EMPTY_CHOICE;
-  {FD_DOLIST(elt,body) len++;}
+  {FD_DOLIST(elt,body) {elt; len++;}}
   if (len<16) v=_v; else v=u8_alloc_n(len,fdtype);
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body)
@@ -1149,7 +1149,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   u8_output out=fd_get_default_output();
   fdtype seq=fdxml_get(xpr,sequence_symbol,env), *iterval=NULL;
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
@@ -1167,7 +1167,6 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct); 
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
@@ -1209,7 +1208,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   fdtype choices=fdxml_get(xpr,choice_symbol,env);
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
   fdtype *vloc=NULL, *iloc=NULL;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (FD_ABORTP(choices)) return choices;
@@ -1229,7 +1228,6 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
   else if (FD_ABORTP(choices))
     return choices;
@@ -1268,7 +1266,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   u8_output out=fd_get_default_output(); int i=0, limit;
   fdtype limit_val=fdxml_get(xpr,max_symbol,env);
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (!(FD_FIXNUMP(limit_val)))
@@ -1282,7 +1280,6 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct); 
   vars[0]=var; vals[0]=FD_INT2DTYPE(0);
   while (i < limit) {
     if (envstruct.copy) 
@@ -1391,12 +1388,11 @@ static int xmleval_initialized=0;
 
 FD_EXPORT void fd_init_xmleval_c()
 {
-  fdtype module;
+  /* fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE)); */
   if (xmleval_initialized) return;
   xmleval_initialized=1;
   fd_init_fdscheme();
   fdxml_module=fd_make_env(fd_make_hashtable(NULL,17),NULL);
-  module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);

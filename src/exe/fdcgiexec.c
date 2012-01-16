@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/numbers.h"
@@ -58,11 +55,9 @@ static fd_dtype_stream reqlog=NULL;
 static int reqloglevel=0;
 static int traceweb=0;
 
+static int cgitrace=0;
+
 static int use_threadcache=0;
-
-static char *pidfile;
-
-static fd_exception CantWriteSocket=_("Can't write to socket");
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -87,7 +82,7 @@ static fd_lispenv server_env;
 /* This environment is the parent of all script/page environments spun off
    from this server. */
 static fd_lispenv server_env=NULL;
-static int servlet_ntasks=64, servlet_threads=8;
+static int servlet_threads=8;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
@@ -259,6 +254,7 @@ static void dolog
 
 /* Writing the PID file */
 
+#if 0
 static void write_pid_file(char *sockname)
 {
   FILE *f;
@@ -277,6 +273,7 @@ static void write_pid_file(char *sockname)
     fprintf(f,"%d",getpid());
     fclose(f);}
 }
+#endif
 
 /* Preloads */
 
@@ -511,13 +508,12 @@ static void copy_envparam(char *name,fdtype target,fdtype slotid)
 
 static fdtype get_envcgidata()
 {
-  int retval=0;
   fdtype slotmap=fd_empty_slotmap();
   char *lenstring=getenv("CONTENT_LENGTH");
   if (lenstring) {
     fdtype packet=FD_VOID;
     int len=atoi(lenstring);
-    char *ctype=getenv("CONTENT_TYPE");
+    /* char *ctype=getenv("CONTENT_TYPE"); */
     char *buf=u8_malloc(len);
     if (fgets(buf,len,stdin)==NULL) return FD_ERROR_VALUE;
     packet=fd_init_packet(NULL,len,buf);
@@ -714,7 +710,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
-    /* if (tracep) fprintf(stderr,"%s\n",tmp.u8_outbuf); */
+    if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
     FCGX_PutStr(tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf,req->out);
     tmp.u8_outptr=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
@@ -952,7 +948,7 @@ static int simplecgi(fdtype path)
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
+    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
@@ -998,13 +994,13 @@ static int simplecgi(fdtype path)
     retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);
     u8_free_exception(ex,1);}
   else {
-    U8_OUTPUT tmp; int retval, tracep;
+    U8_OUTPUT tmp; int tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
-    /* if (tracep) fprintf(stderr,"%s\n",tmp.u8_outbuf); */
+    if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
     retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
     tmp.u8_outptr=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
@@ -1019,6 +1015,8 @@ static int simplecgi(fdtype path)
       else if (FD_PACKETP(content))
 	retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),stdout);}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);}
+  if (retval<0)
+    u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
   fd_set_default_output(NULL);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
@@ -1114,6 +1112,10 @@ static fdtype get_uptime()
 
 /* Making sure you can write the socket file */
 
+#define SOCKDIR_PERMISSIONS \
+  (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH)
+
+#if 0
 static int mkdir_recursive(u8_string path,mode_t mode)
 {
 
@@ -1133,9 +1135,6 @@ static int mkdir_recursive(u8_string path,mode_t mode)
     return 1;}
 }
 
-#define SOCKDIR_PERMISSIONS \
-  (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH)
-
 static int check_socket_path(char *sockarg)
 {
   u8_string sockname=u8_fromlibc(sockarg);
@@ -1153,13 +1152,9 @@ static int check_socket_path(char *sockarg)
     u8_seterr(fd_CantWrite,"check_socket_path",sockname);
     return -1;}
 }
+#endif
 
 /* The main() event */
-
-static void doexit(int sig)
-{
-  exit(0);
-}
 
 FD_EXPORT void fd_init_dbfile(void); 
 
@@ -1167,9 +1162,12 @@ int main(int argc,char **argv)
 {
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
-  unsigned char data[1024], *input, *loadfile=NULL;
+  unsigned char *loadfile=NULL;
   int i=1;
-  u8_string source_file=NULL;
+
+  if (u8_version<0) {
+    u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
+    exit(1);}
 
   u8_log(LOG_INFO,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
 
@@ -1188,6 +1186,10 @@ int main(int argc,char **argv)
 
   fd_version=fd_init_fdscheme();
   
+  if (fd_version<0) {
+    u8_log(LOG_WARN,Startup,"Couldn't initialize FramerD");
+    exit(1);}
+
   /* Record the startup time for UPTIME */
   u8_now(&boot_time);
 

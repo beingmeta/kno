@@ -108,7 +108,7 @@ static fdtype json_atom(U8_INPUT *in,int flags);
 
 static fdtype json_parse(U8_INPUT *in,int flags,fdtype fieldmap)
 {
-  int c=skip_whitespace(in); fdtype v;
+  int c=skip_whitespace(in);
   if (c=='[') return json_vector(in,flags,fieldmap);
   else if (c=='{') return json_table(in,flags,fieldmap);
   else if (c=='"') return json_string(in,flags);
@@ -279,20 +279,20 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
 	else {
 	  u8_seterr(fd_MallocFailed,"json_table",NULL);
 	  break;}}
-      kv[n_elts].key=json_key(in,flags,fieldmap);
+      kv[n_elts].key=json_key(in,vflags,fieldmap);
       if (FD_ABORTP(kv[n_elts].key)) break;
       c=skip_whitespace(in);
       if (c==':') c=u8_getc(in);
       else return FD_EOD;
       if ((FD_VOIDP(fieldmap))||(FD_CONSP(kv[n_elts].key)))
-	kv[n_elts].value=json_parse(in,flags,fieldmap);
+	kv[n_elts].value=json_parse(in,vflags,fieldmap);
       else {
 	fdtype handler=fd_get(fieldmap,kv[n_elts].key,FD_VOID);
 	if (FD_VOIDP(handler))
-	  kv[n_elts].value=json_parse(in,flags,fieldmap);
+	  kv[n_elts].value=json_parse(in,vflags,fieldmap);
 	else
-	  kv[n_elts].value=convert_value(handler,json_parse(in,flags,fieldmap),
-					 1,(flags&FD_JSON_WARNINGS));}
+	  kv[n_elts].value=convert_value(handler,json_parse(in,vflags,fieldmap),
+					 1,(vflags&FD_JSON_WARNINGS));}
       if (FD_ABORTP(kv[n_elts].value)) break;
       n_elts++; c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {
@@ -332,7 +332,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype oidfn,fdtype sl
 static void json_escape(u8_output out,u8_string s)
 {
   u8_string start=s, scan=start; int c;
-  while (c=(*scan))
+  while ((c=(*scan))) {
     if ((c<128)&&((c=='"')||(c=='\\')||(iscntrl(c)))) {
       if (scan>start) u8_putn(out,start,scan-start);
       u8_putc(out,'\\');
@@ -344,7 +344,7 @@ static void json_escape(u8_output out,u8_string s)
       case '\t': u8_putc(out,'t'); break;
       default: u8_putc(out,c); break;}
       scan++; start=scan;}
-    else scan++;
+    else scan++;}
   if (scan>start) u8_putn(out,start,scan-start);
 }
 

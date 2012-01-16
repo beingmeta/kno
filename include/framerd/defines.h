@@ -43,6 +43,8 @@
 #define FD_MMAP_PREFETCH_WINDOW 0
 #endif
 
+#define FD_WRITETHROUGH_THREADCACHE 1
+
 /* This is set to make incref/decref into no-ops, which is helpful
    for ablative benchmarking.  */
 #ifndef FD_NO_GC

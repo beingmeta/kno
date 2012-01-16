@@ -82,7 +82,7 @@ static fdtype merge_symbol, noempty_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
-  u8_byte *scan=s; int c=u8_sgetc(&s);
+  int c=u8_sgetc(&s);
   out->u8_outptr=out->u8_outbuf;
   while (c>=0) {
     u8_putc(out,u8_toupper(c));
@@ -584,13 +584,13 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
   MYSQL_STMT *stmt=mysql_stmt_init(db);
   MYSQL_BIND *outbound=NULL; fdtype *colnames=NULL; my_bool *isnullbuf;
   fdtype colinfo=merge_colinfo(dbp,colinfo_arg), results;
-  int retval, n_cols; unsigned int mysqlerrno=0;
+  int retval, n_cols=0; unsigned int mysqlerrno=0;
   if (stmt)
     retval=mysql_stmt_prepare(stmt,FD_STRDATA(string),FD_STRLEN(string));
   else retval=-1;
-  if (retval)
+  if (retval) {
     if (stmt) mysqlerrno=mysql_errno(db);
-    else mysqlerrno=mysql_stmt_errno(stmt);
+    else mysqlerrno=mysql_stmt_errno(stmt);}
   if ((mysqlerrno==CR_SERVER_GONE_ERROR) ||
       (mysqlerrno==CR_SERVER_LOST)) {
     int reconn=reopen_mysql(dbp);
@@ -603,7 +603,8 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
 
   /* We assume that we don't need to check for the server lost condition
      again.  This probably isn't correct.  ??? */
-  if (retval==0) n_cols=init_stmt_results(stmt,&outbound,&colnames,&isnullbuf);
+  if (retval==0)
+    n_cols=init_stmt_results(stmt,&outbound,&colnames,&isnullbuf);
   if (retval==0) retval=mysql_stmt_execute(stmt);
 
   if (n_cols==0) return FD_VOID;
@@ -645,8 +646,7 @@ static fdtype mysqlmakeproc
    fdtype colinfo,int n,fdtype *ptypes)
 {
   MYSQL *db=dbp->db;
-  u8_string fname;
-  int flags=0, consed_colinfo=0, n_params, n_cols, retval;
+  int n_params, n_cols, retval;
   struct FD_MYSQL_PROC *dbproc=u8_alloc(struct FD_MYSQL_PROC);
   FD_INIT_FRESH_CONS(dbproc,fd_extdb_proc_type);
 
@@ -816,7 +816,6 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
 
 static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
-  fdtype results=FD_EMPTY_CHOICE;
   struct FD_MYSQL_PROC *dbproc=(struct FD_MYSQL_PROC *)fn;
   struct FD_MYSQL *dbp=
     FD_GET_CONS(dbproc->db,fd_extdb_type,struct FD_MYSQL *);
@@ -1005,6 +1004,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   else retval=sretval=mysql_stmt_store_result(dbproc->stmt);
 
   if (retval) mysqlerrno=mysql_stmt_errno(dbproc->stmt);
+  else mysqlerrno=0;
 
   if ((mysqlerrno==CR_SERVER_GONE_ERROR) ||
       (mysqlerrno==CR_SERVER_LOST)) {
@@ -1046,7 +1046,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
        dbproc->n_cols,dbproc->colnames,
        dbproc->outbound,dbproc->isnull);
   else {
-    int rows=mysql_stmt_affected_rows(dbproc->stmt);
+    /* int rows= */ mysql_stmt_affected_rows(dbproc->stmt);
     values=FD_VOID;}
   
   /* Clean up */

@@ -314,10 +314,10 @@ static void setcookiedata(fdtype cookiedata,fdtype cgidata)
      (fd_req_get(cookies_symbol,FD_EMPTY_CHOICE)));
   fdtype cookievar=FD_VECTOR_REF(cookiedata,0);
   FD_DO_CHOICES(cookie,cookies) {
-    if (FD_EQ(FD_VECTOR_REF(cookie,0),cookievar))
+    if (FD_EQ(FD_VECTOR_REF(cookie,0),cookievar)) {
       if (FD_TABLEP(cgidata))
 	fd_drop(cgidata,cookies_symbol,cookie);
-      else fd_req_drop(cookies_symbol,cookie);}
+      else fd_req_drop(cookies_symbol,cookie);}}
   fd_decref(cookies);
   if ((cgidata)&&(FD_TABLEP(cgidata)))
     fd_add(cgidata,cookies_symbol,cookiedata);
@@ -331,7 +331,7 @@ static void convert_cookie_arg(fd_slotmap c)
   else {
     fdtype slotid=FD_VOID, value=FD_VOID;
     int len=FD_STRLEN(qval); int isascii=1;
-    u8_byte *scan=FD_STRDATA(qval), *end=scan+len, *start=scan;
+    u8_byte *scan=FD_STRDATA(qval), *end=scan+len;
     char *buf=u8_malloc(len), *write=buf;
     while (scan<end)
       if ((FD_VOIDP(slotid)) && (*scan=='=')) {
@@ -748,8 +748,7 @@ static fdtype set_body_attribs(int n,fdtype *args)
     fd_req_store(body_attribs_slotid,FD_FALSE);
     return FD_VOID;}
   else {
-    fdtype attribs=FD_EMPTY_LIST; int i=n-1;
-    while (i>=0) {
+    int i=n-1; while (i>=0) {
       fd_incref(args[i]);
       fd_req_push(body_attribs_slotid,args[i]);
       i--;}
@@ -1031,6 +1030,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/SET!",reqset_prim,2)));
   fd_idefn(module,fd_make_cprim2("REQ/ADD!",reqadd_prim,2));
   fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
+  fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
 
   fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim,0));
 

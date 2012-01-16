@@ -192,6 +192,7 @@ static int network_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     result=fd_dtcall(np->connpool,3,bulk_commit_symbol,client_id,vec);
     /* Don't decref the individual elements because you didn't incref them. */
     u8_free((struct FD_CONS *)vec); u8_free(storevec);
+    fd_decref(result);
     return 1;}
   else {
     int i=0;

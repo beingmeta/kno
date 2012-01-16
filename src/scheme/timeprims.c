@@ -137,7 +137,8 @@ static fdtype gmtimestamp_prim(fdtype arg)
       u8_iso8601_to_xtime(sdata,&(tm->xtime));
     else u8_rfc822_to_xtime(sdata,&(tm->xtime));
     moment=u8_mktime(&(tm->xtime));
-    return FDTYPE_CONS(tm);}
+    if (moment<0) return FD_ERROR_VALUE;
+    else return FDTYPE_CONS(tm);}
   else if (FD_SYMBOLP(arg)) {
     enum u8_timestamp_precision prec=get_precision(arg);
     if (((int)prec)<0)
@@ -159,7 +160,8 @@ static fdtype gmtimestamp_prim(fdtype arg)
     double dv=FD_FLONUM(arg);
     double dsecs=floor(dv), dnsecs=(dv-dsecs)*1000000000;
     unsigned int secs=(unsigned int)dsecs, nsecs=(unsigned int)dnsecs;
-    u8_init_xtime(&(tm->xtime),(time_t)secs,u8_second,nsecs,0,0);
+    u8_init_xtime
+      (&(tm->xtime),(time_t)secs,u8_second,nsecs,0,0);
     return FDTYPE_CONS(tm);}
   else {
     u8_free(tm);
@@ -743,7 +745,7 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 		 (FD_FALSEP(prec_arg)) ? (-1) : (0));
   int elts=0;
   double seconds;
-  int years, months, weeks, days, hours, minutes, need_comma=0;
+  int years, months, weeks, days, hours, minutes;
   if (FD_FIXNUMP(secs)) 
     seconds=(double)FD_FIX2INT(secs);
   else if (FD_FLONUMP(secs))

@@ -47,7 +47,7 @@ static fdtype merge_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
-  u8_byte *scan=s; int c=u8_sgetc(&s);
+  int c=u8_sgetc(&s);
   out->u8_outptr=out->u8_outbuf;
   while (c>=0) {
     u8_putc(out,u8_toupper(c));
@@ -83,12 +83,6 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
     u8_init_mutex(&(sqlcons->proclock));
     return FDTYPE_CONS(sqlcons);}
 }
-static fdtype sqlite_open_handler(int n,fdtype *args)
-{
-  if (n>1)
-    return open_sqlite(args[0],args[1]);
-  else return open_sqlite(args[0],FD_VOID);
-}
 
 static void recycle_sqlitedb(struct FD_EXTDB *c)
 {
@@ -106,7 +100,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   fdtype _colnames[16], *colnames;
   fdtype _colmaps[16], *colmaps;
   fdtype mergefn=fd_getopt(colinfo,merge_symbol,FD_VOID);
-  int i=0, n_cols=sqlite3_column_count(stmt), retval, mergeval=0;
+  int i=0, n_cols=sqlite3_column_count(stmt), retval;
   struct U8_OUTPUT out;
   if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
 	(FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
@@ -198,7 +192,7 @@ static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
 {
   sqlite3 *dbp=fds->db;
   sqlite3_stmt *stmt;
-  fdtype results=FD_EMPTY_CHOICE; const char *errmsg="er, err";
+  const char *errmsg="er, err";
   int retval;
   u8_lock_mutex(&(fds->lock));
   retval=
@@ -236,8 +230,7 @@ static fdtype sqlitemakeproc
    fdtype colinfo,int n,fdtype *ptypes)
 {
   sqlite3 *db=dbp->db;
-  u8_string fname;
-  int flags=0, consed_colinfo=0, n_params, retval;
+  int n_params, retval;
   struct FD_SQLITE_PROC *sqlcons=u8_alloc(struct FD_SQLITE_PROC);
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
   retval=sqlite3_prepare_v2(db,stmt,stmt_len,&(sqlcons->stmt),NULL);
@@ -323,7 +316,7 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) 
       ret=sqlite3_bind_text
 	(dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
-    else if (FD_OIDP(arg))
+    else if (FD_OIDP(arg)) {
       if (FD_OIDP(dbproc->paramtypes[i])) {
 	FD_OID addr=FD_OID_ADDR(arg);
 	FD_OID base=FD_OID_ADDR(dbproc->paramtypes[i]);
@@ -331,7 +324,7 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	ret=sqlite3_bind_int(dbproc->stmt,i+1,offset);}
       else {
 	FD_OID addr=FD_OID_ADDR(arg);
-	ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}
+	ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
     if (dofree) fd_decref(arg);
     if (ret) {
       const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);

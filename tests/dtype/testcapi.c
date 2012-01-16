@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 #include "framerd/dtypestream.h"
@@ -43,6 +40,10 @@ int main(int argc,char **argv)
   u8_string as_string=fd_dtype2string(lst);
   fdtype tmp=fd_parse(as_string);
   FILE *f=fopen("testcapi.dtype","wb");
+  if (lispv<0) {
+    u8_log(LOG_WARN,"STARTUP","Couldn't initialize DTypes");
+    exit(1);}
+
   if (write_dtype_to_file(lst,f)<0)
     fprintf(stderr,"write_dtype failed\n");
   if (FDTYPE_EQUAL(tmp,lst)) fd_decref(tmp);

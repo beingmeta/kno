@@ -133,7 +133,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
 {
   fdtype metadata=FD_VOID;
   struct U8_XTIME _gentime, _packtime, _modtime; int rev;
-  int mdversion, mdlen, timehi, timelo;
+  int mdversion, timehi, timelo;
   off_t mdpos;
   fd_setpos(ds,mdblockpos);
   mdversion=fd_dtsread_4bytes(ds);
@@ -148,7 +148,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
     return metadata;}
   else if (mdversion!=0xFFFFFFFE)
     return fd_err(fd_BadMetaData,NULL,u8_strdup(ds->id),FD_VOID);
-  mdlen=fd_dtsread_4bytes(ds);
+  fd_dtsread_4bytes(ds); /* meta data length */
   rev=fd_dtsread_4bytes(ds);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);

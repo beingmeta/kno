@@ -109,7 +109,6 @@ static u8_string wait_for_file=NULL;
 
 int main(int argc,char **argv)
 {
-  unsigned char data[1024], *input;
   u8_string source_file=NULL;
   fd_lispenv env=fd_working_environment();
   fdtype main_proc=FD_VOID, result=FD_VOID;
@@ -161,7 +160,7 @@ int main(int argc,char **argv)
 
   fd_init_schemeio();
   identify_application(argc,argv,"fdexec");
-  if (wait_for_file)
+  if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",wait_for_file);
     else {
@@ -172,7 +171,7 @@ int main(int argc,char **argv)
 	  u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",n,wait_for_file);
 	  break;}
 	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
-	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}}
   
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
@@ -207,7 +206,6 @@ int main(int argc,char **argv)
       result=fd_applyfns[ctype](main_proc,n_args,args);
       result=fd_finish_call(result);}}
   if (FD_TROUBLEP(result)) {
-    struct U8_OUTPUT backtrace;
     u8_exception e=u8_erreify(), root=e;
     int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);

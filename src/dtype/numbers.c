@@ -711,9 +711,11 @@ DEFUN (fd_bigint_fits_in_word_p, (bigint, word_length, twos_complement_p),
   {
     fast int length = (BIGINT_LENGTH (bigint));
     fast int max_digits = (BIGINT_BITS_TO_DIGITS (n_bits));
+#if 0
     bigint_digit_type msd, max;
     msd = (BIGINT_REF (bigint, (length - 1)));
     max = (1L << (n_bits - ((length - 1) * BIGINT_DIGIT_LENGTH)));
+#endif
     return
       ((length < max_digits) ||
        ((length == max_digits) &&
@@ -1970,9 +1972,10 @@ FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum)
 
 static int unparse_double(struct U8_OUTPUT *out,fdtype x)
 {
-  unsigned char buf[256]; int exp; double tmp;
+  unsigned char buf[256]; int exp;
   struct FD_DOUBLE *d=FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
-  tmp=frexp(d->flonum,&exp);
+  /* Get the exponent */
+  frexp(d->flonum,&exp);
   if ((exp<-10) || (exp>20))
     sprintf(buf,"%e",d->flonum);
   else sprintf(buf,"%f",d->flonum);
@@ -2191,11 +2194,6 @@ fdtype fd_string2number(u8_string string,int base)
       result=parse_bigint(string+1,base,0);
     else result=parse_bigint(start,base,0);
     return result;}
-}
-
-static fdtype default_parse_number(u8_string string)
-{
-  return fd_string2number(string,-1);
 }
 
 fdtype (*_fd_parse_number)(u8_string,int)=fd_string2number;

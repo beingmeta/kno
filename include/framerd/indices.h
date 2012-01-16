@@ -202,14 +202,12 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       int retval=fd_hashtable_add(&(ix->adds),key,value);
       FDTC *fdtc=fd_threadcache;
       if (retval<0) return retval;
-#if ((FD_USE_THREADCACHE)&&(FD_WRITETHROUGH_THREADCACHE))
-      if ((fdtc)&&(fdtc->indices.n_keys)) {
+      if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)&&(fdtc->indices.n_keys)) {
 	struct FD_PAIR tempkey;
 	FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
 	tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
 	if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
 	  fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}
-#endif
       if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
 	  (fd_background->cache.n_keys))
 	retval=fd_hashtable_op

@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/fddb.h"
@@ -88,8 +85,6 @@ static int historicp(fdtype x)
   else if (FD_FIXNUMP(x)) return 0;
   else return 1;
 }
-
-static time_t boot_time;
 
 static double showtime_threshold=1.0;
 
@@ -226,7 +221,6 @@ static fdtype top_parse(u8_input in)
 int main(int argc,char **argv)
 {
   int i=1, c;
-  unsigned char data[1024], *input;
   time_t boot_time=time(NULL);
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
   fdtype that_symbol, histref_symbol;
@@ -441,7 +435,7 @@ int main(int argc,char **argv)
     else if (stat_line)
       output_result(out,result,histref,is_histref);
     else stat_line=output_result(out,result,histref,is_histref);
-    if (stat_line)
+    if (stat_line) {
       if (histref<0)
 	u8_printf (out,stats_message,
 		   (finish_time-start_time),
@@ -450,7 +444,7 @@ int main(int argc,char **argv)
       else u8_printf(out,stats_message_w_history,
 		     histref,(finish_time-start_time),
 		     finish_ocache-start_ocache,
-		     finish_icache-start_icache);
+		     finish_icache-start_icache);}
     fd_clear_errors(1);
     fd_decref(lastval);
     lastval=result; result=FD_VOID;

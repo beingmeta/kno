@@ -890,6 +890,7 @@ static unsigned int hash_mult(unsigned int x,unsigned int y)
 #endif
 
 
+#if 0
 #if (SIZEOF_LONG_LONG == 8)
 static unsigned int hash_multr(unsigned int x,unsigned int y,unsigned int r)
 {
@@ -913,6 +914,7 @@ static unsigned int hash_multr(unsigned int x,unsigned int y,unsigned int r)
       hi=((hi<<8)|(lo>>24))%(r); lo=lo<<8;}
     return hi;}
 }
+#endif
 #endif
 
 static unsigned int hash_combine(unsigned int x,unsigned int y)
@@ -1390,6 +1392,7 @@ FD_EXPORT void fd_hash_quality
       if (buf[i]>max_bucket) max_bucket=buf[i];
       i++;}
     else i++;
+  if (mallocd) u8_free(buf);
   if (nbucketsp) *nbucketsp=n_buckets;
   if (maxbucketp) *maxbucketp=max_bucket;
   if (ncollisionsp) *ncollisionsp=n_collisions;
@@ -1400,7 +1403,7 @@ FD_EXPORT void fd_hash_quality
 static int do_hashtable_op
   (struct FD_HASHTABLE *ht,fd_tableop op,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int achoicep=0, added=0;
+  struct FD_KEYVAL *result; int added=0;
   if (FD_EMPTY_CHOICEP(key)) return 0;
   if ((ht->readonly) && (op!=fd_table_test)) {
     fd_seterr(fd_ReadOnlyHashtable,"do_hashtable_op",NULL,FD_VOID);
@@ -1430,9 +1433,6 @@ static int do_hashtable_op
   if (op != fd_table_replace)
     if (FD_EXPECT_FALSE((FD_VOIDP(value)) || (FD_EMPTY_CHOICEP(value))))
       return 0;
-  /* We see if there was an achoice created because we can safely
-     disable its mutex since it is within the hashtable. */
-  achoicep=FD_ACHOICEP(result->value);
   switch (op) {
   case fd_table_replace_novoid:
     if (FD_VOIDP(result->value)) return 0;
@@ -2020,7 +2020,7 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 	  else kvwrite->value=fd_copy(val);
 	else kvwrite->value=val;
 	kvwrite++;}}
-  fd_rw_unlock_struct(ptr);
+  if (unlock) fd_rw_unlock_struct(ptr);
 #if FD_THREADS_ENABLED
   fd_init_rwlock(&(nptr->rwlock));
 #endif

@@ -391,7 +391,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
           if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
           else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}}
 	if (fdtc)
-	  fd_hashtable_iter(&(fdtc->oids),fd_table_store_noref,n,oidv,values);
+	  fd_hashtable_iter(&(fdtc->oids),fd_table_store,n,oidv,values);
 	if (cachelevel>0)
 	  fd_hashtable_iter(&(p->cache),fd_table_store_noref,n,oidv,values);}
     else {
@@ -824,11 +824,11 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
   if (p->cache_level)
     value=fd_hashtable_get(&(p->cache),oid,FD_VOID);
   else value=FD_VOID;
-  if (FD_VOIDP(value))
+  if (FD_VOIDP(value)) {
     if (fd_ipeval_delay(1)) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
       return FD_EMPTY_CHOICE;}
-    else value=fd_pool_fetch(p,oid);
+    else value=fd_pool_fetch(p,oid);}
   if (FD_ABORTP(value)) return value;
   if (fdtc) fd_hashtable_store(&(fdtc->oids),oid,value);
   return value;
@@ -1476,7 +1476,7 @@ static struct FD_POOL_HANDLER mempool_handler={
   mempool_load, /* getload */
   mempool_lock, /* lock */
   mempool_unlock, /* release */
-  NULL, /* storen */
+  mempool_storen, /* storen */
   mempool_swapout, /* swapout */
   NULL, /* metadata */
   NULL}; /* sync */
@@ -1519,8 +1519,6 @@ fd_pool fd_make_extpool(u8_string label,
   xp->flags=xp->flags|FD_OIDHOLES_OKAY;
   return (fd_pool)xp;
 }
-
-static int extpool_err_on_fail=0;
 
 static fdtype extpool_fetch(fd_pool p,fdtype oid)
 {
@@ -1594,7 +1592,6 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
 
 static int extpool_lock(fd_pool p,fdtype oids)
 {
-  struct FD_EXTPOOL *xp=(fd_extpool)p;
   FD_DO_CHOICES(oid,oids) {
     fd_hashtable_store(&(p->locks),oids,FD_LOCKHOLDER);}
   return 0;
@@ -1602,7 +1599,6 @@ static int extpool_lock(fd_pool p,fdtype oids)
 
 static int extpool_unlock(fd_pool p,fdtype oids)
 {
-  struct FD_EXTPOOL *xp=(fd_extpool)p;
   FD_DO_CHOICES(oid,oids) {
     fd_hashtable_store(&(p->locks),oids,FD_VOID);}
   return 0;
@@ -1703,6 +1699,7 @@ FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
     fd_pool p=fd_use_pool(FD_STRDATA(v));
     if (p) *pptr=p; else return -1;}
   else return fd_type_error(_("pool spec"),"pool_config_set",v);
+  return 1;
 }
 
 /* Initialization */

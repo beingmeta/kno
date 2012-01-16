@@ -1139,9 +1139,6 @@ static fdtype subst_extract
       fdtype answers=FD_EMPTY_CHOICE;
       fdtype args=FD_CDR(FD_CDR(pat));
       fdtype expanded=expand_subst_args(args,env);
-      int expandedp=
-	((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))||
-	 (!(FD_EQUAL(args,expanded))));
       FD_DO_CHOICES(match,matches) {
 	int matchlen=fd_getint(match);
 	fdtype matched=fd_extract_string(NULL,string+off,string+matchlen);
@@ -3044,7 +3041,7 @@ static fdtype aword_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byte *scan=string+off, *slim=string+lim, *last=scan;
-  u8_unichar ch=u8_sgetc(&scan), lastch;
+  u8_unichar ch=u8_sgetc(&scan), lastch=-1;
   int allupper=u8_isupper(ch), dotcount=0;
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
   while ((scan<=slim) &&
@@ -3056,7 +3053,7 @@ static fdtype aword_match
     if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
       if ((nextch=='.')||(apostrophep(nextch))) last=prev;
       break;}
-    else {ch=nextch; last=prev;}}
+    else {lastch=ch; ch=nextch; last=prev;}}
   if (last > string+off)
     if (lastch=='.')
       if ((allupper)&&(dotcount>1))
@@ -3083,7 +3080,7 @@ static fdtype lword_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byte *scan=string+off, *slim=string+lim, *last=scan;
-  u8_unichar ch=u8_sgetc(&scan), lastch=-1;
+  u8_unichar ch=u8_sgetc(&scan);
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
   if (!(u8_islower(ch))) return FD_EMPTY_CHOICE;
   while ((scan<=slim) && ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)))) {

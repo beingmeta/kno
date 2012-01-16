@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/dtypestream.h"
 
@@ -19,7 +16,6 @@ static char versionid[] =
 
 int main(int argc,char **argv)
 {
-  FILE *f=fopen(argv[1],"r");
   struct FD_DTYPE_STREAM *in, *out;
   fdtype ht, keys;
   FD_DO_LIBINIT(fd_init_dtypelib);
@@ -27,9 +23,10 @@ int main(int argc,char **argv)
   ht=fd_dtsread_dtype(in); fd_dtsclose(in,1);
   keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
   fprintf(stderr,_("Found %d keys\n"),FD_CHOICE_SIZE(keys));
-  in=fd_dtsopen(argv[2],FD_DTSTREAM_CREATE);
+  out=fd_dtsopen(argv[2],FD_DTSTREAM_CREATE);
   fd_dtswrite_dtype(out,keys);
   fd_decref(keys); keys=FD_VOID;
   fd_decref(ht); ht=FD_VOID;
   fd_dtsclose(out,FD_DTSCLOSE_FULL);
+  return 0;
 }

@@ -394,6 +394,10 @@ static fd_pool open_zpool(u8_string fname,int read_only)
   if ((pool->stream.flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->stream.mallocd=0;
   magicno=fd_dtsread_4bytes(s);
+  if (magicno!=FD_ZPOOL_MAGIC_NUMBER) {
+    fd_seterr("Bad magic number","open_zpool",fname,FD_VOID);
+    fd_dtsclose(&(pool->stream),1); u8_free(pool); 
+    return NULL;}
   hi=fd_dtsread_4bytes(s); lo=fd_dtsread_4bytes(s);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
   capacity=fd_dtsread_4bytes(s);

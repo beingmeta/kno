@@ -265,7 +265,6 @@ static fdtype words2vector(u8_string string,int keep_punct)
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
     else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
-      fdtype extraction=fd_extract_string(NULL,last,scan);
       if (n>=max) {
 	if (wordsv==_buf) {
 	  fdtype *newv=u8_alloc_n(max*2,fdtype);
@@ -275,7 +274,8 @@ static fdtype words2vector(u8_string string,int keep_punct)
 	  int newmax=((n>=1024) ? (n+1024) : (n*2));
 	  wordsv=u8_realloc_n(wordsv,newmax,fdtype);
 	  max=newmax;}}
-      wordsv[n++]=((scan) ? (fd_extract_string(NULL,last,scan)) : (fdtype_string(last)));
+      wordsv[n++]=((scan) ? (fd_extract_string(NULL,last,scan)) :
+		   (fdtype_string(last)));
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
     else {
@@ -1224,7 +1224,9 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	struct U8_OUTPUT _out; int retval;
 	U8_INIT_OUTPUT(&_out,32);
 	retval=framify(f,&_out,content);
-	if (out) u8_putn(out,_out.u8_outbuf,_out.u8_outptr-_out.u8_outbuf);
+	if (retval<0) return -1;
+	else if (out)
+	  u8_putn(out,_out.u8_outbuf,_out.u8_outptr-_out.u8_outbuf);
 	if (FD_VOIDP(parser)) {
 	  fdtype stringval=fd_stream2string(&_out);
 	  fd_add(f,slotid,stringval);
@@ -1366,7 +1368,7 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
     /* keep indicates whether matched separators go with the preceding
        string (keep<0), the succeeding string (keep>0) or is discarded
        (keep=0). */
-    int keep=interpret_keep_arg(keep_arg), last_start=start;
+    int keep=interpret_keep_arg(keep_arg);
     /* scan is pointing at a substring matching the sep,
        start is where we last added a string, and end is the greedy limit
        of the matched sep. */
@@ -1660,59 +1662,6 @@ static fdtype textclosurep(fdtype arg)
   else return FD_FALSE;
 }
 
-/* textframe procedures
-   (under construction) */
-
-static int doadds(fdtype table,u8_output out,fdtype xtract)
-{
-  if (FD_STRINGP(xtract)) 
-    if (out)
-      u8_putn(out,FD_STRDATA(xtract),FD_STRLEN(xtract));
-    else {}
-  else if (FD_VECTORP(xtract)) {
-    int i=0, len=FD_VECTOR_LENGTH(xtract);
-    fdtype *data=FD_VECTOR_DATA(xtract);
-    while (i<len) {
-      int retval=doadds(table,out,data[i]);
-      if (retval<0) return retval; else i++;}}
-  else if (FD_PAIRP(xtract)) {
-    fdtype sym=FD_CAR(xtract);
-    if ((sym==star_symbol) || (sym==plus_symbol)) {
-      fdtype elts=FD_CDR(xtract);
-      if (FD_EMPTY_LISTP(elts)) {}
-      else {
-	FD_DOLIST(elt,elts) {
-	  int retval=dorewrite(out,elt);
-	  if (retval<0) return retval;}}}
-    else if (sym==label_symbol) {
-      fdtype label=fd_get_arg(xtract,1);
-      fdtype content=fd_get_arg(xtract,2);
-      if ((FD_VOIDP(content)) || (FD_VOIDP(label))) {
-	fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
-	return -1;}
-      else {
-	U8_OUTPUT newout; U8_INIT_OUTPUT(out,32);
-	if (doadds(table,&newout,content)<0) {
-	  u8_free(newout.u8_outbuf);
-	  return -1;}
-	else {
-	  int outlen=newout.u8_outptr-newout.u8_outbuf;
-	  if (out) u8_putn(out,newout.u8_outbuf,outlen);}}}
-    else if (sym==subst_symbol) {
-      fdtype content=fd_get_arg(xtract,2);
-      if (FD_VOIDP(content)) {
-	fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
-	return -1;}
-      else if (dorewrite(out,content)<0) return -1;}
-    else {
-      fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
-      return -1;}}
-  else {
-    fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
-    return -1;}
-  return 1;
-}
-
 /* ISSUFFIX/ISPREFIX */
 
 static fdtype is_prefix_prim(fdtype prefix,fdtype string)
@@ -1756,22 +1705,36 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
   int buflen=in->u8_inlim-in->u8_inptr, eof=0;
   int start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
-  fdtype ends=((start>=0)?(fd_text_matcher(pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):(FD_EMPTY_CHOICE));
+  fdtype ends=((start>=0)?
+	       (fd_text_matcher
+		(pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
+	       (FD_EMPTY_CHOICE));
   int end=getlongmatch(ends);
   fd_decref(ends);
-  if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
+  if ((start>=0)&&(end>start)&&
+      ((lim==0)|(end<lim))&&
+      ((end<buflen)||(eof))) {
     fdtype result=fd_extract_string(NULL,in->u8_inptr+start,in->u8_inptr+end);
     in->u8_inptr=in->u8_inptr+end;
     return result;}
+  else if ((lim)&&(end>lim))
+    return FD_EOF;
   else if (in->u8_fillfn) 
-    while (!(((start>=0)&&(end>start)&&((end<buflen)||(eof))))) {
-      int delta=in->u8_fillfn(in);
+    while (!((start>=0)&&(end>start)&&((end<buflen)||(eof)))) {
+      int delta=in->u8_fillfn(in); int new_end;
       if (delta==0) {eof=1; break;}
       buflen=in->u8_inlim-in->u8_inptr;
-      if (start<0) start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
+      if (start<0)
+	start=fd_text_search
+	  (pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
       if (start<0) continue;
-      ends=((start>=0)?(fd_text_matcher(pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):(FD_EMPTY_CHOICE));
-      end=getlongmatch(ends);
+      ends=((start>=0)?
+	    (fd_text_matcher
+	     (pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
+	    (FD_EMPTY_CHOICE));
+      new_end=getlongmatch(ends);
+      if ((lim>0)&&(new_end>lim)) eof=1;
+      else end=new_end;
       fd_decref(ends);}
   if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
     fdtype result=fd_extract_string(NULL,in->u8_inptr+start,in->u8_inptr+end);
@@ -1934,7 +1897,8 @@ static fdtype sha1_prim(fdtype input)
   else {
     struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_sha1(out.start,out.ptr-out.start,NULL);}
+    digest=u8_sha1(out.start,out.ptr-out.start,NULL);
+    u8_free(out.start);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,20,digest);
@@ -1951,7 +1915,8 @@ static fdtype sha256_prim(fdtype input)
   else {
     struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_sha256(out.start,out.ptr-out.start,NULL);}
+    digest=u8_sha256(out.start,out.ptr-out.start,NULL);
+    u8_free(out.start);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,32,digest);
@@ -1981,6 +1946,8 @@ static fdtype hmac_sha1_prim(fdtype key,fdtype input)
     fd_write_dtype(&out,key);
     keydata=out.start; key_len=out.ptr-out.start; free_key=1;}
   digest=u8_hmac_sha1(keydata,key_len,data,data_len,NULL,&digest_len);
+  if (free_data) u8_free(data);
+  if (free_key) u8_free(keydata);
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,digest_len,digest);
@@ -2009,6 +1976,8 @@ static fdtype hmac_sha256_prim(fdtype key,fdtype input)
     fd_write_dtype(&out,key);
     keydata=out.start; key_len=out.ptr-out.start; free_key=1;}
   digest=u8_hmac_sha256(keydata,key_len,data,data_len,NULL,&digest_len);
+  if (free_data) u8_free(data);
+  if (free_key) u8_free(keydata);
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,digest_len,digest);
@@ -2023,7 +1992,7 @@ void fd_init_texttools()
   int fdscheme_version=fd_init_fdscheme();
   if (texttools_init) return;
   fd_register_source_file(versionid);
-  texttools_init=1;
+  texttools_init=fdscheme_version;
   texttools_module=fd_new_module("TEXTTOOLS",(FD_MODULE_SAFE));
   fd_init_match_c();
   fd_init_phonetic_c();

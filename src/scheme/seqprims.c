@@ -268,12 +268,12 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
 
 static int packet_search(fdtype key,fdtype x,int start,int end)
 {
-  int i=0, klen=FD_PACKET_LENGTH(key), len=FD_PACKET_LENGTH(x);
+  int klen=FD_PACKET_LENGTH(key);
   unsigned char *kdata=FD_PACKET_DATA(key), first_byte=kdata[0];
   unsigned char *data=FD_PACKET_DATA(x), *scan, *lim=data+end;
   if (klen>(end-start)) return -1;
   scan=data+start;
-  while (scan=memchr(scan,first_byte,lim-scan)) {
+  while ((scan=memchr(scan,first_byte,lim-scan))) {
     if (memcmp(scan,kdata,klen)==0) return scan-data;
     else scan++;}
   return -1;
@@ -281,7 +281,7 @@ static int packet_search(fdtype key,fdtype x,int start,int end)
 
 static int vector_search(fdtype key,fdtype x,int start,int end)
 {
-  int i=0, klen=FD_VECTOR_LENGTH(key), len=FD_VECTOR_LENGTH(x);
+  int klen=FD_VECTOR_LENGTH(key);
   fdtype *kdata=FD_VECTOR_DATA(key), first_elt=kdata[0];
   fdtype *data=FD_VECTOR_DATA(x), *scan, *lim=data+(end-klen)+1;
   if (klen>(end-start)) return -1;
@@ -1528,7 +1528,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
 	FD_ADD_TO_CHOICE(results,FD_INT2DTYPE(v));}
       return results;}
     case fd_pair_type: {
-      int j=0; fdtype scan=x, head=FD_EMPTY_LIST;
+      int j=0; fdtype scan=x;
       while (FD_PAIRP(scan))
 	if (j==end) return results;
 	else if (j>=start) {
@@ -1611,8 +1611,8 @@ static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
 	int cmp=FD_EQUAL(pelt,velt);
 	fd_decref(pelt); fd_decref(velt);
 	if (cmp) {j++; i++;}
-	else return FD_FALSE;
-	return FD_TRUE;}}
+	else return FD_FALSE;}
+      return FD_TRUE;}
     else return FD_FALSE;}
 }
 
@@ -1778,7 +1778,16 @@ static struct FD_SEQFNS rail_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqvector};
+  seqrail};
+static struct FD_SEQFNS secret_seqfns={
+  fd_seq_length,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  seqsecret};
+
 
 FD_EXPORT void fd_init_sequences_c()
 {
@@ -1786,7 +1795,7 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_pair_type]=&pair_seqfns;
   fd_seqfns[fd_string_type]=&string_seqfns;
   fd_seqfns[fd_packet_type]=&packet_seqfns;
-  fd_seqfns[fd_secret_type]=&packet_seqfns;
+  fd_seqfns[fd_secret_type]=&secret_seqfns;
   fd_seqfns[fd_vector_type]=&vector_seqfns;
   fd_seqfns[fd_rail_type]=&rail_seqfns;
   

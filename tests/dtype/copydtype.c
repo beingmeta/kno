@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/dtypestream.h"
 
@@ -21,7 +18,6 @@ static char versionid[] =
 int main(int argc,char **argv)
 {
   fdtype object, copied;
-  struct U8_OUTPUT sout;
   struct FD_DTYPE_STREAM *in, *out;
   int bytes=0;
   FD_DO_LIBINIT(fd_init_dtypelib);

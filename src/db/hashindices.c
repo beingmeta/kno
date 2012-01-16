@@ -283,8 +283,8 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
   struct FD_DTYPE_STREAM *s=&(index->stream);
   unsigned int magicno, n_keys;
-  off_t slotids_pos, baseoids_pos, metadata_pos;
-  fd_size_t slotids_size, baseoids_size, metadata_size;  
+  off_t slotids_pos, baseoids_pos;
+  fd_size_t slotids_size, baseoids_size;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&hash_index_handler,fname);
@@ -323,8 +323,8 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   baseoids_pos=fd_dtsread_8bytes(s);
   baseoids_size=fd_dtsread_4bytes(s);
 
-  metadata_pos=fd_dtsread_8bytes(s);
-  metadata_size=fd_dtsread_4bytes(s);
+  /* metadata_pos=*/ fd_dtsread_8bytes(s);
+  /* metadata_size=*/ fd_dtsread_4bytes(s);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
@@ -672,16 +672,17 @@ static fdtype fast_read_dtype(fd_byte_input in)
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
 	  fdtype result=fd_make_string(NULL,len,in->ptr);
-	  in->ptr=in->ptr+len;}}
-  case dt_tiny_string:
-    if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
-    else {
-      int len=fd_get_byte(in->ptr+1); in->ptr=in->ptr+2;
-      if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+	  in->ptr=in->ptr+len;
+	  return result;}}
+    case dt_tiny_string:
+      if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
       else {
-	fdtype result=fd_make_string(NULL,len,in->ptr);
-	in->ptr=in->ptr+len;
-	return result;}}
+	int len=fd_get_byte(in->ptr+1); in->ptr=in->ptr+2;
+	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+	else {
+	  fdtype result=fd_make_string(NULL,len,in->ptr);
+	  in->ptr=in->ptr+len;
+	  return result;}}
     case dt_symbol:
       if (nobytes(in,5)) return fd_return_errcode(FD_EOD);
       else {
@@ -707,11 +708,11 @@ static fdtype fast_read_dtype(fd_byte_input in)
       return fd_read_dtype(in);
 #if 0
       {
-      fdtype result=fd_read_dtype(in);
-      if (FD_CHECK_PTR(result)) return result;
-      else {
-	u8_log(LOG_WARN,"Bad Pointer","from fd_read_dtype");
-	return FD_VOID;}}
+	fdtype result=fd_read_dtype(in);
+	if (FD_CHECK_PTR(result)) return result;
+	else {
+	  u8_log(LOG_WARN,"Bad Pointer","from fd_read_dtype");
+	  return FD_VOID;}}
 #endif
     }}
 }
@@ -918,7 +919,6 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   struct FD_BYTE_OUTPUT out; unsigned char buf[64];
   struct FD_BYTE_INPUT keystream; unsigned char _inbuf[256], *inbuf;
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
-  off_t vblock_off; size_t vblock_size;
   FD_CHUNK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
   if ((hx->hxflags)&(FD_HASH_INDEX_DTYPEV2))
@@ -938,8 +938,8 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);
     n_values=fd_read_zint(&keystream);
-    vblock_off=(off_t)fd_read_zint8(&keystream);
-    vblock_size=(size_t)fd_read_zint(&keystream);
+    /* vblock_off= */ (off_t)fd_read_zint8(&keystream);
+    /* vblock_size=*/ (size_t)fd_read_zint(&keystream);
     if (key_len!=dtype_len) 
       keystream.ptr=keystream.ptr+key_len;
     else if (memcmp(keystream.ptr,out.start,dtype_len)==0)
@@ -1272,9 +1272,8 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
 		 keybuf,LOCK_STREAM);}
     n_keys=fd_read_zint(&keyblock);
     while (j<n_keys) {
-      fdtype key; int n_vals, size;
-      /* Ignore size */
-      size=fd_read_zint(&keyblock);
+      fdtype key; int n_vals;
+      /* size=*/ fd_read_zint(&keyblock);
       key=read_zkey(hx,&keyblock);
       n_vals=fd_read_zint(&keyblock);
       results[key_count++]=key;
@@ -1334,9 +1333,8 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 		 keybuf,LOCK_STREAM);}
     n_keys=fd_read_zint(&keyblock);
     while (j<n_keys) {
-      fdtype key; int n_vals, size;
-      /* Ignore size */
-      size=fd_read_zint(&keyblock);
+      fdtype key; int n_vals;
+      /* size=*/ fd_read_zint(&keyblock);
       key=read_zkey(hx,&keyblock);
       n_vals=fd_read_zint(&keyblock);
       assert(key!=0);
@@ -1363,7 +1361,6 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 
 static void hash_index_getstats(struct FD_HASH_INDEX *hx,int *nf,int *max,int *singles,int *n2sum)
 {
-  fdtype *results=NULL;
   fd_dtype_stream s=&(hx->stream);
   int i=0, n_buckets=(hx->n_buckets), n_to_fetch=0, total_keys=0;
   unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
@@ -1371,7 +1368,6 @@ static void hash_index_getstats(struct FD_HASH_INDEX *hx,int *nf,int *max,int *s
   fd_lock_struct(hx);
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
   buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
-  results=u8_alloc_n(total_keys,fdtype);
   /* If we don't have chunk offsets in memory, we keep the stream locked while we get them. */
   if (hx->offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
@@ -2203,7 +2199,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     /* Free all the buckets */
     bscan=0; while (bscan<changed_buckets) {
       struct KEYBUCKET *kb=keybuckets[bscan++];
-      struct KEYENTRY *scan=&(kb->elt0), *limit=scan+kb->n_keys;
+      /* struct KEYENTRY *scan=&(kb->elt0), *limit=scan+kb->n_keys; */
       if (kb->keybuf) u8_free(kb->keybuf);
       u8_free(kb);}
     u8_free(keybuckets);
@@ -2244,13 +2240,13 @@ static int hash_index_commit(struct FD_INDEX *ix)
   update_hash_index_ondisk
     (hx,hx->hxflags,total_keys,changed_buckets,bucket_locs);
   if (fd_acid_files) {
-    int retval=0; off_t end; off_t recovery_pos;
+    int retval=0; off_t recovery_pos;
 #if FD_DEBUG_HASHINDICES
     u8_message("Erasing old recovery information");
 #endif
     fd_dtsflush(stream); fsync(stream->fd);
     /* Now erase the recovery information, since we don't need it anymore. */
-    end=fd_endpos(stream); fd_movepos(stream,-8);
+    /* endpos=*/fd_endpos(stream); fd_movepos(stream,-8);
     recovery_pos=fd_dtsread_8bytes(stream);
     retval=ftruncate(stream->fd,recovery_pos);
     if (retval<0)

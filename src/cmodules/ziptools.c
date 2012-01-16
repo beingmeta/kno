@@ -241,10 +241,10 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype stringp)
   if (index<0) {
     u8_unlock_mutex(&(zf->lock));
     return FD_FALSE;}
-  else if (zret=zip_stat(zf->zip,FD_STRDATA(filename),0,&zstat)) {
+  else if ((zret=zip_stat(zf->zip,FD_STRDATA(filename),0,&zstat))) {
     u8_unlock_mutex(&(zf->lock));
     return ziperr("zipget_prim/stat",zf,filename);}
-  else if (zfile=zip_fopen(zf->zip,FD_STRDATA(filename),0)) {
+  else if ((zfile=zip_fopen(zf->zip,FD_STRDATA(filename),0))) {
     unsigned char *buf=u8_malloc(zstat.size+1);
     int size=zstat.size, block=0, read=0, togo=size;
     while ((togo>0)&&((block=zip_fread(zfile,buf+read,togo))>0)) {
@@ -340,7 +340,7 @@ static int ziptools_init=0;
 FD_EXPORT int fd_init_ziptools()
 {
   fdtype ziptools_module;
-  if (ziptools_init) return;
+  if (ziptools_init) return 0;
   fd_register_source_file(versionid);
   ziptools_init=1;
   ziptools_module=fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));

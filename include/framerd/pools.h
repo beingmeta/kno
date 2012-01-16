@@ -294,9 +294,9 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
   FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
   fdtype value;
   if (p==NULL) p=fd_oid2pool(oid);
-  if (p==NULL)
+  if (p==NULL) {
     if (fd_ignore_anonymous_oids) return FD_EMPTY_CHOICE;
-    else return fd_err(fd_AnonymousOID,NULL,NULL,oid);
+    else return fd_err(fd_AnonymousOID,NULL,NULL,oid);}
   if (fdtc) {
     fdtype value=((fdtc->oids.n_keys)?
 		  (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
@@ -313,11 +313,11 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
   if (p->cache_level)
     value=fd_hashtable_get(&(p->cache),oid,FD_VOID);
   else value=FD_VOID;
-  if (FD_VOIDP(value))
+  if (FD_VOIDP(value)) {
     if (fd_ipeval_delay(1)) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
       return FD_EMPTY_CHOICE;}
-    else value=fd_pool_fetch(p,oid);
+    else value=fd_pool_fetch(p,oid);}
   if (FD_ABORTP(value)) return value;
   if (fdtc) fd_hashtable_store(&(fdtc->oids),oid,value);
   return value;

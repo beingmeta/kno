@@ -75,7 +75,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
   fdtype *vloc=NULL, *iloc=NULL;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (FD_ABORTP(choices))
@@ -98,7 +98,6 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fd_incref(elt);
@@ -145,7 +144,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
   fdtype *vloc=NULL, *iloc=NULL;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (FD_ABORTP(choices))
@@ -166,7 +165,6 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
@@ -215,7 +213,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
   fdtype *vloc=NULL, *iloc=NULL;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (FD_ABORTP(choices))
@@ -237,7 +235,6 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
@@ -287,7 +284,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,env);
   fdtype test_expr=fd_get_arg(expr,2), *vloc=NULL, *iloc=NULL;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(choices))
     return choices;
@@ -310,7 +307,6 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
@@ -360,7 +356,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
 {
   fdtype choices, count_var, var, *vloc=NULL, *iloc=NULL;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   fdtype control_spec=fd_get_arg(expr,1);
   fdtype bsize; int blocksize;
   if (!((FD_PAIRP(control_spec)) &&
@@ -396,7 +392,6 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct);
   if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
   else {
     int i=0, n=FD_CHOICE_SIZE(choices), n_blocks=1+n/blocksize;
@@ -1036,7 +1031,8 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
 	  if (FD_ATOMICP(v)) *write++=v;
 	  else {atomicp=0; fd_incref(v); *write++=v;}}
 	fd_decref(normal);
-	return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}}
+	return fd_init_choice(result,howmany,NULL,
+			      ((atomicp)?(FD_CHOICE_ISATOMIC):(0)));}}
     else return FD_EMPTY_CHOICE;}
   else return fd_type_error("integer","topn",count);
 }

@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dbfile.h"
@@ -24,7 +21,7 @@ static char versionid[] =
 int main(int argc,char **argv)
 {
   int fd_version=fd_init_dbfile();
-  fd_index ix=fd_open_index(argv[1]);
+  fd_index ix=((fd_version>0)?(fd_open_index(argv[1])):(NULL));
   fdtype keys=FD_EMPTY_CHOICE; 
   int i=2;
   if (ix==NULL) {

@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
@@ -35,6 +32,7 @@ int main(int argc,char **argv)
   else u8_fprintf(stdout,"Containment is false\n");
   fd_write_dtype(&out,svalue);
   retval=fwrite(out.start,1,out.ptr-out.start,f);
+  if (retval<0) exit(1);
   fd_decref(value); fd_decref(svalue); u8_free(out.start);
   value=FD_VOID; svalue=FD_VOID;
   exit(0);

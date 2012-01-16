@@ -359,7 +359,7 @@ static int init_schemas(fd_oidpool,fdtype);
 static fd_pool open_oidpool(u8_string fname,int read_only)
 {
   FD_OID base=FD_NULL_OID_INIT;
-  unsigned int hi, lo, magicno, capacity, load, flags, label_size;
+  unsigned int hi, lo, magicno, capacity, load, flags;
   off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
   struct FD_DTYPE_STREAM *stream=&(pool->stream);
@@ -395,7 +395,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
       return NULL;}}
   /* Get the label */
   label_loc=fd_dtsread_8bytes(stream);
-  label_size=fd_dtsread_4bytes(stream);
+  /* label_size=*/ fd_dtsread_4bytes(stream);
   /* Skip the metadata field */
   fd_dtsread_8bytes(stream);
   fd_dtsread_4bytes(stream); /* Ignore size */
