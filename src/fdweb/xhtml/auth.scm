@@ -134,7 +134,7 @@
 
 ;; This is the default function for checking tokens
 ;;  It takes an identity and a token value and an #t/#f op
-(define checktoken table-checktoken)
+(define-init checktoken table-checktoken)
 (varconfig! auth:checktoken checktoken)
 
 ;;;; Cookie functions
@@ -308,7 +308,9 @@
 	 (debug%watch "AUTH/IDENTIFY!" authid identity token auth sticky
 	   (auth->string auth))
 	 ;; This adds token as a valid token for identity
-	 (when checktoken (checktoken identity token #t))
+	 (when checktoken
+	   (lognotice "AUTH/IDENTIFY! " authid "=" identity " w/" token)
+	   (checktoken identity token #t))
 	 (cgiset! authid auth)
 	 (set-cookies! auth)
 	 identity)))
@@ -337,6 +339,8 @@
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
 	 (when checktoken
+	   (lognotice "AUTH/FRESHAUTH " authid "=" identity " w/"
+		      (authinfo-token new) "!=" oldtoken)
 	   ;; Invalidate the old token, validate the new
 	   (checktoken identity oldtoken #f)
 	   (checktoken identity (authinfo-token new) #t))
@@ -382,8 +386,8 @@
 ;;; Top level functions
 
 (define (auth/getuser (authid authid))
-  (try (%watch (cgiget userid))
-       (authinfo-identity (%watch (auth/getinfo authid) authid userid))
+  (try (cgiget userid)
+       (authinfo-identity (auth/getinfo authid))
        #f))
 
 ;;;; Authorize/deauthorize API
