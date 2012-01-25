@@ -93,7 +93,7 @@
 (define lognotice
   (macro expr `(logif+ (>= %loglevel ,%notice!) 5 ,@(cdr expr))))
 (define logwarn
-  (macro expr `(logif+ (>= %loglevel ,%warn!) 5 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%warn!) 4 ,@(cdr expr))))
 (define %debug
   (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
 

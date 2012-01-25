@@ -28,7 +28,7 @@
 ;;;; Constant and configurable variables
 
 ;; The cookie/CGI var used to store the session ID
-(define authid 'AUTH)
+(define-init authid 'AUTH)
 (varconfig! auth:id authid)
 
 ;; The CGI state var used to store the current user
@@ -307,6 +307,7 @@
 	      (token (authinfo-token auth)))
 	 (debug%watch "AUTH/IDENTIFY!" authid identity token auth sticky
 	   (auth->string auth))
+	 ;; This adds token as a valid token for identity
 	 (when checktoken (checktoken identity token #t))
 	 (cgiset! authid auth)
 	 (set-cookies! auth)
@@ -320,9 +321,15 @@
 	   (freshauth auth)
 	   auth)))
 
+(define (freshtoken identity token)
+  (or (checktoken identity token)
+      (begin (logwarn "AUTH/FRESHTOKEN failed for "
+		      identity " with " token " using " checktoken)
+	#f)))
+
 (define (freshauth auth)
   (and (or (not checktoken) ;; Valid token?
-	   (checktoken (authinfo-identity auth) (authinfo-token auth)))
+	   (freshtoken (authinfo-identity auth) (authinfo-token auth)))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
 	      (oldtoken (authinfo-token auth))
@@ -368,16 +375,15 @@
   (debug%watch "AUTHFAIL" reason authid info)
   (expire-cookie! authid "AUTHFAIL")
   (req/drop! authid)
-  (if signal
-      (error reason authid info)
-      (logwarn reason authid info))
+  (logwarn reason authid info)
+  (if signal (error reason authid info))
   (fail))
 
 ;;; Top level functions
 
 (define (auth/getuser (authid authid))
-  (try (cgiget userid)
-       (authinfo-identity (auth/getinfo authid))
+  (try (%watch (cgiget userid))
+       (authinfo-identity (%watch (auth/getinfo authid) authid userid))
        #f))
 
 ;;;; Authorize/deauthorize API
