@@ -164,6 +164,7 @@ static fdtype json_string(U8_INPUT *in,int flags)
 static fdtype json_intern(U8_INPUT *in,int flags)
 {
   struct U8_OUTPUT out; int c=readc(in); /* Skip '"' */
+  int good_symbol=1;
   c=u8_getc(in);
   U8_INIT_OUTPUT(&out,64);
   while (c>=0) {
@@ -172,16 +173,21 @@ static fdtype json_intern(U8_INPUT *in,int flags)
       c=fd_read_escape(in);
       u8_putc(&out,c); c=u8_getc(in);
       continue;}
+    else if ((u8_isspace(c))||(c=='/')||(c=='.')) good_symbol=0;
     u8_putc(&out,c);
     c=u8_getc(in);}
   if (out.u8_outbuf[0]==':') {
     fdtype result=fd_parse(out.u8_outbuf+1);
-    if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
+    if (FD_ABORTP(result))
+      return parse_error(&out,result,flags&FD_JSON_WARNINGS);
     u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype result=fd_parse(out.u8_outbuf);
-    if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
+    fdtype result=((good_symbol)?
+		   (fd_parse(out.u8_outbuf)):
+		   (fd_stream2string(&out)));
+    if (FD_ABORTP(result))
+      return parse_error(&out,result,flags&FD_JSON_WARNINGS);
     u8_free(out.u8_outbuf);
     return result;}
 }
@@ -261,7 +267,6 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
   struct FD_KEYVAL *kv;
   if (u8_getc(in)!='{') return FD_ERROR_VALUE;
   else kv=u8_alloc_n(16,struct FD_KEYVAL);
-  int vflags=((flags)&&(~(FD_JSON_SYMBOLIZE)));
   c=skip_whitespace(in);
   while (c>=0) {
     good_pos=in->u8_inptr-in->u8_inbuf;
@@ -285,14 +290,14 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
       if (c==':') c=u8_getc(in);
       else return FD_EOD;
       if ((FD_VOIDP(fieldmap))||(FD_CONSP(kv[n_elts].key)))
-	kv[n_elts].value=json_parse(in,vflags,fieldmap);
+	kv[n_elts].value=json_parse(in,flags,fieldmap);
       else {
 	fdtype handler=fd_get(fieldmap,kv[n_elts].key,FD_VOID);
 	if (FD_VOIDP(handler))
-	  kv[n_elts].value=json_parse(in,vflags,fieldmap);
+	  kv[n_elts].value=json_parse(in,flags,fieldmap);
 	else
-	  kv[n_elts].value=convert_value(handler,json_parse(in,vflags,fieldmap),
-					 1,(vflags&FD_JSON_WARNINGS));}
+	  kv[n_elts].value=convert_value(handler,json_parse(in,flags,fieldmap),
+					 1,(flags&FD_JSON_WARNINGS));}
       if (FD_ABORTP(kv[n_elts].value)) break;
       n_elts++; c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {
