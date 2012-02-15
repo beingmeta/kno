@@ -118,6 +118,7 @@
 
 (define auth-expiration (* 3600 24 14))
 (define auth-refresh (* 60 15))
+(define auth-grace (* 60 15))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
 
@@ -192,15 +193,13 @@
   (if auth-secure
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
-		   (debug%watch
-		       (and (authinfo-sticky? auth) (authinfo-expires auth)))
+		   (and (authinfo-sticky? auth) (authinfo-expires auth))
 		   #t)
       (set-cookie! var (if secret
 			   (packet->base64 (encrypt authstring secret))
 			   authstring)
 		   auth-cookie-domain auth-cookie-path
-		   (debug%watch
-		       (and (authinfo-sticky? auth) (authinfo-expires auth)))
+		   (and (authinfo-sticky? auth) (authinfo-expires auth))
 		   #f))
   (req/set! var
 	    (if auth-secure authstring
@@ -320,6 +319,7 @@
        (or (not (authinfo-expires auth))
 	   (> (authinfo-expires auth) (time)))
        (if (> (time) (+ (authinfo-issued auth) auth-refresh))
+	   ;; Needs refresh
 	   (freshauth auth)
 	   auth)))
 
@@ -332,18 +332,15 @@
 (define (freshauth auth)
   (and (or (not checktoken) ;; Valid token?
 	   (freshtoken (authinfo-identity auth) (authinfo-token auth)))
+       ;; Check that the authorization isn't too old to refresh
+       (or (req/get 'https #f)
+	   (< (time) (+ (authinfo-issued auth) auth-refresh auth-grace)))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
-	      (oldtoken (authinfo-token auth))
-	      (new (cons-authinfo realm identity (auth/maketoken)
+	      ;; The only thing changed is the issue datetime
+	      (new (cons-authinfo realm identity (auth-token auth)
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
-	 (when checktoken
-	   (lognotice "AUTH/FRESHAUTH " authid "=" identity " w/"
-		      (authinfo-token new) "!=" oldtoken)
-	   ;; Invalidate the old token, validate the new
-	   (checktoken identity oldtoken #f)
-	   (checktoken identity (authinfo-token new) #t))
 	 (set-cookies! new)
 	 new)))
 
