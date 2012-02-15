@@ -753,6 +753,11 @@ setup-osx: @data_dir@ $(DESTDIR)/var/run/framerd $(DESTDIR)/var/log/framerd
 		"${INSTALL} @install_exe_opts@" \
 		/Library /etc
 
+# Build setups
+
+debian-build-setup:
+	sudo apt-get install libcurl4-openssl-dev sqlite3 libmysqlclient-dev libexif-dev libtidy-dev libzip-dev libqrencode-dev apache2-dev
+
 # The mod_fdserv module
 
 etc/mod_fdserv.so: etc/mod_fdserv.c
