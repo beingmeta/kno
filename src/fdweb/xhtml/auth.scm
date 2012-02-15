@@ -143,13 +143,13 @@
 ;;; Cookie parameters
 ;; The max duration of cookies: if #f, use session cookies, if #t, use
 ;; the authentication expiration
-(define auth-cookie-expires #t)
-(define auth-cookie-domain #f)
-(define auth-cookie-path "/")
-(define auth-secure #f)
+(define-init auth-cookie-expires #t)
+(define-init auth-cookie-domain #f)
+(define-init auth-cookie-path "/")
+(define-init auth-secure #f)
 ;; Whether to have expiration apply to the cookie or just the
 ;; authentication token
-(define auth-sticky #f)
+(define-init auth-sticky #f)
 
 (varconfig! auth:cookie auth-cookie-expires)
 (varconfig! auth:domain auth-cookie-domain)
@@ -241,13 +241,13 @@
   (expires (and auth-expiration (+ (time) auth-expiration)))
   (sticky? #f))
 
-(define (auth->string auth)
+(define (auth->string auth (lifespan #f))
   (let* ((expires (authinfo-expires auth))
 	 (info (stringout (authinfo-realm auth)
 		 ";" (unparse-arg (authinfo-identity auth))
 		 ";" (authinfo-token auth)
 		 ";" (authinfo-issued auth)
-		 ";" expires
+		 ";" (if lifespan (+ (time) lifespan) expires)
 		 (if (authinfo-sticky? auth) ";STICKY")))
 	 (sig (hmac-sha1 info signature))
 	 (result (stringout info ";" (packet->base64 sig))))
@@ -348,7 +348,7 @@
 
 (define (auth/getinfo (authid authid) (signal #f) (authinfo)
 		      (https #f) (secret secret) (auth-secure auth-secure))
-  (default! authinfo (getauthinfo authid))
+  (default! authinfo (debug%watch (getauthinfo authid) authid))
   (debug%watch "AUTH/GETINFO"
 	       authid authinfo signal
 	        (cgiget authid)
@@ -367,7 +367,8 @@
 	;; Check if the info is a valid object
 	((not (authinfo? authinfo)) 
 	 (authfail "Invalid authorization object" authid authinfo signal))
-	((and (authinfo-expires authinfo) (> (time) (authinfo-expires authinfo)))
+	((and (authinfo-expires authinfo)
+	      (> (time) (authinfo-expires authinfo)))
 	 (authfail "Authorization expired" authid authinfo signal))
 	(else (or (auth/ok? authinfo)
 		  (authfail "Authorization error" authid authinfo signal)))))
