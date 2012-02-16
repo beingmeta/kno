@@ -18,6 +18,16 @@
 
 (define (random-signature (length %siglen)) (random-packet length))
 
+(define-init *default-random-chars*
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-!?")
+
+(define (random-string len (chars *default-random-chars*))
+  (let ((charvec (make-vector len))
+	(nrandom (length chars)))
+    (dotimes (i len)
+      (vector-set! charvec i (elt chars (random nrandom))))
+    (->string charvec)))
+
 (define (auth/maketoken (length 7) (mult (microtime)))
   (let ((sum 0) (modulus 1))
     (dotimes (i length)
@@ -38,12 +48,12 @@
 ;; How long a key to use when signing 
 (define %siglen 32)
 ;; The key to use in signing session ids
-(define signature (random-signature))
+(define-init signature (random-signature))
 ;; This is used to encrypt session ids sent insecurely
-(define secret #f)
+(define-init secret #f)
 ;; This is where the credentials (signature and secret) are stored
 ;;  in the file system (if anywhere)
-(define signature-file #f)
+(define-init signature-file #f)
 
 (define (signature-config var (val))
   (if (not (bound? val)) signature
@@ -219,7 +229,10 @@
   ;;  Note that this should never be used to confirm identity
   (when secret
     (set-cookie! (glom "." uservar)
-		 (packet->base64 (encrypt (unparse-arg identity) secret))
+		 (packet->base64
+		  (encrypt (stringout (unparse-arg identity) ";"
+			     (random-string 128))
+			   secret))
 		 auth-cookie-domain auth-cookie-path
 		 (timestamp+ (* 3600 24 42))
 		 #f)))
@@ -265,6 +278,7 @@
     (unless (equal? sig (hmac-sha1 payload signature))
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
 	       "\n\tfor " payload
+	       "\n\tor " info
 	       "\n\tbased on " signature
 	       "\n\texpecting " sig
 	       "\n\tgetting " (hmac-sha1 payload signature)))
@@ -323,7 +337,7 @@
 	   (freshauth auth)
 	   auth)))
 
-(define (freshtoken identity token)
+(define (token/ok? identity token)
   (or (checktoken identity token)
       (begin (logwarn "AUTH/FRESHTOKEN failed for "
 		      identity " with " token " using " checktoken)
@@ -331,14 +345,15 @@
 
 (define (freshauth auth)
   (and (or (not checktoken) ;; Valid token?
-	   (freshtoken (authinfo-identity auth) (authinfo-token auth)))
+	   (token/ok? (authinfo-identity auth) (authinfo-token auth)))
        ;; Check that the authorization isn't too old to refresh
+       ;;  (HTTPS tokens are always good to refresh)
        (or (req/get 'https #f)
 	   (< (time) (+ (authinfo-issued auth) auth-refresh auth-grace)))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
 	      ;; The only thing changed is the issue datetime
-	      (new (cons-authinfo realm identity (auth-token auth)
+	      (new (cons-authinfo realm identity (authinfo-token auth)
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
 	 (set-cookies! new)
@@ -384,7 +399,7 @@
 ;;; Top level functions
 
 (define (auth/getuser (authid authid))
-  (try (cgiget userid)
+  (try (req/get userid)
        (authinfo-identity (auth/getinfo authid))
        #f))
 
