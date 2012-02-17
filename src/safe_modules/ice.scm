@@ -33,10 +33,10 @@ roots and storing an adapted value for every OID you encounter.  The adapted
 		    copy)
 		  x)))))
 
-(define (restore x pool mapping input)
-  (%watch (restore-inner x pool mapping input) x))
+;; (define (restore x pool mapping input)
+;;   (%watch (restore-inner x pool mapping input) x))
 
-(define (restore-inner x pool mapping input)
+(define (restore x pool mapping input)
   (if (oid? x)
       (if (zero? (oid-hi x))
 	  (try (get mapping x) x)
