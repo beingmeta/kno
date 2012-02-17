@@ -2341,7 +2341,7 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
   if (h->atomicp==0) 
     while (read<lim) *write++=*read++;
   else while (read<lim) {
-      fdtype v=*read++; fd_incref(v); *write++=v;}
+      fdtype v=*read++; if (v) fd_incref(v); *write++=v;}
   FD_INIT_CONS(hnew,fd_hashset_type);
   hnew->n_slots=h->n_slots; hnew->n_keys=h->n_keys;
   hnew->slots=newslots; hnew->atomicp=h->atomicp;
