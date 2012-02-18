@@ -4,6 +4,9 @@
    Copyright (C) 2002-2011 beingmeta, inc.  All Rights Reserved
    This is a Apache module supporting persistent FramerD servers
 
+   For Apache 1.3:
+     Compile with: apxs -c mod_fdserv.c
+     Install with: apxs -i mod_fdserv.so
    For Apache 2.0:
      Compile with: apxs2 -c mod_fdserv.c
      Install with: apxs2 -i mod_fdserv.so
@@ -26,8 +29,13 @@ static char revisioninfo[] = "$Revision: 3991$";
 #define HEAVY_DEBUGGING 0
 #endif
 
+#ifdef STANDARD20_MODULE_STUFF
 #define APACHE20 1
 #define APACHE13 0
+#else
+#define APACHE20 0
+#define APACHE13 1
+#endif
 
 #if (APR_SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;
@@ -39,8 +47,12 @@ typedef unsigned int INTPOINTER;
 #define MAX_CONFIGS 32
 
 #include "util_script.h"
+#if APACHE13
+#include "multithread.h"
+#elif APACHE20
 #include "apr.h"
 #include "apr_strings.h"
+#endif
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -63,6 +75,31 @@ typedef unsigned int INTPOINTER;
 
 /* Compatibility */
 
+#if APACHE13
+typedef pool apr_pool_t;
+#define apr_palloc ap_palloc
+#define apr_pstrdup ap_pstrdup
+#define apr_pstrcat ap_pstrcat
+#define apr_table_make ap_make_table
+#define apr_table_set ap_table_set
+#define apr_table_get ap_table_get
+#define apr_table_elts ap_table_elts
+#define apr_make_table ap_make_table
+typedef table apr_table_t;
+typedef array_header apr_array_header_t;
+typedef table_entry apr_table_entry_t;
+#define isdirectoryp(p,s) (ap_is_directory(s))
+#define AP_MODULE_DECLARE_DATA MODULE_VAR_EXPORT    
+#define AP_INIT_TAKE1(cmd_name,handler,x,y,doc) {cmd_name,handler,x,y,TAKE1,doc}
+#define AP_INIT_TAKE2(cmd_name,handler,x,y,doc) {cmd_name,handler,x,y,TAKE2,doc}
+#define APLOG_HEAD APLOG_MARK,APLOG_DEBUG
+static int executable_filep(apr_pool_t *p,const char *filename)
+{
+  struct stat finfo; 
+  return ((stat(filename,&finfo) == 0) && (ap_can_exec(&finfo)));
+}
+#define apr_pool_create(loc,p) *loc=ap_make_sub_pool(p)
+#else
 #define APLOG_HEAD APLOG_MARK,APLOG_DEBUG,OK
 #define ap_can_exec(file) (1)
 #define ap_send_http_header(r) ;
@@ -82,6 +119,7 @@ static int executable_filep(apr_pool_t *p,const char *filename)
   if (finfo.protection & APR_WEXECUTE) return 1;
   else return 0;
 }
+#endif
 
 static char *prealloc(apr_pool_t *p,char *ptr,int new_size,int old_size)
 {
@@ -105,6 +143,31 @@ static char *makepath(apr_pool_t *p,const char *root,const char *name)
 
 /* Checking writability of files */
 
+#if APACHE13
+typedef struct stat fileinfo;
+static int get_file_info(apr_pool_t *p,const char *filename,fileinfo *info)
+{
+  return (stat(filename,info)<0);
+
+}
+static int stat_can_writep(apr_pool_t *p,server_rec *s,struct stat *finfo)
+{
+#if defined(OS2) || defined(WIN32) || defined(NETWARE)
+    /* OS/2 doesn't have Users and Groups to check (??) */
+    return 1;
+#endif
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,s,
+     "mod_fdserv: Checking writability with uid=%d gid=%d",
+     s->server_uid,s->server_gid);
+    if (s->server_uid == 0) return 1;
+    if (s->server_uid == finfo->st_uid)
+      if (finfo->st_mode & S_IWUSR) return 1;
+    if (s->server_gid == finfo->st_gid)
+      if (finfo->st_mode & S_IWGRP) return 1;
+    return ((finfo->st_mode & S_IWOTH) != 0);
+}
+#elif APACHE20
 typedef apr_finfo_t fileinfo;
 #define FINFO_FLAGS							\
    (APR_FINFO_USER|APR_FINFO_GROUP|APR_FINFO_PROT|APR_FINFO_TYPE)
@@ -129,6 +192,15 @@ static int stat_can_writep(apr_pool_t *p,server_rec *s,apr_finfo_t *finfo)
   if (finfo->protection & APR_FPROT_WWRITE) return 1;
   else return 0;
 }
+#else
+static int stat_can_writep(apr_pool_t *p,server_rec *s,struct stat *finfo)
+{
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,s,
+     "mod_fdserv: Assuming writability without being able to check");
+  return 1;
+}
+#endif
 
 static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
 {
@@ -553,6 +625,251 @@ static const command_rec fdserv_cmds[] =
 
 static int spawn_fdservlet (request_rec *r,apr_pool_t *p,const char *sockname);
 
+#if APACHE13
+struct FDSERV_INFO {
+  char *exename, *filename, *sockname, *log_file;
+  char **config_args;
+  uid_t uid; gid_t gid;};
+
+static int check_directory(apr_pool_t *p,const char *filename)
+{
+  char *dirname=ap_dirstr_parent(p,filename);
+  if (mkdir(dirname)<0)
+    return 1;
+  else return 0;
+}
+
+static const char *get_sockname(request_rec *r,const char *spec) /* 1.3 */
+{
+  const char *cached=apr_table_get(socketname_table,spec);
+  if (cached) return cached;
+  else {
+    struct FDSERV_SERVER_CONFIG *sconfig=
+      ap_get_module_config(r->server->module_config,&fdserv_module);
+    struct FDSERV_DIR_CONFIG *dconfig=
+      ap_get_module_config(r->per_dir_config,&fdserv_module);
+    const char *socket_file=
+      (((dconfig->socket_file)!=NULL) ? (dconfig->socket_file) : (NULL));
+    const char *socket_prefix=
+      ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
+       (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
+       "/var/run/fdserv/");
+
+    ap_log_rerror
+      (APLOG_MARK,APLOG_DEBUG,r,
+       "spawn get_sockname socket_file=%s, socket_prefix=%s",
+       socket_file,socket_prefix);
+    
+    if ((socket_file)&&(socket_file[0]=='/')) {
+      /* Absolute socket file name, just use it. */
+      apr_table_set(socketname_table,spec,socket_file);
+      return apr_table_get(socketname_table,spec);}
+    else if (socket_file) {
+      /* Relative socket file name, just append it. */
+      char socketpath[PATH_MAX];
+      if ((strlen(socket_prefix)+strlen(socket_file)+1)>PATH_MAX) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_ERR,r,
+	   "Socket file name %s+%s exceeded PATH_MAX (%d)",
+	   socket_prefix,socket_file,PATH_MAX);
+	return NULL;}
+      strcpy(socketpath,socket_prefix); strcat(socketpath,socket_file);
+      apr_table_set(socketname_table,spec,socketpath);
+      return apr_table_get(socketname_table,spec);}
+    else if ((strlen(socket_prefix)+strlen(spec)+1)>PATH_MAX) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_ERR,r,
+	 "Socket file name %s+%s exceeded PATH_MAX (%d)",
+	 socket_prefix,spec,PATH_MAX);
+      return NULL;}
+    else {
+      /* Convert the spec (essentially the path to the location plus
+	 the server name) into a socket name by converting / to : */
+      char buf[PATH_MAX], *write=buf, *read=(char *)spec;
+      strcpy(buf,socket_prefix); write=buf+strlen(socket_prefix);
+      while (*read)
+	if ((*read == '/') || (*read == '\\')) {*write++=':'; read++;}
+	else *write++=*read++;
+      *write='\0';
+      apr_table_set(socketname_table,spec,buf);
+      return (char *) apr_table_get(socketname_table,spec);}}
+}
+
+static const char *get_log_file(request_rec *r) /* 1.3 */
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&fdserv_module);
+  struct FDSERV_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&fdserv_module);
+  const char *log_file=
+    (((dconfig->log_file)!=NULL) ? (dconfig->log_file) :
+     ((sconfig->log_file)!=NULL) ? (sconfig->log_file) : (NULL));
+  const char *log_prefix=
+    ((dconfig->log_prefix) ? (dconfig->log_prefix) :
+     (sconfig->log_prefix) ? (sconfig->log_prefix) :
+     "logs/fdserv/");
+  
+  ap_log_rerror
+    (APLOG_MARK,APLOG_DEBUG,r,
+     "spawn get_logfile log_file=%s, log_prefix=%s",
+     log_file,log_prefix);
+  
+  if (log_file==NULL) return NULL;
+
+  if ((log_file)&&(log_file[0]=='/')) {
+    /* Absolute log file name, just use it. */
+    return log_file;}
+  else if ((log_prefix)&&(log_prefix[0]=='/')) 
+    return makepath(r->pool,log_prefix,log_file);
+  else return log_file;
+}
+
+static int exec_fdserv(void *child_stuff, child_info *pinfo) /* 1.3 */
+{
+  char *argv[32], *envp[5], buf[32];
+  struct FDSERV_INFO *info=(struct FDSERV_INFO *) child_stuff;
+  char **scan_config=info->config_args; int n_configs=0;
+  
+  ap_cleanup_for_exec();
+  ap_chdir_file(info->filename);
+  if (info->gid>=0) setgid(info->gid);
+  if (info->uid>=0) setuid(info->uid);
+  if (info->log_file) {
+    int log_fd=open(info->log_file,O_CREAT|O_APPEND);
+    dup2(log_fd,1); dup2(log_fd,2);}
+  argv[0]=info->exename;
+  argv[1]=info->sockname;
+  if (scan_config) {
+    while (*scan_config) {
+      if (n_configs>30) {/* blow up */}
+      argv[2+n_configs]=*scan_config;
+      scan_config++; n_configs++;}}
+  argv[2+n_configs]=NULL;
+  envp[0]=NULL;
+  execve(info->exename,argv,envp);
+  return -1; /* Should never return */
+}
+
+static int spawn_fdservlet /* 1.3 */
+  (request_rec *r,apr_pool_t *p,const char *sockname) 
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&fdserv_module);
+  struct FDSERV_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&fdserv_module);
+  struct FDSERV_INFO info;
+  server_rec *s=r->server;
+  struct stat stat_data;
+  int servlet_wait=dconfig->servlet_wait;
+  if (servlet_wait<0) servlet_wait=DEFAULT_SERVLET_WAIT;
+  info.exename=(char *)
+    ((dconfig->server_executable) ? (dconfig->server_executable) :
+     (sconfig->server_executable) ? (sconfig->server_executable) :
+     "/usr/bin/fdserv");
+  info.filename=(char *)r->filename;
+  info.sockname=(char *)sockname;
+  if (dconfig->log_file)
+    info.log_file=(char *)get_log_file(r);
+  else info.log_file=(char *)(dconfig->log_file);
+  if (sconfig->uid>=0) info.uid=sconfig->uid;
+  else info.uid=r->server->server_uid;
+  if (sconfig->gid>=0) info.gid=sconfig->gid;
+  else info.gid=r->server->server_gid;
+  
+  if (stat(sockname,&stat_data) == 0) {
+    if (remove(sockname) == 0)
+      ap_log_error
+	(APLOG_MARK,APLOG_NOTICE,s,"mod_fdserv: Removed leftover socket file %s",
+	 sockname);
+    else {
+      ap_log_error
+	(APLOG_MARK,APLOG_CRIT,s,"mod_fdserv: Could not remove socket file %s",
+	 sockname);}}
+  
+  errno=0;
+  ap_log_rerror
+    (APLOG_MARK,APLOG_NOTICE,r,
+     "Spawning %s @%s for %s[pid=%d,uid=%d,gid=%d]",
+     info.exename,sockname,r->unparsed_uri,getpid(),info.uid,info.gid);
+  
+  ap_bspawn_child(p,exec_fdserv,&info,0,NULL,NULL,NULL);
+
+  /* Now wait for the file to exist */
+  {
+    int sleep_count=1;
+    sleep(1); while (stat(sockname,&stat_data) < 0) {
+      if (sleep_count>servlet_wait) {
+	ap_log_rerror(APLOG_MARK,APLOG_CRIT,r,
+		      "Failed to spawn socket file %s (%d:%s)",
+		      sockname,errno,strerror(errno));
+	errno=0;
+	return -1;}
+      if (sleep_count==4) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_NOTICE,r,
+	   "Still waiting for %s to exist (errno=%d:%s)",
+	   sockname,errno,strerror(errno));
+	errno=0; sleep(2);}
+      else sleep(1);
+      sleep_count++;}}
+
+  return 0;
+}
+
+static int connect_to_servlet(request_rec *r) /* 1.3 */
+{
+  int sock; char buf[512];
+  sprintf(buf,"%s:%s",r->server->server_hostname,r->uri);
+  const char *sockname=get_sockname(r,buf);
+  struct sockaddr_un servname;
+  
+  if (sockname==NULL)
+    ap_log_rerror
+      (APLOG_MARK,APLOG_CRIT,r,
+       "Couldn't resolve socket name for %s",r->unparsed_uri);
+  else ap_log_error
+	 (APLOG_MARK,APLOG_INFO,r->server,
+	  "mod_fdserv: Resolving request for %s through %s",r->unparsed_uri,sockname);
+
+  sock=socket(PF_LOCAL,SOCK_STREAM,0);
+  if (sock<0) {
+    ap_log_rerror
+      (APLOG_MARK,APLOG_CRIT,r,"Couldn't open socket for %s (errno=%d:%s)",
+       sockname,errno,strerror(errno));
+    errno=0;
+    return sock;}
+  else ap_log_rerror
+	 (APLOG_MARK,APLOG_DEBUG,r,"Opened socket %d for %s",sock,sockname);
+
+  
+  servname.sun_family=AF_LOCAL; strcpy(servname.sun_path,sockname);
+  if ((connect(sock,(struct sockaddr *)&servname,SUN_LEN(&servname))) < 0) {
+    int rv=spawn_fdservlet(r,r->pool,sockname);
+    if (rv<0) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_CRIT,r,"Couldn't spawn fdservlet @ %s",sockname);
+      return -1;}
+    else ap_log_rerror
+	   (APLOG_MARK,APLOG_DEBUG,r,"Waiting to connect to %s",sockname);
+    if ((connect(sock,(struct sockaddr *)&servname,SUN_LEN(&servname))) < 0) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_CRIT,r,"Couldn't connect to %s (errno=%d:%s)",
+	 sockname,errno,strerror(errno));
+      errno=0;
+      return -1;}
+    else {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_DEBUG,r,"Successfully connected to %s @ %d",
+	 sockname,sock);
+      return sock;}}
+  else {
+    ap_log_rerror
+      (APLOG_MARK,APLOG_DEBUG,r,"Successfully connected to %s @ %d",
+       sockname,sock);
+    return sock;}
+}
+#endif
+
 static char *convert_spec(const char *spec,char *buf)
 {
   /* Convert the spec (essentially the path to the location plus
@@ -565,6 +882,7 @@ static char *convert_spec(const char *spec,char *buf)
   return buf;
 }
 
+#if APACHE20
 #define RUN_FDSERV_PERMISSIONS \
  (APR_FPROT_UREAD | APR_FPROT_UWRITE | APR_FPROT_UEXECUTE | \
   APR_FPROT_GREAD | APR_FPROT_GWRITE | APR_FPROT_GEXECUTE | \
@@ -872,6 +1190,7 @@ static int connect_to_servlet(request_rec *r)
        sockname,sock);
     return sock;}
 }
+#endif
 
 /* Writing DTYpes to BUFFs */
 
@@ -879,6 +1198,7 @@ static int connect_to_servlet(request_rec *r)
     but that seems a little overhead heavy for the output buffers used
     here, which are just used to write slotmaps to servlets.  So a
     simple reimplementation happens. here.  */
+#if (!(APACHE13))
 typedef struct BUFF {
   apr_pool_t *p; unsigned char *buf, *ptr, *lim;} BUFF;
 static void ap_bputc(unsigned char c,BUFF *b)
@@ -919,6 +1239,7 @@ static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
   b->p=p; b->ptr=b->buf=apr_palloc(p,1024); b->lim=b->buf+1024;
   return b;
 }
+#endif
 
 static void buf_write_4bytes(unsigned int i,BUFF *b)
 {
@@ -958,6 +1279,77 @@ static void write_table_as_slotmap
 
 /* Handling fdserv requests */
 
+#if APACHE13
+static int fdserv_handler(request_rec *r) /* 1.3 */
+{
+  char sbuf[MAX_STRING_LEN], *post_data; int post_size;
+#if TRACK_EXECUTION_TIMES
+  struct timeb start, end; 
+#endif
+  BUFF *out=ap_bcreate(r->pool,B_WR|B_SOCKET);
+  BUFF *in=ap_bcreate(r->pool,B_RD|B_SOCKET);
+  int socket;
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,r,
+		"Entered fdserv_handler for %s from %s",
+		r->filename,r->unparsed_uri);
+#if TRACK_EXECUTION_TIMES
+  ftime(&start);
+#endif
+  socket=connect_to_servlet(r);
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,r,
+		"Got server socket for %s",r->filename);
+  errno=0; if (socket < 0) {
+    ap_log_error(APLOG_MARK,APLOG_ERR,r->server,
+		 "mod_fdserv: Connection failed to %s for %s",
+		 r->filename,r->unparsed_uri);
+    r->content_type="text/html";
+    ap_send_http_header(r);
+    ap_rvputs(r,"<HTML>\n<HEAD>\n<TITLE>");
+    ap_rprintf(r,"Cannot start fdservlet for %s",r->filename);
+    ap_rvputs(r,"</HEAD>\n<BODY>\n<H1>");
+    ap_rprintf(r,"Cannot start fdservlet for %s",r->filename);
+    ap_rvputs(r,"</BODY>\n</HTML>");
+    return HTTP_SERVICE_UNAVAILABLE;}
+  else ap_log_error(APLOG_MARK,APLOG_DEBUG,r->server,
+		    "mod_fdserv: Socket %d serves %s for %s",
+		    socket,r->filename,r->unparsed_uri);
+  ap_add_common_vars(r); ap_add_cgi_vars(r);
+  ap_bpushfd(in,socket,-1);
+  ap_bpushfd(out,-1,socket);
+  if (r->method_number == M_POST) {
+    char bigbuf[4096];
+    ap_setup_client_block(r,REQUEST_CHUNKED_ERROR);
+    if (ap_should_client_block(r)) {
+      int bytes_read, size=0, limit=16384; char *data=ap_palloc(r->pool,16384);
+      while ((bytes_read=ap_get_client_block(r,bigbuf,4096)) > 0) {
+	ap_log_error(APLOG_MARK,APLOG_DEBUG,r->server,
+		     "mod_fdserv: Read %d bytes from client",bytes_read);
+	ap_reset_timeout(r);
+	if (size+bytes_read > limit) {
+	  char *newbuf=ap_palloc(r->pool,limit*2); memcpy(newbuf,data,size);
+	  data=newbuf; limit=limit*2;}
+	memcpy(data+size,bigbuf,bytes_read); size=size+bytes_read;}
+      post_data=data; post_size=size;}
+    else {post_data=NULL; post_size=0;}}
+  else {post_data=NULL; post_size=0;}
+  /* Still need to handle posted data */
+  write_table_as_slotmap(r,r->subprocess_env,out,post_size,post_data);
+  ap_bflush(out);
+  ap_scan_script_header_err_buff(r, in, sbuf); ap_send_http_header(r);
+  ap_send_fb(in,r); ap_rflush(r);
+#if TRACK_EXECUTION_TIMES
+  {char buf[64]; double interval; ftime(&end);
+   interval=1000*(end.time-start.time)+(end.millitm-start.millitm);
+   sprintf(buf,"%lf",interval/1000.0);
+   apr_table_set(r->subprocess_env,"EXECUTED","yes");
+   apr_table_set(r->notes,"exectime",buf);}
+#endif
+  ap_bclose(out); ap_bclose(in);
+  return OK;
+}
+#endif
+
+#if APACHE20
 typedef struct BUFFERED_SOCKET { apr_pool_t *p; int sock; BUFF buf; } BUFFSOCK;
 
 static int sock_fgets(char *buf,int n_bytes,void *stream)
@@ -1115,6 +1507,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   close(sock);
   return OK;
 }
+#endif
 
 int revision=-1;
 char *version_num="1.5";
@@ -1126,6 +1519,17 @@ static void init_version_info()
   sprintf(version_info,"mod_fdserv/%s(%d)",version_num,revision);
 }
 
+#if APACHE13
+static void init_module(server_rec *s,apr_pool_t *p)
+{
+  init_version_info();
+  socketname_table=apr_table_make(p,64);
+  ap_add_version_component(version_info);
+  ap_log_error(APLOG_HEAD,s,
+	       "mod_fdserv v%s (rev%d) init for Apache 1.3  completed",
+	       version_num,revision);
+}
+#else
 static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
 			server_rec *s)
 {
@@ -1157,6 +1561,39 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
 	       version_num,revision);
   return OK;
 }
+#endif
+
+#if APACHE13
+handler_rec fdserv_handlers[] = {
+    { FDSERV_MAGIC_TYPE, fdserv_handler },
+    { "fdservlet", fdserv_handler },
+    { NULL }
+};
+#endif
+
+#if APACHE13
+module MODULE_VAR_EXPORT fdserv_module = {
+    STANDARD_MODULE_STUFF,
+    init_module,               /* initializer */
+    create_dir_config,         /* per-dir config creator */
+    merge_dir_config,          /* per-dir config merger (default: override) */
+    create_server_config,      /* per-server config creator */
+    merge_server_config,       /* per-server config merger (default: override) */
+    fdserv_cmds,               /* command table */
+    fdserv_handlers,           /* [9] content handlers */
+    NULL,                      /* [2] URI-to-filename translation */
+    NULL,                      /* [5] authenticate user_id */
+    NULL,                      /* [6] authorize user_id */
+    NULL,                      /* [4] check access (based on src & http headers) */
+    NULL,                      /* [7] check/set MIME type */
+    NULL,                      /* [8] fixups */
+    NULL,                      /* [10] logger */
+    NULL,                      /* [3] header-parser */
+    NULL,                      /* process initialization */
+    NULL,                      /* process exit/cleanup */
+    NULL                       /* [1] post read-request handling */
+};
+#else
 static void register_hooks(apr_pool_t *p)
 {
   /* static const char * const run_first[]={ "mod_mime",NULL }; */
@@ -1174,6 +1611,7 @@ module AP_MODULE_DECLARE_DATA fdserv_module =
     fdserv_cmds,				/* command apr_table_t */
     register_hooks				/* register hooks */
 };
+#endif
 
 /* Emacs local variables
 ;;;  Local variables: ***
