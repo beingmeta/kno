@@ -11,6 +11,7 @@
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
+(module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
@@ -83,15 +84,18 @@
   (let* ((date (if (string? date) date
 		   (if (number? date) (number->string date)
 		       (get date 'rfc822))))
-	 (description
+	 (sigstring
 	  (string-append
 	   op "\n"
 	   content-sig "\n"
 	   content-ctype "\n"
 	   date "\n" (canonical-headers headers)
-	   (if (empty-string? bucket) "" "/") bucket path)))
-    (debug%watch (hmac-sha1 secretawskey description)
-		 description secretawskey)))
+	   (if (empty-string? bucket) "" "/") bucket
+	   (if (or (has-suffix bucket "/") (has-suffix path "/")) ""
+	       "/")
+	   path)))
+    (debug%watch (hmac-sha1 secretawskey sigstring)
+		 sigstring secretawskey)))
 
 (define (canonicalize-header x)
   (if (pair? x)
@@ -107,6 +111,10 @@
 			   (stdspace (subseq x (1+ colon))))
 		     (stdspace x))))
 	  #f)))
+
+(define (s3/bytecodes->string string)
+  (->string (map (lambda (x) (integer->char (string->number x 16)))
+		  (segment string))))
 
 (define (canonical-headers headers)
   (let* ((cheaders (remove #f (map canonicalize-header headers)))
@@ -127,9 +135,11 @@
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
 	 (baseurl
 	  (string-append s3scheme bucket (if (empty-string? bucket) "" ".")
-			 s3root path))
+			 s3root
+			 (if (has-prefix path "/") "" "/")
+			 path))
 	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
-	 ;; Hide the except field going to S3
+	 ;; Hide the expect field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
     (debug%watch url sig authorization)
     (when (and content (overlaps? op {"GET" "HEAD"}))
