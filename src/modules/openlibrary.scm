@@ -12,10 +12,15 @@
    olib/query olib/q olib/q+ olib/bibref olib/id olib/key
    olib/image olib/imageurl olib/refurl
    olib/getauthor
-   olib/get})
+   olib/get olib/string})
 
 (define %loglevel %notify!)
 ;;(define %loglevel %debug!)
+
+(define (olib/string x)
+  (if (string? x) x
+      (if (and (slotmap? x) (test x 'type "/type/text")) (get x 'value)
+	  x)))
 
 (defrecord olib key)
 
