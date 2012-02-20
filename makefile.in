@@ -573,7 +573,7 @@ etc/framerd-@VERSION@: $(FDB_SOURCES) $(FDB_HEADERS) \
 	git archive --prefix=framerd-@VERSION@/ \
 	            -o etc/framerd-@VERSION@.tar HEAD
 	cd etc; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
-	echo "#define FDB_SVNREV \""`svnversion .`"\"" \
+	echo "#define FRAMERD_REV \""`git describe`"\"" \
 		> etc/framerd-@VERSION@/etc/revision.h;
 etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
 		      		configure.in makefile.in makefile
@@ -784,7 +784,7 @@ $(DESTDIR)@apache_modinfo@:
 src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
 	if test -f etc/revision.h; \
 	then cp etc/revision.h src/exe/revision.h; \
-	else echo "#define FDB_SVNREV \""`git describe`"\"" \
+	else echo "#define FRAMERD_REV \""`git describe`"\"" \
 		> src/exe/revision.h; fi
 $(EXECUTABLES): src/exe/revision.h
 

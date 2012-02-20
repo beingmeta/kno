@@ -228,7 +228,7 @@ int main(int argc,char **argv)
   startup_time=u8_elapsed_time()-fd_load_start;
   if (FD_VOIDP(quiet_config))  {
     u8_message("FramerD (%s) booted in %f seconds, %d/%d pools/indices",
-	       FDB_SVNREV,startup_time,fd_n_pools,
+	       FRAMERD_REV,startup_time,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
     u8_message("beingmeta FramerD, (C) beingmeta 2004-2012, all rights reserved");
     fd_decref(quiet_config);}

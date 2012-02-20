@@ -804,7 +804,7 @@ int main(int argc,char **argv)
 
   u8_log(LOG_INFO,NULL,
 	 "FramerD (%s) fdserv servlet running, %d/%d pools/indices",
-	 FDB_SVNREV,fd_n_pools,
+	 FRAMERD_REV,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2012, all rights reserved");
   u8_server_loop(&fdwebserver);
