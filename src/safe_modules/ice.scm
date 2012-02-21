@@ -1,6 +1,6 @@
 (in-module 'ice)
 
-(module-export! '{freeze thaw})
+(module-export! '{ice/freeze ice/thaw})
 
 #|
 The idea is to take a set of roots, a pool, and a table, descending from the
@@ -56,7 +56,7 @@ roots and storing an adapted value for every OID you encounter.  The adapted
 		    copy)
 		  x)))))
 
-(defambda (freeze roots pool)
+(defambda (ice/freeze roots pool)
   (let ((mapping (make-hashtable))
 	(output (make-hashtable))
 	(counter (list 0)))
@@ -64,7 +64,7 @@ roots and storing an adapted value for every OID you encounter.  The adapted
 	    (dump roots pool mapping output counter))
     output))
 
-(defambda (thaw input pool)
+(defambda (ice/thaw input pool)
   (let ((mapping (make-hashtable))
 	(oids (pickoids (getkeys input))))
     (doseq (oid (sorted oids))
