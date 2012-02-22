@@ -3294,7 +3294,7 @@ static fdtype hashset_not_match
     {FD_DO_CHOICES(possibility,iresults) {
 	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
 	fdtype xformed=fd_apply(xform,1,&origin);
-	if (fd_hashset_get(h,xformed)) {
+	if (!(fd_hashset_get(h,xformed))) {
 	  FD_ADD_TO_CHOICE(results,possibility);}
 	fd_decref(xformed); fd_decref(origin);}}
     return get_longest_match(results);}
