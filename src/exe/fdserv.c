@@ -49,8 +49,6 @@ FD_EXPORT int fd_init_fddbserv(void);
 static FILE *statlog=NULL;
 static double overtime=0;
 
-static char *pidfile;
-
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
 
@@ -209,15 +207,13 @@ static void report_status()
 
 static int check_pid_file(char *sockname)
 {
-  int fd;
+  int fd; u8_string dir=NULL; char buf[128]; 
   int len=strlen(sockname);
-  char *dot=strchr(sockname,'.'), buf[128];
-  pidfile=u8_malloc(len+8);
-  if (dot) {
-    strncpy(pidfile,sockname,dot-sockname);
-    pidfile[dot-sockname]='\0';}
-  else strcpy(pidfile,sockname);
-  strcat(pidfile,".pid");
+  char *dot=strchr(sockname,'.');
+  if (dot) *dot='\0';
+  if (sockname[0]!='/') dir=u8_getcwd();
+  pidfile=u8_string_append(dir,((dir)?"/":""),sockname,".pid");
+  if (dot) *dot='.'; if (dir) u8_free(dir);
   fd=open(pidfile,O_WRONLY|O_CREAT|O_EXCL,644);
   if (fd<0) {
     struct stat fileinfo;
@@ -516,44 +512,20 @@ static int close_webclient(u8_client ucl)
   return 1;
 }
 
-static char *portfile=NULL;
-
-static void shutdown_fdwebserver(u8_condition reason)
+static void shutdown_server(u8_condition reason)
 {
   if (reason) 
     u8_log(LOG_WARN,reason,
-	   "Unexpected shutdown, removing socket %s and pidfile %s",
+	   "Shutting down, removing socket %s and pidfile %s",
 	   portfile,pidfile);
   u8_server_shutdown(&fdwebserver);
+  webcommon_shutdown();
   if (portfile)
     if (remove(portfile)>=0) {
       u8_free(portfile); portfile=NULL;}
   if (pidfile) u8_removefile(pidfile);
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
-}
-
-static void signal_shutdown(int sig)
-{
-#ifdef SIGHUP
-  if (sig==SIGHUP) {
-    shutdown_fdwebserver("SIGHUP"); return;}
-#endif
-#ifdef SIGHUP
-  if (sig==SIGQUIT) {
-    shutdown_fdwebserver("SIGQUIT"); return;}
-#endif
-#ifdef SIGHUP
-  if (sig==SIGTERM) {
-    shutdown_fdwebserver("SIGTERM"); return;}
-#endif
-  shutdown_fdwebserver("SIGTERM");
-  return;  
-}
-
-static void normal_shutdown()
-{
-  shutdown_fdwebserver(NULL);
 }
 
 static fdtype get_servlet_status()
@@ -613,8 +585,8 @@ int main(int argc,char **argv)
 {
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
-  int i=1;
-  u8_string socket_path=NULL;
+  int i=1, file_socket=0;
+  u8_string socket_spec=NULL;
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
@@ -627,24 +599,33 @@ int main(int argc,char **argv)
     fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
     exit(2);}
   
+  /* Find the socket spec (the non-config arg) */
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
-    else if (socket_path) i++;
-    else socket_path=argv[i++];
+    else if (socket_spec) i++;
+    else socket_spec=argv[i++];
   i=1;
-  if (!(socket_path)) {
-    fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
+
+  if (!(socket_spec)) {
+    fprintf(stderr,"Usage: fdserv <socketspec> [config]*\n");
     exit(2);}
-  else if (check_socket_path(socket_path)<0) {
+  /* Network socket spec, don't need to check the file */
+  else if (strchr(socket_spec,'@')) {}
+  else if (check_socket_path(socket_spec)<0) {
     u8_clear_errors(1);
     return -1;}
+  else file_socket=1;
   
-  u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
-
+  if (!(getenv("LOGFILE"))) 
+    u8_log(LOG_WARN,Startup,"No logfile, using stdio");
+  else u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
+  
   /* We do this using the Unix environment (rather than configuration
-      variables) because we want to redirect errors from the configuration
-      variables themselves and we want to be able to set this in the
-      environment we wrap around calls. */
+     variables) for twor reasons.  First, we want to redirect errors
+     from the processing of the configuration variables themselves
+     (where lots of errors could happen); second, we want to be able
+     to set this in the environment we wrap around calls (which is how
+     mod_fdserv does it). */
   if (getenv("LOGFILE")) {
     char *logfile=u8_strdup(getenv("LOGFILE"));
     int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|O_SYNC,0644);
@@ -654,18 +635,19 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
-  if (!(check_pid_file(socket_path))) return -1;
+  if (!(check_pid_file(socket_spec)))
+    exit(EXIT_FAILURE);
   
   fd_version=fd_init_fdscheme();
   
   if (fd_version<0) {
     u8_log(LOG_WARN,Startup,"Couldn't initialize FramerD");
-    exit(1);}
+    exit(EXIT_FAILURE);}
 
   /* We register this module so that we can have pages that use the functions,
      for instance with an HTTP PROXY that can be used as a dtype server */
 
-  /* Record the startup time for UPTIME */
+  /* Record the startup time for UPTIME and other functions */
   u8_now(&boot_time);
 
   /* INITIALIZING MODULES */
@@ -680,38 +662,45 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
+  /* Now we initialize the u8 configuration variables */
   u8_log_show_date=1;
   u8_log_show_procinfo=1;
   u8_use_syslog(1);
 
+  /* And now we initialize FramerD */
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_fdscheme();
   fd_init_schemeio();
   fd_init_texttools();
   fd_init_tagger();
+  /* May result in innocuous redundant calls */
+  FD_INIT_SCHEME_BUILTINS();
   fd_init_fddbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
   fd_init_fddbserv();
 #endif
 
+  /* This is the module where the data-access API lives */
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_fdbserv_module);
   fd_persist_module(fd_fdbserv_module);
 
   fd_init_fdweb();
   fd_init_dbfile(); 
-  init_symbols();
+
+  init_webcommon_data();
+  init_webcommon_symbols();
   
-  if (server_env==NULL)
-    server_env=fd_working_environment();
+  /* This is the root of all client service environments */
+  if (server_env==NULL) server_env=fd_working_environment();
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
   fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
   fd_idefn((fdtype)server_env,
 	   fd_make_cprim0("SERVLET-STATUS",get_servlet_status,0));
 
 
-  init_webcommon_config();
+  init_webcommon_configs();
   fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
 		     fd_dblconfig_get,fd_dblconfig_set,&traceweb);
   fd_register_config("BACKLOG",
@@ -728,79 +717,56 @@ int main(int argc,char **argv)
      statinterval_get,statinterval_set,NULL);
 
 #if FD_THREADS_ENABLED
+  /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
+     An alternative would be to log to a data structure and have a separate thread writing
+     to the log.  Of course, if we have problems writing to the log, we probably have all sorts
+     of other problems too! */
   fd_init_mutex(&log_lock);
 #endif
 
-  u8_log(LOG_NOTICE,"LAUNCH","fdserv %s",socket_path);
+  u8_log(LOG_NOTICE,"LAUNCH","fdserv %s",socket_spec);
 
+  /* Process the config statements */
   while (i<argc)
     if (strchr(argv[i],'=')) {
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
   
-  if (update_preloads()<0) fd_clear_errors(1);
+  u8_log(LOG_DEBUG,Startup,"Updating preloads");
+  /* Initial handling of preloads */
+  if (update_preloads()<0) {
+    /* Error here, rather than repeatedly */
+    fd_clear_errors(1);
+    exit(EXIT_FAILURE);}
   
-  FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
-  fd_make_hashtable(&pagemap,0);
   u8_server_init(&fdwebserver,
 		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
   fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
-  atexit(normal_shutdown);
 
-#ifdef SIGHUP
-  signal(SIGHUP,signal_shutdown);
-#endif
-#ifdef SIGTERM
-  signal(SIGTERM,signal_shutdown);
-#endif
-#ifdef SIGQUIT
-  signal(SIGQUIT,signal_shutdown);
-#endif
-
-#if HAVE_SIGPROCMASK
- {
-   sigset_t newset, oldset, newer;
-   sigemptyset(&newset);
-   sigemptyset(&oldset);
-   sigemptyset(&newer);
-#if SIGQUIT
-   sigaddset(&newset,SIGQUIT);
-#endif
-#if SIGTERM
-   sigaddset(&newset,SIGTERM);
-#endif
-#if SIGHUP
-   sigaddset(&newset,SIGHUP);
-#endif
-   if (sigprocmask(SIG_UNBLOCK,&newset,&oldset)<0)
-     u8_log(LOG_WARN,"Sigerror","Error setting signal mask");
- }
-#elif HAVE_SIGSETMASK
-  /* We set this here because otherwise, it will often inherit
-     the signal mask of its apache parent, which is inappropriate. */
- sigsetmask(0);
-#endif
+  /* Now that we're running, shutdowns occur normally. */
+  init_webcommon_finalize();
 
   /* We check this now, to kludge around some race conditions */
-  if (u8_file_existsp(socket_path)) {
-    if (((time(NULL))-(u8_file_mtime(socket_path)))<FD_LEFTOVER_AGE) {
+  if (u8_file_existsp(socket_spec)) {
+    if (((time(NULL))-(u8_file_mtime(socket_spec)))<FD_LEFTOVER_AGE) {
       u8_log(LOG_CRIT,"FDSERV/SOCKETRACE",
-	     "Aborting due to recent socket file %s",socket_path);
+	     "Aborting due to recent socket file %s",socket_spec);
       return -1;}
     else {
       u8_log(LOG_WARN,"FDSERV/SOCKETZAP",
-	     "Removing leftover socket file %s",socket_path);
-      remove(socket_path);}}
+	     "Removing leftover socket file %s",socket_spec);
+      remove(socket_spec);}}
 
- if (u8_add_server(&fdwebserver,socket_path,-1)<0) {
+  if (u8_add_server(&fdwebserver,socket_spec,-1)<0) {
     fd_recycle_hashtable(&pagemap);
     fd_clear_errors(1);
-    return -1;}
-  chmod(socket_path,0777);
+    exit(EXIT_FAILURE);}
+ 
+  chmod(socket_spec,0777);
 
-  portfile=u8_strdup(socket_path);
+  portfile=u8_strdup(socket_spec);
 
   u8_log(LOG_INFO,NULL,
 	 "FramerD (%s) fdserv servlet running, %d/%d pools/indices",

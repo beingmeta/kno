@@ -18,6 +18,10 @@ static int use_threadcache=0;
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
 
+/* Files that may be used */
+static char *portfile=NULL;
+static char *pidfile=NULL;
+
 #define FD_REQERRS 1 /* records only transactions which return errors */
 #define FD_ALLREQS 2 /* records all requests */
 #define FD_ALLRESP 3 /* records all requests and the response set back */
@@ -38,7 +42,7 @@ static fdtype auth_type, remote_host, remote_user, remote_port;
 static fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
 static fdtype query_symbol, referer_symbol, forcelog_symbol;
 
-static void init_symbols()
+static void init_webcommon_symbols()
 {
   uri_symbol=fd_intern("REQUEST_URI");
   query_symbol=fd_intern("QUERY_STRING");
@@ -441,7 +445,13 @@ static struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
 
 /* Init configs */
 
-static void init_webcommon_config()
+static void init_webcommon_data()
+{
+  FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
+  fd_make_hashtable(&pagemap,0);
+}
+
+static void init_webcommon_configs()
 {
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
 		     fd_boolconfig_get,fd_boolconfig_set,&traceweb);
@@ -456,3 +466,80 @@ static void init_webcommon_config()
   fd_register_config("THREADCACHE",_("Use per-request thread cache"),
 		     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
 }
+
+static void shutdown_server(u8_condition why);
+
+static void webcommon_shutdown()
+{
+  if (portfile)
+    if (remove(portfile)>=0) {
+      u8_free(portfile); portfile=NULL;}
+  if (pidfile) u8_removefile(pidfile);
+  pidfile=NULL;
+  fd_recycle_hashtable(&pagemap);
+}
+
+static void shutdown_on_signal(int sig)
+{
+  char buf[64];
+#ifdef SIGHUP
+  if (sig==SIGHUP) {
+    shutdown_server("SIGHUP"); return;}
+#endif
+#ifdef SIGHUP
+  if (sig==SIGQUIT) {
+    shutdown_server("SIGQUIT"); return;}
+#endif
+#ifdef SIGHUP
+  if (sig==SIGTERM) {
+    shutdown_server("SIGTERM"); return;}
+#endif
+  sprintf(buf,"SIG%d",sig);
+  shutdown_server((u8_condition)buf);
+  return;  
+}
+
+static void shutdown_on_exit(){shutdown_server("EXIT");}
+
+static void init_webcommon_finalize()
+{
+  atexit(shutdown_on_exit);
+
+#ifdef SIGHUP
+  signal(SIGHUP,shutdown_on_signal);
+#endif
+#ifdef SIGTERM
+  signal(SIGTERM,shutdown_on_signal);
+#endif
+#ifdef SIGQUIT
+  signal(SIGQUIT,shutdown_on_signal);
+#endif
+
+  /* Set signal masks */
+
+#if HAVE_SIGPROCMASK
+  {
+    sigset_t newset, oldset, newer;
+    sigemptyset(&newset);
+    sigemptyset(&oldset);
+    sigemptyset(&newer);
+#if SIGQUIT
+    sigaddset(&newset,SIGQUIT);
+#endif
+#if SIGTERM
+    sigaddset(&newset,SIGTERM);
+#endif
+#if SIGHUP
+    sigaddset(&newset,SIGHUP);
+#endif
+    if (sigprocmask(SIG_UNBLOCK,&newset,&oldset)<0)
+      u8_log(LOG_WARN,"Sigerror","Error setting signal mask");
+  }
+#elif HAVE_SIGSETMASK
+  /* We set this here because otherwise, it will often inherit
+     the signal mask of its apache parent, which is inappropriate. */
+  sigsetmask(0);
+#endif
+
+}
+

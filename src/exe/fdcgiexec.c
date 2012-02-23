@@ -76,6 +76,15 @@ static void write_pid_file(char *sockname)
 }
 #endif
 
+static void shutdown_server(u8_condition reason)
+{
+  if (reason) 
+    u8_log(LOG_WARN,reason,
+	   "Shutting down, removing socket %s and pidfile %s",
+	   portfile,pidfile);
+  webcommon_shutdown();
+}
+
 /* Running the server */
 
 static fdtype reqsetup()
@@ -149,7 +158,6 @@ static char *socketspec=NULL;
 #if FD_WITH_FASTCGI
 
 static int fcgi_socket=-1;
-static char *portfile=NULL;
 
 static void copy_param(char *name,FCGX_ParamArray envp,fdtype target,fdtype slotid)
 {
@@ -381,21 +389,6 @@ static void *fcgitop(void *s)
   return (void *) fcgiserveloop((fd_ptrbits)s);
 }
 
-static void shutdown_server()
-{
-  if (portfile)
-    if (remove(portfile)>=0) {
-      u8_free(portfile); portfile=NULL;}
-  if (pidfile) u8_removefile(pidfile);
-  pidfile=NULL;
-  fd_recycle_hashtable(&pagemap);
-}
-
-static void signal_shutdown(int sig)
-{
-  shutdown_server();
-}
-
 static int start_fcgi_server(char *socketspec)
 {
   pthread_t *threads;
@@ -437,41 +430,9 @@ static int start_fcgi_server(char *socketspec)
   
   u8_log(LOG_DEBUG,Startup,"Threads started");
 
-#ifdef SIGHUP
-  signal(SIGHUP,signal_shutdown);
-#endif
-#ifdef SIGTERM
-  signal(SIGTERM,signal_shutdown);
-#endif
-#ifdef SIGQUIT
-  signal(SIGQUIT,signal_shutdown);
-#endif
+  init_webcommon_finalize();
 
-#if HAVE_SIGPROCMASK
- {
-   sigset_t newset, oldset, newer;
-   sigemptyset(&newset);
-   sigemptyset(&oldset);
-   sigemptyset(&newer);
-#if SIGQUIT
-   sigaddset(&newset,SIGQUIT);
-#endif
-#if SIGTERM
-   sigaddset(&newset,SIGTERM);
-#endif
-#if SIGHUP
-   sigaddset(&newset,SIGHUP);
-#endif
-   if (sigprocmask(SIG_UNBLOCK,&newset,&oldset)<0)
-     u8_log(LOG_WARN,"Sigerror","Error setting signal mask");
- }
-#elif HAVE_SIGSETMASK
-  /* We set this here because otherwise, it will often inherit
-     the signal mask of its apache parent, which is inappropriate. */
- sigsetmask(0);
-#endif
-
- u8_log(LOG_DEBUG,Startup,"Signals setup");
+  u8_log(LOG_DEBUG,Startup,"Signals setup");
 
  if (socketspec) {
    write_pid_file(socketspec);
@@ -755,13 +716,16 @@ int main(int argc,char **argv)
 
   fd_init_fdweb();
   fd_init_dbfile(); 
-  init_symbols();
+
+  init_webcommon_data();
+  init_webcommon_symbols();
   
   if (server_env==NULL)
     server_env=fd_working_environment();
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
   fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
 
+  init_webcommon_configs();
   fd_register_config("BACKLOG",
 		     _("Number of pending connection requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
@@ -769,7 +733,7 @@ int main(int argc,char **argv)
 		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
   fd_register_config("CGISOCK",_("The socket file used by this server for use with external versions"),
 		     fd_sconfig_get,fd_sconfig_set,&socketspec);
-  init_webcommon_config();
+
 #if FD_THREADS_ENABLED
   fd_init_mutex(&log_lock);
 #endif
@@ -786,13 +750,13 @@ int main(int argc,char **argv)
     if (socketspec) socketspec=u8_strdup(socketspec);}
 
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
+  /* Initial handling of preloads */
+  if (update_preloads()<0) {
+    /* Error here, rather than repeatedly */
+    fd_clear_errors(1);
+    exit(EXIT_FAILURE);}
 
-  update_preloads();
-
-  u8_log(LOG_DEBUG,Startup,"Initializing pagemaps");
-
-  FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
-  fd_make_hashtable(&pagemap,0);
+  init_webcommon_finalize();
 
 #if FD_WITH_FASTCGI
   if ((loadfile) || (FCGX_IsCGI()))
