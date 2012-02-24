@@ -213,7 +213,7 @@ static int check_pid_file(char *sockname)
   char *dot=strchr(sockname,'.');
   if (dot) *dot='\0';
   if (sockname[0]!='/') dir=u8_getcwd();
-  pidfile=u8_string_append(dir,((dir)?"/":""),sockname,".pid");
+  pidfile=u8_string_append(dir,((dir)?"/":""),sockname,".pid",NULL);
   if (dot) *dot='.'; if (dir) u8_free(dir);
   fd=open(pidfile,O_WRONLY|O_CREAT|O_EXCL,644);
   if (fd<0) {
