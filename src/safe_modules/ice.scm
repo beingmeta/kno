@@ -62,7 +62,7 @@ roots and storing an adapted value for every OID you encounter.  The adapted
 		    copy)
 		  x)))))
 
-(defambda (ice/freeze roots pool (slotrules (make-hashtable)))
+(defambda (ice/freeze roots pool (slotrules #f))
   (let ((mapping (make-hashtable))
 	(output (make-hashtable))
 	(counter (list 0)))
