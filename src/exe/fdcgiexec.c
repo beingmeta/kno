@@ -16,6 +16,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/libu8io.h>
+#include <libu8/u8stringfns.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
