@@ -7,29 +7,35 @@ The idea is to take a set of roots, a pool, and a table, descending from the
 roots and storing an adapted value for every OID you encounter.  The adapted
 |#
 
-(define (dump x pool mapping output (counter (list 0)))
+(define (dump x pool mapping output (slotrules #f) (counter (list 0)))
   (if (oid? x)
       (try (get mapping x)
 	   (let ((dop (make-oid 0 (car counter))))
 	     (store! mapping x dop)
 	     (store! output dop
-		     (dump (oid-value x) pool mapping output counter))
+		     (dump (oid-value x) pool mapping output slotrules counter))
 	     (set-car! counter (1+ (car counter)))
 	     (set-cdr! counter (cons dop (cdr counter)))
 	     dop))
       (if (pair? x)
-	  (cons (dump (car x) pool mapping output counter)
-		(dump (cdr x) pool mapping output counter))
+	  (cons (dump (car x) pool mapping output slotrules counter)
+		(dump (cdr x) pool mapping output slotrules counter))
 	  (if (vector? x)
-	      (map (lambda (e) (dump e pool mapping output counter))
+	      (map (lambda (e) (dump e pool mapping output slotrules counter))
 		   x)
 	      (if (table? x)
 		  (let ((copy (if (hashtable? x) (make-hashtable)
 				  (frame-create #f))))
 		    (do-choices (key (getkeys x))
-		      (store! copy key
-			      (dump (get x key) pool mapping output
-				    counter)))
+		      (if (or (not slotrules) (not (test slotrules key)))
+			  (store! copy key
+				  (dump (get x key) pool mapping output
+					slotrules counter))
+			  (when (applicable? (get slotrules key))
+			    (store! copy key
+				    (dump ((get slotrules key) (get x key) x)
+					  pool mapping output
+					  slotrules counter)))))
 		    copy)
 		  x)))))
 
@@ -56,12 +62,12 @@ roots and storing an adapted value for every OID you encounter.  The adapted
 		    copy)
 		  x)))))
 
-(defambda (ice/freeze roots pool)
+(defambda (ice/freeze roots pool (slotrules (make-hashtable)))
   (let ((mapping (make-hashtable))
 	(output (make-hashtable))
 	(counter (list 0)))
     (store! output 'roots
-	    (dump roots pool mapping output counter))
+	    (dump roots pool mapping output slotrules counter))
     output))
 
 (defambda (ice/thaw input pool)
