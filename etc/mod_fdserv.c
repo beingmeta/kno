@@ -46,6 +46,7 @@ typedef unsigned int INTPOINTER;
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 #include <unistd.h>
 
 #ifndef TRACK_EXECUTION_TIMES
@@ -875,7 +876,7 @@ static int connect_to_servlet(request_rec *r)
     in_servname.sin_port=htons((short)portno);
     memcpy((&in_servname.sin_addr),hostinfo->h_addr,hostinfo->h_length);
     servname=(struct sockaddr *)&in_servname;
-    servlen=SIN_LEN(&in_servname);}
+    servlen=in_servname.sin_len;}
   
   if ((connect(sock,servname,servlen)) < 0) {
     int rv;
