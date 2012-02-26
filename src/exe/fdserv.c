@@ -68,6 +68,10 @@ typedef struct FD_WEBCONN *fd_webconn;
 
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
+/* When non-null, this overrides the document root coming from the
+   server.  It is for cases where fdserv is running on a different
+   machine than the HTTP server. */
+static u8_string docroot=NULL;
 
 /* This environment is the parent of all script/page environments spun off
    from this server. */
@@ -254,7 +258,30 @@ static void output_content(fd_webconn ucl,fdtype content)
   else {}
 }
 
-/* The error page */
+/* Fixing CGIDATA for a different docroot */
+
+static fdtype adjust_docroot(fdtype cgidata,u8_string docroot)
+{
+  if (docroot) {
+    fdtype incoming_docroot=fd_get(cgidata,document_root,FD_VOID);
+    if (FD_STRINGP(incoming_docroot)) {
+      fdtype scriptname=fd_get(cgidata,script_filename,FD_VOID);
+      fdtype lisp_docroot=fdtype_string(docroot);
+      fd_store(cgidata,document_root,lisp_docroot);
+      if ((FD_STRINGP(scriptname))&&
+	  ((strncmp(FD_STRDATA(scriptname),FD_STRDATA(incoming_docroot),
+		    FD_STRLEN(incoming_docroot)))==0)) {
+	u8_string local_scriptname=u8_string_append
+	  (docroot,FD_STRDATA(scriptname)+FD_STRLEN(incoming_docroot),NULL);
+	fdtype new_scriptname=fd_init_string(NULL,-1,local_scriptname);
+	fd_store(cgidata,script_filename,new_scriptname);
+	fd_decref(new_scriptname);}
+      fd_decref(lisp_docroot); fd_decref(scriptname);}
+    fd_decref(incoming_docroot);
+    return cgidata;}
+  else return cgidata;
+}
+
 
 /* Running the server */
 
@@ -306,6 +333,7 @@ static int webservefn(u8_client ucl)
   else {
     setup_time=u8_elapsed_time();
     cgidata=fd_dtsread_dtype(&(client->in)), result;
+    if (docroot) adjust_docroot(cgidata,docroot);
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {
       fdtype referer=fd_get(cgidata,referer_symbol,FD_VOID);
@@ -716,6 +744,9 @@ int main(int argc,char **argv)
   fd_register_config
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
+  fd_register_config("DOCROOT",_("File base (directory) for resolving requests"),
+		     fd_sconfig_get,fd_sconfig_set,&docroot);
+
 
 #if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
