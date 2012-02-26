@@ -33,7 +33,7 @@ static fdtype response_symbol, err_symbol;
 static fdtype browseinfo_symbol, threadcache_symbol;
 static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static fdtype content_slotid, content_type, tracep_slotid, query_string;
-static fdtype query_string, script_name, path_info, remote_info;
+static fdtype query_string, script_name, path_info, remote_info, document_root;
 static fdtype http_referer, http_accept;
 static fdtype http_accept_language, http_accept_encoding, http_accept_charset;
 static fdtype content_type, content_length, post_data;
@@ -50,6 +50,7 @@ static void init_webcommon_symbols()
   setup_symbol=fd_intern("SETUP");
   cgisymbol=fd_intern("CGIDATA");
   script_filename=fd_intern("SCRIPT_FILENAME");
+  document_root=fd_intern("DOCUMENT_ROOT");
   doctype_slotid=fd_intern("DOCTYPE");
   xmlpi_slotid=fd_intern("XMLPI");
   content_type=fd_intern("CONTENT-TYPE");
