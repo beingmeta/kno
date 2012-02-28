@@ -1,7 +1,7 @@
 /* C Mode */
 
 /* mod_fdserv.c
-   Copyright (C) 2002-2011 beingmeta, inc.  All Rights Reserved
+   Copyright (C) 2002-2012 beingmeta, inc.  All Rights Reserved
    This is a Apache module supporting persistent FramerD servers
 
    For Apache 2.0:
@@ -36,8 +36,8 @@ typedef unsigned long long INTPOINTER;
 typedef unsigned int INTPOINTER;
 #endif
 
-#define DEFAULT_SERVLET_WAIT 10
-#define MAX_CONFIGS 32
+#define DEFAULT_SERVLET_WAIT 60
+#define MAX_CONFIGS 64
 
 #include "util_script.h"
 #include "apr.h"
@@ -818,68 +818,124 @@ static int spawn_fdservlet /* 2.0 */
   else return retval;
 }
 
-static int connect_to_servlet(request_rec *r)
+static char *get_pathspec(request_rec *r,char buf)
 {
-  int sock; char buf[512];
   sprintf(buf,"%s:%s",r->server->server_hostname,r->uri);
-  const char *sockname=get_sockname(r,buf);
-  struct sockaddr_un un_servname; struct sockaddr_in in_servname;
-  struct sockaddr *servname; int servlen;
+  return buf;
+}
+
+static apr_socket_t *connect_to_servlet(request_rec *r)
+{
+  apr_socket_t *sock; char buf[512], *pathspec=getpathspec(r,buf);
+  const char *sockname=get_sockname(r,pathspec);
+  struct sockaddr_un un_servname; struct sockaddr_in in_servaddr;
+  struct sockaddr *servaddr; int servlen;
   int filesock=((sockname)&&(((strchr(sockname,'@'))==NULL)||((strchr(sockname,':'))==NULL)));
 
-  if (sockname==NULL)
+  if (sockname==NULL) {
     ap_log_rerror
       (APLOG_MARK,APLOG_CRIT,500,r,
        "Couldn't resolve socket name for %s",r->unparsed_uri);
+    return -1;}
   else if (filesock)
     ap_log_error
-      (APLOG_MARK,APLOG_NOTICE,OK,r->server,
+      (APLOG_MARK,APLOG_INFO,OK,r->server,
        "mod_fdserv: Resolving request for %s using %s",
        r->unparsed_uri,sockname);
   else ap_log_error
-	 (APLOG_MARK,APLOG_NOTICE,OK,r->server,
+	 (APLOG_MARK,APLOG_INFO,OK,r->server,
 	  "mod_fdserv: Resolving request for %s through %s",
 	  r->unparsed_uri,sockname);
 
-  if (sockname==NULL) return -1;
-
-  sock=socket(((filesock)?(PF_LOCAL):(PF_INET)),SOCK_STREAM,0);
-  if (sock<0) {
-    ap_log_rerror
-      (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't open socket for %s (errno=%d:%s)",
-       sockname,errno,strerror(errno));
+  if (filesock) {
+    struct sockaddr_un un_servname;
+    int unix_sock, connval, aprval; int serveln;
+    un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
+    unix_sock=socket((PF_LOCAL),SOCK_STREAM,0);
+    if (unix_sock<0) {
+      ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't open socket for %s (errno=%d:%s)",
+		    sockname,errno,strerror(errno));
+      return NULL;}
+    connval=connect(unix_sock,&un_servname,SUN_LEN(&un_servname));
+    if (connval<0) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_CRIT,500,
+	 r,((filesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
+	    ("Couldn't connect socket to %s (errno=%d:%s)")),
+	 sockname,errno,strerror(errno));
+      errno=0;
+      rv=spawn_fdservlet(r,r->pool,sockname);
+      if (rv<0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't spawn fdservlet @ %s",sockname);
+	return NULL;}
+      else ap_log_rerror
+	     (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
+      if ((connect(unix_sock,servaddr,servlen)) < 0) {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
+	   sockname,errno,strerror(errno));
+	errno=0;
+	return NULL;}
+      else {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
+	   sockname,sock);}}
+    aprval=apr_os_sock_put(&sock,&unix_sock,r->pool);
+    if (aprval) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_CRIT,OK,r,"Couldn't convert socket %s %d to APR",
+	 sockname,unix_sock);
+      return NULL;}
+    return sock;}
+  else {
+    /* Use APR functions for network connection. */
     errno=0;
     return sock;}
   else ap_log_rerror
-	 (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket %d for %s",sock,sockname);
+	 (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket %d to use with %s",sock,sockname);
   if (filesock) {
-    un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
-    servname=(struct sockaddr *)&un_servname;
-    servlen=SUN_LEN(&un_servname);}
   else {
     char hostname[128]; int portno;
     struct hostent *hostinfo;
     char *split=strchr(sockname,'@');
     if (split) {
-      char buf[128];
+      char portbuf[32];
       strcpy(hostname,split+1);
-      strncpy(buf,sockname,split-sockname);
-      buf[split-sockname]='\0';
-      portno=atoi(buf);}
+      strncpy(portbuf,sockname,split-sockname);
+      portbuf[split-sockname]='\0';
+      portno=atoi(portbuf);}
     else if (split=strchr(sockname,':')) {
       strncpy(hostname,sockname,split-sockname);
       hostname[split-sockname]='\0';
       portno=atoi(split+1);}
     else {}
+    ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Looking up hostname '%s'",hostname);
     hostinfo=gethostbyname2(hostname,AF_INET);
-    in_servname.sin_family=AF_INET;
-    in_servname.sin_port=htons((short)portno);
-    memcpy((&in_servname.sin_addr),hostinfo->h_addr,hostinfo->h_length);
-    servname=(struct sockaddr *)&in_servname;
-    servlen=in_servname.sin_len;}
+    if (hostinfo) {
+      unsigned char **addrs=(unsigned char **)hostinfo->h_addr_list;
+      ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Got hostinfo len=%d, addrs=%llx",
+		    hostinfo->h_length,(unsigned long long)addrs);
+      if ((addrs)&&(addrs[0])&&(hostinfo->h_length)) {
+	ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Got hostinfo len=%d, addrs=%llx, addr[0]=%d.%d.%d.%d",
+		      hostinfo->h_length,(unsigned long long)addrs,
+		      (int)(addrs[0][0]),(int)(addrs[0][1]),(int)(addrs[0][2]),(int)(addrs[0][3]));}
+      in_servaddr.sin_family=AF_INET;
+      in_servaddr.sin_port=htons((short)portno);
+      memcpy((&in_servaddr.sin_addr),addrs[0],4);
+      servaddr=(struct sockaddr *)&in_servaddr;
+      servlen=in_servaddr.sin_len;}
+    else {
+      ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Can't resolve hostname '%s'",hostname);
+      return -1;}}
   
-  if ((connect(sock,servname,servlen)) < 0) {
+  if ((connect(sock,servaddr,servlen)) < 0) {
     int rv;
+    ap_log_rerror
+      (APLOG_MARK,APLOG_CRIT,500,
+       r,((filesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
+	  ("Couldn't connect socket to %s (errno=%d:%s)")),
+       sockname,errno,strerror(errno));
     ap_log_rerror
       (APLOG_MARK,APLOG_CRIT,500,
        r,((filesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
@@ -894,7 +950,7 @@ static int connect_to_servlet(request_rec *r)
       return -1;}
     else ap_log_rerror
 	   (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
-    if ((connect(sock,servname,servlen)) < 0) {
+    if ((connect(sock,servaddr,servlen)) < 0) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
 	 sockname,errno,strerror(errno));
@@ -996,8 +1052,6 @@ static void write_table_as_slotmap
 }
 
 /* Handling fdserv requests */
-
-typedef struct BUFFERED_SOCKET { apr_pool_t *p; int sock; BUFF buf; } BUFFSOCK;
 
 static int sock_fgets(char *buf,int n_bytes,void *stream)
 {
