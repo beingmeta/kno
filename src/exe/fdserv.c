@@ -249,13 +249,15 @@ static int check_pid_file(char *sockname)
 
 #define write_string(sock,string) u8_writeall(sock,string,strlen(string))
 
-static void output_content(fd_webconn ucl,fdtype content)
+static int output_content(fd_webconn ucl,fdtype content)
 {
-  if (FD_STRINGP(content))
+  if (FD_STRINGP(content)) {
     u8_writeall(ucl->socket,FD_STRDATA(content),FD_STRLEN(content));
-  else if (FD_PACKETP(content))
+    return FD_STRLEN(content);}
+  else if (FD_PACKETP(content)) {
     u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
-  else {}
+    return FD_PACKET_LENGTH(content);}
+  else return 0;
 }
 
 /* Fixing CGIDATA for a different docroot */
@@ -305,6 +307,7 @@ static int webservefn(u8_client ucl)
   struct rusage start_usage, end_usage;
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
   int forcelog=0, retval=0;
+  size_t headerlen=0, contentlen=0;
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
   /* Do this ASAP to avoid session leakage */
@@ -358,8 +361,8 @@ static int webservefn(u8_client ucl)
     proc=getcontent(path);
     fd_parse_cgidata(cgidata);
     parse_time=u8_elapsed_time();
-    if ((reqlog) || (urllog))
-      dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
+    if ((reqlog) || (urllog) || (trace_cgidata))
+      dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);}
   fd_set_default_output(&(client->out));
   fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
@@ -413,20 +416,27 @@ static int webservefn(u8_client ucl)
   if (FD_TROUBLEP(result)) {
     u8_exception ex=u8_erreify();
     u8_condition excond=ex->u8x_cond;
-    u8_context excxt=((ex->u8x_context) ? (ex->u8x_context) : ((u8_context)"somewhere"));
-    u8_context exdetails=((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
+    u8_context excxt=((ex->u8x_context) ?
+		      (ex->u8x_context) : ((u8_context)"somewhere"));
+    u8_context exdetails=((ex->u8x_details)
+			  ? (ex->u8x_details) : ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
 	     excond,FD_STRDATA(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
 		excond,FD_STRDATA(path),excxt,exdetails,irritant);
+    headerlen=headerlen+
+      strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
     write_string(client->socket,
 		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
     fd_xhtmlerrorpage(&(client->out),ex);
     u8_free_exception(ex,1);
-    if ((reqlog) || (urllog))
-      dolog(cgidata,result,client->out.u8_outbuf,u8_elapsed_time()-start_time);
+    if ((reqlog) || (urllog) || (trace_cgidata))
+      dolog(cgidata,result,client->out.u8_outbuf,
+	    client->out.u8_outptr-client->out.u8_outbuf,
+	    u8_elapsed_time()-start_time);
+    contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
     u8_writeall(client->socket,client->out.u8_outbuf,
 		client->out.u8_outptr-client->out.u8_outbuf);
     u8_client_close(ucl);}
@@ -441,17 +451,21 @@ static int webservefn(u8_client ucl)
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
+    headerlen=headerlen+(tmp.u8_outptr-tmp.u8_outbuf);
     u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
     tmp.u8_outptr=tmp.u8_outbuf;
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
       /* Normal case, when the output is just sent to the client */
       if (write_headers) {
 	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
+	contentlen=contentlen+(tmp.u8_outptr-tmp.u8_outbuf);
 	u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
+      contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
       retval=u8_writeall(client->socket,client->out.u8_outbuf,
 			 client->out.u8_outptr-client->out.u8_outbuf);
-      if (write_headers)
-	write_string(client->socket,"</body>\n</html>\n");}
+      if (write_headers) {
+	contentlen=contentlen+strlen("</body>\n</html>\n");
+	write_string(client->socket,"</body>\n</html>\n");}}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signallin */
       u8_string filename=FD_STRDATA(retfile);
@@ -459,19 +473,22 @@ static int webservefn(u8_client ucl)
       if (f) {
 	int bytes_read=0; unsigned char buf[32768];
 	while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
+	  contentlen=contentlen+bytes_read;
 	  retval=u8_writeall(client->socket,buf,bytes_read);
 	  if (retval<0) break;}
 	fclose(f);}}
       else {
-      /* Where the servlet has specified some particular content */
-      output_content(client,content);
-      client->out.u8_outptr=client->out.u8_outbuf;}
+	/* Where the servlet has specified some particular content */
+	contentlen=contentlen+output_content(client,content);}
+    /* Reset the stream */
+    client->out.u8_outptr=client->out.u8_outbuf;
     u8_client_close(ucl);
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if (retval<0)
       u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
-    if ((reqlog) || (urllog))
+    if ((reqlog) || (urllog) || (trace_cgidata))
       dolog(cgidata,result,client->out.u8_outbuf,
+	    client->out.u8_outptr-client->out.u8_outbuf,
 	    u8_elapsed_time()-start_time);}
   if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
     fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
@@ -491,8 +508,9 @@ if ((forcelog)||(traceweb>0)||
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE",
-	     "Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-	     path,write_time-start_time,
+	     "Sent %d=%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+	     headerlen+contentlen,headerlen,contentlen,path,
+	     write_time-start_time,
 	     setup_time-start_time,
 	     parse_time-setup_time,
 	     exec_time-parse_time,
@@ -501,8 +519,8 @@ if ((forcelog)||(traceweb>0)||
 	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
 	     end_load[0],end_load[1],end_load[2]);
     else u8_log(LOG_NOTICE,"DONE",
-		"Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-		path,query,
+		"Sent %d=%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+		headerlen+contentlen,headerlen,contentlen,path,query,
 		write_time-start_time,
 		setup_time-start_time,
 		parse_time-setup_time,

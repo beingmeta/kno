@@ -12,6 +12,7 @@ static int reqloglevel=0;
 static int traceweb=0;
 
 static int cgitrace=0;
+static int trace_cgidata=0;
 
 static int use_threadcache=0;
 
@@ -186,9 +187,14 @@ static fdtype reqlog_get(fdtype var,void *data)
 /* Logging primitive */
 
 static void dolog
-  (fdtype cgidata,fdtype val,u8_string response,double exectime)
+  (fdtype cgidata,fdtype val,u8_string response,size_t len,double exectime)
 {
   fd_lock_mutex(&log_lock);
+  if (trace_cgidata) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+    fd_pprint(&out,cgidata,NULL,2,0,50,1);
+    fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
+    u8_free(out.u8_outbuf);}
   if (FD_NULLP(val)) {
     /* This is pre execution */
     if (urllog) {
@@ -223,8 +229,8 @@ static void dolog
   else {
     if (urllog) {
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
-      u8_string tmp=u8_mkstring("<%s\n@%*lt %g/%g\n",FD_STRDATA(uri),
-				exectime,u8_elapsed_time());
+      u8_string tmp=u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
+				len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2)) 
       fd_store(cgidata,response_symbol,fdtype_string(response));
@@ -466,6 +472,8 @@ static void init_webcommon_configs()
 		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
   fd_register_config("THREADCACHE",_("Use per-request thread cache"),
 		     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
+  fd_register_config("TRACECGIDATA",_("Whether to dump cgidata"),
+		     fd_boolconfig_get,fd_boolconfig_set,&trace_cgidata);
 }
 
 static void shutdown_server(u8_condition why);
