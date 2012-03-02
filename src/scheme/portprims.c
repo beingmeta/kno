@@ -431,6 +431,25 @@ static fdtype substringout(fdtype arg,fdtype start,fdtype end)
   return FD_VOID;
 }
 
+static fdtype uniscape(fdtype arg,fdtype excluding)
+{
+  u8_string input=((FD_STRINGP(arg))?(FD_STRDATA(arg)):
+		   (fd_dtype2string(arg)));
+  u8_string exstring=((FD_STRINGP(excluding))?
+		      (FD_STRDATA(excluding)):
+		      ((u8_string)""));
+  u8_output output=fd_get_default_output();
+  u8_string string=FD_STRDATA(input);
+  u8_byte *scan=input; int c=u8_sgetc(&scan);
+  while (c>0) {
+    if ((c>=0x80)||(strchr(exstring,c))) {
+      u8_printf(output,"\\u%04x",c);}
+    else u8_putc(output,c);
+    c=u8_sgetc(&scan);}
+  if (!(FD_STRINGP(arg))) u8_free(input);
+  return FD_VOID;
+}
+
 static fdtype printout_handler(fdtype expr,fd_lispenv env)
 {
   return fd_printout(fd_get_body(expr,1),env);
@@ -1410,6 +1429,10 @@ FD_EXPORT void fd_init_portfns_c()
 			   fd_string_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("UNISCAPE",uniscape,1,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
   
   /* Logging functions for specific levels */
   fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
