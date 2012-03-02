@@ -202,6 +202,8 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   struct FDSERV_SERVER_CONFIG *parent=base;
   struct FDSERV_SERVER_CONFIG *child=new;
 
+  memset(config,0,sizeof(struct FDSERV_SERVER_CONFIG));
+
   if (child->uid <= 0) config->uid=parent->uid; else config->uid=child->uid;
   if (child->gid <= 0) config->gid=parent->gid; else config->gid=child->gid;
 
@@ -277,7 +279,7 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   struct FDSERV_DIR_CONFIG *parent=base;
   struct FDSERV_DIR_CONFIG *child=new;
 
-  config->log_file=NULL; config->socket_spec=NULL;
+  memset(config,0,sizeof(struct FDSERV_DIR_CONFIG));
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
@@ -458,36 +460,32 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
-  struct FDSERV_SERVER_CONFIG *smodconfig=
+  struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
-  const char *socket_prefix=NULL, *fullpath=NULL, *spec=NULL;
-  if (parms->path)
-    socket_prefix=dconfig->socket_prefix;
-  else socket_prefix=sconfig->socket_prefix;
-  if (socket_prefix==NULL) socket_prefix=sconfig->socket_prefix;
-  if (socket_prefix==NULL) socket_prefix=smodconfig->socket_prefix;
+  const char *fullpath=NULL, *spec=NULL;
+
   if (arg[0]=='/') spec=arg;
   else if (strchr(arg,'@')) spec=arg;
-  else if (socket_prefix)
-    spec=fullpath=apr_pstrcat(parms->pool,socket_prefix,arg,NULL);
-  else spec=fullpath=ap_server_root_relative(parms->pool,(char *)arg);
-  if (parms->path)
-    dconfig->socket_spec=spec;
-  else sconfig->socket_spec=spec;
+  else if (dconfig->socket_prefix)
+    spec=fullpath=apr_pstrcat(parms->pool,dconfig->socket_prefix,arg,NULL);
+  else if (sconfig->socket_prefix)
+    spec=fullpath=apr_pstrcat(parms->pool,sconfig->socket_prefix,arg,NULL);
+  else spec=arg;
+
+  dconfig->socket_spec=spec;
   
   if (!(fullpath))
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
-       "mod_fdserv: Socket spec =%s",spec);
+       "mod_fdserv: Socket spec=%s",spec);
   else if (!(file_writablep(parms->pool,parms->server,fullpath)))
     ap_log_error
       (APLOG_MARK,APLOG_CRIT,OK,parms->server,
-       "mod_fdserv: Socket file %s=%s+%s is unwritable",
-       fullpath,socket_prefix,arg);
+       "mod_fdserv: Socket file %s=%s is unwritable",
+       arg,fullpath);
   else ap_log_error
 	 (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
-	  "mod_fdserv: Socket file %s=%s+%s",fullpath,socket_prefix,arg);
+	  "mod_fdserv: Socket file %s=%s",arg,fullpath);
   return NULL;
 }
 
@@ -842,8 +840,12 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
   /* TCP socket specs have either the form ttport@hostname or hostname:port
      where ttport might be touch-tone encoded. */
   int filesock=((sockname)&&
-		(((strchr(sockname,'@'))==NULL)||
-		 ((strchr(sockname,':'))==NULL)));
+		((strchr(sockname,'@'))==NULL)&&
+		((strchr(sockname,':'))==NULL));
+
+  ap_log_rerror
+    (APLOG_MARK,APLOG_DEBUG,OK,r,"Connecting to %s %s",
+     ((filesock)?"file socket":"net socket"),sockname);
   
   if (sockname==NULL) {
     ap_log_rerror
@@ -901,6 +903,11 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
 	(APLOG_MARK,APLOG_CRIT,OK,r,"Couldn't convert socket %s %d to APR",
 	 sockname,unix_sock);
       return NULL;}
+    aprval=apr_socket_timeout_set(sock,-1);
+    ap_log_rerror
+      (APLOG_MARK,APLOG_INFO,OK,r,
+       "Converted unix socket %s %d to APR",
+       sockname,unix_sock);
     return sock;}
   else {
     /* Use APR functions for network connection. */
@@ -921,11 +928,33 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
     else {}
     retval=apr_socket_create(&sock,APR_INET,SOCK_STREAM,APR_PROTO_TCP,
 			     r->pool);
-    if (retval!=APR_SUCCESS) return NULL;
-    retval=apr_sockaddr_info_get(&addr,hostname,APR_INET,portno,0,r->pool);
-    if (retval!=APR_SUCCESS) return NULL;
+    if (retval!=APR_SUCCESS) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_WARNING,OK,r,
+	 "Unable to allocate socket to connect with %s",
+	 sockname);
+      return NULL;}
+    retval=apr_sockaddr_info_get
+      (&addr,hostname,APR_UNSPEC,(short)portno,0,r->pool);
+    if (retval!=APR_SUCCESS) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_WARNING,OK,r,
+	 "Unable to resolve connection info for port %d at %s",
+	 portno,sockname);
+      return NULL;}
+    {char *rname; apr_port_t p;
+      apr_sockaddr_ip_get(&rname,addr);
+      ap_log_rerror
+	(APLOG_MARK,APLOG_DEBUG,OK,r,
+	 "Got info for port %d at %s, addr=%s, port=%d",
+	 portno,hostname,rname,addr->port);}
     retval=apr_socket_connect(sock,addr);
-    if (retval!=APR_SUCCESS) return NULL;
+    if (retval!=APR_SUCCESS) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_WARNING,OK,r,
+	 "Unable to make connection to %s",
+	 sockname);
+      return NULL;}
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket to use with %s",
        sockname);
@@ -1017,19 +1046,27 @@ static void write_table_as_slotmap
 
 /* Handling fdserv requests */
 
-static int sock_fgets(char *buf,int n_bytes,void *stream)
+struct HEAD_SCANNER {
+  apr_socket_t *sock;
+  request_rec *req;};
+
+static int scan_fgets(char *buf,int n_bytes,void *stream)
 {
-  apr_socket_t *sock=(apr_socket_t *)stream;
+  struct HEAD_SCANNER *scan=(struct HEAD_SCANNER *)stream;
+  apr_socket_t *sock=scan->sock; request_rec *r=scan->req;
   /* This should use bigger chunks */
   char bytes[1], *write=buf, *limit=buf+n_bytes; 
-  size_t bytes_read=1; int eol=0;
+  size_t bytes_read=1;
   apr_status_t rv=apr_socket_recv(sock,bytes,&bytes_read);
-  while (bytes_read>0) {
-    if ((eol)||(write>=limit)) {}
+  while ((bytes_read>0)&&(rv==OK)) {
+    if (write>=limit) {}
     else *write++=bytes[0];
-    if (bytes[0] == '\n') eol=1;
+    if (bytes[0] == '\n') break;
     rv=apr_socket_recv(sock,bytes,&bytes_read);}
   *write='\0';
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,rv,r->server,
+     "mod_fdserv/scan_fgets: Read header string %s",buf);
   if (write>=limit) return write-buf;
   else return write-buf;
 }
@@ -1048,24 +1085,28 @@ static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,
 
 static void copy_script_output(apr_socket_t *sock,request_rec *r)
 {
-  char buf[4096]; apr_size_t bytes_read;
+  char buf[4096]; apr_size_t bytes_read=0;
   while (1) {
-    apr_size_t delta=0;
+    apr_size_t delta=4096;
     apr_status_t rv;
     rv=apr_socket_recv(sock,buf,&delta);
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-       "mod_fdserv: Read %lld bytes of %lld (so far)",
-       (long long int)delta,(long long int)bytes_read);
+       "mod_fdserv: Read %ld %sbytes of %ld (so far)",
+       delta,((bytes_read>0)?"more ":""),bytes_read+delta);
     if (delta>0) {
       bytes_read=bytes_read+delta;
       ap_rwrite(buf,delta,r); ap_rflush(r);}
-    else if (delta==0) break;
+    else if (rv!=OK) {
+      ap_log_error
+	(APLOG_MARK,APLOG_DEBUG,rv,r->server,
+	 "mod_fdserv: Stopped after reading %ld bytes",bytes_read);
+      break;}
     else if (errno==EAGAIN) continue;
     else break;}
   ap_log_error
-    (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-     "mod_fdserv: Finished reading %lld bytes",(long long int)bytes_read);
+    (APLOG_MARK,APLOG_INFO,OK,r->server,
+     "mod_fdserv: Copied %ld content bytes to client",bytes_read);
 }
 
 static log_buf(char *msg,int size,char *data,request_rec *r)
@@ -1090,6 +1131,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   apr_socket_t *sock;
   char *post_data, errbuf[512];
   int post_size;
+  struct HEAD_SCANNER scanner;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1103,7 +1145,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 		"Entered fdserv_handler for %s from %s",
 		r->filename,r->unparsed_uri);
   sock=connect_to_servlet(r);
-  errno=0; if (sock < 0) {
+  errno=0; if (!(sock)) {
     ap_log_error(APLOG_MARK,APLOG_ERR,OK,r->server,
 		 "mod_fdserv: Connection failed to %s for %s",
 		 r->filename,r->unparsed_uri);
@@ -1153,21 +1195,27 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   /* Write the slotmap into buf, the write the buf to the servlet socket */
   write_table_as_slotmap(r,r->subprocess_env,reqdata,post_size,post_data);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Writing %lld bytes of request data to socket",
-	       (long long int)(reqdata->ptr-reqdata->buf));
+	       "mod_fdserv: Writing %ld bytes of request data to socket",
+	       (long int)(reqdata->ptr-reqdata->buf));
   /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
 
   sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
   
+  scanner.sock=sock; scanner.req=r;
+
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Waiting for response from servlet");
-  ap_scan_script_header_err_core(r,errbuf,sock_fgets,(void *)((INTPOINTER)sock));
+
+  ap_scan_script_header_err_core(r,errbuf,scan_fgets,(void *)&scanner);
+
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Got response, sending header");
+	       "mod_fdserv: Read servlet header, passing to client");
   ap_send_http_header(r);
+
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Header sent, sending content");
+	       "mod_fdserv: Header sent, now sending content from servlet");
   copy_script_output(sock,r);
+
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Done sending content");
 
