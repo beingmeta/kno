@@ -461,22 +461,26 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
   struct FDSERV_SERVER_CONFIG *smodconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
-  const char *socket_prefix=NULL, *fullpath=NULL;
+  const char *socket_prefix=NULL, *fullpath=NULL, *spec=NULL;
   if (parms->path)
     socket_prefix=dconfig->socket_prefix;
   else socket_prefix=sconfig->socket_prefix;
   if (socket_prefix==NULL) socket_prefix=sconfig->socket_prefix;
   if (socket_prefix==NULL) socket_prefix=smodconfig->socket_prefix;
-  if (arg[0]=='/') fullpath=arg;
-  else if (strchr(arg,'@')) {}
+  if (arg[0]=='/') spec=arg;
+  else if (strchr(arg,'@')) spec=arg;
   else if (socket_prefix)
-    fullpath=apr_pstrcat(parms->pool,socket_prefix,arg,NULL);
-  else fullpath=ap_server_root_relative(parms->pool,(char *)arg);
+    spec=fullpath=apr_pstrcat(parms->pool,socket_prefix,arg,NULL);
+  else spec=fullpath=ap_server_root_relative(parms->pool,(char *)arg);
   if (parms->path)
-    dconfig->socket_spec=arg;
-  else sconfig->socket_spec=arg;
+    dconfig->socket_spec=spec;
+  else sconfig->socket_spec=spec;
   
-  if (!(file_writablep(parms->pool,parms->server,fullpath)))
+  if (!(fullpath))
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+       "mod_fdserv: Socket spec =%s",spec);
+  else if (!(file_writablep(parms->pool,parms->server,fullpath)))
     ap_log_error
       (APLOG_MARK,APLOG_CRIT,OK,parms->server,
        "mod_fdserv: Socket file %s=%s+%s is unwritable",
@@ -604,6 +608,9 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
 
     if ((socket_spec)&&(strchr(socket_spec,'@'))) return socket_spec;
 
+    /* This generates a socketname for a particular request URI.  It's
+       not used when we explicitly set socket specs. */
+    
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,
        "spawn get_sockname socket_spec='%s', socket_prefix='%s', isdir=%d",
@@ -664,6 +671,9 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
 static int spawn_fdservlet /* 2.0 */
   (request_rec *r,apr_pool_t *p,const char *sockname) 
 {
+  /* This launches the fdservlet process.  It probably shouldn't be used
+     when using TCP to connect, since the specified server might not be one
+     we can lanuch a process on (i.e. not us) */
   apr_proc_t proc; apr_procattr_t *attr;
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
@@ -818,7 +828,7 @@ static int spawn_fdservlet /* 2.0 */
   else return retval;
 }
 
-static char *get_pathspec(request_rec *r,char buf)
+static char *get_pathspec(request_rec *r,char *buf)
 {
   sprintf(buf,"%s:%s",r->server->server_hostname,r->uri);
   return buf;
@@ -826,20 +836,23 @@ static char *get_pathspec(request_rec *r,char buf)
 
 static apr_socket_t *connect_to_servlet(request_rec *r)
 {
-  apr_socket_t *sock; char buf[512], *pathspec=getpathspec(r,buf);
+  apr_socket_t *sock; char buf[512], *pathspec=get_pathspec(r,buf);
   const char *sockname=get_sockname(r,pathspec);
-  struct sockaddr_un un_servname; struct sockaddr_in in_servaddr;
-  struct sockaddr *servaddr; int servlen;
-  int filesock=((sockname)&&(((strchr(sockname,'@'))==NULL)||((strchr(sockname,':'))==NULL)));
-
+  int rv=0;
+  /* TCP socket specs have either the form ttport@hostname or hostname:port
+     where ttport might be touch-tone encoded. */
+  int filesock=((sockname)&&
+		(((strchr(sockname,'@'))==NULL)||
+		 ((strchr(sockname,':'))==NULL)));
+  
   if (sockname==NULL) {
     ap_log_rerror
       (APLOG_MARK,APLOG_CRIT,500,r,
        "Couldn't resolve socket name for %s",r->unparsed_uri);
-    return -1;}
+    return NULL;}
   else if (filesock)
     ap_log_error
-      (APLOG_MARK,APLOG_INFO,OK,r->server,
+      (APLOG_MARK,APLOG_INFO,OK,r->server, 
        "mod_fdserv: Resolving request for %s using %s",
        r->unparsed_uri,sockname);
   else ap_log_error
@@ -848,8 +861,9 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
 	  r->unparsed_uri,sockname);
 
   if (filesock) {
+    /* We create a fake socket_t object to return. */
     struct sockaddr_un un_servname;
-    int unix_sock, connval, aprval; int serveln;
+    int unix_sock, connval, aprval; int servelen;
     un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
     unix_sock=socket((PF_LOCAL),SOCK_STREAM,0);
     if (unix_sock<0) {
@@ -871,7 +885,7 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
 	return NULL;}
       else ap_log_rerror
 	     (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
-      if ((connect(unix_sock,servaddr,servlen)) < 0) {
+      if ((connval=connect(unix_sock,&un_servname,SUN_LEN(&un_servname))) < 0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
 	   sockname,errno,strerror(errno));
@@ -880,7 +894,7 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
       else {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
-	   sockname,sock);}}
+	   sockname,unix_sock);}}
     aprval=apr_os_sock_put(&sock,&unix_sock,r->pool);
     if (aprval) {
       ap_log_rerror
@@ -890,14 +904,9 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
     return sock;}
   else {
     /* Use APR functions for network connection. */
-    errno=0;
-    return sock;}
-  else ap_log_rerror
-	 (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket %d to use with %s",sock,sockname);
-  if (filesock) {
-  else {
+    apr_status_t retval;
+    apr_sockaddr_t *addr;
     char hostname[128]; int portno;
-    struct hostent *hostinfo;
     char *split=strchr(sockname,'@');
     if (split) {
       char portbuf[32];
@@ -910,61 +919,16 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
       hostname[split-sockname]='\0';
       portno=atoi(split+1);}
     else {}
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Looking up hostname '%s'",hostname);
-    hostinfo=gethostbyname2(hostname,AF_INET);
-    if (hostinfo) {
-      unsigned char **addrs=(unsigned char **)hostinfo->h_addr_list;
-      ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Got hostinfo len=%d, addrs=%llx",
-		    hostinfo->h_length,(unsigned long long)addrs);
-      if ((addrs)&&(addrs[0])&&(hostinfo->h_length)) {
-	ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Got hostinfo len=%d, addrs=%llx, addr[0]=%d.%d.%d.%d",
-		      hostinfo->h_length,(unsigned long long)addrs,
-		      (int)(addrs[0][0]),(int)(addrs[0][1]),(int)(addrs[0][2]),(int)(addrs[0][3]));}
-      in_servaddr.sin_family=AF_INET;
-      in_servaddr.sin_port=htons((short)portno);
-      memcpy((&in_servaddr.sin_addr),addrs[0],4);
-      servaddr=(struct sockaddr *)&in_servaddr;
-      servlen=in_servaddr.sin_len;}
-    else {
-      ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,"Can't resolve hostname '%s'",hostname);
-      return -1;}}
-  
-  if ((connect(sock,servaddr,servlen)) < 0) {
-    int rv;
+    retval=apr_socket_create(&sock,APR_INET,SOCK_STREAM,APR_PROTO_TCP,
+			     r->pool);
+    if (retval!=APR_SUCCESS) return NULL;
+    retval=apr_sockaddr_info_get(&addr,hostname,APR_INET,portno,0,r->pool);
+    if (retval!=APR_SUCCESS) return NULL;
+    retval=apr_socket_connect(sock,addr);
+    if (retval!=APR_SUCCESS) return NULL;
     ap_log_rerror
-      (APLOG_MARK,APLOG_CRIT,500,
-       r,((filesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
-	  ("Couldn't connect socket to %s (errno=%d:%s)")),
-       sockname,errno,strerror(errno));
-    ap_log_rerror
-      (APLOG_MARK,APLOG_CRIT,500,
-       r,((filesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
-	  ("Couldn't connect socket to %s (errno=%d:%s)")),
-       sockname,errno,strerror(errno));
-    errno=0;
-    if (!(filesock)) return -1;
-    rv=spawn_fdservlet(r,r->pool,sockname);
-    if (rv<0) {
-      ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't spawn fdservlet @ %s",sockname);
-      return -1;}
-    else ap_log_rerror
-	   (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
-    if ((connect(sock,servaddr,servlen)) < 0) {
-      ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
-	 sockname,errno,strerror(errno));
-      errno=0;
-      return -1;}
-    else {
-      ap_log_rerror
-	(APLOG_MARK,APLOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
-	 sockname,sock);
-      return sock;}}
-  else {
-    ap_log_rerror
-      (APLOG_MARK,APLOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
-       sockname,sock);
+      (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket to use with %s",
+       sockname);
     return sock;}
 }
 
@@ -1055,32 +1019,40 @@ static void write_table_as_slotmap
 
 static int sock_fgets(char *buf,int n_bytes,void *stream)
 {
-  int sock=(INTPOINTER)stream;
-  char bytes[1], *write=buf, *limit=buf+n_bytes;; 
-  while (read(sock,bytes,1)>0) { 
-    if (write>=limit) break; else *write++=bytes[0];
-    if (bytes[0] == '\n') break;}
+  apr_socket_t *sock=(apr_socket_t *)stream;
+  /* This should use bigger chunks */
+  char bytes[1], *write=buf, *limit=buf+n_bytes; 
+  size_t bytes_read=1; int eol=0;
+  apr_status_t rv=apr_socket_recv(sock,bytes,&bytes_read);
+  while (bytes_read>0) {
+    if ((eol)||(write>=limit)) {}
+    else *write++=bytes[0];
+    if (bytes[0] == '\n') eol=1;
+    rv=apr_socket_recv(sock,bytes,&bytes_read);}
   *write='\0';
   if (write>=limit) return write-buf;
   else return write-buf;
 }
 
-static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,int sock)
+static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,
+		      apr_socket_t *sock)
 {
-  int bytes_written=0, bytes_to_write=n_bytes;
+  apr_size_t bytes_written=0, bytes_to_write=n_bytes, block_size=n_bytes;
   while (bytes_written < bytes_to_write) {
-    int block_size=write(sock,buf,bytes_to_write-bytes_written);
+    apr_status_t rv=apr_socket_send(sock,buf+bytes_written,&block_size);
     if (block_size == 0) {
       break;}
     else bytes_written=bytes_written+block_size;}
   return bytes_written;
 }
 
-static void copy_script_output(int sock,request_rec *r)
+static void copy_script_output(apr_socket_t *sock,request_rec *r)
 {
-  char buf[4096]; ssize_t bytes_read=0;
+  char buf[4096]; apr_size_t bytes_read;
   while (1) {
-    ssize_t delta=read(sock,buf,4096);
+    apr_size_t delta=0;
+    apr_status_t rv;
+    rv=apr_socket_recv(sock,buf,&delta);
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,r->server,
        "mod_fdserv: Read %lld bytes of %lld (so far)",
@@ -1115,8 +1087,9 @@ static log_buf(char *msg,int size,char *data,request_rec *r)
 static int fdserv_handler(request_rec *r) /* 2.0 */
 {
   BUFF *reqdata;
+  apr_socket_t *sock;
   char *post_data, errbuf[512];
-  int sock, post_size;
+  int post_size;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1147,12 +1120,12 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     ftime(&start);
 #endif
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		 "mod_fdserv: Socket %d serves %s for %s",
-		 sock,r->filename,r->unparsed_uri);}
+		 "mod_fdserv: Socket serves %s for %s",
+		 r->filename,r->unparsed_uri);}
   reqdata=ap_bcreate(r->pool,0);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Handling request for %s by using %s with socket %d",
-	       r->unparsed_uri,r->filename,sock);
+	       "mod_fdserv: Handling request for %s by using %s",
+	       r->unparsed_uri,r->filename);
   ap_add_common_vars(r); ap_add_cgi_vars(r);
   if (r->method_number == M_POST) {
     char bigbuf[4096];
@@ -1205,7 +1178,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
    apr_table_set(r->subprocess_env,"EXECUTED","yes");
    apr_table_set(r->notes,"exectime",buf);}
 #endif
-  close(sock);
+  apr_socket_close(sock);
   return OK;
 }
 
