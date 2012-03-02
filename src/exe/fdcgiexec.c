@@ -483,7 +483,7 @@ static int simplecgi(fdtype path)
     fd_parse_cgidata(cgidata);
     parse_time=u8_elapsed_time();
     if ((reqlog) || (urllog))
-      dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
+      dolog(cgidata,FD_NULL,NULL,0,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
@@ -535,8 +535,11 @@ static int simplecgi(fdtype path)
   if (FD_TROUBLEP(result)) {
     u8_exception ex=u8_erreify();
     u8_condition excond=ex->u8x_cond;
-    u8_context excxt=((ex->u8x_context) ? (ex->u8x_context) : ((u8_context)"somewhere"));
-    u8_context exdetails=((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
+    u8_context excxt=((ex->u8x_context) ?
+		      (ex->u8x_context) :
+		      ((u8_context)"somewhere"));
+    u8_context exdetails=
+      ((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
@@ -567,7 +570,8 @@ static int simplecgi(fdtype path)
       if (FD_STRINGP(content)) {
 	retval=fwrite(FD_STRDATA(content),1,FD_STRLEN(content),stdout);}
       else if (FD_PACKETP(content))
-	retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),stdout);}
+	retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),
+		      stdout);}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);}
   if (retval<0)
     u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
