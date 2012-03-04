@@ -46,6 +46,8 @@ static void init_type_names()
   fd_type_names[fd_constant_type]=_("constant");
   fd_type_names[fd_character_type]=_("character");
   fd_type_names[fd_symbol_type]=_("symbol");
+  fd_type_names[fd_lexref_type]=_("lexref");
+  fd_type_names[fd_opcode_type]=_("opcode");
   fd_type_names[fd_string_type]=_("string");
   fd_type_names[fd_packet_type]=_("packet");
   fd_type_names[fd_secret_type]=_("secret");
@@ -71,6 +73,7 @@ static void init_type_names()
   fd_type_names[fd_tail_call_type]=_("tailcall");
   fd_type_names[fd_uuid_type]=_("UUID");
   fd_type_names[fd_rail_type]=_("rail");
+  fd_type_names[fd_secret_type]=_("secret");
 }
 
 static int fdtype_version=101;
