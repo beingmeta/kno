@@ -210,6 +210,7 @@ static fdtype get_fcgidata(FCGX_Request *req)
   copy_param("REMOTE_PORT",req->envp,slotmap,remote_port);
   copy_param("HTTP_COOKIE",req->envp,slotmap,http_cookie);
   copy_param("REQUEST_METHOD",req->envp,slotmap,request_method);
+  if (docroot) webcommon_adjust_docroot(slotmap,docroot);
   return slotmap;
 }
 
@@ -474,6 +475,7 @@ static int simplecgi(fdtype path)
     fdtype uri;
     setup_time=u8_elapsed_time();
     cgidata=get_envcgidata();
+    if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     if (traceweb>0) {
       uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if (FD_STRINGP(uri)) 

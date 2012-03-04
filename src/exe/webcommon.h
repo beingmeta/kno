@@ -16,6 +16,11 @@ static int trace_cgidata=0;
 
 static int use_threadcache=0;
 
+/* When non-null, this overrides the document root coming from the
+   server.  It is for cases where fdserv is running on a different
+   machine than the HTTP server. */
+static u8_string docroot=NULL;
+
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
 
@@ -472,8 +477,11 @@ static void init_webcommon_configs()
 		     fd_intconfig_get,fd_intconfig_set,&reqloglevel);
   fd_register_config("THREADCACHE",_("Use per-request thread cache"),
 		     fd_boolconfig_get,fd_boolconfig_set,&use_threadcache);
-  fd_register_config("TRACECGIDATA",_("Whether to dump cgidata"),
+  fd_register_config("TRACECGI",_("Whether to log all cgidata"),
 		     fd_boolconfig_get,fd_boolconfig_set,&trace_cgidata);
+  fd_register_config("DOCROOT",
+		     _("File base (directory) for resolving requests"),
+		     fd_sconfig_get,fd_sconfig_set,&docroot);
 }
 
 static void shutdown_server(u8_condition why);
@@ -551,4 +559,30 @@ static void init_webcommon_finalize()
 #endif
 
 }
+
+/* Fixing CGIDATA for a different docroot */
+
+static fdtype webcommon_adjust_docroot(fdtype cgidata,u8_string docroot)
+{
+  if (docroot) {
+    fdtype incoming_docroot=fd_get(cgidata,document_root,FD_VOID);
+    if (FD_STRINGP(incoming_docroot)) {
+      fdtype scriptname=fd_get(cgidata,script_filename,FD_VOID);
+      fdtype lisp_docroot=fdtype_string(docroot);
+      fd_store(cgidata,document_root,lisp_docroot);
+      if ((FD_STRINGP(scriptname))&&
+	  ((strncmp(FD_STRDATA(scriptname),FD_STRDATA(incoming_docroot),
+		    FD_STRLEN(incoming_docroot)))==0)) {
+	u8_string local_scriptname=u8_string_append
+	  (docroot,FD_STRDATA(scriptname)+FD_STRLEN(incoming_docroot),NULL);
+	fdtype new_scriptname=fd_init_string(NULL,-1,local_scriptname);
+	fd_store(cgidata,script_filename,new_scriptname);
+	fd_decref(new_scriptname);}
+      fd_decref(lisp_docroot); fd_decref(scriptname);}
+    fd_decref(incoming_docroot);
+    return cgidata;}
+  else return cgidata;
+}
+
+
 
