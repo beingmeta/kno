@@ -746,7 +746,6 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)server_env,
 	   fd_make_cprim0("SERVLET-STATUS",get_servlet_status,0));
 
-
   init_webcommon_configs();
   fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
 		     fd_dblconfig_get,fd_dblconfig_set,&traceweb);
@@ -799,7 +798,7 @@ int main(int argc,char **argv)
   init_webcommon_finalize();
 
   /* We check this now, to kludge around some race conditions */
-  if (u8_file_existsp(socket_spec)) {
+  if ((file_socket)&&(u8_file_existsp(socket_spec))) {
     if (((time(NULL))-(u8_file_mtime(socket_spec)))<FD_LEFTOVER_AGE) {
       u8_log(LOG_CRIT,"FDSERV/SOCKETRACE",
 	     "Aborting due to recent socket file %s",socket_spec);
@@ -809,11 +808,11 @@ int main(int argc,char **argv)
 	     "Removing leftover socket file %s",socket_spec);
       remove(socket_spec);}}
 
-  if (u8_add_server(&fdwebserver,socket_spec,-1)<0) {
+  if (u8_add_server(&fdwebserver,socket_spec,((file_socket)?(-1):(0)))<0) {
     fd_recycle_hashtable(&pagemap);
     fd_clear_errors(1);
     exit(EXIT_FAILURE);}
- 
+  
   chmod(socket_spec,0777);
 
   portfile=u8_strdup(socket_spec);
