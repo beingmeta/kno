@@ -173,18 +173,24 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
   if (fd_test(xml,attribs_slotid,FD_VOID)) {
     fdtype attribs=fd_get(xml,attribs_slotid,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(attrib,attribs) {
-      u8_string name=FD_STRDATA(FD_VECTOR_REF(attrib,0));
-      fdtype value=FD_VECTOR_REF(attrib,2);
-      if (name) {
-	u8_printf(&out," %s=\"",name);
-	if (FD_STRINGP(value))
-	  fd_attrib_entify(&out,FD_STRDATA(value));
-	else if (FD_FIXNUMP(value))
-	  u8_printf(&out,"%d",FD_FIX2INT(value));
-	else if (cache_result)
-	  cache_result=output_attribval(&out,value,env,1);
-	else output_attribval(&out,value,env,1);
-	u8_putc(&out,'"');}}
+      if (!((FD_VECTORP(attrib))&&
+	    (FD_VECTOR_LENGTH(attrib)>=2)&&
+	    (FD_STRINGP(FD_VECTOR_REF(attrib,0))))) {
+	FD_STOP_DO_CHOICES;
+	return fd_type_error("attrib","get_markup_string",attrib);}
+      else {
+	u8_string name=FD_STRDATA(FD_VECTOR_REF(attrib,0));
+	fdtype value=FD_VECTOR_REF(attrib,2);
+	if (name) {
+	  u8_printf(&out," %s=\"",name);
+	  if (FD_STRINGP(value))
+	    fd_attrib_entify(&out,FD_STRDATA(value));
+	  else if (FD_FIXNUMP(value))
+	    u8_printf(&out,"%d",FD_FIX2INT(value));
+	  else if (cache_result)
+	    cache_result=output_attribval(&out,value,env,1);
+	  else output_attribval(&out,value,env,1);
+	  u8_putc(&out,'"');}}}
     fd_decref(attribs);}
   else if (fd_test(xml,attribids_slotid,FD_VOID)) {
     fdtype attribids=fd_get(xml,attribids_slotid,FD_EMPTY_CHOICE);
@@ -857,7 +863,8 @@ fdtype fd_open_xml(fdtype xml,fd_lispenv env)
   if (FD_TABLEP(xml)) {
     u8_output out=fd_get_default_output();
     fdtype markup=get_markup_string(xml,env);
-    if (FD_STRINGP(markup)) {
+    if (FD_ABORTP(markup)) return markup;
+    else if (FD_STRINGP(markup)) {
       if ((!(fd_test(xml,content_slotid,FD_VOID)))||
 	  (fd_test(xml,content_slotid,FD_EMPTY_CHOICE)))
 	u8_printf(out,"<%s/>",FD_STRDATA(markup));
