@@ -94,6 +94,7 @@ static u8_string stats_message_w_history=
    _(";; ##%d computed in %f seconds, %d/%d object/index loads\n");
 
 static double startup_time=-1.0;
+static double run_start=-1.0;
 
 static int console_width=80, quiet_console=0, show_elts=5;
 
@@ -218,6 +219,25 @@ static fdtype top_parse(u8_input in)
   return fd_parser(in);
 }
 
+static void exit_fdconsole()
+{
+  if (!(quiet_console)) {
+    if (run_start<0)
+      u8_message("Exiting FramerD (%s) console before we even started!",
+		 FRAMERD_REV);
+    else {
+      double wall_time=u8_elapsed_time()-run_start;
+      u8_string units="seconds";
+      if (wall_time<120) {}
+      else if (wall_time<7200) {
+	units="minutes"; wall_time=wall_time/60;}
+      else {
+	units="hours"; wall_time=wall_time/3600;}
+      u8_message("Exiting FramerD (%s) console after %f %s",
+		 FRAMERD_REV,wall_time,units);}}
+  close_consoles();
+}
+
 int main(int argc,char **argv)
 {
   int i=1, c;
@@ -288,7 +308,7 @@ int main(int argc,char **argv)
   outconsole=out;
   errconsole=err;
   console_env=env;
-  atexit(close_consoles);
+  atexit(exit_fdconsole);
 
   /* Other initialization for FramerD libraries */
   u8_identify_application(argv[0]);
@@ -330,7 +350,8 @@ int main(int argc,char **argv)
 
   /* Announce preamble, suppressed by quiet_config */
   fd_config_set("BOOTED",fd_time2timestamp(boot_time));
-  startup_time=u8_elapsed_time()-fd_load_start;
+  run_start=u8_elapsed_time();
+  startup_time=run_start-fd_load_start;
   if (!(quiet_console))  {
     u8_message("FramerD (%s) booted in %f seconds, %d/%d pools/indices",
 	       FRAMERD_REV,startup_time,fd_n_pools,
