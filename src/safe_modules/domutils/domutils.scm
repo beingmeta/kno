@@ -19,7 +19,7 @@
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/combine!
-   dom/getmeta dom/getlinks
+   dom/gethead dom/getmeta dom/getlinks
    dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block?
@@ -507,8 +507,28 @@
 
 ;;; Getting meta fields
 
+(define (dom/gethead doc)
+  (try (get doc 'head)
+       (tryif (test doc '%xmltag 'head) doc)
+       (let ((found (dom/find doc "HEAD")))
+	 (when (exists? found)
+	   (store! doc 'head found))
+	 found)))
+
+(define (dom/getschemas doc)
+  (if (test doc '%schemas) (get doc '%schemas)
+      (begin (store! doc '%schemas {})
+	(do-choices (link (dom/find doc "LINK"))
+	  (when (has-prefix (get link 'rel) "schema.")
+	    (let* ((rel (get link 'rel))
+		   (href (get link 'href))
+		   (prefix (string->symbol (subseq rel 7))))
+	      (add! doc '%schemas (cons prefix rel))
+	      (add! doc '%schemas (cons rel prefix)))))
+	(get doc '%schemas))))
+
 (define (dom/getmeta doc field (xform) (dflt))
-  (let* ((head (dom/find doc "HEAD"))
+  (let* ((head (dom/gethead doc))
 	 (meta (dom/find head "META"))
 	 (stringname
 	  (and (symbol? field) (downcase (symbol->string field))))
@@ -524,7 +544,7 @@
 	 (if (bound? dflt) dflt (fail)))))
 
 (define (dom/getlinks doc field (dflt))
-  (let* ((head (dom/find doc "HEAD"))
+  (let* ((head (dom/gethead doc))
 	 (links (dom/find head "LINK"))
 	 (stringname (and (symbol? field)
 			  (downcase (symbol->string field))))
