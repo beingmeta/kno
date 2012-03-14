@@ -330,10 +330,10 @@
 (define (auth/ok? auth)
   (and auth
        (or (not (authinfo-expires auth))
-	   (> (authinfo-expires auth) (time)))
+	   (> (authinfo-expires auth) (time))
+	   (begin (logwarn "AUTH TOKEN expired: " auth) #f))
        (if (or (not auth-refresh)
 	       (> (time) (+ (authinfo-issued auth) auth-refresh)))
-	   ;; Needs refresh
 	   (freshauth auth)
 	   auth)))
 
@@ -344,12 +344,16 @@
 	#f)))
 
 (define (freshauth auth)
+  (lognotice "Refreshing auth token " auth)
   (and (or (not checktoken) ;; Valid token?
 	   (token/ok? (authinfo-identity auth) (authinfo-token auth)))
        ;; Check that the authorization isn't too old to refresh
        ;;  (HTTPS tokens are always good to refresh)
        (or (req/get 'https #f)
-	   (< (time) (+ (authinfo-issued auth) auth-refresh auth-grace)))
+	   (< (time) (+ (authinfo-issued auth)
+			auth-refresh auth-grace))
+	   (begin (logwarn "Auth token older than refresh grace period")
+	     #f))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
 	      ;; The only thing changed is the issue datetime
@@ -399,7 +403,7 @@
   (debug%watch "AUTHFAIL" reason authid info)
   (expire-cookie! authid "AUTHFAIL")
   (req/drop! authid)
-  (logwarn reason authid info)
+  (logwarn reason " AUTHID=" authid "; INFO=" info)
   (if signal (error reason authid info))
   (fail))
 
