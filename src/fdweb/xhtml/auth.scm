@@ -291,17 +291,16 @@
   (let* ((split (rposition #\; authstring))
 	 (payload (and split (subseq authstring 0 split)))
 	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
-	 (info (and split (map string->lisp (segment payload ";")))))
-    (debug%watch "UNPACK-AUTHINFO" authstring
-		 info payload sig (hmac-sha1 payload signature))
-    (unless (equal? sig (hmac-sha1 payload signature))
+	 (info (and split (map string->lisp (segment payload ";"))))
+	 (expected (hmac-sha1 payload signature)))
+    (debug%watch "UNPACK-AUTHINFO" authstring info payload sig expected)
+    (unless (equal? sig expected)
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
 	       "\n\tfor " payload
 	       "\n\tbased on " signature
-	       "\n\texpecting " sig
-	       "\n\tgetting " (hmac-sha1 payload signature)))
-    (and sig payload info (equal? sig (hmac-sha1 payload signature))
-	 (->vector info))))
+	       "\n\texpecting " expected
+	       "\n\tgetting " sig))
+    (and sig payload info (equal? sig computed) (->vector info))))
 
 ;;;; Core functions
 
@@ -332,7 +331,8 @@
   (and auth
        (or (not (authinfo-expires auth))
 	   (> (authinfo-expires auth) (time)))
-       (if (> (time) (+ (authinfo-issued auth) auth-refresh))
+       (if (or (not auth-refresh)
+	       (> (time) (+ (authinfo-issued auth) auth-refresh)))
 	   ;; Needs refresh
 	   (freshauth auth)
 	   auth)))
@@ -356,6 +356,7 @@
 	      (new (cons-authinfo realm identity (authinfo-token auth)
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
+	 (notify "Fresh auth " new "\n\t replacing " auth)
 	 (set-cookies! new)
 	 new)))
 
@@ -384,6 +385,9 @@
 	;; Check if the info is a valid object
 	((not (authinfo? authinfo)) 
 	 (authfail "Invalid authorization object" authid authinfo signal))
+	((and (authinfo-issued authinfo)
+	      (> (authinfo-issued authinfo) (+ (time) 60)))
+	 (authfail "Authorization time paradox" authid authinfo signal))
 	((and (authinfo-expires authinfo)
 	      (> (time) (authinfo-expires authinfo)))
 	 (authfail "Authorization expired" authid authinfo signal))
