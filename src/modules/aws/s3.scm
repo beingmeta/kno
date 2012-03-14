@@ -10,7 +10,7 @@
 (use-module '{aws fdweb texttools ezrecords rulesets logger varconfig})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
-(module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/content})
+(module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/get s3loc/content})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -259,14 +259,23 @@
 	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
 		(textsubst (s3loc-path loc) (cadr rule))))))))
 
+(define (s3loc/get loc (text #t))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (s3/op "GET" (s3loc-bucket loc)
+	 (string-append "/" (s3loc-path loc))
+	 ""))
+
 (define (s3loc/content loc (text #t))
   (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
-       (get (s3/op "GET" (s3loc-bucket loc)
-		   (string-append "/" (s3loc-path loc))
-		   "")
-	    '%content)))
+       (let* ((req (s3/op "GET" (s3loc-bucket loc)
+			  (string-append "/" (s3loc-path loc))
+			  ""))
+	      (status (get req 'response)))
+	 (if (and status (>= 299 status 200))
+	     (get req '%content)
+	     (error 's3failure (get req '%content))))))
 
 ;;; Working with S3 'dirs'
 
