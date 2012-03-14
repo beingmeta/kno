@@ -42,7 +42,7 @@
 (varconfig! auth:id authid)
 
 ;; The CGI state var used to store the current user
-(define userid 'AUTHUSER)
+(define-init userid 'AUTHUSER)
 (varconfig! auth:user userid)
 
 ;; How long a key to use when signing 
