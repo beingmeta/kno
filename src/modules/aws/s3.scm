@@ -91,7 +91,7 @@
 	   content-ctype "\n"
 	   date "\n" (canonical-headers headers)
 	   (if (empty-string? bucket) "" "/") bucket
-	   (if (or (has-suffix bucket "/") (has-suffix path "/")) ""
+	   (if (or (has-suffix bucket "/") (has-prefix path "/")) ""
 	       "/")
 	   path)))
     (debug%watch (hmac-sha1 secretawskey sigstring)
