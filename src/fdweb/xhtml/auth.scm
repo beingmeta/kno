@@ -254,13 +254,13 @@
   (expires (and auth-expiration (+ (time) auth-expiration)))
   (sticky? #f))
 
-(define (auth->string auth (lifespan #f))
+(define (auth->string auth)
   (let* ((expires (authinfo-expires auth))
 	 (info (stringout (authinfo-realm auth)
 		 ";" (unparse-arg (authinfo-identity auth))
 		 ";" (authinfo-token auth)
 		 ";" (authinfo-issued auth)
-		 ";" (if lifespan (+ (time) lifespan) expires)
+		 ";" (or expires "")
 		 (if (authinfo-sticky? auth) ";STICKY")))
 	 (sig (hmac-sha1 info signature))
 	 (result (stringout info ";" (packet->base64 sig))))
@@ -339,7 +339,7 @@
 
 (define (token/ok? identity token)
   (or (checktoken identity token)
-      (begin (logwarn "AUTH/FRESHTOKEN failed for "
+      (begin (logwarn "TOKEN/OK? failed for "
 		      identity " with " token " using " checktoken)
 	#f)))
 
@@ -375,6 +375,8 @@
 	;; If the info is a string, convert it and authorize that
 	;; (conversion might fail if the info is invalid)
 	((string? authinfo)
+	 ;; If authinfo is a string, try to convert it and call
+	 ;; yourself again
 	 (let ((info (string->auth authinfo authid)))
 	   (if info
 	       (auth/getinfo authid signal info https secret auth-secure)
@@ -385,7 +387,8 @@
 	((and (authinfo-expires authinfo)
 	      (> (time) (authinfo-expires authinfo)))
 	 (authfail "Authorization expired" authid authinfo signal))
-	(else (or (auth/ok? authinfo)
+	(else (or (auth/ok? authinfo) 
+		  ;; This might return a new, fresh authinfo
 		  (authfail "Authorization error" authid authinfo signal)))))
 
 (define (authfail reason authid info signal)
