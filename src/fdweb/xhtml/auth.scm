@@ -131,6 +131,7 @@
 (define auth-grace (* 60 15))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
+(varconfig! auth:grace auth-grace)
 
 ;;; Checking tokens
 
@@ -350,9 +351,11 @@
        ;; Check that the authorization isn't too old to refresh
        ;;  (HTTPS tokens are always good to refresh)
        (or (req/get 'https #f)
-	   (< (time) (+ (authinfo-issued auth)
-			auth-refresh auth-grace))
-	   (begin (logwarn "Auth token older than refresh grace period")
+	   (< (time) (+ (authinfo-issued auth) auth-refresh auth-grace))
+	   (begin (logwarn "Auth token older than refresh grace period: "
+			   "issued=" (authinfo-issued auth)
+			   "; refresh=" auth-refresh "; grace=" auth-grace
+			   "; auth=" auth)
 	     #f))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
