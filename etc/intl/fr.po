@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-03-04 16:56-0500\n"
+"POT-Creation-Date: 2012-03-20 11:58-0400\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
-"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: src/dtype/cons.c:22
@@ -245,7 +245,7 @@ msgstr "oid"
 #: src/scheme/seqprims.c:827 src/scheme/dbfileprims.c:92
 #: src/scheme/dbfileprims.c:101 src/scheme/dbfileprims.c:105
 #: src/texttools/texttools.c:1705 src/texttools/match.c:3335
-#: src/texttools/match.c:3352 src/exe/fdserv.c:139 src/exe/fdserv.c:142
+#: src/texttools/match.c:3352 src/exe/fdserv.c:135 src/exe/fdserv.c:138
 msgid "fixnum"
 msgstr "fixnum"
 
@@ -295,7 +295,7 @@ msgstr ""
 #: src/scheme/dbfileprims.c:98 src/fdweb/xmloutput.c:1390
 #: src/fdweb/uriprims.c:381 src/fdweb/mime.c:105 src/fdweb/curl.c:401
 #: src/texttools/texttools.c:129 src/texttools/texttools.c:156
-#: src/texttools/texttools.c:424 src/tagger/ofsm.c:228 src/exe/fdserv.c:121
+#: src/texttools/texttools.c:424 src/tagger/ofsm.c:228 src/exe/fdserv.c:117
 msgid "string"
 msgstr "chaîne"
 
@@ -2012,36 +2012,36 @@ msgstr ""
 msgid "%s ;; ##%d= (%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:281
+#: src/exe/fdconsole.c:283
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:285 src/exe/fdbserver.c:520
+#: src/exe/fdconsole.c:287 src/exe/fdbserver.c:520
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:289
+#: src/exe/fdconsole.c:291
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:293
+#: src/exe/fdconsole.c:295
 msgid "Whether to be minimalist in console interaction"
 msgstr ""
 
-#: src/exe/fdconsole.c:297
+#: src/exe/fdconsole.c:299
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:301
+#: src/exe/fdconsole.c:303
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:374
+#: src/exe/fdconsole.c:376
 #, c-format
 msgid ";; Assigned %s\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:375
+#: src/exe/fdconsole.c:377
 #, fuzzy
 msgid ";; Bad assignment expression\n"
 msgstr "expression de liaison mal formulée"
@@ -2075,39 +2075,35 @@ msgstr ""
 msgid "FDSERV Startup"
 msgstr ""
 
-#: src/exe/fdserv.c:750
+#: src/exe/fdserv.c:721
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdserv.c:753 src/exe/fdcgiexec.c:735 src/exe/fdbserver.c:494
+#: src/exe/fdserv.c:724 src/exe/fdcgiexec.c:737 src/exe/fdbserver.c:494
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdserv.c:755 src/exe/fdbserver.c:496
+#: src/exe/fdserv.c:726 src/exe/fdbserver.c:496
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdserv.c:757 src/exe/fdcgiexec.c:737 src/exe/fdbserver.c:498
+#: src/exe/fdserv.c:728 src/exe/fdcgiexec.c:739 src/exe/fdbserver.c:498
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdserv.c:759
+#: src/exe/fdserv.c:730
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdserv.c:762
+#: src/exe/fdserv.c:733
 msgid "Milliseconds (roughly) between status reports"
-msgstr ""
-
-#: src/exe/fdserv.c:764
-msgid "File base (directory) for resolving requests"
 msgstr ""
 
 #: src/exe/fdcgiexec.c:44
 msgid "FDCGIEXEC/Startup"
 msgstr ""
 
-#: src/exe/fdcgiexec.c:739
+#: src/exe/fdcgiexec.c:741
 msgid "The socket file used by this server for use with external versions"
 msgstr ""
 
