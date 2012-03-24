@@ -180,9 +180,8 @@ static fdtype open_mysql
 
   if (db==NULL) {
     const char *errmsg=mysql_error(&(dbp->_db));
-    mysql_close(dbp->db);
-    u8_free(dbp);
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    mysql_close(dbp->db); u8_free(dbp);
     return FD_ERROR_VALUE;} 
 
   if (mysql_set_character_set(dbp->db,"utf8")) {
