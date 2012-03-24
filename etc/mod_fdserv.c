@@ -869,9 +869,13 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
     un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
     unix_sock=socket((PF_LOCAL),SOCK_STREAM,0);
     if (unix_sock<0) {
-      ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't open socket for %s (errno=%d:%s)",
+      ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
+		    "Couldn't open socket for %s (errno=%d:%s)",
 		    sockname,errno,strerror(errno));
       return NULL;}
+    else ap_log_rerror
+	   (APLOG_MARK,APLOG_DEBUG,OK,r,
+	    "Opened socket %d to connect to %s",unix_sock,sockname);;
     connval=connect(unix_sock,&un_servname,SUN_LEN(&un_servname));
     if (connval<0) {
       ap_log_rerror
@@ -897,6 +901,9 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
 	   sockname,unix_sock);}}
+    else ap_log_rerror
+	   (APLOG_MARK,APLOG_DEBUG,OK,r,
+	    "Connected to %s using %d",sockname,unix_sock);
     aprval=apr_os_sock_put(&sock,&unix_sock,r->pool);
     if (aprval) {
       ap_log_rerror
