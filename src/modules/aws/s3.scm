@@ -10,7 +10,8 @@
 (use-module '{aws fdweb texttools ezrecords rulesets logger varconfig})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
-(module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/get s3loc/content})
+(module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/get
+		  s3loc/head s3loc/content})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -206,7 +207,8 @@
 
 (define (s3/write! loc content (ctype))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (default! ctype (getmimetype (s3loc-path loc)))
+  (default! ctype (try (getmimetype (s3loc-path loc))
+		       (if (packet? content) "application" "text")))
   (debug%watch
    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype) ;; '(("x-amx-acl" . "public-read"))
    loc ctype))
@@ -270,6 +272,12 @@
 (define (s3loc/get loc (text #t))
   (when (string? loc) (set! loc (->s3loc loc)))
   (s3/op "GET" (s3loc-bucket loc)
+	 (string-append "/" (s3loc-path loc))
+	 ""))
+
+(define (s3loc/head loc (text #t))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (s3/op "HEAD" (s3loc-bucket loc)
 	 (string-append "/" (s3loc-path loc))
 	 ""))
 
