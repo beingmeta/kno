@@ -41,6 +41,7 @@ typedef unsigned int INTPOINTER;
 
 #include "util_script.h"
 #include "apr.h"
+#include "apr_portable.h"
 #include "apr_strings.h"
 
 #include <sys/un.h>
@@ -865,7 +866,9 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
   if (filesock) {
     /* We create a fake socket_t object to return. */
     struct sockaddr_un un_servname;
-    int unix_sock, connval, aprval; int servelen;
+    apr_os_sock_t unix_sock;
+    int connval, aprval; int servelen;
+    memset(&un_servname,0,sizeof(un_servname));
     un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
     unix_sock=socket((PF_LOCAL),SOCK_STREAM,0);
     if (unix_sock<0) {
