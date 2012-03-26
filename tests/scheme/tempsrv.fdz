@@ -9,7 +9,11 @@
 (define (plus x y) (+ x y))
 (define (minus x y) (+ x y))
 (define (slowfib n) (sleep n) (fibi n))
+(define xfibi (within-module 'samplefns fibi))
+(define xfibr (within-module 'samplefns fibr))
+(define (fibi n) (xfibi n))
+(define (fibr n) (xfibr n))
 (unless (config 'EXPORTALL #f)
-  (module-export! '{plus fibr fibi slowfib}))
+  (module-export! '{plus minus fibi fibr slowfib}))
 
 
