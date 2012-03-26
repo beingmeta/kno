@@ -842,7 +842,8 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
      where ttport might be touch-tone encoded. */
   int filesock=((sockname)&&
 		((strchr(sockname,'@'))==NULL)&&
-		((strchr(sockname,':'))==NULL));
+		((strchr(sockname,'/')!=NULL)||
+		 ((strchr(sockname,':'))==NULL)));
 
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,OK,r,"Connecting to %s %s",
