@@ -186,10 +186,11 @@
 	       auth-cookie-domain auth-cookie-path
 	       (timestamp+ (- (* 7 24 3600)))
 	       #f)
-  (set-cookie! cookievar "expired"
-	       auth-cookie-domain auth-cookie-path
-	       (timestamp+ (- (* 7 24 3600)))
-	       #t)
+  (when (req/get 'https #f)
+    (set-cookie! cookievar "expired"
+		 auth-cookie-domain auth-cookie-path
+		 (timestamp+ (- (* 7 24 3600)))
+		 #t))
   (set-cookie! (stringout cookievar "-") "expired"
 	       auth-cookie-domain auth-cookie-path
 	       (timestamp+ (- (* 7 24 3600)))
