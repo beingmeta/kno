@@ -92,6 +92,23 @@ static fdtype open_output_file(fdtype fname,fdtype encid)
   else return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
+static fdtype extend_output_file(fdtype fname,fdtype encid)
+{
+  u8_string filename=fd_strdata(fname);
+  u8_encoding enc; U8_OUTPUT *f;
+  if (FD_VOIDP(encid)) enc=NULL;
+  else if (FD_STRINGP(encid))
+    enc=u8_get_encoding(FD_STRDATA(encid));
+  else if (FD_SYMBOLP(encid))
+    enc=u8_get_encoding(FD_SYMBOL_NAME(encid));
+  else return fd_err(fd_UnknownEncoding,"EXTEND-OUTPUT-FILE",NULL,encid);
+  f=(u8_output)u8_open_output_file
+    (filename,enc,O_APPEND|O_CREAT|O_WRONLY,0);
+  if (f==NULL)
+    return fd_err(fd_CantOpenFile,"EXTEND-OUTPUT-FILE",NULL,fname);
+  else return make_port(NULL,(u8_output)f,u8_strdup(filename));
+}
+
 static fdtype open_input_file(fdtype fname,fdtype encid)
 {
   u8_string filename=fd_strdata(fname);
@@ -1518,6 +1535,8 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_idefn(fileio_module,
 	   fd_make_cprim2("OPEN-OUTPUT-FILE",open_output_file,1));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2("EXTEND-OUTPUT-FILE",extend_output_file,1));
   fd_idefn(fileio_module,
 	   fd_make_cprim2("OPEN-INPUT-FILE",open_input_file,1));
   fd_idefn(fileio_module,fd_make_cprim3x("SETBUF",setbufprim,2,
