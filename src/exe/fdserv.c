@@ -49,6 +49,8 @@ FD_EXPORT int fd_init_fddbserv(void);
 /* Logging declarations */
 static FILE *statlog=NULL;
 static double overtime=0;
+static int loglisten=1, logconnect=0, logtransact=0;
+
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -262,6 +264,7 @@ static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
   /* We could do access control here. */
   fd_webconn consed=u8_alloc(FD_WEBCONN);
+  memset(consed,0,sizeof(FD_WEBCONN));
   consed->socket=sock; consed->flags=0;
   fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);
@@ -453,8 +456,9 @@ static int webservefn(u8_client ucl)
 	contentlen=contentlen+output_content(client,content);}
     /* Reset the stream */
     client->out.u8_outptr=client->out.u8_outbuf;
-    u8_client_close(ucl);
-    u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
+    u8_client_close(ucl); /* u8_client_done(ucl); */
+    u8_free(tmp.u8_outbuf);
+    fd_decref(content); fd_decref(traceval);
     if (retval<0)
       u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
     if ((reqlog) || (urllog) || (trace_cgidata))
@@ -733,6 +737,13 @@ int main(int argc,char **argv)
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
 
+  fd_register_config("LOGLISTEN",_("Log when servers start listening"),
+		     fd_boolconfig_get,fd_boolconfig_set,&loglisten);
+  fd_register_config("LOGCONNECT",_("Log server connections"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
+  fd_register_config("LOGTRANSACT",_("Log client/server transactions"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
+
 #if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
      An alternative would be to log to a data structure and have a separate thread writing
@@ -757,10 +768,17 @@ int main(int argc,char **argv)
     fd_clear_errors(1);
     exit(EXIT_FAILURE);}
   
+  memset(&fdwebserver,0,sizeof(fdwebserver));
+
   u8_server_init(&fdwebserver,
 		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
-  fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
+  if (loglisten)
+    fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
+  if (logconnect)
+    fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_CONNECT;
+  if (logtransact)
+    fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_TRANSACT;
 
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
