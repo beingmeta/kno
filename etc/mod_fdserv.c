@@ -1088,8 +1088,7 @@ static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,
   apr_size_t bytes_written=0, bytes_to_write=n_bytes, block_size=n_bytes;
   while (bytes_written < bytes_to_write) {
     apr_status_t rv=apr_socket_send(sock,buf+bytes_written,&block_size);
-    if (block_size == 0) {
-      break;}
+    if (block_size == 0) break;
     else bytes_written=bytes_written+block_size;}
   return bytes_written;
 }
@@ -1141,7 +1140,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   BUFF *reqdata;
   apr_socket_t *sock;
   char *post_data, errbuf[512];
-  int post_size;
+  int post_size; int bytes_written=0;
   struct HEAD_SCANNER scanner;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
@@ -1210,7 +1209,11 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 	       (long int)(reqdata->ptr-reqdata->buf));
   /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
 
-  sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
+  bytes_written=sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
+  if (bytes_written<(reqdata->ptr-reqdata->buf))
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
+	       "mod_fdserv: Only wrote %ld bytes of request data to socket",
+	       (long int)bytes_written);
   
   scanner.sock=sock; scanner.req=r;
 
