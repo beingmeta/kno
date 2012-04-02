@@ -24,6 +24,7 @@
 (module-export! '{savecontent saveoutput save/path save/fetch})
 
 (define (guess-ctype name)
+  (set! name (uribase name))
   (cond ((or (has-suffix name ".html")
 	     (has-suffix name ".htm")
 	     (has-suffix name ".xhtml"))
@@ -75,7 +76,8 @@
   (macro expr
     `(,savecontent
       ,(second expr) ,(third expr)
-      (,stringout ,@(cdr (cdr (cdr expr)))))))
+      (,stringout ,@(cdr (cdr (cdr expr))))
+      (,guess-ctype ,(third expr)))))
 
 (define (save/path root path)
   (cond ((s3loc? root) (s3/mkpath root path))
@@ -98,11 +100,3 @@
 	 (urlcontent ref))
 	((string? ref) (filestring ref))
 	(else (error "Weird docbase ref" ref))))
-
-
-
-
-
-
-
-
