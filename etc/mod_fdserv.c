@@ -472,7 +472,7 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   const char *fullpath=NULL, *spec=NULL;
 
   if (arg[0]=='/') spec=arg;
-  else if (strchr(arg,'@')) spec=arg;
+  else if ((strchr(arg,'@'))||(strchr(arg,':'))) spec=arg;
   else if (dconfig->socket_prefix)
     spec=fullpath=apr_pstrcat(parms->pool,dconfig->socket_prefix,arg,NULL);
   else if (sconfig->socket_prefix)
@@ -611,7 +611,10 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
        "/var/run/fdserv/");
 
-    if ((socket_spec)&&(strchr(socket_spec,'@'))) return socket_spec;
+    if ((socket_spec)&&
+	((strchr(socket_spec,'@'))||
+	 (strchr(socket_spec,':'))))
+      return socket_spec;
 
     /* This generates a socketname for a particular request URI.  It's
        not used when we explicitly set socket specs. */
