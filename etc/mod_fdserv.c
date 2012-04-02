@@ -64,6 +64,12 @@ typedef unsigned int INTPOINTER;
 
 #define FDSERV_MAGIC_TYPE "application/x-httpd-fdserv"
 
+typedef struct FDSOCKET {
+  enum {filesock,aprsock,badsock} socktype;
+  union { int fd; apr_socket_t *apr;}
+    sockdata;}
+  *fdsocket;
+
 /* Compatibility */
 
 #define APLOG_HEAD APLOG_MARK,APLOG_DEBUG,OK
@@ -833,28 +839,29 @@ static char *get_pathspec(request_rec *r,char *buf)
   return buf;
 }
 
-static apr_socket_t *connect_to_servlet(request_rec *r)
+static fdsocket connect_to_servlet(request_rec *r)
 {
   apr_socket_t *sock; char buf[512], *pathspec=get_pathspec(r,buf);
   const char *sockname=get_sockname(r,pathspec);
+  struct FDSOCKET *result;
   int rv=0;
   /* TCP socket specs have either the form ttport@hostname or hostname:port
      where ttport might be touch-tone encoded. */
-  int filesock=((sockname)&&
-		((strchr(sockname,'@'))==NULL)&&
-		((strchr(sockname,'/')!=NULL)||
-		 ((strchr(sockname,':'))==NULL)));
-
+  int isfilesock=((sockname)&&
+		  ((strchr(sockname,'@'))==NULL)&&
+		  ((strchr(sockname,'/')!=NULL)||
+		   ((strchr(sockname,':'))==NULL)));
+  
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,OK,r,"Connecting to %s %s",
-     ((filesock)?"file socket":"net socket"),sockname);
+     ((isfilesock)?"file socket":"net socket"),sockname);
   
   if (sockname==NULL) {
     ap_log_rerror
       (APLOG_MARK,APLOG_CRIT,500,r,
        "Couldn't resolve socket name for %s",r->unparsed_uri);
     return NULL;}
-  else if (filesock)
+  else if (isfilesock)
     ap_log_error
       (APLOG_MARK,APLOG_INFO,OK,r->server, 
        "mod_fdserv: Resolving request for %s using %s",
@@ -864,14 +871,14 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
 	  "mod_fdserv: Resolving request for %s through %s",
 	  r->unparsed_uri,sockname);
 
-  if (filesock) {
+  if (isfilesock) {
     /* We create a fake socket_t object to return. */
     struct sockaddr_un un_servname;
-    apr_os_sock_t unix_sock;
+    int unix_sock;
     int connval, aprval; int servelen;
     memset(&un_servname,0,sizeof(un_servname));
     un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
-    unix_sock=socket((PF_LOCAL),SOCK_STREAM,0);
+    unix_sock=socket(PF_LOCAL,SOCK_STREAM,0);
     if (unix_sock<0) {
       ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
 		    "Couldn't open socket for %s (errno=%d:%s)",
@@ -884,7 +891,7 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
     if (connval<0) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_CRIT,500,
-	 r,((filesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
+	 r,((isfilesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
 	    ("Couldn't connect socket to %s (errno=%d:%s)")),
 	 sockname,errno,strerror(errno));
       errno=0;
@@ -908,18 +915,15 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
     else ap_log_rerror
 	   (APLOG_MARK,APLOG_DEBUG,OK,r,
 	    "Connected to %s using %d",sockname,unix_sock);
-    aprval=apr_os_sock_put(&sock,&unix_sock,r->pool);
-    if (aprval) {
-      ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,OK,r,"Couldn't convert socket %s %d to APR",
-	 sockname,unix_sock);
-      return NULL;}
-    aprval=apr_socket_timeout_set(sock,-1);
+    result=apr_palloc(r->pool,sizeof(struct FDSOCKET));
+    memset(result,0,sizeof(struct FDSOCKET));
+    result->socktype=filesock;
+    result->sockdata.fd=unix_sock;
     ap_log_rerror
       (APLOG_MARK,APLOG_INFO,OK,r,
-       "Converted unix socket %s %d to APR",
-       sockname,unix_sock);
-    return sock;}
+       "Returning unix/local/file socket %d for %s",
+       unix_sock,sockname);
+    return result;}
   else {
     /* Use APR functions for network connection. */
     apr_status_t retval;
@@ -966,10 +970,14 @@ static apr_socket_t *connect_to_servlet(request_rec *r)
 	 "Unable to make connection to %s",
 	 sockname);
       return NULL;}
+    result=apr_palloc(r->pool,sizeof(struct FDSOCKET));
+    memset(result,0,sizeof(struct FDSOCKET));
+    result->socktype=aprsock;
+    result->sockdata.apr=sock;
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket to use with %s",
        sockname);
-    return sock;}
+    return result;}
 }
 
 /* Writing DTYpes to BUFFs */
@@ -1058,65 +1066,138 @@ static void write_table_as_slotmap
 /* Handling fdserv requests */
 
 struct HEAD_SCANNER {
-  apr_socket_t *sock;
+  fdsocket sock;
   request_rec *req;};
 
 static int scan_fgets(char *buf,int n_bytes,void *stream)
 {
   struct HEAD_SCANNER *scan=(struct HEAD_SCANNER *)stream;
-  apr_socket_t *sock=scan->sock; request_rec *r=scan->req;
-  /* This should use bigger chunks */
-  char bytes[1], *write=buf, *limit=buf+n_bytes; 
-  size_t bytes_read=1;
-  apr_status_t rv=apr_socket_recv(sock,bytes,&bytes_read);
-  while ((bytes_read>0)&&(rv==OK)) {
-    if (write>=limit) {}
-    else *write++=bytes[0];
-    if (bytes[0] == '\n') break;
-    rv=apr_socket_recv(sock,bytes,&bytes_read);}
-  *write='\0';
-  ap_log_error
-    (APLOG_MARK,APLOG_DEBUG,rv,r->server,
-     "mod_fdserv/scan_fgets: Read header string %s",buf);
-  if (write>=limit) return write-buf;
-  else return write-buf;
+  if (scan->sock->socktype==aprsock) {
+    apr_socket_t *sock=scan->sock->sockdata.apr;
+    request_rec *r=scan->req;
+    /* This should use bigger chunks */
+    char bytes[1], *write=buf, *limit=buf+n_bytes; 
+    size_t bytes_read=1;
+    apr_status_t rv=apr_socket_recv(sock,bytes,&bytes_read);
+    while ((bytes_read>0)&&(rv==OK)) {
+      if (write>=limit) {}
+      else *write++=bytes[0];
+      if (bytes[0] == '\n') break;
+      rv=apr_socket_recv(sock,bytes,&bytes_read);}
+    *write='\0';
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,rv,r->server,
+       "mod_fdserv/scan_fgets: Read header string %s",buf);
+    if (write>=limit) return write-buf;
+    else return write-buf;}
+  else if (scan->sock->socktype==filesock) {
+      int sock=scan->sock->sockdata.fd;
+      char bytes[1], *write=buf, *limit=buf+n_bytes;; 
+      while (read(sock,bytes,1)>0) { 
+	if (write>=limit) break; else *write++=bytes[0];
+	if (bytes[0] == '\n') break;}
+      *write='\0';
+      if (write>=limit) return write-buf;
+      else return write-buf;}
+  else {
+    /*
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
+    */
+    return -1;}
 }
+
 
 static int sock_write(request_rec *r,unsigned char *buf,int n_bytes,
-		      apr_socket_t *sock)
+		      fdsocket sockval)
 {
-  apr_size_t bytes_written=0, bytes_to_write=n_bytes, block_size=n_bytes;
-  while (bytes_written < bytes_to_write) {
-    apr_status_t rv=apr_socket_send(sock,buf+bytes_written,&block_size);
-    if (block_size == 0) break;
-    else bytes_written=bytes_written+block_size;}
-  return bytes_written;
+  ap_log_error
+    (APLOG_MARK,APLOG_DEBUG,OK,r->server,"Writing %d bytes to %s %d",
+     n_bytes,((sockval->socktype==filesock)?"file socket":"apr socket"),
+     ((sockval->socktype==filesock)?(sockval->sockdata.fd):(-1)));
+
+  if (sockval->socktype==aprsock) {
+    apr_socket_t *sock=sockval->sockdata.apr;
+    apr_size_t bytes_written=0, bytes_to_write=n_bytes, block_size=n_bytes;
+    while (bytes_written < bytes_to_write) {
+      apr_status_t rv=apr_socket_send(sock,buf+bytes_written,&block_size);
+      if (block_size == 0) break;
+      else bytes_written=bytes_written+block_size;}
+    return bytes_written;}
+  else if (sockval->socktype==filesock) {
+    int sock=sockval->sockdata.fd;
+    int bytes_written=0, bytes_to_write=n_bytes;
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,r->server,"Writing %d bytes to file socket %d",
+       bytes_to_write,sock);
+    while (bytes_written < bytes_to_write) {
+      int block_size=write(sock,buf,bytes_to_write-bytes_written);
+      if (block_size<0) {
+	ap_log_error
+	  (APLOG_MARK,APLOG_DEBUG,OK,r->server,"Error %d (%d) from %d after %d/%d bytes",
+	   block_size,errno,sock,bytes_written,bytes_to_write);
+	break;}
+      if (block_size == 0) {
+	ap_log_error
+	  (APLOG_MARK,APLOG_DEBUG,OK,r->server,"Zero blocks written on %d,sock",
+	   bytes_to_write-bytes_written,sock);
+	break;}
+      else bytes_written=bytes_written+block_size;
+      ap_log_error
+	(APLOG_MARK,APLOG_DEBUG,OK,r->server,"Writing %d more bytes to file socket %d",
+	 bytes_to_write-bytes_written,sock);}
+    return bytes_written;}
+  else {
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
+    return -1;}
 }
 
-static void copy_script_output(apr_socket_t *sock,request_rec *r)
+static void copy_script_output(fdsocket sockval,request_rec *r)
 {
   char buf[4096]; apr_size_t bytes_read=0;
-  while (1) {
-    apr_size_t delta=4096;
-    apr_status_t rv;
-    rv=apr_socket_recv(sock,buf,&delta);
+  if (sockval->socktype==aprsock) {
+    apr_socket_t *sock=sockval->sockdata.apr;
+    while (1) {
+      apr_size_t delta=4096;
+      apr_status_t rv;
+      rv=apr_socket_recv(sock,buf,&delta);
+      ap_log_error
+	(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+	 "mod_fdserv: Read %ld %sbytes of %ld (so far)",
+	 delta,((bytes_read>0)?"more ":""),bytes_read+delta);
+      if (delta>0) {
+	bytes_read=bytes_read+delta;
+	ap_rwrite(buf,delta,r); ap_rflush(r);}
+      else if (rv!=OK) {
+	ap_log_error
+	  (APLOG_MARK,APLOG_DEBUG,rv,r->server,
+	   "mod_fdserv: Stopped after reading %ld bytes",bytes_read);
+	break;}
+      else if (errno==EAGAIN) continue;
+      else break;}
+    ap_log_error
+      (APLOG_MARK,APLOG_INFO,OK,r->server,
+       "mod_fdserv: Copied %ld content bytes to client",bytes_read);}
+  else if (sockval->socktype==filesock) {
+    int sock=sockval->sockdata.fd;
+    while (1) {
+      ssize_t delta=read(sock,buf,4096);
+      ap_log_error
+	(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+	 "mod_fdserv: Read %lld bytes of %lld (so far)",
+	 (long long int)delta,(long long int)bytes_read);
+      if (delta>0) {
+	bytes_read=bytes_read+delta;
+	ap_rwrite(buf,delta,r); ap_rflush(r);}
+      else if (delta==0) break;
+      else if (errno==EAGAIN) continue;
+      else break;}
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-       "mod_fdserv: Read %ld %sbytes of %ld (so far)",
-       delta,((bytes_read>0)?"more ":""),bytes_read+delta);
-    if (delta>0) {
-      bytes_read=bytes_read+delta;
-      ap_rwrite(buf,delta,r); ap_rflush(r);}
-    else if (rv!=OK) {
-      ap_log_error
-	(APLOG_MARK,APLOG_DEBUG,rv,r->server,
-	 "mod_fdserv: Stopped after reading %ld bytes",bytes_read);
-      break;}
-    else if (errno==EAGAIN) continue;
-    else break;}
-  ap_log_error
-    (APLOG_MARK,APLOG_INFO,OK,r->server,
-     "mod_fdserv: Copied %ld content bytes to client",bytes_read);
+       "mod_fdserv: Finished reading %lld bytes",(long long int)bytes_read);}
+  else ap_log_error
+	 (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
 }
 
 static log_buf(char *msg,int size,char *data,request_rec *r)
@@ -1138,7 +1219,7 @@ static log_buf(char *msg,int size,char *data,request_rec *r)
 static int fdserv_handler(request_rec *r) /* 2.0 */
 {
   BUFF *reqdata;
-  apr_socket_t *sock;
+  fdsocket sock;
   char *post_data, errbuf[512];
   int post_size; int bytes_written=0;
   struct HEAD_SCANNER scanner;
@@ -1172,7 +1253,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     ftime(&start);
 #endif
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		 "mod_fdserv: Socket serves %s for %s",
+		 "mod_fdserv: %s serves %s for %s",
+		 ((sock->socktype==filesock)?"File socket":"APR socket"),
 		 r->filename,r->unparsed_uri);}
   reqdata=ap_bcreate(r->pool,0);
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
@@ -1240,7 +1322,11 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
    apr_table_set(r->subprocess_env,"EXECUTED","yes");
    apr_table_set(r->notes,"exectime",buf);}
 #endif
-  apr_socket_close(sock);
+  if (sock->socktype==aprsock)
+    apr_socket_close(sock->sockdata.apr);
+  else if (sock->socktype==filesock)
+    close(sock->sockdata.fd);
+  else {}
   return OK;
 }
 
