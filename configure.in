@@ -147,7 +147,7 @@ AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
 
 AC_CANONICAL_HOST
-AC_PROG_CC(gcc cc)
+AC_PROG_CC(cc gcc)
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(VALGRIND,valgrind)
@@ -275,7 +275,7 @@ esac
 case $host_os in
   darwin*)
    MKSTATIC="libtool -static -o "
-   LIBS="$LIBS -lgcc"
+   if test "x$GCC" = "xyes"; then LIBS="$LIBS -lgcc"; fi
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
