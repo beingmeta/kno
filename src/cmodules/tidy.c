@@ -92,7 +92,7 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
 FD_EXPORT int fd_init_tidy()
 {
   fdtype tidy_module;
-  if (tidy_init) return;
+  if (tidy_init) return 0;
   fd_register_source_file(versionid);
   tidy_init=1;
   tidy_module=fd_new_module("TIDY",(FD_MODULE_SAFE));
@@ -104,5 +104,6 @@ FD_EXPORT int fd_init_tidy()
 
   fd_finish_module(tidy_module);
   fd_persist_module(tidy_module);
+  return 1;
 }
 #endif /* ndef UNTIDY_HEADERS */

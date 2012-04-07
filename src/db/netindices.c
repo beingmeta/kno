@@ -51,7 +51,7 @@ FD_EXPORT fd_index fd_open_network_index
 				  fd_dbconn_cap_default,
 				  fd_dbconn_init_default);
   if (cp==NULL) return NULL;
-  ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(ix));
+  ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec);
   ix->connpool=cp;
   ix->xname=xname; ix->xid=xid;

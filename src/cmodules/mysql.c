@@ -443,7 +443,7 @@ static fdtype get_stmt_values
 	  fd_decref(value);}
 	else {
 	  FD_OID base=FD_OID_ADDR(colmaps[i]);
-	  unsigned int offset=fd_getint(value);
+	  int offset=fd_getint(value);
 	  if (offset<0) kv[n_slots].value=value;
 	  else {
 	    FD_OID baseplus=FD_OID_PLUS(base,offset);

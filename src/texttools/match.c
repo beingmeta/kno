@@ -826,7 +826,7 @@ static fdtype extract_star
       ((FD_VOIDP(next)) ? (-1) :
        (fd_text_search(next,env,string,off,lim,flags)));
     if (nextpos==-2) return FD_ERROR_VALUE;
-    else if (next<0)
+    else if (nextpos<0)
       return fd_init_pair(NULL,FD_INT2DTYPE(nextpos),
 			  fd_extract_string(NULL,string+off,string+lim));
     else return fd_init_pair

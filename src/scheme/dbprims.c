@@ -1674,7 +1674,7 @@ static fdtype oid_plus_prim(fdtype oid,fdtype increment)
 
 static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
 {
-  FD_OID oid=FD_OID_ADDR(oidarg), base; unsigned int cap=-1;
+  FD_OID oid=FD_OID_ADDR(oidarg), base; int cap=-1;
   if (FD_OIDP(against)) {
     base=FD_OID_ADDR(against);}
   else if (FD_POOLP(against)) {

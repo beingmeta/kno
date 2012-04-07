@@ -4468,7 +4468,7 @@ esac
 case $host_os in
   darwin*)
    MKSTATIC="libtool -static -o "
-   if test "x$GCC" = "xyes"; then LIBS="$LIBS -lgcc"; fi
+#   if test "x$CC" = "xgcc"; then LIBS="$LIBS -lgcc"; fi
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib

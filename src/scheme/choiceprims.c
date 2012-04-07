@@ -793,7 +793,7 @@ static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
 {
   if (i==n) {
     fdtype val=fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
-    if ((FD_FALSEP(val)))
+    if (FD_FALSEP(val))
       return 0;
     else if (FD_EMPTY_CHOICEP(val))
       return 1;

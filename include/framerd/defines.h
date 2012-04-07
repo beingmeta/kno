@@ -192,7 +192,7 @@
 #if HAVE_CONSTRUCTOR_ATTRIBUTES
 #define FD_LIBINIT_FN __attribute__ ((constructor)) /*  ((constructor (150))) */
 #define FD_LIBINIT0_FN __attribute__ ((constructor))  /*  ((constructor (101))) */
-#define FD_DO_LIBINIT(fn) fn
+#define FD_DO_LIBINIT(fn) ((void)fn)
 #else
 #define FD_LIBINIT_FN
 #define FD_LIBINIT0_FN 

@@ -308,10 +308,10 @@ static fdtype get_colvalue
   if (FD_VOIDP(typeinfo)) return result;
   else if (FD_OIDP(typeinfo)) {
     FD_OID base=FD_OID_ADDR(typeinfo);
-    unsigned long long offset=
+    long long offset=
       ((FD_FIXNUMP(result)) ? (FD_FIX2INT(result)) :
        (FD_PTR_TYPEP(result,fd_bigint_type)) ?
-       (fd_bigint_to_ulong_long((fd_bigint)result)) : (-1));
+       (fd_bigint_to_long_long((fd_bigint)result)) : (-1));
     if (offset<0) return result;
     else return fd_make_oid(base+offset);}
   else if (FD_APPLICABLEP(typeinfo)) {

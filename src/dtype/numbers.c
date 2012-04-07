@@ -1933,7 +1933,7 @@ static int hash_bigint(fdtype x,unsigned int (*fn)(fdtype))
     if (irem<0) return -irem; else return irem;}
   else if (FD_BIGINTP(rem)) {
     struct FD_CONS *brem=(struct FD_CONS *) rem;
-    unsigned long irem=fd_bigint_to_long((fd_bigint)rem);
+    long irem=fd_bigint_to_long((fd_bigint)rem);
     if (FD_MALLOCD_CONSP(brem)) u8_free(brem);
     if (irem<0) return -irem; else return irem;}
   else return fd_err(_("bad bigint"),"hash_bigint",NULL,x);
@@ -2558,9 +2558,10 @@ fdtype fd_multiply(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y), result=ix*iy;
+    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
+    long long result=ix*iy;
     if (iy==0) return FD_INT2DTYPE(0);
-    else if ((result/iy)!=ix) {
+    else if ((result>FD_MAX_FIXNUM)||(result<FD_MIN_FIXNUM)) {
       /* This is the overflow case (?) */
       fd_bigint bx=tobigint(x), by=tobigint(y);
       fd_bigint bresult=fd_bigint_multiply(bx,by);

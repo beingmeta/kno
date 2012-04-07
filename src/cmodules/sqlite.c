@@ -161,7 +161,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
 	  fd_decref(value);}
 	else {
 	  FD_OID base=FD_OID_ADDR(colmaps[j]);
-	  unsigned int offset=fd_getint(value);
+	  int offset=fd_getint(value);
 	  if (offset<0) kv[j].value=value;
 	  else {
 	    kv[j].value=fd_make_oid(base+offset);

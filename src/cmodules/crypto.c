@@ -173,4 +173,5 @@ FD_EXPORT int fd_init_crypto()
 
   fd_finish_module(crypto_module);
   fd_persist_module(crypto_module);
+  return 1;
 }

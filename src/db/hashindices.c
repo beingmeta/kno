@@ -938,8 +938,8 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);
     n_values=fd_read_zint(&keystream);
-    /* vblock_off= */ (off_t)fd_read_zint8(&keystream);
-    /* vblock_size=*/ (size_t)fd_read_zint(&keystream);
+    /* vblock_off= */ (void)(off_t)fd_read_zint8(&keystream);
+    /* vblock_size=*/ (void)(size_t)fd_read_zint(&keystream);
     if (key_len!=dtype_len) 
       keystream.ptr=keystream.ptr+key_len;
     else if (memcmp(keystream.ptr,out.start,dtype_len)==0)

@@ -335,7 +335,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
       exposed_environment=
 	fd_make_env(fd_incref(env->exports),exposed_environment);}
   module=fd_find_module(val,0,1);
-  if ((FD_EQ(module,safe_module)))
+  if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
     else return 1;
   else if (FD_HASHTABLEP(module)) 

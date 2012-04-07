@@ -291,7 +291,8 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
 
 struct fd_rawzipsource { unsigned char *buf; size_t off, len; int freep;};
 
-static ssize_t zipraw_callback(void *state,void * data,size_t data_len,enum zip_source_cmd cmd)
+static zip_int64_t zipraw_callback
+   (void *state,void * data,zip_uint64_t data_len,enum zip_source_cmd cmd)
 {
   struct fd_rawzipsource *raw=(struct fd_rawzipsource *)state;
   unsigned char *buf=(unsigned char *)data;
@@ -323,13 +324,13 @@ static ssize_t zipraw_callback(void *state,void * data,size_t data_len,enum zip_
     return sizeof(int)*2;}}
 }
 
-static struct zip_source *zip_source_raw(struct zip *archive,unsigned char *buf,size_t len,int freep)
+static struct zip_source *zip_source_raw
+  (struct zip *archive,unsigned char *buf,size_t len,int freep)
 {
   struct fd_rawzipsource *raw=u8_malloc(sizeof(struct fd_rawzipsource));
   raw->buf=buf; raw->off=0; raw->len=len; raw->freep=freep;
   return zip_source_function(archive,zipraw_callback,(void *)raw);
 }
-    
 
 /* Initialization */
 
@@ -386,4 +387,5 @@ FD_EXPORT int fd_init_ziptools()
 
   fd_finish_module(ziptools_module);
   fd_persist_module(ziptools_module);
+  return 1;
 }

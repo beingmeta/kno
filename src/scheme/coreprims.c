@@ -269,8 +269,8 @@ static fdtype times_lexpr(int n,fdtype *args)
       int mult=fd_getint(args[i]);
       if (mult==0) fixresult=0;
       else {
-	int prod=fixresult*mult;
-	if ((prod/mult)!=fixresult) {
+	long long prod=fixresult*mult;
+	if ((prod>FD_MAX_FIXNUM)||(prod<FD_MIN_FIXNUM)) {
 	  fdtype bigresult=fd_multiply(FD_INT2DTYPE(fixresult),args[i]);
 	  i++; while (i<n) {
 	    fdtype bigprod=fd_multiply(bigresult,args[i]);

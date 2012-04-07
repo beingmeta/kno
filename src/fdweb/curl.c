@@ -227,7 +227,7 @@ static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
     newh=curl_slist_append(cur,hdr);
     u8_free(hdr);}
   ch->headers=newh;
-  if (curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh)<0) {
+  if (curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh)!=CURLE_OK) {
     return -1;}
   else return 1;
 }

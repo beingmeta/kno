@@ -125,7 +125,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
 	  unsigned char qrdot=*read++;
 	  dotscan=0; while (dotscan<dotsize) {
 	    *write=(*write)^((qrdot&0x01)<<bitoff);
-	    bitoff--; if (bitoff<0) {*write++; bitoff=7;}
+	    bitoff--; if (bitoff<0) {write++; bitoff=7;}
 	    dotscan++;}
 	  hscan++;}
 	dotscan=0; while (dotscan<dotsize) {

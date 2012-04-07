@@ -188,10 +188,10 @@ FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
 #define fd_incref(x) \
    ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref(FD_CONS_DATA(x))))
 #define fd_decref(x) \
-   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_decref(FD_CONS_DATA(x)),FD_VOID))
+  ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : (_fd_decref(FD_CONS_DATA(x)),FD_VOID)))
 #else
 #define fd_incref(x) (x)
-#define fd_decref(x) (x)
+#define fd_decref(x) ((void)(x))
 #endif
 
 /* Conses */

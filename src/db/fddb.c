@@ -120,7 +120,7 @@ fdtype (*fd_get_oid_name)(fd_pool p,fdtype oid)=default_get_oid_name;
 static int print_oid_name(u8_output out,fdtype name,int top)
 {
   if ((FD_VOIDP(name)) || (FD_EMPTY_CHOICEP(name))) return 0;
-  else if ((FD_EMPTY_LISTP(name))) 
+  else if (FD_EMPTY_LISTP(name)) 
     return u8_puts(out,"()");
   else if (FD_OIDP(name)) {
     FD_OID addr=FD_OID_ADDR(name);

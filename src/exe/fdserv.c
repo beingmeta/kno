@@ -309,7 +309,7 @@ static int webservefn(u8_client ucl)
     if (details) u8_free(details); fd_decref(irritant);}
   else {
     setup_time=u8_elapsed_time();
-    cgidata=fd_dtsread_dtype(&(client->in)), result;
+    cgidata=fd_dtsread_dtype(&(client->in));
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {

@@ -194,9 +194,11 @@ static int setup_runas()
   uid_t uid=getuid();
   gid_t gid=getgid();
   struct group *gentry=NULL;
+#if 0 /* Apparently, this can never happen */
   if ((uid<0) || (gid<0)) {
     u8_log(LOG_WARN,SecurityAbort,"Couldn't determine user or group");
     exit(2);}
+#endif
   if (getenv("FDAEMON_GROUP"))
     gentry=getgrnam(getenv("FDAEMON_GROUP"));
   if (gentry==NULL) gentry=getgrnam("fdaemon");

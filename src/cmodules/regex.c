@@ -180,5 +180,6 @@ FD_EXPORT int fd_init_regex()
 
   fd_finish_module(regex_module);
   fd_persist_module(regex_module);
+  return 1;
 }
 

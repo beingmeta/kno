@@ -1024,7 +1024,7 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
   fdtype body=fd_get(expr,content_slotid,FD_VOID);
   int len=0, n=0, i=0;
   fdtype _v[16], *v, result=FD_EMPTY_CHOICE;
-  {FD_DOLIST(elt,body) {elt; len++;}}
+  {FD_DOLIST(elt,body) {(void)elt; len++;}}
   if (len<16) v=_v; else v=u8_alloc_n(len,fdtype);
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body)

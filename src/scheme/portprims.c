@@ -111,6 +111,7 @@ FD_INLINE_FCN u8_output get_default_output_port()
   f=u8_open_output_string(512);
   f->u8_closefn=use_u8_message;
   fd_set_default_output(f);
+  return f;
 }
 
 /* Making ports */
