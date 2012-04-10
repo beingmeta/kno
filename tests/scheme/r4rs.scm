@@ -470,6 +470,8 @@
 (applytester #t divtest -238 9)
 (applytester #t divtest 238 -9)
 (applytester #t divtest -238 -9)
+(applytester 4294967296 * 256 16777216)
+(applytester -4294967296 * -256 16777216)
 
 (applytester 4 gcd 0 4)
 (applytester 4 gcd -4 0)
