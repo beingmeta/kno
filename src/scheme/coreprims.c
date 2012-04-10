@@ -264,19 +264,19 @@ static fdtype times_lexpr(int n,fdtype *args)
     else if (FD_FLONUMP(args[i])) {floating=1; i++;}
     else {generic=1; i++;}
   if ((floating==0) && (generic==0)) {
-    int fixresult=1;
+    long long fixresult=1;
     i=0; while (i < n) {
-      int mult=fd_getint(args[i]);
-      if (mult==0) fixresult=0;
+      long long mult=fd_getint(args[i]);
+      if (mult==0) return FD_INT2DTYPE(0);
       else {
-	long long prod=fixresult*mult;
-	if ((prod>FD_MAX_FIXNUM)||(prod<FD_MIN_FIXNUM)) {
+	int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
+	if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
 	  fdtype bigresult=fd_multiply(FD_INT2DTYPE(fixresult),args[i]);
 	  i++; while (i<n) {
 	    fdtype bigprod=fd_multiply(bigresult,args[i]);
 	    fd_decref(bigresult); bigresult=bigprod; i++;}
 	  return bigresult;}
-	else fixresult=prod;}
+	else fixresult=fixresult*mult;}
       i++;}
     return FD_INT2DTYPE(fixresult);}
   else if (generic == 0) {

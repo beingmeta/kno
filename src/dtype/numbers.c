@@ -2558,15 +2558,17 @@ fdtype fd_multiply(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
-    long long result=ix*iy;
+    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y), q;
+    long long result;
     if (iy==0) return FD_INT2DTYPE(0);
-    else if ((result>FD_MAX_FIXNUM)||(result<FD_MIN_FIXNUM)) {
+    q=((iy>0)?(FD_MAX_FIXNUM/iy):(FD_MIN_FIXNUM/iy));
+    if ((ix>0)?(ix>q):((-ix)>q)) {
       /* This is the overflow case (?) */
       fd_bigint bx=tobigint(x), by=tobigint(y);
       fd_bigint bresult=fd_bigint_multiply(bx,by);
       fd_decref((fdtype)bx); fd_decref((fdtype)by);
       return simplify_bigint(bresult);}
+    else result=ix*iy;
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT2DTYPE(result);
     else return (fdtype) fd_long_long_to_bigint(result);}
