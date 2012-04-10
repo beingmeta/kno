@@ -291,8 +291,8 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
 
 struct fd_rawzipsource { unsigned char *buf; size_t off, len; int freep;};
 
-static zip_int64_t zipraw_callback
-   (void *state,void * data,zip_uint64_t data_len,enum zip_source_cmd cmd)
+static ssize_t zipraw_callback
+   (void *state,void * data,size_t data_len,enum zip_source_cmd cmd)
 {
   struct fd_rawzipsource *raw=(struct fd_rawzipsource *)state;
   unsigned char *buf=(unsigned char *)data;
