@@ -180,17 +180,18 @@
 ;;    _var_ is a signed authentication in plaintext over HTTPS
 ;;    _var-_ is a signed and encrypted authentication
 
-(define (expire-cookie! cookievar (cxt #f))
+(define (expire-cookie! cookievar (cxt #f) (https #t))
   (debug%watch "EXPIRE-COOKIE!" cookievar cxt)
-  (set-cookie! cookievar "expired"
-	       auth-cookie-domain auth-cookie-path
-	       (timestamp+ (- (* 7 24 3600)))
-	       #f)
-  (when (req/get 'https #f)
-    (set-cookie! cookievar "expired"
-		 auth-cookie-domain auth-cookie-path
-		 (timestamp+ (- (* 7 24 3600)))
-		 #t))
+  (if auth-secure
+      (when https
+	(set-cookie! cookievar "expired"
+		     auth-cookie-domain auth-cookie-path
+		     (timestamp+ (- (* 7 24 3600)))
+		     #t))
+      (set-cookie! cookievar "expired"
+		   auth-cookie-domain auth-cookie-path
+		   (timestamp+ (- (* 7 24 3600)))
+		   #f))
   (set-cookie! (stringout cookievar "-") "expired"
 	       auth-cookie-domain auth-cookie-path
 	       (timestamp+ (- (* 7 24 3600)))
