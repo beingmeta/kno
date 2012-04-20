@@ -1,12 +1,12 @@
 Name:           framerd
-Version:        3.3
+Version:        3.4
 Release:        4%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
 License:        GNU GPL
 URL:            http://www.beingmeta.com/
-Source0:        framerd-3.3.tar.gz
+Source0:        framerd-3.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel libexif-devel mysql-devel
@@ -73,10 +73,6 @@ Requires:      mysql %{name} = %{version}-%{release}
 The %{name}-mysql package implements external DB bindings to the MySQL C client
 libraries
 
-%description    mysql
-The %{name}-mysql package implements external DB bindings to the MySQL C client
-libraries
-
 %package        sqlite
 Summary:        Module for using Sqlite3 from FramerD
 Group:          Development/Libraries
@@ -106,18 +102,17 @@ libraries
 #%description    tidy
 #The %{name}-tidy package implements external bindings to libtidy
 # 
-#%package        ziptools
-#Summary:        FramerD module for working with zipfiles
-#Group:          Development/Libraries
-#BuildRequires:  libzip-dev
-#Requires:       libzip %{name} = %{version}-%{release}
-#
-#%description    ziptools
-#The %{name}-ziptools package implements external bindings for libzip
+%package        ziptools
+Summary:        FramerD module for working with zipfiles
+Group:          Development/Libraries
+BuildRequires:  libzip-devel
+Requires:       libzip %{name} = %{version}-%{release}
+
+%description    ziptools
+The %{name}-ziptools package implements external bindings for libzip
 
 %prep
 %setup -q
-
 
 %build
 %configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-tidy --without-ziptools
