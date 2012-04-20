@@ -262,6 +262,3 @@ rm -rf $RPM_BUILD_ROOT
 #%defattr(-,root,root,-)
 #%doc
 #%{_libdir}/framerd/ziptools.so*
-
-%changelog
-* Updated mod_fdserv to support TCP/IP fdserv connections
