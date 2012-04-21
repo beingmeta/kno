@@ -632,7 +632,8 @@ int main(int argc,char **argv)
     fprintf(stderr,"Usage: fdserv <socketspec> [config]*\n");
     exit(2);}
   /* Network socket spec, don't need to check the file */
-  else if (strchr(socket_spec,'@')) {}
+  else if ((strchr(socket_spec,'@'))||
+	   (strchr(socket_spec,':'))) {}
   else if (check_socket_path(socket_spec)<0) {
     u8_clear_errors(1);
     return -1;}
