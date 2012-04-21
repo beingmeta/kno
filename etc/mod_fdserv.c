@@ -888,7 +888,8 @@ static fdsocket connect_to_servlet(request_rec *r)
     else ap_log_rerror
 	   (APLOG_MARK,APLOG_DEBUG,OK,r,
 	    "Opened socket %d to connect to %s",unix_sock,sockname);;
-    connval=connect(unix_sock,&un_servname,SUN_LEN(&un_servname));
+    connval=connect(unix_sock,(struct sockaddr *)&un_servname,
+		    SUN_LEN(&un_servname));
     if (connval<0) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_CRIT,500,
@@ -903,10 +904,12 @@ static fdsocket connect_to_servlet(request_rec *r)
 	return NULL;}
       else ap_log_rerror
 	     (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
-      if ((connval=connect(unix_sock,&un_servname,SUN_LEN(&un_servname))) < 0) {
+      connval=connect(unix_sock,(struct sockaddr *)&un_servname,
+		      SUN_LEN(&un_servname));
+      if (connval < 0) {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
-	   sockname,errno,strerror(errno));
+	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
+	 sockname,errno,strerror(errno));
 	errno=0;
 	return NULL;}
       else {
