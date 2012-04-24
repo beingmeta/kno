@@ -170,11 +170,12 @@ static fdtype zipadd
   else return FD_FALSE;
 }
 
-static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,fdtype raw)
+static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
+			  fdtype compress)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   unsigned char *data=NULL; size_t datalen=0;
-  int nocompress=FD_TRUEP(raw);
+  int nocompress=FD_FALSEP(compress);
   struct zip_source *zsource;
   if (FD_STRINGP(value)) {
     data=u8_strdup(FD_STRDATA(value));
