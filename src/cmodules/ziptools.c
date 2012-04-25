@@ -33,8 +33,10 @@ typedef struct FD_ZIPFILE {
   struct zip *zip;} FD_ZIPFILE;
 typedef struct FD_ZIPFILE *fd_zipfile;
 
+#if 0
 /* This is for adding uncompressed entries */
 static struct zip_source *zip_source_raw(struct zip *archive,unsigned char *buf,size_t len,int freep);
+#endif
 
 /* Error messages */
 
@@ -189,7 +191,6 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->lock));
       return errval;}}
-  /* Doesn't work yet */
   zsource=zip_source_buffer(zf->zip,data,datalen,1);
   if (!(zsource)) {
     u8_unlock_mutex(&(zf->lock));
@@ -360,7 +361,6 @@ static fdtype zipfeatures_prim()
 #endif
   return result;
 }
-  
 
 /* Initialization */
 
