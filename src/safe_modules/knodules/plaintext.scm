@@ -219,9 +219,13 @@
 
 (define (kno/read-plaintext text (knodule default-knodule))
   (map (lambda (x)
-	 (if (char-punctuation? (first x))
-	     x
-	     (handle-subject-entry x knodule)))
+	 (if (eq? (first x) #\*)
+	     (let ((e (handle-subject-entry (subseq x 1) knodule)))
+	       (hashset-add! (knodule-prime knodule) e)
+	       e)
+	     (if (char-punctuation? (first x))
+		 x
+		 (handle-subject-entry x knodule))))
        (remove "" (map trim-spaces (escaped-segment text #\;)))))
 (define (kno/plaintext text (knodule default-knodule))
   "Parses a single plaintext subject entry and returns the subject"
@@ -264,8 +268,10 @@
   (let ((languages (choice (knodule-language knodule) 'en
 			   (get settings 'languages)
 			   (tryif (test settings 'languages 'all)
-				  langids))))
+				  langids)))
+	(prime (knodule-prime knodule)))
     (printout
+      (if (get prime dterm) "*")
       (get dterm 'dterm)
       (do-choices (slotid (difference (getkeys dterm) (get settings 'exclude)))
 	(do-choices (value (get dterm slotid))

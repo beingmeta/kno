@@ -21,6 +21,7 @@
    knodule-name knodule-opts knodule-language
    knodule-oid knodule-pool knodule-index
    knodule-alldterms knodule-dterms knodule-drules
+   knodule-prime
    default-knodule knodules kno/set-dterm!
    knodule:pool knodule:index knodule:indices
    knodule! ->knodule iadd!
@@ -126,7 +127,9 @@
   ;; All dterms in this knodule (a hashset)
   (alldterms (make-hashset))
   ;; Rules for disambiguating words into dterms
-  (drules (make-hashtable)))
+  (drules (make-hashtable))
+  ;; 'Prime' dterms are important for this knodule
+  (prime (make-hashset)))
 
 ;;; Creating and referencing knodules
 
