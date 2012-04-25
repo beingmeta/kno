@@ -33,8 +33,10 @@ typedef struct FD_ZIPFILE {
   struct zip *zip;} FD_ZIPFILE;
 typedef struct FD_ZIPFILE *fd_zipfile;
 
+#if 0
 /* This is for adding uncompressed entries */
 static struct zip_source *zip_source_raw(struct zip *archive,unsigned char *buf,size_t len,int freep);
+#endif
 
 /* Error messages */
 
@@ -192,9 +194,8 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
       u8_unlock_mutex(&(zf->lock));
       return errval;}}
   /* Doesn't work yet */
-  if (0) /* (nocompress) */
-    zsource=zip_source_raw(zf->zip,data,datalen,1);
-  else zsource=zip_source_buffer(zf->zip,data,datalen,1);
+  /* zsource=zip_source_raw(zf->zip,data,datalen,1); */
+  zsource=zip_source_buffer(zf->zip,data,datalen,1);
   if (zsource) {
     fdtype v=zipadd(zf,FD_STRDATA(filename),zsource);
     u8_unlock_mutex(&(zf->lock));
@@ -288,7 +289,9 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
     return files;}
 }
 
-/* Storing uncompressed information in the zip file */
+#if 0
+/* Storing uncompressed information in the zip file.
+   This doesn't currently work. */
 
 struct fd_rawzipsource { unsigned char *buf; size_t off, len; int freep;};
 
@@ -332,6 +335,7 @@ static struct zip_source *zip_source_raw
   raw->buf=buf; raw->off=0; raw->len=len; raw->freep=freep;
   return zip_source_function(archive,zipraw_callback,(void *)raw);
 }
+#endif
 
 /* Initialization */
 
