@@ -39,12 +39,15 @@
       (system (config 'RM "rm -rf") " " (fakezip-tmpdir fz))
       (message "Leaving temporary dir " (fakezip-tmpdir fz))))
 
-(define (fz/add! fz path content (compress #t) (extra #t))
+(define (fz/add! fz path content (extra #f) (addcomment #f) (compress #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
 	(curdir (getcwd))
 	(args (list path))
 	(moreopts '()))
-    (unless extra (set! moreopts (cons "-X" moreopts)))
+    (when extra
+      (logwarn "Fakezip doesn't support extra fields on zip entries"))
+    (when addcomment
+      (logwarn "Fakezip doesn't support comments on zip entries"))
     (checkdir! (dirname fspath))
     (write-file fspath content)
     (unwind-protect

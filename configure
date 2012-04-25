@@ -6989,6 +6989,18 @@ else
   have_libzip="no"
 fi
 
+  for ac_func in zip_set_file_compression zip_set_file_comment zip_set_file_extra
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
 fi
 if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
   CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"

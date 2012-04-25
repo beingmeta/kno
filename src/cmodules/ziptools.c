@@ -158,24 +158,23 @@ static fdtype close_zipfile(fdtype zipfile)
 
 /* Adding to zip files */
 
-static fdtype zipadd
+static long long int zipadd
   (struct FD_ZIPFILE *zf,u8_string name,struct zip_source *zsource)
 {
-  int index=zip_name_locate(zf->zip,name,0);
-  int retval=((index<0)?(zip_add(zf->zip,name,zsource)):
-	      (zip_replace(zf->zip,index,zsource)));
-  if (retval<0)
-    return ziperr("zipadd",zf,(fdtype)zf);
-  if (index<0) return FD_TRUE;
-  else return FD_FALSE;
+  long long int index=zip_name_locate(zf->zip,name,0), retval=-1;
+  if (index<0) retval=index=zip_add(zf->zip,name,zsource);
+  else retval=zip_replace(zf->zip,index,zsource);
+  if (retval<0) return retval;
+  else return index;
 }
 
-static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,fdtype raw)
+static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
+			  fdtype extra,fdtype comment,fdtype compress)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   unsigned char *data=NULL; size_t datalen=0;
-  int nocompress=FD_TRUEP(raw);
   struct zip_source *zsource;
+  long long int index=-1;
   if (FD_STRINGP(value)) {
     data=u8_strdup(FD_STRDATA(value));
     datalen=FD_STRLEN(value);}
@@ -191,14 +190,74 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,fdtype raw
       u8_unlock_mutex(&(zf->lock));
       return errval;}}
   /* Doesn't work yet */
-  if (0) /* (nocompress) */
-    zsource=zip_source_raw(zf->zip,data,datalen,1);
-  else zsource=zip_source_buffer(zf->zip,data,datalen,1);
-  if (zsource) {
-    fdtype v=zipadd(zf,FD_STRDATA(filename),zsource);
+  zsource=zip_source_buffer(zf->zip,data,datalen,1);
+  if (!(zsource)) {
     u8_unlock_mutex(&(zf->lock));
-    return v;}
-  else return ziperr("zipadd/source",zf,value);
+    return ziperr("zipadd/source",zf,(fdtype)zf);}
+  index=zipadd(zf,FD_STRDATA(filename),zsource);
+  if (index<0) {
+    u8_unlock_mutex(&(zf->lock));
+    return ziperr("zipadd",zf,(fdtype)zf);}
+#if (HAVE_ZIP_SET_FILE_EXTRA)
+  if (!(FD_FALSEP(extra))) {
+    int retval=-1;
+    if (FD_STRINGP(extra)) 
+      retval=zip_set_file_extra
+	(zf->zip,index,FD_STRDATA(extra),FD_STRLEN(extra));
+    else if (FD_PACKETP(extra))
+      retval=zip_set_file_extra
+	(zf->zip,index,FD_PACKET_DATA(extra),
+	 FD_PACKET_LENGTH(extra));
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+      fd_unparse(&out,extra);
+      retval=zip_set_file_extra(zf->zip,index,out.u8_outbuf,
+				out.u8_outptr-out.u8_outbuf);
+      u8_free(out.u8_outbuf);}
+    if (retval<0) {
+      u8_unlock_mutex(&(zf->lock));
+      return ziperr("zipadd/extra",zf,(fdtype)zf);}}
+#else
+  if (!(FD_FALSEP(extra))) 
+    u8_log(LOG_WARNING,"zipadd/extra",
+	   "available libzip doesn't support extra fields");
+#endif
+#if (HAVE_ZIP_SET_FILE_COMMENT)
+  if (!(FD_FALSEP(comment))) {
+    int retval=-1;
+    if (FD_STRINGP(comment)) 
+      retval=zip_set_file_comment
+	(zf->zip,index,FD_STRDATA(comment),FD_STRLEN(comment));
+    else if (FD_PACKETP(comment))
+      retval=zip_set_file_comment
+	(zf->zip,index,FD_PACKET_DATA(comment),
+	 FD_PACKET_LENGTH(comment));
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+      fd_unparse(&out,comment);
+      retval=zip_set_file_comment(zf->zip,index,out.u8_outbuf,
+				  out.u8_outptr-out.u8_outbuf);}
+    if (retval<0) {
+      u8_unlock_mutex(&(zf->lock));
+      return ziperr("zipadd/comment",zf,(fdtype)zf);}}
+#else
+  if (!(FD_FALSEP(comment))) { 
+    u8_log(LOG_WARNING,"zipadd/comment",
+	   "available libzip doesn't support comment fields");}
+#endif
+#if (HAVE_ZIP_SET_FILE_COMPRESSION)
+  if (FD_FALSEP(compress)) {
+  int retval=zip_set_file_compression(zf->zip,index,ZIP_CM_STORE,0);
+  if (retval<0) {
+  u8_unlock_mutex(&(zf->lock));
+  return ziperr("zipadd/nocompresss",zf,(fdtype)zf);}}
+#else
+  if (FD_FALSEP(compress)) {
+    u8_log(LOG_WARNING,"zipadd/compress",
+    "available libzip doesn't support uncompressed fields");}
+#endif
+  u8_unlock_mutex(&(zf->lock));
+  return FD_INT2DTYPE(index);
 }
 
 static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
@@ -287,50 +346,21 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
     return files;}
 }
 
-/* Storing uncompressed information in the zip file */
-
-struct fd_rawzipsource { unsigned char *buf; size_t off, len; int freep;};
-
-static ssize_t zipraw_callback
-   (void *state,void * data,size_t data_len,enum zip_source_cmd cmd)
+static fdtype zipfeatures_prim()
 {
-  struct fd_rawzipsource *raw=(struct fd_rawzipsource *)state;
-  unsigned char *buf=(unsigned char *)data;
-  switch (cmd) {
-  case ZIP_SOURCE_OPEN: return 0;
-  case ZIP_SOURCE_READ: {
-    size_t len=raw->len, off=raw->off;
-    if ((len-off)<data_len) {
-      memcpy(raw->buf+off,buf,len-off);
-      raw->off=off+len;
-      return len-off;}
-    else {
-      memcpy(raw->buf+off,buf,data_len);
-      raw->off=raw->off+data_len;
-      return data_len;}}
-  case ZIP_SOURCE_STAT: {
-    struct zip_stat *stat=(struct zip_stat *)data;
-    stat->size=stat->comp_size=raw->len;
-    stat->comp_method=ZIP_CM_STORE; stat->crc=0;
-    return sizeof(struct zip_stat);}
-  case ZIP_SOURCE_CLOSE: return 0;
-  case ZIP_SOURCE_FREE: {
-    if (raw->freep) free(raw->buf);
-    free(raw);
-    return 0;}
-  case ZIP_SOURCE_ERROR: {
-    int *errinfo=(int *)data;
-    errinfo[0]=ZIP_ER_OK; errinfo[1]=0;
-    return sizeof(int)*2;}}
+  fdtype result=FD_EMPTY_CHOICE;
+#if (HAVE_ZIP_SET_FILE_EXTRA)
+  FD_ADD_TO_CHOICE(result,fd_intern("EXTRA"));
+#endif
+#if (HAVE_ZIP_SET_FILE_COMMENT)
+  FD_ADD_TO_CHOICE(result,fd_intern("COMMENT"));
+#endif
+#if (HAVE_ZIP_SET_FILE_COMPRESSION)
+  FD_ADD_TO_CHOICE(result,fd_intern("COMPRESSION"));
+#endif
+  return result;
 }
-
-static struct zip_source *zip_source_raw
-  (struct zip *archive,unsigned char *buf,size_t len,int freep)
-{
-  struct fd_rawzipsource *raw=u8_malloc(sizeof(struct fd_rawzipsource));
-  raw->buf=buf; raw->off=0; raw->len=len; raw->freep=freep;
-  return zip_source_function(archive,zipraw_callback,(void *)raw);
-}
+  
 
 /* Initialization */
 
@@ -365,11 +395,13 @@ FD_EXPORT int fd_init_ziptools()
 	   ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim4x("ZIP/ADD!",zipadd_prim,3,
+	   fd_make_cprim6x("ZIP/ADD!",zipadd_prim,3,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID,
-			   -1,FD_FALSE));
+			   -1,FD_FALSE,
+			   -1,FD_FALSE,
+			   -1,FD_TRUE));
 
   fd_idefn(ziptools_module,
 	   fd_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
@@ -384,6 +416,9 @@ FD_EXPORT int fd_init_ziptools()
   fd_idefn(ziptools_module,
 	   fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
 			   fd_zipfile_type,FD_VOID));
+
+  fd_idefn(ziptools_module,
+    fd_make_cprim0("ZIP/FEATURES",zipfeatures_prim,0));
 
   fd_finish_module(ziptools_module);
   fd_persist_module(ziptools_module);
