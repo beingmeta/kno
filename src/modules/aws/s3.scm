@@ -69,10 +69,10 @@
 					    (subseq input (+ colon 2))
 					    (subseq input (1+ colon))))
 			    (cons-s3loc (subseq input 0 slash)
-					(subseq input slash)))
+					(subseq input (1+ slash))))
 			(if slash
 			    (cons-s3loc (subseq input 0 slash)
-					(subseq input slash))
+					(subseq input (1+ slash)))
 			    (if colon
 				(cons-s3loc (subseq input 0 colon)
 					    (subseq input (1+ colon)))
