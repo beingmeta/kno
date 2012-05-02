@@ -70,12 +70,12 @@
 	(if (eq? inpool pool)
 	    (try (get mapping x)
 		 (let ((dop (make-oid 0 (car counter))))
+		   (set-car! counter (1+ (car counter)))
+		   (set-cdr! counter (cons dop (cdr counter)))
 		   (store! mapping x dop)
 		   (store! output dop
 			   (dump (oid-value x) pool mapping output
 				 drules srules counter))
-		   (set-car! counter (1+ (car counter)))
-		   (set-cdr! counter (cons dop (cdr counter)))
 		   dop))
 	    (if (and drules (exists? (get drules inpool)))
 		((get drules inpool) x mapping output
