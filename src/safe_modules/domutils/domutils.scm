@@ -28,7 +28,9 @@
 (define *block-text-tags*
   (string->symbol
    '{"P" "LI" "DT" "BLOCKQUOTE"
-     "H1" "H2" "H3" "H4" "H5" "H6"}))
+     "DIV" "SECTION"
+     "UL" "DL" "OL"
+     "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
 
 (define (dom/block? node)
   (overlaps? (get node '%xmltag) *block-text-tags*))
