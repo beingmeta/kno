@@ -89,26 +89,31 @@
 		   x)
 	      (if (timestamp? x) x
 		  (if (table? x)
-		      (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f)))
-			    (method #f))
+		      (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f))))
 			(do-choices (key (getkeys x))
-			  (set! method (tryif srules (get srules key)))
-			  (if (fail? method)
-			      (store! copy key
-				      (dump (get x key) pool mapping output
-					    drules srules counter))
-			      (when method
-				(store! copy
-					(try (pick method slotid?) key)
-					(dump (if (exists applicable? method)
-						  ((pick method applicable?)
-						   ;; value, newslot, container
-						   (get x key) (try (pick method slotid?) key) x
-						   ;; dumpfn
-						   (lambda (v) (dump v pool mapping output drules srules counter)))
-						  v)
-					      pool mapping output
-					      drules srules counter)))))
+			  (let* ((method (tryif srules
+					   (pick (get srules key) applicable?)))
+				 (newkey
+				  (try (pick (tryif srules (get srules key))
+					     slotid?)
+				       (dump key pool mapping output
+					     drules srules counter))))
+			    (if (fail? method)
+				(store! copy newkey
+					(dump (get x key) pool mapping output
+					      drules srules counter))
+				(when method
+				  (store! copy
+					  newkey
+					  (dump (if (exists applicable? method)
+						    ((pick method applicable?)
+						     ;; value, newslot, container
+						     (get x key) (try (pick method slotid?) key) x
+						     ;; dumpfn
+						     (lambda (v) (dump v pool mapping output drules srules counter)))
+						    v)
+						pool mapping output
+						drules srules counter))))))
 			copy)
 		      (if (uuid? x)
 			  (make-compound '|uuid| (uuid->packet x))
@@ -136,7 +141,8 @@
 		  (let ((copy (if (hashtable? x) (make-hashtable)
 				  (frame-create #f))))
 		    (do-choices (key (getkeys x))
-		      (store! copy key
+		      (store! copy
+			      (restore key pool mapping input drules srules)
 			      (if (or (not srules) (fail? (get srules key)))
 				  (restore (get x key) pool mapping input drules srules)
 				  ((get srules key) (get x key) key x
