@@ -176,6 +176,15 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libtexttools@suffix@.@shared_suffix@   \
 	lib/libtagger@suffix@.@shared_suffix@
 
+SCHEME_MODULES=src/modules/*.scm src/safe_modules/*.scm \
+	src/modules/aws/*.scm src/modules/brico/*.scm \
+	src/modules/facebook/*.scm src/modules/misc/*.scm \
+	src/modules/tests/*.scm src/modules/webapi/*.scm \
+	src/safe_modules/domutils/*.scm src/safe_modules/knodules/*.scm \
+	src/safe_modules/textindex/*.scm \
+	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
+	src/beingmeta/gnosys/*.scm
+
 # Targets
 
 default: all
@@ -365,6 +374,9 @@ TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c       \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
 	      include/framerd/*.h
+
+SCHEMETAGS: ${SCHEME_MODULES}
+	etags -o SCHEMETAGS ${SCHEME_MODULES}
 
 profile-clean:
 	find . -name "*.gcda" | xargs rm -f

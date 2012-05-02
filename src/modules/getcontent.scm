@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc. All rights reserved.
+;;; Copyright (C) 2005-2012 beingmeta, inc. All rights reserved.
 
 (in-module 'getcontent)
 
