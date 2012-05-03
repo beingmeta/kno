@@ -22,18 +22,25 @@
    dom/gethead dom/getmeta dom/getlinks
    dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
-   *block-text-tags* dom/block?
+   *block-text-tags* dom/block? dom/terminal?
    dom->id id->dom})
 
 (define *block-text-tags*
   (string->symbol
-   '{"P" "LI" "DT" "BLOCKQUOTE"
+   '{"P" "LI" "DT" "DD" "BLOCKQUOTE"
      "DIV" "SECTION"
      "UL" "DL" "OL"
+     "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
+(define *terminal-block-text-tags*
+  (string->symbol
+   '{"P" "LI" "DT" "DD"
      "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
 
 (define (dom/block? node)
   (overlaps? (get node '%xmltag) *block-text-tags*))
+
+(define (dom/terminal? node)
+  (overlaps? (get node '%xmltag) *terminal-block-text-tags*))
 
 ;;; Random utilities
 
