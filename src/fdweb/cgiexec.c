@@ -14,10 +14,13 @@ static char versionid[] =
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/eval.h"
+#include "framerd/fddb.h"
 #include "framerd/ports.h"
 #include "framerd/fdweb.h"
 #include "framerd/support.h"
 
+#include <libu8/libu8.h>
+#include <libu8/libu8io.h>
 #include <libu8/xfiles.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
@@ -35,6 +38,7 @@ static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
 static fdtype parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
+static fdtype ipeval_symbol;
 
 static int log_cgidata=0;
 
@@ -810,18 +814,58 @@ static fdtype reqdatalogfn(fdtype cgidata)
   return FD_VOID;
 }
 
+struct CGICALL {
+  fdtype proc, cgidata;
+  struct U8_OUTPUT *cgiout; int outlen;
+  fdtype result;};
+
+static int cgiexecstep(void *data)
+{
+  struct CGICALL *call=(struct CGICALL *)data;
+  fdtype proc=call->proc, cgidata=call->cgidata;
+  fdtype value;
+  if (call->outlen<0) 
+    call->outlen=call->cgiout->u8_outptr-call->cgiout->u8_outbuf;
+  else call->cgiout->u8_outptr=call->cgiout->u8_outbuf+call->outlen;
+  value=fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
+			(fdtype (*)(void *,fdtype))cgigetvar);
+  value=fd_finish_call(value);
+  call->result=value;
+  return 1;
+}
+
+static int use_ipeval(fdtype proc,fdtype cgidata)
+{
+  int retval=-1;
+  struct FD_SPROC *sp=(struct FD_SPROC *)proc;
+  fdtype val=fd_symeval(ipeval_symbol,sp->env);
+  if ((FD_VOIDP(val))||(val==FD_UNBOUND)) retval=0;
+  else {
+    fdtype cgival=fd_get(cgidata,ipeval_symbol,FD_VOID);
+    if (FD_VOIDP(cgival)) {
+      if (FD_FALSEP(val)) retval=0; else retval=1;}
+    else if (FD_FALSEP(cgival)) retval=0;
+    else retval=1;
+    fd_decref(cgival);}
+  fd_decref(val); 
+  return retval;
+}
 
 FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 {
-  fdtype value;
-  if (FD_PTR_TYPEP(proc,fd_sproc_type))
-    value=
-      fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
-		      (fdtype (*)(void *,fdtype))cgigetvar);
-  else value=fd_apply(proc,0,NULL);
-  value=fd_finish_call(value);
-  if (log_cgidata) fd_req_call(reqdatalogfn);
-  return value;
+  if (FD_PTR_TYPEP(proc,fd_sproc_type)) {
+    fdtype value=FD_VOID; int ipeval=use_ipeval(proc,cgidata); 
+    if (!(ipeval)) {
+      value=fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
+			    (fdtype (*)(void *,fdtype))cgigetvar);
+      value=fd_finish_call(value);}
+    else {
+      struct U8_OUTPUT *out=fd_get_default_output();
+      struct CGICALL call={proc,cgidata,out,-1,FD_VOID};
+      fd_ipeval_call(cgiexecstep,(void *)&call);
+      value=call.result;}
+    return value;}
+  else return fd_apply(proc,0,NULL);
 }
 
 static fdtype reqcall_prim(fdtype proc)
@@ -1117,6 +1161,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   remote_ident_symbol=fd_intern("REMOTE_IDENT");
   remote_agent_symbol=fd_intern("HTTP_USER_AGENT");
   remote_info_symbol=fd_intern("REMOTE_INFO");
+
+  ipeval_symbol=fd_intern("_IPEVAL");
 
   fd_register_config
     ("CGIPREP",
