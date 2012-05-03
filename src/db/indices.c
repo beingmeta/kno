@@ -224,6 +224,8 @@ FD_EXPORT fd_index fd_use_index(u8_string spec)
 
 /* Core functions */
 
+static void delay_index_fetch(fd_index ix,fdtype keys);
+
 FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
 {
   fdtype v;
@@ -254,8 +256,13 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
     fdtype adds=fd_hashtable_get(&(ix->adds),key,FD_EMPTY_CHOICE);
     v=ix->handler->fetch(ix,key);
     FD_ADD_TO_CHOICE(v,adds);}
-  else if (ix->handler->fetch)
-    v=ix->handler->fetch(ix,key);
+  else if (ix->handler->fetch) {
+    if ((fd_ipeval_status())&&
+	((ix->handler->prefetch)||
+	 (ix->handler->fetchn))) {
+      delay_index_fetch(ix,key);
+      v=FD_EMPTY_CHOICE;}
+    else v=ix->handler->fetch(ix,key);}
   else v=FD_EMPTY_CHOICE;
   if (ix->cache_level>0) fd_hashtable_store(&(ix->cache),key,v);
   return v;
@@ -890,6 +897,7 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
   fdtype todo=delays[ix->serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
+    fdtype values=FD_VOID;
     /* fd_lock_mutex(&(fd_ipeval_lock)); */
     todo=delays[ix->serialno];
     delays[ix->serialno]=FD_EMPTY_CHOICE;
@@ -898,11 +906,15 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     if (fd_trace_ipeval>1)
       u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s: %q",
 	     FD_CHOICE_SIZE(todo),ix->cid,todo);
-    else if (fd_trace_ipeval)
-      u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s",
+    else 
+#endif
+    values=fd_index_prefetch(ix,todo);
+#if FD_TRACE_IPEVAL
+    if (fd_trace_ipeval)
+      u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetched %d keys from %s",
 	     FD_CHOICE_SIZE(todo),ix->cid);
 #endif
-    return fd_index_prefetch(ix,todo);}
+    return values;}
 }
 
 /* The in-memory index */
