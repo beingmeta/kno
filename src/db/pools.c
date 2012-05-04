@@ -1331,6 +1331,11 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
              FD_CHOICE_SIZE(todo),p->cid);
 #endif
     fd_pool_prefetch(p,todo);
+#if FD_TRACE_IPEVAL
+    if (fd_trace_ipeval)
+      u8_log(LOG_NOTICE,ipeval_objfetch,"Fetched %d oids from %s",
+      FD_CHOICE_SIZE(todo),p->cid);
+#endif
     return 0;}
 }
 
