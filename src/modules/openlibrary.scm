@@ -33,12 +33,16 @@
 	   (store! olib-refs key new)
 	   new))))
 
+(define olib-ref-pattern
+  #("/" {"works/" "authors/" "books/"} "OL" (isdigit+) {"W" "A" "M"}))
+
 (define (olib/ref key)
   (if (olib? key) key
       (if (string? key)
 	  (try (get olib-refs key)
 	       (if (has-prefix key "http://openlibrary.org/")
-		   (olib/ref (subseq key 22))
+		   (olib/ref (try (gather olib-ref-pattern key)
+				  (subseq key 22)))
 		   (if (has-prefix key "DUP") (fail)
 		       (cond ((has-prefix key "/") (newolibref key))
 			     ((has-suffix key "W")
@@ -47,7 +51,9 @@
 			      (newolibref (stringout "/authors/" key)))
 			     ((has-suffix key "M")
 			      (newolibref (stringout "/books/" key)))
-			     (else (newolibref key))))))
+			     (else (newolibref
+				    (try (gather olib-ref-pattern key)
+					 key)))))))
 	  (if (and (table? key) (test key 'key))
 	      (olib/ref (get key 'key))
 	      (fail)))))
