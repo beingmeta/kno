@@ -24,7 +24,11 @@
     table))
 
 (define (path->ctype path)
-  (get *mimetable* (gather #("." (isalnum+) (eos)) path)))
+  (if (string? path)
+      (get *mimetable* (gather #("." (isalnum+) (eos)) path))
+      (if (and (pair? path) (string? (cdr path)))
+	  (get *mimetable* (gather #("." (isalnum+) (eos)) (cdr path)))
+	  (fail))))
 
 (define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
 
