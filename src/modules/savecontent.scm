@@ -17,7 +17,7 @@
        (define (zipfile? x) #f)
        (define (zip/add! . args) #f)))
 
-(use-module '{fileio aws/s3 varconfig logger fdweb reflection})
+(use-module '{fileio aws/s3 varconfig logger fdweb reflection mimetable})
 
 (define %loglevel %info!)
 
@@ -89,16 +89,30 @@
 	((string? root) (checkpath (mkpath root path)))
 	(else (error "Weird docbase root" root " for " path))))
 
-(define (save/fetch ref)
+(define (guess-ctype ref)
+  (if (string? ref) (path->ctype ref)
+      (if (string? (cdr ref)) (path->ctype (cdr ref))
+	  "text")))
+
+(define (save/fetch ref (ctype))
+  (default! ctype (guess-ctype ref))
   (cond ((s3loc? ref) (s3/get ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
 	 (zip/get (car ref)
 		  (if (has-prefix (cdr ref) "/")
 		      (subseq (cdr ref) 1)
-		      (cdr ref))))
+		      (cdr ref))
+		  (has-prefix ctype "text")))
 	((pair? ref) (save/fetch (save/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (urlcontent ref))
+	 (let ((response (urlget absref)))
+	   (if (and (test response 'response)
+		    (<= 200 (get response 'response) 299)
+		    (get response '%content))
+	       (get response '%content)
+	       (fail))))
 	((string? ref) (filestring ref))
 	(else (error "Weird docbase ref" ref))))
+
+
