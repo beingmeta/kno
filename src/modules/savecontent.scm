@@ -17,7 +17,8 @@
        (define (zipfile? x) #f)
        (define (zip/add! . args) #f)))
 
-(use-module '{fileio aws/s3 varconfig logger fdweb reflection mimetable})
+(use-module '{fileio aws/s3 varconfig logger fdweb reflection
+	      texttools mimetable})
 
 (define %loglevel %info!)
 
@@ -52,15 +53,29 @@
   (checkdir (dirname path))
   path)
 
-(define (savecontent saveto name content (ctype))
+(define (get-charset ctype)
+  (try
+   (get (text->frames #("charset=" (label encoding (not> ";"))) ctype)
+	'charset)
+   #f))
+
+(define (savecontent saveto name content (ctype) (charset))
   (default! ctype (try (guess-ctype name)
 		       (if (packet? content) "application" "text")))
+  (default! charset (get-charset ctype))
   (lognotice "Saving " (if ctype (printout ctype " "))
 	     "content for " (write name) " into " saveto)
+  (when (and charset
+	     (string? content)
+	     (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
+    (set! content (packet->string (string->packet content) charset)))
   (cond ((string? saveto)
 	 (write-file (checkpath (mkpath saveto name)) content))
 	((s3loc? saveto)
 	 (s3/write! (s3/mkpath saveto name) content ctype))
+	((and (pair? saveto) (string? (car saveto)) (string? (cdr saveto)))
+	 (write-file (mkpath (mkpath (car saveto) (cdr saveto)) name)
+		     content))
 	((and (pair? saveto)
 	      (s3loc? (car saveto))
 	      (string? (cdr saveto)))
@@ -86,13 +101,16 @@
 	((zipfile? root) (cons root path))
 	((and (pair? root) (zipfile? (car root)) (string? (cdr root)))
 	 (cons (car root) (mkpath (cdr root) path)))
+	((and (pair? root) (string? (car root)) (string? (cdr root)))
+	 (mkpath (mkpath (car root) (cdr root)) path))
 	((string? root) (checkpath (mkpath root path)))
 	(else (error "Weird docbase root" root " for " path))))
 
 (define (guess-ctype ref)
-  (if (string? ref) (path->ctype ref)
-      (if (string? (cdr ref)) (path->ctype (cdr ref))
-	  "text")))
+  (try (if (string? ref) (path->ctype ref)
+	   (if (string? (cdr ref)) (path->ctype (cdr ref))
+	       "text"))
+       "text"))
 
 (define (save/fetch ref (ctype))
   (default! ctype (guess-ctype ref))
@@ -102,7 +120,7 @@
 		  (if (has-prefix (cdr ref) "/")
 		      (subseq (cdr ref) 1)
 		      (cdr ref))
-		  (has-prefix ctype "text")))
+		  (not (has-prefix ctype "text"))))
 	((pair? ref) (save/fetch (save/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
