@@ -451,7 +451,9 @@ static fdtype get_stmt_values
 	    fd_decref(value);}}
       else if (colmaps[i]==FD_TRUE)
 	if (FD_STRINGP(value)) {
-	  kv[n_slots].value=fd_parse(FD_STRDATA(value));
+	  if (FD_STRLEN(value))
+	    kv[n_slots].value=fd_parse(FD_STRDATA(value));
+	  else kv[n_slots].value=FD_EMPTY_CHOICE;
 	  fd_decref(value);}
 	else kv[n_slots].value=value;
       else if (FD_PRIM_TYPEP(colmaps[i],fd_secret_type)) {
