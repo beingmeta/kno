@@ -77,6 +77,7 @@
        (subseq s (1+ (position #\: s)))))
 
 (define (dom/set! node attrib val (fdxml #f))
+  (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
 		    attrib))
@@ -104,6 +105,7 @@
 	(add! node '%attribs (vector aname #f stringval)))))
 
 (define (dom/drop! node attrib)
+  (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
 		    attrib))
@@ -123,6 +125,7 @@
       (third (pick (get node '%attribs) {first second} attrib))))
 
 (define (dom/add! node attrib value (sep ";"))
+  (drop! node '%markup)
   (let ((current (dom/get node attrib)))
     (if (fail? current)
 	(dom/set! node attrib value)
@@ -131,6 +134,7 @@
 	    (dom/set! node attrib (string-append value sep current)))))))
 
 (define (dom/remove! node elt (recur #t))
+  (drop! node '%markup)
   (and (table? node) (test node '%content)
        (let* ((content (get node '%content))
 	      (newcontent (remove elt content)))
@@ -143,6 +147,7 @@
 		     #t)))))
 
 (define (dom/append! node . content)
+  (drop! node '%markup)
   (let ((current (try (get node '%content) '())))
     (dolist (elt content)
       (when (exists? elt)
