@@ -860,7 +860,3 @@ AC_OUTPUT(makefile
 	  etc/install-script)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
-
-
-
-

@@ -102,8 +102,8 @@
 	       (list subject lang value)
 	       (list subject langid (subseq value 3)))))
 	((eq? op #\^)
-	 (let* ((open (escaped-find value #\())
-		(close (and open (escaped-find value #\) open)))
+	 (let* ((open (escaped-find value #\openparen))
+		(close (and open (escaped-find value #\closeparen open)))
 		(context
 		 (and open close
 		      (kno/dref (subseq value (1+ open) close)
@@ -154,7 +154,7 @@
 			(get #[#\* equiv #f identical #\~ somenot] mod)
 			dterm)
 		  (tryif (eq? mod #\*) (list dterm 'equiv subject)))))))
-	((eq? op #\&)
+	((eq? op #\amp)
 	 (list subject
 	       (get #[#f assocs #\* defs #\~ refs] mod)
 	       (kno/dref value knodule)))
@@ -189,7 +189,7 @@
 
 (define (handle-clause clause subject knodule)
   (let* ((op (and (char-punctuation? (first clause))
-		  (overlaps? (first clause) {#\^ #\= #\_ #\& #\@})
+		  (overlaps? (first clause) {#\^ #\= #\_ #\amp #\@})
 		  (first clause)))
 	 (modifier (and op (> (length clause) 1)
 			(overlaps? (second clause) {#\* #\~})

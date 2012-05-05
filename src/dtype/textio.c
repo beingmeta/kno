@@ -101,6 +101,9 @@ static u8_string character_constant_names[]={
   "PAGE","BACKSPACE",
   "ATTENTION","BELL","DING",
   "SLASH","BACKSLASH","SEMICOLON",
+  "OPENPAREN","CLOSEPAREN",
+  "OPENBRACE","CLOSEBRACE",
+  "OPENBRACKET","CLOSEBRACKET",
   NULL};
 static fdtype character_constants[]={
   FD_CODE2CHAR(' '),FD_CODE2CHAR('\n'),FD_CODE2CHAR('\r'),
@@ -108,6 +111,9 @@ static fdtype character_constants[]={
   FD_CODE2CHAR('\f'),FD_CODE2CHAR('\b'),
   FD_CODE2CHAR('\a'),FD_CODE2CHAR('\a'),FD_CODE2CHAR('\a'),
   FD_CODE2CHAR('/'),FD_CODE2CHAR('\\'),FD_CODE2CHAR(';'),
+  FD_CODE2CHAR('('),FD_CODE2CHAR(')'),
+  FD_CODE2CHAR('{'),FD_CODE2CHAR('}'),
+  FD_CODE2CHAR('['),FD_CODE2CHAR(']'),
   0};
 
 /* Unparsing */
@@ -573,7 +579,7 @@ static fdtype parse_character(U8_INPUT *in)
   /* First, copy an entire atom. */
   U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
   c=u8_getc(in);
-  if (c=='&') {
+  if ((c=='&')&&(!(atombreakp(*(in->u8_inptr))))) {
     int code=u8_get_entity(in);
     if (code<0)
       if (atombreakp(*(in->u8_inptr)))
