@@ -67,7 +67,8 @@
 		      (if (has-prefix ref "./")
 			  (save/path base (subseq ref 2))
 			  (save/path base ref))))))
-	 (debug%watch "LOCALIZE" ref base absref saveto read)
+	 (debug%watch "LOCALIZE" ref base absref saveto read
+		      (get urlmap absref))
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
 		     (lref (mkpath read name)))
@@ -129,6 +130,8 @@
       (let ((ref (localref (get node 'href)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
+	(logdebug "Localized " (write (get node 'href))
+		  " to " (write ref) " for " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
