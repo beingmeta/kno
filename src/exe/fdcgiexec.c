@@ -613,50 +613,6 @@ static int simplecgi(fdtype path)
   return 1;
 }
 
-/* Making sure you can write the socket file */
-
-#define SOCKDIR_PERMISSIONS \
-  (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH)
-
-#if 0
-static int mkdir_recursive(u8_string path,mode_t mode)
-{
-
-  if (u8_directoryp(path)) return 0;
-  else {
-    int retval;
-    u8_string dirname=u8_dirname(path);
-    if (strchr(dirname,'/')) {
-      retval=mkdir_recursive(dirname,mode);
-      u8_free(dirname);
-      if (retval<0) return -1;}
-    else u8_free(dirname);
-    retval=mkdir(u8_tolibc(path),mode);
-    if (retval<0) {
-      u8_graberr(retval,"mkdir_recursive",u8_strdup(path));
-      return retval;}
-    return 1;}
-}
-
-static int check_socket_path(char *sockarg)
-{
-  u8_string sockname=u8_fromlibc(sockarg);
-  u8_string sockdir=u8_dirname(sockname);
-  int retval=mkdir_recursive(sockdir,SOCKDIR_PERMISSIONS);
-  if (retval<0) {
-    u8_free(sockname);
-    return retval;}
-  else if ((u8_file_existsp(sockname)) ?
-	   (u8_file_writablep(sockname)) :
-	   (u8_file_writablep(sockdir))) {
-    u8_free(sockname);
-    return retval;}
-  else {
-    u8_seterr(fd_CantWrite,"check_socket_path",sockname);
-    return -1;}
-}
-#endif
-
 /* The main() event */
 
 FD_EXPORT void fd_init_dbfile(void); 

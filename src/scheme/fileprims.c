@@ -545,6 +545,34 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
     return result;}
 }
 
+/* Making directories */
+
+static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
+{
+  mode_t mode=
+    ((FD_FIXNUMP(mode_arg))?((mode_t)(FD_FIX2INT(mode_arg))):((mode_t)0777));
+  int retval=u8_mkdir(FD_STRDATA(dirname),mode);
+  if (retval<0) {
+    u8_condition cond=u8_strerror(errno); errno=0;
+    return fd_err(cond,"mkdir_prim",NULL,dirname);}
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
+{
+  mode_t mode=
+    ((FD_FIXNUMP(mode_arg))?((mode_t)(FD_FIX2INT(mode_arg))):((mode_t)0777));
+  int retval=u8_mkdirs(FD_STRDATA(pathname),mode);
+  if (retval<0) {
+    u8_condition cond=u8_strerror(errno); errno=0;
+    return fd_err(cond,"mkdirs_prim",NULL,pathname);}
+  else if (retval==0) return FD_FALSE;
+  else return FD_INT2DTYPE(retval);
+}
+
+/* Temporary directories */
+
 static u8_string tmpdir_template=NULL;
 
 static fdtype tempdir_prim(fdtype template)
@@ -1623,6 +1651,14 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("MKPATH",mkpath_prim,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID));
+  
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("MKDIR",mkdir_prim,1,
+			   fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("MKDIRS",mkdirs_prim,1,
+			   fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID));
+
 #if 0
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("MKTEMP",mktemp_prim,1,fd_string_type,FD_VOID));

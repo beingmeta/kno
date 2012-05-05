@@ -185,7 +185,7 @@ static int setup_rundir()
     rundir=NULL;}
   else {
     u8_log(LOG_WARN,StartupEvent,"Making state directory %s",rundir);
-    mkdir(dirpath,(S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP));
+    u8_mkdir(dirpath,(S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP));
     do_chown(dirpath,uentry->pw_uid,gentry->gr_gid);}
   return 1;}
 
