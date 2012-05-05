@@ -60,9 +60,13 @@
        ;; No easy outs, fetch the content and store it
        (let ((absref
 	      (if (string-starts-with? ref absurlstart) ref
-		  (if (has-prefix ref "./")
-		      (mkuripath (dirname base) (subseq ref 2))
-		      (mkuripath (dirname base) ref)))))
+		  (if (string? base)
+		      (if (has-prefix ref "./")
+			  (mkuripath (dirname base) (subseq ref 2))
+			  (mkuripath (dirname base) ref))
+		      (if (has-prefix ref "./")
+			  (cons base (subseq ref 2))
+			  (cons base ref))))))
 	 (debug%watch "LOCALIZE" ref base absref saveto read)
 	 (try (get urlmap absref)
 	      (let* ((name (basename (uribase ref)))
@@ -75,15 +79,14 @@
 		    (set! lref (mkpath read name))))
 		(debug%watch "LOCALIZED"
 		  absref name lref (exists? (get urlmap name)))
-		(store! urlmap name absref)
+		(store! urlmap name lref)
 		(unless (and (string? saveto)
 			     (file-exists? (mkpath saveto name)))
-		  (let* ((response (urlget absref))
-			 (content (and (test response 'response 200)
-				       (get response '%content))))
-		    (unless content
+		  (let ((content (save/fetch absref)))
+		    (unless (exists? content)
 		      (logwarn "Couldn't fetch content from " absref)
-		      (set! lref absref))
+		      (set! lref absref)
+		      (store! urlmap name lref))
 		    (when content
 		      ;; This should be coded to change lref in the
 		      ;; event of conflicts This has fragments and
