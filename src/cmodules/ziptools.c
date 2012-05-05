@@ -284,7 +284,7 @@ static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
     return FD_TRUE;}
 }
 
-static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype stringp)
+static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   u8_string fname=FD_STRDATA(filename);
@@ -313,10 +313,10 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype stringp)
     if (togo>0) {
       u8_free(buf);
       u8_unlock_mutex(&(zf->lock));
-      return zfilerr("zipget_prim",zf,zfile,filename);}
+      return zfilerr("zipget_prim/fread",zf,zfile,filename);}
     zip_fclose(zfile);
     u8_unlock_mutex(&(zf->lock));
-    if (FD_TRUEP(stringp))
+    if (FD_TRUEP(isbinary))
       return fd_init_packet(NULL,size,buf);
     else return fd_init_string(NULL,size,buf);}
   else {
@@ -411,7 +411,7 @@ FD_EXPORT int fd_init_ziptools()
 	   fd_make_cprim3x("ZIP/GET",zipget_prim,2,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+			   -1,FD_FALSE));
 
   fd_idefn(ziptools_module,
 	   fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
