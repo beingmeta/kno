@@ -690,7 +690,8 @@ static fdtype parse_string(U8_INPUT *in)
       else u8_ungetc(in,nextc);
       c=read_escape(in);
       if (c<0) {
-	u8_free(out.u8_outbuf);
+	if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
+	  u8_free(out.u8_outbuf);
 	return FD_PARSE_ERROR;}
       u8_putc(&out,c);}
     else u8_putc(&out,c);
