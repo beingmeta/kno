@@ -70,7 +70,7 @@
 	(list subject slotid value))))
 
 (define (plaintext->drule string subject knodule language)
-  (let* ((dclauses (map trim-spaces (escaped-segment string #\&)))
+  (let* ((dclauses (map trim-spaces (escaped-segment string #\amp)))
 	 (cues {}) (context+ {}) (context- {})
 	 (threshold 1))
     (doseq (dclause (remove "" dclauses) i)

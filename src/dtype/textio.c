@@ -594,7 +594,8 @@ static fdtype parse_character(U8_INPUT *in)
   else if ((tmpbuf.u8_outbuf[0]=='u') || (tmpbuf.u8_outbuf[0]=='U')) 
     c=parse_unicode_escape(tmpbuf.u8_outbuf);
   else c=-1;
-  if (c>=0)
+  if (c>=0) return FD_CODE2CHAR(c);
+  else if ((c=u8_entity2code(tmpbuf.u8_outbuf))>=0)
     return FD_CODE2CHAR(c);
   else {
     int i=0; while (character_constant_names[i])
