@@ -3,15 +3,21 @@
 
 (in-module 'mimetable)
 
-(use-module 'texttools)
+(use-module '{texttools varconfig})
 
-(module-export! '{*mimetable* getsuffix path->ctype})
+(module-export! '{*mimetable* getsuffix path->ctype path->mimetype})
+
+(define *default-charset* "utf-8")
+(varconfig! mime:charset *default-charset* config:goodstring)
+
+(define *default-mimetype* #f)
+(varconfig! mime:default *default-mimetype* config:goodstring)
 
 (define *mimetable*
   (let ((table (make-hashtable)))
     (do-choices (map '{("text/cache-manifest" "manifest")
 		       ("text/html" "html" "htm")
-		       ("application/xhtml+xml" "xhtml")
+		       ("application/xhtml+xml; charset=utf8" "xhtml")
 		       ("text/plain" "text" "txt")
 		       ("image/jpeg" "jpeg" "jpg")
 		       ("image/png" "png")
@@ -19,16 +25,29 @@
 		       ("text/css" "css")
 		       ("text/javascript" "js" "javascript")
 		       ("application/x-dtbncx+xml" "ncx")})
-      (store! table (string-append "." (elts (cdr map))) (car map))
-      (store! table (car map) (elts (cdr map))))
+      (store! table (choice (elts (cdr map))
+			    (string-append "." (elts (cdr map))))
+	      (if (has-prefix (car map) "text/")
+		  (if *default-charset*
+		      (string-append (car map) "; charset=" *default-charset*)
+		      (car map))
+		  (car map))))
     table))
 
-(define (path->ctype path)
+(define (guess-ctype path default-value)
   (if (string? path)
       (get *mimetable* (gather #("." (isalnum+) (eos)) path))
       (if (and (pair? path) (string? (cdr path)))
 	  (get *mimetable* (gather #("." (isalnum+) (eos)) (cdr path)))
-	  (fail))))
+	  default-value)))
+
+(define (path->mimetype path (default-value *default-mimetype*))
+  (let ((ctype (guess-ctype path default-value)))
+    (and ctype
+	 (and *default-charset* (not (search "charset" ctype))
+	      (string-append ctype "; charset=" *default-charset*)))
+    (or ctype (fail))))
+(define path->ctype path->mimetype)
 
 (define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
 
