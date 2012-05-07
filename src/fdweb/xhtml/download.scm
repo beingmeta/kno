@@ -1,6 +1,6 @@
 (in-module 'xhtml/download)
 
-(use-module '{fdweb xhtml reflection varconfig})
+(use-module '{fdweb xhtml reflection mimetable varconfig})
 (define havezip (get-module 'ziptools))
 (when havezip (use-module 'ziptools))
 
@@ -12,8 +12,9 @@
 (varconfig! xhtml/boundary boundary)
 
 (define (xhtml/download . specs)
+  "Takes an alternating list of filenames and contents"
   (when (> (length specs) 2)
-    (if (try (threadget 'usezip) (cgiget 'usezip) #f)
+    (if (try (threadget 'usezip) (req/get 'usezip) #f)
 	(zipfile-download specs)
 	(multipart-download specs)))
   (when (<= (length specs) 2)
@@ -99,13 +100,5 @@
 		  (xhtml content))))))
 
 (define (guess-content-type name content)
-  (if (exists has-suffix (downcase name) {".html" ".htm" ".xhtml"})
-      "text/html; charset=utf-8;"
-      (if (has-suffix (downcase name) ".manifest")
-	  "text/cache-manifest; charset=utf-8"
-	  (if (has-suffix (downcase name) ".png") "image/png"
-	      (if (has-suffix (downcase name) ".gif") "image/gif"
-		  (if (exists has-suffix (downcase name) {".jpg" ".jpeg"})
-		      "image/jpeg"
-		      "text; charset=utf-8"))))))
+  (path->mimetype name "text; charset=utf-8"))
 
