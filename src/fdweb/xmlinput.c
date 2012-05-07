@@ -439,8 +439,9 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
 	   clever (looking for xxx=, for exampe) but let's not.  */
 	u8_byte *lookahead=scan;
 	int c=u8_sgetc(&lookahead);
-	while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-	  scan=lookahead; c=u8_sgetc(&lookahead);}}
+	if (lookahead==end) scan=lookahead;
+	else while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
+	    scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
 	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
 		   xmlsnip(*scanner));
@@ -524,9 +525,8 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
       else if (*valstart=='\'') {
 	valstart++; quote='\''; if (*valend=='\'') *valend='\0';}
       else {}
-      if (strchr(valstart,'&'))
-	val=deentify(valstart,NULL);
-      else val=valstart;
+      /* if (strchr(valstart,'&')) val=deentify(valstart,NULL); else */
+      val=valstart;
       if (process_nsattrib(xml,item,val)) {}
       else if ((attribfn) && (attribfn(xml,item,val,quote))) {}
       else fd_default_attribfn(xml,item,val,quote);
