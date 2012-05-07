@@ -6,7 +6,11 @@
 (define version "$Id$")
 (define revision "$Revision:$")
 
+(use-module '{logger})
+
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
+(module-export! '{config:boolean config:number config:loglevel
+		  config:goodstring config:symbol config:oneof})
 
 (define varconfigfn
   (macro expr
@@ -21,7 +25,7 @@
 		     ,(cond ((and convertfn combinefn)
 			     `(_combine (_convert val) ,varname))
 			    (convertfn
-			     `(_convert val))
+			     `(try (_convert val) ,varname))
 			    (combinefn
 			     `(_combine val ,varname))
 			    (else 'val)))
@@ -32,7 +36,6 @@
     (let ((confname (cadr expr))
 	  (confbody (cddr expr)))
       `(config-def! ',confname (varconfigfn ,@confbody)))))
-
 
 (define optconfigfn
   (macro expr
@@ -57,8 +60,50 @@
       `(config-def! ',confname (optconfigfn ,@confbody)))))
 
 
+;;; Pre-packaged conversion functions
 
+(define (config:boolean val)
+  (cond ((and (not (string? val))
+	      (or (empty? val) (not val)
+		  (and (number? val) (zero? val))))
+	 #f)
+	((not (string? val)) #t)
+	((overlaps? (downcase val) {"0" "off" "disable"}) #f)
+	((overlaps? (downcase val) {"1" "on" "enable"}) #t)
+	((has-prefix (downcase val) "y") #t)
+	((has-prefix (downcase val) "n") #f)
+	(else (begin (logwarn "Odd config:boolean specifier " (write val))
+		(fail)))))
+(define (config:number val)
+  (if (string? val) (string->number val)
+      (if (number? val) val
+	  (begin (logwarn "Odd config:number specifier " (write val))
+	    (fail)))))
+(define (config:loglevel val)
+  (if (number? val) val
+      (try (getloglevel val)
+	   (begin (logwarn "Odd config:loglevel specifier " (write val))
+	     (fail)))))
+(define (config:symbol val)
+  (if (symbol? val)
+      (if (string? val) (intern (upcase val))
+	  (begin (logwarn "Odd config:symbol specifier " (write val))
+	    (fail)))))
+(define (config:goodstring val)
+  (if (not (string? val))
+      (begin (logwarn "Odd config:goodstring specifier " (write val))
+	(fail))
+      (if (empty-string? val) #f (stdspace val))))
 
-
-
-
+(define (config:oneof . options)
+  (let ((combined (for-choices (option (elts options))
+		    (if (vector? option) (elts option)
+			(if (and (pair? option) (pair? (cdr option)))
+			    (elts option)
+			    (begin
+			      (logwarn "Odd config:oneof option " option)
+			      (fail)))))))
+    (lambda (val)
+      (if (overlaps? val combined) val
+	  (begin (logwarn "Invalid config value" (write val))
+	    (fail))))))
