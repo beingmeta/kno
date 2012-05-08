@@ -96,7 +96,7 @@
       (,stringout ,@(cdr (cdr (cdr expr))))
       (,guess-ctype ,(third expr)))))
 
-(define (save/path root path)
+(define (savepath root path)
   (cond ((s3loc? root) (s3/mkpath root path))
 	((zipfile? root) (cons root path))
 	((and (pair? root) (zipfile? (car root)) (string? (cdr root)))
@@ -105,6 +105,11 @@
 	 (mkpath (mkpath (car root) (cdr root)) path))
 	((string? root) (checkpath (mkpath root path)))
 	(else (error "Weird docbase root" root " for " path))))
+(define (save/path root path . more)
+  (let ((result (savepath root path)))
+    (when (string? result) (mkdirs result))
+    (if (null? more) result
+	(apply save/path result (car more) (cdr more)))))
 
 (define (guess-ctype ref)
   (try (if (string? ref) (path->ctype ref)
