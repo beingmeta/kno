@@ -117,6 +117,7 @@
 (put 'printout 'scheme-indent-function 'block-indenter)
 (put 'lineout 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
+(put 'gp/writeout 'scheme-indent-function 2)
 (put 'stringout 'scheme-indent-function 'block-indenter)
 (put 'logif 'scheme-indent-function 1)
 (put 'logger 'scheme-indent-function 1)
