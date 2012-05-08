@@ -27,6 +27,8 @@ static char versionid[] =
 #include <libu8/u8netfns.h>
 #include <libu8/xfiles.h>
 
+#include <stdlib.h>
+
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -575,13 +577,22 @@ static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
 
 static u8_string tmpdir_template=NULL;
 
+static char *get_tmpdir()
+{
+  char *tmpdir=getenv("TMPDIR");
+  if (tmpdir) return tmpdir;
+  tmpdir=getenv("TMP_DIR");
+  if (tmpdir) return tmpdir;
+  else return "/tmp";
+}
+
 static fdtype tempdir_prim(fdtype template)
 {
+  char *tmpdir=get_tmpdir();
   u8_string tempstring=
     ((FD_STRINGP(template))?(FD_STRDATA(template)):
      (tmpdir_template)?(u8_strdup(tmpdir_template)):
-     (u8_mkstring("%s/fdtempXXXXXXXXXXX",
-		  (getenv("TMPDIR"))||(getenv("TMP_DIR"))||"/tmp")));
+     (u8_mkpath(tmpdir,"fdtempXXXXXXXXXXX")));
   u8_string buf=u8_strdup(tempstring);
   u8_string tempname=mkdtemp(buf);
   if (tempname) return fd_lispstring(tempname);
@@ -1664,9 +1675,11 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("MKTEMP",mktemp_prim,1,fd_string_type,FD_VOID));
 #endif
   fd_idefn(fileio_module,
-	   fd_make_cprim1x("TEMPDIR",tempdir_prim,1,fd_string_type,FD_VOID));
+	   fd_make_cprim1x("TEMPDIR",tempdir_prim,0,
+			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
-	   fd_make_cprim1x("RUNFILE",runfile_prim,1,fd_string_type,FD_VOID));
+	   fd_make_cprim1x("RUNFILE",runfile_prim,1,
+			   fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("FILE-MODTIME",file_modtime,1,
