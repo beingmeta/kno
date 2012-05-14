@@ -5,11 +5,11 @@
 
 (module-export! '{sig/make sig/check})
 
+(define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
-(define %loglevel %notify!)
 
 (define (makesigtext op . args)
-  (let ((table (if (odd? (length args)) (deep-copy (car args)) #[]))
+  (let ((table (if (odd? (length args)) (deep-copy (car args)) `#[]))
 	(params (if (odd? (length args)) (cdr args) args)))
     (do ((scan params (cddr scan)))
 	((null? scan))
@@ -27,7 +27,7 @@
 
 (define (sig/make key . args)
   (let ((text (apply makesigtext args)))
-    (debug%watch (hmac-sha1 text key) text key)))
+    (debug%watch (hmac-sha1 text key) "MAKESIG" text key args)))
 (define (sig/check sig key . args)
   (let ((text (apply makesigtext args)))
     (debug%watch "CHECKSIG" sig key text (hmac-sha1 text key))
