@@ -1743,12 +1743,19 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(xhtml_module,fd_intern("DIV"),markupstarblock_prim);
   fd_store(xhtml_module,fd_intern("SPAN"),markupstar_prim);
   
+  fd_store(xhtml_module,fd_intern("HGROUP"),markupblock_prim);
+  fd_store(xhtml_module,fd_intern("HGROUP*"),markupstarblock_prim);
+
   fd_store(xhtml_module,fd_intern("P"),markupblock_prim);
   fd_store(xhtml_module,fd_intern("P*"),markupstarblock_prim);
   fd_store(xhtml_module,fd_intern("H1"),markupblock_prim);
   fd_store(xhtml_module,fd_intern("H1*"),markupstarblock_prim);
   fd_store(xhtml_module,fd_intern("H2"),markupblock_prim);
   fd_store(xhtml_module,fd_intern("H2*"),markupstarblock_prim);
+  fd_store(xhtml_module,fd_intern("H3"),markupblock_prim);
+  fd_store(xhtml_module,fd_intern("H3*"),markupstarblock_prim);
+  fd_store(xhtml_module,fd_intern("H4"),markupblock_prim);
+  fd_store(xhtml_module,fd_intern("H4*"),markupstarblock_prim);
 
   fd_store(xhtml_module,fd_intern("UL"),markupblock_prim);
   fd_store(xhtml_module,fd_intern("UL*"),markupstarblock_prim);
