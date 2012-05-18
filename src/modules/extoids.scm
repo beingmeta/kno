@@ -9,6 +9,7 @@
 (varconfig! extdb:sqlmap default-sqlmap)
 
 (define-init %loglevel %notice!)
+;;(define  %loglevel %debug!)
 
 (module-export! '{xo/store! xo/add! xo/drop! xo/decache!})
 (module-export! '{xo/defstore! xo/defadd! xo/defdrop! xo/defget!})
