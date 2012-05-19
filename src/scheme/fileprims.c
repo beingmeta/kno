@@ -561,6 +561,16 @@ static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
   else return FD_FALSE;
 }
 
+static fdtype rmdir_prim(fdtype dirname)
+{
+  int retval=u8_rmdir(FD_STRDATA(dirname));
+  if (retval<0) {
+    u8_condition cond=u8_strerror(errno); errno=0;
+    return fd_err(cond,"rmdir_prim",NULL,dirname);}
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
 {
   mode_t mode=
@@ -1666,6 +1676,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("MKDIR",mkdir_prim,1,
 			   fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("RMDIR",rmdir_prim,1,fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("MKDIRS",mkdirs_prim,1,
 			   fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID));
