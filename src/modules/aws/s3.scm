@@ -300,9 +300,12 @@
   (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" "" "text" '()
 		     "delimiter" "/" "prefix" (s3loc-path loc)))
 	 (content (xmlparse (get req '%content))))
-    (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
-					   'prefix)))
-      (cons-s3loc (s3loc-bucket loc) path))))
+    (choice
+     (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
+					    'prefix)))
+       (cons-s3loc (s3loc-bucket loc) path))
+     (for-choices (path (xmlcontent (xmlget content 'key)))
+       (cons-s3loc (s3loc-bucket loc) path)))))
 (module-export! 's3/list)
 
 ;;; Some test code
