@@ -18,6 +18,7 @@
     (do-choices (map '{("text/cache-manifest" "manifest")
 		       ("text/html" "html" "htm")
 		       ("application/xhtml+xml; charset=utf8" "xhtml")
+		       ("application/zip" "zip" "ZIP")
 		       ("text/plain" "text" "txt")
 		       ("image/jpeg" "jpeg" "jpg")
 		       ("image/png" "png")
