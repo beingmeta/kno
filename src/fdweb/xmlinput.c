@@ -998,8 +998,10 @@ static fdtype fdxmlparse(fdtype input,fdtype sloppy)
   retval=fd_read_fdxml(in,flags);
   if (retval) {
     fdtype result=fd_incref(retval->head);
+    fdtype lispenv=(fdtype)(retval->data);
+    fd_incref(lispenv);
     /* free_node(&object,0); */
-    return result;}
+    return fd_init_pair(NULL,lispenv,result);}
   else return FD_ERROR_VALUE;
 }
 
