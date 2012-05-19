@@ -104,7 +104,8 @@
 	(else string)))
 
 (define (makepath root path (mode *default-dirmode*))
-  (when (null? (cdr root)) (set! root (cons (car root) "")))
+  (when (and (pair? root) (null? (cdr root)))
+    (set! root (cons (car root) "")))
   (if (string? root) (set! root (string->root root))
       (if (and (pair? root) (string? (car root)))
 	  (set! root (cons (string->root (car root)) (cdr root)))))
