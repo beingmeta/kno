@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; Text-encoding: latin-1; -*-
+;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2012 beingmeta, inc. All rights reserved
 
 (in-module 'xhtml/brico)
 
@@ -511,7 +512,7 @@
 	(span (style "cursor: help;"
 		     title
 		     "the concept to the right is more general than the concept to the left")
-	  " « "))
+	  " Â« "))
       (do-choices (expval (get c expansion) i)
 	(if (> i 0) (xmlout " . "))
 	(if (oid? expval) (showconcept expval (qc language))
