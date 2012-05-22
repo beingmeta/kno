@@ -7,11 +7,14 @@
 (define version "$Id$")
 (define revision "$Revision$")
 
-(use-module '{aws fdweb texttools ezrecords rulesets logger varconfig})
+(use-module '{aws fdweb texttools mimetable
+	      ezrecords rulesets logger varconfig})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
-(module-export! '{s3/getloc s3loc/uri s3loc/filename s3loc/get
-		  s3loc/head s3loc/content})
+(module-export! '{s3loc s3/getloc
+		  s3loc/uri s3loc/filename s3loc/get
+		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
+(module-export! '{s3/get s3/copy s3/put})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -133,7 +136,9 @@
 	  ((null? scan) (printout))
 	(printout (second (car scan)) ":" (third (car scan)) "\n")))))
 
-(define (s3op op bucket path (content #f) (ctype "text") (headers '()) args)
+(define (s3op op bucket path (content #f) (ctype) (headers '()) args)
+  (default! ctype
+    (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((date (gmtimestamp))
 	 ;; Encode everything, then restore delimiters
 	 (path (string-subst (uriencode path) "%2F" "/"))
@@ -169,7 +174,9 @@
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
 		    (urlget url urlparams)))))))
-(define (s3/op op bucket path (content #f) (ctype "text") (headers '()) . args)
+(define (s3/op op bucket path (content #f) (ctype) (headers '()) . args)
+  (default! ctype
+    (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((result (s3op op bucket path content ctype headers args))
 	 (status (get result 'status)))
     (if (>= 299 status 200) result
@@ -207,10 +214,12 @@
 
 (define (s3/write! loc content (ctype))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (default! ctype (try (getmimetype (s3loc-path loc))
-		       (if (packet? content) "application" "text")))
+  (default! ctype
+    (path->mimetype (s3loc-path loc)
+		    (if (packet? content) "application" "text")))
   (debug%watch
-   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype) ;; '(("x-amx-acl" . "public-read"))
+   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype)
+   ;; '(("x-amx-acl" . "public-read"))
    loc ctype))
 
 (define (s3/delete! loc)
@@ -241,6 +250,9 @@
 		  (if (string? (car rule))
 		      (subseq url (length (car rule)))
 		      (textsubst url (car rule)))))))
+
+(define (s3loc bucket path)
+  (cons-s3loc bucket (if (has-prefix path "/") (subseq path 1) path)))
 
 (define (s3loc/uri s3loc)
   (stringout s3scheme s3root "/"
@@ -281,6 +293,32 @@
 	 (string-append "/" (s3loc-path loc))
 	 ""))
 
+(define (s3loc/put loc content (ctype))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (default! ctype
+    (path->mimetype (s3loc-path path)
+		    (if (packet? content) "application" "text")))
+  (s3/op "PUT" (s3loc-bucket loc)
+	 (string-append "/" (s3loc-path loc))
+	 content ctype))
+(define s3/put s3loc/put)
+
+(define (s3loc/copy! src loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (when (string? src) (set! src (->s3loc src)))
+  (let* ((head (s3loc/head src))
+	 (ctype (try (get head 'content-type)
+		     (path->mimetype
+		      (s3loc-path loc)
+		      (path->mimetype (s3loc-path src) "text")))))
+    (s3/op "PUT" (s3loc-bucket loc)
+	   (string-append "/" (s3loc-path loc))
+	   "" ctype
+	   `(("x-amz-copy-source" .
+	      ,(stringout "/" (s3loc-bucket src) 
+		 "/" (s3loc-path src)))))))
+(define s3/copy! s3loc/copy!)
+
 (define (s3loc/content loc (text #t))
   (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
@@ -292,6 +330,7 @@
 	 (if (and status (>= 299 status 200))
 	     (get req '%content)
 	     (error 's3failure (get req '%content))))))
+(define s3/get s3loc/content)
 
 ;;; Working with S3 'dirs'
 
