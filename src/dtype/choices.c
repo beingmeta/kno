@@ -709,6 +709,19 @@ static int unparse_qchoice(struct U8_OUTPUT *s,fdtype x)
   return 1;
 }
 
+static fdtype copy_qchoice(fdtype x,int deep)
+{
+  struct FD_QCHOICE *copied=u8_alloc(struct FD_QCHOICE);
+  struct FD_QCHOICE *qc=FD_XQCHOICE(x);
+  FD_INIT_CONS(copied,fd_qchoice_type);
+  if (deep)
+    copied->choice=fd_deep_copy(qc->choice);
+  else {
+    fd_incref(qc->choice);
+    copied->choice=qc->choice;}
+  return FDTYPE_CONS(copied);
+}
+
 static int compare_qchoice(fdtype x,fdtype y,int quick)
 {
   struct FD_QCHOICE *xqc=FD_XQCHOICE(x), *yqc=FD_XQCHOICE(y);
@@ -1060,6 +1073,7 @@ void fd_init_choices_c()
   fd_dtype_writers[fd_qchoice_type]=write_qchoice_dtype;
   fd_comparators[fd_qchoice_type]=compare_qchoice;
   fd_unparsers[fd_qchoice_type]=unparse_qchoice;
+  fd_copiers[fd_qchoice_type]=copy_qchoice;
 
   fd_type_names[fd_achoice_type]="achoice";
   fd_recyclers[fd_achoice_type]=recycle_achoice;
