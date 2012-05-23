@@ -254,11 +254,15 @@ static int curl_add_headers(fd_curl_handle ch,fdtype val)
     else if (FD_SLOTMAPP(v)) {
       fdtype keys=fd_getkeys(v);
       FD_DO_CHOICES(key,keys)
-	if ((retval>=0)&&(FD_SYMBOLP(key))) {
+	if ((retval>=0)&&((FD_STRINGP(key))||(FD_SYMBOLP(key)))) {
 	  fdtype kval=fd_get(v,key,FD_EMPTY_CHOICE); u8_string hdr=NULL;
-	  if (FD_STRINGP(kval))
-	    hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(key),FD_STRDATA(kval));
-	  else hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(key),kval);
+	  if (FD_SYMBOLP(key)) {
+	    if (FD_STRINGP(kval))
+	      hdr=u8_mkstring("%s: %s",FD_SYMBOL_NAME(key),FD_STRDATA(kval));
+	    else hdr=u8_mkstring("%s: %q",FD_SYMBOL_NAME(key),kval);}
+	  else if (FD_STRINGP(kval))
+	    hdr=u8_mkstring("%s: %s",FD_STRDATA(key),FD_STRDATA(kval));
+	  else hdr=u8_mkstring("%s: %q",FD_STRDATA(key),kval);
 	  retval=curl_add_header(ch,hdr,NULL);
 	  u8_free(hdr);
 	  fd_decref(kval);}
@@ -869,7 +873,6 @@ static fdtype urlpost(int n,fdtype *args)
       return fd_err(fd_TypeError,"CURLPOST",u8_strdup("postdata"),
 		    args[start]);}
     retval=curl_easy_perform(h->handle);
-    if (retval)
     if (post) curl_formfree(post);}
   else {
     /* Construct form data from args */
