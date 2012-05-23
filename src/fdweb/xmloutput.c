@@ -1164,8 +1164,9 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
 {
   struct U8_OUTPUT out; int i=0;
   U8_INIT_OUTPUT(&out,64);
-  u8_puts(&out,baseuri);
-  if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');
+  if (baseuri) {
+    u8_puts(&out,baseuri);
+    if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');}
   if (n == 1) {
     if (FD_STRINGP(args[0]))
       fd_uri_output(&out,FD_STRDATA(args[0]),FD_STRLEN(args[0]),0,NULL);
@@ -1191,45 +1192,53 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
 
 static fdtype scripturl(int n,fdtype *args)
 {
-  if (!(FD_STRINGP(args[0]))) 
+  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0])))) 
     return fd_err(fd_TypeError,"scripturl",
-		  u8_strdup("script name"),args[0]);
+		  u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
     return fd_err(fd_SyntaxError,"scripturl",
 		  strd("odd number of arguments"),FD_VOID);
+  else if (FD_FALSEP(args[0]))
+    return scripturl_core(NULL,FD_VOID,n-1,args+1,1);
   else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,1);
 }
 
 static fdtype fdscripturl(int n,fdtype *args)
 {
-  if (!(FD_STRINGP(args[0]))) 
+  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
     return fd_err(fd_TypeError,"fdscripturl",
-		  u8_strdup("script name"),args[0]);
+		  u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
     return fd_err(fd_SyntaxError,"fdscripturl",
 		  strd("odd number of arguments"),FD_VOID);
+  else if (FD_FALSEP(args[0]))
+    return scripturl_core(NULL,FD_VOID,n-1,args+1,0);
   else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0);
 }
 
 static fdtype scripturlplus(int n,fdtype *args)
 {
-  if (!(FD_STRINGP(args[0]))) 
+  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
     return fd_err(fd_TypeError,"scripturlplus",
-		  u8_strdup("script name"),args[0]);
+		  u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==1))
     return fd_err(fd_SyntaxError,"scripturlplus",
 		  strd("odd number of arguments"),FD_VOID);
+  else if (FD_FALSEP(args[0]))
+    return scripturl_core(NULL,args[1],n-2,args+2,1);
   else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1);
 }
 
 static fdtype fdscripturlplus(int n,fdtype *args)
 {
-  if (!(FD_STRINGP(args[0]))) 
+  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
     return fd_err(fd_TypeError,"fdscripturlplus",
 		  u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
     return fd_err(fd_SyntaxError,"fdscripturlplus",
 		  strd("odd number of arguments"),FD_VOID);
+  else if (FD_FALSEP(args[0]))
+    return scripturl_core(NULL,args[1],n-2,args+2,0);
   else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0);
 }
 
