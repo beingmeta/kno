@@ -6,15 +6,28 @@
 
 (use-module '{fdweb xhtml texttools ezrecords parsetime varconfig})
 
-(define live #f)
-(define business "anonymous@company.com")
+(define pp:live #f)
+(define pp:business "anonymous@company.com")
+(define pp:appid "APP-80W284485P519543T")
+(define pp:user "store_1288290819_biz_api1.beingmeta.com")
+(define pp:pass "1288290827")
+(define pp:sig "Ahtmaqpduek-SZn7-BlOIE3N9iHpA9wBdjV93rW33IVJiSTp20qT5Pjd")
+(module-export! '{pp:live pp:appid pp:business pp:user pp:pass pp:sig })
+
+(define ppid #f)
 (define default-options #[])
 (define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_LG.gif")
 
-(varconfig! pp:live live)
-(varconfig! pp:business business)
+(varconfig! pp:live pp:live)
+(varconfig! pp:business pp:business)
+(varconfig! pp:id ppid)
 (varconfig! pp:options default-options)
 (varconfig! pp:button default-button)
+
+(varconfig! pp:appid pp:appid)
+(varconfig! pp:user pp:user)
+(varconfig! pp:pass pp:pass)
+(varconfig! pp:sig pp:sig)
 
 (define (format-amount amount)
   (if (number? amount)
@@ -28,16 +41,19 @@
       (input TYPE "HIDDEN" NAME "invoice" VALUE (uuid->string (getuuid))))
   (when (getopt options 'amount)
     (input TYPE "HIDDEN" NAME "amount" VALUE (format-amount (getopt options 'amount))))
-  (input TYPE "HIDDEN" NAME "business" VALUE (getopt options 'business business))
+  (input TYPE "HIDDEN" NAME "business"
+	 VALUE (getopt options 'business pp:business))
   (when (getopt options 'item_number)
-    (input TYPE "HIDDEN" NAME "item_number" VALUE (getopt options 'item_number)))
+    (input TYPE "HIDDEN" NAME "item_number"
+	   VALUE (getopt options 'item_number)))
   (input TYPE "HIDDEN" NAME "charset" VALUE (getopt options 'charset "utf-8"))
   (when (getopt options 'return)
     (input TYPE "HIDDEN" NAME "return" VALUE (getopt options 'return)))
   (when (getopt options 'item_name)
     (input TYPE "HIDDEN" NAME "item_name" VALUE (getopt options 'item_name)))
   (when (getopt options 'notify_url)
-    (input TYPE "HIDDEN" NAME "notify_url" VALUE (getopt options 'notify_url)))
+    (input TYPE "HIDDEN" NAME "notify_url" VALUE
+	   (getopt options 'notify (getopt options 'notify_url))))
   (when (getopt options 'cancel)
     (input TYPE "HIDDEN" NAME "cancel_return" VALUE (getopt options 'cancel)))
   (when (getopt options 'no_note)
@@ -75,7 +91,7 @@
 			       (else (,buttonout ,default-button))))))
        (,xmlblock "FORM"
 	   ((action (getopt pp:options 'action
-			    (if (getopt pp:options 'live (config 'pp:live))
+			    (if (getopt pp:options 'live pp:live)
 				"https://www.paypal.com/cgi-bin/webscr"
 				"https://www.sandbox.paypal.com/cgi-bin/webscr")))
 	    (target (ifexists (getopt pp:options 'target {})))
