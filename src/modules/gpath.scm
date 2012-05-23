@@ -53,7 +53,7 @@
 (define (gp/write saveto name content (ctype) (charset))
   (default! ctype (guess-mimetype name content))
   (default! charset (get-charset ctype))
-  (lognotice "Saving " (if ctype (printout ctype " "))
+  (lognotice "Saving " (if ctype (printout (write ctype) " "))
 	     "content for " (write name) " into " saveto)
   ;; Do any charset conversion required by the CTYPE
   (when (and charset

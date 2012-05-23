@@ -63,7 +63,7 @@
   (default! ctype (try (guess-ctype name)
 		       (if (packet? content) "application" "text")))
   (default! charset (get-charset ctype))
-  (lognotice "Saving " (if ctype (printout ctype " "))
+  (lognotice "Saving " (if ctype (printout (write ctype) " "))
 	     "content for " (write name) " into " saveto)
   (when (and charset
 	     (string? content)

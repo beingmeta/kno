@@ -14,7 +14,7 @@
 (module-export! '{s3loc s3/getloc
 		  s3loc/uri s3loc/filename s3loc/get
 		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
-(module-export! '{s3/get s3/copy s3/put})
+(module-export! '{s3/get s3/copy s3/put s3/head s3/ctype})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -292,6 +292,10 @@
   (s3/op "HEAD" (s3loc-bucket loc)
 	 (string-append "/" (s3loc-path loc))
 	 ""))
+(define s3/head s3loc/head)
+
+(define (s3/ctype loc)
+  (get (s3loc/head loc) 'content-type))
 
 (define (s3loc/put loc content (ctype))
   (when (string? loc) (set! loc (->s3loc loc)))
