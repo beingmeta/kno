@@ -3,7 +3,7 @@
 
 (in-module 'gpath)
 (module-export!
- '{gp/write gp/writeout gp/writeout+ gp/fetch
+ '{gp/write gp/writeout gp/writeout+ gp/save gp/fetch
    gp/path gp/mkpath gp/makepath})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -79,6 +79,36 @@
 	      (string? (cdr saveto)))
 	 (zip/add! (car saveto) (mkpath (cdr saveto) name) content))
 	(else (error "Bad GP/WRITE call"))))
+
+(define (get-namestring gpath)
+  (if (string? gpath) gpath
+      (if (s3loc? gpath) (s3loc-path gpath)
+	  (if (pair? gpath) (cdr gpath)
+	      ""))))
+
+(define (gp/save dest content (ctype) (charset))
+  (default! ctype (guess-mimetype (get-namestring dest) content))
+  (default! charset (get-charset ctype))
+  (lognotice "Saving " (if ctype (printout (write ctype) " "))
+	     "content into " dest)
+  ;; Do any charset conversion required by the CTYPE
+  (when (and charset
+	     (string? content)
+	     (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
+    (set! content (packet->string (string->packet content) charset)))
+  (cond ((string? dest) (write-file dest content))
+	((s3loc? dest) (s3/write! dest content ctype))
+	((and (pair? dest) (string? (car dest)) (string? (cdr dest)))
+	 (write-file (mkpath (car dest) (cdr dest)) content))
+	((and (pair? saveto)
+	      (s3loc? (car saveto))
+	      (string? (cdr saveto)))
+	 (s3/write! (s3/mkpath (car saveto) (cdr saveto)) content ctype))
+	((and havezip (pair? saveto)
+	      (zipfile? (car saveto))
+	      (string? (cdr saveto)))
+	 (zip/add! (car saveto) (cdr saveto) content))
+	(else (error "Bad GP/SAVE call"))))
 
 ;; For generating text files, printout style, this saves the standard
 ;; output to the designated gpath
