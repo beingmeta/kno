@@ -1550,7 +1550,11 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
   fdtype result; int i=(n%2);
   if (n==1) return fd_new_frame(args[0],FD_VOID,0);
   else if (n==2) return fd_new_frame(args[0],args[1],1);
-  else if (n%2) result=fd_new_frame(args[0],FD_VOID,0);
+  else if (n%2) {
+    if ((FD_SLOTMAPP(args[0]))||(FD_SCHEMAPP(args[0]))||
+	(FD_OIDP(args[0]))) 
+      result=fd_deep_copy(args[0]);
+    else result=fd_new_frame(args[0],FD_VOID,0);}
   else result=fd_new_frame(FD_TRUE,FD_VOID,0);
   if (FD_OIDP(result))
     while (i<n) {
