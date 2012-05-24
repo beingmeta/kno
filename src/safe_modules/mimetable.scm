@@ -35,19 +35,20 @@
 		  (car map))))
     table))
 
-(define (guess-ctype path default-value)
+(define (guess-ctype path)
   (if (string? path)
       (get *mimetable* (gather #("." (isalnum+) (eos)) path))
       (if (and (pair? path) (string? (cdr path)))
 	  (get *mimetable* (gather #("." (isalnum+) (eos)) (cdr path)))
-	  default-value)))
+	  (fail))))
 
-(define (path->mimetype path (default-value *default-mimetype*))
-  (let ((ctype (guess-ctype path default-value)))
-    (and ctype
-	 (and *default-charset* (not (search "charset" ctype))
-	      (string-append ctype "; charset=" *default-charset*)))
-    (or ctype (fail))))
+(define (path->mimetype path (default-value))
+  (let ((ctype (guess-ctype path)))
+    (or (and (exists? ctype) ctype (has-prefix ctype "text")
+	     (and *default-charset* (not (search "charset" ctype))
+		  (string-append ctype "; charset=" *default-charset*)))
+	(and (exists? ctype) ctype)
+	(if (bound? default-value) default-value (fail)))))
 (define path->ctype path->mimetype)
 
 (define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
