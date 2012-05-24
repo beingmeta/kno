@@ -10,18 +10,19 @@
 (define return-url "https://www.sbooks.net/completed")
 (define cancel-url "https://www.sbooks.net/cancelled")
 
-(module-export! '{paypal/start})
+(module-export! '{paypal/start paypal/details})
 
-(define (paypal/start spec)
-  (let* ((url (getopt spec 'url
-		      (if (getopt spec 'live pp:live)
-			  "https://svcs.paypal.com/AdaptivePayments/Pay"
-			  "https://svcs.sandbox.paypal.com/AdaptivePayments/Pay")))
+(define (paypal/start spec (raw #f))
+  (let* ((payurl (if (getopt spec 'live pp:live)
+		     "https://svcs.paypal.com/AdaptivePayments/Pay"
+		     "https://svcs.sandbox.paypal.com/AdaptivePayments/Pay"))
+	 (url (getopt spec 'url payurl))
+	 (formurl
+	  (if (getopt spec 'live pp:live)
+	      "https://www.paypal.com/webapps/AdaptivePayments/flow/pay"
+	      "https://www.sandbox.paypal.com/webapps/AdaptivePayments/flow/pay"))
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["actionType" "PAY"
-		  ;; "USER" ,(getopt spec 'pp:user pp:user)
-		  ;; "PWD" ,(getopt spec 'pp:pass pp:pass)
-		  ;; "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
 		  "currencyCode" ,(getopt spec 'currency "USD")
 		  "requestEnvelope.errorLanguage"
 		  ,(getopt spec 'language  "en_US")
@@ -33,10 +34,14 @@
 		  "reverseAllParallelPaymentsOnError" "true"
 		  "trackingId"
 		  ,(if (uuid? invoice) (uuid->string invoice)
-		       invoice)])
-	 (primary (getopt spec 'primary #f)))
+		       invoice)]))
     (when (getopt spec 'notify #f)
       (store! args "ipnNotificationUrl" (getopt spec 'ipnurl #f)))
+    (when (getopt spec 'detail #f)
+      (store! args "detailLevel"
+	      (if (eq? #t (getopt spec 'detail #f))
+		  "returnAll"
+		  (getopt spec 'detail #f))))
     (do-choices (receiver (getopt spec 'receivers) i)
       (add-receiver! args receiver
 		     (if (getopt spec 'invoice #f) spec
@@ -55,7 +60,20 @@
 			  "X-PAYPAL-RESPONSE-DATA-FORMAT" "JSON"]
 			CONTENT-TYPE "application/x-www-form-urlencoded"])
 	   (response (urlpost url curlargs (scripturl+ #f args))))
-      response)))
+      (if raw response
+	  (if (test response 'type {"text/xml"  "application/json"})
+	      (let ((parsed (if (test response 'type "text/xml")
+				(xmlparse (get response '%content))
+				(jsonparse (get response '%content)))))
+		(when (if (test response 'type "text/xml")
+			  (exists? (xmlget parsed 'faultmessage))
+			  (exists? (get parsed 'error)))
+		  (error "PayPal call returned error" response))
+		(store! parsed 'invoice invoice)
+		(unless (getopt spec 'action #f)
+		  (store! parsed 'action formurl))
+		(store! parsed 'invoice invoice)
+		(cons parsed spec)))))))
 
 (define (add-receiver! args receiver opts i)
   (cond ((pair? receiver)
@@ -97,3 +115,46 @@
 	   (store! args
 		   (glom "receiverList.receiver(" i ").invoiceId")
 		   (glom (getopt opts 'invoice #f) "-" i))))))
+
+;;; Getting details
+
+(define (paypal/details spec (raw #f))
+  (let* ((paykey (if (string? spec) spec (getopt spec 'paykey)))
+	 (url (getopt spec 'url
+		      (if (getopt spec 'live pp:live)
+			  "https://svcs.paypal.com/AdaptivePayments/PaymentDetails"
+			  "https://svcs.sandbox.paypal.com/AdaptivePayments/PaymentDetails")))
+	 (args `#["payKey" ,paykey
+		  "requestEnvelope.errorLanguage"
+		  ,(getopt spec 'language  "en_US")]))
+    (when (getopt spec 'detail #f)
+      (store! args "detailLevel"
+	      (if (eq? #t (getopt spec 'detail #f))
+		  "returnAll"
+		  (getopt spec 'detail #f))))
+    (let* ((curlargs `#[HEADER
+			#["X-PAYPAL-REQUEST-DATA-FORMAT" "NV"
+			  "X-PAYPAL-SECURITY-USERID"
+			  ,(getopt spec 'pp:user pp:user)
+			  "X-PAYPAL-SECURITY-PASSWORD"
+			  ,(getopt spec 'pp:pass pp:pass)
+			  "X-PAYPAL-SECURITY-SIGNATURE"
+			  ,(getopt spec 'pp:sig pp:sig)
+			  "X-PAYPAL-APPLICATION-ID"
+			  ,(getopt spec 'pp:appid pp:appid)
+			  "X-PAYPAL-RESPONSE-DATA-FORMAT" "JSON"]
+			CONTENT-TYPE "application/x-www-form-urlencoded"])
+	   (response (urlpost url curlargs (scripturl+ #f args))))
+      (if raw response
+	  (if (test response 'type {"text/xml"  "application/json"})
+	      (let ((parsed (if (test response 'type "text/xml")
+				(xmlparse (get response '%content))
+				(jsonparse (get response '%content)))))
+		(when (if (test response 'type "text/xml")
+			  (exists? (xmlget parsed 'faultmessage))
+			  (exists? (get parsed 'error)))
+		  (error "PayPal call returned error" response))
+		(store! parsed 'invoice invoice)
+		(cons parsed spec)))))))
+
+
