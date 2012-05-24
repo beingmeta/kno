@@ -98,7 +98,7 @@
 				"https://www.paypal.com/webscr"
 				"https://www.sandbox.paypal.com/webscr")))
 	    (target (ifexists (getopt pp:options 'target {})))
-	    (method "POST"))
+	    (method (getopt pp:options 'method "POST")))
 	 (,paypal/fields pp:options)
 	 ,@(cddr expr)
 	 (when pp:needbutton (pp:button))))))

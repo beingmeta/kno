@@ -9,6 +9,9 @@
 
 (define return-url "https://www.sbooks.net/completed")
 (define cancel-url "https://www.sbooks.net/cancelled")
+(define (getmemo x)
+  (if (uuid? x) (uuid->string x)
+      (if (string? x) x (->string x))))
 
 (module-export! '{paypal/start paypal/details})
 
@@ -17,10 +20,6 @@
 		     "https://svcs.paypal.com/AdaptivePayments/Pay"
 		     "https://svcs.sandbox.paypal.com/AdaptivePayments/Pay"))
 	 (url (getopt spec 'url payurl))
-	 (formurl
-	  (if (getopt spec 'live pp:live)
-	      "https://www.paypal.com/webapps/AdaptivePayments/flow/pay"
-	      "https://www.sandbox.paypal.com/webapps/AdaptivePayments/flow/pay"))
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["actionType" "PAY"
 		  "currencyCode" ,(getopt spec 'currency "USD")
@@ -30,7 +29,7 @@
 		  ,(getopt spec 'fees "EACHRECEIVER")
 		  "returnUrl" ,(getopt spec 'return return-url)
 		  "cancelUrl" ,(getopt spec 'cancel cancel-url)
-		  "memo" ,(getopt spec 'invoice (uuid->string (getuuid)))
+		  "memo" ,(getmemo (getopt spec 'invoice (getuuid)))
 		  "reverseAllParallelPaymentsOnError" "true"
 		  "trackingId"
 		  ,(if (uuid? invoice) (uuid->string invoice)
@@ -62,9 +61,16 @@
 	   (response (urlpost url curlargs (scripturl+ #f args))))
       (if raw response
 	  (if (test response 'type {"text/xml"  "application/json"})
-	      (let ((parsed (if (test response 'type "text/xml")
-				(xmlparse (get response '%content))
-				(jsonparse (get response '%content)))))
+	      (let* ((parsed (if (test response 'type "text/xml")
+				 (xmlparse (get response '%content))
+				 (jsonparse (get response '%content))))
+		     (paykey (get parsed 'paykey))
+		     (formurl
+		      (stringout
+			"https://" (if (getopt spec 'live pp:live)
+				       "www.paypal.com"
+				       "www.sandbox.paypal.com")
+			"/cgi-bin/webscr")))
 		(when (if (test response 'type "text/xml")
 			  (exists? (xmlget parsed 'faultmessage))
 			  (exists? (get parsed 'error)))
@@ -119,7 +125,8 @@
 ;;; Getting details
 
 (define (paypal/details spec (raw #f))
-  (let* ((paykey (if (string? spec) spec (getopt spec 'paykey)))
+  (if (string? spec) (set! spec `#[paykey ,spec]))
+  (let* ((paykey (getopt spec 'paykey))
 	 (url (getopt spec 'url
 		      (if (getopt spec 'live pp:live)
 			  "https://svcs.paypal.com/AdaptivePayments/PaymentDetails"
@@ -154,7 +161,6 @@
 			  (exists? (xmlget parsed 'faultmessage))
 			  (exists? (get parsed 'error)))
 		  (error "PayPal call returned error" response))
-		(store! parsed 'invoice invoice)
 		(cons parsed spec)))))))
 
 
