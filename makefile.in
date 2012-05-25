@@ -34,6 +34,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
+RPMFLAGS	=
 
 DTYPE_HEADERS=\
  include/framerd/config.h                            \
@@ -593,7 +594,7 @@ etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
 	tar -czvf $@ -C etc framerd-@VERSION@
 
 etc/rpms.done: etc/framerd-@VERSION@.tar.gz
-	@buildrpm@ --nodeps -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
+	@buildrpm@ ${RPMFLAGS} --nodeps -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
 
 # Installation targets
 
