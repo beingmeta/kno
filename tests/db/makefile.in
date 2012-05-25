@@ -40,20 +40,22 @@ TESTBIN=pool-get@suffix@ dtcall@suffix@ indexop@suffix@ \
 all: $(TESTBIN) 
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ $<
+	@$(CC) $(CFLAGS) -o $@ $<
+	@echo CC $@ $<
 
 $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
             ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
 %: %.c ../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo MKTEST $@
 
 # This is for making shared test programs, when there are associated problems
 %.shared: %.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype -lfddb -lfddbfile
-
+	@echo MKTEST_SHARED $@
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
 ../../lib/libfddb@suffix@.a:

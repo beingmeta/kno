@@ -210,11 +210,6 @@ dbginstall:
 	make XCFLAGS="-O0" all
 	sudo make install
 
-lib:
-	if test ! -d lib; then mkdir lib; fi
-lib/framerd: lib
-	if test ! -d lib/framerd; then mkdir lib/framerd; fi
-
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
@@ -230,16 +225,17 @@ static-exe: $(STATIC_EXECUTABLES)
 
 etc/usememory: etc/usememory.c
 
-cmodules: lib/framerd @CMODULES@
+cmodules: @CMODULES@
 
 # Rules
 
 exe/scripts/%: src/scripts/%.scm
-	echo "#!"@prefix@/bin/fdexec | cat - $< > $@
-	chmod a+x $@
+	@echo "#!"@prefix@/bin/fdexec | cat - $< > $@
+	@chmod a+x $@
+	@echo MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
 		-lfdbserv@suffix@                 	 	   \
 		-lfdweb@suffix@ -ltexttools@suffix@                \
@@ -247,11 +243,13 @@ exe/%@suffix@: src/exe/%.c
 		-lfdscheme@suffix@                                 \
 		-lfddbfile@suffix@ -lfddb@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
+	@echo MKEXE $@ $<
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
-	$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
+	@$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
+	@echo MKEXE_STATIC $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -259,58 +257,62 @@ exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	@$(CC) $(CFLAGS) -o $@ -c $<
+	@echo CC $@ $<
 
 lib/%@suffix@.a:
-	make lib
-	$(MKSTATIC) $@ $^
+	@$(MKSTATIC) $@ $^
+	@echo MKSTATIC $@
 lib/%@suffix@.so.@VERSION@:
-	make lib
-	$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS)
+	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS)
+	@echo MKSO $@
 lib/%@suffix@.so: lib/%.so.@VERSION@
-	make lib
-	ln -sf $(<F) $@
+	@ln -sf $(<F) $@
 lib/%@suffix@.@VERSION@.dylib:
-	make lib
-	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+	@echo MACLIBTOOL $@
 lib/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
-	make lib
 	ln -sf $(<F) $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@echo INSTALL $@
 
 $(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@: \
 		lib/framerd/%@suffix@.so.@VERSION@
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
+	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
+	@echo INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.so: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@
-	ln -sf $(shell basename $<) $@
+	@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.so.@VERSION@: lib/%@suffix@.so.@VERSION@
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@echo INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.so: \
 		$(LIBINSTALLDIR)/%@suffix@.so.@VERSION@
-	ln -sf $(shell basename $<) $@
+	@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib: \
     lib/framerd/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)/framerd
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
+	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
+	@echo INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib
-	ln -sf $(shell basename $<) $@
+	@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib: \
     lib/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@echo INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib
-	ln -sf $(shell basename $<) $@
+	@ln -sf $(shell basename $<) $@
 
 $(BININSTALLDIR)/%: exe/%
 
@@ -320,9 +322,10 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 # Custom rules for building fdmanager which doesn't actually use the
 # FramerD libraries
 exe/fdmanager@suffix@: src/exe/fdmanager.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
 		$(LIBS) -lu8stdio
+	@echo MKEXE $@
 
 # Uninstall
 
@@ -442,7 +445,8 @@ lib/libfdbserv@suffix@.@VERSION@.dylib: $(FDBSERV_OBJS) \
 	lib/libfddbfile@suffix@.@VERSION@.dylib         \
 	lib/libfddb@suffix@.@VERSION@.dylib             \
 	lib/libfdtype@suffix@.@VERSION@.dylib
-	$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+	@echo MACLIBTOOL $@
 lib/libfdserv@suffix@.dylib: lib/libfdbserv@suffix@.@VERSION@.dylib
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
@@ -465,14 +469,16 @@ lib/libfdschemeio.dylib: lib/libfdschemeio@suffix@.@VERSION@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so.@VERSION@: $(FDWEB_OBJS)
-	$(MKSO) -Wl,-soname=$(@F) -o $@ $^  @curlconfig@ @LIBS@
+	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^  @curlconfig@ @LIBS@
+	@echo MKSO $@
 lib/libfdweb@suffix@.so: lib/libfdweb@suffix@.so.@VERSION@
 lib/libfdweb@suffix@.@VERSION@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib     \
 	lib/libfddbfile@suffix@.@VERSION@.dylib     \
 	lib/libfddb@suffix@.@VERSION@.dylib         \
         lib/libfdtype@suffix@.@VERSION@.dylib
-	$(MACLIBTOOL) -install_name $(@F) -o $@ $(FDWEB_OBJS)
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(FDWEB_OBJS)
+	@echo MACLIBTOOL $@
 lib/libfdweb@suffix@.dylib: lib/libfdweb@suffix@.@VERSION@.dylib
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
@@ -481,7 +487,8 @@ lib/libtexttools@suffix@.so: lib/libtexttools@suffix@.so.@VERSION@
 lib/libtexttools@suffix@.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
 	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
-	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
+	@echo MACLIBTOOL $@
 lib/libtexttools.dylib: lib/libtexttools@suffix@.@VERSION@.dylib
 
 lib/libtagger@suffix@.a: $(TAGGER_OBJS)
@@ -491,67 +498,66 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 	lib/libtexttools@suffix@.@VERSION@.dylib \
 	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
 	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
-	$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
+	@echo MACLIBTOOL $@
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
 src/cmodules/mysql.o: src/cmodules/mysql.c
-	$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
+	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
+	@echo CC "(MYSQL)" $@
 lib/framerd/mysql.so.@VERSION@: src/cmodules/mysql.o
-	$(MKSO) -o $@ $<  @MYSQL_LDFLAGS@ @LIBS@
+	@$(MKSO) -o $@ $<  @MYSQL_LDFLAGS@ @LIBS@
+	@echo MKSO "(MYSQL)" $@
 lib/framerd/mysql.so: lib/framerd/mysql.so.@VERSION@
 lib/framerd/mysql.@VERSION@.dylib: src/cmodules/mysql.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
+	@echo MACLIBTOOL "(MYSQL)" $@
 lib/framerd/mysql.dylib: lib/framerd/mysql.@VERSION@.dylib
 
+src/cmodules/%.o: src/cmodules/%.c
+	@$(CC) $(CFLAGS) -o $@ -c $<
+	@echo CC  $@ $<
+lib/framerd/%.so.@VERSION@: src/cmodules/%.o
+	@$(MKSO) -o $@ $< @LIBS@
+	@echo MKSO  $@ $<
+lib/framerd/%.@VERSION@.dylib: src/cmodules/%.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
+	@echo MACLIBTOOL  $@ $<
+
 src/cmodules/crypto.o: src/cmodules/crypto.c
-	$(CC) $(CFLAGS) -o $@ -c $<
 lib/framerd/crypto.so.@VERSION@: src/cmodules/crypto.o
-	$(MKSO) -o $@ $< @LIBS@
 lib/framerd/crypto.so: lib/framerd/crypto.so.@VERSION@
 lib/framerd/crypto.@VERSION@.dylib: src/cmodules/crypto.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
 lib/framerd/crypto.dylib: lib/framerd/crypto.@VERSION@.dylib
 
 lib/framerd/odbc.so.@VERSION@: src/cmodules/odbc.o
-	$(MKSO) -o $@ $< @LIBS@
 lib/framerd/odbc.so: lib/framerd/odbc.so.@VERSION@
 lib/framerd/odbc.@VERSION@.dylib: src/cmodules/odbc.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/odbc.o
 lib/framerd/odbc.dylib: lib/framerd/odbc.@VERSION@.dylib
 
 lib/framerd/sqlite.so.@VERSION@: src/cmodules/sqlite.o
-	$(MKSO) -o $@ $< @LIBS@
 lib/framerd/sqlite.so: lib/framerd/sqlite.so.@VERSION@
 lib/framerd/sqlite.@VERSION@.dylib: src/cmodules/sqlite.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/sqlite.o
 lib/framerd/sqlite.dylib: lib/framerd/sqlite.@VERSION@.dylib
 
 lib/framerd/qrcode.so.@VERSION@: src/cmodules/qrcode.o
-	$(MKSO) -o $@ $^ @LIBS@
 lib/framerd/qrcode.so: lib/framerd/qrcode.so.@VERSION@
 lib/framerd/qrcode.@VERSION@.dylib: src/cmodules/qrcode.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/qrcode.o
 lib/framerd/qrcode.dylib: lib/framerd/qrcode.@VERSION@.dylib
 
 lib/framerd/tidy.so.@VERSION@: src/cmodules/tidy.o
-	$(MKSO) -o $@ $^ @LIBS@
 lib/framerd/tidy.so: lib/framerd/tidy.so.@VERSION@
 lib/framerd/tidy.@VERSION@.dylib: src/cmodules/tidy.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/tidy.o
 lib/framerd/tidy.dylib: lib/framerd/tidy.@VERSION@.dylib
 
 lib/framerd/regex.so.@VERSION@: src/cmodules/regex.o
-	$(MKSO) -o $@ $^ @LIBS@
 lib/framerd/regex.so: lib/framerd/regex.so.@VERSION@
 lib/framerd/regex.@VERSION@.dylib: src/cmodules/regex.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/regex.o
 lib/framerd/regex.dylib: lib/framerd/regex.@VERSION@.dylib
 
 lib/framerd/ziptools.so.@VERSION@: src/cmodules/ziptools.o
-	$(MKSO) -o $@ $^ @LIBS@
 lib/framerd/ziptools.so: lib/framerd/ziptools.so.@VERSION@
 lib/framerd/ziptools.@VERSION@.dylib: src/cmodules/ziptools.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/ziptools.o
 lib/framerd/ziptools.dylib: lib/framerd/ziptools.@VERSION@.dylib
 
 # Internationalization stuff
@@ -795,10 +801,11 @@ $(DESTDIR)@apache_modinfo@:
 # Tracking revision information
 
 src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
-	if test -f etc/revision.h; \
+	@if test -f etc/revision.h; \
 	then cp etc/revision.h src/exe/revision.h; \
 	else echo "#define FRAMERD_REV \""`git describe`"\"" \
 		> src/exe/revision.h; fi
+	@echo FRAMERD_REV `git describe`
 $(EXECUTABLES): src/exe/revision.h
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.

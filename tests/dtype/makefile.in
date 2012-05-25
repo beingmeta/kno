@@ -242,16 +242,19 @@ bigbricotests: ../data/brico.dump
 	cd ../data; make BRICO=/data/brico/brico brico.dump
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	@$(CC) $(CFLAGS) -o $@ -c $<
+	@echo CC $@ $<
 
 $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 %: %.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo MKTEST $@
 
 # This is for making shared test programs, when there are associated problems
 %.shared: %.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
 		../../src/db/dtypestream.o $(LIBS) -lfdtype $(LIBS)
+	@echo MKTEST_SHARED $@
 
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
@@ -259,7 +262,7 @@ $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 	cd ../..; make lib/libfddb.a
 
 testclean:
-	rm -f *.data *.dump *.table *.sorted
+	@rm -f *.data *.dump *.table *.sorted
 
 clean: testclean
-	rm -f u8makedtype $(TESTBIN)
+	@rm -f u8makedtype $(TESTBIN)
