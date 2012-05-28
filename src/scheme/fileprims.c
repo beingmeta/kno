@@ -820,10 +820,41 @@ static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *
 
 /* File flush function */
 
-static fdtype flushprim(fdtype portarg)
+static fdtype close_prim(fdtype portarg)
 {
   if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
-    struct FD_DTSTREAM *dts=FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+    struct FD_DTSTREAM *dts=
+      FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_dtsclose(dts->dt_stream,1);
+    return FD_VOID;}
+  else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
+    struct FD_PORT *p=
+      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    U8_OUTPUT *out=p->out; U8_INPUT *in=p->in; int closed=-1;
+    if (out) {
+      u8_flush(out);
+      if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
+	U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
+	if (xout->fd<0) {}
+	else {
+	  closed=xout->fd; fsync(xout->fd); close(xout->fd);
+	  xout->fd=-1;}}}
+    if (in) {
+      u8_flush(out);
+      if (in->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
+	U8_XINPUT *xin=(U8_XINPUT *)in;
+	if (xin->fd<0) { /* already closed. warn? */ }
+	else if (closed!=xin->fd) {
+	  close(xin->fd); xin->fd=-1;}}}
+    return FD_VOID;}
+  else return fd_type_error("port","close_prim",portarg);
+}
+
+static fdtype flush_prim(fdtype portarg)
+{
+  if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=
+      FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
     fd_dtsflush(dts->dt_stream);
     return FD_VOID;}
   else {
@@ -835,7 +866,7 @@ static fdtype flushprim(fdtype portarg)
     return FD_VOID;}
 }
 
-static fdtype setbufprim(fdtype portarg,fdtype insize,fdtype outsize)
+static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
 {
   if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
@@ -1588,7 +1619,7 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim2("EXTEND-OUTPUT-FILE",extend_output_file,1));
   fd_idefn(fileio_module,
 	   fd_make_cprim2("OPEN-INPUT-FILE",open_input_file,1));
-  fd_idefn(fileio_module,fd_make_cprim3x("SETBUF",setbufprim,2,
+  fd_idefn(fileio_module,fd_make_cprim3x("SETBUF",setbuf_prim,2,
 					 -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
   
   fd_idefn(fileio_module,
@@ -1732,7 +1763,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim1("FILE->DTYPES",file2dtypes,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("FLUSH-OUTPUT",flushprim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FLUSH-OUTPUT",flush_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CLOSE",close_prim,0));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("GETPOS",getpos_prim,1,-1,FD_VOID));
