@@ -78,7 +78,7 @@
 	      (zipfile? (car saveto))
 	      (string? (cdr saveto)))
 	 (zip/add! (car saveto) (mkpath (cdr saveto) name) content))
-	(else (error "Bad GP/WRITE call"))))
+	(else (error "Bad GP/WRITE! call"))))
 
 (define (get-namestring gpath)
   (if (string? gpath) gpath
@@ -114,7 +114,7 @@
 ;; output to the designated gpath
 (define gp/writeout!
   (macro expr
-    `(,gp/write
+    `(,gp/write!
       ,(second expr) ,(third expr)
       (,stringout ,@(cdr (cdr (cdr expr))))
       (,guess-mimetype ,(third expr)))))
@@ -122,7 +122,7 @@
 ;; This writes out with an explicit mimetype
 (define gp/writeout+!
   (macro expr
-    `(,gp/write
+    `(,gp/write!
       ,(second expr) ,(third expr)
       (,stringout ,@(cdr (cdr (cdr (cdr expr)))))
       ,(fourth expr))))
