@@ -203,13 +203,13 @@ static unsigned char *do_uncompress
   Bytef *fdata=(Bytef *)bytes, *xdata=u8_malloc(x_bytes);
   while ((error=uncompress(xdata,&x_bytes,fdata,n_bytes)) < Z_OK)
     if (error == Z_MEM_ERROR) {
-      u8_free(xdata); u8_free(bytes);
+      u8_free(xdata);
       fd_seterr1("ZLIB Out of Memory");
       return NULL;}
     else if (error == Z_BUF_ERROR) {
       xdata=u8_realloc(xdata,x_lim*2); x_bytes=x_lim=x_lim*2;}
     else if (error == Z_DATA_ERROR) {
-      u8_free(xdata); u8_free(bytes);
+      u8_free(xdata);
       fd_seterr1("ZLIB Data error");
       return NULL;}
     else {
@@ -361,7 +361,7 @@ fdtype read_oid_value
       u8_free(bytes);
       return FD_ERROR_VALUE;}
     in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
-    if (dbytes<0) {
+    if ((dbytes<0)||(in.ptr==NULL)) {
       u8_free(bytes); u8_free(in.start);
       return FD_ERROR_VALUE;}
     in.end=in.start+dbytes; in.fillfn=NULL;

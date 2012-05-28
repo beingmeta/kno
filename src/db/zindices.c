@@ -53,60 +53,6 @@ static fd_dtype_stream reopen_stream(fd_file_pool fp)
 }
 #endif
 
-/* Reading compressed oid values */
-
-#if 0
-static unsigned char *do_uncompress
-  (unsigned char *bytes,int n_bytes,int *dbytes)
-{
-  int error;
-  uLongf x_lim=4*n_bytes, x_bytes=x_lim;
-  Bytef *fdata=(Bytef *)bytes, *xdata=u8_malloc(x_bytes);
-  while ((error=uncompress(xdata,&x_bytes,fdata,n_bytes)) < Z_OK)
-    if (error == Z_MEM_ERROR) {
-      u8_free(xdata); u8_free(bytes);
-      fd_seterr1("ZLIB Out of Memory");
-      return NULL;}
-    else if (error == Z_BUF_ERROR) {
-      xdata=u8_realloc(xdata,x_lim*2); x_bytes=x_lim=x_lim*2;}
-    else if (error == Z_DATA_ERROR) {
-      u8_free(xdata); u8_free(bytes);
-      fd_seterr1("ZLIB Data error");
-      return NULL;}
-    else {
-      u8_free(xdata);
-      fd_seterr1("Bad ZLIB return code");
-      return NULL;}
-  *dbytes=x_bytes;
-  return xdata;
-}
-
-static unsigned char *do_compress(unsigned char *bytes,size_t n_bytes,
-				  ssize_t *zbytes)
-{
-  int error; Bytef *zdata;
-  uLongf zlen, zlim;
-  zlen=zlim=2*n_bytes; zdata=u8_malloc(zlen);
-  while ((error=compress2(zdata,&zlen,bytes,n_bytes,FD_DEFAULT_ZLEVEL)) < Z_OK)
-    if (error == Z_MEM_ERROR) {
-      u8_free(zdata);
-      fd_seterr1("ZLIB Out of Memory");
-      return NULL;}
-    else if (error == Z_BUF_ERROR) {
-      zdata=u8_realloc(zdata,zlim*2); zlen=zlim=zlim*2;}
-    else if (error == Z_DATA_ERROR) {
-      u8_free(zdata); 
-      fd_seterr1("ZLIB Data error");
-      return NULL;}
-    else {
-      u8_free(zdata);
-      fd_seterr1("Bad ZLIB return code");
-      return NULL;}
-  *zbytes=zlen;
-  return zdata;
-}
-#endif
-
 static int read_baseoid_offset(struct FD_DTYPE_STREAM *s)
 {
   int first_byte=fd_dtsread_byte(s);
