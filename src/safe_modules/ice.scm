@@ -79,17 +79,20 @@
 		   dop))
 	    (if (and drules (exists? (get drules inpool)))
 		((get drules inpool) x mapping output
-		 (lambda (v) (dump v pool mapping output drules srules counter)))
+		 (lambda (v)
+		   (dump v pool mapping output drules srules counter)))
 		x)))
       (if (pair? x)
 	  (cons (dump (car x) pool mapping output drules srules counter)
 		(dump (cdr x) pool mapping output drules srules counter))
 	  (if (vector? x)
-	      (map (lambda (e) (dump e pool mapping output drules srules counter))
+	      (map (lambda (e)
+		     (dump e pool mapping output drules srules counter))
 		   x)
 	      (if (timestamp? x) x
 		  (if (table? x)
-		      (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f))))
+		      (let ((copy (if (hashtable? x) (make-hashtable)
+				      (frame-create #f))))
 			(do-choices (key (getkeys x))
 			  (let* ((method (tryif srules
 					   (pick (get srules key) applicable?)))
@@ -111,7 +114,7 @@
 						     (get x key) (try (pick method slotid?) key) x
 						     ;; dumpfn
 						     (lambda (v) (dump v pool mapping output drules srules counter)))
-						    v)
+						    (get x key))
 						pool mapping output
 						drules srules counter))))))
 			copy)
