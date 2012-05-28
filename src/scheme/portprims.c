@@ -170,7 +170,8 @@ static int unparse_dtstream(struct U8_OUTPUT *out,fdtype x)
 static void recycle_dtstream(struct FD_CONS *c)
 {
   struct FD_DTSTREAM *p=(struct FD_DTSTREAM *)c;
-  fd_dtsclose(p->dt_stream,p->owns_socket);
+  if (p->dt_stream) {
+    fd_dtsclose(p->dt_stream,p->owns_socket);}
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 

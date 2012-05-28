@@ -189,15 +189,20 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   if (s->fd<0) return;
   /* Flush data */
   if ((s->flags&FD_DTSTREAM_READING) == 0) fd_dtsflush(s);
-  u8_free(s->start);
+  if (s->start) {
+    u8_free(s->start);
+    s->start=s->ptr=s->end=NULL;}
+  else {
+    /* Redundant close.  Warn? */}
   if (close_fd>0) {
     fsync(s->fd);
     if (s->flags&FD_DTSTREAM_SOCKET)
       shutdown(s->fd,SHUT_RDWR);
     else close(s->fd);}
   s->fd=-1;
-  if (s->id)
+  if (s->id) {
     u8_free(s->id);
+    s->id=NULL;}
   if (s->mallocd) u8_free(s);
 }
 

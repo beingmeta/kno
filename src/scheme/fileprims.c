@@ -825,7 +825,9 @@ static fdtype close_prim(fdtype portarg)
   if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=
       FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
-    fd_dtsclose(dts->dt_stream,1);
+    if (dts->dt_stream) {
+      fd_dtsclose(dts->dt_stream,1);
+      dts->dt_stream=NULL;}
     return FD_VOID;}
   else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
