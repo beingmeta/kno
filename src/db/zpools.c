@@ -196,7 +196,7 @@ void init_zpool_schemas(struct FD_ZPOOL *zp,fdtype vector)
 /* Reading compressed oid values */
 
 static unsigned char *do_uncompress
-  (unsigned char *bytes,int n_bytes,int *dbytes)
+  (unsigned char *bytes,size_t n_bytes,ssize_t *dbytes)
 {
   int error;
   uLongf x_lim=4*n_bytes, x_bytes=x_lim;
@@ -220,7 +220,8 @@ static unsigned char *do_uncompress
   return xdata;
 }
 
-static unsigned char *do_compress(unsigned char *bytes,int n_bytes,int *zbytes)
+static unsigned char *do_compress(unsigned char *bytes,size_t n_bytes,
+				  ssize_t *zbytes)
 {
   int error; Bytef *zdata;
   uLongf zlen, zlim;
@@ -249,10 +250,18 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
 {
   fdtype result;
   struct FD_BYTE_INPUT in;
-  int n_bytes=fd_dtsread_zint(s), dbytes;
+  ssize_t n_bytes=fd_dtsread_zint(s), dbytes;
   unsigned char *bytes;
-  bytes=u8_malloc(n_bytes); fd_dtsread_bytes(s,bytes,n_bytes);
+  int retval=-1;
+  bytes=u8_malloc(n_bytes);
+  retval=fd_dtsread_bytes(s,bytes,n_bytes);
+  if (retval<n_bytes) {
+    u8_free(bytes);
+    return FD_ERROR_VALUE;}
   in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
+  if (in.start==NULL) {
+    u8_free(bytes);
+    return FD_ERROR_VALUE;}
   in.end=in.start+dbytes; in.fillfn=NULL;
   result=fd_read_dtype(&in);
   u8_free(bytes); u8_free(in.start);
@@ -267,13 +276,18 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
 /* This reads a non frame value with compression. */
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
-  unsigned char *zbytes; int zlen, size;
+  unsigned char *zbytes; int retval; ssize_t zlen=-1, size;
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
-  fd_write_dtype(&out,x);
+  if (fd_write_dtype(&out,x)<0) {
+    u8_free(out.ptr);
+    return FD_ERROR_VALUE;}
   zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+  if (zlen<0) {
+    u8_free(out.ptr);
+    return FD_ERROR_VALUE;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
-  fd_dtswrite_bytes(s,zbytes,zlen);
+  if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
   u8_free(zbytes); u8_free(out.start);
   return size;
 }
@@ -286,20 +300,30 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 /* This reads a non frame value with compression. */
 static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
-  unsigned char *zbytes; int zlen, size;
+  unsigned char *zbytes; ssize_t zlen=-1, size; int retval=0;
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
   if (FD_CHOICEP(x)) {
-    FD_DO_CHOICES(v,x) {fd_write_dtype(&out,v);}}
+    FD_DO_CHOICES(v,x) {
+      retval=fd_write_dtype(&out,v);
+      if (retval<0) {FD_STOP_DO_CHOICES; break;}}}
   else if (FD_VECTORP(x)) {
     int i=0, len=FD_VECTOR_LENGTH(x); fdtype *data=FD_VECTOR_DATA(x);
-    while (i<len) {fd_write_dtype(&out,data[i]); i++;}}
-  else fd_write_dtype(&out,x);
-  zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+    while (i<len) {
+      retval=fd_write_dtype(&out,data[i]); i++;
+      if (retval<0) break;}}
+  else retval=fd_write_dtype(&out,x);
+  if (retval>=0) 
+    
+zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+  if ((retval<0)||(zlen<0)) {
+    u8_free(zbytes); u8_free(out.start);
+    return -1;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
-  fd_dtswrite_bytes(s,zbytes,zlen);
+  retval=fd_dtswrite_bytes(s,zbytes,zlen);
   u8_free(zbytes); u8_free(out.start);
-  return size;
+  if (retval<0) return retval;
+  else return size;
 }
 
 FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
@@ -323,7 +347,8 @@ fdtype read_oid_value
   if (schema_code) {
     struct FD_BYTE_INPUT in;
     int schema_index=schema_code-1, i=0;
-    int n_values=fd_dtsread_zint(f), n_bytes=fd_dtsread_zint(f), dbytes;
+    int n_values=fd_dtsread_zint(f);
+    ssize_t n_bytes=fd_dtsread_zint(f), dbytes=-1;
     unsigned char *bytes;
     fdtype *values;
     if (n_values == schemas[schema_index].size) 
@@ -336,6 +361,9 @@ fdtype read_oid_value
       u8_free(bytes);
       return FD_ERROR_VALUE;}
     in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
+    if (dbytes<0) {
+      u8_free(bytes); u8_free(in.start);
+      return FD_ERROR_VALUE;}
     in.end=in.start+dbytes; in.fillfn=NULL;
     /* Read the values for the slotmap */
     while ((in.ptr < in.end) && (i < n_values)) {
@@ -355,26 +383,38 @@ int write_oid_value
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(v);
     fdtype *schema=sm->schema, *values=sm->values;
     int schema_index=find_schema_index_by_ptr(schema,schemas,n_schemas);
-    int i=0, size=sm->size, zlen, wlen;
+    int i=0, size=sm->size, retval=-1; ssize_t zlen=-1, wlen;
     unsigned char *zbytes; 
     if (schema_index < 0) {
       int size=fd_dtswrite_zint(s,0);
-      size=size+zwrite_dtype(s,v);
-      return size;}
+      int dsize=((size>0)?(zwrite_dtype(s,v)):(-1));
+      if (dsize<0) return -1;
+      else return size+dsize;}
     out.ptr=out.start=u8_malloc(4096); out.end=out.start+4096;
     wlen=fd_dtswrite_zint(s,schema_index+1);
     wlen=wlen+fd_dtswrite_zint(s,size);
     while (i < size) {
-      fd_write_dtype(&out,values[i]); i++;}
+      retval=fd_write_dtype(&out,values[i]);
+      if (retval<0) {
+	u8_free(out.start);
+	return -1;}
+      i++;}
     zbytes=do_compress(out.start,out.end-out.start,&zlen);
-    fd_dtswrite_bytes(s,zbytes,zlen);
+    if (zlen<0) {
+      u8_free(out.start);
+      return FD_ERROR_VALUE;}
+    retval=fd_dtswrite_bytes(s,zbytes,zlen);
+    if (retval<0) {
+      u8_free(out.start); u8_free(zbytes);
+      return FD_ERROR_VALUE;}
     wlen=wlen+zlen;
     u8_free(out.start); u8_free(zbytes);
     return wlen;}
   else {
     int size=fd_dtswrite_zint(s,0);
-    size=size+zwrite_dtype(s,v);
-    return size;}
+    int dsize=zwrite_dtype(s,v);
+    if (dsize<0) return -1;
+    else return size+dsize;}
 }
 
 /* Opening zpools */

@@ -81,7 +81,8 @@ static unsigned char *do_uncompress
   return xdata;
 }
 
-static unsigned char *do_compress(unsigned char *bytes,int n_bytes,int *zbytes)
+static unsigned char *do_compress(unsigned char *bytes,size_t n_bytes,
+				  ssize_t *zbytes)
 {
   int error; Bytef *zdata;
   uLongf zlen, zlim;
