@@ -3,7 +3,7 @@
 
 (in-module 'gpath)
 (module-export!
- '{gp/write gp/writeout gp/writeout+ gp/save gp/fetch
+ '{gp/write! gp/save! gp/writeout! gp/writeout+! gp/fetch
    gp/path gp/mkpath gp/makepath})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -50,7 +50,7 @@
 
 ;;; Writing to a gpath
 
-(define (gp/write saveto name content (ctype) (charset))
+(define (gp/write! saveto name content (ctype) (charset))
   (default! ctype (guess-mimetype name content))
   (default! charset (get-charset ctype))
   (lognotice "Saving " (if ctype (printout (write ctype) " "))
@@ -86,7 +86,7 @@
 	  (if (pair? gpath) (cdr gpath)
 	      ""))))
 
-(define (gp/save dest content (ctype) (charset))
+(define (gp/save! dest content (ctype) (charset))
   (default! ctype (guess-mimetype (get-namestring dest) content))
   (default! charset (get-charset ctype))
   (lognotice "Saving " (if ctype (printout (write ctype) " "))
@@ -112,7 +112,7 @@
 
 ;; For generating text files, printout style, this saves the standard
 ;; output to the designated gpath
-(define gp/writeout
+(define gp/writeout!
   (macro expr
     `(,gp/write
       ,(second expr) ,(third expr)
@@ -120,7 +120,7 @@
       (,guess-mimetype ,(third expr)))))
 
 ;; This writes out with an explicit mimetype
-(define gp/writeout+
+(define gp/writeout+!
   (macro expr
     `(,gp/write
       ,(second expr) ,(third expr)
