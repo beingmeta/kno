@@ -1066,9 +1066,9 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   if (argbuf!=_argbuf) u8_free(argbuf);
 
   mysql_stmt_free_result(dbproc->stmt);
-
+  
   u8_unlock_mutex(&(dbproc->lock));
-
+  
   return values;
 }
 
