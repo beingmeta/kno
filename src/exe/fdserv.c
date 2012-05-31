@@ -204,8 +204,6 @@ static void report_status()
   if (statlog) fflush(statlog);
 }
 
-
-
 /* Writing the PID file */
 
 static int check_pid_file(char *sockname)
@@ -259,6 +257,9 @@ static int output_content(fd_webconn ucl,fdtype content)
 }
 
 /* Running the server */
+
+static int portno=-1;
+static u8_string sockspec=NULL;
 
 static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
@@ -597,10 +598,6 @@ int main(int argc,char **argv)
   /* Set this here, before processing any configs */
   fddb_loglevel=LOG_INFO;
   
-  if (argc<2) {
-    fprintf(stderr,"Usage: fdserv <socketfile> [config]*\n");
-    exit(2);}
-  
   /* Find the socket spec (the non-config arg) */
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
@@ -608,17 +605,6 @@ int main(int argc,char **argv)
     else socket_spec=argv[i++];
   i=1;
 
-  if (!(socket_spec)) {
-    fprintf(stderr,"Usage: fdserv <socketspec> [config]*\n");
-    exit(2);}
-  /* Network socket spec, don't need to check the file */
-  else if ((strchr(socket_spec,'@'))||
-	   (strchr(socket_spec,':'))) {}
-  else if (check_socket_path(socket_spec)<0) {
-    u8_clear_errors(1);
-    return -1;}
-  else file_socket=1;
-  
   if (!(getenv("LOGFILE"))) 
     u8_log(LOG_WARN,Startup,"No logfile, using stdio");
   else u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
@@ -724,6 +710,10 @@ int main(int argc,char **argv)
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
   fd_register_config("LOGTRANSACT",_("Log client/server transactions"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
+  fd_register_config("PORTNO",_("Port number for listening"),
+		     fd_intconfig_get,fd_intconfig_set,&portno);
+  fd_register_config("LISTEN",_("server spec"),
+		     fd_sconfig_get,fd_sconfig_set,&sockspec);
 
 #if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
@@ -741,7 +731,26 @@ int main(int argc,char **argv)
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
-  
+
+  if ((!(socket_spec))&&(sockspec)) socket_spec=u8_strdup(sockspec);
+  if ((!(socket_spec))&&(portno>0)) socket_spec=u8_mkstring("%d",portno);
+  if (!(socket_spec)) {
+    fprintf(stderr,"No socket specification, either as config or arg\n");
+    exit(2);}
+  /* Network socket spec, don't need to check the file */
+  else if ((strchr(socket_spec,'@'))||
+	   (strchr(socket_spec,':'))) {
+    /* Mask the network socket indicator */
+    int len=strlen(socket_spec);
+    if (socket_spec[0]==':') socket_spec=socket_spec+1;
+    else if (socket_spec[len-1]=='@') socket_spec[len-1]='\0';
+    else {}}
+  /* File socket spec, check that you can write it. */
+  else if (check_socket_path(socket_spec)<0) {
+    u8_clear_errors(1);
+    return -1;}
+  else file_socket=1;
+
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */
   if (update_preloads()<0) {
