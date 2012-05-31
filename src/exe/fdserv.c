@@ -66,6 +66,7 @@ static struct U8_XTIME boot_time;
 
 /* This is how old a socket file needs to be to be deleted as 'leftover' */
 #define FD_LEFTOVER_AGE 30
+static int ignore_leftovers=0;
 
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
@@ -229,7 +230,8 @@ static int check_pid_file(char *sockname)
       u8_log(LOG_CRIT,"Can't write file",
 	     "Couldn't write file","Couldn't write PID file %s",pidfile);
       return 0;}
-    else if (((time(NULL))-(fileinfo.st_mtime))<FD_LEFTOVER_AGE) {
+    else if ((!(ignore_leftovers))&&
+	     (((time(NULL))-(fileinfo.st_mtime))<FD_LEFTOVER_AGE)) {
       u8_log(LOG_CRIT,"Race Condition",
 	     "Current pidfile (%s) too young to replace",
 	     pidfile);
@@ -314,6 +316,19 @@ static int webservefn(u8_client ucl)
   else {
     setup_time=u8_elapsed_time();
     cgidata=fd_dtsread_dtype(&(client->in));
+    if (cgidata==FD_EOD) {
+      if (traceweb>0)
+	u8_log(LOG_NOTICE,"FDSERV/webservefn","Client %s (sock=%d) closing",
+	       client->idstring,client->socket);
+      u8_client_close(ucl);
+      return -1;}
+    else if (!(FD_TABLEP(cgidata))) {
+      u8_log(LOG_CRIT,"FDSERV/webservefn",
+	     "Bad fdserv request on client %s (sock=%d), closing",
+	     client->idstring,client->socket);
+      u8_client_close(ucl);
+      return -1;}
+    else {}
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {
@@ -322,76 +337,76 @@ static int webservefn(u8_client ucl)
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)) && (FD_STRINGP(remote)))
 	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
-	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
-	       start_load[0],start_load[1],start_load[2]);
-      else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s, load=%f/%f/%f",
-	       FD_STRDATA(uri),FD_STRDATA(remote),
-	       start_load[0],start_load[1],start_load[2]);
-      else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s, load=%f/%f/%f",
-	       FD_STRDATA(uri),FD_STRDATA(referer),
-	       start_load[0],start_load[1],start_load[2]);
-      else if (FD_STRINGP(uri))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
-      fd_decref(referer);
-      fd_decref(uri);}
-    proc=getcontent(path);
-    fd_parse_cgidata(cgidata);
-    parse_time=u8_elapsed_time();
-    if ((reqlog) || (urllog) || (trace_cgidata))
-      dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);}
-  fd_set_default_output(&(client->out));
-  fd_use_reqinfo(cgidata);
-  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
-  if (FD_ABORTP(proc)) result=fd_incref(proc);
-  else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
-    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
-    if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-	     path,proc);
-    threadcache=checkthreadcache(sp->env);
-    result=fd_cgiexec(proc,cgidata);}
-  else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
-    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
-    if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-	     path,proc);
-    threadcache=checkthreadcache(sp->env);
-    result=fd_cgiexec(FD_CAR(proc),cgidata);}
-  else if (FD_PAIRP(proc)) {
-    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
-		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-		     (NULL));
-    fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
-    if (base) fd_load_latest(NULL,base,NULL);
-    threadcache=checkthreadcache(base);
-    if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with template",path);
-    setup_proc=fd_symeval(setup_symbol,base);
-    if (FD_VOIDP(setup_proc)) {}
-    else if (FD_CHOICEP(setup_proc)) {
-      FD_DO_CHOICES(proc,setup_proc)
-	if (FD_APPLICABLEP(proc)) {
-	  fdtype v=fd_apply(proc,0,NULL);
-	  fd_decref(v);}}
-    else if (FD_APPLICABLEP(setup_proc)) {
-      fdtype v=fd_apply(setup_proc,0,NULL);
-      fd_decref(v);}
-    fd_decref(setup_proc);
-    write_headers=0;
-    fd_output_xml_preface(&(client->out),cgidata);
-    if (FD_PAIRP(FD_CAR(proc))) {
-      FD_DOLIST(expr,FD_CAR(proc)) {
-	fd_decref(result);
-	result=fd_xmleval(&(client->out),expr,runenv);
-	if (FD_ABORTP(result)) break;}}
-    else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
-    fd_decref((fdtype)runenv);}
-  exec_time=u8_elapsed_time();
-  fd_set_default_output(NULL);
-  if (FD_TROUBLEP(result)) {
+		 FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
+		 start_load[0],start_load[1],start_load[2]);
+	else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
+	  u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s, load=%f/%f/%f",
+		 FD_STRDATA(uri),FD_STRDATA(remote),
+		 start_load[0],start_load[1],start_load[2]);
+	else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
+	  u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s, load=%f/%f/%f",
+		 FD_STRDATA(uri),FD_STRDATA(referer),
+		 start_load[0],start_load[1],start_load[2]);
+	else if (FD_STRINGP(uri))
+	  u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+	fd_decref(referer);
+	fd_decref(uri);}
+      proc=getcontent(path);
+      fd_parse_cgidata(cgidata);
+      parse_time=u8_elapsed_time();
+      if ((reqlog) || (urllog) || (trace_cgidata))
+	dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
+      fd_set_default_output(&(client->out));
+      fd_use_reqinfo(cgidata);
+      fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+      if (FD_ABORTP(proc)) result=fd_incref(proc);
+      else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+	struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
+	if (traceweb>1)
+	  u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
+		 path,proc);
+	threadcache=checkthreadcache(sp->env);
+	result=fd_cgiexec(proc,cgidata);}
+      else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+	struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
+	if (traceweb>1)
+	  u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
+		 path,proc);
+	threadcache=checkthreadcache(sp->env);
+	result=fd_cgiexec(FD_CAR(proc),cgidata);}
+      else if (FD_PAIRP(proc)) {
+	fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
+	fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
+			 (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+			 (NULL));
+	fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
+	if (base) fd_load_latest(NULL,base,NULL);
+	threadcache=checkthreadcache(base);
+	if (traceweb>1)
+	  u8_log(LOG_NOTICE,"START","Handling %q with template",path);
+	setup_proc=fd_symeval(setup_symbol,base);
+	if (FD_VOIDP(setup_proc)) {}
+	else if (FD_CHOICEP(setup_proc)) {
+	  FD_DO_CHOICES(proc,setup_proc)
+	    if (FD_APPLICABLEP(proc)) {
+	      fdtype v=fd_apply(proc,0,NULL);
+	      fd_decref(v);}}
+	else if (FD_APPLICABLEP(setup_proc)) {
+	  fdtype v=fd_apply(setup_proc,0,NULL);
+	  fd_decref(v);}
+	fd_decref(setup_proc);
+	write_headers=0;
+	fd_output_xml_preface(&(client->out),cgidata);
+	if (FD_PAIRP(FD_CAR(proc))) {
+	  FD_DOLIST(expr,FD_CAR(proc)) {
+	    fd_decref(result);
+	    result=fd_xmleval(&(client->out),expr,runenv);
+	    if (FD_ABORTP(result)) break;}}
+	else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
+	fd_decref((fdtype)runenv);}
+      exec_time=u8_elapsed_time();
+      fd_set_default_output(NULL);
+      if (FD_TROUBLEP(result)) {
     u8_exception ex=u8_erreify();
     u8_condition excond=ex->u8x_cond;
     u8_context excxt=((ex->u8x_context) ?
@@ -482,7 +497,7 @@ static int webservefn(u8_client ucl)
   write_time=u8_elapsed_time();
   getloadavg(end_load,3);
   u8_getrusage(RUSAGE_SELF,&end_usage);
-if ((forcelog)||(traceweb>0)||
+  if ((forcelog)||(traceweb>0)||
     ((overtime>0)&&((write_time-start_time)>overtime))) {
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
@@ -522,7 +537,7 @@ if ((forcelog)||(traceweb>0)||
     if (reqlog) fd_dtsflush(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(query);}
-  else {}
+  else {}}
   fd_decref(proc); fd_decref(result); fd_decref(path);
   /* u8_client_close(ucl); */
   fd_swapcheck();
@@ -823,6 +838,9 @@ int main(int argc,char **argv)
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
   fd_register_config("LOGTRANSACT",_("Log client/server transactions"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
+  fd_register_config("IGNORELEFTOVERS",
+		     _("Whether to check for existing PID files"),
+		     fd_boolconfig_get,fd_boolconfig_set,&ignore_leftovers);
 
 #if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
