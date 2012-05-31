@@ -565,17 +565,24 @@ static fdtype get_servlet_status()
 static int check_socket_path(char *sockarg)
 {
   u8_string sockname=u8_fromlibc(sockarg);
-  u8_string sockdir=u8_dirname(sockname);
+  u8_string sockfile=u8_abspath(sockname,NULL);
+  u8_string sockdir=u8_dirname(sockfile);
   int retval=u8_mkdirs(sockdir,SOCKDIR_PERMISSIONS);
   if (retval<0) {
-    u8_free(sockname);
+    if (sockname!=((u8_string)sockarg)) u8_free(sockname);
+    u8_free(sockfile);
+    u8_free(sockdir);
     return retval;}
   else if ((u8_file_existsp(sockname)) ?
 	   (u8_file_writablep(sockname)) :
 	   (u8_file_writablep(sockdir))) {
-    u8_free(sockname);
+    if (sockname!=((u8_string)sockarg)) u8_free(sockname);
+    u8_free(sockfile);
+    u8_free(sockdir);
     return retval;}
   else {
+    u8_free(sockfile);
+    u8_free(sockdir);
     u8_seterr(fd_CantWrite,"check_socket_path",sockname);
     return -1;}
 }
