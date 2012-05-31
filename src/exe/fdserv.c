@@ -51,6 +51,11 @@ static FILE *statlog=NULL;
 static double overtime=0;
 static int loglisten=1, logconnect=0, logtransact=0;
 
+/* Tracking ports */
+static u8_string server_id=NULL;
+static u8_string *ports=NULL;
+static int n_ports=0, max_ports=0;
+static u8_mutex server_port_lock;
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -70,6 +75,7 @@ typedef struct FD_WEBCONN *fd_webconn;
 
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
+static int server_running=0;
 
 /* This environment is the parent of all script/page environments spun off
    from this server. */
@@ -257,9 +263,6 @@ static int output_content(fd_webconn ucl,fdtype content)
 }
 
 /* Running the server */
-
-static int portno=-1;
-static u8_string sockspec=NULL;
 
 static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 {
@@ -537,16 +540,30 @@ static int close_webclient(u8_client ucl)
 
 static void shutdown_server(u8_condition reason)
 {
+  int i=n_ports-1;
+  u8_lock_mutex(&server_port_lock); i=n_ports-1;
   if (reason) 
     u8_log(LOG_WARN,reason,
-	   "Shutting down, removing socket %s and pidfile %s",
-	   portfile,pidfile);
+	   "Shutting down, removing socket files and pidfile %s",
+	   pidfile);
   u8_server_shutdown(&fdwebserver);
   webcommon_shutdown();
-  if (portfile)
-    if (remove(portfile)>=0) {
-      u8_free(portfile); portfile=NULL;}
-  if (pidfile) u8_removefile(pidfile);
+  while (i>=0) {
+    u8_string spec=ports[i];
+    if (!(spec)) {}
+    else if (strchr(spec,'/')) {
+      if (remove(spec)<0) 
+	u8_log(LOG_WARN,"FDSERV/shutdown",
+	       "Couldn't remove portfile %s",spec);
+      u8_free(spec); ports[i]=NULL;}
+    else {u8_free(spec); ports[i]=NULL;}
+    i--;}
+  u8_free(ports);
+  ports=NULL; n_ports=0; max_ports=0;
+  u8_unlock_mutex(&server_port_lock);
+  if (pidfile) {
+    u8_removefile(pidfile);
+    u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
 }
@@ -587,6 +604,88 @@ static int check_socket_path(char *sockarg)
     return -1;}
 }
 
+/* Listeners */
+
+static int add_server(u8_string spec)
+{
+  int file_socket=((strchr(spec,'/'))!=NULL);
+  int len=strlen(spec), retval;
+  if (spec[0]==':') spec=spec+1;
+  else if (spec[len-1]=='@') spec[len-1]='\0';
+  else {}
+  retval=u8_add_server(&fdwebserver,spec,((file_socket)?(-1):(0)));
+  if (retval<0) return retval;
+  else if (file_socket) chmod(spec,0777);
+  return 0;
+}
+
+static int addfdservport(fdtype var,fdtype val,void *data)
+{
+  u8_string new_port=NULL;
+  u8_lock_mutex(&server_port_lock);
+  if (FD_STRINGP(val)) {
+    u8_string spec=FD_STRDATA(val);
+    if (strchr(spec,'/')) {
+      if (check_socket_path(spec)>0) {
+	new_port=u8_abspath(spec,NULL);}
+      else {
+	u8_seterr("Can't write socket file","setportconfig",
+		  u8_abspath(spec,NULL));
+	u8_unlock_mutex(&server_port_lock);
+	return -1;}}
+    else if ((strchr(spec,'@'))||(strchr(spec,':'))) 
+      new_port=u8_strdup(spec);
+    else if (check_socket_path(spec)>0) {
+      new_port=u8_abspath(spec,NULL);}
+    else {
+      u8_unlock_mutex(&server_port_lock);
+      u8_seterr("Can't write socket file","setportconfig",
+		u8_abspath(spec,NULL));
+      return -1;}}
+  else if (FD_FIXNUMP(val))
+    new_port=u8_mkstring("%d",FD_FIX2INT(val));
+  else {
+    fd_incref(val);
+    fd_seterr(fd_TypeError,"setportconfig",NULL,val);
+    return -1;}
+  if (!(server_id)) server_id=new_port;
+  if (n_ports>=max_ports) {
+    int new_max=((max_ports)?(max_ports+8):(8));
+    if (ports)
+      ports=u8_realloc(ports,sizeof(u8_string)*new_max);
+    else ports=u8_malloc(sizeof(u8_string)*new_max);}
+  ports[n_ports++]=new_port;
+  if (server_running) add_server(new_port);
+  u8_unlock_mutex(&server_port_lock);
+}
+
+static fdtype getfdservports(fdtype var,void *data)
+{
+  fdtype result=FD_EMPTY_CHOICE;
+  int i=0, lim=n_ports;
+  u8_lock_mutex(&server_port_lock); lim=n_ports;
+  while (i<lim) {
+    fdtype string=fdtype_string(ports[i++]);
+    FD_ADD_TO_CHOICE(result,string);}
+  u8_unlock_mutex(&server_port_lock);
+  return result;
+}
+
+static int start_servers()
+{
+  int i=0, lim=n_ports;
+  u8_lock_mutex(&server_port_lock); lim=n_ports;
+  while (i<lim) {
+    int retval=add_server(ports[i]);
+    if (retval<0) {
+      u8_log(LOG_CRIT,"FDSERV/START","Couldn't start server %s",ports[i]);
+      u8_clear_errors(1);}
+    i++;}
+  server_running=1;
+  u8_unlock_mutex(&server_port_lock);
+  return i;
+}
+
 /* The main() event */
 
 FD_EXPORT void fd_init_dbfile(void); 
@@ -612,6 +711,16 @@ int main(int argc,char **argv)
     else socket_spec=argv[i++];
   i=1;
 
+  u8_init_mutex(&server_port_lock);
+
+  if (socket_spec) {
+    ports=u8_malloc(sizeof(u8_string)*8);
+    max_ports=8; n_ports=1;
+    server_id=ports[0]=u8_strdup(socket_spec);}
+
+  fd_register_config("PORT",_("Ports for listening for connections"),
+		     getfdservports,addfdservport,NULL);
+  
   if (!(getenv("LOGFILE"))) 
     u8_log(LOG_WARN,Startup,"No logfile, using stdio");
   else u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
@@ -631,9 +740,6 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
-  if (!(check_pid_file(socket_spec)))
-    exit(EXIT_FAILURE);
-  
   fd_version=fd_init_fdscheme();
   
   if (fd_version<0) {
@@ -717,10 +823,6 @@ int main(int argc,char **argv)
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
   fd_register_config("LOGTRANSACT",_("Log client/server transactions"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
-  fd_register_config("PORTNO",_("Port number for listening"),
-		     fd_intconfig_get,fd_intconfig_set,&portno);
-  fd_register_config("LISTEN",_("server spec"),
-		     fd_sconfig_get,fd_sconfig_set,&sockspec);
 
 #if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
@@ -739,24 +841,12 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
 
-  if ((!(socket_spec))&&(sockspec)) socket_spec=u8_strdup(sockspec);
-  if ((!(socket_spec))&&(portno>0)) socket_spec=u8_mkstring("%d",portno);
-  if (!(socket_spec)) {
-    fprintf(stderr,"No socket specification, either as config or arg\n");
-    exit(2);}
-  /* Network socket spec, don't need to check the file */
-  else if ((strchr(socket_spec,'@'))||
-	   (strchr(socket_spec,':'))) {
-    /* Mask the network socket indicator */
-    int len=strlen(socket_spec);
-    if (socket_spec[0]==':') socket_spec=socket_spec+1;
-    else if (socket_spec[len-1]=='@') socket_spec[len-1]='\0';
-    else {}}
-  /* File socket spec, check that you can write it. */
-  else if (check_socket_path(socket_spec)<0) {
-    u8_clear_errors(1);
-    return -1;}
-  else file_socket=1;
+  if (!(server_id)) {
+    u8_uuid tmp=u8_getuuid(NULL);
+    server_id=u8_uuidstring(tmp,NULL);}
+
+  if (!(check_pid_file(server_id)))
+    exit(EXIT_FAILURE);
 
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */
@@ -766,7 +856,7 @@ int main(int argc,char **argv)
     exit(EXIT_FAILURE);}
   
   memset(&fdwebserver,0,sizeof(fdwebserver));
-
+  
   u8_server_init(&fdwebserver,
 		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
@@ -776,7 +866,7 @@ int main(int argc,char **argv)
     fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_CONNECT;
   if (logtransact)
     fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_TRANSACT;
-
+  
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
 
@@ -791,14 +881,9 @@ int main(int argc,char **argv)
 	     "Removing leftover socket file %s",socket_spec);
       remove(socket_spec);}}
 
-  if (u8_add_server(&fdwebserver,socket_spec,((file_socket)?(-1):(0)))<0) {
-    fd_recycle_hashtable(&pagemap);
-    fd_clear_errors(1);
-    exit(EXIT_FAILURE);}
-  
-  chmod(socket_spec,0777);
-
-  portfile=u8_strdup(socket_spec);
+  if (start_servers()<=0) {
+    u8_log(LOG_CRIT,"FDSERV/STARTUP","Startup failed");
+    exit(1);}
 
   u8_log(LOG_INFO,NULL,
 	 "FramerD (%s) fdserv servlet running, %d/%d pools/indices",
@@ -807,10 +892,7 @@ int main(int argc,char **argv)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2012, all rights reserved");
   u8_server_loop(&fdwebserver);
 
-  if (pidfile) {
-    u8_removefile(pidfile);
-    u8_free(pidfile);
-    pidfile=NULL;}
+  shutdown_server("exit");
 
   return 0;
 }
