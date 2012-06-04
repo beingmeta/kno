@@ -114,6 +114,7 @@
 (put 'on-errors 'scheme-indent-function 1)
 
 (put 'printout-to 'scheme-indent-function 1)
+(put 'hmac-sha1 'scheme-indent-function 1)
 (put 'printout 'scheme-indent-function 'block-indenter)
 (put 'lineout 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
@@ -125,6 +126,7 @@
 (put 's3/write! 'scheme-indent-function 1)
 (put 'ses/call 'scheme-indent-function 1)
 (put 'stringout 'scheme-indent-function 'block-indenter)
+(put 'glom 'scheme-indent-function 'block-indenter)
 (put 'logif 'scheme-indent-function 1)
 (put 'logger 'scheme-indent-function 1)
 
