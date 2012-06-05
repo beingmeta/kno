@@ -776,11 +776,11 @@ static int spawn_fdservlet /* 2.0 */
     const char **scanner=argv; while (scanner<write_argv) {
       if ((envp) && (scanner>=envp))
 	ap_log_rerror(APLOG_MARK, APLOG_DEBUG, OK, r,
-		      "%s ENV[%d]='%s'",
-		      exename,scanner-argv,*scanner);
+		      "%s ENV[%ld]='%s'",
+		      exename,((long int)(scanner-argv)),*scanner);
       else ap_log_rerror(APLOG_MARK, APLOG_DEBUG, OK, r,
-			 "%s ARG[%d]='%s'",
-			 exename,scanner-argv,*scanner);
+			 "%s ARG[%ld]='%s'",
+			 exename,((long int)(scanner-argv)),*scanner);
       scanner++;}}
 
   if ((stat(sockname,&stat_data) == 0)&&
