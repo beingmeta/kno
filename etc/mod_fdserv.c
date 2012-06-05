@@ -776,10 +776,10 @@ static int spawn_fdservlet /* 2.0 */
     const char **scanner=argv; while (scanner<write_argv) {
       if ((envp) && (scanner>=envp))
 	ap_log_rerror(APLOG_MARK, APLOG_DEBUG, OK, r,
-		      "%s ENV[%ld]='%s'",
+		      "%s ENV[%d]='%s'",
 		      exename,scanner-argv,*scanner);
       else ap_log_rerror(APLOG_MARK, APLOG_DEBUG, OK, r,
-			 "%s ARG[%ld]='%s'",
+			 "%s ARG[%d]='%s'",
 			 exename,scanner-argv,*scanner);
       scanner++;}}
 
@@ -1145,7 +1145,9 @@ static int sock_write(request_rec *r,
 	ap_log_error
 	  (APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	   "Error (%s) from APR socket for %s after %ld/%ld/%ld bytes",
-	   errbuf,sockval->sockname,bytes_written,bytes_to_write,n_bytes);
+	   errbuf,sockval->sockname,
+	   (long int)bytes_written,(long int)bytes_to_write,
+	   n_bytes);
 	break;}
       else if (block_size == 0) {
 	ap_log_error
