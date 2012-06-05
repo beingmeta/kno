@@ -11,14 +11,13 @@
 (define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
 
-(define (makesigtext op . args)
+(define (makesigtext . args)
   (let ((table (if (odd? (length args)) (deep-copy (car args)) `#[]))
 	(params (if (odd? (length args)) (cdr args) args)))
     (do ((scan params (cddr scan)))
 	((null? scan))
       (add! table (car scan) (cadr scan)))
     (stringout
-      op "?"
       (doseq (key (lexsorted (getkeys table)) i)
 	(if (string? key)
 	    (printout (if (> i 0) "&")
