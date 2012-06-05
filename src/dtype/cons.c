@@ -520,7 +520,9 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->length=len; ptr->data=elts; ptr->freedata=0;
-  while (i < len) {elts[i]=data[i]; i++;}
+  if (data) {
+    while (i < len) {elts[i]=data[i]; i++;}}
+  else {while (i < len) {elts[i]=FD_VOID; i++;}}
   return FDTYPE_CONS(ptr);
 }
 

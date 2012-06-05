@@ -1505,8 +1505,6 @@ FD_EXPORT int fd_clean_mempool(fd_pool p)
    of their own data management.  They basically have a fetch function and
    a load function but may be extended to be clever about saving in some way. */
 
-static struct FD_POOL_HANDLER extpool_handler;
-
 FD_EXPORT
 fd_pool fd_make_extpool(u8_string label,
 			FD_OID base,int cap,
@@ -1514,7 +1512,7 @@ fd_pool fd_make_extpool(u8_string label,
 			fdtype lockfn,fdtype state)
 {
   struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
-  fd_init_pool((fd_pool)xp,base,cap,&extpool_handler,label,label);
+  fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
   if (!(FD_VOIDP(savefn))) xp->read_only=0;
   fd_register_pool((fd_pool)xp);
   fd_incref(fetchfn); fd_incref(savefn);
@@ -1611,15 +1609,15 @@ static int extpool_unlock(fd_pool p,fdtype oids)
 
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value)
 {
-  if (p->handler==&extpool_handler)
+  if (p->handler==&fd_extpool_handler)
     return fd_hashtable_store(&(p->cache),oid,value);
   else return fd_reterr
 	 (fd_TypeError,"fd_extpool_cache_value",
 	  u8_strdup("extpool"),fd_pool2lisp(p));
 }
 
-static struct FD_POOL_HANDLER extpool_handler={
-  "mempool", 1, sizeof(struct FD_EXTPOOL), 12,
+struct FD_POOL_HANDLER fd_extpool_handler={
+  "extpool", 1, sizeof(struct FD_EXTPOOL), 12,
   NULL, /* close */
   NULL, /* setcache */
   NULL, /* setbuf */

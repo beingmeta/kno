@@ -425,6 +425,42 @@ static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
   else return FD_VOID;
 }
 
+static fdtype extpool_fetchfn(fdtype pool)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  if (p->handler==&fd_extpool_handler) {
+    struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
+    return fd_incref(ep->fetchfn);}
+  else return fd_type_error("extpool","extpool_fetchfn",pool);
+}
+
+static fdtype extpool_savefn(fdtype pool)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  if (p->handler==&fd_extpool_handler) {
+    struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
+    return fd_incref(ep->savefn);}
+  else return fd_type_error("extpool","extpool_savefn",pool);
+}
+
+static fdtype extpool_lockfn(fdtype pool)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  if (p->handler==&fd_extpool_handler) {
+    struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
+    return fd_incref(ep->lockfn);}
+  else return fd_type_error("extpool","extpool_lockfn",pool);
+}
+
+static fdtype extpool_state(fdtype pool)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  if (p->handler==&fd_extpool_handler) {
+    struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
+    return fd_incref(ep->state);}
+  else return fd_type_error("extpool","extpool_state",pool);
+}
+
 /* External indices */
 
 static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
@@ -461,6 +497,33 @@ static fdtype extindex_decache(fdtype index,fdtype key)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("extindex","extindex_decache",index);
+}
+
+static fdtype extindex_fetchfn(fdtype index)
+{
+  fd_index ix=fd_lisp2index(index);
+  if (ix->handler==&fd_extindex_handler) {
+    struct FD_EXTINDEX *eix=(struct FD_EXTINDEX *)ix;
+    return fd_incref(eix->fetchfn);}
+  else return fd_type_error("extindex","extindex_fetchfn",index);
+}
+
+static fdtype extindex_commitfn(fdtype index)
+{
+  fd_index ix=fd_lisp2index(index);
+  if (ix->handler==&fd_extindex_handler) {
+    struct FD_EXTINDEX *eix=(struct FD_EXTINDEX *)ix;
+    return fd_incref(eix->commitfn);}
+  else return fd_type_error("extindex","extindex_commitfn",index);
+}
+
+static fdtype extindex_state(fdtype index)
+{
+  fd_index ix=fd_lisp2index(index);
+  if (ix->handler==&fd_extindex_handler) {
+    struct FD_EXTINDEX *eix=(struct FD_EXTINDEX *)ix;
+    return fd_incref(eix->state);}
+  else return fd_type_error("extindex","extindex_state",index);
 }
 
 /* Adding adjuncts */
@@ -2257,6 +2320,18 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
 			   fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTPOOL-FETCHFN",extpool_fetchfn,1,
+			   fd_pool_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTPOOL-SAVEFN",extpool_savefn,1,
+			   fd_pool_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTPOOL-LOCKFN",extpool_lockfn,1,
+			   fd_pool_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTPOOL-STATE",extpool_state,1,
+			   fd_pool_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim5x("MAKE-EXTINDEX",make_extindex,2,
@@ -2271,6 +2346,15 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
 			   fd_index_type,FD_VOID,-1,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTINDEX-FETCHFN",extindex_fetchfn,1,
+			   fd_index_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTINDEX-COMMITFN",extindex_commitfn,1,
+			   fd_index_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
+			   fd_index_type,FD_VOID));
 
 
   fd_idefn(fd_scheme_module,

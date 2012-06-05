@@ -366,6 +366,8 @@ fd_pool fd_make_extpool
    fdtype lockfn,fdtype state);
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value);
 
+FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
+
 /* Memory Pools (only in memory, no fetch/commit) */
 
 typedef struct FD_MEMPOOL {

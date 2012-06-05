@@ -194,6 +194,52 @@ static fdtype extdb_makeproc(int n,fdtype *args)
   else return FD_VOID;
 }
 
+/* Accessors */
+
+static fdtype extdb_proc_query(fdtype extdb)
+{
+  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+    (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
+  return fdtype_string(xdbp->qtext);
+}
+
+static fdtype extdb_proc_spec(fdtype extdb)
+{
+  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+    (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
+  return fdtype_string(xdbp->spec);
+}
+
+static fdtype extdb_proc_db(fdtype extdb)
+{
+  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+    (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
+  return fd_incref(xdbp->db);
+}
+
+static fdtype extdb_proc_typemap(fdtype extdb)
+{
+  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+    (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
+  return fd_incref(xdbp->colinfo);
+}
+
+static fdtype extdb_proc_params(fdtype extdb)
+{
+  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+    (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
+  int n=xdbp->n_params;
+  fdtype *paramtypes=xdbp->paramtypes;
+  fdtype result=fd_make_vector(n,NULL);
+  int i=0; while (i<n) {
+    fdtype param_info=paramtypes[i]; fd_incref(param_info);
+    FD_VECTOR_SET(result,i,param_info);
+    i++;}
+  return result;
+}
+
+/* Initializations */
+
 int extdb_initialized=0;
 
 FD_EXPORT void fd_init_extdbi_c()
@@ -225,6 +271,15 @@ FD_EXPORT void fd_init_extdbi_c()
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC",extdb_makeproc,2));
+
+  fd_idefn(extdb_module,fd_make_cprim1x
+	   ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type));
+  fd_idefn(extdb_module,fd_make_cprim1x
+	   ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type));
+  fd_idefn(extdb_module,fd_make_cprim1x
+	   ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type));
+  fd_idefn(extdb_module,fd_make_cprim1x
+	   ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type));
 
   fd_register_config("SQLEXEC",
 		     _("whether direct execution of SQL strings is allowed"),
