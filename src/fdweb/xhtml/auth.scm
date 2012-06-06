@@ -11,6 +11,7 @@
 
 (module-export! '{auth/getinfo
 		  auth/getuser
+		  auth/update!
 		  auth/identify!
 		  auth/maketoken
 		  auth/deauthorize!})
@@ -421,6 +422,9 @@
   (try (req/get userid)
        (authinfo-identity (auth/getinfo authid))
        #f))
+
+(define (auth/update! (authid authid))
+  (freshauth (auth/getinfo authid)))
 
 ;;;; Authorize/deauthorize API
 
