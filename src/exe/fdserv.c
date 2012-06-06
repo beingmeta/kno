@@ -670,8 +670,12 @@ static int addfdservport(fdtype var,fdtype val,void *data)
       ports=u8_realloc(ports,sizeof(u8_string)*new_max);
     else ports=u8_malloc(sizeof(u8_string)*new_max);}
   ports[n_ports++]=new_port;
-  if (server_running) add_server(new_port);
+  if (server_running) {
+    add_server(new_port);
+    u8_unlock_mutex(&server_port_lock);
+    return 1;}
   u8_unlock_mutex(&server_port_lock);
+  return 0;
 }
 
 static fdtype getfdservports(fdtype var,void *data)
