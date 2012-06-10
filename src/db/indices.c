@@ -526,7 +526,7 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->cache),key,FD_VOID);
   if (FD_VOIDP(cached)) cached=fd_index_fetch(ix,key);
-#if FD_USE_THREACACHE
+#if FD_USE_THREADCACHE
   if (fdtc) {
     fd_hashtable_store(&(fdtc->indices),(fdtype)&tempkey,cached);}
 #endif
@@ -914,7 +914,8 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
       u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetched %d keys from %s",
 	     FD_CHOICE_SIZE(todo),ix->cid);
 #endif
-    return values;}
+    if (values<0) return values;
+    else return 0;}
 }
 
 /* The in-memory index */
