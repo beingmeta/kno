@@ -12,6 +12,11 @@ BASELIBS=@LIBS@ -lm -lz
 BMLIBS=-lu8io -lu8data -lu8
 LIBS=${BMLIBS} ${BASELIBS}
 
+CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
+	  	  	../../lib/libfdbserv@suffix@.a  \
+	 		../../lib/libfddbfile@suffix@.a \
+			../../lib/libfddb@suffix@.a     \
+			../../lib/libfdtype@suffix@.a
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
 		  ../../lib/libtagger@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
@@ -66,12 +71,11 @@ $(TESTBIN): $(EXTRA_LIBS) \
             ../../lib/libfdscheme@suffix@.a \
 	    ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
-%: %.c $(EXTRA_LIBS) ../../lib/libfdscheme@suffix@.a \
-	../../lib/libfdbserv@suffix@.a \
-	../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
-	../../lib/libfdtype@suffix@.a
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lu8stdio
-	@echo MKTEST_SHARED $@
+%: %.c $(EXTRA_LIBS) $(CORE_LIBS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
+	@echo MKTEST_STATIC $@
+fdserv: ../../src/exe/webcommon.h
+fdcgiexec: ../../src/exe/webcommon.h
 
 clean: testclean
 	rm -f $(TESTBIN)

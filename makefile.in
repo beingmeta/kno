@@ -255,6 +255,7 @@ exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
+exe/fdcgiexec@suffix@ exe/fdserv@suffix@: src/exe/webcommon.h
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
