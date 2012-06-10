@@ -280,6 +280,19 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
+static fdtype refresh_mysqldb(fdtype c,fdtype flags)
+{
+  struct FD_MYSQL *dbp=(struct FD_MYSQL *)c;
+  
+  int retval=mysql_refresh(dbp->db,
+			   REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
+			   REFRESH_STATUS|REFRESH_THREADS);
+  if (retval) {
+    const char *errmsg=mysql_error(dbp->db);
+    return fd_err(MySQL_Error,"mysql/refresh",(u8_string)errmsg,((fdtype)c));}
+  else return FD_VOID;
+}
+
 /* Binding out */
 
 /* This sets up outbound bindings for a statement.
@@ -590,14 +603,14 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
     retval=mysql_stmt_prepare(stmt,FD_STRDATA(string),FD_STRLEN(string));
   else retval=-1;
   if (retval) {
-    if (stmt) mysqlerrno=mysql_errno(db);
-    else mysqlerrno=mysql_stmt_errno(stmt);}
+    if (stmt) mysqlerrno=mysql_stmt_errno(stmt);
+    else mysqlerrno=mysql_errno(db);}
   if ((mysqlerrno==CR_SERVER_GONE_ERROR) ||
       (mysqlerrno==CR_SERVER_LOST)) {
     int reconn=reopen_mysql(dbp);
     fd_decref(colinfo);
     if (reconn<0) {
-      const char *errmsg=mysql_stmt_error(stmt);
+      const char *errmsg=((stmt)?(mysql_stmt_error(stmt)):(mysql_error(db)));
       u8_seterr(MySQL_Error,"mysqlexec",u8_strdup(errmsg));
       return FD_ERROR_VALUE;}
     else return mysqlexec(dbp,string,colinfo_arg);}
@@ -1121,6 +1134,10 @@ FD_EXPORT int fd_init_mysql()
 			  -1,FD_VOID,
 			  fd_string_type,FD_VOID,
 			  fd_string_type,FD_VOID,
+			  -1,FD_VOID));
+  fd_defn(module,
+	  fd_make_cprim2x("MYSQL/REFRESH",refresh_mysqldb,1,
+			  fd_extdb_type,FD_VOID,
 			  -1,FD_VOID));
   mysql_initialized=1;
 
