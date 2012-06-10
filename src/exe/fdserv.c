@@ -280,7 +280,7 @@ static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
 
 static int webservefn(u8_client ucl)
 {
-  fdtype proc=FD_VOID, result=FD_VOID, cgidata=FD_VOID, path=FD_VOID;
+  fdtype proc=FD_VOID, result=FD_VOID, cgidata=FD_VOID, path=FD_VOID, precheck;
   fd_webconn client=(fd_webconn)ucl; int write_headers=1;
   double start_time, setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache=NULL;
@@ -359,7 +359,12 @@ static int webservefn(u8_client ucl)
       fd_set_default_output(&(client->out));
       fd_use_reqinfo(cgidata);
       fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
-      if (FD_ABORTP(proc)) result=fd_incref(proc);
+      precheck=run_preflight();
+      if (!((FD_FALSEP(precheck))||
+	    (FD_VOIDP(precheck))||
+	    (FD_EMPTY_CHOICEP(precheck))))
+	result=precheck;
+      else if (FD_ABORTP(proc)) result=fd_incref(proc);
       else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
 	struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
 	if (traceweb>1)
@@ -490,6 +495,7 @@ static int webservefn(u8_client ucl)
       fdtype retval=fd_apply(cleanup,0,NULL);
       fd_decref(retval);}}
   forcelog=fd_req_test(forcelog_symbol,FD_VOID);
+  run_postflight();
   if (threadcache) fd_pop_threadcache(threadcache);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);

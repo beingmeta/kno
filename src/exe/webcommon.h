@@ -75,7 +75,109 @@ static void init_webcommon_symbols()
   forcelog_symbol=fd_intern("FORCELOG");
 }
 
-/* Utility functions */
+/* Preflight/postflight */
+
+static fdtype preflight=FD_EMPTY_LIST;
+
+static int preflight_set(fdtype var,fdtype val,void *data)
+{
+  struct FD_FUNCTION *vf;
+  if (!(FD_APPLICABLEP(val))) 
+    return fd_reterr(fd_TypeError,"preflight_set",u8_strdup("applicable"),val);
+  if (FD_FUNCTIONP(val)) {
+    vf=FD_DTYPE2FCN(val);
+    if ((vf)&&(vf->name)&&(vf->filename)) {
+      fdtype scan=preflight; while (FD_PAIRP(scan)) {
+	fdtype fn=FD_CAR(scan);
+	if (val==fn) return 0;
+	else if (FD_FUNCTIONP(fn)) {
+	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
+	  if ((f->name)&&(f->filename)&&
+	      (strcmp(f->name,vf->name)==0)&&
+	      (strcmp(f->filename,vf->filename)==0)) {
+	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
+	    p->car=val; fd_incref(val); fd_decref(fn);
+	    return 0;}}
+	scan=FD_CDR(scan);}}
+    preflight=fd_init_pair(NULL,val,preflight);
+    fd_incref(val);
+    return 1;}
+  else {
+    fdtype scan=preflight; while (FD_PAIRP(scan)) {
+      fdtype fn=FD_CAR(scan);
+      if (val==fn) return 0;
+      scan=FD_CDR(scan);}
+    preflight=fd_init_pair(NULL,val,preflight);
+    fd_incref(val);
+    return 1;}
+}
+
+static fdtype preflight_get(fdtype var,void *data)
+{
+  return fd_incref(preflight);
+}
+
+static fdtype run_preflight()
+{
+  FD_DOLIST(fn,preflight) {
+    fdtype v=fd_apply(fn,0,NULL);
+    if (FD_ABORTP(v)) return v;
+    else if (FD_VOIDP(v)) {}
+    else if (FD_EMPTY_CHOICEP(v)) {}
+    else if (FD_FALSEP(v)) {}
+    else return v;}
+  return FD_FALSE;
+}
+
+static fdtype postflight=FD_EMPTY_LIST;
+
+static int postflight_set(fdtype var,fdtype val,void *data)
+{
+  struct FD_FUNCTION *vf;
+  if (!(FD_APPLICABLEP(val))) 
+    return fd_reterr(fd_TypeError,"postflight_set",u8_strdup("applicable"),val);
+  if (FD_FUNCTIONP(val)) {
+    vf=FD_DTYPE2FCN(val);
+    if ((vf)&&(vf->name)&&(vf->filename)) {
+      fdtype scan=postflight; while (FD_PAIRP(scan)) {
+	fdtype fn=FD_CAR(scan);
+	if (val==fn) return 0;
+	else if (FD_FUNCTIONP(fn)) {
+	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
+	  if ((f->name)&&(f->filename)&&
+	      (strcmp(f->name,vf->name)==0)&&
+	      (strcmp(f->filename,vf->filename)==0)) {
+	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
+	    p->car=val; fd_incref(val); fd_decref(fn);
+	    return 0;}}
+	scan=FD_CDR(scan);}}
+    postflight=fd_init_pair(NULL,val,postflight);
+    fd_incref(val);
+    return 1;}
+  else {
+    fdtype scan=postflight; while (FD_PAIRP(scan)) {
+      fdtype fn=FD_CAR(scan);
+      if (val==fn) return 0;
+      scan=FD_CDR(scan);}
+    postflight=fd_init_pair(NULL,val,postflight);
+    fd_incref(val);
+    return 1;}
+}
+
+static fdtype postflight_get(fdtype var,void *data)
+{
+  return fd_incref(postflight);
+}
+
+static void run_postflight()
+{
+  FD_DOLIST(fn,postflight) {
+    fdtype v=fd_apply(fn,0,NULL);
+    if (FD_ABORTP(v)) {
+      u8_log(LOG_CRIT,"postflight","Error from postflight %q",fn);
+      fd_clear_errors(1);}
+    fd_decref(v);}
+}
 
 /* Miscellaneous Server functions */
 
@@ -353,7 +455,7 @@ static fdtype loadcontent(fdtype path)
       u8_log(LOG_WARN,Startup,"ERROR","Error parsing %s",pathname);
       return FD_ERROR_VALUE;}
     parsed=xml->head;
-    while ((FD_PAIRP(parsed)) &&
+    while ((FD_PAIRP(parsed)) && 
 	   (FD_STRINGP(FD_CAR(parsed))) &&
 	   (whitespace_stringp(FD_STRDATA(FD_CAR(parsed))))) {
       struct FD_PAIR *old_parsed=(struct FD_PAIR *)parsed;
@@ -482,6 +584,12 @@ static void init_webcommon_configs()
   fd_register_config("DOCROOT",
 		     _("File base (directory) for resolving requests"),
 		     fd_sconfig_get,fd_sconfig_set,&docroot);
+  fd_register_config("PREFLIGHT",
+		     _("Preflight (before request handling) procedures"),
+		     preflight_get,preflight_set,NULL);
+  fd_register_config("POSTFLIGHT",
+		     _("POSTFLIGHT (before request handling) procedures"),
+		     postflight_get,postflight_set,NULL);
 }
 
 static void shutdown_server(u8_condition why);
