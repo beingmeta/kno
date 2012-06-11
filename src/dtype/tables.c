@@ -2196,7 +2196,9 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 	  if (clean) {
 	    fdtype v=*scan;
 	    u8_free(h->slots);
-	    if (FD_VOIDP(v)) return FD_EMPTY_CHOICE;
+	    fd_unlock_struct(h);
+	    if (FD_VOIDP(v))
+	      return FD_EMPTY_CHOICE;
 	    else return v;}
 	  else {
 	    fdtype v=fd_incref(*scan);
@@ -2205,6 +2207,7 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 	      return FD_EMPTY_CHOICE;
 	    else return v;}
 	else scan++;
+      fd_unlock_struct(h);
       return FD_VOID;}
     else {
       int n=h->n_keys, atomicp=1; 
@@ -2229,15 +2232,14 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
       if (clean)
 	if (FD_MALLOCD_CONSP(h)) fd_decref((fdtype)h);
 	else {
-	  u8_free(h->slots); h->n_slots=h->n_keys=0;
-	  fd_unlock_struct(h);}
-      else fd_unlock_struct(h);
+	  u8_free(h->slots); h->n_slots=h->n_keys=0;}
+      fd_unlock_struct(h);
       return fd_init_choice(new_choice,write-base,base,
 			    (FD_CHOICE_DOSORT|
 			     ((atomicp)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES))|
 			     FD_CHOICE_REALLOC));}}
-
 }
+
 static fdtype hashset_getsize(struct FD_HASHSET *h)
 {
   FD_CHECK_TYPE_RETDTYPE(h,fd_hashset_type);
@@ -2346,7 +2348,8 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
   hnew->n_slots=h->n_slots; hnew->n_keys=h->n_keys;
   hnew->slots=newslots; hnew->atomicp=h->atomicp;
   hnew->loading=h->loading;
-  fd_init_mutex((&h->lock));
+  fd_unlock_struct(h);
+  fd_init_mutex((&hnew->lock));
   return (fdtype) hnew;
 }
 
