@@ -279,7 +279,9 @@
       expr))
 (defambda (tighten-args expr env bound dolex dorail)
   (if (pair? expr)
-      (forseq (arg expr) (dotighten arg env bound dolex dorail))
+      (forseq (arg expr)
+	(if (qchoice? arg) arg
+	    (dotighten arg env bound dolex dorail)))
       expr))
 
 (define (optimize-procedure! proc (dolex #t) (dorail #f))
