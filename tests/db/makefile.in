@@ -25,10 +25,10 @@ TESTPROG	=
 RUNENV		= 
 RUNTEST		= $(RUNENV)$(TESTPROG)
 
-NETBRICOPOOL	= bground@beingmeta.com
+NETBRICOPOOL	= brico@dev.beingmeta.com
 FILEBRICOPOOL	= /data/brico/brico.pool
 ZFILEBRICOPOOL	= /data/bg/brico.pool
-NETBRICOINDEX	= bground@beingmeta.com
+NETBRICOINDEX	= brico@dev.beingmeta.com
 FILEBRICOINDEX	= /data/brico/brico.index
 ZFILEBRICOINDEX	= /data/bg/brico.index
 BRICOPOOL	= $(FILEBRICOPOOL)
@@ -36,8 +36,10 @@ BRICOINDEX	= $(FILEBRICOINDEX)
 
 TESTBIN=pool-get@suffix@ dtcall@suffix@ indexop@suffix@ \
 	index-get@suffix@ dbtool@suffix@
+SHAREDBIN=pool-get@suffix@.shared dtcall@suffix@.shared indexop@suffix@.shared \
+	index-get@suffix@.shared dbtool@suffix@.shared
 
-all: $(TESTBIN) 
+all: $(TESTBIN) $(SHAREDBIN)
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -o $@ $<
@@ -49,10 +51,10 @@ $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
 %: %.c ../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
-	@echo MKTEST $@
+	@echo MKTEST_STATIC $@
 
-# This is for making shared test programs, when there are associated problems
-%.shared: %.c
+# This is for making shared (dynamically linked) versions of the test programs
+%@suffix@.shared: %.c
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype -lfddb -lfddbfile
 	@echo MKTEST_SHARED $@
@@ -65,6 +67,8 @@ $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
 
 clean:
 	rm -f $(TESTBIN)
+
+alltests: allpooltests allindextests
 
 pooltests:
 	$(RUNTEST) ./pool-get $(BRICOPOOL) @1/13800

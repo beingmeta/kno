@@ -30,8 +30,16 @@ TESTBIN=makedtype printdtype copydtype testcapi \
 	differencetest \
         maketable resizetable \
 	tablekeys readtable
+SHAREDBIN=\
+        makedtype.shared printdtype.shared copydtype.shared testcapi.shared \
+        choicetest.shared slotmaptest.shared \
+	hashtabletest.shared \
+	intersectiontest.shared uniontest.shared \
+	differencetest.shared \
+        maketable.shared resizetable.shared \
+	tablekeys.shared readtable.shared
 
-all: $(TESTBIN)
+all: $(TESTBIN) $(SHAREDBIN)
 
 memtests:
 	make "TESTPROG=$(VALGRIND)" mosttests
@@ -45,34 +53,34 @@ mosttests: dtypetests choicetests tabletests slotmaptests slotmaptests2
 #		smallbricotests
 dtypetests:
 	@echo "***" Testing calls from C API
-	$(RUNTEST) ./testcapi
+	$(RUNTEST) ./testcapi@suffix@
 	@echo "***" Testing dtype parsing and binary writing
-	$(RUNTEST) ./makedtype fixnum.dtype 33
-	$(RUNTEST) ./makedtype flonum.dtype 33.0
-	$(RUNTEST) ./makedtype big.dtype 12345678987654321
-	$(RUNTEST) ./makedtype googleplus.dtype 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
-	$(RUNTEST) ./makedtype nil.dtype "()"
-	$(RUNTEST) ./makedtype empty.dtype "{}"
-	$(RUNTEST) ./makedtype bool.dtype \#f
-	$(RUNTEST) ./makedtype oid.dtype @314/55
-	$(RUNTEST) ./makedtype symbol.dtype foo
-	$(RUNTEST) ./makedtype oddsymbol.dtype \|bar\|
+	$(RUNTEST) ./makedtype@suffix@ fixnum.dtype 33
+	$(RUNTEST) ./makedtype@suffix@ flonum.dtype 33.0
+	$(RUNTEST) ./makedtype@suffix@ big.dtype 12345678987654321
+	$(RUNTEST) ./makedtype@suffix@ googleplus.dtype 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
+	$(RUNTEST) ./makedtype@suffix@ nil.dtype "()"
+	$(RUNTEST) ./makedtype@suffix@ empty.dtype "{}"
+	$(RUNTEST) ./makedtype@suffix@ bool.dtype \#f
+	$(RUNTEST) ./makedtype@suffix@ oid.dtype @314/55
+	$(RUNTEST) ./makedtype@suffix@ symbol.dtype foo
+	$(RUNTEST) ./makedtype@suffix@ oddsymbol.dtype \|bar\|
 	@echo "***" Testing dtype binary reading and unparsing
-	$(RUNTEST) ./printdtype fixnum.dtype
-	$(RUNTEST) ./printdtype flonum.dtype
-	$(RUNTEST) ./printdtype big.dtype
-	$(RUNTEST) ./printdtype nil.dtype
-	$(RUNTEST) ./printdtype empty.dtype
-	$(RUNTEST) ./printdtype bool.dtype
-	$(RUNTEST) ./printdtype oid.dtype
-	$(RUNTEST) ./printdtype symbol.dtype
-	$(RUNTEST) ./printdtype oddsymbol.dtype
-	$(RUNTEST) ./printdtype ../data/testobj.dtype
+	$(RUNTEST) ./printdtype@suffix@ fixnum.dtype
+	$(RUNTEST) ./printdtype@suffix@ flonum.dtype
+	$(RUNTEST) ./printdtype@suffix@ big.dtype
+	$(RUNTEST) ./printdtype@suffix@ nil.dtype
+	$(RUNTEST) ./printdtype@suffix@ empty.dtype
+	$(RUNTEST) ./printdtype@suffix@ bool.dtype
+	$(RUNTEST) ./printdtype@suffix@ oid.dtype
+	$(RUNTEST) ./printdtype@suffix@ symbol.dtype
+	$(RUNTEST) ./printdtype@suffix@ oddsymbol.dtype
+	$(RUNTEST) ./printdtype@suffix@ ../data/testobj@suffix@.dtype
 	@echo "***" Testing dtype binary reading and writing together
-	$(RUNTEST) ./copydtype ../data/testobj.dtype testobj.dtype
-	$(RUNTEST) ./printdtype ../data/testobj.dtype
-	$(RUNTEST) ./printdtype testobj.dtype
-	$(RUNTEST) ./makedtype temp.dtype -f../data/testobj.text
+	$(RUNTEST) ./copydtype@suffix@ ../data/testobj.dtype testobj.dtype
+	$(RUNTEST) ./printdtype@suffix@ ../data/testobj.dtype
+	$(RUNTEST) ./printdtype@suffix@ testobj.dtype
+	$(RUNTEST) ./makedtype@suffix@ temp.dtype -f../data/testobj.text
 	diff ../data/testobj.dtype testobj.dtype
 	diff temp.dtype testobj.dtype
 
@@ -86,26 +94,28 @@ intchoicetests: ../data/intall.data
 	@echo "***" Testing merge/unions on integer choices
 	rm -f intersection.data nintersection.data \
 	      union.data union.ndata diff.data diff.ndata
-	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) intintersection.data ../data/int?.data
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) intintersection.data \
+		../data/int?.data
 	sort intintersection.data > intintersection.sorted
 	sort ../data/intcommon.data | diff - intintersection.sorted
-	$(RUNTEST) ./uniontest $(CHOICEFLAGS) intunion.data ../data/int?.data
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) intunion.data ../data/int?.data
 	sort intunion.data > intunion.sorted
 	sort ../data/intmerged.data | diff - intunion.sorted
-	$(RUNTEST) ./differencetest $(CHOICEFLAGS) intdiff.data \
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) intdiff.data \
                     ../data/intall.data intunion.sorted
 	sort intdiff.data > intdiff.sorted
 	sort ../data/intmissing.data | diff - intdiff.sorted
 
 oidchoicetests: ../data/oidall.data
 	@echo "***" Testing merge/unions on oid choices
-	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) oidintersection.data ../data/oid?.data
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) oidintersection.data \
+		../data/oid?.data
 	sort oidintersection.data > oidintersection.sorted
 	sort ../data/oidcommon.data | diff - oidintersection.sorted
-	$(RUNTEST) ./uniontest $(CHOICEFLAGS) oidunion.data ../data/oid?.data
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) oidunion.data ../data/oid?.data
 	sort oidunion.data > oidunion.sorted
 	sort ../data/oidmerged.data | diff - oidunion.sorted
-	$(RUNTEST) ./differencetest $(CHOICEFLAGS) oiddiff.data \
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) oiddiff.data \
                     ../data/oidall.data oidunion.sorted
 	sort oiddiff.data > oiddiff.sorted
 	sort ../data/oidmissing.data | diff - oiddiff.sorted
@@ -114,16 +124,18 @@ oidchoicetests: ../data/oidall.data
 # are slotmaps which aren't canonically ordered
 objchoicetests: ../data/objall.data
 	@echo "***" Testing merge/unions on heterogenous object choices
-	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) objintersection.data ../data/obj?.data
-	$(RUNTEST) ./uniontest $(CHOICEFLAGS) objunion.data ../data/obj?.data
-	$(RUNTEST) ./differencetest $(CHOICEFLAGS) objdiff.data \
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) objintersection.data \
+		../data/obj?.data
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) objunion.data ../data/obj?.data
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) objdiff.data \
                     ../data/objall.data objunion.data
 
 compchoicetests: ../data/compall.data
 	@echo "***" Testing merge/unions on heterogenous compound object choices
-	$(RUNTEST) ./intersectiontest $(CHOICEFLAGS) compintersection.data ../data/comp?.data
-	$(RUNTEST) ./uniontest $(CHOICEFLAGS) compunion.data ../data/comp?.data
-	$(RUNTEST) ./differencetest $(CHOICEFLAGS) compdiff.data \
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) compintersection.data \
+		../data/comp?.data
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) compunion.data ../data/comp?.data
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) compdiff.data \
                     ../data/compall.data compunion.data
 
 ../data/intall.data:
@@ -138,98 +150,98 @@ compchoicetests: ../data/compall.data
 tabletests:
 	@echo "***" Checking basic hashtable operations
 	rm -f temp.table
-	$(RUNTEST) ./hashtabletest temp.table foo 33
-	$(RUNTEST) ./hashtabletest temp.table foo +444
-	$(RUNTEST) ./hashtabletest temp.table foo +5555
-	$(RUNTEST) ./hashtabletest temp.table foo
-	$(RUNTEST) ./hashtabletest temp.table bar
-	$(RUNTEST) ./hashtabletest temp.table bar 88
-	$(RUNTEST) ./hashtabletest temp.table bar 99
-	$(RUNTEST) ./hashtabletest temp.table foo -444
-	$(RUNTEST) ./hashtabletest temp.table foo
-	$(RUNTEST) ./hashtabletest temp.table bar +66
-	$(RUNTEST) ./hashtabletest temp.table bar "+\"sixty-six\""
-	$(RUNTEST) ./hashtabletest temp.table 33 foo
-	$(RUNTEST) ./hashtabletest temp.table 444 foo
-	$(RUNTEST) ./hashtabletest temp.table 5555 +foo
-	$(RUNTEST) ./hashtabletest temp.table 5555
-	$(RUNTEST) ./hashtabletest temp.table 444
-	$(RUNTEST) ./hashtabletest temp.table 33
-	$(RUNTEST) ./hashtabletest temp.table foo
-	$(RUNTEST) ./hashtabletest temp.table bar
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)"
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)" cons
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)" pair
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)" +2
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)" +99
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)" "+\"string\""
-	$(RUNTEST) ./hashtabletest temp.table "(A . B)"
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo 33
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo +444
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo +5555
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar 88
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar 99
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo -444
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar +66
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar "+\"sixty-six\""
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 33 foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 444 foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 5555 +foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 5555
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 444
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 33
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)"
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" cons
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" pair
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" +2
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" +99
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" "+\"string\""
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)"
 
 slotmaptests:
 	@echo "***" Checking basic slotmap operations
 	rm -f temp.smap
-	$(RUNTEST) ./slotmaptest temp.smap foo 33
-	$(RUNTEST) ./slotmaptest temp.smap foo +444
-	$(RUNTEST) ./slotmaptest temp.smap foo +5555
-	$(RUNTEST) ./slotmaptest temp.smap foo
-	$(RUNTEST) ./slotmaptest temp.smap bar
-	$(RUNTEST) ./slotmaptest temp.smap bar 88
-	$(RUNTEST) ./slotmaptest temp.smap bar 99
-	$(RUNTEST) ./slotmaptest temp.smap foo -444
-	$(RUNTEST) ./slotmaptest temp.smap foo
-	$(RUNTEST) ./slotmaptest temp.smap bar +66
-	$(RUNTEST) ./slotmaptest temp.smap bar "+\"sixty-six\""
-	$(RUNTEST) ./slotmaptest temp.smap 33 foo
-	$(RUNTEST) ./slotmaptest temp.smap 444 foo
-	$(RUNTEST) ./slotmaptest temp.smap 5555 +foo
-	$(RUNTEST) ./slotmaptest temp.smap 5555
-	$(RUNTEST) ./slotmaptest temp.smap 444
-	$(RUNTEST) ./slotmaptest temp.smap 33
-	$(RUNTEST) ./slotmaptest temp.smap foo
-	$(RUNTEST) ./slotmaptest temp.smap bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo +444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo +5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar 88
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar 99
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo -444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar +66
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar "+\"sixty-six\""
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 33 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 444 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 5555 +foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar
 
 slotmaptests2:
 	@echo "***" Checking more slotmap operations
 	rm -f temp.smap2
-	$(RUNTEST) ./slotmaptest temp.smap2 foo 33
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)"
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)" cons
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)" pair
-	$(RUNTEST) ./slotmaptest temp.smap2 foo +444
-	$(RUNTEST) ./slotmaptest temp.smap2 foo +5555
-	$(RUNTEST) ./slotmaptest temp.smap2 foo
-	$(RUNTEST) ./slotmaptest temp.smap2 bar
-	$(RUNTEST) ./slotmaptest temp.smap2 bar 88
-	$(RUNTEST) ./slotmaptest temp.smap2 bar 99
-	$(RUNTEST) ./slotmaptest temp.smap2 foo -444
-	$(RUNTEST) ./slotmaptest temp.smap2 foo
-	$(RUNTEST) ./slotmaptest temp.smap2 bar +66
-	$(RUNTEST) ./slotmaptest temp.smap2 bar "+\"sixty-six\""
-	$(RUNTEST) ./slotmaptest temp.smap2 33 foo
-	$(RUNTEST) ./slotmaptest temp.smap2 444 foo
-	$(RUNTEST) ./slotmaptest temp.smap2 5555 +foo
-	$(RUNTEST) ./slotmaptest temp.smap2 5555
-	$(RUNTEST) ./slotmaptest temp.smap2 444
-	$(RUNTEST) ./slotmaptest temp.smap2 33
-	$(RUNTEST) ./slotmaptest temp.smap2 foo
-	$(RUNTEST) ./slotmaptest temp.smap2 bar
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)" +2
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)" +99
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)" "+\"string\""
-	$(RUNTEST) ./slotmaptest temp.smap2 "(A . B)"
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)"
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" cons
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" pair
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo +444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo +5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar 88
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar 99
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo -444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar +66
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar "+\"sixty-six\""
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 33 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 444 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 5555 +foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" +2
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" +99
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" "+\"string\""
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)"
 
 smallbricotests: ../data/bricosmall.dump
 	@echo "***" Running tests on a modestly large hashtable
-	$(RUNTEST) ./maketable ../data/bricosmall.dump bricosmall.table
-	$(RUNTEST) ./readtable bricosmall.table
+	$(RUNTEST) ./maketable@suffix@ ../data/bricosmall.dump bricosmall.table
+	$(RUNTEST) ./readtable@suffix@ bricosmall.table
 mediumbricotests: ../data/bricosample.dump
 	@echo "***" Running tests on a larger hashtable
-	$(RUNTEST) ./maketable ../data/bricosample.dump bricosample.table
-	$(RUNTEST) ./readtable bricosample.table
+	$(RUNTEST) ./maketable@suffix@ ../data/bricosample.dump bricosample.table
+	$(RUNTEST) ./readtable@suffix@ bricosample.table
 bigbricotests: ../data/brico.dump
 	@echo "***" Running tests on a pretty big hashtable
-	$(RUNTEST) ./maketable ../data/brico.dump brico.table
-	$(RUNTEST) ./readtable brico.table
+	$(RUNTEST) ./maketable@suffix@ ../data/brico.dump brico.table
+	$(RUNTEST) ./readtable@suffix@ brico.table
 
 ../data/bricosmall.dump:
 	@echo "***" Trying to make the data for a modestly large hashtable
@@ -246,12 +258,12 @@ bigbricotests: ../data/brico.dump
 	@echo CC $@ $<
 
 $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
-%: %.c
+%@suffix@: %.c
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
-	@echo MKTEST $@
+	@echo MKTEST_STATIC $@
 
-# This is for making shared test programs, when there are associated problems
-%.shared: %.c
+# This is for making shared (dynamically linked) versions of the test programs
+%@suffix@.shared: %.c
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
 		../../src/db/dtypestream.o $(LIBS) -lfdtype $(LIBS)
 	@echo MKTEST_SHARED $@

@@ -87,58 +87,76 @@ testclean:
 alltests: dtypetests tabletests indextests hashindextests dbtests
 dtypetests:
 	@echo "***" Running scheme tests to exercise the data/eval layer
-	$(RUNTEST) ./fdexec $(TESTCONFIG) r4rs.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) exceptions.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) choicetest.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) seqtest.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) cachecall.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) misctest.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) texttest.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) threadtest.scm
-	$(RUNTEST) ./fdexec $(TESTCONFIG) i18n.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) exceptions.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) choicetest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) seqtest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
 
 tabletests:
 	@echo "***" Running scheme tests to exercise the table/index layer
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.table
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.table
 
 indextests:
 	rm -f edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index $(TESTSIZE)
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.index
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.index
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.index $(TESTSIZE)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.index
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.index edit.dtype
 
 hashindextests:
 	rm -f edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex $(TESTSIZE)
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm temp.hashindex
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex edit.dtype
-	$(RUNTEST) ./fdexec $(TESTCONFIG) tabletest.scm CACHELEVEL=2 temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm \
+		temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm \
+		temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm \
+		temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.hashindex $(TESTSIZE)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
+		temp.hashindex edit.dtype
 
 dbtests:
 	@echo "***" Running scheme tests to exercise the database layer
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb init $(DBTEST_FILES)
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
-	$(RUNTEST) ./fdexec dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
+		COUNT=$(TESTSIZE) testdb init $(DBTEST_FILES)
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
+		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
+		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
+		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
 
 dbhashtests:
 	@echo "***" Running scheme tests to exercise the database layer with hashindices
