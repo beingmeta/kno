@@ -900,7 +900,7 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
   fdtype todo=delays[ix->serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
-    fdtype values=FD_VOID;
+    int retval=-1;
     /* fd_lock_mutex(&(fd_ipeval_lock)); */
     todo=delays[ix->serialno];
     delays[ix->serialno]=FD_EMPTY_CHOICE;
@@ -911,13 +911,13 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 	     FD_CHOICE_SIZE(todo),ix->cid,todo);
     else 
 #endif
-    values=fd_index_prefetch(ix,todo);
+    retval=fd_index_prefetch(ix,todo);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
       u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetched %d keys from %s",
 	     FD_CHOICE_SIZE(todo),ix->cid);
 #endif
-    if (values<0) return values;
+    if (retval<0) return retval;
     else return 0;}
 }
 
