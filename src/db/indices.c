@@ -163,17 +163,20 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
   if (strchr(spec,';')) {
     fd_seterr(fd_BadIndexSpec,"fd_open_index",u8_strdup(spec),FD_VOID);
     return NULL;}
-  else if (strchr(spec,'@')) {
+  else if ((strchr(spec,'@'))||(strchr(spec,':'))) {
     fd_index known=fd_find_index_by_cid(spec);
-    u8_byte *at=strchr(spec,'@');
     if (known) return known;
-    else if (strchr(at+1,'@')) {
+    else {
       u8_byte buf[64]; fdtype xname;
-      if (at-spec>63) return NULL;
-      strncpy(buf,spec,at-spec); buf[at-spec]='\0';
-      xname=fd_parse(buf);
-      return fd_open_network_index(spec,at+1,xname);}
-    else return fd_open_network_index(spec,spec,FD_VOID);}
+      u8_byte *at=strchr(spec,'@'), *colon=NULL;
+      if (!(at))
+	return fd_open_network_index(spec,spec,FD_VOID);
+      else if ((strchr(at+1,'@'))||(strchr(at+1,':'))) {
+	if (at-spec>63) return NULL;
+	strncpy(buf,spec,at-spec); buf[at-spec]='\0';
+	xname=fd_parse(buf);
+	return fd_open_network_index(spec,at+1,xname);}
+      else return fd_open_network_index(spec,spec,FD_VOID);}}
   else if (fd_file_index_opener)
     return fd_file_index_opener(spec);
   else {
