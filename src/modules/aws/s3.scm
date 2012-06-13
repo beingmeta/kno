@@ -252,7 +252,13 @@
 		      (textsubst url (car rule)))))))
 
 (define (s3loc bucket path)
-  (cons-s3loc bucket (if (has-prefix path "/") (subseq path 1) path)))
+  (if (s3loc? bucket)
+      (s3/mkpath bucket path)
+      (cons-s3loc (if (has-prefix bucket "s3://") (subseq bucket 5)
+		      (if (has-prefix bucket "s3:")
+			  (subseq bucket 3)
+			  bucket))
+		  (if (has-prefix path "/") (subseq path 1) path))))
 
 (define (s3loc/uri s3loc)
   (stringout s3scheme s3root "/"
