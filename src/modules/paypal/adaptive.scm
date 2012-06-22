@@ -24,7 +24,7 @@
 	 (args `#["actionType" "PAY"
 		  "currencyCode" ,(getopt spec 'currency "USD")
 		  "requestEnvelope.errorLanguage"
-		  ,(getopt spec 'language  "en_US")
+		  ,(getopt spec 'errlang (getopt spec 'language  "en_US"))
 		  "feesPayer"
 		  ,(getopt spec 'fees "EACHRECEIVER")
 		  "returnUrl" ,(getopt spec 'return return-url)
