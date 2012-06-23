@@ -4,8 +4,11 @@
 
 ;;; Connects with Paypal
 
-(use-module '{fdweb xhtml texttools ezrecords parsetime varconfig})
+(use-module '{fdweb xhtml texttools ezrecords parsetime varconfig logger})
 (use-module 'paypal)
+
+(define-init %loglevel %notify!)
+;;(define %loglevel %debug!)
 
 (define return-url "https://www.sbooks.net/completed")
 (define cancel-url "https://www.sbooks.net/cancelled")
@@ -58,7 +61,8 @@
 			  ,(getopt spec 'pp:appid pp:appid)
 			  "X-PAYPAL-RESPONSE-DATA-FORMAT" "JSON"]
 			CONTENT-TYPE "application/x-www-form-urlencoded"])
-	   (response (urlpost url curlargs (scripturl+ #f args))))
+	   (argdata (scripturl+ #f args))
+	   (response (urlpost url curlargs argdata)))
       (if raw response
 	  (if (test response 'type {"text/xml"  "application/json"})
 	      (let* ((parsed (if (test response 'type "text/xml")
