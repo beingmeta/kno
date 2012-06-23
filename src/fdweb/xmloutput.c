@@ -1256,9 +1256,10 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
   else {
     varname=fd_dtype2string(name);
     free_varname=1;}
+  /*
   if ((*varname=='%')&&(varname[1]!='\0')&&(varname[2]!='\0')) {
-    if (varname[1]=='%') varname++;
-    else {varname=varname+2; do_encode=0;}}
+    varname++; if (*varname!='%') do_encode=0;}
+  */
   {FD_DO_CHOICES(val,value) {
       if (lastc=='?') {}
       else if (lastc=='&') {}
