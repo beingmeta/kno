@@ -17,7 +17,8 @@
   (let ((table (make-hashtable)))
     (do-choices (map '{("text/cache-manifest" "manifest")
 		       ("text/html" "html" "htm")
-		       ("application/xhtml+xml; charset=utf8" "xhtml")
+		       ("application/xhtml+xml" "xhtml")
+		       ;;("text/html" "xhtml")
 		       ("application/zip" "zip" "ZIP")
 		       ("text/plain" "text" "txt")
 		       ("image/jpeg" "jpeg" "jpg")
@@ -28,11 +29,7 @@
 		       ("application/x-dtbncx+xml" "ncx")})
       (store! table (choice (elts (cdr map))
 			    (string-append "." (elts (cdr map))))
-	      (if (has-prefix (car map) "text/")
-		  (if *default-charset*
-		      (string-append (car map) "; charset=" *default-charset*)
-		      (car map))
-		  (car map))))
+	      (car map)))
     table))
 
 (define (guess-ctype path)

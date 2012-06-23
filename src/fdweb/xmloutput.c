@@ -1244,7 +1244,7 @@ static fdtype fdscripturlplus(int n,fdtype *args)
 
 static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 {
-  int lastc=-1, free_varname=0;
+  int lastc=-1, free_varname=0, do_encode=1;
   u8_string varname; u8_byte namebuf[256];
   if (out->u8_outbuf<out->u8_outptr) lastc=out->u8_outptr[-1];
   if (FD_STRINGP(name)) varname=FD_STRDATA(name);
@@ -1256,6 +1256,9 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
   else {
     varname=fd_dtype2string(name);
     free_varname=1;}
+  if ((*varname=='%')&&(varname[1]!='\0')&&(varname[2]!='\0')) {
+    if (varname[1]=='%') varname++;
+    else {varname=varname+2; do_encode=0;}}
   {FD_DO_CHOICES(val,value) {
       if (lastc=='?') {}
       else if (lastc=='&') {}
@@ -1263,7 +1266,9 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
       fd_uri_output(out,varname,-1,0,NULL);
       u8_putc(out,'=');
       if (FD_STRINGP(val)) 
-	fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
+	if (do_encode)
+	  fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
+	else u8_puts(out,FD_STRDATA(val));
       else if (FD_PACKETP(val)) 
 	fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
       else if (FD_OIDP(val)) {
