@@ -428,7 +428,7 @@
 
 ;;;; Authorize/deauthorize API
 
-(define (auth/deauthorize! (authid authid) (info))
+(define (auth/deauthorize! (authid authid) (info) (uservar userid))
   ;; Get the arguments sorted
   (cond ((authinfo? authid)
 	 (set! info authid)
@@ -438,6 +438,7 @@
   (when info
     (when checktoken
       (checktoken (authinfo-identity info) (authinfo-token info) #f)))
-  (expire-cookie! authid "AUTH/DEAUTHORIZE!"))
+  (expire-cookie! authid "AUTH/DEAUTHORIZE!")
+  (expire-cookie! (glom "." uservar) "AUTH/DEAUTHORIZE!"))
 
 
