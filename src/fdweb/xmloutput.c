@@ -278,7 +278,8 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
     else if (FD_SYMBOLP(elt)) {
       if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
       fd_seterr(fd_SyntaxError,"open_markup",
-		u8_mkstring(_("missing alternating attrib value for %s"),FD_SYMBOL_NAME(elt)),
+		u8_mkstring(_("missing alternating attrib value for %s"),
+			    FD_SYMBOL_NAME(elt)),
 		fd_incref(attribs));
       return -1;}
     else if ((FD_PAIRP(elt))) {
@@ -290,7 +291,8 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
 	return -1;}}
     else {
       if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
-      fd_seterr(fd_SyntaxError,"open_markup",fd_dtype2string(elt),fd_incref(attribs));
+      fd_seterr(fd_SyntaxError,"open_markup",
+		fd_dtype2string(elt),fd_incref(attribs));
       return -1;}}
   if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
   return 1;
