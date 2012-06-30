@@ -41,9 +41,6 @@ FD_EXPORT void fd_init_fdweb()
     fd_init_cgiexec_c();
     fd_init_urifns_c();
     fd_init_json_c();
-#if (FD_WITH_EXIF)
-    fd_init_exif_c();
-#endif
 #if (FD_WITH_CURL)
     fd_init_curl_c();
 #endif
