@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/fddb.h"
@@ -142,7 +139,7 @@ FD_EXPORT int fd_init_crypto()
 {
   fdtype crypto_module;
   if (crypto_init) return 0;
-  fd_register_source_file(versionid);
+  /* fd_register_source_file(versionid); */
   crypto_init=1;
   crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));
 

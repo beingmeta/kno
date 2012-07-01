@@ -91,7 +91,7 @@ SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o
 FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o          \
 	src/fdweb/uriprims.o src/fdweb/xmleval.o src/fdweb/cgiexec.o    \
-	src/fdweb/json.o @exifo@ @curlo@
+	src/fdweb/json.o @curlo@
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/porter.o src/texttools/phonetic.o
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
@@ -147,8 +147,7 @@ FDB_SOURCES=\
 	src/fdweb/fdweb.c src/fdweb/json.c                             \
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
 	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   \
-	src/fdweb/mime.c src/fdweb/email.c                             \
-	src/fdweb/curl.c src/fdweb/exif.c                              \
+	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            \
 	src/texttools/texttools.c src/texttools/match.c                \
 	src/texttools/porter.c src/texttools/phonetic.c                \
 	src/tagger/tagger.c src/tagger/ofsm.c src/tagger/tagxtract.c   \
@@ -561,6 +560,15 @@ lib/framerd/ziptools.so: lib/framerd/ziptools.so.@VERSION@
 lib/framerd/ziptools.@VERSION@.dylib: src/cmodules/ziptools.o
 lib/framerd/ziptools.dylib: lib/framerd/ziptools.@VERSION@.dylib
 
+lib/framerd/exif.so.@VERSION@: src/cmodules/exif.o
+	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS) -lexif
+	@echo MKSO $@
+lib/framerd/exif.so: lib/framerd/exif.so.@VERSION@
+lib/framerd/exif.@VERSION@.dylib: src/cmodules/exif.o
+	@$(MACLIBTOOL) -install_name $(@F) -lexif -o $@ $^
+	@echo MACLIBTOOL $@
+lib/framerd/exif.dylib: lib/framerd/exif.@VERSION@.dylib
+
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
@@ -720,6 +728,8 @@ install-ziptools: $(LIBINSTALLDIR)/framerd/ziptools.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/ziptools.@vshared_suffix@
 install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/tidy.@vshared_suffix@
+install-exif: $(LIBINSTALLDIR)/framerd/exif.@shared_suffix@ \
+	        $(LIBINSTALLDIR)/framerd/exif.@vshared_suffix@
 
 # Setup targets
 
@@ -1435,13 +1445,6 @@ src/fdweb/mime.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/fdweb/mime.o: ./include/framerd/tables.h ./include/framerd/tables.h
 src/fdweb/mime.o: ./include/framerd/eval.h ./include/framerd/apply.h
 src/fdweb/mime.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
-src/fdweb/exif.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/fdweb/exif.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/fdweb/exif.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/fdweb/exif.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/fdweb/exif.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/fdweb/exif.o: ./include/framerd/tables.h ./include/framerd/numbers.h
-src/fdweb/exif.o: ./include/framerd/eval.h ./include/framerd/apply.h
 src/fdweb/email.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/email.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/email.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h

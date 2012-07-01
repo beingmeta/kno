@@ -834,14 +834,12 @@ fi
 
 dnl Build with primitives accessing libexif, if it is available
 AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
+AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
 AC_ARG_WITH(exif,--with[out]-exif Use libexif in fdweb,,with_exif=$exif_default)
-if test $with_exif = "yes"; then
-  AC_CHECK_LIB(exif,exif_data_new_from_data)
+if test "x$with_exif" = "xyes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
-  AC_DEFINE(FD_WITH_EXIF,1)
-  exifo="src/fdweb/exif.o"
-else
-  AC_DEFINE(FD_WITH_EXIF,0)
+  CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
 fi
 
 dnl Enables/disables linking with RPATH

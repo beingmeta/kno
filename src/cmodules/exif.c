@@ -5,9 +5,6 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
-
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
@@ -17,6 +14,10 @@ static char versionid[] =
 #include <libexif/exif-utils.h>
 #include <libexif/exif-data.h>
 #include <libexif/exif-tag.h>
+
+FD_EXPORT int fd_init_exif(void) FD_LIBINIT_FN;
+
+static int exif_init=0;
 
 static fdtype exif2lisp(ExifEntry *exentry)
 {
@@ -265,11 +266,14 @@ static fdtype exif_get(fdtype x,fdtype prop)
     else return FD_EMPTY_CHOICE;}
 }
 
-
-FD_EXPORT void fd_init_exif_c()
+FD_EXPORT int fd_init_exif()
 {
-  fdtype fdweb_module=fd_new_module("FDWEB",0);
+  fdtype exif_module;
   struct TAGINFO *scan=taginfo;
+  if (exif_init) return 0;
+  /* fd_register_source_file(versionid); */
+  exif_init=1;
+  exif_module=fd_new_module("EXIF",(FD_MODULE_SAFE));
   FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {
@@ -277,8 +281,8 @@ FD_EXPORT void fd_init_exif_c()
     fd_hashtable_store(&exif_tagmap,symbol,FD_INT2DTYPE(scan->tagid));
     scan->tagsym=symbol;
     scan++;}
-  fd_idefn(fdweb_module,fd_make_cprim2("EXIF-GET",exif_get,1));
-
-  fd_register_source_file(versionid);
+  fd_idefn(exif_module,fd_make_cprim2("EXIF-GET",exif_get,1));
+  return 1;
+  /* fd_register_source_file(versionid); */
 }
 
