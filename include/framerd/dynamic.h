@@ -8,7 +8,9 @@
 
 #ifndef FDB_DYNAMIC_H
 #define FDB_DYNAMIC_H
-#define FDB_DYNAMIC_H_INFO __FILE__
+#ifndef FDB_DYNAMIC_H_INFO
+#define FDB_DYNAMIC_H_INFO "include/framerd/dynamic.h"
+#endif
 
 #include <setjmp.h>
 

@@ -7,7 +7,9 @@
 
 #ifndef FRAMERD_FDGMP_H
 #define FRAMERD_FDGMP_H 1
-#define FRAMERD_FDGMP_H_INFO __FILE__
+#ifndef FRAMERD_FDGMP_H_INFO
+#define FRAMERD_FDGMP_H_INFO "include/framerd/fdgmp.h"
+#endif
 
 #include <gmp.h>
 

@@ -7,7 +7,9 @@
 
 #ifndef FDB_POOLS_H
 #define FDB_POOLS_H 1
-#define FDB_POOLS_H_INFO __FILE__
+#ifndef FDB_POOLS_H_INFO
+#define FDB_POOLS_H_INFO "include/framerd/pools.h"
+#endif
 
 /* HOW POOLS WORK
 

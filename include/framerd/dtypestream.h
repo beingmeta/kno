@@ -7,7 +7,9 @@
 
 #ifndef FD_DTYPESTREAM_H
 #define FD_DTYPESTREAM_H 1
-#define FDB_DTYPESTREAM_H_INFO __FILE__
+#ifndef FDB_DTYPESTREAM_H_INFO
+#define FDB_DTYPESTREAM_H_INFO "include/framerd/dtypestream.h"
+#endif
 
 #include "dtype.h"
 #include "dtypeio.h"

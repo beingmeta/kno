@@ -7,7 +7,9 @@
 
 #ifndef FDB_DBXFILE_H
 #define FDB_DBXFILE_H 1
-#define FDB_DBXFILE_H_INFO __FILE__
+#ifndef FDB_DBXFILE_H_INFO
+#define FDB_DBXFILE_H_INFO "include/framerd/dbxfile.h"
+#endif
 
 #include "fddb.h"
 #include "pools.h"

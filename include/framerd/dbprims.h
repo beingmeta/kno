@@ -7,7 +7,9 @@
 
 #ifndef FDB_DBPRIMS_H
 #define FDB_DBPRIMS_H 1
-#define FDB_DBPRIMS_H_INFO __FILE__
+#ifndef FDB_DBPRIMS_H_INFO
+#define FDB_DBPRIMS_H_INFO "include/framerd/dbprims.h"
+#endif
 
 FD_EXPORT fdtype fd_fget(fdtype frames,fdtype slotids);
 FD_EXPORT fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values);

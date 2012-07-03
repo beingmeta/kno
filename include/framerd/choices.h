@@ -99,7 +99,9 @@
 
 #ifndef FDB_CHOICES_H
 #define FDB_CHOICES_H 1
-#define FDB_CHOICES_H_INFO "include/framerd/choices.h"
+#ifndef FDB_CHOICES_H_INFO
+#define FDB_CHOICES_H_INFO "include/framerd/"
+#endif
 
 #ifndef FD_MERGESORT_THRESHOLD
 #define FD_MERGESORT_THRESHOLD 100000

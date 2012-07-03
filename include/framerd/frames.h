@@ -7,7 +7,9 @@
 
 #ifndef FDB_FRAMES_H
 #define FDB_FRAMES_H 1
-#define FDB_FRAMES_H_INFO __FILE__
+#ifndef FDB_FRAMES_H_INFO
+#define FDB_FRAMES_H_INFO "include/framerd/frames.h"
+#endif
 
 /* Adjuncts: these are indices which function as slotids. */
 

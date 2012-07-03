@@ -9,7 +9,9 @@
 
 #ifndef FDB_DTYPE_H
 #define FDB_DTYPE_H 1
-#define FDB_DTYPE_H_INFO __FILE__
+#ifndef FDB_DTYPE_H_INFO
+#define FDB_DTYPE_H_INFO "include/framerd/dtype.h"
+#endif
 
 #include "common.h"
 #include "ptr.h"

@@ -7,7 +7,9 @@
 
 #ifndef FDB_DTYPEIO_H
 #define FDB_DTYPEIO_H 1
-#define FDB_DTYPEIO_H_INFO __FILE__
+#ifndef FDB_DTYPEIO_H_INFO
+#define FDB_DTYPEIO_H_INFO "include/framerd/dtypeio.h"
+#endif
 
 /* DTYPE constants */
 

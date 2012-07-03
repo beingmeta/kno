@@ -7,7 +7,9 @@
 
 #ifndef FDB_METHODS_H
 #define FDB_METHODS_H 1
-#define FDB_METHODS_H_INFO __FILE__
+#ifndef FDB_METHODS_H_INFO
+#define FDB_METHODS_H_INFO "include/framerd/methods.h"
+#endif
 
 #include "fddb.h"
 

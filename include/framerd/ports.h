@@ -7,7 +7,9 @@
 
 #ifndef FDB_PORTS_H
 #define FDB_PORTS_H 1
-#define FDB_PORTS_H_INFO __FILE__
+#ifndef FDB_PORTS_H_INFO
+#define FDB_PORTS_H_INFO "include/framerd/ports.h"
+#endif
 
 #include <libu8/libu8io.h>
 

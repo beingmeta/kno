@@ -7,7 +7,9 @@
 
 #ifndef FDB_INDICES_H
 #define FDB_INDICES_H 1
-#define FDB_INDICES_H_INFO __FILE__
+#ifndef FDB_INDICES_H_INFO
+#define FDB_INDICES_H_INFO "include/framerd/indices.h"
+#endif
 
 #include "fddb.h"
 #include "dtypestream.h"

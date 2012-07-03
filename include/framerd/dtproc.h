@@ -7,7 +7,9 @@
 
 #ifndef FDB_DTPROC_H
 #define FDB_DTPROC_H 1
-#define FDB_DTPROC_H_INFO __FILE__
+#ifndef FDB_DTPROC_H_INFO
+#define FDB_DTPROC_H_INFO "include/framerd/dtproc.h"
+#endif
 
 #include <libu8/u8netfns.h>
 

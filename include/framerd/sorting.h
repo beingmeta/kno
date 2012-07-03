@@ -7,7 +7,9 @@
 
 #ifndef FDB_SORTING_H
 #define FDB_SORTING_H 1
-#define FDB_SORTING_H_INFO __FILE__
+#ifndef FDB_SORTING_H_INFO
+#define FDB_SORTING_H_INFO "include/framerd/sorting.h"
+#endif
 
 struct FD_SORT_ENTRY {
   fdtype value, key;};

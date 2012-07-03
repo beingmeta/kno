@@ -7,7 +7,9 @@
 
 #ifndef FDB_MALLOC_H
 #define FDB_MALLOC_H 1
-#define FDB_MALLOC_H_INFO __FILE__
+#ifndef FDB_MALLOC_H_INFO
+#define FDB_MALLOC_H_INFO "include/framerd/malloc.h"
+#endif
 
 #endif /* #ifndef FDB_MALLOC_H */
 

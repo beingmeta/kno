@@ -7,7 +7,9 @@
 
 #ifndef FDB_EVAL_H
 #define FDB_EVAL_H 1
-#define FDB_EVAL_H_INFO __FILE__
+#ifndef FDB_EVAL_H_INFO
+#define FDB_EVAL_H_INFO "include/framerd/eval.h"
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/apply.h"

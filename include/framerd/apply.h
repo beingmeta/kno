@@ -7,7 +7,9 @@
 
 #ifndef FDB_APPLY_H
 #define FDB_APPLY_H 1
+#ifndef FDB_APPLY_H_INFO
 #define FDB_APPLY_H_INFO "include/framerd/apply.h"
+#endif
 #include "framerd/dtype.h"
 
 FD_EXPORT fd_exception fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;

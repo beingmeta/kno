@@ -7,7 +7,9 @@
 
 #ifndef FDB_DTCALL_H
 #define FDB_DTCALL_H 1
-#define FDB_DTCALL_H_INFO __FILE__
+#ifndef FDB_DTCALL_H_INFO
+#define FDB_DTCALL_H_INFO "include/framerd/dtcall.h"
+#endif
 
 #include "ptr.h"
 #include <libu8/u8netfns.h>

@@ -85,7 +85,9 @@
 
 #ifndef FDB_PTR_H
 #define FDB_PTR_H 1
-#define FDB_PTR_H_INFO __FILE__
+#ifndef FDB_PTR_H_INFO
+#define FDB_PTR_H_INFO "include/framerd/ptr.h"
+#endif
 
 #include "common.h"
 

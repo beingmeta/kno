@@ -7,7 +7,9 @@
 
 #ifndef FDB_SEQUENCES_H
 #define FDB_SEQUENCES_H 1
-#define FDB_SEQUENCES_H_INFO __FILE__
+#ifndef FDB_SEQUENCES_H_INFO
+#define FDB_SEQUENCES_H_INFO "include/framerd/sequences.h"
+#endif
 
 FD_EXPORT fd_exception fd_RangeError;
 

@@ -7,7 +7,9 @@
 
 #ifndef FDB_SUPPORT_H
 #define FDB_SUPPORT_H 1
-#define FDB_SUPPORT_H_INFO __FILE__
+#ifndef FDB_SUPPORT_H_INFO
+#define FDB_SUPPORT_H_INFO "include/framerd/support.h"
+#endif
 
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
 

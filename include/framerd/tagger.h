@@ -7,7 +7,9 @@
 
 #ifndef FDB_TAGGER_H
 #define FDB_TAGGER_H 1
-#define FDB_TAGGER_H_INFO __FILE__
+#ifndef FDB_TAGGER_H_INFO
+#define FDB_TAGGER_H_INFO "include/framerd/tagger.h"
+#endif
 
 FD_EXPORT void fd_init_tagger(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_ofsm_c(void);
