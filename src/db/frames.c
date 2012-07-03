@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_TABLES 1
@@ -1255,7 +1256,7 @@ FD_EXPORT int fd_slot_cache_load()
 
 FD_EXPORT void fd_init_frames_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   get_methods=fd_intern("GET-METHODS");
   compute_methods=fd_intern("COMPUTE-METHODS");

@@ -7,7 +7,7 @@
 
 #ifndef FDB_FDDB_H
 #define FDB_FDDB_H 1
-#define FDB_FDDB_H_VERSION "$Id$"
+#define FDB_FDDB_H_INFO __FILE__
 
 #include "dtypestream.h"
 

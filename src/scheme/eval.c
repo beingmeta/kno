@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1
@@ -1662,8 +1663,8 @@ FD_EXPORT int fd_init_fdscheme()
     default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
     safe_default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
     
-    fd_register_source_file(FDB_EVAL_H_VERSION);
-    fd_register_source_file(versionid);
+    fd_register_source_file(FDB_EVAL_H_INFO);
+    fd_register_source_file(_FILEINFO);
     
     init_scheme_module();
     init_core_builtins();

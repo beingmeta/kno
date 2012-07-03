@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1
@@ -419,12 +420,12 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_register_config("THREADTRACE","Whether errors in threads print out full backtraces",
 		     fd_boolconfig_get,fd_boolconfig_set,&fd_threaderror_backtrace);
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }
 #else
 FD_EXPORT void fd_init_threadprims_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }
 #endif
 

@@ -8,7 +8,7 @@
 
 #ifndef FDB_DYNAMIC_H
 #define FDB_DYNAMIC_H
-#define FDB_DYNAMIC_H_VERSION "$Id$"
+#define FDB_DYNAMIC_H_INFO __FILE__
 
 #include <setjmp.h>
 

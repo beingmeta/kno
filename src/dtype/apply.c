@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_PPTRS 1
 
@@ -1036,8 +1037,8 @@ FD_EXPORT void fd_init_apply_c()
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_functionp[i++]=0;
 
-  fd_register_source_file(versionid);
-  fd_register_source_file(FDB_APPLY_H_VERSION);
+  fd_register_source_file(_FILEINFO);
+  fd_register_source_file(FDB_APPLY_H_INFO);
   fd_register_config("CALLTRACK",_("File used for calltrack profiling (#f disables calltrack)"),
 		     get_calltrack,set_calltrack,NULL);
 

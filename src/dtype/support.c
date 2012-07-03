@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
@@ -1261,7 +1262,7 @@ static int boot_config()
 
 void fd_init_support_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   u8_register_textdomain("FramerD");
 

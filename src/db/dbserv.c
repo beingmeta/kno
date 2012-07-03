@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_CHOICES 1
@@ -901,7 +902,7 @@ FD_EXPORT int fd_init_fddbserv()
   if (fddbserv_initialized) return fddbserv_initialized;
   fddbserv_initialized=211*fd_init_db();
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
   fd_init_dbserv_c();
 
   return 1;

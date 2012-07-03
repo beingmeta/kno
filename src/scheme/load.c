@@ -19,8 +19,9 @@
 
 #include <stdio.h>
 
-static MAYBE_UNUSED char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 u8_condition FileLoad=_("File Load"), FileDone=_("File Done");
 u8_condition LoadEval=_("Load Eval");
@@ -351,7 +352,7 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 
 FD_EXPORT void fd_init_load_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&sourcefns_lock);

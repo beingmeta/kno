@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include <stdarg.h>
@@ -24,17 +25,17 @@ extern void fd_init_tables_c(void);
 
 static void register_header_files()
 {
-  fd_register_source_file(FDB_CONFIG_H_VERSION);
-  fd_register_source_file(FDB_SUPPORT_H_VERSION);
-  fd_register_source_file(FDB_MALLOC_H_VERSION);
-  fd_register_source_file(FDB_COMMON_H_VERSION);
-  fd_register_source_file(FDB_DEFINES_H_VERSION);
-  fd_register_source_file(FDB_PTR_H_VERSION);
-  fd_register_source_file(FDB_CONS_H_VERSION);
-  fd_register_source_file(FDB_DTYPE_H_VERSION);
-  fd_register_source_file(FDB_CHOICES_H_VERSION);
-  fd_register_source_file(FDB_TABLES_H_VERSION);
-  fd_register_source_file(FDB_DTYPEIO_H_VERSION);
+  fd_register_source_file(FDB_CONFIG_H_INFO);
+  fd_register_source_file(FDB_SUPPORT_H_INFO);
+  fd_register_source_file(FDB_MALLOC_H_INFO);
+  fd_register_source_file(FDB_COMMON_H_INFO);
+  fd_register_source_file(FDB_DEFINES_H_INFO);
+  fd_register_source_file(FDB_PTR_H_INFO);
+  fd_register_source_file(FDB_CONS_H_INFO);
+  fd_register_source_file(FDB_DTYPE_H_INFO);
+  fd_register_source_file(FDB_CHOICES_H_INFO);
+  fd_register_source_file(FDB_TABLES_H_INFO);
+  fd_register_source_file(FDB_DTYPEIO_H_INFO);
 }
 
 static void init_type_names()
@@ -96,7 +97,7 @@ FD_EXPORT int fd_init_dtypelib()
   u8_version=u8_initialize();
   fdtype_initialized=fdtype_version*u8_version;
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   register_header_files();
 

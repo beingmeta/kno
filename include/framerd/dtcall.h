@@ -7,7 +7,7 @@
 
 #ifndef FDB_DTCALL_H
 #define FDB_DTCALL_H 1
-#define FDB_DTCALL_H_VERSION "$Id:$"
+#define FDB_DTCALL_H_INFO __FILE__
 
 #include "ptr.h"
 #include <libu8/u8netfns.h>

@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_INDICES 1
 #define FD_INLINE_CHOICES 1
@@ -1182,7 +1183,7 @@ static int check_index(fdtype x)
 
 FD_EXPORT void fd_init_indices_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_index_type=fd_register_immediate_type("index",check_index);
   

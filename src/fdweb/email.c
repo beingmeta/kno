@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 
@@ -139,5 +140,5 @@ void fd_init_email_c()
   fd_register_config("MAILFROM",_("SMTP default from"),
 		     fd_sconfig_get,fd_sconfig_set,&mailfrom_dflt);
   
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

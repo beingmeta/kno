@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/preoids.h"
@@ -103,7 +104,7 @@ static void init_oids()
 
 void fd_init_oids_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_type_names[fd_oid_type]="OID";
 

@@ -7,7 +7,7 @@
 
 #ifndef FDB_DTPROC_H
 #define FDB_DTPROC_H 1
-#define FDB_DTPROC_H_VERSION "$Id$"
+#define FDB_DTPROC_H_INFO __FILE__
 
 #include <libu8/u8netfns.h>
 

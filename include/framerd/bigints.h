@@ -1,7 +1,5 @@
 /* -*-C-*-
 
-    $Id$
-
     Copyright (c) 1989-1992 Massachusetts Institute of Technology
     Copyright (c) 1992-2001 Massachusetts Institute of Technology
     Copyright (c) 2001-2012 beingmeta, inc.

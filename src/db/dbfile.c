@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/dbfile.h"
@@ -487,7 +488,7 @@ FD_EXPORT int fd_init_dbfile()
   if (fddbfile_initialized) return fddbfile_initialized;
   fddbfile_initialized=307*fd_init_db();
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   rev_symbol=fd_intern("REV");
   gentime_symbol=fd_intern("GENTIME");

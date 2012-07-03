@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-   "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_DTYPEIO 1
 
@@ -247,7 +248,7 @@ static void init_client_id()
 
 FD_EXPORT void fd_init_netpools_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&client_id_lock);

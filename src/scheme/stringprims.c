@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 
@@ -857,7 +858,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
 
 FD_EXPORT void fd_init_strings_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ASCII?",asciip,1,fd_string_type,FD_VOID));

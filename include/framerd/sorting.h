@@ -7,7 +7,7 @@
 
 #ifndef FDB_SORTING_H
 #define FDB_SORTING_H 1
-#define FDB_SORTING_H_VERSION "$Id$"
+#define FDB_SORTING_H_INFO __FILE__
 
 struct FD_SORT_ENTRY {
   fdtype value, key;};

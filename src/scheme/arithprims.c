@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 
@@ -613,7 +614,7 @@ static fdtype cityhash128(fdtype arg)
 
 FD_EXPORT void fd_init_numeric_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   arithdef("SQRT",lsqrt,sqrt);
   arithdef("COS",lcos,cos);

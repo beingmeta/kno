@@ -271,7 +271,7 @@ FD_EXPORT int fd_init_exif()
   fdtype exif_module;
   struct TAGINFO *scan=taginfo;
   if (exif_init) return 0;
-  /* fd_register_source_file(versionid); */
+  /* fd_register_source_file(_FILEINFO); */
   exif_init=1;
   exif_module=fd_new_module("EXIF",(FD_MODULE_SAFE));
   FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
@@ -283,6 +283,6 @@ FD_EXPORT int fd_init_exif()
     scan++;}
   fd_idefn(exif_module,fd_make_cprim2("EXIF-GET",exif_get,1));
   return 1;
-  /* fd_register_source_file(versionid); */
+  /* fd_register_source_file(_FILEINFO); */
 }
 

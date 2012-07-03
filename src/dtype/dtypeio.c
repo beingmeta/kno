@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_DTYPEIO 1
 
@@ -1183,7 +1184,7 @@ FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INPUT *stream)
 
 FD_EXPORT void fd_init_dtypeio_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   error_symbol=fd_intern("%ERROR");
 

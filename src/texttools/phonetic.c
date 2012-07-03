@@ -7,8 +7,9 @@
    algorithms for spelling correction etc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 
@@ -200,5 +201,5 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
 
 void fd_init_phonetic_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

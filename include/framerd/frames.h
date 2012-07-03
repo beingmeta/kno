@@ -7,7 +7,7 @@
 
 #ifndef FDB_FRAMES_H
 #define FDB_FRAMES_H 1
-#define FDB_FRAMES_H_VERSION "$Id$"
+#define FDB_FRAMES_H_INFO __FILE__
 
 /* Adjuncts: these are indices which function as slotids. */
 

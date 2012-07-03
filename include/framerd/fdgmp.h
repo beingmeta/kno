@@ -7,7 +7,7 @@
 
 #ifndef FRAMERD_FDGMP_H
 #define FRAMERD_FDGMP_H 1
-#define FRAMERD_FDGMP_H_VERSION "$Id$"
+#define FRAMERD_FDGMP_H_INFO __FILE__
 
 #include <gmp.h>
 

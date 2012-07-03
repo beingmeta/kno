@@ -12,8 +12,9 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8filefns.h>
 
-static MAYBE_UNUSED char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 static fdtype loadstamp_symbol, moduleid_symbol;
 

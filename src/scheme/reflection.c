@@ -11,8 +11,9 @@
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 
-static MAYBE_UNUSED char versionid[] = 
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define GETSPECFORM(x) \
   ((FD_PPTRP(x)) ? ((fd_special_form)(fd_pptr_ref(x))) : ((fd_special_form)x))

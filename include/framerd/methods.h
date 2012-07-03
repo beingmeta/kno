@@ -7,7 +7,7 @@
 
 #ifndef FDB_METHODS_H
 #define FDB_METHODS_H 1
-#define FDB_METHODS_H_VERSION "$Id$"
+#define FDB_METHODS_H_INFO __FILE__
 
 #include "fddb.h"
 

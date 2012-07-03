@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id: crypto.c 4774 2010-01-15 14:43:07Z haase $";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
@@ -372,7 +373,7 @@ FD_EXPORT int fd_init_ziptools()
 {
   fdtype ziptools_module;
   if (ziptools_init) return 0;
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
   ziptools_init=1;
   ziptools_module=fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));
   

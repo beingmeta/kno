@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 /* Notes:
     A normal 32-bit hash index with N buckets consists of 256 bytes of
@@ -2532,7 +2533,7 @@ FD_EXPORT void fd_init_hashindices_c()
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index,NULL,NULL);
   fd_register_index_opener(FD_HASH_INDEX_TO_RECOVER,open_hash_index,NULL,NULL);

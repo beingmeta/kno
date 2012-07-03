@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 
@@ -1455,7 +1456,7 @@ static fdtype uncompress_prim(fdtype arg,fdtype parse)
 
 FD_EXPORT void fd_init_portfns_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   u8_printf_handlers['Q']=lisp_pprintf_handler;
 

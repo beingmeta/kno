@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 #define FD_PROVIDE_FASTEVAL 1
@@ -51,6 +52,6 @@ FD_EXPORT void fd_init_fdweb()
     fd_persist_module(fdweb_module);
     fd_persist_module(xhtml_module);}
 
-  fd_register_source_file(FDB_FDWEB_H_VERSION);
-  fd_register_source_file(versionid);
+  fd_register_source_file(FDB_FDWEB_H_INFO);
+  fd_register_source_file(_FILEINFO);
 }

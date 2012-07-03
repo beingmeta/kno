@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 
@@ -536,6 +537,6 @@ FD_EXPORT void fd_init_json_c()
 					 -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
 					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }
 

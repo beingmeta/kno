@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_DTYPEIO 1
 
@@ -98,8 +99,8 @@ FD_EXPORT void fd_init_dtproc_c()
 {
   quote_symbol=fd_intern("QUOTE");
   
-  fd_register_source_file(versionid);
-  fd_register_source_file(FDB_DTPROC_H_VERSION);
+  fd_register_source_file(_FILEINFO);
+  fd_register_source_file(FDB_DTPROC_H_INFO);
 
   fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_applyfns[fd_dtproc_type]=(fd_applyfn)dtapply;

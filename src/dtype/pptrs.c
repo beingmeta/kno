@@ -12,8 +12,9 @@
    and (to a lesser degree) primitives.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_PPTRS 1
 
@@ -74,5 +75,5 @@ FD_EXPORT void fd_init_pptrs_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&_fd_pptr_lock);
 #endif
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

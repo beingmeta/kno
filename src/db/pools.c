@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_IPEVAL 1
@@ -1711,7 +1712,7 @@ FD_EXPORT void fd_init_pools_c()
 {
   int i=0; while (i < 1024) fd_top_pools[i++]=NULL;
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_pool_type=fd_register_immediate_type("pool",check_pool);
   fd_raw_pool_type=fd_register_cons_type("raw pool");

@@ -7,7 +7,7 @@
 
 #ifndef FDB_INDICES_H
 #define FDB_INDICES_H 1
-#define FDB_INDICES_H_VERSION "$Id$"
+#define FDB_INDICES_H_INFO __FILE__
 
 #include "fddb.h"
 #include "dtypestream.h"

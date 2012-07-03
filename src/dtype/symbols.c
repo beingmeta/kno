@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 
@@ -174,7 +175,7 @@ static int check_symbol(fdtype x)
 void fd_init_symbols_c()
 {
   fd_immediate_checkfns[fd_symbol_type]=check_symbol;
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }
 
 #if 0

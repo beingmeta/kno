@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/dtcall.h"
@@ -138,5 +139,5 @@ FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

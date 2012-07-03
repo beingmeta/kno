@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_DTYPEIO 1
 
@@ -912,7 +913,7 @@ static struct FD_POOL_HANDLER zpool_handler={
 
 FD_EXPORT void fd_init_zpools_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
   fd_register_pool_opener
     (FD_ZPOOL_MAGIC_NUMBER,
      open_zpool,fd_read_pool_metadata,fd_write_pool_metadata);

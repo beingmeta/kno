@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1
@@ -312,5 +313,5 @@ FD_EXPORT void fd_init_quasiquote_c()
 
   fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_handler);
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

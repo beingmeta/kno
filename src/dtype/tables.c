@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
@@ -2749,7 +2750,7 @@ void fd_init_tables_c()
 {
   int i=0; while (i<FD_TYPE_MAX) fd_tablefns[i++]=NULL;
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   /* SLOTMAP */
   fd_recyclers[fd_slotmap_type]=recycle_slotmap;

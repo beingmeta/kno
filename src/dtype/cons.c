@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
@@ -1169,7 +1170,7 @@ void fd_init_cons_c()
   i=0; while (i < FD_N_PTRLOCKS) fd_init_mutex(&_fd_ptr_locks[i++]);
 #endif
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&compound_registry_lock);

@@ -7,7 +7,7 @@
 
 #ifndef FDB_COMMON_H
 #define FDB_COMMON_H 1
-#define FDB_COMMON_H_VERSION "$Id$"
+#define FDB_COMMON_H_INFO "include/framerd/common.h"
 
 #define _GNU_SOURCE
 

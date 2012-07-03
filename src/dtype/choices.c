@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_CHOICES 1
 #include "framerd/dtype.h"
@@ -1067,7 +1068,7 @@ int fd_containsp(fdtype xarg,fdtype yarg)
 
 void fd_init_choices_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_type_names[fd_qchoice_type]="qchoice";
   fd_dtype_writers[fd_qchoice_type]=write_qchoice_dtype;

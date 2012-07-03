@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
@@ -160,7 +161,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache()
 
 FD_EXPORT void fd_init_threadcache_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_threadcache_key,NULL);
 #endif

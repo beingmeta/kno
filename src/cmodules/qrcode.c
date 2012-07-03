@@ -6,8 +6,9 @@
    Copyright (C) 2009-2012 beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 
@@ -189,7 +190,7 @@ FD_EXPORT int fd_init_qrcode()
 
   fd_finish_module(module);
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   return 1;
 }

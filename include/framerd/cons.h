@@ -71,7 +71,7 @@
 
 #ifndef FDB_CONS_H
 #define FDB_CONS_H 1
-#define FDB_CONS_H_VERSION "$Id$"
+#define FDB_CONS_H_INFO "include/framerd/cons.h"
 
 #include "ptr.h"
 #include <libu8/u8timefns.h>

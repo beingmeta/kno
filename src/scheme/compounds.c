@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/support.h"
@@ -186,7 +187,7 @@ static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable,fdtype opa
 
 FD_EXPORT void fd_init_compounds_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));

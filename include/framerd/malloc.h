@@ -7,7 +7,7 @@
 
 #ifndef FDB_MALLOC_H
 #define FDB_MALLOC_H 1
-#define FDB_MALLOC_H_VERSION "$Id$"
+#define FDB_MALLOC_H_INFO __FILE__
 
 #endif /* #ifndef FDB_MALLOC_H */
 

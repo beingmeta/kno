@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_POOLS 1
@@ -429,7 +430,7 @@ FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumu
 
 FD_EXPORT void fd_init_xtables_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_adjunct_slotids=FD_EMPTY_CHOICE;
 

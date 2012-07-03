@@ -11,8 +11,9 @@
 
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 /* MATCHER DOCUMENTATION
 
@@ -208,8 +209,9 @@ static char versionid[] =
 
 #include <ctype.h>
 
-static MAYBE_UNUSED char vcid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 fd_exception fd_InternalMatchError=_("Internal match error");
 fd_exception fd_MatchSyntaxError=_("match syntax error");
@@ -3556,7 +3558,7 @@ static void recycle_txclosure(FD_CONS *c)
 
 void fd_init_match_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_txclosure_type=fd_register_cons_type("txclosure");
   fd_recyclers[fd_txclosure_type]=recycle_txclosure;

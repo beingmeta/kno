@@ -7,7 +7,7 @@
 
 #ifndef FDB_FILEPRIMS_H
 #define FDB_FILEPRIMS_H 1
-#define FDB_FILEPRIMS_H_VERSION "$Id$"
+#define FDB_FILEPRIMS_H_INFO __FILE__
 
 FD_EXPORT int fd_update_file_modules(int force);
 FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base);

@@ -7,7 +7,7 @@
 
 #ifndef FDB_POOLS_H
 #define FDB_POOLS_H 1
-#define FDB_POOLS_H_VERSION "$Id$"
+#define FDB_POOLS_H_INFO __FILE__
 
 /* HOW POOLS WORK
 

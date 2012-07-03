@@ -7,7 +7,7 @@
 
 #ifndef FDB_DTYPEIO_H
 #define FDB_DTYPEIO_H 1
-#define FDB_DTYPEIO_H_VERSION "$Id$"
+#define FDB_DTYPEIO_H_INFO __FILE__
 
 /* DTYPE constants */
 

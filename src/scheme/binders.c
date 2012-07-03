@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] = 
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 
@@ -1020,7 +1021,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT void fd_init_binders_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   lambda_symbol=fd_intern("LAMBDA");
   tail_symbol=fd_intern("%TAIL");

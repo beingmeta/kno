@@ -5,8 +5,9 @@
    This is the main OFSM (optimizing finite state machine) engine.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 
@@ -2353,7 +2354,7 @@ void fd_init_ofsm_c()
   fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   init_parser_symbols();
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&default_grammar_lock);

@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
@@ -1109,5 +1110,5 @@ FD_EXPORT void fd_init_curl_c()
 
   fd_register_sourcefn(url_sourcefn);
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

@@ -7,7 +7,7 @@
 
 #ifndef FDB_DBFILE_H
 #define FDB_DBFILE_H 1
-#define FDB_DBFILE_H_VERSION "$Id$"
+#define FDB_DBFILE_H_INFO "include/framerd/dbfile.h"
 
 #include "fddb.h"
 #include "pools.h"

@@ -11,8 +11,7 @@
 
 #ifndef FDB_TEXTTOOLS_H
 #define FDB_TEXTTOOLS_H 1
-#define FDB_TEXTTOOLS_H_VERSION \
-   "$Id$"
+#define FDB_TEXTTOOLS_H_INFO __FILE__
 
 FD_EXPORT void fd_init_texttools(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_match_c(void);

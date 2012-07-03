@@ -5,8 +5,9 @@
    This is the initialization file for the tagger module.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
@@ -26,7 +27,7 @@ void fd_init_tagger()
   
   if (tagger_init_done) return;
   else tagger_init_done=1;
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
   
   fd_init_ofsm_c();
   fd_init_tagxtract_c();

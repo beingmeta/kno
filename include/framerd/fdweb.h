@@ -7,8 +7,7 @@
 
 #ifndef FDB_FDWEB_H
 #define FDB_FDWEB_H 1
-#define FDB_FDWEB_H_VERSION \
-   "$Id$"
+#define FDB_FDWEB_H_INFO __FILE__
 
 FD_EXPORT void fd_init_fdweb(void) FD_LIBINIT_FN;
 

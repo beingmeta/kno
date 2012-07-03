@@ -7,8 +7,7 @@
 
 #ifndef FDB_PORTS_H
 #define FDB_PORTS_H 1
-#define FDB_PORTS_H_VERSION \
-   "$Id$"
+#define FDB_PORTS_H_INFO __FILE__
 
 #include <libu8/libu8io.h>
 

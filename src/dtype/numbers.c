@@ -41,7 +41,9 @@
    (unlimited precision integers).  The bigint implementation
    is directly based on the bignums implementation from MIT Scheme. */
 
-static char versionid[] = "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/bigints.h"
@@ -2926,5 +2928,5 @@ void fd_init_numbers_c()
 
   bigint_magic_modulus=fd_long_to_bigint(256001281);
 
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }

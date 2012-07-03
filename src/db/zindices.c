@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_INLINE_DTYPEIO 1
 
@@ -1220,7 +1221,7 @@ static struct FD_INDEX_HANDLER zindex_handler={
 
 FD_EXPORT void fd_init_zindices_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");

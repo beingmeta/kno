@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define FD_PROVIDE_FASTEVAL 1
 
@@ -1601,7 +1602,7 @@ FD_EXPORT void fd_init_fileio_c()
   scheme_fileio_initialized=1;
   fd_init_fdscheme();
   fileio_module=fd_new_module("FILEIO",(FD_MODULE_DEFAULT));
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
 
 #if FD_THREADS_ENABLED

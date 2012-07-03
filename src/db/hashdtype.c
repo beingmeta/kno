@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 
@@ -495,7 +496,7 @@ unsigned int fd_hash_dtype_rep(fdtype x)
 
 FD_EXPORT void fd_init_hashdtype_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 }
 
 

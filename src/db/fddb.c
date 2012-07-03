@@ -5,8 +5,9 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
@@ -433,9 +434,9 @@ FD_EXPORT int fd_swapcheck()
 
 static void register_header_files()
 {
-  fd_register_source_file(FDB_FDDB_H_VERSION);
-  fd_register_source_file(FDB_POOLS_H_VERSION);
-  fd_register_source_file(FDB_INDICES_H_VERSION);
+  fd_register_source_file(FDB_FDDB_H_INFO);
+  fd_register_source_file(FDB_POOLS_H_INFO);
+  fd_register_source_file(FDB_INDICES_H_INFO);
 }
 
 FD_EXPORT void fd_init_threadcache_c(void);
@@ -459,7 +460,7 @@ FD_EXPORT int fd_init_db()
   fd_init_dtypelib();
 
   register_header_files();
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   fd_init_threadcache_c();
   fd_init_pools_c();

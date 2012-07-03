@@ -7,7 +7,7 @@
 
 #ifndef FD_DTYPESTREAM_H
 #define FD_DTYPESTREAM_H 1
-#define FDB_DTYPESTREAM_H_VERSION "$Id$"
+#define FDB_DTYPESTREAM_H_INFO __FILE__
 
 #include "dtype.h"
 #include "dtypeio.h"

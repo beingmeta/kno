@@ -9,7 +9,7 @@
 
 #ifndef FDB_DEFINES_H
 #define FDB_DEFINES_H 1
-#define FDB_DEFINES_H_VERSION "$Id$"
+#define FDB_DEFINES_H_INFO __FILE__
 
 #include "config.h"
 

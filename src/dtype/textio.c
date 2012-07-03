@@ -7,8 +7,9 @@
    This file implements the core parser and printer (unparser) functionality.
 */
 
-static char versionid[] =
-  "$Id$";
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
 
 #define U8_INLINE_IO 1
 #include "framerd/dtype.h"
@@ -1298,7 +1299,7 @@ static u8_string lisp_printf_handler
 
 FD_EXPORT void fd_init_textio_c()
 {
-  fd_register_source_file(versionid);
+  fd_register_source_file(_FILEINFO);
 
   u8_printf_handlers['q']=lisp_printf_handler;
 
