@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #define FD_INLINE_IPEVAL 1
 
 #include "framerd/dtype.h"
@@ -444,7 +448,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
 
 FD_EXPORT void fd_init_ipeval_c()
 {
-  fd_register_source_file(__FILE__);
+  u8_register_source_file(_FILEINFO);
   fd_register_config("TRACEIPEVAL",_("Trace ipeval execution"),
 		     fd_boolconfig_get,fd_boolconfig_set,&fd_trace_ipeval);
 #if FD_GLOBAL_IPEVAL

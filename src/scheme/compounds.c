@@ -187,7 +187,7 @@ static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable,fdtype opa
 
 FD_EXPORT void fd_init_compounds_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));

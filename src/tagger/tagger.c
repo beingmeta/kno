@@ -27,7 +27,7 @@ void fd_init_tagger()
   
   if (tagger_init_done) return;
   else tagger_init_done=1;
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
   
   fd_init_ofsm_c();
   fd_init_tagxtract_c();

@@ -614,7 +614,7 @@ static struct FD_POOL_HANDLER file_pool_handler={
 
 FD_EXPORT void fd_init_file_pools_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_register_pool_opener
     (FD_FILE_POOL_MAGIC_NUMBER,

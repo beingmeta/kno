@@ -1152,7 +1152,7 @@ static struct FD_INDEX_HANDLER file_index_handler={
 
 FD_EXPORT void fd_init_fileindices_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");

@@ -680,6 +680,6 @@ FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words)
 
 FD_EXPORT void fd_init_dtypestream_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 

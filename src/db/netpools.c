@@ -248,7 +248,7 @@ static void init_client_id()
 
 FD_EXPORT void fd_init_netpools_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&client_id_lock);

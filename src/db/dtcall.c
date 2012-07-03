@@ -139,5 +139,5 @@ FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

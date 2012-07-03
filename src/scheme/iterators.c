@@ -501,7 +501,7 @@ FD_EXPORT void fd_init_iterators_c()
 {
   iter_var=fd_intern("%ITER");
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_defspecial(fd_scheme_module,"UNTIL",until_handler);
   fd_defspecial(fd_scheme_module,"WHILE",while_handler);

@@ -2168,7 +2168,7 @@ static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT void fd_init_dbfns_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLOTID?",slotidp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("LOADED?",dbloadedp,1));

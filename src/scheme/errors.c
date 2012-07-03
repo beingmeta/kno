@@ -257,7 +257,7 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
 
 FD_EXPORT void fd_init_errors_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
   
   fd_defspecial(fd_scheme_module,"ERROR",return_error);
   fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);

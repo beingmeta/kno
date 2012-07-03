@@ -1602,7 +1602,7 @@ FD_EXPORT void fd_init_fileio_c()
   scheme_fileio_initialized=1;
   fd_init_fdscheme();
   fileio_module=fd_new_module("FILEIO",(FD_MODULE_DEFAULT));
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 
 #if FD_THREADS_ENABLED

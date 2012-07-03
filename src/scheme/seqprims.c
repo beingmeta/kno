@@ -1800,7 +1800,7 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_vector_type]=&vector_seqfns;
   fd_seqfns[fd_rail_type]=&rail_seqfns;
   
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   /* Generic sequence functions */
   fd_idefn(fd_scheme_module,fd_make_cprim1("SEQUENCE?",sequencep_prim,1));

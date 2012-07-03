@@ -119,7 +119,7 @@ int main(int argc,char **argv)
     fprintf(stderr,"Usage: fdexec filename [config=val]*\n");
     return -1;}
   if (exe_arg==NULL) exe_arg=u8_strdup(argv[0]);
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
   fd_register_config("DEBUGMAXCHARS",
 		     _("Max number of chars in strings output with error reports"),
 		     fd_intconfig_get,fd_intconfig_set,

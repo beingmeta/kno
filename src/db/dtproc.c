@@ -99,8 +99,8 @@ FD_EXPORT void fd_init_dtproc_c()
 {
   quote_symbol=fd_intern("QUOTE");
   
-  fd_register_source_file(_FILEINFO);
-  fd_register_source_file(FDB_DTPROC_H_INFO);
+  u8_register_source_file(_FILEINFO);
+  u8_register_source_file(FDB_DTPROC_H_INFO);
 
   fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_applyfns[fd_dtproc_type]=(fd_applyfn)dtapply;

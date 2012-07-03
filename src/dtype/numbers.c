@@ -2928,5 +2928,5 @@ void fd_init_numbers_c()
 
   bigint_magic_modulus=fd_long_to_bigint(256001281);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

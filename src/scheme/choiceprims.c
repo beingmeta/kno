@@ -1180,7 +1180,7 @@ static fdtype pick_nums_prim(fdtype items)
 
 FD_EXPORT void fd_init_choicefns_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_defspecial(fd_scheme_module,"DO-CHOICES",dochoices_handler);
   fd_defspecial(fd_scheme_module,"FOR-CHOICES",forchoices_handler);

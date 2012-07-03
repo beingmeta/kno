@@ -614,7 +614,7 @@ static fdtype cityhash128(fdtype arg)
 
 FD_EXPORT void fd_init_numeric_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   arithdef("SQRT",lsqrt,sqrt);
   arithdef("COS",lcos,cos);

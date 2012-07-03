@@ -395,7 +395,7 @@ FD_EXPORT void fd_init_filedb_c()
   fd_init_fdscheme();
   fd_init_dbfile();
   filedb_module=fd_new_module("FILEDB",(FD_MODULE_DEFAULT));
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
   
   fd_idefn(filedb_module,
 	   fd_make_cprim3x("MAKE-ZINDEX",make_zindex,2,

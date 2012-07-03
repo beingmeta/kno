@@ -430,7 +430,7 @@ FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumu
 
 FD_EXPORT void fd_init_xtables_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_adjunct_slotids=FD_EMPTY_CHOICE;
 

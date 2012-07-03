@@ -1432,7 +1432,7 @@ static struct FD_POOL_HANDLER oidpool_handler={
 
 FD_EXPORT void fd_init_oidpools_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_register_pool_opener
     (FD_OIDPOOL_MAGIC_NUMBER,

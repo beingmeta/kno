@@ -139,7 +139,7 @@ FD_EXPORT int fd_init_crypto()
 {
   fdtype crypto_module;
   if (crypto_init) return 0;
-  /* fd_register_source_file(_FILEINFO); */
+  /* u8_register_source_file(_FILEINFO); */
   crypto_init=1;
   crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));
 

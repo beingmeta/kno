@@ -190,7 +190,7 @@ FD_EXPORT int fd_init_qrcode()
 
   fd_finish_module(module);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   return 1;
 }

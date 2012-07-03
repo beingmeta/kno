@@ -1183,7 +1183,7 @@ static int check_index(fdtype x)
 
 FD_EXPORT void fd_init_indices_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_index_type=fd_register_immediate_type("index",check_index);
   

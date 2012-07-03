@@ -231,5 +231,5 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
 
 FD_EXPORT void fd_init_compoundindices_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

@@ -447,6 +447,6 @@ FD_EXPORT void fd_init_urifns_c()
   fd_idefn(module,fd_make_cprim2x("MKURIPATH",mkuripath_prim,2,
 				  -1,FD_VOID,fd_string_type,FD_VOID));
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 

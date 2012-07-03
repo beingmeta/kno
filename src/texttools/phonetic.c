@@ -201,5 +201,5 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
 
 void fd_init_phonetic_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

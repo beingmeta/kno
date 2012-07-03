@@ -178,6 +178,6 @@ static struct FD_POOL_HANDLER gpool_handler={
 
 FD_EXPORT void fd_init_gpools_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 }

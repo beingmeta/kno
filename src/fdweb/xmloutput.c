@@ -1864,7 +1864,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   u8_init_mutex(&browseinfo_lock);
 #endif
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 }
 

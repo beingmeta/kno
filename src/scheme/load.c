@@ -352,7 +352,7 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 
 FD_EXPORT void fd_init_load_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&sourcefns_lock);

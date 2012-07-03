@@ -597,7 +597,7 @@ static void add_sourceid(u8_string s,void *vp)
 static fdtype lisp_getsourceinfo()
 {
   fdtype result=FD_EMPTY_LIST;
-  fd_for_source_files(add_sourceid,&result);
+  u8_for_source_files(add_sourceid,&result);
   return result;
 }
 
@@ -605,7 +605,7 @@ static fdtype lisp_getsourceinfo()
 
 FD_EXPORT void fd_init_corefns_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("EQ?",eqp,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("EQV?",eqvp,2));

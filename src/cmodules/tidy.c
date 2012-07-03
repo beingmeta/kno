@@ -94,7 +94,7 @@ FD_EXPORT int fd_init_tidy()
 {
   fdtype tidy_module;
   if (tidy_init) return 0;
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
   tidy_init=1;
   tidy_module=fd_new_module("TIDY",(FD_MODULE_SAFE));
 

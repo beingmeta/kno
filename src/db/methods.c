@@ -715,7 +715,7 @@ FD_EXPORT void fd_init_methods_c()
 {
   fdtype m;
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   init_symbols();
 

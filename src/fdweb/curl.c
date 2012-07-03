@@ -1110,5 +1110,5 @@ FD_EXPORT void fd_init_curl_c()
 
   fd_register_sourcefn(url_sourcefn);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

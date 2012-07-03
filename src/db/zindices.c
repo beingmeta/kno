@@ -1221,7 +1221,7 @@ static struct FD_INDEX_HANDLER zindex_handler={
 
 FD_EXPORT void fd_init_zindices_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");

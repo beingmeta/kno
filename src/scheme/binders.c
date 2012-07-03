@@ -1021,7 +1021,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT void fd_init_binders_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   lambda_symbol=fd_intern("LAMBDA");
   tail_symbol=fd_intern("%TAIL");

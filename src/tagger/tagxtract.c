@@ -725,7 +725,7 @@ void fd_init_tagxtract_c()
 {
   fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   compound_symbol=fd_intern("COMPOUND");
   star_symbol=fd_intern("*");

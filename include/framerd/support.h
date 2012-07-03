@@ -131,16 +131,6 @@ FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
 
 FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
-/* File and module recording */
-
-typedef struct FD_SOURCE_FILE_RECORD {
-  u8_string filename;
-  struct FD_SOURCE_FILE_RECORD *next;} FD_SOURCE_FILE_RECORD;
-typedef struct FD_SOURCE_FILE_RECORD *fd_source_file_record;
-
-FD_EXPORT void fd_register_source_file(u8_string s);
-FD_EXPORT void fd_for_source_files(void (*f)(u8_string s,void *),void *data);
-
 /* Handling options */
 
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);

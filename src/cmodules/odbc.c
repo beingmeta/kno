@@ -538,6 +538,6 @@ FD_EXPORT void fd_init_odbc()
 
   fd_finish_module(module);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 }

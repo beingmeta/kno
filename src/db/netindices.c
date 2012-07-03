@@ -255,7 +255,7 @@ static struct FD_INDEX_HANDLER netindex_handler={
 
 FD_EXPORT void fd_init_netindices_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   boundp=fd_intern("BOUND?");
   quote=fd_intern("QUOTE");

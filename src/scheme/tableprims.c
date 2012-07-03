@@ -812,7 +812,7 @@ static fdtype choice2hashset(fdtype arg)
 
 FD_EXPORT void fd_init_tablefns_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("TABLE?",tablep,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("HASKEYS?",haskeysp,1));

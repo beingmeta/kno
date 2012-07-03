@@ -1177,5 +1177,5 @@ FD_EXPORT void fd_init_cgiexec_c()
      _("Whether to parse REST query args when there is POST data"),
      fd_boolconfig_get,fd_boolconfig_set,&parse_query_on_post);
   
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

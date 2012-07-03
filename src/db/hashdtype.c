@@ -496,7 +496,7 @@ unsigned int fd_hash_dtype_rep(fdtype x)
 
 FD_EXPORT void fd_init_hashdtype_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 
 

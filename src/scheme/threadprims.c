@@ -420,12 +420,12 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_register_config("THREADTRACE","Whether errors in threads print out full backtraces",
 		     fd_boolconfig_get,fd_boolconfig_set,&fd_threaderror_backtrace);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 #else
 FD_EXPORT void fd_init_threadprims_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 #endif
 

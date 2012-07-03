@@ -858,7 +858,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
 
 FD_EXPORT void fd_init_strings_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ASCII?",asciip,1,fd_string_type,FD_VOID));

@@ -1045,5 +1045,5 @@ FD_EXPORT void fd_init_xmlinput_c()
   noempty_symbol=fd_intern("NOEMPTY");
   data_symbol=fd_intern("DATA");
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

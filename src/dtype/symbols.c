@@ -175,7 +175,7 @@ static int check_symbol(fdtype x)
 void fd_init_symbols_c()
 {
   fd_immediate_checkfns[fd_symbol_type]=check_symbol;
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 
 #if 0

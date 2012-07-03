@@ -2750,7 +2750,7 @@ void fd_init_tables_c()
 {
   int i=0; while (i<FD_TYPE_MAX) fd_tablefns[i++]=NULL;
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   /* SLOTMAP */
   fd_recyclers[fd_slotmap_type]=recycle_slotmap;

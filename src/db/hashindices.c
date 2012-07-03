@@ -2533,7 +2533,7 @@ FD_EXPORT void fd_init_hashindices_c()
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index,NULL,NULL);
   fd_register_index_opener(FD_HASH_INDEX_TO_RECOVER,open_hash_index,NULL,NULL);

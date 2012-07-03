@@ -250,7 +250,7 @@ FD_EXPORT void fd_init_extdbi_c()
   extdb_initialized=1;
   fd_init_fdscheme();
   extdb_module=fd_new_module("EXTDB",(0));
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&extdb_handlers_lock);

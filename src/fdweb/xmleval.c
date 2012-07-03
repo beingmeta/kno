@@ -1473,5 +1473,5 @@ FD_EXPORT void fd_init_xmleval_c()
     ("CACHEMARKUP",_("Whether to cache markup generated from unparsing XML"),
      fd_boolconfig_get,fd_boolconfig_set,&fd_cache_markup);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

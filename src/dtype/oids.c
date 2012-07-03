@@ -104,7 +104,7 @@ static void init_oids()
 
 void fd_init_oids_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_type_names[fd_oid_type]="OID";
 

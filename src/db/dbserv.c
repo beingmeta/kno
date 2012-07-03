@@ -902,7 +902,7 @@ FD_EXPORT int fd_init_fddbserv()
   if (fddbserv_initialized) return fddbserv_initialized;
   fddbserv_initialized=211*fd_init_db();
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
   fd_init_dbserv_c();
 
   return 1;

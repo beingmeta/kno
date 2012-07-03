@@ -1184,7 +1184,7 @@ FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INPUT *stream)
 
 FD_EXPORT void fd_init_dtypeio_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   error_symbol=fd_intern("%ERROR");
 

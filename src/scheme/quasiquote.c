@@ -313,5 +313,5 @@ FD_EXPORT void fd_init_quasiquote_c()
 
   fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_handler);
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }

@@ -193,7 +193,7 @@ static fdtype or_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT void fd_init_conditionals_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   apply_marker=fd_intern("=>");
   else_symbol=fd_intern("ELSE");

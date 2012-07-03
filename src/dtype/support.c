@@ -1028,24 +1028,6 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
   if (FD_TABLEP(curinfo)) fd_decref(curinfo);
 }
 
-/* Recording source file information */
-
-static struct FD_SOURCE_FILE_RECORD *source_files=NULL;
-
-FD_EXPORT void fd_register_source_file(u8_string s)
-{
-  struct FD_SOURCE_FILE_RECORD *rec=
-    u8_alloc(struct FD_SOURCE_FILE_RECORD);
-  rec->filename=s; rec->next=source_files;
-  source_files=rec;
-}
-FD_EXPORT void fd_for_source_files(void (*f)(u8_string s,void *),void *data)
-{
-  struct FD_SOURCE_FILE_RECORD *scan=source_files;
-  while (scan) {
-    f(scan->filename,data); scan=scan->next;}
-}
-
 /* Debugging support functions */
 
 FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x)
@@ -1242,6 +1224,34 @@ static int config_setrunbase(fdtype var,fdtype val,void *data)
   else return fd_type_error(_("string"),"config_setrunbase",val);
 }
 
+/* Accessing source file registry */
+
+static void add_source_file(u8_string s,void *vp)
+{
+  fdtype *valp=(fdtype *)vp;
+  fdtype val=*valp;
+  FD_ADD_TO_CHOICE(val,fdtype_string(s));
+  *valp=val;
+}
+
+static fdtype config_get_source_files(fdtype var,void *data)
+{
+  fdtype result=FD_EMPTY_CHOICE;
+  u8_for_source_files(add_source_file,&result);
+  return result;
+}
+
+static int config_add_source_file(fdtype var,fdtype val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    u8_string stringval=u8_strdup(FD_STRDATA(val));
+    u8_register_source_file(stringval);
+    return 1;}
+  else {
+    fd_type_error(_("string"),"config_addsourcefile",val);
+    return -1;}
+}
+
 /* Initialization */
 
 static int boot_config()
@@ -1262,7 +1272,7 @@ static int boot_config()
 
 void fd_init_support_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   u8_register_textdomain("FramerD");
 
@@ -1386,6 +1396,12 @@ void fd_init_support_c()
      fd_sconfig_get,fd_sconfig_set,&configdata_path);
   fd_register_config_lookup(file_config_lookup,NULL);
 #endif
+  fd_register_config
+    ("SOURCES",_("Registered source files"),
+     config_get_source_files,config_add_source_file,
+     &u8_log_show_procinfo);
+
+
 }
 
 

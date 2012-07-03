@@ -537,6 +537,6 @@ FD_EXPORT void fd_init_json_c()
 					 -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
 					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 }
 

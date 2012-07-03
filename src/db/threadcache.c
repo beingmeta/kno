@@ -161,7 +161,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache()
 
 FD_EXPORT void fd_init_threadcache_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_threadcache_key,NULL);
 #endif

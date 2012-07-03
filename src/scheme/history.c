@@ -270,7 +270,7 @@ FD_EXPORT void fd_init_history_c()
   else scheme_history_initialized=1;
   fd_init_fdscheme();
   history_module=fd_new_module("HISTORY",(FD_MODULE_DEFAULT));
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_idefn(history_module,fd_make_cprim1("%HISTREF",histref_prim,1));
   fd_idefn(history_module,fd_make_cprim0("%HISTORY",history_prim,0));

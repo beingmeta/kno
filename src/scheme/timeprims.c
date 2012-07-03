@@ -1314,7 +1314,7 @@ static fdtype uuidpacket_prim(fdtype uuid_arg)
 
 FD_EXPORT void fd_init_timeprims_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   tzset();
 

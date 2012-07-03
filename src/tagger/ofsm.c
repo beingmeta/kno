@@ -2354,7 +2354,7 @@ void fd_init_ofsm_c()
   fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
   init_parser_symbols();
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&default_grammar_lock);

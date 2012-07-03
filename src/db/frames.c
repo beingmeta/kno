@@ -1256,7 +1256,7 @@ FD_EXPORT int fd_slot_cache_load()
 
 FD_EXPORT void fd_init_frames_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   get_methods=fd_intern("GET-METHODS");
   compute_methods=fd_intern("COMPUTE-METHODS");

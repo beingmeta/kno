@@ -1068,7 +1068,7 @@ int fd_containsp(fdtype xarg,fdtype yarg)
 
 void fd_init_choices_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_type_names[fd_qchoice_type]="qchoice";
   fd_dtype_writers[fd_qchoice_type]=write_qchoice_dtype;

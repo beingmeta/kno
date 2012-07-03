@@ -488,7 +488,7 @@ FD_EXPORT int fd_init_dbfile()
   if (fddbfile_initialized) return fddbfile_initialized;
   fddbfile_initialized=307*fd_init_db();
 
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   rev_symbol=fd_intern("REV");
   gentime_symbol=fd_intern("GENTIME");

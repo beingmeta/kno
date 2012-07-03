@@ -3558,7 +3558,7 @@ static void recycle_txclosure(FD_CONS *c)
 
 void fd_init_match_c()
 {
-  fd_register_source_file(_FILEINFO);
+  u8_register_source_file(_FILEINFO);
 
   fd_txclosure_type=fd_register_cons_type("txclosure");
   fd_recyclers[fd_txclosure_type]=recycle_txclosure;
