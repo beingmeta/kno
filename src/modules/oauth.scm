@@ -19,7 +19,7 @@
    oauth/signature})
 
 (define-init %loglevel %notice!)
-;;(set! %loglevel  %debug!)
+(set! %loglevel  %debug!)
 
 ;;; Server info
 
@@ -50,7 +50,7 @@
      GPLUS
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
        VERIFY "https://accounts.google.com/o/oauth2/token"
-       KEY GPLUS:KEY SECRET GPLUS:SECRET
+       KEY GOOGLE:CLIENT SECRET GOOGLE:SECRET
        SCOPE "https://www.googleapis.com/auth/plus.me"
        VERSION "2.0"
        REALM GPLUS]])
@@ -133,15 +133,19 @@
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (unless (and ckey csecret)
+    (logwarn "OAUTH/REQUEST: No consumer key/secret: " spec)
     (error "OAUTH/REQUEST: No consumer key/secret: " spec))
   (if (testopt spec 'version "2.0")
       (if (and (getopt spec 'authorize) (getopt spec 'verify))
 	  spec
-	  (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec))
+	  (begin
+	    (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
+	    (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec)))
       (begin
 	(unless (and (getopt spec 'request)
 		     (getopt spec 'authorize)
 		     (getopt spec 'verify))
+	  (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
 	  (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec))
 	(let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	       (endpoint (getopt spec 'request))
@@ -167,22 +171,24 @@
 		      "oauth_consumer_key=\"" ckey "\", "
 		      "oauth_signature=\"" (uriencode sig64) "\", "
 		      "oauth_version=\"" (getopt spec 'version "1.0") "\""))
-	       (req (urlget endpoint (curlopen 'header auth-header 'method 'POST))))
+	       (handle (curlopen 'header auth-header 'method 'POST))
+	       (req (urlget endpoint handle)))
 	  (debug%watch sigstring sig sig64 auth-header)
 	  (if (test req 'response 200)
-	      (debug%watch (cons (cgiparse (get req '%content)) spec) "OATH/REQUEST")
-	      (error "Can't get request token" req))))))
+	      (cons (cgiparse (get req '%content)) spec)
+	      (begin (warn%watch "Can't get request token" spec req)
+		     (error "Can't get request token" req)))))))
 
 (define (oauth/authurl spec (scope #f))
   (when (symbol? spec) (set! spec (get oauth-servers spec)))
-  (unless (and (getopt spec 'authorize)
+  (unless (and (getopt spec 'authenticate (getopt spec 'authorize))
 	       (or (getopt spec 'oauth_token) (getckey spec)))
     (error "OAUTH/AUTHURL: Invalid OAUTH spec: " spec))
   (if (testopt spec 'version "1.0")
-      (scripturl (getopt spec 'authorize)
+      (scripturl (getopt spec 'authenticate (getopt spec 'authorize))
 	  "oauth_token" (getopt spec 'oauth_token)
 	  "redirect_uri" (uriencode (getcallback spec)))
-      (scripturl (getopt spec 'authorize)
+      (scripturl (getopt spec 'authenticate (getopt spec 'authorize))
 	  "client_id" (getckey spec)
 	  "redirect_uri" (getcallback spec)
 	  "scope"
@@ -409,8 +415,9 @@
 	  (and oauth_realm
 	       (let* ((state (oauth/request oauth_realm))
 		      (url (oauth/authurl state)))
+		 (debug%watch "OAUTH/redirect" url state)
 		 (store! oauth-pending (getopt state 'oauth_token) state)
-		 (cgiset! 'status 300)
+		 (req/set! 'status 303)
 		 (httpheader "Location: " url)
 		 #f)))))
 
