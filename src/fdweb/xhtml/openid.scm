@@ -1,13 +1,15 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
+
+;;; This file implements OpenID login for FramerD
 ;;; Copyright (C) 2005-2012 beingmeta, inc. All rights reserved
 
 (in-module 'xhtml/openid)
 
 (use-module '{texttools fdweb xhtml xhtml/clickit domutils varconfig logger})
 
-(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
-(define openid-servers (make-hashtable))
+(define-init openid-servers (make-hashtable))
 (define-init openid/optinfo (make-hashtable))
 (define-init default-opts #[])
 
@@ -47,15 +49,16 @@
 		 (when (test parsed 'name) (printout "/" (get parsed 'name)))))))
 
 (define (get-openid-server uri)
-  (try ;; (get openid-servers uri)
+  (try (get openid-servers uri)
        (let ((server (fetch-openid-server uri)))
 	 (when (exists? server) (store! openid-servers uri server))
 	 server)))
 
 (define (fetch-openid-server uri)
-  (let* ((req (urlget uri))
-	 (content (get req '%content))
-	 (xml (xmlparse (get req '%content) 'sloppy))
+  (let* ((req (urlget uri #[HEADER "Accept: text/html, application/xrds+xml"]))
+	 (content (tryif (<= 200 (get req 'response) 299)
+		    (get req '%content)))
+	 (xml (tryif (exists? content) (xmlparse content 'sloppy)))
 	 (links (dom/find xml "link")))
     (try (cons (try-choices (link links)
 		 (tryif (textsearch '{(WORD "openid.server")
@@ -76,7 +79,7 @@
   (let ((parsed (parseuri uri)))
     (stringout (get parsed 'scheme) "://" (get parsed 'hostname) "/")))
 
-(define (guess-callback) (cgiget 'callback (geturl)))
+(define (guess-callback) (req/get 'callback (geturl)))
 
 (define (openid-redirect url (opts #f))
   (let* ((server (if (pair? url) url (get-openid-server url)))
@@ -112,7 +115,7 @@
 	 (keys (map add-openid-prefix (segment openid.signed ","))))
     (doseq (key keys)
       (unless (equal? key "openid.mode")
-	(store! postdata key (cgiget (string->lisp key)))))
+	(store! postdata key (req/get (string->lisp key)))))
     (let ((result (urlpost provider #[] postdata)))
       (and (textsearch #((bol) "is_valid:" (spaces*) "true" (eol))
 		       (get result '%content))
@@ -130,7 +133,7 @@
 		     (openid.identity #f))
   (debug%watch "OPENID/AUTH" openid.endpoint openid.mode)
   (cond ((equal? openid.mode "id_res")
-	 (and (cgicall validate) (openid-return)))
+	 (and (req/call validate) (openid-return)))
 	((equal? openid.mode "cancel") #f)
 	((or openid.identifier openid.endpoint)
 	 (doredirect
@@ -141,25 +144,28 @@
 	(else #f)))
 
 (define (openid-return)
-  (let ((signed (segment (cgiget 'openid.signed) ","))
+  (let ((signed (segment (req/get 'openid.signed) ","))
 	(result (frame-create #f)))
+    (debug%watch "OPENID-RETURN" signed)
     (dolist (key signed)
       (let* ((osym (string->symbol (append "OPENID." (upcase key))))
 	     (sym  (string->symbol (upcase key)))
-	     (ssym (tryif (rposition #\. key)
+	     (ssym (tryif (and (not (has-prefix key "ax.type."))
+			       (rposition #\. key))
 		     (string->symbol
 		      (upcase (subseq key (1+ (rposition #\. key)))))))
-	     (v (or (cgiget osym) {})))
+	     (v (or (req/get osym #f) (req/get sym #f) {})))
+	(debug%watch "OPENID-RETURN" key osym sym ssym v)
 	(when (exists? v)
 	  (store! result osym v)
 	  (store! result sym v)
 	  (add! result ssym v))))
-    (cgiset! 'results result)
+    (req/set! 'results result)
     result))
 
 (define (openidauthvalidate)
   (tryif (cgitest 'openid.mode "id_res")
-    (and (cgicall! validate) (openid-return))))
+    (and (req/call! validate) (openid-return))))
 
 (config! 'auth:validate (cons 'openid openidauthvalidate))
 
