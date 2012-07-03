@@ -684,6 +684,8 @@ webuser
 rundir
 logdir
 archflags
+versionsh
+definefileinfo
 TAGS
 DREENTRANT
 SHARED_LIB_TARGET
@@ -1362,6 +1364,7 @@ Optional Packages:
 --without-odbc Build odbc libraries
 --with-ziptools Build and install ziptools
 --with-tidy Build and install tidy library
+--without-fileinfo record fileinfo
 --without-tcmalloc Use the Google malloc library
 --without-crypto Compile the crypto module
 --with/out-profiling compile to generate profile information
@@ -1940,6 +1943,8 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="fd_init_fdscheme()"
+definefileinfo=""
+versionsh=""
 suffix=""
 daemon_identity_default="daemon"
 DREENTRANT="-D_REENTRANT"
@@ -2008,6 +2013,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
+
 
 
 
@@ -13380,6 +13387,19 @@ fi
 fi
 
 
+# Check whether --with-fileinfo was given.
+if test "${with_fileinfo+set}" = set; then
+  withval=$with_fileinfo;
+else
+  with_fileinfo="yes"
+fi
+
+if test "x$with_fileinfo" = "xyes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
+fi
+
+
 # Check whether --with-tcmalloc was given.
 if test "${with_tcmalloc+set}" = set; then
   withval=$with_tcmalloc;
@@ -16642,6 +16662,8 @@ webuser!$webuser$ac_delim
 rundir!$rundir$ac_delim
 logdir!$logdir$ac_delim
 archflags!$archflags$ac_delim
+versionsh!$versionsh$ac_delim
+definefileinfo!$definefileinfo$ac_delim
 TAGS!$TAGS$ac_delim
 DREENTRANT!$DREENTRANT$ac_delim
 SHARED_LIB_TARGET!$SHARED_LIB_TARGET$ac_delim
@@ -16667,8 +16689,6 @@ host!$host$ac_delim
 host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
 host_os!$host_os$ac_delim
-CC!$CC$ac_delim
-CFLAGS!$CFLAGS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16710,6 +16730,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+CC!$CC$ac_delim
+CFLAGS!$CFLAGS$ac_delim
 LDFLAGS!$LDFLAGS$ac_delim
 CPPFLAGS!$CPPFLAGS$ac_delim
 ac_ct_CC!$ac_ct_CC$ac_delim
@@ -16735,7 +16757,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 23; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 25; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

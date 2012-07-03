@@ -7,7 +7,9 @@
 
 #ifndef FDB_CONFIG_H
 #define FDB_CONFIG_H 1
-#define FDB_CONFIG_H_VERSION "$Id$"
+#ifndef FDB_CONFIG_H_INFO
+#define FDB_CONFIG_H_INFO "include/framerd/config.h"
+#endif
 
 /* Define if you don't have off_t */
 #undef off_t

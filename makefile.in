@@ -226,6 +226,9 @@ etc/usememory: etc/usememory.c
 
 cmodules: @CMODULES@
 
+./fileinfo: etc/fileinfo.c
+	$(CC) -o ./fileinfo etc/fileinfo.c
+
 # Rules
 
 exe/scripts/%: src/scripts/%.scm
@@ -256,8 +259,8 @@ exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/fdcgiexec@suffix@ exe/fdserv@suffix@: src/exe/webcommon.h
 
-%.o: %.c
-	@$(CC) $(CFLAGS) -o $@ -c $<
+%.o: %.c ./fileinfo
+	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@echo CC $@ $<
 
 lib/%@suffix@.a:

@@ -54,6 +54,8 @@ xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
 scheme_builtins_init="fd_init_fdscheme()"
+definefileinfo=""
+versionsh=""
 suffix=""
 daemon_identity_default="daemon"
 DREENTRANT="-D_REENTRANT"
@@ -127,6 +129,8 @@ AC_SUBST(webuser)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(archflags)
+AC_SUBST(versionsh)
+AC_SUBST(definefileinfo)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -604,6 +608,12 @@ if (test "x$have_libtidy" = "xyes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
+fi
+
+AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
+if test "x$with_fileinfo" = "xyes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
 fi
 
 dnl When available, use the thread-optimized tcmalloc functions from
