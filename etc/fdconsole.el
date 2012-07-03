@@ -130,6 +130,12 @@
 (put 'logif 'scheme-indent-function 1)
 (put 'logger 'scheme-indent-function 1)
 
+(put 'sig/make 'scheme-indent-function 1)
+(put 'sig/check 'scheme-indent-function 2)
+
+(put 'req/set! 'scheme-indent-function 1)
+(put 'req/add! 'scheme-indent-function 1)
+
 (put 'with-output 'scheme-indent-function 1)
 (put 'with-output-to-string 'scheme-indent-function 'block-indenter)
 
