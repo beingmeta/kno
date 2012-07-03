@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
@@ -282,7 +286,9 @@ FD_EXPORT int fd_init_exif()
     scan->tagsym=symbol;
     scan++;}
   fd_idefn(exif_module,fd_make_cprim2("EXIF-GET",exif_get,1));
+
+  u8_register_source_file(_FILEINFO);
+
   return 1;
-  /* u8_register_source_file(_FILEINFO); */
 }
 

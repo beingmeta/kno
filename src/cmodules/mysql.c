@@ -1155,8 +1155,6 @@ FD_EXPORT int fd_init_mysql()
 
   fd_finish_module(module);
 
-  
-
   u8_register_source_file(_FILEINFO);
 
   return 1;

@@ -58,7 +58,7 @@ typedef struct FD_ODBC_PROC {
   SQLHSTMT stmt;} FD_ODBC_PROC;
 typedef struct FD_ODBC_PROC *fd_odbc_proc;
 
-FD_EXPORT void fd_init_odbc(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_odbc(void) FD_LIBINIT_FN;
 
 static fd_exception ODBCError=_("ODBC error");
 
@@ -510,10 +510,10 @@ static int odbc_initialized=0;
 static struct FD_EXTDB_HANDLER odbc_handler=
   {"odbc",NULL,NULL,NULL,NULL};
 
-FD_EXPORT void fd_init_odbc()
+FD_EXPORT int fd_init_odbc()
 {
   fdtype module;
-  if (odbc_initialized) return;
+  if (odbc_initialized) return 0;
   odbc_initialized=1;
   fd_init_fdscheme();
 
@@ -540,4 +540,5 @@ FD_EXPORT void fd_init_odbc()
 
   u8_register_source_file(_FILEINFO);
 
+  return 1;
 }

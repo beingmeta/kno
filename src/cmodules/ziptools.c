@@ -373,7 +373,7 @@ FD_EXPORT int fd_init_ziptools()
 {
   fdtype ziptools_module;
   if (ziptools_init) return 0;
-  u8_register_source_file(_FILEINFO);
+
   ziptools_init=1;
   ziptools_module=fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));
   
@@ -423,5 +423,8 @@ FD_EXPORT int fd_init_ziptools()
 
   fd_finish_module(ziptools_module);
   fd_persist_module(ziptools_module);
+
+  u8_register_source_file(_FILEINFO);
+
   return 1;
 }

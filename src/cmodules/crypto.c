@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/fddb.h"
@@ -139,7 +143,7 @@ FD_EXPORT int fd_init_crypto()
 {
   fdtype crypto_module;
   if (crypto_init) return 0;
-  /* u8_register_source_file(_FILEINFO); */
+
   crypto_init=1;
   crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));
 
@@ -170,5 +174,8 @@ FD_EXPORT int fd_init_crypto()
 
   fd_finish_module(crypto_module);
   fd_persist_module(crypto_module);
+
+  u8_register_source_file(_FILEINFO);
+
   return 1;
 }
