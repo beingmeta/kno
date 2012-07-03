@@ -1,0 +1,32 @@
+/var/log/fdserv/*.log {
+   rotate 17
+   notifempty
+   # Try enabling this after we know things work
+   #minsize 100k
+   daily
+   compress
+   delaycompress
+   missingok
+   dateext
+   # The right thing would be to have fdserv processes
+   #  get HUP signals which cause them to reopen their log files.
+   # But we'll do this for now, which leaves a small window for
+   #  missing logs
+   copytruncate
+}
+/var/log/framerd/*.log {
+   rotate 17
+   notifempty
+   # Try enabling this after we know things work
+   #minsize 100k
+   daily
+   compress
+   delaycompress
+   missingok
+   dateext
+   # The right thing would be to have fdserv processes
+   #  get HUP signals which cause them to reopen their log files.
+   # But we'll do this for now, which leaves a small window for
+   #  missing logs
+   copytruncate
+}
