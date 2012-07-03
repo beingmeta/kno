@@ -81,13 +81,14 @@
 					    (subseq input (1+ colon)))
 				(cons-s3loc input "")))))))
 	  (error "Can't convert to s3loc" input))))
+(define s3/loc ->s3loc)
 
 (define (s3/mkpath loc path)
   (when (string? loc) (set! loc (->s3loc loc)))
   (cons-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
 
 (module-export!
- '{s3loc? s3loc-path s3loc-bucket cons-s3loc ->s3loc s3/mkpath})
+ '{s3loc? s3loc-path s3loc-bucket cons-s3loc ->s3loc s3/loc s3/mkpath})
 
 ;;; Computing S3 signatures
 
