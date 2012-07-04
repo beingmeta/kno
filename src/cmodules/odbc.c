@@ -1,4 +1,4 @@
-/* C Mode */
+/* -*- Mode: C; character-encoding: utf-8; -*- */
 
 /* odbc.c
    This implements FramerD bindings to odbc.
