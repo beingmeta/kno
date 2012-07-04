@@ -147,7 +147,7 @@ FD_EXPORT int fd_init_crypto()
   crypto_init=1;
   crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));
 
-  u8_init_crypto();
+  u8_init_cryptofns();
 
   fd_idefn(crypto_module,
 	   fd_make_cprim3x("ENCRYPT",encrypt_prim,2,
