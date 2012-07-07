@@ -228,7 +228,7 @@ static int reopen_mysql(struct FD_MYSQL *c)
   MYSQL *db;
   u8_lock_mutex(&mysql_connect_lock);
   if (now<c->startup) {
-    u8_lock_mutex(&mysql_connect_lock);
+    u8_unlock_mutex(&mysql_connect_lock);
     return 0;}
   u8_log(LOG_WARN,"reopen_mysql",
 	 "Reopening MYSQL connection to '%s' (%s)",
@@ -665,6 +665,8 @@ static fdtype mysqlmakeproc
   struct FD_MYSQL_PROC *dbproc=u8_alloc(struct FD_MYSQL_PROC);
   FD_INIT_FRESH_CONS(dbproc,fd_extdb_proc_type);
 
+  memset(dbproc,0,sizeof(struct FD_MYSQL_PROC));
+
   u8_lock_mutex(&(dbp->lock));
 
   dbproc->stmt=mysql_stmt_init(db);
@@ -854,7 +856,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
      produce more helpful error messages.
      A ZERO VALUE MEANS OK. */
   int retval=1, bretval=1, eretval=1, sretval=1;
-  int proclock=1, dblock=0;
+  int proclock=0, dblock=0;
   volatile unsigned int mysqlerrno;
 
   u8_lock_mutex(&(dbproc->lock)); proclock=1;
