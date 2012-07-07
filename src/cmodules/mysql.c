@@ -663,9 +663,10 @@ static fdtype mysqlmakeproc
   MYSQL *db=dbp->db;
   int n_params, n_cols, retval;
   struct FD_MYSQL_PROC *dbproc=u8_alloc(struct FD_MYSQL_PROC);
-  FD_INIT_FRESH_CONS(dbproc,fd_extdb_proc_type);
 
   memset(dbproc,0,sizeof(struct FD_MYSQL_PROC));
+
+  FD_INIT_FRESH_CONS(dbproc,fd_extdb_proc_type);
 
   u8_lock_mutex(&(dbp->lock));
 
