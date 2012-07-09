@@ -87,9 +87,8 @@ static int max_backlog=-1;
 
 /* STATLOG config */
 
-/* The urllog is a plain text (UTF-8) file which contains all of the
-   URLs passed to the servlet.  This can be used for generating new load tests
-   or for general debugging. */
+/* The statlog is a plain text (UTF-8) file which contains server
+   connection/thread information.  */
 
 static u8_string statlogfile;
 static long long last_status=0;
@@ -162,6 +161,8 @@ static void report_status()
   long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
   int i=0, lim=fdwebserver.socket_lim;
   struct U8_CLIENT **socketmap=fdwebserver.socketmap;
+  FILE *logto=statlog;
+  if (!(logto)) logto=stderr;
   last_status=now;
   while (i<lim) {
     u8_client cl=socketmap[i++];
@@ -176,37 +177,32 @@ static void report_status()
       long long interval=now-runstart;
       rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
       if (interval>rmax) rmax=interval;}}
-  if (statlog) {
-    u8_fprintf(statlog,
-	       "[%*t][%f] %d/%d/%d busy clients; avg(wait)=%f(%d); avg(run)=%f(%d)\n",
-	       u8_elapsed_time(),
-	       fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
-	       ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),fdwebserver.waitcount,
-	       ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),fdwebserver.runcount);
-    fflush(statlog);}
-  else u8_log(LOG_INFO,"fdserv",
-	       "[%*t][%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
-	      u8_elapsed_time(),
-	      fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
-	      ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
-	      ((fdwebserver.runcount)?
-	       (((double)fdwebserver.runsum)/(((double)fdwebserver.runcount))):
-	       (-1)));
-  if (statlog)
-    u8_fprintf
-      (statlog,"[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f\n",
-       u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
-  else u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f",
-	      u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
+  u8_fprintf(logto,
+	     "[%*t][%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f(%d); avg(run)=%f(%d)\n",
+	     u8_elapsed_time(),
+	     fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
+	     ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),fdwebserver.waitcount,
+	     ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),fdwebserver.runcount);
+  u8_log(LOG_INFO,"fdserv",
+	 "[%*t][%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
+	 u8_elapsed_time(),
+	 fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
+	 ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
+	 ((fdwebserver.runcount)?
+	  (((double)fdwebserver.runsum)/(((double)fdwebserver.runcount))):
+	  (-1)));
+  u8_fprintf
+    (logto,"[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f\n",
+     u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
+  u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f",
+	 u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
   if (rcount) {
-    if (statlog)
-      u8_fprintf
-	(statlog,
-	 "[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f\n",
-	 u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
-    else u8_log(LOG_INFO,"fdserv",
-		"[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f",
-		u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);}
+    u8_fprintf
+      (logto,"[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f\n",
+       u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
+    u8_log(LOG_INFO,"fdserv",
+	   "[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f",
+	   u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);}
   u8_unlock_mutex(&(fdwebserver.lock));
   if (statlog) fflush(statlog);
 }
