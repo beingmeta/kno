@@ -117,11 +117,11 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   else if (!(FD_FIXNUMP(limit_val)))
     return fd_type_error("fixnum","dotimes_handler",limit_val);
   else limit=FD_FIX2INT(limit_val);
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=(FD_SCHEMAP_SORTED|FD_SCHEMAP_STACK_SCHEMA);
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -169,11 +169,11 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   if (lim==0) {
     fd_decref(seq);
     return FD_VOID;}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -234,11 +234,11 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   else lim=fd_seq_length(seq);
   if (lim==0) return fd_incref(seq);
   else results=u8_alloc_n(lim,fdtype);
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -304,11 +304,11 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   if (lim==0) {
     fd_decref(seq);
     return FD_EMPTY_CHOICE;}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -368,7 +368,9 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   else if (!(FD_PAIRP(list)))
     return fd_type_error("list","dolist_handler",list);
   else if (FD_EMPTY_LISTP(list)) return FD_VOID;
-  else if (FD_VOIDP(count_var)) {
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
+  if (FD_VOIDP(count_var)) {
     bindings.size=1; 
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
@@ -376,11 +378,9 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
     bindings.size=2;
     vars[1]=var; vals[1]=FD_VOID; vloc=&(vals[1]);
     vars[0]=count_var; vals[0]=FD_INT2DTYPE(0); iloc=&(vals[0]);}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;

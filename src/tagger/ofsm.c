@@ -63,7 +63,7 @@ static fd_exception NoGrammar=_("No grammar identified");
 static int hashset_strget(fd_hashset hs,u8_string data,int i)
 {
   struct FD_STRING stringdata;
-  FD_INIT_STACK_CONS(&stringdata,fd_string_type);
+  FD_INIT_STATIC_CONS(&stringdata,fd_string_type);
   stringdata.bytes=data; stringdata.length=i;
   return fd_hashset_get(hs,(fdtype)(&stringdata));
 }
@@ -568,7 +568,7 @@ static fdtype get_noun_root(fd_parse_context pcxt,fdtype key)
   if (pcxt->custom_lexicon) {
     struct FD_PAIR tmp_pair;
     fdtype tmp_key=(fdtype)(&tmp_pair), custom_root;
-    FD_INIT_STACK_CONS(&tmp_pair,fd_pair_type);
+    FD_INIT_STATIC_CONS(&tmp_pair,fd_pair_type);
     tmp_pair.car=noun_root_symbol; tmp_pair.cdr=key;
     custom_root=fd_hashtable_get(pcxt->custom_lexicon,tmp_key,FD_VOID);
     if (FD_VOIDP(custom_root))
@@ -582,7 +582,7 @@ static fdtype get_verb_root(fd_parse_context pcxt,fdtype key)
   if (pcxt->custom_lexicon) {
     struct FD_PAIR tmp_pair;
     fdtype tmp_key=(fdtype)(&tmp_pair), custom_root;
-    FD_INIT_STACK_CONS(&tmp_pair,fd_pair_type);
+    FD_INIT_STATIC_CONS(&tmp_pair,fd_pair_type);
     tmp_pair.car=verb_root_symbol; tmp_pair.cdr=key;
     custom_root=fd_hashtable_get(pcxt->custom_lexicon,tmp_key,FD_VOID);
     if (FD_VOIDP(custom_root))

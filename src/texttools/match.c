@@ -229,7 +229,7 @@ static fdtype subst_symbol, label_symbol, star_symbol, plus_symbol, opt_symbol;
 static fdtype hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
 {
   struct FD_STRING sval;
-  FD_INIT_STACK_CONS(&sval,fd_string_type);
+  FD_INIT_STATIC_CONS(&sval,fd_string_type);
   sval.length=len; sval.bytes=s;
   return fd_hashset_get(h,(fdtype)&sval);
 }

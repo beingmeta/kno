@@ -178,9 +178,8 @@ static fd_lispenv init_static_env
 {
   int i=0; while (i < n) {
     vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
-  FD_INIT_STRUCT(bindings,struct FD_SCHEMAP);
-  FD_INIT_STRUCT(envstruct,struct FD_ENVIRONMENT);
-  FD_INIT_STACK_CONS(bindings,fd_schemap_type);
+  FD_INIT_STATIC_CONS(envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(bindings,fd_schemap_type);
   bindings->flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings->schema=vars;
   bindings->values=vals;
@@ -189,7 +188,6 @@ static fd_lispenv init_static_env
   envstruct->bindings=FDTYPE_CONS((bindings));
   envstruct->exports=FD_VOID;
   envstruct->parent=parent;
-  FD_INIT_STACK_CONS(envstruct,fd_environment_type);
   envstruct->copy=NULL;
   return envstruct;
 }
@@ -396,8 +394,8 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
      don't match the number of arguments (lexprs or optionals).  In this
      case we set free_env=1 and just use a regular environment where
      all the values are incref'd.  */
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   bindings.schema=fn->schema;
   bindings.size=fn->n_vars;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
@@ -832,8 +830,8 @@ fdtype fd_xapply_sproc
   int i=0;
   fdtype _vals[12], *vals=_vals, arglist=fn->arglist, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.schema=fn->schema;
   bindings.size=fn->n_vars;
   bindings.flags=0;

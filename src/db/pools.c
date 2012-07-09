@@ -1550,7 +1550,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_VECTOR vstruct; fdtype vecarg;
   fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
   if (!(xp->flags&(FD_POOL_BATCHABLE))) return NULL;
-  FD_INIT_STACK_CONS(&vstruct,fd_vector_type);
+  FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=oids;
   vstruct.freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);

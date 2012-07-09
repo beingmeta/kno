@@ -2136,7 +2136,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_con
   fdtype *slots;
   int i=0, n_slots=fd_get_hashtable_size(size);
   if (stack_cons) {
-    FD_INIT_STACK_CONS(hashset,fd_hashset_type);}
+    FD_INIT_STATIC_CONS(hashset,fd_hashset_type);}
   else {FD_INIT_CONS(hashset,fd_hashset_type);}
   hashset->n_slots=n_slots; hashset->n_keys=0;
   hashset->atomicp=1; hashset->loading=default_hashset_loading;

@@ -59,8 +59,7 @@ static fdtype _overlay_get
     fdtype tmp_key;
     struct FD_PAIR p;
     struct FD_HASHTABLE *h=(fd_hashtable)overlay;
-    FD_INIT_STRUCT(&p,struct FD_PAIR);
-    FD_INIT_STACK_CONS(&p,fd_pair_type);
+    FD_INIT_STATIC_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
     p.car=car; p.cdr=cdr;
     if (fd_hashtable_probe(h,tmp_key)) {
@@ -91,8 +90,7 @@ static fdtype _overlay_get
     fdtype tmp_key, mods;
     struct FD_PAIR p;
     fd_index ix=fd_lisp2index(overlay);
-    FD_INIT_STRUCT(&p,struct FD_PAIR);
-    FD_INIT_STACK_CONS(&p,fd_pair_type);
+    FD_INIT_STATIC_CONS(&p,fd_pair_type);
     p.car=car; p.cdr=cdr;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);
@@ -135,8 +133,7 @@ static int _overlay_test
   else if (FD_HASHTABLEP(overlay)) {
     fdtype tmp_key;
     struct FD_PAIR p;
-    FD_INIT_STRUCT(&p,struct FD_PAIR);
-    FD_INIT_STACK_CONS(&p,fd_pair_type);
+    FD_INIT_STATIC_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
     p.car=slotid; p.cdr=frame;
     if (fd_hashtable_probe((fd_hashtable)slot_overlay,tmp_key)) {
@@ -160,8 +157,7 @@ static int _overlay_test
     fdtype tmp_key, mods;
     struct FD_PAIR p;
     fd_index ix=fd_lisp2index(overlay);
-    FD_INIT_STRUCT(&p,struct FD_PAIR);
-    FD_INIT_STACK_CONS(&p,fd_pair_type);
+    FD_INIT_STATIC_CONS(&p,fd_pair_type);
     p.car=slotid; p.cdr=frame;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);

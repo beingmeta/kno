@@ -175,7 +175,7 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
 #if FD_USE_THREADCACHE
   FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
   if (fdtc) {
-    FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
+    FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
@@ -206,7 +206,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       if (retval<0) return retval;
       if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)&&(fdtc->indices.n_keys)) {
 	struct FD_PAIR tempkey;
-	FD_INIT_STACK_CONS(&tempkey,fd_pair_type);
+	FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
 	tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
 	if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
 	  fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}

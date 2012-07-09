@@ -83,7 +83,9 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
     return choices;
   else if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
   else if (FD_ABORTP(choices)) return choices;
-  else if (FD_VOIDP(count_var)) {
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
+  if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
@@ -91,11 +93,9 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
     bindings.size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -151,18 +151,18 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   else if (FD_ABORTP(choices))
     return choices;
   else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
-  else if (FD_VOIDP(count_var)) {
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type); 
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type); 
+  if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
   else {
     bindings.size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type); 
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type); 
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -221,18 +221,18 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
     return choices;
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
-  else if (FD_VOIDP(count_var)) {
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type); 
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type); 
+  if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
   else {
     bindings.size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type); 
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type); 
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -292,7 +292,9 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   else if (FD_ABORTP(var)) return var;
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
-  else if (FD_VOIDP(count_var)) {
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
+  if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
@@ -300,11 +302,9 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
     bindings.size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -377,6 +377,8 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   choices=fd_eval(FD_CADR(control_spec),env);
   if (FD_ABORTP(choices)) return choices;
   else {FD_SIMPLIFY_CHOICE(choices);}
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
     bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID;
@@ -385,11 +387,9 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
     bindings.size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
-  FD_INIT_STACK_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
-  FD_INIT_STACK_CONS(&envstruct,fd_environment_type);
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
