@@ -397,13 +397,16 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
   while (scan<end)
     /* Scan to set scan at the end */
     if (isspace(*scan)) {
-      /* Spaces outside of quotes or not after = are always breaks */
-      if (scan>elt_start) {
-	*scan++='\0'; elts[n_elts++]=elt_start; elt_start=scan;}
+      u8_byte *item_end=scan;
+      /* Spaces outside of quotes or not after or before = are always
+       * breaks */
       while ((scan<end) && (isspace(*scan))) scan++;
-      if (n_elts>=max_elts) {
-	*scanner=scan; return n_elts;}
-      else elt_start=scan;}
+      if (*scan=='=') {scan++; continue;}
+      else {
+	*item_end='\0'; elts[n_elts++]=elt_start;
+	if (n_elts>=max_elts) {
+	  *scanner=scan; return n_elts;}
+	elt_start=scan;}}
     else if (*scan=='\'') {
       /* Scan a single quoted value, waiting for an unprotected
 	 single quote */
