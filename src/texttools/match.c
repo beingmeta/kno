@@ -3363,6 +3363,71 @@ static u8_byteoff maxlen_search
     return try;}
 }
 
+/* MINLEN matches */
+
+static fdtype minlen_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype cpat=fd_get_arg(pat,1);
+  fdtype lim_arg=fd_get_arg(pat,2);
+  fdtype inner_results=FD_EMPTY_CHOICE;
+  int min_len=-1;
+  if (FD_VOIDP(cpat))
+    return fd_err(fd_MatchSyntaxError,"maxlen_match",NULL,pat);
+  else if (FD_VOIDP(lim_arg))
+    min_len=1;
+  else if (!(FD_FIXNUMP(lim_arg)))
+    return fd_type_error(_("fixnum"),"maxlen_match",pat);
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    min_len=FD_FIX2INT(lim_arg);
+    if (min_len<=0)
+      return fd_type_error(_("positive fixnum"),"minlen_match",pat);}
+  inner_results=fd_text_domatch(cpat,next,env,string,off,lim,flags);
+  if (FD_ABORTP(inner_results)) return inner_results;
+  else if (FD_EMPTY_CHOICEP(inner_results)) return inner_results;
+  else if (FD_FIXNUMP(inner_results)) {
+    if ((FD_FIX2INT(inner_results)-off)<min_len)
+      return FD_EMPTY_CHOICE;
+    else return inner_results;}
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(r,inner_results) {
+      if (FD_FIXNUMP(r)) {
+	int rint=FD_FIX2INT(r); int diff=rint-off;
+	if (diff>=min_len) {FD_ADD_TO_CHOICE(results,r);}}}
+    fd_decref(inner_results);
+    return results;}
+}
+
+static u8_byteoff minlen_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  int min_len=-1;
+  fdtype cpat=fd_get_arg(pat,1);
+  fdtype lim_arg=fd_get_arg(pat,2);
+  if (FD_VOIDP(cpat))
+    return fd_err(fd_MatchSyntaxError,"minlen_search",NULL,pat);
+  else if (FD_VOIDP(lim_arg)) {}
+  else if (!(FD_FIXNUMP(lim_arg)))
+    return fd_type_error(_("fixnum"),"minlen_search",pat);
+  else if ((FD_FIX2INT(lim_arg))<=0)
+    return fd_type_error(_("positive fixnum"),"minlen_search",pat);
+  {
+    u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
+    while ((try >= 0) && (try < lim)) {
+      fdtype matches=minlen_match(pat,FD_VOID,env,string,try,lim,flags);
+      if (!(FD_EMPTY_CHOICEP(matches))) {
+	fd_decref(matches);
+	return try;}
+      else try=fd_text_search(cpat,env,string,
+			      forward_char(string,try),
+			      lim,flags);}
+    return try;}
+}
+
 /** Search functions **/
 
 static u8_byte *strsearch
@@ -3669,6 +3734,7 @@ void fd_init_match_c()
     ("HASHSET-NOT",hashset_not_match,hashset_not_search,NULL);
 
   fd_add_match_operator("MAXLEN",maxlen_match,maxlen_search,NULL);
+  fd_add_match_operator("MINLEN",minlen_match,minlen_search,NULL);
 
   label_symbol=fd_intern("LABEL");
   subst_symbol=fd_intern("SUBST");
