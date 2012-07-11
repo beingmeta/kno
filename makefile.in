@@ -404,7 +404,8 @@ clean: tidy
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
 	rm -f lib/*@suffix@.so.*
-	rm -f lib/framerd/*@suffix@.so lib/*@suffix@.so.* lib/framerd/*.dylib
+	rm -f lib/framerd/*@suffix@.so lib/framerd/*@suffix@.so.* 
+	rm -f lib/framerd/*.dylib
 	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
