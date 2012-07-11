@@ -979,8 +979,8 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       int j=0;
       while (j<i) {fd_decref(argbuf[j]); j++;}
       if (argbuf!=_argbuf) u8_free(argbuf);
-      if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
-      if (proclock) {u8_unlock_mutex(&(dbp->lock)); proclock=0;}
+      if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
+      if (proclock) {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
       return FD_ERROR_VALUE;}
     else if (FD_TRUEP(ptypes[i])) {
       /* If the ptype is #t, try to convert it into a string,
@@ -993,8 +993,8 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	while (j<i) {fd_decref(argbuf[i]); i++;}
 	j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
 	if (argbuf!=_argbuf) u8_free(argbuf);
-	if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
-	if (proclock)  {u8_unlock_mutex(&(dbp->lock)); proclock=0;}
+	if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
+	if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
 	return FD_ERROR_VALUE;}
       else {
 	u8_string as_string=out.u8_outbuf;
@@ -1014,8 +1014,8 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
       j=0; while (j<i) {fd_decref(argbuf[j]); j++;}
       if (argbuf!=_argbuf) u8_free(argbuf);
-      if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
-      if (proclock)  {u8_unlock_mutex(&(dbp->lock)); proclock=0;}
+      if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
+      if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
       return FD_ERROR_VALUE;}
     i++;}
   
@@ -1046,12 +1046,12 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     if (reconn<0) {
       const char *errmsg=mysql_stmt_error(dbproc->stmt);
       u8_seterr(MySQL_Error,"mysqlexec",u8_strdup(errmsg));
-      if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
-      if (proclock)  {u8_unlock_mutex(&(dbp->lock)); proclock=0;}
+      if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
+      if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
       return FD_ERROR_VALUE;}
     else {
-      if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
-      if (proclock)  {u8_unlock_mutex(&(dbp->lock)); proclock=0;}
+      if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
+      if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
       return callmysqlproc(fn,n,args);}}
   else if (retval) {
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
@@ -1065,13 +1065,13 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
     i=0; while (i<n_mstimes) {u8_free(mstimes[i]); i++;}
     if (argbuf!=_argbuf) u8_free(argbuf);
-    if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
+    if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
     return FD_ERROR_VALUE;}
 
   /* Unlock the connection now that you have results
      (call to mysql_stmt_store_result above) */
-  if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
+  if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
 
   /* Get any values.  This will handle it's own errors. */
   if (dbproc->n_cols)
@@ -1091,7 +1091,7 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 
   mysql_stmt_free_result(dbproc->stmt);
   
-  if (dblock) {u8_unlock_mutex(&(dbproc->fdbptr->lock)); dblock=0;}
+  if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
   if (proclock) {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
  
   return values;
