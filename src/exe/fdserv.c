@@ -843,7 +843,7 @@ int main(int argc,char **argv)
   fd_register_config("LOGCONNECT",_("Log server connections"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
   fd_register_config("LOGTRANSACT",_("Log client/server transactions"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
+		     fd_boolconfig_get,fd_boolconfig_set,&logtransact);
   fd_register_config("IGNORELEFTOVERS",
 		     _("Whether to check for existing PID files"),
 		     fd_boolconfig_get,fd_boolconfig_set,&ignore_leftovers);
