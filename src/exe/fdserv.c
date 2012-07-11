@@ -50,6 +50,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 static FILE *statlog=NULL;
 static double overtime=0;
 static int loglisten=1, logconnect=0, logtransact=0;
+static int stealsockets=0;
 
 /* Tracking ports */
 static u8_string server_id=NULL;
@@ -586,7 +587,9 @@ static void shutdown_server(u8_condition reason)
   ports=NULL; n_ports=0; max_ports=0;
   u8_unlock_mutex(&server_port_lock);
   if (pidfile) {
-    u8_removefile(pidfile);
+    int retval=u8_removefile(pidfile);
+    if (retval<0) 
+      u8_log(LOG_WARN,"FDSERV/shutdown","Couldn't remove pid file %s",pidfile);
     u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
@@ -704,6 +707,17 @@ static int start_servers()
   int i=0, lim=n_ports;
   u8_lock_mutex(&server_port_lock); lim=n_ports;
   while (i<lim) {
+    u8_string port=ports[i++];
+    if ((strchr(port,'/'))&&(u8_file_existsp(port))) {
+      if (stealsockets) {
+	int retval=u8_removefile(port);
+	if (retval<0)
+	  u8_log(LOG_WARN,"FDSERV/start","Couldn't remove socket file %s",
+		 port);}
+      else {
+	u8_log(LOG_WARN,"FDSERV/start","Socket file %s already exists",
+	       port);}}}
+  i=0; while (i<lim) {
     int retval=add_server(ports[i]);
     if (retval<0) {
       u8_log(LOG_CRIT,"FDSERV/START","Couldn't start server %s",ports[i]);
@@ -844,6 +858,10 @@ int main(int argc,char **argv)
   fd_register_config
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
+
+  fd_register_config("STEALSOCKETS",
+		     _("Remove existing socket files with extreme prejudice"),
+		     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);
 
   fd_register_config("LOGLISTEN",_("Log when servers start listening"),
 		     fd_boolconfig_get,fd_boolconfig_set,&loglisten);
