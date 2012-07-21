@@ -3,7 +3,10 @@
 
 (in-module 'gpath)
 (module-export!
- '{gp/write! gp/save! gp/writeout! gp/writeout+! gp/fetch
+ '{gp/write! gp/save!
+   writeout writeout/type
+   gp/writeout gp/writeout! gp/writeout+!
+   gp/fetch
    gp/path gp/mkpath gp/makepath})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -109,6 +112,21 @@
 	      (string? (cdr saveto)))
 	 (zip/add! (car saveto) (cdr saveto) content))
 	(else (error "Bad GP/SAVE call"))))
+
+(define writeout
+  (macro expr
+    `(,gp/save!
+      ,(second expr)
+      (,stringout ,@(cdr (cdr expr)))
+      (,guess-mimetype ,(second expr)))))
+(define gp/writeout writeout)
+
+(define writeout/type
+  (macro expr
+    `(,gp/save!
+	 ,(second expr)
+	 (,stringout ,@(cdr (cdr (cdr expr))))
+       ,(third expr))))
 
 ;; For generating text files, printout style, this saves the standard
 ;; output to the designated gpath
