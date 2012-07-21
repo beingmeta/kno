@@ -50,6 +50,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 static FILE *statlog=NULL;
 static double overtime=0;
 static int loglisten=1, logconnect=0, logtransact=0;
+static int stealsockets=0;
 
 /* Tracking ports */
 static u8_string server_id=NULL;
@@ -153,10 +154,18 @@ static fdtype statinterval_get(fdtype var,void *data)
   else return FD_FIX2INT(status_interval);
 }
 
+#define STATUS_LINE1 "[%*t][%f] %d/%d/%d busy/waiting/clients/threads\n"
+#define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
+#define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
+#define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
+
 static void report_status()
 {
   u8_lock_mutex(&(fdwebserver.lock));
   long long now=u8_microtime();
+  double elapsed=u8_elapsed_time();
+  /* THe w* variables track how long queued tasks have been waiting */
+  /* The r* variables track how long running tasks have been running */
   long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
   long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
   int i=0, lim=fdwebserver.socket_lim;
@@ -177,32 +186,31 @@ static void report_status()
       long long interval=now-runstart;
       rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
       if (interval>rmax) rmax=interval;}}
-  u8_fprintf(logto,
-	     "[%*t][%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f(%d); avg(run)=%f(%d)\n",
-	     u8_elapsed_time(),
-	     fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
-	     ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),fdwebserver.waitcount,
-	     ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),fdwebserver.runcount);
-  u8_log(LOG_INFO,"fdserv",
-	 "[%*t][%f] %d/%d/%d busy/waiting/clients; avg(wait)=%f; avg(run)=%f",
-	 u8_elapsed_time(),
-	 fdwebserver.n_busy,fdwebserver.n_tasks,fdwebserver.n_clients,
+  u8_fprintf(logto,STATUS_LINE1,elapsed,
+	     fdwebserver.n_busy,fdwebserver.n_tasks,
+	     fdwebserver.n_clients,fdwebserver.n_threads);
+  u8_fprintf(logto,STATUS_LINE2,elapsed,
+	     ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
+	     fdwebserver.waitcount,
+	     ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),
+	     fdwebserver.runcount);
+  u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
+	  fdwebserver.n_busy,fdwebserver.n_tasks,
+	  fdwebserver.n_clients,fdwebserver.n_threads);
+  u8_log(LOG_INFO,"fdserv",STATUS_LINE2,elapsed,
 	 ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
-	 ((fdwebserver.runcount)?
-	  (((double)fdwebserver.runsum)/(((double)fdwebserver.runcount))):
-	  (-1)));
-  u8_fprintf
-    (logto,"[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f\n",
-     u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
-  u8_log(LOG_INFO,"fdserv","[%*t][%f] wait (n=%lld) min=%lld max=%lld avg=%f",
-	 u8_elapsed_time(),wcount,wmin,wmax,((double)wsum)/wcount);
+	 fdwebserver.waitcount,
+	 ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),
+	 fdwebserver.runcount);
+  u8_fprintf(logto,STATUS_LINE3,elapsed,
+	     wcount,wmin,wmax,((double)wsum)/wcount);
+  u8_log(LOG_INFO,"fdserv",STATUS_LINE3,elapsed,
+	 wcount,wmin,wmax,((double)wsum)/wcount);
   if (rcount) {
-    u8_fprintf
-      (logto,"[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f\n",
-       u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);
-    u8_log(LOG_INFO,"fdserv",
-	   "[%*t][%f] run (n=%lld) min=%lld max=%lld avg=%f",
-	   u8_elapsed_time(),rcount,rmin,rmax,((double)rsum)/rcount);}
+    u8_fprintf(logto,STATUS_LINE4,elapsed,
+	       rcount,rmin,rmax,((double)rsum)/rcount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINE4,elapsed,
+	   rcount,rmin,rmax,((double)rsum)/rcount);}
   u8_unlock_mutex(&(fdwebserver.lock));
   if (statlog) fflush(statlog);
 }
@@ -333,213 +341,213 @@ static int webservefn(u8_client ucl)
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)) && (FD_STRINGP(remote)))
 	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
-		 FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
-		 start_load[0],start_load[1],start_load[2]);
-	else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
-	  u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s, load=%f/%f/%f",
-		 FD_STRDATA(uri),FD_STRDATA(remote),
-		 start_load[0],start_load[1],start_load[2]);
-	else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
-	  u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s, load=%f/%f/%f",
-		 FD_STRDATA(uri),FD_STRDATA(referer),
-		 start_load[0],start_load[1],start_load[2]);
-	else if (FD_STRINGP(uri))
-	  u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
-	fd_decref(referer);
-	fd_decref(uri);}
-      proc=getcontent(path);
-      fd_parse_cgidata(cgidata);
-      parse_time=u8_elapsed_time();
-      if ((reqlog) || (urllog) || (trace_cgidata))
-	dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
-      fd_set_default_output(&(client->out));
-      fd_use_reqinfo(cgidata);
-      fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
-      precheck=run_preflight();
-      if (!((FD_FALSEP(precheck))||
-	    (FD_VOIDP(precheck))||
-	    (FD_EMPTY_CHOICEP(precheck))))
-	result=precheck;
-      else if (FD_ABORTP(proc)) result=fd_incref(proc);
-      else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
-	struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
-	if (traceweb>1)
-	  u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-		 path,proc);
-	threadcache=checkthreadcache(sp->env);
-	result=fd_cgiexec(proc,cgidata);}
-      else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
-	struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
-	if (traceweb>1)
-	  u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-		 path,proc);
-	threadcache=checkthreadcache(sp->env);
-	result=fd_cgiexec(FD_CAR(proc),cgidata);}
-      else if (FD_PAIRP(proc)) {
-	fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-	fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
-			 (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-			 (NULL));
-	fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
-	if (base) fd_load_latest(NULL,base,NULL);
-	threadcache=checkthreadcache(base);
-	if (traceweb>1)
-	  u8_log(LOG_NOTICE,"START","Handling %q with template",path);
-	setup_proc=fd_symeval(setup_symbol,base);
-	if (FD_VOIDP(setup_proc)) {}
-	else if (FD_CHOICEP(setup_proc)) {
-	  FD_DO_CHOICES(proc,setup_proc)
-	    if (FD_APPLICABLEP(proc)) {
-	      fdtype v=fd_apply(proc,0,NULL);
-	      fd_decref(v);}}
-	else if (FD_APPLICABLEP(setup_proc)) {
-	  fdtype v=fd_apply(setup_proc,0,NULL);
-	  fd_decref(v);}
-	fd_decref(setup_proc);
-	write_headers=0;
-	fd_output_xml_preface(&(client->out),cgidata);
-	if (FD_PAIRP(FD_CAR(proc))) {
-	  FD_DOLIST(expr,FD_CAR(proc)) {
-	    fd_decref(result);
-	    result=fd_xmleval(&(client->out),expr,runenv);
-	    if (FD_ABORTP(result)) break;}}
-	else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
-	fd_decref((fdtype)runenv);}
-      exec_time=u8_elapsed_time();
-      fd_set_default_output(NULL);
-      if (FD_TROUBLEP(result)) {
-    u8_exception ex=u8_erreify();
-    u8_condition excond=ex->u8x_cond;
-    u8_context excxt=((ex->u8x_context) ?
-		      (ex->u8x_context) : ((u8_context)"somewhere"));
-    u8_context exdetails=((ex->u8x_details)
-			  ? (ex->u8x_details) : ((u8_string)"no more details"));
-    fdtype irritant=fd_exception_xdata(ex);
-    if (FD_VOIDP(irritant))
-      u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-	     excond,FD_STRDATA(path),excxt,exdetails);
-    else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-		excond,FD_STRDATA(path),excxt,exdetails,irritant);
-    headerlen=headerlen+
-      strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
-    write_string(client->socket,
-		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
-    fd_xhtmlerrorpage(&(client->out),ex);
-    u8_free_exception(ex,1);
+	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
+	       start_load[0],start_load[1],start_load[2]);
+      else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s, load=%f/%f/%f",
+	       FD_STRDATA(uri),FD_STRDATA(remote),
+	       start_load[0],start_load[1],start_load[2]);
+      else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s, load=%f/%f/%f",
+	       FD_STRDATA(uri),FD_STRDATA(referer),
+	       start_load[0],start_load[1],start_load[2]);
+      else if (FD_STRINGP(uri))
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+      fd_decref(referer);
+      fd_decref(uri);}
+    proc=getcontent(path);
+    fd_parse_cgidata(cgidata);
+    parse_time=u8_elapsed_time();
     if ((reqlog) || (urllog) || (trace_cgidata))
-      dolog(cgidata,result,client->out.u8_outbuf,
-	    client->out.u8_outptr-client->out.u8_outbuf,
-	    u8_elapsed_time()-start_time);
-    contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
-    u8_writeall(client->socket,client->out.u8_outbuf,
-		client->out.u8_outptr-client->out.u8_outbuf);
-    u8_client_close(ucl);}
-  else {
-    U8_OUTPUT tmp; int tracep;
-    fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
-    fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
-    fdtype retfile=((FD_VOIDP(content))?
-		    (fd_get(cgidata,retfile_slotid,FD_VOID)):
-		    (FD_VOID));
-    if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
-    U8_INIT_OUTPUT(&tmp,1024);
-    fd_output_http_headers(&tmp,cgidata);
-    if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
-    headerlen=headerlen+(tmp.u8_outptr-tmp.u8_outbuf);
-    u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
-    tmp.u8_outptr=tmp.u8_outbuf;
-    if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
-      /* Normal case, when the output is just sent to the client */
-      if (write_headers) {
-	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	contentlen=contentlen+(tmp.u8_outptr-tmp.u8_outbuf);
-	u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
+      dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
+    fd_set_default_output(&(client->out));
+    fd_use_reqinfo(cgidata);
+    fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+    precheck=run_preflight();
+    if (!((FD_FALSEP(precheck))||
+	  (FD_VOIDP(precheck))||
+	  (FD_EMPTY_CHOICEP(precheck))))
+      result=precheck;
+    else if (FD_ABORTP(proc)) result=fd_incref(proc);
+    else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+      struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
+      if (traceweb>1)
+	u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
+	       path,proc);
+      threadcache=checkthreadcache(sp->env);
+      result=fd_cgiexec(proc,cgidata);}
+    else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+      struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
+      if (traceweb>1)
+	u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
+	       path,proc);
+      threadcache=checkthreadcache(sp->env);
+      result=fd_cgiexec(FD_CAR(proc),cgidata);}
+    else if (FD_PAIRP(proc)) {
+      fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
+      fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
+		       (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+		       (NULL));
+      fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
+      if (base) fd_load_latest(NULL,base,NULL);
+      threadcache=checkthreadcache(base);
+      if (traceweb>1)
+	u8_log(LOG_NOTICE,"START","Handling %q with template",path);
+      setup_proc=fd_symeval(setup_symbol,base);
+      if (FD_VOIDP(setup_proc)) {}
+      else if (FD_CHOICEP(setup_proc)) {
+	FD_DO_CHOICES(proc,setup_proc)
+	  if (FD_APPLICABLEP(proc)) {
+	    fdtype v=fd_apply(proc,0,NULL);
+	    fd_decref(v);}}
+      else if (FD_APPLICABLEP(setup_proc)) {
+	fdtype v=fd_apply(setup_proc,0,NULL);
+	fd_decref(v);}
+      fd_decref(setup_proc);
+      write_headers=0;
+      fd_output_xml_preface(&(client->out),cgidata);
+      if (FD_PAIRP(FD_CAR(proc))) {
+	FD_DOLIST(expr,FD_CAR(proc)) {
+	  fd_decref(result);
+	  result=fd_xmleval(&(client->out),expr,runenv);
+	  if (FD_ABORTP(result)) break;}}
+      else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
+      fd_decref((fdtype)runenv);}
+    exec_time=u8_elapsed_time();
+    fd_set_default_output(NULL);
+    if (FD_TROUBLEP(result)) {
+      u8_exception ex=u8_erreify();
+      u8_condition excond=ex->u8x_cond;
+      u8_context excxt=((ex->u8x_context) ?
+			(ex->u8x_context) : ((u8_context)"somewhere"));
+      u8_context exdetails=((ex->u8x_details)
+			    ? (ex->u8x_details) : ((u8_string)"no more details"));
+      fdtype irritant=fd_exception_xdata(ex);
+      if (FD_VOIDP(irritant))
+	u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
+	       excond,FD_STRDATA(path),excxt,exdetails);
+      else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
+		  excond,FD_STRDATA(path),excxt,exdetails,irritant);
+      headerlen=headerlen+
+	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,
+		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+      fd_xhtmlerrorpage(&(client->out),ex);
+      u8_free_exception(ex,1);
+      if ((reqlog) || (urllog) || (trace_cgidata))
+	dolog(cgidata,result,client->out.u8_outbuf,
+	      client->out.u8_outptr-client->out.u8_outbuf,
+	      u8_elapsed_time()-start_time);
       contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
-      retval=u8_writeall(client->socket,client->out.u8_outbuf,
-			 client->out.u8_outptr-client->out.u8_outbuf);
-      if (write_headers) {
-	contentlen=contentlen+strlen("</body>\n</html>\n");
-	write_string(client->socket,"</body>\n</html>\n");}}
-    else if (FD_STRINGP(retfile)) {
-      /* This needs more error checking, signallin */
-      u8_string filename=FD_STRDATA(retfile);
-      FILE *f=u8_fopen(filename,"rb");
-      if (f) {
-	int bytes_read=0; unsigned char buf[32768];
-	while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
-	  contentlen=contentlen+bytes_read;
-	  retval=u8_writeall(client->socket,buf,bytes_read);
-	  if (retval<0) break;}
-	fclose(f);}}
+      u8_writeall(client->socket,client->out.u8_outbuf,
+		  client->out.u8_outptr-client->out.u8_outbuf);
+      u8_client_close(ucl);}
+    else {
+      U8_OUTPUT tmp; int tracep;
+      fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
+      fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
+      fdtype retfile=((FD_VOIDP(content))?
+		      (fd_get(cgidata,retfile_slotid,FD_VOID)):
+		      (FD_VOID));
+      if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
+      U8_INIT_OUTPUT(&tmp,1024);
+      fd_output_http_headers(&tmp,cgidata);
+      if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
+      headerlen=headerlen+(tmp.u8_outptr-tmp.u8_outbuf);
+      u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
+      tmp.u8_outptr=tmp.u8_outbuf;
+      if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
+	/* Normal case, when the output is just sent to the client */
+	if (write_headers) {
+	  write_headers=fd_output_xhtml_preface(&tmp,cgidata);
+	  contentlen=contentlen+(tmp.u8_outptr-tmp.u8_outbuf);
+	  u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
+	contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
+	retval=u8_writeall(client->socket,client->out.u8_outbuf,
+			   client->out.u8_outptr-client->out.u8_outbuf);
+	if (write_headers) {
+	  contentlen=contentlen+strlen("</body>\n</html>\n");
+	  write_string(client->socket,"</body>\n</html>\n");}}
+      else if (FD_STRINGP(retfile)) {
+	/* This needs more error checking, signallin */
+	u8_string filename=FD_STRDATA(retfile);
+	FILE *f=u8_fopen(filename,"rb");
+	if (f) {
+	  int bytes_read=0; unsigned char buf[32768];
+	  while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
+	    contentlen=contentlen+bytes_read;
+	    retval=u8_writeall(client->socket,buf,bytes_read);
+	    if (retval<0) break;}
+	  fclose(f);}}
       else {
 	/* Where the servlet has specified some particular content */
 	contentlen=contentlen+output_content(client,content);}
-    /* Reset the stream */
-    client->out.u8_outptr=client->out.u8_outbuf;
-    u8_client_close(ucl); /* u8_client_done(ucl); */
-    u8_free(tmp.u8_outbuf);
-    fd_decref(content); fd_decref(traceval);
-    if (retval<0)
-      u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
-    if ((reqlog) || (urllog) || (trace_cgidata))
-      dolog(cgidata,result,client->out.u8_outbuf,
-	    client->out.u8_outptr-client->out.u8_outbuf,
-	    u8_elapsed_time()-start_time);}
-  if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
-    fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
-    FD_DO_CHOICES(cl,cleanup) {
-      fdtype retval=fd_apply(cleanup,0,NULL);
-      fd_decref(retval);}}
-  forcelog=fd_req_test(forcelog_symbol,FD_VOID);
-  run_postflight();
-  if (threadcache) fd_pop_threadcache(threadcache);
-  fd_use_reqinfo(FD_EMPTY_CHOICE);
-  fd_thread_set(browseinfo_symbol,FD_VOID);
-  fd_clear_errors(1);
-  write_time=u8_elapsed_time();
-  getloadavg(end_load,3);
-  u8_getrusage(RUSAGE_SELF,&end_usage);
-  if ((forcelog)||(traceweb>0)||
-    ((overtime>0)&&((write_time-start_time)>overtime))) {
-    fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
-    if (FD_VOIDP(query))
-      u8_log(LOG_NOTICE,"DONE",
-	     "Sent %d=%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-	     headerlen+contentlen,headerlen,contentlen,path,
-	     write_time-start_time,
-	     setup_time-start_time,
-	     parse_time-setup_time,
-	     exec_time-parse_time,
-	     write_time-exec_time,
-	     (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
-	     end_load[0],end_load[1],end_load[2]);
-    else u8_log(LOG_NOTICE,"DONE",
-		"Sent %d=%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-		headerlen+contentlen,headerlen,contentlen,path,query,
-		write_time-start_time,
-		setup_time-start_time,
-		parse_time-setup_time,
-		exec_time-parse_time,
-		write_time-exec_time,
-		(u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
-		end_load[0],end_load[1],end_load[2]);
-    if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
-      u8_string cond=(((overtime>0)&&((write_time-start_time)>overtime))?
-		      "OVERTIME":"FORCELOG");
-      u8_string before=u8_rusage_string(&start_usage);
-      u8_string after=u8_rusage_string(&end_usage);
-      u8_log(LOG_NOTICE,cond,"before: %s",before);
-      u8_log(LOG_NOTICE,cond," after: %s",after);
-      u8_free(before); u8_free(after);}
-    /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
-    if (urllog) fflush(urllog);
-    if (reqlog) fd_dtsflush(reqlog);
-    fd_unlock_mutex(&log_lock);
-    fd_decref(query);}
-  else {}}
+      /* Reset the stream */
+      client->out.u8_outptr=client->out.u8_outbuf;
+      u8_client_close(ucl); /* u8_client_done(ucl); */
+      u8_free(tmp.u8_outbuf);
+      fd_decref(content); fd_decref(traceval);
+      if (retval<0)
+	u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
+      if ((reqlog) || (urllog) || (trace_cgidata))
+	dolog(cgidata,result,client->out.u8_outbuf,
+	      client->out.u8_outptr-client->out.u8_outbuf,
+	      u8_elapsed_time()-start_time);}
+    if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
+      fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
+      FD_DO_CHOICES(cl,cleanup) {
+	fdtype retval=fd_apply(cleanup,0,NULL);
+	fd_decref(retval);}}
+    forcelog=fd_req_test(forcelog_symbol,FD_VOID);
+    run_postflight();
+    if (threadcache) fd_pop_threadcache(threadcache);
+    fd_use_reqinfo(FD_EMPTY_CHOICE);
+    fd_thread_set(browseinfo_symbol,FD_VOID);
+    fd_clear_errors(1);
+    write_time=u8_elapsed_time();
+    getloadavg(end_load,3);
+    u8_getrusage(RUSAGE_SELF,&end_usage);
+    if ((forcelog)||(traceweb>0)||
+	((overtime>0)&&((write_time-start_time)>overtime))) {
+      fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
+      if (FD_VOIDP(query))
+	u8_log(LOG_NOTICE,"DONE",
+	       "Sent %d=%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+	       headerlen+contentlen,headerlen,contentlen,path,
+	       write_time-start_time,
+	       setup_time-start_time,
+	       parse_time-setup_time,
+	       exec_time-parse_time,
+	       write_time-exec_time,
+	       (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+	       (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
+	       end_load[0],end_load[1],end_load[2]);
+      else u8_log(LOG_NOTICE,"DONE",
+		  "Sent %d=%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+		  headerlen+contentlen,headerlen,contentlen,path,query,
+		  write_time-start_time,
+		  setup_time-start_time,
+		  parse_time-setup_time,
+		  exec_time-parse_time,
+		  write_time-exec_time,
+		  (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+		  (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
+		  end_load[0],end_load[1],end_load[2]);
+      if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
+	u8_string cond=(((overtime>0)&&((write_time-start_time)>overtime))?
+			"OVERTIME":"FORCELOG");
+	u8_string before=u8_rusage_string(&start_usage);
+	u8_string after=u8_rusage_string(&end_usage);
+	u8_log(LOG_NOTICE,cond,"before: %s",before);
+	u8_log(LOG_NOTICE,cond," after: %s",after);
+	u8_free(before); u8_free(after);}
+      /* If we're calling traceweb, keep the log files up to date also. */
+      fd_lock_mutex(&log_lock);
+      if (urllog) fflush(urllog);
+      if (reqlog) fd_dtsflush(reqlog);
+      fd_unlock_mutex(&log_lock);
+      fd_decref(query);}
+    else {}}
   fd_decref(proc); fd_decref(result); fd_decref(path);
   /* u8_client_close(ucl); */
   fd_swapcheck();
@@ -579,7 +587,9 @@ static void shutdown_server(u8_condition reason)
   ports=NULL; n_ports=0; max_ports=0;
   u8_unlock_mutex(&server_port_lock);
   if (pidfile) {
-    u8_removefile(pidfile);
+    int retval=u8_removefile(pidfile);
+    if (retval<0) 
+      u8_log(LOG_WARN,"FDSERV/shutdown","Couldn't remove pid file %s",pidfile);
     u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
@@ -697,6 +707,17 @@ static int start_servers()
   int i=0, lim=n_ports;
   u8_lock_mutex(&server_port_lock); lim=n_ports;
   while (i<lim) {
+    u8_string port=ports[i++];
+    if ((strchr(port,'/'))&&(u8_file_existsp(port))) {
+      if (stealsockets) {
+	int retval=u8_removefile(port);
+	if (retval<0)
+	  u8_log(LOG_WARN,"FDSERV/start","Couldn't remove socket file %s",
+		 port);}
+      else {
+	u8_log(LOG_WARN,"FDSERV/start","Socket file %s already exists",
+	       port);}}}
+  i=0; while (i<lim) {
     int retval=add_server(ports[i]);
     if (retval<0) {
       u8_log(LOG_CRIT,"FDSERV/START","Couldn't start server %s",ports[i]);
@@ -837,6 +858,10 @@ int main(int argc,char **argv)
   fd_register_config
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
+
+  fd_register_config("STEALSOCKETS",
+		     _("Remove existing socket files with extreme prejudice"),
+		     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);
 
   fd_register_config("LOGLISTEN",_("Log when servers start listening"),
 		     fd_boolconfig_get,fd_boolconfig_set,&loglisten);
