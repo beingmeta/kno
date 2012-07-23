@@ -125,7 +125,7 @@ The %{name}-exif package provides access to image EXIF data
 %setup -q
 
 %build
-%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-tidy --without-ziptools
+%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-tidy
 #make %{?_smp_mflags}
 make
 make mod_fdserv
@@ -259,6 +259,16 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtagger.so
 %{_libdir}/libtagger.a
 
+%files ziptools
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/ziptools.so*
+ 
+%files exif
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/exif.so*
+
 #%files odbc
 #%defattr(-,root,root,-)
 #%doc
@@ -269,12 +279,3 @@ rm -rf $RPM_BUILD_ROOT
 #%doc
 #%{_libdir}/framerd/tidy.so*
 # 
-#%files ziptools
-#%defattr(-,root,root,-)
-#%doc
-#%{_libdir}/framerd/ziptools.so*
-# 
-#%files exif
-#%defattr(-,root,root,-)
-#%doc
-#%{_libdir}/framerd/exif.so*
