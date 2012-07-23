@@ -215,6 +215,59 @@ static void report_status()
   if (statlog) fflush(statlog);
 }
 
+static fdtype servlet_status()
+{
+  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  long long now; double elapsed;
+  /* THe w* variables track how long queued tasks have been waiting */
+  /* The r* variables track how long running tasks have been running */
+  long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
+  long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
+  int i=0, lim; struct U8_CLIENT **socketmap;
+  u8_lock_mutex(&(fdwebserver.lock));
+  now=u8_microtime(); elapsed=u8_elapsed_time();
+  lim=fdwebserver.socket_lim; socketmap=fdwebserver.socketmap;
+  last_status=now;
+  while (i<lim) {
+    u8_client cl=socketmap[i++];
+    if (!(cl)) continue;
+    if (cl->queued>=0) {
+      long long queuestart=cl->queued;
+      long long interval=now-queuestart;
+      wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
+      if (interval>wmax) wmax=interval;}
+    if (cl->started>=0) {
+      long long runstart=cl->started;
+      long long interval=now-runstart;
+      rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
+      if (interval>rmax) rmax=interval;}}
+  fd_store(result,fd_intern("NTHREADS"),FD_INT2DTYPE(fdwebserver.n_threads));
+  fd_store(result,fd_intern("NTASKS"),FD_INT2DTYPE(fdwebserver.n_tasks));
+  fd_store(result,fd_intern("NBUSY"),FD_INT2DTYPE(fdwebserver.n_busy));
+  fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(fdwebserver.n_clients));
+  fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(fdwebserver.n_trans));
+  fd_store(result,fd_intern("TOTALCONN"),FD_INT2DTYPE(fdwebserver.n_accepted));
+  fd_store(result,fd_intern("AVGWAIT"),
+	   fd_make_double(((double)fdwebserver.waitsum)/
+			  (((double)fdwebserver.waitcount))));
+  fd_store(result,fd_intern("TOTALWAITS"),
+	   FD_INT2DTYPE(fdwebserver.waitcount));
+  fd_store(result,fd_intern("AVGRUN"),
+	   fd_make_double(((double)fdwebserver.runsum)/
+			  (((double)fdwebserver.runcount))));
+  fd_store(result,fd_intern("TOTALRUNS"),FD_INT2DTYPE(fdwebserver.runcount));
+  fd_store(result,fd_intern("WAITCOUNT"),FD_INT2DTYPE(wcount));
+  fd_store(result,fd_intern("WAITMAX"),FD_INT2DTYPE(wmax));
+  fd_store(result,fd_intern("WAITMIN"),FD_INT2DTYPE(wmin));
+  fd_store(result,fd_intern("WAITAVG"),fd_make_double(((double)wsum)/wcount));
+  fd_store(result,fd_intern("RUNMAX"),FD_INT2DTYPE(rmax));
+  fd_store(result,fd_intern("RUNMIN"),FD_INT2DTYPE(rmin));
+  fd_store(result,fd_intern("RUNAVG"),fd_make_double(((double)rsum)/rcount));
+  u8_unlock_mutex(&(fdwebserver.lock));
+  if (statlog) fflush(statlog);
+  return result;
+}
+
 /* Writing the PID file */
 
 static int check_pid_file(char *sockname)
@@ -595,7 +648,7 @@ static void shutdown_server(u8_condition reason)
   fd_recycle_hashtable(&pagemap);
 }
 
-static fdtype get_servlet_status()
+static fdtype servlet_status_string()
 {
   u8_string status=u8_server_status(&fdwebserver,NULL,0);
   return fd_lispstring(status);
@@ -841,7 +894,9 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
   fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
   fd_idefn((fdtype)server_env,
-	   fd_make_cprim0("SERVLET-STATUS",get_servlet_status,0));
+	   fd_make_cprim0("SERVLET-STATUS->STRING",servlet_status_string,0));
+  fd_idefn((fdtype)server_env,
+	   fd_make_cprim0("SERVLET-STATUS",servlet_status,0));
 
   init_webcommon_configs();
   fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
