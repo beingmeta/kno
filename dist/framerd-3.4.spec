@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.4
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -9,8 +9,8 @@ URL:            http://www.beingmeta.com/
 Source0:        framerd-3.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel libexif-devel mysql-devel
-Requires:       libu8 curl libexif
+BuildRequires:  libu8-devel curl-devel mysql-devel
+Requires:       libu8 curl
 
 %description
 FramerD is a distributed knowledge base and application environment.
@@ -107,9 +107,16 @@ Summary:        FramerD module for working with zipfiles
 Group:          Development/Libraries
 BuildRequires:  libzip-devel
 Requires:       libzip %{name} = %{version}-%{release}
-
 %description    ziptools
 The %{name}-ziptools package implements external bindings for libzip
+
+%package        exif
+Summary:        FramerD module for working with zipfiles
+Group:          Development/Libraries
+BuildRequires:  libexif-devel
+Requires:       libexif %{name} = %{version}-%{release}
+%description    exif
+The %{name}-exif package provides access to image EXIF data
 
 %prep
 %setup -q

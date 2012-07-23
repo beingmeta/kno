@@ -1,0 +1,30 @@
+# /etc/rpm/macros # (c) GPL 2003 Tero.Karvinen at-sign iki.fi
+# Put this in your ~/.rpmrc file to have a local build structure for
+# RPMs
+%packager %(echo "$USER")
+%_topdir %(echo "$HOME")/build/rpms
+%_rpmtopdir %{_topdir}
+%_builddir %{_rpmtopdir}/BUILD
+%_rpmdir %{_rpmtopdir}
+%_sourcedir %{_rpmtopdir}
+%_specdir %{_rpmtopdir}
+%_srcrpmdir %{_rpmtopdir}
+%_tmppath %{_rpmtopdir}/TMP
+%_buildroot %{_tmppath}/%{name}-root
+
+# Build rpms in your home directory, without root priviledges
+# Users can copy this file to $HOME/.rpmmacros to override
+# settings, such as packager to "Firstname Lastname email".
+# Example of typical directory and file hierarchy for
+# rpm building:
+#  ~/rpmbuild/
+#  ~/rpmbuild/nano/ # replace nano with rpm name
+#  ~/rpmbuild/nano/TMP/
+#  ~/rpmbuild/nano/BUILD/ # user must create this dir
+# and files (can be extracted from a source rpm with
+#  rpm2cpio *.src.rpm |cpio -dvi
+#   ~/rpmbuild/nano/nano-1.2.tar.gz
+#   ~/rpmbuild/nano/nano.spec
+# Then you can build your rpm with
+#  rm -rf TMP/* BUILD/* ; rpmbuild -ba *.spec 2>&1 |tee rpmbuild.log
+# For more information, see www.iki.fi/karvinen

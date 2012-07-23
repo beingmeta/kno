@@ -596,8 +596,10 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 rpmtar: etc/framerd-@VERSION@.tar.gz
 cleanrpms: 
 	rm -rf etc/rpms.done etc/framerd-?.?.tar.gz etc/framerd-?.?
+	find dist -name "*.rpm" | xargs -r
 freshrpms: 
 	rm -rf etc/rpms.done etc/framerd-?.?.tar.gz etc/framerd-?.?
+	find dist -name "*.rpm" | xargs -r
 	make rpms
 rpms: etc/rpms.done
 
@@ -614,7 +616,11 @@ etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
 	tar -czvf $@ -C etc framerd-@VERSION@
 
 etc/rpms.done: etc/framerd-@VERSION@.tar.gz
-	@buildrpm@ ${RPMFLAGS} --nodeps -ta etc/framerd-@VERSION@.tar.gz && touch etc/rpms.done
+	@buildrpm@ ${RPMFLAGS} \
+		--define "_rpmdir dist" --define "_srcrpmdir dist" \
+		--nodeps -ta \
+		etc/framerd-@VERSION@.tar.gz \
+	&& touch etc/rpms.done
 
 # Installation targets
 
