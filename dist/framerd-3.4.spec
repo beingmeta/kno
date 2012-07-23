@@ -270,3 +270,8 @@ rm -rf $RPM_BUILD_ROOT
 #%defattr(-,root,root,-)
 #%doc
 #%{_libdir}/framerd/ziptools.so*
+# 
+#%files exif
+#%defattr(-,root,root,-)
+#%doc
+#%{_libdir}/framerd/exif.so*
