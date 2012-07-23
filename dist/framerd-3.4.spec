@@ -83,6 +83,24 @@ Requires:       sqlite %{name} = %{version}-%{release}
 The %{name}-sqlite package implements external DB bindings to the Sqlite3 library
 libraries
 
+%package        ziptools
+Summary:        FramerD module for working with zipfiles
+Group:          Development/Libraries
+BuildRequires:  libzip-devel
+Requires:       libzip %{name} = %{version}-%{release}
+
+%description    ziptools
+The %{name}-ziptools package implements external bindings for libzip
+
+%package        exif
+Summary:        FramerD module for getting image metadata
+Group:          Development/Libraries
+BuildRequires:  libexif-devel
+Requires:       libexif %{name} = %{version}-%{release}
+
+%description    exif
+The %{name}-exif package provides access to image EXIF data
+
 #%package        odbc
 #Summary:        Module for using Odbc from FramerD
 #Group:          Development/Libraries
@@ -102,21 +120,6 @@ libraries
 #%description    tidy
 #The %{name}-tidy package implements external bindings to libtidy
 # 
-%package        ziptools
-Summary:        FramerD module for working with zipfiles
-Group:          Development/Libraries
-BuildRequires:  libzip-devel
-Requires:       libzip %{name} = %{version}-%{release}
-%description    ziptools
-The %{name}-ziptools package implements external bindings for libzip
-
-%package        exif
-Summary:        FramerD module for working with zipfiles
-Group:          Development/Libraries
-BuildRequires:  libexif-devel
-Requires:       libexif %{name} = %{version}-%{release}
-%description    exif
-The %{name}-exif package provides access to image EXIF data
 
 %prep
 %setup -q
