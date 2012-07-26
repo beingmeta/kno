@@ -52,7 +52,7 @@
 	((>= num 0) (printout (if pad "00") num))
 	(else (printout "-" (printnum (- num))))))
 
-(define (numstring n) (stringout (printnum n)))
+(define (numstring . args) (stringout (apply printnum args)))
 
 (define $num printnum)
 
