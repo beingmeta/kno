@@ -357,8 +357,11 @@ FD_EXPORT void fd_init_load_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&sourcefns_lock);
   fd_init_mutex(&config_file_lock);
- u8_new_threadkey(&sourcebase_key,NULL);
 #endif
+#if (FD_USE_TLS)
+  u8_new_threadkey(&sourcebase_key,NULL);
+#endif
+
 
  after_symbol=fd_intern("AFTEREXPR");
  traceloadeval_symbol=fd_intern("%TRACELOADEVAL");

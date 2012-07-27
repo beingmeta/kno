@@ -1470,7 +1470,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_unparsers[fd_dtstream_type]=unparse_dtstream;
   fd_recyclers[fd_dtstream_type]=recycle_dtstream;
 
-#if FD_THREADS_ENABLED
+#if FD_USE_TLS
   u8_new_threadkey(&default_output_key,NULL);
 #endif
 

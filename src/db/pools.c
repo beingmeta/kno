@@ -1726,7 +1726,7 @@ FD_EXPORT void fd_init_pools_c()
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
   fd_make_hashtable(&poolid_table,32);
 
-#if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
+#if (FD_USE_TLS)
   u8_new_threadkey(&fd_pool_delays_key,NULL);
 #endif
   fd_unparsers[fd_pool_type]=unparse_pool;

@@ -1280,6 +1280,7 @@ FD_EXPORT void fd_init_frames_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&slotcache_lock);
 #if FD_USE_TLS
+  u8_new_threadkey(&_fd_inhibit_overlay_key,NULL);
   u8_new_threadkey(&opstack_key,NULL);
 #endif
 #endif

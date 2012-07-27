@@ -1206,7 +1206,7 @@ FD_EXPORT void fd_init_indices_c()
   fd_init_mutex(&indices_lock);
   fd_init_mutex(&background_lock);
 #endif
-#if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
+#if (FD_USE_TLS)
   u8_new_threadkey(&index_delays_key,NULL);
 #endif
 
