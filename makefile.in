@@ -113,9 +113,11 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-oidpool \
 	       exe/scripts/ovmerge
 
-CONFDIRS=$(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
-              $(DESTDIR)@safe_module_dir@ $(DESTDIR)@standard_module_dir@/safe \
-		 $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config
+CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
+	$(DESTDIR)@data_dir@ $(DESTDIR)@module_dir@ \
+	$(DESTDIR)@standard_module_dir@ \
+	$(DESTDIR)@safe_module_dir@ \
+	$(DESTDIR)@standard_module_dir@/safe	
 
 FDB_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
