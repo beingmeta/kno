@@ -192,5 +192,6 @@
 		    (get response '%content))
 	       (get response '%content)
 	       (fail))))
+	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
 	((string? ref) (filestring ref))
 	(else (error "Weird docbase ref" ref))))
