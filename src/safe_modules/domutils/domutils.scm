@@ -12,10 +12,12 @@
 (module-export!
  '{
    dom/textify
-   dom/textual? dom/structural?
+   dom/textual? dom/structural? dom/hasclass?
    dom/oidify dom/oidmap dom/nodeid
    dom/get dom/set! dom/add! dom/drop!
-   dom/append! dom/prepend! dom/remove!
+   dom/append! dom/prepend!
+   dom/remove-child! dom/remove!
+   dom/replace-child! dom/replace!
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/combine!
@@ -124,6 +126,12 @@
   (if (symbol? attrib) (get node attrib)
       (third (pick (get node '%attribs) {first second} attrib))))
 
+(define (dom/hasclass? node classname (attrib 'class))
+  (or (test node attrib classname)
+      (textsearch (if (string? classname) `(word ,classname)
+		      `(IC (WORD ,(->string classname))))
+		  (try (pickstrings (get node attrib)) ""))))
+
 (define (dom/add! node attrib value (sep ";"))
   (drop! node '%markup)
   (let ((current (dom/get node attrib)))
@@ -133,7 +141,7 @@
 	  (unless (position value values)
 	    (dom/set! node attrib (string-append value sep current)))))))
 
-(define (dom/remove! node elt (recur #t))
+(define (dom/remove-child! node elt (recur #t))
   (drop! node '%markup)
   (and (table? node) (test node '%content)
        (let* ((content (get node '%content))
@@ -145,6 +153,36 @@
 		    #f))
 	       (else (store! node '%content newcontent)
 		     #t)))))
+(define (dom/replace-child! node cur new (recur #t))
+  (drop! node '%markup)
+  (and (table? node) (test node '%content)
+       (let* ((content (get node '%content))
+	      (newcontent (forseq (celt content)
+			    (if (equal? cur celt) new celt))))
+	 (cond ((equal? content newcontent)
+		(if recur
+		    (some? (lambda (x)
+			     (and (table? x) (dom/replace-child! x cur new #t)))
+			   content)
+		    #f))
+	       (else (store! node '%content newcontent)
+		     #t)))))
+
+(define (dom/remove! elt (node))
+  (default! node (get elt '%parent))
+  (when (and (exists? node) (table? node) (test node '%content))
+    (drop! node '%markup)
+    (let* ((content (get node '%content))
+	   (newcontent (remove elt content)))
+      (store! node '%content newcontent))))
+(define (dom/replace! cur new (node))
+  (default! node (get cur '%parent))
+  (when (and (exists? node) (table? node) (test node '%content))
+    (drop! node '%markup)
+    (let* ((content (get node '%content))
+	   (newcontent (forseq (celt content)
+			 (if (equal? cur celt) new celt))))
+      (store! node '%content newcontent))))
 
 (define (dom/append! node . content)
   (drop! node '%markup)
