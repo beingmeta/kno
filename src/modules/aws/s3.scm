@@ -11,7 +11,7 @@
 	      ezrecords rulesets logger varconfig})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
-(module-export! '{s3loc s3/getloc
+(module-export! '{s3loc s3/getloc s3loc/s3uri
 		  s3loc/uri s3loc/filename s3loc/get
 		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
 (module-export! '{s3/get s3/copy! s3/put s3/head s3/ctype})
@@ -180,6 +180,7 @@
     (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((result (s3op op bucket path content ctype headers args))
 	 (status (get result 'status)))
+    (debug%watch result)
     (if (>= 299 status 200) result
 	(begin (log%warn "Bad result " status " (" (get result 'header)
 			 ") for" (get result 'effective-url)
@@ -263,6 +264,12 @@
 
 (define (s3loc/uri s3loc)
   (stringout s3scheme s3root "/"
+    (s3loc-bucket s3loc)
+    (unless (has-prefix (s3loc-path s3loc) "/") "/")
+    (s3loc-path s3loc)))
+
+(define (s3loc/s3uri s3loc)
+  (stringout "s3://"
     (s3loc-bucket s3loc)
     (unless (has-prefix (s3loc-path s3loc) "/") "/")
     (s3loc-path s3loc)))
