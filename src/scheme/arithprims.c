@@ -458,6 +458,16 @@ static fdtype ilog_prim(fdtype n,fdtype base_arg)
   return FD_INT2DTYPE(count);
 }
 
+/* HASHPTR */
+
+static fdtype hashptr_prim(fdtype x)
+{
+  unsigned long long intval=(unsigned long long)x;
+  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM))
+    return FD_FIX2INT(((int)intval));
+  else return (fdtype)fd_ulong_long_to_bigint(intval);
+}
+
 /* Integer hashing etc. */
 
 static fdtype knuth_hash(fdtype arg)
@@ -678,6 +688,5 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("CITYHASH64",cityhash64,1,
 					    -1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
 }
-
-
