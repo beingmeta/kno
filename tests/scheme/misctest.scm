@@ -353,17 +353,24 @@
 	      (cond ((= 3 4) (error "Not invoked") #f)
 		    (else (error "should abort") #f))
 	    (lambda (x) #t)
-	    (lambda (x) #f)))
+	    (lambda () #f)))
 (evaltest #t
 	  (onerror
 	      (when #t (error "should abort") #f)
 	    (lambda (x) #t)
-	    (lambda (x) #f)))
+	    (lambda () #f)))
 (evaltest #t
+	  (onerror
+	      (unless #f (error "should abort") #f)
+	    (lambda (x) #t)
+	    (lambda () #f)))
+(evaltest #f
 	  (onerror
 	      (unless #t (error "should abort") #f)
 	    (lambda (x) #t)
-	    (lambda (x) #f)))
+	    (lambda ()
+	      (message "ONERROR works with no values returned")
+	      #f)))
 
 (if (exists? errors)
     (begin (message (choice-size errors)
