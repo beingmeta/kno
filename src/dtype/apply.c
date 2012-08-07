@@ -566,6 +566,7 @@ static fdtype ndapply_loop
     if (FD_ABORTP(value)) return value;
     else {
       value=fd_finish_call(value);
+      if (FD_ABORTP(value)) return value;
       FD_ADD_TO_CHOICE(*results,value);}}
   else if (FD_PTR_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
