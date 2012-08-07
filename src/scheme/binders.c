@@ -233,9 +233,8 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,env);
-      if (FD_ABORTP(value)) {
-	free_environment(inner_env);
-	return value;}
+      if (FD_ABORTP(value)) 
+	return return_error_env(value,":LET",inner_env);
       else {
 	vars[i]=var; vals[i]=value; i++;}}}
     result=eval_body(":LET",expr,2,inner_env);
@@ -271,7 +270,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,inner_env);
-      if (FD_ABORTP(value))
+      if (FD_ABORTP(value)) 
 	return return_error_env(value,":LET*",inner_env);
       else if (inner_env->copy) {
 	fd_bind_value(var,value,inner_env->copy);
