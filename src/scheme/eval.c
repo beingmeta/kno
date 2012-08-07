@@ -809,22 +809,25 @@ static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
 {
   if (FD_PAIRP(exprs)) {
-    fdtype next=FD_CDR(exprs), val;
-    while (FD_PAIRP(exprs))
+    fdtype next=FD_CDR(exprs), val=FD_VOID;
+    while (FD_PAIRP(exprs)) {
+      fd_decref(val); val=FD_VOID;
       if (FD_EMPTY_LISTP(next))
 	return fd_eval(FD_CAR(exprs),env);
       else {
-	val=fd_eval(FD_CAR(exprs),env); fd_decref(val);
-	val=FD_VOID; exprs=next;
-	if (FD_PAIRP(exprs)) next=FD_CDR(exprs);}
-    return FD_VOID;}
+	val=fd_eval(FD_CAR(exprs),env);
+	if (FD_ABORTP(val)) return val;
+	else exprs=next;
+	if (FD_PAIRP(exprs)) next=FD_CDR(exprs);}}
+    return val;}
   else if (FD_RAILP(exprs)) {
     struct FD_VECTOR *v=FD_GET_CONS(exprs,fd_rail_type,fd_vector);
-    int len=v->length-1; fdtype *elts=v->data, val=FD_VOID;
+    int len=v->length; fdtype *elts=v->data, val=FD_VOID;
     int i=0; while (i<len) {
-      val=fd_eval(elts[i++],env); fd_decref(val); val=FD_VOID;}
-    if (i>=0) return fd_eval(elts[i],env);
-    else return val;}
+      fd_decref(val); val=FD_VOID;
+      val=fd_eval(elts[i++],env);
+      if (FD_ABORTP(val)) return val;}
+    return val;}
   else return FD_VOID;
 }
 
