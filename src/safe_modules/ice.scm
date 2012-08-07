@@ -34,11 +34,11 @@
 
 (in-module 'ice)
 
-(use-module 'reflection)
+(use-module '{reflection logger})
 
 (module-export! '{ice/freeze ice/thaw})
 
-;;; The process of dumping and restoring is controlled by three 
+(define %loglevel %debug!)
 
 
 ;;;; Top level functions
@@ -46,9 +46,31 @@
 (defambda (ice/freeze roots pool (datarules #f) (slotrules #f))
   (let ((mapping (make-hashtable))
 	(output (make-hashtable))
-	(counter (list 0)))
+	(count 0) (counter #f))
+    (do-choices (root roots)
+      (cond ((%test mapping root))
+	    ((oid? root)
+	     (store! mapping root (make-oid 0 count))
+	     (set! count (1+ count)))
+	    ((hashtable? root)
+	     (store! mapping root (make-compound '|hashtable_root| count))
+	     (set! count (1+ count)))
+	    ((slotmap? root)
+	     (store! mapping root (make-compound '|slotmap_root| count))
+	     (set! count (1+ count)))
+	    (else)))
+    (set! counter (list count))
     (store! output 'roots
-	    (dump roots pool mapping output datarules slotrules counter))
+	    (for-choices (root roots)
+	      (if (%test mapping root)
+		  (let ((dop (get mapping root)))
+		    (store! output dop
+			    (dump (if (oid? root) (oid-value root) root)
+				  pool mapping output datarules slotrules
+				  counter))
+		    dop)
+		  (dump root pool mapping output datarules slotrules
+			counter))))
     output))
 
 (defambda (ice/thaw input pool (slotrules #f) (recrules #f))
@@ -64,7 +86,10 @@
 
 ;;;; The main DUMP function
 
-(define (dump x pool mapping output (drules #f) (srules #f) (counter (list 0)))
+(define (dump x pool mapping output (drules #f) (srules #f)
+	      (counter (list 0)) (depth 1))
+  (logdebug "[" depth "] Dumping "
+	    (typeof x) " #" (number->string (hashptr x) 16))
   (if (oid? x)
       (let* ((inpool (getpool x)))
 	(if (eq? inpool pool)
@@ -73,58 +98,80 @@
 		   (set-car! counter (1+ (car counter)))
 		   (set-cdr! counter (cons dop (cdr counter)))
 		   (store! mapping x dop)
+		   (logdebug "Dumping value of OID " x)
 		   (store! output dop
 			   (dump (oid-value x) pool mapping output
-				 drules srules counter))
+				 drules srules counter (1+ depth)))
 		   dop))
 	    (if (and drules (exists? (get drules inpool)))
 		((get drules inpool) x mapping output
 		 (lambda (v)
-		   (dump v pool mapping output drules srules counter)))
+		   (dump v pool mapping output drules srules
+			 counter (1+ depth))))
 		x)))
       (if (pair? x)
-	  (cons (dump (car x) pool mapping output drules srules counter)
-		(dump (cdr x) pool mapping output drules srules counter))
-	  (if (vector? x)
-	      (map (lambda (e)
-		     (dump e pool mapping output drules srules counter))
-		   x)
-	      (if (timestamp? x) x
-		  (if (table? x)
-		      (let ((copy (if (hashtable? x) (make-hashtable)
-				      (frame-create #f))))
-			(do-choices (key (getkeys x))
-			  (let* ((method (tryif srules
-					   (pick (get srules key) applicable?)))
-				 (newkey
-				  (try (pick (tryif srules (get srules key))
-					     slotid?)
-				       (dump key pool mapping output
-					     drules srules counter))))
-			    (if (fail? method)
-				(store! copy newkey
-					(dump (get x key) pool mapping output
-					      drules srules counter))
-				(when method
-				  (store! copy
-					  newkey
-					  (dump (if (exists applicable? method)
-						    ((pick method applicable?)
-						     ;; value, newslot, container
-						     (get x key) (try (pick method slotid?) key) x
-						     ;; dumpfn
-						     (lambda (v) (dump v pool mapping output drules srules counter)))
-						    (get x key))
-						pool mapping output
-						drules srules counter))))))
-			copy)
-		      (if (uuid? x)
-			  (make-compound '|uuid| (uuid->packet x))
-			  (if (and drules (compound-type? x)
-				   (test drules (compound-tag x)))
-			      ((get drules (compound-tag x)) x mapping output
-			       (lambda (v) (dump v pool mapping output drules srules counter)))
-			      x))))))))
+	  (let ((scan x) (result '()))
+	    (while (pair? scan)
+	      (set! result
+		    (cons (dump (car scan) pool mapping output drules srules
+				counter (1+ depth))
+			  result))
+	      (set! scan (cdr scan)))
+	    (if (null? scan) (reverse result)
+		(let* ((backwards (reverse result))
+		       (tail backwards))
+		  (until (null? (cdr tail)) (set! tail (cdr tail)))
+		  (set-cdr! tail
+			    (dump scan pool mapping output drules srules
+				  counter (1+ depth)))
+		  backwards)))
+	  (if (exists? (get mapping x))
+	      (get mapping x)
+	      (if (vector? x)
+		  (map (lambda (e)
+			 (dump e pool mapping output drules srules
+			       counter (1+ depth)))
+		       x)
+		  (if (timestamp? x) x
+		      (if (table? x)
+			  (let ((copy (if (hashtable? x) (make-hashtable)
+					  (frame-create #f))))
+			    (do-choices (key (getkeys x))
+			      (unless (and srules
+					   (overlaps? (get srules key)
+						      '{#f ignore discard}))
+				(let* ((rules (tryif srules (get srules key)))
+				       (method (pick rules applicable?))
+				       (newkey (try (pick rules slotid?)
+						    (dump key pool mapping output
+							  drules srules counter
+							  (1+ depth))))
+				       (values (get x key)))
+				  (if (fail? method)
+				      (store! copy newkey
+					      (dump values pool mapping output
+						    drules srules counter
+						    (1+ depth)))
+				      (when method
+					(store! copy newkey
+						(dump (method
+						       ;; value, oldslot, newslot, container
+						       values key newkey x
+						       ;; dumpfn
+						       (lambda (v) (dump v pool mapping output drules srules counter)))
+						      pool mapping output
+						      drules srules counter
+						      (1+ depth))))))))
+			    copy)
+			  (if (uuid? x)
+			      (make-compound '|uuid| (uuid->packet x))
+			      (if (and drules (compound-type? x)
+				       (test drules (compound-tag x)))
+				  ((get drules (compound-tag x)) x mapping output
+				   (lambda (v)
+				     (dump v pool mapping output drules srules
+					   counter (1+ depth))))
+				  x)))))))))
 
 
 ;;;; The main RESTORE function
