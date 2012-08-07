@@ -347,6 +347,24 @@
 (evaltest 90 (parse-arg "#x5a"))
 (evaltest 90 (string->lisp "0x5a"))
 
+;; This checks a bug where errors in an else were ignored
+(evaltest #t
+	  (onerror
+	      (cond ((= 3 4) (error "Not invoked") #f)
+		    (else (error "should abort") #f))
+	    (lambda (x) #t)
+	    (lambda (x) #f)))
+(evaltest #t
+	  (onerror
+	      (when #t (error "should abort") #f)
+	    (lambda (x) #t)
+	    (lambda (x) #f)))
+(evaltest #t
+	  (onerror
+	      (unless #t (error "should abort") #f)
+	    (lambda (x) #t)
+	    (lambda (x) #f)))
+
 (if (exists? errors)
     (begin (message (choice-size errors)
 		    " Errors during MISCTSEST")
