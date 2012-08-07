@@ -209,6 +209,13 @@ static fdtype booleanp(fdtype x)
   else return FD_FALSE;
 }
 
+static fdtype typeof_prim(fdtype x)
+{
+  fd_ptr_type t=FD_PRIM_TYPE(x);
+  if (fd_type_names[t]) return fdtype_string(fd_type_names[t]);
+  else return fdtype_string("??");
+}
+
 /* Arithmetic */
 
 static fdtype plus_lexpr(int n,fdtype *args)
@@ -644,6 +651,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("NUMBER?",numberp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("IMMEDIATE?",immediatep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONSED?",consedp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TYPEOF",typeof_prim,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
