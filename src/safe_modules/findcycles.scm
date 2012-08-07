@@ -7,9 +7,9 @@
 
 (define (checkstack obj stack depth)
   (if (eqv? obj (elt stack depth)) depth
-      (if (or (and (string? obj) (string? (elt stack depth)))
-	      (and (packet? obj) (packet? (elt stack depth)))
-	      (equal? obj (elt stack depth)))
+      (if (and (or (and (string? obj) (string? (elt stack depth)))
+		   (and (packet? obj) (packet? (elt stack depth))))
+	       (equal? obj (elt stack depth)))
 	  depth
 	  (if (= depth 0) #f
 	      (checkstack obj stack (-1+ depth))))))
@@ -41,7 +41,7 @@
 				objstack opstack depth return)))
 	    ((compound? obj)
 	     (dotimes (i (compound-length obj))
-	       (loopdeloop/push (qc (compound-elt obj i))
+	       (loopdeloop/push (qc (compound-ref obj i))
 				`(COMPOUND ,(compound-tag obj) ,i)
 				objstack opstack depth return)))
 	    (else #f)))))
@@ -61,9 +61,9 @@
 	(vector-set! opstack depth op)
 	(loopdeloop obj objstack opstack (1+ depth) return))))
 
-(define (findcycles obj)
-  (let ((objstack  (make-vector 1024))
-	(opstack (make-vector 1024)))
+(define (findcycles obj (maxdepth 16384))
+  (let ((objstack  (make-vector maxdepth))
+	(opstack (make-vector maxdepth)))
     (vector-set! objstack 0 obj)
     (vector-set! opstack 0 'top)
     (call/cc (lambda (return)
