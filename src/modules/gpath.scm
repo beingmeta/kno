@@ -81,7 +81,9 @@
 	      (zipfile? (car saveto))
 	      (string? (cdr saveto)))
 	 (zip/add! (car saveto) (mkpath (cdr saveto) name) content))
-	(else (error "Bad GP/WRITE! call"))))
+	(else (error "Bad GP/WRITE! call")))
+  (lognotice "Saved " (if ctype (printout (write ctype) " "))
+	     "content for " (write name) " into " saveto))
 
 (define (get-namestring gpath)
   (if (string? gpath) gpath
@@ -111,7 +113,9 @@
 	      (zipfile? (car saveto))
 	      (string? (cdr saveto)))
 	 (zip/add! (car saveto) (cdr saveto) content))
-	(else (error "Bad GP/SAVE call"))))
+	(else (error "Bad GP/SAVE call")))
+  (lognotice "Saved " (if ctype (printout (write ctype) " "))
+	     "content into " dest))
 
 (define writeout
   (macro expr
