@@ -59,6 +59,9 @@ DB_HEADERS=\
  include/framerd/methods.h
 DBFILE_HEADERS=include/framerd/dbfile.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
+# Headers which don't live in include/framerd
+SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
+	src/exe/webcommon.ch src/cmodules/fdsqlite.h 
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o      \
 	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
@@ -378,11 +381,11 @@ depend.in:
 TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c       \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
 		src/texttools/*.c src/tagger/*.c src/cmodules/*.c     \
-		include/framerd/*.h 
+		include/framerd/*.h ${SRC_HEADERS}
 	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
-	      include/framerd/*.h
+	      include/framerd/*.h ${SRC_HEADERS}
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	etags -o SCHEMETAGS ${SCHEME_MODULES}
