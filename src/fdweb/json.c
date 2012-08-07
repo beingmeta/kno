@@ -495,7 +495,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fd
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
-  if (out==fd_default_output) u8_flush(out);
+  if (out==fd_global_output) u8_flush(out);
   return FD_VOID;
 }
 

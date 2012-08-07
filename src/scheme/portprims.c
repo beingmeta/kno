@@ -62,38 +62,51 @@ static void recycle_port(struct FD_CONS *c)
 
 /* Getting default output */
 
-u8_output fd_default_output=NULL;
+u8_output fd_global_output=NULL;
 
 FD_EXPORT void fd_set_global_output(u8_output out)
 {
-  fd_default_output=out;
+  fd_global_output=out;
 }
 
-#if FD_THREADS_ENABLED
-static u8_tld_key default_output_key;
+#if FD_USE_TLS
+u8_tld_key fd_default_output_key;
 FD_EXPORT U8_OUTPUT *fd_get_default_output()
 {
   U8_OUTPUT *f=(U8_OUTPUT *)u8_tld_get(default_output_key);
   if (f) return f;
-  else return fd_default_output;
+  else return fd_global_output;
 }
 FD_EXPORT void fd_set_default_output(U8_OUTPUT *f)
 {
-  if (f==fd_default_output)
+  if (f==fd_global_output)
     u8_tld_set(default_output_key,NULL);
   else u8_tld_set(default_output_key,f);
 }
+#elif FD_USE__THREAD
+__thread U8_OUTPUT *fd_default_output;
+FD_EXPORT U8_OUTPUT *fd_get_default_output()
+{
+  if (fd_default_output) return fd_default_output;
+  else return fd_global_output;
+}
+FD_EXPORT void fd_set_default_output(U8_OUTPUT *f)
+{
+  if (f==fd_global_output)
+    fd_default_output=NULL;
+  else fd_default_output=f;
+}
 #else
-static U8_OUTPUT *default_output=NULL;
+U8_OUTPUT *fd_default_output=NULL;
 FD_EXPORT U8_OUTPUT *fd_get_default_output()
 {
   if (default_output)
     return default_output;
-  else return fd_default_output;
+  else return fd_global_output;
 }
 FD_EXPORT void fd_set_default_output(U8_OUTPUT *f)
 {
-  if (f==fd_default_output)
+  if (f==fd_global_output)
     default_output=NULL;
   else default_output=f;
 }
@@ -1470,8 +1483,8 @@ FD_EXPORT void fd_init_portfns_c()
   fd_unparsers[fd_dtstream_type]=unparse_dtstream;
   fd_recyclers[fd_dtstream_type]=recycle_dtstream;
 
-#if FD_THREADS_ENABLED
-  u8_new_threadkey(&default_output_key,NULL);
+#if FD_USE_TLS
+  u8_new_threadkey(&fd_default_output_key,NULL);
 #endif
 
   quote_symbol=fd_intern("QUOTE");

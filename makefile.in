@@ -61,7 +61,7 @@ DBFILE_HEADERS=include/framerd/dbfile.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
-	src/exe/webcommon.ch src/cmodules/fdsqlite.h 
+	src/exe/webcommon.h src/cmodules/fdsqlite.h 
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o      \
 	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
