@@ -32,8 +32,12 @@ static void free_environment(struct FD_ENVIRONMENT *env)
     while (i < n) {fd_decref(vals[i]); i++;}}
 }
 
-FD_INLINE_FCN fdtype return_error_env(fdtype error,u8_context cxt,fd_lispenv env)
+FD_INLINE_FCN fdtype return_error_env
+  (fdtype error,u8_context cxt,fd_lispenv env)
 {
+  if (FD_THROWP(error)) {
+    free_environment(env);
+    return error;}
   fd_push_error_context(cxt,copy_bindings(env));
   free_environment(env);
   return error;
@@ -46,12 +50,11 @@ FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
   FD_DOBODY(bodyexpr,expr,offset) {
     if (FD_PRIM_TYPEP(result,fd_tail_call_type))
       result=_fd_finish_call(result);
-    if (FD_ABORTP(result))
-      if (FD_THROWP(result))
-	return result;
+    if (FD_ABORTP(result)) {
+      if (FD_THROWP(result)) return result;
       else {
 	fd_push_error_context(cxt,copy_bindings(inner_env));
-	return result;}
+	return result;}}
     else {fd_decref(result);}
     result=fast_tail_eval(bodyexpr,inner_env);}
   if (FD_THROWP(result)) return result;
@@ -67,11 +70,9 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
   FD_DOLIST(bodyexpr,body) {
     if (FD_PRIM_TYPEP(result,fd_tail_call_type))
       result=_fd_finish_call(result);
-    if (FD_ABORTP(result))
-      if (FD_THROWP(result))
-	return result;
-      else return result;
+    if (FD_ABORTP(result)) return result;
     else {fd_decref(result);}
     result=fd_tail_eval(bodyexpr,inner_env);}
   return result;
 }
+
