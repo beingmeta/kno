@@ -108,16 +108,18 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       return handler;}}
   else if (FD_VOIDP(default_handler))
     return value;
-  else if (FD_VOIDP(value)) 
-    return fd_err(NoValueForHandler,"onerror_handler",NULL,expr);
   else {
     fdtype handler=fd_eval(default_handler,env);
     if (FD_ABORTP(handler)) 
       return handler;
     else if (FD_APPLICABLEP(handler)) {
-      fdtype result=fd_finish_call(fd_dapply(handler,1,&value));
-      fd_decref(value);
-      return result;}
+      if (FD_VOIDP(value)) {
+	fdtype result=fd_finish_call(fd_dapply(handler,0,&value));
+	return result;}
+      else {
+	fdtype result=fd_finish_call(fd_dapply(handler,1,&value));
+	fd_decref(value);
+	return result;}}
     else {
       fd_decref(value);
       return handler;}}
