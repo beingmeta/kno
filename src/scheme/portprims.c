@@ -115,7 +115,7 @@ FD_EXPORT void fd_set_default_output(U8_OUTPUT *f)
 static int use_u8_message(u8_output f)
 {
   u8_message(f->u8_outbuf);
-  if (fd_get_default_output()==f)
+  if (fd_current_output==f)
     fd_set_default_output(NULL);
   if (f->u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(f->u8_outbuf);
   if (f->u8_streaminfo&U8_STREAM_MALLOCD) u8_free(f);
@@ -124,7 +124,7 @@ static int use_u8_message(u8_output f)
 
 FD_INLINE_FCN u8_output get_default_output_port()
 {
-  u8_output f=fd_get_default_output();
+  u8_output f=fd_current_output;
   if (f) return f;
   f=u8_open_output_string(512);
   f->u8_closefn=use_u8_message;
@@ -145,7 +145,7 @@ static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 static u8_output get_output_port(fdtype portarg)
 {
   if (FD_VOIDP(portarg))
-    return fd_get_default_output();
+    return fd_current_output;
   else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
@@ -398,7 +398,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 {
   if (FD_ABORTP(x)) return 0;
   else if (FD_VOIDP(x)) return 1;
-  if (out == NULL) out=fd_get_default_output();
+  if (out == NULL) out=fd_current_output;
   if (FD_STRINGP(x))
     u8_printf(out,"%s",FD_STRDATA(x));
   else u8_printf(out,"%q",x);
@@ -408,7 +408,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 FD_EXPORT
 fdtype fd_printout(fdtype body,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
@@ -421,7 +421,7 @@ fdtype fd_printout(fdtype body,fd_lispenv env)
 FD_EXPORT
 fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lispenv env)
 {
-  u8_output prev=fd_get_default_output();
+  u8_output prev=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -438,7 +438,7 @@ fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lispenv env)
 
 static fdtype substringout(fdtype arg,fdtype start,fdtype end)
 {
-  u8_output output=fd_get_default_output();
+  u8_output output=fd_current_output;
   u8_string string=FD_STRDATA(arg); unsigned int len=FD_STRLEN(arg);
   if (FD_VOIDP(start)) u8_putn(output,string,len);
   else if (FD_VOIDP(end)) {
@@ -458,7 +458,7 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
   u8_string exstring=((FD_STRINGP(excluding))?
 		      (FD_STRDATA(excluding)):
 		      ((u8_string)""));
-  u8_output output=fd_get_default_output();
+  u8_output output=fd_current_output;
   u8_string string=FD_STRDATA(input);
   u8_byte *scan=input; int c=u8_sgetc(&scan);
   while (c>0) {
@@ -476,7 +476,7 @@ static fdtype printout_handler(fdtype expr,fd_lispenv env)
 }
 static fdtype lineout_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   fdtype value=fd_printout(fd_get_body(expr,1),env);
   if (FD_ABORTP(value)) return value;
   u8_printf(out,"\n");
@@ -488,7 +488,7 @@ static fdtype message_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1);
   U8_OUTPUT *out=u8_open_output_string(1024);
-  U8_OUTPUT *stream=fd_get_default_output();
+  U8_OUTPUT *stream=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -508,7 +508,7 @@ static fdtype notify_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1);
   U8_OUTPUT *out=u8_open_output_string(1024);
-  U8_OUTPUT *stream=fd_get_default_output();
+  U8_OUTPUT *stream=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -528,7 +528,7 @@ static fdtype status_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1);
   U8_OUTPUT *out=u8_open_output_string(1024);
-  U8_OUTPUT *stream=fd_get_default_output();
+  U8_OUTPUT *stream=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -548,7 +548,7 @@ static fdtype warning_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1);
   U8_OUTPUT *out=u8_open_output_string(1024);
-  U8_OUTPUT *stream=fd_get_default_output();
+  U8_OUTPUT *stream=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -576,7 +576,7 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,2);
   int level=get_loglevel(level_arg);
   U8_OUTPUT *out=u8_open_output_string(1024);
-  U8_OUTPUT *stream=fd_get_default_output();
+  U8_OUTPUT *stream=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -605,7 +605,7 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
   else {
     fdtype body=fd_get_body(expr,2);
     U8_OUTPUT *out=u8_open_output_string(1024);
-    U8_OUTPUT *stream=fd_get_default_output();
+    U8_OUTPUT *stream=fd_current_output;
     fd_decref(value); fd_set_default_output(out);
     while (FD_PAIRP(body)) {
       fdtype value=fasteval(FD_CAR(body),env);
@@ -643,7 +643,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
   else {
     fdtype body=fd_get_body(expr,3);
     U8_OUTPUT *out=u8_open_output_string(1024);
-    U8_OUTPUT *stream=fd_get_default_output();
+    U8_OUTPUT *stream=fd_current_output;
     fd_decref(value); fd_set_default_output(out);
     while (FD_PAIRP(body)) {
       fdtype value=fasteval(FD_CAR(body),env);

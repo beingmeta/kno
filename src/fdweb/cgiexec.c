@@ -456,7 +456,7 @@ static void add_remote_info(fdtype cgidata)
 static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,fd_lispenv env)
 {
   U8_OUTPUT *prev;
-  prev=fd_get_default_output();
+  prev=fd_current_output;
   fd_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -861,7 +861,7 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 			    (fdtype (*)(void *,fdtype))cgigetvar);
       value=fd_finish_call(value);}
     else {
-      struct U8_OUTPUT *out=fd_get_default_output();
+      struct U8_OUTPUT *out=fd_current_output;
       struct CGICALL call={proc,cgidata,out,-1,FD_VOID};
       fd_ipeval_call(cgiexecstep,(void *)&call);
       value=call.result;}
@@ -993,7 +993,7 @@ static fdtype withreq_handler(fdtype expr,fd_lispenv env)
 
 static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *oldout=fd_get_default_output();
+  U8_OUTPUT *oldout=fd_current_output;
   U8_OUTPUT _out, *out=&_out;
   fdtype body=fd_get_body(expr,1);
   fdtype reqinfo=fd_empty_slotmap();

@@ -69,7 +69,7 @@ static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 static u8_output get_output_port(fdtype portarg)
 {
   if (FD_VOIDP(portarg))
-    return fd_get_default_output();
+    return fd_current_output;
   else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
@@ -211,7 +211,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 {
   if (FD_ABORTP(x)) return 0;
   else if (FD_VOIDP(x)) return 1;
-  if (out == NULL) out=fd_get_default_output();
+  if (out == NULL) out=fd_current_output;
   if (FD_STRINGP(x))
     u8_printf(out,"%s",FD_STRDATA(x));
   else u8_printf(out,"%q",x);
@@ -239,7 +239,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   else {
     fd_decref(filename_val);
     return fd_type_error(_("string"),"simple_fileout",filename_val);}
-  oldf=fd_get_default_output();
+  oldf=fd_current_output;
   fd_set_default_output(f);
   {FD_DOBODY(ex,expr,2)  {
       fdtype value=fasteval(ex,env);

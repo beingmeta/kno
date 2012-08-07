@@ -32,10 +32,15 @@ FD_EXPORT fd_exception fd_UnknownEncoding;
 FD_EXPORT u8_output fd_global_output;
 #if (FD_USE_TLS)
 FD_EXPORT u8_tld_key fd_default_output_key;
+#define fd_current_output (fd_current_output)
 #elif (FD_USE__THREAD)
 FD_EXPORT __thread u8_output fd_default_output;
+#define fd_current_output \
+  ((fd_default_output)?(fd_default_output):(fd_global_output))
 #else
 FD_EXPORT u8_output fd_default_output;
+#define fd_current_output \
+  ((fd_default_output)?(fd_default_output):(fd_global_output))
 #endif
 
 FD_EXPORT fdtype fd_printout(fdtype,fd_lispenv);

@@ -362,7 +362,7 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
 static fdtype xmlout(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1);
-  U8_OUTPUT *out=fd_get_default_output(), tmpout;
+  U8_OUTPUT *out=fd_current_output, tmpout;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
   u8_byte buf[128];
   U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
@@ -385,7 +385,7 @@ FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lispenv env)
 {
   int retval=-1;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
-  if (out==NULL) out=fd_get_default_output();
+  if (out==NULL) out=fd_current_output;
   retval=xmlout_helper(out,NULL,x,xmloidfn,env);
   fd_decref(xmloidfn);
   return retval;
@@ -394,7 +394,7 @@ FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lispenv env)
 static fdtype raw_xhtml_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1);
-  U8_OUTPUT *out=fd_get_default_output(), tmpout;
+  U8_OUTPUT *out=fd_current_output, tmpout;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
   u8_byte buf[128];
   U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
@@ -417,7 +417,7 @@ static fdtype raw_xhtml_handler(fdtype expr,fd_lispenv env)
 
 static fdtype nbsp_prim()
 {
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   u8_puts(out,"&nbsp;");
   return FD_VOID;
 }
@@ -426,7 +426,7 @@ static fdtype xmlemptyelt(int n,fdtype *args)
 {
   fdtype eltname=args[0];
   u8_byte tagbuf[128], *tagname; int i=1;
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   tagname=get_tagname(eltname,tagbuf,128);
   if (tagname) {
     u8_putc(out,'<');
@@ -452,7 +452,7 @@ static fdtype xmlemptyelt(int n,fdtype *args)
 
 static fdtype xmlentry(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   fdtype head=fd_get_arg(expr,1), args=FD_CDR(FD_CDR(expr));
   u8_byte tagbuf[128], *tagname;
   if ((FD_PAIRP(head)))  head=fd_eval(head,env);
@@ -506,7 +506,7 @@ static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
   if (tagname==NULL) {
     fd_decref(xmloidfn);
     return fd_err(fd_SyntaxError,"xmlblock",NULL,expr);}
-  out=fd_get_default_output();
+  out=fd_current_output;
   U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
   if (open_markup(out,&tmpout,tagname,attribs,
 		  ((eval_attribs)?(env):(NULL)),0)<0) {
@@ -552,7 +552,7 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
   if ((FD_PAIRP(expr)) && (FD_SYMBOLP(FD_CAR(expr)))) {
     fdtype attribs=fd_get_arg(expr,1), body=fd_get_body(expr,2);
     fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
-    U8_OUTPUT *out=fd_get_default_output(), tmpout;
+    U8_OUTPUT *out=fd_current_output, tmpout;
     u8_byte *tagname, tagbuf[128], buf[128];
     U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
     if (star) {
@@ -615,7 +615,7 @@ static fdtype markupstar_handler(fdtype expr,fd_lispenv env)
 
 static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   fdtype head=FD_CAR(expr), args=FD_CDR(expr);
   u8_byte tagbuf[128], *tagname=get_tagname(head,tagbuf,128);
   if (tagname==NULL)
@@ -1009,7 +1009,7 @@ static int browseinfo_config_set(fdtype var,fdtype val,void *ignored)
 
 static fdtype doanchor(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output(), tmpout;
+  U8_OUTPUT *out=fd_current_output, tmpout;
   fdtype target=fd_eval(fd_get_arg(expr,1),env), xmloidfn;
   fdtype body=fd_get_body(expr,2);
   u8_byte buf[128]; U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
@@ -1070,7 +1070,7 @@ static int has_class_attrib(fdtype attribs)
 
 static fdtype doanchor_star(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output(), tmpout;
+  U8_OUTPUT *out=fd_current_output, tmpout;
   fdtype target=fd_eval(fd_get_arg(expr,1),env), xmloidfn=FD_VOID;
   fdtype attribs=fd_get_arg(expr,2);
   fdtype body=fd_get_body(expr,3);
@@ -1136,7 +1136,7 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
   fdtype browseinfo=get_browseinfo(arg), name, displayer=FD_VOID;
   u8_string uri=NULL, class=NULL;
   unpack_browseinfo(browseinfo,&uri,&class,&displayer);
-  if (out==NULL) out=fd_get_default_output();
+  if (out==NULL) out=fd_current_output;
   u8_printf(out,"<a class='%s' href='%s?:@%x/%x'>",
 	    class,uri,FD_OID_HI(addr),FD_OID_LO(addr));
   if ((FD_OIDP(displayer)) || (FD_SYMBOLP(displayer)))
@@ -1391,7 +1391,7 @@ static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
 static fdtype table2html_handler(fdtype expr,fd_lispenv env)
 {
   u8_string classname=NULL;
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
   fdtype tables, classarg, slotids;
   tables=fd_eval(fd_get_arg(expr,1),env);
@@ -1431,7 +1431,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
   if (!(FD_PAIRP(FD_CDR(expr))))
     return fd_err(fd_SyntaxError,"xmleval_handler",NULL,FD_VOID);
   else {
-    U8_OUTPUT *out=fd_get_default_output();
+    U8_OUTPUT *out=fd_current_output;
     fdtype xmlarg=fd_eval(FD_CADR(expr),env), v=FD_VOID;
     fdtype envarg=fd_eval(fd_get_arg(expr,2),env);
     fdtype xmlenvarg=fd_eval(fd_get_arg(expr,3),env);
@@ -1615,7 +1615,7 @@ static u8_string soapheaderclose="\n  </SOAP-ENV:Header>";
 
 static fdtype soapenvelope_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *out=fd_get_default_output();
+  U8_OUTPUT *out=fd_current_output;
   fdtype header_arg=fd_get_arg(expr,1);
   fdtype body=fd_get_body(expr,2);
   u8_puts(out,soapenvopen);

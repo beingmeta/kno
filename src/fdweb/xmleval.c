@@ -862,7 +862,7 @@ FD_EXPORT
 fdtype fd_open_xml(fdtype xml,fd_lispenv env)
 {
   if (FD_TABLEP(xml)) {
-    u8_output out=fd_get_default_output();
+    u8_output out=fd_current_output;
     fdtype markup=get_markup_string(xml,env);
     if (FD_ABORTP(markup)) return markup;
     else if (FD_STRINGP(markup)) {
@@ -887,7 +887,7 @@ FD_EXPORT
 fdtype fd_close_xml(fdtype xml)
 {
   fdtype name=FD_VOID;
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   if ((!(fd_test(xml,content_slotid,FD_VOID)))||
       (fd_test(xml,content_slotid,FD_EMPTY_CHOICE)))
     return FD_VOID;
@@ -935,7 +935,7 @@ static fdtype do_else(fdtype expr,fd_lispenv env);
 static fdtype fdxml_insert(fdtype expr,fd_lispenv env)
 {
   fdtype value=fdxml_get(expr,value_symbol,env);
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   u8_printf(out,"%q",value);
   return FD_VOID;
 }
@@ -954,7 +954,7 @@ static fdtype fdxml_if(fdtype expr,fd_lispenv env)
 
 static fdtype do_body(fdtype expr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body) {
@@ -970,7 +970,7 @@ static fdtype do_body(fdtype expr,fd_lispenv env)
 
 static fdtype do_else(fdtype expr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype body=fd_get(expr,else_symbol,FD_VOID);
   fdtype result=fd_xmleval(out,body,env);
   fd_decref(body);
@@ -981,7 +981,7 @@ static fdtype do_else(fdtype expr,fd_lispenv env)
 
 static fdtype fdxml_try(fdtype expr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_EMPTY_CHOICE;
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body)
@@ -1001,7 +1001,7 @@ static fdtype fdxml_try(fdtype expr,fd_lispenv env)
 
 static fdtype fdxml_union(fdtype expr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_EMPTY_CHOICE;
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body)
@@ -1021,7 +1021,7 @@ static fdtype fdxml_union(fdtype expr,fd_lispenv env)
 
 static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID);
   int len=0, n=0, i=0;
   fdtype _v[16], *v, result=FD_EMPTY_CHOICE;
@@ -1049,7 +1049,7 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
 
 static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
   fdtype attribs=fd_get(expr,attribids,FD_VOID), table=fd_empty_slotmap();
   fd_lispenv inner_env=fd_make_env(table,env);
@@ -1154,7 +1154,7 @@ static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
 {
   int i=0, lim;
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype seq=fdxml_get(xpr,sequence_symbol,env), *iterval=NULL;
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
   fdtype vars[2], vals[2];
@@ -1212,7 +1212,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
 
 static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   fdtype choices=fdxml_get(xpr,choice_symbol,env);
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
   fdtype *vloc=NULL, *iloc=NULL;
@@ -1271,7 +1271,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
 
 static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
 {
-  u8_output out=fd_get_default_output(); int i=0, limit;
+  u8_output out=fd_current_output; int i=0, limit;
   fdtype limit_val=fdxml_get(xpr,max_symbol,env);
   fdtype body=fd_get(xpr,content_slotid,FD_EMPTY_CHOICE);
   fdtype vars[2], vals[2];

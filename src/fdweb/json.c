@@ -487,7 +487,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
 
 static fdtype jsonoutput(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
-  u8_output out=fd_get_default_output();
+  u8_output out=fd_current_output;
   int flags=
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
