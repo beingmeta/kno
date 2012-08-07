@@ -85,6 +85,7 @@ testclean:
 	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
 	rm -f logfile thirty2fifty thirtythree 
 alltests: dtypetests tabletests indextests hashindextests dbtests
+	@echo "***" Done with alltests
 dtypetests:
 	@echo "***" Running scheme tests to exercise the data/eval layer
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
@@ -96,13 +97,16 @@ dtypetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
+	@echo "***" Completed scheme tests to exercise the data/eval layer
 
 tabletests:
 	@echo "***" Running scheme tests to exercise the table/index layer
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.table
+	@echo "***" Completed scheme tests to exercise the table/index layer
 
 indextests:
+	@echo "***" Running scheme tests to exercise file indices 
 	rm -f edit.dtype
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
@@ -121,8 +125,10 @@ indextests:
 		temp.index edit.dtype
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
 		temp.index edit.dtype
+	@echo "***" Completed scheme tests to exercise file indices 
 
 hashindextests:
+	@echo "***" Running scheme tests to exercise hash indices 
 	rm -f edit.dtype
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
@@ -145,6 +151,8 @@ hashindextests:
 		temp.hashindex edit.dtype
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm CACHELEVEL=2 \
 		temp.hashindex edit.dtype
+	@echo "***" Completed scheme tests to exercise hash indices 
+
 
 dbtests:
 	@echo "***" Running scheme tests to exercise the database layer
@@ -157,62 +165,76 @@ dbtests:
 		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
 	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
 		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
+	@echo "***" Finished scheme tests to exercise the database layer
 
 dbhashtests:
 	@echo "***" Running scheme tests to exercise the database layer with hashindices
 	make FD_HASHINDEX=yes dbtests
 	make FD_HASHINDEX="(COMPRESS B40)" dbtests
+	@echo "***" Completed scheme tests to exercise the database layer with hashindices
 
 dbhash32tests:
-	@echo "***" Running scheme tests to exercise the database layer with hashindices
+	@echo "***" Running scheme tests to exercise hashindices with B32 reprepresentation "***"
 	make FD_HASHINDEX=yes dbtests
 	make FD_HASHINDEX="(COMPRESS B32)" dbtests
+	@echo "***" Completed scheme tests to exercise hashindices with B32 reprepresentation "***"
 
 memtests:
 	@echo "***" Running alltests with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
+	@echo "***" Finished running alltests with memory debugging
 
 memdtypetests:
 	@echo "***" Running tests on data/eval layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	@echo "***" Finished running tests on data/eval layers with memory debugging
 
 memtabletests:
 	@echo "***" Running tests on table/index layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
+	@echo "***" Finished running tests on table/index layers with memory debugging
 
 memdbtests:
 	@echo "***" Running tests on database layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	@echo "***" Finished running tests on database layers with memory debugging
 
 memdbhashtests:
 	@echo "***" Running tests on database layers with memory debugging
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
+	@echo "***" Finished running tests on database layers with memory debugging
 
 heaptests:
 	@echo "***" Running alltests with tcmalloc memory debugging
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 alltests
+	@echo "***" Finished running alltests with tcmalloc memory debugging
 
 heapdtypetests:
 	@echo "***" Running tests on data/eval layers with tcmalloc memory debugging
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	@echo "***" Finished running tests on data/eval layers with tcmalloc memory debugging
 
 heaptabletests:
 	@echo "***" Running tests on table/index layers with tcmalloc memory debugging
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 tabletests
+	@echo "***" Finished running tests on table/index layers with tcmalloc memory debugging
 
 heapdbtests:
 	@echo "***" Running tests on database layers with tcmalloc memory debugging
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	@echo "***" Finished running tests on database layers with tcmalloc memory debugging
 
 randomtests:
 	@echo "***" Running alltests with a really random seed
 	make "TESTCONFIG=RANDOMSEED=TIME" alltests
+	@echo "***" Finished alltests with a really random seed
 
 chaintest:
 	@echo "***" Testing scripts which call CHAIN
 	fdexec chaintest.scm
 	fdexec chaintest.scm 0 30
 	fdexec chaintest.scm 10 50
+	@echo "***" Done testing scripts which call CHAIN
 
 batchtest:
 	@echo "***" Testing fdbatch execution success and cleanliness
@@ -252,3 +274,4 @@ batchtest:
 batchchaintest:
 	@echo "***" Testing batch scripts which call CHAIN
 	fdbatch chaintest.scm
+	@echo "***" Done testing batch scripts which call CHAIN
