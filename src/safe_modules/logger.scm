@@ -10,8 +10,9 @@
 
 (module-export!
  '{logger
-      getloglevel %loglevel
-      logdebug loginfo lognotice logwarn %debug})
+   getloglevel %loglevel
+   logdetail loginfo lognotice logwarn logdebug
+   %debug %detail})
 (module-export!
  '{%emergency! %emergency%
    %alert! %alert%
@@ -86,25 +87,29 @@
   (macro expr
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
+(define logdetail
+  (macro expr `(logif+ (>= %loglevel ,%detail%) 7 ,@(cdr expr))))
 (define logdebug
-  (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
 (define loginfo
-  (macro expr `(logif+ (>= %loglevel ,%info!) 6 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%info%) 6 ,@(cdr expr))))
 (define lognotice
-  (macro expr `(logif+ (>= %loglevel ,%notice!) 5 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%notice%) 5 ,@(cdr expr))))
 (define logwarn
-  (macro expr `(logif+ (>= %loglevel ,%warn!) 4 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%warn%) 4 ,@(cdr expr))))
 (define %debug
-  (macro expr `(logif+ (>= %loglevel ,%debug!) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
+(define %detail
+  (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
 
 (define detail%watch
-  (macro expr `(if (>= %loglevel ,%detail!) (,%watch ,@(cdr expr)) ,(cadr expr))))
+  (macro expr `(if (>= %loglevel ,%detail%) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define debug%watch
-  (macro expr `(if (>= %loglevel ,%debug!) (,%watch ,@(cdr expr)) ,(cadr expr))))
+  (macro expr `(if (>= %loglevel ,%debug%) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define info%watch
-  (macro expr `(if (>= %loglevel ,%info!) (,%watch ,@(cdr expr)) ,(cadr expr))))
+  (macro expr `(if (>= %loglevel ,%info%) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define notice%watch
-  (macro expr `(if (>= %loglevel ,%notice!) (,%watch ,@(cdr expr)) ,(cadr expr))))
+  (macro expr `(if (>= %loglevel ,%notice%) (,%watch ,@(cdr expr)) ,(cadr expr))))
 (define warn%watch
-  (macro expr `(if (>= %loglevel ,%warn!) (,%watch ,@(cdr expr)) ,(cadr expr))))
+  (macro expr `(if (>= %loglevel ,%warn%) (,%watch ,@(cdr expr)) ,(cadr expr))))
 
