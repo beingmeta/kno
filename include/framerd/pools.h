@@ -188,6 +188,7 @@ struct FD_POOL_HANDLER some_handler={
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 			    struct FD_POOL_HANDLER *h,
 			    u8_string source,u8_string cid);
+FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
 FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid);
@@ -253,6 +254,7 @@ FD_EXPORT int fd_lock_oid(fdtype oid);
 FD_EXPORT int fd_unlock_oids(fdtype oids,int commit);
 FD_EXPORT int fd_unlock_oid(fdtype oid,int commit);
 FD_EXPORT int fd_swapout_oid(fdtype oid);
+FD_EXPORT int fd_swapout_oids(fdtype oids);
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids);
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit);
 FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock);
@@ -374,11 +376,14 @@ FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
 
 typedef struct FD_MEMPOOL {
   FD_POOL_FIELDS;
-  unsigned int load; u8_mutex lock;} FD_MEMPOOL;
+  unsigned int load;
+  unsigned int noswap;
+  u8_mutex lock;} FD_MEMPOOL;
 typedef struct FD_MEMPOOL *fd_mempool;
 
 FD_EXPORT fd_pool fd_make_mempool
-  (u8_string label,FD_OID base,unsigned int cap,unsigned int load);
+  (u8_string label,FD_OID base,unsigned int cap,unsigned int load,
+   unsigned int noswap);
 /* Removes deadwood */
 FD_EXPORT int fd_clean_mempool(fd_pool p);
 

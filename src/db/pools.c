@@ -579,6 +579,51 @@ FD_EXPORT int fd_swapout_oid(fdtype oid)
     return 1;}
 }
 
+FD_EXPORT int fd_swapout_oids(fdtype oids)
+{
+  int n_pools=0, max_pools=32; fd_pool one=NULL;
+  fd_pool *pools=u8_malloc(max_pools*sizeof(fd_pool));
+  fdtype *toswap=u8_malloc(max_pools*sizeof(fdtype));
+  FD_DO_CHOICES(oid,oids) {
+    if (one==NULL) one=fd_oid2pool(oid);
+    else if (one!=fd_oid2pool(oid)) {
+      one=NULL; FD_STOP_DO_CHOICES; break;}
+    else {}}
+  if (one) {
+    n_pools=1; pools[0]=one; toswap[0]=oids;}
+  else {
+    FD_DO_CHOICES(oid,oids) {
+      fd_pool p=fd_oid2pool(oid);
+      int i=0; while (i<n_pools)
+		 if (pools[i]==p) break; else i++;
+      if (i<n_pools) {FD_ADD_TO_CHOICE(toswap[i],oid);}
+      else if (n_pools<max_pools) {
+	pools[i]=p; toswap[i]=oid; n_pools++;}
+      else {
+	pools=u8_realloc(pools,((max_pools*2)*sizeof(fd_pool)));
+	toswap=u8_realloc(toswap,((max_pools*2)*sizeof(fdtype)));
+	max_pools=max_pools*2;
+	pools[i]=p; toswap[i]=oid; n_pools++;}}}
+  {
+      int i=0; while (i<n_pools) {
+      fd_pool p=pools[i];
+      if (p->handler->swapout)
+	p->handler->swapout(p,toswap[i]);
+      else {
+	fdtype oids=fd_make_simple_choice(toswap[i]);
+	if (FD_EMPTY_CHOICEP(oids)) {}
+	else if (FD_OIDP(oids)) {
+	  fd_hashtable_op(&(p->cache),fd_table_replace,oids,FD_VOID);}
+	else {
+	  fd_hashtable_iterkeys
+	    (&(p->cache),fd_table_replace,
+	     FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
+	  fd_devoid_hashtable(&(p->locks));}
+	fd_decref(oids);}
+      i++;}}
+  return n_pools;
+}
+
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
 {
   struct FD_HASHTABLE *locks=&(p->locks); int decref_oids=0;
@@ -1154,6 +1199,13 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->label=NULL; p->prefix=NULL; p->oidnamefn=FD_VOID;
 }
 
+FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn)
+{
+  fd_incref(namefn);
+  p->oidnamefn=namefn;
+}
+
+
 /* GLUEPOOL handler (empty) */
 
 static struct FD_POOL_HANDLER gluepool_handler={
@@ -1377,12 +1429,14 @@ static fdtype raw_pool_keys(fdtype arg)
 static struct FD_POOL_HANDLER mempool_handler;
 
 FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
-				  unsigned int cap,unsigned int load)
+				  unsigned int cap,unsigned int load,
+				  unsigned int noswap)
 {
   struct FD_MEMPOOL *mp=u8_alloc(struct FD_MEMPOOL);
   fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
   mp->label=u8_strdup(label);
-  mp->load=load; u8_init_mutex(&(mp->lock)); mp->read_only=0;
+  mp->load=load; mp->read_only=0; mp->noswap=noswap;
+  u8_init_mutex(&(mp->lock)); 
   if (fd_register_pool((fd_pool)mp)<0) {
     u8_destroy_mutex(&(mp->lock));
     u8_free(mp->source); u8_free(mp->cid);
@@ -1464,11 +1518,25 @@ static int mempool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   return 1;
 }
 
-static int mempool_swapout(fd_pool p,fdtype oids)
+static int mempool_swapout(fd_pool p,fdtype oidvals)
 {
-  /* This doesn't normaly swap out, which is the point, since the only state is in the
-     mempool. */
-  return 0;
+  struct FD_MEMPOOL *mp=(fd_mempool)p;
+  if (mp->noswap) return 0;
+  else if (FD_VOIDP(oidvals)) {
+    fd_reset_hashtable(&(p->locks),1024,1);
+    return 1;}
+  else {
+    fdtype oids=fd_make_simple_choice(oidvals);
+    if (FD_EMPTY_CHOICEP(oids)) {}
+    else if (FD_OIDP(oids)) {
+      fd_hashtable_op(&(p->locks),fd_table_replace,oids,FD_VOID);}
+    else {
+      fd_hashtable_iterkeys
+	(&(p->locks),fd_table_replace,
+	 FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
+      fd_devoid_hashtable(&(p->locks));}
+    fd_decref(oids);
+    return 1;}
 }
 
 static struct FD_POOL_HANDLER mempool_handler={
@@ -1490,7 +1558,9 @@ static struct FD_POOL_HANDLER mempool_handler={
 FD_EXPORT int fd_clean_mempool(fd_pool p)
 {
   if (p->handler!=&mempool_handler) 
-    return fd_reterr(fd_TypeError,"fd_clean_mempool",_("mempool"),fd_pool2lisp(p));
+    return fd_reterr
+      (fd_TypeError,"fd_clean_mempool",
+       _("mempool"),fd_pool2lisp(p));
   else {
     fd_remove_deadwood(&(p->locks));
     fd_devoid_hashtable(&(p->locks));
@@ -1498,7 +1568,6 @@ FD_EXPORT int fd_clean_mempool(fd_pool p)
     fd_devoid_hashtable(&(p->cache));
     return p->cache.n_keys+p->locks.n_keys;}
 }
-
 
 /* Fetch pools */
 

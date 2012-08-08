@@ -162,6 +162,26 @@ static fdtype getpool(fdtype arg)
   else return FD_EMPTY_CHOICE;
 }
 
+static fd_exception Unknown_PoolName=_("Unknown pool name");
+
+static fdtype set_pool_namefn(fdtype arg,fdtype method)
+{
+  fd_pool p=NULL;
+  if (FD_POOLP(arg))
+    p=fd_lisp2pool(arg);
+  else if (FD_STRINGP(arg)) {
+    p=fd_name2pool(FD_STRDATA(arg));
+    if (!(p)) return fd_err
+		(Unknown_PoolName,"set_pool_namefn",NULL,arg);}
+  else if (FD_OIDP(arg))
+    p=fd_oid2pool(arg);
+  else return fd_type_error(_("pool"),"set_pool_namefn",arg);
+  if ((FD_OIDP(method))||(FD_SYMBOLP(method))||(FD_APPLICABLEP(method))) {
+    fd_set_pool_namefn(p,method);
+    return FD_VOID;}
+  else return fd_type_error(_("namefn"),"set_pool_namefn",method);
+}
+
 static fdtype set_cache_level(fdtype arg,fdtype level)
 {
   if (!(FD_FIXNUMP(level)))
@@ -392,10 +412,12 @@ static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
   else return fd_type_error(_("index"),"add_to_compound_index",lcx);
 }
 
-static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,fdtype load)
+static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,
+			   fdtype load,fdtype noswap)
 {
   fd_pool p=fd_make_mempool
-    (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),FD_FIX2INT(load));
+    (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),FD_FIX2INT(load),
+     (!(FD_FALSEP(noswap))));
   if (p==NULL) return FD_ERROR_VALUE;
   else return fd_pool2lisp(p);
 }
@@ -561,14 +583,38 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     return FD_VOID;}
   else if (n == 1) {
     fdtype arg=args[0];
-    if (FD_OIDP(arg)) fd_swapout_oid(arg);
+    if (FD_CHOICEP(arg)) {
+      fdtype oids=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(e,arg) {
+	if (FD_OIDP(e)) {FD_ADD_TO_CHOICE(oids,e);}
+	else if (FD_POOLP(e)) 
+	  fd_pool_swapout(fd_lisp2pool(e));
+	else if (FD_INDEXP(e))
+	  fd_index_swapout(fd_lisp2index(e));
+	else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
+	  fd_pool_swapout((fd_pool)arg);
+	else if (FD_STRINGP(e)) {
+	  fd_pool p=fd_name2pool(FD_STRDATA(e));
+	  if (!(p)) {
+	    fd_decref(oids);
+	    return fd_type_error(_("pool, index, or OIDs"),
+				 "swapout_lexpr",e);}
+	  else fd_pool_swapout(p);}
+	else {
+	  fd_decref(oids);
+	  return fd_type_error(_("pool, index, or OIDs"),
+			       "swapout_lexpr",e);}}
+      fd_swapout_oids(oids);
+      fd_decref(oids);
+      return FD_VOID;}
+    else if (FD_OIDP(arg)) fd_swapout_oid(arg);
     else if (FD_PTR_TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_lisp2index(arg));
     else if (FD_PTR_TYPEP(arg,fd_pool_type))
       fd_pool_swapout(fd_lisp2pool(arg));
     else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
       fd_pool_swapout((fd_pool)arg);
-    else return fd_type_error(_("pool or index"),"swapout_lexpr",arg);
+    else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     return FD_VOID;}
   else return fd_err(fd_TooManyArgs,"swapout",NULL,FD_VOID);
 }
@@ -2245,6 +2291,9 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-LOAD",pool_load,1));
   fd_idefn(fd_scheme_module,fd_make_cprim3("POOL-ELTS",pool_elts,1));
   fd_idefn(fd_scheme_module,
+	   fd_make_cprim2("SET-POOL-NAMEFN!",set_pool_namefn,2));
+
+  fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("OID-RANGE",oid_range,2,
 			   fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,
@@ -2303,12 +2352,14 @@ FD_EXPORT void fd_init_dbfns_c()
 #endif
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim4x("MAKE-MEMPOOL",make_mempool,2,
+	   fd_make_cprim5x("MAKE-MEMPOOL",make_mempool,2,
 			   fd_string_type,FD_VOID,
 			   fd_oid_type,FD_VOID,
 			   fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
-			   fd_fixnum_type,(FD_INT2DTYPE(0))));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
+			   fd_fixnum_type,(FD_INT2DTYPE(0)),
+			   -1,FD_FALSE));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim8x("MAKE-EXTPOOL",make_extpool,4,
@@ -2371,7 +2422,8 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_ndprim(fd_make_cprimn
 			  ("FIND-FRAMES-PREFETCH!",find_frames_prefetch,2)));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprimn("SWAPOUT",swapout_lexpr,0));
+  fd_idefn(fd_xscheme_module,
+	   fd_make_ndprim(fd_make_cprimn("SWAPOUT",swapout_lexpr,0)));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("COMMIT",commit_lexpr,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
