@@ -38,174 +38,228 @@
 
 (module-export! '{ice/freeze ice/thaw})
 
-(define %loglevel %debug!)
+(define %loglevel %notify!)
 
 
 ;;;; Top level functions
 
-(defambda (ice/freeze roots pool (datarules #f) (slotrules #f))
+(defambda (ice/freeze obj pool (roots) (datarules #f) (slotrules #f))
+  (default! roots obj)
   (let ((mapping (make-hashtable))
 	(output (make-hashtable))
-	(count 0) (counter #f))
+	(rootset (make-hashset))
+	(dumped (make-hashset))
+	(count 0) (state #f))
+    ;; Make placeholders
+    (loginfo "Allocating dopplegangers for " (choice-size roots) " roots")
     (do-choices (root roots)
-      (cond ((%test mapping root))
-	    ((oid? root)
-	     (store! mapping root (make-oid 0 count))
-	     (set! count (1+ count)))
-	    ((hashtable? root)
-	     (store! mapping root (make-compound '|hashtable_root| count))
-	     (set! count (1+ count)))
-	    ((slotmap? root)
-	     (store! mapping root (make-compound '|slotmap_root| count))
-	     (set! count (1+ count)))
-	    (else)))
-    (set! counter (list count))
-    (store! output 'roots
-	    (for-choices (root roots)
-	      (if (%test mapping root)
-		  (let ((dop (get mapping root)))
-		    (store! output dop
-			    (dump (if (oid? root) (oid-value root) root)
-				  pool mapping output datarules slotrules
-				  counter))
-		    dop)
-		  (dump root pool mapping output datarules slotrules
-			counter))))
+      (unless (%test mapping root)
+	(let ((dop (if (oid? root) (make-oid 0 count)
+		       (if (hashtable? root)
+			   (make-compound '|hashtable| count)
+			   (if (slotmap? root)
+			       (make-compound '|slotmap| count)
+			       #f)))))
+	  (when dop
+	    (hashset-add! rootset root)
+	    (store! mapping root dop)
+	    (set! count (1+ count))))))
+    (set! state (cons count rootset))
+    ;; Dump the initial roots
+    (loginfo "Saving data for dopplegangers")
+    (do-choices (root (pick roots mapping))
+      (let ((dop (get mapping root)))
+	(store! output dop
+		(dump (if (oid? root) (oid-value root) root)
+		      pool mapping output datarules slotrules
+		      state))
+	(hashset-add! dumped root)
+	dop))
+    ;; Now store the object
+    (loginfo "Saving the core object")
+    (store! output '%obj
+	    (dump obj pool mapping output datarules slotrules
+		  state))
+    ;; And save any newly discovered roots
+    (let ((todo (reject (hashset-elts rootset) dumped)))
+      (when (fail? todo) (loginfo "No additional roots to save"))
+      (until (fail? todo)
+	(loginfo "Saving information for " (choice-size todo) " new roots")
+	(do-choices (root todo)
+	  (store! output (get mapping root)
+		  (dump (if (oid? root) (oid-value root) root)
+			pool mapping output datarules slotrules
+			state))
+	  (hashset-add! dumped root))
+	(set! todo (reject (hashset-elts rootset) dumped))))
     output))
 
 (defambda (ice/thaw input pool (slotrules #f) (recrules #f))
-  (let ((mapping (make-hashtable))
-	(oids (pickoids (getkeys input))))
-    (doseq (oid (sorted oids))
-      (store! mapping oid (frame-create pool)))
-    (do-choices (oid oids)
-      (set-oid-value! (get mapping oid)
-		      (restore (get input oid) pool mapping input slotrules recrules)))
-    (restore (get input 'roots) pool mapping input slotrules recrules)))
+  (let* ((mapping (make-hashtable))
+	 (roots (difference (getkeys input) '%obj)))
+    (do-choices (root roots)
+      (store! mapping root
+	      (if (oid? root) (frame-create pool)
+		  (if (compound-type? root '|hashtable|)
+		      (make-hashtable)
+		      (if (compound-type? root '|slotmap|)
+			  (frame-create #f)
+			  {})))))
+    (do-choices (root roots)
+      (restore-into (get mapping root) (get input root)
+		    pool mapping input slotrules recrules))
+    (restore (get input '%obj) pool mapping input slotrules recrules)))
 
 
 ;;;; The main DUMP function
 
 (define (dump x pool mapping output (drules #f) (srules #f)
-	      (counter (list 0)) (depth 1))
-  (logdebug "[" depth "] Dumping "
-	    (typeof x) " #" (number->string (hashptr x) 16))
+	      (state (cons 0 (make-hashset))) (depth 1))
+  (logdetail "[" depth "] Dumping "
+	     (typeof x) " #" (number->string (hashptr x) 16))
   (if (oid? x)
       (let* ((inpool (getpool x)))
 	(if (eq? inpool pool)
 	    (try (get mapping x)
-		 (let ((dop (make-oid 0 (car counter))))
-		   (set-car! counter (1+ (car counter)))
-		   (set-cdr! counter (cons dop (cdr counter)))
+		 (let ((dop (make-oid 0 (car state))))
+		   (set-car! state (1+ (car state)))
+		   (hashset-add! (cdr state) x)
 		   (store! mapping x dop)
-		   (logdebug "Dumping value of OID " x)
-		   (store! output dop
-			   (dump (oid-value x) pool mapping output
-				 drules srules counter (1+ depth)))
 		   dop))
 	    (if (and drules (exists? (get drules inpool)))
-		((get drules inpool) x mapping output
+		((get drules inpool) x mapping output pool state
 		 (lambda (v)
 		   (dump v pool mapping output drules srules
-			 counter (1+ depth))))
+			 state (1+ depth))))
 		x)))
-      (if (pair? x)
+      (if (and (pair? x) (pair? (cdr x)))
+	  ;; Only recur in one direction to keep the stack smaller
 	  (let ((scan x) (result '()))
 	    (while (pair? scan)
 	      (set! result
 		    (cons (dump (car scan) pool mapping output drules srules
-				counter (1+ depth))
+				state (1+ depth))
 			  result))
 	      (set! scan (cdr scan)))
 	    (if (null? scan) (reverse result)
+		;; improper list, a little tricky
 		(let* ((backwards (reverse result))
 		       (tail backwards))
 		  (until (null? (cdr tail)) (set! tail (cdr tail)))
 		  (set-cdr! tail
 			    (dump scan pool mapping output drules srules
-				  counter (1+ depth)))
+				  state (1+ depth)))
 		  backwards)))
-	  (if (exists? (get mapping x))
-	      (get mapping x)
-	      (if (vector? x)
-		  (map (lambda (e)
-			 (dump e pool mapping output drules srules
-			       counter (1+ depth)))
-		       x)
-		  (if (timestamp? x) x
-		      (if (table? x)
-			  (let ((copy (if (hashtable? x) (make-hashtable)
-					  (frame-create #f))))
-			    (do-choices (key (getkeys x))
-			      (unless (and srules
-					   (overlaps? (get srules key)
-						      '{#f ignore discard}))
-				(let* ((rules (tryif srules (get srules key)))
-				       (method (pick rules applicable?))
-				       (newkey (try (pick rules slotid?)
-						    (dump key pool mapping output
-							  drules srules counter
-							  (1+ depth))))
-				       (values (get x key)))
-				  (if (fail? method)
-				      (store! copy newkey
-					      (dump values pool mapping output
-						    drules srules counter
-						    (1+ depth)))
-				      (when method
-					(store! copy newkey
-						(dump (method
-						       ;; value, oldslot, newslot, container
-						       values key newkey x
-						       ;; dumpfn
-						       (lambda (v) (dump v pool mapping output drules srules counter)))
-						      pool mapping output
-						      drules srules counter
-						      (1+ depth))))))))
-			    copy)
-			  (if (uuid? x)
-			      (make-compound '|uuid| (uuid->packet x))
-			      (if (and drules (compound-type? x)
-				       (test drules (compound-tag x)))
-				  ((get drules (compound-tag x)) x mapping output
-				   (lambda (v)
-				     (dump v pool mapping output drules srules
-					   counter (1+ depth))))
-				  x)))))))))
+	  (if (pair? x)
+	      (cons (dump (car x) pool mapping output drules srules
+			  state (1+ depth))
+		    (dump (cdr x) pool mapping output drules srules
+			  state (1+ depth)))
+	      (try (tryif (> depth 1) (get mapping x))
+		   (if (vector? x)
+		       (map (lambda (e)
+			      (dump e pool mapping output drules srules
+				    state (1+ depth)))
+			    x)
+		       ;; Timestamps are tables, so we test them first
+		       (if (timestamp? x) x
+			   (if (table? x)
+			       (dump-table x pool mapping output
+					   drules srules state depth)
+			       (if (uuid? x)
+				   (make-compound '|uuid| (uuid->packet x))
+				   (if (and drules (compound-type? x)
+					    (test drules (compound-tag x)))
+				       ((get drules (compound-tag x))
+					x mapping output
+					(lambda (v)
+					  (dump v pool mapping output drules srules
+						state (1+ depth))))
+				       x))))))))))
 
-
+(define (dump-table x pool mapping output (drules #f) (srules #f)
+		    (state (cons 0 (make-hashset))) (depth 1))
+  (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f))))
+    (do-choices (key (getkeys x))
+      (unless (and srules (overlaps? (get srules key) '{#f ignore discard}))
+	(let* ((rules (tryif srules (get srules key)))
+	       (method (pick rules applicable?))
+	       (newkey (try (pick rules slotid?)
+			    (dump key pool mapping output
+				  drules srules state (1+ depth))))
+	       (dumpfn (lambda (v)
+			 (dump v pool mapping output
+			       drules srules state (1+ depth))))
+	       (values (get x key))
+	       (newvalues (if (fail? method) values
+			      ;; value, oldslot, newslot, container, dumpfn
+			      (method values key newkey x dumpfn))))
+	  (store! copy newkey
+		  (dump newvalues pool mapping output
+			drules srules state (1+ depth))))))
+    copy))
+  
+  
 ;;;; The main RESTORE function
 
-(define (restore x pool mapping input (drules #f) (srules #f))
-  (if (oid? x)
-      (if (zero? (oid-hi x))
-	  (try (get mapping x) x)
-	  x)
-      (if (pair? x)
-	  (cons (restore (car x) pool mapping input drules srules)
-		(restore (cdr x) pool mapping input drules srules))
-	  (if (vector? x)
-	      (map (lambda (e) (restore e pool mapping input drules srules))
-		   x)
-	      (if (table? x)
-		  (let ((copy (if (hashtable? x) (make-hashtable)
-				  (frame-create #f))))
-		    (do-choices (key (getkeys x))
-		      (store! copy
-			      (restore key pool mapping input drules srules)
-			      (if (or (not srules) (fail? (get srules key)))
-				  (restore (get x key) pool mapping input drules srules)
-				  ((get srules key) (get x key) key x
-				   (lambda (y) (restore y pool mapping input drules srules))))))
-		    copy)
-		  (if (compound-type? x)
-		      (try (get mapping x)
-			   (if (and drules (exists? (get drules (compound-tag x))))
-			       ((get drules (compound-tag x)) x
-				(lambda (y) (restore y pool mapping input drules srules)))
-			       (if (compound-type? x '|uuid|)
-				   (getuuid (compound-ref x 0))
-				   x)))
-		      x))))))
+(define (restore x pool mapping input (drules #f) (srules #f) (depth 1))
+  (cond ((oid? x) (try (get mapping x) x))
+	((or (symbol? x) (number? x) (string? x) (packet? x) (timestamp? x)) x)
+	((and (pair? x) (pair? (cdr x)))
+	 ;; Only recur in one direction to keep the stack smaller
+	 (let ((scan x) (result '()))
+	   (while (pair? scan)
+	     (set! result
+		   (cons (restore (car scan) pool mapping input drules srules (1+ depth))
+			 result))
+	     (set! scan (cdr scan)))
+	   (if (null? scan) (reverse result)
+	       ;; improper list, a little tricky
+	       (let* ((backwards (reverse result))
+		      (tail backwards))
+		 (until (null? (cdr tail)) (set! tail (cdr tail)))
+		 (set-cdr! tail
+			   (restore scan pool mapping input drules srules (1+ depth)))
+		 backwards))))
+	((pair? x)
+	 (cons (restore (car x) pool mapping input drules srules (1+ depth))
+	       (restore (cdr x) pool mapping input drules srules (1+ depth))))
+	((vector? x)
+	 (map (lambda (e) (restore e pool mapping input drules srules (1+ depth)))
+	      x))
+	((table? x)
+	 (let ((copy (if (hashtable? x) (make-hashtable)
+			 (frame-create #f))))
+	   (do-choices (key (getkeys x))
+	     (store! copy
+		     (restore key pool mapping input drules srules (1+ depth))
+		     (if (or (not srules) (fail? (get srules key)))
+			 (restore (get x key) pool mapping input drules srules (1+ depth))
+			 ((get srules key) (get x key) key x
+			  (lambda (y) (restore y pool mapping input drules srules (1+ depth)))))))
+	   copy))
+	((compound-type? x)
+	 (try (get mapping x)
+	      (if (and drules (exists? (get drules (compound-tag x))))
+		  ((get drules (compound-tag x)) x
+		   (lambda (y) (restore y pool mapping input drules srules (1+ depth))))
+		  (if (compound-type? x '|uuid|)
+		      (getuuid (compound-ref x 0))
+		      x))
+	      x))
+	(else x)))
 
+(define (restore-into into x pool mapping input (drules #f) (srules #f))
+  (unless (or (hashtable? x) (slotmap? x))
+    (error "Internal restore error, can't restore non-table "
+	   x " into " into))
+  (do-choices (key (getkeys x))
+    (store! into
+	    (restore key pool mapping input drules srules)
+	    (if (or (not srules) (fail? (get srules key)))
+		(restore (get x key) pool mapping input drules srules)
+		((get srules key) (get x key) key x
+		 (lambda (y) (restore y pool mapping input drules srules))))))
+  into)
+  
 
