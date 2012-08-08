@@ -29,26 +29,8 @@ FD_EXPORT fd_ptr_type fd_dtstream_type;
 
 FD_EXPORT fd_exception fd_UnknownEncoding;
 
-FD_EXPORT u8_output fd_global_output;
-#if (FD_USE_TLS)
-FD_EXPORT u8_tld_key fd_default_output_key;
-#define fd_current_output (fd_current_output)
-#elif (FD_USE__THREAD)
-FD_EXPORT __thread u8_output fd_default_output;
-#define fd_current_output \
-  ((fd_default_output)?(fd_default_output):(fd_global_output))
-#else
-FD_EXPORT u8_output fd_default_output;
-#define fd_current_output \
-  ((fd_default_output)?(fd_default_output):(fd_global_output))
-#endif
-
 FD_EXPORT fdtype fd_printout(fdtype,fd_lispenv);
 FD_EXPORT fdtype fd_printout_to(U8_OUTPUT *,fdtype,fd_lispenv);
-
-FD_EXPORT void fd_set_global_output(u8_output);
-FD_EXPORT u8_output fd_get_default_output();
-FD_EXPORT void fd_set_default_output(u8_output);
 
 FD_EXPORT int fd_pprint
   (u8_output out,fdtype x,

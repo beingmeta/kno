@@ -413,7 +413,7 @@ static int webservefn(u8_client ucl)
     parse_time=u8_elapsed_time();
     if ((reqlog) || (urllog) || (trace_cgidata))
       dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
-    fd_set_default_output(&(client->out));
+    u8_set_default_output(&(client->out));
     fd_use_reqinfo(cgidata);
     fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
     precheck=run_preflight();
@@ -467,7 +467,7 @@ static int webservefn(u8_client ucl)
       else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
       fd_decref((fdtype)runenv);}
     exec_time=u8_elapsed_time();
-    fd_set_default_output(NULL);
+    u8_set_default_output(NULL);
     if (FD_TROUBLEP(result)) {
       u8_exception ex=u8_erreify();
       u8_condition excond=ex->u8x_cond;

@@ -485,9 +485,10 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     u8_close_output(&tmpout);}
 }
 
-static fdtype jsonoutput(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static fdtype jsonoutput(fdtype x,fdtype flags_arg,
+			 fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
-  u8_output out=fd_current_output;
+  u8_output out=u8_current_output;
   int flags=
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
@@ -495,7 +496,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fd
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
-  if (out==fd_global_output) u8_flush(out);
+  if (out==u8_global_output) u8_flush(out);
   return FD_VOID;
 }
 

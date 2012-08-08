@@ -455,21 +455,20 @@ static void add_remote_info(fdtype cgidata)
 
 static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,fd_lispenv env)
 {
-  U8_OUTPUT *prev;
-  prev=fd_current_output;
-  fd_set_default_output(out);
+  U8_OUTPUT *prev=u8_current_output;
+  u8_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     body=FD_CDR(body);
     if (FD_ABORTP(value)) {
-      fd_set_default_output(prev);
+      u8_set_default_output(prev);
       return value;}
     else if (FD_VOIDP(value)) continue;
     else if (FD_STRINGP(value))
       u8_printf(out,"%s",FD_STRDATA(value));
     else u8_printf(out,"%q",value);
     fd_decref(value);}
-  fd_set_default_output(prev);
+  u8_set_default_output(prev);
   return FD_VOID;
 }
 
@@ -861,7 +860,7 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 			    (fdtype (*)(void *,fdtype))cgigetvar);
       value=fd_finish_call(value);}
     else {
-      struct U8_OUTPUT *out=fd_current_output;
+      struct U8_OUTPUT *out=u8_current_output;
       struct CGICALL call={proc,cgidata,out,-1,FD_VOID};
       fd_ipeval_call(cgiexecstep,(void *)&call);
       value=call.result;}
@@ -993,21 +992,21 @@ static fdtype withreq_handler(fdtype expr,fd_lispenv env)
 
 static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT *oldout=fd_current_output;
+  U8_OUTPUT *oldout=u8_current_output;
   U8_OUTPUT _out, *out=&_out;
   fdtype body=fd_get_body(expr,1);
   fdtype reqinfo=fd_empty_slotmap();
   fdtype result=FD_VOID;
   fd_use_reqinfo(reqinfo);
   U8_INIT_OUTPUT(&_out,1024);
-  fd_set_default_output(out);
+  u8_set_default_output(out);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) {
 	u8_free(_out.u8_outbuf);
 	return result;}
       fd_decref(result);
       result=fd_eval(ex,env);}}
-  fd_set_default_output(oldout);
+  u8_set_default_output(oldout);
   fd_output_xhtml_preface(oldout,reqinfo);
   u8_putn(oldout,_out.u8_outbuf,(_out.u8_outptr-_out.u8_outbuf));
   u8_printf(oldout,"\n</body>\n</html>\n");

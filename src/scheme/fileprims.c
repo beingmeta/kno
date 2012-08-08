@@ -69,7 +69,7 @@ static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 static u8_output get_output_port(fdtype portarg)
 {
   if (FD_VOIDP(portarg))
-    return fd_current_output;
+    return u8_current_output;
   else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
@@ -211,7 +211,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 {
   if (FD_ABORTP(x)) return 0;
   else if (FD_VOIDP(x)) return 1;
-  if (out == NULL) out=fd_current_output;
+  if (out == NULL) out=u8_current_output;
   if (FD_STRINGP(x))
     u8_printf(out,"%s",FD_STRDATA(x));
   else u8_printf(out,"%q",x);
@@ -239,16 +239,16 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   else {
     fd_decref(filename_val);
     return fd_type_error(_("string"),"simple_fileout",filename_val);}
-  oldf=fd_current_output;
-  fd_set_default_output(f);
+  oldf=u8_current_output;
+  u8_set_default_output(f);
   {FD_DOBODY(ex,expr,2)  {
       fdtype value=fasteval(ex,env);
       if (printout_helper(f,value)) fd_decref(value);
       else {
-	fd_set_default_output(oldf);
+	u8_set_default_output(oldf);
 	fd_decref(filename_val);
 	return value;}}}
-  if (oldf) fd_set_default_output(oldf);
+  if (oldf) u8_set_default_output(oldf);
   if (doclose) u8_close_output(f);
   else u8_flush(f);
   fd_decref(filename_val);
@@ -1614,7 +1614,7 @@ FD_EXPORT void fd_init_fileio_c()
   u8_init_xoutput(&u8stdout,1,NULL);
   u8_init_xoutput(&u8stderr,2,NULL);
 
-  fd_set_global_output((u8_output)&u8stdout);
+  u8_set_global_output((u8_output)&u8stdout);
 
   fd_idefn(fileio_module,
 	   fd_make_cprim2("OPEN-OUTPUT-FILE",open_output_file,1));
