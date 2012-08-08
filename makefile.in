@@ -194,19 +194,39 @@ SCHEME_MODULES=src/modules/*.scm src/safe_modules/*.scm \
 
 default: all
 all: testbin exe cmodules @TAGS@
+
+# Handy targets
+
 debug:
-	make XCFLAGS="-O0" all
-nitpick:
-	make XCFLAGS="-Wall" all
-rebuild:
-	make clean
-	make default
+	make XCFLAGS="-O0" default
 fresh:
 	make clean; make default
+freshdebug:
+	make clean; make XCFLAGS="-O0" default
 dbg:
 	make clean; make XCFLAGS="-O0" default
 
-# Makes everything and then sudoes install.  Keeps build files non-root
+nitpick:
+	make XCFLAGS="-Wall" all
+
+# configure/autoconf stuff
+
+makefile: makefile.in config.status
+	./config.status
+./config.status: configure
+	./config.status --recheck
+configure: configure.in
+	autoconf
+
+# Fileinfo gets version-related information about a file to pass in
+# with -D
+
+./fileinfo: etc/fileinfo.c
+	$(CC) -o ./fileinfo etc/fileinfo.c
+
+# Makes everything and then sudoes the install, keeping build files
+# non-root
+
 suinstall:
 	make all
 	sudo make install
@@ -214,27 +234,11 @@ dbginstall:
 	make XCFLAGS="-O0" all
 	sudo make install
 
-libs: static-libs @SHARED_LIB_TARGET@
-static-libs: $(STATIC_LIBS)
-shared-libs: $(SHARED_LIBS)
-testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs  src/exe/revision.h
-	cd tests/dtype; make
-dbtestbin: libs  src/exe/revision.h
-	cd tests/db; make
-schemetestbin: libs  src/exe/revision.h
-	cd tests/scheme; make
-exe: $(EXECUTABLES)
-static-exe: $(STATIC_EXECUTABLES)
+# Make rules
 
-etc/usememory: etc/usememory.c
-
-cmodules: @CMODULES@
-
-./fileinfo: etc/fileinfo.c
-	$(CC) -o ./fileinfo etc/fileinfo.c
-
-# Rules
+%.o: %.c ./fileinfo
+	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
+	@echo CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
 	@echo "#!"@prefix@/bin/fdexec | cat - $< > $@
@@ -263,10 +267,6 @@ exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/fdcgiexec@suffix@ exe/fdserv@suffix@: src/exe/webcommon.h
-
-%.o: %.c ./fileinfo
-	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
-	@echo CC $@ $<
 
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
@@ -334,6 +334,26 @@ exe/fdmanager@suffix@: src/exe/fdmanager.c
 		-o $@ $<                                           \
 		$(LIBS) -lu8stdio
 	@echo MKEXE $@
+
+# This can be helpful for some debugging 
+etc/usememory: etc/usememory.c
+
+# Library targets
+
+libs: static-libs @SHARED_LIB_TARGET@
+static-libs: $(STATIC_LIBS)
+shared-libs: $(SHARED_LIBS)
+testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
+dtypetestbin: libs  src/exe/revision.h
+	cd tests/dtype; make
+dbtestbin: libs  src/exe/revision.h
+	cd tests/db; make
+schemetestbin: libs  src/exe/revision.h
+	cd tests/scheme; make
+exe: $(EXECUTABLES)
+static-exe: $(STATIC_EXECUTABLES)
+
+cmodules: @CMODULES@
 
 # Uninstall
 
