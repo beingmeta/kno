@@ -1431,9 +1431,16 @@ static int do_hashtable_op
   default:
     if (ht->n_slots == 0) setup_hashtable(ht,17);
     result=fd_hashvec_insert(key,ht->slots,ht->n_slots,&(ht->n_keys));}
-  if (op != fd_table_replace)
-    if (FD_EXPECT_FALSE((FD_VOIDP(value)) || (FD_EMPTY_CHOICEP(value))))
-      return 0;
+  if ((!(result))&&
+      ((op==fd_table_drop)||
+       (op==fd_table_test)||
+       (op==fd_table_replace)||
+       (op==fd_table_add_if_present)||
+       (op==fd_table_multiply_if_present)||
+       (op==fd_table_maximize_if_present)||
+       (op==fd_table_minimize_if_present)||
+       (op==fd_table_increment_if_present)))
+    return 0;
   switch (op) {
   case fd_table_replace_novoid:
     if (FD_VOIDP(result->value)) return 0;
