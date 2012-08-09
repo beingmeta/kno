@@ -1725,7 +1725,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   struct FD_HASHENTRY **slots; int slots_to_free=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (n_slots<0) n_slots=ht->n_slots;
-  if ((lock) && (ht->modified>=0)) fd_write_lock_struct(ht);
+  if ((lock) && (ht->uselock)) fd_write_lock_struct(ht);
   /* Grab the slots and their length. We'll free them after we've reset
      the table and released its lock. */
   slots=ht->slots; slots_to_free=ht->n_slots;
@@ -1739,7 +1739,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
     ht->slots=slotvec=u8_alloc_n(n_slots,struct FD_HASHENTRY *);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if ((lock) && (ht->modified>=0)) fd_rw_unlock_struct(ht);
+  if ((lock) && (ht->uselock)) fd_rw_unlock_struct(ht);
   /* Now, free the old data... */
   if (slots_to_free) {
     free_hashvec(slots,slots_to_free);
@@ -1757,7 +1757,7 @@ FD_EXPORT int fd_fast_reset_hashtable
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (slotsptr==NULL) return fd_reset_hashtable(ht,n_slots,lock);
   if (n_slots<0) n_slots=ht->n_slots;
-  if ((lock) && (ht->modified>=0)) fd_write_lock_struct(ht);
+  if ((lock) && (ht->uselock)) fd_write_lock_struct(ht);
   /* Grab the slots and their length. We'll free them after we've reset
      the table and released its lock. */
   *slotsptr=ht->slots; *slots_to_free=ht->n_slots;
@@ -1771,7 +1771,7 @@ FD_EXPORT int fd_fast_reset_hashtable
     ht->slots=slotvec=u8_alloc_n(n_slots,struct FD_HASHENTRY *);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if ((lock) && (ht->modified>=0)) fd_rw_unlock_struct(ht);
+  if ((lock) && (ht->uselock)) fd_rw_unlock_struct(ht);
   return n_slots;
 }
 
@@ -2237,10 +2237,10 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 	    if (FD_CONSP(v)) {atomicp=0; fd_incref(v);}}
 	  else fd_incref(v);
 	  *write++=v;}}
-      if (clean)
+      if (clean) {
 	if (FD_MALLOCD_CONSP(h)) fd_decref((fdtype)h);
 	else {
-	  u8_free(h->slots); h->n_slots=h->n_keys=0;}
+	  u8_free(h->slots); h->n_slots=h->n_keys=0;}}
       fd_unlock_struct(h);
       return fd_init_choice(new_choice,write-base,base,
 			    (FD_CHOICE_DOSORT|
