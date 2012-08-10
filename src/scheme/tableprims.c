@@ -207,10 +207,36 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
     else return FD_EMPTY_CHOICE;}
 }
 
+/* Support for some iterated operations */
+
+typedef fdtype (*reduceop)(fdtype,fdtype);
+
+static fdtype reduce_choice_arg(fdtype args,reduceop op,u8_string fname)
+{
+  fdtype result=FD_VOID;
+  FD_DO_CHOICES(arg,args) {
+    if (FD_NUMBERP(arg)) {
+      if (FD_VOIDP(result)) {
+	result=arg; fd_incref(arg);}
+      else {
+	fdtype old=result;
+	result=op(result,arg);
+	fd_decref(old);}}
+    else {
+      fd_decref(result);
+      FD_STOP_DO_CHOICES;
+      return fd_type_error("number",fname,arg);}}
+  return result;
+}
+
 /* Various table operations */
 
 static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
 {
+  if (FD_EMPTY_CHOICEP(increment)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
@@ -230,6 +256,10 @@ static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
 
 static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
 {
+  if (FD_EMPTY_CHOICEP(increment)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
   else if (!(FD_NUMBERP(increment)))
     return fd_type_error("number","table_increment",increment);
@@ -268,6 +298,10 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
 static fdtype hashtable_increment_existing
   (fdtype table,fdtype key,fdtype increment)
 {
+  if (FD_EMPTY_CHOICEP(increment)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
@@ -289,8 +323,13 @@ static fdtype hashtable_increment_existing
   else return fd_type_error("table","hashtable_increment_existing",table);
 }
 
-static fdtype table_increment_existing(fdtype table,fdtype keys,fdtype increment)
+static fdtype table_increment_existing
+                (fdtype table,fdtype keys,fdtype increment)
 {
+  if (FD_EMPTY_CHOICEP(increment)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
   else if (!(FD_NUMBERP(increment)))
     return fd_type_error("number","table_increment_existing",increment);
@@ -327,6 +366,10 @@ static fdtype table_increment_existing(fdtype table,fdtype keys,fdtype increment
 
 static fdtype hashtable_multiply(fdtype table,fdtype key,fdtype factor)
 {
+  if (FD_EMPTY_CHOICEP(factor)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(2);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
@@ -350,6 +393,10 @@ static fdtype hashtable_multiply(fdtype table,fdtype key,fdtype factor)
 
 static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
 {
+  if (FD_EMPTY_CHOICEP(factor)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(1);
   else if (!(FD_NUMBERP(factor)))
     return fd_type_error("number","table_multiply",factor);
@@ -383,6 +430,10 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
 static fdtype hashtable_multiply_existing
   (fdtype table,fdtype key,fdtype factor)
 {
+  if (FD_EMPTY_CHOICEP(factor)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(2);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
@@ -406,6 +457,10 @@ static fdtype hashtable_multiply_existing
 
 static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
 {
+  if (FD_EMPTY_CHOICEP(factor)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(1);
   else if (!(FD_NUMBERP(factor)))
     return fd_type_error("number","table_multiply_existing",factor);
@@ -441,6 +496,10 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
 
 static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
 {
+  if (FD_EMPTY_CHOICEP(maxval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (!(FD_NUMBERP(maxval)))
     return fd_type_error("number","table_maximize",maxval);
   else if (FD_HASHTABLEP(table))
@@ -473,6 +532,10 @@ static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
 
 static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
 {
+  if (FD_EMPTY_CHOICEP(maxval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (!(FD_NUMBERP(maxval)))
     return fd_type_error("number","table_maximize_existing",maxval);
   else if (FD_HASHTABLEP(table))
@@ -504,6 +567,10 @@ static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
 
 static fdtype hashtable_maximize(fdtype table,fdtype keys,fdtype maxval)
 {
+  if (FD_EMPTY_CHOICEP(maxval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
       const fdtype *elts=FD_CHOICE_DATA(keys);
@@ -522,6 +589,10 @@ static fdtype hashtable_maximize(fdtype table,fdtype keys,fdtype maxval)
 
 static fdtype hashtable_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
 {
+  if (FD_EMPTY_CHOICEP(maxval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
       const fdtype *elts=FD_CHOICE_DATA(keys);
@@ -544,6 +615,10 @@ static fdtype hashtable_maximize_existing(fdtype table,fdtype keys,fdtype maxval
 
 static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
 {
+  if (FD_EMPTY_CHOICEP(minval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (!(FD_NUMBERP(minval)))
     return fd_type_error("number","table_minimize",minval);
   else if (FD_HASHTABLEP(table))
@@ -576,6 +651,10 @@ static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
 
 static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
 {
+  if (FD_EMPTY_CHOICEP(minval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (!(FD_NUMBERP(minval)))
     return fd_type_error("number","table_minimize_existing",minval);
   else if (FD_HASHTABLEP(table))
@@ -607,6 +686,10 @@ static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
 
 static fdtype hashtable_minimize(fdtype table,fdtype keys,fdtype minval)
 {
+  if (FD_EMPTY_CHOICEP(minval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
       const fdtype *elts=FD_CHOICE_DATA(keys);
@@ -626,6 +709,10 @@ static fdtype hashtable_minimize(fdtype table,fdtype keys,fdtype minval)
 
 static fdtype hashtable_minimize_existing(fdtype table,fdtype keys,fdtype minval)
 {
+  if (FD_EMPTY_CHOICEP(minval)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
+  else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
       const fdtype *elts=FD_CHOICE_DATA(keys);

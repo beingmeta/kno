@@ -1432,10 +1432,11 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"xmleval_handler",NULL,FD_VOID);
   else {
     U8_OUTPUT *out=u8_current_output;
-    fdtype xmlarg=fd_eval(FD_CADR(expr),env), v=FD_VOID;
+    fdtype xmlarg=fd_eval(FD_CADR(expr),env), xmlbody, v=FD_VOID;
     fdtype envarg=fd_eval(fd_get_arg(expr,2),env);
     fdtype xmlenvarg=fd_eval(fd_get_arg(expr,3),env);
-    fd_lispenv target_env=env; int free_target=0;
+    fd_lispenv target_env=env, parsed_env=NULL;
+    int free_target=0;
     if (FD_ABORTP(xmlarg)) {
       fd_decref(envarg); fd_decref(xmlenvarg);
       return xmlarg;}
@@ -1445,7 +1446,11 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     else if (FD_ABORTP(xmlenvarg)) {
       fd_decref(xmlarg);  fd_decref(envarg);
       return xmlenvarg;}
-    if (!((FD_VOIDP(envarg)) || (FD_FALSEP(envarg)) ||
+    if ((FD_PAIRP(xmlarg))&&(FD_ENVIRONMENTP(FD_CAR(xmlarg)))) {
+      fdtype fromparse=FD_CAR(xmlarg); xmlbody=FD_CDR(xmlarg);
+      parsed_env=(fd_lispenv)fromparse; }
+    else xmlbody=xmlarg;
+    if (!((FD_VOIDP(envarg)) || (FD_FALSEP(envarg)) || (FD_TRUEP(envarg)) ||
 	  (FD_ENVIRONMENTP(envarg)) || (FD_TABLEP(envarg)))) {
       fd_decref(xmlarg); fd_decref(envarg);
       return fd_type_error("environment","xmleval_handler",envarg);}
@@ -1469,7 +1474,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 	      if (free_target) fd_recycle_environment(target_env);
 	      return v;}
 	    else fd_decref(v);}}}
-      else if (FD_VOIDP(envarg)) {}
+      else if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg))) {}
       else if (FD_FALSEP(envarg)) {
 	free_target=1;
 	target_env=fd_working_environment();}
@@ -1483,12 +1488,13 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
       else if (FD_TABLEP(xmlenvarg)) {
 	fdtype xmlenvparent=fd_symeval(xml_env_symbol,target_env);
 	fd_lispenv xmlparent=((FD_ENVIRONMENTP(xmlenvparent)) ?
-			      ((fd_lispenv)xmlenvparent) : (NULL));
+			      ((fd_lispenv)xmlenvparent) :
+			      (parsed_env));
 	fd_lispenv new_xmlenv=fd_make_env(xmlenvarg,xmlparent);
 	fd_bind_value(xml_env_symbol,(fdtype)new_xmlenv,target_env);
 	fd_decref(((fdtype)new_xmlenv)); fd_decref(xmlenvparent);}
       else {}}
-    v=fd_xmleval(out,xmlarg,target_env);
+    v=fd_xmleval(out,xmlbody,target_env);
     u8_flush(out);
     fd_decref(xmlarg); fd_decref(xmlenvarg);
     if (free_target) fd_recycle_environment(target_env);
