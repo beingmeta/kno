@@ -75,8 +75,12 @@
 	    (choice (car map)
 		    (symbol->string (car map))
 		    (downcase (symbol->string (car map)))
-		    (string->symbol (string-append "%" (symbol->string (car map))))
-		    (string->symbol (string-append "%" (symbol->string (car map)) "!")))
+		    (string->symbol
+		     (glom "%" (symbol->string (car map))))
+		    (string->symbol
+		     (glom "%" (symbol->string (car map)) "!"))
+		    (string->symbol
+		     (glom "%" (symbol->string (car map)) "%")))
 	    (cdr map)))
     table))
 
