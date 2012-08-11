@@ -919,9 +919,14 @@ static fdtype reqval_prim(fdtype var,fdtype dflt)
 static fdtype reqtest_prim(fdtype vars,fdtype val)
 {
   FD_DO_CHOICES(var,vars) {
-    if (fd_req_test(vars,val)) {
+    int retval=fd_req_test(var,val);
+    if (retval<0) {
       FD_STOP_DO_CHOICES;
-      return FD_TRUE;}}
+      return FD_ERROR_VALUE;}
+    else if (retval) {
+      FD_STOP_DO_CHOICES;
+      return FD_TRUE;}
+    else {}}
   return FD_FALSE;
 }
 

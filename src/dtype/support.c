@@ -961,7 +961,7 @@ FD_EXPORT fdtype fd_req(fdtype var)
 FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt)
 {
   fdtype info=try_reqinfo();
-  if (FD_TABLEP(info)) return fd_get(try_reqinfo(),var,dflt);
+  if (FD_TABLEP(info)) return fd_get(info,var,dflt);
   else return fd_incref(dflt);
 }
 
