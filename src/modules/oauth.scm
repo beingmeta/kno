@@ -16,10 +16,10 @@
  '{oauth
    oauth/request oauth/authurl oauth/verify
    oauth/call oauth/call* oauth/get oauth/post oauth/put
-   oauth/signature})
+   oauth/sigstring oauth/callsig})
 
 (define-init %loglevel %notice!)
-(set! %loglevel  %debug!)
+;;(set! %loglevel  %debug!)
 
 ;;; Server info
 
@@ -89,7 +89,7 @@
 
 ;;; Computing signatures for the OAUTH1x implementations
 
-(define (oauth/signature method uri . params)
+(define (oauth/sigstring method uri . params)
   (debug%watch method uri params)
   (let ((keys {}) (scan params) (args '())
 	(ptable (make-hashtable)))
@@ -101,7 +101,7 @@
 		(until (null? args)
 		  (unless (overlaps? (car args) keys)
 		    (set+! keys (car args))
-		    (if (string? (cadr args))
+		    (if (or (string? (cadr args)) (packet? (cadr args)))
 			(store! ptable (car args) (uriencode (cadr args)))
 			(store! ptable (car args)
 				(uriencode (stringout (cadr args))))))
@@ -109,12 +109,13 @@
 	      (if (table? (car scan))
 		  (do-choices (key (difference (getkeys (car scan)) keys))
 		    (set+! keys key)
-		    (if (string? (get (car scan) key))
+		    (if (or (string? (get (car scan) key))
+			    (packet? (get (car scan) key)))
 			(store! ptable key (uriencode (get (car scan) key)))
 			(store! ptable key
 				(uriencode (stringout (get (car scan) key))))))
 		  (begin (set+! keys (car scan))
-		    (if (string? (cadr scan))
+		    (if (or (string? (cadr scan)) (packet? (cadr scan)))
 			(store! ptable (car scan) (uriencode (cadr scan)))
 			(store! ptable (car scan) (uriencode (stringout (cadr scan)))))
 		    (set! scan (cdr scan))))))
@@ -152,7 +153,7 @@
 	       (callback (uriencode (getcallback spec)))
 	       (now (getopt spec 'time (time)))
 	       (sigstring
-		(oauth/signature
+		(oauth/sigstring
 		 (getopt spec 'method "POST") endpoint
 		 "oauth_callback" callback
 		 "oauth_consumer_key" ckey
@@ -223,7 +224,7 @@
 	 (ckey (getckey spec))
 	 (now (time))
 	 (sigstring
-	  (oauth/signature
+	  (oauth/sigstring
 	   (getopt spec 'method "POST") endpoint
 	   "oauth_callback" callback
 	   "oauth_consumer_key" ckey
@@ -277,41 +278,43 @@
 
 (define (oauth/call10 spec method endpoint (args '()) (ckey) (csecret))
   (debug%watch "OAUTH/CALL1.0" method endpoint args)
+  (default! ckey (getckey spec))
+  (default! csecret (getcsecret spec))
   (unless (and ckey csecret)
     (error "OAUTH/CALL: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
     (error "OAUTH/CALL: No OAUTH token: " spec))
   (unless (getopt spec 'oauth_token_secret)
     (error "OAUTH/CALL: No OAUTH secret: " spec))
-  (let* ((nonce (uuid->string (getuuid)))
+  (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	 (endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
 				       default-endpoint))))
-	 (now (time))
+	 (now (getopt spec 'timestamp (time)))
 	 (sigstring
-	  (oauth/signature
+	  (oauth/sigstring
 	   method endpoint
 	   "oauth_consumer_key" ckey
-	   "oauth_token" (getopt spec 'oauth_token)
+	   "oauth_token" (->string (getopt spec 'oauth_token))
 	   "oauth_nonce" nonce
 	   "oauth_signature_method" "HMAC-SHA1"
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")
-	   args))
+	   (map uriencode args)))
 	 (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_token_secret))
 			 sigstring))
 	 (sig64 (packet->base64 sig))
 	 (auth-header
 	  (glom "Authorization: OAuth "
-	    "realm=\"" endpoint "\", "
+	    ;; "realm=\"" (urischeme endpoint) "://" (urihost endpoint) "\", "
+	    "oauth_consumer_key=\"" ckey "\", "
 	    "oauth_nonce=\"" nonce "\", "
+	    "oauth_signature=\"" (uriencode sig64) "\", "
 	    "oauth_signature_method=\"" "HMAC-SHA1" "\", "
 	    "oauth_timestamp=\"" now "\", "
-	    "oauth_consumer_key=\"" ckey "\", "
 	    "oauth_token=\"" (getopt spec 'oauth_token) "\", "
-	    "oauth_version=\"" (getopt spec 'version "1.0") "\", "
-	    "oauth_signature=\"" (uriencode sig64) "\""))
+	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (if (eq? method 'GET)
 		  (urlget (scripturl+ endpoint args)
 			  (curlopen 'header "Expect: "
@@ -323,7 +326,9 @@
 					 'header auth-header
 					 'method method)
 			       (args->post args))))))
-    (debug%watch sigstring auth-header now nonce req)
+    (debug%watch now nonce sig64)
+    (debug%watch sigstring)
+    (debug%watch auth-header)
     (if (test req 'response 200)
 	(cons (getreqdata req) (cdr spec))
 	req)))
@@ -355,6 +360,10 @@
 	(cons (getreqdata req) (cdr spec))
 	req)))
 (define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
+  (when (and (not (test spec 'secret))
+	     (test spec 'realm)
+	     (exists? (oauth/provider (get spec 'realm))))
+    (set! spec (cons spec (oauth/provider (get spec 'realm)))))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (if (testopt spec 'version "1.0")
@@ -363,12 +372,69 @@
 (define (oauth/call* spec method endpoint . args)
   (oauth/call spec method endpoint args))
 
-(define (args->post args)
-  (stringout (do-choices (key (getckeys args) i)
-	       (if (> i 0) (printout "&"))
-	       (printout (uriencode key) "="
-		 (uriencode (get args key))))))
+(define (args->post args (first #t))
+  (stringout
+    (if (pair? args)
+	(while (and (pair? args) (pair? (cdr args)))
+	  (printout
+	    (if first (set! first #f) "&")
+	    (uriencode (car args)) "="
+	    (uriencode (cadr args)))
+	  (set! args (cddr args)))
+	(do-choices (key (getkeys args) i)
+	  (if (> i 0) (printout "&"))
+	  (printout (uriencode key) "="
+	    (uriencode (get args key)))))))
 
+;;; This is helpful for debugging OAuth
+
+(define (oauth/callsig spec method endpoint . args)
+  (when (and (not (getopt spec 'secret))
+	     (getopt spec 'realm)
+	     (exists? (oauth/provider (getopt spec 'realm))))
+    (set! spec (cons spec (oauth/provider (getopt spec 'realm)))))
+  (let ((ckey (getckey spec))
+	(csecret (getcsecret spec)))
+    (unless (and ckey csecret)
+      (error "OAUTH/CALL: No consumer key/secret: " spec))
+    (unless (getopt spec 'oauth_token)
+      (error "OAUTH/CALL: No OAUTH token: " spec))
+    (unless (getopt spec 'oauth_token_secret)
+      (error "OAUTH/CALL: No OAUTH secret: " spec))
+    (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
+	   (endpoint (or endpoint
+			 (getopt args 'endpoint
+				 (getopt spec 'endpoint
+					 default-endpoint))))
+	   (now (getopt spec 'timestamp (time)))
+	   (sigstring
+	    (oauth/sigstring
+	     method endpoint
+	     "oauth_consumer_key" ckey
+	     "oauth_token" (->string (getopt spec 'oauth_token))
+	     "oauth_nonce" nonce
+	     "oauth_signature_method" "HMAC-SHA1"
+	     "oauth_timestamp" now
+	     "oauth_version" (getopt spec 'version "1.0")
+	     args))
+	   (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_token_secret))
+		  sigstring))
+	   (sig64 (packet->base64 sig))
+	   (auth-header
+	    (glom "Authorization: OAuth "
+	      ;; "realm=\"" (urischeme endpoint) "://" (urihost endpoint) "\", "
+	      "oauth_consumer_key=\"" ckey "\", "
+	      "oauth_nonce=\"" nonce "\", "
+	      "oauth_signature=\"" (uriencode sig64) "\", "
+	      "oauth_signature_method=\"" "HMAC-SHA1" "\", "
+	      "oauth_timestamp=\"" now "\", "
+	      "oauth_token=\"" (getopt spec 'oauth_token) "\", "
+	      "oauth_version=\"" (getopt spec 'version "1.0") "\"")))
+      (%watch now nonce sig64)
+      (%watch sigstring)
+      (%watch auth-header)
+      sig)))
+  
 ;;; Calling functions
 
 (define (oauth/get spec endpoint (args #[]))
@@ -397,7 +463,7 @@
 (define-init oauth-info (make-hashtable))
 
 (define (oauth (code #f) (oauth_realm #f) (oauth_token #f) (oauth_verifier #f))
-  (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier)
+  (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier getuser)
   (if oauth_verifier
       (let* ((state (get oauth-pending oauth_token))
 	     (verified (oauth/verify state oauth_verifier)))
