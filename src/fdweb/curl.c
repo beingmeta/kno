@@ -239,6 +239,8 @@ static int curl_add_headers(fd_curl_handle ch,fdtype val)
   FD_DO_CHOICES(v,val) 
     if (FD_STRINGP(v))
       retval=curl_add_header(ch,FD_STRDATA(v),NULL);
+    else if (FD_PACKETP(v))
+      retval=curl_add_header(ch,FD_PACKET_DATA(v),NULL);
     else if (FD_PAIRP(v)) {
       fdtype car=FD_CAR(v), cdr=FD_CDR(v); u8_string hdr=NULL;
       if ((FD_SYMBOLP(car)) && (FD_STRINGP(cdr))) 
@@ -291,7 +293,8 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     return NULL;}
   if (debugging_curl) {
     FD_INTPTR ptrval=(FD_INTPTR) h->handle;
-    u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);}
+    u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);
+    curl_easy_setopt(h,CURLOPT_VERBOSE,1);}
   curl_set(h,CURLOPT_NOPROGRESS,1);
   curl_set(h,CURLOPT_FILETIME,(long)1);
   curl_set(h,CURLOPT_NOSIGNAL,1);
