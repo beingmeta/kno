@@ -292,6 +292,14 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
   else return fd_type_error(_("table"),"unparseuri",uri);
 }
 
+static fdtype urischeme_prim(fdtype uri_arg)
+{
+  u8_string uri=FD_STRDATA(uri_arg);
+  u8_byte *scheme_end=strstr(uri,":");
+  if (!(scheme_end)) return FD_EMPTY_CHOICE;
+  else return fd_extract_string(NULL,uri,scheme_end);
+}
+
 static fdtype urihost_prim(fdtype uri_arg)
 {
   u8_string uri=FD_STRDATA(uri_arg);
@@ -433,6 +441,8 @@ FD_EXPORT void fd_init_urifns_c()
   fd_idefn(module,fd_make_cprim2("MERGEURIS",mergeuris,2));
   fd_idefn(module,fd_make_cprim2("UNPARSEURI",unparseuri,1));
 
+  fd_idefn(module,fd_make_cprim1x("URISCHEME",urischeme_prim,1,
+				  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIHOST",urihost_prim,1,
 				  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIFRAG",urifrag_prim,1,
