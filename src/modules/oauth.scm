@@ -234,7 +234,7 @@
 	   "oauth_signature_method" "HMAC-SHA1"
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")))
-	 (sig (hmac-sha1 (glom csecret "&" (getopt spec 'oauth_token_secret))
+	 (sig (hmac-sha1 (glom csecret "&" (getopt spec 'oauth_secret))
 			 sigstring))
 	 (sig64 (packet->base64 sig))
 	 (auth-header
@@ -284,7 +284,7 @@
     (error "OAUTH/CALL: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
     (error "OAUTH/CALL: No OAUTH token: " spec))
-  (unless (getopt spec 'oauth_token_secret)
+  (unless (getopt spec 'oauth_secret)
     (error "OAUTH/CALL: No OAUTH secret: " spec))
   (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	 (endpoint (or endpoint
@@ -313,7 +313,7 @@
 				   (get args key))))
 		     newtable)
 		   args))))
-	 (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_token_secret))
+	 (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_secret))
 			 sigstring))
 	 (sig64 (packet->base64 sig))
 	 (auth-header
@@ -327,7 +327,9 @@
 	    "oauth_token=\"" (getopt spec 'oauth_token) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (if (eq? method 'GET)
-		  (urlget (scripturl+ endpoint args)
+		  (urlget (if (pair? args)
+			      (apply scripturl endpoint args)
+			      (scripturl+ endpoint args))
 			  (curlopen 'header "Expect: "
 				    'header auth-header
 				    'method method))
@@ -410,7 +412,7 @@
       (error "OAUTH/CALL: No consumer key/secret: " spec))
     (unless (getopt spec 'oauth_token)
       (error "OAUTH/CALL: No OAUTH token: " spec))
-    (unless (getopt spec 'oauth_token_secret)
+    (unless (getopt spec 'oauth_secret)
       (error "OAUTH/CALL: No OAUTH secret: " spec))
     (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	   (endpoint (or endpoint
@@ -428,7 +430,7 @@
 	     "oauth_timestamp" now
 	     "oauth_version" (getopt spec 'version "1.0")
 	     args))
-	   (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_token_secret))
+	   (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_secret))
 		  sigstring))
 	   (sig64 (packet->base64 sig))
 	   (auth-header
