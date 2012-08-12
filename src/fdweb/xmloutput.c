@@ -1688,7 +1688,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fdtype fdscripturl_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL",fdscripturl,2));
   fdtype scripturlplus_proc=
-    fd_make_ndprim(fd_make_cprimn("SCRIPTURL_",scripturlplus,1));
+    fd_make_ndprim(fd_make_cprimn("SCRIPTURL+",scripturlplus,1));
   fdtype fdscripturlplus_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL+",fdscripturlplus,2));
   fdtype uriencode_proc=
