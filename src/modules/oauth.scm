@@ -301,7 +301,18 @@
 	   "oauth_signature_method" "HMAC-SHA1"
 	   "oauth_timestamp" now
 	   "oauth_version" (getopt spec 'version "1.0")
-	   (map uriencode args)))
+	   (if (pair? args)
+	       (map uriencode args)
+	       (if (table? args)
+		   (let ((newtable (frame-create #f)))
+		     (do-choices (key (getkeys args))
+		       (store! newtable
+			       (if (string? key) (uriencode key) key)
+			       (if (or (string? (get args key)) (packet? (get args key)))
+				   (uriencode (get args key))
+				   (get args key))))
+		     newtable)
+		   args))))
 	 (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_token_secret))
 			 sigstring))
 	 (sig64 (packet->base64 sig))
