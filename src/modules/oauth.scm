@@ -23,12 +23,12 @@
 
 ;;; Server info
 
-(define oauth-servers
+(define-init oauth-servers
   `#[TWITTER
      #[REQUEST "https://api.twitter.com/oauth/request_token"
+       VERIFY "https://api.twitter.com/oauth/access_token"
        AUTHORIZE "https://api.twitter.com/oauth/authorize"
        AUTHENTICATE "https://api.twitter.com/oauth/authenticate"
-       VERIFY "https://api.twitter.com/oauth/access_token"
        KEY TWITTER_KEY SECRET TWITTER_SECRET
        VERSION "1.0"
        REALM TWITTER]
@@ -58,6 +58,20 @@
 (define (oauth/provider spec) (get oauth-servers spec))
 (module-export! 'oauth/provider)
 
+(config-def! 'oauth:providers
+	     (lambda (var (val))
+	       (cond ((not (bound? val))
+		      (get oauth-servers (getkeys oauth-servers)))
+		     ((not (and (or (slotmap? val) (schemap? val))
+				(exists? (get val 'realm))))
+		      (error "Invalid OAUTH provider spec: " val))
+		     (else
+		      (when (exists? (get oauth-servers (get val 'realm)))
+			(logwarn "OAUTH/REDEFINE"
+				 "Redefining OAUTH specification for "
+				 realm ", changes may be lost!"))
+		      (store! oauth-servers (get val 'realm) val)))))
+
 (define (thisurl)
   (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
 	     (req/get 'SERVER_NAME)
@@ -67,7 +81,13 @@
 		 (printout ":" (req/get 'SERVER_PORT))))
     (uribase (try (req/get 'request_uri) (req/get 'path_info)))))
 
-;;; Getting keys and secrets
+;;; Getting consumer/client keys and secrets
+
+;;; The key/secret can either be literally on the provider definition or
+;;;  it can be a symbol which refers to a CONFIG setting for the key/secret
+
+;;; As a best practice, the secret should be a FramerD secret, which is a
+;;;  packet whose contents are never displayed.
 
 (define (getckey spec (val))
   (default! val (getopt spec 'key))
@@ -77,10 +97,11 @@
 	      (error "Can't determine consumer key: " spec)))))
 (define (getcsecret spec (val))
   (default! val (getopt spec 'secret))
-  (if (symbol? val) (getcsecret spec (config val))
-      (if (string? val) val
-	  (if (packet? val) val
-	      (error "Can't determine consumer secret: " spec)))))
+  (->secret
+   (if (symbol? val) (getcsecret spec (config val))
+       (if (string? val) val
+	   (if (packet? val) val
+	       (error "Can't determine consumer secret: " spec))))))
 (define (getcallback spec)
   (getopt spec 'callback
 	  (req/get 'oauth_callback
@@ -90,9 +111,16 @@
 ;;; Computing signatures for the OAUTH1x implementations
 
 (define (oauth/sigstring method uri . params)
+  "Compute the signature (for OAUTH1) of a call"
   (debug%watch method uri params)
   (let ((keys {}) (scan params) (args '())
 	(ptable (make-hashtable)))
+    ;; Params are considered an alternating set of key/value pairs
+    ;;  with two exceptions:
+    ;;   + if a key is a pair whose cdr is a pair, we assume that it is
+    ;;     an embedded alternating set of key/value pairs
+    ;;   + if a key is a table, we assume that it's keys and values
+    ;;     are keys and values to use
     (until (null? scan)
       (if (null? (car scan))
 	  (begin)
@@ -117,7 +145,8 @@
 		  (begin (set+! keys (car scan))
 		    (if (or (string? (cadr scan)) (packet? (cadr scan)))
 			(store! ptable (car scan) (uriencode (cadr scan)))
-			(store! ptable (car scan) (uriencode (stringout (cadr scan)))))
+			(store! ptable (car scan)
+				(uriencode (stringout (cadr scan)))))
 		    (set! scan (cdr scan))))))
       (set! scan (cdr scan)))
     (doseq (key (lexsorted keys) i)
@@ -126,92 +155,104 @@
 	  (set! args (cons* v "%3D" (uriencode key) "%26" args)))))
     (apply glom method "&" (uriencode uri) "&" (cdr (reverse args)))))
 
+(define (oauthspec spec)
+  "Expands provider references a spec"
+  (if (and (pair? spec) (symbol? (cdr spec))
+	   (exists? (get oauth-servers (cdr spec))))
+      (cons (car spec) (get oauth-servers (cdr spec)))
+      (if (and (symbol? spec) (test oauth-servers spec))
+	  (get oauth-servers spec)
+	  (if (and (table? spec) (test spec 'realm)
+		   (test oauth-servers (get spec 'realm)))
+	      (cons spec (get oauth-servers spec))
+	      spec))))
+
 (define (oauth/request spec (ckey) (csecret))
-  (if (and (pair? spec) (symbol? (cdr spec)))
-      (set-cdr! spec (get oauth-servers (cdr spec)))
-      (if (symbol? spec) (set! spec (get oauth-servers spec))))
-  (debug%watch "OAUTH/REQUEST" spec)
+  ;; Expand provider references in the spec
+  (set! spec (debug%watch (oauthspec spec) spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (unless (and ckey csecret)
     (logwarn "OAUTH/REQUEST: No consumer key/secret: " spec)
     (error "OAUTH/REQUEST: No consumer key/secret: " spec))
-  (if (testopt spec 'version "2.0")
-      (if (and (getopt spec 'authorize) (getopt spec 'verify))
-	  spec
-	  (begin
-	    (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
-	    (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec)))
-      (begin
-	(unless (and (getopt spec 'request)
-		     (getopt spec 'authorize)
-		     (getopt spec 'verify))
-	  (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
-	  (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec))
-	(let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
-	       (endpoint (getopt spec 'request))
-	       (callback (uriencode (getcallback spec)))
-	       (now (getopt spec 'time (time)))
-	       (sigstring
-		(oauth/sigstring
-		 (getopt spec 'method "POST") endpoint
-		 "oauth_callback" callback
-		 "oauth_consumer_key" ckey
-		 "oauth_nonce" nonce
-		 "oauth_signature_method" "HMAC-SHA1"
-		 "oauth_timestamp" now
-		 "oauth_version" (getopt spec 'version "1.0")))
-	       (sig (hmac-sha1 (glom csecret "&") sigstring))
-	       (sig64 (packet->base64 sig))
-	       (auth-header
-		(glom "Authorization: OAuth "
-		      "oauth_nonce=\"" nonce "\", "
-		      "oauth_callback=\"" callback "\", "
-		      "oauth_signature_method=\""  "HMAC-SHA1" "\", "
-		      "oauth_timestamp=\"" now "\", "
-		      "oauth_consumer_key=\"" ckey "\", "
-		      "oauth_signature=\"" (uriencode sig64) "\", "
-		      "oauth_version=\"" (getopt spec 'version "1.0") "\""))
-	       (handle (curlopen 'header auth-header 'method 'POST))
-	       (req (urlget endpoint handle)))
-	  (debug%watch sigstring sig sig64 auth-header)
-	  (if (test req 'response 200)
-	      (cons (cgiparse (get req '%content)) spec)
-	      (begin (warn%watch "Can't get request token" spec req)
-		     (error "Can't get request token" req)))))))
+  (unless (and (getopt spec 'request)
+	       (getopt spec 'authorize)
+	       (getopt spec 'verify))
+    ;; This should exit
+    (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
+    (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec))
+  ;; We allow the nonce, time, etc to come from the spec
+  ;;  to allow signature debugging
+  (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
+	 (endpoint (getopt spec 'request))
+	 (callback (uriencode (getcallback spec)))
+	 (now (getopt spec 'time (time)))
+	 (sigstring
+	  (oauth/sigstring
+	   (getopt spec 'method "POST") endpoint
+	   "oauth_callback" callback
+	   "oauth_consumer_key" ckey
+	   "oauth_nonce" nonce
+	   "oauth_signature_method" "HMAC-SHA1"
+	   "oauth_timestamp" now
+	   "oauth_version" (getopt spec 'version "1.0")))
+	 (sig (hmac-sha1 (glom csecret "&") sigstring))
+	 (sig64 (packet->base64 sig))
+	 (auth-header
+	  (glom "Authorization: OAuth "
+	    "oauth_nonce=\"" nonce "\", "
+	    "oauth_callback=\"" callback "\", "
+	    "oauth_signature_method=\""  "HMAC-SHA1" "\", "
+	    "oauth_timestamp=\"" now "\", "
+	    "oauth_consumer_key=\"" ckey "\", "
+	    "oauth_signature=\"" (uriencode sig64) "\", "
+	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
+	 (handle (curlopen 'header auth-header 'method 'POST))
+	 (req (urlget endpoint handle)))
+    (debug%watch sigstring sig sig64 auth-header)
+    (if (test req 'response 200)
+	(cons (cgiparse (get req '%content)) spec)
+	(begin (warn%watch "Can't get request token" spec req)
+	  (error "Can't get request token" req)))))
+
 
 (define (oauth/authurl spec (scope #f))
-  (when (symbol? spec) (set! spec (get oauth-servers spec)))
+  "Returns a URL for redirection and authorization and authentication. \
+   If a scope is provided, we assume that we're authorizing, not \
+   authenticating."
+  (set! spec (oauthspec spec))
   (unless (and (getopt spec 'authenticate (getopt spec 'authorize))
 	       (or (getopt spec 'oauth_token) (getckey spec)))
     (error "OAUTH/AUTHURL: Invalid OAUTH spec: " spec))
   (if (testopt spec 'version "1.0")
-      (scripturl (getopt spec 'authenticate (getopt spec 'authorize))
-	  "oauth_token" (getopt spec 'oauth_token)
-	  "redirect_uri" (uriencode (getcallback spec)))
-      (scripturl (getopt spec 'authenticate (getopt spec 'authorize))
-	  "client_id" (getckey spec)
-	  "redirect_uri" (getcallback spec)
-	  "scope"
-	  (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
-		       (printout (if (> i 0) " ") scope)))
-	  "response_type" "code")))
+      (scripturl+ (if scope
+		      (getopt spec 'authorize (getopt spec 'authenticate))
+		      (getopt spec 'authenticate (getopt spec 'authorize)))
+		  args (getopt spec 'auth_args)
+		  "oauth_token" (getopt spec 'oauth_token)
+		  ;; "redirect_uri" (uriencode (getcallback spec))
+		  "redirect_uri" (getcallback spec))
+      (scripturl+
+       (if scope
+	   (getopt spec 'authorize (getopt spec 'authenticate))
+	   (getopt spec 'authenticate (getopt spec 'authorize)))
+       (getopt spec 'auth_args)
+       "client_id" (getckey spec)
+       "redirect_uri" (getcallback spec)
+       "scope"
+       (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
+		    (printout (if (> i 0) " ") scope)))
+       "state" (getopt spec 'state (getuuid))
+       "response_type" "code")))
 
-(define (oauth/verify spec (verifier) (ckey) (csecret))
-  (if (symbol? spec) (set! spec (get oauth-servers spec)))
-  (default! verifier (getopt spec 'oauth_verifier (req/get 'oauth_verifier)))
-  (if (testopt spec 'version "1.0")
-      (verify1.0 spec verifier)
-      (verify2.0 spec verifier)))
-
-(define (verify1.0 spec (verifier) (ckey) (csecret))
+(define (oauth/verify spec verifier (ckey) (csecret))
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
     (error "OAUTH/VERIFY: Invalid OAUTH spec: " spec))
+  (debug%watch "OAUTH/VERIFY/1.0" verifier spec)
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
-  (debug%watch "OAUTH/VERIFY/1.0" verifier spec)
   (unless (and ckey csecret)
     (error "OAUTH/VERIFY: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
@@ -255,14 +296,13 @@
 	    ((getopt spec 'noverify) spec verifier req)
 	    (error "OAUTH/VERIFY failed" req)))))
 
-(define (verify2.0 spec (code) (ckey) (csecret))
-  (default! code (getopt spec 'code (req/get 'code)))
+(define (oauth/access spec (code #f) (ckey) (csecret))
+  (set! spec (oauthspec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (debug%watch "OAUTH/VERIFY/2.0" code spec)
   (unless (and ckey csecret)
     (error "OAUTH/VERIFY: No consumer key/secret: " spec))
-  (unless code (error "OAUTH/VERIFY: No OAUTH code: " spec))
   (let* ((callback (getcallback spec))
 	 (req (urlpost (getopt spec 'verify) 
 		       "code" code "client_id" ckey "client_secret" csecret
@@ -276,7 +316,7 @@
 
 ;;; Actually calling the API
 
-(define (oauth/call10 spec method endpoint (args '()) (ckey) (csecret))
+(define (oauth/call10 spec method endpoint args ckey csecret)
   (debug%watch "OAUTH/CALL1.0" method endpoint args)
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
@@ -340,23 +380,26 @@
 					 'method method)
 			       (args->post args))))))
     (debug%watch now nonce sig64)
+    ;; Keeping these watchpoints separate makes them easier to read
+    ;;  (maybe %watch needs a redesign?)
     (debug%watch sigstring)
     (debug%watch auth-header)
     (if (test req 'response 200)
 	(cons (getreqdata req) (cdr spec))
 	req)))
-(define (oauth/call20 spec method endpoint (args '()) (ckey) (csecret))
+
+(define (oauth/call20 spec method endpoint args ckey csecret)
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
   (unless (and ckey csecret)
     (error "OAUTH/CALL: No consumer key/secret: " spec))
-  (unless (getopt spec 'access_token)
+  (unless (getopt spec 'token)
     (error "OAUTH/CALL: No OAUTH2 ACCESS token: " spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
 				       default-endpoint))))
 	 (auth-header
-	  (glom "Authorization: Bearer " (getopt spec 'access_token)))
+	  (glom "Authorization: Bearer " (getopt spec 'token)))
 	 (req (if (eq? method 'GET)
 		  (urlget (scripturl+ endpoint args)
 			  (curlopen 'header "Expect: "
@@ -367,16 +410,17 @@
 			       (curlopen 'header "Expect: "
 					 'header auth-header
 					 'method method)
-			       (args->post args))))))
+			       (args->post args))
+		      (error "Only GET and POST are currently handled")))))
     (debug%watch endpoint auth-header req)
     (if (test req 'response 200)
 	(cons (getreqdata req) (cdr spec))
 	req)))
+(define (oauth/refresh spec)
+  )
+
 (define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
-  (when (and (not (test spec 'secret))
-	     (test spec 'realm)
-	     (exists? (oauth/provider (get spec 'realm))))
-    (set! spec (cons spec (oauth/provider (get spec 'realm)))))
+  (set! spec (oauthspec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (if (testopt spec 'version "1.0")
@@ -399,7 +443,7 @@
 	  (printout (uriencode key) "="
 	    (uriencode (get args key)))))))
 
-;;; This is helpful for debugging OAuth
+;;; This is helpful for debugging OAUTH1
 
 (define (oauth/callsig spec method endpoint . args)
   (when (and (not (getopt spec 'secret))
@@ -470,33 +514,44 @@
 	      req)
 	  req)))
 
-;;; For cgicall
+;;; Top level authenication
 
 (define-init oauth-pending (make-hashtable))
 (define-init oauth-info (make-hashtable))
 
-(define (oauth (code #f) (oauth_realm #f) (oauth_token #f) (oauth_verifier #f))
+;;; For calling (via req/call) from CGI scripts
+;;; Arguments come from CGI
+(define (oauth (code #f) (state #f)
+	       (oauth_realm #f) (oauth_token #f) (oauth_verifier #f)
+	       (scope #f))
   (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier getuser)
-  (if oauth_verifier
+  (if oauth_verifier ;; 1.0
       (let* ((state (get oauth-pending oauth_token))
 	     (verified (oauth/verify state oauth_verifier)))
 	(drop! oauth-pending oauth_token)
 	(store! oauth-info oauth_token (cons verified (cdr state)))
 	(let ((user (getuser verified)))
-	  (debug%watch "OAUTH/complete" user verified state)
+	  (debug%watch "OAUTH1/complete" user verified state)
 	  user))
-      (if code
-	  (let* ((state (get oauth-servers oauth_realm))
-		 (verified (oauth/verify state code)))
-	    (let ((user (getuser verified)))
-	      (debug%watch "OAUTH/complete" user verified state)
-	      user))
-	  (and oauth_realm
-	       (let* ((state (oauth/request oauth_realm))
-		      (url (oauth/authurl state)))
-		 (debug%watch "OAUTH/redirect" url state)
-		 (store! oauth-pending (getopt state 'oauth_token) state)
-		 (req/set! 'status 303)
-		 (httpheader "Location: " url)
-		 #f)))))
+      (if code ;; 2.0
+	  (let* ((spec (get oauth-pending state))
+		 (access (and spec (oauth/access spec code))))
+	    (and access
+		 (let ((user (getuser access)))
+		   (debug%watch "OAUTH2/complete" user verified spec)
+		   user)))
+	  (let* ((spec (and oauth_realm (get oauth-servers oauth_realm)))
+		 (state (if (getopt spec 'request)
+			    (oauth/request spec) ;; 1.0
+			    (cons `#[state ,(getuuid)
+				     callback ,(getcallback)]
+				  spec)))
+		 (redirect (oauth/authurl state)))
+	    (debug%watch "OAUTH/redirect" url state)
+	    (store! oauth-pending
+		    (getopt state 'oauth_token (getopt state 'state))
+		    state)
+	    (req/set! 'status 303)
+	    (httpheader "Location: " redirect)
+	    #f))))
 
