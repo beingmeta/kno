@@ -62,15 +62,15 @@
 	     (lambda (var (val))
 	       (cond ((not (bound? val))
 		      (get oauth-servers (getkeys oauth-servers)))
-		     ((not (and (or (slotmap? val) (schemap? val))
-				(exists? (get val 'realm))))
-		      (error "Invalid OAUTH provider spec: " val))
-		     (else
+		     ((and (or (slotmap? val) (schemap? val))
+			   (exists? (get val 'realm)))
 		      (when (exists? (get oauth-servers (get val 'realm)))
 			(logwarn "OAUTH/REDEFINE"
 				 "Redefining OAUTH specification for "
-				 realm ", changes may be lost!"))
-		      (store! oauth-servers (get val 'realm) val)))))
+				 (get val 'realm) ", changes may be lost!"))
+		      (do-choices val
+			(store! oauth-servers (get val 'realm) val)))
+		     (else (error "Invalid OAUTH provider spec: " val)))))
 
 (define (thisurl)
   (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
@@ -164,7 +164,7 @@
 	  (get oauth-servers spec)
 	  (if (and (table? spec) (test spec 'realm)
 		   (test oauth-servers (get spec 'realm)))
-	      (cons spec (get oauth-servers spec))
+	      (cons spec (get oauth-servers (get spec 'realm)))
 	      spec))))
 
 (define (oauth/request spec (ckey) (csecret))
@@ -215,12 +215,12 @@
 	(begin (warn%watch "Can't get request token" spec req)
 	  (error "Can't get request token" req)))))
 
-
 (define (oauth/authurl spec (scope #f))
   "Returns a URL for redirection and authorization and authentication. \
    If a scope is provided, we assume that we're authorizing, not \
    authenticating."
   (set! spec (oauthspec spec))
+  (debug%watch "OAUTH/AUTHURL" spec (getcallback spec))
   (unless (and (getopt spec 'authenticate (getopt spec 'authorize))
 	       (or (getopt spec 'oauth_token) (getckey spec)))
     (error "OAUTH/AUTHURL: Invalid OAUTH spec: " spec))
@@ -228,7 +228,7 @@
       (scripturl+ (if scope
 		      (getopt spec 'authorize (getopt spec 'authenticate))
 		      (getopt spec 'authenticate (getopt spec 'authorize)))
-		  args (getopt spec 'auth_args)
+		  (getopt spec 'auth_args)
 		  "oauth_token" (getopt spec 'oauth_token)
 		  ;; "redirect_uri" (uriencode (getcallback spec))
 		  "redirect_uri" (getcallback spec))
@@ -291,12 +291,16 @@
 	 (req (urlget endpoint (curlopen 'header auth-header 'method 'POST))))
     (debug%watch sigstring sig sig64 auth-header)
     (if (test req 'response 200)
-	(cons (cgiparse (get req '%content)) (cdr spec))
+	(let ((info (cgiparse (get req '%content))))
+	  (store! info 'token (get info 'OAUTH_TOKEN))
+	  (store! info '{oauth_secret OAUTH_TOKEN_SECRET}
+		  (->secret (get info 'OAUTH_TOKEN_SECRET)))
+	  (cons info (cdr spec)))
 	(if (getopt spec 'noverify)
 	    ((getopt spec 'noverify) spec verifier req)
 	    (error "OAUTH/VERIFY failed" req)))))
 
-(define (oauth/access spec (code #f) (ckey) (csecret))
+(define (oauth/getaccess spec code (ckey) (csecret))
   (set! spec (oauthspec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
@@ -309,7 +313,16 @@
 		       "grant_type" "authorization_code"
 		       "redirect_uri" callback)))
     (if (test req 'response 200)
-	(cons (jsonparse (get req '%content)) spec)
+	(let* ((json (jsonparse (get req '%content)))
+	       (expires_in (get json 'expires_in))
+	       (authinfo `#[token ,(get json 'access_token)]))
+	  (unless (equal? (get json 'token_type) "Bearer")
+	    (logwarn 'OAUTH/Bearer "Odd token type " (get json 'token_type)
+		     " responding to " spec))
+	  (when expires_in
+	    (store! authinfo 'expires (timestamp+ expires_in))
+	    (store! authinfo 'refresh (->secret (get json 'refresh_token))))
+	  (cons authinfo spec))
 	(if (getopt spec 'noverify)
 	    ((getopt spec 'noverify) spec verifier req)
 	    (error "OAUTH/VERIFY failed" req)))))
@@ -322,7 +335,7 @@
   (default! csecret (getcsecret spec))
   (unless (and ckey csecret)
     (error "OAUTH/CALL: No consumer key/secret: " spec))
-  (unless (getopt spec 'oauth_token)
+  (unless (getopt spec 'token)
     (error "OAUTH/CALL: No OAUTH token: " spec))
   (unless (getopt spec 'oauth_secret)
     (error "OAUTH/CALL: No OAUTH secret: " spec))
@@ -336,7 +349,7 @@
 	  (oauth/sigstring
 	   method endpoint
 	   "oauth_consumer_key" ckey
-	   "oauth_token" (->string (getopt spec 'oauth_token))
+	   "oauth_token" (->string (getopt spec 'token))
 	   "oauth_nonce" nonce
 	   "oauth_signature_method" "HMAC-SHA1"
 	   "oauth_timestamp" now
@@ -353,7 +366,7 @@
 				   (get args key))))
 		     newtable)
 		   args))))
-	 (sig (hmac-sha1 (glom  csecret "&" (getopt spec 'oauth_secret))
+	 (sig (hmac-sha1 (glom csecret "&" (getopt spec 'oauth_secret))
 			 sigstring))
 	 (sig64 (packet->base64 sig))
 	 (auth-header
@@ -364,7 +377,7 @@
 	    "oauth_signature=\"" (uriencode sig64) "\", "
 	    "oauth_signature_method=\"" "HMAC-SHA1" "\", "
 	    "oauth_timestamp=\"" now "\", "
-	    "oauth_token=\"" (getopt spec 'oauth_token) "\", "
+	    "oauth_token=\"" (getopt spec 'token) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (req (if (eq? method 'GET)
 		  (urlget (if (pair? args)
@@ -384,16 +397,19 @@
     ;;  (maybe %watch needs a redesign?)
     (debug%watch sigstring)
     (debug%watch auth-header)
-    (if (test req 'response 200)
+    (if (and (test req 'response) (number? (get req 'response))
+	     (<= 200 (get req 'response) 299))
 	(cons (getreqdata req) (cdr spec))
-	req)))
+	(error (error "Bad OAUTH/CALL response" req spec)))))
 
-(define (oauth/call20 spec method endpoint args ckey csecret)
+(define (oauth/call20 spec method endpoint args ckey csecret (expires))
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
   (unless (and ckey csecret)
     (error "OAUTH/CALL: No consumer key/secret: " spec))
   (unless (getopt spec 'token)
     (error "OAUTH/CALL: No OAUTH2 ACCESS token: " spec))
+  (default! expires (getopt spec 'expires))
+  (when (and expires (time-earlier? expires)) (auth/refresh! spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
@@ -413,21 +429,13 @@
 			       (args->post args))
 		      (error "Only GET and POST are currently handled")))))
     (debug%watch endpoint auth-header req)
-    (if (test req 'response 200)
+    (if (and (test req 'response) (number? (get req 'response))
+	     (<= 200 (get req 'response) 299))
 	(cons (getreqdata req) (cdr spec))
-	req)))
-(define (oauth/refresh spec)
-  )
-
-(define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
-  (set! spec (oauthspec spec))
-  (default! ckey (getckey spec))
-  (default! csecret (getcsecret spec))
-  (if (testopt spec 'version "1.0")
-      (oauth/call10 spec method endpoint args ckey csecret)
-      (oauth/call20 spec method endpoint args ckey csecret)))
-(define (oauth/call* spec method endpoint . args)
-  (oauth/call spec method endpoint args))
+	(if (and (<= 400 (get req 'response) 499) (getopt spec 'refresh))
+	    (begin (oauth/refresh! spec)
+	      (oauth/call20 spec method endpoint args ckey csecret))
+	    (error "Bad OAUTH/CALL response" req spec)))))
 
 (define (args->post args (first #t))
   (stringout
@@ -442,6 +450,48 @@
 	  (if (> i 0) (printout "&"))
 	  (printout (uriencode key) "="
 	    (uriencode (get args key)))))))
+
+(define (oauth/refresh! spec)
+  (let* ((endpoint (getopt spec 'authorize))
+	 (auth-header
+	  (glom "Authorization: Bearer " (getopt spec 'token)))
+	 (req (urlpost endpoint
+		       (curlopen 'header "Expect: "
+				 'header auth-header
+				 'method 'POST)
+		       `#["client_id" ,(getckey spec)
+			  "client_secret" ,(getcsecret spec)
+			  "grant_type" "refresh_token"
+			  "refresh_token" (getopt spec 'refresh)])))
+    (debug%watch endpoint auth-header req)
+    (if (test req 'response 200)
+	(let* ((json (jsonparse (get req '%content)))
+	       (expires_in (get json 'expires_in))
+	       (head (car spec)))
+	  (store! head 'token  (get json 'access_token))
+	  (unless (equal? (get json 'token_type) "Bearer")
+	    (logwarn 'OAUTH/Bearer "Odd token type " (get json 'token_type)
+		     " responding to " spec))
+	  (when expires_in
+	    (store! head 'expires (timestamp+ expires_in))
+	    (store! head 'refresh (get json 'refresh_token)))
+	  (unless expires_in
+	    (drop! head 'expires) (drop! head 'refresh))
+	  (when getuser (getuser spec))
+	  spec)
+	(error "Can't refresh token" req spec))))
+
+;;; Generic call function
+
+(define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
+  (set! spec (oauthspec spec))
+  (default! ckey (getckey spec))
+  (default! csecret (getcsecret spec))
+  (if (testopt spec 'version "1.0")
+      (oauth/call10 spec method endpoint args ckey csecret)
+      (oauth/call20 spec method endpoint args ckey csecret)))
+(define (oauth/call* spec method endpoint . args)
+  (oauth/call spec method endpoint args))
 
 ;;; This is helpful for debugging OAUTH1
 
@@ -526,28 +576,28 @@
 	       (scope #f))
   (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier getuser)
   (if oauth_verifier ;; 1.0
-      (let* ((state (get oauth-pending oauth_token))
-	     (verified (oauth/verify state oauth_verifier)))
+      (let* ((auth-state (get oauth-pending oauth_token))
+	     (verified (oauth/verify auth-state oauth_verifier)))
 	(drop! oauth-pending oauth_token)
-	(store! oauth-info oauth_token (cons verified (cdr state)))
+	(store! oauth-info oauth_token (cons verified (cdr auth-state)))
 	(let ((user (getuser verified)))
-	  (debug%watch "OAUTH1/complete" user verified state)
+	  (debug%watch "OAUTH1/complete" user verified auth-state)
 	  user))
       (if code ;; 2.0
 	  (let* ((spec (get oauth-pending state))
-		 (access (and spec (oauth/access spec code))))
+		 (access (and spec (oauth/getaccess spec code))))
 	    (and access
 		 (let ((user (getuser access)))
-		   (debug%watch "OAUTH2/complete" user verified spec)
+		   (debug%watch "OAUTH2/complete" user access spec)
 		   user)))
 	  (let* ((spec (and oauth_realm (get oauth-servers oauth_realm)))
 		 (state (if (getopt spec 'request)
 			    (oauth/request spec) ;; 1.0
-			    (cons `#[state ,(getuuid)
-				     callback ,(getcallback)]
+			    (cons `#[state ,(uuid->string (getuuid))
+				     callback ,(getcallback spec)]
 				  spec)))
 		 (redirect (oauth/authurl state)))
-	    (debug%watch "OAUTH/redirect" url state)
+	    (debug%watch "OAUTH/redirect" redirect state)
 	    (store! oauth-pending
 		    (getopt state 'oauth_token (getopt state 'state))
 		    state)
