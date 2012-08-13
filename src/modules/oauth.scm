@@ -50,7 +50,7 @@
      GPLUS
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
        VERIFY "https://accounts.google.com/o/oauth2/token"
-       KEY GOOGLE:CLIENT SECRET GOOGLE:SECRET
+       KEY GPLUS:KEY SECRET GPLUS:SECRET
        SCOPE "https://www.googleapis.com/auth/plus.me"
        VERSION "2.0"
        REALM GPLUS]])
