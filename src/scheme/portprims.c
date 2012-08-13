@@ -505,6 +505,10 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
   int level=get_loglevel(level_arg);
   U8_OUTPUT *out=u8_open_output_string(1024);
   U8_OUTPUT *stream=u8_current_output;
+  u8_condition condition=NULL;
+  if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
+    condition=FD_SYMBOL_NAME(FD_CAR(body));
+    body=FD_CDR(body);}
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
@@ -515,7 +519,7 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   u8_set_default_output(stream);
-  u8_logger(level,NULL,out->u8_outbuf);
+  u8_logger(level,condition,out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -534,6 +538,10 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
     fdtype body=fd_get_body(expr,2);
     U8_OUTPUT *out=u8_open_output_string(1024);
     U8_OUTPUT *stream=u8_current_output;
+    u8_condition condition=NULL;
+    if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
+      condition=FD_SYMBOL_NAME(FD_CAR(body));
+      body=FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
     while (FD_PAIRP(body)) {
       fdtype value=fasteval(FD_CAR(body),env);
@@ -544,7 +552,7 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
 	return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
-    u8_logger(-1,NULL,out->u8_outbuf);
+    u8_logger(-1,condition,out->u8_outbuf);
     u8_close_output(out);
     return FD_VOID;}
 }
@@ -572,6 +580,10 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
     fdtype body=fd_get_body(expr,3);
     U8_OUTPUT *out=u8_open_output_string(1024);
     U8_OUTPUT *stream=u8_current_output;
+    u8_condition condition=NULL;
+    if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
+      condition=FD_SYMBOL_NAME(FD_CAR(body));
+      body=FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
     while (FD_PAIRP(body)) {
       fdtype value=fasteval(FD_CAR(body),env);
@@ -582,7 +594,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
 	return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
-    u8_logger(FD_FIX2INT(loglevel_arg),NULL,out->u8_outbuf);
+    u8_logger(FD_FIX2INT(loglevel_arg),condition,out->u8_outbuf);
     u8_close_output(out);
     return FD_VOID;}
 }
