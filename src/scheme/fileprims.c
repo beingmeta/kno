@@ -1137,6 +1137,7 @@ FD_EXPORT int fd_update_file_modules(int force)
 	fdtype load_result=
 	  fd_load_source(scan->filename,scan->env,"auto");
 	if (FD_ABORTP(load_result)) {
+	  fd_unlock_mutex(&load_record_lock);
 	  fd_seterr(fd_ReloadError,"fd_reload_modules",
 		    u8_strdup(scan->filename),load_result);
 	  return -1;}
