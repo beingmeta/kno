@@ -68,10 +68,12 @@ static fdtype return_irritant(fdtype expr,fd_lispenv env)
     printout_body=fd_get_body(expr,2);}
   else printout_body=fd_get_body(expr,2);
 
+  irritant=fd_eval(irritant,env);
+
   {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
-    return fd_err(ex,cxt,out.u8_outbuf,fd_incref(irritant));}
+    return fd_err(ex,cxt,out.u8_outbuf,irritant);}
 }
 
 static fdtype onerror_handler(fdtype expr,fd_lispenv env)
