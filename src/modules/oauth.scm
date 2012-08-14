@@ -21,6 +21,21 @@
 (define-init %loglevel %notice!)
 ;;(set! %loglevel  %debug!)
 
+(define (getreqdata req)
+  (if (and (test req 'response)
+	   (test req 'content-type)
+	   (number? (get req 'response))
+	   (>= (get req 'response) 200)
+	   (< (get req 'response) 300))
+      (if (search "json" (get req 'content-type))
+	  (jsonparse (get req '%content))
+	  (if (search "xml" (get req 'content-type))
+	      (xmlparse (get req '%content) '{data slotify})
+	      ;; This comes across as text/plain from FB,
+	      ;;  but should probably be something else.
+	      (cgiparse (get req '%content)))
+	  req)))
+
 ;;; Server info
 
 (define-init oauth-servers
@@ -49,11 +64,19 @@
        REALM GOOGLE]
      GPLUS
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
-       VERIFY "https://accounts.google.com/o/oauth2/token"
+       ACCESS "https://accounts.google.com/o/oauth2/token"
        KEY GPLUS:KEY SECRET GPLUS:SECRET
        SCOPE "https://www.googleapis.com/auth/plus.me"
        VERSION "2.0"
-       REALM GPLUS]])
+       HTTPAUTH #t
+       REALM GPLUS]
+     FACEBOOK
+     #[AUTHORIZE "https://www.facebook.com/dialog/oauth"
+       ACCESS "https://graph.facebook.com/oauth/access_token"
+       KEY FB:KEY SECRET FB:SECRET
+       SCOPE "publish_actions,user_about_me,offline_access"
+       VERSION "2.0"
+       REALM FACEBOOK]])
 
 (define (oauth/provider spec) (get oauth-servers spec))
 (module-export! 'oauth/provider)
@@ -70,7 +93,8 @@
 				 (get val 'realm) ", changes may be lost!"))
 		      (do-choices val
 			(store! oauth-servers (get val 'realm) val)))
-		     (else (error "Invalid OAUTH provider spec: " val)))))
+		     (else (error OAUTH:BADSPEC
+				  "Invalid OAUTH provider spec: " val)))))
 
 (define (thisurl)
   (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
@@ -94,14 +118,15 @@
   (if (symbol? val) (getckey spec (config val))
       (if (string? val) val
 	  (if (packet? val) val
-	      (error "Can't determine consumer key: " spec)))))
+	      (error OAUTH:NOCKEY "Can't determine consumer key: " spec)))))
 (define (getcsecret spec (val))
   (default! val (getopt spec 'secret))
   (->secret
    (if (symbol? val) (getcsecret spec (config val))
        (if (string? val) val
 	   (if (packet? val) val
-	       (error "Can't determine consumer secret: " spec))))))
+	       (error OAUTH:NOCSECRET
+		      "Can't determine consumer secret: " spec))))))
 (define (getcallback spec)
   (getopt spec 'callback
 	  (req/get 'oauth_callback
@@ -172,15 +197,13 @@
   (set! spec (debug%watch (oauthspec spec) spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
-  (unless (and ckey csecret)
-    (logwarn "OAUTH/REQUEST: No consumer key/secret: " spec)
-    (error "OAUTH/REQUEST: No consumer key/secret: " spec))
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
     ;; This should exit
     (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
-    (error "OAUTH/REQUEST: Invalid OAUTH spec: " spec))
+    (error OAUTH:BADSPEC OAUTH/REQUEST
+	   "Missing methods for OAuth 1.0 request " spec))
   ;; We allow the nonce, time, etc to come from the spec
   ;;  to allow signature debugging
   (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
@@ -213,7 +236,10 @@
     (if (test req 'response 200)
 	(cons (cgiparse (get req '%content)) spec)
 	(begin (warn%watch "Can't get request token" spec req)
-	  (error "Can't get request token" req)))))
+	  (error OAUTH/REQFAILED OAUTH/REQUEST
+		 "Can't get request token for " (getopt spec 'realm)
+		 "\n\t" spec
+		 "\n\t" req)))))
 
 (define (oauth/authurl spec (scope #f))
   "Returns a URL for redirection and authorization and authentication. \
@@ -223,7 +249,8 @@
   (debug%watch "OAUTH/AUTHURL" spec (getcallback spec))
   (unless (and (getopt spec 'authenticate (getopt spec 'authorize))
 	       (or (getopt spec 'oauth_token) (getckey spec)))
-    (error "OAUTH/AUTHURL: Invalid OAUTH spec: " spec))
+    (error OAUTH:BADSPEC OAUTH/AUTHURL
+	   "Incomplete OAUTH spec: " spec))
   (if (testopt spec 'version "1.0")
       (scripturl+ (if scope
 		      (getopt spec 'authorize (getopt spec 'authenticate))
@@ -249,16 +276,14 @@
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
-    (error "OAUTH/VERIFY: Invalid OAUTH spec: " spec))
+    (error OAUTH:BADSPEC OAUTH/VERIFY "Invalid OAUTH1.0 spec: " spec))
   (debug%watch "OAUTH/VERIFY/1.0" verifier spec)
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
-  (unless (and ckey csecret)
-    (error "OAUTH/VERIFY: No consumer key/secret: " spec))
   (unless (getopt spec 'oauth_token)
-    (error "OAUTH/VERIFY: No OAUTH oauth_token: " spec))
+    (error OAUTH:NOTOKEN OAUTH/VERIFY "No OAUTH token in " spec))
   (unless verifier
-    (error "OAUTH/VERIFY: No OAUTH oauth_verifier: " spec))
+    (error OAUTH:NOVERIFIER OAUTH/VERIFY "No OAUTH verifier"))
   (let* ((nonce (uuid->string (getuuid)))
 	 (endpoint (getopt spec 'verify default-verify-endpoint))
 	 (callback (uriencode (getcallback spec)))
@@ -298,47 +323,51 @@
 	  (cons info (cdr spec)))
 	(if (getopt spec 'noverify)
 	    ((getopt spec 'noverify) spec verifier req)
-	    (error "OAUTH/VERIFY failed" req)))))
+	    (error OAUTH:REQFAIL OAUTH:VERIFY
+		   "Web call failed" req)))))
 
 (define (oauth/getaccess spec code (ckey) (csecret))
   (set! spec (oauthspec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
-  (debug%watch "OAUTH/VERIFY/2.0" code spec)
-  (unless (and ckey csecret)
-    (error "OAUTH/VERIFY: No consumer key/secret: " spec))
+  (debug%watch "OAUTH/GETACCESS" code spec)
   (let* ((callback (getcallback spec))
-	 (req (urlpost (getopt spec 'verify) 
+	 (req (urlpost (getopt spec 'access) 
 		       "code" code "client_id" ckey "client_secret" csecret
 		       "grant_type" "authorization_code"
 		       "redirect_uri" callback)))
     (if (test req 'response 200)
-	(let* ((json (jsonparse (get req '%content)))
-	       (expires_in (get json 'expires_in))
-	       (authinfo `#[token ,(get json 'access_token)]))
-	  (unless (equal? (get json 'token_type) "Bearer")
-	    (logwarn 'OAUTH/Bearer "Odd token type " (get json 'token_type)
-		     " responding to " spec))
-	  (when expires_in
+	(let* ((parsed (getreqdata req))
+	       (expires_in (->number
+			    (try (get parsed 'expires_in)
+				 (get parsed 'expires))))
+	       (authinfo `#[token ,(get parsed 'access_token)]))
+	  (debug%watch parsed spec req)
+	  (when (exists? (get parsed 'token_type))
+	    (unless (equal? (get parsed 'token_type) "Bearer")
+	      (logwarn 'OAUTH/Bearer "Odd token type " (get parsed 'token_type)
+		       " responding to " spec)))
+	  (when (and (exists? expires_in) expires_in)
 	    (store! authinfo 'expires (timestamp+ expires_in))
-	    (store! authinfo 'refresh (->secret (get json 'refresh_token))))
+	    (when (exists? (get parsed 'refresh_token))
+	      (store! authinfo 'refresh
+		      (->secret (get parsed 'refresh_token)))))
 	  (cons authinfo spec))
 	(if (getopt spec 'noverify)
 	    ((getopt spec 'noverify) spec verifier req)
-	    (error "OAUTH/VERIFY failed" req)))))
+	    (error OAUTH:REQFAIL OAUTH/GETACCESS
+		   "Web call failed: " req)))))
 
 ;;; Actually calling the API
 
 (define (oauth/call10 spec method endpoint args ckey csecret)
   (debug%watch "OAUTH/CALL1.0" method endpoint args)
-  (default! ckey (getckey spec))
-  (default! csecret (getcsecret spec))
-  (unless (and ckey csecret)
-    (error "OAUTH/CALL: No consumer key/secret: " spec))
   (unless (getopt spec 'token)
-    (error "OAUTH/CALL: No OAUTH token: " spec))
+    (error OAUTH:NOTOKEN OAUTH/CALL
+	   "No OAUTH token for OAuth1.0 call in " spec))
   (unless (getopt spec 'oauth_secret)
-    (error "OAUTH/CALL: No OAUTH secret: " spec))
+    (error OAUTH:NOSECRET OAUTH/CALL
+	   "No OAUTH secret for OAuth1.0 call in " spec))
   (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	 (endpoint (or endpoint
 		       (getopt args 'endpoint
@@ -399,25 +428,35 @@
     (debug%watch auth-header)
     (if (and (test req 'response) (number? (get req 'response))
 	     (<= 200 (get req 'response) 299))
-	(cons (getreqdata req) (cdr spec))
-	(error (error "Bad OAUTH/CALL response" req spec)))))
+	(getreqdata req)
+	(error OAUTH:REQFAIL OAUTH/CALL1.0
+	       "Failed to " method " at " endpoint
+	       " with " args "\n\t" spec "\n\t" req))))
 
 (define (oauth/call20 spec method endpoint args ckey csecret (expires))
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
-  (unless (and ckey csecret)
-    (error "OAUTH/CALL: No consumer key/secret: " spec))
   (unless (getopt spec 'token)
-    (error "OAUTH/CALL: No OAUTH2 ACCESS token: " spec))
+    (error OAUTH:NOTOKEN OAUTH/CALL
+	   "No OAUTH token for OAuth2 call in " spec))
   (default! expires (getopt spec 'expires))
   (when (and expires (time-earlier? expires)) (auth/refresh! spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
 				       default-endpoint))))
+	 (httpauth (getopt spec 'httpauth))
 	 (auth-header
-	  (glom "Authorization: Bearer " (getopt spec 'token)))
+	  (if httpauth
+	      (glom "Authorization: Bearer " (getopt spec 'token))
+	      ""))
 	 (req (if (eq? method 'GET)
-		  (urlget (scripturl+ endpoint args)
+		  (urlget (if httpauth
+			      (scripturl+ endpoint args)
+			      (if (pair? args)
+				  (apply scripturl endpoint
+					 "access_token" (getopt spec 'token)
+					 args)
+				  (scripturl+ endpoint args)))
 			  (curlopen 'header "Expect: "
 				    'header auth-header
 				    'method method))
@@ -427,15 +466,19 @@
 					 'header auth-header
 					 'method method)
 			       (args->post args))
-		      (error "Only GET and POST are currently handled")))))
+		      (error OAUTH:BADMETHOD OAUTH/CALL2
+			     "Only GET and POST are allowe: "
+			     method endpoint args)))))
     (debug%watch endpoint auth-header req)
     (if (and (test req 'response) (number? (get req 'response))
 	     (<= 200 (get req 'response) 299))
-	(cons (getreqdata req) (cdr spec))
+	(getreqdata req)
 	(if (and (<= 400 (get req 'response) 499) (getopt spec 'refresh))
 	    (begin (oauth/refresh! spec)
 	      (oauth/call20 spec method endpoint args ckey csecret))
-	    (error "Bad OAUTH/CALL response" req spec)))))
+	    (error OAUTH:REQFAIL OAUTH/CALL2
+		   method " at " endpoint " with " args
+		   "\n\t" spec "\n\t" req)))))
 
 (define (args->post args (first #t))
   (stringout
@@ -452,6 +495,9 @@
 	    (uriencode (get args key)))))))
 
 (define (oauth/refresh! spec)
+  (unless (getopt spec 'refresh)
+    (error OAUTH:NOREFRESH OAUTH/REFRESH!
+	   "No OAUTH2 refresh key in " spec))
   (let* ((endpoint (getopt spec 'authorize))
 	 (auth-header
 	  (glom "Authorization: Bearer " (getopt spec 'token)))
@@ -465,21 +511,23 @@
 			  "refresh_token" (getopt spec 'refresh)])))
     (debug%watch endpoint auth-header req)
     (if (test req 'response 200)
-	(let* ((json (jsonparse (get req '%content)))
-	       (expires_in (get json 'expires_in))
+	(let* ((parsed (getreqdata req))
+	       (expires_in (try (get parsed 'expires_in)
+				(get parsed 'expires)))
 	       (head (car spec)))
-	  (store! head 'token  (get json 'access_token))
-	  (unless (equal? (get json 'token_type) "Bearer")
-	    (logwarn 'OAUTH/Bearer "Odd token type " (get json 'token_type)
+	  (store! head 'token  (get parsed 'access_token))
+	  (unless (equal? (get parsed 'token_type) "Bearer")
+	    (logwarn 'OAUTH/Bearer "Odd token type " (get parsed 'token_type)
 		     " responding to " spec))
 	  (when expires_in
 	    (store! head 'expires (timestamp+ expires_in))
-	    (store! head 'refresh (get json 'refresh_token)))
+	    (store! head 'refresh (get parsed 'refresh_token)))
 	  (unless expires_in
 	    (drop! head 'expires) (drop! head 'refresh))
 	  (when getuser (getuser spec))
 	  spec)
-	(error "Can't refresh token" req spec))))
+	(error OAUTH:NOREFRESH OAUTH/REFRESH!
+	       "Can't refresh token" spec req))))
 
 ;;; Generic call function
 
@@ -502,8 +550,6 @@
     (set! spec (cons spec (oauth/provider (getopt spec 'realm)))))
   (let ((ckey (getckey spec))
 	(csecret (getcsecret spec)))
-    (unless (and ckey csecret)
-      (error "OAUTH/CALL: No consumer key/secret: " spec))
     (unless (getopt spec 'oauth_token)
       (error "OAUTH/CALL: No OAUTH token: " spec))
     (unless (getopt spec 'oauth_secret)
@@ -550,19 +596,6 @@
   (getreqdata (oauth/call spec 'POST endpoint args)))
 (define (oauth/put spec endpoint (args #[]))
   (getreqdata (oauth/call spec 'PUT endpoint args)))
-
-(define (getreqdata req)
-  (if (and (test req 'response)
-	   (test req 'content-type)
-	   (number? (get req 'response))
-	   (>= (get req 'response) 200)
-	   (< (get req 'response) 300))
-      (if (search "json" (get req 'content-type))
-	  (jsonparse (get req '%content))
-	  (if (search "xml" (get req 'content-type))
-	      (xmlparse (get req '%content) '{data slotify})
-	      req)
-	  req)))
 
 ;;; Top level authenication
 
