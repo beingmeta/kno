@@ -608,8 +608,11 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,fdtype colinfo_arg)
     else mysqlerrno=mysql_errno(db);}
   if ((mysqlerrno==CR_SERVER_GONE_ERROR) ||
       (mysqlerrno==CR_SERVER_LOST)) {
-    int reconn=reopen_mysql(dbp);
+    u8_log(LOG_WARN,"mysqlexecproc","Connection to server %s %s",
+	   dbp->spec,((mysqlerrno==CR_SERVER_GONE_ERROR)?("gone"):("lost")));
+    int reconn=1;
     fd_decref(colinfo);
+    reconn=reopen_mysql(dbp);
     if (reconn<0) {
       const char *errmsg=((stmt)?(mysql_stmt_error(stmt)):(mysql_error(db)));
       u8_seterr(MySQL_Error,"mysqlexec",u8_strdup(errmsg));
@@ -856,9 +859,11 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
      The other x*vals* identify the retvals for particular phases, to help
      produce more helpful error messages.
      A ZERO VALUE MEANS OK. */
-  int retval=1, bretval=1, eretval=1, sretval=1;
+  int retval=1, bretval=0, eretval=0, sretval=0;
   int proclock=0, dblock=0;
   volatile unsigned int mysqlerrno;
+  const char *mysqlerrmsg;
+
 
   u8_lock_mutex(&(dbproc->lock)); proclock=1;
 
@@ -1027,25 +1032,41 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     u8_lock_mutex(&(dbproc->fdbptr->lock)); dblock=1;
     retval=eretval=mysql_stmt_execute(dbproc->stmt);}
   
-  if (retval!=RETVAL_OK)
-    mysqlerrno=mysql_stmt_errno(dbproc->stmt);
-  /* Store the result, so you can release the connection lock. */
-  else retval=sretval=mysql_stmt_store_result(dbproc->stmt);
+  if (retval==RETVAL_OK)
+    retval=sretval=mysql_stmt_store_result(dbproc->stmt);
   
-  if (retval!=RETVAL_OK)
+  if (retval!=RETVAL_OK) {
     mysqlerrno=mysql_stmt_errno(dbproc->stmt);
+    mysqlerrmsg=mysql_stmt_error(dbproc->stmt);
+    u8_log(LOG_WARN,
+	   ((sretval)?("callmysqlproc/store"):
+	    (eretval)?("callmysqlproc/exec"):
+	    (bretval)?("callmysqlproc/bind"):
+	    ("callmysqlproc")),
+	   "MYSQL error '%s' for %s at %s",
+	   mysqlerrmsg,dbproc->stmt_string,dbp->spec);}
   else mysqlerrno=0;
 
   if ((mysqlerrno==CR_SERVER_GONE_ERROR) ||
       (mysqlerrno==CR_SERVER_LOST)) {
-    int reconn=reopen_mysql(dbp), j=0;
+    int reconn=-1, j=0, fval=1;
+    u8_log(LOG_WARN,"callmysqlproc/conn","Connection to server %s %s",
+	   dbp->spec,((mysqlerrno==CR_SERVER_GONE_ERROR)?("gone"):("lost")));
     j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
     j=0; while (j<n_params) {fd_decref(argbuf[j]); j++;}
     if (argbuf!=_argbuf) u8_free(argbuf);
-    mysql_stmt_free_result(dbproc->stmt);
+    if (eretval==RETVAL_OK) {
+      int fretval=mysql_stmt_free_result(dbproc->stmt);
+      mysqlerrmsg=mysql_stmt_error(dbproc->stmt);
+      if (!(fretval==RETVAL_OK)) {
+	u8_seterr(MySQL_Error,"callmysqlproc/free",u8_strdup(mysqlerrmsg));
+	if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
+	if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
+	return FD_ERROR_VALUE;}}
+    reconn=reopen_mysql(dbp);
     if (reconn<0) {
-      const char *errmsg=mysql_stmt_error(dbproc->stmt);
-      u8_seterr(MySQL_Error,"mysqlexec",u8_strdup(errmsg));
+      mysqlerrmsg=mysql_stmt_error(dbproc->stmt);
+      u8_seterr(MySQL_Error,"callmysqlproc/reopen",u8_strdup(mysqlerrmsg));
       if (dblock) {u8_unlock_mutex(&(dbp->lock)); dblock=0;}
       if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
       return FD_ERROR_VALUE;}
@@ -1054,14 +1075,13 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       if (proclock)  {u8_unlock_mutex(&(dbproc->lock)); proclock=0;}
       return callmysqlproc(fn,n,args);}}
   else if (retval) {
-    const char *errmsg=mysql_stmt_error(dbproc->stmt);
-    if (!(bretval))
-      u8_seterr(MySQL_Error,"mysqlproc/bind",u8_strdup(errmsg));
-    else if (!(eretval))
-      u8_seterr(MySQL_Error,"mysqlproc/exec",u8_strdup(errmsg));
-    else if (!(sretval))
-      u8_seterr(MySQL_Error,"mysqlproc/store",u8_strdup(errmsg));
-    else u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(errmsg));
+    if (!(bretval==RETVAL_OK))
+      u8_seterr(MySQL_Error,"mysqlproc/bind",u8_strdup(mysqlerrmsg));
+    else if (!(eretval==RETVAL_OK))
+      u8_seterr(MySQL_Error,"mysqlproc/exec",u8_strdup(mysqlerrmsg));
+    else if (!(sretval==RETVAL_OK))
+      u8_seterr(MySQL_Error,"mysqlproc/store",u8_strdup(mysqlerrmsg));
+    else u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(mysqlerrmsg));
     i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
     i=0; while (i<n_mstimes) {u8_free(mstimes[i]); i++;}
     if (argbuf!=_argbuf) u8_free(argbuf);
