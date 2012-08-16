@@ -29,7 +29,7 @@
 extern my_bool my_init(void);
 
 static fdtype sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
-static fdtype sslciphers_symbol, port_symbol;
+static fdtype sslciphers_symbol, port_symbol, reconnect_symbol;
 
 static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
@@ -110,6 +110,8 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 
 /* Opening connections */
 
+static my_bool default_reconnect=0;
+
 /* Everything but the hostname and dbname is optional.
    In theory, we could have the dbname be optional, but for now we'll
    require it.  */
@@ -146,6 +148,7 @@ static fdtype open_mysql
 
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
+    fdtype reconn=fd_getopt(options,reconnect_symbol,FD_VOID);
     fdtype sslca=fd_getopt(options,sslca_symbol,FD_VOID);
     fdtype sslcert=fd_getopt(options,sslcert_symbol,FD_VOID);
     fdtype sslkey=fd_getopt(options,sslkey_symbol,FD_VOID);
@@ -171,7 +174,11 @@ static fdtype open_mysql
 	      ((FD_VOIDP(sslcert))?(NULL):(FD_STRDATA(sslcert))),
 	      ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
 	      ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
-	      ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
+	      ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}
+    if (!(FD_VOIDP(reconn))) {
+      if (FD_FALSEP(reconn)) reconnect=0;
+      else reconnect=1;}
+    else reconnect=default_reconnect;}
 
   /* Try to connect */
   u8_lock_mutex(&mysql_connect_lock);
@@ -1178,6 +1185,7 @@ FD_EXPORT int fd_init_mysql()
   noempty_symbol=fd_intern("%NOEMPTY");
 
   port_symbol=fd_intern("PORT");
+  reconnect_symbol=fd_intern("RECONNECT");
   sslca_symbol=fd_intern("SSLCA");
   sslcert_symbol=fd_intern("SSLCERT");
   sslkey_symbol=fd_intern("SSLKEY");
@@ -1185,6 +1193,11 @@ FD_EXPORT int fd_init_mysql()
   sslciphers_symbol=fd_intern("SSLCIPHERS");
 
   fd_finish_module(module);
+
+  fd_register_config("MYSQL:RECONNECT",
+		     "whether MYSQL should try to auto-reconnect",
+		     fd_boolconfig_get,fd_boolconfig_set,
+		     &default_reconnect);
 
   u8_register_source_file(_FILEINFO);
 
