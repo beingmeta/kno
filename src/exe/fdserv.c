@@ -61,10 +61,6 @@ static u8_mutex server_port_lock;
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
 
-#define FD_REQERRS 1 /* records only transactions which return errors */
-#define FD_ALLREQS 2 /* records all requests */
-#define FD_ALLRESP 3 /* records all requests and the response set back */
-
 /* This is how old a socket file needs to be to be deleted as 'leftover' */
 #define FD_LEFTOVER_AGE 30
 static int ignore_leftovers=0;
@@ -323,12 +319,12 @@ static int output_content(fd_webconn ucl,fdtype content)
 
 /* Running the server */
 
-static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
+static u8_client simply_accept(struct U8_SERVER *srv,u8_socket sock,
+			       struct sockaddr *addr,size_t len)
 {
   /* We could do access control here. */
-  fd_webconn consed=u8_alloc(FD_WEBCONN);
-  memset(consed,0,sizeof(FD_WEBCONN));
-  consed->socket=sock; consed->flags=0;
+  fd_webconn consed=(fd_webconn)
+    u8_client_init(NULL,sizeof(FD_WEBCONN),sock,srv);
   fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);
   u8_set_nodelay(sock,1);

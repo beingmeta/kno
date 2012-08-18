@@ -56,7 +56,7 @@ static int grow_byte_buffer(struct FD_BYTE_OUTPUT *b,int delta)
   b->end=b->start+new_limit;
   return 1;
 }
-int fd_needs_space(struct FD_BYTE_OUTPUT *b,int delta)
+FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTPUT *b,size_t delta)
 {
   if (b->ptr+delta > b->end)
     return grow_byte_buffer(b,delta);
@@ -733,16 +733,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
 	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
 	else {
-	  unsigned char buf[64], *data; fdtype result=FD_VOID;
+	  unsigned char buf[64], *data;
 	  if (len >= 64) data=u8_malloc(len+1); else data=buf;
 	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  switch (code) {
-	  case dt_symbol:
-	    result=fd_make_symbol(data,len); break;
-	  case dt_zstring:
-	    result=fd_make_symbol(data,len); break;}
-	  if (data != buf) u8_free(data);
-	  return result;}}
+	  if (data != buf) {
+	    fdtype result=fd_make_symbol(data,len);
+	    u8_free(data);
+	    return result;}
+	  else return fd_make_symbol(data,len);}}
     case dt_vector:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
@@ -769,6 +767,13 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    return v;}
 	  *write++=v;}
 	return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
+    case dt_block: 
+      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
+      else {
+	int nbytes=fd_read_4bytes(in);
+	if (nobytes(in,nbytes)) return fd_return_errcode(FD_EOD);
+	return fd_read_dtype(in);}
+      
     case dt_framerd_package: {
       int code, lenlen, len;
       if (nobytes(in,2)) return fd_return_errcode(FD_EOD);

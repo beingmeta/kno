@@ -17,20 +17,27 @@
 
 #include <stdarg.h>
 
+static int use_dtblock=1;
+
 static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
 {
-  fdtype result; 
+  fdtype result; int retval;
   struct FD_DTYPE_STREAM stream;
-  u8_connection conn=u8_get_connection(cpool);
+  u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
   /* u8_log(LOG_DEBUG,"DTEVAL","Using connection %d",conn); */
-  if ((fd_dtswrite_dtype(&stream,expr)<0) ||
-      (fd_dtsflush(&stream)<0)) {
+  if (use_dtblock) {
+    retval=fd_dtswrite_byte(&stream,dt_block);
+    if (retval>0) retval=fd_dtswrite_4bytes(&stream,0);
+    if (retval>0) retval=fd_dtswrite_dtype(&stream,expr);}
+  else retval=fd_dtswrite_dtype(&stream,expr);
+  if ((retval<0) || (fd_dtsflush(&stream)<0)) {
     if ((conn=u8_reconnect(cpool,conn))<0) {
       u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}}
+  fd_dtsflush(&stream);
   result=fd_dtsread_dtype(&stream);
   if (FD_EQ(result,FD_EOD)) {
     if (((conn=u8_reconnect(cpool,conn))<0) ||
@@ -139,5 +146,8 @@ FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
+  fd_register_config("DTBLOCK",
+		     _("Wrap DTCALLs in dt_block to improve throughput"),
+		     fd_boolconfig_get,fd_boolconfig_set,&use_dtblock);
   u8_register_source_file(_FILEINFO);
 }

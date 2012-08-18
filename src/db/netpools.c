@@ -62,7 +62,7 @@ static void init_network_pool
 static fdtype get_pool_data(u8_string spec,u8_string *xid)
 {
   fdtype request, result;
-  u8_connection c=u8_connect_x(spec,xid);
+  u8_socket c=u8_connect_x(spec,xid);
   struct FD_DTYPE_STREAM _stream, *stream=fd_init_dtype_stream(&_stream,c,FD_NET_BUFSIZE);
   if (stream==NULL)
     return FD_ERROR_VALUE;

@@ -35,6 +35,11 @@
 FD_EXPORT void fd_init_texttools(void);
 FD_EXPORT void fd_init_tagger(void);
 
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+
+static int async_mode=1;
+
 static int debug_maxelts=32, debug_maxchars=80;
 
 /* Various exceptions */
@@ -52,7 +57,8 @@ static fd_lispenv server_env;
 
 /* This is the server struct used to establish the server. */
 static struct U8_SERVER dtype_server;
-static int server_flags=U8_SERVER_LOG_LISTEN|U8_SERVER_LOG_CONNECT;
+static int server_flags=
+  U8_SERVER_LOG_LISTEN|U8_SERVER_LOG_CONNECT|U8_SERVER_ASYNC;
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -190,7 +196,8 @@ typedef struct FD_CLIENT {
 typedef struct FD_CLIENT *fd_client;
 
 /* This creates the client structure when called by the server loop. */
-static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
+static u8_client simply_accept(u8_server srv,u8_socket sock,
+			       struct sockaddr *addr,size_t len)
 {
   fd_client consed=u8_alloc(FD_CLIENT);
   consed->socket=sock; consed->flags=0; consed->n_trans=0;
@@ -206,16 +213,41 @@ static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
    with data on them, so there shouldn't be too much waiting. */
 static int dtypeserver(u8_client ucl)
 {
+  fdtype expr, result;
   fd_client client=(fd_client)ucl;
-  fdtype expr;
-  /* Do this ASAP to avoid session leakage */
+  fd_dtype_stream stream=&(client->stream);
+  int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
+  if ((client->buf!=NULL)&&(!(client->writing))) { 
+    stream->end=stream->ptr+client->len;
+    expr=fd_dtsread_dtype(stream);}
+  else if ((client->buf!=NULL)&&(client->writing)) {
+    /* Just report that the transaction is over. */
+    return 0;}
+  else if (async) {
+    fd_dts_start_read(stream);
+    if (nobytes((fd_byte_input)stream,1)) expr=FD_EOD;
+    else if ((*(stream->ptr))==dt_block) {
+      int dtcode=fd_dtsread_byte(stream);
+      int nbytes=fd_dtsread_4bytes(stream);
+      if (fd_has_bytes(stream,nbytes))
+	expr=fd_dtsread_dtype(stream);
+      else {
+	/* Allocate enough space */
+	fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
+	/* Set up the client for async input */
+	client->buf=stream->ptr;
+	client->len=nbytes;
+	client->buflen=stream->end-stream->start;
+	client->async=1; client->writing=0;
+	return 1;}}}
+  else expr=fd_dtsread_dtype(stream);
   fd_reset_threadvars();
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
-  if (client->stream.id==NULL) {
+  if (stream->id==NULL) {
     if (client->idstring)
-      client->stream.id=u8_strdup(client->idstring);
-    else client->stream.id=u8_strdup("anonymous");}
+      stream->id=u8_strdup(client->idstring);
+    else stream->id=u8_strdup("fdbserver/dtypestream");}
   /* Get the expr */
   expr=fd_dtsread_dtype(&(client->stream));
   if (expr == FD_EOD) {
@@ -274,10 +306,12 @@ static int dtypeserver(u8_client ucl)
 	  out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
 	  fd_print_backtrace(&out,ex,120);
 	  u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
-	  if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF)) u8_free(out.u8_outbuf);}}
-      value=fd_make_exception(ex->u8x_cond,ex->u8x_context,
-			      ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
-			      fd_incref(irritant));
+	  if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
+	    u8_free(out.u8_outbuf);}}
+      value=fd_make_exception
+	(ex->u8x_cond,ex->u8x_context,
+	 ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
+	 fd_incref(irritant));
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,
@@ -287,8 +321,29 @@ static int dtypeserver(u8_client ucl)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
 	     client->idstring,sock,trans_id,elapsed);
     client->elapsed=client->elapsed+elapsed;
-    fd_dtswrite_dtype(&(client->stream),value);
-    fd_dtsflush(&(client->stream));
+    /* Currently, fd_dtswrite_dtype writes the whole thing at once,
+       so we just use that. */
+    fd_dts_start_write(stream);
+    stream->ptr=stream->start;
+    if (async) {
+      int nbytes; unsigned char *ptr;
+      fd_dtswrite_byte(stream,dt_block);
+      fd_dtswrite_4bytes(stream,0);
+      nbytes=fd_dtswrite_dtype(stream,value);
+      ptr=stream->ptr; {
+	/* Rewind temporarily to write the length information */
+	ptr=stream->start+1;
+	fd_dtswrite_4bytes(stream,nbytes);
+	stream->ptr=ptr;}}
+    else fd_dtswrite_dtype(stream,value);
+    if (async) {
+      client->buf=stream->start; client->len=0;
+      client->buflen=stream->ptr-stream->start;
+      client->async=1; client->writing=1;
+      return 1;}
+    else {
+      fd_dtswrite_dtype(stream,value);
+      fd_dtsflush(stream);}
     time(&(client->lastlive));
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
@@ -507,25 +562,37 @@ int main(int argc,char **argv)
 		     fd_boolconfig_get,fd_boolconfig_set,&logeval);
   fd_register_config("LOGTRANS",_("Whether to log each transaction"),
 		     fd_intconfig_get,fd_boolconfig_set,&logtrans);
-  fd_register_config("LOGERRS",_("Whether to log errors returned by the server to clients"),
+  fd_register_config("LOGERRS",
+		     _("Whether to log errors returned by the server to clients"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
-  fd_register_config("LOGBACKTRACE",_("Whether to include a detailed backtrace when logging errors"),
+  fd_register_config("LOGBACKTRACE",
+		     _("Whether to include a detailed backtrace when logging errors"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
-  fd_register_config("U8LOGCONN",_("Whether to have libu8 log each connection"),
+  fd_register_config("U8LOGCONN",
+		     _("Whether to have libu8 log each connection"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_CONNECT));
-  fd_register_config("U8LOGTRANS",_("Whether to have libu8 log each transaction"),
+  fd_register_config("U8LOGTRANS",
+		     _("Whether to have libu8 log each transaction"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
-  fd_register_config("DEBUGMAXCHARS",_("Max number of string characters to display in debug message"),
+  fd_register_config("U8ASYNC",
+		     _("Whether to support thread-asynchronous transactions"),
+		     config_get_dtype_server_flag,config_set_dtype_server_flag,
+		     (void *)(U8_SERVER_ASYNC));
+
+  fd_register_config("DEBUGMAXCHARS",
+		     _("Max number of string characters to display in debug message"),
 		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",_("Max number of list/vector/choice elements to display in debug message"),
+  fd_register_config("DEBUGMAXELTS",
+		     _("Max number of list/vector/choice elements to display in debug message"),
 		     fd_intconfig_get,fd_intconfig_set,
 		     &debug_maxelts);
   fd_register_config("STATEDIR",_("Where to write server pid/nid files"),
 		     fd_sconfig_get,fd_sconfig_set,&state_dir);
-
+  fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
+		     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
 
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);

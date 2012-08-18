@@ -1336,7 +1336,7 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
 		  u8_strdup(server),FD_VOID);}
   else close(socket);
   dts->connpool=u8_open_connpool(dts->server,2,4,1);
-  if (dts->connpool) {
+  if (dts->connpool==NULL) {
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts);
     return FD_ERROR_VALUE;}
   FD_INIT_CONS(dts,fd_dtserver_type);

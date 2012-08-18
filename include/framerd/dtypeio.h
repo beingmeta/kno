@@ -35,6 +35,7 @@ typedef enum dt_type_code {
   dt_tiny_string=0x11,
   dt_tiny_choice=0x12,
   dt_empty_choice=0x13,
+  dt_block=0x14,
 
   dt_character_package = 0x40,
   dt_numeric_package = 0x41,
@@ -396,5 +397,9 @@ typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 #else
 #define fd_return_errcode(x) ((fdtype)(x))
 #endif
+
+/* Utility functions */
+
+FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTPUT *b,size_t delta);
 
 #endif /* FDB_DTYPEIO_H */

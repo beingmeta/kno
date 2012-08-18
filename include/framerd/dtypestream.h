@@ -360,7 +360,7 @@ static MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
     return 9;}
 }
 #else /* FD_INLINE_DTYPEIO */
-#define fd_dtsread_byte   _fd_dtsread_byte(x)
+#define fd_dtsread_byte   _fd_dtsread_byte
 #define fd_dtsread_4bytes _fd_dtsread_4bytes 
 #define fd_dtsread_bytes  _fd_dtsread_bytes 
 #define fd_dtsread_zint  _fd_dtsread_zint 

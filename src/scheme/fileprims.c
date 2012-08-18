@@ -378,7 +378,7 @@ static fdtype noblock_symbol, nodelay_symbol;
 static fdtype open_socket_prim(fdtype spec,fdtype opts)
 {
   
-  u8_connection conn=u8_connect(FD_STRDATA(spec));
+  u8_socket conn=u8_connect(FD_STRDATA(spec));
   if (conn<0) return FD_ERROR_VALUE;
   else {
     fdtype noblock=fd_getopt(opts,noblock_symbol,FD_FALSE);
