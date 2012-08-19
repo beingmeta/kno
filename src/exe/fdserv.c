@@ -46,10 +46,13 @@ FD_EXPORT int fd_init_fddbserv(void);
 
 #include "webcommon.h"
 
+/* This lets the u8_server loop do I/O buffering to keep threads from
+   waiting on I/O. */
+static int async_mode=1;
+
 /* Logging declarations */
 static FILE *statlog=NULL;
 static double overtime=0;
-static int loglisten=1, logconnect=0, logtransact=0;
 static int stealsockets=0;
 
 /* Tracking ports */
@@ -315,6 +318,46 @@ static int output_content(fd_webconn ucl,fdtype content)
     u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
     return FD_PACKET_LENGTH(content);}
   else return 0;
+}
+
+/* Configuring u8server fields */
+
+static fdtype config_get_u8server_flag(fdtype var,void *data)
+{
+  fd_ptrbits bigmask=(fd_ptrbits)data;
+  unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF);
+  unsigned int flags=fdwebserver.flags;
+  if ((flags)&(mask)) return FD_TRUE; else return FD_FALSE;
+}
+
+static int config_set_u8server_flag(fdtype var,fdtype val,void *data)
+{
+  fd_ptrbits bigmask=(fd_ptrbits)data;
+  unsigned int mask=(bigmask&0xFFFFFFFF);
+  unsigned int flags=fdwebserver.flags;
+  unsigned int *flagsp=&(fdwebserver.flags);
+  if (FD_FALSEP(val))
+    *flagsp=flags&(~(mask));
+  else if ((FD_STRINGP(val))&&(FD_STRLEN(val)==0))
+    *flagsp=flags&(~(mask));
+  else if (FD_STRINGP(val)) {
+    u8_string s=FD_STRDATA(val);
+    int bool=fd_boolstring(FD_STRDATA(val),-1);
+    if (bool<0) {
+      int guess=(((s[0]=='y')||(s[0]=='Y'))?(1):
+		 ((s[0]=='N')||(s[0]=='n'))?(0):
+		 (-1));
+      if (guess<0) {
+	u8_log(LOG_WARN,"SERVERFLAG","Unknown boolean setting %s",s);
+	return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
+      else u8_log(LOG_WARN,"SERVERFLAG",
+		  "Unfamiliar boolean setting %s, assuming %s",
+		  s,((guess)?("true"):("false")));
+      if (!(guess<0)) bool=guess;}
+    if (bool) *flagsp=flags|mask;
+    else *flagsp=flags&(~(mask));}
+  else *flagsp=flags|mask;
+  return 1;
 }
 
 /* Running the server */
@@ -811,6 +854,8 @@ int main(int argc,char **argv)
 
   fd_register_config("PORT",_("Ports for listening for connections"),
 		     getfdservports,addfdservport,NULL);
+  fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
+		     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
   
   if (!(getenv("LOGFILE"))) 
     u8_log(LOG_WARN,Startup,"No logfile, using stdio");
@@ -914,12 +959,6 @@ int main(int argc,char **argv)
 		     _("Remove existing socket files with extreme prejudice"),
 		     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);
 
-  fd_register_config("LOGLISTEN",_("Log when servers start listening"),
-		     fd_boolconfig_get,fd_boolconfig_set,&loglisten);
-  fd_register_config("LOGCONNECT",_("Log server connections"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logconnect);
-  fd_register_config("LOGTRANSACT",_("Log client/server transactions"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logtransact);
   fd_register_config("IGNORELEFTOVERS",
 		     _("Whether to check for existing PID files"),
 		     fd_boolconfig_get,fd_boolconfig_set,&ignore_leftovers);
@@ -960,12 +999,24 @@ int main(int argc,char **argv)
   u8_server_init(&fdwebserver,
 		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
-  if (loglisten)
-    fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
-  if (logconnect)
-    fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_CONNECT;
-  if (logtransact)
-    fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_TRANSACT;
+  fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
+
+  fd_register_config("U8LOGLISTEN",
+		     _("Whether to have libu8 log each monitored address"),
+		     config_get_u8server_flag,config_set_u8server_flag,
+		     (void *)(U8_SERVER_LOG_LISTEN));
+  fd_register_config("U8LOGCONN",
+		     _("Whether to have libu8 log each connection"),
+		     config_get_u8server_flag,config_set_u8server_flag,
+		     (void *)(U8_SERVER_LOG_CONNECT));
+  fd_register_config("U8LOGTRANS",
+		     _("Whether to have libu8 log each transaction"),
+		     config_get_u8server_flag,config_set_u8server_flag,
+		     (void *)(U8_SERVER_LOG_TRANSACT));
+  fd_register_config("U8ASYNC",
+		     _("Whether to support thread-asynchronous transactions"),
+		     config_get_u8server_flag,config_set_u8server_flag,
+		     (void *)(U8_SERVER_ASYNC));
   
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
