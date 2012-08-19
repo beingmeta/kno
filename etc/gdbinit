@@ -132,5 +132,24 @@ define set_maxelts
   unset env FD_DISPLAYMAXCHARS
 end
 
+define trace_server
+  set env FD_U8LOGCONN=yes
+  set env FD_U8LOGTRANS=yes
+  set env FD_LOGTRANS=yes
+  set env FD_LOGLEVEL=8
+end
+
+define debug_tempsrv
+  set args tempsrv.fdz
+end
+
+define trace_tempsrv
+  set args tempsrv.fdz
+  set env FD_U8LOGCONN=yes
+  set env FD_U8LOGTRANS=yes
+  set env FD_LOGTRANS=yes
+  set env FD_LOGLEVEL=8
+end
+
 # Init some tracing configurations
 set env FD_TRACEWEB=yes
