@@ -485,6 +485,19 @@ static int true_stringp(u8_string string)
   return 0;
 }
 
+FD_EXPORT int fd_boolstring(u8_string string,int dflt)
+{
+  u8_string *scan=true_strings;
+  while (*scan)
+    if (strcasecmp(string,*scan)==0) return 1;
+    else scan++;
+  scan=false_strings;
+  while (*scan)
+    if (strcasecmp(string,*scan)==0) return 0;
+    else scan++;
+  return dflt;
+}
+
 
 /* RLIMIT configs */
 

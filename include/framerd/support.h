@@ -64,6 +64,8 @@ FD_EXPORT int fd_register_config
 
 FD_EXPORT void fd_config_lock(int lock);
 
+FD_EXPORT int fd_boolstring(u8_string,int);
+
 /* Error handling */
 
 FD_EXPORT void fd_free_exception_xdata(void *ptr);
