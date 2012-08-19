@@ -199,13 +199,20 @@ typedef struct FD_CLIENT *fd_client;
 static u8_client simply_accept(u8_server srv,u8_socket sock,
 			       struct sockaddr *addr,size_t len)
 {
-  fd_client consed=u8_alloc(FD_CLIENT);
-  consed->socket=sock; consed->flags=0; consed->n_trans=0;
-  fd_init_dtype_stream(&(consed->stream),sock,4096);
-  consed->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
-  consed->n_errs=0; consed->lastlive=(time_t)-1;
+  u8_client consed=u8_client_init(NULL,sizeof(FD_CLIENT),
+				  addr,len,sock,srv);
+  fd_client client=(fd_client)consed;
+  fd_init_dtype_stream(&(client->stream),sock,4096);
+    /* To help debugging, move the client->idstring (libu8)
+     into the stream's id (fdb). */
+  if (client->stream.id==NULL) {
+    if (client->idstring)
+      client->stream.id=u8_strdup(client->idstring);
+    else client->stream.id=u8_strdup("fdbserver/dtypestream");}
+  client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
+  client->n_errs=0; client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
-  return (u8_client) consed;
+  return (u8_client) client;
 }
 
 /* This serves a request on a client. If the libu8 server code
@@ -239,17 +246,10 @@ static int dtypeserver(u8_client ucl)
 	client->len=nbytes;
 	client->buflen=stream->end-stream->start;
 	client->async=1; client->writing=0;
-	return 1;}}}
+	return 1;}}
+    else expr=fd_dtsread_dtype(stream);}
   else expr=fd_dtsread_dtype(stream);
   fd_reset_threadvars();
-  /* To help debugging, move the client->idstring (libu8)
-     into the stream's id (fdb). */
-  if (stream->id==NULL) {
-    if (client->idstring)
-      stream->id=u8_strdup(client->idstring);
-    else stream->id=u8_strdup("fdbserver/dtypestream");}
-  /* Get the expr */
-  expr=fd_dtsread_dtype(&(client->stream));
   if (expr == FD_EOD) {
     u8_client_close(ucl);
     return 0;}
@@ -332,13 +332,14 @@ static int dtypeserver(u8_client ucl)
       nbytes=fd_dtswrite_dtype(stream,value);
       ptr=stream->ptr; {
 	/* Rewind temporarily to write the length information */
-	ptr=stream->start+1;
+	stream->ptr=stream->start+1;
 	fd_dtswrite_4bytes(stream,nbytes);
 	stream->ptr=ptr;}}
     else fd_dtswrite_dtype(stream,value);
     if (async) {
-      client->buf=stream->start; client->len=0;
-      client->buflen=stream->ptr-stream->start;
+      client->buf=stream->start;
+      client->len=stream->ptr-stream->start;
+      client->buflen=stream->end-stream->start;
       client->async=1; client->writing=1;
       return 1;}
     else {

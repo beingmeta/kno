@@ -324,7 +324,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 {
   /* We could do access control here. */
   fd_webconn consed=(fd_webconn)
-    u8_client_init(NULL,sizeof(FD_WEBCONN),sock,srv);
+    u8_client_init(NULL,sizeof(FD_WEBCONN),addr,len,sock,srv);
   fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);
   u8_set_nodelay(sock,1);
