@@ -1344,7 +1344,7 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
   dts->connpool=u8_open_connpool(dts->server,2,4,1);
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
-  if (dts->connpool) {
+  if (dts->connpool==NULL) {
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts);
     return FD_ERROR_VALUE;}
   /* Otherwise, returh a dtserver object */
