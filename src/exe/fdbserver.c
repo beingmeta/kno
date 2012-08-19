@@ -147,6 +147,25 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
     flags=server_flags; flagsp=&(server_flags);}
   if (FD_FALSEP(val))
     *flagsp=flags&(~(mask));
+  else if ((FD_STRINGP(val))&&(FD_STRLEN(val)==0))
+    *flagsp=flags&(~(mask));
+  else if (FD_STRINGP(val)) {
+    u8_string s=FD_STRDATA(val);
+    int bool=fd_boolstring(FD_STRDATA(val),-1);
+    if (bool<0) {
+      int guess=(((s[0]=='y')||(s[0]=='Y'))?(1):
+		 ((s[0]=='N')||(s[0]=='n'))?(0):
+		 (-1));
+      if (guess<0) {
+	u8_log(LOG_WARN,"SERVERFLAG","Unknown boolean setting %s",s);
+	fd_unlock_mutex(&init_server_lock);
+	return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
+      else u8_log(LOG_WARN,"SERVERFLAG",
+		  "Unfamiliar boolean setting %s, assuming %s",
+		  s,((guess)?("true"):("false")));
+      if (!(guess<0)) bool=guess;}
+    if (bool) *flagsp=flags|mask;
+    else *flagsp=flags&(~(mask));}
   else *flagsp=flags|mask;
   fd_unlock_mutex(&init_server_lock);
   return 1;
