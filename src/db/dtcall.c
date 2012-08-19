@@ -19,7 +19,23 @@
 
 static int use_dtblock=1;
 
-static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
+static fdtype dteval_sock(u8_socket conn,fdtype expr)
+{
+  fdtype result; int retval;
+  struct FD_DTYPE_STREAM stream;
+  fd_init_dtype_stream(&stream,conn,8192);
+  stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
+  /* u8_log(LOG_DEBUG,"DTEVAL","Using connection %d",conn); */
+  if (use_dtblock) {
+    retval=fd_dtswrite_byte(&stream,dt_block);
+    if (retval>0) retval=fd_dtswrite_4bytes(&stream,0);
+    if (retval>0) retval=fd_dtswrite_dtype(&stream,expr);}
+  else retval=fd_dtswrite_dtype(&stream,expr);
+  if ((retval<0) || (fd_dtsflush(&stream)<0)) {
+    return FD_ERROR_VALUE;}
+  return fd_dtsread_dtype(&stream);
+}
+static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr)
 {
   fdtype result; int retval;
   struct FD_DTYPE_STREAM stream;
@@ -55,7 +71,11 @@ static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
 }
 FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval(cp,expr);
+  return dteval_pool(cp,expr);
+}
+FD_EXPORT fdtype fd_sock_dteval(u8_socket sock,fdtype expr)
+{
+  return dteval_sock(sock,expr);
 }
 
 static fdtype quote_symbol;
@@ -78,7 +98,7 @@ static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
     n--;}
   if (dorefs) fd_incref(args[0]);
   request=fd_init_pair(NULL,args[0],request);
-  result=dteval(cp,request);
+  result=dteval_pool(cp,request);
   fd_decref(request);
   return result;
 }
