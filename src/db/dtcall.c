@@ -21,7 +21,7 @@ static fdtype dteval(struct U8_CONNPOOL *cpool,fdtype expr)
 {
   fdtype result; 
   struct FD_DTYPE_STREAM stream;
-  u8_connection conn=u8_get_connection(cpool);
+  u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;

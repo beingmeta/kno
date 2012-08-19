@@ -1318,7 +1318,8 @@ fd_ptr_type fd_dtserver_type;
 FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
 {
   struct FD_DTSERVER *dts=u8_alloc(struct FD_DTSERVER);
-  u8_string server_addr; int socket;
+  u8_string server_addr; u8_socket socket;
+  /* Start out by parsing the address */
   if ((*server)==':') {
     fdtype server_id=fd_config_get(server+1);
     if (FD_STRINGP(server_id))
@@ -1329,16 +1330,24 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
       return -1;}}
   else server_addr=u8_strdup(server);
   dts->server=u8_strdup(server); dts->addr=server_addr;
+  /* Then try to connect, just to see if that works */
   socket=u8_connect_x(server,&(dts->addr));
   if (socket<0) {
+    /* If connecting fails, signal an error rather than creating
+       the dtserver connection pool. */
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts); 
     return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
 		  u8_strdup(server),FD_VOID);}
+  /* Otherwise, close the socket */
   else close(socket);
+  /* And create a connection pool */
   dts->connpool=u8_open_connpool(dts->server,2,4,1);
+  /* If creating the connection pool fails for some reason,
+     cleanup and return an error value. */
   if (dts->connpool) {
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts);
     return FD_ERROR_VALUE;}
+  /* Otherwise, returh a dtserver object */
   FD_INIT_CONS(dts,fd_dtserver_type);
   return FDTYPE_CONS(dts);
 }

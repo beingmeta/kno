@@ -63,7 +63,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   struct FD_DTYPE_STREAM stream;
   u8_connpool cpool=dtp->connpool;
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
-  u8_connection conn=u8_get_connection(cpool);
+  u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
   fd_init_dtype_stream(&stream,conn,8192);
   while (i>=0) {

@@ -323,7 +323,8 @@ static int output_content(fd_webconn ucl,fdtype content)
 
 /* Running the server */
 
-static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
+static u8_client simply_accept(u8_server srv,u8_socket sock,
+			       struct sockaddr *addr,size_t len)
 {
   /* We could do access control here. */
   fd_webconn consed=u8_alloc(FD_WEBCONN);

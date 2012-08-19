@@ -190,7 +190,8 @@ typedef struct FD_CLIENT {
 typedef struct FD_CLIENT *fd_client;
 
 /* This creates the client structure when called by the server loop. */
-static u8_client simply_accept(int sock,struct sockaddr *addr,int len)
+static u8_client simply_accept(u8_server srv,u8_socket sock,
+			       struct sockaddr *addr,size_t len)
 {
   fd_client consed=u8_alloc(FD_CLIENT);
   consed->socket=sock; consed->flags=0; consed->n_trans=0;

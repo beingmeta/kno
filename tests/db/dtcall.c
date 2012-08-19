@@ -21,7 +21,7 @@
 
 int main(int argc,char **argv)
 {
-  u8_connection socket;
+  u8_socket socket;
   int fd_version=fd_init_dbfile(), i=0;
   struct FD_DTYPE_STREAM ds;
   fdtype expr=FD_EMPTY_LIST, result;
