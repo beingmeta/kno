@@ -319,7 +319,7 @@ static int output_content(fd_webconn ucl,fdtype content)
 
 /* Running the server */
 
-static u8_client simply_accept(struct U8_SERVER *srv,u8_socket sock,
+static u8_client simply_accept(u8_server srv,u8_socket sock,
 			       struct sockaddr *addr,size_t len)
 {
   /* We could do access control here. */
