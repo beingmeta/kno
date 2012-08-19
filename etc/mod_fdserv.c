@@ -71,8 +71,6 @@ typedef struct FDSOCKET {
     sockdata;}
   *fdsocket;
 
-static int use_dtblock=1;
-
 /* Compatibility */
 
 #define APLOG_HEAD APLOG_MARK,APLOG_DEBUG,OK
@@ -169,6 +167,7 @@ static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
 
 /* Configuration handling */
 
+/* I know this is bad form, but I really want these to be fast to access. */
 static apr_table_t *socketname_table;
 
 struct FDSERV_SERVER_CONFIG {
@@ -179,6 +178,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *log_prefix;
   const char *log_file;
   int servlet_wait;
+  int use_dtblock;
   uid_t uid; gid_t gid;};
 
 struct FDSERV_DIR_CONFIG {
@@ -201,6 +201,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->log_prefix=NULL;
   config->log_file=NULL;
   config->servlet_wait=-1;
+  config->use_dtblock=-1;
   config->uid=-1; config->gid=-1;
   return (void *) config;
 }
@@ -220,6 +221,10 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
+
+  if (child->use_dtblock <= 0)
+    config->use_dtblock=parent->use_dtblock;
+  else config->use_dtblock=child->use_dtblock;
 
   if (child->server_executable)
     config->server_executable=apr_pstrdup(p,child->server_executable);
@@ -539,6 +544,19 @@ static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
   else return NULL;
 }
 
+static const char *use_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
+  if (!(arg))
+    sconfig->use_dtblock=0;
+  else if (!(*arg))
+    sconfig->use_dtblock=0;
+  else if ((*arg=='1')||(*arg=='y')||(*arg=='y'))
+    sconfig->use_dtblock=1;
+  else sconfig->use_dtblock=0;
+  return NULL;
+}
+
 static const command_rec fdserv_cmds[] =
 {
   AP_INIT_TAKE1("FDServletExecutable", servlet_executable, NULL, OR_ALL,
@@ -561,6 +579,9 @@ static const command_rec fdserv_cmds[] =
 	       "the logfile to be used for scripts"),
   AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
+  AP_INIT_TAKE1("FDBlockIO", use_dtblock, NULL, OR_ALL,
+		"whether to wrap fdserv requests in dt_blocks"),
+  
   {NULL}
 };
 
@@ -1293,6 +1314,9 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   char *post_data, errbuf[512];
   int post_size; int bytes_written=0;
   struct HEAD_SCANNER scanner;
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&fdserv_module);
+  int using_dtblock=sconfig->use_dtblock;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1361,7 +1385,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 	       (long int)(reqdata->ptr-reqdata->buf));
   /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
 
-  if (use_dtblock) {
+  if (using_dtblock) {
     unsigned char buf[8];
     unsigned int nbytes=reqdata->ptr-reqdata->buf;
     buf[0]=0x14;
