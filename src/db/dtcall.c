@@ -147,7 +147,7 @@ FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
   fd_register_config("DTBLOCK",
-		     _("Wrap DTCALLs in dt_block to improve throughput"),
+		     _("Wrap DTCALLs in dt_blocks to improve throughput"),
 		     fd_boolconfig_get,fd_boolconfig_set,&use_dtblock);
   u8_register_source_file(_FILEINFO);
 }

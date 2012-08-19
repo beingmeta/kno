@@ -767,13 +767,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	    return v;}
 	  *write++=v;}
 	return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
+
     case dt_block: 
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
 	int nbytes=fd_read_4bytes(in);
 	if (nobytes(in,nbytes)) return fd_return_errcode(FD_EOD);
 	return fd_read_dtype(in);}
-      
+
     case dt_framerd_package: {
       int code, lenlen, len;
       if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
