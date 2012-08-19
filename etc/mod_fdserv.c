@@ -71,6 +71,8 @@ typedef struct FDSOCKET {
     sockdata;}
   *fdsocket;
 
+static int use_dtblock=1;
+
 /* Compatibility */
 
 #define APLOG_HEAD APLOG_MARK,APLOG_DEBUG,OK
@@ -1359,15 +1361,29 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 	       (long int)(reqdata->ptr-reqdata->buf));
   /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
 
-  bytes_written=sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
-  if (bytes_written<(reqdata->ptr-reqdata->buf))
+  if (use_dtblock) {
+    unsigned char buf[8];
+    unsigned int nbytes=reqdata->ptr-reqdata->buf;
+    buf[0]=0x14;
+    buf[1]=((nbytes>>24)&0xF);
+    buf[2]=((nbytes>>16)&0xF);
+    buf[3]=((nbytes>>8)&0xF);
+    buf[4]=((nbytes>>0)&0xF);
+    bytes_written=sock_write(r,buf,5,sock);}
+  if (bytes_written<5)
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
 		 "mod_fdserv: Only wrote %ld bytes of request data to socket",
 		 (long int)bytes_written);
-  else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		    "mod_fdserv: Finished writing %ld bytes of request data to socket",
-		    (long int)(reqdata->ptr-reqdata->buf));
-  
+  else {
+    bytes_written=sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
+    if (bytes_written<(reqdata->ptr-reqdata->buf))
+      ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
+		   "mod_fdserv: Only wrote %ld bytes of request data to socket",
+		   (long int)bytes_written);
+    else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+		      "mod_fdserv: Finished writing %ld bytes of request data to socket",
+		      (long int)(reqdata->ptr-reqdata->buf));}
+
   scanner.sock=sock; scanner.req=r;
   
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
