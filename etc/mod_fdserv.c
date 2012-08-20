@@ -71,11 +71,11 @@ typedef struct FDSOCKET {
     sockdata;}
   *fdsocket;
 
-#ifndef USE_DTBLOCK
-#define USE_DTBLOCK 0
+#ifndef DEFAULT_DTBLOCK
+#define DEFAULT_DTBLOCK 0
 #endif
 
-static int default_use_dtblock=USE_DTBLOCK;
+static int default_dtblock=DEFAULT_DTBLOCK;
 
 /* Compatibility */
 
@@ -1322,7 +1322,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
-  int using_dtblock=((sconfig->use_dtblock<0)?(default_use_dtblock):
+  int using_dtblock=((sconfig->use_dtblock<0)?(default_dtblock):
 		     ((sconfig->use_dtblock)?(1):(0)));
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 

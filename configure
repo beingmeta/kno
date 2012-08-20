@@ -703,7 +703,7 @@ CMODULES
 INSTALLCMODULES
 MYSQL_CFLAGS
 MYSQL_LDFLAGS
-USEDTBLOCK
+DEFAULTDTBLOCK
 build
 build_cpu
 build_vendor
@@ -1320,7 +1320,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-shared Build with/without shared libraries
---enable-shared Build with dtblock in mod_fdserv
+--enable-dtblock Enable dtblock
 --en/disable-threads Enable multi-threading
 --en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -1982,7 +1982,7 @@ with_mysql_default="yes"
 with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
-USEDTBLOCK=0
+DEFAULTDTBLOCK=0
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -9135,11 +9135,23 @@ fi
 
 # Check whether --enable-dtblock was given.
 if test "${enable_dtblock+set}" = set; then
-  enableval=$enable_dtblock; USEDTBLOCK=1
-else
-  USEDTBLOCK=0
+  enableval=$enable_dtblock;
 fi
 
+
+if test "x$enable_dtblock" = "xyes"; then
+  DEFAULTDTBLOCK=1
+  cat >>confdefs.h <<\_ACEOF
+#define FD_DEFAULT_DTBLOCK 1
+_ACEOF
+
+else
+  DEFAULTDTBLOCK=0
+  cat >>confdefs.h <<\_ACEOF
+#define FD_DEFAULT_DTBLOCK 0
+_ACEOF
+
+fi
 
 # Internationalization
 
@@ -16693,7 +16705,7 @@ CMODULES!$CMODULES$ac_delim
 INSTALLCMODULES!$INSTALLCMODULES$ac_delim
 MYSQL_CFLAGS!$MYSQL_CFLAGS$ac_delim
 MYSQL_LDFLAGS!$MYSQL_LDFLAGS$ac_delim
-USEDTBLOCK!$USEDTBLOCK$ac_delim
+DEFAULTDTBLOCK!$DEFAULTDTBLOCK$ac_delim
 build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
 build_vendor!$build_vendor$ac_delim

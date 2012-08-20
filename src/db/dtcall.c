@@ -17,7 +17,7 @@
 
 #include <stdarg.h>
 
-static int use_dtblock=1;
+static int use_dtblock=FD_DEFAULT_DTBLOCK;
 
 static fdtype dteval_sock(u8_socket conn,fdtype expr)
 {
