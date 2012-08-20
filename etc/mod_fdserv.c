@@ -1245,9 +1245,15 @@ static int sock_write(request_rec *r,
 static void copy_script_output(fdsocket sockval,request_rec *r)
 {
   char buf[4096]; apr_size_t bytes_read=0;
+  apr_table_t *headers=r->headers_out;
+  const char *clength_string=apr_table_get(headers,"Content-Length");
+  long int content_length=((clength_string)?(atoi(clength_string)):(-1));
+  ap_log_error
+    (APLOG_MARK,APLOG_INFO,OK,r->server,
+     "mod_fdserv: Reading %ld content bytes from fdserv",content_length);
   if (sockval->socktype==aprsock) {
     apr_socket_t *sock=sockval->sockdata.apr;
-    while (1) {
+    while ((content_length<0)||(bytes_read<content_length)) {
       apr_size_t delta=4096;
       apr_status_t rv;
       rv=apr_socket_recv(sock,buf,&delta);
@@ -1275,7 +1281,7 @@ static void copy_script_output(fdsocket sockval,request_rec *r)
        (long int)bytes_read);}
   else if (sockval->socktype==filesock) {
     int sock=sockval->sockdata.fd;
-    while (1) {
+    while ((content_length<0)||(bytes_read<content_length)) {
       ssize_t delta=read(sock,buf,4096);
 #if HEAVY_DEBUGGING
       ap_log_error
