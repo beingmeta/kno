@@ -243,9 +243,14 @@ static int dtypeserver(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
-  if ((client->buf!=NULL)&&(!(client->writing))) { 
+  if ((client->buf!=NULL)&&(!(client->writing))&&
+      (client->off>=client->len)) { 
     stream->end=stream->ptr+client->len;
     expr=fd_dtsread_dtype(stream);}
+  else if ((client->buf!=NULL)&&(!(client->writing))&&
+	   (client->off<client->len)) {
+    /* This should never happen, but just in case, continue. */
+    return 1;}
   else if ((client->buf!=NULL)&&(client->writing)) {
     /* Just report that the transaction is over. */
     return 0;}
@@ -476,6 +481,13 @@ static fdtype get_server_status()
   return fd_lispstring(status);
 }
 
+static fdtype asyncok()
+{
+  if ((async_mode)&&(dtype_server.flags&U8_SERVER_ASYNC))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype boundp_handler(fdtype expr,fd_lispenv env)
 {
   fdtype symbol=fd_get_arg(expr,1);
@@ -630,6 +642,7 @@ int main(int argc,char **argv)
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
   fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
   fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime,0));
+  fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok,0));
   fd_idefn((fdtype)core_env,
 	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
 
