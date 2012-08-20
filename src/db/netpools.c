@@ -63,7 +63,8 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
 {
   fdtype request, result;
   u8_socket c=u8_connect_x(spec,xid);
-  struct FD_DTYPE_STREAM _stream, *stream=fd_init_dtype_stream(&_stream,c,FD_NET_BUFSIZE);
+  struct FD_DTYPE_STREAM _stream, *stream=
+    fd_init_dtype_stream(&_stream,c,FD_NET_BUFSIZE);
   if (stream==NULL)
     return FD_ERROR_VALUE;
   if (FD_VOIDP(client_id)) init_client_id();
@@ -89,7 +90,9 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
     return NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
   np->cid=cid; np->xid=xid;
-  np->connpool=u8_open_connpool(spec,fd_dbconn_reserve_default,fd_dbconn_cap_default,fd_dbconn_init_default);
+  np->connpool=
+    u8_open_connpool(spec,fd_dbconn_reserve_default,
+		     fd_dbconn_cap_default,fd_dbconn_init_default);
   if (((np)->connpool)==NULL) {
     u8_free(np); u8_free(cid);
     return NULL;}
