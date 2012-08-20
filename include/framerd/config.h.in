@@ -285,7 +285,7 @@
 /* Whether we have the libzip set_compression function */
 #undef HAVE_ZIP_SET_FILE_COMPRESSION
 
-/* Whether to use DTBLOCK by default */
-#undef FD_DEFAULT_DTBLOCK
+/* Whether to assume async support in servers (by default) */
+#undef FD_DEFAULT_ASYNC
 
 #endif

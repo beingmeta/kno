@@ -16,6 +16,8 @@
 #include <stdarg.h>
 
 FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr);
+FD_EXPORT fdtype fd_dteval_sync(struct U8_CONNPOOL *cp,fdtype expr);
+FD_EXPORT fdtype fd_dteval_async(struct U8_CONNPOOL *cp,fdtype expr);
 FD_EXPORT fdtype fd_dteval_sock(fdtype expr,u8_socket sock);
 FD_EXPORT fdtype fd_dtapply(struct U8_CONNPOOL *cp,int n,fdtype *args);
 FD_EXPORT fdtype fd_dtcall(struct U8_CONNPOOL *cp,int n,...);

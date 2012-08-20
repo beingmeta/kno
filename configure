@@ -703,7 +703,7 @@ CMODULES
 INSTALLCMODULES
 MYSQL_CFLAGS
 MYSQL_LDFLAGS
-DEFAULTDTBLOCK
+DEFAULTISASYNC
 build
 build_cpu
 build_vendor
@@ -1320,7 +1320,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-shared Build with/without shared libraries
---enable-dtblock Enable dtblock
+--enable-async Enable async I/O features
 --en/disable-threads Enable multi-threading
 --en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -1982,7 +1982,7 @@ with_mysql_default="yes"
 with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
-DEFAULTDTBLOCK=0
+DEFAULTISASYNC=0
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -9133,22 +9133,22 @@ else
   SHARED_LIB_TARGET=
 fi
 
-# Check whether --enable-dtblock was given.
-if test "${enable_dtblock+set}" = set; then
-  enableval=$enable_dtblock;
+# Check whether --enable-async was given.
+if test "${enable_async+set}" = set; then
+  enableval=$enable_async;
 fi
 
 
-if test "x$enable_dtblock" = "xyes"; then
-  DEFAULTDTBLOCK=1
+if test "x$enable_async" = "xyes"; then
+  DEFAULTISASYNC=1
   cat >>confdefs.h <<\_ACEOF
-#define FD_DEFAULT_DTBLOCK 1
+#define FD_DEFAULT_ASYNC 1
 _ACEOF
 
 else
-  DEFAULTDTBLOCK=0
+  DEFAULTISASYNC=0
   cat >>confdefs.h <<\_ACEOF
-#define FD_DEFAULT_DTBLOCK 0
+#define FD_DEFAULT_ASYNC 0
 _ACEOF
 
 fi
@@ -16705,7 +16705,7 @@ CMODULES!$CMODULES$ac_delim
 INSTALLCMODULES!$INSTALLCMODULES$ac_delim
 MYSQL_CFLAGS!$MYSQL_CFLAGS$ac_delim
 MYSQL_LDFLAGS!$MYSQL_LDFLAGS$ac_delim
-DEFAULTDTBLOCK!$DEFAULTDTBLOCK$ac_delim
+DEFAULTISASYNC!$DEFAULTISASYNC$ac_delim
 build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
 build_vendor!$build_vendor$ac_delim

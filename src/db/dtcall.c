@@ -17,7 +17,7 @@
 
 #include <stdarg.h>
 
-static int use_dtblock=FD_DEFAULT_DTBLOCK;
+static int default_async=FD_DEFAULT_ASYNC;
 
 static fdtype dteval_sock(u8_socket conn,fdtype expr)
 {
@@ -26,16 +26,12 @@ static fdtype dteval_sock(u8_socket conn,fdtype expr)
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
   /* u8_log(LOG_DEBUG,"DTEVAL","Using connection %d",conn); */
-  if (use_dtblock) {
-    retval=fd_dtswrite_byte(&stream,dt_block);
-    if (retval>0) retval=fd_dtswrite_4bytes(&stream,0);
-    if (retval>0) retval=fd_dtswrite_dtype(&stream,expr);}
-  else retval=fd_dtswrite_dtype(&stream,expr);
+  retval=fd_dtswrite_dtype(&stream,expr);
   if ((retval<0) || (fd_dtsflush(&stream)<0)) {
     return FD_ERROR_VALUE;}
   return fd_dtsread_dtype(&stream);
 }
-static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr)
+static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
 {
   fdtype result; int retval;
   struct FD_DTYPE_STREAM stream;
@@ -44,7 +40,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr)
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
   /* u8_log(LOG_DEBUG,"DTEVAL","Using connection %d",conn); */
-  if (use_dtblock) {
+  if (async) {
     retval=fd_dtswrite_byte(&stream,dt_block);
     if (retval>0) retval=fd_dtswrite_4bytes(&stream,0);
     if (retval>0) retval=fd_dtswrite_dtype(&stream,expr);}
@@ -71,7 +67,15 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr)
 }
 FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr);
+  return dteval_pool(cp,expr,default_async);
+}
+FD_EXPORT fdtype fd_dteval_sync(struct U8_CONNPOOL *cp,fdtype expr)
+{
+  return dteval_pool(cp,expr,0);
+}
+FD_EXPORT fdtype fd_dteval_async(struct U8_CONNPOOL *cp,fdtype expr)
+{
+  return dteval_pool(cp,expr,1);
 }
 FD_EXPORT fdtype fd_sock_dteval(u8_socket sock,fdtype expr)
 {
@@ -98,7 +102,7 @@ static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
     n--;}
   if (dorefs) fd_incref(args[0]);
   request=fd_init_pair(NULL,args[0],request);
-  result=dteval_pool(cp,request);
+  result=dteval_pool(cp,request,default_async);
   fd_decref(request);
   return result;
 }
@@ -166,8 +170,8 @@ FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
-  fd_register_config("DTBLOCK",
-		     _("Wrap DTCALLs in dt_blocks to improve throughput"),
-		     fd_boolconfig_get,fd_boolconfig_set,&use_dtblock);
+  fd_register_config("ASYNC",
+		     _("Assume asynchronous DType servers"),
+		     fd_boolconfig_get,fd_boolconfig_set,&default_async);
   u8_register_source_file(_FILEINFO);
 }
