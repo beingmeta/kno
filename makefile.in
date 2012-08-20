@@ -827,10 +827,10 @@ debian-build-setup:
 # The mod_fdserv module
 
 etc/mod_fdserv.so: etc/mod_fdserv.c
-	cd etc; ${APXS} -c mod_fdserv.c
+	cd etc; ${APXS} -DUSE_DTBLOCK=@USEDTBLOCK@ -c mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
-	cd etc; ${APXS} -c mod_fdserv.c;
+	cd etc; ${APXS} -DUSE_DTBLOCK=@USEDTBLOCK@ -c mod_fdserv.c;
 
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c

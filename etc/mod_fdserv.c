@@ -71,6 +71,12 @@ typedef struct FDSOCKET {
     sockdata;}
   *fdsocket;
 
+#ifndef USE_DTBLOCK
+#define USE_DTBLOCK 0
+#endif
+
+static int default_use_dtblock=USE_DTBLOCK;
+
 /* Compatibility */
 
 #define APLOG_HEAD APLOG_MARK,APLOG_DEBUG,OK
@@ -1316,7 +1322,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
-  int using_dtblock=sconfig->use_dtblock;
+  int using_dtblock=((sconfig->use_dtblock<0)?(default_use_dtblock):
+		     ((sconfig->use_dtblock)?(1):(0)));
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1394,7 +1401,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     buf[3]=((nbytes>>8)&0xF);
     buf[4]=((nbytes>>0)&0xF);
     bytes_written=sock_write(r,buf,5,sock);}
-  if (bytes_written<5)
+  if ((using_dtblock)&&(bytes_written<5))
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
 		 "mod_fdserv: Only wrote %ld bytes of request data to socket",
 		 (long int)bytes_written);

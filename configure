@@ -703,6 +703,7 @@ CMODULES
 INSTALLCMODULES
 MYSQL_CFLAGS
 MYSQL_LDFLAGS
+USEDTBLOCK
 build
 build_cpu
 build_vendor
@@ -1319,6 +1320,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-shared Build with/without shared libraries
+--enable-shared Build with dtblock in mod_fdserv
 --en/disable-threads Enable multi-threading
 --en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -1980,6 +1982,7 @@ with_mysql_default="yes"
 with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+USEDTBLOCK=0
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -2013,6 +2016,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
 
 
 
@@ -9128,6 +9132,14 @@ else
   SHARED_LIBV=
   SHARED_LIB_TARGET=
 fi
+
+# Check whether --enable-dtblock was given.
+if test "${enable_dtblock+set}" = set; then
+  enableval=$enable_dtblock; USEDTBLOCK=1
+else
+  USEDTBLOCK=0
+fi
+
 
 # Internationalization
 
@@ -16681,6 +16693,7 @@ CMODULES!$CMODULES$ac_delim
 INSTALLCMODULES!$INSTALLCMODULES$ac_delim
 MYSQL_CFLAGS!$MYSQL_CFLAGS$ac_delim
 MYSQL_LDFLAGS!$MYSQL_LDFLAGS$ac_delim
+USEDTBLOCK!$USEDTBLOCK$ac_delim
 build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
 build_vendor!$build_vendor$ac_delim
@@ -16688,7 +16701,6 @@ build_os!$build_os$ac_delim
 host!$host$ac_delim
 host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
-host_os!$host_os$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16730,6 +16742,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+host_os!$host_os$ac_delim
 CC!$CC$ac_delim
 CFLAGS!$CFLAGS$ac_delim
 LDFLAGS!$LDFLAGS$ac_delim
@@ -16757,7 +16770,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 25; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 26; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
