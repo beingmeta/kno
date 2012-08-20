@@ -193,8 +193,8 @@ typedef struct FD_CLIENT *fd_client;
 static u8_client simply_accept(u8_server srv,u8_socket sock,
 			       struct sockaddr *addr,size_t len)
 {
-  fd_client consed=u8_alloc(FD_CLIENT);
-  consed->socket=sock; consed->flags=0; consed->n_trans=0;
+  fd_client consed=(fd_client)
+    u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
   fd_init_dtype_stream(&(consed->stream),sock,4096);
   consed->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   consed->n_errs=0; consed->lastlive=(time_t)-1;
