@@ -687,7 +687,6 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   {FD_DO_CHOICES(cookie,cookies)
      if (handle_cookie(out,cgidata,cookie)<0)
        u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
-  u8_putn(out,"\r\n",2);
   fd_decref(ctype); fd_decref(headers); fd_decref(cookies);
 }
 

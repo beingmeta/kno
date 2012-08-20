@@ -312,6 +312,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
+    u8_putn(&tmp,"\r\n",2);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
     FCGX_PutStr(tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf,req->out);
     tmp.u8_outptr=tmp.u8_outbuf;
@@ -559,6 +560,7 @@ static int simplecgi(fdtype path)
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
+    u8_putn(&tmp,"\r\n",2);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
     retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
     tmp.u8_outptr=tmp.u8_outbuf;
