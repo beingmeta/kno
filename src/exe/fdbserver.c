@@ -218,11 +218,11 @@ typedef struct FD_CLIENT *fd_client;
 static u8_client simply_accept(u8_server srv,u8_socket sock,
 			       struct sockaddr *addr,size_t len)
 {
-  u8_client consed=u8_client_init(NULL,sizeof(FD_CLIENT),
-				  addr,len,sock,srv);
-  fd_client client=(fd_client)consed;
+  fd_client client=(fd_client)
+    u8_client_init(NULL,sizeof(FD_CLIENT),
+		   addr,len,sock,srv);
   fd_init_dtype_stream(&(client->stream),sock,4096);
-    /* To help debugging, move the client->idstring (libu8)
+  /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
   if (client->stream.id==NULL) {
     if (client->idstring)

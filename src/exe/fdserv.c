@@ -186,7 +186,7 @@ static void report_status()
       rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
       if (interval>rmax) rmax=interval;}}
   u8_fprintf(logto,STATUS_LINE1,elapsed,
-	     fdwebserver.n_busy,fdwebserver.n_tasks,
+	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
   u8_fprintf(logto,STATUS_LINE2,elapsed,
 	     ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
@@ -194,7 +194,7 @@ static void report_status()
 	     ((double)fdwebserver.runsum)/(((double)fdwebserver.runcount)),
 	     fdwebserver.runcount);
   u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
-	  fdwebserver.n_busy,fdwebserver.n_tasks,
+	  fdwebserver.n_busy,fdwebserver.n_queued,
 	  fdwebserver.n_clients,fdwebserver.n_threads);
   u8_log(LOG_INFO,"fdserv",STATUS_LINE2,elapsed,
 	 ((double)fdwebserver.waitsum)/(((double)fdwebserver.waitcount)),
@@ -241,7 +241,7 @@ static fdtype servlet_status()
       rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
       if (interval>rmax) rmax=interval;}}
   fd_store(result,fd_intern("NTHREADS"),FD_INT2DTYPE(fdwebserver.n_threads));
-  fd_store(result,fd_intern("NTASKS"),FD_INT2DTYPE(fdwebserver.n_tasks));
+  fd_store(result,fd_intern("NQUEUED"),FD_INT2DTYPE(fdwebserver.n_queued));
   fd_store(result,fd_intern("NBUSY"),FD_INT2DTYPE(fdwebserver.n_busy));
   fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(fdwebserver.n_clients));
   fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(fdwebserver.n_trans));
