@@ -46,6 +46,9 @@ FD_EXPORT int fd_init_fddbserv(void);
 
 #include "webcommon.h"
 
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+
 /* This lets the u8_server loop do I/O buffering to keep threads from
    waiting on I/O. */
 static int async_mode=1;
@@ -377,15 +380,54 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 static int webservefn(u8_client ucl)
 {
   fdtype proc=FD_VOID, result=FD_VOID, cgidata=FD_VOID, path=FD_VOID, precheck;
-  fd_webconn client=(fd_webconn)ucl; int write_headers=1;
+  fd_webconn client=(fd_webconn)ucl;
+  int write_headers=1, close_html=0;
   double start_time, setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
   int forcelog=0, retval=0;
-  size_t headerlen=0, contentlen=0;
+  size_t http_len=0, head_len=0, content_len=0;
+  fd_dtype_stream stream=&(client->in);
+  u8_output outstream=&(client->out);
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
+  int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
+  int return_code=0;
+  if ((client->buf!=NULL)&&(!(client->writing))&&
+      (client->off>=client->len)) { 
+    /* We got the whole payload, set up the stream
+       for reading it without waiting.  */
+    stream->end=stream->ptr+client->len;}
+  else if ((client->buf!=NULL)&&(!(client->writing))&&
+	   (client->off<client->len)) { 
+    /* We shouldn't get here, but just in case.... */
+    return 1;}
+  else if ((client->buf!=NULL)&&(client->writing)) {
+    /* Do the transaction closing stuff */
+    /* If we were to reuse connections (which would be nice),
+       we would call u8_client_done(ucl) instead. */
+    u8_client_close(ucl);
+    return 0;}
+  else if (async) {
+    fd_dts_start_read(stream);
+    if ((havebytes((fd_byte_input)stream,1))&&
+	((*(stream->ptr))==dt_block)) {
+      /* If we can be asynchronous, let's try */
+      int dtcode=fd_dtsread_byte(stream);
+      int nbytes=fd_dtsread_4bytes(stream);
+      if (fd_has_bytes(stream,nbytes)) {
+	/* We can execute without waiting */}
+      else {
+	/* Allocate enough space for what we need to read */
+	fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
+	/* Set up the client for async input */
+	client->buf=stream->ptr;
+	client->len=nbytes;
+	client->buflen=stream->end-stream->start;
+	client->async=1; client->writing=0;
+	return 1;}}}
+  else {}
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
   /* Clear outstanding errors from the last session */
@@ -401,17 +443,25 @@ static int webservefn(u8_client ucl)
     setup_time=parse_time=u8_elapsed_time();
     if (fd_poperr(&c,&cxt,&details,&irritant)) 
       proc=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);}
+    if (details) u8_free(details); fd_decref(irritant);
+    setup_time=u8_elapsed_time();
+    cgidata=fd_dtsread_dtype(stream);}
   else if (update_preloads()<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
     setup_time=parse_time=u8_elapsed_time();
     if (fd_poperr(&c,&cxt,&details,&irritant)) 
       proc=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);}
-  else {
+    if (details) u8_free(details); fd_decref(irritant);
     setup_time=u8_elapsed_time();
-    cgidata=fd_dtsread_dtype(&(client->in));
+    cgidata=fd_dtsread_dtype(stream);}
+  else {
+    /* This is where we usually end up, when all the updates
+       and preloads go without a hitch. */
+    setup_time=u8_elapsed_time();
+    /* Now we extract arguments and figure out what we're going to
+       run to respond to the request. */
+    cgidata=fd_dtsread_dtype(stream);
     if (cgidata==FD_EOD) {
       if (traceweb>0)
 	u8_log(LOG_NOTICE,"FDSERV/webservefn","Client %s (sock=%d) closing",
@@ -432,219 +482,274 @@ static int webservefn(u8_client ucl)
       fdtype remote=fd_get(cgidata,remote_info,FD_VOID);
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)) && (FD_STRINGP(remote)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
+	u8_log(LOG_NOTICE,
+	       "REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
 	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
 	       start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s by %s, load=%f/%f/%f",
+	u8_log(LOG_NOTICE,
+	       "REQUEST","Handling request for %s by %s, load=%f/%f/%f",
 	       FD_STRDATA(uri),FD_STRDATA(remote),
 	       start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s from %s, load=%f/%f/%f",
+	u8_log(LOG_NOTICE,
+	       "REQUEST","Handling request for %s from %s, load=%f/%f/%f",
 	       FD_STRDATA(uri),FD_STRDATA(referer),
 	       start_load[0],start_load[1],start_load[2]);
       else if (FD_STRINGP(uri))
 	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
       fd_decref(referer);
       fd_decref(uri);}
-    proc=getcontent(path);
-    fd_parse_cgidata(cgidata);
-    parse_time=u8_elapsed_time();
-    if ((reqlog) || (urllog) || (trace_cgidata))
-      dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
-    u8_set_default_output(&(client->out));
-    fd_use_reqinfo(cgidata);
-    fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+    /* This is what we'll execute, be it a procedure or FDXML */
+    proc=getcontent(path);}
+  /* This is where we parse all the CGI variables, etc */
+  fd_parse_cgidata(cgidata);
+  parse_time=u8_elapsed_time();
+  if ((reqlog) || (urllog) || (trace_cgidata))
+    dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
+  u8_set_default_output(outstream);
+  fd_use_reqinfo(cgidata);
+  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+  if (!(FD_ABORTP(proc))) 
     precheck=run_preflight();
-    if (!((FD_FALSEP(precheck))||
-	  (FD_VOIDP(precheck))||
-	  (FD_EMPTY_CHOICEP(precheck))))
-      result=precheck;
-    else if (FD_ABORTP(proc)) result=fd_incref(proc);
-    else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
-      struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
-      if (traceweb>1)
-	u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-	       path,proc);
-      threadcache=checkthreadcache(sp->env);
-      result=fd_cgiexec(proc,cgidata);}
-    else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
-      struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
-      if (traceweb>1)
-	u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-	       path,proc);
-      threadcache=checkthreadcache(sp->env);
-      result=fd_cgiexec(FD_CAR(proc),cgidata);}
-    else if (FD_PAIRP(proc)) {
-      fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-      fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
-		       (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-		       (NULL));
-      fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
-      if (base) fd_load_latest(NULL,base,NULL);
-      threadcache=checkthreadcache(base);
-      if (traceweb>1)
-	u8_log(LOG_NOTICE,"START","Handling %q with template",path);
-      setup_proc=fd_symeval(setup_symbol,base);
-      if (FD_VOIDP(setup_proc)) {}
-      else if (FD_CHOICEP(setup_proc)) {
-	FD_DO_CHOICES(proc,setup_proc)
-	  if (FD_APPLICABLEP(proc)) {
-	    fdtype v=fd_apply(proc,0,NULL);
-	    fd_decref(v);}}
-      else if (FD_APPLICABLEP(setup_proc)) {
-	fdtype v=fd_apply(setup_proc,0,NULL);
-	fd_decref(v);}
-      fd_decref(setup_proc);
-      write_headers=0;
-      fd_output_xml_preface(&(client->out),cgidata);
-      if (FD_PAIRP(FD_CAR(proc))) {
-	FD_DOLIST(expr,FD_CAR(proc)) {
-	  fd_decref(result);
-	  result=fd_xmleval(&(client->out),expr,runenv);
-	  if (FD_ABORTP(result)) break;}}
-      else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
-      fd_decref((fdtype)runenv);}
-    exec_time=u8_elapsed_time();
-    u8_set_default_output(NULL);
-    if (FD_TROUBLEP(result)) {
-      u8_exception ex=u8_erreify();
-      u8_condition excond=ex->u8x_cond;
-      u8_context excxt=((ex->u8x_context) ?
-			(ex->u8x_context) : ((u8_context)"somewhere"));
-      u8_context exdetails=((ex->u8x_details)
-			    ? (ex->u8x_details) : ((u8_string)"no more details"));
-      fdtype irritant=fd_exception_xdata(ex);
-      if (FD_VOIDP(irritant))
-	u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-	       excond,FD_STRDATA(path),excxt,exdetails);
-      else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-		  excond,FD_STRDATA(path),excxt,exdetails,irritant);
-      headerlen=headerlen+
-	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
-      write_string(client->socket,
-		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
-      fd_xhtmlerrorpage(&(client->out),ex);
-      u8_free_exception(ex,1);
-      if ((reqlog) || (urllog) || (trace_cgidata))
-	dolog(cgidata,result,client->out.u8_outbuf,
-	      client->out.u8_outptr-client->out.u8_outbuf,
-	      u8_elapsed_time()-start_time);
-      contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
-      u8_writeall(client->socket,client->out.u8_outbuf,
-		  client->out.u8_outptr-client->out.u8_outbuf);
-      u8_client_close(ucl);}
-    else {
-      U8_OUTPUT tmp; int tracep;
-      fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
-      fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
-      fdtype retfile=((FD_VOIDP(content))?
-		      (fd_get(cgidata,retfile_slotid,FD_VOID)):
-		      (FD_VOID));
-      if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
-      U8_INIT_OUTPUT(&tmp,1024);
-      fd_output_http_headers(&tmp,cgidata);
-      if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
-      headerlen=headerlen+(tmp.u8_outptr-tmp.u8_outbuf);
-      u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);
-      tmp.u8_outptr=tmp.u8_outbuf;
-      if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
-	/* Normal case, when the output is just sent to the client */
+  if (FD_ABORTP(proc)) result=fd_incref(proc);
+  else if (!((FD_FALSEP(precheck))||
+	     (FD_VOIDP(precheck))||
+	     (FD_EMPTY_CHOICEP(precheck))))
+    result=precheck;
+  else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
+    if (traceweb>1)
+      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
+	     path,proc);
+    threadcache=checkthreadcache(sp->env);
+    result=fd_cgiexec(proc,cgidata);}
+  else if ((FD_PAIRP(proc))&&
+	   (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
+    if (traceweb>1)
+      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
+	     path,proc);
+    threadcache=checkthreadcache(sp->env);
+    result=fd_cgiexec(FD_CAR(proc),cgidata);}
+  else if (FD_PAIRP(proc)) {
+    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
+    fd_lispenv base=
+      ((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
+       (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+       (NULL));
+    fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
+    if (base) fd_load_latest(NULL,base,NULL);
+    threadcache=checkthreadcache(base);
+    if (traceweb>1)
+      u8_log(LOG_NOTICE,"START","Handling %q with template",path);
+    setup_proc=fd_symeval(setup_symbol,base);
+    /* Run setup procs */
+    if (FD_VOIDP(setup_proc)) {}
+    else if (FD_CHOICEP(setup_proc)) {
+      FD_DO_CHOICES(proc,setup_proc)
+	if (FD_APPLICABLEP(proc)) {
+	  fdtype v=fd_apply(proc,0,NULL);
+	  fd_decref(v);}}
+    else if (FD_APPLICABLEP(setup_proc)) {
+      fdtype v=fd_apply(setup_proc,0,NULL);
+      fd_decref(v);}
+    fd_decref(setup_proc);
+    /* We assume that the XML contains headers, so we won't add them. */
+    write_headers=0;
+    fd_output_xml_preface(&(client->out),cgidata);
+    if (FD_PAIRP(FD_CAR(proc))) {
+      FD_DOLIST(expr,FD_CAR(proc)) {
+	fd_decref(result);
+	result=fd_xmleval(&(client->out),expr,runenv);
+	if (FD_ABORTP(result)) break;}}
+    else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
+    fd_decref((fdtype)runenv);}
+  exec_time=u8_elapsed_time();
+  u8_set_default_output(NULL);
+  /* We're now done with all the core computation. */
+  if (FD_TROUBLEP(result)) {
+    u8_exception ex=u8_erreify();
+    u8_condition excond=ex->u8x_cond;
+    u8_context excxt=((ex->u8x_context) ?
+		      (ex->u8x_context) : ((u8_context)"somewhere"));
+    u8_context exdetails=((ex->u8x_details)
+			  ? (ex->u8x_details) : ((u8_string)"no more details"));
+    fdtype irritant=fd_exception_xdata(ex);
+    if (FD_VOIDP(irritant))
+      u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
+	     excond,FD_STRDATA(path),excxt,exdetails);
+    else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
+		excond,FD_STRDATA(path),excxt,exdetails,irritant);
+    head_len=head_len+
+      strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+    write_string(client->socket,
+		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
+    fd_xhtmlerrorpage(&(client->out),ex);
+    u8_free_exception(ex,1);
+    if ((reqlog) || (urllog) || (trace_cgidata))
+      dolog(cgidata,result,outstream->u8_outbuf,
+	    outstream->u8_outptr-outstream->u8_outbuf,
+	    u8_elapsed_time()-start_time);
+    content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
+    u8_writeall(client->socket,outstream->u8_outbuf,
+		outstream->u8_outptr-outstream->u8_outbuf);
+    u8_client_close(ucl);}
+  else {
+    U8_OUTPUT httphead, htmlhead; int tracep;
+    fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
+    fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
+    fdtype retfile=((FD_VOIDP(content))?
+		    (fd_get(cgidata,retfile_slotid,FD_VOID)):
+		    (FD_VOID));
+    if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
+    U8_INIT_OUTPUT(&httphead,1024); U8_INIT_OUTPUT(&htmlhead,1024);
+    fd_output_http_headers(&httphead,cgidata);
+    if (!(async)) {
+      u8_putn(&httphead,"\r\n",2);
+      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      u8_writeall(client->socket,httphead.u8_outbuf,http_len);}
+    if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
+      /* Normal case, when the 'standard' output is just sent to the
+	 client */
+      if (!(async)) {
+	/* Non asynchronous case, where we wait around for u8_writeall
+	   to write all our content. */
 	if (write_headers) {
-	  write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	  contentlen=contentlen+(tmp.u8_outptr-tmp.u8_outbuf);
-	  u8_writeall(client->socket,tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf);}
-	contentlen=contentlen+(client->out.u8_outptr-client->out.u8_outbuf);
-	retval=u8_writeall(client->socket,client->out.u8_outbuf,
-			   client->out.u8_outptr-client->out.u8_outbuf);
-	if (write_headers) {
-	  contentlen=contentlen+strlen("</body>\n</html>\n");
-	  write_string(client->socket,"</body>\n</html>\n");}}
-      else if (FD_STRINGP(retfile)) {
-	/* This needs more error checking, signallin */
-	u8_string filename=FD_STRDATA(retfile);
-	FILE *f=u8_fopen(filename,"rb");
-	if (f) {
-	  int bytes_read=0; unsigned char buf[32768];
-	  while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
-	    contentlen=contentlen+bytes_read;
-	    retval=u8_writeall(client->socket,buf,bytes_read);
-	    if (retval<0) break;}
-	  fclose(f);}}
+	  close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
+	  head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
+	  u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);}
+	content_len=(outstream->u8_outptr-outstream->u8_outbuf);
+	retval=u8_writeall(client->socket,outstream->u8_outbuf,content_len);
+	if (close_html) {
+	  content_len=content_len+strlen("\n</body>\n</html>\n");
+	  write_string(client->socket,"\n</body>\n</html>\n");}}
       else {
-	/* Where the servlet has specified some particular content */
-	contentlen=contentlen+output_content(client,content);}
-      /* Reset the stream */
-      client->out.u8_outptr=client->out.u8_outbuf;
-      u8_client_close(ucl); /* u8_client_done(ucl); */
-      u8_free(tmp.u8_outbuf);
-      fd_decref(content); fd_decref(traceval);
-      if (retval<0)
-	u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
-      if ((reqlog) || (urllog) || (trace_cgidata))
-	dolog(cgidata,result,client->out.u8_outbuf,
-	      client->out.u8_outptr-client->out.u8_outbuf,
-	      u8_elapsed_time()-start_time);}
-    if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
-      fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
-      FD_DO_CHOICES(cl,cleanup) {
-	fdtype retval=fd_apply(cleanup,0,NULL);
-	fd_decref(retval);}}
-    forcelog=fd_req_test(forcelog_symbol,FD_VOID);
-    run_postflight();
-    if (threadcache) fd_pop_threadcache(threadcache);
-    fd_use_reqinfo(FD_EMPTY_CHOICE);
-    fd_thread_set(browseinfo_symbol,FD_VOID);
-    fd_clear_errors(1);
-    write_time=u8_elapsed_time();
-    getloadavg(end_load,3);
-    u8_getrusage(RUSAGE_SELF,&end_usage);
-    if ((forcelog)||(traceweb>0)||
-	((overtime>0)&&((write_time-start_time)>overtime))) {
-      fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
-      if (FD_VOIDP(query))
-	u8_log(LOG_NOTICE,"DONE",
-	       "Sent %d=%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-	       headerlen+contentlen,headerlen,contentlen,path,
-	       write_time-start_time,
-	       setup_time-start_time,
-	       parse_time-setup_time,
-	       exec_time-parse_time,
-	       write_time-exec_time,
-	       (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-	       (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
-	       end_load[0],end_load[1],end_load[2]);
-      else u8_log(LOG_NOTICE,"DONE",
-		  "Sent %d=%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-		  headerlen+contentlen,headerlen,contentlen,path,query,
-		  write_time-start_time,
-		  setup_time-start_time,
-		  parse_time-setup_time,
-		  exec_time-parse_time,
-		  write_time-exec_time,
-		  (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-		  (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
-		  end_load[0],end_load[1],end_load[2]);
-      if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
-	u8_string cond=(((overtime>0)&&((write_time-start_time)>overtime))?
-			"OVERTIME":"FORCELOG");
-	u8_string before=u8_rusage_string(&start_usage);
-	u8_string after=u8_rusage_string(&end_usage);
-	u8_log(LOG_NOTICE,cond,"before: %s",before);
-	u8_log(LOG_NOTICE,cond," after: %s",after);
-	u8_free(before); u8_free(after);}
-      /* If we're calling traceweb, keep the log files up to date also. */
-      fd_lock_mutex(&log_lock);
-      if (urllog) fflush(urllog);
-      if (reqlog) fd_dtsflush(reqlog);
-      fd_unlock_mutex(&log_lock);
-      fd_decref(query);}
-    else {}}
+	char clen_header[128]; u8_byte *bundle;
+	size_t bundle_len=0;
+	if (write_headers) {
+	  close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
+	  head_len=(htmlhead.u8_outptr-htmlhead.u8_outbuf);
+	  if (close_html)
+	    u8_puts(outstream,"\n</body>\n</html>\n");}
+	content_len=head_len+(outstream->u8_outptr-outstream->u8_outbuf);
+	sprintf(clen_header,"Content-length: %lu\r\n\r\n",content_len);
+	u8_puts(&httphead,clen_header);
+	content_len=outstream->u8_outptr-outstream->u8_outbuf;
+	http_len=httphead.u8_outptr-httphead.u8_outbuf;
+	head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
+	bundle_len=http_len+head_len+content_len;
+	{
+	  u8_byte *start;
+	  u8_grow_stream(outstream,head_len+http_len+1);
+	  start=outstream->u8_outbuf;
+	  memmove(start+head_len+http_len,start,content_len);
+	  strncpy(start,httphead.u8_outbuf,http_len);
+	  strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
+	  outstream->u8_outptr=start+http_len+head_len+content_len;
+	  client->buf=start; client->buflen=bundle_len;
+	  client->off=0; client->len=bundle_len;
+	  client->async=1; client->writing=1;
+	  return_code=1;}}}
+    else if (FD_STRINGP(retfile)) {
+      /* This needs more error checking, signalling, etc */
+      u8_string filename=FD_STRDATA(retfile);
+      FILE *f=u8_fopen(filename,"rb");
+      if (f) {
+	int bytes_read=0; unsigned char buf[32768];
+	if (!(async)) {
+	  u8_putn(&httphead,"\r\n",2);
+	  http_len=httphead.u8_outptr-httphead.u8_outbuf;
+	  u8_writeall(client->socket,httphead.u8_outbuf,http_len);}
+	while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
+	  content_len=content_len+bytes_read;
+	  retval=u8_writeall(client->socket,buf,bytes_read);
+	  if (retval<0) break;}
+	fclose(f);}
+      else {}}
+    else {
+      u8_putn(&httphead,"\r\n",2);
+      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      /* Where the servlet has specified some particular content */
+      content_len=content_len+output_content(client,content);}
+    /* Reset the stream */
+    outstream->u8_outptr=outstream->u8_outbuf;
+    /* If we were to reuse connections (which would be nice),
+       we would call u8_client_done(ucl) instead. */
+    if (!(return_code)) {u8_client_close(ucl);}
+    if (traceweb>2)
+      u8_log(LOG_NOTICE,"HTTPHEAD","HTTPHEAD=%s",httphead.u8_outbuf);
+    u8_free(httphead.u8_outbuf); u8_free(htmlhead.u8_outbuf);
+    fd_decref(content); fd_decref(traceval);
+    if (retval<0)
+      u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
+    if ((reqlog) || (urllog) || (trace_cgidata))
+      dolog(cgidata,result,client->out.u8_outbuf,
+	    outstream->u8_outptr-outstream->u8_outbuf,
+	    u8_elapsed_time()-start_time);}
+  if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
+    fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
+    FD_DO_CHOICES(cl,cleanup) {
+      fdtype retval=fd_apply(cleanup,0,NULL);
+      fd_decref(retval);}}
+  forcelog=fd_req_test(forcelog_symbol,FD_VOID);
+  run_postflight();
+  if (threadcache) fd_pop_threadcache(threadcache);
+  fd_use_reqinfo(FD_EMPTY_CHOICE);
+  fd_thread_set(browseinfo_symbol,FD_VOID);
+  fd_clear_errors(1);
+  write_time=u8_elapsed_time();
+  getloadavg(end_load,3);
+  u8_getrusage(RUSAGE_SELF,&end_usage);
+  if ((forcelog)||(traceweb>0)||
+      ((overtime>0)&&((write_time-start_time)>overtime))) {
+    fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
+    if (FD_VOIDP(query))
+      u8_log(LOG_NOTICE,"DONE",
+	     "%s %d=%d+%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+	     ((return_code)?("Buffered"):("Sent")),
+	     http_len+head_len+content_len,http_len,head_len,content_len,
+	     path,
+	     write_time-start_time,
+	     setup_time-start_time,
+	     parse_time-setup_time,
+	     exec_time-parse_time,
+	     write_time-exec_time,
+	     (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
+	     end_load[0],end_load[1],end_load[2]);
+    else u8_log(LOG_NOTICE,"DONE",
+		"%s %d=%d+%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+		((return_code)?("Buffered"):("Sent")),
+		http_len+head_len+content_len,http_len,head_len,content_len,
+		path,query,
+		write_time-start_time,
+		setup_time-start_time,
+		parse_time-setup_time,
+		exec_time-parse_time,
+		write_time-exec_time,
+		(u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
+		end_load[0],end_load[1],end_load[2]);
+    if ((forcelog)||((overtime>0)&&((write_time-start_time)>overtime))) {
+      u8_string cond=(((overtime>0)&&((write_time-start_time)>overtime))?
+		      ("OVERTIME"):("FORCELOG"));
+      u8_string before=u8_rusage_string(&start_usage);
+      u8_string after=u8_rusage_string(&end_usage);
+      u8_log(LOG_NOTICE,cond,"before: %s",before);
+      u8_log(LOG_NOTICE,cond," after: %s",after);
+      u8_free(before); u8_free(after);}
+    /* If we're calling traceweb, keep the log files up to date also. */
+    fd_lock_mutex(&log_lock);
+    if (urllog) fflush(urllog);
+    if (reqlog) fd_dtsflush(reqlog);
+    fd_unlock_mutex(&log_lock);
+    fd_decref(query);}
+  else {}
   fd_decref(proc); fd_decref(result); fd_decref(path);
-  /* u8_client_close(ucl); */
   fd_swapcheck();
   /* Task is done */
-  return 0;
+  return return_code;
 }
 
 static int close_webclient(u8_client ucl)
@@ -941,7 +1046,7 @@ int main(int argc,char **argv)
 
   init_webcommon_configs();
   fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
-		     fd_dblconfig_get,fd_dblconfig_set,&traceweb);
+		     fd_dblconfig_get,fd_dblconfig_set,&overtime);
   fd_register_config("BACKLOG",
 		     _("Number of pending connection requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
