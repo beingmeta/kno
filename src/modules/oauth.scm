@@ -21,20 +21,29 @@
 (define-init %loglevel %notice!)
 ;;(set! %loglevel  %debug!)
 
-(define (getreqdata req)
-  (if (and (test req 'response)
-	   (test req 'content-type)
+(define (getreqdata req (ctype) (content))
+  (default! ctype (try (get req 'content-type) #f))
+  (default! content (try (get req '%content) #f))
+  (if (and (test req 'response) ctype content
 	   (number? (get req 'response))
 	   (>= (get req 'response) 200)
 	   (< (get req 'response) 300))
-      (if (search "json" (get req 'content-type))
-	  (jsonparse (get req '%content))
-	  (if (search "xml" (get req 'content-type))
-	      (xmlparse (get req '%content) '{data slotify})
+      (if (search "json" ctype)
+	  (jsonparse content)
+	  (if (search "xml" ctype)
+	      (xmlparse content '{data slotify})
 	      ;; This comes across as text/plain from FB,
 	      ;;  but should probably be something else.
-	      (cgiparse (get req '%content)))
-	  req)))
+	      (if (search "form" ctype)
+		  (cgiparse content)
+		  (if (textsearch #((bol) (spaces*) "<") content)
+		      (xmlparse content '{data slotify})
+		      (if (textsearch #((bol) (spaces*) {"{" "["})
+				      content)
+			  (jsonparse content)
+			  (cgiparse content)))))
+	  req)
+      (fail)))
 
 ;;; Server info
 
