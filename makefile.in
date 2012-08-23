@@ -215,7 +215,7 @@ makefile: makefile.in config.status
 	./config.status
 ./config.status: configure
 	./config.status --recheck
-configure: configure.in
+configure: configure.ac
 	autoconf
 
 # Fileinfo gets version-related information about a file to pass in
@@ -629,14 +629,14 @@ freshrpms:
 rpms: etc/rpms.done
 
 etc/framerd-@VERSION@: $(FDB_SOURCES) $(FDB_HEADERS) \
-		      configure.in makefile.in makefile
+		      configure.ac makefile.in makefile
 	git archive --prefix=framerd-@VERSION@/ \
 	            -o etc/framerd-@VERSION@.tar HEAD
 	cd etc; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
 	echo "#define FRAMERD_REV \""`git describe`"\"" \
 		> etc/framerd-@VERSION@/etc/revision.h;
 etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
-		      		configure.in makefile.in makefile
+		      		configure.ac makefile.in makefile
 	make etc/framerd-@VERSION@
 	tar -czvf $@ -C etc framerd-@VERSION@
 
