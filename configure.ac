@@ -454,14 +454,15 @@ if test $doi18n = "yes"; then
   INSTALLI18N="install-i18n"
 fi
 
+AX_PTHREAD()
+AX_PTHREAD(threads_default="yes",threads_default="no")
+
 dnl If possible, compile for multi-threaded execution.  This both makes
 dnl  the library threadsafe and enables Scheme primitives for spawning threads
 dnl  and parallel execution
 AC_ARG_ENABLE(threads,--en/disable-threads Enable multi-threading,,enable_threads=$threads_default)
 if test $enable_threads = "yes"; then
-   AX_PTHREAD()
    AC_CHECK_HEADERS(pthread.h)
-   AC_CHECK_FUNCS(pthread_create pthread_join)
    REENTRANT=-D_REENTRANT	
    LIBS="$PTHREAD_LIBS $LIBS"
    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"

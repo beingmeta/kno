@@ -633,7 +633,8 @@ static int webservefn(u8_client ucl)
 	  if (close_html)
 	    u8_puts(outstream,"\n</body>\n</html>\n");}
 	content_len=head_len+(outstream->u8_outptr-outstream->u8_outbuf);
-	sprintf(clen_header,"Content-length: %lu\r\n\r\n",content_len);
+	sprintf(clen_header,"Content-length: %lu\r\n\r\n",
+		(unsigned long)content_len);
 	u8_puts(&httphead,clen_header);
 	content_len=outstream->u8_outptr-outstream->u8_outbuf;
 	http_len=httphead.u8_outptr-httphead.u8_outbuf;
