@@ -434,10 +434,10 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
     sconfig->socket_prefix=fullpath;
   if (parms->path)
     ap_log_error
-      (APLOG_MARK,APLOG_INFO,OK,parms->server,
+      (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
        "mod_fdserv: Socket Prefix set to %s for path %s",fullpath,parms->path);
   else ap_log_error
-	 (APLOG_MARK,APLOG_INFO,OK,parms->server,
+	 (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
 	  "mod_fdserv: Socket Prefix set to %s for server %s",
 	  fullpath,parms->server->server_hostname);
   
@@ -464,10 +464,10 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
 
   if (parms->path)
     ap_log_error
-      (APLOG_MARK,APLOG_INFO,OK,parms->server,
+      (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
        "mod_fdserv: Log Prefix set to %s for path %s",fullpath,parms->path);
   else ap_log_error
-	 (APLOG_MARK,APLOG_INFO,OK,parms->server,
+	 (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
 	  "mod_fdserv: Log Prefix set to %s for server %s",
 	  fullpath,parms->server->server_hostname);
 
@@ -896,7 +896,7 @@ static fdsocket connect_to_servlet(request_rec *r)
     return NULL;}
 
   ap_log_error
-    (APLOG_MARK,APLOG_INFO,OK,r->server,
+    (APLOG_MARK,APLOG_NOTICE,OK,r->server,
      "mod_fdserv: Resolving request for %s through %s %s",
      r->unparsed_uri,
      ((isfilesock)?"file socket":"net socket"),
@@ -954,7 +954,7 @@ static fdsocket connect_to_servlet(request_rec *r)
     result->sockname=sockname;
     result->sockdata.fd=unix_sock;
     ap_log_rerror
-      (APLOG_MARK,APLOG_INFO,OK,r,
+      (APLOG_MARK,APLOG_DEBUG,OK,r,
        "Returning unix/local/file socket %d for %s",
        unix_sock,sockname);
     return result;}
@@ -1242,14 +1242,14 @@ static int sock_write(request_rec *r,
     return -1;}
 }
 
-static void copy_script_output(fdsocket sockval,request_rec *r)
+static int copy_script_output(fdsocket sockval,request_rec *r)
 {
   char buf[4096]; apr_size_t bytes_read=0;
   apr_table_t *headers=r->headers_out;
   const char *clength_string=apr_table_get(headers,"Content-Length");
   long int content_length=((clength_string)?(atoi(clength_string)):(-1));
   ap_log_error
-    (APLOG_MARK,APLOG_INFO,OK,r->server,
+    (APLOG_MARK,APLOG_DEBUG,OK,r->server,
      "mod_fdserv: Reading %ld content bytes from fdserv",content_length);
   if (sockval->socktype==aprsock) {
     apr_socket_t *sock=sockval->sockdata.apr;
@@ -1278,7 +1278,8 @@ static void copy_script_output(fdsocket sockval,request_rec *r)
     ap_log_error
       (APLOG_MARK,APLOG_INFO,OK,r->server,
        "mod_fdserv: Copied %ld content bytes to client",
-       (long int)bytes_read);}
+       (long int)bytes_read);
+    return bytes_read;}
   else if (sockval->socktype==filesock) {
     int sock=sockval->sockdata.fd;
     while ((content_length<0)||(bytes_read<content_length)) {
@@ -1297,7 +1298,8 @@ static void copy_script_output(fdsocket sockval,request_rec *r)
       else break;}
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-       "mod_fdserv: Finished reading %ld bytes",(long int)bytes_read);}
+       "mod_fdserv: Finished reading %ld bytes",(long int)bytes_read);
+    return bytes_read;}
   else ap_log_error
 	 (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
 }
@@ -1321,10 +1323,12 @@ static void log_buf(char *msg,int size,char *data,request_rec *r)
 
 static int fdserv_handler(request_rec *r) /* 2.0 */
 {
+  apr_time_t started=apr_time_now(), connected, requested, responded;
   BUFF *reqdata;
   fdsocket sock;
   char *post_data, errbuf[512];
-  int post_size; int bytes_written=0;
+  int post_size;
+  int bytes_written=0, bytes_transferred=-1;
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
@@ -1356,9 +1360,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     ap_rvputs(r,"</BODY>\n</HTML>",NULL);
     return HTTP_SERVICE_UNAVAILABLE;}
   else {
-#if TRACK_EXECUTION_TIMES
-    ftime(&start);
-#endif
+    connected=apr_time_now();
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 		 "mod_fdserv: %s serves %s for %s",
 		 ((sock->socktype==filesock)?"File socket":"APR socket"),
@@ -1393,10 +1395,10 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 
   /* Write the slotmap into buf, the write the buf to the servlet socket */
   write_table_as_slotmap(r,r->subprocess_env,reqdata,post_size,post_data);
+
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Writing %ld bytes of request data to socket",
 	       (long int)(reqdata->ptr-reqdata->buf));
-  /* log_buf("REQDATA",reqdata->ptr-reqdata->buf,reqdata->buf,r); */
 
   if (using_dtblock) {
     unsigned char buf[8];
@@ -1409,17 +1411,19 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     bytes_written=sock_write(r,buf,5,sock);}
   if ((using_dtblock)&&(bytes_written<5))
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
-		 "mod_fdserv: Only wrote %ld bytes of request data to socket",
+		 "mod_fdserv: Only wrote %ld bytes of request to socket",
 		 (long int)bytes_written);
   else {
     bytes_written=sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
     if (bytes_written<(reqdata->ptr-reqdata->buf))
       ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
-		   "mod_fdserv: Only wrote %ld bytes of request data to socket",
+		   "mod_fdserv: Only wrote %ld bytes of request to socket",
 		   (long int)bytes_written);
-    else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		      "mod_fdserv: Finished writing %ld bytes of request data to socket",
+    else ap_log_error(APLOG_MARK,APLOG_INFO,OK,r->server,
+		      "mod_fdserv: Wrote all %ld bytes of request to socket",
 		      (long int)(reqdata->ptr-reqdata->buf));}
+
+  requested=apr_time_now();
 
   scanner.sock=sock; scanner.req=r;
   
@@ -1429,15 +1433,26 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   ap_scan_script_header_err_core(r,errbuf,scan_fgets,(void *)&scanner);
   
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Read servlet header, passing to client");
+	       "mod_fdserv: Read header from servlet, passing to client");
   ap_send_http_header(r);
   
   ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 	       "mod_fdserv: Header sent, now sending content from servlet");
-  copy_script_output(sock,r);
+  bytes_transferred=copy_script_output(sock,r);
   
-  ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Done sending content");
+  responded=apr_time_now();
+
+  ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,r->server,
+	       "mod_fdserv: Done sending %d bytes of content for %s in %luus=%lu+%lu+%lu",
+	       bytes_transferred,r->unparsed_uri,
+	       ((unsigned long)(apr_time_usec(responded)-
+				apr_time_usec(started))),
+	       ((unsigned long)(apr_time_usec(connected)-
+				apr_time_usec(started))),
+	       ((unsigned long)(apr_time_usec(requested)-
+				apr_time_usec(connected))),
+	       ((unsigned long)(apr_time_usec(responded)-
+				apr_time_usec(requested))));
   
 #if TRACK_EXECUTION_TIMES
   {char buf[64]; double interval; ftime(&end);
