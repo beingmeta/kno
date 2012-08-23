@@ -10,8 +10,6 @@
 
 */
 
-static char revisioninfo[] = "$Revision: 3991$";
-
 #include "httpd.h"
 #include "http_config.h"
 #include "http_core.h"
@@ -29,6 +27,8 @@ static char revisioninfo[] = "$Revision: 3991$";
 
 #define APACHE20 1
 #define APACHE13 0
+
+#include "fdserv_version.h"
 
 #if (APR_SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;
@@ -1460,14 +1460,12 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   return OK;
 }
 
-int revision=-1;
-char *version_num="1.5";
+char *version_num="1.6.7";
 char version_info[256];
 
 static void init_version_info()
 {
-  sscanf(revisioninfo+10,"%d",&revision);
-  sprintf(version_info,"mod_fdserv/%s(%d)",version_num,revision);
+  sprintf(version_info,"mod_fdserv/%s",version_num);
 }
 
 static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
@@ -1496,9 +1494,9 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
   socketname_table=apr_table_make(p,64);
   init_version_info();
   ap_add_version_component(p,version_info);
-  ap_log_error(APLOG_HEAD,s,
-	       "mod_fdserv v%s (rev%d) init for Apache 2.x  completed",
-	       version_num,revision);
+  ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
+	       "mod_fdserv v%s (%s) init for Apache 2.x  completed",
+	       version_num,_FILEINFO);
   return OK;
 }
 static void register_hooks(apr_pool_t *p)

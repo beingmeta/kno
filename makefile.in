@@ -826,8 +826,12 @@ debian-build-setup:
 
 # The mod_fdserv module
 
-etc/mod_fdserv.so: etc/mod_fdserv.c
-	cd etc; ${APXS} -DDEFAULT_ISASYNC=@DEFAULTISASYNC@ -c mod_fdserv.c
+etc/fdserv_version.h:
+	echo "#define _FILEINFO \""`./fileinfo etc/mod_fdserv.c .`"\"" \
+		> $@
+etc/mod_fdserv.so: etc/mod_fdserv.c etc/fdserv_version.h
+	cd etc; ${APXS} -DDEFAULT_ISASYNC=@DEFAULTISASYNC@ \
+			-c mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
 	cd etc; ${APXS} -DDEFAULT_ISASYNC=@DEFAULTISASYNC@ -c mod_fdserv.c;

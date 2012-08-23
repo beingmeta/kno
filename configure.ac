@@ -93,9 +93,9 @@ MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 DEFAULTISASYNC=0
 
+AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/config.h)
-AC_PREFIX_DEFAULT(/usr/local)
 
 AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
