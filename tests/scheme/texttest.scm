@@ -10,8 +10,11 @@
 (applytest #t has-prefix "foo.scm" "foo")
 (applytest #f has-suffix "foo.scm" "bar")
 
-;(applytest #t empty-string? "")
-;(applytest #f empty-string? "full")
+(applytest #t empty-string? "")
+(applytest #t empty-string? "  ")
+(applytest #t empty-string? " 	 ")
+(applytest #t empty-string? " 	 \n   \n	")
+(applytest #f empty-string? "full")
 
 (applytest #t lowercase? "foo")
 (applytest #f lowercase? "Foo")
