@@ -748,6 +748,118 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   return cval;
 }
 
+/* Req checking */
+
+static fdtype responsetest(fdtype response,int min,int max)
+{
+  fdtype status=((FD_TABLEP(response))?
+		 (fd_get(response,response_code_slotid,FD_VOID)):
+		 (FD_FIXNUMP(response))?(response):(FD_VOID));
+  if ((FD_FIXNUMP(status))&&
+      ((FD_FIX2INT(status))>=min)&&
+      ((FD_FIX2INT(status))<max))
+    return FD_TRUE;
+  else {
+    if (FD_TABLEP(response)) fd_decref(status);
+    return FD_FALSE;}
+}
+
+static fdtype responseokp(fdtype response)
+{
+  return responsetest(response,200,300);
+}
+
+static fdtype responseredirectp(fdtype response)
+{
+  return responsetest(response,300,400);
+}
+
+static fdtype responseanyerrorp(fdtype response)
+{
+  return responsetest(response,400,600);
+}
+
+static fdtype responsemyerrorp(fdtype response)
+{
+  return responsetest(response,400,500);
+}
+
+static fdtype responseservererrorp(fdtype response)
+{
+  return responsetest(response,500,600);
+}
+
+static fdtype responseunauthorizedp(fdtype response)
+{
+  return responsetest(response,401,402);
+}
+
+static fdtype responseforbiddenp(fdtype response)
+{
+  return responsetest(response,401,405);
+}
+
+static fdtype responsetimeoutp(fdtype response)
+{
+  return responsetest(response,408,409);
+}
+
+static fdtype responsebadmethodp(fdtype response)
+{
+  return responsetest(response,405,406);
+}
+
+static fdtype responsenotfoundp(fdtype response)
+{
+  return responsetest(response,404,405);
+}
+
+static fdtype responsegonep(fdtype response)
+{
+  return responsetest(response,410,411);
+}
+
+static fdtype responsestatusprim(fdtype response)
+{
+  fdtype status=((FD_TABLEP(response))?
+		 (fd_get(response,response_code_slotid,FD_VOID)):
+		 (FD_FIXNUMP(response))?(response):(FD_VOID));
+  if (!(FD_FIXNUMP(status))) {
+    fd_decref(status);
+    return fd_type_error("HTTP response","responsestatusprim",response);}
+  else return status;
+}
+static fdtype testresponseprim(fdtype response,fdtype arg1,fdtype arg2)
+{
+  if (FD_AMBIGP(response)) {
+    FD_DO_CHOICES(r,response) {
+      fdtype result=testresponseprim(r,arg1,arg2);
+      if (FD_TRUEP(result)) {
+	FD_STOP_DO_CHOICES;
+	return result;}
+      fd_decref(result);}
+    return FD_FALSE;}
+  else {
+    fdtype status=((FD_TABLEP(response))?
+		   (fd_get(response,response_code_slotid,FD_VOID)):
+		   (FD_FIXNUMP(response))?(response):(FD_VOID));
+    if (!(FD_FIXNUMP(status))) {
+      if (FD_TABLEP(response)) fd_decref(status);
+      return FD_FALSE;}
+    if (FD_VOIDP(arg2)) {
+      if (fd_choice_containsp(status,arg1))
+	return FD_TRUE;
+      else return FD_FALSE;}
+    else if ((FD_FIXNUMP(arg1))&&(FD_FIXNUMP(arg2))) {
+      int min=FD_FIX2INT(arg1), max=FD_FIX2INT(arg2);
+      int rval=FD_FIX2INT(status);
+      if ((rval>=min)&&(rval<max)) return FD_TRUE;
+      else return FD_FALSE;}
+    else if (!(FD_FIXNUMP(arg1)))
+      return fd_type_error("HTTP status","resptestprim",arg1);
+    else return fd_type_error("HTTP status","resptestprim",arg2);}
+}
+
 /* Opening URLs with options */
 
 static fdtype curlsetopt(fdtype handle,fdtype opt,fdtype value)
@@ -959,7 +1071,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
     fd_decref(url); return ctype;}
   else if (!(FD_STRINGP(ctype))) {
     fd_decref(url);
-    return fd_type_error("url","urlpostdata_handler",ctype);}
+    return fd_type_error("mime type","urlpostdata_handler",ctype);}
   else {
     curl=fd_eval(fd_get_arg(expr,3),env);
     body=fd_get_body(expr,4);}
@@ -1105,6 +1217,31 @@ FD_EXPORT void fd_init_curl_c()
   fd_idefn(module,fd_make_cprim3("CURLSETOPT!",curlsetopt,2));
   fd_idefn(module,fd_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
   fd_idefn(module,fd_make_cprim1("CURL-HANDLE?",curlhandlep,1));
+
+  fd_idefn(module,fd_make_cprim1("RESPONSE/OK?",responseokp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/REDIRECT?",
+				 responseredirectp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/ERROR?",responseanyerrorp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/MYERROR?",responsemyerrorp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/SERVERERROR?",
+				 responseservererrorp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/UNAUTHORIZED?",
+				 responseunauthorizedp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/FORBIDDEN?",
+				 responseforbiddenp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/TIMEOUT?",
+				 responsetimeoutp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/BADMETHOD?",
+				 responsebadmethodp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/NOTFOUND?",
+				 responsenotfoundp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/NOTFOUND?",
+				 responsenotfoundp,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/GONE?",
+				 responsegonep,1));
+  fd_idefn(module,fd_make_cprim1("RESPONSE/STATUS",responsestatusprim,1));
+  fd_idefn(module,fd_make_ndprim
+	   (fd_make_cprim3("RESPONSE/STATUS?",testresponseprim,2)));
 
   fd_register_config
     ("DEBUGCURL",_("Whether to debug low level CURL interaction"),
