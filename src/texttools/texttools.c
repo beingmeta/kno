@@ -1116,15 +1116,44 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
 /* These are matching functions with the arguments reversed
    to be especially useful as arguments to PICK and REJECT. */
 
+static int getnonstring(fdtype choice)
+{
+  FD_DO_CHOICES(x,choice) {
+    if (!(FD_STRINGP(x))) {
+      FD_STOP_DO_CHOICES;
+      return x;}
+    else {}}
+  return FD_VOID;
+}
+
 static fdtype string_matches(fdtype string,fdtype pattern,
 			     fdtype start_arg,fdtype end_arg)
 {
-  int off, lim;
-  convert_offsets(string,start_arg,end_arg,&off,&lim);
-  if ((off<0) || (lim<0))
-    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  int off, lim, retval;
+  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
+		    (FD_AMBIGP(string))?(getnonstring(string)):
+		    (string));
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
+  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","string_matches",notstring);
+  else if (FD_AMBIGP(string)) {
+    FD_DO_CHOICES(s,string) {
+      convert_offsets(s,start_arg,end_arg,&off,&lim);
+      if ((off<0) || (lim<0)) {
+	FD_STOP_DO_CHOICES;
+	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+      else retval=fd_text_match(pattern,NULL,FD_STRDATA(s),off,lim,0);
+      if (retval!=0) {
+	FD_STOP_DO_CHOICES;
+	if (retval<0) return FD_ERROR_VALUE;
+	else return FD_TRUE;}}
+    return FD_FALSE;}
   else {
-    int retval=fd_text_match(pattern,NULL,FD_STRDATA(string),off,lim,0);
+    convert_offsets(string,start_arg,end_arg,&off,&lim);
+    if ((off<0) || (lim<0)) 
+      return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+    else retval=fd_text_match(pattern,NULL,FD_STRDATA(string),off,lim,0);
     if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_TRUE;
     else return FD_FALSE;}
@@ -1133,12 +1162,36 @@ static fdtype string_matches(fdtype string,fdtype pattern,
 static fdtype string_contains(fdtype string,fdtype pattern,
 			      fdtype start_arg,fdtype end_arg)
 {
-  int off, lim;
-  convert_offsets(string,start_arg,end_arg,&off,&lim);
+  int off, lim, retval;
+  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
+		    (FD_AMBIGP(string))?(getnonstring(string)):
+		    (string));
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
+  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","string_matches",notstring);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  else if (FD_AMBIGP(string)) {
+    FD_DO_CHOICES(s,string) {
+      convert_offsets(s,start_arg,end_arg,&off,&lim);
+      if ((off<0) || (lim<0)) {
+	FD_STOP_DO_CHOICES;
+	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+      else retval=fd_text_search(pattern,NULL,FD_STRDATA(s),off,lim,0);
+      if (retval==-1) {}
+      else if (retval<0) {
+	FD_STOP_DO_CHOICES;
+	return FD_ERROR_VALUE;}
+      else {
+	FD_STOP_DO_CHOICES;
+	return FD_TRUE;}}
+    return FD_FALSE;}
   else {
-    int retval=fd_text_search(pattern,NULL,FD_STRDATA(string),off,lim,0);
+    convert_offsets(string,start_arg,end_arg,&off,&lim);
+    if ((off<0) || (lim<0)) 
+      return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+    else retval=fd_text_search(pattern,NULL,FD_STRDATA(string),off,lim,0);
     if (retval<-1) return FD_ERROR_VALUE;
     else if (retval<0) return FD_FALSE;
     else return FD_TRUE;}
@@ -1147,13 +1200,32 @@ static fdtype string_contains(fdtype string,fdtype pattern,
 static fdtype string_starts_with(fdtype string,fdtype pattern,
 				 fdtype start_arg,fdtype end_arg)
 {
-  int off, lim;
-  convert_offsets(string,start_arg,end_arg,&off,&lim);
-  if ((off<0) || (lim<0))
-    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+  int off, lim; fdtype match_result;
+  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
+		    (FD_AMBIGP(string))?(getnonstring(string)):
+		    (string));
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
+  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","string_matches",notstring);
+  else if (FD_AMBIGP(string)) {
+    FD_DO_CHOICES(s,string) {
+      convert_offsets(s,start_arg,end_arg,&off,&lim);
+      if ((off<0) || (lim<0)) {
+	FD_STOP_DO_CHOICES;
+	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+      match_result=fd_text_matcher(pattern,NULL,FD_STRDATA(s),off,lim,0);
+      if (FD_ABORTP(match_result)) {
+	FD_STOP_DO_CHOICES; return FD_ERROR_VALUE;}
+      else if (FD_EMPTY_CHOICEP(match_result)) {}
+      else {
+	FD_STOP_DO_CHOICES; return FD_TRUE;}}
+    return FD_FALSE;}
   else {
-    fdtype match_result=fd_text_matcher
-      (pattern,NULL,FD_STRDATA(string),off,lim,0);
+    convert_offsets(string,start_arg,end_arg,&off,&lim);
+    if ((off<0) || (lim<0))
+      return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+    match_result=fd_text_matcher(pattern,NULL,FD_STRDATA(string),off,lim,0);
     if (FD_ABORTP(match_result)) return match_result;
     else if (FD_EMPTY_CHOICEP(match_result))
       return FD_FALSE;
@@ -1162,32 +1234,63 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
       return FD_TRUE;}}
 }
 
+static fdtype string_ends_with_test(fdtype string,fdtype pattern,
+				    int off,int lim)
+{
+  u8_string data=FD_STRDATA(string); int start;
+  fdtype end=FD_INT2DTYPE(lim);
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
+  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  start=fd_text_search(pattern,NULL,data,off,lim,0);
+  /* -2 is an error, -1 is not found */
+  if (start<-1) return -1;
+  while (start>=0) {
+    fdtype matches=fd_text_matcher(pattern,NULL,data,start,lim,0);
+    if (FD_ABORTP(matches)) return -1;
+    else if (matches==end) return 1;
+    else {
+      FD_DO_CHOICES(match,matches)
+	if (match==end) {
+	  fd_decref(matches);
+	  FD_STOP_DO_CHOICES;
+	  return 1;}}
+    fd_decref(matches);
+    start=fd_text_search(pattern,NULL,data,start+1,lim,0);
+    if (start<-1) return -1;}
+  return 0;
+}
+
 static fdtype string_ends_with(fdtype string,fdtype pattern,
 			       fdtype start_arg,fdtype end_arg)
 {
-  int off, lim;
+  int off, lim, retval;
+  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
+		    (FD_AMBIGP(string))?(getnonstring(string)):
+		    (string));
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","string_matches",notstring);
   convert_offsets(string,start_arg,end_arg,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
-  else {
-    u8_string data=FD_STRDATA(string);
-    int start=fd_text_search(pattern,NULL,data,off,lim,0);
-    fdtype end=FD_INT2DTYPE(lim);
-    if (start<-1) return FD_ERROR_VALUE;
-    while (start>=0) {
-      fdtype matches=fd_text_matcher(pattern,NULL,data,start,lim,0);
-      if (FD_ABORTP(matches)) return matches;
-      else if (matches==end) return FD_TRUE;
-      else {
-	FD_DO_CHOICES(match,matches)
-	  if (match==end) {
-	    fd_decref(matches);
-	    FD_STOP_DO_CHOICES;
-	    return FD_TRUE;}}
-      fd_decref(matches);
-      start=fd_text_search(pattern,NULL,data,start+1,lim,0);
-      if (start<-1) return FD_ERROR_VALUE;}
+  else if (FD_AMBIGP(string)) {
+    FD_DO_CHOICES(s,string) {
+      convert_offsets(s,start_arg,end_arg,&off,&lim);
+      if ((off<0) || (lim<0)) {
+	FD_STOP_DO_CHOICES;
+	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+      retval=string_ends_with_test(s,pattern,off,lim);
+      if (retval<0) return FD_ERROR_VALUE;
+      else if (retval) {
+	FD_STOP_DO_CHOICES; return FD_TRUE;}
+      else {}}
     return FD_FALSE;}
+  else {
+    convert_offsets(string,start_arg,end_arg,&off,&lim);
+    if ((off<0) || (lim<0))
+      return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
+    if (string_ends_with_test(string,pattern,off,lim))
+      return FD_TRUE;
+    else return FD_FALSE;}
 }
 
 /* text2frame */
@@ -2114,26 +2217,34 @@ void fd_init_texttools()
 			   fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_ndprim(fd_make_cprim2("TEXTFILTER",textfilter,2)));
-  fd_idefn(texttools_module,fd_make_cprim4x
-	   ("STRING-MATCHES?",string_matches,2,
-	    fd_string_type,FD_VOID,-1,FD_VOID,
-	    fd_fixnum_type,FD_INT2DTYPE(0),
-	    fd_fixnum_type,FD_VOID));
-  fd_idefn(texttools_module,fd_make_cprim4x
-	   ("STRING-CONTAINS?",string_contains,2,
-	    fd_string_type,FD_VOID,-1,FD_VOID,
-	    fd_fixnum_type,FD_INT2DTYPE(0),
-	    fd_fixnum_type,FD_VOID));
-  fd_idefn(texttools_module,fd_make_cprim4x
-	   ("STRING-STARTS-WITH?",string_starts_with,2,
-	    fd_string_type,FD_VOID,-1,FD_VOID,
-	    fd_fixnum_type,FD_INT2DTYPE(0),
-	    fd_fixnum_type,FD_VOID));
-  fd_idefn(texttools_module,fd_make_cprim4x
-	   ("STRING-ENDS-WITH?",string_ends_with,2,
-	    fd_string_type,FD_VOID,-1,FD_VOID,
-	    fd_fixnum_type,FD_INT2DTYPE(0),
-	    fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_ndprim
+	   (fd_make_cprim4x
+	    ("STRING-MATCHES?",string_matches,2,
+	     -1,FD_VOID,-1,FD_VOID,
+	     fd_fixnum_type,FD_INT2DTYPE(0),
+	     fd_fixnum_type,FD_VOID)));
+  fd_idefn(texttools_module,
+	   fd_make_ndprim
+	   (fd_make_cprim4x
+	    ("STRING-CONTAINS?",string_contains,2,
+	     -1,FD_VOID,-1,FD_VOID,
+	     fd_fixnum_type,FD_INT2DTYPE(0),
+	     fd_fixnum_type,FD_VOID)));
+  fd_idefn(texttools_module,
+	   fd_make_ndprim
+	   (fd_make_cprim4x
+	    ("STRING-STARTS-WITH?",string_starts_with,2,
+	     -1,FD_VOID,-1,FD_VOID,
+	     fd_fixnum_type,FD_INT2DTYPE(0),
+	     fd_fixnum_type,FD_VOID)));
+  fd_idefn(texttools_module,
+	   fd_make_ndprim
+	   (fd_make_cprim4x
+	    ("STRING-ENDS-WITH?",string_ends_with,2,
+	     -1,FD_VOID,-1,FD_VOID,
+	     fd_fixnum_type,FD_INT2DTYPE(0),
+	     fd_fixnum_type,FD_VOID)));
   
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("TEXT->FRAME",text2frame,2,
