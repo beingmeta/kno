@@ -191,6 +191,8 @@ FD_EXPORT int _fd_choice_size(fdtype x);
 FD_EXPORT fdtype _fd_make_simple_choice(fdtype x);
 FD_EXPORT fdtype _fd_simplify_choice(fdtype x);
 
+#define FD_AMBIGP(x) ((FD_CHOICEP(x))||(FD_ACHOICEP(x)))
+
 #define FD_CHOICE_SIZE(x) \
   ((FD_EMPTY_CHOICEP(x)) ? (0) : \
    (!(FD_CONSP(x))) ? (1) : \
