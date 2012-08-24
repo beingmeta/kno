@@ -1130,11 +1130,13 @@ static fdtype string_matches(fdtype string,fdtype pattern,
 			     fdtype start_arg,fdtype end_arg)
 {
   int off, lim, retval;
-  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
-		    (FD_AMBIGP(string))?(getnonstring(string)):
-		    (string));
+  fdtype notstring;
   if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
-  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
+    return FD_FALSE;
+  notstring=((FD_STRINGP(string))?(FD_VOID):
+	     (FD_AMBIGP(string))?(getnonstring(string)):
+	     (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
@@ -1162,12 +1164,13 @@ static fdtype string_matches(fdtype string,fdtype pattern,
 static fdtype string_contains(fdtype string,fdtype pattern,
 			      fdtype start_arg,fdtype end_arg)
 {
-  int off, lim, retval;
-  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
-		    (FD_AMBIGP(string))?(getnonstring(string)):
-		    (string));
+  int off, lim, retval; fdtype notstring;
   if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
-  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
+    return FD_FALSE;
+  notstring=((FD_STRINGP(string))?(FD_VOID):
+	     (FD_AMBIGP(string))?(getnonstring(string)):
+	     (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   if ((off<0) || (lim<0))
@@ -1200,12 +1203,14 @@ static fdtype string_contains(fdtype string,fdtype pattern,
 static fdtype string_starts_with(fdtype string,fdtype pattern,
 				 fdtype start_arg,fdtype end_arg)
 {
-  int off, lim; fdtype match_result;
-  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
-		    (FD_AMBIGP(string))?(getnonstring(string)):
-		    (string));
+  int off, lim;
+  fdtype match_result, notstring;
   if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
-  if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
+  if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
+    return FD_FALSE;
+  notstring=((FD_STRINGP(string))?(FD_VOID):
+	     (FD_AMBIGP(string))?(getnonstring(string)):
+	     (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
@@ -1264,9 +1269,11 @@ static fdtype string_ends_with(fdtype string,fdtype pattern,
 			       fdtype start_arg,fdtype end_arg)
 {
   int off, lim, retval;
-  fdtype notstring=((FD_STRINGP(string))?(FD_VOID):
-		    (FD_AMBIGP(string))?(getnonstring(string)):
-		    (string));
+  fdtype notstring;
+  if (FD_EMPTY_CHOICEP(string)) return FD_FALSE;
+  notstring=((FD_STRINGP(string))?(FD_VOID):
+	     (FD_AMBIGP(string))?(getnonstring(string)):
+	     (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   convert_offsets(string,start_arg,end_arg,&off,&lim);
