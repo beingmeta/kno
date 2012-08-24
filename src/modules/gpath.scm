@@ -54,7 +54,7 @@
 ;;; Writing to a gpath
 
 (define (gp/write! saveto name content (ctype) (charset))
-  (default! ctype (guess-mimetype name content))
+  (default! ctype (guess-mimetype (get-namestring name) content))
   (default! charset (get-charset ctype))
   (lognotice "Saving " (if ctype (printout (write ctype) " "))
 	     "content for " (write name) " into " saveto)
@@ -179,7 +179,7 @@
 (define gp/mkpath gp/path)
 
 (define (gp/fetch ref (ctype))
-  (default! ctype (guess-mimetype ref))
+  (default! ctype (guess-mimetype (get-namestring ref)))
   (cond ((s3loc? ref) (s3/get ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
 	 (zip/get (car ref)
