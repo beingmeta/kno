@@ -655,10 +655,13 @@ static fdtype has_suffix_test(fdtype string,fdtype suffix)
 }
 static fdtype has_suffix(fdtype string,fdtype suffix)
 {
+  fdtype notstring;
   if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->choice;
   if ((FD_STRINGP(string))&&(FD_STRINGP(suffix)))
     return has_suffix_test(string,suffix);
-  fdtype notstring=getnonstring(string);
+  if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(suffix)))
+    return FD_FALSE;
+  notstring=getnonstring(string);
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","has_suffix/input",notstring);
   else notstring=getnonstring(suffix);
@@ -707,10 +710,13 @@ static fdtype has_prefix_test(fdtype string,fdtype prefix)
 }
 static fdtype has_prefix(fdtype string,fdtype prefix)
 {
+  fdtype notstring;
   if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->choice;
   if ((FD_STRINGP(string))&&(FD_STRINGP(prefix)))
     return has_prefix_test(string,prefix);
-  fdtype notstring=getnonstring(string);
+  if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(prefix)))
+    return FD_FALSE;
+  notstring=getnonstring(string);
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","has_prefix/input",notstring);
   else notstring=getnonstring(prefix);
