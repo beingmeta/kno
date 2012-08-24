@@ -12,9 +12,9 @@
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3loc s3/getloc s3loc/s3uri
-		  s3loc/uri s3loc/filename s3loc/get
+		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
 		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
-(module-export! '{s3/get s3/copy! s3/put s3/head s3/ctype})
+(module-export! '{s3/get s3/copy! s3/put s3/head s3/ctype s3/exists?})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -301,12 +301,21 @@
 	 (string-append "/" (s3loc-path loc))
 	 ""))
 
-(define (s3loc/head loc (text #t))
+(define (s3loc/head loc)
   (when (string? loc) (set! loc (->s3loc loc)))
   (s3/op "HEAD" (s3loc-bucket loc)
 	 (string-append "/" (s3loc-path loc))
 	 ""))
 (define s3/head s3loc/head)
+
+(define (s3loc/exists? loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc)
+		     (string-append "/" (s3loc-path loc))
+		"")))
+    (and (exists? (get req 'responsoe))
+	 (<= 200 (get req 'responsoe) 299))))
+(define s3/exists? s3loc/exists?)
 
 (define (s3/ctype loc)
   (get (s3loc/head loc) 'content-type))
