@@ -313,8 +313,7 @@
   (let ((req (s3/op "HEAD" (s3loc-bucket loc)
 		     (string-append "/" (s3loc-path loc))
 		"")))
-    (and (exists? (get req 'responsoe))
-	 (<= 200 (get req 'responsoe) 299))))
+    (response/ok? req)))
 (define s3/exists? s3loc/exists?)
 
 (define (s3/ctype loc)
