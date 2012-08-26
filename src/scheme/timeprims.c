@@ -245,7 +245,28 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
     return fd_init_double(NULL,diff);}
 }
 
-static fdtype timestamp_earlier(fdtype timestamp1,fdtype timestamp2)
+static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
+{
+  int free1=0; 
+  struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
+  if (t1==NULL) return FD_ERROR_VALUE;
+  else if (FD_VOIDP(timestamp2)) {
+    double diff;
+    struct U8_XTIME xtime; u8_now(&xtime);
+    if (free1) u8_free(t1);
+    diff=u8_xtime_diff(&(t1->xtime),&xtime);
+    if (diff>0) return FD_TRUE; else return FD_FALSE;}
+  else {
+    double diff; int free2=0;
+    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
+    if (t2 == NULL) {
+      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      return FD_ERROR_VALUE;}
+    else diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
+    if (diff>0) return FD_TRUE; else return FD_FALSE;}
+}
+
+static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
 {
   int free1=0; 
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
@@ -266,26 +287,6 @@ static fdtype timestamp_earlier(fdtype timestamp1,fdtype timestamp2)
     if (diff<0) return FD_TRUE; else return FD_FALSE;}
 }
 
-static fdtype timestamp_later(fdtype timestamp1,fdtype timestamp2)
-{
-  int free1=0; 
-  struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
-  if (t1==NULL) return FD_ERROR_VALUE;
-  else if (FD_VOIDP(timestamp2)) {
-    double diff;
-    struct U8_XTIME xtime; u8_now(&xtime);
-    if (free1) u8_free(t1);
-    diff=u8_xtime_diff(&(t1->xtime),&xtime);
-    if (diff>0) return FD_TRUE; else return FD_FALSE;}
-  else {
-    double diff; int free2=0;
-    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
-    if (t2 == NULL) {
-      if (free1) u8_free(t1); if (free2) u8_free(t2);
-      return FD_ERROR_VALUE;}
-    else diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
-    if (diff>0) return FD_TRUE; else return FD_FALSE;}
-}
 
 /* Lisp access */
 
@@ -675,7 +676,9 @@ static fdtype timestamp_getkeys(fdtype timestamp)
 static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
 {
   fdtype result;
-  if (FD_VOIDP(base)) 
+  if (!(FD_TABLEP(slotmap)))
+    return fd_type_error("table","modtime_prim",slotmap);
+  else if (FD_VOIDP(base)) 
     result=timestamp_prim(FD_VOID);
   else if (FD_PTR_TYPEP(base,fd_timestamp_type)) 
     result=fd_deep_copy(base); 
@@ -1445,12 +1448,12 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIMESTAMP+",timestamp_plus,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DIFFTIME",timestamp_diff,1));
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("PAST-TIME?",timestamp_earlier,1));
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("FUTURE-TIME?",timestamp_later,1));
-  fd_defalias(fd_scheme_module,"TIME-EARLIER?","PAST-TIME?");
-  fd_defalias(fd_scheme_module,"TIME-LATER?","FUTURE-TIME?");
+  fd_idefn(fd_scheme_module,fd_make_cprim2("TIME>?",timestamp_greater,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("TIME<?",timestamp_lesser,1));
+  fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
+  fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
+  fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
+  fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
 
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLEEP",sleep_prim,1));
