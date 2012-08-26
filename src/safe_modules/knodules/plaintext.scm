@@ -7,7 +7,7 @@
 (define id "$Id$")
 (define revision "$Revision: 5078 $")
 
-(use-module '{texttools fdweb ezrecords varconfig})
+(use-module '{texttools fdweb ezrecords logger varconfig})
 (use-module '{knodules knodules/drules})
 
 (module-export!
@@ -166,7 +166,7 @@
 	 (handle-lang-term subject 'norms (knodule-language knodule)
 			   value))
 	((eq? op #\~)
-	 (if (position \& value)
+	 (if (position #\& value)
 	     (list subject 'drules
 		   (plaintext->drule (string-append "+" value)
 				     subject knodule
