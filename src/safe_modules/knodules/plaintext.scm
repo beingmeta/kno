@@ -166,19 +166,24 @@
 	 (handle-lang-term subject 'norms (knodule-language knodule)
 			   value))
 	((eq? op #\~)
-	 (handle-lang-term subject 'hooks (knodule-language knodule)
-			   value))
-	((eq? op #\")
+	 (if (position \& value)
+	     (list subject 'drules
+		   (plaintext->drule (string-append "+" value)
+				     subject knodule
+				     (knodule-language knodule)))
+	     (handle-lang-term subject 'hooks (knodule-language knodule)
+			       value)))
+	((eq? op #\") ;; Deprecated
+	 (logwarn "Use of \" for glosses is deprecated!")
 	 (when (has-suffix value "\"")
 	   (set! value (subseq value 0 -1)))
 	 (handle-lang-term subject
-			   (get #[#f explanation #\* gloss #\~ aside] mod)
+			   (get #[#f gloss #\* explanation #\~ aside] mod)
 			   (knodule-language knodule) value))
 	((eq? op #\+)
-	 (list subject 'drules
-	       (plaintext->drule (string-append "+" value)
-				 subject knodule
-				 (knodule-language knodule))))
+	 (handle-lang-term subject
+			   (get #[#f explanation #\* gloss #\~ aside] mod)
+			   (knodule-language knodule) value))
 	((eq? op #\%)
 	 (let ((eqpos (position #\= value)))
 	   (if eqpos
