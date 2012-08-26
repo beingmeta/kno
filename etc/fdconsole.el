@@ -140,6 +140,7 @@
 
 (put 'with-output 'scheme-indent-function 1)
 (put 'with-output-to-string 'scheme-indent-function 'block-indenter)
+(put 'string-subst* 'scheme-indent-function 1)
 
 ;;; XML/HTML generation
 (put 'xmlout 'scheme-indent-function 'block-indenter)
