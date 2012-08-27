@@ -889,9 +889,11 @@ static int dorewrite(u8_output out,fdtype xtract)
 	if (free_head) fd_decref(head);}
       else if (FD_APPLICABLEP(head)) {
 	fdtype xformed=rewrite_apply(head,content,params);
+	if (FD_ABORTP(xformed)) {
+	  if (free_head) fd_decref(head);
+	  return -1;}
 	u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
 	fd_decref(xformed);
-	if (free_head) fd_decref(head);
 	return 1;}
       else {
 	FD_DOLIST(elt,args)
@@ -901,6 +903,9 @@ static int dorewrite(u8_output out,fdtype xtract)
 	    u8_putn(out,FD_STRDATA(content),FD_STRLEN(content));
 	  else if (FD_APPLICABLEP(elt)) {
 	    fdtype xformed=rewrite_apply(elt,content,FD_EMPTY_LIST);
+	    if (FD_ABORTP(xformed)) {
+	      if (free_head) fd_decref(head);
+	      return -1;}
 	    u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
 	    fd_decref(xformed);}
 	  else {}
@@ -1345,9 +1350,10 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 	else if (FD_APPLICABLEP(parser)) {
 	  fdtype stringval=fd_stream2string(&_out);
 	  fdtype parsed_val=fd_finish_call(fd_dapply(parser,1,&stringval));
-	  fd_add(f,slotid,parsed_val);
+	  if (!(FD_ABORTP(parsed_val))) fd_add(f,slotid,parsed_val);
 	  fd_decref(parsed_val);
-	  fd_decref(stringval);}
+	  fd_decref(stringval);
+	  if (FD_ABORTP(parsed_val)) return -1;}
 	else if (FD_TRUEP(parser)) {
 	  fdtype parsed_val=fd_parse(_out.u8_outbuf);
 	  fd_add(f,slotid,parsed_val);
@@ -1619,31 +1625,35 @@ static int has_suffix(fdtype string,fdtype suffix)
   else return 0;
 }
 
-static int check_string(fdtype string,fdtype lexicon)
+static fdtype check_string(fdtype string,fdtype lexicon)
 {
-  if (FD_TRUEP(lexicon)) return 1;
+  if (FD_TRUEP(lexicon)) return string;
   else if (FD_PTR_TYPEP(lexicon,fd_hashset_type))
-    return fd_hashset_get((fd_hashset)lexicon,string);
+    if (fd_hashset_get((fd_hashset)lexicon,string))
+      return string;
+    else return FD_EMPTY_CHOICE;
   else if (FD_PAIRP(lexicon)) {
     fdtype table=FD_CAR(lexicon);
     fdtype key=FD_CDR(lexicon);
     fdtype value=fd_get(table,string,FD_EMPTY_CHOICE);
-    if (FD_EMPTY_CHOICEP(value)) return 0;
+    if (FD_EMPTY_CHOICEP(value)) return FD_EMPTY_CHOICE;
     else {
       fdtype subvalue=fd_get(value,key,FD_EMPTY_CHOICE);
       if ((FD_EMPTY_CHOICEP(subvalue)) ||
 	  (FD_VOIDP(subvalue)) ||
 	  (FD_FALSEP(subvalue))) {
-	fd_decref(value);  return 0;}
+	fd_decref(value);
+	return FD_EMPTY_CHOICE;}
       else {
 	fd_decref(value); fd_decref(subvalue);
-	return 1;}}}
+	return string;}}}
   else if (FD_APPLICABLEP(lexicon)) {
     fdtype result=fd_finish_call(fd_dapply(lexicon,1,&string));
-    if (FD_EMPTY_CHOICEP(result)) return 0;
-    else if (FD_FALSEP(result)) return 0;
+    if (FD_ABORTP(result)) return FD_ERROR_VALUE;
+    else if (FD_EMPTY_CHOICEP(result)) return FD_EMPTY_CHOICE;
+    else if (FD_FALSEP(result)) return FD_EMPTY_CHOICE;
     else {
-      fd_decref(result); return 1;}}
+      fd_decref(result); return string;}}
   else return 0;
 }
 
@@ -1654,7 +1664,7 @@ static fdtype apply_suffixrule
   if (FD_STRLEN(string)>128) return FD_EMPTY_CHOICE;
   else if (has_suffix(string,suffix))
     if (FD_STRINGP(replacement)) {
-      struct FD_STRING stack_string;
+      struct FD_STRING stack_string; fdtype result;
       U8_OUTPUT out; u8_byte buf[256];
       int slen=FD_STRLEN(string), sufflen=FD_STRLEN(suffix);
       int replen=FD_STRLEN(replacement);
@@ -1664,15 +1674,18 @@ static fdtype apply_suffixrule
       FD_INIT_STATIC_CONS(&stack_string,fd_string_type);
       stack_string.bytes=out.u8_outbuf;
       stack_string.length=out.u8_outptr-out.u8_outbuf;
-      if (check_string((fdtype)&stack_string,lexicon))
-	return fd_deep_copy((fdtype)&stack_string);
-      else return FD_EMPTY_CHOICE;}
+      result=check_string((fdtype)&stack_string,lexicon);
+      if (FD_ABORTP(result)) return result;
+      else if (FD_EMPTY_CHOICEP(result)) return result;
+      else return fd_deep_copy((fdtype)&stack_string);}
     else if (FD_APPLICABLEP(replacement)) {
       fdtype xform=fd_apply(replacement,1,&string);
       if (FD_ABORTP(xform)) return xform;
-      else if ((FD_STRINGP(xform)) && 
-	       ((FD_TRUEP(lexicon)) || (check_string(xform,lexicon))))
-	return xform;
+      else if (FD_STRINGP(xform)) {
+	fdtype checked=check_string(xform,lexicon);
+	if (FD_STRINGP(checked)) return checked;
+	else {
+	  fd_decref(xform); return checked;}}
       else {fd_decref(xform); return FD_EMPTY_CHOICE;}}
     else if (FD_VECTORP(replacement)) {
       fdtype rewrites=textrewrite(replacement,string,FD_INT2DTYPE(0),FD_VOID);
@@ -1680,12 +1693,16 @@ static fdtype apply_suffixrule
       else if (FD_CHOICEP(rewrites)) {
 	fdtype accepted=FD_EMPTY_CHOICE;
 	FD_DO_CHOICES(rewrite,rewrites) {
-	  if ((FD_STRINGP(rewrite)) && (check_string(rewrite,lexicon))) {
-	    FD_ADD_TO_CHOICE(accepted,rewrite); fd_incref(rewrite);}}
+	  if (FD_STRINGP(rewrite)) {
+	    fdtype checked=check_string(rewrite,lexicon);
+	    if (FD_ABORTP(checked)) {
+	      fd_decref(rewrites); return checked;}
+	    FD_ADD_TO_CHOICE(accepted,checked);
+	    fd_incref(checked);}}
 	fd_decref(rewrites);
 	return accepted;}
-      else if ((FD_STRINGP(rewrites)) && (check_string(rewrites,lexicon)))
-	return rewrites;
+      else if (FD_STRINGP(rewrites))
+	return check_string(rewrites,lexicon);
       else { fd_decref(rewrites); return FD_EMPTY_CHOICE;}}
     else return FD_EMPTY_CHOICE;
   else return FD_EMPTY_CHOICE;
