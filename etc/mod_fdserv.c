@@ -66,10 +66,21 @@ typedef unsigned int INTPOINTER;
 
 typedef struct FDSOCKET {
   enum {filesock,aprsock,badsock} socktype;
-  const char *sockname;
+  const char *sockname; apr_time_t inuse;
   union { int fd; apr_socket_t *apr;}
     sockdata;}
-  *fdsocket;
+  FDSOCKET;
+typedef struct FDSOCKET *fdsocket;
+
+typedef struct FDSERVLET {
+  unsigned char *sockname;
+  apr_mutex_t lock;
+  int n_reserve, n_conns;
+  struct FDSOCKET *sockets;} FDSERVLET;
+typedef struct FDSERVLET *fdservlet;
+  
+static struct FDSERVLET servlets[1024];
+static int n_servlets=0;
 
 #ifndef DEFAULT_ISASYNC
 #define DEFAULT_ISASYNC 0
@@ -183,6 +194,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
+  int reserve_conns;
   int servlet_wait;
   int is_async;
   uid_t uid; gid_t gid;};
@@ -194,6 +206,7 @@ struct FDSERV_DIR_CONFIG {
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
+  int reserve_conns;
   int servlet_wait;};
 
 static void *create_server_config(apr_pool_t *p,server_rec *s)
@@ -206,6 +219,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
+  config->reserve_conns=-1;
   config->servlet_wait=-1;
   config->is_async=-1;
   config->uid=-1; config->gid=-1;
@@ -223,6 +237,10 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
 
   if (child->uid <= 0) config->uid=parent->uid; else config->uid=child->uid;
   if (child->gid <= 0) config->gid=parent->gid; else config->gid=child->gid;
+
+  if (child->reserve_conns <= 0)
+    config->reserve_conns=parent->reserve_conns;
+  else config->reserve_conns=child->reserve_conns;
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
@@ -289,6 +307,7 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
+  config->reserve_conns=-1;
   config->servlet_wait=-1;
   return (void *) config;
 }
@@ -301,6 +320,10 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   struct FDSERV_DIR_CONFIG *child=new;
 
   memset(config,0,sizeof(struct FDSERV_DIR_CONFIG));
+
+  if (child->reserve_conns <= 0)
+    config->reserve_conns=parent->reserve_conns;
+  else config->reserve_conns=child->reserve_conns;
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
