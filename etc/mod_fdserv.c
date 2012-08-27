@@ -72,16 +72,6 @@ typedef struct FDSOCKET {
   FDSOCKET;
 typedef struct FDSOCKET *fdsocket;
 
-typedef struct FDSERVLET {
-  unsigned char *sockname;
-  apr_mutex_t lock;
-  int n_reserve, n_conns;
-  struct FDSOCKET *sockets;} FDSERVLET;
-typedef struct FDSERVLET *fdservlet;
-  
-static struct FDSERVLET servlets[1024];
-static int n_servlets=0;
-
 #ifndef DEFAULT_ISASYNC
 #define DEFAULT_ISASYNC 0
 #endif
