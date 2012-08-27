@@ -58,50 +58,32 @@ typedef unsigned int INTPOINTER;
 #endif
 #endif
 
-#define FDSERV_MAX_SERVLETS 64
-
 #if TRACK_EXECUTION_TIMES
 #include "sys/timeb.h"
 #endif
 
 #define FDSERV_MAGIC_TYPE "application/x-httpd-fdserv"
 
-static apr_pool_t *fdserv_pool;
-
-typedef enum {filesock,aprsock,badsock=0} fdsocktype;
-
 typedef struct FDSOCKET {
-  fdsocktype socktype;
-  const char *sockname;
-  apr_time_t busy; int socket_index;
+  enum {filesock,aprsock,badsock} socktype;
+  const char *sockname; apr_time_t inuse;
   union { int fd; apr_socket_t *apr;}
     sockdata;}
   FDSOCKET;
 typedef struct FDSOCKET *fdsocket;
 
 typedef struct FDSERVLET {
-  fdsocktype socktype;
-  const unsigned char *sockname;
-  int servlet_index;
-  const struct server_rec *server;
-  union {
-    struct sockaddr_un path;
-    struct apr_sockaddr_t *addr;}
-    endpoint;
-  apr_thread_mutex_t *lock; /* Lock to get/add sockets */
-  /* How many sockets are currently kept open and live in the sockets array. */
-  int n_socks;
-  int max_socks; /* How many sockets to keep open */
-  int n_busy; /* How many sockets are currently busy */
+  unsigned char *sockname;
+  apr_mutex_t lock;
+  int n_reserve, n_conns;
   struct FDSOCKET *sockets;} FDSERVLET;
 typedef struct FDSERVLET *fdservlet;
-
-static struct FDSERVLET servlets[FDSERV_MAX_SERVLETS];
+  
+static struct FDSERVLET servlets[1024];
 static int n_servlets=0;
-static apr_thread_mutex_t *servlets_lock;
 
 #ifndef DEFAULT_ISASYNC
-#define DEFAULT_ISASYNC 1
+#define DEFAULT_ISASYNC 0
 #endif
 
 static int default_isasync=DEFAULT_ISASYNC;
@@ -212,7 +194,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
-  int keep_conns;
+  int reserve_conns;
   int servlet_wait;
   int is_async;
   uid_t uid; gid_t gid;};
@@ -224,7 +206,7 @@ struct FDSERV_DIR_CONFIG {
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
-  int keep_conns;
+  int reserve_conns;
   int servlet_wait;};
 
 static void *create_server_config(apr_pool_t *p,server_rec *s)
@@ -237,7 +219,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
-  config->keep_conns=2;
+  config->reserve_conns=-1;
   config->servlet_wait=-1;
   config->is_async=-1;
   config->uid=-1; config->gid=-1;
@@ -256,9 +238,9 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   if (child->uid <= 0) config->uid=parent->uid; else config->uid=child->uid;
   if (child->gid <= 0) config->gid=parent->gid; else config->gid=child->gid;
 
-  if (child->keep_conns <= 0)
-    config->keep_conns=parent->keep_conns;
-  else config->keep_conns=child->keep_conns;
+  if (child->reserve_conns <= 0)
+    config->reserve_conns=parent->reserve_conns;
+  else config->reserve_conns=child->reserve_conns;
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
@@ -325,7 +307,7 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
-  config->keep_conns=-1;
+  config->reserve_conns=-1;
   config->servlet_wait=-1;
   return (void *) config;
 }
@@ -339,9 +321,9 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
 
   memset(config,0,sizeof(struct FDSERV_DIR_CONFIG));
 
-  if (child->keep_conns <= 0)
-    config->keep_conns=parent->keep_conns;
-  else config->keep_conns=child->keep_conns;
+  if (child->reserve_conns <= 0)
+    config->reserve_conns=parent->reserve_conns;
+  else config->reserve_conns=child->reserve_conns;
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
@@ -581,20 +563,6 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   return NULL;
 }
 
-static const char *servlet_keep_conns(cmd_parms *parms,void *mconfig,const char *arg)
-{
-  if (parms->path) {
-    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-    int n_connections=atoi(arg);
-    dconfig->keep_conns=n_connections;
-    return NULL;}
-  else {
-    struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
-    int n_connections=atoi(arg);
-    sconfig->keep_conns=n_connections;
-    return NULL;}
-}
-
 static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
 {
   if (parms->path) {
@@ -638,8 +606,6 @@ static const command_rec fdserv_cmds[] =
 	       "the prefix for the logfile to be used for scripts"),
   AP_INIT_TAKE1("FDServletLog", log_file, NULL, OR_ALL,
 	       "the logfile to be used for scripts"),
-  AP_INIT_TAKE1("FDServletKeep", servlet_keep_conns, NULL, OR_ALL,
-		"how many connections to the servlet to keep open"),
   AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE1("FDServletAsync", is_async, NULL, OR_ALL,
@@ -707,7 +673,7 @@ static const char *get_sockname(request_rec *r,const char *spec) /* 2.0 */
     
     ap_log_rerror
       (APLOG_MARK,APLOG_DEBUG,OK,r,
-       "FDSERV get_sockname socket_spec='%s', socket_prefix='%s', isdir=%d",
+       "spawn get_sockname socket_spec='%s', socket_prefix='%s', isdir=%d",
        socket_spec,socket_prefix,
        isdirectoryp(r->pool,socket_prefix));
     
@@ -927,153 +893,59 @@ static int spawn_fdservlet /* 2.0 */
   else return retval;
 }
 
-/* Maintaining the servlet table */
-
-static fdservlet get_servlet(const char *sockname)
+static char *get_pathspec(request_rec *r,char *buf)
 {
-  int i=0; int lim=n_servlets;
-  while (i<lim) {
-    if (strcmp(sockname,servlets[i].sockname)==0) return &(servlets[i]);
-    else i++;}
-  return NULL;
+  sprintf(buf,"%s:%s",r->server->server_hostname,r->uri);
+  return buf;
 }
 
-static fdservlet servlet_set_max_socks(fdservlet s,int max_socks)
+static fdsocket connect_to_servlet(request_rec *r)
 {
-  if (s->max_socks>max_socks) return s;
-  else {
-    apr_thread_mutex_lock(s->lock);
-    if (s->max_socks>max_socks) {
-      apr_thread_mutex_unlock(s->lock);
-      return s;}
-    else {
-      struct FDSOCKET *fresh=apr_pcalloc(fdserv_pool,sizeof(struct FDSOCKET)*max_socks);
-      if (s->max_socks) {
-	memcpy(fresh,s->sockets,(sizeof(struct FDSOCKET))*(s->max_socks));}
-      if (fresh) {
-	s->sockets=fresh; s->max_socks=max_socks;
-	apr_thread_mutex_unlock(s->lock);
-	return s;}
-      else {
-	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s->server,
-		     "Unable to update socket pool for %s",s->sockname);
-	apr_thread_mutex_unlock(s->lock);
-	return NULL;}}}
-}
-
-static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_socks)
-{
-  int i=0; int lim=n_servlets;
-  apr_thread_mutex_lock(servlets_lock);
-  while (i<lim) {
-    /* First check (probably again) if it's already there */
-    if (strcmp(sockname,servlets[i].sockname)==0) {
-      if (servlets[i].max_socks<max_socks)
-	servlet_set_max_socks(&(servlets[i]),max_socks);
-      apr_thread_mutex_unlock(servlets_lock);
-      return &(servlets[i]);}
-    else i++;}
-  if (i>=FDSERV_MAX_SERVLETS) {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
-		 "Already reached max servlets (%d), can't add %s",
-		 FDSERV_MAX_SERVLETS,sockname);
-    apr_thread_mutex_unlock(servlets_lock);
+  apr_socket_t *sock; char buf[512], *pathspec=get_pathspec(r,buf);
+  const char *sockname=get_sockname(r,pathspec);
+  struct FDSOCKET *result;
+  int rv=0;
+  /* TCP socket specs have either the form ttport@hostname or hostname:port
+     where ttport might be touch-tone encoded. */
+  int isfilesock=((sockname)&&
+		  ((strchr(sockname,'@'))==NULL)&&
+		  ((strchr(sockname,'/')!=NULL)||
+		   ((strchr(sockname,':'))==NULL)));
+  
+  if (sockname==NULL) {
+    ap_log_rerror
+      (APLOG_MARK,APLOG_CRIT,500,r,
+       "Couldn't resolve socket name for %s",r->unparsed_uri);
     return NULL;}
-  else {
-    int isfilesock=((sockname)&&
-		    ((strchr(sockname,'@'))==NULL)&&
-		    ((strchr(sockname,'/')!=NULL)||
-		     ((strchr(sockname,':'))==NULL)));
-    fdservlet servlet=&(servlets[i]);
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-		 "Adding new servlet for %s at #%d",sockname,i);
-    memset(servlet,0,sizeof(struct FDSERVLET));
-    servlet->sockname=apr_pstrdup(fdserv_pool,sockname);
-    servlet->server=r->server; servlet->servlet_index=i;
-    /* Initialize type and address/endpoint fields */
-    if (isfilesock) {
-      servlet->socktype=filesock;
-      servlet->endpoint.path.sun_family=AF_LOCAL;
-      strcpy(servlet->endpoint.path.sun_path,sockname);}
-    else {
-      apr_status_t retval;
-      apr_sockaddr_t *addr;
-      char *rname;
-      char hostname[128]; int portno=-1;
-      char *split=strchr(sockname,'@');
-      servlet->socktype=aprsock;
-      if (split) {
-	char portbuf[32];
-	strcpy(hostname,split+1);
-	strncpy(portbuf,sockname,split-sockname);
-	portbuf[split-sockname]='\0';
-	portno=atoi(portbuf);}
-      else if ((split=strchr(sockname,':'))) {
-	strncpy(hostname,sockname,split-sockname);
-	hostname[split-sockname]='\0';
-	portno=atoi(split+1);}
-      else {}
-      if (portno<0) {
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_WARNING,OK,r,
-	   "Unable to determine port from %s",sockname);
-	apr_thread_mutex_unlock(servlets_lock);
-	return NULL;}
-      retval=apr_sockaddr_info_get
-	(&(servlet->endpoint.addr),hostname,APR_UNSPEC,(short)portno,0,fdserv_pool);
-      if (retval!=APR_SUCCESS) {
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_WARNING,OK,r,
-	   "Unable to resolve connection info for port %d at %s",
-	   portno,sockname);
-	return NULL;}
-      else {
-	apr_sockaddr_ip_get(&rname,addr);
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_DEBUG,OK,r,
-	   "Got info for port %d at %s, addr=%s, port=%d",
-	   portno,hostname,rname,addr->port);}}
-    apr_thread_mutex_create(&(servlet->lock),APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
-    if (max_socks>=0) {
-      servlet_set_max_socks(servlet,max_socks);}
-    else {servlet->sockets=NULL; servlet->max_socks=-1;}
-    servlet->n_socks=0;
-    servlet->n_busy=0;
-    n_servlets++;
-    apr_thread_mutex_unlock(servlets_lock);
-    ap_log_error(APLOG_MARK,APLOG_INFO,OK,r->server,
-		 "Added new servlet for %s at #%d",sockname,i);
-    return servlet;}
-}
 
-/* Getting (and opening) sockets */
+  ap_log_error
+    (APLOG_MARK,APLOG_NOTICE,OK,r->server,
+     "mod_fdserv: Resolving request for %s through %s %s",
+     r->unparsed_uri,
+     ((isfilesock)?"file socket":"net socket"),
+     sockname);
 
-static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
-{
-  struct FDSOCKET *result; apr_pool_t *pool;
-  if (given) pool=fdserv_pool; else pool=r->pool;
-  if (given) result=given;
-  else result=apr_pcalloc(pool,sizeof(struct FDSOCKET));
-  ap_log_rerror
-    (APLOG_MARK,APLOG_DEBUG,OK,r,"Opening new %s socket to %s",
-     ((given==NULL)?("free-range"):("persistent")),
-     s->sockname);
-  if (s->socktype==filesock) {
-    const char *sockname=s->sockname;
-    int unix_sock=socket(PF_LOCAL,SOCK_STREAM,0), connval=-1, rv=-1;
+  if (isfilesock) {
+    struct sockaddr_un un_servname;
+    int unix_sock; int connval;
+    memset(&un_servname,0,sizeof(un_servname));
+    un_servname.sun_family=AF_LOCAL; strcpy(un_servname.sun_path,sockname);
+    unix_sock=socket(PF_LOCAL,SOCK_STREAM,0);
     if (unix_sock<0) {
       ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
 		    "Couldn't open socket for %s (errno=%d:%s)",
 		    sockname,errno,strerror(errno));
       return NULL;}
     else ap_log_rerror
-	   (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket %d to connect to %s",unix_sock,sockname);
-    connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
-		    SUN_LEN(&(s->endpoint.path)));
+	   (APLOG_MARK,APLOG_DEBUG,OK,r,
+	    "Opened socket %d to connect to %s",unix_sock,sockname);;
+    connval=connect(unix_sock,(struct sockaddr *)&un_servname,
+		    SUN_LEN(&un_servname));
     if (connval<0) {
       ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,500,r,
-	 "Couldn't connect socket to %s (errno=%d:%s), spawning",
+	(APLOG_MARK,APLOG_CRIT,500,
+	 r,((isfilesock)?("Couldn't connect socket to %s (errno=%d:%s), spawning"):
+	    ("Couldn't connect socket to %s (errno=%d:%s)")),
 	 sockname,errno,strerror(errno));
       errno=0;
       rv=spawn_fdservlet(r,r->pool,sockname);
@@ -1084,152 +956,94 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       else ap_log_rerror
 	     (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
       /* Now try again */
-      connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
-		      SUN_LEN(&(s->endpoint.path)));
+      connval=connect(unix_sock,(struct sockaddr *)&un_servname,
+		      SUN_LEN(&un_servname));
       if (connval < 0) {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
-	   sockname,errno,strerror(errno));
+	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
+	 sockname,errno,strerror(errno));
 	errno=0;
 	return NULL;}
-      else {}}
-    else {}
+      else {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Successfully connected to %s @ %d",
+	   sockname,unix_sock);}}
+    else ap_log_rerror
+	   (APLOG_MARK,APLOG_DEBUG,OK,r,
+	    "Connected to %s using %d",sockname,unix_sock);
+    result=apr_palloc(r->pool,sizeof(struct FDSOCKET));
     memset(result,0,sizeof(struct FDSOCKET));
-    ap_log_rerror
-      (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened new %s file socket (#%d) to %s",
-       ((given==NULL)?("free-range"):("persistent")),
-       unix_sock,s->sockname);
     result->socktype=filesock;
     result->sockname=sockname;
     result->sockdata.fd=unix_sock;
-    result->busy=apr_time_now();
-    result->socket_index=((given!=NULL)?(0):(-1));
+    ap_log_rerror
+      (APLOG_MARK,APLOG_DEBUG,OK,r,
+       "Returning unix/local/file socket %d for %s",
+       unix_sock,sockname);
     return result;}
-  else if (s->socktype==aprsock) {
+  else {
+    /* Use APR functions for network connection. */
     apr_status_t retval;
-    apr_socket_t *sock;
-    retval=apr_socket_create
-      (&sock,APR_INET,SOCK_STREAM,APR_PROTO_TCP,pool);
+    apr_sockaddr_t *addr;
+    char hostname[128]; int portno=-1;
+    char *split=strchr(sockname,'@');
+    if (split) {
+      char portbuf[32];
+      strcpy(hostname,split+1);
+      strncpy(portbuf,sockname,split-sockname);
+      portbuf[split-sockname]='\0';
+      portno=atoi(portbuf);}
+    else if ((split=strchr(sockname,':'))) {
+      strncpy(hostname,sockname,split-sockname);
+      hostname[split-sockname]='\0';
+      portno=atoi(split+1);}
+    else {}
+    if (portno<0) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_WARNING,OK,r,
+	 "Unable to determine port from %s",sockname);
+      return NULL;}
+    retval=apr_socket_create(&sock,APR_INET,SOCK_STREAM,APR_PROTO_TCP,
+			     r->pool);
     if (retval!=APR_SUCCESS) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_WARNING,OK,r,
 	 "Unable to allocate socket to connect with %s",
-	 s->sockname);
+	 sockname);
       return NULL;}
-    retval=apr_socket_connect(sock,s->endpoint.addr);
+    retval=apr_sockaddr_info_get
+      (&addr,hostname,APR_UNSPEC,(short)portno,0,r->pool);
+    if (retval!=APR_SUCCESS) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_WARNING,OK,r,
+	 "Unable to resolve connection info for port %d at %s",
+	 portno,sockname);
+      return NULL;}
+    {char *rname;
+      apr_sockaddr_ip_get(&rname,addr);
+      ap_log_rerror
+	(APLOG_MARK,APLOG_DEBUG,OK,r,
+	 "Got info for port %d at %s, addr=%s, port=%d",
+	 portno,hostname,rname,addr->port);}
+    retval=apr_socket_connect(sock,addr);
     if (retval!=APR_SUCCESS) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_WARNING,OK,r,
 	 "Unable to make connection to %s",
-	 s->sockname);
+	 sockname);
       return NULL;}
+    result=apr_palloc(r->pool,sizeof(struct FDSOCKET));
     memset(result,0,sizeof(struct FDSOCKET));
-    ap_log_rerror
-      (APLOG_MARK,APLOG_DEBUG,OK,r,"Opening new %s APR socket to %s",
-       ((given==NULL)?("free-range"):("persistent")),
-       s->sockname);
     result->socktype=aprsock;
-    result->sockname=s->sockname;
+    result->sockname=sockname;
     result->sockdata.apr=sock;
-    result->busy=apr_time_now();
-    result->socket_index=((given!=NULL)?(0):(-1));
+    ap_log_rerror
+      (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket to use with %s",
+       sockname);
     return result;}
-  else {
-    ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,"Bad servlet arg");}
-  return NULL;
 }
 
-static fdsocket servlet_connect(fdservlet s,request_rec *r)
-{
-  apr_thread_mutex_lock(s->lock); {
-    int i=0; int lim=s->n_socks;
-    if (s->n_socks>s->n_busy) {
-      /* There should be a free open socket to reuse */
-      struct FDSOCKET *sockets=s->sockets;
-      while (i<lim) {
-	if (sockets[i].busy>0) i++;
-	else {
-	  sockets[i].busy=apr_time_now();
-	  s->n_busy++;
-	  apr_thread_mutex_unlock(s->lock);
-	  if (s->socktype==filesock)
-	    ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-			  "Reusing file socket #%d (fd=%d) for %s",
-			  i,sockets[i].sockdata.fd,s->sockname);
-	  else ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-			     "Reusing socket #%d for %s",i,s->sockname);
-	  return &(sockets[i]);}}}
-    if (s->n_socks>=s->max_socks) {
-      /* Can't allocate any more keepers, so just open a regular socket. */
-      apr_thread_mutex_unlock(s->lock);
-      return servlet_open(s,NULL,r);}
-    else {
-      /* i should be the same as n_socks, so we try to open that socket. */
-      struct FDSOCKET *sockets=s->sockets;
-      fdsocket sock=servlet_open(s,&(sockets[i]),r);
-      if (sock) {
-	s->n_socks++; s->n_busy++; sock->socket_index=i;
-	apr_thread_mutex_unlock(s->lock);
-	ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-		      "Using new persistent socket #%d for %s",i,s->sockname);
-	return sock;}
-      else {
-	/* Failed for some reason, open an excess socket */
-	apr_thread_mutex_unlock(s->lock);
-	return servlet_open(s,NULL,r);}}}
-}
-
-static fdsocket servlet_return_socket(fdservlet servlet,fdsocket sock)
-{
-  apr_thread_mutex_lock(servlet->lock);
-  sock->busy=((apr_time_t)(-1));
-  servlet->n_busy--;
-  apr_thread_mutex_unlock(servlet->lock);
-  if (sock->socktype==filesock)
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
-		 "Returned file socket #%d (fd=%d) for reuse with %s",
-		 sock->socket_index,sock->sockdata.fd,servlet->sockname);
-  else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
-		    "Returned socket #%d for reuse with %s",
-		    sock->socket_index,servlet->sockname);
-}
-
-/* Connecting to the servlet */
-
-static char *get_pathspec(request_rec *r,char *buf)
-{
-  sprintf(buf,"%s:%s",r->server->server_hostname,r->uri);
-  return buf;
-}
-
-static fdservlet request_servlet(request_rec *r)
-{
-  char buf[512], *pathspec=get_pathspec(r,buf);
-  const char *sockname=get_sockname(r,pathspec);
-  struct FDSERV_SERVER_CONFIG *sconfig=
-    ap_get_module_config(r->server->module_config,&fdserv_module);
-  struct FDSERV_DIR_CONFIG *dconfig=
-    ap_get_module_config(r->per_dir_config,&fdserv_module);
-  fdservlet servlet; int keep_conns=sconfig->keep_conns;
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-		"Resolving through servlet %s",sockname);
-  servlet=get_servlet(sockname);
-  if ((dconfig)&&(dconfig->keep_conns>keep_conns)) keep_conns=dconfig->keep_conns;
-  if (servlet) {
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-		  "Found existing servlet #%d for use with %s",
-		  servlet->servlet_index,servlet->sockname);
-    servlet_set_max_socks(servlet,keep_conns);
-    return servlet;}
-  else {
-    servlet=add_servlet(r,sockname,keep_conns);
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
-		  "Allocated new servlet entry @ #%d for use with %s",
-		  servlet->servlet_index,servlet->sockname);
-    return servlet;}
-}
-
-/* Writing DTypes to BUFFs */
+/* Writing DTYpes to BUFFs */
 
 /* In Apache 2.0, BUFFs seem to be replaced by buckets in brigades,
     but that seems a little overhead heavy for the output buffers used
@@ -1534,7 +1348,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
 {
   apr_time_t started=apr_time_now(), connected, requested, responded;
   BUFF *reqdata;
-  fdservlet servlet; fdsocket sock;
+  fdsocket sock;
   char *post_data, errbuf[512];
   int post_size;
   int bytes_written=0, bytes_transferred=-1;
@@ -1555,8 +1369,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
 		"Entered fdserv_handler for %s from %s",
 		r->filename,r->unparsed_uri);
-  servlet=request_servlet(r);
-  sock=servlet_connect(servlet,r);
+  sock=connect_to_servlet(r);
   errno=0; if (!(sock)) {
     ap_log_error(APLOG_MARK,APLOG_ERR,OK,r->server,
 		 "mod_fdserv: Connection failed to %s for %s",
@@ -1671,9 +1484,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     apr_table_set(r->subprocess_env,"EXECUTED","yes");
     apr_table_set(r->notes,"exectime",buf);}
 #endif
-  if (sock->socket_index>=0) {
-    servlet_return_socket(servlet,sock);}
-  else if (sock->socktype==aprsock) {
+  if (sock->socktype==aprsock) {
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
 		 "mod_fdserv: Closing network socket for %s",
 		 sock->sockname);
@@ -1719,8 +1530,6 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
 	   (APLOG_MARK,APLOG_NOTICE,retval,s,
 	    "mod_fdserv: Using socket prefix directory %s",dirname);}
   socketname_table=apr_table_make(p,64);
-  fdserv_pool=p;
-  apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
   init_version_info();
   ap_add_version_component(p,version_info);
   ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
