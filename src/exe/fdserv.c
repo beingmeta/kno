@@ -37,6 +37,9 @@
 
 #include "revision.h"
 
+/* This is the size of file to return all at once. */
+#define FD_FILEBUF_MAX (256*256)
+
 static u8_condition Startup=_("FDSERV Startup");
 
 FD_EXPORT void fd_init_fdweb(void);
@@ -394,6 +397,10 @@ static int webservefn(u8_client ucl)
     report_status();
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0;
+  /* Reset the streams */
+  outstream->u8_outptr=outstream->u8_outbuf;
+  stream->ptr=stream->end=stream->start;
+  /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->buf!=NULL)&&(!(client->writing))&&
       (client->off>=client->len)) { 
     /* We got the whole payload, set up the stream
@@ -405,9 +412,7 @@ static int webservefn(u8_client ucl)
     return 1;}
   else if ((client->buf!=NULL)&&(client->writing)) {
     /* Do the transaction closing stuff */
-    /* If we were to reuse connections (which would be nice),
-       we would call u8_client_done(ucl) instead. */
-    u8_client_close(ucl);
+    u8_client_done(ucl);
     return 0;}
   else if (async) {
     fd_dts_start_read(stream);
@@ -605,79 +610,79 @@ static int webservefn(u8_client ucl)
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&httphead,1024); U8_INIT_OUTPUT(&htmlhead,1024);
     fd_output_http_headers(&httphead,cgidata);
-    if (!(async)) {
-      u8_putn(&httphead,"\r\n",2);
-      http_len=httphead.u8_outptr-httphead.u8_outbuf;
-      u8_writeall(client->socket,httphead.u8_outbuf,http_len);}
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
-      /* Normal case, when the 'standard' output is just sent to the
-	 client */
+      char clen_header[128]; u8_byte *bundle;
+      size_t bundle_len=0;
+      if (write_headers) {
+	close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
+	head_len=(htmlhead.u8_outptr-htmlhead.u8_outbuf);
+	if (close_html) u8_puts(outstream,"\n</body>\n</html>\n");}
+      content_len=head_len+(outstream->u8_outptr-outstream->u8_outbuf);
+      sprintf(clen_header,"Content-length: %lu\r\n\r\n",
+	      (unsigned long)content_len);
+      u8_puts(&httphead,clen_header);
+      content_len=outstream->u8_outptr-outstream->u8_outbuf;
+      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
+      bundle_len=http_len+head_len+content_len;
       if (!(async)) {
-	/* Non asynchronous case, where we wait around for u8_writeall
-	   to write all our content. */
-	if (write_headers) {
-	  close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
-	  head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
-	  u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);}
-	content_len=(outstream->u8_outptr-outstream->u8_outbuf);
-	retval=u8_writeall(client->socket,outstream->u8_outbuf,content_len);
-	if (close_html) {
-	  content_len=content_len+strlen("\n</body>\n</html>\n");
-	  write_string(client->socket,"\n</body>\n</html>\n");}}
+	u8_writeall(client->socket,httphead.u8_outbuf,http_len);
+	u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);
+	u8_writeall(client->socket,outstream->u8_outbuf,content_len);
+	return_code=0;}
       else {
-	char clen_header[128]; u8_byte *bundle;
-	size_t bundle_len=0;
-	if (write_headers) {
-	  close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
-	  head_len=(htmlhead.u8_outptr-htmlhead.u8_outbuf);
-	  if (close_html)
-	    u8_puts(outstream,"\n</body>\n</html>\n");}
-	content_len=head_len+(outstream->u8_outptr-outstream->u8_outbuf);
-	sprintf(clen_header,"Content-length: %lu\r\n\r\n",
-		(unsigned long)content_len);
-	u8_puts(&httphead,clen_header);
-	content_len=outstream->u8_outptr-outstream->u8_outbuf;
-	http_len=httphead.u8_outptr-httphead.u8_outbuf;
-	head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
-	bundle_len=http_len+head_len+content_len;
-	{
-	  u8_byte *start;
-	  u8_grow_stream(outstream,head_len+http_len+1);
-	  start=outstream->u8_outbuf;
-	  memmove(start+head_len+http_len,start,content_len);
-	  strncpy(start,httphead.u8_outbuf,http_len);
-	  strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
-	  outstream->u8_outptr=start+http_len+head_len+content_len;
-	  client->buf=start; client->buflen=bundle_len;
-	  client->off=0; client->len=bundle_len;
-	  client->async=1; client->writing=1;
-	  return_code=1;}}}
+	u8_byte *start;
+	u8_grow_stream(outstream,head_len+http_len+1);
+	start=outstream->u8_outbuf;
+	memmove(start+head_len+http_len,start,content_len);
+	strncpy(start,httphead.u8_outbuf,http_len);
+	strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
+	outstream->u8_outptr=start+http_len+head_len+content_len;
+	client->buf=start; client->buflen=bundle_len;
+	client->off=0; client->len=bundle_len;
+	client->async=1; client->writing=1;
+	return_code=1;}}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signalling, etc */
       u8_string filename=FD_STRDATA(retfile);
-      FILE *f=u8_fopen(filename,"rb");
-      if (f) {
-	int bytes_read=0; unsigned char buf[32768];
-	if (!(async)) {
-	  u8_putn(&httphead,"\r\n",2);
-	  http_len=httphead.u8_outptr-httphead.u8_outbuf;
-	  u8_writeall(client->socket,httphead.u8_outbuf,http_len);}
-	while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
-	  content_len=content_len+bytes_read;
-	  retval=u8_writeall(client->socket,buf,bytes_read);
-	  if (retval<0) break;}
-	fclose(f);}
-      else {}}
+      struct stat fileinfo; FILE *f;
+      if ((stat(filename,&fileinfo)==0)&&(f=u8_fopen(filename,"rb")))  {
+	int bytes_read=0;
+	unsigned char *filebuf=NULL; off_t total_len=-1;
+	u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
+		  (long int)(fileinfo.st_size));
+	http_len=httphead.u8_outptr-httphead.u8_outbuf;
+	total_len=http_len+fileinfo.st_size;
+	if ((!(async))||(total_len>FD_FILEBUF_MAX)||
+	    ((filebuf=u8_malloc(total_len))==NULL)) {
+	  char buf[32768];
+	  /* This is the case where we hang while we write */
+	  u8_writeall(client->socket,httphead.u8_outbuf,http_len);
+	  while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
+	    content_len=content_len+bytes_read;
+	    retval=u8_writeall(client->socket,buf,bytes_read);
+	    if (retval<0) break;}
+	  return_code=0;}
+	else {
+	  unsigned char *write=filebuf+http_len;
+	  off_t to_read=fileinfo.st_size, so_far=0;
+	  memcpy(write,httphead.u8_outbuf,http_len);
+	  while ((to_read>0)&&
+		 ((bytes_read=fread(write,sizeof(unsigned char),to_read,f))>0)) {
+	    to_read=to_read-bytes_read;}
+	  client->buf=filebuf; client->buflen=total_len;
+	  client->off=0; client->len=total_len;
+	  client->async=1; client->writing=1;
+	  return_code=1;
+	  fclose(f);}}
+      else {/* Error here */}}
     else {
-      u8_putn(&httphead,"\r\n",2);
-      http_len=httphead.u8_outptr-httphead.u8_outbuf;
       /* Where the servlet has specified some particular content */
       content_len=content_len+output_content(client,content);}
     /* Reset the stream */
     outstream->u8_outptr=outstream->u8_outbuf;
-    /* If we were to reuse connections (which would be nice),
-       we would call u8_client_done(ucl) instead. */
-    if (!(return_code)) {u8_client_close(ucl);}
+    /* If we're not still in the transaction, call u8_client_done() */
+    if (!(return_code)) {u8_client_done(ucl);}
     if (traceweb>2)
       u8_log(LOG_NOTICE,"HTTPHEAD","HTTPHEAD=%s",httphead.u8_outbuf);
     u8_free(httphead.u8_outbuf); u8_free(htmlhead.u8_outbuf);
@@ -1119,10 +1124,13 @@ int main(int argc,char **argv)
 		     _("Whether to have libu8 log each transaction"),
 		     config_get_u8server_flag,config_set_u8server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
+#ifdef U8_SERVER_ASYNC
   fd_register_config("U8ASYNC",
 		     _("Whether to support thread-asynchronous transactions"),
 		     config_get_u8server_flag,config_set_u8server_flag,
 		     (void *)(U8_SERVER_ASYNC));
+  if (async_mode) fdwebserver.flags=fdwebserver.flags|U8_SERVER_ASYNC;
+#endif
   
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
