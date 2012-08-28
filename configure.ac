@@ -89,6 +89,7 @@ logdir="/var/log"
 archflags=""
 with_mysql_default="yes"
 with_crypto_default="no"
+use_dtblock_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 DEFAULTISASYNC=0
@@ -438,7 +439,7 @@ else
 fi
 
 dnl Build the shared libraries.  
-AC_ARG_ENABLE(dtblock,--en[able]-dtblock DTBlock dtype for net I/O)
+AC_ARG_ENABLE(dtblock,--en[able]-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
 
 if test "x$enable_dtblock" = "xyes"; then
   USEDTBLOCK=1
