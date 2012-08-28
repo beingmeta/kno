@@ -507,6 +507,21 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   return NULL;
 }
 
+/* Connection settings */
+
+static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
+  if (!(arg))
+    sconfig->use_dtblock=0;
+  else if (!(*arg))
+    sconfig->use_dtblock=0;
+  else if ((*arg=='1')||(*arg=='y')||(*arg=='y'))
+    sconfig->use_dtblock=1;
+  else sconfig->use_dtblock=0;
+  return NULL;
+}
+
 static const char *servlet_keep(cmd_parms *parms,void *mconfig,const char *arg)
 {
   if (parms->path) {
@@ -519,29 +534,6 @@ static const char *servlet_keep(cmd_parms *parms,void *mconfig,const char *arg)
     int n_connections=atoi(arg);
     sconfig->keep_socks=n_connections;
     return NULL;}
-}
-
-static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
-{
-  if (parms->path) {
-    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-    int wait_interval=atoi(arg);
-    dconfig->servlet_wait=wait_interval;
-    return NULL;}
-  else return NULL;
-}
-
-static const char *is_async(cmd_parms *parms,void *mconfig,const char *arg)
-{
-  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
-  if (!(arg))
-    sconfig->is_async=0;
-  else if (!(*arg))
-    sconfig->is_async=0;
-  else if ((*arg=='1')||(*arg=='y')||(*arg=='y'))
-    sconfig->is_async=1;
-  else sconfig->is_async=0;
-  return NULL;
 }
 
 /* How to run fdserv */
@@ -561,6 +553,16 @@ static const char *servlet_executable
       sconfig->server_executable=arg;
       return NULL;}
   else return "server executable is not executable";
+}
+
+static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  if (parms->path) {
+    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+    int wait_interval=atoi(arg);
+    dconfig->servlet_wait=wait_interval;
+    return NULL;}
+  else return NULL;
 }
 
 static char **extend_config(apr_pool_t *p,char **config_args,const char *var,const char *val);
@@ -719,41 +721,18 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   return NULL;
 }
 
-static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
-{
-  if (parms->path) {
-    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-    int wait_interval=atoi(arg);
-    dconfig->servlet_wait=wait_interval;
-    return NULL;}
-  else return NULL;
-}
-
-static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
-{
-  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
-  if (!(arg))
-    sconfig->use_dtblock=0;
-  else if (!(*arg))
-    sconfig->use_dtblock=0;
-  else if ((*arg=='1')||(*arg=='y')||(*arg=='y'))
-    sconfig->use_dtblock=1;
-  else sconfig->use_dtblock=0;
-  return NULL;
-}
-
 static const command_rec fdserv_cmds[] =
 {
-  AP_INIT_TAKE1("FDServletKeep", servlet_keep, NULL, OR_ALL,
-		"how many connections to the servlet to keep open"),
-  AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
-		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE1("FDServletDTBlock", using_dtblock, NULL, OR_ALL,
 		"whether to use the DTBlock DType representation to send requests"),
+  AP_INIT_TAKE1("FDServletKeep", servlet_keep, NULL, OR_ALL,
+		"how many connections to the servlet to keep open"),
 
   /* Everything below here is stuff about how to start a servlet */
   AP_INIT_TAKE1("FDServletExecutable", servlet_executable, NULL, OR_ALL,
 	       "the executable used to start a servlet"),
+  AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
+		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE2("FDServletConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
   AP_INIT_TAKE1("FDServletUser", servlet_user, NULL, RSRC_CONF,
