@@ -73,7 +73,7 @@ typedef enum {filesock,aprsock,badsock=0} fdsocktype;
 
 typedef struct FDSOCKET {
   fdsocktype socktype;
-  const unsigned char *sockname;
+  const char *sockname;
   struct FDSERVLET *servlet;
   apr_time_t busy; int socket_index; int closed;
   union { int fd; apr_socket_t *apr;}
@@ -83,7 +83,7 @@ typedef struct FDSOCKET *fdsocket;
 
 typedef struct FDSERVLET {
   fdsocktype socktype;
-  const unsigned char *sockname;
+  const char *sockname;
   int servlet_index;
   const struct server_rec *server;
   union {
@@ -230,7 +230,9 @@ struct FDSERV_SERVER_CONFIG {
   int keep_socks;
   int servlet_wait;
   int is_async;
-  uid_t uid; gid_t gid;};
+  /* We make these ints because apr_uid_t and even uid_t is sometimes
+     unsigned, leaving no way to signal an empty value.  Go figure. */
+  int uid; int gid;};
 
 struct FDSERV_DIR_CONFIG {
   const char *server_executable;
@@ -244,7 +246,7 @@ struct FDSERV_DIR_CONFIG {
 
 static const char *get_sockname(request_rec *r)
 {
-  unsigned char locbuf[PATH_MAX], pathbuf[PATH_MAX];
+  char locbuf[PATH_MAX], pathbuf[PATH_MAX];
   const char *cached, *location;
   sprintf(locbuf,"%s:%s",r->server->server_hostname,r->uri);
   location=locbuf;
@@ -587,7 +589,12 @@ static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
-  if ((sconfig->uid=ap_uname2id(arg)) >= 0) return NULL;
+  int uid=(int)ap_uname2id(arg);
+  if (uid >= 0) {
+    /* On some platforms (OS X), this condition can never happen,
+       which seems like a bug.*/
+    sconfig->uid=uid;
+    return NULL;}
   else return "invalid user id";
 }
 
@@ -596,7 +603,12 @@ static const char *servlet_group(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
-  if ((sconfig->gid=ap_gname2id(arg)) >= 0) return NULL;
+  int gid=(int)ap_gname2id(arg);
+  if (gid >= 0) {
+    /* On some platforms (OS X), this condition can never happen,
+       which seems like a bug.*/
+    sconfig->gid=gid;
+    return NULL;}
   else return "invalid group id";
 }
 
@@ -1220,8 +1232,14 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	return servlet_open(s,NULL,r);}}}
 }
 
-static fdsocket servlet_return_socket(fdservlet servlet,fdsocket sock)
+static int servlet_return_socket(fdservlet servlet,fdsocket sock)
 {
+  if (sock->socket_index<0) return 0;
+  if (sock->servlet!=servlet) {
+    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
+		 "Internal error, returning socket (for %s) to wrong servlet (%s)",
+		 sock->sockname,servlet->sockname);
+    return -1;}
   apr_thread_mutex_lock(servlet->lock);
   sock->busy=((apr_time_t)(-1));
   servlet->n_busy--;
@@ -1233,10 +1251,17 @@ static fdsocket servlet_return_socket(fdservlet servlet,fdsocket sock)
   else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
 		    "Returned socket #%d for reuse with %s",
 		    sock->socket_index,servlet->sockname);
+  return 1;
 }
 
-static fdsocket servlet_close_socket(fdservlet servlet,fdsocket sock)
+static int servlet_close_socket(fdservlet servlet,fdsocket sock)
 {
+  if (sock->socket_index<0) return 0;
+  if (sock->servlet!=servlet) {
+    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
+		 "Internal error, returning socket (for %s) to wrong servlet (%s)",
+		 sock->sockname,servlet->sockname);
+    return -1;}
   apr_thread_mutex_lock(servlet->lock);
   if (sock->socktype==filesock)
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
@@ -1260,11 +1285,12 @@ static fdsocket servlet_close_socket(fdservlet servlet,fdsocket sock)
       ap_log_error(APLOG_MARK,APLOG_DEBUG,rv,servlet->server,
 		   "Error closing APR socket #%d to %s",
 		   sock->socket_index,servlet->sockname);
-    sock->sockdata.apr;}
+    sock->sockdata.apr=NULL;}
   else {}
   sock->closed=1;
   if (sock->socket_index>=0) servlet->n_busy--;
   apr_thread_mutex_unlock(servlet->lock);
+  return 1;
 }
 
 /* Connecting to the servlet */
@@ -1375,7 +1401,7 @@ static int write_table_as_slotmap
 {
   const apr_array_header_t *ah=apr_table_elts(t); int n_elts=ah->nelts;
   apr_table_entry_t *scan=(apr_table_entry_t *) ah->elts, *limit=scan+n_elts;
-  size_t n_bytes=6, delta=0;
+  ssize_t n_bytes=6, delta=0;
   if (ap_bneeds(b,6)<0) return -1; 
   ap_bputc(0x42,b); ap_bputc(0xC1,b);
   if (post_size) buf_write_4bytes(n_elts*2+2,b);
@@ -1442,7 +1468,8 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
 
 
 static int sock_write(request_rec *r,
-		      const unsigned char *buf,long int n_bytes,
+		      const unsigned char *buf,
+		      long int n_bytes,
 		      fdsocket sockval)
 {
   if (sockval->socktype==filesock)
@@ -1460,8 +1487,11 @@ static int sock_write(request_rec *r,
     apr_size_t bytes_to_write=n_bytes, block_size=n_bytes;
     apr_ssize_t bytes_written=0;
     while (bytes_written < n_bytes) {
-      apr_status_t rv=apr_socket_send(sock,buf+bytes_written,&block_size);
-      if ((block_size<0)||(rv!=APR_SUCCESS)) {
+      /* Since we haven't called apr_socket_timeout_set, this call
+	 will block, which is ok here. */
+      apr_status_t rv=apr_socket_send
+	(sock,(char *)(buf+bytes_written),&block_size);
+      if (rv!=APR_SUCCESS) {
 	char errbuf[256]="unknown", *err;
 	err=apr_strerror(rv,errbuf,256);
 	ap_log_error
@@ -1548,22 +1578,26 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
   if (sockval->socktype==aprsock) {
     apr_socket_t *sock=sockval->sockdata.apr;
     while ((content_length<0)||(bytes_read<content_length)) {
-      apr_size_t delta=4096, written=-1;
+      apr_size_t delta=4096, written=0;
       apr_status_t rv;
       rv=apr_socket_recv(sock,buf,&delta);
-      if (delta>0) {
-	bytes_read=bytes_read+delta;
-	written=ap_rwrite(buf,delta,r);}
-      else if (rv!=OK) {
+      if (rv!=OK) {
 	ap_log_error
 	  (APLOG_MARK,APLOG_DEBUG,rv,r->server,
 	   "mod_fdserv: Stopped after reading %ld bytes",
 	   (long int)bytes_read);
 	error=1;
 	break;}
-      else if (errno==EAGAIN) continue;
+      else if (delta>0) {
+	int chunk=ap_rwrite(buf,delta,r); written=0;
+	bytes_read=bytes_read+delta;
+	while (written<delta) {
+	  if (chunk<0) break;
+	  written=written+chunk;
+	  chunk=ap_rwrite(buf+written,delta-written,r);}
+	if (chunk<0) {error=1; break;}}
       else {error=1; break;}
-      if (written<0) {
+      if (written<=0) {
 	ap_log_error
 	  (APLOG_MARK,APLOG_ERR,OK,r->server,
 	   "mod_fdserv: Error writing to client after reading/writing %ld/%ld bytes",
@@ -1587,8 +1621,13 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     while ((content_length<0)||(bytes_read<content_length)) {
       ssize_t delta=read(sock,buf,4096), written=-1;
       if (delta>0) {
+	int chunk=ap_rwrite(buf,delta,r); written=0;
 	bytes_read=bytes_read+delta;
-	written=ap_rwrite(buf,delta,r);}
+	while (written<delta) {
+	  if (chunk<0) break;
+	  written=written+chunk;
+	  chunk=ap_rwrite(buf+written,delta-written,r);}
+	if (chunk<0) {error=1; break;}}
       else if (delta==0) {
 	if (bytes_read<content_length) error=1;
 	break;}
@@ -1666,7 +1705,7 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   servlet=request_servlet(r);
   if (!(servlet)) {
     ap_log_error(APLOG_MARK,APLOG_ERR,OK,r->server,
-		 "mod_fdserv: Couldn't find servlet for %s",
+		 "mod_fdserv: Couldn't get servlet %s to resolve %s",
 		 r->filename,r->unparsed_uri);
     if (errno) error=strerror(errno); else error="no servlet";
     errno=0;}
@@ -1694,8 +1733,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   reqdata=ap_bcreate(r->pool,0);
   if (!(reqdata)) {
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: Couldn't allocate bufstream",
-		 r->unparsed_uri,r->filename);
+	       "mod_fdserv: Couldn't allocate bufstream for processing %s",
+		 r->unparsed_uri);
     errno=0;
     servlet_close_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
