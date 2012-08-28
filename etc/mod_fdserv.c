@@ -1340,7 +1340,42 @@ static fdservlet request_servlet(request_rec *r)
     return servlet;}
 }
 
+/* Cleaning up servlets */
+
+static apr_status_t close_servlets(void *data)
+{
+  apr_pool_t *p=(apr_pool_t *)data;
+  int i=0; int lim; int sock_count=0;
+  apr_thread_mutex_lock(servlets_lock);
+  lim=n_servlets;
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv closing %d open servlets",lim);
+  while (i<lim) {
+    fdservlet s=&(servlets[i++]);
+    int j=0, n_socks;
+    struct FDSOCKET *sockets;
+    apr_thread_mutex_lock(s->lock);
+    sockets=s->sockets; n_socks=s->n_socks;
+    while (j<n_socks) {
+      fdsocket sock=&(sockets[j++]);
+      if (sock->closed) continue;
+      sock_count++;
+      if (sock->socktype==filesock) close(sock->sockdata.fd);
+      else if (sock->socktype==aprsock)
+	apr_socket_close(sock->sockdata.apr);
+      else {}
+      sock->closed=1; sock->busy=1;}
+    apr_thread_mutex_unlock(s->lock);}
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv closed %d open sockets across %d servlets",
+		sock_count,lim);
+  apr_thread_mutex_unlock(servlets_lock);
+  return OK;
+}
+
 /* Writing DTypes to BUFFs */
+
+#define ARBITRARY_BUFLIM (8*65536)
 
 /* In Apache 2.0, BUFFs seem to be replaced by buckets in brigades,
     but that seems a little overhead heavy for the output buffers used
@@ -1348,18 +1383,21 @@ static fdservlet request_servlet(request_rec *r)
     simple reimplementation happens. here.  */
 typedef struct BUFF {
   apr_pool_t *p; unsigned char *buf, *ptr, *lim;} BUFF;
-static int ap_bneeds(BUFF *b,int n)
+static int ap_bneeds(BUFF *b,size_t n)
 {
-  if (b->ptr+n>=b->lim) {
-    int old_size=b->lim-b->buf, off=b->ptr-b->buf, need_off=off+n, new_size=old_size;
+  if ((b->ptr+n)>=b->lim) {
+    size_t old_size=b->lim-b->buf, off=b->ptr-b->buf;
+    size_t need_off=off+n, new_size=old_size;
+    unsigned char *nbuf;
     while (need_off>new_size) {
-      if (new_size>(8*65536)) 
-	new_size=32768*(2+(need_off/32768));
+      if (new_size>=ARBITRARY_BUFLIM) {
+	new_size=ARBITRARY_BUFLIM*(2+(need_off/ARBITRARY_BUFLIM));
+	break;}
       else new_size=new_size*2;}
-    unsigned char *nbuf=
-      (unsigned char *)prealloc(b->p,(char *)b->buf,new_size,old_size);
+    nbuf=apr_pcalloc(b->p,new_size);
     if (!(nbuf)) return -1;
-    b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+old_size*2;
+    memcpy(nbuf,b->buf,off);
+    b->buf=nbuf; b->ptr=nbuf+off; b->lim=nbuf+new_size;
     return new_size;}
   else return b->lim-b->buf;
 }
@@ -1374,7 +1412,7 @@ static int ap_bputs(char *string,BUFF *b)
 {
   int len=strlen(string);
   if (ap_bneeds(b,len+1)<0) return -1; 
-  strcpy((char *)b->ptr,string); b->ptr=b->ptr+len;
+  memcpy((char *)b->ptr,string,len); b->ptr=b->ptr+len;
   return len;
 }
 static int ap_bwrite(BUFF *b,char *string,int len)
@@ -1387,7 +1425,7 @@ static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
 {
   struct BUFF *b=apr_palloc(p,sizeof(struct BUFF));
   if (!(b)) return b;
-  b->p=p; b->ptr=b->buf=apr_palloc(p,1024); b->lim=b->buf+1024;
+  b->p=p; b->ptr=b->buf=apr_palloc(p,4096); b->lim=b->buf+4096;
   return b;
 }
 
@@ -1403,7 +1441,8 @@ static int buf_write_string(char *string,BUFF *b)
 {
   int len=strlen(string);
   if (ap_bneeds(b,len+5)<0) return -1; 
-  ap_bputc(0x06,b); buf_write_4bytes(len,b); ap_bputs(string,b);
+  ap_bputc(0x06,b); buf_write_4bytes(len,b);
+  ap_bwrite(b,string,len);
   return len+5;
 }
 
@@ -1411,7 +1450,8 @@ static int buf_write_symbol(char *string,BUFF *b)
 {
   int len=strlen(string);
   if (ap_bneeds(b,len+5)<0) return -1; 
-  ap_bputc(0x07,b); buf_write_4bytes(len,b); ap_bputs(string,b);
+  ap_bputc(0x07,b); buf_write_4bytes(len,b);
+  ap_bwrite(b,string,len);
   return len+5;
 }
 
@@ -1553,7 +1593,7 @@ static int sock_write(request_rec *r,
        "Writing %ld bytes to file socket %d",
        bytes_to_write,sock);
     while (bytes_written < n_bytes) {
-      int block_size=write(sock,buf,n_bytes-bytes_written);
+      int block_size=write(sock,buf+bytes_written,n_bytes-bytes_written);
       if (block_size<0) {
 	ap_log_error
 	  (APLOG_MARK,APLOG_DEBUG,OK,r->server,
@@ -1796,10 +1836,10 @@ static int fdserv_handler(request_rec *r)
     unsigned char buf[8];
     unsigned int nbytes=reqdata->ptr-reqdata->buf;
     buf[0]=0x14;
-    buf[1]=((nbytes>>24)&0xF);
-    buf[2]=((nbytes>>16)&0xF);
-    buf[3]=((nbytes>>8)&0xF);
-    buf[4]=((nbytes>>0)&0xF);
+    buf[1]=((nbytes>>24)&0xFF);
+    buf[2]=((nbytes>>16)&0xFF);
+    buf[3]=((nbytes>>8)&0xFF);
+    buf[4]=((nbytes>>0)&0xFF);
     bytes_written=sock_write(r,buf,5,sock);}
   if ((using_dtblock)&&(bytes_written<5)) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,r->server,
@@ -1895,13 +1935,13 @@ static int fdserv_handler(request_rec *r)
   return OK;
 }
 
-static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
-			server_rec *s)
+static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
+			      server_rec *s)
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(s->module_config,&fdserv_module);
   ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
-		"mod_fdserv v%s starting init for Apache 2.x (%s)",
+		"mod_fdserv v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
     sconfig->socket_prefix=apr_pstrdup(p,"/var/run/fdserv/");
@@ -1921,23 +1961,37 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
     else ap_log_error
 	   (APLOG_MARK,APLOG_NOTICE,retval,s,
 	    "mod_fdserv: Using socket prefix directory %s",dirname);}
+  init_version_info();
+  ap_add_version_component(p,version_info);
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv v%s finished post config for Apache 2.x",
+		version_num);
+  return OK;
+}
+
+static void fdserv_init(apr_pool_t *p,server_rec *s)
+{
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv v%s starting child init (%d) for Apache 2.x (%s)",
+		version_num,(int)getpid(),_FILEINFO);
   socketname_table=apr_table_make(p,64);
   fdserv_pool=p;
   apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
   servlets=apr_pcalloc(fdserv_pool,sizeof(struct FDSERVLET)*(FDSERV_INIT_SERVLETS));
   max_servlets=FDSERV_INIT_SERVLETS;
-  init_version_info();
-  ap_add_version_component(p,version_info);
+#if 0
+  apr_pool_cleanup_register(p,p,close_servlets,NULL);
+#endif
   ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
-		"mod_fdserv v%s finished init for Apache 2.x (%s)",
-		version_num,_FILEINFO);
-  return OK;
+		"mod_fdserv v%s finished child init (%d) for Apache 2.x",
+		version_num,(int)getpid());
 }
 static void register_hooks(apr_pool_t *p)
 {
   /* static const char * const run_first[]={ "mod_mime",NULL }; */
   ap_hook_handler(fdserv_handler, NULL, NULL, APR_HOOK_LAST);
-  ap_hook_post_config(fdserv_init, NULL, NULL, APR_HOOK_MIDDLE);
+  ap_hook_child_init(fdserv_init, NULL, NULL, APR_HOOK_MIDDLE);
+  ap_hook_post_config(fdserv_post_config, NULL, NULL, APR_HOOK_MIDDLE);
 }
 
 module AP_MODULE_DECLARE_DATA fdserv_module =
