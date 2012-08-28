@@ -19,6 +19,8 @@
 #define FD_DEBUG_DTYPEIO 0
 #endif
 
+int fd_use_dtblock=FD_USE_DTBLOCK;
+
 int (*fd_dtype_error)
      (struct FD_BYTE_OUTPUT *,fdtype x,u8_string details)=NULL;
 
@@ -1193,6 +1195,9 @@ FD_EXPORT void fd_init_dtypeio_c()
   u8_register_source_file(_FILEINFO);
 
   error_symbol=fd_intern("%ERROR");
+
+  fd_register_config("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),
+		     fd_boolconfig_get,fd_boolconfig_set,&fd_use_dtblock);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(dtype_unpacker_lock));

@@ -45,6 +45,10 @@
 #define FD_MMAP_PREFETCH_WINDOW 0
 #endif
 
+#ifndef FD_USE_DTBLOCK
+#define FD_USE_DTBLOCK 0
+#endif
+
 #define FD_WRITETHROUGH_THREADCACHE 1
 
 /* This is set to make incref/decref into no-ops, which is helpful

@@ -826,16 +826,13 @@ debian-build-setup:
 
 # The mod_fdserv module
 
-etc/fdserv_version.h:
+etc/mod_fdserv.so: etc/mod_fdserv.c
 	echo "#define _FILEINFO \""`./fileinfo etc/mod_fdserv.c .`"\"" \
-		> $@
-etc/mod_fdserv.so: etc/mod_fdserv.c etc/fdserv_version.h
-	cd etc; ${APXS} -DDEFAULT_ISASYNC=@DEFAULTISASYNC@ \
+		> etc/mod_fdserv_fileinfo.h
+	cd etc; ${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ \
 			-c mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
-	cd etc; ${APXS} -DDEFAULT_ISASYNC=@DEFAULTISASYNC@ \
-			-c mod_fdserv.c;
 
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c

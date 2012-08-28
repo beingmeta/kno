@@ -28,7 +28,7 @@
 #define APACHE20 1
 #define APACHE13 0
 
-#include "fdserv_version.h"
+#include "mod_fdserv_fileinfo.h"
 
 #if (APR_SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;
@@ -112,7 +112,11 @@ static apr_thread_mutex_t *servlets_lock;
 #define _FILEINFO __FILE
 #endif
 
-static int default_isasync=DEFAULT_ISASYNC;
+#ifndef USEDTBLOCK
+#define USEDTBLOCK 0
+#endif
+
+static int use_dtblock=USEDTBLOCK;
 
 char *version_num="2.0.1";
 char version_info[256];
@@ -241,7 +245,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *log_file;
   int keep_socks;
   int servlet_wait;
-  int is_async;
+  int use_dtblock;
   /* We make these ints because apr_uid_t and even uid_t is sometimes
      unsigned, leaving no way to signal an empty value.  Go figure. */
   int uid; int gid;};
@@ -314,7 +318,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->log_file=NULL;
   config->keep_socks=2;
   config->servlet_wait=-1;
-  config->is_async=-1;
+  config->use_dtblock=-1;
   config->uid=-1; config->gid=-1;
   return (void *) config;
 }
@@ -339,9 +343,9 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
 
-  if (child->is_async <= 0)
-    config->is_async=parent->is_async;
-  else config->is_async=child->is_async;
+  if (child->use_dtblock <= 0)
+    config->use_dtblock=parent->use_dtblock;
+  else config->use_dtblock=child->use_dtblock;
 
   if (child->server_executable)
     config->server_executable=apr_pstrdup(p,child->server_executable);
@@ -715,19 +719,43 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
   return NULL;
 }
 
+static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  if (parms->path) {
+    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+    int wait_interval=atoi(arg);
+    dconfig->servlet_wait=wait_interval;
+    return NULL;}
+  else return NULL;
+}
+
+static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
+  if (!(arg))
+    sconfig->use_dtblock=0;
+  else if (!(*arg))
+    sconfig->use_dtblock=0;
+  else if ((*arg=='1')||(*arg=='y')||(*arg=='y'))
+    sconfig->use_dtblock=1;
+  else sconfig->use_dtblock=0;
+  return NULL;
+}
+
 static const command_rec fdserv_cmds[] =
 {
   AP_INIT_TAKE1("FDServletKeep", servlet_keep, NULL, OR_ALL,
 		"how many connections to the servlet to keep open"),
   AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
-  AP_INIT_TAKE1("FDServletAsync", is_async, NULL, OR_ALL,
-		"whether to assume asynchronous fdserv support"),
+  AP_INIT_TAKE1("FDServletDTBlock", using_dtblock, NULL, OR_ALL,
+		"whether to use the DTBlock DType representation to send requests"),
+
+  /* Everything below here is stuff about how to start a servlet */
   AP_INIT_TAKE1("FDServletExecutable", servlet_executable, NULL, OR_ALL,
 	       "the executable used to start a servlet"),
   AP_INIT_TAKE2("FDServletConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
-
   AP_INIT_TAKE1("FDServletUser", servlet_user, NULL, RSRC_CONF,
 	       "the user whom the fdservlet will run as"),
   AP_INIT_TAKE1("FDServletGroup", servlet_group, NULL, RSRC_CONF,
@@ -1685,8 +1713,8 @@ static int fdserv_handler(request_rec *r)
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
-  int using_dtblock=((sconfig->is_async<0)?(default_isasync):
-		     ((sconfig->is_async)?(1):(0)));
+  int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
+		     ((sconfig->use_dtblock)?(1):(0)));
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1893,9 +1921,9 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(s->module_config,&fdserv_module);
-  ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,s,
-	       "mod_fdserv v%s (%s) starting init for Apache 2.x",
-	       version_num,_FILEINFO);
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv v%s starting init for Apache 2.x (%s)",
+		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
     sconfig->socket_prefix=apr_pstrdup(p,"/var/run/fdserv/");
   if (sconfig->socket_prefix[0]=='/') {
@@ -1921,9 +1949,9 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
   max_servlets=FDSERV_INIT_SERVLETS;
   init_version_info();
   ap_add_version_component(p,version_info);
-  ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,s,
-	       "mod_fdserv v%s (%s) init for Apache 2.x  completed",
-	       version_num,_FILEINFO);
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv v%s finished init for Apache 2.x (%s)",
+		version_num,_FILEINFO);
   return OK;
 }
 static void register_hooks(apr_pool_t *p)
