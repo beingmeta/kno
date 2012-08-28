@@ -17,6 +17,10 @@
 
 #include <stdarg.h>
 
+#ifndef FD_USE_DTBLOCK
+#define FD_USE_DTBLOCK 0
+#endif
+
 static int default_async=FD_DEFAULT_ASYNC;
 
 static fdtype dteval_sock(u8_socket conn,fdtype expr)
@@ -40,7 +44,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
   /* u8_log(LOG_DEBUG,"DTEVAL","Using connection %d",conn); */
-  if (async) {
+  if ((async)&&(fd_use_dtblock)) {
     retval=fd_dtswrite_byte(&stream,dt_block);
     if (retval>0) retval=fd_dtswrite_4bytes(&stream,0);
     if (retval>0) retval=fd_dtswrite_dtype(&stream,expr);}

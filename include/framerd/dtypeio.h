@@ -64,6 +64,8 @@ enum dt_framerd_subtypes
     dt_qchoice=0xC3, dt_small_qchoice=0x83,
     dt_hashset=0xC4, dt_small_hashset=0x84};
 
+FD_EXPORT int fd_use_dtblock;
+
 /* Arithmetic stubs */
 
 FD_EXPORT fdtype(*_fd_make_rational)(fdtype car,fdtype cdr);

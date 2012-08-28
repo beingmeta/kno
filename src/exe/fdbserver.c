@@ -349,7 +349,7 @@ static int dtypeserver(u8_client ucl)
        so we just use that. */
     fd_dts_start_write(stream);
     stream->ptr=stream->start;
-    if (async) {
+    if (fd_use_dtblock) {
       int nbytes; unsigned char *ptr;
       fd_dtswrite_byte(stream,dt_block);
       fd_dtswrite_4bytes(stream,0);
