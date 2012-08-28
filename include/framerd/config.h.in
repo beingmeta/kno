@@ -286,6 +286,9 @@
 #undef HAVE_ZIP_SET_FILE_COMPRESSION
 
 /* Whether to assume async support in servers (by default) */
+#undef FD_USE_DTBLOCK
+
+/* Whether to assume async support in servers (by default) */
 #undef FD_DEFAULT_ASYNC
 
 #endif

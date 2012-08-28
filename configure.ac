@@ -92,6 +92,7 @@ with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 DEFAULTISASYNC=0
+USEDTBLOCK=0
 
 AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_AUX_DIR(etc)
@@ -151,6 +152,7 @@ AC_SUBST(INSTALLCMODULES)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
 AC_SUBST(DEFAULTISASYNC)
+AC_SUBST(USEDTBLOCK)
 
 AC_CANONICAL_HOST
 AC_PROG_CC([cc gcc])
@@ -433,6 +435,17 @@ if test "x$enable_async" = "xyes"; then
 else
   DEFAULTISASYNC=0
   AC_DEFINE(FD_DEFAULT_ASYNC,0)
+fi
+
+dnl Build the shared libraries.  
+AC_ARG_ENABLE(dtblock,--en[able]-dtblock DTBlock dtype for net I/O)
+
+if test "x$enable_dtblock" = "xyes"; then
+  USEDTBLOCK=1
+  AC_DEFINE(FD_USE_DTBLOCK,1)
+else
+  USEDTBLOCK=0
+  AC_DEFINE(FD_USE_DTBLOCK,0)
 fi
 
 # Internationalization

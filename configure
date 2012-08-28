@@ -633,6 +633,7 @@ build_os
 build_vendor
 build_cpu
 build
+USEDTBLOCK
 DEFAULTISASYNC
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
@@ -752,6 +753,7 @@ with_dload_path
 with_boot_config
 enable_shared
 enable_async
+enable_dtblock
 with_i18n
 enable_threads
 enable_mmap_prefetch
@@ -1404,6 +1406,7 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-shared Build with/without shared libraries
 --enable-async Enable async I/O features
+--enable-dtblock DTBlock dtype for net I/O
 --en/disable-threads Enable multi-threading
 --en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -2712,6 +2715,7 @@ with_crypto_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 DEFAULTISASYNC=0
+USEDTBLOCK=0
 
 
 ac_aux_dir=
@@ -2744,6 +2748,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
 
 
 
@@ -5738,6 +5743,22 @@ if test "x$enable_async" = "xyes"; then
 else
   DEFAULTISASYNC=0
   $as_echo "#define FD_DEFAULT_ASYNC 0" >>confdefs.h
+
+fi
+
+# Check whether --enable-dtblock was given.
+if test "${enable_dtblock+set}" = set; then :
+  enableval=$enable_dtblock;
+fi
+
+
+if test "x$enable_dtblock" = "xyes"; then
+  USEDTBLOCK=1
+  $as_echo "#define FD_USE_DTBLOCK 1" >>confdefs.h
+
+else
+  USEDTBLOCK=0
+  $as_echo "#define FD_USE_DTBLOCK 0" >>confdefs.h
 
 fi
 

@@ -28,7 +28,7 @@
 #define APACHE20 1
 #define APACHE13 0
 
-#include "fdserv_version.h"
+#include "mod_fdserv_fileinfo.h"
 
 #if (APR_SIZEOF_VOIDP==8)
 typedef unsigned long long INTPOINTER;
@@ -72,11 +72,11 @@ typedef struct FDSOCKET {
   FDSOCKET;
 typedef struct FDSOCKET *fdsocket;
 
-#ifndef DEFAULT_ISASYNC
-#define DEFAULT_ISASYNC 0
+#ifndef USEDTBLOCK
+#define USEDTBLOCK 0
 #endif
 
-static int default_isasync=DEFAULT_ISASYNC;
+static int use_dtblock=USEDTBLOCK;
 
 /* Compatibility */
 
@@ -186,7 +186,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *log_file;
   int reserve_conns;
   int servlet_wait;
-  int is_async;
+  int use_dtblock;
   uid_t uid; gid_t gid;};
 
 struct FDSERV_DIR_CONFIG {
@@ -211,7 +211,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->log_file=NULL;
   config->reserve_conns=-1;
   config->servlet_wait=-1;
-  config->is_async=-1;
+  config->use_dtblock=-1;
   config->uid=-1; config->gid=-1;
   return (void *) config;
 }
@@ -236,9 +236,9 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
 
-  if (child->is_async <= 0)
-    config->is_async=parent->is_async;
-  else config->is_async=child->is_async;
+  if (child->use_dtblock <= 0)
+    config->use_dtblock=parent->use_dtblock;
+  else config->use_dtblock=child->use_dtblock;
 
   if (child->server_executable)
     config->server_executable=apr_pstrdup(p,child->server_executable);
@@ -563,16 +563,16 @@ static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
   else return NULL;
 }
 
-static const char *is_async(cmd_parms *parms,void *mconfig,const char *arg)
+static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
 {
   struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
   if (!(arg))
-    sconfig->is_async=0;
+    sconfig->use_dtblock=0;
   else if (!(*arg))
-    sconfig->is_async=0;
+    sconfig->use_dtblock=0;
   else if ((*arg=='1')||(*arg=='y')||(*arg=='y'))
-    sconfig->is_async=1;
-  else sconfig->is_async=0;
+    sconfig->use_dtblock=1;
+  else sconfig->use_dtblock=0;
   return NULL;
 }
 
@@ -598,8 +598,8 @@ static const command_rec fdserv_cmds[] =
 	       "the logfile to be used for scripts"),
   AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
-  AP_INIT_TAKE1("FDServletAsync", is_async, NULL, OR_ALL,
-		"whether to assume asynchronous fdserv support"),
+  AP_INIT_TAKE1("FDServletDTBlock", using_dtblock, NULL, OR_ALL,
+		"whether to use the DTBlock DType representation to send requests"),
   
   {NULL}
 };
@@ -1345,8 +1345,8 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
-  int using_dtblock=((sconfig->is_async<0)?(default_isasync):
-		     ((sconfig->is_async)?(1):(0)));
+  int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
+		     ((sconfig->use_dtblock)?(1):(0)));
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1501,6 +1501,9 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(s->module_config,&fdserv_module);
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv v%s starting init for Apache 2.x (%s)",
+		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
     sconfig->socket_prefix=apr_pstrdup(p,"/var/run/fdserv/");
   if (sconfig->socket_prefix[0]=='/') {
@@ -1522,9 +1525,9 @@ static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
   socketname_table=apr_table_make(p,64);
   init_version_info();
   ap_add_version_component(p,version_info);
-  ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
-	       "mod_fdserv v%s (%s) init for Apache 2.x  completed",
-	       version_num,_FILEINFO);
+  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+		"mod_fdserv v%s finished init for Apache 2.x (%s)",
+		version_num,_FILEINFO);
   return OK;
 }
 static void register_hooks(apr_pool_t *p)
