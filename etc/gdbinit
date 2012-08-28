@@ -103,6 +103,7 @@ set breakpoint pending on
 
 break u8_new_exception
 break _fd_debug
+break _u8_debug
 break u8_raise
 #break abort
 #break exit
