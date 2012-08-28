@@ -58,7 +58,7 @@ typedef unsigned int INTPOINTER;
 #endif
 #endif
 
-#define FDSERV_INIT_SERVLETS 64
+#define FDSERV_INIT_SERVLETS 32
 
 #if TRACK_EXECUTION_TIMES
 #include "sys/timeb.h"
@@ -98,6 +98,8 @@ typedef struct FDSERVLET {
   struct FDSOCKET *sockets;} FDSERVLET;
 typedef struct FDSERVLET *fdservlet;
 
+module AP_MODULE_DECLARE_DATA fdserv_module;
+
 static struct FDSERVLET *servlets;
 static int n_servlets=0, max_servlets=-1;
 static apr_thread_mutex_t *servlets_lock;
@@ -106,9 +108,21 @@ static apr_thread_mutex_t *servlets_lock;
 #define DEFAULT_ISASYNC 1
 #endif
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE
+#endif
+
 static int default_isasync=DEFAULT_ISASYNC;
 
-/* Compatibility */
+char *version_num="2.0.1";
+char version_info[256];
+
+static void init_version_info()
+{
+  sprintf(version_info,"mod_fdserv/%s",version_num);
+}
+
+/* Compatibility and utilities */
 
 #define APLOG_HEAD APLOG_MARK,APLOG_DEBUG,OK
 #define ap_can_exec(file) (1)
@@ -136,8 +150,6 @@ static char *prealloc(apr_pool_t *p,char *ptr,int new_size,int old_size)
   if (newptr != ptr) memmove(newptr,ptr,old_size);
   return newptr;
 }
-
-module AP_MODULE_DECLARE_DATA fdserv_module;
 
 static char *makepath(apr_pool_t *p,const char *root,const char *name)
 {
@@ -1659,24 +1671,9 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     return -1;}
 }
 
-/* May be used for debugging */
-static void log_buf(char *msg,int size,char *data,request_rec *r)
-{
-  char *buf=apr_palloc(r->pool,size*2+1);
-  int i=0, j=0; while (i<size) {
-    int byte=data[i++];
-    char hi=(byte>>4), lo=byte&0x0F;
-    if (hi<10) buf[j++]='0'+hi;
-    else buf[j++]='A'+hi;
-    if (lo<10) buf[j++]='0'+lo;
-    else buf[j++]='A'+lo;}
-  buf[j]='\0';
-  ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	       "mod_fdserv: (%s) %d bytes of data: %s",
-	       msg,size,buf);
-}
+/* The main event handler */
 
-static int fdserv_handler(request_rec *r) /* 2.0 */
+static int fdserv_handler(request_rec *r)
 {
   apr_time_t started=apr_time_now(), connected, requested, responded;
   BUFF *reqdata;
@@ -1889,14 +1886,6 @@ static int fdserv_handler(request_rec *r) /* 2.0 */
     close(sock->sockdata.fd);}
   else {}
   return OK;
-}
-
-char *version_num="1.6.7";
-char version_info[256];
-
-static void init_version_info()
-{
-  sprintf(version_info,"mod_fdserv/%s",version_num);
 }
 
 static int fdserv_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
