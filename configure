@@ -2712,6 +2712,7 @@ logdir="/var/log"
 archflags=""
 with_mysql_default="yes"
 with_crypto_default="no"
+use_dtblock_default="no"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 DEFAULTISASYNC=0
@@ -5749,6 +5750,8 @@ fi
 # Check whether --enable-dtblock was given.
 if test "${enable_dtblock+set}" = set; then :
   enableval=$enable_dtblock;
+else
+  enable_dtblock=$use_dtblock_default
 fi
 
 
