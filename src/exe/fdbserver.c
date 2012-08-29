@@ -269,7 +269,7 @@ static int dtypeserver(u8_client ucl)
 	client->buf=stream->ptr;
 	client->len=nbytes;
 	client->buflen=stream->end-stream->start;
-	client->async=1; client->writing=0;
+	client->writing=u8_microtime();
 	return 1;}}
     else expr=fd_dtsread_dtype(stream);}
   else expr=fd_dtsread_dtype(stream);
@@ -364,7 +364,7 @@ static int dtypeserver(u8_client ucl)
       client->buf=stream->start;
       client->len=stream->ptr-stream->start;
       client->buflen=stream->end-stream->start;
-      client->async=1; client->writing=1;
+      client->writing=u8_microtime();
       return 1;}
     else {
       fd_dtswrite_dtype(stream,value);
