@@ -1128,7 +1128,8 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 		    sockname,errno,strerror(errno));
       return NULL;}
     else ap_log_rerror
-	   (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened socket %d to connect to %s",unix_sock,sockname);
+	   (APLOG_MARK,APLOG_DEBUG,OK,r,
+	    "Opened socket %d to connect to %s",unix_sock,sockname);
     connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
 		    SUN_LEN(&(s->endpoint.path)));
     if (connval<0) {
@@ -1160,6 +1161,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened new %s file socket (fd=%d) to %s",
        ((given==NULL)?("ephemeral"):("sticky")),
        unix_sock,s->sockname);
+    result->servlet=s;
     result->socktype=filesock;
     result->sockname=sockname;
     result->sockdata.fd=unix_sock;
@@ -1189,6 +1191,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       (APLOG_MARK,APLOG_DEBUG,OK,r,"Opening new %s APR socket to %s",
        ((given==NULL)?("ephemeral"):("sticky")),
        s->sockname);
+    result->servlet=s;
     result->socktype=aprsock;
     result->sockname=s->sockname;
     result->sockdata.apr=sock;
@@ -1233,6 +1236,9 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       return sock;}
     if (s->n_socks>=s->max_socks) {
       /* Can't allocate any more keepers, so just open a regular socket. */
+      ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
+		    "Using an ephemeral socket because n=%d and max=%d",
+		    s->n_socks,s->max_socks);
       apr_thread_mutex_unlock(s->lock);
       return servlet_open(s,NULL,r);}
     else {
@@ -1254,7 +1260,12 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 static int servlet_return_socket(fdservlet servlet,fdsocket sock)
 {
   if (sock->socket_index<0) return 0;
-  if (sock->servlet!=servlet) {
+  if (!(sock->servlet)) {
+    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
+		 "Internal error, returning socket (for %s) without a servlet",
+		 sock->sockname,servlet->sockname);
+    return -1;}
+  else if (sock->servlet!=servlet) {
     ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
 		 "Internal error, returning socket (for %s) to wrong servlet (%s)",
 		 sock->sockname,servlet->sockname);
@@ -1979,9 +1990,7 @@ static void fdserv_init(apr_pool_t *p,server_rec *s)
   apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
   servlets=apr_pcalloc(fdserv_pool,sizeof(struct FDSERVLET)*(FDSERV_INIT_SERVLETS));
   max_servlets=FDSERV_INIT_SERVLETS;
-#if 0
-  apr_pool_cleanup_register(p,p,close_servlets,NULL);
-#endif
+  apr_pool_pre_cleanup_register(p,p,close_servlets);
   ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
 		"mod_fdserv v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
