@@ -1261,12 +1261,12 @@ static int servlet_return_socket(fdservlet servlet,fdsocket sock)
 {
   if (sock->socket_index<0) return 0;
   if (!(sock->servlet)) {
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
+    ap_log_error(APLOG_MARK,APLOG_ERR,OK,servlet->server,
 		 "Internal error, returning socket (for %s) without a servlet",
-		 sock->sockname,servlet->sockname);
+		 sock->sockname);
     return -1;}
   else if (sock->servlet!=servlet) {
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,servlet->server,
+    ap_log_error(APLOG_MARK,APLOG_ERR,OK,servlet->server,
 		 "Internal error, returning socket (for %s) to wrong servlet (%s)",
 		 sock->sockname,servlet->sockname);
     return -1;}
