@@ -414,25 +414,25 @@ static int webservefn(u8_client ucl)
     /* Do the transaction closing stuff */
     u8_client_done(ucl);
     return 0;}
-  else if (async) {
+  else {
     fd_dts_start_read(stream);
-    if ((havebytes((fd_byte_input)stream,1))&&
+    if ((async)&&
+	(havebytes((fd_byte_input)stream,1))&&
 	((*(stream->ptr))==dt_block)) {
-      /* If we can be asynchronous, let's try */
-      int dtcode=fd_dtsread_byte(stream);
-      int nbytes=fd_dtsread_4bytes(stream);
-      if (fd_has_bytes(stream,nbytes)) {
-	/* We can execute without waiting */}
-      else {
-	/* Allocate enough space for what we need to read */
-	fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
-	/* Set up the client for async input */
-	client->buf=stream->ptr;
-	client->len=nbytes;
-	client->buflen=stream->end-stream->start;
-	client->async=1; client->writing=0;
-	return 1;}}}
-  else {}
+	  /* If we can be asynchronous, let's try */
+	  int dtcode=fd_dtsread_byte(stream);
+	  int nbytes=fd_dtsread_4bytes(stream);
+	  if (fd_has_bytes(stream,nbytes)) {
+	    /* We can execute without waiting */}
+	  else {
+	    /* Allocate enough space for what we need to read */
+	    fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
+	    /* Set up the client for async input */
+	    client->buf=stream->ptr;
+	    client->len=nbytes;
+	    client->buflen=stream->end-stream->start;
+	    client->async=1; client->writing=0;
+	    return 1;}}}
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
   /* Clear outstanding errors from the last session */
