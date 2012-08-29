@@ -782,7 +782,7 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
   const char *log_prefix=
     ((dconfig->log_prefix) ? (dconfig->log_prefix) :
      (sconfig->log_prefix) ? (sconfig->log_prefix) :
-     "/var/log/fdserv/");
+     ap_server_root_relative(r->pool,"logs/fdserv/"));
   
   ap_log_rerror
     (APLOG_MARK,APLOG_DEBUG,OK,r,
