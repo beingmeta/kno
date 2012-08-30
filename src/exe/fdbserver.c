@@ -209,7 +209,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_DTYPE_STREAM stream; int n_errs;
+  struct FD_DTYPE_STREAM stream; int errcount;
   time_t lastlive; double elapsed;
   fd_lispenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
@@ -229,7 +229,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
       client->stream.id=u8_strdup(client->idstring);
     else client->stream.id=u8_strdup("fdbserver/dtypestream");}
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
-  client->n_errs=0; client->elapsed=0; client->lastlive=((time_t)(-1));
+  client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
   return (u8_client) client;
 }
@@ -243,15 +243,15 @@ static int dtypeserver(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
-  if ((client->buf!=NULL)&&(!(client->writing))&&
+  if ((client->buf!=NULL)&&(!(client->writing>0))&&
       (client->off>=client->len)) { 
     stream->end=stream->ptr+client->len;
     expr=fd_dtsread_dtype(stream);}
-  else if ((client->buf!=NULL)&&(!(client->writing))&&
+  else if ((client->buf!=NULL)&&(!(client->writing>0))&&
 	   (client->off<client->len)) {
     /* This should never happen, but just in case, continue. */
     return 1;}
-  else if ((client->buf!=NULL)&&(client->writing)) {
+  else if ((client->buf!=NULL)&&(client->writing>0)) {
     /* Just report that the transaction is over. */
     return 0;}
   else if (async) {
@@ -477,8 +477,84 @@ static fdtype get_uptime()
 
 static fdtype get_server_status()
 {
-  u8_string status=u8_server_status(&dtype_server,NULL,0);
-  return fd_lispstring(status);
+  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  struct U8_SERVER_STATS stats;
+  long long now; double elapsed;
+  /* THe w* variables track how long queued tasks have been waiting */
+  /* The r* variables track how long running tasks have been running */
+  long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
+  long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
+  int i=0, lim; struct U8_CLIENT **socketmap;
+  u8_lock_mutex(&(dtype_server.lock));
+  now=u8_microtime(); elapsed=u8_elapsed_time();
+  lim=dtype_server.socket_lim; socketmap=dtype_server.socketmap;
+  while (i<lim) {
+    u8_client cl=socketmap[i++];
+    if (!(cl)) continue;
+    if (cl->queued>=0) {
+      long long queuestart=cl->queued;
+      long long interval=now-queuestart;
+      wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
+      if (interval>wmax) wmax=interval;}
+    if (cl->started>=0) {
+      long long runstart=cl->started;
+      long long interval=now-runstart;
+      rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
+      if (interval>rmax) rmax=interval;}}
+  fd_store(result,fd_intern("NTHREADS"),FD_INT2DTYPE(dtype_server.n_threads));
+  fd_store(result,fd_intern("NQUEUED"),FD_INT2DTYPE(dtype_server.n_queued));
+  fd_store(result,fd_intern("NBUSY"),FD_INT2DTYPE(dtype_server.n_busy));
+  fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(dtype_server.n_clients));
+  fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(dtype_server.n_trans));
+  fd_store(result,fd_intern("TOTALCONN"),FD_INT2DTYPE(dtype_server.n_accepted));
+  u8_unlock_mutex(&(dtype_server.lock));
+  u8_server_statistics(&dtype_server,&stats);
+
+  fd_store(result,fd_intern("NACTIVE"),FD_INT2DTYPE(stats.n_active));
+  fd_store(result,fd_intern("NREADING"),FD_INT2DTYPE(stats.n_reading));
+  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_reading));
+  fd_store(result,fd_intern("NXBUSY"),FD_INT2DTYPE(stats.n_busy));
+  if (stats.tcount>0) {
+    fd_store(result,fd_intern("TRANSAVG"),
+	     fd_make_double(((double)stats.tsum)/(((double)stats.tcount))));
+    fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(stats.tmax));
+    fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(stats.tcount));}
+
+  if (stats.acount>0) {
+    fd_store(result,fd_intern("ACTIVEAVG"),
+	     fd_make_double(((double)stats.asum)/(((double)stats.acount))));
+    fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(stats.amax));
+    fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(stats.acount));}
+    
+  if (stats.rcount>0) {
+    fd_store(result,fd_intern("READAVG"),
+	     fd_make_double(((double)stats.rsum)/(((double)stats.rcount))));
+    fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(stats.rmax));
+    fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(stats.rcount));}
+  
+  if (stats.wcount>0) {
+    fd_store(result,fd_intern("WRITEAVG"),
+	     fd_make_double(((double)stats.wsum)/(((double)stats.wcount))));
+    fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(stats.wmax));
+    fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(stats.wcount));}
+  
+  if (stats.xcount>0) {
+    fd_store(result,fd_intern("EXECAVG"),
+	     fd_make_double(((double)stats.xsum)/(((double)stats.xcount))));
+    fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(stats.xmax));
+    fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(stats.xcount));}
+
+  fd_store(result,fd_intern("RUNCOUNT"),FD_INT2DTYPE(rcount));
+  fd_store(result,fd_intern("RUNMAX"),FD_INT2DTYPE(rmax));
+  fd_store(result,fd_intern("RUNMIN"),FD_INT2DTYPE(rmin));
+  fd_store(result,fd_intern("RUNAVG"),fd_make_double(((double)rsum)/rcount));
+
+  fd_store(result,fd_intern("WAITCOUNT"),FD_INT2DTYPE(wcount));
+  fd_store(result,fd_intern("WAITMAX"),FD_INT2DTYPE(wmax));
+  fd_store(result,fd_intern("WAITMIN"),FD_INT2DTYPE(wmin));
+  fd_store(result,fd_intern("WAITAVG"),fd_make_double(((double)wsum)/wcount));
+
+  return result;
 }
 
 static fdtype asyncok()
