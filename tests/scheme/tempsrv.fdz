@@ -13,7 +13,7 @@
 (define xfibr (within-module 'samplefns fibr))
 (define (fibi n) (xfibi n))
 (define (fibr n) (xfibr n))
+(define (status) (server-status))
 (unless (config 'EXPORTALL #f)
-  (module-export! '{plus minus fibi fibr slowfib}))
-
+  (module-export! '{plus minus fibi fibr slowfib status}))
 
