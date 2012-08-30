@@ -167,77 +167,81 @@ static fdtype statinterval_get(fdtype var,void *data)
 
 static void report_status()
 {
-  u8_lock_mutex(&(fdwebserver.lock));
-  long long now=u8_microtime();
-  double elapsed=u8_elapsed_time();
-  /* THe w* variables track how long queued tasks have been waiting */
-  /* The r* variables track how long running tasks have been running */
+  FILE *logto=statlog;
+  struct U8_SERVER_STATS stats;
+  long long now; double elapsed;
   long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
   long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
-  int i=0, lim=fdwebserver.socket_lim;
-  struct U8_CLIENT **socketmap=fdwebserver.socketmap;
-  FILE *logto=statlog;
   if (!(logto)) logto=stderr;
-  last_status=now;
-  while (i<lim) {
-    u8_client cl=socketmap[i++];
-    if (!(cl)) continue;
-    if (cl->queued>=0) {
-      long long queuestart=cl->queued;
-      long long interval=now-queuestart;
-      wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
-      if (interval>wmax) wmax=interval;}
-    if (cl->started>=0) {
-      long long runstart=cl->started;
-      long long interval=now-runstart;
-      rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
-      if (interval>rmax) rmax=interval;}}
-  u8_fprintf(logto,STATUS_LINE1,elapsed,
-	     fdwebserver.n_busy,fdwebserver.n_queued,
-	     fdwebserver.n_clients,fdwebserver.n_threads);
-  u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
-	  fdwebserver.n_busy,fdwebserver.n_queued,
-	  fdwebserver.n_clients,fdwebserver.n_threads);
+  u8_lock_mutex(&(fdwebserver.lock)); {
+    int i=0, lim=fdwebserver.socket_lim;
+    struct U8_CLIENT **socketmap=fdwebserver.socketmap;
+    now=u8_microtime(); elapsed=u8_elapsed_time();
+    /* THe w* variables track how long queued tasks have been waiting */
+    /* The r* variables track how long running tasks have been running */
+    last_status=now;
+    while (i<lim) {
+      u8_client cl=socketmap[i++];
+      if (!(cl)) continue;
+      if (cl->queued>=0) {
+	long long queuestart=cl->queued;
+	long long interval=now-queuestart;
+	wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
+	if (interval>wmax) wmax=interval;}
+      if (cl->started>=0) {
+	long long runstart=cl->started;
+	long long interval=now-runstart;
+	rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
+	if (interval>rmax) rmax=interval;}}
+    u8_fprintf(logto,STATUS_LINE1,elapsed,
+	       fdwebserver.n_busy,fdwebserver.n_queued,
+	       fdwebserver.n_clients,fdwebserver.n_threads);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
+	   fdwebserver.n_busy,fdwebserver.n_queued,
+	   fdwebserver.n_clients,fdwebserver.n_threads);
+    u8_unlock_mutex(&(fdwebserver.lock));}
+  u8_server_statistics(&fdwebserver,&stats);
 
-  if (fdwebserver.tcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"trans",fdwebserver.tcount,
-	       ((1.0*(fdwebserver.tsum))/fdwebserver.tcount),
-	       fdwebserver.tmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"trans",fdwebserver.tcount,
-	   ((1.0*(fdwebserver.tsum))/fdwebserver.tcount),
-	   fdwebserver.tmax,0);}
+
+  if (stats.tcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"trans",stats.tcount,
+	       ((1.0*(stats.tsum))/stats.tcount),
+	       stats.tmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"trans",stats.tcount,
+	   ((1.0*(stats.tsum))/stats.tcount),
+	   stats.tmax,0);}
     
-  if (fdwebserver.acount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",fdwebserver.acount,
-	       ((1.0*(fdwebserver.asum))/fdwebserver.acount),
-	       fdwebserver.amax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",fdwebserver.acount,
-	   ((1.0*(fdwebserver.asum))/fdwebserver.acount),
-	   fdwebserver.amax,0);}
+  if (stats.acount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",stats.acount,
+	       ((1.0*(stats.asum))/stats.acount),
+	       stats.amax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",stats.acount,
+	   ((1.0*(stats.asum))/stats.acount),
+	   stats.amax,0);}
 
-  if (fdwebserver.rcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"read",fdwebserver.rcount,
-	       ((1.0*(fdwebserver.rsum))/fdwebserver.rcount),
-	       fdwebserver.rmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"read",fdwebserver.rcount,
-	   ((1.0*(fdwebserver.rsum))/fdwebserver.rcount),
-	   fdwebserver.rmax,0);}
+  if (stats.rcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"read",stats.rcount,
+	       ((1.0*(stats.rsum))/stats.rcount),
+	       stats.rmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"read",stats.rcount,
+	   ((1.0*(stats.rsum))/stats.rcount),
+	   stats.rmax,0);}
 
-  if (fdwebserver.wcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"write",fdwebserver.wcount,
-	       ((1.0*(fdwebserver.wsum))/fdwebserver.wcount),
-	       fdwebserver.wmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"write",fdwebserver.wcount,
-	   ((1.0*(fdwebserver.wsum))/fdwebserver.wcount),
-	   fdwebserver.wmax,0);}
+  if (stats.wcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"write",stats.wcount,
+	       ((1.0*(stats.wsum))/stats.wcount),
+	       stats.wmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"write",stats.wcount,
+	   ((1.0*(stats.wsum))/stats.wcount),
+	   stats.wmax,0);}
 
-  if (fdwebserver.xcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"exec",fdwebserver.xcount,
-	       ((1.0*(fdwebserver.xsum))/fdwebserver.xcount),
-	       fdwebserver.xmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"exec",fdwebserver.xcount,
-	   ((1.0*(fdwebserver.xsum))/fdwebserver.xcount),
-	   fdwebserver.xmax,0);}
+  if (stats.xcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"exec",stats.xcount,
+	       ((1.0*(stats.xsum))/stats.xcount),
+	       stats.xmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"exec",stats.xcount,
+	   ((1.0*(stats.xsum))/stats.xcount),
+	   stats.xmax,0);}
 
   u8_fprintf(logto,STATUS_LINE3,elapsed,
 	     wcount,wmin,wmax,((double)wsum)/wcount);
@@ -248,13 +252,13 @@ static void report_status()
 	       rcount,rmin,rmax,((double)rsum)/rcount);
     u8_log(LOG_INFO,"fdserv",STATUS_LINE4,elapsed,
 	   rcount,rmin,rmax,((double)rsum)/rcount);}
-  u8_unlock_mutex(&(fdwebserver.lock));
   if (statlog) fflush(statlog);
 }
 
 static fdtype servlet_status()
 {
   fdtype result=fd_init_slotmap(NULL,0,NULL);
+  struct U8_SERVER_STATS stats;
   long long now; double elapsed;
   /* THe w* variables track how long queued tasks have been waiting */
   /* The r* variables track how long running tasks have been running */
@@ -264,7 +268,6 @@ static fdtype servlet_status()
   u8_lock_mutex(&(fdwebserver.lock));
   now=u8_microtime(); elapsed=u8_elapsed_time();
   lim=fdwebserver.socket_lim; socketmap=fdwebserver.socketmap;
-  last_status=now;
   while (i<lim) {
     u8_client cl=socketmap[i++];
     if (!(cl)) continue;
@@ -284,36 +287,42 @@ static fdtype servlet_status()
   fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(fdwebserver.n_clients));
   fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(fdwebserver.n_trans));
   fd_store(result,fd_intern("TOTALCONN"),FD_INT2DTYPE(fdwebserver.n_accepted));
+  u8_unlock_mutex(&(fdwebserver.lock));
+  u8_server_statistics(&fdwebserver,&stats);
 
-  if (fdwebserver.tcount>0) {
+  fd_store(result,fd_intern("NACTIVE"),FD_INT2DTYPE(stats.n_active));
+  fd_store(result,fd_intern("NREADING"),FD_INT2DTYPE(stats.n_reading));
+  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_reading));
+  fd_store(result,fd_intern("NXBUSY"),FD_INT2DTYPE(stats.n_busy));
+  if (stats.tcount>0) {
     fd_store(result,fd_intern("TRANSAVG"),
-	     fd_make_double(((double)fdwebserver.tsum)/(((double)fdwebserver.tcount))));
-    fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(fdwebserver.tmax));
-    fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(fdwebserver.tcount));}
+	     fd_make_double(((double)stats.tsum)/(((double)stats.tcount))));
+    fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(stats.tmax));
+    fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(stats.tcount));}
 
-  if (fdwebserver.acount>0) {
+  if (stats.acount>0) {
     fd_store(result,fd_intern("ACTIVEAVG"),
-	     fd_make_double(((double)fdwebserver.asum)/(((double)fdwebserver.acount))));
-    fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(fdwebserver.amax));
-    fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(fdwebserver.acount));}
+	     fd_make_double(((double)stats.asum)/(((double)stats.acount))));
+    fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(stats.amax));
+    fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(stats.acount));}
     
-  if (fdwebserver.rcount>0) {
+  if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
-	     fd_make_double(((double)fdwebserver.rsum)/(((double)fdwebserver.rcount))));
-    fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(fdwebserver.rmax));
-    fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(fdwebserver.rcount));}
+	     fd_make_double(((double)stats.rsum)/(((double)stats.rcount))));
+    fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(stats.rmax));
+    fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(stats.rcount));}
   
-  if (fdwebserver.wcount>0) {
+  if (stats.wcount>0) {
     fd_store(result,fd_intern("WRITEAVG"),
-	     fd_make_double(((double)fdwebserver.wsum)/(((double)fdwebserver.wcount))));
-    fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(fdwebserver.wmax));
-    fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(fdwebserver.wcount));}
+	     fd_make_double(((double)stats.wsum)/(((double)stats.wcount))));
+    fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(stats.wmax));
+    fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(stats.wcount));}
   
-  if (fdwebserver.xcount>0) {
+  if (stats.xcount>0) {
     fd_store(result,fd_intern("EXECAVG"),
-	     fd_make_double(((double)fdwebserver.xsum)/(((double)fdwebserver.xcount))));
-    fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(fdwebserver.xmax));
-    fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(fdwebserver.xcount));}
+	     fd_make_double(((double)stats.xsum)/(((double)stats.xcount))));
+    fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(stats.xmax));
+    fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(stats.xcount));}
 
   fd_store(result,fd_intern("RUNCOUNT"),FD_INT2DTYPE(rcount));
   fd_store(result,fd_intern("RUNMAX"),FD_INT2DTYPE(rmax));
@@ -324,8 +333,7 @@ static fdtype servlet_status()
   fd_store(result,fd_intern("WAITMAX"),FD_INT2DTYPE(wmax));
   fd_store(result,fd_intern("WAITMIN"),FD_INT2DTYPE(wmin));
   fd_store(result,fd_intern("WAITAVG"),fd_make_double(((double)wsum)/wcount));
-  u8_unlock_mutex(&(fdwebserver.lock));
-  if (statlog) fflush(statlog);
+
   return result;
 }
 
