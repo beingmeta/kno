@@ -55,7 +55,8 @@
        AUTHENTICATE "https://api.twitter.com/oauth/authenticate"
        KEY TWITTER_KEY SECRET TWITTER_SECRET
        VERSION "1.0"
-       REALM TWITTER]
+       REALM TWITTER
+       NAME "Twitter"]
      LINKEDIN
      #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
        AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
@@ -63,14 +64,16 @@
        VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
        KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
        VERSION "1.0"
-       REALM LINKEDIN]
+       REALM LINKEDIN
+       NAME "LinkedIn"]
      GOOGLE
      #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
        AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
        VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
        KEY GOOGLE_KEY SECRET GOOGLE_SECRET
        VERSION "1.0"
-       REALM GOOGLE]
+       REALM GOOGLE
+       NAME "Google"]
      GPLUS
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
        ACCESS "https://accounts.google.com/o/oauth2/token"
@@ -78,14 +81,16 @@
        SCOPE "https://www.googleapis.com/auth/plus.me"
        VERSION "2.0"
        HTTPAUTH #t
-       REALM GPLUS]
+       REALM GPLUS
+       NAME "Google+"]
      FACEBOOK
      #[AUTHORIZE "https://www.facebook.com/dialog/oauth"
        ACCESS "https://graph.facebook.com/oauth/access_token"
        KEY FB:KEY SECRET FB:SECRET
        SCOPE "publish_actions,user_about_me,offline_access"
        VERSION "2.0"
-       REALM FACEBOOK]])
+       REALM FACEBOOK
+       NAME "Facebook"]])
 
 (define (oauth/provider spec) (get oauth-servers spec))
 (module-export! 'oauth/provider)
