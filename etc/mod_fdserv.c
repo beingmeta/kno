@@ -49,6 +49,8 @@ typedef unsigned int INTPOINTER;
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/fd.h>
 
 #ifndef TRACK_EXECUTION_TIMES
 #if HAVE_FTIME
@@ -1111,7 +1113,7 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_
 
 static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 {
-  struct FDSOCKET *result; apr_pool_t *pool;
+  struct FDSOCKET *result; apr_pool_t *pool; int one=1;
   if (given) pool=fdserv_pool; else pool=r->pool;
   if (given) result=given;
   else result=apr_pcalloc(pool,sizeof(struct FDSOCKET));
@@ -1121,7 +1123,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
      s->sockname);
   if (s->socktype==filesock) {
     const char *sockname=s->sockname;
-    int unix_sock=socket(PF_LOCAL,SOCK_STREAM,0), connval=-1, rv=-1;
+    int unix_sock=socket(PF_LOCAL,SOCK_STREAM,0), connval=-1, rv=-1, intval=1;
     if (unix_sock<0) {
       ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
 		    "Couldn't open socket for %s (errno=%d:%s)",
@@ -1161,6 +1163,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       (APLOG_MARK,APLOG_DEBUG,OK,r,"Opened new %s file socket (fd=%d) to %s",
        ((given==NULL)?("ephemeral"):("sticky")),
        unix_sock,s->sockname);
+    setsockopt(unix_sock,IPPROTO_TCP,TCP_NODELAY,&one,sizeof(int));
     result->servlet=s;
     result->socktype=filesock;
     result->sockname=sockname;
@@ -1604,27 +1607,32 @@ static int sock_write(request_rec *r,
        "Writing %ld bytes to file socket %d",
        bytes_to_write,sock);
     while (bytes_written < n_bytes) {
-      int block_size=write(sock,buf+bytes_written,n_bytes-bytes_written);
+      int to_write=n_bytes-bytes_written;
+      int block_size=write(sock,buf+bytes_written,
+			   ((to_write<1024)?(to_write):(1024)));
       if (block_size<0) {
-	ap_log_error
-	  (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	   "Error %d (%s) from %d after %ld/%ld bytes",
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Error %d (%s) from %d after %ld/%ld bytes",
 	   errno,strerror(errno),sock,bytes_written,n_bytes);
 	errno=0;
 	if (bytes_written<n_bytes) return -1;
 	else break;}
       else if (block_size == 0) {
-	ap_log_error
-	  (APLOG_MARK,APLOG_DEBUG,OK,r->server,
-	   "Zero blocks written of %ld,sock=%d",
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Zero blocks written of %ld,sock=%d",
 	   (long int)(bytes_to_write-bytes_written),sock);
 	if (bytes_written<n_bytes) return -1;
 	else break;}
-      else bytes_written=bytes_written+block_size;}
+      else {
+	ap_log_rerror
+	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Wrote %ld bytes to filesock=%d",
+	   (long int)block_size,sock);
+	bytes_written=bytes_written+block_size;}}
     ap_log_error
       (APLOG_MARK,((bytes_written!=n_bytes)?(APLOG_CRIT):(APLOG_DEBUG)),OK,
        r->server,"Wrote %ld/%ld bytes to file socket (%d) for %s",
        ((long int)bytes_written),n_bytes,sock,sockval->sockname);
+    write(sock,buf,0);
     return bytes_written;}
   else {
     ap_log_error
