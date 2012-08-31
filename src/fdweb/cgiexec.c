@@ -97,8 +97,7 @@ static void emit_uri_string(u8_output out,u8_string string)
 {
   char *scan=string;
   while (*scan) {
-    if (*scan==' ') u8_putc(out,'+');
-    else if (isalnum(*scan)) u8_putc(out,*scan);
+    if (isalnum(*scan)) u8_putc(out,*scan);
     else u8_printf(out,"%%%02x",*scan);
     scan++;}
 }
