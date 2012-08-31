@@ -457,16 +457,16 @@ static int webservefn(u8_client ucl)
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
-  if ((client->buf!=NULL)&&(!(client->writing))&&
+  if ((client->buf!=NULL)&&(!(client->writing>0))&&
       (client->off>=client->len)) { 
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
     stream->end=stream->ptr+client->len;}
-  else if ((client->buf!=NULL)&&(!(client->writing))&&
+  else if ((client->buf!=NULL)&&(!(client->writing>0))&&
 	   (client->off<client->len)) { 
     /* We shouldn't get here, but just in case.... */
     return 1;}
-  else if ((client->buf!=NULL)&&(client->writing)) {
+  else if ((client->buf!=NULL)&&(client->writing>0)) {
     /* Do the transaction closing stuff */
     u8_client_done(ucl);
     return 0;}
@@ -486,7 +486,7 @@ static int webservefn(u8_client ucl)
 	client->buf=stream->start; client->off=(stream->ptr-stream->start);
 	client->len=nbytes;
 	client->buflen=(stream->end-stream->start);
-	client->writing=u8_microtime();
+	client->reading=u8_microtime();
 	return 1;}}}
   else {}
   /* Do this ASAP to avoid session leakage */
