@@ -1607,13 +1607,17 @@ static int sock_write(request_rec *r,
        "Writing %ld bytes to file socket %d",
        bytes_to_write,sock);
     while (bytes_written < n_bytes) {
-      int to_write=n_bytes-bytes_written;
-      int block_size=write(sock,buf+bytes_written,
-			   ((to_write<1024)?(to_write):(1024)));
+      int block_size=write(sock,buf+bytes_written,n_bytes-bytes_written);
       if (block_size<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_DEBUG,OK,r,"Error %d (%s) from %d after %ld/%ld bytes",
 	   errno,strerror(errno),sock,bytes_written,n_bytes);
+	/* Need to get this to work */
+#if 0
+	if (errno==EPIPE) {
+	  fdsocket val=servlet_open(sockval->servlet,sockval,r);
+	  if (val) {errno=0; continue;}}
+#endif
 	errno=0;
 	if (bytes_written<n_bytes) return -1;
 	else break;}
@@ -1632,7 +1636,6 @@ static int sock_write(request_rec *r,
       (APLOG_MARK,((bytes_written!=n_bytes)?(APLOG_CRIT):(APLOG_DEBUG)),OK,
        r->server,"Wrote %ld/%ld bytes to file socket (%d) for %s",
        ((long int)bytes_written),n_bytes,sock,sockval->sockname);
-    write(sock,buf,0);
     return bytes_written;}
   else {
     ap_log_error
