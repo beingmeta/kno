@@ -38,7 +38,7 @@ static u8_mutex dtype_unpacker_lock;
 
 /* Byte output */
 
-static int grow_byte_buffer(struct FD_BYTE_OUTPUT *b,int delta)
+static int grow_output_buffer(struct FD_BYTE_OUTPUT *b,int delta)
 {
   unsigned int current_size=b->ptr-b->start;
   unsigned int current_limit=b->end-b->start, new_limit=current_limit;
@@ -61,7 +61,7 @@ static int grow_byte_buffer(struct FD_BYTE_OUTPUT *b,int delta)
 FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTPUT *b,size_t delta)
 {
   if (b->ptr+delta > b->end)
-    return grow_byte_buffer(b,delta);
+    return grow_output_buffer(b,delta);
   else return 1;
 }
 
@@ -590,6 +590,23 @@ static fdtype restore_dtype_exception(fdtype content);
 FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
 static fdtype read_packaged_dtype(int,struct FD_BYTE_INPUT *);
+
+FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INPUT *b,size_t len)
+{
+  unsigned int current_off=b->ptr-b->start;
+  unsigned int current_limit=b->end-b->start;
+  unsigned char *new;
+  if ((b->flags)&(FD_BYTEBUF_MALLOCD))
+    new=u8_realloc(b->start,len);
+  else {
+    new=u8_malloc(len);
+    if (new) memcpy(new,b->start,current_limit);
+    b->flags=b->flags|FD_BYTEBUF_MALLOCD;}
+  if (new == NULL) return 0;
+  b->start=new; b->ptr=new+current_off;
+  b->end=b->start+current_limit;
+  return 1;
+}
 
 static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,
 			   fdtype *why_not,fdtype *into)
