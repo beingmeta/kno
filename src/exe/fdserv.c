@@ -465,20 +465,33 @@ static int webservefn(u8_client ucl)
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
-  if ((client->buf!=NULL)&&(!(client->writing))&&
+  if ((client->buf!=NULL)&&(client->reading>0)&&
       (client->off>=client->len)) { 
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
-    stream->end=stream->ptr+client->len;}
-  else if ((client->buf!=NULL)&&(!(client->writing))&&
+    stream->end=stream->start+client->len;}
+  else if ((client->buf!=NULL)&&(client->reading>0)&&
 	   (client->off<client->len)) { 
     /* We shouldn't get here, but just in case.... */
     return 1;}
-  else if ((client->buf!=NULL)&&(client->writing)) {
-    /* Do the transaction closing stuff */
+  else if ((client->buf!=NULL)&&(client->writing>0)&&
+	   (client->off<client->len)) { 
+    /* We shouldn't get here either, but just in case.... */
+    return 1;}
+  else if ((client->buf!=NULL)&&(client->writing>0)) {
+    /* If we were writing, and we're done, we're finished, so we do
+       the transaction closing stuff. */
     u8_client_done(ucl);
     return 0;}
+  else if ((client->buf!=NULL)&&(client->reading>0)&&
+	   (client->off>=client->len)) {
+    /* We've finished asynchronous reading and now we simply set up
+       stream to reflect that fact. (fd_has_bytes(stream,nbytes)) is
+       now true (though we've lost track of nbytes here). */
+    stream->end=stream->start+client->len;}
   else {
+    /* We read a little to see if we can just queue up what we
+       need. */
     fd_dts_start_read(stream);
     if ((async)&&
 	(havebytes((fd_byte_input)stream,1))&&
@@ -489,11 +502,16 @@ static int webservefn(u8_client ucl)
 	  if (fd_has_bytes(stream,nbytes)) {
 	    /* We can execute without waiting */}
 	  else {
+	    int need_size=5+nbytes;
 	    /* Allocate enough space for what we need to read */
-	    fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
+	    if (stream->bufsiz<need_size) {
+	      fd_grow_byte_input((fd_byte_input)stream,need_size);
+	      stream->bufsiz=need_size;}
 	    /* Set up the client for async input */
-	    client->buf=stream->start; client->off=(stream->ptr-stream->start);
-	    client->len=nbytes; client->buflen=stream->end-stream->start;
+	    client->buf=stream->start;
+	    client->off=(stream->end-stream->start);
+	    client->len=5+nbytes;
+	    client->buflen=stream->bufsiz;
 	    client->writing=-1; client->reading=u8_microtime();
 	    return 1;}}
     else {}}
@@ -704,7 +722,7 @@ static int webservefn(u8_client ucl)
 	outstream->u8_outptr=start+http_len+head_len+content_len;
 	client->buf=start; client->off=0;
 	client->len=client->buflen=bundle_len;
-	client->writing=u8_microtime();
+	client->writing=u8_microtime(); client->reading=-1;
 	return_code=1;}}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signalling, etc */
@@ -736,7 +754,7 @@ static int webservefn(u8_client ucl)
 	    to_read=to_read-bytes_read;}
 	  client->buf=filebuf; client->off=0;
 	  client->len=client->buflen=total_len;
-	  client->writing=u8_microtime();
+	  client->writing=u8_microtime(); client->reading=-1;
 	  return_code=1;
 	  fclose(f);}}
       else {/* Error here */}}
