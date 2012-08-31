@@ -209,7 +209,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_DTYPE_STREAM stream; int n_errs;
+  struct FD_DTYPE_STREAM stream;
   time_t lastlive; double elapsed;
   fd_lispenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
