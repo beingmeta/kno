@@ -847,13 +847,21 @@ $(DESTDIR)@apache_modules_dir@:
 $(DESTDIR)@apache_modinfo@:
 	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@apache_modinfo@
 
-update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ $(DESTDIR)@apache_modules_dir@
+update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
+		$(DESTDIR)@apache_modules_dir@
+	@echo "STOPPING and STARTING Apache to INSTALL NEW mod_fdserv"
+	@echo "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
-	cd etc; sudo ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)@apache_modinfo@;
-	sudo $(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@rundir@/fdserv;
-	sudo $(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@logdir@/fdserv;
-	cd etc; if test -f mod_fdserv.so; then sudo ${APXS} -i mod_fdserv.so; else sudo ${APXS} -i mod_fdserv.la; fi
-	sudo apachectl start
+	cd etc; sudo ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load \
+			$(DESTDIR)@apache_modinfo@;
+	sudo $(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+			-d $(DESTDIR)@rundir@/fdserv;
+	sudo $(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+			-d $(DESTDIR)@logdir@/fdserv;
+	cd etc; if test -f mod_fdserv.so; \
+		then sudo ${APXS} -i mod_fdserv.so; \
+		else sudo ${APXS} -i mod_fdserv.la; fi
+	sleep 5; sudo apachectl start
 
 # Tracking revision information
 
