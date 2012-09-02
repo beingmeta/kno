@@ -1166,7 +1166,6 @@ int main(int argc,char **argv)
 		     _("How long (μs) to wait for tasks during shutdown"),
 		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
 
-
   fd_register_config("STEALSOCKETS",
 		     _("Remove existing socket files with extreme prejudice"),
 		     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);

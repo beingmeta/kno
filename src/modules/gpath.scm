@@ -6,7 +6,7 @@
  '{gp/write! gp/save!
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
-   gp/fetch
+   gp/fetch gp/modified gp/exists?
    gp/path gp/mkpath gp/makepath})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -184,4 +184,69 @@
 	       (fail))))
 	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
 	((string? ref) (filestring ref))
+	(else (error "Weird docbase ref" ref))))
+
+(define (gp/fetch+ ref (ctype))
+  (default! ctype (guess-mimetype (get-namestring ref)))
+  (cond ((s3loc? ref) (s3/get+ ref))
+	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
+	 `#[content ,(zip/get (car ref)
+			      (if (has-prefix (cdr ref) "/")
+				  (subseq (cdr ref) 1)
+				  (cdr ref))
+			      (not (has-prefix ctype "text")))
+	    ctype ,ctype])
+	((pair? ref) (gp/fetch+ (gp/path (car ref) (cdr ref))))
+	((and (string? ref)
+	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
+	 (let ((response (urlget absref)))
+	   (if (and (test response 'response)
+		    (<= 200 (get response 'response) 299)
+		    (exists? (get response '%content)))
+	       `#[content ,(get response '%content)
+		  ctype ,(try (get response 'content-type) ctype)
+		  modified (try (get response 'last-modified)
+				(timestamp))]
+	       #f)))
+	((and (string? ref) (has-prefix ref "s3:"))
+	 (s3/get+ (->s3loc ref)))
+	((string? ref)
+	 `#[content ,(filestring ref) ctype ,ctype
+	    modified ,(file-modtime ref)])
+	(else (error "Weird docbase ref" ref))))
+
+
+
+(define (gp/modified ref)
+  (cond ((s3loc? ref) (s3/modified ref))
+	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
+	 #f)
+	((pair? ref) (gp/modified (gp/path (car ref) (cdr ref))))
+	((and (string? ref)
+	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
+	 (let ((response (urlget absref)))
+	   (if (and (test response 'response)
+		    (<= 200 (get response 'response) 299)
+		    (exists? (get response '%content)))
+	       (try (get response 'last-modified) #f)
+	       #f)))
+	((and (string? ref) (has-prefix ref "s3:"))
+	 (s3/modified (->s3loc ref)))
+	((string? ref) (file-modtime ref))
+	(else (error "Weird docbase ref" ref))))
+
+(define (gp/exists? ref)
+  (cond ((s3loc? ref) (s3loc/exists? ref))
+	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
+	 (zip/exists? (car ref) (cdr ref)))
+	((pair? ref) (gp/exists? (gp/path (car ref) (cdr ref))))
+	((and (string? ref)
+	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
+	 (let ((response (urlget absref)))
+	   (and (test response 'response)
+		(<= 200 (get response 'response) 299)
+		(exists? (get response '%content)))))
+	((and (string? ref) (has-prefix ref "s3:"))
+	 (s3/exists? (->s3loc ref)))
+	((string? ref) (file-exists? ref))
 	(else (error "Weird docbase ref" ref))))

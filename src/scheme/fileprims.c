@@ -499,6 +499,16 @@ static fdtype file_basename(fdtype arg,fdtype suffix)
   else return fd_lispstring(u8_basename(FD_STRDATA(arg),"*"));
 }
 
+static fdtype file_suffix(fdtype arg)
+{
+  u8_string s=FD_STRDATA(arg);
+  u8_byte *slash=strrchr(s,'/');
+  u8_byte *dot=strrchr(s,'.');
+  if ((dot)&&((!(slash))||(slash<dot)))
+    return fdtype_string(dot);
+  else return fdtype_string("");
+}
+
 static fdtype file_dirname(fdtype arg)
 {
   return fd_lispstring(u8_dirname(FD_STRDATA(arg)));
@@ -1696,6 +1706,9 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim2x("BASENAME",file_basename,1,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1x("FILESUFFIX",file_suffix,1,
+			   fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("ABSPATH",file_abspath,1,
 			   fd_string_type,FD_VOID,

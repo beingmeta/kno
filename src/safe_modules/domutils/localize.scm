@@ -7,7 +7,7 @@
 (define version "$Id$")
 (define revision "$Revision: 5083 $")
 
-(use-module '{fdweb texttools domutils aws/s3 savecontent logger})
+(use-module '{fdweb texttools domutils aws/s3 savecontent gpath logger})
 
 (define-init %loglevel %notice!)
 
@@ -33,7 +33,9 @@
 ;; BASE is the URL of the input document which is used to actually fetch things
 ;; SAVETO is the where downloaded data should be stored locally
 ;; READ is the relative path to use for local references
-;; AMALGAMATE is a list of URLs which are being amalgamated into the output file
+;; AMALGAMATE is a list of URL prefixes which are being amalgamated
+;;   into the output file, so that fragment identifiers should just
+;;   be the corresponding fragments
 ;; LOCALHOSTS is a bunch of prefixes for things to not bother converting
 (define (localref ref urlmap base saveto read amalgamate localhosts)
   (try ;; relative references are untouched
@@ -189,3 +191,86 @@
     (string-append
      "data:text/cache-manifest;charset=\"utf-8\";base64,"
      base64)))
+
+;;; This is a version of localref which uses gpath for more generality
+(define (new-localref ref urlmap base saveto read amalgamate localhosts)
+  (try ;; relative references are untouched
+       (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
+       ;; if we're gluing a bunch of files together (amalgamating them),
+       ;;  the ref will just be moved to the current file by stripping
+       ;;  off the URL part
+       (tryif (has-prefix ref amalgamate)
+	 (textsubst ref `(GREEDY ,amalgamate) ""))
+       ;; If it's got a fragment identifer, make a localref without the
+       ;;  fragment and put the fragment back.  We don't bother checking
+       ;;; fragment ID uniqueness, though we probably should (it would
+       ;;; be pretty hard to fix automatically)
+       (tryif (position #\# ref)
+	 (let ((hashpos (position #\# ref)))
+	   (string-append (localref (subseq ref 0 hashpos)
+				    urlmap base saveto read
+				    (qc amalgamate) (qc localhosts))
+			  (subseq ref hashpos))))
+       ;; Check the cache
+       (get urlmap ref)
+       ;; don't bother localizing these references
+       (tryif (string-starts-with? ref localhosts) ref)
+       ;; No easy outs, fetch the content and store it
+       (let* ((absref
+	       (if (string-starts-with? ref absurlstart) ref
+		   (if (string? base)
+		       (if (has-prefix ref "./")
+			   (mkuripath (if (has-suffix base "/") base
+					  (dirname base))
+				      (subseq ref 2))
+			   (mkuripath (if (has-suffix base "/") base
+					  (dirname base))
+				      ref))
+		       (if (has-prefix ref "./")
+			   (gp/path base (subseq ref 2))
+			   (gp/path base ref)))))
+	      (name (basename (uribase ref)))
+	      (suffix (filesuffix name))
+	      (lref (try (get urlmap (vector ref))
+			 (mkpath read name)))
+	      (savepath (gp/mkpath saveto name)))
+	 (debug%watch "LOCALIZE" ref base absref saveto read
+		      (get urlmap absref))
+	 (when (and (not (get urlmap (vector ref)))
+		    (exists? (get urlmap lref)))
+	   ;; Name conflict
+	   (set! name (glom (packet->base16 (md5 absref)) suffix))
+	   (set! lref (mkpath read name))
+	   (set! savepath (gp/mkpath saveto name)))
+	 (store! urlmap ref lref)
+	 (store! urlmap lref ref)
+	 (store! urlmap (vector ref) lref)
+	 (when (string? absref) (store! urlmap absref lref))
+	 (let ((sourcetime (gp/modified absref))
+	       (savetime (gp/modified savepath))
+	       (existing (gp/exists? savepath)))
+	   (cond ((and sourcetime savetime)
+		  )
+		 ((not fetched)
+		  (logwarn "Couldn't fetch content from " absref)
+		  (set! lref absref)
+		  (store! urlmap absref absref))
+		 (else
+		  ;; This should be coded to change lref in the
+		  ;; event of conflicts This has fragments and
+		  ;; queries stripped (uribase) and additionally has
+		  ;; the 'directory' part of the URI removed so that
+		  ;; it's a local file name
+		  (loginfo "Downloaded " (write absref)
+			   " for " lref
+			   " from " ref)
+		  ;; Save the content
+		  (savecontent saveto name (get fetched 'content))
+		  (store! urlmap (list absref)
+			  (get fetched 'modified)))))
+		;; Save the mapping in both directions (we assume that
+		;;  lrefs and absrefs are disjoint, so we can use the
+		;;  same table)
+		(store! urlmap absref lref)
+		(store! urlmap lref absref)
+		lref)))
