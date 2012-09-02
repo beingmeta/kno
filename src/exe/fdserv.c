@@ -834,7 +834,7 @@ static void shutdown_server(u8_condition reason)
     u8_log(LOG_WARN,reason,
 	   "Shutting down, removing socket files and pidfile %s",
 	   pidfile);
-  u8_server_shutdown(&fdwebserver,0);
+  u8_server_shutdown(&fdwebserver,shutdown_grace);
   webcommon_shutdown();
   while (i>=0) {
     u8_string spec=ports[i];
