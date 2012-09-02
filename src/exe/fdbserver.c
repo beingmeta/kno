@@ -1,4 +1,4 @@
-/* -*- Mode: C; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2012 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
@@ -68,6 +68,10 @@ static int max_tasks=32, n_threads=8, server_initialized=0;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
+/* This is how long to wait for clients to finish when shutting down the
+   server.  Note that the server stops listening for new connections right
+   away, so we can start another server.  */
+static int shutdown_grace=30000000; /* 30 seconds */
 /* Controlling trace activity: logeval prints expressions, logtrans reports
    transactions (request/response pairs). */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
@@ -436,7 +440,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 static void shutdown_dtypeserver_onsignal(int sig)
 {
   u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on signal %d",sig);
-  u8_server_shutdown(&dtype_server);
+  u8_server_shutdown(&dtype_server,shutdown_grace);
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype sigval=FD_INT2DTYPE(sig), value;
     u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",
@@ -450,7 +454,7 @@ static void shutdown_dtypeserver_onsignal(int sig)
 static void shutdown_dtypeserver_onexit()
 {
   u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on exit");
-  u8_server_shutdown(&dtype_server);
+  u8_server_shutdown(&dtype_server,shutdown_grace);
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype shutval, value;
     if (normal_exit) shutval=FD_FALSE; else shutval=FD_TRUE;
@@ -625,6 +629,9 @@ int main(int argc,char **argv)
 		     fd_sconfig_get,fd_sconfig_set,&state_dir);
   fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
 		     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
+  fd_register_config("GRACEFULDEATH",
+		     _("How long (μs) to wait for tasks during shutdown"),
+		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
 
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);

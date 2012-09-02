@@ -1,4 +1,4 @@
-/* -*- Mode: C; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2012 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
@@ -90,6 +90,10 @@ static int servlet_ntasks=64, servlet_threads=8;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
+/* This is how long (μs) to wait for clients to finish when shutting down the
+   server.  Note that the server stops listening for new connections right
+   away, so we can start another server.  */
+static int shutdown_grace=30000000; /* 30 seconds */
 
 /* STATLOG config */
 
@@ -830,7 +834,7 @@ static void shutdown_server(u8_condition reason)
     u8_log(LOG_WARN,reason,
 	   "Shutting down, removing socket files and pidfile %s",
 	   pidfile);
-  u8_server_shutdown(&fdwebserver);
+  u8_server_shutdown(&fdwebserver,0);
   webcommon_shutdown();
   while (i>=0) {
     u8_string spec=ports[i];
@@ -1121,6 +1125,9 @@ int main(int argc,char **argv)
   fd_register_config
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
+  fd_register_config("GRACEFULDEATH",
+		     _("How long (μs) to wait for tasks during shutdown"),
+		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
 
   fd_register_config("STEALSOCKETS",
 		     _("Remove existing socket files with extreme prejudice"),
