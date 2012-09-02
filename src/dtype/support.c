@@ -1026,6 +1026,10 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
     fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
     ht->uselock=1;
     u8_rw_unlock(&(ht->rwlock));}
+  if ((FD_FALSEP(newinfo))||(FD_VOIDP(newinfo))) {
+    fd_decref(curinfo);
+    set_reqinfo(newinfo);
+    return;}
   if (FD_TRUEP(newinfo)) newinfo=fd_empty_slotmap();
   if (FD_TABLEP(newinfo)) {
     fd_incref(newinfo);
