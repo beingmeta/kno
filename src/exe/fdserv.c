@@ -488,8 +488,6 @@ static int webservefn(u8_client ucl)
     /* If we were writing, and we're done, we're finished, so we do
        the transaction closing stuff. */
     u8_client_done(ucl);
-    fd_decref(client->cgidata);
-    client->cgidata=FD_VOID;
     return 0;}
   else if ((client->buf!=NULL)&&(client->reading>0)&&
 	   (client->off>=client->len)) {
@@ -561,17 +559,15 @@ static int webservefn(u8_client ucl)
       if (traceweb>0)
 	u8_log(LOG_NOTICE,"FDSERV/webservefn","Client %s (sock=%d) closing",
 	       client->idstring,client->socket);
-      fd_decref(client->cgidata); client->cgidata=FD_VOID;
       u8_client_close(ucl);
       return -1;}
     else if (!(FD_TABLEP(cgidata))) {
       u8_log(LOG_CRIT,"FDSERV/webservefn",
 	     "Bad fdserv request on client %s (sock=%d), closing",
 	     client->idstring,client->socket);
-      fd_decref(client->cgidata); client->cgidata=FD_VOID;
       u8_client_close(ucl);
       return -1;}
-    else client->cgidata=cgidata;
+    else {}
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {
@@ -721,7 +717,6 @@ static int webservefn(u8_client ucl)
 	u8_writeall(client->socket,httphead.u8_outbuf,http_len);
 	u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);
 	u8_writeall(client->socket,outstream->u8_outbuf,content_len);
-	fd_decref(client->cgidata); client->cgidata=FD_VOID;
 	return_code=0;}
       else {
 	u8_byte *start;
@@ -755,7 +750,6 @@ static int webservefn(u8_client ucl)
 	    content_len=content_len+bytes_read;
 	    retval=u8_writeall(client->socket,buf,bytes_read);
 	    if (retval<0) break;}
-	  fd_decref(client->cgidata); client->cgidata=FD_VOID;
 	  return_code=0;}
 	else {
 	  unsigned char *write=filebuf+http_len;
@@ -849,8 +843,7 @@ static int webservefn(u8_client ucl)
   fd_decref(proc); fd_decref(result); fd_decref(path);
   fd_swapcheck();
   /* Task is done */
-  if (return_code<=0) {
-    fd_decref(client->cgidata); client->cgidata=FD_VOID;}
+  if (return_code<=0) {}
   return return_code;
 }
 
@@ -860,6 +853,13 @@ static int close_webclient(u8_client ucl)
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
   fd_dtsclose(&(client->in),2);
   u8_close((u8_stream)&(client->out));
+  return 1;
+}
+
+static int reuse_webclient(u8_client ucl)
+{
+  fd_webconn client=(fd_webconn)ucl;
+  fd_decref(client->cgidata); client->cgidata=FD_VOID;
   return 1;
 }
 
@@ -1211,6 +1211,7 @@ int main(int argc,char **argv)
 		 max_backlog,servlet_ntasks,servlet_threads,
 		 simply_accept,webservefn,close_webclient);
   fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
+  fdwebserver.donefn=reuse_webclient;
 
   fd_register_config("U8LOGLISTEN",
 		     _("Whether to have libu8 log each monitored address"),
