@@ -14,7 +14,8 @@
 (module-export! '{s3loc s3/getloc s3loc/s3uri
 		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
 		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
-(module-export! '{s3/get s3/copy! s3/put s3/head s3/ctype s3/exists?})
+(module-export! '{s3/get s3/get+ s3/modified
+		  s3/copy! s3/put s3/head s3/ctype s3/exists?})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -308,6 +309,10 @@
 	 ""))
 (define s3/head s3loc/head)
 
+(define (s3/modified loc)
+  (let ((info (s3loc/head loc)))
+    (try (get info 'last-modified) #f)))
+
 (define (s3loc/exists? loc)
   (when (string? loc) (set! loc (->s3loc loc)))
   (let ((req (s3/op "HEAD" (s3loc-bucket loc)
@@ -357,6 +362,21 @@
 	     (get req '%content)
 	     (error 's3failure (get req '%content))))))
 (define s3/get s3loc/content)
+
+(define (s3/get+ loc (text #t))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc)
+		     (string-append "/" (s3loc-path loc))
+		""))
+	 (status (get req 'response)))
+    (if (and status (>= 299 status 200))
+	`#[content ,(get req '%content)
+	   ctype ,(try (get req 'content-type)
+		       (guess-mimetype (s3loc-path loc))
+		       (if text "text" "application"))
+	   modified ,(try (get req 'last-modified) (timestamp))
+	   etag ,(try (get req 'etag) (md5 (get req '%content)))]
+	#f)))
 
 ;;; Working with S3 'dirs'
 
