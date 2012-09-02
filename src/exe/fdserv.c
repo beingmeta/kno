@@ -1,4 +1,4 @@
-/* -*- Mode: C; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2012 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
@@ -76,6 +76,7 @@ static int ignore_leftovers=0;
 
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
+  fdtype cgidata;
   struct FD_DTYPE_STREAM in;
   struct U8_OUTPUT out;} FD_WEBCONN;
 typedef struct FD_WEBCONN *fd_webconn;
@@ -90,6 +91,10 @@ static int servlet_ntasks=64, servlet_threads=8;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
+/* This is how long (μs) to wait for clients to finish when shutting down the
+   server.  Note that the server stops listening for new connections right
+   away, so we can start another server.  */
+static int shutdown_grace=30000000; /* 30 seconds */
 
 /* STATLOG config */
 
@@ -441,6 +446,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);
   u8_set_nodelay(sock,1);
+  consed->cgidata=FD_VOID;
   return (u8_client) consed;
 }
 
@@ -448,7 +454,7 @@ static int webservefn(u8_client ucl)
 {
   fdtype proc=FD_VOID, result=FD_VOID, cgidata=FD_VOID, path=FD_VOID, precheck;
   fd_webconn client=(fd_webconn)ucl;
-  int write_headers=1, close_html=0;
+  int write_headers=1, close_html=0, resuming=0;
   double start_time, setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
@@ -482,6 +488,8 @@ static int webservefn(u8_client ucl)
     /* If we were writing, and we're done, we're finished, so we do
        the transaction closing stuff. */
     u8_client_done(ucl);
+    fd_decref(client->cgidata);
+    client->cgidata=FD_VOID;
     return 0;}
   else if ((client->buf!=NULL)&&(client->reading>0)&&
 	   (client->off>=client->len)) {
@@ -553,15 +561,17 @@ static int webservefn(u8_client ucl)
       if (traceweb>0)
 	u8_log(LOG_NOTICE,"FDSERV/webservefn","Client %s (sock=%d) closing",
 	       client->idstring,client->socket);
+      fd_decref(client->cgidata); client->cgidata=FD_VOID;
       u8_client_close(ucl);
       return -1;}
     else if (!(FD_TABLEP(cgidata))) {
       u8_log(LOG_CRIT,"FDSERV/webservefn",
 	     "Bad fdserv request on client %s (sock=%d), closing",
 	     client->idstring,client->socket);
+      fd_decref(client->cgidata); client->cgidata=FD_VOID;
       u8_client_close(ucl);
       return -1;}
-    else {}
+    else client->cgidata=cgidata;
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {
@@ -711,6 +721,7 @@ static int webservefn(u8_client ucl)
 	u8_writeall(client->socket,httphead.u8_outbuf,http_len);
 	u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);
 	u8_writeall(client->socket,outstream->u8_outbuf,content_len);
+	fd_decref(client->cgidata); client->cgidata=FD_VOID;
 	return_code=0;}
       else {
 	u8_byte *start;
@@ -744,6 +755,7 @@ static int webservefn(u8_client ucl)
 	    content_len=content_len+bytes_read;
 	    retval=u8_writeall(client->socket,buf,bytes_read);
 	    if (retval<0) break;}
+	  fd_decref(client->cgidata); client->cgidata=FD_VOID;
 	  return_code=0;}
 	else {
 	  unsigned char *write=filebuf+http_len;
@@ -837,12 +849,15 @@ static int webservefn(u8_client ucl)
   fd_decref(proc); fd_decref(result); fd_decref(path);
   fd_swapcheck();
   /* Task is done */
+  if (return_code<=0) {
+    fd_decref(client->cgidata); client->cgidata=FD_VOID;}
   return return_code;
 }
 
 static int close_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
+  fd_decref(client->cgidata); client->cgidata=FD_VOID;
   fd_dtsclose(&(client->in),2);
   u8_close((u8_stream)&(client->out));
   return 1;
@@ -856,7 +871,7 @@ static void shutdown_server(u8_condition reason)
     u8_log(LOG_WARN,reason,
 	   "Shutting down, removing socket files and pidfile %s",
 	   pidfile);
-  u8_server_shutdown(&fdwebserver);
+  u8_server_shutdown(&fdwebserver,shutdown_grace);
   webcommon_shutdown();
   while (i>=0) {
     u8_string spec=ports[i];
@@ -1147,6 +1162,10 @@ int main(int argc,char **argv)
   fd_register_config
     ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
      statinterval_get,statinterval_set,NULL);
+  fd_register_config("GRACEFULDEATH",
+		     _("How long (μs) to wait for tasks during shutdown"),
+		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
+
 
   fd_register_config("STEALSOCKETS",
 		     _("Remove existing socket files with extreme prejudice"),
