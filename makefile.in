@@ -605,7 +605,7 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	install -D $^ $@
 
 etc/intl/framerd.pot:
-	xgettext -dfdb -oetc/intl/framerd.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
+	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	msgmerge -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
