@@ -466,7 +466,7 @@ static int webservefn(u8_client ucl)
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
-  int return_code=0;
+  int return_code=0, buffered=0;
   /* Reset the streams */
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
@@ -670,11 +670,11 @@ static int webservefn(u8_client ucl)
 			  ? (ex->u8x_details) : ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
-      u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
+      u8_log(LOG_ERR,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
 	     excond,FD_STRDATA(path),excxt,exdetails);
-    else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
+    else u8_log(LOG_ERR,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
 		excond,FD_STRDATA(path),excxt,exdetails,irritant);
-    head_len=head_len+
+    http_len=http_len+
       strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
     write_string(client->socket,
 		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
@@ -729,6 +729,7 @@ static int webservefn(u8_client ucl)
 	client->buf=start; client->off=0;
 	client->len=client->buflen=bundle_len;
 	client->writing=u8_microtime(); client->reading=-1;
+	buffered=1;
 	return_code=1;}}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signalling, etc */
@@ -761,6 +762,7 @@ static int webservefn(u8_client ucl)
 	  client->buf=filebuf; client->off=0;
 	  client->len=client->buflen=total_len;
 	  client->writing=u8_microtime(); client->reading=-1;
+	  buffered=1;
 	  return_code=1;
 	  fclose(f);}}
       else {/* Error here */}}
@@ -801,7 +803,7 @@ static int webservefn(u8_client ucl)
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE",
 	     "%s %d=%d+%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-	     ((return_code)?("Buffered"):("Sent")),
+	     ((buffered)?("Buffered"):("Sent")),
 	     http_len+head_len+content_len,http_len,head_len,content_len,
 	     path,
 	     write_time-start_time,
@@ -814,7 +816,7 @@ static int webservefn(u8_client ucl)
 	     end_load[0],end_load[1],end_load[2]);
     else u8_log(LOG_NOTICE,"DONE",
 		"%s %d=%d+%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-		((return_code)?("Buffered"):("Sent")),
+		((buffered)?("Buffered"):("Sent")),
 		http_len+head_len+content_len,http_len,head_len,content_len,
 		path,query,
 		write_time-start_time,
