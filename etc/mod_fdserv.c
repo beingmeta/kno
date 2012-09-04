@@ -50,7 +50,6 @@ typedef unsigned int INTPOINTER;
 #include <netinet/in.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <linux/fd.h>
 
 #ifndef TRACK_EXECUTION_TIMES
 #if HAVE_FTIME
