@@ -79,7 +79,7 @@ static int reinit_mysqlproc(FD_MYSQL *db,struct FD_MYSQL_PROC *dbproc);
 
 static fd_exception MySQL_Error=_("MySQL Error");
 static fd_exception MySQL_NoConvert=_("Can't convert value to SQL");
-static fdtype merge_symbol, noempty_symbol;
+static fdtype merge_symbol, noempty_symbol, sorted_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
@@ -436,10 +436,14 @@ static fdtype get_stmt_values
 {
   fdtype results=FD_EMPTY_CHOICE;
   fdtype mergefn=fd_getopt(colinfo,merge_symbol,FD_VOID);
+  fdtype sortval=fd_getopt(colinfo,sorted_symbol,FD_VOID);
   int noempty=fd_testopt(colinfo,noempty_symbol,FD_VOID);
+  int sorted=(!((FD_FALSEP(sortval))||(FD_VOIDP(sortval))));
   fdtype _colmaps[16], *colmaps=
     ((n_cols>16) ? (u8_alloc_n(n_cols,fdtype)) : (_colmaps));
   int i=0, retval=mysql_stmt_fetch(stmt);
+  int result_index=0, n_results=((sorted)?(mysql_stmt_num_rows(stmt)):(0));
+  if (sorted) results=fd_init_vector(NULL,n_results,NULL);
   /* Initialize colmaps */
   while (i<n_cols) {
     colmaps[i]=fd_getopt(colinfo,colnames[i],FD_VOID); i++;}
@@ -524,12 +528,16 @@ static fdtype get_stmt_values
       fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
       result=fd_apply(mergefn,1,&tmp_slotmap);
       fd_decref(tmp_slotmap);}
-    FD_ADD_TO_CHOICE(results,result);
+    if (sorted) {
+      FD_VECTOR_SET(results,result_index,result);
+      result_index++;}
+    else {FD_ADD_TO_CHOICE(results,result);}
     retval=mysql_stmt_fetch(stmt);}
 
   i=0; while (i<n_cols) {fd_decref(colmaps[i]); i++;}
   if (colmaps!=_colmaps) u8_free(colmaps);
   fd_decref(mergefn);
+  fd_decref(sortval);
 
   if (retval==1) {
     const char *errmsg=mysql_stmt_error(stmt);
@@ -1183,6 +1191,7 @@ FD_EXPORT int fd_init_mysql()
   boolean_symbol=fd_intern("BOOLEAN");
   merge_symbol=fd_intern("%MERGE");
   noempty_symbol=fd_intern("%NOEMPTY");
+  sorted_symbol=fd_intern("%SORTED");
 
   port_symbol=fd_intern("PORT");
   reconnect_symbol=fd_intern("RECONNECT");
