@@ -316,6 +316,7 @@ FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
 FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 {
   FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
+  struct FD_HASHTABLE *oidcache=((fdtc!=NULL)?(&(fdtc->oids)):(NULL));
   int decref_oids=0, cachelevel;
   if (p==NULL) {
     fd_seterr(fd_NotAPool,"fd_pool_prefetch",
@@ -354,11 +355,14 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     int n=FD_CHOICE_SIZE(oids), some_locked=0;
     struct FD_HASHTABLE *cache=&(p->cache), *locks=&(p->locks);
     fdtype *values, *oidv=u8_alloc_n(n,fdtype), *write=oidv;
+    int nolocks=locks->n_keys;
     FD_DO_CHOICES(o,oids)
-      if ((fd_hashtable_probe_novoid(cache,o)==0) &&
-          (fd_hashtable_probe_novoid(locks,o)==0))
+      if (((oidcache==NULL)||(fd_hashtable_probe_novoid(oidcache,o)==0))&&
+	  (fd_hashtable_probe_novoid(cache,o)==0) &&
+          ((nolocks)||(fd_hashtable_probe_novoid(locks,o)==0)))
         *write++=o;
-      else if (fd_hashtable_op(locks,fd_table_test,o,FD_LOCKHOLDER)) {
+      else if ((!nolocks)&&
+	       (fd_hashtable_op(locks,fd_table_test,o,FD_LOCKHOLDER))) {
         *write++=o; some_locked=1;}
     if (write==oidv) {
       /* Nothing to prefetch, free and return */
@@ -392,7 +396,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
           if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
           else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}}
 	if (fdtc)
-	  fd_hashtable_iter(&(fdtc->oids),fd_table_store,n,oidv,values);
+	  fd_hashtable_iter(oidcache,fd_table_store,n,oidv,values);
 	if (cachelevel>0)
 	  fd_hashtable_iter(&(p->cache),fd_table_store_noref,n,oidv,values);}
     else {
