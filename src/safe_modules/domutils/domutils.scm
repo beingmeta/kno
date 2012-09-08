@@ -3,10 +3,6 @@
 
 (in-module 'domutils)
 
-;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
-(define version "$Id$")
-(define revision "$Revision: 5083 $")
-
 (use-module '{fdweb xhtml texttools reflection ezrecords varconfig})
 
 (module-export!
