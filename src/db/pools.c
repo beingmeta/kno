@@ -1586,6 +1586,7 @@ fd_pool fd_make_extpool(u8_string label,
 			fdtype lockfn,fdtype state)
 {
   struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
+  memset(xp,0,sizeof(struct FD_EXTPOOL));
   fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
   if (!(FD_VOIDP(savefn))) xp->read_only=0;
   fd_register_pool((fd_pool)xp);
@@ -1644,7 +1645,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
     return results;}
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
-    if (FD_VOIDP(state)) {
+    if ((FD_VOIDP(state))||(FD_FALSEP(state))) {
       int i=0; while (i<n) {
 	fdtype oid=oids[i];
 	fdtype value=fd_apply(fetchfn,1,&oid);
