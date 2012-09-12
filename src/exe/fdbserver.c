@@ -64,10 +64,13 @@ static int server_flags=
 static struct U8_XTIME boot_time;
 
 /*  Total number of queued requests, served threads, etc. */
-static int max_tasks=32, n_threads=8, server_initialized=0;
+static int max_queue=128, init_clients=32, n_threads=4, server_initialized=0;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
+/* This is the maximum number of concurrent connections allowed.
+   Note that this currently is handled by libu8. */
+static int max_conn=0;
 /* This is how long to wait for clients to finish when shutting down the
    server.  Note that the server stops listening for new connections right
    away, so we can start another server.  */
@@ -279,7 +282,7 @@ static int dtypeserver(u8_client ucl)
   else expr=fd_dtsread_dtype(stream);
   fd_reset_threadvars();
   if (expr == FD_EOD) {
-    u8_client_close(ucl);
+    u8_client_closed(ucl);
     return 0;}
   else if (FD_ABORTP(expr)) {
     u8_log(LOG_ERR,BadRequest,
@@ -387,6 +390,7 @@ static int close_fdclient(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtsclose(&(client->stream),2);
   fd_decref((fdtype)((fd_client)ucl)->env);
+  ucl->socket=-1;
   return 1;
 }
 
@@ -482,81 +486,161 @@ static fdtype get_uptime()
 static fdtype get_server_status()
 {
   fdtype result=fd_init_slotmap(NULL,0,NULL);
-  struct U8_SERVER_STATS stats;
-  long long now; double elapsed;
-  /* THe w* variables track how long queued tasks have been waiting */
-  /* The r* variables track how long running tasks have been running */
-  long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
-  long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
-  int i=0, lim; struct U8_CLIENT **socketmap;
-  u8_lock_mutex(&(dtype_server.lock));
-  now=u8_microtime(); elapsed=u8_elapsed_time();
-  lim=dtype_server.socket_lim; socketmap=dtype_server.socketmap;
-  while (i<lim) {
-    u8_client cl=socketmap[i++];
-    if (!(cl)) continue;
-    if (cl->queued>=0) {
-      long long queuestart=cl->queued;
-      long long interval=now-queuestart;
-      wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
-      if (interval>wmax) wmax=interval;}
-    if (cl->started>=0) {
-      long long runstart=cl->started;
-      long long interval=now-runstart;
-      rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
-      if (interval>rmax) rmax=interval;}}
+  struct U8_SERVER_STATS stats, livestats, curstats;
+
   fd_store(result,fd_intern("NTHREADS"),FD_INT2DTYPE(dtype_server.n_threads));
   fd_store(result,fd_intern("NQUEUED"),FD_INT2DTYPE(dtype_server.n_queued));
   fd_store(result,fd_intern("NBUSY"),FD_INT2DTYPE(dtype_server.n_busy));
   fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(dtype_server.n_clients));
   fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(dtype_server.n_trans));
   fd_store(result,fd_intern("TOTALCONN"),FD_INT2DTYPE(dtype_server.n_accepted));
-  u8_unlock_mutex(&(dtype_server.lock));
+
   u8_server_statistics(&dtype_server,&stats);
+  u8_server_livestats(&dtype_server,&livestats);
+  u8_server_curstats(&dtype_server,&curstats);
 
   fd_store(result,fd_intern("NACTIVE"),FD_INT2DTYPE(stats.n_active));
   fd_store(result,fd_intern("NREADING"),FD_INT2DTYPE(stats.n_reading));
-  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_reading));
+  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_writing));
   fd_store(result,fd_intern("NXBUSY"),FD_INT2DTYPE(stats.n_busy));
+
   if (stats.tcount>0) {
     fd_store(result,fd_intern("TRANSAVG"),
-	     fd_make_double(((double)stats.tsum)/(((double)stats.tcount))));
+	     fd_make_double(((double)stats.tsum)/
+			    (((double)stats.tcount))));
     fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(stats.tmax));
     fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(stats.tcount));}
 
+  if (stats.qcount>0) {
+    fd_store(result,fd_intern("QUEUEAVG"),
+	     fd_make_double(((double)stats.qsum)/
+			    (((double)stats.qcount))));
+    fd_store(result,fd_intern("QUEUEMAX"),FD_INT2DTYPE(stats.qmax));
+    fd_store(result,fd_intern("QUEUECOUNT"),FD_INT2DTYPE(stats.qcount));}
+
   if (stats.acount>0) {
     fd_store(result,fd_intern("ACTIVEAVG"),
-	     fd_make_double(((double)stats.asum)/(((double)stats.acount))));
+	     fd_make_double(((double)stats.asum)/
+			    (((double)stats.acount))));
     fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(stats.amax));
     fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(stats.acount));}
     
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
-	     fd_make_double(((double)stats.rsum)/(((double)stats.rcount))));
+	     fd_make_double(((double)stats.rsum)/
+			    (((double)stats.rcount))));
     fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(stats.rmax));
     fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(stats.rcount));}
   
   if (stats.wcount>0) {
     fd_store(result,fd_intern("WRITEAVG"),
-	     fd_make_double(((double)stats.wsum)/(((double)stats.wcount))));
+	     fd_make_double(((double)stats.wsum)/
+			    (((double)stats.wcount))));
     fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(stats.wmax));
     fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(stats.wcount));}
   
   if (stats.xcount>0) {
     fd_store(result,fd_intern("EXECAVG"),
-	     fd_make_double(((double)stats.xsum)/(((double)stats.xcount))));
+	     fd_make_double(((double)stats.xsum)/
+			    (((double)stats.xcount))));
     fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(stats.xmax));
     fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(stats.xcount));}
 
-  fd_store(result,fd_intern("RUNCOUNT"),FD_INT2DTYPE(rcount));
-  fd_store(result,fd_intern("RUNMAX"),FD_INT2DTYPE(rmax));
-  fd_store(result,fd_intern("RUNMIN"),FD_INT2DTYPE(rmin));
-  fd_store(result,fd_intern("RUNAVG"),fd_make_double(((double)rsum)/rcount));
+  if (livestats.tcount>0) {
+    fd_store(result,fd_intern("LIVE/TRANSAVG"),
+	     fd_make_double(((double)livestats.tsum)/
+			    (((double)livestats.tcount))));
+    fd_store(result,fd_intern("LIVE/TRANSMAX"),FD_INT2DTYPE(livestats.tmax));
+    fd_store(result,fd_intern("LIVE/TRANSCOUNT"),
+	     FD_INT2DTYPE(livestats.tcount));}
 
-  fd_store(result,fd_intern("WAITCOUNT"),FD_INT2DTYPE(wcount));
-  fd_store(result,fd_intern("WAITMAX"),FD_INT2DTYPE(wmax));
-  fd_store(result,fd_intern("WAITMIN"),FD_INT2DTYPE(wmin));
-  fd_store(result,fd_intern("WAITAVG"),fd_make_double(((double)wsum)/wcount));
+  if (livestats.qcount>0) {
+    fd_store(result,fd_intern("LIVE/QUEUEAVG"),
+	     fd_make_double(((double)livestats.qsum)/
+			    (((double)livestats.qcount))));
+    fd_store(result,fd_intern("LIVE/QUEUEMAX"),FD_INT2DTYPE(livestats.qmax));
+    fd_store(result,fd_intern("LIVE/QUEUECOUNT"),
+	     FD_INT2DTYPE(livestats.qcount));}
+
+  if (livestats.acount>0) {
+    fd_store(result,fd_intern("LIVE/ACTIVEAVG"),
+	     fd_make_double(((double)livestats.asum)/
+			    (((double)livestats.acount))));
+    fd_store(result,fd_intern("LIVE/ACTIVEMAX"),FD_INT2DTYPE(livestats.amax));
+    fd_store(result,fd_intern("LIVE/ACTIVECOUNT"),
+	     FD_INT2DTYPE(livestats.acount));}
+    
+  if (livestats.rcount>0) {
+    fd_store(result,fd_intern("LIVE/READAVG"),
+	     fd_make_double(((double)livestats.rsum)/
+			    (((double)livestats.rcount))));
+    fd_store(result,fd_intern("LIVE/READMAX"),FD_INT2DTYPE(livestats.rmax));
+    fd_store(result,fd_intern("LIVE/READCOUNT"),
+	     FD_INT2DTYPE(livestats.rcount));}
+  
+  if (livestats.wcount>0) {
+    fd_store(result,fd_intern("LIVE/WRITEAVG"),
+	     fd_make_double(((double)livestats.wsum)/
+			    (((double)livestats.wcount))));
+    fd_store(result,fd_intern("LIVE/WRITEMAX"),FD_INT2DTYPE(livestats.wmax));
+    fd_store(result,fd_intern("LIVE/WRITECOUNT"),
+	     FD_INT2DTYPE(livestats.wcount));}
+  
+  if (livestats.xcount>0) {
+    fd_store(result,fd_intern("LIVE/EXECAVG"),
+	     fd_make_double(((double)livestats.xsum)/
+			    (((double)livestats.xcount))));
+    fd_store(result,fd_intern("LIVE/EXECMAX"),FD_INT2DTYPE(livestats.xmax));
+    fd_store(result,fd_intern("LIVE/EXECCOUNT"),
+	     FD_INT2DTYPE(livestats.xcount));}
+
+    if (curstats.tcount>0) {
+    fd_store(result,fd_intern("CUR/TRANSAVG"),
+	     fd_make_double(((double)curstats.tsum)/
+			    (((double)curstats.tcount))));
+    fd_store(result,fd_intern("CUR/TRANSMAX"),FD_INT2DTYPE(curstats.tmax));
+    fd_store(result,fd_intern("CUR/TRANSCOUNT"),
+	     FD_INT2DTYPE(curstats.tcount));}
+
+  if (curstats.qcount>0) {
+    fd_store(result,fd_intern("CUR/QUEUEAVG"),
+	     fd_make_double(((double)curstats.qsum)/
+			    (((double)curstats.qcount))));
+    fd_store(result,fd_intern("CUR/QUEUEMAX"),FD_INT2DTYPE(curstats.qmax));
+    fd_store(result,fd_intern("CUR/QUEUECOUNT"),
+	     FD_INT2DTYPE(curstats.qcount));}
+
+  if (curstats.acount>0) {
+    fd_store(result,fd_intern("CUR/ACTIVEAVG"),
+	     fd_make_double(((double)curstats.asum)/
+			    (((double)curstats.acount))));
+    fd_store(result,fd_intern("CUR/ACTIVEMAX"),FD_INT2DTYPE(curstats.amax));
+    fd_store(result,fd_intern("CUR/ACTIVECOUNT"),
+	     FD_INT2DTYPE(curstats.acount));}
+    
+  if (curstats.rcount>0) {
+    fd_store(result,fd_intern("CUR/READAVG"),
+	     fd_make_double(((double)curstats.rsum)/
+			    (((double)curstats.rcount))));
+    fd_store(result,fd_intern("CUR/READMAX"),FD_INT2DTYPE(curstats.rmax));
+    fd_store(result,fd_intern("CUR/READCOUNT"),
+	     FD_INT2DTYPE(curstats.rcount));}
+  
+  if (curstats.wcount>0) {
+    fd_store(result,fd_intern("CUR/WRITEAVG"),
+	     fd_make_double(((double)curstats.wsum)/
+			    (((double)curstats.wcount))));
+    fd_store(result,fd_intern("CUR/WRITEMAX"),FD_INT2DTYPE(curstats.wmax));
+    fd_store(result,fd_intern("CUR/WRITECOUNT"),
+	     FD_INT2DTYPE(curstats.wcount));}
+  
+  if (curstats.xcount>0) {
+    fd_store(result,fd_intern("CUR/EXECAVG"),
+	     fd_make_double(((double)curstats.xsum)/
+			    (((double)curstats.xcount))));
+    fd_store(result,fd_intern("CUR/EXECMAX"),FD_INT2DTYPE(curstats.xmax));
+    fd_store(result,fd_intern("CUR/EXECCOUNT"),
+	     FD_INT2DTYPE(curstats.xcount));}
 
   return result;
 }
@@ -592,10 +676,19 @@ static void init_server()
   fd_lock_mutex(&init_server_lock);
   if (server_initialized) return;
   server_initialized=1;
-  u8_server_init
-    (&dtype_server,max_backlog,max_tasks,n_threads,simply_accept,
-     dtypeserver,close_fdclient);
-  dtype_server.flags=dtype_server.flags|server_flags;
+  u8_init_server
+    (&dtype_server,
+     simply_accept, /* acceptfn */
+     dtypeserver, /* handlefn */
+     NULL, /* donefn */
+     close_fdclient, /* closefn */
+     U8_SERVER_INIT_CLIENTS,init_clients,
+     U8_SERVER_NTHREADS,n_threads,
+     U8_SERVER_BACKLOG,max_backlog,
+     U8_SERVER_MAX_QUEUE,max_queue,
+     U8_SERVER_MAX_CLIENTS,max_conn,
+     U8_SERVER_FLAGS,server_flags,
+     U8_SERVER_END_INIT); 
   fd_unlock_mutex(&init_server_lock);
 }
 
@@ -661,7 +754,10 @@ int main(int argc,char **argv)
 		     _("Number of pending connection requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
   fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
-		     fd_intconfig_get,fd_intconfig_set,&max_tasks);
+		     fd_intconfig_get,fd_intconfig_set,&max_queue);
+  fd_register_config("INITCLIENTS",
+		     _("Number of clients to prepare for/grow by"),
+		     fd_intconfig_get,fd_intconfig_set,&init_clients);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&n_threads);
   fd_register_config("PORT",_("port or port@host to listen on"),
@@ -680,14 +776,20 @@ int main(int argc,char **argv)
   fd_register_config("LOGBACKTRACE",
 		     _("Whether to include a detailed backtrace when logging errors"),
 		     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
-  fd_register_config("U8LOGCONN",
+  fd_register_config("U8LOGCONNECT",
 		     _("Whether to have libu8 log each connection"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_CONNECT));
-  fd_register_config("U8LOGTRANS",
+  fd_register_config("U8LOGTRANSACT",
 		     _("Whether to have libu8 log each transaction"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
+#ifdef U8_SERVER_LOG_TRANSFERS
+  fd_register_config("U8LOGTRANSFER",
+		     _("Whether to have libu8 log all data transfers for fine-grained debugging"),
+		     config_get_dtype_server_flag,config_set_dtype_server_flag,
+		     (void *)(U8_SERVER_LOG_TRANSFERS));
+#endif
   fd_register_config("U8ASYNC",
 		     _("Whether to support thread-asynchronous transactions"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,

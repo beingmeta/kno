@@ -87,10 +87,11 @@ static int server_running=0;
 
 /* This environment is the parent of all script/page environments spun off
    from this server. */
-static int servlet_ntasks=64, servlet_threads=8;
+static int init_clients=64, servlet_threads=8, max_queue=256, max_conn=0;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
+
 /* This is how long (μs) to wait for clients to finish when shutting down the
    server.  Note that the server stops listening for new connections right
    away, so we can start another server.  */
@@ -168,176 +169,243 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
 #define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
 #define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEX "[%*t][%f] %s/%d mean=%f max=%f sd=%f"
+#define STATUS_LINEX "[%*t][%f] %s:%d mean=%f max=%f sd=%f"
+
+static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
+{
+  double elapsed=u8_elapsed_time();
+  if (stats->tcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"busy",stats->tcount,
+	       ((1.0*(stats->tsum))/stats->tcount),
+	       stats->tmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"busy",stats->tcount,
+	   ((1.0*(stats->tsum))/stats->tcount),
+	   stats->tmax,0);}
+    
+  if (stats->acount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",stats->acount,
+	       ((1.0*(stats->asum))/stats->acount),
+	       stats->amax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",stats->acount,
+	   ((1.0*(stats->asum))/stats->acount),
+	   stats->amax,0);}
+
+  if (stats->qcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"queued",stats->qcount,
+	       ((1.0*(stats->qsum))/stats->qcount),
+	       stats->qmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"queued",stats->qcount,
+	   ((1.0*(stats->qsum))/stats->qcount),
+	   stats->qmax,0);}
+
+  if (stats->rcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"reading",stats->rcount,
+	       ((1.0*(stats->rsum))/stats->rcount),
+	       stats->rmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"reading",stats->rcount,
+	   ((1.0*(stats->rsum))/stats->rcount),
+	   stats->rmax,0);}
+
+  if (stats->wcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"writing",stats->wcount,
+	       ((1.0*(stats->wsum))/stats->wcount),
+	       stats->wmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"writing",stats->wcount,
+	   ((1.0*(stats->wsum))/stats->wcount),
+	   stats->wmax,0);}
+
+  if (stats->xcount>0) {
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"running",stats->xcount,
+	       ((1.0*(stats->xsum))/stats->xcount),
+	       stats->xmax,0);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"running",stats->xcount,
+	   ((1.0*(stats->xsum))/stats->xcount),
+	   stats->xmax,0);}
+}
 
 static void report_status()
 {
   FILE *logto=statlog;
   struct U8_SERVER_STATS stats;
-  long long now; double elapsed;
-  long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
-  long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
+  double elapsed=u8_elapsed_time();
   if (!(logto)) logto=stderr;
-  u8_lock_mutex(&(fdwebserver.lock)); {
-    int i=0, lim=fdwebserver.socket_lim;
-    struct U8_CLIENT **socketmap=fdwebserver.socketmap;
-    now=u8_microtime(); elapsed=u8_elapsed_time();
-    /* THe w* variables track how long queued tasks have been waiting */
-    /* The r* variables track how long running tasks have been running */
-    last_status=now;
-    while (i<lim) {
-      u8_client cl=socketmap[i++];
-      if (!(cl)) continue;
-      if (cl->queued>=0) {
-	long long queuestart=cl->queued;
-	long long interval=now-queuestart;
-	wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
-	if (interval>wmax) wmax=interval;}
-      if (cl->started>=0) {
-	long long runstart=cl->started;
-	long long interval=now-runstart;
-	rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
-	if (interval>rmax) rmax=interval;}}
-    u8_fprintf(logto,STATUS_LINE1,elapsed,
-	       fdwebserver.n_busy,fdwebserver.n_queued,
-	       fdwebserver.n_clients,fdwebserver.n_threads);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
-	   fdwebserver.n_busy,fdwebserver.n_queued,
-	   fdwebserver.n_clients,fdwebserver.n_threads);
-    u8_unlock_mutex(&(fdwebserver.lock));}
+  u8_fprintf(logto,STATUS_LINE1,elapsed,
+	     fdwebserver.n_busy,fdwebserver.n_queued,
+	     fdwebserver.n_clients,fdwebserver.n_threads);
+  u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
+	 fdwebserver.n_busy,fdwebserver.n_queued,
+	 fdwebserver.n_clients,fdwebserver.n_threads);
+
+  u8_server_curstats(&fdwebserver,&stats);
+  output_stats(&stats,logto);
+
+  u8_fprintf(logto,"Aggregate statistics");
+  u8_log(LOG_INFO,"fdserv","Aggregate statistics");
+  
   u8_server_statistics(&fdwebserver,&stats);
+  output_stats(&stats,logto);
 
-
-  if (stats.tcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"trans",stats.tcount,
-	       ((1.0*(stats.tsum))/stats.tcount),
-	       stats.tmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"trans",stats.tcount,
-	   ((1.0*(stats.tsum))/stats.tcount),
-	   stats.tmax,0);}
-    
-  if (stats.acount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",stats.acount,
-	       ((1.0*(stats.asum))/stats.acount),
-	       stats.amax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",stats.acount,
-	   ((1.0*(stats.asum))/stats.acount),
-	   stats.amax,0);}
-
-  if (stats.rcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"read",stats.rcount,
-	       ((1.0*(stats.rsum))/stats.rcount),
-	       stats.rmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"read",stats.rcount,
-	   ((1.0*(stats.rsum))/stats.rcount),
-	   stats.rmax,0);}
-
-  if (stats.wcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"write",stats.wcount,
-	       ((1.0*(stats.wsum))/stats.wcount),
-	       stats.wmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"write",stats.wcount,
-	   ((1.0*(stats.wsum))/stats.wcount),
-	   stats.wmax,0);}
-
-  if (stats.xcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"exec",stats.xcount,
-	       ((1.0*(stats.xsum))/stats.xcount),
-	       stats.xmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"exec",stats.xcount,
-	   ((1.0*(stats.xsum))/stats.xcount),
-	   stats.xmax,0);}
-
-  u8_fprintf(logto,STATUS_LINE3,elapsed,
-	     wcount,wmin,wmax,((double)wsum)/wcount);
-  u8_log(LOG_INFO,"fdserv",STATUS_LINE3,elapsed,
-	 wcount,wmin,wmax,((double)wsum)/wcount);
-  if (rcount) {
-    u8_fprintf(logto,STATUS_LINE4,elapsed,
-	       rcount,rmin,rmax,((double)rsum)/rcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINE4,elapsed,
-	   rcount,rmin,rmax,((double)rsum)/rcount);}
   if (statlog) fflush(statlog);
 }
 
 static fdtype servlet_status()
 {
   fdtype result=fd_init_slotmap(NULL,0,NULL);
-  struct U8_SERVER_STATS stats;
-  long long now; double elapsed;
-  /* THe w* variables track how long queued tasks have been waiting */
-  /* The r* variables track how long running tasks have been running */
-  long long wcount=0, wmax=0, wmin=0, wsum=0, wsqsum=0;
-  long long rcount=0, rmax=0, rmin=0, rsum=0, rsqsum=0;
-  int i=0, lim; struct U8_CLIENT **socketmap;
-  u8_lock_mutex(&(fdwebserver.lock));
-  now=u8_microtime(); elapsed=u8_elapsed_time();
-  lim=fdwebserver.socket_lim; socketmap=fdwebserver.socketmap;
-  while (i<lim) {
-    u8_client cl=socketmap[i++];
-    if (!(cl)) continue;
-    if (cl->queued>=0) {
-      long long queuestart=cl->queued;
-      long long interval=now-queuestart;
-      wcount++; wsum=wsum+interval; wsqsum=wsqsum+(interval*interval);
-      if (interval>wmax) wmax=interval;}
-    if (cl->started>=0) {
-      long long runstart=cl->started;
-      long long interval=now-runstart;
-      rcount++; rsum=rsum+interval; rsqsum=rsqsum+(interval*interval);
-      if (interval>rmax) rmax=interval;}}
+  struct U8_SERVER_STATS stats, livestats, curstats;
+
   fd_store(result,fd_intern("NTHREADS"),FD_INT2DTYPE(fdwebserver.n_threads));
   fd_store(result,fd_intern("NQUEUED"),FD_INT2DTYPE(fdwebserver.n_queued));
   fd_store(result,fd_intern("NBUSY"),FD_INT2DTYPE(fdwebserver.n_busy));
   fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(fdwebserver.n_clients));
   fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(fdwebserver.n_trans));
   fd_store(result,fd_intern("TOTALCONN"),FD_INT2DTYPE(fdwebserver.n_accepted));
-  u8_unlock_mutex(&(fdwebserver.lock));
+
   u8_server_statistics(&fdwebserver,&stats);
+  u8_server_livestats(&fdwebserver,&livestats);
+  u8_server_curstats(&fdwebserver,&curstats);
 
   fd_store(result,fd_intern("NACTIVE"),FD_INT2DTYPE(stats.n_active));
   fd_store(result,fd_intern("NREADING"),FD_INT2DTYPE(stats.n_reading));
-  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_reading));
+  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_writing));
   fd_store(result,fd_intern("NXBUSY"),FD_INT2DTYPE(stats.n_busy));
+
   if (stats.tcount>0) {
     fd_store(result,fd_intern("TRANSAVG"),
-	     fd_make_double(((double)stats.tsum)/(((double)stats.tcount))));
+	     fd_make_double(((double)stats.tsum)/
+			    (((double)stats.tcount))));
     fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(stats.tmax));
     fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(stats.tcount));}
 
+  if (stats.qcount>0) {
+    fd_store(result,fd_intern("QUEUEAVG"),
+	     fd_make_double(((double)stats.qsum)/
+			    (((double)stats.qcount))));
+    fd_store(result,fd_intern("QUEUEMAX"),FD_INT2DTYPE(stats.qmax));
+    fd_store(result,fd_intern("QUEUECOUNT"),FD_INT2DTYPE(stats.qcount));}
+
   if (stats.acount>0) {
     fd_store(result,fd_intern("ACTIVEAVG"),
-	     fd_make_double(((double)stats.asum)/(((double)stats.acount))));
+	     fd_make_double(((double)stats.asum)/
+			    (((double)stats.acount))));
     fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(stats.amax));
     fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(stats.acount));}
     
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
-	     fd_make_double(((double)stats.rsum)/(((double)stats.rcount))));
+	     fd_make_double(((double)stats.rsum)/
+			    (((double)stats.rcount))));
     fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(stats.rmax));
     fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(stats.rcount));}
   
   if (stats.wcount>0) {
     fd_store(result,fd_intern("WRITEAVG"),
-	     fd_make_double(((double)stats.wsum)/(((double)stats.wcount))));
+	     fd_make_double(((double)stats.wsum)/
+			    (((double)stats.wcount))));
     fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(stats.wmax));
     fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(stats.wcount));}
   
   if (stats.xcount>0) {
     fd_store(result,fd_intern("EXECAVG"),
-	     fd_make_double(((double)stats.xsum)/(((double)stats.xcount))));
+	     fd_make_double(((double)stats.xsum)/
+			    (((double)stats.xcount))));
     fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(stats.xmax));
     fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(stats.xcount));}
 
-  fd_store(result,fd_intern("RUNCOUNT"),FD_INT2DTYPE(rcount));
-  fd_store(result,fd_intern("RUNMAX"),FD_INT2DTYPE(rmax));
-  fd_store(result,fd_intern("RUNMIN"),FD_INT2DTYPE(rmin));
-  fd_store(result,fd_intern("RUNAVG"),fd_make_double(((double)rsum)/rcount));
+  if (livestats.tcount>0) {
+    fd_store(result,fd_intern("LIVE/TRANSAVG"),
+	     fd_make_double(((double)livestats.tsum)/
+			    (((double)livestats.tcount))));
+    fd_store(result,fd_intern("LIVE/TRANSMAX"),FD_INT2DTYPE(livestats.tmax));
+    fd_store(result,fd_intern("LIVE/TRANSCOUNT"),
+	     FD_INT2DTYPE(livestats.tcount));}
 
-  fd_store(result,fd_intern("WAITCOUNT"),FD_INT2DTYPE(wcount));
-  fd_store(result,fd_intern("WAITMAX"),FD_INT2DTYPE(wmax));
-  fd_store(result,fd_intern("WAITMIN"),FD_INT2DTYPE(wmin));
-  fd_store(result,fd_intern("WAITAVG"),fd_make_double(((double)wsum)/wcount));
+  if (livestats.qcount>0) {
+    fd_store(result,fd_intern("LIVE/QUEUEAVG"),
+	     fd_make_double(((double)livestats.qsum)/
+			    (((double)livestats.qcount))));
+    fd_store(result,fd_intern("LIVE/QUEUEMAX"),FD_INT2DTYPE(livestats.qmax));
+    fd_store(result,fd_intern("LIVE/QUEUECOUNT"),
+	     FD_INT2DTYPE(livestats.qcount));}
+
+  if (livestats.acount>0) {
+    fd_store(result,fd_intern("LIVE/ACTIVEAVG"),
+	     fd_make_double(((double)livestats.asum)/
+			    (((double)livestats.acount))));
+    fd_store(result,fd_intern("LIVE/ACTIVEMAX"),FD_INT2DTYPE(livestats.amax));
+    fd_store(result,fd_intern("LIVE/ACTIVECOUNT"),
+	     FD_INT2DTYPE(livestats.acount));}
+    
+  if (livestats.rcount>0) {
+    fd_store(result,fd_intern("LIVE/READAVG"),
+	     fd_make_double(((double)livestats.rsum)/
+			    (((double)livestats.rcount))));
+    fd_store(result,fd_intern("LIVE/READMAX"),FD_INT2DTYPE(livestats.rmax));
+    fd_store(result,fd_intern("LIVE/READCOUNT"),
+	     FD_INT2DTYPE(livestats.rcount));}
+  
+  if (livestats.wcount>0) {
+    fd_store(result,fd_intern("LIVE/WRITEAVG"),
+	     fd_make_double(((double)livestats.wsum)/
+			    (((double)livestats.wcount))));
+    fd_store(result,fd_intern("LIVE/WRITEMAX"),FD_INT2DTYPE(livestats.wmax));
+    fd_store(result,fd_intern("LIVE/WRITECOUNT"),
+	     FD_INT2DTYPE(livestats.wcount));}
+  
+  if (livestats.xcount>0) {
+    fd_store(result,fd_intern("LIVE/EXECAVG"),
+	     fd_make_double(((double)livestats.xsum)/
+			    (((double)livestats.xcount))));
+    fd_store(result,fd_intern("LIVE/EXECMAX"),FD_INT2DTYPE(livestats.xmax));
+    fd_store(result,fd_intern("LIVE/EXECCOUNT"),
+	     FD_INT2DTYPE(livestats.xcount));}
+
+    if (curstats.tcount>0) {
+    fd_store(result,fd_intern("CUR/TRANSAVG"),
+	     fd_make_double(((double)curstats.tsum)/
+			    (((double)curstats.tcount))));
+    fd_store(result,fd_intern("CUR/TRANSMAX"),FD_INT2DTYPE(curstats.tmax));
+    fd_store(result,fd_intern("CUR/TRANSCOUNT"),
+	     FD_INT2DTYPE(curstats.tcount));}
+
+  if (curstats.qcount>0) {
+    fd_store(result,fd_intern("CUR/QUEUEAVG"),
+	     fd_make_double(((double)curstats.qsum)/
+			    (((double)curstats.qcount))));
+    fd_store(result,fd_intern("CUR/QUEUEMAX"),FD_INT2DTYPE(curstats.qmax));
+    fd_store(result,fd_intern("CUR/QUEUECOUNT"),
+	     FD_INT2DTYPE(curstats.qcount));}
+
+  if (curstats.acount>0) {
+    fd_store(result,fd_intern("CUR/ACTIVEAVG"),
+	     fd_make_double(((double)curstats.asum)/
+			    (((double)curstats.acount))));
+    fd_store(result,fd_intern("CUR/ACTIVEMAX"),FD_INT2DTYPE(curstats.amax));
+    fd_store(result,fd_intern("CUR/ACTIVECOUNT"),
+	     FD_INT2DTYPE(curstats.acount));}
+    
+  if (curstats.rcount>0) {
+    fd_store(result,fd_intern("CUR/READAVG"),
+	     fd_make_double(((double)curstats.rsum)/
+			    (((double)curstats.rcount))));
+    fd_store(result,fd_intern("CUR/READMAX"),FD_INT2DTYPE(curstats.rmax));
+    fd_store(result,fd_intern("CUR/READCOUNT"),
+	     FD_INT2DTYPE(curstats.rcount));}
+  
+  if (curstats.wcount>0) {
+    fd_store(result,fd_intern("CUR/WRITEAVG"),
+	     fd_make_double(((double)curstats.wsum)/
+			    (((double)curstats.wcount))));
+    fd_store(result,fd_intern("CUR/WRITEMAX"),FD_INT2DTYPE(curstats.wmax));
+    fd_store(result,fd_intern("CUR/WRITECOUNT"),
+	     FD_INT2DTYPE(curstats.wcount));}
+  
+  if (curstats.xcount>0) {
+    fd_store(result,fd_intern("CUR/EXECAVG"),
+	     fd_make_double(((double)curstats.xsum)/
+			    (((double)curstats.xcount))));
+    fd_store(result,fd_intern("CUR/EXECMAX"),FD_INT2DTYPE(curstats.xmax));
+    fd_store(result,fd_intern("CUR/EXECCOUNT"),
+	     FD_INT2DTYPE(curstats.xcount));}
 
   return result;
 }
@@ -1156,7 +1224,13 @@ int main(int argc,char **argv)
 		     _("Number of pending connection requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
   fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
-		     fd_intconfig_get,fd_intconfig_set,&servlet_ntasks);
+		     fd_intconfig_get,fd_intconfig_set,&max_queue);
+  fd_register_config("MAXCONN",
+		     _("Max number of concurrent connections to allow (NYI)"),
+		     fd_intconfig_get,fd_intconfig_set,&max_conn);
+  fd_register_config("INITCONN",
+		     _("Number of clients to prepare for/grow by"),
+		     fd_intconfig_get,fd_intconfig_set,&init_clients);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
   fd_register_config("STATLOG",_("File for recording status reports"),
@@ -1209,11 +1283,18 @@ int main(int argc,char **argv)
   
   memset(&fdwebserver,0,sizeof(fdwebserver));
   
-  u8_server_init(&fdwebserver,
-		 max_backlog,servlet_ntasks,servlet_threads,
-		 simply_accept,webservefn,close_webclient);
-  fdwebserver.flags=fdwebserver.flags|U8_SERVER_LOG_LISTEN;
-  fdwebserver.donefn=reuse_webclient;
+  u8_init_server
+    (&fdwebserver,
+     simply_accept, /* acceptfn */
+     webservefn, /* handlefn */
+     reuse_webclient, /* donefn */
+     close_webclient, /* closefn */
+     U8_SERVER_INIT_CLIENTS,init_clients,
+     U8_SERVER_NTHREADS,servlet_threads,
+     U8_SERVER_BACKLOG,max_backlog,
+     U8_SERVER_MAX_QUEUE,max_queue,
+     U8_SERVER_MAX_CLIENTS,max_conn,
+     U8_SERVER_END_INIT); 
 
   fd_register_config("U8LOGLISTEN",
 		     _("Whether to have libu8 log each monitored address"),
