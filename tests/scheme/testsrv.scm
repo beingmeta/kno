@@ -1,4 +1,4 @@
-(define testexpr (config 'TESTEXPR #f))
+(define testexpr (config 'TESTEXPR '(PLUS 11 99)))
 
 (define (evaln server n)
   (let ((s (open-dtserver server)))
