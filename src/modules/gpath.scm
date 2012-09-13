@@ -183,7 +183,10 @@
 	       (get response '%content)
 	       (fail))))
 	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
-	((string? ref) (filestring ref))
+	((string? ref)
+	 (if (or (has-prefix ctype "text") (search "xml" ctype))
+	     (filestring ref)
+	     (filedata ref)))
 	(else (error "Weird docbase ref" ref))))
 
 (define (gp/fetch+ ref (ctype))
@@ -211,8 +214,11 @@
 	((and (string? ref) (has-prefix ref "s3:"))
 	 (s3/get+ (->s3loc ref)))
 	((string? ref)
-	 `#[content ,(filestring ref) ctype ,ctype
-	    modified ,(file-modtime ref)])
+	 (if (or (has-prefix ctype "text") (search "xml" ctype))
+	     `#[content ,(filestring ref) ctype ,ctype
+		modified ,(file-modtime ref)]
+	     `#[content ,(filedata ref) ctype ,ctype
+		modified ,(file-modtime ref)]))
 	(else (error "Weird docbase ref" ref))))
 
 
