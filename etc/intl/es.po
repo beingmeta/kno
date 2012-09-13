@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-04 17:22-0400\n"
+"POT-Creation-Date: 2012-09-12 21:53-0400\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -236,7 +236,7 @@ msgstr ""
 #: src/scheme/dbfileprims.c:102 src/scheme/dbfileprims.c:106
 #: src/texttools/texttools.c:1833 src/texttools/match.c:3337
 #: src/texttools/match.c:3354 src/texttools/match.c:3381
-#: src/texttools/match.c:3415 src/exe/fdserv.c:154 src/exe/fdserv.c:157
+#: src/texttools/match.c:3415 src/exe/fdserv.c:155 src/exe/fdserv.c:158
 msgid "fixnum"
 msgstr ""
 
@@ -281,7 +281,7 @@ msgstr ""
 #: src/scheme/dbfileprims.c:99 src/fdweb/xmloutput.c:1408
 #: src/fdweb/uriprims.c:390 src/fdweb/mime.c:106 src/fdweb/curl.c:409
 #: src/texttools/texttools.c:130 src/texttools/texttools.c:157
-#: src/texttools/texttools.c:425 src/tagger/ofsm.c:229 src/exe/fdserv.c:136
+#: src/texttools/texttools.c:425 src/tagger/ofsm.c:229 src/exe/fdserv.c:137
 msgid "string"
 msgstr ""
 
@@ -631,7 +631,7 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/db/fddb.c:255 src/db/pools.c:1774 src/scheme/dbprims.c:688
+#: src/db/fddb.c:255 src/db/pools.c:1779 src/scheme/dbprims.c:688
 #: src/scheme/dbprims.c:699 src/scheme/dbprims.c:707 src/scheme/dbprims.c:715
 #: src/scheme/dbprims.c:760 src/scheme/dbprims.c:773 src/scheme/dbprims.c:785
 #: src/scheme/dbprims.c:821 src/scheme/dbprims.c:834 src/scheme/dbprims.c:1650
@@ -868,39 +868,39 @@ msgstr ""
 msgid "Pool confict"
 msgstr ""
 
-#: src/db/pools.c:847 include/framerd/pools.h:292
+#: src/db/pools.c:851 include/framerd/pools.h:292
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/db/pools.c:887 src/scheme/dbfileprims.c:89 include/framerd/pools.h:333
+#: src/db/pools.c:891 src/scheme/dbfileprims.c:89 include/framerd/pools.h:333
 msgid "OID"
 msgstr ""
 
-#: src/db/pools.c:933
+#: src/db/pools.c:937
 msgid "not a pool"
 msgstr ""
 
-#: src/db/pools.c:1112
+#: src/db/pools.c:1116
 msgid "Too many pools for commit"
 msgstr ""
 
-#: src/db/pools.c:1114
+#: src/db/pools.c:1118
 msgid "No pool for OID"
 msgstr ""
 
-#: src/db/pools.c:1563
+#: src/db/pools.c:1567
 msgid "mempool"
 msgstr ""
 
-#: src/db/pools.c:1761
+#: src/db/pools.c:1766
 msgid "Config mis-config"
 msgstr ""
 
-#: src/db/pools.c:1803
+#: src/db/pools.c:1808
 msgid "whether value of anonymous OIDs are {} or signal an error"
 msgstr ""
 
-#: src/db/pools.c:1806
+#: src/db/pools.c:1811
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1913,7 +1913,7 @@ msgstr ""
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:287 src/exe/fdbserver.c:697
+#: src/exe/fdconsole.c:287 src/exe/fdbserver.c:799
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
@@ -1971,63 +1971,71 @@ msgstr ""
 msgid "FDSERV Startup"
 msgstr ""
 
-#: src/exe/fdserv.c:1065
+#: src/exe/fdserv.c:1133
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdserv.c:1067 src/exe/fdbserver.c:706
+#: src/exe/fdserv.c:1135 src/exe/fdbserver.c:808
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdserv.c:1153
+#: src/exe/fdserv.c:1221
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdserv.c:1156 src/exe/fdcgiexec.c:695 src/exe/fdbserver.c:661
+#: src/exe/fdserv.c:1224 src/exe/fdcgiexec.c:695 src/exe/fdbserver.c:754
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdserv.c:1158 src/exe/fdbserver.c:663
+#: src/exe/fdserv.c:1226 src/exe/fdbserver.c:756
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdserv.c:1160 src/exe/fdcgiexec.c:697 src/exe/fdbserver.c:665
+#: src/exe/fdserv.c:1229
+msgid "Max number of concurrent connections to allow (NYI)"
+msgstr ""
+
+#: src/exe/fdserv.c:1232 src/exe/fdbserver.c:759
+msgid "Number of clients to prepare for/grow by"
+msgstr ""
+
+#: src/exe/fdserv.c:1234 src/exe/fdcgiexec.c:697 src/exe/fdbserver.c:761
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdserv.c:1162
+#: src/exe/fdserv.c:1236
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdserv.c:1165
+#: src/exe/fdserv.c:1239
 msgid "Milliseconds (roughly) between status reports"
 msgstr ""
 
-#: src/exe/fdserv.c:1168 src/exe/fdbserver.c:709
+#: src/exe/fdserv.c:1242 src/exe/fdbserver.c:811
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdserv.c:1172
+#: src/exe/fdserv.c:1246
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdserv.c:1176
+#: src/exe/fdserv.c:1250
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdserv.c:1219
+#: src/exe/fdserv.c:1300
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdserv.c:1223 src/exe/fdbserver.c:684
+#: src/exe/fdserv.c:1304 src/exe/fdbserver.c:780
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdserv.c:1227 src/exe/fdbserver.c:688
+#: src/exe/fdserv.c:1308 src/exe/fdbserver.c:784
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdserv.c:1232 src/exe/fdbserver.c:692
+#: src/exe/fdserv.c:1313 src/exe/fdbserver.c:794
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -2067,38 +2075,42 @@ msgstr ""
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/fdbserver.c:667
+#: src/exe/fdbserver.c:763
 msgid "port or port@host to listen on"
 msgstr ""
 
-#: src/exe/fdbserver.c:669
+#: src/exe/fdbserver.c:765
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/fdbserver.c:671
+#: src/exe/fdbserver.c:767
 msgid "whether to provide full scheme interpretation to client"
 msgstr ""
 
-#: src/exe/fdbserver.c:673
+#: src/exe/fdbserver.c:769
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/fdbserver.c:675
+#: src/exe/fdbserver.c:771
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/fdbserver.c:678
+#: src/exe/fdbserver.c:774
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/fdbserver.c:681
+#: src/exe/fdbserver.c:777
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/fdbserver.c:701
+#: src/exe/fdbserver.c:789
+msgid "Whether to have libu8 log all data transfers for fine-grained debugging"
+msgstr ""
+
+#: src/exe/fdbserver.c:803
 msgid "Max number of list/vector/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdbserver.c:704
+#: src/exe/fdbserver.c:806
 msgid "Where to write server pid/nid files"
 msgstr ""

@@ -1374,6 +1374,40 @@ static fdtype seq2vector(fdtype seq)
   else return fd_type_error(_("sequence"),"seq2vector",seq);
 }
 
+static fdtype onevector_prim(int n,fdtype *args)
+{
+  fdtype elts[32], result=FD_VOID;
+  struct U8_PILE pile; int i=0;
+  if (n==0) return fd_init_vector(NULL,0,NULL);
+  else if (n==1) {
+    if (FD_VECTORP(args[0])) return fd_incref(args[0]);
+    else if (FD_PAIRP(args[0])) {}
+    else if ((FD_EMPTY_CHOICEP(args[0]))||(FD_EMPTY_QCHOICEP(args[0])))
+      return fd_init_vector(NULL,0,NULL);
+    else if (!(FD_CONSP(args[0])))
+      return fd_make_vector(1,args);
+    else {
+      fd_incref(args[0]); return fd_make_vector(1,args);}}
+  U8_INIT_STATIC_PILE((&pile),elts,32);
+  while (i<n) {
+    fdtype arg=args[i++];
+    FD_DO_CHOICES(each,arg) {
+      if (!(FD_CONSP(each))) {u8_pile_add((&pile),each);}
+      else if (FD_VECTORP(each)) {
+	int len=FD_VECTOR_LENGTH(each); int j=0;
+	while (j<0) {
+	  fdtype elt=FD_VECTOR_REF(each,j); fd_incref(elt);
+	  u8_pile_add(&pile,elt); j++;}}
+      else if (FD_PAIRP(each)) {
+	FD_DOLIST(elt,each) {
+	  fd_incref(elt); u8_pile_add(&pile,elt);}}
+      else {
+	fd_incref(each); u8_pile_add(&pile,each);}}}
+  result=fd_make_vector(pile.u8_len,(fdtype *)pile.u8_elts);
+  if (pile.u8_mallocd) u8_free(pile.u8_elts);
+  return result;
+}
+
 static fdtype seq2rail(fdtype seq)
 {
   if (FD_EMPTY_LISTP(seq))
@@ -1914,6 +1948,9 @@ FD_EXPORT void fd_init_sequences_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("->LIST",seq2list,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("->STRING",x2string,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("->PACKET",seq2packet,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprimn("1VECTOR",onevector_prim,0)));
+  fd_defalias(fd_scheme_module,"ONEVECTOR","1VECTOR");
 
   fd_idefn(fd_scheme_module,fd_make_cprim3("ELTS",elts_prim,1));
 
