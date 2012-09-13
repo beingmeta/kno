@@ -169,58 +169,58 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
 #define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
 #define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEX "[%*t][%f] %s:%d mean=%f max=%f sd=%f"
+#define STATUS_LINEX "[%*t][%f] %s mean=%02fus max=%02fus sd=%02fus (n=%d)\n"
 
 static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 {
   double elapsed=u8_elapsed_time();
   if (stats->tcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"busy",stats->tcount,
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"busy",
 	       ((1.0*(stats->tsum))/stats->tcount),
-	       stats->tmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"busy",stats->tcount,
+	       stats->tmax,0.0,stats->tcount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"busy",
 	   ((1.0*(stats->tsum))/stats->tcount),
-	   stats->tmax,0);}
+	   stats->tmax,0.0,stats->tcount);}
     
   if (stats->acount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",stats->acount,
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",
 	       ((1.0*(stats->asum))/stats->acount),
-	       stats->amax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",stats->acount,
+	       stats->amax,0.0,stats->acount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",
 	   ((1.0*(stats->asum))/stats->acount),
-	   stats->amax,0);}
+	   stats->amax,0.0,stats->acount);}
 
   if (stats->qcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"queued",stats->qcount,
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"queued",
 	       ((1.0*(stats->qsum))/stats->qcount),
-	       stats->qmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"queued",stats->qcount,
+	       stats->qmax,0.0,stats->qcount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"queued",
 	   ((1.0*(stats->qsum))/stats->qcount),
-	   stats->qmax,0);}
+	   stats->qmax,0.0,stats->qcount);}
 
   if (stats->rcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"reading",stats->rcount,
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"reading",
 	       ((1.0*(stats->rsum))/stats->rcount),
-	       stats->rmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"reading",stats->rcount,
+	       stats->rmax,0.0,stats->rcount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"reading",
 	   ((1.0*(stats->rsum))/stats->rcount),
-	   stats->rmax,0);}
+	   stats->rmax,0.0,stats->rcount);}
 
   if (stats->wcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"writing",stats->wcount,
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"writing",
 	       ((1.0*(stats->wsum))/stats->wcount),
-	       stats->wmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"writing",stats->wcount,
+	       stats->wmax,0.0,stats->wcount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"writing",
 	   ((1.0*(stats->wsum))/stats->wcount),
-	   stats->wmax,0);}
+	   stats->wmax,0.0,stats->wcount);}
 
   if (stats->xcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"running",stats->xcount,
+    u8_fprintf(logto,STATUS_LINEX,elapsed,"running",
 	       ((1.0*(stats->xsum))/stats->xcount),
-	       stats->xmax,0);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"running",stats->xcount,
+	       stats->xmax,0.0,stats->xcount);
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"running",
 	   ((1.0*(stats->xsum))/stats->xcount),
-	   stats->xmax,0);}
+	   stats->xmax,0.0,stats->xcount);}
 }
 
 static void report_status()
