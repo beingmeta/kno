@@ -518,13 +518,6 @@ static fdtype get_server_status()
     fd_store(result,fd_intern("QUEUEMAX"),FD_INT2DTYPE(stats.qmax));
     fd_store(result,fd_intern("QUEUECOUNT"),FD_INT2DTYPE(stats.qcount));}
 
-  if (stats.acount>0) {
-    fd_store(result,fd_intern("ACTIVEAVG"),
-	     fd_make_double(((double)stats.asum)/
-			    (((double)stats.acount))));
-    fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(stats.amax));
-    fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(stats.acount));}
-    
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
 	     fd_make_double(((double)stats.rsum)/
@@ -562,14 +555,6 @@ static fdtype get_server_status()
     fd_store(result,fd_intern("LIVE/QUEUECOUNT"),
 	     FD_INT2DTYPE(livestats.qcount));}
 
-  if (livestats.acount>0) {
-    fd_store(result,fd_intern("LIVE/ACTIVEAVG"),
-	     fd_make_double(((double)livestats.asum)/
-			    (((double)livestats.acount))));
-    fd_store(result,fd_intern("LIVE/ACTIVEMAX"),FD_INT2DTYPE(livestats.amax));
-    fd_store(result,fd_intern("LIVE/ACTIVECOUNT"),
-	     FD_INT2DTYPE(livestats.acount));}
-    
   if (livestats.rcount>0) {
     fd_store(result,fd_intern("LIVE/READAVG"),
 	     fd_make_double(((double)livestats.rsum)/
@@ -610,14 +595,6 @@ static fdtype get_server_status()
     fd_store(result,fd_intern("CUR/QUEUECOUNT"),
 	     FD_INT2DTYPE(curstats.qcount));}
 
-  if (curstats.acount>0) {
-    fd_store(result,fd_intern("CUR/ACTIVEAVG"),
-	     fd_make_double(((double)curstats.asum)/
-			    (((double)curstats.acount))));
-    fd_store(result,fd_intern("CUR/ACTIVEMAX"),FD_INT2DTYPE(curstats.amax));
-    fd_store(result,fd_intern("CUR/ACTIVECOUNT"),
-	     FD_INT2DTYPE(curstats.acount));}
-    
   if (curstats.rcount>0) {
     fd_store(result,fd_intern("CUR/READAVG"),
 	     fd_make_double(((double)curstats.rsum)/

@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <signal.h>
+#include <math.h>
 
 #include "revision.h"
 
@@ -169,7 +170,9 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
 #define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
 #define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEX "[%*t][%f] %s mean=%02fus max=%02fus sd=%02fus (n=%d)\n"
+#define STATUS_LINEX "[%*t][%f] %s mean=%02fus max=%02fus sd=%02f (n=%d)\n"
+
+#define stdev(v,v2,n) sqrt((((double)v2)/n)-(((double)v2)*((double)v2)))
 
 static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 {
@@ -177,50 +180,62 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
   if (stats->tcount>0) {
     u8_fprintf(logto,STATUS_LINEX,elapsed,"busy",
 	       ((1.0*(stats->tsum))/stats->tcount),
-	       stats->tmax,0.0,stats->tcount);
+	       stats->tmax,
+	       stdev(stats->tsum,stats->tsum2,stats->tcount),
+	       stats->tcount);
     u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"busy",
 	   ((1.0*(stats->tsum))/stats->tcount),
-	   stats->tmax,0.0,stats->tcount);}
-    
-  if (stats->acount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"active",
-	       ((1.0*(stats->asum))/stats->acount),
-	       stats->amax,0.0,stats->acount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"active",
-	   ((1.0*(stats->asum))/stats->acount),
-	   stats->amax,0.0,stats->acount);}
-
+	   stats->tmax,
+	   stdev(stats->tsum,stats->tsum2,stats->tcount),
+	   stats->tcount);}
+  
   if (stats->qcount>0) {
     u8_fprintf(logto,STATUS_LINEX,elapsed,"queued",
 	       ((1.0*(stats->qsum))/stats->qcount),
-	       stats->qmax,0.0,stats->qcount);
+	       stats->qmax,
+	       stdev(stats->qsum,stats->qsum2,stats->qcount),
+	       stats->qcount);
     u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"queued",
 	   ((1.0*(stats->qsum))/stats->qcount),
-	   stats->qmax,0.0,stats->qcount);}
+	   stats->qmax,
+	   stdev(stats->qsum,stats->qsum2,stats->qcount),
+	   stats->qcount);}
 
   if (stats->rcount>0) {
     u8_fprintf(logto,STATUS_LINEX,elapsed,"reading",
 	       ((1.0*(stats->rsum))/stats->rcount),
-	       stats->rmax,0.0,stats->rcount);
+	       stats->rmax,
+	       stdev(stats->rsum,stats->rsum2,stats->rcount),
+	       stats->rcount);
     u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"reading",
 	   ((1.0*(stats->rsum))/stats->rcount),
-	   stats->rmax,0.0,stats->rcount);}
+	   stats->rmax,
+	   stdev(stats->rsum,stats->rsum2,stats->rcount),
+	   stats->rcount);}
 
   if (stats->wcount>0) {
     u8_fprintf(logto,STATUS_LINEX,elapsed,"writing",
 	       ((1.0*(stats->wsum))/stats->wcount),
-	       stats->wmax,0.0,stats->wcount);
+	       stats->wmax,
+	       stdev(stats->wsum,stats->wsum2,stats->wcount),
+	       stats->wcount);
     u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"writing",
 	   ((1.0*(stats->wsum))/stats->wcount),
-	   stats->wmax,0.0,stats->wcount);}
+	   stats->wmax,
+	   stdev(stats->wsum,stats->wsum2,stats->wcount),
+	   stats->wcount);}
 
   if (stats->xcount>0) {
     u8_fprintf(logto,STATUS_LINEX,elapsed,"running",
 	       ((1.0*(stats->xsum))/stats->xcount),
-	       stats->xmax,0.0,stats->xcount);
+	       stats->xmax,
+	       stdev(stats->xsum,stats->xsum2,stats->xcount),
+	       stats->xcount);
     u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"running",
 	   ((1.0*(stats->xsum))/stats->xcount),
-	   stats->xmax,0.0,stats->xcount);}
+	   stats->xmax,
+	   stdev(stats->xsum,stats->xsum2,stats->xcount),
+	   stats->xcount);}
 }
 
 static void report_status()
@@ -236,10 +251,15 @@ static void report_status()
 	 fdwebserver.n_busy,fdwebserver.n_queued,
 	 fdwebserver.n_clients,fdwebserver.n_threads);
 
+  u8_fprintf(logto,"Current statistics\n");
   u8_server_curstats(&fdwebserver,&stats);
   output_stats(&stats,logto);
 
-  u8_fprintf(logto,"Aggregate statistics");
+  u8_fprintf(logto,"Live statistics\n");
+  u8_server_livestats(&fdwebserver,&stats);
+  output_stats(&stats,logto);
+
+  u8_fprintf(logto,"Aggregate statistics\n");
   u8_log(LOG_INFO,"fdserv","Aggregate statistics");
   
   u8_server_statistics(&fdwebserver,&stats);
@@ -283,13 +303,6 @@ static fdtype servlet_status()
     fd_store(result,fd_intern("QUEUEMAX"),FD_INT2DTYPE(stats.qmax));
     fd_store(result,fd_intern("QUEUECOUNT"),FD_INT2DTYPE(stats.qcount));}
 
-  if (stats.acount>0) {
-    fd_store(result,fd_intern("ACTIVEAVG"),
-	     fd_make_double(((double)stats.asum)/
-			    (((double)stats.acount))));
-    fd_store(result,fd_intern("ACTIVEMAX"),FD_INT2DTYPE(stats.amax));
-    fd_store(result,fd_intern("ACTIVECOUNT"),FD_INT2DTYPE(stats.acount));}
-    
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
 	     fd_make_double(((double)stats.rsum)/
@@ -359,7 +372,7 @@ static fdtype servlet_status()
     fd_store(result,fd_intern("LIVE/EXECCOUNT"),
 	     FD_INT2DTYPE(livestats.xcount));}
 
-    if (curstats.tcount>0) {
+  if (curstats.tcount>0) {
     fd_store(result,fd_intern("CUR/TRANSAVG"),
 	     fd_make_double(((double)curstats.tsum)/
 			    (((double)curstats.tcount))));
