@@ -134,9 +134,10 @@ define set_maxelts
 end
 
 define trace_server
-  set env FD_U8LOGCONN=yes
-  set env FD_U8LOGTRANS=yes
-  set env FD_LOGTRANS=yes
+  set env FD_U8LOGLISTEN=yes
+  set env FD_U8LOGCONNECT=yes
+  set env FD_U8LOGTRANSACT=yes
+  set env FD_LOGTRANSFER=yes
   set env FD_LOGLEVEL=8
 end
 
