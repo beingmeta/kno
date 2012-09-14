@@ -170,7 +170,8 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
 #define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
 #define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEX "[%*t][%f] %s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)\n"
+#define STATUS_LINEXN "[%*t][%f] %s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)\n"
+#define STATUS_LINEX "%s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)"
 
 #define stdev(v,v2,n) \
   sqrt((((double)v2)/((double)n))-\
@@ -181,53 +182,53 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 {
   double elapsed=u8_elapsed_time();
   if (stats->tcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"busy",
+    u8_fprintf(logto,STATUS_LINEXN,"busy",elapsed,
 	       getmean(stats->tsum,stats->tcount),
 	       stats->tmax,
 	       stdev(stats->tsum,stats->tsum2,stats->tcount),
 	       stats->tcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"busy",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"busy",
 	   getmean(stats->tsum,stats->tcount),
 	   stats->tmax,
 	   stdev(stats->tsum,stats->tsum2,stats->tcount),
 	   stats->tcount);}
   
   if (stats->qcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"queued",
+    u8_fprintf(logto,STATUS_LINEXN,"queued",elapsed,
 	       getmean(stats->qsum,stats->qcount),stats->qmax,
 	       stdev(stats->qsum,stats->qsum2,stats->qcount),
 	       stats->qcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"queued",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"queued",
 	   getmean(stats->qsum,stats->qcount),stats->qmax,
 	   stdev(stats->qsum,stats->qsum2,stats->qcount),
 	   stats->qcount);}
 
   if (stats->rcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"reading",
+    u8_fprintf(logto,STATUS_LINEXN,"reading",elapsed,
 	       getmean(stats->rsum,stats->rcount),stats->rmax,
 	       stdev(stats->rsum,stats->rsum2,stats->rcount),
 	       stats->rcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"reading",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"reading",
 	   getmean(stats->rsum,stats->rcount),stats->rmax,
 	   stdev(stats->rsum,stats->rsum2,stats->rcount),
 	   stats->rcount);}
 
   if (stats->wcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"writing",
+    u8_fprintf(logto,STATUS_LINEXN,"writing",elapsed,
 	       getmean(stats->wsum,stats->wcount),stats->wmax,
 	       stdev(stats->wsum,stats->wsum2,stats->wcount),
 	       stats->wcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"writing",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"writing",
 	   getmean(stats->wsum,stats->wcount),stats->wmax,
 	   stdev(stats->wsum,stats->wsum2,stats->wcount),
 	   stats->wcount);}
 
   if (stats->xcount>0) {
-    u8_fprintf(logto,STATUS_LINEX,elapsed,"running",
+    u8_fprintf(logto,STATUS_LINEXN,"running",elapsed,
 	       getmean(stats->xsum,stats->xcount),stats->xmax,
 	       stdev(stats->xsum,stats->xsum2,stats->xcount),
 	       stats->xcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,elapsed,"running",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"running",
 	   getmean(stats->xsum,stats->xcount),stats->xmax,
 	   stdev(stats->xsum,stats->xsum2,stats->xcount),
 	   stats->xcount);}
@@ -747,6 +748,7 @@ static int webservefn(u8_client ucl)
     content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
     u8_writeall(client->socket,outstream->u8_outbuf,
 		outstream->u8_outptr-outstream->u8_outbuf);
+    return_code=-1;
     u8_client_close(ucl);}
   else {
     U8_OUTPUT httphead, htmlhead; int tracep;
