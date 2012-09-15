@@ -250,18 +250,17 @@ static int dtypeserver(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
-  if ((client->buf!=NULL)&&(!(client->writing>0))&&
-      (client->off>=client->len)) { 
+  if ((client->reading>0)&&(u8_client_finished(ucl))) { 
     stream->end=stream->ptr+client->len;
     expr=fd_dtsread_dtype(stream);}
-  else if ((client->buf!=NULL)&&(!(client->writing>0))&&
-	   (client->off<client->len)) {
-    /* This should never happen, but just in case, continue. */
-    return 1;}
-  else if ((client->buf!=NULL)&&(client->writing>0)) {
+  else if ((client->writing>0)&&(u8_client_finished(ucl))) { 
     /* Just report that the transaction is over. */
     return 0;}
+  else if ((client->reading>0)||(client->writing>0))
+    /* These should never happen, but let's be complete */
+    return 1;
   else if (async) {
+    /* See if we can use asynchronous reading */
     fd_dts_start_read(stream);
     if (nobytes((fd_byte_input)stream,1)) expr=FD_EOD;
     else if ((*(stream->ptr))==dt_block) {
@@ -273,11 +272,9 @@ static int dtypeserver(u8_client ucl)
 	/* Allocate enough space */
 	fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
 	/* Set up the client for async input */
-	client->buf=stream->ptr;
-	client->len=nbytes;
-	client->buflen=stream->end-stream->start;
-	client->writing=u8_microtime();
-	return 1;}}
+	if (u8_client_read(ucl,stream->start,nbytes,stream->end-stream->start))
+	  expr=fd_dtsread_dtype(stream);
+	else return 1;}}
     else expr=fd_dtsread_dtype(stream);}
   else expr=fd_dtsread_dtype(stream);
   fd_reset_threadvars();
@@ -368,10 +365,7 @@ static int dtypeserver(u8_client ucl)
 	stream->ptr=ptr;}}
     else fd_dtswrite_dtype(stream,value);
     if (async) {
-      client->buf=stream->start;
-      client->len=stream->ptr-stream->start;
-      client->buflen=stream->end-stream->start;
-      client->writing=u8_microtime();
+      u8_client_write(ucl,stream->start,stream->ptr-stream->start,0);
       return 1;}
     else {
       fd_dtswrite_dtype(stream,value);

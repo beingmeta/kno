@@ -532,30 +532,19 @@ static int webservefn(u8_client ucl)
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
-  if ((client->buf!=NULL)&&(client->reading>0)&&
-      (client->off>=client->len)) { 
+  if ((client->reading>0)&&(u8_client_finished(ucl))) { 
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
     stream->end=stream->start+client->len;}
-  else if ((client->buf!=NULL)&&(client->reading>0)&&
-	   (client->off<client->len)) { 
+  else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
-    return 1;}
-  else if ((client->buf!=NULL)&&(client->writing>0)&&
-	   (client->off<client->len)) { 
-    /* We shouldn't get here either, but just in case.... */
-    return 1;}
-  else if ((client->buf!=NULL)&&(client->writing>0)) {
-    /* If we were writing, and we're done, we're finished, so we do
-       the transaction closing stuff. */
-    u8_client_done(ucl);
-    return 0;}
-  else if ((client->buf!=NULL)&&(client->reading>0)&&
-	   (client->off>=client->len)) {
-    /* We've finished asynchronous reading and now we simply set up
-       stream to reflect that fact. (fd_has_bytes(stream,nbytes)) is
-       now true (though we've lost track of nbytes here). */
-    stream->end=stream->start+client->len;}
+    return 1; 
+  else if ((client->writing>0)&&(u8_client_finished(ucl)))
+    /* All done */
+    return 0;
+  else if (client->writing>0) 
+    /* We shouldn't get here, but just in case.... */
+    return 1;
   else {
     /* We read a little to see if we can just queue up what we
        need. */
@@ -575,12 +564,12 @@ static int webservefn(u8_client ucl)
 	      fd_grow_byte_input((fd_byte_input)stream,need_size);
 	      stream->bufsiz=need_size;}
 	    /* Set up the client for async input */
-	    client->buf=stream->start;
-	    client->off=(stream->end-stream->start);
-	    client->len=5+nbytes;
-	    client->buflen=stream->bufsiz;
-	    client->writing=-1; client->reading=u8_microtime();
-	    return 1;}}
+	    if (u8_client_read(ucl,stream->start,5+nbytes,
+			       (stream->end-stream->start))) { 
+	      /* We got the whole payload, set up the stream
+		 for reading it without waiting.  */
+	      stream->end=stream->start+client->len;}
+	    else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
@@ -788,9 +777,7 @@ static int webservefn(u8_client ucl)
 	strncpy(start,httphead.u8_outbuf,http_len);
 	strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
 	outstream->u8_outptr=start+http_len+head_len+content_len;
-	client->buf=start; client->off=0;
-	client->len=client->buflen=bundle_len;
-	client->writing=u8_microtime(); client->reading=-1;
+	u8_client_write(ucl,start,bundle_len,0);
 	buffered=1;
 	return_code=1;}}
     else if (FD_STRINGP(retfile)) {
