@@ -1195,7 +1195,8 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
 
 static fdtype scripturl(int n,fdtype *args)
 {
-  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0])))) 
+  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
+  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0])))) 
     return fd_err(fd_TypeError,"scripturl",
 		  u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
@@ -1208,7 +1209,8 @@ static fdtype scripturl(int n,fdtype *args)
 
 static fdtype fdscripturl(int n,fdtype *args)
 {
-  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
+  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
     return fd_err(fd_TypeError,"fdscripturl",
 		  u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
@@ -1221,7 +1223,8 @@ static fdtype fdscripturl(int n,fdtype *args)
 
 static fdtype scripturlplus(int n,fdtype *args)
 {
-  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
+  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
     return fd_err(fd_TypeError,"scripturlplus",
 		  u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==1))
@@ -1234,7 +1237,8 @@ static fdtype scripturlplus(int n,fdtype *args)
 
 static fdtype fdscripturlplus(int n,fdtype *args)
 {
-  if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
+  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
     return fd_err(fd_TypeError,"fdscripturlplus",
 		  u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
