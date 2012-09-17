@@ -69,6 +69,12 @@
 	 (store! profile-urls canonical real)
 	 real)))
 
-(define (gravatar/json s (base))
-  (default! base (gravatar/profile s))
-  (and base (jsonparse (urlcontent (glom base ".json")))))
+(define (gravatar/json s)
+  (let* ((base (gravatar/profile s))
+	 (url (and base (glom base ".json")))
+	 (content (and url (urlcontent url)))
+	 (parsed (and content (jsonparse content))))
+    (and parsed (table? parsed) (test parsed 'entry)
+	 (vector? (get parsed 'entry))
+	 (first (get parsed 'entry)))))
+
