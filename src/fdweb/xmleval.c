@@ -475,21 +475,27 @@ static fdtype parse_infix(u8_string start)
   else return fd_parse(start);
 }
 
-static fdtype xmlevalify(u8_string string)
+static fdtype xmlevalify(u8_string encoded)
 {
+  fdtype result=FD_VOID;
+  u8_string string=
+    ((strchr(encoded,'&')==NULL)?(encoded):
+     (fd_deentify(encoded,NULL)));
   if (string[0]==':')
-    if (string[1]=='$')
-      return fd_init_pair
+    if (string[1]=='$') 
+      result=fd_init_pair
 	(NULL,xmleval2expr_tag,parse_infix(string+2));
-    else return fd_parse(string+1);
+    else result=fd_parse(string+1);
   else if (string[0]=='$') {
     u8_string start=string+1;
     int c=u8_sgetc(&start);
     if (u8_isalpha(c))
-      return fd_init_pair(NULL,xmleval_tag,parse_infix(string+1));
-    else return fd_init_pair(NULL,xmleval_tag,fd_parse(string+1));}
-  else if (string[0]=='\\') return fdtype_string(string+1);
-  else return fdtype_string(string);
+      result=fd_init_pair(NULL,xmleval_tag,parse_infix(string+1));
+    else result=fd_init_pair(NULL,xmleval_tag,fd_parse(string+1));}
+  else if (string[0]=='\\') result=fdtype_string(string+1);
+  else result=fdtype_string(string);
+  if (string!=encoded) u8_free(string);
+  return result;
 }
 
 static fdtype xmldtypify(u8_string string)

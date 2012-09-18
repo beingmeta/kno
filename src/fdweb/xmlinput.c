@@ -62,6 +62,22 @@ FD_EXPORT u8_string fd_deentify(u8_string arg,u8_string lim)
   return deentify(arg,lim);
 }
 
+FD_EXPORT fdtype fd_convert_entities(u8_string arg,u8_string lim)
+{
+  U8_OUTPUT out; u8_byte *scan=arg; int c=u8_sgetc(&scan);
+  U8_INIT_OUTPUT(&out,strlen(arg));
+  while ((c>0)&&((lim==NULL)||(scan<=lim)))
+    if (c=='&') {
+      u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
+      if (code<=0) {
+	u8_putc(&out,c); c=u8_sgetc(&scan);}
+      else {
+	u8_putc(&out,code); scan=end;
+	c=u8_sgetc(&scan);}}
+    else {u8_putc(&out,c); c=u8_sgetc(&scan);}
+  return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+}
+
 static fdtype raw_name_symbol;
 static fdtype namespace_symbol, name_symbol, qname_symbol, xmlns_symbol;
 static fdtype attribs_symbol, content_symbol, type_symbol;
@@ -648,9 +664,9 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   u8_string namespace, attrib_name=ns_get(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
   fdtype slotval=((val)?
-		  ((quote>0) ? (fd_lispify(val)) :
-		   (val[0]=='#') ? (fdtype_string(val)) :
-		   (fd_parse_arg(val))):
+		  ((val[0]=='#') ? (fdtype_string(val)) :
+		   (quote<0) ? (fd_lispify(val)) :
+		   (fd_convert_entities(val,NULL))) :
 		  (FD_FALSE));
   fdtype attrib_entry=FD_VOID;
   if (FD_EMPTY_CHOICEP(xml->attribs)) init_node_attribs(xml);
