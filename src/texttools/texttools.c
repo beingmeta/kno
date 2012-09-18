@@ -168,6 +168,19 @@ static fdtype decode_entities_prim(fdtype input)
   else return fd_incref(input);
 }
 
+static fdtype encode_entities_prim(fdtype input,fdtype also_encode)
+{
+  struct U8_OUTPUT out;
+  u8_string scan=FD_STRDATA(input); int c=u8_sgetc(&scan);
+  char *also=((FD_STRINGP(also_encode))?(FD_STRDATA(also_encode)):(NULL));
+  U8_INIT_OUTPUT(&out,FD_STRLEN(input));
+  while (c>=0) {
+    if ((c>=128)||((also)&&(strchr(also,c)))) {}
+    else u8_putc(&out,c);
+    c=u8_sgetc(&scan);}
+  return fd_stream2string(&out);
+}
+
 /* Breaking up strings into words */
 
 /* We have three categories: space, punctuation, and everything else (words).
@@ -2172,6 +2185,10 @@ void fd_init_texttools()
 			   -1,FD_TRUE));
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("ENCODE-ENTITIES",encode_entities_prim,1,
+			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim3x("COLUMNIZE",columnize_prim,2,
