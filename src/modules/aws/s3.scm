@@ -14,7 +14,7 @@
 (module-export! '{s3loc s3/getloc s3loc/s3uri
 		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
 		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
-(module-export! '{s3/get s3/get+ s3/modified
+(module-export! '{s3/get s3/get+ s3/modified s3/bucket?
 		  s3/copy! s3/put s3/head s3/ctype s3/exists?})
 (module-export! '{s3/bytecodes->string})
 
@@ -320,6 +320,11 @@
 		"")))
     (response/ok? req)))
 (define s3/exists? s3loc/exists?)
+
+(define (s3/bucket? loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" "")))
+    (response/ok? req)))
 
 (define (s3/ctype loc)
   (get (s3loc/head loc) 'content-type))
