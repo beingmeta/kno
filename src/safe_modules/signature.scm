@@ -9,7 +9,7 @@
 (module-export! '{sig/make sig/check})
 
 (define-init %loglevel %notify!)
-;;(define %loglevel %debug!)
+(varconfig! sbooks:signature:loglevel %loglevel)
 
 (defambda (makesigtext . args)
   (let ((table (if (odd? (length args)) (deep-copy (car args)) `#[]))
