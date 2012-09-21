@@ -521,8 +521,11 @@ FD_EXPORT int fd_xmleval_attribfn
 {
   u8_string namespace, attrib_name=fd_xmlns_lookup(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
-  fdtype slotval=((val)?((quote>0) ? (xmlevalify(val)) : (xmldtypify(val))):
-		  (slotid));
+  fdtype slotval=((!(val))?(slotid):
+		  ((val[0]=='\0')||(val[0]=='#'))?
+		  (fdtype_string(val)):
+		  (quote>0) ? (xmlevalify(val)) :
+		  (xmldtypify(val)));
   fdtype attrib_entry=FD_VOID;
   if ((FD_ABORTP(slotval))||(FD_VOIDP(slotval))||
       (FD_EOFP(slotval))||(FD_EODP(slotval))||

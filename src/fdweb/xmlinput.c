@@ -664,7 +664,8 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   u8_string namespace, attrib_name=ns_get(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
   fdtype slotval=((val)?
-		  ((val[0]=='#') ? (fdtype_string(val)) :
+		  (((val[0]=='\0')||(val[0]=='#')) ?
+		   (fdtype_string(val)) :
 		   (quote<0) ? (fd_lispify(val)) :
 		   (fd_convert_entities(val,NULL))) :
 		  (FD_FALSE));
