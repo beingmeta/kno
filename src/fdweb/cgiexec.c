@@ -93,22 +93,17 @@ static fdtype buf2string(char *buf,int isascii)
   else return fd_lispstring(u8_valid_copy(buf));
 }
 
-static void emit_uri_string(u8_output out,u8_string string)
-{
-  char *scan=string;
-  while (*scan) {
-    if (isalnum(*scan)) u8_putc(out,*scan);
-    else u8_printf(out,"%%%02x",*scan);
-    scan++;}
-}
-
 static void emit_uri_value(u8_output out,fdtype val)
 {
-  if (FD_STRINGP(val)) emit_uri_string(out,FD_STRDATA(val));
+  if (FD_STRINGP(val))
+    fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
   else {
-    u8_string as_string=fd_dtype2string(val);
-    u8_puts(out,"%3a"); emit_uri_string(out,as_string);
-    u8_free(as_string);}
+    struct U8_OUTPUT xout; u8_byte buf[256];
+    U8_INIT_OUTPUT_X(&xout,256,buf,0);
+    fd_unparse(&xout,val);
+    u8_putn(out,"%3a",3);
+    fd_uri_output(out,xout.u8_outbuf,xout.u8_outptr-xout.u8_outbuf,0,NULL);
+    if (xout.u8_outbuf!=buf) u8_free(xout.u8_outbuf);}
 }
 
 FD_EXPORT

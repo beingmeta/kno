@@ -38,8 +38,6 @@ FD_EXPORT void fd_pprint_focus
 
 #include <libu8/xfiles.h>
 
-FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int,int,char *);
-
 #define strd u8_strdup
 
 /*
