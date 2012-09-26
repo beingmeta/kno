@@ -6,7 +6,7 @@
  '{gp/write! gp/save!
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
-   gp/fetch gp/modified gp/exists?
+   gp/fetch gp/fetch+ gp/modified gp/exists?
    gp/path gp/mkpath gp/makepath})
 
 ;;; This is a generic path facility (it grew out of the savecontent
