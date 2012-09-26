@@ -246,31 +246,32 @@
 	 (store! urlmap lref ref)
 	 (store! urlmap (vector ref) lref)
 	 (when (string? absref) (store! urlmap absref lref))
-	 (let ((sourcetime (gp/modified absref))
-	       (savetime (gp/modified savepath))
-	       (existing (gp/exists? savepath)))
-	   (cond ((and sourcetime savetime)
-		  )
-		 ((not fetched)
-		  (logwarn "Couldn't fetch content from " absref)
-		  (set! lref absref)
-		  (store! urlmap absref absref))
-		 (else
-		  ;; This should be coded to change lref in the
-		  ;; event of conflicts This has fragments and
-		  ;; queries stripped (uribase) and additionally has
-		  ;; the 'directory' part of the URI removed so that
-		  ;; it's a local file name
-		  (loginfo "Downloaded " (write absref)
-			   " for " lref
-			   " from " ref)
-		  ;; Save the content
+	 (let* ((sourcetime (gp/modified absref))
+		(existing (gp/exists? savepath))
+		(savetime (and existing (gp/modified savepath)))
+		(changed (or (not savetime) (time>? sourcetime savetime)))
+		(fetched (and changed (gp/fetch+ absref))))
+	   (cond ((and changed fetched)
+		  ;; Updated
 		  (savecontent saveto name (get fetched 'content))
 		  (store! urlmap (list absref)
-			  (get fetched 'modified)))))
-		;; Save the mapping in both directions (we assume that
-		;;  lrefs and absrefs are disjoint, so we can use the
-		;;  same table)
-		(store! urlmap absref lref)
-		(store! urlmap lref absref)
-		lref)))
+			  (get fetched 'modified))
+		  (loginfo "Updated " ref " for " lref
+			   " from " (write absref)))
+		 ((not changed)
+		  ;; No update needed
+		  (loginfo "Content " ref " is up to date for " lref
+			   " from " (write absref)))
+		 ((and existing (not fetched))
+		  ;; Update failed
+		  (logwarn "Couldn't update content from " absref))
+		 ((not fetched)
+		  ;; Initial download failed, keep absref
+		  (logwarn "Couldn't download content from " absref)
+		  (set! lref absref)))
+	   ;; Save the mapping in both directions (we assume that
+	   ;;  lrefs and absrefs are disjoint, so we can use the
+	   ;;  same table)
+	   (store! urlmap absref lref)
+	   (store! urlmap lref absref)
+	   lref))))
