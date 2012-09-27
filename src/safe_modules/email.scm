@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2012 beingmeta, inc. All rights reserved
 
-(in-module 'signature)
+(in-module 'email)
 
 (use-module '{fdweb texttools varconfig logger})
 
