@@ -5,7 +5,7 @@
 
 (module-export! '{ses/call})
 
-(use-module '{aws fdweb texttools logger rulesets})
+(use-module '{aws fdweb texttools logger email rulesets})
 
 (define %loglevel %notify!)
 

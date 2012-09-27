@@ -6,7 +6,7 @@
 (use-module '{fdweb texttools varconfig logger})
 
 (module-export!
- '{email/pattern email/ok? email/std email/hash email/host email/id})
+ '{email/pattern email/ok? email/std email/hash email/host email/name})
 
 (define-init %loglevel %notify!)
 (varconfig! sbooks:email:loglevel %loglevel)
@@ -14,7 +14,8 @@
 ;;; Email checking functions
 
 (define email/pattern
-  #((mailid) "@" (+ #((+ {(isalnum) "-"}) "."))
+  #((isalnum) (* {(isalnum) "." "-" "_" "+"})
+    "@" (+ #((+ {(isalnum) "-"}) "."))
     (isalnum+) (eos)))
 
 (define (email/ok? addr)
@@ -31,15 +32,15 @@
       (downcase (packet->base16 (hashfn (downcase (trim-spaces addr)))))
       (error 'bademail string)))
 
-(define (email/id string)
-  (if (and (string? string) (textmatch email/pattern (trim-spaces addr)))
+(define (email/name string)
+  (if (and (string? string) (textmatch email/pattern (trim-spaces string)))
       (if (position #\@ string)
 	  (subseq string 0 (position #\@ string))
 	  string)
       (error 'bademail string)))
 
 (define (email/host string)
-  (if (and (string? string) (textmatch email/pattern (trim-spaces addr)))
+  (if (and (string? string) (textmatch email/pattern (trim-spaces string)))
       (if (position #\@ string)
 	  (subseq string (1+ (position #\@ string)))
 	  string)
