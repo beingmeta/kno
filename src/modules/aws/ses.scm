@@ -12,6 +12,14 @@
 (define ses-endpoint "https://email.us-east-1.amazonaws.com/")
 
 (define (ses/call args (opts #[]))
+  (unless (and (test args 'from)
+	       (forall email/ok? (get args 'from)))
+    (error 'bademail "Bad FROM: " (reject (get args 'from) email/ok?)
+	   " in " args))
+  (unless (and (test args 'from)
+	       (forall email/ok? (get args 'dest)))
+    (error 'bademail "Bad DEST: " (reject (get args 'dest) email/ok?)
+	   " in " args))
   (let* ((date (gmtimestamp 'seconds))
 	 (datestring
 	  (string-subst (string-subst (get date 'rfc822) "+0000" "GMT")
@@ -64,6 +72,10 @@
 	    (subseq (scripturl+ "" query) 1)
 	    "application/x-www-form-urlencoded"
 	    handle)))
+
+
+
+
 
 
 
