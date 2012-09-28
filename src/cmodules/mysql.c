@@ -699,11 +699,16 @@ static fdtype mysqlmakeproc
     return FD_ERROR_VALUE;}
 
   if (retval) {
-    const char *errmsg=mysql_stmt_error(dbproc->stmt);
-    u8_free(dbproc);
-    u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
-    u8_unlock_mutex(&(dbp->lock));
-    return FD_ERROR_VALUE;}
+    const char *errmsg;
+    if ((retval==CR_SERVER_GONE_ERROR)||(retval==CR_SERVER_LOST))
+      /* Try one more time */
+      retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);
+    if (retval) {
+      errmsg=mysql_stmt_error(dbproc->stmt);
+      u8_free(dbproc);
+      u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
+      u8_unlock_mutex(&(dbp->lock));
+      return FD_ERROR_VALUE;}}
 
   dbproc->colinfo=merge_colinfo(dbp,colinfo);
 
