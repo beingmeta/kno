@@ -600,6 +600,16 @@ if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
   INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
 fi
 
+AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
+if (test "x$have_zlib_h" = "xyes"); then
+  AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
+fi
+
+if (test "x$have_libz" = "xyes"); then
+  CMODULES="lib/framerd/zlib.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
+fi
+
 AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools="yes")
 
 if test "x$with_ziptools" == "xyes"; then

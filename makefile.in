@@ -102,7 +102,8 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
 	     src/cmodules/qrcode.o src/cmodules/regex.o \
-	     src/cmodules/ziptools.o src/cmodules/tidy.o
+	     src/cmodules/ziptools.o src/cmodules/tidy.o \
+	     src/cmodules/zlib.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
@@ -585,6 +586,11 @@ lib/framerd/regex.so: lib/framerd/regex.so.@VERSION@
 lib/framerd/regex.@VERSION@.dylib: src/cmodules/regex.o
 lib/framerd/regex.dylib: lib/framerd/regex.@VERSION@.dylib
 
+lib/framerd/zlib.so.@VERSION@: src/cmodules/zlib.o
+lib/framerd/zlib.so: lib/framerd/zlib.so.@VERSION@
+lib/framerd/zlib.@VERSION@.dylib: src/cmodules/zlib.o
+lib/framerd/zlib.dylib: lib/framerd/zlib.@VERSION@.dylib
+
 lib/framerd/ziptools.so.@VERSION@: src/cmodules/ziptools.o
 lib/framerd/ziptools.so: lib/framerd/ziptools.so.@VERSION@
 lib/framerd/ziptools.@VERSION@.dylib: src/cmodules/ziptools.o
@@ -766,6 +772,8 @@ install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/tidy.@vshared_suffix@
 install-exif: $(LIBINSTALLDIR)/framerd/exif.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/exif.@vshared_suffix@
+install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \
+	        $(LIBINSTALLDIR)/framerd/zlib.@vshared_suffix@
 
 # Setup targets
 
