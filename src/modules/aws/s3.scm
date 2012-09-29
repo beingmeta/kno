@@ -329,14 +329,14 @@
 (define (s3/ctype loc)
   (get (s3loc/head loc) 'content-type))
 
-(define (s3loc/put loc content (ctype))
+(define (s3loc/put loc content (ctype) (headers '()))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path path)
 		    (if (packet? content) "application" "text")))
   (s3/op "PUT" (s3loc-bucket loc)
 	 (string-append "/" (s3loc-path loc))
-	 content ctype))
+    content ctype headers))
 (define s3/put s3loc/put)
 
 (define (s3loc/copy! src loc)
