@@ -52,7 +52,7 @@ static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
       return fd_err(u8_MallocFailed,"zip_prim",NULL,FD_VOID);}
     u8_free(output); output=newbuf; output_len=input_len*2;
     retval=compress2(output,&output_len,input,input_len,9);}
-  if (retval<Z_OK) 
+  if (retval>=Z_OK) 
     return fd_init_packet(NULL,output_len,output);
   else {
     u8_condition ex;
