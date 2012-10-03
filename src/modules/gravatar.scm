@@ -33,7 +33,7 @@
 	 (when (and (not usehash) (textsearch plus-pat canonical))
 	   (set! canonical (strip-plus canonical))
 	   (set! hash (downcase (packet->base16 (md5 canonical))))
-	   (set! usehash (downcase (packet->base16 (md5 canonical)))))
+	   (set! usehash (probehash hash)))
 	 (when usehash
 	   (set! httpsurl
 		 (glom "https://secure.gravatar.com/avatar/" usehash)))
