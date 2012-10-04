@@ -1313,98 +1313,6 @@ static fdtype to_base16_prim(fdtype packet)
   else return FD_ERROR_VALUE;
 }
 
-/* Compressing/decompressing packets */
-
-static fdtype compress_prim(fdtype arg,fdtype level)
-{
-  fdtype result=FD_VOID;
-  struct FD_BYTE_OUTPUT ds; 
-  unsigned char *bytes; int n_bytes, zbytes; uLongf zlen, zlim;
-  int zlevel=((FD_FIXNUMP(level))?(FD_FIX2INT(level)):(FD_DEFAULT_ZLEVEL));
-  int error, free_bytes=0; Bytef *zdata;
-  if ((zlevel<0)||(zlevel>9))
-    return fd_type_error("zlevel=[0,9]","compress_prim",level);
-  if (FD_PACKETP(arg)) {
-    bytes=FD_PACKET_DATA(arg);
-    n_bytes=FD_PACKET_LENGTH(arg);}
-  else if (FD_STRINGP(arg)) {
-    bytes=FD_STRDATA(arg);
-    n_bytes=FD_STRLEN(arg);}
-  else {
-    FD_INIT_BYTE_OUTPUT(&ds,1024);
-    fd_write_dtype(&ds,arg);
-    bytes=ds.start; n_bytes=ds.ptr-ds.start;
-    free_bytes=1;}
-  zlen=zlim=2*n_bytes; zdata=u8_malloc(zlen);
-  while ((error=compress2(zdata,&zlen,bytes,n_bytes,FD_DEFAULT_ZLEVEL)) < Z_OK)
-    if (error == Z_MEM_ERROR) {
-      u8_free(zdata);
-      fd_seterr1("ZLIB Out of Memory");
-      if (free_bytes) u8_free(ds.start);
-      return FD_ERROR_VALUE;}
-    else if (error == Z_BUF_ERROR) {
-      zdata=u8_realloc(zdata,zlim*2); zlen=zlim=zlim*2;}
-    else if (error == Z_DATA_ERROR) {
-      u8_free(zdata); 
-      if (free_bytes) u8_free(ds.start);
-      fd_seterr1("ZLIB Data error");
-      return FD_ERROR_VALUE;}
-    else {
-      u8_free(zdata);
-      if (free_bytes) u8_free(ds.start);
-      fd_seterr1("Bad ZLIB return code");
-      return FD_ERROR_VALUE;}
-  result=fd_make_packet(NULL,zlen,zdata);
-  u8_free(zdata);
-  if (free_bytes) u8_free(ds.start);
-  return result;
-}
-
-static fdtype uncompress_prim(fdtype arg,fdtype parse)
-{
-  fdtype result;
-  unsigned char *bytes=FD_PACKET_DATA(arg);
-  int n_bytes=FD_PACKET_LENGTH(arg);
-  int *dbytes, error;
-  uLongf x_lim=4*n_bytes, x_bytes=x_lim;
-  Bytef *fdata=(Bytef *)bytes, *xdata=u8_malloc(x_bytes);
-  while ((error=uncompress(xdata,&x_bytes,fdata,n_bytes)) < Z_OK)
-    if (error == Z_MEM_ERROR) {
-      u8_free(xdata); u8_free(bytes);
-      fd_seterr1("ZLIB Out of Memory");
-      return FD_ERROR_VALUE;}
-    else if (error == Z_BUF_ERROR) {
-      xdata=u8_realloc(xdata,x_lim*2); x_bytes=x_lim=x_lim*2;}
-    else if (error == Z_DATA_ERROR) {
-      u8_free(xdata); u8_free(bytes);
-      fd_seterr1("ZLIB Data error");
-      return FD_ERROR_VALUE;}
-    else {
-      u8_free(xdata);
-      fd_seterr1("Bad ZLIB return code");
-      return FD_ERROR_VALUE;}
-  if ((FD_VOIDP(parse))||(FD_FALSEP(parse)))
-    result=fd_make_packet(NULL,x_bytes,xdata);
-  else if (FD_TRUEP(parse)) {
-    struct FD_BYTE_INPUT in;
-    FD_INIT_BYTE_INPUT(&in,xdata,x_bytes);
-    result=fd_read_dtype(&in);}
-  else if (FD_STRINGP(parse)) {
-    u8_encoding e=u8_get_encoding(FD_STRDATA(parse));
-    if ((!e)||(e==utf8_encoding)) 
-      result=fd_make_string(NULL,x_bytes,xdata);
-    else {
-      struct U8_OUTPUT out; unsigned char *scan=xdata;
-      U8_INIT_OUTPUT(&out,x_bytes*2);
-      u8_convert(e,x_bytes,&out,&scan,scan+x_bytes);
-      result=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-      u8_free(out.u8_outbuf);}}
-  else result=fd_make_packet(NULL,x_bytes,xdata);
-  u8_free(xdata);
-  return result;
-}
-
-
 /* The init function */
 
 FD_EXPORT void fd_init_portfns_c()
@@ -1503,13 +1411,6 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
 			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
-
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("COMPRESS",compress_prim,1,
-			   -1,FD_VOID,fd_fixnum_type,FD_VOID));
-  fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("UNCOMPRESS",uncompress_prim,1,
-			   fd_packet_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
