@@ -517,6 +517,54 @@ static fdtype bronze_module(fdtype module)
       return result;}}
 }
 
+static fdtype get_exports_prim(fdtype arg)
+{
+  fdtype module=arg;
+  if ((FD_STRINGP(arg))||(FD_SYMBOLP(arg)))
+    module=fd_find_module(arg,0,0);
+  else fd_incref(module);
+  if (FD_ABORTP(module)) return module;
+  else if (FD_VOIDP(module))
+    return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,arg);
+  else if (FD_HASHTABLEP(module)) {
+    fdtype keys=fd_getkeys(module);
+    fd_decref(module);
+    return keys;}
+  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+    fd_lispenv expenv=
+      FD_GET_CONS(module,fd_environment_type,fd_environment);
+    fdtype expval=(fdtype)get_exports(expenv);
+    if (FD_ABORTP(expval)) return expval;
+    fdtype keys=fd_getkeys(expval);
+    fd_decref(module);
+    return keys;}
+  else return FD_EMPTY_CHOICE;
+}
+
+static fdtype safe_get_exports_prim(fdtype arg)
+{
+  fdtype module=arg;
+  if ((FD_STRINGP(arg))||(FD_SYMBOLP(arg)))
+    module=fd_find_module(arg,1,0);
+  else fd_incref(module);
+  if (FD_ABORTP(module)) return module;
+  else if (FD_VOIDP(module))
+    return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,arg);
+  else if (FD_HASHTABLEP(module)) {
+    fdtype keys=fd_getkeys(module);
+    fd_decref(module);
+    return keys;}
+  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+    fd_lispenv expenv=
+      FD_GET_CONS(module,fd_environment_type,fd_environment);
+    fdtype expval=(fdtype)get_exports(expenv);
+    if (FD_ABORTP(expval)) return expval;
+    fdtype keys=fd_getkeys(expval);
+    fd_decref(module);
+    return keys;}
+  else return FD_EMPTY_CHOICE;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_modules_c()
@@ -553,12 +601,15 @@ FD_EXPORT void fd_init_modules_c()
   fd_defspecial(fd_scheme_module,"USE-MODULE",safe_use_module);
   fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export);
   fd_idefn(fd_scheme_module,fd_make_cprim1("GET-MODULE",safe_get_module,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
 
   fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module);
   fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module);
   fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module);
   fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-EXPORTS",get_exports_prim,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("BRONZE-MODULE!",bronze_module,1));
 }
