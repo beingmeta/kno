@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef _FILEINFO
+#ifndef _FILEINFO 
 #define _FILEINFO __FILE__
 #endif
 
@@ -32,8 +32,8 @@ static u8_condition zlibDataError=_("Bad ZLIB input data");
 static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
 {
   int level=((FD_FIXNUMP(level_arg))?(FD_FIX2INT(level_arg)):(9));
-  Bytef *input; size_t input_len=0;
-  Bytef *output; size_t output_len=0;
+  Bytef *input; uLongf input_len=0;
+  Bytef *output; uLongf output_len=0;
   int retval;
   if ((level<0)||(level>9)) level=9;
   if (FD_STRINGP(input_arg)) {
@@ -67,8 +67,8 @@ static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
 static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_factor)
 {
   int init_grow=((FD_FIXNUMP(init_factor))?(FD_FIX2INT(init_factor)):(5));
-  Bytef *input; size_t input_len=0;
-  Bytef *output; size_t output_len=0, buf_len=0;
+  Bytef *input; uLongf input_len=0;
+  Bytef *output; uLongf output_len=0, buf_len=0;
   int retval;
   if ((init_grow<1)||(init_grow>20)) init_grow=5;
   input=FD_PACKET_DATA(input_arg);
