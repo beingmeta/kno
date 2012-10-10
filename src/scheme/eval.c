@@ -426,6 +426,39 @@ static fdtype timed_evalx(fdtype expr,fd_lispenv env)
   return fd_make_nvector(2,value,fd_init_double(NULL,finish-start));
 }
 
+/* Inserts a \n\t line break if the current output line is longer
+    than max_len.  *off*, if > 0, is the last offset on the current line,
+    which is where the line break goes if inserted;  */
+    
+static int check_line_length(u8_output out,int off,int max_len)
+{
+  u8_byte *start=out->u8_outbuf, *end=out->u8_outptr, *scan=end;
+  int scan_off, line_len, len=end-start;
+  if (off<=0) return end-start;
+  while (scan>start) {
+    if (*scan=='\n') break; else scan--;}
+  line_len=end-scan; scan_off=scan-start;
+  /* If the current line is less than max_len, return the current offset */
+  if (line_len<max_len) return (end-start)+1;
+  /* If the offset is non-positive, the last item was the first
+     item on a line and gets the whole line to itself, so we still
+     return the current offset.  We don't insert a \n\t now because
+     it might be the last item output. */
+  else if (off<=0) return (end-start)+1;
+  else {
+    /* The line is too long, insert a \n\t at off */
+    if ((end+5)>(out->u8_outlim)) {
+      /* Grow the stream if needed */
+      u8_grow_stream(out,8);
+      start=out->u8_outbuf; end=out->u8_outptr;
+      scan=start+scan_off;}
+    /* Use memmove because it's overlapping */
+    memmove(start+off+3,start+off,len-off);
+    start[off]='\\'; start[off+1]='\n'; start[off+2]='\t';
+    start[len+3]='\0'; out->u8_outptr=out->u8_outptr+3;
+    return -1;}
+}
+
 static fdtype watched_eval(fdtype expr,fd_lispenv env)
 {
   fdtype toeval=fd_get_arg(expr,1);
@@ -433,35 +466,55 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
   fdtype scan=FD_CDR(expr);
   u8_string label="%WATCH";
   if ((FD_PAIRP(toeval))) {
+    /* EXPR "label" . watchexprs */
     scan=FD_CDR(scan);
     if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan)))) {
       label=FD_STRDATA(FD_CAR(scan)); scan=FD_CDR(scan);}}
   else if (FD_STRINGP(toeval)) {
+    /* "label" . watchexprs, no expr */
     label=FD_STRDATA(toeval); scan=FD_CDR(scan);}
-  else if (FD_SYMBOLP(toeval))
-    /* If the first argument is a symbol, we don't need
-       to be careful about the order of argument evaluation,
-       so we change the label and scan over all the args.
-       Note that this could be a problem if the arguments
-       contain side effects, but that's not a good idea
-       anyway. */
-    label="%TRACE";
+  else if (FD_SYMBOLP(toeval)) {
+    /* If the first argument is a symbol, we change the label and
+       treat all the arguments as context variables and output
+       them.  */
+    label="%WATCHED";}
   else scan=FD_CDR(scan);
   if (FD_PAIRP(scan)) {
-    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+    int off=0; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+    if (FD_PAIRP(toeval)) {
+      u8_printf(&out,"Context for %q: ",toeval);
+      off=check_line_length(&out,off,50);}
+    /* A watched expr can be just a symbol or pair, which is output as:
+         <expr>=<value>
+       or a series of "<label>" <expr>, which is output as:
+         label=<value> */
     while (FD_PAIRP(scan)) {
-      fdtype towatch=FD_CAR(scan);
+      /* A watched expr can be just a symbol or pair, which is output as:
+           <expr>=<value>
+	 or a series of "<label>" <expr>, which is output as:
+           label=<value> */
+      fdtype towatch=FD_CAR(scan), wval=FD_VOID;
       if ((FD_STRINGP(towatch)) && (FD_PAIRP(FD_CDR(scan)))) {
-	fdtype value=fd_eval((FD_CAR(FD_CDR(scan))),env);
-	if (oneout) u8_printf(&out,"; %s=%q",FD_STRDATA(towatch),value);
-	else u8_printf(&out,"%s=%q",FD_STRDATA(towatch),value);
-	fd_decref(value); scan=FD_CDR(FD_CDR(scan)); oneout=1;}
+	towatch=FD_CAR(FD_CDR(scan)); scan=FD_CDR(FD_CDR(scan));
+	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
+	      (fd_eval(towatch,env)));
+	if (oneout) u8_printf(&out,"; %s=%q",FD_STRDATA(towatch),wval);
+	else {
+	  u8_printf(&out,"%s=%q",FD_STRDATA(towatch),wval);
+	  oneout=1;}
+	off=check_line_length(&out,off,50);
+	fd_decref(wval); wval=FD_VOID;}
       else {
-	fdtype value=fd_eval(towatch,env);
-	if (oneout) u8_printf(&out,"; %q=%q",towatch,value);
-	else u8_printf(&out,"%q=%q",towatch,value);
-	fd_decref(value); scan=FD_CDR(scan); oneout=1;}}
-    if (FD_PAIRP(toeval)) u8_printf(&out,": %q",toeval);
+	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
+	      (fd_eval(towatch,env)));
+	scan=FD_CDR(scan);
+	if (oneout) u8_printf(&out,"; %q=%q",towatch,wval);
+	else {
+	  u8_printf(&out,"%q=%q",towatch,wval);
+	  oneout=1;}
+	off=check_line_length(&out,off,50);
+	fd_decref(wval); wval=FD_VOID;}}
+    off=check_line_length(&out,off,50);
     u8_logger(-1,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start=u8_elapsed_time();
