@@ -107,10 +107,11 @@ static MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
     return NULL;}
 }
 
-#define FD_PTR2CONS(x,typecode,typecast) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) ? \
+#define FD_PTR2CONS(x,typecode,typecast)                                \
+  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) ?                   \
    ((typecast)(fd_ptr2cons(x,typecode))) :				\
-   ((typecode<0) || (FD_PTR_TYPEP(x,typecode))) ? ((typecast)(FD_CONS_DATA(x))) : \
+   ((typecode<0) || (FD_PTR_TYPEP(x,typecode))) ?                       \
+    ((typecast)(FD_CONS_DATA(x))) :					\
    ((typecast)(u8_raise(fd_TypeError,fd_type_names[typecode],NULL),NULL)))
 
 /* Hash locking for pointers */
