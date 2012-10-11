@@ -632,6 +632,7 @@ static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
 static void open_tag(u8_output s,u8_string tag,u8_string cl,
 		     u8_string typename,int collapsed)
 {
+  if (!(tag)) return;
   if ((cl)&&(collapsed))
     u8_printf(s,"\n<%s class='%s %s collapsed'>",tag,typename,cl);
   else if (cl)
@@ -650,6 +651,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
     u8_string data=FD_STRDATA(val);
     char *collapsed=((len>256)?(" collapsed"):(""));
     int preformat=((strchr(data,'\n')!=NULL)||(strchr(data,'\t')!=NULL));
+    if (!(tag)) tag="span";
     open_tag(s,tag,cl,typename,(len>256));
     if (preformat) u8_puts(s,"\n\t <pre>\n\t“"); else u8_puts(s,"“");
     entify(s,data);
@@ -660,6 +662,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
     U8_INIT_OUTPUT(&out,256); fd_unparse(&out,val);
     len=out.u8_outptr-out.u8_outbuf;
     if ((len<40)||(FD_IMMEDIATEP(val))||(FD_NUMBERP(val))) {
+      if (!(tag)) tag="span";
       open_tag(s,tag,cl,typename,(len>256));
       entify(s,out.u8_outbuf);
       u8_printf(s,"</%s>",tag);}
@@ -676,7 +679,8 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 	else if (i==0)
 	  u8_printf(s,"<th class='size'>(%d)</th>",len);
 	else u8_puts(s,"<th></th></tr>");}
-      u8_printf(s,"\n\t</table>\n</%s>\n",tag);}
+      u8_puts(s,"\n\t</table>\n");
+      if (tag) u8_printf(s,"</%s>\n",tag);}
     else if (FD_CHOICEP(val)) {
       int i=0, size=FD_CHOICE_SIZE(val); int count=0;
       FD_DO_CHOICES(x,val) {
@@ -692,7 +696,8 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 	else if (count==1)
 	  u8_printf(s,"<th class='size'>(%d)</th></tr>",size);
 	else u8_puts(s,"<th></th></tr>");}
-      u8_printf(s,"\n\t</table>\n</%s>\n",tag);}
+      u8_puts(s,"\n\t</table>\n");
+      if (tag) u8_printf(s,"</%s>\n",tag);}
     else if (FD_PAIRP(val)) {
       fdtype scan=val; int count=0;
       open_tag(s,tag,cl,typename,0);
@@ -711,7 +716,8 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 	u8_puts(s,"\n\t<tr><th>.</th>");
 	output_value(s,scan,"td","improper");
 	u8_puts(s,"<th>)</th></tr>");}
-      u8_printf(s,"\n\t</table>\n</%s>\n",tag);}
+      u8_puts(s,"\n\t</table>\n");
+      if (tag) u8_printf(s,"</%s>\n",tag);}
     else if ((FD_SLOTMAPP(val))||(FD_SCHEMAPP(val))) {
       fdtype keys=fd_getkeys(val);
       int count=0, size=FD_CHOICE_SIZE(keys);
@@ -732,13 +738,18 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 	else if (count==0) u8_printf(s,"<th class='size'>(%d)</th>");
 	else u8_puts(s,"<th></th>");
 	count++;}
-      u8_printf(s,"\n\t</table>\n</%s>\n",tag);}
+      u8_puts(s,"\n\t</table>\n");
+      if (tag) u8_printf(s,"</%s>\n",tag);}
     else {
+      if (!(tag)) tag="span";
       open_tag(s,tag,cl,typename,(len>256));
       entify(s,out.u8_outbuf);
-      u8_printf(s,"</%s>",tag);}
+      if (tag) u8_printf(s,"</%s>",tag);}
     u8_free(out.u8_outbuf);}
 }
+
+FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl){
+  output_value(s,v,tag,cl);}
 
 /* XHTML error report */
 
@@ -1584,6 +1595,26 @@ static fdtype table2html_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
+static fdtype obj2html_prim(fdtype obj,fdtype tag)
+{
+  u8_string tagname=NULL, classname=NULL; u8_byte tagbuf[64];
+  U8_OUTPUT *s=u8_current_output;
+  if (FD_STRINGP(tag)) {
+    u8_string s=FD_STRDATA(tag);
+    u8_string dot=strchr(s,'.');
+    if ((dot)&&((dot-s)>50))
+      return fd_type_error("HTML tag.class","obj2html_prim",tag);
+    else if (dot) {
+      memcpy(tagbuf,s,dot-s); tagbuf[dot-s]='\0';
+      tagname=tagbuf; classname=dot+1;}
+    else tagname=s;}
+  else if (FD_SYMBOLP(tag)) tagname=FD_SYMBOL_NAME(tag);
+  else if ((FD_VOIDP(tag))||(FD_FALSEP(tag))) {}
+  else return fd_type_error("HTML tag.class","obj2html_prim",tag);
+  output_value(s,obj,tagname,classname);
+  return FD_VOID;
+}
+
 /* XMLEVAL primitives */
 
 static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
@@ -1968,6 +1999,8 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(xhtml_module,fd_intern("HR"),emptymarkup_prim);
   
   fd_defspecial(xhtml_module,"TABLE->HTML",table2html_handler);
+  fd_idefn(xhtml_module,
+	   fd_make_cprim2("OBJ->HTML",obj2html_prim,1));
 
   fd_defspecial(fdweb_module,"XMLEVAL",xmleval_handler);
   fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_handler);
