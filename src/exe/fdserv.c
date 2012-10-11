@@ -767,7 +767,12 @@ static int webservefn(u8_client ucl)
       write_string(client->socket,
 		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
       fd_xhtmldebugpage(&(client->out),ex);}
-    else fd_xhtmlerrorpage(&(client->out),ex);
+    else {
+      http_len=http_len+
+	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,
+		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+      fd_xhtmlerrorpage(&(client->out),ex);}
     u8_free_exception(ex,1);
     if ((reqlog) || (urllog) || (trace_cgidata))
       dolog(cgidata,result,outstream->u8_outbuf,
