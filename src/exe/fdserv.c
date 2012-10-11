@@ -513,7 +513,9 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 
 static int webservefn(u8_client ucl)
 {
-  fdtype proc=FD_VOID, result=FD_VOID, cgidata=FD_VOID, path=FD_VOID, precheck;
+  fdtype proc=FD_VOID, result=FD_VOID, onerror=FD_VOID;
+  fdtype cgidata=FD_VOID, path=FD_VOID, precheck;
+  fd_lispenv config_env=NULL;
   fd_webconn client=(fd_webconn)ucl;
   int write_headers=1, close_html=0, resuming=0;
   double start_time, setup_time, parse_time, exec_time, write_time;
@@ -665,6 +667,7 @@ static int webservefn(u8_client ucl)
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
+    config_env=sp->env;
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
@@ -674,6 +677,7 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
     threadcache=checkthreadcache(sp->env);
+    config_env=sp->env;
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
@@ -682,6 +686,7 @@ static int webservefn(u8_client ucl)
        (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
        (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
+    config_env=base;
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache=checkthreadcache(base);
     if (traceweb>1)
@@ -709,26 +714,60 @@ static int webservefn(u8_client ucl)
     else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
-  u8_set_default_output(NULL);
+  if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   /* We're now done with all the core computation. */
   if (FD_TROUBLEP(result)) {
-    u8_exception ex=u8_erreify();
+    u8_exception ex=u8_current_exception;
     u8_condition excond=ex->u8x_cond;
     u8_context excxt=((ex->u8x_context) ?
 		      (ex->u8x_context) : ((u8_context)"somewhere"));
     u8_context exdetails=((ex->u8x_details)
 			  ? (ex->u8x_details) : ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
+    fdtype errorpage=((config_env)?
+		      (fd_symeval(errorpage_symbol,config_env)):
+		      (FD_VOID));
+    if (((FD_VOIDP(errorpage))||(errorpage==FD_UNBOUND))&&
+	(!(FD_VOIDP(errpage)))) {
+      fd_incref(errpage); errorpage=errpage;}
     if (FD_VOIDP(irritant))
       u8_log(LOG_ERR,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
 	     excond,FD_STRDATA(path),excxt,exdetails);
     else u8_log(LOG_ERR,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
 		excond,FD_STRDATA(path),excxt,exdetails,irritant);
-    http_len=http_len+
-      strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
-    write_string(client->socket,
-		 "Content-type: text/html; charset='utf-8'\r\n\r\n");
-    fd_xhtmlerrorpage(&(client->out),ex);
+    if (FD_APPLICABLEP(errorpage)) {
+      if (outstream->u8_outptr>outstream->u8_outbuf) {
+	fdtype output=fd_make_string
+	  (NULL,outstream->u8_outptr-outstream->u8_outbuf,
+	   outstream->u8_outbuf);
+	fd_store(cgidata,output_symbol,output);
+	fd_decref(output);}
+      outstream->u8_outptr=outstream->u8_outbuf;
+      result=fd_apply(errorpage,0,NULL);}
+    else if ((FD_STRINGP(errorpage))&&
+	     (strstr(FD_STRDATA(errorpage),"\n")!=NULL)) {
+      ex=u8_erreify();
+      http_len=http_len+
+	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,
+		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,FD_STRDATA(errpage));}
+    else if (FD_STRINGP(errorpage)) {
+      /* This should do a redirect and maybe some other stuff */
+      ex=u8_erreify();
+      http_len=http_len+
+	strlen("Content-type: text/plain; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,
+		   "Content-type: text/plain; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,FD_STRDATA(errpage));}
+    else if ((webdebug)||
+	     ((weballowdebug)&&(fd_req_test(webdebug_symbol,FD_VOID)))) {
+      http_len=http_len+
+	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+      write_string(client->socket,
+		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+      fd_xhtmldebugpage(&(client->out),ex);}
+    else fd_xhtmlerrorpage(&(client->out),ex);
     u8_free_exception(ex,1);
     if ((reqlog) || (urllog) || (trace_cgidata))
       dolog(cgidata,result,outstream->u8_outbuf,
@@ -738,6 +777,7 @@ static int webservefn(u8_client ucl)
     u8_writeall(client->socket,outstream->u8_outbuf,
 		outstream->u8_outptr-outstream->u8_outbuf);
     return_code=-1;
+    fd_decref(errorpage);
     u8_client_close(ucl);}
   else {
     U8_OUTPUT httphead, htmlhead; int tracep;

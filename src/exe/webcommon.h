@@ -10,6 +10,8 @@ static u8_string reqlogname=NULL;
 static fd_dtype_stream reqlog=NULL;
 static int reqloglevel=0;
 static int traceweb=0;
+static int webdebug=0;
+static int weballowdebug=1;
 
 static int cgitrace=0;
 static int trace_cgidata=0;
@@ -47,6 +49,9 @@ static fdtype server_port, server_name, path_translated, script_filename;
 static fdtype auth_type, remote_host, remote_user, remote_port;
 static fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
 static fdtype query_symbol, referer_symbol, forcelog_symbol;
+static fdtype webdebug_symbol, errorpage_symbol, output_symbol;
+
+static fdtype errpage=FD_VOID;
 
 static void init_webcommon_symbols()
 {
@@ -73,6 +78,9 @@ static void init_webcommon_symbols()
   referer_symbol=fd_intern("HTTP_REFERER");
   remote_info=fd_intern("REMOTE_INFO");
   forcelog_symbol=fd_intern("FORCELOG");
+  webdebug_symbol=fd_intern("WEBDEBUG");
+  errorpage_symbol=fd_intern("ERRORPAGE");
+  output_symbol=fd_intern("OUTPUT");
 }
 
 /* Preflight/postflight */
@@ -569,7 +577,14 @@ static void init_webcommon_configs()
 {
   fd_register_config("TRACEWEB",_("Trace all web transactions"),
 		     fd_boolconfig_get,fd_boolconfig_set,&traceweb);
-  fd_register_config("PRELOAD",_("Files to preload into the shared environment"),
+  fd_register_config("WEBDEBUG",_("Show backtraces on errors"),
+		     fd_boolconfig_get,fd_boolconfig_set,&webdebug);
+  fd_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
+		     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
+  fd_register_config("ERRORPAGE",_("Default error page for web errors"),
+		     fd_lconfig_get,fd_lconfig_set,&errpage);
+  fd_register_config("PRELOAD",
+		     _("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);
   fd_register_config("URLLOG",_("Where to write URLs where were requested"),
 		     urllog_get,urllog_set,NULL);

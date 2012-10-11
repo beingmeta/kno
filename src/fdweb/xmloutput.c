@@ -997,7 +997,7 @@ static void output_backtrace(u8_output s,u8_exception ex)
 }
 
 FD_EXPORT
-void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
+void fd_xhtmldebugpage(u8_output s,u8_exception ex)
 {
   u8_exception e=u8_exception_root(ex);
   fdtype irritant=fd_exception_xdata(e);
@@ -1053,6 +1053,82 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_printf(s,"</div></div>\n");
   output_backtrace(s,ex);
   u8_printf(s,"</body>\n</html>\n");  
+}
+
+FD_EXPORT
+void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
+{
+  u8_exception e=u8_exception_root(ex);
+  fdtype irritant=fd_exception_xdata(e);
+  int isembedded=0, customstylesheet=0;
+  s->u8_outptr=s->u8_outbuf;
+  fdtype embeddedp=fd_req_get(embedded_symbol,FD_VOID);
+  fdtype estylesheet=fd_req_get(estylesheet_symbol,FD_VOID);
+  if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded=1;
+  if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
+  if (FD_STRINGP(estylesheet)) {
+    u8_puts(s,FD_STRDATA(estylesheet));
+    customstylesheet=1;}
+  if (isembedded==0) {
+    u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
+    u8_printf(s,"<html>\n<head>\n<title>");
+    if (e->u8x_cond)
+      u8_printf(s,"%k",e->u8x_cond);
+    else u8_printf(s,"Unknown Exception");
+    if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
+    if (!(FD_VOIDP(irritant))) u8_printf(s,": %lk",irritant);
+    if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
+    u8_printf(s,"</title>\n");}
+  u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
+  if (customstylesheet==0)
+    u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
+	      error_stylesheet);
+  if (isembedded==0)
+   u8_printf(s,"</head>\n<body id='ERRORPAGE'>\n<div class='server_sorry'>");
+  u8_printf(s,"There was an unanticipated error processing your request\n");
+  u8_printf(s,"<div class='error'>\n");
+  if (e->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->u8x_context);
+  u8_printf(s," <span class='ex'>%k</span>",e->u8x_cond);
+  if (e->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",e->u8x_details);
+  if (!(FD_VOIDP(irritant))) {
+    u8_string stringval=fd_dtype2string(irritant);
+    if (strlen(stringval)<40) 
+      u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
+    else {
+      u8_printf(s,"<div class='irritant'>\n");
+      fd_pprint(s,irritant,NULL,4,0,80,1);
+      u8_printf(s,"\n</div>\n");}
+    u8_free(stringval);}
+  u8_printf(s,"</div></div>\n");
+  u8_printf(s,"</body>\n</html>\n");  
+}
+
+static fdtype errpage2html_prim(fdtype where)
+{
+  u8_exception ex=u8_current_exception;
+  if ((FD_VOIDP(where))||(FD_TRUEP(where))) {
+    u8_output s=u8_current_output;
+    fd_xhtmldebugpage(s,ex);
+    return FD_TRUE;}
+  else if (FD_FALSEP(where)) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+    fd_xhtmldebugpage(&out,ex);
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else return FD_FALSE;
+}
+
+static fdtype backtrace2html_prim(fdtype where)
+{
+  u8_exception ex=u8_current_exception;
+  if ((FD_VOIDP(where))||(FD_TRUEP(where))) {
+    u8_output s=u8_current_output;
+    output_backtrace(s,ex);
+    return FD_TRUE;}
+  else if (FD_FALSEP(where)) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+    output_backtrace(&out,ex);
+    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else return FD_FALSE;
 }
 
 /* Getting oid display data */
@@ -1893,6 +1969,10 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_cprim3x
     ("URIENCODE",uriencode_prim,1,
      -1,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID);
+  fdtype debug2html=fd_make_cprim1
+    ("DEBUGPAGE->HTML",errpage2html_prim,0);
+  fdtype backtrace2html=fd_make_cprim1
+    ("BACKTRACE->HTML",backtrace2html_prim,0);
 
   u8_printf_handlers['k']=markup_printf_handler;
 
@@ -1913,6 +1993,8 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defn(module,uriencode_proc);
     fd_defn(module,uridecode_proc);
     fd_defn(module,uriout_proc);
+    fd_defn(module,debug2html);
+    fd_defn(module,backtrace2html);
     fd_store(module,fd_intern("SCRIPTURL+"),scripturlplus_proc);
     fd_store(module,fd_intern("MARKUPFN"),markup_prim);
     fd_store(module,fd_intern("MARKUP*FN"),markupstar_prim);
@@ -1946,6 +2028,8 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_store(module,fd_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
     fd_store(module,fd_intern("EMPTYMARKUPFN"),emptymarkup_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
+    fd_defn(module,debug2html);
+    fd_defn(module,backtrace2html);
   }
   
   fd_defspecial(xhtml_module,"ANCHOR",doanchor);
@@ -1998,6 +2082,9 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(xhtml_module,fd_intern("BR"),emptymarkup_prim);
   fd_store(xhtml_module,fd_intern("HR"),emptymarkup_prim);
   
+  fd_idefn(xhtml_module,debug2html);
+  fd_idefn(xhtml_module,backtrace2html);
+
   fd_defspecial(xhtml_module,"TABLE->HTML",table2html_handler);
   fd_idefn(xhtml_module,
 	   fd_make_cprim2("OBJ->HTML",obj2html_prim,1));
@@ -2017,6 +2104,9 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_decref(emptymarkup_prim); fd_decref(xmlout_prim);
   fd_decref(xmlblockn_prim); fd_decref(xmlblock_prim);
   fd_decref(xmlelt_prim);
+  fd_decref(debug2html);
+  fd_decref(backtrace2html);
+
 
   /* Not strictly XML of course, but a neighbor */
   fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_handler);
