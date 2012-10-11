@@ -257,6 +257,14 @@ exe/%@suffix@: src/exe/%.c
 	        -lu8stdio $(LIBS)
 	@echo MKEXE $@ $<
 
+# Custom rules for making include files with CSS headers
+src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h
+src/fdweb/backtrace_css.h: src/fdweb/backtrace.css makefile
+	echo -n "#define FD_BACKTRACE_CSS \"" > src/fdweb/backtrace_css.h
+	sed s/$$/\ \\\\/ src/fdweb/backtrace.css | \
+          sed s/\\\"/\\\\\"/g >> src/fdweb/backtrace_css.h
+	echo "\"" >> src/fdweb/backtrace_css.h
+
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
