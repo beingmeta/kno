@@ -614,6 +614,7 @@ CPP
 buildrpm
 APXS
 VALGRIND
+ECHO
 RANLIB
 INSTALL_DATA
 INSTALL_SCRIPT
@@ -633,6 +634,7 @@ build_os
 build_vendor
 build_cpu
 build
+MSG
 USEDTBLOCK
 DEFAULTISASYNC
 MYSQL_LDFLAGS
@@ -2717,6 +2719,7 @@ MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
+MSG=echo
 
 
 ac_aux_dir=
@@ -2749,6 +2752,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
 
 
 
@@ -3660,6 +3664,44 @@ esac
 else
   RANLIB="$ac_cv_prog_RANLIB"
 fi
+
+# Extract the first word of "echo", so it can be a program name with args.
+set dummy echo; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_ECHO+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ECHO"; then
+  ac_cv_prog_ECHO="$ECHO" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_ECHO=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_ECHO" && ac_cv_prog_ECHO="/bin/echo"
+fi
+fi
+ECHO=$ac_cv_prog_ECHO
+if test -n "$ECHO"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ECHO" >&5
+$as_echo "$ECHO" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
 
 # Extract the first word of "valgrind", so it can be a program name with args.
 set dummy valgrind; ac_word=$2

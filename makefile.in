@@ -24,6 +24,8 @@ BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
+ECHO		= @ECHO@
+MSG		= @MSG@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
 MACOSX_DEPLOYMENT_TARGET=10.3
@@ -239,12 +241,12 @@ dbginstall:
 
 %.o: %.c ./fileinfo
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
-	@echo CC $@ $<
+	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
-	@echo "#!"@prefix@/bin/fdexec | cat - $< > $@
+	@$(ECHO) "#!"@prefix@/bin/fdexec | cat - $< > $@
 	@chmod a+x $@
-	@echo MAKESCRIPT $@ $<
+	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
@@ -255,21 +257,21 @@ exe/%@suffix@: src/exe/%.c
 		-lfdscheme@suffix@                                 \
 		-lfddbfile@suffix@ -lfddb@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
-	@echo MKEXE $@ $<
+	@$(MSG) MKEXE $@ $<
 
 # Custom rules for making include files with CSS headers
 src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h
 src/fdweb/backtrace_css.h: src/fdweb/backtrace.css makefile
-	echo -n "#define FD_BACKTRACE_CSS \"" > src/fdweb/backtrace_css.h
+	$(ECHO) -n "#define FD_BACKTRACE_CSS \"" > src/fdweb/backtrace_css.h
 	sed s/$$/\ \\\\/ src/fdweb/backtrace.css | \
           sed s/\\\"/\\\\\"/g >> src/fdweb/backtrace_css.h
-	echo "\"" >> src/fdweb/backtrace_css.h
+	$(ECHO) "\"" >> src/fdweb/backtrace_css.h
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
 	@$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
-	@echo MKEXE_STATIC $@
+	@$(MSG) MKEXE_STATIC $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -279,28 +281,28 @@ exe/fdcgiexec@suffix@ exe/fdserv@suffix@: src/exe/webcommon.h
 
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
-	@echo MKSTATIC $@
+	@$(MSG) MKSTATIC $@
 lib/%@suffix@.so.@VERSION@:
 	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS)
-	@echo MKSO $@
+	@$(MSG) MKSO $@
 lib/%@suffix@.so: lib/%.so.@VERSION@
 	@ln -sf $(<F) $@
 lib/%@suffix@.@VERSION@.dylib:
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
-	@echo MACLIBTOOL $@
+	@$(MSG) MACLIBTOOL $@
 lib/%@suffix@.dylib: lib/%@suffix@.@VERSION@.dylib
 	ln -sf $(<F) $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-	@echo INSTALL $@
+	@$(MSG) INSTALL $@
 
 $(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@: \
 		lib/framerd/%@suffix@.so.@VERSION@
 	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
 	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
-	@echo INSTALL $@
+	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.so: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@VERSION@
 	@ln -sf $(shell basename $<) $@
@@ -308,7 +310,7 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.so: \
 $(LIBINSTALLDIR)/%@suffix@.so.@VERSION@: lib/%@suffix@.so.@VERSION@
 	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-	@echo INSTALL $@
+	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.so: \
 		$(LIBINSTALLDIR)/%@suffix@.so.@VERSION@
 	@ln -sf $(shell basename $<) $@
@@ -317,7 +319,7 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib: \
     lib/framerd/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)/framerd
 	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
 	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
-	@echo INSTALL $@
+	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.@VERSION@.dylib
 	@ln -sf $(shell basename $<) $@
@@ -326,7 +328,7 @@ $(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib: \
     lib/%@suffix@.@VERSION@.dylib $(LIBINSTALLDIR)
 	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-	@echo INSTALL $@
+	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/%@suffix@.@VERSION@.dylib
 	@ln -sf $(shell basename $<) $@
@@ -342,7 +344,7 @@ exe/fdmanager@suffix@: src/exe/fdmanager.c
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
 		$(LIBS) -lu8stdio
-	@echo MKEXE $@
+	@$(MSG) MKEXE $@
 
 # This can be helpful for some debugging 
 etc/usememory: etc/usememory.c
@@ -385,17 +387,17 @@ uninstall-all: uninstall-core
 		$(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@data_dir@); then \
-	  echo $(DESTDIR)@data_dir@ "still exists"; fi
+	  $(MSG) $(DESTDIR)@data_dir@ "still exists"; fi
 	@if (test -d $(DESTDIR)@config_dir@); then \
-	  echo $(DESTDIR)@config_dir@ "still exists"; fi
+	  $(MSG) $(DESTDIR)@config_dir@ "still exists"; fi
 	@if (test -d $(DESTDIR)@local_config@); then \
-	  echo $(DESTDIR)@local_config@ "still exists"; fi
+	  $(MSG) $(DESTDIR)@local_config@ "still exists"; fi
 	@if (test -d $(DESTDIR)@shared_config@); then \
-	  echo $(DESTDIR)@shared_config@ "still exists"; fi
+	  $(MSG) $(DESTDIR)@shared_config@ "still exists"; fi
 	@if (test -d $(DESTDIR)@module_dir@); then \
-	  echo $(DESTDIR)@module_dir@ "still exists"; fi
+	  $(MSG) $(DESTDIR)@module_dir@ "still exists"; fi
 	@if (test -d $(DESTDIR)@safe_module_dir@); then \
-	  echo $(DESTDIR)@safe_module_dir@ "still exists"; fi
+	  $(MSG) $(DESTDIR)@safe_module_dir@ "still exists"; fi
 
 # Making dependency information
 
@@ -485,7 +487,7 @@ lib/libfdbserv@suffix@.@VERSION@.dylib: $(FDBSERV_OBJS) \
 	lib/libfddb@suffix@.@VERSION@.dylib             \
 	lib/libfdtype@suffix@.@VERSION@.dylib
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
-	@echo MACLIBTOOL $@
+	@$(MSG) MACLIBTOOL $@
 lib/libfdserv@suffix@.dylib: lib/libfdbserv@suffix@.@VERSION@.dylib
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
@@ -509,7 +511,7 @@ lib/libfdschemeio.dylib: lib/libfdschemeio@suffix@.@VERSION@.dylib
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so.@VERSION@: $(FDWEB_OBJS)
 	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^  @curlconfig@ @LIBS@
-	@echo MKSO $@
+	@$(MSG) MKSO $@
 lib/libfdweb@suffix@.so: lib/libfdweb@suffix@.so.@VERSION@
 lib/libfdweb@suffix@.@VERSION@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib     \
@@ -517,7 +519,7 @@ lib/libfdweb@suffix@.@VERSION@.dylib: $(FDWEB_OBJS) \
 	lib/libfddb@suffix@.@VERSION@.dylib         \
         lib/libfdtype@suffix@.@VERSION@.dylib
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(FDWEB_OBJS)
-	@echo MACLIBTOOL $@
+	@$(MSG) MACLIBTOOL $@
 lib/libfdweb@suffix@.dylib: lib/libfdweb@suffix@.@VERSION@.dylib
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
@@ -527,7 +529,7 @@ lib/libtexttools@suffix@.@VERSION@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
 	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
-	@echo MACLIBTOOL $@
+	@$(MSG) MACLIBTOOL $@
 lib/libtexttools.dylib: lib/libtexttools@suffix@.@VERSION@.dylib
 
 lib/libtagger@suffix@.a: $(TAGGER_OBJS)
@@ -538,30 +540,30 @@ lib/libtagger@suffix@.@VERSION@.dylib: $(TAGGER_OBJS) \
 	lib/libfdscheme@suffix@.@VERSION@.dylib lib/libfddbfile@suffix@.@VERSION@.dylib \
 	lib/libfddb@suffix@.@VERSION@.dylib lib/libfdtype@suffix@.@VERSION@.dylib
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
-	@echo MACLIBTOOL $@
+	@$(MSG) MACLIBTOOL $@
 lib/libtagger.dylib: lib/libtagger@suffix@.@VERSION@.dylib
 
 src/cmodules/mysql.o: src/cmodules/mysql.c
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
-	@echo CC "(MYSQL)" $@
+	@$(MSG) CC "(MYSQL)" $@
 lib/framerd/mysql.so.@VERSION@: src/cmodules/mysql.o
 	@$(MKSO) -o $@ $<  @MYSQL_LDFLAGS@ @LIBS@
-	@echo MKSO "(MYSQL)" $@
+	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.so: lib/framerd/mysql.so.@VERSION@
 lib/framerd/mysql.@VERSION@.dylib: src/cmodules/mysql.o
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
-	@echo MACLIBTOOL "(MYSQL)" $@
+	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 lib/framerd/mysql.dylib: lib/framerd/mysql.@VERSION@.dylib
 
 src/cmodules/%.o: src/cmodules/%.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
-	@echo CC  $@ $<
+	@$(MSG) CC  $@ $<
 lib/framerd/%.so.@VERSION@: src/cmodules/%.o
 	@$(MKSO) -o $@ $< @LIBS@
-	@echo MKSO  $@ $<
+	@$(MSG) MKSO  $@ $<
 lib/framerd/%.@VERSION@.dylib: src/cmodules/%.o
 	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
-	@echo MACLIBTOOL  $@ $<
+	@$(MSG) MACLIBTOOL  $@ $<
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/framerd/crypto.so.@VERSION@: src/cmodules/crypto.o
@@ -606,11 +608,11 @@ lib/framerd/ziptools.dylib: lib/framerd/ziptools.@VERSION@.dylib
 
 lib/framerd/exif.so.@VERSION@: src/cmodules/exif.o
 	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS) -lexif
-	@echo MKSO $@
+	@$(MSG) MKSO $@
 lib/framerd/exif.so: lib/framerd/exif.so.@VERSION@
 lib/framerd/exif.@VERSION@.dylib: src/cmodules/exif.o
 	@$(MACLIBTOOL) -install_name $(@F) -lexif -o $@ $^
-	@echo MACLIBTOOL $@
+	@$(MSG) MACLIBTOOL $@
 lib/framerd/exif.dylib: lib/framerd/exif.@VERSION@.dylib
 
 # Internationalization stuff
@@ -647,7 +649,7 @@ etc/framerd-@VERSION@: $(FDB_SOURCES) $(FDB_HEADERS) \
 	git archive --prefix=framerd-@VERSION@/ \
 	            -o etc/framerd-@VERSION@.tar HEAD
 	cd etc; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
-	echo "#define FRAMERD_REV \""`git describe`"\"" \
+	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
 		> etc/framerd-@VERSION@/etc/revision.h;
 etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
 		      		configure.ac makefile.in makefile
@@ -843,7 +845,7 @@ debian-build-setup:
 # The mod_fdserv module
 
 etc/mod_fdserv.so: etc/mod_fdserv.c
-	echo "#define _FILEINFO \""`./fileinfo etc/mod_fdserv.c .`"\"" \
+	$(ECHO) "#define _FILEINFO \""`./fileinfo etc/mod_fdserv.c .`"\"" \
 		> etc/mod_fdserv_fileinfo.h
 	cd etc; ${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ \
 			-c mod_fdserv.c
@@ -865,8 +867,8 @@ $(DESTDIR)@apache_modinfo@:
 
 update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
-	@echo "STOPPING and STARTING Apache to INSTALL NEW mod_fdserv"
-	@echo "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
+	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_fdserv"
+	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
 	sudo apachectl stop
 	cd etc; sudo ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load \
 			$(DESTDIR)@apache_modinfo@;
@@ -884,9 +886,9 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
 	@if test -f etc/revision.h; \
 	then cp etc/revision.h src/exe/revision.h; \
-	else echo "#define FRAMERD_REV \""`git describe`"\"" \
+	else $(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
 		> src/exe/revision.h; fi
-	@echo FRAMERD_REV `git describe`
+	@$(MSG) FRAMERD_REV `git describe`
 $(EXECUTABLES): src/exe/revision.h
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
