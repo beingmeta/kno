@@ -52,7 +52,7 @@ table.backtrace > tbody > tr.irritant > th {
 table.backtrace > tbody > tr > td {
     text-align: left; padding-top: 2px;}
 table.backtrace > tbody.eval td.expr {
-    background-color: white; color: black;}
+    background-color: white; color: black; white-space: pre;}
 table.backtrace > tbody.eval td.expr .focus { color: blue; }
 table.backtrace > tbody.call > tr > td {
     background-color: whitesmoke; color: black;}
@@ -71,4 +71,23 @@ table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > 
 table.backtrace > tbody.call > tr > td { color: red; }
 table.backtrace > tbody.call > tr > td span.operator {font-weight: bold;}
 table.backtrace > tbody.call > tr > td span {white-space: nowrap;}
+
+table.fdcompound {
+    border-left: solid black 2px;
+    border-right: solid black 2px;}
+table.fdcompound.fdtable { border: solid black 2px; }
+table.fdcompound.vector { border: 4px; }
+table.fdcompound.choice { border: dotted;}
+table.fdcompound th.count {
+    font-family: sans, sans-serif;
+    font-weight: normal; font-size: 80%; 
+    visibility: hidden;}
+table.fdcompound tr:hover > th.count { visibility: visible; }
+table.fdcompound th.size { text-align: left; }
+table.fdcompound th.delimiter { font-size: 120%; font-weight: bold;}
+table.fdcompound th.delimiter.open {text-align: right;}
+table.fdcompound th.delimiter.close {
+    text-align: left; vertical-align: bottom;}
+table.fdcompound.fdtable th.key {
+    font-family: sans, sans-serif;}
 
