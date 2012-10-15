@@ -218,7 +218,7 @@ static fdtype dynamic_load_prim(fdtype arg)
 
 /* Switching modules */
 
-static fd_lispenv switch_module
+static fd_lispenv become_module
   (fd_lispenv env,fdtype module_name,int safe)
 {
   fdtype module_spec, module;
@@ -228,8 +228,11 @@ static fd_lispenv switch_module
   if (FD_SYMBOLP(module_spec))
     module=fd_get_module(module_spec,safe);
   else module=module_spec;
-  if (FD_HASHTABLEP(module)) {
-    fd_seterr(OpaqueModule,"IN-MODULE",NULL,module_spec);
+  if (FD_VOIDP(module)) {
+    fd_seterr(fd_NoSuchModule,"become_module",NULL,module_spec);
+    return NULL;}
+  else if (FD_HASHTABLEP(module)) {
+    fd_seterr(OpaqueModule,"become_module",NULL,module_spec);
     return NULL;}
   else if (FD_PTR_TYPEP(module,fd_environment_type)) {
     FD_ENVIRONMENT *menv=
@@ -252,7 +255,7 @@ static fdtype safe_in_module(fdtype expr,fd_lispenv env)
   fdtype module_name=fd_get_arg(expr,1);
   if (FD_VOIDP(module_name))
     return fd_err(fd_TooFewExpressions,"IN-MODULE",NULL,expr);
-  else if (switch_module(env,module_name,1)) return FD_VOID;
+  else if (become_module(env,module_name,1)) return FD_VOID;
   else return FD_ERROR_VALUE;
 }
 
@@ -261,7 +264,7 @@ static fdtype in_module(fdtype expr,fd_lispenv env)
   fdtype module_name=fd_get_arg(expr,1);
   if (FD_VOIDP(module_name))
     return fd_err(fd_TooFewExpressions,"IN-MODULE",NULL,expr);
-  else if (switch_module(env,module_name,0)) return FD_VOID;
+  else if (become_module(env,module_name,0)) return FD_VOID;
   else return FD_ERROR_VALUE;
 }
 
@@ -272,7 +275,7 @@ static fdtype safe_within_module(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(module_name)) {
     fd_decref((fdtype)consed_env);
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
-  else if (switch_module(consed_env,module_name,1)) {
+  else if (become_module(consed_env,module_name,1)) {
     fdtype result=FD_VOID;
     FD_DOBODY(elt,expr,2) {
       fd_decref(result); result=fd_eval(elt,consed_env);}
@@ -288,7 +291,7 @@ static fdtype within_module(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(module_name)) {
     fd_decref((fdtype)consed_env);
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
-  else if (switch_module(consed_env,module_name,0)) {
+  else if (become_module(consed_env,module_name,0)) {
     fdtype result=FD_VOID;
     FD_DOBODY(elt,expr,2) {
       fd_decref(result); result=fd_eval(elt,consed_env);}
