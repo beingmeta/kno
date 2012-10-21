@@ -330,7 +330,7 @@ static void convert_cookie_arg(fd_slotmap c)
   fdtype parsed=FD_EMPTY_CHOICE;
   if (!(FD_STRINGP(qval))) {fd_decref(qval); return;}
   else {
-    fdtype slotid=FD_VOID, value=FD_VOID;
+    fdtype slotid=FD_VOID, name=FD_VOID, value=FD_VOID;
     int len=FD_STRLEN(qval); int isascii=1;
     u8_byte *scan=FD_STRDATA(qval), *end=scan+len;
     char *buf=u8_malloc(len), *write=buf;
@@ -338,11 +338,12 @@ static void convert_cookie_arg(fd_slotmap c)
       if ((FD_VOIDP(slotid)) && (*scan=='=')) {
 	/* These are cookies which may overlap HTTP state information */
 	*write++='\0';
+	name=fdtype_string(buf);
 	if (strncmp(buf,"HTTP",4)==0) slotid=bad_cookie;
 	else if (isascii) slotid=fd_parse(buf);
 	else {
 	  u8_string s=u8_valid_copy(buf);
-	  slotid=fd_parse(s); u8_free(s);}
+	  slotid=fd_parse(s);}
 	if (slotid==bad_cookie)
 	  write[-1]='=';
 	else {write=buf; isascii=1;}
@@ -355,10 +356,11 @@ static void convert_cookie_arg(fd_slotmap c)
 	  u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		  FD_STRDATA(qval));
 	else {
-	  fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
+	  fdtype cookiedata=fd_make_nvector(2,name,fd_incref(value));
 	  fd_slotmap_add(c,slotid,value);
 	  fd_slotmap_add(c,cookiedata_symbol,cookiedata);
 	  setcookiedata(cookiedata,(fdtype)c);
+	  name=FD_VOID;
 	  fd_decref(cookiedata);}
 	fd_decref(value); value=FD_VOID; slotid=FD_VOID;
 	write=buf; isascii=1; scan++;}
@@ -385,7 +387,7 @@ static void convert_cookie_arg(fd_slotmap c)
 	u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
 		FD_STRDATA(qval));
       else {
-	fdtype cookiedata=fd_make_nvector(2,slotid,fd_incref(value));
+	fdtype cookiedata=fd_make_nvector(2,name,fd_incref(value));
 	fd_slotmap_add(c,slotid,value);
 	fd_slotmap_add(c,cookiedata_symbol,cookiedata);
 	setcookiedata(cookiedata,(fdtype)c);
@@ -550,19 +552,19 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
       fdtype expires=((len>4) ? (FD_VECTOR_REF(cookie,4)) : (FD_VOID));
       fdtype secure=((len>5) ? (FD_VECTOR_REF(cookie,5)) : (FD_VOID));
       if (FD_STRINGP(domain))
-	u8_printf(out,"; domain=.%s",FD_STRDATA(domain));
+	u8_printf(out,"; Domain=.%s",FD_STRDATA(domain));
       if (FD_STRINGP(path))
-	u8_printf(out,"; path=%s",FD_STRDATA(path));
+	u8_printf(out,"; Path=%s",FD_STRDATA(path));
       if (FD_STRINGP(expires))
-	u8_printf(out,"; expires=%s",FD_STRDATA(expires));
+	u8_printf(out,"; Expires=%s",FD_STRDATA(expires));
       else if (FD_PTR_TYPEP(expires,fd_timestamp_type)) {
 	struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
 	char buf[512]; struct tm tptr;
 	u8_xtime_to_tptr(&(tstamp->xtime),&tptr);
 	strftime(buf,512,"%A, %d-%b-%Y %T GMT",&tptr);
-	u8_printf(out,"; expires=%s",buf);}
+	u8_printf(out,"; Expires=%s",buf);}
       if (!((FD_VOIDP(secure))||(FD_FALSEP(secure))))
-	u8_printf(out,"; secure");}
+	u8_printf(out,"; Secure");}
     u8_printf(out,"\r\n");}
   fd_decref(real_val);
   return 1;
@@ -609,7 +611,8 @@ static fdtype clearcookie
   else {
     fdtype cookiedata;
     fdtype val=fdtype_string("");
-    fdtype expires=fd_time2timestamp(time(NULL)-(3600*24*7*50));
+    time_t past=time(NULL)-(3600*24*7*50);
+    fdtype expires=fd_time2timestamp(past);
     if (FD_VOIDP(domain)) domain=FD_FALSE;
     if (FD_VOIDP(path)) path=FD_FALSE;
     cookiedata=
