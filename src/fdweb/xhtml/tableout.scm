@@ -18,13 +18,16 @@
 		((empty? values)
 		 (unless skipempty
 		   (tr (th key) (td* ((class "empty")) "No values"))))
-		((singleton? values)
-		 (tr (th key) (td values)))
 		(else (do-choices (value values i)
 			(if (zero? i)
 			    (tr (th* ((rowspan (choice-size values)))
 				  key)
-				(td value))
-			    (tr (td value)))))))))))
+				(td (xmlout value)))
+			    (tr (td (xmlout value))))))))))))
+
+
+
+
+
 
 
