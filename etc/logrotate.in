@@ -1,4 +1,4 @@
-/var/log/fdserv/*.log {
+@logdir@/fdserv/*.log {
    rotate 17
    notifempty
    # Try enabling this after we know things work
@@ -14,7 +14,7 @@
    #  missing logs
    copytruncate
 }
-/var/log/framerd/*.log {
+@logdir@/framerd/*.log {
    rotate 17
    notifempty
    # Try enabling this after we know things work

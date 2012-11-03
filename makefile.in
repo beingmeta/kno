@@ -818,19 +818,20 @@ $(DESTDIR)/etc/init.d:
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
 	$(INSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
-$(DESTDIR)/var/run/framerd:
+$(DESTDIR)@localstatedir@/run/framerd:
 	$(INSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
 		   $(DESTDIR)/var/run/framerd
-$(DESTDIR)/var/log/framerd:
+$(DESTDIR)@logdir@/framerd:
 	$(INSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
-		   $(DESTDIR)/var/log/framerd
+		   $(DESTDIR)@logdir@/framerd
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)/var/run/framerd \
-            $(DESTDIR)/var/log/framerd
+            $(DESTDIR)@logdir@/framerd
 enable-rc.d: setup-rc.d
 	update-rc.d framerd defaults
 
-setup-osx: @data_dir@ $(DESTDIR)/var/run/framerd $(DESTDIR)/var/log/framerd
+setup-osx: @data_dir@ $(DESTDIR)/var/run/framerd \
+		$(DESTDIR)@logdir@/framerd
 	etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \

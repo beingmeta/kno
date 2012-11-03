@@ -904,7 +904,7 @@ AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 AC_OUTPUT(makefile 
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d
-	  etc/OSXStartupItem/FramerD
+	  etc/OSXStartupItem/FramerD etc/logrotate
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/install-script)
 
