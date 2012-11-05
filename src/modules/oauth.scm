@@ -87,7 +87,7 @@
      #[AUTHORIZE "https://www.facebook.com/dialog/oauth"
        ACCESS "https://graph.facebook.com/oauth/access_token"
        KEY FB:KEY SECRET FB:SECRET
-       SCOPE "publish_actions,user_about_me,offline_access"
+       SCOPE "publish_actions,publish_stream,user_about_me,offline_access"
        VERSION "2.0"
        REALM FACEBOOK
        NAME "Facebook"]])
@@ -459,7 +459,7 @@
     (error OAUTH:NOTOKEN OAUTH/CALL
 	   "No OAUTH token for OAuth2 call in " spec))
   (default! expires (getopt spec 'expires))
-  (when (%watch (and expires (time-earlier? expires))) (oauth/refresh! spec))
+  (when (and expires (time-earlier? expires)) (oauth/refresh! spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
@@ -481,13 +481,21 @@
 				    'header auth-header
 				    'method method))
 		  (if (eq? method 'POST)
-		      (urlpost endpoint
-			       (curlopen 'header "Expect: "
-					 'header auth-header
-					 'method method)
-			       (args->post args))
+		      (if httpauth
+			  (urlpost endpoint
+				   (curlopen 'header "Expect: "
+					     'header auth-header
+					     'method method)
+				   (args->post args))
+			  (urlpost endpoint
+				   (curlopen 'header "Expect: "
+					     'header auth-header
+					     'method method)
+				   (args->post
+				    (cons* "access_token" (getopt spec 'token)
+					   args))))
 		      (error OAUTH:BADMETHOD OAUTH/CALL2
-			     "Only GET and POST are allowe: "
+			     "Only GET and POST are allowed: "
 			     method endpoint args)))))
     (debug%watch endpoint auth-header req)
     (if (and (test req 'response) (number? (get req 'response))
@@ -502,19 +510,28 @@
 		   method " at " endpoint " with " args
 		   "\n\t" spec "\n\t" req)))))
 
-(define (args->post args (first #t))
+(define (args->post args (first #t) (elt #f))
+  (if (not (pair? args)) (set! args (list args)))
   (stringout
-    (if (pair? args)
-	(while (and (pair? args) (pair? (cdr args)))
-	  (printout
-	    (if first (set! first #f) "&")
-	    (uriencode (car args)) "="
-	    (uriencode (cadr args)))
-	  (set! args (cddr args)))
-	(do-choices (key (getkeys args) i)
-	  (if (> i 0) (printout "&"))
-	  (printout (uriencode key) "="
-	    (uriencode (get args key)))))))
+    (while (pair? args)
+      (set! elt (car args))
+      (cond ((table? elt)
+	     (do-choices (key (getkeys elt) i)
+	       (printout
+		 (if first (set! first #f) "&")
+		 (uriencode key) "="
+		 (uriencode (get elt key))))
+	     (set! args (cdr args)))
+	    ((pair? (cdr args))
+	     (printout
+	       (if first (set! first #f) "&")
+	       (uriencode (car args))
+	       "="
+	       (uriencode (cadr args)))
+	     (set! args (cddr args)))
+	    (else
+	     (printout (uriencode elt))
+	     (set! args (cdr args)))))))
 
 (define (oauth/refresh! spec)
   (unless (getopt spec 'refresh)
