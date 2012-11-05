@@ -453,7 +453,7 @@
     (error OAUTH:NOTOKEN OAUTH/CALL
 	   "No OAUTH token for OAuth2 call in " spec))
   (default! expires (getopt spec 'expires))
-  (when (and expires (time-earlier? expires)) (auth/refresh! spec))
+  (when (and expires (time-earlier? expires)) (oauth/refresh! spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
