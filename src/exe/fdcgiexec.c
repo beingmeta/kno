@@ -723,6 +723,8 @@ int main(int argc,char **argv)
 
   init_webcommon_finalize();
 
+  update_preloads();
+
 #if FD_WITH_FASTCGI
   if ((loadfile) || (FCGX_IsCGI()))
     simplecgi(fdtype_string(loadfile));

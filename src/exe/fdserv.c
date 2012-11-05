@@ -1363,6 +1363,8 @@ int main(int argc,char **argv)
 	     "Removing leftover socket file %s",socket_spec);
       remove(socket_spec);}}
 
+  update_preloads();
+
   if (start_servers()<=0) {
     u8_log(LOG_CRIT,"FDSERV/STARTUP","Startup failed");
     exit(1);}
