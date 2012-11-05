@@ -261,11 +261,8 @@ exe/%@suffix@: src/exe/%.c
 
 # Custom rules for making include files with CSS headers
 src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h
-src/fdweb/backtrace_css.h: src/fdweb/backtrace.css makefile
-	$(ECHO) -n "#define FD_BACKTRACE_CSS \"" > src/fdweb/backtrace_css.h
-	sed s/$$/\ \\\\/ src/fdweb/backtrace.css | \
-          sed s/\\\"/\\\\\"/g >> src/fdweb/backtrace_css.h
-	$(ECHO) "\"" >> src/fdweb/backtrace_css.h
+src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
+	./etc/text2include FD_BACKTRACE_CSS $< $@
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
@@ -818,19 +815,26 @@ $(DESTDIR)/etc/init.d:
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
 	$(INSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
-$(DESTDIR)@localstatedir@/run/framerd:
+$(DESTDIR)@rundir@/framerd:
 	$(INSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
-		   $(DESTDIR)/var/run/framerd
+		   $(DESTDIR)@rundir@/framerd
 $(DESTDIR)@logdir@/framerd:
 	$(INSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
-            $(DESTDIR)/var/run/framerd \
+            $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
 enable-rc.d: setup-rc.d
 	update-rc.d framerd defaults
 
-setup-osx: @data_dir@ $(DESTDIR)/var/run/framerd \
+setup-logrotate: $(DESTDIR)/etc/logrotate.d/framerd
+$(DESTDIR)/etc/logrotate.d/framerd:
+	$(INSTALL) -T -m 0644 etc/logrotate \
+	  $(DESTDIR)/etc/logrotate.d/framerd
+
+setup-linux: setup-rc.d enable-rc.d setup-logrotate
+
+setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 		$(DESTDIR)@logdir@/framerd
 	etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \

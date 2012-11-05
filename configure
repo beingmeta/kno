@@ -2676,6 +2676,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+# Override the default value for localstatedir
+if (test "x$localstatedir" == "x\${prefix}/var"); then localstatedir="/var"; fi
+
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -2732,8 +2735,8 @@ CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$PREFIX/etc/framerd"
-rundir="/var/run"
-logdir="/var/log"
+rundir="${localstatedir}/run"
+logdir="${localstatedir}/log"
 archflags=""
 with_mysql_default="yes"
 with_crypto_default="no"
@@ -4064,7 +4067,7 @@ apache_modules_dir=$with_apachelib
 if test "${with_rundir+set}" = set; then :
   withval=$with_rundir;
 else
-  with_rundir="/var/run"
+  with_rundir="$localstatedir/run"
 fi
 
 rundir=$with_rundir
@@ -4074,7 +4077,7 @@ rundir=$with_rundir
 if test "${with_logdir+set}" = set; then :
   withval=$with_logdir;
 else
-  with_logdir="/var/log"
+  with_logdir="$localstatedir/log"
 fi
 
 logdir=$with_logdir
