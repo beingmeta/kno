@@ -13,8 +13,8 @@
 (varconfig! oauth:callback default-callback)
 
 (module-export!
- '{oauth
-   oauth/request oauth/authurl oauth/verify
+ '{oauth oauth/spec
+   oauth/request oauth/authurl oauth/verify oauth/getaccess
    oauth/call oauth/call* oauth/get oauth/post oauth/put
    oauth/sigstring oauth/callsig})
 
@@ -111,13 +111,14 @@
 				  "Invalid OAUTH provider spec: " val)))))
 
 (define (thisurl)
-  (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
-	     (req/get 'SERVER_NAME)
-	     (when (req/test 'SERVER_PORT)
-	       (unless (or (= (req/get 'SERVER_PORT) 80)
-			   (= (req/get 'SERVER_PORT) 443))
-		 (printout ":" (req/get 'SERVER_PORT))))
-    (uribase (try (req/get 'request_uri) (req/get 'path_info)))))
+  (tryif (req/get 'request_uri #f)
+    (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
+      (req/get 'SERVER_NAME)
+      (when (req/test 'SERVER_PORT)
+	(unless (or (= (req/get 'SERVER_PORT) 80)
+		    (= (req/get 'SERVER_PORT) 443))
+	  (printout ":" (req/get 'SERVER_PORT))))
+      (uribase (try (req/get 'request_uri) (req/get 'path_info))))))
 
 ;;; Getting consumer/client keys and secrets
 
@@ -194,21 +195,22 @@
 	  (set! args (cons* v "%3D" (uriencode key) "%26" args)))))
     (apply glom method "&" (uriencode uri) "&" (cdr (reverse args)))))
 
-(define (oauthspec spec)
+(define (oauth/spec spec)
   "Expands provider references a spec"
   (if (and (pair? spec) (symbol? (cdr spec))
 	   (exists? (get oauth-servers (cdr spec))))
       (cons (car spec) (get oauth-servers (cdr spec)))
       (if (and (symbol? spec) (test oauth-servers spec))
 	  (get oauth-servers spec)
-	  (if (and (table? spec) (test spec 'realm)
-		   (test oauth-servers (get spec 'realm)))
-	      (cons spec (get oauth-servers (get spec 'realm)))
-	      spec))))
+	  (if (and (pair? spec) (getopt spec 'realm)) spec
+	      (if (and (table? spec) (test spec 'realm)
+		       (test oauth-servers (get spec 'realm)))
+		  (cons spec (get oauth-servers (get spec 'realm)))
+		  spec)))))
 
 (define (oauth/request spec (ckey) (csecret))
   ;; Expand provider references in the spec
-  (set! spec (debug%watch (oauthspec spec) spec))
+  (set! spec (debug%watch (oauth/spec spec) spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (unless (and (getopt spec 'request)
@@ -259,7 +261,7 @@
   "Returns a URL for redirection and authorization and authentication. \
    If a scope is provided, we assume that we're authorizing, not \
    authenticating."
-  (set! spec (oauthspec spec))
+  (set! spec (oauth/spec spec))
   (debug%watch "OAUTH/AUTHURL" spec (getcallback spec))
   (unless (and (getopt spec 'authenticate (getopt spec 'authorize))
 	       (or (getopt spec 'oauth_token) (getckey spec)))
@@ -340,16 +342,20 @@
 	    (error OAUTH:REQFAIL OAUTH:VERIFY
 		   "Web call failed" req)))))
 
-(define (oauth/getaccess spec code (ckey) (csecret))
-  (set! spec (oauthspec spec))
+(define (oauth/getaccess spec (code #f) (ckey) (csecret))
+  (set! spec (oauth/spec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (debug%watch "OAUTH/GETACCESS" code spec)
   (let* ((callback (getcallback spec))
 	 (req (urlpost (getopt spec 'access) 
-		       "code" code "client_id" ckey "client_secret" csecret
-		       "grant_type" "authorization_code"
-		       "redirect_uri" callback)))
+		       "code" (qc (tryif code code))
+		       "client_id" ckey "client_secret" csecret
+		       "grant_type" (getopt spec 'grant "authorization_code")
+		       "fb_exchange_token"
+		       (qc (tryif (testopt spec 'grant "fb_exchange_token")
+			     (getopt spec 'fb_exchange_token (getopt spec 'token {}))))
+		       "redirect_uri" (qc callback))))
     (if (test req 'response 200)
 	(let* ((parsed (getreqdata req))
 	       (expires_in (->number
@@ -453,7 +459,7 @@
     (error OAUTH:NOTOKEN OAUTH/CALL
 	   "No OAUTH token for OAuth2 call in " spec))
   (default! expires (getopt spec 'expires))
-  (when (and expires (time-earlier? expires)) (oauth/refresh! spec))
+  (when (%watch (and expires (time-earlier? expires))) (oauth/refresh! spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
@@ -488,7 +494,9 @@
 	     (<= 200 (get req 'response) 299))
 	(getreqdata req)
 	(if (and (<= 400 (get req 'response) 499) (getopt spec 'refresh))
-	    (begin (oauth/refresh! spec)
+	    (begin
+	      (debug%watch 'OAUTH/ERROR "RESPONSE" response req)
+	      (oauth/refresh! spec)
 	      (oauth/call20 spec method endpoint args ckey csecret))
 	    (error OAUTH:REQFAIL OAUTH/CALL2
 		   method " at " endpoint " with " args
@@ -528,8 +536,9 @@
 	(let* ((parsed (getreqdata req))
 	       (expires_in (try (get parsed 'expires_in)
 				(get parsed 'expires)))
+	       (newtoken (get parsed 'access_token))
 	       (head (car spec)))
-	  (store! head 'token  (get parsed 'access_token))
+	  (when (exists? newtoken) (store! head 'token  newtoken))
 	  (unless (equal? (get parsed 'token_type) "Bearer")
 	    (logwarn 'OAUTH/Bearer "Odd token type " (get parsed 'token_type)
 		     " responding to " spec))
@@ -546,7 +555,7 @@
 ;;; Generic call function
 
 (define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
-  (set! spec (oauthspec spec))
+  (set! spec (oauth/spec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (if (testopt spec 'version "1.0")
