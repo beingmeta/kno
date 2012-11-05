@@ -1589,6 +1589,7 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
   int upper=(!(FD_FALSEP(uparg)));
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   if (FD_STRINGP(string)) input=FD_STRDATA(string);
+  else if (FD_SYMBOLP(string)) input=FD_SYMBOL_NAME(string);
   else if (FD_PACKETP(string)) {
     int len=FD_PACKET_LENGTH(string);
     input=u8_malloc(len+1);
@@ -1605,10 +1606,7 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
   if (FD_STRINGP(string)) return fd_stream2string(&out);
   else if (FD_PRIM_TYPEP(string,fd_packet_type))
     return fd_init_packet(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-  else {
-    fdtype result=fd_init_packet(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
-    FD_SET_CONS_TYPE(result,fd_secret_type);
-    return result;}
+  else return fd_stream2string(&out);
 }
 
 static int xdigit_weight(int c)
