@@ -454,7 +454,8 @@ fdtype fd_text_domatch
       else {
 	fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
 	fd_decref(v); return result;}}
-    else return fd_err(fd_UnboundIdentifier,"fd_text_domatch",NULL,pat);
+    else return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
+		       FD_SYMBOL_NAME(pat),pat);
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return fd_text_matcher(txc->pattern,txc->env,string,off,lim,flags);}
@@ -637,7 +638,8 @@ static fdtype textract
 	FD_ADD_TO_CHOICE(answers,extraction);}
       fd_decref(lengths); fd_decref(v);
       return answers;}
-    else return fd_err(fd_UnboundIdentifier,"fd_text_matcher",NULL,pat);
+    else return fd_err(fd_UnboundIdentifier,"fd_text_matcher",
+		       FD_SYMBOL_NAME(pat),pat);
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
@@ -3562,13 +3564,15 @@ u8_byteoff fd_text_search
 	fd_interr(pat);
 	return -2;}
       else if (FD_VOIDP(pat)) {
-	fd_seterr(fd_UnboundIdentifier,"fd_text_search",NULL,fd_incref(pat));
+	fd_seterr(fd_UnboundIdentifier,"fd_text_search",
+		  u8_strdup(FD_SYMBOL_NAME(pat)),fd_incref(pat));
 	return -2;}
       else {
 	u8_byteoff result=fd_text_search(vpat,env,string,off,lim,flags);
 	fd_decref(vpat); return result;}}
     else {
-      fd_seterr(fd_UnboundIdentifier,"fd_text_search",NULL,fd_incref(pat));
+      fd_seterr(fd_UnboundIdentifier,"fd_text_search",
+		u8_strdup(FD_SYMBOL_NAME(pat)),fd_incref(pat));
       return -2;}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);
