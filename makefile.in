@@ -187,7 +187,8 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
 SCHEME_MODULES=src/modules/*.scm src/safe_modules/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
 	src/modules/facebook/*.scm src/modules/misc/*.scm \
-	src/modules/tests/*.scm src/modules/webapi/*.scm \
+	src/modules/misc/*.scm src/modules/tests/*.scm \
+	src/modules/twitter/*.scm src/modules/webapi/*.scm \
 	src/safe_modules/domutils/*.scm src/safe_modules/knodules/*.scm \
 	src/safe_modules/textindex/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
