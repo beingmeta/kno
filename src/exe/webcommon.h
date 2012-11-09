@@ -382,14 +382,15 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
       (fd_TypeError,"preload_config_set",u8_strdup("string"),val);
   else {
     struct FD_PRELOAD_LIST *scan;
-    u8_string filename=FD_STRDATA(val); time_t mtime;
+    u8_string filename=FD_STRDATA(val); time_t mtime; int reload=0;
+    if (!(u8_file_existsp(filename))) 
+      return fd_reterr("File does not exist","preload_config_set",
+		       u8_strdup(filename),FD_VOID);
     fd_lock_mutex(&preload_lock);
     scan=preloads; while (scan) {
       if (strcmp(filename,scan->filename)==0) {
 	mtime=u8_file_mtime(filename);
-	if (mtime>scan->mtime) {
-	  fd_load_source(filename,server_env,"auto");
-	  scan->mtime=mtime;}
+	if (mtime>scan->mtime) break;
 	fd_unlock_mutex(&preload_lock);
 	return 0;}
       else scan=scan->next;}
@@ -417,12 +418,15 @@ static int update_preloads()
     scan=preloads; while (scan) {
       time_t mtime=u8_file_mtime(scan->filename);
       if (mtime>scan->mtime) {
-	fdtype load_result=fd_load_source(scan->filename,server_env,"auto");
+	fdtype load_result;
+	fd_unlock_mutex(&preload_lock);
+	load_result=fd_load_source(scan->filename,server_env,"auto");
 	if (FD_ABORTP(load_result)) {
-	  fd_unlock_mutex(&preload_lock);
 	  return fd_interr(load_result);}
 	n_reloads++; fd_decref(load_result);
-	scan->mtime=mtime;}
+	fd_lock_mutex(&preload_lock);
+	if (mtime>scan->mtime) scan->mtime=mtime;
+	fd_unlock_mutex(&preload_lock);}
       scan=scan->next;}
     last_preload_update=u8_elapsed_time();
     fd_unlock_mutex(&preload_lock);

@@ -511,6 +511,8 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   return (u8_client) consed;
 }
 
+static int max_error_depth=128;
+
 static int webservefn(u8_client ucl)
 {
   fdtype proc=FD_VOID, result=FD_VOID, onerror=FD_VOID;
@@ -717,24 +719,24 @@ static int webservefn(u8_client ucl)
   if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   /* We're now done with all the core computation. */
   if (FD_TROUBLEP(result)) {
-    u8_exception ex=u8_current_exception;
-    u8_condition excond=ex->u8x_cond;
-    u8_context excxt=((ex->u8x_context) ?
-		      (ex->u8x_context) : ((u8_context)"somewhere"));
-    u8_context exdetails=((ex->u8x_details)
-			  ? (ex->u8x_details) : ((u8_string)"no more details"));
-    fdtype irritant=fd_exception_xdata(ex);
+    u8_exception ex=u8_current_exception, exscan=ex;
     fdtype errorpage=((config_env)?
 		      (fd_symeval(errorpage_symbol,config_env)):
 		      (FD_VOID));
+    int depth=0;
     if (((FD_VOIDP(errorpage))||(errorpage==FD_UNBOUND))&&
 	(!(FD_VOIDP(errpage)))) {
       fd_incref(errpage); errorpage=errpage;}
-    if (FD_VOIDP(irritant))
+    while ((exscan)&&(depth<max_error_depth)) {
+      u8_condition excond=exscan->u8x_cond;
+      u8_context excxt=((exscan->u8x_context) ? (exscan->u8x_context) :
+			((u8_context)"somewhere"));
+      u8_context exdetails=((exscan->u8x_details) ? (exscan->u8x_details) :
+			    ((u8_string)"no more details"));
+      fdtype irritant=fd_exception_xdata(exscan);
       u8_log(LOG_ERR,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
 	     excond,FD_STRDATA(path),excxt,exdetails);
-    else u8_log(LOG_ERR,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-		excond,FD_STRDATA(path),excxt,exdetails,irritant);
+      exscan=exscan->u8x_prev; depth++;}
     if (FD_APPLICABLEP(errorpage)) {
       if (outstream->u8_outptr>outstream->u8_outbuf) {
 	fdtype output=fd_make_string
@@ -1162,7 +1164,7 @@ int main(int argc,char **argv)
 		     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
   
   if (!(getenv("LOGFILE"))) 
-    u8_log(LOG_WARN,Startup,"No logfile, using stdio");
+    u8_log(LOG_WARN,Startup,"No logfile, using stdout");
   else u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
   
   /* We do this using the Unix environment (rather than configuration
@@ -1362,6 +1364,8 @@ int main(int argc,char **argv)
       u8_log(LOG_WARN,"FDSERV/SOCKETZAP",
 	     "Removing leftover socket file %s",socket_spec);
       remove(socket_spec);}}
+
+  update_preloads();
 
   if (start_servers()<=0) {
     u8_log(LOG_CRIT,"FDSERV/STARTUP","Startup failed");

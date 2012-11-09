@@ -942,7 +942,8 @@ static fdtype urlpost(int n,fdtype *args)
       FD_DO_CHOICES(key,keys) {
 	fdtype val=fd_get(postdata,key,FD_VOID);
 	u8_string keyname=NULL; size_t keylen; int nametype=CURLFORM_PTRNAME;
-	if (FD_SYMBOLP(key)) {
+	if (FD_EMPTY_CHOICEP(val)) continue;
+	else if (FD_SYMBOLP(key)) {
 	  keyname=FD_SYMBOL_NAME(key); keylen=strlen(keyname);}
 	else if (FD_STRINGP(key)) {
 	  keyname=FD_STRDATA(key); keylen=FD_STRLEN(key);}
@@ -998,7 +999,8 @@ static fdtype urlpost(int n,fdtype *args)
     while (i<n) {
       fdtype key=args[i], val=args[i+1]; 
       u8_string keyname=NULL; size_t keylen; int nametype=CURLFORM_PTRNAME;
-      if (FD_SYMBOLP(key)) {
+      if (FD_EMPTY_CHOICEP(val)) {i=i+2; continue;}
+      else if (FD_SYMBOLP(key)) {
 	keyname=FD_SYMBOL_NAME(key); keylen=strlen(keyname);}
       else if (FD_STRINGP(key)) {
 	keyname=FD_STRDATA(key); keylen=FD_STRLEN(key);}

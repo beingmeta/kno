@@ -553,7 +553,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
   case fd_symbol_type: {
     fdtype val=fd_symeval(expr,env);
     if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-      return fd_err(fd_UnboundIdentifier,"fd_eval",NULL,expr);
+      return fd_err(fd_UnboundIdentifier,"fd_eval",
+		    FD_SYMBOL_NAME(expr),expr);
     else return val;}
   case fd_pair_type: case fd_rail_type: {
     fdtype head=((FD_PAIRP(expr))?(FD_CAR(expr)):(FD_RAIL_REF(expr,0)));
@@ -634,7 +635,9 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 	    else {FD_ADD_TO_CHOICE(results,result);}}
 	  result=results;}}
       else if (FD_EXPECT_FALSE(FD_VOIDP(headval)))
-	result=fd_err(fd_UnboundIdentifier,"for function",NULL,head);
+	result=fd_err(fd_UnboundIdentifier,"for function",
+		      ((FD_SYMBOLP(head))?(FD_SYMBOL_NAME(head)):(NULL)),
+		      head);
       else if (FD_ABORTP(headval))
 	result=fd_incref(headval);
       else if (FD_EMPTY_CHOICEP(headval))

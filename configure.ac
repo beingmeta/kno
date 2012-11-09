@@ -28,6 +28,9 @@ AC_MSG_CHECKING([for group $1])
   $1=$found_group;
   AC_MSG_RESULT($found_group)])
 
+# Override the default value for localstatedir
+if (test "x$localstatedir" == "x\${prefix}/var"); then localstatedir="/var"; fi
+
 threads_default="yes"
 shared_default="yes"
 shared_suffix="so"
@@ -84,8 +87,8 @@ CMODULES=""
 INSTALLCMODULES=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$PREFIX/etc/framerd"
-rundir="/var/run"
-logdir="/var/log"
+rundir="${localstatedir}/run"
+logdir="${localstatedir}/log"
 archflags=""
 with_mysql_default="yes"
 with_crypto_default="no"
@@ -267,11 +270,11 @@ apache_modinfo=$with_apacheinfo
 apache_modules_dir=$with_apachelib
 
 dnl Specifies where server state files should live
-AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="/var/run")
+AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
 rundir=$with_rundir
 
 dnl Specifies where log files should live
-AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="/var/log")
+AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
 logdir=$with_logdir
 
 AC_AIX
@@ -904,7 +907,7 @@ AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 AC_OUTPUT(makefile 
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d
-	  etc/OSXStartupItem/FramerD
+	  etc/OSXStartupItem/FramerD etc/logrotate
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/install-script)
 
