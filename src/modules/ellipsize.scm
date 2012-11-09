@@ -1,4 +1,5 @@
-;;; -*- Mode: Scheme; -*-
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2012 beingmeta, inc.  All rights reserved.
 
 (in-module 'ellipsize)
 
