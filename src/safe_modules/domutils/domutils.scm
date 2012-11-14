@@ -17,7 +17,7 @@
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/combine!
-   dom/gethead dom/getmeta dom/getlinks
+   dom/gethead dom/getschemas dom/getmeta dom/getlinks
    dom/split-space dom/split-semi
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block? dom/terminal?
@@ -29,6 +29,27 @@
      "DIV" "SECTION"
      "UL" "DL" "OL"
      "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
+(define stdschemas
+  '{(sbooks . "http://sbooks.net/")
+    (sbook . "http://sbooks.net/")
+    (fdjt . "http://fdjt.org/")
+    (fd . "http://framerd.org/")
+    (kno . "http://knodules.org/")})
+(do-choices (schema stdschemas)
+  (set+! stdschemas (cons (cdr schema) (car schema))))
+(config-def! 'stdschemas
+	     (lambda (name (val))
+	       (if (bound? val)
+		   (if (and (pair? val)
+			    (symbol? (car val))
+			    (string? (cdr val)))
+		       (set+! stdschemas
+			      (choice val (cons (cdr val) (car val))))
+		       (error "Bad DOM schema spec" "stdschemas:config"
+			      val))
+		   stdschemas))
+	     "Define standard schemas for DOM META and LINK elements")
+
 (define *terminal-block-text-tags*
   (string->symbol
    '{"P" "LI" "DT" "DD"
@@ -271,7 +292,7 @@
 				 spec))
 	    (let ((match (text->frames selector-pattern spec)))
 	      (cons-selector (try (get match 'tagname) #f)
-			     (try (get match 'classname) #f)
+			     (try (difference (get match 'classname) "*") #f)
 			     (try (get match 'idname) #f)
 			     (combine-attribs (pick match 'name)))))
 	  (if (table? spec)
@@ -565,7 +586,7 @@
 
 (define (dom/getschemas doc)
   (if (test doc '%schemas) (get doc '%schemas)
-      (begin (store! doc '%schemas {})
+      (begin (store! doc '%schemas (get doc '%xschemas))
 	(do-choices (link (dom/find doc "LINK"))
 	  (when (has-prefix (get link 'rel) "schema.")
 	    (let* ((rel (get link 'rel))
@@ -575,14 +596,29 @@
 	      (add! doc '%schemas (cons rel prefix)))))
 	(get doc '%schemas))))
 
+(define (getnames doc field)
+  (if (position #\. field)
+      (let* ((sep (position #\. field))
+	     (schemas (dom/getschemas doc))
+	     (prefix (string->symbol (subseq field 0 sep)))
+	     (uri (try (get stdschemas prefix)
+		       (get schemas prefix)))
+	     (prefixes (get schemas uri)))
+	(if (fail? prefixes) field
+	    (glom prefixes "." (subseq field (1+ sep)))))
+      field))
+
 (define (dom/getmeta doc field (xform) (dflt))
   (let* ((head (dom/gethead doc))
 	 (meta (dom/find head "META"))
-	 (stringname
-	  (and (symbol? field) (downcase (symbol->string field))))
-	 (elts (if stringname
-		   (pick meta lname stringname)
-		   (pick meta 'name field))))
+	 (names
+	  (if (symbol? field)
+	      (getnames doc (symbol->string field))
+	      (getnames doc field)))
+	 (elts (if (symbol? field)
+		   (pick meta lname (downcase names))
+		   (try (pick meta 'name names)
+			(pick meta 'name field)))))
     (try (if (and (bound? xform) xform)
 	     (if (applicable? xform)
 		 (xform (get elts 'content))
@@ -594,11 +630,14 @@
 (define (dom/getlinks doc field (dflt))
   (let* ((head (dom/gethead doc))
 	 (links (dom/find head "LINK"))
-	 (stringname (and (symbol? field)
-			  (downcase (symbol->string field))))
-	 (elts (if stringname
-		   (pick links lname stringname)
-		   (pick links 'rel field))))
+	 (names
+	  (if (symbol? field)
+	      (getnames doc (symbol->string field))
+	      (getnames doc field)))
+	 (elts (if (symbol? field)
+		   (pick links lname (downcase names))
+		   (try (pick links 'rel names)
+			(pick links 'rel field)))))
     (get elts 'href)))
 
 (define (lname x (name))
