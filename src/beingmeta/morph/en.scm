@@ -138,6 +138,10 @@
 (define conjunctions
   (file->dtypes (get-component "data/en-conjunctions.dtype")))
 
+(hashset-add! stop-words
+	      (choice glue-words pronouns aux-words prepositions determiners
+		      conjunctions))
+
 ;;; Word frequencies
 
 (define wordfreqs
