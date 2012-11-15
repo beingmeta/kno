@@ -1,6 +1,6 @@
 (in-module 'jsonout)
 
-(use-module 'reflection)
+(use-module '{reflection fdweb})
 
 (define json-lisp-prefix ":")
 
@@ -53,7 +53,7 @@
 		   "]"))
 	((fail? value) (if onfail (printout onfail)))
 	((number? value) (printout value))
-	((string? value) (printout (write value)))
+	((string? value) (jsonoutput value))
 	((vector? value) (jsonvec value))
 	((eq? value #t) (printout "true"))
 	((eq? value #f) (printout "false"))

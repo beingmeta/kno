@@ -337,9 +337,9 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype oidfn,fdtype sl
 
 static void json_escape(u8_output out,u8_string s)
 {
-  u8_string start=s, scan=start; int c;
+  u8_string start=s, scan=start; int c; char buf[16];
   while ((c=(*scan))) {
-    if ((c<128)&&((c=='"')||(c=='\\')||(iscntrl(c)))) {
+    if ((c>=128)||(c=='"')||(c=='\\')||(iscntrl(c))) {
       if (scan>start) u8_putn(out,start,scan-start);
       u8_putc(out,'\\');
       switch (c) {
@@ -348,7 +348,16 @@ static void json_escape(u8_output out,u8_string s)
       case '\f': u8_putc(out,'f'); break;
       case '\r': u8_putc(out,'r'); break;
       case '\t': u8_putc(out,'t'); break;
-      default: u8_putc(out,c); break;}
+      default:
+	if (c>=128) {
+	  long uc=u8_sgetc(&scan);
+	  sprintf(buf,"u%04x",(unsigned int)uc);
+	  u8_puts(out,buf);
+	  start=scan; continue;}
+	else {
+	  sprintf(buf,"u%04x",c);
+	  u8_puts(out,buf);
+	  break;}}
       scan++; start=scan;}
     else scan++;}
   if (scan>start) u8_putn(out,start,scan-start);
