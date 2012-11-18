@@ -1743,73 +1743,79 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"xmleval_handler",NULL,FD_VOID);
   else {
     U8_OUTPUT *out=u8_current_output;
-    fdtype xmlarg=fd_eval(FD_CADR(expr),env), xmlbody, v=FD_VOID;
-    fdtype envarg=fd_eval(fd_get_arg(expr,2),env);
-    fdtype xmlenvarg=fd_eval(fd_get_arg(expr,3),env);
-    fd_lispenv target_env=env, parsed_env=NULL;
-    int free_target=0;
-    if (FD_ABORTP(xmlarg)) {
-      fd_decref(envarg); fd_decref(xmlenvarg);
-      return xmlarg;}
-    else if (FD_ABORTP(envarg)) {
-      fd_decref(xmlarg);  fd_decref(xmlenvarg);
-      return envarg;}
-    else if (FD_ABORTP(xmlenvarg)) {
-      fd_decref(xmlarg);  fd_decref(envarg);
-      return xmlenvarg;}
-    if ((FD_PAIRP(xmlarg))&&(FD_ENVIRONMENTP(FD_CAR(xmlarg)))) {
-      fdtype fromparse=FD_CAR(xmlarg); xmlbody=FD_CDR(xmlarg);
-      parsed_env=(fd_lispenv)fromparse; }
-    else xmlbody=xmlarg;
-    if (!((FD_VOIDP(envarg)) || (FD_FALSEP(envarg)) || (FD_TRUEP(envarg)) ||
-	  (FD_ENVIRONMENTP(envarg)) || (FD_TABLEP(envarg)))) {
-      fd_decref(xmlarg); fd_decref(envarg);
-      return fd_type_error("environment","xmleval_handler",envarg);}
-    else if (!((FD_VOIDP(xmlenvarg)) || (FD_FALSEP(xmlenvarg)) ||
-	       (FD_ENVIRONMENTP(xmlenvarg)) || (FD_TABLEP(xmlenvarg)))) {
-      fd_decref(xmlarg); fd_decref(envarg);
-      return fd_type_error("environment","xmleval_handler",xmlenvarg);}
-    else if (((FD_VOIDP(envarg))||(FD_FALSEP(envarg))) &&
-	     ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg)))) {}
+    fdtype xmlarg=fd_eval(FD_CADR(expr),env);
+    if (FD_STRINGP(xmlarg)) {
+      u8_string data=FD_STRDATA(xmlarg);
+      if (data[0]=='<') u8_putn(out,data,FD_STRLEN(data));
+      else emit_xmlcontent(out,data);}
     else {
-      if (FD_ENVIRONMENTP(envarg)) 
-	target_env=(fd_lispenv)envarg;
-      else if (FD_TABLEP(envarg)) {
-	fdtype modules=fd_get(envarg,modules_symbol,FD_VOID);
-	target_env=fd_make_env(envarg,target_env); free_target=1;
-	if (FD_PAIRP(modules)) {
-	  FD_DOLIST(module,modules) {
-	    fdtype v=fd_use_module(target_env,module);
-	    if (FD_ABORTP(v)) {
-	      fd_decref(xmlarg); fd_decref(envarg); fd_decref(xmlenvarg);
-	      if (free_target) fd_recycle_environment(target_env);
-	      return v;}
-	    else fd_decref(v);}}}
-      else if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg))) {}
-      else if (FD_FALSEP(envarg)) {
-	free_target=1;
-	target_env=fd_working_environment();}
-      else {
-	fd_decref(xmlarg); fd_decref(xmlenvarg);
+      fdtype xmlbody, v=FD_VOID;
+      fdtype envarg=fd_eval(fd_get_arg(expr,2),env);
+      fdtype xmlenvarg=fd_eval(fd_get_arg(expr,3),env);
+      fd_lispenv target_env=env, parsed_env=NULL;
+      int free_target=0;
+      if (FD_ABORTP(xmlarg)) {
+	fd_decref(envarg); fd_decref(xmlenvarg);
+	return xmlarg;}
+      else if (FD_ABORTP(envarg)) {
+	fd_decref(xmlarg);  fd_decref(xmlenvarg);
+	return envarg;}
+      else if (FD_ABORTP(xmlenvarg)) {
+	fd_decref(xmlarg);  fd_decref(envarg);
+	return xmlenvarg;}
+      if ((FD_PAIRP(xmlarg))&&(FD_ENVIRONMENTP(FD_CAR(xmlarg)))) {
+	fdtype fromparse=FD_CAR(xmlarg); xmlbody=FD_CDR(xmlarg);
+	parsed_env=(fd_lispenv)fromparse; }
+      else xmlbody=xmlarg;
+      if (!((FD_VOIDP(envarg)) || (FD_FALSEP(envarg)) || (FD_TRUEP(envarg)) ||
+	    (FD_ENVIRONMENTP(envarg)) || (FD_TABLEP(envarg)))) {
+	fd_decref(xmlarg); fd_decref(envarg);
 	return fd_type_error("environment","xmleval_handler",envarg);}
-      /* Now, merge in the XML environment */
-      if ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg))) {}
-      else if (FD_ENVIRONMENTP(xmlenvarg)) 
-	fd_bind_value(xml_env_symbol,xmlenvarg,target_env);
-      else if (FD_TABLEP(xmlenvarg)) {
-	fdtype xmlenvparent=fd_symeval(xml_env_symbol,target_env);
-	fd_lispenv xmlparent=((FD_ENVIRONMENTP(xmlenvparent)) ?
-			      ((fd_lispenv)xmlenvparent) :
-			      (parsed_env));
-	fd_lispenv new_xmlenv=fd_make_env(xmlenvarg,xmlparent);
-	fd_bind_value(xml_env_symbol,(fdtype)new_xmlenv,target_env);
-	fd_decref(((fdtype)new_xmlenv)); fd_decref(xmlenvparent);}
-      else {}}
-    v=fd_xmleval(out,xmlbody,target_env);
-    u8_flush(out);
-    fd_decref(xmlarg); fd_decref(xmlenvarg);
-    if (free_target) fd_recycle_environment(target_env);
-    return v;}
+      else if (!((FD_VOIDP(xmlenvarg)) || (FD_FALSEP(xmlenvarg)) ||
+		 (FD_ENVIRONMENTP(xmlenvarg)) || (FD_TABLEP(xmlenvarg)))) {
+	fd_decref(xmlarg); fd_decref(envarg);
+	return fd_type_error("environment","xmleval_handler",xmlenvarg);}
+      else if (((FD_VOIDP(envarg))||(FD_FALSEP(envarg))) &&
+	       ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg)))) {}
+      else {
+	if (FD_ENVIRONMENTP(envarg)) 
+	  target_env=(fd_lispenv)envarg;
+	else if (FD_TABLEP(envarg)) {
+	  fdtype modules=fd_get(envarg,modules_symbol,FD_VOID);
+	  target_env=fd_make_env(envarg,target_env); free_target=1;
+	  if (FD_PAIRP(modules)) {
+	    FD_DOLIST(module,modules) {
+	      fdtype v=fd_use_module(target_env,module);
+	      if (FD_ABORTP(v)) {
+		fd_decref(xmlarg); fd_decref(envarg); fd_decref(xmlenvarg);
+		if (free_target) fd_recycle_environment(target_env);
+		return v;}
+	      else fd_decref(v);}}}
+	else if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg))) {}
+	else if (FD_FALSEP(envarg)) {
+	  free_target=1;
+	  target_env=fd_working_environment();}
+	else {
+	  fd_decref(xmlarg); fd_decref(xmlenvarg);
+	  return fd_type_error("environment","xmleval_handler",envarg);}
+	/* Now, merge in the XML environment */
+	if ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg))) {}
+	else if (FD_ENVIRONMENTP(xmlenvarg)) 
+	  fd_bind_value(xml_env_symbol,xmlenvarg,target_env);
+	else if (FD_TABLEP(xmlenvarg)) {
+	  fdtype xmlenvparent=fd_symeval(xml_env_symbol,target_env);
+	  fd_lispenv xmlparent=((FD_ENVIRONMENTP(xmlenvparent)) ?
+				((fd_lispenv)xmlenvparent) :
+				(parsed_env));
+	  fd_lispenv new_xmlenv=fd_make_env(xmlenvarg,xmlparent);
+	  fd_bind_value(xml_env_symbol,(fdtype)new_xmlenv,target_env);
+	  fd_decref(((fdtype)new_xmlenv)); fd_decref(xmlenvparent);}
+	else {}}
+      v=fd_xmleval(out,xmlbody,target_env);
+      u8_flush(out);
+      fd_decref(xmlarg); fd_decref(xmlenvarg);
+      if (free_target) fd_recycle_environment(target_env);
+      return v;}}
 }
 
 static fdtype xmlopen_handler(fdtype expr,fd_lispenv env)
