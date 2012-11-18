@@ -32,6 +32,7 @@ static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
 static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
 static fdtype maxtime_symbol, timeout_symbol, method_symbol;
+static fdtype verifyhost_symbol, verifypeer_symbol;
 static fdtype eurl_slotid, filetime_slotid, response_code_slotid;
 
 static fdtype text_types=FD_EMPTY_CHOICE;
@@ -400,6 +401,22 @@ static fdtype set_curlopt
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,header_symbol))
     curl_add_headers(ch,val);
+  else if (FD_EQ(opt,verifyhost_symbol)) 
+    if (FD_FIXNUMP(val)) 
+      curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,FD_FIX2INT(val));
+    else if (FD_FALSEP(val))
+      curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,0);
+    else if (FD_TRUEP(val))
+      curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,2);
+    else return fd_type_error("symbol/method","set_curlopt",val);
+  else if (FD_EQ(opt,verifypeer_symbol)) 
+    if (FD_FIXNUMP(val)) 
+      curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,FD_FIX2INT(val));
+    else if (FD_FALSEP(val))
+      curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,0);
+    else if (FD_TRUEP(val))
+      curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,1);
+    else return fd_type_error("fixnum/boolean","set_curlopt",val);
   else if (FD_EQ(opt,content_type_symbol))
     if (FD_STRINGP(val)) {
       u8_string ctype_header=u8_mkstring("Content-type: %s",FD_STRDATA(val));
@@ -1183,6 +1200,8 @@ FD_EXPORT void fd_init_curl_c()
   method_symbol=fd_intern("METHOD");
   verbose_symbol=fd_intern("VERBOSE");
   useragent_symbol=fd_intern("USERAGENT");
+  verifyhost_symbol=fd_intern("VERIFYHOST");
+  verifypeer_symbol=fd_intern("VERIFYPEER");
   cookie_symbol=fd_intern("COOKIE");
   cookiejar_symbol=fd_intern("COOKIEJAR");
   authinfo_symbol=fd_intern("AUTHINFO");
