@@ -27,6 +27,9 @@
 (define s3scheme "https://")
 (varconfig! s3scheme s3scheme)
 
+(define usepath #t)
+(varconfig! s3pathstyle usepath)
+
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
 (define teststring
@@ -150,10 +153,13 @@
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
 	 (baseurl
-	  (string-append s3scheme bucket (if (empty-string? bucket) "" ".")
-			 s3root
-			 (if (has-prefix path "/") "" "/")
-			 path))
+	  (if usepath
+	      (glom s3scheme s3root "/" bucket
+		(if (has-prefix path "/") "" "/")
+		path)
+	      (glom s3scheme bucket (if (empty-string? bucket) "" ".") s3root
+		(if (has-prefix path "/") "" "/")
+		path)))
 	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
 	 ;; Hide the expect field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
@@ -190,9 +196,13 @@
 	       result))))
 
 (define (s3/uri bucket path (scheme s3scheme))
-  (stringout scheme bucket (if (empty-string? bucket) "" ".") s3root
-	     (unless (has-prefix path "/") "/")
-	     path))
+  (if usepath
+      (stringout scheme s3root "/" bucket
+	(unless (has-prefix path "/") "/")
+	path)
+      (stringout scheme bucket "." s3root  
+	(unless (has-prefix path "/") "/")
+	path)))
 
 (define (s3/signeduri bucket path (scheme s3scheme)
 		      (expires (* 17 3600))
