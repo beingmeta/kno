@@ -299,7 +299,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
 	     excond,FD_STRDATA(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
 		excond,FD_STRDATA(path),excxt,exdetails,irritant);
-    FCGX_PutS("Content-type: text/html; charset='utf-8'\r\n\r\n",req->out);
+    FCGX_PutS("Content-type: text/html; charset=utf-8\r\n\r\n",req->out);
     fd_xhtmlerrorpage(out,ex);
     u8_free_exception(ex,1);
     if ((reqlog) || (urllog))
@@ -549,7 +549,7 @@ static int simplecgi(fdtype path)
 	     excond,FD_STRDATA(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
 		excond,FD_STRDATA(path),excxt,exdetails,irritant);
-    fputs("Content-type: text/html; charset='utf-8'\r\n\r\n",stdout);
+    fputs("Content-type: text/html; charset=utf-8\r\n\r\n",stdout);
     fd_xhtmlerrorpage(&out,ex);
     retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);
     u8_free_exception(ex,1);}

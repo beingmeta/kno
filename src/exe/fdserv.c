@@ -750,30 +750,30 @@ static int webservefn(u8_client ucl)
 	     (strstr(FD_STRDATA(errorpage),"\n")!=NULL)) {
       ex=u8_erreify();
       http_len=http_len+
-	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+	strlen("Content-type: text/html; charset=utf-8\r\n\r\n");
       write_string(client->socket,
-		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+		   "Content-type: text/html; charset=utf-8\r\n\r\n");
       write_string(client->socket,FD_STRDATA(errpage));}
     else if (FD_STRINGP(errorpage)) {
       /* This should do a redirect and maybe some other stuff */
       ex=u8_erreify();
       http_len=http_len+
-	strlen("Content-type: text/plain; charset='utf-8'\r\n\r\n");
+	strlen("Content-type: text/plain; charset=utf-8\r\n\r\n");
       write_string(client->socket,
-		   "Content-type: text/plain; charset='utf-8'\r\n\r\n");
+		   "Content-type: text/plain; charset=utf-8\r\n\r\n");
       write_string(client->socket,FD_STRDATA(errpage));}
     else if ((webdebug)||
 	     ((weballowdebug)&&(fd_req_test(webdebug_symbol,FD_VOID)))) {
       http_len=http_len+
-	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+	strlen("Content-type: text/html; charset=utf-8\r\n\r\n");
       write_string(client->socket,
-		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+		   "Content-type: text/html; charset=utf-8\r\n\r\n");
       fd_xhtmldebugpage(&(client->out),ex);}
     else {
       http_len=http_len+
-	strlen("Content-type: text/html; charset='utf-8'\r\n\r\n");
+	strlen("Content-type: text/html; charset=utf-8\r\n\r\n");
       write_string(client->socket,
-		   "Content-type: text/html; charset='utf-8'\r\n\r\n");
+		   "Content-type: text/html; charset=utf-8\r\n\r\n");
       fd_xhtmlerrorpage(&(client->out),ex);}
     u8_free_exception(ex,1);
     if ((reqlog) || (urllog) || (trace_cgidata))
