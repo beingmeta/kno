@@ -263,7 +263,10 @@ FD_EXPORT int fd_register_config
     scan->next=config_handlers;
     config_handlers=scan;}
   fd_unlock_mutex(&config_register_lock);
-  if (!(FD_VOIDP(current)))
+  if (FD_ABORTP(current)) {
+    fd_clear_errors(1);
+    retval=-1;}
+  else if (!(FD_VOIDP(current)))
     retval=setfn(symbol,current,data);
   fd_decref(current);
   return retval;
