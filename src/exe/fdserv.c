@@ -734,8 +734,11 @@ static int webservefn(u8_client ucl)
       u8_context exdetails=((exscan->u8x_details) ? (exscan->u8x_details) :
 			    ((u8_string)"no more details"));
       fdtype irritant=fd_exception_xdata(exscan);
-      u8_log(LOG_ERR,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-	     excond,FD_STRDATA(path),excxt,exdetails);
+      if (FD_STRINGP(path))
+	u8_log(LOG_ERR,excond,"Unexpected error \"%m \" for %s:@%s (%s)",
+	       excond,FD_STRDATA(path),excxt,exdetails);
+      else u8_log(LOG_ERR,excond,"Unexpected error \"%m \" %s:@%s (%s)",
+	       excond,excxt,exdetails);
       exscan=exscan->u8x_prev; depth++;}
     if (FD_APPLICABLEP(errorpage)) {
       if (outstream->u8_outptr>outstream->u8_outbuf) {
