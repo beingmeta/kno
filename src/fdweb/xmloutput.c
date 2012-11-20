@@ -1746,7 +1746,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
     fdtype xmlarg=fd_eval(FD_CADR(expr),env);
     if (FD_STRINGP(xmlarg)) {
       u8_string data=FD_STRDATA(xmlarg);
-      if (data[0]=='<') u8_putn(out,data,FD_STRLEN(data));
+      if (data[0]=='<') u8_putn(out,data,FD_STRLEN(xmlarg));
       else emit_xmlcontent(out,data);
       return FD_VOID;}
     else {
