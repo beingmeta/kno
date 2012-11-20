@@ -238,12 +238,113 @@ static void exit_fdconsole()
   close_consoles();
 }
 
+static fdtype that_symbol, histref_symbol;
+
+static fdtype repstep(fdtype expr,fd_lispenv env,
+		      u8_input in,u8_output out,u8_output err)
+{
+  fdtype result;
+  int start_icache, finish_icache;
+  int start_ocache, finish_ocache;
+  double start_time, finish_time;
+  int histref=-1, stat_line=0, is_histref=0;
+  int c=skip_whitespace(in);
+  start_ocache=fd_object_cache_load();
+  start_icache=fd_index_cache_load();
+  expr=top_parse(in);
+  /* Clear the buffer (should do more?) */
+  if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
+      (FD_EQ(expr,that_symbol))) {
+    if (!(FD_EQ(expr,that_symbol)))
+      is_histref=1;
+    histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
+  if (FD_OIDP(expr)) {
+    fdtype v=fd_oid_value(expr);
+    if (FD_TABLEP(v)) {
+      U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+      u8_printf(&out,"%q:\n",expr);
+      fd_display_table(&out,v,FD_VOID);
+      fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
+      fflush(stdout);}
+    else u8_printf(out,"OID value: %q\n",v);
+    fd_decref(v);
+    u8_printf(out,EVAL_PROMPT);
+    u8_flush(out);
+    return FD_VOID;}
+  start_time=u8_elapsed_time();
+  if (FD_ABORTP(expr)) {
+    result=fd_incref(expr);
+    u8_printf(err,";; Flushing input, parse error @%d\n",
+	      in->u8_inptr-in->u8_inbuf);
+    u8_flush_input((u8_input)in);
+    u8_flush((u8_output)err);
+    u8_flush((u8_output)out);}
+  else if (eval_server) {
+    fd_dtswrite_dtype(eval_server,expr);
+    fd_dtsflush(eval_server);
+    result=fd_dtsread_dtype(eval_server);}
+  else result=fd_eval(expr,env);
+  if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
+  finish_time=u8_elapsed_time();
+  finish_ocache=fd_object_cache_load();
+  finish_icache=fd_index_cache_load();
+  if (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
+	(FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
+	(FD_TRUEP(result)) || (FD_FALSEP(result)) ||
+	(FD_ABORTP(result)) || (FD_FIXNUMP(result))))
+    histref=fd_histpush(result);
+  if (FD_ABORTP(result)) stat_line=0;
+  else if ((showtime_threshold>=0.0) &&
+	   (((finish_time-start_time)>showtime_threshold) ||
+	    (finish_ocache!=start_ocache) ||
+	    (finish_icache!=start_icache)))
+    stat_line=1;
+  fd_decref(expr); expr=FD_VOID;
+  if (FD_CHECK_PTR(result)==0) {
+    fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
+  else if (FD_TROUBLEP(result)) {
+    u8_exception ex=u8_erreify(), root=ex;
+    if (ex) {
+      int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+      U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+      while (root->u8x_prev) root=root->u8x_prev;
+      fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
+      fd_print_exception(&out,root);
+      fd_summarize_backtrace(&out,ex);
+      u8_printf(&out,"\n");
+      if (fd_dump_backtrace==NULL)
+	fd_print_backtrace(&out,ex,80);
+      fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+      fputs(out.u8_outbuf,stderr);
+      if (fd_dump_backtrace) {
+	out.u8_outptr=out.u8_outbuf;
+	fd_print_backtrace(&out,ex,120);
+	fd_dump_backtrace(out.u8_outbuf);}
+      u8_free(out.u8_outbuf);
+      u8_free_exception(ex,1);}
+    else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}
+  else if (stat_line)
+    output_result(out,result,histref,is_histref);
+  else stat_line=output_result(out,result,histref,is_histref);
+  if (stat_line) {
+    if (histref<0)
+      u8_printf (out,stats_message,
+		 (finish_time-start_time),
+		 finish_ocache-start_ocache,
+		 finish_icache-start_icache);
+    else u8_printf(out,stats_message_w_history,
+		   histref,(finish_time-start_time),
+		   finish_ocache-start_ocache,
+		   finish_icache-start_icache);}
+  fd_clear_errors(1);
+  return result;
+}
+
 int main(int argc,char **argv)
 {
   int i=1, c;
   time_t boot_time=time(NULL);
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
-  fdtype that_symbol, histref_symbol;
   u8_encoding enc=u8_get_default_encoding();
   u8_input in=(u8_input)u8_open_xinput(0,enc);
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
@@ -452,7 +553,8 @@ int main(int argc,char **argv)
 	  fd_dump_backtrace(out.u8_outbuf);}
 	u8_free(out.u8_outbuf);
 	u8_free_exception(ex,1);}
-      else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}
+      else fprintf(stderr,
+		   ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
       output_result(out,result,histref,is_histref);
     else stat_line=output_result(out,result,histref,is_histref);

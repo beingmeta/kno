@@ -846,7 +846,9 @@ setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 # Build setups
 
 debian-build-setup:
-	sudo apt-get install libcurl4-openssl-dev sqlite3 libmysqlclient-dev libexif-dev libtidy-dev libzip-dev libqrencode-dev apache2-dev
+	sudo apt-get install -m libcurl4-openssl-dev sqlite3 libmysqlclient-dev libexif-dev libtidy-dev libzip-dev libqrencode-dev apache2-dev libedit-dev
+rpm-build-setup:
+	sudo rpm -Uvh libedit-devel
 
 # The mod_fdserv module
 
