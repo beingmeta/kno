@@ -506,8 +506,8 @@ fi
 
 dnl Use the editline library from fdconsole
 AC_ARG_WITH(editline,--with[out]-editline Use the editline with fdconsole,,with_editline="yes")
-if test $with_editline = "yes"; then
-  AC_CHECK_HEADER(histedit.h)
+if test "x$with_editline" = "xyes"; then
+  AC_CHECK_HEADERS(histedit.h)
   AC_CHECK_LIB(edit,el_init)
   AC_DEFINE(FD_WITH_EDITLINE,1)
 else

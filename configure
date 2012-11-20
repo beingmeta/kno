@@ -6723,12 +6723,18 @@ else
   with_editline="yes"
 fi
 
-if test $with_editline = "yes"; then
+if test "x$with_editline" = "xyes"; then
+  for ac_header in histedit.h
+do :
   ac_fn_c_check_header_mongrel "$LINENO" "histedit.h" "ac_cv_header_histedit_h" "$ac_includes_default"
 if test "x$ac_cv_header_histedit_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_HISTEDIT_H 1
+_ACEOF
 
 fi
 
+done
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for el_init in -ledit" >&5
 $as_echo_n "checking for el_init in -ledit... " >&6; }
