@@ -865,6 +865,18 @@ static int webservefn(u8_client ucl)
 	  return_code=1;
 	  fclose(f);}}
       else {/* Error here */}}
+    else if (FD_STRINGP(content)) {
+      u8_printf(&httphead,"Content-length: %ld\r\n\r\n",FD_STRLEN(content));
+      u8_writeall(client->socket,httphead.u8_outbuf,
+		  httphead.u8_outptr-httphead.u8_outbuf);
+      u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}
+    else if (FD_PACKETP(content)) {
+      u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
+		FD_PACKET_LENGTH(content));
+      u8_writeall(client->socket,httphead.u8_outbuf,
+		  httphead.u8_outptr-httphead.u8_outbuf);
+      u8_writeall(client->socket,FD_PACKET_DATA(content),
+		  FD_PACKET_LENGTH(content));}
     else {
       /* Where the servlet has specified some particular content */
       content_len=content_len+output_content(client,content);}
