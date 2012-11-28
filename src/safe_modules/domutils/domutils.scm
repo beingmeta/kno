@@ -40,9 +40,12 @@
 (config-def! 'stdschemas
 	     (lambda (name (val))
 	       (if (bound? val)
-		   (if (and (pair? val)
-			    (symbol? (car val))
-			    (string? (cdr val)))
+		   (if (or (and (pair? val)
+				(symbol? (car val))
+				(string? (cdr val)))
+			   (and (pair? val)
+				(symbol? (cdr val))
+				(string? (car val))))
 		       (set+! stdschemas
 			      (choice val (cons (cdr val) (car val))))
 		       (error "Bad DOM schema spec" "stdschemas:config"
@@ -586,7 +589,9 @@
 
 (define (dom/getschemas doc)
   (if (test doc '%schemas) (get doc '%schemas)
-      (begin (store! doc '%schemas (get doc '%xschemas))
+      (begin
+	(when (exists? (get doc '%xschemas))
+	  (add! doc '%schemas (get doc '%xschemas)))
 	(do-choices (link (dom/find doc "LINK"))
 	  (when (has-prefix (get link 'rel) "schema.")
 	    (let* ((rel (get link 'rel))
