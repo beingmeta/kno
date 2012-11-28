@@ -53,6 +53,8 @@ FD_EXPORT int fd_init_fddbserv(void);
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
+#define HTML_UTF8_CTYPE_HEADER "Content-type: text/html; charset=utf-8\r\n\r\n"
+
 /* This lets the u8_server loop do I/O buffering to keep threads from
    waiting on I/O. */
 static int async_mode=1;
@@ -517,7 +519,8 @@ static int webservefn(u8_client ucl)
 {
   fdtype proc=FD_VOID, result=FD_VOID, onerror=FD_VOID;
   fdtype cgidata=FD_VOID, path=FD_VOID, precheck;
-  fd_lispenv config_env=NULL;
+  fdtype content=FD_VOID, retfile=FD_VOID;
+  fd_lispenv base_env=NULL;
   fd_webconn client=(fd_webconn)ucl;
   int write_headers=1, close_html=0, resuming=0;
   double start_time, setup_time, parse_time, exec_time, write_time;
@@ -669,7 +672,7 @@ static int webservefn(u8_client ucl)
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
-    config_env=sp->env;
+    base_env=sp->env;
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
@@ -679,7 +682,7 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
     threadcache=checkthreadcache(sp->env);
-    config_env=sp->env;
+    base_env=sp->env;
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
@@ -688,7 +691,7 @@ static int webservefn(u8_client ucl)
        (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
        (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
-    config_env=base;
+    base_env=base;
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache=checkthreadcache(base);
     if (traceweb>1)
@@ -716,12 +719,29 @@ static int webservefn(u8_client ucl)
     else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
-  if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   /* We're now done with all the core computation. */
+  if (!(FD_TROUBLEP(result))) {
+    /* See if the content or retfile will get us into trouble. */
+    content=fd_get(cgidata,content_slotid,FD_VOID);
+    retfile=((FD_VOIDP(content))?
+	     (fd_get(cgidata,retfile_slotid,FD_VOID)):
+	     (FD_VOID));
+    if ((!(FD_VOIDP(content)))&&
+	(!((FD_STRINGP(content))||(FD_PACKETP(content))))) {
+      fd_decref(result);
+      result=fd_err(fd_TypeError,"fdserv_content","string or packet",
+		    content);}
+    if ((!(FD_VOIDP(retfile)))&&
+	((!(FD_STRINGP(retfile)))||
+	 (!(u8_file_existsp(FD_STRDATA(retfile)))))) {
+      fd_decref(result);
+      result=fd_err(u8_CantOpenFile,"fdserv_retfile","existing filename",
+		    retfile);}}
+  if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   if (FD_TROUBLEP(result)) {
     u8_exception ex=u8_current_exception, exscan=ex;
-    fdtype errorpage=((config_env)?
-		      (fd_symeval(errorpage_symbol,config_env)):
+    fdtype errorpage=((base_env)?
+		      (fd_symeval(errorpage_symbol,base_env)):
 		      (FD_VOID));
     int depth=0;
     if (((FD_VOIDP(errorpage))||(errorpage==FD_UNBOUND))&&
@@ -745,20 +765,41 @@ static int webservefn(u8_client ucl)
 	fdtype output=fd_make_string
 	  (NULL,outstream->u8_outptr-outstream->u8_outbuf,
 	   outstream->u8_outbuf);
+	/* Save the output to date on the request */
 	fd_store(cgidata,output_symbol,output);
 	fd_decref(output);}
       outstream->u8_outptr=outstream->u8_outbuf;
-      result=fd_apply(errorpage,0,NULL);}
+      /* Apply the error page object */
+      result=fd_apply(errorpage,0,NULL);
+      if (FD_ABORTP(result)) {
+	ex=u8_current_exception; exscan=ex; depth=0;
+	while ((exscan)&&(depth<max_error_depth)) {
+	  u8_condition excond=exscan->u8x_cond;
+	  u8_context excxt=((exscan->u8x_context) ? (exscan->u8x_context) :
+			    ((u8_context)"somewhere"));
+	  u8_context exdetails=((exscan->u8x_details) ? (exscan->u8x_details) :
+				((u8_string)"no more details"));
+	  fdtype irritant=fd_exception_xdata(exscan);
+	  if (FD_STRINGP(path))
+	    u8_log(LOG_ERR,excond,
+		   "Unexpected recursive error \"%m \" for %s:@%s (%s)",
+		   excond,FD_STRDATA(path),excxt,exdetails);
+	  else u8_log(LOG_ERR,excond,
+		      "Unexpected recursive error \"%m \" %s:@%s (%s)",
+		      excond,excxt,exdetails);
+	  exscan=exscan->u8x_prev; depth++;}
+	fd_decref(errorpage); errorpage=FD_VOID;}}
+    if (!(FD_TROUBLEP(result))) {}
     else if ((FD_STRINGP(errorpage))&&
-	     (strstr(FD_STRDATA(errorpage),"\n")!=NULL)) {
+	(strstr(FD_STRDATA(errorpage),"\n")!=NULL)) {
+      /* Assume that the error page is a string of HTML */
       ex=u8_erreify();
-      http_len=http_len+
-	strlen("Content-type: text/html; charset=utf-8\r\n\r\n");
-      write_string(client->socket,
-		   "Content-type: text/html; charset=utf-8\r\n\r\n");
+      http_len=http_len+strlen(HTML_UTF8_CTYPE_HEADER);
+      write_string(client->socket,HTML_UTF8_CTYPE_HEADER);
       write_string(client->socket,FD_STRDATA(errpage));}
     else if (FD_STRINGP(errorpage)) {
-      /* This should do a redirect and maybe some other stuff */
+      /* This should check for redirect URLs, but for now it
+	 just dumps the error page as plain text.  */
       ex=u8_erreify();
       http_len=http_len+
 	strlen("Content-type: text/plain; charset=utf-8\r\n\r\n");
@@ -784,18 +825,16 @@ static int webservefn(u8_client ucl)
 	    outstream->u8_outptr-outstream->u8_outbuf,
 	    u8_elapsed_time()-start_time);
     content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
+    /* We do a hanging write in this, hopefully not common case */
     u8_writeall(client->socket,outstream->u8_outbuf,
 		outstream->u8_outptr-outstream->u8_outbuf);
     return_code=-1;
     fd_decref(errorpage);
+    /* And close the client for good measure */
     u8_client_close(ucl);}
   else {
     U8_OUTPUT httphead, htmlhead; int tracep;
-    fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
-    fdtype retfile=((FD_VOIDP(content))?
-		    (fd_get(cgidata,retfile_slotid,FD_VOID)):
-		    (FD_VOID));
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_OUTPUT(&httphead,1024); U8_INIT_OUTPUT(&htmlhead,1024);
     fd_output_http_headers(&httphead,cgidata);
@@ -841,42 +880,71 @@ static int webservefn(u8_client ucl)
 		  (long int)(fileinfo.st_size));
 	http_len=httphead.u8_outptr-httphead.u8_outbuf;
 	total_len=http_len+fileinfo.st_size;
-	if ((!(async))||(total_len>FD_FILEBUF_MAX)||
-	    ((filebuf=u8_malloc(total_len))==NULL)) {
-	  char buf[32768];
-	  /* This is the case where we hang while we write */
-	  u8_writeall(client->socket,httphead.u8_outbuf,http_len);
-	  while ((bytes_read=fread(buf,sizeof(unsigned char),32768,f))>0) {
-	    content_len=content_len+bytes_read;
-	    retval=u8_writeall(client->socket,buf,bytes_read);
-	    if (retval<0) break;}
-	  return_code=0;}
-	else {
+	if ((async)&&(total_len<FD_FILEBUF_MAX))
+	  filebuf=u8_malloc(total_len);
+	if (filebuf) {
+	  /* This is the case where we hand off a buffer to fdserv
+	     to write for us. */
 	  unsigned char *write=filebuf+http_len;
 	  off_t to_read=fileinfo.st_size, so_far=0;
 	  memcpy(write,httphead.u8_outbuf,http_len);
 	  while ((to_read>0)&&
-		 ((bytes_read=fread(write,sizeof(unsigned char),to_read,f))>0)) {
+		 ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {
 	    to_read=to_read-bytes_read;}
 	  client->buf=filebuf; client->off=0;
 	  client->len=client->buflen=total_len;
 	  client->writing=u8_microtime(); client->reading=-1;
-	  buffered=1;
-	  return_code=1;
-	  fclose(f);}}
+	  /* Let the server loop free the buffer when done */
+	  client->ownsbuf=1; buffered=1; return_code=1;
+	  fclose(f);}
+	else {
+	  char buf[32768];
+	  /* This is the case where we hang while we write. */
+	  u8_writeall(client->socket,httphead.u8_outbuf,http_len);
+	  while ((bytes_read=fread(buf,sizeof(uchar),32768,f))>0) {
+	    content_len=content_len+bytes_read;
+	    retval=u8_writeall(client->socket,buf,bytes_read);
+	    if (retval<0) break;}
+	  return_code=0;}}
       else {/* Error here */}}
     else if (FD_STRINGP(content)) {
-      u8_printf(&httphead,"Content-length: %ld\r\n\r\n",FD_STRLEN(content));
-      u8_writeall(client->socket,httphead.u8_outbuf,
-		  httphead.u8_outptr-httphead.u8_outbuf);
-      u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}
+      int bundle_len; unsigned char *outbuf;
+      content_len=FD_STRLEN(content);
+      u8_printf(&httphead,"Content-length: %ld\r\n\r\n",content_len);
+      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      bundle_len=http_len+content_len;
+      if (async) outbuf=u8_malloc(bundle_len+1);
+      if (outbuf) {
+	memcpy(outbuf,httphead.u8_outbuf,http_len);
+	memcpy(outbuf+http_len,FD_STRDATA(content),content_len);
+	outbuf[bundle_len]='\0';
+	client->buf=outbuf; client->len=client->buflen=bundle_len;
+	client->writing=u8_microtime(); client->reading=-1;
+	/* Let the server loop free the buffer when done */
+	client->ownsbuf=1; buffered=1; return_code=1;}
+      else  {
+	u8_writeall(client->socket,httphead.u8_outbuf,
+		    httphead.u8_outptr-httphead.u8_outbuf);
+	u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}}
     else if (FD_PACKETP(content)) {
-      u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
-		FD_PACKET_LENGTH(content));
-      u8_writeall(client->socket,httphead.u8_outbuf,
-		  httphead.u8_outptr-httphead.u8_outbuf);
-      u8_writeall(client->socket,FD_PACKET_DATA(content),
-		  FD_PACKET_LENGTH(content));}
+      int bundle_len; unsigned char *outbuf;
+      content_len=FD_PACKET_LENGTH(content);
+      u8_printf(&httphead,"Content-length: %ld\r\n\r\n",content_len);
+      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      bundle_len=http_len+content_len;
+      if (async) outbuf=u8_malloc(bundle_len);
+      if (outbuf) {
+	memcpy(outbuf,httphead.u8_outbuf,http_len);
+	memcpy(outbuf+http_len,FD_PACKET_DATA(content),content_len);
+	client->buf=outbuf; client->len=client->buflen=bundle_len;
+	client->writing=u8_microtime(); client->reading=-1;
+	/* Let the server loop free the buffer when done */
+	client->ownsbuf=1; buffered=1; return_code=1;}
+      else {
+	u8_writeall(client->socket,httphead.u8_outbuf,
+		    httphead.u8_outptr-httphead.u8_outbuf);
+	u8_writeall(client->socket,FD_PACKET_DATA(content),
+		    FD_PACKET_LENGTH(content));}}
     else {
       /* Where the servlet has specified some particular content */
       content_len=content_len+output_content(client,content);}
