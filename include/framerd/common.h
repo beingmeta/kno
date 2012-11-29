@@ -15,7 +15,7 @@
 
 #include "defines.h"
 
-/* Utility structures */
+/* Utility structures and definitions */
 
 #if (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
 typedef unsigned long long fdtype;
@@ -42,6 +42,8 @@ typedef unsigned int fd_4bytes;
 #elif (SIZEOF_LONG == 4)
 typedef unsigned long fd_4bytes;
 #endif
+
+typedef unsigned char uchar;
 
 #include <libu8/libu8.h>
 #include <libu8/u8ctype.h>
