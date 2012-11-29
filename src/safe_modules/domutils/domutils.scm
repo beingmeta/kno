@@ -32,6 +32,8 @@
 (define stdschemas
   '{(sbooks . "http://sbooks.net/")
     (sbook . "http://sbooks.net/")
+    (olib . "http://openlibrary.org/")
+    (ia . "http://archive.org/")
     (fdjt . "http://fdjt.org/")
     (fd . "http://framerd.org/")
     (kno . "http://knodules.org/")})
