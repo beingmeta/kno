@@ -417,7 +417,10 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
       /* Spaces outside of quotes or not after or before = are always
        * breaks */
       while ((scan<end) && (isspace(*scan))) scan++;
-      if (*scan=='=') {scan++; continue;}
+      if (*scan=='=') {
+	scan++;
+	while ((scan<end) && (isspace(*scan))) scan++;
+	continue;}
       else {
 	*item_end='\0'; elts[n_elts++]=elt_start;
 	if (n_elts>=max_elts) {
@@ -884,8 +887,8 @@ void *fd_walk_xml(U8_INPUT *in,
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
-	buf[size-1]='\0'; size--;}
-      n_elts=fd_parse_element
+	buf[size-1]='\0'; size--;} 
+     n_elts=fd_parse_element
 	(&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
 	fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));
