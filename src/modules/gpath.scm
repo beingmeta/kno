@@ -7,7 +7,8 @@
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
    gp/fetch gp/fetch+ gp/modified gp/exists?
-   gp/path gp/mkpath gp/makepath})
+   gp/path gp/mkpath gp/makepath
+   gp/location gp/basename})
 
 ;;; This is a generic path facility (it grew out of the savecontent
 ;;; module, which still exists for legacy and historical reasons).  A
@@ -43,25 +44,26 @@
   dirpath)
 
 (define (get-charset ctype)
-  (try
-   (get (text->frames #("charset=" (label encoding (not> ";"))) ctype)
-	'charset)
-   #f))
+  (and ctype (try
+	      (get (text->frames #("charset=" (label encoding (not> ";"))) ctype)
+		   'charset)
+	      #f)))
 
 (define *default-dirmode* 0x775) ;; rwxrwxr_x
 (varconfig! gpath:dirmode *default-dirmode*)
 
 ;;; Writing to a gpath
 
-(define (gp/write! saveto name content (ctype) (charset))
-  (default! ctype (guess-mimetype (get-namestring name) content))
-  (default! charset (get-charset ctype))
-  ;; Do any charset conversion required by the CTYPE
-  (when (and charset
-	     (string? content)
-	     (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
-    (set! content (packet->string (string->packet content) charset)))
-  (gp/save! (gp/mkpath saveto name) content ctype charset))
+(defambda (gp/write! saveto name content (ctype #f) (charset #f))
+  (do-choices name
+    (let ((ctype (or ctype (guess-mimetype (get-namestring name) content)))
+	  (charset (or charset (get-charset ctype))))
+      ;; Do any charset conversion required by the CTYPE
+      (when (and charset
+		 (string? content)
+		 (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
+	(set! content (packet->string (string->packet content) charset)))
+      (gp/save! (gp/mkpath saveto name) content ctype charset))))
 
 (define (get-namestring gpath)
   (if (string? gpath) gpath
@@ -69,25 +71,26 @@
 	  (if (pair? gpath) (cdr gpath)
 	      ""))))
 
-(define (gp/save! dest content (ctype) (charset))
-  (default! ctype (guess-mimetype (get-namestring dest) content))
-  (default! charset (get-charset ctype))
-  (lognotice "Saving " (if ctype (printout (write ctype) " "))
-	     "content into " dest)
-  ;; Do any charset conversion required by the CTYPE
-  (when (and charset
-	     (string? content)
-	     (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
-    (set! content (packet->string (string->packet content) charset)))
-  (cond ((and (string? dest) (string-starts-with? dest {"http:" "https:"}))
-	 (let ((req (urlput dest content ctype `#[METHOD "PUT"])))
-	   (unless (response/ok? req)
-	     (if (response/badmethod? req)
-		 (let ((req (urlput dest content ctype `#[METHOD "POST"])))
-		   (unless (response/ok? req)
-		     (error "Couldn't save to URL" dest req)))
-		 (error "Couldn't save to URL" dest req)))))
-	((string? dest) (write-file dest content))
+(defambda (gp/save! dest content (ctype #f) (charset #f))
+  (do-choices dest
+    (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
+	  (charset (or charset (get-charset ctype))))
+      (lognotice "Saving " (if ctype (printout (write ctype) " "))
+		 "content into " dest)
+      ;; Do any charset conversion required by the CTYPE
+      (when (and charset
+		 (string? content)
+		 (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
+	(set! content (packet->string (string->packet content) charset)))
+      (cond ((and (string? dest) (string-starts-with? dest {"http:" "https:"}))
+	     (let ((req (urlput dest content ctype `#[METHOD "PUT"])))
+	       (unless (response/ok? req)
+		 (if (response/badmethod? req)
+		     (let ((req (urlput dest content ctype `#[METHOD "POST"])))
+		       (unless (response/ok? req)
+			 (error "Couldn't save to URL" dest req)))
+		     (error "Couldn't save to URL" dest req)))))
+	    ((string? dest) (write-file dest content))
 	((s3loc? dest) (s3/write! dest content ctype))
 	((and (pair? dest) (string? (car dest)) (string? (cdr dest)))
 	 (write-file (mkpath (car dest) (cdr dest)) content))
@@ -100,8 +103,8 @@
 	      (string? (cdr saveto)))
 	 (zip/add! (car saveto) (cdr saveto) content))
 	(else (error "Bad GP/SAVE call")))
-  (lognotice "Saved " (if ctype (printout (write ctype) " "))
-	     "content into " dest))
+      (lognotice "Saved " (if ctype (printout (write ctype) " "))
+		 "content into " dest))))
 
 (define writeout
   (macro expr
@@ -140,6 +143,35 @@
 	((has-prefix string "zip:")
 	 (zip/open (subseq string 4)))
 	(else string)))
+
+(define (gp/basename path)
+  (when (string? path) (set! path (string->root path)))
+  (cond ((and (pair? path) (null? (cdr path)))
+	 (gp/basename (car path)))
+	((pair? path) (gp/basename (cdr path)))
+	((s3loc? path) (basename (s3loc-path path)))
+	((string? path) (basename path))
+	(else "")))
+
+(define (gp/location path)
+  (when (string? path) (set! path (string->root path)))
+  (cond ((and (pair? path)
+	      (or (null? (cdr path)) (empty-string? (cdr path))))
+	 (gp/location (car path)))
+	((and (pair? path) (string? (cdr path))
+	      (position #\/ (cdr path)))
+	 (gp/mkpath (car path) (dirname (cdr path))))
+	((pair? path) (car path))
+	((and (s3loc? path) (string? (s3loc-path path))
+	      (position #\/ (s3loc-path path)(cdr path)))
+	 (cons-s3loc (s3loc-bucket path) (dirname (s3loc-path path))))
+	((and (s3loc? path) (string? (s3loc-path path)))
+	 (cons-s3loc (s3loc-bucket path) ""))
+	((and (string? path) (has-prefix path "/")) (dirname path))
+	((and (string? path) (position #\/ path))
+	 (mkpath (getcwd) (dirname path)))
+	((string? path) (mkpath (getcwd) path))
+	(else path)))
 
 (define (makepath root path (mode *default-dirmode*))
   (when (and (pair? root) (null? (cdr root)))
