@@ -1113,7 +1113,10 @@ FD_EXPORT fdtype fd_hashtable_get
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
-    if (FD_ACHOICEP(rv)) {
+    if (FD_VOIDP(rv)) {
+      if (unlock) fd_rw_unlock_struct(ht);
+      return fd_incref(dflt);}
+    else if (FD_ACHOICEP(rv)) {
       struct FD_ACHOICE *ach=FD_XACHOICE(rv);
       if (ach->size<=1) {
 	fdtype v=fd_make_simple_choice(rv);
@@ -1153,9 +1156,10 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
-    fdtype v=((FD_ACHOICEP(rv)) ?
-	       (fd_make_simple_choice(rv)) :
-	       (fd_incref(rv)));
+    fdtype v=((FD_VOIDP(rv))?(fd_incref(dflt),dflt):
+	      (FD_ACHOICEP(rv))?
+	      (fd_make_simple_choice(rv)) :
+	      (fd_incref(rv)));
     return v;}
   else {
     return fd_incref(dflt);}
@@ -1170,7 +1174,8 @@ FD_EXPORT fdtype fd_hashtable_get_noref
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype rv=result->value;
-    if (FD_ACHOICEP(rv)) {
+    if (FD_VOIDP(rv)) return dflt;
+    else if (FD_ACHOICEP(rv)) {
       result->value=fd_simplify_choice(rv);
       return result->value;}
     else return rv;}
@@ -1207,7 +1212,7 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
   else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype current=result->value; int cmp;
-    if (FD_VOIDP(val)) cmp=1;
+    if (FD_VOIDP(val)) cmp=(!(FD_VOIDP(current)));
     /* This used to return 0 if the value was the empty choice, but that's not
        consistent with the other table test functions and got Scheme's WHEREFROM
        into trouble. */
@@ -1335,7 +1340,8 @@ FD_EXPORT int fd_hashtable_drop
   result=fd_hashvec_get(key,ht->slots,ht->n_slots);
   if (result) {
     fdtype newval=
-      ((FD_VOIDP(value)) ? (FD_EMPTY_CHOICE) : (fd_difference(result->value,value)));
+      ((FD_VOIDP(value)) ? (FD_VOID) :
+       (fd_difference(result->value,value)));
     fd_decref(result->value);
     result->value=newval;
     ht->modified=1;
