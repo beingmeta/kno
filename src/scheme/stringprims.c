@@ -164,28 +164,22 @@ static fdtype string_compoundp(fdtype string)
   else return FD_FALSE;
 }
 
-#if 0
-static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
+static fdtype string_phrase_length(fdtype string)
 {
-  int count_vspace=(!(FD_FALSEP(count_vspace_arg)));
-  if (!(FD_STRINGP(string))) return FD_FALSE;
-  else if (FD_STRLEN(string)==0) return FD_TRUE;
-  else {
-    u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
-    int c=u8_sgetc(&scan);
-    if (!((count_vspace)?
-	  ((u8_ishspace(c))||(u8_isvspace(c))):
-	  (u8_isspace(c))))
-      return FD_FALSE;
-    while ((c>=0) && (scan<lim))
-      if ((count_vspace)?
-	  ((u8_ishspace(c))||(u8_isvspace(c))):
-	  (u8_isspace(c)))
-	c=u8_sgetc(&scan);
-      else return FD_FALSE;
-    return FD_TRUE;}
+  int len=0;
+  u8_byte *scan=FD_STRDATA(string);
+  u8_byte *lim=scan+FD_STRLEN(string);
+  int c=u8_sgetc(&scan);
+  if (u8_isspace(c)) while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
+      c=u8_sgetc(&scan);}
+  while ((c>=0) && (scan<lim))
+    if (u8_isspace(c)) {
+      len++; while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
+	c=u8_sgetc(&scan);}
+      continue;}
+    else c=u8_sgetc(&scan);
+  return FD_INT2DTYPE(len+1);
 }
-#endif
 
 static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
 {
@@ -1089,6 +1083,9 @@ FD_EXPORT void fd_init_strings_c()
 			   empty_stringp,1,-1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("COMPOUND-STRING?",string_compoundp,1,
+			   fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("COMPOUND?",string_compoundp,1,-1,FD_VOID));
