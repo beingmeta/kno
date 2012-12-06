@@ -1191,8 +1191,6 @@ static fdtype string_contains(fdtype string,fdtype pattern,
 	     (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
-  if ((off<0) || (lim<0))
-    return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
   else if (FD_AMBIGP(string)) {
     FD_DO_CHOICES(s,string) {
       convert_offsets(s,start_arg,end_arg,&off,&lim);
