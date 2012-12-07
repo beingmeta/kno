@@ -8,7 +8,8 @@
 (module-export!
  '{
    dom/textify
-   dom/textual? dom/structural? dom/hasclass?
+   dom/textual? dom/structural?
+   dom/hasclass? dom/addclass! dom/dropclass!
    dom/oidify dom/oidmap dom/nodeid
    dom/get dom/set! dom/add! dom/drop!
    dom/append! dom/prepend!
@@ -121,14 +122,14 @@
 	(begin (drop! node '%attribs attribs)
 	  (add! node '%attribs
 		(vector (elt attribs 0) (elt attribs 1) stringval))
-	  (store! node (parse-arg aname) val)
+	  (store! node (string->lisp aname) val)
 	  (when (attrib-name aname)
-	    (store! node (parse-arg (attrib-name aname)) val))
+	    (store! node (string->lisp (attrib-name aname)) val))
 	  (add! node '%attribs
 		(vector (elt attribs 0) (elt attribs 1) stringval)))
 	(add! node '%attribs (vector aname #f stringval)))))
 
-(define (dom/drop! node attrib)
+(define (dom/drop! node attrib (value) (sep #f))
   (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
@@ -140,9 +141,22 @@
       (error "AmbiguousDOMAttribute"
 	     "DOM/SET of ambiguous attribute " attrib
 	     attribs))
-    (drop! node slotid)
-    (drop! node '%attribids slotid)
-    (when (exists? attribs) (drop! node '%attribs attribs))))
+    (if (bound? value)
+	(let* ((val (try (cadr attribs) (get node slotid)))
+	       (vals (if sep (segment val sep) (segment val)))
+	       (newvals (remove value vals)))
+	  (unless (equal? vals newvals)
+	    (dom/set! node (try (car attribs) slotid)
+		      (stringout
+			(if sep
+			    (doseq (v newvals i)
+			      (printout (if (> i 0) sep) v))
+			    (doseq (v newvals i)
+			      (printout (if (> i 0) " ") v)))))))
+	(begin
+	  (drop! node slotid)
+	  (drop! node '%attribids slotid)
+	  (when (exists? attribs) (drop! node '%attribs attribs))))))
 
 (define (dom/get node attrib)
   (if (symbol? attrib) (get node attrib)
@@ -153,6 +167,24 @@
       (textsearch (if (string? classname) `(word ,classname)
 		      `(IC (WORD ,(->string classname))))
 		  (try (pickstrings (get node attrib)) ""))))
+(define (dom/addclass! node classname)
+  (if (test node 'class)
+      (let ((classes (segment (get node 'class) " ")))
+	(unless (position classname classes)
+	  (dom/set! node 'class
+		    (stringout (doseq (class classes) (printout class " "))
+		      (printout classname)))))
+      (dom/set! node 'class classname)))
+(define (dom/dropclass! node classname)
+  (when (test node 'class)
+    (let ((classes (segment (get node 'class) " ")))
+      (when (position classname classes)
+	(if (= (length classes) 1)
+	    (dom/drop! node 'class)
+	    (dom/set! node 'class
+		      (stringout
+			(doseq (class (remove classname classes) i)
+			  (printout (if (> i 0) " ") class)))))))))
 
 (define (dom/add! node attrib value (sep ";"))
   (drop! node '%markup)
