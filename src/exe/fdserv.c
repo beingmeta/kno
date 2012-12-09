@@ -172,8 +172,8 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
 #define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
 #define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEXN "[%*t][%f] %s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)\n"
-#define STATUS_LINEX "%s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)"
+#define STATUS_LINEXN "[%*t][%f] %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
+#define STATUS_LINEX "%s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
 #define stdev(v,v2,n) \
   ((double)(sqrt((((double)v2)/((double)n))-			\
