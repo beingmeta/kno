@@ -7,7 +7,7 @@
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
    gp/fetch gp/fetch+ gp/modified gp/exists?
-   gp/path gp/mkpath gp/makepath
+   gp/path gp/mkpath gp/makepath gpath->string
    gp/location gp/basename})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -163,7 +163,7 @@
 	 (gp/mkpath (car path) (dirname (cdr path))))
 	((pair? path) (car path))
 	((and (s3loc? path) (string? (s3loc-path path))
-	      (position #\/ (s3loc-path path)(cdr path)))
+	      (position #\/ (s3loc-path path)))
 	 (cons-s3loc (s3loc-bucket path) (dirname (s3loc-path path))))
 	((and (s3loc? path) (string? (s3loc-path path)))
 	 (cons-s3loc (s3loc-bucket path) ""))
@@ -172,6 +172,21 @@
 	 (mkpath (getcwd) (dirname path)))
 	((string? path) (mkpath (getcwd) path))
 	(else path)))
+
+(define (gpath->string path)
+  (cond ((string? path) path)
+	((and (pair? path)
+	      (or (null? (cdr path)) (empty-string? (cdr path))))
+	 (car path))
+	((and (pair? path) (string? (car path))
+	      (string? (cdr path))
+	      (position #\/ (cdr path)))
+	 (mkpath (car path) (cdr path)))
+	((and (pair? path) (s3loc? (car path)))
+	 (s3loc->string (s3/mkpath (car path) (cdr path))))
+	((and (pair? path) (zipfile? (car path)))
+	 (stringout "zip:" (zip/filename (car path)) "(" (cdr path) ")"))
+	(else (stringout path))))
 
 (define (makepath root path (mode *default-dirmode*))
   (when (and (pair? root) (null? (cdr root)))
@@ -252,8 +267,6 @@
 	     `#[content ,(filedata ref) ctype ,ctype
 		modified ,(file-modtime ref)]))
 	(else (error "Weird docbase ref" ref))))
-
-
 
 (define (gp/modified ref)
   (cond ((s3loc? ref) (s3/modified ref))
