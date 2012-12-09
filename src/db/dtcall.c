@@ -50,12 +50,14 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
     if (retval>0) retval=fd_dtswrite_dtype(&stream,expr);}
   else retval=fd_dtswrite_dtype(&stream,expr);
   if ((retval<0) || (fd_dtsflush(&stream)<0)) {
+    fd_clear_errors(1);
     if ((conn=u8_reconnect(cpool,conn))<0) {
       u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}}
   fd_dtsflush(&stream);
   result=fd_dtsread_dtype(&stream);
   if (FD_EQ(result,FD_EOD)) {
+    fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
 	(fd_dtswrite_dtype(&stream,expr)<0) ||
 	(fd_dtsflush(&stream)<0)) {

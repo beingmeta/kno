@@ -76,11 +76,13 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
   if ((fd_dtswrite_dtype(&stream,expr)<0) ||
       (fd_dtsflush(&stream)<0)) {
+    fd_clear_errors(1);
     if ((conn=u8_reconnect(cpool,conn))<0) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}}
   result=fd_dtsread_dtype(&stream);
   if (FD_EQ(result,FD_EOD)) {
+    fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
 	(fd_dtswrite_dtype(&stream,expr)<0) ||
 	(fd_dtsflush(&stream)<0)) {
