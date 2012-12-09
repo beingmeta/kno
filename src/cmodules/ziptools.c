@@ -141,6 +141,12 @@ static fdtype zipmake_prim(fdtype filename)
   return zipopen(FD_STRDATA(filename),ZIP_CREATE|ZIP_EXCL);
 }
 
+static fdtype zipfilename_prim(fdtype zipfile)
+{
+  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  return fdtype_string(zf->filename);
+}
+
 static fdtype close_zipfile(fdtype zipfile)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
@@ -448,6 +454,10 @@ FD_EXPORT int fd_init_ziptools()
   fd_idefn(ziptools_module,
     fd_make_cprim0("ZIP/FEATURES",zipfeatures_prim,0));
 
+  fd_idefn(ziptools_module,
+	   fd_make_cprim1x("ZIP/FILENAME",zipfilename_prim,1,
+			   fd_zipfile_type,FD_VOID));
+  
   fd_finish_module(ziptools_module);
   fd_persist_module(ziptools_module);
 
