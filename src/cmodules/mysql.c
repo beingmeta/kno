@@ -240,7 +240,9 @@ static int reopen_mysql(struct FD_MYSQL *c)
   u8_log(LOG_WARN,"reopen_mysql",
 	 "Reopening MYSQL connection to '%s' (%s)",
 	 c->spec,c->info);
-  mysql_close(c->db);
+  mysql_close(c->db); c->db=NULL;
+  c->db=mysql_init(&(c->_db));
+
   db=mysql_real_connect
     (c->db,c->hostname,c->username,c->passwd,
      c->dbstring,c->portno,c->sockname,c->flags);
@@ -249,6 +251,7 @@ static int reopen_mysql(struct FD_MYSQL *c)
     u8_seterr(MySQL_Error,"reopen_mysql",u8_strdup(errmsg));
     u8_unlock_mutex(&mysql_connect_lock);
     return -1;}
+  else c->db=db;
   u8_lock_mutex(&(c->proclock)); {
     int i=0, n=c->n_procs;
     struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)c->procs;
