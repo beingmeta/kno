@@ -30,7 +30,7 @@
 (define %loglevel %info!)
 
 (define (guess-mimetype name (content))
-  (or (path->mimetype (uribase name) #f)
+  (or (path->mimetype (gp/basename name) #f)
       (if (bound? content)
 	  (if (string? content) "text"
 	      (if (packet? content) "application"
