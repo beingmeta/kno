@@ -62,18 +62,41 @@
 
 ;;; Pre-packaged conversion functions
 
+(define true-values {"1" "on" "enable" "y" "yes"})
+(define false-values {"0" "off" "disable" "n" "no"})
+
 (define (config:boolean val)
-  (cond ((and (not (string? val))
+  (cond ((not val) #f)
+	((and (not (string? val))
 	      (or (empty? val) (not val)
 		  (and (number? val) (zero? val))))
 	 #f)
 	((not (string? val)) #t)
-	((overlaps? (downcase val) {"0" "off" "disable"}) #f)
-	((overlaps? (downcase val) {"1" "on" "enable"}) #t)
+	((overlaps? val true-values) #t)
+	((overlaps? val false-values) #f)
+	((overlaps? (downcase val) true-values) #t)
+	((overlaps? (downcase val) false-values) #f)
 	((has-prefix (downcase val) "y") #t)
 	((has-prefix (downcase val) "n") #f)
 	(else (begin (logwarn "Odd config:boolean specifier " (write val))
 		(fail)))))
+
+(config-def! 'config:true
+	     (lambda (var (val))
+	       (if (not (bound? val)) true-values
+		   (if (and (pair? val)
+			    (overlaps? (car val) '{not drop}))
+		       (set! true-values (difference true-values val))
+		       (set+! true-values val)))))
+(config-def! 'config:false
+	     (lambda (var (val))
+	       (if (not (bound? val)) false-values
+		   (if (and (pair? val)
+			    (overlaps? (car val) '{not drop}))
+		       (set! false-values (difference false-values val))
+		       (set+! false-values val)))))
+
+
 (define (config:number val)
   (if (string? val) (string->number val)
       (if (number? val) val
