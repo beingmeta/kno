@@ -663,7 +663,8 @@
 		 (xform (get elts 'content))
 		 (if (eq? xform #t) (parse-arg (get elts 'content))
 		     (textsubst (get elts 'content) (qc xform))))
-	     (get elts 'content))
+	     (if (bound? xform) elts ;; Must be #f
+		 (get elts 'content)))
 	 (if (bound? dflt) dflt (fail)))))
 
 (define (dom/getlinks doc field (dflt))
