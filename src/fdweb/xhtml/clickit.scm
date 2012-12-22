@@ -15,18 +15,18 @@
 ;;;; Getting the current URL
 
 (define (geturl (w/query #f))
-  (stringout (if (= (cgiget 'SERVER_PORT) 443) "https://" "http://")
-	     (cgiget 'SERVER_NAME)
-	     (when (cgitest 'SERVER_PORT)
-	       (unless (or (= (cgiget 'SERVER_PORT) 80)
-			   (= (cgiget 'SERVER_PORT) 443))
-		 (printout ":" (cgiget 'SERVER_PORT))))
-	     (let ((req (try (cgiget 'request_uri) (cgiget 'path_info))))
-	       ;; If we're under fastcgi rather than mod_fdserv, we don't
-	       ;;  always get a request_uri but may be able to
-	       ;;  use path_info instead
-	       (if w/query req
-		   (subseq req 0 (position #\? req))))))
+  (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
+    (req/get 'SERVER_NAME)
+    (when (cgitest 'SERVER_PORT)
+      (unless (or (= (req/get 'SERVER_PORT) 80)
+		  (= (req/get 'SERVER_PORT) 443))
+	(printout ":" (req/get 'SERVER_PORT))))
+    (try (req/get 'script_name) "")
+    (try (req/get 'path_info) "")
+    (when (and w/query (req/get 'query_string #f)
+	       (or (not (empty-string? (req/get 'query_string #f)))
+		   (position #\? (req/get 'request_uri ""))))
+      (printout "?" (req/get 'query_string)))))
 
 (module-export! 'geturl)
 
@@ -34,10 +34,10 @@
 
 (define (siteurl app . args)
   (if (null? args)
-      (mkpath (try (cgiget 'appbase #{}) (dirname (geturl)))
+      (mkpath (try (req/get 'appbase #{}) (dirname (geturl)))
 	      app)
       (apply scripturl
-	     (mkpath (try (cgiget 'appbase #{}) (dirname (geturl)))
+	     (mkpath (try (req/get 'appbase #{}) (dirname (geturl)))
 		     app)
 	     args)))
 
@@ -257,8 +257,8 @@
 ;;;  be used in paging through sets of results.
 
 (define (searchbar baseuri len)
-  (let* ((start (->number (cgiget 'start 0)))
-	 (window (->number (cgiget 'window 10)))
+  (let* ((start (->number (req/get 'start 0)))
+	 (window (->number (req/get 'window 10)))
 	 (end (min (+ start window) len)))
     (div ((class "searchbar"))
       (if (= start 0)
@@ -292,8 +292,8 @@
       "+" (- end start) ">")))
 
 (define (scrollticks baseuri len . seq)
-  (let* ((start (->number (cgiget 'start 0)))
-	 (window (->number (cgiget 'window 10)))
+  (let* ((start (->number (req/get 'start 0)))
+	 (window (->number (req/get 'window 10)))
 	 (end (min (+ start window) len))
 	 (done #f))
     (doseq (elt seq)
