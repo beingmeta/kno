@@ -204,7 +204,7 @@
   (default! authstring (auth->string auth))
   (default! identity (authinfo-identity auth))
   (debug%watch "SET-COOKIES!" var authstring identity
-	       auth-cookie-domain auth-cookie-path)
+	       auth-cookie-domain auth-cookie-path auth-secure)
   (if auth-secure
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
