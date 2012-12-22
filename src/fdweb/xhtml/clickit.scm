@@ -15,10 +15,14 @@
 ;;;; Getting the current URL
 
 (define (geturl (w/query #f))
-  (stringout (if (= (req/get 'SERVER_PORT) 443) "https://" "http://")
+  (stringout (if (or (req/test 'https "on")
+		     (= (req/get 'SERVER_PORT) 443))
+		 "https://"
+		 "http://")
     (req/get 'SERVER_NAME)
     (when (cgitest 'SERVER_PORT)
-      (unless (or (= (req/get 'SERVER_PORT) 80)
+      (unless (or (and (= (req/get 'SERVER_PORT) 80)
+		       (not (req/test 'https "on")))
 		  (= (req/get 'SERVER_PORT) 443))
 	(printout ":" (req/get 'SERVER_PORT))))
     (try (req/get 'script_name) "")
