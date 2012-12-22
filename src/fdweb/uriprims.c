@@ -210,7 +210,7 @@ static void uri_output(u8_output out,u8_string s,int len,int upper,
   while ((lim)?(s<lim):(*s))
     if (((*s)>=0x80)||(isspace(*s))||
 	(*s=='+')||(*s=='%')||(*s=='=')||
-	(*s=='&')||(*s=='#')||
+	(*s=='&')||(*s=='#')||(*s==';')||
 	((escape==NULL)?
 	 ((*s=='~')||(*s=='&')||(*s=='#')):
 	 ((strchr(escape,*s))!=NULL))) {
