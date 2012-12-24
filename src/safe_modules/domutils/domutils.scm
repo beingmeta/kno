@@ -11,7 +11,7 @@
    dom/textual? dom/structural?
    dom/hasclass? dom/addclass! dom/dropclass!
    dom/oidify dom/oidmap dom/nodeid
-   dom/get dom/set! dom/add! dom/drop!
+   dom/get dom/set-tag! dom/set! dom/add! dom/drop!
    dom/append! dom/prepend!
    dom/remove-child! dom/remove!
    dom/replace-child! dom/replace!
@@ -100,6 +100,15 @@
 (define (attrib-name s)
   (and (string? s) (position #\: s)
        (subseq s (1+ (position #\: s)))))
+
+(define (dom/set-tag! node name (index))
+  (default! index (try (get (get node '%doc) 'index) #f))
+  (when index
+    (drop! index (cons '{%xmltag %qname} (get node '{%xmltag %qname}))
+	   node)
+    (add! index (cons '{%xmltag %qname} name) node))
+  (store! node '{%xmltag %qname} name)
+  (store! node '%id (dom/nodeid node)))
 
 (define (dom/set! node attrib val (fdxml #f))
   (drop! node '%markup)

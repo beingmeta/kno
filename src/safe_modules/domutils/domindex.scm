@@ -14,7 +14,7 @@
 (module-export! '{dom/index! dom/indexer})
 
 (define %loglevel %notice!)
-(define default-dom-slots '{id class name})
+(define default-dom-slots '{id class name href src rel})
 
 (define default-indexrules (make-hashtable))
 (define (indexrule-config var (val))
@@ -73,7 +73,7 @@
 			 (pick indexrules hashtable?))))
 	    ;;(%WATCH "DOMINDEXER" indexval indexslots eltinfo slots rules)
 	    (when idmap (add! idmap (get xml 'id) xml))
-	    (add! index (cons 'has slots) indexval)
+	    (add! index (cons 'has {(getkeys xml) (get xml '%attribids)}) indexval)
 	    (add! index (cons 'parent parent) indexval)
 	    (add! index (cons 'parents parents) indexval)
 	    (when (exists? indexval)
