@@ -309,10 +309,11 @@ static fdtype oidvalue(fdtype arg)
 {
   return fd_oid_value(arg);
 }
-static fdtype setoidvalue(fdtype o,fdtype v)
+static fdtype setoidvalue(fdtype o,fdtype v,fdtype nocopy)
 {
   int retval;
-  if (FD_SLOTMAPP(v)) {
+  if (FD_TRUEP(nocopy)) {fd_incref(v);}
+  else if (FD_SLOTMAPP(v)) {
     v=fd_deep_copy(v); 
     FD_SLOTMAP_MARK_MODIFIED(v);}
   else if (FD_SCHEMAPP(v)) {
@@ -2265,8 +2266,9 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim1x("OID-VALUE",oidvalue,1,fd_oid_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("SET-OID-VALUE!",setoidvalue,2,
-			   fd_oid_type,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim3x("SET-OID-VALUE!",setoidvalue,2,
+			   fd_oid_type,FD_VOID,-1,FD_VOID,
+			   -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("LOCK-OID!",lockoid,2,
 			   fd_oid_type,FD_VOID,-1,FD_VOID));
