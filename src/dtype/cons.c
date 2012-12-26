@@ -296,8 +296,17 @@ fdtype fd_deep_copy(fdtype x)
     fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
     switch (ctype) {
     case fd_pair_type: {
-      struct FD_PAIR *p=FD_STRIP_CONS(x,ctype,struct FD_PAIR *);
-      return fd_init_pair(NULL,fd_deep_copy(p->car),fd_deep_copy(p->cdr));}
+      fdtype result=FD_EMPTY_LIST, *tail=&result, scan=x;
+      while (FD_PRIM_TYPEP(scan,fd_pair_type)) {
+	struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
+	struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
+	FD_INIT_CONS(newpair,fd_pair_type);
+	newpair->car=fd_deep_copy(p->car);
+	*tail=(fdtype)newpair;
+	tail=&(newpair->cdr);
+	scan=p->cdr;}
+      *tail=fd_deep_copy(scan);
+      return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
       fdtype *olddata=v->data; int i=0, len=v->length;
