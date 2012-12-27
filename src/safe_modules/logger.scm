@@ -13,7 +13,7 @@
    getloglevel %loglevel
    logdetail loginfo lognotice logwarn logdebug
    logerr logerror logcrit logalert logpanic
-   %debug %detail})
+   %debug %detail %deluge})
 (module-export!
  '{%emergency! %emergency% %panic%
    %alert! %alert%
@@ -23,7 +23,8 @@
    %notice% %notice! %notify% %notify! %note% %note!
    %information% %information! %status% %status! %info% %info!
    %debug! %debug%
-   %detail% %detail! %details%})
+   %detail% %detail! %details%
+   %deluge% %deluge!})
 
 (module-export!
  '{detail%watch debug%watch info%watch notice%watch warn%watch})
@@ -61,11 +62,15 @@
 (define %debug! 7)
 (define %detail% 8)
 (define %detail! 8)
+(define %details% 8)
+(define %deluge% 9)
+(define %deluge! 9)
 
 (define %loglevel 4)
 
 (define loglevel-init-map
-  '{(DETAIL . 8) (DETAILS . 8)
+  '{(DELUGE . 9) (VERYDETAILED 9)
+    (DETAIL . 8) (DETAILS . 8) (DETAILED . 8)
     (DEBUG . 7) (DBG . 7)
     (INFO . 6) (STATUS . 6) (INFORMATION . 6)
     (NOTICE . 5) (NOTE . 5) (NOTIFY . 5)
@@ -110,6 +115,8 @@
 
 (define logerror logerr)
 
+(define logdeluge
+  (macro expr `(logif+ (>= %loglevel ,%deluge%) 7 ,@(cdr expr))))
 (define logdetail
   (macro expr `(logif+ (>= %loglevel ,%detail%) 7 ,@(cdr expr))))
 (define logdebug
@@ -123,8 +130,15 @@
 (define %debug
   (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
 (define %detail
-  (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%detail%) 7 ,@(cdr expr))))
+(define %deluge
+  (macro expr `(logif+ (>= %loglevel ,%deluge%) 7 ,@(cdr expr))))
 
+(define deluge%watch
+  (macro expr
+    `(if (>= %loglevel ,%deluge%)
+	 (,%watch ,@(cdr expr))
+	 ,(cadr expr))))
 (define detail%watch
   (macro expr
     `(if (>= %loglevel ,%detail%)
