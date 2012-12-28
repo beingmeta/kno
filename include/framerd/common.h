@@ -43,7 +43,9 @@ typedef unsigned int fd_4bytes;
 typedef unsigned long fd_4bytes;
 #endif
 
+#ifndef HAVE_UCHAR
 typedef unsigned char uchar;
+#endif
 
 #include <libu8/libu8.h>
 #include <libu8/u8ctype.h>
