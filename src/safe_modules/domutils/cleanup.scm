@@ -12,7 +12,8 @@
    dom/mergeheads/subst
    dom/mergeheads
    dom/mergebreaks/subst
-   dom/mergebreaks})
+   dom/mergebreaks
+   dom/mergetext!})
 
 ;;; Fixing punctuation to be prettier
 
@@ -139,3 +140,15 @@
 	    node)
 	  node)))
 
+;;; Merge text
+
+(define (dom/mergetext! node)
+  (when (test node '%content)
+    (let ((vec (->vector (get node '%content)))
+	  (merged (list #f)))
+      (doseq (elt vec)
+	(if (and (string? elt) (string? (car merged)))
+	    (set! merged (cons (glom (car merged) elt) (cdr merged)))
+	    (set! merged (cons elt merged)))
+	(when (table? elt) (dom/mergetext! elt)))
+      (store! node '%content (cdr (reverse merged))))))
