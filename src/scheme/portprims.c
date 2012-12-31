@@ -580,7 +580,9 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
     fdtype body=fd_get_body(expr,3);
     U8_OUTPUT *out=u8_open_output_string(1024);
     U8_OUTPUT *stream=u8_current_output;
+    int priority=FD_FIX2INT(loglevel_arg);
     u8_condition condition=NULL;
+    if (priority>=0) priority=-priority;
     if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
       condition=FD_SYMBOL_NAME(FD_CAR(body));
       body=FD_CDR(body);}
@@ -594,7 +596,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
 	return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
-    u8_logger(FD_FIX2INT(loglevel_arg),condition,out->u8_outbuf);
+    u8_logger(priority,condition,out->u8_outbuf);
     u8_close_output(out);
     return FD_VOID;}
 }
@@ -1403,7 +1405,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"LOGMSG",log_handler);
   /* Conditional logging */
   fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
-  /* Conditional logging with message level */
+  /* Conditional logging with priority level */
   fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
 
   fd_idefn(fd_scheme_module,

@@ -24,13 +24,11 @@
       (if (and (pair? modname) (eq? (car modname) 'quote)
 	       (pair? (cdr modname)))
 	  (set! modname (cadr modname)))
-      (cond ((fail? loglevel)
-	     (error "Bad LOGLEVEL" expr))
-	    ((> loglevel (config 'loglevel))
-	     (warning "Raising default loglevel to " loglevel)
-	     (config! 'loglevel loglevel)))
+      (when (fail? loglevel) (error "Bad LOGLEVEL" expr))
       (if (symbol? modname)
 	  `(within-module ',modname (define %loglevel ,loglevel))
 	  `(within-module ,modname (define %loglevel ,loglevel))))))
+
+
 
 
