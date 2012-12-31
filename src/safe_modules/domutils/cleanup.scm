@@ -142,13 +142,50 @@
 
 ;;; Merge text
 
-(define (dom/mergetext! node)
+(define (mergetext! node (textfn #f) (depth 0))
   (when (test node '%content)
     (let ((vec (->vector (get node '%content)))
+	  (newfn (and textfn
+		      (not (or (try (get node 'keepspace) #f)
+			       (test node '%xmltag 'pre)
+			       (test node 'xml:space "preserve")))
+		      textfn))
 	  (merged (list #f)))
       (doseq (elt vec)
+	(when (table? elt)
+	  (mergetext! elt newfn (1+ depth))
+	  (when (and newfn (string? (car merged)))
+	    (set-car! merged (newfn (car merged) depth elt node))))
 	(if (and (string? elt) (string? (car merged)))
 	    (set! merged (cons (glom (car merged) elt) (cdr merged)))
-	    (set! merged (cons elt merged)))
-	(when (table? elt) (dom/mergetext! elt)))
+	    (set! merged (cons elt merged))))
+      (when (and newfn (string? (car merged)))
+	(set-car! merged (newfn (car merged) depth elt node)))
+      (when (and newfn (> depth 1) (not (empty-string? (car merged))))
+	(set! merged (cons (glom "\n" (make-string (* 2 (-1+ depth)) #\Space))
+			   merged)))
       (store! node '%content (cdr (reverse merged))))))
+
+(define (mergelines string depth elt node)
+  (if (empty-string? string)
+      (textsubst string #("\n" (+ "\n")) "\n\n")
+      string))
+(define (mergeindent string depth elt node)
+  (if (empty-string? string)
+      (let ((indent (make-string (* 2 depth) #\Space)))
+	(if (search "\n" string)
+	    (if (search "\n" string (1+ (search "\n" string)))
+		(glom "\n" indent "\n"  indent)
+		(glom "\n" indent))
+	    string))
+      string))
+
+(define (dom/mergetext! node (textfn #f) (depth 0))
+  (mergetext! node
+	      (and textfn
+		   (if (procedure? textfn) textfn
+		       (if (eq? textfn 'mergelines) mergelines
+			   (if (eq? textfn 'mergeindent) mergeindent
+			       #f))))
+	      depth))
+
