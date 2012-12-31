@@ -162,8 +162,14 @@
       (when (and newfn (string? (car merged)))
 	(set-car! merged (newfn (car merged) depth elt node)))
       (when (and newfn (> depth 1) (not (empty-string? (car merged))))
-	(set! merged (cons (glom "\n" (make-string (* 2 (-1+ depth)) #\Space))
-			   merged)))
+	(set! merged
+	      (if (not (string? (car merged)))
+		  (cons (glom "\n" (make-string (* 2 (-1+ depth)) #\Space))
+			merged)
+		  (cons (glom (car merged)
+			  (if (not (has-suffix (car merged) "\n")) "\n" #f)
+			  (make-string (* 2 (-1+ depth)) #\Space))
+			(cdr merged)))))
       (store! node '%content (cdr (reverse merged))))))
 
 (define (mergelines string depth elt node)
