@@ -515,7 +515,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	off=check_line_length(&out,off,50);
 	fd_decref(wval); wval=FD_VOID;}}
     off=check_line_length(&out,off,50);
-    u8_logger(-1,label,out.u8_outbuf);
+    u8_logger(-10,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start=u8_elapsed_time();
   if (FD_SYMBOLP(toeval))
@@ -528,12 +528,12 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
     fdtype value=fd_eval(toeval,env);
     double howlong=u8_elapsed_time()-start;
     if (howlong>1.0)
-      u8_log(-1,label,"<%.3fs> %q => %q",howlong*1000,toeval,value);
+      u8_log(-10,label,"<%.3fs> %q => %q",howlong*1000,toeval,value);
     else if (howlong>0.001)
-      u8_log(-1,label,"<%.3fms> %q => %q",howlong*1000,toeval,value);
+      u8_log(-10,label,"<%.3fms> %q => %q",howlong*1000,toeval,value);
     else if (remainder(howlong,0.0000001)>=0.001)
-      u8_log(-1,label,"<%.3fus> %q => %q",howlong*1000000,toeval,value);
-    else u8_log(-1,label,"<%.1fus> %q => %q",howlong*1000000,
+      u8_log(-10,label,"<%.3fus> %q => %q",howlong*1000000,toeval,value);
+    else u8_log(-10,label,"<%.1fus> %q => %q",howlong*1000000,
 		toeval,value);
     return value;}
 }

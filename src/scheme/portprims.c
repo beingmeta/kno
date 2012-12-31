@@ -427,7 +427,7 @@ static fdtype message_handler(fdtype expr,fd_lispenv env)
       return value;}
     body=FD_CDR(body);}
   u8_set_default_output(stream);
-  u8_logger(-1,NULL,out->u8_outbuf);
+  u8_logger(-10,NULL,out->u8_outbuf);
   u8_close_output(out);
   return FD_VOID;
 }
@@ -552,7 +552,7 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
 	return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
-    u8_logger(-1,condition,out->u8_outbuf);
+    u8_logger(-10,condition,out->u8_outbuf);
     u8_close_output(out);
     return FD_VOID;}
 }
