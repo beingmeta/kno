@@ -91,8 +91,13 @@
   (when (string? loc) (set! loc (->s3loc loc)))
   (cons-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
 
+(define (s3loc->string s3)
+  (stringout "s3://" (s3loc-bucket s3) "/"
+    (if (has-prefix (s3loc-path s3) "/") (slice (s3loc-path s3) 1)
+	(s3loc-path s3))))
+
 (module-export!
- '{s3loc? s3loc-path s3loc-bucket cons-s3loc ->s3loc s3/loc s3/mkpath})
+ '{s3loc? s3loc-path s3loc-bucket cons-s3loc ->s3loc s3/loc s3/mkpath s3loc->string})
 
 ;;; Computing S3 signatures
 

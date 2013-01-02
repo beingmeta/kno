@@ -172,19 +172,19 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
 #define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
 #define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEXN "[%*t][%f] %s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)\n"
-#define STATUS_LINEX "%s mean=%0.2fus max=%ldus sd=%0.2f (n=%d)"
+#define STATUS_LINEXN "[%*t][%f] %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
+#define STATUS_LINEX "%s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
 #define stdev(v,v2,n) \
-  sqrt((((double)v2)/((double)n))-\
-       ((((double)v)/((double)n))*(((double)v)/((double)n))))
+  ((double)(sqrt((((double)v2)/((double)n))-			\
+		 ((((double)v)/((double)n))*(((double)v)/((double)n))))))
 #define getmean(v,n) (((double)v)/((double)n))
 
 static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 {
   double elapsed=u8_elapsed_time();
   if (stats->tcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,"busy",elapsed,
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,"busy",
 	       getmean(stats->tsum,stats->tcount),
 	       stats->tmax,
 	       stdev(stats->tsum,stats->tsum2,stats->tcount),
@@ -196,7 +196,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 	   stats->tcount);}
   
   if (stats->qcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,"queued",elapsed,
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,"queued",
 	       getmean(stats->qsum,stats->qcount),stats->qmax,
 	       stdev(stats->qsum,stats->qsum2,stats->qcount),
 	       stats->qcount);
@@ -206,7 +206,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 	   stats->qcount);}
 
   if (stats->rcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,"reading",elapsed,
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,"reading",
 	       getmean(stats->rsum,stats->rcount),stats->rmax,
 	       stdev(stats->rsum,stats->rsum2,stats->rcount),
 	       stats->rcount);
@@ -216,7 +216,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 	   stats->rcount);}
 
   if (stats->wcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,"writing",elapsed,
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,"writing",
 	       getmean(stats->wsum,stats->wcount),stats->wmax,
 	       stdev(stats->wsum,stats->wsum2,stats->wcount),
 	       stats->wcount);
@@ -226,7 +226,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
 	   stats->wcount);}
 
   if (stats->xcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,"running",elapsed,
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,"running",
 	       getmean(stats->xsum,stats->xcount),stats->xmax,
 	       stdev(stats->xsum,stats->xsum2,stats->xcount),
 	       stats->xcount);

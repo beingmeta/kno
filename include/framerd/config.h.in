@@ -261,6 +261,9 @@
 /* Whether we have the fcgi lib */
 #undef HAVE_LIBFCGI
 
+/* Whether we have the fcgi lib */
+#undef HAVE_UCHAR
+
 /* Whether we have the tidy.h header file */
 #undef HAVE_TIDY_H
 

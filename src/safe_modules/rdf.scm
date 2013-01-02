@@ -156,10 +156,3 @@
 				      (else (concept->rdf concept local slots languages)))
 				"\n")))
      (void (xmlclose fakenode)))))
-
-
-
-
-
-
-

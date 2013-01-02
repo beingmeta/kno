@@ -204,7 +204,7 @@
   (default! authstring (auth->string auth))
   (default! identity (authinfo-identity auth))
   (debug%watch "SET-COOKIES!" var authstring identity
-	       auth-cookie-domain auth-cookie-path)
+	       auth-cookie-domain auth-cookie-path auth-secure)
   (if auth-secure
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
@@ -409,8 +409,9 @@
 (define (authfail reason authid info signal)
   (debug%watch "AUTHFAIL" reason authid info)
   (expire-cookie! authid "AUTHFAIL"
-		  (not (token/ok? (authinfo-identity info)
-				  (authinfo-token info))))
+		  (or (not info)
+		      (not (token/ok? (authinfo-identity info)
+				      (authinfo-token info)))))
   (req/drop! authid)
   (logwarn reason " AUTHID=" authid "; INFO=" info)
   (if signal (error reason authid info))

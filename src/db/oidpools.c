@@ -37,8 +37,6 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
-typedef unsigned char uchar;
-
 static void update_modtime(struct FD_OIDPOOL *fp);
 static void reload_offsets(struct FD_OIDPOOL *fp,int lock,int write);
 static int recover_oidpool(struct FD_OIDPOOL *);

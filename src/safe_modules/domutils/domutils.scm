@@ -3,14 +3,18 @@
 
 (in-module 'domutils)
 
-(use-module '{fdweb xhtml texttools reflection ezrecords varconfig})
+(use-module '{fdweb xhtml texttools reflection ezrecords
+	      varconfig logger})
+
+(define %loglevel %notice%)
 
 (module-export!
  '{
    dom/textify
-   dom/textual? dom/structural? dom/hasclass?
+   dom/textual? dom/structural?
+   dom/hasclass? dom/addclass! dom/dropclass!
    dom/oidify dom/oidmap dom/nodeid
-   dom/get dom/set! dom/add! dom/drop!
+   dom/get dom/set-tag! dom/set! dom/add! dom/drop!
    dom/append! dom/prepend!
    dom/remove-child! dom/remove!
    dom/replace-child! dom/replace!
@@ -36,7 +40,9 @@
     (ia . "http://archive.org/")
     (fdjt . "http://fdjt.org/")
     (fd . "http://framerd.org/")
-    (kno . "http://knodules.org/")})
+    (kno . "http://knodules.org/")
+    (bm . "http://beingmeta.com/")
+    (beingmeta . "http://beingmeta.com/")})
 (do-choices (schema stdschemas)
   (set+! stdschemas (cons (cdr schema) (car schema))))
 (config-def! 'stdschemas
@@ -100,6 +106,15 @@
   (and (string? s) (position #\: s)
        (subseq s (1+ (position #\: s)))))
 
+(define (dom/set-tag! node name (index))
+  (default! index (try (get (get node '%doc) 'index) #f))
+  (when index
+    (drop! index (cons '{%xmltag %qname} (get node '{%xmltag %qname}))
+	   node)
+    (add! index (cons '{%xmltag %qname} name) node))
+  (store! node '{%xmltag %qname} name)
+  (store! node '%id (dom/nodeid node)))
+
 (define (dom/set! node attrib val (fdxml #f))
   (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
@@ -121,14 +136,14 @@
 	(begin (drop! node '%attribs attribs)
 	  (add! node '%attribs
 		(vector (elt attribs 0) (elt attribs 1) stringval))
-	  (store! node (parse-arg aname) val)
+	  (store! node (string->lisp aname) val)
 	  (when (attrib-name aname)
-	    (store! node (parse-arg (attrib-name aname)) val))
+	    (store! node (string->lisp (attrib-name aname)) val))
 	  (add! node '%attribs
 		(vector (elt attribs 0) (elt attribs 1) stringval)))
 	(add! node '%attribs (vector aname #f stringval)))))
 
-(define (dom/drop! node attrib)
+(define (dom/drop! node attrib (value) (sep #f))
   (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
@@ -140,9 +155,22 @@
       (error "AmbiguousDOMAttribute"
 	     "DOM/SET of ambiguous attribute " attrib
 	     attribs))
-    (drop! node slotid)
-    (drop! node '%attribids slotid)
-    (when (exists? attribs) (drop! node '%attribs attribs))))
+    (if (bound? value)
+	(let* ((val (try (cadr attribs) (get node slotid)))
+	       (vals (if sep (segment val sep) (segment val)))
+	       (newvals (remove value vals)))
+	  (unless (equal? vals newvals)
+	    (dom/set! node (try (car attribs) slotid)
+		      (stringout
+			(if sep
+			    (doseq (v newvals i)
+			      (printout (if (> i 0) sep) v))
+			    (doseq (v newvals i)
+			      (printout (if (> i 0) " ") v)))))))
+	(begin
+	  (drop! node slotid)
+	  (drop! node '%attribids slotid)
+	  (when (exists? attribs) (drop! node '%attribs attribs))))))
 
 (define (dom/get node attrib)
   (if (symbol? attrib) (get node attrib)
@@ -153,6 +181,24 @@
       (textsearch (if (string? classname) `(word ,classname)
 		      `(IC (WORD ,(->string classname))))
 		  (try (pickstrings (get node attrib)) ""))))
+(define (dom/addclass! node classname)
+  (if (test node 'class)
+      (let ((classes (segment (get node 'class) " ")))
+	(unless (position classname classes)
+	  (dom/set! node 'class
+		    (stringout (doseq (class classes) (printout class " "))
+		      (printout classname)))))
+      (dom/set! node 'class classname)))
+(define (dom/dropclass! node classname)
+  (when (test node 'class)
+    (let ((classes (segment (get node 'class) " ")))
+      (when (position classname classes)
+	(if (= (length classes) 1)
+	    (dom/drop! node 'class)
+	    (dom/set! node 'class
+		      (stringout
+			(doseq (class (remove classname classes) i)
+			  (printout (if (> i 0) " ") class)))))))))
 
 (define (dom/add! node attrib value (sep ";"))
   (drop! node '%markup)
@@ -179,8 +225,9 @@
   (drop! node '%markup)
   (and (table? node) (test node '%content)
        (let* ((content (get node '%content))
-	      (newcontent (forseq (celt content)
-			    (if (equal? cur celt) new celt))))
+	      (newcontent
+	       (->list (forseq (celt (->vector content))
+			 (if (equal? cur celt) new celt)))))
 	 (cond ((equal? content newcontent)
 		(if recur
 		    (some? (lambda (x)
@@ -202,8 +249,9 @@
   (when (and (exists? node) (table? node) (test node '%content))
     (drop! node '%markup)
     (let* ((content (get node '%content))
-	   (newcontent (forseq (celt content)
-			 (if (equal? cur celt) new celt))))
+	   (newcontent
+	    (->list (forseq (celt (->vector content))
+		      (if (equal? cur celt) new celt)))))
       (store! node '%content newcontent))))
 
 (define (dom/append! node . content)
@@ -242,9 +290,10 @@
       (reverse (decode-entities node))
       (if (test node '%content)
 	  (begin (store! node '%content
-			 (forseq (elt  (get node '%content))
-			   (if (string? elt) (reverse elt)
-			       (dom/reverse-text! elt))))
+			 (->list
+			  (forseq (elt (->vector (get node '%content)))
+			    (if (string? elt) (reverse elt)
+				(dom/reverse-text! elt)))))
 	    node)
 	  node)))
 
@@ -253,9 +302,10 @@
       (fn (decode-entities node))
       (if (test node '%content)
 	  (begin (store! node '%content
-			 (forseq (elt (get node '%content))
-			   (if (string? elt) (fn elt)
-			       (dom/transform-text! elt fn))))
+			 (->list
+			  (forseq (elt (->vector (get node '%content)))
+			    (if (string? elt) (fn elt)
+				(dom/transform-text! elt fn)))))
 	    node)
 	  node)))
 
@@ -607,9 +657,12 @@
   (if (position #\. field)
       (let* ((sep (position #\. field))
 	     (schemas (dom/getschemas doc))
-	     (prefix (string->symbol (subseq field 0 sep)))
-	     (uri (try (get stdschemas prefix)
-		       (get schemas prefix)))
+	     (prefixstring (subseq field 0 sep))
+	     (prefix (string->symbol prefixstring))
+	     (uri (try (get schemas prefixstring)
+		       (get schemas prefix)
+		       (get stdschemas prefixstring)
+		       (get stdschemas prefix)))
 	     (prefixes (get schemas uri)))
 	(if (fail? prefixes) field
 	    (glom prefixes "." (subseq field (1+ sep)))))
@@ -631,7 +684,8 @@
 		 (xform (get elts 'content))
 		 (if (eq? xform #t) (parse-arg (get elts 'content))
 		     (textsubst (get elts 'content) (qc xform))))
-	     (get elts 'content))
+	     (if (bound? xform) elts ;; Must be #f
+		 (get elts 'content)))
 	 (if (bound? dflt) dflt (fail)))))
 
 (define (dom/getlinks doc field (dflt))
@@ -660,22 +714,22 @@
   (if (pair? node)
       (dolist (elt node) (map0 elt fn))
       (begin (fn node)
-	     (dolist (elt (get node '%contents))
-	       (map0 elt fn)))))
+	     (dolist (elt (try (get node '%content) '()))
+	       (when (table? elt) (map0 elt fn))))))
 
 (define (map1 node fn arg)
   (if (pair? node)
       (dolist (elt node) (map1 elt fn (qc arg)))
       (begin (fn node)
-	     (dolist (elt (get node '%contents))
-	       (map1 elt fn (qc arg))))))
+	     (dolist (elt (try (get node '%content) '()))
+	       (when (table? elt) (map1 elt fn (qc arg)))))))
 
 (define (mapn node fn args)
   (if (pair? node)
       (dolist (elt node) (mapn elt fn args))
       (begin (apply fn node args)
-	     (dolist (elt (get node '%contents))
-	       (mapn elt fn args)))))
+	     (dolist (elt (try (get node '%content) '()))
+	       (when (table? elt) (mapn elt fn args))))))
 
 (defambda (dom/map node fn (arg) . args)
   (do-choices node
@@ -758,44 +812,71 @@
 
 (define dompool #f)
 
-(define (dom/oidify node (pool dompool) (doc #f) (parent #f))
+(define (oidify/copy node pool (doc #f) (parent #f))
+  (if (slotmap? node)
+      (try (get node '%oid)
+	   (let* ((oid (frame-create pool))
+		  (slotids (getkeys node))
+		  (cur #f) (prev #f))
+	     (when parent (store! oid '%parent parent))
+	     (store! oid '%oid oid)
+	     (store! node '%oid oid)
+	     (when doc (store! oid '%doc doc))
+	     (when (test node '%content)
+	       (store! oid '%content
+		       (->list
+			(forseq (elt (->vector (get node '%content)))
+			  (when (slotmap? elt)
+			    (set! cur (oidify/copy elt pool doc oid))
+			    (when (oid? cur)
+			      (when prev (store! prev 'next cur) (store! cur 'prev prev))
+			      (set! prev cur)))
+			  (if (slotmap? elt) cur elt)))))
+	     (do-choices (slotid (difference slotids '%content))
+	       (store! oid slotid (%get node slotid)))
+	     (unless (test oid '%id)
+	       (store! oid '%id (dom/nodeid oid)))
+	     (store! oid '%children
+		     (pickoids (elts (get oid '%content))))
+	     oid))
+      node))
+
+(define (oidify/inplace node pool (doc #f) (parent #f))
+  (if (slotmap? node)
+      (try (get node '%oid)
+	   (let ((oid (allocate-oids pool)) (cur #f) (prev #f)
+		 (content (try (->vector (get node '%content)) #f)))
+	     ;; (logdebug "Allocated " oid " for " (get node 'id))
+	     (store! node '%oid oid)
+	     (set-oid-value! oid node #t)
+	     (when parent (store! node '%parent parent))
+	     (when doc (store! node '%doc doc))
+	     (when content
+	       (store! node '%content
+		       (->list
+			(forseq (elt content)
+			  (if (slotmap? elt)
+			      (begin
+				(set! cur (oidify/inplace elt pool doc oid))
+				(when prev
+				  (store! prev 'next cur)
+				  (store! cur 'prev prev))
+				(set! prev cur)
+				cur)
+			      elt)))))
+	     (unless (test node '%id)
+	       (store! oid '%id (dom/nodeid oid)))
+	     (store! oid '%children
+		     (pickoids (elts (get node '%content))))
+	     oid))
+      node))
+
+(define (dom/oidify node (pool dompool) (inplace #t) (doc #f) (parent #f) )
   (if (eq? pool #t) (set! pool dompool))
   (if (not pool) node
-      (if (or (oid? node) (immediate? node) (number? node) (string? node))
-	  node
-	  (if (slotmap? node)
-	      (try (get node '%oid)
-		   (let* ((oid (frame-create pool))
-			  (slotids (getkeys node))
-			  (cur #f) (prev #f))
-		     (when parent (store! oid '%parent parent))
-		     (store! oid '%oid oid)
-		     (store! node '%oid oid)
-		     (when doc (store! oid '%doc doc))
-		     (when (test node '%content)
-		       (store! oid '%content
-			       (forseq (elt (get node '%content))
-				 (set! cur (dom/oidify elt pool (or doc oid) oid))
-				 (when (oid? cur)
-				   (when prev (store! prev 'next cur) (store! cur 'prev prev))
-				   (set! prev cur))
-				 cur)))
-		     (do-choices (slotid (difference slotids '%content))
-		       (store! oid slotid (%get node slotid)))
-		     (unless (test oid '%id)
-		       (store! oid '%id (dom/nodeid oid)))
-		     (store! oid '%children
-			     (pickoids (elts (get oid '%content))))
-		     oid))
-	      (if (pair? node)
-		  (if (proper-list? node)
-		      (forseq (elt (get node '%content))
-			(dom/oidify elt pool doc parent))
-		      (cons (qc (dom/oidify (car node) pool doc parent))
-			    (qc (dom/oidify (cdr node) pool doc parent))))
-		  (if (vector? node)
-		      (forseq (elt node) (dom/oidify elt pool doc parent))
-		      node))))))
+      (if inplace
+	  (oidify/inplace node pool doc parent)
+	  (oidify/copy node pool doc parent))))
 
 ;; This returns a hashtable containing the OID value mappings for an
 ;;  OIDified DOM tree.  As a bit of a kludge, as long as this is

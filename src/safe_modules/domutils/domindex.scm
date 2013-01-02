@@ -13,8 +13,8 @@
 
 (module-export! '{dom/index! dom/indexer})
 
-(define %loglevel %notice!)
-(define default-dom-slots '{id class name})
+(define %loglevel %notice%)
+(define default-dom-slots '{id class name href src rel})
 
 (define default-indexrules (make-hashtable))
 (define (indexrule-config var (val))
@@ -73,18 +73,16 @@
 			 (pick indexrules hashtable?))))
 	    ;;(%WATCH "DOMINDEXER" indexval indexslots eltinfo slots rules)
 	    (when idmap (add! idmap (get xml 'id) xml))
-	    (add! index (cons 'has slots) indexval)
+	    (add! index (cons 'has {(getkeys xml) (get xml '%attribids)}) indexval)
 	    (add! index (cons 'parent parent) indexval)
 	    (add! index (cons 'parents parents) indexval)
 	    (when (exists? indexval)
 	      (add! index (cons '%doc doc) indexval)
-	      (do-choices (slotid slots)
+	      (do-choices (slotid (reject slots rules))
+		(add! index (cons slotid (get xml slotid)) indexval))
+	      (do-choices (slotid (pick slots rules))
 		(add! index
-		      (if (test rules slotid)
-			  (cons slotid
-				((get rules slotid)
-				 (get xml slotid)))
-			  (cons slotid (get xml slotid)))
+		      (cons slotid ((get rules slotid) (get xml slotid)))
 		      indexval))
 	      (do-choices (analyzer (choice (pick eltinfo procedure?)
 					    analyzers))
