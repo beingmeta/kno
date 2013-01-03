@@ -30,6 +30,8 @@ extern my_bool my_init(void);
 
 static fdtype sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
 static fdtype sslciphers_symbol, port_symbol, reconnect_symbol;
+static fdtype timeout_symbol, connect_timeout_symbol;
+static fdtype read_timeout_symbol, write_timeout_symbol;
 
 static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
@@ -112,6 +114,8 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 
 static my_bool default_reconnect=0;
 
+static int preopen(struct FD_MYSQL *db,fdtype options);
+
 /* Everything but the hostname and dbname is optional.
    In theory, we could have the dbname be optional, but for now we'll
    require it.  */
@@ -122,7 +126,7 @@ static fdtype open_mysql
 {
   MYSQL *db;
   char *host, *username, *passwd, *dbstring, *sockname;
-  int portno=0, flags=0;
+  int portno=0, flags=0, retval;
   struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
   my_bool reconnect=0;
   /* Initialize the cons (does a memset too) */
@@ -131,8 +135,10 @@ static fdtype open_mysql
   dbp->db=mysql_init(&(dbp->_db));
   if ((dbp->db)==NULL) {
     const char *errmsg=mysql_error(&(dbp->_db));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    u8_seterr(MySQL_Error,"open_mysql/init",u8_strdup(errmsg));
     return FD_ERROR_VALUE;}
+  else retval=preopen(dbp,options);
+  if (retval<0) return FD_ERROR_VALUE;
 
   /* If the hostname looks like a filename, we assume it's a Unix domain
      socket. */
@@ -146,6 +152,86 @@ static fdtype open_mysql
   passwd=((FD_VOIDP(password)) ? (NULL) : (FD_STRDATA(password)));
   flags=0;
 
+  /* Try to connect */
+  u8_lock_mutex(&mysql_connect_lock);
+  db=mysql_real_connect
+    (dbp->db,host,username,passwd,dbstring,dbp->portno,sockname,flags);
+  u8_unlock_mutex(&mysql_connect_lock);
+
+  if (db==NULL) {
+    const char *errmsg=mysql_error(&(dbp->_db));
+    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    mysql_close(dbp->db); u8_free(dbp);
+    return FD_ERROR_VALUE;} 
+
+  /* Initialize the other fields */
+  dbp->dbhandler=&mysql_handler;
+  dbp->hostname=dupstring(host);
+  dbp->username=dupstring(username);
+  dbp->passwd=dupstring(passwd);
+  dbp->dbstring=dupstring(dbstring);
+  dbp->sockname=dupstring(sockname);
+  dbp->portno=portno;
+  dbp->flags=flags;
+  dbp->colinfo=fd_incref(colinfo);
+  dbp->spec=u8_strdup(FD_STRDATA(hostname));
+  dbp->options=options; fd_incref(options);
+  dbp->info=
+    u8_mkstring("%s;client %s",
+		mysql_get_host_info(db),
+		mysql_get_client_info());
+  dbp->startup=u8_elapsed_time();
+
+  u8_init_mutex(&dbp->proclock);
+  u8_init_mutex(&dbp->lock);
+
+  return FDTYPE_CONS(dbp);
+}
+
+static int reopen_mysql(struct FD_MYSQL *c)
+{
+  double now=u8_elapsed_time(); int retval=0;
+  MYSQL *db;
+  u8_lock_mutex(&mysql_connect_lock);
+  if (now<c->startup) {
+    u8_unlock_mutex(&mysql_connect_lock);
+    return 0;}
+  u8_log(LOG_WARN,"reopen_mysql",
+	 "Reopening MYSQL connection to '%s' (%s)",
+	 c->spec,c->info);
+  mysql_close(c->db); c->db=NULL;
+  c->db=mysql_init(&(c->_db));
+
+  if (c->db==NULL) {
+    const char *errmsg=mysql_error(&(c->_db));
+    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
+    return FD_ERROR_VALUE;}
+  else retval=preopen(c,c->options);
+  if (retval<0) return FD_ERROR_VALUE;
+
+  db=mysql_real_connect
+    (c->db,c->hostname,c->username,c->passwd,
+     c->dbstring,c->portno,c->sockname,c->flags);
+  if (db==NULL) {
+    const char *errmsg=mysql_error(db);
+    u8_seterr(MySQL_Error,"reopen_mysql",u8_strdup(errmsg));
+    u8_unlock_mutex(&mysql_connect_lock);
+    return -1;}
+  else c->db=db;
+  u8_lock_mutex(&(c->proclock)); {
+    int i=0, n=c->n_procs;
+    struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)c->procs;
+    while (i<n) reinit_mysqlproc(c,procs[i++]);
+    c->startup=u8_elapsed_time();
+    u8_unlock_mutex(&(c->proclock)); 
+    u8_unlock_mutex(&mysql_connect_lock);
+    return 1;}
+}
+
+static int preopen(struct FD_MYSQL *dbp,fdtype options)
+{
+  my_bool reconnect; int retval=0; u8_string option=NULL;
+  int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
     fdtype reconn=fd_getopt(options,reconnect_symbol,FD_VOID);
@@ -154,7 +240,18 @@ static fdtype open_mysql
     fdtype sslkey=fd_getopt(options,sslkey_symbol,FD_VOID);
     fdtype sslcadir=fd_getopt(options,sslcadir_symbol,FD_VOID);
     fdtype sslciphers=fd_getopt(options,sslciphers_symbol,FD_VOID);
-    portno=((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
+    fdtype toval=fd_getopt(options,timeout_symbol,FD_VOID);
+    fdtype ctoval=fd_getopt(options,connect_timeout_symbol,FD_VOID);
+    fdtype rtoval=fd_getopt(options,read_timeout_symbol,FD_VOID);
+    fdtype wtoval=fd_getopt(options,write_timeout_symbol,FD_VOID);    
+    dbp->portno=((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
+    if (FD_FIXNUMP(toval)) timeout=FD_FIX2INT(toval);
+    if (FD_FIXNUMP(ctoval)) ctimeout=FD_FIX2INT(ctoval);
+    else ctimeout=timeout;
+    if (FD_FIXNUMP(rtoval)) rtimeout=FD_FIX2INT(rtoval);
+    else rtimeout=timeout;
+    if (FD_FIXNUMP(wtoval)) wtimeout=FD_FIX2INT(wtoval);
+    else wtimeout=timeout;
     if (!((FD_VOIDP(sslca))&&(FD_VOIDP(sslcert))&&
 	  (FD_VOIDP(sslkey))&&(FD_VOIDP(sslcadir))&&
 	  (FD_VOIDP(sslciphers)))) {
@@ -180,86 +277,29 @@ static fdtype open_mysql
       else reconnect=1;}
     else reconnect=default_reconnect;}
 
-  /* Try to connect */
-  u8_lock_mutex(&mysql_connect_lock);
-  db=mysql_real_connect
-    (dbp->db,host,username,passwd,dbstring,portno,sockname,flags);
-  u8_unlock_mutex(&mysql_connect_lock);
+  option="charset";
+  retval=mysql_options(dbp->db,MYSQL_SET_CHARSET_NAME,"utf8");
+  if (retval==0) {
+    option="reconnect";
+    retval=mysql_options(dbp->db,MYSQL_OPT_RECONNECT,&reconnect);}
+  
+  if ((retval==0)&&(ctimeout>0)) {
+    unsigned int v=ctimeout; option="connect timeout";
+    retval=mysql_options(dbp->db,MYSQL_OPT_CONNECT_TIMEOUT,&v);}
+  if ((retval==0)&&(rtimeout>0)) {
+    unsigned int v=rtimeout; option="read timeout";
+    retval=mysql_options(dbp->db,MYSQL_OPT_READ_TIMEOUT,&v);}
+  if ((retval==0)&&(wtimeout>0)) {
+    unsigned int v=wtimeout; option="write timeout";
+    retval=mysql_options(dbp->db,MYSQL_OPT_WRITE_TIMEOUT,&v);}
 
-  if (db==NULL) {
-    const char *errmsg=mysql_error(&(dbp->_db));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
-    mysql_close(dbp->db); u8_free(dbp);
-    return FD_ERROR_VALUE;} 
-
-  if (mysql_set_character_set(dbp->db,"utf8")) {
-    const char *errmsg=mysql_error(&(dbp->_db));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
-    mysql_close(dbp->db);
-    u8_free(dbp);
-    return FD_ERROR_VALUE;}
-
-  if (mysql_options(dbp->db,MYSQL_OPT_RECONNECT,&reconnect)) {
+  if (retval) {
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
     mysql_close(dbp->db);
     u8_free(dbp);
-    return FD_ERROR_VALUE;}
-
-  /* Initialize the other fields */
-  dbp->dbhandler=&mysql_handler;
-  dbp->hostname=dupstring(host);
-  dbp->username=dupstring(username);
-  dbp->passwd=dupstring(passwd);
-  dbp->dbstring=dupstring(dbstring);
-  dbp->sockname=dupstring(sockname);
-  dbp->portno=portno;
-  dbp->flags=flags;
-  dbp->colinfo=fd_incref(colinfo);
-  dbp->spec=u8_strdup(FD_STRDATA(hostname));
-  dbp->info=
-    u8_mkstring("%s;client %s",
-		mysql_get_host_info(db),
-		mysql_get_client_info());
-  dbp->startup=u8_elapsed_time();
-
-  u8_init_mutex(&dbp->proclock);
-  u8_init_mutex(&dbp->lock);
-
-  return FDTYPE_CONS(dbp);
-}
-
-static int reopen_mysql(struct FD_MYSQL *c)
-{
-  double now=u8_elapsed_time();
-  MYSQL *db;
-  u8_lock_mutex(&mysql_connect_lock);
-  if (now<c->startup) {
-    u8_unlock_mutex(&mysql_connect_lock);
-    return 0;}
-  u8_log(LOG_WARN,"reopen_mysql",
-	 "Reopening MYSQL connection to '%s' (%s)",
-	 c->spec,c->info);
-  mysql_close(c->db); c->db=NULL;
-  c->db=mysql_init(&(c->_db));
-
-  db=mysql_real_connect
-    (c->db,c->hostname,c->username,c->passwd,
-     c->dbstring,c->portno,c->sockname,c->flags);
-  if (db==NULL) {
-    const char *errmsg=mysql_error(db);
-    u8_seterr(MySQL_Error,"reopen_mysql",u8_strdup(errmsg));
-    u8_unlock_mutex(&mysql_connect_lock);
     return -1;}
-  else c->db=db;
-  u8_lock_mutex(&(c->proclock)); {
-    int i=0, n=c->n_procs;
-    struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)c->procs;
-    while (i<n) reinit_mysqlproc(c,procs[i++]);
-    c->startup=u8_elapsed_time();
-    u8_unlock_mutex(&(c->proclock)); 
-    u8_unlock_mutex(&mysql_connect_lock);
-    return 1;}
+  else return 1;
 }
 
 static void recycle_mysqldb(struct FD_EXTDB *c)
@@ -281,7 +321,7 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
   i=0; while (i<n_procs) {fdtype proc=toremove[i++]; fd_decref(proc);}
 
   u8_free(dbp->procs);
-  fd_decref(dbp->colinfo);
+  fd_decref(dbp->colinfo); fd_decref(dbp->options);
   u8_free(dbp->spec); u8_free(dbp->info);
   u8_destroy_mutex(&(dbp->proclock));
   u8_destroy_mutex(&(dbp->lock));
@@ -1209,6 +1249,11 @@ FD_EXPORT int fd_init_mysql()
   sslcadir_symbol=fd_intern("SSLCADIR");
   sslciphers_symbol=fd_intern("SSLCIPHERS");
 
+  timeout_symbol=fd_intern("TIMEOUT");
+  connect_timeout_symbol=fd_intern("CONNECT-TIMEOUT");
+  read_timeout_symbol=fd_intern("READ-TIMEOUT");
+  write_timeout_symbol=fd_intern("WRITE-TIMEOUT");
+  
   fd_finish_module(module);
 
   fd_register_config("MYSQL:RECONNECT",

@@ -9,12 +9,12 @@
 FD_EXPORT fd_ptr_type fd_extdb_type;
 FD_EXPORT fd_ptr_type fd_extdb_proc_type;
 
-#define FD_EXTDB_FIELDS   \
-  FD_CONS_HEADER;         \
-  u8_string spec, info;   \
-  fdtype colinfo;         \
-  u8_mutex proclock;      \
-  int n_procs, max_procs; \
+#define FD_EXTDB_FIELDS     \
+  FD_CONS_HEADER;           \
+  u8_string spec, info;     \
+  fdtype colinfo, options;  \
+  u8_mutex proclock;        \
+  int n_procs, max_procs;   \
   struct FD_EXTDB_PROC **procs; \
   struct FD_EXTDB_HANDLER *dbhandler;
 

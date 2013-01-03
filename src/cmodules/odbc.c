@@ -95,7 +95,7 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
 		  (void *) SQL_OV_ODBC3, 0);
     ret=SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
-    dbp->spec=u8_strdup(FD_STRDATA(spec));
+    dbp->spec=u8_strdup(FD_STRDATA(spec)); dbp->options=FD_VOID;
     dbp->info=u8_malloc(512); strcpy(dbp->info,"uninitialized");
     u8_init_mutex(&(dbp->proclock));
     dbp->dbhandler=&odbc_handler;

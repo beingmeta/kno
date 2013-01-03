@@ -78,7 +78,7 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
     struct FD_SQLITE *sqlcons=u8_alloc(struct FD_SQLITE);
     FD_INIT_FRESH_CONS(sqlcons,fd_extdb_type);
     sqlcons->dbhandler=&sqlite_handler; sqlcons->colinfo=colinfo;
-    sqlcons->db=db;
+    sqlcons->db=db; sqlcons->options=FD_VOID;
     sqlcons->spec=sqlcons->info=u8_strdup(FD_STRDATA(filename));
     u8_init_mutex(&(sqlcons->lock));
     u8_init_mutex(&(sqlcons->proclock));
