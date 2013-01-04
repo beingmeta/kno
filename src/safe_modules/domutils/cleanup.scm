@@ -142,6 +142,8 @@
 
 ;;; Merge text
 
+(define block-tags '{DIV P BLOCKQUOTE UL OL HEAD BODY DL})
+
 (define (mergetext! node (textfn #f) (depth 0))
   (when (test node '%content)
     (let ((vec (->vector (get node '%content)))
@@ -161,7 +163,8 @@
 	    (set! merged (cons elt merged))))
       (when (and newfn (string? (car merged)))
 	(set-car! merged (newfn (car merged) depth elt node)))
-      (when (and newfn (> depth 1) (not (empty-string? (car merged))))
+      (when (and newfn (> depth 1) (not (empty-string? (car merged)))
+		 (test node '%xmltag block-tags))
 	(set! merged
 	      (if (not (string? (car merged)))
 		  (cons (glom "\n" (make-string (* 2 (-1+ depth)) #\Space))
