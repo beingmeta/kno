@@ -43,6 +43,7 @@ int fd_dbconn_cap_default=FD_DBCONN_CAP_DEFAULT;
 int fd_dbconn_init_default=FD_DBCONN_INIT_DEFAULT;
 
 static fdtype id_symbol;
+static fdtype lookupfns=FD_EMPTY_CHOICE;
 
 static int fddb_initialized=0;
 
@@ -52,6 +53,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     u8_byte *scan=start+2;
     fdtype name=fd_parse(scan);
     if (scan-start>len) return FD_VOID;
+    else if (FD_ABORTP(name)) return name;
     else if (fd_background) {
       fdtype key=fd_init_pair(NULL,id_symbol,fd_incref(name));
       fdtype item=fd_index_get((fd_index)fd_background,key);
@@ -60,10 +62,33 @@ static fdtype better_parse_oid(u8_string start,int len)
       else if (FD_CHOICEP(item)) {
 	fd_decref(item);
 	return fd_err(fd_AmbiguousObjectName,"better_parse_oid",NULL,name);}
-      else {
+      else if (!((FD_EMPTY_CHOICEP(item))||(FD_FALSEP(item)))) {
 	fd_decref(item);
-	return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}}
-    else return fd_err(fd_NoBackground,"better_parse_oid",NULL,name);}
+	return fd_type_error("oid","better_parse_oid",item);}}
+    else {}
+    if (lookupfns!=FD_EMPTY_LIST) {
+      FD_DOLIST(method,lookupfns) {
+	if ((FD_SYMBOLP(method))||(FD_OIDP(method))) {
+	  fdtype key=fd_init_pair(NULL,method,fd_incref(name));
+	  fdtype item=fd_index_get((fd_index)fd_background,key);
+	  fd_decref(key);
+	  if (FD_OIDP(item)) return item;
+	  else if (!((FD_EMPTY_CHOICEP(item))||
+		     (FD_FALSEP(item))||
+		     (FD_VOIDP(item)))) continue;
+	  else return fd_type_error("oid","better_parse_oid",item);}
+	else if (FD_APPLICABLEP(method)) {
+	  fdtype item=fd_apply(method,1,&name);
+	  if (FD_ABORTP(item)) return item;
+	  else if (FD_OIDP(item)) return item;
+	  else if ((FD_EMPTY_CHOICEP(item))||
+		   (FD_FALSEP(item))||
+		   (FD_VOIDP(item))) continue;
+	  else return fd_type_error("oid","better_parse_oid",item);}
+	else return fd_type_error("lookup method","better_parse_oid",method);}
+      return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}
+    else {
+      return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}}
   else if (((strchr(start,'/')))&&
 	   (((u8_string)strchr(start,'/'))<(start+len))) {
     FD_OID base=FD_NULL_OID_INIT, result=FD_NULL_OID_INIT;
@@ -511,6 +536,10 @@ FD_EXPORT int fd_init_db()
 		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_cap_default);
   fd_register_config("DBCONNINIT",_("Number of connections (default) to initially create for each DB server"),
 		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_init_default);
+
+  fd_register_config("LOOKUPOID",
+		     _("Functions and slotids for lookup up objects by name (@?name)"),
+		     fd_lconfig_get,fd_lconfig_push,&lookupfns);
 
   return fddb_initialized;
 }

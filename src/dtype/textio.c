@@ -656,6 +656,8 @@ FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len)
   return default_parse_oid(string,len);
 }
 
+static int copy_string(u8_input s,u8_output a);
+
 /* This is the function called from the main parser loop. */
 static fdtype parse_oid(U8_INPUT *in)
 { 
@@ -665,7 +667,11 @@ static fdtype parse_oid(U8_INPUT *in)
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
   c=copy_atom(in,&tmpbuf);
-  if (tmpbuf.u8_outptr<tmpbuf.u8_outbuf)
+  if ((c=='"')&&((tmpbuf.u8_outptr-tmpbuf.u8_outbuf)==2)&&
+      (buf[0]=='@')&&(ispunct(buf[1]))&&
+      (strchr("(){}[]<>",buf[1])==NULL)) {
+    copy_string(in,&tmpbuf); c='@';}
+  if (tmpbuf.u8_outptr<=tmpbuf.u8_outbuf)
     return FD_EOX;
   else if (oid_parser)
     result=oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -761,6 +767,29 @@ static fdtype parse_packet(U8_INPUT *in)
   u8_free(data);
   if (c<0) return FD_EOX;
   else return FD_PARSE_ERROR;
+}
+
+static int copy_string(u8_input s,u8_output a)
+{
+  int c=u8_getc(s), vbar=0;
+  if (c!='"') return c;
+  u8_putc(a,c);
+  while ((c=u8_getc(s))>=0) {
+      if (c == '"') {
+	u8_putc(a,c);
+	return c;}
+      else if (c == '\\') {
+	int nextc=u8_getc(s);
+	if (nextc=='\n') {
+	  while (u8_isspace(nextc)) nextc=u8_getc(s);
+	  u8_putc(a,nextc);
+	  continue;}
+	else u8_ungetc(s,nextc);
+	c=read_escape(s);
+	if (c<0) return c;
+	u8_putc(a,c);}
+      else u8_putc(a,c);}
+  return c;
 }
 
 /* Compound object parsing */
