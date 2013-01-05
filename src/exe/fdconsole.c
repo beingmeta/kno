@@ -216,7 +216,12 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
 
 static fdtype top_parse(u8_input in)
 {
-  return fd_parser(in);
+  fdtype expr=fd_parser(in);
+  if ((expr==FD_EOX)||(expr==FD_EOF)) {
+    if (in->u8_inptr>in->u8_inbuf)
+      return fd_err(fd_ParseError,"top_parse",NULL,expr);
+    else return expr;}
+  else return expr;
 }
 
 static void exit_fdconsole()
