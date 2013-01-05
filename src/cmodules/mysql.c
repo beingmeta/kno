@@ -2,7 +2,7 @@
 
 /* mysql.c
    This implements FramerD bindings to mysql.
-   Copyright (C) 2007-2012 beingmeta, inc.
+   Copyright (C) 2007-2013 beingmeta, inc.
 */
 
 #ifndef _FILEINFO

@@ -1,12 +1,12 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
+;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico/dterms)
+;;; Computing disambiguated terms (e.g. term+disambig) for human
+;;; readable concepts
 
 ;;; FIND-DTERM and friends try to compute dterms using the ontology
-(define revision "$Id$")
-(define revision "$Revision$")
-
 (module-export!
  '{find-dterm
    displayterm 

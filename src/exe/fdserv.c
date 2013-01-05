@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2012 beingmeta, inc.
+/* Copyright (C) 2004-2013 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1458,7 +1458,7 @@ int main(int argc,char **argv)
 	 "FramerD (%s) fdserv servlet running, %d/%d pools/indices",
 	 FRAMERD_REV,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2012, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
   u8_server_loop(&fdwebserver);
 
   shutdown_server("exit");

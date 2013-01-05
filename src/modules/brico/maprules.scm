@@ -1,10 +1,9 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
 
+;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
+
+;;; Managing custom maps into BRICO
 (in-module 'brico/maprules)
-
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (module-export! '{custom-map-name custom-map-language custom-map-handler})
 (module-export! '{custom-get conform-maprule})

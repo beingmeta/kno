@@ -1,10 +1,9 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
+;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico)
-
-(define version "$Id$")
-(define revision "$Revision$")
+;;; Using the BRICO database from FramerD
 
 (define %nosubst '{bricosource
 		   brico-pool brico-index brico.db

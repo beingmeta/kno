@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2012 beingmeta, inc.
+/* Copyright (C) 2004-2013 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -938,7 +938,7 @@ int main(int argc,char **argv)
 	   FRAMERD_REV,fd_n_pools,
 	   fd_n_primary_indices+fd_n_secondary_indices);
     u8_message
-      ("beingmeta FramerD, (C) beingmeta 2004-2012, all rights reserved");
+      ("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
     u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
     u8_server_loop(&dtype_server); normal_exit=1;
     u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop",n_ports);

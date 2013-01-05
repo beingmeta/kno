@@ -1,10 +1,9 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+
+;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico/analytics)
-
-(define version "$Id$")
-(define revision "$Revision$")
+;;; Basic term logic over BRICO
 
 (use-module '{brico texttools})
 

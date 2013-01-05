@@ -2,7 +2,7 @@
 
 /* texttools.c
    This is the core texttools file for the FDB library
-   Copyright (C) 2005-2012 beingmeta, inc.
+   Copyright (C) 2005-2013 beingmeta, inc.
 */
 
 #ifndef _FILEINFO
