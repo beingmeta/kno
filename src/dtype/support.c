@@ -125,7 +125,26 @@ static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
 int config_set(u8_string var,fdtype val)
 {
   fdtype symbol=config_intern(var);
-  return fd_store(configuration_table,symbol,val);
+  fdtype current=fd_get(configuration_table,symbol,FD_VOID);
+  if (FD_VOIDP(current)) {
+    if (FD_PAIRP(val)) {
+      fdtype pairpair=fd_make_pair(val,FD_EMPTY_LIST);
+      int rv=fd_store(configuration_table,symbol,pairpair);
+      fd_decref(pairpair);
+      return rv;}
+    else return fd_store(configuration_table,symbol,val);}
+  else if (FD_PAIRP(current)) {
+    fdtype pairpair=fd_make_pair(val,current);
+    int rv=fd_store(configuration_table,symbol,pairpair);
+    fd_decref(pairpair);
+    return rv;}
+  else if (FD_EQUAL(current,val)) return 0;
+  else {
+    fdtype cdr=fd_make_pair(current,FD_EMPTY_LIST);
+    fdtype pairpair=fd_make_pair(val,cdr);
+    int rv=fd_store(configuration_table,symbol,pairpair);
+    fd_decref(cdr); fd_decref(pairpair);
+    return rv;}
 }
 
 /* File-based configuration */
@@ -185,7 +204,11 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
-      retval=scan->config_set_method(symbol,val,scan->data);
+      if (FD_PAIRP(val)) {
+	fdtype pairpair=fd_make_pair(val,FD_EMPTY_LIST);
+	retval=scan->config_set_method(symbol,pairpair,scan->data);
+	fd_decref(pairpair);}
+      else retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
   if (scan==NULL) return config_set(var,val);
@@ -266,8 +289,26 @@ FD_EXPORT int fd_register_config
   if (FD_ABORTP(current)) {
     fd_clear_errors(1);
     retval=-1;}
-  else if (!(FD_VOIDP(current)))
-    retval=setfn(symbol,current,data);
+  else if (!(FD_VOIDP(current))) {
+    FD_DO_CHOICES(c,current) {
+      if (retval<0) {
+	fd_decref(current); return retval;}
+      else if (FD_PAIRP(c)) {
+	/* There have been multiple configuration specifications,
+	   so run them all backwards. */
+	int n=0; fdtype *vals, *write;
+	{FD_DOLIST(cv,c) n++;}
+	vals=u8_alloc_n(n,fdtype); write=vals;
+	{FD_DOLIST(cv,c) *write++=cv;}
+	while ((n--)>0) {
+	  if (retval<0) {
+	    u8_free(vals); fd_decref(current);
+	    return retval;}
+	  else retval=setfn(symbol,vals[n],data);}
+	fd_decref(current); u8_free(vals);
+	return retval;}
+     else retval=setfn(symbol,current,data);}}
+  else {}
   fd_decref(current);
   return retval;
 }
