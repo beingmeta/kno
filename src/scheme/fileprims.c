@@ -601,7 +601,7 @@ static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
 
 /* Temporary directories */
 
-static u8_string tmpdir_template=NULL;
+static u8_string tempdir_template=NULL;
 
 static char *get_tmpdir()
 {
@@ -612,29 +612,50 @@ static char *get_tmpdir()
   else return "/tmp";
 }
 
+static fdtype tempdir_get(fdtype sym,void *ignore)
+{
+  if (tempdir_template) return fd_lispstring(tempdir_template);
+  else return FD_EMPTY_CHOICE;
+}
+
+static int tempdir_set(fdtype sym,fdtype value,void *ignore)
+{
+  int len; u8_string template, old_template=tempdir_template;
+  if (!(FD_STRINGP(value))) {
+    fd_type_error("string","tempdir_set",value);
+    return -1;}
+  if ((FD_STRDATA(value)[0])!='/')
+    u8_log(LOG_WARN,"BADTEMPLATE",
+	   "Setting template to a relative file path");
+  len=FD_STRLEN(value);
+  if (!((len>7)&&(strcmp("XXXXXX",FD_STRDATA(value)+(len-6))==0))) {
+    if (!(strchr(FD_STRDATA(value)+1,'/')))
+      template=u8_string_append(FD_STRDATA(value),"/","fdXXXXXX",NULL);
+    else template=u8_string_append(FD_STRDATA(value),"XXXXXX",NULL);
+    if ((tempdir_template)&&(strcmp(template,tempdir_template)==0)) {
+      u8_free(template);
+      return 0;}}
+  else template=u8_strdup(FD_STRDATA(value));
+  tempdir_template=template;
+  if (old_template) u8_free(old_template);
+  return 1;
+}
+
 static fdtype tempdir_prim(fdtype template)
 {
   char *tmpdir=get_tmpdir();
-  u8_string tempstring=
-    ((FD_STRINGP(template))?(FD_STRDATA(template)):
-     (tmpdir_template)?(u8_strdup(tmpdir_template)):
-     (u8_mkpath(tmpdir,"fdtempXXXXXXXXXXX")));
-  u8_string buf=u8_strdup(tempstring);
+  u8_string buf=
+    ((FD_STRINGP(template))?(u8_strdup(FD_STRDATA(template))):
+     (tempdir_template)?(u8_strdup(tempdir_template)):
+     (u8_mkpath(tmpdir,"fdtempXXXXXX")));
   u8_string tempname=mkdtemp(buf);
-  if (tempname) return fd_lispstring(tempname);
+  if (tempname) {
+    fdtype dirname=fd_lispstring(tempname);
+    return dirname;}
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"tempdir_prim",NULL,template);}
 }
-
-#if 0
-static fdtype mktemp_prim(fdtype template)
-{
-  u8_string buf=u8_strdup(FD_STRDATA(template));
-  mktemp(buf);
-  return fd_lispstring(buf);
-}
-#endif
 
 static fdtype runfile_prim(fdtype suffix)
 {
@@ -1819,6 +1840,10 @@ FD_EXPORT void fd_init_fileio_c()
     ("SAFELOADPATH","Directories/URIs to search for sandbox modules",
      fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
   
+  fd_register_config
+    ("TEMPDIR","Template for generating temporary directory names",
+     tempdir_get,tempdir_set,&tempdir_template);
+
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));
   fd_idefn(fileio_module,
