@@ -254,7 +254,8 @@ FD_EXPORT int fd_register_config
    int (*setfn)(fdtype,fdtype,void *),
    void *data)
 {
-  fdtype symbol=config_intern(var), current; int retval=0;
+  fdtype symbol=config_intern(var), current=FD_VOID;
+  int retval=0;
   struct FD_CONFIG_HANDLER *scan;
   fd_lock_mutex(&config_register_lock);
   scan=config_handlers;
@@ -265,7 +266,7 @@ FD_EXPORT int fd_register_config
 	   Possibly not the right thing. */
 	if (scan->doc) u8_free(scan->doc);
 	scan->doc=u8_strdup(doc);}
-      /* Get the 'current' value which  */
+      /* Get the 'current' value which is computed */
       if (scan->config_get_method)
 	current=(scan->config_get_method)(symbol,(void *)scan->data);
       else current=config_get(var);
@@ -300,7 +301,8 @@ FD_EXPORT int fd_register_config
 	{FD_DOLIST(cv,c) n++;}
 	vals=u8_alloc_n(n,fdtype); write=vals;
 	{FD_DOLIST(cv,c) *write++=cv;}
-	while ((n--)>0) {
+	while (n>0) {
+	  n=n-1;
 	  if (retval<0) {
 	    u8_free(vals); fd_decref(current);
 	    return retval;}
