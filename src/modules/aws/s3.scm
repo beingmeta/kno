@@ -13,9 +13,10 @@
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
 (module-export! '{s3loc s3/getloc s3loc/s3uri
 		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
-		  s3loc/head s3loc/content s3loc/put s3loc/copy!})
+		  s3loc/head s3loc/content s3loc/put
+		  s3loc/copy! s3loc/link!})
 (module-export! '{s3/get s3/get+ s3/modified s3/bucket?
-		  s3/copy! s3/put s3/head s3/ctype s3/exists?})
+		  s3/copy! s3/link! s3/put s3/head s3/ctype s3/exists?})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -369,6 +370,28 @@
 	      ,(stringout "/" (s3loc-bucket src) 
 		 "/" (s3loc-path src)))))))
 (define s3/copy! s3loc/copy!)
+
+(define (s3loc/link! src loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (when (and (string? src) (not (has-prefix src {"http:" "https:" "ftp:"})))
+    (set! src (->s3loc src)))
+  (let* ((head (tryif (s3loc? src) (s3loc/head src)))
+	 (ctype (try (get head 'content-type)
+		     (path->mimetype
+		      (s3loc-path loc)
+		      (path->mimetype
+		       (if (s3loc? src) (s3loc-path src)
+			   (uripath src))
+		       "text")))))
+    (s3/op "PUT" (s3loc-bucket loc)
+	   (string-append "/" (s3loc-path loc))
+	   "" ctype
+	   `(("x-amz-website-redirect-location" .
+	      ,(if (s3loc? src)
+		   (stringout "/" (s3loc-bucket src) 
+		     "/" (s3loc-path src))
+		   src))))))
+(define s3/link! s3loc/link!)
 
 (define (s3loc/content loc (text #t))
   (when (string? loc) (set! loc (->s3loc loc)))
