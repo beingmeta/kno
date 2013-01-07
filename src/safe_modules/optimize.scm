@@ -1,6 +1,9 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2012 beingmeta, inc.  All rights reserved.
 
+;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
+
+;;; Optimizing code structures for the interpreter, including
+;;;  use of constant OPCODEs and relative lexical references
 (in-module 'optimize)
 
 ;; This module optimizes an expression or procedure by replacing
@@ -274,7 +277,9 @@
        (if (or (symbol? (car expr)) (pair? (car expr))
 	       (ambiguous? (car expr)))
 	   `(,(dotighten (car expr) env bound dolex dorail)
-	     ,@(tighten-args (cdr expr) env bound dolex dorail))
+	     . ,(if (pair? (cdr expr))
+		    (tighten-args (cdr expr) env bound dolex dorail)
+		    (cdr expr)))
 	   (tighten-args expr env bound dolex dorail)))
       expr))
 (defambda (tighten-args expr env bound dolex dorail)
