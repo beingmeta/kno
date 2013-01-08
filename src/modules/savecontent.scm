@@ -129,7 +129,7 @@
 	((pair? ref) (save/fetch (save/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (let ((response (urlget absref)))
+	 (let ((response (urlget ref)))
 	   (if (and (test response 'response)
 		    (<= 200 (get response 'response) 299)
 		    (get response '%content))
