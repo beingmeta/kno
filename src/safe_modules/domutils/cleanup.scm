@@ -91,7 +91,7 @@
 			      (string? (car hgroup)) (empty-string? (car hgroup)))
 		     (set! hgroup (cons "\n" (cdr hgroup))))
 		   (if (> headcount 1)
-		       (let ((node (deep-copy template)))
+		       (let ((node (deep-copy wrapper)))
 			 (store! node '%content (cons "\n" (reverse hgroup)))
 			 (mergeheads scan (cons* "\n" node "\n" output)))
 		       (mergeheads (cdr content) (cons (car content) output)))))
