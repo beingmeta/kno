@@ -29,6 +29,9 @@
 	      texttools mimetable})
 (define %loglevel %info!)
 
+(define gp/urlsubst {})
+(varconfig! gp:urlsubst gp/urlsubst #f)
+
 (define (guess-mimetype name (content))
   (or (path->mimetype (gp/basename name) #f)
       (if (bound? content)
@@ -232,7 +235,12 @@
 	(else (error "Weird docbase ref" ref))))
 
 (define (gp/fetchurl url (err #t) (max-redirects 10))
-  (let ((response (urlget url)))
+  (let* ((newurl (textsubst url (qc gp/urlsubst)))
+	 (err (and err
+		   (if (equal? url newurl)
+		       (cons url (if (pair? err) err '()))
+		       (cons* newurl (list url) (if (pair? err) err '())))))
+	 (response (urlget newurl)))
     (if (and (test response 'response)
 	     (<= 200 (get response 'response) 299)
 	     (get response '%content))
