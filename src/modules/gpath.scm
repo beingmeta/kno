@@ -6,7 +6,8 @@
  '{gp/write! gp/save!
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
-   gp/fetch gp/fetch+ gp/modified gp/exists? gp/fetchurl
+   gp/fetch gp/fetch+ gp/modified gp/exists?
+   gp/urlfetch gp/urlinfo
    gp/path gp/mkpath gp/makepath gpath->string
    gp/location gp/basename})
 
@@ -226,7 +227,7 @@
 	((pair? ref) (gp/fetch (gp/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (gp/fetchurl ref))
+	 (gp/urlfetch ref))
 	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
 	((string? ref)
 	 (if (or (has-prefix ctype "text") (search "xml" ctype))
@@ -234,7 +235,7 @@
 	     (filedata ref)))
 	(else (error "Weird docbase ref" ref))))
 
-(define (gp/fetchurl url (err #t) (max-redirects 10))
+(define (gp/urlfetch url (err #t) (max-redirects 10))
   (let* ((newurl (textsubst url (qc gp/urlsubst)))
 	 (err (and err
 		   (if (equal? url newurl)
@@ -247,13 +248,33 @@
 	(get response '%content)
 	(if (<= 300 (get response 'response) 399)
 	    (if (and (number? max-redirects) (> max-redirects 0))
-		(gp/fetchurl (get response 'location)
+		(gp/urlfetch (get response 'location)
 			     (and err (cons url (if (pair? err) err '())))
 			     (-1+ max-redirects))
 		(if err (error TOO_MANY_REDIRECTS url response)
 		    (begin (logwarn "Too many redirects: "
 				    (cons url err)))))
 	    (tryif err (error URLFETCH_FAILED url response))))))
+
+(define (gp/urlinfo url (err #t) (max-redirects 10))
+  (let* ((newurl (textsubst url (qc gp/urlsubst)))
+	 (err (and err
+		   (if (equal? url newurl)
+		       (cons url (if (pair? err) err '()))
+		       (cons* newurl (list url) (if (pair? err) err '())))))
+	 (response (urlhead newurl)))
+    (if (and (test response 'response)
+	     (<= 200 (get response 'response) 299))
+	response
+	(if (<= 300 (get response 'response) 399)
+	    (if (and (number? max-redirects) (> max-redirects 0))
+		(gp/urlinfo (get response 'location)
+			    (and err (cons url (if (pair? err) err '())))
+			    (-1+ max-redirects))
+		(if err (error TOO_MANY_REDIRECTS url response)
+		    (begin (logwarn "Too many redirects: "
+				    (cons url err)))))
+	    response))))
 
 (define (gp/fetch+ ref (ctype))
   (default! ctype (guess-mimetype (get-namestring ref)))
