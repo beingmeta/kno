@@ -204,11 +204,7 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
-      if (FD_PAIRP(val)) {
-	fdtype pairpair=fd_make_pair(val,FD_EMPTY_LIST);
-	retval=scan->config_set_method(symbol,pairpair,scan->data);
-	fd_decref(pairpair);}
-      else retval=scan->config_set_method(symbol,val,scan->data);
+      retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
   if (scan==NULL) return config_set(var,val);
