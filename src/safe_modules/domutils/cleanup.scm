@@ -140,7 +140,11 @@
 	    node)
 	  node)))
 
-;;; Merge text
+;;;; Merge text
+
+;;; This merges runs of strings in the %CONTENT of DOM nodes into
+;;;  single strings, calling an optional TEXTFN on each combined
+;;;  string.  The TEXTFN can normalize whitespace or insert indents.
 
 (define block-tags '{DIV P BLOCKQUOTE UL OL HEAD BODY DL})
 
@@ -166,13 +170,15 @@
       (when (and newfn (> depth 1) (not (empty-string? (car merged)))
 		 (test node '%xmltag block-tags))
 	(set! merged
-	      (if (not (string? (car merged)))
-		  (cons (glom "\n" (make-string (* 2 (-1+ depth)) #\Space))
-			merged)
-		  (cons (glom (car merged)
-			  (if (not (has-suffix (car merged) "\n")) "\n" #f)
-			  (make-string (* 2 (-1+ depth)) #\Space))
-			(cdr merged)))))
+	      (if (not (string? (car merged))) merged
+		  (let* ((tail (car merged))
+			 (tipstart (textsearch #((spaces*) (eos)) tail))
+			 (tip (and tipstart (slice tail tipstart))))
+		    (if (and tip (position #\n tip))
+			(cons (glom (slice tail 0 tipstart) "\n"
+				(make-string (* 2 (-1+ depth)) #\Space))
+			      (cdr merged))
+			(cons (slice tail 0 tipstart) (cdr merged)))))))
       (store! node '%content (cdr (reverse merged))))))
 
 (define (mergelines string depth elt node)
