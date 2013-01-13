@@ -28,24 +28,25 @@
    the new rulset back where it belongs.  \
    The optional third argument is a name accessor, which is a function, \
    and defaults to FIRST."
-  (let ((name (fcn rule)))
-    (if (and (exists? rules) (singleton? rules)
-	     (or (and (pair? rules)
-		      (or (pair? (cdr rules)) (null? (cdr rules))))
-		 (null? rules) (not rules)))
-	;; This handles rulesets which are lists
-	(if (or (fail? name) (not name))
-	    (cons rule (or rules '()))
-	    (if (or (not rules) (null? rules))
-		(list rule)
-		(try (ruleset-replace-list rule name rules fcn)
-		     (cons rule rules))))
-	;; This handles rulesets which are choices
-	(if (or (fail? name) (not name))
-	    (choice rule rules)
-	    (if (fail? rules) rule
-		(try (ruleset-replace-choice rule name rules fcn)
-		     (choice rule rules)))))))
+  (tryif (or (pair? rule) (vector? rule))
+    (let ((name (fcn rule)))
+      (if (and (exists? rules) (singleton? rules)
+	       (or (and (pair? rules)
+			(or (pair? (cdr rules)) (null? (cdr rules))))
+		   (null? rules) (not rules)))
+	  ;; This handles rulesets which are lists
+	  (if (or (fail? name) (not name))
+	      (cons rule (or rules '()))
+	      (if (or (not rules) (null? rules))
+		  (list rule)
+		  (try (ruleset-replace-list rule name rules fcn)
+		       (cons rule rules))))
+	  ;; This handles rulesets which are choices
+	  (if (or (fail? name) (not name))
+	      (choice rule rules)
+	      (if (fail? rules) rule
+		  (try (ruleset-replace-choice rule name rules fcn)
+		       (choice rule rules))))))))
 
 (define ruleset-configfn
   (macro ruleconfigexpr
