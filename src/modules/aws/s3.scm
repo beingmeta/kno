@@ -20,7 +20,7 @@
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
-(define %loglevel %debug!)
+;;(define %loglevel %debug!)
 
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
