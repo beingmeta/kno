@@ -101,15 +101,20 @@
 	  (error "Can't convert to s3loc" input))))
 (define s3/loc ->s3loc)
 
-(define (s3/mkpath loc path)
+(define (s3/mkpath loc path . more)
   (when (string? loc) (set! loc (->s3loc loc)))
-  (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
+  (if (null? more)
+      (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path))
+      (apply s3/mkpath
+	     (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path))
+	     more)))
 
 (define (s3loc->string s3)
   (stringout "s3://" (s3loc-bucket s3) (s3loc-path s3)))
 
 (module-export!
- '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath s3loc->string})
+ '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
+   s3loc->string})
 
 ;;; Computing S3 signatures
 
@@ -202,10 +207,10 @@
     (if (>= 299 status 200) result
 	(if err
 	    (error S3FAILURE S3/OP result)
-	    (begin (log%warn "Bad result " status " (" (get result 'header)
-			     ") for" (get result 'effective-url)
-			     "\n#|" (get result '%content) "|#\n"
-			     result)
+	    (begin (warning "Bad result " status " (" (get result 'header)
+			    ") for" (get result 'effective-url)
+			    "\n#|" (get result '%content) "|#\n"
+			    result)
 	      result)))))
 
 (define (s3/uri bucket path (scheme s3scheme))
