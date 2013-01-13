@@ -11,7 +11,7 @@
 	      ezrecords rulesets logger varconfig})
 
 (module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
-(module-export! '{s3loc s3/getloc s3loc/s3uri
+(module-export! '{s3loc s3/getloc s3loc/s3uri make-s3loc
 		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
 		  s3loc/head s3loc/content s3loc/put
 		  s3loc/copy! s3loc/link!})
@@ -20,13 +20,16 @@
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
-;;(define %loglevel %debug!)
+(define %loglevel %debug!)
 
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
 
 (define s3scheme "https://")
 (varconfig! s3scheme s3scheme)
+
+(define s3errs #t)
+(varconfig! s3errs s3errs config:boolean)
 
 (define usepath #t)
 (varconfig! s3pathstyle usepath)
@@ -57,6 +60,16 @@
 
 (defrecord s3loc bucket path)
 
+(define (make-s3loc bucket path)
+  (if (and (string? bucket) (not (position #\/ bucket)))
+      (if (not path) (cons-s3loc bucket "")
+	  (if (string? path)
+	      (if (has-prefix path "/")
+		  (cons-s3loc bucket path)
+		  (cons-s3loc bucket (glom "/" path)))
+	      (error badpath make-s3loc path)))
+      (error badbucket make-s3loc bucket)))
+
 (define (->s3loc input)
   (if (s3loc? input) input
       (if (string? input)
@@ -65,40 +78,38 @@
 	      (if (has-prefix input "//")
 		  (let ((slash (position #\/ input 2)))
 		    (if slash
-			(cons-s3loc (subseq input 2 slash)
+			(make-s3loc (subseq input 2 slash)
 				    (subseq input (1+ slash)))
-			(cons-s3loc (subseq input 2) "")))
+			(make-s3loc (subseq input 2) "")))
 		  (let ((colon (position #\: input))
 			(slash (position #\/ input)))
 		    (if (and colon slash)
 			(if (< colon slash)
-			    (cons-s3loc (subseq input 0 colon)
+			    (make-s3loc (subseq input 0 colon)
 					(if (= slash (1+ colon))
 					    (subseq input (+ colon 2))
 					    (subseq input (1+ colon))))
-			    (cons-s3loc (subseq input 0 slash)
+			    (make-s3loc (subseq input 0 slash)
 					(subseq input (1+ slash))))
 			(if slash
-			    (cons-s3loc (subseq input 0 slash)
+			    (make-s3loc (subseq input 0 slash)
 					(subseq input (1+ slash)))
 			    (if colon
-				(cons-s3loc (subseq input 0 colon)
+				(make-s3loc (subseq input 0 colon)
 					    (subseq input (1+ colon)))
-				(cons-s3loc input "")))))))
+				(make-s3loc input "")))))))
 	  (error "Can't convert to s3loc" input))))
 (define s3/loc ->s3loc)
 
 (define (s3/mkpath loc path)
   (when (string? loc) (set! loc (->s3loc loc)))
-  (cons-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
+  (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)))
 
 (define (s3loc->string s3)
-  (stringout "s3://" (s3loc-bucket s3) "/"
-    (if (has-prefix (s3loc-path s3) "/") (slice (s3loc-path s3) 1)
-	(s3loc-path s3))))
+  (stringout "s3://" (s3loc-bucket s3) (s3loc-path s3)))
 
 (module-export!
- '{s3loc? s3loc-path s3loc-bucket cons-s3loc ->s3loc s3/loc s3/mkpath s3loc->string})
+ '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath s3loc->string})
 
 ;;; Computing S3 signatures
 
@@ -114,8 +125,6 @@
 	   content-ctype "\n"
 	   date "\n" (canonical-headers headers)
 	   (if (empty-string? bucket) "" "/") bucket
-	   (if (or (has-suffix bucket "/") (has-prefix path "/")) ""
-	       "/")
 	   path)))
     (debug%watch (hmac-sha1 secretawskey sigstring)
 		 sigstring secretawskey)))
@@ -153,19 +162,14 @@
   (let* ((date (gmtimestamp))
 	 ;; Encode everything, then restore delimiters
 	 (path (string-subst (uriencode path) "%2F" "/"))
-	 (cresource (string-append "/" bucket path))
 	 (contentMD5 (and content (packet->base64 (md5 content))))
 	 (sig (s3/signature op bucket path date  headers
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
 	 (baseurl
 	  (if usepath
-	      (glom s3scheme s3root "/" bucket
-		(if (has-prefix path "/") "" "/")
-		path)
-	      (glom s3scheme bucket (if (empty-string? bucket) "" ".") s3root
-		(if (has-prefix path "/") "" "/")
-		path)))
+	      (glom s3scheme s3root "/" bucket path)
+	      (glom s3scheme bucket (if (empty-string? bucket) "" ".") s3root path)))
 	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
 	 ;; Hide the expect field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
@@ -188,32 +192,31 @@
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
 		    (urlget url urlparams)))))))
-(define (s3/op op bucket path (content #f) (ctype) (headers '()) . args)
+(define (s3/op op bucket path (err s3errs)
+	       (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((result (s3op op bucket path content ctype headers args))
-	 (status (get result 'status)))
+	 (status (get result 'response)))
     (debug%watch result)
     (if (>= 299 status 200) result
-	(begin (log%warn "Bad result " status " (" (get result 'header)
-			 ") for" (get result 'effective-url)
-			 "\n#|" (get result '%content) "|#\n"
-			 result)
-	       result))))
+	(if err
+	    (error S3FAILURE S3/OP result)
+	    (begin (log%warn "Bad result " status " (" (get result 'header)
+			     ") for" (get result 'effective-url)
+			     "\n#|" (get result '%content) "|#\n"
+			     result)
+	      result)))))
 
 (define (s3/uri bucket path (scheme s3scheme))
   (if usepath
-      (stringout scheme s3root "/" bucket
-	(unless (has-prefix path "/") "/")
-	path)
-      (stringout scheme bucket "." s3root  
-	(unless (has-prefix path "/") "/")
-	path)))
+      (stringout scheme s3root "/" bucket path)
+      (stringout scheme bucket "." s3root path)))
 
 (define (s3/signeduri bucket path (scheme s3scheme)
 		      (expires (* 17 3600))
 		      (op "GET") (headers '()))
-  (unless (has-prefix path "/") (set! path (string-append "/" path)))
+  (unless (has-prefix path "/") (set! path (glom "/" path)))
   (let* ((exptick (if (number? expires)
 		      (if (> expires (time)) expires
 			  (+ (time) expires))
@@ -231,20 +234,20 @@
 					    'stringtosignbytes)
 				    '%content))))))
 
-(define (s3/write! loc content (ctype))
+(define (s3/write! loc content (ctype) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
   (debug%watch
-   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) content ctype)
+   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err content ctype)
    ;; '(("x-amx-acl" . "public-read"))
    loc ctype))
 
-(define (s3/delete! loc)
+(define (s3/delete! loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
-  (debug%watch (s3/op "DELETE" (s3loc-bucket loc) (s3loc-path loc) #f "") loc))
+  (debug%watch (s3/op "DELETE" (s3loc-bucket loc) (s3loc-path loc) err #f "") loc))
 
 (module-export! '{s3/write! s3/delete!})
 
@@ -265,7 +268,7 @@
 (define (s3/getloc url)
   (tryseq (rule s3urlrules)
     (tryif (string-starts-with? url (car rule))
-      (cons-s3loc (cadr rule)
+      (make-s3loc (cadr rule)
 		  (if (string? (car rule))
 		      (subseq url (length (car rule)))
 		      (textsubst url (car rule)))))))
@@ -273,23 +276,17 @@
 (define (s3loc bucket path)
   (if (s3loc? bucket)
       (s3/mkpath bucket path)
-      (cons-s3loc (if (has-prefix bucket "s3://") (subseq bucket 5)
+      (make-s3loc (if (has-prefix bucket "s3://") (subseq bucket 5)
 		      (if (has-prefix bucket "s3:")
 			  (subseq bucket 3)
 			  bucket))
-		  (if (has-prefix path "/") (subseq path 1) path))))
+		  path)))
 
 (define (s3loc/uri s3loc)
-  (stringout s3scheme s3root "/"
-    (s3loc-bucket s3loc)
-    (unless (has-prefix (s3loc-path s3loc) "/") "/")
-    (s3loc-path s3loc)))
+  (stringout s3scheme s3root "/" (s3loc-bucket s3loc) (s3loc-path s3loc)))
 
 (define (s3loc/s3uri s3loc)
-  (stringout "s3://"
-    (s3loc-bucket s3loc)
-    (unless (has-prefix (s3loc-path s3loc) "/") "/")
-    (s3loc-path s3loc)))
+  (stringout "s3://" (s3loc-bucket s3loc) (s3loc-path s3loc)))
 
 ;; Rules for mapping S3 locations into the local file system
 (define s3diskrules '())
@@ -306,23 +303,20 @@
       (if (applicable? (cadr rule))
 	  ((cdr rule) loc)
 	  (if (string? (cadr rule))
-	      (string-append (cadr rule)
-			     (if (has-suffix (cadr rule) "/") "" "/")
+	      (string-append (if (has-suffix (cadr rule) "/")
+				 (slice (cadr rule) 0 -1)
+				 (cadr rule))
 			     (s3loc-path loc))
 	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
 		(textsubst (s3loc-path loc) (cadr rule))))))))
 
-(define (s3loc/get loc (text #t))
+(define (s3loc/get loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (s3/op "GET" (s3loc-bucket loc)
-	 (string-append "/" (s3loc-path loc))
-	 ""))
+  (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err ""))
 
 (define (s3loc/head loc)
   (when (string? loc) (set! loc (->s3loc loc)))
-  (s3/op "HEAD" (s3loc-bucket loc)
-	 (string-append "/" (s3loc-path loc))
-	 ""))
+  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f ""))
 (define s3/head s3loc/head)
 
 (define (s3/modified loc)
@@ -331,31 +325,28 @@
 
 (define (s3loc/exists? loc)
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc)
-		     (string-append "/" (s3loc-path loc))
-		"")))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
     (response/ok? req)))
 (define s3/exists? s3loc/exists?)
 
 (define (s3/bucket? loc)
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" "")))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" #f "")))
     (response/ok? req)))
 
 (define (s3/ctype loc)
   (get (s3loc/head loc) 'content-type))
 
-(define (s3loc/put loc content (ctype) (headers '()))
+(define (s3loc/put loc content (ctype) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path path)
 		    (if (packet? content) "application" "text")))
-  (s3/op "PUT" (s3loc-bucket loc)
-	 (string-append "/" (s3loc-path loc))
+  (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err
     content ctype headers))
 (define s3/put s3loc/put)
 
-(define (s3loc/copy! src loc)
+(define (s3loc/copy! src loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (when (string? src) (set! src (->s3loc src)))
   (let* ((head (s3loc/head src))
@@ -363,15 +354,12 @@
 		     (path->mimetype
 		      (s3loc-path loc)
 		      (path->mimetype (s3loc-path src) "text")))))
-    (s3/op "PUT" (s3loc-bucket loc)
-	   (string-append "/" (s3loc-path loc))
-	   "" ctype
+    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-copy-source" .
-	      ,(stringout "/" (s3loc-bucket src) 
-		 "/" (s3loc-path src)))))))
+	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))))))
 (define s3/copy! s3loc/copy!)
 
-(define (s3loc/link! src loc)
+(define (s3loc/link! src loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (when (and (string? src) (not (has-prefix src {"http:" "https:" "ftp:"})))
     (set! src (->s3loc src)))
@@ -383,34 +371,27 @@
 		       (if (s3loc? src) (s3loc-path src)
 			   (uripath src))
 		       "text")))))
-    (s3/op "PUT" (s3loc-bucket loc)
-	   (string-append "/" (s3loc-path loc))
-	   "" ctype
+    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-website-redirect-location" .
 	      ,(if (s3loc? src)
-		   (stringout "/" (s3loc-bucket src) 
-		     "/" (s3loc-path src))
+		   (stringout "/" (s3loc-bucket src) (s3loc-path src))
 		   src))))))
 (define s3/link! s3loc/link!)
 
-(define (s3loc/content loc (text #t))
+(define (s3loc/content loc (text #t) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
-       (let* ((req (s3/op "GET" (s3loc-bucket loc)
-			  (string-append "/" (s3loc-path loc))
-			  ""))
+       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err ""))
 	      (status (get req 'response)))
 	 (if (and status (>= 299 status 200))
 	     (get req '%content)
-	     (error 's3failure (get req '%content))))))
+	     (and err (error S3FAILURE S3LOC/CONTENT req))))))
 (define s3/get s3loc/content)
 
-(define (s3/get+ loc (text #t))
+(define (s3/get+ loc (text #t) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc)
-		     (string-append "/" (s3loc-path loc))
-		""))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err ""))
 	 (status (get req 'response)))
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
@@ -419,27 +400,33 @@
 		       (if text "text" "application"))
 	   modified ,(try (get req 'last-modified) (timestamp))
 	   etag ,(try (get req 'etag) (md5 (get req '%content)))]
-	#f)))
+	(and err (error S3FAILURE S3LOC/CONTENT req)))))
 
 ;;; Working with S3 'dirs'
 
-(define (s3/list loc)
+(define (s3/list loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" "" "text" '()
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" "text" '()
 		     "delimiter" "/" "prefix" (s3loc-path loc)))
 	 (content (xmlparse (get req '%content))))
     (choice
      (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
 					    'prefix)))
-       (cons-s3loc (s3loc-bucket loc) path))
+       (make-s3loc (s3loc-bucket loc) path))
      (for-choices (path (xmlcontent (xmlget content 'key)))
-       (cons-s3loc (s3loc-bucket loc) path)))))
+       (make-s3loc (s3loc-bucket loc) path)))))
 (module-export! 's3/list)
+
+;;; For debugging
+
+(define (s3/stringtosign input)
+  (->string (map (lambda (x) (string->number x 16))
+		 (segment input))))
 
 ;;; Some test code
 
 (comment
- (s3/op "GET" "data.beingmeta.com" "/brico/brico.db" "")
- (s3/op "PUT" "public.sbooks.net" "/uspto/6285999" content "text/html"
+ (s3/op "GET" "data.beingmeta.com" "/brico/brico.db" #t "")
+ (s3/op "PUT" "public.sbooks.net" "/uspto/6285999" content #t "text/html"
 	(list "x-amz-acl: public-read")))
 
