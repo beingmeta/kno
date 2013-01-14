@@ -323,6 +323,7 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
       return zfilerr("zipget_prim/fread",zf,zfile,filename);}
     zip_fclose(zfile);
     u8_unlock_mutex(&(zf->lock));
+    buf[zstat.size]='\0';
     if (FD_TRUEP(isbinary))
       return fd_init_packet(NULL,size,buf);
     else return fd_init_string(NULL,size,buf);}
