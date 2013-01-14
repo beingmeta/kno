@@ -422,12 +422,6 @@
        (make-s3loc (s3loc-bucket loc) path)))))
 (module-export! 's3/list)
 
-;;; For debugging
-
-(define (s3/stringtosign input)
-  (->string (map (lambda (x) (string->number x 16))
-		 (segment input))))
-
 ;;; Some test code
 
 (comment
