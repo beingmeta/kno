@@ -62,13 +62,13 @@
        ;; No easy outs, fetch the content and store it
        (let ((absref
 	      (if (string-starts-with? ref absurlstart) ref
-		  (if (string? base)
-		      (if (has-prefix ref "./")
-			  (mkuripath (dirname base) (subseq ref 2))
-			  (mkuripath (dirname base) ref))
-		      (if (has-prefix ref "./")
-			  (gp/mkpath base (subseq ref 2))
-			  (gp/mkpath base ref))))))
+		  ;; It seems like ../ and ./ should have different semantics,
+		  ;;  but they don't appear to.
+		  (if (has-prefix ref "./")
+		      (gp/mkpath (gp/location base) (slice ref 2))
+		      (if  (has-prefix ref "../")
+			   (gp/mkpath (gp/location (gp/location base)) (slice ref 2))
+			   (gp/mkpath (gp/location base) ref))))))
 	 (debug%watch "LOCALIZE" ref base absref saveto read
 		      (get urlmap absref))
 	 (try (get urlmap absref)
