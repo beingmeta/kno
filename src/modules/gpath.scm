@@ -9,7 +9,8 @@
    gp/fetch gp/fetch+ gp/modified gp/exists?
    gp/urlfetch gp/urlinfo
    gp/path gp/mkpath gp/makepath gpath->string
-   gp/location gp/basename})
+   gp/location gp/basename
+   ->gpath gp:config})
 
 ;;; This is a generic path facility (it grew out of the savecontent
 ;;; module, which still exists for legacy and historical reasons).  A
@@ -210,7 +211,7 @@
 	(else (error "Weird docbase root" root " for " path))))
 (define gp/makepath makepath)
 (define (gp/path root path . more)
-  (let ((result (makepath root path)))
+  (let ((result (makepath (->gpath root) path)))
     (if (null? more) result
 	(apply gp/path result (car more) (cdr more)))))
 (define gp/mkpath gp/path)
@@ -341,3 +342,16 @@
 	 (s3/exists? (->s3loc ref)))
 	((string? ref) (file-exists? ref))
 	(else (error "Weird docbase ref" ref))))
+
+;;; Parsing GPATHs
+
+(define (->gpath val)
+  (if (string? val)
+      (if (has-prefix val {"s3:" "S3:"}) (s3loc val)
+	  (if (has-prefix val {"http:" "https:" "ftp:"}) val
+	      (if (has-prefix val "/") val
+		  (abspath val))))
+      val))
+
+(define gp:config ->gpath)
+
