@@ -10,6 +10,7 @@
 (use-module '{fdweb texttools domutils aws/s3 savecontent gpath logger})
 
 (define-init %loglevel %notice!)
+;;(set! %loglevel %debug%)
 
 (module-export! '{dom/localize!})
 (module-export! '{dom/getmanifest dom/textmanifest dom/datamanifest})
@@ -40,11 +41,6 @@
 (define (localref ref urlmap base saveto read amalgamate localhosts)
   (try ;; relative references are untouched
        (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
-       ;; if we're gluing a bunch of files together (amalgamating them),
-       ;;  the ref will just be moved to the current file by stripping
-       ;;  off the URL part
-       (tryif (exists has-prefix ref amalgamate)
-	 (textsubst ref `(GREEDY ,amalgamate) ""))
        ;; If it's got a fragment identifer, make a localref without the
        ;;  fragment and put the fragment back.  We don't bother checking
        ;;; fragment ID uniqueness, though we probably should (it would
@@ -55,67 +51,92 @@
 				    urlmap base saveto read
 				    (qc amalgamate) (qc localhosts))
 			  (subseq ref hashpos))))
+       ;; if we're gluing a bunch of files together (amalgamating them),
+       ;;  the ref will just be moved to the current file by stripping
+       ;;  off the URL part
+       (tryif (overlaps? amalgamate (gp/mkpath base ref)) "")
        ;; Check the cache
        (get urlmap ref)
        ;; don't bother localizing these references
-       (tryif (exists string-starts-with? ref localhosts) ref)
+       (tryif (string-starts-with? ref localhosts) ref)
        ;; No easy outs, fetch the content and store it
-       (let ((absref
-	      (if (string-starts-with? ref absurlstart) ref
-		  ;; It seems like ../ and ./ should have different semantics,
-		  ;;  but they don't appear to.
-		  (if (has-prefix ref "./")
-		      (gp/mkpath (gp/location base) (slice ref 2))
-		      (if  (has-prefix ref "../")
-			   (gp/mkpath (gp/location (gp/location base)) (slice ref 2))
-			   (gp/mkpath (gp/location base) ref))))))
+       (let* ((absref
+	       (if (string-starts-with? ref absurlstart) ref
+		   (if (string? base)
+		       (if (has-prefix ref "./")
+			   (mkuripath (if (has-suffix base "/") base
+					  (dirname base))
+				      (slice ref 2))
+			   (if (has-prefix ref "../")
+			       (mkuripath (if (has-suffix base "/")
+					      (dirname base)
+					      (dirname (dirname base)))
+					  (slice ref 3))
+			       (mkuripath (if (has-suffix base "/") base
+					      (dirname base))
+					  ref)))
+		       (if (has-prefix ref "./")
+			   (gp/path (gp/location base) (slice ref 2))
+			   (if (has-prefix ref "../")
+			       (gp/path (gp/location (gp/location base))
+					(subseq ref 3))
+			       (gp/path base ref))))))
+	      (name (basename (uribase ref)))
+	      (suffix (filesuffix name))
+	      (lref (try (get urlmap (vector ref))
+			 (mkpath read name)))
+	      (savepath (gp/mkpath saveto name)))
 	 (debug%watch "LOCALIZE" ref base absref saveto read
 		      (get urlmap absref))
-	 (try (get urlmap absref)
-	      (let* ((name (basename (uribase ref)))
-		     (lref (mkpath read name)))
-		(when (exists? (get urlmap name))
-		  (let ((count 1))
-		    (until (fail? (get urlmap (addversion name count)))
-		      (set! count (1+ count)))
-		    (set! name (addversion name count))
-		    (set! lref (mkpath read name))))
-		(debug%watch "LOCALIZED"
-		  absref name lref (exists? (get urlmap name)))
-		(store! urlmap name lref)
-		(unless (and (string? saveto)
-			     (file-exists? (mkpath saveto name)))
-		  (let ((content (gp/fetch absref)))
-		    (unless (exists? content)
-		      (logwarn "Couldn't fetch content from " absref)
-		      (set! lref absref)
-		      (store! urlmap name lref))
-		    (when content
-		      ;; This should be coded to change lref in the
-		      ;; event of conflicts This has fragments and
-		      ;; queries stripped (uribase) and additionally has
-		      ;; the 'directory' part of the URI removed so that
-		      ;; it's a local file name
-		      (loginfo "Downloaded " (write absref)
-			       " for " lref
-			       " from " ref)
-		      ;; Save the content
-		      (savecontent saveto name content))))
-		;; Save the mapping in both directions (we assume that
-		;;  lrefs and absrefs are disjoint, so we can use the
-		;;  same table)
-		(store! urlmap absref lref)
-		(store! urlmap lref absref)
-		lref)))))
+	 (when (and (not (get urlmap (vector ref)))
+		    (exists? (get urlmap lref)))
+	   ;; Name conflict
+	   (set! name (glom (packet->base16 (md5 absref)) suffix))
+	   (set! lref (mkpath read name))
+	   (set! savepath (gp/mkpath saveto name)))
+	 (store! urlmap ref lref)
+	 (store! urlmap lref ref)
+	 (store! urlmap (vector ref) lref)
+	 (when (string? absref) (store! urlmap absref lref))
+	 (let* ((sourcetime (gp/modified absref))
+		(existing (gp/exists? savepath))
+		(savetime (and existing (gp/modified savepath)))
+		(changed (or (not savetime) (not sourcetime)
+			     (time>? sourcetime savetime)))
+		(fetched (and changed (gp/fetch+ absref))))
+	   (cond ((and changed fetched)
+		  ;; Updated
+		  (savecontent saveto name (get fetched 'content))
+		  (store! urlmap (list absref)
+			  (get fetched 'modified))
+		  (loginfo "Updated " ref " for " lref
+			   " from " (write absref)))
+		 ((not changed)
+		  ;; No update needed
+		  (loginfo "Content " ref " is up to date for " lref
+			   " from " (write absref)))
+		 ((and existing (not fetched))
+		  ;; Update failed
+		  (logwarn "Couldn't update content from " absref))
+		 ((not fetched)
+		  ;; Initial download failed, keep absref
+		  (logwarn "Couldn't download content from " absref)
+		  (set! lref absref)))
+	   ;; Save the mapping in both directions (we assume that
+	   ;;  lrefs and absrefs are disjoint, so we can use the
+	   ;;  same table)
+	   (store! urlmap absref lref)
+	   (store! urlmap lref absref)
+	   lref))))
 
 (define (dom/localize! dom base saveto read
 		       (urlmap (make-hashtable))
 		       (amalgamate #f) (localhosts #f)
 		       (doanchors #f))
-  (lognotice "Localizing references from " (write base)
-	     " to " (write read) ", copying content to " 
-	     (if (singleton? saveto) (write saveto)
-		 (do-choices saveto (printout "\n\t" (write saveto)))))
+  (loginfo "Localizing references from " (write base)
+	   " to " (write read) ", copying content to " 
+	   (if (singleton? saveto) (write saveto)
+	       (do-choices saveto (printout "\n\t" (write saveto)))))
   (let ((amalgamate (or amalgamate {}))
 	(localhosts (or localhosts {}))
 	(files {}))
@@ -192,86 +213,3 @@
      "data:text/cache-manifest;charset=\"utf-8\";base64,"
      base64)))
 
-;;; This is a version of localref which uses gpath for more generality
-(define (new-localref ref urlmap base saveto read amalgamate localhosts)
-  (try ;; relative references are untouched
-       (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
-       ;; if we're gluing a bunch of files together (amalgamating them),
-       ;;  the ref will just be moved to the current file by stripping
-       ;;  off the URL part
-       (tryif (has-prefix ref amalgamate)
-	 (textsubst ref `(GREEDY ,amalgamate) ""))
-       ;; If it's got a fragment identifer, make a localref without the
-       ;;  fragment and put the fragment back.  We don't bother checking
-       ;;; fragment ID uniqueness, though we probably should (it would
-       ;;; be pretty hard to fix automatically)
-       (tryif (position #\# ref)
-	 (let ((hashpos (position #\# ref)))
-	   (string-append (localref (subseq ref 0 hashpos)
-				    urlmap base saveto read
-				    (qc amalgamate) (qc localhosts))
-			  (subseq ref hashpos))))
-       ;; Check the cache
-       (get urlmap ref)
-       ;; don't bother localizing these references
-       (tryif (string-starts-with? ref localhosts) ref)
-       ;; No easy outs, fetch the content and store it
-       (let* ((absref
-	       (if (string-starts-with? ref absurlstart) ref
-		   (if (string? base)
-		       (if (has-prefix ref "./")
-			   (mkuripath (if (has-suffix base "/") base
-					  (dirname base))
-				      (subseq ref 2))
-			   (mkuripath (if (has-suffix base "/") base
-					  (dirname base))
-				      ref))
-		       (if (has-prefix ref "./")
-			   (gp/path base (subseq ref 2))
-			   (gp/path base ref)))))
-	      (name (basename (uribase ref)))
-	      (suffix (filesuffix name))
-	      (lref (try (get urlmap (vector ref))
-			 (mkpath read name)))
-	      (savepath (gp/mkpath saveto name)))
-	 (debug%watch "LOCALIZE" ref base absref saveto read
-		      (get urlmap absref))
-	 (when (and (not (get urlmap (vector ref)))
-		    (exists? (get urlmap lref)))
-	   ;; Name conflict
-	   (set! name (glom (packet->base16 (md5 absref)) suffix))
-	   (set! lref (mkpath read name))
-	   (set! savepath (gp/mkpath saveto name)))
-	 (store! urlmap ref lref)
-	 (store! urlmap lref ref)
-	 (store! urlmap (vector ref) lref)
-	 (when (string? absref) (store! urlmap absref lref))
-	 (let* ((sourcetime (gp/modified absref))
-		(existing (gp/exists? savepath))
-		(savetime (and existing (gp/modified savepath)))
-		(changed (or (not savetime) (time>? sourcetime savetime)))
-		(fetched (and changed (gp/fetch+ absref))))
-	   (cond ((and changed fetched)
-		  ;; Updated
-		  (savecontent saveto name (get fetched 'content))
-		  (store! urlmap (list absref)
-			  (get fetched 'modified))
-		  (loginfo "Updated " ref " for " lref
-			   " from " (write absref)))
-		 ((not changed)
-		  ;; No update needed
-		  (loginfo "Content " ref " is up to date for " lref
-			   " from " (write absref)))
-		 ((and existing (not fetched))
-		  ;; Update failed
-		  (logwarn "Couldn't update content from " absref))
-		 ((not fetched)
-		  ;; Initial download failed, keep absref
-		  (logwarn "Couldn't download content from " absref)
-		  (set! lref absref)))
-	   ;; Save the mapping in both directions (we assume that
-	   ;;  lrefs and absrefs are disjoint, so we can use the
-	   ;;  same table)
-	   (store! urlmap absref lref)
-	   (store! urlmap lref absref)
-	   lref))))
