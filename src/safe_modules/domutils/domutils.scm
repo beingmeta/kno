@@ -22,7 +22,7 @@
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/combine!
    dom/gethead dom/getschemas dom/getmeta dom/getlinks
-   dom/split-space dom/split-semi
+   dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block? dom/terminal?
    dom->id id->dom})
@@ -77,6 +77,8 @@
 (define (dom/split-space string) (elts (segment string " ")))
 (define (dom/split-semi string)
   (difference (stdspace (elts (segment string ";"))) ""))
+(define (dom/split-comma string)
+  (difference (stdspace (elts (segment string ","))) ""))
 
 ;;; DOM editing
 
