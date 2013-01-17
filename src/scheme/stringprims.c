@@ -834,14 +834,18 @@ static fdtype fixnuls(fdtype string)
 static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
 {
   if (FD_STRLEN(string)==0) return fd_incref(string);
+  else if (strstr(FD_STRDATA(string),FD_STRDATA(substring))==NULL)
+    return fd_incref(string);
   else {
     u8_string original=FD_STRDATA(string);
     u8_string search=FD_STRDATA(substring);
     u8_string replace=FD_STRDATA(with);
     int searchlen=FD_STRING_LENGTH(substring);
+    int startlen=((FD_STRLEN(replace)<=FD_STRLEN(search))?
+		  (FD_STRLEN(string)+17):(FD_STRLEN(string)*2));
     u8_string point=strstr(original,search);
     if (point) {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,2*FD_STRLEN(string));
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,startlen);
       u8_string last=original; while (point) {
 	u8_putn(&out,last,point-last); u8_puts(&out,replace);
 	last=point+searchlen; point=strstr(last,search);}
