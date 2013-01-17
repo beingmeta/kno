@@ -7,7 +7,8 @@
 (define version "$Id$")
 (define revision "$Revision: 5083 $")
 
-(use-module '{fdweb texttools domutils aws/s3 savecontent gpath logger})
+(use-module '{fdweb texttools domutils aws/s3
+	      savecontent gpath logger mimetable})
 
 (define-init %loglevel %notice!)
 ;;(set! %loglevel %debug%)
@@ -38,7 +39,10 @@
 ;;   into the output file, so that fragment identifiers should just
 ;;   be the corresponding fragments
 ;; LOCALHOSTS is a bunch of prefixes for things to not bother converting
-(define (localref ref urlmap base saveto read amalgamate localhosts)
+(define (localref ref urlmap base saveto read
+		  amalgamate localhosts
+		  (ctype) (xform #f))
+  (default! ctype (path->mimetype (gp/basename ref)))
   (try ;; relative references are untouched
        (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
        ;; If it's got a fragment identifer, make a localref without the
@@ -106,7 +110,10 @@
 		(fetched (and changed (gp/fetch+ absref))))
 	   (cond ((and changed fetched)
 		  ;; Updated
-		  (savecontent saveto name (get fetched 'content))
+		  (if xform
+		      (gp/write! saveto name
+			(xform (get fetched 'content)) ctype)
+		      (gp/write! saveto name (get fetched 'content) ctype))
 		  (store! urlmap (list absref)
 			  (get fetched 'modified))
 		  (loginfo "Updated " ref " for " lref
@@ -129,6 +136,10 @@
 	   (store! urlmap lref absref)
 	   lref))))
 
+(define (fix-crlfs string)
+  (string-subst (string-subst string "\r\n" "\n")
+		"\r" "\n"))
+
 (define (dom/localize! dom base saveto read
 		       (urlmap (make-hashtable))
 		       (amalgamate #f) (localhosts #f)
@@ -150,9 +161,35 @@
 	  (dom/set! node 'src ref)
 	  (set+! files ref))))
     (do-choices (node (pick (dom/find dom "link") 'rel "stylesheet"))
-      (let ((ref (localref (get node 'href)
-			   urlmap base (qc saveto) read
-			   (qc amalgamate) (qc localhosts))))
+      (let* ((ctype (try (get node 'type) "text"))
+	     (xformurlfn
+	      (lambda (url)
+		(localref url urlmap (gp/mkpath base (get node 'href))
+			  (qc saveto) (mkpath ".." read)
+			  (qc amalgamate) (qc localhosts))))
+	     (xformrule
+	      `(IC (GREEDY #("url" (spaces*)
+			     {#("(" (spaces*)
+				(subst (not> ")") ,xformurlfn)
+				(spaces*) ")")
+			      #("('" (spaces*)
+				(subst (not> "')") ,xformurlfn)
+				(spaces*) "')")
+			      #("(\"" (spaces*)
+				(subst (not> "\")") ,xformurlfn)
+				(spaces*) "\")")}))))
+	     (xformcss (lambda (css)
+			 (if (string? css)
+			     (if (textsearch '(IC #("url" (spaces*) "(")) css)
+				 (textsubst (fix-crlfs css) xformrule)
+				 (fix-crlfs css))
+			     css)))
+	     (ref (localref (get node 'href)
+			    urlmap base (qc saveto) read
+			    (qc amalgamate) (qc localhosts)
+			    (try (get node 'type) "text/css")
+			    (and (exists has-prefix (get node 'type) "text/css")
+				 xformcss))))
 	(logdebug "Localized " (write (get node 'href))
 		  " to " (write ref) " for " node)
 	(when (and (exists? ref) ref)
