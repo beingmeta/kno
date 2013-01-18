@@ -184,13 +184,13 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libtexttools@suffix@.@shared_suffix@   \
 	lib/libtagger@suffix@.@shared_suffix@
 
-SCHEME_MODULES=src/modules/*.scm src/safe_modules/*.scm \
+SCHEME_MODULES=src/modules/*.scm src/modules/safe/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
 	src/modules/facebook/*.scm src/modules/misc/*.scm \
 	src/modules/misc/*.scm src/modules/tests/*.scm \
 	src/modules/twitter/*.scm src/modules/webapi/*.scm \
-	src/safe_modules/domutils/*.scm src/safe_modules/knodules/*.scm \
-	src/safe_modules/textindex/*.scm \
+	src/modules/domutils/*.scm src/modules/knodules/*.scm \
+	src/modules/textindex/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
@@ -795,7 +795,7 @@ link-modules:
 	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
 	ln -sf $(BUILD)/etc/*.el @data_dir@
 	ln -sf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
-	ln -sf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
+	ln -sf $(BUILD)/src/modules/* $(DESTDIR)@safe_module_dir@
 	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
@@ -807,7 +807,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
 	   $(DESTDIR)@safe_module_dir@
 	cp -pRf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
-	cp -pRf $(BUILD)/src/safe_modules/* $(DESTDIR)@safe_module_dir@
+	cp -pRf $(BUILD)/src/modules/safe/* $(DESTDIR)@safe_module_dir@
 	cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
