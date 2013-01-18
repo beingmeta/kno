@@ -714,24 +714,24 @@
 
 (define (map0 node fn)
   (if (pair? node)
-      (dolist (elt node) (map0 elt fn))
+      (doseq (elt (->vector node)) (map0 elt fn))
       (begin (fn node)
-	     (dolist (elt (try (get node '%content) '()))
-	       (when (table? elt) (map0 elt fn))))))
+	(doseq (elt (->vector (try (get node '%content) '())))
+	  (when (table? elt) (map0 elt fn))))))
 
 (define (map1 node fn arg)
   (if (pair? node)
-      (dolist (elt node) (map1 elt fn (qc arg)))
+      (doseq (elt (->vector node)) (map1 elt fn (qc arg)))
       (begin (fn node)
-	     (dolist (elt (try (get node '%content) '()))
-	       (when (table? elt) (map1 elt fn (qc arg)))))))
+	(dolist (elt (try (get node '%content) '()))
+	  (when (table? elt) (map1 elt fn (qc arg)))))))
 
 (define (mapn node fn args)
   (if (pair? node)
-      (dolist (elt node) (mapn elt fn args))
+      (doseq (elt node) (mapn elt fn args))
       (begin (apply fn node args)
-	     (dolist (elt (try (get node '%content) '()))
-	       (when (table? elt) (mapn elt fn args))))))
+	(doseq (elt (->vector (try (get node '%content) '())))
+	  (when (table? elt) (mapn elt fn args))))))
 
 (defambda (dom/map node fn (arg) . args)
   (do-choices node
