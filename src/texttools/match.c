@@ -1944,7 +1944,24 @@ static u8_byteoff search_bow
       else return last-string;}}
 }
 
-/* Matching/finding the end of the string */
+
+/* Matching/finding the beginning or end of the string */
+
+static fdtype match_bos
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  if (off == 0) return FD_INT2DTYPE(off);
+  else return FD_EMPTY_CHOICE;
+}
+
+static u8_byteoff search_bos
+    (fdtype pat,fd_lispenv env,
+     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  if (off == 0) return off;
+  else return -1;
+}
 
 static fdtype match_eos
   (fdtype pat,fdtype next,fd_lispenv env,
@@ -3670,6 +3687,7 @@ void fd_init_match_c()
 
   fd_add_match_operator("BOL",match_bol,search_bol,NULL);
   fd_add_match_operator("EOL",match_eol,search_eol,NULL);
+  fd_add_match_operator("BOS",match_bos,search_bos,NULL);
   fd_add_match_operator("EOS",match_eos,search_eos,NULL);
   fd_add_match_operator("BOW",match_bow,search_bow,NULL);
   fd_add_match_operator("CHAR-RANGE",match_char_range,NULL,NULL);
