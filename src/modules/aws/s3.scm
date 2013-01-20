@@ -47,7 +47,6 @@
 					  (if (string? (cdr val)) (cdr val) (cadr val)))
 			   (error 'NOT_AN_S3BUCKET val)))
 		   (hashset-elts website-buckets))))
-(config! 's3websites "free.sbooks.net")
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
@@ -231,8 +230,7 @@
 (define (s3/uri bucket path (scheme s3scheme) (usepath default-usepath))
   (if usepath
       (stringout scheme s3root "/" bucket path)
-      (if (and (%watch (hashset-get website-buckets bucket) bucket scheme)
-	       (equal? scheme "http://"))
+      (if (and (hashset-get website-buckets bucket) (equal? scheme "http://"))
 	  (stringout scheme bucket path)
 	  (stringout scheme bucket "." s3root path))))
 (define (s3/pathuri bucket path (scheme s3scheme)) (s3/uri bucket path scheme #t))
