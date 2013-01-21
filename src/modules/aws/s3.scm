@@ -10,7 +10,8 @@
 (use-module '{aws fdweb texttools mimetable
 	      ezrecords rulesets logger varconfig})
 
-(module-export! '{s3/signature s3/op s3/uri s3/signeduri s3/expected})
+(module-export! '{s3/signature s3/op s3/expected
+		  s3/uri s3/signeduri s3/pathuri s3/hosturi})
 (module-export! '{s3loc s3/getloc s3loc/s3uri make-s3loc
 		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
 		  s3loc/head s3loc/content s3loc/put
@@ -31,8 +32,21 @@
 (define s3errs #t)
 (varconfig! s3errs s3errs config:boolean)
 
-(define usepath #t)
-(varconfig! s3pathstyle usepath)
+(define default-usepath #t)
+(varconfig! s3pathstyle default-usepath)
+
+(define-init website-buckets (make-hashset))
+(config-def! 's3websites
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (if (string? val)
+		       (hashset-add! website-buckets val)
+		       (if (and (pair? val) (overlaps? (car val) '{not drop})
+				(or (string? (cdr val)) (string? (cadr val))))
+			   (hashset-drop! website-buckets
+					  (if (string? (cdr val)) (cdr val) (cadr val)))
+			   (error 'NOT_AN_S3BUCKET val)))
+		   (hashset-elts website-buckets))))
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
@@ -172,7 +186,7 @@
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
 	 (baseurl
-	  (if usepath
+	  (if default-usepath
 	      (glom s3scheme s3root "/" bucket path)
 	      (glom s3scheme bucket (if (empty-string? bucket) "" ".") s3root path)))
 	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
@@ -213,28 +227,14 @@
 			    result)
 	      result)))))
 
-(define (s3/uri bucket path (scheme s3scheme))
+(define (s3/uri bucket path (scheme s3scheme) (usepath default-usepath))
   (if usepath
       (stringout scheme s3root "/" bucket path)
-      (stringout scheme bucket "." s3root path)))
-
-(define (s3/signeduri bucket path (scheme s3scheme)
-		      (expires (* 17 3600))
-		      (op "GET") (headers '())
-		      (usepath #t))
-  (unless (has-prefix path "/") (set! path (glom "/" path)))
-  (let* ((exptick (if (number? expires)
-		      (if (> expires (time)) expires
-			  (+ (time) expires))
-		      (get expires 'tick)))
-	 (sig (s3/signature "GET" bucket path exptick headers)))
-    (if usepath
-	(string-append
-	 scheme bucket (if (empty-string? bucket) "" ".") s3root path
-	 "?" "AWSAccessKeyId=" awskey "&"
-	 "Expires=" (number->string exptick) "&"
-	 "Signature=" (uriencode (packet->base64 sig)))
-	)))
+      (if (and (hashset-get website-buckets bucket) (equal? scheme "http://"))
+	  (stringout scheme bucket path)
+	  (stringout scheme bucket "." s3root path))))
+(define (s3/pathuri bucket path (scheme s3scheme)) (s3/uri bucket path scheme #t))
+(define (s3/hosturi bucket path (scheme s3scheme)) (s3/uri bucket path scheme #f))
 
 (define (s3/signeduri bucket path (scheme s3scheme)
 		      (expires (* 17 3600))
