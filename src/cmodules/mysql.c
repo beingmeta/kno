@@ -110,128 +110,21 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
     return fd_init_pair(NULL,colinfo,dbp->colinfo);}
 }
 
-/* Opening connections */
+/* Connection operations */
 
 static my_bool default_reconnect=0;
 
-static int preopen(struct FD_MYSQL *db,fdtype options);
-
-/* Everything but the hostname and dbname is optional.
-   In theory, we could have the dbname be optional, but for now we'll
-   require it.  */
-static fdtype open_mysql
-  (fdtype hostname,fdtype dbname,fdtype colinfo,
-   fdtype user,fdtype password,
-   fdtype options)
+static int open_connection(struct FD_MYSQL *dbp)
 {
+  my_bool reconnect; int retval=0; u8_string option=NULL;
+  int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
+  fdtype options=dbp->options;
   MYSQL *db;
-  char *host, *username, *passwd, *dbstring, *sockname;
-  int portno=0, flags=0, retval;
-  struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
-  my_bool reconnect=0;
-  /* Initialize the cons (does a memset too) */
-  FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
-  /* Initialize the MYSQL side of things (after the memset!) */
   dbp->db=mysql_init(&(dbp->_db));
   if ((dbp->db)==NULL) {
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_mysql/init",u8_strdup(errmsg));
-    return FD_ERROR_VALUE;}
-  else retval=preopen(dbp,options);
-  if (retval<0) return FD_ERROR_VALUE;
-
-  /* If the hostname looks like a filename, we assume it's a Unix domain
-     socket. */
-  if (strchr(FD_STRDATA(hostname),'/')==NULL) {
-    host=FD_STRDATA(hostname); sockname=NULL;}
-  else {
-    sockname=FD_STRDATA(hostname); host=NULL;}
-  /* Process the other arguments */
-  dbstring=((FD_VOIDP(dbname)) ? (NULL) : (FD_STRDATA(dbname)));
-  username=((FD_VOIDP(user)) ? (NULL) : (FD_STRDATA(user)));
-  passwd=((FD_VOIDP(password)) ? (NULL) : (FD_STRDATA(password)));
-  flags=0;
-
-  /* Try to connect */
-  u8_lock_mutex(&mysql_connect_lock);
-  db=mysql_real_connect
-    (dbp->db,host,username,passwd,dbstring,dbp->portno,sockname,flags);
-  u8_unlock_mutex(&mysql_connect_lock);
-
-  if (db==NULL) {
-    const char *errmsg=mysql_error(&(dbp->_db));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
-    mysql_close(dbp->db); u8_free(dbp);
-    return FD_ERROR_VALUE;} 
-
-  /* Initialize the other fields */
-  dbp->dbhandler=&mysql_handler;
-  dbp->hostname=dupstring(host);
-  dbp->username=dupstring(username);
-  dbp->passwd=dupstring(passwd);
-  dbp->dbstring=dupstring(dbstring);
-  dbp->sockname=dupstring(sockname);
-  dbp->portno=portno;
-  dbp->flags=flags;
-  dbp->colinfo=fd_incref(colinfo);
-  dbp->spec=u8_strdup(FD_STRDATA(hostname));
-  dbp->options=options; fd_incref(options);
-  dbp->info=
-    u8_mkstring("%s;client %s",
-		mysql_get_host_info(db),
-		mysql_get_client_info());
-  dbp->startup=u8_elapsed_time();
-
-  u8_init_mutex(&dbp->proclock);
-  u8_init_mutex(&dbp->lock);
-
-  return FDTYPE_CONS(dbp);
-}
-
-static int reopen_mysql(struct FD_MYSQL *c)
-{
-  double now=u8_elapsed_time(); int retval=0;
-  MYSQL *db;
-  u8_lock_mutex(&mysql_connect_lock);
-  if (now<c->startup) {
-    u8_unlock_mutex(&mysql_connect_lock);
-    return 0;}
-  u8_log(LOG_WARN,"reopen_mysql",
-	 "Reopening MYSQL connection to '%s' (%s)",
-	 c->spec,c->info);
-  mysql_close(c->db); c->db=NULL;
-  c->db=mysql_init(&(c->_db));
-
-  if (c->db==NULL) {
-    const char *errmsg=mysql_error(&(c->_db));
-    u8_seterr(MySQL_Error,"open_mysql",u8_strdup(errmsg));
-    return FD_ERROR_VALUE;}
-  else retval=preopen(c,c->options);
-  if (retval<0) return FD_ERROR_VALUE;
-
-  db=mysql_real_connect
-    (c->db,c->hostname,c->username,c->passwd,
-     c->dbstring,c->portno,c->sockname,c->flags);
-  if (db==NULL) {
-    const char *errmsg=mysql_error(db);
-    u8_seterr(MySQL_Error,"reopen_mysql",u8_strdup(errmsg));
-    u8_unlock_mutex(&mysql_connect_lock);
     return -1;}
-  else c->db=db;
-  u8_lock_mutex(&(c->proclock)); {
-    int i=0, n=c->n_procs;
-    struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)c->procs;
-    while (i<n) reinit_mysqlproc(c,procs[i++]);
-    c->startup=u8_elapsed_time();
-    u8_unlock_mutex(&(c->proclock)); 
-    u8_unlock_mutex(&mysql_connect_lock);
-    return 1;}
-}
-
-static int preopen(struct FD_MYSQL *dbp,fdtype options)
-{
-  my_bool reconnect; int retval=0; u8_string option=NULL;
-  int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
     fdtype reconn=fd_getopt(options,reconnect_symbol,FD_VOID);
@@ -299,7 +192,27 @@ static int preopen(struct FD_MYSQL *dbp,fdtype options)
     mysql_close(dbp->db);
     u8_free(dbp);
     return -1;}
-  else return 1;
+
+  u8_lock_mutex(&mysql_connect_lock); {
+    db=mysql_real_connect
+      (dbp->db,dbp->hostname,dbp->username,dbp->passwd,
+       dbp->dbstring,dbp->portno,dbp->sockname,dbp->flags);}
+  u8_unlock_mutex(&mysql_connect_lock);
+
+  if (db==NULL) {
+    const char *errmsg=mysql_error(db);
+    u8_seterr(MySQL_Error,"reopen_mysql",u8_strdup(errmsg));
+    u8_unlock_mutex(&mysql_connect_lock);
+    return -1;}
+  else dbp->db=db;
+  u8_lock_mutex(&(dbp->proclock)); {
+    int i=0, n=dbp->n_procs;
+    struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)dbp->procs;
+    while (i<n) reinit_mysqlproc(dbp,procs[i++]);
+    dbp->startup=u8_elapsed_time();
+    u8_unlock_mutex(&(dbp->proclock)); 
+    u8_unlock_mutex(&mysql_connect_lock);
+    return 1;}
 }
 
 static void recycle_mysqldb(struct FD_EXTDB *c)
@@ -344,7 +257,84 @@ static fdtype refresh_mysqldb(fdtype c,fdtype flags)
   else return FD_VOID;
 }
 
-/* Binding out */
+/* Opening connections */
+
+/* Everything but the hostname and dbname is optional.
+   In theory, we could have the dbname be optional, but for now we'll
+   require it.  */
+static fdtype open_mysql
+  (fdtype hostname,fdtype dbname,fdtype colinfo,
+   fdtype user,fdtype password,
+   fdtype options)
+{
+  char *host, *username, *passwd, *dbstring, *sockname;
+  int portno=0, flags=0, retval;
+  struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
+  my_bool reconnect=0;
+  /* Initialize the cons (does a memset too) */
+  FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
+  /* Initialize the MYSQL side of things (after the memset!) */
+  /* If the hostname looks like a filename, we assume it's a Unix domain
+     socket. */
+  if (strchr(FD_STRDATA(hostname),'/')==NULL) {
+    host=FD_STRDATA(hostname); sockname=NULL;}
+  else {
+    sockname=FD_STRDATA(hostname); host=NULL;}
+  /* Process the other arguments */
+  dbstring=((FD_VOIDP(dbname)) ? (NULL) : (FD_STRDATA(dbname)));
+  username=((FD_VOIDP(user)) ? (NULL) : (FD_STRDATA(user)));
+  passwd=((FD_VOIDP(password)) ? (NULL) : (FD_STRDATA(password)));
+  flags=0;
+
+  /* Initialize the other fields */
+  dbp->dbhandler=&mysql_handler;
+  dbp->hostname=dupstring(host);
+  dbp->username=dupstring(username);
+  dbp->passwd=dupstring(passwd);
+  dbp->dbstring=dupstring(dbstring);
+  dbp->sockname=dupstring(sockname);
+  dbp->portno=portno;
+  dbp->flags=flags;
+  dbp->colinfo=fd_incref(colinfo);
+  dbp->spec=u8_strdup(FD_STRDATA(hostname));
+  dbp->options=options; fd_incref(options);
+
+  u8_init_mutex(&dbp->proclock);
+  u8_init_mutex(&dbp->lock);
+
+  /* Prep the structure */
+  retval=open_connection(dbp);
+  if (retval<0) {
+    recycle_mysqldb((struct FD_EXTDB *)dbp);
+    return FD_ERROR_VALUE;}
+
+  dbp->info=
+    u8_mkstring("%s;client %s",
+		mysql_get_host_info(dbp->db),
+		mysql_get_client_info());
+  dbp->startup=u8_elapsed_time();
+
+  return FDTYPE_CONS(dbp);
+}
+
+static int reopen_mysql(struct FD_MYSQL *c)
+{
+  double now=u8_elapsed_time(); int retval=0;
+  MYSQL *db;
+  u8_lock_mutex(&mysql_connect_lock);
+  if (now<c->startup) {
+    u8_unlock_mutex(&mysql_connect_lock);
+    return 0;}
+  u8_log(LOG_WARN,"reopen_mysql",
+	 "Reopening MYSQL connection to '%s' (%s)",
+	 c->spec,c->info);
+  mysql_close(c->db); c->db=NULL;
+  retval=open_connection(c);
+  if (retval<0) return retval;
+  else return 1;
+}
+
+/* Binding for procedures */
 
 /* This sets up outbound bindings for a statement.
    It assumes that outval->buffer_type has been initialized
@@ -732,26 +722,22 @@ static fdtype mysqlmakeproc
   u8_lock_mutex(&(dbp->lock));
 
   dbproc->stmt=mysql_stmt_init(db);
-  if (dbproc->stmt)
-    retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);
-  else {
+  if (dbproc->stmt==NULL) {
     const char *errmsg=mysql_error(db);
     u8_free(dbproc);
     u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
     u8_unlock_mutex(&(dbp->lock));
     return FD_ERROR_VALUE;}
-
+  retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);
+  if ((retval==CR_SERVER_GONE_ERROR)||(retval==CR_SERVER_LOST)) {
+    retval=reopen_mysql(dbp);
+    if (retval==0) retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);}
   if (retval) {
-    const char *errmsg;
-    if ((retval==CR_SERVER_GONE_ERROR)||(retval==CR_SERVER_LOST))
-      /* Try one more time */
-      retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);
-    if (retval) {
-      errmsg=mysql_stmt_error(dbproc->stmt);
-      u8_free(dbproc);
-      u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
-      u8_unlock_mutex(&(dbp->lock));
-      return FD_ERROR_VALUE;}}
+    const char *errmsg=mysql_stmt_error(dbproc->stmt);
+    u8_free(dbproc);
+    u8_seterr(MySQL_Error,"mysqlproc",u8_mkstring("(%s) %s",errmsg,stmt));
+    u8_unlock_mutex(&(dbp->lock));
+    return FD_ERROR_VALUE;}
 
   dbproc->colinfo=merge_colinfo(dbp,colinfo);
 
