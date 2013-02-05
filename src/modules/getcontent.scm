@@ -10,6 +10,8 @@
 
 (use-module '{fileio ezrecords varconfig logger reflection})
 
+(define %loglevel %notify%)
+
 (module-export! '{getcontent getcontent/info})
 
 ;; The number of seconds to assume that a file hasn't been touched.
@@ -28,19 +30,23 @@
 
 ;;; Configuring file-specific lags
 
-(define filecheck-lags (make-hashtable))
+(define-init filecheck-lags (make-hashtable))
 
 (config-def! 'getcontent:lags
 	     (lambda (var (val))
-	       (if (bound? val)
-		   (if (not (and (pair? val) (string? (car val))
-				 (or (not (cdr val)) (number? (cdr val)))))
-		       (error "Invalid lag specification")
-		       (if (cdr val)
-			   (begin (store! filecheck-lags (car val) (cdr val))
-				  (update-filecheck-lag (get loadinfo (car val)) (cdr val)))
-			   (drop! filecheck-lags (car val))))
-		   filecheck-lags)))
+	       (cond ((not (bound? val)) filecheck-lags)
+		     ((eq? filecheck-lags val) val)
+		     ((hashtable? val) (set! filecheck-lags val) val)
+		     ((and (pair? val) (string? (car val))
+			   (number? (cdr val)))
+		      (store! filecheck-lags (car val) (cdr val))
+		      (update-filecheck-lag (get loadinfo (car val)) (cdr val))
+		      (cdr val))
+		     ((and (pair? val) (string? (car val))
+			   (or (not (cdr val))  (null? (cdr val))))
+		      (drop! filecheck-lags (car val))
+		      #f)
+		     (else (error "Invalid lag specification")))))
 
 (define (update-filecheck-lag info lag)
   (let ((file (loadinfo-file info))
@@ -56,65 +62,57 @@
 
 (define (getcontent file (enc #t) (parser #f))
   (try (loadinfo-content (getcontent/info file enc parser))
-       (reload-content file enc (or parser identity))))
+       (reload-content file enc parser)))
 
 (define (getcontent/info file (enc #f) (parser #f))
-  (let ((info (get loadinfo file)))
+  (let ((info (get loadinfo (vector file (or enc 'binary) parser))))
     (if (exists? info)
 	(if (< (difftime (loadinfo-checktime info)) (loadinfo-lagtime info))
 	    info
 	    (let ((modtime (file-modtime file)))
-	      (if (and (or (not parser) (equal? (or parser identity)
-						(loadinfo-parser info)))
-		       (or (not enc) (equal? (or enc #t)
-					     (loadinfo-encoding info)))
+	      (if (and (or (not parser)
+			   (equal? parser (loadinfo-parser info)))
+		       (or (not enc)
+			   (equal? (or enc 'binary) (loadinfo-encoding info)))
 		       (equal? modtime (loadinfo-modtime info)))
 		  info
 		  (fail))))
 	(fail))))
 
 (defslambda (reload-content file enc parser)
-  (let ((info (get loadinfo file))
+  (let ((info (try (get loadinfo (vector file (or enc 'binary) parser))
+		   (get loadinfo file)))
 	(mtime (file-modtime file)))
-    ;; (%watch "RELOAD-CONTENT test" file info)
+    (debug%watch "RELOAD-CONTENT" file enc parser info)
     (if (and (exists? info)
 	     (equal? mtime (loadinfo-modtime info))
 	     (equal? parser (loadinfo-parser info))
-	     (equal? enc (loadinfo-encoding info)))
-	(loadinfo-content info)
+	     (equal? (or enc 'binary) (loadinfo-encoding info)))
+	(debug%watch (loadinfo-content info) info)
 	(let* ((lagtime (try (get filecheck-lags file)
 			     (get filecheck-lags (abspath file))
 			     (get filecheck-lags (realpath file))
 			     filecheck-default-lag))
-	       (parser (if parser
-			   (if (equal? parser (loadinfo-parser info)) parser
-			       (begin (logwarn
-				       "Changing parse function for " file
-				       " to " parser
-				       " from " (loadinfo-parser info))
-				      parser))
-			   (loadinfo-parser info)))
-	       (enc (if enc
-			(if (equal? enc (loadinfo-encoding info)) enc
-			    (begin (logwarn "Changing text encoding for " file
-					    " to " enc
-					    " from " (loadinfo-encoding info))
-				   enc))
-			(loadinfo-encoding info)))
-	       (data (cond ((not enc) (filedata file))
+	       (parser (or parser (loadinfo-parser info)))
+	       (enc (or enc (loadinfo-encoding info)))
+	       (data (cond ((or (not enc) (eq? enc 'binary)) (filedata file))
 			   ((string? enc) (filestring file enc))
+			   ;; This is UTF-8
 			   (else (filestring file))))
-	       (result (if (and parser (not (eq? parser identity)))
-			   (parser data)
-			   data))
+	       (result (if parser (parser data) data))
 	       (newinfo (cons-loadinfo file mtime lagtime
 				       enc parser (timestamp) result)))
 	  (when (exists? info)
-	    (notify "Reloaded content from " (write file)
-		    " using " (or (procedure-name parser) parser)))
-	  ;; (%watch "RELOAD-CONTENT newinfo" file newinfo)
-	  (store! loadinfo file newinfo)
+	    (if parser
+		(notify "Reloaded content from " (write file)
+			" using " (or (procedure-name parser) parser))
+		(notify "Reloaded content from " (write file))))
+	  (debug%watch "RELOAD-CONTENT newinfo" file newinfo)
+	  (store! loadinfo (vector file enc parser) newinfo)
+	  (when (or (fail? info) (test loadinfo file info))
+	    (store! loadinfo file newinfo))
 	  result))))
+
 
 
 
