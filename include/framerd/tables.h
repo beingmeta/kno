@@ -389,6 +389,7 @@ FD_EXPORT fdtype fd_make_hashtable(fd_hashtable ptr,int n_slots);
 FD_EXPORT fdtype fd_init_hashtable
    (fd_hashtable ptr,int n_keyvals,struct FD_KEYVAL *init);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
+FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype key,struct FD_HASHENTRY **slots,int n_slots);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
 				      struct FD_HASHENTRY ***,int *);
 FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr);

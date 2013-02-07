@@ -1480,9 +1480,50 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
   else return FD_EMPTY_CHOICE;
 }
   
+static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  u8_lock_mutex(&(hs->lock)); {
+    fdtype *slots=hs->slots; int n_slots=hs->n_slots;
+    FD_DO_CHOICES(c,candidates) {
+      int hash=fd_hash_lisp(c), probe=hash%n_slots, n_probes=0, found=0;
+      while (n_probes<512) {
+	if (slots[probe]==0) {}
+	else if (FDTYPE_EQUAL(c,slots[probe])) {found=1; break;}
+	else { probe++; n_probes++; if (probe>n_slots) probe=0;}}
+      if (((found)&&(pick))||((!(found))&&((!pick)))) {
+	FD_ADD_TO_CHOICE(results,c); fd_incref(c);}}
+    u8_unlock_mutex(&(hs->lock));
+    return results;}
+}
+#define hashset_pick(c,h) (hashset_filter(c,(fd_hashset)h,1))
+#define hashset_reject(c,h) (hashset_filter(c,(fd_hashset)h,0))
+
+static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
+{
+  fdtype results=FD_EMPTY_CHOICE; int unlock=0;
+  if (ht->n_keys==0) return FD_EMPTY_CHOICE;
+  if (ht->uselock) {
+    fd_read_lock_struct(ht); unlock=1;}
+  {
+    struct FD_HASHENTRY **slots=ht->slots; int n_slots=ht->n_slots;
+    FD_DO_CHOICES(c,candidates) {
+      struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
+      if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
+	FD_ADD_TO_CHOICE(results,c); fd_incref(c);}}
+    if (unlock) fd_rw_unlock(&(ht->rwlock));
+    return results;}
+}
+#define hashtable_pick(c,h) (hashtable_filter(c,(fd_hashtable)h,1))
+#define hashtable_reject(c,h) (hashtable_filter(c,(fd_hashtable)h,0))
+
 static fdtype pick_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2))
+  if ((n==2)&&(FD_HASHTABLEP(args[1])))
+    return hashtable_pick(args[0],(fd_hashtable)args[1]);
+  else if ((n==2)&&(FD_HASHSETP(args[1])))
+    return hashset_pick(args[0],(fd_hashset)args[1]);
+  else if ((n<=4)||(n%2))
     return pick_helper(args[0],n-1,args+1,0);
   else return fd_err
 	 (fd_TooManyArgs,"pick_lexpr",
@@ -1491,7 +1532,17 @@ static fdtype pick_lexpr(int n,fdtype *args)
 
 static fdtype prefer_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2)) {
+  if ((n==2)&&(FD_HASHTABLEP(args[1]))) {
+    fdtype results=hashtable_pick(args[0],(fd_hashtable)args[1]);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else if ((n==2)&&(FD_HASHSETP(args[1]))) {
+    fdtype results=hashset_pick(args[0],(fd_hashset)args[1]);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else if ((n<=4)||(n%2)) {
     fdtype results=pick_helper(args[0],n-1,args+1,0);
     if (FD_EMPTY_CHOICEP(results))
       return fd_incref(args[0]);
@@ -1502,7 +1553,11 @@ static fdtype prefer_lexpr(int n,fdtype *args)
 
 static fdtype prim_pick_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2))
+  if ((n==2)&&(FD_HASHTABLEP(args[1])))
+    return hashtable_pick(args[0],(fd_hashtable)args[1]);
+  else if ((n==2)&&(FD_HASHSETP(args[1])))
+    return hashset_pick(args[0],(fd_hashset)args[1]);
+  else if ((n<=4)||(n%2))
     return pick_helper(args[0],n-1,args+1,1);
   else return fd_err(fd_TooManyArgs,"prim_pick_lexpr",
 		     "%PICK requires two or 2n+1 arguments",FD_VOID);
@@ -1574,7 +1629,11 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
 
 static fdtype reject_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2)) 
+  if ((n==2)&&(FD_HASHTABLEP(args[1])))
+    return hashtable_reject(args[0],args[1]);
+  else if ((n==2)&&(FD_HASHSETP(args[1])))
+    return hashset_reject(args[0],args[1]);
+  else if ((n<=4)||(n%2)) 
     return reject_helper(args[0],n-1,args+1,0);
   else return fd_err(fd_TooManyArgs,"reject_lexpr",
 		     "REJECT requires two or 2n+1 arguments",FD_VOID);
@@ -1582,7 +1641,17 @@ static fdtype reject_lexpr(int n,fdtype *args)
 
 static fdtype avoid_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2)) {
+  if ((n==2)&&(FD_HASHTABLEP(args[1]))) {
+    fdtype results=hashtable_reject(args[0],(fd_hashtable)args[1]);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else if ((n==2)&&(FD_HASHSETP(args[1]))) {
+    fdtype results=hashtable_reject(args[0],(fd_hashset)args[1]);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else if ((n<=4)||(n%2)) {
     fdtype values=reject_helper(args[0],n-1,args+1,0);
     if (FD_EMPTY_CHOICEP(values))
       return fd_incref(args[0]);
@@ -1593,7 +1662,11 @@ static fdtype avoid_lexpr(int n,fdtype *args)
 
 static fdtype prim_reject_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2)) 
+  if ((n==2)&&(FD_HASHTABLEP(args[1])))
+    return hashtable_reject(args[0],args[1]);
+  else if ((n==2)&&(FD_HASHSETP(args[1])))
+    return hashset_reject(args[0],args[1]);
+  else if ((n<=4)||(n%2)) 
     return reject_helper(args[0],n-1,args+1,1);
   else return fd_err(fd_TooManyArgs,"prim_reject_lexpr",
 		     "%REJECT requires two or 2n+1 arguments",FD_VOID);
@@ -1601,7 +1674,17 @@ static fdtype prim_reject_lexpr(int n,fdtype *args)
 
 static fdtype prim_avoid_lexpr(int n,fdtype *args)
 {
-  if ((n<=4)||(n%2)) {
+  if ((n==2)&&(FD_HASHTABLEP(args[1]))) {
+    fdtype results=hashtable_reject(args[0],(fd_hashtable)args[1]);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else if ((n==2)&&(FD_HASHSETP(args[1]))) {
+    fdtype results=hashtable_reject(args[0],(fd_hashset)args[1]);
+    if (FD_EMPTY_CHOICEP(results))
+      return fd_incref(args[0]);
+    else return results;}
+  else if ((n<=4)||(n%2)) {
     fdtype values=reject_helper(args[0],n-1,args+1,1);
     if (FD_EMPTY_CHOICEP(values))
       return fd_incref(args[0]);
