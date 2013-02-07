@@ -1277,8 +1277,6 @@ FD_EXPORT int fd_init_mysql()
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
 
-  u8_log(LOG_WARN,"fdmysql","Experimental MYSQL module");
-
   module=fd_new_module("MYSQL",0);
 
 #if FD_THREADS_ENABLED
