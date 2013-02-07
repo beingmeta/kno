@@ -1539,21 +1539,6 @@ static fdtype snapback_handler(fdtype expr,fd_lispenv env)
   else return FD_INT2DTYPE(retval);
 }
 
-/* Load DLL */
-
-static fdtype load_dll(fdtype filename)
-{
-  if (FD_STRINGP(filename)) {
-    char *local=u8_localpath(FD_STRDATA(filename));
-    void *module=u8_dynamic_load(local);
-    if (module) {
-      u8_free(local); return FD_TRUE;}
-    else {
-      u8_free(local);
-      return FD_ERROR_VALUE;}}
-  else return FD_VOID;
-}
-
 /* Stackdump configuration */
 
 static u8_string stackdump_filename=NULL;
@@ -1817,8 +1802,6 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("ENDPOS",endpos_prim,1,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("FILE%",file_progress_prim,1,fd_port_type,FD_VOID));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim1("LOAD-DLL",load_dll,1));
 
   fd_defspecial(fileio_module,"LOAD-LATEST",load_latest);
 
