@@ -202,19 +202,25 @@ static int reinit_statements(struct FD_MYSQL *dbp)
 static int restart_connection(struct FD_MYSQL *dbp)
 {
   MYSQL *db=dbp->db;
+  unsigned int old_thread_id=dbp->thread_id;
   unsigned int retval=mysql_ping(db); unsigned int reconn=1;
-  unsigned int old_thread_id=mysql_thread_id(db), new_thread_id;
-  if (retval==0) {
+  unsigned int cur_thread_id=mysql_thread_id(db);
+  if ((retval==RETVAL_OK)&&(old_thread_id==cur_thread_id)) {
     u8_log(LOG_WARN,"myql/restart_connection",
-	   "MYSQL connection appears %s (%s) seems to be up w/id=%ld",
-	   dbp->spec,dbp->info,mysql_thread_id(db));
+	   "MYSQL connection #%d appears %s (%s) seems to be up w/id=%ld",
+	   mysql_thread_id(db),dbp->spec,dbp->info);
     return 0;}
   u8_lock_mutex(&mysql_connect_lock);
-  u8_log(LOG_WARN,"myql/restart_connection",
-	 "Restarting the MYSQL connection %s (%s) #%d",
-	 dbp->spec,dbp->info,dbp->thread_id);
-  mysql_options(db,MYSQL_OPT_RECONNECT,&reconn);
-  retval=mysql_ping(db);
+  if ((retval==RETVAL_OK)&&(old_thread_id!=cur_thread_id)) {
+    u8_log(LOG_WARN,"myql/restart_connection",
+	   "The MYSQL connection with %s (%s) appears to have been reset behind FramerD's back from id %d to %d",
+	   dbp->spec,dbp->info,old_thread_id,cur_thread_id);}
+  else {
+    u8_log(LOG_WARN,"myql/restarting_connection",
+	   "Restart #%d MYSQL connection #%d with %s (%s)",
+	   dbp->restarts+1,dbp->thread_id,dbp->spec,dbp->info);
+    mysql_options(db,MYSQL_OPT_RECONNECT,&reconn);
+    retval=mysql_ping(db);}
   if (retval==RETVAL_OK) {
     int i=0, n=dbp->n_procs;
     reconn=0; mysql_options(db,MYSQL_OPT_RECONNECT,&reconn);
@@ -226,9 +232,9 @@ static int restart_connection(struct FD_MYSQL *dbp)
   u8_unlock_mutex(&mysql_connect_lock);
   dbp->restarts++; dbp->restarted=u8_elapsed_time();
   dbp->thread_id=mysql_thread_id(dbp->db);
-  u8_log(LOG_WARN,"myql/restart_connection",
-	 "Restarted (#%d) the MYSQL connection %s (%s), id now %d",
-	 dbp->restarts,dbp->spec,dbp->info,dbp->thread_id);
+  u8_log(LOG_WARN,"myql/restarted_connection",
+	 "Reinitialized MYSQL connection #%d with %s (%s)",
+	 dbp->thread_id,dbp->restarts,dbp->spec,dbp->info);
   return -(retval);
 }
 
@@ -1270,6 +1276,8 @@ FD_EXPORT int fd_init_mysql()
   /* my_init(); */
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
+
+  u8_log(LOG_WARN,"fdmysql","Experimental MYSQL module");
 
   module=fd_new_module("MYSQL",0);
 
