@@ -10,6 +10,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8printf.h>
 #include <libu8/u8filefns.h>
 
 #ifndef _FILEINFO
@@ -180,15 +181,23 @@ static int load_dynamic_module(fdtype spec,int safe)
 {
   if (FD_SYMBOLP(spec)) {
     u8_string pname=FD_SYMBOL_NAME(spec);
-    u8_string name=((strchr(pname,'.'))?(u8_downcase(FD_SYMBOL_NAME(spec))):
-		    (u8_mkstring("%ls.%s",pname,FD_DLOAD_SUFFIX)));
+    u8_string name=u8_downcase(FD_SYMBOL_NAME(spec)), alt_name=NULL;
+    /* The alt name has a suffix, which lets the path elements be either
+       % patterns (which may provide a suffix) or just directory names
+       (which may not) */
+    if (strchr(pname,'.')==NULL)
+      alt_name=u8_mkstring("%ls.%s",pname,FD_DLOAD_SUFFIX);
     FD_DOLIST(elt,dloadpath) {
       if (FD_STRINGP(elt)) {
 	u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
+	if ((!(module_filename))&&(alt_name))
+	  module_filename=u8_find_file(alt_name,FD_STRDATA(elt),NULL);
 	if (module_filename) {
 	  void *mod=u8_dynamic_load(module_filename);
 	  u8_free(module_filename); u8_free(name);
+	  if (alt_name) u8_free(alt_name);
 	  if (mod) return 1; else return -1;}}}
+    if (alt_name) u8_free(alt_name);
     u8_free(name);
     return 0;}
   else if  ((safe==0) &&
