@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_FILEPRIMS_H
-#define FDB_FILEPRIMS_H 1
-#ifndef FDB_FILEPRIMS_H_INFO
-#define FDB_FILEPRIMS_H_INFO "include/framerd/fileprims.h"
+#ifndef FRAMERD_FILEPRIMS_H
+#define FRAMERD_FILEPRIMS_H 1
+#ifndef FRAMERD_FILEPRIMS_H_INFO
+#define FRAMERD_FILEPRIMS_H_INFO "include/framerd/fileprims.h"
 #endif
 
 FD_EXPORT int fd_update_file_modules(int force);

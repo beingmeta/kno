@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_DTYPEIO_H
-#define FDB_DTYPEIO_H 1
-#ifndef FDB_DTYPEIO_H_INFO
-#define FDB_DTYPEIO_H_INFO "include/framerd/dtypeio.h"
+#ifndef FRAMERD_DTYPEIO_H
+#define FRAMERD_DTYPEIO_H 1
+#ifndef FRAMERD_DTYPEIO_H_INFO
+#define FRAMERD_DTYPEIO_H_INFO "include/framerd/dtypeio.h"
 #endif
 
 /* DTYPE constants */
@@ -405,4 +405,4 @@ typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTPUT *b,size_t delta);
 FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INPUT *b,size_t len);
 
-#endif /* FDB_DTYPEIO_H */
+#endif /* FRAMERD_DTYPEIO_H */

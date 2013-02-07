@@ -9,10 +9,10 @@
    The central piece is a text pattern matcher implemented in
    src/texttools/match.c. */
 
-#ifndef FDB_TEXTTOOLS_H
-#define FDB_TEXTTOOLS_H 1
-#ifndef FDB_TEXTTOOLS_H_INFO
-#define FDB_TEXTTOOLS_H_INFO "include/framerd/texttools.h"
+#ifndef FRAMERD_TEXTTOOLS_H
+#define FRAMERD_TEXTTOOLS_H 1
+#ifndef FRAMERD_TEXTTOOLS_H_INFO
+#define FRAMERD_TEXTTOOLS_H_INFO "include/framerd/texttools.h"
 #endif
 
 FD_EXPORT void fd_init_texttools(void) FD_LIBINIT_FN;
@@ -96,4 +96,4 @@ FD_EXPORT u8_string fd_metaphone(u8_string,int);
 FD_EXPORT fdtype fd_md5(fdtype string);
 
 
-#endif /* FDB_TEXTTOOLS_H */
+#endif /* FRAMERD_TEXTTOOLS_H */

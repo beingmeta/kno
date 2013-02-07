@@ -69,10 +69,10 @@
 
 /* Working with CONSes */
 
-#ifndef FDB_CONS_H
-#define FDB_CONS_H 1
-#ifndef FDB_CONS_H_INFO
-#define FDB_CONS_H_INFO "include/framerd/cons.h"
+#ifndef FRAMERD_CONS_H
+#define FRAMERD_CONS_H 1
+#ifndef FRAMERD_CONS_H_INFO
+#define FRAMERD_CONS_H_INFO "include/framerd/cons.h"
 #endif
 
 #include "ptr.h"
@@ -576,4 +576,4 @@ static int cons_compare(fdtype x,fdtype y)
 #include "choices.h"
 #include "tables.h"
 
-#endif /* ndef FDB_CONS_H */
+#endif /* ndef FRAMERD_CONS_H */

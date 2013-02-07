@@ -7,10 +7,10 @@
 
 /* Dealing with DTYPE (dynamically typed) objects */
 
-#ifndef FDB_DTYPE_H
-#define FDB_DTYPE_H 1
-#ifndef FDB_DTYPE_H_INFO
-#define FDB_DTYPE_H_INFO "include/framerd/dtype.h"
+#ifndef FRAMERD_DTYPE_H
+#define FRAMERD_DTYPE_H 1
+#ifndef FRAMERD_DTYPE_H_INFO
+#define FRAMERD_DTYPE_H_INFO "include/framerd/dtype.h"
 #endif
 
 #include "common.h"
@@ -52,5 +52,5 @@ typedef int (*fd_hashfn)(fdtype x,unsigned int (*hf)(fdtype));
 FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
 
-#endif /* ndef FDB_DTYPE_H */
+#endif /* ndef FRAMERD_DTYPE_H */
 

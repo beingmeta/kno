@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_SUPPORT_H
-#define FDB_SUPPORT_H 1
-#ifndef FDB_SUPPORT_H_INFO
-#define FDB_SUPPORT_H_INFO "include/framerd/support.h"
+#ifndef FRAMERD_SUPPORT_H
+#define FRAMERD_SUPPORT_H 1
+#ifndef FRAMERD_SUPPORT_H_INFO
+#define FRAMERD_SUPPORT_H_INFO "include/framerd/support.h"
 #endif
 
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
@@ -139,5 +139,5 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 
 
-#endif /* #ifndef FDB_SUPPORT_H */
+#endif /* #ifndef FRAMERD_SUPPORT_H */
 

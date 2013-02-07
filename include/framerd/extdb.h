@@ -1,9 +1,9 @@
 /* C Mode */
 
-#ifndef FDB_EXTDB_H
-#define FDB_EXTDB_H 1
-#ifndef FDB_EXTDB_H_INFO
-#define FDB_EXTDB_H_INFO "include/framerd/extdb.h"
+#ifndef FRAMERD_EXTDB_H
+#define FRAMERD_EXTDB_H 1
+#ifndef FRAMERD_EXTDB_H_INFO
+#define FRAMERD_EXTDB_H_INFO "include/framerd/extdb.h"
 #endif
 
 FD_EXPORT fd_ptr_type fd_extdb_type;
@@ -45,5 +45,5 @@ FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h);
 FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *p);
 FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *p);
 
-#endif /* ndef FDB_EXTDB_H */
+#endif /* ndef FRAMERD_EXTDB_H */
 

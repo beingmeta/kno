@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_SEQUENCES_H
-#define FDB_SEQUENCES_H 1
-#ifndef FDB_SEQUENCES_H_INFO
-#define FDB_SEQUENCES_H_INFO "include/framerd/sequences.h"
+#ifndef FRAMERD_SEQUENCES_H
+#define FRAMERD_SEQUENCES_H 1
+#ifndef FRAMERD_SEQUENCES_H_INFO
+#define FRAMERD_SEQUENCES_H_INFO "include/framerd/sequences.h"
 #endif
 
 FD_EXPORT fd_exception fd_RangeError;
@@ -37,4 +37,4 @@ FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end);
 fdtype *fd_elts(fdtype seq,int *len);
 fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v);
 
-#endif /*  FDB_SEQUENCES_H */
+#endif /*  FRAMERD_SEQUENCES_H */

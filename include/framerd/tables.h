@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_TABLES_H
-#define FDB_TABLES_H 1
-#ifndef FDB_TABLES_H_INFO
-#define FDB_TABLES_H_INFO "include/framerd/tables.h"
+#ifndef FRAMERD_TABLES_H
+#define FRAMERD_TABLES_H 1
+#ifndef FRAMERD_TABLES_H_INFO
+#define FRAMERD_TABLES_H_INFO "include/framerd/tables.h"
 #endif
 
 FD_EXPORT fd_exception fd_NoSuchKey;
@@ -476,4 +476,4 @@ FD_EXPORT fdtype fd_make_hashset(void);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 FD_EXPORT fdtype fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
 
-#endif /* FDB_TABLES_H */
+#endif /* FRAMERD_TABLES_H */

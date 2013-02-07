@@ -459,9 +459,9 @@ FD_EXPORT int fd_swapcheck()
 
 static void register_header_files()
 {
-  u8_register_source_file(FDB_FDDB_H_INFO);
-  u8_register_source_file(FDB_POOLS_H_INFO);
-  u8_register_source_file(FDB_INDICES_H_INFO);
+  u8_register_source_file(FRAMERD_FDDB_H_INFO);
+  u8_register_source_file(FRAMERD_POOLS_H_INFO);
+  u8_register_source_file(FRAMERD_INDICES_H_INFO);
 }
 
 FD_EXPORT void fd_init_threadcache_c(void);

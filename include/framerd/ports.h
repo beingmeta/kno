@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_PORTS_H
-#define FDB_PORTS_H 1
-#ifndef FDB_PORTS_H_INFO
-#define FDB_PORTS_H_INFO "include/framerd/ports.h"
+#ifndef FRAMERD_PORTS_H
+#define FRAMERD_PORTS_H 1
+#ifndef FRAMERD_PORTS_H_INFO
+#define FRAMERD_PORTS_H_INFO "include/framerd/ports.h"
 #endif
 
 #include <libu8/libu8io.h>

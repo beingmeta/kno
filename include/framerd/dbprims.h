@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_DBPRIMS_H
-#define FDB_DBPRIMS_H 1
-#ifndef FDB_DBPRIMS_H_INFO
-#define FDB_DBPRIMS_H_INFO "include/framerd/dbprims.h"
+#ifndef FRAMERD_DBPRIMS_H
+#define FRAMERD_DBPRIMS_H 1
+#ifndef FRAMERD_DBPRIMS_H_INFO
+#define FRAMERD_DBPRIMS_H_INFO "include/framerd/dbprims.h"
 #endif
 
 FD_EXPORT fdtype fd_fget(fdtype frames,fdtype slotids);

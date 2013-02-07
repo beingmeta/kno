@@ -83,10 +83,10 @@
 
 /* DTYPE Types */
 
-#ifndef FDB_PTR_H
-#define FDB_PTR_H 1
-#ifndef FDB_PTR_H_INFO
-#define FDB_PTR_H_INFO "include/framerd/ptr.h"
+#ifndef FRAMERD_PTR_H
+#define FRAMERD_PTR_H 1
+#ifndef FRAMERD_PTR_H_INFO
+#define FRAMERD_PTR_H_INFO "include/framerd/ptr.h"
 #endif
 
 #include "common.h"
@@ -689,5 +689,5 @@ FD_EXPORT int fd_ptr_debug_density;
 #define FD_CHECK_PTR3(x,cxt) (x)
 #endif
 
-#endif /* ndef FDB_PTR_H */
+#endif /* ndef FRAMERD_PTR_H */
 

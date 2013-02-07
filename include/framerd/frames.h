@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_FRAMES_H
-#define FDB_FRAMES_H 1
-#ifndef FDB_FRAMES_H_INFO
-#define FDB_FRAMES_H_INFO "include/framerd/frames.h"
+#ifndef FRAMERD_FRAMES_H
+#define FRAMERD_FRAMES_H 1
+#ifndef FRAMERD_FRAMES_H_INFO
+#define FRAMERD_FRAMES_H_INFO "include/framerd/frames.h"
 #endif
 
 /* Adjuncts: these are indices which function as slotids. */
@@ -97,6 +97,6 @@ FD_EXPORT
 int fd_index_frame(fd_index ix,fdtype frame,fdtype slotid,fdtype values);
 
 
-#endif /* FDB_FRAMES_H */
+#endif /* FRAMERD_FRAMES_H */
 
 

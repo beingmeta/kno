@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_EVAL_H
-#define FDB_EVAL_H 1
-#ifndef FDB_EVAL_H_INFO
-#define FDB_EVAL_H_INFO "include/framerd/eval.h"
+#ifndef FRAMERD_EVAL_H
+#define FRAMERD_EVAL_H 1
+#ifndef FRAMERD_EVAL_H_INFO
+#define FRAMERD_EVAL_H_INFO "include/framerd/eval.h"
 #endif
 
 #include "framerd/dtype.h"
@@ -440,5 +440,5 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_INTERSECT_OPCODE  FD_OPCODE(0xC5)
 #define FD_DIFFERENCE_OPCODE FD_OPCODE(0xC6)
 
-#endif /* FDB_EVAL_H */
+#endif /* FRAMERD_EVAL_H */
 

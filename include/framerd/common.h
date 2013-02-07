@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_COMMON_H
-#define FDB_COMMON_H 1
-#ifndef FDB_COMMON_H_INFO
-#define FDB_COMMON_H_INFO "include/framerd/common.h"
+#ifndef FRAMERD_COMMON_H
+#define FRAMERD_COMMON_H 1
+#ifndef FRAMERD_COMMON_H_INFO
+#define FRAMERD_COMMON_H_INFO "include/framerd/common.h"
 #endif
 
 #define _GNU_SOURCE
@@ -134,4 +134,4 @@ typedef void *u8_tld_key;
 
 #include "support.h"
 
-#endif /* ndef FDB_COMMON_H */
+#endif /* ndef FRAMERD_COMMON_H */

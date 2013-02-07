@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_FDDB_H
-#define FDB_FDDB_H 1
-#ifndef FDB_FDDB_H_INFO
-#define FDB_FDDB_H_INFO "include/framerd/fddb.h"
+#ifndef FRAMERD_FDDB_H
+#define FRAMERD_FDDB_H 1
+#ifndef FRAMERD_FDDB_H_INFO
+#define FRAMERD_FDDB_H_INFO "include/framerd/fddb.h"
 #endif
 
 #include "dtypestream.h"

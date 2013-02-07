@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_INDICES_H
-#define FDB_INDICES_H 1
-#ifndef FDB_INDICES_H_INFO
-#define FDB_INDICES_H_INFO "include/framerd/indices.h"
+#ifndef FRAMERD_INDICES_H
+#define FRAMERD_INDICES_H 1
+#ifndef FRAMERD_INDICES_H_INFO
+#define FRAMERD_INDICES_H_INFO "include/framerd/indices.h"
 #endif
 
 #include "fddb.h"
@@ -242,4 +242,4 @@ FD_EXPORT void fd_init_index_delays(void);
 FD_EXPORT fdtype *fd_get_index_delays(void);
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data);
 
-#endif /* FDB_INDICES_H */
+#endif /* FRAMERD_INDICES_H */

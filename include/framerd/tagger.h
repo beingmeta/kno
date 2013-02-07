@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_TAGGER_H
-#define FDB_TAGGER_H 1
-#ifndef FDB_TAGGER_H_INFO
-#define FDB_TAGGER_H_INFO "include/framerd/tagger.h"
+#ifndef FRAMERD_TAGGER_H
+#define FRAMERD_TAGGER_H 1
+#ifndef FRAMERD_TAGGER_H_INFO
+#define FRAMERD_TAGGER_H_INFO "include/framerd/tagger.h"
 #endif
 
 FD_EXPORT void fd_init_tagger(void) FD_LIBINIT_FN;

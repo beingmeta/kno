@@ -30,7 +30,7 @@
 #include <signal.h>
 #include <stdio.h>
 
-#include "revision.h"
+#include "fdversion.h"
 
 FD_EXPORT void fd_init_texttools(void);
 FD_EXPORT void fd_init_tagger(void);

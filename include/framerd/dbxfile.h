@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_DBXFILE_H
-#define FDB_DBXFILE_H 1
-#ifndef FDB_DBXFILE_H_INFO
-#define FDB_DBXFILE_H_INFO "include/framerd/dbxfile.h"
+#ifndef FRAMERD_DBXFILE_H
+#define FRAMERD_DBXFILE_H 1
+#ifndef FRAMERD_DBXFILE_H_INFO
+#define FRAMERD_DBXFILE_H_INFO "include/framerd/dbxfile.h"
 #endif
 
 #include "fddb.h"
@@ -34,5 +34,5 @@ typedef struct FD_DBX_POOL {
 typedef struct FD_DBX_POOL *fd_dbx_pool;
 
 
-#endif /* #ifndef FDB_DBXFILE_H */
+#endif /* #ifndef FRAMERD_DBXFILE_H */
 

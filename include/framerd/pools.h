@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_POOLS_H
-#define FDB_POOLS_H 1
-#ifndef FDB_POOLS_H_INFO
-#define FDB_POOLS_H_INFO "include/framerd/pools.h"
+#ifndef FRAMERD_POOLS_H
+#define FRAMERD_POOLS_H 1
+#ifndef FRAMERD_POOLS_H_INFO
+#define FRAMERD_POOLS_H_INFO "include/framerd/pools.h"
 #endif
 
 /* HOW POOLS WORK
@@ -397,5 +397,5 @@ FD_EXPORT void fd_register_pool_opener
    fdtype (*mdreader)(FD_DTYPE_STREAM *),
    fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype));
 
-#endif /* FDB_POOLS_H */
+#endif /* FRAMERD_POOLS_H */
 

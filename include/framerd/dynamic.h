@@ -6,10 +6,10 @@
 */
 
 
-#ifndef FDB_DYNAMIC_H
-#define FDB_DYNAMIC_H
-#ifndef FDB_DYNAMIC_H_INFO
-#define FDB_DYNAMIC_H_INFO "include/framerd/dynamic.h"
+#ifndef FRAMERD_DYNAMIC_H
+#define FRAMERD_DYNAMIC_H
+#ifndef FRAMERD_DYNAMIC_H_INFO
+#define FRAMERD_DYNAMIC_H_INFO "include/framerd/dynamic.h"
 #endif
 
 #include <setjmp.h>
@@ -46,5 +46,5 @@ struct FD_DYNAMIC_CONTEXT {
        fd_pop_dynamic_context(&_dc);              \
      else fd_reraise(&_dc);}}
 
-#endif /* #ifndef FDB_DYNAMIC_H */
+#endif /* #ifndef FRAMERD_DYNAMIC_H */
 

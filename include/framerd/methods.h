@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_METHODS_H
-#define FDB_METHODS_H 1
-#ifndef FDB_METHODS_H_INFO
-#define FDB_METHODS_H_INFO "include/framerd/methods.h"
+#ifndef FRAMERD_METHODS_H
+#define FRAMERD_METHODS_H 1
+#ifndef FRAMERD_METHODS_H_INFO
+#define FRAMERD_METHODS_H_INFO "include/framerd/methods.h"
 #endif
 
 #include "fddb.h"
@@ -47,4 +47,4 @@ FD_EXPORT int fd_pathp(fdtype root,fdtype slotid,fdtype to);
 
 
 
-#endif /* FDB_METHODS_H */
+#endif /* FRAMERD_METHODS_H */

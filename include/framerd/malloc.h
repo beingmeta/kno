@@ -5,11 +5,11 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_MALLOC_H
-#define FDB_MALLOC_H 1
-#ifndef FDB_MALLOC_H_INFO
-#define FDB_MALLOC_H_INFO "include/framerd/malloc.h"
+#ifndef FRAMERD_MALLOC_H
+#define FRAMERD_MALLOC_H 1
+#ifndef FRAMERD_MALLOC_H_INFO
+#define FRAMERD_MALLOC_H_INFO "include/framerd/malloc.h"
 #endif
 
-#endif /* #ifndef FDB_MALLOC_H */
+#endif /* #ifndef FRAMERD_MALLOC_H */
 

@@ -1279,6 +1279,8 @@ FD_EXPORT int fd_init_mysql()
 
   module=fd_new_module("MYSQL",0);
 
+  u8_log(LOG_WARN,"mysql_init","Using this here experimental MYSQL module");
+
 #if FD_THREADS_ENABLED
   u8_init_mutex(&mysql_connect_lock);
 #endif

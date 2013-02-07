@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_SORTING_H
-#define FDB_SORTING_H 1
-#ifndef FDB_SORTING_H_INFO
-#define FDB_SORTING_H_INFO "include/framerd/sorting.h"
+#ifndef FRAMERD_SORTING_H
+#define FRAMERD_SORTING_H 1
+#ifndef FRAMERD_SORTING_H_INFO
+#define FRAMERD_SORTING_H_INFO "include/framerd/sorting.h"
 #endif
 
 struct FD_SORT_ENTRY {
@@ -117,4 +117,4 @@ static fdtype _fd_apply_keyfn(fdtype x,fdtype keyfn)
   else return FD_EMPTY_CHOICE;
 }
 
-#endif /* FDB_SORTING_H */
+#endif /* FRAMERD_SORTING_H */

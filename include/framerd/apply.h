@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_APPLY_H
-#define FDB_APPLY_H 1
-#ifndef FDB_APPLY_H_INFO
-#define FDB_APPLY_H_INFO "include/framerd/apply.h"
+#ifndef FRAMERD_APPLY_H
+#define FRAMERD_APPLY_H 1
+#ifndef FRAMERD_APPLY_H_INFO
+#define FRAMERD_APPLY_H_INFO "include/framerd/apply.h"
 #endif
 #include "framerd/dtype.h"
 
@@ -188,5 +188,5 @@ FD_EXPORT void fd_profile_return(u8_string name);
 #define fd_calltrack_return(name);
 #endif
 
-#endif /* FDB_APPLY_H */
+#endif /* FRAMERD_APPLY_H */
 

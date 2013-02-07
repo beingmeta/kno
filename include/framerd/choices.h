@@ -97,10 +97,10 @@
 
 */
 
-#ifndef FDB_CHOICES_H
-#define FDB_CHOICES_H 1
-#ifndef FDB_CHOICES_H_INFO
-#define FDB_CHOICES_H_INFO "include/framerd/"
+#ifndef FRAMERD_CHOICES_H
+#define FRAMERD_CHOICES_H 1
+#ifndef FRAMERD_CHOICES_H_INFO
+#define FRAMERD_CHOICES_H_INFO "include/framerd/"
 #endif
 
 #ifndef FD_MERGESORT_THRESHOLD
@@ -357,4 +357,4 @@ FD_EXPORT int fd_containsp(fdtype,fdtype);
 
 FD_EXPORT fdtype fd_intersect_choices(struct FD_CHOICE **,int);
 
-#endif /* FDB_CHOICES_H */
+#endif /* FRAMERD_CHOICES_H */

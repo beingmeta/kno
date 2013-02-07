@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_DTPROC_H
-#define FDB_DTPROC_H 1
-#ifndef FDB_DTPROC_H_INFO
-#define FDB_DTPROC_H_INFO "include/framerd/dtproc.h"
+#ifndef FRAMERD_DTPROC_H
+#define FRAMERD_DTPROC_H 1
+#ifndef FRAMERD_DTPROC_H_INFO
+#define FRAMERD_DTPROC_H_INFO "include/framerd/dtproc.h"
 #endif
 
 #include <libu8/u8netfns.h>

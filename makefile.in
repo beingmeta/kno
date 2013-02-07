@@ -125,10 +125,10 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	$(DESTDIR)@safe_module_dir@ \
 	$(DESTDIR)@standard_module_dir@/safe	
 
-FDB_HEADERS= \
+FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
 
-FDB_SOURCES=\
+FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c          \
         src/dtype/choices.c src/dtype/tables.c src/dtype/pptrs.c       \
         src/dtype/dtypeio.c src/dtype/textio.c                         \
@@ -160,13 +160,15 @@ FDB_SOURCES=\
 	src/texttools/porter.c src/texttools/phonetic.c                \
 	src/tagger/tagger.c src/tagger/ofsm.c src/tagger/tagxtract.c   \
 	include/framerd/tagger.h                                           \
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
-	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
-	src/cmodules/qrcode.c src/cmodules/regex.c                     \
-	src/cmodules/ziptools.c src/cmodules/tidy.c                   \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
 	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdbserver.c
+
+CMODULE_SOURCES=\
+	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
+	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
+	src/cmodules/qrcode.c src/cmodules/regex.c                     \
+	src/cmodules/ziptools.c src/cmodules/tidy.c
 
 STATIC_LIBS=lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
 	     lib/libtagger@suffix@.a                               \
@@ -353,11 +355,11 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs  src/exe/revision.h
+dtypetestbin: libs  src/exe/fdversion.h
 	cd tests/dtype; make
-dbtestbin: libs  src/exe/revision.h
+dbtestbin: libs  src/exe/fdversion.h
 	cd tests/db; make
-schemetestbin: libs  src/exe/revision.h
+schemetestbin: libs  src/exe/fdversion.h
 	cd tests/scheme; make
 exe: $(EXECUTABLES)
 static-exe: $(STATIC_EXECUTABLES)
@@ -400,18 +402,20 @@ uninstall: uninstall-core
 # Making dependency information
 
 depend:
-	makedepend -- $(CFLAGS) -- $(FDB_SOURCES)
+	makedepend -- $(CFLAGS) -- $(FRAMERD_SOURCES) $(CMODULE_SOURCES)
 depend.in:
-	makedepend -fmakefile.in -Y -- $(CFLAGS) -- $(FDB_SOURCES)
+	makedepend -fmakefile.in -Y -- $(CFLAGS) -- $(FRAMERD_SOURCES) $(CMODULE_SOURCES)
 
 
 # Utility targets
 
-TAGS: tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c       \
+TAGS: makefile.in configure.ac include/framerd/config.h.in \
+		tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c       \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c \
 		src/texttools/*.c src/tagger/*.c src/cmodules/*.c     \
 		include/framerd/*.h ${SRC_HEADERS}
-	etags tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+	etags makefile.in configure.ac include/framerd/config.h.in      \
+	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
 	      include/framerd/*.h ${SRC_HEADERS}
@@ -444,7 +448,7 @@ clean: tidy
 	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f exe/fdmanager@suffix@
-	rm -f src/exe/revision.h
+	rm -f src/exe/fdversion.h
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
@@ -619,7 +623,7 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	install -D $^ $@
 
 etc/intl/framerd.pot:
-	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FDB_SOURCES) $(FDB_HEADERS)
+	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	msgmerge -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
@@ -642,14 +646,14 @@ freshrpms:
 	make rpms
 rpms: etc/rpms.done
 
-etc/framerd-@VERSION@: $(FDB_SOURCES) $(FDB_HEADERS) \
+etc/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      configure.ac makefile.in makefile
 	git archive --prefix=framerd-@VERSION@/ \
 	            -o etc/framerd-@VERSION@.tar HEAD
 	cd etc; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
 	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
-		> etc/framerd-@VERSION@/etc/revision.h;
-etc/framerd-@VERSION@.tar.gz: $(FDB_SOURCES) $(FDB_HEADERS) \
+		> etc/framerd-@VERSION@/etc/fdversion.h;
+etc/framerd-@VERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      		configure.ac makefile.in makefile
 	make etc/framerd-@VERSION@
 	tar -czvf $@ -C etc framerd-@VERSION@
@@ -891,13 +895,13 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 # Tracking revision information
 
-src/exe/revision.h: $(FDB_SOURCES) $(FDB_HEADERS)
-	@if test -f etc/revision.h; \
-	then cp etc/revision.h src/exe/revision.h; \
+src/exe/fdversion.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS)
+	@if test -f etc/fdversion.h; \
+	then cp etc/fdversion.h src/exe/fdversion.h; \
 	else $(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
-		> src/exe/revision.h; fi
+		> src/exe/fdversion.h; fi
 	@$(MSG) FRAMERD_REV `git describe`
-$(EXECUTABLES): src/exe/revision.h
+$(EXECUTABLES): src/exe/fdversion.h
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
@@ -1656,7 +1660,7 @@ src/exe/fdconsole.o: ./include/framerd/fddb.h ./include/framerd/indices.h
 src/exe/fdconsole.o: ./include/framerd/frames.h ./include/framerd/eval.h
 src/exe/fdconsole.o: ./include/framerd/apply.h ./include/framerd/history.h
 src/exe/fdconsole.o: ./include/framerd/ports.h ./include/framerd/sequences.h
-src/exe/fdconsole.o: src/exe/revision.h
+src/exe/fdconsole.o: src/exe/fdversion.h
 src/exe/fdexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/exe/fdexec.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/exe/fdexec.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1693,7 +1697,7 @@ src/exe/fdserv.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/exe/fdserv.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/exe/fdserv.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/exe/fdserv.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
-src/exe/fdserv.o: ./include/framerd/fileprims.h src/exe/revision.h
+src/exe/fdserv.o: ./include/framerd/fileprims.h src/exe/fdversion.h
 src/exe/fdbserver.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/exe/fdbserver.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/exe/fdbserver.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1705,4 +1709,4 @@ src/exe/fdbserver.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/exe/fdbserver.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/exe/fdbserver.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/exe/fdbserver.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/exe/fdbserver.o: ./include/framerd/ports.h src/exe/revision.h
+src/exe/fdbserver.o: ./include/framerd/ports.h src/exe/fdversion.h

@@ -1731,7 +1731,7 @@ FD_EXPORT int fd_init_fdscheme()
     default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
     safe_default_env=fd_make_env(fd_make_hashtable(NULL,0),NULL);
     
-    u8_register_source_file(FDB_EVAL_H_INFO);
+    u8_register_source_file(FRAMERD_EVAL_H_INFO);
     u8_register_source_file(_FILEINFO);
     
     init_scheme_module();

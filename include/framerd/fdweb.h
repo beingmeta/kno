@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_FDWEB_H
-#define FDB_FDWEB_H 1
-#ifndef FDB_FDWEB_H_INFO
-#define FDB_FDWEB_H_INFO "include/framerd/fdweb.h"
+#ifndef FRAMERD_FDWEB_H
+#define FRAMERD_FDWEB_H 1
+#ifndef FRAMERD_FDWEB_H_INFO
+#define FRAMERD_FDWEB_H_INFO "include/framerd/fdweb.h"
 #endif
 
 FD_EXPORT void fd_init_fdweb(void) FD_LIBINIT_FN;
@@ -169,4 +169,4 @@ FD_EXPORT void fd_init_exif_c(void);
 FD_EXPORT void fd_init_curl_c(void);
 FD_EXPORT void fd_init_json_c(void);
 
-#endif /* FDB_FDWEB_H */
+#endif /* FRAMERD_FDWEB_H */

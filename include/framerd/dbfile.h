@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_DBFILE_H
-#define FDB_DBFILE_H 1
-#ifndef FDB_DBFILE_H_INFO
-#define FDB_DBFILE_H_INFO "include/framerd/dbfile.h"
+#ifndef FRAMERD_DBFILE_H
+#define FRAMERD_DBFILE_H 1
+#ifndef FRAMERD_DBFILE_H_INFO
+#define FRAMERD_DBFILE_H_INFO "include/framerd/dbfile.h"
 #endif
 
 #include "fddb.h"
@@ -254,5 +254,5 @@ FD_EXPORT int fd_hash_index_bucket
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
 FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *ix);
 
-#endif /* #ifndef FDB_DBFILE_H */
+#endif /* #ifndef FRAMERD_DBFILE_H */
 

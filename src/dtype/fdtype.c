@@ -25,17 +25,17 @@ extern void fd_init_tables_c(void);
 
 static void register_header_files()
 {
-  u8_register_source_file(FDB_CONFIG_H_INFO);
-  u8_register_source_file(FDB_SUPPORT_H_INFO);
-  u8_register_source_file(FDB_MALLOC_H_INFO);
-  u8_register_source_file(FDB_COMMON_H_INFO);
-  u8_register_source_file(FDB_DEFINES_H_INFO);
-  u8_register_source_file(FDB_PTR_H_INFO);
-  u8_register_source_file(FDB_CONS_H_INFO);
-  u8_register_source_file(FDB_DTYPE_H_INFO);
-  u8_register_source_file(FDB_CHOICES_H_INFO);
-  u8_register_source_file(FDB_TABLES_H_INFO);
-  u8_register_source_file(FDB_DTYPEIO_H_INFO);
+  u8_register_source_file(FRAMERD_CONFIG_H_INFO);
+  u8_register_source_file(FRAMERD_SUPPORT_H_INFO);
+  u8_register_source_file(FRAMERD_MALLOC_H_INFO);
+  u8_register_source_file(FRAMERD_COMMON_H_INFO);
+  u8_register_source_file(FRAMERD_DEFINES_H_INFO);
+  u8_register_source_file(FRAMERD_PTR_H_INFO);
+  u8_register_source_file(FRAMERD_CONS_H_INFO);
+  u8_register_source_file(FRAMERD_DTYPE_H_INFO);
+  u8_register_source_file(FRAMERD_CHOICES_H_INFO);
+  u8_register_source_file(FRAMERD_TABLES_H_INFO);
+  u8_register_source_file(FRAMERD_DTYPEIO_H_INFO);
 }
 
 static void init_type_names()

@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDB_DTCALL_H
-#define FDB_DTCALL_H 1
-#ifndef FDB_DTCALL_H_INFO
-#define FDB_DTCALL_H_INFO "include/framerd/dtcall.h"
+#ifndef FRAMERD_DTCALL_H
+#define FRAMERD_DTCALL_H 1
+#ifndef FRAMERD_DTCALL_H_INFO
+#define FRAMERD_DTCALL_H_INFO "include/framerd/dtcall.h"
 #endif
 
 #include "ptr.h"

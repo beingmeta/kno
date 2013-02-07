@@ -7,10 +7,10 @@
 
 /* Initial definitions */
 
-#ifndef FDB_DEFINES_H
-#define FDB_DEFINES_H 1
-#ifndef FDB_DEFINES_H_INFO
-#define FDB_DEFINES_H_INFO "include/framerd/defines.h"
+#ifndef FRAMERD_DEFINES_H
+#define FRAMERD_DEFINES_H 1
+#ifndef FRAMERD_DEFINES_H_INFO
+#define FRAMERD_DEFINES_H_INFO "include/framerd/defines.h"
 #endif
 
 #include "config.h"
@@ -277,5 +277,5 @@
 #endif
 #endif
 
-#endif /* FDB_DEFINES_H */
+#endif /* FRAMERD_DEFINES_H */
 
