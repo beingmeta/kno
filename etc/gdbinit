@@ -101,7 +101,7 @@ set breakpoint pending on
 
 break u8_new_exception
 break _fd_debug
-break _u8_debug
+break _u8_dbg
 break u8_raise
 #break abort
 #break exit
@@ -121,12 +121,12 @@ define check_heap
 end
 
 # Init fdb print limits (init done through the config interface)
-define set_maxelts
+define set_fdmaxelts
   set env FD_DISPLAYMAXELTS=36
   set env FD_DISPLAYMAXCHARS=1024
 end
 
-define set_maxelts
+define reset_fdmaxelts
   unset env FD_DISPLAYMAXELTS
   unset env FD_DISPLAYMAXCHARS
 end
