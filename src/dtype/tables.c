@@ -2272,14 +2272,37 @@ static int grow_hashset(struct FD_HASHSET *h)
   const fdtype *slots=h->slots;
   fdtype *newslots=u8_alloc_n(new_size,fdtype);
   while (i<new_size) newslots[i++]=FD_NULL;
-  i=0; while (i < lim)
-	 if (slots[i]==0) i++;
-	 else if (FD_VOIDP(slots[i])) i++;
-	 else {
-	   int off=hashset_get_slot(slots[i],newslots,new_size);
-	   newslots[off]=slots[i]; i++;}
+  i=0; while (i < lim) {
+    if (slots[i]==0) i++;
+    else if (FD_VOIDP(slots[i])) i++;
+    else {
+      int off=hashset_get_slot(slots[i],newslots,new_size);
+      if (off<0) {
+	u8_free(newslots);
+	return -1;}
+      newslots[off]=slots[i]; i++;}}
   u8_free(h->slots); h->slots=newslots; h->n_slots=new_size;
   return 1;
+}
+
+FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,size_t target)
+{
+  int new_size=fd_get_hashtable_size(target);
+  u8_lock_mutex(&(h->lock)); {
+    int i=0, lim=h->n_slots;
+    const fdtype *slots=h->slots;
+    fdtype *newslots=u8_alloc_n(new_size,fdtype);
+    while (i<new_size) newslots[i++]=FD_NULL;
+    i=0; while (i < lim)
+	   if (slots[i]==0) i++;
+	   else if (FD_VOIDP(slots[i])) i++;
+	   else {
+	     int off=hashset_get_slot(slots[i],newslots,new_size);
+	     if (off<0) {u8_free(newslots); return -1;}
+	     newslots[off]=slots[i]; i++;}
+    u8_free(h->slots); h->slots=newslots; h->n_slots=new_size;
+    u8_unlock_mutex(&(h->lock));}
+  return new_size;
 }
 
 FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,fdtype key,int add)
@@ -2313,7 +2336,7 @@ FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,fdtype key,int add)
 }
 
 /* This adds without locking or incref. */
-FD_EXPORT int fd_hashset_init_add(struct FD_HASHSET *h,fdtype key)
+FD_EXPORT int fd_hashset_add_raw(struct FD_HASHSET *h,fdtype key)
 {
   int probe; fdtype *slots;
   slots=h->slots;
@@ -2328,6 +2351,34 @@ FD_EXPORT int fd_hashset_init_add(struct FD_HASHSET *h,fdtype key)
       grow_hashset(h);
     return 1;}
   else return 0;
+}
+
+/* This adds without locking or incref. */
+FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
+{
+  if ((FD_CHOICEP(keys))||(FD_ACHOICEP(keys))) {
+    int n_vals=FD_CHOICE_SIZE(keys);
+    size_t need_size=n_vals*3+h->n_keys, n_adds=0;
+    fd_grow_hashset(h,need_size);
+    u8_lock_mutex(&(h->lock)); {
+      fdtype *slots=h->slots; int n_slots=h->n_slots;
+      {FD_DO_CHOICES(key,keys) {
+	  int probe=hashset_get_slot(key,h->slots,h->n_slots);
+	  if (probe < 0) {
+	    fd_seterr(HashsetOverflow,"fd_hashset_add",NULL,(fdtype)h);
+	    FD_STOP_DO_CHOICES;
+	    u8_unlock_mutex(&(h->lock));
+	    return -1;}
+	  else if ((FD_NULLP(slots[probe]))||(FD_VOIDP(slots[probe]))) {
+	    slots[probe]=key; h->n_keys++; n_adds++; fd_incref(key);
+	    if (FD_CONSP(key)) h->atomicp=0;
+	    if (FD_EXPECT_FALSE(hashset_needs_resizep(h)))
+	      grow_hashset(h);}
+	  else {}}}
+      u8_unlock_mutex(&(h->lock));
+      return n_adds;}}
+  else if (FD_EMPTY_CHOICEP(keys)) return 0;
+  else return fd_hashset_mod(h,keys,1);
 }
 
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)

@@ -856,10 +856,24 @@ static fdtype hashsetget(fdtype hs,fdtype key)
 
 static fdtype hashsetadd(fdtype hs,fdtype key)
 {
-  int retval=fd_hashset_add((fd_hashset)hs,key);
-  if (retval<0) return FD_ERROR_VALUE;
-  else if (retval) return FD_TRUE;
-  else return FD_FALSE;
+  if ((FD_CHOICEP(hs))||(FD_ACHOICEP(hs))) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(h,hs) {
+      fdtype value=hashsetadd(h,key);
+      FD_ADD_TO_CHOICE(results,value);}
+    return results;}
+  else {
+    int retval=fd_hashset_add((fd_hashset)hs,key);
+    if (retval<0) return FD_ERROR_VALUE;
+    else if (retval) return FD_INT2DTYPE(retval);
+    else return FD_FALSE;}
+}
+
+static fdtype hashsetplus(fdtype hs,fdtype values)
+{
+  fd_hashset_add((fd_hashset)hs,values);
+  fd_incref(hs);
+  return  hs;
 }
 
 static fdtype hashsetdrop(fdtype hs,fdtype key)
@@ -891,7 +905,7 @@ static fdtype choice2hashset(fdtype arg)
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
   int size=3*FD_CHOICE_SIZE(arg);
   fd_init_hashset(h,((size<17) ? (17) : (size)),FD_MALLOCD_CONS);
-  {FD_DO_CHOICES(elt,arg) fd_hashset_add(h,elt);}
+  fd_hashset_add(h,arg);
   return FDTYPE_CONS(h);
 }
 
@@ -1029,13 +1043,17 @@ FD_EXPORT void fd_init_tablefns_c()
 			   fd_hashset_type,FD_VOID,
 			   -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("HASHSET-ADD!",hashsetadd,2,
-			   fd_hashset_type,FD_VOID,
-			   -1,FD_VOID));
+	   fd_make_ndprim(fd_make_cprim2x("HASHSET-ADD!",hashsetadd,2,
+					  fd_hashset_type,FD_VOID,
+					  -1,FD_VOID)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("HASHSET-DROP!",hashsetdrop,2,
 			   fd_hashset_type,FD_VOID,
 			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
+					  fd_hashset_type,FD_VOID,
+					  -1,FD_VOID)));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("HASHSET-ELTS",hashsetelts,1,
 			   fd_hashset_type,FD_VOID));

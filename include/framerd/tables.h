@@ -466,14 +466,15 @@ typedef struct FD_HASHSET *fd_hashset;
 
 FD_EXPORT int fd_hashset_get(fd_hashset h,fdtype key);
 FD_EXPORT int fd_hashset_mod(fd_hashset h,fdtype key,int add);
-FD_EXPORT int fd_hashset_init_add(fd_hashset h,fdtype key);
-#define fd_hashset_add(h,key) fd_hashset_mod(h,key,1)
+FD_EXPORT int fd_hashset_add_raw(fd_hashset h,fdtype key);
+FD_EXPORT int fd_hashset_add(fd_hashset h,fdtype keys);
 #define fd_hashset_drop(h,key) fd_hashset_mod(h,key,0)
 FD_EXPORT fdtype fd_hashset_elts(fd_hashset h,int clean);
 
 FD_EXPORT void fd_init_hashset(fd_hashset h,int n,int stack_cons);
 FD_EXPORT fdtype fd_make_hashset(void);
-FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
+FD_EXPORT ssize_t fd_grow_hashset(fd_hashset h,size_t size);
 FD_EXPORT fdtype fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
+FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 
 #endif /* FRAMERD_TABLES_H */

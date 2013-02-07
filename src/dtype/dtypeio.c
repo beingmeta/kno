@@ -860,7 +860,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
 	fd_init_hashset(h,len,FD_MALLOCD_CONS);
 	while (i<len) {
 	  fdtype v=fd_read_dtype(in);
-	  fd_hashset_init_add(h,v);
+	  fd_hashset_add_raw(h,v);
 	  i++;}
 	return FDTYPE_CONS(h);}
       default: {
