@@ -31,7 +31,7 @@
 #include <time.h>
 #include <signal.h>
 
-#include "revision.h"
+#include "fdversion.h"
 
 #ifndef FD_WITH_FASTCGI
 #define FD_WITH_FASTCGI 0

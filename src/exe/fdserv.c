@@ -36,7 +36,7 @@
 #include <signal.h>
 #include <math.h>
 
-#include "revision.h"
+#include "fdversion.h"
 
 /* This is the size of file to return all at once. */
 #define FD_FILEBUF_MAX (256*256)
