@@ -526,7 +526,7 @@ static fdtype get_stmt_values
     ((n_cols>16) ? (u8_alloc_n(n_cols,fdtype)) : (_colmaps));
   int i=0, retval=mysql_stmt_fetch(stmt);
   int result_index=0, n_results;
-  if (retval==0) {
+  if ((retval==0)||(retval==MYSQL_DATA_TRUNCATED)) {
     n_results=((sorted)?(mysql_stmt_num_rows(stmt)):(0));
     if (sorted) results=fd_init_vector(NULL,n_results,NULL);}
   while (i<n_cols) {
