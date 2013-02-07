@@ -508,6 +508,8 @@ FD_EXPORT int fd_init_db()
   fd_init_mutex(&fd_swapcheck_lock);
 #endif
 
+  u8_threadcheck();
+
   fd_register_config("CACHELEVEL",_("Sets a level of time/memory tradeoff [0-3], default 1"),
 		     get_default_cache_level,
 		     set_default_cache_level,

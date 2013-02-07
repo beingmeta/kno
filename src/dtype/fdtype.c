@@ -112,5 +112,8 @@ FD_EXPORT int fd_init_dtypelib()
   fd_init_choices_c();
   fd_init_support_c();
   fd_init_pptrs_c();
+
+  u8_threadcheck();
+
   return fdtype_initialized;
 }

@@ -1708,6 +1708,8 @@ static void init_core_builtins()
   fd_init_history_c();
   fd_init_extdbi_c();
 
+  u8_threadcheck();
+
   fd_finish_module(fd_scheme_module);
   fd_finish_module(fd_xscheme_module);
 

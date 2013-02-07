@@ -52,6 +52,8 @@ FD_EXPORT void fd_init_fdweb()
     fd_persist_module(fdweb_module);
     fd_persist_module(xhtml_module);}
 
+  u8_threadcheck();
+
   u8_register_source_file(FRAMERD_FDWEB_H_INFO);
   u8_register_source_file(_FILEINFO);
 }

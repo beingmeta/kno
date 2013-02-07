@@ -194,16 +194,19 @@ static int load_dynamic_module(fdtype spec,int safe)
 	  module_filename=u8_find_file(alt_name,FD_STRDATA(elt),NULL);
 	if (module_filename) {
 	  void *mod=u8_dynamic_load(module_filename);
+	  u8_threadcheck();
 	  u8_free(module_filename); u8_free(name);
 	  if (alt_name) u8_free(alt_name);
 	  if (mod) return 1; else return -1;}}}
     if (alt_name) u8_free(alt_name);
     u8_free(name);
+    u8_threadcheck();
     return 0;}
   else if  ((safe==0) &&
 	    (FD_STRINGP(spec)) &&
 	    (u8_file_existsp(FD_STRDATA(spec)))) {
     void *mod=u8_dynamic_load(FD_STRDATA(spec));
+    u8_threadcheck();
     if (mod) return 1; else return -1;}
   else return 0;
 }

@@ -337,7 +337,9 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
    which are configs (var=value again) */
 FD_EXPORT int fd_argv_config(int argc,char **argv)
 {
-  int i=0, n=0; while (i<argc)
+  int i=0, n=0;
+  u8_threadcheck();
+  while (i<argc)
     if (strchr(argv[i],'=')) {
       char *carg=argv[i++];
       u8_string arg=u8_fromlibc(carg);

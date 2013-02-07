@@ -24,6 +24,8 @@
 #include <libu8/u8crypto.h>
 
 #include <mysql/mysql.h>
+#include <mysql/my_global.h>
+#include <mysql/my_sys.h>
 #include <mysql/errmsg.h>
 
 extern my_bool my_init(void);
@@ -1255,10 +1257,14 @@ static int mysql_initialized=0;
 static struct FD_EXTDB_HANDLER mysql_handler=
   {"mysql",NULL,NULL,NULL,NULL};
 
+int first_call=1;
+
 static int init_thread_for_mysql()
 {
   u8_log(LOG_DEBUG,"MYSQL","Initializing thread for MYSQL");
-  mysql_thread_init();
+  if (first_call) {
+    first_call=0; my_init();}
+  else mysql_thread_init();
   return 1;
 }
 
@@ -1273,13 +1279,12 @@ FD_EXPORT int fd_init_mysql()
   fdtype module;
   if (mysql_initialized) return 0;
 
-  /* my_init(); */
   u8_register_threadinit(init_thread_for_mysql);
   u8_register_threadexit(cleanup_thread_for_mysql);
 
   module=fd_new_module("MYSQL",0);
 
-  u8_log(LOG_WARN,"mysql_init","Using this here experimental MYSQL module");
+  /* u8_log(LOG_WARN,"mysql_init","Using this here experimental MYSQL module"); */
 
 #if FD_THREADS_ENABLED
   u8_init_mutex(&mysql_connect_lock);

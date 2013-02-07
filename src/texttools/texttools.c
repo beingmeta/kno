@@ -2381,6 +2381,8 @@ void fd_init_texttools()
   prefix_symbol=fd_intern("PREFIX");
   sep_symbol=fd_intern("SEP");
 
+  u8_threadcheck();
+
   fd_finish_module(texttools_module);
   fd_persist_module(texttools_module);
 }
