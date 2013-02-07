@@ -214,7 +214,10 @@
 #undef FD_DEFAULT_SAFE_LOADPATH
 
 /* Where to find dynamic loading files (.dll, .so, .dylib, etc) */
-#undef FD_DEFAULT_DLLOADPATH
+#undef FD_DEFAULT_DLOADPATH
+
+/* Where to find dynamic loading files (.dll, .so, .dylib, etc) */
+#undef FD_DLOAD_SUFFIX
 
 /* The code to initialize built-in scheme modules */
 #undef FD_SCHEME_BUILTINS

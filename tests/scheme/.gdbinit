@@ -4,5 +4,7 @@ directory ../../src/dtype:../../src/db:../../src/scheme:../../src/texttools:../.
 #set env FD_INDICES /data/bg/brico.index
 #set env FD_POOLS bground@localhost
 #set env FD_INDICES bground@localhost
+set env DYLD_LIBRARY_PATH ../../lib
 set env LD_LIBRARY_PATH ../../lib
+set env FD_DLOADPATH ../../lib/framerd
 set env FD_SHOWTIME 0.0

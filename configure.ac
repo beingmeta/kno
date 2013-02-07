@@ -385,9 +385,10 @@ AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_
 
 AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_path")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_path")
+AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
 
 AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
-AC_DEFINE_UNQUOTED(FD_DEFAULT_DLLOADPATH,"$with_dload_path")
+AC_DEFINE_UNQUOTED(FD_DEFAULT_DLOADPATH,"$with_dload_path")
 
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(FD_BOOT_CONFIG,"$with_boot_config")

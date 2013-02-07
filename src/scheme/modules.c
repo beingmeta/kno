@@ -179,7 +179,9 @@ static fdtype dloadpath=FD_EMPTY_LIST;
 static int load_dynamic_module(fdtype spec,int safe)
 {
   if (FD_SYMBOLP(spec)) {
-    u8_string name=u8_downcase(FD_SYMBOL_NAME(spec));
+    u8_string pname=FD_SYMBOL_NAME(spec);
+    u8_string name=((strchr(pname,'.'))?(u8_downcase(FD_SYMBOL_NAME(spec))):
+		    (u8_mkstring("%ls.%s",pname,FD_DLOAD_SUFFIX)));
     FD_DOLIST(elt,dloadpath) {
       if (FD_STRINGP(elt)) {
 	u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
@@ -580,17 +582,14 @@ FD_EXPORT void fd_init_modules_c()
 #endif
 
   fd_add_module_loader(load_dynamic_module);
-  fd_register_config("DLLOADPATH",
+  fd_register_config("DLOADPATH",
 		     "Add directories for dynamic compiled modules",
 		     fd_lconfig_get,fd_lconfig_push,&dloadpath);
 
-  {
-    u8_string path=u8_getenv("FD_DLLOADPATH");
-    fdtype v=((path) ? (fd_lispstring(path)) :
-	      (fdtype_string(FD_DEFAULT_DLLOADPATH)));
-    fd_config_set("DLLOADPATH",v);
-    fd_decref(v);}
-
+  fd_config_set_consed("DLOADPATH",fd_lispstring(FD_DEFAULT_DLOADPATH));
+  if (u8_getenv("FD_DLOADPATH")) 
+    fd_config_set_consed("DLOADPATH",fd_lispstring(u8_getenv("FD_DLOADPATH")));
+  
   loadstamp_symbol=fd_intern("%LOADSTAMP");
   moduleid_symbol=fd_intern("%MODULEID");
 

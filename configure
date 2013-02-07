@@ -5459,6 +5459,10 @@ cat >>confdefs.h <<_ACEOF
 #define FD_DEFAULT_SAFE_LOADPATH "$with_safe_module_path"
 _ACEOF
 
+cat >>confdefs.h <<_ACEOF
+#define FD_DLOAD_SUFFIX "$shared_suffix"
+_ACEOF
+
 
 
 # Check whether --with-dload_path was given.
@@ -5469,7 +5473,7 @@ else
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_DLLOADPATH "$with_dload_path"
+#define FD_DEFAULT_DLOADPATH "$with_dload_path"
 _ACEOF
 
 
