@@ -1482,11 +1482,14 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
   
 static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 {
-  /* This should be be optimized for the fact that candidates is
-     already sorted. */
-  fdtype results=FD_EMPTY_CHOICE;
+  if (hs->n_keys==0) {
+    if (pick) return FD_EMPTY_CHOICE;
+    else return fd_hashset_elts(hs,0);}
   u8_lock_mutex(&(hs->lock)); {
+    fdtype simple=fd_make_simple_choice(candidates);
+    int n=FD_CHOICE_SIZE(simple), isatomic=1;
     fdtype *slots=hs->slots; int n_slots=hs->n_slots;
+    fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
     FD_DO_CHOICES(c,candidates) {
       int hash=fd_hash_lisp(c), probe=hash%n_slots, n_probes=0, found=0;
       while (n_probes<512) {
@@ -1497,31 +1500,52 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 	  probe++; n_probes++;
 	  if (probe>n_slots) probe=0;}}
       if (((found)&&(pick))||((!(found))&&((!pick)))) {
-	FD_ADD_TO_CHOICE(results,c); fd_incref(c);}}
+	if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
+	*write++=c; fd_incref(c);}}
     u8_unlock_mutex(&(hs->lock));
-    return results;}
+    fd_decref(simple);
+    if (write==keep) {
+      u8_free(keep); return FD_EMPTY_CHOICE;}
+    else if ((write-keep)==1) {
+      fdtype v=keep[0]; u8_free(keep);
+      return v;}
+    else return fd_init_choice
+	   (NULL,write-keep,keep,
+	    ((isatomic)?(FD_CHOICE_ISATOMIC):(0))||
+	    (FD_CHOICE_FREEDATA));}
 }
 #define hashset_pick(c,h) (hashset_filter(c,(fd_hashset)h,1))
 #define hashset_reject(c,h) (hashset_filter(c,(fd_hashset)h,0))
 
 static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
 {
-  /* This should be be optimized for the fact that candidates is
-     already sorted. */
-  fdtype results=FD_EMPTY_CHOICE; int unlock=0;
-  if (ht->n_keys==0) return FD_EMPTY_CHOICE;
-  if (ht->uselock) {
-    fd_read_lock_struct(ht); unlock=1;}
-  {
-    struct FD_HASHENTRY **slots=ht->slots; int n_slots=ht->n_slots;
-    FD_DO_CHOICES(c,candidates) {
-      struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
-      fdtype rv=((result)?(result->value):(FD_VOID));
-      if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
-      if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
-	FD_ADD_TO_CHOICE(results,c); fd_incref(c);}}
-    if (unlock) fd_rw_unlock(&(ht->rwlock));
-    return results;}
+  if (ht->n_keys==0) {
+    if (pick) return FD_EMPTY_CHOICE;
+    else return fd_hashtable_keys(ht);}
+  else {
+    fdtype simple=fd_make_simple_choice(candidates);
+    int n=FD_CHOICE_SIZE(simple), unlock=0, isatomic=1;
+    fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
+    if (ht->uselock) {fd_read_lock_struct(ht); unlock=1;}
+    {struct FD_HASHENTRY **slots=ht->slots; int n_slots=ht->n_slots;
+      FD_DO_CHOICES(c,candidates) {
+	struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
+	fdtype rv=((result)?(result->value):(FD_VOID));
+	if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
+	if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
+	  if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
+	  *write++=c; fd_incref(c);}}
+      if (unlock) fd_rw_unlock(&(ht->rwlock));
+      fd_decref(simple);
+      if (write==keep) {
+	u8_free(keep); return FD_EMPTY_CHOICE;}
+      else if ((write-keep)==1) {
+	fdtype v=keep[0]; u8_free(keep);
+	return v;}
+      else return fd_init_choice
+	     (NULL,write-keep,keep,
+	      ((isatomic)?(FD_CHOICE_ISATOMIC):(0))||
+	      (FD_CHOICE_FREEDATA));}}
 }
 #define hashtable_pick(c,h) (hashtable_filter(c,(fd_hashtable)h,1))
 #define hashtable_reject(c,h) (hashtable_filter(c,(fd_hashtable)h,0))
