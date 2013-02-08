@@ -2298,7 +2298,10 @@ FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,size_t target)
 	   else if (FD_VOIDP(slots[i])) i++;
 	   else {
 	     int off=hashset_get_slot(slots[i],newslots,new_size);
-	     if (off<0) {u8_free(newslots); return -1;}
+	     if (off<0) {
+	       u8_free(newslots);
+	       u8_unlock_mutex(&(h->lock));
+	       return -1;}
 	     newslots[off]=slots[i]; i++;}
     u8_free(h->slots); h->slots=newslots; h->n_slots=new_size;
     u8_unlock_mutex(&(h->lock));}
@@ -2359,11 +2362,11 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
   if ((FD_CHOICEP(keys))||(FD_ACHOICEP(keys))) {
     int n_vals=FD_CHOICE_SIZE(keys);
     size_t need_size=n_vals*3+h->n_keys, n_adds=0;
-    fd_grow_hashset(h,need_size);
+    if (need_size>h->n_slots) fd_grow_hashset(h,need_size);
     u8_lock_mutex(&(h->lock)); {
       fdtype *slots=h->slots; int n_slots=h->n_slots;
       {FD_DO_CHOICES(key,keys) {
-	  int probe=hashset_get_slot(key,h->slots,h->n_slots);
+	  int probe=hashset_get_slot(key,slots,n_slots);
 	  if (probe < 0) {
 	    fd_seterr(HashsetOverflow,"fd_hashset_add",NULL,(fdtype)h);
 	    FD_STOP_DO_CHOICES;
