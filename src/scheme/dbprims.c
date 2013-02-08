@@ -1482,15 +1482,20 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
   
 static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 {
+  /* This should be be optimized for the fact that candidates is
+     already sorted. */
   fdtype results=FD_EMPTY_CHOICE;
   u8_lock_mutex(&(hs->lock)); {
     fdtype *slots=hs->slots; int n_slots=hs->n_slots;
     FD_DO_CHOICES(c,candidates) {
       int hash=fd_hash_lisp(c), probe=hash%n_slots, n_probes=0, found=0;
       while (n_probes<512) {
-	if (slots[probe]==0) {}
-	else if (FDTYPE_EQUAL(c,slots[probe])) {found=1; break;}
-	else { probe++; n_probes++; if (probe>n_slots) probe=0;}}
+	fdtype pv=slots[probe];
+	if (FD_NULLP(pv)) break;
+	else if (FDTYPE_EQUAL(c,pv)) {found=1; break;}
+	else {
+	  probe++; n_probes++;
+	  if (probe>n_slots) probe=0;}}
       if (((found)&&(pick))||((!(found))&&((!pick)))) {
 	FD_ADD_TO_CHOICE(results,c); fd_incref(c);}}
     u8_unlock_mutex(&(hs->lock));
@@ -1501,6 +1506,8 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 
 static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
 {
+  /* This should be be optimized for the fact that candidates is
+     already sorted. */
   fdtype results=FD_EMPTY_CHOICE; int unlock=0;
   if (ht->n_keys==0) return FD_EMPTY_CHOICE;
   if (ht->uselock) {
@@ -1509,6 +1516,8 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
     struct FD_HASHENTRY **slots=ht->slots; int n_slots=ht->n_slots;
     FD_DO_CHOICES(c,candidates) {
       struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
+      fdtype rv=((result)?(result->value):(FD_VOID));
+      if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
       if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
 	FD_ADD_TO_CHOICE(results,c); fd_incref(c);}}
     if (unlock) fd_rw_unlock(&(ht->rwlock));
