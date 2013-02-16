@@ -325,54 +325,67 @@ static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
 */
 static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
 {
-  int i=0, n=FD_VECTOR_LENGTH(vec), maxspan=FD_FIX2INT(window);
+  int i=0, n=FD_VECTOR_LENGTH(vec), minspan=1, maxspan;
   fdtype *data=FD_VECTOR_DATA(vec), results=FD_EMPTY_CHOICE;
   int with_affixes=(!(FD_FALSEP(with_affix)));
+  if (FD_FIXNUMP(window)) maxspan=FD_FIX2INT(window);
+  else if ((FD_PAIRP(window))&&
+	   (FD_FIXNUMP(FD_CAR(window)))&&
+	   (FD_FIXNUMP(FD_CDR(window)))) {
+    minspan=FD_FIX2INT(FD_CAR(window));
+    maxspan=FD_FIX2INT(FD_CDR(window));}
+  else if ((FD_VOIDP(window))||(FD_FALSEP(window)))
+    maxspan=n-1;
+  else return fd_type_error(_("fragment spec"),"vector2frags",window);
+  if ((maxspan<0)||(minspan<0))
+    return fd_type_error(_("natural number"),"vector2frags",window);
   if (n==0) return results;
   else if (n==1) {
     fdtype elt=FD_VECTOR_REF(vec,0); fd_incref(elt);
     return fd_init_pair(NULL,elt,FD_EMPTY_LIST);}
   else if (maxspan<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
-  if (with_affixes) {
-    int span=maxspan; while (span>0) {
-    /* Compute prefix fragments */
+  if (with_affixes) { int span=maxspan; while (span>=minspan) {
+      /* Compute prefix fragments */
+      fdtype frag=FD_EMPTY_LIST;
       int i=span-1; while ((i>=0) && (i<n)) {
-	fdtype elt=data[i]; fd_incref(elt); {
-	  fdtype frag=fd_init_pair(NULL,elt,FD_EMPTY_LIST);
-	  int j=i-1; while (j>=0) {
-	    fdtype jelt=data[j]; fd_incref(jelt);
-	    frag=fd_init_pair(NULL,jelt,frag); j--;}
-	  frag=fd_init_pair(NULL,FD_FALSE,frag);
-	  FD_ADD_TO_CHOICE(results,frag); i--;}
-	span--;}}
-    /* Compute suffix fragments
-       We're a little clever here, because we can use the same sublist
-       repeatedly.  */
-    {
-      fdtype frag=fd_init_pair(NULL,FD_FALSE,FD_EMPTY_LIST);
-      int stopat=n-maxspan; if (stopat<0) stopat=0;
-      i=n-1; while (i>=stopat) {
 	fdtype elt=data[i]; fd_incref(elt);
 	frag=fd_init_pair(NULL,elt,frag);
-	fd_incref(frag);
-	FD_ADD_TO_CHOICE(results,frag);
 	i--;}
-      fd_decref(frag);}}
-  {
-    int span=maxspan; while (span>0) {
-      /* Now compute internal spans */
-      int i=0; while (i<n) {
-	fdtype frag=FD_EMPTY_LIST;
-	int j=i+span-1; while ((j<n) && (j>=i)) {
-	  fdtype elt=data[j]; fd_incref(elt);
-	  frag=fd_init_pair(NULL,elt,frag);
-	  fd_incref(frag);
-	  FD_ADD_TO_CHOICE(results,frag);
-	  j--;}
-	fd_decref(frag);
-	i++;}
+      frag=fd_init_pair(NULL,FD_FALSE,frag);
+      FD_ADD_TO_CHOICE(results,frag);
       span--;}}
+  /* Compute suffix fragments
+     We're a little clever here, because we can use the same sublist
+     repeatedly.  */
+  if (with_affixes) {
+    fdtype frag=fd_init_pair(NULL,FD_FALSE,FD_EMPTY_LIST);
+    int stopat=n-maxspan; if (stopat<0) stopat=0;
+    i=n-minspan; while (i>=stopat) {
+      fdtype elt=data[i]; fd_incref(elt);
+      frag=fd_init_pair(NULL,elt,frag);
+      /* We incref it because we're going to point to it from both the
+	 result and from the next longer frag */
+      fd_incref(frag);
+      FD_ADD_TO_CHOICE(results,frag);
+      i--;}
+    /* We need to decref frag here, because we incref'd it above to do
+       our list-reuse trick. */
+    fd_decref(frag);}
+  { /* Now compute internal spans */
+    int end=n-1; while (end>0) {
+      fdtype frag=FD_EMPTY_LIST;
+      int i=end; int lim=end-maxspan;
+      if (lim<0) lim=-1; while (i>lim) {
+	fdtype elt=data[i]; fd_incref(elt);
+	frag=fd_init_pair(NULL,elt,frag);
+	if ((1+(end-i))>=minspan) {
+	  fd_incref(frag);
+	  FD_ADD_TO_CHOICE(results,frag);}
+	i--;}
+      fd_decref(frag);
+      end--;}}
+
   return results;
 }
 
@@ -2179,7 +2192,7 @@ void fd_init_texttools()
   fd_idefn(texttools_module,
 	   fd_make_cprim3x("VECTOR->FRAGS",vector2frags_prim,1,
 			   fd_vector_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(2),
+			   -1,FD_INT2DTYPE(2),
 			   -1,FD_TRUE));
   fd_idefn(texttools_module,
 	   fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
