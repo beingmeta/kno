@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2010-2012 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2010-2013 beingmeta, inc.  All rights reserved.
 
 ;;; This is a serialization module for FramerD structures, especially
 ;;;  ones partially constituted of "relative OIDs" whose identity is
