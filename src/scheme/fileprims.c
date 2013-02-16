@@ -785,7 +785,33 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT2DTYPE(bytes);}
-  else return fd_type_error(_("string"),"write_dtype",filename);
+  else return fd_type_error(_("string"),"dtype2file",filename);
+}
+
+static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
+{
+  if (FD_STRINGP(filename)) {
+    struct FD_DTYPE_STREAM *out; int bytes;
+    u8_string temp_name=u8_mkstring("%s.part",FD_STRDATA(filename));
+    out=fd_dtsopen(temp_name,FD_DTSTREAM_CREATE);
+    if (out==NULL) return FD_ERROR_VALUE;
+    if (FD_FIXNUMP(bufsiz))
+      fd_dtsbufsize(out,FD_FIX2INT(bufsiz));
+    bytes=fd_zwrite_dtype(out,object);
+    if (bytes<0) {
+      fd_dtsclose(out,FD_DTSCLOSE_FULL);
+      u8_free(temp_name);
+      return FD_ERROR_VALUE;}
+    fd_dtsclose(out,FD_DTSCLOSE_FULL);
+    u8_movefile(temp_name,FD_STRDATA(filename));
+    u8_free(temp_name);
+    return FD_INT2DTYPE(bytes);}
+  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+    struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    int bytes=fd_zwrite_dtype(out->dt_stream,object);
+    if (bytes<0) return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(bytes);}
+  else return fd_type_error(_("string"),"dtype2zipfile",filename);
 }
 
 static fdtype add_dtype2file(fdtype object,fdtype filename)
@@ -805,7 +831,27 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT2DTYPE(bytes);}
-  else return fd_type_error(_("string"),"write_dtype",filename);
+  else return fd_type_error(_("string"),"add_dtype2file",filename);
+}
+
+static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
+{
+  if (FD_STRINGP(filename)) {
+    struct FD_DTYPE_STREAM *out; int bytes;
+    if (u8_file_existsp(FD_STRDATA(filename))) 
+      out=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_MODIFY);
+    else out=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_CREATE);
+    if (out==NULL) return FD_ERROR_VALUE;
+    fd_endpos(out);
+    bytes=fd_dtswrite_dtype(out,object);
+    fd_dtsclose(out,FD_DTSCLOSE_FULL);
+    return FD_INT2DTYPE(bytes);}
+  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+    struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    int bytes=fd_dtswrite_dtype(out->dt_stream,object);
+    if (bytes<0) return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(bytes);}
+  else return fd_type_error(_("string"),"add_dtype2zipfile",filename);
 }
 
 static fdtype file2dtype(fdtype filename)
@@ -826,6 +872,24 @@ static fdtype file2dtype(fdtype filename)
   else return fd_type_error(_("string"),"read_dtype",filename);
 }
 
+static fdtype zipfile2dtype(fdtype filename)
+{
+  if (FD_STRINGP(filename)) {
+    struct FD_DTYPE_STREAM *in;
+    fdtype object=FD_VOID;
+    in=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_READ);
+    if (in==NULL) return FD_ERROR_VALUE;
+    else object=fd_zread_dtype(in);
+    fd_dtsclose(in,FD_DTSCLOSE_FULL);
+    return object;}
+  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+    struct FD_DTSTREAM *in=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    fdtype object=fd_zread_dtype(in->dt_stream);
+    if (object == FD_EOD) return FD_EOF;
+    else return object;}
+  else return fd_type_error(_("string"),"zipfile2dtype",filename);
+}
+
 static fdtype file2dtypes(fdtype filename)
 {
   if (FD_STRINGP(filename)) {
@@ -840,7 +904,24 @@ static fdtype file2dtypes(fdtype filename)
 	object=fd_dtsread_dtype(in);}
       fd_dtsclose(in,FD_DTSCLOSE_FULL);
       return results;}}
-  else return fd_type_error(_("string"),"read_dtype",filename);
+  else return fd_type_error(_("string"),"file2dtypes",filename);
+}
+
+static fdtype zipfile2dtypes(fdtype filename)
+{
+  if (FD_STRINGP(filename)) {
+    struct FD_DTYPE_STREAM *in;
+    fdtype results=FD_EMPTY_CHOICE, object=FD_VOID;
+    in=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_READ);
+    if (in==NULL) return FD_ERROR_VALUE;
+    else {
+      object=fd_zread_dtype(in);
+      while (!(FD_EODP(object))) {
+	FD_ADD_TO_CHOICE(results,object);
+	object=fd_zread_dtype(in);}
+      fd_dtsclose(in,FD_DTSCLOSE_FULL);
+      return results;}}
+  else return fd_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
 /* Getting file sources */
@@ -1787,9 +1868,17 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype2file,2)));
   fd_idefn(fileio_module,
+	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZIPFILE",dtype2zipfile,2)));
+  fd_idefn(fileio_module,
+	   fd_make_ndprim(fd_make_cprim2("DTYPE->ZIPFILE+",add_dtype2zipfile,2)));
+  fd_idefn(fileio_module,
 	   fd_make_cprim1("FILE->DTYPE",file2dtype,1));
   fd_idefn(fileio_module,
 	   fd_make_cprim1("FILE->DTYPES",file2dtypes,1));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1("ZIPFILE->DTYPE",zipfile2dtype,1));
+  fd_idefn(fileio_module,
+	   fd_make_cprim1("ZIPFILE->DTYPES",zipfile2dtypes,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLUSH-OUTPUT",flush_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CLOSE",close_prim,0));
