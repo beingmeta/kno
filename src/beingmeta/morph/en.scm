@@ -2,7 +2,7 @@
 
 ;; English Morphology
 ;;  Copyright (C) 2001 Kenneth Haase, All Rights Reserved
-;;  Copyright (C) 2001-2009 beingmeta, inc.
+;;  Copyright (C) 2001-2013 beingmeta, inc.
 
 (in-module 'morph/en)
 
