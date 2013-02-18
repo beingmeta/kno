@@ -1511,7 +1511,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
       return v;}
     else return fd_init_choice
 	   (NULL,write-keep,keep,
-	    ((isatomic)?(FD_CHOICE_ISATOMIC):(0))||
+	    ((isatomic)?(FD_CHOICE_ISATOMIC):(0))|
 	    (FD_CHOICE_FREEDATA));}
 }
 #define hashset_pick(c,h) (hashset_filter(c,(fd_hashset)h,1))
@@ -1544,7 +1544,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
 	return v;}
       else return fd_init_choice
 	     (NULL,write-keep,keep,
-	      ((isatomic)?(FD_CHOICE_ISATOMIC):(0))||
+	      ((isatomic)?(FD_CHOICE_ISATOMIC):(0))|
 	      (FD_CHOICE_FREEDATA));}}
 }
 #define hashtable_pick(c,h) (hashtable_filter(c,(fd_hashtable)h,1))
