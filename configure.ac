@@ -543,11 +543,11 @@ fi
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
 if test x$with_mysql = "xauto"; then
-  MYSQL_CFLAGS="\`mysql_config --cflags\`"
-  MYSQL_LDFLAGS="\`mysql_config --libs_r\`"
+  MYSQL_CFLAGS=`mysql_config --cflags`
+  MYSQL_LDFLAGS=`mysql_config --libs_r`
 elif test x$with_mysql = "xyes"; then
-  MYSQL_CFLAGS="\`mysql_config --cflags\`"
-  MYSQL_LDFLAGS="\`mysql_config --libs_r\`"
+  MYSQL_CFLAGS=\`mysql_config --cflags\`
+  MYSQL_LDFLAGS=\`mysql_config --libs_r\`
 elif test x$with_mysql != "xno"; then
   MYSQL_CFLAGS="-I$with_mysql/include"
   MYSQL_LDFLAGS="-I$with_mysql/lib"
