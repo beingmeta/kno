@@ -12,7 +12,9 @@
  '{noun-root verb-root noun-roots verb-roots
 	     gerund stop-words wordfreqs
 	     prepositions aux-words glue-words pronouns
-	     determiners conjunctions})
+	     determiners conjunctions
+	     adjectives adjectiveset
+	     adverbs adverbset})
 
 (define irregular-nouns
   (file->dtype (get-component "data/en-noun-roots.dtype"))
@@ -137,6 +139,14 @@
 
 (define conjunctions
   (file->dtypes (get-component "data/en-conjunctions.dtype")))
+
+(define adverbs
+  (file->dtypes (get-component "data/en-adverbs.dtype")))
+(define adverbset (choice->hashset adverbs))
+
+(define adjectives
+  (file->dtypes (get-component "data/en-adjectives.dtype")))
+(define adjectiveset (choice->hashset adjectives))
 
 (hashset-add! stop-words
 	      (choice glue-words pronouns aux-words prepositions determiners
