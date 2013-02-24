@@ -70,7 +70,14 @@
 	(list subject slotid value))))
 
 ;; A DRULE is a set of clauses separated by ~ characters.
-;;  
+;;  + is an indicator, at least one of which must be present
+;;  - indicates a contraindicator, none of which must be present
+;;  += and -= indicates dterms which count as indicators
+;;  +/ and -/ indicates a regex to match indicators or contraindicators
+;;  = indicates a dterm, previously resolved, which counts
+;;     as an contributor
+;;  anything else is a term which counts as a contributor
+;;  #N is a threshold, indicating that N terms must be matched
 (define (plaintext->drule string subject knodule language)
   (let* ((dclauses (map trim-spaces (escaped-segment string #\~)))
 	 (cues {}) (context+ {}) (context- {})
