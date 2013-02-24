@@ -273,7 +273,8 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
    (list (if current-prefix-arg
 	     (read-string "Run fdconsole: " fdconsole-program)
 	   fdconsole-program)))
-  (let ((bufname "*fdconsole*") (comint-arg "fdconsole"))
+  (let ((bufname (or scheme-buffer "*fdconsole*"))
+	(comint-arg nil))
     (if (equal major-mode (intern "inferior-scheme-mode"))
 	(progn (setq bufname (buffer-name (current-buffer)))
 	       (setq comint-arg bufname)
@@ -281,10 +282,6 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 		   (setq comint-arg (substring comint-arg 1)))
 	       (if (equal (substring comint-arg -1) "*")
 		   (setq comint-arg (substring comint-arg 0 -1)))))
-    (message "mode=%s mtype=%s bufname=%s/%s, comint-arg=%s, cb=%s"
-	     major-mode (type-of major-mode)
-	     bufname (buffer-name (current-buffer))
-	     comint-arg (current-buffer))
     (if (not (comint-check-proc bufname))
 	(let ((cmdlist (split-command-line cmd)))
 	  (set-buffer (apply 'make-comint comint-arg (car cmdlist)
