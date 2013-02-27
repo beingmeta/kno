@@ -69,20 +69,33 @@
 		    (cons langid (subseq value 4)))))
 	(list subject slotid value))))
 
+;; A DRULE is a set of clauses separated by ~ characters.
+;;  + is an indicator, at least one of which must be present
+;;  - indicates a contraindicator, none of which must be present
+;;  += and -= indicates dterms which count as indicators
+;;  +/ and -/ indicates a regex to match indicators or contraindicators
+;;  = indicates a dterm, previously resolved, which counts
+;;     as an contributor
+;;  anything else is a term which counts as a contributor
+;;  #N is a threshold, indicating that N terms must be matched
 (define (plaintext->drule string subject knodule language)
-  (let* ((dclauses (map trim-spaces (escaped-segment string #\amp)))
+  (let* ((dclauses (map trim-spaces (escaped-segment string #\~)))
 	 (cues {}) (context+ {}) (context- {})
 	 (threshold 1))
     (doseq (dclause (remove "" dclauses) i)
-      (cond ((eqv? (first dclause) "+")
+      (cond ((eqv? (first dclause) #\+)
 	     (set+! cues
 		    (try (get knodule-dterms (subseq dclause 1))
 			 (subseq dclause 1))))
-	    ((eqv? (first dclause) "-")
+	    ((eqv? (first dclause) #\-)
 	     (set+! context-
-		    (try (get knodule-dterms (subseq dclause 1))
-			 (subseq dclause 1))))
-	    ((eqv? (first dclause) "#")
+		    (if (eqv? (second dclause) #\=)
+			(kno/dref (subseq dclause 2) knodule)
+			(try (get knodule-dterms (subseq dclause 1))
+			     (subseq dclause 1)))))
+	    ((eqv? (first dclause) #\=)
+	     (set+! context+ (kno/dref (subseq dclause 1) knodule)))
+	    ((eqv? (first dclause) #\#)
 	     (if (equal? dclause "#*")
 		 (set! threshold #f)
 		 (set! threshold (string->lisp (subseq dclause 1)))))
@@ -96,12 +109,15 @@
   (cond ((or (not op) (eq? op #\\))
 	 (list subject (knodule-language knodule) value))
 	((eq? op #\$)
+	 ;; Term in another language
 	 (let ((lang (knodule-language knodule))
 	       (langid (string->lisp (subseq value 0 2))))
 	   (if (eq? langid lang)
 	       (list subject lang value)
 	       (list subject langid (subseq value 3)))))
 	((eq? op #\^)
+	 ;; Either a statement of a generalization or of a
+	 ;; generalization with an argument
 	 (let* ((open (escaped-find value #\openparen))
 		(close (and open (escaped-find value #\closeparen open)))
 		(context
@@ -119,6 +135,7 @@
 	    (tryif context (list subject 'roles (cons genl context)))
 	    (tryif context (list context genl subject)))))
 	((eq? op #\_)
+	 ;; Declaration of specializations
 	 (let ((object (kno/dref value knodule)))
 	   (choice (list subject 'specls object)
 		   (list object 'genls subject)
@@ -126,6 +143,7 @@
 			 (get #[#\* typical #\~ atypical] mod)
 			 subject))))
 	((eq? op #\-)
+	 ;; Declaration of complements
 	 (let ((object (kno/dref value knodule)))
 	   (choice (list subject 'never object)
 		   (list object 'never subject)
@@ -139,8 +157,19 @@
 		     (filler (kno/dref (subseq value (1+ eqpos)) knodule)))
 		 (choice (list subject role filler)
 			 (list filler (get role 'mirror) subject)))
-	       (error "Bad dot clause" clause))))
+	       (error "Bad dot clause" clause)))
+	 (if (position #\= value)
+	     (list subject (parse-arg ))))
+	((eq? op #\:)
+	 ;; Declaration of a named relationship
+	 (let ((eqpos (position #\= value)))
+	   (if eqpos
+	       (let ((role (kno/dref (subseq value 1 eqpos) knodule))
+		     (value (parse-arg (subseq value (1+ eqpos)))))
+		 (list subject role value))
+	       (error "Bad colon clause" clause))))
 	((eq? op #\=)
+	 ;; Declaration of underlying identity
 	 (let ((atpos (position #\@ value)))
 	   (if (and atpos (zero? atpos))
 	       (list subject 'oid (string->lisp value))
@@ -159,14 +188,17 @@
 	       (get #[#f assocs #\* defs #\~ refs] mod)
 	       (kno/dref value knodule)))
 	((eq? op #\@)
+	 ;; Reference to an external definition/name
 	 (handle-lang-term subject
 			   (get #[#f xref #\* xdef #\~ xuri] mod)
 			   (knodule-language knodule) value))
 	((eq? op #\*)
+	 ;; Declaration of a natural language normative term
 	 (handle-lang-term subject 'norms (knodule-language knodule)
 			   value))
 	((eq? op #\~)
-	 (if (position #\& value)
+	 ;; Declaration of a hook or DRULE
+	 (if (position #\~ value)
 	     (list subject 'drules
 		   (plaintext->drule (string-append "+" value)
 				     subject knodule
