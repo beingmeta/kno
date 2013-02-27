@@ -402,8 +402,8 @@
 				   (cons (kno/slotid (car args)) query))))
 		       ((null? args) (reverse query))))))))
 
-(define infer-onadd (make-hashtable))
-(define infer-ondrop (make-hashtable))
+(define-init infer-onadd (make-hashtable))
+(define-init infer-ondrop (make-hashtable))
 
 (defambda (kno/add! dterm slotid value)
   (detail%watch "KNO/ADD!" dterm slotid value)
@@ -454,8 +454,10 @@
   (let ((g* (get* g 'genls))
 	(g*cur (get f 'genls*))
 	(knodule (get knodules (get f 'knodule))))
-    (add! f 'genls* g)
-    (add! f 'genls* (difference g* g*cur))
+    (iadd! f 'genls* g)
+    (iadd! f 'genls* (difference g* g*cur))
+    (iadd! (find-frames (knodule-index knodule) 'genls* f)
+	   'genls* (difference g* g*cur))
     (add! (knodule-genls* knodule) (difference g* g*cur) f)))
 
 (define (drop-genl! f s g)
