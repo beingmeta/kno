@@ -158,8 +158,10 @@
 		 (choice (list subject role filler)
 			 (list filler (get role 'mirror) subject)))
 	       (error "Bad dot clause" clause)))
-	 (if (position #\= value)
-	     (list subject (parse-arg ))))
+	 (tryif (position #\= value)
+	   (list subject
+		 (string->lisp (slice value 0 (position #\= value)))
+		 (parse-arg (slice value (1+ (position #\= value)))))))
 	((eq? op #\:)
 	 ;; Declaration of a named relationship
 	 (let ((eqpos (position #\= value)))
