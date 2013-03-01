@@ -1,0 +1,10 @@
+source @abs_top_srcdir@/etc/gdbinit
+directory @abs_top_srcdir@/src/dtype:@abs_top_srcdir@/src/db:@abs_top_srcdir@/src/scheme:@abs_top_srcdir@/src/texttools:@abs_top_srcdir@/src/fdweb:@abs_top_srcdir@/src/tagger:@abs_top_srcdir@/src/cmodules:@abs_top_srcdir@/include/framerd
+#set env FD_POOLS /data/bg/brico.pool
+#set env FD_INDICES /data/bg/brico.index
+#set env FD_POOLS bground@localhost
+#set env FD_INDICES bground@localhost
+set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
+set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
+set env FD_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@
+set env FD_SHOWTIME 0.0

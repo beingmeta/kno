@@ -224,6 +224,35 @@ makefile: makefile.in config.status
 configure: configure.ac
 	autoconf
 
+tests/dtype/makefile: tests/dtype/makefile.in ./configure
+	configure
+tests/db/makefile: tests/db/makefile.in ./configure
+	configure
+tests/scheme/makefile: tests/scheme/makefile.in ./configure
+	configure
+tests/dtype/.gdbinit: tests/dtype/.gdbinit.in ./configure
+	configure
+tests/db/.gdbinit: tests/db/.gdbinit.in ./configure
+	configure
+tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
+	configure
+exe/.gdbinit: exe/.gdbinit.in ./configure
+	configure
+etc/fdgetconfig: etc/fdgetconfig ./configure
+	configure
+etc/fdsetconfig: etc/fdsetconfig ./configure
+	configure
+etc/framerd-rc.d: etc/framerd-rc.d ./configure
+	configure
+etc/OSXStartupItem/FramerD: etc/OSXStartupItem/FramerD.in ./configure
+	configure
+etc/logrotate: etc/logrotate.in ./configure
+	configure
+etc/fdserv.conf: etc/fdserv.conf.in ./configure
+	configure
+etc/fdserv.load: etc/fdserv.load.in ./configure
+	configure
+
 # Fileinfo gets version-related information about a file to pass in
 # with -D
 
@@ -355,13 +384,13 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs  src/exe/fdversion.h
+dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit src/exe/fdversion.h
 	cd tests/dtype; make
-dbtestbin: libs  src/exe/fdversion.h
+dbtestbin: libs tests/db/makefile tests/db/.gdbinit src/exe/fdversion.h
 	cd tests/db; make
-schemetestbin: libs  src/exe/fdversion.h
+schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/fdversion.h
 	cd tests/scheme; make
-exe: $(EXECUTABLES)
+exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
 
 cmodules: @CMODULES@
@@ -457,8 +486,13 @@ clean: tidy
 distclean: clean
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/dtype/makefile tests/db/makefile tests/scheme/makefile
+	rm -f tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
-	rm -f include/framerd/config.h
+	rm -f exe/.gdbinit include/framerd/config.h
+
+# Configuration targets
+
+# Library targets
 
 lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.so.@VERSION@: $(DTYPE_OBJS)

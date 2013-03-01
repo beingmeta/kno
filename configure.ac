@@ -906,8 +906,9 @@ fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
-AC_OUTPUT(makefile 
+AC_OUTPUT(makefile exe/.gdbinit
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
+	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD etc/logrotate
 	  etc/fdserv.conf etc/fdserv.load
