@@ -219,8 +219,8 @@ static int restart_connection(struct FD_MYSQL *dbp)
 	   dbp->spec,dbp->info,old_thread_id,cur_thread_id);}
   else {
     u8_log(LOG_WARN,"myql/restarting_connection",
-	   "Restart #%d MYSQL connection #%d with %s (%s)",
-	   dbp->restarts+1,dbp->thread_id,dbp->spec,dbp->info);
+	   "Restart #%d for MYSQL with %s (%s), newid %d (was %d)",
+	   dbp->restarts+1,dbp->spec,dbp->info,dbp->thread_id,old_thread_id);
     mysql_options(db,MYSQL_OPT_RECONNECT,&reconn);
     retval=mysql_ping(db);}
   if (retval==RETVAL_OK) {
@@ -235,8 +235,8 @@ static int restart_connection(struct FD_MYSQL *dbp)
   dbp->restarts++; dbp->restarted=u8_elapsed_time();
   dbp->thread_id=mysql_thread_id(dbp->db);
   u8_log(LOG_WARN,"myql/restarted_connection",
-	 "Reinitialized MYSQL connection #%d with %s (%s)",
-	 dbp->thread_id,dbp->restarts,dbp->spec,dbp->info);
+	 "Restart #%d MYSQL connection #%d with %s (%s)",
+	 dbp->restarts,dbp->thread_id,dbp->spec,dbp->info);
   return -(retval);
 }
 
