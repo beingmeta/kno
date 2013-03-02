@@ -644,7 +644,7 @@ static int delete_tempdirs_on_exit=1;
 static fdtype tempdirs=FD_EMPTY_CHOICE, keeptemp=FD_EMPTY_CHOICE;
 static u8_mutex tempdirs_lock;
 
-static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
+static u8_string tempdir_core(fdtype template_arg,int keep)
 {
   u8_string tempname;
   u8_string consed=NULL, template=
@@ -658,19 +658,35 @@ static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
   if (!(template)) {
     char *tmpdir=get_tmpdir();
     template=consed=u8_mkpath(tmpdir,"fdtempXXXXXX");}
+  /* Unlike mkdtemp, u8_tempdir doesn't overwrite its argument */
   tempname=u8_tempdir(template);
   if (tempname) {
-    fdtype result=fd_lispstring(tempname);
+    fdtype result=fd_make_string(NULL,-1,tempname);
     if (consed) u8_free(consed);
-    if (FD_FALSEP(keep)) {
+    if (!(keep)) {
       fd_lock_mutex(&tempdirs_lock);
-      FD_ADD_TO_CHOICE(tempdirs,result); fd_incref(result);
+      FD_ADD_TO_CHOICE(tempdirs,result);
       fd_unlock_mutex(&tempdirs_lock);}
-    return result;}
+    return tempname;}
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
     if (consed) u8_free(consed);
-    return fd_err(cond,"tempdir_prim",NULL,template_arg);}
+    fd_err(cond,"tempdir_prim",NULL,template_arg);
+    return NULL;}
+}
+
+FD_EXPORT u8_string fd_tempdir(u8_string spec,int keep)
+{
+  fdtype template_arg=fd_parse_arg(spec);
+  u8_string dirname=tempdir_core(template_arg,keep);
+  fd_decref(template_arg);
+  return dirname;
+}
+
+static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
+{
+  u8_string dirname=tempdir_core(template_arg,keep);
+  return fd_init_string(NULL,-1,dirname);
 }
 
 static fdtype tempdirs_get(fdtype sym,void *ignore)
