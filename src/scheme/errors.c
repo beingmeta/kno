@@ -183,6 +183,14 @@ static fdtype error_irritant(fdtype x)
   else return fd_incref(irritant);
 }
 
+static fdtype error_backtrace(fdtype x)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+  u8_exception ex=xo->ex, last=ex;
+  return fd_exception_backtrace(ex);
+}
+
 static fdtype error_xdata(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
@@ -282,6 +290,9 @@ FD_EXPORT void fd_init_errors_c()
 			   fd_error_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
+			   fd_error_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
 			   fd_error_type,FD_VOID));
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);
