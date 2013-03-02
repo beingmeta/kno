@@ -505,7 +505,8 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
 
 /* Someday, these should be configurable. */
 static u8_string false_strings[]={
-  "no","false","off","n","f" "#f","#false","non","nei","not",NULL};
+  "no","false","off","n","f" "#f","#false",
+  "0","disable","non","nei","not",NULL};
 
 static int false_stringp(u8_string string)
 {
@@ -517,7 +518,7 @@ static int false_stringp(u8_string string)
 }
 
 static u8_string true_strings[]={
-  "yes","true","on","y","t" "#t","#true",
+  "yes","true","on","y","t" "#t","#true","1","enable",
   "oui","yah","yeah","yep","sure","hai",NULL};
 
 static int true_stringp(u8_string string)
