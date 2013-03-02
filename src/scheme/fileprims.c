@@ -698,7 +698,7 @@ static void remove_tempdirs()
 
 FD_EXPORT u8_string fd_tempdir(u8_string spec,int keep)
 {
-  fdtype template_arg=fd_parse_arg(spec);
+  fdtype template_arg=((spec)?(fd_parse_arg(spec)):(FD_VOID));
   u8_string dirname=tempdir_core(template_arg,keep);
   fd_decref(template_arg);
   return dirname;
