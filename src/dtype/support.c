@@ -839,6 +839,42 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
 }
 
 FD_EXPORT
+fdtype fd_exception_backtrace(u8_exception ex)
+{
+  fdtype result=FD_EMPTY_LIST;
+  u8_condition cond=NULL;  u8_string details=NULL; u8_context cxt=NULL;
+  while (ex) {
+    u8_condition c=ex->u8x_cond;
+    u8_string d=ex->u8x_details;
+    u8_context cx=ex->u8x_context;
+    fdtype x=fd_exception_xdata(ex);
+    if ((c!=cond)||
+	((d)&&(d!=details))||
+	((cx)&&(cx!=cxt))) {
+      u8_string sum=
+	(((d)&&cx)?(u8_mkstring("%s (%s) %s",c,cx,d)):
+	 (d)?(u8_mkstring("%s: %s",c,d)):
+	 (cx)?(u8_mkstring("%s (%s)",c,cx)):
+	 u8_strdup(c));
+      result=fd_init_pair(NULL,fd_make_string(NULL,-1,sum),result);
+      u8_free(sum);}
+    if (!((FD_NULLP(x))||(FD_VOIDP(x)))) {
+      if (FD_VECTORP(x)) {
+	int len=FD_VECTOR_LENGTH(x);
+	fdtype applyvec=fd_init_vector(NULL,len+1,NULL);
+	int i=0; while (i<len) {
+	  fdtype elt=FD_VECTOR_REF(x,i); fd_incref(elt);
+	  FD_VECTOR_SET(applyvec,i+1,elt);
+	  i++;}
+	FD_VECTOR_SET(applyvec,0,fd_intern("=>"));
+	result=fd_init_pair(NULL,applyvec,result);}
+      else {
+	fd_incref(x); result=fd_init_pair(NULL,x,result);}}
+    ex=ex->u8x_prev;}
+  return result;
+}
+
+FD_EXPORT
 void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
 {
   if ((bg==NULL) || ((bg->u8x_cond) != (ex->u8x_cond)))
