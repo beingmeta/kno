@@ -36,7 +36,7 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "fdversion.h"
+#include "main.h"
 
 FD_EXPORT void fd_init_fdweb(void);
 FD_EXPORT void fd_init_texttools(void);

@@ -779,6 +779,17 @@ if test $enable_texttools = "yes"; then
   xstatic_scheme_libs=" ../../lib/libtexttools.a $xstatic_scheme_libs"
 fi
 
+dnl This integrates the fdweb module into executables by default; otherwise
+dnl  it is built and installed as a plugin library
+AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="yes")
+if test $enable_htmldump = "yes"; then
+  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
+  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
+  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
+  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
+  AC_DEFINE(FD_HTMLDUMP_ENABLED,1)
+fi
+
 dnl ***********************************
 dnl *** Checks for working __thread ***
 dnl ***********************************

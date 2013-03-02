@@ -36,16 +36,13 @@
 #include <signal.h>
 #include <math.h>
 
-#include "fdversion.h"
+#include "main.h"
 
 /* This is the size of file to return all at once. */
 #define FD_FILEBUF_MAX (256*256)
 
 static u8_condition Startup=_("FDSERV Startup");
 
-FD_EXPORT void fd_init_fdweb(void);
-FD_EXPORT void fd_init_texttools(void);
-FD_EXPORT void fd_init_tagger(void);
 FD_EXPORT int fd_init_fddbserv(void);
 
 #include "webcommon.h"

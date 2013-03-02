@@ -34,9 +34,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-FD_EXPORT void fd_init_fdweb(void);
-FD_EXPORT void fd_init_texttools(void);
-FD_EXPORT void fd_init_tagger(void);
+#include "main.h"
 
 #define MAX_CONFIGS 256
 

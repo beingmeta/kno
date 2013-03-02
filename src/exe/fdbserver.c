@@ -30,10 +30,7 @@
 #include <signal.h>
 #include <stdio.h>
 
-#include "fdversion.h"
-
-FD_EXPORT void fd_init_texttools(void);
-FD_EXPORT void fd_init_tagger(void);
+#include "main.h"
 
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))

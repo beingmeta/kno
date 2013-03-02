@@ -12,6 +12,11 @@
 #include "framerd/history.h"
 #include "framerd/ports.h"
 #include "framerd/sequences.h"
+#include "framerd/fileprims.h"
+
+#if FD_HTMLDUMP_ENABLED
+#include "framerd/fdweb.h"
+#endif
 
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
@@ -33,11 +38,7 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "fdversion.h"
-
-FD_EXPORT void fd_init_fdweb(void);
-FD_EXPORT void fd_init_texttools(void);
-FD_EXPORT void fd_init_tagger(void);
+#include "main.h"
 
 #define EVAL_PROMPT ";; Eval: "
 
@@ -58,6 +59,8 @@ static u8_input inconsole=NULL;
 static u8_output outconsole=NULL;
 static u8_output errconsole=NULL;
 static fd_lispenv console_env=NULL;
+static u8_string bugdumps=NULL;
+static u8_string bugbrowse=NULL;
 
 static int debug_maxelts=32, debug_maxchars=80;
 
@@ -408,6 +411,12 @@ int main(int argc,char **argv)
     ("SHOWELTS",
      _("Number of elements to initially show in displaying results"),
      fd_intconfig_get,fd_intconfig_set,&show_elts);
+  fd_register_config
+    ("BUGDUMPS",_("Where to create directories for saving backtraces"),
+     fd_sconfig_get,fd_sconfig_set,&bugdumps);
+  fd_register_config
+    ("BUGBROWSE",_("The command to use to open saved backtraces"),
+     fd_sconfig_get,fd_sconfig_set,&bugbrowse);
 
   /* Initialize console streams */
   inconsole=in;
@@ -548,14 +557,40 @@ int main(int argc,char **argv)
 	fd_print_exception(&out,root);
 	fd_summarize_backtrace(&out,ex);
 	u8_printf(&out,"\n");
-	if (fd_dump_backtrace==NULL)
-	  fd_print_backtrace(&out,ex,80);
-	fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
 	fputs(out.u8_outbuf,stderr);
+	out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+	fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
 	if (fd_dump_backtrace) {
 	  out.u8_outptr=out.u8_outbuf;
 	  fd_print_backtrace(&out,ex,120);
 	  fd_dump_backtrace(out.u8_outbuf);}
+	else if (bugdumps) {
+	  u8_string dump_dir=fd_tempdir(bugdumps,0);
+#if FD_HTMLDUMP_ENABLED
+	  u8_string btfile=u8_mkpath(dump_dir,"backtrace.html");
+	  u8_output outfile=(u8_output)u8_open_output_file(btfile,NULL,O_RDWR|O_CREAT,0600);
+	  fd_xhtmldebugpage(outfile,ex);
+	  u8_close((u8_stream)outfile);
+	  u8_printf(&out,"Backtrace written to file://%s\n",btfile);
+	  if (bugbrowse) {
+	    struct U8_OUTPUT cmd; U8_INIT_OUTPUT(&cmd,256); int retval;
+	    u8_printf(&cmd,"%s file://%s",bugbrowse,btfile);
+	    retval=system(cmd.u8_outbuf);
+	    if (retval!=0)
+	      u8_log(LOG_WARN,"There was an error browsing the backtrace with '%s'",
+		     cmd.u8_outbuf);
+	    u8_free(cmd.u8_outbuf);}
+#else
+	  u8_string btfile=u8_mkpath(dump_dir,"backtrace");
+	  u8_output outfile=(u8_output)u8_open_output_file(btfile,NULL,O_RDWR|O_CREAT,0600);
+	  fd_print_backtrace(outfile,ex,80);
+	  u8_close((u8_stream)outfile);
+	  u8_printf(&out,"Backtrace written to %s\n",btfile);
+#endif
+	  u8_free(btfile);}
+	else {
+	  fd_print_backtrace(&out,ex,80);}
+	fputs(out.u8_outbuf,stderr);
 	u8_free(out.u8_outbuf);
 	u8_free_exception(ex,1);}
       else fprintf(stderr,

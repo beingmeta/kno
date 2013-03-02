@@ -388,7 +388,7 @@ dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit src/exe/fdversion.h
 	cd tests/dtype; make
 dbtestbin: libs tests/db/makefile tests/db/.gdbinit src/exe/fdversion.h
 	cd tests/db; make
-schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/fdversion.h
+schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h src/exe/fdversion.h
 	cd tests/scheme; make
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
