@@ -824,7 +824,9 @@ static int webservefn(u8_client ucl)
 	      (u8_has_prefix(FD_STRDATA(errorpage),"http:",0))||
 	      (u8_has_prefix(FD_STRDATA(errorpage),"https:",0)))) {
       struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,1024);
-      u8_printf(&tmpout,"Status: 307\r\nLocation: %s\r\n\r\n",errorpage);
+      write_string(client->socket,"Status: 307\r\nLocation: ");
+      write_string(client->socket,FD_STRDATA(errorpage));
+      write_string(client->socket,"\r\n\r\n");
       u8_printf(&tmpout,"<html>\n<head>\n<title>Sorry, redirecting...</title>\n</head>\n<body>\n");
       u8_printf(&tmpout,"<p>Redirecting to <a href='%s'>%s</a></p>\n</body>\n</html>\n",errorpage,errorpage);
       write_string(client->socket,tmpout.u8_outbuf);
