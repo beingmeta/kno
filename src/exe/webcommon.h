@@ -49,7 +49,7 @@ static fdtype server_port, server_name, path_translated, script_filename;
 static fdtype auth_type, remote_host, remote_user, remote_port;
 static fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
 static fdtype query_symbol, referer_symbol, forcelog_symbol;
-static fdtype webdebug_symbol, errorpage_symbol, output_symbol;
+static fdtype webdebug_symbol, errorpage_symbol, output_symbol, error_symbol;
 
 static fdtype errpage=FD_VOID;
 
@@ -81,6 +81,7 @@ static void init_webcommon_symbols()
   webdebug_symbol=fd_intern("WEBDEBUG");
   errorpage_symbol=fd_intern("ERRORPAGE");
   output_symbol=fd_intern("OUTPUT");
+  error_symbol=fd_intern("ERROR");
 }
 
 /* Preflight/postflight */

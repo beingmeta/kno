@@ -531,7 +531,7 @@ static int webservefn(u8_client ucl)
   if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
     report_status();
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
-  int return_code=0, buffered=0;
+  int return_code=0, buffered=0, recovered=1;
   /* Reset the streams */
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
@@ -556,24 +556,24 @@ static int webservefn(u8_client ucl)
     if ((async)&&
 	(havebytes((fd_byte_input)stream,1))&&
 	((*(stream->ptr))==dt_block)) {
-	  /* If we can be asynchronous, let's try */
-	  int dtcode=fd_dtsread_byte(stream);
-	  int nbytes=fd_dtsread_4bytes(stream);
-	  if (fd_has_bytes(stream,nbytes)) {
-	    /* We can execute without waiting */}
-	  else {
-	    int need_size=5+nbytes;
-	    /* Allocate enough space for what we need to read */
-	    if (stream->bufsiz<need_size) {
-	      fd_grow_byte_input((fd_byte_input)stream,need_size);
-	      stream->bufsiz=need_size;}
-	    /* Set up the client for async input */
-	    if (u8_client_read(ucl,stream->start,5+nbytes,
-			       (stream->end-stream->start))) { 
-	      /* We got the whole payload, set up the stream
-		 for reading it without waiting.  */
-	      stream->end=stream->start+client->len;}
-	    else return 1;}}
+      /* If we can be asynchronous, let's try */
+      int dtcode=fd_dtsread_byte(stream);
+      int nbytes=fd_dtsread_4bytes(stream);
+      if (fd_has_bytes(stream,nbytes)) {
+	/* We can execute without waiting */}
+      else {
+	int need_size=5+nbytes;
+	/* Allocate enough space for what we need to read */
+	if (stream->bufsiz<need_size) {
+	  fd_grow_byte_input((fd_byte_input)stream,need_size);
+	  stream->bufsiz=need_size;}
+	/* Set up the client for async input */
+	if (u8_client_read(ucl,stream->start,5+nbytes,
+			   (stream->end-stream->start))) { 
+	  /* We got the whole payload, set up the stream
+	     for reading it without waiting.  */
+	  stream->end=stream->start+client->len;}
+	else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
@@ -679,9 +679,12 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
     threadcache=checkthreadcache(sp->env);
+    /* This should possibly put the CDR of proc into the environment chain,
+       but it no longer does. ?? */
     base_env=sp->env;
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
+    /* This is handling FDXML */
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=
       ((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
@@ -705,7 +708,7 @@ static int webservefn(u8_client ucl)
       fdtype v=fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
     fd_decref(setup_proc);
-    /* We assume that the XML contains headers, so we won't add them. */
+    /* We assume that the FDXML contains headers, so we won't add them. */
     write_headers=0;
     fd_output_xml_preface(&(client->out),cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
@@ -735,8 +738,11 @@ static int webservefn(u8_client ucl)
       result=fd_err(u8_CantOpenFile,"fdserv_retfile","existing filename",
 		    retfile);}}
   if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
+  else recovered=0;
   if (FD_TROUBLEP(result)) {
     u8_exception ex=u8_current_exception, exscan=ex;
+    /* errorpage is used when errors occur.  Currently, it can be a
+       procedure (to be called) or an HTML string to be returned.  */
     fdtype errorpage=((base_env)?
 		      (fd_symeval(errorpage_symbol,base_env)):
 		      (FD_VOID));
@@ -745,6 +751,7 @@ static int webservefn(u8_client ucl)
 	(!(FD_VOIDP(errpage)))) {
       fd_incref(errpage); errorpage=errpage;}
     while ((exscan)&&(depth<max_error_depth)) {
+      /* Log everything, just in case */
       u8_condition excond=exscan->u8x_cond;
       u8_context excxt=((exscan->u8x_context) ? (exscan->u8x_context) :
 			((u8_context)"somewhere"));
@@ -755,19 +762,25 @@ static int webservefn(u8_client ucl)
 	u8_log(LOG_ERR,excond,"Unexpected error \"%m \" for %s:@%s (%s)",
 	       excond,FD_STRDATA(path),excxt,exdetails);
       else u8_log(LOG_ERR,excond,"Unexpected error \"%m \" %s:@%s (%s)",
-	       excond,excxt,exdetails);
+		  excond,excxt,exdetails);
       exscan=exscan->u8x_prev; depth++;}
+    /* First we try to apply the error page if it's defined */
     if (FD_APPLICABLEP(errorpage)) {
+      fdtype err_value=fd_init_exception(NULL,ex);
+      fd_store(cgidata,error_symbol,err_value); fd_decref(err_value);
       if (outstream->u8_outptr>outstream->u8_outbuf) {
+	/* Get all the output to date as a string and store it in the
+	   request. */
 	fdtype output=fd_make_string
 	  (NULL,outstream->u8_outptr-outstream->u8_outbuf,
 	   outstream->u8_outbuf);
 	/* Save the output to date on the request */
 	fd_store(cgidata,output_symbol,output);
 	fd_decref(output);}
+      /* Reset the output stream */
       outstream->u8_outptr=outstream->u8_outbuf;
       /* Apply the error page object */
-      result=fd_apply(errorpage,0,NULL);
+      result=fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
 	ex=u8_current_exception; exscan=ex; depth=0;
 	while ((exscan)&&(depth<max_error_depth)) {
@@ -785,10 +798,13 @@ static int webservefn(u8_client ucl)
 		      "Unexpected recursive error \"%m \" %s:@%s (%s)",
 		      excond,excxt,exdetails);
 	  exscan=exscan->u8x_prev; depth++;}
-	fd_decref(errorpage); errorpage=FD_VOID;}}
-    if (!(FD_TROUBLEP(result))) {}
+	fd_decref(errorpage); errorpage=FD_VOID;}
+      else recovered=1;}
+    if (!(FD_TROUBLEP(result))) {
+      /* We got something to return, so we don't bother
+	 with all the various other error cases.  */ }
     else if ((FD_STRINGP(errorpage))&&
-	(strstr(FD_STRDATA(errorpage),"\n")!=NULL)) {
+	     (strstr(FD_STRDATA(errorpage),"\n")!=NULL)) {
       /* Assume that the error page is a string of HTML */
       ex=u8_erreify();
       http_len=http_len+strlen(HTML_UTF8_CTYPE_HEADER);
@@ -797,7 +813,6 @@ static int webservefn(u8_client ucl)
     else if (FD_STRINGP(errorpage)) {
       /* This should check for redirect URLs, but for now it
 	 just dumps the error page as plain text.  */
-      ex=u8_erreify();
       http_len=http_len+
 	strlen("Content-type: text/plain; charset=utf-8\r\n\r\n");
       write_string(client->socket,
@@ -816,20 +831,21 @@ static int webservefn(u8_client ucl)
       write_string(client->socket,
 		   "Content-type: text/html; charset=utf-8\r\n\r\n");
       fd_xhtmlerrorpage(&(client->out),ex);}
-    u8_free_exception(ex,1);
-    if ((reqlog) || (urllog) || (trace_cgidata))
-      dolog(cgidata,result,outstream->u8_outbuf,
-	    outstream->u8_outptr-outstream->u8_outbuf,
-	    u8_elapsed_time()-start_time);
-    content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
-    /* We do a hanging write in this, hopefully not common case */
-    u8_writeall(client->socket,outstream->u8_outbuf,
-		outstream->u8_outptr-outstream->u8_outbuf);
-    return_code=-1;
-    fd_decref(errorpage);
-    /* And close the client for good measure */
-    u8_client_close(ucl);}
-  else {
+    if (!(recovered)) {
+      u8_free_exception(ex,1);
+      if ((reqlog) || (urllog) || (trace_cgidata))
+	dolog(cgidata,result,outstream->u8_outbuf,
+	      outstream->u8_outptr-outstream->u8_outbuf,
+	      u8_elapsed_time()-start_time);
+      content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
+      /* We do a hanging write in this, hopefully not common case */
+      u8_writeall(client->socket,outstream->u8_outbuf,
+		  outstream->u8_outptr-outstream->u8_outbuf);
+      return_code=-1;
+      fd_decref(errorpage);
+      /* And close the client for good measure */
+      u8_client_close(ucl);}}
+  if (recovered) {
     U8_OUTPUT httphead, htmlhead; int tracep;
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
