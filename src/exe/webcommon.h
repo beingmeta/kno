@@ -51,7 +51,8 @@ static fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
 static fdtype query_symbol, referer_symbol, forcelog_symbol;
 static fdtype webdebug_symbol, errorpage_symbol, output_symbol, error_symbol;
 
-static fdtype errpage=FD_VOID;
+static fdtype default_errorpage=FD_VOID;
+static fdtype default_crisispage=FD_VOID;
 
 static void init_webcommon_symbols()
 {
@@ -587,7 +588,10 @@ static void init_webcommon_configs()
   fd_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
 		     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
   fd_register_config("ERRORPAGE",_("Default error page for web errors"),
-		     fd_lconfig_get,fd_lconfig_set,&errpage);
+		     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
+  fd_register_config("CRISISPAGE",
+		     _("Default crisis page (for when the error page yields an error)"),
+		     fd_lconfig_get,fd_lconfig_set,&default_crisispage);
   fd_register_config("PRELOAD",
 		     _("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);

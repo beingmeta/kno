@@ -748,8 +748,9 @@ static int webservefn(u8_client ucl)
 		      (FD_VOID));
     int depth=0;
     if (((FD_VOIDP(errorpage))||(errorpage==FD_UNBOUND))&&
-	(!(FD_VOIDP(errpage)))) {
-      fd_incref(errpage); errorpage=errpage;}
+	(!(FD_VOIDP(default_errorpage)))) {
+      fd_incref(default_errorpage);
+      errorpage=default_errorpage;}
     while ((exscan)&&(depth<max_error_depth)) {
       /* Log everything, just in case */
       u8_condition excond=exscan->u8x_cond;
@@ -782,6 +783,13 @@ static int webservefn(u8_client ucl)
       /* Apply the error page object */
       result=fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
+	fdtype crisispage=((base_env)?
+			  (fd_symeval(errorpage_symbol,base_env)):
+			  (FD_VOID));
+	if (((FD_VOIDP(crisispage))||(crisispage==FD_UNBOUND))&&
+	    (!(FD_VOIDP(default_crisispage)))) {
+	  fd_incref(default_crisispage);
+	  crisispage=default_crisispage;}
 	ex=u8_current_exception; exscan=ex; depth=0;
 	while ((exscan)&&(depth<max_error_depth)) {
 	  u8_condition excond=exscan->u8x_cond;
@@ -798,7 +806,8 @@ static int webservefn(u8_client ucl)
 		      "Unexpected recursive error \"%m \" %s:@%s (%s)",
 		      excond,excxt,exdetails);
 	  exscan=exscan->u8x_prev; depth++;}
-	fd_decref(errorpage); errorpage=FD_VOID;}
+	fd_decref(errorpage); errorpage=FD_VOID;
+	if (FD_STRINGP(crisispage)) errorpage=crisispage;}
       else recovered=1;}
     if (!(FD_TROUBLEP(result))) {
       /* We got something to return, so we don't bother
@@ -809,7 +818,17 @@ static int webservefn(u8_client ucl)
       ex=u8_erreify();
       http_len=http_len+strlen(HTML_UTF8_CTYPE_HEADER);
       write_string(client->socket,HTML_UTF8_CTYPE_HEADER);
-      write_string(client->socket,FD_STRDATA(errpage));}
+      write_string(client->socket,FD_STRDATA(errorpage));}
+    else if ((FD_STRINGP(errorpage))&&
+	     ((FD_STRDATA(errorpage)[0]=='/')||
+	      (u8_has_prefix(FD_STRDATA(errorpage),"http:",0))||
+	      (u8_has_prefix(FD_STRDATA(errorpage),"https:",0)))) {
+      struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,1024);
+      u8_printf(&tmpout,"Status: 307\r\nLocation: %s\r\n\r\n",errorpage);
+      u8_printf(&tmpout,"<html>\n<head>\n<title>Sorry, redirecting...</title>\n</head>\n<body>\n");
+      u8_printf(&tmpout,"<p>Redirecting to <a href='%s'>%s</a></p>\n</body>\n</html>\n",errorpage,errorpage);
+      write_string(client->socket,tmpout.u8_outbuf);
+      u8_free(tmpout.u8_outbuf);}
     else if (FD_STRINGP(errorpage)) {
       /* This should check for redirect URLs, but for now it
 	 just dumps the error page as plain text.  */
@@ -817,7 +836,7 @@ static int webservefn(u8_client ucl)
 	strlen("Content-type: text/plain; charset=utf-8\r\n\r\n");
       write_string(client->socket,
 		   "Content-type: text/plain; charset=utf-8\r\n\r\n");
-      write_string(client->socket,FD_STRDATA(errpage));}
+      write_string(client->socket,FD_STRDATA(errorpage));}
     else if ((webdebug)||
 	     ((weballowdebug)&&(fd_req_test(webdebug_symbol,FD_VOID)))) {
       http_len=http_len+
