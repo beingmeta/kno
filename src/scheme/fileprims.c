@@ -675,6 +675,27 @@ static u8_string tempdir_core(fdtype template_arg,int keep)
     return NULL;}
 }
 
+static void remove_tempdirs()
+{
+  int n_files=FD_CHOICE_SIZE(tempdirs);
+  int n_keep=FD_CHOICE_SIZE(keeptemp);
+  if ((n_files)&&(n_keep)) 
+    u8_log(LOG_NOTICE,"TEMPFILES","Removing %d=%d-%d temporary directories",
+	   n_files-n_keep,n_files,n_keep);
+  else if (n_files)
+    u8_log(LOG_NOTICE,"TEMPFILES","Removing %d temporary directories",n_files);
+  else return;
+  u8_lock_mutex(&tempdirs_lock); {
+    fdtype to_remove=fd_difference(tempdirs,keeptemp);
+    FD_DO_CHOICES(tmpfile,to_remove) {
+      if (FD_STRINGP(tmpfile)) {
+	u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",FD_STRDATA(tmpfile));
+	u8_rmtree(FD_STRDATA(tmpfile));}}
+    fd_decref(tempdirs); fd_decref(keeptemp);
+    tempdirs=FD_EMPTY_CHOICE; keeptemp=FD_EMPTY_CHOICE;
+    u8_unlock_mutex(&tempdirs_lock);}
+}
+
 FD_EXPORT u8_string fd_tempdir(u8_string spec,int keep)
 {
   fdtype template_arg=fd_parse_arg(spec);
@@ -2017,6 +2038,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
 			   -1,FD_VOID,-1,FD_FALSE));
+
+  atexit(remove_tempdirs);
 
   {
     u8_string path=u8_getenv("FD_LOADPATH");
