@@ -942,14 +942,17 @@ int main(int argc,char **argv)
     u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
     u8_server_loop(&dtype_server); normal_exit=1;
     u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop",n_ports);
+    exit(0);
     return 0;}
   else if (n_ports==0) {
     u8_log(LOG_WARN,NoServers,"No servers configured, exiting..");
+    exit(-1);
     return -1;}
   else {
     fd_clear_errors(1);
     shutdown_dtypeserver_onexit();
     fd_clear_errors(1);
+    exit(-1);
     return -1;}
 }
 

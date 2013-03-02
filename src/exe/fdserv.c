@@ -1463,6 +1463,8 @@ int main(int argc,char **argv)
 
   shutdown_server("exit");
 
+  exit(0);
+
   return 0;
 }
 

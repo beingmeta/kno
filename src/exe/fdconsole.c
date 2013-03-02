@@ -596,6 +596,7 @@ int main(int argc,char **argv)
     fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
   /* Freed as console_env */
   /* fd_recycle_environment(env); */
+  exit(0);
   return 0;
 }
 

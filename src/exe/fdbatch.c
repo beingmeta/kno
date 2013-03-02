@@ -225,7 +225,9 @@ int main(int argc,char **argv)
 	u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
 	u8_fclose(f);}
       died_file=NULL;}
+    exit(retval);
     return retval;}
+  exit(0);
   return 0;
 }
 
