@@ -1152,9 +1152,18 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_printf(s,"</body>\n</html>\n");  
 }
 
-static fdtype errpage2html_prim(fdtype where)
+static fdtype debugpage2html_prim(fdtype exception,fdtype where)
 {
-  u8_exception ex=u8_current_exception;
+  u8_exception ex;
+  if ((FD_VOIDP(exception))||(FD_FALSEP(exception)))
+    ex=u8_current_exception;
+  else if (FD_PRIM_TYPEP(exception,fd_error_type)) {
+    struct FD_EXCEPTION_OBJECT *xo=
+      FD_GET_CONS(exception,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+    ex=xo->ex;}
+  else {
+    u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
+    ex=u8_current_exception;}
   if ((FD_VOIDP(where))||(FD_TRUEP(where))) {
     u8_output s=u8_current_output;
     fd_xhtmldebugpage(s,ex);
@@ -1166,9 +1175,18 @@ static fdtype errpage2html_prim(fdtype where)
   else return FD_FALSE;
 }
 
-static fdtype backtrace2html_prim(fdtype where)
+static fdtype backtrace2html_prim(fdtype exception,fdtype where)
 {
-  u8_exception ex=u8_current_exception;
+  u8_exception ex;
+  if ((FD_VOIDP(exception))||(FD_FALSEP(exception)))
+    ex=u8_current_exception;
+  else if (FD_PRIM_TYPEP(exception,fd_error_type)) {
+    struct FD_EXCEPTION_OBJECT *xo=
+      FD_GET_CONS(exception,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+    ex=xo->ex;}
+  else {
+    u8_log(LOG_WARN,"backtrace2html_prim","Bad exception argument %q",exception);
+    ex=u8_current_exception;}
   if ((FD_VOIDP(where))||(FD_TRUEP(where))) {
     u8_output s=u8_current_output;
     output_backtrace(s,ex);
@@ -2023,10 +2041,8 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_make_cprim3x
     ("URIENCODE",uriencode_prim,1,
      -1,FD_VOID,fd_string_type,FD_VOID,-1,FD_VOID);
-  fdtype debug2html=fd_make_cprim1
-    ("DEBUGPAGE->HTML",errpage2html_prim,0);
-  fdtype backtrace2html=fd_make_cprim1
-    ("BACKTRACE->HTML",backtrace2html_prim,0);
+  fdtype debug2html=fd_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
+  fdtype backtrace2html=fd_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
 
   u8_printf_handlers['k']=markup_printf_handler;
 
