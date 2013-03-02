@@ -563,6 +563,13 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
     return result;}
 }
 
+/* Getting the runbase for a script file */
+
+static fdtype runfile_prim(fdtype suffix)
+{
+  return fd_lispstring(fd_runbase_filename(FD_STRDATA(suffix)));
+}
+
 /* Making directories */
 
 static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
@@ -612,54 +619,115 @@ static char *get_tmpdir()
   else return "/tmp";
 }
 
-static fdtype tempdir_get(fdtype sym,void *ignore)
+static fdtype temproot_get(fdtype sym,void *ignore)
 {
   if (tempdir_template) return fd_lispstring(tempdir_template);
   else return FD_EMPTY_CHOICE;
 }
 
-static int tempdir_set(fdtype sym,fdtype value,void *ignore)
+static int temproot_set(fdtype sym,fdtype value,void *ignore)
 {
   int len; u8_string template, old_template=tempdir_template;
   if (!(FD_STRINGP(value))) {
-    fd_type_error("string","tempdir_set",value);
+    fd_type_error("string","temproot_set",value);
     return -1;}
   if ((FD_STRDATA(value)[0])!='/')
     u8_log(LOG_WARN,"BADTEMPLATE",
 	   "Setting template to a relative file path");
-  len=FD_STRLEN(value);
-  if (!((len>7)&&(strcmp("XXXXXX",FD_STRDATA(value)+(len-6))==0))) {
-    if (!(strchr(FD_STRDATA(value)+1,'/')))
-      template=u8_string_append(FD_STRDATA(value),"/","fdXXXXXX",NULL);
-    else template=u8_string_append(FD_STRDATA(value),"XXXXXX",NULL);
-    if ((tempdir_template)&&(strcmp(template,tempdir_template)==0)) {
-      u8_free(template);
-      return 0;}}
-  else template=u8_strdup(FD_STRDATA(value));
+  template=u8_strdup(FD_STRDATA(value));
   tempdir_template=template;
   if (old_template) u8_free(old_template);
   return 1;
 }
 
-static fdtype tempdir_prim(fdtype template)
+static int delete_tempdirs_on_exit=1;
+static fdtype tempdirs=FD_EMPTY_CHOICE, keeptemp=FD_EMPTY_CHOICE;
+static u8_mutex tempdirs_lock;
+
+static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
 {
-  char *tmpdir=get_tmpdir();
-  u8_string buf=
-    ((FD_STRINGP(template))?(u8_strdup(FD_STRDATA(template))):
-     (tempdir_template)?(u8_strdup(tempdir_template)):
-     (u8_mkpath(tmpdir,"fdtempXXXXXX")));
-  u8_string tempname=mkdtemp(buf);
+  u8_string tempname;
+  u8_string consed=NULL, template=
+    ((FD_STRINGP(template_arg))?(FD_STRDATA(template_arg)):(NULL));
+  if (FD_SYMBOLP(template_arg)) {
+    fdtype ctemp=fd_config_get(FD_STRDATA(template_arg));
+    if (FD_STRINGP(ctemp))
+      template=consed=u8_strdup(FD_STRDATA(ctemp));
+    fd_decref(ctemp);}
+  if (!(template)) template=tempdir_template;
+  if (!(template)) {
+    char *tmpdir=get_tmpdir();
+    template=consed=u8_mkpath(tmpdir,"fdtempXXXXXX");}
+  tempname=u8_tempdir(template);
   if (tempname) {
-    fdtype dirname=fd_lispstring(tempname);
-    return dirname;}
+    fdtype result=fd_lispstring(tempname);
+    if (consed) u8_free(consed);
+    if (FD_FALSEP(keep)) {
+      fd_lock_mutex(&tempdirs_lock);
+      FD_ADD_TO_CHOICE(tempdirs,result); fd_incref(result);
+      fd_unlock_mutex(&tempdirs_lock);}
+    return result;}
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
-    return fd_err(cond,"tempdir_prim",NULL,template);}
+    if (consed) u8_free(consed);
+    return fd_err(cond,"tempdir_prim",NULL,template_arg);}
 }
 
-static fdtype runfile_prim(fdtype suffix)
+static fdtype tempdirs_get(fdtype sym,void *ignore)
 {
-  return fd_lispstring(fd_runbase_filename(FD_STRDATA(suffix)));
+  fdtype dirs=tempdirs;
+  fd_incref(dirs);
+  return dirs;
+}
+static int tempdirs_add(fdtype sym,fdtype value,void *ignore)
+{
+  if (!(FD_STRINGP(value))) {
+    fd_type_error("string","tempdirs_add",value);
+    return -1;}
+  else fd_incref(value);
+  fd_unlock_mutex(&tempdirs_lock);
+  FD_ADD_TO_CHOICE(tempdirs,value);
+  fd_unlock_mutex(&tempdirs_lock);
+  return 1;
+}
+
+static fdtype keeptemp_get(fdtype sym,void *ignore)
+{
+  /* If delete_tempdirs_on_exit is zero, we keep all of the current
+     tempdirs, or return true if there aren't any.  Otherwise, we just
+     return the stored value. */
+  fdtype dirs=((delete_tempdirs_on_exit)?(keeptemp):
+	       (FD_EMPTY_CHOICEP(tempdirs)?(tempdirs):
+		(FD_TRUE)));
+  fd_incref(dirs);
+  return dirs;
+}
+static int keeptemp_add(fdtype sym,fdtype value,void *ignore)
+{
+  if (FD_TRUEP(value)) {
+    if (delete_tempdirs_on_exit) {
+      delete_tempdirs_on_exit=0;
+      return 1;}
+    else return 0;}
+  else if (FD_FALSEP(value)) {
+    if (!(delete_tempdirs_on_exit)) {
+      delete_tempdirs_on_exit=1;
+      return 1;}
+    else return 0;}
+  else if (!(FD_STRINGP(value))) {
+    fd_type_error("string","tempdirs_add",value);
+    return -1;}
+  else if ((fd_boolstring(FD_STRDATA(value),-1))>=0) {
+    int val=fd_boolstring(FD_STRDATA(value),-1);
+    if (delete_tempdirs_on_exit==val) return 0;
+    else {
+      delete_tempdirs_on_exit=val;
+      return 1;}}
+  else fd_incref(value);
+  fd_unlock_mutex(&tempdirs_lock);
+  FD_ADD_TO_CHOICE(keeptemp,value);
+  fd_unlock_mutex(&tempdirs_lock);
+  return 1;
 }
 
 /* File time info */
@@ -1711,6 +1779,7 @@ FD_EXPORT void fd_init_fileio_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&load_record_lock);
   fd_init_mutex(&stackdump_lock);
+  fd_init_mutex(&tempdirs_lock);
 #endif
 
   u8_init_xinput(&u8stdin,0,NULL);
@@ -1827,8 +1896,9 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1x("MKTEMP",mktemp_prim,1,fd_string_type,FD_VOID));
 #endif
   fd_idefn(fileio_module,
-	   fd_make_cprim1x("TEMPDIR",tempdir_prim,0,
-			   fd_string_type,FD_VOID));
+	   fd_make_cprim2x("TEMPDIR",tempdir_prim,0,
+			   fd_string_type,FD_VOID,
+			   -1,FD_FALSE));
   fd_idefn(fileio_module,
 	   fd_make_cprim1x("RUNFILE",runfile_prim,1,
 			   fd_string_type,FD_VOID));
@@ -1913,8 +1983,14 @@ FD_EXPORT void fd_init_fileio_c()
      fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
   
   fd_register_config
-    ("TEMPDIR","Template for generating temporary directory names",
-     tempdir_get,tempdir_set,&tempdir_template);
+    ("TEMPROOT","Template for generating temporary directory names",
+     temproot_get,temproot_set,&tempdir_template);
+  fd_register_config
+    ("TEMPDIRS","Declared temporary directories to be deleted on exit",
+     tempdirs_get,tempdirs_add,&tempdirs);
+  fd_register_config
+    ("KEEPTEMP","Temporary directories to not be deleted on exit",
+     keeptemp_get,keeptemp_add,&keeptemp);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));
