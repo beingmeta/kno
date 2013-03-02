@@ -706,7 +706,7 @@ FD_EXPORT u8_string fd_tempdir(u8_string spec,int keep)
 
 static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
 {
-  u8_string dirname=tempdir_core(template_arg,keep);
+  u8_string dirname=tempdir_core(template_arg,(!(FD_FALSEP(keep))));
   return fd_init_string(NULL,-1,dirname);
 }
 
