@@ -62,6 +62,15 @@ static fd_lispenv console_env=NULL;
 static u8_string bugdumps=NULL;
 static u8_string bugbrowse=NULL;
 
+static int html_backtrace=FD_HTMLDUMP_ENABLED;
+static int lisp_backtrace=(!(FD_HTMLDUMP_ENABLED));
+static int dtype_backtrace=0;
+static int text_backtrace=0;
+static int show_backtrace=0;
+static int save_backtrace=1;
+
+static u8_exception last_exception=NULL;
+
 static int debug_maxelts=32, debug_maxchars=80;
 
 static void close_consoles()
@@ -248,104 +257,98 @@ static void exit_fdconsole()
 
 static fdtype that_symbol, histref_symbol;
 
-static fdtype repstep(fdtype expr,fd_lispenv env,
-		      u8_input in,u8_output out,u8_output err)
+static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 {
-  fdtype result;
-  int start_icache, finish_icache;
-  int start_ocache, finish_ocache;
-  double start_time, finish_time;
-  int histref=-1, stat_line=0, is_histref=0;
-  int c=skip_whitespace(in);
-  start_ocache=fd_object_cache_load();
-  start_icache=fd_index_cache_load();
-  expr=top_parse(in);
-  /* Clear the buffer (should do more?) */
-  if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
-      (FD_EQ(expr,that_symbol))) {
-    if (!(FD_EQ(expr,that_symbol)))
-      is_histref=1;
-    histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
-  if (FD_OIDP(expr)) {
-    fdtype v=fd_oid_value(expr);
-    if (FD_TABLEP(v)) {
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-      u8_printf(&out,"%q:\n",expr);
-      fd_display_table(&out,v,FD_VOID);
-      fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
-      fflush(stdout);}
-    else u8_printf(out,"OID value: %q\n",v);
-    fd_decref(v);
-    u8_printf(out,EVAL_PROMPT);
-    u8_flush(out);
+  u8_string abspath=((dumpfile)?(u8_abspath(dumpfile,NULL)):
+		     (fd_tempdir(NULL,0)));
+  if (u8_directoryp(abspath)) {
+    if (html_backtrace) {
+      u8_string btfile=u8_mkpath(abspath,"backtrace.html");
+      dump_backtrace(ex,btfile);
+      u8_free(btfile);}
+    if (dtype_backtrace) {
+      u8_string btfile=u8_mkpath(abspath,"backtrace.dtype");
+      dump_backtrace(ex,btfile);
+      u8_free(btfile);}
+    if (lisp_backtrace) {
+      u8_string btfile=u8_mkpath(abspath,"backtrace.lispdata");
+      dump_backtrace(ex,btfile);
+      u8_free(btfile);}
+    if ((text_backtrace)||
+	(!((dtype_backtrace)||(lisp_backtrace)||
+	   ((html_backtrace)&&(FD_HTMLDUMP_ENABLED))))) {
+      u8_string btfile=u8_mkpath(abspath,"backtrace.text");
+      dump_backtrace(ex,btfile);
+      u8_free(btfile);}}
+  else if ((u8_has_suffix(dumpfile,".scm",1))||
+	   (u8_has_suffix(dumpfile,".lisp",1))||
+	   (u8_has_suffix(dumpfile,".lispdata",1))) {
+    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    fdtype backtrace=fd_exception_backtrace(ex);
+    fd_pprint(outfile,backtrace,NULL,0,0,120,1);
+    u8_close((u8_stream)outfile);
+    u8_log(LOG_ERROR,ex->u8x_cond,"Backtrace object written to %s",abspath);}
+#if FD_HTMLDUMP_ENABLED
+  else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
+    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    fd_xhtmldebugpage(outfile,ex);
+    u8_close((u8_stream)outfile);
+    u8_log(LOG_ERROR,ex->u8x_cond,"HTML backtrace written to file://%s",abspath);
+    if (bugbrowse) {
+      struct U8_OUTPUT cmd; U8_INIT_OUTPUT(&cmd,256); int retval;
+      u8_printf(&cmd,"%s file://%s",bugbrowse,abspath);
+      retval=system(cmd.u8_outbuf);
+      if (retval!=0)
+	u8_log(LOG_WARN,"There was an error browsing the backtrace with '%s'",
+	       cmd.u8_outbuf);
+      u8_free(cmd.u8_outbuf);}}
+#else
+  else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
+    u8_log(LOG_WARN,"BACKTRACE","No built-in support for HTML backtraces");}
+#endif
+  else if (u8_has_suffix(dumpfile,".dtype",1)) {
+    struct FD_DTYPE_STREAM *out; int bytes;
+    fdtype backtrace=fd_exception_backtrace(ex);
+    u8_string temp_name=u8_mkstring("%s.part",abspath);
+    out=fd_dtsopen(temp_name,FD_DTSTREAM_CREATE);
+    if (out==NULL) {
+      u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
+	     temp_name,abspath);
+      u8_free(temp_name);}
+    else bytes=fd_dtswrite_dtype(out,backtrace);
+    if (bytes<0) {
+      fd_dtsclose(out,FD_DTSCLOSE_FULL);
+      u8_free(temp_name);
+      u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
+	     temp_name,abspath);}
+    else {
+      fd_dtsclose(out,FD_DTSCLOSE_FULL);
+      u8_movefile(temp_name,abspath);
+      u8_free(temp_name);
+      u8_log(LOG_ERROR,ex->u8x_cond,"DType backtrace written to %s",abspath);}}
+  else {
+    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    fdtype backtrace=fd_exception_backtrace(ex);
+    fd_pprint(outfile,backtrace,NULL,0,0,120,1);
+    u8_close((u8_stream)outfile);
+    u8_log(LOG_ERROR,ex->u8x_cond,"Plaintext backtrace written to %s",abspath);}
+  u8_free(abspath);
+}
+
+static fdtype backtrace_prim(fdtype arg)
+{
+  if (!(last_exception)) {
+    u8_log(LOG_WARN,"backtrace_prim","No outstanding exceptions!");
     return FD_VOID;}
-  start_time=u8_elapsed_time();
-  if (FD_ABORTP(expr)) {
-    result=fd_incref(expr);
-    u8_printf(err,";; Flushing input, parse error @%d\n",
-	      in->u8_inptr-in->u8_inbuf);
-    u8_flush_input((u8_input)in);
-    u8_flush((u8_output)err);
-    u8_flush((u8_output)out);}
-  else if (eval_server) {
-    fd_dtswrite_dtype(eval_server,expr);
-    fd_dtsflush(eval_server);
-    result=fd_dtsread_dtype(eval_server);}
-  else result=fd_eval(expr,env);
-  if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
-  finish_time=u8_elapsed_time();
-  finish_ocache=fd_object_cache_load();
-  finish_icache=fd_index_cache_load();
-  if (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
-	(FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
-	(FD_TRUEP(result)) || (FD_FALSEP(result)) ||
-	(FD_ABORTP(result)) || (FD_FIXNUMP(result))))
-    histref=fd_histpush(result);
-  if (FD_ABORTP(result)) stat_line=0;
-  else if ((showtime_threshold>=0.0) &&
-	   (((finish_time-start_time)>showtime_threshold) ||
-	    (finish_ocache!=start_ocache) ||
-	    (finish_icache!=start_icache)))
-    stat_line=1;
-  fd_decref(expr); expr=FD_VOID;
-  if (FD_CHECK_PTR(result)==0) {
-    fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
-  else if (FD_TROUBLEP(result)) {
-    u8_exception ex=u8_erreify(), root=ex;
-    if (ex) {
-      int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
-      while (root->u8x_prev) root=root->u8x_prev;
-      fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
-      fd_print_exception(&out,root);
-      fd_summarize_backtrace(&out,ex);
-      u8_printf(&out,"\n");
-      if (fd_dump_backtrace==NULL)
-	fd_print_backtrace(&out,ex,80);
-      fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
-      fputs(out.u8_outbuf,stderr);
-      if (fd_dump_backtrace) {
-	out.u8_outptr=out.u8_outbuf;
-	fd_print_backtrace(&out,ex,120);
-	fd_dump_backtrace(out.u8_outbuf);}
-      u8_free(out.u8_outbuf);
-      u8_free_exception(ex,1);}
-    else fprintf(stderr,";;; The expression generated a mysterious error!!!!\n");}
-  else if (stat_line)
-    output_result(out,result,histref,is_histref);
-  else stat_line=output_result(out,result,histref,is_histref);
-  if (stat_line) {
-    if (histref<0)
-      u8_printf (out,stats_message,
-		 (finish_time-start_time),
-		 finish_ocache-start_ocache,
-		 finish_icache-start_icache);
-    else u8_printf(out,stats_message_w_history,
-		   histref,(finish_time-start_time),
-		   finish_ocache-start_ocache,
-		   finish_icache-start_icache);}
-  fd_clear_errors(1);
-  return result;
+  if (FD_VOIDP(arg))
+    dump_backtrace(last_exception,NULL);
+  else if (FD_STRINGP(arg)) 
+    dump_backtrace(last_exception,FD_STRDATA(arg));
+  else if (FD_TRUEP(arg))
+    return fd_exception_backtrace(last_exception);
+  else if (FD_FALSEP(arg)) {
+    u8_free_exception(last_exception,1); last_exception=NULL;}
+  return FD_VOID;
 }
 
 int main(int argc,char **argv)
@@ -417,6 +420,24 @@ int main(int argc,char **argv)
   fd_register_config
     ("BUGBROWSE",_("The command to use to open saved backtraces"),
      fd_sconfig_get,fd_sconfig_set,&bugbrowse);
+  fd_register_config
+    ("HTMLDUMPS",_("Whether to dump HTML versions of backtraces"),
+     fd_boolconfig_get,fd_boolconfig_set,&html_backtrace);
+  fd_register_config
+    ("LISPDUMPS",_("Whether to dump LISP object versions of backtraces"),
+     fd_boolconfig_get,fd_boolconfig_set,&lisp_backtrace);
+  fd_register_config
+    ("DTYPEDUMPS",_("Whether to dump binary DTYPE versions of backtraces"),
+     fd_boolconfig_get,fd_boolconfig_set,&dtype_backtrace);
+  fd_register_config
+    ("TEXTDUMPS",_("Whether to plaintext versions of backtraces"),
+     fd_boolconfig_get,fd_boolconfig_set,&dtype_backtrace);
+  fd_register_config
+    ("SAVEBACKTRACE",_("Whether to always save backtraces in the history"),
+     fd_boolconfig_get,fd_boolconfig_set,&save_backtrace);
+  fd_register_config
+    ("SHOWBACKTRACE",_("Whether to always output backtraces to stderr"),
+     fd_boolconfig_get,fd_boolconfig_set,&show_backtrace);
 
   /* Initialize console streams */
   inconsole=in;
@@ -463,6 +484,9 @@ int main(int argc,char **argv)
     fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
 
+  fd_idefn((fdtype)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
+  fd_defalias((fdtype)env,"%","BACKTRACE");
+  
   /* Announce preamble, suppressed by quiet_config */
   fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   run_start=u8_elapsed_time();
@@ -550,49 +574,35 @@ int main(int argc,char **argv)
     else if (FD_TROUBLEP(result)) {
       u8_exception ex=u8_erreify(), root=ex;
       if (ex) {
-	int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-	U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
-	while (root->u8x_prev) root=root->u8x_prev;
-	fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
-	fd_print_exception(&out,root);
-	fd_summarize_backtrace(&out,ex);
-	u8_printf(&out,"\n");
-	fputs(out.u8_outbuf,stderr);
-	out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
-	fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+	{U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+	  int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+	  while (root->u8x_prev) root=root->u8x_prev;
+	  fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
+	  fd_print_exception(&out,root);
+	  fd_summarize_backtrace(&out,ex);
+	  u8_printf(&out,"\n");
+	  fputs(out.u8_outbuf,stderr);
+	  out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+	  if (show_backtrace) {
+	    fd_print_backtrace(&out,ex,80);
+	    fputs(out.u8_outbuf,stderr);}
+	  fd_unparse_maxelts=old_maxelts;
+	  fd_unparse_maxchars=old_maxchars;
+	  u8_free(out.u8_outbuf);}
+	if (save_backtrace) {
+	  fdtype bt=fd_exception_backtrace(ex);
+	  u8_fprintf(stderr,";; Saved backtrace into ##%d\n",fd_histpush(bt));
+	  fd_decref(bt);}
 	if (fd_dump_backtrace) {
-	  out.u8_outptr=out.u8_outbuf;
-	  fd_print_backtrace(&out,ex,120);
-	  fd_dump_backtrace(out.u8_outbuf);}
-	else if (bugdumps) {
-	  u8_string dump_dir=fd_tempdir(bugdumps,0);
-#if FD_HTMLDUMP_ENABLED
-	  u8_string btfile=u8_mkpath(dump_dir,"backtrace.html");
-	  u8_output outfile=(u8_output)u8_open_output_file(btfile,NULL,O_RDWR|O_CREAT,0600);
-	  fd_xhtmldebugpage(outfile,ex);
-	  u8_close((u8_stream)outfile);
-	  u8_printf(&out,"Backtrace written to file://%s\n",btfile);
-	  if (bugbrowse) {
-	    struct U8_OUTPUT cmd; U8_INIT_OUTPUT(&cmd,256); int retval;
-	    u8_printf(&cmd,"%s file://%s",bugbrowse,btfile);
-	    retval=system(cmd.u8_outbuf);
-	    if (retval!=0)
-	      u8_log(LOG_WARN,"There was an error browsing the backtrace with '%s'",
-		     cmd.u8_outbuf);
-	    u8_free(cmd.u8_outbuf);}
-#else
-	  u8_string btfile=u8_mkpath(dump_dir,"backtrace");
-	  u8_output outfile=(u8_output)u8_open_output_file(btfile,NULL,O_RDWR|O_CREAT,0600);
-	  fd_print_backtrace(outfile,ex,80);
-	  u8_close((u8_stream)outfile);
-	  u8_printf(&out,"Backtrace written to %s\n",btfile);
-#endif
-	  u8_free(btfile);}
-	else {
-	  fd_print_backtrace(&out,ex,80);}
-	fputs(out.u8_outbuf,stderr);
-	u8_free(out.u8_outbuf);
-	u8_free_exception(ex,1);}
+	  U8_OUTPUT btout; U8_INIT_OUTPUT(&btout,4096);
+	  fd_print_backtrace(&btout,ex,120);
+	  fd_dump_backtrace(btout.u8_outbuf);
+	  u8_free(btout.u8_outbuf);}
+	if (bugdumps) {
+	  u8_string dumpdir=u8_tempdir(bugdumps);
+	  dump_backtrace(ex,dumpdir);}
+	if (last_exception) u8_free_exception(last_exception,1);
+	last_exception=ex;}
       else fprintf(stderr,
 		   ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
