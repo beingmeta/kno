@@ -7,13 +7,21 @@
 
 (module-export! 'tableout)
 
-(define (tableout arg (class "fdjtdata") (skipempty #f) (custom #f))
+(define (tableout arg
+		  (opts '()) (class)
+		  (skipempty) (slotfns)
+		  (maxdata))
+  (if (string? opts) (set! opts `#[class ,opts]))
+  (default! class (getopt opts 'class "fdjtdata"))
+  (default! skipempty (getopt opts 'skipempty #f))
+  (default! slotfns (getopt opts 'slotfns #f))
+  (default! maxdata (getopt opts 'maxdata 1024))
   (let ((keys (getkeys arg)))
-    (table* ((class "fdjtdata"))
+    (table* ((class class))
       (do-choices (key keys)
 	(let ((values (get arg key)))
-	  (cond ((and custom (test custom key))
-		 ((get custom key) arg key (qc values)))
+	  (cond ((and slotfns (test slotfns key))
+		 ((get slotfns key) arg key (qc values)))
 		((not (bound? values))
 		 (unless skipempty
 		   (tr (th key) (td* ((class "empty")) "Oddly empty value"))))
