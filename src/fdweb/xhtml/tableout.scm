@@ -7,14 +7,16 @@
 
 (module-export! 'tableout)
 
-(define (tableout arg (class "fdjtdata") (skipempty #f))
+(define (tableout arg (class "fdjtdata") (skipempty #f) (custom #f))
   (let ((keys (getkeys arg)))
     (table* ((class "fdjtdata"))
       (do-choices (key keys)
 	(let ((values (get arg key)))
-	  (cond ((not (bound? values))
+	  (cond ((and custom (test custom key))
+		 ((get custom key) arg key (qc values)))
+		((not (bound? values))
 		 (unless skipempty
-		   (tr (th key) (td* ((class "empty")) "Oddly deleted value"))))
+		   (tr (th key) (td* ((class "empty")) "Oddly empty value"))))
 		((empty? values)
 		 (unless skipempty
 		   (tr (th key) (td* ((class "empty")) "No values"))))

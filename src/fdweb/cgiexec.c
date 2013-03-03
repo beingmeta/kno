@@ -1119,11 +1119,13 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim1x
 	   ("CGIPARSE",cgiparse,1,fd_string_type,FD_VOID));
   
-  fd_defspecial(module,"WITHREQ",withreq_handler);
-  fd_defspecial(module,"WITHREQOUT",withreqout_handler);
+  fd_defspecial(module,"WITHREQUEST",withreq_handler);
+  fd_defspecial(module,,withreqout_handler);
+  fd_defalias(module,"WITHREQ","WITHREQUEST");
+  fd_defalias(module,"WITHREQOUT","WITHREQUEST/OUT");
   /* fd_idefn(module,fd_make_cprim0("GETREQDATA",get_reqdata,0));*/
-  fd_defalias(module,"WITHCGI","WITHREQ");
-  fd_defalias(module,"WITHCGIOUT","WITHREQOUT");
+  fd_defalias(module,"WITHCGI","WITHREQUEST");
+  fd_defalias(module,"WITHCGIOUT","WITHREQUEST/OUT");
 
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
   fd_defspecial(xhtmlout_module,"TITLE!",title_handler);

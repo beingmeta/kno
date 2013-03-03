@@ -186,7 +186,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libtexttools@suffix@.@shared_suffix@   \
 	lib/libtagger@suffix@.@shared_suffix@
 
-SCHEME_MODULES=src/modules/*.scm \
+SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
 	src/modules/facebook/*.scm src/modules/misc/*.scm \
 	src/modules/misc/*.scm src/modules/tests/*.scm \

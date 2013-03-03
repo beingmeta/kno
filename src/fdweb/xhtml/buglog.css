@@ -1,0 +1,80 @@
+body.fdjtbugreport {}
+hgroup.head { text-align: right;}
+hgroup.head h1 { font-weight: normal;}
+hgroup.head h1 span.bugid { float: left; font-size: 12px; font-family: fixed;}
+hgroup.head h1 span.condition { font-weight: bold;}
+hgroup.head h2.detail { font-weight: normal; font-style: italic;}
+hgroup.head h3 { font-family: fixed;}
+hgroup.head h3.uri span.scriptname { font-size: 90%;}
+h2 { text-align: left; }
+
+/* Data tables (from fdjt.css) */
+
+div.fdjtdata {
+  font-family: fixed; width: 100%; white-space: pre;}
+
+table.fdjtdata {width: 100%; font-family: fixed;}
+table.fdjtdata th { 
+  vertical-align: top; text-align: right; padding-right: 2px;}
+table.fdjtdata td { 
+  vertical-align: top; text-align: left; padding-left: 2px;}
+
+table.fdjt {font-family: sans,sans-serif;}
+table.fdjt.full { width: 100%; }
+table.fdjt th { vertical-align: top; text-align: right;}
+table.fdjt td { vertical-align: top; text-align: left;}
+table.fdjt td input.fullwidth[type='TEXT'] { width: 100%;}
+table.fdjt td textarea.fullwidth { width: 100%;}
+
+/* Backtraces (from fdjt.css) */
+
+table.backtrace {
+    font-family: sans,sans-serif; width: 100%;
+    border-collapse: collapse;}
+table.backtrace > tbody > tr:first-child { border-top: solid black 2px;}
+table.backtrace th, table.backtrace td { vertical-align: top;}
+table.backtrace th { text-align: right; padding-right: 4px;}
+table.backtrace td { text-align: left; padding-left: 2px;}
+table.backtrace td.string { font-family: serif;}
+table.backtrace tbody.error {
+    background-color: lightblue; color: black;}
+table.backtrace tbody.error span.exception {
+    font-weight: bold; color: purple;}
+table.backtrace tbody.error span.context {
+    font-weight: bold; font-family: fixed;}
+table.backtrace tbody.error tr.details td { font-style: italic;}
+table.backtrace tbody.error tr.irritant td {
+    background-color: white; font-family: fixed; color: black;} 
+
+table.backtrace td > table { font-size: 90%;}
+
+table.backtrace > tbody > tr > th {
+    font-size: 125%; font-variant: small-caps;}
+table.backtrace > tbody > tr.details > th {
+    font-size: 90%; color: green;}
+table.backtrace > tbody > tr.irritant > th {
+    font-size: 90%; color: red;}
+table.backtrace > tbody > tr > td {
+    text-align: left; padding-top: 2px;}
+table.backtrace > tbody.eval td.expr {
+    background-color: white; color: black; white-space: pre;}
+table.backtrace > tbody.eval td.expr .focus { color: blue; }
+table.backtrace > tbody.call > tr > td {
+    background-color: whitesmoke; color: black;}
+table.backtrace > tbody.bindings > tr > td {
+    background-color: lightskyblue; color: black;}
+table.backtrace > tbody.bindings > tr > td > table.bindings {
+    font-family: fixed;}
+table.bindings { }
+table.bindings th.head { text-align: left;}
+table.bindings tr.binding th.var { font-family: sans,sans-serif;}
+table.backtrace > tbody.bindings > tr:first-child > th { background-color: blue;}
+table.backtrace > tbody.eval > tr > th { background-color: white; color: black;}
+table.backtrace > tbody.call > tr th { background-color: red; color: white;}
+table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > td {
+    font-family: fixed;}
+table.backtrace > tbody.call > tr > td { color: red; }
+table.backtrace > tbody.call > tr > td span.operator {font-weight: bold;}
+table.backtrace > tbody.call > tr > td span {white-space: nowrap;}
+
+
