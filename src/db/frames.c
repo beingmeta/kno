@@ -930,7 +930,7 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 
 /* Creating frames */
 
-FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy)
+FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
 {
   fd_pool p; fdtype oid;
   /* #f no pool, just create a slotmap
@@ -948,13 +948,13 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy)
   if (FD_ABORTP(oid)) return oid;
   /* Now we figure out what to store in the OID */
   if (FD_VOIDP(initval)) initval=fd_empty_slotmap();
-  else if ((FD_OIDP(initval)) && (deepcopy)) {
+  else if ((FD_OIDP(initval)) && (copyflags)) {
     /* Avoid aliasing */
     fdtype oidval=fd_oid_value(initval);
     if (FD_ABORTP(oidval)) return oidval;
-    initval=fd_deep_copy(oidval);
+    initval=fd_deep_copier(oidval,copyflags);
     fd_decref(oidval);}
-  else if (deepcopy)
+  else if (copyflags)
     initval=fd_deep_copy(initval);
   else fd_incref(initval);
   /* Now we actually set the OID */

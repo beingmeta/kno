@@ -289,7 +289,7 @@ FD_EXPORT
     Arguments: a dtype pointer
     Returns: a dtype pointer
   This returns a copy of its argument, recurring to sub objects. */
-fdtype fd_deep_copy(fdtype x)
+fdtype fd_deep_copier(fdtype x,int flags)
 {
   if (FD_ATOMICP(x)) return x;
   else {
@@ -301,11 +301,11 @@ fdtype fd_deep_copy(fdtype x)
 	struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
 	struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
 	FD_INIT_CONS(newpair,fd_pair_type);
-	newpair->car=fd_deep_copy(p->car);
+	newpair->car=fd_deep_copier(p->car,flags);
 	*tail=(fdtype)newpair;
 	tail=&(newpair->cdr);
 	scan=p->cdr;}
-      *tail=fd_deep_copy(scan);
+      *tail=fd_deep_copier(scan,flags);
       return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
@@ -314,7 +314,7 @@ fdtype fd_deep_copy(fdtype x)
 		     (fd_init_vector(NULL,len,NULL)):
 		     (fd_init_rail(NULL,len,NULL)));
       fdtype *newdata=FD_VECTOR_ELTS(result);
-      while (i<len) {newdata[i]=fd_deep_copy(olddata[i]); i++;}
+      while (i<len) {newdata[i]=fd_deep_copier(olddata[i],flags); i++;}
       return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
@@ -338,7 +338,13 @@ fdtype fd_deep_copy(fdtype x)
     default:
       if (fd_copiers[ctype])
 	return (fd_copiers[ctype])(x,1);
-      else return fd_err(fd_NoMethod,"fd_deep_copy",fd_type_names[ctype],x);}}
+      else if ((flags)&(FD_STRICT_COPY)) 
+	return fd_err(fd_NoMethod,"fd_deep_copier",fd_type_names[ctype],x);
+      else {fd_incref(x); return x;}}}
+}
+fdtype fd_deep_copy(fdtype x)
+{
+  return fd_deep_copier(x,(FD_DEEP_COPY));
 }
 
 FD_EXPORT
@@ -741,7 +747,7 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
   return n_bytes;
 }
 
-static fdtype copy_compound(fdtype x,int deep)
+static fdtype copy_compound(fdtype x,int flags)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
   int i=0, n=xc->n_elts; 
@@ -751,9 +757,9 @@ static fdtype copy_compound(fdtype x,int deep)
   if (xc->mutable) fd_init_mutex(&(nc->lock));
   nc->mutable=xc->mutable; nc->opaque=xc->opaque;
   nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
-  if (deep)
+  if (flags)
     while (i<n) {
-      *write=fd_deep_copy(data[i]); i++; write++;}
+      *write=fd_deep_copier(data[i],flags); i++; write++;}
   else while (i<n) {
     *write=fd_incref(data[i]); i++; write++;}
   return FDTYPE_CONS(nc);
@@ -833,7 +839,7 @@ static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static u8_exception copy_exception_helper(u8_exception ex,int deep)
+static u8_exception copy_exception_helper(u8_exception ex,int flags)
 {
   u8_exception newex; u8_string details=NULL; fdtype irritant;
   if (ex==NULL) return ex;
@@ -842,14 +848,14 @@ static u8_exception copy_exception_helper(u8_exception ex,int deep)
   if (FD_VOIDP(irritant))
     newex=u8_make_exception
       (ex->u8x_cond,ex->u8x_context,details,NULL,NULL);
-  else if (deep)
+  else if (flags)
     newex=u8_make_exception
       (ex->u8x_cond,ex->u8x_context,details,
-       (void *)fd_deep_copy(irritant),fd_free_exception_xdata);
+       (void *)fd_deep_copier(irritant,flags),fd_free_exception_xdata);
   else newex=u8_make_exception
 	 (ex->u8x_cond,ex->u8x_context,details,
 	  (void *)fd_incref(irritant),fd_free_exception_xdata);
-  newex->u8x_prev=copy_exception_helper(ex->u8x_prev,deep);
+  newex->u8x_prev=copy_exception_helper(ex->u8x_prev,flags);
   return newex;
 }
 

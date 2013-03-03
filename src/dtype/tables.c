@@ -431,7 +431,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   return FDTYPE_CONS(ptr);
 }
 
-static fdtype copy_slotmap(fdtype smap,int deep)
+static fdtype copy_slotmap(fdtype smap,int flags)
 {
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh; int unlock=0;
@@ -465,8 +465,8 @@ static fdtype copy_slotmap(fdtype smap,int deep)
       if (FD_CONSP(val))
 	if (FD_ACHOICEP(val))
 	  write->value=fd_make_simple_choice(val);
-	else if (deep)
-	  write->value=fd_deep_copy(val);
+	else if (flags)
+	  write->value=fd_deep_copier(val,flags);
 	else write->value=fd_incref(val);
       else write->value=val;
       write++;}}
@@ -594,7 +594,7 @@ FD_EXPORT fdtype *fd_register_schema(int n,fdtype *schema)
   return schema;
 }
 
-static fdtype copy_schemap(fdtype schemap,int deep)
+static fdtype copy_schemap(fdtype schemap,int flags)
 {
   struct FD_SCHEMAP *ptr=
     FD_GET_CONS(schemap,fd_schemap_type,struct FD_SCHEMAP *);
@@ -614,13 +614,13 @@ static fdtype copy_schemap(fdtype schemap,int deep)
       if (FD_CONSP(val))
 	if (FD_ACHOICEP(val))
 	  values[i]=fd_make_simple_choice(val);
-	else if (deep)
-	  values[i]=fd_copy(val);
+	else if (flags)
+	  values[i]=fd_deep_copier(val,flags);
 	else values[i]=fd_incref(val);
       else values[i]=val;
       i++;}
-  else if (deep) while (i < size) {
-      values[i]=fd_deep_copy(ovalues[i]); i++;}
+  else if (flags) while (i < size) {
+      values[i]=fd_deep_copier(ovalues[i],flags); i++;}
   else while (i < size) {
       values[i]=fd_incref(ovalues[i]); i++;}
   nptr->values=values;
