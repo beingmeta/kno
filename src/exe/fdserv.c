@@ -515,7 +515,7 @@ static int max_error_depth=128;
 static int webservefn(u8_client ucl)
 {
   fdtype proc=FD_VOID, result=FD_VOID, onerror=FD_VOID;
-  fdtype cgidata=FD_VOID, path=FD_VOID, precheck;
+  fdtype cgidata=FD_VOID, init_cgidata=FD_VOID, path=FD_VOID, precheck;
   fdtype content=FD_VOID, retfile=FD_VOID;
   fd_lispenv base_env=NULL;
   fd_webconn client=(fd_webconn)ucl;
@@ -655,6 +655,7 @@ static int webservefn(u8_client ucl)
   if ((reqlog) || (urllog) || (trace_cgidata))
     dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
   u8_set_default_output(outstream);
+  init_cgidata=fd_deep_copy(cgidata);
   fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (!(FD_ABORTP(proc))) 
@@ -740,7 +741,7 @@ static int webservefn(u8_client ucl)
   if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   else recovered=0;
   if (FD_TROUBLEP(result)) {
-    u8_exception ex=u8_current_exception, exscan=ex;
+    u8_exception ex=u8_erreify(), exscan=ex;
     /* errorpage is used when errors occur.  Currently, it can be a
        procedure (to be called) or an HTML string to be returned.  */
     fdtype errorpage=((base_env)?
@@ -768,7 +769,8 @@ static int webservefn(u8_client ucl)
     /* First we try to apply the error page if it's defined */
     if (FD_APPLICABLEP(errorpage)) {
       fdtype err_value=fd_init_exception(NULL,ex);
-      fd_store(cgidata,error_symbol,err_value); fd_decref(err_value);
+      fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
+      fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
       if (outstream->u8_outptr>outstream->u8_outbuf) {
 	/* Get all the output to date as a string and store it in the
 	   request. */
@@ -776,21 +778,25 @@ static int webservefn(u8_client ucl)
 	  (NULL,outstream->u8_outptr-outstream->u8_outbuf,
 	   outstream->u8_outbuf);
 	/* Save the output to date on the request */
-	fd_store(cgidata,output_symbol,output);
+	fd_store(init_cgidata,output_symbol,output);
 	fd_decref(output);}
+      /* Reset the cgidata and store it. */
+      fd_use_reqinfo(init_cgidata);
+      cgidata=init_cgidata; fd_incref(cgidata);
       /* Reset the output stream */
       outstream->u8_outptr=outstream->u8_outbuf;
       /* Apply the error page object */
       result=fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
+	u8_exception newex=u8_current_exception, lastex=newex;
 	fdtype crisispage=((base_env)?
-			  (fd_symeval(errorpage_symbol,base_env)):
+			  (fd_symeval(crisispage_symbol,base_env)):
 			  (FD_VOID));
 	if (((FD_VOIDP(crisispage))||(crisispage==FD_UNBOUND))&&
 	    (!(FD_VOIDP(default_crisispage)))) {
 	  fd_incref(default_crisispage);
 	  crisispage=default_crisispage;}
-	ex=u8_current_exception; exscan=ex; depth=0;
+	exscan=newex; depth=0;
 	while ((exscan)&&(depth<max_error_depth)) {
 	  u8_condition excond=exscan->u8x_cond;
 	  u8_context excxt=((exscan->u8x_context) ? (exscan->u8x_context) :
@@ -805,7 +811,11 @@ static int webservefn(u8_client ucl)
 	  else u8_log(LOG_ERR,excond,
 		      "Unexpected recursive error \"%m \" %s:@%s (%s)",
 		      excond,excxt,exdetails);
-	  exscan=exscan->u8x_prev; depth++;}
+	  lastex=exscan; exscan=exscan->u8x_prev; depth++;}
+	while (exscan) {
+	  lastex=exscan; exscan=exscan->u8x_prev; depth++;}
+	/* Add the previous exception to this one as we go forward */
+	if (lastex) lastex->u8x_prev=ex;
 	fd_decref(errorpage); errorpage=FD_VOID;
 	if (FD_STRINGP(crisispage)) errorpage=crisispage;}
       else {
@@ -1008,6 +1018,7 @@ static int webservefn(u8_client ucl)
   if (threadcache) fd_pop_threadcache(threadcache);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_thread_set(browseinfo_symbol,FD_VOID);
+  fd_decref(init_cgidata);
   fd_clear_errors(1);
   write_time=u8_elapsed_time();
   getloadavg(end_load,3);
