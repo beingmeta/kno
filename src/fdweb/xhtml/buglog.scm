@@ -14,8 +14,8 @@
 
 ;;; Configurable
 
-(define fileroot #f)
-(define webroot #f)
+(define-init fileroot "/tmp/bugs/")
+(define-init webroot #f)
 
 (define (urish? string)
   (and (string? string)
@@ -40,11 +40,10 @@
 (varconfig! bughead bughead)
 
 (define (getlogbase uuid)
-  (let ((date (uuid-time uuid))
-	(dir (stringout "Y0" (get date 'year) "/"
-	       "M" (padnum (1+ (get date 'month)) 2) "/"
-	       "D" (padnum (get date 'date) 2))))
-    (mkdirs dir)
+  (let* ((date (uuid-time uuid))
+	 (dir (stringout "Y0" (get date 'year) "/"
+		"M" (padnum (1+ (get date 'month)) 2) "/"
+		"D" (padnum (get date 'date) 2))))
     (mkpath dir (stringout "E" (uuid->string uuid)))))
 
 (define (buglog uuid exception)
@@ -52,49 +51,61 @@
 	 (logbase (getlogbase uuid))
 	 (fileroot (abspath (mkpath fileroot logbase)))
 	 (webroot (and webroot (mkpath webroot logbase)))
-	 (reqdata (req/data)))
-    (dtype->file reqdata (mkpath fileroot ".request"))
-    (fileout (mkpath fileroot ".html")
-      (withrequest/out
+	 (reqdata (or (req/get 'reqdata #f) (req/data))))
+    (mkdirs (dirname fileroot))
+    (dtype->file reqdata (glom fileroot ".request"))
+    (fileout (glom fileroot ".html")
+      (with/request/out
        (title! "Error " (uuid->string uuid) ": "
-	       (exception-condition exception)
-	       (when (exception-context exception)
-		 (printout " (" (exception-context exception) ") "))
-	       (when (exception-detail exception)
-		 (printout " \&ldquo;" (exception-context exception) "\&rdquo;")))
-       (xmlblock STYLE ((type "text/css"))
-	 (xhtml (getcontent buglog-css)))
+	       (error-condition exception)
+	       (when (error-context exception)
+		 (printout " (" (error-context exception) ") "))
+	       (when (error-details exception)
+		 (printout " \&ldquo;" (error-context exception) "\&rdquo;")))
+       (htmlheader
+	(xmlblock STYLE ((type "text/css"))
+	  (xhtml (filestring buglog-css))))
        (stylesheet! "http://static.beingmeta.com/static/fdjt.css")
-       (body! "fdjtbugreport")
-       (xmlblock HGROUP ((class "head"))
-	 (h1 (span ((class "bugid")) (uuid->string uuid))
-	   (span ((class "condition")) (exception-condition exception))
-	   (when (exception-context exception)
-	     (span ((class "context")) " (" (exception-context exception) ") ")))
-	 (when (exception-detail exception)
-	   (h2 ((class "detail"))
-	     (printout " \&ldquo;" (exception-detail exception) "\&rdquo;")))
+       (body! 'class "fdjtbugreport")
+       (htmlheader (xmlelt "META" http-equiv "Content-type" value "text/html; charset=utf-8"))
+       (xmlblock HGROUP ((class "head") (id "HEAD"))
 	 (let ((base (uribase (get reqdata 'request_uri))))
-	   (h3 ((class "uri"))
-	     "//" (get reqdata 'host) base
-	     (unless (equal? base (get reqdata 'script_name))
-	       (xmlout " " (span ((class "scriptname"))
-			     (get reqdata 'script_name))))))
-	 (when (and (exists? (get reqdata 'query_string))
-		    (not (empty-string? (get reqdata 'query_string))))
-	   (h3 ((class "query"))
-	     (span ((class "qmark")) "?") (get reqdata 'query_string)))
+	   (h3* ((class "uri"))
+		(unless (equal? base (get reqdata 'script_name))
+		  (span ((class "scriptname")) (get reqdata 'script_name)))
+		(if (test reqdata 'https) "https:" "http:")
+		"//" (get reqdata 'http_host)
+		(if (or (and (test reqdata 'https) (not (test reqdata 'server_port 443)))
+			(and (not (test reqdata 'https)) (not (test reqdata 'server_port 80))))
+		    (xmlout ":" (get reqdata 'server_port)))
+		base
+		(when (and (exists? (get reqdata 'query_string))
+			   (not (empty-string? (get reqdata 'query_string))))
+		  (span ((class "query"))
+		    (span ((class "qmark")) "?") (get reqdata 'query_string)))))
+	 (h1 (span ((class "condition")) (->string (error-condition exception)))
+	   (when (error-context exception)
+	     (span ((class "context")) " (" (error-context exception) ") ")))
+	 (when (error-details exception)
+	   (h2* ((class "detail"))
+	     (printout " \&ldquo;" (error-details exception) "\&rdquo;")))
 	 (when bughead (req/call bughead)))
-       (h2 "Request data")
-       (tableout reqdata "fdjtdata cgidata" #t)
-       (h2 "Error backtrace")
-       (backtrace->html exception)))
-    (if webroot (mkpath webroot (glom logbase ".html"))
-	(stringout "file:/" fileroot ".html"))))
-
-
-
-
-
+       (div ((class "navbar"))
+	 (span ((class "buginfo"))
+	   (strong "Bug ") (uuid->string uuid)
+	   (strong " reported ") (get (gmtimestamp) 'string))
+	 (anchor "#HEAD" "Top") " "
+	 (anchor "#REQDATA" "Request") " "
+	 (anchor "#RESOURCES" "Resources") " "
+	 (anchor "#BACKTRACE" "Backtrace"))
+       (div ((class "main"))
+	 (h2* ((id "REQDATA")) "Request data")
+	 (tableout reqdata #[skipempty #t class "fdjtdata reqdata"])
+	 (h2* ((id "RESOURCES")) "Resource data")
+	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
+	 (h2* ((id "BACKTRACE")) "Full backtrace")
+	 (backtrace->html exception))))
+    (if webroot (glom webroot ".html")
+	(glom "file://" fileroot ".html"))))
 
 

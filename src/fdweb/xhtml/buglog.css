@@ -1,12 +1,44 @@
-body.fdjtbugreport {}
+body.fdjtbugreport { font-family: sans, sans-serif;}
+body.fdjtbugreport hgroup {padding-top: 32px;}
+
+body.fdjtbugreport div.navbar {
+    position: fixed; 
+    top: 0px; left: 0px; right: 0px;
+    text-align: right;
+    background-color: silver;
+    border-bottom: solid black 2px;
+    height: 30px;}
+body.fdjtbugreport div.navbar span.buginfo {
+    float: left; font-size: 10px; padding-top: 3px; padding-left: 2px;}
+body.fdjtbugreport div.navbar span.bugid:before {
+    font-weight: bold; content: "Bug id: ";}
+body.fdjtbugreport div.navbar span.datetime:before {
+    font-weight: bold; content: " recorded: ";}
+body.fdjtbugreport div.navbar a {
+    font-size: 24px; padding-left: 2em;
+    text-decoration: none; font-weight: bold;
+    font-variant: small-caps;}
+body.fdjtbugreport div.navbar a:visited { color: blue;}
+body.fdjtbugreport div.navbar a:hover { text-decoration: overline; }
+
+hgroup.head h1, hgroup.head h2, hgroup.head h3 {
+    text-align: right; margin-top: 2px; margin-bottom: 2px;}
 hgroup.head { text-align: right;}
-hgroup.head h1 { font-weight: normal;}
+hgroup.head h1 { font-weight: normal; }
 hgroup.head h1 span.bugid { float: left; font-size: 12px; font-family: fixed;}
+hgroup.head h1 span.datetime { float: left; font-size: 10px; font-family: sans,sans-serif;}
 hgroup.head h1 span.condition { font-weight: bold;}
-hgroup.head h2.detail { font-weight: normal; font-style: italic;}
-hgroup.head h3 { font-family: fixed;}
-hgroup.head h3.uri span.scriptname { font-size: 90%;}
-h2 { text-align: left; }
+hgroup.head h2.detail { font-weight: normal; font-style: italic; }
+hgroup.head h3.uri {
+    font-family: fixed; font-weight: normal; text-align: left;
+    border-bottom: solid black 1px;}
+hgroup.head h3.uri span.scriptname { float: right; font-size: 90%; font-weight: bold;}
+hgroup.head h3.uri span.query { font-style: italic;}
+hgroup.head h3.uri span.query span.qmark { font-weight: bold;}
+body.fdjtbugreport div.main h2 {
+    padding-top: 32px; text-align: left;
+    border-bottom: solid black 2px;}
+body.fdjtbugreport div.main { margin-bottom: 1000px; }
 
 /* Data tables (from fdjt.css) */
 
