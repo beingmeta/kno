@@ -808,7 +808,9 @@ static int webservefn(u8_client ucl)
 	  exscan=exscan->u8x_prev; depth++;}
 	fd_decref(errorpage); errorpage=FD_VOID;
 	if (FD_STRINGP(crisispage)) errorpage=crisispage;}
-      else recovered=1;}
+      else {
+	fd_clear_errors(1);
+	recovered=1;}}
     if (!(FD_TROUBLEP(result))) {
       /* We got something to return, so we don't bother
 	 with all the various other error cases.  */ }
