@@ -1377,7 +1377,7 @@ FD_EXPORT int fd_update_file_modules(int force)
 	scan->reloading=1;}
       scan=scan->next;}
     fd_unlock_mutex(&load_record_lock);
-    while (rscan) {
+    rscan=reloads; while (rscan) {
       module_reload this=rscan; fdtype load_result;
       u8_string filename=this->filename;
       fd_lispenv env=this->env; reloads=this->next;
