@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.4
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -83,23 +83,23 @@ Requires:       sqlite %{name} = %{version}-%{release}
 The %{name}-sqlite package implements external DB bindings to the Sqlite3 library
 libraries
 
-%package        ziptools
-Summary:        FramerD module for working with zipfiles
-Group:          Development/Libraries
-BuildRequires:  libzip-devel
-Requires:       libzip %{name} = %{version}-%{release}
+# %package        ziptools
+# Summary:        FramerD module for working with zipfiles
+# Group:          Development/Libraries
+# BuildRequires:  libzip-devel
+# Requires:       libzip %{name} = %{version}-%{release}
 
-%description    ziptools
-The %{name}-ziptools package implements external bindings for libzip
+# %description    ziptools
+# The %{name}-ziptools package implements external bindings for libzip
 
-%package        exif
-Summary:        FramerD module for getting image metadata
-Group:          Development/Libraries
-BuildRequires:  libexif-devel
-Requires:       libexif %{name} = %{version}-%{release}
+# %package        exif
+# Summary:        FramerD module for getting image metadata
+# Group:          Development/Libraries
+# BuildRequires:  libexif-devel
+# Requires:       libexif %{name} = %{version}-%{release}
 
-%description    exif
-The %{name}-exif package provides access to image EXIF data
+# %description    exif
+# The %{name}-exif package provides access to image EXIF data
 
 #%package        odbc
 #Summary:        Module for using Odbc from FramerD
@@ -259,15 +259,15 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtagger.so
 %{_libdir}/libtagger.a
 
-%files ziptools
-%defattr(-,root,root,-)
-%doc
-%{_libdir}/framerd/ziptools.so*
+# %files ziptools
+# %defattr(-,root,root,-)
+# %doc
+# %{_libdir}/framerd/ziptools.so*
  
-%files exif
-%defattr(-,root,root,-)
-%doc
-%{_libdir}/framerd/exif.so*
+# %files exif
+# %defattr(-,root,root,-)
+# %doc
+# %{_libdir}/framerd/exif.so*
 
 #%files odbc
 #%defattr(-,root,root,-)
