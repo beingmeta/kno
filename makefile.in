@@ -845,7 +845,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
 	   $(DESTDIR)@safe_module_dir@
 	cp -pRf $(BUILD)/src/modules/* $(DESTDIR)@standard_module_dir@
-	cp -pRf $(BUILD)/src/modules/safe/* $(DESTDIR)@safe_module_dir@
+	cp -pRf $(BUILD)/src/modules/sandbox/* $(DESTDIR)@safe_module_dir@
 	cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
