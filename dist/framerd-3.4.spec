@@ -83,14 +83,14 @@ Requires:       sqlite %{name} = %{version}-%{release}
 The %{name}-sqlite package implements external DB bindings to the Sqlite3 library
 libraries
 
-# %package        ziptools
-# Summary:        FramerD module for working with zipfiles
-# Group:          Development/Libraries
-# BuildRequires:  libzip-devel
-# Requires:       libzip %{name} = %{version}-%{release}
+%package        libzip
+Summary:        FramerD module for working with zipfiles
+Group:          Development/Libraries
+BuildRequires:  libzip-devel
+Requires:       libzip %{name} = %{version}-%{release}
 
-# %description    ziptools
-# The %{name}-ziptools package implements external bindings for libzip
+%description    libzip
+The %{name}-libzip package implements external bindings for libzip
 
 # %package        exif
 # Summary:        FramerD module for getting image metadata
@@ -166,11 +166,13 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.dtype
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/facebook/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/paypal/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/twitter/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/webapi/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/tests/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/misc/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.css
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.table
@@ -259,10 +261,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtagger.so
 %{_libdir}/libtagger.a
 
-# %files ziptools
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/ziptools.so*
+%files libzip
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/zlib.so*
  
 # %files exif
 # %defattr(-,root,root,-)
