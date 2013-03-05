@@ -241,18 +241,21 @@ static fd_lispenv become_module
   else module_spec=fd_eval(module_name,env);
   if (FD_SYMBOLP(module_spec))
     module=fd_get_module(module_spec,safe);
-  else module=module_spec;
+  else {
+    module=module_spec;
+    fd_incref(module);}
   if ((!(create))&&(FD_VOIDP(module))) {
     fd_seterr(fd_NoSuchModule,"become_module",NULL,module_spec);
     return NULL;}
   else if (FD_HASHTABLEP(module)) {
     fd_seterr(OpaqueModule,"become_module",NULL,module_spec);
+    fd_decref(module);
     return NULL;}
   else if (FD_PTR_TYPEP(module,fd_environment_type)) {
     FD_ENVIRONMENT *menv=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (menv != env) {
-      fd_decref((fdtype)env->parent);
+      fd_decref(((fdtype)(env->parent)));
       env->parent=(fd_lispenv)fd_incref((fdtype)menv->parent);
       fd_decref(env->bindings); env->bindings=fd_incref(menv->bindings);
       fd_decref(env->exports); env->exports=fd_incref(menv->exports);}}
