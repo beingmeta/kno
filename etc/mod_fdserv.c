@@ -237,6 +237,7 @@ static apr_table_t *socketname_table;
 struct FDSERV_SERVER_CONFIG {
   const char *server_executable;
   const char **config_args;
+  const char **req_params;
   const char *socket_prefix;
   const char *socket_spec;
   const char *log_prefix;
@@ -251,6 +252,7 @@ struct FDSERV_SERVER_CONFIG {
 struct FDSERV_DIR_CONFIG {
   const char *server_executable;
   const char **config_args;
+  const char **req_params;
   const char *socket_prefix;
   const char *socket_spec;
   const char *log_prefix;
@@ -310,6 +312,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
     apr_palloc(p,sizeof(struct FDSERV_SERVER_CONFIG));
   config->server_executable=NULL;
   config->config_args=NULL;
+  config->req_params=NULL;
   config->socket_prefix=NULL;
   config->socket_spec=NULL;
   config->log_prefix=NULL;
@@ -364,6 +367,19 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->config_args=(const char **)fresh;}
   else config->config_args=NULL;
   
+  if (child->req_params) {
+    const char **scan=child->req_params;
+    char **fresh, **write;
+    int n_params=0;
+    while (*scan) {n_params++; scan++;}
+    fresh=apr_palloc(p,(n_params+1)*sizeof(char *));
+    scan=child->req_params; write=fresh;
+    while (*scan) {
+      *write=apr_pstrdup(p,*scan); write++; scan++;}
+    *write=NULL;
+    config->req_params=(const char **)fresh;}
+  else config->req_params=NULL;
+  
   if (child->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
   else if (parent->socket_prefix)
@@ -398,6 +414,7 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
     apr_palloc(p,sizeof(struct FDSERV_DIR_CONFIG));
   config->server_executable=NULL;
   config->config_args=NULL;
+  config->req_params=NULL;
   config->socket_prefix=NULL;
   config->socket_spec=NULL;
   config->log_prefix=NULL;
@@ -442,6 +459,19 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
     *write=NULL;
     config->config_args=(const char **)fresh;}
   else config->config_args=NULL;
+
+  if (child->req_params) {
+    const char **scan=child->req_params;
+    char **fresh, **write;
+    int n_params=0;
+    while (*scan) {n_params++; scan++;}
+    fresh=apr_palloc(p,(n_params+1)*sizeof(char *));
+    scan=child->req_params; write=fresh;
+    while (*scan) {
+      *write=apr_pstrdup(p,*scan); write++; scan++;}
+    *write=NULL;
+    config->req_params=(const char **)fresh;}
+  else config->req_params=NULL;
 
   if (child->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
@@ -597,6 +627,43 @@ static char **extend_config(apr_pool_t *p,char **config_args,const char *var,con
     return grown;}
 }
 
+static char **extend_params(apr_pool_t *p,char **req_params,const char *var,const char *val);
+
+/* Adding config variables to be passed to fdserv */
+static const char *servlet_param
+  (cmd_parms *parms,void *mconfig,const char *arg1,const char *arg2)
+{
+  struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  apr_pool_t *p=parms->pool;
+  if (parms->path) {
+    dconfig->req_params=
+      (const char **)extend_params(p,(char **)dconfig->req_params,arg1,arg2);
+    return NULL;}
+  else {
+    sconfig->req_params=
+      (const char **)extend_params(p,(char **)sconfig->req_params,arg1,arg2);
+    return NULL;}
+}
+
+static char **extend_params(apr_pool_t *p,char **req_params,const char *var,const char *val)
+{
+  char *config_arg=apr_pstrcat(p,var,"=",val,NULL);
+  if (req_params==NULL) {
+    char **vec=apr_palloc(p,2*sizeof(char *));
+    vec[0]=config_arg; vec[1]=NULL;
+    return vec;}
+  else {
+    char **scan=req_params, **grown; int n_params=0;
+    while (*scan) {scan++; n_params++;}
+    grown=(char **)prealloc(p,(char *)req_params,
+			    (n_params+2)*sizeof(char *),
+			    (n_params+1)*sizeof(char *));
+    grown[n_params]=config_arg; grown[n_params+1]=NULL;
+    return grown;}
+}
+
 /* What userid should run servlets */
 static const char *servlet_user(cmd_parms *parms,void *mconfig,const char *arg)
 {
@@ -726,6 +793,8 @@ static const command_rec fdserv_cmds[] =
 		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE2("FDServletConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
+  AP_INIT_TAKE2("FDServletParam", servlet_param, NULL, OR_ALL,
+		"CGI parameters to pass with requests to the servlet"),
   AP_INIT_TAKE1("FDServletUser", servlet_user, NULL, RSRC_CONF,
 	       "the user whom the fdservlet will run as"),
   AP_INIT_TAKE1("FDServletGroup", servlet_group, NULL, RSRC_CONF,
@@ -1477,6 +1546,40 @@ static int write_table_as_slotmap
   return n_bytes;
 }
 
+static int write_cgidata
+  (request_rec *r,apr_table_t *t,char **params,BUFF *b,int post_size,char *post_data)
+{
+  const apr_array_header_t *ah=apr_table_elts(t); int n_elts=ah->nelts, n_params=0;
+  apr_table_entry_t *scan=(apr_table_entry_t *) ah->elts, *limit=scan+n_elts;
+  ssize_t n_bytes=6, delta=0;
+  char **scan_params=params, **params_limit;
+  while (*scan) {scan=scan+2; n_params++;}; params_limit=scan_params+n_params;
+  if (ap_bneeds(b,6)<0) return -1; 
+  ap_bputc(0x42,b); ap_bputc(0xC1,b);
+  if (post_size) buf_write_4bytes((n_elts*2)+(n_params*2)+2,b);
+  else buf_write_4bytes((n_elts*2),b);
+  while (scan < limit) {
+    if ((delta=buf_write_symbol(scan->key,b))<0) return -1;
+    n_bytes=n_bytes+delta;
+    if ((delta=buf_write_string(scan->val,b))<0) return -1;
+    n_bytes=n_bytes+delta;
+    scan++;}
+  while (scan_params<params_limit) {
+    if ((delta=buf_write_symbol(scan_params[0],b))<0) return -1;
+    n_bytes=n_bytes+delta;
+    if ((delta=buf_write_string(scan_params[1]->val,b))<0) return -1;
+    n_bytes=n_bytes+delta;
+    scan_params=scan_params+2;}
+  if (post_size) {
+    if ((delta=buf_write_symbol("POST_DATA",b))<0) return -1;
+    n_bytes=n_bytes+delta;
+    if (ap_bneeds(b,post_size+5)<0) return -1; 
+    ap_bputc(0x05,b); buf_write_4bytes(post_size,b);
+    ap_bwrite(b,post_data,post_size);
+    n_bytes=n_bytes+post_size+5;}
+  return n_bytes;
+}
+
 /* Handling fdserv requests */
 
 struct HEAD_SCANNER {
@@ -1773,6 +1876,7 @@ static int fdserv_handler(request_rec *r)
     ap_get_module_config(r->server->module_config,&fdserv_module);
   int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
 		     ((sconfig->use_dtblock)?(1):(0)));
+  char **req_params=sconfig->req_params;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1866,7 +1970,7 @@ static int fdserv_handler(request_rec *r)
 		    "Composing request data as a slotmap");
   
   /* Write the slotmap into buf, the write the buf to the servlet socket */
-  if (write_table_as_slotmap(r,r->subprocess_env,reqdata,post_size,post_data)<0) {
+  if (write_cgidata(r,r->subprocess_env,req_params,reqdata,post_size,post_data)<0) {
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
 		 "Error composing request data as a slotmap");
     servlet_return_socket(servlet,sock);
