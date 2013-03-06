@@ -1447,6 +1447,7 @@ FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
       fd_unlock_mutex(&load_record_lock);
       fd_unlock_mutex(&update_modules_lock);
       return 1;}}
+  else return 0;
 }
 
 static fdtype update_modules_prim(fdtype flag)
