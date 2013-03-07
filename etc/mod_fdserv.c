@@ -37,7 +37,7 @@ typedef unsigned int INTPOINTER;
 #endif
 
 #define DEFAULT_SERVLET_WAIT 60
-#define MAX_CONFIGS 64
+#define MAX_CONFIGS 128
 
 #include "util_script.h"
 #include "apr.h"
@@ -370,9 +370,9 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   if (child->req_params) {
     const char **scan=child->req_params;
     char **fresh, **write;
-    int n_params=0;
-    while (*scan) {n_params++; scan++;}
-    fresh=apr_palloc(p,(n_params+1)*sizeof(char *));
+    int n_slots=0;
+    while (*scan) {n_slots++; scan++;}
+    fresh=apr_palloc(p,(n_slots+1)*sizeof(char *));
     scan=child->req_params; write=fresh;
     while (*scan) {
       *write=apr_pstrdup(p,*scan); write++; scan++;}
@@ -463,16 +463,16 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   if (child->req_params) {
     const char **scan=child->req_params;
     char **fresh, **write;
-    int n_params=0;
-    while (*scan) {n_params++; scan++;}
-    fresh=apr_palloc(p,(n_params+1)*sizeof(char *));
+    int n_slots=0;
+    while (*scan) {n_slots++; scan++;}
+    fresh=apr_palloc(p,(n_slots+1)*sizeof(char *));
     scan=child->req_params; write=fresh;
     while (*scan) {
       *write=apr_pstrdup(p,*scan); write++; scan++;}
     *write=NULL;
     config->req_params=(const char **)fresh;}
   else config->req_params=NULL;
-
+  
   if (child->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
   else if (parent->socket_prefix)
@@ -521,7 +521,7 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   dconfig->socket_spec=spec;
   
   if (!(fullpath))
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+    ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		 "Socket spec=%s",spec);
   else if (!(file_writablep(parms->pool,parms->server,fullpath)))
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
@@ -613,13 +613,20 @@ static const char *servlet_config
 static char **extend_config(apr_pool_t *p,char **config_args,const char *var,const char *val)
 {
   char *config_arg=apr_pstrcat(p,var,"=",val,NULL);
+  char *config_prefix=apr_pstrcat(p,var,"=",NULL);
+  int prefix_len=strlen(config_prefix);
   if (config_args==NULL) {
     char **vec=apr_palloc(p,2*sizeof(char *));
     vec[0]=config_arg; vec[1]=NULL;
     return vec;}
   else {
     char **scan=config_args, **grown; int n_configs=0;
-    while (*scan) {scan++; n_configs++;}
+    while (*scan) {
+      if (strncmp(*scan,config_prefix,prefix_len)==0) {
+	/* Override an earlier definition */
+	*scan=config_arg;
+	return config_args;}
+      else {scan++; n_configs++;}}
     grown=(char **)prealloc(p,(char *)config_args,
 			    (n_configs+2)*sizeof(char *),
 			    (n_configs+1)*sizeof(char *));
@@ -627,7 +634,8 @@ static char **extend_config(apr_pool_t *p,char **config_args,const char *var,con
     return grown;}
 }
 
-static char **extend_params(apr_pool_t *p,char **req_params,const char *var,const char *val);
+static char **extend_params(apr_pool_t *p,char **req_params,
+			    const char *var,const char *val);
 
 /* Adding config variables to be passed to fdserv */
 static const char *servlet_param
@@ -647,20 +655,28 @@ static const char *servlet_param
     return NULL;}
 }
 
-static char **extend_params(apr_pool_t *p,char **req_params,const char *var,const char *val)
+static char **extend_params(apr_pool_t *p,char **req_params,const
+			    char *var,const char *val)
 {
-  char *config_arg=apr_pstrcat(p,var,"=",val,NULL);
   if (req_params==NULL) {
-    char **vec=apr_palloc(p,2*sizeof(char *));
-    vec[0]=config_arg; vec[1]=NULL;
+    char **vec=apr_palloc(p,3*sizeof(char *));
+    vec[0]=apr_pstrdup(p,var);
+    vec[1]=apr_pstrdup(p,val);
+    vec[2]=NULL;
     return vec;}
   else {
     char **scan=req_params, **grown; int n_params=0;
-    while (*scan) {scan++; n_params++;}
+    while (*scan) {
+      if (strcmp(var,scan[0])) {
+	scan[1]=apr_pstrdup(p,val);
+	return req_params;}
+      scan++; n_params++;}
     grown=(char **)prealloc(p,(char *)req_params,
-			    (n_params+2)*sizeof(char *),
+			    (n_params+3)*sizeof(char *),
 			    (n_params+1)*sizeof(char *));
-    grown[n_params]=config_arg; grown[n_params+1]=NULL;
+    grown[n_params]=apr_pstrdup(p,var);
+    grown[n_params+1]=apr_pstrdup(p,val);
+    grown[n_params+2]=NULL;
     return grown;}
 }
 
@@ -706,7 +722,7 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
   else 
     sconfig->socket_prefix=fullpath;
   if (parms->path)
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+    ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		 "Socket Prefix set to %s for path %s",
 		 fullpath,parms->path);
   else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,parms->server,
@@ -736,7 +752,7 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
     sconfig->log_prefix=fullpath;
 
   if (parms->path)
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+    ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		 "Log Prefix set to %s for path %s",
 		 fullpath,parms->path);
   else ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,parms->server,
@@ -774,7 +790,7 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
 		 "Log file %s=%s+%s is unwritable",
 		 fullpath,log_prefix,arg);
-  else ap_log_error (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+  else ap_log_error (APLOG_MARK,APLOG_INFO,OK,parms->server,
 		     "Log file %s=%s+%s",fullpath,log_prefix,arg);
   return NULL;
 }
@@ -845,7 +861,7 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
      ap_server_root_relative(r->pool,"logs/fdserv/"));
   
   ap_log_rerror
-    (APLOG_MARK,APLOG_DEBUG,OK,r,
+    (APLOG_MARK,APLOG_INFO,OK,r,
      "spawn get_logfile log_file=%s, log_prefix=%s",
      log_file,log_prefix);
   
@@ -891,11 +907,8 @@ static int spawn_fdservlet /* 2.0 */
 		       (sconfig->server_executable) ?
 		       (sconfig->server_executable) :
 		       "/usr/bin/fdserv");
-  const char **scan_config=((dconfig->config_args) ?
-			    (dconfig->config_args) :
-			    (sconfig->config_args) ?
-			    (sconfig->config_args) :
-			    (NULL));
+  const char **server_configs=(sconfig->config_args);
+  const char **dir_configs=(dconfig->config_args);
   const char *log_file=get_log_file(r,NULL);
   int servlet_wait=dconfig->servlet_wait;
   uid_t uid; gid_t gid;
@@ -928,14 +941,29 @@ static int spawn_fdservlet /* 2.0 */
   *write_argv++=(char *)exename;
   *write_argv++=(char *)sockname;
   
-  if (scan_config) {
+  if (server_configs) {
+    const char **scan_config=server_configs;
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
 		     "Stopped after %d configs!",n_configs);}
+      ap_log_error(APLOG_MARK,APLOG_INFO,500,s,
+		   "Passing server config %s to %s for %s",
+		   *scan_config,exename,sockname);
       *write_argv++=(char *)(*scan_config); scan_config++;
       n_configs++;}}
-  
+  if (dir_configs) {
+    const char **scan_config=dir_configs;
+    while (*scan_config) {
+      if (n_configs>MAX_CONFIGS) {
+	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
+		     "Stopped after %d configs!",n_configs);}
+      ap_log_error(APLOG_MARK,APLOG_INFO,500,s,
+		   "Passing directory config %s to %s for %s",
+		   *scan_config,exename,sockname);
+      
+      *write_argv++=(char *)(*scan_config); scan_config++;
+      n_configs++;}}
   *write_argv++=NULL;
   
   /* Pass the logfile in through the environment, so we can
@@ -988,7 +1016,7 @@ static int spawn_fdservlet /* 2.0 */
   rv=apr_proc_create(&proc,exename,(const char **)argv,envp,
 		     attr,p);
   if (rv!=APR_SUCCESS) {
-    ap_log_rerror(APLOG_MARK,APLOG_CRIT, rv, r,
+    ap_log_rerror(APLOG_MARK,APLOG_EMERG, rv, r,
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
 		  exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
     /* We don't exit right away because there might be a race condition
@@ -1008,7 +1036,7 @@ static int spawn_fdservlet /* 2.0 */
     int sleep_count=1;
     sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
       if (sleep_count>servlet_wait) {
-	ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
+	ap_log_rerror(APLOG_MARK,APLOG_EMERG,500,r,
 		      "Failed to spawn socket file %s (i=%d/wait=%d) (%d:%s)",
 		      sockname,sleep_count,servlet_wait,
 		      errno,strerror(errno));
@@ -1098,7 +1126,7 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_
 		    ((strchr(sockname,'/')!=NULL)||
 		     ((strchr(sockname,':'))==NULL)));
     fdservlet servlet=&(servlets[i]);
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+    ap_log_error(APLOG_MARK,APLOG_INFO,OK,r->server,
 		 "Adding new servlet for %s at #%d",sockname,i);
     memset(servlet,0,sizeof(struct FDSERVLET));
     servlet->sockname=apr_pstrdup(fdserv_pool,sockname);
@@ -1143,7 +1171,7 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_
       else {
 	apr_sockaddr_ip_get(&rname,addr);
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_DEBUG,OK,r,
+	  (APLOG_MARK,APLOG_INFO,OK,r,
 	   "Got info for port %d at %s, addr=%s, port=%d",
 	   portno,hostname,rname,addr->port);}}
     apr_thread_mutex_create(&(servlet->lock),APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
@@ -1190,10 +1218,10 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 	 "Couldn't connect socket to %s (errno=%d:%s), spawning",
 	 sockname,errno,strerror(errno));
       errno=0;
-      rv=spawn_fdservlet(r,r->pool,sockname);
+      rv=spawn_fdservlet(r,pool,sockname);
       if (rv<0) {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't spawn fdservlet @ %s",sockname);
+	  (APLOG_MARK,APLOG_EMERG,500,r,"Couldn't spawn fdservlet @ %s",sockname);
 	return NULL;}
       else ap_log_rerror
 	     (APLOG_MARK,APLOG_DEBUG,OK,r,"Waiting to connect to %s",sockname);
@@ -1413,7 +1441,7 @@ static apr_status_t close_servlets(void *data)
   int i=0; int lim; int sock_count=0;
   apr_thread_mutex_lock(servlets_lock);
   lim=n_servlets;
-  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv closing %d open servlets",lim);
   while (i<lim) {
     fdservlet s=&(servlets[i++]);
@@ -1431,7 +1459,7 @@ static apr_status_t close_servlets(void *data)
       else {}
       sock->closed=1; sock->busy=1;}
     apr_thread_mutex_unlock(s->lock);}
-  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv closed %d open sockets across %d servlets",
 		sock_count,lim);
   apr_thread_mutex_unlock(servlets_lock);
@@ -1547,29 +1575,75 @@ static int write_table_as_slotmap
 }
 
 static int write_cgidata
-  (request_rec *r,apr_table_t *t,char **params,BUFF *b,int post_size,char *post_data)
+  (request_rec *r,BUFF *b,
+   apr_table_t *t,const char **sparams,const char **dparams,
+   int post_size,char *post_data)
 {
-  const apr_array_header_t *ah=apr_table_elts(t); int n_elts=ah->nelts, n_params=0;
+  const apr_array_header_t *ah=apr_table_elts(t);
+  int n_elts=ah->nelts, n_params=0, n_sparams=0, n_dparams=0;
   apr_table_entry_t *scan=(apr_table_entry_t *) ah->elts, *limit=scan+n_elts;
   ssize_t n_bytes=6, delta=0;
-  char **scan_params=params, **params_limit;
-  while (*scan) {scan=scan+2; n_params++;}; params_limit=scan_params+n_params;
+  if (sparams) {
+    const char **pscan=sparams; while (*pscan) {
+      pscan=pscan+2; n_sparams++; n_params++;};}
+  if (dparams) {
+    const char **pscan=dparams;
+    while (*pscan) {
+	pscan=pscan+2; n_dparams++; n_params++;};}
+  if (post_size)
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,
+       r->server,
+       "Composing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
+       n_params+n_elts+1,n_elts,n_params,post_size);
+  else ap_log_error
+	 (APLOG_MARK,APLOG_DEBUG,OK,
+	  r->server,
+	  "Composing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
+	  n_params+n_elts+1,n_elts,n_params);
   if (ap_bneeds(b,6)<0) return -1; 
   ap_bputc(0x42,b); ap_bputc(0xC1,b);
   if (post_size) buf_write_4bytes((n_elts*2)+(n_params*2)+2,b);
-  else buf_write_4bytes((n_elts*2),b);
+  else buf_write_4bytes((n_elts*2)+(n_params*2),b);
   while (scan < limit) {
     if ((delta=buf_write_symbol(scan->key,b))<0) return -1;
     n_bytes=n_bytes+delta;
     if ((delta=buf_write_string(scan->val,b))<0) return -1;
     n_bytes=n_bytes+delta;
+#if HEAVY_DEBUGGING
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,
+       r->server,"Wrote HTTP request data %s=%s",
+       scan->key,scan->val);
+#endif
     scan++;}
-  while (scan_params<params_limit) {
-    if ((delta=buf_write_symbol(scan_params[0],b))<0) return -1;
-    n_bytes=n_bytes+delta;
-    if ((delta=buf_write_string(scan_params[1]->val,b))<0) return -1;
-    n_bytes=n_bytes+delta;
-    scan_params=scan_params+2;}
+  if (sparams) {
+    const char **pscan=sparams, **plimit=pscan+n_sparams;
+    while (pscan<plimit) {
+      if ((delta=buf_write_symbol((char *)(pscan[0]),b))<0) return -1;
+      n_bytes=n_bytes+delta;
+      if ((delta=buf_write_string((char *)(pscan[1]),b))<0) return -1;
+      n_bytes=n_bytes+delta;
+#if HEAVY_DEBUGGING
+      ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,r->server,
+		   "Wrote servlet parameter %s=%s",
+		   pscan[0],pscan[1]);
+#endif
+      pscan=pscan+2;}}
+  if (dparams) {
+    const char **pscan=dparams, **plimit=pscan+n_dparams;
+    while (pscan<plimit) {
+      if ((delta=buf_write_symbol((char *)(pscan[0]),b))<0) return -1;
+      n_bytes=n_bytes+delta;
+      if ((delta=buf_write_string((char *)(pscan[1]),b))<0) return -1;
+      n_bytes=n_bytes+delta;
+#if HEAVY_DEBUGGING
+      ap_log_error
+	(APLOG_MARK,APLOG_DEBUG,OK,
+	 r->server,"Wrote servlet parameter %s=%s",
+	 pscan[0],pscan[1]);
+#endif
+      pscan=pscan+2;}}
   if (post_size) {
     if ((delta=buf_write_symbol("POST_DATA",b))<0) return -1;
     n_bytes=n_bytes+delta;
@@ -1577,6 +1651,17 @@ static int write_cgidata
     ap_bputc(0x05,b); buf_write_4bytes(post_size,b);
     ap_bwrite(b,post_data,post_size);
     n_bytes=n_bytes+post_size+5;}
+  if (post_size)
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,
+       r->server,
+       "Composed %ld bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
+       n_bytes,n_params+n_elts+1,n_elts,n_params,post_size);
+  else ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,
+       r->server,
+       "Composed %ld bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
+       n_bytes,n_params+n_elts+1,n_elts,n_params);
   return n_bytes;
 }
 
@@ -1797,7 +1882,7 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       if (written<=0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Writer error after transferring %ld=>%ld bytes from @x%lx (%s)",
+	   "Write error after transferring %ld=>%ld bytes from @x%lx (%s)",
 	   (long int)bytes_read,(long int)bytes_written,
 	   ((unsigned long int)sockval),sockval->sockname);
 	errno=0; error=1; break;}}
@@ -1874,9 +1959,12 @@ static int fdserv_handler(request_rec *r)
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
+  struct FDSERV_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&fdserv_module);
   int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
 		     ((sconfig->use_dtblock)?(1):(0)));
-  char **req_params=sconfig->req_params;
+  const char **sreq_params=sconfig->req_params;
+  const char **dreq_params=dconfig->req_params;
 #if TRACK_EXECUTION_TIMES
   struct timeb start, end; 
 #endif
@@ -1970,7 +2058,9 @@ static int fdserv_handler(request_rec *r)
 		    "Composing request data as a slotmap");
   
   /* Write the slotmap into buf, the write the buf to the servlet socket */
-  if (write_cgidata(r,r->subprocess_env,req_params,reqdata,post_size,post_data)<0) {
+  if (write_cgidata(r,reqdata,r->subprocess_env,
+		    sreq_params,dreq_params,
+		    post_size,post_data)<0) {
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG,OK,r,
 		 "Error composing request data as a slotmap");
     servlet_return_socket(servlet,sock);
@@ -2049,7 +2139,7 @@ static int fdserv_handler(request_rec *r)
   
   responded=apr_time_now();
   
-  ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+  ap_log_rerror(APLOG_MARK,((bytes_transferred<0)?(APLOG_ERR):(APLOG_INFO)),OK,r,
 		"%s sending %d bytes of content for %s in %luus=%lu+%lu+%lu",
 		((bytes_transferred<0)?("Error"):("Done")),
 		((bytes_transferred<0)?(-bytes_transferred):(bytes_transferred)),
@@ -2092,7 +2182,7 @@ static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(s->module_config,&fdserv_module);
-  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_fdserv v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
@@ -2115,7 +2205,7 @@ static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp
 	    "Using socket prefix directory %s",dirname);}
   init_version_info();
   ap_add_version_component(p,version_info);
-  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_fdserv v%s finished post config for Apache 2.x",
 		version_num);
   return OK;
@@ -2123,7 +2213,7 @@ static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp
 
 static void fdserv_init(apr_pool_t *p,server_rec *s)
 {
-  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_fdserv v%s starting child init (%d) for Apache 2.x (%s)",
 		version_num,(int)getpid(),_FILEINFO);
   socketname_table=apr_table_make(p,64);
@@ -2132,7 +2222,7 @@ static void fdserv_init(apr_pool_t *p,server_rec *s)
   servlets=apr_pcalloc(fdserv_pool,sizeof(struct FDSERVLET)*(FDSERV_INIT_SERVLETS));
   max_servlets=FDSERV_INIT_SERVLETS;
   apr_pool_pre_cleanup_register(p,p,close_servlets);
-  ap_log_perror(APLOG_MARK,APLOG_CRIT,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_fdserv v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
 }
