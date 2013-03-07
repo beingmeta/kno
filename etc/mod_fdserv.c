@@ -119,7 +119,7 @@ static apr_thread_mutex_t *servlets_lock;
 
 static int use_dtblock=USEDTBLOCK;
 
-char *version_num="2.0.1";
+char *version_num="2.3.1";
 char version_info[256];
 
 static void init_version_info()
@@ -2201,8 +2201,7 @@ static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp
 	(APLOG_MARK,APLOG_CRIT,retval,s,
 	 "Problem with setting owner/group on socket prefix directory %s",dirname);
     else ap_log_error
-	   (APLOG_MARK,APLOG_NOTICE,retval,s,
-	    "Using socket prefix directory %s",dirname);}
+	   (APLOG_MARK,APLOG_NOTICE,retval,s,"Using socket prefix directory %s",dirname);}
   init_version_info();
   ap_add_version_component(p,version_info);
   ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
@@ -2213,7 +2212,7 @@ static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp
 
 static void fdserv_init(apr_pool_t *p,server_rec *s)
 {
-  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv v%s starting child init (%d) for Apache 2.x (%s)",
 		version_num,(int)getpid(),_FILEINFO);
   socketname_table=apr_table_make(p,64);
@@ -2222,7 +2221,7 @@ static void fdserv_init(apr_pool_t *p,server_rec *s)
   servlets=apr_pcalloc(fdserv_pool,sizeof(struct FDSERVLET)*(FDSERV_INIT_SERVLETS));
   max_servlets=FDSERV_INIT_SERVLETS;
   apr_pool_pre_cleanup_register(p,p,close_servlets);
-  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
 }
