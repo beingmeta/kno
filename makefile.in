@@ -256,8 +256,8 @@ etc/fdserv.load: etc/fdserv.load.in ./configure
 # Fileinfo gets version-related information about a file to pass in
 # with -D
 
-./fileinfo: etc/fileinfo.c
-	$(CC) -o ./fileinfo etc/fileinfo.c
+@abs_top_srcdir@/fileinfo: etc/fileinfo.c
+	$(CC) -o @abs_top_srcdir@/fileinfo etc/fileinfo.c
 
 # Makes everything and then sudoes the install, keeping build files
 # non-root
@@ -901,10 +901,9 @@ rpm-build-setup:
 # The mod_fdserv module
 
 etc/mod_fdserv.so: etc/mod_fdserv.c
-	$(ECHO) "#define _FILEINFO \""`./fileinfo etc/mod_fdserv.c .`"\"" \
+	$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo etc/mod_fdserv.c .`"\"" \
 		> etc/mod_fdserv_fileinfo.h
-	cd etc; ${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ \
-			-c mod_fdserv.c
+	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -c etc/mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
 
