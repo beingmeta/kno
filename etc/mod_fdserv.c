@@ -2050,7 +2050,7 @@ static int fdserv_handler(request_rec *r)
   else {post_data=NULL; post_size=0;}
 
   if (error) {
-    ap_log_rerror(APLOG_MARK,APLOG_CRIT,HTTP_INTERNAL_SERVER_ERROR,r,
+    ap_log_rerror(APLOG_MARK,APLOG_WARNING,HTTP_INTERNAL_SERVER_ERROR,r,
 		 "Error (%s) reading post data",error);
     servlet_return_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
@@ -2130,7 +2130,7 @@ static int fdserv_handler(request_rec *r)
   bytes_transferred=copy_servlet_output(sock,r);
   
   if (bytes_transferred<0) {
-    ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
+    ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		  "Error copying content to client from socket @x%lx (%s)",
 		  ((unsigned long int)sock),sock->sockname);
     servlet_close_socket(servlet,sock);
