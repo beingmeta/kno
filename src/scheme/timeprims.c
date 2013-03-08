@@ -43,6 +43,7 @@ static fdtype season_symbol, gmt_symbol, timezone_symbol;
 static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
 static fdtype tick_symbol, xtick_symbol, prim_tick_symbol;
 static fdtype iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
+static fdtype isodate_symbol, isobasic_symbol, isobasicdate_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
 static fdtype hms_symbol, dmy_symbol, dm_symbol, my_symbol;
@@ -129,7 +130,7 @@ static fdtype gmtimestamp_prim(fdtype arg)
     return FDTYPE_CONS(tm);}
   else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *ftm=FD_GET_CONS(arg,fd_timestamp_type,fd_timestamp);
-    if (ftm->xtime.u8_tzoff==0) {
+    if ((ftm->xtime.u8_tzoff==0)&&(ftm->xtime.u8_dstoff==0)) {
       u8_free(tm); return fd_incref(arg);}
     else {
       time_t tick=ftm->xtime.u8_tick;
@@ -139,13 +140,18 @@ static fdtype gmtimestamp_prim(fdtype arg)
       else u8_init_xtime(&(tm->xtime),tick,ftm->xtime.u8_prec,0,0,0);
       return FDTYPE_CONS(tm);}}
   else if (FD_STRINGP(arg)) {
-    u8_string sdata=FD_STRDATA(arg); int c=*sdata; time_t moment;
-    if (u8_isdigit(c))
+    u8_string sdata=FD_STRDATA(arg);
+    int c=*sdata; time_t moment;
+    if (u8_isdigit(c)) 
       u8_iso8601_to_xtime(sdata,&(tm->xtime));
     else u8_rfc822_to_xtime(sdata,&(tm->xtime));
     moment=u8_mktime(&(tm->xtime));
-    if (moment<0) return FD_ERROR_VALUE;
-    else return FDTYPE_CONS(tm);}
+    if (moment<0) {
+      u8_free(tm); return FD_ERROR_VALUE;}
+    if ((tm->xtime.u8_tzoff!=0)||(tm->xtime.u8_dstoff!=0)) 
+      u8_init_xtime(&(tm->xtime),moment,tm->xtime.u8_prec,
+		    tm->xtime.u8_nsecs,0,0);
+    return FDTYPE_CONS(tm);}
   else if (FD_SYMBOLP(arg)) {
     enum u8_timestamp_precision prec=get_precision(arg);
     if (((int)prec)<0)
@@ -342,6 +348,27 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_iso8601(&out,xt);
+    return fd_stream2string(&out);}
+  else if (FD_EQ(slotid,isodate_symbol)) {
+    struct U8_XTIME newt;
+    struct U8_OUTPUT out; 
+    U8_INIT_OUTPUT(&out,128);
+    memcpy(&newt,xt,sizeof(struct U8_XTIME));
+    u8_set_xtime_precision(&newt,u8_day);
+    u8_xtime_to_iso8601(&out,&newt);
+    return fd_stream2string(&out);}
+  else if (FD_EQ(slotid,isobasic_symbol)) {
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,128);
+    u8_xtime_to_iso8601basic(&out,xt);
+    return fd_stream2string(&out);}
+  else if (FD_EQ(slotid,isobasicdate_symbol)) {
+    struct U8_XTIME newt;
+    struct U8_OUTPUT out; 
+    U8_INIT_OUTPUT(&out,128);
+    memcpy(&newt,xt,sizeof(struct U8_XTIME));
+    u8_set_xtime_precision(&newt,u8_day);
+    u8_xtime_to_iso8601basic(&out,&newt);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,rfc822_symbol)) {
     struct U8_OUTPUT out;
@@ -1367,6 +1394,12 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,xtick_symbol);
   iso_symbol=fd_intern("ISO");
   FD_ADD_TO_CHOICE(xtime_keys,iso_symbol);
+  isodate_symbol=fd_intern("ISODATE");
+  FD_ADD_TO_CHOICE(xtime_keys,isodate_symbol);
+  isobasic_symbol=fd_intern("ISOBASIC");
+  FD_ADD_TO_CHOICE(xtime_keys,isobasic_symbol);
+  isobasicdate_symbol=fd_intern("ISOBASICDATE");
+  FD_ADD_TO_CHOICE(xtime_keys,isobasicdate_symbol);
   isostring_symbol=fd_intern("ISOSTRING");
   FD_ADD_TO_CHOICE(xtime_keys,isostring_symbol);
   iso8601_symbol=fd_intern("ISO8601");
