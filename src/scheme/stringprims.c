@@ -905,7 +905,7 @@ static fdtype trim_spaces(fdtype string)
 static fdtype glom_lexpr(int n,fdtype *args)
 {
   unsigned char *result_data, *write;
-  int i=0; int sumlen=0; fd_ptr_type result_type=0;
+  int i=0, sumlen=0; fd_ptr_type result_type=0;
   unsigned char **strings, *stringsbuf[16];
   int *lengths, lengthsbuf[16];
   unsigned char *consed, consedbuf[16];
