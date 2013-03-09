@@ -323,7 +323,8 @@ fdtype fd_deep_copier(fdtype x,int flags)
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       if (ctype==fd_secret_type) {
 	fdtype result=fd_make_packet(NULL,s->length,s->bytes);
-	FD_SET_CONS_TYPE(result,fd_secret_type);}
+	FD_SET_CONS_TYPE(result,fd_secret_type);
+	return result;}
       else return fd_make_packet(NULL,s->length,s->bytes);}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
