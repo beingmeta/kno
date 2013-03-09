@@ -212,7 +212,7 @@ static void uri_output(u8_output out,u8_string s,int len,int upper,
 	(*s=='+')||(*s=='%')||(*s=='=')||
 	(*s=='&')||(*s=='#')||(*s==';')||
 	((escape==NULL)?
-	 ((*s=='&')||(*s=='#')):
+	 (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL))):
 	 ((strchr(escape,*s))!=NULL))) {
       char buf[8];
       if (upper) sprintf(buf,"%%%02X",*s);
