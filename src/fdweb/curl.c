@@ -900,6 +900,15 @@ static fdtype curlopen(int n,fdtype *args)
 {
   if (n==0)
     return (fdtype) fd_open_curl_handle();
+  else if (n==1) {
+    struct FD_CURL_HANDLE *ch=fd_open_curl_handle();
+    fdtype spec=args[0], keys=fd_getkeys(spec);
+    FD_DO_CHOICES(key,keys) {
+      fdtype v=fd_get(spec,key,FD_VOID);
+      if (!(FD_VOIDP(v))) {set_curlopt(ch,key,v);}
+      fd_decref(v);}
+    fd_decref(keys);
+    return (fdtype) ch;}
   else if (n%2)
     return fd_err(fd_SyntaxError,"CURLOPEN",NULL,FD_VOID);
   else {
