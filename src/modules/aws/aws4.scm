@@ -96,7 +96,7 @@
 			(getopt req 'date
 				(gmtimestamp 'seconds)))))
 	 (creq (stringout method "\n"
-		 "/" (%watch (uripath uri) uri) "\n"
+		 "/" (uripath uri) "\n"
 		 cq "\n" ch "\n" sh "\n"
 		 (downcase (packet->base16 (sha256 payload)))))
 	 (region (try (getopt req '%region {})
