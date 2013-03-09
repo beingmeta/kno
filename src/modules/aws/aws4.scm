@@ -9,7 +9,7 @@
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
 
-(module-export! '{aws4/prepare})
+(module-export! '{aws4/prepare aws4/get}) ;; aws4/post
 (module-export! '{derive-key})
 
 (define default-region "us-east-1")
@@ -21,7 +21,70 @@
   {"us-east-1" "us-west-1" "us-west-2" "eu-west-1" "ap-southeast-1"
    "ap-southeast-2" "ap-northeast-1" "sa-east-1"})
 
-;;; Generating keys, etc
+;;; Doing a GET with AWS4 authentication
+
+(define (aws4/get req endpoint (args #[]) (headers #[]) (payload #f)
+		  (curl #[]) (date (gmtimestamp)))
+  (add! req '%date date)
+  (add! headers 'date (get date 'isobasic))
+  (add! headers 'host (urihost endpoint))
+  (add! args "AWSAccessKeyId" (getopt req 'key awskey))
+  (add! args "Timestamp" (get date 'isobasic))
+  (do-choices (key (getkeys args))
+    (add! req key (get args key))
+    (add! req '%params key))
+  (do-choices (key (getkeys headers))
+    (let ((v (get headers key)))
+      (add! curl 'header (cons key (qc v)))
+      (add! req key
+	    (if (and (singleton? v) (string? v)) v
+		(stringout (do-choices v
+			     (if (timestamp? v) (get v 'isobasic)
+				 (printout v)))))))
+      (add! req '%headers key))
+  ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
+  (set! req  (aws4/prepare req "GET" endpoint (or payload "")))
+  ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
+  (add! curl 'header
+	(glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
+	  "SignedHeaders=" (getopt req 'signed-headers) ", "
+	  "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
+  (cons (urlget (scripturl+ endpoint args) curl )
+	req))
+
+;;; Doing a post with AWS authentication
+
+;;; Not yet working
+(define (aws4/post req endpoint (args #[]) (headers #[]) (payload #f)
+		  (curl #[VERBOSE #t]) (date (gmtimestamp)))
+  (add! req '%date date)
+  (add! headers 'date (get date 'isobasic))
+  (add! headers 'host (urihost endpoint))
+  (add! headers 'content-type "application/x-www-form-urlencoded; charset=utf8")
+  (add! args "AWSAccessKeyId" (getopt req 'key awskey))
+  (add! args "Timestamp" (get date 'isobasic))
+  (do-choices (key (getkeys args))
+    (add! req key (get args key))
+    (add! req '%params key))
+  (do-choices (key (getkeys headers))
+    (let ((v (get headers key)))
+      (add! curl 'header (cons key (qc v)))
+      (add! req key
+	    (if (and (singleton? v) (string? v)) v
+		(stringout (do-choices v
+			     (if (timestamp? v) (get v 'isobasic)
+				 (printout v)))))))
+      (add! req '%headers key))
+  ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
+  (set! req  (aws4/prepare req "POST" endpoint (or payload "")))
+  ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
+  (add! curl 'header
+	(glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
+	  "SignedHeaders=" (getopt req 'signed-headers) ", "
+	  "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
+  (cons (urlpost endpoint (curlopen curl) args) req))
+
+;;; GENERATING KEYS, ETC
 
 (define (aws4/prepare req method uri payload)
   (let* ((cq (canonical-query-string req))
@@ -42,7 +105,7 @@
 		      default-region))
 	 (service (try (getopt req '%service {})
 		       (getopt req 'service {})
-		       (slice host 0 (position host #\.))
+		       (slice host 0 (position #\. host))
 		       default-service))
 	 (string (get-string-to-sign date region service creq))
 	 (signing-key (derive-key (getopt req '%secret (getopt req 'secret secretawskey))
@@ -51,12 +114,12 @@
 	 (signature (hmac-sha256 signing-key string)))
     (cons (frame-create #f
 	    'key awskey 'signature signature
-	    'region region 'service service
-	    'credential
-	    (glom awskey "/" (get date 'isobasicdate) "/"
-	      region "/" service "/aws4_request")
+	    'region region 'service service 'date date
+	    'credential (glom awskey "/" (get date 'isobasicdate) "/"
+			  region "/" service "/aws4_request")
 	    'date date 'host host
 	    'signed-headers sh
+	    ;; Debugging info
 	    'creq (tryif debug creq)
 	    'sigkey (tryif debug signing-key)
 	    'string-to-sign (tryif debug string))
@@ -80,7 +143,7 @@
 ;;; Canonical query
 
 (define (canonical-query-string args (params))
-  (default! params (try (getopt args 'params {})  (getopt args 'params {})
+  (default! params (try (getopt args '%params {})  (getopt args 'params {})
 			(getkeys args)))
   (let* ((pairs (for-choices (key params)
 		  (let ((v ))
