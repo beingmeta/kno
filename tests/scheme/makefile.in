@@ -93,6 +93,7 @@ dtypetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) exceptions.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) choicetest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) seqtest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) picktest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm

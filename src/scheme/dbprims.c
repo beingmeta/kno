@@ -1484,7 +1484,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 {
   if (hs->n_keys==0) {
     if (pick) return FD_EMPTY_CHOICE;
-    else return fd_hashset_elts(hs,0);}
+    else return fd_incref(candidates);}
   u8_lock_mutex(&(hs->lock)); {
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), isatomic=1;
