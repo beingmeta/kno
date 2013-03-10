@@ -5,15 +5,25 @@
 
 (use-module '{ezrecords logger varconfig})
 
-(module-export! '{cons-workqueue
+(module-export! '{queue/cons
 		  queue/get queue/probe queue/push! queue/close!
 		  queue/tester})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
 
+(define-init queue-names (make-hashtable))
+
 (defrecord (workqueue MUTABLE OPAQUE)
-  (queue '()) (lock (make-condvar)))
+  (name (getuuid)) (queue '()) (lock (make-condvar)))
+
+(define (queue/cons name . args)
+  (try (get queue-names name)
+       (let* ((queue (apply cons-workqueue name args))
+	      (name (workqueue-name queue)))
+	 (when (and name (symbol? name))
+	   (store! queue-names name queue))
+	 queue)))
 
 (define (queue/push! queue value)
   (unwind-protect
