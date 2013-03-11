@@ -59,7 +59,7 @@
 			 'received (gmtimestamp)))
 	     (content (getopt result '%content))
 	     (fields (tryif content (text->frames extract content))))
-	(if (fail? fields) (%watch content) (%watch fields))
+	(if (fail? fields) (debug%watch content) (debug%watch fields))
 	(do-choices (field fields)
 	  (do-choices (key (getkeys field))
 	    (add! combined key (get field key))))
