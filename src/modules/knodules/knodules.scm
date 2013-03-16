@@ -402,8 +402,8 @@
 				   (cons (kno/slotid (car args)) query))))
 		       ((null? args) (reverse query))))))))
 
-(define-init infer-onadd (make-hashtable))
-(define-init infer-ondrop (make-hashtable))
+(define-init onadd (make-hashtable))
+(define-init ondrop (make-hashtable))
 
 (defambda (kno/add! dterm slotid value)
   (detail%watch "KNO/ADD!" dterm slotid value)
@@ -416,7 +416,7 @@
       (index-frame (knodule-index knodule) dterm slotid new)
       (unless (exists? cur)
 	(index-frame (knodule-index knodule) dterm 'has slotid))
-      ((get infer-onadd slotid) dterm slotid new)
+      ((get onadd slotid) dterm slotid new)
       (detail%watch "KNO/ADD!" dterm slotid new))))
 
 (defambda (kno/drop! dterm slotid value)
@@ -428,7 +428,7 @@
       (drop! (knodule-index knodule) (cons slotid drop) dterm)
       (if (fail? (get dterm slotid))
 	  (drop! (knodule-index knodule) (cons 'has slotid) dterm))
-      ((get infer-ondrop slotid) dterm slotid drop))))
+      ((get ondrop slotid) dterm slotid drop))))
 
 (defambda (kno/replace! dterm slotid value (toreplace {}))
   (for-choices dterm
@@ -440,13 +440,13 @@
 	      (knodule (get knodules (get dterm 'knodule))))
 	  (when (exists? todrop)
 	    (drop! dterm slotid todrop)
-	    ((get infer-ondrop slotid) dterm slotid todrop)
+	    ((get ondrop slotid) dterm slotid todrop)
 	    (drop! (knodule-index knodule) (cons slotid todrop)
 		   todrop))
 	  (when (exists? new)
 	    (add! dterm slotid new)
 	    (index-frame (knodule-index knodule) dterm slotid new)
-	    ((get infer-onadd slotid) dterm slotid new)))))))
+	    ((get onadd slotid) dterm slotid new)))))))
 
 ;;; Special inference methods
 
@@ -478,8 +478,8 @@
 	  (drop! specl 'genls* g*drop)
 	  (drop! g*index g*drop specl))))))
 
-(add! infer-onadd 'genls add-genl!)
-(add! infer-ondrop 'genls drop-genl!)
+(add! onadd 'genls add-genl!)
+(add! ondrop 'genls drop-genl!)
 
 ;;; Specls (just the inverse)
 
@@ -491,8 +491,8 @@
   (drop! g 'genls f)
   (drop-genl! g 'genls f))
 
-(add! infer-onadd 'specls add-specl!)
-(add! infer-ondrop 'specls drop-specl!)
+(add! onadd 'specls add-specl!)
+(add! ondrop 'specls drop-specl!)
 
 ;;; Symmetric
 
@@ -506,8 +506,8 @@
   (when (test value mirror frame)
     (kno/drop! value mirror frame)))
 
-(add! infer-onadd '{mirror equivalent identical} add-symmetric!)
-(add! infer-ondrop '{mirror equivalent identical} drop-symmetric!)
+(add! onadd '{mirror equivalent identical} add-symmetric!)
+(add! ondrop '{mirror equivalent identical} drop-symmetric!)
 
 ;;; Natural language terms
 
@@ -538,8 +538,8 @@
 	   (cons slotid (difference exdrop excur))
 	   frame)))
 
-(store! infer-onadd langids add-phrase!)
-(store! infer-ondrop langids drop-phrase!)
+(store! onadd langids add-phrase!)
+(store! ondrop langids drop-phrase!)
 
 (defslambda (new-phrasemap knodule langid)
   (let ((phrasemap (get (knodule-phrasemaps knodule) langid)))
@@ -563,8 +563,8 @@
   (drop! (knodule-drules (get knodules (get frame 'knodule)))
 	 (drule-cues value)
 	 value))
-(store! infer-onadd 'drules add-drule!)
-(store! infer-ondrop 'drules drop-drule!)
+(store! onadd 'drules add-drule!)
+(store! ondrop 'drules drop-drule!)
 
 ;;; IADD!
 

@@ -628,6 +628,21 @@ static fdtype ambda_handler(fdtype expr,fd_lispenv env)
   return make_sproc(NULL,arglist,body,env,1,0);
 }
 
+static fdtype nambda_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype name_expr=fd_get_arg(expr,1), name;
+  fdtype arglist=fd_get_arg(expr,2);
+  fdtype body=fd_get_body(expr,3);
+  if ((FD_VOIDP(name_expr))||(FD_VOIDP(arglist)))
+    return fd_err(fd_TooFewExpressions,"NAMBDA",NULL,expr);
+  else name=fd_eval(name_expr,env);
+  if (FD_SYMBOLP(name))
+    return make_sproc(FD_SYMBOL_NAME(name),arglist,body,env,1,0);
+  else if (FD_STRINGP(name))
+    return make_sproc(FD_STRDATA(name),arglist,body,env,1,0);
+  else return fd_type_error("procedure name (string or symbol)","nambda_handler",name);
+}
+
 static fdtype slambda_handler(fdtype expr,fd_lispenv env)
 {
   fdtype arglist=fd_get_arg(expr,1);
@@ -1047,6 +1062,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"LET*",letstar_handler);
   fd_defspecial(fd_scheme_module,"LAMBDA",lambda_handler);
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);
+  fd_defspecial(fd_scheme_module,"NAMBDA",nambda_handler);
   fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_handler);
   fd_defspecial(fd_scheme_module,"SAMBDA",sambda_handler);
   fd_defspecial(fd_scheme_module,"THUNK",thunk_handler);
