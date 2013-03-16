@@ -38,7 +38,7 @@
 
 (define-init knodules (make-hashtable))
 
-(define knodule:pool (make-mempool "knodules" @2009/0 (* 4 1024 1024)))
+(define-init knodule:pool (make-mempool "knodules" @2009/0 (* 4 1024 1024)))
 (define (knodule-pool-config var (val))
   (if (bound? val)
       (set! knodule:pool
@@ -51,7 +51,7 @@
       knodule:pool))
 (config-def! 'KNO:POOL knodule-pool-config)
 
-(define knodule:index (make-hashtable))
+(define-init knodule:index (make-hashtable))
 (define (knodule-index-config var (val))
   (if (bound? val)
       (begin
@@ -63,10 +63,10 @@
       knodule:index))
 (config-def! 'KNO:INDEX knodule-index-config)
 
-(define knodule:indices knodule:index)
+(define-init knodule:indices knodule:index)
 (varconfig! KNO:INDICES knodule:indices open-index choice)
 
-(define knodule:language 'en)
+(define-init knodule:language 'en)
 (varconfig! KNO:LANG knodule:language)
 
 ;;; Various useful global tables

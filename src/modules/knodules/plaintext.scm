@@ -1,14 +1,14 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2009 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
 
 (in-module 'knodules/plaintext)
 
 ;;; Parser for the plaintext knodule encoding
-(define id "$Id$")
-(define revision "$Revision: 5078 $")
 
 (use-module '{texttools fdweb ezrecords logger varconfig})
 (use-module '{knodules knodules/drules})
+
+(define %loglevel %debug%)
 
 (module-export!
  '{kno/read-plaintext
@@ -244,6 +244,7 @@
 	 (dterm (kno/dterm (first clauses) knodule)))
     (when (overlaps? kno/logging '{defterm defs})
       (%watch "PLAINTEXT" dterm (length clauses)))
+    (debug%watch knodule dterm clauses)
     (doseq (clause (cdr clauses))
       (handle-clause clause dterm knodule))
     dterm))
