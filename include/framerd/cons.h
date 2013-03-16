@@ -517,24 +517,26 @@ FD_EXPORT fdtype fd_time2timestamp(time_t moment);
 
 /* Compounds */
 
-typedef fdtype (*fd_compound_unparsefn)(u8_output out,fdtype);
-typedef fdtype (*fd_compound_parsefn)(int n,fdtype *);
-typedef fdtype (*fd_compound_dumpfn)(fdtype);
-typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype);
+typedef struct FD_COMPOUND_ENTRY *fd_compound_entry;
+typedef int (*fd_compound_unparsefn)(u8_output out,fdtype,fd_compound_entry);
+typedef fdtype (*fd_compound_parsefn)(int n,fdtype *,fd_compound_entry);
+typedef fdtype (*fd_compound_dumpfn)(fdtype,fd_compound_entry);
+typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype,fd_compound_entry);
 
 typedef struct FD_COMPOUND_ENTRY {
-  fdtype tag;
+  fdtype tag, data; int core_slots;
   fd_compound_parsefn parser;
   fd_compound_unparsefn unparser;
   fd_compound_dumpfn dump;
   fd_compound_restorefn restore;
   struct FD_TABLEFNS *tablefns;
   struct FD_COMPOUND_ENTRY *next;} FD_COMPOUND_ENTRY;
-typedef struct FD_COMPOUND_ENTRY *fd_compound_entry;
 FD_EXPORT struct FD_COMPOUND_ENTRY *fd_compound_entries;
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype);
+
 FD_EXPORT struct FD_COMPOUND_ENTRY *fd_lookup_compound(fdtype);
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype,fdtype,int);
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype,fdtype *,int *);
 
 /* Cons compare */
 

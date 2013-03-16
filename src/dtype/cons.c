@@ -937,17 +937,55 @@ struct FD_COMPOUND_ENTRY *fd_compound_entries=NULL;
 static u8_mutex compound_registry_lock;
 #endif
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol)
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
 {
   struct FD_COMPOUND_ENTRY *scan, *newrec;
   fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->tag,symbol)) {
+      if (datap) {
+	fdtype data=*datap;
+	if (FD_VOIDP(scan->data)) {
+	  fd_incref(data); scan->data=data;}
+	else {
+	  fdtype data=*datap; fd_decref(data);
+	  data=scan->data; fd_incref(data);
+	  *datap=data;}}
+      if (corep) {
+	if (scan->core_slots<0) scan->core_slots=*corep;
+	else *corep=scan->core_slots;}
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->next;
   newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
+  newrec->data=((datap)?(*datap):(FD_VOID));
+  newrec->core_slots=((corep)?(*corep):(-1));
+  newrec->next=fd_compound_entries; newrec->tag=symbol;
+  newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
+  newrec->tablefns=NULL;
+  fd_compound_entries=newrec;
+  fd_unlock_mutex(&compound_registry_lock);
+  return newrec;
+}
+
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype symbol,fdtype data,int core_slots)
+{
+  struct FD_COMPOUND_ENTRY *scan, *newrec;
+  fd_lock_mutex(&compound_registry_lock);
+  scan=fd_compound_entries;
+  while (scan)
+    if (FD_EQ(scan->tag,symbol)) {
+      if (!(FD_VOIDP(data))) {
+	fdtype old_data=scan->data;
+	scan->data=fd_incref(data);
+	fd_decref(old_data);}
+      if (core_slots>0) scan->core_slots=core_slots;
+      fd_unlock_mutex(&compound_registry_lock);
+      return scan;}
+    else scan=scan->next;
+  newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
+  newrec->data=data; newrec->core_slots=core_slots;
   newrec->next=fd_compound_entries; newrec->tag=symbol;
   newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
   newrec->tablefns=NULL;
@@ -1006,7 +1044,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype timestamp_parsefn(int n,fdtype *args)
+static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_entry e)
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
   u8_string timestring;
@@ -1069,7 +1107,7 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   return size;
 }
 
-static fdtype timestamp_restore(fdtype tag,fdtype x)
+static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_entry e)
 {
   if (FD_FIXNUMP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -1224,12 +1262,12 @@ void fd_init_cons_c()
   timestamp0_symbol=fd_intern("TIMESTAMP0");
 
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol);
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
     e->dump=NULL;
     e->restore=timestamp_restore;}
-    {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp0_symbol);
+  {
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp0_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
     e->dump=NULL;
     e->restore=timestamp_restore;}

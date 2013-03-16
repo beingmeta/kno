@@ -1339,7 +1339,7 @@ static int unparse_raw_pool(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype pool_parsefn(int n,fdtype *args)
+static fdtype pool_parsefn(int n,fdtype *args,fd_compound_entry e)
 {
   fd_pool p=NULL;
   if (n<3) return FD_VOID;
@@ -1794,7 +1794,7 @@ FD_EXPORT void fd_init_pools_c()
   _fd_oid_info=_more_oid_info;
 
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"));
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"),NULL,NULL);
     e->parser=pool_parsefn;}
 
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
