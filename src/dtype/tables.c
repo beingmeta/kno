@@ -1456,11 +1456,17 @@ static int do_hashtable_op
     break;}
   case fd_table_store_noref:
     fd_decref(result->value); result->value=value; break;
-  case fd_table_add: case fd_table_add_empty: case fd_table_add_if_present:
+  case fd_table_add_if_present:
+    if (FD_VOIDP(result->value)) break;
+  case fd_table_add: case fd_table_add_empty:
     fd_incref(value);
-    FD_ADD_TO_CHOICE(result->value,value); break;
+    if (FD_VOIDP(result->value)) result->value=value;
+    else {FD_ADD_TO_CHOICE(result->value,value);}
+    break;
   case fd_table_add_noref: case fd_table_add_empty_noref:
-    FD_ADD_TO_CHOICE(result->value,value); break;
+    if (FD_VOIDP(result->value)) result->value=value;
+    else {FD_ADD_TO_CHOICE(result->value,value);}
+    break;
   case fd_table_drop: {
     fdtype newval=((FD_VOIDP(value)) ? (FD_EMPTY_CHOICE) : (fd_difference(result->value,value)));
     fd_decref(result->value); result->value=fd_incref(newval);
@@ -1473,10 +1479,14 @@ static int do_hashtable_op
       return 1;
     else return 0;
   case fd_table_default:
-    if (FD_EMPTY_CHOICEP(result->value)) result->value=fd_incref(value);
+    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
+      result->value=fd_incref(value);
     break;
-  case fd_table_increment: case fd_table_increment_if_present:
-    if (FD_EMPTY_CHOICEP(result->value)) result->value=fd_incref(value);
+  case fd_table_increment_if_present:
+    if (FD_VOIDP(result->value)) break;
+  case fd_table_increment:
+    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
+      result->value=fd_incref(value);
     else if (!(FD_NUMBERP(result->value))) {
       fd_seterr(fd_TypeError,"fd_table_increment",u8_strdup("number"),result->value);
       return -1;}
@@ -1502,8 +1512,11 @@ static int do_hashtable_op
 	  fd_seterr(fd_TypeError,"fd_table_increment",u8_strdup("number"),v);
 	  return -1;}}
     break;
-  case fd_table_multiply: case fd_table_multiply_if_present:
-    if (FD_EMPTY_CHOICEP(result->value)) result->value=fd_incref(value);
+  case fd_table_multiply_if_present:
+    if (FD_VOIDP(result->value)) break;
+  case fd_table_multiply:
+    if ((FD_VOIDP(result->value))||(FD_EMPTY_CHOICEP(result->value)))
+      result->value=fd_incref(value);
     else if (!(FD_NUMBERP(result->value))) {
       fd_seterr(fd_TypeError,"fd_table_multiply",u8_strdup("number"),result->value);
       return -1;}
@@ -1529,8 +1542,10 @@ static int do_hashtable_op
 	  fd_seterr(fd_TypeError,"table_multiply_op",u8_strdup("number"),v);
 	  return -1;}}
     break;
-  case fd_table_maximize: case fd_table_maximize_if_present:
-    if (FD_EMPTY_CHOICEP(result->value))
+  case fd_table_maximize_if_present:
+    if (FD_VOIDP(result->value)) break;
+  case fd_table_maximize:
+    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
       result->value=fd_incref(value);
     else if (!(FD_NUMBERP(result->value))) {
       fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),result->value);
@@ -1545,8 +1560,10 @@ static int do_hashtable_op
 	fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),value);
 	return -1;}}
     break;
-  case fd_table_minimize: case fd_table_minimize_if_present:
-    if (FD_EMPTY_CHOICEP(result->value))
+  case fd_table_minimize_if_present:
+    if (FD_VOIDP(result->value)) break;
+  case fd_table_minimize:
+    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
       result->value=fd_incref(value);
     else if (!(FD_NUMBERP(result->value))) {
       fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),result->value);
