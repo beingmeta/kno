@@ -970,6 +970,7 @@ FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol,fdtype *d
       return scan;}
     else scan=scan->next;
   newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
+  memset(newrec,0,sizeof(struct FD_COMPOUND_ENTRY));
   if (datap) {
     fdtype data=*datap; fd_incref(data); newrec->data=data;}
   else newrec->data=FD_VOID;
@@ -998,6 +999,7 @@ FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype symbol,fdtype dat
       return scan;}
     else scan=scan->next;
   newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
+  memset(newrec,0,sizeof(struct FD_COMPOUND_ENTRY));
   newrec->data=data; newrec->core_slots=core_slots;
   newrec->next=fd_compound_entries; newrec->tag=symbol;
   newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
