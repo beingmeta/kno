@@ -141,11 +141,12 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 FD_EXPORT void fd_recycle_cons(struct FD_CONS *);
 FD_EXPORT fdtype fd_copy(fdtype x);
-FD_EXPORT fdtype fd_deep_copier(fdtype x,int flags);
+FD_EXPORT fdtype fd_copier(fdtype x,int flags);
 FD_EXPORT fdtype fd_deep_copy(fdtype x);
 
 #define FD_DEEP_COPY 2   /* Make a deep copy */
-#define FD_STRICT_COPY 4 /* Require methods for all objects */
+#define FD_FULL_COPY 4   /* Copy non-static objects */
+#define FD_STRICT_COPY 8 /* Require methods for all objects */
 
 /*  Defining this causes a warning to be issued whenever a
      reference count passes HUGE_REFCOUNT.  This is helpful

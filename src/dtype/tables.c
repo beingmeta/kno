@@ -466,7 +466,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
 	if (FD_ACHOICEP(val))
 	  write->value=fd_make_simple_choice(val);
 	else if (flags)
-	  write->value=fd_deep_copier(val,flags);
+	  write->value=fd_copier(val,flags);
 	else write->value=fd_incref(val);
       else write->value=val;
       write++;}}
@@ -615,12 +615,12 @@ static fdtype copy_schemap(fdtype schemap,int flags)
 	if (FD_ACHOICEP(val))
 	  values[i]=fd_make_simple_choice(val);
 	else if (flags)
-	  values[i]=fd_deep_copier(val,flags);
+	  values[i]=fd_copier(val,flags);
 	else values[i]=fd_incref(val);
       else values[i]=val;
       i++;}
   else if (flags) while (i < size) {
-      values[i]=fd_deep_copier(ovalues[i],flags); i++;}
+      values[i]=fd_copier(ovalues[i],flags); i++;}
   else while (i < size) {
       values[i]=fd_incref(ovalues[i]); i++;}
   nptr->values=values;
