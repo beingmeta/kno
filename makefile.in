@@ -198,13 +198,21 @@ SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 
 # Targets
 
-default: all
+default: buildmode
+	make `cat buildmode`
+standard:
+	make testbin exe cmodules @TAGS@
+debugging:
+	make XCFLAGS="-O0 -g3 -ggdb" testbin exe cmodules @TAGS@
+optimizing:
+	make XCFLAGS="-O3" testbin exe cmodules @TAGS@
+nitpicking:
+	make XCFLAGS="-Wall" testbin exe cmodules @TAGS@
+
 all: testbin exe cmodules @TAGS@
 
 # Handy targets
 
-debug:
-	make XCFLAGS="-O0" default
 fresh:
 	make clean; make default
 freshdebug:
@@ -212,8 +220,20 @@ freshdebug:
 dbg:
 	make clean; make XCFLAGS="-O0" default
 
+debug:
+	echo debugging > buildmode
+	make
+regular:
+	echo standard > buildmode
+	make
 nitpick:
-	make XCFLAGS="-Wall" all
+	echo nitpicking > buildmode
+	make
+fast:
+	echo optimizing > buildmode
+	make
+buildmode:
+	echo standard > buildmode
 
 # configure/autoconf stuff
 
@@ -466,6 +486,7 @@ tidy: profile-clean
 	rm -f tests/dtype/*~ tests/db/*.o tests/scheme/*.o
 	rm -f config.log
 clean: tidy
+	rm -f buildmode
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o 
 	rm -f src/cmodules/*.o src/texttools/*.o src/tagger/*.o exe/*.o
 	rm -rf etc/*.o etc/.libs
@@ -945,6 +966,14 @@ src/exe/fdversion.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS)
 		> src/exe/fdversion.h; fi
 	@$(MSG) FRAMERD_REV `git describe`
 $(EXECUTABLES): src/exe/fdversion.h
+
+# Depending on the buildmode
+$(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode
+#$(STATIC_LIBS) $(SHARED_LIBS): buildmode
+$(DTYPE_OBJS) $(DB_OBJS) $(DBFILE_OBJS):  buildmode
+$(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
+$(FDWEB_OBJS) $(TEXTTOOLS_OBJS) $(TAGGER_OBJS): buildmode
+$(CMODULE_OBJS): buildmode
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
