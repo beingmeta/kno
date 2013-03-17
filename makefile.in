@@ -36,6 +36,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
+BUILDMODE       := `cat buildmode`
 RPMFLAGS	=
 
 DTYPE_HEADERS=\
@@ -196,9 +197,11 @@ SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
+ALL=testbin exe cmodules @TAGS@
+
 # Targets
 
-default: buildmode
+update: buildmode
 	make `cat buildmode`
 standard:
 	make testbin exe cmodules @TAGS@
@@ -213,25 +216,18 @@ all: testbin exe cmodules @TAGS@
 
 # Handy targets
 
-fresh:
-	make clean; make default
-freshdebug:
-	make clean; make XCFLAGS="-O0" default
-dbg:
-	make clean; make XCFLAGS="-O0" default
-
 debug:
-	echo debugging > buildmode
-	make
-regular:
-	echo standard > buildmode
-	make
+	@if test $(BUILDMODE) != "debugging"; then echo debugging > buildmode; fi
+	make `cat buildmode`
+default:
+	@if test $(BUILDMODE) != "standard"; then echo standard > buildmode; fi
+	make `cat buildmode`
 nitpick:
-	echo nitpicking > buildmode
-	make
+	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > buildmode; fi
+	make `cat buildmode`
 fast:
-	echo optimizing > buildmode
-	make
+	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > buildmode; fi
+	make `cat buildmode`
 buildmode:
 	echo standard > buildmode
 
