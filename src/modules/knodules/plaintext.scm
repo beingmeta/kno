@@ -4,18 +4,19 @@
 (in-module 'knodules/plaintext)
 
 ;;; Parser for the plaintext knodule encoding
-(define id "$Id$")
-(define revision "$Revision: 5078 $")
 
 (use-module '{texttools fdweb ezrecords logger varconfig})
 (use-module '{knodules knodules/drules})
+
+(define %loglevel %notice%)
 
 (module-export!
  '{kno/read-plaintext
    kno/write-plaintext
    kno/plaintext kno/plaintext/escape
    knodule->string
-   knodule->file file->knodule})
+   knodule->file file->knodule
+   string->knodule})
 
 (module-export! '{escaped-segment escaped-find})
 
@@ -178,7 +179,7 @@
 	       (let ((dterm
 		      (if atpos
 			  (kno/dref (subseq value 0 atpos)
-				    (knodule (subseq value (1+ atpos))))
+				    (get-knodule (subseq value (1+ atpos))))
 			  (kno/dref value knodule))))
 		 (choice
 		  (list subject
@@ -208,7 +209,7 @@
 	     (handle-lang-term subject 'hooks (knodule-language knodule)
 			       value)))
 	((eq? op #\") ;; Deprecated
-	 (logwarn "Use of \" for glosses is deprecated!")
+	 (logwarn "Use of \" for glosses is deprecated, use + instead!")
 	 (when (has-suffix value "\"")
 	   (set! value (subseq value 0 -1)))
 	 (handle-lang-term subject
@@ -228,7 +229,8 @@
 
 (define (handle-clause clause subject knodule)
   (let* ((op (and (char-punctuation? (first clause))
-		  (overlaps? (first clause) {#\^ #\= #\_ #\amp #\@})
+		  (overlaps? (first clause)
+			     {#\^ #\= #\_ #\amp #\\ #\$ #\- #\. #\: #\@ #\* #\~ #\+ #\%})
 		  (first clause)))
 	 (modifier (and op (> (length clause) 1)
 			(overlaps? (second clause) {#\* #\~})
@@ -236,14 +238,18 @@
 	 (rest (unescape-string
 		(if op (subseq clause (if modifier 2 1)) clause)))
 	 (triples (clause->triples op modifier rest subject knodule)))
+    (logdebug KNODULES "Applying clause " (write clause) " to " subject ": "
+	      (do-choices (triple triples)
+		(printout "\n\t" (write (first triple))
+		  "\t" (write (second triple)) "\t" (write (third triple)))))
     (do-choices (triple triples) (apply kno/add! triple))
     subject))
 
 (define (handle-subject-entry entry knodule)
   (let* ((clauses (remove "" (map trim-spaces (escaped-segment entry #\|))))
 	 (dterm (kno/dterm (first clauses) knodule)))
-    (when (overlaps? kno/logging '{defterm defs})
-      (%watch "PLAINTEXT" dterm (length clauses)))
+    (loginfo KNODULES "Applying " (length clauses) " plaintext clauses to " dterm
+	     "\n\t in " knodule)
     (doseq (clause (cdr clauses))
       (handle-clause clause dterm knodule))
     dterm))
@@ -404,5 +410,11 @@
   (stringout (kno/write-plaintext knodule settings)))
 
 (define (file->knodule file (knodule default-knodule))
+  (lognotice KNODULES "Loading file " file " into " knodule)
   (kno/read-plaintext (filestring file) knodule))
+
+(define (string->knodule string (knodule default-knodule) (cxt #f))
+  (lognotice KNODULES "Loading " (length string) " bytes into " knodule
+	     (when cxt (printout " from " cxt)))
+  (kno/read-plaintext string knodule))
 
