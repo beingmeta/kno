@@ -2,7 +2,7 @@
 
 ;;; This file contains functions for mapping concepts into tags using
 ;;; the gnosys/tagsites module.
-;;;  Copyright (C) 2007-2012 beingmeta, inc.
+;;;  Copyright (C) 2007-2013 beingmeta, inc.
 
 (define version "$Id$")
 

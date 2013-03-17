@@ -2,7 +2,7 @@
 
 ;; Spanish Morphology
 ;;  Copyright (C) 2001 Kenneth Haase. All Rights Reserved
-;;  Copyright (C) 2001-2009 beingmeta, inc. All Rights Reserved
+;;  Copyright (C) 2001-2013 beingmeta, inc. All Rights Reserved
 
 (in-module 'morph/es)
 

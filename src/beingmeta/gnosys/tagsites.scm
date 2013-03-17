@@ -1,7 +1,7 @@
 (in-module 'gnosys/tagsites)
 
 ;;; This file contains functions for accessing and using different tagging sites
-;;;  Copyright (C) 2007-2012 beingmeta, inc.
+;;;  Copyright (C) 2007-2013 beingmeta, inc.
 
 (define version "$Id$")
 
