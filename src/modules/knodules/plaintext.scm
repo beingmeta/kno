@@ -8,7 +8,7 @@
 (use-module '{texttools fdweb ezrecords logger varconfig})
 (use-module '{knodules knodules/drules})
 
-(define %loglevel %notice%)
+(define %loglevel %warn%)
 
 (module-export!
  '{kno/read-plaintext
@@ -238,7 +238,8 @@
 	 (rest (unescape-string
 		(if op (subseq clause (if modifier 2 1)) clause)))
 	 (triples (clause->triples op modifier rest subject knodule)))
-    (logdebug KNODULES "Applying clause " (write clause) " to " subject ": "
+    (logdebug "Applying clause " (write clause) " to " subject " yielding "
+	      (choice-size triples) " triple" (if (not (singleton? triples)) "s") ":"
 	      (do-choices (triple triples)
 		(printout "\n\t" (write (first triple))
 		  "\t" (write (second triple)) "\t" (write (third triple)))))
@@ -248,7 +249,7 @@
 (define (handle-subject-entry entry knodule)
   (let* ((clauses (remove "" (map trim-spaces (escaped-segment entry #\|))))
 	 (dterm (kno/dterm (first clauses) knodule)))
-    (loginfo KNODULES "Applying " (length clauses) " plaintext clauses to " dterm
+    (loginfo "Applying " (length clauses) " plaintext clauses to " dterm
 	     "\n\t in " knodule)
     (doseq (clause (cdr clauses))
       (handle-clause clause dterm knodule))
@@ -410,11 +411,11 @@
   (stringout (kno/write-plaintext knodule settings)))
 
 (define (file->knodule file (knodule default-knodule))
-  (lognotice KNODULES "Loading file " file " into " knodule)
+  (lognotice "Loading file " file " into " knodule)
   (kno/read-plaintext (filestring file) knodule))
 
 (define (string->knodule string (knodule default-knodule) (cxt #f))
-  (lognotice KNODULES "Loading " (length string) " bytes into " knodule
+  (lognotice "Loading " (length string) " bytes into " knodule
 	     (when cxt (printout " from " cxt)))
   (kno/read-plaintext string knodule))
 
