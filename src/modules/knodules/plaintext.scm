@@ -179,7 +179,7 @@
 	       (let ((dterm
 		      (if atpos
 			  (kno/dref (subseq value 0 atpos)
-				    (get-knodule (subseq value (1+ atpos))))
+				    (knodule/ref (subseq value (1+ atpos))))
 			  (kno/dref value knodule))))
 		 (choice
 		  (list subject

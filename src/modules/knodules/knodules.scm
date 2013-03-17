@@ -13,7 +13,7 @@
 (use-module 'knodules/drules)
 
 (module-export!
- '{get-knodule
+ '{knodule/ref get-knodule
    kno/dterm kno/dref kno/ref kno/probe knodule?
    kno/add! kno/drop! kno/replace! kno/onadd! kno/ondrop! kno/find
    kno/phrasemap
@@ -110,7 +110,7 @@
 
 (defrecord (knodule
 	    #[OPAQUE #t
-	      CONSFN (lambda (tag name . ignore) (get-knodule name))
+	      CONSFN (lambda (tag name . ignore) (knodule/ref name))
 	      CORELEN 1])
   name
   (oid #f)
@@ -174,16 +174,17 @@
 	  (add! drules (drule-cues drule) drule))))
     new))
 
-(define (get-knodule name (pool knodule:pool) (opts #{}))
+(define (knodule/ref name (pool knodule:pool) (opts #{}))
   (try (tryif (knodule? name) name)
        (get knodules name)
        (let ((existing (find-frames knodule:indices 'knoname name)))
 	 (if (exists? existing)
 	     (restore-knodule existing)
 	     (new-knodule name pool (qc opts))))))
+(define get-knodule knodule/ref)
 
 (define (knodule! . args)
-  (let ((kno (apply get-knodule args)))
+  (let ((kno (apply knodule/ref args)))
     (set! default-knodule kno)
     kno))
 
@@ -198,7 +199,7 @@
 ;;; Creating and referencing dterms
 
 (define default-knodule #f)
-(varconfig! knodule default-knodule get-knodule)
+(varconfig! knodule default-knodule ->knodule)
 
 (define (kno/dterm term (knodule default-knodule))
   (try (get (knodule-dterms knodule) term)
@@ -273,11 +274,11 @@
       (if (compound-type? x '|ldterm|)
 	  (kno/dterm (compound-ref x 0) kno)
 	  (if (compound-type? x '|dterm|)
-	      (kno/dterm (compound-ref x 0) (get-knodule (compound-ref x 1)))
+	      (kno/dterm (compound-ref x 0) (knodule/ref (compound-ref x 1)))
 	      (if (compound-type? x '|knodule|)
-		  (get-knodule (compound-ref x 0))
+		  (knodule/ref (compound-ref x 0))
 		  (if (compound-type? x '|knoid|)
-		      (knodule-oid (get-knodule (compound-ref x 0)))
+		      (knodule-oid (knodule/ref (compound-ref x 0)))
 		      x))))
       (if (pair? x)
 	  (cons (kno/undumper (qc (car x)) kno)
@@ -324,7 +325,7 @@
 
 (define (kno/restore data)
   (let* ((elt (if (compound-type? data) compound-ref elt))
-	 (knodule (get-knodule (elt data 0) knodule:pool (qc (elt data 1))))
+	 (knodule (knodule/ref (elt data 0) knodule:pool (qc (elt data 1))))
 	 (dtermtable (knodule-dterms knodule))
 	 (knoid (knodule-oid knodule))
 	 (pool (knodule-pool knodule))
