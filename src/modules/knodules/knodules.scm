@@ -9,13 +9,13 @@
 (define id "$Id$")
 (define revision "$Revision: 4048 $")
 
-(use-module '{texttools ezrecords varconfig logger})
+(use-module '{texttools ezrecords varconfig logger reflection})
 (use-module 'knodules/drules)
 
 (module-export!
- '{knodule
+ '{knodule/ref get-knodule
    kno/dterm kno/dref kno/ref kno/probe knodule?
-   kno/add! kno/drop! kno/replace! kno/find
+   kno/add! kno/drop! kno/replace! kno/onadd! kno/ondrop! kno/find
    kno/phrasemap
    kno/slotid kno/slotids kno/slotnames kno/relcodes
    knodule-name knodule-opts knodule-language
@@ -27,12 +27,9 @@
    knodule! ->knodule iadd!
    kno/restore kno/dump 
    kno/dumper kno/undumper
-   kno/logging
    langids})
 
-(define %loglevel %warn!)
-
-(define kno/logging {})
+(define %loglevel %notice%)
 
 ;;;; Global tables, variables, and structures (with their configs)
 
@@ -71,12 +68,13 @@
 
 ;;; Various useful global tables
 
-(define langids (file->dtype (get-component "langids.dtype")))
-(define langnames (file->dtype (get-component "langnames.table")))
-(define kno/slotids {})
-(define kno/slotnames (make-hashtable))
-(define kno/relcodes (make-hashtable))
-(define slotids-finished #f)
+(define-init langids (file->dtype (get-component "langids.dtype")))
+(define-init langnames (file->dtype (get-component "langnames.table")))
+(define-init kno/slotids {})
+(define-init kno/slotnames (make-hashtable))
+(define-init kno/relcodes (make-hashtable))
+(define-init onadd (make-hashtable))
+(define-init ondrop (make-hashtable))
 
 (define knodule-slots-init
   '((genls genl broader class category kindof isa ^)
@@ -110,7 +108,10 @@
 
 ;;; The KNODULE structure itself
 
-(defrecord knodule
+(defrecord (knodule
+	    #[OPAQUE #t
+	      CONSFN (lambda (tag name . ignore) (knodule/ref name))
+	      CORELEN 1])
   name
   (oid #f)
   (language 'en)
@@ -132,7 +133,10 @@
   ;; Rules for disambiguating words into dterms
   (drules (make-hashtable))
   ;; 'Prime' dterms are important for this knodule
-  (prime (make-hashset)))
+  (prime (make-hashset))
+  ;; Special add/drop slot handlers
+  (onadd (make-hashtable))
+  (ondrop (make-hashtable)))
 
 ;;; Creating and referencing knodules
 
@@ -170,16 +174,17 @@
 	  (add! drules (drule-cues drule) drule))))
     new))
 
-(define (knodule name (pool knodule:pool) (opts #{}))
+(define (knodule/ref name (pool knodule:pool) (opts #{}))
   (try (tryif (knodule? name) name)
        (get knodules name)
        (let ((existing (find-frames knodule:indices 'knoname name)))
 	 (if (exists? existing)
 	     (restore-knodule existing)
 	     (new-knodule name pool (qc opts))))))
+(define get-knodule knodule/ref)
 
 (define (knodule! . args)
-  (let ((kno (apply knodule args)))
+  (let ((kno (apply knodule/ref args)))
     (set! default-knodule kno)
     kno))
 
@@ -194,7 +199,7 @@
 ;;; Creating and referencing dterms
 
 (define default-knodule #f)
-(varconfig! knodule default-knodule knodule)
+(varconfig! knodule default-knodule ->knodule)
 
 (define (kno/dterm term (knodule default-knodule))
   (try (get (knodule-dterms knodule) term)
@@ -269,11 +274,11 @@
       (if (compound-type? x '|ldterm|)
 	  (kno/dterm (compound-ref x 0) kno)
 	  (if (compound-type? x '|dterm|)
-	      (kno/dterm (compound-ref x 0) (knodule (compound-ref x 1)))
+	      (kno/dterm (compound-ref x 0) (knodule/ref (compound-ref x 1)))
 	      (if (compound-type? x '|knodule|)
-		  (knodule (compound-ref x 0))
+		  (knodule/ref (compound-ref x 0))
 		  (if (compound-type? x '|knoid|)
-		      (knodule-oid (knodule (compound-ref x 0)))
+		      (knodule-oid (knodule/ref (compound-ref x 0)))
 		      x))))
       (if (pair? x)
 	  (cons (kno/undumper (qc (car x)) kno)
@@ -320,7 +325,7 @@
 
 (define (kno/restore data)
   (let* ((elt (if (compound-type? data) compound-ref elt))
-	 (knodule (knodule (elt data 0) knodule:pool (qc (elt data 1))))
+	 (knodule (knodule/ref (elt data 0) knodule:pool (qc (elt data 1))))
 	 (dtermtable (knodule-dterms knodule))
 	 (knoid (knodule-oid knodule))
 	 (pool (knodule-pool knodule))
@@ -402,51 +407,86 @@
 				   (cons (kno/slotid (car args)) query))))
 		       ((null? args) (reverse query))))))))
 
-(define-init infer-onadd (make-hashtable))
-(define-init infer-ondrop (make-hashtable))
-
 (defambda (kno/add! dterm slotid value)
   (detail%watch "KNO/ADD!" dterm slotid value)
   (let* ((slotid (kno/slotid slotid))
 	 (cur (get dterm slotid))
 	 (new (difference value cur))
-	 (knodule (get knodules (get dterm 'knodule))))
+	 (knodule (get knodules (get dterm 'knodule)))
+	 (index (knodule-index knodule))
+	 (methods (choice (get onadd slotid)
+			  (get (knodule-onadd knodule) slotid))))
     (when (exists? new)
+      (detail%watch "KNO/ADD!" dterm slotid new)
       (add! dterm slotid new)
-      (index-frame (knodule-index knodule) dterm slotid new)
-      (unless (exists? cur)
-	(index-frame (knodule-index knodule) dterm 'has slotid))
-      ((get infer-onadd slotid) dterm slotid new)
-      (detail%watch "KNO/ADD!" dterm slotid new))))
+      (index-frame index dterm slotid new)
+      (unless (exists? cur) (index-frame index dterm 'has slotid))
+      (when (exists? methods) (methods dterm slotid new)))))
 
 (defambda (kno/drop! dterm slotid value)
   (let* ((slotid (kno/slotid slotid))
 	 (drop (intersection value (get dterm slotid)))
-	 (knodule (get knodules (get dterm 'knodule))))
+	 (knodule (get knodules (get dterm 'knodule)))
+	 (methods (choice (get ondrop slotid)
+			  (get (knodule-ondrop knodule) slotid))))
     (when (exists? drop)
+      (detail%watch "KNO/DROP!" dterm slotid drop)
       (drop! dterm slotid drop)
       (drop! (knodule-index knodule) (cons slotid drop) dterm)
       (if (fail? (get dterm slotid))
 	  (drop! (knodule-index knodule) (cons 'has slotid) dterm))
-      ((get infer-ondrop slotid) dterm slotid drop))))
+      (when (exists? methods) (methods dterm slotid drop)))))
 
-(defambda (kno/replace! dterm slotid value (toreplace {}))
+(defambda (kno/replace! dterm slotid value)
   (for-choices dterm
     (for-choices (slotid (kno/slotid slotid))
-      (let ((replace (difference (try toreplace (get dterm slotid))
-				 value)))
-	(let ((new (difference value (get dterm slotid)))
-	      (todrop replace)
-	      (knodule (get knodules (get dterm 'knodule))))
-	  (when (exists? todrop)
-	    (drop! dterm slotid todrop)
-	    ((get infer-ondrop slotid) dterm slotid todrop)
-	    (drop! (knodule-index knodule) (cons slotid todrop)
-		   todrop))
-	  (when (exists? new)
-	    (add! dterm slotid new)
-	    (index-frame (knodule-index knodule) dterm slotid new)
-	    ((get infer-onadd slotid) dterm slotid new)))))))
+      (let* ((current (get dterm slotid))
+	     (toadd (difference value current))
+	     (todrop (difference current value))
+	     (knodule (get knodules (get dterm 'knodule)))
+	     (addmethods (choice (get onadd slotid)
+				 (get (knodule-onadd knodule) slotid)))
+	     (dropmethods (choice (get ondrop slotid)
+				  (get (knodule-ondrop knodule) slotid))))
+	(when (exists? todrop)
+	  (drop! dterm slotid todrop)
+	  (when (exists? dropmethods) (dropmethods dterm slotid todrop))
+	  (drop! (knodule-index knodule) (cons slotid todrop)
+		 todrop))
+	(when (and (fail? value) (exists? current))
+	  (drop! (knodule-index knodule) (cons 'HAS slotid) todrop))
+	(when (exists? toadd)
+	  (add! dterm slotid toadd)
+	  (index-frame (knodule-index knodule) dterm slotid toadd)
+	  (when (exists? addmethods) (addmethods dterm slotid toadd)))
+	(when (and (exists? value) (fail? current))
+	  (add! (knodule-index knodule) (cons 'HAS slotid) todrop))))))
+
+;;; Setting methods
+
+(define (kno/onadd! slotid method (knodule #f) (name) (table))
+  (default! name (procedure-name method))
+  (default! table (if knodule (knodule-onadd knodule) onadd))
+  (if (not name) (add! table slotid method)
+      (let* ((current (get table slotid))
+	     (existing (pick current procedure-name name)))
+	(cond ((and method (fail? existing)) (add! table slotid method))
+	      ((fail? existing))
+	      ((identical? existing method))
+	      ((not method) (drop! table slotid existing))
+	      (else (drop! table slotid existing) (add! table slotid method))))))
+
+(define (kno/ondrop! slotid method (knodule #f) (name) (table))
+  (default! name (procedure-name method))
+  (default! table (if knodule (knodule-ondrop knodule) ondrop))
+  (if (not name) (drop! table slotid method)
+      (let* ((current (get table slotid))
+	     (existing (pick current procedure-name name)))
+	(cond ((and method (fail? existing)) (add! table slotid method))
+	      ((fail? existing))
+	      ((identical? existing method))
+	      ((not method) (drop! table slotid existing))
+	      (else (drop! table slotid existing) (add! table slotid method))))))
 
 ;;; Special inference methods
 
@@ -478,8 +518,8 @@
 	  (drop! specl 'genls* g*drop)
 	  (drop! g*index g*drop specl))))))
 
-(add! infer-onadd 'genls add-genl!)
-(add! infer-ondrop 'genls drop-genl!)
+(kno/onadd! 'genls add-genl!)
+(kno/ondrop! 'genls drop-genl!)
 
 ;;; Specls (just the inverse)
 
@@ -491,8 +531,8 @@
   (drop! g 'genls f)
   (drop-genl! g 'genls f))
 
-(add! infer-onadd 'specls add-specl!)
-(add! infer-ondrop 'specls drop-specl!)
+(kno/onadd! 'specls add-specl!)
+(kno/ondrop! 'specls drop-specl!)
 
 ;;; Symmetric
 
@@ -506,8 +546,8 @@
   (when (test value mirror frame)
     (kno/drop! value mirror frame)))
 
-(add! infer-onadd '{mirror equivalent identical} add-symmetric!)
-(add! infer-ondrop '{mirror equivalent identical} drop-symmetric!)
+(kno/onadd! '{mirror equivalent identical} add-symmetric!)
+(kno/ondrop! '{mirror equivalent identical} drop-symmetric!)
 
 ;;; Natural language terms
 
@@ -526,10 +566,10 @@
 	(add! phrasemap (list (first wordv)) wordv)))))
 
 (defambda (drop-phrase! frame slotid value (mirror))
-  (let ((knodule (get knodules (get frame 'knodule)))
-	(excur (kno/string-indices (get frame slotid)))
-	(exdrop (kno/string-indices value))
-	(index (knodule-index knodule)))
+  (let* ((knodule (get knodules (get frame 'knodule)))
+	 (excur (kno/string-indices (get frame slotid)))
+	 (exdrop (kno/string-indices value))
+	 (index (knodule-index knodule)))
     ;; Update the index, noting that some expanded values
     ;;  may still apply after the drop
     ;; Note that we won't bother updating the phrasemap because
@@ -538,8 +578,8 @@
 	   (cons slotid (difference exdrop excur))
 	   frame)))
 
-(store! infer-onadd langids add-phrase!)
-(store! infer-ondrop langids drop-phrase!)
+(kno/onadd! langids add-phrase!)
+(kno/ondrop! langids drop-phrase!)
 
 (defslambda (new-phrasemap knodule langid)
   (let ((phrasemap (get (knodule-phrasemaps knodule) langid)))
@@ -563,8 +603,8 @@
   (drop! (knodule-drules (get knodules (get frame 'knodule)))
 	 (drule-cues value)
 	 value))
-(store! infer-onadd 'drules add-drule!)
-(store! infer-ondrop 'drules drop-drule!)
+(kno/onadd! 'drules add-drule!)
+(kno/ondrop! 'drules drop-drule!)
 
 ;;; IADD!
 
@@ -594,7 +634,3 @@
 		  (add! kindex (cons 'has slotid) (reject f slotid))
 		  (add! f slotid value)
 		  (add! index (cons slotid value) f))))))))
-
-
-
-

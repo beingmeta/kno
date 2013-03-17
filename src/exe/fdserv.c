@@ -624,7 +624,10 @@ static int webservefn(u8_client ucl)
     else {}
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     path=fd_get(cgidata,script_filename,FD_VOID);
-    if (traceweb>0) {
+    /* This is where we parse all the CGI variables, etc */
+    fd_parse_cgidata(cgidata);
+    forcelog=fd_req_test(forcelog_symbol,FD_VOID);
+    if ((forcelog)||(traceweb>0)) {
       fdtype referer=fd_get(cgidata,referer_symbol,FD_VOID);
       fdtype remote=fd_get(cgidata,remote_info,FD_VOID);
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
@@ -649,8 +652,6 @@ static int webservefn(u8_client ucl)
       fd_decref(uri);}
     /* This is what we'll execute, be it a procedure or FDXML */
     proc=getcontent(path);}
-  /* This is where we parse all the CGI variables, etc */
-  fd_parse_cgidata(cgidata);
   parse_time=u8_elapsed_time();
   if ((reqlog) || (urllog) || (trace_cgidata))
     dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
@@ -667,7 +668,7 @@ static int webservefn(u8_client ucl)
     result=precheck;
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
     struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
-    if (traceweb>1)
+    if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
     base_env=sp->env;
@@ -676,7 +677,7 @@ static int webservefn(u8_client ucl)
   else if ((FD_PAIRP(proc))&&
 	   (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
     struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
-    if (traceweb>1)
+    if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
 	     path,proc);
     threadcache=checkthreadcache(sp->env);
@@ -695,7 +696,7 @@ static int webservefn(u8_client ucl)
     base_env=base;
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache=checkthreadcache(base);
-    if (traceweb>1)
+    if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with template",path);
     setup_proc=fd_symeval(setup_symbol,base);
     /* Run setup procs */
@@ -998,7 +999,7 @@ static int webservefn(u8_client ucl)
     outstream->u8_outptr=outstream->u8_outbuf;
     /* If we're not still in the transaction, call u8_client_done() */
     if (!(return_code)) {u8_client_done(ucl);}
-    if (traceweb>2)
+    if ((forcelog)||(traceweb>2))
       u8_log(LOG_NOTICE,"HTTPHEAD","HTTPHEAD=%s",httphead.u8_outbuf);
     u8_free(httphead.u8_outbuf); u8_free(htmlhead.u8_outbuf);
     fd_decref(content); fd_decref(traceval);
@@ -1013,7 +1014,6 @@ static int webservefn(u8_client ucl)
     FD_DO_CHOICES(cl,cleanup) {
       fdtype retval=fd_apply(cleanup,0,NULL);
       fd_decref(retval);}}
-  forcelog=fd_req_test(forcelog_symbol,FD_VOID);
   run_postflight();
   if (threadcache) fd_pop_threadcache(threadcache);
   fd_use_reqinfo(FD_EMPTY_CHOICE);

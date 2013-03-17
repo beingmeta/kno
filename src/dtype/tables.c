@@ -466,7 +466,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
 	if (FD_ACHOICEP(val))
 	  write->value=fd_make_simple_choice(val);
 	else if (flags)
-	  write->value=fd_deep_copier(val,flags);
+	  write->value=fd_copier(val,flags);
 	else write->value=fd_incref(val);
       else write->value=val;
       write++;}}
@@ -615,12 +615,12 @@ static fdtype copy_schemap(fdtype schemap,int flags)
 	if (FD_ACHOICEP(val))
 	  values[i]=fd_make_simple_choice(val);
 	else if (flags)
-	  values[i]=fd_deep_copier(val,flags);
+	  values[i]=fd_copier(val,flags);
 	else values[i]=fd_incref(val);
       else values[i]=val;
       i++;}
   else if (flags) while (i < size) {
-      values[i]=fd_deep_copier(ovalues[i],flags); i++;}
+      values[i]=fd_copier(ovalues[i],flags); i++;}
   else while (i < size) {
       values[i]=fd_incref(ovalues[i]); i++;}
   nptr->values=values;
@@ -1351,7 +1351,7 @@ FD_EXPORT int fd_hashtable_drop
   return 0;
 }
 
-static fdtype restore_hashtable(fdtype tag,fdtype alist)
+static fdtype restore_hashtable(fdtype tag,fdtype alist,fd_compound_entry e)
 {
   fdtype *keys, *vals; int n=0; struct FD_HASHTABLE *new;
   if (FD_PAIRP(alist)) {
@@ -2900,7 +2900,7 @@ void fd_init_tables_c()
        CHOICES 
       are foud in xtable.c */
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("HASHTABLE"));
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("HASHTABLE"),NULL,NULL);
     e->restore=restore_hashtable;}
 
 }

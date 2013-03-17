@@ -141,11 +141,12 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 FD_EXPORT void fd_recycle_cons(struct FD_CONS *);
 FD_EXPORT fdtype fd_copy(fdtype x);
-FD_EXPORT fdtype fd_deep_copier(fdtype x,int flags);
+FD_EXPORT fdtype fd_copier(fdtype x,int flags);
 FD_EXPORT fdtype fd_deep_copy(fdtype x);
 
 #define FD_DEEP_COPY 2   /* Make a deep copy */
-#define FD_STRICT_COPY 4 /* Require methods for all objects */
+#define FD_FULL_COPY 4   /* Copy non-static objects */
+#define FD_STRICT_COPY 8 /* Require methods for all objects */
 
 /*  Defining this causes a warning to be issued whenever a
      reference count passes HUGE_REFCOUNT.  This is helpful
@@ -517,24 +518,26 @@ FD_EXPORT fdtype fd_time2timestamp(time_t moment);
 
 /* Compounds */
 
-typedef fdtype (*fd_compound_unparsefn)(u8_output out,fdtype);
-typedef fdtype (*fd_compound_parsefn)(int n,fdtype *);
-typedef fdtype (*fd_compound_dumpfn)(fdtype);
-typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype);
+typedef struct FD_COMPOUND_ENTRY *fd_compound_entry;
+typedef int (*fd_compound_unparsefn)(u8_output out,fdtype,fd_compound_entry);
+typedef fdtype (*fd_compound_parsefn)(int n,fdtype *,fd_compound_entry);
+typedef fdtype (*fd_compound_dumpfn)(fdtype,fd_compound_entry);
+typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype,fd_compound_entry);
 
 typedef struct FD_COMPOUND_ENTRY {
-  fdtype tag;
+  fdtype tag, data; int core_slots;
   fd_compound_parsefn parser;
   fd_compound_unparsefn unparser;
   fd_compound_dumpfn dump;
   fd_compound_restorefn restore;
   struct FD_TABLEFNS *tablefns;
   struct FD_COMPOUND_ENTRY *next;} FD_COMPOUND_ENTRY;
-typedef struct FD_COMPOUND_ENTRY *fd_compound_entry;
 FD_EXPORT struct FD_COMPOUND_ENTRY *fd_compound_entries;
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype);
+
 FD_EXPORT struct FD_COMPOUND_ENTRY *fd_lookup_compound(fdtype);
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype,fdtype,int);
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype,fdtype *,int *);
 
 /* Cons compare */
 

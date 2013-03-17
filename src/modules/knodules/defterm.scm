@@ -5,12 +5,12 @@
 
 ;;; Scheme level knodule definition, also provides for
 ;;;  automatic imports from BRICO
-(define id "$Id$")
-(define revision "$Revision: 4048 $")
 
-(use-module 'texttools)
+(use-module '{texttools logger})
 (use-module '{knodules knodules/usebrico})
 (use-module '{brico brico/lookup brico/dterms})
+
+(define %loglevel %notice%)
 
 (module-export! 'defterm)
 
@@ -28,8 +28,7 @@
 		   (try (get term 'dterm)
 			(get-dterm term (get language-map language)))
 		   term)))
-    (when (overlaps? kno/logging '{defterm defs})
-      (%watch "DEFTERM" dterm term oids))
+    (info%watch "DEFTERM" dterm term oids)
     (iadd! dterm 'dterms (pickstrings term))
     (iadd! dterm language (pickstrings term))
     (add! (knodule-dterms knodule) (pickstrings term) dterm)

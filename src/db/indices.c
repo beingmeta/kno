@@ -773,7 +773,7 @@ static int unparse_index(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype index_parsefn(int n,fdtype *args)
+static fdtype index_parsefn(int n,fdtype *args,fd_compound_entry e)
 {
   fd_index ix=NULL;
   if (n<2) return FD_VOID;
@@ -1188,7 +1188,7 @@ FD_EXPORT void fd_init_indices_c()
   fd_index_type=fd_register_immediate_type("index",check_index);
   
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("INDEX"));
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("INDEX"),NULL,NULL);
     e->parser=index_parsefn;}
 
   fd_tablefns[fd_index_type]=u8_alloc(struct FD_TABLEFNS);

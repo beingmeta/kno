@@ -696,7 +696,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       case dt_compound: {
 	struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(car);
 	if ((e) && (e->restore)) {
-	  fdtype result=e->restore(car,cdr);
+	  fdtype result=e->restore(car,cdr,e);
 	  fd_decref(cdr);
 	  return result;}
 	else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {

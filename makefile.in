@@ -225,33 +225,33 @@ configure: configure.ac
 	autoconf
 
 tests/dtype/makefile: tests/dtype/makefile.in ./configure
-	configure
+	./configure
 tests/db/makefile: tests/db/makefile.in ./configure
-	configure
+	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
-	configure
+	./configure
 tests/dtype/.gdbinit: tests/dtype/.gdbinit.in ./configure
-	configure
+	./configure
 tests/db/.gdbinit: tests/db/.gdbinit.in ./configure
-	configure
+	./configure
 tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
-	configure
+	./configure
 exe/.gdbinit: exe/.gdbinit.in ./configure
-	configure
+	./configure
 etc/fdgetconfig: etc/fdgetconfig ./configure
-	configure
+	./configure
 etc/fdsetconfig: etc/fdsetconfig ./configure
-	configure
+	./configure
 etc/framerd-rc.d: etc/framerd-rc.d ./configure
-	configure
+	./configure
 etc/OSXStartupItem/FramerD: etc/OSXStartupItem/FramerD.in ./configure
-	configure
+	./configure
 etc/logrotate: etc/logrotate.in ./configure
-	configure
+	./configure
 etc/fdserv.conf: etc/fdserv.conf.in ./configure
-	configure
+	./configure
 etc/fdserv.load: etc/fdserv.load.in ./configure
-	configure
+	./configure
 
 # Fileinfo gets version-related information about a file to pass in
 # with -D

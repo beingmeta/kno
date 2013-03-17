@@ -185,9 +185,131 @@ static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable,fdtype opa
   return FDTYPE_CONS(compound);
 }
 
+/* Setting various compound properties */
+
+static fdtype consfn_symbol, stringfn_symbol, tag_symbol;
+
+static fdtype compound_corelen_prim(fdtype tag)
+{
+  struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+  if (e) {
+    if (e->core_slots<0) return FD_FALSE;
+    else return FD_INT2DTYPE(e->core_slots);}
+  else return FD_EMPTY_CHOICE;
+}
+
+static fdtype compound_set_corelen_prim(fdtype tag,fdtype slots_arg)
+{
+  int core_slots=FD_FIX2INT(slots_arg);
+  fd_declare_compound(tag,FD_VOID,core_slots);
+  return fd_incref(tag);
+}
+
+static fdtype tag_slotdata(fdtype tag)
+{
+  struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+  if ((e)&&(FD_SLOTMAPP(e->data)))
+    return fd_incref(e->data);
+  else if ((e)&&(!(FD_VOIDP(e->data))))
+    return fd_type_error("slotmap","tag_slotdata",e->data);
+  else {
+    struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
+    fdtype slotmap=fd_init_slotmap(NULL,1,keyvals), *slotdata=&slotmap;
+    keyvals[0].key=tag_symbol; keyvals[0].key=fd_incref(tag);
+    fd_register_compound(tag,slotdata,NULL);
+    return slotmap;}
+}
+
+static fdtype compound_metadata_prim(fdtype compound,fdtype field)
+{
+  fdtype tag=FD_COMPOUND_TAG(compound);
+  fdtype slotmap=tag_slotdata(tag);
+  fdtype result;
+  if (FD_VOIDP(field)) result=fd_deep_copy(slotmap);
+  else result=fd_get(slotmap,tag,FD_EMPTY_CHOICE);
+  fd_decref(slotmap);
+  return result;
+}
+
+static fdtype cons_compound(int n,fdtype *args,fd_compound_entry e)
+{
+  if (e->data) {
+    fdtype method=fd_get(e->data,consfn_symbol,FD_VOID);
+    if (FD_VOIDP(method)) return FD_VOID;
+    else {
+      fdtype result=fd_apply(method,n,args);
+      fd_decref(method);
+      return result;}}
+}
+
+static int stringify_compound(u8_output out,fdtype compound,fd_compound_entry e)
+{
+  if (e->data) {
+    fdtype method=fd_get(e->data,stringfn_symbol,FD_VOID);
+    if (FD_VOIDP(method)) return 0;
+    else {
+      fdtype result=fd_apply(method,1,&compound);
+      fd_decref(method);
+      if (FD_STRINGP(result)) {
+	u8_putn(out,FD_STRDATA(result),FD_STRLEN(result));
+	fd_decref(result);
+	return 1;}
+      else {fd_decref(result); return 0;}}}
+  else return 0;
+}
+
+static fdtype compound_set_consfn_prim(fdtype tag,fdtype consfn)
+{
+  if ((FD_SYMBOLP(tag))||(FD_OIDP(tag)))
+    if (FD_FALSEP(consfn)) {
+      fdtype slotmap=tag_slotdata(tag);
+      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      fd_drop(slotmap,consfn_symbol,FD_VOID);
+      fd_decref(slotmap);
+      e->parser=NULL;
+      return FD_VOID;}
+    else if (FD_APPLICABLEP(consfn)) {
+      fdtype slotmap=tag_slotdata(tag);
+      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      fd_store(slotmap,consfn_symbol,consfn);
+      fd_decref(slotmap);
+      e->parser=cons_compound;
+      return FD_VOID;}
+    else return fd_type_error("applicable","set_compound_consfn_prim",tag);
+  else return fd_type_error("compound tag","set_compound_consfn_prim",tag);
+}
+
+
+static fdtype compound_set_stringfn_prim(fdtype tag,fdtype stringfn)
+{
+  if ((FD_SYMBOLP(tag))||(FD_OIDP(tag)))
+    if (FD_FALSEP(stringfn)) {
+      fdtype slotmap=tag_slotdata(tag);
+      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      fd_drop(slotmap,stringfn_symbol,FD_VOID);
+      fd_decref(slotmap);
+      e->unparser=NULL;
+      return FD_VOID;}
+    else if (FD_APPLICABLEP(stringfn)) {
+      fdtype slotmap=tag_slotdata(tag);
+      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      fd_store(slotmap,stringfn_symbol,stringfn);
+      fd_decref(slotmap);
+      e->unparser=stringify_compound;
+      return FD_VOID;}
+    else return fd_type_error("applicable","set_compound_stringfn_prim",tag);
+  else return fd_type_error("compound tag","set_compound_stringfn_prim",tag);
+}
+
+/* Initializing common functions */
+
 FD_EXPORT void fd_init_compounds_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  consfn_symbol=fd_intern("CONS");
+  stringfn_symbol=fd_intern("STRINGIFY");
+  tag_symbol=fd_intern("TAG");
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
@@ -217,4 +339,25 @@ FD_EXPORT void fd_init_compounds_c()
 	   fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
 			   fd_vector_type,FD_VOID,-1,FD_VOID,
 			   -1,FD_FALSE,-1,FD_FALSE));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("COMPOUND-METATDATA",compound_metadata_prim,1,
+			   fd_compound_type,FD_VOID,
+			   fd_symbol_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("COMPOUND-CORELEN",compound_corelen_prim,1,
+			   -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("COMPOUND-SET-CORELEN!",
+			   compound_set_corelen_prim,2,
+			   -1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("COMPOUND-SET-CONSFN!",
+			   compound_set_consfn_prim,2,
+			   -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("COMPOUND-SET-STRINGFN!",
+			   compound_set_stringfn_prim,2,
+			   -1,FD_VOID,-1,FD_VOID));
 }
+

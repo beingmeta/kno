@@ -289,7 +289,7 @@ FD_EXPORT
     Arguments: a dtype pointer
     Returns: a dtype pointer
   This returns a copy of its argument, recurring to sub objects. */
-fdtype fd_deep_copier(fdtype x,int flags)
+fdtype fd_copier(fdtype x,int flags)
 {
   if (FD_ATOMICP(x)) return x;
   else {
@@ -300,12 +300,21 @@ fdtype fd_deep_copier(fdtype x,int flags)
       while (FD_PRIM_TYPEP(scan,fd_pair_type)) {
 	struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
 	struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
+	fdtype car=p->car;
 	FD_INIT_CONS(newpair,fd_pair_type);
-	newpair->car=fd_deep_copier(p->car,flags);
+	if (FD_CONSP(car)) {
+	  struct FD_CONS *c=(struct FD_CONS *)car;
+	  if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
+	    newpair->car=fd_copier(car,flags);
+	  else {fd_incref(car); newpair->car=car;}}
+	else {
+	  fd_incref(car); newpair->car=car;}
 	*tail=(fdtype)newpair;
 	tail=&(newpair->cdr);
 	scan=p->cdr;}
-      *tail=fd_deep_copier(scan,flags);
+      if (FD_CONSP(scan))
+	*tail=fd_copier(scan,flags);
+      else *tail=scan;
       return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
@@ -314,7 +323,14 @@ fdtype fd_deep_copier(fdtype x,int flags)
 		     (fd_init_vector(NULL,len,NULL)):
 		     (fd_init_rail(NULL,len,NULL)));
       fdtype *newdata=FD_VECTOR_ELTS(result);
-      while (i<len) {newdata[i]=fd_deep_copier(olddata[i],flags); i++;}
+      while (i<len) {
+	  fdtype v=olddata[i], newv=v;
+	  if (FD_CONSP(v)) {
+	    struct FD_CONS *c=(struct FD_CONS *)newv;
+	    if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
+	      newv=fd_copier(newv,flags);
+	    else fd_incref(newv);}
+	  newdata[i++]=newv;}
       return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
@@ -332,20 +348,28 @@ fdtype fd_deep_copier(fdtype x,int flags)
       const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
       fdtype *write=(fdtype *)&(copy->elt0);
       if (FD_ATOMIC_CHOICEP(x))
-	while (read<limit) *write++=*read++;
+	memcpy(write,read,sizeof(fdtype)*n);
+      else if (flags&FD_FULL_COPY) while (read<limit) {
+	  fdtype v=*read++, c=fd_copier(v,flags); *write++=c;}
       else while (read<limit) {
-	  fdtype v=*read++; fd_incref(v); *write++=v;}
+	  fdtype v=*read++, newv=v;
+	  if (FD_CONSP(newv)) {
+	    struct FD_CONS *c=(struct FD_CONS *)newv;
+	    if (FD_STACK_CONSP(c))
+	      newv=fd_copier(newv,flags);
+	    else fd_incref(newv);}
+	  *write++=newv;}
       return fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));}
     default:
       if (fd_copiers[ctype])
 	return (fd_copiers[ctype])(x,1);
       else if ((flags)&(FD_STRICT_COPY)) 
-	return fd_err(fd_NoMethod,"fd_deep_copier",fd_type_names[ctype],x);
+	return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
 }
 fdtype fd_deep_copy(fdtype x)
 {
-  return fd_deep_copier(x,(FD_DEEP_COPY));
+  return fd_copier(x,(FD_DEEP_COPY));
 }
 
 FD_EXPORT
@@ -624,22 +648,6 @@ FD_EXPORT fdtype fd_make_packet
 
 fdtype fd_compound_descriptor_type;
 
-#if 0
-/* This checks if a given compound is acceptable for a given call to
-   make_compound */
-static fdtype check_compound_type(fdtype tag,int n)
-{
-  if (FD_COMPOUND_DESCRIPTORP(tag)) {
-    struct FD_COMPOUND *ctype=FD_XCOMPOUND(tag);
-    fdtype *fields=&(ctype->elt0);
-    int reclen=fd_getint(fields[FD_COMPOUND_TYPE_SIZE]);
-    if (reclen!=n)
-      return fd_err(_("Bad compound"),"check_compound_type",NULL,tag);
-    else return fields[FD_COMPOUND_TYPE_INITFN];}
-  else return FD_FALSE;
-}
-#endif
-
 FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,...)
 {
@@ -751,19 +759,22 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
 static fdtype copy_compound(fdtype x,int flags)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
-  int i=0, n=xc->n_elts; 
-  struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
-  fdtype *data=&(xc->elt0), *write=&(nc->elt0);
-  FD_INIT_CONS(nc,fd_compound_type);
-  if (xc->mutable) fd_init_mutex(&(nc->lock));
-  nc->mutable=xc->mutable; nc->opaque=xc->opaque;
-  nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
-  if (flags)
-    while (i<n) {
-      *write=fd_deep_copier(data[i],flags); i++; write++;}
-  else while (i<n) {
-    *write=fd_incref(data[i]); i++; write++;}
-  return FDTYPE_CONS(nc);
+  if (xc->opaque) {
+    fd_incref(x); return x;}
+  else {
+    int i=0, n=xc->n_elts; 
+    struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
+    fdtype *data=&(xc->elt0), *write=&(nc->elt0);
+    FD_INIT_CONS(nc,fd_compound_type);
+    if (xc->mutable) fd_init_mutex(&(nc->lock));
+    nc->mutable=xc->mutable; nc->opaque=1;
+    nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
+    if (flags)
+      while (i<n) {
+	*write=fd_copier(data[i],flags); i++; write++;}
+    else while (i<n) {
+	*write=fd_incref(data[i]); i++; write++;}
+    return FDTYPE_CONS(nc);}
 }
 
 /* Exceptions */
@@ -852,7 +863,7 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
   else if (flags)
     newex=u8_make_exception
       (ex->u8x_cond,ex->u8x_context,details,
-       (void *)fd_deep_copier(irritant,flags),fd_free_exception_xdata);
+       (void *)fd_copier(irritant,flags),fd_free_exception_xdata);
   else newex=u8_make_exception
 	 (ex->u8x_cond,ex->u8x_context,details,
 	  (void *)fd_incref(irritant),fd_free_exception_xdata);
@@ -937,17 +948,57 @@ struct FD_COMPOUND_ENTRY *fd_compound_entries=NULL;
 static u8_mutex compound_registry_lock;
 #endif
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol)
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
 {
   struct FD_COMPOUND_ENTRY *scan, *newrec;
   fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->tag,symbol)) {
+      if (datap) {
+	fdtype data=*datap;
+	if (FD_VOIDP(scan->data)) {
+	  fd_incref(data); scan->data=data;}
+	else {
+	  fdtype data=*datap; fd_decref(data);
+	  data=scan->data; fd_incref(data);
+	  *datap=data;}}
+      if (corep) {
+	if (scan->core_slots<0) scan->core_slots=*corep;
+	else *corep=scan->core_slots;}
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->next;
   newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
+  if (datap) {
+    fdtype data=*datap; fd_incref(data); newrec->data=data;}
+  else newrec->data=FD_VOID;
+  newrec->core_slots=((corep)?(*corep):(-1));
+  newrec->next=fd_compound_entries; newrec->tag=symbol;
+  newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
+  newrec->tablefns=NULL;
+  fd_compound_entries=newrec;
+  fd_unlock_mutex(&compound_registry_lock);
+  return newrec;
+}
+
+FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype symbol,fdtype data,int core_slots)
+{
+  struct FD_COMPOUND_ENTRY *scan, *newrec;
+  fd_lock_mutex(&compound_registry_lock);
+  scan=fd_compound_entries;
+  while (scan)
+    if (FD_EQ(scan->tag,symbol)) {
+      if (!(FD_VOIDP(data))) {
+	fdtype old_data=scan->data;
+	scan->data=fd_incref(data);
+	fd_decref(old_data);}
+      if (core_slots>0) scan->core_slots=core_slots;
+      fd_unlock_mutex(&compound_registry_lock);
+      return scan;}
+    else scan=scan->next;
+  newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
+  newrec->data=data; newrec->core_slots=core_slots;
   newrec->next=fd_compound_entries; newrec->tag=symbol;
   newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
   newrec->tablefns=NULL;
@@ -1006,7 +1057,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype timestamp_parsefn(int n,fdtype *args)
+static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_entry e)
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
   u8_string timestring;
@@ -1069,7 +1120,7 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   return size;
 }
 
-static fdtype timestamp_restore(fdtype tag,fdtype x)
+static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_entry e)
 {
   if (FD_FIXNUMP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -1224,12 +1275,12 @@ void fd_init_cons_c()
   timestamp0_symbol=fd_intern("TIMESTAMP0");
 
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol);
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
     e->dump=NULL;
     e->restore=timestamp_restore;}
-    {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp0_symbol);
+  {
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp0_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
     e->dump=NULL;
     e->restore=timestamp_restore;}

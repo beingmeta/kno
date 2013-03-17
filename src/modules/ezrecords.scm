@@ -5,8 +5,6 @@
 
 ;;; This provides a dead simple RECORDS implementation 
 ;;;  building on FramerD's built-in compounds.
-(define version "$Id$")
-(define revision "$Revision$")
 
 (define xref-opcode (make-opcode 0xA2))
 
@@ -44,25 +42,31 @@
 			  (testopt defspec 'mutable)))
 	   (isopaque (or (and (pair? defspec) (position 'opaque defspec))
 			 (testopt defspec 'opaque)))
+	   (corelen (getopt defspec 'corelen))
+	   (consfn (getopt defspec 'consfn))
+	   (stringfn (getopt defspec 'stringfn))
 	   (fields (cddr expr))
 	   (field-names (map (lambda (x) (if (pair? x) (car x) x)) fields))
 	   (cons-method-name (string->symbol (stringout "CONS-" tag)))
 	   (predicate-method-name (string->symbol (stringout tag "?"))))
       `(begin (bind-default! %rewrite {})
-	      (defambda (,cons-method-name ,@fields)
-		(,(if ismutable
-		      (if isopaque make-opaque-mutable-compound make-mutable-compound)
-		      (if isopaque make-opaque-compound make-compound))
-		 ',tag ,@field-names))
-	      (define (,predicate-method-name ,tag)
-		(,compound-type? ,tag ',tag))
-	      ,@(map (lambda (field) (make-accessor-def field tag prefix fields))
-		     fields)
-	      ,@(map (lambda (field) (make-accessor-subst field tag prefix fields))
-		     fields)
-	      ,@(if ismutable
-		    (map (lambda (field) (make-modifier-def field tag prefix fields))
-			 fields)
-		    '())))))
+	 (defambda (,cons-method-name ,@fields)
+	   (,(if ismutable
+		 (if isopaque make-opaque-mutable-compound make-mutable-compound)
+		 (if isopaque make-opaque-compound make-compound))
+	    ',tag ,@field-names))
+	 (define (,predicate-method-name ,tag)
+	   (,compound-type? ,tag ',tag))
+	 ,@(map (lambda (field) (make-accessor-def field tag prefix fields))
+		fields)
+	 ,@(map (lambda (field) (make-accessor-subst field tag prefix fields))
+		fields)
+	 ,@(if ismutable
+	       (map (lambda (field) (make-modifier-def field tag prefix fields))
+		    fields)
+	       '())
+	 ,@(if corelen `((compound-set-corelen! ',tag ,corelen)) '())
+	 ,@(if consfn `((compound-set-consfn! ',tag ,consfn)) '())
+	 ,@(if stringfn `((compound-set-stringfn! ',tag ,stringfn)) '())))))
 
 (module-export! 'defrecord)

@@ -952,7 +952,7 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
     /* Avoid aliasing */
     fdtype oidval=fd_oid_value(initval);
     if (FD_ABORTP(oidval)) return oidval;
-    initval=fd_deep_copier(oidval,copyflags);
+    initval=fd_copier(oidval,copyflags);
     fd_decref(oidval);}
   else if (copyflags)
     initval=fd_deep_copy(initval);
