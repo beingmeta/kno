@@ -2593,7 +2593,7 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  if (FD_EMPTY_CHOICEP(arg)) return FD_FALSE;
+  if (FD_EMPTY_CHOICEP(arg)) return 0;
   if (FD_EXPECT_TRUE(argtype<FD_TYPE_MAX))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->test!=NULL))
