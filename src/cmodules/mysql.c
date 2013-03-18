@@ -494,6 +494,8 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
   case MYSQL_TYPE_TIMESTAMP: {
     struct U8_XTIME xt;
     MYSQL_TIME *mt=(MYSQL_TIME *)outval->buffer;
+    if (!((mt->year)||(mt->month)||(mt->day)||(mt->hour)||(mt->minute)||(mt->second)))
+      return FD_EMPTY_CHOICE;
     memset(&xt,0,sizeof(xt));
     xt.u8_year=mt->year;
     xt.u8_mon=mt->month-1;
