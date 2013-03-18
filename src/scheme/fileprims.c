@@ -710,6 +710,42 @@ static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
   return fd_init_string(NULL,-1,dirname);
 }
 
+static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
+{
+  int force=(!(FD_FALSEP(force_arg))), doit=0;
+  u8_string dirname=FD_STRDATA(tempdir);
+  u8_lock_mutex(&tempdirs_lock); {
+    fdtype cur_tempdirs=tempdirs; fdtype cur_keep=keeptemp;
+    if (fd_overlapp(tempdir,cur_tempdirs)) {
+      if (fd_overlapp(tempdir,cur_keep)) {
+	if (force) {
+	  u8_log(LOG_WARN,"Forcing deletion of directory %s, declared for safekeeping",dirname);
+	  keeptemp=fd_difference(cur_keep,tempdir);
+	  tempdirs=fd_difference(cur_tempdirs,tempdir);
+	  fd_decref(cur_keep); fd_decref(cur_tempdirs);
+	  doit=1;}
+	else u8_log(LOG_WARN,"The directory %s is declared for safekeeping, leaving",dirname);}
+      else {
+	u8_log(LOG_INFO,"Explicitly deleting temporary directory %s",dirname);
+	tempdirs=fd_difference(cur_tempdirs,tempdir);
+	fd_decref(cur_tempdirs);
+	doit=1;}}
+    else if (!(u8_directoryp(dirname))) 
+      u8_log(LOG_WARN,"The temporary directory %s is neither declared or actual",dirname);
+    else if (force) {
+      u8_log(LOG_WARN,"Forcing deletion of the undeclared temporary directory %s",dirname);
+      doit=1;}
+    else u8_log(LOG_WARN,"The directory %s is not a known temporary directory, leaving",
+		FD_STRDATA(tempdir));
+    u8_unlock_mutex(&tempdirs_lock);}
+  if (doit) {
+    int retval=u8_rmtree(dirname);
+    if (retval<0) return FD_ERROR_VALUE;
+    else if (retval==0) return FD_FALSE;
+    else return FD_INT2DTYPE(retval);}
+  else return FD_FALSE;
+}
+
 static fdtype tempdirs_get(fdtype sym,void *ignore)
 {
   fdtype dirs=tempdirs;
@@ -1980,6 +2016,10 @@ FD_EXPORT void fd_init_fileio_c()
 #endif
   fd_idefn(fileio_module,
 	   fd_make_cprim2x("TEMPDIR",tempdir_prim,0,
+			   fd_string_type,FD_VOID,
+			   -1,FD_FALSE));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("TEMPDIR/DONE",tempdir_done_prim,0,
 			   fd_string_type,FD_VOID,
 			   -1,FD_FALSE));
   fd_idefn(fileio_module,
