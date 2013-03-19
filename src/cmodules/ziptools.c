@@ -354,6 +354,33 @@ static fdtype zipexists_prim(fdtype zipfile,fdtype filename)
     return FD_TRUE;}
 }
 
+static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
+{
+  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  u8_string fname=FD_STRDATA(filename);
+  struct zip_stat zstat; int zret;
+  struct zip_file *zfile;
+  int index;
+  u8_lock_mutex(&(zf->lock));
+  if (zf->closed) {
+    fdtype errval=zipreopen(zf,1);
+    if (FD_ABORTP(errval)) {
+      u8_unlock_mutex(&(zf->lock));
+      return errval;}}
+  index=zip_name_locate(zf->zip,fname,0);
+  if (index<0) {
+    u8_unlock_mutex(&(zf->lock));
+    return FD_FALSE;}
+  else if ((zret=zip_stat(zf->zip,FD_STRDATA(filename),0,&zstat))) {
+    u8_unlock_mutex(&(zf->lock));
+    return ziperr("zipget_prim/stat",zf,filename);}
+  else {
+    time_t modified=zstat.mtime;
+    fdtype timestamp=fd_time2timestamp(modified);
+    u8_unlock_mutex(&(zf->lock));
+    return timestamp;}
+}
+
 static fdtype zipgetfiles_prim(fdtype zipfile)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
@@ -448,6 +475,11 @@ FD_EXPORT int fd_init_ziptools()
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID));
   
+  fd_idefn(ziptools_module,
+	   fd_make_cprim2x("ZIP/MODTIME",zipmodtime_prim,2,
+			   fd_zipfile_type,FD_VOID,
+			   fd_string_type,FD_VOID));
+
   fd_idefn(ziptools_module,
 	   fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
 			   fd_zipfile_type,FD_VOID));
