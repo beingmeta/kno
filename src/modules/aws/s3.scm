@@ -217,10 +217,14 @@
     (if (>= 299 status 200) result
 	(if err
 	    (error S3FAILURE S3/OP result)
-	    (begin (warning "Bad result " status " (" (get result 'header)
-			    ") for" (get result 'effective-url)
-			    "\n#|" (get result '%content) "|#\n"
-			    result)
+	    (begin
+	      (unless (and (equal? op "HEAD") (overlaps? status {404 410}))
+		;; Don't generate warnings for HEAD operations because
+		;;  they're often probes
+		(warning "Bad result " status " (" (get result 'header)
+			 ") for" (get result 'effective-url)
+			 "\n#|" (get result '%content) "|#\n"
+			 result))
 	      result)))))
 
 (define (s3/uri bucket path (scheme s3scheme) (usepath default-usepath))
