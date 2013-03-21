@@ -91,19 +91,18 @@
 	      (lref (try (get urlmap (vector ref))
 			 (mkpath read name)))
 	      (savepath (gp/mkpath saveto name)))
-	 (debug%watch "LOCALIZE" ref base absref saveto read
-		      (get urlmap absref))
 	 (when (and (not (get urlmap (vector ref)))
 		    (exists? (get urlmap lref)))
 	   ;; Name conflict
 	   (set! name (glom (packet->base16 (md5 absref)) suffix))
 	   (set! lref (mkpath read name))
 	   (set! savepath (gp/mkpath saveto name)))
-	 (debug%watch "URLMAP" ref lref absref)
 	 (store! urlmap ref lref)
 	 (store! urlmap lref ref)
 	 (store! urlmap (vector ref) lref)
 	 (when (string? absref) (store! urlmap absref lref))
+	 (debug%watch "LOCALREF" lref ref base absref saveto read
+		      (get urlmap absref))
 	 (let* ((sourcetime (gp/modified absref))
 		(existing (gp/exists? savepath))
 		(savetime (and existing (gp/modified savepath)))
@@ -193,8 +192,8 @@
 			    (try (get node 'type) "text/css")
 			    (and (exists has-prefix (get node 'type) "text/css")
 				 xformcss))))
-	(logdebug "Localized " (write (get node 'href))
-		  " to " (write ref) " for " node)
+	(logdetail "Local ref " (write ref) " copied from "
+		   (write (get node 'href)) "\n\tfor " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
@@ -202,6 +201,8 @@
       (let ((ref (localref (get node 'src)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
+	(logdetail "Local ref " (write ref) " copied from " (write (get node 'src))
+		   "\n\tfor " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'src ref)
 	  (set+! files ref))))
@@ -213,6 +214,8 @@
 		       (or (not doanchors) (textsearch doanchors href))
 		       (localref href urlmap base (qc saveto) read
 				 (qc amalgamate) (qc localhosts)))))
+	(logdetail "Local ref " (write ref) " copied from " (write (get node 'href))
+		   "\n\tfor " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
