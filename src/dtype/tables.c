@@ -436,15 +436,22 @@ static fdtype copy_slotmap(fdtype smap,int flags)
   struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
   struct FD_SLOTMAP *fresh; int unlock=0;
   if (!(cur->freedata)) {
-    struct FD_KEYVAL *kvals=cur->keyvals;
-    int i=0, len=cur->size;
-    fdtype copy;
-    while (i<len) {
-      fd_incref(kvals[i].key); fd_incref(kvals[i].value); i++;}
+    fdtype copy; struct FD_SLOTMAP *consed; struct FD_KEYVAL *kvals;
+    int i=0, len;
     copy=fd_make_slotmap(cur->space,cur->size,cur->keyvals);
-    if (FD_ABORTP(copy)) {
-      i=0; while (i<len) {
-	fd_decref(kvals[i].key); fd_decref(kvals[i].value); i++;}}
+    consed=(struct FD_SLOTMAP *)copy;
+    kvals=consed->keyvals; len=consed->size;
+    if (cur->uselock) {fd_read_lock_struct(cur); unlock=1;}
+    while (i<len) {
+      fdtype key=kvals[i].key, val=kvals[i].value;
+      if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(key)))
+	kvals[i].key=fd_copier(key,flags);
+      else fd_incref(key);
+      if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(val)))
+	kvals[i].value=fd_copier(val,flags);
+      else fd_incref(val);
+      i++;}
+    if (unlock) fd_rw_unlock_struct(cur);
     return copy;}
   else fresh=u8_alloc(struct FD_SLOTMAP);
   FD_INIT_STRUCT(fresh,struct FD_SLOTMAP);
@@ -465,7 +472,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
       if (FD_CONSP(val))
 	if (FD_ACHOICEP(val))
 	  write->value=fd_make_simple_choice(val);
-	else if (flags)
+	else if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(val)))
 	  write->value=fd_copier(val,flags);
 	else write->value=fd_incref(val);
       else write->value=val;
@@ -614,7 +621,7 @@ static fdtype copy_schemap(fdtype schemap,int flags)
       if (FD_CONSP(val))
 	if (FD_ACHOICEP(val))
 	  values[i]=fd_make_simple_choice(val);
-	else if (flags)
+	else if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(val)))
 	  values[i]=fd_copier(val,flags);
 	else values[i]=fd_incref(val);
       else values[i]=val;
@@ -2048,7 +2055,9 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 	if (FD_CONSP(val))
 	  if (FD_ACHOICEP(val))
 	    kvwrite->value=fd_make_simple_choice(val);
-	  else kvwrite->value=fd_copy(val);
+	  else if (FD_STACK_CONSED(val))
+	    kvwrite->value=fd_copy(val);
+	  else {fd_incref(val); kvwrite->value=val;}
 	else kvwrite->value=val;
 	kvwrite++;}}
   if (unlock) fd_rw_unlock_struct(ptr);

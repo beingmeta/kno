@@ -495,12 +495,13 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
            label=<value> */
       fdtype towatch=FD_CAR(scan), wval=FD_VOID;
       if ((FD_STRINGP(towatch)) && (FD_PAIRP(FD_CDR(scan)))) {
+	fdtype label=towatch;
 	towatch=FD_CAR(FD_CDR(scan)); scan=FD_CDR(FD_CDR(scan));
 	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
 	      (fd_eval(towatch,env)));
-	if (oneout) u8_printf(&out,"; %s=%q",FD_STRDATA(towatch),wval);
+	if (oneout) u8_printf(&out,"; %s=%q",FD_STRDATA(label),wval);
 	else {
-	  u8_printf(&out,"%s=%q",FD_STRDATA(towatch),wval);
+	  u8_printf(&out,"%s=%q",FD_STRDATA(label),wval);
 	  oneout=1;}
 	off=check_line_length(&out,off,50);
 	fd_decref(wval); wval=FD_VOID;}

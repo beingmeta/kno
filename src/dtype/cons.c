@@ -362,7 +362,7 @@ fdtype fd_copier(fdtype x,int flags)
       return fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));}
     default:
       if (fd_copiers[ctype])
-	return (fd_copiers[ctype])(x,1);
+	return (fd_copiers[ctype])(x,flags);
       else if ((flags)&(FD_STRICT_COPY)) 
 	return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
@@ -383,7 +383,7 @@ fdtype fd_copy(fdtype x)
   if (!(FD_CONSP(x))) return x;
   else if (FD_MALLOCD_CONSP(((fd_cons)x)))
     return fd_incref(x);
-  else return fd_deep_copy(x);
+  else return fd_copier(x,0);
 }
 
 /* Strings */

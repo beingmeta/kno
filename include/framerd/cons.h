@@ -136,6 +136,8 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_STACK_CONSP(x) ((((x)->consbits)>>7)==0)
 #define FD_MALLOCD_CONSP(x) ((((x)->consbits)>>7)!=0)
 
+#define FD_STACK_CONSED(x) ((FD_CONSP(x))&&((((struct FD_CONS *)x)->consbits)>>7)==0)
+
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
 
