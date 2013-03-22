@@ -149,6 +149,7 @@
 	   " to " (write read) ", copying content to " 
 	   (if (singleton? saveto) (write saveto)
 	       (do-choices saveto (printout "\n\t" (write saveto)))))
+  (debug%watch amalgamate localhosts doanchors)
   (let ((amalgamate (or amalgamate {}))
 	(localhosts (or localhosts {}))
 	(head (dom/find dom "HEAD" #f))
