@@ -43,9 +43,19 @@
 (define-init authid 'AUTH)
 (varconfig! auth:id authid)
 
-;; The CGI state var used to store the current user
-(define-init userid 'AUTHUSER)
-(varconfig! auth:user userid)
+;; The cookie/CGI var used to store the current user
+(define-init auth-user 'AUTHUSER)
+(define-init user-cookie ".AUTHUSER")
+(define-init requser '_AUTHUSER)
+(config-def! 'auth:user
+	     (lambda (var (val))
+	       (if (not (bound? val)) auth-user
+		   (if (not (symbol? val))
+		       (error "Not a symbol" val)
+		       (begin (set! auth-user val)
+			 (set! user-cookie (glom "." val))
+			 (set! requser (string->symbol (glom "_" val))))))))
+
 
 ;; How long a key to use when signing 
 (define %siglen 32)
@@ -128,11 +138,15 @@
 
 ;;; Expiration intervals
 
+;; How long authorizations last by default without refresh
+;;  If we're doing this over HTTPS (which we should) and the user
+;;   has specified sticky authorization, we can make this really long
 (define auth-expiration (* 3600 24 14))
 (define auth-refresh (* 60 15))
 (define auth-grace (* 60 15))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
+;; The grace period for refreshes not over HTTPS 
 (varconfig! auth:grace auth-grace)
 
 ;;; Checking tokens
@@ -199,13 +213,13 @@
 	       (timestamp+ (- (* 7 24 3600)))
 	       #f))
 
-(define (set-cookies! auth (var authid) (uservar userid)
+(define (set-cookies! auth (var authid) (uservar user-cookie)
 		      (authstring) (identity))
   (default! authstring (auth->string auth))
   (default! identity (authinfo-identity auth))
   (debug%watch "SET-COOKIES!" var authstring identity
 	       auth-cookie-domain auth-cookie-path auth-secure)
-  (if auth-secure
+  (if (and auth-secure (req/get 'https #f))
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
 		   (and (authinfo-sticky? auth) (authinfo-expires auth))
@@ -221,7 +235,7 @@
 		(if secret (packet->base64 (encrypt authstring secret))
 		    authstring)))
   ;; When you have a secret but are in secure mode, store an encrypted version
-  ;;  of your authorization in a variant
+  ;;  of your authorization in a variant cookie over non-HTTPS
   (when (and auth-secure secret)
     (set-cookie! (if auth-secure (stringout var "-") var)
 		 (packet->base64 (encrypt authstring secret))
@@ -232,24 +246,25 @@
 	      (packet->base64 (encrypt authstring secret))))
   ;; When you can encrypt it, store the identity as a cookie
   ;;  Note that this should never be used to confirm identity
-  (when secret
-    (set-cookie! (glom "." uservar)
-		 (packet->base64
-		  (encrypt (stringout (unparse-arg identity) ";"
-			     (random-string 128))
-			   secret))
-		 auth-cookie-domain auth-cookie-path
-		 (timestamp+ (* 3600 24 42))
-		 #f)))
+  (when (or secret (req/get 'https))
+    (set-cookie! uservar
+      (if (req/get 'https) (unparse-arg identity)
+	  (packet->base64
+	   (encrypt (stringout (unparse-arg identity) ";"
+		      (random-string 128))
+		    secret)))
+      auth-cookie-domain auth-cookie-path
+      (timestamp+ (* 3600 24 42))
+      (req/get 'https))))
 
 (define (getauthinfo var)
-  (cond ((and auth-secure (cgiget 'https #f)) (cgiget var))
+  (cond ((and auth-secure (req/get 'https #f)) (req/get var))
 	((and auth-secure secret)
 	 (packet->string
-	  (decrypt (base64->packet (cgiget (stringout var "-"))) secret)))
+	  (decrypt (base64->packet (req/get (stringout var "-"))) secret)))
 	(auth-secure #f)
-	(secret (decrypt (cgiget var) secret))
-	(else (cgiget var))))
+	(secret (decrypt (req/get var) secret))
+	(else (req/get var))))
 
 ;;; AUTHINFO
 
@@ -269,7 +284,7 @@
 		 (if (authinfo-sticky? auth) ";STICKY")))
 	 (sig (hmac-sha1 info signature))
 	 (result (stringout info ";" (packet->base64 sig))))
-    (debug%watch "AUTH->STRING" auth info sig result)
+    (detail%watch "AUTH->STRING" auth info sig result)
     result))
 
 (define (string->auth authstring (authid authid))
@@ -277,7 +292,7 @@
 	 (payload (and split (subseq authstring 0 split)))
 	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
 	 (info (and split (map string->lisp (segment payload ";")))))
-    (debug%watch "STRING->AUTH" 
+    (detail%watch "STRING->AUTH" 
       info payload sig (hmac-sha1 payload signature)
       authstring)
     (unless (equal? sig (hmac-sha1 payload signature))
@@ -298,7 +313,7 @@
 	 (sig (and split (base64->packet (subseq authstring (1+ split)))))
 	 (info (and split (map string->lisp (segment payload ";"))))
 	 (expected (hmac-sha1 payload signature)))
-    (debug%watch "UNPACK-AUTHINFO" authstring info payload sig expected)
+    (detail%watch "UNPACK-AUTHINFO" authstring info payload sig expected)
     (unless (equal? sig expected)
       (logwarn "Invalid signature in " authid " authstring " (write authstring)
 	       "\n\tfor " payload
@@ -322,13 +337,13 @@
 					   (+ (time) 3600)))
 				   sticky))
 	      (token (authinfo-token auth)))
-	 (debug%watch "AUTH/IDENTIFY!" authid identity token auth sticky
+	 (detail%watch "AUTH/IDENTIFY!" authid identity token auth sticky
 	   (auth->string auth))
 	 ;; This adds token as a valid token for identity
 	 (when checktoken
 	   (lognotice "AUTH/IDENTIFY! " authid "=" identity " w/" token)
 	   (checktoken identity token #t))
-	 (cgiset! authid auth)
+	 (req/set! authid auth)
 	 (set-cookies! auth)
 	 identity)))
 
@@ -349,7 +364,7 @@
 	#f)))
 
 (define (freshauth auth)
-  (lognotice "Refreshing auth token " auth)
+  (loginfo "Refreshing auth token " auth)
   (and (or (not checktoken) ;; Valid token?
 	   (token/ok? (authinfo-identity auth) (authinfo-token auth)))
        ;; Check that the authorization isn't too old to refresh
@@ -367,7 +382,7 @@
 	      (new (cons-authinfo realm identity (authinfo-token auth)
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
-	 (notify "Fresh auth " new "\n\t replacing " auth)
+	 (lognotice "Fresh auth " new "\n\t replacing " auth)
 	 (set-cookies! new)
 	 new)))
 
@@ -377,11 +392,11 @@
 		      (https #f) (secret secret) (auth-secure auth-secure))
   (default! authinfo (debug%watch (getauthinfo authid) authid))
   (debug%watch "AUTH/GETINFO"
-	       authid authinfo signal
-	        (cgiget authid)
-	        auth-secure
-	        (cgiget 'https #f)
-	        (not (not secret)))
+    authid authinfo signal
+    (req/get authid)
+    auth-secure
+    (req/get 'https #f)
+    (not (not secret)))
   (cond ((fail? authinfo) (fail))
 	((not authinfo) (authfail  "No authorization info" authid authinfo))
 	;; If the info is a string, convert it and authorize that
@@ -407,7 +422,7 @@
 		  (authfail "Authorization error" authid authinfo signal)))))
 
 (define (authfail reason authid info signal)
-  (debug%watch "AUTHFAIL" reason authid info)
+  (warn%watch "AUTHFAIL" reason authid info)
   (expire-cookie! authid "AUTHFAIL"
 		  (or (not info)
 		      (not (token/ok? (authinfo-identity info)
@@ -420,8 +435,19 @@
 ;;; Top level functions
 
 (define (auth/getuser (authid authid))
-  (try (req/get userid)
-       (authinfo-identity (auth/getinfo authid))
+  (try (req/get requser)
+       (let* ((info (auth/getinfo authid))
+	      (user (authinfo-identity info)))
+	 (when (and (exists? user) user)
+	   (loginfo IDENTITY (or auth-user authid) "=" user
+		    " via " authid " w/token " (authinfo-token info)
+		    " issued " (get (timestamp (authinfo-issued info)) 'iso)
+		    (when (authinfo-expires info)
+		      (printout " expiring "
+			(get (timestamp (authinfo-expires info)) 'iso)))
+		    (when (authinfo-sticky? info) " across sessions"))
+	   (req/set! requser user))
+	 (try user #f))
        #f))
 
 (define (auth/update! (authid authid))
@@ -429,17 +455,17 @@
 
 ;;;; Authorize/deauthorize API
 
-(define (auth/deauthorize! (authid authid) (info) (uservar userid))
+(define (auth/deauthorize! (authid authid) (info) (uservar user-cookie))
   ;; Get the arguments sorted
   (cond ((authinfo? authid)
 	 (set! info authid)
 	 (set! authid (authinfo-realm info)))
-	(else (default! info (cgiget authid))))
+	(else (default! info (req/get authid))))
   (when (string? info) (set! info (string->auth info)))
   (when info
     (when checktoken
       (checktoken (authinfo-identity info) (authinfo-token info) #f)))
   (expire-cookie! authid "AUTH/DEAUTHORIZE!")
-  (expire-cookie! (glom "." uservar) "AUTH/DEAUTHORIZE!"))
+  (expire-cookie! uservar "AUTH/DEAUTHORIZE!"))
 
 
