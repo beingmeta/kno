@@ -5,13 +5,15 @@
 
 (use-module '{texttools varconfig})
 
-(module-export! '{*mimetable* getsuffix path->ctype path->mimetype})
+(module-export! '{*mimetable* getsuffix ctype->suffix path->ctype path->mimetype})
 
 (define *default-charset* "utf-8")
 (varconfig! mime:charset *default-charset* config:goodstring)
 
 (define *default-mimetype* #f)
 (varconfig! mime:default *default-mimetype* config:goodstring)
+
+(define-init *inv-mimetable* (make-hashtable))
 
 (define *mimetable*
   (let ((table (make-hashtable)))
@@ -30,6 +32,8 @@
 		       ("application/x-font-truetype" "ttf")
 		       ("application/adobe-page-template+xml" "xpgt")
 		       ("application/x-dtbncx+xml" "ncx")})
+      (store! *inv-mimetable* (car map)
+	      (pick-one (downcase (smallest (elts (cdr map)) length))))
       (store! table (choice (elts (cdr map))
 			    (string-append "." (elts (cdr map))))
 	      (car map)))
@@ -53,3 +57,4 @@
 
 (define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
 
+(define (ctype->suffix ctype) (get *inv-mimetable* ctype))
