@@ -11,7 +11,7 @@
 (define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
 
-(define buglog-css (get-component "buglog.css"))
+(define bugjar-css (get-component "bugjar.css"))
 
 ;;; Configurable
 
@@ -22,7 +22,7 @@
   (and (string? string)
        (has-prefix string {"http:" "https:" "ftp:" "s3:"})))
 
-(define (buglog-config var (val))
+(define (bugjar-config var (val))
   (cond ((not (bound? val)) (cons fileroot webroot))
 	((not val)
 	 (set! fileroot #f)
@@ -31,21 +31,22 @@
 	 (set! fileroot (car val))
 	 (set! webroot (cdr val)))
 	((not (string? val))
-	 (error BADLOGROOT BUGLOG-CONFIG
+	 (error BADLOGROOT BUGJAR-CONFIG
 		"Not a valid logroot specification: " val))
 	((urish? val) (set! webroot val))
 	(else (set! fileroot val))))
-(config-def! 'buglog buglog-config)
+(config-def! 'bugjar bugjar-config)
 
 (define bughead #f)
 (varconfig! bughead bughead)
 
 (define (getlogbase uuid)
   (let* ((date (uuid-time uuid))
-	 (dir (stringout "Y0" (get date 'year) "/"
-		"M" (padnum (1+ (get date 'month)) 2) "/"
-		"D" (padnum (get date 'date) 2))))
-    (mkpath dir (stringout "BJ" (uuid->string uuid)))))
+	 (daily (stringout "Y0" (get date 'year) "/"
+		  "M" (padnum (1+ (get date 'month)) 2) "/"
+		  "D" (padnum (get date 'date) 2)))
+	 (dir (mkpath daily (stringout "BJ" (uuid->string uuid)))))
+    dir))
 
 (define (bugjar! uuid exception . more)
   (let* ((uuid (if uuid (getuuid uuid) (getuuid)))
@@ -53,7 +54,7 @@
 	 (fileroot (abspath (mkpath fileroot logbase)))
 	 (webroot (and webroot (mkpath webroot logbase)))
 	 (reqdata (or (req/get 'reqdata #f) (req/data))))
-    (mkdirs (dirname fileroot))
+    (mkdirs (mkpath fileroot "example"))
     (dtype->file reqdata (mkpath fileroot "request.dtype"))
     (while (and (pair? more)
 		(or (string? (car more)) (symbol? (car more)))
@@ -66,7 +67,7 @@
       (set! more (cddr more)))
     (when (pair? more)
       (dtype->file (mkpath fileroot "more.dtype") (car more)))
-    (fileout (mkpath fileroot "bt.html")
+    (fileout (mkpath fileroot "backtrace.html")
       (with/request/out
        (title! "Error " (uuid->string uuid) ": "
 	       (error-condition exception)
@@ -76,7 +77,7 @@
 		 (printout " \&ldquo;" (error-context exception) "\&rdquo;")))
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
-	  (xhtml (filestring buglog-css))))
+	  (xhtml (filestring bugjar-css))))
        (stylesheet! "http://static.beingmeta.com/static/fdjt.css")
        (body! 'class "fdjtbugreport")
        (htmlheader (xmlelt "META" http-equiv "Content-type" value "text/html; charset=utf-8"))
@@ -116,7 +117,7 @@
 	 (h2* ((id "RESOURCES")) "Resource data")
 	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
 	 (h2* ((id "BACKTRACE")) "Full backtrace")
-	 (backtrace->html exception))))
+	 (void (backtrace->html exception)))))
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
