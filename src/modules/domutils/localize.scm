@@ -154,7 +154,7 @@
 	(localhosts (or localhosts {}))
 	(head (dom/find dom "HEAD" #f))
 	(files {}))
-    (dolist (node (dom/find->list dom "img"))
+    (dolist (node (dom/find->list dom "[src]"))
       (let ((ref (localref (get node 'src)
 			   urlmap base (qc saveto) read
 			   (qc amalgamate) (qc localhosts))))
@@ -163,6 +163,19 @@
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'src ref)
 	  (set+! files ref))))
+    (dolist (node (dom/find->list dom "[href]"))
+      (let* ((href (get node 'href))
+	     (ref (and (not (string-starts-with?
+			     href #((isalpha) (isalpha) (isalpha+) ":")))
+		       (or (not doanchors) (textsearch doanchors href))
+		       (localref href urlmap base (qc saveto) read
+				 (qc amalgamate) (qc localhosts)))))
+	(logdetail "Local ref " (write ref) " copied from " (write (get node 'href))
+		   "\n\tfor " node)
+	(when (and (exists? ref) ref)
+	  (dom/set! node 'href ref)
+	  (set+! files ref))))
+    ;; Convert url() references in stylesheets
     (do-choices (node (pick (dom/find head "link") 'rel "stylesheet"))
       (let* ((ctype (try (get node 'type) "text"))
 	     (xformurlfn
@@ -195,28 +208,6 @@
 				 xformcss))))
 	(logdetail "Local ref " (write ref) " copied from "
 		   (write (get node 'href)) "\n\tfor " node)
-	(when (and (exists? ref) ref)
-	  (dom/set! node 'href ref)
-	  (set+! files ref))))
-    (do-choices (node (pick (dom/find dom "script") 'src))
-      (let ((ref (localref (get node 'src)
-			   urlmap base (qc saveto) read
-			   (qc amalgamate) (qc localhosts))))
-	(logdetail "Local ref " (write ref) " copied from " (write (get node 'src))
-		   "\n\tfor " node)
-	(when (and (exists? ref) ref)
-	  (dom/set! node 'src ref)
-	  (set+! files ref))))
-    (dolist (node (dom/find->list dom "a"))
-      (let* ((href (try (get node 'href) #f))
-	     (ref (and href
-		       (not (string-starts-with?
-			     href #((isalpha) (isalpha) (isalpha+) ":")))
-		       (or (not doanchors) (textsearch doanchors href))
-		       (localref href urlmap base (qc saveto) read
-				 (qc amalgamate) (qc localhosts)))))
-	(logdetail "Local ref " (write ref) " copied from " (write (get node 'href))
-		   "\n\tfor " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
