@@ -413,6 +413,22 @@ static fdtype remove_file_prim(fdtype arg,fdtype must_exist)
   else return FD_FALSE;
 }
 
+static fdtype remove_tree_prim(fdtype arg,fdtype must_exist)
+{
+  u8_string filename=FD_STRDATA(arg);
+  if (u8_directoryp(filename)) 
+    if (u8_rmtree(FD_STRDATA(arg))<0) {
+      fdtype err=fd_err(RemoveFailed,"remove_tree_prim",filename,arg);
+      return err;}
+    else return FD_TRUE;
+  else if (FD_TRUEP(must_exist)) {
+    u8_string absolute=u8_abspath(filename,NULL);
+    fdtype err=fd_err(NoSuchFile,"remove_tree_prim",absolute,arg);
+    u8_free(absolute);
+    return err;}
+  else return FD_FALSE;
+}
+
 static fdtype move_file_prim(fdtype from,fdtype to,fdtype must_exist)
 {
   u8_string fromname=FD_STRDATA(from);
@@ -1957,6 +1973,10 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_cprim3x("LINK-FILE",link_file_prim,2,
 			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID,
+			   -1,FD_VOID));
+  fd_idefn(fileio_module,
+	   fd_make_cprim2x("REMOVE-TREE",remove_tree_prim,1,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
 
