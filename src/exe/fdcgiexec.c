@@ -466,7 +466,6 @@ static int simplecgi(fdtype path)
   int write_headers=1, retval;
   double start_time=u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
-  struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
   fdtype proc=reqsetup(), result=FD_VOID, cgidata=FD_VOID;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
@@ -493,16 +492,12 @@ static int simplecgi(fdtype path)
   u8_set_default_output(&out);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
-    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
-    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
-    threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
@@ -511,7 +506,6 @@ static int simplecgi(fdtype path)
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
-    threadcache=checkthreadcache(base);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with template",path);
     setup_proc=fd_symeval(setup_symbol,base);

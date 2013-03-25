@@ -1395,7 +1395,7 @@ static fdtype onevector_prim(int n,fdtype *args)
       if (!(FD_CONSP(each))) {u8_pile_add((&pile),each);}
       else if (FD_VECTORP(each)) {
 	int len=FD_VECTOR_LENGTH(each); int j=0;
-	while (j<0) {
+	while (j<len) {
 	  fdtype elt=FD_VECTOR_REF(each,j); fd_incref(elt);
 	  u8_pile_add(&pile,elt); j++;}}
       else if (FD_PAIRP(each)) {

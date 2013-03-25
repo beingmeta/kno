@@ -243,7 +243,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
    with data on them, so there shouldn't be too much waiting. */
 static int dtypeserver(u8_client ucl)
 {
-  fdtype expr, result;
+  fdtype expr;
   fd_client client=(fd_client)ucl;
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
@@ -261,7 +261,7 @@ static int dtypeserver(u8_client ucl)
     fd_dts_start_read(stream);
     if (nobytes((fd_byte_input)stream,1)) expr=FD_EOD;
     else if ((*(stream->ptr))==dt_block) {
-      int dtcode=fd_dtsread_byte(stream);
+      int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes))
 	expr=fd_dtsread_dtype(stream);

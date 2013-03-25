@@ -277,7 +277,7 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
 /* This reads a non frame value with compression. */
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
-  unsigned char *zbytes; int retval; ssize_t zlen=-1, size;
+  unsigned char *zbytes; ssize_t zlen=-1, size;
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
   if (fd_write_dtype(&out,x)<0) {
@@ -301,7 +301,7 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 /* This reads a non frame value with compression. */
 static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
-  unsigned char *zbytes; ssize_t zlen=-1, size; int retval=0;
+  unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
   if (FD_CHOICEP(x)) {
@@ -315,10 +315,9 @@ static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
       if (retval<0) break;}}
   else retval=fd_write_dtype(&out,x);
   if (retval>=0) 
-    
-zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+    zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
   if ((retval<0)||(zlen<0)) {
-    u8_free(zbytes); u8_free(out.start);
+    if (zbytes) u8_free(zbytes); u8_free(out.start);
     return -1;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   retval=fd_dtswrite_bytes(s,zbytes,zlen);

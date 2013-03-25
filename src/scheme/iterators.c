@@ -293,7 +293,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
   fdtype val=FD_EMPTY_CHOICE;
-  fdtype vars[2], vals[2], inner_env;
+  fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -312,7 +312,6 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;  
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  inner_env=(fdtype)(&envstruct); 
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);

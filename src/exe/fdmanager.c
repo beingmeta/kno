@@ -192,7 +192,7 @@ static int setup_rundir()
 static int setup_runas()
 {
   uid_t uid=getuid();
-  gid_t gid=getgid();
+  MAYBE_UNUSED gid_t gid=getgid();
   struct group *gentry=NULL;
 #if 0 /* Apparently, this can never happen */
   if ((uid<0) || (gid<0)) {

@@ -3399,7 +3399,6 @@ static fdtype minlen_match
   else if (!(FD_FIXNUMP(lim_arg)))
     return fd_type_error(_("fixnum"),"maxlen_match",pat);
   else {
-    fdtype results=FD_EMPTY_CHOICE;
     min_len=FD_FIX2INT(lim_arg);
     if (min_len<=0)
       return fd_type_error(_("positive fixnum"),"minlen_match",pat);}
@@ -3424,7 +3423,6 @@ static u8_byteoff minlen_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  int min_len=-1;
   fdtype cpat=fd_get_arg(pat,1);
   fdtype lim_arg=fd_get_arg(pat,2);
   if (FD_VOIDP(cpat))
@@ -3577,19 +3575,21 @@ u8_byteoff fd_text_search
   else if (FD_SYMBOLP(pat))
     if (env) {
       fdtype vpat=fd_symeval(pat,env);
-      if (FD_ABORTP(pat)) {
-	fd_interr(pat);
+      if (FD_ABORTP(vpat)) {
+	fd_interr(vpat);
 	return -2;}
-      else if (FD_VOIDP(pat)) {
+      else if (FD_VOIDP(vpat)) {
+	u8_string name=FD_SYMBOL_NAME(pat);
 	fd_seterr(fd_UnboundIdentifier,"fd_text_search",
-		  u8_strdup(FD_SYMBOL_NAME(pat)),fd_incref(pat));
+		  u8_strdup(name),fd_incref(pat));
 	return -2;}
       else {
 	u8_byteoff result=fd_text_search(vpat,env,string,off,lim,flags);
 	fd_decref(vpat); return result;}}
     else {
+      u8_string name=FD_SYMBOL_NAME(pat);
       fd_seterr(fd_UnboundIdentifier,"fd_text_search",
-		u8_strdup(FD_SYMBOL_NAME(pat)),fd_incref(pat));
+		u8_strdup(name),fd_incref(pat));
       return -2;}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);

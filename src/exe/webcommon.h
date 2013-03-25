@@ -13,7 +13,9 @@ static int traceweb=0;
 static int webdebug=0;
 static int weballowdebug=1;
 
-static int cgitrace=0;
+#define MU MAYBE_UNUSED
+
+static MU int cgitrace=0;
 static int trace_cgidata=0;
 
 static int use_threadcache=0;
@@ -36,21 +38,21 @@ static char *pidfile=NULL;
 
 static fd_lispenv server_env=NULL;
 
-static fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static fdtype response_symbol, err_symbol;
-static fdtype browseinfo_symbol, threadcache_symbol;
-static fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
-static fdtype content_slotid, content_type, tracep_slotid, query_string;
-static fdtype query_string, script_name, path_info, remote_info, document_root;
-static fdtype http_referer, http_accept;
-static fdtype http_accept_language, http_accept_encoding, http_accept_charset;
-static fdtype content_type, content_length, post_data;
-static fdtype server_port, server_name, path_translated, script_filename;
-static fdtype auth_type, remote_host, remote_user, remote_port;
-static fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
-static fdtype query_symbol, referer_symbol, forcelog_symbol;
-static fdtype webdebug_symbol, output_symbol, error_symbol;
-static fdtype errorpage_symbol, crisispage_symbol, reqdata_symbol;
+static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
+static MU fdtype response_symbol, err_symbol;
+static MU fdtype browseinfo_symbol, threadcache_symbol;
+static MU fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
+static MU fdtype content_slotid, content_type, tracep_slotid, query_string;
+static MU fdtype query_string, script_name, path_info, remote_info, document_root;
+static MU fdtype http_referer, http_accept;
+static MU fdtype http_accept_language, http_accept_encoding, http_accept_charset;
+static MU fdtype content_type, content_length, post_data;
+static MU fdtype server_port, server_name, path_translated, script_filename;
+static MU fdtype auth_type, remote_host, remote_user, remote_port;
+static MU fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
+static MU fdtype query_symbol, referer_symbol, forcelog_symbol;
+static MU fdtype webdebug_symbol, output_symbol, error_symbol;
+static MU fdtype errorpage_symbol, crisispage_symbol, reqdata_symbol;
 
 static fdtype default_errorpage=FD_VOID;
 static fdtype default_crisispage=FD_VOID;
@@ -130,7 +132,7 @@ static fdtype preflight_get(fdtype var,void *data)
   return fd_incref(preflight);
 }
 
-static fdtype run_preflight()
+static MU fdtype run_preflight()
 {
   FD_DOLIST(fn,preflight) {
     fdtype v=fd_apply(fn,0,NULL);
@@ -182,7 +184,7 @@ static fdtype postflight_get(fdtype var,void *data)
   return fd_incref(postflight);
 }
 
-static void run_postflight()
+static MU void run_postflight()
 {
   FD_DOLIST(fn,postflight) {
     fdtype v=fd_apply(fn,0,NULL);
@@ -387,7 +389,7 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
       (fd_TypeError,"preload_config_set",u8_strdup("string"),val);
   else {
     struct FD_PRELOAD_LIST *scan;
-    u8_string filename=FD_STRDATA(val); time_t mtime; int reload=0;
+    u8_string filename=FD_STRDATA(val); time_t mtime;
     if (!(u8_file_existsp(filename))) 
       return fd_reterr("File does not exist","preload_config_set",
 		       u8_strdup(filename),FD_VOID);
@@ -565,7 +567,7 @@ static fdtype getcontent(fdtype path)
 
 /* Check threadcache */
 
-static struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
+static MAYBE_UNUSED struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
 {
   fdtype tcval=fd_symeval(threadcache_symbol,env);
   if (FD_FALSEP(tcval)) return NULL;

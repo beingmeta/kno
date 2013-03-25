@@ -169,7 +169,7 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
     if (known) return known;
     else {
       u8_byte buf[64]; fdtype xname;
-      u8_byte *at=strchr(spec,'@'), *colon=NULL;
+      u8_byte *at=strchr(spec,'@');
       if (!(at))
 	return fd_open_network_index(spec,spec,FD_VOID);
       else if ((strchr(at+1,'@'))||(strchr(at+1,':'))) {

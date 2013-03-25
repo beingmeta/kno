@@ -656,7 +656,7 @@ static fdtype get_compound_tag(fdtype tag)
 static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(val);
-  u8_string typename=fd_type_names[argtype];
+  u8_string typename=((argtype<FD_TYPE_MAX)?(fd_type_names[argtype]):(NULL));
   if (FD_STRINGP(val)) {
     int len=FD_STRLEN(val);
     u8_string data=FD_STRDATA(val);
@@ -695,7 +695,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
       if (tag) u8_printf(s,"</%s>\n",tag);}
     else if ((FD_CHOICEP(val))||(FD_ACHOICEP(val))||(FD_QCHOICEP(val))) {
       fdtype choice=((FD_QCHOICEP(val))?(FD_XQCHOICE(val)->choice):(val));
-      int i=0, size=FD_CHOICE_SIZE(choice); int count=0;
+      int size=FD_CHOICE_SIZE(choice); int count=0;
       FD_DO_CHOICES(x,choice) {
 	if (count==0) {
 	  open_tag(s,tag,cl,typename,(size>7));
@@ -898,13 +898,6 @@ static u8_exception get_next_frame(u8_exception ex)
   else return scan;
 }
 
-static void output_arg_name(u8_output s,u8_string tag,fdtype name,int optarg)
-{
-  u8_printf
-    (s,"<%s class='argname'>;; <span class='symbol'>%s<span>%s</%s>",
-     tag,FD_SYMBOL_NAME(name),((optarg)?(" optional"):("")),tag);
-}
-
 static void output_backtrace_entry(u8_output s,u8_exception ex)
 {
   if (ex==NULL) return;
@@ -1041,7 +1034,7 @@ static void output_backtrace_entries(u8_output s,u8_exception ex)
 
 static void output_backtrace(u8_output s,u8_exception ex)
 {
-  int i=0, depth; u8_exception scan=ex;
+  u8_exception scan=ex;
   u8_printf(s,"<table class='backtrace'>\n");
   output_backtrace_entries(s,scan);
   u8_printf(s,"\n</table>\n");

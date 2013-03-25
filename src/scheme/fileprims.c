@@ -643,7 +643,7 @@ static fdtype temproot_get(fdtype sym,void *ignore)
 
 static int temproot_set(fdtype sym,fdtype value,void *ignore)
 {
-  int len; u8_string template, old_template=tempdir_template;
+  u8_string template, old_template=tempdir_template;
   if (!(FD_STRINGP(value))) {
     fd_type_error("string","temproot_set",value);
     return -1;}

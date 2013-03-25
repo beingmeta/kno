@@ -771,7 +771,7 @@ static fdtype parse_packet(U8_INPUT *in)
 
 static int copy_string(u8_input s,u8_output a)
 {
-  int c=u8_getc(s), vbar=0;
+  int c=u8_getc(s);
   if (c!='"') return c;
   u8_putc(a,c);
   while ((c=u8_getc(s))>=0) {
@@ -1204,7 +1204,8 @@ fdtype fd_parser(u8_input in)
 	return fd_make_list(2,fd_intern(buf),fd_parser(in));}
       else u8_ungetc(in,ch);}}
   default: { /* Parse an atom */
-    struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
+    struct U8_OUTPUT tmpbuf; char buf[128];
+    fdtype result; MAYBE_UNUSED int c; 
     U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
     if (inchar == '#') u8_putc(&tmpbuf,'#');
     c=copy_atom(in,&tmpbuf);

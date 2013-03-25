@@ -240,6 +240,9 @@ static fdtype cons_compound(int n,fdtype *args,fd_compound_entry e)
       fdtype result=fd_apply(method,n,args);
       fd_decref(method);
       return result;}}
+  else {
+    int i=0; while (i<n) {fdtype elt=args[i++]; fd_incref(elt);}
+    return fd_init_compound_from_elts(NULL,e->tag,1,n,args);}
 }
 
 static int stringify_compound(u8_output out,fdtype compound,fd_compound_entry e)

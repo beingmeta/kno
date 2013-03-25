@@ -388,7 +388,7 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
 		      ((u8_string)""));
   u8_output output=u8_current_output;
   u8_string string=FD_STRDATA(input);
-  u8_byte *scan=input; int c=u8_sgetc(&scan);
+  u8_byte *scan=string; int c=u8_sgetc(&scan);
   while (c>0) {
     if ((c>=0x80)||(strchr(exstring,c))) {
       u8_printf(output,"\\u%04x",c);}

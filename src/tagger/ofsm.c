@@ -41,7 +41,6 @@
 
 static fd_exception TooManyWords=_("Too many words");
 static fd_exception ParseFailed=_("Parser failed");
-static fd_exception InternalParseError=_("Internal parse error");
 static fd_exception LateConfiguration=_("LEXDATA has already been configured");
 static fd_exception NoGrammar=_("No grammar identified");
 
@@ -1266,7 +1265,7 @@ static void print_state(fd_parse_context pc,char *op,fd_parse_state sr,FILE *f)
    Checks that the queue of states doesn't have any cycles,
   signalling an excpection if it does.
 */ 
-static void check_queue_integrity(fd_parse_context pc)
+static MAYBE_UNUSED void check_queue_integrity(fd_parse_context pc)
 {
   return;
 #if 0

@@ -278,6 +278,8 @@ FD_EXPORT void fd_init_extdbi_c()
   fd_idefn(extdb_module,fd_make_cprim1x
 	   ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type));
   fd_idefn(extdb_module,fd_make_cprim1x
+	   ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type));
+  fd_idefn(extdb_module,fd_make_cprim1x
 	   ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type));
   fd_idefn(extdb_module,fd_make_cprim1x
 	   ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type));

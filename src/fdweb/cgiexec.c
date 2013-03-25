@@ -43,7 +43,6 @@ static fdtype ipeval_symbol;
 
 static int log_cgidata=0;
 
-static u8_condition CGIData="CGIDATA";
 static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 
 #define DEFAULT_CONTENT_TYPE \
@@ -327,7 +326,6 @@ static void setcookiedata(fdtype cookiedata,fdtype cgidata)
 static void convert_cookie_arg(fd_slotmap c)
 {
   fdtype qval=fd_slotmap_get(c,http_cookie,FD_VOID);
-  fdtype parsed=FD_EMPTY_CHOICE;
   if (!(FD_STRINGP(qval))) {fd_decref(qval); return;}
   else {
     fdtype slotid=FD_VOID, name=FD_VOID, value=FD_VOID;
@@ -820,18 +818,6 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
       return shorter;}
     else return val;}
   else return val;
-}
-
-static fdtype reqdatalogfn(fdtype cgidata)
-{
-  fdtype keys=fd_getkeys(cgidata);
-  FD_DO_CHOICES(key,keys) {
-    fdtype value=fd_get(cgidata,key,FD_VOID);
-    if (!(FD_VOIDP(value)))
-      u8_log(LOG_DEBUG,CGIData,"%q = %q",key,value);
-    fd_decref(value);}
-  fd_decref(keys);
-  return FD_VOID;
 }
 
 struct CGICALL {

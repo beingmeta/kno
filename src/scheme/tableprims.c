@@ -213,24 +213,6 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
 
 typedef fdtype (*reduceop)(fdtype,fdtype);
 
-static fdtype reduce_choice_arg(fdtype args,reduceop op,u8_string fname)
-{
-  fdtype result=FD_VOID;
-  FD_DO_CHOICES(arg,args) {
-    if (FD_NUMBERP(arg)) {
-      if (FD_VOIDP(result)) {
-	result=arg; fd_incref(arg);}
-      else {
-	fdtype old=result;
-	result=op(result,arg);
-	fd_decref(old);}}
-    else {
-      fd_decref(result);
-      FD_STOP_DO_CHOICES;
-      return fd_type_error("number",fname,arg);}}
-  return result;
-}
-
 /* Various table operations */
 
 static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)

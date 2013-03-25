@@ -407,7 +407,6 @@ static fdtype servlet_status()
 static int check_pid_file(char *sockname)
 {
   int fd; u8_string dir=NULL; char buf[128]; 
-  int len=strlen(sockname);
   char *dot=strchr(sockname,'.');
   if (dot) *dot='\0';
   if (sockname[0]!='/') dir=u8_getcwd();
@@ -514,12 +513,12 @@ static int max_error_depth=128;
 
 static int webservefn(u8_client ucl)
 {
-  fdtype proc=FD_VOID, result=FD_VOID, onerror=FD_VOID;
+  fdtype proc=FD_VOID, result=FD_VOID;
   fdtype cgidata=FD_VOID, init_cgidata=FD_VOID, path=FD_VOID, precheck;
   fdtype content=FD_VOID, retfile=FD_VOID;
   fd_lispenv base_env=NULL;
   fd_webconn client=(fd_webconn)ucl;
-  int write_headers=1, close_html=0, resuming=0;
+  int write_headers=1, close_html=0;
   double start_time, setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache=NULL;
   struct rusage start_usage, end_usage;
@@ -557,7 +556,7 @@ static int webservefn(u8_client ucl)
 	(havebytes((fd_byte_input)stream,1))&&
 	((*(stream->ptr))==dt_block)) {
       /* If we can be asynchronous, let's try */
-      int dtcode=fd_dtsread_byte(stream);
+      int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes)) {
 	/* We can execute without waiting */}
@@ -766,6 +765,7 @@ static int webservefn(u8_client ucl)
 	       excond,FD_STRDATA(path),excxt,exdetails);
       else u8_log(LOG_ERR,excond,"Unexpected error \"%m \" %s:@%s (%s)",
 		  excond,excxt,exdetails);
+      if (!(FD_VOIDP(irritant))) u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
       exscan=exscan->u8x_prev; depth++;}
     /* First we try to apply the error page if it's defined */
     if (FD_APPLICABLEP(errorpage)) {
@@ -812,6 +812,7 @@ static int webservefn(u8_client ucl)
 	  else u8_log(LOG_ERR,excond,
 		      "Unexpected recursive error \"%m \" %s:@%s (%s)",
 		      excond,excxt,exdetails);
+	  if (!(FD_VOIDP(irritant))) u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
 	  lastex=exscan; exscan=exscan->u8x_prev; depth++;}
 	while (exscan) {
 	  lastex=exscan; exscan=exscan->u8x_prev; depth++;}
@@ -886,8 +887,7 @@ static int webservefn(u8_client ucl)
     U8_INIT_OUTPUT(&httphead,1024); U8_INIT_OUTPUT(&htmlhead,1024);
     fd_output_http_headers(&httphead,cgidata);
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
-      char clen_header[128]; u8_byte *bundle;
-      size_t bundle_len=0;
+      char clen_header[128]; size_t bundle_len=0;
       if (write_headers) {
 	close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
 	head_len=(htmlhead.u8_outptr-htmlhead.u8_outbuf);
@@ -933,7 +933,7 @@ static int webservefn(u8_client ucl)
 	  /* This is the case where we hand off a buffer to fdserv
 	     to write for us. */
 	  unsigned char *write=filebuf+http_len;
-	  off_t to_read=fileinfo.st_size, so_far=0;
+	  off_t to_read=fileinfo.st_size;
 	  memcpy(write,httphead.u8_outbuf,http_len);
 	  while ((to_read>0)&&
 		 ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {
@@ -1005,7 +1005,7 @@ static int webservefn(u8_client ucl)
     fd_decref(content); fd_decref(traceval);
     if (retval<0)
       u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
-    if ((reqlog) || (urllog) || (trace_cgidata))
+    if ((reqlog) || (urllog) || (trace_cgidata) || (tracep))
       dolog(cgidata,result,client->out.u8_outbuf,
 	    outstream->u8_outptr-outstream->u8_outbuf,
 	    u8_elapsed_time()-start_time);}

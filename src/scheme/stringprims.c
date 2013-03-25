@@ -189,7 +189,9 @@ static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
   else {
     u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
     int c=u8_sgetc(&scan);
-    if (!(u8_isspace(c))) return FD_FALSE;
+    if ((count_vspace)&&((c=='\n')||(c=='\r')))
+      return FD_FALSE;
+    else if (!(u8_isspace(c))) return FD_FALSE;
     while ((c>=0) && (scan<lim))
       if (u8_isspace(c))
 	c=u8_sgetc(&scan);

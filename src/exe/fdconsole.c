@@ -307,7 +307,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     u8_log(LOG_WARN,"BACKTRACE","No built-in support for HTML backtraces");}
 #endif
   else if (u8_has_suffix(dumpfile,".dtype",1)) {
-    struct FD_DTYPE_STREAM *out; int bytes;
+    struct FD_DTYPE_STREAM *out; int bytes=0;
     fdtype backtrace=fd_exception_backtrace(ex);
     u8_string temp_name=u8_mkstring("%s.part",abspath);
     out=fd_dtsopen(temp_name,FD_DTSTREAM_CREATE);

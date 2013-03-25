@@ -15,7 +15,6 @@
 #include "framerd/ports.h"
 
 static fd_exception SchemeError=_("Undistinguished Scheme Error");
-static fd_exception NoValueForHandler=_("The handler method doesn't have a return value to handle");
 
 /* Returning errors */
 
@@ -187,7 +186,7 @@ static fdtype error_backtrace(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex, last=ex;
+  u8_exception ex=xo->ex;
   return fd_exception_backtrace(ex);
 }
 

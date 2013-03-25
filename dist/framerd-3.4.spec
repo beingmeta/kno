@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.4
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -160,6 +160,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/fdconsole.el
 %attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.css
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.table

@@ -25,7 +25,7 @@ static int default_async=FD_DEFAULT_ASYNC;
 
 static fdtype dteval_sock(u8_socket conn,fdtype expr)
 {
-  fdtype result; int retval;
+  int retval;
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_stream(&stream,conn,8192);
   stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
