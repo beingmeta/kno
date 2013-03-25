@@ -179,13 +179,13 @@ static int setup_connection(struct FD_MYSQL *dbp)
     retval=mysql_options(dbp->db,MYSQL_SET_CHARSET_NAME,"utf8");}
   if ((retval==0)&&(ctimeout>0)) {
     unsigned int v=ctimeout; option="connect timeout";
-    retval=mysql_options(dbp->db,MYSQL_OPT_CONNECT_TIMEOUT,&v);}
+    retval=mysql_options(dbp->db,MYSQL_OPT_CONNECT_TIMEOUT,(char *)&v);}
   if ((retval==0)&&(rtimeout>0)) {
     unsigned int v=rtimeout; option="read timeout";
-    retval=mysql_options(dbp->db,MYSQL_OPT_READ_TIMEOUT,&v);}
+    retval=mysql_options(dbp->db,MYSQL_OPT_READ_TIMEOUT,(char *)&v);}
   if ((retval==0)&&(wtimeout>0)) {
     unsigned int v=wtimeout; option="write timeout";
-    retval=mysql_options(dbp->db,MYSQL_OPT_WRITE_TIMEOUT,&v);}
+    retval=mysql_options(dbp->db,MYSQL_OPT_WRITE_TIMEOUT,(char *)&v);}
   return retval;
 }
 
@@ -221,11 +221,11 @@ static int restart_connection(struct FD_MYSQL *dbp)
     u8_log(LOG_WARN,"myql/restarting_connection",
 	   "Restart #%d for MYSQL with %s (%s), newid %d (was %d)",
 	   dbp->restarts+1,dbp->spec,dbp->info,dbp->thread_id,old_thread_id);
-    mysql_options(db,MYSQL_OPT_RECONNECT,&reconn);
+    mysql_options(db,MYSQL_OPT_RECONNECT,(char *)&reconn);
     retval=mysql_ping(db);}
   if (retval==RETVAL_OK) {
     int i=0, n=dbp->n_procs;
-    reconn=0; mysql_options(db,MYSQL_OPT_RECONNECT,&reconn);
+    reconn=0; mysql_options(db,MYSQL_OPT_RECONNECT,(char *)&reconn);
     /* Some connection parameters are reset, so we reset them again */
     setup_connection(dbp);
     /* Flag all the procedures as needing to be reinitialized. */

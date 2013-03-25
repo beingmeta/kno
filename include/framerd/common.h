@@ -11,7 +11,9 @@
 #define FRAMERD_COMMON_H_INFO "include/framerd/common.h"
 #endif
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "defines.h"
 
