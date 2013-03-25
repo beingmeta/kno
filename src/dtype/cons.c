@@ -1182,6 +1182,8 @@ FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
 
 /* UUID Types */
 
+static fdtype uuid_symbol;
+
 FD_EXPORT fdtype fd_cons_uuid
    (struct FD_UUID *ptr,
     struct U8_XTIME *xtime,long long nodeid,short clockid)
@@ -1227,6 +1229,42 @@ static int compare_uuids(fdtype x,fdtype y,int quick)
   struct FD_UUID *xuuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
   struct FD_UUID *yuuid=FD_GET_CONS(y,fd_uuid_type,struct FD_UUID *);
   return memcmp(xuuid->uuid,yuuid->uuid,16);
+}
+
+#define MU MAYBE_UNUSED
+
+static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
+{
+  int size=0;
+  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *); 
+  fd_write_byte(out,dt_compound);
+  size=size+fd_write_dtype(out,uuid_symbol);
+  fd_write_byte(out,dt_packet); fd_write_4bytes(out,16); size=size+5;
+  fd_write_bytes(out,uuid->uuid,16); size=size+16;
+  return size;
+}
+
+static fdtype uuid_dump(fdtype x,fd_compound_entry MU e)
+{
+  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  return fd_make_packet(NULL,16,uuid->uuid);
+}
+
+static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
+{
+  if (FD_PACKETP(x)) {
+    struct FD_STRING *p=FD_GET_CONS(x,fd_packet_type,struct FD_STRING *);
+    if (p->length==16) {
+      struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+      FD_INIT_CONS(uuid,fd_uuid_type);
+      memcpy(uuid->uuid,p->bytes,16);
+      return FDTYPE_CONS(uuid);}
+    else return fd_err("Bad UUID packet","uuid_restore",
+		       "UUID packet has wrong length",
+		       x);}
+  else return fd_err("Bad UUID rep","uuid_restore",
+		     "UUID serialization isn't a packet",
+		     x);
 }
 
 
@@ -1275,7 +1313,6 @@ void fd_init_cons_c()
 
   timestamp_symbol=fd_intern("TIMESTAMP");
   timestamp0_symbol=fd_intern("TIMESTAMP0");
-
   {
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
@@ -1293,9 +1330,15 @@ void fd_init_cons_c()
   fd_recyclers[fd_timestamp_type]=recycle_timestamp;
 
   fd_unparsers[fd_uuid_type]=unparse_uuid;
+  fd_dtype_writers[fd_uuid_type]=uuid_dtype;
   fd_recyclers[fd_uuid_type]=recycle_uuid;
   fd_comparators[fd_uuid_type]=compare_uuids;
   fd_copiers[fd_uuid_type]=copy_uuid;
+  uuid_symbol=fd_intern("UUID");
+  {
+    struct FD_COMPOUND_ENTRY *e=fd_register_compound(uuid_symbol,NULL,NULL);
+    e->dump=uuid_dump;
+    e->restore=uuid_restore;}
 
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,
