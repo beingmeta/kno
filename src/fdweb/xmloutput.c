@@ -804,11 +804,8 @@ FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl){
 
 /* XHTML error report */
 
-#define DEFAULT_DOCTYPE \
-  "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\
-               \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
-#define DEFAULT_XMLPI \
-  "<?xml version='1.0' charset='utf-8' ?>"
+#define DEFAULT_DOCTYPE "<!DOCTYPE html>"
+#define DEFAULT_XMLPI "<?xml version='1.0' charset='utf-8' ?>"
 
 static u8_string error_stylesheet=NULL;
 
