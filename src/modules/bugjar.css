@@ -29,6 +29,8 @@ hgroup.head h1 span.bugid { float: left; font-size: 12px; font-family: fixed;}
 hgroup.head h1 span.datetime { float: left; font-size: 10px; font-family: sans,sans-serif;}
 hgroup.head h1 span.condition { font-weight: bold;}
 hgroup.head h2.detail { font-weight: normal; font-style: italic; }
+hgroup.head h2.irritant {
+    font-family: fixed; color: red; font-size: 80%;}
 hgroup.head h3.uri {
     font-family: fixed; font-weight: normal; text-align: left;
     border-bottom: solid black 1px;}
@@ -100,7 +102,8 @@ table.backtrace > tbody.bindings > tr > td > table.bindings {
 table.bindings { }
 table.bindings th.head { text-align: left;}
 table.bindings tr.binding th.var { font-family: sans,sans-serif;}
-table.backtrace > tbody.bindings > tr:first-child > th { background-color: blue;}
+table.backtrace > tbody.bindings > tr:first-child > th {
+    background-color: blue; color: silver;}
 table.backtrace > tbody.eval > tr > th { background-color: white; color: black;}
 table.backtrace > tbody.call > tr th { background-color: red; color: white;}
 table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > td {
@@ -108,5 +111,3 @@ table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > 
 table.backtrace > tbody.call > tr > td { color: red; }
 table.backtrace > tbody.call > tr > td span.operator {font-weight: bold;}
 table.backtrace > tbody.call > tr > td span {white-space: nowrap;}
-
-

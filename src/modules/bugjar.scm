@@ -77,10 +77,10 @@
 		 (printout " \&ldquo;" (error-context exception) "\&rdquo;")))
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
-	  (xhtml (filestring bugjar-css))))
+	  (xhtml "\n" (filestring bugjar-css))))
        (stylesheet! "http://static.beingmeta.com/static/fdjt.css")
        (body! 'class "fdjtbugreport")
-       (htmlheader (xmlelt "META" http-equiv "Content-type" value "text/html; charset=utf-8"))
+       (htmlheader (xmlelt "META" http-equiv "Content-type" content "text/html; charset=utf-8"))
        (xmlblock HGROUP ((class "head") (id "HEAD"))
 	 (let ((base (uribase (get reqdata 'request_uri))))
 	   (h3* ((class "uri"))
@@ -102,6 +102,11 @@
 	 (when (error-details exception)
 	   (h2* ((class "detail"))
 	     (printout " \&ldquo;" (error-details exception) "\&rdquo;")))
+	 (let* ((irritant (error-irritant exception))
+		(stringval (and (exists? irritant) irritant
+				(lisp->string (qc irritant)))))
+	   (when (and stringval (< (length stringval) 50))
+	     (h2* ((class "irritant")) stringval)))
 	 (when bughead (req/call bughead)))
        (div ((class "navbar"))
 	 (span ((class "buginfo"))
@@ -121,6 +126,7 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
+
 
 
 
