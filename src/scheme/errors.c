@@ -138,48 +138,78 @@ static fdtype erreify_handler(fdtype expr,fd_lispenv env)
   else return value;
 }
 
-static fdtype error_condition(fdtype x)
+static fdtype error_condition(fdtype x,fdtype top_arg)
 {
+  int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
-  while ((ex) && (ex->u8x_cond==NULL)) ex=ex->u8x_prev;
-  if (ex==NULL) return FD_FALSE;
-  else return fd_intern((u8_string)(ex->u8x_cond));
+  u8_condition found=ex->u8x_cond;
+  if (top) {
+    while (ex) {
+      if (ex->u8x_cond) {found=ex->u8x_cond; break;}
+      else ex=ex->u8x_prev;}}
+  else while (ex) {
+      if (ex->u8x_cond) found=ex->u8x_cond;
+      ex=ex->u8x_prev;}
+  if (found==NULL) return FD_FALSE;
+  else return fd_intern((u8_string)found);
 }
 
-static fdtype error_context(fdtype x)
+static fdtype error_context(fdtype x,fdtype top_arg)
 {
+  int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
-  while ((ex) && (ex->u8x_context==NULL)) ex=ex->u8x_prev;
-  if (ex==NULL) return FD_FALSE;
-  else return fd_intern((u8_string)(ex->u8x_context));
+  u8_context found=ex->u8x_cond;
+  if (top) {
+    while (ex) {
+      if (ex->u8x_context) {found=ex->u8x_context; break;}
+      else ex=ex->u8x_prev;}}
+  else while (ex) {
+      if (ex->u8x_context) found=ex->u8x_context;
+      ex=ex->u8x_prev;}
+  if (found==NULL) return FD_FALSE;
+  else return fd_intern((u8_string)found);
 }
 
-static fdtype error_details(fdtype x)
+static fdtype error_details(fdtype x,fdtype top_arg)
 {
+  int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex;
-  while ((ex) && (ex->u8x_details==NULL)) ex=ex->u8x_prev;
-  if (ex==NULL) return FD_FALSE;
-  else return fdtype_string((u8_string)(ex->u8x_details));
+  u8_string found=ex->u8x_details;
+  if (top) {
+    while (ex) {
+      if (ex->u8x_details) {found=ex->u8x_details; break;}
+      else ex=ex->u8x_prev;}}
+  else while (ex) {
+      if (ex->u8x_details) found=ex->u8x_details;
+      ex=ex->u8x_prev;}
+  if (found==NULL) return FD_FALSE;
+  else return fdtype_string(found);
 }
 
-static fdtype error_irritant(fdtype x)
+static fdtype error_irritant(fdtype x,fdtype top_arg)
 {
+  int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
   u8_exception ex=xo->ex, last=ex;
-  fdtype irritant;
-  while (ex) {
-    if ((ex->u8x_xdata)!=NULL) last=ex;
-    ex=ex->u8x_prev;}
-  irritant=fd_exception_xdata(last);
-  if (FD_VOIDP(irritant)) return FD_FALSE;
-  else return fd_incref(irritant);
+  fdtype found=FD_VOID;
+  if (top) {
+    while (ex) {
+      if (ex->u8x_xdata) {
+	found=fd_exception_xdata(ex); break;}
+      else ex=ex->u8x_prev;}}
+  else while (ex) {
+      if  (ex->u8x_xdata)
+	found=fd_exception_xdata(ex);
+      ex=ex->u8x_prev;}
+  if (FD_VOIDP(found)) return FD_FALSE;
+  else return fd_incref(found);
 }
 
 static fdtype error_backtrace(fdtype x)
@@ -276,17 +306,17 @@ FD_EXPORT void fd_init_errors_c()
   fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ERROR-CONDITION",error_condition,1,
-			   fd_error_type,FD_VOID));
+	   fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
+			   fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ERROR-CONTEXT",error_context,1,
-			   fd_error_type,FD_VOID));
+	   fd_make_cprim2x("ERROR-CONTEXT",error_context,1,
+			   fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ERROR-DETAILS",error_details,1,
-			   fd_error_type,FD_VOID));
+	   fd_make_cprim2x("ERROR-DETAILS",error_details,1,
+			   fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ERROR-IRRITANT",error_irritant,1,
-			   fd_error_type,FD_VOID));
+	   fd_make_cprim2x("ERROR-IRRITANT",error_irritant,1,
+			   fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
 			   fd_error_type,FD_VOID));
