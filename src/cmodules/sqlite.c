@@ -44,7 +44,7 @@ typedef struct FD_SQLITE_PROC *fd_sqlite_proc;
 
 static fd_exception SQLiteError=_("SQLite Error");
 
-static fdtype merge_symbol;
+static fdtype merge_symbol, sorted_symbol;
 
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
@@ -63,12 +63,54 @@ static unsigned char *_memdup(unsigned char *data,int len)
   return duplicate;
 }
 
+static int getboolopt(opts,sym)
+{
+  fdtype val=fd_getopt(opts,sym,FD_VOID);
+  if (FD_VOIDP(val)) return -1;
+  else if (FD_FALSEP(val)) return 0;
+  else {
+    fd_decref(val);
+    return 1;}
+}
+
 /* Opening connections */
+
+static fdtype readonly_symbol, create_symbol, sharedcache_symbol, privatecache_symbol, vfs_symbol;
 
 static fdtype open_sqlite(fdtype filename,fdtype colinfo)
 {
   sqlite3 *db=NULL;
+  int readonly=getboolopt(colinfo,readonly_symbol);
+  int readcreate=getboolopt(colinfo,create_symbol);
+  int sharedcache=getboolopt(colinfo,sharedcache_symbol);
+  int privcache=getboolopt(colinfo,privatecache_symbol);
+  fdtype vfs=fd_getopt(colinfo,vfs_symbol,FD_VOID);
+#if HAVE_SQLITE3_OPEN_V2
+  int retval=sqlite3_open_v2
+    (FD_STRDATA(filename),&db,
+     ((readonly)?(SQLITE_OPEN_READONLY):
+      (FD_FALSEP(readcreate))?(SQLITE_OPEN_READWRITE):
+      (SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE))|
+     ((privcache==1)?(SQLITE_OPEN_PRIVATECACHE):(0))|
+     ((sharedcache==1)?(SQLITE_OPEN_SHAREDCACHE):(0))|
+     ((u8_has_prefix(FD_STRDATA(filename),"file:",1))?(SQLITE_OPEN_URI):(0)),
+     ((FD_STRINGP(vfs))?(FD_STRDATA(vfs)):(NULL)));
+#else
   int retval=sqlite3_open(FD_STRDATA(filename),&db);
+  if (privcache>=0)
+    u8_log(LOG_WARN,"sqlite_open",
+	   "the sqlite3_open_v2 private cache option are not available");
+  if (sharedcache>=0)
+    u8_log(LOG_WARN,"sqlite_open",
+	   "the sqlite3_open_v2 shared cache option are not available");
+  if ((readonly>=0)||(readcreate>=0))
+    u8_log(LOG_WARN,"sqlite_open",
+	   "the sqlite3_open_v2 read/write options are not available");
+  if (!(FD_VOIDP(vfs)))
+    u8_log(LOG_WARN,"sqlite_open",
+	   "the sqlite3_open_v2 vfs methods are not available");
+#endif
+  fd_decref(vfs);
   if (retval) {
     u8_string msg=u8_strdup(sqlite3_errmsg(db));
     fd_seterr(SQLiteError,"open_sqlite",msg,filename);
@@ -97,15 +139,19 @@ static void recycle_sqlitedb(struct FD_EXTDB *c)
 
 static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
 {
-  fdtype results=FD_EMPTY_CHOICE;
+  fdtype results=FD_EMPTY_CHOICE, *resultsv=NULL; int rn=0, rmax=0;
   fdtype _colnames[16], *colnames;
   fdtype _colmaps[16], *colmaps;
   fdtype mergefn=fd_getopt(colinfo,merge_symbol,FD_VOID);
+  fdtype sortfn=fd_getopt(colinfo,sorted_symbol,FD_VOID);
+  int sorted=(FD_TRUEP(sortfn));
   int i=0, n_cols=sqlite3_column_count(stmt), retval;
   struct U8_OUTPUT out;
   if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
 	(FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
     return fd_type_error("%MERGE","sqlite_values",mergefn);
+  if (sorted) {
+    resultsv=u8_malloc(sizeof(fdtype)*64); rmax=64;}
   if (n_cols==0) {
     int retval=sqlite3_step(stmt);
     if ((retval) && (retval<100))
@@ -127,7 +173,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     colmaps[i]=(fd_getopt(colinfo,colname,FD_VOID));
     i++;}
   while ((retval=sqlite3_step(stmt))==SQLITE_ROW) {
-    fdtype slotmap;
+    fdtype result;
     struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
     int j=0; while (j<n_cols) {
       int coltype=sqlite3_column_type(stmt,j); fdtype value;
@@ -175,18 +221,63 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       else kv[j].value=value;
       j++;}
     if ((n_cols==1) && (FD_TRUEP(mergefn))) {
-      slotmap=kv[0].value;
+      result=kv[0].value;
       u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) || (FD_FALSEP(mergefn)) || (FD_TRUEP(mergefn)))
-      slotmap=fd_init_slotmap(NULL,n_cols,kv);
+      result=fd_init_slotmap(NULL,n_cols,kv);
     else {
       fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
-      slotmap=fd_apply(mergefn,1,&tmp_slotmap);
+      result=fd_apply(mergefn,1,&tmp_slotmap);
       fd_decref(tmp_slotmap);}
-    FD_ADD_TO_CHOICE(results,slotmap);}
+    if (sorted) {
+      if (FD_ABORTP(result)) {}
+      else if (rn>=rmax) {
+	int new_max=((rmax>=65536)?(rmax+65536):(rmax*2));
+	fdtype *newv=u8_realloc(resultsv,sizeof(fdtype)*new_max);
+	if (newv==NULL) {
+	  int delta=(new_max-rmax)/2;
+	  while ((newv==NULL)&&(delta>=1)) {
+	    new_max=rmax+delta; delta=delta/2;
+	    newv=u8_realloc(resultsv,sizeof(fdtype)*new_max);}
+	  if (!(newv)) {
+	    fd_decref(result);
+	    fd_seterr(fd_OutOfMemory,"sqlite_step",NULL,FD_VOID);
+	    result=FD_ERROR_VALUE;}
+	  else {resultsv=newv; rmax=new_max;}}}
+      resultsv[rn++]=result;}
+    else {
+      FD_ADD_TO_CHOICE(results,result);}
+    if (FD_ABORTP(result)) {
+      if (sorted) {
+	int k=0; while (k<rn) {
+	  fdtype v=resultsv[k++]; fd_decref(v);}
+	fd_decref(results);
+	u8_free(resultsv);
+	results=result;
+	break;}
+      else {
+	fd_decref(results);
+	results=result;
+	break;}}}
+  if (retval!=SQLITE_DONE) {
+#if HAVE_SQLITE3_ERRSTR
+    char *msg=sqlite3_errstr(retval);
+    fd_seterr(SQLiteError,"sqlite_step3",u8_strdup(msg),FD_VOID);
+#endif
+    fd_decref(results); if (sorted) {
+      int k=0; while (k<rn) {
+	fdtype v=resultsv[k++]; fd_decref(v);}
+      fd_decref(results);
+      u8_free(resultsv);
+      resultsv=NULL;}
+    results=FD_ERROR_VALUE;}
   u8_free(out.u8_outbuf);
   fd_decref(mergefn);
-  return results;
+  fd_decref(sortfn);
+  if (FD_ABORTP(results)) return results;
+  else if (sorted)
+    return fd_init_vector(NULL,rn,resultsv);
+  else return results;
 }
 
 static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
@@ -370,7 +461,13 @@ FD_EXPORT int fd_init_sqlite()
   sqlite_init=1;
 
   merge_symbol=fd_intern("%MERGE");
-
+  sorted_symbol=fd_intern("%SORTED");
+  readonly_symbol=fd_intern("READONLY");
+  create_symbol=fd_intern("CREATE");
+  sharedcache_symbol=fd_intern("SHAREDCACHE");
+  privatecache_symbol=fd_intern("PRIVATECACHE");
+  vfs_symbol=fd_intern("VFS");
+  
   fd_finish_module(module);
 
   u8_register_source_file(_FILEINFO);

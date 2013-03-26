@@ -7209,6 +7209,17 @@ _ACEOF
 fi
 done
 
+  for ac_func in sqlite3_errstr
+do :
+  ac_fn_c_check_func "$LINENO" "sqlite3_errstr" "ac_cv_func_sqlite3_errstr"
+if test "x$ac_cv_func_sqlite3_errstr" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SQLITE3_ERRSTR 1
+_ACEOF
+
+fi
+done
+
   CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"
 fi
