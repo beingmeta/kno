@@ -9,7 +9,7 @@ URL:            http://www.beingmeta.com/
 Source0:        framerd-3.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel mysql-devel
+BuildRequires:  libu8-devel curl-devel mysql-devel libfcgi-devel libexif-devel libtidy-devel
 Requires:       libu8 curl
 
 %description
@@ -51,7 +51,7 @@ Requires:       %{name}-devel = %{version}-%{release}
 %description    static
 The %{name}-static package contains static libraries for
 developing statically linked applications that use %{name}.
-You probably don't need it.
+You probably don\'t need it.
 
 %package        fdserv
 Summary:        Apache module for FramerD based applications
@@ -70,8 +70,8 @@ BuildRequires: mysql-devel
 Requires:      mysql %{name} = %{version}-%{release}
 
 %description    mysql
-The %{name}-mysql package implements external DB bindings to the MySQL C client
-libraries
+The %{name}-mysql package implements external DB bindings to the MySQL
+C client libraries
 
 %package        sqlite
 Summary:        Module for using Sqlite3 from FramerD
@@ -80,8 +80,8 @@ BuildRequires:  sqlite-devel
 Requires:       sqlite %{name} = %{version}-%{release}
 
 %description    sqlite
-The %{name}-sqlite package implements external DB bindings to the Sqlite3 library
-libraries
+The %{name}-sqlite package implements external DB bindings to the
+Sqlite3 library libraries
 
 %package        libzip
 Summary:        FramerD module for working with zipfiles
@@ -92,14 +92,14 @@ Requires:       libzip %{name} = %{version}-%{release}
 %description    libzip
 The %{name}-libzip package implements external bindings for libzip
 
-# %package        exif
-# Summary:        FramerD module for getting image metadata
-# Group:          Development/Libraries
-# BuildRequires:  libexif-devel
-# Requires:       libexif %{name} = %{version}-%{release}
+ %package        exif
+ Summary:        FramerD module for getting image metadata
+ Group:          Development/Libraries
+ BuildRequires:  libexif-devel
+ Requires:       libexif %{name} = %{version}-%{release}
 
-# %description    exif
-# The %{name}-exif package provides access to image EXIF data
+%description    exif
+The %{name}-exif package provides access to image EXIF data
 
 #%package        odbc
 #Summary:        Module for using Odbc from FramerD
@@ -110,16 +110,15 @@ The %{name}-libzip package implements external bindings for libzip
 #%description    odbc
 #The %{name}-odbc package implements external DB bindings to the ODBC
 #libraries
-# 
-#%package        tidy
-#Summary:        FramerD module for tidying HTML code
-#Group:          Development/Libraries
-#BuildRequires:  libtidy-dev
-#Requires:       libtidy %{name} = %{version}-%{release}
-#
-#%description    tidy
-#The %{name}-tidy package implements external bindings to libtidy
-# 
+ 
+%package        tidy
+Summary:        FramerD module for tidying HTML code
+Group:          Development/Libraries
+BuildRequires:  libtidy-devel
+Requires:       libtidy %{name} = %{version}-%{release}
+
+%description    tidy
+The %{name}-tidy package implements external bindings to libtidy
 
 %prep
 %setup -q
