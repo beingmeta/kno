@@ -92,11 +92,11 @@ Requires:       libzip %{name} = %{version}-%{release}
 %description    libzip
 The %{name}-libzip package implements external bindings for libzip
 
- %package        exif
- Summary:        FramerD module for getting image metadata
- Group:          Development/Libraries
- BuildRequires:  libexif-devel
- Requires:       libexif %{name} = %{version}-%{release}
+%package        exif
+Summary:        FramerD module for getting image metadata
+Group:          Development/Libraries
+BuildRequires:  libexif-devel
+Requires:       libexif %{name} = %{version}-%{release}
 
 %description    exif
 The %{name}-exif package provides access to image EXIF data
