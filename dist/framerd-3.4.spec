@@ -271,7 +271,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtagger.so
 %{_libdir}/libtagger.a
 
-%files libzip
+%files zlib
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/framerd/zlib.so*
