@@ -266,18 +266,18 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 %{_libdir}/framerd/zlib.so*
  
-# %files exif
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/exif.so*
+%files exif
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/exif.so*
 
 #%files odbc
 #%defattr(-,root,root,-)
 #%doc
 #%{_libdir}/framerd/odbc.so*
 # 
-#%files tidy
-#%defattr(-,root,root,-)
-#%doc
-#%{_libdir}/framerd/tidy.so*
-# 
+%files tidy
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/tidy.so*
+ 
