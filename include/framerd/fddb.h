@@ -77,10 +77,10 @@ FD_EXPORT void fd_fast_swapout_all(void);
 
 #if (FD_GLOBAL_IPEVAL)
 FD_EXPORT fd_wideint fd_ipeval_state;
-#elif (FD_USE_TLS)
-FD_EXPORT u8_tld_key fd_ipeval_state_key;
 #elif (FD_USE__THREAD)
 FD_EXPORT __thread int fd_ipeval_state;
+#elif (FD_USE_TLS)
+FD_EXPORT u8_tld_key fd_ipeval_state_key;
 #else
 FD_EXPORT int fd_ipeval_state;
 #endif
@@ -205,11 +205,11 @@ typedef struct FD_THREAD_CACHE {
 typedef struct FD_THREAD_CACHE *fd_thread_cache;
 typedef struct FD_THREAD_CACHE FDTC;
 
-#if (FD_USE_TLS)
+#if (FD_USE__THREAD)
+FD_EXPORT __thread struct FD_THREAD_CACHE *fd_threadcache;
+#elif (FD_USE_TLS)
 FD_EXPORT u8_tld_key fd_threadcache_key;
 #define fd_threadcache ((struct FD_THREAD_CACHE *)u8_tld_get(fd_threadcache_key))
-#elif (FD_USE__THREAD)
-FD_EXPORT __thread struct FD_THREAD_CACHE *fd_threadcache;
 #else
 FD_EXPORT struct FD_THREAD_CACHE *fd_threadcache;
 #endif

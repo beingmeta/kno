@@ -23,10 +23,10 @@ static u8_condition PushingInUseThreadCache=
 static u8_condition SettingInUseThreadCache=
   _("Attempt to set in-use threadcache");
 
-#if (FD_USE_TLS)
-u8_tld_key fd_threadcache_key;
-#elif (FD_USE__THREAD)
+#if (FD_USE__THREAD)
 __thread struct FD_THREAD_CACHE *fd_threadcache=NULL;
+#elif (FD_USE_TLS)
+u8_tld_key fd_threadcache_key;
 #else
 struct FD_THREAD_CACHE *fd_threadcache=NULL;
 #endif

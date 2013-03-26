@@ -27,10 +27,10 @@ int fd_trace_ipeval=0;
 #if (FD_GLOBAL_IPEVAL)
 static u8_mutex global_ipeval_lock;
 int fd_ipeval_state;
-#elif (FD_USE_TLS)
-u8_tld_key fd_ipeval_state_key;
 #elif (FD_USE__THREAD)
 __thread int fd_ipeval_state;
+#elif (FD_USE_TLS)
+u8_tld_key fd_ipeval_state_key;
 #else
 int fd_ipeval_state;
 #endif

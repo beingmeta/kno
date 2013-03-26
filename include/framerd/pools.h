@@ -230,11 +230,11 @@ FD_EXPORT fdtype *fd_get_pool_delays(void);
 
 #if (FD_GLOBAL_IPEVAL)
 FD_EXPORT fdtype *fd_pool_delays;
+#elif (FD_USE__THREAD)
+FD_EXPORT __thread fdtype *fd_pool_delays;
 #elif (FD_USE_TLS)
 FD_EXPORT u8_tld_key fd_pool_delays_key;
 #define fd_pool_delays ((fdtype *)u8_tld_get(fd_pool_delays_key))
-#elif (FD_USE__THREAD)
-FD_EXPORT __thread fdtype *fd_pool_delays;
 #else
 FD_EXPORT fdtype *fd_pool_delays;
 #endif

@@ -62,7 +62,7 @@ FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_strin
 
 /* Tracking the current source base */
 
-#if FD_THREADS_ENABLED
+#if FD_USE_TLS
 static u8_tld_key sourcebase_key;
 FD_EXPORT u8_string fd_sourcebase()
 {
@@ -79,7 +79,7 @@ static void restore_sourcebase(u8_string old)
   u8_tld_set(sourcebase_key,old);
 }
 #else
-static u8_string sourcebase;
+static FD_THREADVAR u8_string sourcebase;
 FD_EXPORT u8_string fd_sourcebase()
 {
   return sourcebase;
@@ -357,6 +357,8 @@ FD_EXPORT void fd_init_load_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&sourcefns_lock);
   fd_init_mutex(&config_file_lock);
+#endif
+#if FD_USE_TLS
   u8_new_threadkey(&sourcebase_key,NULL);
 #endif
 

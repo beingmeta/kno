@@ -42,10 +42,10 @@ struct FD_COMPOUND_INDEX *fd_background=NULL;
 
 #if FD_GLOBAL_IPEVAL
 static fdtype *index_delays;
-#elif FD_USE_TLS
-static u8_tld_key index_delays_key;
 #elif FD_USE__THREAD
 static __thread fdtype *index_delays;
+#elif FD_USE_TLS
+static u8_tld_key index_delays_key;
 #else
 static fdtype *index_delays;
 #endif

@@ -52,10 +52,10 @@ static int pool_serial_count=0;
 
 #if FD_GLOBAL_IPEVAL
 fdtype *fd_pool_delays=NULL;
-#elif FD_USE_TLS
-u8_tld_key fd_pool_delays_key;
 #elif FD_USE__THREAD
 __thread fdtype *fd_pool_delays=NULL;
+#elif FD_USE_TLS
+u8_tld_key fd_pool_delays_key;
 #else
 fdtype *fd_pool_delays=NULL;
 #endif
