@@ -238,7 +238,21 @@ static void report_status()
   FILE *logto=statlog;
   struct U8_SERVER_STATS stats;
   double elapsed=u8_elapsed_time();
-  if (!(logto)) logto=stderr;
+  if (!(logto)) {
+    if (statlogfile) {
+      fd_lock_mutex(&log_lock);
+      if (statlog) {
+	logto=statlog; fd_unlock_mutex(&log_lock);}
+      else {
+	statlog=u8_fopen_locked(statlogfile,"a");
+	if (statlog) {
+	  u8_string tmp;
+	  tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
+	  fputs(tmp,statlog);
+	  u8_free(tmp);
+	  logto=statlog;}
+	fd_unlock_mutex(&log_lock);}}
+    if (!(statlog)) logto=statlog;}
   u8_fprintf(logto,STATUS_LINE1,elapsed,
 	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
@@ -1310,7 +1324,16 @@ int main(int argc,char **argv)
       u8_log(LOG_WARN,Startup,"Couldn't open log file %s",logfile);
       exit(1);}
     dup2(log_fd,1);
-    dup2(log_fd,2);}
+    dup2(log_fd,2);
+    if (statlogfile==NULL) {
+      char *dot=strrchr(logfile,'.'), *statfile;
+      if (dot) {
+	int newlen=(dot-logfile)+7;
+	statfile=u8_malloc(newlen+1);
+	strncpy(statfile,logfile,(dot-logfile));
+	strcpy(statfile+(dot-logfile),".status");}
+      else statfile=u8_string_append(logfile,".status",NULL);
+      statlogfile=statfile;}}
 
   fd_version=fd_init_fdscheme();
   
