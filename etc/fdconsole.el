@@ -11,7 +11,7 @@
   '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
-    "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>"
+    "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro\\>"
     "\\<try\\>" "\\<tryif\\>"
     "\\<while\\>" "\\<until\\>" "\\<onerror>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
