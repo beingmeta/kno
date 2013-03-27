@@ -31,28 +31,68 @@ static fdtype xmlattrib(fdtype doc,fdtype attrib_id)
   else return FD_EMPTY_CHOICE;
 }
 
-static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid)
+static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid,int cons)
 {
   if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc)))
     if ((fd_test(doc,name_slotid,eltid))) {
-      fd_incref(doc);
-      FD_ADD_TO_CHOICE((*result),doc);}
+      if (cons) *result=fd_init_pair(NULL,doc,*result);
+      else {FD_ADD_TO_CHOICE((*result),doc);}
+      fd_incref(doc);}
     else {
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_CHOICE);
-      xmlget_helper(result,content,eltid);
+      xmlget_helper(result,content,eltid,cons);
       fd_decref(content);}
   else if (FD_PAIRP(doc)) {
     FD_DOLIST(elt,doc)
       if (FD_STRINGP(elt)) {}
-      else xmlget_helper(result,elt,eltid);}
+      else xmlget_helper(result,elt,eltid,cons);}
   else return;
 }
 
 static fdtype xmlget(fdtype doc,fdtype attrib_id)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  xmlget_helper(&results,doc,attrib_id);
+  xmlget_helper(&results,doc,attrib_id,0);
   return results;
+}
+
+static int listlen(fdtype l)
+{
+  if (!(FD_PAIRP(l))) return 0;
+  else {
+    int len=0; FD_DOLIST(elt,l) {len++;}
+    return len;}
+}
+
+static fdtype xmlget_sorted(fdtype doc,fdtype attrib_id)
+{
+  fdtype results=FD_EMPTY_LIST;
+  xmlget_helper(&results,doc,attrib_id,1);
+  if (FD_EMPTY_LISTP(results))
+    return fd_make_vector(0,NULL);
+  else {
+    int i=0, len=listlen(results);
+    fdtype vec=fd_make_vector(len,NULL), scan=results;
+    while ((i<len)&&(FD_PAIRP(scan))) {
+      fdtype car=FD_CAR(scan); 
+      FD_VECTOR_SET(vec,i,car); fd_incref(car);
+      scan=FD_CDR(scan); i++;}
+    fd_decref(results);
+    return vec;}
+}
+
+static fdtype xmlget_first(fdtype doc,fdtype attrib_id)
+{
+  fdtype results=FD_EMPTY_LIST;
+  xmlget_helper(&results,doc,attrib_id,1);
+  if (FD_EMPTY_LISTP(results))
+    return FD_EMPTY_CHOICE;
+  else {
+    fdtype last_result=FD_VOID;
+    FD_DOLIST(elt,results) {last_result=elt;}
+    fd_incref(last_result);
+    fd_decref(results);
+    return last_result;}
 }
 
 /* This returns the content field as parsed. */
@@ -149,12 +189,16 @@ void fd_init_xmldata_c()
 
   fd_idefn(module,fd_make_cprim2("XMLATTRIB",xmlattrib,2));
   fd_idefn(module,fd_make_cprim2("XMLGET",xmlget,2));
+  fd_idefn(module,fd_make_cprim2("XMLGET/FIRST",xmlget_first,2));
+  fd_idefn(module,fd_make_cprim2("XMLGET/SORTED",xmlget_sorted,2));
   fd_idefn(module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
   fd_idefn(module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
   fd_idefn(module,fd_make_cprim2("XMLEMPTY?",xmlemptyp,1));
 
   fd_idefn(safe_module,fd_make_cprim2("XMLATTRIB",xmlattrib,2));
   fd_idefn(safe_module,fd_make_cprim2("XMLGET",xmlget,2));
+  fd_idefn(safe_module,fd_make_cprim2("XMLGET/FIRST",xmlget_first,2));
+  fd_idefn(safe_module,fd_make_cprim2("XMLGET/SORTED",xmlget_sorted,2));
   fd_idefn(safe_module,fd_make_cprim2("XMLCONENTS",xmlcontents,1));
   fd_idefn(safe_module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
   fd_idefn(safe_module,fd_make_cprim2("XMLEMPTY?",xmlemptyp,1));
