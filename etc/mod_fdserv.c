@@ -1655,13 +1655,13 @@ static int write_cgidata
     ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,
        r->server,
-       "Composed %ld bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
-       n_bytes,n_params+n_elts+1,n_elts,n_params,post_size);
+       "Composed %lld bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
+       (long long)n_bytes,n_params+n_elts+1,n_elts,n_params,post_size);
   else ap_log_error
       (APLOG_MARK,APLOG_DEBUG,OK,
        r->server,
-       "Composed %ld bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
-       n_bytes,n_params+n_elts+1,n_elts,n_params);
+       "Composed %lld bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
+       (long long)n_bytes,n_params+n_elts+1,n_elts,n_params);
   return n_bytes;
 }
 
