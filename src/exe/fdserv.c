@@ -970,7 +970,7 @@ static int webservefn(u8_client ucl)
 	  return_code=0;}}
       else {/* Error here */}}
     else if (FD_STRINGP(content)) {
-      int bundle_len; unsigned char *outbuf;
+      int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_STRLEN(content);
       u8_printf(&httphead,"Content-length: %ld\r\n\r\n",content_len);
       http_len=httphead.u8_outptr-httphead.u8_outbuf;
@@ -989,7 +989,7 @@ static int webservefn(u8_client ucl)
 		    httphead.u8_outptr-httphead.u8_outbuf);
 	u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}}
     else if (FD_PACKETP(content)) {
-      int bundle_len; unsigned char *outbuf;
+      int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_PACKET_LENGTH(content);
       u8_printf(&httphead,"Content-length: %ld\r\n\r\n",content_len);
       http_len=httphead.u8_outptr-httphead.u8_outbuf;

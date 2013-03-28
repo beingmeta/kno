@@ -92,12 +92,6 @@ static fd_exception MySQL_Error=_("MySQL Error");
 static fd_exception MySQL_NoConvert=_("Can't convert value to SQL");
 static fdtype merge_symbol, noempty_symbol, sorted_symbol;
 
-static int mysql_conn_id(MYSQL *db)
-{
-  if (mysql_ping(db)) return -1;
-  else return mysql_thread_id(db);
-}
-
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
   int c=u8_sgetc(&s);
@@ -189,18 +183,6 @@ static int setup_connection(struct FD_MYSQL *dbp)
   return retval;
 }
 
-static int reinit_statements(struct FD_MYSQL *dbp)
-{
-  u8_lock_mutex(&(dbp->proclock)); {
-    int i=0, n=dbp->n_procs;
-    struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)dbp->procs;
-    while (i<n) procs[i++]->need_reinit=1;
-    dbp->startup=u8_elapsed_time();
-    u8_unlock_mutex(&(dbp->proclock)); 
-    u8_unlock_mutex(&mysql_connect_lock);
-    return 1;}
-}
-
 static int restart_connection(struct FD_MYSQL *dbp)
 {
   MYSQL *db=dbp->db;
@@ -242,8 +224,7 @@ static int restart_connection(struct FD_MYSQL *dbp)
 
 static int open_connection(struct FD_MYSQL *dbp)
 {
-  my_bool reconnect; int retval=0; u8_string option=NULL;
-  fdtype options=dbp->options;
+  int retval=0;
   MYSQL *db;
   dbp->db=mysql_init(&(dbp->_db));
   if ((dbp->db)==NULL) {
@@ -339,7 +320,6 @@ static fdtype open_mysql
   char *host, *username, *passwd, *dbstring, *sockname;
   int portno=0, flags=0, retval;
   struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
-  my_bool reconnect=0;
   /* Initialize the cons (does a memset too) */
   FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
   /* Initialize the MYSQL side of things (after the memset!) */
@@ -1202,7 +1182,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
       mysql_stmt_free_result(dbproc->stmt);}
     else {
       /* We could possibly do something with this */
-      int rows=mysql_stmt_affected_rows(dbproc->stmt);
+      int MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
       values=FD_VOID;}}
       
   if (retval!=RETVAL_OK) {

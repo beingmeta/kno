@@ -217,6 +217,7 @@ FD_INLINE_FCN fdtype oidunxmlify(fdtype string)
   FD_OID addr; unsigned int hi, lo;
   if (addr_start) sscanf(addr_start,"_%x_%x",&hi,&lo);
   else return FD_EMPTY_CHOICE;
+  memset(&addr,0,sizeof(FD_OID));
   FD_SET_OID_HI(addr,hi); FD_SET_OID_LO(addr,lo);
   return fd_make_oid(addr);
 }

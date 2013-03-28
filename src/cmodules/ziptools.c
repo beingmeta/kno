@@ -335,10 +335,7 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
 static fdtype zipexists_prim(fdtype zipfile,fdtype filename)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
-  u8_string fname=FD_STRDATA(filename);
-  struct zip_stat zstat; int zret;
-  struct zip_file *zfile;
-  int index;
+  u8_string fname=FD_STRDATA(filename); int index;
   u8_lock_mutex(&(zf->lock));
   if (zf->closed) {
     fdtype errval=zipreopen(zf,1);
@@ -359,7 +356,6 @@ static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   u8_string fname=FD_STRDATA(filename);
   struct zip_stat zstat; int zret;
-  struct zip_file *zfile;
   int index;
   u8_lock_mutex(&(zf->lock));
   if (zf->closed) {

@@ -197,7 +197,7 @@ static fdtype error_irritant(fdtype x,fdtype top_arg)
   int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex, last=ex;
+  u8_exception ex=xo->ex;
   fdtype found=FD_VOID;
   if (top) {
     while (ex) {

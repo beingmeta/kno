@@ -143,7 +143,7 @@ static int getv2flags(fdtype colinfo,u8_string filename)
   }
   if (sharedcache==1) {
 #ifdef SQLITE_OPEN_PRIVATECACHE
-    flags=flags|SQLITE_OPEN_SHARDCACHE;
+    flags=flags|SQLITE_OPEN_SHAREDCACHE;
 #else
     u8_log(LOG_WARN,"sqlite_open","SQLite shared caching is not available");
     return -1;

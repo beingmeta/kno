@@ -855,7 +855,7 @@ fdtype fd_exception_backtrace(u8_exception ex)
 	(((d)&&cx)?(u8_mkstring("%s (%s) %s",c,cx,d)):
 	 (d)?(u8_mkstring("%s: %s",c,d)):
 	 (cx)?(u8_mkstring("%s (%s)",c,cx)):
-	 u8_strdup(c));
+	 ((u8_string)u8_strdup(c)));
       result=fd_init_pair(NULL,fd_make_string(NULL,-1,sum),result);
       u8_free(sum);}
     if (!((FD_NULLP(x))||(FD_VOIDP(x)))) {

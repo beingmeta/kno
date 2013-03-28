@@ -114,9 +114,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
 
     /* Write the content */
     {int vscan=0;
-      unsigned char *read=qrcode->data, *readlim=read+qrwidth*qrwidth;
-      char *write=row+((margin*dotsize)/8); /* margin offset */
-      int bitoff=7-((margin*dotsize)%8);
+      unsigned char *read=qrcode->data;
       while (vscan<qrheight) {
 	char *write=row+((margin*dotsize)/8); /* margin offset */
 	int bitoff=7-((margin*dotsize)%8), dotscan=0;

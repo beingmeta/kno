@@ -846,7 +846,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	  else {
 	    fdtype result=
 	      fd_err(fd_TypeError,"xref",
-		     ((FD_VOIDP(type_arg)) ? (u8_strdup("compound")) :
+		     ((FD_VOIDP(type_arg)) ?
+		      ((u8_string)u8_strdup("compound")) :
 		      (fd_dtype2string(type_arg))),
 		     a1);
 	    fd_decref(results); 
@@ -858,8 +859,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	return xref_opcode(arg1,FD_FIX2INT(offset_arg),type_arg);
       else {
 	fdtype result=fd_err(fd_TypeError,"xref",
-			     ((FD_VOIDP(type_arg)) ? (u8_strdup("compound")) :
-			      (fd_dtype2string(type_arg))),arg1);
+			     ((FD_VOIDP(type_arg)) ?
+			      ((u8_string)u8_strdup("compound")) :
+			      (fd_dtype2string(type_arg))),
+			     arg1);
 	fd_decref(arg1);
 	return result;}}
   else {
