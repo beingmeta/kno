@@ -1468,8 +1468,10 @@ FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
     else scan=scan->next;
   if ((scan)&&(scan->reloading)) {
     fd_unlock_mutex(&load_record_lock);
+    fd_unlock_mutex(&update_modules_lock);
     return 0;}
   else if (!(scan)) {
+    fd_unlock_mutex(&load_record_lock);
     fd_unlock_mutex(&update_modules_lock);
     /* Maybe, this should load it. */
     fd_seterr(fd_ReloadError,"fd_update_file_module",
@@ -1479,6 +1481,7 @@ FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
     return -1;}
   else if ((!(force))&&(mtime<=scan->mtime)) {
     fd_unlock_mutex(&load_record_lock);
+    fd_unlock_mutex(&update_modules_lock);
     return 0;}
   scan->reloading=1;
   fd_unlock_mutex(&load_record_lock);
