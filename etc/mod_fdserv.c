@@ -947,7 +947,7 @@ static int spawn_fdservlet /* 2.0 */
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
 		     "Stopped after %d configs!",n_configs);}
-      ap_log_error(APLOG_MARK,APLOG_INFO,500,s,
+      ap_log_error(APLOG_MARK,APLOG_INFO,OK,s,
 		   "Passing server config %s to %s for %s",
 		   *scan_config,exename,sockname);
       *write_argv++=(char *)(*scan_config); scan_config++;
@@ -958,7 +958,7 @@ static int spawn_fdservlet /* 2.0 */
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s,
 		     "Stopped after %d configs!",n_configs);}
-      ap_log_error(APLOG_MARK,APLOG_INFO,500,s,
+      ap_log_error(APLOG_MARK,APLOG_INFO,OK,s,
 		   "Passing directory config %s to %s for %s",
 		   *scan_config,exename,sockname);
       
@@ -2220,8 +2220,10 @@ static void fdserv_init(apr_pool_t *p,server_rec *s)
   apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
   servlets=apr_pcalloc(fdserv_pool,sizeof(struct FDSERVLET)*(FDSERV_INIT_SERVLETS));
   max_servlets=FDSERV_INIT_SERVLETS;
-  apr_pool_cleanup_register(p,p,close_servlets,NULL);
-  /* apr_pool_pre_cleanup_register(p,p,close_servlets); */
+  /* apr_pool_cleanup_register(p,p,close_servlets,NULL); */
+  #if ((APR_MAJOR_VERSION>=1)&&(APR_MAJOR_VERSION>=4))
+  apr_pool_pre_cleanup_register(p,p,close_servlets);
+  #endif
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
