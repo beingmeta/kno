@@ -77,23 +77,17 @@ static int getboolopt(opts,sym)
 
 static fdtype readonly_symbol, create_symbol, sharedcache_symbol, privatecache_symbol, vfs_symbol;
 
+static int getv2flags(fdtype colinfo,u8_string filename);
+
 static fdtype open_sqlite(fdtype filename,fdtype colinfo)
 {
   sqlite3 *db=NULL;
-  int readonly=getboolopt(colinfo,readonly_symbol);
-  int readcreate=getboolopt(colinfo,create_symbol);
-  int sharedcache=getboolopt(colinfo,sharedcache_symbol);
-  int privcache=getboolopt(colinfo,privatecache_symbol);
   fdtype vfs=fd_getopt(colinfo,vfs_symbol,FD_VOID);
 #if HAVE_SQLITE3_OPEN_V2
-  int retval=sqlite3_open_v2
-    (FD_STRDATA(filename),&db,
-     ((readonly)?(SQLITE_OPEN_READONLY):
-      (FD_FALSEP(readcreate))?(SQLITE_OPEN_READWRITE):
-      (SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE))|
-     ((privcache==1)?(SQLITE_OPEN_PRIVATECACHE):(0))|
-     ((sharedcache==1)?(SQLITE_OPEN_SHAREDCACHE):(0))|
-     ((u8_has_prefix(FD_STRDATA(filename),"file:",1))?(SQLITE_OPEN_URI):(0)),
+  int flags=getv2flags(colinfo,FD_STRDATA(filename)), retval;
+  if (flags<0) return FD_ERROR_VALUE;
+  else retval=sqlite3_open_v2
+    (FD_STRDATA(filename),&db,flags,
      ((FD_STRINGP(vfs))?(FD_STRDATA(vfs)):(NULL)));
 #else
   int retval=sqlite3_open(FD_STRDATA(filename),&db);
@@ -126,6 +120,47 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
     u8_init_mutex(&(sqlcons->proclock));
     return FDTYPE_CONS(sqlcons);}
 }
+
+#if HAVE_SQLITE3_OPEN_V2
+static int getv2flags(fdtype colinfo,u8_string filename)
+{
+  int readonly=getboolopt(colinfo,readonly_symbol);
+  int readcreate=getboolopt(colinfo,create_symbol);
+  int sharedcache=getboolopt(colinfo,sharedcache_symbol);
+  int privcache=getboolopt(colinfo,privatecache_symbol);
+  int flags=0;
+  if (readonly) flags=flags|SQLITE_OPEN_READONLY;
+  else if (readcreate)
+    flags=flags|SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE;
+  else flags=flags|SQLITE_OPEN_READWRITE;
+  if (privcache==1) {
+#ifdef SQLITE_OPEN_PRIVATECACHE
+    flags=flags|SQLITE_OPEN_PRIVATECACHE;
+#else
+    u8_log(LOG_WARN,"sqlite_open","SQLite private caching is not available");
+    return -1;
+#endif
+  }
+  if (sharedcache==1) {
+#ifdef SQLITE_OPEN_PRIVATECACHE
+    flags=flags|SQLITE_OPEN_SHARDCACHE;
+#else
+    u8_log(LOG_WARN,"sqlite_open","SQLite shared caching is not available");
+    return -1;
+#endif
+  }
+  if (u8_has_prefix(FD_STRDATA(filename),"file:",1)) {
+#if SQLITE_OPEN_URI
+    flags=flags|SQLITE_OPEN_URI;
+#else
+    u8_log(LOG_WARN,"sqlite_open","SQLite file URIs are not available");
+    return -1;
+#endif
+  }
+
+  return flags;
+}
+#endif
 
 static void recycle_sqlitedb(struct FD_EXTDB *c)
 {
