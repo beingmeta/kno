@@ -93,8 +93,8 @@
 			     (get filecheck-lags (abspath file))
 			     (get filecheck-lags (realpath file))
 			     filecheck-default-lag))
-	       (parser (or parser (loadinfo-parser info)))
-	       (enc (or enc (loadinfo-encoding info)))
+	       (parser (try (or parser (loadinfo-parser info)) #f))
+	       (enc (try (or enc (loadinfo-encoding info)) #f))
 	       (data (cond ((or (not enc) (eq? enc 'binary)) (filedata file))
 			   ((string? enc) (filestring file enc))
 			   ;; This is UTF-8
