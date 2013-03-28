@@ -238,8 +238,7 @@ static void report_status()
   FILE *logto=statlog;
   struct U8_SERVER_STATS stats;
   double elapsed=u8_elapsed_time();
-  if (!(logto)) {
-    if (statlogfile) {
+  if ((!(logto))&&(statlogfile)) {
       fd_lock_mutex(&log_lock);
       if (statlog) {
 	logto=statlog; fd_unlock_mutex(&log_lock);}
@@ -252,7 +251,9 @@ static void report_status()
 	  u8_free(tmp);
 	  logto=statlog;}
 	fd_unlock_mutex(&log_lock);}}
-    if (!(statlog)) logto=statlog;}
+  if (logto) {}
+  else if (statlog) logto=statlog;
+  else logto=stderr;
   u8_fprintf(logto,STATUS_LINE1,elapsed,
 	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
