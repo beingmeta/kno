@@ -2220,7 +2220,8 @@ static void fdserv_init(apr_pool_t *p,server_rec *s)
   apr_thread_mutex_create(&servlets_lock,APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
   servlets=apr_pcalloc(fdserv_pool,sizeof(struct FDSERVLET)*(FDSERV_INIT_SERVLETS));
   max_servlets=FDSERV_INIT_SERVLETS;
-  apr_pool_pre_cleanup_register(p,p,close_servlets);
+  apr_pool_cleanup_register(p,p,close_servlets,NULL);
+  /* apr_pool_pre_cleanup_register(p,p,close_servlets); */
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv v%s finished child init (%d) for Apache 2.x",
 		version_num,(int)getpid());
