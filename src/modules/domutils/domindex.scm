@@ -1,11 +1,8 @@
 ;;; -*- Mode: Scheme; character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
 
-(in-module 'domutils/index)
-
 ;;; Utilites for indexing XML content, especially XHTML
-(define version "$Id$")
-(define revision "$Revision: 4957 $")
+(in-module 'domutils/index)
 
 (use-module '{reflection
 	      fdweb xhtml texttools domutils
@@ -14,7 +11,8 @@
 (module-export! '{dom/index! dom/indexer})
 
 (define %loglevel %notice%)
-(define default-dom-slots '{id class name href src rel})
+(define default-dom-slots
+  '{%xmltag %qname %attribids id class name href src rel})
 
 (define default-indexrules (make-hashtable))
 (define (indexrule-config var (val))
@@ -34,11 +32,13 @@
 	   (cons 'classname (dom/split-space (get x 'class)))))
 
 (define (dom/index! index doc (settings #[]))
-  (let ((indexslots (try (get settings 'indexslots) default-dom-slots))
-	(cacheslots (get settings 'cacheslots))
-	(indexrules (try (get settings 'indexrules) default-indexrules))
-	(analyzers (try (get settings 'analyzers) default-analyzers))
-	(idmap (try (get settings 'idmap) #f)))
+  (let ((indexslots (getopt settings 'indexslots default-dom-slots))
+	(cacheslots (getopt settings 'cacheslots))
+	(indexrules (getopt settings 'indexrules default-indexrules))
+	(analyzers (getopt settings 'analyzers default-analyzers))
+	(idmap (getopt settings 'idmap)))
+    (when (overlaps? indexslots '{dom/index/defaults})
+      (set+! indexslots default-dom-slots))
     (dom/indexer index doc {} {}
 		 indexslots cacheslots indexrules analyzers idmap
 		 settings doc)))
@@ -59,12 +59,15 @@
 				(if idmap (get xml 'id) xml)))
 		 (eltinfo (dom/lookup indexrules xml))
 		 (slots (choice
-			 (intersection
-			  (choice (pick indexslots symbol?)
-				  (car (pick indexslots pair?))
-				  (pick eltinfo symbol?)
-				  (car (pick eltinfo pair?)))
-			  (getkeys xml))
+			 (if (or (not indexslots)
+				 (overlaps? indexslots 'dom/index/all))
+			     (getkeys xml)
+			     (intersection
+			      (choice (pick indexslots symbol?)
+				      (car (pick indexslots pair?))
+				      (pick eltinfo symbol?)
+				      (car (pick eltinfo pair?)))
+			      (getkeys xml)))
 			 (get xml '%attribids)))
 		 (rules (choice
 			 (pick (choice (pick indexslots pair?)
@@ -100,11 +103,3 @@
 			     indexslots cacheslots
 			     indexrules analyzers idmap
 			     settings doc))))))))
-
-
-
-
-
-
-
-
