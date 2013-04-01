@@ -1,1 +1,0 @@
-(load-component "domindex.scm")
