@@ -619,8 +619,12 @@ static fdtype get_stmt_values
   fd_decref(sortval);
 
   if (FD_ABORTP(results)) return results;
-  else if (retval==MYSQL_NO_DATA)
-    return results;
+  else if (retval==MYSQL_NO_DATA) {
+    if (sorted) {
+      if (FD_VECTORP(results)) return results;
+      fd_decref(results);
+      return fd_init_vector(NULL,0,NULL);}
+    else return results;}
   else if ((retval)&&(retval!=MYSQL_DATA_TRUNCATED)) {
     fd_decref(results); /* Free any partial results */
     /* An FD_EOD return value indicates some kind of MySQL error */
