@@ -273,7 +273,10 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
    (list (if current-prefix-arg
 	     (read-string "Run fdconsole: " fdconsole-program)
 	   fdconsole-program)))
-  (let ((bufname (or scheme-buffer "*fdconsole*"))
+  (let ((bufname (or (and scheme-buffer
+			  (get-buffer-window scheme-buffer)
+			  scheme-buffer)
+		     "*fdconsole*"))
 	(comint-arg "fdconsole"))
     (if (equal major-mode (intern "inferior-scheme-mode"))
 	(progn (setq bufname (buffer-name (current-buffer)))
