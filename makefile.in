@@ -698,24 +698,24 @@ freshrpms:
 	make rpms
 rpms: etc/rpms.done
 
-etc/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
+distbuild/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      configure.ac makefile.in makefile
 	git archive --prefix=framerd-@VERSION@/ \
-	            -o etc/framerd-@VERSION@.tar HEAD
-	cd etc; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
+	            -o distbuild/framerd-@VERSION@.tar HEAD
+	cd distbuild; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
 	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
-		> etc/framerd-@VERSION@/etc/fdversion.h;
-etc/framerd-@VERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
+		> distbuild/framerd-@VERSION@/etc/fdversion.h;
+distbuild/framerd-@VERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      		configure.ac makefile.in makefile
-	make etc/framerd-@VERSION@
+	make distbuild/framerd-@VERSION@
 	tar -czvf $@ -C etc framerd-@VERSION@
 
-etc/rpms.done: etc/framerd-@VERSION@.tar.gz
+dist/rpms.done: distbuild/framerd-@VERSION@.tar.gz
 	@buildrpm@ ${RPMFLAGS} \
 		--define "_rpmdir dist" --define "_srcrpmdir dist" \
 		--nodeps -ta \
-		etc/framerd-@VERSION@.tar.gz \
-	&& touch etc/rpms.done
+		distbuild/framerd-@VERSION@.tar.gz \
+	&& touch dist/rpms.done
 
 # Installation targets
 
