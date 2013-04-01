@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.4
-Release:        8%{?dist}
+Release:        10%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -92,15 +92,15 @@ Requires:       libz %{name} = %{version}-%{release}
 %description    zlib
 The %{name}-zlib package implements external bindings for libz compression and decompression
 
-# %package        ziptools
-# Summary:        FramerD module for working with zipfiles
-# Group:          Development/Libraries
-# BuildRequires:  libzip-devel
-# Requires:       libzip %{name} = %{version}-%{release}
+%package        ziptools
+Summary:        FramerD module for working with zipfiles
+Group:          Development/Libraries
+BuildRequires:  libzip-devel
+Requires:       libzip %{name} = %{version}-%{release}
 
-# %description    ziptools
-# The %{name}-ziptools package provides manipulation for zip-encoded files through 
-# external bindings for the libzip library.
+%description    ziptools
+The %{name}-ziptools package provides manipulation for zip-encoded files through 
+external bindings for the libzip library.
 
 %package        exif
 Summary:        FramerD module for getting image metadata
@@ -276,10 +276,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 %{_libdir}/framerd/zlib.so*
  
-# %files ziptools
-# %defattr(-,root,root,-)
-# %doc
-# %{_libdir}/framerd/ziptools.so*
+%files ziptools
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/ziptools.so*
  
 %files exif
 %defattr(-,root,root,-)
