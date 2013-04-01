@@ -851,7 +851,7 @@
 (define dompool #f)
 
 (define (oidify/copy node pool (doc #f) (parent #f))
-  (if (slotmap? node)
+  (if (or (slotmap? node)  (schemap? node))
       (try (get node '%oid)
 	   (let* ((oid (frame-create pool))
 		  (slotids (getkeys node))
@@ -864,10 +864,12 @@
 	       (store! oid '%content
 		       (->list
 			(forseq (elt (->vector (get node '%content)))
-			  (when (slotmap? elt)
+			  (when (or (slotmap? elt)  (schemap? elt))
 			    (set! cur (oidify/copy elt pool doc oid))
 			    (when (oid? cur)
-			      (when prev (store! prev 'next cur) (store! cur 'prev prev))
+			      (when prev
+				(store! prev 'next cur)
+				(store! cur 'prev prev))
 			      (set! prev cur)))
 			  (if (slotmap? elt) cur elt)))))
 	     (do-choices (slotid (difference slotids '%content))
@@ -877,10 +879,14 @@
 	     (store! oid '%children
 		     (pickoids (elts (get oid '%content))))
 	     oid))
-      node))
+      (if (pair? node)
+	  (map (lambda (child)
+		 (if (string? child) child (oidify/copy child pool doc node)))
+	       node)
+	  node)))
 
 (define (oidify/inplace node pool (doc #f) (parent #f))
-  (if (slotmap? node)
+  (if (or (slotmap? node)  (schemap? node))
       (try (get node '%oid)
 	   (let ((oid (allocate-oids pool)) (cur #f) (prev #f)
 		 (content (try (->vector (get node '%content)) #f)))
@@ -893,7 +899,7 @@
 	       (store! node '%content
 		       (->list
 			(forseq (elt content)
-			  (if (slotmap? elt)
+			  (if (or (slotmap? elt)  (schemap? elt))
 			      (begin
 				(set! cur (oidify/inplace elt pool doc oid))
 				(when prev
@@ -907,7 +913,11 @@
 	     (store! oid '%children
 		     (pickoids (elts (get node '%content))))
 	     oid))
-      node))
+      (if (pair? node)
+	  (map (lambda (child)
+		 (if (string? child) child (oidify/inplace child pool doc node)))
+	       node)
+	  node)))
 
 (define (dom/oidify node (pool dompool) (inplace #t) (doc #f) (parent #f) )
   (if (eq? pool #t) (set! pool dompool))
