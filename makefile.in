@@ -708,7 +708,7 @@ distbuild/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEA
 distbuild/framerd-@VERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      		configure.ac makefile.in makefile
 	make distbuild/framerd-@VERSION@
-	tar -czvf $@ -C etc framerd-@VERSION@
+	tar -czvf $@ -C distbuild framerd-@VERSION@
 
 dist/rpms.done: distbuild/framerd-@VERSION@.tar.gz
 	@buildrpm@ ${RPMFLAGS} \
