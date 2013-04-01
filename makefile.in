@@ -688,15 +688,15 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Packaging targets
 
-rpmtar: etc/framerd-@VERSION@.tar.gz
+rpmtar: distbuild/framerd-@VERSION@.tar.gz
 cleanrpms: 
-	rm -rf etc/rpms.done etc/framerd-?.?.tar.gz etc/framerd-?.?
-	find dist -name "*.rpm" | xargs -r
+	rm -rf dist/rpms.done distbuild/framerd-?.?.tar.gz distbuild/framerd-?.?
+	find dist -name "*.rpm" | xargs rm
 freshrpms: 
-	rm -rf etc/rpms.done etc/framerd-?.?.tar.gz etc/framerd-?.?
-	find dist -name "*.rpm" | xargs -r
+	rm -rf dist/rpms.done distbuild/framerd-?.?.tar.gz distbuild/framerd-?.?
+	find dist -name "*.rpm" | xargs rm
 	make rpms
-rpms: etc/rpms.done
+rpms: dist/rpms.done
 
 distbuild/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      configure.ac makefile.in makefile
