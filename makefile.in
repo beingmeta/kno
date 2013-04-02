@@ -688,33 +688,33 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Packaging targets
 
-rpmtar: distbuild/framerd-@VERSION@.tar.gz
+rpmtar: staging/framerd-@VERSION@.tar.gz
 cleanrpms: 
-	rm -rf dist/rpms.done distbuild/framerd-?.?.tar.gz distbuild/framerd-?.?
+	rm -rf dist/rpms.done staging/framerd-?.?.tar.gz staging/framerd-?.?
 	find dist -name "*.rpm" | xargs rm
 freshrpms: 
-	rm -rf dist/rpms.done distbuild/framerd-?.?.tar.gz distbuild/framerd-?.?
+	rm -rf dist/rpms.done staging/framerd-?.?.tar.gz staging/framerd-?.?
 	find dist -name "*.rpm" | xargs rm
 	make rpms
 rpms: dist/rpms.done
 
-distbuild/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
+staging/framerd-@VERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      configure.ac makefile.in makefile
 	git archive --prefix=framerd-@VERSION@/ \
-	            -o distbuild/framerd-@VERSION@.tar HEAD
-	cd distbuild; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
+	            -o staging/framerd-@VERSION@.tar HEAD
+	cd staging; tar -xf framerd-@VERSION@.tar; rm framerd-@VERSION@.tar
 	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
-		> distbuild/framerd-@VERSION@/etc/fdversion.h;
-distbuild/framerd-@VERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
+		> staging/framerd-@VERSION@/etc/fdversion.h;
+staging/framerd-@VERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      		configure.ac makefile.in makefile
-	make distbuild/framerd-@VERSION@
-	tar -czvf $@ -C distbuild framerd-@VERSION@
+	make staging/framerd-@VERSION@
+	tar -czvf $@ -C staging framerd-@VERSION@
 
-dist/rpms.done: distbuild/framerd-@VERSION@.tar.gz
+dist/rpms.done: staging/framerd-@VERSION@.tar.gz
 	@buildrpm@ ${RPMFLAGS} \
 		--define "_rpmdir dist" --define "_srcrpmdir dist" \
 		--nodeps -ta \
-		distbuild/framerd-@VERSION@.tar.gz \
+		staging/framerd-@VERSION@.tar.gz \
 	&& touch dist/rpms.done
 
 # Installation targets
