@@ -60,6 +60,9 @@
        ;;  the ref will just be moved to the current file by stripping
        ;;  off the URL part
        (tryif (overlaps? amalgamate (gp/mkpath base ref)) "")
+       ;; Check if we're already localized
+       (tryif (exists? (textmatcher `#(,read "/") ref))
+	 ref)
        ;; Check the cache
        (get urlmap ref)
        ;; don't bother localizing these references
@@ -108,7 +111,7 @@
 		(savetime (and existing (gp/modified savepath)))
 		(changed (or (not savetime) (not sourcetime)
 			     (time>? sourcetime savetime)))
-		(fetched (and changed (gp/fetch+ absref))))
+		(fetched (and changed (try (gp/fetch+ absref) #f))))
 	   (cond ((and changed fetched)
 		  ;; Updated
 		  (if xform
@@ -163,24 +166,16 @@
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'src ref)
 	  (set+! files ref))))
-    (dolist (node (dom/find->list dom "[href]"))
-      (let* ((href (get node 'href))
-	     (ref (and (not (string-starts-with?
-			     href #((isalpha) (isalpha) (isalpha+) ":")))
-		       (or (not doanchors) (textsearch doanchors href))
-		       (localref href urlmap base (qc saveto) read
-				 (qc amalgamate) (qc localhosts)))))
-	(logdetail "Local ref " (write ref) " copied from " (write (get node 'href))
-		   "\n\tfor " node)
-	(when (and (exists? ref) ref)
-	  (dom/set! node 'href ref)
-	  (set+! files ref))))
     ;; Convert url() references in stylesheets
     (do-choices (node (pick (dom/find head "link") 'rel "stylesheet"))
       (let* ((ctype (try (get node 'type) "text"))
+	     (href (get node 'href))
 	     (xformurlfn
 	      (lambda (url)
-		(localref url urlmap (gp/mkpath base (get node 'href))
+		(localref url urlmap
+			  (if (position #\/ href)
+			      (gp/mkpath base (dirname href))
+			      base)
 			  (qc saveto) (mkpath ".." read)
 			  (qc amalgamate) (qc localhosts))))
 	     (xformrule
@@ -208,6 +203,18 @@
 				 xformcss))))
 	(logdetail "Local ref " (write ref) " copied from "
 		   (write (get node 'href)) "\n\tfor " node)
+	(when (and (exists? ref) ref)
+	  (dom/set! node 'href ref)
+	  (set+! files ref))))
+    (dolist (node (dom/find->list dom "[href]"))
+      (let* ((href (get node 'href))
+	     (ref (and (not (string-starts-with?
+			     href #((isalpha) (isalpha) (isalpha+) ":")))
+		       (or (not doanchors) (textsearch doanchors href))
+		       (localref href urlmap base (qc saveto) read
+				 (qc amalgamate) (qc localhosts)))))
+	(logdetail "Local ref " (write ref) " copied from " (write (get node 'href))
+		   "\n\tfor " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
