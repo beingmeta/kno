@@ -223,13 +223,7 @@
       (set-cookie! var authstring
 		   auth-cookie-domain auth-cookie-path
 		   (and (authinfo-sticky? auth) (authinfo-expires auth))
-		   #t)
-      (set-cookie! var (if secret
-			   (packet->base64 (encrypt authstring secret))
-			   authstring)
-		   auth-cookie-domain auth-cookie-path
-		   (and (authinfo-sticky? auth) (authinfo-expires auth))
-		   #f))
+		   #t))
   (req/set! var
 	    (if auth-secure authstring
 		(if secret (packet->base64 (encrypt authstring secret))
