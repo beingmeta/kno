@@ -46,6 +46,8 @@
 
 fd_ptr_type fd_extdb_type, fd_extdb_proc_type;
 
+static fdtype exec_enabled_symbol;
+
 static fd_exception NoMakeProc=
   _("No implementation for prepared SQL statements");
 
@@ -162,10 +164,21 @@ static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
 
 static int exec_enabled=0;
 
+static int check_exec_enabled(fdtype opts)
+{
+  fdtype v=fd_getopt(opts,exec_enabled_symbol,FD_VOID);
+  if (FD_VOIDP(v)) return 0;
+  else if (FD_FALSEP(v)) return 0;
+  fd_decref(v);
+  return 1;
+}
+
 static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
 {
   struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
-  if (exec_enabled)
+  if ((exec_enabled)||
+      ((fd_testopt(extdb->options,exec_enabled,FD_VOID))&&
+       (check_exec_enabled(extdb->options))))
     return extdb->dbhandler->execute(extdb,query,colinfo);
   else return fd_err(_("Direct SQL execution disabled"),"extdb_exec",
 		     FD_STRDATA(query),db);
@@ -256,6 +269,8 @@ FD_EXPORT void fd_init_extdbi_c()
   fd_init_mutex(&extdb_handlers_lock);
 #endif
 
+  exec_enabled_symbol=fd_intern("%EXECOK");
+
   fd_extdb_type=fd_register_cons_type("EXTDB");
   fd_recyclers[fd_extdb_type]=recycle_extdb;
   fd_unparsers[fd_extdb_type]=unparse_extdb;
@@ -292,3 +307,4 @@ FD_EXPORT void fd_init_extdbi_c()
   fd_persist_module(extdb_module);
 
 }
+
