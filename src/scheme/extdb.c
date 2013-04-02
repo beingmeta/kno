@@ -177,7 +177,7 @@ static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
 {
   struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
   if ((exec_enabled)||
-      ((fd_testopt(extdb->options,exec_enabled,FD_VOID))&&
+      ((fd_testopt(extdb->options,exec_enabled_symbol,FD_VOID))&&
        (check_exec_enabled(extdb->options))))
     return extdb->dbhandler->execute(extdb,query,colinfo);
   else return fd_err(_("Direct SQL execution disabled"),"extdb_exec",
