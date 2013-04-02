@@ -421,6 +421,34 @@ static fdtype mkuripath_prim(fdtype dirname,fdtype name)
     return result;}
 }
 
+/* Making data URIs */
+
+static fdtype datauri_prim(fdtype data,fdtype ctype_arg)
+{
+  u8_string ctype=((FD_STRINGP(ctype_arg))?(FD_STRDATA(ctype_arg)):((u8_string)NULL));
+  u8_string base64; int data_len, uri_len;
+  fdtype result; struct FD_STRING *string; u8_byte *write;
+  if (FD_STRINGP(data)) 
+    base64=u8_write_base64(FD_STRDATA(data),FD_STRLEN(data),&data_len);
+  else if (FD_PACKETP(data))
+    base64=u8_write_base64(FD_PACKET_DATA(data),FD_PACKET_LENGTH(data),&data_len);
+  else return fd_type_error("String or packet","datauri_prim",data);
+  uri_len=5+((ctype)?(FD_STRLEN(ctype_arg)):(10))+
+    ((FD_STRINGP(data))?(13):(0))+8+data_len+1;
+  result=fd_make_string(NULL,uri_len,NULL);
+  string=FD_GET_CONS(result,fd_string_type,struct FD_STRING *);
+  write=FD_STRDATA(result);
+  if ((ctype)&&(FD_STRINGP(data))) 
+    sprintf(write,"data:%s;charset=UTF-8;base64,",ctype);
+  else if (ctype) 
+    sprintf(write,"data:%s;base64,",ctype);
+  else if (FD_STRINGP(data))
+    sprintf(write,"data:text/plain;charset=UTF-8;base64,");
+  else sprintf(write,"data:;base64,");
+  strcat(write,base64); u8_free(base64);
+  return result;
+}
+
 /* Module init */
 
 FD_EXPORT void fd_init_urifns_c()
@@ -457,6 +485,9 @@ FD_EXPORT void fd_init_urifns_c()
 				  fd_string_type,FD_VOID));
 
   fd_idefn(module,fd_make_cprim2x("MKURIPATH",mkuripath_prim,2,
+				  -1,FD_VOID,fd_string_type,FD_VOID));
+
+  fd_idefn(module,fd_make_cprim2x("DATAURI",datauri_prim,1,
 				  -1,FD_VOID,fd_string_type,FD_VOID));
 
   u8_register_source_file(_FILEINFO);

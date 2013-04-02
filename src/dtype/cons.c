@@ -446,7 +446,9 @@ fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
   if (ptr == NULL) {
     ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
-    memcpy(bytes,string,length); bytes[length]='\0';
+    if (string) memcpy(bytes,string,length);
+    else memset(bytes,'?',length);
+    bytes[length]='\0';
     freedata=0;}
   else {
     bytes=u8_malloc(length+1);
