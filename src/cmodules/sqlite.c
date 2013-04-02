@@ -79,7 +79,7 @@ static fdtype readonly_symbol, create_symbol, sharedcache_symbol, privatecache_s
 
 static int getv2flags(fdtype colinfo,u8_string filename);
 
-static fdtype open_sqlite(fdtype filename,fdtype colinfo)
+static fdtype open_sqlite(fdtype filename,fdtype colinfo,fdtype options)
 {
   sqlite3 *db=NULL;
   fdtype vfs=fd_getopt(colinfo,vfs_symbol,FD_VOID);
@@ -120,8 +120,9 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
   else {
     struct FD_SQLITE *sqlcons=u8_alloc(struct FD_SQLITE);
     FD_INIT_FRESH_CONS(sqlcons,fd_extdb_type);
-    sqlcons->dbhandler=&sqlite_handler; sqlcons->colinfo=colinfo;
-    sqlcons->db=db; sqlcons->options=FD_VOID;
+    sqlcons->dbhandler=&sqlite_handler; sqlcons->db=db; 
+    sqlcons->colinfo=colinfo; fd_incref(colinfo);
+    sqlcons->options=options; fd_incref(options);
     sqlcons->spec=sqlcons->info=u8_strdup(FD_STRDATA(filename));
     u8_init_mutex(&(sqlcons->lock));
     u8_init_mutex(&(sqlcons->proclock));
@@ -497,9 +498,9 @@ FD_EXPORT int fd_init_sqlite()
   fd_register_extdb_handler(&sqlite_handler);
 
   fd_defn(module,
-	  fd_make_cprim2x("SQLITE/OPEN",open_sqlite,1,
+	  fd_make_cprim3x("SQLITE/OPEN",open_sqlite,1,
 			  fd_string_type,FD_VOID,
-			  -1,FD_VOID));
+			  -1,FD_VOID,-1,FD_VOID));
   sqlite_init=1;
 
   merge_symbol=fd_intern("%MERGE");
