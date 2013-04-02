@@ -23,6 +23,8 @@
 #include <libu8/u8crypto.h>
 
 #include <sqlite3.h>
+#include <limits.h>
+#include <ctype.h>
 
 FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
@@ -178,6 +180,60 @@ static void recycle_sqlitedb(struct FD_EXTDB *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
+/* Convert time string */
+
+static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
+{
+  const char *tzstart;
+  int stdpos[]={-1,4,7,10,13,16,19,20}, *pos=stdpos;
+  int basicpos[]={-1,4,6,8,11,13,15,17};
+  int nsecs=0, n_elts, len=strlen(s);
+  if (strchr(s,'/')) return (time_t) -1;
+  memset(xtp,0,sizeof(struct U8_XTIME));
+  if ((len>=11)&&(s[10]==' '))
+    /* Assume odd, vaugely human-friendly format that uses space
+       rather than T to separate the time */
+    n_elts=sscanf(s,"%04u-%02hhu-%02hhu %02hhu:%02hhu:%02hhu.%u",
+		  &xtp->u8_year,&xtp->u8_mon,
+		  &xtp->u8_mday,&xtp->u8_hour,
+		  &xtp->u8_min,&xtp->u8_sec,
+		  &nsecs);
+  else n_elts=sscanf(s,"%04u-%02hhu-%02hhuT%02hhu:%02hhu:%02hhu.%u",
+		     &xtp->u8_year,&xtp->u8_mon,
+		     &xtp->u8_mday,&xtp->u8_hour,
+		     &xtp->u8_min,&xtp->u8_sec,
+		     &nsecs);
+  if ((n_elts == 1)&&(len>4)) {
+    /* Assume basic format */
+    n_elts=sscanf(s,"%04u%02hhu%02hhuT%02hhu%02hhu%02hhu.%u",
+		  &xtp->u8_year,&xtp->u8_mon,
+		  &xtp->u8_mday,&xtp->u8_hour,
+		  &xtp->u8_min,&xtp->u8_sec,
+		  &nsecs);
+    pos=basicpos;}
+  /* Give up if you can't parse anything */
+  if (n_elts == 0) return (time_t) -1;
+  /* Adjust month */
+  xtp->u8_mon--;
+  /* Set precision */
+  xtp->u8_prec=n_elts;
+  if (n_elts <= 6) xtp->u8_nsecs=0;
+  if (n_elts == 7) {
+    const char *start=s+pos[n_elts], *scan=start; int zeros=0;
+    while (*scan == '0') {zeros++; scan++;}
+    while (isdigit(*scan)) scan++;
+    xtp->u8_nsecs=nsecs*(9-zeros);
+    xtp->u8_prec=xtp->u8_prec+((scan-start)/3);
+    tzstart=scan;}
+  else tzstart=s+pos[n_elts];
+  if ((tzstart)&&(*tzstart)) {
+    u8_apply_tzspec(xtp,(char *)tzstart);
+    xtp->u8_tick=u8_mktime(xtp);}
+  else xtp->u8_tick=u8_mklocaltime(xtp);
+  xtp->u8_nsecs=0;
+  return xtp->u8_tick;
+}
+
 /* Processing results */
 
 static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
@@ -229,11 +285,25 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       switch (coltype) {
       case SQLITE_INTEGER: {
 	long long intval=sqlite3_column_int(stmt,j);
-	value=FD_INT2DTYPE(intval); break;}
+	const char *decltype=sqlite3_column_decltype(stmt,j);
+	if ((strcasecmp(decltype,"DATETIME")==0)||
+	    (strcasecmp(decltype,"DATE")==0))
+	  value=fd_time2timestamp((time_t)intval);
+	else value=FD_INT2DTYPE(intval);
+	break;}
       case SQLITE_FLOAT:
 	value=fd_init_double(NULL,sqlite3_column_double(stmt,j)); break;
-      case SQLITE_TEXT:
-	value=fdtype_string((unsigned char *)sqlite3_column_text(stmt,j)); break;
+      case SQLITE_TEXT: {
+	const char *decltype=sqlite3_column_decltype(stmt,j);
+	const char *textval=sqlite3_column_text(stmt,j);
+	if ((strcasecmp(decltype,"DATETIME")==0)||
+	    (strcasecmp(decltype,"DATE")==0)) {
+	  struct U8_XTIME xt; time_t retval=sqlite_time_to_xtime(textval,&xt);
+	  if (retval<0) retval=u8_rfc822_to_xtime((u8_string)textval,&xt);
+	  if (retval<0) value=fdtype_string((u8_string)textval);
+	  else value=fd_make_timestamp(&xt);}
+	else value=fdtype_string((unsigned char *)textval);
+	break;}
       case SQLITE_BLOB: {
 	int n_bytes=sqlite3_column_bytes(stmt,j);
 	const unsigned char *blob=sqlite3_column_blob(stmt,j);
@@ -343,7 +413,7 @@ static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
     u8_unlock_mutex(&(fds->lock));
     return values;}
   else {
-    fdtype dbptr=(fdtype)dbp; fd_incref(dbptr);
+    fdtype dbptr=(fdtype)fds; fd_incref(dbptr);
     errmsg=sqlite3_errmsg(dbp);
     fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),dbptr);
     u8_unlock_mutex(&(fds->lock));
@@ -451,6 +521,9 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) 
       ret=sqlite3_bind_text
 	(dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
+    else if (FD_PRIM_TYPEP(arg,fd_packet_type)) 
+      ret=sqlite3_bind_blob
+	(dbproc->stmt,i+1,FD_PACKET_DATA(arg),FD_PACKET_LENGTH(arg),SQLITE_TRANSIENT);
     else if (FD_OIDP(arg)) {
       if (FD_OIDP(dbproc->paramtypes[i])) {
 	FD_OID addr=FD_OID_ADDR(arg);
@@ -460,6 +533,24 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       else {
 	FD_OID addr=FD_OID_ADDR(arg);
 	ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
+    else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+      struct FD_TIMESTAMP *tstamp=FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
+      if (tstamp->xtime.u8_tzoff) {
+	struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
+	u8_xtime_to_iso8601(&out,&(tstamp->xtime));
+	ret=sqlite3_bind_text
+	  (dbproc->stmt,i+1,out.u8_outbuf,out.u8_outptr-out.u8_outbuf,SQLITE_TRANSIENT);}
+      else {
+	time_t tick=tstamp->xtime.u8_tick;
+	if (tick>INT_MAX) 
+	  ret=sqlite3_bind_int(dbproc->stmt,i+1,(int)tick);
+	else ret=sqlite3_bind_int64(dbproc->stmt,i+1,(sqlite3_int64)tick);}}
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+      fd_unparse(&out,arg);
+      ret=sqlite3_bind_text
+	(dbproc->stmt,i+1,out.u8_outbuf,out.u8_outptr-out.u8_outbuf,SQLITE_TRANSIENT);
+      u8_free(out.u8_outbuf);}
     if (dofree) fd_decref(arg);
     if (ret) {
       const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
