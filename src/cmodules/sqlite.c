@@ -91,13 +91,20 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo)
      ((FD_STRINGP(vfs))?(FD_STRDATA(vfs)):(NULL)));
 #else
   int retval=sqlite3_open(FD_STRDATA(filename),&db);
-  if (privcache>=0)
+  int readonly=getboolopt(colinfo,readonly_symbol);
+  int readcreate=getboolopt(colinfo,create_symbol);
+  int sharedcache=getboolopt(colinfo,sharedcache_symbol);
+  int privcache=getboolopt(colinfo,privatecache_symbol);
+
+  if (fd_testopt(colinfo,privatecache_symbol,FD_VOID))
     u8_log(LOG_WARN,"sqlite_open",
 	   "the sqlite3_open_v2 private cache option are not available");
+  if (fd_testopt(colinfo,sharedcache_symbol,FD_VOID))
   if (sharedcache>=0)
     u8_log(LOG_WARN,"sqlite_open",
 	   "the sqlite3_open_v2 shared cache option are not available");
-  if ((readonly>=0)||(readcreate>=0))
+  if ((fd_testopt(colinfo,readonly_symbol,FD_VOID))||
+      (fd_testopt(colinfo,create_symbol,FD_VOID)))
     u8_log(LOG_WARN,"sqlite_open",
 	   "the sqlite3_open_v2 read/write options are not available");
   if (!(FD_VOIDP(vfs)))
