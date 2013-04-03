@@ -400,9 +400,14 @@ static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
   const char *errmsg="er, err";
   int retval;
   u8_lock_mutex(&(fds->lock));
+#if HAVE_SQLITE3_PREPARE_V2
   retval=
     sqlite3_prepare_v2(dbp,FD_STRDATA(string),FD_STRLEN(string),
 		       &stmt,NULL);
+#else
+  retval=
+    sqlite3_prepare(dbp,FD_STRDATA(string),FD_STRLEN(string),&stmt,NULL);
+#endif
   if (FD_VOIDP(colinfo)) colinfo=fds->colinfo;
   if (retval==SQLITE_OK) {
     fdtype values=sqlite_values(dbp,stmt,colinfo);
@@ -438,7 +443,15 @@ static fdtype sqlitemakeproc
   int n_params, retval;
   struct FD_SQLITE_PROC *sqlcons=u8_alloc(struct FD_SQLITE_PROC);
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
-  retval=sqlite3_prepare_v2(db,stmt,stmt_len,&(sqlcons->stmt),NULL);
+#if HAVE_SQLITE3_PREPARE_V2
+  retval=
+    sqlite3_prepare_v2(db,FD_STRDATA(stmt),FD_STRLEN(stmt),
+		       &(sqlcons->stmt),NULL);
+#else
+  retval=
+    sqlite3_prepare(db,FD_STRDATA(stmt),FD_STRLEN(stmt),
+		    &(sqlcons->stmt),NULL);
+#endif
   if (retval) {
     fdtype dbptr=(fdtype)dbp;
     const char *errmsg=sqlite3_errmsg(db);

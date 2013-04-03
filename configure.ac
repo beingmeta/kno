@@ -579,6 +579,7 @@ AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
 if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open)
   AC_CHECK_FUNCS(sqlite3_open_v2)
+  AC_CHECK_FUNCS(sqlite3_prepare_v2)
   AC_CHECK_FUNCS(sqlite3_errstr)
   CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"

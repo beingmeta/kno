@@ -258,6 +258,9 @@
 /* Whether we've got the v2 open function headers */
 #undef HAVE_SQLITE3_OPEN_V2
 
+/* Whether we've got the v2 prepare function headers */
+#undef HAVE_SQLITE3_PREPARE_V2
+
 /* Whether we've got the sqlite3_errstr function (introduced 2012) */
 #undef HAVE_SQLITE3_ERRSTR
 
