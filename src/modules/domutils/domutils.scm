@@ -25,7 +25,8 @@
    dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block? dom/terminal?
-   dom->id id->dom})
+   dom->id id->dom
+   dom/clone})
 
 (define *block-text-tags*
   (string->symbol
@@ -845,6 +846,29 @@
 			       (not (and (test x '%xmltag inline-tags)
 					 (dom/textual? x)))))
 	       (get node '%content))))
+
+;;; Cloning nodes
+
+;; This is just like STORE! but won't store an empty choice
+(defambda (dostore! f s v) (unless (fail? v) (store! f s v)))
+
+(define (dom/clone real (withcontent #f))
+  (let ((result `#[%XMLTAG ,(get real '%xmltag)]))
+    (when (exists? (get real '%content))
+      (store! result '%content
+	      (if withcontent
+		  (map (lambda (x) (if (string? x) x (dom/clone x withcontent)))
+		       (get real '%content))
+		  '())))
+    (dostore! result '%attribids (get real '%attribids))
+    (dostore! result '%attribs (get real '%attribs))
+    (dostore! result '%xmlns (get real '%xmlns))
+    (if (vector? (get real '%attribids))
+	(doseq (attrib (get real '%attribids))
+	  (store! result attrib (get real attrib)))
+	(do-choices (attrib (get real '%attribids))
+	  (store! result attrib (get real attrib))))
+    result))
 
 ;;; OIDify
 
