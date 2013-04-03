@@ -241,7 +241,8 @@
 		       (test link 'rel "knodule"))
 	      (get link 'href)))
 	  (get (dom/find doc "SCRIPT") 'src)
-	  (get (dom/find doc "IMG") 'src)))
+	  (get (dom/find doc "IMG") 'src)
+	  (get (dom/find doc "IMAGE") 'href)))
 
 (defambda (dom/textmanifest node (staticrefs {}) (dynamicrefs {}))
   "Generates a text manifest for a document, with additional static or dynamic refs"
