@@ -238,10 +238,14 @@
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
 	 (gp/urlfetch ref))
 	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
+	((and (string? ref) (not (file-exists? ref))) #f)
 	((string? ref)
-	 (if (or (not ctype) (has-prefix ctype "text") (search "xml" ctype))
-	     (filestring ref)
-	     (filedata ref)))
+	 (if  (and ctype
+		   (or (has-prefix ctype "text")
+		       (textsearch #{"xml" ".htm" ".txt" ".text" ".md" "charset"}
+				   ctype)))
+	      (filestring ref)
+	      (filedata ref)))
 	(else (error "Weird docbase ref" ref))))
 
 (define (gp/urlfetch url (err #t) (max-redirects 10))
@@ -304,13 +308,17 @@
 		    (exists? (get response '%content)))
 	       `#[content ,(get response '%content)
 		  ctype ,(try (get response 'content-type) (or ctype {}))
-		  modified (try (get response 'last-modified)
-				(timestamp))]
+		  modified ,(try (get response 'last-modified)
+				 (timestamp))]
 	       #f)))
 	((and (string? ref) (has-prefix ref "s3:"))
 	 (s3/get+ (->s3loc ref)))
+	((and (string? ref) (not (file-exists? ref))) #f)
 	((string? ref)
-	 (if (or (not ctype) (has-prefix ctype "text") (search "xml" ctype))
+	 (if (and ctype
+		  (or (has-prefix ctype "text")
+		      (textsearch #{"xml" ".htm" ".txt" ".text" ".md" "charset"}
+				  ctype)))
 	     `#[content ,(filestring ref) ctype ,(or ctype {})
 		modified ,(file-modtime ref)]
 	     `#[content ,(filedata ref) ctype ,(or ctype {})
