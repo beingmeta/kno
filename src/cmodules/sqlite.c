@@ -557,7 +557,7 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	time_t tick=tstamp->xtime.u8_tick;
 	if (tick>INT_MAX) 
 	  ret=sqlite3_bind_int(dbproc->stmt,i+1,(int)tick);
-	else ret=sqlite3_bind_int64(dbproc->stmt,i+1,(sqlite3_int64)tick);}}
+	else ret=sqlite3_bind_int64(dbproc->stmt,i+1,(sqlite_int64)tick);}}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       fd_unparse(&out,arg);
