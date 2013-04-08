@@ -18,9 +18,11 @@
 #include "framerd/indices.h"
 #include "framerd/frames.h"
 #include "framerd/dtypestream.h"
+#include "framerd/dtypeio.h"
 #include "framerd/ports.h"
 
 #include <libu8/u8streamio.h>
+#include <libu8/u8crypto.h>
 
 #include <zlib.h>
 
@@ -1315,6 +1317,97 @@ static fdtype to_base16_prim(fdtype packet)
   else return FD_ERROR_VALUE;
 }
 
+/* Making zipfiles */
+
+static int string_isasciip(const unsigned char *data,int len)
+{
+  const unsigned char *scan=data, *limit=scan+len;
+  while (scan<limit)
+    if (*scan>127) return 0;
+    else scan++;
+  return 1;
+}
+
+#define FDPP_FASCII 1
+#define FDPP_FPART 2
+#define FDPP_FEXTRA 4
+#define FDPP_FNAME 8
+#define FDPP_FCOMMENT 16
+
+static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
+{
+  if (!((FD_STRINGP(arg)||FD_PACKETP(arg))))
+    return fd_type_error("string or packet","x2zipfile_prim",arg);
+  else {
+    fd_exception error=NULL; 
+    unsigned char *data=((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
+    unsigned int data_len=((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
+    struct FD_BYTE_OUTPUT out; int flags=0; /* FDPP_FHCRC */
+    time_t now=time(NULL); u8_int4 crc, intval;
+    FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.start,0,1024);
+    fd_write_byte(&out,31); fd_write_byte(&out,139);
+    fd_write_byte(&out,8); /* Using default */
+    /* Compute flags */
+    if ((FD_STRINGP(arg))&&(string_isasciip(FD_STRDATA(arg),FD_STRLEN(arg))))
+      flags=flags|FDPP_FASCII;
+    if (FD_STRINGP(filename)) flags=flags|FDPP_FNAME;
+    if (FD_STRINGP(comment)) flags=flags|FDPP_FCOMMENT;
+    fd_write_byte(&out,flags);
+    intval=fd_flip_word((unsigned int)now);
+    fd_write_4bytes(&out,intval);
+    fd_write_byte(&out,2); /* Max compression */
+    fd_write_byte(&out,3); /* Assume Unix */
+    /* No extra fields */
+    if (FD_STRINGP(filename)) {
+      u8_string text=FD_STRDATA(filename), end=text+FD_STRLEN(filename); int len;
+      unsigned char *string=u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
+      fd_write_bytes(&out,string,len); fd_write_byte(&out,'\0');
+      u8_free(string);}
+    if (FD_STRINGP(comment)) {
+      u8_string text=FD_STRDATA(comment), end=text+FD_STRLEN(comment); int len;
+      unsigned char *string=u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
+      fd_write_bytes(&out,string,len); fd_write_byte(&out,'\0');
+      u8_free(string);}
+    /*
+    crc=u8_crc32(0,(void *)out.start,out.ptr-out.start);
+    fd_write_byte(&out,((crc)&(0xFF)));
+    fd_write_byte(&out,((crc>>8)&(0xFF)));
+    */
+    {
+      int zerror;
+      unsigned long dsize=data_len, csize, csize_max;
+      Bytef *dbuf=(Bytef *)data, *cbuf;
+      csize=csize_max=dsize+(dsize/1000)+13;
+      cbuf=u8_malloc(csize_max); memset(cbuf,0,csize);
+      while ((zerror=compress2(cbuf,&csize,dbuf,dsize,9)) < Z_OK)
+	if (zerror == Z_MEM_ERROR) {
+	  error=_("ZLIB ran out of memory"); break;}
+	else if (zerror == Z_BUF_ERROR) {
+	  /* We don't use realloc because there's not point in copying
+	     the data and we hope the overhead of free/malloc beats
+	     realloc when we're doubling the buffer size. */
+          u8_free(cbuf);
+	  cbuf=u8_malloc(csize_max*2);
+	  if (cbuf==NULL) {
+	    error=_("OIDPOOL compress ran out of memory"); break;}
+	  csize=csize_max=csize_max*2;}
+	else if (zerror == Z_DATA_ERROR) {
+	  error=_("ZLIB compress data error"); break;}
+	else {
+	  error=_("Bad ZLIB return code"); break;}
+      if (error==NULL) {
+	fd_write_bytes(&out,cbuf+2,csize-6);}
+      u8_free(cbuf);}
+    if (error) {
+      fd_seterr(error,"x2zipfile",NULL,FD_VOID);
+      u8_free(out.start);
+      return FD_ERROR_VALUE;}
+    crc=u8_crc32(0,data,data_len);
+    intval=fd_flip_word(crc); fd_write_4bytes(&out,intval);
+    intval=fd_flip_word(data_len); fd_write_4bytes(&out,intval);
+    return fd_init_packet(NULL,out.ptr-out.start,out.start);}
+}
+
 /* The init function */
 
 FD_EXPORT void fd_init_portfns_c()
@@ -1462,6 +1555,11 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
 			   fd_packet_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim3x("GZIP",gzip_prim,1,-1,FD_VOID,
+			   fd_string_type,FD_VOID,
+			   fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));
