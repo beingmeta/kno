@@ -3,12 +3,14 @@
 
 (in-module 'packetfns)
 
-(module-export! '{packet->digits digit->packet
-		  packetfns/base62 packetfns/base36 packetfns/base16
-		  packetfns/condense}) 
+(module-export! '{packet->digits digits->packet
+		  packetfns/base62 packetfns/base57 packetfns/base36 packetfns/base16
+		  packet/condense}) 
 
 (define packetfns/base62
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz")
+(define packetfns/base57
+  "ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghijkmnopqrstuvwxyz")
 (define packetfns/base36
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 (define packetfns/base16 "0123456789ABCDEF")
@@ -27,25 +29,26 @@
   (let ((num 0) (base (length digits)) (i 0) (n (length string)))
     (dotimes (i n)
       (set! num (+ (* base num) (position (elt string i) digits))))
-    (let* ((hex (%watch (number->string (%watch num) 16)))
+    (let* ((hex (number->string (%watch num) 16))
 	   (packet (if (zero? (remainder (length hex) 2))
 		       (base16->packet hex)
 		       (base16->packet (glom "0" hex)))))
       packet)))
 
-(define (packetfns/condense packet factor)
+(define (packet/condense packet factor)
   (let* ((len (length packet))
 	 (input (->vector packet)) 
-	 (i (remainder len factor))
+	 (i (if (<= factor len) factor (remainder len factor)))
 	 (lim (- len i))
 	 (output (if (= i 0) '()
 		     `(, (remainder (apply * (->list (map 1+ (slice input 0 i))))
 				    256)))))
     (while (< i lim)
-      (%watch i output len)
       (set! output (cons (remainder (apply * (->list (map 1+ (slice input i (+ i 4)))))
 				    256)
 			 output))
-      (set! i (+ i 4)))
+      (set! i (+ i factor)))
     (->packet (reverse output))))
+
+
 
