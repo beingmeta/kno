@@ -1334,6 +1334,7 @@ static int string_isasciip(const unsigned char *data,int len)
 #define FDPP_FNAME 8
 #define FDPP_FCOMMENT 16
 
+#if 0
 static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
 {
   if (!((FD_STRINGP(arg)||FD_PACKETP(arg))))
@@ -1407,6 +1408,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
     intval=fd_flip_word(data_len); fd_write_4bytes(&out,intval);
     return fd_init_packet(NULL,out.ptr-out.start,out.start);}
 }
+#endif
 
 /* The init function */
 
@@ -1556,10 +1558,12 @@ FD_EXPORT void fd_init_portfns_c()
 	   fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
 			   fd_packet_type,FD_VOID));
 
+#if 0
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("GZIP",gzip_prim,1,-1,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
+#endif
 
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));
