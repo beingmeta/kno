@@ -29,7 +29,7 @@
   (let ((num 0) (base (length digits)) (i 0) (n (length string)))
     (dotimes (i n)
       (set! num (+ (* base num) (position (elt string i) digits))))
-    (let* ((hex (number->string (%watch num) 16))
+    (let* ((hex (number->string num 16))
 	   (packet (if (zero? (remainder (length hex) 2))
 		       (base16->packet hex)
 		       (base16->packet (glom "0" hex)))))
