@@ -134,6 +134,7 @@
 
 (put 'sig/make 'scheme-indent-function 1)
 (put 'sig/check 'scheme-indent-function 2)
+(put 'sig/check/ 'scheme-indent-function 3)
 
 (put 'set-cookie! 'scheme-indent-function 1)
 (put 'req/set! 'scheme-indent-function 1)
