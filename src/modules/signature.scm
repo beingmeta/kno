@@ -3,10 +3,10 @@
 
 (in-module 'signature)
 
-(use-module '{fdweb texttools})
+(use-module '{fdweb texttools packetfns})
 (use-module '{varconfig logger rulesets ezrecords})
 
-(module-export! '{sig/make sig/check})
+(module-export! '{sig/make sig/check sig/check/ })
 
 (define-init %loglevel %notify!)
 (varconfig! sbooks:signature:loglevel %loglevel)
@@ -41,6 +41,7 @@
 (defambda (sig/make key . args)
   (let ((text (apply makesigtext args)))
     (debug%watch (hmac-sha1 text key) "SIG/MAKE" text key args)))
+
 (defambda (sig/check sig key . args)
   (let ((text (apply makesigtext args)))
     (debug%watch "SIG/CHECK" args)
@@ -50,3 +51,19 @@
 		 (begin (warn%watch (hmac-sha1 text key)
 				    "SIG/CHECK/FAILED" sig key text)
 		   #f)))))
+
+(defambda (sig/check/ sig key condense . args)
+  (let ((text (apply makesigtext args)))
+    (debug%watch "SIG/CHECK" args)
+    (debug%watch "SIG/CHECK" sig key text (hmac-sha1 text key))
+    (when (string? sig) (set! sig (base16->packet sig)))
+    (and sig (or (equal? sig (if condense
+				 (packet/condense (hmac-sha1 text key) condense)
+				 (hmac-sha1 text key)))
+		 (begin (warn%watch (hmac-sha1 text key)
+				    "SIG/CHECK/FAILED" sig key text)
+		   #f)))))
+
+
+
+
