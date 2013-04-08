@@ -197,6 +197,7 @@
       (add! urlparams 'header (string-append "Content-MD5: " contentMD5)))
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
+    (when (>= %loglevel %detail%) (add! urlparams 'verbose #t))
     (debug%watch url ctype urlparams (and (sequence? content) (length content)))
     (if (equal? op "GET")
 	(urlget url urlparams)
