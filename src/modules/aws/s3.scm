@@ -438,7 +438,10 @@
 (define (s3/list loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" "text" '()
-		     "delimiter" "/" "prefix" (s3loc-path loc)))
+		     "delimiter" "/"
+		     "prefix" (if (has-prefix (s3loc-path loc) "/")
+				  (slice (s3loc-path loc) 1)
+				   (s3loc-path loc))))
 	 (content (xmlparse (get req '%content))))
     (choice
      (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
