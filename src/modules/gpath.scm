@@ -82,12 +82,12 @@
   (do-choices dest
     (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
 	  (charset (or charset (get-charset ctype))))
-      (lognotice "Saving " (length content)
-		 (if (string? content) " characters of "
-		     (if (packet? content) " bytes of "))
-		 (if (and (exists? ctype) ctype)
-		     (printout (write ctype) " "))
-		 "content into " dest)
+      (loginfo "Saving " (length content)
+	       (if (string? content) " characters of "
+		   (if (packet? content) " bytes of "))
+	       (if (and (exists? ctype) ctype)
+		   (printout (write ctype) " "))
+	       "content into " dest)
       ;; Do any charset conversion required by the CTYPE
       (when (and charset
 		 (string? content)
@@ -116,12 +116,12 @@
 		  (string? (cdr saveto)))
 	     (zip/add! (car saveto) (cdr saveto) content))
 	    (else (error "Bad GP/SAVE call")))
-      (lognotice "Saved " (length content)
-		 (if (string? content) " characters of "
-		     (if (packet? content) " bytes of "))
-		 (if (and (exists? ctype) ctype)
-		     (printout (write ctype) " "))
-		 "content into " dest))))
+      (loginfo "Saved " (length content)
+	       (if (string? content) " characters of "
+		   (if (packet? content) " bytes of "))
+	       (if (and (exists? ctype) ctype)
+		   (printout (write ctype) " "))
+	       "content into " dest))))
 
 (define writeout
   (macro expr
