@@ -373,7 +373,7 @@
 
 (define (->gpath val)
   (if (string? val)
-      (if (has-prefix val {"s3:" "S3:"}) (s3loc val)
+      (if (has-prefix val {"s3:" "S3:"}) (->s3loc val)
 	  (if (has-prefix val {"http:" "https:" "ftp:"}) val
 	      (if (has-prefix val "/") val
 		  (abspath val))))
