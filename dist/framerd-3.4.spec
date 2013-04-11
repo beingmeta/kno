@@ -86,8 +86,8 @@ Sqlite3 library libraries
 %package        zlib
 Summary:        FramerD module for working with zipfiles
 Group:          Development/Libraries
-BuildRequires:  libz-devel
-Requires:       libz %{name} = %{version}-%{release}
+BuildRequires:  zlib-devel
+Requires:       zlib %{name} = %{version}-%{release}
 
 %description    zlib
 The %{name}-zlib package implements external bindings for libz compression and decompression
