@@ -29,7 +29,7 @@
 
 (use-module '{fileio aws/s3 varconfig logger fdweb reflection
 	      texttools mimetable ezrecords})
-(define %loglevel %info!)
+(define %loglevel %notice%)
 
 (define gp/urlsubst {})
 (varconfig! gp:urlsubst gp/urlsubst #f)
@@ -199,6 +199,7 @@
 	      (string? (cdr path))
 	      (position #\/ (cdr path)))
 	 (mkpath (car path) (cdr path)))
+	((s3loc? path) (s3loc->string path))
 	((and (pair? path) (s3loc? (car path)))
 	 (s3loc->string (s3/mkpath (car path) (cdr path))))
 	((and (pair? path) (zipfile? (car path)))
