@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.4
-Release:        15%{?dist}
+Release:        17%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -9,7 +9,7 @@ URL:            http://www.beingmeta.com/
 Source0:        framerd-3.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel mysql-devel libfcgi-devel libexif-devel libtidy-devel
+BuildRequires:  libu8-devel curl-devel mysql-devel libexif-devel libtidy-devel
 Requires:       libu8 curl
 
 %description
@@ -86,7 +86,7 @@ Sqlite3 library libraries
 %package        zlib
 Summary:        FramerD module for working with zipfiles
 Group:          Development/Libraries
-BuildRequires:  lib-devel
+BuildRequires:  libz-devel
 Requires:       libz %{name} = %{version}-%{release}
 
 %description    zlib
