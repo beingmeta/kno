@@ -7,7 +7,7 @@
 (define version "$Id$")
 (define revision "$Revision:$")
 
-(use-module 'ezrecords)
+(use-module '{ezrecords logger})
 
 (module-export!
  '{fifo/make fifo/close
@@ -17,11 +17,15 @@
 (module-export!
  '{make-fifo
    fifo-push fifo-pop fifo-jump fifo-loop fifo-queued close-fifo
-   fifo-load})
+   fifo-load fifo-live? fifo-waiting fifo/waiting
+   fifo/idle? fifo/set-debug!})
+
+(define %loglevel %warn%)
 
 ;;;; Implementation
 
-(defrecord (fifo MUTABLE OPAQUE) condvar queue items start end live?)
+(defrecord (fifo MUTABLE OPAQUE)
+  state queue items start end live? (waiting 0) (debug #f))
 
 (define (fifo/make (size 64))
   (cons-fifo (make-condvar) (make-vector size) (make-hashset) 0 0 #t))
@@ -29,69 +33,98 @@
 
 (define (fifo/push! fifo item (broadcast #f))
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
-	(unless (hashset-get (fifo-items fifo) item)
-	  (let ((vec (fifo-queue fifo))
-		(start (fifo-start fifo))
-		(end (fifo-end fifo)))
-	    (cond ((< end (length vec))
-		   (vector-set! vec end item)
-		   (set-fifo-end! fifo (1+ end)))
-		  ((<= (- end start) (-1+ (length vec)))
-		   ;; Move the queue to the start of the vector
-		   (dotimes (i (- end start))
-		     (vector-set! vec i (elt vec (+ start i))))
-		   (let ((zerostart (- end start)))
-		     (dotimes (i (- (length vec) zerostart))
-		       (vector-set! vec (+ zerostart i) #f)))
-		   (set-fifo-start! fifo 0)
-		   (vector-set! vec (- end start) item)
-		   (set-fifo-end! fifo (1+ (- end start))))
-		  (else
-		   (let ((newvec (make-vector (* 2 (length vec)))))
+      (begin (if (fifo-debug fifo)
+		 (%watch "FIFO/PUSH!" item broadcast fifo)
+		 (debug%watch "FIFO/PUSH!" item broadcast fifo))
+	(condvar-lock (fifo-state fifo))
+	(if (hashset-get (fifo-items fifo) item)
+	    (if (fifo-debug fifo)
+		(%watch "FIFO/PUSH!/REDUNDANT" item fifo)
+		(debug%watch "FIFO/PUSH!/REDUNDANT" item fifo))
+	    (let ((vec (fifo-queue fifo))
+		  (start (fifo-start fifo))
+		  (end (fifo-end fifo)))
+	      (if (fifo-debug fifo)
+		  (%watch "FIFO/PUSH!/INSERT" item fifo)
+		  (debug%watch "FIFO/PUSH!/INSERT" item fifo))
+	      (cond ((< end (length vec))
+		     (vector-set! vec end item)
+		     (set-fifo-end! fifo (1+ end)))
+		    ((<= (- end start) (-1+ (length vec)))
+		     ;; Move the queue to the start of the vector
 		     (dotimes (i (- end start))
-		       (vector-set! newvec i (elt vec (+ start i))))
-		     (set-fifo-queue! fifo newvec)
+		       (vector-set! vec i (elt vec (+ start i))))
+		     (let ((zerostart (- end start)))
+		       (dotimes (i (- (length vec) zerostart))
+			 (vector-set! vec (+ zerostart i) #f)))
 		     (set-fifo-start! fifo 0)
-		     (vector-set! newvec (- end start) item)
-		     (set-fifo-end! fifo (1+ (- end start))))))))
-	(condvar-signal (fifo-condvar fifo) broadcast))
-    (condvar-unlock (fifo-condvar fifo))))
+		     (vector-set! vec (- end start) item)
+		     (set-fifo-end! fifo (1+ (- end start))))
+		    (else
+		     (let ((newvec (make-vector (* 2 (length vec)))))
+		       (if (fifo-debug fifo)
+			   (%watch "FIFO/PUSH!/GROW" fifo)
+			   (debug%watch "FIFO/PUSH!/GROW" fifo))
+		       (debug%watch "FIFO/PUSH!/GROW" fifo)
+		       (dotimes (i (- end start))
+			 (vector-set! newvec i (elt vec (+ start i))))
+		       (set-fifo-queue! fifo newvec)
+		       (set-fifo-start! fifo 0)
+		       (vector-set! newvec (- end start) item)
+		       (set-fifo-end! fifo (1+ (- end start))))))))
+	(condvar-signal (fifo-state fifo) broadcast))
+    (condvar-unlock (fifo-state fifo))))
 (define (fifo-push fifo item (broadcast #f)) (fifo/push! fifo item broadcast))
 
+(define (fifo-waiting! fifo flag)
+ (if (fifo-debug fifo)
+     (%watch "FIFO-WAITING!" flag (fifo-waiting fifo) fifo)
+     (debug%watch "FIFO-WAITING!" flag (fifo-waiting fifo) fifo))
+ (set-fifo-waiting! fifo (+ (if flag 1 -1) (fifo-waiting fifo)))
+ (condvar-signal (fifo-state fifo) #t)
+ (fifo-waiting fifo))
+
 (define (fifo/pop fifo)
+  (if (fifo-debug fifo)
+      (%watch "FIFO/POP" fifo)
+      (debug%watch "FIFO/POP" fifo))
   (if (fifo-live? fifo)
       (unwind-protect
-	  (begin (condvar-lock (fifo-condvar fifo))
-		 ;; Wait for something to pop
-		 (while (and (fifo-live? fifo)
-			     (= (fifo-start fifo) (fifo-end fifo)))
-		   (condvar-wait (fifo-condvar fifo)))
-		 ;; If it's still alive, do the pop
-		 (if (fifo-live? fifo) 
-		     (let* ((vec (fifo-queue fifo))
-			    (start (fifo-start fifo))
-			    (end (fifo-end fifo))
-			    (item (elt vec start)))
-		       ;; Replace the item with false
-		       (vector-set! vec start #f)
-		       ;; Advance the start pointer
-		       (set-fifo-start! fifo (1+ start))
-		       (when (= (fifo-start fifo) (fifo-end fifo))
-			 ;; If we're empty, move the pointers back
-			 (set-fifo-start! fifo 0)
-			 (set-fifo-end! fifo 0))
-		       (hashset-drop! (fifo-items fifo) item)
-		       item)
-		     (fail)))
-	(condvar-unlock (fifo-condvar fifo)))
+	  (begin (condvar-lock (fifo-state fifo))
+	    ;; Wait for something to pop
+	    (fifo-waiting! fifo #t)
+	    (while (and (fifo-live? fifo)
+			(= (fifo-start fifo) (fifo-end fifo)))
+	      (condvar-wait (fifo-state fifo)))
+	    (fifo-waiting! fifo #f)
+	    ;; If it's still alive, do the pop
+	    (if (fifo-live? fifo) 
+		(let* ((vec (fifo-queue fifo))
+		       (start (fifo-start fifo))
+		       (end (fifo-end fifo))
+		       (item (elt vec start)))
+		  (if (fifo-debug fifo)
+		      (%watch "FIFO/POP/ITEM" start end item fifo)
+		      (debug%watch "FIFO/POP/ITEM" start end item fifo))
+		  ;; Replace the item with false
+		  (vector-set! vec start #f)
+		  ;; Advance the start pointer
+		  (set-fifo-start! fifo (1+ start))
+		  (when (= (fifo-start fifo) (fifo-end fifo))
+		    ;; If we're empty, move the pointers back
+		    (set-fifo-start! fifo 0)
+		    (set-fifo-end! fifo 0))
+		  (hashset-drop! (fifo-items fifo) item)
+		  item)
+		(fail)))
+	(condvar-unlock (fifo-state fifo)))
       (fail)))
 (define (fifo-pop fifo) (fifo/pop fifo))
 
 (define (fifo/remove! fifo item)
   (if (fifo-live? fifo)
       (unwind-protect
-	  (begin (condvar-lock (fifo-condvar fifo))
+	  (begin (condvar-lock (fifo-state fifo))
 		 (if (and (fifo-live? fifo)
 			  (< (fifo-start fifo) (fifo-end fifo)))
 		     (let* ((vec (fifo-queue fifo))
@@ -109,7 +142,7 @@
 			     queued)
 			   (fail)))
 		     (fail)))
-	(condvar-unlock (fifo-condvar fifo)))
+	(condvar-unlock (fifo-state fifo)))
       (fail)))
 (define (fifo-jump fifo item) (fifo/remove! fifo item))
 
@@ -122,34 +155,53 @@
 (define (fifo/close fifo (broadcast #t) (result #f))
   (unwind-protect
       (begin
-	(condvar-lock (fifo-condvar fifo))
+	(condvar-lock (fifo-state fifo))
 	(set! result
 	      (slice (fifo-queue fifo)
 		     (fifo-start fifo) (fifo-end fifo)))
-	(fifo-set-live? fifo #f)
+	(set-fifo-live?! fifo #f)
 	result)
     (begin
-      (unless broadcast (fifo-condvar fifo))
+      (unless broadcast (fifo-state fifo))
       (when broadcast
-	(condvar-signal (fifo-condvar fifo) #t)
-	(condvar-unlock (fifo-condvar fifo))))))
+	(condvar-signal (fifo-state fifo) #t)
+	(condvar-unlock (fifo-state fifo))))))
 (define (close-fifo fifo (broadcast #t))
   (fifo/close fifo broadcast))
 
 (define (fifo/queued fifo (result #f))
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
+      (begin (condvar-lock (fifo-state fifo))
 	(set! result (subseq (fifo-queue fifo)
 			     (fifo-start fifo)
 			     (fifo-end fifo))))
-    (condvar-unlock (fifo-condvar fifo))))
+    (condvar-unlock (fifo-state fifo))))
 (define (fifo-queued fifo) (fifo/queued fifo))
 
 (define (fifo/load fifo)
   (unwind-protect
-      (begin (condvar-lock (fifo-condvar fifo))
+      (begin (condvar-lock (fifo-state fifo))
 	     (- (fifo-end fifo) (fifo-start fifo)))
-    (condvar-unlock (fifo-condvar fifo))))
-(define (fifo-load fifo) (fifo/load fifo))
+    (condvar-unlock (fifo-state fifo))))
+(define (fifo-load fifo) (- (fifo-end fifo) (fifo-start fifo)))
 
+(define (fifo/waiting fifo (nonzero #t))
+  (unwind-protect
+      (begin (condvar-lock (fifo-state fifo))
+	(when nonzero
+	  (while (zero? (fifo-waiting fifo))
+	    (condvar-wait (fifo-state fifo)))
+	  (fifo-waiting fifo)))
+    (condvar-unlock (fifo-state fifo))))
 
+(define (fifo/idle? fifo)
+  (unwind-protect
+      (begin (condvar-lock (fifo-state fifo))
+	(until (and (not (zero? (fifo-waiting fifo)))
+		    (= (fifo-start fifo) (fifo-end fifo)))
+	  (condvar-wait (fifo-state fifo)))
+	(and (not (zero? (fifo-waiting fifo)))
+	     (= (fifo-start fifo) (fifo-end fifo))))
+    (condvar-unlock (fifo-state fifo))))
+
+(define (fifo/set-debug! fifo (flag #t)) (set-fifo-debug! fifo flag))
