@@ -1182,6 +1182,22 @@ static int config_setutf8warn(fdtype var,fdtype val,void *data)
   else return 0;
 }
 
+static fdtype config_getutf8err(fdtype var,void *data)
+{
+  if (u8_config_utf8err(-1))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static int config_setutf8err(fdtype var,fdtype val,void *data)
+{
+  if (FD_TRUEP(val))
+    if (u8_config_utf8err(1)) return 0;
+    else return 1;
+  else if (u8_config_utf8err(0)) return 1;
+  else return 0;
+}
+
 /* Google profiling control */
 
 #if 0
@@ -1400,6 +1416,9 @@ void fd_init_support_c()
   fd_register_config
     ("UTF8WARN",_("warn on bad UTF-8 sequences"),
      config_getutf8warn,config_setutf8warn,NULL);
+  fd_register_config
+    ("UTF8ERR",_("warn on bad UTF-8 sequences"),
+     config_getutf8err,config_setutf8err,NULL);
   fd_register_config
     ("RANDOMSEED",_("random seed used for stochastic operations"),
      config_getrandomseed,config_setrandomseed,NULL);
