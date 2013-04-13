@@ -35,6 +35,9 @@
 #include <locale.h>
 #include <strings.h>
 #include <sys/time.h>
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 #include <time.h>
 #include <ctype.h>
 
@@ -60,6 +63,7 @@ static u8_output outconsole=NULL;
 static u8_output errconsole=NULL;
 static fd_lispenv console_env=NULL;
 static u8_string bugdumps=NULL;
+static u8_string bugurlbase=NULL;
 static u8_string bugbrowse=NULL;
 
 static int html_backtrace=FD_HTMLDUMP_ENABLED;
@@ -257,14 +261,21 @@ static void exit_fdconsole()
 
 static fdtype that_symbol, histref_symbol;
 
+#if HAVE_CHMOD
+#define changemode(f,m) chmod(f,m)
+#else
+#define changemode(f,m) 
+#endif
+
 static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 {
-  u8_string abspath=((dumpfile)?(u8_abspath(dumpfile,NULL)):
-		     (fd_tempdir(NULL,0)));
+  u8_string abspath=((dumpfile)?(u8_abspath(dumpfile,NULL)):(fd_tempdir(NULL,0)));
   if (u8_directoryp(abspath)) {
+    changemode(abspath,755);
     if (html_backtrace) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.html");
       dump_backtrace(ex,btfile);
+      changemode(btfile,444);
       u8_free(btfile);}
     if (dtype_backtrace) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.dtype");
@@ -291,17 +302,22 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 #if FD_HTMLDUMP_ENABLED
   else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
     u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    u8_string bugurl=NULL;
     fd_xhtmldebugpage(outfile,ex);
     u8_close((u8_stream)outfile);
-    u8_log(LOG_ERROR,ex->u8x_cond,"HTML backtrace written to file://%s",abspath);
+    if ((bugdumps)&&(bugurlbase)&&(u8_has_prefix(abspath,bugdumps,0))) 
+      bugurl=u8_mkpath(bugurlbase,abspath+strlen(bugdumps));
+    else bugurl=u8_string_append("file://",abspath,NULL);
+    u8_log(LOG_ERROR,ex->u8x_cond,"HTML backtrace written to %s",bugurl);
     if (bugbrowse) {
       struct U8_OUTPUT cmd; U8_INIT_OUTPUT(&cmd,256); int retval;
-      u8_printf(&cmd,"%s file://%s",bugbrowse,abspath);
+      u8_printf(&cmd,"%s %s",bugbrowse,bugurl);
       retval=system(cmd.u8_outbuf);
       if (retval!=0)
 	u8_log(LOG_WARN,"There was an error browsing the backtrace with '%s'",
 	       cmd.u8_outbuf);
-      u8_free(cmd.u8_outbuf);}}
+      u8_free(cmd.u8_outbuf);}
+    if (bugurl) u8_free(bugurl);}
 #else
   else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
     u8_log(LOG_WARN,"BACKTRACE","No built-in support for HTML backtraces");}
@@ -417,6 +433,9 @@ int main(int argc,char **argv)
   fd_register_config
     ("BUGDUMPS",_("Where to create directories for saving backtraces"),
      fd_sconfig_get,fd_sconfig_set,&bugdumps);
+  fd_register_config
+    ("BUGURLBASE",_("The base URL for referencing HTML backtraces"),
+     fd_sconfig_get,fd_sconfig_set,&bugurlbase);
   fd_register_config
     ("BUGBROWSE",_("The command to use to open saved backtraces"),
      fd_sconfig_get,fd_sconfig_set,&bugbrowse);

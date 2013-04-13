@@ -3767,7 +3767,7 @@ $as_echo "no" >&6; }
 fi
 
 
-for ac_prog in apxs apxs2
+for ac_prog in apxs2 apxs /usr/sbin/apxs2 /usr/sbin/apxs /usr/sbin/apxs /usr/bin/apxs
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -3808,6 +3808,7 @@ fi
 
   test -n "$APXS" && break
 done
+test -n "$APXS" || APXS="apxs"
 
 for ac_prog in "lsb-rpmbuild"
 do
@@ -5272,7 +5273,7 @@ if test $etags = "na"; then
    TAGS=""
 fi
 
-for ac_header in resource.h sys/resource.h sys/types.h sys/wait.h
+for ac_header in resource.h sys/resource.h sys/types.h sys/wait.h sys/stat.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -5552,6 +5553,17 @@ do :
 if test "x$ac_cv_func_flock" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_FLOCK 1
+_ACEOF
+
+fi
+done
+
+for ac_func in chmod
+do :
+  ac_fn_c_check_func "$LINENO" "chmod" "ac_cv_func_chmod"
+if test "x$ac_cv_func_chmod" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_CHMOD 1
 _ACEOF
 
 fi

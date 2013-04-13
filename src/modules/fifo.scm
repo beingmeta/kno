@@ -24,11 +24,22 @@
 
 ;;;; Implementation
 
-(defrecord (fifo MUTABLE OPAQUE)
-  state queue items start end live? (waiting 0) (debug #f))
+(define (fifo->string fifo)
+  (stringout "#<FIFO "
+    (- (fifo-end fifo) (fifo-start fifo)) "/" (length (fifo-queue fifo)) " "
+    (or (fifo-name fifo) (glom "0x" (number->string (hashptr fifo) 16))) 
+    (if (not (fifo-live? fifo)) " (dead)")
+    (if (fifo-debug fifo) " (debug)")
+    ">"))
 
-(define (fifo/make (size 64))
-  (cons-fifo (make-condvar) (make-vector size) (make-hashset) 0 0 #t))
+(defrecord (fifo MUTABLE OPAQUE `(stringfn . fifo->string))
+  name state queue items start end live? (waiting 0) (debug #f))
+
+(define (fifo/make (name #f) (size #f))
+  (cond ((and (number? name) (not size))
+	 (set! size name) (set! name #f))
+	((not (number? size)) (set! size 64)))
+  (cons-fifo name (make-condvar) (make-vector size) (make-hashset) 0 0 #t))
 (define (make-fifo (size 64)) (fifo/make size))
 
 (define (fifo/push! fifo item (broadcast #f))

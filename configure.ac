@@ -166,7 +166,7 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(VALGRIND,valgrind)
-AC_CHECK_PROGS(APXS,apxs apxs2)
+AC_CHECK_PROGS(APXS,apxs2 apxs /usr/sbin/apxs2 /usr/sbin/apxs /usr/sbin/apxs /usr/bin/apxs,apxs)
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
 
 if test $prefix = "usr"; then 
@@ -333,7 +333,7 @@ if test $etags = "na"; then
    TAGS=""
 fi
 
-AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h)
+AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h sys/stat.h)
 
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
 	         [#include <sys/resource.h>])
@@ -405,6 +405,7 @@ AC_CHECK_FUNCS(sigprocmask)
 AC_CHECK_FUNCS(sigsetmask)
 AC_CHECK_FUNCS(strdup strndup)
 AC_CHECK_FUNCS(flock)
+AC_CHECK_FUNCS(chmod)
 AC_CHECK_FUNCS(sleep)
 AC_CHECK_FUNCS(nanosleep)
 AC_CHECK_FUNCS(fseeko)
