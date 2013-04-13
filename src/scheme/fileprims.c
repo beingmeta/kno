@@ -2098,8 +2098,8 @@ FD_EXPORT void fd_init_fileio_c()
 	   fd_make_cprim1("FILE->DTYPES",file2dtypes,1));
   fd_idefn(fileio_module,fd_make_cprim1("ZFILE->DTYPE",zipfile2dtype,1));
   fd_idefn(fileio_module,fd_make_cprim1("ZFILE->DTYPES",zipfile2dtypes,1));
-  fd_defalias(fileio_module,"ZFILE->DTYPE","ZIPFILE->DTYPE");
-  fd_defalias(fileio_module,"ZFILE->DTYPES","ZIPFILE->DTYPES");
+  fd_defalias(fileio_module,"ZIPFILE->DTYPE","ZFILE->DTYPE");
+  fd_defalias(fileio_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLUSH-OUTPUT",flush_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CLOSE",close_prim,0));
