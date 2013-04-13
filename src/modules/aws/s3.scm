@@ -129,7 +129,7 @@
 ;;; Computing S3 signatures
 
 (define (s3/signature op bucket path (date (gmtimestamp)) (headers '())
-		     (content-sig "") (content-ctype ""))
+		      (content-sig "") (content-ctype ""))
   (let* ((date (if (string? date) date
 		   (if (number? date) (number->string date)
 		       (get date 'rfc822))))
@@ -142,7 +142,7 @@
 	   (if (empty-string? bucket) "" "/") bucket
 	   path)))
     (debug%watch (hmac-sha1 secretawskey sigstring)
-		 sigstring secretawskey)))
+      sigstring secretawskey)))
 
 (define (canonicalize-header x)
   (if (pair? x)
@@ -161,7 +161,7 @@
 
 (define (s3/bytecodes->string string)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
-		  (segment string))))
+		 (segment string))))
 
 (define (canonical-headers headers)
   (let* ((cheaders (remove #f (map canonicalize-header headers)))
@@ -271,14 +271,16 @@
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
   (debug%watch
-   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err content ctype)
-   ;; '(("x-amx-acl" . "public-read"))
-   loc ctype))
+      (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err content ctype)
+    ;; '(("x-amx-acl" . "public-read"))
+    loc ctype))
 
 (define (s3/delete! loc (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
-  (debug%watch (s3/op "DELETE" (s3loc-bucket loc) (s3loc-path loc) err #f "") loc))
+  (debug%watch (s3/op "DELETE"
+		   (s3loc-bucket loc)
+		   (s3loc-path loc) err #f "") loc))
 
 (module-export! '{s3/write! s3/delete!})
 
@@ -450,6 +452,30 @@
      (for-choices (path (xmlcontent (xmlget content 'key)))
        (make-s3loc (s3loc-bucket loc) path)))))
 (module-export! 's3/list)
+
+(define (s3/list* loc (err s3errs))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" "text" '()
+		     "prefix" (if (has-prefix (s3loc-path loc) "/")
+				  (slice (s3loc-path loc) 1)
+				  (s3loc-path loc))))
+	 (content (xmlparse (get req '%content))))
+    (choice
+     (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
+					    'prefix)))
+       (make-s3loc (s3loc-bucket loc) path))
+     (for-choices (path (xmlcontent (xmlget content 'key)))
+       (make-s3loc (s3loc-bucket loc) path)))))
+(module-export! 's3/list*)
+
+;;; Recursive deletion
+
+(define (s3/axe! loc (err s3errs))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let ((paths (s3/list* loc err)))
+    (do-choices (path (s3/list* loc err))
+      (s3/delete! path))))
+(module-export! 's3/axe!)
 
 ;;; Some test code
 
