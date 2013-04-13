@@ -2084,17 +2084,22 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
 	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype2file,2)));
   fd_idefn(fileio_module,
-	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZIPFILE",dtype2zipfile,2)));
+	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
   fd_idefn(fileio_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPE->ZIPFILE+",add_dtype2zipfile,2)));
+	   fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_dtype2zipfile,2)));
+  /* We make these aliases because the output file isn't really a zip
+     file, but we don't want to break code which uses the old
+     names. */
+  fd_defalias(fileio_module,"DTYPE->ZIPFILE","DTYPE->ZFILE");
+  fd_defalias(fileio_module,"DTYPE->ZIPFILE+","DTYPE->ZFILE+");
   fd_idefn(fileio_module,
 	   fd_make_cprim1("FILE->DTYPE",file2dtype,1));
   fd_idefn(fileio_module,
 	   fd_make_cprim1("FILE->DTYPES",file2dtypes,1));
-  fd_idefn(fileio_module,
-	   fd_make_cprim1("ZIPFILE->DTYPE",zipfile2dtype,1));
-  fd_idefn(fileio_module,
-	   fd_make_cprim1("ZIPFILE->DTYPES",zipfile2dtypes,1));
+  fd_idefn(fileio_module,fd_make_cprim1("ZFILE->DTYPE",zipfile2dtype,1));
+  fd_idefn(fileio_module,fd_make_cprim1("ZFILE->DTYPES",zipfile2dtypes,1));
+  fd_defalias(fileio_module,"ZFILE->DTYPE","ZIPFILE->DTYPE");
+  fd_defalias(fileio_module,"ZFILE->DTYPES","ZIPFILE->DTYPES");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLUSH-OUTPUT",flush_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CLOSE",close_prim,0));
