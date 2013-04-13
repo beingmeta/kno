@@ -1498,7 +1498,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 	else if (FDTYPE_EQUAL(c,pv)) {found=1; break;}
 	else {
 	  probe++; n_probes++;
-	  if (probe>n_slots) probe=0;}}
+	  if (probe>=n_slots) probe=0;}}
       if (((found)&&(pick))||((!(found))&&((!pick)))) {
 	if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
 	*write++=c; fd_incref(c);}}
