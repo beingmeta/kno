@@ -519,7 +519,7 @@ static fdtype get_stmt_values
     /* For each iteration, we have a good value from the database,
        so we don't need to worry about lost connections for this 
        loop, but we do need to worry about them afterwards. */
-    fdtype result;
+    fdtype result=FD_EMPTY_CHOICE;
     struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
     int n_slots=0;
     i=0; while (i<n_cols) {
