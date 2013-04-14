@@ -1363,6 +1363,7 @@ int main(int argc,char **argv)
   /* Now we initialize the u8 configuration variables */
   u8_log_show_date=1;
   u8_log_show_procinfo=1;
+  u8_log_show_threadinfo=1;
   u8_use_syslog(1);
 
   /* And now we initialize FramerD */
