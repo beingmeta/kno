@@ -214,8 +214,9 @@ static fdtype tag_slotdata(fdtype tag)
     return fd_type_error("slotmap","tag_slotdata",e->data);
   else {
     struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
-    fdtype slotmap=fd_init_slotmap(NULL,1,keyvals), *slotdata=&slotmap;
+    fdtype slotmap=FD_VOID, *slotdata=&slotmap;
     keyvals[0].key=tag_symbol; keyvals[0].key=fd_incref(tag);
+    slotmap=fd_init_slotmap(NULL,1,keyvals);
     fd_register_compound(tag,slotdata,NULL);
     return slotmap;}
 }
