@@ -843,7 +843,7 @@ static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
     u8_string search=FD_STRDATA(substring);
     u8_string replace=FD_STRDATA(with);
     int searchlen=FD_STRING_LENGTH(substring);
-    int startlen=((FD_STRLEN(replace)<=FD_STRLEN(search))?
+    int startlen=((FD_STRLEN(with)<=FD_STRLEN(substring))?
 		  (FD_STRLEN(string)+17):(FD_STRLEN(string)*2));
     u8_string point=strstr(original,search);
     if (point) {
