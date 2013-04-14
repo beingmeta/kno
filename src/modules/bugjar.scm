@@ -53,9 +53,11 @@
 	 (logbase (getlogbase uuid))
 	 (fileroot (abspath (mkpath fileroot logbase)))
 	 (webroot (and webroot (mkpath webroot logbase)))
-	 (reqdata (or (req/get 'reqdata #f) (req/data))))
+	 (reqdata (and (req/get 'HTTP_HOST)
+		       (or (req/get 'reqdata #f) (req/data)))))
     (mkdirs (mkpath fileroot "example"))
-    (dtype->file reqdata (mkpath fileroot "request.dtype"))
+    (when reqdata
+      (dtype->file reqdata (mkpath fileroot "request.dtype")))
     (while (and (pair? more)
 		(or (string? (car more)) (symbol? (car more)))
 		(pair? (cdr more)))
@@ -80,22 +82,27 @@
 	  (xhtml "\n" (filestring bugjar-css))))
        (stylesheet! "http://static.beingmeta.com/static/fdjt.css")
        (body! 'class "fdjtbugreport")
-       (htmlheader (xmlelt "META" http-equiv "Content-type" content "text/html; charset=utf-8"))
+       (htmlheader
+	(xmlelt "META" http-equiv "Content-type"
+	  content "text/html; charset=utf-8"))
        (xmlblock HGROUP ((class "head") (id "HEAD"))
-	 (let ((base (uribase (get reqdata 'request_uri))))
-	   (h3* ((class "uri"))
-		(unless (equal? base (get reqdata 'script_name))
-		  (span ((class "scriptname")) (get reqdata 'script_name)))
-		(if (test reqdata 'https) "https:" "http:")
-		"//" (get reqdata 'http_host)
-		(if (or (and (test reqdata 'https) (not (test reqdata 'server_port 443)))
-			(and (not (test reqdata 'https)) (not (test reqdata 'server_port 80))))
-		    (xmlout ":" (get reqdata 'server_port)))
-		base
-		(when (and (exists? (get reqdata 'query_string))
-			   (not (empty-string? (get reqdata 'query_string))))
-		  (span ((class "query"))
-		    (span ((class "qmark")) "?") (get reqdata 'query_string)))))
+	 (when reqdata
+	   (let ((base (uribase (get reqdata 'request_uri))))
+	     (h3* ((class "uri"))
+		  (unless (equal? base (get reqdata 'script_name))
+		    (span ((class "scriptname")) (get reqdata 'script_name)))
+		  (if (test reqdata 'https) "https:" "http:")
+		  "//" (get reqdata 'http_host)
+		  (if (or (and (test reqdata 'https)
+			       (not (test reqdata 'server_port 443)))
+			  (and (not (test reqdata 'https))
+			       (not (test reqdata 'server_port 80))))
+		      (xmlout ":" (get reqdata 'server_port)))
+		  base
+		  (when (and (exists? (get reqdata 'query_string))
+			     (not (empty-string? (get reqdata 'query_string))))
+		    (span ((class "query"))
+		      (span ((class "qmark")) "?") (get reqdata 'query_string))))))
 	 (h1 (span ((class "condition")) (->string (error-condition exception)))
 	   (when (error-context exception)
 	     (span ((class "context")) " (" (error-context exception) ") ")))
@@ -117,8 +124,9 @@
 	 (anchor "#RESOURCES" "Resources") " "
 	 (anchor "#BACKTRACE" "Backtrace"))
        (div ((class "main"))
-	 (h2* ((id "REQDATA")) "Request data")
-	 (tableout reqdata #[skipempty #t class "fdjtdata reqdata"])
+	 (when reqdata
+	   (h2* ((id "REQDATA")) "Request data")
+	   (tableout reqdata #[skipempty #t class "fdjtdata reqdata"]))
 	 (h2* ((id "RESOURCES")) "Resource data")
 	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
 	 (h2* ((id "BACKTRACE")) "Full backtrace")
@@ -126,10 +134,4 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
-
-
-
-
-
-
 
