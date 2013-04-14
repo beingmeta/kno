@@ -36,7 +36,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
-BUILDMODE       := `cat buildmode`
+BUILDMODE       := `cat buildmode || echo none`
 RPMFLAGS	=
 
 DTYPE_HEADERS=\
@@ -219,16 +219,20 @@ all: testbin exe cmodules @TAGS@
 
 debug:
 	@if test $(BUILDMODE) != "debugging"; then echo debugging > buildmode; fi
-	make `cat buildmode`
+	@echo Building `cat buildmode` configuration
+	@make `cat buildmode`
 default:
 	@if test $(BUILDMODE) != "standard"; then echo standard > buildmode; fi
-	make `cat buildmode`
+	@echo Building `cat buildmode` configuration
+	@make `cat buildmode`
 nitpick:
 	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > buildmode; fi
-	make `cat buildmode`
+	@echo Building `cat buildmode` configuration
+	@make `cat buildmode`
 fast:
 	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > buildmode; fi
-	make `cat buildmode`
+	@echo Building `cat buildmode` configuration
+	@make `cat buildmode`
 buildmode:
 	echo standard > buildmode
 
