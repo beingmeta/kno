@@ -1016,9 +1016,12 @@ static fdtype get_reqinfo()
 {
   fdtype table=(fdtype)u8_tld_get(reqinfo_key);
   if ((table)&&(FD_TABLEP(table))) return table;
-  table=fd_empty_slotmap();
-  u8_tld_set(reqinfo_key,(void *)table);
-  return table;
+  else {
+    fdtype newinfo=fd_empty_slotmap();
+    fd_slotmap sm=FD_GET_CONS(table,fd_slotmap_type,fd_slotmap);
+    u8_write_lock(&(sm->rwlock)); sm->uselock=0;
+    u8_tld_set(reqinfo_key,(void *)newinfo);
+    return newinfo;}
 }
 static void set_reqinfo(fdtype table)
 {
@@ -1038,8 +1041,12 @@ static fdtype try_reqinfo()
 static fdtype get_reqinfo()
 {
   if ((reqinfo)&&(FD_TABLEP(reqinfo))) return reqinfo;
-  reqinfo=fd_empty_slotmap();
-  return reqinfo;
+  else {
+    fdtype newinfo=fd_empty_slotmap();
+    fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
+    u8_write_lock(&(sm->rwlock)); sm->uselock=0;
+    reqinfo=newinfo;
+    return newinfo;}
 }
 static void set_reqinfo(fdtype table)
 {
