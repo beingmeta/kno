@@ -1108,12 +1108,14 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
   if ((FD_TRUEP(newinfo))&&(FD_TABLEP(curinfo))) return;
   if (FD_SLOTMAPP(curinfo)) {
     fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
-    sm->uselock=1;
-    u8_rw_unlock(&(sm->rwlock));}
+    if (sm->uselock==0) {
+      sm->uselock=1;
+      u8_rw_unlock(&(sm->rwlock));}}
   else if (FD_HASHTABLEP(curinfo)) {
     fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
-    ht->uselock=1;
-    u8_rw_unlock(&(ht->rwlock));}
+    if (ht->uselock==0) {
+      ht->uselock=1;
+      u8_rw_unlock(&(ht->rwlock));}}
   else {}
   if ((FD_FALSEP(newinfo))||
       (FD_VOIDP(newinfo))||
@@ -1121,13 +1123,18 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
     fd_decref(curinfo);
     set_reqinfo(newinfo);
     return;}
-  else if (FD_TRUEP(newinfo)) newinfo=fd_empty_slotmap();
+  else if (FD_TRUEP(newinfo)) {
+    fd_slotmap sm; newinfo=fd_empty_slotmap();
+    sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
+    u8_write_lock(&(sm->rwlock)); sm->uselock=0;}
   else if ((FD_SLOTMAPP(newinfo))||(FD_SLOTMAPP(curinfo)))
     fd_incref(newinfo);
   else {
     u8_log(LOG_CRIT,fd_TypeError,
 	   "USE_REQINFO arg isn't slotmap or table: %q",newinfo);
-    newinfo=fd_empty_slotmap();}
+    fd_slotmap sm; newinfo=fd_empty_slotmap();
+    sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
+    u8_write_lock(&(sm->rwlock)); sm->uselock=0;}
   if (FD_SLOTMAPP(newinfo)) {
     fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
     u8_write_lock(&(sm->rwlock));
@@ -1136,7 +1143,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
     fd_hashtable ht=FD_GET_CONS(newinfo,fd_hashtable_type,fd_hashtable);
     u8_write_lock(&(ht->rwlock));
     ht->uselock=0;}
-  else set_reqinfo(newinfo);
+  set_reqinfo(newinfo);
   fd_decref(curinfo);
 }
 
@@ -1146,12 +1153,14 @@ FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
   if (curinfo==newinfo) return;
   if (FD_SLOTMAPP(curinfo)) {
     fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
-    sm->uselock=1;
-    u8_rw_unlock(&(sm->rwlock));}
+    if (sm->uselock==0) {
+      sm->uselock=1;
+      u8_rw_unlock(&(sm->rwlock));}}
   else if (FD_HASHTABLEP(curinfo)) {
     fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
-    ht->uselock=1;
-    u8_rw_unlock(&(ht->rwlock));}
+    if (ht->uselock==0) {
+      ht->uselock=1;
+      u8_rw_unlock(&(ht->rwlock));}}
   if ((FD_FALSEP(newinfo))||
       (FD_VOIDP(newinfo))||
       (FD_EMPTY_CHOICEP(newinfo))) {
@@ -1164,15 +1173,14 @@ FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
     u8_log(LOG_CRIT,fd_TypeError,
 	   "PUSH_REQINFO arg isn't slotmap or table: %q",newinfo);
     newinfo=fd_empty_slotmap();}
-  if (FD_TABLEP(newinfo)) {
-    if (FD_SLOTMAPP(newinfo)) {
-      fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
-      u8_write_lock(&(sm->rwlock));
-      sm->uselock=0;}
-    else if (FD_HASHTABLEP(newinfo)) {
-      fd_hashtable ht=FD_GET_CONS(newinfo,fd_hashtable_type,fd_hashtable);
-      u8_write_lock(&(ht->rwlock));
-      ht->uselock=0;}}
+  if (FD_SLOTMAPP(newinfo)) {
+    fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
+    u8_write_lock(&(sm->rwlock));
+    sm->uselock=0;}
+  else if (FD_HASHTABLEP(newinfo)) {
+    fd_hashtable ht=FD_GET_CONS(newinfo,fd_hashtable_type,fd_hashtable);
+    u8_write_lock(&(ht->rwlock));
+    ht->uselock=0;}
   set_reqinfo(newinfo);
   return curinfo;
 }
