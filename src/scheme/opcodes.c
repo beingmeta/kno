@@ -761,6 +761,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else {
 	fdtype dflt=fd_eval(fd_get_arg(expr,3),env);
 	if (FD_ABORTP(dflt)) result=dflt;
+	else if (FD_VOIDP(dflt)) {
+	  result=fd_err(fd_VoidArgument,"OPCODE fget",NULL,fd_get_arg(expr,3));}
 	else result=fd_get(arg1,slotids,dflt);
 	fd_decref(dflt);}
       fd_decref(arg1); fd_decref(slotids);
@@ -792,6 +794,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype result=FD_ERROR_VALUE;
     argv[0]=arg1; argv[1]=arg2;
     if (FD_ABORTP(arg2)) result=arg2;
+    else if (FD_VOIDP(arg2)) {
+      result=fd_err(fd_VoidArgument,"OPCODE setop",NULL,arg2expr);}
     else switch (opcode) {
       case FD_IDENTICAL_OPCODE:
 	if (arg1==arg2) result=FD_TRUE;
