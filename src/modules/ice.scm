@@ -141,7 +141,8 @@
 				state (1+ depth))
 			  result))
 	      (set! scan (cdr scan)))
-	    (if (null? scan) (reverse result)
+	    (if (null? scan)
+		(reverse result)
 		;; improper list, a little tricky
 		(let* ((backwards (reverse result))
 		       (tail backwards))
