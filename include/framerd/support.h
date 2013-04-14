@@ -130,6 +130,7 @@ FD_EXPORT int fd_req_drop(fdtype var,fdtype val);
 FD_EXPORT fdtype fd_req_call(fd_reqfn reqfn);
 FD_EXPORT int fd_req_push(fdtype var,fdtype val);
 FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
+FD_EXPORT fdtype fd_push_reqinfo(fdtype reqinfo);
 
 /* Runbase */
 

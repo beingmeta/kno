@@ -1008,7 +1008,7 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   fdtype body=fd_get_body(expr,1);
   fdtype reqinfo=fd_empty_slotmap();
   fdtype result=FD_VOID;
-  fd_use_reqinfo(reqinfo);
+  fdtype oldinfo=fd_push_reqinfo(reqinfo);
   U8_INIT_OUTPUT(&_out,1024);
   u8_set_default_output(out);
   {FD_DOLIST(ex,body) {
@@ -1024,6 +1024,7 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   fd_decref(result);
   u8_free(_out.u8_outbuf);
   u8_flush(oldout);
+  fd_use_reqinfo(oldinfo);
   return FD_VOID;
 }
 
