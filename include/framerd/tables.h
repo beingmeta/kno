@@ -175,31 +175,42 @@ FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
 #define fd_sortvec_get _fd_sortvec_get
 #endif
 
+FD_EXPORT fdtype _fd_slotmap_get
+  (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt);
+FD_EXPORT fdtype _fd_slotmap_test
+  (struct FD_SLOTMAP *sm,fdtype key,fdtype val);
+
 #if FD_INLINE_TABLES
 static MAYBE_UNUSED fdtype fd_slotmap_get
   (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt)
 {
-  struct FD_KEYVAL *result; int size;
+  unsigned int unlock=0;
+  struct FD_KEYVAL *result; int size; 
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  if (!(FD_XSLOTMAP_READONLYP(sm))) fd_read_lock(&sm->rwlock);
+  if ((FD_XSLOTMAP_USELOCKP(sm))&&
+      (!(FD_XSLOTMAP_READONLYP(sm)))) {
+    fd_read_lock(&sm->rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
     fdtype v=fd_incref(result->value);
-    if (!(FD_XSLOTMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
     return v;}
   else {
-    if (!(FD_XSLOTMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
     return fd_incref(dflt);}
 }
 static MAYBE_UNUSED fdtype fd_slotmap_test
   (struct FD_SLOTMAP *sm,fdtype key,fdtype val)
 {
+  unsigned int unlock=0;
   struct FD_KEYVAL *result; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  if ((FD_ABORTP(val)))
-    return fd_interr(val);
-  if (!(FD_XSLOTMAP_READONLYP(sm))) fd_read_lock(&sm->rwlock);
+  if ((FD_ABORTP(val))) return fd_interr(val);
+  if ((FD_ABORTP(key))) return fd_interr(key);
+  if ((FD_XSLOTMAP_USELOCKP(sm))&&
+      (!(FD_XSLOTMAP_READONLYP(sm)))) {
+    fd_read_lock(&sm->rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
@@ -211,18 +222,14 @@ static MAYBE_UNUSED fdtype fd_slotmap_test
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
-    if (!(FD_XSLOTMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
     return cmp;}
   else {
-    if (!(FD_XSLOTMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
     return 0;}
 }
 #else
-FD_EXPORT fdtype _fd_slotmap_get
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt);
 #define fd_slotmap_get _fd_slotmap_get
-FD_EXPORT fdtype _fd_slotmap_test
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype val);
 #define fd_slotmap_test _fd_slotmap_test
 #endif
 
@@ -271,6 +278,10 @@ FD_EXPORT fdtype fd_init_schemap
   (struct FD_SCHEMAP *ptr,short n_keyvals,
    struct FD_KEYVAL *init);
 
+FD_EXPORT fdtype _fd_schemap_get
+  (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt);
+FD_EXPORT fdtype _fd_schemap_test
+  (struct FD_SCHEMAP *sm,fdtype key,fdtype val);
 FD_EXPORT int fd_schemap_store
   (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
 FD_EXPORT int fd_schemap_add
@@ -307,27 +318,30 @@ static MAYBE_UNUSED int _fd_get_slotno
 static MAYBE_UNUSED fdtype fd_schemap_get
   (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt)
 {
+  int unlock=0;
   int size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
-  if (!(FD_XSCHEMAP_READONLYP(sm))) fd_read_lock(&(sm->rwlock));
+  if (!(FD_XSCHEMAP_READONLYP(sm))) {
+    fd_read_lock(&(sm->rwlock)); unlock=1;}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
     fdtype v=fd_incref(sm->values[slotno]);
-    if (!(FD_XSCHEMAP_READONLYP(sm))) fd_rw_unlock(&(sm->rwlock));
+    if (unlock) fd_rw_unlock(&(sm->rwlock));
     return v;}
   else {
-    if (!(FD_XSCHEMAP_READONLYP(sm))) fd_rw_unlock(&(sm->rwlock));
+    if (unlock) fd_rw_unlock(&(sm->rwlock));
     return fd_incref(dflt);}
 }
 static MAYBE_UNUSED fdtype fd_schemap_test
   (struct FD_SCHEMAP *sm,fdtype key,fdtype val)
 {
-  int size, slotno;
+  int unlock=0, size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
   if ((FD_ABORTP(val)))
     return fd_interr(val);
-  if (!(FD_XSCHEMAP_READONLYP(sm))) fd_read_lock(&(sm->rwlock));
+  if (!(FD_XSCHEMAP_READONLYP(sm))) {
+    fd_read_lock(&(sm->rwlock)); unlock=1;}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
@@ -339,18 +353,14 @@ static MAYBE_UNUSED fdtype fd_schemap_test
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
-    if (!(FD_XSCHEMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
     return cmp;}
   else {
-    if (!(FD_XSCHEMAP_READONLYP(sm))) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
     return 0;}
 }
 #else
-FD_EXPORT fdtype _fd_schemap_get
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt);
 #define fd_schemap_get _fd_schemap_get
-FD_EXPORT fdtype _fd_schemap_test
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype val);
 #define fd_schemap_test _fd_schemap_test
 #endif
 
