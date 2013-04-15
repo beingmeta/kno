@@ -1317,10 +1317,15 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   if (FD_ABORTP(newv)) {
     fd_rw_unlock_struct(ht);
     return fd_interr(newv);}
+  else if (FD_VOIDP(result->value))
+    result->value=newv;
   else {FD_ADD_TO_CHOICE(result->value,newv);}
 #if 0
-  /* If the value is an achoice, it doesn't need to be locked
-     because it will be protected by the hashtable's lock. */
+  /* If the value is an achoice, it doesn't need to be locked because
+     it will be protected by the hashtable's lock.  (however, unless
+     we normalize the choice whenever we return it, we can't really
+     count on this.  It's a tradeoff, and currently we're keeping locking
+     on the internal ACHOICE. */
   if (FD_ACHOICEP(result->value)) {
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
     if (ch->uselock) ch->uselock=0;}
@@ -2401,8 +2406,10 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
 	  else if ((FD_NULLP(slots[probe]))||(FD_VOIDP(slots[probe]))) {
 	    slots[probe]=key; h->n_keys++; n_adds++; fd_incref(key);
 	    if (FD_CONSP(key)) h->atomicp=0;
-	    if (FD_EXPECT_FALSE(hashset_needs_resizep(h)))
-	      grow_hashset(h);}
+	    if (FD_EXPECT_FALSE(hashset_needs_resizep(h))) {
+	      grow_hashset(h);
+	      slots=h->slots;
+	      n_slots=h->n_slots;}}
 	  else {}}}
       u8_unlock_mutex(&(h->lock));
       return n_adds;}}
@@ -2434,7 +2441,7 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
   fd_lock_struct(h);
   read=h->slots; lim=read+h->n_slots;
   write=newslots=u8_alloc_n(h->n_slots,fdtype);
-  if (h->atomicp==0) 
+  if (h->atomicp) 
     while (read<lim) *write++=*read++;
   else while (read<lim) {
       fdtype v=*read++; if (v) fd_incref(v); *write++=v;}
