@@ -941,6 +941,10 @@ static int spawn_fdservlet /* 2.0 */
   *write_argv++=(char *)exename;
   *write_argv++=(char *)sockname;
   
+  if (gid>0) {
+    char *gidconfig=apr_psprintf(p,"GROUP=%d",gid);
+    *write_argv++=gidconfig;}
+
   if (server_configs) {
     const char **scan_config=server_configs;
     while (*scan_config) {

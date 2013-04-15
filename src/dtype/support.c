@@ -39,6 +39,10 @@ extern void ProfilerFlush();
 #include <sys/resource.h>
 #endif
 
+#if HAVE_GRP_H
+#include <grp.h>
+#endif
+
 u8_condition SetRLimit=_("SetRLimit");
 
 fd_exception fd_UnknownError=_("Unknown error condition");
@@ -1327,6 +1331,46 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
+/* Setting the group */
+
+static fdtype config_getgroup(fdtype var,void *data)
+{
+#if HAVE_GETGID
+  gid_t g=getgid(); int ival=(int)g;
+  if (ival<0) {
+    u8_graberr(errno,"config_getgroup",NULL); errno=0;
+    return FD_ERROR_VALUE;}
+  return FD_INT2DTYPE(ival);
+#else
+  return FD_FALSE;
+#endif
+}
+
+static int config_setgroup(fdtype var,fdtype val,void *data)
+{
+#if HAVE_SETGID
+  if (FD_FIXNUMP(val)) {
+    setgid((gid_t)(FD_FIX2INT(val)));
+    return 1;}
+  else if (FD_STRINGP(val)) {
+    int retval=-1;
+#if HAVE_GETGRNAM_R
+    char buf[512]; struct group g;
+    retval=getgrnam_r(FD_STRDATA(val),&g,buf,512,NULL);
+    if (retval>=0) setgid(g.gr_gid);
+    else u8_graberr(errno,"config_setgroup",NULL);
+#else
+    u8_seterr("Not implemented","config_setgroup",NULL);
+#endif
+    return retval;}
+  else {
+    fd_seterr(fd_TypeError,"config_setgroup","string or integer",val);
+    return -1;}
+#else
+  u8_log(LOG_WARN,"Not implemented","setgroup not implemented");
+#endif
+}
+
 /* LOGLEVEL */
 
 static int loglevelconfig_set(fdtype var,fdtype val,void *data)
@@ -1524,6 +1568,9 @@ void fd_init_support_c()
   
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
 		     config_getrunbase,config_setrunbase,NULL);
+
+  fd_register_config("GROUP",_("Set current group"),
+		     config_getgroup,config_setgroup,NULL);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
