@@ -1150,7 +1150,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
 FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
 {
   fdtype curinfo=try_reqinfo();
-  if (curinfo==newinfo) return;
+  if (curinfo==newinfo) return curinfo;
   if (FD_SLOTMAPP(curinfo)) {
     fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
     if (sm->uselock==0) {
