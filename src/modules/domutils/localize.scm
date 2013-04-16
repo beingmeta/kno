@@ -234,11 +234,16 @@
 
 ;;;; Manifests
 
+(define url-prefix-pat #((maxlen (isalpha+) 10) ":"))
+
 (define (dom/getmanifest doc)
   (choice (for-choices (link (dom/find doc "LINK"))
 	    (tryif (or (test link 'rel "stylesheet")
 		       (test link 'rel "knowlet")
-		       (test link 'rel "knodule"))
+		       (test link 'rel "knodule")
+		       (and (test link 'href)
+			    (fail? (textmatcher url-prefix-pat
+						(get link 'href)))))
 	      (get link 'href)))
 	  (get (dom/find doc "SCRIPT") 'src)
 	  (get (dom/find doc "IMG") 'src)
@@ -280,4 +285,6 @@
 
 (define (dom/getcssurls text/css)
   (get (text->frames css-url-pattern text/css) 'url))
+
+
 
