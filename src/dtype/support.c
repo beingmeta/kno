@@ -1350,15 +1350,27 @@ static int config_setgroup(fdtype var,fdtype val,void *data)
 {
 #if HAVE_SETGID
   if (FD_FIXNUMP(val)) {
-    setgid((gid_t)(FD_FIX2INT(val)));
-    return 1;}
+    int retval=setgid((gid_t)(FD_FIX2INT(val)));
+    if (retval<0) {
+      u8_graberr(errno,"config_setgroup",NULL);
+      errno=0;
+      return retval;}
+    else return 1;}
   else if (FD_STRINGP(val)) {
     int retval=-1;
 #if HAVE_GETGRNAM_R
     char buf[512]; struct group g;
     retval=getgrnam_r(FD_STRDATA(val),&g,buf,512,NULL);
-    if (retval>=0) setgid(g.gr_gid);
-    else u8_graberr(errno,"config_setgroup",NULL);
+    if (retval>=0) {
+      retval=setgid(g.gr_gid);
+      if (retval<0) {
+	u8_graberr(errno,"config_setgroup/setgid",NULL);
+	errno=0;
+	return retval;}
+      else return 1;}
+    else {
+      u8_graberr(errno,"config_setgroup",NULL);
+      return -1;}
 #else
     u8_seterr("Not implemented","config_setgroup",NULL);
 #endif
