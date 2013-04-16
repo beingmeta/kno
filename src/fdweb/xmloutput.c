@@ -1648,6 +1648,7 @@ static fdtype uridecode_prim(fdtype string)
       *write++=ec;}
     else if (c=='+') *write++=' ';
     else *write++=c;}
+  *write='\0';
   return fd_init_string(NULL,write-result,result);
 }
 
