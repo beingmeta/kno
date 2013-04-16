@@ -881,7 +881,10 @@ fdtype fd_exception_backtrace(u8_exception ex)
 FD_EXPORT
 void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
 {
-  if ((bg==NULL) || ((bg->u8x_cond) != (ex->u8x_cond)))
+  if (!(ex)) {
+    u8_printf(out,"what error?");
+    return;}
+  else if ((bg==NULL) || ((bg->u8x_cond) != (ex->u8x_cond)))
     u8_printf(out,"(%m)",ex->u8x_cond);
   if ((bg==NULL) || ((bg->u8x_context) != (ex->u8x_context)))
     u8_printf(out," <%s>",ex->u8x_context);
@@ -1352,9 +1355,9 @@ static int config_setgroup(fdtype var,fdtype val,void *data)
   if (FD_FIXNUMP(val)) {
     int retval=setgid((gid_t)(FD_FIX2INT(val)));
     if (retval<0) {
-      u8_graberr(errno,"config_setgroup",NULL);
+      u8_log(LOG_CRIT,"setgroup failed","setgid: %s",strerror(errno));
       errno=0;
-      return retval;}
+      return 0;}
     else return 1;}
   else if (FD_STRINGP(val)) {
     int retval=-1;
@@ -1364,22 +1367,25 @@ static int config_setgroup(fdtype var,fdtype val,void *data)
     if (retval>=0) {
       retval=setgid(g.gr_gid);
       if (retval<0) {
-	u8_graberr(errno,"config_setgroup/setgid",NULL);
+	u8_log(LOG_CRIT,"setgroup failed","setgid(%d): %s",
+	       g.gr_gid,strerror(errno));
 	errno=0;
-	return retval;}
+	return 0;}
       else return 1;}
     else {
-      u8_graberr(errno,"config_setgroup",NULL);
-      return -1;}
+      u8_log(LOG_CRIT,"setgroup failed","getgrnam_r: %s",strerror(errno));
+      errno=0;
+      return 0;}
 #else
     u8_seterr("Not implemented","config_setgroup",NULL);
 #endif
-    return retval;}
+    return 0;}
   else {
     fd_seterr(fd_TypeError,"config_setgroup","string or integer",val);
-    return -1;}
+    return 0;}
 #else
   u8_log(LOG_WARN,"Not implemented","setgroup not implemented");
+  return 0;
 #endif
 }
 
