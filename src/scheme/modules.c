@@ -611,8 +611,8 @@ FD_EXPORT void fd_init_modules_c()
   fd_idefn(fd_xscheme_module,
 	   fd_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,
 			   fd_string_type,FD_VOID));
-  fd_defalias(fd_xscheme_module,"DYNAMIC-LOAD","DLOAD");
-  fd_defalias(fd_xscheme_module,"DYNAMIC-LOAD","LOAD-DLL");
+  fd_defalias(fd_xscheme_module,"DLOAD","DYNAMIC-LOAD");
+  fd_defalias(fd_xscheme_module,"LOAD-DLL","DYNAMIC-LOAD");
 
   fd_defspecial(fd_scheme_module,"IN-MODULE",safe_in_module);
   fd_defspecial(fd_scheme_module,"WITHIN-MODULE",safe_within_module);

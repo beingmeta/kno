@@ -1485,8 +1485,6 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIME<?",timestamp_lesser,1));
   fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
   fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
-  fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
-  fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
 
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLEEP",sleep_prim,1));

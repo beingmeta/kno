@@ -1109,8 +1109,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_defspecial(module,"WITH/REQUEST",withreq_handler);
   fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_handler);
   /* fd_idefn(module,fd_make_cprim0("GETREQDATA",get_reqdata,0));*/
-  fd_defalias(module,"WITHCGI","WITHREQUEST");
-  fd_defalias(module,"WITHCGIOUT","WITHREQUEST/OUT");
+  fd_defalias(module,"WITHCGI","WITH/REQUEST");
+  fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
   fd_defspecial(xhtmlout_module,"TITLE!",title_handler);
