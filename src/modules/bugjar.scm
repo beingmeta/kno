@@ -68,9 +68,9 @@
 	  (if (or (string? data) (packet? data))
 	      (write-file filename data)
 	      (dtype->file data filename)))
-	(set! scan (cddr scan))))
-    (when (pair? scan)
-      (dtype->file (mkpath fileroot "more.dtype") (car more)))
+	(set! scan (cddr scan)))
+      (when (pair? scan)
+	(dtype->file (mkpath fileroot "more.dtype") (car more))))
     (fileout (mkpath fileroot "backtrace.html")
       (with/request/out
        (title! "Error " (uuid->string uuid) ": "
