@@ -5472,7 +5472,7 @@ _ACEOF
 if test "${with_dload_path+set}" = set; then :
   withval=$with_dload_path;
 else
-  with_dload_path=$with_data_dir/lib/%.$shared_suffix:$with_data_dir/lib/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
+  with_dload_path=$libdir/framerd/%.$shared_suffix:$libdir/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -5553,17 +5553,6 @@ do :
 if test "x$ac_cv_func_flock" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_FLOCK 1
-_ACEOF
-
-fi
-done
-
-for ac_func in chmod
-do :
-  ac_fn_c_check_func "$LINENO" "chmod" "ac_cv_func_chmod"
-if test "x$ac_cv_func_chmod" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_CHMOD 1
 _ACEOF
 
 fi
