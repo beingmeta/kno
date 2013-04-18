@@ -33,7 +33,7 @@
 	   (putchar (integer->char (1+ (random 256))))
 	 (putchar (integer->char (1+ (random 128)))))))))
 (define (random-symbol)
-  (pick-one (allsymbols)))
+  (pick-one (difference (allsymbols) '%%slotids)))
 
 (define (random-primobj)
   (let ((type (random 8)))
