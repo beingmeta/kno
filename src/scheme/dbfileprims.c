@@ -17,7 +17,7 @@
 #include "framerd/dbfile.h"
 #include "framerd/sequences.h"
 
-static fdtype baseoids_symbol, slotids_symbol;
+static fdtype baseoids_symbol;
 
 static fdtype make_file_pool
   (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
@@ -388,7 +388,6 @@ FD_EXPORT void fd_init_filedb_c()
   fdtype filedb_module;
 
   baseoids_symbol=fd_intern("%BASEOIDS");
-  slotids_symbol=fd_intern("%SLOTIDS");
 
   if (scheme_filedb_initialized) return;
   scheme_filedb_initialized=1;
