@@ -39,9 +39,11 @@ static fdtype return_error(fdtype expr,fd_lispenv env)
   else printout_body=fd_get_body(expr,1);
 
   {
+    fdtype err=FD_VOID;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
-    return fd_err(ex,cxt,out.u8_outbuf,FD_VOID);}
+    fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
+    return FD_ERROR_VALUE;}
 }
 
 static fdtype return_irritant(fdtype expr,fd_lispenv env)
@@ -116,9 +118,11 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     else if (FD_APPLICABLEP(handler)) {
       if (FD_VOIDP(value)) {
 	fdtype result=fd_finish_call(fd_dapply(handler,0,&value));
+	fd_decref(handler);
 	return result;}
       else {
 	fdtype result=fd_finish_call(fd_dapply(handler,1,&value));
+	fd_decref(handler);
 	fd_decref(value);
 	return result;}}
     else {
