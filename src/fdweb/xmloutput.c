@@ -1630,10 +1630,11 @@ static int xdigit_weight(int c)
 
 static fdtype uridecode_prim(fdtype string)
 {
-  u8_byte *scan=FD_STRDATA(string), *result=u8_malloc(FD_STRLEN(string));
-  u8_byte *write=result;
-  int c;
-  while ((c=(*(scan++)))>0) {
+  int len=FD_STRLEN(string);
+  u8_byte *scan=FD_STRDATA(string), *limit=scan+len;
+  u8_byte *result=result=u8_malloc(len+1), *write=result;
+  int c=*(scan++);
+  while (scan<limit) {
     if (c=='%') {
       char digit1, digit2; unsigned char ec;
       c=*(scan++);
@@ -1647,7 +1648,8 @@ static fdtype uridecode_prim(fdtype string)
       ec=(digit1)*16+digit2;
       *write++=ec;}
     else if (c=='+') *write++=' ';
-    else *write++=c;}
+    else *write++=c;
+    c=*scan++;}
   *write='\0';
   return fd_init_string(NULL,write-result,result);
 }
