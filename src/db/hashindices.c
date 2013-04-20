@@ -1959,8 +1959,12 @@ FD_FASTOP off_t extend_keybucket
 	   in the key entry. */
 	int n_values=FD_CHOICE_SIZE(schedule[k].values);
 	ke[scan].n_values=n_values;
-	if (n_values==0) ke[scan].values=FD_EMPTY_CHOICE;
-	else if (n_values==1) ke[scan].values=schedule[k].values;
+	if (n_values==0) {
+	  ke[scan].values=FD_EMPTY_CHOICE;
+	  ke[scan].vref.off=0; ke[scan].vref.size=0;}
+	else if (n_values==1) {
+	  ke[scan].values=schedule[k].values;
+	  ke[scan].vref.off=0; ke[scan].vref.size=0;}
 	else {
 	  ke[scan].values=FD_VOID;
 	  ke[scan].vref=
@@ -2028,7 +2032,8 @@ FD_FASTOP off_t write_keybucket
     endpos=endpos+fd_dtswrite_zint(stream,dtype_size);
     endpos=endpos+fd_dtswrite_bytes(stream,ke[i].dtype_start,dtype_size);
     endpos=endpos+fd_dtswrite_zint(stream,n_values);
-    if (n_values==1)
+    if (n_values==0) {}
+    else if (n_values==1)
       endpos=endpos+dtswrite_zvalue(hx,stream,ke[i].values);
     else {
       endpos=endpos+fd_dtswrite_zint8(stream,ke[i].vref.off);
