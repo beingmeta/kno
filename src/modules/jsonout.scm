@@ -34,6 +34,22 @@
 	    (jsonout (valuefn value context) #f)
 	    (jsonout value #f)))
       (if (or vecval (ambiguous? value)) (printout "]")))))
+(defambda (jsonfield+ field value (valuefn #f) (prefix #f) (context #f)
+		      (vecval #f))
+  (unless (fail? value)
+    (printout
+      (if prefix prefix)
+      (if (symbol? field)
+	  (write (downcase (symbol->string field)))
+	  (if (string? field) (write field)
+	      (write (unparse-arg field))))
+      ": ["
+      (do-choices (value value i)
+	(when (> i 0) (printout ","))
+	(if valuefn
+	    (jsonout (valuefn value context) #f)
+	    (jsonout value #f)))
+      "]")))
 (define (jsontable table (valuefn #f) (context #f))
   (printout "{"
 	    (let ((initial #t))
@@ -63,7 +79,7 @@
 	((table? value) (jsontable value))
 	(else (printout "\"" json-lisp-prefix (write value) "\""))))
 
-(module-export! '{jsonout jsonvec jsontable jsonfield jsonelt})
+(module-export! '{jsonout jsonvec jsontable jsonfield jsonfield+ jsonelt})
 
 ;;; Support for JSON responses
 
