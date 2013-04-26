@@ -667,6 +667,10 @@ I18N
 MKSTATIC
 PROFILING
 VERSION
+FDRELEASE
+FDMINOR
+FDMAJOR
+FDVERSION
 EXELDFLAGS
 TESTLDFLAGS
 SHARED_LIBV
@@ -2716,7 +2720,11 @@ MKSTATIC="ld -r -o"
 TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
-VERSION=3.4
+FDVERSION=3.4.7
+VERSION=3.4.7
+FDMAJOR=3
+FDMINOR=4
+FDRELEASE=7
 vshared_suffix=so.$VERSION
 I18N=""
 INSTALLI18N=""
@@ -2780,6 +2788,10 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
+
+
+
 
 
 
