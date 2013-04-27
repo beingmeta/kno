@@ -59,7 +59,10 @@
        ;; if we're gluing a bunch of files together (amalgamating them),
        ;;  the ref will just be moved to the current file by stripping
        ;;  off the URL part
-       (tryif (overlaps? amalgamate (gp/mkpath base ref)) "")
+       (tryif (overlaps? amalgamate (gp/mkpath base ref))
+	 (try (get urlmap (gp/mkpath base ref))
+	      (get urlmap ref)
+	      ""))
        ;; Check if we're already localized
        (tryif (exists? (textmatcher `#(,read "/") ref))
 	 ref)
