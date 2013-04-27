@@ -154,27 +154,28 @@
 	     "DOM/SET of ambiguous attribute " attrib
 	     attribs))
     (store! node slotid val)
-    (when (exists? ids)
-      (unless (overlaps? ids (choice qattrib slotid))
-	(if (and (singleton? ids) (or (vector? ids) (pair? ids)))
-	    (if (not (exists position (choice qattrib slotid) ids))
-		(if (vector? ids)
-		    (store! node '%attribids `#(,(try qattrib slotid) ,@ids))
-		    (store! node '%attribids `(,(try qattrib slotid) ,@ids))))
-	    (add! node '%attribids (try qattrib slotid)))
-	(when index
-	  (add! index (cons '%attribids (try qattrib slotid)) node))))
-    (when (exists? allattribs)
+    (if (exists? ids)
+	(unless (overlaps? ids (choice qattrib slotid))
+	  (if (and (singleton? ids) (or (vector? ids) (pair? ids)))
+	      (if (not (exists position (choice qattrib slotid) ids))
+		  (if (vector? ids)
+		      (store! node '%attribids `#(,(try qattrib slotid) ,@ids))
+		      (store! node '%attribids `(,(try qattrib slotid) ,@ids))))
+	      (add! node '%attribids (try qattrib slotid)))
+	  (when index
+	    (add! index (cons '%attribids (try qattrib slotid)) node)))
+	(add! node '%attribids slotid))
+    (when (or (exists? allattribs) (string? attrib) (exists? unq))
       (if (exists? attribs)
-	  (begin (drop! node '%attribs attribs)
-	    (add! node '%attribs
-		  (vector (elt attribs 0) (elt attribs 1) stringval))
-	    (store! node (choice (string->lisp aname) slotid qattrib) val)
-	    (when (attrib-name aname)
-	      (store! node (string->lisp (attrib-name aname)) val))
-	    (add! node '%attribs
-		  (vector (elt attribs 0) (elt attribs 1) stringval)))
-	  (add! node '%attribs (vector aname #f stringval))))))
+	    (begin (drop! node '%attribs attribs)
+	      (add! node '%attribs
+		    (vector (elt attribs 0) (elt attribs 1) stringval))
+	      (store! node (choice (string->lisp aname) slotid qattrib) val)
+	      (when (attrib-name aname)
+		(store! node (string->lisp (attrib-name aname)) val))
+	      (add! node '%attribs
+		    (vector (elt attribs 0) (elt attribs 1) stringval)))
+	    (add! node '%attribs (vector aname #f stringval))))))
 
 (define (dom/drop! node attrib (value) (sep #f) (index #f))
   (drop! node '%markup)
