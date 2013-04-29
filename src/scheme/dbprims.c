@@ -503,26 +503,56 @@ static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
 
 static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
 {
+  FDTC *fdtc=fd_threadcache;
   fd_index ix=fd_lisp2index(index);
   if (ix->handler==&fd_extindex_handler)
     if (fd_hashtable_add(&(ix->cache),key,values)<0)
       return FD_ERROR_VALUE;
-    else return FD_VOID;
+    else {}
   else return fd_type_error("extindex","extindex_cacheadd",index);
+  if (fdtc) {
+    struct FD_PAIR tempkey;
+    struct FD_HASHTABLE *h=&(fdtc->indices);
+    FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
+    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+    if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
+      fd_hashtable_store(h,(fdtype)&tempkey,FD_VOID);}}
+  return FD_VOID;
 }
 
 static fdtype extindex_decache(fdtype index,fdtype key)
 {
+  FDTC *fdtc=fd_threadcache;
   fd_index ix=fd_lisp2index(index);
+  fdtype lix=fd_index2lisp(ix);
   if (ix->handler==&fd_extindex_handler)
     if (FD_VOIDP(key))
       if (fd_reset_hashtable(&(ix->cache),ix->cache.n_slots,1)<0)
 	return FD_ERROR_VALUE;
-      else return FD_VOID;
+      else {}
     else if (fd_hashtable_store(&(ix->cache),key,FD_VOID)<0)
       return FD_ERROR_VALUE;
-    else return FD_VOID;
+    else {}
   else return fd_type_error("extindex","extindex_decache",index);
+  if ((fdtc)&&(!(FD_VOIDP(key)))) {
+    struct FD_PAIR tempkey;
+    struct FD_HASHTABLE *h=&(fdtc->indices);
+    FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
+    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+    if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
+      fd_hashtable_store(h,(fdtype)&tempkey,FD_VOID);}}
+  else if (fdtc) {
+    struct FD_PAIR tempkey;
+    struct FD_HASHTABLE *h=&(fdtc->indices);
+    fdtype keys=fd_hashtable_keys(h), drop=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(key,keys) {
+      if ((FD_PAIRP(key))&&(FD_CAR(key)==lix)) {
+	fd_decref(key); FD_ADD_TO_CHOICE(drop,key);}}
+    if (!(FD_EMPTY_CHOICEP(drop))) {
+      FD_DO_CHOICES(d,drop) fd_hashtable_drop(h,d,FD_VOID);}
+    fd_decref(drop); fd_decref(keys);}
+  else {}
+return FD_VOID;
 }
 
 static fdtype extindex_fetchfn(fdtype index)
