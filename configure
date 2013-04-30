@@ -807,6 +807,7 @@ with_tls
 with_global_ipeval
 with_curl
 with_exif
+with_qrcode
 enable_rpath
 '
       ac_precious_vars='build_alias
@@ -1487,6 +1488,7 @@ Optional Packages:
 --without-global-ipeval Use global lock and variables for ipeval
 --without-curl Use libcurl in fdweb
 --without-exif Use libexif in fdweb
+--without-qrcode Create qrcode binary module
 
 Some influential environment variables:
   CC          C compiler command
@@ -7257,119 +7259,6 @@ fi
 
 
 
-
-ac_fn_c_check_header_mongrel "$LINENO" "png.h" "ac_cv_header_png_h" "$ac_includes_default"
-if test "x$ac_cv_header_png_h" = xyes; then :
-  have_png_h="yes"
-else
-  have_png_h="no"
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "qrencode.h" "ac_cv_header_qrencode_h" "$ac_includes_default"
-if test "x$ac_cv_header_qrencode_h" = xyes; then :
-  have_qrencode_h="yes"
-else
-  have_qrencode_h="no"
-fi
-
-
-
-if (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_create_write_struct in -lpng" >&5
-$as_echo_n "checking for png_create_write_struct in -lpng... " >&6; }
-if ${ac_cv_lib_png_png_create_write_struct+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpng  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char png_create_write_struct ();
-int
-main ()
-{
-return png_create_write_struct ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_png_png_create_write_struct=yes
-else
-  ac_cv_lib_png_png_create_write_struct=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_create_write_struct" >&5
-$as_echo "$ac_cv_lib_png_png_create_write_struct" >&6; }
-if test "x$ac_cv_lib_png_png_create_write_struct" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPNG 1
-_ACEOF
-
-  LIBS="-lpng $LIBS"
-
-fi
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for QRcode_encodeString8bit in -lqrencode" >&5
-$as_echo_n "checking for QRcode_encodeString8bit in -lqrencode... " >&6; }
-if ${ac_cv_lib_qrencode_QRcode_encodeString8bit+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lqrencode  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char QRcode_encodeString8bit ();
-int
-main ()
-{
-return QRcode_encodeString8bit ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_qrencode_QRcode_encodeString8bit=yes
-else
-  ac_cv_lib_qrencode_QRcode_encodeString8bit=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_qrencode_QRcode_encodeString8bit" >&5
-$as_echo "$ac_cv_lib_qrencode_QRcode_encodeString8bit" >&6; }
-if test "x$ac_cv_lib_qrencode_QRcode_encodeString8bit" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBQRENCODE 1
-_ACEOF
-
-  LIBS="-lqrencode $LIBS"
-
-fi
-
-  CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
-fi
-
 ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
 if test "x$ac_cv_header_regex_h" = xyes; then :
   have_regex_h="yes"
@@ -8708,6 +8597,127 @@ done
 
   CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
+fi
+
+ac_fn_c_check_header_mongrel "$LINENO" "png.h" "ac_cv_header_png_h" "$ac_includes_default"
+if test "x$ac_cv_header_png_h" = xyes; then :
+  have_png_h="yes"
+else
+  have_png_h="no"
+fi
+
+
+ac_fn_c_check_header_mongrel "$LINENO" "qrencode.h" "ac_cv_header_qrencode_h" "$ac_includes_default"
+if test "x$ac_cv_header_qrencode_h" = xyes; then :
+  have_qrencode_h="yes"
+else
+  have_qrencode_h="no"
+fi
+
+
+
+
+# Check whether --with-qrcode was given.
+if test "${with_qrcode+set}" = set; then :
+  withval=$with_qrcode;
+else
+  with_qrcode="yes"
+fi
+
+
+if (test "x$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_create_write_struct in -lpng" >&5
+$as_echo_n "checking for png_create_write_struct in -lpng... " >&6; }
+if ${ac_cv_lib_png_png_create_write_struct+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpng  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char png_create_write_struct ();
+int
+main ()
+{
+return png_create_write_struct ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_png_png_create_write_struct=yes
+else
+  ac_cv_lib_png_png_create_write_struct=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_create_write_struct" >&5
+$as_echo "$ac_cv_lib_png_png_create_write_struct" >&6; }
+if test "x$ac_cv_lib_png_png_create_write_struct" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPNG 1
+_ACEOF
+
+  LIBS="-lpng $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for QRcode_encodeString8bit in -lqrencode" >&5
+$as_echo_n "checking for QRcode_encodeString8bit in -lqrencode... " >&6; }
+if ${ac_cv_lib_qrencode_QRcode_encodeString8bit+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lqrencode  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char QRcode_encodeString8bit ();
+int
+main ()
+{
+return QRcode_encodeString8bit ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_qrencode_QRcode_encodeString8bit=yes
+else
+  ac_cv_lib_qrencode_QRcode_encodeString8bit=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_qrencode_QRcode_encodeString8bit" >&5
+$as_echo "$ac_cv_lib_qrencode_QRcode_encodeString8bit" >&6; }
+if test "x$ac_cv_lib_qrencode_QRcode_encodeString8bit" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBQRENCODE 1
+_ACEOF
+
+  LIBS="-lqrencode $LIBS"
+
+fi
+
+  CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
 # Check whether --enable-rpath was given.

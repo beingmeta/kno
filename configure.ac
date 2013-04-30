@@ -595,17 +595,6 @@ fi
 
 AC_CHECK_HEADER(mysql/mysql.h,have_mysql_h="yes",have_mysql_h="no")
 
-
-AC_CHECK_HEADER(png.h,have_png_h="yes",have_png_h="no")
-AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
-
-if (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
-  AC_CHECK_LIB(png,png_create_write_struct)
-  AC_CHECK_LIB(qrencode,QRcode_encodeString8bit)
-  CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
-fi
-
 AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
 if (test "x$have_regex_h" = "xyes"); then
   AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
@@ -917,6 +906,19 @@ if test "x$with_exif" = "xyes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
+fi
+
+dnl Build with primitives accessing qrcoding, if available
+AC_CHECK_HEADER(png.h,have_png_h="yes",have_png_h="no")
+AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
+
+AC_ARG_WITH(qrcode,--with[out]-qrcode Create qrcode binary module,,with_qrcode="yes")
+
+if (test "x$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
+  AC_CHECK_LIB(png,png_create_write_struct)
+  AC_CHECK_LIB(qrencode,QRcode_encodeString8bit)
+  CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
 dnl Enables/disables linking with RPATH
