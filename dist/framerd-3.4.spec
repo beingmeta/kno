@@ -1,6 +1,6 @@
 Name:           framerd
-Version:        3.4
-Release:        20%{?dist}
+Version:        3.4.9
+Release:        21%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -10,7 +10,7 @@ Source0:        framerd-3.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel mysql-devel libexif-devel libtidy-devel
-Requires:       libu8 curl
+Requires:       libu8 >= 2.2.0 curl >= 7.15.1
 
 %description
 FramerD is a distributed knowledge base and application environment.
@@ -153,7 +153,6 @@ make copy-modules DESTDIR=$RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-
 
 %post -p /sbin/ldconfig
 
