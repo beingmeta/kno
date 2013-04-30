@@ -180,7 +180,16 @@ typedef unsigned int fd_consbits;
 typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
+#if FD_CHECKFDTYPE
+FD_FASTOP MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
+FD_FASTOP MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
+FD_FASTOP MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
+#define FD_ISDTYPE(x) (FD_EXPECT_TRUE(_FD_ISDTYPE(x)))
+#else
 #define FD_CONS_DATA(x) ((fd_cons)(x))
+#define FDTYPE(x) ((fdtype)(x))
+#define FD_ISDTYPE(x) (FD_EXPECT_TRUE(1))
+#endif
 
 /* Most of the stuff for dealing with conses is in cons.h.  The
     attribute common to all conses, is that its first field is
@@ -207,13 +216,13 @@ typedef struct FD_CONS *fd_cons;
 
 #define FDTYPE_IMMEDIATE(tcode,serial) \
   ((fdtype)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|fd_immediate_ptr_type))
-#define FD_GET_IMMEDIATE(x,tcode) (((x)>>2)&0x7FFFFF)
-#define FD_IMMEDIATE_TYPE_FIELD(x) (((x)>>25)&0x7F)
-#define FD_IMMEDIATE_TYPE(x) ((((x)>>25)&0x7F)+0x4)
+#define FD_GET_IMMEDIATE(x,tcode) (((FDTYPE(x))>>2)&0x7FFFFF)
+#define FD_IMMEDIATE_TYPE_FIELD(x) (((FDTYPE(x))>>25)&0x7F)
+#define FD_IMMEDIATE_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
 
 #if FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE(x) \
-  (((FD_PTR_MANIFEST_TYPE(x))>1) ? (FD_PTR_MANIFEST_TYPE(x)) : \
+  (((FD_PTR_MANIFEST_TYPE(FDTYPE(x)))>1) ? (FD_PTR_MANIFEST_TYPE(x)) :	\
    ((FD_PTR_MANIFEST_TYPE(x))==1) ? (FD_IMMEDIATE_TYPE(x)) : \
    (x) ? (FD_CONS_TYPE(((struct FD_CONS *)FD_CONS_DATA(x)))) : (-1))
 
@@ -577,22 +586,24 @@ FD_EXPORT fdtype _fd_debug(fdtype x);
 
 FD_EXPORT int fd_check_immediate(fdtype);
 
-#define FD_CHECK_PTR(x)                            \
- ((FD_FIXNUMP(x)) ? (1) :                          \
-  (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
-  (x==0) ? (0) :                                   \
-  (FD_CONSP(x)) ?                                  \
-  (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
-   (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
-   (FD_CONS_TYPE((FD_CONS *)x)<fd_next_cons_type)) : \
-  (fd_check_immediate(x)))
+#define FD_CHECK_PTR(x)                             \
+ ((FD_ISDTYPE(x))&&                                   \
+  ((FD_FIXNUMP(x)) ? (1) :                          \
+   (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
+   (x==0) ? (0) :                                   \
+   (FD_CONSP(x)) ?                                  \
+   (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
+    (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
+    (FD_CONS_TYPE((FD_CONS *)x)<fd_next_cons_type)) : \
+   (fd_check_immediate(x))))
 
 #define FD_CHECK_ATOMIC_PTR(x)                     \
- ((FD_FIXNUMP(x)) ? (1) :                          \
-  (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
-  (x==0) ? (0) :                                   \
-  (FD_CONSP(x)) ? (1) :                            \
-  (fd_check_immediate(x)))
+ ((FD_ISDTYPE(x))&&                                  \
+  ((FD_FIXNUMP(x)) ? (1) :                          \
+   (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
+   (x==0) ? (0) :                                   \
+   (FD_CONSP(x)) ? (1) :                            \
+   (fd_check_immediate(x))))
 
 #ifdef FD_PTR_DEBUG_LEVEL
 #if (FD_PTR_DEBUG_LEVEL>2)

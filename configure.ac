@@ -32,6 +32,7 @@ AC_MSG_CHECKING([for group $1])
 if (test "x$localstatedir" == "x\${prefix}/var"); then localstatedir="/var"; fi
 
 threads_default="yes"
+checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
 tls_default="no"
@@ -486,6 +487,13 @@ fi
 
 AX_PTHREAD()
 AX_PTHREAD(threads_default="yes",threads_default="no")
+
+AC_ARG_ENABLE(checkptrs,--en/disable-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
+if test "x$enable_checkfdtype" = "xyes"; then
+  AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,1)
+else
+  AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,0)
+fi
 
 dnl If possible, compile for multi-threaded execution.  This both makes
 dnl  the library threadsafe and enables Scheme primitives for spawning threads

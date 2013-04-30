@@ -197,7 +197,7 @@ FD_EXPORT fdtype _fd_simplify_choice(fdtype x);
   ((FD_EMPTY_CHOICEP(x)) ? (0) : \
    (!(FD_CONSP(x))) ? (1) : \
    (FD_CHOICEP(x)) ? (FD_XCHOICE_SIZE(FD_XCHOICE(x))) : \
-   (FD_ACHOICEP(x)) ? (FD_ACHOICE_SIZE(FD_XACHOICE(x))) : (1))
+   (FD_ACHOICEP(x)) ? (FD_ACHOICE_SIZE(x)) : (1))
 
 #if FD_INLINE_CHOICES
 static MAYBE_UNUSED int fd_choice_size(fdtype x)
@@ -207,7 +207,7 @@ static MAYBE_UNUSED int fd_choice_size(fdtype x)
   else if (FD_CHOICEP(x))
     return FD_XCHOICE_SIZE(FD_XCHOICE(x));
   else if (FD_ACHOICEP(x))
-    return FD_ACHOICE_SIZE(FD_XACHOICE(x));
+    return FD_ACHOICE_SIZE(x);
   else return 1;
 }
 static MAYBE_UNUSED fdtype fd_simplify_choice(fdtype x)

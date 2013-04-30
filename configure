@@ -781,6 +781,7 @@ enable_shared
 enable_async
 enable_dtblock
 with_i18n
+enable_checkptrs
 enable_threads
 enable_mmap_prefetch
 with_editline
@@ -1433,6 +1434,7 @@ Optional Features:
 --enable-shared Build with/without shared libraries
 --enable-async Enable async I/O features
 --enable-dtblock DTBlock dtype for net I/O
+--en/disable-checkfdtype Enable compile-time checking for fdtype pointers
 --en/disable-threads Enable multi-threading
 --en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --en/disable-largefiles Enable use of large (> 2GB) file support
@@ -2688,6 +2690,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if (test "x$localstatedir" == "x\${prefix}/var"); then localstatedir="/var"; fi
 
 threads_default="yes"
+checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
 tls_default="no"
@@ -6695,6 +6698,21 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
+# Check whether --enable-checkptrs was given.
+if test "${enable_checkptrs+set}" = set; then :
+  enableval=$enable_checkptrs;
+else
+  enable_checkfdtype=$checkfdtype_default
+fi
+
+if test "x$enable_checkfdtype" = "xyes"; then
+  $as_echo "#define FD_DEFAULT_CHECKFDTYPE 1" >>confdefs.h
+
+else
+  $as_echo "#define FD_DEFAULT_CHECKFDTYPE 0" >>confdefs.h
+
+fi
 
 # Check whether --enable-threads was given.
 if test "${enable_threads+set}" = set; then :

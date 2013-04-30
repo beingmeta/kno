@@ -136,4 +136,10 @@ typedef void *u8_tld_key;
 
 #include "support.h"
 
+/* Compile-time DTYPE checking */
+
+#ifndef FD_CHECKFDTYPE
+#define FD_CHECKFDTYPE FD_DEFAULT_CHECKFDTYPE
+#endif
+
 #endif /* ndef FRAMERD_COMMON_H */
