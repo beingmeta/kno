@@ -188,7 +188,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
       if (free_bytes) u8_free(bytes);
       return fd_err(OpenFailed,"writefile_prim",NULL,filename);}
     while (len>=0) {
-      size_t n_bytes=fwrite(bytes+off,1,len,f);
+      ssize_t n_bytes=fwrite(bytes+off,1,len,f);
       if (n_bytes<0) {
 	u8_graberr(errno,"writefile_prim",u8_strdup(FD_STRDATA(filename)));
 	return FD_ERROR_VALUE;}
