@@ -542,7 +542,6 @@ static fdtype extindex_decache(fdtype index,fdtype key)
     if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
       fd_hashtable_store(h,(fdtype)&tempkey,FD_VOID);}}
   else if (fdtc) {
-    struct FD_PAIR tempkey;
     struct FD_HASHTABLE *h=&(fdtc->indices);
     fdtype keys=fd_hashtable_keys(h), drop=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(key,keys) {

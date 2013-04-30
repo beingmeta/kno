@@ -39,7 +39,6 @@ static fdtype return_error(fdtype expr,fd_lispenv env)
   else printout_body=fd_get_body(expr,1);
 
   {
-    fdtype err=FD_VOID;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
     fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);

@@ -295,7 +295,7 @@ static fdtype hash_index_slotids(fdtype ix_arg)
 
 static unsigned int load_cache(unsigned int *cache,int length)
 {
-  unsigned int combo;
+  unsigned int combo=0;
   int i=0; while (i<length) combo=combo^cache[i++];
   return combo;
 }

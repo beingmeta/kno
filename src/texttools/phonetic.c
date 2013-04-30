@@ -65,7 +65,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   char buf[32], *start, *scan;
   char capbuf[32], *capstart, *capscan;
   u8_byte *s=string;
-  int c=u8_sgetc(&s), lastc=-1, len=strlen(string), lenout=0;
+  int c=u8_sgetc(&s), lastc=-1, len=strlen(string), lenout=0, lc=-1;
   U8_INIT_OUTPUT(&out,32);
   /* First we write an uppercase ASCII version of the string to a buffer. */
   if (len>=32) {
@@ -99,8 +99,8 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   while (*scan) {
     switch (*scan) {
     case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
-      u8_putc(&out,((*capscan) ? (*scan) :
-		    (u8_tolower(((int)(*scan)))))); break;
+      if (*capscan) lc=*scan; else lc=u8_tolower(((int)(*scan)));
+      u8_putc(&out,lc); break;
     case 'Q': if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k'); break;
     case 'V': if (*capscan) u8_putc(&out,'F'); else u8_putc(&out,'f'); break;
     case 'Z': if (*capscan) u8_putc(&out,'S'); else u8_putc(&out,'s'); break;
@@ -176,17 +176,17 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
       else if (*capscan) u8_putc(&out,'T'); else u8_putc(&out,'t');
       break;
     case 'W': case 'Y':
-      if (strchr(VOWELS,scan[1]))
-	if (*capscan) u8_putc(&out,*scan);
-	else u8_putc(&out,u8_tolower(((int)*scan)));
+      if (strchr(VOWELS,scan[1])) {
+	if (*capscan) lc=*scan; else lc=u8_tolower(((int)(*scan)));
+	u8_putc(&out,lc);}
       else {}
       break;
     case 'X':
       if (*capscan) u8_puts(&out,"KS"); else u8_puts(&out,"ks");
       break;
-    default: if (scan==start) {
-	if (*capscan) u8_putc(&out,*scan);
-	else u8_putc(&out,u8_tolower(((int)*scan)));}}
+    default: if (scan==start)  {
+	if (*capscan) lc=*scan; else lc=u8_tolower(((int)(*scan)));
+	u8_putc(&out,lc);}}
     if ((sep) && (lenout) && (lenout==(out.u8_outptr-out.u8_outbuf)) &&
 	(out.u8_outbuf[lenout-1]!='.'))
       u8_putc(&out,'.');

@@ -984,7 +984,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   int retval=1, bretval=0, eretval=0, sretval=0;
   int proclock=0, dblock=0;
   volatile unsigned int mysqlerrno;
-  const char *mysqlerrmsg;
+  const char *mysqlerrmsg=NULL;
   fdtype _argbuf[4], *argbuf=
     ((n_params<4) ? (_argbuf) : (u8_alloc_n(n_params,fdtype)));
   

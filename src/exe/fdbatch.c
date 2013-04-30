@@ -120,7 +120,7 @@ static int newlog=0;
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd=-1, err_fd, chained=0;
+  int pid_fd, log_fd=-1, err_fd=-1, chained=0;
   int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
   u8_string done_file, log_file=NULL, err_file=NULL;
   /* We just initialize this for now. */
