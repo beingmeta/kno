@@ -694,10 +694,10 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 rpmtar: staging/framerd-@FDVERSION@.tar.gz
 cleanrpms: 
-	rm -rf dist/rpms.done staging/framerd-?.?.tar.gz staging/framerd-?.?
+	rm -rf dist/rpms.done staging/framerd-?.?.?.tar.gz staging/framerd-?.?.?
 	find dist -name "*.rpm" | xargs rm
 freshrpms: 
-	rm -rf dist/rpms.done staging/framerd-?.?.tar.gz staging/framerd-?.?
+	rm -rf dist/rpms.done staging/framerd-?.?.?.tar.gz staging/framerd-?.?.?
 	find dist -name "*.rpm" | xargs rm
 	make rpms
 rpms: dist/rpms.done
