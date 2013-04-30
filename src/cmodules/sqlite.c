@@ -65,10 +65,10 @@ static unsigned char *_memdup(unsigned char *data,int len)
   return duplicate;
 }
 
-static int getboolopt(opts,sym)
+static int getboolopt(fdtype opts,fdtype sym,int dflt)
 {
   fdtype val=fd_getopt(opts,sym,FD_VOID);
-  if (FD_VOIDP(val)) return -1;
+  if (FD_VOIDP(val)) return dflt;
   else if (FD_FALSEP(val)) return 0;
   else {
     fd_decref(val);
@@ -78,40 +78,41 @@ static int getboolopt(opts,sym)
 /* Opening connections */
 
 static fdtype readonly_symbol, create_symbol, sharedcache_symbol, privatecache_symbol, vfs_symbol;
+static fdtype execok_symbol;
 
 static int getv2flags(fdtype colinfo,u8_string filename);
 
 static fdtype open_sqlite(fdtype filename,fdtype colinfo,fdtype options)
 {
-  sqlite3 *db=NULL;
+  sqlite3 *db=NULL; int retval;
   fdtype vfs=fd_getopt(colinfo,vfs_symbol,FD_VOID);
+  int allow_exec=getboolopt(colinfo,execok_symbol,1);
 #if HAVE_SQLITE3_OPEN_V2
-  int flags=getv2flags(colinfo,FD_STRDATA(filename)), retval;
+  int flags=getv2flags(colinfo,FD_STRDATA(filename));
   if (flags<0) return FD_ERROR_VALUE;
   else retval=sqlite3_open_v2
     (FD_STRDATA(filename),&db,flags,
      ((FD_STRINGP(vfs))?(FD_STRDATA(vfs)):(NULL)));
 #else
-  int retval=sqlite3_open(FD_STRDATA(filename),&db);
-  int readonly=getboolopt(colinfo,readonly_symbol);
-  int readcreate=getboolopt(colinfo,create_symbol);
-  int sharedcache=getboolopt(colinfo,sharedcache_symbol);
-  int privcache=getboolopt(colinfo,privatecache_symbol);
+  int readonly=getboolopt(colinfo,readonly_symbol,0);
+  int readcreate=getboolopt(colinfo,create_symbol,0);
+  int sharedcache=getboolopt(colinfo,sharedcache_symbol,0);
+  int privcache=getboolopt(colinfo,privatecache_symbol,0);
 
-  if (fd_testopt(colinfo,privatecache_symbol,FD_VOID))
+  if (sharedcache)
     u8_log(LOG_WARN,"sqlite_open",
-	   "the sqlite3_open_v2 private cache option are not available");
-  if (fd_testopt(colinfo,sharedcache_symbol,FD_VOID))
-  if (sharedcache>=0)
+	   "the sqlite3_open_v2 shared cache option is not available");
+  if (privcache)
     u8_log(LOG_WARN,"sqlite_open",
-	   "the sqlite3_open_v2 shared cache option are not available");
-  if ((fd_testopt(colinfo,readonly_symbol,FD_VOID))||
-      (fd_testopt(colinfo,create_symbol,FD_VOID)))
-    u8_log(LOG_WARN,"sqlite_open",
-	   "the sqlite3_open_v2 read/write options are not available");
+	   "the sqlite3_open_v2 private cache option is not available");
+  if ((!(readcreate))&&(!(u8_file_existsp(FD_STRDATA(filename))))) {
+    u8_seterr(NoSuchFile,"opensqlite",fd_strdup(FD_STRDATA(filename)));
+    return FD_ERROR_VALUE;}
+  
   if (!(FD_VOIDP(vfs)))
     u8_log(LOG_WARN,"sqlite_open",
 	   "the sqlite3_open_v2 vfs methods are not available");
+  retval=sqlite3_open(FD_STRDATA(filename),&db);
 #endif
   fd_decref(vfs);
   if (retval) {
@@ -134,10 +135,10 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo,fdtype options)
 #if HAVE_SQLITE3_OPEN_V2
 static int getv2flags(fdtype colinfo,u8_string filename)
 {
-  int readonly=getboolopt(colinfo,readonly_symbol);
-  int readcreate=getboolopt(colinfo,create_symbol);
-  int sharedcache=getboolopt(colinfo,sharedcache_symbol);
-  int privcache=getboolopt(colinfo,privatecache_symbol);
+  int readonly=getboolopt(colinfo,readonly_symbol,0);
+  int readcreate=getboolopt(colinfo,create_symbol,0);
+  int sharedcache=getboolopt(colinfo,sharedcache_symbol,0);
+  int privcache=getboolopt(colinfo,privatecache_symbol,0);
   int flags=0;
   if (readonly) flags=flags|SQLITE_OPEN_READONLY;
   else if (readcreate)
@@ -159,7 +160,7 @@ static int getv2flags(fdtype colinfo,u8_string filename)
     return -1;
 #endif
   }
-  if (u8_has_prefix(FD_STRDATA(filename),"file:",1)) {
+  if (u8_has_prefix(filename,"file:",1)) {
 #if SQLITE_OPEN_URI
     flags=flags|SQLITE_OPEN_URI;
 #else
@@ -374,7 +375,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
 	break;}}}
   if (retval!=SQLITE_DONE) {
 #if HAVE_SQLITE3_ERRSTR
-    char *msg=sqlite3_errstr(retval);
+    const char *msg=sqlite3_errstr(retval);
     fd_seterr(SQLiteError,"sqlite_step3",u8_strdup(msg),FD_VOID);
 #endif
     fd_decref(results); if (sorted) {
@@ -445,12 +446,10 @@ static fdtype sqlitemakeproc
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
 #if HAVE_SQLITE3_PREPARE_V2
   retval=
-    sqlite3_prepare_v2(db,FD_STRDATA(stmt),FD_STRLEN(stmt),
-		       &(sqlcons->stmt),NULL);
+    sqlite3_prepare_v2(db,stmt,stmt_len+1,&(sqlcons->stmt),NULL);
 #else
   retval=
-    sqlite3_prepare(db,FD_STRDATA(stmt),FD_STRLEN(stmt),
-		    &(sqlcons->stmt),NULL);
+    sqlite3_prepare(db,stmt,stmt_len+1,&(sqlcons->stmt),NULL);
 #endif
   if (retval) {
     fdtype dbptr=(fdtype)dbp;
@@ -614,6 +613,7 @@ FD_EXPORT int fd_init_sqlite()
   sharedcache_symbol=fd_intern("SHAREDCACHE");
   privatecache_symbol=fd_intern("PRIVATECACHE");
   vfs_symbol=fd_intern("VFS");
+  execok_symbol=fd_intern("EXEC/OK");
   
   fd_finish_module(module);
 
