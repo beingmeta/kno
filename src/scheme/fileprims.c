@@ -187,7 +187,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     if (f==NULL) {
       if (free_bytes) u8_free(bytes);
       return fd_err(OpenFailed,"writefile_prim",NULL,filename);}
-    while (len>=0) {
+    while (len>0) {
       ssize_t n_bytes=fwrite(bytes+off,1,len,f);
       if (n_bytes<0) {
 	u8_graberr(errno,"writefile_prim",u8_strdup(FD_STRDATA(filename)));
@@ -567,6 +567,8 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
     return fd_type_error(_("string"),"mkuripath_prim",name);
   else namestring=FD_STRDATA(name);
   if (*namestring=='/') return fd_incref(name);
+  else if ((FD_STRINGP(dirname))&&(FD_STRLEN(dirname)==0))
+    return fd_incref(name);
   else if (FD_STRINGP(dirname)) dir=FD_STRDATA(dirname);
   else if (FD_SYMBOLP(dirname)) {
     config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
