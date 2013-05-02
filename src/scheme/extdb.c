@@ -60,21 +60,22 @@ static u8_mutex extdb_handlers_lock;
 
 FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h)
 {
-  int i=0;
+  int i=0, retval=-1;
   u8_lock_mutex(&extdb_handlers_lock);
   while (i<n_extdbs) 
     if (strcasecmp(h->name,extdbhandlers[i]->name)==0)
-      if (h==extdbhandlers[i]) return 0;
-      else {
-	extdbhandlers[i]=h;
-	return 1;}
+      if (h==extdbhandlers[i]) {retval=0; break;}
+      else {extdbhandlers[i]=h; retval=1; break;}
     else i++;
-  if (n_extdbs<128) {
-    extdbhandlers[n_extdbs++]=h;
-    return 2;}
-  else {
-    u8_seterr(_("Too many extdb handlers"),"fd_register_extdb_handler",NULL);
-    return -1;}
+  if (retval<0) {
+    if (n_extdbs<128) {
+      extdbhandlers[n_extdbs++]=h;
+      retval=2;}
+    else {
+      u8_seterr(_("Too many extdb handlers"),"fd_register_extdb_handler",NULL);
+      retval=-1;}}
+  u8_unlock_mutex(&extdb_handlers_lock);
+  return retval;
 }
 
 FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
@@ -92,6 +93,7 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
       struct FD_EXTDB_PROC **newprocs=
 	u8_realloc(dbprocs,sizeof(struct FD_EXTDB *)*(db->max_procs+32));
       if (newprocs==NULL) {
+	u8_unlock_mutex(&(db->proclock));
 	u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->spec));
 	return -1;}
       else {
