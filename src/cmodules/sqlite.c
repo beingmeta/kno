@@ -80,24 +80,24 @@ static int getboolopt(fdtype opts,fdtype sym,int dflt)
 static fdtype readonly_symbol, create_symbol, sharedcache_symbol, privatecache_symbol, vfs_symbol;
 static fdtype execok_symbol;
 
-static int getv2flags(fdtype colinfo,u8_string filename);
+static int getv2flags(fdtype options,u8_string filename);
 
 static fdtype open_sqlite(fdtype filename,fdtype colinfo,fdtype options)
 {
   sqlite3 *db=NULL; int retval;
-  fdtype vfs=fd_getopt(colinfo,vfs_symbol,FD_VOID);
-  int allow_exec=getboolopt(colinfo,execok_symbol,1);
+  fdtype vfs=fd_getopt(options,vfs_symbol,FD_VOID);
+  int allow_exec=getboolopt(options,execok_symbol,1);
 #if HAVE_SQLITE3_OPEN_V2
-  int flags=getv2flags(colinfo,FD_STRDATA(filename));
+  int flags=getv2flags(options,FD_STRDATA(filename));
   if (flags<0) return FD_ERROR_VALUE;
   else retval=sqlite3_open_v2
     (FD_STRDATA(filename),&db,flags,
      ((FD_STRINGP(vfs))?(FD_STRDATA(vfs)):(NULL)));
 #else
-  int readonly=getboolopt(colinfo,readonly_symbol,0);
-  int readcreate=getboolopt(colinfo,create_symbol,0);
-  int sharedcache=getboolopt(colinfo,sharedcache_symbol,0);
-  int privcache=getboolopt(colinfo,privatecache_symbol,0);
+  int readonly=getboolopt(options,readonly_symbol,0);
+  int readcreate=getboolopt(options,create_symbol,0);
+  int sharedcache=getboolopt(options,sharedcache_symbol,0);
+  int privcache=getboolopt(options,privatecache_symbol,0);
 
   if (sharedcache)
     u8_log(LOG_WARN,"sqlite_open",
@@ -133,12 +133,12 @@ static fdtype open_sqlite(fdtype filename,fdtype colinfo,fdtype options)
 }
 
 #if HAVE_SQLITE3_OPEN_V2
-static int getv2flags(fdtype colinfo,u8_string filename)
+static int getv2flags(fdtype options,u8_string filename)
 {
-  int readonly=getboolopt(colinfo,readonly_symbol,0);
-  int readcreate=getboolopt(colinfo,create_symbol,0);
-  int sharedcache=getboolopt(colinfo,sharedcache_symbol,0);
-  int privcache=getboolopt(colinfo,privatecache_symbol,0);
+  int readonly=getboolopt(options,readonly_symbol,0);
+  int readcreate=getboolopt(options,create_symbol,0);
+  int sharedcache=getboolopt(options,sharedcache_symbol,0);
+  int privcache=getboolopt(options,privatecache_symbol,0);
   int flags=0;
   if (readonly) flags=flags|SQLITE_OPEN_READONLY;
   else if (readcreate)
@@ -176,8 +176,11 @@ static int getv2flags(fdtype colinfo,u8_string filename)
 static void recycle_sqlitedb(struct FD_EXTDB *c)
 {
   struct FD_SQLITE *dbp=(struct FD_SQLITE *)c;
-  u8_free(dbp->spec); sqlite3_close(dbp->db);
+  if (dbp->info!=dbp->spec) u8_free(dbp->info);
+  u8_free(dbp->spec); 
+  fd_decref(dbp->options); fd_decref(dbp->colinfo);
   u8_destroy_mutex(&(dbp->lock));
+  sqlite3_close(dbp->db);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
