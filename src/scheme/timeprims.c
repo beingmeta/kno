@@ -360,7 +360,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
   else if (FD_EQ(slotid,isobasic_symbol)) {
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
-    u8_xtime_to_iso8601basic(&out,xt);
+    u8_xtime_to_iso8601_x(&out,xt,1);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,isobasicdate_symbol)) {
     struct U8_XTIME newt;
@@ -368,7 +368,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     U8_INIT_OUTPUT(&out,128);
     memcpy(&newt,xt,sizeof(struct U8_XTIME));
     u8_set_xtime_precision(&newt,u8_day);
-    u8_xtime_to_iso8601basic(&out,&newt);
+    u8_xtime_to_iso8601_x(&out,&newt,1);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,rfc822_symbol)) {
     struct U8_OUTPUT out;

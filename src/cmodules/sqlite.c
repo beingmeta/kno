@@ -28,7 +28,7 @@
 
 FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
-static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args);
+static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args);
 
 typedef struct FD_SQLITE {
   FD_EXTDB_FIELDS;
@@ -438,6 +438,8 @@ static fdtype sqliteexechandler(struct FD_EXTDB *extdb,fdtype string,fdtype coli
 
 /* SQLITE procs */
 
+static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo);
+
 static fdtype sqlitemakeproc
   (struct FD_SQLITE *dbp,
    u8_string stmt,int stmt_len,
@@ -467,7 +469,7 @@ static fdtype sqlitemakeproc
   sqlcons->n_params=n_params=sqlite3_bind_parameter_count(sqlcons->stmt);
   sqlcons->ndprim=0; sqlcons->xprim=1; sqlcons->arity=-1;
   sqlcons->min_arity=n_params;
-  sqlcons->handler.xcalln=callsqliteproc;
+  sqlcons->handler.xcalln=sqlitecallproc;
   {
     fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
     int j=0; while (j<n_params) {
@@ -475,15 +477,24 @@ static fdtype sqlitemakeproc
       else paramtypes[j]=FD_VOID;
       j++;}
     sqlcons->paramtypes=paramtypes;}
-  if (FD_VOIDP(colinfo))
-    sqlcons->colinfo=fd_incref(dbp->colinfo);
-  else if (FD_VOIDP(dbp->colinfo))
-    sqlcons->colinfo=fd_incref(colinfo);
-  else {
-    fd_incref(colinfo); fd_incref(dbp->colinfo);
-    sqlcons->colinfo=fd_init_pair(NULL,colinfo,dbp->colinfo);}
+  sqlcons->colinfo=merge_colinfo(dbp,colinfo);fd_incref(dbp->colinfo);
   fd_register_extdb_proc((struct FD_EXTDB_PROC *)sqlcons);
   return FDTYPE_CONS(sqlcons);
+}
+
+static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo)
+{
+  if (FD_VOIDP(colinfo)) return fd_incref(dbp->colinfo);
+  else if (FD_VOIDP(dbp->colinfo))
+    return fd_incref(colinfo);
+  else if (colinfo==dbp->colinfo)
+    return fd_incref(colinfo);
+  else if ((FD_PAIRP(colinfo))&&
+	   ((FD_CDR(colinfo))==(dbp->colinfo)))
+    return fd_incref(colinfo);
+  else {
+    fd_incref(dbp->colinfo); fd_incref(colinfo);
+    return fd_init_pair(NULL,colinfo,dbp->colinfo);}
 }
 
 static fdtype sqlitemakeprochandler
@@ -510,7 +521,7 @@ static void recycle_sqliteproc(struct FD_EXTDB_PROC *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
+static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   struct FD_SQLITE_PROC *dbproc=(struct FD_SQLITE_PROC *)fn;
   /* We use this for the lock */
@@ -527,7 +538,9 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	  u8_unlock_mutex(&(fds->lock));
 	  return arg;}
 	else dofree=1;}
-    if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
+    if (FD_EMPTY_CHOICEP(arg)) {
+      ret=sqlite3_bind_null(dbproc->stmt,i+1);}
+    else if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
       ret=sqlite3_bind_int(dbproc->stmt,i+1,intval);}
     else if (FD_PRIM_TYPEP(arg,fd_double_type)) {
@@ -549,17 +562,14 @@ static fdtype callsqliteproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 	FD_OID addr=FD_OID_ADDR(arg);
 	ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
     else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+      struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
       struct FD_TIMESTAMP *tstamp=FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
-      if (tstamp->xtime.u8_tzoff) {
-	struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
-	u8_xtime_to_iso8601(&out,&(tstamp->xtime));
-	ret=sqlite3_bind_text
-	  (dbproc->stmt,i+1,out.u8_outbuf,out.u8_outptr-out.u8_outbuf,SQLITE_TRANSIENT);}
-      else {
-	time_t tick=tstamp->xtime.u8_tick;
-	if (tick>INT_MAX) 
-	  ret=sqlite3_bind_int(dbproc->stmt,i+1,(int)tick);
-	else ret=sqlite3_bind_int64(dbproc->stmt,i+1,(sqlite_int64)tick);}}
+      if ((tstamp->xtime.u8_tzoff)||(tstamp->xtime.u8_dstoff)) {
+	u8_xtime_to_iso8601_x(&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+	u8_puts(&out," localtime");}
+      else u8_xtime_to_iso8601_x(&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+      ret=sqlite3_bind_text
+	(dbproc->stmt,i+1,out.u8_outbuf,out.u8_outptr-out.u8_outbuf,SQLITE_TRANSIENT);}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       fd_unparse(&out,arg);
