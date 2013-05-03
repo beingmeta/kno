@@ -290,8 +290,9 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       case SQLITE_INTEGER: {
 	long long intval=sqlite3_column_int(stmt,j);
 	const char *decltype=sqlite3_column_decltype(stmt,j);
-	if ((strcasecmp(decltype,"DATETIME")==0)||
-	    (strcasecmp(decltype,"DATE")==0))
+	if ((decltype)&&
+	    ((strcasecmp(decltype,"DATETIME")==0)||
+	     (strcasecmp(decltype,"DATE")==0)))
 	  value=fd_time2timestamp((time_t)intval);
 	else value=FD_INT2DTYPE(intval);
 	break;}
@@ -300,8 +301,9 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       case SQLITE_TEXT: {
 	const char *decltype=sqlite3_column_decltype(stmt,j);
 	const char *textval=sqlite3_column_text(stmt,j);
-	if ((strcasecmp(decltype,"DATETIME")==0)||
-	    (strcasecmp(decltype,"DATE")==0)) {
+	if ((decltype)&&
+	    ((strcasecmp(decltype,"DATETIME")==0)||
+	     (strcasecmp(decltype,"DATE")==0))) {
 	  struct U8_XTIME xt; time_t retval=sqlite_time_to_xtime(textval,&xt);
 	  if (retval<0) retval=u8_rfc822_to_xtime((u8_string)textval,&xt);
 	  if (retval<0) value=fdtype_string((u8_string)textval);
