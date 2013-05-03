@@ -114,6 +114,11 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
   if (FD_VOIDP(colinfo)) return fd_incref(dbp->colinfo);
   else if (FD_VOIDP(dbp->colinfo))
     return fd_incref(colinfo);
+  else if (colinfo==dbp->colinfo)
+    return fd_incref(colinfo);
+  else if ((FD_PAIRP(colinfo))&&
+	   ((FD_CDR(colinfo))==(dbp->colinfo)))
+    return fd_incref(colinfo);
   else {
     fd_incref(dbp->colinfo); fd_incref(colinfo);
     return fd_init_pair(NULL,colinfo,dbp->colinfo);}
