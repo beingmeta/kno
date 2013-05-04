@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; -*-
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 
 (in-module 'openlibrary)
 

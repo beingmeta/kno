@@ -1,4 +1,4 @@
-;;; -*- Mode: scheme; -*-
+;;; -*- Mode: scheme; Character-encoding: utf-8;  -*-
 
 ;; This module provides functions for analyzing text content.
 

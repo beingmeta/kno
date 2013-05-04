@@ -1,4 +1,4 @@
-/* -*- Mode: C; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2008 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright 

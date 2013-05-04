@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; -*-
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 
 ;;; This does simple keytuple extraction from (currently) English
 ;;;  text, using a handful of simple rules.

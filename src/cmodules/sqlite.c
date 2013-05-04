@@ -1,4 +1,4 @@
-/* -*- Mode: C; character-encoding: utf-8; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* sqlite.c
    This implements FramerD bindings to sqlite3.

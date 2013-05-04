@@ -1,4 +1,4 @@
-/* -*- Mode: C; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* tagxtract.c
    Copyright (C) 2005-2013 beingmeta, inc.

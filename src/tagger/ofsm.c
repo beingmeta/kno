@@ -1,4 +1,4 @@
-/* -*- Mode: C; -*- */
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* ofsm.c
    Copyright (C) 2001-2013 beingmeta, inc.

@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; -*-
+;;; -*- Mode: Scheme; Character-encoding: utf-8;  -*-
 ;;; This is a version of the parser for FDScript.  It is slow, but is
 ;;; intended primarily for development with reliance on muparse and
 ;;; compiled tables for fast execution.

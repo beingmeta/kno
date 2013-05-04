@@ -1,4 +1,4 @@
-;;; -*- Mode: scheme; -*-
+;;; -*- Mode: scheme; Character-encoding: utf-8; -*-
 
 (in-module 'gutdb)
 

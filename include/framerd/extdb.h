@@ -1,4 +1,4 @@
-/* C Mode */
+/* -*- Mode: C;  Character-encoding: utf-8; -*- */
 
 #ifndef FRAMERD_EXTDB_H
 #define FRAMERD_EXTDB_H 1
