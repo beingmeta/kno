@@ -82,8 +82,8 @@ FD_EXPORT fd_exception fd_MallocFailed;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_GET_CONS(x,typecode,typecast) \
-  ((FD_PTR_TYPEP(x,typecode)) ? ((typecast)(FD_CONS_DATA(x))) : \
-   ((typecast)(u8_raise(fd_TypeError,fd_type_names[typecode],NULL),NULL)))
+  ((FD_EXPECT_TRUE(FD_PTR_TYPEP(x,typecode))) ? ((typecast)(FD_CONS_DATA(x))) :	\
+   ((typecast)(u8_seterr(fd_TypeError,fd_type_names[typecode],NULL),NULL)))
 #define FD_STRIP_CONS(x,typecode,typecast) ((typecast)(FD_CONS_DATA(x)))
 #define FD_CHECK_TYPE_THROW(x,typecode) \
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
