@@ -107,6 +107,10 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
 FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
 {
   struct FD_EXTDB *db=FD_GET_CONS(proc->db,fd_extdb_type,struct FD_EXTDB *);
+  if (!(db)) {
+    u8_seterr(_("EXTDB proc without a database"),"fd_release_extdb_proc",
+	      u8_strdup(proc->qtext));
+    return -1;}
   u8_lock_mutex(&(db->proclock)); {
     int n=db->n_procs, i=n-1;
     struct FD_EXTDB_PROC **dbprocs=db->procs;
