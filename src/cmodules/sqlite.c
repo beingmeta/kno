@@ -92,12 +92,16 @@ static void close_fdsqliteproc(struct FD_SQLITE_PROC *dbp);
 
 static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo);
 
-#if HAVE_SQLITE3_OPEN_V2
+#if HAVE_SQLITE3_CLOSE_V2
 #define closedb	sqlite3_close_v2
+#else
+#define closedb sqlite3_close
+#endif
+
+#if HAVE_SQLITE3_PREPARE_V2
 #define newstmt(db,q,len,sptr) sqlite3_prepare_v2(db,q,len,sptr,NULL)
 #else
-#define closedb sqlite3_close(db)
-#define newstmt(db,q,len,sptr) sqlite3_prepare_v2(db,q,len,sptr,NULL)
+#define newstmt(db,q,len,sptr) sqlite3_prepare(db,q,len,sptr,NULL)
 #endif
 
 /* Opening connections */
