@@ -171,12 +171,12 @@ CMODULE_SOURCES=\
 	src/cmodules/qrcode.c src/cmodules/regex.c                     \
 	src/cmodules/ziptools.c src/cmodules/tidy.c
 
-STATIC_LIBS=lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
-	     lib/libtagger@suffix@.a                               \
-	     lib/libfdschemeio@suffix@.a lib/libfdscheme@suffix@.a \
-	     lib/libfdbserv@suffix@.a                              \
-	     lib/libfddbfile@suffix@.a lib/libfddb@suffix@.a       \
-	     lib/libfdtype@suffix@.a
+STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
+        lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
+	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
+	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
+	lib/libtagger@suffix@.a
+
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
 	lib/libfddb@suffix@.@shared_suffix@        \
         lib/libfddbfile@suffix@.@shared_suffix@    \
@@ -995,13 +995,7 @@ src/dtype/oids.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/dtype/oids.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/dtype/oids.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/dtype/oids.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/dtype/oids.o: ./include/framerd/tables.h
-src/dtype/pptrs.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/dtype/pptrs.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/dtype/pptrs.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/dtype/pptrs.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/dtype/pptrs.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/dtype/pptrs.o: ./include/framerd/tables.h
+src/dtype/oids.o: ./include/framerd/tables.h ./include/framerd/preoids.h
 src/dtype/symbols.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/dtype/symbols.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/dtype/symbols.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1021,6 +1015,12 @@ src/dtype/tables.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/dtype/tables.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/dtype/tables.o: ./include/framerd/tables.h ./include/framerd/tables.h
 src/dtype/tables.o: ./include/framerd/numbers.h
+src/dtype/pptrs.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/dtype/pptrs.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/dtype/pptrs.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/dtype/pptrs.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/dtype/pptrs.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/dtype/pptrs.o: ./include/framerd/tables.h
 src/dtype/dtypeio.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/dtype/dtypeio.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/dtype/dtypeio.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1060,12 +1060,14 @@ src/db/fddb.o: ./include/framerd/tables.h ./include/framerd/fddb.h
 src/db/fddb.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/fddb.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/db/fddb.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/db/fddb.o: ./include/framerd/apply.h
 src/db/dtypestream.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/dtypestream.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/dtypestream.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/db/dtypestream.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/dtypestream.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/db/dtypestream.o: ./include/framerd/tables.h ./include/framerd/dtypestream.h
+src/db/dtypestream.o: ./include/framerd/tables.h
+src/db/dtypestream.o: ./include/framerd/dtypestream.h
 src/db/dtypestream.o: ./include/framerd/dtype.h
 src/db/dbserv.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/dbserv.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -1093,19 +1095,25 @@ src/db/netindices.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/db/netindices.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/netindices.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/db/netindices.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/db/netindices.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/db/netindices.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/db/netindices.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/db/netindices.o: ./include/framerd/dtcall.h
-src/db/compoundindices.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/db/compoundindices.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/db/compoundindices.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/db/netindices.o: ./include/framerd/dtypestream.h
+src/db/netindices.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/db/netindices.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/db/netindices.o: ./include/framerd/frames.h ./include/framerd/dtcall.h
+src/db/compoundindices.o: ./include/framerd/dtype.h
+src/db/compoundindices.o: ./include/framerd/common.h
+src/db/compoundindices.o: ./include/framerd/defines.h
+src/db/compoundindices.o: ./include/framerd/config.h
+src/db/compoundindices.o: ./include/framerd/malloc.h
+src/db/compoundindices.o: ./include/framerd/dtypeio.h
 src/db/compoundindices.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/db/compoundindices.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/db/compoundindices.o: ./include/framerd/cons.h
+src/db/compoundindices.o: ./include/framerd/choices.h
 src/db/compoundindices.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/db/compoundindices.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/db/compoundindices.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/db/compoundindices.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/db/compoundindices.o: ./include/framerd/dtypestream.h
+src/db/compoundindices.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/db/compoundindices.o: ./include/framerd/fddb.h
+src/db/compoundindices.o: ./include/framerd/indices.h
+src/db/compoundindices.o: ./include/framerd/frames.h
 src/db/pools.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/pools.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/pools.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1126,6 +1134,16 @@ src/db/netpools.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/netpools.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/db/netpools.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/db/netpools.o: ./include/framerd/dtcall.h
+src/db/xtables.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/db/xtables.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/db/xtables.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/db/xtables.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/db/xtables.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/db/xtables.o: ./include/framerd/tables.h ./include/framerd/fddb.h
+src/db/xtables.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
+src/db/xtables.o: ./include/framerd/pools.h ./include/framerd/fddb.h
+src/db/xtables.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/db/xtables.o: ./include/framerd/apply.h
 src/db/dtproc.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/dtproc.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/dtproc.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1144,37 +1162,6 @@ src/db/dtcall.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/dtcall.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/db/dtcall.o: ./include/framerd/tables.h ./include/framerd/dtcall.h
 src/db/dtcall.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/db/methods.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/db/methods.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/db/methods.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/db/methods.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/db/methods.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/db/methods.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/db/methods.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
-src/db/methods.o: ./include/framerd/dtype.h ./include/framerd/pools.h
-src/db/methods.o: ./include/framerd/fddb.h ./include/framerd/indices.h
-src/db/methods.o: ./include/framerd/frames.h ./include/framerd/apply.h
-src/db/methods.o: ./include/framerd/methods.h
-src/db/xtables.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/db/xtables.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/db/xtables.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/db/xtables.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/db/xtables.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/db/xtables.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/db/xtables.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/db/xtables.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/db/xtables.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/db/xtables.o: ./include/framerd/apply.h
-src/db/threadcache.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/db/threadcache.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/db/threadcache.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/db/threadcache.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/db/threadcache.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/db/threadcache.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/db/threadcache.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/db/threadcache.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/db/threadcache.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/db/threadcache.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/db/ipeval.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/ipeval.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/ipeval.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1186,6 +1173,17 @@ src/db/ipeval.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/ipeval.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/db/ipeval.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/db/ipeval.o: ./include/framerd/pools.h ./include/framerd/indices.h
+src/db/threadcache.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/db/threadcache.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/db/threadcache.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/db/threadcache.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/db/threadcache.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/db/threadcache.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/db/threadcache.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/db/threadcache.o: ./include/framerd/dtypestream.h
+src/db/threadcache.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/db/threadcache.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/db/threadcache.o: ./include/framerd/frames.h
 src/db/frames.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/frames.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/frames.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1196,6 +1194,17 @@ src/db/frames.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/frames.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/db/frames.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/db/frames.o: ./include/framerd/apply.h
+src/db/methods.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/db/methods.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/db/methods.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/db/methods.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/db/methods.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/db/methods.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/db/methods.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/db/methods.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/db/methods.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/db/methods.o: ./include/framerd/frames.h ./include/framerd/apply.h
+src/db/methods.o: ./include/framerd/methods.h
 src/db/dbfile.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/dbfile.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/dbfile.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1205,6 +1214,15 @@ src/db/dbfile.o: ./include/framerd/tables.h ./include/framerd/dbfile.h
 src/db/dbfile.o: ./include/framerd/fddb.h ./include/framerd/pools.h
 src/db/dbfile.o: ./include/framerd/indices.h ./include/framerd/dtypestream.h
 src/db/dbfile.o: ./include/framerd/dtype.h
+src/db/hashdtype.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/db/hashdtype.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/db/hashdtype.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/db/hashdtype.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/db/hashdtype.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/db/hashdtype.o: ./include/framerd/tables.h ./include/framerd/dbfile.h
+src/db/hashdtype.o: ./include/framerd/fddb.h ./include/framerd/pools.h
+src/db/hashdtype.o: ./include/framerd/indices.h
+src/db/hashdtype.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/filepools.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/filepools.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/filepools.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1212,8 +1230,8 @@ src/db/filepools.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/filepools.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/db/filepools.o: ./include/framerd/tables.h ./include/framerd/dbfile.h
 src/db/filepools.o: ./include/framerd/fddb.h ./include/framerd/pools.h
-src/db/filepools.o: ./include/framerd/indices.h ./include/framerd/dtypestream.h
-src/db/filepools.o: ./include/framerd/dtype.h
+src/db/filepools.o: ./include/framerd/indices.h
+src/db/filepools.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/zpools.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/zpools.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/zpools.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1233,15 +1251,6 @@ src/db/oidpools.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/db/oidpools.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/db/oidpools.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/db/oidpools.o: ./include/framerd/dtypestream.h ./include/framerd/dbfile.h
-src/db/hashdtype.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/db/hashdtype.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/db/hashdtype.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/db/hashdtype.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/db/hashdtype.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/db/hashdtype.o: ./include/framerd/tables.h ./include/framerd/dbfile.h
-src/db/hashdtype.o: ./include/framerd/fddb.h ./include/framerd/pools.h
-src/db/hashdtype.o: ./include/framerd/indices.h ./include/framerd/dtypestream.h
-src/db/hashdtype.o: ./include/framerd/dtype.h
 src/db/fileindices.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/fileindices.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/fileindices.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1249,7 +1258,8 @@ src/db/fileindices.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/fileindices.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/db/fileindices.o: ./include/framerd/tables.h ./include/framerd/dbfile.h
 src/db/fileindices.o: ./include/framerd/fddb.h ./include/framerd/pools.h
-src/db/fileindices.o: ./include/framerd/indices.h ./include/framerd/dtypestream.h
+src/db/fileindices.o: ./include/framerd/indices.h
+src/db/fileindices.o: ./include/framerd/dtypestream.h
 src/db/fileindices.o: ./include/framerd/dtype.h
 src/db/hashindices.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/hashindices.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -1257,10 +1267,12 @@ src/db/hashindices.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/db/hashindices.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/hashindices.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/db/hashindices.o: ./include/framerd/tables.h ./include/framerd/dtypeio.h
-src/db/hashindices.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/db/hashindices.o: ./include/framerd/dbfile.h ./include/framerd/fddb.h
-src/db/hashindices.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/db/hashindices.o: ./include/framerd/dtypestream.h ./include/framerd/numbers.h
+src/db/hashindices.o: ./include/framerd/dtypestream.h
+src/db/hashindices.o: ./include/framerd/dtype.h ./include/framerd/dbfile.h
+src/db/hashindices.o: ./include/framerd/fddb.h ./include/framerd/pools.h
+src/db/hashindices.o: ./include/framerd/indices.h
+src/db/hashindices.o: ./include/framerd/dtypestream.h
+src/db/hashindices.o: ./include/framerd/numbers.h
 src/db/zindices.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/db/zindices.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/db/zindices.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1268,8 +1280,8 @@ src/db/zindices.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/db/zindices.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/db/zindices.o: ./include/framerd/tables.h ./include/framerd/dbfile.h
 src/db/zindices.o: ./include/framerd/fddb.h ./include/framerd/pools.h
-src/db/zindices.o: ./include/framerd/indices.h ./include/framerd/dtypestream.h
-src/db/zindices.o: ./include/framerd/dtype.h
+src/db/zindices.o: ./include/framerd/indices.h
+src/db/zindices.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/scheme/eval.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/scheme/eval.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/scheme/eval.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1291,7 +1303,8 @@ src/scheme/binders.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/binders.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/binders.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/binders.o: ./include/framerd/apply.h src/scheme/eval_internals.h
-src/scheme/binders.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/scheme/binders.o: ./include/framerd/fddb.h
+src/scheme/binders.o: ./include/framerd/dtypestream.h
 src/scheme/binders.o: ./include/framerd/dtype.h ./include/framerd/pools.h
 src/scheme/binders.o: ./include/framerd/fddb.h ./include/framerd/indices.h
 src/scheme/binders.o: ./include/framerd/frames.h
@@ -1303,50 +1316,73 @@ src/scheme/errors.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/errors.o: ./include/framerd/tables.h ./include/framerd/support.h
 src/scheme/errors.o: ./include/framerd/eval.h ./include/framerd/apply.h
 src/scheme/errors.o: ./include/framerd/ports.h
-src/scheme/conditionals.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/conditionals.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/conditionals.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/conditionals.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/conditionals.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/conditionals.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/conditionals.o: ./include/framerd/apply.h src/scheme/eval_internals.h
+src/scheme/conditionals.o: ./include/framerd/dtype.h
+src/scheme/conditionals.o: ./include/framerd/common.h
+src/scheme/conditionals.o: ./include/framerd/defines.h
+src/scheme/conditionals.o: ./include/framerd/config.h
+src/scheme/conditionals.o: ./include/framerd/malloc.h
+src/scheme/conditionals.o: ./include/framerd/dtypeio.h
+src/scheme/conditionals.o: ./include/framerd/support.h
+src/scheme/conditionals.o: ./include/framerd/ptr.h ./include/framerd/cons.h
+src/scheme/conditionals.o: ./include/framerd/choices.h
+src/scheme/conditionals.o: ./include/framerd/tables.h
+src/scheme/conditionals.o: ./include/framerd/eval.h ./include/framerd/apply.h
+src/scheme/conditionals.o: src/scheme/eval_internals.h
 src/scheme/iterators.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/iterators.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/iterators.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/iterators.o: ./include/framerd/defines.h
+src/scheme/iterators.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/scheme/iterators.o: ./include/framerd/dtypeio.h
 src/scheme/iterators.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/iterators.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/iterators.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/iterators.o: ./include/framerd/apply.h ./include/framerd/sequences.h
-src/scheme/iterators.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/scheme/iterators.o: ./include/framerd/apply.h
+src/scheme/iterators.o: ./include/framerd/sequences.h
+src/scheme/iterators.o: ./include/framerd/fddb.h
+src/scheme/iterators.o: ./include/framerd/dtypestream.h
 src/scheme/iterators.o: ./include/framerd/dtype.h ./include/framerd/pools.h
 src/scheme/iterators.o: ./include/framerd/fddb.h ./include/framerd/indices.h
-src/scheme/iterators.o: ./include/framerd/frames.h ./include/framerd/numbers.h
+src/scheme/iterators.o: ./include/framerd/frames.h
+src/scheme/iterators.o: ./include/framerd/numbers.h
 src/scheme/iterators.o: src/scheme/eval_internals.h
-src/scheme/threadprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/threadprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/threadprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/threadprims.o: ./include/framerd/dtype.h
+src/scheme/threadprims.o: ./include/framerd/common.h
+src/scheme/threadprims.o: ./include/framerd/defines.h
+src/scheme/threadprims.o: ./include/framerd/config.h
+src/scheme/threadprims.o: ./include/framerd/malloc.h
+src/scheme/threadprims.o: ./include/framerd/dtypeio.h
 src/scheme/threadprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/threadprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/threadprims.o: ./include/framerd/tables.h ./include/framerd/support.h
-src/scheme/threadprims.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/scheme/threadprims.o: ./include/framerd/cons.h
+src/scheme/threadprims.o: ./include/framerd/choices.h
+src/scheme/threadprims.o: ./include/framerd/tables.h
+src/scheme/threadprims.o: ./include/framerd/support.h
+src/scheme/threadprims.o: ./include/framerd/fddb.h
+src/scheme/threadprims.o: ./include/framerd/dtypestream.h
 src/scheme/threadprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
-src/scheme/threadprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/threadprims.o: ./include/framerd/fddb.h
+src/scheme/threadprims.o: ./include/framerd/indices.h
 src/scheme/threadprims.o: ./include/framerd/frames.h ./include/framerd/eval.h
-src/scheme/threadprims.o: ./include/framerd/apply.h ./include/framerd/dtproc.h
-src/scheme/threadprims.o: ./include/framerd/numbers.h ./include/framerd/sequences.h
-src/scheme/threadprims.o: ./include/framerd/ports.h ./include/framerd/dtcall.h
+src/scheme/threadprims.o: ./include/framerd/apply.h
+src/scheme/threadprims.o: ./include/framerd/dtproc.h
+src/scheme/threadprims.o: ./include/framerd/numbers.h
+src/scheme/threadprims.o: ./include/framerd/sequences.h
+src/scheme/threadprims.o: ./include/framerd/ports.h
+src/scheme/threadprims.o: ./include/framerd/dtcall.h
 src/scheme/quasiquote.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/quasiquote.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/quasiquote.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/quasiquote.o: ./include/framerd/defines.h
+src/scheme/quasiquote.o: ./include/framerd/config.h
+src/scheme/quasiquote.o: ./include/framerd/malloc.h
+src/scheme/quasiquote.o: ./include/framerd/dtypeio.h
 src/scheme/quasiquote.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/quasiquote.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/quasiquote.o: ./include/framerd/tables.h ./include/framerd/support.h
-src/scheme/quasiquote.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/scheme/quasiquote.o: ./include/framerd/tables.h
+src/scheme/quasiquote.o: ./include/framerd/support.h ./include/framerd/fddb.h
+src/scheme/quasiquote.o: ./include/framerd/dtypestream.h
 src/scheme/quasiquote.o: ./include/framerd/dtype.h ./include/framerd/pools.h
 src/scheme/quasiquote.o: ./include/framerd/fddb.h ./include/framerd/indices.h
 src/scheme/quasiquote.o: ./include/framerd/frames.h ./include/framerd/eval.h
 src/scheme/quasiquote.o: ./include/framerd/apply.h ./include/framerd/dtproc.h
-src/scheme/quasiquote.o: ./include/framerd/numbers.h ./include/framerd/sequences.h
+src/scheme/quasiquote.o: ./include/framerd/numbers.h
+src/scheme/quasiquote.o: ./include/framerd/sequences.h
 src/scheme/quasiquote.o: ./include/framerd/ports.h ./include/framerd/dtcall.h
 src/scheme/modules.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/scheme/modules.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -1364,25 +1400,61 @@ src/scheme/load.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/load.o: ./include/framerd/apply.h ./include/framerd/dtypestream.h
 src/scheme/load.o: ./include/framerd/dtype.h ./include/framerd/support.h
 src/scheme/reflection.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/reflection.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/reflection.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/reflection.o: ./include/framerd/defines.h
+src/scheme/reflection.o: ./include/framerd/config.h
+src/scheme/reflection.o: ./include/framerd/malloc.h
+src/scheme/reflection.o: ./include/framerd/dtypeio.h
 src/scheme/reflection.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/reflection.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/reflection.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/reflection.o: ./include/framerd/apply.h
+src/scheme/compounds.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/scheme/compounds.o: ./include/framerd/defines.h
+src/scheme/compounds.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/scheme/compounds.o: ./include/framerd/dtypeio.h
+src/scheme/compounds.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/scheme/compounds.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/compounds.o: ./include/framerd/tables.h
+src/scheme/compounds.o: ./include/framerd/support.h ./include/framerd/eval.h
+src/scheme/compounds.o: ./include/framerd/apply.h ./include/framerd/ports.h
 src/scheme/coreprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/coreprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/coreprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/coreprims.o: ./include/framerd/defines.h
+src/scheme/coreprims.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/scheme/coreprims.o: ./include/framerd/dtypeio.h
 src/scheme/coreprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/coreprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/coreprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/coreprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/coreprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/coreprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/coreprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/coreprims.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/scheme/coreprims.o: ./include/framerd/frames.h ./include/framerd/numbers.h
+src/scheme/coreprims.o: ./include/framerd/dtypestream.h
+src/scheme/coreprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/coreprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/coreprims.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/scheme/coreprims.o: ./include/framerd/indices.h
+src/scheme/coreprims.o: ./include/framerd/frames.h
+src/scheme/coreprims.o: ./include/framerd/numbers.h
 src/scheme/coreprims.o: ./include/framerd/support.h
+src/scheme/arithprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/scheme/arithprims.o: ./include/framerd/defines.h
+src/scheme/arithprims.o: ./include/framerd/config.h
+src/scheme/arithprims.o: ./include/framerd/malloc.h
+src/scheme/arithprims.o: ./include/framerd/dtypeio.h
+src/scheme/arithprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/scheme/arithprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/arithprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/scheme/arithprims.o: ./include/framerd/apply.h
+src/scheme/arithprims.o: ./include/framerd/numbers.h
+src/scheme/side-effects.o: ./include/framerd/dtype.h
+src/scheme/side-effects.o: ./include/framerd/common.h
+src/scheme/side-effects.o: ./include/framerd/defines.h
+src/scheme/side-effects.o: ./include/framerd/config.h
+src/scheme/side-effects.o: ./include/framerd/malloc.h
+src/scheme/side-effects.o: ./include/framerd/dtypeio.h
+src/scheme/side-effects.o: ./include/framerd/support.h
+src/scheme/side-effects.o: ./include/framerd/ptr.h ./include/framerd/cons.h
+src/scheme/side-effects.o: ./include/framerd/choices.h
+src/scheme/side-effects.o: ./include/framerd/tables.h
+src/scheme/side-effects.o: ./include/framerd/eval.h ./include/framerd/apply.h
+src/scheme/side-effects.o: ./include/framerd/sequences.h
 src/scheme/dbprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/scheme/dbprims.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/scheme/dbprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1390,63 +1462,139 @@ src/scheme/dbprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/dbprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/dbprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/dbprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/dbprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/dbprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
+src/scheme/dbprims.o: ./include/framerd/dtypestream.h
+src/scheme/dbprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/dbprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/dbprims.o: ./include/framerd/frames.h ./include/framerd/pools.h
 src/scheme/dbprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/dbprims.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/scheme/dbprims.o: ./include/framerd/frames.h ./include/framerd/methods.h
-src/scheme/dbprims.o: ./include/framerd/sequences.h ./include/framerd/dbprims.h
+src/scheme/dbprims.o: ./include/framerd/methods.h
+src/scheme/dbprims.o: ./include/framerd/sequences.h
+src/scheme/dbprims.o: ./include/framerd/dbprims.h ./include/framerd/numbers.h
+src/scheme/portprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/scheme/portprims.o: ./include/framerd/defines.h
+src/scheme/portprims.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/scheme/portprims.o: ./include/framerd/dtypeio.h
+src/scheme/portprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/scheme/portprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/portprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/scheme/portprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/scheme/portprims.o: ./include/framerd/dtypestream.h
+src/scheme/portprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/portprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/portprims.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/scheme/portprims.o: ./include/framerd/indices.h
+src/scheme/portprims.o: ./include/framerd/frames.h
+src/scheme/portprims.o: ./include/framerd/dtypestream.h
+src/scheme/portprims.o: ./include/framerd/dtypeio.h ./include/framerd/ports.h
 src/scheme/tableprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/tableprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/tableprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/tableprims.o: ./include/framerd/defines.h
+src/scheme/tableprims.o: ./include/framerd/config.h
+src/scheme/tableprims.o: ./include/framerd/malloc.h
+src/scheme/tableprims.o: ./include/framerd/dtypeio.h
 src/scheme/tableprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/tableprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/tableprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/tableprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/tableprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/tableprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/tableprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/tableprims.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/scheme/tableprims.o: ./include/framerd/frames.h ./include/framerd/numbers.h
-src/scheme/choiceprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/choiceprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/choiceprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/tableprims.o: ./include/framerd/dtypestream.h
+src/scheme/tableprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/tableprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/tableprims.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/scheme/tableprims.o: ./include/framerd/indices.h
+src/scheme/tableprims.o: ./include/framerd/frames.h
+src/scheme/tableprims.o: ./include/framerd/numbers.h
+src/scheme/choiceprims.o: ./include/framerd/dtype.h
+src/scheme/choiceprims.o: ./include/framerd/common.h
+src/scheme/choiceprims.o: ./include/framerd/defines.h
+src/scheme/choiceprims.o: ./include/framerd/config.h
+src/scheme/choiceprims.o: ./include/framerd/malloc.h
+src/scheme/choiceprims.o: ./include/framerd/dtypeio.h
 src/scheme/choiceprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/choiceprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/choiceprims.o: ./include/framerd/cons.h
+src/scheme/choiceprims.o: ./include/framerd/choices.h
 src/scheme/choiceprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/choiceprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/choiceprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/choiceprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/choiceprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/choiceprims.o: ./include/framerd/numbers.h ./include/framerd/frames.h
+src/scheme/choiceprims.o: ./include/framerd/dtypestream.h
+src/scheme/choiceprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/choiceprims.o: ./include/framerd/fddb.h
+src/scheme/choiceprims.o: ./include/framerd/indices.h
+src/scheme/choiceprims.o: ./include/framerd/frames.h
+src/scheme/choiceprims.o: ./include/framerd/numbers.h
+src/scheme/choiceprims.o: ./include/framerd/frames.h
 src/scheme/choiceprims.o: ./include/framerd/sorting.h
-src/scheme/compounds.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/compounds.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/compounds.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/compounds.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/compounds.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/compounds.o: ./include/framerd/tables.h ./include/framerd/support.h
-src/scheme/compounds.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/scheme/compounds.o: ./include/framerd/ports.h
 src/scheme/seqprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/scheme/seqprims.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/scheme/seqprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/scheme/seqprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/scheme/seqprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/scheme/seqprims.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/scheme/seqprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/seqprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/seqprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/seqprims.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/scheme/seqprims.o: ./include/framerd/sequences.h ./include/framerd/numbers.h
+src/scheme/seqprims.o: ./include/framerd/dtypestream.h
+src/scheme/seqprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/seqprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/seqprims.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/scheme/seqprims.o: ./include/framerd/apply.h
+src/scheme/seqprims.o: ./include/framerd/sequences.h
+src/scheme/seqprims.o: ./include/framerd/numbers.h
 src/scheme/seqprims.o: ./include/framerd/sorting.h
-src/scheme/stringprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/stringprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/stringprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/scheme/stringprims.o: ./include/framerd/dtype.h
+src/scheme/stringprims.o: ./include/framerd/common.h
+src/scheme/stringprims.o: ./include/framerd/defines.h
+src/scheme/stringprims.o: ./include/framerd/config.h
+src/scheme/stringprims.o: ./include/framerd/malloc.h
+src/scheme/stringprims.o: ./include/framerd/dtypeio.h
 src/scheme/stringprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/stringprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/stringprims.o: ./include/framerd/cons.h
+src/scheme/stringprims.o: ./include/framerd/choices.h
 src/scheme/stringprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/scheme/stringprims.o: ./include/framerd/apply.h
+src/scheme/fileprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/scheme/fileprims.o: ./include/framerd/defines.h
+src/scheme/fileprims.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/scheme/fileprims.o: ./include/framerd/dtypeio.h
+src/scheme/fileprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/scheme/fileprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/fileprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/scheme/fileprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/scheme/fileprims.o: ./include/framerd/dtypestream.h
+src/scheme/fileprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/fileprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/fileprims.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/scheme/fileprims.o: ./include/framerd/indices.h
+src/scheme/fileprims.o: ./include/framerd/frames.h ./include/framerd/ports.h
+src/scheme/fileprims.o: ./include/framerd/numbers.h
+src/scheme/fileprims.o: ./include/framerd/fileprims.h
+src/scheme/dbfileprims.o: ./include/framerd/dtype.h
+src/scheme/dbfileprims.o: ./include/framerd/common.h
+src/scheme/dbfileprims.o: ./include/framerd/defines.h
+src/scheme/dbfileprims.o: ./include/framerd/config.h
+src/scheme/dbfileprims.o: ./include/framerd/malloc.h
+src/scheme/dbfileprims.o: ./include/framerd/dtypeio.h
+src/scheme/dbfileprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/scheme/dbfileprims.o: ./include/framerd/cons.h
+src/scheme/dbfileprims.o: ./include/framerd/choices.h
+src/scheme/dbfileprims.o: ./include/framerd/tables.h ./include/framerd/fddb.h
+src/scheme/dbfileprims.o: ./include/framerd/dtypestream.h
+src/scheme/dbfileprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/dbfileprims.o: ./include/framerd/fddb.h
+src/scheme/dbfileprims.o: ./include/framerd/indices.h
+src/scheme/dbfileprims.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/scheme/dbfileprims.o: ./include/framerd/apply.h
+src/scheme/dbfileprims.o: ./include/framerd/dbfile.h
+src/scheme/dbfileprims.o: ./include/framerd/sequences.h
+src/scheme/timeprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/scheme/timeprims.o: ./include/framerd/defines.h
+src/scheme/timeprims.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/scheme/timeprims.o: ./include/framerd/dtypeio.h
+src/scheme/timeprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/scheme/timeprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/scheme/timeprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/scheme/timeprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/scheme/timeprims.o: ./include/framerd/dtypestream.h
+src/scheme/timeprims.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/scheme/timeprims.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/scheme/timeprims.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/scheme/timeprims.o: ./include/framerd/indices.h
+src/scheme/timeprims.o: ./include/framerd/frames.h
+src/scheme/timeprims.o: ./include/framerd/numbers.h
 src/scheme/extdb.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/scheme/extdb.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/scheme/extdb.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1458,69 +1606,6 @@ src/scheme/extdb.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/scheme/extdb.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/scheme/extdb.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/scheme/extdb.o: ./include/framerd/extdb.h
-src/scheme/portprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/portprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/portprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/portprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/portprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/portprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/portprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/portprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/portprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/portprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/portprims.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/scheme/portprims.o: ./include/framerd/frames.h ./include/framerd/dtypestream.h
-src/scheme/portprims.o: ./include/framerd/ports.h
-src/scheme/fileprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/fileprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/fileprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/fileprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/fileprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/fileprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/fileprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/fileprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/fileprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/fileprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/fileprims.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/scheme/fileprims.o: ./include/framerd/frames.h ./include/framerd/ports.h
-src/scheme/fileprims.o: ./include/framerd/numbers.h ./include/framerd/fileprims.h
-src/scheme/dbfileprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/dbfileprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/dbfileprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/dbfileprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/dbfileprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/dbfileprims.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/scheme/dbfileprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/dbfileprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/dbfileprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/dbfileprims.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/scheme/dbfileprims.o: ./include/framerd/dbfile.h ./include/framerd/sequences.h
-src/scheme/arithprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/arithprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/arithprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/arithprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/arithprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/arithprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/arithprims.o: ./include/framerd/apply.h ./include/framerd/numbers.h
-src/scheme/side-effects.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/side-effects.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/side-effects.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/side-effects.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/side-effects.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/side-effects.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/side-effects.o: ./include/framerd/apply.h ./include/framerd/sequences.h
-src/scheme/timeprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/scheme/timeprims.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/scheme/timeprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/scheme/timeprims.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/scheme/timeprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/scheme/timeprims.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/scheme/timeprims.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/scheme/timeprims.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/scheme/timeprims.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/scheme/timeprims.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/scheme/timeprims.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/scheme/timeprims.o: ./include/framerd/frames.h ./include/framerd/numbers.h
 src/fdweb/fdweb.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/fdweb.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/fdweb.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1534,19 +1619,28 @@ src/fdweb/fdweb.o: ./include/framerd/pools.h ./include/framerd/frames.h
 src/fdweb/fdweb.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/fdweb/fdweb.o: ./include/framerd/apply.h ./include/framerd/ports.h
 src/fdweb/fdweb.o: ./include/framerd/fdweb.h ./include/framerd/support.h
+src/fdweb/json.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/fdweb/json.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/fdweb/json.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/fdweb/json.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/fdweb/json.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/fdweb/json.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/fdweb/json.o: ./include/framerd/apply.h ./include/framerd/tables.h
+src/fdweb/json.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
 src/fdweb/xmloutput.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/xmloutput.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/xmloutput.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/fdweb/xmloutput.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/fdweb/xmloutput.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/fdweb/xmloutput.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/fdweb/xmloutput.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/fdweb/xmloutput.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/fdweb/xmloutput.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/fdweb/xmloutput.o: ./include/framerd/pools.h ./include/framerd/frames.h
-src/fdweb/xmloutput.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/fdweb/xmloutput.o: ./include/framerd/apply.h ./include/framerd/ports.h
-src/fdweb/xmloutput.o: ./include/framerd/fdweb.h ./include/framerd/support.h
+src/fdweb/xmloutput.o: ./include/framerd/dtypestream.h
+src/fdweb/xmloutput.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/fdweb/xmloutput.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/fdweb/xmloutput.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/fdweb/xmloutput.o: ./include/framerd/frames.h ./include/framerd/tables.h
+src/fdweb/xmloutput.o: ./include/framerd/eval.h ./include/framerd/apply.h
+src/fdweb/xmloutput.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
+src/fdweb/xmloutput.o: ./include/framerd/support.h src/fdweb/backtrace_css.h
 src/fdweb/xmlinput.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/xmlinput.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/xmlinput.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1569,12 +1663,13 @@ src/fdweb/xmleval.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/fdweb/xmleval.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/fdweb/xmleval.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/fdweb/xmleval.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/fdweb/xmleval.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/fdweb/xmleval.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/fdweb/xmleval.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/fdweb/xmleval.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/fdweb/xmleval.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
-src/fdweb/xmleval.o: ./include/framerd/sequences.h ./include/framerd/fileprims.h
+src/fdweb/xmleval.o: ./include/framerd/dtypestream.h
+src/fdweb/xmleval.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/fdweb/xmleval.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/fdweb/xmleval.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/fdweb/xmleval.o: ./include/framerd/apply.h ./include/framerd/ports.h
+src/fdweb/xmleval.o: ./include/framerd/fdweb.h ./include/framerd/sequences.h
+src/fdweb/xmleval.o: ./include/framerd/fileprims.h
 src/fdweb/cgiexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/cgiexec.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/cgiexec.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1582,8 +1677,11 @@ src/fdweb/cgiexec.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/fdweb/cgiexec.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/fdweb/cgiexec.o: ./include/framerd/tables.h ./include/framerd/tables.h
 src/fdweb/cgiexec.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/fdweb/cgiexec.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
-src/fdweb/cgiexec.o: ./include/framerd/support.h
+src/fdweb/cgiexec.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/fdweb/cgiexec.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/fdweb/cgiexec.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/fdweb/cgiexec.o: ./include/framerd/frames.h ./include/framerd/ports.h
+src/fdweb/cgiexec.o: ./include/framerd/fdweb.h ./include/framerd/support.h
 src/fdweb/uriprims.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/uriprims.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/uriprims.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1592,14 +1690,6 @@ src/fdweb/uriprims.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/fdweb/uriprims.o: ./include/framerd/tables.h ./include/framerd/tables.h
 src/fdweb/uriprims.o: ./include/framerd/eval.h ./include/framerd/apply.h
 src/fdweb/uriprims.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
-src/fdweb/curl.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/fdweb/curl.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/fdweb/curl.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/fdweb/curl.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/fdweb/curl.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/fdweb/curl.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/fdweb/curl.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/fdweb/curl.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
 src/fdweb/mime.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/fdweb/mime.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/fdweb/mime.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1616,13 +1706,27 @@ src/fdweb/email.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/fdweb/email.o: ./include/framerd/tables.h ./include/framerd/tables.h
 src/fdweb/email.o: ./include/framerd/eval.h ./include/framerd/apply.h
 src/fdweb/email.o: ./include/framerd/ports.h ./include/framerd/fdweb.h
-src/texttools/texttools.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/texttools/texttools.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/texttools/texttools.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/texttools/texttools.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/texttools/texttools.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/texttools/texttools.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/texttools/texttools.o: ./include/framerd/apply.h ./include/framerd/sequences.h
+src/fdweb/curl.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/fdweb/curl.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/fdweb/curl.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/fdweb/curl.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/fdweb/curl.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/fdweb/curl.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/fdweb/curl.o: ./include/framerd/eval.h ./include/framerd/apply.h
+src/fdweb/curl.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
+src/texttools/texttools.o: ./include/framerd/dtype.h
+src/texttools/texttools.o: ./include/framerd/common.h
+src/texttools/texttools.o: ./include/framerd/defines.h
+src/texttools/texttools.o: ./include/framerd/config.h
+src/texttools/texttools.o: ./include/framerd/malloc.h
+src/texttools/texttools.o: ./include/framerd/dtypeio.h
+src/texttools/texttools.o: ./include/framerd/support.h
+src/texttools/texttools.o: ./include/framerd/ptr.h ./include/framerd/cons.h
+src/texttools/texttools.o: ./include/framerd/choices.h
+src/texttools/texttools.o: ./include/framerd/tables.h
+src/texttools/texttools.o: ./include/framerd/eval.h ./include/framerd/apply.h
+src/texttools/texttools.o: ./include/framerd/sequences.h
+src/texttools/texttools.o: ./include/framerd/ports.h
 src/texttools/texttools.o: ./include/framerd/texttools.h
 src/texttools/match.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/texttools/match.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -1630,25 +1734,37 @@ src/texttools/match.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/texttools/match.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/texttools/match.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/texttools/match.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/texttools/match.o: ./include/framerd/apply.h ./include/framerd/texttools.h
+src/texttools/match.o: ./include/framerd/apply.h
+src/texttools/match.o: ./include/framerd/texttools.h
 src/texttools/porter.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/texttools/porter.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/texttools/porter.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/texttools/porter.o: ./include/framerd/defines.h
+src/texttools/porter.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/texttools/porter.o: ./include/framerd/dtypeio.h
 src/texttools/porter.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/texttools/porter.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/texttools/porter.o: ./include/framerd/tables.h
+src/texttools/phonetic.o: ./include/framerd/dtype.h
+src/texttools/phonetic.o: ./include/framerd/common.h
+src/texttools/phonetic.o: ./include/framerd/defines.h
+src/texttools/phonetic.o: ./include/framerd/config.h
+src/texttools/phonetic.o: ./include/framerd/malloc.h
+src/texttools/phonetic.o: ./include/framerd/dtypeio.h
+src/texttools/phonetic.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/texttools/phonetic.o: ./include/framerd/cons.h
+src/texttools/phonetic.o: ./include/framerd/choices.h
+src/texttools/phonetic.o: ./include/framerd/tables.h
 src/tagger/tagger.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/tagger/tagger.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/tagger/tagger.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/tagger/tagger.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/tagger/tagger.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/tagger/tagger.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/tagger/tagger.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/tagger/tagger.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/tagger/tagger.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/tagger/tagger.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/tagger/tagger.o: ./include/framerd/sequences.h ./include/framerd/texttools.h
-src/tagger/tagger.o: ./include/framerd/tagger.h
+src/tagger/tagger.o: ./include/framerd/dtypestream.h
+src/tagger/tagger.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/tagger/tagger.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/tagger/tagger.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/tagger/tagger.o: ./include/framerd/apply.h ./include/framerd/sequences.h
+src/tagger/tagger.o: ./include/framerd/texttools.h ./include/framerd/tagger.h
 src/tagger/ofsm.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/tagger/ofsm.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/tagger/ofsm.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1660,22 +1776,106 @@ src/tagger/ofsm.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
 src/tagger/ofsm.o: ./include/framerd/pools.h ./include/framerd/fddb.h
 src/tagger/ofsm.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/tagger/ofsm.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/tagger/ofsm.o: ./include/framerd/dtypestream.h ./include/framerd/sequences.h
-src/tagger/ofsm.o: ./include/framerd/numbers.h ./include/framerd/support.h
-src/tagger/ofsm.o: ./include/framerd/tagger.h
+src/tagger/ofsm.o: ./include/framerd/dtypestream.h
+src/tagger/ofsm.o: ./include/framerd/sequences.h ./include/framerd/numbers.h
+src/tagger/ofsm.o: ./include/framerd/support.h ./include/framerd/tagger.h
 src/tagger/tagxtract.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/tagger/tagxtract.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/tagger/tagxtract.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/tagger/tagxtract.o: ./include/framerd/defines.h
+src/tagger/tagxtract.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/tagger/tagxtract.o: ./include/framerd/dtypeio.h
 src/tagger/tagxtract.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/tagger/tagxtract.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/tagger/tagxtract.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/tagger/tagxtract.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/tagger/tagxtract.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/tagger/tagxtract.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/tagger/tagxtract.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/tagger/tagxtract.o: ./include/framerd/pools.h ./include/framerd/indices.h
-src/tagger/tagxtract.o: ./include/framerd/dtypestream.h ./include/framerd/texttools.h
+src/tagger/tagxtract.o: ./include/framerd/dtypestream.h
+src/tagger/tagxtract.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/tagger/tagxtract.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/tagger/tagxtract.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/tagger/tagxtract.o: ./include/framerd/indices.h
+src/tagger/tagxtract.o: ./include/framerd/dtypestream.h
+src/tagger/tagxtract.o: ./include/framerd/texttools.h
 src/tagger/tagxtract.o: ./include/framerd/tagger.h
+src/exe/fdconsole.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdconsole.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdconsole.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdconsole.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdconsole.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdconsole.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/exe/fdconsole.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/exe/fdconsole.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/exe/fdconsole.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/exe/fdconsole.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/exe/fdconsole.o: ./include/framerd/apply.h ./include/framerd/history.h
+src/exe/fdconsole.o: ./include/framerd/ports.h ./include/framerd/sequences.h
+src/exe/fdconsole.o: ./include/framerd/fileprims.h ./include/framerd/fdweb.h
+src/exe/fdconsole.o: src/exe/main.h src/exe/fdversion.h
+src/exe/fdexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdexec.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdexec.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdexec.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdexec.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdexec.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/exe/fdexec.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
+src/exe/fdexec.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/exe/fdexec.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/exe/fdexec.o: ./include/framerd/frames.h ./include/framerd/dbfile.h
+src/exe/fdexec.o: ./include/framerd/eval.h ./include/framerd/apply.h
+src/exe/fdexec.o: ./include/framerd/ports.h src/exe/main.h
+src/exe/fdexec.o: src/exe/fdversion.h
+src/exe/fdbatch.o: src/exe/fdexec.c ./include/framerd/dtype.h
+src/exe/fdbatch.o: ./include/framerd/common.h ./include/framerd/defines.h
+src/exe/fdbatch.o: ./include/framerd/config.h ./include/framerd/malloc.h
+src/exe/fdbatch.o: ./include/framerd/dtypeio.h ./include/framerd/support.h
+src/exe/fdbatch.o: ./include/framerd/ptr.h ./include/framerd/cons.h
+src/exe/fdbatch.o: ./include/framerd/choices.h ./include/framerd/tables.h
+src/exe/fdbatch.o: ./include/framerd/tables.h ./include/framerd/fddb.h
+src/exe/fdbatch.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
+src/exe/fdbatch.o: ./include/framerd/pools.h ./include/framerd/fddb.h
+src/exe/fdbatch.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/exe/fdbatch.o: ./include/framerd/dbfile.h ./include/framerd/eval.h
+src/exe/fdbatch.o: ./include/framerd/apply.h ./include/framerd/ports.h
+src/exe/fdbatch.o: src/exe/main.h src/exe/fdversion.h
+src/exe/fdserv.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdserv.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdserv.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdserv.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdserv.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdserv.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/exe/fdserv.o: ./include/framerd/numbers.h ./include/framerd/eval.h
+src/exe/fdserv.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/exe/fdserv.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
+src/exe/fdserv.o: ./include/framerd/pools.h ./include/framerd/fddb.h
+src/exe/fdserv.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/exe/fdserv.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
+src/exe/fdserv.o: ./include/framerd/fileprims.h src/exe/main.h
+src/exe/fdserv.o: src/exe/fdversion.h src/exe/webcommon.h
+src/exe/fdcgiexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdcgiexec.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdcgiexec.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdcgiexec.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdcgiexec.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdcgiexec.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/exe/fdcgiexec.o: ./include/framerd/numbers.h ./include/framerd/eval.h
+src/exe/fdcgiexec.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/exe/fdcgiexec.o: ./include/framerd/dtypestream.h
+src/exe/fdcgiexec.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/exe/fdcgiexec.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/exe/fdcgiexec.o: ./include/framerd/frames.h ./include/framerd/fdweb.h
+src/exe/fdcgiexec.o: ./include/framerd/ports.h ./include/framerd/fileprims.h
+src/exe/fdcgiexec.o: src/exe/main.h src/exe/fdversion.h src/exe/webcommon.h
+src/exe/fdbserver.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdbserver.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdbserver.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdbserver.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdbserver.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdbserver.o: ./include/framerd/tables.h ./include/framerd/numbers.h
+src/exe/fdbserver.o: ./include/framerd/tables.h ./include/framerd/fddb.h
+src/exe/fdbserver.o: ./include/framerd/dtypestream.h
+src/exe/fdbserver.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/exe/fdbserver.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/exe/fdbserver.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/exe/fdbserver.o: ./include/framerd/apply.h ./include/framerd/ports.h
+src/exe/fdbserver.o: src/exe/main.h src/exe/fdversion.h
 src/cmodules/odbc.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/cmodules/odbc.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/cmodules/odbc.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1683,8 +1883,8 @@ src/cmodules/odbc.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/cmodules/odbc.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/cmodules/odbc.o: ./include/framerd/tables.h ./include/framerd/numbers.h
 src/cmodules/odbc.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/cmodules/odbc.o: ./include/framerd/sequences.h ./include/framerd/texttools.h
-src/cmodules/odbc.o: ./include/framerd/extdb.h
+src/cmodules/odbc.o: ./include/framerd/sequences.h
+src/cmodules/odbc.o: ./include/framerd/texttools.h ./include/framerd/extdb.h
 src/cmodules/sqlite.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/cmodules/sqlite.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/cmodules/sqlite.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1692,7 +1892,8 @@ src/cmodules/sqlite.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/cmodules/sqlite.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/cmodules/sqlite.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/cmodules/sqlite.o: ./include/framerd/apply.h ./include/framerd/numbers.h
-src/cmodules/sqlite.o: ./include/framerd/sequences.h ./include/framerd/texttools.h
+src/cmodules/sqlite.o: ./include/framerd/sequences.h
+src/cmodules/sqlite.o: ./include/framerd/texttools.h
 src/cmodules/sqlite.o: ./include/framerd/extdb.h
 src/cmodules/ldap.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/cmodules/ldap.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -1708,8 +1909,13 @@ src/cmodules/crypto.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
 src/cmodules/crypto.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/cmodules/crypto.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/cmodules/crypto.o: ./include/framerd/tables.h ./include/framerd/eval.h
-src/cmodules/crypto.o: ./include/framerd/apply.h ./include/framerd/sequences.h
-src/cmodules/crypto.o: ./include/framerd/texttools.h
+src/cmodules/crypto.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/cmodules/crypto.o: ./include/framerd/dtypestream.h
+src/cmodules/crypto.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/cmodules/crypto.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/cmodules/crypto.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/cmodules/crypto.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/cmodules/crypto.o: ./include/framerd/numbers.h
 src/cmodules/dbus.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/cmodules/dbus.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/cmodules/dbus.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
@@ -1725,67 +1931,50 @@ src/cmodules/mysql.o: ./include/framerd/support.h ./include/framerd/ptr.h
 src/cmodules/mysql.o: ./include/framerd/cons.h ./include/framerd/choices.h
 src/cmodules/mysql.o: ./include/framerd/tables.h ./include/framerd/eval.h
 src/cmodules/mysql.o: ./include/framerd/apply.h ./include/framerd/numbers.h
-src/cmodules/mysql.o: ./include/framerd/sequences.h ./include/framerd/texttools.h
-src/cmodules/mysql.o: ./include/framerd/extdb.h
-src/exe/fdconsole.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/exe/fdconsole.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/exe/fdconsole.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/exe/fdconsole.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/exe/fdconsole.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/exe/fdconsole.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/exe/fdconsole.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
-src/exe/fdconsole.o: ./include/framerd/dtype.h ./include/framerd/pools.h
-src/exe/fdconsole.o: ./include/framerd/fddb.h ./include/framerd/indices.h
-src/exe/fdconsole.o: ./include/framerd/frames.h ./include/framerd/eval.h
-src/exe/fdconsole.o: ./include/framerd/apply.h ./include/framerd/history.h
-src/exe/fdconsole.o: ./include/framerd/ports.h ./include/framerd/sequences.h
-src/exe/fdconsole.o: src/exe/fdversion.h
-src/exe/fdexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/exe/fdexec.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/exe/fdexec.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/exe/fdexec.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/exe/fdexec.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/exe/fdexec.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/exe/fdexec.o: ./include/framerd/fddb.h ./include/framerd/dtypestream.h
-src/exe/fdexec.o: ./include/framerd/dtype.h ./include/framerd/pools.h
-src/exe/fdexec.o: ./include/framerd/fddb.h ./include/framerd/indices.h
-src/exe/fdexec.o: ./include/framerd/frames.h ./include/framerd/dbfile.h
-src/exe/fdexec.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/exe/fdexec.o: ./include/framerd/ports.h
-src/exe/fdbatch.o: src/exe/fdexec.c ./include/framerd/dtype.h
-src/exe/fdbatch.o: ./include/framerd/common.h ./include/framerd/defines.h
-src/exe/fdbatch.o: ./include/framerd/config.h ./include/framerd/malloc.h
-src/exe/fdbatch.o: ./include/framerd/dtypeio.h ./include/framerd/support.h
-src/exe/fdbatch.o: ./include/framerd/ptr.h ./include/framerd/cons.h
-src/exe/fdbatch.o: ./include/framerd/choices.h ./include/framerd/tables.h
-src/exe/fdbatch.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/exe/fdbatch.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/exe/fdbatch.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/exe/fdbatch.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/exe/fdbatch.o: ./include/framerd/dbfile.h ./include/framerd/eval.h
-src/exe/fdbatch.o: ./include/framerd/apply.h ./include/framerd/ports.h
-src/exe/fdserv.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/exe/fdserv.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/exe/fdserv.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/exe/fdserv.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/exe/fdserv.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/exe/fdserv.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/exe/fdserv.o: ./include/framerd/numbers.h ./include/framerd/eval.h
-src/exe/fdserv.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/exe/fdserv.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/exe/fdserv.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/exe/fdserv.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/exe/fdserv.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
-src/exe/fdserv.o: ./include/framerd/fileprims.h src/exe/fdversion.h
-src/exe/fdbserver.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/exe/fdbserver.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/exe/fdbserver.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/exe/fdbserver.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/exe/fdbserver.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/exe/fdbserver.o: ./include/framerd/tables.h ./include/framerd/numbers.h
-src/exe/fdbserver.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/exe/fdbserver.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/exe/fdbserver.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/exe/fdbserver.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/exe/fdbserver.o: ./include/framerd/eval.h ./include/framerd/apply.h
-src/exe/fdbserver.o: ./include/framerd/ports.h src/exe/fdversion.h
+src/cmodules/mysql.o: ./include/framerd/sequences.h
+src/cmodules/mysql.o: ./include/framerd/texttools.h ./include/framerd/extdb.h
+src/cmodules/qrcode.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/cmodules/qrcode.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/cmodules/qrcode.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/cmodules/qrcode.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/cmodules/qrcode.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/cmodules/qrcode.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/cmodules/qrcode.o: ./include/framerd/apply.h ./include/framerd/numbers.h
+src/cmodules/qrcode.o: ./include/framerd/sequences.h
+src/cmodules/qrcode.o: ./include/framerd/texttools.h
+src/cmodules/regex.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/cmodules/regex.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/cmodules/regex.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/cmodules/regex.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/cmodules/regex.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/cmodules/regex.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/cmodules/regex.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/cmodules/regex.o: ./include/framerd/dtypestream.h
+src/cmodules/regex.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/cmodules/regex.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/cmodules/regex.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/cmodules/regex.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/cmodules/regex.o: ./include/framerd/numbers.h
+src/cmodules/ziptools.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/cmodules/ziptools.o: ./include/framerd/defines.h
+src/cmodules/ziptools.o: ./include/framerd/config.h
+src/cmodules/ziptools.o: ./include/framerd/malloc.h
+src/cmodules/ziptools.o: ./include/framerd/dtypeio.h
+src/cmodules/ziptools.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/cmodules/ziptools.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/cmodules/ziptools.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/cmodules/ziptools.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/cmodules/ziptools.o: ./include/framerd/dtypestream.h
+src/cmodules/ziptools.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/cmodules/ziptools.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/cmodules/ziptools.o: ./include/framerd/frames.h ./include/framerd/pools.h
+src/cmodules/ziptools.o: ./include/framerd/indices.h
+src/cmodules/ziptools.o: ./include/framerd/frames.h
+src/cmodules/ziptools.o: ./include/framerd/numbers.h
+src/cmodules/tidy.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/cmodules/tidy.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/cmodules/tidy.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/cmodules/tidy.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/cmodules/tidy.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/cmodules/tidy.o: ./include/framerd/tables.h ./include/framerd/eval.h
+src/cmodules/tidy.o: ./include/framerd/apply.h
