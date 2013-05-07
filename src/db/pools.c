@@ -47,8 +47,9 @@ static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
 
-static fd_pool pool_serial_table[1024];
-static int pool_serial_count=0;
+fd_pool init_pool_serial_table[1024],
+  *fd_pool_serial_table=init_pool_serial_table;
+int fd_pool_serial_count=0;
 
 #if FD_GLOBAL_IPEVAL
 fdtype *fd_pool_delays=NULL;
@@ -138,8 +139,8 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   else if (baseindex<0) return baseindex;
   fd_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
-  serial_no=p->serialno=pool_serial_count++; fd_n_pools++;
-  pool_serial_table[serial_no]=p;
+  serial_no=p->serialno=fd_pool_serial_count++; fd_n_pools++;
+  fd_pool_serial_table[serial_no]=p;
   if ((capacity>=FD_TOP_POOL_SIZE) && ((p->base)%FD_TOP_POOL_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",u8_strdup(p->cid),FD_VOID);
     fd_unlock_mutex(&pool_registry_lock);
@@ -243,8 +244,8 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
        leaking the old subpools because we're avoiding locking on lookup. */
     p->serialno=((gp->serialno)<<10)+(gp->n_subpools+1);
     gp->subpools=new; gp->n_subpools++;}
-  p->serialno=pool_serial_count++;
-  pool_serial_table[p->serialno]=p;
+  p->serialno=fd_pool_serial_count++;
+  fd_pool_serial_table[p->serialno]=p;
   return 1;
 }
 
@@ -924,8 +925,8 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 {
   if (FD_PTR_TYPEP(lp,fd_pool_type)) {
     int serial=FD_GET_IMMEDIATE(lp,fd_pool_type); 
-    if (serial<pool_serial_count)
-      return pool_serial_table[serial];
+    if (serial<fd_pool_serial_count)
+      return fd_pool_serial_table[serial];
     else {
       char buf[32];
       sprintf(buf,"serial=0x%x",serial);
@@ -1716,7 +1717,7 @@ static int check_pool(fdtype x)
 {
   int serial=FD_GET_IMMEDIATE(x,fd_pool_type); 
   if (serial<0) return 0;
-  else if (serial<pool_serial_count) return 1;
+  else if (serial<fd_pool_serial_count) return 1;
   else return 0;
 }
 
@@ -1778,6 +1779,13 @@ FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
     if (p) *pptr=p; else return -1;}
   else return fd_type_error(_("pool spec"),"pool_config_set",v);
   return 1;
+}
+
+/* Lisp pointers to Pool pointers */
+
+FD_EXPORT fd_pool _fd_get_poolptr(fdtype x)
+{
+  return fd_get_poolptr(x);
 }
 
 /* Initialization */

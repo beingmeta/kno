@@ -1181,6 +1181,13 @@ static int check_index(fdtype x)
   else return (fd_secondary_indices[serial-FD_N_PRIMARY_INDICES]!=NULL);
 }
 
+FD_EXPORT fd_index _fd_get_indexptr(fdtype x)
+{
+  return fd_get_indexptr(x);
+}
+
+/* Initializations */
+
 FD_EXPORT void fd_init_indices_c()
 {
   u8_register_source_file(_FILEINFO);

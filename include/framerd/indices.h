@@ -87,6 +87,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_commit(fd_index ix);
 FD_EXPORT void fd_index_close(fd_index ix);
+FD_EXPORT fd_index _fd_get_indexptr(fdtype x);
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_keys(fd_index ix);
@@ -223,9 +224,20 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       return retval;}
   else return _fd_index_add(ix,key,value);
 }
+FD_FASTOP MAYBE_UNUSED fd_index fd_get_indexptr(fdtype x)
+{
+  int serial=FD_GET_IMMEDIATE(x,fd_index_type); 
+  if (serial<0) return NULL;
+  else if (serial<FD_N_PRIMARY_INDICES)
+    return fd_primary_indices[serial];
+  else if (serial<(FD_N_PRIMARY_INDICES+fd_n_secondary_indices))
+    return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];
+  else return NULL;
+}
 #else
 #define fd_index_get(ix,key) _fd_index_get(ix,key) 
-#define fd_index_add(ix,key,val) _fd_index_add(ix,key,val) 
+#define fd_index_add(ix,key,val) _fd_index_add(ix,key,val)
+#define fd_get_indexptr(ix) _fd_get_indexptr(ix) 
 #endif
 
 /* Opening file indices */

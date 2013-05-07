@@ -151,6 +151,10 @@ FD_EXPORT int fd_register_pool(fd_pool p);
 
 FD_EXPORT fdtype fd_all_pools(void);
 
+FD_EXPORT fd_pool *fd_pool_serial_table;
+FD_EXPORT int fd_pool_serial_count;
+
+
 /* Pool handlers */
 
 struct FD_POOL_HANDLER {
@@ -262,6 +266,8 @@ FD_EXPORT void fd_pool_setcache(fd_pool p,int level);
 FD_EXPORT void fd_pool_close(fd_pool p);
 FD_EXPORT void fd_pool_swapout(fd_pool p);
 
+FD_EXPORT fd_pool _fd_get_poolptr(fdtype x);
+
 FD_EXPORT int fd_pool_unlock_all(fd_pool p,int commit);
 FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock);
 
@@ -332,10 +338,18 @@ FD_FASTOP fdtype fd_oid_value(fdtype oid)
   else if (FD_OIDP(oid)) return fd_fetch_oid(NULL,oid);
   else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
+FD_FASTOP MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
+{
+  int serial=FD_GET_IMMEDIATE(x,fd_pool_type); 
+  if (serial<fd_pool_serial_count)
+    return fd_pool_serial_table[serial];
+  else return NULL;
+}
 #else
 #define fd_fetch_oid _fd_fetch_oid
 #define fd_oid_value _fd_oid_value
 #define fd_oid2pool _fd_oid2pool
+#define fd_get_poolptr _fd_getpoolptr
 #endif
 
 FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
