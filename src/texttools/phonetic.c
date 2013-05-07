@@ -19,6 +19,8 @@
 #include <libu8/u8streamio.h>
 #include <libu8/u8stringfns.h>
 
+#include <ctype.h>
+
 #define VOWELS "AEIOUY"
 
 static int soundex_class(int c)
@@ -99,7 +101,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   while (*scan) {
     switch (*scan) {
     case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
-      if (*capscan) lc=*scan; else lc=u8_tolower(((int)(*scan)));
+      if (*capscan) lc=*scan; else lc=tolower(((int)(*scan)));
       u8_putc(&out,lc); break;
     case 'Q': if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k'); break;
     case 'V': if (*capscan) u8_putc(&out,'F'); else u8_putc(&out,'f'); break;
@@ -177,7 +179,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
       break;
     case 'W': case 'Y':
       if (strchr(VOWELS,scan[1])) {
-	if (*capscan) lc=*scan; else lc=u8_tolower(((int)(*scan)));
+	if (*capscan) lc=*scan; else lc=tolower(((int)(*scan)));
 	u8_putc(&out,lc);}
       else {}
       break;
@@ -185,7 +187,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
       if (*capscan) u8_puts(&out,"KS"); else u8_puts(&out,"ks");
       break;
     default: if (scan==start)  {
-	if (*capscan) lc=*scan; else lc=u8_tolower(((int)(*scan)));
+	if (*capscan) lc=*scan; else lc=tolower(((int)(*scan)));
 	u8_putc(&out,lc);}}
     if ((sep) && (lenout) && (lenout==(out.u8_outptr-out.u8_outbuf)) &&
 	(out.u8_outbuf[lenout-1]!='.'))

@@ -1116,10 +1116,11 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
     size=size+fd_write_dtype(out,xval);}
   else {
     fdtype vec=fd_init_vector(NULL,4,NULL);
+    int tzoff=xtm->xtime.u8_tzoff;
     FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.u8_tick));
     FD_VECTOR_SET(vec,1,FD_INT2DTYPE(xtm->xtime.u8_nsecs));
     FD_VECTOR_SET(vec,2,FD_INT2DTYPE((int)xtm->xtime.u8_prec));
-    FD_VECTOR_SET(vec,3,FD_INT2DTYPE((int)(xtm->xtime.u8_tzoff)));
+    FD_VECTOR_SET(vec,3,FD_INT2DTYPE(tzoff));
     size=size+fd_write_dtype(out,vec);}
   return size;
 }

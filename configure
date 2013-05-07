@@ -7242,6 +7242,17 @@ _ACEOF
 fi
 done
 
+  for ac_func in sqlite3_close_v2
+do :
+  ac_fn_c_check_func "$LINENO" "sqlite3_close_v2" "ac_cv_func_sqlite3_close_v2"
+if test "x$ac_cv_func_sqlite3_close_v2" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SQLITE3_CLOSE_V2 1
+_ACEOF
+
+fi
+done
+
   for ac_func in sqlite3_prepare_v2
 do :
   ac_fn_c_check_func "$LINENO" "sqlite3_prepare_v2" "ac_cv_func_sqlite3_prepare_v2"
