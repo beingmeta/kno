@@ -21,21 +21,18 @@ FD_EXPORT fdtype fd_adjunct_slotids;
 
 FD_EXPORT fdtype fd_method_table;
 
-/* Caching and dependency tracking */
-
 FD_EXPORT int  fd_slot_cache_load(void);
 FD_EXPORT void fd_clear_slotcaches(void);
 FD_EXPORT void fd_clear_slotcache(fdtype slotid);
 FD_EXPORT void fd_clear_slotcache_entry(fdtype slotid,fdtype frame);
 
+enum FDOP {
+  fd_getop, fd_addop, fd_dropop, fd_testop, fd_validop };
+
 typedef struct FD_DEPENDENCY_RECORD {
   fdtype frame, slotid, value;} FD_DEPENDENCY_RECORD;
 typedef struct FD_DEPENDENCY_RECORD *fd_dependency_record;
   
-/* The slot op stack */
-
-enum FDOP {
-  fd_getop, fd_addop, fd_dropop, fd_testop, fd_validop };
 
 typedef struct FD_FRAMEOP_STACK {
   enum FDOP op;
@@ -62,50 +59,24 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value);
 FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value);
 FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value);
 
-/* Overlays */
-
-typedef struct FD_OVERLAY {fdtype slots, indices;} FD_OVERLAY;
-typedef struct FD_OVERLAY *fd_overlay;
-
-FD_EXPORT struct FD_OVERLAY fd_global_overlay;
-
-#if FD_USE__THREAD
-FD_EXPORT __thread struct FD_OVERLAY *fd_thread_overlay;
-static MAYBE_UNUSED void fd_set_overlay(fdtype overlay)
-{
-  if (fd_thread_overlay) fd_decref(fd_thread_overlay);
-  fd_thread_overlay=overlay;
-  fd_incref(overlay);
-}
-#elif FD_THREADS_ENABLED
-FD_EXPORT u8_tld_key _fd_thread_overlay_key;
-#define fd_thread_overlay (((fdtype)(u8_tld_get(_fd_thread_overlay_key)))||(FD_VOID))
-static MAYBE_UNUSED void fd_set_overlay(fdtype overlay)
-{
-  fdtype cur=u8_tld_get(_fd_thread_overlay_key);
-  if (cur) fd_decref(cur);
-  fd_incref(overlay);
-  u8_tld_set(_fd_thread_overlay_key,overlay);
-}
-#else
-FD_EXPORT struct FD_OVERLAY *fd_thread_overlay;
-static MAYBE_UNUSED void fd_set_overlay(fdtype overlay)
-{
-  if (fd_thread_overlay) fd_decref(fd_thread_overlay);
-  fd_thread_overlay=overlay;
-  fd_incref(overlay);
-}
-#endif
-
-typedef enum FD_OVERLAY_TYPE { fd_slot_overlay, fd_search_overlay }
-  fd_overlay_type;
-
-FD_EXPORT fdtype fd_overlay_get(fdtype f,fdtype slotid,fd_overlay_type);
-FD_EXPORT fdtype fd_overlay_add(fdtype f,fdtype slotid,fdtype value,fd_overlay_type);
-FD_EXPORT fdtype fd_overlay_drop(fdtype f,fdtype slotid,fdtype value,fd_overlay_type);
-FD_EXPORT fdtype fd_overlay_store(fdtype f,fdtype slotid,fdtype value,fd_overlay_type);
+FD_EXPORT fdtype fd_overlay_get(fdtype f,fdtype slotid,int);
+FD_EXPORT fdtype fd_overlay_add(fdtype f,fdtype slotid,fdtype value,int);
+FD_EXPORT fdtype fd_overlay_drop(fdtype f,fdtype slotid,fdtype value,int);
+FD_EXPORT fdtype fd_overlay_store(fdtype f,fdtype slotid,fdtype value,int);
 
 FD_EXPORT int fd_overlayp(void);
+FD_EXPORT void fd_inhibit_overlays(int flag);
+
+/* Overlay inhibition */
+
+#if FD_USE__THREAD
+FD_EXPORT __thread int fd_inhibit_overlay;
+#elif FD_THREADS_ENABLED
+FD_EXPORT u8_tld_key _fd_inhibit_overlay_key;
+#define fd_inhibit_overlay ((int)(u8_tld_get(_fd_inhibit_overlay_key)!=NULL))
+#else
+FD_EXPORT int fd_inhibit_overlay;
+#endif
 
 /* Making frames */
 
