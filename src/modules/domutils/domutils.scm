@@ -31,7 +31,7 @@
 (define *block-text-tags*
   (string->symbol
    '{"P" "LI" "DT" "DD" "BLOCKQUOTE"
-     "DIV" "SECTION"
+     "DIV" "SECTION" "ASIDE" "DETAIL"
      "UL" "DL" "OL"
      "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
 (define stdschemas
