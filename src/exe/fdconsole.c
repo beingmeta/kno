@@ -171,6 +171,16 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
     if (histref<0)
       u8_printf(out,"%q\n",result);
     else u8_printf(out,"%q  ;; =##%d\n",result,histref);
+  else if ((showall)&&(FD_OIDP(result))) {
+    fdtype v=fd_oid_value(result);
+    if (FD_TABLEP(v)) {
+      U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+      u8_printf(&out,"%q:\n",result);
+      fd_display_table(&out,v,FD_VOID);
+      fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
+      fflush(stdout);}
+    else u8_printf(out,"OID value: %q\n",v);
+    fd_decref(v);}
   else if (!((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
 	     (FD_PAIRP(result))))
     if (histref<0)
