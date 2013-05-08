@@ -59,7 +59,9 @@
 			   (make-compound '|hashtable| count)
 			   (if (slotmap? root)
 			       (make-compound '|slotmap| count)
-			       #f)))))
+			       (if (hashset? root)
+				   (make-compound '|hashset| count)
+				   #f))))))
 	  (when dop
 	    (hashset-add! rootset root)
 	    (store! mapping root dop)
@@ -104,7 +106,9 @@
 		      (make-hashtable)
 		      (if (compound-type? root '|slotmap|)
 			  (frame-create #f)
-			  {})))))
+			  (if (compound-type? root '|hashset|)
+			      (make-hashset)
+			      {}))))))
     (do-choices (root roots)
       (restore-into (get mapping root) (get input root)
 		    pool mapping input slotrules recrules))
@@ -180,25 +184,31 @@
 
 (define (dump-table x pool mapping output (drules #f) (srules #f)
 		    (state (cons 0 (make-hashset))) (depth 1))
-  (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f))))
-    (do-choices (key (getkeys x))
-      (unless (and srules (overlaps? (get srules key) '{#f ignore discard}))
-	(let* ((rules (tryif srules (get srules key)))
-	       (method (pick rules applicable?))
-	       (newkey (try (pick rules slotid?)
-			    (dump key pool mapping output
+  (if (hashset? x)
+      (let ((copy (make-hashset)))
+	(do-choices (elt (hashset-elts x))
+	  (hashset-add! elt (dump elt pool mapping output
 				  drules srules state (1+ depth))))
-	       (dumpfn (lambda (v)
-			 (dump v pool mapping output
-			       drules srules state (1+ depth))))
-	       (values (get x key))
-	       (newvalues (if (fail? method) values
-			      ;; value, oldslot, newslot, container, dumpfn
-			      (method values key newkey x dumpfn))))
-	  (store! copy newkey
-		  (dump newvalues pool mapping output
-			drules srules state (1+ depth))))))
-    copy))
+	copy)
+      (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f))))
+	(do-choices (key (getkeys x))
+	  (unless (and srules (overlaps? (get srules key) '{#f ignore discard}))
+	    (let* ((rules (tryif srules (get srules key)))
+		   (method (pick rules applicable?))
+		   (newkey (try (pick rules slotid?)
+				(dump key pool mapping output
+				      drules srules state (1+ depth))))
+		   (dumpfn (lambda (v)
+			     (dump v pool mapping output
+				   drules srules state (1+ depth))))
+		   (values (get x key))
+		   (newvalues (if (fail? method) values
+				  ;; value, oldslot, newslot, container, dumpfn
+				  (method values key newkey x dumpfn))))
+	      (store! copy newkey
+		      (dump newvalues pool mapping output
+			    drules srules state (1+ depth))))))
+	copy)))
   
   
 ;;;; The main RESTORE function
@@ -228,6 +238,12 @@
 	((vector? x)
 	 (map (lambda (e) (restore e pool mapping input drules srules (1+ depth)))
 	      x))
+	((hashset? x)
+	 (let ((copy (make-hashset)))
+	   (do-choices (elt (hashset-elts x))
+	     (hashset-add! copy
+			   (restore elt pool mapping input drules srules (1+ depth))))
+	   copy))
 	((table? x)
 	 (let ((copy (if (hashtable? x) (make-hashtable)
 			 (frame-create #f))))
