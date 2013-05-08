@@ -10,7 +10,7 @@
    gp/urlfetch gp/urlinfo
    gp/path gp/mkpath gp/makepath gpath->string
    gp/location gp/basename
-   ->gpath gp:config})
+   gpath? ->gpath gp:config})
 
 ;;; This is a generic path facility (it grew out of the savecontent
 ;;; module, which still exists for legacy and historical reasons).  A
@@ -370,7 +370,16 @@
 	((string? ref) (file-exists? ref))
 	(else (error "Weird docbase ref" ref))))
 
-;;; Parsing GPATHs
+;;; Recognizing and parsing GPATHs
+
+(define (gpath? val)
+  (if (pair? val)
+      (and (string? (cdr val))
+	   (or (s3loc? val) (zipfile? val)))
+      (if (string? val)
+	  (and (not (position #\n val))
+	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/"}))
+	  (or (s3loc? val) (zipfile? val)))))
 
 (define (->gpath val)
   (if (string? val)
