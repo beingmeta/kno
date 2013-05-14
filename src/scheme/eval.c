@@ -459,6 +459,71 @@ static int check_line_length(u8_output out,int off,int max_len)
     return -1;}
 }
 
+static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
+{
+  struct U8_OUTPUT out;
+  fdtype watch=fd_get_arg(expr,1); 
+  u8_string dflt_label="%CALL", label=dflt_label, arglabel="%ARG";
+  fdtype *rail, result=FD_EMPTY_CHOICE;
+  int i=0, n_args;
+  if (FD_VOIDP(watch))
+    return fd_err(fd_SyntaxError,"%WATCHCALL",NULL,expr);
+  else if (FD_STRINGP(watch)) {
+    watch=fd_get_arg(expr,2);
+    if (FD_VOIDP(watch)) 
+      return fd_err(fd_SyntaxError,"%WATCHCALL",NULL,expr);
+    label=u8_strdup(FD_STRDATA(fd_get_arg(expr,1)));
+    arglabel=u8_mkstring("%s/ARG",FD_STRDATA(fd_get_arg(expr,1)));}
+  else {}
+  n_args=fd_seq_length(watch);
+  rail=u8_alloc_n(n_args,fdtype);
+  U8_INIT_OUTPUT(&out,1024);
+  u8_printf(&out,"Watched call %q",watch);
+  u8_logger(-10,label,out.u8_outbuf);
+  out.u8_outptr=out.u8_outbuf;
+  while (i<n_args) {
+    fdtype arg=fd_get_arg(watch,i);
+    fdtype val=fd_eval(arg,env);
+    if (FD_ABORTP(val)) {
+      u8_string errstring=fd_errstring(NULL);
+      i--; while (i>=0) {fd_decref(rail[i]); i--;}
+      u8_free(rail);
+      u8_printf(&out,"\t%q !!!> %s",arg,errstring);
+      u8_logger(-10,arglabel,out.u8_outbuf);
+      if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
+      u8_free(out.u8_outptr); u8_free(errstring);
+      return val;}
+    if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
+      u8_printf(&out,"%q ==> %q",arg,val);
+      u8_logger(-10,arglabel,out.u8_outbuf);
+      out.u8_outptr=out.u8_outbuf;}
+    rail[i++]=val;}
+  if (FD_CHOICEP(rail[0])) {
+    FD_DO_CHOICES(fn,rail[0]) {
+      fdtype r=fd_apply(fn,n_args-1,rail+1);
+      if (FD_ABORTP(r)) {
+	u8_string errstring=fd_errstring(NULL);
+	i--; while (i>=0) {fd_decref(rail[i]); i--;}
+	u8_free(rail);
+	fd_decref(result);
+	if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
+	u8_free(out.u8_outptr); u8_free(errstring);
+	return r;}
+      else {FD_ADD_TO_CHOICE(result,r);}}}
+  else result=fd_apply(rail[0],n_args-1,rail+1);
+  if (FD_ABORTP(result)) {
+    u8_string errstring=fd_errstring(NULL);
+    u8_printf(&out,"%q !!!> %s",watch,result);
+    u8_free(errstring);}
+  else u8_printf(&out,"%q ===> %q",watch,result);
+  u8_logger(-10,label,out.u8_outbuf);
+  i--; while (i>=0) {fd_decref(rail[i]); i--;}
+  u8_free(rail);
+  if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
+  u8_free(out.u8_outptr);
+  return result;
+}
+
 static fdtype watched_eval(fdtype expr,fd_lispenv env)
 {
   fdtype toeval=fd_get_arg(expr,1);
@@ -1631,6 +1696,7 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"%TIMEVAL",timed_evalx);
   fd_defspecial(fd_scheme_module,"%WATCH",watched_eval);
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
+  fd_defspecial(fd_scheme_module,"%WATCHCALL",watchcall_handler);
   fd_defspecial(fd_scheme_module,"EVAL1",eval1);
   fd_defspecial(fd_scheme_module,"EVAL2",eval2);
   fd_defspecial(fd_scheme_module,"EVAL3",eval3);
