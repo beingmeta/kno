@@ -43,6 +43,7 @@ static fdtype season_symbol, gmt_symbol, timezone_symbol;
 static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
 static fdtype tick_symbol, xtick_symbol, prim_tick_symbol;
 static fdtype iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
+static fdtype rfc822x_symbol, localstring_symbol;
 static fdtype isodate_symbol, isobasic_symbol, isobasicdate_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
@@ -374,6 +375,16 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_rfc822(&out,xt);
+    return fd_stream2string(&out);}
+  else if (FD_EQ(slotid,rfc822x_symbol)) {
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,128);
+    u8_xtime_to_rfc822_x(&out,xt,-1,0);
+    return fd_stream2string(&out);}
+  else if (FD_EQ(slotid,localstring_symbol)) {
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,128);
+    u8_xtime_to_rfc822_x(&out,xt,1,U8_RFC822_NOZONE);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,gmt_symbol))
     if (xt->u8_tzoff==0) 
@@ -1406,6 +1417,10 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,iso8601_symbol);
   rfc822_symbol=fd_intern("RFC822");
   FD_ADD_TO_CHOICE(xtime_keys,rfc822_symbol);
+  rfc822x_symbol=fd_intern("RFC822X");
+  FD_ADD_TO_CHOICE(xtime_keys,rfc822x_symbol);
+  localstring_symbol=fd_intern("LOCALSTRING");
+  FD_ADD_TO_CHOICE(xtime_keys,localstring_symbol);
   
   time_of_day_symbol=fd_intern("TIME-OF-DAY");
   FD_ADD_TO_CHOICE(xtime_keys,time_of_day_symbol);
