@@ -46,6 +46,7 @@ void grabmagickerr(u8_context cxt,MagickWand *wand)
   char *description=MagickGetException(wand,&severity);
   u8_seterr(MagickWandError,cxt,u8_strdup(description));
   MagickRelinquishMemory(description);
+  MagickClearException(wand);
 }
 
 static int unparse_imagick(struct U8_OUTPUT *out,fdtype x)
@@ -122,6 +123,19 @@ fdtype imagick2packet(fdtype fdwand)
     fdtype packet=fd_make_packet(NULL,n_bytes,data);
     MagickRelinquishMemory(data);
     return packet;}
+}
+
+fdtype imagick2imagick(fdtype fdwand)
+{
+  unsigned char *data=NULL; size_t n_bytes;
+  MagickBooleanType retval;
+  struct FD_IMAGICK *wrapper=
+    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+  struct FD_IMAGICK *fresh=u8_alloc(struct FD_IMAGICK);
+  MagickWand *wand=CloneMagickWand(wrapper->wand);
+  FD_INIT_CONS(fresh,fd_imagick_type);
+  fresh->wand=wand;
+  return (fdtype)fresh;
 }
 
 static fdtype imagick_getformat(fdtype fdwand)
@@ -246,15 +260,21 @@ int fd_init_imagick()
   fd_tablefns[fd_imagick_type]->keys=imagick_getkeys;
 
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("FILE->IMAGICK",file2imagick,1,fd_string_type,FD_VOID));
+	   fd_make_cprim1x("FILE->IMAGICK",file2imagick,1,
+			   fd_string_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("PACKET->IMAGICK",packet2imagick,1,fd_packet_type,FD_VOID));
+	   fd_make_cprim1x("PACKET->IMAGICK",packet2imagick,1,
+			   fd_packet_type,FD_VOID));
   fd_idefn(imagick_module,
 	   fd_make_cprim2x("IMAGICK->FILE",imagick2file,1,
 			   fd_imagick_type,FD_VOID,
 			   fd_string_type,FD_VOID));
   fd_idefn(imagick_module,
 	   fd_make_cprim1x("IMAGICK->PACKET",imagick2packet,1,
+			   fd_imagick_type,FD_VOID));
+
+  fd_idefn(imagick_module,
+	   fd_make_cprim1x("IMAGICK/CLONE",imagick2imagick,1,
 			   fd_imagick_type,FD_VOID));
 
 
