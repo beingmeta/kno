@@ -106,7 +106,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/modules/sqlite.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
 	     src/cmodules/qrcode.o src/cmodules/regex.o \
 	     src/cmodules/ziptools.o src/cmodules/tidy.o \
-	     src/cmodules/zlib.o
+	     src/cmodules/zlib.o src/cmodules/imagick.o
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
@@ -169,7 +169,7 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/cmodules/qrcode.c src/cmodules/regex.c                     \
-	src/cmodules/ziptools.c src/cmodules/tidy.c
+	src/cmodules/ziptools.c src/cmodules/tidy.c src/cmodules/imagick.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
         lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
@@ -613,6 +613,18 @@ lib/framerd/mysql.@FDVERSION@.dylib: src/cmodules/mysql.o
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 lib/framerd/mysql.dylib: lib/framerd/mysql.@FDVERSION@.dylib
 
+src/cmodules/imagick.o: src/cmodules/imagick.c
+	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
+	@$(MSG) CC "(IMAGICK)" $@
+lib/framerd/imagick.so.@FDVERSION@: src/cmodules/imagick.o
+	@$(MKSO) -o $@ $<  @IMAGICK_LDFLAGS@ @LIBS@
+	@$(MSG) MKSO "(IMAGICK)" $@
+lib/framerd/imagick.so: lib/framerd/imagick.so.@FDVERSION@
+lib/framerd/imagick.@FDVERSION@.dylib: src/cmodules/imagick.o
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
+	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
+lib/framerd/imagick.dylib: lib/framerd/imagick.@FDVERSION@.dylib
+
 src/cmodules/%.o: src/cmodules/%.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
@@ -842,6 +854,8 @@ install-ziptools: $(LIBINSTALLDIR)/framerd/ziptools.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/ziptools.@vshared_suffix@
 install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/tidy.@vshared_suffix@
+install-imagick: $(LIBINSTALLDIR)/framerd/imagick.@shared_suffix@ \
+	         $(LIBINSTALLDIR)/framerd/imagick.@vshared_suffix@
 install-exif: $(LIBINSTALLDIR)/framerd/exif.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/exif.@vshared_suffix@
 install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \

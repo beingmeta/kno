@@ -96,10 +96,13 @@ rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
 archflags=""
 with_mysql_default="yes"
-with_crypto_default="no"
+with_crypto_default="yes"
+with_imagick_default="no"
 use_dtblock_default="yes"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+IMAGICK_CFLAGS=
+IMAGICK_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
@@ -165,6 +168,8 @@ AC_SUBST(CMODULES)
 AC_SUBST(INSTALLCMODULES)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
+AC_SUBST(IMAGICK_CFLAGS)
+AC_SUBST(IMAGICK_LDFLAGS)
 AC_SUBST(DEFAULTISASYNC)
 AC_SUBST(USEDTBLOCK)
 AC_SUBST(MSG)
@@ -550,9 +555,20 @@ fi
 AC_CHECK_HEADERS(sqlite3.h sql.h)
 
 AC_CHECK_PROGS(mysql_config,mysql_config,"na")
+AC_CHECK_PROGS(pkg_config,pkg-config,"na")
 
 if test $mysql_config != "na"; then
    with_mysql_default="auto"
+fi
+
+if test $pkg_config != "na"; then
+   if $pkg_config --exists MagickWand; then
+      echo "Magick exists";
+      with_imagick_default=yes;
+   else
+      echo "Magick doesn't exist";
+      with_imagick_default=no;
+   fi
 fi
 
 
@@ -662,6 +678,14 @@ if (test "x$have_libtidy" = "xyes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
+fi
+
+AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_imagick=$with_imagick_default)
+if test x$with_imagick = "xyes"; then
+  IMAGICK_CFLAGS=`pkg-config --cflags --libs MagickWand`
+  IMAGICK_LDFLAGS=`pkg-config --libs MagickWand`
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
 AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")

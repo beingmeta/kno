@@ -622,6 +622,7 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+pkg_config
 mysql_config
 PTHREAD_CFLAGS
 PTHREAD_LIBS
@@ -657,6 +658,8 @@ build
 MSG
 USEDTBLOCK
 DEFAULTISASYNC
+IMAGICK_LDFLAGS
+IMAGICK_CFLAGS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 INSTALLCMODULES
@@ -791,6 +794,7 @@ with_mysql
 with_odbc
 with_ziptools
 with_tidy
+with_imagick
 with_fileinfo
 with_tcmalloc
 enable_largefiles
@@ -1481,6 +1485,7 @@ Optional Packages:
 --without-odbc Build odbc libraries
 --with-ziptools Build and install ziptools
 --with-tidy Build and install tidy library
+--with-imagick Build and install imagemagick library
 --without-fileinfo record fileinfo
 --without-tcmalloc Use the Google malloc library
 --without-crypto Compile the crypto module
@@ -2754,10 +2759,13 @@ rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
 archflags=""
 with_mysql_default="yes"
-with_crypto_default="no"
+with_crypto_default="yes"
+with_imagick_default="no"
 use_dtblock_default="yes"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+IMAGICK_CFLAGS=
+IMAGICK_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
@@ -2793,6 +2801,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
+
 
 
 
@@ -6978,9 +6988,62 @@ fi
 done
 test -n "$mysql_config" || mysql_config=""na""
 
+for ac_prog in pkg-config
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_pkg_config+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$pkg_config"; then
+  ac_cv_prog_pkg_config="$pkg_config" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_pkg_config="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+pkg_config=$ac_cv_prog_pkg_config
+if test -n "$pkg_config"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $pkg_config" >&5
+$as_echo "$pkg_config" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$pkg_config" && break
+done
+test -n "$pkg_config" || pkg_config=""na""
+
 
 if test $mysql_config != "na"; then
    with_mysql_default="auto"
+fi
+
+if test $pkg_config != "na"; then
+   if $pkg_config --exists MagickWand; then
+      echo "Magick exists";
+      with_imagick_default=yes;
+   else
+      echo "Magick doesn't exist";
+      with_imagick_default=no;
+   fi
 fi
 
 
@@ -7666,6 +7729,21 @@ if (test "x$have_libtidy" = "xyes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
+fi
+
+
+# Check whether --with-imagick was given.
+if test "${with_imagick+set}" = set; then :
+  withval=$with_imagick;
+else
+  with_imagick=$with_imagick_default
+fi
+
+if test x$with_imagick = "xyes"; then
+  IMAGICK_CFLAGS=`pkg-config --cflags --libs MagickWand`
+  IMAGICK_LDFLAGS=`pkg-config --libs MagickWand`
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
 
