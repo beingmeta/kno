@@ -383,7 +383,6 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
-  int free_env=0;
   fdtype _vals[6], *vals=_vals, lexpr_arg=FD_EMPTY_LIST, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   /* We're optimizing to avoid GC (and thread contention) for the
@@ -402,17 +401,19 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
+  if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
+  bindings.values=vals;
   if (fn->arity>0)
-    if (n==fn->n_vars) bindings.values=args;
+    if (n==fn->n_vars) {
+      int i=0; while (i<n) {
+	fdtype val=args[i]; fd_incref(val); vals[i]=val; i++;}}
     else if (n<fn->min_arity) 
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
     else if (n>fn->arity) 
       return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);
     else {
       /* This code handles argument defaults for sprocs */
-      int i=0; free_env=1;
-      if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
-      bindings.values=vals;
+      int i=0;
       if (FD_PAIRP(fn->arglist)) {
 	FD_DOLIST(arg,fn->arglist)
 	  if (i<n) {
@@ -436,9 +437,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       else {}
       assert(i==fn->n_vars);}
   else { /* We have a lexpr */
-    int i=0, j=n-1; free_env=1;
-    if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
-    bindings.values=vals;
+    int i=0, j=n-1;
     {FD_DOLIST(arg,fn->arglist)
        if (i<n) {
 	 fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
@@ -466,11 +465,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->synchronized) fd_unlock_struct(fn);
   fd_destroy_rwlock(&(bindings.rwlock));
   fd_decref(lexpr_arg);
-  if (free_env) {
-    free_environment(&envstruct);
-    if (vals!=_vals) u8_free(vals);}
-  else if (envstruct.copy)
+  if (envstruct.copy) {
     fd_recycle_environment(envstruct.copy);
+    envstruct.copy=NULL;}
+  free_environment(&envstruct);
+  if (vals!=_vals) u8_free(vals);
   return result;
 }
 
