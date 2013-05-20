@@ -68,7 +68,7 @@ fdtype file2imagick(fdtype arg)
   MagickWand *wand;
   MagickBooleanType retval;
   struct FD_IMAGICK *fdwand=u8_alloc(struct FD_IMAGICK);
-  FD_INIT_CONS(fdwand,fd_imagick_type);
+  FD_INIT_FRESH_CONS(fdwand,fd_imagick_type);
   fdwand->wand=wand=NewMagickWand();
   retval=MagickReadImage(wand,FD_STRDATA(arg));
   if (retval==MagickFalse) {
@@ -83,7 +83,7 @@ fdtype packet2imagick(fdtype arg)
   MagickWand *wand;
   MagickBooleanType retval;
   struct FD_IMAGICK *fdwand=u8_alloc(struct FD_IMAGICK);
-  FD_INIT_CONS(fdwand,fd_imagick_type);
+  FD_INIT_FRESH_CONS(fdwand,fd_imagick_type);
   fdwand->wand=wand=NewMagickWand();
   retval=MagickReadImageBlob
     (fdwand->wand,FD_PACKET_DATA(arg),FD_PACKET_LENGTH(arg));
@@ -133,7 +133,7 @@ fdtype imagick2imagick(fdtype fdwand)
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   struct FD_IMAGICK *fresh=u8_alloc(struct FD_IMAGICK);
   MagickWand *wand=CloneMagickWand(wrapper->wand);
-  FD_INIT_CONS(fresh,fd_imagick_type);
+  FD_INIT_FRESH_CONS(fresh,fd_imagick_type);
   fresh->wand=wand;
   return (fdtype)fresh;
 }
