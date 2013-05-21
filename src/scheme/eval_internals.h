@@ -24,12 +24,18 @@ static void free_environment(struct FD_ENVIRONMENT *env)
     else {
       struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
       int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
-      while (i < n) {fd_decref(vals[i]); i++;}
+      while (i < n) {
+	fdtype val=vals[i++];
+	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	  fd_decref(val);}}
       fd_recycle_environment(env->copy);}
   else {
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
     int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
-    while (i < n) {fd_decref(vals[i]); i++;}}
+    while (i < n) {
+      fdtype val=vals[i++];
+      if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	fd_decref(val);}}}
 }
 
 FD_INLINE_FCN fdtype return_error_env

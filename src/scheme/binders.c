@@ -357,7 +357,11 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       /* Now, free the current values and replace them with the values
 	 from tmp[]. */
       i=0; while (i < n) {
-	fd_decref(vals[i]); vals[i]=tmp[i]; i++;}
+	fdtype val=vals[i];
+	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	  fd_decref(val);}
+	vals[i]=tmp[i];
+	i++;}
       /* Free the testval and evaluate it again. */
       fd_decref(testval);
       if (envstruct.copy) {
@@ -406,7 +410,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->arity>0)
     if (n==fn->n_vars) {
       int i=0; while (i<n) {
-	fdtype val=args[i]; vals[i]=fd_incref(val); i++;}}
+	fdtype val=args[i];
+	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+	  vals[i]=fd_incref(val);
+	else vals[i]=val;
+	i++;}}
     else if (n<fn->min_arity) 
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
     else if (n>fn->arity) 
@@ -417,7 +425,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       if (FD_PAIRP(fn->arglist)) {
 	FD_DOLIST(arg,fn->arglist)
 	  if (i<n) {
-	    fdtype val=args[i]; vals[i]=fd_incref(val); i++;}
+	    fdtype val=args[i];
+	    if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+	      vals[i]=fd_incref(val);
+	    else vals[i]=val;
+	    i++;}
 	  else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	    /* This code handles argument defaults for sprocs */
 	    fdtype default_expr=FD_CADR(arg);
@@ -428,7 +440,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
 	int len=v->length; fdtype *dflts=v->data;
 	if (i<n) {
-	  fdtype val=args[i]; vals[i]=fd_incref(val); i++;}
+	  fdtype val=args[i];
+	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+	    vals[i]=fd_incref(val);
+	  else vals[i]=val;
+	  i++;}
 	else if (i>=len) vals[i++]=FD_VOID;
 	else {
 	  fdtype default_expr=dflts[i];
@@ -440,7 +456,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     int i=0, j=n-1;
     {FD_DOLIST(arg,fn->arglist)
        if (i<n) {
-	 fdtype val=args[i]; vals[i]=fd_incref(val); i++;}
+	 fdtype val=args[i];
+	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+	    vals[i]=fd_incref(val);
+	  else vals[i]=val;
+	  i++;}
        else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	 /* This code handles argument defaults for sprocs */
 	 fdtype default_expr=FD_CADR(arg);
@@ -863,7 +883,10 @@ fdtype fd_xapply_sproc
       return fd_err(fd_BadArglist,fn->name,NULL,fn->arglist);
     argval=getval(data,argname);
     if (FD_ABORTP(argval)) {
-      int j=0; while (j<i) {fd_decref(vals[j]); j++;}
+      int j=0; while (j<i) {
+	fdtype val=vals[j++];
+	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+	  fd_decref(val);}
       if (vals!=_vals) u8_free(vals);
       return argval;}
     else if ((FD_VOIDP(argval)) &&
@@ -881,7 +904,10 @@ fdtype fd_xapply_sproc
     fdtype argval=getval(data,arglist);
     if (FD_VOIDP(argval)) argval=getval(data,tail_symbol);
     if (FD_ABORTP(argval)) {
-      int j=0; while (j<i) {fd_decref(vals[j]); j++;}
+      int j=0; while (j<i) {
+	fdtype val=vals[j++];
+	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	  fd_decref(val);}}
       if (vals!=_vals) u8_free(vals);
       return argval;}
     else vals[i++]=argval;}
@@ -896,7 +922,10 @@ fdtype fd_xapply_sproc
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
   {
-    int j=0; while (j<i) {fd_decref(vals[j]); j++;}
+    int j=0; while (j<i) {
+      fdtype val=vals[j++];
+      if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	fd_decref(val);}}
     if (vals!=_vals) u8_free(vals);}
   fd_destroy_rwlock(&(bindings.rwlock));
   return result;
