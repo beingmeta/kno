@@ -406,7 +406,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->arity>0)
     if (n==fn->n_vars) {
       int i=0; while (i<n) {
-	fdtype val=args[i]; fd_incref(val); vals[i]=val; i++;}}
+	fdtype val=args[i]; vals[i]=fd_incref(val); i++;}}
     else if (n<fn->min_arity) 
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
     else if (n>fn->arity) 
@@ -417,7 +417,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       if (FD_PAIRP(fn->arglist)) {
 	FD_DOLIST(arg,fn->arglist)
 	  if (i<n) {
-	    fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
+	    fdtype val=args[i]; vals[i]=fd_incref(val); i++;}
 	  else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	    /* This code handles argument defaults for sprocs */
 	    fdtype default_expr=FD_CADR(arg);
@@ -428,7 +428,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
 	int len=v->length; fdtype *dflts=v->data;
 	if (i<n) {
-	  fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
+	  fdtype val=args[i]; vals[i]=fd_incref(val); i++;}
 	else if (i>=len) vals[i++]=FD_VOID;
 	else {
 	  fdtype default_expr=dflts[i];
@@ -440,7 +440,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     int i=0, j=n-1;
     {FD_DOLIST(arg,fn->arglist)
        if (i<n) {
-	 fdtype val=vals[i]=args[i]; fd_incref(val); i++;}
+	 fdtype val=args[i]; vals[i]=fd_incref(val); i++;}
        else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
 	 /* This code handles argument defaults for sprocs */
 	 fdtype default_expr=FD_CADR(arg);
