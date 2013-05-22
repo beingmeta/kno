@@ -22,10 +22,13 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 #include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
 
 #include <sqlite3.h>
 #include <limits.h>
 #include <ctype.h>
+
+static fd_exception NoSuchFile=_("file does not exist");
 
 FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
@@ -171,7 +174,7 @@ static fdtype sqlite_open_prim(fdtype filename,fdtype colinfo,fdtype options)
     u8_log(LOG_WARN,"sqlite_open",
 	   "the sqlite3_open_v2 private cache option is not available");
   if ((!(readcreate))&&(!(u8_file_existsp(FD_STRDATA(filename))))) {
-    u8_seterr(NoSuchFile,"opensqlite",fd_strdup(FD_STRDATA(filename)));
+    u8_seterr(NoSuchFile,"opensqlite",u8_strdup(FD_STRDATA(filename)));
     return FD_ERROR_VALUE;}
   
   if (!(FD_VOIDP(vfs)))
