@@ -89,6 +89,7 @@ static struct CSMAP {
   {Rec709YCbCrColorspace,"Rec709YCbCr"},
   {LogColorspace,"Log"},
   {CMYColorspace,"CMY"},
+  /*
   {LuvColorspace,"Luv"},
   {HCLColorspace,"HCL"},
   {LCHColorspace,"LCH"},
@@ -96,6 +97,7 @@ static struct CSMAP {
   {LCHabColorspace,"LCHab"},
   {LCHuvColorspace,"LCHuv"},
   {scRGBColorspace,"scRGB"},
+  */
   {UndefinedColorspace,"Undefined"}};
 
 
