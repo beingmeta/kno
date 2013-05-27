@@ -20,7 +20,8 @@
 #include <libu8/u8crypto.h>
 #include <libu8/u8pathfns.h>
 
-#include <wand/magick_wand.h>
+#include <wand/MagickWand.h>
+#include <wand/pixel-wand.h>
 #include <limits.h>
 #include <ctype.h>
 #include <math.h>
@@ -34,6 +35,88 @@ typedef struct FD_IMAGICK {
   FD_CONS_HEADER;
   MagickWand *wand;} FD_IMAGICK;
 typedef struct FD_IMAGICK *fd_imagick;
+
+/* Data for conversions */
+
+static struct CTYPEMAP {
+  CompressionType ct;
+  char *cname; } compression_types[]={
+  {NoCompression,"None"},
+  {BZipCompression,"BZip"},
+  {DXT1Compression,"DXT1"},
+  {DXT3Compression,"DXT3"},
+  {DXT5Compression,"DXT5"},
+  {FaxCompression,"Fax"},
+  {Group4Compression,"Group4"},
+  {JPEGCompression,"JPEG"},
+  {JPEG2000Compression,"JPEG2000"}, /* ISO/IEC std 15444-1 */
+  {LosslessJPEGCompression,"LosslessJPEG"},
+  {LZWCompression,"LZW"},
+  {RLECompression,"RLE"},
+  {ZipCompression,"Zip"},
+  {ZipSCompression,"ZipS"},
+  {PizCompression,"Piz"},
+  {Pxr24Compression,"Pxr24"},
+  {B44Compression,"B44"},
+  {B44ACompression,"B44A"},
+  {LZMACompression,"LZMA"},             /* Lempel-Ziv-Markov chain algorithm */
+  {JBIG1Compression,"JBIG1"},           /* ISO/IEC std 11544 / ITU-T rec T.82 */
+  {JBIG2Compression,"JBIG2"},           /* ISO/IEC std 14492 / ITU-T rec T.88 */
+  {UndefinedCompression,"Undefined"}};
+
+static struct CSMAP {
+  ColorspaceType cs;
+  char *csname;} csmap[]={
+  {RGBColorspace,"RGB"},
+  {GRAYColorspace,"GRAY"},
+  {TransparentColorspace,"Transparent"},
+  {OHTAColorspace,"OHTA"},
+  {LabColorspace,"Lab"},
+  {XYZColorspace,"XYZ"},
+  {YCbCrColorspace,"YCbCr"},
+  {YCCColorspace,"YCC"},
+  {YIQColorspace,"YIQ"},
+  {YPbPrColorspace,"YPbPr"},
+  {YUVColorspace,"YUV"},
+  {CMYKColorspace,"CMYK"},
+  {sRGBColorspace,"sRGB"},
+  {HSBColorspace,"HSB"},
+  {HSLColorspace,"HSL"},
+  {HWBColorspace,"HWB"},
+  {Rec601LumaColorspace,"Rec601Luma"},
+  {Rec601YCbCrColorspace,"Rec601YCbCr"},
+  {Rec709LumaColorspace,"Rec709Luma"},
+  {Rec709YCbCrColorspace,"Rec709YCbCr"},
+  {LogColorspace,"Log"},
+  {CMYColorspace,"CMY"},
+  {LuvColorspace,"Luv"},
+  {HCLColorspace,"HCL"},
+  {LCHColorspace,"LCH"},
+  {LMSColorspace,"LMS"},
+  {LCHabColorspace,"LCHab"},
+  {LCHuvColorspace,"LCHuv"},
+  {scRGBColorspace,"scRGB"},
+  {UndefinedColorspace,"Undefined"}};
+
+
+char *ctype2string(CompressionType ct)
+{
+  struct CTYPEMAP *scan=compression_types;
+  while (scan->ct!=UndefinedCompression)
+    if (ct==scan->ct) return scan->cname;
+    else scan++;
+  return NULL;
+}
+
+char *cspace2string(ColorspaceType cs)
+{
+  struct CSMAP *scan=csmap;
+  while (scan->cs!=UndefinedColorspace)
+    if (cs==scan->cs) return scan->csname;
+    else scan++;
+  return NULL;
+}
+
 
 void magickwand_atexit()
 {
@@ -138,48 +221,80 @@ fdtype imagick2imagick(fdtype fdwand)
   return (fdtype)fresh;
 }
 
-static fdtype imagick_getformat(fdtype fdwand)
-{
-  MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
-  MagickWand *wand=wrapper->wand;
-  char *fmt=MagickGetImageFormat(wand);
-  if (fmt) return fd_make_string(NULL,-1,fmt);
-  else {
-    grabmagickerr("imagick_getformat",wand);
-    return FD_ERROR_VALUE;}
-}
+/* Getting properties */
 
-static fdtype imagick_setformat(fdtype fdwand,fdtype format)
-{
-  MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
-  MagickWand *wand=wrapper->wand;
-  retval=MagickSetImageFormat(wand,FD_STRDATA(format));
-  if (retval==MagickFalse) {
-    grabmagickerr("imagick_setformat",wand);
-    return FD_ERROR_VALUE;}
-  else return fd_incref(fdwand);
-}
+static fdtype antialias, bgcolor, colorspace, comptype, compqual;
+static fdtype font, format, gravity, orientation, page, pointsize, resolution;
+static fdtype size, width, height;
 
-static fdtype imagick_getwidth(fdtype fdwand)
+static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
 {
-  MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   MagickWand *wand=wrapper->wand;
-  size_t iwidth=MagickGetImageWidth(wand);
-  return FD_INT2DTYPE(iwidth);
-}
-
-static fdtype imagick_getheight(fdtype fdwand)
-{
-  MagickBooleanType retval;
-  struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
-  MagickWand *wand=wrapper->wand;
-  size_t iheight=MagickGetImageHeight(wand);
-  return FD_INT2DTYPE(iheight);
+  enum result_type {imbool,imint,imdouble,imsize,imbox,imtrans} rt;
+  if (FD_EQ(field,antialias)) {
+      MagickBooleanType bval=MagickGetAntialias(wand);
+      if (bval) return FD_TRUE; else return FD_FALSE;}
+  else if (FD_EQ(field,bgcolor)) {
+    PixelWand *pw=MagickGetBackgroundColor(wand);
+    char *string=PixelGetColorAsNormalizedString(pw);
+    fdtype result=fdtype_string(string);
+    return result;}
+  else if (FD_EQ(field,colorspace)) {
+    ColorspaceType cs=MagickGetColorspace(wand);
+    char *name=cspace2string(cs);
+    fdtype result=fdtype_string(name);
+    return result;}
+  else if (FD_EQ(field,comptype)) {
+    CompressionType ct=MagickGetCompression(wand);
+    char *name=ctype2string(ct);
+    fdtype result=fdtype_string(name);
+    return result;}
+  else if (FD_EQ(field,compqual)) {
+    size_t cq=MagickGetCompressionQuality(wand);
+    return FD_INT2DTYPE(cq);}
+  else if (FD_EQ(field,font)) {
+    const char *fontname=MagickGetFont(wand);
+    return fdtype_string((char *)fontname);}
+  else if (FD_EQ(field,format)) {
+    const char *format=MagickGetFormat(wand);
+    return fdtype_string((char *)format);}
+  else if (FD_EQ(field,gravity)) {
+    GravityType g=MagickGetGravity(wand);
+    return FD_FALSE;}
+  else if (FD_EQ(field,gravity)) {
+    GravityType g=MagickGetGravity(wand);
+    return FD_FALSE;}
+  else if (FD_EQ(field,orientation)) {
+    OrientationType i=MagickGetOrientation(wand);
+    return FD_FALSE;}
+  else if (FD_EQ(field,page)) {
+    size_t w, h; ssize_t x, y;
+    MagickBooleanType rv=MagickGetPage(wand,&w,&h,&x,&y);
+    return fd_make_nvector
+      (2,fd_init_pair(NULL,FD_INT2DTYPE(w),FD_INT2DTYPE(h)),
+       fd_init_pair(NULL,FD_INT2DTYPE(x),FD_INT2DTYPE(y)));}
+  else if (FD_EQ(field,pointsize)) {
+    double ps=MagickGetPointsize(wand);
+    return fd_make_double(ps);}
+  else if (FD_EQ(field,resolution)) {
+    double x=0, y=0;
+    MagickBooleanType rv=MagickGetResolution(wand,&x,&y);
+    return fd_init_pair(NULL,fd_make_double(x),fd_make_double(y));}
+  else if (FD_EQ(field,size)) {
+    size_t w=0, h=0;
+    MagickBooleanType rv=MagickGetSize(wand,&w,&h);
+    return fd_init_pair(NULL,FD_INT2DTYPE(w),FD_INT2DTYPE(h));}
+  else if (FD_EQ(field,width)) {
+    size_t w=0, h=0;
+    MagickBooleanType rv=MagickGetSize(wand,&w,&h);
+    return FD_INT2DTYPE(w);}
+  else if (FD_EQ(field,height)) {
+    size_t w=0, h=0;
+    MagickBooleanType rv=MagickGetSize(wand,&w,&h);
+    return FD_INT2DTYPE(h);}
+  else return FD_VOID;
 }
 
 static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg)
@@ -239,6 +354,27 @@ static fdtype imagick_getkeys(fdtype fdwand)
 
 static int imagick_init=0;
 
+static void init_symbols()
+{
+  antialias=fd_intern("ANTIALIAS");
+  bgcolor=fd_intern("BGCOLOR");
+  colorspace=fd_intern("COLORSPACE");
+  comptype=fd_intern("COMPTYPE");
+  compqual=fd_intern("COMPQUAL");
+  
+  font=fd_intern("FONT");
+  format=fd_intern("FORMAT");
+  gravity=fd_intern("GRAVITY");
+  orientation=fd_intern("ORIENTATION");
+  page=fd_intern("PAGE");
+  pointsize=fd_intern("POINTSIZE");
+  resolution=fd_intern("RESOLUTION");
+  
+  size=fd_intern("SIZE");
+  width=fd_intern("WIDTH");
+  height=fd_intern("HEIGHT");
+}
+
 int fd_init_imagick()
 {
   fdtype imagick_module;
@@ -250,14 +386,16 @@ int fd_init_imagick()
   fd_unparsers[fd_imagick_type]=unparse_imagick;
   fd_recyclers[fd_imagick_type]=recycle_imagick;
 
+  init_symbols();
+
   fd_tablefns[fd_imagick_type]=u8_alloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_imagick_type]->get=(fd_table_get_fn)imagick_get;
+  fd_tablefns[fd_imagick_type]->get=(fd_table_get_fn)imagick_table_get;
   fd_tablefns[fd_imagick_type]->add=NULL;
   fd_tablefns[fd_imagick_type]->drop=NULL;
   fd_tablefns[fd_imagick_type]->store=NULL;
   fd_tablefns[fd_imagick_type]->test=NULL;
   fd_tablefns[fd_imagick_type]->getsize=NULL;
-  fd_tablefns[fd_imagick_type]->keys=imagick_getkeys;
+  fd_tablefns[fd_imagick_type]->keys=NULL;
 
   fd_idefn(imagick_module,
 	   fd_make_cprim1x("FILE->IMAGICK",file2imagick,1,
@@ -277,27 +415,15 @@ int fd_init_imagick()
 	   fd_make_cprim1x("IMAGICK/CLONE",imagick2imagick,1,
 			   fd_imagick_type,FD_VOID));
 
-
-  fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/FORMAT",imagick_getformat,1,
-			   fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-	   fd_make_cprim2x("IMAGICK/SET-FORMAT!",imagick_setformat,2,
-			   fd_imagick_type,FD_VOID,fd_string_type,FD_VOID));
-  fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/HEIGHT",imagick_getheight,1,
-			   fd_imagick_type,FD_VOID));
-  fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/WIDTH",imagick_getwidth,1,
-			   fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
 	   fd_make_cprim3x("IMAGICK/FIT",imagick_fit,3,
 			   fd_imagick_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID));
-
   
   MagickWandGenesis();
   atexit(magickwand_atexit);
+
+  return 1;
 
 }
