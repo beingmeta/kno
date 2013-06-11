@@ -3,9 +3,10 @@
 
 (in-module 'packetfns)
 
-(module-export! '{packet->digits digits->packet
-		  packetfns/base62 packetfns/base57 packetfns/base36 packetfns/base16
-		  packet/condense}) 
+(module-export!
+ '{packet->digits digits->packet
+   packetfns/base62 packetfns/base57 packetfns/base36 packetfns/base16
+   packet/condense}) 
 
 (define packetfns/base62
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz")
