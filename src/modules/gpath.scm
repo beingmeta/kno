@@ -315,7 +315,7 @@
 	    modified ,(try (memfile-modified (get (car ref) (cdr ref))))])
 	((pair? ref) (gp/fetch+ (gp/path (car ref) (cdr ref))))
 	((and (string? ref) (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (urlfetch ref))
+	 (gp/urlfetch ref))
 	((and (string? ref) (has-prefix ref "s3:"))
 	 (s3/get+ (->s3loc ref)))
 	((and (string? ref) (not (file-exists? ref))) #f)
