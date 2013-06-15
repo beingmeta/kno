@@ -178,7 +178,7 @@ static long long int zipadd
 }
 
 static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
-			  fdtype extra,fdtype comment,fdtype compress)
+			  fdtype comment,fdtype compress)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   unsigned char *data=NULL; size_t datalen=0;
@@ -206,30 +206,6 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
   if (index<0) {
     u8_unlock_mutex(&(zf->lock));
     return ziperr("zipadd",zf,(fdtype)zf);}
-#if (HAVE_ZIP_SET_FILE_EXTRA)
-  if (!(FD_FALSEP(extra))) {
-    int retval=-1;
-    if (FD_STRINGP(extra)) 
-      retval=zip_set_file_extra
-	(zf->zip,index,FD_STRDATA(extra),FD_STRLEN(extra));
-    else if (FD_PACKETP(extra))
-      retval=zip_set_file_extra
-	(zf->zip,index,FD_PACKET_DATA(extra),
-	 FD_PACKET_LENGTH(extra));
-    else {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
-      fd_unparse(&out,extra);
-      retval=zip_set_file_extra(zf->zip,index,out.u8_outbuf,
-				out.u8_outptr-out.u8_outbuf);
-      u8_free(out.u8_outbuf);}
-    if (retval<0) {
-      u8_unlock_mutex(&(zf->lock));
-      return ziperr("zipadd/extra",zf,(fdtype)zf);}}
-#else
-  if (!(FD_FALSEP(extra))) 
-    u8_log(LOG_WARNING,"zipadd/extra",
-	   "available libzip doesn't support extra fields");
-#endif
 #if (HAVE_ZIP_SET_FILE_COMMENT)
   if (!(FD_FALSEP(comment))) {
     int retval=-1;
@@ -448,11 +424,10 @@ FD_EXPORT int fd_init_ziptools()
 	   ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim6x("ZIP/ADD!",zipadd_prim,3,
+	   fd_make_cprim5x("ZIP/ADD!",zipadd_prim,3,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID,
-			   -1,FD_FALSE,
 			   -1,FD_FALSE,
 			   -1,FD_TRUE));
 
