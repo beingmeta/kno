@@ -47,7 +47,7 @@
 
 ;;; Server info
 
-(define-init oauth-servers
+(define oauth-servers
   `#[TWITTER
      #[REQUEST "https://api.twitter.com/oauth/request_token"
        VERIFY "https://api.twitter.com/oauth/access_token"
@@ -90,7 +90,15 @@
        SCOPE "publish_actions,publish_stream,user_about_me,offline_access"
        VERSION "2.0"
        REALM FACEBOOK
-       NAME "Facebook"]])
+       NAME "Facebook"]
+     AMAZON
+     #[AUTHORIZE "https://www.amazon.com/ap/oa"
+       ACCESS "https://api.amazon.com/auth/o2/token"
+       KEY AMZ:KEY SECRET AMZ:SECRET
+       SCOPE "profile postal_code"
+       VERSION "2.0"
+       REALM AMAZON
+       NAME "Amazon"]])
 
 (define (oauth/provider spec) (get oauth-servers spec))
 (module-export! 'oauth/provider)
@@ -348,14 +356,15 @@
   (default! csecret (getcsecret spec))
   (debug%watch "OAUTH/GETACCESS" code spec)
   (let* ((callback (getcallback spec))
-	 (req (urlpost (getopt spec 'access) 
-		       "code" (qc (tryif code code))
-		       "client_id" ckey "client_secret" csecret
-		       "grant_type" (getopt spec 'grant "authorization_code")
-		       "fb_exchange_token"
-		       (qc (tryif (testopt spec 'grant "fb_exchange_token")
-			     (getopt spec 'fb_exchange_token (getopt spec 'token {}))))
-		       "redirect_uri" (qc callback))))
+	 (req (urlpost (getopt spec 'access)
+		       #[content-type "application/x-www-form-urlencoded"
+			 header ("Expect" . "")
+			 verbose #t]
+		       (args->post
+			(list "code" (qc (tryif code code))
+			      "client_id" ckey "client_secret" csecret
+			      "grant_type" (getopt spec 'grant "authorization_code")
+			      "redirect_uri" (qc callback))))))
     (if (test req 'response 200)
 	(let* ((parsed (getreqdata req))
 	       (expires_in (->number
@@ -364,7 +373,7 @@
 	       (authinfo `#[token ,(get parsed 'access_token)]))
 	  (debug%watch parsed spec req)
 	  (when (exists? (get parsed 'token_type))
-	    (unless (equal? (get parsed 'token_type) "Bearer")
+	    (unless (string-ci=? (get parsed 'token_type) "Bearer")
 	      (logwarn 'OAUTH/Bearer "Odd token type " (get parsed 'token_type)
 		       " responding to " spec)))
 	  (when (and (exists? expires_in) expires_in)
