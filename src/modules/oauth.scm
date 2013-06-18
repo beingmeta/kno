@@ -47,7 +47,7 @@
 
 ;;; Server info
 
-(define oauth-servers
+(define-init oauth-servers
   `#[TWITTER
      #[REQUEST "https://api.twitter.com/oauth/request_token"
        VERIFY "https://api.twitter.com/oauth/access_token"
