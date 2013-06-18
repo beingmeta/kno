@@ -101,6 +101,8 @@
 	   new))
 	(else data)))
 
+(define redirect #%(OLIB "/type/redirect"))
+
 (define (olib/fetch ref)
   (if (string? ref)
       (let* ((url (stringout
@@ -118,7 +120,10 @@
 		    ".json"))
 	     (r (urlget url)))
 	(if (test r 'response 200)
-	    (olib/import (jsonparse (get r '%content)))
+	    (let ((parsed (jsonparse (get r '%content))))
+	      (if (equal? (get (get parsed 'type) 'key) "/type/redirect")
+		  (olib/fetch (get parsed 'location))
+		  (olib/import parsed)))
 	    (error "Bad server response to " (write url) "\n\t" r)))
       (if (olib? ref)
 	  (olib/fetch (olib-key ref))
