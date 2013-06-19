@@ -39,7 +39,7 @@
       (system (config 'RM "rm -rf") " " (fakezip-tmpdir fz))
       (message "Leaving temporary dir " (fakezip-tmpdir fz))))
 
-(define (fz/add! fz path content (extra #f) (addcomment #f) (compress #t))
+(define (fz/add! fz path content (addcomment #f) (compress #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
 	(curdir (getcwd))
 	(args (list path))
