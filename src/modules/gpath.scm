@@ -268,7 +268,9 @@
 	     (test response '%content))
 	`#[content ,(get response '%content)
 	   ctype ,(get response 'content-type)
-	   modified ,(get response 'last-modified)]
+	   encoding ,(get response 'content-encoding)
+	   modified ,(get response 'last-modified)
+	   etag ,(get response 'etag)]
 	(if (<= 300 (get response 'response) 399)
 	    (if (and (number? max-redirects) (> max-redirects 0))
 		(gp/urlfetch (get response 'location)
