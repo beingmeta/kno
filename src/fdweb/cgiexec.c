@@ -817,6 +817,31 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
       fd_decref(val);
       return shorter;}
     else return val;}
+  else if (FD_CHOICEP(val)) {
+    fdtype result=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(v,val) {
+      if (!(FD_STRINGP(v))) {
+	FD_ADD_TO_CHOICE(result,v); fd_incref(v);}
+      else {
+	u8_string data=FD_STRDATA(v); fdtype parsed=v;
+	if (*data=='\\') parsed=fdtype_string(data+1);
+	else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
+	else if (*data==':') 
+	  parsed=fd_parse(data+1);
+	else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
+	  parsed=fd_parse_arg(data);
+	  if (!(FD_NUMBERP(parsed))) {
+	    fd_decref(parsed); parsed=v; fd_incref(parsed);}}
+	else if (strchr("@{#(",data[0]))
+	  parsed=fd_parse_arg(data);
+	else fd_incref(parsed);
+	if (FD_ABORTP(parsed)) {
+	  u8_log(LOG_WARN,fd_ParseArgError,"Bad LISP arg '%s'",data);
+	  fd_clear_errors(1);
+	  parsed=v; fd_incref(v);}
+	FD_ADD_TO_CHOICE(result,parsed);}}
+    fd_decref(val);
+    return result;}
   else return val;
 }
 
