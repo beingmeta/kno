@@ -742,23 +742,29 @@ static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
     if (fd_overlapp(tempdir,cur_tempdirs)) {
       if (fd_overlapp(tempdir,cur_keep)) {
 	if (force) {
-	  u8_log(LOG_WARN,"Forcing deletion of directory %s, declared for safekeeping",dirname);
+	  u8_log(LOG_WARN,"Forced temp deletion",
+		 "Forcing deletion of directory %s, declared for safekeeping",dirname);
 	  keeptemp=fd_difference(cur_keep,tempdir);
 	  tempdirs=fd_difference(cur_tempdirs,tempdir);
 	  fd_decref(cur_keep); fd_decref(cur_tempdirs);
 	  doit=1;}
-	else u8_log(LOG_WARN,"The directory %s is declared for safekeeping, leaving",dirname);}
+	else u8_log(LOG_WARN,_("Keeping temp directory"),
+		    "The directory %s is declared for safekeeping, leaving",dirname);}
       else {
-	u8_log(LOG_INFO,"Explicitly deleting temporary directory %s",dirname);
+	u8_log(LOG_INFO,_("Deleting temp directory"),
+	       "Explicitly deleting temporary directory %s",dirname);
 	tempdirs=fd_difference(cur_tempdirs,tempdir);
 	fd_decref(cur_tempdirs);
 	doit=1;}}
     else if (!(u8_directoryp(dirname))) 
-      u8_log(LOG_WARN,"The temporary directory %s is neither declared or actual",dirname);
+      u8_log(LOG_WARN,_("Weird temp directory"),
+	     "The temporary directory %s is neither declared or actual",dirname);
     else if (force) {
-      u8_log(LOG_WARN,"Forcing deletion of the undeclared temporary directory %s",dirname);
+      u8_log(LOG_WARN,"Forced temp delete",
+	     "Forcing deletion of the undeclared temporary directory %s",dirname);
       doit=1;}
-    else u8_log(LOG_WARN,"The directory %s is not a known temporary directory, leaving",
+    else u8_log(LOG_WARN,"Unknown temp directory",
+		"The directory %s is not a known temporary directory, leaving",
 		FD_STRDATA(tempdir));
     u8_unlock_mutex(&tempdirs_lock);}
   if (doit) {
