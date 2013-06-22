@@ -1079,7 +1079,8 @@ static fdservlet servlet_set_max_socks(fdservlet s,int max_socks)
       apr_thread_mutex_unlock(s->lock);
       return s;}
     else {
-      struct FDSOCKET *fresh=apr_pcalloc(fdserv_pool,sizeof(struct FDSOCKET)*max_socks);
+      struct FDSOCKET *fresh=
+	apr_pcalloc(fdserv_pool,sizeof(struct FDSOCKET)*max_socks);
       if (s->max_socks) {
 	memcpy(fresh,s->sockets,(sizeof(struct FDSOCKET))*(s->max_socks));}
       if (fresh) {
@@ -2094,7 +2095,8 @@ static int fdserv_handler(request_rec *r)
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
 		  "Only wrote %ld bytes of request to socket @x%lx (%s)",
 		  (long int)bytes_written,
-		  ((unsigned long int)sock),sock->sockname);
+		  ((unsigned long int)(sock->conn.apr)),
+		  sock->sockname);
     servlet_close_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else {
@@ -2103,13 +2105,15 @@ static int fdserv_handler(request_rec *r)
       ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
 		    "Only wrote %ld bytes of request to socket @x%lx (%s)",
 		    (long int)bytes_written,
-		    ((unsigned long int)sock),sock->sockname);
+		    ((unsigned long int)(sock->conn.apr)),
+		    sock->sockname);
       servlet_close_socket(servlet,sock);
       return HTTP_INTERNAL_SERVER_ERROR;}
     else ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		       "Wrote all %ld bytes of request to socket @x%lx (%s)",
 		       ((long int)(reqdata->ptr-reqdata->buf)),
-		       ((unsigned long int)sock),sock->sockname);}
+		       ((unsigned long int)(sock->conn.apr)),
+		       sock->sockname);}
   
   requested=apr_time_now();
   
