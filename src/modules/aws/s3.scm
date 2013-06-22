@@ -431,7 +431,7 @@
 	   ctype ,(try (get req 'content-type)
 		       (guess-mimetype (s3loc-path loc))
 		       (if text "text" "application"))
-	   encoding (get req 'content-encoding)
+	   encoding ,(get req 'content-encoding)
 	   modified ,(try (get req 'last-modified) (timestamp))
 	   etag ,(try (get req 'etag) (md5 (get req '%content)))]
 	(and err (error S3FAILURE S3LOC/CONTENT req)))))
