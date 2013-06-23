@@ -37,6 +37,7 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
+DEBUG_FDSERV    = 0
 RPMFLAGS	=
 
 DTYPE_HEADERS=\
@@ -945,7 +946,7 @@ rpm-build-setup:
 etc/mod_fdserv.so: etc/mod_fdserv.c
 	$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo etc/mod_fdserv.c .`"\"" \
 		> etc/mod_fdserv_fileinfo.h
-	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -c etc/mod_fdserv.c
+	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_FDSERV=$(DEBUG_FDSERV) -c etc/mod_fdserv.c
 
 mod_fdserv: etc/mod_fdserv.so
 
