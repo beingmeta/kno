@@ -449,7 +449,7 @@ else
   SHARED_LIB_TARGET=
 fi
 
-dnl Build the shared libraries.  
+dnl Enable async I/O features
 AC_ARG_ENABLE(async,--en[able]-async Enable async I/O features)
 
 if test "x$enable_async" = "xyes"; then
@@ -460,7 +460,7 @@ else
   AC_DEFINE(FD_DEFAULT_ASYNC,0)
 fi
 
-dnl Build the shared libraries.  
+dnl Enable dtblock for improved performance
 AC_ARG_ENABLE(dtblock,--en[able]-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
 
 if test "x$enable_dtblock" = "xyes"; then
