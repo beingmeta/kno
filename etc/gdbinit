@@ -152,5 +152,9 @@ define trace_tempsrv
   set env FD_LOGLEVEL=8
 end
 
+define sbooksweb
+    set args /var/run/fdserv/$arg0.sock CONFIG=/src/sbooks/site.cfg PRELOAD=/src/sbooks/preload.scm
+end
+
 # Init some tracing configurations
 set env FD_TRACEWEB=yes
