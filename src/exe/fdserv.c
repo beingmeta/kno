@@ -97,6 +97,8 @@ static int max_backlog=-1;
    away, so we can start another server.  */
 static int shutdown_grace=30000000; /* 30 seconds */
 
+static u8_condition fdservWriteError="fdserv write error";
+
 /* STATLOG config */
 
 /* The statlog is a plain text (UTF-8) file which contains server
@@ -421,7 +423,7 @@ static fdtype servlet_status()
 
 static int check_pid_file(char *sockname)
 {
-  int fd; u8_string dir=NULL; char buf[128]; 
+  int fd, rv; u8_string dir=NULL; char buf[128]; 
   char *dot=strchr(sockname,'.');
   if (dot) *dot='\0';
   if (sockname[0]!='/') dir=u8_getcwd();
@@ -449,7 +451,9 @@ static int check_pid_file(char *sockname)
 	       "Couldn't write PID file %s",pidfile);
 	return 0;}}}
   sprintf(buf,"%d",getpid());
-  u8_writeall(fd,buf,strlen(buf));
+  if ((u8_writeall(fd,buf,strlen(buf)))<0)
+    u8_log(LOG_CRIT,"Couldn't write file",
+	   "Couldn't write data to PID file %s",pidfile);
   close(fd);
   return 1;
 }
@@ -461,10 +465,20 @@ static int check_pid_file(char *sockname)
 static int output_content(fd_webconn ucl,fdtype content)
 {
   if (FD_STRINGP(content)) {
-    u8_writeall(ucl->socket,FD_STRDATA(content),FD_STRLEN(content));
+    int rv=u8_writeall(ucl->socket,FD_STRDATA(content),FD_STRLEN(content));
+    if (rv<0) {
+      u8_log(LOG_CRIT,fdservWriteError,
+	     "Unexpected error writing %ld bytes to mod_fdserv",
+	     FD_STRLEN(content));
+      return rv;}
     return FD_STRLEN(content);}
   else if (FD_PACKETP(content)) {
-    u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
+    int rv=u8_writeall(ucl->socket,FD_PACKET_DATA(content),FD_PACKET_LENGTH(content));
+    if (rv<0) {
+      u8_log(LOG_CRIT,fdservWriteError,
+	     "Unexpected error writing %ld bytes to mod_fdserv",
+	     FD_STRLEN(content));
+      return rv;}
     return FD_PACKET_LENGTH(content);}
   else return 0;
 }
@@ -916,9 +930,11 @@ static int webservefn(u8_client ucl)
       head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
       bundle_len=http_len+head_len+content_len;
       if (!(async)) {
-	u8_writeall(client->socket,httphead.u8_outbuf,http_len);
-	u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);
-	u8_writeall(client->socket,outstream->u8_outbuf,content_len);
+	retval=u8_writeall(client->socket,httphead.u8_outbuf,http_len);
+	if (retval>=0)
+	  retval=u8_writeall(client->socket,htmlhead.u8_outbuf,head_len);
+	if (retval>=0)
+	  retval=u8_writeall(client->socket,outstream->u8_outbuf,content_len);
 	return_code=0;}
       else {
 	u8_byte *start;
@@ -962,12 +978,14 @@ static int webservefn(u8_client ucl)
 	else {
 	  char buf[32768];
 	  /* This is the case where we hang while we write. */
-	  u8_writeall(client->socket,httphead.u8_outbuf,http_len);
-	  while ((bytes_read=fread(buf,sizeof(uchar),32768,f))>0) {
-	    content_len=content_len+bytes_read;
-	    retval=u8_writeall(client->socket,buf,bytes_read);
-	    if (retval<0) break;}
-	  return_code=0;}}
+	  retval=u8_writeall(client->socket,httphead.u8_outbuf,http_len);
+	  if (retval<0) return_code=-1;
+	  else {
+	    while ((bytes_read=fread(buf,sizeof(uchar),32768,f))>0) {
+	      content_len=content_len+bytes_read;
+	      retval=u8_writeall(client->socket,buf,bytes_read);
+	      if (retval<0) break;}
+	    return_code=0;}}}
       else {/* Error here */}}
     else if (FD_STRINGP(content)) {
       int bundle_len; unsigned char *outbuf=NULL;
@@ -985,9 +1003,10 @@ static int webservefn(u8_client ucl)
 	/* Let the server loop free the buffer when done */
 	client->ownsbuf=1; buffered=1; return_code=1;}
       else  {
-	u8_writeall(client->socket,httphead.u8_outbuf,
-		    httphead.u8_outptr-httphead.u8_outbuf);
-	u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}}
+	retval=u8_writeall(client->socket,httphead.u8_outbuf,
+			   httphead.u8_outptr-httphead.u8_outbuf);
+	if (retval>=0)
+	  retval=u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}}
     else if (FD_PACKETP(content)) {
       int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_PACKET_LENGTH(content);
@@ -1003,10 +1022,11 @@ static int webservefn(u8_client ucl)
 	/* Let the server loop free the buffer when done */
 	client->ownsbuf=1; buffered=1; return_code=1;}
       else {
-	u8_writeall(client->socket,httphead.u8_outbuf,
-		    httphead.u8_outptr-httphead.u8_outbuf);
-	u8_writeall(client->socket,FD_PACKET_DATA(content),
-		    FD_PACKET_LENGTH(content));}}
+	retval=u8_writeall(client->socket,httphead.u8_outbuf,
+			   httphead.u8_outptr-httphead.u8_outbuf);
+	if (retval>=0)
+	  retval=u8_writeall(client->socket,FD_PACKET_DATA(content),
+			     FD_PACKET_LENGTH(content));}}
     else {
       /* Where the servlet has specified some particular content */
       content_len=content_len+output_content(client,content);}
@@ -1027,8 +1047,8 @@ static int webservefn(u8_client ucl)
   if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
     fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(cl,cleanup) {
-      fdtype retval=fd_apply(cleanup,0,NULL);
-      fd_decref(retval);}}
+      fdtype cleanup_val=fd_apply(cleanup,0,NULL);
+      fd_decref(cleanup_val);}}
   run_postflight();
   if (threadcache) fd_pop_threadcache(threadcache);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
