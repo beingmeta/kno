@@ -21,14 +21,14 @@
 #include "mpm_common.h"
 #include "netdb.h"
 
-#ifndef HEAVY_DEBUGGING
-#define HEAVY_DEBUGGING 0
+#ifndef DEBUG_FDSERV
+#define DEBUG_FDSERV 0
 #endif
 
-#if HEAVY_DEBUGGING
-#define LOGDEBUG APLOG_DEBUG
-#else
+#if DEBUG_FDSERV
 #define LOGDEBUG APLOG_NOTICE
+#else
+#define LOGDEBUG APLOG_DEBUG
 #endif
 
 #define APACHE20 1
@@ -1621,7 +1621,7 @@ static int write_cgidata
     n_bytes=n_bytes+delta;
     if ((delta=buf_write_string(scan->val,b))<0) return -1;
     n_bytes=n_bytes+delta;
-#if HEAVY_DEBUGGING
+#if DEBUG_FDSERV
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,"Wrote HTTP request data %s=%s",
@@ -1635,7 +1635,7 @@ static int write_cgidata
       n_bytes=n_bytes+delta;
       if ((delta=buf_write_string((char *)(pscan[1]),b))<0) return -1;
       n_bytes=n_bytes+delta;
-#if HEAVY_DEBUGGING
+#if DEBUG_FDSERV
       ap_log_error(APLOG_MARK,LOGDEBUG,OK,r->server,
 		   "Wrote servlet parameter %s=%s",
 		   pscan[0],pscan[1]);
@@ -1648,7 +1648,7 @@ static int write_cgidata
       n_bytes=n_bytes+delta;
       if ((delta=buf_write_string((char *)(pscan[1]),b))<0) return -1;
       n_bytes=n_bytes+delta;
-#if HEAVY_DEBUGGING
+#if DEBUG_FDSERV
       ap_log_error
 	(APLOG_MARK,LOGDEBUG,OK,
 	 r->server,"Wrote servlet parameter %s=%s",
@@ -1712,7 +1712,7 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
 	if (bytes[0] == '\n') break;}
       *write='\0';
       ap_log_error
-	(APLOG_MARK,LOGDEBUG,200,r->server,
+	(APLOG_MARK,LOGDEBUG,OK,r->server,
 	 "mod_fdserv/scan_fgets: Read header string %s from %d",buf,sock);
       if (write>=limit) return write-buf;
       else return write-buf;}
@@ -1776,7 +1776,7 @@ static int sock_write(request_rec *r,
       else {
 	bytes_written=bytes_written+block_size;
 	bytes_to_write=bytes_to_write-bytes_written;
-#if HEAVY_DEBUGGING
+#if DEBUG_FDSERV
 	ap_log_error
 	  (APLOG_MARK,LOGDEBUG,OK,
 	   r->server,"Wrote %ld more bytes (%ld/%ld) to APR socket @x%lx (%s)",
@@ -1966,7 +1966,7 @@ static int fdserv_handler(request_rec *r)
 {
   apr_time_t started=apr_time_now(), connected, requested, responded;
   BUFF *reqdata;
-  fdservlet servlet; fdsocket sock;
+  fdservlet servlet; fdsocket sock=NULL;
   char *post_data, errbuf[512];
   int post_size, bytes_written=0, bytes_transferred=-1;
   char *new_error=NULL, *error=NULL;
@@ -2000,7 +2000,7 @@ static int fdserv_handler(request_rec *r)
     if (errno) error=strerror(errno); else error="no servlet";
     errno=0;}
   else sock=servlet_connect(servlet,r);
-  if (!(sock)) {
+  if (sock==NULL) {
     ap_log_rerror(APLOG_MARK,APLOG_ERR,HTTP_SERVICE_UNAVAILABLE,r,
 		  "Servlet connect failed to %s for %s",
 		  r->filename,r->unparsed_uri);
