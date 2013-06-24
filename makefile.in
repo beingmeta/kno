@@ -26,7 +26,8 @@ APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@
-INSTALL		= @SUDOINSTALL@@INSTALL@
+SYSINSTALL	= @SUDO@@INSTALL@
+INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
 MACOSX_DEPLOYMENT_TARGET=10.3
 MKSO		= $(CC) $(CFLAGS) $(XCFLAGS) -shared $(LDFLAGS) $(LIBS)
@@ -345,44 +346,44 @@ lib/%@suffix@.dylib: lib/%@suffix@.@FDVERSION@.dylib
 	ln -sf $(<F) $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
-	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
 $(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@: \
 		lib/framerd/%@suffix@.so.@FDVERSION@
-	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.so: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@
-	@ln -sf $(shell basename $<) $@
+	@@SUDO@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so.@FDVERSION@
-	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.so: \
 		$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
-	@ln -sf $(shell basename $<) $@
+	@@SUDO@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib: \
     lib/framerd/%@suffix@.@FDVERSION@.dylib $(LIBINSTALLDIR)/framerd
-	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib
-	@ln -sf $(shell basename $<) $@
+	@@SUDO@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: \
     lib/%@suffix@.@FDVERSION@.dylib $(LIBINSTALLDIR)
-	@$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	@$(INSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
-	@ln -sf $(shell basename $<) $@
+	@@SUDO@ln -sf $(shell basename $<) $@
 
 $(BININSTALLDIR)/%: exe/%
 
@@ -689,7 +690,7 @@ lib/framerd/exif.dylib: lib/framerd/exif.@FDVERSION@.dylib
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
-	@SUDOINSTALL@install -D $^ $@
+	@SUDO@install -D $^ $@
 
 etc/intl/framerd.pot:
 	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
@@ -746,13 +747,13 @@ install-core: confdirs @INSTALLI18N@                   \
          install-exe install-scripts 
 
 $(INCINSTALLDIR):
-	$(INSTALL) @install_dir_opts@ $(INCINSTALLDIR)
+	$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
-	$(INSTALL) @install_dir_opts@ $(BININSTALLDIR)
+	$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
 $(LIBINSTALLDIR):
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/framerd:
-	$(INSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
@@ -816,23 +817,23 @@ install-dylib: install-dylibv                                  \
 	$(LIBINSTALLDIR)/libtagger@suffix@.dylib
 
 install-headers: $(INCINSTALLDIR)
-	$(INSTALL) -p @install_file_opts@              \
+	$(SYSINSTALL) -p @install_file_opts@              \
 		   $(DTYPE_HEADERS) $(DB_HEADERS)      \
 		   $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
 		$(INCINSTALLDIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
-	$(INSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+	$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
-	$(INSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+	$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
-	$(INSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
+	$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
-	$(INSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
+	$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
@@ -865,7 +866,7 @@ install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \
 # Setup targets
 
 confdirs: 
-	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
+	$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
 	if test ! -f $(DESTDIR)@config_dir@/servers; then \
 		$(INSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
@@ -873,7 +874,7 @@ confdirs:
 MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
 SAFE_MODULE_DIRS=domutils knodules textindex 
 link-modules:
-	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
+	$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
 	ln -sf $(BUILD)/etc/*.el @data_dir@
 	ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
 	ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
@@ -886,7 +887,7 @@ link-modules:
 	ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
-	$(INSTALL) @install_dir_opts@ $(CONFDIRS)
+	$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
 	cp -pf $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
 	$(INSTALL) @install_dir_opts@ \
            $(DESTDIR)@standard_module_dir@ \
@@ -903,15 +904,15 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
 $(DESTDIR)/etc/init.d:
-	$(INSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
+	$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
-	$(INSTALL) -m 0555 @admininstall@ \
+	$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
 $(DESTDIR)@rundir@/framerd:
-	$(INSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
+	$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
 		   $(DESTDIR)@rundir@/framerd
 $(DESTDIR)@logdir@/framerd:
-	$(INSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
+	$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
@@ -921,7 +922,7 @@ enable-rc.d: setup-rc.d
 
 setup-logrotate: $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd:
-	$(INSTALL) -T -m 0644 etc/logrotate \
+	$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
 
 setup-linux: setup-rc.d enable-rc.d setup-logrotate
@@ -954,14 +955,14 @@ mod_fdserv: etc/mod_fdserv.so
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
 install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ $(DESTDIR)@apache_modules_dir@
 	cd etc; ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)@apache_modinfo@;
-	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@rundir@/fdserv;
-	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@logdir@/fdserv;
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@rundir@/fdserv;
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@logdir@/fdserv;
 	cd etc; if test -f mod_fdserv.so; then ${APXS} -i mod_fdserv.so; else ${APXS} -i mod_fdserv.la; fi
 
 $(DESTDIR)@apache_modules_dir@:
-	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d  $(DESTDIR)@apache_modules_dir@
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d  $(DESTDIR)@apache_modules_dir@
 $(DESTDIR)@apache_modinfo@:
-	$(INSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@apache_modinfo@
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@apache_modinfo@
 
 update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
@@ -970,9 +971,9 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	sudo apachectl stop
 	cd etc; sudo ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load \
 			$(DESTDIR)@apache_modinfo@;
-	sudo $(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
-	sudo $(INSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@logdir@/fdserv;
 	cd etc; if test -f mod_fdserv.so; \
 		then sudo ${APXS} -i mod_fdserv.so; \

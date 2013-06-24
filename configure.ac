@@ -90,7 +90,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
-SUDOINSTALL=""
+SUDO=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$PREFIX/etc/framerd"
 rundir="${localstatedir}/run"
@@ -164,7 +164,7 @@ AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
-AC_SUBST(SUDOINSTALL)
+AC_SUBST(SUDO)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
 AC_SUBST(INSTALLCMODULES)
@@ -228,7 +228,7 @@ dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
 if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group $install_dir_opts"
+  install_dir_opts="-g $with_admin_group -m0776 $install_dir_opts"
   install_file_opts="-g $with_admin_group $install_file_opts"
   install_exe_opts="-g $with_admin_group $install_exe_opts"
   admin_group=$with_admin_group
@@ -547,10 +547,17 @@ if test "$with_libu8" != ""; then
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 
-dnl Use sudo with install in makefile
-AC_ARG_WITH(sudoinstall,--with[out]-sudoinstall use sudo with install,,with_sudoinstall="")
-if test "x$with_sudoinstall" != "x"; then
-  SUDOINSTALL="sudo "
+dnl Use sudo for installations in makefile
+AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
+if test "x$with_sudo" == "xyes"; then
+  AC_CHECK_PROGS(sudo_program,sudo,"na")
+  if test "x$sudoprogram" == "xna"; then
+    SUDO=""
+  else 
+    SUDO="$sudo_program "
+  fi
+elif test "x$with_sudo" != "xno"; then
+  SUDO="$with_sudo "
 fi
 
 with_fastcgi="yes";
@@ -571,11 +578,9 @@ fi
 
 if test $pkg_config != "na"; then
    if $pkg_config --exists MagickWand; then
-      echo "Magick exists";
       with_imagick_default=yes;
    else
-      echo "Magick doesn't exist";
-      with_imagick_default=no;
+       with_imagick_default=no;
    fi
 fi
 
