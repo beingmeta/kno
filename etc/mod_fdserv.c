@@ -1624,7 +1624,7 @@ static int write_cgidata
 #if DEBUG_FDSERV
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
-       r->server,"Wrote HTTP request data %s=%s",
+       r->server,"Buffered HTTP request data %s=%s",
        scan->key,scan->val);
 #endif
     scan++;}
@@ -1637,7 +1637,7 @@ static int write_cgidata
       n_bytes=n_bytes+delta;
 #if DEBUG_FDSERV
       ap_log_error(APLOG_MARK,LOGDEBUG,OK,r->server,
-		   "Wrote servlet parameter %s=%s",
+		   "Buffered servlet parameter %s=%s",
 		   pscan[0],pscan[1]);
 #endif
       pscan=pscan+2;}}
@@ -1651,7 +1651,7 @@ static int write_cgidata
 #if DEBUG_FDSERV
       ap_log_error
 	(APLOG_MARK,LOGDEBUG,OK,
-	 r->server,"Wrote servlet parameter %s=%s",
+	 r->server,"Buffered servlet parameter %s=%s",
 	 pscan[0],pscan[1]);
 #endif
       pscan=pscan+2;}}
@@ -1666,12 +1666,12 @@ static int write_cgidata
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,
-       "Composed %lld bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
+       "Composed %llu bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
        (long long)n_bytes,n_params+n_elts+1,n_elts,n_params,post_size);
   else ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,
-       "Composed %lld bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
+       "Composed %llu bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
        (long long)n_bytes,n_params+n_elts+1,n_elts,n_params);
   return n_bytes;
 }
@@ -1735,13 +1735,15 @@ static int sock_write(request_rec *r,
       (APLOG_MARK,LOGDEBUG,OK,r,
        "Writing %ld bytes to file socket @x%lx (#%d) for %s",
        n_bytes,((unsigned long int)sockval),
-       (sockval->conn.fd),sockval->sockname);
+       (sockval->conn.fd),sockval->sockname,
+       r->unparsed_uri);
   else if (sockval->socktype==aprsock)
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,
        "Writing %ld bytes to APR socket @x%lx for %s",
        n_bytes,((unsigned long int)sockval),
-       sockval->sockname);
+       sockval->sockname,
+       r->unparsed_uri);
   else {}
 
   if (sockval->socktype==aprsock) {
@@ -1758,19 +1760,21 @@ static int sock_write(request_rec *r,
 	err=apr_strerror(rv,errbuf,256);
 	ap_log_rerror
 	  (APLOG_MARK,LOGDEBUG,OK,r,
-	   "Error (%s) from APR socket @x%lx (%s) after %ld=%ld-%ld bytes",
+	   "Error (%s) from APR socket @x%lx (%s) after %ld=%ld-%ld bytes for %s",
 	   errbuf,(long unsigned int)sockval,sockval->sockname,
 	   (long int)bytes_written,
 	   (long int)n_bytes,
-	   (long int)bytes_to_write);
+	   (long int)bytes_to_write,
+	   r->unparsed_uri);
 	if (bytes_written<n_bytes) return -1;
 	else break;}
       else if (block_size == 0) {
 	ap_log_rerror
 	  (APLOG_MARK,LOGDEBUG,OK,r,
-	   "Zero blocks after %ld/%ld on APR socket @x%lx (%s)",
+	   "Zero blocks after %ld/%ld on APR socket @x%lx (%s) for %s",
 	   ((long int)bytes_written),((long int)n_bytes),
-	   ((unsigned long int)sockval),sockval->sockname);
+	   ((unsigned long int)sockval),sockval->sockname,
+	   r->unparsed_uri);
 	if (bytes_written<n_bytes) return -1;
 	else break;}
       else {
@@ -1779,9 +1783,10 @@ static int sock_write(request_rec *r,
 #if DEBUG_FDSERV
 	ap_log_error
 	  (APLOG_MARK,LOGDEBUG,OK,
-	   r->server,"Wrote %ld more bytes (%ld/%ld) to APR socket @x%lx (%s)",
+	   r->server,"Wrote %ld more bytes (%ld/%ld) to APR socket @x%lx (%s) for %s",
 	   block_size,bytes_written,n_bytes,
-	   ((unsigned long int)sockval),sockval->sockname);
+	   ((unsigned long int)sockval),sockval->sockname,
+	   r->unparsed_uri);
 #endif
 	block_size=bytes_to_write;}}
     return bytes_written;}
@@ -1791,7 +1796,8 @@ static int sock_write(request_rec *r,
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,r->server,
        "Writing %ld bytes to file socket @x%lx #%d for %s",
-       bytes_to_write,((unsigned long int)sockval),sock,sockval->sockname);
+       bytes_to_write,((unsigned long int)sockval),sock,sockval->sockname,
+       r->unparsed_uri);
     while (bytes_written < n_bytes) {
       int block_size=write(sock,buf+bytes_written,n_bytes-bytes_written);
       if (block_size<0) {
@@ -1804,52 +1810,56 @@ static int sock_write(request_rec *r,
 	    if (val->conn.fd==sock) 
 	      ap_log_rerror
 		(APLOG_MARK,APLOG_WARNING,OK,r,
-		 "Reopened @x%lx #%d, continuing output (%ld/%ld so far) to %s",
-		 (unsigned long)val,sock,bytes_written,n_bytes,sockval->sockname);
+		 "Reopened @x%lx #%d, continuing output (%ld/%ld so far) to %s for %s",
+		 (unsigned long)val,sock,bytes_written,n_bytes,sockval->sockname,
+		 r->unparsed_uri);
 	    else {
 	      int new_sock=val->conn.fd;
 	      bytes_written=0; 
 	      ap_log_rerror
 		(APLOG_MARK,APLOG_WARNING,OK,r,
-		 "Reopened @x%lx#%d (%s), resetting output of %ld bytes",
-		 (unsigned long int)val,sock,sockval->sockname,
-		 n_bytes);
+		 "Reopened @x%lx#%d (%s), resetting output of %ld bytes for %s",
+		 (unsigned long int)val,sock,sockval->sockname,n_bytes,
+		 r->unparsed_uri);
 	      sock=new_sock;}
 	    continue;}
 	  else {
 	    ap_log_rerror
 	      (APLOG_MARK,APLOG_ERR,OK,r,
-	       "Couldn't reopen @x%lx#%d (%s): (%d:%s) (%d:%s)",
+	       "Couldn't reopen @x%lx#%d (%s): (%d:%s) (%d:%s) for %s",
 	       (unsigned long int)sockval,sock,sockval->sockname,
-	       olderr,strerror(olderr),errno,strerror(errno));
+	       olderr,strerror(olderr),errno,strerror(errno),
+	       r->unparsed_uri);
 	    bytes_written=0;}
 	  errno=0;}
 	else {
 	  ap_log_rerror
 	    (APLOG_MARK,LOGDEBUG,OK,r,
-	     "Error %d (%s) on @x%lx (#%d) after %ld/%ld bytes",
+	     "Error %d (%s) on @x%lx (#%d) after %ld/%ld bytes for %s",
 	     errno,strerror(errno),
 	     ((unsigned long int)sockval),sock,
-	     bytes_written,n_bytes);
+	     bytes_written,n_bytes,
+	     r->unparsed_uri);
 	  if (bytes_written<n_bytes) return -1;
 	  else break;}}
       else if (block_size == 0) {
 	ap_log_rerror
 	  (APLOG_MARK,LOGDEBUG,OK,r,
-	   "Zero blocks written to @x%lx#%d (%s) after %ld/%ld",
+	   "Zero blocks written to @x%lx#%d (%s) after %ld/%ld for %s",
 	   ((unsigned long int)sockval),sock,sockval->sockname,
-	   (long int)bytes_written,n_bytes);
+	   (long int)bytes_written,n_bytes,
+	   r->unparsed_uri);
 	if (bytes_written<n_bytes) return -(bytes_written+1);
 	else break;}
       else {
 	ap_log_rerror
-	  (APLOG_MARK,LOGDEBUG,OK,r,"Wrote %ld bytes to filesock=%d",
-	   (long int)block_size,sock);
+	  (APLOG_MARK,LOGDEBUG,OK,r,"Wrote %ld bytes to filesock=%d for %s",
+	   (long int)block_size,sock,r->unparsed_uri);
 	bytes_written=bytes_written+block_size;}}
     ap_log_rerror
       (APLOG_MARK,((bytes_written!=n_bytes)?(APLOG_CRIT):(LOGDEBUG)),
-       OK,r,"Wrote %ld/%ld bytes to file socket (%d) for %s",
-       ((long int)bytes_written),n_bytes,sock,sockval->sockname);
+       OK,r,"Wrote %ld/%ld bytes to file socket (%d) (%s) for %s",
+       ((long int)bytes_written),n_bytes,sock,sockval->sockname,r->unparsed_uri);
     return bytes_written;}
   else {
     ap_log_rerror
@@ -1866,12 +1876,12 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
   if (content_length<0)
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,
-       "Reading some number of content bytes from @x%lx (%s)",
-       ((unsigned long int)sockval),sockval->sockname);
+       "Reading some number of content bytes from @x%lx (%s) for %s",
+       ((unsigned long int)sockval),sockval->sockname,r->unparsed_uri);
   else ap_log_rerror
 	 (APLOG_MARK,LOGDEBUG,OK,r,
-	  "Reading %ld content bytes from @x%lx (%s)",
-	  content_length,((unsigned long int)sockval),sockval->sockname);
+	  "Reading %ld content bytes from @x%lx (%s) for %s",
+	  content_length,((unsigned long int)sockval),sockval->sockname,r->unparsed_uri);
   if (sockval->socktype==aprsock) {
     apr_socket_t *sock=sockval->conn.apr;
     while ((content_length<0)||(bytes_read<content_length)) {
@@ -1880,9 +1890,9 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       rv=apr_socket_recv(sock,buf,&delta);
       if (rv!=OK) {
 	ap_log_rerror(APLOG_MARK,LOGDEBUG,rv,r,
-		      "Stopped after reading %ld bytes from @x%lx (%s)",
+		      "Stopped after reading %ld bytes from @x%lx (%s) for %s",
 		      (long int)bytes_read,((unsigned long int)sockval),
-		      sockval->sockname);
+		      sockval->sockname,r->unparsed_uri);
 	error=1;
 	break;}
       else if (delta>0) {
@@ -1897,22 +1907,23 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       if (written<=0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after transferring %ld=>%ld bytes from @x%lx (%s)",
+	   "Write error after transferring %ld=>%ld bytes from @x%lx (%s) for %s",
 	   (long int)bytes_read,(long int)bytes_written,
-	   ((unsigned long int)sockval),sockval->sockname);
+	   ((unsigned long int)sockval),sockval->sockname,r->unparsed_uri);
 	errno=0; error=1; break;}}
     if (error) return -(bytes_read+1);
     rv=ap_rflush(r);
     if (rv!=OK) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
-	 "Flush error after transferring %ld/%ld content bytes",
-	 (long int)bytes_read,(long int)bytes_written);
+	 "Flush error after transferring %ld/%ld content bytes for %s",
+	 (long int)bytes_read,(long int)bytes_written,r->unparsed_uri);
       return -(bytes_read+1);}
     ap_log_rerror
       (APLOG_MARK,APLOG_INFO,OK,r,
-       "Transferred %ld content bytes from @x%lx (%s)",
-       (long int)bytes_read,((unsigned long int)sockval),sockval->sockname);
+       "Transferred %ld content bytes from @x%lx (%s) for %s",
+       (long int)bytes_read,((unsigned long int)sockval),
+       sockval->sockname,r->unparsed_uri);
     return bytes_read;}
   else if (sockval->socktype==filesock) {
     int sock=sockval->conn.fd; int error=0, rv=-1;
@@ -1933,25 +1944,28 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       else {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_INFO,OK,r,
-	   "Read error (%d:%s) after transferring %ld/%ld bytes from @x%lx#%d (%s)",
+	   "Read error (%d:%s) after transferring %ld/%ld bytes from @x%lx#%d (%s) for %s",
 	   errno,strerror(errno),
 	   (long int)bytes_read,(long int)bytes_written,
-	   ((unsigned long int)sockval),sock,sockval->sockname);
+	   ((unsigned long int)sockval),sock,sockval->sockname,
+	   r->unparsed_uri);
 	errno=0; error=1; break;}
       if (written<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after transferring %ld/%ld bytes from @x%lx#%d (%s)",
+	   "Write error after transferring %ld/%ld bytes from @x%lx#%d (%s) for %s",
 	   (long int)bytes_read,(long int)bytes_written,
-	   ((unsigned long int)sockval),sock,sockval->sockname);
+	   ((unsigned long int)sockval),sock,sockval->sockname,
+	   r->unparsed_uri);
 	errno=0; error=1; break;}
       else bytes_written=bytes_written+written;}
     rv=ap_rflush(r);
     if ((error)||(rv!=OK)) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
-	 "Error after transferring %ld bytes from  @x%lx#%d (%s)",
-	 (long int)bytes_read,((unsigned long int)sockval),sock,sockval->sockname);
+	 "Error after transferring %ld bytes from  @x%lx#%d (%s) for %s",
+	 (long int)bytes_read,((unsigned long int)sockval),sock,sockval->sockname,
+	 r->unparsed_uri);
       return -(bytes_read+1);}
     else return bytes_read;}
   else {
@@ -2070,7 +2084,8 @@ static int fdserv_handler(request_rec *r)
     servlet_return_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		    "Composing request data as a slotmap");
+		    "Composing request data as a slotmap for %s",
+		     r->unparsed_uri);
   
   /* Write the slotmap into buf, the write the buf to the servlet socket */
   if (write_cgidata(r,reqdata,r->subprocess_env,
@@ -2084,13 +2099,15 @@ static int fdserv_handler(request_rec *r)
   /* We don't really need the socket until here, but we want to fail earlier. */
   if (sock->socktype==filesock) 
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		  "Writing %ld bytes of request to file socket @x%lx#%d (%s)",
+		  "Writing %ld bytes of request to file socket @x%lx#%d (%s) for %s",
 		  (long int)(reqdata->ptr-reqdata->buf),
-		  ((unsigned long int)sock),sock->conn.fd,sock->sockname);
+		  ((unsigned long int)sock),sock->conn.fd,sock->sockname,
+		  r->unparsed_uri);
   else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		     "Writing %ld bytes of request to APR socket @x%lx (%s)",
+		     "Writing %ld bytes of request to APR socket @x%lx (%s) for %s",
 		     (long int)(reqdata->ptr-reqdata->buf),
-		     ((unsigned long int)sock),sock->sockname);
+		     ((unsigned long int)sock),sock->sockname,
+		     r->unparsed_uri);
   
   if (using_dtblock) {
     unsigned char buf[8];
@@ -2103,27 +2120,27 @@ static int fdserv_handler(request_rec *r)
     bytes_written=sock_write(r,buf,5,sock);}
   if ((using_dtblock)&&(bytes_written<5)) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
-		  "Only wrote %ld bytes of request to socket @x%lx (%s)",
+		  "Only wrote %ld bytes of block to socket @x%lx (%s) for %s",
 		  (long int)bytes_written,
 		  ((unsigned long int)(sock->conn.apr)),
-		  sock->sockname);
+		  sock->sockname,r->unparsed_uri);
     servlet_close_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else {
     bytes_written=sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
     if (bytes_written<(reqdata->ptr-reqdata->buf)) {
       ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
-		    "Only wrote %ld bytes of request to socket @x%lx (%s)",
+		    "Only wrote %ld bytes of request to socket @x%lx (%s) for %s",
 		    (long int)bytes_written,
 		    ((unsigned long int)(sock->conn.apr)),
-		    sock->sockname);
+		    sock->sockname,r->unparsed_uri);
       servlet_close_socket(servlet,sock);
       return HTTP_INTERNAL_SERVER_ERROR;}
     else ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
-		       "Wrote all %ld bytes of request to socket @x%lx (%s)",
+		       "Wrote all %ld bytes of request to socket @x%lx (%s) for %s",
 		       ((long int)(reqdata->ptr-reqdata->buf)),
 		       ((unsigned long int)(sock->conn.apr)),
-		       sock->sockname);}
+		       sock->sockname,r->unparsed_uri);}
   
   requested=apr_time_now();
   
