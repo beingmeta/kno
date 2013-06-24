@@ -90,6 +90,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
+SUDOINSTALL=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$PREFIX/etc/framerd"
 rundir="${localstatedir}/run"
@@ -163,6 +164,7 @@ AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
+AC_SUBST(SUDOINSTALL)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
 AC_SUBST(INSTALLCMODULES)
@@ -543,6 +545,12 @@ if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
+fi
+
+dnl Use sudo with install in makefile
+AC_ARG_WITH(sudoinstall,--with[out]-sudoinstall use sudo with install,,with_sudoinstall="")
+if test "x$with_sudoinstall" != "x"; then
+  SUDOINSTALL="sudo "
 fi
 
 with_fastcgi="yes";

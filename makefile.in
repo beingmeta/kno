@@ -26,7 +26,7 @@ APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@
-INSTALL		= @INSTALL@
+INSTALL		= @SUDOINSTALL@@INSTALL@
 MKSTATIC	= @MKSTATIC@
 MACOSX_DEPLOYMENT_TARGET=10.3
 MKSO		= $(CC) $(CFLAGS) $(XCFLAGS) -shared $(LDFLAGS) $(LIBS)
@@ -689,7 +689,7 @@ lib/framerd/exif.dylib: lib/framerd/exif.@FDVERSION@.dylib
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
-	install -D $^ $@
+	@SUDOINSTALL@install -D $^ $@
 
 etc/intl/framerd.pot:
 	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)

@@ -665,6 +665,7 @@ MYSQL_CFLAGS
 INSTALLCMODULES
 CMODULES
 WWWUSER
+SUDOINSTALL
 INSTALLI18N
 I18N
 MKSTATIC
@@ -789,6 +790,7 @@ enable_threads
 enable_mmap_prefetch
 with_editline
 with_libu8
+with_sudoinstall
 with_fastcgi
 with_mysql
 with_odbc
@@ -1480,6 +1482,7 @@ Optional Packages:
 --without-i18n built and install message catalogs
 --without-editline Use the editline with fdconsole
 --without-libu8 Use libu8 includes
+--without-sudoinstall use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
 --without-odbc Build odbc libraries
@@ -2753,6 +2756,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
+SUDOINSTALL=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$PREFIX/etc/framerd"
 rundir="${localstatedir}/run"
@@ -2801,6 +2805,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/config.h"
+
 
 
 
@@ -6859,6 +6864,18 @@ if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
+fi
+
+
+# Check whether --with-sudoinstall was given.
+if test "${with_sudoinstall+set}" = set; then :
+  withval=$with_sudoinstall;
+else
+  with_sudoinstall=""
+fi
+
+if test "x$with_sudoinstall" != "x"; then
+  SUDOINSTALL="sudo "
 fi
 
 with_fastcgi="yes";
