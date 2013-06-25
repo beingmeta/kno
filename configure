@@ -791,7 +791,7 @@ enable_threads
 enable_mmap_prefetch
 with_editline
 with_libu8
-with_sudoinstall
+with_sudo
 with_fastcgi
 with_mysql
 with_odbc
@@ -1483,7 +1483,7 @@ Optional Packages:
 --without-i18n built and install message catalogs
 --without-editline Use the editline with fdconsole
 --without-libu8 Use libu8 includes
---without-sudoinstall use sudo with install
+--without-sudo use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
 --without-odbc Build odbc libraries
@@ -6868,14 +6868,14 @@ if test "$with_libu8" != ""; then
 fi
 
 
-# Check whether --with-sudoinstall was given.
-if test "${with_sudoinstall+set}" = set; then :
-  withval=$with_sudoinstall;
+# Check whether --with-sudo was given.
+if test "${with_sudo+set}" = set; then :
+  withval=$with_sudo;
 else
-  with_sudoinstall="yes"
+  with_sudo="yes"
 fi
 
-if test "x$with_sudoinstall" == "xyes"; then
+if test "x$with_sudo" == "xyes"; then
   for ac_prog in sudo
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -6917,11 +6917,15 @@ fi
 
   test -n "$sudo_program" && break
 done
-test -n "$sudo_program" || sudo_program=""sudo""
+test -n "$sudo_program" || sudo_program=""na""
 
-  SUDO="$sudo_program "
-elif test "x$with_sudoinstall" != "xno"; then
-  SUDO="$with_sudoinstall "
+  if test "x$sudoprogram" == "xna"; then
+    SUDO=""
+  else
+    SUDO="$sudo_program "
+  fi
+elif test "x$with_sudo" != "xno"; then
+  SUDO="$with_sudo "
 fi
 
 with_fastcgi="yes";
