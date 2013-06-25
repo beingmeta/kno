@@ -377,7 +377,7 @@
 (define (gpath? val)
   (if (pair? val)
       (and (string? (cdr val))
-	   (or (s3loc? val) (zipfile? val)))
+	   (or (s3loc? (car val)) (zipfile? (car val))))
       (if (string? val)
 	  (and (not (position #\n val))
 	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/"}))
