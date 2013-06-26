@@ -950,7 +950,8 @@ static fdtype reqval_prim(fdtype var,fdtype dflt)
 static fdtype reqtest_prim(fdtype vars,fdtype val)
 {
   FD_DO_CHOICES(var,vars) {
-    int retval=fd_req_test(var,val);
+    fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+    int retval=fd_req_test(name,val);
     if (retval<0) {
       FD_STOP_DO_CHOICES;
       return FD_ERROR_VALUE;}
