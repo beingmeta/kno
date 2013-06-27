@@ -3,13 +3,17 @@
 
 (in-module 'xhtml/include)
 
-(use-module '{texttools getcontent})
+(use-module '{texttools getcontent xhtml/pagedate})
 (use-module '{fdweb xhtml})
 
 (module-export! '{xhtml/include firebuglite})
 
 (define (xhtml/include file (base #f) (enc #t))
-  (xhtml (getcontent (if base (get-component file base) file) enc)))
+  (let ((path (if base (get-component file base) file))
+	(content (getcontent path  enc))
+	(mod (file-modtime path)))
+    (pagedate! mod)
+    (xhtml content)))
 
 (define (firebuglite)
   (xhtml "<script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>"))
