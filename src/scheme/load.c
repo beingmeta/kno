@@ -276,6 +276,13 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
   return result;
 }
 
+static fdtype lisp_get_source()
+{
+  u8_string path=fd_sourcebase();
+  if (path) return fdtype_string(path);
+  else return FD_FALSE;
+}
+
 static fdtype lisp_get_component(fdtype string,fdtype base)
 {
   if (FD_VOIDP(base)) {
@@ -375,6 +382,8 @@ FD_EXPORT void fd_init_load_c()
 	  fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
 			  fd_string_type,FD_VOID,
 			  fd_string_type,FD_VOID));
+ fd_idefn(fd_scheme_module,
+	  fd_make_cprim0("GET-SOURCE",lisp_get_source,0));
  
  fd_register_config("CONFIG","Add a CONFIG file or URI to process",
 		    get_config_files,add_config_file,NULL);
