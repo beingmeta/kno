@@ -30,7 +30,7 @@
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method, status_field;
-static fdtype get_method, post_method, browseinfo_symbol;
+static fdtype get_method, post_method, browseinfo_symbol, redirect_field;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
 static fdtype cookies_symbol, incookies_symbol, bad_cookie, text_symbol;
@@ -671,27 +671,14 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   fdtype ctype=fd_get(cgidata,content_type,FD_VOID);
   fdtype status=fd_get(cgidata,status_field,FD_VOID);
   fdtype headers=fd_get(cgidata,http_headers,FD_EMPTY_CHOICE);
+  fdtype redirect=fd_get(cgidata,redirect_field,FD_VOID);
   fdtype cookies=fd_get(cgidata,cookies_symbol,FD_EMPTY_CHOICE);
-#if 0
-  if (FD_VOIDP(status)) 
-    u8_printf(out,"HTTP/1.1 200 Success\r\n");
-  else if (FD_FIXNUMP(status)) 
-    u8_printf(out,"HTTP/1.1 %d Return\r\n",FD_FIX2INT(status));
-  else if (FD_STRINGP(status))
-    u8_printf(out,"HTTP/1.1 500 %s\r\n",FD_STRDATA(status));
-  else if ((FD_PAIRP(status)) &&
-	   (FD_FIXNUMP(FD_CAR(status))) &&
-	   (FD_STRINGP(FD_CDR(status))))
-    u8_printf(out,"HTTP/1.1 %d %s\r\n",
-	      FD_FIX2INT(FD_CAR(status)),
-	      FD_STRDATA(FD_CDR(status)));
-  else u8_printf(out,"HTTP/1.1 500 Bad STATUS data\r\n");
-#else
+  if ((FD_STRINGP(redirect))&&(FD_VOIDP(status))) {
+    status=FD_INT2DTYPE(303);}
   if (FD_FIXNUMP(status))
     u8_printf(out,"Status: %d\r\n",FD_FIX2INT(status));
   else if (FD_STRINGP(status))
     u8_printf(out,"Status: %s\r\n",FD_STRDATA(status));
-#endif
   if (FD_STRINGP(ctype))
     u8_printf(out,"Content-type: %s\r\n",FD_STRDATA(ctype));
   else u8_printf(out,"%s\r\n",DEFAULT_CONTENT_TYPE);
@@ -706,6 +693,8 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   {FD_DO_CHOICES(cookie,cookies)
      if (handle_cookie(out,cgidata,cookie)<0)
        u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
+  if (FD_STRINGP(redirect)) 
+    u8_printf(out,"Location: %s\r\n",FD_STRDATA(redirect));
   fd_decref(ctype); fd_decref(headers); fd_decref(cookies);
 }
 
@@ -1176,6 +1165,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   post_method=fd_intern("POST");
 
   status_field=fd_intern("STATUS");
+  redirect_field=fd_intern("_REDIRECT");
   http_headers=fd_intern("HTTP-HEADERS");
   html_headers=fd_intern("HTML-HEADERS");
 
