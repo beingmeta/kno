@@ -358,8 +358,7 @@
   (let* ((callback (getcallback spec))
 	 (req (urlpost (getopt spec 'access)
 		       #[content-type "application/x-www-form-urlencoded"
-			 header ("Expect" . "")
-			 verbose #t]
+			 header ("Expect" . "")]
 		       (args->post
 			(list "code" (qc (tryif code code))
 			      "client_id" ckey "client_secret" csecret
