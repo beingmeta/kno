@@ -19,7 +19,6 @@
    oauth/sigstring oauth/callsig})
 
 (define-init %loglevel %notice!)
-;;(set! %loglevel  %debug!)
 
 (define (getreqdata req (ctype) (content))
   (default! ctype (try (get req 'content-type) #f))
@@ -110,8 +109,7 @@
 		     ((and (or (slotmap? val) (schemap? val))
 			   (exists? (get val 'realm)))
 		      (when (exists? (get oauth-servers (get val 'realm)))
-			(logwarn "OAUTH/REDEFINE"
-				 "Redefining OAUTH specification for "
+			(logwarn OAUTH/REDEFINE "Redefining OAUTH specification for "
 				 (get val 'realm) ", changes may be lost!"))
 		      (do-choices val
 			(store! oauth-servers (get val 'realm) val)))
@@ -225,7 +223,7 @@
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
     ;; This should exit
-    (logwarn "OAUTH/REQUEST: Invalid OAUTH spec: " spec)
+    (logwarn OAUTH/REQUEST/BADSPEC "Invalid OAUTH spec: " spec)
     (error OAUTH:BADSPEC OAUTH/REQUEST
 	   "Missing methods for OAuth 1.0 request " spec))
   ;; We allow the nonce, time, etc to come from the spec
@@ -305,8 +303,10 @@
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (unless (getopt spec 'oauth_token)
+    (logwarn OAUTH/VERIFY:NOTOKEN "No OAUTH token in " spec)
     (error OAUTH:NOTOKEN OAUTH/VERIFY "No OAUTH token in " spec))
   (unless verifier
+    (logwarn OAUTH/VERIFY:NOVERIFIER "No OAUTH verifier for " spec)
     (error OAUTH:NOVERIFIER OAUTH/VERIFY "No OAUTH verifier"))
   (let* ((nonce (uuid->string (getuuid)))
 	 (endpoint (getopt spec 'verify default-verify-endpoint))
@@ -347,11 +347,16 @@
 	  (cons info (cdr spec)))
 	(if (getopt spec 'noverify)
 	    ((getopt spec 'noverify) spec verifier req)
-	    (error OAUTH:REQFAIL OAUTH:VERIFY
-		   "Web call failed" req)))))
+	    (begin
+	      (logwarn OAUTH/VERIFY:REQFAIL spec req)
+	      (error OAUTH:REQFAIL OAUTH:VERIFY "Web call failed" req))))))
 
-(define (oauth/getaccess spec (code #f) (ckey) (csecret))
+(define (oauth/getaccess spec (code) (ckey) (csecret))
   (set! spec (oauth/spec spec))
+  (default! code
+    (and (or (testopt spec 'grant "authorization_code")
+	     (not (testopt spec 'grant)))
+	 (getopt spec 'code (req/get 'code))))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (debug%watch "OAUTH/GETACCESS" code spec)
@@ -361,6 +366,10 @@
 			 header ("Expect" . "")]
 		       (args->post
 			(list "code" (qc (tryif code code))
+			      "fb_exchange_token"
+			      (qc (tryif (and (testopt spec 'grant "fb_exchange_token")
+					      (getopt spec 'token))
+				    (getopt spec 'token)))
 			      "client_id" ckey "client_secret" csecret
 			      "grant_type" (getopt spec 'grant "authorization_code")
 			      "redirect_uri" (qc callback))))))
@@ -373,18 +382,22 @@
 	  (debug%watch parsed spec req)
 	  (when (exists? (get parsed 'token_type))
 	    (unless (string-ci=? (get parsed 'token_type) "Bearer")
-	      (logwarn 'OAUTH/Bearer "Odd token type " (get parsed 'token_type)
-		       " responding to " spec)))
+	      (logwarn |OAUTH/GETACESS/OddToken|
+		       "Odd token type " (get parsed 'token_type) " responding to " spec
+		       " response=" parsed)))
 	  (when (and (exists? expires_in) expires_in)
 	    (store! authinfo 'expires (timestamp+ expires_in))
 	    (when (exists? (get parsed 'refresh_token))
 	      (store! authinfo 'refresh
 		      (->secret (get parsed 'refresh_token)))))
 	  (cons authinfo spec))
-	(if (getopt spec 'noverify)
-	    ((getopt spec 'noverify) spec verifier req)
-	    (error OAUTH:REQFAIL OAUTH/GETACCESS
-		   "Web call failed: " req)))))
+	(begin
+	  (logwarn |OATH/GETACCESS:Failure|
+		   "OAUTH/GETACCESS failed " spec " ==> " req)
+	  (if (getopt spec 'noverify)
+	      ((getopt spec 'noverify) spec verifier req)
+	      (error OAUTH:REQFAIL OAUTH/GETACCESS
+		     "Web call failed: " req))))))
 
 ;;; Actually calling the API
 
@@ -530,6 +543,8 @@
 		 (uriencode key) "="
 		 (uriencode (get elt key))))
 	     (set! args (cdr args)))
+	    ((and (pair? (cdr args)) (fail? (cadr args)))
+	     (set! args (cddr args)))
 	    ((pair? (cdr args))
 	     (printout
 	       (if first (set! first #f) "&")
@@ -565,8 +580,9 @@
 	       (head (car spec)))
 	  (when (exists? newtoken) (store! head 'token  newtoken))
 	  (unless (equal? (get parsed 'token_type) "Bearer")
-	    (logwarn 'OAUTH/Bearer "Odd token type " (get parsed 'token_type)
-		     " responding to " spec))
+	    (logwarn |OAUTH/REFRESH!/OddToken|
+		     "Odd token type " (get parsed 'token_type)
+		     " responding to " spec " from " parsed))
 	  (when expires_in
 	    (store! head 'expires (timestamp+ expires_in))
 	    (store! head 'refresh (get parsed 'refresh_token)))
