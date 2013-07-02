@@ -153,7 +153,7 @@ define trace_tempsrv
 end
 
 define sbooksweb
-    set args /var/run/fdserv/$arg0.sock CONFIG=/src/sbooks/site.cfg PRELOAD=/src/sbooks/preload.scm
+    set args /var/run/fdserv/$arg0.sock CONFIG=/src/sbooks/site.cfg PRELOAD=/src/sbooks/preload.scm TRACEWEB=yes
 end
 
 # Init some tracing configurations

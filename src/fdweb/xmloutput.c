@@ -1780,7 +1780,7 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 	return xmlenvarg;}
       if ((FD_PAIRP(xmlarg))&&(FD_ENVIRONMENTP(FD_CAR(xmlarg)))) {
 	fdtype fromparse=FD_CAR(xmlarg); xmlbody=FD_CDR(xmlarg);
-	parsed_env=(fd_lispenv)fromparse; }
+	parsed_env=(fd_lispenv)fromparse;}
       else xmlbody=xmlarg;
       if (!((FD_VOIDP(envarg)) || (FD_FALSEP(envarg)) || (FD_TRUEP(envarg)) ||
 	    (FD_ENVIRONMENTP(envarg)) || (FD_TABLEP(envarg)))) {
@@ -1790,6 +1790,10 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 		 (FD_ENVIRONMENTP(xmlenvarg)) || (FD_TABLEP(xmlenvarg)))) {
 	fd_decref(xmlarg); fd_decref(envarg);
 	return fd_type_error("environment","xmleval_handler",xmlenvarg);}
+      else if (((FD_VOIDP(envarg))||(FD_FALSEP(envarg))) &&
+	       ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg))) &&
+	       (parsed_env!=NULL)) {
+	target_env=parsed_env;}
       else if (((FD_VOIDP(envarg))||(FD_FALSEP(envarg))) &&
 	       ((FD_VOIDP(xmlenvarg))||(FD_FALSEP(xmlenvarg)))) {}
       else {
