@@ -32,7 +32,7 @@ static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
 static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
 static fdtype maxtime_symbol, timeout_symbol, method_symbol;
-static fdtype verifyhost_symbol, verifypeer_symbol;
+static fdtype verifyhost_symbol, verifypeer_symbol, cainfo_symbol;
 static fdtype eurl_slotid, filetime_slotid, response_code_slotid;
 
 static fdtype text_types=FD_EMPTY_CHOICE;
@@ -401,6 +401,10 @@ static fdtype set_curlopt
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,header_symbol))
     curl_add_headers(ch,val);
+  else if (FD_EQ(opt,cainfo_symbol)) 
+    if (FD_STRINGP(val)) 
+      curl_easy_setopt(ch->handle,CURLOPT_CAINFO,FD_STRDATA(val));
+    else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,verifyhost_symbol)) 
     if (FD_FIXNUMP(val)) 
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,FD_FIX2INT(val));
@@ -1211,6 +1215,7 @@ FD_EXPORT void fd_init_curl_c()
   useragent_symbol=fd_intern("USERAGENT");
   verifyhost_symbol=fd_intern("VERIFYHOST");
   verifypeer_symbol=fd_intern("VERIFYPEER");
+  cainfo_symbol=fd_intern("CAINFO");
   cookie_symbol=fd_intern("COOKIE");
   cookiejar_symbol=fd_intern("COOKIEJAR");
   authinfo_symbol=fd_intern("AUTHINFO");

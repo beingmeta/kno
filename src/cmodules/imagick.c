@@ -253,7 +253,41 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
   else return FD_VOID;
 }
 
-static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg)
+static FilterTypes default_filter=TriangleFilter;
+
+static FilterTypes getfilter(fdtype arg,u8_string cxt)
+{
+  u8_string name=NULL;
+  if ((FD_VOIDP(arg))||(FD_FALSEP(arg)))
+    return default_filter;
+  else if (FD_SYMBOLP(arg))
+    name=FD_SYMBOL_NAME(arg);
+  else if (FD_STRINGP(arg))
+    name=FD_STRDATA(arg);
+  else name=NULL;
+  if (name==NULL) {
+    u8_log(LOG_WARN,cxt,"Bad filter arg %q",arg);
+    return default_filter;}
+  if (strcasecmp(name,"triangle")==0) return TriangleFilter;
+  else if (strcasecmp(name,"box")==0) return BoxFilter;
+  else if (strcasecmp(name,"blackman")==0) return BlackmanFilter;
+  else if (strcasecmp(name,"catrom")==0) return CatromFilter;
+  else if (strcasecmp(name,"gaussian")==0) return GaussianFilter;
+  else if (strcasecmp(name,"cubic")==0) return CubicFilter;
+  else if (strcasecmp(name,"hanning")==0) return HanningFilter;
+  else if (strcasecmp(name,"hermite")==0) return HermiteFilter;
+  else if (strcasecmp(name,"lanczos")==0) return LanczosFilter;
+  else if (strcasecmp(name,"mitchell")==0) return MitchellFilter;
+  else if (strcasecmp(name,"point")==0) return PointFilter;
+  else if (strcasecmp(name,"quadratic")==0) return QuadraticFilter;
+  else if (strcasecmp(name,"sinc")==0) return SincFilter;
+  else if (strcasecmp(name,"bessel")==0) return BesselFilter;
+  else {
+    u8_log(LOG_WARN,cxt,"Bad filter arg %q",arg);
+    return default_filter;}
+}  
+
+static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,fdtype filter,fdtype blur)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -268,7 +302,10 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg)
   double scale=((xscale<yscale)?(xscale):(yscale));
   target_width=(int)floor(iwidth*scale);
   target_height=(int)floor(iheight*scale);
-  retval=MagickAdaptiveResizeImage(wand,target_width,target_height);
+  retval=MagickResizeImage
+    (wand,target_width,target_height,
+     getfilter(filter,"imagick_fit"),
+     ((FD_VOIDP(blur))?(0.0):(FD_FLONUM(blur))));
   if (retval==MagickFalse) {
     grabmagickerr("imagick_fit",wand);
     return FD_ERROR_VALUE;}
@@ -527,10 +564,11 @@ int fd_init_imagick()
 			   fd_imagick_type,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim3x("IMAGICK/FIT",imagick_fit,3,
+	   fd_make_cprim5x("IMAGICK/FIT",imagick_fit,3,
 			   fd_imagick_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID));
+			   fd_fixnum_type,FD_VOID,
+			   -1,FD_VOID,fd_double_type,FD_VOID));
   fd_idefn(imagick_module,
 	   fd_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
 			   fd_imagick_type,FD_VOID,
