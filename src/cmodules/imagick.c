@@ -305,7 +305,7 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,fdtype filter,
   retval=MagickResizeImage
     (wand,target_width,target_height,
      getfilter(filter,"imagick_fit"),
-     ((FD_VOIDP(blur))?(0.0):(FD_FLONUM(blur))));
+     ((FD_VOIDP(blur))?(1.0):(FD_FLONUM(blur))));
   if (retval==MagickFalse) {
     grabmagickerr("imagick_fit",wand);
     return FD_ERROR_VALUE;}
