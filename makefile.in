@@ -687,6 +687,26 @@ lib/framerd/exif.@FDVERSION@.dylib: src/cmodules/exif.o
 	@$(MSG) MACLIBTOOL $@
 lib/framerd/exif.dylib: lib/framerd/exif.@FDVERSION@.dylib
 
+SUNDOWN_OBJECTS=src/cmodules/sundown/sundown.o \
+	src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
+	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
+	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
+	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
+SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
+	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
+	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
+	src/cmodules/sundown/houdini.h
+src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
+	$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ $<
+	@$(MSG) CC "(SUNDOWN)" $@
+
+lib/framerd/sundown.so.@FDVERSION@: $(SUNDOWN_OBJECTS)
+	$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
+	@$(MSG) MKSO  $@ $<
+lib/framerd/sundown.@FDVERSION@.dylib: src/cmodules/sundown.o
+	$(MACLIBTOOL) -install_name $(@F) -o $@
+	@$(MSG) MACLIBTOOL  $@ $<
+
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
@@ -835,7 +855,7 @@ install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
 	$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALLCMODULES@
+install-cmodules: @INSTALLCMODULES@ install-sundown
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
 	      $(LIBINSTALLDIR)/framerd/odbc.@vshared_suffix@
 install-sqlite: $(LIBINSTALLDIR)/framerd/sqlite.@shared_suffix@ \
@@ -862,6 +882,8 @@ install-exif: $(LIBINSTALLDIR)/framerd/exif.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/exif.@vshared_suffix@
 install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/zlib.@vshared_suffix@
+install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
+	        $(LIBINSTALLDIR)/framerd/sundown.@vshared_suffix@
 
 # Setup targets
 
