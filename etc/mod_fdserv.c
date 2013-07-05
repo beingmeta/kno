@@ -1054,7 +1054,7 @@ static int spawn_fdservlet /* 2.0 */
 	return -1;}
       if (((sleep_count+1)%4)==0) {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_NOTICE,rv,r,
+	  (APLOG_MARK,APLOG_NOTICE,OK,r,
 	   "Still waiting for %s to exist (i=%d/wait=%d) (errno=%d:%s)",
 	   sockname,sleep_count,servlet_wait,errno,strerror(errno));
 	errno=0; sleep(2);}
@@ -1876,11 +1876,11 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
   if (content_length<0)
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,
-       "Reading some number of content bytes from @x%lx (%s) for %s",
+       "Returning some number of content bytes from @x%lx (%s) for %s",
        ((unsigned long int)sockval),sockval->sockname,r->unparsed_uri);
   else ap_log_rerror
 	 (APLOG_MARK,LOGDEBUG,OK,r,
-	  "Reading %ld content bytes from @x%lx (%s) for %s",
+	  "Returning %ld content bytes from @x%lx (%s) for %s",
 	  content_length,((unsigned long int)sockval),sockval->sockname,r->unparsed_uri);
   if (sockval->socktype==aprsock) {
     apr_socket_t *sock=sockval->conn.apr;
@@ -1890,8 +1890,8 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       rv=apr_socket_recv(sock,buf,&delta);
       if (rv!=OK) {
 	ap_log_rerror(APLOG_MARK,LOGDEBUG,rv,r,
-		      "Stopped after reading %ld bytes from @x%lx (%s) for %s",
-		      (long int)bytes_read,((unsigned long int)sockval),
+		      "Stopped after reading %ld/%ld bytes from @x%lx (%s) for %s",
+		      (long int)bytes_read,content_length,((unsigned long int)sockval),
 		      sockval->sockname,r->unparsed_uri);
 	error=1;
 	break;}
@@ -1907,8 +1907,8 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       if (written<=0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after transferring %ld=>%ld bytes from @x%lx (%s) for %s",
-	   (long int)bytes_read,(long int)bytes_written,
+	   "Write error after transferring %ld=>%ld/%ld bytes from @x%lx (%s) for %s",
+	   (long int)bytes_read,(long int)bytes_written,content_length,
 	   ((unsigned long int)sockval),sockval->sockname,r->unparsed_uri);
 	errno=0; error=1; break;}}
     if (error) return -(bytes_read+1);
@@ -1916,13 +1916,13 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     if (rv!=OK) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
-	 "Flush error after transferring %ld/%ld content bytes for %s",
-	 (long int)bytes_read,(long int)bytes_written,r->unparsed_uri);
+	 "Flush error after transferring %ld/%ld/%ld content bytes for %s",
+	 (long int)bytes_read,(long int)bytes_written,content_length,r->unparsed_uri);
       return -(bytes_read+1);}
     ap_log_rerror
       (APLOG_MARK,APLOG_INFO,OK,r,
-       "Transferred %ld content bytes from @x%lx (%s) for %s",
-       (long int)bytes_read,((unsigned long int)sockval),
+       "Transferred %ld/%ld content bytes from @x%lx (%s) for %s",
+       (long int)bytes_read,content_length,((unsigned long int)sockval),
        sockval->sockname,r->unparsed_uri);
     return bytes_read;}
   else if (sockval->socktype==filesock) {
@@ -1943,18 +1943,18 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       else if (errno==EAGAIN) {errno=0; continue;}
       else {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_INFO,OK,r,
-	   "Read error (%d:%s) after transferring %ld/%ld bytes from @x%lx#%d (%s) for %s",
+	  (APLOG_MARK,APLOG_ERR,OK,r,
+	   "Read error (%d:%s) after transferring %ld=>%ld/%ld bytes from @x%lx#%d (%s) for %s",
 	   errno,strerror(errno),
-	   (long int)bytes_read,(long int)bytes_written,
+	   (long int)bytes_read,(long int)bytes_written,content_length,
 	   ((unsigned long int)sockval),sock,sockval->sockname,
 	   r->unparsed_uri);
 	errno=0; error=1; break;}
       if (written<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after transferring %ld/%ld bytes from @x%lx#%d (%s) for %s",
-	   (long int)bytes_read,(long int)bytes_written,
+	   "Write error after transferring %ld=>%ld/%ld bytes from @x%lx#%d (%s) for %s",
+	   (long int)bytes_read,(long int)bytes_written,content_length,
 	   ((unsigned long int)sockval),sock,sockval->sockname,
 	   r->unparsed_uri);
 	errno=0; error=1; break;}
@@ -1963,8 +1963,9 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     if ((error)||(rv!=OK)) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
-	 "Error after transferring %ld bytes from  @x%lx#%d (%s) for %s",
-	 (long int)bytes_read,((unsigned long int)sockval),sock,sockval->sockname,
+	 "Error after transferring %ld/%ld bytes from  @x%lx#%d (%s) for %s",
+	 (long int)bytes_read,content_length,
+	 ((unsigned long int)sockval),sock,sockval->sockname,
 	 r->unparsed_uri);
       return -(bytes_read+1);}
     else return bytes_read;}
@@ -2031,25 +2032,23 @@ static int fdserv_handler(request_rec *r)
   else {
     connected=apr_time_now();
     if (sock->socktype==filesock)
-      ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		    "File socket @x%lx#%d (%s) serving %s for %s",
-		    ((unsigned long int)sock),sock->conn.fd,sock->sockname,
-		    r->filename,r->unparsed_uri);
-    else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		       "APR socket @x%lx (%s) serving %s for %s",
-		       ((unsigned long int)sock),sock->sockname,
-		       r->filename,r->unparsed_uri);}
+      ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+		    "Handling %s with %s through file socket @x%lx#%d (%s)",
+		    r->unparsed_uri,r->filename,
+		    ((unsigned long int)sock),sock->conn.fd,sock->sockname);
+    else ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+		       "Handling %s with %s through APR socket @x%lx (%s)",
+		       r->unparsed_uri,r->filename,
+		       ((unsigned long int)sock),sock->sockname);}
   reqdata=ap_bcreate(r->pool,0);
   if (!(reqdata)) {
-    ap_log_rerror(APLOG_MARK,LOGDEBUG,HTTP_INTERNAL_SERVER_ERROR,r,
+    ap_log_rerror(APLOG_MARK,APLOG_CRIT,HTTP_INTERNAL_SERVER_ERROR,r,
 		  "Couldn't allocate bufstream for processing %s",
 		  r->unparsed_uri);
     errno=0;
     servlet_return_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
-  else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		    "Handling request for %s by using %s",
-		    r->unparsed_uri,r->filename);
+  else {}
   ap_add_common_vars(r); ap_add_cgi_vars(r);
   if (r->method_number == M_POST) {
     char bigbuf[4096];
@@ -2166,7 +2165,7 @@ static int fdserv_handler(request_rec *r)
   
   if (bytes_transferred<0) {
     ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
-		  "Error copying content to client from socket @x%lx (%s)",
+		  "Error returning content to client from socket @x%lx (%s)",
 		  ((unsigned long int)sock),sock->sockname);
     servlet_close_socket(servlet,sock);
     if (bytes_transferred==-1)
@@ -2175,7 +2174,7 @@ static int fdserv_handler(request_rec *r)
   responded=apr_time_now();
   
   ap_log_rerror(APLOG_MARK,((bytes_transferred<0)?(APLOG_ERR):(APLOG_INFO)),OK,r,
-		"%s sending %d bytes of content for %s in %luus=%lu+%lu+%lu",
+		"%s returning %d bytes of content for %s in %luus=%lu+%lu+%lu",
 		((bytes_transferred<0)?("Error"):("Done")),
 		((bytes_transferred<0)?(-bytes_transferred):(bytes_transferred)),
 		r->unparsed_uri,
