@@ -42,8 +42,11 @@ enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+webuser=""
 wwwinstall=""
+admin_group=""
 admininstall=""
+fdaemon=""
 fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
@@ -62,6 +65,7 @@ definefileinfo=""
 versionsh=""
 suffix=""
 daemon_identity_default="daemon"
+setup_target="setup-unix"
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLDFLAGS=
@@ -136,17 +140,18 @@ AC_SUBST(shared_config)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
 AC_SUBST(apache_modinfo)
+AC_SUBST(webuser)
 AC_SUBST(wwwinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(fdaemon)
 AC_SUBST(fdaemoninstall)
-AC_SUBST(webuser)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(definefileinfo)
+AC_SUBST(setup_target)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -242,7 +247,7 @@ else
 fi
 
 dnl Specifies a daemon identity user/group for managed FramerD servers
-AC_ARG_WITH(fdaemon,--with-fdaemon The identity for FramerD servers to run,,with_fdaemon=$default_fdaemon)
+AC_ARG_WITH(fdaemon,--with-fdaemon The identity (user) for FramerD servers to run as,,with_fdaemon=$default_fdaemon)
 if test $with_fdaemon != "none"; then
    fdaemoninstall="-o $with_fdaemon"
    fdaemon=$with_fdaemon
@@ -312,6 +317,7 @@ case $host_os in
    vshared_suffix=$VERSION.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a"
    ifmacosx=""
+   setup_target="setup-osx"
    ;;
 esac  
 

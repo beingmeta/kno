@@ -741,7 +741,7 @@ dist/debs.done: staging/framerd-@FDVERSION@
 
 # Installation targets
 
-install: install-core install-cmodules
+install: install-core install-cmodules @setup_target@
 install-core: confdirs @INSTALLI18N@                   \
 	 install-static install-shared install-headers \
          install-exe install-scripts 
@@ -925,7 +925,8 @@ $(DESTDIR)/etc/logrotate.d/framerd:
 	$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
 
-setup-linux: setup-rc.d enable-rc.d setup-logrotate
+setup-unix: setup-rc.d enable-rc.d setup-logrotate
+setup-linux: setup-unix
 
 setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 		$(DESTDIR)@logdir@/framerd
@@ -953,16 +954,20 @@ mod_fdserv: etc/mod_fdserv.so
 
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
-install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ $(DESTDIR)@apache_modules_dir@
+install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ $(DESTDIR)@apache_modules_dir@ \
+			$(DESTDIR)@logdir@/fdserv
 	cd etc; ${INSTALL} @install_file_opts@ fdserv.conf fdserv.load $(DESTDIR)@apache_modinfo@;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@rundir@/fdserv;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@logdir@/fdserv;
-	cd etc; if test -f mod_fdserv.so; then ${APXS} -i mod_fdserv.so; else ${APXS} -i mod_fdserv.la; fi
+	cd etc; if test -f mod_fdserv.so; then @SUDO@ ${APXS} -i mod_fdserv.so; else @SUDO@ ${APXS} -i mod_fdserv.la; fi
 
 $(DESTDIR)@apache_modules_dir@:
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d  $(DESTDIR)@apache_modules_dir@
 $(DESTDIR)@apache_modinfo@:
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d $(DESTDIR)@apache_modinfo@
+$(DESTDIR)@logdir@/fdserv:
+	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ -d \
+		   $(DESTDIR)@logdir@/fdserv
 
 update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
