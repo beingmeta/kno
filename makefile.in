@@ -261,11 +261,11 @@ tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
 	./configure
 exe/.gdbinit: exe/.gdbinit.in ./configure
 	./configure
-etc/fdgetconfig: etc/fdgetconfig ./configure
+etc/fdgetconfig: etc/fdgetconfig.in ./configure
 	./configure
-etc/fdsetconfig: etc/fdsetconfig ./configure
+etc/fdsetconfig: etc/fdsetconfig.in ./configure
 	./configure
-etc/framerd-rc.d: etc/framerd-rc.d ./configure
+etc/framerd-rc.d: etc/framerd-rc.d.in ./configure
 	./configure
 etc/OSXStartupItem/FramerD: etc/OSXStartupItem/FramerD.in ./configure
 	./configure
@@ -634,7 +634,7 @@ lib/framerd/%.so.@FDVERSION@: src/cmodules/%.o
 	@$(MKSO) -o $@ $< @LIBS@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.@FDVERSION@.dylib: src/cmodules/%.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
 	@$(MSG) MACLIBTOOL  $@ $<
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
@@ -697,14 +697,14 @@ SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
 	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
 	src/cmodules/sundown/houdini.h
 src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
-	$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ $<
+	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ $<
 	@$(MSG) CC "(SUNDOWN)" $@
 
 lib/framerd/sundown.so.@FDVERSION@: $(SUNDOWN_OBJECTS)
-	$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
+	@$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/sundown.@FDVERSION@.dylib: src/cmodules/sundown.o
-	$(MACLIBTOOL) -install_name $(@F) -o $@
+	@$(MACLIBTOOL) -install_name $(@F) -o $@
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
@@ -940,7 +940,7 @@ setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
 enable-rc.d: setup-rc.d
-	update-rc.d framerd defaults
+	@SUDO@update-rc.d framerd defaults
 
 setup-logrotate: $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd:

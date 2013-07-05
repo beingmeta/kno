@@ -1,13 +1,19 @@
 #!/bin/sh
 #
 # Startup script for FramerD servers
-#
-# chkconfig: - 80 80
-# description: FramerD is a distributed knowledge and processing server.
-#              This file starts up the FramerD servers on this host
-# processname: fdserver
-# pidfile: /var/run/framerd.pid
-VERSION="$Id$"
+# chkconfig:		- 80 80
+# processname: 		fdmanager
+# pidfile: 		/var/run/framerd.pid
+### BEGIN INIT INFO
+# Provides:		fdmanager
+# Required-Start:	$local_fs $network $named $syslog
+# Required-Stop:	$local_fs $network $named $syslog
+# Default-Start:  	2 3 4 5
+# Default-Stop:  	0 1 6
+# Short-Description: 	Start configure FramerD servers
+# Description: 		Start the FramerD servers described in etc/framerd/servers, including data and API servers
+# X-Interactive:	false
+### END INIT INFO
 
 export FDMANAGER=@prefix@/bin/fdmanager
 export FDSERVER=@prefix@/bin/fdbserver
