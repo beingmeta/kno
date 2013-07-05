@@ -21,6 +21,7 @@
 #include "html.h"
 
 #define OUTPUT_BUF_UNIT 1024
+#define HTML_RENDER_FLAGS (HTML_USE_XHTML|HTML_ESCAPE|HTML_SAFELINK)
 
 FD_EXPORT int fd_init_sundown(void) FD_LIBINIT_FN;
 
@@ -37,7 +38,7 @@ static fdtype markdown2html_prim(fdtype mdstring,fdtype opts)
 
   ob = bufnew(OUTPUT_BUF_UNIT);
 
-  sdhtml_renderer(&callbacks, &options, 0);
+  sdhtml_renderer(&callbacks, &options, HTML_RENDER_FLAGS);
   markdown = sd_markdown_new(0, 16, &callbacks, &options);
 
   sd_markdown_render(ob, FD_STRDATA(mdstring), FD_STRLEN(mdstring), markdown);
@@ -61,7 +62,7 @@ static fdtype markout_prim(fdtype mdstring,fdtype opts)
 
   ob = bufnew(OUTPUT_BUF_UNIT);
 
-  sdhtml_renderer(&callbacks, &options, 0);
+  sdhtml_renderer(&callbacks, &options, HTML_RENDER_FLAGS);
   markdown = sd_markdown_new(0, 16, &callbacks, &options);
 
   sd_markdown_render(ob, FD_STRDATA(mdstring), FD_STRLEN(mdstring), markdown);
