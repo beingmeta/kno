@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
 
