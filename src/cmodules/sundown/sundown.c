@@ -50,6 +50,30 @@ static fdtype markdown2html_prim(fdtype mdstring,fdtype opts)
   return result;
 }
 
+static fdtype markout_prim(fdtype mdstring,fdtype opts)
+{
+  U8_OUTPUT *out=u8_current_output;
+
+  struct sd_callbacks callbacks;
+  struct html_renderopt options;
+  struct sd_markdown *markdown;
+  struct buf *ob;
+
+  ob = bufnew(OUTPUT_BUF_UNIT);
+
+  sdhtml_renderer(&callbacks, &options, 0);
+  markdown = sd_markdown_new(0, 16, &callbacks, &options);
+
+  sd_markdown_render(ob, FD_STRDATA(mdstring), FD_STRLEN(mdstring), markdown);
+  sd_markdown_free(markdown);
+
+  u8_putn(out,ob->data,ob->size);
+  
+  bufrelease(ob);
+
+  return FD_VOID;
+}
+
 FD_EXPORT int fd_init_sundown()
 {
   fdtype sundown_module, md2html_prim;
@@ -63,6 +87,10 @@ FD_EXPORT int fd_init_sundown()
 			   fd_string_type,FD_VOID,-1,FD_VOID));
   fd_defalias(sundown_module,"MD->HTML","MARKDOWN->HTML");
 
+  fd_idefn(sundown_module,
+	   fd_make_cprim2x("MARKOUT",markdown2html_prim,1,
+			   fd_string_type,FD_VOID,-1,FD_VOID));
+  
   u8_register_source_file(_FILEINFO);
 
   return 1;
