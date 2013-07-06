@@ -703,8 +703,8 @@ src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
 lib/framerd/sundown.so.@FDVERSION@: $(SUNDOWN_OBJECTS)
 	@$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
 	@$(MSG) MKSO  $@ $<
-lib/framerd/sundown.@FDVERSION@.dylib: src/cmodules/sundown.o
-	@$(MACLIBTOOL) -install_name $(@F) -o $@
+lib/framerd/sundown.@FDVERSION@.dylib: $(SUNDOWN_OBJECTS)
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
@@ -952,7 +952,7 @@ setup-linux: setup-unix
 
 setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 		$(DESTDIR)@logdir@/framerd
-	etc/setup-osx "@data_dir@" \
+	@SUDO@ etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \

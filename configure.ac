@@ -92,8 +92,8 @@ extra_module_path=""
 safe_extra_module_path=""
 module_load_path=""
 safe_module_load_path=""
-CMODULES="lib/framerd/sundown.$shared_suffix"
-INSTALLCMODULES="install-sundown"
+CMODULES=""
+INSTALLCMODULES=""
 SUDO=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$PREFIX/etc/framerd"
@@ -752,6 +752,12 @@ AC_ARG_WITH(crypto,--with[out]-crypto Compile the crypto module,,with_crypto=$wi
 if test $with_crypto = "yes"; then
   CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
+fi
+
+AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
+if test "x$with_sundown" = "xyes"; then
+  CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
 fi
 
 dnl This compiles a version to be used with the GNU profiling tools
