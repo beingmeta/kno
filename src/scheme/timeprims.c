@@ -48,7 +48,8 @@ static fdtype isodate_symbol, isobasic_symbol, isobasicdate_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
 static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
 static fdtype hms_symbol, dmy_symbol, dm_symbol, my_symbol;
-static fdtype string_symbol, shortstring_symbol, fullstring_symbol;
+static fdtype shortstring_symbol, short_symbol;
+static fdtype string_symbol, fullstring_symbol;
 static fdtype timestring_symbol, datestring_symbol;
 
 static enum u8_timestamp_precision get_precision(fdtype sym)
@@ -473,13 +474,30 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 	  return fd_err(fd_ImpreciseTimestamp,"xtime_get",
 			FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
-  else if (FD_EQ(slotid,shortstring_symbol))
-    if (xt->u8_prec>=u8_second)
-      return use_strftime("%d %b %Y %r",xt);
-    else if (reterr)
-      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
-    else return FD_EMPTY_CHOICE;
+  else if (FD_EQ(slotid,shortstring_symbol)) {
+    u8_byte buf[128]; struct U8_OUTPUT out;
+    U8_INIT_FIXED_OUTPUT(&out,128,buf);
+    if (xt->u8_prec<u8_hour)
+      u8_printf(&out,"%d%s%d",
+		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
+    else u8_printf
+	   (&out,"%d%s%d %02d:%02d:%02d%s%s",
+	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
+	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
+	    xt->u8_min,xt->u8_sec,((xt->u8_hour>=12)?("PM"):("AM")));
+    return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+  else if (FD_EQ(slotid,short_symbol)) {
+    u8_byte buf[128]; struct U8_OUTPUT out;
+    U8_INIT_FIXED_OUTPUT(&out,128,buf);
+    if (xt->u8_prec<u8_hour)
+      u8_printf(&out,"%d%s%d",
+		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
+    else u8_printf
+	   (&out,"%d%s%d %02d:%02d%s%s",
+	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
+	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
+	    xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
+    return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,datestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%x",xt);
@@ -1456,6 +1474,8 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,string_symbol);
   shortstring_symbol=fd_intern("SHORTSTRING");
   FD_ADD_TO_CHOICE(xtime_keys,shortstring_symbol);
+  short_symbol=fd_intern("SHORT");
+  FD_ADD_TO_CHOICE(xtime_keys,short_symbol);
   timestring_symbol=fd_intern("TIMESTRING");
   FD_ADD_TO_CHOICE(xtime_keys,timestring_symbol);
   datestring_symbol=fd_intern("DATESTRING");
