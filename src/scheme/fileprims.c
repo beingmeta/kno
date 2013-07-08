@@ -464,10 +464,14 @@ static fdtype link_file_prim(fdtype from,fdtype to,fdtype must_exist)
 
 static fdtype filestring_prim(fdtype filename,fdtype enc)
 {
-  if (FD_VOIDP(enc)) {
+  if ((FD_VOIDP(enc))||(FD_FALSEP(enc))) {
     u8_string data=u8_filestring(FD_STRDATA(filename),"UTF-8");
     if (data)
       return fd_lispstring(data);
+    else return FD_ERROR_VALUE;}
+  else if (FD_TRUEP(enc)) {
+    u8_string data=u8_filestring(FD_STRDATA(filename),"auto");
+    if (data) return fd_lispstring(data);
     else return FD_ERROR_VALUE;}
   else if (FD_STRINGP(enc)) {
     u8_string data=u8_filestring(FD_STRDATA(filename),FD_STRDATA(enc));
