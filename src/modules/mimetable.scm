@@ -3,11 +3,11 @@
 
 (in-module 'mimetable)
 
-(use-module '{texttools varconfig})
+(use-module '{texttools varconfig texttools})
 
-(module-export! '{*mimetable* getsuffix ctype->suffix path->ctype path->mimetype})
+(module-export! '{*mimetable* getsuffix ctype->suffix path->ctype path->mimetype ctype->charset})
 
-(define *default-charset* "utf-8")
+(define *default-charset* #f)
 (varconfig! mime:charset *default-charset* config:goodstring)
 
 (define *default-mimetype* #f)
@@ -59,3 +59,11 @@
 (define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
 
 (define (ctype->suffix ctype) (get *inv-mimetable* ctype))
+
+(define (ctype->charset string)
+  (try (get (text->frames #("charset" (spaces*) "="
+			    (spaces*) (label charset (not> {";" (eos)})))
+			  string)
+	    'charset)
+       #f))
+
