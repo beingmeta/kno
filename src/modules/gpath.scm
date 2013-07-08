@@ -252,7 +252,7 @@
 		   (or (has-prefix ctype "text")
 		       (textsearch #{"xml" ".htm" ".txt" ".text" ".md" "charset"}
 				   ctype)))
-	      (filestring ref)
+	      (filestring ref (or (and ctype (ctype->charset ctype)) "auto"))
 	      (filedata ref)))
 	(else (error "Weird docbase ref" ref))))
 
@@ -326,7 +326,11 @@
 		  (or (has-prefix ctype "text")
 		      (textsearch #{"xml" ".htm" ".txt" ".text" ".md" "charset"}
 				  ctype)))
-	     `#[content ,(filestring ref) ctype ,(or ctype {})
+	     `#[content ,(filestring ref
+				     (or (and ctype (ctype->charset ctype))
+					 "auto"))
+		ctype ,(or ctype {})
+		charset ,(or (and ctype (ctype->charset ctype)) {})
 		modified ,(file-modtime ref)]
 	     `#[content ,(filedata ref) ctype ,(or ctype {})
 		modified ,(file-modtime ref)]))
