@@ -481,10 +481,11 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       u8_printf(&out,"%d%s%d",
 		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
     else u8_printf
-	   (&out,"%d%s%d %02d:%02d:%02d%s%s",
+	   (&out,"%d%s%d %02d:%02d:%02d%s",
 	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
 	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
-	    xt->u8_min,xt->u8_sec,((xt->u8_hour>=12)?("PM"):("AM")));
+	    xt->u8_min,xt->u8_sec,
+	    ((xt->u8_hour>=12)?("PM"):("AM")));
     return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,short_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
@@ -493,7 +494,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       u8_printf(&out,"%d%s%d",
 		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
     else u8_printf
-	   (&out,"%d%s%d %02d:%02d%s%s",
+	   (&out,"%d%s%d %02d:%02d%s",
 	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
 	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
 	    xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
