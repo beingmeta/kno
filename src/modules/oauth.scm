@@ -13,12 +13,13 @@
 (varconfig! oauth:callback default-callback)
 
 (module-export!
- '{oauth oauth/spec
+ '{oauth oauth/spec oauth/start
    oauth/request oauth/authurl oauth/verify oauth/getaccess
    oauth/call oauth/call* oauth/get oauth/post oauth/put
    oauth/sigstring oauth/callsig})
 
 (define-init %loglevel %notice!)
+;;(set!  %loglevel %debug%)
 
 (define (getreqdata req (ctype) (content))
   (default! ctype (try (get req 'content-type) #f))
@@ -46,7 +47,7 @@
 
 ;;; Server info
 
-(define-init oauth-servers
+(define oauth-servers
   `#[TWITTER
      #[REQUEST "https://api.twitter.com/oauth/request_token"
        VERIFY "https://api.twitter.com/oauth/access_token"
@@ -97,7 +98,16 @@
        SCOPE "profile postal_code"
        VERSION "2.0"
        REALM AMAZON
-       NAME "Amazon"]])
+       NAME "Amazon"]
+     PAYPAL
+     #[AUTHORIZE "https://www.paypal.com/webapps/auth/protocol/openidconnect/v1/authorize"
+       ACCESS "https://api.paypal.com/v1/identity/openidconnect/tokenservice"
+       KEY PP:LOGINKEY SECRET PP:LOGINSECRET
+       SCOPE "openid profile email"
+       VERSION "2.0"
+       REALM PAYPAL
+       HTTPAUTH #t
+       NAME "Paypal"]])
 
 (define (oauth/provider spec) (get oauth-servers spec))
 (module-export! 'oauth/provider)
@@ -291,7 +301,7 @@
        "scope"
        (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
 		    (printout (if (> i 0) " ") scope)))
-       "state" (getopt spec 'state (getuuid))
+       "state" (getopt spec 'state (uuid->string (getuuid)))
        "response_type" "code")))
 
 (define (oauth/verify spec verifier (ckey) (csecret))
@@ -379,7 +389,7 @@
 			    (try (get parsed 'expires_in)
 				 (get parsed 'expires))))
 	       (authinfo `#[token ,(get parsed 'access_token)]))
-	  (debug%watch parsed spec req)
+	  (debug%watch parsed spec req expires_in)
 	  (when (exists? (get parsed 'token_type))
 	    (unless (string-ci=? (get parsed 'token_type) "Bearer")
 	      (logwarn |OAUTH/GETACESS/OddToken|
@@ -390,6 +400,7 @@
 	    (when (exists? (get parsed 'refresh_token))
 	      (store! authinfo 'refresh
 		      (->secret (get parsed 'refresh_token)))))
+	  (debug%watch (cons authinfo spec) "OAUTH/GETACCESS/RESULT")
 	  (cons authinfo spec))
 	(begin
 	  (logwarn |OATH/GETACCESS:Failure|
@@ -492,12 +503,12 @@
 	      ""))
 	 (req (if (eq? method 'GET)
 		  (urlget (if httpauth
-			      (scripturl+ endpoint args)
+			      (apply scripturl endpoint args)
 			      (if (pair? args)
 				  (apply scripturl endpoint
 					 "access_token" (getopt spec 'token)
 					 args)
-				  (scripturl+ endpoint args)))
+				  (apply scripturl endpoint args)))
 			  (curlopen 'header "Expect: "
 				    'header auth-header
 				    'method method))
@@ -685,7 +696,8 @@
 	  (let* ((spec (get oauth-pending state))
 		 (access (and spec (oauth/getaccess spec code))))
 	    (and access
-		 (let ((user (getuser access)))
+		 (let* ((handler (getopt spec 'onaccess getuser))
+			(user (handler access)))
 		   (debug%watch "OAUTH2/complete" user access spec)
 		   user)))
 	  (let* ((spec (and oauth_realm (get oauth-servers oauth_realm)))
@@ -702,4 +714,20 @@
 	    (req/set! 'status 303)
 	    (httpheader "Location: " redirect)
 	    #f))))
+
+(define (oauth/start spec)
+  (debug%watch "OAUTH/START" spec)
+  (set! spec (oauth/spec spec))
+  (let* ((state (if (getopt spec 'request)
+		    (oauth/request spec) ;; 1.0
+		    spec))
+	 (redirect (oauth/authurl state)))
+    (debug%watch "OAUTH/START/redirect" redirect state)
+    (store! oauth-pending
+	    (getopt state 'oauth_token (getopt state 'state))
+	    state)
+    (req/set! 'status 303)
+    (httpheader "Location: " redirect)
+    #f))
+
 
