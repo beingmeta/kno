@@ -388,7 +388,8 @@ $(LIBINSTALLDIR)/%@suffix@.dylib: \
 $(BININSTALLDIR)/%: exe/%
 
 $(BININSTALLDIR)/%: src/scripts/%.scm
-	etc/install-script $<
+	@$(MSG) Installing script $@
+	@etc/install-script $<
 
 # Custom rules for building fdmanager which doesn't actually use the
 # FramerD libraries
@@ -767,13 +768,13 @@ install-core: confdirs @INSTALLI18N@                   \
          install-exe install-scripts 
 
 $(INCINSTALLDIR):
-	$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
+	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
 $(BININSTALLDIR):
-	$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
+	@$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
 $(LIBINSTALLDIR):
-	$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/framerd:
-	$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
@@ -837,23 +838,26 @@ install-dylib: install-dylibv                                  \
 	$(LIBINSTALLDIR)/libtagger@suffix@.dylib
 
 install-headers: $(INCINSTALLDIR)
-	$(SYSINSTALL) -p @install_file_opts@              \
+	@$(SYSINSTALL) -p @install_file_opts@              \
 		   $(DTYPE_HEADERS) $(DB_HEADERS)      \
 		   $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
 		$(INCINSTALLDIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
-	$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+	@$(MSG) Installing executables
+	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
-	$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+	@$(MSG) Installing shell scripts
+	@$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
-	$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
+	@$(MSG) Installing scheme scripts
+	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
-	$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
+	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@ install-sundown
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
@@ -888,63 +892,71 @@ install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 # Setup targets
 
 confdirs: 
-	$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
-	if test ! -f $(DESTDIR)@config_dir@/servers; then \
+	@$(MSG) Setting up configuration directories
+	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
+	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
 		$(INSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
 MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
 SAFE_MODULE_DIRS=domutils knodules textindex 
 link-modules:
-	$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
-	ln -sf $(BUILD)/etc/*.el @data_dir@
-	ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	for x in $(MODULE_DIRS); do \
+	@$(MSG) Linking modules
+	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
+	@ln -sf $(BUILD)/etc/*.el @data_dir@
+	@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
+	@for x in $(MODULE_DIRS); do \
 	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; done
-	ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
-	for x in $(SAFE_MODULE_DIRS); do \
+	@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	@for x in $(SAFE_MODULE_DIRS); do \
 	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
-	ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
-	$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
-	cp -pf $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
-	$(INSTALL) @install_dir_opts@ \
+	@$(ECHO) Copying modules
+	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
+	@cp -pf $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
+	@$(INSTALL) @install_dir_opts@ \
            $(DESTDIR)@standard_module_dir@ \
 	   $(DESTDIR)@module_dir@ \
 	   $(DESTDIR)@safe_module_dir@
-	cp -pRf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	cp -pRf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	for x in $(MODULE_DIRS); do \
+	@cp -pRf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@cp -pRf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
+	@for x in $(MODULE_DIRS); do \
 	   cp -pRf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; done
-	cp -pRf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
-	for x in $(SAFE_MODULE_DIRS); do \
+	@cp -pRf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	@for x in $(SAFE_MODULE_DIRS); do \
 	   cp -pRf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
-	cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	@cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
 $(DESTDIR)/etc/init.d:
-	$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
-	$(SYSINSTALL) -m 0555 @admininstall@ \
+	@$(MSG) Installing FramerD init.d
+	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
 $(DESTDIR)@rundir@/framerd:
-	$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
+	@$(MSG) Installing FramerD run directory
+	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
 		   $(DESTDIR)@rundir@/framerd
 $(DESTDIR)@logdir@/framerd:
-	$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
+	@$(MSG) Installing FramerD log directory
+	@$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
 enable-rc.d: setup-rc.d
-	@SUDO@update-rc.d framerd defaults
+	@$(MSG) Updating rc.d
+	@@SUDO@update-rc.d framerd defaults
 
 setup-logrotate: $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd:
-	$(SYSINSTALL) -T -m 0644 etc/logrotate \
+	@$(MSG) Installing logrotate script
+	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
 
 setup-unix: setup-rc.d enable-rc.d setup-logrotate
@@ -952,7 +964,8 @@ setup-linux: setup-unix
 
 setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 		$(DESTDIR)@logdir@/framerd
-	@SUDO@ etc/setup-osx "@data_dir@" \
+	@$(MSG) Setting up OSX system configuration
+	@@SUDO@ etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
