@@ -560,7 +560,7 @@ if test "x$with_sudo" == "xyes"; then
   if test "x$sudoprogram" == "xna"; then
     SUDO=""
   else 
-    SUDO="$sudo_program "
+    SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
 elif test "x$with_sudo" != "xno"; then
   SUDO="$with_sudo "
