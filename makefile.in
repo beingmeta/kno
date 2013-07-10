@@ -954,7 +954,7 @@ enable-rc.d: setup-rc.d
 	@@SUDO@update-rc.d framerd defaults
 
 setup-logrotate: $(DESTDIR)/etc/logrotate.d/framerd
-$(DESTDIR)/etc/logrotate.d/framerd:
+$(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
