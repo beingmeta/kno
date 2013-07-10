@@ -13,13 +13,13 @@
 (varconfig! oauth:callback default-callback)
 
 (module-export!
- '{oauth oauth/spec oauth/start
+ '{oauth oauth/spec oauth/start oauth/refresh!
    oauth/request oauth/authurl oauth/verify oauth/getaccess
    oauth/call oauth/call* oauth/get oauth/post oauth/put
    oauth/sigstring oauth/callsig})
 
 (define-init %loglevel %notice!)
-;;(set!  %loglevel %debug%)
+(set!  %loglevel %debug%)
 
 (define (getreqdata req (ctype) (content))
   (default! ctype (try (get req 'content-type) #f))
@@ -381,7 +381,8 @@
 					      (getopt spec 'token))
 				    (getopt spec 'token)))
 			      "client_id" ckey "client_secret" csecret
-			      "grant_type" (getopt spec 'grant "authorization_code")
+			      "grant_type"
+			      (getopt spec 'grant "authorization_code")
 			      "redirect_uri" (qc callback))))))
     (if (test req 'response 200)
 	(let* ((parsed (getreqdata req))
@@ -571,22 +572,25 @@
   (unless (getopt spec 'refresh)
     (error OAUTH:NOREFRESH OAUTH/REFRESH!
 	   "No OAUTH2 refresh key in " spec))
-  (let* ((endpoint (getopt spec 'authorize))
+  (unless (pair? spec) (set! spec (oauth/spec spec)))
+  (let* ((endpoint (getopt spec 'access (getopt spec 'authorize)))
 	 (auth-header
 	  (glom "Authorization: Bearer " (getopt spec 'token)))
 	 (req (urlpost endpoint
 		       (curlopen 'header "Expect: "
 				 'header auth-header
-				 'method 'POST)
-		       `#["client_id" ,(getckey spec)
-			  "client_secret" ,(getcsecret spec)
-			  "grant_type" "refresh_token"
-			  "refresh_token" (getopt spec 'refresh)])))
+				 'method 'POST
+				 'verbose #t)
+		       (scripturl+
+			#f `#["client_id" ,(getckey spec)
+			      "client_secret" ,(getcsecret spec)
+			      "grant_type" "refresh_token"
+			      "refresh_token" ,(getopt spec 'refresh)]))))
     (debug%watch endpoint auth-header req)
     (if (test req 'response 200)
 	(let* ((parsed (getreqdata req))
-	       (expires_in (try (get parsed 'expires_in)
-				(get parsed 'expires)))
+	       (expires_in (->number (try (get parsed 'expires_in)
+					  (get parsed 'expires))))
 	       (newtoken (get parsed 'access_token))
 	       (head (car spec)))
 	  (when (exists? newtoken) (store! head 'token  newtoken))
@@ -596,7 +600,7 @@
 		     " responding to " spec " from " parsed))
 	  (when expires_in
 	    (store! head 'expires (timestamp+ expires_in))
-	    (store! head 'refresh (get parsed 'refresh_token)))
+	    (store! head 'refresh (get parsed 'refresh)))
 	  (unless expires_in
 	    (drop! head 'expires) (drop! head 'refresh))
 	  (when getuser (getuser spec))
