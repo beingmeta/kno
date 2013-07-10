@@ -94,6 +94,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
   if (!(FD_VOIDP(module))) {
     fdtype loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);
     while (FD_VOIDP(loadstamp)) {
+      u8_lock_mutex(&module_wait_lock);
       u8_condvar_wait(&module_wait,&module_wait_lock);
       loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);}
     clearloadlock(spec);
