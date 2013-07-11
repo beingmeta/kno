@@ -8,13 +8,17 @@
 (module-export! '{dom/adjust! dom/edit! dom/parsedit})
 
 (define (dom/adjust! doc selector (action #f))
-  (cond ((procedure? action) (action (dom/find doc selector)))
-	((string? action) (dom/edit (dom/find doc selector) action))
+  (cond ((and (procedure? selector) (not action))
+	 (dom/map! doc selector))
+	((procedure? action)
+	 (let ((nodes (dom/find doc selector)))
+	   (do-choices (node nodes) (action node))))
+	((string? action) (dom/edit! (dom/find doc selector) action))
 	(action (error "Invalid DOM/ADJUST action" action))
 	((and (pair? selector) (or (procedure? (cdr selector)) (string? (cdr selector))))
-	 (dom/adjust doc (car selector) (cdr selector)))
+	 (dom/adjust! doc (car selector) (cdr selector)))
 	((pair? selector)
-	 (dolist (rule selector) (dom/adjust doc rule)))
+	 (dolist (rule selector) (dom/adjust! doc rule)))
 	(else (error "Invalid DOM/ADJUST selector" action))))
 
 (define edit-action-rules
@@ -44,6 +48,7 @@
     (if (string? action)
 	(let* ((parsed (text->frames (qc edit-action-rules) action))
 	       (setclass (get parsed 'setclass))
+	       (newtagname (string->symbol (get parsed 'tagname)))
 	       (dropclass (get parsed 'dropclass))
 	       (addclass (choice setclass (get parsed 'addclass)))
 	       (setid (get parsed 'setid))
@@ -63,14 +68,18 @@
 		      (set! classes (append classes (list add)))))
 		  (do-choices (drop dropclass)
 		    (when (position drop classes)
-		      (set! classes (remove drop  classes))))
+		      (set! classes (remove drop classes))))
 		  (dom/set! node 'class
-			    (stringout (doseq (name class i)
+			    (stringout (doseq (name classes i)
 					 (printout (if (> i 0) " ") name)))))))
-	  (when (exists? setid) (dom/set! 'id setid))
+	  (when (exists? newtagname) (store! node '%xmltag newtagname))
+	  (when (exists? setid) (dom/set! node 'id setid))
 	  (do-choices (drop dropattrib) (dom/drop! node drop))
 	  (do-choices (edit setattrib)
 	    (if (test edit 'addval)
 		(dom/add! node (get edit 'setattrib) (get edit 'addval)
 			  (try (get edit 'sep) " "))
 		(dom/set! node (get edit 'setattrib) (get edit 'val))))))))
+
+
+
