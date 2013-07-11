@@ -20,12 +20,13 @@
    dom/replace-child! dom/replace!
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
-   dom/search dom/search/first dom/strip! dom/map dom/combine!
+   dom/search dom/search/first dom/strip! dom/map dom/map! dom/combine!
    dom/gethead dom/getschemas dom/getmeta dom/getlinks
    dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block? dom/terminal?
    dom->id id->dom
+   dom/parent
    dom/clone})
 
 (define *block-text-tags*
@@ -80,6 +81,21 @@
   (difference (stdspace (elts (segment string ";"))) ""))
 (define (dom/split-comma string)
   (difference (stdspace (elts (segment string ","))) ""))
+
+(define (find-parent node under)
+  (let ((content (get under '%content)))
+    (if (or (fail? content) (not (pair? content))) #f
+	(if (position node content) under
+	    (let ((parent #f) (child #f))
+	      (while (and (pair? content) (not parent))
+		(unless (string? (car content))
+		  (set! child (car content))
+		  (set! parent (find-parent node child)))
+		(set! content (cdr content)))
+	      parent)))))
+
+(define (dom/parent node doc)
+  (try (get node '%parent) (find-parent node doc)))
 
 ;;; DOM editing
 
@@ -790,6 +806,44 @@
 	  (if (null? args) (map1 node fn arg)
 	      (mapn node fn (cons (qc arg) args)))
 	  (map0 node fn)))))
+
+(define (map0! node fn)
+  (cond ((string? node) node)
+	((pair? node) (->list (map0! (->vector node) fn)))
+	((vector? node)
+	 (apply append
+		(forseq (elt (->vector node))
+		  (if (string? elt) (vector elt) (map0! elt fn)))))
+	(else (let* ((content (->vector (try (get node '%content) '())))
+		     (new (apply append
+				 (forseq (elt content)
+				   (if (string? elt) (vector elt)
+				       (->vector (map0! elt fn)))))))
+		(store! node '%content (->list new))
+		(fn node)))))
+
+(define (mapn! node fn args)
+  (cond ((string? node) node)
+	((pair? node) (->list (mapn! (->vector node) fn args)))
+	((vector? node)
+	 (apply append
+		(forseq (elt (->vector node))
+		  (if (string? elt) (vector elt)
+		      (->vector (mapn! elt fn args))))))
+	(else (let* ((content (->vector (try (get node '%content) '())))
+		     (new (apply append
+				 (forseq (elt content)
+				   (if (string? elt) (vector elt)
+				       (->vector (mapn! elt fn args)))))))
+		(store! node '%content (->list new))
+		(apply fn node args)))))
+
+(defambda (dom/map! node fn . args)
+  (do-choices node
+    (do-choices fn
+      (if (null? args)
+	  (map0! node fn)
+	  (mapn! node fn args)))))
 
 ;;; Combining
 
