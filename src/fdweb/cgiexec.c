@@ -204,11 +204,11 @@ static void get_form_args(fd_slotmap c)
 	if (FD_STRINGP(namestring)) {
 	  u8_string nstring=FD_STRING_DATA(namestring);
 	  fdtype namesym=fd_parse(nstring);
-	  fdtype _namesym=intern_compound("_",nstring);
+	  fdtype partsym=intern_compound("__",nstring);
 	  fdtype ctype=fd_get(elt,content_type,FD_VOID);
 	  fdtype content=fd_get((fdtype)elt,content_slotid,FD_EMPTY_CHOICE);
 	  /* Add the part itself in the _name slotid */
-	  fd_add((fdtype)c,_namesym,elt);
+	  fd_add((fdtype)c,partsym,elt);
 	  /* Add the filename slot if it's an upload */
 	  if (fd_test(elt,filename_slotid,FD_VOID)) {
 	    fdtype filename=fd_get(elt,filename_slotid,FD_EMPTY_CHOICE);
