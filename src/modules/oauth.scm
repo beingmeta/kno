@@ -21,6 +21,10 @@
 (define-init %loglevel %notice!)
 (set!  %loglevel %debug%)
 
+(define (getxmldata string)
+  (let ((parsed (xmlparse string '{data slotify})))
+    (reject (elts parsed) string?)))
+
 (define (getreqdata req (ctype) (content))
   (default! ctype (try (get req 'content-type) #f))
   (default! content (try (get req '%content) #f))
@@ -31,13 +35,13 @@
       (if (search "json" ctype)
 	  (jsonparse content)
 	  (if (search "xml" ctype)
-	      (xmlparse content '{data slotify})
+	      (getxmldata content)
 	      ;; This comes across as text/plain from FB,
 	      ;;  but should probably be something else.
 	      (if (search "form" ctype)
 		  (cgiparse content)
 		  (if (textsearch #((bol) (spaces*) "<") content)
-		      (xmlparse content '{data slotify})
+		      (getxmldata content)
 		      (if (textsearch #((bol) (spaces*) {"{" "["})
 				      content)
 			  (jsonparse content)
@@ -58,14 +62,22 @@
        REALM TWITTER
        NAME "Twitter"]
      LINKEDIN
-     #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
-       AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
-       AUTHENTICATE "https://api.linkedin.com/uas/oauth/authorize"
-       VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
+     #[AUTHORIZE "https://www.linkedin.com/uas/oauth2/authorization"
+       ACCESS "https://www.linkedin.com/uas/oauth2/accessToken"
        KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
-       VERSION "1.0"
+       VERSION "2.0"
+       SCOPE "r_fullprofile r_network r_emailaddress rw_groups"
+       ACCESS_TOKEN "oauth2_access_token"
        REALM LINKEDIN
        NAME "LinkedIn"]
+;;     #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
+;;       AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
+;;       AUTHENTICATE "https://api.linkedin.com/uas/oauth/authorize"
+;;       VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
+;;       KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
+;;       VERSION "1.0"
+;;       REALM LINKEDIN
+;;       NAME "LinkedIn"]
      GOOGLE
      #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
        AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
@@ -80,7 +92,7 @@
        KEY GPLUS:KEY SECRET GPLUS:SECRET
        SCOPE "https://www.googleapis.com/auth/plus.me"
        VERSION "2.0"
-       HTTPAUTH #t
+       ACCESS_TOKEN HTTP
        REALM GPLUS
        NAME "Google+"]
      FACEBOOK
@@ -106,7 +118,7 @@
        SCOPE "openid profile email"
        VERSION "2.0"
        REALM PAYPAL
-       HTTPAUTH #t
+       ACCESS_TOKEN HTTP
        NAME "Paypal"]])
 
 (define (oauth/provider spec) (get oauth-servers spec))
@@ -118,7 +130,8 @@
 		      (get oauth-servers (getkeys oauth-servers)))
 		     ((and (or (slotmap? val) (schemap? val))
 			   (exists? (get val 'realm)))
-		      (when (exists? (get oauth-servers (get val 'realm)))
+		      (when (and (exists? (get oauth-servers (get val 'realm)))
+				 (not (test oauth-servers (get val 'realm) val)))
 			(logwarn OAUTH/REDEFINE "Redefining OAUTH specification for "
 				 (get val 'realm) ", changes may be lost!"))
 		      (do-choices val
@@ -497,7 +510,7 @@
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
 				       default-endpoint))))
-	 (httpauth (getopt spec 'httpauth))
+	 (httpauth (test spec 'access_token 'http))
 	 (auth-header
 	  (if httpauth
 	      (glom "Authorization: Bearer " (getopt spec 'token))
@@ -507,7 +520,8 @@
 			      (apply scripturl endpoint args)
 			      (if (pair? args)
 				  (apply scripturl endpoint
-					 "access_token" (getopt spec 'token)
+					 (getopt spec 'access_token "access_token")
+					 (getopt spec 'token)
 					 args)
 				  (apply scripturl endpoint args)))
 			  (curlopen 'header "Expect: "
@@ -525,7 +539,8 @@
 					     'header auth-header
 					     'method method)
 				   (args->post
-				    (cons* "access_token" (getopt spec 'token)
+				    (cons* (getopt spec 'access_token "access_token")
+					   (getopt spec 'token)
 					   args))))
 		      (error OAUTH:BADMETHOD OAUTH/CALL2
 			     "Only GET and POST are allowed: "
@@ -579,8 +594,7 @@
 	 (req (urlpost endpoint
 		       (curlopen 'header "Expect: "
 				 'header auth-header
-				 'method 'POST
-				 'verbose #t)
+				 'method 'POST)
 		       (scripturl+
 			#f `#["client_id" ,(getckey spec)
 			      "client_secret" ,(getcsecret spec)
@@ -702,7 +716,7 @@
 	    (and access
 		 (let* ((handler (getopt spec 'onaccess getuser))
 			(user (handler access)))
-		   (debug%watch "OAUTH2/complete" user access spec)
+		   (debug%watch "OAUTH2/complete" handler user access spec)
 		   user)))
 	  (let* ((spec (and oauth_realm (get oauth-servers oauth_realm)))
 		 (state (if (getopt spec 'request)
