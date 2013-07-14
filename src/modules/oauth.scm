@@ -78,13 +78,23 @@
 ;;       VERSION "1.0"
 ;;       REALM LINKEDIN
 ;;       NAME "LinkedIn"]
+     ;; GOOGLE
+     ;; #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
+     ;;   AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
+     ;;   VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
+     ;;   KEY GOOGLE_KEY SECRET GOOGLE_SECRET
+     ;;   VERSION "1.0"
+     ;;   REALM GOOGLE
+     ;;   NAME "Google"]
      GOOGLE
-     #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
-       AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
-       VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
-       KEY GOOGLE_KEY SECRET GOOGLE_SECRET
-       VERSION "1.0"
+     #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
+       ACCESS "https://accounts.google.com/o/oauth2/token"
+       AUTH_ARGS #["access_type" "offline"]
+       KEY GOOGLE:KEY SECRET GOOGLE:SECRET
+       SCOPE "openid email profile"
+       VERSION "2.0"
        REALM GOOGLE
+       ACCESS_TOKEN HTTP
        NAME "Google"]
      GPLUS
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
