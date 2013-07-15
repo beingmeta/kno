@@ -57,19 +57,26 @@
        VERIFY "https://api.twitter.com/oauth/access_token"
        AUTHORIZE "https://api.twitter.com/oauth/authorize"
        AUTHENTICATE "https://api.twitter.com/oauth/authenticate"
-       KEY TWITTER_KEY SECRET TWITTER_SECRET
+       KEY TWITTER:KEY SECRET TWITTER:SECRET
        VERSION "1.0"
        REALM TWITTER
        NAME "Twitter"]
      LINKEDIN
      #[AUTHORIZE "https://www.linkedin.com/uas/oauth2/authorization"
        ACCESS "https://www.linkedin.com/uas/oauth2/accessToken"
-       KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
+       KEY LINKEDIN:KEY SECRET LINKEDIN:SECRET
        VERSION "2.0"
        SCOPE "r_fullprofile r_network r_emailaddress rw_groups"
        ACCESS_TOKEN "oauth2_access_token"
        REALM LINKEDIN
        NAME "LinkedIn"]
+     DROPBOX
+     #[AUTHORIZE "https://www.dropbox.com/1/oauth2/authorize"
+       ACCESS "https://api.dropbox.com/1/oauth2/token"
+       KEY DROPBOX:KEY SECRET DROPBOX:SECRET
+       VERSION "2.0"
+       REALM DROPBOX
+       NAME "Dropbox"]
 ;;     #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
 ;;       AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
 ;;       AUTHENTICATE "https://api.linkedin.com/uas/oauth/authorize"
