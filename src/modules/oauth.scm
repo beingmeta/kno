@@ -319,7 +319,6 @@
 		      (getopt spec 'authenticate (getopt spec 'authorize)))
 		  (getopt spec 'auth_args)
 		  "oauth_token" (getopt spec 'oauth_token)
-		  ;; "redirect_uri" (uriencode (getcallback spec))
 		  "redirect_uri" (getcallback spec))
       (scripturl+
        (if scope
@@ -735,7 +734,10 @@
 			(user (handler access)))
 		   (debug%watch "OAUTH2/complete" handler user access spec)
 		   user)))
-	  (let* ((spec (and oauth_realm (get oauth-servers oauth_realm)))
+	  (let* ((spec (and oauth_realm
+			    (if (table? oauth_realm)
+				oauth_realm
+				(get oauth-servers oauth_realm))))
 		 (state (if (getopt spec 'request)
 			    (oauth/request spec) ;; 1.0
 			    (cons `#[state ,(uuid->string (getuuid))
