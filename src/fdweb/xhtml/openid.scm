@@ -177,7 +177,7 @@
 
 (define openid/providers/path
   ;; These have OpenID URLs of the form http://host/username
-  {"openid.aol.com" "www.flickr.com" "www.myspace.com"})
+  {"openid.aol.com" "www.flickr.com" "www.myspace.com" "me.yahoo.com"})
 (define openid/providers/domain
   ;; These have OpenID URLs of the form http://username.host/
   {"blogspot.com" "livejournal.com" "wordpress.com" "myopenid.com" "myid.net"
@@ -187,9 +187,9 @@
 
 (define (openid/authurl provider username)
   (if (overlaps? provider openid/providers/path)
-      (stringout "http://" provider "/" username)
+      (stringout "https://" provider "/" username)
       (if (overlaps? provider openid/providers/domain)
-	  (stringout "http://" username "." provider "/")
+	  (stringout "https://" username "." provider "/")
 	  (fail))))
 
 ;;; Exports
