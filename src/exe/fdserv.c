@@ -1384,7 +1384,7 @@ int main(int argc,char **argv)
   u8_log_show_date=1;
   u8_log_show_procinfo=1;
   u8_log_show_threadinfo=1;
-  u8_use_syslog(1);
+  u8_use_syslog(0);
 
   /* And now we initialize FramerD */
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
@@ -1511,6 +1511,10 @@ int main(int argc,char **argv)
 		     _("Whether to have libu8 log each transaction"),
 		     config_get_u8server_flag,config_set_u8server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
+  fd_register_config("U8LOGQUEUE",
+		     _("Whether to have libu8 log queue activity"),
+		     config_get_u8server_flag,config_set_u8server_flag,
+		     (void *)(U8_SERVER_LOG_QUEUE));
 #ifdef U8_SERVER_LOG_TRANSFERS
   fd_register_config
     ("U8LOGTRANSFER",
@@ -1553,6 +1557,8 @@ int main(int argc,char **argv)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
   u8_server_loop(&fdwebserver);
 
+  u8_message("fdbserver, normal exit of u8_server_loop()");
+  
   shutdown_server("exit");
 
   exit(0);
