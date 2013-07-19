@@ -1090,6 +1090,8 @@ static fdservlet servlet_set_max_socks(fdservlet s,int max_socks)
       if (s->max_socks) {
 	memcpy(fresh,s->sockets,(sizeof(struct FDSOCKET))*(s->max_socks));}
       if (fresh) {
+	memset(fresh+((sizeof(struct FDSOCKET))*(s->max_socks)),0,
+	       ((sizeof(struct FDSOCKET))*(max_socks-s->max_socks)));
 	s->sockets=fresh; s->max_socks=max_socks;
 	apr_thread_mutex_unlock(s->lock);
 	return s;}
@@ -1205,7 +1207,10 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
   struct FDSOCKET *result; apr_pool_t *pool; int one=1;
   if (given) pool=fdserv_pool; else pool=r->pool;
   if (given) result=given;
-  else result=apr_pcalloc(pool,sizeof(struct FDSOCKET));
+  else {
+    result=apr_pcalloc(pool,sizeof(struct FDSOCKET));
+    memset(result,0,sizeof(struct FDSOCKET));}
+
   ap_log_rerror
     (APLOG_MARK,LOGDEBUG,OK,r,"Opening new %s socket to %s",
      ((given==NULL)?("ephemeral"):("sticky")),
@@ -1247,7 +1252,6 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 	return NULL;}
       else {}}
     else {}
-    memset(result,0,sizeof(struct FDSOCKET));
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,"Opened new %s file socket (fd=%d) to %s",
        ((given==NULL)?("ephemeral"):("sticky")),
@@ -1258,7 +1262,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
     result->sockname=sockname;
     result->conn.fd=unix_sock;
     result->busy=apr_time_now(); result->closed=0;
-    result->socket_index=((given!=NULL)?(0):(-1));
+    if (!(given)) result->socket_index=-1;
     return result;}
   else if (s->socktype==aprsock) {
     apr_status_t retval;
@@ -1278,7 +1282,6 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 	 "Unable to make connection to %s",
 	 s->sockname);
       return NULL;}
-    memset(result,0,sizeof(struct FDSOCKET));
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,"Opening new %s APR socket to %s",
        ((given==NULL)?("ephemeral"):("sticky")),
@@ -1288,7 +1291,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
     result->sockname=s->sockname;
     result->conn.apr=sock;
     result->busy=apr_time_now(); result->closed=0;
-    result->socket_index=((given!=NULL)?(0):(-1));
+    if (!(given)) result->socket_index=-1;
     return result;}
   else {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,"Bad servlet arg");}
@@ -1305,25 +1308,27 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       while (i<lim) {
 	if (sockets[i].busy>0) i++;
 	else if (sockets[i].closed) {
-	  if (closed<0) closed=i++;}
+	  if (closed<0) closed=i++;
+	  else i++;}
 	else {
 	  sockets[i].busy=apr_time_now();
 	  s->n_busy++;
 	  apr_thread_mutex_unlock(s->lock);
 	  if (s->socktype==filesock)
 	    ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-			  "Reusing file socket #%d (fd=%d) for %s",
-			  i,sockets[i].conn.fd,s->sockname);
+			  "Using cached file socket #%ld/%ld (fd=%d) for %s",
+			  (long)i,(long)lim,sockets[i].conn.fd,s->sockname);
 	  else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-			     "Reusing socket #%d for %s",i,s->sockname);
+			     "Using cached socket #%ld/%ld for %s",
+			     (long)i,(long)lim,s->sockname);
 	  return &(sockets[i]);}}}
     if (closed>=0) {
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
       ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		    "Reopening new sticky socket #%d for %s",
+		    "Reopening closed sticky socket #%d for %s",
 		    closed,s->sockname);
       sock=servlet_open(s,&(sockets[closed]),r);
-      s->n_busy++;
+      s->n_busy++; sock->socket_index=closed;
       apr_thread_mutex_unlock(s->lock);
       return sock;}
     if (s->n_socks>=s->max_socks) {
@@ -1346,11 +1351,14 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       else {
 	/* Failed for some reason, open an excess socket */
 	/* A hard max sockets value might be checked here */
+	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+		      "Error opening new sticky socket #%d for %s, going ephemeral",
+		      i,s->sockname);
 	apr_thread_mutex_unlock(s->lock);
 	return servlet_open(s,NULL,r);}}}
 }
 
-static int servlet_return_socket(fdservlet servlet,fdsocket sock)
+static int servlet_recycle_socket(fdservlet servlet,fdsocket sock)
 {
   if (sock->socket_index<0) return 0;
   if (!(sock->servlet)) {
@@ -1365,14 +1373,14 @@ static int servlet_return_socket(fdservlet servlet,fdsocket sock)
     return -1;}
   apr_thread_mutex_lock(servlet->lock);
   sock->busy=((apr_time_t)(-1));
-  servlet->n_busy--;
+ servlet->n_busy--;
   apr_thread_mutex_unlock(servlet->lock);
   if (sock->socktype==filesock)
     ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
-		 "Returned file socket #%d (fd=%d) for reuse with %s",
+		 "Recycling file socket #%d (fd=%d) for use with %s",
 		 sock->socket_index,sock->conn.fd,servlet->sockname);
   else ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
-		    "Returned socket #%d for reuse with %s",
+		    "Recycling socket #%d for use with %s",
 		    sock->socket_index,servlet->sockname);
   return 1;
 }
@@ -1382,7 +1390,7 @@ static int servlet_close_socket(fdservlet servlet,fdsocket sock)
   if (sock->socket_index<0) return 0;
   if (sock->servlet!=servlet) {
     ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
-		 "Internal error, returning socket (for %s) to wrong servlet (%s)",
+		 "Internal error, returning closed socket (for %s) to wrong servlet (%s)",
 		 sock->sockname,servlet->sockname);
     return -1;}
   apr_thread_mutex_lock(servlet->lock);
@@ -1666,13 +1674,13 @@ static int write_cgidata
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,
-       "Composed %llu bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
-       (long long)n_bytes,n_params+n_elts+1,n_elts,n_params,post_size);
+       "Composed %lu bytes representing %d slots of CGIDATA: %d HTTP fields, %d servlet parameters, and %d bytes of post data",
+       (long)n_bytes,n_params+n_elts+1,n_elts,n_params,post_size);
   else ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,
-       "Composed %llu bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
-       (long long)n_bytes,n_params+n_elts+1,n_elts,n_params);
+       "Composed %lu bytes representing %d slots of CGIDATA: %d HTTP fields and %d servlet parameters",
+       (long)n_bytes,n_params+n_elts+1,n_elts,n_params);
   return n_bytes;
 }
 
@@ -2046,7 +2054,7 @@ static int fdserv_handler(request_rec *r)
 		  "Couldn't allocate bufstream for processing %s",
 		  r->unparsed_uri);
     errno=0;
-    servlet_return_socket(servlet,sock);
+    servlet_recycle_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else {}
   ap_add_common_vars(r); ap_add_cgi_vars(r);
@@ -2080,7 +2088,7 @@ static int fdserv_handler(request_rec *r)
   if (error) {
     ap_log_rerror(APLOG_MARK,APLOG_WARNING,HTTP_INTERNAL_SERVER_ERROR,r,
 		 "Error (%s) reading post data",error);
-    servlet_return_socket(servlet,sock);
+    servlet_recycle_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		    "Composing request data as a slotmap for %s",
@@ -2092,7 +2100,7 @@ static int fdserv_handler(request_rec *r)
 		    post_size,post_data)<0) {
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		 "Error composing request data as a slotmap");
-    servlet_return_socket(servlet,sock);
+    servlet_recycle_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
 
   /* We don't really need the socket until here, but we want to fail earlier. */
@@ -2196,7 +2204,7 @@ static int fdserv_handler(request_rec *r)
 #endif
   if ((sock->socket_index>=0)&&(bytes_transferred<0)) {}
   else if (sock->socket_index>=0) {
-    servlet_return_socket(servlet,sock);}
+    servlet_recycle_socket(servlet,sock);}
   else if (sock->socktype==aprsock) {
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		  "Closing APR socket @x%lx (%s)",
