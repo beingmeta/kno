@@ -1566,9 +1566,13 @@ void fd_init_support_c()
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_date);
   fd_register_config
-    ("SHOWPROCINFO",_("Whether to show PID/appid info in messages"),
+    ("LOGPROCINFO",_("Whether to show PID/appid info in messages"),
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_procinfo);
+  fd_register_config
+    ("LOGTHREADINFO",_("Whether to show thread id info in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_threadinfo);
   fd_register_config
     ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
      fd_boolconfig_get,fd_boolconfig_set,
