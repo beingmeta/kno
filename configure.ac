@@ -357,6 +357,8 @@ fi
 
 AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h sys/stat.h)
 
+AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h sys/stat.h)
+
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
 	         [#include <sys/resource.h>])
 AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],
@@ -718,6 +720,13 @@ dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
 if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
+fi
+
+AC_ARG_WITH(gprof,--with[out]-gprof Use the Google profiler library,,with_gprof="no")
+if test "x$with_gprof" == "xyes"; then
+  AC_DEFINE(WITH_GOOGLE_PROFILER,1)
+  AC_CHECK_HEADERS(google/profiler.h)
+  AC_CHECK_LIB(profiler,ProfilerStart)
 fi
 
 # For OS X
