@@ -30,9 +30,9 @@
 
 #if ((WITH_GOOGLE_PROFILER)&&(HAVE_GOOGLE_PROFILER_H))
 #include <google/profiler.h>
-#define HAVE_GOOGLE_PROFILER 1
+#define USING_GOOGLE_PROFILER 1
 #else
-#define HAVE_GOOGLE_PROFILER 0
+#define USING_GOOGLE_PROFILER 0
 #define ProfilerStart(x)
 #define ProfilerStop()
 #define ProfilerFlush()

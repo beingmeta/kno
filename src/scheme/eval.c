@@ -45,6 +45,8 @@ static fd_exception ExpiredThrow=_("Continuation is no longer valid");
 static fd_exception DoubleThrow=_("Continuation used twice");
 static fd_exception LostThrow=_("Lost invoked continuation");
 
+static char *cpu_profile=NULL;
+
 fd_exception
   fd_SyntaxError=_("SCHEME expression syntax error"),
   fd_InvalidMacro=_("invalid macro transformer"),
@@ -403,6 +405,48 @@ static fdtype eval4(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
 static fdtype eval5(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
 static fdtype eval6(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
 static fdtype eval7(fdtype expr,fd_lispenv env) { return fd_eval(expr,env);}
+
+/* Google profiler usage */
+
+#if USING_GOOGLE_PROFILER
+static fdtype gprofile_handler(fdtype expr,fd_lispenv env)
+{
+  int start=1; char *filename=NULL;
+  if ((FD_PAIRP(FD_CDR(expr)))&&(FD_STRINGP(FD_CAR(FD_CDR(expr))))) {
+    filename=u8_strdup(FD_STRDATA(FD_CAR(FD_CDR(expr))));
+    start=2;}
+  else if ((FD_PAIRP(FD_CDR(expr)))&&(FD_SYMBOLP(FD_CAR(FD_CDR(expr))))) {
+    fdtype val=fd_symeval(FD_CADR(expr),env);
+    if (FD_STRINGP(val)) {
+      filename=u8_strdup(FD_STRDATA(val));
+      fd_decref(val);
+      start=2;}
+    else return fd_type_error("filename","GOOGLE/PROFILE",val);}
+  else if (cpu_profile)
+    filename=u8_strdup(google_cpu_profile_filename);
+  else if (getenv("CPUPROFILE"))
+    filename=u8_strdup(getenv("CPUPROFILE"));
+  else filename=u8_mkstring("/tmp/gprof%ld.pid",(long)getpid());
+  ProfilerStart(filename); {
+    fdtype value=FD_VOID;
+    FD_DOBODY(ex,expr,start) {
+      fd_decref(value); value=fd_eval(ex,env);
+      if (FD_ABORTP(value)) {
+	ProfilerStop();
+	return value;}
+      else}
+    ProfilerStop();
+    u8_free(filename);
+    return value;}
+}
+
+static fdtype gprofile_stop()
+{
+  ProfilerStop();
+  return FD_VOID;
+}
+#endif
+
 
 /* Trace functions */
 
@@ -1705,6 +1749,10 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"EVAL6",eval6);
   fd_defspecial(fd_scheme_module,"EVAL7",eval7);
 
+#if USING_GOOGLE_PROFILER
+  fd_defspecial(fd_scheme_module,"GOOGLE/PROFILE",gprofile_handler);
+  fd_idefn(fd_scheme_module,fd_makecprim0("GOOGLE/PROFILE/STOP",gprofile_stop,0));
+#endif
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest);
@@ -1722,7 +1770,10 @@ static void init_localfns()
 					    fd_fixnum_type,FD_VOID));
 
   fd_register_config
-    ("TAILCALL","Enable tail recursion in the Scheme evaluator",
+    ("GPROFILE","Set filename for the Google CPU profiler",
+     fd_sconfig_get,fd_sconfig_set,&cpu_profile);
+  fd_register_config
+    ("TAILCALL","Enable/disable tail recursion in the Scheme evaluator",
      fd_boolconfig_get,fd_boolconfig_set,&fd_optimize_tail_calls);
 }
 
