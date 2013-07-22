@@ -2113,6 +2113,7 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 	*scan++=NULL;}
       else scan++;
     u8_free(ht->slots);}
+  ht->slots=NULL; ht->n_slots=0; ht->n_keys=0;
   fd_rw_unlock_struct(ht);
   fd_destroy_rwlock(&(ht->rwlock));
   if (!(FD_STACK_CONSP(ht))) u8_free(ht);
