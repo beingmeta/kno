@@ -680,13 +680,13 @@ static int webservefn(u8_client ucl)
       fd_decref(uri);}
     /* This is what we'll execute, be it a procedure or FDXML */
     proc=getcontent(path);}
-  parse_time=u8_elapsed_time();
-  if ((reqlog) || (urllog) || (trace_cgidata))
-    dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
   u8_set_default_output(outstream);
   init_cgidata=fd_deep_copy(cgidata);
   fd_use_reqinfo(cgidata);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+  parse_time=u8_elapsed_time();
+  if ((reqlog) || (urllog) || (trace_cgidata))
+    dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
   if (!(FD_ABORTP(proc))) 
     precheck=run_preflight();
   if (FD_ABORTP(proc)) result=fd_incref(proc);
