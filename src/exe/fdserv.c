@@ -1340,7 +1340,8 @@ int main(int argc,char **argv)
      mod_fdserv does it). */
   if (getenv("LOGFILE")) {
     char *logfile=u8_strdup(getenv("LOGFILE"));
-    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|O_SYNC,0644);
+    int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
+    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
     if (log_fd<0) {
       u8_log(LOG_WARN,Startup,"Couldn't open log file %s",logfile);
       exit(1);}
