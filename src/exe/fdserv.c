@@ -104,9 +104,15 @@ static u8_condition fdservWriteError="fdserv write error";
 /* The statlog is a plain text (UTF-8) file which contains server
    connection/thread information.  */
 
+#ifndef DEFAULT_STATUS_INTERVAL
+#define DEFAULT_STATUS_INTERVAL 1000000
+#endif
+
 static u8_string statlogfile;
 static long long last_status=0;
-static long status_interval=-1;
+static long status_interval=DEFAULT_STATUS_INTERVAL;
+
+static void close_statlog();
 
 static int statlog_set(fdtype var,fdtype val,void *data)
 {
@@ -131,9 +137,7 @@ static int statlog_set(fdtype var,fdtype val,void *data)
       u8_free(statlogfile); statlogfile=NULL;
       return 0;}}
   else if (FD_FALSEP(val)) {
-    fd_lock_mutex(&log_lock);
-    if (statlog) {fclose(statlog); statlog=NULL;}
-    fd_unlock_mutex(&log_lock);
+    close_statlog();
     return 0;}
   else return fd_reterr
 	 (fd_TypeError,"config_set_statlog",u8_strdup(_("string")),val);
@@ -155,6 +159,18 @@ static int statinterval_set(fdtype var,fdtype val,void *data)
       return fd_reterr
 	(fd_TypeError,"config_set_statinterval",
 	 u8_strdup(_("fixnum")),val);}}
+  else if (FD_FALSEP(val)) status_interval=-1;
+  else if (FD_STRINGP(val)) {
+    int flag=fd_boolstring(FD_STRDATA(val),-1);
+    if (flag<0) {
+      u8_log(LOG_WARN,"statinterval_set","Unknown value: %s",FD_STRDATA(val));
+      return 0;}
+    else if (flag) {
+      if (status_interval>0) return 0;
+      status_interval=DEFAULT_STATUS_INTERVAL;}
+    else if (status_interval<0)
+      return 0;
+    else status_interval=-1;}
   else return fd_reterr
 	 (fd_TypeError,"config_set_statinterval",
 	  u8_strdup(_("fixnum")),val);
@@ -167,73 +183,72 @@ static fdtype statinterval_get(fdtype var,void *data)
   else return FD_FIX2INT(status_interval);
 }
 
-#define STATUS_LINE1 "[%*t][%f] %d/%d/%d busy/waiting/clients/threads\n"
-#define STATUS_LINE2 "[%*t][%f] avg(wait)=%f(%d); avg(run)=%f(%d)\n"
-#define STATUS_LINE3 "[%*t][%f] waiting (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINE4 "[%*t][%f] running (n=%lld) min=%lld max=%lld avg=%f\n"
-#define STATUS_LINEXN "[%*t][%f] %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
-#define STATUS_LINEX "%s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
+#define STATUS_LINE1 "[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads\n"
+#define STATUS_LINEXN "[%*t][%f] %s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
+#define STATUS_LINEX "%s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
 #define stdev(v,v2,n) \
   ((double)(sqrt((((double)v2)/((double)n))-			\
 		 ((((double)v)/((double)n))*(((double)v)/((double)n))))))
 #define getmean(v,n) (((double)v)/((double)n))
 
-static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto)
+static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 {
   double elapsed=u8_elapsed_time();
   if (stats->tcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,"busy",
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"busy",
 	       getmean(stats->tsum,stats->tcount),
 	       stats->tmax,
 	       stdev(stats->tsum,stats->tsum2,stats->tcount),
 	       stats->tcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"busy",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"busy",
 	   getmean(stats->tsum,stats->tcount),
 	   stats->tmax,
 	   stdev(stats->tsum,stats->tsum2,stats->tcount),
 	   stats->tcount);}
   
   if (stats->qcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,"queued",
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"queued",
 	       getmean(stats->qsum,stats->qcount),stats->qmax,
 	       stdev(stats->qsum,stats->qsum2,stats->qcount),
 	       stats->qcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"queued",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"queued",
 	   getmean(stats->qsum,stats->qcount),stats->qmax,
 	   stdev(stats->qsum,stats->qsum2,stats->qcount),
 	   stats->qcount);}
 
   if (stats->rcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,"reading",
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"read",
 	       getmean(stats->rsum,stats->rcount),stats->rmax,
 	       stdev(stats->rsum,stats->rsum2,stats->rcount),
 	       stats->rcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"reading",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"read",
 	   getmean(stats->rsum,stats->rcount),stats->rmax,
 	   stdev(stats->rsum,stats->rsum2,stats->rcount),
 	   stats->rcount);}
 
   if (stats->wcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,"writing",
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"write",
 	       getmean(stats->wsum,stats->wcount),stats->wmax,
 	       stdev(stats->wsum,stats->wsum2,stats->wcount),
 	       stats->wcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"writing",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"write",
 	   getmean(stats->wsum,stats->wcount),stats->wmax,
 	   stdev(stats->wsum,stats->wsum2,stats->wcount),
 	   stats->wcount);}
 
   if (stats->xcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,"running",
+    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"run",
 	       getmean(stats->xsum,stats->xcount),stats->xmax,
 	       stdev(stats->xsum,stats->xsum2,stats->xcount),
 	       stats->xcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,"running",
+    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"run",
 	   getmean(stats->xsum,stats->xcount),stats->xmax,
 	   stdev(stats->xsum,stats->xsum2,stats->xcount),
 	   stats->xcount);}
 }
+
+static int short_status=1;
 
 static void report_status()
 {
@@ -241,20 +256,36 @@ static void report_status()
   struct U8_SERVER_STATS stats;
   double elapsed=u8_elapsed_time();
   if ((!(logto))&&(statlogfile)) {
-      fd_lock_mutex(&log_lock);
+    fd_lock_mutex(&log_lock);
+    if (statlog) {
+      logto=statlog; fd_unlock_mutex(&log_lock);}
+    else {
+      statlog=((short_status)?(u8_fopen_locked(statlogfile,"w")):
+	       (u8_fopen_locked(statlogfile,"a")));
       if (statlog) {
-	logto=statlog; fd_unlock_mutex(&log_lock);}
-      else {
-	statlog=u8_fopen_locked(statlogfile,"a");
-	if (statlog) {
-	  u8_string tmp;
-	  tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
-	  fputs(tmp,statlog);
-	  u8_free(tmp);
-	  logto=statlog;}
-	fd_unlock_mutex(&log_lock);}}
-  if (logto) {}
-  else if (statlog) logto=statlog;
+	u8_string tmp;
+	tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
+	fputs(tmp,statlog);
+	u8_free(tmp);
+	logto=statlog;}
+      fd_unlock_mutex(&log_lock);}}
+  if ((logto)&&(logto==statlog)&&(short_status)) {
+    int rv=fseek(statlog,0,SEEK_SET);
+    if (rv>=0) rv=ftruncate(fileno(statlog),0);
+    if (rv<0) {
+      u8_log(LOG_WARN,"output_status","File truncate failed (%s:%d)",
+	     strerror(errno),errno);
+      errno=0;}}
+  else if (logto) {}
+  else if (statlog) {
+    if (short_status) {
+      int rv=fseek(statlog,0,SEEK_SET);
+      if (rv>=0) rv=ftruncate(fileno(statlog),0);
+      if (rv<0) {
+	u8_log(LOG_WARN,"output_status","File truncate failed (%s:%d)",
+	       strerror(errno),errno);
+	errno=0;}}
+    logto=statlog;}
   else logto=stderr;
   u8_fprintf(logto,STATUS_LINE1,elapsed,
 	     fdwebserver.n_busy,fdwebserver.n_queued,
@@ -263,21 +294,37 @@ static void report_status()
 	 fdwebserver.n_busy,fdwebserver.n_queued,
 	 fdwebserver.n_clients,fdwebserver.n_threads);
 
-  u8_fprintf(logto,"Current statistics\n");
   u8_server_curstats(&fdwebserver,&stats);
-  output_stats(&stats,logto);
+  output_stats(&stats,logto,"cur");
 
-  u8_fprintf(logto,"Live statistics\n");
   u8_server_livestats(&fdwebserver,&stats);
-  output_stats(&stats,logto);
+  output_stats(&stats,logto,"live");
 
-  u8_fprintf(logto,"Aggregate statistics\n");
-  u8_log(LOG_INFO,"fdserv","Aggregate statistics");
-  
   u8_server_statistics(&fdwebserver,&stats);
-  output_stats(&stats,logto);
+  output_stats(&stats,logto,"aggregate");
 
   if (statlog) fflush(statlog);
+}
+
+static void setup_statlog(char *socketfile)
+{
+  if (statlogfile==NULL) {
+    char *dot=strrchr(socketfile,'.'), *statfile;
+    if (dot) {
+      int newlen=(dot-socketfile)+7;
+      statfile=u8_malloc(newlen+1);
+      strncpy(statfile,socketfile,(dot-socketfile));
+      strcpy(statfile+(dot-socketfile),".status");}
+    else statfile=u8_string_append(socketfile,".status",NULL);
+    statlogfile=statfile;}
+}
+
+static void close_statlog()
+{
+  if (statlog) {
+    fd_lock_mutex(&log_lock);
+    fclose(statlog); statlog=NULL;
+    fd_unlock_mutex(&log_lock);}
 }
 
 static fdtype servlet_status()
@@ -556,7 +603,7 @@ static int webservefn(u8_client ucl)
   size_t http_len=0, head_len=0, content_len=0;
   fd_dtype_stream stream=&(client->in);
   u8_output outstream=&(client->out);
-  if ((status_interval>=0)&&(u8_microtime()>last_status+status_interval))
+  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
     report_status();
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0, buffered=0, recovered=1;
@@ -1346,16 +1393,7 @@ int main(int argc,char **argv)
       u8_log(LOG_WARN,Startup,"Couldn't open log file %s",logfile);
       exit(1);}
     dup2(log_fd,1);
-    dup2(log_fd,2);
-    if (statlogfile==NULL) {
-      char *dot=strrchr(logfile,'.'), *statfile;
-      if (dot) {
-	int newlen=(dot-logfile)+7;
-	statfile=u8_malloc(newlen+1);
-	strncpy(statfile,logfile,(dot-logfile));
-	strcpy(statfile+(dot-logfile),".status");}
-      else statfile=u8_string_append(logfile,".status",NULL);
-      statlogfile=statfile;}}
+    dup2(log_fd,2);}
 
   fd_version=fd_init_fdscheme();
   
@@ -1478,6 +1516,8 @@ int main(int argc,char **argv)
   if (!(check_pid_file(server_id)))
     exit(EXIT_FAILURE);
 
+  setup_statlog(server_id);
+  
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */
   if (update_preloads()<0) {
