@@ -322,8 +322,9 @@ static char *init_server_entry(struct SERVER_ENTRY *e,char *control_line)
 static void set_stdio(char *base)
 {
   int log_fd, err_fd; mode_t omode=umask(0x0);
+  int osync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
   log_fd=open(path_append(base,".log"),
-	      (O_CREAT|O_WRONLY|O_APPEND|O_SYNC),
+	      (O_CREAT|O_WRONLY|O_APPEND|osync),
 	      (S_IWUSR|S_IRUSR|S_IRGRP|S_IROTH));
   if (log_fd < 0)
     syslog(LOG_ERR,_("Can't open %s (errno=%d/%s)"),
