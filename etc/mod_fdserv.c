@@ -1131,7 +1131,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		     "Stopped after %d configs! Not passing LOGSYNC",n_configs);}
       else {
-	char *env_entry=apr_psprintf(p,"LOGSYNC=yes",log_file);
+	char *env_entry=apr_pstrdup(p,"LOGSYNC=yes");
 	if (!(envp)) envp=write_argv;
 	*write_argv++=(char *)env_entry;}}}
     
