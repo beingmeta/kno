@@ -2340,13 +2340,17 @@ static int fdserv_handler(request_rec *r)
   
   responded=apr_time_now();
   
-  ap_log_rerror(APLOG_MARK,((bytes_transferred<0)?(APLOG_ERR):(APLOG_INFO)),OK,r,
-		"%s returning %d bytes of content for %s (%s) in %ldus=%ld+%ld+%ld+%ld",
-		((bytes_transferred<0)?("Error"):("Done")),
-		((bytes_transferred<0)?(-bytes_transferred):(bytes_transferred)),
-		r->unparsed_uri,r->filename,
-		(responded-started),(connected-started),(requested-connected),
-		(computed-requested),(responded-computed));
+  ap_log_rerror
+    (APLOG_MARK,((bytes_transferred<0)?(APLOG_ERR):(APLOG_INFO)),OK,r,
+     "%s returning %d bytes of content for %s (%s) in %ldus=%ld+%ld+%ld+%ld",
+     ((bytes_transferred<0)?("Error"):("Done")),
+     ((bytes_transferred<0)?(-bytes_transferred):(bytes_transferred)),
+     r->unparsed_uri,r->filename,
+     ((long)(responded-started)),
+     ((long)(connected-started)),
+     ((long)(requested-connected)),
+     ((long)(computed-requested)),
+     ((long)(responded-computed)));
   
 #if TRACK_EXECUTION_TIMES
   {char buf[64]; double interval; ftime(&end);
