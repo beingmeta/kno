@@ -62,8 +62,17 @@ typedef unsigned long long INTPOINTER;
 typedef unsigned int INTPOINTER;
 #endif
 
+#ifndef DEFAULT_SERVLET_WAIT
 #define DEFAULT_SERVLET_WAIT 60
+#endif
+
+#ifndef MAX_CONFIGS
 #define MAX_CONFIGS 128
+#endif
+
+#ifndef DEFAULT_LOG_SYNC
+#define DEFAULT_LOG_SYNC 0
+#endif
 
 #include "util_script.h"
 #include "apr.h"
@@ -266,6 +275,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *server_executable;
   const char **config_args;
   const char **req_params;
+  const char **servlet_env;
   const char *socket_prefix;
   const char *socket_spec;
   const char *log_prefix;
@@ -273,6 +283,7 @@ struct FDSERV_SERVER_CONFIG {
   int keep_socks;
   int servlet_wait;
   int use_dtblock;
+  int log_sync;
   /* We make these ints because apr_uid_t and even uid_t is sometimes
      unsigned, leaving no way to signal an empty value.  Go figure. */
   int uid; int gid;};
@@ -281,12 +292,14 @@ struct FDSERV_DIR_CONFIG {
   const char *server_executable;
   const char **config_args;
   const char **req_params;
+  const char **servlet_env;
   const char *socket_prefix;
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
   int keep_socks;
-  int servlet_wait;};
+  int servlet_wait;
+  int log_sync;};
 
 static const char *get_sockname(request_rec *r)
 {
@@ -341,10 +354,12 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->server_executable=NULL;
   config->config_args=NULL;
   config->req_params=NULL;
+  config->servlet_env=NULL;
   config->socket_prefix=NULL;
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
+  config->log_sync=-1;
   config->keep_socks=2;
   config->servlet_wait=-1;
   config->use_dtblock=-1;
@@ -371,6 +386,10 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
+
+  if (child->log_sync <= 0)
+    config->log_sync=parent->log_sync;
+  else config->log_sync=child->log_sync;
 
   if (child->use_dtblock <= 0)
     config->use_dtblock=parent->use_dtblock;
@@ -408,6 +427,19 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->req_params=(const char **)fresh;}
   else config->req_params=NULL;
   
+  if (child->servlet_env) {
+    const char **scan=child->servlet_env;
+    char **fresh, **write;
+    int n_slots=0;
+    while (*scan) {n_slots++; scan++;}
+    fresh=apr_palloc(p,(n_slots+1)*sizeof(char *));
+    scan=child->servlet_env; write=fresh;
+    while (*scan) {
+      *write=apr_pstrdup(p,*scan); write++; scan++;}
+    *write=NULL;
+    config->servlet_env=(const char **)fresh;}
+  else config->servlet_env=NULL;
+
   if (child->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
   else if (parent->socket_prefix)
@@ -443,12 +475,14 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->server_executable=NULL;
   config->config_args=NULL;
   config->req_params=NULL;
+  config->servlet_env=NULL;
   config->socket_prefix=NULL;
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
   config->keep_socks=-1;
   config->servlet_wait=-1;
+  config->log_sync=-1;
   return (void *) config;
 }
 
@@ -468,6 +502,10 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
+
+  if (child->log_sync <= 0)
+    config->log_sync=parent->log_sync;
+  else config->log_sync=child->log_sync;
 
   if (child->server_executable)
     config->server_executable=apr_pstrdup(p,child->server_executable);
@@ -500,6 +538,19 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
     *write=NULL;
     config->req_params=(const char **)fresh;}
   else config->req_params=NULL;
+  
+  if (child->servlet_env) {
+    const char **scan=child->servlet_env;
+    char **fresh, **write;
+    int n_slots=0;
+    while (*scan) {n_slots++; scan++;}
+    fresh=apr_palloc(p,(n_slots+1)*sizeof(char *));
+    scan=child->servlet_env; write=fresh;
+    while (*scan) {
+      *write=apr_pstrdup(p,*scan); write++; scan++;}
+    *write=NULL;
+    config->servlet_env=(const char **)fresh;}
+  else config->servlet_env=NULL;
   
   if (child->socket_prefix)
     config->socket_prefix=apr_pstrdup(p,child->socket_prefix);
@@ -616,6 +667,20 @@ static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
   else return NULL;
 }
 
+static const char *log_sync(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  int dosync=((*arg=='1')||(*arg=='y')||(*arg=='Y'));
+  if (parms->path) {
+    struct FDSERV_DIR_CONFIG *dconfig=(struct FDSERV_DIR_CONFIG *)mconfig;
+    dconfig->log_sync=dosync;
+    return NULL;}
+  else {
+    struct FDSERV_SERVER_CONFIG *sconfig=
+      ap_get_module_config(parms->server->module_config,&fdserv_module);
+    sconfig->log_sync=dosync;}
+  return NULL;
+}
+
 static char **extend_config(apr_pool_t *p,char **config_args,const char *var,const char *val);
 
 /* Adding config variables to be passed to fdserv */
@@ -633,6 +698,24 @@ static const char *servlet_config
   else {
     sconfig->config_args=
       (const char **)extend_config(p,(char **)sconfig->config_args,arg1,arg2);
+    return NULL;}
+}
+
+/* Adding config variables to be passed to fdserv */
+static const char *servlet_env
+  (cmd_parms *parms,void *mconfig,const char *arg1,const char *arg2)
+{
+  struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  apr_pool_t *p=parms->pool;
+  if (parms->path) {
+    dconfig->servlet_env=
+      (const char **)extend_config(p,(char **)dconfig->servlet_env,arg1,arg2);
+    return NULL;}
+  else {
+    sconfig->servlet_env=
+      (const char **)extend_config(p,(char **)sconfig->servlet_env,arg1,arg2);
     return NULL;}
 }
 
@@ -835,8 +918,10 @@ static const command_rec fdserv_cmds[] =
 		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE2("FDServletConfig", servlet_config, NULL, OR_ALL,
 		"configuration parameters to the servlet"),
+  AP_INIT_TAKE2("FDServletEnv", servlet_env, NULL, OR_ALL,
+		"environment variables for servlet execution"),
   AP_INIT_TAKE2("FDServletParam", servlet_param, NULL, OR_ALL,
-		"CGI parameters to pass with requests to the servlet"),
+		"CGI parameters to pass with each request to the servlet"),
   AP_INIT_TAKE1("FDServletUser", servlet_user, NULL, RSRC_CONF,
 	       "the user whom the fdservlet will run as"),
   AP_INIT_TAKE1("FDServletGroup", servlet_group, NULL, RSRC_CONF,
@@ -850,6 +935,8 @@ static const command_rec fdserv_cmds[] =
 	       "the prefix for the logfile to be used for scripts"),
   AP_INIT_TAKE1("FDServletLog", log_file, NULL, OR_ALL,
 	       "the logfile to be used for scripts"),
+  AP_INIT_TAKE1("FDServletLogSync", log_sync, NULL, OR_ALL,
+	       "whether to write to the log synchronously"),
   {NULL}
 };
 
@@ -937,9 +1024,14 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		       "/usr/bin/fdserv");
   const char **server_configs=(sconfig->config_args);
   const char **dir_configs=(dconfig->config_args);
+  const char **server_env=(sconfig->servlet_env);
+  const char **dir_env=(dconfig->servlet_env);
   const char *log_file=get_log_file(r,NULL);
   int servlet_wait=dconfig->servlet_wait;
+  int log_sync=dconfig->log_sync;
   uid_t uid; gid_t gid;
+  if (log_sync<0) log_sync=sconfig->log_sync;
+  if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
 
   if (servlet_wait<0) servlet_wait=DEFAULT_SERVLET_WAIT;
 
@@ -990,34 +1082,92 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!",n_configs);}
-      ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
-		   "Passing server config %s to %s for %s",
-		   *scan_config,exename,sockname);
-      *write_argv++=(char *)(*scan_config); scan_config++;
+		     "Stopped after %d configs!  Not passing FramerD server config %s",
+		     n_configs,*scan_config);}
+      else {
+	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
+		     "Passing FramerD server config %s to %s for %s",
+		     *scan_config,exename,sockname);
+	*write_argv++=(char *)(*scan_config);}
+      scan_config++;
       n_configs++;}}
   if (dir_configs) {
     const char **scan_config=dir_configs;
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!",n_configs);}
-      ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
-		   "Passing directory config %s to %s for %s",
-		   *scan_config,exename,sockname);
-      
-      *write_argv++=(char *)(*scan_config); scan_config++;
+		     "Stopped after %d configs!  Not passing FramerD path config %s",
+		     n_configs,*scan_config);}
+      else {
+	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
+		     "Passing FramerD path config %s to %s for %s",
+		     *scan_config,exename,sockname);
+	*write_argv++=(char *)(*scan_config);}
+      scan_config++;
       n_configs++;}}
-  *write_argv++=NULL;
-  
+
+  *write_argv++=NULL; n_configs++;
+
+  envp=NULL;
   /* Pass the logfile in through the environment, so we can
      use it to record processing of config variables */
   if (log_file) {
-    char *env_entry=apr_psprintf(p,"LOGFILE=%s",log_file);
-    envp=write_argv; 
-    *write_argv++=(char *)env_entry;
-    *write_argv++=NULL;}
-  else envp=NULL;
+    if (n_configs>MAX_CONFIGS) {
+      ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		   "Stopped after %d configs!  Not passing LOGFILE=%s",
+		   n_configs,log_file);}
+    else {
+      char *env_entry=apr_psprintf(p,"LOGFILE=%s",log_file);
+      envp=write_argv; 
+      *write_argv++=(char *)env_entry;
+      n_configs++;}}
+  if (log_sync) {
+    if (n_configs>MAX_CONFIGS) {
+      ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		   "Stopped after %d configs!  Not passing LOGFILE=%s",
+		   n_configs,log_file);}
+    else {
+      if (n_configs>MAX_CONFIGS) {
+	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		     "Stopped after %d configs! Not passing LOGSYNC",n_configs);}
+      else {
+	char *env_entry=apr_psprintf(p,"LOGSYNC=yes",log_file);
+	if (!(envp)) envp=write_argv;
+	*write_argv++=(char *)env_entry;}}}
+    
+  if (server_env) {
+    const char **scan_env=server_env;
+    while (*scan_env) {
+      if (n_configs>MAX_CONFIGS) {
+	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		     "Stopped after %d configs, not passing server env %s!",
+		     n_configs,*scan_env);}
+      else {
+	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
+		     "Passing server environment %s to %s for %s",
+		     *scan_env,exename,sockname);
+	if (!(envp)) envp=write_argv;
+	*write_argv++=(char *)(*scan_env);}
+      scan_env++;
+      n_configs++;}}
+
+  if (dir_env) {
+    const char **scan_env=dir_configs;
+    while (*scan_env) {
+      if (n_configs>MAX_CONFIGS) {
+	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		     "Stopped after %d configs! Not passing path ENV %s",
+		     n_configs,*scan_env);}
+      else {
+	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
+		     "Passing path ENV %s to %s for %s",
+		     *scan_env,exename,sockname);
+	if (!(envp)) envp=write_argv;      
+	*write_argv++=(char *)(*scan_env);}
+      scan_env++;
+      n_configs++;}}
+
+  *write_argv++=NULL;
   
   /* Make sure the socket is writable, creating directories
      if needed. */
