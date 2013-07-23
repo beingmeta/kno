@@ -7910,7 +7910,7 @@ fi
 if test "${with_gprof+set}" = set; then :
   withval=$with_gprof;
 else
-  with_gprof="no"
+  with_gprof="yes"
 fi
 
 if test "x$with_gprof" == "xyes"; then
