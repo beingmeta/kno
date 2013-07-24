@@ -3,17 +3,21 @@
 
 (in-module 'domutils/cleanup)
 
-(use-module '{fdweb xhtml texttools reflection ezrecords logger varconfig})
+(use-module '{fdweb xhtml texttools reflection ezrecords logger varconfig
+	      domutils domutils/styles})
 
 (define-init %loglevel %notice!)
 
+(module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!})
+
 (module-export!
- '{dom/unipunct
-   dom/mergeheads/subst
+ '{dom/mergeheads/subst
    dom/mergeheads
    dom/mergebreaks/subst
-   dom/mergebreaks
-   dom/mergetext!})
+   dom/mergebreaks})
+
+(module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
+		  dom/cleanup/mergelines+unipunct})
 
 ;;; Fixing punctuation to be prettier
 
@@ -45,12 +49,12 @@
    `#({(islower) (ispunct)}
       {(subst (+ "&mdash;") ,wrapdash)
        (subst (+ "\&mdash;") ,wrapdash)})))
-(define (dom/unipunct arg)
+(define (dom/unipunct! arg)
   (if (string? arg) (unipunct arg)
       (if (pair? arg) (map dom/unipunct arg)
 	  (if (not (table? arg)) arg
 	      (if (test arg '%content)
-		  (begin (store! arg '%content (map dom/unipunct (get arg '%content)))
+		  (begin (store! arg '%content (map dom/unipunct! (get arg '%content)))
 		    arg)
 		  arg)))))
 
@@ -70,7 +74,6 @@
 			(not> "</" {"H" "h"} (isdigit))
 			"</" {"H" "h"} (isdigit) ">" (spaces))))
 	  ,wrap "\n<hgroup>\n" "\n</hgroup>\n"))
-
 
 (define heads '{h1 h2 h3 h4 h5 h6 h7 h8 h9})
 
@@ -146,61 +149,113 @@
 ;;;  single strings, calling an optional TEXTFN on each combined
 ;;;  string.  The TEXTFN can normalize whitespace or insert indents.
 
-(define block-tags '{DIV P BLOCKQUOTE UL OL HEAD BODY DL})
+(define *block-tags* '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
+(define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
-(define (mergetext! node (textfn #f) (depth 0))
-  (when (test node '%content)
-    (let ((vec (->vector (get node '%content)))
-	  (newfn (and textfn
-		      (not (or (try (get node 'keepspace) #f)
-			       (test node '%xmltag 'pre)
-			       (test node 'xml:space "preserve")))
-		      textfn))
-	  (merged (list #f)))
-      (doseq (elt vec)
-	(when (table? elt)
-	  (mergetext! elt newfn (1+ depth))
-	  (when (and newfn (string? (car merged)))
-	    (set-car! merged (newfn (car merged) depth elt node))))
-	(if (and (string? elt) (string? (car merged)))
-	    (set! merged (cons (glom (car merged) elt) (cdr merged)))
-	    (set! merged (cons elt merged))))
-      (when (and newfn (string? (car merged)))
-	(set-car! merged (newfn (car merged) depth elt node)))
-      (when (and newfn (> depth 1) (not (empty-string? (car merged)))
-		 (test node '%xmltag block-tags))
-	(set! merged
-	      (if (not (string? (car merged))) merged
-		  (let* ((tail (car merged))
-			 (tipstart (textsearch #((spaces*) (eos)) tail))
-			 (tip (and tipstart (slice tail tipstart))))
-		    (if (and tip (position #\n tip))
-			(cons (glom (slice tail 0 tipstart) "\n"
-				(make-string (* 2 (-1+ depth)) #\Space))
-			      (cdr merged))
-			(cons (slice tail 0 tipstart) (cdr merged)))))))
-      (store! node '%content (cdr (reverse merged))))))
+(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f) (mergeheads #f) (cleanstyles #f))
+  (if (test node '%content)
+      (let ((vec (->vector (get node '%content)))
+	    (newfn (and textfn
+			(not (or (try (get node 'keepspace) #f)
+				 (test node '%xmltag 'pre)
+				 (test node 'xml:space "preserve")))
+			textfn))
+	    (isblock (test node '%xmltag *block-tags*))
+	    (strings '())
+	    (hgroup '())
+	    (merged '()))
+	(when (and cleanstyles (test node 'style))
+	  (dom/set! node 'style (dom/normstyle (get node 'style) cleanstyles)))
+	(doseq (child vec)
+	  (if (string? child)
+	      (if (or (null? hgroup) (not mergeheads))
+		  (set! strings (cons child strings))
+		  (if (empty-string? child)
+		      (set! hgroup (cons child hgroup))
+		      (begin
+			(set! merged
+			      (cons* `#[%xmltag HGROUP %content ,(cons "\n" (reverse) hgroup)]
+				     "\n" merged))
+			(set! hgroup '()))))
+	      (unless (and dropfn (dropfn child))
+		(set! child (dom/cleanup node textfn dropfn dropempty))
+		(when (and dropempty isblock
+			   (test child '%content)
+			   (or (null? (get child '%content))
+			       (every? empty-child? (get child '%content))))
+		  (set! child #f))
+		(unless (or (not child) (and dropfn (dropfn child)))
+		  (unless (null? strings)
+		    (set! merged (cons (if textfn
+					   (textfn (apply glom (reverse strings)))
+					   (apply glom (reverse strings)))
+				       merged))
+		    (set! strings '()))
+		  (if (test child '%xmltag *head-tags*)
+		      (set! hgroup (cons child hgroup))
+		      (set! merged cons child merged))))))
+	(unless (null? strings)
+	  (set! merged
+		(cons (if textfn (textfn (apply glom (reverse strings)))
+			  (apply glom (reverse strings)))
+		      merged))
+	  (set! strings '()))
+	(unless (null? hgroup)
+	  (set! merged
+		(cons* `#[%xmltag HGROUP %content ,(cons "\n" (reverse hgroup))]
+		       "\n" merged))
+	  (set! hgroup '()))
+	(when isblock
+	  (if (not (string? (car merged)))
+	      (set! merged (cons "\n" merged))
+	      (if (not (has-suffix (car merged) "\n"))
+		  (set-car! merged (glom (car merged) "\n")))))
+	(set! merged (reverse merged))
+	(when isblock
+	  (if (not (string? (car merged)))
+	      (set! merged (cons "\n" merged))
+	      (if (not (has-prefix (car merged) "\n"))
+		  (set-car! merged (glom "\n" (car merged))))))
+	(store! node '%content merged)
+	node)
+      node))
 
-(define (mergelines string depth elt node)
+(define (empty-child? x)
+  (if (string? x) (empty-string? x)
+      (or (test x '%xmltag 'br)
+	  (and (test x '%content)
+	       (null? (get x '%content))
+	       (test x '%xmltag *block-tags*)))))
+
+;;; Text cleanup functions
+
+(define (mergelines string)
   (if (empty-string? string)
-      (textsubst string #("\n" (+ "\n")) "\n\n")
-      string))
-(define (mergeindent string depth elt node)
-  (if (empty-string? string)
-      (let ((indent (make-string (* 2 depth) #\Space)))
-	(if (search "\n" string)
-	    (if (search "\n" string (1+ (search "\n" string)))
-		(glom "\n" indent "\n"  indent)
-		(glom "\n" indent))
-	    string))
-      string))
+      (if (position #\newline string) "\n" " ")
+      (textsubst string #("\n" (+ #((spaces*) "\n"))) "\n\n")))
 
-(define (dom/mergetext! node (textfn #f) (depth 0))
-  (mergetext! node
-	      (and textfn
-		   (if (procedure? textfn) textfn
-		       (if (eq? textfn 'mergelines) mergelines
-			   (if (eq? textfn 'mergeindent) mergeindent
-			       #f))))
-	      depth))
+(define dom/cleanup/mergelines mergelines)
+(define dom/cleanup/unipunct unipunct)
+(define (dom/cleanup/mergelines+unipunct text)
+  (unipunct (mergelines string)))
+
+;;; Style cleanup functions
+
+(define default-style-rules css/dropdecimals)
+
+(define (dom/cleanup/mergestyles! dom (stylerules default-style-rules))
+  (let ((stylemap (make-hashtable))
+	(classdefs (make-hashtable))
+	(stylecount 1))
+    (dom/gather-styles! dom stylemap (qc stylerules))
+    (doseq (style (rsorted (getkeys stylemap)
+			   (lambda (s) (choice-size (get stylemap s)))))
+      (let ((classname (glom "sTYLE" stylecount)))
+	(set! stylecount (1+ stylecount))
+	(store! classdefs classname
+		(stringout "{ /* " (choice-size (get stylemap style)) " occurrences */\n\t" style "\n}"))
+	(do-choices (node (get stylemap style))
+	  (dom/addclass! node classname)
+	  (dom/drop! node 'style))))
+    classdefs))
 
