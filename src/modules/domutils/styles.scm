@@ -24,8 +24,7 @@
 
 (define (dom/normstyle string (rules #f))
   (let* ((prepped (if rules
-		      (textsubst (decode-entities string)
-				 (qc rules))
+		      (textsubst (decode-entities string) (qc rules))
 		      (decode-entities string)))
 	 (ruleset (for-choices (r (text->frames css-rule prepped))
 		    (cons (get r 'prop) (trim-spaces (get r 'val)))))
@@ -33,8 +32,8 @@
 	 (prop #f))
     (stringout
       (doseq (rule rules i)
-	(unless (eq? (car rule) prop)
-	  (printout (if (> i 0) ";\n    ")
+	(unless (equal? (car rule) prop)
+	  (printout (if (> i 0) "; ")
 	    (car rule) ": " (trim-spaces (cdr rule)))
 	  (set! prop (car rule))))
       ";")))
@@ -51,14 +50,4 @@
     (doseq (child (->vector (get node '%content)))
       (dom/gather-styles! child stylemap normalize)))
   stylemap)
-
-
-
-
-
-
-
-
-
-
 

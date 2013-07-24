@@ -152,7 +152,8 @@
 (define *block-tags* '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
-(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f) (mergeheads #f) (cleanstyles #f))
+(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f) (mergeheads #f)
+		      (cleanstyles #f))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
 	    (newfn (and textfn
@@ -165,7 +166,12 @@
 	    (hgroup '())
 	    (merged '()))
 	(when (and cleanstyles (test node 'style))
-	  (dom/set! node 'style (dom/normstyle (get node 'style) cleanstyles)))
+	  (dom/set! node 'style
+		    (if (eq? cleanstyles #t)
+			(dom/normstyle (get node 'style))
+			(dom/normstyle (get node 'style) cleanstyles)))
+	  (when (empty-string? (get node 'style))
+	    (dom/drop! node 'style)))
 	(doseq (child vec)
 	  (if (string? child)
 	      (if (or (null? hgroup) (not mergeheads))
@@ -178,7 +184,7 @@
 				     "\n" merged))
 			(set! hgroup '()))))
 	      (unless (and dropfn (dropfn child))
-		(set! child (dom/cleanup node textfn dropfn dropempty))
+		(set! child (dom/cleanup! node textfn (qc dropfn) dropempty mergheads (qc cleanstyles)))
 		(when (and dropempty isblock
 			   (test child '%content)
 			   (or (null? (get child '%content))
@@ -243,19 +249,27 @@
 
 (define default-style-rules css/dropdecimals)
 
-(define (dom/cleanup/mergestyles! dom (stylerules default-style-rules))
+(define (dom/cleanup/mergestyles!
+	 dom (stylerules default-style-rules) (classdefs (make-hashtable)))
   (let ((stylemap (make-hashtable))
-	(classdefs (make-hashtable))
-	(stylecount 1))
+	(stylecount (try (get classdefs '%count) 1)))
     (dom/gather-styles! dom stylemap (qc stylerules))
     (doseq (style (rsorted (getkeys stylemap)
 			   (lambda (s) (choice-size (get stylemap s)))))
       (let ((classname (glom "sTYLE" stylecount)))
 	(set! stylecount (1+ stylecount))
-	(store! classdefs classname
-		(stringout "{ /* " (choice-size (get stylemap style)) " occurrences */\n\t" style "\n}"))
+	(store! classdefs classname (cons (choice-size (get stylemap style)) style))
 	(do-choices (node (get stylemap style))
 	  (dom/addclass! node classname)
 	  (dom/drop! node 'style))))
+    (store! classdefs '%count stylecount)
     classdefs))
+
+
+
+
+
+
+
+
 
