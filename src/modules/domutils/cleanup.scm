@@ -249,14 +249,16 @@
 
 (define default-style-rules css/dropdecimals)
 
-(define (dom/cleanup/mergestyles!
-	 dom (stylerules default-style-rules) (classdefs (make-hashtable)))
-  (let ((stylemap (make-hashtable))
-	(stylecount (try (get classdefs '%count) 1)))
+(define (dom/mergestyles!
+	 dom (stylerules default-style-rules)
+	 (classdefs (make-hashtable))
+	 (stylemap (make-hashtable))
+	 (prefix "sTYLE"))
+  (let ((stylecount (try (get classdefs '%count) 1)))
     (dom/gather-styles! dom stylemap (qc stylerules))
     (doseq (style (rsorted (getkeys stylemap)
 			   (lambda (s) (choice-size (get stylemap s)))))
-      (let ((classname (glom "sTYLE" stylecount)))
+      (let ((classname (glom prefix stylecount)))
 	(set! stylecount (1+ stylecount))
 	(store! classdefs classname (cons (choice-size (get stylemap style)) style))
 	(do-choices (node (get stylemap style))
@@ -264,12 +266,5 @@
 	  (dom/drop! node 'style))))
     (store! classdefs '%count stylecount)
     classdefs))
-
-
-
-
-
-
-
 
 
