@@ -1638,10 +1638,11 @@ static int servlet_recycle_socket(fdservlet servlet,fdsocket sock)
   else if (sock->socket_index<0) {
     int busy=0, ephemeral=0;
     apr_thread_mutex_lock(servlet->lock);
-    servlet->n_busy--; servlet->n_ephemeral--;
+    if (sock->busy) {
+      sock->busy=0; servlet->n_busy--;}
+    servlet->n_ephemeral--;
     busy=servlet->n_busy; ephemeral=servlet->n_ephemeral;
     apr_thread_mutex_unlock(servlet->lock);
-    sock->busy=0;
 #if DEBUG_SOCKETS
     ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
 		 "Closing %s, %d ephemeral, %d busy",
@@ -1658,7 +1659,8 @@ static int servlet_recycle_socket(fdservlet servlet,fdsocket sock)
       /* The sockets array was reallocated, so sock is different than it was */
       sock=&(servlet->sockets[i]);}
     apr_thread_mutex_lock(servlet->lock);
-    sock->busy=0; servlet->n_busy--;
+    if (sock->busy) {
+      sock->busy=0; servlet->n_busy--;}
     apr_thread_mutex_unlock(servlet->lock);
 #if DEBUG_SOCKETS
     if (sock->socktype==filesock)
@@ -2359,8 +2361,9 @@ static int fdserv_handler(request_rec *r)
   else {
     connected=apr_time_now();
     ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
-		  "Handling %s with %s through %s",
-		  r->unparsed_uri,r->filename,fdsocketinfo(sock,infobuf));}
+		  "Handling %s with %s through %s, %d busy",
+		  r->unparsed_uri,r->filename,fdsocketinfo(sock,infobuf),
+		  servlet->n_busy);}
   reqdata=ap_bcreate(r->pool,0);
   if (!(reqdata)) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,HTTP_INTERNAL_SERVER_ERROR,r,
@@ -2492,7 +2495,7 @@ static int fdserv_handler(request_rec *r)
   
   ap_log_rerror
     (APLOG_MARK,((bytes_transferred<0)?(APLOG_ERR):(APLOG_INFO)),OK,r,
-     "%s returning %d bytes of content for %s (%s) in %ldus=%ld+%ld+%ld+%ld",
+     "%s returning %d bytes of content for %s (%s) in %ldus=%ld+%ld+%ld+%ld, %d busy",
      ((bytes_transferred<0)?("Error"):("Done")),
      ((bytes_transferred<0)?(-bytes_transferred):(bytes_transferred)),
      r->unparsed_uri,r->filename,
@@ -2500,7 +2503,8 @@ static int fdserv_handler(request_rec *r)
      ((long)(connected-started)),
      ((long)(requested-connected)),
      ((long)(computed-requested)),
-     ((long)(responded-computed)));
+     ((long)(responded-computed)),
+     servlet->n_busy);
   
 #if TRACK_EXECUTION_TIMES
   {char buf[64]; double interval; ftime(&end);
