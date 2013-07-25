@@ -10,10 +10,14 @@
 
 (define (xhtml/include file (base #f) (enc #t))
   (let ((path (if base (get-component file base) file))
-	(content (getcontent path  enc))
+	(content (if (has-suffix path ".fdxml")
+		     (getcontent path enc fdxml/parse)
+		     (if (has-suffix path {".md" ".markdown"})
+			 (getcontent path enc md->html)
+			 (getcontent path enc))))
 	(mod (file-modtime path)))
     (pagedate! mod)
-    (xhtml content)))
+    (if (string? content) (xhtml content) (xmleval content))))
 
 (define (firebuglite)
   (xhtml "<script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>"))
