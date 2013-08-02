@@ -243,7 +243,7 @@
 (define dom/cleanup/mergelines mergelines)
 (define dom/cleanup/unipunct unipunct)
 (define (dom/cleanup/mergelines+unipunct text)
-  (unipunct (mergelines string)))
+  (unipunct (mergelines text)))
 
 ;;; Style cleanup functions
 
@@ -253,7 +253,7 @@
 	 dom (stylerules default-style-rules)
 	 (classdefs (make-hashtable))
 	 (stylemap (make-hashtable))
-	 (prefix "sTYLE"))
+	 (prefix "fd__autostyle"))
   (let ((stylecount (try (get classdefs '%count) 1)))
     (dom/gather-styles! dom stylemap (qc stylerules))
     (doseq (style (rsorted (getkeys stylemap)
