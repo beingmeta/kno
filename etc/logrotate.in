@@ -2,7 +2,6 @@
    rotate 17
    su root @admin_group@
    notifempty
-   # Try enabling this after we know things work
    minsize 100k
    maxsize 2M
    daily
@@ -20,7 +19,6 @@
    rotate 17
    su root @admin_group@
    notifempty
-   # Try enabling this after we know things work
    minsize 100k
    maxsize 2M
    daily
@@ -28,7 +26,7 @@
    delaycompress
    missingok
    dateext
-   # The right thing would be to have fdserv processes
+   # The right thing would be to have fdserver processes
    #  get HUP signals which cause them to reopen their log files.
    # But we'll do this for now, which leaves a small window for
    #  missing logs
@@ -38,7 +36,6 @@
    rotate 17
    su root @admin_group@
    notifempty
-   # Try enabling this after we know things work
    minsize 100k
    maxsize 2M
    daily
@@ -46,7 +43,7 @@
    delaycompress
    missingok
    dateext
-   # The right thing would be to have fdserv processes
+   # The right thing would be to have fdbserver processes
    #  get HUP signals which cause them to reopen their log files.
    # But we'll do this for now, which leaves a small window for
    #  missing logs

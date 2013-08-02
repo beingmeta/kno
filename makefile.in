@@ -207,15 +207,15 @@ update: buildmode
 	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 standard:
-	make testbin exe cmodules @TAGS@
+	make testbin exe cmodules etc @TAGS@
 debugging:
-	make XCFLAGS="-O0 -g3 -ggdb" testbin exe cmodules @TAGS@
+	make XCFLAGS="-O0 -g3 -ggdb" testbin exe cmodules etc @TAGS@
 optimizing:
-	make XCFLAGS="-O3" testbin exe cmodules @TAGS@
+	make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
-	make XCFLAGS="-Wall" testbin exe cmodules @TAGS@
+	make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
-all: testbin exe cmodules @TAGS@
+all: testbin exe cmodules etc @TAGS@
 
 # Handy targets
 
@@ -265,16 +265,25 @@ etc/fdgetconfig: etc/fdgetconfig.in ./configure
 	./configure
 etc/fdsetconfig: etc/fdsetconfig.in ./configure
 	./configure
+etc/fdconfig: etc/fdconfig.in ./configure
+	./configure
 etc/framerd-rc.d: etc/framerd-rc.d.in ./configure
 	./configure
 etc/OSXStartupItem/FramerD: etc/OSXStartupItem/FramerD.in ./configure
-	./configure
-etc/logrotate: etc/logrotate.in ./configure
 	./configure
 etc/fdserv.conf: etc/fdserv.conf.in ./configure
 	./configure
 etc/fdserv.load: etc/fdserv.load.in ./configure
 	./configure
+etc/logrotate: etc/logrotate.in ./configure
+	./configure
+etc/install-script: etc/install-script.in ./configure
+	./configure
+
+etc: etc/logrotate etc/install-script etc/framerd-rc.d \
+	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
+	tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit \
+	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
 # with -D
@@ -953,7 +962,7 @@ enable-rc.d: setup-rc.d
 	@$(MSG) Updating rc.d
 	@@SUDO@update-rc.d framerd defaults
 
-setup-logrotate: $(DESTDIR)/etc/logrotate.d/framerd
+setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
