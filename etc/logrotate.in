@@ -1,9 +1,10 @@
 @logdir@/fdserv/*.log {
    rotate 17
-   su @webuser@ @admin_group@
+   su root @admin_group@
    notifempty
    # Try enabling this after we know things work
    minsize 100k
+   maxsize 2M
    daily
    compress
    delaycompress
@@ -17,10 +18,11 @@
 }
 @logdir@/framerd/*.log {
    rotate 17
-   su @fdaemon@ @admin_group@
+   su root @admin_group@
    notifempty
    # Try enabling this after we know things work
    minsize 100k
+   maxsize 2M
    daily
    compress
    delaycompress
@@ -34,10 +36,11 @@
 }
 @logdir@/framerd/*.err {
    rotate 17
-   su @fdaemon@ @admin_group@
+   su root @admin_group@
    notifempty
    # Try enabling this after we know things work
    minsize 100k
+   maxsize 2M
    daily
    compress
    delaycompress
