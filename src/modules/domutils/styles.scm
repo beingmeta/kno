@@ -48,6 +48,7 @@
       (add! stylemap norm node)))
   (when (test node '%content)
     (doseq (child (->vector (get node '%content)))
-      (dom/gather-styles! child stylemap normalize)))
+      (unless (string? child) (dom/gather-styles! child stylemap normalize))))
   stylemap)
+
 
