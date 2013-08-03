@@ -722,13 +722,6 @@ if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
 fi
 
-AC_ARG_WITH(gprof,--with[out]-gprof Use the Google profiler library,,with_gprof="yes")
-if test "x$with_gprof" == "xyes"; then
-  AC_DEFINE(WITH_GOOGLE_PROFILER,1)
-  AC_CHECK_HEADERS(google/profiler.h)
-  AC_CHECK_LIB(profiler,ProfilerStart)
-fi
-
 # For OS X
 AC_CHECK_HEADERS(CommonCrypto/CommonDigest.h CommonCrypto/CommonHMAC.h)
 AC_CHECK_FUNCS(CCHmacInit)
