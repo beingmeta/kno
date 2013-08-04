@@ -149,10 +149,12 @@
 ;;;  single strings, calling an optional TEXTFN on each combined
 ;;;  string.  The TEXTFN can normalize whitespace or insert indents.
 
-(define *block-tags* '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
+(define *block-tags*
+  '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
-(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f) (mergeheads #f)
+(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
+		      (mergeheads #f)
 		      (cleanstyles #f))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
@@ -180,11 +182,15 @@
 		      (set! hgroup (cons child hgroup))
 		      (begin
 			(set! merged
-			      (cons* `#[%xmltag HGROUP %content ,(cons "\n" (reverse) hgroup)]
+			      (cons* `#[%xmltag HGROUP %content
+					,(cons "\n" (reverse hgroup))]
 				     "\n" merged))
 			(set! hgroup '()))))
 	      (unless (and dropfn (dropfn child))
-		(set! child (dom/cleanup! node textfn (qc dropfn) dropempty mergheads (qc cleanstyles)))
+		(set! child
+		      (dom/cleanup! child textfn
+				    (qc dropfn) dropempty
+				    mergeheads (qc cleanstyles)))
 		(when (and dropempty isblock
 			   (test child '%content)
 			   (or (null? (get child '%content))
@@ -199,7 +205,7 @@
 		    (set! strings '()))
 		  (if (test child '%xmltag *head-tags*)
 		      (set! hgroup (cons child hgroup))
-		      (set! merged cons child merged))))))
+		      (set! merged (cons child merged)))))))
 	(unless (null? strings)
 	  (set! merged
 		(cons (if textfn (textfn (apply glom (reverse strings)))
