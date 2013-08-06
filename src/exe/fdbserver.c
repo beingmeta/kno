@@ -32,10 +32,13 @@
 
 #include "main.h"
 
+FD_EXPORT int fd_update_file_modules(int force);
+
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
 static int async_mode=1;
+static int auto_reload=0;
 
 static int debug_maxelts=32, debug_maxchars=80;
 
@@ -247,6 +250,7 @@ static int dtypeserver(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
+  if (auto_reload) fd_update_file_modules(0);
   if ((client->reading>0)&&(u8_client_finished(ucl))) { 
     stream->end=stream->ptr+client->len;
     expr=fd_dtsread_dtype(stream);}
@@ -434,6 +438,9 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 
 static void shutdown_dtypeserver_onsignal(int sig)
 {
+  if (sig==SIGHUP) {
+    fd_update_file_modules(1);
+    return;}
   u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on signal %d",sig);
   u8_server_shutdown(&dtype_server,shutdown_grace);
   if (FD_APPLICABLEP(shutdown_proc)) {
@@ -779,6 +786,9 @@ int main(int argc,char **argv)
   fd_register_config("GRACEFULDEATH",
 		     _("How long (μs) to wait for tasks during shutdown"),
 		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
+  fd_register_config("AUTORELOAD",
+		     _("Whether to automatically reload changed files"),
+		     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
 
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);
