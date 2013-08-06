@@ -47,11 +47,11 @@
 				 (dirname base))
 			     ref)))
 	  (if (has-prefix ref "./")
-	      (gp/path (gp/location base) (uridecode (slice ref 2)))
+	      (gp/path (gp/location base) (slice ref 2))
 	      (if (has-prefix ref "../")
 		  (gp/path (gp/location (gp/location base))
-			   (uridecode (subseq ref 3)))
-		  (gp/path base (uridecode ref)))))))
+			   (subseq ref 3))
+		  (gp/path base ref))))))
 
 (define (fix-crlfs string)
   (string-subst (string-subst string "\r\n" "\n")
@@ -104,6 +104,7 @@
   (default! ctype (getopt options 'mimetype
 			  (path->mimetype (gp/basename ref))))
   (default! xform (getopt options 'xform #f))
+  (when (position #\% ref) (set! ref (uridecode ref)))
   (try ;; relative references are untouched
        (tryif (or (empty-string? ref) (has-prefix ref "#")
 		  (has-prefix ref "javascript:"))
