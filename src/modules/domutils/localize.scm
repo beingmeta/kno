@@ -11,6 +11,7 @@
 	      savecontent gpath logger mimetable})
 
 (define-init %loglevel %notice!)
+;;(set! %loglevel %info%)
 ;;(set! %loglevel %debug%)
 
 (module-export! '{dom/localize!})
@@ -23,12 +24,75 @@
       (begin (system "mkdir -p " (dirname filename))
 	     filename)))
 
-(define absurlstart #((isalpha) (isalpha) (isalpha+) ":")) ;; (choice  "/")
-
 (define (addversion string num)
   (if (textsearch #("." (isalpha+) (eos)) string)
       (textsubst string `#((SUBST "." ,(glom "-" num ".")) (isalpha+) (eos)))
       (glom string "-" num)))
+
+(define absurlstart #((isalpha) (isalpha) (isalpha+) ":")) ;; (choice  "/")
+
+(define (getabsref ref (base #f))
+  (if (string-starts-with? ref absurlstart) ref
+      (if (string? base)
+	  (if (has-prefix ref "./")
+	      (mkuripath (if (has-suffix base "/") base
+			     (dirname base))
+			 (slice ref 2))
+	      (if (has-prefix ref "../")
+		  (mkuripath (if (has-suffix base "/")
+				 (dirname base)
+				 (dirname (dirname base)))
+			     (slice ref 3))
+		  (mkuripath (if (has-suffix base "/") base
+				 (dirname base))
+			     ref)))
+	  (if (has-prefix ref "./")
+	      (gp/path (gp/location base) (uridecode (slice ref 2)))
+	      (if (has-prefix ref "../")
+		  (gp/path (gp/location (gp/location base))
+			   (uridecode (subseq ref 3)))
+		  (gp/path base (uridecode ref)))))))
+
+(define (fix-crlfs string)
+  (string-subst (string-subst string "\r\n" "\n")
+		"\r" "\n"))
+
+(define (needsync? savepath absref)
+  (let ((current (gp/modified savepath))
+	(remote  (gp/modified absref)))
+    (or (not current) (not remote) (time>? current remote))))
+
+(define (sync! ref savepath absref options ctype urlmap
+	       (checksync) (exists))
+  (default! urlmap (getopt options 'urlmap))
+  (default! checksync
+    (getopt options 'checksync
+	    (not (getopt options 'updateall (config 'updateall)))))
+  (default! exists (gp/exists? savepath))
+  (cond ((and checksync exists (needsync? savepath absref))
+	 (loginfo "Content " ref " is up to date in " savepath
+		  " from " absref))
+	(else
+	 (let ((fetched (gp/fetch+ absref))
+	       (xform (getopt options 'xform)))
+	   (cond ((and exists (not fetched))
+		  (logwarn "Couldn't update content for " ref
+			   " from " absref ", using current " savepath))
+		  ((or (not fetched)
+		       (fail? (get fetched 'content))
+		       (not (get fetched 'content)))
+		   (logwarn "Couldn't download content from " absref " for " ref))
+		  (xform
+		   (gp/save! savepath (xform (get fetched 'content)) ctype))
+		  (else (gp/save! savepath (get fetched 'content) ctype)))
+	   (lognotice "Copied " (length (get fetched 'content))
+		      " from\n\t" absref
+		      "\n  to\t " savepath
+		      "\n  for\t" ref)
+	   (when fetched
+	     (store! urlmap (list absref) (get fetched 'modified)))))))
+
+;;;; LOCALREF
 
 ;; Converts a URL into a local reference, copying its data if needed
 ;; REF is the local references (from the document)
@@ -36,67 +100,47 @@
 ;; BASE is the URL of the input document which is used to actually fetch things
 ;; SAVETO is the where downloaded data should be stored locally
 ;; READ is the relative path to use for local references
-;; AMALGAMATE is a list of URL prefixes which are being amalgamated
-;;   into the output file, so that fragment identifiers should just
-;;   be the corresponding fragments
-;; LOCALHOSTS is a bunch of prefixes for things to not bother converting
-(define (localref ref urlmap base saveto read
-		  amalgamate localhosts
-		  (ctype) (xform #f))
-  (default! ctype (path->mimetype (gp/basename ref)))
+(define (localref ref urlmap base saveto read options (ctype) (xform))
+  (default! ctype (getopt options 'mimetype
+			  (path->mimetype (gp/basename ref))))
+  (default! xform (getopt options 'xform #f))
   (try ;; relative references are untouched
-       (tryif (or (empty-string? ref) (has-prefix ref "#")) ref)
+       (tryif (or (empty-string? ref) (has-prefix ref "#")
+		  (has-prefix ref "javascript:"))
+	 ref)
        ;; If it's got a fragment identifer, make a localref without the
        ;;  fragment and put the fragment back.  We don't bother checking
-       ;;; fragment ID uniqueness, though we probably should (it would
-       ;;; be pretty hard to fix automatically)
+       ;;; fragment ID uniqueness, though we probably should.
        (tryif (position #\# ref)
 	 (let ((hashpos (position #\# ref)))
-	   (string-append (localref (subseq ref 0 hashpos)
-				    urlmap base saveto read
-				    (qc amalgamate) (qc localhosts))
+	   (string-append (localref (subseq ref 0 hashpos) urlmap
+				    base saveto read options)
 			  (subseq ref hashpos))))
        ;; if we're gluing a bunch of files together (amalgamating them),
        ;;  the ref will just be moved to the current file by stripping
        ;;  off the URL part
-       (tryif (overlaps? amalgamate (gp/mkpath base ref))
+       (tryif (overlaps? (getopt options 'amalgamate)
+			 (gp/mkpath base ref))
 	 (try (get urlmap (gp/mkpath base ref))
 	      (get urlmap ref)
 	      ""))
        ;; Check if we're already localized
-       (tryif (exists? (textmatcher `#(,read "/") ref))
-	 ref)
+       (tryif (exists? (textmatcher `#(,read "/") ref)) ref)
        ;; Check the cache
        (get urlmap ref)
        ;; don't bother localizing these references
-       (tryif (string-starts-with? ref localhosts) ref)
+       (tryif (exists string-starts-with? ref
+		      (getopt options 'localhosts {}))
+	 ref)
        ;; No easy outs, fetch the content and store it
-       (let* ((absref
-	       (if (string-starts-with? ref absurlstart) ref
-		   (if (string? base)
-		       (if (has-prefix ref "./")
-			   (mkuripath (if (has-suffix base "/") base
-					  (dirname base))
-				      (slice ref 2))
-			   (if (has-prefix ref "../")
-			       (mkuripath (if (has-suffix base "/")
-					      (dirname base)
-					      (dirname (dirname base)))
-					  (slice ref 3))
-			       (mkuripath (if (has-suffix base "/") base
-					      (dirname base))
-					  ref)))
-		       (if (has-prefix ref "./")
-			   (gp/path (gp/location base) (slice ref 2))
-			   (if (has-prefix ref "../")
-			       (gp/path (gp/location (gp/location base))
-					(subseq ref 3))
-			       (gp/path base ref))))))
+       (let* ((absref (getabsref ref base))
 	      (name (basename (uribase ref)))
 	      (suffix (filesuffix name))
 	      (lref (try (get urlmap (vector ref))
 			 (mkpath read name)))
 	      (savepath (gp/mkpath saveto name)))
+	 ;; We store inverse links as #(ref) keys, so this is where we detect
+	 ;;  conflicts
 	 (when (and (not (get urlmap (vector ref)))
 		    (exists? (get urlmap lref)))
 	   ;; Name conflict
@@ -109,61 +153,27 @@
 	 (when (string? absref) (store! urlmap absref lref))
 	 (debug%watch "LOCALREF" lref ref base absref saveto read
 		      (get urlmap absref))
-	 (let* ((sourcetime (gp/modified absref))
-		(existing (gp/exists? savepath))
-		(savetime (and existing (gp/modified savepath)))
-		(changed (or (not savetime) (not sourcetime)
-			     (time>? sourcetime savetime)))
-		(fetched (and changed (try (gp/fetch+ absref) #f))))
-	   (cond ((and changed fetched)
-		  ;; Updated
-		  (if xform
-		      (gp/write! saveto name
-			(xform (get fetched 'content)) ctype)
-		      (gp/write! saveto name (get fetched 'content) ctype))
-		  (store! urlmap (list absref)
-			  (get fetched 'modified))
-		  (loginfo "Updated " ref " for " lref
-			   " from " (write absref)))
-		 ((not changed)
-		  ;; No update needed
-		  (loginfo "Content " ref " is up to date for " lref
-			   " from " (write absref)))
-		 ((and existing (not fetched))
-		  ;; Update failed
-		  (logwarn "Couldn't update content from " absref))
-		 ((not fetched)
-		  ;; Initial download failed, keep absref
-		  (logwarn "Couldn't download content from " absref)
-		  (set! lref absref)))
-	   ;; Save the mapping in both directions (we assume that
-	   ;;  lrefs and absrefs are disjoint, so we can use the
-	   ;;  same table)
-	   (store! urlmap absref lref)
-	   (store! urlmap lref absref)
-	   lref))))
+	 (sync! ref savepath absref options ctype urlmap)
+	 ;; Save the mapping in both directions (we assume that
+	 ;;  lrefs and absrefs are disjoint, so we can use the
+	 ;;  same table)
+	 (store! urlmap absref lref)
+	 (store! urlmap lref absref)
+	 lref)))
 
-(define (fix-crlfs string)
-  (string-subst (string-subst string "\r\n" "\n")
-		"\r" "\n"))
-
-(define (dom/localize! dom base saveto read
-		       (urlmap (make-hashtable))
-		       (amalgamate #f) (localhosts #f)
-		       (doanchors #f))
-  (loginfo "Localizing references from " (write base)
-	   " to " (write read) ", copying content to " 
-	   (if (singleton? saveto) (write saveto)
-	       (do-choices saveto (printout "\n\t" (write saveto)))))
-  (debug%watch amalgamate localhosts doanchors)
-  (let ((amalgamate (or amalgamate {}))
-	(localhosts (or localhosts {}))
-	(head (dom/find dom "HEAD" #f))
+(define (dom/localize! dom base saveto read (options #f) (urlmap) (doanchors))
+  (default! urlmap (getopt options 'urlmap (make-hashtable)))
+  (default! doanchors (getopt options 'doanchors #f))
+  (lognotice "Localizing references from " (write base)
+	     " to " (write read) ", copying content to " 
+	     (if (singleton? saveto) (write saveto)
+		 (do-choices saveto (printout "\n\t" (write saveto)))))
+  (debug%watch "DOM/LOCALIZE!" base saveto read options doanchors)
+  (let ((head (dom/find dom "HEAD" #f))
 	(files {}))
     (dolist (node (dom/find->list dom "[src]"))
-      (let ((ref (localref (get node 'src)
-			   urlmap base (qc saveto) read
-			   (qc amalgamate) (qc localhosts))))
+      (let ((ref (localref (get node 'src) urlmap
+			   base (qc saveto) read options)))
 	(logdebug "Localized " (write (get node 'src))
 		  " to " (write ref) " for " node)
 	(when (and (exists? ref) ref)
@@ -180,7 +190,7 @@
 			      (gp/mkpath base (dirname href))
 			      base)
 			  (qc saveto) (mkpath ".." read)
-			  (qc amalgamate) (qc localhosts))))
+			  options)))
 	     (xformrule
 	      `(IC (GREEDY #("url" (spaces*)
 			     {#("(" (spaces*)
@@ -200,10 +210,12 @@
 			     css)))
 	     (ref (localref (get node 'href)
 			    urlmap base (qc saveto) read
-			    (qc amalgamate) (qc localhosts)
-			    (try (get node 'type) "text/css")
-			    (and (exists has-prefix (get node 'type) "text/css")
-				 xformcss))))
+			    (if (exists has-prefix (get node 'type) "text/css")
+				(cons `#[mimetype
+					 ,(try (get node 'type) "text/css")
+					 xform ,xformcss]
+				      options)
+				options))))
 	(logdetail "Local ref " (write ref) " copied from "
 		   (write (get node 'href)) "\n\tfor " node)
 	(when (and (exists? ref) ref)
@@ -214,9 +226,9 @@
 	     (ref (and (not (string-starts-with?
 			     href #((isalpha) (isalpha) (isalpha+) ":")))
 		       (or (not doanchors) (textsearch doanchors href))
-		       (localref href urlmap base (qc saveto) read
-				 (qc amalgamate) (qc localhosts)))))
-	(logdetail "Local ref " (write ref) " copied from " (write (get node 'href))
+		       (localref href urlmap base (qc saveto) read options))))
+	(logdetail "Local ref " (write ref) " copied from "
+		   (write (get node 'href))
 		   "\n\tfor " node)
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
