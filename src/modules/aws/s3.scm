@@ -237,10 +237,10 @@
 (define (s3/pathuri bucket path (scheme s3scheme)) (s3/uri bucket path scheme #t))
 (define (s3/hosturi bucket path (scheme s3scheme)) (s3/uri bucket path scheme #f))
 
-(define (s3/signeduri bucket path (scheme s3scheme)
-		      (expires (* 17 3600))
-		      (op "GET") (headers '())
-		      (usepath #t))
+(define (signeduri bucket path (scheme s3scheme)
+		   (expires (* 17 3600))
+		   (op "GET") (headers '())
+		   (usepath #t))
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (let* ((exptick (if (number? expires)
 		      (if (> expires (time)) expires
@@ -258,6 +258,16 @@
 	 "?" "AWSAccessKeyId=" awskey "&"
 	 "Expires=" (number->string exptick) "&"
 	 "Signature=" (uriencode (packet->base64 sig))))))
+(define (s3/signeduri arg . args)
+  (if (or (null? args) (number? (car args)) (timestamp? (car args)))
+      (let ((s3loc (->s3loc arg)))
+	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc) "https://"
+		   (if (pair? args)
+		       (if (number? (car args))
+			   (timestamp+ (car args))
+			   (car args))
+		       (* 48 3600))))
+      (apply signeduri arg args)))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
@@ -316,9 +326,11 @@
 		  path)))
 
 (define (s3loc/uri s3loc)
+  (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (stringout s3scheme s3root "/" (s3loc-bucket s3loc) (s3loc-path s3loc)))
 
 (define (s3loc/s3uri s3loc)
+  (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (stringout "s3://" (s3loc-bucket s3loc) (s3loc-path s3loc)))
 
 ;; Rules for mapping S3 locations into the local file system
