@@ -37,7 +37,7 @@ static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
 #if FD_THREADS_ENABLED
 
-int fd_threaderror_backtrace=1;
+int fd_threaderror_backtrace=0;
 
 fd_ptr_type fd_thread_type;
 fd_ptr_type fd_condvar_type;
