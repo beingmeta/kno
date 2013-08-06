@@ -22,7 +22,7 @@
   (if (file-directory? (dirname filename))
       filename
       (begin (system "mkdir -p " (dirname filename))
-	     filename)))
+	filename)))
 
 (define (addversion string num)
   (if (textsearch #("." (isalpha+) (eos)) string)
@@ -71,26 +71,29 @@
   (default! exists (gp/exists? savepath))
   (cond ((and checksync exists (needsync? savepath absref))
 	 (loginfo "Content " ref " is up to date in " savepath
-		  " from " absref))
+		  " from " absref)
+	 #t)
 	(else
 	 (let ((fetched (gp/fetch+ absref))
 	       (xform (getopt options 'xform)))
 	   (cond ((and exists (not fetched))
 		  (logwarn "Couldn't update content for " ref
 			   " from " absref ", using current " savepath))
-		  ((or (not fetched)
-		       (fail? (get fetched 'content))
-		       (not (get fetched 'content)))
-		   (logwarn "Couldn't download content from " absref " for " ref))
-		  (xform
-		   (gp/save! savepath (xform (get fetched 'content)) ctype))
-		  (else (gp/save! savepath (get fetched 'content) ctype)))
-	   (lognotice "Copied " (length (get fetched 'content))
-		      " from\n\t" absref
-		      "\n  to\t " savepath
-		      "\n  for\t" ref)
+		 ((or (not fetched)
+		      (fail? (get fetched 'content))
+		      (not (get fetched 'content)))
+		  (logwarn "Couldn't download content from " absref
+			   " for " ref))
+		 (xform
+		  (gp/save! savepath (xform (get fetched 'content)) ctype))
+		 (else (gp/save! savepath (get fetched 'content) ctype)))
 	   (when fetched
-	     (store! urlmap (list absref) (get fetched 'modified)))))))
+	     (lognotice "Copied " (length (get fetched 'content))
+			" from\n\t" absref
+			"\n  to\t " savepath
+			"\n  for\t" ref)
+	     (store! urlmap (list absref) (get fetched 'modified)))
+	   (or fetched exists)))))
 
 ;;;; LOCALREF
 
@@ -107,7 +110,7 @@
   (when (position #\% ref) (set! ref (uridecode ref)))
   (try ;; relative references are untouched
        (tryif (or (empty-string? ref) (has-prefix ref "#")
-		  (has-prefix ref "javascript:"))
+		  (has-prefix ref {"javascript:" "chrome-extension:"}))
 	 ref)
        ;; If it's got a fragment identifer, make a localref without the
        ;;  fragment and put the fragment back.  We don't bother checking
@@ -154,13 +157,15 @@
 	 (when (string? absref) (store! urlmap absref lref))
 	 (debug%watch "LOCALREF" lref ref base absref saveto read
 		      (get urlmap absref))
-	 (sync! ref savepath absref options ctype urlmap)
-	 ;; Save the mapping in both directions (we assume that
-	 ;;  lrefs and absrefs are disjoint, so we can use the
-	 ;;  same table)
-	 (store! urlmap absref lref)
-	 (store! urlmap lref absref)
-	 lref)))
+	 (if (sync! ref savepath absref options ctype urlmap)
+	     (begin
+	       ;; Save the mapping in both directions (we assume that
+	       ;;  lrefs and absrefs are disjoint, so we can use the
+	       ;;  same table)
+	       (store! urlmap absref lref)
+	       (store! urlmap lref absref)
+	       lref)
+	     ref))))
 
 (define (dom/localize! dom base saveto read (options #f) (urlmap) (doanchors))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
@@ -173,6 +178,7 @@
   (let ((head (dom/find dom "HEAD" #f))
 	(files {}))
     (dolist (node (dom/find->list dom "[src]"))
+      (logdebug "Localizing " node)
       (let ((ref (localref (get node 'src) urlmap
 			   base (qc saveto) read options)))
 	(logdebug "Localized " (write (get node 'src))
@@ -182,6 +188,7 @@
 	  (set+! files ref))))
     ;; Convert url() references in stylesheets
     (do-choices (node (pick (dom/find head "link") 'rel "stylesheet"))
+      (logdebug "Localizing " node)
       (let* ((ctype (try (get node 'type) "text"))
 	     (href (get node 'href))
 	     (xformurlfn
@@ -223,6 +230,7 @@
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
     (dolist (node (dom/find->list dom "[href]"))
+      (logdebug "Localizing " node)
       (let* ((href (get node 'href))
 	     (ref (and (not (string-starts-with?
 			     href #((isalpha) (isalpha) (isalpha+) ":")))
