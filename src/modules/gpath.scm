@@ -10,7 +10,7 @@
    gp/urlfetch gp/urlinfo
    gp/path gp/mkpath gp/makepath gpath->string
    gp/location gp/basename
-   gpath? ->gpath gp:config})
+   gpath? ->gpath gp/has-suffix gp:config})
 
 ;;; This is a generic path facility (it grew out of the savecontent
 ;;; module, which still exists for legacy and historical reasons).  A
@@ -398,7 +398,7 @@
       (and (string? (cdr val))
 	   (or (s3loc? (car val)) (zipfile? (car val))))
       (if (string? val)
-	  (and (not (position #\n val))
+	  (and (not (position #\newline val))
 	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/"}))
 	  (or (s3loc? val) (zipfile? val)))))
 
@@ -409,6 +409,11 @@
 	      (if (has-prefix val "/") val
 		  (abspath val))))
       val))
+
+(defambda (gp/has-suffix gpath suffixes (casematch #f))
+  (if casematch
+      (has-suffix (downcase (gp/basename gpath)) (downcase suffixes))
+      (has-suffix (gp/basename gpath) suffixes)))
 
 (define gp:config ->gpath)
 
