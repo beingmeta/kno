@@ -5,9 +5,6 @@
 
 ;;; Provides various virtual hashtable statistics for evaluating
 ;;;  hash functions over data sets.
-(define version "$Id$")
-(define revision "$Revision:$")
-
 (module-export! '{hashstats hs/summary})
 
 ;;;; Implementation
