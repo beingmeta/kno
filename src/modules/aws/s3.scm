@@ -234,8 +234,10 @@
       (if (and (hashset-get website-buckets bucket) (equal? scheme "http://"))
 	  (stringout scheme bucket path)
 	  (stringout scheme bucket "." s3root path))))
-(define (s3/pathuri bucket path (scheme s3scheme)) (s3/uri bucket path scheme #t))
-(define (s3/hosturi bucket path (scheme s3scheme)) (s3/uri bucket path scheme #f))
+(define (s3/pathuri bucket path (scheme s3scheme))
+  (s3/uri bucket path scheme #t))
+(define (s3/hosturi bucket path (scheme s3scheme))
+  (s3/uri bucket path scheme #f))
 
 (define (signeduri bucket path (scheme s3scheme)
 		   (expires (* 17 3600))
@@ -275,22 +277,22 @@
 					    'stringtosignbytes)
 				    '%content))))))
 
-(define (s3/write! loc content (ctype) (err s3errs))
+(define (s3/write! loc content (ctype) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
   (debug%watch
-      (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err content ctype)
-    ;; '(("x-amx-acl" . "public-read"))
-    loc ctype))
+      (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc)
+	err content ctype headers)
+    loc ctype headers))
 
-(define (s3/delete! loc (err s3errs))
+(define (s3/delete! loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
   (debug%watch (s3/op "DELETE"
 		   (s3loc-bucket loc)
-		   (s3loc-path loc) err #f "") loc))
+		   (s3loc-path loc) err #f "" headers) loc))
 
 (module-export! '{s3/write! s3/delete!})
 
@@ -423,20 +425,20 @@
 		   src))))))
 (define s3/link! s3loc/link!)
 
-(define (s3loc/content loc (text #t) (err s3errs))
+(define (s3loc/content loc (text #t) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
-       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err ""))
+       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" headers))
 	      (status (get req 'response)))
 	 (if (and status (>= 299 status 200))
 	     (get req '%content)
 	     (and err (error S3FAILURE S3LOC/CONTENT req))))))
 (define s3/get s3loc/content)
 
-(define (s3/get+ loc (text #t) (err s3errs))
+(define (s3/get+ loc (text #t) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err ""))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" headers))
 	 (status (get req 'response)))
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
@@ -450,13 +452,14 @@
 
 ;;; Working with S3 'dirs'
 
-(define (s3/list loc (err s3errs))
+(define (s3/list loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" "text" '()
-		     "delimiter" "/"
-		     "prefix" (if (has-prefix (s3loc-path loc) "/")
-				  (slice (s3loc-path loc) 1)
-				   (s3loc-path loc))))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" 
+		err "" headers
+		"delimiter" "/"
+		"prefix" (if (has-prefix (s3loc-path loc) "/")
+			     (slice (s3loc-path loc) 1)
+			     (s3loc-path loc))))
 	 (content (xmlparse (get req '%content))))
     (choice
      (for-choices (path (xmlcontent (xmlget (xmlget content 'commonprefixes)
@@ -466,9 +469,9 @@
        (make-s3loc (s3loc-bucket loc) path)))))
 (module-export! 's3/list)
 
-(define (s3/list* loc (err s3errs))
+(define (s3/list* loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" "text" '()
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" '()
 		     "prefix" (if (has-prefix (s3loc-path loc) "/")
 				  (slice (s3loc-path loc) 1)
 				  (s3loc-path loc))))
@@ -483,11 +486,11 @@
 
 ;;; Recursive deletion
 
-(define (s3/axe! loc (err s3errs))
+(define (s3/axe! loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (let ((paths (s3/list* loc err)))
     (do-choices (path (s3/list* loc err))
-      (s3/delete! path))))
+      (s3/delete! path headers))))
 (module-export! 's3/axe!)
 
 ;;; Some test code
