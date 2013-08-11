@@ -87,7 +87,9 @@
 		 (xform
 		  (gp/save! savepath (xform (get fetched 'content)) ctype))
 		 (else (gp/save! savepath (get fetched 'content) ctype)))
-	   (when fetched
+	   (when (and fetched (test fetched 'content)
+		      (or (string? (get fetched 'content))
+			  (packet? (get fetched 'content))))
 	     (lognotice "Copied " (length (get fetched 'content))
 			" from\n\t" absref
 			"\n  to\t " savepath
