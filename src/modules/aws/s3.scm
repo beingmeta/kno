@@ -292,7 +292,7 @@
   ;; '(("x-amx-acl" . "public-read"))
   (debug%watch (s3/op "DELETE"
 		   (s3loc-bucket loc)
-		   (s3loc-path loc) err #f "" headers) loc))
+		   (s3loc-path loc) err "" #f headers) loc))
 
 (module-export! '{s3/write! s3/delete!})
 
@@ -357,9 +357,9 @@
 	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
 		(textsubst (s3loc-path loc) (cadr rule))))))))
 
-(define (s3loc/get loc (err s3errs))
+(define (s3loc/get loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err ""))
+  (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" "text" headers))
 
 (define (s3loc/head loc)
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -429,7 +429,8 @@
   (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
-       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" headers))
+       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
+		     err "" "text" headers ))
 	      (status (get req 'response)))
 	 (if (and status (>= 299 status 200))
 	     (get req '%content)
@@ -438,7 +439,8 @@
 
 (define (s3/get+ loc (text #t) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" headers))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
+		err "" "text"headers))
 	 (status (get req 'response)))
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
@@ -455,7 +457,7 @@
 (define (s3/list loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" 
-		err "" headers
+		err "" "text" headers
 		"delimiter" "/"
 		"prefix" (if (has-prefix (s3loc-path loc) "/")
 			     (slice (s3loc-path loc) 1)
@@ -471,7 +473,7 @@
 
 (define (s3/list* loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" '()
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" err "" "text" headers
 		     "prefix" (if (has-prefix (s3loc-path loc) "/")
 				  (slice (s3loc-path loc) 1)
 				  (s3loc-path loc))))
