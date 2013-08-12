@@ -62,6 +62,8 @@
 	(remote  (gp/modified absref)))
     (or (not current) (not remote) (time>? current remote))))
 
+(define gp->s gpath->string)
+
 (define (sync! ref savepath absref options ctype urlmap
 	       (checksync) (exists))
   (default! urlmap (getopt options 'urlmap))
@@ -70,19 +72,19 @@
 	    (not (getopt options 'updateall (config 'updateall)))))
   (default! exists (gp/exists? savepath))
   (cond ((and checksync exists (needsync? savepath absref))
-	 (loginfo "Content " ref " is up to date in " savepath
-		  " from " absref)
+	 (loginfo "Content " ref " is up to date in " (gp->s savepath)
+		  " from " (gp->s absref))
 	 #t)
 	(else
 	 (let ((fetched (gp/fetch+ absref))
 	       (xform (getopt options 'xform)))
 	   (cond ((and exists (not fetched))
 		  (logwarn "Couldn't update content for " ref
-			   " from " absref ", using current " savepath))
+			   " from " (gp->s absref) ", using current " (gp->s savepath)))
 		 ((or (not fetched)
 		      (fail? (get fetched 'content))
 		      (not (get fetched 'content)))
-		  (logwarn "Couldn't download content from " absref
+		  (logwarn "Couldn't download content from " (gp->s absref)
 			   " for " ref))
 		 (xform
 		  (gp/save! savepath (xform (get fetched 'content)) ctype))
@@ -91,8 +93,8 @@
 		      (or (string? (get fetched 'content))
 			  (packet? (get fetched 'content))))
 	     (lognotice "Copied " (length (get fetched 'content))
-			" from\n\t" absref
-			"\n  to\t " savepath
+			" from\n\t" (gp->s absref)
+			"\n  to\t " (gp->s savepath)
 			"\n  for\t" ref)
 	     (store! urlmap (list absref) (get fetched 'modified)))
 	   (or fetched exists)))))
@@ -172,10 +174,10 @@
 (define (dom/localize! dom base saveto read (options #f) (urlmap) (doanchors))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
   (default! doanchors (getopt options 'doanchors #f))
-  (lognotice "Localizing references from " (write base)
+  (lognotice "Localizing references from " (write (gp->s base))
 	     " to " (write read) ", copying content to " 
-	     (if (singleton? saveto) (write saveto)
-		 (do-choices saveto (printout "\n\t" (write saveto)))))
+	     (if (singleton? saveto) (write (gp->s saveto))
+		 (do-choices saveto (printout "\n\t" (write (gp->s saveto))))))
   (debug%watch "DOM/LOCALIZE!" base saveto read options doanchors)
   (let ((head (dom/find dom "HEAD" #f))
 	(files {}))
