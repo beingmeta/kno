@@ -36,15 +36,15 @@
 (define (hashfs/save! hashfs path data (type))
   (default! type (path->mimetype
 		  path (if (packet? data) "application" "text")))
-  (if (has-prefix path "/") (set! path (slice path 1)))
+  (unless (has-prefix path "/") (set! path (glom "/" path)))
   (store! (hashfs-files hashfs) path
 	  `#[data ,data ctype ,type modified ,(gmtimestamp)]))
 
 (define (hashfs/get hashfs path)
-  (if (has-prefix path "/") (set! path (slice path 1)))
+  (unless (has-prefix path "/") (set! path (glom "/" path)))
   (get (get (hashfs-files hashfs) path) 'data))
 (define (hashfs/get+ hashfs path)
-  (if (has-prefix path "/") (set! path (slice path 1)))
+  (unless (has-prefix path "/") (set! path (glom "/" path)))
   (get (hashfs-files hashfs) path))
 
 (define (hashfs/commit! hashfs)
