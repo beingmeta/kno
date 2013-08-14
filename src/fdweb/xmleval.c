@@ -39,7 +39,7 @@ static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
 static fdtype pnode_symbol, pbody_symbol, begin_symbol;
 static fdtype comment_symbol, cdata_symbol;
 
-static fdtype xattrib_overlay, escape_id, attribids, piescape_symbol;
+static fdtype xattrib_overlay, attribids, piescape_symbol;
 
 void *inherit_node_data(FD_XML *node)
 {
@@ -550,49 +550,52 @@ FD_EXPORT int fd_xmleval_attribfn
 
 static fdtype xattrib_slotid;
 
+static int check_symbol_entity(u8_byte *start,u8_byte *end);
+
 FD_EXPORT
 void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 {
-  fdtype escape=fd_get((fdtype)(inherit_node_data(node)),escape_id,FD_VOID);
   if (len==0) {}
-  else if (FD_VOIDP(escape)) 
+  else if ((strchr(s,'&'))==NULL)
     fd_add_content(node,fd_extract_string(NULL,s,s+len));
-  else if (FD_STRINGP(escape)) {
-    int escape_len=FD_STRLEN(escape);
-    u8_string escape_string=FD_STRDATA(escape);
-    u8_string start=s, scan=strstr(s,escape_string), limit=s+len;
-    while ((scan) && (scan<limit)) {
-      U8_INPUT in; fdtype expr;
-      if (scan>start)
-	fd_add_content(node,fd_extract_string(NULL,start,scan));
-      scan=scan+escape_len; U8_INIT_STRING_INPUT(&in,limit-scan,scan);
-      if (*scan=='$') {
-	/* This handles infix expressions, ending at the next $ */
-	u8_string start=scan+1, end=strchr(start,'$');
-	u8_byte buf[128];
-	if ((end==NULL) || (end-start>100)) {
-	  /* If there's not a terminating $, or the string is really
-	     long (missing close $), just call the parser,
-	     skipping the initial $. */
-	  u8_getc(&in); expr=fd_parser(&in);}
-	else {
-	  strncpy(buf,start,end-start); buf[end-start]='\0';
-	  expr=parse_infix(buf);
-	  in.u8_inptr=end+1;}}
-      else expr=fd_parser(&in);
-      if (FD_STRINGP(expr)) {
-	struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-	fd_unparse(&out,expr); fd_decref(expr);
-	expr=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outptr);
-	fd_add_content(node,expr);
-	fd_decref(expr);}
-      else fd_add_content(node,expr);
-      start=in.u8_inptr; scan=strstr(start,escape_string);}
-    if ((scan==NULL) && (start) && (*start))
-      fd_add_content(node,fdtype_string(start));
-    else if (scan>start)
+  else if (strchr(s,'&')!=NULL) {
+    u8_byte *start=s, *scan=strchr(s,'&'), *lim=s+len;
+    if (scan>start)
+      fd_add_content(node,fd_extract_string(NULL,start,scan));
+    while (scan) {
+      if (scan[1]=='#') scan=strchr(scan+1,'&');
+      else {
+	u8_byte *semi=strchr(scan,';');
+	if ((semi)&&((semi-start)<40)&&
+	    (check_symbol_entity(scan+1,semi-1))) {
+	  /* Make a different kind of node to be evaluated */
+	  struct U8_OUTPUT out; u8_byte buf[64];
+	  fdtype symbol=FD_VOID;
+	  u8_byte *s=scan+1, *end=semi;
+	  U8_INIT_FIXED_OUTPUT(&out,64,buf);
+	  while (s<end) {
+	    int c=u8_sgetc(&s); c=u8_toupper(c);
+	    u8_putc(&out,c);}
+	  symbol=fd_intern(out.u8_outbuf);
+	  fd_add_content(node,symbol);
+	  start=semi+1; scan=strchr(start,'&');}
+	else scan=strchr(scan+1,'&');}}
+    if (start<scan)
       fd_add_content(node,fd_extract_string(NULL,start,scan));}
   else fd_add_content(node,fd_init_string(NULL,len,s));
+}
+
+static int check_symbol_entity(u8_byte *start,u8_byte *end)
+{
+  u8_byte *scan=start;
+  if (((end-start)<=16)&&(u8_parse_entity(scan,NULL)>=0))
+    return 0;
+  else while (scan<end) {
+    int c=u8_sgetc(&scan);
+    if (u8_isspace(c)) return 0;
+    else if ((u8_isalnum(c))||(u8_ispunct(c))) continue;
+    else return 0;}
+  return 1;
 }
 
 FD_EXPORT
@@ -656,17 +659,21 @@ static int test_piescape(FD_XML *xml,u8_string content,int len)
   else {
     fdtype piescape=fd_get((fdtype)(inherit_node_data(xml)),
 			   piescape_symbol,FD_VOID);
-    u8_string piend=strchr(content,' ');
-    int pielen=((piend)?((piend-content)-1):(0));
-    FD_DO_CHOICES(pie,piescape) 
-      if ((FD_STRINGP(pie)) && (FD_STRLEN(pie)==0)) {
-	if (strncmp(content,"? ",2)==0) return 2;
-	else if (strncmp(content,"?(",2)==0) return 1;}
-      else if ((FD_STRINGP(pie)) && (FD_STRLEN(pie)==pielen)) {
-	if (strncmp(content+1,FD_STRDATA(pie),FD_STRLEN(pie))==0) {
-	  FD_STOP_DO_CHOICES;
-	  return 1+FD_STRLEN(pie);}}
-    return 0;}
+    if (FD_VOIDP(piescape)) {
+      if (strncmp(content,"?=",2)==0) return 2;
+      else return 0;}
+    else {
+      u8_string piend=strchr(content,' ');
+      int pielen=((piend)?((piend-content)-1):(0));
+      FD_DO_CHOICES(pie,piescape) 
+	if ((FD_STRINGP(pie)) && (FD_STRLEN(pie)==0)) {
+	  if (strncmp(content,"? ",2)==0) return 2;
+	  else if (strncmp(content,"?(",2)==0) return 1;}
+	else if ((FD_STRINGP(pie)) && (FD_STRLEN(pie)==pielen)) {
+	  if (strncmp(content+1,FD_STRDATA(pie),FD_STRLEN(pie))==0) {
+	    FD_STOP_DO_CHOICES;
+	    return 1+FD_STRLEN(pie);}}
+      return 0;}}
 }
 
 static FD_XML *handle_xmleval_pi
@@ -757,12 +764,6 @@ static FD_XML *handle_xmleval_pi
 	else if (FD_TABLEP(module)) {
 	  scheme_env->parent=fd_make_export_env(module,scheme_env->parent);}
 	i++;}
-      else if ((strncmp(attribs[i],"escape=",7))==0) {
-	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+7));
-	fd_lispenv xml_env=(fd_lispenv)(xml->data);
-	fd_bind_value(escape_id,arg,xml_env);
-	fd_decref(arg);
-	i++;}
       else if ((strncmp(attribs[i],"piescape=",9))==0) {
 	fdtype arg=fd_lispstring(get_pi_string(attribs[i]+9));
 	fd_lispenv xml_env=(fd_lispenv)(xml->data);
@@ -840,11 +841,14 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
     else if (FD_ABORTP(result)) {
       fd_clear_errors(1);
       return FD_VOID;}
+    else if (FD_STRINGP(result)) {
+      u8_putn(out,FD_STRDATA(result),FD_STRLEN(result));
+      fd_decref(result);}
     else {
       /* Otherwise, output it as XML */
       fd_dtype2xml(out,result,env);
       fd_decref(result);}}
-  else if (FD_STRINGP(xml))
+  else if (FD_STRINGP(xml)) 
     u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
   else if (FD_OIDP(xml))
     if (fd_oid_test(xml,elt_name,FD_VOID)) {
@@ -1445,7 +1449,6 @@ FD_EXPORT void fd_init_xmleval_c()
 
   xml_env_symbol=fd_intern("%XMLENV");
   xattrib_overlay=fd_intern("%XATTRIB");
-  escape_id=fd_intern("%ESCAPE");
   piescape_symbol=fd_intern("%PIESCAPE");
   xmlns_symbol=fd_intern("%XMLNS");
 
