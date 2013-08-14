@@ -50,6 +50,18 @@ void *inherit_node_data(FD_XML *node)
   return NULL;
 }
 
+FD_INLINE_FCN void entify(u8_output out,u8_string value,int len)
+{
+  u8_byte *scan=value, *lim=value+len; 
+  while (scan<lim) {
+    int c=u8_sgetc(&scan);
+    if (c<0) {}
+    else if (c=='<') u8_puts(out,"&#60;");
+    else if (c=='>') u8_puts(out,"&#62;");
+    else if (c=='&') u8_puts(out,"&#38;");
+    else u8_putc(out,c);}
+}
+
 /* Accessing xml attributes and elements. */
 
 FD_EXPORT
@@ -260,7 +272,7 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
       if (!(FD_PAIRP(content))) return FD_FALSE;
       u8_puts(out,"<!--");
       FD_DOLIST(elt,content) {
-	if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
+	if (FD_STRINGP(elt)) entify(out,FD_STRDATA(elt),FD_STRLEN(elt));}
       u8_puts(out,"-->");
       return FD_VOID;}
     else if (fd_test(xml,elt_name,cdata_symbol)) {
@@ -290,7 +302,7 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 	FD_DOLIST(item,content) {
 	  fdtype result=FD_VOID;
 	  if (FD_STRINGP(item))
-	    u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
+	    entify(out,FD_STRDATA(item),FD_STRLEN(item));
 	  else result=fd_xmleval(out,item,env);
 	  if (FD_VOIDP(result)) {}
 	  else if (FD_ABORTP(result)) {
@@ -845,7 +857,7 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
       fd_dtype2xml(out,result,env);
       fd_decref(result);}}
   else if (FD_STRINGP(xml))
-    u8_putn(out,FD_STRDATA(xml),FD_STRLEN(xml));
+    entify(out,FD_STRDATA(xml),FD_STRLEN(xml));
   else if (FD_OIDP(xml))
     if (fd_oid_test(xml,elt_name,FD_VOID)) {
       fdtype handler=get_xml_handler(xml,env);
@@ -1080,7 +1092,7 @@ static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
   if (FD_PAIRP(body)) {
     FD_DOLIST(elt,body)
       if (FD_STRINGP(elt))
-	u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));
+	entify(out,FD_STRDATA(elt),FD_STRLEN(elt));
       else {
 	fdtype value=fd_xmleval(out,elt,inner_env);
 	if (FD_ABORTP(value)) {
