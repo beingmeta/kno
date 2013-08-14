@@ -171,11 +171,15 @@ static fdtype decode_entities_prim(fdtype input)
 static fdtype encode_entities_prim(fdtype input,fdtype also_encode)
 {
   struct U8_OUTPUT out;
-  u8_string scan=FD_STRDATA(input); int c=u8_sgetc(&scan);
-  char *also=((FD_STRINGP(also_encode))?(FD_STRDATA(also_encode)):(NULL));
+  u8_string scan=FD_STRDATA(input);
+  unsigned char *also=((FD_STRINGP(also_encode))?(FD_STRDATA(also_encode)):
+		       (FD_FALSEP(also_encode))?(NULL):
+		       ((unsigned char *)"<&>"));
+  int c=u8_sgetc(&scan);
   U8_INIT_OUTPUT(&out,FD_STRLEN(input));
   while (c>=0) {
-    if ((c>=128)||((also)&&(strchr(also,c)))) {}
+    if ((c>=128)||((also)&&(strchr(also,c)))) 
+      u8_printf(&out,"&#x%x;",c);
     else u8_putc(&out,c);
     c=u8_sgetc(&scan);}
   return fd_stream2string(&out);
