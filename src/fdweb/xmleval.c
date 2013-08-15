@@ -302,7 +302,7 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 	FD_DOLIST(item,content) {
 	  fdtype result=FD_VOID;
 	  if (FD_STRINGP(item))
-	    entify(out,FD_STRDATA(item),FD_STRLEN(item));
+	    u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
 	  else result=fd_xmleval(out,item,env);
 	  if (FD_VOIDP(result)) {}
 	  else if (FD_ABORTP(result)) {
