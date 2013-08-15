@@ -156,5 +156,9 @@ define sbooksweb
     set args /var/run/fdserv/$arg0.sock CONFIG=/src/sbooks/site.cfg PRELOAD=/src/sbooks/preload.scm TRACEWEB=yes
 end
 
+define staticweb
+    set args /var/run/fdserv/static.sock
+end
+
 # Init some tracing configurations
 set env FD_TRACEWEB=yes

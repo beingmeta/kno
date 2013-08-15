@@ -574,33 +574,39 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
     u8_byte *start=s, *scan=strchr(s,'&'), *lim=s+len;
     if (scan>start)
       fd_add_content(node,fd_extract_string(NULL,start,scan));
-    while (scan) {
+    while ((scan)&&(scan<lim)) {
+      /* Definitely a character entity */
       if (scan[1]=='#') scan=strchr(scan+1,'&');
       else {
 	u8_byte *semi=strchr(scan,';');
+	/* A symbol entity is just included as a symbol, but we
+	   don't want to override any valid character entities,
+	   so we check. */
 	if ((semi)&&((semi-start)<40)&&
 	    (check_symbol_entity(scan+1,semi-1))) {
 	  /* Make a different kind of node to be evaluated */
 	  struct U8_OUTPUT out; u8_byte buf[64];
 	  fdtype symbol=FD_VOID;
-	  u8_byte *s=scan+1, *end=semi;
+	  u8_byte *as=scan+1, *end=semi;
 	  U8_INIT_FIXED_OUTPUT(&out,64,buf);
-	  while (s<end) {
-	    int c=u8_sgetc(&s); c=u8_toupper(c);
+	  while (as<end) {
+	    int c=u8_sgetc(&as); c=u8_toupper(c);
 	    u8_putc(&out,c);}
 	  symbol=fd_intern(out.u8_outbuf);
+	  if (start<scan)
+	    fd_add_content(node,fd_extract_string(NULL,start,scan));
 	  fd_add_content(node,symbol);
 	  start=semi+1; scan=strchr(start,'&');}
-	else scan=strchr(scan+1,'&');}}
-    if (start<scan)
-      fd_add_content(node,fd_extract_string(NULL,start,scan));}
+	else scan=strchr(start+1,'&');}}
+    if (start<(s+len))
+      fd_add_content(node,fd_extract_string(NULL,start,lim));}
   else fd_add_content(node,fd_init_string(NULL,len,s));
 }
 
 static int check_symbol_entity(u8_byte *start,u8_byte *end)
 {
-  u8_byte *scan=start;
-  if (((end-start)<=16)&&(u8_parse_entity(scan,NULL)>=0))
+  u8_byte *scan=start, *chref_end=end;
+  if (((end-start)<=16)&&(u8_parse_entity(scan,&chref_end)>=0))
     return 0;
   else while (scan<end) {
     int c=u8_sgetc(&scan);
@@ -716,28 +722,30 @@ static FD_XML *handle_xmleval_pi
 	  set_xml_env(xml,new_xml_env);}
 	i++;}
       else if ((strncmp(attribs[i],"config=",7))==0) {
-	u8_string arg=get_pi_string(attribs[i]+7);
-	u8_string filename=fd_get_component(arg);
-	int retval=fd_load_config(filename);
-	if (retval<0) {
-	  u8_condition c; u8_context cxt; u8_string details;
-	  fdtype irritant;
-	  if (fd_poperr(&c,&cxt,&details,&irritant))
-	    if ((FD_VOIDP(irritant)) && (details==NULL) && (cxt==NULL))
-	      u8_log(LOG_WARN,"FDXML_CONFIG",
-		     _("In config '%s' %m"),filename,c);
-	    else if ((FD_VOIDP(irritant)) && (details==NULL))
-	      u8_log(LOG_WARN,"FDXML_CONFIG",
-		     _("In config '%s' %m@%s"),filename,c,cxt);
-	    else if (FD_VOIDP(irritant))
-	      u8_log(LOG_WARN,"FDXML_CONFIG",
-		     _("In config '%s' [%m@%s] %s"),filename,c,cxt,details);
+	u8_string arg=get_pi_string(attribs[i]+7); i++;
+	if (strchr(arg,'=')) 
+	  fd_config_assignment(arg);
+	else {
+	  u8_string filename=fd_get_component(arg);
+	  int retval=fd_load_config(filename);
+	  if (retval<0) {
+	    u8_condition c; u8_context cxt; u8_string details;
+	    fdtype irritant;
+	    if (fd_poperr(&c,&cxt,&details,&irritant))
+	      if ((FD_VOIDP(irritant)) && (details==NULL) && (cxt==NULL))
+		u8_log(LOG_WARN,"FDXML_CONFIG",
+		       _("In config '%s' %m"),filename,c);
+	      else if ((FD_VOIDP(irritant)) && (details==NULL))
+		u8_log(LOG_WARN,"FDXML_CONFIG",
+		       _("In config '%s' %m@%s"),filename,c,cxt);
+	      else if (FD_VOIDP(irritant))
+		u8_log(LOG_WARN,"FDXML_CONFIG",
+		       _("In config '%s' [%m@%s] %s"),filename,c,cxt,details);
+	      else u8_log(LOG_WARN,"FDXML_CONFIG",
+			  _("In config '%s' [%m@%s] %s %q"),
+			  filename,c,cxt,details,irritant);
 	    else u8_log(LOG_WARN,"FDXML_CONFIG",
-			_("In config '%s' [%m@%s] %s %q"),
-			filename,c,cxt,details,irritant);
-	  else u8_log(LOG_WARN,"FDXML_CONFIG",
-		      _("In config '%s', unknown error"),filename);}
-	i++;}
+			_("In config '%s', unknown error"),filename);}}}
       else if ((strncmp(attribs[i],"module=",7))==0) {
 	u8_string arg=get_pi_string(attribs[i]+7);
 	fdtype module_name=fd_parse(arg);
